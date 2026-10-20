@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=calculator,industry=video,icon=⏱️,bg=#16a34a">
+<meta name="description" content="输入视频原时长与播放倍速，立刻算出倍速后的观看时长与节省时间；支持时间码 HH:MM:SS:FF 与秒互转、按帧率换算帧数，也可用目标时长反推所需倍速。附常见倍速对照表。">
+<meta name="keywords" content="视频时长计算,视频时长计算在线,在线视频时长计算,数学计算,视频处理,视频倍速时长计算器,在线工具,免费工具,ToolBox">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://chenguangwu.github.io/tools/video/video-speed.html">
+<meta property="og:title" content="视频倍速时长计算器 - 附常见倍速对照表">
+<meta property="og:description" content="输入视频原时长与播放倍速，立刻算出倍速后的观看时长与节省时间；支持时间码 HH:MM:SS:FF 与秒互转、按帧率换算帧数，也可用目标时长反推所需倍速。附常见倍速对照表。">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://chenguangwu.github.io/tools/video/video-speed.html">
+<meta name="twitter:card" content="summary">
+
+<title>视频倍速时长计算器 - 附常见倍速对照表</title>
+<meta name="theme-color" content="#FF6B35">
+<link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+<link rel="icon" href="../../favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="apple-touch-icon" href="../../apple-touch-icon.png">
+<link rel="stylesheet" href="../../css/common.css">
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="../../js/common.js" defer></script>
+<style>
+.speed-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(70px,1fr));gap:8px;margin:12px 0;}
+.speed-btn{padding:10px 6px;border:2px solid var(--border);border-radius:8px;text-align:center;cursor:pointer;font-size:13px;font-weight:600;transition:all 0.2s;background:var(--card-bg);}
+.speed-btn.active{border-color:var(--primary);background:rgba(102,126,234,0.08);color:var(--primary);}
+.time-display{background:linear-gradient(135deg,rgba(22,163,74,0.1),rgba(34,197,94,0.1));border-radius:12px;padding:20px;text-align:center;margin-bottom:16px;}
+.time-big{font-size:42px;font-weight:700;color:var(--primary);}
+.time-label{font-size:13px;color:var(--text-muted);margin-top:4px;}
+.compare-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin:12px 0;}
+.compare-card{background:var(--result-bg);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center;}
+.compare-card .lbl{font-size:11px;color:var(--text-muted);}
+.compare-card .val{font-size:18px;font-weight:700;color:var(--heading);margin-top:4px;}
+.compare-card .save{font-size:11px;color:var(--text-muted);}
+.speed-table{width:100%;border-collapse:collapse;font-size:13px;margin-top:12px;}
+.speed-table th,.speed-table td{padding:8px;border:1px solid var(--border);text-align:center;}
+.speed-table th{background:var(--th-bg);}
+.timecode-input{font-family:'SF Mono',monospace;font-size:15px;letter-spacing:1px;}
+</style>
+
+
+<script type="application/ld+json">
+{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "倍速后音调和语速会变吗？", "acceptedAnswer": {"@type": "Answer", "text": "本工具只计算时长，不改变实际播放。实际播放是否变调取决于播放器：纯速率播放会变调变快，开启「不变调变速」（如 YouTube 倍速）则保持音高、只改速度。计算逻辑始终是 新时长=原时长÷倍速。"}}, {"@type": "Question", "name": "SMPTE 时间码的 FF 是什么？", "acceptedAnswer": {"@type": "Answer", "text": "FF 是帧数（Frame），= 秒数 × 帧率(fps) 后取模 60（对 30fps 而言每 30 帧进 1 秒）。它用于剪辑软件对齐素材；本工具同时给出总帧数=时长×fps，方便和 PR/达芬奇等工程对照。"}}]}
+</script>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://chenguangwu.github.io/"},{"@type":"ListItem","position":2,"name":"视频处理","item":"https://chenguangwu.github.io/tools/video/index.html"},{"@type":"ListItem","position":3,"name":"视频倍速时长计算器","item":"https://chenguangwu.github.io/tools/video/video-speed.html"}]}
+</script>
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"视频时长计算","url":"https://chenguangwu.github.io/tools/video/video-speed.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"输入视频原时长与播放倍速，立刻算出倍速后的观看时长与节省时间；支持时间码 HH:MM:SS:FF 与秒互转、按帧率换算帧数，也可用目标时长反推所需倍速。附常见倍速对照表。","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+</script>
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
+
+<meta name="twitter:title" content="视频倍速时长计算器 - 附常见倍速对照表">
+<meta name="twitter:description" content="输入视频原时长与播放倍速，立刻算出倍速后的观看时长与节省时间；支持时间码 HH:MM:SS:FF 与秒互转、按帧率换算帧数，也可用目标时长反推所需倍速。附常见倍速对照表。">
+
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script src="../../js/i18n.js" defer></script>
+<script src="../../js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+<meta name="title-en" content="Video Duration Calculate">
+<meta name="desc-en" content="Video Duration Calculate - online utility on ToolBox.">
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/video/video-speed.html">
+<link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/video/video-speed.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/video/video-speed.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/video/video-speed.html">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:locale:alternate" content="zh_TW">
+<meta property="og:locale:alternate" content="en_US">
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
+
+<script src="/js/tool-ux.js" defer></script>
+<!-- TOOLBOX-TOOL-UX -->
+
+<script src="/js/analytics.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+<!-- TOOLBOX-TTZZ -->
+<script>
+(function(){try{
+var el = document.createElement("script");
+el.src = "https://lf1-cdn-tos.bytegoofy.com/goofy/ttzz/push.js?85d6452aa9be4d693b16cd48535a8c7ae57542f6788a41682e745be8eb99b35a8a24d2f724c31ebe20c1e4e6fba6d91caf576100b02a2870c72f38fc574066fef065d152c73bf1cbb2ebad3b5b5265d8";
+el.id = "ttzz";
+var s = document.getElementsByTagName("script")[0];
+s.parentNode.insertBefore(el, s);
+}catch(e){}
+})(window);
+</script>
+
+<script src="/js/tool-kit.js" defer></script>
+<!-- TOOLBOX-TOOL-KIT -->
+</head>
+<body>
+<h1 class="sr-only">视频时长计算</h1>
+
+<div class="nav">
+  <a href="../../index.html">← ToolBox</a>
+  <span>/ 视频时长计算</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+
+
+
+<nav class="breadcrumb" aria-label="面包屑导航" data-breadcrumb="1">
+  <a href="../../index.html">首页</a>
+  <span class="bc-sep">‹</span>
+  <a href="index.html">🎬 视频处理</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">视频时长计算</span>
+</nav>
+
+<div class="tool-guide-link" data-guide-link="1">
+  <a href="../../guides/video-speed-guide.html">📖 查看「视频倍速时长计算器使用指南」</a>
+</div>
+<div class="container">
+  <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
+    <h2 data-zh="⏱️ 视频倍速时长计算器">Video Duration Calculate</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="计算倍速播放后的时长、时间码转换、剪辑时长估算">Video Duration Calculate</p>
+<!-- TOOLBOX-POLISH -->
+
+<div class="formula-box">
+  <div class="formula-title">📐 工作原理与说明</div>
+  <p class="formula-desc">倍速播放时长 <b>= 原时长 ÷ 倍速</b>（如 60 分钟 ×1.5 倍速 ≈ 40 分钟）。时间码 HH:MM:SS:FF（FF 为帧）与秒可互转；剪辑片段时长 = 出点 − 入点。</p>
+  <ul class="formula-list">
+    <li>帧率常见 24/25/30 fps，影响时间码与帧精度。</li>
+    <li>纯前端计算，数据不上传。</li>
+  </ul>
+</div>
+
+
+
+    <div class="tabs">
+      <button type="button" class="tab-btn active" onclick="switchTab('calc',this)">⏱️ 计算</button>
+      <button type="button" class="tab-btn" onclick="switchTab('ref',this)">📋 参考</button>
+      <button type="button" class="tab-btn" onclick="switchTab('history',this)">📜 历史</button>
+    </div>
+
+    <div id="tab-calc" class="tab-content active">
+      <div class="input-row">
+        <div><label>小时</label><input type="number" id="h" value="0" min="0" oninput="calc()"></div>
+        <div><label>分钟</label><input type="number" id="m" value="30" min="0" max="59" oninput="calc()"></div>
+        <div><label>秒</label><input type="number" id="s" value="0" min="0" max="59" oninput="calc()"></div>
+        <div><label>毫秒</label><input type="number" id="ms" value="0" min="0" max="999" oninput="calc()"></div>
+      </div>
+      <div class="input-row">
+        <div><label>时间码 (HH:MM:SS:FF)</label><input type="text" id="timecode" class="timecode-input" placeholder="00:30:00:00" oninput="fromTimecode()"></div>
+      </div>
+      <div class="input-row">
+        <div><label>帧率 (fps)</label><input type="number" id="fps" value="30" min="1" oninput="calc()"></div>
+        <div><label>播放速度</label><input type="number" id="speed" value="1.5" min="0.1" max="16" step="0.1" oninput="calc()"></div>
+        <div><label>目标时长(秒)</label><input type="number" id="targetSec" placeholder="反向计算速度" oninput="reverseCalc()"></div>
+      </div>
+
+      <div>
+        <label style="font-size:13px;color:var(--text-light);margin-bottom:8px;display:block;">快速选择速度</label>
+        <div class="speed-grid" id="speedGrid"></div>
+      </div>
+
+      <div class="toolbar">
+        <div id="video_speedPresets"></div><button type="button" class="btn primary" onclick="calc()">⏱️ 计算</button><button class="btn" type="button" onclick="__video_speedExport()">导出明细 CSV</button>
+        <button type="button" class="btn" onclick="saveRecord()">💾 保存</button>
+        <button type="button" class="btn" onclick="copyResult()">📋 复制</button>
+        <button type="button" class="btn" onclick="resetForm()">🔄 重置</button>
+      </div>
+
+      <div id="result"></div> <div id="video_speedTable"></div> <div id="video_speedDiff"></div> <div id="video_speedChart"></div> <div id="video_speedHist"></div>
+      <div id="tcResult"></div>
+    </div>
+
+    <div id="tab-ref" class="tab-content">
+      <div class="ref-card">
+        <h4>⏱️ 常见倍速时长对照表（30分钟视频）</h4>
+        <div style="overflow-x:auto;">
+          <table class="speed-table">
+            <thead><tr><th>倍速</th><th>时长</th><th>节省</th><th>节省百分比</th><th>适合场景</th></tr></thead>
+            <tbody>
+              <tr><td>0.25x</td><td>120:00</td><td>-90:00</td><td>-300%</td><td>逐帧学习</td></tr>
+              <tr><td>0.5x</td><td>60:00</td><td>-30:00</td><td>-100%</td><td>慢动作细节</td></tr>
+              <tr><td>0.75x</td><td>40:00</td><td>-10:00</td><td>-33%</td><td>听力练习</td></tr>
+              <tr><td>1x</td><td>30:00</td><td>0:00</td><td>0%</td><td>正常播放</td></tr>
+              <tr><td>1.25x</td><td>24:00</td><td>6:00</td><td>20%</td><td>稍快观看</td></tr>
+              <tr><td>1.5x</td><td>20:00</td><td>10:00</td><td>33%</td><td>听课首选</td></tr>
+              <tr><td>1.75x</td><td>17:08</td><td>12:52</td><td>43%</td><td>熟练内容</td></tr>
+              <tr><td>2x</td><td>15:00</td><td>15:00</td><td>50%</td><td>快速浏览</td></tr>
+              <tr><td>2.5x</td><td>12:00</td><td>18:00</td><td>60%</td><td>复习回顾</td></tr>
+              <tr><td>3x</td><td>10:00</td><td>20:00</td><td>67%</td><td>找关键点</td></tr>
+              <tr><td>4x</td><td>7:30</td><td>22:30</td><td>75%</td><td>极速扫片</td></tr>
+              <tr><td>8x</td><td>3:45</td><td>26:15</td><td>88%</td><td>预览定位</td></tr>
+              <tr><td>16x</td><td>1:52</td><td>28:08</td><td>94%</td><td>快速跳转</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="ref-card">
+        <h4>🎬 视频帧率标准</h4>
+        <table class="speed-table">
+          <thead><tr><th>帧率</th><th>标准</th><th>用途</th><th>每帧时长</th></tr></thead>
+          <tbody>
+            <tr><td>24fps</td><td>电影标准</td><td>电影、电视剧</td><td>41.67ms</td></tr>
+            <tr><td>25fps</td><td>PAL制式</td><td>欧洲/中国电视</td><td>40.00ms</td></tr>
+            <tr><td>29.97fps</td><td>NTSC丢帧</td><td>美国/日本电视</td><td>33.37ms</td></tr>
+            <tr><td>30fps</td><td>非丢帧</td><td>网络视频、直播</td><td>33.33ms</td></tr>
+            <tr><td>50fps</td><td>PAL隔行</td><td>体育赛事</td><td>20.00ms</td></tr>
+            <tr><td>60fps</td><td>高帧率</td><td>游戏、慢动作</td><td>16.67ms</td></tr>
+            <tr><td>120fps</td><td>超高帧率</td><td>慢动作摄影</td><td>8.33ms</td></tr>
+            <tr><td>240fps</td><td>超慢动作</td><td>运动分析</td><td>4.17ms</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="ref-card">
+        <h4>💡 倍速观看技巧</h4>
+        <ul>
+          <li><strong>1.25-1.5x</strong>：适合知识类视频，基本不丢失信息</li>
+          <li><strong>1.5-2x</strong>：适合教程、讲座，需要集中注意力</li>
+          <li><strong>2-3x</strong>：适合娱乐内容、快速浏览剧情</li>
+          <li><strong>3x+</strong>：只适合快速定位片段，不适合正常观看</li>
+          <li><strong>0.5-0.75x</strong>：适合语言学习、动作细节观察</li>
+        </ul>
+      </div>
+    </div>
+
+    <div id="tab-history" class="tab-content">
+      <div class="history-header"><h3>📜 计算记录</h3><button type="button" class="btn danger" onclick="clearHistory()" style="padding:6px 12px;font-size:12px;">清空</button></div>
+      <div class="history-list" id="historyList"></div>
+    </div>
+  </div>
+
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto 0;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+.deep-dive a.term-link{color:var(--tool-accent,#FF6B35);text-decoration:none;border-bottom:1px dashed currentColor;}
+.deep-dive a.term-link:hover{border-bottom-style:solid;}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：视频倍速时长计算器</h2>
+<h3>💡 常见使用场景</h3>
+<ul class="dd-list">
+<li><a class="term-link" href="/tools/edu/exam-study-planner.html">学习计划</a>：长视频/网课用 1.5x 或 2x 倍速，按原时长反推能在多久看完，安排每日进度。</li>
+<li>录制与剪辑换算：已知总时长与帧率，求总帧数；或已知帧数求时长，用于导出参数核对。</li>
+<li>限定时间看完：要在 30 分钟内看完 45 分钟视频，反向求需要的倍速（45÷30=1.5x）。</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">算例（原时长 00:45:00，即 2700 秒）</div><div class="dd-ex-body">新时长 = 原时长 ÷ 倍速。①1.5x：2700÷1.5=1800 秒=00:30:00，节省 (2700−1800)÷2700×100%≈33%。②2x：2700÷2=1350 秒=00:22:30，节省 50%。③反向：目标 30 分钟(1800秒)看完 45 分钟内容，所需倍速=2700÷1800=1.5x。总帧数（@30fps）=2700×30=81000 帧；SMPTE 时间码 FF=秒×fps 取模，00:45:00 对应 00:45:00:00。</div></div>
+<h3>❓ 常见问题（FAQ）</h3>
+<dl class="dd-faq">
+<dt>倍速后音调和语速会变吗？</dt><dd>本工具只计算时长，不改变实际播放。实际播放是否变调取决于播放器：纯速率播放会变调变快，开启「不变调变速」（如 YouTube 倍速）则保持音高、只改速度。计算逻辑始终是 新时长=原时长÷倍速。</dd>
+<dt>SMPTE 时间码的 FF 是什么？</dt><dd>FF 是帧数（Frame），= 秒数 × 帧率(fps) 后取模 60（对 30fps 而言每 30 帧进 1 秒）。它用于剪辑软件对齐素材；本工具同时给出总帧数=时长×fps，方便和 PR/达芬奇等工程对照。</dd>
+</dl>
+</div>
+</section>
+<!-- 注意事项区块 -->
+<div class="tool-notes" style="--tool-accent:#FF6B35;">
+  <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
+  <ul>
+      <li>本工具纯前端运行，数据不会上传到服务器</li>
+      <li>建议在主流浏览器（Chrome/Safari/Firefox/Edge）中使用</li>
+      <li>计算结果仅供参考，请以实际应用场景为准</li>
+  </ul>
+</div>
+<!-- /注意事项区块 -->
+</div>
+<script>function __tbInputGuard(_ids,_labels){
+  var __TPL='请填写「%s」后再计算。';
+  var __TPL2="<p style=\"color:var(--danger)\">⚠ 「%s」是本计算的分母，不能为 0。</p>";
+  var _vals=[],_firstBad=-1;
+  var _REQ=['h', 'm', 's', 'ms', 'fps', 'speed'];
+  for(var _i=0;_i<_ids.length;_i++){
+    var _e=document.getElementById(_ids[_i]);
+    if(!_e) continue;
+    var _raw=String(_e.value==null?'':_e.value).trim();
+    var _num=parseFloat(_raw);
+    var _need=(_REQ.indexOf(_ids[_i])>=0);
+    if(_raw===''){ if(_need&&_firstBad<0)_firstBad=_i; _vals.push(NaN); continue; }
+    if(_e.type==='number'||_e.tagName==='TEXTAREA'){
+      if(_need&&isNaN(_num)){ if(_firstBad<0)_firstBad=_i; _vals.push(NaN); continue; }
+      _vals.push(_num);
+    } else _vals.push(_raw);
+  }
+  if(_firstBad>=0){
+    var _bad=_firstBad;
+    var _lbl=(_labels&&_labels[_bad])||_ids[_bad];
+    var __msg=__TPL.replace('%s',_lbl);
+    var _fe=document.getElementById(_ids[_bad]);
+    if(_fe&&_fe.classList&&_fe.classList.add)_fe.classList.add('input-error');
+    return __msg;
+  }
+  // 分母项：__D 由真浏览器逐项置零探测得出，命中即说明该输入在此页作分母
+  var __D={};
+  for(var _d=0;_d<_ids.length;_d++){
+    if(!(_ids[_d] in __D)) continue;
+    var _de=document.getElementById(_ids[_d]);
+    if(!_de) continue;
+    if(_de.classList&&_de.classList.remove)_de.classList.remove('input-error');
+    if(parseFloat(String(_de.value==null?'':_de.value).trim())===0){
+      if(_de.classList&&_de.classList.add)_de.classList.add('input-error');
+      return __TPL2.replace('%s',__D[_ids[_d]]);
+    }
+  }
+  // 全零：任何一项作分母都会得到 Infinity/NaN。页面公式本身没错，是输入无意义
+  var _nums=[];
+  for(var _z=0;_z<_vals.length;_z++){ if(typeof _vals[_z]==='number'&&!isNaN(_vals[_z])) _nums.push(_vals[_z]); }
+  if(!_nums.length) return '';
+  if(_nums.length>0){
+    var _allZero=true;
+    for(var _z2=0;_z2<_nums.length;_z2++){ if(_nums[_z2]!==0){ _allZero=false; break; } }
+    if(_allZero) return "<p style=\"color:var(--danger)\">⚠ 输入不能全为 0：至少需要一项非零数值，否则计算无意义。</p>";
+  }
+  for(var _k=0;_k<_ids.length;_k++){
+    var _e2=document.getElementById(_ids[_k]);
+    if(_e2&&_e2.classList&&_e2.classList.remove)_e2.classList.remove('input-error');
+  }
+  return '';
+}
+
+
+const HK='video_speed_history';
+const speedPresets=[0.25,0.5,0.75,1,1.25,1.5,1.75,2,2.5,3,4,8,16];
+let _lastCalc=null;
+
+function fmtTime(ms){
+  const totalSec=ms/1000;
+  const h=Math.floor(totalSec/3600);
+  const m=Math.floor((totalSec%3600)/60);
+  const s=Math.floor(totalSec%60);
+  const milli=Math.floor(ms%1000);
+  let str='';
+  if(h>0)str+=h+':';
+  str+=String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+  if(milli>0)str+='.'+String(milli).padStart(3,'0');
+  return str;
+}
+function fmtTimeShort(sec){
+  const h=Math.floor(sec/3600);
+  const m=Math.floor((sec%3600)/60);
+  const s=Math.floor(sec%60);
+  return (h>0?h+':':'')+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+}
+function renderSpeedGrid(){
+  const g=document.getElementById('speedGrid');
+  const __g1=speedPresets.map(s=>`<div class="speed-btn ${s===1.5?'active':''}" onclick="setSpeed(${s})">${s}x</div>`).join('');g.innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
+}
+function setSpeed(s){
+  document.getElementById('speed').value=s;
+  document.querySelectorAll('.speed-btn').forEach((b,i)=>b.classList.toggle('active',speedPresets[i]===s));
+  calc();
+}
+function fromTimecode(){
+  const tc=document.getElementById('timecode').value.trim();
+  const parts=tc.split(/[:;]/);
+  if(parts.length>=3){
+    document.getElementById('h').value=parseInt(parts[0])||0;
+    document.getElementById('m').value=parseInt(parts[1])||0;
+    document.getElementById('s').value=parseInt(parts[2])||0;
+    if(parts[3])document.getElementById('ms').value=Math.round((parseInt(parts[3])||0)/(document.getElementById('fps').value||30)*1000);
+    calc();
+  }
+}
+function reverseCalc(){
+  const target=parseFloat(document.getElementById('targetSec').value);
+  if(!target)return;
+  const h=+document.getElementById('h').value||0;
+  const m=+document.getElementById('m').value||0;
+  const s=+document.getElementById('s').value||0;
+  const ms=+document.getElementById('ms').value||0;
+  const totalSec=h*3600+m*60+s+ms/1000;
+  const neededSpeed=totalSec/target;
+  document.getElementById('speed').value=neededSpeed.toFixed(2);
+  document.querySelectorAll('.speed-btn').forEach(b=>b.classList.remove('active'));
+  calc();
+}
+function calc(){
+    var __ig=__tbInputGuard(['h', 'm', 's', 'ms', 'timecode', 'fps', 'speed', 'targetSec'],["小时", "分钟", "秒", "毫秒", "时间码 (HH:MM:SS:FF)", "帧率 (fps)", "播放速度", "目标时长(秒)"]);if(__ig){const __g2=__ig;ToolBox.setResult("result",(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));return;}
+const h=+document.getElementById('h').value||0;
+  const m=+document.getElementById('m').value||0;
+  const s=+document.getElementById('s').value||0;
+  const ms=+document.getElementById('ms').value||0;
+  const fps=+document.getElementById('fps').value||30;
+  const sp=+document.getElementById('speed').value||1;
+  const totalMs=(h*3600+m*60+s)*1000+ms;
+  const totalSec=totalMs/1000;
+  const newMs=totalMs/sp;
+  const newSec=newMs/1000;
+  const saveMs=totalMs-newMs;
+  const saveSec=saveMs/1000;
+  const savePct=((totalSec-newSec)/totalSec*100).toFixed(0);
+  const totalFrames=Math.round(totalSec*fps);
+
+  const tcStr=String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0')+':'+String(Math.round(ms/1000*fps)).padStart(2,'0');
+  document.getElementById('timecode').value=tcStr;
+
+  let html=`<div class="time-display"><div class="time-big">${fmtTime(newMs)}</div><div class="time-label">${sp}x 倍速播放时长</div></div>`;
+  html+=`<div class="compare-grid">
+    <div class="compare-card"><div class="lbl">原时长</div><div class="val">${fmtTime(totalMs)}</div></div>
+    <div class="compare-card"><div class="lbl">节省时间</div><div class="val">${fmtTime(Math.abs(saveMs))}</div><div class="save">${saveSec>0?'快了':'慢了'} ${Math.abs(savePct)}%</div></div>
+    <div class="compare-card"><div class="lbl">总帧数</div><div class="val">${totalFrames.toLocaleString()}</div><div class="save">@ ${fps}fps</div></div>
+    <div class="compare-card"><div class="lbl">帧时长</div><div class="val">${(1000/fps).toFixed(2)}ms</div></div>
+  </div>`;
+  html+=`<div class="result-box"><h4 style="font-size:14px;margin-bottom:10px;">📈 倍速对比一览</h4>`;
+  [0.75,1,1.25,1.5,1.75,2,2.5,3,4].forEach(x=>{
+    const t=totalSec/x;
+    html+=`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px;"><span>${x}x 倍速</span><span style="font-weight:600;color:var(--primary);">${fmtTimeShort(t)}</span><span style="font-size:11px;color:var(--text-muted);">节省${fmtTimeShort(totalSec-t)}</span></div>`;
+  });
+  html+=`</div>`;
+  const __g3=html;document.getElementById('result').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
+  const __g4=`<div class="result-box" style="margin-top:12px;"><p style="font-size:13px;">原视频 ${fmtTimeShort(totalSec)} @ ${fps}fps = <strong>${totalFrames.toLocaleString()}</strong> 帧</p><p style="font-size:13px;margin-top:8px;">SMPTE时间码：<strong style="font-family:monospace;">${tcStr}</strong></p><p style="font-size:13px;margin-top:8px;">1帧 = ${(1/fps).toFixed(4)}秒 = ${(1000/fps).toFixed(2)}毫秒</p></div>`;document.getElementById('tcResult').innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
+  _lastCalc={orig:fmtTimeShort(totalSec),origFull:fmtTime(totalMs),speed:sp+'x',newTime:fmtTime(newMs),save:Math.abs(savePct)+'%',fps:fps,totalFrames:totalFrames};
+}
+function saveRecord(){
+  if(!_lastCalc)return;
+  const r={date:new Date().toISOString().split('T')[0],time:new Date().toTimeString().slice(0,5),..._lastCalc};
+  let h=getHistory();
+  h.unshift(r);
+  if(h.length>20)h=h.slice(0,20);
+  localStorage.setItem(HK,JSON.stringify(h));
+  ToolBox.showToast(i18nText() );
+  renderHistory();
+}
+function getHistory(){try{return JSON.parse(localStorage.getItem(HK)||'[]');}catch(e){return[];}}
+function copyResult(){
+  if(!_lastCalc)return;
+  ToolBox.copyText(_lastCalc.orig + ' -> ' + _lastCalc.newTime + ' (' + _lastCalc.speed + ')', i18nText());
+}
+function resetForm(){
+  document.getElementById('h').value=0;
+  document.getElementById('m').value=30;
+  document.getElementById('s').value=0;
+  document.getElementById('ms').value=0;
+  document.getElementById('fps').value=30;
+  document.getElementById('speed').value=1.5;
+  document.getElementById('targetSec').value='';
+  setSpeed(1.5);
+}
+function renderHistory(){
+  let h=getHistory();
+  const l=document.getElementById('historyList');
+  if(h.length===0){l.innerHTML='<div class="history-empty">暂无记录</div>';return;}
+  const __g6=h.map((r,i)=>`<div class="history-item" onclick="loadHistory(${i})"><div class="time">${r.date} ${r.time}</div><div class="summary">${r.orig} → ${r.newTime} @ ${r.speed}</div><div class="detail">${r.totalFrames}帧 @${r.fps}fps · 节省${r.save} <button onclick="event.stopPropagation();delHistory(${i})" style="float:right;color:var(--danger);background:none;border:none;cursor:pointer;font-size:12px;">删除</button></div></div>`).join('');l.innerHTML=(typeof __g6==='number'?(isFinite(__g6)?__g6:'—'):String(__g6).replace(/Infinity|NaN/g,'—'));
+}
+function loadHistory(i){
+  const h=getHistory();if(!h[i])return;
+  switchTab('calc',document.querySelector('.tab-btn'));
+}
+function delHistory(i){
+  let h=getHistory();h.splice(i,1);localStorage.setItem(HK,JSON.stringify(h));renderHistory();
+}
+function clearHistory(){if(confirm('确定清空？')){localStorage.removeItem(HK);renderHistory();ToolBox.showToast(i18nText() );}}
+function switchTab(tab,btn){
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  if(btn)btn.classList.add('active');
+  document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
+  document.getElementById('tab-'+tab).classList.add('active');
+  if(tab==='history')renderHistory();
+}
+renderSpeedGrid();calc();renderHistory();
+</script><script>
+// tool-intro折叠交互
+document.addEventListener('DOMContentLoaded',function(){
+  var headers=document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click',function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+
+var __video_speed_last=0,__video_speed_skip=false;
+function __video_speedSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __video_speedResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __video_speedTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __video_speedRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__video_speedTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#video_speedTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#video_speedDiff');
+        TBKit.history.mount('#video_speedHist',function(rec){
+            __video_speed_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __video_speed_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__video_speedTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#video_speedChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __video_speedExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__video_speed_skip) return;
+    var snap=__video_speedSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__video_speedResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__video_speed_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __video_speed_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __video_speedRender(keys,rk,en);
+}
+function __video_speedExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#video_speedTable','video-speed.csv'); } catch(e){}
+}
+function __video_speedPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#video_speedPresets',[{label:'默认参数',labelEn:'Default',values:{'h':'0', 'm':'30', 's':'0', 'ms':'0', 'fps':'30', 'speed':'1.5'}}],function(){ calc(); });
+}
+var __video_speed_f0=(typeof calc==='function')?calc:null;
+if(__video_speed_f0){
+    calc=function(){ var __r=__video_speed_f0.apply(null,arguments); try{ __video_speedExtras(); }catch(e){} return __r; };
+}
+function __video_speedBoot(){ try{ __video_speedPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __video_speedBoot();
+else document.addEventListener('DOMContentLoaded', __video_speedBoot);
+</script>
+<!-- SEO 介绍区块 -->
+
+</div>
+
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!-- 相关工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相关工具</h3>
+  <div class="related-tools-grid">
+    <a href="subtitle-tool.html" class="related-tool-card">
+      <span class="rt-icon">🎬</span>
+      <span class="rt-info"><span class="rt-name">字幕工具</span><span class="rt-desc">字幕工具：导入 SRT 内容，批量平移或缩放时间轴，修正音画不同步。</span></span>
+    </a>
+    <a href="video-trimmer.html" class="related-tool-card">
+      <span class="rt-icon">🎬</span>
+      <span class="rt-info"><span class="rt-name">视频剪切</span><span class="rt-desc">上传视频后标记多个剪切片段的起止时间（如 00:01:30 至 00:02:45），生成结构化剪切时</span></span>
+    </a>
+    <a href="video-compressor.html" class="related-tool-card">
+      <span class="rt-icon">🗜️</span>
+      <span class="rt-info"><span class="rt-name">视频压缩参数</span><span class="rt-desc">输入视频时长、目标文件大小或可接受码率，估算比特率并推荐 CRF 参数，自动生成对应的 ffmpeg</span></span>
+    </a>
+    <a href="video-converter.html" class="related-tool-card">
+      <span class="rt-icon">📚</span>
+      <span class="rt-info"><span class="rt-name">视频格式转换参考</span><span class="rt-desc">对比MP4、MKV等常见视频格式特性，按平台给出分辨率与码率推荐，估算输出文件大小并一键生成ffmp</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro open" id="toolIntro">
+  <div class="tool-intro-header">
+    <span class="intro-icon-wrap"><span class="intro-icon">📖</span>关于「视频时长计算」</span>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="tool-intro-body">
+    <h4><span class="h4-icon">📝</span>工具简介</h4>
+    <p>视频时长计算。视频处理工具，纯前端运算，保护隐私。</p>
+    <h4><span class="h4-icon">✨</span>功能特点</h4>
+    <ul class="intro-features">
+      <li>纯前端处理，视频不上传</li>
+      <li>支持多种视频参数</li>
+      <li>实时预览效果</li>
+      <li>保护隐私，数据不离开设备</li>
+    </ul>
+    <h4><span class="h4-icon">🎯</span>使用场景</h4>
+    <ul class="intro-scenes">
+      <li>视频格式与参数处理</li>
+      <li>视频压缩与优化</li>
+      <li>视频信息查询</li>
+      <li>学习视频编码知识</li>
+    </ul>
+    </div>
+</div>
+<!-- /SEO 介绍区块 -->
+</body>
+</html>

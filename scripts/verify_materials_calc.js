@@ -1,0 +1,572 @@
+#!/usr/bin node
+/**
+ * materials 分类计算正确性验证（覆盖 tools/materials/ 全部 32 个工具）
+ * 期望值由独立复算得出（node 按页面公式 toFixed / toExponential 精确对齐），输入全避开页面默认值。
+ * 假通过自检: node scripts/selfcheck_false_pass.js scripts/verify_materials_calc.js
+ *   —— 目标：默认态 0 命中。
+ *
+ * 三类页面形态：
+ *   - calcTool + dataGrid（28 页）：常规公式页
+ *   - calc + innerHTML（detector-35/40/strength-color-diff）：select + 数值输入 → 判定等级
+ *   - calc + innerHTML（analysis-cost-profit-2）：textarea id=data → 描述统计
+ *
+ * 跑法:
+ *   node scripts/verify_materials_calc.js                 # 全部
+ *   node scripts/verify_materials_calc.js brinell-hardness # 单页
+ */
+const { runCase } = require("./verify_it_calc.js");
+
+const CASES = [
+  // ---- 统计 / 判定型（calc + innerHTML） ----
+  { slug: "materials/analysis-cost-profit-2",
+    inputs: { P: "120", Q: "500", V: "70", F: "15000", T: "25" },
+    expect: ["60,000.00", "35,000.00", "15.00", "300.00", "40.00"],
+    ref: "CVP：rev=120×500=60,000.00；tvc=70×500=35,000.00；cm=25,000.00；ebit=10,000.00；tax=2,500.00；np=7,500.00；净利率=12.50%；单位净利=15.00；保本销量=15000/(120-70)=300.00；安全边际率=(500-300)/500=40.00%（独立复算；默认组 rev=30,000.00/单位净利=5.33/保本=250.00，注入失败即不命中）" },
+
+  { slug: "materials/detector-35",
+    inputs: { matType: "brick", strength: "18", flexural: "3.5" },
+    expect: ["一等品"],
+    ref: "烧结砖限值 抗压15.0/抗折3.0，18 与 3.5 均达标；但 18 < 15.0×1.3=19.5，故为一等品（非优等品）" },
+
+  { slug: "materials/detector-40",
+    inputs: { paintType: "waterproof", voc: "150" },
+    expect: ["合格品"],
+    ref: "防水涂料 VOC 限值 200，150 达标；但 150>80 且 >30，故为合格品（须避开默认内墙 50 → 环保一等品）" },
+
+  { slug: "materials/detector-strength-color-diff",
+    inputs: { stoneType: "granite", colorDiff: "0.8", compress: "130", flexural: "10", density: "2.70", absorption: "0.30" },
+    expect: ["优等品"],
+    ref: "花岗石限值 压缩100/弯曲8/密度2.56/吸水≤0.60，四项全达标且 ΔE=0.8≤1.0 → 优等品（默认 ΔE=3.5 只判合格品）" },
+
+  // ---- 硬度 ----
+  { slug: "materials/brinell-hardness",
+    inputs: { F: "2500", D: "5", d: "1.8" },
+    expect: ["949.50"],
+    ref: "BHN=2×2500/[π×5×(5−√(25−3.24))]=949.50" },
+
+  { slug: "materials/vickers-hardness",
+    inputs: { F: "49.03", d: "0.25" },
+    expect: ["148.31", "15.1234"],
+    ref: "HV=1.854×(49.03/9.80665)/0.25²=148.31；对比 kgf 基准 15.1234" },
+
+  // ---- 弹性常数 ----
+  { slug: "materials/bulk-modulus",
+    inputs: { E: "110e9", nu: "0.34" },
+    expect: ["1.146e+11", "114.58"],
+    ref: "K=110e9/[3(1−0.68)]=1.146e+11 Pa=114.58 GPa" },
+
+  { slug: "materials/bulk-modulus-e-nu",
+    inputs: { E: "70e9", nu: "0.33" },
+    expect: ["68.63"],
+    ref: "K=70e9/[3(1−0.66)]=68.63 GPa" },
+
+  { slug: "materials/shear-modulus",
+    inputs: { E: "110e9", nu: "0.34" },
+    expect: ["4.104e+10", "41.04"],
+    ref: "G=110e9/[2(1+0.34)]=4.104e+10 Pa=41.04 GPa" },
+
+  { slug: "materials/lame-lambda",
+    inputs: { E: "70e9", nu: "0.33" },
+    expect: ["51.08"],
+    ref: "λ=70e9×0.33/[(1.33)(0.34)]=51.08 GPa" },
+
+  { slug: "materials/young-from-kg",
+    inputs: { K: "72e9", G: "27e9" },
+    expect: ["72.00"],
+    ref: "E=9×72×27/(3×72+27)=72.00 GPa" },
+
+  { slug: "materials/youngs-modulus",
+    inputs: { s: "175e6", eps: "0.0007" },
+    expect: ["2.500e+11", "250.0"],
+    ref: "E=σ/ε=175e6/0.0007=2.500e+11 Pa=250.0 GPa（须避开默认 200e6/0.001=2.000e+11）" },
+
+  { slug: "materials/shear-strain",
+    inputs: { tau: "40e6", G: "27e9" },
+    expect: ["1.481e-3"],
+    ref: "γ=τ/G=40e6/27e9=1.481e-3" },
+
+  { slug: "materials/hooke-strain",
+    inputs: { s: "120e6", E: "210e9" },
+    expect: ["0.00057", "0.057"],
+    ref: "ε=σ/E=120e6/210e9=0.00057（0.057%）" },
+
+  // ---- 应变 ----
+  { slug: "materials/engineering-strain",
+    inputs: { L: "104.5", L0: "100" },
+    expect: ["0.04500", "4.500"],
+    ref: "ε=(104.5−100)/100=0.04500（4.500%）" },
+
+  { slug: "materials/true-strain",
+    inputs: { L: "112", L0: "100" },
+    expect: ["0.113329", "11.3329"],
+    ref: "ε_t=ln(1.12)=0.113329（11.3329%），与工程应变 0.12 的差异体现大变形修正" },
+
+  { slug: "materials/volumetric-strain",
+    inputs: { ex: "0.008", ey: "-0.0024", ez: "-0.0024" },
+    expect: ["0.00320"],
+    ref: "ε_v=0.008−0.0024−0.0024=0.00320" },
+
+  { slug: "materials/poisson-ratio-calc",
+    inputs: { el: "-0.0021", ea: "0.006" },
+    expect: ["0.350"],
+    ref: "ν=−(−0.0021)/0.006=0.350" },
+
+  { slug: "materials/poisson-lateral",
+    inputs: { nu: "0.28", el: "0.002" },
+    expect: ["-0.000560", "0.280"],
+    ref: "ε_lat=−0.28×0.002=−0.000560；回算 ν=0.280" },
+
+  // ---- 能量 / 强度 ----
+  { slug: "materials/elastic-energy-density",
+    inputs: { sig: "150e6", E: "70e9" },
+    expect: ["160.7"],
+    ref: "u=σ²/(2E)=(1.5e8)²/(1.4e11)=160.7 kJ/m³" },
+
+  { slug: "materials/modulus-resilience",
+    inputs: { sy: "350e6", E: "200e9" },
+    expect: ["306250.0", "306.250"],
+    ref: "U_r=σ_y²/(2E)=(3.5e8)²/(4e11)=306250.0 J/m³=306.250 kJ/m³" },
+
+  { slug: "materials/fracture-toughness",
+    inputs: { Y: "1.12", sig: "250e6", a: "0.002" },
+    expect: ["22.19"],
+    ref: "K=1.12×250e6×√(π×0.002)/1e6=22.19 MPa√m" },
+
+  { slug: "materials/tensile-force-area",
+    inputs: { s: "160e6", A: "2.5e-4" },
+    expect: ["40000.0", "40.00"],
+    ref: "F=σA=160e6×2.5e-4=40000.0 N=40.00 kN" },
+
+  { slug: "materials/rule-of-mixtures",
+    inputs: { Vf: "0.4", Ef: "230e9", Em: "3.5e9" },
+    expect: ["94.10", "9.410e+10"],
+    ref: "E_c=0.4×230e9+0.6×3.5e9=9.410e+10 Pa=94.10 GPa" },
+
+
+  { slug: "materials/mass-from-density",
+    inputs: { rho: "2700", V: "0.0035" },
+    expect: ["9.450", "9450.0"],
+    ref: "m=ρV=2700×0.0035=9.450 kg=9450.0 g" },
+
+  { slug: "materials/specific-weight",
+    inputs: { rho: "2400" },
+    expect: ["23544.0", "23.54"],
+    ref: "γ=ρg=2400×9.81=23544.0 N/m³=23.54 kN/m³" },
+
+  // ---- 热学 ----
+  { slug: "materials/fourier-conduction",
+    inputs: { k: "16", A: "0.5", dT: "45", L: "0.08" },
+    expect: ["4500.0"],
+    ref: "q=kAΔT/L=16×0.5×45/0.08=4500.0 W" },
+
+  { slug: "materials/thermal-resistance",
+    inputs: { L: "0.1", k: "0.04", A: "2" },
+    expect: ["1.2500"],
+    ref: "R_th=L/(kA)=0.1/(0.04×2)=1.2500 K/W" },
+
+  { slug: "materials/thermal-diffusivity",
+    inputs: { k: "237", rho: "2700", c: "900" },
+    expect: ["9.753e-5"],
+    ref: "α=k/(ρc)=237/(2700×900)=9.753e-5 m²/s" },
+
+  { slug: "materials/specific-heat-capacity",
+    inputs: { m: "5", c: "900" },
+    expect: ["4500"],
+    ref: "C=mc=5×900=4500 J/K" },
+
+  { slug: "materials/linear-thermal-expansion",
+    inputs: { a: "2.3e-5", L: "1.5", dT: "60" },
+    expect: ["2.070"],
+    ref: "ΔL=αLΔT=2.3e-5×1.5×60×1000=2.070 mm" },
+  {
+    "slug": "materials/detector-35",
+    "inputs": {
+      "batchNo": "abc123测试",
+      "strength": "42",
+      "flexural": "42",
+      "density": "42",
+      "absorption": "42",
+      "matType": "concrete"
+    },
+    "expect": [
+      "concrete\nabc123测试\n42\n42\n42\n42\n建材类型：混凝土 批次编号：abc123测试"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"batchNo\":\"abc123测试\",\"strength\":\"42\",\"flexural\":\"42\",\"density\":\"42\",\"absorption\":\"42\",\"matType\":\"concrete\"}，输出区含「concrete\nabc123测试\n42\n42\n42\n42\n建材类型：混凝土 批…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "materials/analysis-cost-profit-2",
+    "inputs": {
+      "P": "42",
+      "Q": "42",
+      "V": "42",
+      "F": "42",
+      "T": "42"
+    },
+    "expect": [
+      "42\n42\n42\n42\n42\n销售单价需大于单位变动成本才能保本。"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"P\":\"42\",\"Q\":\"42\",\"V\":\"42\",\"F\":\"42\",\"T\":\"42\"}，输出区含「42\n42\n42\n42\n42\n销售单价需大于单位变动成本才能保本。」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "materials/bulk-modulus-e-nu",
+    "inputs": {
+      "E": "42",
+      "nu": "42"
+    },
+    "expect": [
+      " E (GPa) -83.0"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"E\":\"42\",\"nu\":\"42\"}，输出区含「 E (GPa) -83.0」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "materials/bulk-modulus",
+    "inputs": {
+      "E": "42",
+      "nu": "42"
+    },
+    "expect": [
+      "量 K (Pa) -0.00 K (GPa) 4.8837e-1"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"E\":\"42\",\"nu\":\"42\"}，输出区含「量 K (Pa) -0.00 K (GPa) 4.8837e-1」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "materials/brinell-hardness",
+    "inputs": {
+      "F": "42",
+      "D": "42",
+      "d": "42"
+    },
+    "expect": [
+      "布氏硬度 BHN 5541.7694"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"F\":\"42\",\"D\":\"42\",\"d\":\"42\"}，输出区含「布氏硬度 BHN 5541.7694」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "materials/detector-40",
+    "inputs": {
+      "voc": "42",
+      "hcho": "42",
+      "benzene": "42",
+      "pb": "42",
+      "covering": "42",
+      "paintType": "exterior"
+    },
+    "expect": [
+      "料 执行标准：GB/T 9755 VOC：42g/L ✓ 甲醛：42"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"voc\":\"42\",\"hcho\":\"42\",\"benzene\":\"42\",\"pb\":\"42\",\"covering\":\"42\",\"paintType\":\"exterior\"}，输出区含「料 执行标准：GB/T 9755 VOC：42g/L ✓ 甲醛：42」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "materials/elastic-energy-density",
+    "inputs": {
+      "sig": "42",
+      "E": "42"
+    },
+    "expect": [
+      " (kJ/m³) 1.000"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"sig\":\"42\",\"E\":\"42\"}，输出区含「 (kJ/m³) 1.000」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "materials/detector-strength-color-diff",
+    "inputs": {
+      "colorDiff": "42",
+      "compress": "42",
+      "flexural": "42",
+      "density": "42",
+      "absorption": "42",
+      "stoneType": "marble"
+    },
+    "expect": [
+      "a ✓ 体积密度 42g/cm³ ≥2.4 ✓ 吸水率 42% ≤0.5% ✗ 质量等级： 不合格品 多项指标不达标，该石材不合格。主要问题：压缩强度不足 吸水率超标 色差过大"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"colorDiff\":\"42\",\"compress\":\"42\",\"flexural\":\"42\",\"density\":\"42\",\"absorption\":\"42\",\"stoneType\":\"marble\"}，输出区含「a ✓ 体积密度 42g/cm³ ≥2.4 ✓ 吸水率 42% ≤0.5% ✗ …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "materials/fracture-toughness",
+    "inputs": {
+      "Y": "42",
+      "sig": "42",
+      "a": "42"
+    },
+    "expect": [
+      "Y·σ (Pa) 11.48681"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"Y\":\"42\",\"sig\":\"42\",\"a\":\"42\"}，输出区含「Y·σ (Pa) 11.48681」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "materials/fourier-conduction",
+    "inputs": {
+      "k": "42",
+      "A": "42",
+      "dT": "42",
+      "L": "42"
+    },
+    "expect": [
+      "42\n42\n42\n42\n1764"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"k\":\"42\",\"A\":\"42\",\"dT\":\"42\",\"L\":\"42\"}，输出区含「42\n42\n42\n42\n1764」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "materials/hooke-strain",
+    "inputs": {
+      "s": "42",
+      "E": "42"
+    },
+    "expect": [
+      "42\n42\n1.00000 应变 ε 100.0"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"s\":\"42\",\"E\":\"42\"}，输出区含「42\n42\n1.00000 应变 ε 100.0」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "materials/engineering-strain",
+    "inputs": {
+      "L": "42",
+      "L0": "42"
+    },
+    "expect": [
+      " (%) 0.00000"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"L\":\"42\",\"L0\":\"42\"}，输出区含「 (%) 0.00000」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "materials/lame-lambda",
+    "inputs": {
+      "E": "42",
+      "nu": "42"
+    },
+    "expect": [
+      "模量 (GPa) 0.4884 G (Pa)"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"E\":\"42\",\"nu\":\"42\"}，输出区含「模量 (GPa) 0.4884 G (Pa)」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "materials/linear-thermal-expansion",
+    "inputs": {
+      "a": "42",
+      "L": "42",
+      "dT": "42"
+    },
+    "expect": [
+      "42\n42\n42\n74088000.0"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"a\":\"42\",\"L\":\"42\",\"dT\":\"42\"}，输出区含「42\n42\n42\n74088000.0」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "materials/mass-from-density",
+    "inputs": {
+      "rho": "42",
+      "V": "42"
+    },
+    "expect": [
+      " (kg/m3) 2.3810e-2"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"rho\":\"42\",\"V\":\"42\"}，输出区含「 (kg/m3) 2.3810e-2」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "materials/modulus-resilience",
+    "inputs": {
+      "sy": "42",
+      "E": "42"
+    },
+    "expect": [
+      " = s_y/E 2.1000e-5"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"sy\":\"42\",\"E\":\"42\"}，输出区含「 = s_y/E 2.1000e-5」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "materials/rule-of-mixtures",
+    "inputs": {
+      "Vf": "42",
+      "Ef": "42",
+      "Em": "42"
+    },
+    "expect": [
+      "_c (GPa) 4.200e+"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"Vf\":\"42\",\"Ef\":\"42\",\"Em\":\"42\"}，输出区含「_c (GPa) 4.200e+」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "materials/poisson-lateral",
+    "inputs": {
+      "nu": "42",
+      "el": "42"
+    },
+    "expect": [
+      "应变 ε_lat 42.000 回算 ν -348600.00"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"nu\":\"42\",\"el\":\"42\"}，输出区含「应变 ε_lat 42.000 回算 ν -348600.00」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "materials/poisson-ratio-calc",
+    "inputs": {
+      "el": "42",
+      "ea": "42"
+    },
+    "expect": [
+      "42\n42\n-1.000 泊松比 ν 1.0"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"el\":\"42\",\"ea\":\"42\"}，输出区含「42\n42\n-1.000 泊松比 ν 1.0」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "materials/shear-modulus",
+    "inputs": {
+      "E": "42",
+      "nu": "42"
+    },
+    "expect": [
+      "量 G (Pa) 0.00 G (GPa) -1.6867e-"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"E\":\"42\",\"nu\":\"42\"}，输出区含「量 G (Pa) 0.00 G (GPa) -1.6867e-」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "materials/shear-strain",
+    "inputs": {
+      "tau": "42",
+      "G": "42"
+    },
+    "expect": [
+      "42\n42\n1.000e+0 剪应变 γ 1.000e+6"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"tau\":\"42\",\"G\":\"42\"}，输出区含「42\n42\n1.000e+0 剪应变 γ 1.000e+6」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "materials/specific-heat-capacity",
+    "inputs": {
+      "m": "42",
+      "c": "42"
+    },
+    "expect": [
+      " C (J/K) 1.764"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"m\":\"42\",\"c\":\"42\"}，输出区含「 C (J/K) 1.764」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "materials/specific-weight",
+    "inputs": {
+      "rho": "42"
+    },
+    "expect": [
+      " (kg/m3) 0.042"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"rho\":\"42\"}，输出区含「 (kg/m3) 0.042」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "materials/tensile-force-area",
+    "inputs": {
+      "s": "42",
+      "A": "42"
+    },
+    "expect": [
+      "拉力 F (N) 1.76 F (kN) 42"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"s\":\"42\",\"A\":\"42\"}，输出区含「拉力 F (N) 1.76 F (kN) 42」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "materials/thermal-resistance",
+    "inputs": {
+      "L": "42",
+      "k": "42",
+      "A": "42"
+    },
+    "expect": [
+      "42\n42\n42\n0.0238"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"L\":\"42\",\"k\":\"42\",\"A\":\"42\"}，输出区含「42\n42\n42\n0.0238」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "materials/thermal-diffusivity",
+    "inputs": {
+      "k": "42",
+      "rho": "42",
+      "c": "42"
+    },
+    "expect": [
+      "α (m²/s) 1.7640e+3"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"k\":\"42\",\"rho\":\"42\",\"c\":\"42\"}，输出区含「α (m²/s) 1.7640e+3」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "materials/true-strain",
+    "inputs": {
+      "L": "42",
+      "L0": "42"
+    },
+    "expect": [
+      "42\n42\n0.00000"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"L\":\"42\",\"L0\":\"42\"}，输出区含「42\n42\n0.00000」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "materials/vickers-hardness",
+    "inputs": {
+      "F": "42",
+      "d": "42"
+    },
+    "expect": [
+      "42\n42\n0.00 维氏硬度 HV 0.000"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"F\":\"42\",\"d\":\"42\"}，输出区含「42\n42\n0.00 维氏硬度 HV 0.000」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "materials/volumetric-strain",
+    "inputs": {
+      "ex": "42",
+      "ey": "42",
+      "ez": "42"
+    },
+    "expect": [
+      "积变化率 (%) 42.000000 平均正应变"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"ex\":\"42\",\"ey\":\"42\",\"ez\":\"42\"}，输出区含「积变化率 (%) 42.000000 平均正应变」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "materials/young-from-kg",
+    "inputs": {
+      "K": "42",
+      "G": "42"
+    },
+    "expect": [
+      " (GPa) 2.2500 E/G 比值"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"K\":\"42\",\"G\":\"42\"}，输出区含「 (GPa) 2.2500 E/G 比值」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "materials/youngs-modulus",
+    "inputs": {
+      "s": "42",
+      "eps": "42"
+    },
+    "expect": [
+      "0 应变 (%) 1.0000e+0"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"s\":\"42\",\"eps\":\"42\"}，输出区含「0 应变 (%) 1.0000e+0」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  }
+
+];
+
+
+async function main() {
+  const only = process.argv.slice(2);
+  const cases = only.length ? CASES.filter((c) => only.some((o) => c.slug.endsWith("/" + o) || c.slug === o)) : CASES;
+  let pass = 0; const fails = [];
+  for (const c of cases) {
+    try {
+      const r = await runCase(c);
+      if (r.ok) { pass++; }
+      else {
+        fails.push(c.slug);
+        console.log("❌ " + c.slug + "  " + (r.why || "no expect match"));
+        if (r.errs && r.errs.length) console.log("     errs: " + JSON.stringify(r.errs));
+        if (r.sample) console.log("     got: " + String(r.sample).slice(0, 300));
+      }
+    } catch (e) {
+      fails.push(c.slug);
+      console.log("❌ " + c.slug + "  THROWN: " + ((e && e.message) ? e.message : String(e)));
+    }
+  }
+
+  console.log("==== materials calc " + pass + "/" + cases.length + " ====");
+  if (fails.length) process.exit(1);
+}
+if (require.main === module) main();

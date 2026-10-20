@@ -1,0 +1,978 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=dev,industry=it,icon=✨,bg=#fff3e0">
+<meta name="description" content="Cron 表达式生成器是一款免费的在线IT 开发工具，可视化生成 Cron 表达式，支持 5 位 Unix 格式，小白也能轻松上手。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+<meta name="keywords" content="Cron 表达式生成器,Cron 表达式生成器在线,在线Cron 表达式生成器,开发工具,IT开发,Cron,表达式生成器,在线工具,免费工具,ToolBox">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://chenguangwu.github.io/tools/it/cron.html">
+<meta property="og:title" content="Cron 表达式生成器 - 小白也能轻松上手">
+<meta property="og:description" content="Cron 表达式生成器是一款免费的在线IT 开发工具，可视化生成 Cron 表达式，支持 5 位 Unix 格式，小白也能轻松上手。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://chenguangwu.github.io/tools/it/cron.html">
+<meta name="twitter:card" content="summary">
+
+<title>Cron 表达式生成器 - 小白也能轻松上手</title>
+<meta name="theme-color" content="#FF6B35">
+<link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+<link rel="icon" href="../../favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="apple-touch-icon" href="../../apple-touch-icon.png">
+<link rel="stylesheet" href="../../css/common.css">
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="../../js/common.js" defer></script>
+<style>
+.visual-builder { background: var(--card-bg); border-radius: 12px; padding: 16px; margin-bottom: 16px; border: 1px solid var(--border-color); }
+.field-row { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 14px; padding-bottom: 14px; border-bottom: 1px dashed var(--border-color); }
+.field-row:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+.field-label { width: 70px; flex-shrink: 0; font-weight: 600; color: var(--text-primary); font-size: 14px; padding-top: 4px; }
+.field-controls { flex: 1; }
+.field-type { display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; }
+.type-btn { padding: 5px 12px; font-size: 12px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--card-bg); color: var(--text-secondary); cursor: pointer; transition: all 0.15s; }
+.type-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+.field-input-area { min-height: 36px; }
+.field-input-area input[type="number"] { width: 80px; padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 13px; }
+.field-input-area select { padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 13px; background: var(--card-bg); color: var(--text-primary); }
+.checkbox-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(52px, 1fr)); gap: 6px; }
+.checkbox-grid label { display: flex; align-items: center; justify-content: center; gap: 3px; padding: 5px 4px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 12px; cursor: pointer; user-select: none; background: var(--card-bg); transition: all 0.15s; }
+.checkbox-grid label:hover { border-color: var(--primary); }
+.checkbox-grid label.checked { background: var(--primary); color: #fff; border-color: var(--primary); }
+.checkbox-grid input { display: none; }
+.range-inputs { display: flex; align-items: center; gap: 8px; }
+.range-inputs span { color: var(--text-muted); font-size: 13px; }
+.step-inputs { display: flex; align-items: center; gap: 8px; }
+.step-inputs span { color: var(--text-muted); font-size: 13px; }
+.cron-output { background: linear-gradient(135deg, #667eea22, #764ba222); padding: 14px; border-radius: 10px; text-align: center; margin-bottom: 12px; }
+.cron-output code { font-family: 'SF Mono', 'Courier New', monospace; font-size: 18px; font-weight: 700; color: var(--primary); letter-spacing: 1px; }
+.tabs { display: flex; gap: 0; margin-bottom: 16px; border-bottom: 2px solid var(--border-color); }
+.tab { padding: 10px 20px; cursor: pointer; font-size: 14px; font-weight: 500; color: var(--text-muted); border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.15s; }
+.tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+.tab:hover { color: var(--primary); }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+.preset-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+.preset-item { padding: 10px 12px; border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer; text-align: center; transition: all 0.15s; font-size: 13px; background: var(--card-bg); }
+.preset-item:hover { border-color: var(--primary); background: var(--bg-hover); transform: translateY(-1px); }
+.preset-item .pname { font-weight: 600; color: var(--text-primary); }
+.preset-item .pcron { font-family: monospace; font-size: 11px; color: var(--primary); margin-top: 4px; }
+.next-time-list { list-style: none; padding: 0; margin: 0; }
+.next-time-list li { padding: 6px 10px; border-bottom: 1px solid var(--border-color); font-size: 13px; font-family: monospace; display: flex; justify-content: space-between; }
+.next-time-list li:last-child { border-bottom: none; }
+.next-time-list li span.wd { color: var(--text-muted); }
+@media (max-width: 600px) {
+  .field-row { flex-direction: column; gap: 8px; }
+  .field-label { width: 100%; }
+  .checkbox-grid { grid-template-columns: repeat(6, 1fr); }
+}
+</style>
+
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Cron 表达式生成器",
+  "description": "Cron 表达式生成器 - 免费开发工具，在线Cron 表达式生成器，免费使用。",
+  "url": "https://chenguangwu.github.io/tools/it/cron.html",
+  "applicationCategory": "UtilitiesApplication",
+  "operatingSystem": "Web",
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "CNY"
+  },
+  "inLanguage": "zh-CN",
+  "isAccessibleForFree": true,
+  "browserRequirements": "Requires JavaScript. Requires HTML5.",
+  "softwareVersion": "1.0"
+}
+</script>
+
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
+    <meta name="twitter:title" content="Cron 表达式生成器 - 小白也能轻松上手">
+    <meta name="twitter:description" content="Cron 表达式生成器是一款免费的在线IT 开发工具，可视化生成 Cron 表达式，支持 5 位 Unix 格式，小白也能轻松上手。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"Cron 表达式生成器","url":"https://chenguangwu.github.io/tools/it/cron.html","applicationCategory":"DeveloperApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"Cron 表达式生成器是一款免费的在线IT 开发工具，可视化生成 Cron 表达式，支持 5 位 Unix 格式，小白也能轻松上手。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://chenguangwu.github.io/"},{"@type":"ListItem","position":2,"name":"IT 开发","item":"https://chenguangwu.github.io/tools/it/index.html"},{"@type":"ListItem","position":3,"name":"Cron 表达式生成器","item":"https://chenguangwu.github.io/tools/it/cron.html"}]}
+</script>
+
+<script src="../../js/i18n.js" defer></script>
+<script src="../../js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+
+
+<meta name="title-en" content="Cron Expression Generator">
+<meta name="desc-en" content="Cron Expression Generator - online utility on ToolBox.">
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/it/cron.html">
+<link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/it/cron.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/it/cron.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/it/cron.html">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:locale:alternate" content="zh_TW">
+<meta property="og:locale:alternate" content="en_US">
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
+
+<script src="/js/tool-ux.js" defer></script>
+<!-- TOOLBOX-TOOL-UX -->
+
+<script src="/js/hot-tool-enhancements.js" defer></script>
+<!-- TOOLBOX-HOT-TOOL-UX -->
+
+<script src="/js/analytics.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+<!-- TOOLBOX-TTZZ -->
+<script>
+(function(){try{
+var el = document.createElement("script");
+el.src = "https://lf1-cdn-tos.bytegoofy.com/goofy/ttzz/push.js?85d6452aa9be4d693b16cd48535a8c7ae57542f6788a41682e745be8eb99b35a8a24d2f724c31ebe20c1e4e6fba6d91caf576100b02a2870c72f38fc574066fef065d152c73bf1cbb2ebad3b5b5265d8";
+el.id = "ttzz";
+var s = document.getElementsByTagName("script")[0];
+s.parentNode.insertBefore(el, s);
+}catch(e){}
+})(window);
+</script>
+
+<script src="/js/tool-kit.js" defer></script>
+<!-- TOOLBOX-TOOL-KIT -->
+</head>
+<body>
+<h1 class="sr-only">Cron 表达式生成器</h1>
+
+
+<div class="nav">
+  <a href="../../index.html">← ToolBox</a>
+  <span>/ Cron 表达式生成器</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+
+
+
+
+<nav class="breadcrumb" aria-label="面包屑导航" data-breadcrumb="1">
+  <a href="../../index.html">首页</a>
+  <span class="bc-sep">‹</span>
+  <a href="index.html">💻 开发</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">Cron 表达式生成器</span>
+</nav>
+<div class="container">
+<div class="tool-guide-link" data-guide-link="1">
+  <a href="../../guides/cron-guide.html">📖 查看「Cron 表达式生成器使用指南」</a>
+</div>
+
+  <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
+    <h2 data-zh="✨ Cron 表达式生成器">✨ Cron Expression Generator</h2>
+<div class="formula-box">
+  <div class="formula-title">📐 工作原理与说明</div>
+  <div class="formula-desc">生成与解释 Cron 定时表达式。</div>
+  <ul class="formula-list">
+    <li><b>格式</b>：标准 5 段为「分 时 日 月 周」；Quartz 等扩展为 6–7 段（含秒、年）。</li>
+    <li><b>取值</b>：分 0–59、时 0–23、日 1–31、月 1–12、周 0–7（0 与 7 均为周日）。</li>
+    <li><b>特殊字符</b>：<code>*</code> 任意、<code>*/n</code> 步长、<code>a-b</code> 范围、<code>a,b</code> 列表、<code>?</code> 不指定。</li>
+    <li><b>注意</b>：多数实现中「日」与「周」同时指定为或关系；时区由运行环境决定。</li>
+  </ul>
+</div>
+
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="可视化生成 Cron 表达式，支持 5 位 Unix 格式，小白也能轻松上手">Build and validate cron expressions with a visual schedule and next-run preview, all in your browser — great for crontab and CI scheduling.</p>
+
+    <div class="cron-output">
+      <code id="cronExpr">0 0 * * *</code>
+      <div style="margin-top:8px;">
+        <div id="cronPresets"></div><button type="button" class="btn primary" style="font-size:12px;padding:5px 12px;" onclick="copyCron()">📋 复制表达式</button><button class="btn" type="button" onclick="__cronExport()">导出明细 CSV</button>
+      </div>
+    </div>
+
+    <div class="result-box" id="descBox">
+      <p><strong>中文描述：</strong><span id="description" style="color:var(--text-primary);">每天 00:00 执行</span></p>
+    </div> <div id="cronTable"></div> <div id="cronDiff"></div> <div id="cronChart"></div> <div id="cronHist"></div>
+
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('visual')">🎨 可视化生成</div>
+      <div class="tab" onclick="switchTab('manual')">✏️ 手动输入</div>
+      <div class="tab" onclick="switchTab('preset')">⚡ 常用预设</div>
+      <div class="tab" onclick="switchTab('next')">🔮 执行时间</div>
+    </div>
+
+    <div id="tab-visual" class="tab-content active">
+      <div class="visual-builder">
+        <div class="field-row">
+          <div class="field-label">分钟</div>
+          <div class="field-controls">
+            <div class="field-type" id="min-type">
+              <button class="type-btn active" data-type="every" onclick="setFieldType('min','every')">每分</button>
+              <button class="type-btn" data-type="specify" onclick="setFieldType('min','specify')">指定</button>
+              <button class="type-btn" data-type="range" onclick="setFieldType('min','range')">范围</button>
+              <button class="type-btn" data-type="step" onclick="setFieldType('min','step')">步长</button>
+            </div>
+            <div class="field-input-area" id="min-input"></div>
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field-label">小时</div>
+          <div class="field-controls">
+            <div class="field-type" id="hour-type">
+              <button class="type-btn active" data-type="every" onclick="setFieldType('hour','every')">每时</button>
+              <button class="type-btn" data-type="specify" onclick="setFieldType('hour','specify')">指定</button>
+              <button class="type-btn" data-type="range" onclick="setFieldType('hour','range')">范围</button>
+              <button class="type-btn" data-type="step" onclick="setFieldType('hour','step')">步长</button>
+            </div>
+            <div class="field-input-area" id="hour-input"></div>
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field-label">日期</div>
+          <div class="field-controls">
+            <div class="field-type" id="day-type">
+              <button class="type-btn active" data-type="every" onclick="setFieldType('day','every')">每日</button>
+              <button class="type-btn" data-type="specify" onclick="setFieldType('day','specify')">指定</button>
+              <button class="type-btn" data-type="range" onclick="setFieldType('day','range')">范围</button>
+              <button class="type-btn" data-type="step" onclick="setFieldType('day','step')">步长</button>
+              <button class="type-btn" data-type="last" onclick="setFieldType('day','last')">最后一天</button>
+            </div>
+            <div class="field-input-area" id="day-input"></div>
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field-label">月份</div>
+          <div class="field-controls">
+            <div class="field-type" id="month-type">
+              <button class="type-btn active" data-type="every" onclick="setFieldType('month','every')">每月</button>
+              <button class="type-btn" data-type="specify" onclick="setFieldType('month','specify')">指定</button>
+              <button class="type-btn" data-type="range" onclick="setFieldType('month','range')">范围</button>
+              <button class="type-btn" data-type="step" onclick="setFieldType('month','step')">步长</button>
+            </div>
+            <div class="field-input-area" id="month-input"></div>
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field-label">星期</div>
+          <div class="field-controls">
+            <div class="field-type" id="week-type">
+              <button class="type-btn active" data-type="every" onclick="setFieldType('week','every')">每周</button>
+              <button class="type-btn" data-type="specify" onclick="setFieldType('week','specify')">指定</button>
+              <button class="type-btn" data-type="range" onclick="setFieldType('week','range')">范围</button>
+            </div>
+            <div class="field-input-area" id="week-input"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="tab-manual" class="tab-content">
+      <label>Cron 表达式（5 位格式：分 时 日 月 周）</label>
+      <input type="text" id="manualInput" value="0 0 * * *" oninput="onManualInput()" style="font-family:'SF Mono','Courier New',monospace;text-align:center;font-size:16px;font-weight:600;color:var(--primary);">
+      <p style="font-size:12px;color:var(--text-muted);margin-top:8px;">
+        输入表达式后会自动反解析到可视化面板
+      </p>
+    </div>
+
+    <div id="tab-preset" class="tab-content">
+      <div class="preset-grid" id="presets"></div>
+    </div>
+
+    <div id="tab-next" class="tab-content">
+      <div class="result-box">
+        <p style="margin-bottom:8px;"><strong>未来 10 次执行时间：</strong></p>
+        <ul class="next-time-list" id="nextTimes"></ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>📝 字段说明</h2>
+    <table>
+      <thead><tr><th>字段</th><th>允许值</th><th>特殊字符</th></tr></thead>
+      <tbody>
+        <tr><td>分</td><td>0 - 59</td><td>* , - /</td></tr>
+        <tr><td>时</td><td>0 - 23</td><td>* , - /</td></tr>
+        <tr><td>日</td><td>1 - 31</td><td>* , - / L</td></tr>
+        <tr><td>月</td><td>1 - 12</td><td>* , - /</td></tr>
+        <tr><td>周</td><td>0 - 6（0=周日）</td><td>* , - /</td></tr>
+      </tbody>
+    </table>
+    <div style="margin-top:12px;font-size:13px;color:var(--text-muted);line-height:1.8;">
+      <p><strong>特殊字符说明：</strong></p>
+      <p><code>*</code> 所有值 - 表示每个单位时间都执行</p>
+      <p><code>,</code> 列表 - 列出枚举值，如 1,3,5 表示第1、3、5个</p>
+      <p><code>-</code> 范围 - 如 1-5 表示从1到5</p>
+      <p><code>/</code> 步长 - 如 */5 表示每5个单位</p>
+      <p><code>L</code> 最后 - 仅用于日期字段，表示当月最后一天</p>
+    </div></div>
+
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto 0;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+.deep-dive a.term-link{color:var(--tool-accent,#FF6B35);text-decoration:none;border-bottom:1px dashed currentColor;}
+.deep-dive a.term-link:hover{border-bottom-style:solid;}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：Cron 表达式生成器</h2>
+<h3>💡 常见使用场景</h3>
+<ul class="dd-list">
+<li>生成并解析 5/6 段 cron。</li>
+<li>给定时备份配表达式：0 3 * * * 表示每天凌晨 3 点执行，先用本工具解析一遍确认语义，再写进 crontab，避免配成每分钟触发。</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">生成</div><div class="dd-ex-body">每 5 分钟 `*/5 * * * *`。</div></div>
+<h3>❓ 常见问题（FAQ）</h3>
+<dl class="dd-faq">
+<dt>秒级 cron？</dt><dd>标准 5 段无秒，Quartz 为 6 段含秒。</dd>
+<dt>配置没生效怎么排查？</dt><dd>依次检查：表达式字段数（5 段 vs 6 段）、执行用户是否有权限、命令是否用了绝对路径（cron 的 PATH 很短）、脚本是否有可执行权限、<a class="term-link" href="/tools/it/env-generator.html">环境变量</a>是否缺失。最后看 /var/log/cron 或把输出重定向到日志文件，确认是否真的执行过。</dd>
+</dl>
+</div>
+</section>
+<!-- 注意事项区块 -->
+<div class="tool-notes" style="--tool-accent:#FF6B35;">
+  <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
+  <ul>
+      <li>本工具纯前端运行，数据不会上传到服务器</li>
+      <li>建议在主流浏览器（Chrome/Safari/Firefox/Edge）中使用</li>
+      <li>计算结果仅供参考，请以实际应用场景为准</li>
+  </ul>
+</div>
+<!-- /注意事项区块 -->
+</div>
+
+<script>
+const fieldConfig = {
+  min:   { min: 0, max: 59, unit: '分',  everyText: '每分钟' },
+  hour:  { min: 0, max: 23, unit: '时',  everyText: '每小时' },
+  day:   { min: 1, max: 31, unit: '号',  everyText: '每天' },
+  month: { min: 1, max: 12, unit: '月',  everyText: '每月' },
+  week:  { min: 0, max: 6,  unit: '',    everyText: '每周' }
+};
+
+const weekLabels = ['日','一','二','三','四','五','六'];
+const weekNames = ['周日','周一','周二','周三','周四','周五','周六'];
+const monthNames = ['','1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+
+const state = {
+  min:   { type: 'every', value: '*', specify: [], range: {from:0,to:59}, step: {start:0,step:5} },
+  hour:  { type: 'every', value: '*', specify: [], range: {from:0,to:23}, step: {start:0,step:2} },
+  day:   { type: 'every', value: '*', specify: [], range: {from:1,to:31}, step: {start:1,step:1} },
+  month: { type: 'every', value: '*', specify: [], range: {from:1,to:12}, step: {start:1,step:1} },
+  week:  { type: 'every', value: '*', specify: [], range: {from:1,to:5}, step: {start:0,step:1} }
+};
+
+const presets = [
+  {name:'每分钟执行', cron:'* * * * *'},
+  {name:'每5分钟', cron:'*/5 * * * *'},
+  {name:'每10分钟', cron:'*/10 * * * *'},
+  {name:'每15分钟', cron:'*/15 * * * *'},
+  {name:'每30分钟', cron:'*/30 * * * *'},
+  {name:'每小时整点', cron:'0 * * * *'},
+  {name:'每2小时', cron:'0 */2 * * *'},
+  {name:'每天 00:00', cron:'0 0 * * *'},
+  {name:'每天 08:00', cron:'0 8 * * *'},
+  {name:'每天 09:00', cron:'0 9 * * *'},
+  {name:'每天 12:00', cron:'0 12 * * *'},
+  {name:'每天 18:00', cron:'0 18 * * *'},
+  {name:'每天 08:00和20:00', cron:'0 8,20 * * *'},
+  {name:'每周一 09:00', cron:'0 9 * * 1'},
+  {name:'周一至周五 09:00', cron:'0 9 * * 1-5'},
+  {name:'周六周日 10:00', cron:'0 10 * * 0,6'},
+  {name:'每月1号 00:00', cron:'0 0 1 * *'},
+  {name:'每月1号 09:00', cron:'0 9 1 * *'},
+  {name:'每月最后一天', cron:'0 0 L * *'},
+  {name:'每月1号和15号', cron:'0 0 1,15 * *'},
+  {name:'每年1月1日', cron:'0 0 1 1 *'},
+  {name:'工作日9-18点每小时', cron:'0 9-18 * * 1-5'},
+  {name:'工作日每30分钟', cron:'*/30 9-18 * * 1-5'},
+];
+
+let isSyncing = false;
+
+function init() {
+  for (const field of ['min','hour','day','month','week']) {
+    renderFieldInput(field);
+  }
+  initPresets();
+  updateCron();
+}
+
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('tab-' + name).classList.add('active');
+  if (name === 'next') updateNextTimes();
+}
+
+function setFieldType(field, type) {
+  state[field].type = type;
+  updateTypeButtons(field);
+  renderFieldInput(field);
+  updateCron();
+}
+
+function updateTypeButtons(field) {
+  const btns = document.querySelectorAll(`#${field}-type .type-btn`);
+  btns.forEach(b => {
+    b.classList.toggle('active', b.dataset.type === state[field].type);
+  });
+}
+
+function renderFieldInput(field) {
+  const cfg = fieldConfig[field];
+  const st = state[field];
+  const el = document.getElementById(field + '-input');
+  let html = '';
+  
+  if (st.type === 'every') {
+    html = `<span style="color:var(--text-muted);font-size:13px;">${cfg.everyText}执行</span>`;
+  } 
+  else if (st.type === 'specify') {
+    html = '<div class="checkbox-grid">';
+    if (field === 'week') {
+      for (let i = 0; i <= 6; i++) {
+        const checked = st.specify.includes(i);
+        html += `<label class="${checked?'checked':''}"><input type="checkbox" value="${i}" ${checked?'checked':''} onchange="toggleSpecify('${field}',${i})">周${weekLabels[i]}</label>`;
+      }
+    } else if (field === 'month') {
+      for (let i = 1; i <= 12; i++) {
+        const checked = st.specify.includes(i);
+        html += `<label class="${checked?'checked':''}"><input type="checkbox" value="${i}" ${checked?'checked':''} onchange="toggleSpecify('${field}',${i})">${i}月</label>`;
+      }
+    } else {
+      for (let i = cfg.min; i <= cfg.max; i++) {
+        const checked = st.specify.includes(i);
+        html += `<label class="${checked?'checked':''}"><input type="checkbox" value="${i}" ${checked?'checked':''} onchange="toggleSpecify('${field}',${i})">${i}</label>`;
+      }
+    }
+    html += '</div>';
+  }
+  else if (st.type === 'range') {
+    let fromOpts = '', toOpts = '';
+    if (field === 'week') {
+      for (let i = 0; i <= 6; i++) {
+        fromOpts += `<option value="${i}" ${st.range.from===i?'selected':''}>周${weekLabels[i]}</option>`;
+        toOpts += `<option value="${i}" ${st.range.to===i?'selected':''}>周${weekLabels[i]}</option>`;
+      }
+    } else if (field === 'month') {
+      for (let i = 1; i <= 12; i++) {
+        fromOpts += `<option value="${i}" ${st.range.from===i?'selected':''}>${i}月</option>`;
+        toOpts += `<option value="${i}" ${st.range.to===i?'selected':''}>${i}月</option>`;
+      }
+    } else {
+      for (let i = cfg.min; i <= cfg.max; i++) {
+        fromOpts += `<option value="${i}" ${st.range.from===i?'selected':''}>${i}</option>`;
+        toOpts += `<option value="${i}" ${st.range.to===i?'selected':''}>${i}</option>`;
+      }
+    }
+    html = `<div class="range-inputs">
+      <select onchange="setRange('${field}','from',this.value)">${fromOpts}</select>
+      <span>到</span>
+      <select onchange="setRange('${field}','to',this.value)">${toOpts}</select>
+    </div>`;
+  }
+  else if (st.type === 'step') {
+    let startOpts = '';
+    if (field === 'week') {
+      for (let i = 0; i <= 6; i++) {
+        startOpts += `<option value="${i}" ${st.step.start===i?'selected':''}>周${weekLabels[i]}</option>`;
+      }
+    } else if (field === 'month') {
+      for (let i = 1; i <= 12; i++) {
+        startOpts += `<option value="${i}" ${st.step.start===i?'selected':''}>${i}月</option>`;
+      }
+    } else {
+      for (let i = cfg.min; i <= cfg.max; i++) {
+        startOpts += `<option value="${i}" ${st.step.start===i?'selected':''}>${i}</option>`;
+      }
+    }
+    const stepMax = field === 'min' ? 30 : field === 'hour' ? 12 : cfg.max;
+    html = `<div class="step-inputs">
+      <span>从</span>
+      <select onchange="setStep('${field}','start',this.value)">${startOpts}</select>
+      <span>开始，每</span>
+      <input type="number" min="1" max="${stepMax}" value="${st.step.step}" onchange="setStep('${field}','step',this.value)" style="width:60px;padding:5px 8px;border:1px solid var(--border-color);border-radius:6px;font-size:13px;">
+      <span>${cfg.unit}</span>
+    </div>`;
+  }
+  else if (st.type === 'last') {
+    html = `<span style="color:var(--text-muted);font-size:13px;">当月最后一天执行</span>`;
+  }
+  
+  const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){el.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}el.innerHTML=__h0;
+}
+
+function toggleSpecify(field, val) {
+  val = parseInt(val);
+  const st = state[field];
+  const idx = st.specify.indexOf(val);
+  if (idx >= 0) st.specify.splice(idx, 1);
+  else st.specify.push(val);
+  st.specify.sort((a,b) => a - b);
+  renderFieldInput(field);
+  updateCron();
+}
+
+function setRange(field, key, val) {
+  state[field].range[key] = parseInt(val);
+  updateCron();
+}
+
+function setStep(field, key, val) {
+  state[field].step[key] = parseInt(val);
+  updateCron();
+}
+
+function buildFieldValue(field) {
+  const st = state[field];
+  if (st.type === 'every') return '*';
+  if (st.type === 'last') return 'L';
+  if (st.type === 'specify') {
+    if (st.specify.length === 0) return '*';
+    return st.specify.join(',');
+  }
+  if (st.type === 'range') {
+    return `${st.range.from}-${st.range.to}`;
+  }
+  if (st.type === 'step') {
+    const start = st.step.start;
+    const step = st.step.step;
+    const cfg = fieldConfig[field];
+    if (start === cfg.min || (field === 'day' && start === 1) || (field === 'month' && start === 1)) {
+      return `*/${step}`;
+    }
+    return `${start}/${step}`;
+  }
+  return '*';
+}
+
+function updateCron() {
+  if (isSyncing) return;
+  const parts = ['min','hour','day','month','week'].map(f => buildFieldValue(f));
+  const expr = parts.join(' ');
+  document.getElementById('cronExpr').textContent = expr;
+  document.getElementById('manualInput').value = expr;
+  updateDescription(parts);
+}
+
+function updateDescription(parts) {
+  const [min, hour, day, month, week] = parts;
+  
+  let timeDesc = '';
+  if (min === '*' && hour === '*') timeDesc = '每分钟';
+  else if (min === '0' && hour === '*') timeDesc = '每小时整点';
+  else if (min === '*' && hour !== '*') timeDesc = `${hour}点内每分钟`;
+  else if (hour !== '*') {
+    if (hour.includes('-')) timeDesc = `${hour}点`;
+    else if (hour.includes(',')) timeDesc = `${hour.split(',').join('、')}点`;
+    else timeDesc = `${hour}点${min === '0' ? '整' : min + '分'}`;
+  }
+  
+  let period = '';
+  if (week && week !== '*' && week !== '?') {
+    if (week.includes(',')) {
+      const days = week.split(',').map(d => weekNames[parseInt(d)] || d).join('、');
+      period = `每${days}`;
+    } else if (week.includes('-')) {
+      const [s,e] = week.split('-').map(n => parseInt(n));
+      period = `每周${weekLabels[s]}到周${weekLabels[e]}`;
+    } else if (week === 'L') {
+      period = '每月最后一个周日';
+    } else if (!isNaN(parseInt(week))) {
+      period = `每${weekNames[parseInt(week)]}`;
+    } else {
+      period = `每${week}`;
+    }
+  }
+  else if (day && day !== '*' && day !== '?') {
+    if (day === 'L') period = '每月最后一天';
+    else if (day.includes(',')) period = `每月${day}号`;
+    else if (day.includes('-')) period = `每月${day}号`;
+    else if (day.startsWith('*/')) period = `每${day.slice(2)}天`;
+    else period = `每月${day}号`;
+  }
+  else if (month && month !== '*' && month !== '?') {
+    if (month.includes(',')) period = `${month.split(',').map(m=>monthNames[parseInt(m)]||m+'月').join('、')}`;
+    else if (month.includes('-')) period = `${month}月`;
+    else if (month.startsWith('*/')) period = `每${month.slice(2)}个月`;
+    else period = `每年${monthNames[parseInt(month)] || month + '月'}`;
+  }
+  else period = '每天';
+  
+  const desc = `${period} ${timeDesc}执行`;
+  document.getElementById('description').textContent = desc;
+}
+
+function onManualInput() {
+  const expr = document.getElementById('manualInput').value.trim();
+  if (!expr) return;
+  parseToVisual(expr);
+}
+
+function parseToVisual(expr) {
+  const parts = expr.split(/\s+/);
+  if (parts.length !== 5) return;
+  
+  isSyncing = true;
+  const fields = ['min','hour','day','month','week'];
+  
+  for (let i = 0; i < 5; i++) {
+    const field = fields[i];
+    const val = parts[i];
+    const st = state[field];
+    const cfg = fieldConfig[field];
+    
+    st.value = val;
+    
+    if (val === '*') {
+      st.type = 'every';
+    }
+    else if (val === 'L') {
+      st.type = 'last';
+    }
+    else if (val.includes('/')) {
+      st.type = 'step';
+      const [start, step] = val.split('/');
+      st.step.start = start === '*' ? cfg.min : parseInt(start);
+      st.step.step = parseInt(step);
+    }
+    else if (val.includes('-') && !val.includes(',')) {
+      st.type = 'range';
+      const [from, to] = val.split('-').map(n => parseInt(n));
+      st.range.from = from;
+      st.range.to = to;
+    }
+    else if (val.includes(',')) {
+      st.type = 'specify';
+      st.specify = val.split(',').map(n => parseInt(n)).filter(n => !isNaN(n));
+    }
+    else {
+      st.type = 'specify';
+      const num = parseInt(val);
+      st.specify = isNaN(num) ? [] : [num];
+    }
+    
+    updateTypeButtons(field);
+    renderFieldInput(field);
+  }
+  
+  document.getElementById('cronExpr').textContent = expr;
+  updateDescription(parts);
+  isSyncing = false;
+}
+
+function copyCron() {
+  const text = document.getElementById('cronExpr').textContent;
+  ToolBox.copyText(text);
+}
+
+function initPresets() {
+  const grid = document.getElementById('presets');
+  presets.forEach(p => {
+    const item = document.createElement('div');
+    item.className = 'preset-item';
+    const __h1=`<div class="pname">${p.name}</div><div class="pcron">${p.cron}</div>`;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){item.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}item.innerHTML=__h1;
+    item.onclick = () => {
+      parseToVisual(p.cron);
+      switchTab('visual');
+      document.querySelectorAll('.tab')[0].classList.add('active');
+      document.querySelectorAll('.tab')[1].classList.remove('active');
+      document.querySelectorAll('.tab')[2].classList.remove('active');
+      document.querySelectorAll('.tab')[3].classList.remove('active');
+      document.getElementById('tab-visual').classList.add('active');
+      document.getElementById('tab-preset').classList.remove('active');
+      ToolBox.showToast(i18nText());
+    };
+    grid.appendChild(item);
+  });
+}
+
+function updateNextTimes() {
+  const expr = document.getElementById('cronExpr').textContent;
+  const parts = expr.split(/\s+/);
+  if (parts.length !== 5) {
+    const __h2='<li>表达式格式错误</li>';if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('nextTimes').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('nextTimes').innerHTML=__h2;
+    return;
+  }
+  
+  const [min, hour, day, month, week] = parts;
+  const nextTimes = [];
+  const now = new Date();
+  let current = new Date(now.getTime() + 60000);
+  current.setSeconds(0);
+  current.setMilliseconds(0);
+  
+  const maxIter = 100000;
+  let iter = 0;
+  
+  while (nextTimes.length < 10 && iter < maxIter) {
+    iter++;
+    if (matchesCron(current, min, hour, day, month, week)) {
+      nextTimes.push(new Date(current));
+    }
+    current = new Date(current.getTime() + 60000);
+  }
+  
+  const ul = document.getElementById('nextTimes');
+  if (nextTimes.length === 0) {
+    const __h3='<li>未来30天内无匹配</li>';if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){ul.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}ul.innerHTML=__h3;
+    return;
+  }
+  
+  const __h4=nextTimes.map(d => 
+    `<li>${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}<span class="wd">${weekNames[d.getDay()]}</span></li>`
+  ).join('');if((typeof __h4==='number'&&!isFinite(__h4))||/Infinity/.test(String(__h4))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h4)){ul.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}ul.innerHTML=__h4;
+}
+
+function matchesCron(date, min, hour, day, month, week) {
+  return matchField(date.getMinutes(), min, 0, 59) &&
+         matchField(date.getHours(), hour, 0, 23) &&
+         matchField(date.getDate(), day, 1, 31, date) &&
+         matchField(date.getMonth()+1, month, 1, 12) &&
+         matchField(date.getDay(), week, 0, 6);
+}
+
+function matchField(value, field, min, max, dateObj) {
+  if (field === '*' || field === '?') return true;
+  
+  if (field === 'L') {
+    if (dateObj) {
+      const lastDay = new Date(dateObj.getFullYear(), dateObj.getMonth()+1, 0).getDate();
+      return value === lastDay;
+    }
+    return false;
+  }
+  
+  for (const part of field.split(',')) {
+    if (part.startsWith('*/') || part.includes('/')) {
+      let start, step;
+      if (part.startsWith('*/')) {
+        start = min;
+        step = parseInt(part.slice(2));
+      } else {
+        const [s, st] = part.split('/');
+        start = parseInt(s);
+        step = parseInt(st);
+      }
+      if (step && value >= start && (value - start) % step === 0) return true;
+    } 
+    else if (part.includes('-')) {
+      const [s, e] = part.split('-').map(n => parseInt(n));
+      if (value >= s && value <= e) return true;
+    } 
+    else {
+      const n = parseInt(part);
+      if (!isNaN(n) && n === value) return true;
+    }
+  }
+  return false;
+}
+
+init();
+</script><script>
+// tool-intro折叠交互
+document.addEventListener('DOMContentLoaded',function(){
+  var headers=document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click',function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+
+var __cron_last=0,__cron_skip=false;
+function __cronSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __cronResText(){
+    var r=document.querySelector('.result-box');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __cronTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __cronRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__cronTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#cronTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#cronDiff');
+        TBKit.history.mount('#cronHist',function(rec){
+            __cron_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                copyCron();
+            }catch(e2){}
+            __cron_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__cronTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#cronChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __cronExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__cron_skip) return;
+    var snap=__cronSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__cronResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__cron_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __cron_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __cronRender(keys,rk,en);
+}
+function __cronExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#cronTable','cron.csv'); } catch(e){}
+}
+function __cronPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#cronPresets',[{label:'默认参数',labelEn:'Default',values:{'manualInput':'0 0 * * *'}}],function(){ copyCron(); });
+}
+var __cron_f0=(typeof copyCron==='function')?copyCron:null;
+if(__cron_f0){
+    copyCron=function(){ var __r=__cron_f0.apply(null,arguments); try{ __cronExtras(); }catch(e){} return __r; };
+}
+function __cronBoot(){ try{ __cronPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __cronBoot();
+else document.addEventListener('DOMContentLoaded', __cronBoot);
+</script>
+<!-- SEO 介绍区块 -->
+
+</div>
+
+</div>
+
+<!-- 相关工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相关工具</h3>
+  <div class="related-tools-grid">
+    <a href="properties-parser.html" class="related-tool-card">
+      <span class="rt-icon">📄</span>
+      <span class="rt-info"><span class="rt-name">.properties 解析器 - 免费开发工具，properties 解析器 | ToolBox免费在线工具箱</span><span class="rt-desc">.properties 解析器</span></span>
+    </a>
+    <a href="ast-viewer.html" class="related-tool-card">
+      <span class="rt-icon">💻</span>
+      <span class="rt-info"><span class="rt-name">AST抽象语法树查看器 - 在线解析JavaScript代码生成AST树形结构，支持节点 | ToolBox免费在线工具箱</span><span class="rt-desc">AST 抽象语法树查看器</span></span>
+    </a>
+    <a href="css-minifier.html" class="related-tool-card">
+      <span class="rt-icon">🧹</span>
+      <span class="rt-info"><span class="rt-name">CSS 压缩/美化工具 - 免费开发工具，CSS 压缩/格式化/美化 | ToolBox免费在线工具箱</span><span class="rt-desc">CSS 压缩/格式化/美化</span></span>
+    </a>
+    <a href="css-formatter.html" class="related-tool-card">
+      <span class="rt-icon">🏋️</span>
+      <span class="rt-info"><span class="rt-name">CSS 格式化 - 免费开发工具，在线CSS 格式化 | ToolBox免费在线工具箱</span><span class="rt-desc">CSS 格式化</span></span>
+    </a>
+    <a href="graphql-formatter.html" class="related-tool-card">
+      <span class="rt-icon">🏋️</span>
+      <span class="rt-info"><span class="rt-name">GraphQL 格式化 - 免费开发工具，在线GraphQL 格式化 | ToolBox免费在线工具箱</span><span class="rt-desc">◈ GraphQL 格式化</span></span>
+    </a>
+    <a href="html-minifier.html" class="related-tool-card">
+      <span class="rt-icon">🗜️</span>
+      <span class="rt-info"><span class="rt-name">HTML 压缩器 - 免费开发工具，在线HTML 压缩器 | ToolBox免费在线工具箱</span><span class="rt-desc">HTML 压缩器</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro open" id="toolIntro">
+  <div class="tool-intro-header">
+    <span class="intro-icon-wrap"><span class="intro-icon">📖</span>关于「Cron 表达式生成器」</span>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="tool-intro-body">
+    <h4><span class="h4-icon">📝</span>工具简介</h4>
+    <p>Cron 表达式生成器。专为开发者打造的在线工具，纯前端运行，代码不离开浏览器。</p>
+    
+      </div>
+</div>
+<!-- /SEO 介绍区块 -->
+<script type="application/ld+json">
+{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "Cron 五个字段分别是什么？", "acceptedAnswer": {"@type": "Answer", "text": "依次是 分 时 日 月 星期。* 表示任意，/ 表示步长（*/15=每 15），- 表示区间（1-5），, 表示列举（1,3,5）。"}}, {"@type": "Question", "name": "时区以哪个为准？", "acceptedAnswer": {"@type": "Answer", "text": "Cron 以运行它的服务器本地时区为准，容器 / 云函数常是 UTC，部署前务必确认时区，否则执行时间会偏移数小时。"}}]}
+</script>
+</body>
+</html>

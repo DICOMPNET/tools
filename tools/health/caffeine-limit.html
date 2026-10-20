@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=calculator,industry=health,icon=🧮,bg=#efebe9">
+<meta name="description" content="每日安全咖啡因摄入量是一款免费的在线健康医疗工具，每日安全咖啡因摄入量计算器。按体重估算每日咖啡因摄入上限，添加当日饮品自动累计摄入量与占比，用于健康控量与失眠预防提示。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+<meta name="keywords" content="咖啡因摄入量计算器,咖啡因摄入量计算器在线,在线咖啡因摄入量计算器,数学计算,健康医疗,每日安全咖啡因摄入量,在线工具,免费工具,ToolBox">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://chenguangwu.github.io/tools/health/caffeine-limit.html">
+<meta property="og:title" content="每日安全咖啡因摄入量 - 免费在线健康医疗工具">
+<meta property="og:description" content="每日安全咖啡因摄入量是一款免费的在线健康医疗工具，每日安全咖啡因摄入量计算器。按体重估算每日咖啡因摄入上限，添加当日饮品自动累计摄入量与占比，用于健康控量与失眠预防提示。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://chenguangwu.github.io/tools/health/caffeine-limit.html">
+<meta name="twitter:card" content="summary">
+
+<title>每日安全咖啡因摄入量 - 免费在线健康医疗工具</title>
+<meta name="theme-color" content="#FF6B35">
+<link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+<link rel="icon" href="../../favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="apple-touch-icon" href="../../apple-touch-icon.png">
+<link rel="stylesheet" href="../../css/common.css">
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="../../js/common.js" defer></script>
+<style>
+.caf-big{font-size:48px;font-weight:700;text-align:center;transition:color 0.3s;}
+.drink-row{display:flex;gap:8px;margin-bottom:8px;align-items:center;}
+.drink-row select,.drink-row .tb-select{flex:2;min-width:0;}
+.drink-row input[type="number"]{flex:1;min-width:0;}
+.drink-row .remove-btn{flex:0 0 40px;padding:10px;}
+.tip-card{background:var(--result-bg);border-left:3px solid var(--primary);border-radius:8px;padding:12px;margin-bottom:10px;}
+.tip-card h4{color:var(--primary);margin-bottom:6px;font-size:14px;}
+.tip-card p{font-size:13px;color:var(--text-light);margin:4px 0;}
+.warn-card{background:rgba(244,67,54,0.05);border-left:3px solid #f44336;border-radius:8px;padding:12px;margin-bottom:10px;}
+.warn-card h4{color:#f44336;margin-bottom:6px;font-size:14px;}
+.warn-card p{font-size:13px;color:var(--text-light);margin:4px 0;}
+.half-life-item{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);}
+.half-life-item:last-child{border-bottom:none;}
+.half-life-time{width:100px;font-weight:600;color:var(--primary);font-size:13px;}
+.half-life-bar{flex:1;height:20px;background:var(--border);border-radius:6px;overflow:hidden;}
+.half-life-fill{height:100%;background:linear-gradient(90deg,#6d4c41,#a1887f);border-radius:6px;transition:width 0.4s;}
+.half-life-amount{width:80px;text-align:right;font-size:13px;color:var(--text-light);}
+.drink-table-item{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer;transition:background 0.2s;}
+.drink-table-item:hover{background:var(--result-bg);}
+.drink-table-item:last-child{border-bottom:none;}
+.drink-icon{font-size:24px;width:36px;text-align:center;}
+.drink-name{flex:1;font-size:13px;}
+.drink-caf{font-size:13px;color:var(--primary);font-weight:600;}
+</style>
+
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "咖啡因摄入量计算器",
+  "description": "咖啡因摄入量计算器 - 免费数学计算工具，每日安全咖啡因摄入量。",
+  "url": "https://chenguangwu.github.io/tools/health/caffeine-limit.html",
+  "applicationCategory": "UtilitiesApplication",
+  "operatingSystem": "Web",
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "CNY"
+  },
+  "inLanguage": "zh-CN",
+  "isAccessibleForFree": true,
+  "browserRequirements": "Requires JavaScript. Requires HTML5.",
+  "softwareVersion": "1.0"
+}
+</script>
+
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
+    <meta name="twitter:title" content="每日安全咖啡因摄入量 - 免费在线健康医疗工具">
+    <meta name="twitter:description" content="每日安全咖啡因摄入量是一款免费的在线健康医疗工具，每日安全咖啡因摄入量计算器。按体重估算每日咖啡因摄入上限，添加当日饮品自动累计摄入量与占比，用于健康控量与失眠预防提示。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"咖啡因摄入量计算器","url":"https://chenguangwu.github.io/tools/health/caffeine-limit.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"每日安全咖啡因摄入量是一款免费的在线健康医疗工具，每日安全咖啡因摄入量计算器。按体重估算每日咖啡因摄入上限，添加当日饮品自动累计摄入量与占比，用于健康控量与失眠预防提示。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://chenguangwu.github.io/"},{"@type":"ListItem","position":2,"name":"健康医疗","item":"https://chenguangwu.github.io/tools/health/index.html"},{"@type":"ListItem","position":3,"name":"咖啡因摄入量计算器","item":"https://chenguangwu.github.io/tools/health/caffeine-limit.html"}]}
+</script>
+
+<script src="../../js/i18n.js" defer></script>
+<script src="../../js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+
+
+<meta name="title-en" content="Caffeine Limit">
+<meta name="desc-en" content="Caffeine Limit - online utility on ToolBox.">
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/health/caffeine-limit.html">
+<link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/health/caffeine-limit.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/health/caffeine-limit.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/health/caffeine-limit.html">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:locale:alternate" content="zh_TW">
+<meta property="og:locale:alternate" content="en_US">
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
+
+<script src="/js/tool-ux.js" defer></script>
+<!-- TOOLBOX-TOOL-UX -->
+
+<script src="/js/analytics.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+<!-- TOOLBOX-TTZZ -->
+<script>
+(function(){try{
+var el = document.createElement("script");
+el.src = "https://lf1-cdn-tos.bytegoofy.com/goofy/ttzz/push.js?85d6452aa9be4d693b16cd48535a8c7ae57542f6788a41682e745be8eb99b35a8a24d2f724c31ebe20c1e4e6fba6d91caf576100b02a2870c72f38fc574066fef065d152c73bf1cbb2ebad3b5b5265d8";
+el.id = "ttzz";
+var s = document.getElementsByTagName("script")[0];
+s.parentNode.insertBefore(el, s);
+}catch(e){}
+})(window);
+</script>
+
+<script src="/js/tool-kit.js" defer></script>
+<!-- TOOLBOX-TOOL-KIT -->
+</head>
+<body>
+<h1 class="sr-only">咖啡因摄入量计算器</h1>
+
+<div class="nav">
+  <a href="../../index.html">← ToolBox</a>
+  <span>/ 咖啡因摄入量计算器</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+
+
+
+<nav class="breadcrumb" aria-label="面包屑导航" data-breadcrumb="1">
+  <a href="../../index.html">首页</a>
+  <span class="bc-sep">‹</span>
+  <a href="index.html">❤️ 健康医疗</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">咖啡因摄入量计算器</span>
+</nav>
+<div class="container">
+<div class="tool-guide-link" data-guide-link="1">
+  <a href="../../guides/caffeine-limit-guide.html">📖 查看「每日安全咖啡因摄入量计算器使用指南」</a>
+</div>
+
+  <div class="card tool-card-accent" style="--tool-accent:#10B981;">
+    <h2 data-zh="🧮 每日安全咖啡因摄入量">🧮 Daily Caffeine Limit Calculator</h2>
+    <div class="formula-box">
+      <div class="formula-title">📐 计算公式</div>
+      <div class="formula-eq">安全上限(mg) = 体重(kg) × 人群系数(mg/kg)<br>中等摄入 = 体重 × 3　高风险 = 体重 × 6　咖啡杯数 = 安全上限 ÷ 95</div>
+    </div>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="根据体重计算每日安全咖啡因摄入上限">Estimate a safe daily caffeine ceiling from body weight and population group, convert it into cups of coffee, and log drinks against the running total.</p>
+    
+    <div class="input-row">
+      <div><label>体重 (kg)</label><input type="number" id="weight" value="65" min="20" max="200" oninput="calc()"></div>
+      <div>
+        <label>人群类型</label>
+        <select id="group" onchange="calc()">
+          <option value="6" selected>健康成人 (6mg/kg)</option>
+          <option value="3">孕妇/哺乳期 (3mg/kg)</option>
+          <option value="2.5">青少年 (2.5mg/kg)</option>
+          <option value="1">儿童 (1mg/kg)</option>
+          <option value="0">对咖啡因敏感者</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__caffeine_limitExport()">导出明细 CSV</button></div>
+    <div class="result-box" style="text-align:center;padding:20px;margin-top:16px;">
+      <div class="caf-big" id="safeLimit" style="color:var(--success);">0 mg</div>
+      <div style="font-size:14px;color:var(--text-muted);margin-top:4px;">每日安全上限</div>
+      <div class="stat-grid" style="margin-top:16px;">
+        <div class="stat-card">
+          <div class="val" style="font-size:16px;" id="moderate">0 mg</div>
+          <div class="lbl">适量 (≤3mg/kg)</div>
+        </div>
+        <div class="stat-card">
+          <div class="val" style="font-size:16px;" id="highRisk">0 mg</div>
+          <div class="lbl">高风险 (>6mg/kg)</div>
+        </div>
+        <div class="stat-card">
+          <div class="val" style="font-size:16px;" id="cupsOfCoffee">0 杯</div>
+          <div class="lbl">约等于美式咖啡</div>
+        </div>
+      </div>
+    </div>
+    <div id="caffeine_limitTable"></div>
+    <div id="caffeine_limitDiff"></div>
+    <div id="caffeine_limitChart"></div>
+    <div id="caffeine_limitHist"></div>
+  </div>
+
+  <div class="card">
+    <h2>🧮 咖啡因摄入累积计算器</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">添加今天喝过的饮品，自动计算总摄入量</p>
+    
+    <div id="drinks"></div>
+    
+    <div class="toolbar">
+      <button type="button" class="btn primary" onclick="addDrink()">+ 添加饮品</button>
+      <button type="button" class="btn" onclick="resetDrinks()">重置</button>
+    </div>
+
+    <div class="result-box" style="text-align:center;padding:20px;margin-top:12px;">
+      <div class="caf-big" id="totalCaf" style="color:var(--success);">0 mg</div>
+      <div style="font-size:14px;" id="cafStatus">✅ 安全范围内</div>
+      <div style="margin-top:12px;background:var(--border);border-radius:8px;height:16px;overflow:hidden;">
+        <div id="cafBar" style="height:100%;background:var(--success);width:0%;transition:width 0.3s;"></div>
+      </div>
+      <p style="font-size:12px;color:var(--text-muted);margin-top:8px;">已摄入 / 安全上限 = <span id="cafPct">0%</span></p>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>📋 常见饮品咖啡因含量表</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">点击添加到计算器</p>
+    <div id="drinkList"></div>
+  </div>
+
+  <div class="card">
+    <h2>⏱️ 咖啡因半衰期计算</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">咖啡因在体内代谢需要时间，了解不同时间点的残留量</p>
+    
+    <div class="input-row">
+      <div>
+        <label>饮用时间</label>
+        <input type="time" id="drinkTime" oninput="calcHalfLife()">
+      </div>
+      <div>
+        <label>咖啡因含量 (mg)</label>
+        <input type="number" id="drinkAmount" value="95" oninput="calcHalfLife()">
+      </div>
+      <div>
+        <label>半衰期 (小时)</label>
+        <select id="halfLife" onchange="calcHalfLife()">
+          <option value="3">3小时 (代谢快)</option>
+          <option value="4">4小时</option>
+          <option value="5" selected>5小时 (成人平均)</option>
+          <option value="6">6小时</option>
+          <option value="8">8小时 (孕妇)</option>
+          <option value="10">10小时 (慢代谢)</option>
+        </select>
+      </div>
+    </div>
+
+    <div id="halfLifeResult" style="margin-top:12px;"></div>
+    <p style="font-size:12px;color:var(--text-muted);margin-top:8px;">* 咖啡因半衰期一般为3-5小时，孕妇可延长至8小时以上</p>
+  </div>
+
+  <div class="card">
+    <h2>⚠️ 咖啡因过量症状</h2>
+    <div class="warn-card">
+      <h4>轻度过量 (200-400mg)</h4>
+      <p>• 心跳加速、心悸</p>
+      <p>• 手抖、肌肉震颤</p>
+      <p>• 失眠、难以入睡</p>
+      <p>• 焦虑、烦躁不安</p>
+      <p>• 尿频</p>
+    </div>
+    <div class="warn-card">
+      <h4>中度过量 (400-800mg)</h4>
+      <p>• 头痛、头晕</p>
+      <p>• 恶心、呕吐</p>
+      <p>• 血压升高</p>
+      <p>• 精神紧张、亢奋</p>
+      <p>• 胃部不适</p>
+    </div>
+    <div class="warn-card">
+      <h4>重度过量 (>1000mg) - 需就医！</h4>
+      <p>• 严重心律失常</p>
+      <p>• 意识混乱、谵妄</p>
+      <p>• 抽搐、惊厥</p>
+      <p>• 幻觉</p>
+      <p>• 昏迷</p>
+    </div>
+    <div class="tip-card">
+      <h4>致死剂量</h4>
+      <p>成人口服致死量约为10-14克（约100-150杯咖啡），但敏感人群可能更低。</p>
+      <p><strong>注意：</strong>纯咖啡因粉/片剂危险性极高，请勿使用！</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>🌅 最佳饮用时间建议</h2>
+    <div class="tip-card">
+      <h4>咖啡因不影响睡眠的最晚时间</h4>
+      <p>建议睡前至少6-8小时停止摄入咖啡因，敏感人群需要更长时间。</p>
+      <p id="lastCafTime" style="font-size:16px;font-weight:600;color:var(--primary);margin-top:8px;"></p>
+    </div>
+    <div class="tip-card">
+      <h4>一天中最佳饮用时间</h4>
+      <p>• <strong>上午9-11点：</strong>皮质醇水平下降时，提神效果最佳</p>
+      <p>• <strong>下午1-3点：</strong>午后困倦时，帮助恢复精力</p>
+      <p>• <strong>避免空腹饮用：</strong>可能刺激胃黏膜</p>
+      <p>• <strong>运动前30分钟：</strong>可提升运动表现</p>
+    </div>
+    <div class="tip-card">
+      <h4>影响咖啡因代谢的因素</h4>
+      <p>• <strong>吸烟：</strong>加速代谢（缩短半衰期约30-50%）</p>
+      <p>• <strong>怀孕：</strong>减慢代谢（延长至8小时以上）</p>
+      <p>• <strong>口服避孕药：</strong>减慢代谢（约延长2倍）</p>
+      <p>• <strong>肝功能：</strong>肝功能异常者代谢减慢</p>
+      <p>• <strong>基因：</strong>CYP1A2基因决定代谢快慢</p>
+      <p>• <strong>年龄：</strong>老年人代谢较慢</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>💡 健康饮用建议</h2>
+    <div class="tip-card">
+      <h4>喝咖啡的好处（适量）</h4>
+      <p>• 提神醒脑，提高注意力和反应速度</p>
+      <p>• 促进新陈代谢，有助于减肥</p>
+      <p>• 降低患2型糖尿病风险</p>
+      <p>• 降低帕金森病和阿尔茨海默病风险</p>
+      <p>• 抗氧化、抗炎作用</p>
+      <p>• 改善运动表现</p>
+    </div>
+    <div class="tip-card">
+      <h4>哪些人需要限制咖啡因？</h4>
+      <p>• 孕妇和哺乳期女性</p>
+      <p>• 儿童和青少年</p>
+      <p>• 心脏病、高血压患者</p>
+      <p>• 胃溃疡、胃酸过多者</p>
+      <p>• 焦虑症、失眠患者</p>
+      <p>• 服用某些药物者（请咨询医生）</p>
+    </div>
+    <div class="success-card" style="background:rgba(76,175,80,0.05);border-left:3px solid var(--success);border-radius:8px;padding:12px;margin-bottom:10px;">
+      <h4 style="color:var(--success);">如何减少咖啡因依赖？</h4>
+      <p>• 逐渐减量，不要突然停止（避免戒断反应）</p>
+      <p>• 用低因咖啡或茶替代</p>
+      <p>• 多喝水，保持充足睡眠</p>
+      <p>• 规律运动，自然提升精力</p>
+      <p>• 减少环境中的咖啡因诱惑</p>
+    </div>
+  </div>
+
+  <div class="card" style="background:rgba(76,175,80,0.05);border-color:rgba(76,175,80,0.3);">
+    <p style="font-size:13px;color:var(--text-light);line-height:1.8;">
+      ⚠️ <strong>免责声明：</strong>本计算器结果仅供参考，不能替代专业医生的诊断和建议。咖啡因敏感度因人而异，孕妇、哺乳期女性、心血管疾病患者等特殊人群请遵医嘱。如出现咖啡因过量症状，请立即就医。
+    </p></div>
+
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto 0;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+.deep-dive a.term-link{color:var(--tool-accent,#FF6B35);text-decoration:none;border-bottom:1px dashed currentColor;}
+.deep-dive a.term-link:hover{border-bottom-style:solid;}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：每日安全咖啡因摄入量计算器</h2>
+<h3>💡 常见使用场景</h3>
+<ul class="dd-list">
+<li>控量人群（孕妇、青少年、敏感者）按体重与人群系数估算每日咖啡因上限，防止过量心悸失眠。</li>
+<li>添加当日饮品自动累计摄入量占比，直观看到离上限还有多少余量。</li>
+<li>用<a class="term-link" href="/tools/nuclear/half-life-from-lambda.html">半衰期</a>模型预估最后一杯咖啡在体内清零的时间，安排下午后不再摄入以保睡眠。</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">可复现算例：每日咖啡因上限</div><div class="dd-ex-body">输入：体重 65 kg、人群=健康成人（6 mg/kg）、单杯饮品 95 mg。
+每日安全上限 = 65 × 6 = 390 mg；约相当于 390 ÷ 95 ≈ 4.1 杯美式（每杯约 95 mg）。
+中度(3mg/kg)=195 mg、高风险(6mg/kg 已含)=390 mg。
+半衰期模型：饮 200 mg 后，半衰期 5 小时 → 5h 后剩 100 mg、10h 后剩 50 mg。
+结论：65 kg 成人每日上限约 390 mg（≈4 杯），下午后宜停止以保夜间清零。</div></div>
+<h3>❓ 常见问题（FAQ）</h3>
+<dl class="dd-faq">
+<dt>孕妇/青少年上限为什么要更低？</dt><dd>孕期咖啡因可透过胎盘且胎儿代谢慢，多国建议 &lt;200 mg/日（约 3 mg/kg）；青少年神经系统发育中建议 ≤2.5–3 mg/kg。本工具按人群系数自动下调，但仍以医嘱为准。</dd>
+<dt>「最后一杯」几点前喝才不会失眠？</dt><dd>按半衰期 5 小时，体内残留降至 25 mg 以下约需 4–5 个半衰期（20–25h）才接近清零，但影响睡眠主要在睡前 6–8h 内的高浓度。建议对咖啡因敏感者午后（14:00 后）停止摄入。</dd>
+</dl>
+</div>
+</section>
+<!-- 注意事项区块 -->
+<div class="tool-notes" style="--tool-accent:#10B981;">
+  <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
+  <ul>
+      <li>本工具纯前端运行，数据不会上传到服务器</li>
+      <li>建议在主流浏览器（Chrome/Safari/Firefox/Edge）中使用</li>
+      <li>计算结果仅供参考，请以实际应用场景为准</li>
+  </ul>
+</div>
+<!-- /注意事项区块 -->
+</div>
+
+<script>
+const drinkOptions = [
+  {name:'美式咖啡 (240ml)', caf:95, icon:'☕'},
+  {name:'拿铁/卡布奇诺 (240ml)', caf:75, icon:'☕'},
+  {name:'浓缩咖啡 (30ml)', caf:63, icon:'☕'},
+  {name:'速溶咖啡 (240ml)', caf:60, icon:'☕'},
+  {name:'冷萃咖啡 (240ml)', caf:155, icon:'☕'},
+  {name:'红茶 (240ml)', caf:47, icon:'🍵'},
+  {name:'绿茶 (240ml)', caf:28, icon:'🍵'},
+  {name:'乌龙茶 (240ml)', caf:37, icon:'🍵'},
+  {name:'抹茶 (240ml)', caf:70, icon:'🍵'},
+  {name:'可乐 (330ml)', caf:34, icon:'🥤'},
+  {name:'无糖可乐 (330ml)', caf:46, icon:'🥤'},
+  {name:'能量饮料 (250ml)', caf:80, icon:'⚡'},
+  {name:'红牛 (250ml)', caf:80, icon:'⚡'},
+  {name:'黑巧克力 (28g)', caf:12, icon:'🍫'},
+  {name:'牛奶巧克力 (28g)', caf:6, icon:'🍫'},
+  {name:'可可/热巧克力 (240ml)', caf:8, icon:'🍫'}
+];
+
+function calc(){
+  const w = parseFloat(document.getElementById('weight').value)||65;
+  const group = parseFloat(document.getElementById('group').value);
+  const safe = group > 0 ? Math.round(w * group) : 100;
+  const moderate = Math.round(w * 3);
+  const highRisk = Math.round(w * 6);
+  const cups = (safe / 95).toFixed(1);
+  
+  const __g0=safe + ' mg';document.getElementById('safeLimit').textContent=(typeof __g0==='number'?(isFinite(__g0)?__g0:'—'):String(__g0).replace(/Infinity|NaN/g,'—'));
+  const __g1=moderate + ' mg';document.getElementById('moderate').textContent=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
+  const __g2=highRisk + ' mg';document.getElementById('highRisk').textContent=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
+  const __g3=cups + ' 杯';document.getElementById('cupsOfCoffee').textContent=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
+  
+  updateCafStatus();
+  calcLastCafTime();
+}
+
+function addDrink(){
+  const d = document.createElement('div');
+  d.className = 'drink-row';
+  let opts = '';
+  drinkOptions.forEach(dr => {
+    opts += '<option value="'+dr.caf+'">'+dr.icon+' '+dr.name+' ('+dr.caf+'mg)</option>';
+  });
+  const __g4='<select class="drink-type" onchange="calcTotal()">'+opts+'</select>' +
+    '<input type="number" class="drink-qty" value="1" min="0" step="0.5" oninput="calcTotal()">' +
+    '<button type="button" class="btn remove-btn" onclick="removeDrink(this)">×</button>';d.innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
+  document.getElementById('drinks').appendChild(d);
+  calcTotal();
+}
+
+function removeDrink(btn){
+  btn.parentElement.remove();
+  calcTotal();
+}
+
+function resetDrinks(){
+  document.getElementById('drinks').innerHTML='';
+  addDrink();
+}
+
+function calcTotal(){
+  let total = 0;
+  document.querySelectorAll('#drinks .drink-row').forEach(r=>{
+    const caf = parseInt(r.querySelector('.drink-type').value)||0;
+    const qty = parseFloat(r.querySelector('.drink-qty').value)||0;
+    total += caf * qty;
+  });
+  
+  const safe = parseInt(document.getElementById('safeLimit').textContent)||400;
+  const pct = Math.min(100, (total / safe) * 100);
+  
+  const __g6=total + ' mg';document.getElementById('totalCaf').textContent=(typeof __g6==='number'?(isFinite(__g6)?__g6:'—'):String(__g6).replace(/Infinity|NaN/g,'—'));
+  document.getElementById('cafBar').style.width = pct + '%';
+  const __g7=pct.toFixed(0) + '%';document.getElementById('cafPct').textContent=(typeof __g7==='number'?(isFinite(__g7)?__g7:'—'):String(__g7).replace(/Infinity|NaN/g,'—'));
+  
+  let status, color, barColor;
+  if(total <= safe * 0.5){
+    status = '✅ 安全范围'; color = 'var(--success)'; barColor = 'var(--success)';
+  }else if(total <= safe){
+    status = '⚠️ 接近上限'; color = '#ff9800'; barColor = '#ff9800';
+  }else if(total <= safe * 1.5){
+    status = '⛔ 超过安全量'; color = '#f44336'; barColor = '#f44336';
+  }else{
+    status = '🚨 严重过量！'; color = '#d32f2f'; barColor = '#d32f2f';
+  }
+  
+  const __g8=status;document.getElementById('cafStatus').textContent=(typeof __g8==='number'?(isFinite(__g8)?__g8:'—'):String(__g8).replace(/Infinity|NaN/g,'—'));
+  document.getElementById('cafStatus').style.color = color;
+  document.getElementById('cafBar').style.background = barColor;
+  document.getElementById('totalCaf').style.color = color;
+}
+
+function updateCafStatus(){
+  calcTotal();
+}
+
+function renderDrinkList(){
+  let html = '';
+  drinkOptions.forEach(dr => {
+    html += '<div class="drink-table-item" onclick="quickAdd('+dr.caf+')">';
+    html += '<div class="drink-icon">'+dr.icon+'</div>';
+    html += '<div class="drink-name">'+dr.name+'</div>';
+    html += '<div class="drink-caf">'+dr.caf+' mg</div>';
+    html += '</div>';
+  });
+  const __g9=html;document.getElementById('drinkList').innerHTML=(typeof __g9==='number'?(isFinite(__g9)?__g9:'—'):String(__g9).replace(/Infinity|NaN/g,'—'));
+}
+
+function quickAdd(caf){
+  const sel = document.querySelectorAll('.drink-type');
+  if(sel.length === 0) addDrink();
+  const last = document.querySelector('#drinks .drink-row:last-child .drink-type');
+  if(last){
+    last.value = caf;
+    calcTotal();
+  }
+  ToolBox.showToast(i18nText('toast.msg258'), 'success');
+}
+
+function calcHalfLife(){
+  const timeStr = document.getElementById('drinkTime').value;
+  const amount = parseFloat(document.getElementById('drinkAmount').value)||95;
+  const hl = parseFloat(document.getElementById('halfLife').value)||5;
+  
+  if(!timeStr) return;
+  
+  const [h, m] = timeStr.split(':').map(Number);
+  const drinkDate = new Date();
+  drinkDate.setHours(h, m, 0, 0);
+  
+  const points = [
+    {label:'刚喝完', hours:0},
+    {label:'2小时后', hours:2},
+    {label:'4小时后', hours:4},
+    {label:'8小时后', hours:8},
+    {label:'12小时后', hours:12},
+    {label:'24小时后', hours:24}
+  ];
+  
+  let html = '';
+  points.forEach(p => {
+    const remaining = amount * Math.pow(0.5, p.hours / hl);
+    const pct = (remaining / amount) * 100;
+    const time = new Date(drinkDate.getTime() + p.hours * 3600 * 1000);
+    const timeStr = String(time.getHours()).padStart(2,'0') + ':' + String(time.getMinutes()).padStart(2,'0');
+    
+    html += '<div class="half-life-item">';
+    html += '<div class="half-life-time">'+timeStr+'</div>';
+    html += '<div class="half-life-bar"><div class="half-life-fill" style="width:'+pct+'%;"></div></div>';
+    html += '<div class="half-life-amount">'+remaining.toFixed(0)+' mg ('+pct.toFixed(0)+'%)</div>';
+    html += '</div>';
+  });
+  
+  const __g10=html;document.getElementById('halfLifeResult').innerHTML=(typeof __g10==='number'?(isFinite(__g10)?__g10:'—'):String(__g10).replace(/Infinity|NaN/g,'—'));
+}
+
+function calcLastCafTime(){
+  const hl = parseFloat(document.getElementById('halfLife').value)||5;
+  const bedtime = new Date();
+  bedtime.setHours(23, 0, 0, 0);
+  const lastCaf = new Date(bedtime.getTime() - 8 * hl * 3600 * 1000 / 5);
+  const timeStr = String(lastCaf.getHours()).padStart(2,'0') + ':' + String(lastCaf.getMinutes()).padStart(2,'0');
+  const __g11='建议最晚 ' + timeStr + ' 前饮用（假设23:00睡觉）';document.getElementById('lastCafTime').textContent=(typeof __g11==='number'?(isFinite(__g11)?__g11:'—'):String(__g11).replace(/Infinity|NaN/g,'—'));
+}
+
+function setNowTime(){
+  const now = new Date();
+  const timeStr = String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
+  document.getElementById('drinkTime').value = timeStr;
+}
+
+setNowTime();
+calc();
+addDrink();
+renderDrinkList();
+calcHalfLife();
+</script><script>
+// tool-intro折叠交互
+document.addEventListener('DOMContentLoaded',function(){
+  var headers=document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click',function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+
+var __caffeine_limit_last=0,__caffeine_limit_skip=false;
+function __caffeine_limitSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __caffeine_limitResText(){
+    var r=document.querySelector('.result-box');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __caffeine_limitTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __caffeine_limitRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__caffeine_limitTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#caffeine_limitTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#caffeine_limitDiff');
+        TBKit.history.mount('#caffeine_limitHist',function(rec){
+            __caffeine_limit_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __caffeine_limit_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__caffeine_limitTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#caffeine_limitChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __caffeine_limitExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__caffeine_limit_skip) return;
+    var snap=__caffeine_limitSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__caffeine_limitResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__caffeine_limit_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __caffeine_limit_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __caffeine_limitRender(keys,rk,en);
+}
+function __caffeine_limitExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#caffeine_limitTable','caffeine-limit.csv'); } catch(e){}
+}
+function __caffeine_limitPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#caffeine_limitPresets',[{label:'默认参数',labelEn:'Default',values:{'weight':'65', 'group':'6', 'drinkAmount':'95', 'halfLife':'3'}}],function(){ calc(); });
+}
+var __caffeine_limit_f0=(typeof calc==='function')?calc:null;
+if(__caffeine_limit_f0){
+    calc=function(){ var __r=__caffeine_limit_f0.apply(null,arguments); try{ __caffeine_limitExtras(); }catch(e){} return __r; };
+}
+function __caffeine_limitBoot(){ try{ __caffeine_limitPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __caffeine_limitBoot();
+else document.addEventListener('DOMContentLoaded', __caffeine_limitBoot);
+</script>
+<!-- SEO 介绍区块 -->
+
+</div>
+
+</div>
+
+<!-- 相关工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相关工具</h3>
+  <div class="related-tools-grid">
+    <a href="breath-timer.html" class="related-tool-card">
+      <span class="rt-icon">🫁</span>
+      <span class="rt-info"><span class="rt-name">呼吸计时器 - 免费开发工具，在线呼吸计时器 | ToolBox免费在线工具箱</span><span class="rt-desc">呼吸计时器</span></span>
+    </a>
+    <a href="../accessibility/voice-synthesis.html" class="related-tool-card">
+      <span class="rt-icon">♿</span>
+      <span class="rt-info"><span class="rt-name">语音合成 - 健康医疗在线工具 | ToolBox免费在线工具箱</span><span class="rt-desc">语音合成</span></span>
+    </a>
+    <a href="rehab-timer.html" class="related-tool-card">
+      <span class="rt-icon">🦿</span>
+      <span class="rt-info"><span class="rt-name">康复训练计时器 - 健康医疗在线工具 | ToolBox免费在线工具箱</span><span class="rt-desc">⏱️ 康复训练计时器</span></span>
+    </a>
+    <a href="stretch-generator.html" class="related-tool-card">
+      <span class="rt-icon">✨</span>
+      <span class="rt-info"><span class="rt-name">拉伸动作生成器 - 拉伸动作随机生成器 - 根据身体部位和时长，随机生成一套拉伸 | ToolBox免费在线工具箱</span><span class="rt-desc">拉伸动作随机生成器</span></span>
+    </a>
+    <a href="../sports/yoga-pose-generator.html" class="related-tool-card">
+      <span class="rt-icon">🎲</span>
+      <span class="rt-info"><span class="rt-name">瑜伽体式随机生成 - 健康医疗在线工具 | ToolBox免费在线工具箱</span><span class="rt-desc">瑜伽体式随机生成</span></span>
+    </a>
+    <a href="../sports/climbing-grade-converter.html" class="related-tool-card">
+      <span class="rt-icon">🧗</span>
+      <span class="rt-info"><span class="rt-name">攀岩难度等级转换 - 健康医疗在线工具 | ToolBox免费在线工具箱</span><span class="rt-desc">攀岩难度等级转换</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro open" id="toolIntro">
+  <div class="tool-intro-header">
+    <span class="intro-icon-wrap"><span class="intro-icon">📖</span>关于「咖啡因摄入量计算器」</span>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="tool-intro-body">
+    <h4><span class="h4-icon">📝</span>工具简介</h4>
+    <p>咖啡因摄入量计算器。健康指标计算工具，基于权威医学标准，数据本地处理保护隐私。</p>
+    <h4><span class="h4-icon">✨</span>功能特点</h4>
+    <ul class="intro-features">
+      <li>基于权威健康标准计算</li>
+      <li>支持多种参数输入</li>
+      <li>提供详细的健康参考建议</li>
+      <li>健康数据不上传，隐私安全</li>
+    </ul>
+    <h4><span class="h4-icon">🎯</span>使用场景</h4>
+    <ul class="intro-scenes">
+      <li>日常健康监测与管理</li>
+      <li>健身计划制定参考</li>
+      <li>体检报告解读辅助</li>
+      <li>健康知识学习</li>
+    </ul>
+    </div>
+</div>
+<!-- /SEO 介绍区块 -->
+</body>
+</html>

@@ -1,0 +1,127 @@
+# ============================================================
+# .gitignore — chenguangwu.github.io（ToolBox）
+#
+# 维护要点：
+#   1) 发布目录（tools/、js/、css/、json/、i18n/、assets/、vendor/）里的规则必须**窄**：
+#      被吞掉的文件不会进 git、不会出现在 review 里，出了问题无迹可循。
+#      这些目录只忽略「确认属产物」的文件，别用宽通配。
+#   2) 可再生的分析/审计产物用**精确文件名**列出，不要图省事写宽通配：
+#      根目录确实存在需要入库的 `_` 前缀数据文件
+#      （`_bing_index_check_state.json`、`_fix_formula_titles_log.txt`）。
+#   3) 改动本文件后必须核验两个集合都没出现意外变化：
+#        git ls-files -o -i --exclude-standard --directory | sort   # 被忽略的
+#        git ls-files -o    --exclude-standard --directory | sort   # 会被 add 的
+# ============================================================
+
+# ---------- 备份 / 交换文件 / 补丁残留 ----------
+*.bak
+*.swp
+*.swo
+*~
+*.orig
+*.rej
+
+# ---------- 系统文件 ----------
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ---------- 编辑器 / IDE ----------
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# ---------- 凭据（绝不入库）；.env.example 这类模板仍需入库，故不用 .env* ----------
+.env
+.env.local
+.env.*.local
+
+# ---------- 依赖 ----------
+node_modules/
+
+# ---------- 临时与缓存 ----------
+*.log
+*.tmp
+.cache/
+tmp/
+__pycache__/
+*.py[cod]
+# npm / yarn 的失败日志带序号（如 npm-debug.log.1），*.log 匹配不到，需单独列出
+npm-debug.log*
+yarn-error.log*
+
+# ---------- 本地开发脚本（仅根目录与 scripts/）----------
+# 只忽略这两处的 `_` 前缀脚本。
+#
+# 事实纠正（2026-09-29 二次线上实测，覆盖 09-26 版）：以下两种说法**都是错误归因**——
+#    ①「`_` 前缀能防发布泄漏」；②「GitHub Pages 平台规则拦截 `_`/`.` 前缀路径」。
+#    真实机制：CI 由 `actions/checkout` 取仓库内容 ⇒ **未提交 / 被本文件忽略的文件在 runner 上根本不存在**，自然不上线。
+#    实测（同一次线上核对）：已入库的 /i18n/tools/en/it/_index.json（`_` 前缀）→ 200、/.gitignore（`.` 前缀）→ 200；
+#    未入库的 /_qa_gates.json、/.workbuddy/（含 Google 密钥）、/scripts/_probe_ad_metrics.js → 全 404。
+#    ⇒ 本组规则 = 「版本控制语义」＋ 事实上的「发布防护」（本项目里两者是同一件事）；**别把它当平台行为依赖**。
+#    ⇒ **安全防线 = 密钥文件不入库**；一旦 `git add` 即公开。
+#
+#  不要退回写成全局 `_*.js`：会让发布目录（js/、tools/、assets/、vendor/）里的
+#    `_` 前缀文件在 git 层也被吞掉，形成「既不上线、又不在版本控制、git status 也不提示」的双重静默。
+#  不要加 `_*.py`：`_build.py`、`_test_static.py`、`_audit_*.py` 等
+#    48 个构建/门禁脚本全靠「.py 不在忽略范围」才得以入库。
+#
+#  已知暴露面（待决策）：已入库的非 `_` 前缀文件（`scripts/run_gates.py`、`verify_*.js`、`gen_*.py` …）
+#    与根 `package.json` 已公开可下载（实测 200）。如需收敛，应在 workflow 的 artifact 上传前
+#    把 `scripts/` 等移出工作区（同现有 `node_modules` 的 mv 做法）。
+/_*.js
+/_*.sh
+/scripts/_*.js
+/scripts/_*.sh
+
+# ---------- 可再生的分析 / 审计 / 发布产物（根目录，精确清单）----------
+# playwright-cli 会话产物（页面快照 YAML + 截图，真机验证时自动生成，可重建）
+.playwright-cli/
+_audit_links_broken.json
+_audit_links_report.json
+_audit_links_report.txt
+_audit_assets_report.json
+_audit_assets_report.txt
+_test_report_static.json
+_qa_gates.json
+_regression_tools.json
+_perf_baseline.json
+_third_party_inventory.json
+_gsc_inspect_progress.json
+_index_coverage_state.json
+_bing_url_submission_failed.json
+index_coverage.json
+release_snapshot.json
+release_dashboard.html
+clarity_top_pages_*.txt
+# IndexNow 死链提交脚本的临时待提交列表（运行产物，可重建，不入库）
+_deadlinks_pending.txt
+
+# ---------- 分析 / 流量导出 CSV（仅根目录 + scripts/health-reports）----------
+# 收窄理由：全局 `*.csv` 会吞掉将来放在 json/、tools/ 等目录、需要随站点发布的 CSV。
+# 注：scripts/health-reports/ 下 8 个 csv 在本规则生效前已被跟踪，gitignore 对已跟踪文件无效，
+#     需 `git rm --cached <file>` 才解除（可再生的健康报告，是否清理由老板定）。
+/*.csv
+/scripts/health-reports/*.csv
+
+# ---------- 本地 AI 助手工作记忆（不入库）----------
+.workbuddy/
+.codex/
+
+# ---------- 与站点无关的第三方 / 历史重复产物 ----------
+# Sublime Package Control 下载缓存（不是站点数据）
+/channel*.json
+# 历史重复构建产物；权威文件为 json/tools.json
+/tools.json
+
+# ---------- 构建产物 ----------
+# GitHub Actions 构建期生成的台湾繁体静态站点
+/zh-tw/
+
+# ---------- EN i18n 生成中间产物（可重建，由 --extract 重新生成）----------
+_en-i18n/work/
+
+# EN i18n 源态抽取缓存（可重建，由 EXTRACT_LANG=zh-CN --extract 生成）
+_en-i18n/work_zh/
+_en-i18n/pending/*.json

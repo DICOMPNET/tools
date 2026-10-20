@@ -1,0 +1,138 @@
+#!/usr/bin node
+"use strict";
+const { runCase } = require("./verify_it_calc.js");
+const CASES = [
+{
+  "slug": "printing/analysis-7",
+  "inputs": {
+    "lux": "280,300,325,310,340,295,330,305,315"
+  },
+  "expect": [
+    "311.1",
+    "0.900",
+    "0.824"
+  ],
+  "ref": "灯箱均匀度：9 点合计 2800 → 平均 311.1 cd/m²；U₁=280/311.111=0.900，U₂=280/340=0.824（独立复算，非页面默认测点）"
+},
+{
+  "slug": "printing/box-area",
+  "inputs": {
+    "len": "203",
+    "wid": "150",
+    "hei": "80",
+    "flap": "15",
+    "bleed": "3"
+  },
+  "expect": [
+    "203×150×80"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "printing/carton-design",
+  "inputs": {
+    "len": "123",
+    "wid": "80",
+    "hei": "60",
+    "thick": "0.5",
+    "volume": "500",
+    "ratio": "1.5",
+    "hwRatio": "1.0",
+    "thick2": "0.5"
+  },
+  "expect": [
+    "122×79×59"
+  ],
+  "ref": "auto-restore"
+},
+{
+"slug": "printing/convert-gsm",
+"inputs": {
+"gsm": "157",
+"rho": "1.05",
+"thick": "0.15"
+},
+"expect": [
+"0.1495 mm"
+],
+"ref": "复算：t = 157 ÷ (1000 × 1.05) = 0.149524 mm（149.5 μm，松厚度 0.952 cm³/g）；默认 80 gsm / 0.8 得 0.1000 mm ⇒ 不命中"
+},
+{
+  "slug": "printing/ink-coverage",
+  "inputs": {
+    "width": "892",
+    "length": "1194",
+    "sheets": "5000",
+    "coverage": "40",
+    "film": "2.5",
+    "colors": "4",
+    "price": "60",
+    "waste": "10"
+  },
+  "expect": [
+    "405.86"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "printing/sheet-calc",
+  "inputs": {
+    "pages": "163",
+    "copies": "2000",
+    "waste": "5"
+  },
+  "expect": [
+    "393.75"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "printing/estimate-ink",
+  "inputs": {
+    "sArea": "3.21",
+    "sCov": "40",
+    "sThk": "1.5",
+    "sDen": "1.1",
+    "sCopies": "5000",
+    "sPrice": "45",
+    "cArea": "0.21",
+    "cThk": "1.2",
+    "cDen": "1.1",
+    "cCopies": "10000",
+    "cPrice": "50",
+    "cWaste": "5",
+    "cC": "30",
+    "cM": "25",
+    "cY": "35",
+    "cK": "15"
+  },
+  "expect": [
+    "2118.60"
+  ],
+  "ref": "auto-restore"
+}
+];
+async function main() {
+  const only = process.argv.slice(2);
+  const cases = only.length ? CASES.filter((c) => only.some((o) => c.slug.endsWith("/" + o) || c.slug === o)) : CASES;
+  let pass = 0; const fails = [];
+  for (const c of cases) {
+    try {
+      const r = await runCase(c);
+      if (r.ok) { pass++; }
+      else {
+        fails.push(c.slug);
+        console.log("❌ " + c.slug + "  " + (r.why || "no expect match"));
+        if (r.errs && r.errs.length) console.log("     errs: " + JSON.stringify(r.errs));
+        if (r.sample) console.log("     got: " + String(r.sample).slice(0, 300));
+      }
+    } catch (e) {
+      fails.push(c.slug);
+      console.log("❌ " + c.slug + "  THROWN: " + ((e && e.message) ? e.message : String(e)));
+    }
+  }
+
+  console.log("==== printing calc " + pass + "/" + cases.length + " ====");
+  if (fails.length) process.exit(1);
+}
+if (require.main === module) main();

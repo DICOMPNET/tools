@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=health,industry=endocrinology,icon=⚗️,bg=#fce4ec">
+<title>血糖波动(MAGE)指数计算器 - 平均血糖波动幅度</title>
+<link rel="canonical" href="https://chenguangwu.github.io/tools/endocrinology/mage-index.html">
+<meta property="og:title" content="血糖波动(MAGE)指数计算器 - 平均血糖波动幅度">
+<meta property="og:description" content="血糖波动(MAGE)指数计算器是一款免费的在线内分泌科工具，输入连续血糖监测(CGM/CGM)数据，计算平均血糖波动幅度(MAGE)，评估血糖波动质量。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+<meta property="og:url" content="https://chenguangwu.github.io/tools/endocrinology/mage-index.html">
+<meta name="twitter:card" content="summary">
+<meta name="description" content="血糖波动(MAGE)指数计算器是一款免费的在线内分泌科工具，输入连续血糖监测(CGM/CGM)数据，计算平均血糖波动幅度(MAGE)，评估血糖波动质量。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+<meta name="theme-color" content="#FF6B35">
+<link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+<link rel="icon" href="../../favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="stylesheet" href="../../css/common.css">
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="../../js/common.js" defer></script>
+<style>
+.mage-bar{height:24px;border-radius:12px;background:linear-gradient(to right,#4caf50 0%,#4caf50 20%,#8bc34a 20%,#8bc34a 40%,#ffc107 40%,#ffc107 60%,#ff9800 60%,#ff9800 80%,#f44336 80%,#f44336 100%);position:relative;margin:12px 0;}
+.mage-marker{position:absolute;top:-6px;width:4px;height:36px;background:#333;border-radius:2px;transform:translateX(-50%);transition:left .3s;}
+.point-row{display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap;}
+.point-row .time-label{width:80px;font-size:13px;color:var(--text-light);flex-shrink:0;}
+.point-row input{flex:1;min-width:120px;}
+.point-row .del-btn{width:36px;height:36px;border-radius:8px;border:1px solid var(--border);background:var(--bg-card);color:var(--danger);cursor:pointer;flex-shrink:0;}
+.chart-box{margin-top:12px;}
+.formula-box{background:var(--bg-hover);padding:12px;border-radius:8px;margin:8px 0;font-size:13px;line-height:1.7;}
+</style>
+
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
+    <meta property="og:type" content="website">
+    <meta name="twitter:title" content="血糖波动(MAGE)指数计算器 - 平均血糖波动幅度">
+    <meta name="twitter:description" content="血糖波动(MAGE)指数计算器是一款免费的在线内分泌科工具，输入连续血糖监测(CGM/CGM)数据，计算平均血糖波动幅度(MAGE)，评估血糖波动质量。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"血糖波动(MAGE)指数计算器","url":"https://chenguangwu.github.io/tools/endocrinology/mage-index.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"血糖波动(MAGE)指数计算器是一款免费的在线内分泌科工具，输入连续血糖监测(CGM/CGM)数据，计算平均血糖波动幅度(MAGE)，评估血糖波动质量。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://chenguangwu.github.io/"},{"@type":"ListItem","position":2,"name":"内分泌科","item":"https://chenguangwu.github.io/tools/endocrinology/index.html"},{"@type":"ListItem","position":3,"name":"血糖波动(MAGE)指数计算器","item":"https://chenguangwu.github.io/tools/endocrinology/mage-index.html"}]}
+</script>
+
+<script src="../../js/i18n.js" defer></script>
+<script src="../../js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+
+
+<meta name="title-en" content="Mage Index">
+<meta name="desc-en" content="Mage Index - online utility on ToolBox.">
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/endocrinology/mage-index.html">
+<link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/endocrinology/mage-index.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/endocrinology/mage-index.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/endocrinology/mage-index.html">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:locale:alternate" content="zh_TW">
+<meta property="og:locale:alternate" content="en_US">
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
+
+<script src="/js/tool-ux.js" defer></script>
+<!-- TOOLBOX-TOOL-UX -->
+
+<script src="/js/analytics.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+<script type="application/ld+json">
+{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "血糖波动(MAGE)指数计算器是做什么的？", "acceptedAnswer": {"@type": "Answer", "text": "输入连续血糖监测(CGM/CGM)数据，计算平均血糖波动幅度(MAGE)，评估血糖波动质量"}}, {"@type": "Question", "name": "如何使用血糖波动(MAGE)指数计算器？", "acceptedAnswer": {"@type": "Answer", "text": "在对应的输入框或选项中填写、选择所需参数，点击「计算」或「生成」按钮即可运行，结果会在结果区实时显示，支持复制与导出。"}}, {"@type": "Question", "name": "计算结果准确吗？", "acceptedAnswer": {"@type": "Answer", "text": "本工具在你的本地浏览器中实时计算，不依赖服务器；只要输入的参数正确，结果即按对应的规则得出。涉及经验估算的部分仅供参考，不作为正式依据。"}}, {"@type": "Question", "name": "血糖波动(MAGE)指数计算器适合哪些场景？", "acceptedAnswer": {"@type": "Answer", "text": "解读连续血糖监测(CGM)数据量化日内血糖波动，用于 1 型糖尿病血糖变异性管理与低血糖恐惧患者的波动优化。"}}, {"@type": "Question", "name": "使用本工具需要联网或上传数据吗？", "acceptedAnswer": {"@type": "Answer", "text": "不需要。所有计算均在你的设备本地完成，数据不会上传到任何服务器，可放心使用。"}}]}
+</script>
+<!-- TOOLBOX-TTZZ -->
+<script>
+(function(){try{
+var el = document.createElement("script");
+el.src = "https://lf1-cdn-tos.bytegoofy.com/goofy/ttzz/push.js?85d6452aa9be4d693b16cd48535a8c7ae57542f6788a41682e745be8eb99b35a8a24d2f724c31ebe20c1e4e6fba6d91caf576100b02a2870c72f38fc574066fef065d152c73bf1cbb2ebad3b5b5265d8";
+el.id = "ttzz";
+var s = document.getElementsByTagName("script")[0];
+s.parentNode.insertBefore(el, s);
+}catch(e){}
+})(window);
+</script>
+
+<script src="/js/tool-kit.js" defer></script>
+<!-- TOOLBOX-TOOL-KIT -->
+</head>
+<body>
+<h1 class="sr-only">血糖波动(MAGE)指数计算器</h1>
+
+<div class="nav">
+  <a href="../../index.html">← ToolBox</a>
+  <span>/ 血糖波动(MAGE)指数计算器</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+
+
+
+<nav class="breadcrumb" aria-label="面包屑导航" data-breadcrumb="1">
+  <a href="../../index.html">首页</a>
+  <span class="bc-sep">‹</span>
+  <a href="index.html">🧬 内分泌科</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">血糖波动(MAGE)指数计算器</span>
+</nav>
+
+<div class="tool-guide-link" data-guide-link="1">
+  <a href="../../guides/mage-index-guide.html">📖 查看「血糖波动(MAGE)指数计算器 使用指南」</a>
+</div>
+<div class="container">
+  <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
+    <h2 data-zh="⚗️ 血糖波动(MAGE)指数计算器">Mage Index</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="输入连续血糖监测(CGM/CGM)数据，计算平均血糖波动幅度(MAGE)，评估血糖波动质量">Mage Index</p>
+
+    <div class="input-row">
+      <div><label>有效波动阈值 (mmol/L)</label><input type="number" id="threshold" value="1.0" step="0.1" oninput="calc()"></div>
+      <div><label>血糖单位</label>
+        <select id="unit" onchange="calc()">
+          <option value="mmol">mmol/L</option>
+          <option value="mg">mg/dL</option>
+        </select>
+      </div>
+    </div>
+
+    <div style="margin-top:12px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <label style="margin:0;">CGM血糖数据点（按时间顺序）</label>
+        <button type="button" class="btn primary" style="padding:6px 14px;font-size:12px;" onclick="addPoint()">+ 添加</button>
+      </div>
+      <div id="pointList"></div>
+    </div>
+
+    <div class="toolbar">
+      <div id="mage_indexPresets"></div><button type="button" class="btn primary" onclick="calc()">计算 MAGE</button><button class="btn" type="button" onclick="__mage_indexExport()">导出明细 CSV</button>
+      <button type="button" class="btn" onclick="loadSample()">载入示例</button>
+      <button type="button" class="btn" onclick="clearAll()">清空</button>
+    </div>
+
+    <div class="result-box" id="result">
+      <p style="text-align:center;color:var(--text-muted);">请输入血糖数据后点击计算</p>
+    </div> <div id="mage_indexTable"></div> <div id="mage_indexDiff"></div> <div id="mage_indexChart"></div> <div id="mage_indexHist"></div>
+
+    <div class="info-box">
+      <strong>MAGE 临床意义：</strong>评估血糖波动的重要"金标准"指标。仅计算振幅大于1个SD的有效波动，取所有有效波峰到波谷或波谷到波峰的平均绝对值，不受基础血糖水平影响。
+    </div>
+
+    <h3 style="font-size:14px;margin:16px 0 10px;">MAGE 评估标准</h3>
+    <table>
+      <tr><th>MAGE (mmol/L)</th><th>波动等级</th><th>临床意义</th></tr>
+      <tr><td>&lt; 3.9</td><td style="color:#4caf50;font-weight:600;">稳定</td><td>血糖波动小，控制良好</td></tr>
+      <tr><td>3.9 - 6.1</td><td style="color:#ffc107;font-weight:600;">轻度升高</td><td>血糖波动中度，需关注</td></tr>
+      <tr><td>&gt; 6.1</td><td style="color:#f44336;font-weight:600;">显著升高</td><td>血糖波动大，需调整方案</td></tr>
+    </table>
+
+    <div class="formula-box" style="margin-top:16px;">
+      <strong>计算公式：</strong><br>
+      1. 计算所有血糖值的平均值(MBG)和标准差(SD)<br>
+      2. 识别连续血糖曲线上的波峰和波谷<br>
+      3. 计算相邻波峰-波谷的振幅差值<br>
+      4. 筛选振幅 ＞ SD 的有效波动（以SD为阈值，通常1个SD）<br>
+      5. MAGE = 所有有效波动振幅绝对值的算术平均数<br>
+      <span style="color:var(--text-muted);font-size:12px;">注：本工具采用简化算法，将连续递增段最高点作为波峰、连续递减段最低点作为波谷进行识别。</span>
+    </div>
+  </div>
+
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto 0;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+.deep-dive a.term-link{color:var(--tool-accent,#FF6B35);text-decoration:none;border-bottom:1px dashed currentColor;}
+.deep-dive a.term-link:hover{border-bottom-style:solid;}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：血糖波动(MAGE)指数计算器</h2>
+<h3>💡 常见使用场景</h3>
+<ul class="dd-list">
+<li>1 型糖尿病患者血糖变异性（日内波动）的客观评估。</li>
+<li>低血糖恐惧患者的波动管理与药物调整参考。</li>
+<li>CGM 报告解读中与 HbA1c、<a class="term-link" href="/tools/it/standard-deviation.html">标准差</a>（SD）互补的变异性指标。</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">MAGE 计算示例</div><div class="dd-ex-body">导入一日 CGM 序列后，先求血糖 SD，再去除所有峰谷差&lt;1 SD 的微小波动，对剩余有效波动取平均。示例序列 MAGE≈3.8 mmol/L，提示日内波动偏大，需优化基础率与加餐。</div></div>
+<h3>❓ 常见问题（FAQ）</h3>
+<dl class="dd-faq">
+<dt>MAGE 与 HbA1c、SD 有何不同？</dt><dd>HbA1c 看长期平均，SD 看总体离散，MAGE 专门刻画有意义的大幅波动，更贴近低血糖/高血糖事件风险。</dd>
+<dt>对数据有什么要求？</dt><dd>需足够密度的 CGM 连续读数（通常≥24–72 小时），稀疏或不连续数据会低估 MAGE。</dd>
+</dl>
+</div>
+</section>
+<!-- 注意事项区块 -->
+<div class="tool-notes" style="--tool-accent:#FF6B35;">
+  <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
+  <ul>
+      <li>本工具纯前端运行，数据不会上传到服务器</li>
+      <li>建议在主流浏览器（Chrome/Safari/Firefox/Edge）中使用</li>
+      <li>计算结果仅供参考，请以实际应用场景为准</li>
+  </ul>
+</div>
+<!-- /注意事项区块 -->
+</div>
+<script>
+var points = [];
+
+function addPoint(){
+  points.push({time:'', value:''});
+  renderPoints();
+  calc();
+}
+
+function removePoint(i){
+  points.splice(i,1);
+  renderPoints();
+  calc();
+}
+
+function renderPoints(){
+  var list = document.getElementById('pointList');
+  if(points.length === 0){
+    list.innerHTML='<p style="color:var(--text-muted);font-size:13px;text-align:center;padding:12px;">暂无数据点，请点击"添加"或"载入示例"</p>';
+    return;
+  }
+  var html = '';
+  points.forEach(function(p, i){
+    html += '<div class="point-row">';
+    html += '<input class="time-label" type="text" placeholder="时间" value="'+p.time+'" oninput="updatePoint('+i+',\'time\',this.value)">';
+    html += '<input type="number" placeholder="血糖值" step="0.1" value="'+p.value+'" oninput="updatePoint('+i+',\'value\',this.value)">';
+    html += '<button type="button" class="del-btn" onclick="removePoint('+i+')">×</button>';
+    html += '</div>';
+  });
+  const __g2=html;list.innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
+}
+
+function updatePoint(i, key, val){
+  points[i][key] = val;
+}
+
+function loadSample(){
+  points = [
+    {time:'00:00', value:'6.2'},
+    {time:'03:00', value:'5.1'},
+    {time:'06:00', value:'7.8'},
+    {time:'07:30', value:'4.3'},
+    {time:'09:00', value:'9.5'},
+    {time:'12:00', value:'11.2'},
+    {time:'14:00', value:'6.0'},
+    {time:'17:00', value:'10.8'},
+    {time:'19:00', value:'5.5'},
+    {time:'22:00', value:'8.1'}
+  ];
+  renderPoints();
+  calc();
+}
+
+function clearAll(){
+  points = [];
+  renderPoints();
+  calc();
+}
+
+function calc(){
+  var result = document.getElementById('result');
+  if(points.length < 3){
+    result.innerHTML='<p style="text-align:center;color:var(--text-muted);">至少需要3个数据点才能计算MAGE</p>';
+    return;
+  }
+  var vals = [];
+  for(var i=0; i<points.length; i++){
+    var v = parseFloat(points[i].value);
+    if(isNaN(v)) continue;
+    vals.push(v);
+  }
+  if(vals.length < 3){
+    result.innerHTML='<p style="text-align:center;color:var(--text-muted);">有效数据点不足</p>';
+    return;
+  }
+
+  // Mean blood glucose
+  var sum = 0;
+  for(var i=0; i<vals.length; i++) sum += vals[i];
+  var mbg = sum / vals.length;
+
+  // Standard deviation
+  var sqSum = 0;
+  for(var i=0; i<vals.length; i++) sqSum += Math.pow(vals[i] - mbg, 2);
+  var sd = Math.sqrt(sqSum / vals.length);
+
+  // Threshold (use SD as effective threshold per classic MAGE definition)
+  var userThreshold = parseFloat(document.getElementById('threshold').value) || 1.0;
+  var effThreshold = sd; // MAGE classic: effective waves are those > 1 SD
+
+  // Identify peaks and valleys
+  var extremes = [];
+  // First point
+  var trend = 0; // 1=up, -1=down
+  var lastExtreme = {idx:0, val:vals[0], type:'start'};
+  extremes.push(lastExtreme);
+
+  for(var i=1; i<vals.length; i++){
+    var prev = vals[i-1];
+    var cur = vals[i];
+    if(cur > prev){
+      if(trend === -1){
+        // valley found at i-1
+        extremes.push({idx:i-1, val:prev, type:'valley'});
+        trend = 1;
+      } else {
+        trend = 1;
+      }
+    } else if(cur < prev){
+      if(trend === 1){
+        // peak found at i-1
+        extremes.push({idx:i-1, val:prev, type:'peak'});
+        trend = -1;
+      } else {
+        trend = -1;
+      }
+    }
+  }
+  // Last point
+  extremes.push({idx:vals.length-1, val:vals[vals.length-1], type:'end'});
+
+  // Calculate amplitudes of consecutive extremes
+  var validAmplitudes = [];
+  var allAmplitudes = [];
+  for(var i=1; i<extremes.length; i++){
+    var amp = Math.abs(extremes[i].val - extremes[i-1].val);
+    allAmplitudes.push(amp);
+    if(amp > effThreshold){
+      validAmplitudes.push(amp);
+    }
+  }
+
+  var mage = 0;
+  if(validAmplitudes.length > 0){
+    var ampSum = 0;
+    for(var i=0; i<validAmplitudes.length; i++) ampSum += validAmplitudes[i];
+    mage = ampSum / validAmplitudes.length;
+  } else {
+    // No valid waves > SD, use all amplitudes
+    if(allAmplitudes.length > 0){
+      var ampSum2 = 0;
+      for(var i=0; i<allAmplitudes.length; i++) ampSum2 += allAmplitudes[i];
+      mage = ampSum2 / allAmplitudes.length;
+    }
+  }
+
+  // CV (coefficient of variation)
+  var cv = mbg > 0 ? (sd / mbg) * 100 : 0;
+
+  // Grade
+  var grade, gradeColor, gradeDesc;
+  if(mage < 3.9){ grade='稳定'; gradeColor='#4caf50'; gradeDesc='血糖波动小，控制良好'; }
+  else if(mage <= 6.1){ grade='轻度升高'; gradeColor='#ffc107'; gradeDesc='血糖波动中度，需关注'; }
+  else { grade='显著升高'; gradeColor='#f44336'; gradeDesc='血糖波动大，需调整方案'; }
+
+  // Max and min
+  var maxVal = Math.max.apply(null, vals);
+  var minVal = Math.min.apply(null, vals);
+  var lage = maxVal - minVal; // Largest amplitude of glycemic excursions
+
+  // Bar position (0-8 mmol/L range)
+  var pct = Math.min(100, Math.max(0, (mage / 8) * 100));
+
+  const __g5='<div style="text-align:center;padding:12px 0;">' +
+      '<div style="font-size:48px;font-weight:700;color:'+gradeColor+';">'+mage.toFixed(2)+'</div>' +
+      '<div style="font-size:14px;color:var(--text-muted);margin-top:4px;">mmol/L — MAGE 值</div>' +
+      '<div style="font-size:18px;font-weight:600;margin-top:8px;color:'+gradeColor+';">'+grade+' · '+gradeDesc+'</div>' +
+    '</div>' +
+    '<div style="margin-top:12px;">' +
+      '<div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;">波动范围参考</div>' +
+      '<div class="mage-bar"><div class="mage-marker" style="left:'+pct+'%;"></div></div>' +
+      '<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-muted);margin-top:4px;">' +
+        '<span>0</span><span>2</span><span>4</span><span>6</span><span>8+</span>' +
+      '</div>' +
+    '</div>' +
+    '<div class="stat-grid" style="margin-top:16px;">' +
+      '<div class="stat-card"><div class="val">'+mbg.toFixed(2)+'</div><div class="lbl">MBG 平均血糖</div></div>' +
+      '<div class="stat-card"><div class="val">'+sd.toFixed(2)+'</div><div class="lbl">SD 标准差</div></div>' +
+      '<div class="stat-card"><div class="val">'+cv.toFixed(1)+'%</div><div class="lbl">CV 变异系数</div></div>' +
+      '<div class="stat-card"><div class="val">'+lage.toFixed(1)+'</div><div class="lbl">LAGE 最大波动</div></div>' +
+      '<div class="stat-card"><div class="val" style="color:#f44336;">'+maxVal.toFixed(1)+'</div><div class="lbl">最高血糖</div></div>' +
+      '<div class="stat-card"><div class="val" style="color:#2196f3;">'+minVal.toFixed(1)+'</div><div class="lbl">最低血糖</div></div>' +
+    '</div>' +
+    '<p style="font-size:12px;color:var(--text-muted);margin-top:12px;">识别到 '+extremes.length+' 个极值点，有效波动 '+validAmplitudes.length+' 次（阈值 SD='+sd.toFixed(2)+' mmol/L）</p>';result.innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
+
+  drawChart(vals);
+}
+
+function drawChart(vals){
+  var box = document.getElementById('chartBox');
+  if(!box){
+    var r = document.getElementById('result');
+    box = document.createElement('div');
+    box.id = 'chartBox';
+    box.className = 'chart-box';
+    r.appendChild(box);
+  }
+  if(vals.length < 2){ box.innerHTML=''; return; }
+
+  var maxV = Math.max.apply(null, vals);
+  var minV = Math.min.apply(null, vals);
+  var range = maxV - minV;
+  if(range < 1) range = 1;
+  var pad = range * 0.15;
+  var top = maxV + pad;
+  var bot = minV - pad;
+  var span = top - bot;
+
+  var w = 100, h = 120;
+  var pts = vals.map(function(v, i){
+    var x = vals.length > 1 ? (i / (vals.length - 1)) * w : w/2;
+    var y = h - ((v - bot) / span) * h;
+    return x.toFixed(1)+','+y.toFixed(1);
+  }).join(' ');
+
+  const __g7='<svg viewBox="0 0 '+w+' '+h+'" style="width:100%;height:180px;border:1px solid var(--border);border-radius:8px;background:var(--bg-hover);">' +
+      '<polyline points="'+pts+'" fill="none" stroke="var(--primary)" stroke-width="1.5"/>' +
+    '</svg>' +
+    '<p style="font-size:11px;color:var(--text-muted);text-align:center;margin-top:4px;">血糖趋势曲线</p>';box.innerHTML=(typeof __g7==='number'?(isFinite(__g7)?__g7:'—'):String(__g7).replace(/Infinity|NaN/g,'—'));
+}
+
+renderPoints();
+</script>
+
+</div>
+
+</div>
+
+
+<!-- 相关工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相关工具</h3>
+  <div class="related-tools-grid">
+    <a href="cycle-hormone.html" class="related-tool-card">
+      <span class="rt-icon">⚗️</span>
+      <span class="rt-info"><span class="rt-name">性激素（LH/FSH/E2/T）周期解读 - 输入性激素六项（FSH、LH、E2、T、PRL</span><span class="rt-desc">性激素（LH/FSH/E2/T）周期解读</span></span>
+    </a>
+    <a href="frax-score.html" class="related-tool-card">
+      <span class="rt-icon">📋</span>
+      <span class="rt-info"><span class="rt-name">骨质疏松(FRAX)骨折风险评估器 - FRAX是WHO推荐的骨折风险评估工具</span><span class="rt-desc">骨质疏松(FRAX)骨折风险评估器</span></span>
+    </a>
+    
+    <a href="short-stature-prediction.html" class="related-tool-card">
+      <span class="rt-icon">🔮</span>
+      <span class="rt-info"><span class="rt-name">矮身材(GHD)身高预测器 - 综合评估儿童矮小症的遗传靶身高、身高SDS、生长速度</span><span class="rt-desc">矮身材(GHD)身高预测器</span></span>
+    </a>
+    <a href="glycated-albumin.html" class="related-tool-card">
+      <span class="rt-icon">⚗️</span>
+      <span class="rt-info"><span class="rt-name">糖化白蛋白(GA)与血糖相关性评估器 - 糖化白蛋白(GA)反映近2-3周平均血糖</span><span class="rt-desc">糖化白蛋白(GA)与血糖相关性评估器</span></span>
+    </a>
+    <a href="homa-ir.html" class="related-tool-card">
+      <span class="rt-icon">⚗️</span>
+      <span class="rt-info"><span class="rt-name">胰岛素抵抗(HOMA-IR)计算器 - HOMA-IR是临床最常用的胰岛素抵抗评估指数</span><span class="rt-desc">胰岛素抵抗(HOMA-IR)计算器</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro open" id="toolIntro">
+  <div class="tool-intro-header">
+    <span class="intro-icon-wrap"><span class="intro-icon">📖</span>关于「血糖波动(MAGE)指数计算器」</span>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="tool-intro-body">
+    <h4><span class="h4-icon">📝</span>工具简介</h4>
+    <p>平均血糖波动幅度(MAGE)是评估糖尿病患者血糖波动质量的经典"金标准"指标，反映血糖波动的幅度而非平均水平。</p>
+    <h4><span class="h4-icon">✨</span>功能特点</h4>
+    <ul class="intro-features">
+      <li>支持自定义数据点输入</li>
+      <li>自动识别波峰波谷</li>
+      <li>同步计算MBG/SD/CV/LAGE</li>
+      <li>血糖趋势可视化曲线</li>
+    </ul>
+    <h4><span class="h4-icon">🎯</span>使用场景</h4>
+    <ul class="intro-scenes">
+      <li>CGM动态血糖数据分析</li>
+      <li>糖尿病治疗方案评估</li>
+      <li>血糖波动质量研究</li>
+      <li>内分泌科研教学</li>
+    </ul>
+  </div>
+</div><script>
+// tool-intro折叠交互
+document.addEventListener('DOMContentLoaded',function(){
+  var headers=document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click',function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+
+var __mage_index_last=0,__mage_index_skip=false;
+function __mage_indexSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __mage_indexResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __mage_indexTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __mage_indexRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__mage_indexTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#mage_indexTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#mage_indexDiff');
+        TBKit.history.mount('#mage_indexHist',function(rec){
+            __mage_index_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __mage_index_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__mage_indexTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#mage_indexChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __mage_indexExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__mage_index_skip) return;
+    var snap=__mage_indexSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__mage_indexResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__mage_index_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __mage_index_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __mage_indexRender(keys,rk,en);
+}
+function __mage_indexExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#mage_indexTable','mage-index.csv'); } catch(e){}
+}
+function __mage_indexPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#mage_indexPresets',[{label:'默认参数',labelEn:'Default',values:{'threshold':'1.0', 'unit':'mmol'}}],function(){ calc(); });
+}
+var __mage_index_f0=(typeof calc==='function')?calc:null;
+if(__mage_index_f0){
+    calc=function(){ var __r=__mage_index_f0.apply(null,arguments); try{ __mage_indexExtras(); }catch(e){} return __r; };
+}
+function __mage_indexBoot(){ try{ __mage_indexPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __mage_indexBoot();
+else document.addEventListener('DOMContentLoaded', __mage_indexBoot);
+</script>
+
+<section class="opt-guide"><h2>如何使用血糖波动(MAGE)指数计算器</h2><ol><li>在对应的输入框或选项中填写、选择所需参数。</li><li>点击「计算」或「生成」按钮运行。</li><li>在结果区查看输出，可复制结果或导出使用。</li></ol><h2>参数说明</h2><ul class="param-list"><li>有效波动阈值 (mmol/L)</li><li>血糖单位</li><li>CGM血糖数据点（按时间顺序）</li></ul><h2>适用场景</h2><p>解读连续血糖监测(CGM)数据量化日内血糖波动，用于 1 型糖尿病血糖变异性管理与低血糖恐惧患者的波动优化。</p></section><section class="opt-faq"><h2>常见问题</h2><dl class="faq-list"><dt>血糖波动(MAGE)指数计算器是做什么的？</dt><dd>输入连续血糖监测(CGM/CGM)数据，计算平均血糖波动幅度(MAGE)，评估血糖波动质量</dd><dt>如何使用血糖波动(MAGE)指数计算器？</dt><dd>在对应的输入框或选项中填写、选择所需参数，点击「计算」或「生成」按钮即可运行，结果会在结果区实时显示，支持复制与导出。</dd><dt>计算结果准确吗？</dt><dd>本工具在你的本地浏览器中实时计算，不依赖服务器；只要输入的参数正确，结果即按对应的规则得出。涉及经验估算的部分仅供参考，不作为正式依据。</dd><dt>血糖波动(MAGE)指数计算器适合哪些场景？</dt><dd>解读连续血糖监测(CGM)数据量化日内血糖波动，用于 1 型糖尿病血糖变异性管理与低血糖恐惧患者的波动优化。</dd><dt>使用本工具需要联网或上传数据吗？</dt><dd>不需要。所有计算均在你的设备本地完成，数据不会上传到任何服务器，可放心使用。</dd></dl></section>
+</body>
+</html>

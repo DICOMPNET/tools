@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=finance,industry=futures,icon=🧮,bg=#e8eaf6">
+<meta name="description" content="期权Greeks计算器是一款免费的在线期货交易工具，Black-Scholes 模型计算 Delta/Gamma/Theta/Vega/Rho 及理论价格。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+<meta name="keywords" content="期权Greeks,Delta,Gamma,Theta,Vega,Black-Scholes,期权定价,金融财务,在线工具,免费工具,ToolBox">
+<title>期权Greeks计算器 - Rho 及理论价格</title>
+<link rel="canonical" href="https://chenguangwu.github.io/tools/futures/option-greeks.html">
+<meta property="og:title" content="期权Greeks计算器 - Rho 及理论价格">
+<meta property="og:description" content="期权Greeks计算器是一款免费的在线期货交易工具，Black-Scholes 模型计算 Delta/Gamma/Theta/Vega/Rho 及理论价格。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+<meta property="og:url" content="https://chenguangwu.github.io/tools/futures/option-greeks.html">
+<meta name="twitter:card" content="summary">
+<link rel="stylesheet" href="../../css/common.css">
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="../../js/common.js" defer></script>
+<style>
+.greeks-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin:12px 0;}
+.greek-card{background:var(--result-bg);border:1px solid var(--border);border-radius:12px;padding:14px;text-align:center;}
+.greek-card .gname{font-size:13px;font-weight:600;color:var(--heading);}
+.greek-card .gval{font-size:20px;font-weight:700;color:var(--primary);margin:4px 0;}
+.greek-card .gdesc{font-size:11px;color:var(--text-muted);}
+</style>
+
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
+    <meta property="og:type" content="website">
+    <meta name="twitter:title" content="期权Greeks计算器 - Rho 及理论价格">
+    <meta name="twitter:description" content="期权Greeks计算器是一款免费的在线期货交易工具，Black-Scholes 模型计算 Delta/Gamma/Theta/Vega/Rho 及理论价格。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"期权Greeks计算器","url":"https://chenguangwu.github.io/tools/futures/option-greeks.html","applicationCategory":"FinanceApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"期权Greeks计算器是一款免费的在线期货交易工具，Black-Scholes 模型计算 Delta/Gamma/Theta/Vega/Rho 及理论价格。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://chenguangwu.github.io/"},{"@type":"ListItem","position":2,"name":"期货交易","item":"https://chenguangwu.github.io/tools/futures/index.html"},{"@type":"ListItem","position":3,"name":"期权Greeks计算器","item":"https://chenguangwu.github.io/tools/futures/option-greeks.html"}]}
+</script>
+
+<script src="../../js/i18n.js" defer></script>
+<script src="../../js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+
+
+<meta name="title-en" content="Option Greeks">
+<meta name="desc-en" content="Option Greeks - online utility on ToolBox.">
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/futures/option-greeks.html">
+<link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/futures/option-greeks.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/futures/option-greeks.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/futures/option-greeks.html">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:locale:alternate" content="zh_TW">
+<meta property="og:locale:alternate" content="en_US">
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
+
+<script src="/js/tool-ux.js" defer></script>
+<!-- TOOLBOX-TOOL-UX -->
+
+<script src="/js/analytics.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+<!-- TOOLBOX-TTZZ -->
+<script>
+(function(){try{
+var el = document.createElement("script");
+el.src = "https://lf1-cdn-tos.bytegoofy.com/goofy/ttzz/push.js?85d6452aa9be4d693b16cd48535a8c7ae57542f6788a41682e745be8eb99b35a8a24d2f724c31ebe20c1e4e6fba6d91caf576100b02a2870c72f38fc574066fef065d152c73bf1cbb2ebad3b5b5265d8";
+el.id = "ttzz";
+var s = document.getElementsByTagName("script")[0];
+s.parentNode.insertBefore(el, s);
+}catch(e){}
+})(window);
+</script>
+
+<script src="/js/tool-kit.js" defer></script>
+<!-- TOOLBOX-TOOL-KIT -->
+</head>
+<body>
+<h1 class="sr-only">期权Greeks计算器</h1>
+
+
+<div class="nav">
+  <a href="../../index.html">← ToolBox</a>
+  <span>/ 期权Greeks</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+
+
+
+
+<nav class="breadcrumb" aria-label="面包屑导航" data-breadcrumb="1">
+  <a href="../../index.html">首页</a>
+  <span class="bc-sep">‹</span>
+  <a href="index.html">📉 期货交易</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">期权Greeks计算器</span>
+</nav>
+<div class="container">
+<div class="tool-guide-link" data-guide-link="1">
+  <a href="../../guides/option-greeks-guide.html">📖 查看「期权 Greeks（Black-Scholes）使用指南」</a>
+</div>
+
+  <div class="card tool-card-accent" style="--tool-accent:#F59E0B;">
+    <h2 data-zh="🧮 期权Greeks计算器">Option Greeks</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="Black-Scholes 模型计算 Delta/Gamma/Theta/Vega/Rho 及理论价格">Option Greeks</p>
+    <div class="formula-box">
+      <div class="formula-title">📐 工作原理与说明</div>
+      <p class="formula-desc" data-zh="核心计算公式（按输入变量）：(-S × nd1 × sigma × eqT ÷ (2 × sqrtT) + r × K × erT × normCDF(-d2) - q × S × eqT × normCDF(-d1)) ÷ 365；(-S × nd1 × sigma × eqT ÷ (2 × sqrtT) - r × K × erT × normCDF(d2) + q × S × eqT × normCDF(d1)) ÷ 365；(Math.log(S ÷ K) + (r - q + sigma × sigma ÷ 2) × T) ÷ (sigma × sqrtT)">Key formulas: (-S × nd1 × sigma × eqT ÷ (2 × sqrtT) + r × K × erT × normCDF(-d2) - q × S × eqT × normCDF(-d1)) ÷ 365; (-S × nd1 × sigma × eqT ÷ (2 × sqrtT) - r × K × erT × normCDF(d2) + q × S × eqT × normCDF(d1)) ÷ 365; (Math.log(S ÷ K) + (r - q + sigma × sigma ÷ 2) × T) ÷ (sigma × sqrtT)</p>
+    </div>
+
+    <div class="input-row">
+      <div>
+        <label>标的价格 S</label>
+        <input type="number" id="spot" value="100" step="any" min="0" oninput="calc()">
+      </div>
+      <div>
+        <label>行权价 K</label>
+        <input type="number" id="strike" value="100" step="any" min="0" oninput="calc()">
+      </div>
+    </div>
+
+    <div class="input-row">
+      <div>
+        <label>无风险利率（%）</label>
+        <input type="number" id="rate" value="3" step="0.1" min="0" oninput="calc()">
+      </div>
+      <div>
+        <label>年化波动率（%）</label>
+        <input type="number" id="vol" value="20" step="0.1" min="0" oninput="calc()">
+      </div>
+    </div>
+
+    <div class="input-row">
+      <div>
+        <label>到期时间（年）</label>
+        <input type="number" id="time" value="0.5" step="0.01" min="0" oninput="calc()">
+      </div>
+      <div>
+        <label>股息率（%）</label>
+        <input type="number" id="div" value="0" step="0.1" min="0" oninput="calc()">
+      </div>
+    </div>
+
+    <div class="checkbox-row">
+      <label><input type="radio" name="otype" value="call" checked onchange="calc()"> 看涨期权 Call</label>
+      <label><input type="radio" name="otype" value="put" onchange="calc()"> 看跌期权 Put</label>
+    </div>
+
+    <div class="toolbar">
+      <div id="option_greeksPresets"></div><button type="button" class="btn primary" onclick="calc()">计算</button><button class="btn" type="button" onclick="__option_greeksExport()">导出明细 CSV</button>
+      <button type="button" class="btn" onclick="copyResult()">复制结果</button>
+    </div>
+
+    <div class="result-box" id="result"></div> <div id="option_greeksTable"></div> <div id="option_greeksDiff"></div> <div id="option_greeksChart"></div> <div id="option_greeksHist"></div>
+    <div class="greeks-grid" id="greeksGrid"></div>
+  </div>
+
+  <div class="card">
+    <h3>📋 Greeks 说明</h3>
+    <div class="ref-card">
+      <h4>🔢 Black-Scholes 公式</h4>
+      <p><strong>d1</strong> = [ln(S/K) + (r - q + σ²/2)T] / (σ√T)</p>
+      <p><strong>d2</strong> = d1 - σ√T</p>
+      <p><strong>看涨价格</strong> C = S·e^(-qT)·N(d1) - K·e^(-rT)·N(d2)</p>
+      <p><strong>看跌价格</strong> P = K·e^(-rT)·N(-d2) - S·e^(-qT)·N(-d1)</p>
+    </div>
+    <div class="ref-card">
+      <h4>📊 Greeks 含义</h4>
+      <table>
+        <thead><tr><th>Greek</th><th>含义</th><th>单位</th></tr></thead>
+        <tbody>
+          <tr><td>Delta (Δ)</td><td>标的价变动1元，期权价变动量</td><td>元/元</td></tr>
+          <tr><td>Gamma (Γ)</td><td>标的价变动1元，Delta变动量</td><td>1/元</td></tr>
+          <tr><td>Theta (Θ)</td><td>时间流逝1天，期权价变动量</td><td>元/天</td></tr>
+          <tr><td>Vega (ν)</td><td>波动率变动1%，期权价变动量</td><td>元/1%</td></tr>
+          <tr><td>Rho (ρ)</td><td>利率变动1%，期权价变动量</td><td>元/1%</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="tip-box tip-info">Theta 已转换为每日数值。Vega 和 Rho 为每1%变动的价格变化。本工具为欧式期权模型，美式期权略有差异。</div>
+  </div>
+
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto 0;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+.deep-dive a.term-link{color:var(--tool-accent,#FF6B35);text-decoration:none;border-bottom:1px dashed currentColor;}
+.deep-dive a.term-link:hover{border-bottom-style:solid;}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：期权 Greeks（Black-Scholes）</h2>
+<h3>💡 常见使用场景</h3>
+<ul class="dd-list">
+<li>期权定价与对冲</li>
+<li>风险敞口监控</li>
+<li>策略盈亏分析</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">方法</div><div class="dd-ex-body">Black-Scholes：d1=(ln(S/K)+(r+σ²/2)T)/(σ√T)，d2=d1−σ√T；由此得 Delta/Gamma/Theta/Vega/Rho 与理论价，衡量价格、时间、波动、利率敏感度。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例（演示）</div><div class="dd-ex-body">看涨 S=100、K=100、r=3%、σ=20%、T=0.5 → d1≈0.177、d2≈0.035；Delta≈0.570、Gamma≈0.0278、Theta≈−0.0194/天、Vega≈0.278/1%、Rho≈0.253/1%、理论价≈6.37。纯模型演示、非投资建议。</div></div>
+<h3>❓ 常见问题（FAQ）</h3>
+<dl class="dd-faq">
+<dt>Theta 为负代表什么？</dt><dd>买方 Theta 通常为负，表示每过一天时间价值流失；卖方则反之，靠时间衰减获利。</dd>
+<dt>Vega 高有何风险？</dt><dd>Vega 高说明价格对波动率敏感，波动率下降会侵蚀买方价值；卖方需防波动率跳升。</dd>
+</dl>
+</div>
+</section>
+<!-- 注意事项区块 -->
+<div class="tool-notes" style="--tool-accent:#F59E0B;">
+  <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
+  <ul>
+      <li>本工具纯前端运行，数据不会上传到服务器</li>
+      <li>建议在主流浏览器（Chrome/Safari/Firefox/Edge）中使用</li>
+      <li>计算结果仅供参考，请以实际应用场景为准</li>
+  </ul>
+</div>
+<!-- /注意事项区块 -->
+</div>
+
+<script>
+function getVal(id){
+  var el = document.getElementById(id);
+  return el ? (+el.value || 0) : 0;
+}
+
+// 标准正态分布累积函数 N(x)
+function normCDF(x){
+  var a1 = 0.254829592;
+  var a2 = -0.284496736;
+  var a3 = 1.421413741;
+  var a4 = -1.453152027;
+  var a5 = 1.061405429;
+  var p = 0.3275911;
+  var sign = x < 0 ? -1 : 1;
+  x = Math.abs(x) / Math.sqrt(2);
+  var t = 1 / (1 + p * x);
+  var y = 1 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * Math.exp(-x * x);
+  return 0.5 * (1 + sign * y);
+}
+
+// 标准正态分布概率密度函数 N'(x)
+function normPDF(x){
+  return Math.exp(-x * x / 2) / Math.sqrt(2 * Math.PI);
+}
+
+function getType(){
+  var radios = document.getElementsByName('otype');
+  for(var i = 0; i < radios.length; i++){
+    if(radios[i].checked) return radios[i].value;
+  }
+  return 'call';
+}
+
+function calc(){
+  var S = getVal('spot');
+  var K = getVal('strike');
+  var r = getVal('rate') / 100;
+  var sigma = getVal('vol') / 100;
+  var T = getVal('time');
+  var q = getVal('div') / 100;
+  var type = getType();
+
+  if(S <= 0 || K <= 0 || T <= 0 || sigma <= 0){
+    document.getElementById('result').innerHTML='<p style="color:var(--danger);">所有参数需大于0</p>';
+    document.getElementById('greeksGrid').innerHTML='';
+    return;
+  }
+
+  var sqrtT = Math.sqrt(T);
+  var d1 = (Math.log(S / K) + (r - q + sigma * sigma / 2) * T) / (sigma * sqrtT);
+  var d2 = d1 - sigma * sqrtT;
+
+  var nd1 = normPDF(d1);
+  var eqT = Math.exp(-q * T);
+  var erT = Math.exp(-r * T);
+
+  var delta, gamma, theta, vega, rho, price;
+
+  if(type === 'call'){
+    delta = eqT * normCDF(d1);
+    gamma = eqT * nd1 / (S * sigma * sqrtT);
+    // Theta (每年)，转每天 /365
+    theta = (-S * nd1 * sigma * eqT / (2 * sqrtT) - r * K * erT * normCDF(d2) + q * S * eqT * normCDF(d1)) / 365;
+    vega = S * sqrtT * nd1 * eqT / 100; // 每1%
+    rho = K * T * erT * normCDF(d2) / 100; // 每1%
+    price = S * eqT * normCDF(d1) - K * erT * normCDF(d2);
+  } else {
+    delta = eqT * (normCDF(d1) - 1);
+    gamma = eqT * nd1 / (S * sigma * sqrtT);
+    theta = (-S * nd1 * sigma * eqT / (2 * sqrtT) + r * K * erT * normCDF(-d2) - q * S * eqT * normCDF(-d1)) / 365;
+    vega = S * sqrtT * nd1 * eqT / 100;
+    rho = -K * T * erT * normCDF(-d2) / 100;
+    price = K * erT * normCDF(-d2) - S * eqT * normCDF(-d1);
+  }
+
+  var moneyness = type === 'call' ? (S > K ? '实值(ITM)' : (S === K ? '平值(ATM)' : '虚值(OTM)')) : (S < K ? '实值(ITM)' : (S === K ? '平值(ATM)' : '虚值(OTM)'));
+
+  var html = '<h3 style="margin-bottom:10px;font-size:15px;">📋 计算结果</h3>';
+  html += '<p>期权类型：<strong>' + (type === 'call' ? '看涨 Call' : '看跌 Put') + '</strong>（' + moneyness + '）</p>';
+  html += '<p>S=' + S + ' | K=' + K + ' | r=' + (r * 100).toFixed(1) + '% | σ=' + (sigma * 100).toFixed(1) + '% | T=' + T + '年</p>';
+  html += '<hr style="border:none;border-top:1px solid var(--border);margin:10px 0;">';
+  html += '<p>d1 = <strong>' + d1.toFixed(4) + '</strong> → N(d1) = ' + normCDF(d1).toFixed(4) + '</p>';
+  html += '<p>d2 = <strong>' + d2.toFixed(4) + '</strong> → N(d2) = ' + normCDF(d2).toFixed(4) + '</p>';
+  html += '<hr style="border:none;border-top:1px solid var(--border);margin:10px 0;">';
+  html += '<p style="font-size:20px;font-weight:700;color:var(--primary);">理论价格 = ' + price.toFixed(4) + '</p>';
+  const __g3=html;document.getElementById('result').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
+
+  var grid = '';
+  grid += '<div class="greek-card"><div class="gname">Delta Δ</div><div class="gval">' + delta.toFixed(4) + '</div><div class="gdesc">价格变动率</div></div>';
+  grid += '<div class="greek-card"><div class="gname">Gamma Γ</div><div class="gval">' + gamma.toFixed(4) + '</div><div class="gdesc">Delta变动率</div></div>';
+  grid += '<div class="greek-card"><div class="gname">Theta Θ</div><div class="gval">' + theta.toFixed(4) + '</div><div class="gdesc">元/天</div></div>';
+  grid += '<div class="greek-card"><div class="gname">Vega ν</div><div class="gval">' + vega.toFixed(4) + '</div><div class="gdesc">元/1%</div></div>';
+  grid += '<div class="greek-card"><div class="gname">Rho ρ</div><div class="gval">' + rho.toFixed(4) + '</div><div class="gdesc">元/1%</div></div>';
+  const __g4=grid;document.getElementById('greeksGrid').innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
+}
+
+function copyResult(){
+  var text = document.getElementById('result').innerText + '\n' + document.getElementById('greeksGrid').innerText;
+  ToolBox.copyText(text, i18nText('msg050'));
+}
+
+calc();
+</script>
+
+<!-- SEO 介绍区块 -->
+
+</div>
+
+</div>
+
+<!-- 相关工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相关工具</h3>
+  <div class="related-tools-grid">
+    <a href="../finance/text-reverse-words.html" class="related-tool-card">
+      <span class="rt-icon">📖</span>
+      <span class="rt-info"><span class="rt-name">单词顺序反转 - 免费文本处理工具，在线单词顺序反转 | ToolBox免费在线工具箱</span><span class="rt-desc">单词顺序反转</span></span>
+    </a>
+    <a href="../finance/word-counter.html" class="related-tool-card">
+      <span class="rt-icon">📊</span>
+      <span class="rt-info"><span class="rt-name">字数统计 - 免费文本处理工具，字数统计工具 | ToolBox免费在线工具箱</span><span class="rt-desc">字数统计工具</span></span>
+    </a>
+    <a href="../finance/word-wrap.html" class="related-tool-card">
+      <span class="rt-icon">💰</span>
+      <span class="rt-info"><span class="rt-name">自动换行 - 免费文本处理工具，在线自动换行 | ToolBox免费在线工具箱</span><span class="rt-desc">自动换行</span></span>
+    </a>
+    <a href="../finance/word-frequency.html" class="related-tool-card">
+      <span class="rt-icon">📊</span>
+      <span class="rt-info"><span class="rt-name">词频统计 - 免费文本处理工具，词频统计工具 | ToolBox免费在线工具箱</span><span class="rt-desc">词频统计工具</span></span>
+    </a>
+    <a href="../finance/mirror-text.html" class="related-tool-card">
+      <span class="rt-icon">🏦</span>
+      <span class="rt-info"><span class="rt-name">镜像文字 - 免费文本处理工具，在线镜像文字 | ToolBox免费在线工具箱</span><span class="rt-desc">镜像文字</span></span>
+    </a>
+    
+  </div>
+</div>
+<div class="tool-intro open" id="toolIntro">
+  <div class="tool-intro-header">
+    <span class="intro-icon-wrap"><span class="intro-icon">📖</span>关于「期权Greeks计算器」</span>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="tool-intro-body">
+    <h4><span class="h4-icon">📝</span>工具简介</h4>
+    <p>期权Greeks计算器 - Black-Scholes模型计算Delta/Gamma/Theta/Vega/Rho，免费使用。。专业金融计算工具，采用标准财务公式，数据本地处理不泄露。</p>
+    <h4><span class="h4-icon">✨</span>功能特点</h4>
+    <ul class="intro-features">
+      <li>采用标准金融计算公式</li>
+      <li>支持多种参数灵活配置</li>
+      <li>实时计算，结果即时显示</li>
+      <li>财务数据不上传，安全可靠</li>
+    </ul>
+    <h4><span class="h4-icon">🎯</span>使用场景</h4>
+    <ul class="intro-scenes">
+      <li>个人理财与投资规划</li>
+      <li>贷款还款方案计算</li>
+      <li>投资收益分析</li>
+      <li>学习金融知识</li>
+    </ul>
+    </div>
+</div>
+<!-- /SEO 介绍区块 -->
+
+<script>
+// tool-intro折叠交互
+document.addEventListener('DOMContentLoaded',function(){
+  var headers=document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click',function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+
+var __option_greeks_last=0,__option_greeks_skip=false;
+function __option_greeksSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __option_greeksResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __option_greeksTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __option_greeksRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__option_greeksTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#option_greeksTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#option_greeksDiff');
+        TBKit.history.mount('#option_greeksHist',function(rec){
+            __option_greeks_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __option_greeks_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__option_greeksTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#option_greeksChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __option_greeksExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__option_greeks_skip) return;
+    var snap=__option_greeksSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__option_greeksResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__option_greeks_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __option_greeks_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __option_greeksRender(keys,rk,en);
+}
+function __option_greeksExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#option_greeksTable','option-greeks.csv'); } catch(e){}
+}
+function __option_greeksPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#option_greeksPresets',[{label:'默认参数',labelEn:'Default',values:{'spot':'100', 'strike':'100', 'rate':'3', 'vol':'20', 'time':'0.5', 'div':'0'}}],function(){ calc(); });
+}
+var __option_greeks_f0=(typeof calc==='function')?calc:null;
+if(__option_greeks_f0){
+    calc=function(){ var __r=__option_greeks_f0.apply(null,arguments); try{ __option_greeksExtras(); }catch(e){} return __r; };
+}
+function __option_greeksBoot(){ try{ __option_greeksPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __option_greeksBoot();
+else document.addEventListener('DOMContentLoaded', __option_greeksBoot);
+</script>
+
+</body>
+</html>

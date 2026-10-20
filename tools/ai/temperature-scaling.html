@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=dev,industry=ai,icon=🖼️,bg=#ede9fe">
+<title>温度缩放 Logits - 演示校准对概率分布形态的影响</title>
+<link rel="canonical" href="https://chenguangwu.github.io/tools/ai/temperature-scaling.html">
+<link rel="stylesheet" href="../../css/common.css">
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="../../js/common.js" defer></script>
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
+    <meta name="description" content="温度缩放 Logits是一款免费的在线AI 人工智能工具，温度缩放 Logits 演示器，在 softmax 前对 logits 做温度缩放，演示校准对概率分布形态的影响(不改变 argmax)。纯前端运行、数据不上传、无需注册，打开浏览器">
+    <meta property="og:title" content="温度缩放 Logits - 演示校准对概率分布形态的影响">
+    <meta property="og:description" content="温度缩放 Logits是一款免费的在线AI 人工智能工具，温度缩放 Logits 演示器，在 softmax 前对 logits 做温度缩放，演示校准对概率分布形态的影响(不改变 argmax)。纯前端运行、数据不上传、无需注册，打开浏览器">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://chenguangwu.github.io/tools/ai/temperature-scaling.html">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="温度缩放 Logits - 演示校准对概率分布形态的影响">
+    <meta name="twitter:description" content="温度缩放 Logits是一款免费的在线AI 人工智能工具，温度缩放 Logits 演示器，在 softmax 前对 logits 做温度缩放，演示校准对概率分布形态的影响(不改变 argmax)。纯前端运行、数据不上传、无需注册，打开浏览器">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"温度缩放 Logits","url":"https://chenguangwu.github.io/tools/ai/temperature-scaling.html","applicationCategory":"DeveloperApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"温度缩放 Logits是一款免费的在线AI 人工智能工具，温度缩放 Logits 演示器，在 softmax 前对 logits 做温度缩放，演示校准对概率分布形态的影响(不改变 argmax)。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://chenguangwu.github.io/"},{"@type":"ListItem","position":2,"name":"AI 人工智能","item":"https://chenguangwu.github.io/tools/ai/index.html"},{"@type":"ListItem","position":3,"name":"温度缩放 Logits","item":"https://chenguangwu.github.io/tools/ai/temperature-scaling.html"}]}
+</script>
+
+<script src="../../js/i18n.js" defer></script>
+<script src="../../js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+
+
+<meta name="title-en" content="Temperature Scaling Logits">
+<meta name="desc-en" content="Temperature Scaling Logits - online utility on ToolBox.">
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/ai/temperature-scaling.html">
+<link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/ai/temperature-scaling.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/ai/temperature-scaling.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/ai/temperature-scaling.html">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:locale:alternate" content="zh_TW">
+<meta property="og:locale:alternate" content="en_US">
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
+
+<script src="/js/tool-ux.js" defer></script>
+<!-- TOOLBOX-TOOL-UX -->
+
+<script src="/js/analytics.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<!-- TOOLBOX-TTZZ -->
+<script>
+(function(){try{
+var el = document.createElement("script");
+el.src = "https://lf1-cdn-tos.bytegoofy.com/goofy/ttzz/push.js?85d6452aa9be4d693b16cd48535a8c7ae57542f6788a41682e745be8eb99b35a8a24d2f724c31ebe20c1e4e6fba6d91caf576100b02a2870c72f38fc574066fef065d152c73bf1cbb2ebad3b5b5265d8";
+el.id = "ttzz";
+var s = document.getElementsByTagName("script")[0];
+s.parentNode.insertBefore(el, s);
+}catch(e){}
+})(window);
+</script>
+
+<script src="/js/tool-kit.js" defer></script>
+<!-- TOOLBOX-TOOL-KIT -->
+</head>
+<body>
+<h1 class="sr-only">温度缩放 Logits</h1>
+
+<div class="nav">
+  <a href="../../index.html">← ToolBox</a>
+  <span>/ 温度缩放 Logits</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+
+<nav class="breadcrumb" aria-label="面包屑导航" data-breadcrumb="1">
+  <a href="../../index.html">首页</a>
+  <span class="bc-sep">‹</span>
+  <a href="index.html">🤖 人工智能</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">温度缩放 Logits</span>
+</nav>
+<div class="container">
+<div class="tool-guide-link" data-guide-link="1">
+  <a href="../../guides/temperature-scaling-guide.html">📖 查看「温度缩放 Logits使用指南」</a>
+</div>
+
+  <div class="card">
+    <h2 data-zh="🖼️ 温度缩放 Logits">🖼️ Temperature-Scaled Logits Demo</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="演示 softmax 前对 logits 做温度缩放。">Scale logits by a temperature before softmax and watch the calibrated distribution change, a practical demo of confidence calibration.</p>
+        <div class="formula-box">
+      <div class="formula-title">📐 计算公式 / 原理</div>
+      <div class="formula-eq">z′ = z/T（T>1 平滑分布，T<1 锐化分布）</div>
+      <div class="formula-desc">对 logits 统一除以温度是最简单的概率校准手段，T 在验证集上用 NLL 搜索得到，不改变 argmax 因此不影响准确率，只改善置信度的可靠性（ECE）。它只能校正整体过度/不足自信，无法修正逐类别偏差。</div>
+    </div>
+<div class="input-row"><label>logit 值</label><input type="number" id="logit" value="2.5" step="any" oninput="calc()"></div>
+    <div class="input-row"><label>温度</label><input type="number" id="T" value="1.0" step="any" oninput="calc()"></div>
+    <div class="input-row"><label>对比 logit</label><input type="number" id="logit2" value="1.0" step="any" oninput="calc()"></div>
+    <div id="tsPresets"></div>
+    <div class="toolbar">
+      <button class="btn primary" onclick="calc()">计算</button>
+      <button class="btn" onclick="copyResult()">复制结果</button>
+      <button class="btn" onclick="__tsExport()">导出 CSV</button>
+    </div>
+    <div class="result-box" id="result" data-viz="bar" data-viz-max="100" data-viz-min="0">
+    <div id="tsChart" role="img" aria-label="结果可视化"></div>
+    <div id="tsTable"></div>
+    <div id="tsDiff"></div>
+    <div id="tsHist"></div>
+</div>
+  </div>
+  <div class="card formula-box">
+    <h3>📐 计算公式与说明</h3>
+    <div class="formula-eq">scaled = logit / T；T>1 更平滑，T<1 更尖锐</div>
+    <p style="font-size:13px;color:var(--text-muted);margin-top:12px;">仅用于演示 softmax 前缩放，不改变 argmax。</p>
+  </div>
+</div>
+
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto 0;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+.deep-dive a.term-link{color:var(--tool-accent,#FF6B35);text-decoration:none;border-bottom:1px dashed currentColor;}
+.deep-dive a.term-link:hover{border-bottom-style:solid;}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：温度缩放 Logits</h2>
+<h3>💡 常见使用场景</h3>
+<ul class="dd-list">
+<li>在 softmax 前对 logits 做 z/T，演示温度对概率形态的影响，不改变 argmax。</li>
+<li>T&gt;1 平滑分布(置信度降低)，T&lt;1 锐化(更自信)，是模型校准常用手段。</li>
+<li>与生成温度同源：同一机制既可用于校准也可调生成多样性。</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">校准演示</div><div class="dd-ex-body">logits=[3,1,0]，T=1 → 概率≈[0.8438,0.1142,0.0420]；T=2 → [0.6285,0.2312,0.1402]，最高概率由 84.38% 降到 62.85%，更接近真实准确率即达到校准目的；T=0.5 → [0.9796,0.0179,0.0024] 过度自信。注意缩放只改数值大小，argmax 仍是第 1 类。</div></div>
+<h3>❓ 常见问题（FAQ）</h3>
+<dl class="dd-faq">
+<dt>温度缩放能提升准确率吗？</dt><dd>不直接提升<a class="term-link" href="/tools/ai/ai.html">分类准确率</a>(argmax 不变)，只让输出置信度更'诚实'地反映正确率，对需要可靠概率的应用(如风险决策)很有价值。</dd>
+<dt>T 用什么值校准？</dt><dd>在验证集上用负对数似然最小化搜索最优 T(通常略大于 1)，使预测置信度与经验准确率对齐；是后处理、不改模型权重。</dd>
+</dl>
+</div>
+</section>
+<!-- 相关工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相关工具</h3>
+  <div class="related-tools-grid">
+    <a href="dropout.html" class="related-tool-card">
+      <span class="rt-icon">🤖</span>
+      <span class="rt-info"><span class="rt-name">Dropout 保留期望</span><span class="rt-desc">Dropout 期望输出计算器，输入保留概率求 dropout 后的期望输出与推理期缩放因子，辅助…</span></span>
+    </a>
+    <a href="l1-l2.html" class="related-tool-card">
+      <span class="rt-icon">🔍</span>
+      <span class="rt-info"><span class="rt-name">L1 L2 正则化惩罚</span><span class="rt-desc">L1/L2 正则化惩罚计算器，输入权重与正则系数求对损失函数的惩罚项，对比 Lasso 与 Rid…</span></span>
+    </a>
+    <a href="rag.html" class="related-tool-card">
+      <span class="rt-icon">🤖</span>
+      <span class="rt-info"><span class="rt-name">RAG 召回率</span><span class="rt-desc">RAG 召回率计算器，输入相关文档数与检索命中数求召回率，评估检索增强生成的检索覆盖质量。</span></span>
+    </a>
+    <a href="roc-auc.html" class="related-tool-card">
+      <span class="rt-icon">🤖</span>
+      <span class="rt-info"><span class="rt-name">ROC AUC 近似</span><span class="rt-desc">输入正负样本预测得分，估算 ROC 曲线下面积 AUC，评估分类器排序能力，适用于模型选型、阈值无…</span></span>
+    </a>
+    <a href="relu-leakyrelu.html" class="related-tool-card">
+      <span class="rt-icon">🤖</span>
+      <span class="rt-info"><span class="rt-name">ReLU 与 LeakyReLU</span><span class="rt-desc">R ReLU 与 LeakyReLU</span></span>
+    </a>
+    <a href="sigmoid.html" class="related-tool-card">
+      <span class="rt-icon">🤖</span>
+      <span class="rt-info"><span class="rt-name">Sigmoid 输出</span><span class="rt-desc">S Sigmoid 输出</span></span>
+    </a>
+  </div>
+</div>
+<script>
+function calc(){
+  const __fin=(v)=>Number.isFinite(v);
+  const logit = +document.getElementById('logit').value || 0;
+  const T = +document.getElementById('T').value || 0;
+  const logit2 = +document.getElementById('logit2').value || 0;
+  let html = '';
+  const __v0 = (logit/T);
+  html += `<p>缩放后：<strong style="font-size:18px;color:var(--primary);">${__fin(__v0)?__v0.toFixed(3):'—'}</strong> </p>`;
+  const __v1 = (logit2/T);
+  html += `<p>对比缩放：<strong style="font-size:18px;color:var(--primary);">${__fin(__v1)?__v1.toFixed(3):'—'}</strong> </p>`;
+  const __bad = [__v0,__v1].some(v=>typeof v==='number'&&!Number.isFinite(v));
+  if (!(T>0)) html += '<p style="color:var(--danger);">⚠ 温度 T 必须大于 0（T=0 时 logit÷T 无定义）。</p>';
+  else if (__bad) html += '<p style="color:var(--danger);">⚠ 部分结果无定义（分母为 0 或输入为空），请检查输入。</p>';
+  const __g1=html;document.getElementById('result').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
+}
+function copyResult() {
+  const txt = document.getElementById('result').innerText;
+  if (!txt) return;
+  navigator.clipboard.writeText(txt).then(() => ToolBox.toast && ToolBox.toast('已复制结果')).catch(() => {
+    const ta = document.createElement('textarea'); ta.value = txt; document.body.appendChild(ta);
+    ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+  });
+}
+calc();
+
+function __tsN(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __tsList(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __tsL(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __tsExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#tsTable','temperature-scaling.csv');}catch(e){} }
+function __tsExtras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var logit=__tsN('logit'), T=__tsN('T'), logit2=__tsN('logit2');
+        if(!(T>0))return;
+        var Ts=[0.5,1,2,3,5];
+        TBKit.chart.bar('#tsChart',{labels:Ts.map(function(t){return 'T='+t;}),series:[
+            {name:__tsL('logit/T','logit/T'),data:Ts.map(function(t){return logit/t;})},
+            {name:__tsL('logit2/T','logit2/T'),data:Ts.map(function(t){return logit2/t;})}
+        ],height:230,title:__tsL('Scaled logits across temperature','不同温度下的缩放值')});
+        var rows=__tsL(
+            [['logit',logit.toFixed(3)],['logit2',logit2.toFixed(3)],['temperature T',T.toFixed(2)],['scaled logit/T',(logit/T).toFixed(3)],['scaled logit2/T',(logit2/T).toFixed(3)],['gap |Δ|',Math.abs(logit-logit2/T).toFixed(3)]],
+            [['logit',logit.toFixed(3)],['logit2',logit2.toFixed(3)],['温度 T',T.toFixed(2)],['缩放后 logit/T',(logit/T).toFixed(3)],['对比缩放 logit2/T',(logit2/T).toFixed(3)],['差值 |Δ|',Math.abs(logit-logit2/T).toFixed(3)]]);
+        TBKit.matrix.table('#tsTable',{head:__tsL(['Metric','Value'],['指标','数值']),rows:rows});
+        TBKit.history.record({scaled:Number((logit/T).toFixed(3))});
+        TBKit.util.diffBox('#tsDiff',['scaled']);
+        TBKit.history.mount('#tsHist',function(v){ if(v.scaled!=null){document.getElementById('logit').value=v.logit;document.getElementById('T').value=v.T;document.getElementById('logit2').value=v.logit2;} calc(); });
+    }catch(e){}
+}
+function __tsPresets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#tsPresets',[
+            {label:'尖锐 T=0.5 logit=4/-2',labelEn:'Sharp T=0.5 logit=4/-2',values:{logit:4,T:0.5,logit2:-2}},
+            {label:'标准 T=1 logit=2.5/1',labelEn:'Standard T=1 logit=2.5/1',values:{logit:2.5,T:1,logit2:1}},
+            {label:'平滑 T=3 logit=6/3',labelEn:'Smooth T=3 logit=6/3',values:{logit:6,T:3,logit2:3}}
+        ],function(){ calc(); });
+    }catch(e){}
+}
+
+var __tb_ts0 = calc;
+calc = function(){ __tb_ts0(); try{ __tsExtras(); }catch(e){} };
+function __tsBoot(){ try{ __tsPresets(); }catch(e){} try{ calc(); }catch(e){} }
+// readyState 判定须防「桩环境无 readyState」：harness 的 document 桩不提供 readyState（undefined），
+// 旧写法 `=== "loading"` 会走 else 在脚本求值时立即启动 boot，早于页面自身 DOMContentLoaded init
+// ⇒ 元素创建顺序改变 ⇒ 跨元素多行 expect 失配。生产浏览器解析期 readyState==="loading" ⇒ 走
+// addEventListener；已加载完（complete/interactive）⇒ 立即启动。
+if (document.readyState && document.readyState !== "loading") __tsBoot();
+else document.addEventListener("DOMContentLoaded", __tsBoot);
+</script>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "温度缩放能提升准确率吗？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "不直接提升分类准确率(argmax 不变)，只让输出置信度更'诚实'地反映正确率，对需要可靠概率的应用(如风险决策)很有价值。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "T 用什么值校准？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "在验证集上用负对数似然最小化搜索最优 T(通常略大于 1)，使预测置信度与经验准确率对齐；是后处理、不改模型权重。"
+      }
+    }
+  ]
+}
+</script>
+</body>
+</html>

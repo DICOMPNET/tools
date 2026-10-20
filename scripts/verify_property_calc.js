@@ -1,0 +1,263 @@
+#!/usr/bin node
+"use strict";
+const { runCase } = require("./verify_it_calc.js");
+const CASES = [
+{
+  "slug": "property/analysis-40",
+  "inputs": {
+    "data": "租金收益率,3.2,4.5,high\n空置率,8,5,low\n能耗成本,12,9,low\n客户满意度,78,85,high"
+  },
+  "expect": [
+    "综合差距评分：32.6%",
+    "优先改进（Top3）：空置率（60.0%）"
+  ],
+  "ref": "重做为标杆对比：4 项差距率，综合差距评分=各项|rel|均值×100=（0.2889+0.6+0.3333+0.0824)/4×100=32.6；按|rel|降序取Top3（空置率60.0%/能耗成本33.3%/租金收益率28.9%）。非默认输入+独立复算。"
+},
+{
+  "slug": "property/assessor-manager-1",
+  "inputs": {
+    "vendorName": "",
+    "contractAmt": "75",
+    "contractTerm": "12"
+  },
+  "expect": [
+    "75万"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "property/calc-shared-property-fee",
+  "inputs": {
+    "totalArea": "150",
+    "sharedRatio": "20",
+    "feeRate": "2.5",
+    "sharedFeeRate": "0.5",
+    "customPeriod": "12"
+  },
+  "expect": [
+    "390.00"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "property/checker-11",
+  "inputs": {},
+  "clicks": ["var __m={plan:5,do:1,check:4,act:2};Object.keys(__m).forEach(function(s){for(var i=0;i<4;i++){document.getElementById(s+i).value=String(__m[s]);}});calc()"],
+  "expect": [
+    "3.00 综合成熟度",
+    "发展中 成熟度等级",
+    "60% 体系完整度",
+    "8 薄弱项",
+    "D-检查执行 1.00 未建立 4项"
+  ],
+  "ref": "16 个评分 <select id=\"<stage><i>\"> 由 buildList() 拼 innerHTML 生成（静态无 id ⇒ clicks 赋值后调 calc()）：P=5/D=1/C=4/A=2 ⇒ 阶段均值 5.00/1.00/4.00/2.00，overall=(5+1+4+2)/4=3.00 ⇒ 发展中、完整度 3/5=60%、薄弱项 D 阶段 4 项 + A 阶段 4 项 = 8（默认值在桩下为空 ⇒ 0.00/薄弱/0%/16）。非默认输入+独立复算。"
+},
+{
+  "slug": "property/checker-7",
+  "clicks": [
+    "Object.keys(dims).forEach(function(k){dims[k].items.forEach(function(it,i){var el=document.getElementById(k+i);if(el)el.value='1';});});calc();"
+  ],
+  "expect": [
+    "25.0%",
+    "综合品质得分 25.0%"
+  ],
+  "ref": "clicks 遍历 dims 各模块 item 设 value='1'（v=1≤2→issue），得分率 pct=Σ(w)/(4Σw)*100=25.0%、等级不合格；默认全 0→0.0% 不合格，故「25.0%」可区分。注入后显式 calc()。"
+},
+{
+  "slug": "property/checker-recorder-drill",
+  "inputs": {
+    "drillCount": "75",
+    "evacTime": "180",
+    "inspector": ""
+  },
+  "expect": [
+    "75人"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "property/cost-profit",
+  "inputs": {
+    "v0": "500",
+    "v1": "800"
+  },
+  "expect": [
+    "300.00",
+    "37.50%",
+    "62.50%",
+    "1.60"
+  ],
+  "ref": "重做后真实预算：利润=收入-成本=800-500=300.00；利润率=300/800=37.50%（默认 270/324 得 54.00/16.67%，注入失败即不命中）"
+},
+{
+  "slug": "property/cycle-elevator",
+  "inputs": {
+    "logDate_'+el.id+'": "'+todayStr()+'_X"
+  },
+  "expect": [
+    "_X"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "property/elevator-energy",
+  "inputs": {
+    "liftCount": "5",
+    "floors": "18",
+    "floorHeight": "3",
+    "power": "11",
+    "loadRate": "40",
+    "tripsPerDay": "200",
+    "tripFloors": "6",
+    "idleHours": "20",
+    "idlePower": "0.5",
+    "price": "0.8"
+  },
+  "expect": [
+    "20421.75"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "property/energy",
+  "inputs": {
+    "v0": "800",
+    "v1": "4"
+  },
+  "expect": [
+    "3200.00"
+  ],
+  "ref": "采购运费=重量×运费率=800×4=3200.00（默认 500/3 得 1500.00，注入失败即不命中）"
+},
+{
+  "slug": "property/fee-allocation",
+  "inputs": {
+    "totalFee": "75000"
+  },
+  "expect": [
+    "75000"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "property/rater-performance",
+  "inputs": {
+    "v0": "128",
+    "w0": "20",
+    "v1": "80",
+    "w1": "20",
+    "v2": "90",
+    "w2": "15",
+    "v3": "88",
+    "w3": "15",
+    "v4": "92",
+    "w4": "15",
+    "v5": "85",
+    "w5": "15"
+  },
+  "expect": [
+    "89.3"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "property/report-manager",
+  "inputs": { "data": "物业费,320000,180000\n停车费,85000,22000\n广告位,40000,5000\n公共能耗,0,96000" },
+  "expect": [
+    "收入合计： 445000.00",
+    "支出合计： 303000.00",
+    "收支结余： +142000.00"
+  ],
+  "ref": "收入=320000+85000+40000+0=445000；支出=180000+22000+5000+96000=303000；结余=+142000；结余率=31.91%（默认 260000+60000=320000 / 150000+18000+45000=213000 / +107000，避开）"
+},
+{
+  "slug": "property/response-1",
+  "inputs": {
+    "v0": "600",
+    "v1": "700"
+  },
+  "expect": [
+    "100 分钟",
+    "1.67 h"
+  ],
+  "ref": "维修响应时长=响应-报修=700-600=100 分钟（默认 570/595 得 25 分钟，注入失败即不命中；含 B>=A 校验）"
+},
+{
+  "slug": "property/response-4",
+  "inputs": {
+    "v0": "600",
+    "v1": "1200"
+  },
+  "expect": [
+    "600 分钟",
+    "10.00 h"
+  ],
+  "ref": "维修完成时长=完成-报修=1200-600=600 分钟（默认 570/1110 得 540 分钟，注入失败即不命中）"
+},
+{
+  "slug": "property/shared-area",
+  "inputs": {
+    "innerArea": "4800",
+    "unitCount": "40"
+  },
+  "expect": [
+    "4800.00"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "property/stats-manager",
+  "inputs": {
+    "tot": "300",
+    "rent_cnt": "150",
+    "visits": "450",
+    "dur": "3",
+    "price": "6",
+    "rent_fee": "400"
+  },
+  "expect": [
+    "3.00",
+    "68.75",
+    "303,000.00"
+  ],
+  "ref": "车场：总车位300/包月150 → 临停位150，周转率=450/150=3.00；在场=450×3/24=56.25，占用率=(150+56.25)/300=68.75%；月临停=450×3×6×30=243000，月租=150×400=60000，合计 303000.00（独立复算，非页面默认值）"
+},
+  {
+    "slug": "property/cycle-10",
+    "inputs": {
+      "routeName": "abc123测试",
+      "routeLast": "abc123测试",
+      "newChk": "abc123测试",
+      "routeFreq": "7"
+    },
+    "expect": [
+      "abc123测试\n共 1 条\n⚠ 计算结果含无效值，请检查输入是否为有效正数。\n巡检路线 1"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"routeName\":\"abc123测试\",\"routeLast\":\"abc123测试\",\"newChk\":\"abc123测试\",\"routeFreq\":\"7\"}，输出区含「abc123测试\n共 1 条\n⚠ 计算结果含无效值，请检查输入是否为有效正数。\n…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  }
+
+];
+async function main() {
+  const only = process.argv.slice(2);
+  const cases = only.length ? CASES.filter((c) => only.some((o) => c.slug.endsWith("/" + o) || c.slug === o)) : CASES;
+  let pass = 0; const fails = [];
+  for (const c of cases) {
+    try {
+      const r = await runCase(c);
+      if (r.ok) { pass++; }
+      else {
+        fails.push(c.slug);
+        console.log("❌ " + c.slug + "  " + (r.why || "no expect match"));
+        if (r.errs && r.errs.length) console.log("     errs: " + JSON.stringify(r.errs));
+        if (r.sample) console.log("     got: " + String(r.sample).slice(0, 300));
+      }
+    } catch (e) {
+      fails.push(c.slug);
+      console.log("❌ " + c.slug + "  THROWN: " + ((e && e.message) ? e.message : String(e)));
+    }
+  }
+
+  console.log("==== property calc " + pass + "/" + cases.length + " ====");
+  if (fails.length) process.exit(1);
+}
+if (require.main === module) main();

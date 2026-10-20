@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=robotics,industry=robotics,icon=🔩,bg=from-teal-500 to-emerald-600">
+<title>由输入扭矩与减速比求输出扭矩 - 减速后能否驱动负载</title>
+<link rel="canonical" href="https://chenguangwu.github.io/tools/robotics/gear-ratio-torque.html">
+<meta property="og:title" content="由输入扭矩与减速比求输出扭矩 - 减速后能否驱动负载">
+<meta property="og:description" content="输入电机输入扭矩 τ_in、减速比 GR 与传动效率 η，工具按 τ_out=τ_in·GR·η 计算输出扭矩，评估减速后能否驱动负载，用于关节模组的力矩选型。">
+<meta property="og:url" content="https://chenguangwu.github.io/tools/robotics/gear-ratio-torque.html">
+<meta name="twitter:card" content="summary">
+<meta name="description" content="输入电机输入扭矩 τ_in、减速比 GR 与传动效率 η，工具按 τ_out=τ_in·GR·η 计算输出扭矩，评估减速后能否驱动负载，用于关节模组的力矩选型。">
+<link rel="stylesheet" href="../../css/common.css">
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="../../js/common.js" defer></script>
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
+    <meta property="og:type" content="website">
+    <meta name="twitter:title" content="由输入扭矩与减速比求输出扭矩 - 减速后能否驱动负载">
+    <meta name="twitter:description" content="输入电机输入扭矩 τ_in、减速比 GR 与传动效率 η，工具按 τ_out=τ_in·GR·η 计算输出扭矩，评估减速后能否驱动负载，用于关节模组的力矩选型。">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"减速比扭矩放大计算器","url":"https://chenguangwu.github.io/tools/robotics/gear-ratio-torque.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"输入电机输入扭矩 τ_in、减速比 GR 与传动效率 η，工具按 τ_out=τ_in·GR·η 计算输出扭矩，评估减速后能否驱动负载，用于关节模组的力矩选型。","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://chenguangwu.github.io/"},{"@type":"ListItem","position":2,"name":"机器人学","item":"https://chenguangwu.github.io/tools/robotics/index.html"},{"@type":"ListItem","position":3,"name":"减速比扭矩放大计算器","item":"https://chenguangwu.github.io/tools/robotics/gear-ratio-torque.html"}]}
+</script>
+
+<script src="../../js/i18n.js" defer></script>
+<script src="../../js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+
+
+<meta name="title-en" content="Gear Ratio Torque">
+<meta name="desc-en" content="Gear Ratio Torque - online utility on ToolBox.">
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/robotics/gear-ratio-torque.html">
+<link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/robotics/gear-ratio-torque.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/robotics/gear-ratio-torque.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/robotics/gear-ratio-torque.html">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:locale:alternate" content="zh_TW">
+<meta property="og:locale:alternate" content="en_US">
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
+
+<script src="/js/tool-ux.js" defer></script>
+<!-- TOOLBOX-TOOL-UX -->
+
+<script src="/js/analytics.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+<!-- TOOLBOX-TTZZ -->
+<script>
+(function(){try{
+var el = document.createElement("script");
+el.src = "https://lf1-cdn-tos.bytegoofy.com/goofy/ttzz/push.js?85d6452aa9be4d693b16cd48535a8c7ae57542f6788a41682e745be8eb99b35a8a24d2f724c31ebe20c1e4e6fba6d91caf576100b02a2870c72f38fc574066fef065d152c73bf1cbb2ebad3b5b5265d8";
+el.id = "ttzz";
+var s = document.getElementsByTagName("script")[0];
+s.parentNode.insertBefore(el, s);
+}catch(e){}
+})(window);
+</script>
+
+<script src="/js/tool-kit.js" defer></script>
+<!-- TOOLBOX-TOOL-KIT -->
+</head>
+<body>
+
+<h1 class="sr-only">减速比扭矩放大计算器</h1>
+
+<div class="nav">
+  <a href="../../index.html">← ToolBox</a>
+  <span>/ 减速比扭矩放大计算器</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+
+
+
+<nav class="breadcrumb" aria-label="面包屑导航" data-breadcrumb="1">
+  <a href="../../index.html">首页</a>
+  <span class="bc-sep">‹</span>
+  <a href="index.html">🤖 机器人学</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">减速比扭矩放大计算器</span>
+</nav>
+
+<div class="tool-guide-link" data-guide-link="1">
+  <a href="../../guides/gear-ratio-torque-guide.html">📖 查看「由输入扭矩与减速比求输出扭矩 使用指南」</a>
+</div>
+<div class="container">
+  <div class="card">
+    <h2 data-zh="由输入扭矩与减速比求输出扭矩">Gear Reduction Ratio Torque Calculator</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="输入输入扭矩 τ_in、减速比 GR、效率 η，求输出扭矩。">Input motor input torque τ_in, reduction ratio GR, and transmission efficiency η, compute output torque τ_out = τ_in·GR·η to assess reduced torque against load, for joint-module torque selection.</p>
+    <div class="formula-box">
+      <div class="formula-title">📐 计算公式</div>
+      <div class="formula-eq">T_out = T_in · i</div>
+      <p class="formula-desc">输入输入扭矩 τ_in、减速比 GR、效率 η，求输出扭矩。</p>
+    </div>
+
+    <div class="input-row">
+      <div>
+        <label for="ti">输入扭矩 τ_in (N·m)</label>
+        <input type="number" id="ti" value="1" step="0.1" oninput="calcTool()">
+      </div>
+      <div>
+        <label for="gr">减速比 GR</label>
+        <input type="number" id="gr" value="10" step="0.5" oninput="calcTool()">
+      </div>
+      <div>
+        <label for="eta">效率 η</label>
+        <input type="number" id="eta" value="0.9" step="0.05" oninput="calcTool()">
+      </div>
+    </div>
+
+    <div id="gear_ratio_torquePresets"></div>
+
+    <div class="toolbar">
+      <button class="btn primary" onclick="calcTool()">计算</button>
+      <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__gear_ratio_torqueExport()">导出明细 CSV</button>
+    </div>
+
+    <div class="result-box" id="result"></div>
+    <div id="gear_ratio_torqueTable"></div>
+    <div id="gear_ratio_torqueDiff"></div>
+    <div id="gear_ratio_torqueHist"></div>
+
+    <div class="tool-notes">
+      <div class="tool-notes-title">📌 计算说明</div>
+      <ul>
+        <li>τ_out = τ_in·GR·η。</li>
+        <li>τ_in=1,GR=10,η=0.9 → 9 N·m。</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+
+<!-- 相关工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相关工具</h3>
+  <div class="related-tools-grid">
+    <a href="pid-controller.html" class="related-tool-card">
+      <span class="rt-icon">🧮</span>
+      <span class="rt-info"><span class="rt-name">PID 控制器输出计算器</span><span class="rt-desc">PID 控制器输出计算器：输入比例、积分、微分系数与误差信号，按 PID 控制律实时计算控制器输出，</span></span>
+    </a>
+    <a href="end-effector-reach.html" class="related-tool-card">
+      <span class="rt-icon">🧮</span>
+      <span class="rt-info"><span class="rt-name">二连杆工作空间计算器</span><span class="rt-desc">二连杆工作空间计算器：输入两段连杆长度，求平面二连杆末端可达的环形工作空间内半径与外半径，辅助机械臂</span></span>
+    </a>
+    <a href="forward-kinematics-2r.html" class="related-tool-card">
+      <span class="rt-icon">🧮</span>
+      <span class="rt-info"><span class="rt-name">二连杆正运动学计算器</span><span class="rt-desc">二连杆正运动学计算器：输入两段关节角与连杆长度，按正运动学公式求末端执行器 (x, y) 坐标，用于</span></span>
+    </a>
+    <a href="inverse-kinematics-2r.html" class="related-tool-card">
+      <span class="rt-icon">🧮</span>
+      <span class="rt-info"><span class="rt-name">二连杆逆运动学计算器</span><span class="rt-desc">由 (x,y) 反解关节角 θ₁,θ₂</span></span>
+    </a>
+    <a href="joint-angular-velocity.html" class="related-tool-card">
+      <span class="rt-icon">🏎️</span>
+      <span class="rt-info"><span class="rt-name">关节角速度计算器</span><span class="rt-desc">由末端线速度与臂长求关节角速度</span></span>
+    </a>
+    <a href="gravity-comp-torque.html" class="related-tool-card">
+      <span class="rt-icon">🔩</span>
+      <span class="rt-info"><span class="rt-name">关节重力补偿扭矩计算器</span><span class="rt-desc">由连杆质量、长度与角度求重力扭矩</span></span>
+    </a>
+  </div>
+</div>
+<script>
+function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
+function dataGrid(rows){if(!Array.isArray(rows))return '<div class="data-grid"><div class="data-card"><div class="num">—</div><div class="label">渲染异常</div></div></div>';let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
+function calcTool(){
+            const ti=num('ti'),gr=num('gr'),eta=num('eta');
+            const to=ti*gr*eta;
+            const __g1=dataGrid([
+                [to.toFixed(2),'输出扭矩 τ_out (N·m)']
+            ]);ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
+        }
+function resetForm(){document.getElementById('ti').value = '1';
+      document.getElementById('gr').value = '10';
+      document.getElementById('eta').value = '0.9';
+      calcTool();}
+calcTool();
+
+function __gear_ratio_torqueNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __gear_ratio_torqueExtras(){
+    function __gear_ratio_torqueRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
+    if (typeof TBKit === 'undefined') return;
+    var ti=num('ti'),gr=num('gr'),eta=num('eta');
+    var to=ti*gr*eta;
+    if (!isFinite(__gear_ratio_torqueNum('ti')) || !isFinite(__gear_ratio_torqueNum('gr')) || !isFinite(__gear_ratio_torqueNum('eta'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#gear_ratio_torqueTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['输出扭矩 τ_out (N·m)', to.toFixed(2)],
+        ]
+    });
+    TBKit.history.record({ti:__gear_ratio_torqueRaw('ti'), gr:__gear_ratio_torqueRaw('gr'), eta:__gear_ratio_torqueRaw('eta'), to:to});
+    function __gear_ratio_torqueRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
+    TBKit.history.mount('#gear_ratio_torqueHist',function(rec){ __gear_ratio_torqueRestore(rec); calcTool(); });
+    TBKit.util.diffBox('#gear_ratio_torqueDiff',['to']);
+}
+function __gear_ratio_torqueExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#gear_ratio_torqueTable','gear-ratio-torque.csv'); } catch(e){}
+}
+function __gear_ratio_torquePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#gear_ratio_torquePresets',[
+        {label:'默认',labelEn:'Default',values:{ti:'1', gr:'10', eta:'0.9'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{ti:'2', gr:'20', eta:'1.8'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{ti:'0.5', gr:'5', eta:'0.45'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __gear_ratio_torqueExtras(); }catch(e){} };
+function __gear_ratio_torqueBoot(){ try{ __gear_ratio_torquePresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __gear_ratio_torqueBoot();
+else document.addEventListener('DOMContentLoaded', __gear_ratio_torqueBoot);
+</script>
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto 0;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+.deep-dive a.term-link{color:var(--tool-accent,#FF6B35);text-decoration:none;border-bottom:1px dashed currentColor;}
+.deep-dive a.term-link:hover{border-bottom-style:solid;}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：齿轮传动输出扭矩</h2>
+<h3>💡 常见使用场景</h3>
+<ul class="dd-list">
+<li>减速增扭计算。</li>
+<li>含效率的扭矩传递。</li>
+<li>关节驱动选型。</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">输入 1N·m、比 10、效率 0.9</div><div class="dd-ex-body">T_out=1×10×0.9=9 N·m；减速 10 倍增扭并计 10% 损耗。</div></div>
+<div class="dd-example"><div class="dd-ex-title">效率 1.0</div><div class="dd-ex-body">T_out=10 N·m，理想无损耗。</div></div>
+<h3>❓ 常见问题（FAQ）</h3>
+<dl class="dd-faq">
+<dt>扭矩为何增？</dt><dd>减速换扭矩，T_out=T_in×i×η。</dd>
+<dt>功守恒？</dt><dd>忽略损耗时功率守恒：T_in·ω_in=T_out·ω_out。</dd>
+</dl>
+</div>
+</section>
+</body>
+</html>

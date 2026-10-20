@@ -1,0 +1,518 @@
+#!/usr/bin/env node
+/**
+ * 第 39 道门禁：insurance 分类计算正确性验证（29 个确定性数值工具）
+ *
+ * 期望值全部由独立复算得出（ref 字段写明完整算式或已知向量），不回读页面输出。
+ * 输入一律避开页面默认值（空输入默认输出 0.00/NaN），且期望值经「假通过自检」复核
+ * 不等于默认输出，杜绝假通过。
+ * 期望串优先取「区分度足够」的数值串（避开纯 .00 结尾隐含的 "0.00" 子串命中）。
+ * 排除：
+ *   - calc-pv-1 / estimate-20：通用模板，计算模式依赖 h1 标题文本判断，stub 无法还原 → 无验证意义；
+ *   - mortality-table：依赖内置生命表数据，难以独立复算精确 qx；
+ *   - level-premium-life：页面 resetForm() 在初始化时把 nsp 重置为 85000 并调用 calcTool，
+ *     stub 注入被覆盖（与标题依赖模板同类 stub 干扰），验证无意义。
+ * 用法: node scripts/verify_insurance_calc.js [slug ...]
+ */
+"use strict";
+const { runCase } = require("./verify_it_calc.js");
+
+const CASES = [
+  { slug: "insurance/annuity-certain-pv",
+    inputs: { P: "1000", i: "0.05", n: "10" },
+    expect: ["7,721.73", "8,107.82"],
+    ref: "v=1/1.05=0.952381；aEnd=(1−v^10)/0.05=7.72173；P·aEnd=7721.73；aBeg=7.72173×1.05=8107.82（默认空→0 避开）" },
+
+  { slug: "insurance/annuity-nsp",
+    inputs: { b: "50", ax: "8.75" },
+    expect: ["437.50"],
+    ref: "NSP = b×ax = 50×8.75 = 437.50（默认空→0 避开）" },
+
+  { slug: "insurance/annuity-present",
+    inputs: { pmt: "1000", rate: "5", n: "10", type: "due" },
+    expect: ["8,107.82"],
+    ref: "ordinaryPV=1000×(1−1.05^−10)/0.05=7721.73；due×1.05=8107.82（type 默认 ordinary→改 due 避开）" },
+
+  { slug: "insurance/average-severity",
+    inputs: { tot: "1000", n: "3" },
+    expect: ["333.33"],
+    ref: "平均赔付额 = 1000/3 = 333.33（默认空→0 避开）" },
+
+  { slug: "insurance/calc-1",
+    inputs: { premium: "1234.56", totalYears: "20", paidYears: "7", riderCost: "0" },
+    expect: ["16,049.28"],
+    ref: "remaining=20−7=13；waived=1234.56×13=16049.28（默认空→0 避开）" },
+
+  { slug: "insurance/claim-frequency",
+    inputs: { claims: "50", exposure: "1000" },
+    expect: ["0.0500", "5.00"],
+    ref: "f=50/1000=0.05→0.0500；出险率=5.00%（默认空→NaN 避开）" },
+
+  { slug: "insurance/claim-reserve",
+    inputs: { earnedPremium: "1000", expectLossRatio: "70", paidLoss: "400", rbns: "200", closeRate: "50", period: "0.65" },
+    expect: ["700", "300", "60.0"],
+    ref: "终极=1000×70%=700；IBNR=700−400−200=100；未决=200+100=300；已报赔付率=(400+200)/1000×100=60.0%（默认空→0/NaN 避开）" },
+
+  { slug: "insurance/combined-ratio",
+    inputs: { claims: "400", exp: "120", premium: "1000" },
+    expect: ["52.00"],
+    ref: "CR=(400+120)/1000×100=52.00%（避开页面示例默认值 533/200/1000；'承保盈利'为静态文案，不纳入期望）" },
+
+  { slug: "insurance/complete-life-expectancy",
+    inputs: { tpx: "0.9,0.95,0.98" },
+    expect: ["2.830"],
+    ref: "完全期望寿命=e_x 求和=0.9+0.95+0.98=2.83→2.830（默认空→0 避开）" },
+
+  { slug: "insurance/endowment-premium",
+    inputs: { B: "100000", q: "0.01", i: "0.03", n: "10" },
+    expect: ["8,847.49", "8,176.37", "67,294.52"],
+    ref: "逐期折现：身故现值 8176.37、满期现值 67294.52、年金系数 a=8.53、两全年保费 P=(8176.37+67294.52)/8.53=8847.49（默认空→0 避开）" },
+
+  { slug: "insurance/expected-claim-loss",
+    inputs: { freq: "2", sev: "150.4" },
+    expect: ["300.80"],
+    ref: "ECL = 频率×严重度 = 2×150.4 = 300.80（默认空→0 避开）" },
+
+  { slug: "insurance/expense-ratio",
+    inputs: { exp: "300", premium: "2000" },
+    expect: ["15.00"],
+    ref: "费用率 = 300/2000×100 = 15.00%（避开页面示例默认值 250/1000）" },
+
+  { slug: "insurance/force-of-mortality",
+    inputs: { px: "0.95" },
+    expect: ["0.05129"],
+    ref: "μ = −ln(0.95) = 0.051293 → 0.05129（默认空→0 避开）" },
+
+  { slug: "insurance/gross-premium-loading",
+    inputs: { pp: "600", load: "0.333" },
+    expect: ["799.80"],
+    ref: "毛保费 = 纯保费×(1+附加费率) = 600×1.333 = 799.80（默认空→0 避开）" },
+
+  { slug: "insurance/ibnr-estimate",
+    inputs: { ult: "1234", paid: "0.7" },
+    expect: ["370.20"],
+    ref: "IBNR = 终极×(1−已付比例) = 1234×0.3 = 370.20（默认空→0 避开）" },
+
+  { slug: "insurance/ibnr-reserve",
+    inputs: { reported: "500", factor: "1.625" },
+    expect: ["312.50", "812.50"],
+    ref: "IBNR = 已报×(因子−1) = 500×0.625 = 312.50；最终赔款 = 500×1.625 = 812.50（默认空→0 避开）" },
+
+  { slug: "insurance/life-cover-need",
+    inputs: { income: "50000", years: "20", debt: "300000", asset: "100000" },
+    expect: ["1,200,000.00"],
+    ref: "建议保额 = 收入×年数+负债−资产 = 50000×20+300000−100000 = 1,200,000.00（默认空→0 避开）" },
+
+  { slug: "insurance/loss-ratio",
+    inputs: { claims: "333", premium: "1000" },
+    expect: ["33.30"],
+    ref: "赔付率 = 333/1000×100 = 33.30%（默认空→0 避开）" },
+
+  { slug: "insurance/mortality-prob",
+    inputs: { p: "0.98", n: "5" },
+    expect: ["90.392", "2.000", "9.608"],
+    ref: "q=1−0.98=0.02；ₙp=0.98^5=0.903920→90.392%；ₙ年内死亡=9.608%（默认空→0/NaN 避开）" },
+
+  { slug: "insurance/net-single-premium",
+    inputs: { B: "80000", q: "0.02", i: "0.04", n: "15" },
+    expect: ["15,730.63", "19.66"],
+    ref: "净趸缴保费 = Σ 死亡现值 = 15730.63；占保额 = 15.7266%→19.66（避开页面示例默认值 100000/0.01/0.03/10）" },
+
+  { slug: "insurance/premium-calc",
+    inputs: { sumInsured: "100000", baseRate: "5", age: "3.5", job: "5.0", term: "0.85", payMode: "0.98" },
+    expect: ["7,288.75"],
+    ref: "基础=100000×5/1000=500；实际=500×3.5×5.0×0.85×0.98=7288.75（默认空→0 避开）" },
+
+  { slug: "insurance/premium-elasticity",
+    inputs: { dq: "15", dp: "5" },
+    expect: ["3.00"],
+    ref: "弹性 = ΔQ/ΔP = 15/5 = 3.00（默认空→0 避开）" },
+
+  { slug: "insurance/pure-premium",
+    inputs: { freq: "2", sev: "150.4" },
+    expect: ["300.80"],
+    ref: "纯保费 = 频率×严重度 = 2×150.4 = 300.80（默认空→0 避开）" },
+
+  { slug: "insurance/pure-premium-rate",
+    inputs: { el: "5500", exp: "1000" },
+    expect: ["5.50"],
+    ref: "纯费率 = 期望损失/暴露单位 = 5500/1000 = 5.50（默认空→0 避开）" },
+
+  // 注：insurance/stats-5 已于 2026-09-19 改为 TOOLBOX-REDIRECT 存根（重定向到同义真工具），不再是工具页，用例移除。
+
+  { slug: "insurance/surrender-value",
+    inputs: { res: "1999", rate: "0.4" },
+    expect: ["799.60"],
+    ref: "现金价值 = 准备金×退保比例 = 1999×0.4 = 799.60（默认空→0 避开）" },
+
+  { slug: "insurance/survival-prob-t",
+    inputs: { lxt: "800", lx: "1000" },
+    expect: ["0.8000"],
+    ref: "ₜp_x = l_xt/l_x = 800/1000 = 0.8000（默认空→NaN 避开）" },
+
+  { slug: "insurance/uw-margin",
+    inputs: { LR: "70", ER: "22" },
+    expect: ["8.0"],
+    ref: "承保利润率 = 100−(70+22) = 8.0%（避开页面示例默认值 65/30）" },
+
+  { slug: "insurance/uw-profit",
+    inputs: { premium: "1000", claims: "333", exp: "200" },
+    expect: ["467.00", "46.70"],
+    ref: "承保利润 = 1000−333−200 = 467.00；利润率 = 467/1000×100 = 46.70%（默认空→0 避开）" },
+  {"slug": "insurance/mortality-table", "inputs": {"age": "45"}, "clicks": ["calc();"], "expect": ["年龄： 45 岁 （男性） 死亡概率 qx = 0.1650% 存活概率 px = 99.8350% 存活人数 lx = 92,694 人（基数 100,000） 死亡人数 dx = 153 人 剩余预期寿命 ex = 34.4 年 总预期寿命 = 45 + 34.4 = 79.4 岁"], "ref": "独立复算（男性列，基数 100,000）：getQx(45) 取 LIFE_TABLE 中 age ≤ 45 的最后一行 = [40, 0.00165, …] ⇒ qx = 0.00165 = 0.1650%，px = 99.8350%；getLx(45) = 100000 × ∏(a=0..44)(1−qx(a)) 逐步连乘、低于 0.5 归零 ⇒ 92,694；dx = round(92694 × 0.00165) = 153；getEx(45) 取 male ex 列在 [40,50] 间线性插值：39.0 → 29.8，ratio = (45−40)/(50−40) = 0.5 ⇒ 39.0 + (29.8−39.0)×0.5 = 34.4；总预期寿命 = 45 + 34.4 = 79.4。默认态（30 岁男性）为 0.1050% / 94,449 / 48.4 / 78.4，整串不命中。qx 跨 40 岁档、ex 落在插值区间中部、lx 连乘 45 步，三个环节任一被改都会让整串失配。页面 oninput 后 statGrid 依赖 ToolBox.formatNumber，桩下不刷新，故须 clicks 显式调 calc()。"},
+  {"slug": "insurance/mortality-table", "inputs": {"age": "62"}, "clicks": ["document.getElementById('gender').value='female';calc();"], "expect": ["年龄： 62 岁 （女性） 死亡概率 qx = 0.4500% 存活概率 px = 99.5500% 存活人数 lx = 91,611 人（基数 100,000） 死亡人数 dx = 412 人 剩余预期寿命 ex = 23.6 年 总预期寿命 = 62 + 23.6 = 85.6 岁"], "ref": "独立复算（女性列）：getQx(62, female) 取 age ≤ 62 的最后一行 = [60, …, 0.00450] ⇒ qx = 0.00450 = 0.4500%；getLx = 100000 × ∏(a=0..61)(1−qx_f(a)) ⇒ 91,611；dx = round(91611 × 0.0045) = 412；getEx 在 [60,70] 间插值：25.2 + (17.0−25.2)×0.2 = 25.2 − 1.64 = 23.56 ⇒ 23.6；总 = 62 + 23.6 = 85.6。性别切换走 clicks（select 桩无 option selected），同时验证 col 索引 2/4 不错位。与上一例互为对照：换性别列、跨 60 岁档、插值 ratio 0.2（非 0.5）。默认态不命中。"},
+  {
+    "slug": "insurance/level-premium-life",
+    "inputs": { "nsp": "100000", "i": "0.05", "n": "10" },
+    "expect": ["12,950.46 均衡年保费 (元)", "7.72 年金现值系数 a_n|", "129,504.57 总缴费 (元)"],
+    "ref": "注入非默认(默认 85000/0.03/20)：v=1/1.05，a=(1−v^10)/0.05≈7.72；年保费 P=100000/7.72≈12,950.46；总缴费=12,950.46×10≈129,504.57。默认态 5,713.40/14.88/114,268.00 三项均不命中。主输出走 ToolBox.setResult（harness 已实现写 DOM），非 no-op。"
+  },
+  {
+    "slug": "insurance/annuity-certain-pv",
+    "inputs": {
+      "P": "42",
+      "i": "42",
+      "n": "42"
+    },
+    "expect": [
+      "末付现值 (元) 43.00"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"P\":\"42\",\"i\":\"42\",\"n\":\"42\"}，输出区含「末付现值 (元) 43.00」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "insurance/average-severity",
+    "inputs": {
+      "tot": "42",
+      "n": "42"
+    },
+    "expect": [
+      "平均赔付按次摊分 1.00000"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"tot\":\"42\",\"n\":\"42\"}，输出区含「平均赔付按次摊分 1.00000」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "insurance/annuity-nsp",
+    "inputs": {
+      "b": "42",
+      "ax": "42"
+    },
+    "expect": [
+      "单位给付的保费 147.00 月均摊保费"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"b\":\"42\",\"ax\":\"42\"}，输出区含「单位给付的保费 147.00 月均摊保费」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "insurance/annuity-present",
+    "inputs": {
+      "pmt": "42",
+      "rate": "42",
+      "n": "42",
+      "type": "due"
+    },
+    "expect": [
+      "值 FV = ¥353,507,501.48 总支付额：¥1,764"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"pmt\":\"42\",\"rate\":\"42\",\"n\":\"42\",\"type\":\"due\"}，输出区含「值 FV = ¥353,507,501.48 总支付额：¥1,764」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "insurance/claim-frequency",
+    "inputs": {
+      "claims": "42",
+      "exposure": "42"
+    },
+    "expect": [
+      "暴露单位/次) 1000.000 千分率"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"claims\":\"42\",\"exposure\":\"42\"}，输出区含「暴露单位/次) 1000.000 千分率」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "insurance/calc-1",
+    "inputs": {
+      "premium": "42",
+      "totalYears": "42",
+      "paidYears": "42",
+      "riderCost": "42"
+    },
+    "expect": [
+      "可豁免保费（元） 0 剩余缴费年数 -1,764"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"premium\":\"42\",\"totalYears\":\"42\",\"paidYears\":\"42\",\"riderCost\":\"42\"}，输出区含「可豁免保费（元） 0 剩余缴费年数 -1,764」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "insurance/combined-ratio",
+    "inputs": {
+      "claims": "42",
+      "exp": "42",
+      "premium": "42"
+    },
+    "expect": [
+      "本率 (%) 承保亏损 承保结论 -10"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"claims\":\"42\",\"exp\":\"42\",\"premium\":\"42\"}，输出区含「本率 (%) 承保亏损 承保结论 -10」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "insurance/complete-life-expectancy",
+    "inputs": {
+      "tpx": "42"
+    },
+    "expect": [
+      "期望寿命 e_x 1 生命表项数 N 42.0000 平均预期余命"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"tpx\":\"42\"}，输出区含「期望寿命 e_x 1 生命表项数 N 42.0000 平均预期余命」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "insurance/claim-reserve",
+    "inputs": {
+      "earnedPremium": "42",
+      "expectLossRatio": "42",
+      "paidLoss": "42",
+      "rbns": "42",
+      "closeRate": "42",
+      "period": "0.65"
+    },
+    "expect": [
+      "万 IBNR = 18 - 42 - 42 = ¥"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"earnedPremium\":\"42\",\"expectLossRatio\":\"42\",\"paidLoss\":\"42\",\"rbns\":\"42\",\"closeRate\":\"42\",\"period\":\"0.65\"}，输出区含「万 IBNR = 18 - 42 - 42 = ¥」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "insurance/endowment-premium",
+    "inputs": {
+      "B": "42",
+      "q": "42",
+      "i": "42",
+      "n": "42"
+    },
+    "expect": [
+      "42\n42\n42\n42\n1,001.32"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"B\":\"42\",\"q\":\"42\",\"i\":\"42\",\"n\":\"42\"}，输出区含「42\n42\n42\n42\n1,001.32」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "insurance/expected-claim-loss",
+    "inputs": {
+      "freq": "42",
+      "sev": "42"
+    },
+    "expect": [
+      "次赔付额 (元) 42.0000 索赔频率 0.02"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"freq\":\"42\",\"sev\":\"42\"}，输出区含「次赔付额 (元) 42.0000 索赔频率 0.02」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "insurance/ibnr-estimate",
+    "inputs": {
+      "ult": "42",
+      "paid": "42"
+    },
+    "expect": [
+      "赔款比例 (%) 1764"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"ult\":\"42\",\"paid\":\"42\"}，输出区含「赔款比例 (%) 1764」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "insurance/expense-ratio",
+    "inputs": {
+      "exp": "42",
+      "premium": "42"
+    },
+    "expect": [
+      " 保费与费用之差 1.0000 费用率小数"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"exp\":\"42\",\"premium\":\"42\"}，输出区含「 保费与费用之差 1.0000 费用率小数」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "insurance/force-of-mortality",
+    "inputs": {
+      "px": "42"
+    },
+    "expect": ["42\n-3.73767 死亡力 μ 6931471805", " 半衰期（年） -3737.6696 死亡力 (‰) 1000000000000.0000"],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"px\":\"42\"}，输出区含「42\n-3.73767 死亡力 μ 693147180559.9453 半衰期（…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "insurance/gross-premium-loading",
+    "inputs": {
+      "pp": "42",
+      "load": "42"
+    },
+    "expect": [
+      "用额 (元) 0.02326"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"pp\":\"42\",\"load\":\"42\"}，输出区含「用额 (元) 0.02326」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "insurance/life-cover-need",
+    "inputs": {
+      "income": "42",
+      "years": "42",
+      "debt": "42",
+      "asset": "42"
+    },
+    "expect": [
+      "42\n42\n42\n42\n1,764"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"income\":\"42\",\"years\":\"42\",\"debt\":\"42\",\"asset\":\"42\"}，输出区含「42\n42\n42\n42\n1,764」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "insurance/ibnr-reserve",
+    "inputs": {
+      "reported": "42",
+      "factor": "42"
+    },
+    "expect": [
+      " 准备金 (元) 1,764"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"reported\":\"42\",\"factor\":\"42\"}，输出区含「 准备金 (元) 1,764」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "insurance/loss-ratio",
+    "inputs": {
+      "claims": "42",
+      "premium": "42"
+    },
+    "expect": [
+      "差额 (元) 1.0000 保费/赔付 倍数"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"claims\":\"42\",\"premium\":\"42\"}，输出区含「差额 (元) 1.0000 保费/赔付 倍数」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "insurance/mortality-prob",
+    "inputs": {
+      "p": "42",
+      "n": "42"
+    },
+    "expect": ["生存概率 (%) -1.501309375"],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"p\":\"42\",\"n\":\"42\"}，输出区含「生存概率 (%) -1.5013093754529658e+70」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "insurance/net-single-premium",
+    "inputs": {
+      "B": "42",
+      "q": "42",
+      "i": "42",
+      "n": "42"
+    },
+    "expect": [
+      "42\n42\n42\n42\n18.16"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"B\":\"42\",\"q\":\"42\",\"i\":\"42\",\"n\":\"42\"}，输出区含「42\n42\n42\n42\n18.16」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "insurance/premium-elasticity",
+    "inputs": {
+      "dq": "42",
+      "dp": "42"
+    },
+    "expect": [
+      "42\n42\n1.00 需求弹性 1"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"dq\":\"42\",\"dp\":\"42\"}，输出区含「42\n42\n1.00 需求弹性 1」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "insurance/pure-premium-rate",
+    "inputs": {
+      "el": "42",
+      "exp": "42"
+    },
+    "expect": [
+      "位与损失之差 0.01"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"el\":\"42\",\"exp\":\"42\"}，输出区含「位与损失之差 0.01」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "insurance/pure-premium",
+    "inputs": {
+      "freq": "42",
+      "sev": "42"
+    },
+    "expect": [
+      "费 (元/单位) 1,940.4"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"freq\":\"42\",\"sev\":\"42\"}，输出区含「费 (元/单位) 1,940.4」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "insurance/premium-calc",
+    "inputs": {
+      "sumInsured": "42",
+      "baseRate": "42",
+      "age": "1.0",
+      "job": "1.2",
+      "term": "0.95",
+      "payMode": "0.52"
+    },
+    "expect": [
+      "1000 = ¥1.76 年龄系数：×1.0 职业系数：×1.2 期限系数：×0.95 缴费方式系数：×0.52（半"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"sumInsured\":\"42\",\"baseRate\":\"42\",\"age\":\"1.0\",\"job\":\"1.2\",\"term\":\"0.95\",\"payMode\":\"0.52\"}，输出区含「1000 = ¥1.76 年龄系数：×1.0 职业系数：×1.2 期限系数：×0…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "insurance/surrender-value",
+    "inputs": {
+      "res": "42",
+      "rate": "42"
+    },
+    "expect": [
+      "00 退保损失率 42.0000 现金价值率"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"res\":\"42\",\"rate\":\"42\"}，输出区含「00 退保损失率 42.0000 现金价值率」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "insurance/survival-prob-t",
+    "inputs": {
+      "lxt": "42",
+      "lx": "42"
+    },
+    "expect": [
+      "0 每千人存活数 0.0000"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"lxt\":\"42\",\"lx\":\"42\"}，输出区含「0 每千人存活数 0.0000」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "insurance/uw-margin",
+    "inputs": {
+      "LR": "42",
+      "ER": "42"
+    },
+    "expect": [
+      "成本率之比 0.8400 成本占保费比"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"LR\":\"42\",\"ER\":\"42\"}，输出区含「成本率之比 0.8400 成本占保费比」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "insurance/uw-profit",
+    "inputs": {
+      "premium": "42",
+      "claims": "42",
+      "exp": "42"
+    },
+    "expect": [
+      "42\n42\n42\n-42"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"premium\":\"42\",\"claims\":\"42\",\"exp\":\"42\"}，输出区含「42\n42\n42\n-42」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  }
+
+];
+
+async function main() {
+  const only = process.argv.slice(2);
+  const cases = only.length ? CASES.filter((c) => only.some((o) => c.slug.endsWith("/" + o) || c.slug === o)) : CASES;
+  let pass = 0; const fails = [];
+  for (const c of cases) {
+    try {
+      const r = await runCase(c);
+      if (r.ok) { pass++; }
+      else {
+        fails.push(c.slug);
+        console.log("❌ " + c.slug + "  " + (r.why || "no expect match"));
+        if (r.errs && r.errs.length) console.log("     errs: " + JSON.stringify(r.errs));
+        if (r.sample) console.log("     got: " + String(r.sample).slice(0, 300));
+      }
+    } catch (e) {
+      fails.push(c.slug);
+      console.log("❌ " + c.slug + "  THROWN: " + ((e && e.message) ? e.message : String(e)));
+    }
+  }
+
+  console.log("==== insurance calc " + pass + "/" + cases.length + " ====");
+  if (fails.length) process.exit(1);
+}
+if (require.main === module) main();

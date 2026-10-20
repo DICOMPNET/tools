@@ -1,0 +1,241 @@
+/* ============================================================
+   site-chrome.css —— 顶栏 / 页脚 / 移动端 Tab 栏 / 回顶按钮 的
+   唯一样式来源。首页（index.html）与全部工具页（css/common.css
+   通过 @import 引入）共用此文件，改一处即全站生效。
+   ============================================================ */
+
+/* 自包含变量：确保单独引入本文件的页面（如 sitemap.html）也能正常渲染顶栏/页脚。
+   首页与工具页会通过后续样式再次定义同名变量并覆盖此处定义，因此不影响现有主题。 */
+:root{
+  --primary:#FF6B35;
+  --primary-hover:#E55A25;
+  --secondary:#7C3AED;
+  --accent:#00C9A7;
+  --bg-hover:#FFF5F0;
+  --card-bg:#FFFFFF;
+  --text:#1F2937;
+  --text-muted:#9CA3AF;
+}
+body.dark,[data-theme="dark"]{
+  --primary:#FF8A5C;
+  --primary-hover:#FF6B35;
+  --secondary:#9B6CF5;
+  --accent:#00C9A7;
+  --bg-hover:#2D2D4A;
+  --card-bg:#252540;
+  --text:#F3F4F6;
+  --text-muted:#9CA3AF;
+}
+
+/* ===== 桌面顶栏 ===== */
+.nav-top{position:fixed;top:0;left:0;right:0;z-index:1000;display:flex;align-items:center;justify-content:space-between;height:68px;padding:0 28px;background:rgba(255,255,255,0.75);backdrop-filter:blur(24px) saturate(180%);-webkit-backdrop-filter:blur(24px) saturate(180%);border-bottom:1px solid rgba(15,23,42,0.06)}
+.nav-logo{display:flex;align-items:center;gap:10px;flex-shrink:0;cursor:pointer;transition:transform .2s}
+.nav-logo:hover{transform:scale(1.02)}
+.nav-logo img{height:36px;width:auto}
+.nav-logo-text{display:flex;flex-direction:column;line-height:1.15}
+.nav-logo-name{font-size:17px;font-weight:800;background:linear-gradient(135deg,var(--primary),var(--secondary));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:-0.02em}
+.nav-logo-sub{font-size:11px;color:var(--text-muted);font-weight:500}
+.nav-search{flex:1;max-width:520px;margin:0 28px;position:relative}
+.nav-search input[type="search"]{width:100%;height:42px;padding-left:44px;padding-right:16px;border-radius:12px;background:var(--bg-hover);border:1.5px solid transparent;font-size:14px;transition:all .25s;outline:none;color:var(--text)}
+.nav-search input[type="search"]:focus{background:var(--card-bg);border-color:var(--primary);box-shadow:0 0 0 4px rgba(255,107,53,0.1)}
+.nav-search-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);width:18px;height:18px;color:var(--text-muted);pointer-events:none}
+.nav-actions{display:flex;align-items:center;gap:6px;flex-shrink:0}
+.nav-actions .nav-icon-btn{height:38px;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:0 12px;white-space:nowrap;transition:all .2s;color:var(--text-muted);background:none;border:none;cursor:pointer}
+.nav-actions .nav-icon-btn:hover{background:var(--bg-hover);color:var(--primary)}
+.nav-actions .nav-icon-btn svg{width:19px;height:19px}
+.nav-btn-label{font-size:13px;font-weight:600;line-height:1}
+.nav-lang-slot{display:inline-flex;align-items:center;margin-left:4px}
+.nav-lang-slot .lang-switcher select{min-width:84px}
+
+/* ===== 移动顶栏 ===== */
+.nav-mobile{display:none;position:fixed;top:0;left:0;right:0;z-index:1000;align-items:center;justify-content:space-between;height:54px;padding:0 14px;background:rgba(255,255,255,0.8);backdrop-filter:blur(20px) saturate(180%);-webkit-backdrop-filter:blur(20px) saturate(180%);border-bottom:1px solid rgba(15,23,42,0.06)}
+.nav-mobile-logo{display:flex;align-items:center;gap:8px;cursor:pointer}
+.nav-mobile-logo img{height:30px;width:auto}
+.nav-mobile-logo span{font-size:15px;font-weight:800;background:linear-gradient(135deg,var(--primary),var(--secondary));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.nav-mobile-actions{display:flex;align-items:center;gap:2px}
+.nav-mobile-actions .nav-icon-btn{height:34px;min-width:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;gap:5px;padding:0 8px;background:none;border:none;cursor:pointer;color:var(--text-muted)}
+.nav-mobile-actions .nav-icon-btn svg{width:18px;height:18px;flex-shrink:0}
+.nav-mobile-actions .nav-btn-label{display:none;font-size:12px;font-weight:600;line-height:1;white-space:nowrap}
+@media(min-width:480px){.nav-mobile-actions .nav-btn-label{display:inline}}
+
+/* 语言切换器复用 .nav-icon-btn 类，需解除其固定宽高，否则下拉文字被截断 */
+.nav-actions .nav-icon-btn.lang-switcher,
+.nav-mobile-actions .nav-icon-btn.lang-switcher{width:auto;height:auto;min-width:72px;padding:0 10px;flex-shrink:0;}
+.nav-actions .nav-icon-btn.lang-switcher select,
+.nav-mobile-actions .nav-icon-btn.lang-switcher select{min-width:72px;max-width:140px;}
+
+/* 平板窄屏(768~1023)顶栏瘦身：原 .nav-actions 需 589px，在 768 视口溢出约 76px，
+   主题/收藏/最近使用等按钮被裁出屏幕外无法点击。此处隐藏文字标签只留图标 + 缩小语言器 + 搜索框可收缩。 */
+@media(min-width:768px) and (max-width:1023px){
+  .nav-top{padding:0 14px}
+  .nav-search{margin:0 12px;max-width:none;min-width:0}
+  .nav-actions{gap:2px}
+  .nav-actions .nav-btn-label{display:none}
+  .nav-actions .nav-icon-btn{padding:0 8px;gap:0}
+  .nav-actions .nav-icon-btn.lang-switcher{min-width:60px;padding:0 6px}
+  .nav-actions .nav-icon-btn.lang-switcher select{min-width:56px;max-width:96px}
+}
+
+/* 固定顶栏占位：统一由 body 顶部内边距撑开，避免遮挡内容 */
+body{padding-top:54px}
+@media(min-width:768px){body{padding-top:68px}}
+html.embedded body{padding-top:0 !important;}
+
+/* ===== 页脚（深色三栏）===== */
+.footer{margin-top:56px;background:linear-gradient(180deg,#1A1A2E 0%,#141425 100%);color:#fff;position:relative;overflow:hidden}
+.footer::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,107,53,0.4),rgba(124,58,237,0.4),transparent)}
+@media(min-width:768px){.footer{margin-top:72px}}
+.footer-inner{max-width:1152px;margin:0 auto;padding:48px 16px 28px;position:relative}
+@media(min-width:768px){.footer-inner{padding:64px 32px 36px}}
+.footer-grid{display:grid;grid-template-columns:1fr;gap:32px}
+@media(min-width:768px){.footer-grid{grid-template-columns:1.5fr 1fr 1fr 1fr;gap:40px}}
+.footer-brand{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.footer-brand img{height:30px;width:auto;filter:brightness(1.5) drop-shadow(0 1px 1px rgba(0,0,0,.25))}
+.footer-brand span{font-size:18px;font-weight:800;background:linear-gradient(135deg,#fff,#c4b5fd);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.footer-desc{font-size:13px;color:#94a3b8;line-height:1.7;max-width:280px}
+.footer-friend{margin-top:18px;font-size:13px;color:#cbd5e1;line-height:1.8;max-width:320px}
+.footer-friend-label{font-size:12px;color:#6b7280;letter-spacing:.04em;margin-bottom:6px}
+.footer-friend-link{display:inline-block;color:#e2e8f0;font-weight:600;text-decoration:none;border-bottom:1px dashed rgba(255,107,53,.55);padding-bottom:1px;transition:color .25s,border-color .25s}
+.footer-friend-link:hover{color:#FF6B35;border-bottom-color:#FF6B35}
+.footer-friend-tip{margin-top:6px;font-size:12px;color:#6b7280;line-height:1.7}
+.footer h2{font-size:13px;font-weight:700;margin-bottom:16px;color:#e2e8f0;letter-spacing:.02em}
+.footer ul{list-style:none}
+.footer li{margin-bottom:10px}
+.footer a{font-size:13px;color:#94a3b8;transition:all .25s;display:inline-block;text-decoration:none}
+.footer a:hover{color:var(--primary);transform:translateX(2px)}
+/* 51.la 实时数据挂件（全站 footer 版权行上方）
+   与 .footer-copy 同为居中。紧凑排版：margin-top 20px（贴近 footer 主体），
+   min-height 20px（与 widget 实际渲染高度匹配，避免下方留白）；
+   widget 加载前占位，避免 copyright 在加载完成后位置跳动。
+   颜色由 widget theme 第 5/6 位指定（背景 #0F0F1E / 边框 #262640），
+   形成"嵌入式深色卡片"质感。 */
+.footer-la-widget{margin-top:20px;display:block;min-height:20px;text-align:center}
+.footer-la-widget > *{max-width:100%}
+@media(max-width:767px){.footer-la-widget{margin-top:16px;min-height:18px}}
+.footer-copy{margin-top:4px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.06);text-align:center;font-size:12px;color:#6b7280;line-height:1.8}
+.desktop-only-block{display:block}
+@media(max-width:767px){.desktop-only-block{display:none}}
+
+/* ===== 移动端底部 Tab 栏 ===== */
+.tab-bar{display:flex;position:fixed;bottom:0;left:0;right:0;z-index:1000;background:rgba(255,255,255,0.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-top:1px solid rgba(15,23,42,0.06);box-shadow:0 -4px 20px rgba(0,0,0,0.04)}
+@media(min-width:768px){.tab-bar{display:none}}
+.tab-bar-inner{display:flex;align-items:center;justify-content:space-around;width:100%;height:58px;padding-bottom:env(safe-area-inset-bottom)}
+.tab-bar-btn{display:flex;flex-direction:column;align-items:center;gap:2px;color:var(--text-muted);background:none;border:none;cursor:pointer;padding:4px 12px;min-height:44px;transition:all .25s;border-radius:10px;position:relative;flex:1}
+.tab-bar-btn svg{width:20px;height:20px}
+.tab-bar-btn span{font-size:10px;font-weight:600}
+.tab-bar-spacer{height:58px}
+@media(min-width:768px){.tab-bar-spacer{display:none}}
+
+/* ===== 回顶按钮 ===== */
+.jump-top{position:fixed;bottom:80px;right:16px;width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,var(--primary),var(--secondary));color:#fff;box-shadow:0 8px 20px rgba(255,107,53,0.3);display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:all .3s;z-index:900;border:none;cursor:pointer}
+.jump-top.show{opacity:1;pointer-events:auto}
+@media(min-width:768px){.jump-top{bottom:32px;right:28px;width:46px;height:46px}}
+.jump-top:hover{transform:translateY(-2px)}
+.jump-top svg{width:20px;height:20px}
+
+/* ===== 深色模式适配（兼容 body.dark 与 [data-theme="dark"]）===== */
+body.dark .nav-top,body.dark .nav-mobile,[data-theme="dark"] .nav-top,[data-theme="dark"] .nav-mobile{background:rgba(26,26,46,0.8);border-bottom-color:rgba(255,255,255,0.06)}
+body.dark .nav-search input[type="search"],[data-theme="dark"] .nav-search input[type="search"]{background:var(--card-bg);color:var(--text)}
+body.dark .nav-actions .nav-icon-btn:hover,[data-theme="dark"] .nav-actions .nav-icon-btn:hover{background:var(--bg-hover)}
+body.dark .footer,[data-theme="dark"] .footer{background:linear-gradient(180deg,#0a0a15 0%,#080812 100%)}
+body.dark .tab-bar,[data-theme="dark"] .tab-bar{background:rgba(26,26,46,0.92);border-top-color:rgba(255,255,255,0.06)}
+
+/* ============================================================
+   弱网骨架占位（Skeleton）
+   ------------------------------------------------------------
+   目的：首页热门工具 / 分类导航 / 工具网格由 JS 拉取数据后渲染，
+        弱网下（国内访问 github.io 慢）会长时间空白。骨架为纯 CSS，
+        随 HTML 一同到达，首屏即可见，数据到达后由 JS innerHTML 覆盖。
+   注意：容器填充方式必须是 innerHTML 覆盖（三个容器均满足），
+        否则骨架不会消失。
+   ============================================================ */
+@keyframes tb-skel-shimmer{0%{background-position:100% 50%}100%{background-position:0 50%}}
+.tb-skel{--tb-skel-a:#EDEFF2;--tb-skel-b:#F7F8FA;background:linear-gradient(90deg,var(--tb-skel-a) 25%,var(--tb-skel-b) 37%,var(--tb-skel-a) 63%);background-size:400% 100%;animation:tb-skel-shimmer 1.4s ease-in-out infinite;border-radius:8px;display:block}
+body.dark .tb-skel,[data-theme="dark"] .tb-skel{--tb-skel-a:#2A2A34;--tb-skel-b:#363645}
+@media (prefers-reduced-motion:reduce){.tb-skel{animation:none}}
+
+/* 热门精选骨架（4 项） */
+.tb-skel-hot{display:flex;gap:10px;align-items:center;padding:12px;border:1px solid var(--border,#E5E7EB);border-radius:12px;background:var(--card,#fff)}
+.tb-skel-hot-icon{width:40px;height:40px;border-radius:10px;flex:none}
+.tb-skel-hot-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:8px}
+.tb-skel-line{height:12px}
+.tb-skel-line.w55{width:55%}
+.tb-skel-line.w70{width:70%}
+
+/* 工具卡片骨架 */
+.tb-skel-card{padding:16px;border:1px solid var(--border,#E5E7EB);border-radius:16px;background:var(--card,#fff);display:flex;flex-direction:column;gap:12px}
+.tb-skel-card-icon{width:36px;height:36px;border-radius:10px}
+.tb-skel-card .t{height:16px;width:60%}
+.tb-skel-card .d{height:12px;width:88%}
+.tb-skel-card .d2{height:12px;width:72%}
+
+/* 分类导航骨架 */
+.tb-skel-cat{margin-bottom:18px}
+.tb-skel-cat-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.tb-skel-cat-title{height:18px;width:170px}
+.tb-skel-cat-more{height:14px;width:64px}
+.tb-skel-chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.tb-skel-chip{height:32px;width:98px;border-radius:999px}
+.tb-skel-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px}
+
+/* ===== 全站实时下拉搜索（唯一实现：js/tool-search.js）=====
+   404 页、统一顶栏（工具页/首页/指南页/分类页/关于/站点地图）共用。
+   通过 site-chrome.css 分发：工具页经 css/common.css @import 自动获得，无需逐页改 HTML。 */
+.tb-sr-panel{position:absolute;left:0;right:0;top:calc(100% + 8px);z-index:1200;background:var(--card-bg);border:1px solid rgba(15,23,42,0.08);border-radius:14px;box-shadow:0 16px 40px -12px rgba(15,23,42,0.22);overflow-y:auto;max-height:min(70vh,520px);padding:6px;text-align:left}
+.tb-sr-panel[hidden]{display:none}
+.tb-sr-item{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;text-decoration:none;color:var(--text);transition:background .15s}
+.tb-sr-item:hover,.tb-sr-item.is-active{background:var(--bg-hover)}
+.tb-sr-ic{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+.tb-sr-info{min-width:0;flex:1;display:flex;flex-direction:column}
+.tb-sr-name{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;line-height:1.35}
+.tb-sr-nm{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tb-sr-q{flex-shrink:0;font-size:10px;font-weight:700;line-height:1;padding:2px 5px;border-radius:5px;color:#FF6B35;background:rgba(255,107,53,0.12);border:1px solid rgba(255,107,53,0.25)}
+.tb-sr-desc{font-size:11.5px;color:var(--text-muted);line-height:1.4;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tb-sr-all{display:block;margin-top:4px;padding:9px 10px;border-top:1px solid rgba(15,23,42,0.07);font-size:12.5px;font-weight:600;color:var(--primary);text-decoration:none;text-align:center;border-radius:0 0 8px 8px}
+.tb-sr-all:hover{background:var(--bg-hover)}
+.tb-sr-tip{padding:14px 10px;font-size:12.5px;color:var(--text-muted);text-align:center}
+body.dark .tb-sr-panel,[data-theme="dark"] .tb-sr-panel{border-color:rgba(255,255,255,0.09);box-shadow:0 16px 40px -12px rgba(0,0,0,0.6)}
+body.dark .tb-sr-all,[data-theme="dark"] .tb-sr-all{border-top-color:rgba(255,255,255,0.09)}
+
+/* ===== 广告位统一组件（首页版；工具页同名样式在 css/common.css） =====
+   首页只加载本文件、工具页只加载 common.css，两套样式表不共享，
+   故轮播与领券中心变体需两处各定义一份，否则首页广告无样式。 */
+
+/* --- 两则广告轮播（内容上方位）---
+   grid 叠放使两帧共用同一网格单元，容器高度恒等于较高一帧，切换无布局抖动 */
+.ad-carousel{position:relative}
+.ad-carousel-track{display:grid}
+.ad-slide{grid-area:1/1;opacity:0;visibility:hidden;pointer-events:none;transition:opacity .4s ease}
+.ad-slide.is-active{opacity:1;visibility:visible;pointer-events:auto}
+.ad-carousel-dots{display:flex;justify-content:center;gap:6px;margin-top:8px}
+.ad-dot{width:6px;height:6px;padding:0;border:0;border-radius:999px;background:var(--border,#E5E7EB);cursor:pointer;transition:all .25s}
+.ad-dot.is-active{width:18px;background:var(--color-primary,#FF6B35)}
+/* 内容最下方：两则并排（与工具页底部 .tool-ad-grid 同构）。
+   align-items:stretch + height:100% 让两卡片严格等高（文案长短不同也不会一高一矮）；
+   PC 双列 / 移动单列；领券中心靠 DOM 顺序居首，不用 order 以免与朗读顺序不一致。 */
+.ad-banner-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:stretch}
+.ad-banner-grid .ad-banner-card{height:100%}
+/* 移动端单列并把卡片收紧一档：单列宽度只有 ~343px，沿用 PC 的字号/内边距会让
+   描述文字折行成两行、卡片高度虚增（与工具页底部移动端的收敛幅度对齐）。 */
+@media(max-width:767px){
+  .ad-banner-grid{grid-template-columns:1fr;gap:10px}
+  .ad-banner-grid .ad-banner-card{padding:16px 18px}
+  .ad-banner-grid .ad-banner-icon{width:40px;height:40px;border-radius:10px}
+  .ad-banner-grid .ad-banner-icon svg{width:20px;height:20px}
+  .ad-banner-grid .ad-banner-title{font-size:14px}
+  .ad-banner-grid .ad-banner-desc{font-size:11px}
+  .ad-banner-grid .ad-banner-cta{padding:6px 14px;font-size:12px}
+}
+
+/* --- 领券中心帧：收进站点主色系，深浅上比淘宝帧重一档，
+   避免轮播切换时出现大面积高饱和撞色（正红在暖白页面上过于跳）。 --- */
+.ad-banner-card--coupon{border-color:rgba(255,107,53,0.24)}
+.ad-banner-card--coupon:hover{border-color:rgba(255,107,53,0.45);box-shadow:0 8px 24px rgba(255,107,53,0.16)}
+.ad-banner-icon--coupon{background:linear-gradient(135deg,#FF7A45,#E0481C);box-shadow:0 4px 12px rgba(255,107,53,0.3)}
+.ad-banner-cta--coupon{background:linear-gradient(135deg,#FF7A45,#E0481C);box-shadow:0 2px 8px rgba(255,107,53,0.24)}
+body.dark .ad-banner-card--coupon{background:linear-gradient(135deg,rgba(255,107,53,0.10) 0%,rgba(124,58,237,0.05) 100%)}
+
+/* --- 页脚文字广告：一行并列两条 --- */
+.footer-friend-links{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:2px 12px}
+.footer-friend-link--coupon{color:#FF8A5C;border-bottom-color:rgba(255,107,53,.6)}
+.footer-friend-link--coupon:hover{color:#FF6B35;border-bottom-color:#FF6B35}

@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=dev,industry=ai,icon=📡,bg=#ede9fe">
+<title>信息增益近似 - 辅助特征选择与树结构构建</title>
+<link rel="canonical" href="https://chenguangwu.github.io/tools/ai/ai-9.html">
+<link rel="stylesheet" href="../../css/common.css">
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="../../js/common.js" defer></script>
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
+    <meta name="description" content="信息增益近似是一款免费的在线AI 人工智能工具，决策树信息增益计算器，用基尼指数或熵评估二分类节点分裂前后的不纯度下降，辅助特征选择与树结构构建。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+    <meta property="og:title" content="信息增益近似 - 辅助特征选择与树结构构建">
+    <meta property="og:description" content="信息增益近似是一款免费的在线AI 人工智能工具，决策树信息增益计算器，用基尼指数或熵评估二分类节点分裂前后的不纯度下降，辅助特征选择与树结构构建。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://chenguangwu.github.io/tools/ai/ai-9.html">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="信息增益近似 - 辅助特征选择与树结构构建">
+    <meta name="twitter:description" content="信息增益近似是一款免费的在线AI 人工智能工具，决策树信息增益计算器，用基尼指数或熵评估二分类节点分裂前后的不纯度下降，辅助特征选择与树结构构建。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"信息增益近似","url":"https://chenguangwu.github.io/tools/ai/ai-9.html","applicationCategory":"DeveloperApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"信息增益近似是一款免费的在线AI 人工智能工具，决策树信息增益计算器，用基尼指数或熵评估二分类节点分裂前后的不纯度下降，辅助特征选择与树结构构建。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://chenguangwu.github.io/"},{"@type":"ListItem","position":2,"name":"AI 人工智能","item":"https://chenguangwu.github.io/tools/ai/index.html"},{"@type":"ListItem","position":3,"name":"信息增益近似","item":"https://chenguangwu.github.io/tools/ai/ai-9.html"}]}
+</script>
+
+<script src="../../js/i18n.js" defer></script>
+<script src="../../js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+
+
+<meta name="title-en" content="Ai 9">
+<meta name="desc-en" content="Ai 9 - online utility on ToolBox.">
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/ai/ai-9.html">
+<link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/ai/ai-9.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/ai/ai-9.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/ai/ai-9.html">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:locale:alternate" content="zh_TW">
+<meta property="og:locale:alternate" content="en_US">
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
+
+<script src="/js/tool-ux.js" defer></script>
+<!-- TOOLBOX-TOOL-UX -->
+
+<script src="/js/analytics.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+
+<!-- TOOLBOX-TTZZ -->
+<script>
+(function(){try{
+var el = document.createElement("script");
+el.src = "https://lf1-cdn-tos.bytegoofy.com/goofy/ttzz/push.js?85d6452aa9be4d693b16cd48535a8c7ae57542f6788a41682e745be8eb99b35a8a24d2f724c31ebe20c1e4e6fba6d91caf576100b02a2870c72f38fc574066fef065d152c73bf1cbb2ebad3b5b5265d8";
+el.id = "ttzz";
+var s = document.getElementsByTagName("script")[0];
+s.parentNode.insertBefore(el, s);
+}catch(e){}
+})(window);
+</script>
+
+<script src="/js/tool-kit.js" defer></script>
+<!-- TOOLBOX-TOOL-KIT -->
+</head>
+<body>
+<h1 class="sr-only">信息增益近似</h1>
+
+<div class="nav">
+  <a href="../../index.html">← ToolBox</a>
+  <span>/ 信息增益近似</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+
+<nav class="breadcrumb" aria-label="面包屑导航" data-breadcrumb="1">
+  <a href="../../index.html">首页</a>
+  <span class="bc-sep">‹</span>
+  <a href="index.html">🤖 人工智能</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">信息增益近似</span>
+</nav>
+<div class="container">
+<div class="tool-guide-link" data-guide-link="1">
+  <a href="../../guides/ai-9-guide.html">📖 查看「信息增益近似使用指南」</a>
+</div>
+
+  <div class="card">
+    <h2 data-zh="📡 信息增益近似">📡 Information Gain (Gini / Entropy) Calculator</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="用基尼指数或熵评估二分类分裂前后的不纯度变化。">Measure the impurity drop before and after a binary split using the Gini index or entropy, to compare candidate features when building a decision tree.</p>
+        <div class="formula-box">
+      <div class="formula-title">📐 计算公式 / 原理</div>
+      <div class="formula-eq">基尼 = 2p(1 − p)；加权子基尼 = w_L·2p_L(1 − p_L) + (1 − w_L)·2p_R(1 − p_R)；基尼增益 = 根基尼 − 加权子基尼；熵 = −p·log₂p − (1 − p)·log₂(1 − p)</div>
+      <div class="formula-desc">决策树分裂准则：基尼与熵都衡量节点纯度，取值越小越纯。基尼计算更快（无对数）是 CART 默认；熵对纯度变化略敏感。二者选出的分裂在绝大多数数据集上差异极小。</div>
+    </div>
+<div class="input-row"><label>根节点正例比例</label><input type="number" id="p_root" value="0.5" step="any" oninput="calc()"></div>
+    <div class="input-row"><label>左子树正例比例</label><input type="number" id="p_left" value="0.3" step="any" oninput="calc()"></div>
+    <div class="input-row"><label>左子树权重</label><input type="number" id="w_left" value="0.4" step="any" oninput="calc()"></div>
+    <div class="input-row"><label>右子树正例比例</label><input type="number" id="p_right" value="0.7" step="any" oninput="calc()"></div>
+    <div id="a9Presets"></div>
+    <div class="toolbar">
+      <button class="btn primary" onclick="calc()">计算</button>
+      <button class="btn" onclick="copyResult()">复制结果</button>
+      <button class="btn" onclick="__a9Export()">导出 CSV</button>
+    </div>
+    <div class="result-box" id="result" data-viz="bar" data-viz-max="1" data-viz-min="0">
+    <div id="a9Chart" role="img" aria-label="结果可视化"></div>
+    <div id="a9Table"></div>
+    <div id="a9Diff"></div>
+    <div id="a9Hist"></div>
+</div>
+  </div>
+  <div class="card formula-box">
+    <h3>📐 计算公式与说明</h3>
+    <div class="formula-eq">基尼 = 2p(1−p)<br>熵 = −p·log₂p − (1−p)·log₂(1−p)<br>增益 = 父不纯度 − 加权子不纯度</div>
+    <p style="font-size:13px;color:var(--text-muted);margin-top:12px;">决策树分裂选择增益最大的特征。</p>
+  </div>
+</div>
+
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto 0;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+.deep-dive a.term-link{color:var(--tool-accent,#FF6B35);text-decoration:none;border-bottom:1px dashed currentColor;}
+.deep-dive a.term-link:hover{border-bottom-style:solid;}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：信息增益近似</h2>
+<h3>💡 常见使用场景</h3>
+<ul class="dd-list">
+<li>信息熵 H=−Σpᵢlog₂pᵢ；基尼不纯度 G=1−Σpᵢ²，均衡量节点混杂度。</li>
+<li>信息增益=父节点不纯度−Σ(子节点样本占比×子节点不纯度)，用于决策树分裂特征选择。</li>
+<li>基尼计算更快且对错误分类敏感，CART 默认用基尼，ID3/C4.5 用熵。</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">二分类节点分裂</div><div class="dd-ex-body">父节点正类 6/负类 6，熵=1.0；按某特征分为左(5正1负)右(1正5负)。左熵≈0.65、右熵≈0.65，加权=0.5×0.65+0.5×0.65=0.65，信息增益=1.0−0.65=0.35。</div></div>
+<h3>❓ 常见问题（FAQ）</h3>
+<dl class="dd-faq">
+<dt>信息增益和基尼该用哪个？</dt><dd>两者结论常一致。基尼计算免对数更快，对多数类错误更敏感；熵对不纯度变化更敏感、偏向多值特征，需用增益率修正偏置。</dd>
+<dt>为什么信息增益偏向取值多的特征？</dt><dd>取值越多越容易把样本分得更纯，增益天然偏大。C4.5 用增益率(增益/分支熵)惩罚多值特征以纠偏。</dd>
+</dl>
+</div>
+</section>
+<!-- 相关工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相关工具</h3>
+  <div class="related-tools-grid">
+    <a href="dropout.html" class="related-tool-card">
+      <span class="rt-icon">🤖</span>
+      <span class="rt-info"><span class="rt-name">Dropout 保留期望</span><span class="rt-desc">Dropout 期望输出计算器，输入保留概率求 dropout 后的期望输出与推理期缩放因子，辅助…</span></span>
+    </a>
+    <a href="l1-l2.html" class="related-tool-card">
+      <span class="rt-icon">🔍</span>
+      <span class="rt-info"><span class="rt-name">L1 L2 正则化惩罚</span><span class="rt-desc">L1/L2 正则化惩罚计算器，输入权重与正则系数求对损失函数的惩罚项，对比 Lasso 与 Rid…</span></span>
+    </a>
+    <a href="rag.html" class="related-tool-card">
+      <span class="rt-icon">🤖</span>
+      <span class="rt-info"><span class="rt-name">RAG 召回率</span><span class="rt-desc">RAG 召回率计算器，输入相关文档数与检索命中数求召回率，评估检索增强生成的检索覆盖质量。</span></span>
+    </a>
+    <a href="roc-auc.html" class="related-tool-card">
+      <span class="rt-icon">🤖</span>
+      <span class="rt-info"><span class="rt-name">ROC AUC 近似</span><span class="rt-desc">输入正负样本预测得分，估算 ROC 曲线下面积 AUC，评估分类器排序能力，适用于模型选型、阈值无…</span></span>
+    </a>
+    <a href="relu-leakyrelu.html" class="related-tool-card">
+      <span class="rt-icon">🤖</span>
+      <span class="rt-info"><span class="rt-name">ReLU 与 LeakyReLU</span><span class="rt-desc">R ReLU 与 LeakyReLU</span></span>
+    </a>
+    <a href="sigmoid.html" class="related-tool-card">
+      <span class="rt-icon">🤖</span>
+      <span class="rt-info"><span class="rt-name">Sigmoid 输出</span><span class="rt-desc">S Sigmoid 输出</span></span>
+    </a>
+  </div>
+</div>
+<script>function __tbInputGuard(_ids,_labels){
+  var __TPL='请填写「%s」后再计算。';
+  var __TPL2="<p style=\"color:var(--danger)\">⚠ 「%s」是本计算的分母，不能为 0。</p>";
+  var __TPL3="<p style=\"color:var(--danger)\">⚠ 「%s」不能为负值。</p>";
+  var _vals=[],_firstBad=-1;
+  var _REQ=['p_root', 'p_left', 'w_left', 'p_right'];
+  for(var _i=0;_i<_ids.length;_i++){
+    var _e=document.getElementById(_ids[_i]);
+    if(!_e) continue;
+    var _raw=String(_e.value==null?'':_e.value).trim();
+    var _num=parseFloat(_raw);
+    var _need=(_REQ.indexOf(_ids[_i])>=0);
+    if(_raw===''){ if(_need&&_firstBad<0)_firstBad=_i; _vals.push(NaN); continue; }
+    if(_e.type==='number'||_e.tagName==='TEXTAREA'){
+      if(_need&&isNaN(_num)){ if(_firstBad<0)_firstBad=_i; _vals.push(NaN); continue; }
+      _vals.push(_num);
+    } else _vals.push(_raw);
+  }
+  if(_firstBad>=0){
+    var _bad=_firstBad;
+    var _lbl=(_labels&&_labels[_bad])||_ids[_bad];
+    var __msg=__TPL.replace('%s',_lbl);
+    var _fe=document.getElementById(_ids[_bad]);
+    if(_fe&&_fe.classList&&_fe.classList.add)_fe.classList.add('input-error');
+    return __msg;
+  }
+  // 分母项：__D 由真浏览器逐项置零探测得出，命中即说明该输入在此页作分母
+  var __D={};
+  for(var _d=0;_d<_ids.length;_d++){
+    if(!(_ids[_d] in __D)) continue;
+    var _de=document.getElementById(_ids[_d]);
+    if(!_de) continue;
+    if(_de.classList&&_de.classList.remove)_de.classList.remove('input-error');
+    if(parseFloat(String(_de.value==null?'':_de.value).trim())===0){
+      if(_de.classList&&_de.classList.add)_de.classList.add('input-error');
+      return __TPL2.replace('%s',__D[_ids[_d]]);
+    }
+  }
+  // 负值受限项：__N 由真浏览器逐项置 -1 探测得出（质量/体积/年限/样本量等物理量）
+  var __N={"p_root": "p_root"};
+  for(var _n=0;_n<_ids.length;_n++){
+    if(!(_ids[_n] in __N)) continue;
+    var _ne=document.getElementById(_ids[_n]);
+    if(!_ne) continue;
+    var _nv=parseFloat(String(_ne.value==null?'':_ne.value).trim());
+    if(!isNaN(_nv)&&_nv<0){
+      if(_ne.classList&&_ne.classList.add)_ne.classList.add('input-error');
+      return __TPL3.replace('%s',__N[_ids[_n]]);
+    }
+  }
+  // 全零：任何一项作分母都会得到 Infinity/NaN。页面公式本身没错，是输入无意义
+  var _nums=[];
+  for(var _z=0;_z<_vals.length;_z++){ if(typeof _vals[_z]==='number'&&!isNaN(_vals[_z])) _nums.push(_vals[_z]); }
+  if(!_nums.length) return '';
+  if(_nums.length>0){
+    var _allZero=true;
+    for(var _z2=0;_z2<_nums.length;_z2++){ if(_nums[_z2]!==0){ _allZero=false; break; } }
+    if(_allZero) return "<p style=\"color:var(--danger)\">⚠ 输入不能全为 0：至少需要一项非零数值，否则计算无意义。</p>";
+  }
+  for(var _k=0;_k<_ids.length;_k++){
+    var _e2=document.getElementById(_ids[_k]);
+    if(_e2&&_e2.classList&&_e2.classList.remove)_e2.classList.remove('input-error');
+  }
+  return '';
+}
+
+
+function calc(){
+    var __ig=__tbInputGuard(['p_root', 'p_left', 'w_left', 'p_right'],["根节点正例比例", "左子树正例比例", "左子树权重", "右子树正例比例"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
+const p_root = +document.getElementById('p_root').value || 0;
+  const p_left = +document.getElementById('p_left').value || 0;
+  const w_left = +document.getElementById('w_left').value || 0;
+  const p_right = +document.getElementById('p_right').value || 0;
+  let html = '';
+  const __v0 = (2*p_root*(1-p_root));
+  html += `<p>根基尼：<strong style="font-size:18px;color:var(--primary);">${__v0.toFixed(4)}</strong> </p>`;
+  const __v1 = (w_left*2*p_left*(1-p_left)+(1-w_left)*2*p_right*(1-p_right));
+  html += `<p>加权子基尼：<strong style="font-size:18px;color:var(--primary);">${__v1.toFixed(4)}</strong> </p>`;
+  const __v2 = (2*p_root*(1-p_root)-(w_left*2*p_left*(1-p_left)+(1-w_left)*2*p_right*(1-p_right)));
+  html += `<p>基尼增益：<strong style="font-size:18px;color:var(--primary);">${__v2.toFixed(4)}</strong> </p>`;
+  const __v3 = (-(p_root*Math.log2(p_root+1e-10)+(1-p_root)*Math.log2(1-p_root+1e-10)));
+  html += `<p>根熵：<strong style="font-size:18px;color:var(--primary);">${__v3.toFixed(4)}</strong> </p>`;
+  const __g2=html;document.getElementById('result').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
+}
+function copyResult() {
+  const txt = document.getElementById('result').innerText;
+  if (!txt) return;
+  navigator.clipboard.writeText(txt).then(() => ToolBox.toast && ToolBox.toast('已复制结果')).catch(() => {
+    const ta = document.createElement('textarea'); ta.value = txt; document.body.appendChild(ta);
+    ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+  });
+}
+calc();
+
+function __a9N(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __a9List(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __a9L(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __a9Export(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#a9Table','gini-split.csv');}catch(e){} }
+function __a9Extras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var pr=__a9N('p_root'), pl=__a9N('p_left'), wl=__a9N('w_left'), prr=__a9N('p_right');
+        if(!(pr>=0&&pr<=1&&pl>=0&&pl<=1&&prr>=0&&prr<=1))return;
+        if(!(wl>=0&&wl<=1))return;
+        var gRoot=2*pr*(1-pr), gLeft=2*pl*(1-pl), gRight=2*prr*(1-prr);
+        var gChild=wl*gLeft+(1-wl)*gRight, gain=gRoot-gChild;
+        var entRoot=-(pr*Math.log2(pr+1e-10)+(1-pr)*Math.log2(1-pr+1e-10));
+        TBKit.chart.bar('#a9Chart',{labels:['根节点基尼','左子节点','右子节点','加权子节点'],series:[{name:__a9L('gini','基尼系数'),data:[gRoot,gLeft,gRight,gChild]}],height:220,title:__a9L('Gini before/after split','分裂前后的基尼系数')});
+        var rows=__a9L(
+            [['root positive rate',pr.toFixed(3)],['left positive rate',pl.toFixed(3)],['right positive rate',prr.toFixed(3)],['left weight',wl.toFixed(3)],['root gini',gRoot.toFixed(4)],['left gini',gLeft.toFixed(4)],['right gini',gRight.toFixed(4)],['weighted child gini',gChild.toFixed(4)],['gini gain',gain.toFixed(4)],['root entropy (bit)',entRoot.toFixed(4)]],
+            [['根节点正类率',pr.toFixed(3)],['左子正类率',pl.toFixed(3)],['右子正类率',prr.toFixed(3)],['左子权重',wl.toFixed(3)],['根基尼',gRoot.toFixed(4)],['左子基尼',gLeft.toFixed(4)],['右子基尼',gRight.toFixed(4)],['加权子基尼',gChild.toFixed(4)],['基尼增益',gain.toFixed(4)],['根熵 (bit)',entRoot.toFixed(4)]]);
+        TBKit.matrix.table('#a9Table',{head:__a9L(['Metric','Value'],['指标','数值']),rows:rows});
+        TBKit.history.record({gain:Number(gain.toFixed(4))});
+        TBKit.util.diffBox('#a9Diff',['gain']);
+        TBKit.history.mount('#a9Hist',function(v){ if(v.gain!=null){document.getElementById('p_root').value=v.p_root;document.getElementById('p_left').value=v.p_left;document.getElementById('w_left').value=v.w_left;document.getElementById('p_right').value=v.p_right;} calc(); });
+    }catch(e){}
+}
+function __a9Presets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#a9Presets',[
+            {label:'均衡分裂 0.5/0.3/0.7',labelEn:'Balanced split 0.5/0.3/0.7',values:{p_root:0.5,p_left:0.3,w_left:0.4,p_right:0.7}},
+            {label:'纯化分裂 0.5/0.1/0.9',labelEn:'Pure split 0.5/0.1/0.9',values:{p_root:0.5,p_left:0.1,w_left:0.5,p_right:0.9}},
+            {label:'无效分裂 0.5/0.5/0.5',labelEn:'Useless split 0.5/0.5/0.5',values:{p_root:0.5,p_left:0.5,w_left:0.5,p_right:0.5}}
+        ],function(){ calc(); });
+    }catch(e){}
+}
+
+var __tb_a90 = calc;
+calc = function(){ __tb_a90(); try{ __a9Extras(); }catch(e){} };
+function __a9Boot(){ try{ __a9Presets(); }catch(e){} try{ calc(); }catch(e){} }
+// readyState 判定须防「桩环境无 readyState」：harness 的 document 桩不提供 readyState（undefined），
+// 旧写法 `=== "loading"` 会走 else 在脚本求值时立即启动 boot，早于页面自身 DOMContentLoaded init
+// ⇒ 元素创建顺序改变 ⇒ 跨元素多行 expect 失配。生产浏览器解析期 readyState==="loading" ⇒ 走
+// addEventListener；已加载完（complete/interactive）⇒ 立即启动。
+if (document.readyState && document.readyState !== "loading") __a9Boot();
+else document.addEventListener("DOMContentLoaded", __a9Boot);
+</script>
+<section class="opt-guide"><h2>如何使用信息增益近似</h2><ol><li>按页面提示逐项填写或选择所需参数。</li><li>点击「计算」或「生成」按钮运行。</li><li>在结果区查看输出，可复制结果或导出使用。</li></ol><h2>参数说明</h2><ul class="param-list"><li>根节点正例比例</li><li>左子树正例比例</li><li>左子树权重</li><li>右子树正例比例</li></ul><h2>适用场景</h2><p>信息熵 H=−Σpᵢlog₂pᵢ；基尼不纯度 G=1−Σpᵢ²，均衡量节点混杂度。</p></section><section class="opt-faq"><h2>常见问题</h2><dl class="faq-list"><dt>信息增益和基尼该用哪个？</dt><dd>两者结论常一致。基尼计算免对数更快，对多数类错误更敏感；熵对不纯度变化更敏感、偏向多值特征，需用增益率修正偏置。</dd><dt>为什么信息增益偏向取值多的特征？</dt><dd>取值越多越容易把样本分得更纯，增益天然偏大。C4.5 用增益率(增益/分支熵)惩罚多值特征以纠偏。</dd></dl></section>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "信息增益和基尼该用哪个？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "两者结论常一致。基尼计算免对数更快，对多数类错误更敏感；熵对不纯度变化更敏感、偏向多值特征，需用增益率修正偏置。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "为什么信息增益偏向取值多的特征？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "取值越多越容易把样本分得更纯，增益天然偏大。C4.5 用增益率(增益/分支熵)惩罚多值特征以纠偏。"
+      }
+    }
+  ]
+}
+</script>
+</body>
+</html>

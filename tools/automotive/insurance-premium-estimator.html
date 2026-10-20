@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=calculator,industry=automotive,icon=🛡️,bg=#e0f7fa">
+<meta name="description" content="车辆保险保费估算是一款免费的在线汽车交通工具，车辆保险保费估算器，输入车辆信息与所选险种快速预估年度保费，辅助投保方案比价。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+<meta name="keywords" content="车险保费,交强险,商业险,车损险,三者险,保险计算,车辆保险,金融计算,在线工具,免费工具,ToolBox">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://chenguangwu.github.io/tools/automotive/insurance-premium-estimator.html">
+<title>车辆保险保费估算 - 免费在线汽车交通工具</title>
+<meta property="og:title" content="车辆保险保费估算 - 免费在线汽车交通工具">
+<meta property="og:description" content="车辆保险保费估算是一款免费的在线汽车交通工具，车辆保险保费估算器，输入车辆信息与所选险种快速预估年度保费，辅助投保方案比价。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+<meta property="og:url" content="https://chenguangwu.github.io/tools/automotive/insurance-premium-estimator.html">
+<meta name="twitter:card" content="summary">
+<meta name="theme-color" content="#FF6B35">
+<link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+<link rel="icon" href="../../favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="apple-touch-icon" href="../../apple-touch-icon.png">
+<link rel="stylesheet" href="../../css/common.css">
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="../../js/common.js" defer></script>
+<style>
+.use-select { display:flex; gap:8px; margin-bottom:16px; }
+.use-btn { flex:1; padding:12px 8px; border:1.5px solid var(--border); border-radius:12px; background:var(--bg-card); cursor:pointer; text-align:center; font-size:13px; transition:all .2s; }
+.use-btn:hover { border-color:var(--primary); }
+.use-btn.active { background:var(--gradient-primary); color:#fff; border-color:transparent; }
+.ins-section { margin-top:16px; }
+.ins-section h3 { font-size:14px; margin-bottom:8px; display:flex; align-items:center; gap:6px; }
+.ins-item { display:flex; justify-content:space-between; align-items:center; padding:10px 14px; background:var(--result-bg); border:1px solid var(--border); border-radius:10px; margin-bottom:6px; cursor:pointer; transition:all .2s; }
+.ins-item:hover { border-color:var(--primary); }
+.ins-item.checked { border-color:var(--primary); background:rgba(255,107,53,0.06); }
+.ins-item .ins-name { font-size:13px; font-weight:500; }
+.ins-item .ins-desc { font-size:11px; color:var(--text-muted); margin-top:2px; }
+.ins-item .ins-toggle { width:44px; height:24px; border-radius:12px; background:var(--border); position:relative; transition:all .2s; flex-shrink:0; }
+.ins-item .ins-toggle::after { content:''; position:absolute; top:2px; left:2px; width:20px; height:20px; border-radius:50%; background:#fff; transition:all .2s; }
+.ins-item.checked .ins-toggle { background:var(--primary); }
+.ins-item.checked .ins-toggle::after { left:22px; }
+.premium-big { text-align:center; padding:24px 0; }
+.premium-total { font-size:48px; font-weight:800; color:var(--primary); line-height:1.2; }
+.premium-label { font-size:14px; color:var(--text-muted); margin-top:4px; }
+.breakdown-list { margin-top:12px; }
+.bk-row { display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--border); font-size:14px; }
+.bk-row:last-child { border-bottom:none; }
+.bk-row .bk-lbl { color:var(--text-secondary); }
+.bk-row .bk-val { font-weight:600; }
+.bk-row.subtotal { border-top:2px solid var(--border); border-bottom:none; margin-top:4px; padding-top:12px; font-weight:600; }
+.bk-row.subtotal .bk-val { font-size:18px; color:var(--primary); }
+.tip-insurance { margin-top:12px; padding:12px; background:rgba(16,185,129,0.06); border:1px solid rgba(16,185,129,0.15); border-radius:12px; font-size:12px; color:var(--text-muted); line-height:1.6; }
+@media(max-width:768px) {
+  .premium-total { font-size:36px; }
+  .ins-item .ins-toggle { width:40px; height:22px; }
+  .ins-item .ins-toggle::after { width:18px; height:18px; }
+  .ins-item.checked .ins-toggle::after { left:20px; }
+}
+</style>
+
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
+    <meta property="og:type" content="website">
+    <meta name="twitter:title" content="车辆保险保费估算 - 免费在线汽车交通工具">
+    <meta name="twitter:description" content="车辆保险保费估算是一款免费的在线汽车交通工具，车辆保险保费估算器，输入车辆信息与所选险种快速预估年度保费，辅助投保方案比价。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+<!-- TOOLBOX-WEBAPP-LD -->
+
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "三者险买多少合适？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "建议至少 200 万，一线城市或豪车密集区可 300 万以上；人伤与物损赔偿标准逐年走高，低额度省小钱可能赔大钱。保费随额度递增但边际成本递减，提高额度性价比高。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "出险次数怎么影响保费？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "无赔款优待（NCD）随连续未出险年数折扣递增，出险一次次年折扣回退甚至上浮。小刮擦自费修可能比走保险更划算，需权衡当年与次年保费变化。"
+      }
+    }
+  ]
+}
+</script>
+<meta name="title-en" content="Insurance Premium Estimator">
+<meta name="desc-en" content="Insurance Premium Estimator - online utility on ToolBox.">
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/automotive/insurance-premium-estimator.html">
+<link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/automotive/insurance-premium-estimator.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/automotive/insurance-premium-estimator.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/automotive/insurance-premium-estimator.html">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:locale:alternate" content="zh_TW">
+<meta property="og:locale:alternate" content="en_US">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://chenguangwu.github.io/"},{"@type":"ListItem","position":2,"name":"汽车交通","item":"https://chenguangwu.github.io/tools/automotive/index.html"},{"@type":"ListItem","position":3,"name":"车辆保险保费估算","item":"https://chenguangwu.github.io/tools/automotive/insurance-premium-estimator.html"}]}
+</script>
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"车辆保险保费估算","url":"https://chenguangwu.github.io/tools/automotive/insurance-premium-estimator.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"车辆保险保费估算是一款免费的在线汽车交通工具，车辆保险保费估算器，输入车辆信息与所选险种快速预估年度保费，辅助投保方案比价。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script src="../../js/i18n.js" defer></script>
+<script src="../../js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
+
+<script src="/js/tool-ux.js" defer></script>
+<!-- TOOLBOX-TOOL-UX -->
+
+<script src="/js/analytics.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+<!-- TOOLBOX-TTZZ -->
+<script>
+(function(){try{
+var el = document.createElement("script");
+el.src = "https://lf1-cdn-tos.bytegoofy.com/goofy/ttzz/push.js?85d6452aa9be4d693b16cd48535a8c7ae57542f6788a41682e745be8eb99b35a8a24d2f724c31ebe20c1e4e6fba6d91caf576100b02a2870c72f38fc574066fef065d152c73bf1cbb2ebad3b5b5265d8";
+el.id = "ttzz";
+var s = document.getElementsByTagName("script")[0];
+s.parentNode.insertBefore(el, s);
+}catch(e){}
+})(window);
+</script>
+
+<script src="/js/tool-kit.js" defer></script>
+<!-- TOOLBOX-TOOL-KIT -->
+</head>
+<body>
+<h1 class="sr-only">车辆保险保费估算</h1>
+<div class="nav">
+  <a href="../../index.html">← ToolBox</a>
+  <span>/ 车辆保险保费估算</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+<nav class="breadcrumb" aria-label="面包屑导航" data-breadcrumb="1">
+  <a href="../../index.html">首页</a>
+  <span class="bc-sep">‹</span>
+  <a href="index.html">🚗 汽车交通</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">车辆保险保费估算</span>
+</nav>
+<div class="container">
+  <div class="card tool-card-accent" style="--tool-accent:#0e7490;">
+    <h2 data-zh="🛡️ 车辆保险保费估算">Insurance Premium Estimator</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="按车辆价格、使用性质、险种组合与 NCD 系数粗估年度保费，辅助投保方案比价与预算。">Roughly estimate annual premium by vehicle price, usage, coverage mix, and NCD factor to compare insurance plans and budget.</p>
+    <div class="input-row">
+      <div><label>车辆价格 (万元)</label><input type="number" id="price" value="15" oninput="calc()" min="0" step="any"></div>
+      <div><label>使用性质</label><select id="useType" onchange="calc()">
+        <option value="p6" selected>家用 6 座以下</option>
+        <option value="p6up">家用 6 座及以上</option>
+        <option value="biz">营运 / 网约车</option>
+      </select></div>
+    </div>
+    <div class="input-row">
+      <div><label>三者险额度</label><select id="third" onchange="calc()">
+        <option value="100">100 万</option>
+        <option value="200" selected>200 万</option>
+        <option value="300">300 万</option>
+        <option value="500">500 万</option>
+      </select></div>
+      <div><label>是否投保车损险</label><select id="damage" onchange="calc()">
+        <option value="yes" selected>是</option>
+        <option value="no">否</option>
+      </select></div>
+    </div>
+    <div class="input-row">
+      <div><label>车上人员每座保额 (万)</label><input type="number" id="seatAmt" value="1" oninput="calc()" min="0" step="1"></div>
+      <div><label>座位数</label><input type="number" id="seats" value="5" oninput="calc()" min="1" step="1"></div>
+    </div>
+    <div class="input-row">
+      <div><label>投保地区</label><select id="area" onchange="calc()">
+        <option value="1.1">一线城市</option>
+        <option value="1.0" selected>二线城市</option>
+        <option value="0.9">其他地区</option>
+      </select></div>
+      <div><label>连续未出险年数</label><select id="ncd" onchange="calc()">
+        <option value="1.0">新保 / 上年出险</option>
+        <option value="0.85">1 年未出险</option>
+        <option value="0.7">2 年未出险</option>
+        <option value="0.6" selected>3 年及以上未出险</option>
+      </select></div>
+    </div>
+    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__insurance_premium_estimatorExport()">导出明细 CSV</button></div><div class="safe-main" id="result"></div> <div id="insurance_premium_estimatorTable"></div> <div id="insurance_premium_estimatorDiff"></div> <div id="insurance_premium_estimatorChart"></div> <div id="insurance_premium_estimatorHist"></div>
+    <div class="dist-grid" id="distGrid"></div>
+    <div class="formula-box" id="formulaBox"></div>
+    <div id="adviceBox"></div>
+  </div>
+  <div class="card">
+    <h3>📖 险种与额度参考</h3>
+    <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:12px;">
+      <tr>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border,#e5e7eb);">险种</th>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border,#e5e7eb);">建议额度</th>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border,#e5e7eb);">说明</th>
+      </tr>
+      <tr><td style="padding:6px 8px;">交强险</td><td style="padding:6px 8px;">强制投保</td><td style="padding:6px 8px;">6 座以下家用基准 950 元</td></tr>
+      <tr><td style="padding:6px 8px;">三者险</td><td style="padding:6px 8px;">200 万起，一线建议 300 万+</td><td style="padding:6px 8px;">人伤赔付标准逐年走高</td></tr>
+      <tr><td style="padding:6px 8px;">车损险</td><td style="padding:6px 8px;">新车建议投保</td><td style="padding:6px 8px;">已并入盗抢、玻璃、涉水等责任</td></tr>
+      <tr><td style="padding:6px 8px;">车上人员</td><td style="padding:6px 8px;">司机 10 万起</td><td style="padding:6px 8px;">保额低、边际成本低</td></tr>
+    </table>
+    <div class="scene-card">
+      <h4>📉 无赔款优待（NCD）</h4>
+      <p>连续未出险年数越长，商业险折扣越大，最高可达基准的 6 折。出险一次即回退甚至上浮，小刮擦自费修常比走保险划算。</p>
+    </div>
+    <div class="scene-card">
+      <h4>🧭 地区与车型系数</h4>
+      <p>一线城市赔付标准高、费率上浮；车型风险等级（零整比、被盗率）也影响车损险费率，豪华车零整比高，保费显著更高。</p>
+    </div>
+    <div class="info-box">⚠️ 本工具为粗估口径（基准费率 + NCD + 地区系数），实际保费以保险公司核保报价为准，不同公司差异可达 20% 以上。</div>
+  </div>
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto 0;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+.deep-dive a.term-link{color:var(--tool-accent,#FF6B35);text-decoration:none;border-bottom:1px dashed currentColor;}
+.deep-dive a.term-link:hover{border-bottom-style:solid;}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：车辆保险保费估算</h2>
+<h3>💡 常见使用场景</h3>
+<ul class="dd-list">
+<li>投保前输入车型、车价、地区与所选险种，快速预估年度保费，比价不同方案。</li>
+<li>续保时对比去年与今年报价差异，判断是否换公司或调整险种。</li>
+<li>新车落地核算时，把保险纳入总持有成本一并预算。</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">交强险+商业险粗估</div><div class="dd-ex-body">家用 6 座以下新车交强险固定 950 元；商业险中车损险≈车价×1.2% 左右、三者 200 万约 1000–1500 元、再加不计免赔等，合计约数千元。具体费率随车型风险等级、出险记录、地区系数浮动，以保险公司报价为准。</div></div>
+<h3>❓ 常见问题（FAQ）</h3>
+<dl class="dd-faq">
+<dt>三者险买多少合适？</dt><dd>建议至少 200 万，一线城市或豪车密集区可 300 万以上；人伤与物损赔偿标准逐年走高，低额度省小钱可能赔大钱。保费随额度递增但边际成本递减，提高额度性价比高。</dd>
+<dt>出险次数怎么影响保费？</dt><dd>无赔款优待（NCD）随连续未出险年数折扣递增，出险一次次年折扣回退甚至上浮。小刮擦自费修可能比走保险更划算，需权衡当年与次年保费变化。</dd>
+</dl>
+</div>
+</section>
+<!-- 注意事项区块 -->
+<div class="tool-notes" style="--tool-accent:#0e7490;">
+  <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
+  <ul>
+    <li>本工具纯前端运行，数据不会上传到服务器</li>
+    <li>建议在主流浏览器（Chrome/Safari/Firefox/Edge）中使用</li>
+    <li>本工具为粗估口径，实际保费以保险公司核保报价为准，不同公司差异可达 20% 以上</li>
+  </ul>
+</div>
+</div>
+<!-- 相关工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相关工具</h3>
+  <div class="related-tools-grid">
+    <a href="recommender-6.html" class="related-tool-card">
+      <span class="rt-icon">🚗</span>
+      <span class="rt-info"><span class="rt-name">胎压（监测/充气）推荐</span><span class="rt-desc">根据车型、载重与季节推荐前后轮标准胎压，提示冷胎与热胎读数差异及充气注意事项，帮助延长轮胎寿命并保…</span></span>
+    </a>
+    <a href="calc-2.html" class="related-tool-card">
+      <span class="rt-icon">⚡</span>
+      <span class="rt-info"><span class="rt-name">发动机功率/扭矩换算</span><span class="rt-desc">根据功率、扭矩与转速之间的物理关系进行换算，支持 kW 与 PS（公制马力）互转。</span></span>
+    </a>
+    <a href="oil-change-countdown.html" class="related-tool-card">
+      <span class="rt-icon">📅</span>
+      <span class="rt-info"><span class="rt-name">机油更换倒计时</span><span class="rt-desc">输入已行驶里程、机油周期与驾驶习惯系数，估算下次机油更换的剩余里程或天数，避免过度保养或超期损伤。</span></span>
+    </a>
+    <a href="countdown-engine-oil.html" class="related-tool-card">
+      <span class="rt-icon">📅</span>
+      <span class="rt-info"><span class="rt-name">机油更换里程倒计时</span><span class="rt-desc">机油更换里程倒计时，按机油类型与驾驶习惯系数智能计算建议换油间隔与剩余里程，支持多车管理、数据本地…</span></span>
+    </a>
+    <a href="calc-3.html" class="related-tool-card">
+      <span class="rt-icon">🚗</span>
+      <span class="rt-info"><span class="rt-name">轮胎胎压换算</span><span class="rt-desc">在 bar、psi、kPa、kg/cm² 之间换算轮胎气压，并查看常用参考值。</span></span>
+    </a>
+    <a href="transport-calculator.html" class="related-tool-card">
+      <span class="rt-icon">🚚</span>
+      <span class="rt-info"><span class="rt-name">交通物流计算器</span><span class="rt-desc">涵盖刹车距离、油耗成本、货物换算、燃油效率、行驶时间、轮胎尺寸等多种交通物流常用计算</span></span>
+    </a>
+  </div>
+</div>
+<script>
+function fmtNum(n,d){d=d==null?2:d;if(!isFinite(n))return '--';return parseFloat(n.toFixed(d)).toString();}
+function val(id){return parseFloat(document.getElementById(id).value);}
+function str(id){return document.getElementById(id).value;}
+function calc(){
+  var R=document.getElementById('result'),G=document.getElementById('distGrid'),
+      F=document.getElementById('formulaBox'),A=document.getElementById('adviceBox');
+  var price=val('price'),seatAmt=val('seatAmt'),seats=Math.round(val('seats'));
+  var useType=str('useType'),third=str('third'),damage=str('damage');
+  var area=parseFloat(str('area')),ncd=parseFloat(str('ncd'));
+  if(isNaN(price)||price<=0||isNaN(seats)||seats<1){
+    R.innerHTML='<div class="safe-val">--</div><div class="safe-sub">请输入有效的车价与座位数</div>';
+    G.innerHTML='';F.innerHTML='';A.innerHTML='';return;
+  }
+  var baseCtp=(useType==='p6')?950:(useType==='p6up'?1100:1800);
+  var ctp=baseCtp*ncd;
+  var damageFee=(damage==='yes')?price*1.2/100*area*ncd:0;
+  var thirdMap={100:900,200:1200,300:1500,500:2000};
+  var thirdFee=(thirdMap[third]||1200)*area*ncd;
+  var seatFee=(seatAmt>0?seatAmt:0)*15*seats*area*ncd;
+  var total=ctp+damageFee+thirdFee+seatFee;
+  const __g5='<div class="safe-val">合计约 '+fmtNum(total,0)+' 元 / 年</div>'+
+    '<div class="safe-sub">交强 '+fmtNum(ctp,0)+' + 车损 '+fmtNum(damageFee,0)+' + 三者 '+fmtNum(thirdFee,0)+' + 人员 '+fmtNum(seatFee,0)+'</div>';R.innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
+  const __g6='<div class="dist-card"><div class="v">'+fmtNum(ctp,0)+'</div><div class="l">交强险 (元)</div></div>'+
+    '<div class="dist-card"><div class="v">'+fmtNum(damageFee,0)+'</div><div class="l">车损险 (元)</div></div>'+
+    '<div class="dist-card"><div class="v">'+fmtNum(thirdFee,0)+'</div><div class="l">三者险 (元)</div></div>'+
+    '<div class="dist-card"><div class="v">'+fmtNum(seatFee,0)+'</div><div class="l">车上人员 (元)</div></div>'+
+    '<div class="dist-card"><div class="v">'+fmtNum(total,0)+'</div><div class="l">年度保费合计 (元)</div></div>'+
+    '<div class="dist-card"><div class="v">'+fmtNum(price>0?total/(price*10000)*100:0,2)+'%</div><div class="l">占车价比例</div></div>';G.innerHTML=(typeof __g6==='number'?(isFinite(__g6)?__g6:'—'):String(__g6).replace(/Infinity|NaN/g,'—'));
+  const __g7='<div class="fb-title">估算口径</div>'+
+    '<div class="fb-row">交强险 = 基准保费 × NCD 系数（6 座以下家用基准 950 元）</div>'+
+    '<div class="fb-row">车损险 ≈ 车价 × 1.2% × 地区系数 × NCD</div>'+
+    '<div class="fb-row">三者险：100 万 900 / 200 万 1200 / 300 万 1500 / 500 万 2000，再乘地区与 NCD 系数</div>'+
+    '<div class="fb-row">车上人员 ≈ 每座保额(万) × 15 元 × 座位数 × 地区 × NCD</div>'+
+    '<div class="fb-row">地区系数：一线 1.1 / 二线 1.0 / 其他 0.9；NCD：3 年未出险 0.6</div>';F.innerHTML=(typeof __g7==='number'?(isFinite(__g7)?__g7:'—'):String(__g7).replace(/Infinity|NaN/g,'—'));
+  var ad='';
+  var thirdW=parseInt(third,10);
+  if(thirdW<200){ ad='<div class="tip-warn">⚠️ 三者险建议至少 200 万：人伤与物损赔付标准逐年走高，低额度省小钱可能赔大钱。</div>'; }
+  else if(thirdW>=300){ ad='<div class="tip-success">✅ 三者险额度充足，一线城市或豪车密集区建议保持 300 万以上。</div>'; }
+  else{ ad='<div class="tip-info">ℹ️ 三者险 200 万属常规配置，若常在一线城市行驶可提高到 300 万，边际成本不高。</div>'; }
+  if(ncd>=1.0){ ad+='<div class="tip-info">ℹ️ 当前无 NCD 折扣，保持连续不出险后次年费率会明显下降，小刮擦可权衡自费处理。</div>'; }
+  else{ ad+='<div class="tip-info">ℹ️ 已按 '+(ncd===0.6?'3 年及以上':(ncd===0.7?'2 年':'1 年'))+' 未出险计入折扣，维持安全驾驶可继续享受优惠。</div>'; }
+  ad+='<div class="tip-warn">⚠️ 粗估结果仅供比价参考，实际保费以保险公司核保报价为准。</div>';
+  const __g8=ad;A.innerHTML=(typeof __g8==='number'?(isFinite(__g8)?__g8:'—'):String(__g8).replace(/Infinity|NaN/g,'—'));
+}
+calc();
+
+var __insurance_premium_estimator_last=0,__insurance_premium_estimator_skip=false;
+function __insurance_premium_estimatorSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __insurance_premium_estimatorResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __insurance_premium_estimatorTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __insurance_premium_estimatorRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__insurance_premium_estimatorTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#insurance_premium_estimatorTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#insurance_premium_estimatorDiff');
+        TBKit.history.mount('#insurance_premium_estimatorHist',function(rec){
+            __insurance_premium_estimator_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __insurance_premium_estimator_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__insurance_premium_estimatorTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#insurance_premium_estimatorChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __insurance_premium_estimatorExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__insurance_premium_estimator_skip) return;
+    var snap=__insurance_premium_estimatorSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__insurance_premium_estimatorResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__insurance_premium_estimator_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __insurance_premium_estimator_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __insurance_premium_estimatorRender(keys,rk,en);
+}
+function __insurance_premium_estimatorExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#insurance_premium_estimatorTable','insurance-premium-estimator.csv'); } catch(e){}
+}
+function __insurance_premium_estimatorPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#insurance_premium_estimatorPresets',[{label:'默认参数',labelEn:'Default',values:{'price':'15', 'useType':'p6', 'third':'100', 'damage':'yes', 'seatAmt':'1', 'seats':'5', 'area':'1.1', 'ncd':'1.0'}}],function(){ calc(); });
+}
+var __insurance_premium_estimator_f0=(typeof calc==='function')?calc:null;
+if(__insurance_premium_estimator_f0){
+    calc=function(){ var __r=__insurance_premium_estimator_f0.apply(null,arguments); try{ __insurance_premium_estimatorExtras(); }catch(e){} return __r; };
+}
+function __insurance_premium_estimatorBoot(){ try{ __insurance_premium_estimatorPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __insurance_premium_estimatorBoot();
+else document.addEventListener('DOMContentLoaded', __insurance_premium_estimatorBoot);
+</script>
+</body>
+</html>

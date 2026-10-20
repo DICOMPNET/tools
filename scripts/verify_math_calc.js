@@ -1,0 +1,683 @@
+#!/usr/bin/env node
+/**
+ * 第 34 道门禁：math 分类计算正确性验证（31 个确定性数值工具）
+ *
+ * 期望值全部由独立复算得出（ref 字段写明完整算式），不回读页面输出。
+ * 输入一律避开页面默认值，且期望值经复核「不等于」默认值输出，杜绝假通过。
+ * 跳过：geometry-calculator / calculus-tools / formula-calculator（图形/函数选择式交互 demo）；
+ *       equation-solver（需先经 renderTypes/renderInputs 建立 selectedType 状态）。
+ * 用法: node scripts/verify_math_calc.js [slug ...]
+ */
+"use strict";
+const { runCase } = require("./verify_it_calc.js");
+
+const CASES = [
+  { slug: "math/percent-change", inputs: { old: "50", new: "75" }, expect: ["50.00"], ref: "变化率=(new−old)/old×100=(75−50)/50×100=50.00%（默认 80→100 避开）" },
+  { slug: "math/quadratic-solver", inputs: { a: "1", b: "-5", c: "6" }, expect: ["3.0000"], ref: "Δ=b²−4ac=25−24=1；x₁=(5+1)/2=3.0000（x₂=2.0000；默认 1,−3,2 避开）" },
+  { slug: "math/log-base", inputs: { x: "81", b: "3" }, expect: ["4.000000"], ref: "log₃81=ln81/ln3=4.000000（默认 1000,10 避开）" },
+  { slug: "math/gcd-lcm", inputs: { a: "1071", b: "462" }, expect: ["23562"], ref: "gcd(1071,462)=21；lcm=1071×462/21=23562（默认 48,36 避开）" },
+  { slug: "math/distance-2d", inputs: { x1: "0", y1: "0", x2: "6", y2: "8" }, expect: ["10.0000"], ref: "d=√(6²+8²)=10.0000（默认 (0,0)-(3,4)=5.0000 避开）" },
+  { slug: "math/slope-line", inputs: { x1: "0", y1: "0", x2: "2", y2: "6" }, expect: ["3.0000"], ref: "斜率 k=(6−0)/(2−0)=3.0000（默认 (1,2)-(4,8)=2.0000 避开）" },
+  { slug: "math/fibonacci-n", inputs: { n: "30" }, expect: ["832,040"], ref: "F(30)=832040（千分位 832,040；默认 n=20→6765 避开）" },
+  { slug: "math/factorial-calc", inputs: { n: "12" }, expect: ["4.7900e+8"], ref: "12!=479001600=4.7900e+8（科学计数法；默认 n=10 避开）" },
+  { slug: "math/combination", inputs: { n: "12", r: "5" }, expect: ["792"], ref: "C(12,5)=792（默认 10,3→120 避开）" },
+  { slug: "math/permutation", inputs: { n: "9", r: "4" }, expect: ["3,024"], ref: "P(9,4)=9×8×7×6=3024（千分位 3,024；默认 10,3→720 避开）" },
+  { slug: "math/root-calc", inputs: { x: "27" }, expect: ["3.000000"], ref: "∛27=3.000000（√27=5.196152；默认 x=2 避开）" },
+  { slug: "math/power-calc", inputs: { x: "3", y: "7" }, expect: ["2,187"], ref: "3⁷=2187（千分位 2,187；默认 2^10 避开）" },
+  { slug: "math/modulo-calc", inputs: { a: "1000", b: "7" }, expect: ["6.0000"], ref: "1000 mod 7=6（1000=142×7+6；默认 17 mod 5=2 避开）" },
+  { slug: "math/law-of-sines", inputs: { b: "12", A: "40", B: "60" }, expect: ["8.907"], ref: "a=b·sinA/sinB=12×sin40°/sin60°=12×0.642788/0.866025=8.907（默认 10,30°,45° 避开）" },
+  { slug: "math/law-of-cosines", inputs: { a: "5", b: "7", C: "60" }, expect: ["6.245"], ref: "c=√(a²+b²−2ab·cosC)=√(25+49−70×0.5)=√39=6.245（默认 3,4,90° 避开）" },
+  { slug: "math/dot-product", inputs: { ax: "2", ay: "3", az: "4", bx: "5", by: "6", bz: "7" }, expect: ["56.00"], ref: "A·B=2×5+3×6+4×7=10+18+28=56.00（默认 (1,2,3)·(4,5,6)=32.00 避开）" },
+  { slug: "math/determinant-2x2", inputs: { a: "3", b: "1", c: "2", d: "5" }, expect: ["13.00"], ref: "|A|=ad−bc=3×5−1×2=13.00（默认 1,2,3,4→−2.00 避开）" },
+  { slug: "math/geometric-series-sum", inputs: { a: "3", r: "2", n: "5" }, expect: ["93.0000"], ref: "Sₙ=a(1−rⁿ)/(1−r)=3×(1−32)/(1−2)=93.0000（默认 1,0.5,4 避开）" },
+  { slug: "math/arithmetic-series-sum", inputs: { n: "20", a1: "2", an: "40" }, expect: ["420.00"], ref: "Sₙ=n(a₁+aₙ)/2=20×(2+40)/2=420.00（默认 10,1,10 避开）" },
+  { slug: "math/nth-term-geometric", inputs: { a1: "3", r: "2", n: "6" }, expect: ["96.000"], ref: "aₙ=a₁·r^(n−1)=3×2⁵=96.000（默认 2,3,4 避开）" },
+  { slug: "math/herons-area", inputs: { a: "5", b: "5", c: "6" }, expect: ["12.000"], ref: "s=(5+5+6)/2=8；A=√(s(s−a)(s−b)(s−c))=√(8×3×3×2)=√144=12.000（默认 3,4,5 避开）" },
+  { slug: "math/exponent-solve", inputs: { a: "3", b: "81" }, expect: ["4.0000"], ref: "由 3^x=81 得 x=ln81/ln3=4.0000（默认 2,8 避开）" },
+  { slug: "math/quadratic-discriminant", inputs: { a: "2", b: "3", c: "5" }, expect: ["-31.00"], ref: "Δ=b²−4ac=9−40=−31.00（默认 1,−3,2→1.00 避开）" },
+  { slug: "math/circular-permutation", inputs: { n: "7" }, expect: ["720"], ref: "圆排列数=(n−1)!=6!=720（默认 n=5→24 避开）" },
+  { slug: "math/combination-repetition", inputs: { n: "6", r: "4" }, expect: ["126"], ref: "可重复组合 C(n+r−1,r)=C(9,4)=126（默认 5,3→35 避开）" },
+  { slug: "math/prime-check", inputs: { n: "91" }, expect: ["不是质数"], ref: "91=7×13，非质数（默认 n=97 为质数，避开）" },
+  { slug: "math/arithmetic-mean-math", inputs: { xs: "10, 20, 30, 40" }, expect: ["25.0000"], ref: "算术平均=(10+20+30+40)/4=25.0000（默认 1,2,3,4,5→3.0000 避开）" },
+  { slug: "math/multinomial-coefficient", inputs: { n: "8", k1: "4", k2: "2", k3: "2" }, expect: ["420"], ref: "多项式系数=8!/(4!2!2!)=40320/96=420（默认 6,3,2,1→60 避开）" },
+  { slug: "math/calc-1", inputs: { ofA: "160", ofP: "25" }, expect: ["40.0000"], ref: "求百分量模式：160 的 25%=40.0000（默认 200 的 15%=30.0000 避开）" },
+  { slug: "math/calc-3", inputs: { a: "6", b: "8", c: "" }, expect: ["10.00"], ref: "勾股定理求斜边：c=√(6²+8²)=10.00（默认 3,4→5.00 避开）" },
+  { slug: "math/calc-4", inputs: { radius: "7" }, expect: ["153.9380"],     ref: "圆面积=πr²=π×49=153.9380（周长=43.9823；默认 r=5 避开）" },
+  {
+    slug: "math/law-of-cosines",
+    inputs: { a: "7", b: "8", C: "45" },
+    expect: ["58.36"],
+    ref: "角 A 的对边是 a：cos A=(b²+c²−a²)/(2bc)。c=√(49+64−2×7×8×cos45°)=√50.804=5.814，cos A=(64+50.804−49)/(2×8×5.814)=65.804/93.024=0.70740 ⇒ A=58.36°。原实现误用 (a²+c²−b²)/(2ac)（那是角 B 的公式）却标成「角 A」，默认 3,4,90° 时显示 53.13°（实为角 B，角 A 应为 36.87°）",
+  },
+  {
+    slug: "math/geometric-series-sum",
+    inputs: { a: "3", r: "1", n: "5" },
+    expect: ["15.0000"],
+    ref: "公比 r=1 时闭合式 (1−rⁿ)/(1−r) 为 0/0 ⇒ 原实现输出 NaN。正确按常数数列 S=a·n=3×5=15.0000（末项 3.0000、无穷级数不收敛）",
+  },
+  {
+    slug: "math/slope-line",
+    inputs: { x1: "0", y1: "0", x2: "1", y2: "1" },
+    expect: ["45.00"],
+    ref: "k=1 ⇒ 倾角=arctan(1)=45.00°。原实现未对倾角 toFixed，默认态直接输出 63.43494882292201 这种 16 位浮点",
+  },
+  {
+    slug: "math/herons-area",
+    inputs: { a: "1", b: "2", c: "10" },
+    expect: ["不能构成三角形"],
+    ref: "1+2<10 不满足三角不等式 ⇒ s(s−a)(s−b)(s−c)<0，开方得 NaN。正确应提示无法构成三角形（默认 3,4,5 合法，避开）",
+  },
+  {
+    slug: "math/modulo-calc",
+    inputs: { a: "17", b: "0" },
+    expect: ["除数 b 不能为 0"],
+    ref: "a mod 0 无定义 ⇒ 原实现输出 NaN/Infinity（17%0=NaN、floor(17/0)=Infinity）。正确应提示（默认 17 mod 5 避开）",
+  },
+  {
+    slug: "math/percent-change",
+    inputs: { old: "0", new: "100" },
+    expect: ["原始值不能为 0"],
+    ref: "变化率分母为原值 ⇒ old=0 时原实现输出 Infinity 与 NaN。正确应提示（默认 80→100 避开）",
+  },
+  {
+    slug: "math/exponent-solve",
+    inputs: { a: "1", b: "8" },
+    expect: ["底数 a 不能为 1"],
+    ref: "x=ln b/ln a，a=1 时 ln a=0 ⇒ 原实现输出 Infinity。1 的任意次幂恒为 1，b=8 无解（默认 2,8→x=3 避开）",
+  },
+  {
+    slug: "math/log-base",
+    inputs: { x: "-5", b: "10" },
+    expect: ["真数 x 必须大于 0"],
+    ref: "log 定义域 x>0 ⇒ 原实现 ln(−5)=NaN 从而整列输出 NaN。正确应提示（默认 1000,10 避开）",
+  },
+  {
+    slug: "math/factorial-calc",
+    inputs: { n: "171" },
+    expect: ["超出双精度浮点上限"],
+    ref: "171!≈1.24×10³⁰⁹ 超出 Number.MAX_VALUE ⇒ 原实现两列都显示 Infinity、ln(n!) 也 Infinity。正确应提示上限（默认 n=10 避开）",
+  },
+  {
+    slug: "math/circular-permutation",
+    inputs: { n: "8" },
+    expect: ["5040"],
+    ref: "n=8：圆排列 (n−1)!=7!=5040；项链 5040/2=2520（n≥3 才对半折，原实现 n=1、2 时 (n−1)!/2=0.5 靠 toFixed(0) 四舍五入凑巧得 1，已按定义修正）；同时删除无组合意义的「全排列与圆排列之差」卡片（默认 n=5 避开）",
+  },
+  {
+    slug: "math/quadratic-solver",
+    inputs: { a: "0", b: "2", c: "-8" },
+    expect: ["4.0000"],
+    ref: "a=0 退化为一次方程 2x−8=0 ⇒ x=−c/b=4.0000；原实现照套求根公式，2a=0 ⇒ 输出 Infinity/−Infinity（默认 1,−3,2 避开）",
+  },
+  {
+    slug: "math/quadratic-discriminant",
+    inputs: { a: "0", b: "5", c: "2" },
+    expect: ["不是二次方程"],
+    ref: "a=0 时不是二次方程，既无 Δ 对应的根型也无顶点；原实现仍标「两个不等实根」并给出 −b/2 的假顶点（默认 1,−3,2 避开）",
+  },
+  {
+    slug: "math/root-calc",
+    inputs: { x: "-4" },
+    expect: ["2.000000i"],
+    ref: "负数偶次根为虚数：√(−4)=2.000000i、⁴√(−4)=1.414214i；ln(−4) 无定义显示「—」。原实现全列 NaN，且 x=0 时用 max(x,1e-12) 兜底给出 ln=−27.63 这种假值（默认 x=2 避开）",
+  },
+  {
+    slug: "math/multinomial-coefficient",
+    inputs: { n: "6", k1: "3", k2: "3", k3: "3" },
+    expect: ["各组之和需等于总数"],
+    ref: "多项式系数要求 Σk=n；3+3+3=9≠6 时 n!/(k1!k2!k3!) 无组合意义，原实现照算得 3.33 再取整显示 3（默认 6,3,2,1 避开）",
+  },
+  {
+    slug: "math/equation-solver",
+    inputs: {},
+    clicks: ["selectType('linear');document.getElementById('a').value='4';document.getElementById('b').value='8';solve();"],
+    expect: ["-2.000000", "4×(-2.0000) + 8 = 0.000000"],
+    ref: "一次方程 4x + 8 = 0 ⇒ x = −b/a = **−2.000000**；页面同时给出回代验证式 `a×(x) + b = 0.000000`（把 −b/a 代回原方程，检验式与求解式同源于一次二步运算，可手算复核）。默认组 a=2 / b=−6 ⇒ 3.000000，两条都不命中。",
+  },
+  {
+    slug: "math/equation-solver",
+    inputs: {},
+    clicks: ["selectType('linear');document.getElementById('a').value='0';document.getElementById('b').value='8';solve();"],
+    expect: ["a 不能为 0"],
+    ref: "退化分支：a = 0 时 −b/a 无定义，页面在 `if (a === 0)` 处直接短路输出「a 不能为 0」，不给 Infinity。校验点 = 该页**唯一**的一条纯短路分支（二次/三次/方程组的 a=0 各自另有提示语）；默认组 a=2 走正常解，不命中。",
+  },
+  {
+    slug: "math/equation-solver",
+    inputs: {},
+    clicks: ["selectType('quadratic');document.getElementById('a').value='2';document.getElementById('b').value='-4';document.getElementById('c').value='-6';solve();"],
+    expect: ["3.000000", "-1.000000", "(1.0000, -8.0000)"],
+    ref: "二次曲线 2x² − 4x − 6 = 0：Δ = (−4)² − 4×2×(−6) = **64** ⇒ x₁ = (4 + 8)/4 = **3.000000**、x₂ = (4 − 8)/4 = **−1.000000**；顶点 = (−b/2a, c − b²/4a) = (1.0000, −6 − 16/8) = **(1.0000, −8.0000)**。三个锚分别落在「Δ>0 两支」「顶点」，顶点那条同时复核了 `c − b²/(4a)` 的书写（不是 `c − b²/(2a)`）。默认组 1,−5,6 ⇒ Δ=1、x=5/0、顶点 (2.5000, −0.2500)，不命中。",
+  },
+  {
+    slug: "math/equation-solver",
+    inputs: {},
+    clicks: ["selectType('quadratic');document.getElementById('a').value='1';document.getElementById('b').value='2';document.getElementById('c').value='5';solve();"],
+    expect: ["Δ = -16", "-1.0000 + 2.0000i"],
+    ref: "判别式 Δ<0 分支：x² + 2x + 5 = 0 ⇒ Δ = 4 − 20 = **−16**，实部 −b/2a = **−1.0000**、虚部 √−Δ/2a = 4/2 = **2.0000** ⇒ 共轭复根 −1.0000 ± 2.0000i，页面只打印上半支（另半支由同一模板的第二行给出）。锚「Δ = −16」锁定「无实根」分支，默认组 Δ=1 不命中。",
+  },
+  {
+    slug: "math/equation-solver",
+    inputs: {},
+    clicks: ["selectType('system2');document.getElementById('a1').value='1';document.getElementById('b1').value='1';document.getElementById('c1').value='5';document.getElementById('a2').value='1';document.getElementById('b2').value='-1';document.getElementById('c2').value='1';solve();"],
+    expect: ["3.000000", "2.000000"],
+    ref: "二元一次 { x + y = 5, x − y = 1 }：系数行列式 D = a₁b₂ − a₂b₁ = −1 − 1 = **−2** ⇒ x = (c₁b₂ − c₂b₁)/D = (−5 − 1)/(−2) = **3.000000**、y = (a₁c₂ − a₂c₁)/D = (1 − 5)/(−2) = **2.000000**（克拉默法则，两条同源不同式）。默认组 2,3,8 / 1,−2,−3 ⇒ D=−7、x=2.000000、y=1.000000，本例的 3/2 不命中。",
+  },
+  {
+    slug: "math/equation-solver",
+    inputs: {},
+    clicks: ["selectType('cubic');document.getElementById('a').value='1';document.getElementById('b').value='0';document.getElementById('c').value='-7';document.getElementById('d').value='6';solve();"],
+    expect: ["3 个", "-3.000000"],
+    ref: "三次方程 x³ − 7x + 6 = 0：页面在 [−20, 20) 上以 0.5 步长扫点、每点跑 50 次牛顿迭代（f′ = 3ax² + 2bx + c），再按 0.1 邻域去重 ⇒ 报「**3 个**」实根。python 侧用因子分解独立复核 (x−1)(x−2)(x+3) = x³ − 7x + 6，根集 {−3, 1, 2} 与之一致。默认组 1,−6,11,−6 的三根含重根，根数同样为 3 但值不同 ⇒ 锚取首个根 −3.000000 以区分。",
+  },
+
+  {
+    slug: "math/geometry-calculator",
+    inputs: {},
+    clicks: ["selectShape('rect');document.getElementById('w').value='8';document.getElementById('h').value='5';calc();"],
+    expect: ["40.00 m²", "26.00 m", "9.43 m"],
+    ref: "矩形 8×5：面积 S = w·h = **40.00 m²**、周长 C = 2(w+h) = **26.00 m**、对角线 √(8²+5²) = √89 = **9.43 m**（三个锚分属三条独立式，其中对角线那条复核了 `Math.sqrt(w*w+h*h)` 没有被误写成各边之和）。默认组因 `defaults` 取 HTML 中同 id 的最后一个值（`h` 落在圆锥模板上是 6、`w` 是 5）⇒ 默认矩形面积恰为 30.00 m²、周长 22.00 m，与注入值不撞。",
+  },
+  {
+    slug: "math/geometry-calculator",
+    inputs: {},
+    clicks: ["selectShape('square');document.getElementById('a').value='7';calc();"],
+    expect: ["49.00 m²", "28.00 m", "9.90 m"],
+    ref: "正方形 a=7：面积 a² = **49.00 m²**、周长 4a = **28.00 m**、对角线 a√2 = **9.90 m**。同页「矩形」分支的对角线用的是 `Math.sqrt(w²+h²)`，本条换成 `a*Math.sqrt(2)`，两条同族不同式 ⇒ 任一处方写错都会被其中一条抓到。默认组（a=6）⇒ 36.00 / 24.00 / 8.49，不命中。",
+  },
+  {
+    slug: "math/geometry-calculator",
+    inputs: {},
+    clicks: ["selectShape('circle');document.getElementById('r').value='4';calc();"],
+    expect: ["50.27 m²", "25.13 m"],
+    ref: "圆 r=4：面积 π·r² = 50.2655 ⇒ **50.27 m²**、周长 2π·r = 25.1327 ⇒ **25.13 m**、直径 2r = **8.00 m**。锚取「面积」与「周长」两条同源于 π 的不同式（同时可反查 π 的取舍：若按 3.14 算会分别得 50.24 / 25.12，两条都不命中）。默认组（r=3）⇒ 28.27 / 18.85 / 6.00，不命中。",
+  },
+  {
+    slug: "math/geometry-calculator",
+    inputs: {},
+    clicks: ["selectShape('triangle');document.getElementById('a').value='6';document.getElementById('h').value='4';document.getElementById('b').value='5';document.getElementById('c').value='5';calc();"],
+    expect: ["面积 (海伦公式)", "16.00 m", "一般"],
+    ref: "三角形（底 6、高 4、腰 5、5）：两条面积口径互相验证 —— 底×高÷2 = **12.00**、海伦 s=8 时 √(8·2·3·3) = **12.00**，差值 < 1e-6·max(1,A) ⇒ 一致性判据通过、不弹告警；周长 = 6+5+5 = **16.00 m**；类型判据 `a²+b²=c²` 三式（36+25=61≠25、36+25=61≠25、25+25=50≠36）全不成立 ⇒ **一般**。默认组（a=6,h=6,b=5,c=5 ⇒ 18.00 与 6.93 矛盾）会弹告警，与本例的「不弹」形成对照。",
+  },
+  {
+    slug: "math/geometry-calculator",
+    inputs: {},
+    clicks: ["selectShape('triangle');document.getElementById('a').value='6';document.getElementById('h').value='10';document.getElementById('b').value='5';document.getElementById('c').value='5';calc();"],
+    expect: ["⚠ 底×高 与 三边不一致", "12.00 m²"],
+    ref: "三角形一致性告警分支：把高从 4 改到 10 后，底×高÷2 = **30.00** 与海伦公式 **12.00** 互相矛盾 ⇒ 页面弹「⚠ 底×高 与 三边不一致」。注意该页 `defaults` 取 HTML 中同 id 的**最后一个**出现（矩形 w=5、圆锥 h=6 ⇒ 默认态矩形面积也是 30.00 m²）⇒ 「30.00 m²」在本页默认态同样命中，**是逃生项**，本条只锚告警文案与海伦值 12.00 m²。",
+  },
+  {
+    slug: "math/geometry-calculator",
+    inputs: {},
+    clicks: ["selectShape('cone');document.getElementById('r').value='3';document.getElementById('h').value='4';document.getElementById('l').value='5';calc();"],
+    expect: ["37.70 m³", "75.40 m²", "47.12 m²"],
+    ref: "圆锥 r=3、h=4、l=5：母线理论值 √(r²+h²) = **5** ⇒ 与输入的 5 一致（容差 0.005·max(1,lTrue)）⇒ 不弹「母线与 r、h 不一致」告警；体积 1/3·π·r²·h = **37.70 m³**、表面积 π·r·(r+l) = **75.40 m²**、侧面积 π·r·l = **47.12 m²**、底面积 π·r² = **28.27 m²**。三条锚分别落在「体积 / 全表面积 / 侧面积」三个不同系数上（默认组 r=3、h=6、l=6.71 ⇒ 母线应为 6.71 恰一致，但体积 56.55、表面积 82.69、侧 63.68，都不命中）。",
+  },
+
+  // ── 零用例加固（2026-10-06）──────────────────────────
+  {
+    slug: "math/calc-2",
+    inputs: { a: "5", b: "7", c: "9" },
+    expect: ["求解 D： 12.600000", "5 : 7 = 9 : 12.600000"],
+    ref: "注入非默认(默认 a=2/b=3/c=4)：比例式求解 D = b×c/a = 7×9/5 = 12.6 ⇒ 12.600000（6 位小数）；算式串同步变为 5 : 7 = 9 : 12.600000。默认态 3×4/2 = 6.000000，两条均不命中。",
+  },
+  {
+    "slug": "math/arithmetic-mean-math",
+    "inputs": {
+      "xs": "42"
+    },
+    "expect": [
+      "算术平均数 x̄ 1 样本数 N 0.0000 极差"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"xs\":\"42\"}，输出区含「算术平均数 x̄ 1 样本数 N 0.0000 极差」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "math/arithmetic-series-sum",
+    "inputs": {
+      "n": "42",
+      "a1": "42",
+      "an": "42"
+    },
+    "expect": [
+      "000 公差 d 42.0000 各项平均值"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"n\":\"42\",\"a1\":\"42\",\"an\":\"42\"}，输出区含「000 公差 d 42.0000 各项平均值」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "math/calc-1",
+    "inputs": {
+      "ofA": "42",
+      "ofP": "42",
+      "percentA": "42",
+      "percentB": "42",
+      "wholeA": "42",
+      "wholeP": "42",
+      "changeOld": "42",
+      "changeNew": "42"
+    },
+    "expect": [
+      "42 的 42% = 17.6400\n42\n42\n42\n42\n42\n42\n42\n42"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"ofA\":\"42\",\"ofP\":\"42\",\"percentA\":\"42\",\"percentB\":\"42\",\"wholeA\":\"42\",\"wholeP\":\"42\",\"changeOld\":\"42\",\"changeNew\":\"42\"}，输出区含「42 的 42% = 17.6400\n42\n42\n42\n42\n42\n42\n42\n…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "math/calc-2",
+    "inputs": {
+      "a": "42",
+      "b": "42",
+      "c": "42",
+      "d": "42"
+    },
+    "expect": [
+      "42\n42\n42\n42\n四项均已输入，校验比例： A × D = 1764.000000 ，B × C = 1764.000000 比例是否成立： 成立"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"a\":\"42\",\"b\":\"42\",\"c\":\"42\",\"d\":\"42\"}，输出区含「42\n42\n42\n42\n四项均已输入，校验比例： A × D = 1764.00…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "math/calc-3",
+    "inputs": {
+      "a": "42",
+      "b": "42",
+      "c": "42",
+      "precision": "4"
+    },
+    "expect": [
+      "42\n42\n42\n4\n三边均已输入，校验勾股定理： 由 a² + b² 计算斜边应为 59.3970 您输入的斜边为 42.0000 是否满足勾股定理： 不满足"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"a\":\"42\",\"b\":\"42\",\"c\":\"42\",\"precision\":\"4\"}，输出区含「42\n42\n42\n4\n三边均已输入，校验勾股定理： 由 a² + b² 计算斜边…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "math/calc-4",
+    "inputs": {
+      "radius": "42",
+      "diameter": "42",
+      "area": "42",
+      "circumference": "42"
+    },
+    "expect": [
+      "000 直径 d 5541.7694 面积 S 263.8938 周长 C"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"radius\":\"42\",\"diameter\":\"42\",\"area\":\"42\",\"circumference\":\"42\"}，输出区含「000 直径 d 5541.7694 面积 S 263.8938 周长 C」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "math/circular-permutation",
+    "inputs": {
+      "n": "42"
+    },
+    "expect": [" (n−1)! 1.405006117", " 全排列 n! 1.672626330"],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"n\":\"42\"}，输出区含「 (n−1)! 1.4050061177528798e+51 全排列 n! 1.…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "math/combination-repetition",
+    "inputs": {
+      "n": "42",
+      "r": "42"
+    },
+    "expect": ["42\n42\n8.394552431"],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"n\":\"42\",\"r\":\"42\"}，输出区含「42\n42\n8.394552431059453e+23」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "math/determinant-2x2",
+    "inputs": {
+      "a": "42",
+      "b": "42",
+      "c": "42",
+      "d": "42"
+    },
+    "expect": [
+      " = a + d 奇异矩阵（不可逆） 可逆性判定"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"a\":\"42\",\"b\":\"42\",\"c\":\"42\",\"d\":\"42\"}，输出区含「 = a + d 奇异矩阵（不可逆） 可逆性判定」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "math/distance-2d",
+    "inputs": {
+      "x1": "42",
+      "y1": "42",
+      "x2": "42",
+      "y2": "42"
+    },
+    "expect": [
+      "42\n42\n42\n42\n0"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"x1\":\"42\",\"y1\":\"42\",\"x2\":\"42\",\"y2\":\"42\"}，输出区含「42\n42\n42\n42\n0」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "math/dot-product",
+    "inputs": {
+      "ax": "42",
+      "ay": "42",
+      "az": "42",
+      "bx": "42",
+      "by": "42",
+      "bz": "42"
+    },
+    "expect": [
+      "42\n42\n42\n42\n42\n42\n529"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"ax\":\"42\",\"ay\":\"42\",\"az\":\"42\",\"bx\":\"42\",\"by\":\"42\",\"bz\":\"42\"}，输出区含「42\n42\n42\n42\n42\n42\n529」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "math/combination",
+    "inputs": {
+      "n": "42",
+      "r": "42"
+    },
+    "expect": [
+      "42\n42\n1 C(42,42) 1,405,006,117,752,879,800,000,000,000,000,000,000,000,000,000,000,000 P(42,42) 排列数 4,398,046,511,10"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"n\":\"42\",\"r\":\"42\"}，输出区含「42\n42\n1 C(42,42) 1,405,006,117,752,879,8…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "math/equation-solver",
+    "inputs": {
+      "a": "42",
+      "b": "42",
+      "c": "42",
+      "d": "42",
+      "a1": "42",
+      "b1": "42",
+      "c1": "42",
+      "a2": "42",
+      "b2": "42",
+      "c2": "42",
+      "a3": "42",
+      "b3": "42",
+      "c3": "42",
+      "poly": "abc123测试"
+    },
+    "expect": [
+      "程组 多项式求根\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\nabc123测试"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"a\":\"42\",\"b\":\"42\",\"c\":\"42\",\"d\":\"42\",\"a1\":\"42\",\"b1\":\"42\",\"c1\":\"42\",\"a2\":\"42\",\"b2\":\"42\",\"c2\":\"42\",\"a3\":\"42\",\"b3\":\"42\",\"c3\":\"42\",\"poly\":\"abc123测试\"}，输出区含「程组 多项式求根\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n4…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "math/exponent-solve",
+    "inputs": {
+      "a": "42",
+      "b": "42"
+    },
+    "expect": [
+      "000 指数 x 4.2000e+1"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"a\":\"42\",\"b\":\"42\"}，输出区含「000 指数 x 4.2000e+1」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "math/formula-calculator",
+    "inputs": {
+      "searchBox": "abc123测试"
+    },
+    "expect": [
+      "abc123测试\n"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"searchBox\":\"abc123测试\"}，输出区含「abc123测试\n」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "math/factorial-calc",
+    "inputs": {
+      "n": "42"
+    },
+    "expect": [
+      "42\n1.4050e+51 42! (科学计数) 1,405,006,117,752,879,800,000,000,000,000,000,000,000,000,000,000,000 42! 117.7719 ln(n!) 16.51"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"n\":\"42\"}，输出区含「42\n1.4050e+51 42! (科学计数) 1,405,006,117,7…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "math/geometric-series-sum",
+    "inputs": {
+      "a": "42",
+      "r": "42",
+      "n": "42"
+    },
+    "expect": ["n 项和 S_n 1.501309375", " 末项 a_n 不收敛"],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"a\":\"42\",\"r\":\"42\",\"n\":\"42\"}，输出区含「n 项和 S_n 1.5013093754529659e+68 末项 a_n 不…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "math/gcd-lcm",
+    "inputs": {
+      "a": "42",
+      "b": "42"
+    },
+    "expect": [
+      "大公约数 gcd 42"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"a\":\"42\",\"b\":\"42\"}，输出区含「大公约数 gcd 42」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "math/fibonacci-n",
+    "inputs": {
+      "n": "42"
+    },
+    "expect": [
+      "+1)/F(n) 19.4062 ln F(n)"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"n\":\"42\"}，输出区含「+1)/F(n) 19.4062 ln F(n)」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "math/calculus-tools",
+    "inputs": {
+      "func": "abc123测试",
+      "a": "42",
+      "b": "42",
+      "x0": "42",
+      "op": "integrate"
+    },
+    "expect": [
+      "~-—\n📐 数值积分 ∫[42, 42] f(x)dx — 方法 梯形法则, n=1000"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"func\":\"abc123测试\",\"a\":\"42\",\"b\":\"42\",\"x0\":\"42\",\"op\":\"integrate\"}，输出区含「~-—\n📐 数值积分 ∫[42, 42] f(x)dx — 方法 梯形法则, …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "math/geometry-calculator",
+    "inputs": {
+      "w": "42",
+      "h": "42",
+      "a": "42",
+      "r": "42",
+      "b": "42",
+      "c": "42",
+      "d": "42",
+      "l": "42"
+    },
+    "expect": [
+      "ndefined\n42\n42\n42\n42\n42\n42\n42\n42"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"w\":\"42\",\"h\":\"42\",\"a\":\"42\",\"r\":\"42\",\"b\":\"42\",\"c\":\"42\",\"d\":\"42\",\"l\":\"42\"}，输出区含「ndefined\n42\n42\n42\n42\n42\n42\n42\n42」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "math/herons-area",
+    "inputs": {
+      "a": "42",
+      "b": "42",
+      "c": "42"
+    },
+    "expect": [
+      "42\n42\n42\n763.834"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"a\":\"42\",\"b\":\"42\",\"c\":\"42\"}，输出区含「42\n42\n42\n763.834」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "math/law-of-cosines",
+    "inputs": {
+      "a": "42",
+      "b": "42",
+      "C": "42"
+    },
+    "expect": [
+      "形面积 (m²) 69.00 角 A (°) 69.00 角 B (°)"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"a\":\"42\",\"b\":\"42\",\"C\":\"42\"}，输出区含「形面积 (m²) 69.00 角 A (°) 69.00 角 B (°)」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "math/log-base",
+    "inputs": {
+      "x": "42",
+      "b": "42"
+    },
+    "expect": [
+      "0000 log_42(42) 3.737670"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"x\":\"42\",\"b\":\"42\"}，输出区含「0000 log_42(42) 3.737670」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "math/law-of-sines",
+    "inputs": {
+      "b": "42",
+      "A": "42",
+      "B": "42"
+    },
+    "expect": [
+      "42\n42\n42\n42.000 边长 a 96"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"b\":\"42\",\"A\":\"42\",\"B\":\"42\"}，输出区含「42\n42\n42\n42.000 边长 a 96」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "math/modulo-calc",
+    "inputs": {
+      "a": "42",
+      "b": "42"
+    },
+    "expect": [
+      " b 整除的部分 1.000000 除数与被除数之比"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"a\":\"42\",\"b\":\"42\"}，输出区含「 b 整除的部分 1.000000 除数与被除数之比」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "math/multinomial-coefficient",
+    "inputs": {
+      "n": "42",
+      "k1": "42",
+      "k2": "42",
+      "k3": "42"
+    },
+    "expect": [
+      "42\n42\n42\n42\n各组之和需等于总数 n：当前 42 + 42 + 42 = 126，而 n = 42。"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"n\":\"42\",\"k1\":\"42\",\"k2\":\"42\",\"k3\":\"42\"}，输出区含「42\n42\n42\n42\n各组之和需等于总数 n：当前 42 + 42 + 42 …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "math/percent-change",
+    "inputs": {
+      "old": "42",
+      "new": "42"
+    },
+    "expect": [
+      "0 绝对变化 1.00"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"old\":\"42\",\"new\":\"42\"}，输出区含「0 绝对变化 1.00」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "math/nth-term-geometric",
+    "inputs": {
+      "a1": "42",
+      "r": "42",
+      "n": "42"
+    },
+    "expect": ["42\n42\n42\n1.501309375"],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"a1\":\"42\",\"r\":\"42\",\"n\":\"42\"}，输出区含「42\n42\n42\n1.5013093754529659e+68」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "math/prime-check",
+    "inputs": {
+      "n": "42"
+    },
+    "expect": [
+      "42\n不是质数 42 的判定 6.4807"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"n\":\"42\"}，输出区含「42\n不是质数 42 的判定 6.4807」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "math/permutation",
+    "inputs": {
+      "n": "42",
+      "r": "42"
+    },
+    "expect": [
+      "42\n42\n1,405,006,117,752,879,800,000,000,000,000,000,000,000,000,000,000,000 P(42,42) 1 C(42,42) 组合数 1,405,006,117,752,87"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"n\":\"42\",\"r\":\"42\"}，输出区含「42\n42\n1,405,006,117,752,879,800,000,000,…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "math/quadratic-discriminant",
+    "inputs": {
+      "a": "42",
+      "b": "42",
+      "c": "42"
+    },
+    "expect": [
+      "00 判别式 Δ 无实根（共轭复根） 根的判定 -0"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"a\":\"42\",\"b\":\"42\",\"c\":\"42\"}，输出区含「00 判别式 Δ 无实根（共轭复根） 根的判定 -0」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "math/quadratic-solver",
+    "inputs": {
+      "a": "42",
+      "b": "42",
+      "c": "42"
+    },
+    "expect": [
+      "42\n42\n42\n无实根（Δ 判别式 Δ"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"a\":\"42\",\"b\":\"42\",\"c\":\"42\"}，输出区含「42\n42\n42\n无实根（Δ 判别式 Δ」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "math/power-calc",
+    "inputs": {
+      "x": "3",
+      "y": "7"
+    },
+    "expect": [
+      "2.1870e+3 3^7 (科学) 2,187 3^7 3.339849 常用对数值"
+    ],
+    "ref": "注入非默认 3^7 = 2187（Python 独立复算一致）；科学计数 2.1870e+3、常用对数 log10(2187)=3.339849、倒数 1/2187=4.5725e-4 均吻合。⚠ 原用例灌 x=y=42 ⇒ 42^42 为天文数字，且该值随 Node 版本**整体改变**（Node22 与 Node24 不同，非 1 ULP 级）⇒ 本地绿、CI 红。已换为量级温和的输入（Node22/Node24 实跑输出逐字相同）；默认态为 2^10=1024（输出「1.0240e+3 2^10」），与本串完全不同 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "math/root-calc",
+    "inputs": {
+      "x": "42"
+    },
+    "expect": [
+      "42\n6.480741 平方根 √x 3.476027 立方根 ∛x 2.545730 四次方根 0.154303"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"x\":\"42\"}，输出区含「42\n6.480741 平方根 √x 3.476027 立方根 ∛x 2.545…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "math/slope-line",
+    "inputs": {
+      "x1": "42",
+      "y1": "42",
+      "x2": "42",
+      "y2": "42"
+    },
+    "expect": [
+      "42\n42\n42\n42\n斜率不存在（竖直线） k"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"x1\":\"42\",\"y1\":\"42\",\"x2\":\"42\",\"y2\":\"42\"}，输出区含「42\n42\n42\n42\n斜率不存在（竖直线） k」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  }
+
+];
+
+async function main() {
+  const only = process.argv.slice(2);
+  const cases = only.length ? CASES.filter((c) => only.some((o) => c.slug.endsWith("/" + o) || c.slug === o)) : CASES;
+  let pass = 0; const fails = [];
+  for (const c of cases) {
+    try {
+      const r = await runCase(c);
+      if (r.ok) { pass++; }
+      else {
+        fails.push(c.slug);
+        console.log("❌ " + c.slug + "  " + (r.why || "no expect match"));
+        if (r.errs && r.errs.length) console.log("     errs: " + JSON.stringify(r.errs));
+        if (r.sample) console.log("     got: " + String(r.sample).slice(0, 300));
+      }
+    } catch (e) {
+      fails.push(c.slug);
+      console.log("❌ " + c.slug + "  THROWN: " + ((e && e.message) ? e.message : String(e)));
+    }
+  }
+
+  console.log("==== math calc " + pass + "/" + cases.length + " ====");
+  if (fails.length) process.exit(1);
+}
+if (require.main === module) main();

@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=finance,industry=finance,icon=🧮,bg=#e3f2fd">
+<meta name="description" content="车贷计算器是一款免费的在线金融财务工具，输入车价、首付比例、贷款年利率与期限，工具计算月供，并叠加购置税、保险与上牌费估算购车综合成本。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+<meta name="keywords" content="车贷计算器,车贷计算器在线,在线车贷计算器,数学计算,金融财务,在线工具,免费工具,ToolBox">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://chenguangwu.github.io/tools/finance/car-loan-calculator.html">
+<meta property="og:title" content="车贷计算器 - 免费在线金融财务工具">
+<meta property="og:description" content="车贷计算器是一款免费的在线金融财务工具，输入车价、首付比例、贷款年利率与期限，工具计算月供，并叠加购置税、保险与上牌费估算购车综合成本。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://chenguangwu.github.io/tools/finance/car-loan-calculator.html">
+<meta name="twitter:card" content="summary">
+
+<title>车贷计算器 - 免费在线金融财务工具</title>
+<meta name="theme-color" content="#FF6B35">
+<link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+<link rel="icon" href="../../favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="apple-touch-icon" href="../../apple-touch-icon.png">
+<link rel="stylesheet" href="../../css/common.css">
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="../../js/common.js" defer></script>
+<style>
+.method-tabs{display:flex;gap:8px;margin-bottom:16px;}
+.method-tabs button{
+  flex:1;padding:10px;border-radius:8px;border:1px solid var(--border);
+  background:var(--card-bg);cursor:pointer;font-size:14px;color:var(--text-light);
+  font-weight:500;transition:all 0.2s;
+}
+.method-tabs button.active{
+  background:linear-gradient(135deg,var(--primary),var(--primary-dark));
+  color:#fff;border-color:transparent;
+}
+.pie-chart{
+  width:200px;height:200px;border-radius:50%;margin:16px auto;
+  display:flex;align-items:center;justify-content:center;
+  background:conic-gradient(var(--primary) 0%, var(--danger) 0%, #eee 0%);
+  transition:background 0.3s;
+}
+.pie-center{
+  width:120px;height:120px;background:var(--card-bg);border-radius:50%;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  box-shadow:0 2px 8px rgba(0,0,0,0.06);
+}
+.pie-legend{display:flex;justify-content:center;gap:20px;margin-top:12px;font-size:13px;}
+.pie-legend span{display:flex;align-items:center;gap:6px;color:var(--text-light);}
+.pie-legend i{width:12px;height:12px;border-radius:3px;display:inline-block;}
+.amort-table{margin-top:12px;max-height:400px;overflow:auto;border-radius:8px;border:1px solid var(--border);}
+.amort-table th{position:sticky;top:0;background:var(--th-bg);z-index:1;}
+.cost-section{margin-top:8px;}
+.cost-section h3{display:flex;align-items:center;gap:8px;}
+.cost-total{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:14px 16px;background:linear-gradient(135deg,rgba(102,126,234,0.1),rgba(118,75,162,0.1));
+  border-radius:10px;margin-top:12px;font-size:15px;
+}
+.cost-total strong{font-size:18px;color:var(--primary);}
+@media(max-width:600px){
+  .pie-chart{width:160px;height:160px;}
+  .pie-center{width:100px;height:100px;}
+}
+</style>
+
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "车贷计算器",
+  "description": "车贷计算器 - 免费数学计算工具，在线车贷计算器，免费使用。",
+  "url": "https://chenguangwu.github.io/tools/finance/car-loan-calculator.html",
+  "applicationCategory": "UtilitiesApplication",
+  "operatingSystem": "Web",
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "CNY"
+  },
+  "inLanguage": "zh-CN",
+  "isAccessibleForFree": true,
+  "browserRequirements": "Requires JavaScript. Requires HTML5.",
+  "softwareVersion": "1.0"
+}
+</script>
+
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
+    <meta name="twitter:title" content="车贷计算器 - 免费在线金融财务工具">
+    <meta name="twitter:description" content="车贷计算器是一款免费的在线金融财务工具，输入车价、首付比例、贷款年利率与期限，工具计算月供，并叠加购置税、保险与上牌费估算购车综合成本。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"车贷计算器","url":"https://chenguangwu.github.io/tools/finance/car-loan-calculator.html","applicationCategory":"FinanceApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"车贷计算器是一款免费的在线金融财务工具，输入车价、首付比例、贷款年利率与期限，工具计算月供，并叠加购置税、保险与上牌费估算购车综合成本。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://chenguangwu.github.io/"},{"@type":"ListItem","position":2,"name":"金融财务","item":"https://chenguangwu.github.io/tools/finance/index.html"},{"@type":"ListItem","position":3,"name":"车贷计算器","item":"https://chenguangwu.github.io/tools/finance/car-loan-calculator.html"}]}
+</script>
+
+<script src="../../js/i18n.js" defer></script>
+<script src="../../js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+
+
+<meta name="title-en" content="Car Loan Calculator">
+<meta name="desc-en" content="Car Loan Calculator - compute values online with accurate results.">
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/finance/car-loan-calculator.html">
+<link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/finance/car-loan-calculator.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/finance/car-loan-calculator.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/finance/car-loan-calculator.html">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:locale:alternate" content="zh_TW">
+<meta property="og:locale:alternate" content="en_US">
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
+
+<script src="/js/tool-ux.js" defer></script>
+<!-- TOOLBOX-TOOL-UX -->
+
+<script src="/js/analytics.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+
+<script src="/js/hot-tool-enhancements.js" defer></script>
+<!-- TOOLBOX-HOT-TOOL-UX -->
+<!-- TOOLBOX-TTZZ -->
+<script>
+(function(){try{
+var el = document.createElement("script");
+el.src = "https://lf1-cdn-tos.bytegoofy.com/goofy/ttzz/push.js?85d6452aa9be4d693b16cd48535a8c7ae57542f6788a41682e745be8eb99b35a8a24d2f724c31ebe20c1e4e6fba6d91caf576100b02a2870c72f38fc574066fef065d152c73bf1cbb2ebad3b5b5265d8";
+el.id = "ttzz";
+var s = document.getElementsByTagName("script")[0];
+s.parentNode.insertBefore(el, s);
+}catch(e){}
+})(window);
+</script>
+
+<script src="/js/tool-kit.js" defer></script>
+<!-- TOOLBOX-TOOL-KIT -->
+</head>
+<body>
+<h1 class="sr-only">车贷计算器</h1>
+
+
+<div class="nav">
+  <a href="../../index.html">← ToolBox</a>
+  <span>/ 车贷计算器</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+
+
+
+
+<nav class="breadcrumb" aria-label="面包屑导航" data-breadcrumb="1">
+  <a href="../../index.html">首页</a>
+  <span class="bc-sep">‹</span>
+  <a href="index.html">💰 金融财务</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">车贷计算器</span>
+</nav>
+<div class="container">
+<div class="tool-guide-link" data-guide-link="1">
+  <a href="../../guides/car-loan-calculator-guide.html">📖 查看「车贷月供计算使用指南」</a>
+</div>
+
+  <div class="card tool-card-accent" style="--tool-accent:#F59E0B;">
+     <h2 data-zh="🧮 车贷计算器">🧮 Car Loan Calculator</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="支持等额本息 / 等额本金，含购车综合成本估算">Estimate monthly payment plus purchase tax, insurance and registration for the full cost of buying a car.</p>
+
+    <div class="method-tabs">
+      <button class="active" data-method="equal-payment" onclick="setMethod('equal-payment')">等额本息</button>
+      <button data-method="equal-principal" onclick="setMethod('equal-principal')">等额本金</button>
+    </div>
+
+        <div class="formula-box">
+      <div class="formula-title">📐 计算公式 / 说明</div>
+      <div class="formula-eq">月供 M = (车价 − 首付)·i·(1+i)ⁿ/((1+i)ⁿ−1)；综合成本 = 首付 + 月供×n + 购置税 + 保险 + 上牌费</div>
+      <div class="formula-desc">贷款部分按等额本息公式计算月供；购置税约按“车价/1.13×10%”估算，再叠加保险与上牌费得出购车综合成本，用于全成本预算。</div>
+    </div>
+<div class="input-row">
+      <div>
+        <label>车辆价格（元）</label>
+        <input type="number" id="price" value="150000" min="0" oninput="calculate()">
+      </div>
+      <div>
+        <label>首付比例（%）</label>
+        <input type="number" id="downPct" value="30" min="0" max="100" oninput="calculate()">
+      </div>
+    </div>
+
+    <div class="input-row">
+      <div>
+        <label>贷款年利率（%）</label>
+        <input type="number" id="rate" value="5.5" step="0.01" min="0" oninput="calculate()">
+      </div>
+      <div>
+        <label>贷款期限（年）</label>
+        <select id="years" onchange="calculate()">
+          <option value="1">1 年</option>
+          <option value="2">2 年</option>
+          <option value="3" selected>3 年</option>
+          <option value="4">4 年</option>
+          <option value="5">5 年</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="val" id="monthlyPay">--</div>
+        <div class="lbl" id="monthlyLabel">月供</div>
+      </div>
+      <div class="stat-card">
+        <div class="val" id="totalInterest">--</div>
+        <div class="lbl">总利息</div>
+      </div>
+      <div class="stat-card">
+        <div class="val" id="totalPayment">--</div>
+        <div class="lbl">总还款额</div>
+      </div>
+      <div class="stat-card">
+        <div class="val" id="interestRatio">--</div>
+        <div class="lbl">利息占比</div>
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <div id="car_loan_calculatorPresets"></div><button type="button" class="btn primary" onclick="calculate()">重新计算</button><button class="btn" type="button" onclick="__car_loan_calculatorExport()">导出明细 CSV</button>
+      <button type="button" class="btn" onclick="resetAll()">重置</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>📊 还款构成</h2>
+    <div class="pie-chart" id="pieChart">
+      <div class="pie-center">
+        <div style="font-size:11px;color:var(--text-muted);">总还款</div>
+        <div style="font-size:18px;font-weight:700;color:var(--primary);" id="pieTotal">--</div>
+      </div>
+    </div>
+    <div class="pie-legend">
+      <span><i style="background:var(--primary);"></i>本金</span>
+      <span><i style="background:var(--danger);"></i>利息</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>📅 还款明细（前 24 期）</h2>
+    <div class="amort-table">
+      <table>
+        <thead><tr><th>期数</th><th>月供(元)</th><th>本金(元)</th><th>利息(元)</th><th>剩余本金(元)</th></tr></thead>
+        <tbody id="scheduleBody"></tbody>
+      </table>
+    </div>
+    <div class="toolbar" style="margin-top:12px;">
+      <button type="button" class="btn" onclick="exportCSV()">📥 导出 CSV</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>💰 购车综合成本估算</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">包含购置税、保险、上牌等费用，仅供参考</p>
+
+    <div class="input-row">
+      <div>
+        <label>购置税税率（%）</label>
+        <input type="number" id="taxRate" value="10" min="0" step="0.1" oninput="calculate()">
+      </div>
+      <div>
+        <label>上牌费用（元）</label>
+        <input type="number" id="regFee" value="500" min="0" oninput="calculate()">
+      </div>
+    </div>
+
+    <div class="input-row">
+      <div>
+        <label>车船税（元/年）</label>
+        <input type="number" id="vehicleTax" value="420" min="0" oninput="calculate()">
+      </div>
+      <div>
+        <label>交强险（元）</label>
+        <input type="number" id="compInsurance" value="950" min="0" oninput="calculate()">
+      </div>
+    </div>
+
+    <div class="input-row">
+      <div>
+        <label>商业保险（元/年）</label>
+        <input type="number" id="commInsurance" value="5000" min="0" oninput="calculate()">
+      </div>
+      <div>
+        <label>首年保险年数</label>
+        <select id="insYears" onchange="calculate()">
+          <option value="1" selected>1 年</option>
+          <option value="2">2 年</option>
+          <option value="3">3 年</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="cost-total">
+      <span>落地总价（首付+税费+首年保险+上牌）</span>
+      <strong id="landingCost">--</strong>
+    </div>
+
+    <div class="result-box" style="margin-top:12px;">
+      <p>💵 首付金额：<strong id="downPayment">--</strong> 元</p>
+      <p>📝 购置税：<strong id="purchaseTax">--</strong> 元</p>
+      <p>🛡️ 保险合计（首年）：<strong id="totalInsurance">--</strong> 元</p>
+      <p>🚗 车船税：<strong id="vehTaxDisplay">--</strong> 元</p>
+      <p>📋 上牌费用：<strong id="regFeeDisplay">--</strong> 元</p>
+      <hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">
+      <p>📊 购车总支出（车价+税费+保险+上牌）：<strong id="grandTotal">--</strong> 元</p>
+      <p>💳 贷款期总花费（首付+总还款+税费保险）：<strong id="totalCost">--</strong> 元</p>
+    </div> <div id="car_loan_calculatorTable"></div> <div id="car_loan_calculatorDiff"></div> <div id="car_loan_calculatorChart"></div> <div id="car_loan_calculatorHist"></div>
+  </div>
+
+  <div class="card">
+    <h3>📐 公式说明</h3>
+    <div class="result-box">
+      <p><strong>贷款额</strong> = 车价 × (1 - 首付比例)</p>
+      <p><strong>等额本息月供</strong>：PMT = P × r / (1 - (1+r)^-n)</p>
+      <p><strong>等额本金月供</strong>：每月本金 = P/n，每月利息 = 剩余本金 × r</p>
+      <p>P：贷款本金；r：月利率；n：还款月数</p>
+      <p><strong>购置税</strong> ≈ 车价 / 1.13 × 购置税率（粗略估算）</p>
+      <p style="color:var(--text-muted);font-size:12px;margin-top:8px;">注：实际费用因地区、车型、保险公司而异，仅供参考</p>
+    </div>
+  </div>
+
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto 0;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+.deep-dive a.term-link{color:var(--tool-accent,#FF6B35);text-decoration:none;border-bottom:1px dashed currentColor;}
+.deep-dive a.term-link:hover{border-bottom-style:solid;}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：车贷月供计算</h2>
+<h3>💡 常见使用场景</h3>
+<ul class="dd-list">
+<li>算等额本息<a class="term-link" href="/guides/car-loan-calculator-guide.html">车贷月供</a>与总利息</li>
+<li>比较首付比例对月供影响</li>
+<li>贷款前评估月负担</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">等额本息</div><div class="dd-ex-body">月供 M = P·i·(1+i)^n / ((1+i)^n - 1)，P 本金、i 月利率、n 月数。贷 15万、年利率 6%（月息 0.5%）、3年(36期)：M≈150000×0.005×1.196/0.196≈4560元，总息约 14160。</div></div>
+<div class="dd-example"><div class="dd-ex-title">利率影响</div><div class="dd-ex-body">利率从 4% 升到 8%，同本金同期限月供明显上升、总息近翻倍；长期限降低月供但总息更高，需权衡现金流与成本。</div></div>
+<h3>❓ 常见问题（FAQ）</h3>
+<dl class="dd-faq">
+<dt>等额本息和等额本金区别？</dt><dd>等额本息每月还款相同（前期利息占比高）；等额本金每月本金固定、月供递减、总息更少但前期压力大。车贷多用等额本息。</dd>
+<dt>月利率怎么算？</dt><dd>年利率/12。如年化 6% 月息 0.5%；注意「费率」与「利率」不同，费率口径的总成本常高于表面数字。</dd>
+</dl>
+</div>
+</section>
+<!-- 注意事项区块 -->
+<div class="tool-notes" style="--tool-accent:#F59E0B;">
+  <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
+  <ul>
+      <li>本工具纯前端运行，数据不会上传到服务器</li>
+      <li>建议在主流浏览器（Chrome/Safari/Firefox/Edge）中使用</li>
+      <li>计算结果仅供参考，请以实际应用场景为准</li>
+  </ul>
+</div>
+<!-- /注意事项区块 -->
+</div>
+
+<script>
+let method = 'equal-payment';
+
+function setMethod(m){
+  method = m;
+  document.querySelectorAll('.method-tabs button').forEach(b => {
+    b.classList.toggle('active', b.dataset.method === m);
+  });
+  document.getElementById('monthlyLabel').textContent = m === 'equal-payment' ? '月供' : '首月还款';
+  calculate();
+}
+
+function fmt(n){
+  if(!isFinite(n)) return '--';
+  return n.toLocaleString('zh-CN', {maximumFractionDigits:2, minimumFractionDigits:2});
+}
+
+function fmtYuan(n){
+  if(!isFinite(n)) return '--';
+  return '¥' + n.toLocaleString('zh-CN', {maximumFractionDigits:2, minimumFractionDigits:2});
+}
+
+function getSchedule(principal, monthlyRate, months){
+  let schedule = [];
+  let balance = principal;
+  let totalInterest = 0;
+
+  if(method === 'equal-payment'){
+    let monthlyPayment;
+    if(monthlyRate === 0){
+      monthlyPayment = principal / months;
+    } else {
+      const factor = Math.pow(1 + monthlyRate, months);
+      monthlyPayment = principal * monthlyRate * factor / (factor - 1);
+    }
+    for(let i = 1; i <= months; i++){
+      const interest = balance * monthlyRate;
+      const principalPart = monthlyPayment - interest;
+      balance -= principalPart;
+      totalInterest += interest;
+      schedule.push({
+        month: i,
+        payment: monthlyPayment,
+        principal: principalPart,
+        interest: interest,
+        balance: Math.max(0, balance)
+      });
+    }
+  } else {
+    const monthlyPrincipal = principal / months;
+    for(let i = 1; i <= months; i++){
+      const interest = balance * monthlyRate;
+      const payment = monthlyPrincipal + interest;
+      balance -= monthlyPrincipal;
+      totalInterest += interest;
+      schedule.push({
+        month: i,
+        payment: payment,
+        principal: monthlyPrincipal,
+        interest: interest,
+        balance: Math.max(0, balance)
+      });
+    }
+  }
+
+  return {schedule, totalInterest};
+}
+
+function calculate(){
+  const price = parseFloat(document.getElementById('price').value) || 0;
+  const downPct = parseFloat(document.getElementById('downPct').value) || 0;
+  const annualRate = parseFloat(document.getElementById('rate').value) || 0;
+  const years = parseInt(document.getElementById('years').value) || 0;
+
+  if(price <= 0 || downPct < 0 || downPct > 100 || years <= 0){
+    resetDisplay();
+    return;
+  }
+
+  const downPayment = price * downPct / 100;
+  const principal = price - downPayment;
+  const months = years * 12;
+  const monthlyRate = annualRate / 100 / 12;
+
+  const {schedule, totalInterest} = getSchedule(principal, monthlyRate, months);
+  const totalPayment = principal + totalInterest;
+  const monthlyPayment = schedule[0] ? schedule[0].payment : 0;
+  const interestRatio = totalPayment > 0 ? (totalInterest / totalPayment * 100) : 0;
+
+  document.getElementById('monthlyPay').textContent = fmt(monthlyPayment);
+  document.getElementById('totalInterest').textContent = fmt(totalInterest);
+  document.getElementById('totalPayment').textContent = fmt(totalPayment);
+  document.getElementById('interestRatio').textContent = interestRatio.toFixed(1) + '%';
+
+  const principalPct = totalPayment > 0 ? (principal / totalPayment * 100) : 0;
+  const pie = document.getElementById('pieChart');
+  pie.style.background = `conic-gradient(var(--primary) 0% ${principalPct}%, var(--danger) ${principalPct}% 100%)`;
+  document.getElementById('pieTotal').textContent = (totalPayment / 10000).toFixed(1) + '万';
+
+  const tbody = document.getElementById('scheduleBody');
+  const __h0=schedule.slice(0, 24).map(s => `
+    <tr>
+      <td>${s.month}</td>
+      <td>${fmt(s.payment)}</td>
+      <td>${fmt(s.principal)}</td>
+      <td>${fmt(s.interest)}</td>
+      <td>${fmt(s.balance)}</td>
+    </tr>
+  `).join('');if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){tbody.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}tbody.innerHTML=__h0;
+
+  calculateCosts(price, downPayment, totalPayment);
+}
+
+function calculateCosts(price, downPayment, totalLoanPayment){
+  const taxRate = parseFloat(document.getElementById('taxRate').value) || 0;
+  const regFee = parseFloat(document.getElementById('regFee').value) || 0;
+  const vehicleTax = parseFloat(document.getElementById('vehicleTax').value) || 0;
+  const compInsurance = parseFloat(document.getElementById('compInsurance').value) || 0;
+  const commInsurance = parseFloat(document.getElementById('commInsurance').value) || 0;
+  const insYears = parseInt(document.getElementById('insYears').value) || 1;
+
+  const purchaseTax = price / 1.13 * taxRate / 100;
+  const totalInsurance = (compInsurance + commInsurance) * insYears;
+  const totalVehTax = vehicleTax * insYears;
+
+  const landingCost = downPayment + purchaseTax + totalInsurance + totalVehTax + regFee;
+  const grandTotal = price + purchaseTax + totalInsurance + totalVehTax + regFee;
+  const totalCost = downPayment + totalLoanPayment + purchaseTax + totalInsurance + totalVehTax + regFee;
+
+  document.getElementById('downPayment').textContent = fmt(downPayment);
+  document.getElementById('purchaseTax').textContent = fmt(purchaseTax);
+  document.getElementById('totalInsurance').textContent = fmt(totalInsurance);
+  document.getElementById('vehTaxDisplay').textContent = fmt(totalVehTax);
+  document.getElementById('regFeeDisplay').textContent = fmt(regFee);
+  document.getElementById('landingCost').textContent = '¥' + fmt(landingCost);
+  document.getElementById('grandTotal').textContent = fmt(grandTotal);
+  document.getElementById('totalCost').textContent = fmt(totalCost);
+}
+
+function resetDisplay(){
+  ['monthlyPay','totalInterest','totalPayment','interestRatio','pieTotal',
+   'downPayment','purchaseTax','totalInsurance','vehTaxDisplay','regFeeDisplay',
+   'landingCost','grandTotal','totalCost'].forEach(id => {
+    const el = document.getElementById(id);
+    if(el) el.textContent = '--';
+  });
+  const __h1='';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('scheduleBody').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('scheduleBody').innerHTML=__h1;
+  document.getElementById('pieChart').style.background = 'conic-gradient(var(--primary) 0%, var(--danger) 0%, #eee 0%)';
+}
+
+function resetAll(){
+  document.getElementById('price').value = '150000';
+  document.getElementById('downPct').value = '30';
+  document.getElementById('rate').value = '5.5';
+  document.getElementById('years').value = '3';
+  document.getElementById('taxRate').value = '10';
+  document.getElementById('regFee').value = '500';
+  document.getElementById('vehicleTax').value = '420';
+  document.getElementById('compInsurance').value = '950';
+  document.getElementById('commInsurance').value = '5000';
+  document.getElementById('insYears').value = '1';
+  setMethod('equal-payment');
+  calculate();
+}
+
+function exportCSV(){
+  const price = parseFloat(document.getElementById('price').value) || 0;
+  const downPct = parseFloat(document.getElementById('downPct').value) || 0;
+  const annualRate = parseFloat(document.getElementById('rate').value) || 0;
+  const years = parseInt(document.getElementById('years').value) || 0;
+
+  if(price <= 0 || years <= 0){
+    ToolBox.showToast(i18nText('toast.invalid_input'), 'warning');
+    return;
+  }
+
+  const principal = price * (1 - downPct / 100);
+  const months = years * 12;
+  const monthlyRate = annualRate / 100 / 12;
+  const {schedule} = getSchedule(principal, monthlyRate, months);
+
+  let rows = [['期数','月供(元)','本金(元)','利息(元)','剩余本金(元)']];
+  schedule.forEach(s => {
+    rows.push([s.month, s.payment.toFixed(2), s.principal.toFixed(2), s.interest.toFixed(2), s.balance.toFixed(2)]);
+  });
+
+  const csv = '\uFEFF' + rows.map(r => r.join(',')).join('\n');
+  const blob = new Blob([csv], {type: 'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'car-loan-schedule.csv';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  ToolBox.showToast(i18nText('toast.export_ok'));
+}
+
+calculate();
+</script><script>
+// tool-intro折叠交互
+document.addEventListener('DOMContentLoaded',function(){
+  var headers=document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click',function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+
+var __car_loan_calculator_last=0,__car_loan_calculator_skip=false;
+function __car_loan_calculatorSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __car_loan_calculatorResText(){
+    var r=document.querySelector('.result-box');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __car_loan_calculatorTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __car_loan_calculatorRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__car_loan_calculatorTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#car_loan_calculatorTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#car_loan_calculatorDiff');
+        TBKit.history.mount('#car_loan_calculatorHist',function(rec){
+            __car_loan_calculator_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calculate();
+            }catch(e2){}
+            __car_loan_calculator_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__car_loan_calculatorTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#car_loan_calculatorChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __car_loan_calculatorExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__car_loan_calculator_skip) return;
+    var snap=__car_loan_calculatorSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__car_loan_calculatorResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__car_loan_calculator_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __car_loan_calculator_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __car_loan_calculatorRender(keys,rk,en);
+}
+function __car_loan_calculatorExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#car_loan_calculatorTable','car-loan-calculator.csv'); } catch(e){}
+}
+function __car_loan_calculatorPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#car_loan_calculatorPresets',[{label:'默认参数',labelEn:'Default',values:{'price':'150000', 'downPct':'30', 'rate':'5.5', 'years':'1', 'taxRate':'10', 'regFee':'500', 'vehicleTax':'420', 'compInsurance':'950', 'commInsurance':'5000', 'insYears':'1'}}],function(){ calculate(); });
+}
+var __car_loan_calculator_f0=(typeof calculate==='function')?calculate:null;
+if(__car_loan_calculator_f0){
+    calculate=function(){ var __r=__car_loan_calculator_f0.apply(null,arguments); try{ __car_loan_calculatorExtras(); }catch(e){} return __r; };
+}
+function __car_loan_calculatorBoot(){ try{ __car_loan_calculatorPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __car_loan_calculatorBoot();
+else document.addEventListener('DOMContentLoaded', __car_loan_calculatorBoot);
+</script>
+<!-- SEO 介绍区块 -->
+
+</div>
+
+</div>
+
+<!-- 相关工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相关工具</h3>
+  <div class="related-tools-grid">
+    <a href="text-reverse-words.html" class="related-tool-card">
+      <span class="rt-icon">📖</span>
+      <span class="rt-info"><span class="rt-name">单词顺序反转 - 免费文本处理工具，在线单词顺序反转 | ToolBox免费在线工具箱</span><span class="rt-desc">单词顺序反转</span></span>
+    </a>
+    <a href="word-counter.html" class="related-tool-card">
+      <span class="rt-icon">📊</span>
+      <span class="rt-info"><span class="rt-name">字数统计 - 免费文本处理工具，字数统计工具 | ToolBox免费在线工具箱</span><span class="rt-desc">字数统计工具</span></span>
+    </a>
+    <a href="word-wrap.html" class="related-tool-card">
+      <span class="rt-icon">💰</span>
+      <span class="rt-info"><span class="rt-name">自动换行 - 免费文本处理工具，在线自动换行 | ToolBox免费在线工具箱</span><span class="rt-desc">自动换行</span></span>
+    </a>
+    <a href="word-frequency.html" class="related-tool-card">
+      <span class="rt-icon">📊</span>
+      <span class="rt-info"><span class="rt-name">词频统计 - 免费文本处理工具，词频统计工具 | ToolBox免费在线工具箱</span><span class="rt-desc">词频统计工具</span></span>
+    </a>
+    <a href="mirror-text.html" class="related-tool-card">
+      <span class="rt-icon">🏦</span>
+      <span class="rt-info"><span class="rt-name">镜像文字 - 免费文本处理工具，在线镜像文字 | ToolBox免费在线工具箱</span><span class="rt-desc">镜像文字</span></span>
+    </a>
+    
+  </div>
+</div>
+<div class="tool-intro open" id="toolIntro">
+  <div class="tool-intro-header">
+    <span class="intro-icon-wrap"><span class="intro-icon">📖</span>关于「车贷计算器」</span>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="tool-intro-body">
+    <h4><span class="h4-icon">📝</span>工具简介</h4>
+    <p>车贷计算器是一款金融财务领域的在线工具。输入车价、首付比例、贷款年利率与期限，工具计算月供，并叠加购置税、保险与上牌费估算购车综合成本。</p>
+    <h4><span class="h4-icon">✨</span>功能特点</h4>
+    <ul class="intro-features">
+      <li>采用标准金融计算公式</li>
+      <li>支持多种参数灵活配置</li>
+      <li>实时计算，结果即时显示</li>
+      <li>财务数据不上传，安全可靠</li>
+    </ul>
+    <h4><span class="h4-icon">🎯</span>使用场景</h4>
+    <ul class="intro-scenes">
+      <li>个人理财与投资规划</li>
+      <li>贷款还款方案计算</li>
+      <li>投资收益分析</li>
+      <li>学习金融知识</li>
+    </ul>
+    </div>
+</div>
+<!-- /SEO 介绍区块 -->
+</body>
+</html>

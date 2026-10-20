@@ -1,0 +1,349 @@
+#!/usr/bin node
+"use strict";
+const { runCase } = require("./verify_it_calc.js");
+const CASES = [
+{
+  "slug": "tcm-chemistry/calc-44",
+  "inputs": {
+    "K": "7",
+    "v0": "100",
+    "v": "25",
+    "target": "99"
+  },
+  "expect": ["4.552358675"],
+  "ref": "auto-restore"
+},
+{
+  "slug": "tcm-chemistry/capsule-filling",
+  "inputs": {
+    "height": "45",
+    "diameter": "80",
+    "bulkDensity": "0.5",
+    "tapDensity": "0.7",
+    "targetWeight": "300",
+    "fillDensity": "0.5",
+    "moisture": "5"
+  },
+  "expect": [
+    "arctan(45/40.0)"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "tcm-chemistry/chromatography-gradient",
+  "inputs": {
+    "colDiameter": "6",
+    "sampleWeight": "2"
+  },
+  "expect": [
+    "装柱高度约4.2cm"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "tcm-chemistry/concentration-calc",
+  "inputs": {
+    "targetTemp": "75",
+    "vacuum": "",
+    "atm": "760"
+  },
+  "expect": [
+    "288.5"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "tcm-chemistry/content-assay",
+  "inputs": {
+    "stdMass": "15",
+    "stdConc": "0.50",
+    "isMass": "8.00",
+    "isConc": "0.40",
+    "stdArea": "500000",
+    "isArea": "450000",
+    "factor": "0.889",
+    "sampleMass": "500",
+    "sampleIS": "8.00",
+    "sampleVol": "25",
+    "sampleArea": "480000",
+    "sampleISArea": "440000",
+    "lossOnDrying": "0"
+  },
+  "expect": [
+    "15"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "tcm-chemistry/crystallization-yield",
+  "inputs": {
+    "feedAmount": "15",
+    "dissolveTemp": "70",
+    "crystalTemp": "10",
+    "solHigh": "8.5",
+    "solLow": "0.8",
+    "solventVol": "120",
+    "lossRate": "5"
+  },
+  "expect": [
+    "120mL溶剂在70°C仅能溶10.20g"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "tcm-chemistry/detector-4",
+  "inputs": {
+    "herb1": "甘草_X",
+    "herb2": "甘遂"
+  },
+  "expect": [
+    "甘草_X"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "tcm-chemistry/extraction-counts",
+  "inputs": {
+    "K": "8",
+    "ratio": "0.5",
+    "target": "95",
+    "total": "100"
+  },
+  "expect": [
+    "1/(1+8×0.5)"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "tcm-chemistry/extraction-solvent",
+  "inputs": {
+    "compoundType": "alkaloid_salt"
+  },
+  "expect": [
+    "可用0.5%-1%盐酸/硫酸乙醇溶液提取"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "tcm-chemistry/fingerprint-similarity",
+  "inputs": {
+    "refData": "80,120,60,40,25",
+    "s1": "82,118,62,38,26",
+    "s2": "70,140,50,55,20",
+    "s3": "95,100,80,30,35",
+    "s4": "60,150,45,60,15"
+  },
+  "clicks": ["calc()"],
+  "expect": [
+    "0.9547",
+    "0.8863",
+    "0.9380 平均相关系数"
+  ],
+  "ref": "独立复算 Pearson：ref 均值 65（dx=15,55,−5,−25,−40，Σdx²=5500）；"
+     + "s2 均值 67（dy=3,73,−17,−12,−47，Σdy²=7980），Σdxdy=6325 ⇒ r=6325/√(5500×7980)=0.9547；"
+     + "s3 均值 68（dy=27,32,12,−38,−33，Σdy²=4430），Σdxdy=4375 ⇒ r=4375/√(5500×4430)=0.8863；"
+     + "四样平均=(0.9985+0.9547+0.8863+0.9126)/4=0.9380。原 7 峰数据为页面默认态。",
+},
+{
+  "slug": "tcm-chemistry/granule-quality",
+  "inputs": {
+    "totalWt": "150",
+    "s1": "2",
+    "s2": "15",
+    "s3": "55",
+    "s4": "20",
+    "s5": "5",
+    "s6": "3",
+    "moisture": "4.0",
+    "rsd": "3.0",
+    "assay": "98",
+    "sizeScore": "5"
+  },
+  "expect": [
+    "2680"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "tcm-chemistry/hplc-optimization",
+  "inputs": {
+    "colLength": "375",
+    "colID": "4.6",
+    "flowRate": "1.0",
+    "t0": "2.5",
+    "kPrime": "3.0",
+    "gradSlope": "0",
+    "rt_plate": "10.5",
+    "peakWidth": "0.5",
+    "t0_plate": "2.5",
+    "L_plate": "250",
+    "tr1": "8.5",
+    "tr2": "10.2",
+    "w1": "0.4",
+    "w2": "0.5"
+  },
+  "expect": [
+    "6.23"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "tcm-chemistry/impurity-limit",
+  "inputs": {
+    "sampleWt": "150",
+    "sampleVol": "10",
+    "stdWt": "1",
+    "stdVol": "10",
+    "sampleSpot": "10",
+    "stdSpot": "10",
+    "sampleSpotIntensity": "3",
+    "stdSpotIntensity": "5",
+    "stdConcSemi": "0.1",
+    "sampleAmount": "100"
+  },
+  "expect": [
+    "0.150000"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "tcm-chemistry/metabolite-prediction",
+  "inputs": {
+    "mw": "405"
+  },
+  "expect": [
+    "405"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "tcm-chemistry/ointment-release",
+  "inputs": {
+    "concA": "30",
+    "solCs": "5",
+    "diffD": "0.001",
+    "time": "6",
+    "thickness": "0.1"
+  },
+  "expect": [
+    "((2×30-5)×5×0.00050×6)"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "tcm-chemistry/pharmacokinetics",
+  "inputs": {
+    "dose": "150",
+    "bio": "50",
+    "vd": "50",
+    "cl": "5",
+    "ka": "1.0",
+    "tau": "12",
+    "weight": "60"
+  },
+  "expect": [
+    "(75.00×1)/(50×0.9000)"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "tcm-chemistry/response-factor",
+  "inputs": {
+    "refName": "黄芩苷",
+    "refConc": "3.1",
+    "refArea": "500000",
+    "cn${i}": "${d.name}",
+    "cc${i}": "${d.conc}",
+    "ca${i}": "${d.area}",
+    "cq${i}": "${(d.conc*10).toFixed(2)}"
+  },
+  "expect": [
+    "161290"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "tcm-chemistry/solubility-guide",
+  "inputs": {
+    "searchBox": "zzz"
+  },
+  "expect": [
+    "未找到匹配成分"
+  ],
+  "ref": "auto-restore（去默认化：注入无匹配关键词 zzz → 过滤结果为空；回退空词则列出全部成分，不产此串）"
+},
+{
+  "slug": "tcm-chemistry/stability-test",
+  "inputs": {
+    "ea": "125.14",
+    "accelTemp": "40",
+    "accelTime": "6",
+    "storageTemp": "25",
+    "accelDeg": "2.5",
+    "accelMonths": "6",
+    "interDeg": "1.0",
+    "interMonths": "12",
+    "specLimit": "10"
+  },
+  "expect": [
+    "125.1×1000"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "tcm-chemistry/structure-identification",
+  "inputs": {
+    "irInput": "3400, 2920, 1700, 1600, 1520, 1450, 1280, 1070",
+    "uvInput": "220, 270, 310",
+    "nmrInput": "12.5, 9.8, 7.5, 7.3, 6.9, 6.5, 3.8",
+    "msM": "405",
+    "msFrag": "242, 224, 152, 124, 96"
+  },
+  "expect": [
+    "(丢失163)"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "tcm-chemistry/toxicity-dose",
+  "inputs": {
+    "dose": "750",
+    "humanWeight": "60",
+    "ld50": "500"
+  },
+  "expect": [
+    "750.00"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "tcm-chemistry/compatibility-taboo",
+  "clicks": ["document.getElementById('herbA').value='乌头';document.getElementById('herbB').value='半夏';checkClassic()"],
+  "expect": ["乌头 与 半夏", "乌头组"],
+  "ref": "⚠ 该页两个 select 的选项由 initHerbs() 在 DOMContentLoaded 时填充，而 harness step-3 兜底会再调 initHerbs ⇒ inputs 字段注入会被冲回默认（甘草/甘遂）。改用 clicks 在页面作用域设值并直接调 checkClassic()（step-2.5 立即判定，不等 step-3）。注入「乌头 + 半夏」命中十八反乌头组（乌头反半夏/瓜蒌/贝母/白蔹/白及）⇒ 输出『禁止配伍！乌头 与 半夏 属于 十八反』。⚠ expect 只取『乌头 与 半夏』+『十八反』：默认态（甘草/甘遂）虽也含『十八反』，但不含『乌头 与 半夏』，判别器实测两条均会变红（OR 语义下同态需全部命中才逃生）。"
+}
+];
+async function main() {
+  const only = process.argv.slice(2);
+  const cases = only.length ? CASES.filter((c) => only.some((o) => c.slug.endsWith("/" + o) || c.slug === o)) : CASES;
+  let pass = 0; const fails = [];
+  for (const c of cases) {
+    try {
+      const r = await runCase(c);
+      if (r.ok) { pass++; }
+      else {
+        fails.push(c.slug);
+        console.log("❌ " + c.slug + "  " + (r.why || "no expect match"));
+        if (r.errs && r.errs.length) console.log("     errs: " + JSON.stringify(r.errs));
+        if (r.sample) console.log("     got: " + String(r.sample).slice(0, 300));
+      }
+    } catch (e) {
+      fails.push(c.slug);
+      console.log("❌ " + c.slug + "  THROWN: " + ((e && e.message) ? e.message : String(e)));
+    }
+  }
+
+  console.log("==== tcm-chemistry calc " + pass + "/" + cases.length + " ====");
+  if (fails.length) process.exit(1);
+}
+if (require.main === module) main();

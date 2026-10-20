@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=engineer,industry=manufacturing,icon=⚖️,bg=#059669">
+<meta name="description" content="CPK 过程能力指数是一款免费的在线制造业工具，输入规格上下限、样本均值与标准差，计算制程能力指数CPK（合格线≥1.33），评估生产过程是否满足质量要求与稳定性。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+<meta name="keywords" content="CPK过程能力计算,CPK过程能力计算在线,在线CPK过程能力计算,数学计算,制造业,CPK,过程能力指数,在线工具,免费工具,ToolBox">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://chenguangwu.github.io/tools/manufacturing/quality-control.html">
+<meta property="og:title" content="CPK 过程能力指数 - 生产过程是否满足质量要求">
+<meta property="og:description" content="CPK 过程能力指数是一款免费的在线制造业工具，输入规格上下限、样本均值与标准差，计算制程能力指数CPK（合格线≥1.33），评估生产过程是否满足质量要求与稳定性。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://chenguangwu.github.io/tools/manufacturing/quality-control.html">
+<meta name="twitter:card" content="summary">
+
+<title>CPK 过程能力指数 - 生产过程是否满足质量要求</title>
+<meta name="theme-color" content="#FF6B35">
+<link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+<link rel="icon" href="../../favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="apple-touch-icon" href="../../apple-touch-icon.png">
+<link rel="stylesheet" href="../../css/common.css">
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="../../js/common.js" defer></script>
+<style>
+.type-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:8px; margin-bottom:16px; }
+.type-btn { padding:10px 4px; background:var(--bg-card); border:1px solid var(--border-color); border-radius:8px; cursor:pointer; text-align:center; font-size:12px; }
+.type-btn.active { background:var(--primary); color:#fff; border-color:var(--primary); }
+.chart-box { position:relative; height:120px; background:var(--bg-card); border-radius:6px; margin:12px 0; padding:20px 12px 24px; }
+.dist-bar { position:absolute; bottom:24px; left:50%; transform:translateX(-50%); height:80px; width:80%; background:linear-gradient(90deg,transparent,var(--primary),transparent); border-radius:50% 50% 0 0; opacity:0.3; }
+.spec-line { position:absolute; top:20px; bottom:24px; width:2px; background:var(--danger); }
+.spec-label { position:absolute; bottom:6px; font-size:10px; color:var(--text-muted); transform:translateX(-50%); }
+.center-line { position:absolute; top:20px; bottom:24px; width:2px; background:var(--primary); left:50%; }
+.result-block { background:var(--bg-card); padding:12px; border-radius:8px; margin-bottom:8px; }
+.result-label { font-size:11px; color:var(--text-muted); }
+.result-value { font-size:18px; color:var(--primary); font-weight:bold; }
+</style>
+
+
+<script type="application/ld+json">
+{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "CPK 和 CP 有什么不同？", "acceptedAnswer": {"@type": "Answer", "text": "CP 只看公差宽度与过程离散度（潜力），不考虑均值偏移；CPK = min(CPU,CPL) 同时考虑偏移，更能反映实际能力。均值居中时 CPK=CP，偏移越大 CPK 越小。"}}, {"@type": "Question", "name": "CPK 达到多少算合格？", "acceptedAnswer": {"@type": "Answer", "text": "一般工业：CPK≥1.33 合格（推荐），≥1.67 能力过剩可放宽公差，1.0–1.33 临界需改进，<1.0 不足。汽车等行业常要求 ≥1.33 甚至 ≥1.67。"}}]}
+</script>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://chenguangwu.github.io/"},{"@type":"ListItem","position":2,"name":"制造业","item":"https://chenguangwu.github.io/tools/manufacturing/index.html"},{"@type":"ListItem","position":3,"name":"CPK 过程能力指数","item":"https://chenguangwu.github.io/tools/manufacturing/quality-control.html"}]}
+</script>
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"CPK过程能力计算","url":"https://chenguangwu.github.io/tools/manufacturing/quality-control.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"CPK 过程能力指数是一款免费的在线制造业工具，输入规格上下限、样本均值与标准差，计算制程能力指数CPK（合格线≥1.33），评估生产过程是否满足质量要求与稳定性。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+</script>
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
+
+<meta name="twitter:title" content="CPK 过程能力指数 - 生产过程是否满足质量要求">
+<meta name="twitter:description" content="CPK 过程能力指数是一款免费的在线制造业工具，输入规格上下限、样本均值与标准差，计算制程能力指数CPK（合格线≥1.33），评估生产过程是否满足质量要求与稳定性。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script src="../../js/i18n.js" defer></script>
+<script src="../../js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+<meta name="title-en" content="Quality Control">
+<meta name="desc-en" content="Quality Control - online utility on ToolBox.">
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/manufacturing/quality-control.html">
+<link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/manufacturing/quality-control.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/manufacturing/quality-control.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/manufacturing/quality-control.html">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:locale:alternate" content="zh_TW">
+<meta property="og:locale:alternate" content="en_US">
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
+
+<script src="/js/tool-ux.js" defer></script>
+<!-- TOOLBOX-TOOL-UX -->
+
+<script src="/js/analytics.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+<!-- TOOLBOX-TTZZ -->
+<script>
+(function(){try{
+var el = document.createElement("script");
+el.src = "https://lf1-cdn-tos.bytegoofy.com/goofy/ttzz/push.js?85d6452aa9be4d693b16cd48535a8c7ae57542f6788a41682e745be8eb99b35a8a24d2f724c31ebe20c1e4e6fba6d91caf576100b02a2870c72f38fc574066fef065d152c73bf1cbb2ebad3b5b5265d8";
+el.id = "ttzz";
+var s = document.getElementsByTagName("script")[0];
+s.parentNode.insertBefore(el, s);
+}catch(e){}
+})(window);
+</script>
+
+<script src="/js/tool-kit.js" defer></script>
+<!-- TOOLBOX-TOOL-KIT -->
+</head>
+<body>
+<h1 class="sr-only">CPK过程能力计算</h1>
+
+<div class="nav">
+  <a href="../../index.html">← ToolBox</a>
+  <span>/ CPK过程能力</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+
+
+
+<nav class="breadcrumb" aria-label="面包屑导航" data-breadcrumb="1">
+  <a href="../../index.html">首页</a>
+  <span class="bc-sep">‹</span>
+  <a href="index.html">🏭 制造业</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">CPK过程能力计算</span>
+</nav>
+
+<div class="tool-guide-link" data-guide-link="1">
+  <a href="../../guides/quality-control-guide.html">📖 查看「CPK 过程能力指数 使用指南」</a>
+</div>
+<div class="container">
+  <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
+    <h2 data-zh="⚖️ CPK 过程能力指数">Quality Control</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="评估制程能力,CPK≥1.33 为合格">Quality Control</p>
+    <div class="formula-box">
+      <div class="formula-title">📐 工作原理与说明</div>
+      <p class="formula-desc" data-zh="核心计算公式（按输入变量）：|(mean - M)| ÷ (T ÷ 2)；min(CPU, CPL)；(USL + LSL) ÷ 2">Key formulas: |(mean - M)| ÷ (T ÷ 2); min(CPU, CPL); (USL + LSL) ÷ 2</p>
+    </div>
+
+    <p style="font-size:13px;margin-bottom:8px;">规格类型</p>
+    <div class="type-grid" id="typeGrid"></div>
+
+    <div class="input-row">
+      <label>规格上限 (USL)</label>
+      <input type="number" id="usl" value="10.5" step="0.01">
+    </div>
+    <div class="input-row">
+      <label>规格下限 (LSL)</label>
+      <input type="number" id="lsl" value="9.5" step="0.01">
+    </div>
+    <div class="input-row">
+      <label>样本平均值</label>
+      <input type="number" id="mean" value="10.0" step="0.01">
+    </div>
+    <div class="input-row">
+      <label>样本标准差 (σ)</label>
+      <input type="number" id="stddev" value="0.15" step="0.01" min="0.0001">
+    </div>
+    <div class="input-row">
+      <label>样本数</label>
+      <input type="number" id="n" value="30" min="2">
+    </div>
+
+    <div class="toolbar">
+      <div id="quality_controlPresets"></div><button type="button" class="btn primary" onclick="calc()">⚖️ 计算 CPK</button><button class="btn" type="button" onclick="__quality_controlExport()">导出明细 CSV</button>
+    </div>
+
+    <div class="result-box" id="result">
+      <p style="text-align:center;color:var(--text-muted);">👆 输入规格与样本数据</p>
+    </div> <div id="quality_controlTable"></div> <div id="quality_controlDiff"></div> <div id="quality_controlChart"></div> <div id="quality_controlHist"></div>
+  </div>
+
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto 0;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+.deep-dive a.term-link{color:var(--tool-accent,#FF6B35);text-decoration:none;border-bottom:1px dashed currentColor;}
+.deep-dive a.term-link:hover{border-bottom-style:solid;}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：CPK 过程能力指数</h2>
+<h3>💡 常见使用场景</h3>
+<ul class="dd-list">
+<li>来料或过程质量判定时，用 CPK/CP 评估过程能力是否满足规格，决定接收或调整工艺。</li>
+<li>过程居中性核查时，用 CA 偏移系数判断均值是否偏离公差中心，指导设备/参数调校。</li>
+<li>长期稳定性监控时，用 PPK（长期）与 CPK（短期）对比，识别随时间漂移的特殊原因。</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">轴径过程能力示例</div><div class="dd-ex-body">某轴径规格 9.5–10.5mm、实测均值 10.0mm、<a class="term-link" href="/tools/it/standard-deviation.html">标准差</a> 0.1mm、样本 30 件。公差 T = 10.5−9.5 = 1.0mm；CP = 1.0÷(6×0.1) = 1.67；CPU = (10.5−10.0)÷(3×0.1) = 1.67，CPL = (10.0−9.5)÷0.3 = 1.67，CPK = min = 1.67；公差中心 10.0mm，CA = |10.0−10.0|÷(1.0÷2) = 0%（居中无偏移）；考虑<a class="term-link" href="/tools/stats/sample-size.html">样本量</a>修正的长期 PPK ≈ 1.66。结论：CPK≥1.33 能力合格且居中良好。</div></div>
+<h3>❓ 常见问题（FAQ）</h3>
+<dl class="dd-faq">
+<dt>CPK 和 CP 有什么不同？</dt><dd>CP 只看公差宽度与过程离散度（潜力），不考虑均值偏移；CPK = min(CPU,CPL) 同时考虑偏移，更能反映实际能力。均值居中时 CPK=CP，偏移越大 CPK 越小。</dd>
+<dt>CPK 达到多少算合格？</dt><dd>一般工业：CPK≥1.33 合格（推荐），≥1.67 能力过剩可放宽公差，1.0–1.33 临界需改进，&lt;1.0 不足。汽车等行业常要求 ≥1.33 甚至 ≥1.67。</dd>
+</dl>
+</div>
+</section>
+<!-- 注意事项区块 -->
+<div class="tool-notes" style="--tool-accent:#FF6B35;">
+  <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
+  <ul>
+      <li>本工具纯前端运行，数据不会上传到服务器</li>
+      <li>建议在主流浏览器（Chrome/Safari/Firefox/Edge）中使用</li>
+      <li>计算结果仅供参考，请以实际应用场景为准</li>
+  </ul>
+</div>
+<!-- /注意事项区块 -->
+</div>
+<script>
+const TYPES = [
+  { k: 'cpk', n: 'CPK 综合' },
+  { k: 'cp', n: 'CP 潜在' },
+  { k: 'ca', n: 'CA 偏移' },
+  { k: 'ppk', n: 'PPK 长期' },
+];
+let cur = 'cpk';
+function renderTypes() {
+  const __g1=TYPES.map(m =>
+    `<div class="type-btn ${m.k===cur?'active':''}" onclick="cur='${m.k}';renderTypes();">${m.n}</div>`
+  ).join('');document.getElementById('typeGrid').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
+}
+function calc() {
+  const USL = +document.getElementById('usl').value || 0;
+  const LSL = +document.getElementById('lsl').value || 0;
+  const mean = +document.getElementById('mean').value || 0;
+  const sigma = +document.getElementById('stddev').value || 0;
+  const n = +document.getElementById('n').value || 0;
+  if (sigma <= 0) { ToolBox.showToast(i18nText('toast.msg450'),'error'); return; }
+  if (USL <= LSL) { ToolBox.showToast(i18nText('toast.msg019'),'error'); return; }
+
+  const T = USL - LSL; // 公差
+  // CP 潜在能力
+  const CP = T / (6 * sigma);
+  // CPU, CPL
+  const CPU = (USL - mean) / (3 * sigma);
+  const CPL = (mean - LSL) / (3 * sigma);
+  const CPK = Math.min(CPU, CPL);
+  // CA 偏移
+  const M = (USL + LSL) / 2;
+  const CA = Math.abs(mean - M) / (T / 2);
+  // 短期 vs 长期 sigma 差异
+  const sigmaLT = sigma * Math.cbrt(n > 25 ? 1 + 1/(4*(n-1)) : 1);
+  const PPK = T / (6 * sigmaLT);
+
+  let level = '⚠️ 不足';
+  let color = '#ef4444';
+  if (CPK >= 1.67) { level = '🏆 过剩 (可放宽)'; color = '#10b981'; }
+  else if (CPK >= 1.33) { level = '✅ 合格 (推荐)'; color = '#22c55e'; }
+  else if (CPK >= 1.0) { level = '🟡 临界 (需改进)'; color = '#f59e0b'; }
+  else if (CPK >= 0.67) { level = '⚠️ 不足 (需改善)'; color = '#fb923c'; }
+  else { level = '❌ 严重不足'; color = '#ef4444'; }
+
+  // 良率估算
+  const yieldUSL = 1 - normalCdf((USL - mean) / sigma);
+  const yieldLSL = normalCdf((LSL - mean) / sigma);
+  const yieldTotal = 1 - yieldUSL - yieldLSL;
+
+  const __g2=`
+    <h3 style="text-align:center;margin-bottom:8px;">🎯 过程能力分析</h3>
+    <p style="text-align:center;font-size:12px;color:${color};margin-bottom:12px;">${level}</p>
+
+    <div class="result-block">
+      <div class="result-label">CPK (综合能力指数)</div>
+      <div class="result-value" style="color:${color};">${CPK.toFixed(3)}</div>
+    </div>
+    <div class="result-block">
+      <div class="result-label">CP (潜在能力)</div>
+      <div class="result-value">${CP.toFixed(3)}</div>
+      <p style="font-size:11px;color:var(--text-muted);margin-top:4px;">CPU=${CPU.toFixed(2)} / CPL=${CPL.toFixed(2)}</p>
+    </div>
+    <div class="result-block">
+      <div class="result-label">CA (偏移系数)</div>
+      <div class="result-value">${(CA*100).toFixed(1)}%</div>
+      <p style="font-size:11px;color:var(--text-muted);margin-top:4px;">${CA < 0.1 ? '✅ 居中良好' : '⚠️ 中心偏移'}</p>
+    </div>
+    <div class="result-block">
+      <div class="result-label">PPK (长期能力)</div>
+      <div class="result-value">${PPK.toFixed(3)}</div>
+    </div>
+    <div class="result-block">
+      <div class="result-label">理论良率</div>
+      <div class="result-value">${(yieldTotal*100).toFixed(3)}%</div>
+      <p style="font-size:11px;color:var(--text-muted);margin-top:4px;">${(yieldTotal >= 0.9999) ? '99.99% 6σ' : (yieldTotal*100).toFixed(2)+'%'}</p>
+    </div>
+
+    <div style="background:var(--bg-card);padding:12px;border-radius:8px;margin-top:8px;">
+      <h4 style="margin-bottom:6px;">📊 判定标准</h4>
+      <p style="font-size:12px;line-height:1.8;color:var(--text-secondary);">
+        CPK ≥ 1.67 : 能力过剩<br>
+        1.33 ≤ CPK < 1.67 : 能力合格<br>
+        1.00 ≤ CPK < 1.33 : 能力临界<br>
+        CPK < 1.00 : 能力不足
+      </p>
+    </div>
+  `;document.getElementById('result').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
+}
+
+// 正态分布累积函数 (近似)
+function normalCdf(z) {
+  const t = 1 / (1 + 0.2316419 * Math.abs(z));
+  const d = 0.3989423 * Math.exp(-z*z/2);
+  const p = d * t * (0.3193815 + t * (-0.3565638 + t * (1.781478 + t * (-1.821256 + t * 1.330274))));
+  return z > 0 ? 1 - p : p;
+}
+renderTypes();
+ToolBox.initToolTheme();
+</script><script>
+// tool-intro折叠交互
+document.addEventListener('DOMContentLoaded',function(){
+  var headers=document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click',function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+
+var __quality_control_last=0,__quality_control_skip=false;
+function __quality_controlSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __quality_controlResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __quality_controlTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __quality_controlRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__quality_controlTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#quality_controlTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#quality_controlDiff');
+        TBKit.history.mount('#quality_controlHist',function(rec){
+            __quality_control_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __quality_control_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__quality_controlTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#quality_controlChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __quality_controlExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__quality_control_skip) return;
+    var snap=__quality_controlSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__quality_controlResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__quality_control_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __quality_control_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __quality_controlRender(keys,rk,en);
+}
+function __quality_controlExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#quality_controlTable','quality-control.csv'); } catch(e){}
+}
+function __quality_controlPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#quality_controlPresets',[{label:'默认参数',labelEn:'Default',values:{'usl':'10.5', 'lsl':'9.5', 'mean':'10.0', 'stddev':'0.15', 'n':'30'}}],function(){ calc(); });
+}
+var __quality_control_f0=(typeof calc==='function')?calc:null;
+if(__quality_control_f0){
+    calc=function(){ var __r=__quality_control_f0.apply(null,arguments); try{ __quality_controlExtras(); }catch(e){} return __r; };
+}
+function __quality_controlBoot(){ try{ __quality_controlPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __quality_controlBoot();
+else document.addEventListener('DOMContentLoaded', __quality_controlBoot);
+</script>
+<!-- SEO 介绍区块 -->
+
+</div>
+
+</div>
+
+<!-- 相关工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相关工具</h3>
+  <div class="related-tools-grid">
+    <a href="production-efficiency.html" class="related-tool-card">
+      <span class="rt-icon">⚡</span>
+      <span class="rt-info"><span class="rt-name">OEE生产效率计算 - 免费数学计算工具，OEE 综合设备效率 | ToolBox免费在线工具箱</span><span class="rt-desc">OEE 综合设备效率</span></span>
+    </a>
+    <a href="defect-rate.html" class="related-tool-card">
+      <span class="rt-icon">🧮</span>
+      <span class="rt-info"><span class="rt-name">不良率/DPMO计算 - 免费数学计算工具，不良率与西格玛计算 | ToolBox免费在线工具箱</span><span class="rt-desc">不良率与西格玛计算</span></span>
+    </a>
+    <a href="capacity-planning.html" class="related-tool-card">
+      <span class="rt-icon">📐</span>
+      <span class="rt-info"><span class="rt-name">产能规划计算 - 免费数学计算工具，在线产能规划计算 | ToolBox免费在线工具箱</span><span class="rt-desc">产能规划计算</span></span>
+    </a>
+    <a href="inventory-calculator.html" class="related-tool-card">
+      <span class="rt-icon">🏬</span>
+      <span class="rt-info"><span class="rt-name">库存计算器 - EOQ安全库存 - 免费数学计算工具，库存计算器 | ToolBox免费在线工具箱</span><span class="rt-desc">库存计算器</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro open" id="toolIntro">
+  <div class="tool-intro-header">
+    <span class="intro-icon-wrap"><span class="intro-icon">📖</span>关于「CPK过程能力计算」</span>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="tool-intro-body">
+    <h4><span class="h4-icon">📝</span>工具简介</h4>
+    <p>CPK过程能力计算。制造业工具，帮助计算生产参数与成本。</p>
+    <h4><span class="h4-icon">✨</span>功能特点</h4>
+    <ul class="intro-features">
+      <li>支持多种生产参数</li>
+      <li>计算精准，实时显示结果</li>
+      <li>纯前端处理，数据不上传</li>
+      <li>支持手机使用，车间随时算</li>
+    </ul>
+    <h4><span class="h4-icon">🎯</span>使用场景</h4>
+    <ul class="intro-scenes">
+      <li>生产参数计算</li>
+      <li>材料成本估算</li>
+      <li>工艺流程优化</li>
+      <li>质量控制分析</li>
+    </ul>
+    </div>
+</div>
+<!-- /SEO 介绍区块 -->
+</body>
+</html>

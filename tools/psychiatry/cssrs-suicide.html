@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=finance,industry=psychiatry,icon=💭,bg=#f3e5f5">
+<title>心理危机风险筛查（C-SSRS·自评版）</title>
+<link rel="canonical" href="https://chenguangwu.github.io/tools/psychiatry/cssrs-suicide.html">
+<meta property="og:title" content="心理危机风险筛查（C-SSRS·自评版）">
+<meta property="og:description" content="心理危机风险筛查（C-SSRS·自评版）是一款免费的在线精神心理工具，基于哥伦比亚大学 C-SSRS 量表，用于筛查心理危机与自杀意念风险。纯前端运行，含 24 小时心理援助热线，请如实作答。纯前端运行、数据不上传、无需注册，打开浏览器即可">
+<meta property="og:url" content="https://chenguangwu.github.io/tools/psychiatry/cssrs-suicide.html">
+<meta name="twitter:card" content="summary">
+<meta name="description" content="心理危机风险筛查（C-SSRS·自评版）是一款免费的在线精神心理工具，基于哥伦比亚大学 C-SSRS 量表，用于筛查心理危机与自杀意念风险。纯前端运行，含 24 小时心理援助热线，请如实作答。纯前端运行、数据不上传、无需注册，打开浏览器即可">
+<meta name="theme-color" content="#FF6B35">
+<link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+<link rel="icon" href="../../favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="stylesheet" href="../../css/common.css">
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="../../js/common.js" defer></script>
+<style>
+.q-item{padding:12px 14px;border:1px solid var(--border);border-radius:12px;margin-bottom:10px;background:var(--result-bg);}
+.q-title{font-size:14px;font-weight:600;color:var(--heading);margin-bottom:8px;display:flex;gap:8px;line-height:1.5;}
+.q-num{color:var(--primary);flex-shrink:0;}
+.q-opts{display:flex;flex-wrap:wrap;gap:6px;}
+.q-opt{padding:6px 14px;border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:13px;background:var(--card-bg);transition:all .15s;user-select:none;}
+.q-opt:hover{border-color:var(--primary);color:var(--primary);}
+.q-opt.active{background:var(--gradient-primary);color:#fff;border-color:transparent;}
+.q-section{font-size:14px;font-weight:700;color:var(--secondary);margin:16px 0 8px;padding-bottom:6px;border-bottom:1px solid var(--border);}
+.sev-box{text-align:center;padding:20px;border-radius:12px;margin:12px 0;}
+.hotline{background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.3);border-radius:12px;padding:14px 16px;margin-top:12px;text-align:center;}
+.hotline .num{font-size:22px;font-weight:700;color:#EF4444;}
+/* 危机干预：不可忽略模态层 + 常驻横幅 + 中危橙条 */
+.crisis-overlay{position:fixed;inset:0;z-index:99999;display:none;align-items:center;justify-content:center;background:rgba(40,8,8,.72);padding:18px;backdrop-filter:blur(2px);}
+.crisis-overlay.show{display:flex;}
+.crisis-card{background:#fff;border-radius:18px;max-width:440px;width:100%;padding:24px 22px;text-align:center;box-shadow:0 12px 40px rgba(0,0,0,.35);border:2px solid #EF4444;max-height:92vh;overflow:auto;}
+.crisis-card .c-ico{font-size:40px;line-height:1;margin-bottom:6px;}
+.crisis-card h3{font-size:19px;color:#B91C1C;margin:4px 0 10px;font-weight:800;}
+.crisis-card .c-sub{font-size:14px;color:#374151;margin-bottom:14px;}
+.crisis-nums{display:flex;flex-direction:column;gap:10px;align-items:center;margin:6px 0 4px;}
+.crisis-num{display:inline-block;font-size:24px;font-weight:800;color:#fff;background:linear-gradient(135deg,#EF4444,#F97316);padding:10px 18px;border-radius:12px;text-decoration:none;letter-spacing:.5px;}
+.crisis-num:active{transform:scale(.98);}
+.crisis-life{font-size:15px;color:#B91C1C;font-weight:700;margin-top:8px;}
+.crisis-life a{color:#B91C1C;text-decoration:underline;}
+.crisis-emerg{font-size:13px;color:#7F1D1D;background:rgba(239,68,68,.10);border-radius:10px;padding:10px;margin:14px 0 4px;line-height:1.7;}
+.crisis-btn{margin-top:14px;width:100%;padding:13px 0;border:none;border-radius:12px;background:#B91C1C;color:#fff;font-size:16px;font-weight:700;cursor:pointer;}
+.crisis-btn:active{background:#991B1B;}
+.crisis-banner{display:none;background:linear-gradient(135deg,#FEF2F2,#FFF7ED);border:1px solid #FCA5A5;border-left:5px solid #EF4444;border-radius:12px;padding:12px 14px;margin:14px 0 0;font-size:14px;color:#7F1D1D;line-height:1.7;}
+.crisis-banner.show{display:block;}
+.crisis-banner a{color:#B91C1C;font-weight:700;text-decoration:none;}
+.crisis-banner a:hover{text-decoration:underline;}
+.mid-banner{display:none;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.5);border-left:5px solid #F59E0B;border-radius:12px;padding:11px 14px;margin:14px 0 0;font-size:14px;color:#92400E;line-height:1.7;}
+.mid-banner.show{display:block;}
+.mid-banner a{color:#B45309;font-weight:700;text-decoration:none;}
+@media(max-width:600px){
+  .crisis-card{padding:20px 16px;}
+  .crisis-num{font-size:21px;padding:10px 14px;}
+  .crisis-card h3{font-size:17px;}
+}
+</style>
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
+    <meta property="og:type" content="website">
+    <meta name="twitter:title" content="心理危机风险筛查（C-SSRS·自评版）">
+    <meta name="twitter:description" content="心理危机风险筛查（C-SSRS·自评版）是一款免费的在线精神心理工具，基于哥伦比亚大学 C-SSRS 量表，用于筛查心理危机与自杀意念风险。纯前端运行，含 24 小时心理援助热线，请如实作答。纯前端运行、数据不上传、无需注册，打开浏览器即可">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"心理危机风险筛查（C-SSRS·自评版）","url":"https://chenguangwu.github.io/tools/psychiatry/cssrs-suicide.html","applicationCategory":"FinanceApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"心理危机风险筛查（C-SSRS·自评版）是一款免费的在线精神心理工具，基于哥伦比亚大学 C-SSRS 量表，用于筛查心理危机与自杀意念风险。纯前端运行，含 24 小时心理援助热线，请如实作答。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://chenguangwu.github.io/"},{"@type":"ListItem","position":2,"name":"精神心理","item":"https://chenguangwu.github.io/tools/psychiatry/index.html"},{"@type":"ListItem","position":3,"name":"心理危机风险筛查（C-SSRS·自评版）","item":"https://chenguangwu.github.io/tools/psychiatry/cssrs-suicide.html"}]}
+</script>
+
+<script src="../../js/i18n.js" defer></script>
+<script src="../../js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+
+<meta name="title-en" content="Cssrs Suicide">
+<meta name="desc-en" content="Cssrs Suicide - online utility on ToolBox.">
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/psychiatry/cssrs-suicide.html">
+<link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/psychiatry/cssrs-suicide.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/psychiatry/cssrs-suicide.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/psychiatry/cssrs-suicide.html">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:locale:alternate" content="zh_TW">
+<meta property="og:locale:alternate" content="en_US">
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
+
+<script src="/js/tool-ux.js" defer></script>
+<!-- TOOLBOX-TOOL-UX -->
+
+<script src="/js/analytics.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+<!-- TOOLBOX-TTZZ -->
+<script>
+(function(){try{
+var el = document.createElement("script");
+el.src = "https://lf1-cdn-tos.bytegoofy.com/goofy/ttzz/push.js?85d6452aa9be4d693b16cd48535a8c7ae57542f6788a41682e745be8eb99b35a8a24d2f724c31ebe20c1e4e6fba6d91caf576100b02a2870c72f38fc574066fef065d152c73bf1cbb2ebad3b5b5265d8";
+el.id = "ttzz";
+var s = document.getElementsByTagName("script")[0];
+s.parentNode.insertBefore(el, s);
+}catch(e){}
+})(window);
+</script>
+
+<script src="/js/tool-kit.js" defer></script>
+<!-- TOOLBOX-TOOL-KIT -->
+</head>
+<body>
+<h1 class="sr-only">心理危机风险筛查（C-SSRS·自评版）</h1>
+
+<div class="nav">
+  <a href="../../index.html">← ToolBox</a>
+  <span>/ 心理危机风险筛查（C-SSRS·自评版）</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+<nav class="breadcrumb" aria-label="面包屑导航" data-breadcrumb="1">
+  <a href="../../index.html">首页</a>
+  <span class="bc-sep">‹</span>
+  <a href="index.html">🧠 精神心理</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">心理危机风险筛查（C-SSRS·自评版）</span>
+</nav>
+<div class="container">
+  <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
+    <h2 data-zh="💭 心理危机风险筛查（C-SSRS·自评版）">Cssrs Suicide</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="哥伦比亚自杀严重程度评定量表(C-SSRS)筛查版，评估自杀意念的严重程度及自杀行为史。本工具用于风险筛查参考，请如实作答。">Cssrs Suicide</p>
+<div class="formula-box">
+  <div class="formula-title">📐 工作原理与说明</div>
+  
+</div>
+
+    <div id="quiz"></div>
+    <div class="toolbar">
+      <button type="button" class="btn primary" onclick="calc()">评估风险</button>
+      <button type="button" class="btn" onclick="resetQuiz()">重置</button>
+      <button type="button" class="btn" onclick="copyResult()">复制结果</button>
+    </div>
+        <div class="crisis-banner" id="crisisBanner">
+      🆘 <strong>高风险提示：</strong>请立即拨打 24 小时心理援助热线 <a href="tel:4001619995">400-161-9995</a> 或 <a href="tel:01082951332">010-82951332</a>，生命热线 <a href="tel:4008211215">400-821-1215</a>；如情况紧急，请前往最近医院急诊或拨打 120。
+    </div>
+    <div class="mid-banner" id="midBanner">
+      建议尽快联系心理专业人员，热线：<a href="tel:4001619995">400-161-9995</a>
+    </div>
+    <div class="result-box" id="result"></div>
+    <div class="toolbar" style="margin-top:10px;flex-wrap:wrap;">
+      <button type="button" class="btn" onclick="__cssrsExport()">⬇️ 导出 C-SSRS 风险筛查 CSV</button>
+      <span style="font-size:13px;color:var(--text-muted);margin:0 4px;">场景预设：</span>
+      <button type="button" class="btn" onclick="applyCssrsPreset('low')">极低危示例</button>
+      <button type="button" class="btn" onclick="applyCssrsPreset('high')">高危示例</button>
+    </div>
+    <table id="cssrsTable" class="result-table" style="width:100%;margin-top:10px;display:none;">
+      <thead></thead>
+      <tbody></tbody>
+    </table>
+    <div id="cssrsHistory" style="margin-top:10px;"></div>
+    <div class="crisis-overlay" id="crisisModal" role="alertdialog" aria-modal="true" aria-labelledby="crisisTitle">
+      <div class="crisis-card">
+        <div class="c-ico">🆘</div>
+        <h3 id="crisisTitle">您当前评估结果为高风险</h3>
+        <p class="c-sub">请立即拨打 24 小时心理援助热线：</p>
+        <div class="crisis-nums">
+          <a class="crisis-num" href="tel:4001619995">400-161-9995</a>
+          <span style="font-size:13px;color:#6B7280;">或</span>
+          <a class="crisis-num" href="tel:01082951332">010-82951332</a>
+          <div class="crisis-life">生命热线：<a href="tel:4008211215">400-821-1215</a></div>
+        </div>
+        <p class="crisis-emerg">如情况紧急，请前往最近医院急诊或拨打 120。</p>
+        <button type="button" class="crisis-btn" onclick="closeCrisisModal()">我已知晓</button>
+      </div>
+    </div>
+
+    <div class="tip-box tip-warn" style="margin-top:12px;">自杀风险评估须由专业人员完成，本工具仅为筛查参考。如您或他人正面临危机，请立即拨打24小时心理援助热线：<strong>400-161-9995</strong>（北京心理危机研究与干预中心 <strong>010-82951332</strong>），或前往最近医院急诊。</div>
+  </div>
+
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto 0;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+.deep-dive a.term-link{color:var(--tool-accent,#FF6B35);text-decoration:none;border-bottom:1px dashed currentColor;}
+.deep-dive a.term-link:hover{border-bottom-style:solid;}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：心理危机风险筛查（C-SSRS）自评版</h2>
+<h3>💡 常见使用场景</h3>
+<ul class="dd-list">
+<li>自杀意念分级</li>
+<li>自杀行为识别</li>
+<li>紧急风险分层</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">意念等级 3 无行为</div><div class="dd-ex-body">意念 5 级连续「是」至第 3 级（伴方法的意念）但第 4–5 级否；行为 4 项全否 → 中危，尽快专业介入并去风险化。</div></div>
+<div class="dd-example"><div class="dd-ex-title">高危（有实际尝试）</div><div class="dd-ex-body">意念全否或至第 5 级，行为第 4 项「实际尝试=是」且近 3 个月 → 高危，立即危机干预与监护。</div></div>
+<h3>❓ 常见问题（FAQ）</h3>
+<dl class="dd-faq">
+<dt>如何分层？</dt><dd>按意念最高级别与是否存在行为（准备/非自杀性自伤/尝试）组合：无行为且低意念为低危，伴方法或行为即升中/高危。</dd>
+<dt>谁来评估？</dt><dd>建议在专业人员指导下完成；自评结果仅供筛查参考，若提示中/高危请立即联系专业人员，或拨打 24 小时心理援助热线 400-161-9995。</dd>
+</dl>
+</div>
+</section>
+<!-- 注意事项区块 -->
+<div class="tool-notes" style="--tool-accent:#FF6B35;">
+  <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
+  <ul>
+      <li>本工具纯前端运行，数据不会上传到服务器</li>
+      <li>建议在主流浏览器（Chrome/Safari/Firefox/Edge）中使用</li>
+      <li>计算结果仅供参考，请以实际应用场景为准</li>
+  </ul>
+</div>
+<!-- /注意事项区块 -->
+</div>
+<script>
+var YN=['是','否'];
+var IDE=[
+'您是否曾希望自己已经死去，或希望自己睡过去后不再醒来？',
+'您是否真的有过结束自己生命的想法？',
+'您是否想过具体要怎样结束自己的生命？',
+'您是否有过这些想法，并且已有某种程度的行动意图？',
+'您是否已经开始设想或已设想过具体的自杀计划，并打算付诸实施？'
+];
+var BEH=[
+['准备行为','您是否曾为结束生命做过任何准备（如收集药物、获取工具、写遗嘱、分发财物等）？'],
+['中断的尝试','您是否曾开始实施自杀行为，但被自己或他人中途阻止/打断？'],
+['放弃的尝试','您是否曾开始实施自杀行为，但在未造成伤害前自己停止？'],
+['实际尝试','您是否曾实际实施过自杀尝试（有意结束生命的行为）？']
+];
+var I=new Array(IDE.length).fill(-1);
+var B=new Array(BEH.length).fill(-1);
+var RECENT=-1; // 实际尝试是否近3个月
+function render(){
+  var h='<div class="q-section">第一部分 · 自杀意念</div>';
+  IDE.forEach(function(q,i){
+    h+='<div class="q-item"><div class="q-title"><span class="q-num">'+(i+1)+'</span><span>'+q+'</span></div><div class="q-opts">';
+    YN.forEach(function(o,j){h+='<span class="q-opt'+(I[i]===j?' active':'')+'" onclick="pickI('+i+','+j+')">'+o+'</span>';});
+    h+='</div></div>';
+  });
+  h+='<div class="q-section">第二部分 · 自杀行为（终生）</div>';
+  BEH.forEach(function(b,i){
+    h+='<div class="q-item" id="bitem'+i+'"><div class="q-title"><span class="q-num">'+(i+1)+'</span><span>'+b[1]+'</span></div><div class="q-opts">';
+    YN.forEach(function(o,j){h+='<span class="q-opt'+(B[i]===j?' active':'')+'" onclick="pickB('+i+','+j+')">'+o+'</span>';});
+    h+='</div></div>';
+  });
+  h+='<div class="q-item" id="recentItem" style="display:none;"><div class="q-title"><span>最近一次实际尝试是否在过去3个月内？</span></div><div class="q-opts">';
+  YN.forEach(function(o,j){h+='<span class="q-opt'+(RECENT===j?' active':'')+'" onclick="pickR('+j+')">'+o+'</span>';});
+  h+='</div></div>';
+  const __g1=h;document.getElementById('quiz').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
+}
+function pickI(i,j){I[i]=j;var its=document.querySelectorAll('.q-item');[].forEach.call(its[i].querySelectorAll('.q-opt'),function(el,idx){el.classList.toggle('active',idx===j);});calc();}
+function pickB(i,j){
+  B[i]=j;
+  var its=document.querySelectorAll('.q-item');
+  var idx=IDE.length+i;
+  [].forEach.call(its[idx].querySelectorAll('.q-opt'),function(el,k){el.classList.toggle('active',k===j);});
+  // show recent follow-up if actual attempt yes
+  if(i===3){
+    document.getElementById('recentItem').style.display=(j===0)?'block':'none';
+    if(j!==0)RECENT=-1;
+  }
+  calc();
+}
+function pickR(j){RECENT=j;var its=document.querySelectorAll('.q-item');var row=document.getElementById('recentItem');[].forEach.call(row.querySelectorAll('.q-opt'),function(el,k){el.classList.toggle('active',k===j);});calc();}
+function showCrisisModal(){
+  var m=document.getElementById('crisisModal');
+  if(m){m.classList.add('show');document.body.style.overflow='hidden';}
+}
+function closeCrisisModal(){
+  var m=document.getElementById('crisisModal');
+  if(m){m.classList.remove('show');document.body.style.overflow='';}
+}
+function setCrisisUI(isHigh,isMid){
+  var b=document.getElementById('crisisBanner'), mi=document.getElementById('midBanner');
+  if(b)b.classList.toggle('show',!!isHigh);
+  if(mi)mi.classList.toggle('show',!!isMid);
+  if(!isHigh)closeCrisisModal();
+}
+function resetQuiz(){I=new Array(IDE.length).fill(-1);B=new Array(BEH.length).fill(-1);RECENT=-1;render();document.getElementById('result').innerHTML='';setCrisisUI(false,false);}
+function calc(){
+  var doneI=I.filter(function(v){return v>=0;}).length;
+  var doneB=B.filter(function(v){return v>=0;}).length;
+  if(doneI<IDE.length||doneB<BEH.length||(B[3]===0&&RECENT<0)){
+    const __g3='<div class="tip-box tip-info">请完成全部问题'+(B[3]===0?'（含最近尝试时间）':'')+'。</div>';document.getElementById('result').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
+    setCrisisUI(false,false);
+    return;
+  }
+  // ideation severity: highest index answered 是(0) ; severity = highest "yes"
+  var ideSev=0;
+  for(var k=0;k<IDE.length;k++){if(I[k]===0)ideSev=k+1;else break;}
+  // Actually severity is the highest yes among 1-5
+  var highestYes=0;
+  for(k=0;k<IDE.length;k++){if(I[k]===0)highestYes=k+1;}
+  var anyBeh=B.some(function(v){return v===0;});
+  var actualAttempt=B[3]===0;
+  var recent=RECENT===0;
+  var risk,color,desc;
+  if(anyBeh){
+    if(actualAttempt&&recent){risk='极高危';color='#991B1B';desc='近期（3个月内）存在自杀尝试，属极高风险，需立即危机干预与一对一监护。';}
+    else if(actualAttempt){risk='高危';color='#EF4444';desc='存在自杀尝试史，属高风险，需专业评估与安全计划。';}
+    else {risk='高危';color='#EF4444';desc='存在准备行为/中断或放弃的尝试，属高风险，需立即专业评估。';}
+  }else{
+    if(highestYes>=4){risk='高危';color='#EF4444';desc='存在伴意图/计划的自杀意念，属高风险，需立即专业评估与安全计划。';}
+    else if(highestYes===3){risk='中危';color='#F59E0B';desc='存在伴方法的自杀意念但无明显意图，属中度风险，建议尽快寻求专业帮助。';}
+    else if(highestYes>=1){risk='低危';color='#84CC16';desc='存在被动或主动的自杀意念但无方法/意图，属低风险，建议关注并寻求支持。';}
+    else {risk='极低危';color='#10B981';desc='目前未发现自杀意念与行为，风险极低，但仍建议持续关注情绪状态。';}
+  }
+  const __g4='<div class="sev-box" style="background:'+color+'1a;border:1px solid '+color+'55;">'+
+    '<div style="font-size:34px;font-weight:700;color:'+color+';">'+risk+'</div>'+
+    '<div style="font-size:14px;color:var(--text-light);margin-top:6px;">最高意念等级 '+highestYes+'/5 · 自杀行为：'+(anyBeh?'有':'无')+'</div></div>'+
+    '<div class="stat-grid">'+
+    '<div class="stat-card"><div class="val" style="color:'+color+';">'+highestYes+'</div><div class="lbl">意念等级(0-5)</div></div>'+
+    '<div class="stat-card"><div class="val" style="color:'+(anyBeh?'#EF4444':'#10B981')+';">'+(anyBeh?'有':'无')+'</div><div class="lbl">自杀行为</div></div>'+
+    '<div class="stat-card"><div class="val" style="color:'+(actualAttempt?'#EF4444':'#10B981')+';">'+(actualAttempt?'有':'无')+'</div><div class="lbl">实际尝试</div></div>'+
+    '</div>'+
+    '<div class="info-box"><strong>评估结论：</strong>'+desc+'</div>'+
+    (risk.indexOf('高')>=0||risk.indexOf('极高')>=0?'<div class="hotline"><div>立即寻求专业帮助 · 24小时心理援助热线</div><div class="num">400-161-9995</div><div style="font-size:12px;color:var(--text-muted);margin-top:4px;">北京心理危机研究与干预中心 010-82951332 · 生命热线 400-821-1215 · 或前往最近医院急诊</div></div>':'');document.getElementById('result').innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
+  var isHigh=risk.indexOf('高')>=0||risk.indexOf('极高')>=0;
+  var isMid=(!isHigh&&risk.indexOf('中')>=0);
+  setCrisisUI(isHigh,isMid);
+  if(isHigh)showCrisisModal();
+}
+var __CSS_RISK_EN={'极低危':'Very low','低危':'Low','中危':'Moderate','高危':'High','极高危':'Very high'};
+function __cssrsEval(){
+  var highestYes=0;
+  for(var k=0;k<IDE.length;k++){if(I[k]===0)highestYes=k+1;}
+  var anyBeh=B.some(function(v){return v===0;});
+  var actualAttempt=B[3]===0;
+  var recent=RECENT===0;
+  var risk,desc,descEn;
+  if(anyBeh){
+    if(actualAttempt&&recent){risk='极高危';desc='近期（3个月内）存在自杀尝试，属极高风险，需立即危机干预与一对一监护。';descEn='Suicide attempt within the last 3 months - very high risk; immediate crisis intervention and one-to-one monitoring are required.';}
+    else if(actualAttempt){risk='高危';desc='存在自杀尝试史，属高风险，需专业评估与安全计划。';descEn='History of suicide attempt - high risk; professional assessment and a safety plan are needed.';}
+    else {risk='高危';desc='存在准备行为/中断或放弃的尝试，属高风险，需立即专业评估。';descEn='Preparatory behaviour or interrupted/aborted attempt - high risk; urgent professional assessment is needed.';}
+  }else{
+    if(highestYes>=4){risk='高危';desc='存在伴意图/计划的自杀意念，属高风险，需立即专业评估与安全计划。';descEn='Suicidal ideation with intent or plan - high risk; immediate professional assessment and a safety plan are needed.';}
+    else if(highestYes===3){risk='中危';desc='存在伴方法的自杀意念但无明显意图，属中度风险，建议尽快寻求专业帮助。';descEn='Suicidal ideation with a method but no clear intent - moderate risk; seek professional help promptly.';}
+    else if(highestYes>=1){risk='低危';desc='存在被动或主动的自杀意念但无方法/意图，属低风险，建议关注并寻求支持。';descEn='Passive or active suicidal ideation without method or intent - low risk; monitor and seek support.';}
+    else {risk='极低危';desc='目前未发现自杀意念与行为，风险极低，但仍建议持续关注情绪状态。';descEn='No suicidal ideation or behaviour identified; risk is very low, but continued attention to mood is advised.';}
+  }
+  return {highestYes:highestYes,anyBeh:anyBeh,actualAttempt:actualAttempt,recent:recent,risk:risk,desc:desc,descEn:descEn};
+}
+function __cssrsExport(){
+  if(typeof TBKit==='undefined')return;
+  var en=TBKit.util.isEn();
+  var doneI=I.filter(function(v){return v>=0;}).length;
+  var doneB=B.filter(function(v){return v>=0;}).length;
+  if(doneI<IDE.length||doneB<BEH.length||(B[3]===0&&RECENT<0)){
+    ToolBox.showToast(en?'Please complete all questions first':'请先完成全部问题','warning');return;
+  }
+  var r=__cssrsEval();
+  var t=document.getElementById('cssrsTable');if(!t)return;
+  var tb=t.querySelector('tbody');tb.innerHTML='';
+  var th=t.querySelector('thead');if(th)th.innerHTML='<tr><th>'+(en?'Item':'题号')+'</th><th>'+(en?'Question':'题目')+'</th><th>'+(en?'Answer':'回答')+'</th></tr>';
+  function row(){var rr=document.createElement('tr');for(var i=0;i<arguments.length;i++){var c=document.createElement('td');c.textContent=arguments[i];rr.appendChild(c);}tb.appendChild(rr);return rr;}
+  IDE.forEach(function(q,i){row((i+1),q,en?(I[i]===0?'Yes':'No'):YN[I[i]]);});
+  BEH.forEach(function(b,i){row('B'+(i+1),b[1],en?(B[i]===0?'Yes':'No'):YN[B[i]]);});
+  if(B[3]===0){row('R1',en?'Was the most recent actual attempt within the past 3 months?':'最近一次实际尝试是否在过去3个月内？',en?(RECENT===0?'Yes':'No'):YN[RECENT]);}
+  row(en?'Ideation level (0-5)':'意念等级(0-5)','',r.highestYes);
+  row(en?'Suicidal behaviour':'自杀行为','',en?(r.anyBeh?'Yes':'No'):(r.anyBeh?'有':'无'));
+  row(en?'Actual attempt':'实际尝试','',en?(r.actualAttempt?'Yes':'No'):(r.actualAttempt?'有':'无'));
+  row(en?'Risk level':'风险等级','',en?(__CSS_RISK_EN[r.risk]||r.risk):r.risk);
+  row(en?'Conclusion':'评估结论','',en?r.descEn:r.desc);
+  t.style.display='';
+  TBKit.util.exportTable('#cssrsTable','cssrs_risk.csv');
+}
+function __cssrsExtras(){
+  if(typeof TBKit==='undefined')return;
+  var doneI=I.filter(function(v){return v>=0;}).length;
+  var doneB=B.filter(function(v){return v>=0;}).length;
+  if(doneI<IDE.length||doneB<BEH.length||(B[3]===0&&RECENT<0))return;
+  var r=__cssrsEval();
+  TBKit.history.record({answered:doneI+doneB,score:r.highestYes,level:r.risk,ans:I.join(','),ans2:B.join(','),recent:RECENT},3000);
+  __cssrsMountHist();
+}
+function __cssrsMountHist(){
+  if(typeof TBKit==='undefined')return;
+  TBKit.history.mount('#cssrsHistory',function(rec){
+    if(typeof rec.ans!=='string'||!rec.ans||typeof rec.ans2!=='string'||!rec.ans2)return;
+    I=rec.ans.split(',').map(function(x){return parseInt(x,10);});
+    B=rec.ans2.split(',').map(function(x){return parseInt(x,10);});
+    RECENT=(typeof rec.recent==='number')?rec.recent:-1;
+    render();calc();
+  },8);
+}
+function applyCssrsPreset(kind){
+  I=new Array(IDE.length).fill(1);
+  B=new Array(BEH.length).fill(1);
+  RECENT=-1;
+  if(kind==='high'){B[0]=0;}
+  var ri=document.getElementById('recentItem');if(ri)ri.style.display='none';
+  render();calc();
+}
+function copyResult(){
+  var doneI=I.filter(function(v){return v>=0;}).length;
+  if(doneI<IDE.length){ToolBox.showToast(i18nText(), 'warning');return;}
+  var highestYes=0;for(var k=0;k<IDE.length;k++){if(I[k]===0)highestYes=k+1;}
+  ToolBox.copyText('C-SSRS 自杀风险筛查：意念等级 '+highestYes+'/5，自杀行为'+(B.some(function(v){return v===0;})?'有':'无'), i18nText('toast.msg544'));
+}
+var __cssrs0=calc; calc=function(){__cssrs0(); __cssrsExtras();};
+render();calc(); __cssrsMountHist();
+</script>
+
+<!-- SEO 介绍区块 -->
+
+</div>
+
+</div>
+
+<!-- 相关工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相关工具</h3>
+  <div class="related-tools-grid">
+    <a href="ybocs-ocd.html" class="related-tool-card">
+      <span class="rt-icon">💭</span>
+      <span class="rt-info"><span class="rt-name">强迫(Y-BOCS)严重度评估器 - 耶鲁-布朗强迫症量表(Y-BOCS)自评版</span><span class="rt-desc">强迫(Y-BOCS)严重度评估器</span></span>
+    </a>
+    <a href="pdss-panic.html" class="related-tool-card">
+      <span class="rt-icon">💭</span>
+      <span class="rt-info"><span class="rt-name">恐慌(PDSS)严重度评估器 - 惊恐障碍严重度量表(PDSS)自评版</span><span class="rt-desc">恐慌(PDSS)严重度评估器</span></span>
+    </a>
+    <a href="gad7-anxiety.html" class="related-tool-card">
+      <span class="rt-icon">💭</span>
+      <span class="rt-info"><span class="rt-name">焦虑(GAD-7)广泛性评估器 - 根据过去两周内的感受自评7个焦虑症状条目</span><span class="rt-desc">焦虑(GAD-7)广泛性评估器</span></span>
+    </a>
+    <a href="cage-substance.html" class="related-tool-card">
+      <span class="rt-icon">💭</span>
+      <span class="rt-info"><span class="rt-name">物质依赖(CAGE)问卷器 - CAGE问卷，筛查酒精使用障碍</span><span class="rt-desc">物质依赖(CAGE)问卷器</span></span>
+    </a>
+    <a href="panss-schizophrenia.html" class="related-tool-card">
+      <span class="rt-icon">💭</span>
+      <span class="rt-info"><span class="rt-name">精神分裂(PANSS)阳性阴性评估器 - 阳性与阴性症状量表(PANSS)评分计算器</span><span class="rt-desc">精神分裂(PANSS)阳性阴性评估器</span></span>
+    </a>
+    <a href="eat26-eating.html" class="related-tool-card">
+      <span class="rt-icon">📋</span>
+      <span class="rt-info"><span class="rt-name">进食(EAT-26)饮食态度评估器 - 进食态度测试(EAT-26)</span><span class="rt-desc">进食(EAT-26)饮食态度评估器</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro open" id="toolIntro">
+  <div class="tool-intro-header">
+    <span class="intro-icon-wrap"><span class="intro-icon">📖</span>关于「心理危机风险筛查（C-SSRS·自评版）」</span>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="tool-intro-body">
+    <h4><span class="h4-icon">📝</span>工具简介</h4>
+    <p>心理危机风险筛查（C-SSRS·自评版）。医疗专业工具，基于权威医学标准，仅供参考。</p>
+    <h4><span class="h4-icon">✨</span>功能特点</h4>
+    <ul class="intro-features">
+      <li>基于权威医学标准</li>
+      <li>支持多种临床参数</li>
+      <li>实时计算，结果即时显示</li>
+      <li>医疗数据不上传，保护隐私</li>
+    </ul>
+    <h4><span class="h4-icon">🎯</span>使用场景</h4>
+    <ul class="intro-scenes">
+      <li>临床计算与评估辅助</li>
+      <li>医学学习与考试备考</li>
+      <li>科研数据分析</li>
+      <li>健康监测参考</li>
+    </ul>
+    </div>
+</div>
+<!-- /SEO 介绍区块 -->
+
+<script>
+// tool-intro折叠交互
+document.addEventListener('DOMContentLoaded',function(){
+  var headers=document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click',function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+</script>
+
+</body>
+</html>

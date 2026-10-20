@@ -1,0 +1,151 @@
+#!/usr/bin node
+"use strict";
+const { runCase } = require("./verify_it_calc.js");
+const CASES = [
+{
+"slug": "quality/convert-qualified-defect",
+"inputs": {
+"val": "2.5",
+"unit": "pct"
+},
+"expect": [
+"25000.00 PPM"
+],
+"ref": "重做为真实换算器后复算：2.5% × 10 000 = 25000.00 PPM（小数 0.025、千分率 25）；默认 0.35% 得 3500.00 PPM ⇒ 注入失败即不命中"
+},
+{
+  "slug": "quality/ppm-calculator",
+  "inputs": {
+    "defect": "15",
+    "total": "8000",
+    "pct": "0.15",
+    "rate": "0.0015",
+    "ppm": "1500",
+    "dpmo": "1500"
+  },
+  "expect": [
+    "0.001875"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "quality/process-capability",
+  "inputs": {
+    "usl": "13.5",
+    "lsl": "9.5",
+    "mean": "10.0",
+    "sigma": "0.1",
+    "usl2": "10.5",
+    "lsl2": "9.5",
+    "dataInput": "10.1, 9.9, 10.0, 10.2, 9.8, 10.0, 10.05, 9.95, 10.1, 9.9"
+  },
+  "expect": [
+    "100.0000%"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "quality/six-sigma",
+  "inputs": {
+    "dpmo": "6210",
+    "yield": "99.379",
+    "st": "7"
+  },
+  "expect": [
+    "3.4008"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "quality/calc-cpk",
+  "inputs": {
+    "usl_m": "15.5",
+    "lsl_m": "9.5",
+    "mean_m": "10.0",
+    "sd_m": "0.1",
+    "usl_d": "10.5",
+    "lsl_d": "9.5",
+    "rawData": "10.1\n9.9\n10.0\n10.2\n9.8\n10.0\n10.1\n9.9\n10.0\n10.1\n9.9\n10.0"
+  },
+  "expect": [
+    "15.5"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "quality/estimate-six-sigma",
+  "inputs": {
+    "dpmo": "9315",
+    "defects": "62",
+    "units": "10000",
+    "opps": "1"
+  },
+  "expect": [
+    "9315"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "quality/table-sampling",
+  "inputs": {
+    "kw": "zzzz"
+  },
+  "clicks": ["search()"],
+  "expect": [
+    "未找到匹配项"
+  ],
+  "ref": "search() 在 kw 为空时输出 DATA 全量 ⇒ 任何具体编号（A01 等）在默认态都命中 ⇒ 只能反向锚"
+     + "「未找到匹配项」。注入不存在的关键词 zzzz ⇒ results 为空 ⇒ 输出该提示；默认态 DATA 非空、永不出现。"
+     + "原 expect「A01」即默认全量表的首行编号，典型逃生项。",
+}
+,
+{
+    "slug": "quality/ppm-calculator",
+    "inputs": {
+      "defect": "1",
+      "total": "1000000"
+    },
+    "expect": [
+      "1 / 1,000,000",
+      "1.00 PPM"
+    ],
+    "ref": "缺陷数 1 ÷ 总数 1,000,000 = 1 PPM（百万分之一）。页面输出 '1.00 PPM' 与 '1 / 1,000,000'。默认态 defect/total 为其他值，不出现该精确组合。"
+  },
+  {
+    "slug": "quality/control-chart",
+    "inputs": {
+      "means": "abc123测试",
+      "n": "42",
+      "sigma": "42"
+    },
+    "expect": [
+      "9.86, 22.99, 23.75, 21.69, 11.59, -23.03, -10.68, 54.41, 25.27, 1.43, 92.94, 73.46, 49.88, 85.22, 122.14\n42\n4"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"means\":\"abc123测试\",\"n\":\"42\",\"sigma\":\"42\"}，输出区含「9.86, 22.99, 23.75, 21.69, 11.59, -23.03…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  }
+
+];
+async function main() {
+  const only = process.argv.slice(2);
+  const cases = only.length ? CASES.filter((c) => only.some((o) => c.slug.endsWith("/" + o) || c.slug === o)) : CASES;
+  let pass = 0; const fails = [];
+  for (const c of cases) {
+    try {
+      const r = await runCase(c);
+      if (r.ok) { pass++; }
+      else {
+        fails.push(c.slug);
+        console.log("❌ " + c.slug + "  " + (r.why || "no expect match"));
+        if (r.errs && r.errs.length) console.log("     errs: " + JSON.stringify(r.errs));
+        if (r.sample) console.log("     got: " + String(r.sample).slice(0, 300));
+      }
+    } catch (e) {
+      fails.push(c.slug);
+      console.log("❌ " + c.slug + "  THROWN: " + ((e && e.message) ? e.message : String(e)));
+    }
+  }
+
+  console.log("==== quality calc " + pass + "/" + cases.length + " ====");
+  if (fails.length) process.exit(1);
+}
+if (require.main === module) main();

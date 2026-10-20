@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=dev,industry=ai,icon=🖼️,bg=#ede9fe">
+<title>温度缩放 Softmax - 理解温度对概率平滑度的影响</title>
+<link rel="canonical" href="https://chenguangwu.github.io/tools/ai/softmax-2.html">
+<link rel="stylesheet" href="../../css/common.css">
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="../../js/common.js" defer></script>
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
+    <meta name="description" content="温度缩放 Softmax是一款免费的在线AI 人工智能工具，温度缩放 Softmax 观察器，输入 logits 与温度参数观察分布尖锐程度变化，理解温度对概率平滑度的影响。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+    <meta property="og:title" content="温度缩放 Softmax - 理解温度对概率平滑度的影响">
+    <meta property="og:description" content="温度缩放 Softmax是一款免费的在线AI 人工智能工具，温度缩放 Softmax 观察器，输入 logits 与温度参数观察分布尖锐程度变化，理解温度对概率平滑度的影响。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://chenguangwu.github.io/tools/ai/softmax-2.html">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="温度缩放 Softmax - 理解温度对概率平滑度的影响">
+    <meta name="twitter:description" content="温度缩放 Softmax是一款免费的在线AI 人工智能工具，温度缩放 Softmax 观察器，输入 logits 与温度参数观察分布尖锐程度变化，理解温度对概率平滑度的影响。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"温度缩放 Softmax","url":"https://chenguangwu.github.io/tools/ai/softmax-2.html","applicationCategory":"DeveloperApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"温度缩放 Softmax是一款免费的在线AI 人工智能工具，温度缩放 Softmax 观察器，输入 logits 与温度参数观察分布尖锐程度变化，理解温度对概率平滑度的影响。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://chenguangwu.github.io/"},{"@type":"ListItem","position":2,"name":"AI 人工智能","item":"https://chenguangwu.github.io/tools/ai/index.html"},{"@type":"ListItem","position":3,"name":"温度缩放 Softmax","item":"https://chenguangwu.github.io/tools/ai/softmax-2.html"}]}
+</script>
+
+<script src="../../js/i18n.js" defer></script>
+<script src="../../js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+
+
+<meta name="title-en" content="Temperature Scaling Softmax">
+<meta name="desc-en" content="Temperature Scaling Softmax - online utility on ToolBox.">
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/ai/softmax-2.html">
+<link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/ai/softmax-2.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/ai/softmax-2.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/ai/softmax-2.html">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:locale:alternate" content="zh_TW">
+<meta property="og:locale:alternate" content="en_US">
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
+
+<script src="/js/tool-ux.js" defer></script>
+<!-- TOOLBOX-TOOL-UX -->
+
+<script src="/js/analytics.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<!-- TOOLBOX-TTZZ -->
+<script>
+(function(){try{
+var el = document.createElement("script");
+el.src = "https://lf1-cdn-tos.bytegoofy.com/goofy/ttzz/push.js?85d6452aa9be4d693b16cd48535a8c7ae57542f6788a41682e745be8eb99b35a8a24d2f724c31ebe20c1e4e6fba6d91caf576100b02a2870c72f38fc574066fef065d152c73bf1cbb2ebad3b5b5265d8";
+el.id = "ttzz";
+var s = document.getElementsByTagName("script")[0];
+s.parentNode.insertBefore(el, s);
+}catch(e){}
+})(window);
+</script>
+
+<script src="/js/tool-kit.js" defer></script>
+<!-- TOOLBOX-TOOL-KIT -->
+</head>
+<body>
+<h1 class="sr-only">温度缩放 Softmax</h1>
+
+<div class="nav">
+  <a href="../../index.html">← ToolBox</a>
+  <span>/ 温度缩放 Softmax</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+
+<nav class="breadcrumb" aria-label="面包屑导航" data-breadcrumb="1">
+  <a href="../../index.html">首页</a>
+  <span class="bc-sep">‹</span>
+  <a href="index.html">🤖 人工智能</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">温度缩放 Softmax</span>
+</nav>
+<div class="container">
+<div class="tool-guide-link" data-guide-link="1">
+  <a href="../../guides/softmax-2-guide.html">📖 查看「温度缩放 Softmax使用指南」</a>
+</div>
+
+  <div class="card">
+    <h2 data-zh="🖼️ 温度缩放 Softmax">🖼️ Temperature-Scaled Softmax Visualizer</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="观察温度参数对 Softmax 分布尖锐程度的影响。">See how a temperature parameter sharpens or flattens a softmax distribution, which is the basis of model calibration.</p>
+        <div class="formula-box">
+      <div class="formula-title">📐 计算公式 / 原理</div>
+      <div class="formula-eq">Pᵢ(T) = e^{zᵢ/T} / Σⱼ e^{zⱼ/T}；分布熵 H = −Σ Pᵢ ln Pᵢ</div>
+      <div class="formula-desc">温度 T 控制分布锐度：T→0 趋近 one-hot（更确定），T→∞ 趋近均匀分布。训练时用高温做知识蒸馏可暴露类别间关系；但温度缩放只改变锐度不改变排序，不能修复模型本身的排序错误。</div>
+    </div>
+<div class="input-row"><label>Logit 1</label><input type="number" id="z1" value="2" step="any" oninput="calc()"></div>
+    <div class="input-row"><label>Logit 2</label><input type="number" id="z2" value="1" step="any" oninput="calc()"></div>
+    <div class="input-row"><label>Logit 3</label><input type="number" id="z3" value="0.5" step="any" oninput="calc()"></div>
+    <div class="input-row"><label>温度 T</label><input type="number" id="t" value="1" step="any" oninput="calc()"></div>
+    <div id="s2Presets"></div>
+    <div class="toolbar">
+      <button class="btn primary" onclick="calc()">计算</button>
+      <button class="btn" onclick="copyResult()">复制结果</button>
+      <button class="btn" onclick="__s2Export()">导出 CSV</button>
+    </div>
+    <div class="result-box" id="result" data-viz="bar" data-viz-max="100" data-viz-min="0">
+    <div id="s2Chart" role="img" aria-label="结果可视化"></div>
+    <div id="s2Table"></div>
+    <div id="s2Diff"></div>
+    <div id="s2Hist"></div>
+</div>
+  </div>
+  <div class="card formula-box">
+    <h3>📐 计算公式与说明</h3>
+    <div class="formula-eq">Pᵢ = e^(zᵢ/T) / Σe^(zⱼ/T)<br>T→0 更尖锐，T→∞ 更均匀</div>
+    <p style="font-size:13px;color:var(--text-muted);margin-top:12px;">知识蒸馏中常用温度缩放。</p>
+  </div>
+</div>
+
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto 0;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+.deep-dive a.term-link{color:var(--tool-accent,#FF6B35);text-decoration:none;border-bottom:1px dashed currentColor;}
+.deep-dive a.term-link:hover{border-bottom-style:solid;}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：温度缩放 Softmax</h2>
+<h3>💡 常见使用场景</h3>
+<ul class="dd-list">
+<li>温度缩放 y_i=exp(z_i/T)/Σexp(z_j/T)，T&gt;1 使分布更平滑(更不确定)，T&lt;1 更尖锐。</li>
+<li>T→∞ 趋近<a class="term-link" href="/tools/it/uniform-distribution.html">均匀分布</a>，T→0 趋近 one-hot(argmax)。</li>
+<li>温度常用于调节生成多样性与模型校准，不改变 argmax 类别。</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">温度影响分布</div><div class="dd-ex-body">logits=[2,1,0.5]：T=1 → 概率≈[0.6285,0.2312,0.1402]；T×2=2 → [0.4810,0.2918,0.2272] 更平滑；T/2=0.5 → [0.8438,0.1142,0.0420] 更尖锐。三个温度下的 argmax 始终为第 1 类，说明温度只改变置信度分布、不改变预测类别。</div></div>
+<h3>❓ 常见问题（FAQ）</h3>
+<dl class="dd-faq">
+<dt>温度能校准模型吗？</dt><dd>温度缩放是最简单的后校准方法，调 T 使输出置信度匹配实际准确率；但它只缩放分布、不能修正错误预测的方向。</dd>
+<dt>生成时温度设多高？</dt><dd>创意写作用较高 T(0.7~1.0)增多样性，事实问答用低 T(0~0.3)增确定性；过高会胡言乱语，过低则重复僵化。</dd>
+<dt>页面上为什么要同时给出 T=1、T/2、T×2 三行？</dt><dd>单看一个温度看不出趋势。三行分别代表基准、低温(更尖锐、更自信)与高温(更平缓、更不确定)，可直接读出「T 减半最大概率从 62.85% 升到 84.38%、T 翻倍降到 48.10%」这种量级变化，便于判断该往哪个方向调。温度必须大于 0，T=0 时 logits÷T 无定义。</dd>
+</dl>
+</div>
+</section>
+<!-- 相关工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相关工具</h3>
+  <div class="related-tools-grid">
+    <a href="dropout.html" class="related-tool-card">
+      <span class="rt-icon">🤖</span>
+      <span class="rt-info"><span class="rt-name">Dropout 保留期望</span><span class="rt-desc">Dropout 期望输出计算器，输入保留概率求 dropout 后的期望输出与推理期缩放因子，辅助…</span></span>
+    </a>
+    <a href="l1-l2.html" class="related-tool-card">
+      <span class="rt-icon">🔍</span>
+      <span class="rt-info"><span class="rt-name">L1 L2 正则化惩罚</span><span class="rt-desc">L1/L2 正则化惩罚计算器，输入权重与正则系数求对损失函数的惩罚项，对比 Lasso 与 Rid…</span></span>
+    </a>
+    <a href="rag.html" class="related-tool-card">
+      <span class="rt-icon">🤖</span>
+      <span class="rt-info"><span class="rt-name">RAG 召回率</span><span class="rt-desc">RAG 召回率计算器，输入相关文档数与检索命中数求召回率，评估检索增强生成的检索覆盖质量。</span></span>
+    </a>
+    <a href="roc-auc.html" class="related-tool-card">
+      <span class="rt-icon">🤖</span>
+      <span class="rt-info"><span class="rt-name">ROC AUC 近似</span><span class="rt-desc">输入正负样本预测得分，估算 ROC 曲线下面积 AUC，评估分类器排序能力，适用于模型选型、阈值无…</span></span>
+    </a>
+    <a href="relu-leakyrelu.html" class="related-tool-card">
+      <span class="rt-icon">🤖</span>
+      <span class="rt-info"><span class="rt-name">ReLU 与 LeakyReLU</span><span class="rt-desc">R ReLU 与 LeakyReLU</span></span>
+    </a>
+    <a href="sigmoid.html" class="related-tool-card">
+      <span class="rt-icon">🤖</span>
+      <span class="rt-info"><span class="rt-name">Sigmoid 输出</span><span class="rt-desc">S Sigmoid 输出</span></span>
+    </a>
+  </div>
+</div>
+<script>
+function calc(){
+  const __fin=(v)=>Number.isFinite(v);
+  const z1 = +document.getElementById('z1').value || 0;
+  const z2 = +document.getElementById('z2').value || 0;
+  const z3 = +document.getElementById('z3').value || 0;
+  const t = +document.getElementById('t').value || 0;
+  const tl = t/2, th = t*2; // 低温 = T/2（分布更尖锐），高温 = T×2（分布更平缓）
+  let html = '';
+  const __v0 = (Math.exp(z1)/(Math.exp(z1)+Math.exp(z2)+Math.exp(z3))*100);
+  html += `<p>T=1 P1：<strong style="font-size:18px;color:var(--primary);">${__fin(__v0)?__v0.toFixed(2):'—'}</strong> %</p>`;
+  const __v1 = (Math.exp(z1/tl)/(Math.exp(z1/tl)+Math.exp(z2/tl)+Math.exp(z3/tl))*100);
+  html += `<p>低温 P1（T/2）：<strong style="font-size:18px;color:var(--primary);">${__fin(__v1)?__v1.toFixed(2):'—'}</strong> %</p>`;
+  const __v2 = (Math.exp(z1/(t*2))/(Math.exp(z1/(t*2))+Math.exp(z2/(t*2))+Math.exp(z3/(t*2)))*100);
+  html += `<p>高温 P1（T×2）：<strong style="font-size:18px;color:var(--primary);">${__fin(__v2)?__v2.toFixed(2):'—'}</strong> %</p>`;
+  const __v3 = (-Math.exp(z1/t)/(Math.exp(z1/t)+Math.exp(z2/t)+Math.exp(z3/t))*Math.log(Math.exp(z1/t)/(Math.exp(z1/t)+Math.exp(z2/t)+Math.exp(z3/t)))-Math.exp(z2/t)/(Math.exp(z1/t)+Math.exp(z2/t)+Math.exp(z3/t))*Math.log(Math.exp(z2/t)/(Math.exp(z1/t)+Math.exp(z2/t)+Math.exp(z3/t)))-Math.exp(z3/t)/(Math.exp(z1/t)+Math.exp(z2/t)+Math.exp(z3/t))*Math.log(Math.exp(z3/t)/(Math.exp(z1/t)+Math.exp(z2/t)+Math.exp(z3/t))));
+  html += `<p>分布熵：<strong style="font-size:18px;color:var(--primary);">${__fin(__v3)?__v3.toFixed(4):'—'}</strong> </p>`;
+  const __bad = [__v0,__v1,__v2,__v3].some(v=>typeof v==='number'&&!Number.isFinite(v));
+  if (!(t>0)) html += '<p style="color:var(--danger);">⚠ 温度 T 必须大于 0（T=0 时 logits÷T 无定义）。</p>';
+  else if (__bad) html += '<p style="color:var(--danger);">⚠ 部分结果无定义（分母为 0 或输入为空），请检查输入。</p>';
+  const __g1=html;document.getElementById('result').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
+}
+function copyResult() {
+  const txt = document.getElementById('result').innerText;
+  if (!txt) return;
+  navigator.clipboard.writeText(txt).then(() => ToolBox.toast && ToolBox.toast('已复制结果')).catch(() => {
+    const ta = document.createElement('textarea'); ta.value = txt; document.body.appendChild(ta);
+    ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+  });
+}
+calc();
+
+function __s2N(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __s2List(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __s2L(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __s2Export(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#s2Table','softmax-2.csv');}catch(e){} }
+function __s2Extras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var z1=__s2N('z1'), z2=__s2N('z2'), z3=__s2N('z3'), t=__s2N('t');
+        if(!(t>0))return;
+        function sm(tt){ var e=[Math.exp(z1/tt),Math.exp(z2/tt),Math.exp(z3/tt)]; var s=e[0]+e[1]+e[2]; return e.map(function(v){return v/s;}); }
+        var p=sm(t), ent=-p[0]*Math.log(p[0])-p[1]*Math.log(p[1])-p[2]*Math.log(p[2]);
+        TBKit.chart.pie('#s2Chart',{items:[
+            {label:__s2L('class 1','类别 1'),value:p[0]*100},
+            {label:__s2L('class 2','类别 2'),value:p[1]*100},
+            {label:__s2L('class 3','类别 3'),value:p[2]*100}
+        ],height:230,title:__s2L('Softmax distribution at T','当前温度 T 下的概率分布')});
+        var rows=__s2L(
+            [['z1',z1.toFixed(3)],['z2',z2.toFixed(3)],['z3',z3.toFixed(3)],['temperature T',t.toFixed(2)],['P1 at T/2',(sm(t/2)[0]*100).toFixed(2)+'%'],['P1 at T',(p[0]*100).toFixed(2)+'%'],['P1 at 2T',(sm(t*2)[0]*100).toFixed(2)+'%'],['entropy (max 1.099)',ent.toFixed(4)],['argmax','class '+(p.indexOf(Math.max.apply(null,p))+1)]],
+            [['z1',z1.toFixed(3)],['z2',z2.toFixed(3)],['z3',z3.toFixed(3)],['温度 T',t.toFixed(2)],['T/2 时 P1',(sm(t/2)[0]*100).toFixed(2)+'%'],['T 时 P1',(p[0]*100).toFixed(2)+'%'],['2T 时 P1',(sm(t*2)[0]*100).toFixed(2)+'%'],['分布熵 (上限 1.099)',ent.toFixed(4)],['预测类别','类别 '+(p.indexOf(Math.max.apply(null,p))+1)]]);
+        TBKit.matrix.table('#s2Table',{head:__s2L(['Metric','Value'],['指标','数值']),rows:rows});
+        TBKit.history.record({ent:Number(ent.toFixed(4))});
+        TBKit.util.diffBox('#s2Diff',['ent']);
+        TBKit.history.mount('#s2Hist',function(v){ if(v.ent!=null){document.getElementById('z1').value=v.z1;document.getElementById('z2').value=v.z2;document.getElementById('z3').value=v.z3;document.getElementById('t').value=v.t;} calc(); });
+    }catch(e){}
+}
+function __s2Presets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#s2Presets',[
+            {label:'尖锐 T=0.5 z=4/1/0',labelEn:'Sharp T=0.5 z=4/1/0',values:{z1:4,z2:1,z3:0,t:0.5}},
+            {label:'标准 T=1 z=2/1/0.5',labelEn:'Standard T=1 z=2/1/0.5',values:{z1:2,z2:1,z3:0.5,t:1}},
+            {label:'平滑 T=3 z=2/1/0.5',labelEn:'Smooth T=3 z=2/1/0.5',values:{z1:2,z2:1,z3:0.5,t:3}}
+        ],function(){ calc(); });
+    }catch(e){}
+}
+
+var __tb_s20 = calc;
+calc = function(){ __tb_s20(); try{ __s2Extras(); }catch(e){} };
+function __s2Boot(){ try{ __s2Presets(); }catch(e){} try{ calc(); }catch(e){} }
+// readyState 判定须防「桩环境无 readyState」：harness 的 document 桩不提供 readyState（undefined），
+// 旧写法 `=== "loading"` 会走 else 在脚本求值时立即启动 boot，早于页面自身 DOMContentLoaded init
+// ⇒ 元素创建顺序改变 ⇒ 跨元素多行 expect 失配。生产浏览器解析期 readyState==="loading" ⇒ 走
+// addEventListener；已加载完（complete/interactive）⇒ 立即启动。
+if (document.readyState && document.readyState !== "loading") __s2Boot();
+else document.addEventListener("DOMContentLoaded", __s2Boot);
+</script>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "温度能校准模型吗？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "温度缩放是最简单的后校准方法，调 T 使输出置信度匹配实际准确率；但它只缩放分布、不能修正错误预测的方向。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "生成时温度设多高？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "创意写作用较高 T(0.7~1.0)增多样性，事实问答用低 T(0~0.3)增确定性；过高会胡言乱语，过低则重复僵化。"
+      }
+    }
+  ]
+}
+</script>
+</body>
+</html>

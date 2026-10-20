@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=calculator,industry=video,icon=🎬,bg=#dc2626">
+<meta name="description" content="字幕时间轴调整是一款免费的在线视频处理工具，粘贴或导入 SRT 字幕内容，按毫秒整体平移时间轴，或按倍率缩放以匹配变速后的视频，也可批量调整字幕格式，用于修正字幕与画面不同步。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+<meta name="keywords" content="字幕工具,字幕工具在线,在线字幕工具,视频处理,字幕时间轴调整,在线工具,免费工具,ToolBox">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://chenguangwu.github.io/tools/video/subtitle-tool.html">
+<meta property="og:title" content="字幕时间轴调整 - 粘贴或导入 SRT 字幕内容">
+<meta property="og:description" content="字幕时间轴调整是一款免费的在线视频处理工具，粘贴或导入 SRT 字幕内容，按毫秒整体平移时间轴，或按倍率缩放以匹配变速后的视频，也可批量调整字幕格式，用于修正字幕与画面不同步。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://chenguangwu.github.io/tools/video/subtitle-tool.html">
+<meta name="twitter:card" content="summary">
+
+<title>字幕时间轴调整 - 粘贴或导入 SRT 字幕内容</title>
+<meta name="theme-color" content="#FF6B35">
+<link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+<link rel="icon" href="../../favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="apple-touch-icon" href="../../apple-touch-icon.png">
+<link rel="stylesheet" href="../../css/common.css">
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="../../js/common.js" defer></script>
+<style>
+.srt-area{font-family:'SF Mono','Courier New',monospace;font-size:12px;line-height:1.6;min-height:200px;}
+.subtitle-list{margin:12px 0;}
+.sub-item{background:var(--result-bg);border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:8px;}
+.sub-item .time{font-size:12px;color:var(--primary);font-family:monospace;margin-bottom:4px;}
+.sub-item .text{font-size:14px;color:var(--text);}
+.sub-item .actions{margin-top:6px;display:flex;gap:6px;}
+.sub-item .actions button{padding:4px 8px;font-size:11px;border:1px solid var(--border);background:var(--card-bg);border-radius:4px;cursor:pointer;color:var(--text-light);}
+</style>
+
+
+<script type="application/ld+json">
+{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "SRT 与 WebVTT 的时间格式差在哪？", "acceptedAnswer": {"@type": "Answer", "text": "SRT 用逗号分隔毫秒（HH:MM:SS,mmm），WebVTT 用点号（HH:MM:SS.mmm）且需 WEBVTT 文件头；SRT 多用于外挂字幕，VTT 是 HTML5 <video> 原生支持格式。本工具一键互转，不必手动改分隔符。"}}, {"@type": "Question", "name": "只做整体偏移为什么不会越往后越偏？", "acceptedAnswer": {"@type": "Answer", "text": "整体偏移是「平移」（每条都加同一个毫秒数），不随时间累积；只有帧率/速度缩放（倍率≠1）才会按比例拉伸时间轴、产生累积偏移。若视频帧率变了，务必用速度倍率而非单纯偏移。"}}]}
+</script>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://chenguangwu.github.io/"},{"@type":"ListItem","position":2,"name":"视频处理","item":"https://chenguangwu.github.io/tools/video/index.html"},{"@type":"ListItem","position":3,"name":"字幕时间轴调整","item":"https://chenguangwu.github.io/tools/video/subtitle-tool.html"}]}
+</script>
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"字幕工具","url":"https://chenguangwu.github.io/tools/video/subtitle-tool.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"字幕时间轴调整是一款免费的在线视频处理工具，粘贴或导入 SRT 字幕内容，按毫秒整体平移时间轴，或按倍率缩放以匹配变速后的视频，也可批量调整字幕格式，用于修正字幕与画面不同步。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+</script>
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
+
+<meta name="twitter:title" content="字幕时间轴调整 - 粘贴或导入 SRT 字幕内容">
+<meta name="twitter:description" content="字幕时间轴调整是一款免费的在线视频处理工具，粘贴或导入 SRT 字幕内容，按毫秒整体平移时间轴，或按倍率缩放以匹配变速后的视频，也可批量调整字幕格式，用于修正字幕与画面不同步。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script src="../../js/i18n.js" defer></script>
+<script src="../../js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+<meta name="title-en" content="Subtitle">
+<meta name="desc-en" content="Subtitle - online utility on ToolBox.">
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/video/subtitle-tool.html">
+<link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/video/subtitle-tool.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/video/subtitle-tool.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/video/subtitle-tool.html">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:locale:alternate" content="zh_TW">
+<meta property="og:locale:alternate" content="en_US">
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
+
+<script src="/js/tool-ux.js" defer></script>
+<!-- TOOLBOX-TOOL-UX -->
+
+<script src="/js/analytics.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+<!-- TOOLBOX-TTZZ -->
+<script>
+(function(){try{
+var el = document.createElement("script");
+el.src = "https://lf1-cdn-tos.bytegoofy.com/goofy/ttzz/push.js?85d6452aa9be4d693b16cd48535a8c7ae57542f6788a41682e745be8eb99b35a8a24d2f724c31ebe20c1e4e6fba6d91caf576100b02a2870c72f38fc574066fef065d152c73bf1cbb2ebad3b5b5265d8";
+el.id = "ttzz";
+var s = document.getElementsByTagName("script")[0];
+s.parentNode.insertBefore(el, s);
+}catch(e){}
+})(window);
+</script>
+
+<script src="/js/tool-kit.js" defer></script>
+<!-- TOOLBOX-TOOL-KIT -->
+</head>
+<body>
+<h1 class="sr-only">字幕工具</h1>
+
+<div class="nav">
+  <a href="../../index.html">← ToolBox</a>
+  <span>/ 字幕工具</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+
+
+
+<nav class="breadcrumb" aria-label="面包屑导航" data-breadcrumb="1">
+  <a href="../../index.html">首页</a>
+  <span class="bc-sep">‹</span>
+  <a href="index.html">🎬 视频处理</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">字幕工具</span>
+</nav>
+
+<div class="tool-guide-link" data-guide-link="1">
+  <a href="../../guides/subtitle-tool-guide.html">📖 查看「字幕时间轴调整工具使用指南」</a>
+</div>
+<div class="container">
+  <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
+    <h2 data-zh="🎬 字幕时间轴调整">Subtitle</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="导入 SRT 字幕，批量调整时间轴偏移、修改格式">Subtitle - online utility on ToolBox.</p>
+    <div class="formula-box">
+      <div class="formula-title">📐 工作原理与说明</div>
+      <p class="formula-desc" data-zh="「导入 SRT 字幕，批量调整时间轴偏移、修改格式」按输入参数进行专业计算并输出结果。">Subtitle - online utility on ToolBox.: computes and outputs results from the input parameters.</p>
+    </div>
+
+    <h3>SRT 字幕内容</h3>
+    <textarea id="srt-input" class="srt-area" placeholder="粘贴 SRT 字幕内容...&#10;1&#10;00:00:01,000 --> 00:00:04,000&#10;Hello World"></textarea>
+
+    <div class="toolbar">
+      <button type="button" class="btn primary" onclick="parseSRT()">📝 解析字幕</button>
+      <button type="button" class="btn" onclick="loadSample()">📋 加载示例</button>
+    </div>
+
+    <div id="parsed-section" style="display:none;">
+      <h3>时间轴调整</h3>
+      <div class="input-row">
+        <div>
+          <label>整体偏移(毫秒)</label>
+          <input type="number" id="offset-ms" value="0" step="100" oninput="applyOffset()">
+        </div>
+        <div>
+          <label>速度倍率</label>
+          <input type="number" id="speed-factor" value="1" step="0.1" min="0.1" oninput="applyOffset()">
+        </div>
+      </div>
+      <div class="checkbox-row">
+        <label><input type="checkbox" id="shift-only-positive" onchange="applyOffset()"> 仅向后偏移</label>
+      </div>
+
+      <div class="subtitle-list" id="sub-list"></div>
+      <div id="subChart" style="margin-top:14px;"></div>
+
+      <div class="toolbar">
+        <button type="button" class="btn primary" onclick="exportSRT()">⬇ 导出 SRT</button>
+        <button type="button" class="btn" onclick="exportVTT()">⬇ 导出 WebVTT</button>
+      </div>
+    </div>
+
+    <h3 style="margin-top:24px;">字幕格式说明</h3>
+    <table style="width:100%;border-collapse:collapse;font-size:13px;">
+      <tr><th>格式</th><th>扩展名</th><th>时间格式</th><th>用途</th></tr>
+      <tr><td>SRT</td><td>.srt</td><td>HH:MM:SS,mmm</td><td>最通用，外挂字幕</td></tr>
+      <tr><td>WebVTT</td><td>.vtt</td><td>HH:MM:SS.mmm</td><td>HTML5 video 标签</td></tr>
+      <tr><td>ASS/SSA</td><td>.ass/.ssa</td><td>H:MM:SS.cc</td><td>样式丰富的字幕</td></tr>
+      <tr><td>SBV</td><td>.sbv</td><td>H:MM:SS.mmm</td><td>YouTube 字幕</td></tr>
+      <tr><td>LRC</td><td>.lrc</td><td>[mm:ss.xx]</td><td>歌词文件</td></tr>
+    </table>
+
+    <h3 style="margin-top:24px;">常用操作</h3>
+    <div class="info-box">
+      <p>⏩ <strong>整体提前 2 秒</strong>：偏移 = -2000 ms</p>
+      <p>⏪ <strong>整体延后 2 秒</strong>：偏移 = +2000 ms</p>
+      <p>🎬 <strong>25fps 转 24fps</strong>：速度倍率 = 25/24 = 1.0417</p>
+      <p>🎬 <strong>24fps 转 25fps</strong>：速度倍率 = 24/25 = 0.96</p>
+      <p>⏱ <strong>字幕慢了 0.5 秒</strong>：偏移 = -500 ms</p>
+    </div>
+  </div>
+
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto 0;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+.deep-dive a.term-link{color:var(--tool-accent,#FF6B35);text-decoration:none;border-bottom:1px dashed currentColor;}
+.deep-dive a.term-link:hover{border-bottom-style:solid;}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：字幕时间轴调整</h2>
+<h3>💡 常见使用场景</h3>
+<ul class="dd-list">
+<li>外挂字幕与视频音轨不同步：下载的字幕整体偏早或偏晚，用「整体偏移」一次性把全部时间轴 +N / −N 毫秒对齐，无需逐条手改。</li>
+<li>帧率/倍速转换导致错位：源 25fps 视频转成 24fps 导出时，时间轴需按比例缩放（速度倍率 25/24≈1.0417），否则越往后偏移越大。</li>
+<li>双语或剪辑版字幕拼接：先批量偏移把两段时间轴接顺，再分别导出 SRT 与 WebVTT，适配外挂字幕与 HTML5 播放器。</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">算例（示例字幕 00:00:05,000 → 00:00:08,500）</div><div class="dd-ex-body">该条 start=5000ms、end=8500ms。①整体提前 0.5 秒：偏移 −500ms、倍率 1 → start=4500ms(00:00:04,500)、end=8000ms(00:00:08,000)。②25fps 转 24fps：速度倍率 25/24≈1.0417 → start=5000×1.0417≈5208ms(00:00:05,208)、end=8500×1.0417≈8854ms(00:00:08,854)。③合并（偏移 −500 + 倍率 1.0417）：start≈4708ms(00:00:04,708)、end≈8354ms(00:00:08,354)。工具公式为 newTime = origTime × 倍率 + 偏移(ms)，先缩放后平移。</div></div>
+<h3>❓ 常见问题（FAQ）</h3>
+<dl class="dd-faq">
+<dt>SRT 与 WebVTT 的<a class="term-link" href="/tools/it/time-format-converter.html">时间格式</a>差在哪？</dt><dd>SRT 用逗号分隔毫秒（HH:MM:SS,mmm），WebVTT 用点号（HH:MM:SS.mmm）且需 WEBVTT 文件头；SRT 多用于外挂字幕，VTT 是 HTML5 &lt;video&gt; 原生支持格式。本工具一键互转，不必手动改分隔符。</dd>
+<dt>只做整体偏移为什么不会越往后越偏？</dt><dd>整体偏移是「平移」（每条都加同一个毫秒数），不随时间累积；只有帧率/速度缩放（倍率≠1）才会按比例拉伸时间轴、产生累积偏移。若<a class="term-link" href="/tools/video/video-fps.html">视频帧率</a>变了，务必用速度倍率而非单纯偏移。</dd>
+</dl>
+</div>
+</section>
+<!-- 注意事项区块 -->
+<div class="tool-notes" style="--tool-accent:#FF6B35;">
+  <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
+  <ul>
+      <li>本工具纯前端运行，数据不会上传到服务器</li>
+      <li>建议在主流浏览器（Chrome/Safari/Firefox/Edge）中使用</li>
+      <li>计算结果仅供参考，请以实际应用场景为准</li>
+  </ul>
+</div>
+<!-- /注意事项区块 -->
+</div>
+
+<script>
+let subtitles = [];
+let originalSubs = [];
+
+function loadSample() {
+  document.getElementById('srt-input').value = `1
+00:00:01,000 --> 00:00:04,000
+Hello World, 欢迎观看视频
+
+2
+00:00:05,000 --> 00:00:08,500
+今天我们来学习字幕工具的使用
+
+3
+00:00:09,000 --> 00:00:12,000
+首先导入 SRT 文件
+
+4
+00:00:13,000 --> 00:00:16,500
+然后调整时间轴偏移量
+
+5
+00:00:17,000 --> 00:00:20,000
+最后导出修改后的字幕`;
+  parseSRT();
+}
+
+function parseSRT() {
+  const text = document.getElementById('srt-input').value.trim();
+  if (!text) { ToolBox.showToast(i18nText() , 'warn'); return; }
+  const blocks = text.split(/\n\s*\n/);
+  subtitles = [];
+  blocks.forEach(block => {
+    const lines = block.trim().split('\n');
+    if (lines.length < 2) return;
+    const timeMatch = lines[1] && lines[1].match(/(\d{2}:\d{2}:\d{2}[,.]\d{3})\s*-->\s*(\d{2}:\d{2}:\d{2}[,.]\d{3})/);
+    if (!timeMatch) return;
+    const content = lines.slice(2).join('\n');
+    subtitles.push({
+      index: subtitles.length + 1,
+      start: parseTime(timeMatch[1]),
+      end: parseTime(timeMatch[2]),
+      text: content
+    });
+  });
+  originalSubs = JSON.parse(JSON.stringify(subtitles));
+  if (subtitles.length === 0) {
+    ToolBox.showToast(i18nText() , 'warn');
+    return;
+  }
+  document.getElementById('parsed-section').style.display = '';
+  renderSubs();
+  ToolBox.showToast(i18nText('toast.saved', '解析到 '+subtitles.length+' 条字幕'), 'success');
+}
+
+function parseTime(t) {
+  const m = t.match(/(\d{2}):(\d{2}):(\d{2})[,.](\d{3})/);
+  if (!m) return 0;
+  return (+m[1]) * 3600000 + (+m[2]) * 60000 + (+m[3]) * 1000 + (+m[4]);
+}
+
+function formatTime(ms, sep = ',') {
+  if (ms < 0) ms = 0;
+  const h = Math.floor(ms / 3600000);
+  const m = Math.floor((ms % 3600000) / 60000);
+  const s = Math.floor((ms % 60000) / 1000);
+  const mm = Math.floor(ms % 1000);
+  return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}${sep}${String(mm).padStart(3,'0')}`;
+}
+
+function applyOffset() {
+  const offset = +document.getElementById('offset-ms').value || 0;
+  const factor = +document.getElementById('speed-factor').value || 1;
+  const onlyPositive = document.getElementById('shift-only-positive').checked;
+  subtitles = originalSubs.map(s => {
+    let newStart = s.start * factor + offset;
+    let newEnd = s.end * factor + offset;
+    if (onlyPositive && offset < 0) {
+      newStart = Math.max(0, newStart);
+      newEnd = Math.max(0, newEnd);
+    }
+    return { index: s.index, start: Math.max(0, newStart), end: Math.max(0, newEnd), text: s.text };
+  });
+  renderSubs();
+}
+
+function renderSubs() {
+  const html = subtitles.map(s => `
+    <div class="sub-item">
+      <div class="time">${formatTime(s.start)} → ${formatTime(s.end)} <span style="color:var(--text-muted);">(${formatTime(s.end - s.start)})</span></div>
+      <div class="text">${escapeHtml(s.text)}</div>
+    </div>
+  `).join('');
+  const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('sub-list').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('sub-list').innerHTML=__h0;
+  try { __subChart(); } catch (e) {}
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function exportSRT() {
+  if (subtitles.length === 0) { ToolBox.showToast(i18nText() , 'warn'); return; }
+  const text = subtitles.map((s, i) => `${i + 1}\n${formatTime(s.start, ',')} --> ${formatTime(s.end, ',')}\n${s.text}`).join('\n\n');
+  ToolBox.downloadText(text, `subtitles-${Date.now()}.srt`);
+}
+
+function exportVTT() {
+  if (subtitles.length === 0) { ToolBox.showToast(i18nText() , 'warn'); return; }
+  const text = `WEBVTT\n\n` + subtitles.map((s, i) => `${i + 1}\n${formatTime(s.start, '.')} --> ${formatTime(s.end, '.')}\n${s.text}`).join('\n\n');
+  ToolBox.downloadText(text, `subtitles-${Date.now()}.vtt`);
+}
+
+function __subChart() {
+  if (typeof TBKit === 'undefined' || !TBKit.chart) { return; }
+  var host = document.getElementById('subChart');
+  if (!host) return;
+  if (!subtitles || subtitles.length === 0) { host.innerHTML = ''; return; }
+  var en = TBKit.util.isEn();
+  var labels = [], data = [];
+  subtitles.forEach(function (s) {
+    labels.push((en ? '#' : '第') + s.index + (en ? '' : '条'));
+    data.push(Math.max(0, Math.round((s.end - s.start) / 100) / 10));
+  });
+  TBKit.chart.bar('#subChart', {
+    title: en ? 'Each subtitle duration (seconds)' : '各条字幕时长（秒）',
+    labels: labels,
+    series: [{ name: en ? 's' : '秒', data: data }]
+  });
+}
+function __subInit() {
+  var ta = document.getElementById('srt-input');
+  if (ta && !ta.value.trim()) { try { loadSample(); } catch (e) {} }
+  try { __subChart(); } catch (e) {}
+}
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', __subInit);
+} else {
+  __subInit();
+}
+window.addEventListener('toolbox:langchange', function () { try { __subChart(); } catch (e) {} });
+ToolBox.initToolTheme();
+</script><script>
+// tool-intro折叠交互
+document.addEventListener('DOMContentLoaded',function(){
+  var headers=document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click',function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+</script>
+<!-- SEO 介绍区块 -->
+
+</div>
+
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!-- 相关工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相关工具</h3>
+  <div class="related-tools-grid">
+    <a href="video-speed.html" class="related-tool-card">
+      <span class="rt-icon">⏱️</span>
+      <span class="rt-info"><span class="rt-name">视频时长计算</span><span class="rt-desc">视频倍速时长计算器：输入原时长与倍速，算出实际观看时间、节省量和时间码。</span></span>
+    </a>
+    <a href="video-trimmer.html" class="related-tool-card">
+      <span class="rt-icon">🎬</span>
+      <span class="rt-info"><span class="rt-name">视频剪切</span><span class="rt-desc">上传视频后标记多个剪切片段的起止时间（如 00:01:30 至 00:02:45），生成结构化剪切时</span></span>
+    </a>
+    <a href="video-converter.html" class="related-tool-card">
+      <span class="rt-icon">📚</span>
+      <span class="rt-info"><span class="rt-name">视频格式转换参考</span><span class="rt-desc">对比MP4、MKV等常见视频格式特性，按平台给出分辨率与码率推荐，估算输出文件大小并一键生成ffmp</span></span>
+    </a>
+    <a href="video-compressor.html" class="related-tool-card">
+      <span class="rt-icon">🗜️</span>
+      <span class="rt-info"><span class="rt-name">视频压缩参数</span><span class="rt-desc">输入视频时长、目标文件大小或可接受码率，估算比特率并推荐 CRF 参数，自动生成对应的 ffmpeg</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro open" id="toolIntro">
+  <div class="tool-intro-header">
+    <span class="intro-icon-wrap"><span class="intro-icon">📖</span>关于「字幕工具」</span>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="tool-intro-body">
+    <h4><span class="h4-icon">📝</span>工具简介</h4>
+    <p>字幕工具是一款视频处理领域的在线工具。视频处理工具，纯前端运算，保护隐私。</p>
+    <h4><span class="h4-icon">✨</span>功能特点</h4>
+    <ul class="intro-features">
+      <li>纯前端处理，视频不上传</li>
+      <li>支持多种视频参数</li>
+      <li>实时预览效果</li>
+      <li>保护隐私，数据不离开设备</li>
+    </ul>
+    <h4><span class="h4-icon">🎯</span>使用场景</h4>
+    <ul class="intro-scenes">
+      <li>视频格式与参数处理</li>
+      <li>视频压缩与优化</li>
+      <li>视频信息查询</li>
+      <li>学习视频编码知识</li>
+    </ul>
+    </div>
+</div>
+<!-- /SEO 介绍区块 -->
+</body>
+</html>

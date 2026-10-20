@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=reference,industry=automotive,icon=📚,bg=#4b5563">
+<meta name="description" content="汽车胎压参考计算器是一款免费的在线汽车交通工具，汽车胎压参考计算器，提供原厂标准胎压及季节、载重调整建议与单位换算，保障行车安全与轮胎寿命。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+<meta name="keywords" content="胎压参考表,胎压参考表在线,在线胎压参考表,速查表,汽车交通,汽车胎压参考计算器,在线工具,免费工具,ToolBox">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://chenguangwu.github.io/tools/automotive/tire-pressure.html">
+<meta property="og:title" content="汽车胎压参考计算器 - 提供原厂标准胎压及季节">
+<meta property="og:description" content="汽车胎压参考计算器是一款免费的在线汽车交通工具，汽车胎压参考计算器，提供原厂标准胎压及季节、载重调整建议与单位换算，保障行车安全与轮胎寿命。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://chenguangwu.github.io/tools/automotive/tire-pressure.html">
+<meta name="twitter:card" content="summary">
+
+<title>汽车胎压参考计算器 - 提供原厂标准胎压及季节</title>
+<meta name="theme-color" content="#FF6B35">
+<link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+<link rel="icon" href="../../favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="apple-touch-icon" href="../../apple-touch-icon.png">
+<link rel="stylesheet" href="../../css/common.css">
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="../../js/common.js" defer></script>
+<style>
+.tire-visual{display:flex;gap:20px;justify-content:center;margin:16px 0;}
+.tire{width:80px;height:80px;border-radius:50%;border:4px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;position:relative;}
+.tire-label{position:absolute;bottom:-24px;font-size:11px;color:var(--text-muted);font-weight:normal;}
+.tire.ok{border-color:#22c55e;color:#22c55e;background:rgba(34,197,94,0.1);}
+.tire.warn{border-color:var(--warning);color:var(--warning);background:rgba(245,158,11,0.1);}
+.tire.bad{border-color:var(--danger);color:var(--danger);background:rgba(239,68,68,0.1);}
+.pressure-card{background:var(--result-bg);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:12px;}
+.pressure-value{font-size:32px;font-weight:700;color:var(--primary);text-align:center;}
+.pressure-unit{font-size:13px;color:var(--text-muted);text-align:center;}
+.gauge-bar{height:20px;background:linear-gradient(90deg,var(--danger) 0%,var(--warning) 30%,#22c55e 45%,#22c55e 55%,var(--warning) 70%,var(--danger) 100%);border-radius:10px;position:relative;margin:16px 0;}
+.gauge-marker{position:absolute;top:-6px;width:4px;height:32px;background:var(--text);border-radius:2px;transform:translateX(-50%);}
+.gauge-labels{display:flex;justify-content:space-between;font-size:10px;color:var(--text-muted);margin-top:4px;}
+.season-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:8px;margin:12px 0;}
+.season-btn{padding:10px;border:2px solid var(--border);border-radius:8px;text-align:center;cursor:pointer;font-size:12px;transition:all 0.2s;background:var(--card-bg);}
+.season-btn.active{border-color:var(--primary);background:rgba(75,85,99,0.08);}
+.load-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin:12px 0;}
+.load-btn{padding:10px;border:2px solid var(--border);border-radius:8px;text-align:center;cursor:pointer;font-size:12px;transition:all 0.2s;background:var(--card-bg);}
+.load-btn.active{border-color:var(--primary);background:rgba(75,85,99,0.08);}
+.unit-toggle{display:flex;gap:0;margin-bottom:12px;}
+.unit-btn{flex:1;padding:8px;border:1px solid var(--border);background:var(--card-bg);cursor:pointer;font-size:13px;text-align:center;}
+.unit-btn.active{background:var(--primary);color:#fff;border-color:var(--primary);}
+.unit-btn:first-child{border-radius:8px 0 0 8px;}
+.unit-btn:last-child{border-radius:0 8px 8px 0;}
+</style>
+
+
+
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "胎压高好还是低好？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "过低费油、胎肩磨损、易驻波爆胎；过高中央磨损、颠簸抓地降。以厂家标贴为准，按载重微调，不凭感觉。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "备胎胎压为什么更高？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "非全尺寸备胎常要求 4.0–4.2 bar 以防久置亏气，仅限临时短途低速使用，换上后尽快修复主胎。"
+      }
+    }
+  ]
+}
+</script>
+<meta name="twitter:title" content="汽车胎压参考计算器 - 提供原厂标准胎压及季节">
+<meta name="twitter:description" content="汽车胎压参考计算器是一款免费的在线汽车交通工具，汽车胎压参考计算器，提供原厂标准胎压及季节、载重调整建议与单位换算，保障行车安全与轮胎寿命。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+<meta name="title-en" content="Car Tire Pressure Reference Calculator">
+<meta name="desc-en" content="Car Tire Pressure Reference Calculator - online utility on ToolBox.">
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/automotive/tire-pressure.html">
+<link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/automotive/tire-pressure.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/automotive/tire-pressure.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/automotive/tire-pressure.html">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:locale:alternate" content="zh_TW">
+<meta property="og:locale:alternate" content="en_US">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://chenguangwu.github.io/"},{"@type":"ListItem","position":2,"name":"汽车交通","item":"https://chenguangwu.github.io/tools/automotive/index.html"},{"@type":"ListItem","position":3,"name":"汽车胎压参考计算器","item":"https://chenguangwu.github.io/tools/automotive/tire-pressure.html"}]}
+</script>
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"汽车胎压参考计算器","url":"https://chenguangwu.github.io/tools/automotive/tire-pressure.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"汽车胎压参考计算器是一款免费的在线汽车交通工具，汽车胎压参考计算器，提供原厂标准胎压及季节、载重调整建议与单位换算，保障行车安全与轮胎寿命。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+</script>
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
+
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script src="../../js/i18n.js" defer></script>
+<script src="../../js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
+
+<script src="/js/tool-ux.js" defer></script>
+<!-- TOOLBOX-TOOL-UX -->
+
+<script src="/js/analytics.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+<!-- TOOLBOX-TTZZ -->
+<script>
+(function(){try{
+var el = document.createElement("script");
+el.src = "https://lf1-cdn-tos.bytegoofy.com/goofy/ttzz/push.js?85d6452aa9be4d693b16cd48535a8c7ae57542f6788a41682e745be8eb99b35a8a24d2f724c31ebe20c1e4e6fba6d91caf576100b02a2870c72f38fc574066fef065d152c73bf1cbb2ebad3b5b5265d8";
+el.id = "ttzz";
+var s = document.getElementsByTagName("script")[0];
+s.parentNode.insertBefore(el, s);
+}catch(e){}
+})(window);
+</script>
+
+<script src="/js/tool-kit.js" defer></script>
+<!-- TOOLBOX-TOOL-KIT -->
+</head>
+<body>
+<h1 class="sr-only">汽车胎压参考计算器</h1>
+<div class="nav">
+  <a href="../../index.html">← ToolBox</a>
+  <span>/ 汽车胎压参考计算器</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+<nav class="breadcrumb" aria-label="面包屑导航" data-breadcrumb="1">
+  <a href="../../index.html">首页</a>
+  <span class="bc-sep">‹</span>
+  <a href="index.html">🚗 汽车交通</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">汽车胎压参考计算器</span>
+</nav>
+<div class="container">
+  <div class="card tool-card-accent" style="--tool-accent:#0f766e;">
+    <h2 data-zh="⚙️ 汽车胎压参考计算器">Tire Pressure</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="按车门标贴标准胎压，结合载重与季节核算目标胎压，并对比实测值给出补放气建议。">Compute target tire pressure from the door-jamb standard combined with load and season, and compare with measured values to advise inflation or deflation.</p>
+    <div class="input-row">
+      <div><label>标贴标准前胎压 (bar)</label><input type="number" id="f0" value="2.3" oninput="calc()" step="0.01" min="0"></div>
+      <div><label>标贴标准后胎压 (bar)</label><input type="number" id="r0" value="2.1" oninput="calc()" step="0.01" min="0"></div>
+    </div>
+    <div class="input-row">
+      <div><label>载重状态</label><select id="load" onchange="calc()">
+        <option value="empty" selected>空载（1~2 人）</option>
+        <option value="half">半载（3~4 人）</option>
+        <option value="full">满载 / 拉货</option>
+      </select></div>
+      <div><label>季节</label><select id="season" onchange="calc()">
+        <option value="normal" selected>常温</option>
+        <option value="winter">冬季（气温常低于 0℃）</option>
+        <option value="summer">夏季（高温长途）</option>
+      </select></div>
+    </div>
+    <div class="input-row">
+      <div><label>实测前胎压 (bar)</label><input type="number" id="fc" value="2.0" oninput="calc()" step="0.01" min="0"></div>
+      <div><label>实测后胎压 (bar)</label><input type="number" id="rc" value="1.9" oninput="calc()" step="0.01" min="0"></div>
+    </div>
+    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__tire_pressureExport()">导出明细 CSV</button></div><div class="safe-main" id="result"></div> <div id="tire_pressureTable"></div> <div id="tire_pressureDiff"></div> <div id="tire_pressureChart"></div> <div id="tire_pressureHist"></div>
+    <div class="dist-grid" id="distGrid"></div>
+    <div class="formula-box" id="formulaBox"><div class="formula-eq">建议胎压 = 标贴值 + 载荷修正 + 季节修正：满载 +0.2 bar、半载 +0.1、空载 0；冬季 +0.1、夏季 −0.05；前后轮分别按各自标贴值修正。</div></div>
+    <div id="adviceBox"></div>
+  </div>
+  <div class="card">
+    <h3>📖 胎压修正与单位换算</h3>
+    <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:12px;">
+      <tr>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border,#e5e7eb);">修正项</th>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border,#e5e7eb);">调整量</th>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border,#e5e7eb);">原因</th>
+      </tr>
+      <tr><td style="padding:6px 8px;">半载</td><td style="padding:6px 8px;">+0.1 bar</td><td style="padding:6px 8px;">轴荷增加，接地印痕变大</td></tr>
+      <tr><td style="padding:6px 8px;">满载 / 拉货</td><td style="padding:6px 8px;">+0.2 bar</td><td style="padding:6px 8px;">抑制胎侧过度变形与发热</td></tr>
+      <tr><td style="padding:6px 8px;">冬季</td><td style="padding:6px 8px;">+0.1 bar</td><td style="padding:6px 8px;">低温冷缩，抵消约 0.1 bar 降幅</td></tr>
+      <tr><td style="padding:6px 8px;">夏季高速</td><td style="padding:6px 8px;">−0.05 bar</td><td style="padding:6px 8px;">行驶升温，避免热态超压</td></tr>
+    </table>
+    <div class="scene-card">
+      <h4>🔁 单位换算</h4>
+      <p>1 bar = 100 kPa = 14.5038 psi ≈ 1.0197 kgf/cm²。标贴常见 bar 与 psi 双标，气泵读数单位不同时先换算再充气。</p>
+    </div>
+    <div class="scene-card">
+      <h4>🧊 冷态测量</h4>
+      <p>胎压须在冷胎（停车 3 小时以上或行驶不足 2km）时测量；刚跑完高速的热态读数会偏高 0.2~0.3 bar，不能直接对照标贴。</p>
+    </div>
+    <div class="info-box">💡 前后轴通常不同（前驱车前轮略高）。四轮独立、胎压监测灯亮起时，请逐轮核对并复位。</div>
+  </div>
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto 0;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+.deep-dive a.term-link{color:var(--tool-accent,#FF6B35);text-decoration:none;border-bottom:1px dashed currentColor;}
+.deep-dive a.term-link:hover{border-bottom-style:solid;}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：标准胎压查询与核算</h2>
+<h3>💡 常见使用场景</h3>
+<ul class="dd-list">
+<li>按车门框标贴或手册的标准胎压，结合载重与季节微调，保证抓地与舒适。</li>
+<li>换季或满载长途前核对并补足胎压，降低爆胎与偏磨。</li>
+<li>对比前后轴差异（前驱车前轮常略高），统一调整。</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">按标贴与载重微调</div><div class="dd-ex-body">标贴推荐前 2.3、后 2.1 bar（空载）。满载或高速可整体上调 0.1–0.2 bar；冬季略高 0.1 bar 抵消冷缩。实测前 2.0 后 1.9 时应补到标准，否则油耗与磨损上升。</div></div>
+<h3>❓ 常见问题（FAQ）</h3>
+<dl class="dd-faq">
+<dt>胎压高好还是低好？</dt><dd>过低费油、胎肩磨损、易驻波爆胎；过高中央磨损、颠簸抓地降。以厂家标贴为准，按载重微调，不凭感觉。</dd>
+<dt>备胎胎压为什么更高？</dt><dd>非全尺寸备胎常要求 4.0–4.2 bar 以防久置亏气，仅限临时短途低速使用，换上后尽快修复主胎。</dd>
+</dl>
+</div>
+</section>
+<!-- 注意事项区块 -->
+<div class="tool-notes" style="--tool-accent:#0f766e;">
+  <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
+  <ul>
+    <li>本工具纯前端运行，数据不会上传到服务器</li>
+    <li>建议在主流浏览器（Chrome/Safari/Firefox/Edge）中使用</li>
+    <li>胎压须在冷胎状态测量，热胎读数不能直接对照标贴标准</li>
+  </ul>
+</div>
+</div>
+<!-- 相关工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相关工具</h3>
+  <div class="related-tools-grid">
+    <a href="recommender-6.html" class="related-tool-card">
+      <span class="rt-icon">🚗</span>
+      <span class="rt-info"><span class="rt-name">胎压（监测/充气）推荐</span><span class="rt-desc">根据车型、载重与季节推荐前后轮标准胎压，提示冷胎与热胎读数差异及充气注意事项，帮助延长轮胎寿命并保…</span></span>
+    </a>
+    <a href="calc-2.html" class="related-tool-card">
+      <span class="rt-icon">⚡</span>
+      <span class="rt-info"><span class="rt-name">发动机功率/扭矩换算</span><span class="rt-desc">根据功率、扭矩与转速之间的物理关系进行换算，支持 kW 与 PS（公制马力）互转。</span></span>
+    </a>
+    <a href="oil-change-countdown.html" class="related-tool-card">
+      <span class="rt-icon">📅</span>
+      <span class="rt-info"><span class="rt-name">机油更换倒计时</span><span class="rt-desc">输入已行驶里程、机油周期与驾驶习惯系数，估算下次机油更换的剩余里程或天数，避免过度保养或超期损伤。</span></span>
+    </a>
+    <a href="countdown-engine-oil.html" class="related-tool-card">
+      <span class="rt-icon">📅</span>
+      <span class="rt-info"><span class="rt-name">机油更换里程倒计时</span><span class="rt-desc">机油更换里程倒计时，按机油类型与驾驶习惯系数智能计算建议换油间隔与剩余里程，支持多车管理、数据本地…</span></span>
+    </a>
+    <a href="calc-3.html" class="related-tool-card">
+      <span class="rt-icon">🚗</span>
+      <span class="rt-info"><span class="rt-name">轮胎胎压换算</span><span class="rt-desc">在 bar、psi、kPa、kg/cm² 之间换算轮胎气压，并查看常用参考值。</span></span>
+    </a>
+    <a href="transport-calculator.html" class="related-tool-card">
+      <span class="rt-icon">🚚</span>
+      <span class="rt-info"><span class="rt-name">交通物流计算器</span><span class="rt-desc">涵盖刹车距离、油耗成本、货物换算、燃油效率、行驶时间、轮胎尺寸等多种交通物流常用计算</span></span>
+    </a>
+  </div>
+</div>
+<script>
+function fmtNum(n,d){d=d==null?2:d;if(!isFinite(n))return '--';return parseFloat(n.toFixed(d)).toString();}
+function val(id){return parseFloat(document.getElementById(id).value);}
+function str(id){return document.getElementById(id).value;}
+var PSI=14.5038;
+function calc(){
+  var R=document.getElementById('result'),G=document.getElementById('distGrid'),
+      F=document.getElementById('formulaBox'),A=document.getElementById('adviceBox');
+  var f0=val('f0'),r0=val('r0'),fc=val('fc'),rc=val('rc');
+  var load=str('load'),season=str('season');
+  if(isNaN(f0)||isNaN(r0)||isNaN(fc)||isNaN(rc)){
+    R.innerHTML='<div class="safe-val">--</div><div class="safe-sub">请输入有效的标贴与实测胎压</div>';
+    G.innerHTML='';F.innerHTML='';A.innerHTML='';return;
+  }
+  var adj=(load==='full')?0.2:(load==='half'?0.1:0);
+  var se=(season==='winter')?0.1:(season==='summer'?-0.05:0);
+  var tf=f0+adj+se, tr=r0+adj+se;
+  var df=tf-fc, dr=tr-rc;
+  const __g5='<div class="safe-val">前 '+fmtNum(tf,2)+' / 后 '+fmtNum(tr,2)+' bar</div><div class="safe-sub">折合 前 '+fmtNum(tf*PSI,1)+' / 后 '+fmtNum(tr*PSI,1)+' psi</div>';R.innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
+  const __g6='<div class="dist-card"><div class="v">'+fmtNum(tf,2)+'</div><div class="l">建议前胎压 (bar)</div></div>'+
+    '<div class="dist-card"><div class="v">'+fmtNum(tr,2)+'</div><div class="l">建议后胎压 (bar)</div></div>'+
+    '<div class="dist-card"><div class="v">'+(df>=0?'+':'')+fmtNum(df,2)+'</div><div class="l">前轮差额 (bar)</div></div>'+
+    '<div class="dist-card"><div class="v">'+(dr>=0?'+':'')+fmtNum(dr,2)+'</div><div class="l">后轮差额 (bar)</div></div>';G.innerHTML=(typeof __g6==='number'?(isFinite(__g6)?__g6:'—'):String(__g6).replace(/Infinity|NaN/g,'—'));
+  const __g7='<div class="fb-title">核算公式</div>'+
+    '<div class="fb-row">目标胎压 = 标贴标准 + 载重修正 + 季节修正</div>'+
+    '<div class="fb-row">载重修正：空载 0 / 半载 +0.1 / 满载 +0.2 bar</div>'+
+    '<div class="fb-row">季节修正：冬季 +0.1 / 常温 0 / 夏季 −0.05 bar</div>'+
+    '<div class="fb-row">差额 = 目标 − 实测（正值需补气，负值需放气）</div>'+
+    '<div class="fb-row">单位换算：psi = bar × 14.5038；kPa = bar × 100</div>';F.innerHTML=(typeof __g7==='number'?(isFinite(__g7)?__g7:'—'):String(__g7).replace(/Infinity|NaN/g,'—'));
+  var ad='';
+  var worst=Math.max(Math.abs(df),Math.abs(dr));
+  if(worst<0.05){ ad='<div class="tip-success">✅ 四轮均接近目标值，无需调整，保持每月冷态复测一次。</div>'; }
+  else if(worst<=0.2){ ad='<div class="tip-info">ℹ️ 存在小幅偏差（最大 '+fmtNum(worst,2)+' bar），建议按差额补齐或放气后复测。</div>'; }
+  else{ ad='<div class="tip-warn">⚠️ 偏差较大（最大 '+fmtNum(worst,2)+' bar）：胎压过低会费油、胎肩偏磨甚至驻波爆胎；过高会中央偏磨、抓地下降。请尽快调整并排查慢漏气。</div>'; }
+  if(df<0||dr<0){ ad+='<div class="tip-warn">⚠️ 实测低于目标，注意排查气门嘴、胎唇与扎钉导致的慢漏气。</div>'; }
+  const __g8=ad;A.innerHTML=(typeof __g8==='number'?(isFinite(__g8)?__g8:'—'):String(__g8).replace(/Infinity|NaN/g,'—'));
+}
+calc();
+
+var __tire_pressure_last=0,__tire_pressure_skip=false;
+function __tire_pressureSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __tire_pressureResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __tire_pressureTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __tire_pressureRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__tire_pressureTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#tire_pressureTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#tire_pressureDiff');
+        TBKit.history.mount('#tire_pressureHist',function(rec){
+            __tire_pressure_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __tire_pressure_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__tire_pressureTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#tire_pressureChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __tire_pressureExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__tire_pressure_skip) return;
+    var snap=__tire_pressureSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__tire_pressureResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__tire_pressure_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __tire_pressure_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __tire_pressureRender(keys,rk,en);
+}
+function __tire_pressureExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#tire_pressureTable','tire-pressure.csv'); } catch(e){}
+}
+function __tire_pressurePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#tire_pressurePresets',[{label:'默认参数',labelEn:'Default',values:{'f0':'2.3', 'r0':'2.1', 'load':'empty', 'season':'normal', 'fc':'2.0', 'rc':'1.9'}}],function(){ calc(); });
+}
+var __tire_pressure_f0=(typeof calc==='function')?calc:null;
+if(__tire_pressure_f0){
+    calc=function(){ var __r=__tire_pressure_f0.apply(null,arguments); try{ __tire_pressureExtras(); }catch(e){} return __r; };
+}
+function __tire_pressureBoot(){ try{ __tire_pressurePresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __tire_pressureBoot();
+else document.addEventListener('DOMContentLoaded', __tire_pressureBoot);
+</script>
+</body>
+</html>

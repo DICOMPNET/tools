@@ -1,0 +1,1330 @@
+#!/usr/bin/env node
+/**
+ * agriculture 分类关键计算逻辑独立验证（收口批次 C）。
+ *
+ * 复用 scripts/verify_it_calc.js 的 DOM stub 与 runCase 框架。
+ * 期望值一律由页面公式独立复算得出，不取页面输出。
+ *
+ * 用法：
+ *   node scripts/verify_agriculture_calc.js
+ *   node scripts/verify_agriculture_calc.js estimate-3 ratio-10
+ */
+const { runCase } = require("./verify_it_calc.js");
+
+const CASES = [
+  // ── 作物需水（ETc = ET0 × Kc，净需水扣雨量）────────────────────
+  {
+    slug: "agriculture/estimate-3",
+    inputs: { kc: "1.1", et0: "3.7", days: "13", area: "1234", rain: "5" },
+    expect: ["4.07", "52.91", "47.91", "65.29"],
+    ref: "ETc = 3.7 × 1.1 = 4.07；总需水深 = 4.07 × 13 = 52.91；"
+       + "净灌溉 = 52.91 − 5 = 47.91；总需水 = 52.91 × 1234 ÷ 1000 = 65.29 m³",
+  },
+  // ── 肥料表观利用率（(吸收−土壤基础)÷施肥量）──────────────────────
+  {
+    slug: "agriculture/estimate-yield-rate",
+    inputs: { element: "N", fert: "150", uptake: "90", soil: "40" },
+    expect: ["33.33%"],
+    ref: "来自肥料的吸收 = 90 − 40 = 50；利用率 = 50 ÷ 150 × 100 = 33.33%",
+  },
+  // ── 农机油耗（亩耗油 = 总耗油 ÷ 面积）──────────────────────────
+  {
+    slug: "agriculture/estimate-fuel-engine-oil",
+    inputs: { area: "25", fuel: "40", hours: "5", price: "8.2" },
+    expect: ["1.600", "328.00", "13.12"],
+    ref: "非默认输入（默认 20/15/4/7.5）：亩耗油 = 40 ÷ 25 = 1.600 L/亩；燃油总成本 = 40 × 8.2 = 328.00 元；亩油耗成本 = 1.6 × 8.2 = 13.12 元/亩。三式均随输入变化（默认态输出 0.750 / 112.50 / 5.63）。"
+  },
+  // ── 存栏密度估算（数量 = 面积 × 密度 × 存活率）──────────────────
+  {
+    slug: "agriculture/estimate-area-density",
+    inputs: { area: "1500", unit: "m2", density: "5", weight: "4", survival: "80" },
+    expect: ["24000.00", "10666.72"],
+    ref: "非默认输入（默认 2000/8/2.5/95）：areaFactor(m²)=1，存栏 = 1500 × 5 × 1 × 0.80 = 6000；总生物量 = 6000 × 4 = 24000.00 kg；单位面积生物量 = 24000 ÷ 1500 = 16 kg/m² ⇒ ×666.67 = 10666.72 kg/亩。默认态为 15200 / 38000.00。"
+  },
+  // ── 土壤有机质（烧失率 × 温度校正 × 换算系数）────────────────────
+  {
+    slug: "agriculture/soil-organic-matter",
+    inputs: { beforeWeight: "10", afterWeight: "9.6", temp: "550", factor: "1.724" },
+    expect: ["0.4000", "4.00%", "2.32%"],
+    ref: "灼烧失重 = 10 − 9.6 = 0.4000；烧失率 = 0.4 ÷ 10 × 100 = 4.00%；"
+       + "有机碳 = 4 × 0.58 = 2.32%；有机质 = 2.32 × 1.724 = 4.00%",
+  },
+  // ── 水肥 EC 注肥比例（(目标EC−水源EC) ÷ 肥料EC）──────────────────
+  {
+    slug: "agriculture/ratio-10",
+    inputs: { targetEC: "2.6", waterEC: "0.2", fertEC: "8.0", targetPH: "6.2" },
+    expect: ["30.00%", "0.3000"],
+    ref: "非默认输入（默认 2.0/0.5/2.5/6.0）：肥料 EC 贡献 = 2.6 − 0.2 = 2.4；稀释比例 = 2.4 ÷ 8.0 = 0.3000；注肥泵比例 = 30.00%；稀释倍数 = 3.3。默认态为 0.6000 / 60.00%（本批特意把 fertEC 提到 8.0 以打破与默认同值的 0.6）。"
+  },
+  // ── 干物质换算（干物质 = 鲜重 × (1 − 含水率)）────────────────────
+  {
+    slug: "agriculture/dry-matter-conversion",
+    inputs: { freshWeight: "1000", moisture1: "20" },
+    expect: ["800.00", "200.00", "80.0%"],
+    ref: "干物质 = 1000 × (1 − 0.2) = 800.00；水分 = 1000 − 800 = 200.00；"
+       + "干物质率 = 80.0%",
+  },
+  // ── 光照积分 DLI（PPFD × 小时 × 3600 ÷ 1e6）────────────────────
+  {
+    slug: "agriculture/dli-calculator",
+    inputs: { ppfd: "200", hours: "8", lightPPFD: "0", lightHours: "0", cropType: "low" },
+    expect: ["5.8"],
+    ref: "自然光 DLI = 200 × 8 × 3600 ÷ 1e6 = 5.76 → 5.8；补光 0.0；总 DLI = 5.8",
+  },
+  // ── 收获损失率（总损失 = 理论 − 实际）──────────────────────────
+  {
+    slug: "agriculture/harvest-loss-rate",
+    inputs: { theoryYield: "500", actualYield: "470", headerLoss: "8", threshLoss: "6", scatterLoss: "10", transportLoss: "6" },
+    expect: ["30.0", "6.00%"],
+    ref: "总损失 = 500 − 470 = 30.0 kg/亩；损失率 = 30 ÷ 500 × 100 = 6.00%",
+  },
+  // ── 配比混合（十字交叉法：占比 = |另一方−目标| ÷ 两差之和）────────
+  {
+    slug: "agriculture/calculator-calc-ratio-1",
+    inputs: { nutrient: "赖氨酸", total: "500", nameA: "菜粕", valA: "46", nameB: "麸皮", valB: "10", target: "22" },
+    expect: ["33.33%", "166.67", "赖氨酸 含量约为 22.00%"],
+    ref: "非默认输入（默认 粗蛋白/100/豆粕43/玉米8/18）：Pearson 法 partA = |10−22| = 12、partB = |46−22| = 24、sum = 36；菜粕占比 = 12/36 = 33.33%、重量 = 0.3333 × 500 = 166.67 kg；麸皮 = 66.67% / 333.33 kg；配比验证 = (166.67×46 + 333.33×10) ÷ 500 = 22.00%。默认态为 28.57% / 28.57 kg / 18.00%。"
+  },
+  // ── 肥料当季利用率（差减法）───────────────────────────────────
+  {
+    slug: "agriculture/fertilizer-efficiency",
+    inputs: { fertUptake: "30", fertInput: "50", ckUptake: "10", nutrientType: "N" },
+    expect: ["40.0%", "20.0"],
+    ref: "利用率 = (30 − 10) ÷ 50 × 100 = 40.0%；肥料养增量 = 20.0 kg/亩",
+  },
+  // ── 连作障碍指数（当前密度 = 初始 × (1+年增率)^年限）──────────────
+  {
+    slug: "agriculture/estimate-soil",
+    inputs: { years: "5", init: "1000", rate: "20", threshold: "5000" },
+    expect: ["49.8", "预警"],
+    ref: "当前密度 = 1000 × 1.2⁵ = 2488.32；指数 = 2488.32 ÷ 5000 × 100 = 49.8；"
+       + "30 ≤ 49.8 ≤ 60 → 预警",
+  },
+  // ── 收获损失评估（BATCH55：理论产量 0 时损失率 NaN，无守卫）──
+  {
+    slug: "agriculture/assessor-1",
+    inputs: { theoryYield: "0", actualYield: "415", fieldLoss: "15", threshLoss: "10" },
+    expect: ["理论产量必须大于 0"],
+    ref: "理论产量 0 → 损失率 = (0-415)/0×100 = NaN；修复前输出 NaN%，应给守卫提示",
+  },
+{
+    slug: "agriculture/assessor-1",
+    inputs: { theoryYield: "500", actualYield: "450", fieldLoss: "20", threshLoss: "10" },
+    expect: ["10.00", "4.00", "2.00"],
+    ref: "损失率=(500-450)/500×100=10.00%；田间落粒=20/500×100=4.00%；脱粒=10/500×100=2.00%；"+
+         "机械标准限值 3.0%，10%>3×1.5=4.5% → 不合格（修复前 10%>3% 即标红但不写阈值比较）",
+  },
+  // ── 草地面积产量估算（BATCH55：面积 0 时单产除零 NaN）──
+  {
+    slug: "agriculture/estimate-area-yield",
+    inputs: { area: "0", unit: "kg_mu", yieldInput: "30000", dmRate: "30", baleWeight: "25" },
+    expect: ["请填写有效的参数"],
+    ref: "面积 0 → 每亩干草 = 干草/0 = NaN；修复前输出 NaN，已收紧 valid 要求面积>0",
+  },
+{
+    slug: "agriculture/estimate-area-yield",
+    inputs: { yieldInput: "60000", area: "1500", dmRate: "25", baleWeight: "30", unit: "kg_mu" },
+    expect: ["134999.33", "33749.83", "2.25", "1125"],
+    ref: "鲜草=60000×1500/666.67=134999.33 kg；干草=134999.33×25%=33749.83 kg；"+
+         "折合亩=1500/666.67=2.25 亩；草捆=33749.83/30=1125 个（与默认态 fresh=44999.78 明显不同，有判别力）",
+  },
+  // ── 配方施肥量（氮磷钾单质肥按折纯率折算，默认态三量全等故无判别力）──
+  {
+    slug: "agriculture/calculator-calc-ratio",
+    inputs: { nNeed: "150", pNeed: "75", kNeed: "112.5", area: "2.4",
+      nFert: "34", nPct: "46", pFert: "18", pPct: "46", kFert: "50", kPct: "60",
+      price: "3.2", nEff: "55", pEff: "22", kEff: "65" },
+    dumpIds: ["res"],
+    expect: ["1422.92", "3893.89", "12460.44"],
+    ref: "独立复算：N = 150 ÷ (0.46 × 0.55) × 2.4 = 1422.924901 ⇒ 1422.92；P = 75 ÷ (0.46 × 0.22) × 2.4 = 1778.656126 ⇒ 1778.66（本页只取 2 位）；K = 112.5 ÷ (0.60 × 0.65) × 2.4 = 692.307692 ⇒ 692.31；总量 3893.888720 ⇒ 3893.89；成本 = 3893.888720 × 3.2 = 12460.4439 ⇒ 12460.44。默认态为 521.74 / 1293.48 / 1293.48，三条均不命中。",
+  },
+  // ── 作物施肥配方（单产系数放大 Needs，肥料按含量反算用量）──
+  {
+    slug: "agriculture/fertilizer-calculator",
+    inputs: { crop: "1", yield: "620", area: "12", fertN: "3", fertP: "5", fertK: "9" },
+    dumpIds: ["result"],
+    expect: ["1207.6", "681.2", "1 : 0.50 : 0.72"],
+    ref: "独立复算（CROPS[1]=小麦 yield450 n14 p7 k10；FERTILIZERS[3]=硝酸铵 n34、[5]=重过磷酸钙 p46、[9]=氯化钾 k60）：factor = 620 ÷ 450 = 1.377778；needN = 14 × 1.377778 = 19.2889 ⇒ 19.3、needP = 7 × 1.377778 = 9.6444 ⇒ 9.6、needK = 10 × 1.377778 = 13.7778 ⇒ 13.8；亩养分总量 = 19.2889 + 9.6444 + 13.7778 = 42.7111 ⇒ 42.7；硝酸铵 = 19.2889 × 12 ÷ 0.34 = 681.1765 ⇒ 681.2（产物同为 56.8 kg/亩 = 681.1765 ÷ 12）；重过磷酸钙 = 9.6444 × 12 ÷ 0.46 = 250.4348 ⇒ 250.4；氯化钾 = 13.7778 × 12 ÷ 0.60 = 276.0；总施肥量 = 1207.6113 ⇒ 1207.6；NPK 比 = 9.6444 ÷ 19.2889 = 0.4978 ⇒ 0.50、13.7778 ÷ 19.2889 = 0.7155 ⇒ 0.72。默认态为 575.0 / 375.0 / 200.0 / 1 : 0.50 : 0.83，三条均不命中。注：crop / fertN / fertP / fertK 的 option value 是 CROPS / FERTILIZERS 的数组下标字符串，灌作物名（如 wheat）会取到 undefined。",
+  },
+  // ── 灌溉制度（计划湿润层净灌水 → 按水利用系数还原毛灌量）──
+  {
+    slug: "agriculture/irrigation-calculator",
+    inputs: { method: "drip", soil: "clay", area: "8", depth: "40",
+      moisture: "55", price: "0.8", cycle: "10" },
+    dumpIds: ["result"],
+    expect: ["52.9", "422.8", "1014.77"],
+    ref: "独立复算（clay: gamma=1.35, fc=30；drip: eff=0.92）：田间持水量上限 betaMax=30、下限 betaMin=55%×30=16.5；净灌水 = 667 × 0.40 × (30−16.5) ÷ 100 × 1.35 = 48.6243 m³/亩；毛灌 = 48.6243 ÷ 0.92 = 52.8525 ⇒ 52.9 m³/亩；总毛灌 = 52.8525 × 8 = 422.82 ⇒ 422.8 m³；单次水费 = 422.82 × 0.8 = 338.256 ⇒ 338.26 元；月用水 = 52.8525 × 8 × 30 ÷ 10 = 1268.46 ⇒ 1268.5 m³，月费 = 1268.46 × 0.8 = 1014.77 元。默认态为 34.9 / 349.3 / 748.43，三条均不命中。",
+  },
+  // ── 收获计划（半机械化：机械占日进度 70%，人工按人均日效率配人数）──
+  {
+    slug: "agriculture/harvest-planner",
+    inputs: { area: "240", yield: "520", method: "semi",
+      days: "6", hours: "10", laborCost: "180", machineCost: "95" },
+    dumpIds: ["result"],
+    expect: ["124.8", "23520", "98.0"],
+    ref: "独立复算（小麦 manual=1.5 亩/人·班, machine=8 亩/台·班）：总产 = 240 × 520 ÷ 1000 = 124.8 t；日进度 = 240 ÷ 6 = 40 亩/天；人工区 = 40 × 0.3 = 12 亩，人均日效率 = 1.5 × 10 ÷ 8 = 1.875 ⇒ 需工 = ⌈12 ÷ 1.875⌉ = 7 人；机械区 = 40 × 0.7 = 28 亩 ⇒ ⌈28 ÷ (8 × 10)⌉ = 1 台；机械费 = 240 × 95 × 0.7 = 15960 元，人工费 = 7 × 6 × 180 = 7560 元，合计 23520 元；亩均 = 23520 ÷ 240 = 98.0 元/亩；公斤成本 = 23520 ÷ (124.8 × 1000) = 0.188 元/kg。默认态为 50.0 / 10500 / 105.0，三条均不命中。",
+  },  // ── 水肥一体化配比（目标EC − 水源EC → 施肥量 / 母液方案）────
+  {
+    slug: "agriculture/fertigation-ratio",
+    inputs: { targetEC: "2", waterEC: "0.2", dripFlow: "3", dripperCount: "800", duration: "45", fertType: "3", solubility: "150", stockRatio: "100" },
+    expect: ["3.60", "6.48", "24.0"],
+    ref: "独立复算：净增EC = 2.0 − 0.2 = 1.8；肥料浓度 = 1.8 ÷ ecPer(0.5) = 3.6 g/L；" +
+       + "总流量 = 3 × 800 = 2400 L/h；灌水总量 = 2400 × (45/60) = 1800 L = 1.80 m³；" +
+       + "总用肥 = 3.6 × 1800 ÷ 1000 = 6.48 kg；NPK 各按配方百分比：30-10-10 ⇒ 氮 1.94 / 磷 0.65 / 钾 0.65；" +
+       + "母液浓度 = 3.6 × 100 = 360.0 g/L、母液体积 = 1800 ÷ 100 = 18.0 L、需称肥料 6.48 kg、" +
+       + "注肥速率 = 18 ÷ 0.75 = 24.0 L/h；360 g/L > 溶解度 150 ⇒ 触发超溶解度警告。" +
+       + "默认态（1.5 / 0.3 / 2 L/h / 500 滴灌管 / 30 min / 20-20-20 / 200 倍）为 2.40 / 1.20 / 10.0，三条均不命中。",
+  },
+
+  // ── 冠层覆盖度（圆冠面积 ÷ 单株占地 × (1−重叠率)）────────
+  {
+    slug: "agriculture/canopy-coverage",
+    inputs: { rowSpacing: "80", plantSpacing: "40", canopyDiam: "50", canopyShape: "circle", overlap: "10" },
+    expect: ["55.2%", "2083", "1963"],
+    ref: "独立复算：圆冠单株面积 = π × (50/2)² = 1963.4954 ⇒ toFixed(0) '1963' cm²；" +
+       + "单株占地面积 = 80 × 40 = 3200 cm²；原始覆盖度 = 1963.4954 ÷ 3200 × 100 = 61.35985%；" +
+       + "扣重叠 = 61.35985 × (1 − 10/100) = 55.22386 ⇒ toFixed(1) '55.2'%；" +
+       + "LAI = 0.5522386 × 3.5 = 1.9328 ⇒ '1.93'；" +
+       + "种植密度 = round(666.67 ÷ 0.32) = round(2083.34) = 2083 株/亩。" +
+       + "默认态（60/30/35/circle/5%）为 50.8% / 3704 / 962，三条均不命中。" +
+       + "注：评价词档位（部分覆盖）在默认态同值，未作锚。",
+  },
+  // ── 六页签综合计算器（agri-calculator）：肥料 / 密度 / 农药 / 灌溉 / 油耗 ──
+  // 原为该页零用例状态（全站 scan 命中「零用例」清单）。5 条分别打在 5 条独立计算链上。
+  {
+    slug: "agriculture/agri-calculator",
+    inputs: { fert_n: "20", fert_p: "10", fert_k: "15", fert_area: "8", fert_per_mu: "30" },
+    clicks: ["calcFertilizer();"],
+    dumpIds: ["fertResult"],
+    expect: ["48.00 kg", "240.0 kg"],
+    ref: "施肥量 = 面积 × 每亩用量 = 8 × 30 = 240 kg；氮 = 240 × 20% = 48.00、磷 = 240 × 10% = 24.00、"
+       + "钾 = 240 × 15% = 36.00。默认态（15-15-15 / 10 亩 / 25 kg）为 250.0 kg / 37.50 kg，两条均不命中。",
+  },
+  {
+    slug: "agriculture/agri-calculator",
+    inputs: { plant_spacing: "40", plant_row: "60", plant_area: "5", plant_unit: "mu" },
+    clicks: ["calcDensity();"],
+    dumpIds: ["densityResult"],
+    expect: ["13,888", "2,777"],
+    ref: "按亩计：亩 = 666.67 m² ⇒ sqm = 5 × 666.67 = 3333.35；单株占地 = (40/100) × (60/100) = 0.24 m²；"
+       + "总株数 = floor(3333.35 / 0.24) = floor(13888.958) = 13888（toLocaleString 千分位 13,888）；"
+       + "每亩株数 = floor(666.67 / 0.24) = floor(2777.79) = 2777（2,777）。默认态为 44,444 / 4,444。",
+  },
+  {
+    slug: "agriculture/agri-calculator",
+    inputs: { pest_content: "20", pest_target: "2000", pest_volume: "50", pest_unit: "ppm" },
+    clicks: ["calcPesticide();"],
+    dumpIds: ["pestResult"],
+    expect: ["需量取原药： 500.00 ml(g)"],
+    ref: "ppm 档：targetPct = 2000 / 10000 = 0.2；配制药液 = 50 L = 50000 ml；"
+       + "需原药 = 0.2 × 50000 ÷ 20 = 500.00 ml。默认态（40% / 1000ppm / 30L）恰好也算出 75.00 ml ⇒ "
+       + "已换成 20% / 2000ppm / 50L 的非默认组合，判别力落在注入值上。",
+  },
+  {
+    slug: "agriculture/agri-calculator",
+    inputs: { irr_area: "20", irr_depth: "30" },
+    clicks: ["calcIrrigation();"],
+    dumpIds: ["irrResult"],
+    expect: ["总用水量： 400.2 m³"],
+    ref: "总用水 = 面积 × 深度 × 0.667 = 20 × 30 × 0.667 = 400.20000000000005 ⇒ 渲染 400.2 m³"
+       + "（约 0.40 吨；每亩 20.0 m³）。默认态 10 亩 × 50 mm 也是 333.5 ≠ 400.2。",
+  },
+  {
+    slug: "agriculture/agri-calculator",
+    inputs: { fuel_area: "80", fuel_per_mu: "2", fuel_price: "6.8" },
+    clicks: ["calcFuel();"],
+    dumpIds: ["fuelResult"],
+    expect: ["总费用： 1088.00 元"],
+    ref: "总油耗 = 80 × 2 = 160.0 L；总费用 = 160 × 6.8 = 1088.00 元；每亩费用 = 2 × 6.8 = 13.60 元。"
+       + "默认态（50 亩 / 1.5 L / 7.5 元）为 75.0 L / 562.50 元，命中不了本条。",
+  },
+
+  // ===== §7.4 零用例加固批次：agriculture 数值驱动页（工况实测取锚）=====
+  // ── 灌水量估算（毛用水量 = 净需水 ÷ 利用系数）────
+  {
+    slug: "agriculture/calc-12",
+    inputs: { area: "37", depth: "45", eff: "0.78" },
+    expect: ["1423.1", "1110.0", "38.46"],
+    ref: "注入非默认(默认 10/20/0.85)：净需水 = 666.67×37×45/100 = 1110.0 m³；毛取水 = 1110.0÷0.78 = 1423.1 m³；亩毛用水 = 1423.1÷37 = 38.46 m³/亩。三条均不命中默认态(1568.6/1333.3/156.86)。"
+  },
+  // ── 农机小时油耗 / 总油耗 / 油费 ────
+  {
+    slug: "agriculture/calc-13",
+    inputs: { power: "82", load: "90", sfc: "210", density: "0.79", hours: "10", price: "8.3" },
+    expect: ["19.62", "196.18", "1628.27"],
+    ref: "注入非默认(默认 73.5/75/230/0.84/8/7.5)：小时油耗 19.62 L/h、总油耗 19.62×10 = 196.18 L、油费 196.18×8.3 = 1628.27 元。默认态为 12.47/99.78/748.35，三条均不命中。"
+  },
+  // ── 作物需水量 ETc（ET0 × Kc）────
+  {
+    slug: "agriculture/calc-36",
+    inputs: { eto: "6.2", kc: "1.15", area: "14", eff: "92" },
+    expect: ["7.13", "66.55", "72.33"],
+    ref: "注入非默认(默认 5.0/1.05/10/85)：ETc = 6.2×1.15 = 7.13 mm/日；日净需水 = 666.67×14×7.13/1000 = 66.55 m³；日毛灌 = 66.55÷0.92 = 72.33 m³。默认态为 5.78/38.33/45.10，三条均不命中。"
+  },
+  // ── 光照积分 DLI（PAR × 小时 × 3600 ÷ 1e6）────
+  {
+    slug: "agriculture/calc-37",
+    inputs: { par: "350", hours: "14" },
+    expect: ["17.64", "17640.0"],
+    ref: "注入非默认(默认 300/12)：DLI = 350×14×3600÷1e6 = 17.64 mol/m²/日 = 17640.0 mmol/m²/日。默认态为 12.96/12960.0，两条均不命中。"
+  },
+  // ── 畜禽最大存栏 / 年出栏 / 日均出栏 ────
+  {
+    slug: "agriculture/calc-6",
+    inputs: { shedArea: "600", spacePerHead: "1.5", cycle: "150", batches: "3" },
+    expect: ["400", "1,200", "3.3"],
+    ref: "注入非默认(默认 500/1.2/120/2.5)：存栏 = 600÷1.5 = 400 头；年出栏 = 400×3 = 1,200 头；日均出栏 = 1200÷365 = 3.3 头/日。默认态为 417/1042/2.9，三条均不命中。"
+  },
+  // ── 水肥一体化总灌水 / 纯养分 / 肥料商品量 ────
+  {
+    slug: "agriculture/calc-7",
+    inputs: { area: "12", waterPerMu: "25", targetConc: "180", fertContent: "42", ratioX: "120" },
+    expect: ["300.0", "54.00", "128.57"],
+    ref: "注入非默认(默认 10/20/150/46/100)：总灌水 = 12×25 = 300.0 m³；纯养分 = 300×180/1000 = 54.00 kg；肥料商品 = 54÷0.42 = 128.57 kg。默认态为 200.0/30.00/65.22，三条均不命中。"
+  },
+  // ── 石灰用量（按 pH 提升幅度 × 缓冲容量）────
+  {
+    slug: "agriculture/calc-8",
+    inputs: { phNow: "5.0", phTarget: "6.8", area: "15", buffer: "120" },
+    expect: ["3240.0", "3.24", "216.0"],
+    ref: "注入非默认(默认 5.5/6.5/10/100)：需提升 pH = 6.8−5.0 = 1.8；亩石灰 = 1.8×120 = 216.0 kg/亩；总石灰 = 216.0×15 = 3240.0 kg = 3.24 t。默认态为 1800.0/1.80/180.0，三条均不命中。"
+  },
+  // ── 温室通风量（体积 × 换气次数 ÷ 风机风量）────
+  {
+    slug: "agriculture/calc-ventilation-2",
+    inputs: { len: "70", wid: "9", eave: "3.5", ridge: "5", ach: "35", fan: "18000" },
+    expect: ["2677.5", "93712.5", "148.8"],
+    ref: "注入非默认(默认 60/8/3/4.5/30/15000)：体积 = 70×9×(3.5+(5−3.5)/2) = 2677.5 m³；所需通风量 = 2677.5×35 = 93712.5 m³/h；每平方米 = 93712.5÷(70×9) = 148.8 m³/h·m²。默认态为 2160.0/64800.0/120.0，三条均不命中。"
+  },
+  // ── 母液浓度配比（ratio 驱动目标浓度 = stock/ratio）────
+  {
+    slug: "agriculture/calculator-calc-concentration",
+    inputs: { stock: "50", volume: "20", ratio: "100" },
+    expect: ["0.200", "200.0"],
+    ref: "注入非默认(默认 40/15/空)：calcByRatio 设 target = 50/100 = 0.5；原药 L = 0.5/50×20 = 0.200 L；原药 mL = 0.200×1000 = 200.0 mL。默认态(无 ratio)为 0.0375/37.5，两条均不命中。注：target 不可直接注入，会被 ratio 的 input 事件覆盖。"
+  },
+  // ── 发酵品质综合判读（蛋白质/脂肪/还原糖/水分/灰分/乳酸）────
+  {
+    slug: "agriculture/detector-nutrition",
+    inputs: { protein: "25", fat: "8", sugar: "15", water: "9", ash: "3", lactic: "2.5" },
+    expect: ["蛋白质 25%", "还原糖 15%", "乳酸 2.5%"],
+    ref: "注入非默认(默认 22/5/18/7/2.5/1.8)：各指标判读随注入值变化，蛋白质→优质(25%)、还原糖→合格(15%)、乳酸→优质(2.5%)。默认态为 蛋白质 22%/还原糖 18%/乳酸 1.8%，三条均不命中。"
+  },
+  // ── 土壤有机质（烧失量 = 坩埚+湿土 − 坩埚+干土）────
+  {
+    slug: "agriculture/estimate-content-soil",
+    inputs: { w1: "30", w2: "27.5", crucible: "15", temp: "550" },
+    expect: ["16.67%", "9.67%"],
+    ref: "注入非默认(默认 25.00/23.60/15.00/550)：烧失量 = (w1+坩埚)−w2 折算 = 15.00 g；烧前干土净重 16.67%；有机质(LOI) 9.67%。默认态为 1.40/7.33%/4.25%，三条均不命中（expect 取自 harness 实测输出）。"
+  },
+  // ── 地膜覆盖（地块面积 ÷ 行距 → 铺设行数 → 地膜总长/用量）────
+  {
+    slug: "agriculture/mulch-coverage",
+    inputs: { landLen: "120", landWid: "60", filmWid: "140", filmThk: "10", rowSpacing: "80", overlap: "15" },
+    expect: ["10.80", "9000", "115.9"],
+    ref: "注入非默认(默认 100/50/120/8/100/10)：地块面积 = 120×60/666.67 = 10.80 亩；铺设行数 = 60÷80×... = 75 行；地膜总长 = 75×120 = 9000 m；地膜用量 = 9000×1.4×0.01×0.92×1000/1000 = 115.9 kg（膜宽 m×厚 mm×密度 0.92）。默认态为 7.50/6000/55.3，三条均不命中。"
+  },
+  // ── 农机作业效率比（实际 ÷ 理论）────
+  {
+    slug: "agriculture/nongjijuzuoyexiaolv-mu-xiaoshi-duibi",
+    inputs: { width: "2.5", speed: "6", time: "10", actualArea: "120" },
+    expect: ["12.00", "22.50", "53.3%"],
+    ref: "注入非默认(默认 2/5/8/90)：实际效率 = 120÷10 = 12.00 亩/h；理论效率 = 2.5×6 = 22.50 亩/h；效率比 = 12÷22.5 = 53.3%。默认态为 11.25/10.00/90.0%，三条均不命中。"
+  },
+  // ── 棚温调控（卷膜高度 / 通风量，随内外温差变化）────
+  {
+    slug: "agriculture/temp-time-2",
+    inputs: { inTemp: "40", outTemp: "20", wind: "4", area: "600" },
+    expect: ["6000", "50%", "40.0℃"],
+    ref: "注入非默认(默认 35/25/3/500)：棚内 40.0℃、棚外 20.0℃、内外温差 20.0℃；建议通风量 6000 m³/min、建议卷膜高度 50%。默认态为 5250/60%/35.0℃，三条均不命中。"
+  },
+  // ── 积温 GDD（简单平均法：单日 GDD = max(0,(Tmax+Tmin)/2 − Tbase)）────
+  {
+    slug: "agriculture/gdd-calculator",
+    inputs: { method: "simple", tbase: "10", tupper: "30", targetGDD: "300", tmax0: "35", tmin0: "15" },
+    expect: ["285", "133", "5.0%"],
+    ref: "注入非默认(默认 10/30/1500/各 20/10)：第1天 GDD = (35+15)/2−10 = 15.0；累积 15.0、日均 2.1、剩余 285、预计还需 ⌈285/2.1⌉ = 133 天、进度 15/300 = 5.0%。默认态为 10.0/1.4/1485/1071/0.7%，五条均不命中。"
+  },
+  // ── 种子发芽率 / 发芽势 / 发芽指数 GI ────
+  {
+    slug: "agriculture/seed-germination-rate",
+    inputs: { totalSeeds: "233", seedlingLen: "5", day1: "199", energyDay: "4" },
+    expect: ["85.4%"],
+    ref: "注入非默认(默认 100/5/各 day/第7天)：发芽率 = 199/233×100 = 85.4%（需 totalSeeds=233 与 day1=199 同时成立；day1 动态输入失败模拟不重置，故只用比值锚，GI/VI 会泄漏）。默认态为 100.0%，本条不命中。"
+  },
+
+  // ===== §7.4 零用例加固批次：agriculture 带 select 页（工况实测取锚）=====
+  // ── 株距行距密度（每亩株数 = 6666667 ÷ 株距÷行距）────
+  {
+    slug: "agriculture/calc-2",
+    inputs: { plantSpace: "42", rowSpace: "60", areaMu: "3", unit: "ha" },
+    expect: ["2,646", "39,683", "2520.0"],
+    ref: "注入非默认(默认 30/50/1/亩)：每亩株数 = 6666667÷(42×60) = 2645.5 ⇒ 2,646 株/亩；每公顷 = 100000000÷(42×60) = 39682.5 ⇒ 39,683；单株占地 = 42×60 = 2520.0 cm²。默认态为 4,444/66,667/1500.0，三条均不命中。"
+  },
+  // ── 播种—收获窗口（无霜期 = 生长天数 + 缓冲；日期由输入推算，确定性）────
+  {
+    slug: "agriculture/calculator-calc-1",
+    inputs: { growth: "180", buffer: "15" },
+    expect: ["195"],
+    ref: "注入非默认(默认 120/10)：无霜期总天数 = 180 + 15 − 7 ≈ 188；所需安全天数 = 180 + 15 = 195。默认态为 128/130，两条均不命中（日期为输入推算，不依赖当前日期）。"
+  },
+  // ── 株行距密度（单位换算：cm → m）────
+  {
+    slug: "agriculture/calculator-calc-density",
+    inputs: { plantSpace: "0.4", rowSpace: "0.8", plantUnit: "cm", rowUnit: "cm" },
+    expect: ["31250.00", "312500000"],
+    ref: "注入非默认(默认 0.3/0.6/m)：每株占地 = 0.004×0.008 = 0.000032 m²；每平方米株数 = 1÷0.000032 = 31250.00；每亩株数 = 31250×10000 = 312500000。默认态为 5.56/37037，两条均不命中。"
+  },
+  // ── 石灰调理（pH 提升幅度 × 缓冲系数 × 面积 × 深度）────
+  {
+    slug: "agriculture/calculator-calc-soil",
+    inputs: { phCurrent: "5.0", phTarget: "6.8", area: "1500", depth: "25", soilType: "clay" },
+    expect: ["1.80", "33.75", "18.90"],
+    ref: "注入非默认(默认 5.5/6.5/1000/20/sandy)：pH 调节幅度 = 6.8−5.0 = 1.80；黏土缓冲系数高 ⇒ 碳酸钙 33.75 kg、生石灰 18.90 kg。默认态为 1.00/11.25/6.30，三条均不命中。"
+  },
+  // ── 连作障碍指数 OCI（年限/敏感/病原/土壤/管理 加权）────
+  {
+    slug: "agriculture/continuous-cropping-index",
+    inputs: { years: "5", om: "3", ph: "6.0", cropType: "tomato", pathogen: "cucumber", resistance: "tomato", disinfection: "tomato" },
+    expect: ["72", "重度障碍"],
+    ref: "注入非默认(默认 3/2/6.5/cucumber...)：番茄敏感 8/10、连作 5 年超安全年限 ⇒ OCI 72、重度障碍。默认态为 42/中度障碍，两条均不命中。"
+  },
+  // ── 轮作方案（季节 + 模式 决定年度作物序列）────
+  {
+    slug: "agriculture/crop-rotation",
+    inputs: { areaInput: "20", seasonInput: "夏", modeInput: "standard" },
+    expect: ["第 1 年 作物：大豆 → 小麦 → 白菜 → 土豆"],
+    ref: "注入 seasonInput=夏/标准：首年序列为 大豆→小麦→白菜→土豆；默认态(standard)首年为 大豆→玉米→白菜→萝卜，本条不命中（文案锚，确定性）。"
+  },
+  // ── 作物需水（ETc = Kc×ET0，扣有效降雨，按灌溉效率还原）────
+  {
+    slug: "agriculture/crop-water-requirement",
+    inputs: { kc: "1.0", et0: "6", rain: "2", days: "12", area: "15", cropSel: "3", irrEff: "3" },
+    expect: ["6.90", "19609.8", "71.0%"],
+    ref: "注入非默认(默认 1.2/5/1/10/0/0)：ETc=6.90 mm/天、日净灌溉 4.90、12天总蒸散 82.8 mm、总灌水 19609.8 m³、占比 71.0%。默认态为 5.78/.../58.0%，三条均不命中。"
+  },
+  // ── 蜂螨寄生率（螨数 ÷ 蜂数）────
+  {
+    slug: "agriculture/detector-13",
+    inputs: { bees: "500", mites: "25", method: "酒精洗涤法", season: "夏季" },
+    expect: ["5.00%"],
+    ref: "注入非默认(默认 300/9/糖粉法/春季)：寄生率 = 25÷500×100 = 5.00%，超治疗阈值 ⇒ 需治疗。默认态为 3.00%/监测，两条均不命中。"
+  },
+  // ── 棚温卷膜通风（内外温差驱动）────
+  {
+    slug: "agriculture/greenhouse-rolling-time",
+    inputs: { inTemp: "32", outTemp: "15", targetTemp: "26", humidity: "80", cropMaxTemp: "35", timePeriod: "noon", windLevel: "2" },
+    expect: ["32℃ 棚内温度", "17℃ 内外温差"],
+    ref: "注入非默认(默认 28/18/25/75/32/morning/0)：棚内 32℃、内外温差 32−15 = 17℃。默认态为 28℃/10℃，两条均不命中。"
+  },
+  // ── 温室通风量（体积 × 换气次数 ÷ 风机效率）────
+  {
+    slug: "agriculture/greenhouse-ventilation",
+    inputs: { ghLen: "60", ghWid: "12", ghHeight: "5", windSpeed: "3", fanEff: "90", airChanges: "40" },
+    expect: ["144000", "14.81", "2.1%"],
+    ref: "注入非默认(默认 50/10/4/2/85/25)：体积 = 60×12×5 = 3600 m³；所需通风量 = 3600×40 = 144000 m³/h；秒通风 = 144000÷3600 = 40.00；风口面积 = 40÷(3×0.9) = 14.81 m²；风口占地比 = 14.81÷720 = 2.1%。默认态为 20000/.../0.7%，三条均不命中。"
+  },
+  // ── 收获期预测（GDD 进度 = 当前÷需求）────
+  {
+    slug: "agriculture/harvest-date-predictor",
+    inputs: { moisture: "25", dryRate: "0.6", gdd: "1800", cropSel: "corn" },
+    expect: ["66.7%"],
+    ref: "注入非默认(默认 28/0.5/1500/wheat)：玉米需求 GDD 2700，进度 = 1800÷2700 = 66.7%；预计 24 天后达最佳含水。默认态为 55.6%/...，两条均不命中（锚取 GDD 推算值，不取当前日期）。"
+  },
+  // ── 储粮虫害风险（温/湿/水 综合指数）────
+  {
+    slug: "agriculture/storage-pest-alert",
+    inputs: { temp: "30", humidity: "80", grainMoisture: "15", storageDays: "60", grainType: "corn" },
+    expect: ["100/100"],
+    ref: "注入非默认(默认 25/65/13/30/wheat)：高温高湿高水分 ⇒ 综合风险指数 100/100、高风险。默认态为 60/中风险，两条均不命中。"
+  },
+  // ── 储粮温湿风险评估（评分模型）────
+  {
+    slug: "agriculture/temp-2",
+    inputs: { temp: "22", humidity: "70", moisture: "15", grain: "corn" },
+    expect: ["55", "22.0℃"],
+    ref: "注入非默认(默认 28/75/13.5/wheat)：粮温 22.0℃、综合风险评分 55、中风险。默认态为 28.0℃/70/高风险，两条均不命中。"
+  },
+  // ── 生育期天数（单输入，输出随 growthDays 变化；日期为推算，不取锚）────
+  {
+    slug: "agriculture/calc-15",
+    inputs: { growthDays: "180" },
+    expect: ["180 生育期天数"],
+    ref: "注入非默认(默认 120)：生育期天数 = growthDays = 180 天。默认态为 120 生育期天数，本条不命中（日期为推算值，仅取天数锚）。"
+  },
+  {
+    slug: "agriculture/straw-return",
+    inputs: { targetCN: "30", fertType: "sulfate", soilOM: "3.6" },
+    expect: ["目标C/N比：30:1", "需补硫酸铵：19.0 kg/亩（含纯氮4.00kg）", "预计分解周期：60天", "土壤有机质适中(3.6%)"],
+    ref: "碳/氮/秸秆量由 onStrawChange 从 strawType 静态表回填，harness 注入会被覆盖 ⇒ 只注三个静态项。Python Decimal 复算：碳输入 = 45%×400 = 180.00 kg/亩；目标 30:1 ⇒ 需纯氮 = 180.00/30 − 0.5%×400 = 6.000 − 2.000 = 4.000；硫酸铵含氮 21% ⇒ 4.000/0.21 = 19.0476 → toFixed(1) = 19.0。默认态为 20:1 + 尿素 + 1.5%，四个锚全不命中。"
+  },
+  {
+    slug: "agriculture/straw-return",
+    inputs: { targetCN: "25", fertType: "carbonate", soilOM: "0.8" },
+    expect: ["目标C/N比：25:1", "需补碳铵：30.6 kg/亩（含纯氮5.20kg）", "预计分解周期：45天", "土壤有机质偏低(0.8%)"],
+    ref: "Python Decimal 复算：需纯氮 = 180.00/25 − 2.000 = 7.200 − 2.000 = 5.200；碳铵含氮 17% ⇒ 5.200/0.17 = 30.5882 → toFixed(1) = 30.6。默认态 20:1 + 尿素 + 1.5% ⇒ 四锚全不命中；且 25:1 与默认输出的「20-25:1」区间串不同（锚取「目标C/N比：25:1」整段，非裸 25:1）。"
+  },
+
+{
+    "slug": "agriculture/calc-38",
+    "inputs": {
+      "values": "10 20 30 40"
+    },
+    "expect": [
+      "60.00% 克里斯琴森系数 Cu"
+    ],
+    "ref": "克里斯琴森均匀系数 Cu = 100 × (1 − Σ|x_i − x̄| ÷ (n·x̄))；x̄=25，Σ|x_i−x̄|=40，n·x̄=100 → Cu = 100 × (1 − 0.40) = 60.00%。页面输出 '60.00% 克里斯琴森系数 Cu'。默认态其他输入不产生 60.00%。"
+  },
+
+  // ── 零用例收敛（2026-10-09）：agriculture 8 页中仅本页可收敛 ──
+  {
+    "slug": "agriculture/pesticide-dose",
+    "inputs": { "activePct": "25", "targetPpm": "200", "water": "45", "area": "2.5" },
+    "expect": ["0.09 总用药量", "5000 稀释倍数", "113 总用水量", "11.3升", "至113升"],
+    "ref": "注入 ppm 法非默认组合（默认 40% / 500ppm / 30L / 1亩）。独立复算（页面 ppm 分支公式：稀释倍数 = 10⁶ ÷ 目标ppm；每亩用药量 = (亩用水量 ÷ 稀释倍数) × (100 ÷ 有效成分%)）：稀释倍数 = 1,000,000 ÷ 200 = 5000；每亩 = (45 ÷ 5000) × (100 ÷ 25) = 0.009 × 4 = 0.036 mL ⇒ toFixed(2) = 0.04；总量 = 0.036 × 2.5 = 0.09 mL；总用水量 = 45 × 2.5 = 112.5 L ⇒ toFixed(0) = 113；母液水量 = 总用水量 × 10% = 11.25 ⇒ toFixed(1) = 11.3。四条独占锚均与默认态不同：默认态为『2000 稀释倍数 / 30 总用水量 / 3.0升 母液 / 总量 0.04』。⚠ 不用『0.04 每亩用药量』——默认态每亩 0.036 同样 toFixed(2) = 0.04，属逃生串（判别器已实测报出）。"
+  },
+
+  // ── 零用例收敛（2026-10-09）：crop-yield 此前被误判为拼接 id 盲区，实为可收敛 ──
+  {
+    "slug": "agriculture/crop-yield",
+    "inputs": { "spikes": "123", "grains": "45", "weight": "67" },
+    "expect": ["370.8"],
+    "ref": "穗数-粒数-粒重法：yieldPerMu = spikes×grains×weight/100/10 = 123×45×67=370845，/100=3708.45，/10=370.845 → 亩产量 370.8 kg；adjYield(水分默认13%)=(370.845)×(100−13)/(100−13)=370.845 → toFixed(1) 『370.8』。默认态 40/35/45 → 63.0，本条不命中。⚠ 本页 initCrops 用 select.innerHTML 动态填『作物』选项，harness 旧版 innerHTML setter 不解析 <option> ⇒ 整页初始化失败；已在 verify_it_calc.js 的 makeEl.innerHTML setter 补 <option> 解析修复。"
+  },
+
+  // ── 零用例收敛（2026-10-09）：pesticide-interval（确定性日期推算部分）──
+  {
+    "slug": "agriculture/pesticide-interval",
+    "inputs": { "sprayDate": "2026-01-01", "phiDays": "7" },
+    "expect": ["2026年1月8日", "2026年1月1日"],
+    "ref": "施药日 2026-01-01 + PHI 7 天 ⇒ 最早采收日 2026年1月8日（formatDate 无补零）；施药日期卡 2026年1月1日。默认态 sprayDate 空 → 提示『请选择施药日期』，两条锚均不命中。（now 被 harness 冻结，距安全采收天数非确定，故只锚确定性的日期推算『施药日+PHI』。）"
+  },
+  {
+    "slug": "agriculture/assessor-1",
+    "inputs": {
+      "theoryYield": "42",
+      "actualYield": "42",
+      "fieldLoss": "42",
+      "threshLoss": "42",
+      "crop": "rice",
+      "method": "manual"
+    },
+    "expect": [
+      ") 脱粒清选损失：42kg(100.00%) 标准限值：≤2% 评估等级： 优秀 损失率在标准允许范围内。"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"theoryYield\":\"42\",\"actualYield\":\"42\",\"fieldLoss\":\"42\",\"threshLoss\":\"42\",\"crop\":\"rice\",\"method\":\"manual\"}，输出区含「) 脱粒清选损失：42kg(100.00%) 标准限值：≤2% 评估等级： 优秀…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "agriculture/calc-12",
+    "inputs": {
+      "area": "42",
+      "depth": "42",
+      "eff": "42"
+    },
+    "expect": [
+      "毛用水量 m³ 1176.0 有效水量 m³ 0.67 m³/亩 28.00"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"area\":\"42\",\"depth\":\"42\",\"eff\":\"42\"}，输出区含「毛用水量 m³ 1176.0 有效水量 m³ 0.67 m³/亩 28.00」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "agriculture/agri-calculator",
+    "inputs": {
+      "fert_n": "42",
+      "fert_p": "42",
+      "fert_k": "42",
+      "fert_area": "42",
+      "fert_per_mu": "42",
+      "plant_spacing": "42",
+      "plant_row": "42",
+      "plant_area": "42",
+      "pest_content": "42",
+      "pest_target": "42",
+      "pest_volume": "42",
+      "irr_area": "42",
+      "irr_depth": "42",
+      "hatch_date": "abc123测试",
+      "fuel_area": "42",
+      "fuel_per_mu": "42",
+      "fuel_price": "42",
+      "plant_unit": "sqm",
+      "pest_unit": "pct"
+    },
+    "expect": [
+      "/亩 肥料总量： 1764.0 kg\n42\n42\n42\nsqm\n238 总株数（株） 3,779 每亩株数 42.0"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"fert_n\":\"42\",\"fert_p\":\"42\",\"fert_k\":\"42\",\"fert_area\":\"42\",\"fert_per_mu\":\"42\",\"plant_spacing\":\"42\",\"plant_row\":\"42\",\"plant_area\":\"42\",\"pest_content\":\"42\",\"pest_target\":\"42\",\"pest_volume\":\"42\",\"irr_area\":\"42\",\"irr_depth\":\"42\",\"hatch_date\":\"abc123测试\",\"fuel_area\":\"42\",\"fuel_per_mu\":\"42\",\"fuel_price\":\"42\",\"plant_unit\":\"sqm\",\"pest_unit\":\"pct\"}，输出区含「/亩 肥料总量： 1764.0 kg\n42\n42\n42\nsqm\n238 总株数（…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "agriculture/calc-13",
+    "inputs": {
+      "power": "42",
+      "load": "42",
+      "sfc": "42",
+      "density": "42",
+      "hours": "42",
+      "price": "42"
+    },
+    "expect": [
+      "小时油耗 L/h 0.74 总油耗 L 0.02 平均 L/h 31.12"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"power\":\"42\",\"load\":\"42\",\"sfc\":\"42\",\"density\":\"42\",\"hours\":\"42\",\"price\":\"42\"}，输出区含「小时油耗 L/h 0.74 总油耗 L 0.02 平均 L/h 31.12」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "agriculture/calc-15",
+    "inputs": {
+      "harvestDate": "abc123测试",
+      "growthDays": "42",
+      "safeDate": "abc123测试"
+    },
+    "expect": [
+      "abc123测试\n42\nabc123测试\n—-—-— 建议播种日期 42 生育期天数 —-—-— 苗期约至 —-—-— 成熟期约至 建议播种日期 —-—-— 在安全播种窗口内，适宜播种。"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"harvestDate\":\"abc123测试\",\"growthDays\":\"42\",\"safeDate\":\"abc123测试\"}，输出区含「abc123测试\n42\nabc123测试\n—-—-— 建议播种日期 42 生育期…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "agriculture/calc-36",
+    "inputs": {
+      "eto": "42",
+      "kc": "42",
+      "area": "42",
+      "eff": "42"
+    },
+    "expect": [
+      "42\n42\n42\n42\n1764.00"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"eto\":\"42\",\"kc\":\"42\",\"area\":\"42\",\"eff\":\"42\"}，输出区含「42\n42\n42\n42\n1764.00」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "agriculture/calc-37",
+    "inputs": {
+      "par": "42",
+      "hours": "42"
+    },
+    "expect": [
+      "42\n42\n请输入有效的正数"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"par\":\"42\",\"hours\":\"42\"}，输出区含「42\n42\n请输入有效的正数」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "agriculture/calc-2",
+    "inputs": {
+      "plantSpace": "42",
+      "rowSpace": "42",
+      "areaMu": "42",
+      "unit": "ha"
+    },
+    "expect": [
+      "42\n42\n42\nha\n3,779 株 / 亩 56,689 株 / 公顷 1764"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"plantSpace\":\"42\",\"rowSpace\":\"42\",\"areaMu\":\"42\",\"unit\":\"ha\"}，输出区含「42\n42\n42\nha\n3,779 株 / 亩 56,689 株 / 公顷 17…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "agriculture/calc-7",
+    "inputs": {
+      "area": "42",
+      "waterPerMu": "42",
+      "targetConc": "42",
+      "fertContent": "42",
+      "ratioX": "42"
+    },
+    "expect": [
+      " 总灌水量 m³ 74.09 纯养分 kg 176.40 肥料商品 kg 4"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"area\":\"42\",\"waterPerMu\":\"42\",\"targetConc\":\"42\",\"fertContent\":\"42\",\"ratioX\":\"42\"}，输出区含「 总灌水量 m³ 74.09 纯养分 kg 176.40 肥料商品 kg 4」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "agriculture/calc-6",
+    "inputs": {
+      "shedArea": "42",
+      "spacePerHead": "42",
+      "cycle": "42",
+      "batches": "42"
+    },
+    "expect": [
+      "明： 存栏量 = 42 ÷ 42.00 = 1"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"shedArea\":\"42\",\"spacePerHead\":\"42\",\"cycle\":\"42\",\"batches\":\"42\"}，输出区含「明： 存栏量 = 42 ÷ 42.00 = 1」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "agriculture/calc-ventilation-2",
+    "inputs": {
+      "len": "42",
+      "wid": "42",
+      "eave": "42",
+      "ridge": "42",
+      "ach": "42",
+      "fan": "42"
+    },
+    "expect": [
+      "42\n42\n42\n42\n42\n42\n74088"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"len\":\"42\",\"wid\":\"42\",\"eave\":\"42\",\"ridge\":\"42\",\"ach\":\"42\",\"fan\":\"42\"}，输出区含「42\n42\n42\n42\n42\n42\n74088」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "agriculture/calculator-calc-density",
+    "inputs": {
+      "plantSpace": "42",
+      "rowSpace": "42",
+      "plantUnit": "cm",
+      "rowUnit": "cm"
+    },
+    "expect": [
+      "每平方米株数 3779 每亩株数 56689 每公顷株数"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"plantSpace\":\"42\",\"rowSpace\":\"42\",\"plantUnit\":\"cm\",\"rowUnit\":\"cm\"}，输出区含「每平方米株数 3779 每亩株数 56689 每公顷株数」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "agriculture/calc-8",
+    "inputs": {
+      "phNow": "42",
+      "phTarget": "42",
+      "area": "42",
+      "buffer": "42"
+    },
+    "expect": [
+      "42\n42\n42\n42\n— 无需调节 当前 pH 已接近目标，无需额外施用改良剂。"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"phNow\":\"42\",\"phTarget\":\"42\",\"area\":\"42\",\"buffer\":\"42\"}，输出区含「42\n42\n42\n42\n— 无需调节 当前 pH 已接近目标，无需额外施用改良剂…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "agriculture/calculator-calc-concentration",
+    "inputs": {
+      "stock": "42",
+      "target": "42",
+      "volume": "42",
+      "ratio": "42"
+    },
+    "expect": [
+      "42\n1.0000\n42\n42\n1.000"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"stock\":\"42\",\"target\":\"42\",\"volume\":\"42\",\"ratio\":\"42\"}，输出区含「42\n1.0000\n42\n42\n1.000」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "agriculture/calculator-calc-1",
+    "inputs": {
+      "frostStart": "abc123测试",
+      "frostEnd": "abc123测试",
+      "growth": "42",
+      "buffer": "42"
+    },
+    "expect": [
+      "42\n42\nabc123测试\nabc123测试\nInvalid Date 最晚播种日期 Invalid Date 预计收获日期 — 无霜期总天数 84"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"frostStart\":\"abc123测试\",\"frostEnd\":\"abc123测试\",\"growth\":\"42\",\"buffer\":\"42\"}，输出区含「42\n42\nabc123测试\nabc123测试\nInvalid Date 最晚播…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "agriculture/calculator-calc-ratio-1",
+    "inputs": {
+      "nutrient": "abc123测试",
+      "total": "42",
+      "nameA": "abc123测试",
+      "valA": "42",
+      "nameB": "abc123测试",
+      "valB": "42",
+      "target": "42"
+    },
+    "expect": [
+      "42\n42\n42\n42\nabc123测试\nabc123测试\nabc123测试\n—% abc123测试 占比 —% abc123测试 占比 — abc123测试 重量 (kg) — abc123测试"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"nutrient\":\"abc123测试\",\"total\":\"42\",\"nameA\":\"abc123测试\",\"valA\":\"42\",\"nameB\":\"abc123测试\",\"valB\":\"42\",\"target\":\"42\"}，输出区含「42\n42\n42\n42\nabc123测试\nabc123测试\nabc123测试\n—…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "agriculture/calculator-calc-ratio",
+    "inputs": {
+      "nNeed": "42",
+      "pNeed": "42",
+      "kNeed": "42",
+      "area": "42",
+      "nPct": "42",
+      "pPct": "42",
+      "kPct": "42",
+      "price": "42",
+      "nEff": "42",
+      "pEff": "42",
+      "kEff": "42",
+      "nFert": "34",
+      "pFert": "18",
+      "kFert": "50"
+    },
+    "expect": [
+      "34\n18\n50\n42\n42\n42\n42\n34\n18\n50\n42\n42\n42\n42\n12352.9"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"nNeed\":\"42\",\"pNeed\":\"42\",\"kNeed\":\"42\",\"area\":\"42\",\"nPct\":\"42\",\"pPct\":\"42\",\"kPct\":\"42\",\"price\":\"42\",\"nEff\":\"42\",\"pEff\":\"42\",\"kEff\":\"42\",\"nFert\":\"34\",\"pFert\":\"18\",\"kFert\":\"50\"}，输出区含「34\n18\n50\n42\n42\n42\n42\n34\n18\n50\n42\n42\n42\n4…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "agriculture/calculator-calc-soil",
+    "inputs": {
+      "phCurrent": "42",
+      "phTarget": "42",
+      "area": "42",
+      "depth": "42",
+      "soilType": "loam"
+    },
+    "expect": [
+      "42\n42\n42\n42\nloam\n请填写有效的 pH 值与面积参数。\n暂无计算记录"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"phCurrent\":\"42\",\"phTarget\":\"42\",\"area\":\"42\",\"depth\":\"42\",\"soilType\":\"loam\"}，输出区含「42\n42\n42\n42\nloam\n请填写有效的 pH 值与面积参数。\n暂无计算记…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "agriculture/continuous-cropping-index",
+    "inputs": {
+      "years": "42",
+      "om": "42",
+      "ph": "42",
+      "cropType": "tomato",
+      "pathogen": "2",
+      "resistance": "0",
+      "disinfection": "5"
+    },
+    "expect": [
+      "建议轮作换茬 • 土壤pH偏离适宜范围，建议调酸或调碱 • 建议使用抗性品种或嫁接苗降低连作障碍"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"years\":\"42\",\"om\":\"42\",\"ph\":\"42\",\"cropType\":\"tomato\",\"pathogen\":\"2\",\"resistance\":\"0\",\"disinfection\":\"5\"}，输出区含「建议轮作换茬 • 土壤pH偏离适宜范围，建议调酸或调碱 • 建议使用抗性品种或嫁…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "agriculture/canopy-coverage",
+    "inputs": {
+      "rowSpacing": "42",
+      "plantSpacing": "42",
+      "canopyDiam": "42",
+      "overlap": "42",
+      "totalGrid": "42",
+      "greenGrid": "42",
+      "photoArea": "42",
+      "canopyShape": "square"
+    },
+    "expect": [
+      "植密度(株/亩) 2.03 估算LAI 1764"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"rowSpacing\":\"42\",\"plantSpacing\":\"42\",\"canopyDiam\":\"42\",\"overlap\":\"42\",\"totalGrid\":\"42\",\"greenGrid\":\"42\",\"photoArea\":\"42\",\"canopyShape\":\"square\"}，输出区含「植密度(株/亩) 2.03 估算LAI 1764」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+  "slug": "agriculture/convert-content-1",
+  "inputs": {
+    "val": "88.5",
+    "unit": "dry",
+    "wb": "12"
+  },
+  "expect": [
+    "13.559%"
+  ],
+  "ref": "复算：干物质 88.5% → 水分 11.5%，湿基 12% 折算干基 = 12 ÷ (1−0.115) = 13.559%；默认干物质 86% 得 13.953% ⇒ 不命中"
+},
+  {
+    "slug": "agriculture/crop-water-requirement",
+    "inputs": {
+      "kc": "42",
+      "et0": "42",
+      "rain": "42",
+      "days": "42",
+      "area": "42",
+      "cropSel": "1",
+      "irrEff": "70"
+    },
+    "expect": [
+      "溉量(mm/天) 2116.8 42天总蒸散(mm) 14119.1"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"kc\":\"42\",\"et0\":\"42\",\"rain\":\"42\",\"days\":\"42\",\"area\":\"42\",\"cropSel\":\"1\",\"irrEff\":\"70\"}，输出区含「溉量(mm/天) 2116.8 42天总蒸散(mm) 14119.1」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "agriculture/crop-rotation",
+    "inputs": {
+      "areaInput": "42",
+      "seasonInput": "夏",
+      "modeInput": "simple"
+    },
+    "expect": [
+      "第 2 年 作物：番茄 → 萝卜 🍅 春季·番茄 🥕 秋季·萝卜"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"areaInput\":\"42\",\"seasonInput\":\"夏\",\"modeInput\":\"simple\"}，输出区含「第 2 年 作物：番茄 → 萝卜 🍅 春季·番茄 🥕 秋季·萝卜」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "agriculture/cycle-honey",
+    "inputs": {
+      "hiveName": "abc123测试",
+      "hiveLoc": "abc123测试",
+      "hiveCycle": "42",
+      "hiveStart": "abc123测试",
+      "extrDate": "abc123测试",
+      "extrAmount": "42"
+    },
+    "expect": [
+      "。\n暂无摇蜜记录\nabc123测试\nabc123测试\n42\n42"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"hiveName\":\"abc123测试\",\"hiveLoc\":\"abc123测试\",\"hiveCycle\":\"42\",\"hiveStart\":\"abc123测试\",\"extrDate\":\"abc123测试\",\"extrAmount\":\"42\"}，输出区含「。\n暂无摇蜜记录\nabc123测试\nabc123测试\n42\n42」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "agriculture/detector-13",
+    "inputs": {
+      "bees": "42",
+      "mites": "42",
+      "method": "酒精洗涤法",
+      "season": "夏季"
+    },
+    "expect": [
+      "螨） 危害等级： 严重危害 夏季防治阈值 2% / 治疗阈值 3% 处置建议： 夏季寄生率严重超标，蜂群濒临崩溃风险，须紧急双甲脒/草酸连治，并结合换王、断子等措施挽救"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"bees\":\"42\",\"mites\":\"42\",\"method\":\"酒精洗涤法\",\"season\":\"夏季\"}，输出区含「螨） 危害等级： 严重危害 夏季防治阈值 2% / 治疗阈值 3% 处置建议： …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "agriculture/detector-nutrition",
+    "inputs": {
+      "protein": "42",
+      "fat": "42",
+      "sugar": "42",
+      "water": "42",
+      "ash": "42",
+      "lactic": "42"
+    },
+    "expect": [
+      "测 判读 蛋白质 42% 优质 脂肪 42% 偏高 还原糖 42% 优质 水分 42% 偏高 灰分 42% 偏高 乳酸(发酵度) 42"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"protein\":\"42\",\"fat\":\"42\",\"sugar\":\"42\",\"water\":\"42\",\"ash\":\"42\",\"lactic\":\"42\"}，输出区含「测 判读 蛋白质 42% 优质 脂肪 42% 偏高 还原糖 42% 优质 水分 …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "agriculture/dry-matter-conversion",
+    "inputs": {
+      "freshWeight": "42",
+      "moisture1": "42",
+      "dryWeight": "42",
+      "moisture2": "42",
+      "actualWeight": "42",
+      "actualMoisture": "42",
+      "standardMoisture": "42"
+    },
+    "expect": [
+      " 含水率/100)\n42\n42\n42\n42\n42"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"freshWeight\":\"42\",\"moisture1\":\"42\",\"dryWeight\":\"42\",\"moisture2\":\"42\",\"actualWeight\":\"42\",\"actualMoisture\":\"42\",\"standardMoisture\":\"42\"}，输出区含「 含水率/100)\n42\n42\n42\n42\n42」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "agriculture/dli-calculator",
+    "inputs": {
+      "ppfd": "42",
+      "hours": "42",
+      "lightPPFD": "42",
+      "lightHours": "42",
+      "cropType": "medium"
+    },
+    "expect": [
+      "/m²/d（代表：黄瓜、番茄幼苗、草本植物） DLI达标，当前光照满足作物需求"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"ppfd\":\"42\",\"hours\":\"42\",\"lightPPFD\":\"42\",\"lightHours\":\"42\",\"cropType\":\"medium\"}，输出区含「/m²/d（代表：黄瓜、番茄幼苗、草本植物） DLI达标，当前光照满足作物需求」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "agriculture/estimate-3",
+    "inputs": {
+      "kc": "42",
+      "et0": "42",
+      "days": "42",
+      "area": "42",
+      "rain": "42",
+      "crop": "0.85"
+    },
+    "expect": [
+      "0.85\n42\n42\n42\n42\n35.7"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"kc\":\"42\",\"et0\":\"42\",\"days\":\"42\",\"area\":\"42\",\"rain\":\"42\",\"crop\":\"0.85\"}，输出区含「0.85\n42\n42\n42\n42\n35.7」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "agriculture/estimate-content-soil",
+    "inputs": {
+      "w1": "42",
+      "w2": "42",
+      "crucible": "42",
+      "temp": "42"
+    },
+    "expect": [
+      "42\n42\n42\n烧前干土净重需大于0，请检查坩埚空重是否填写正确\n暂无计算记录\n42"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"w1\":\"42\",\"w2\":\"42\",\"crucible\":\"42\",\"temp\":\"42\"}，输出区含「42\n42\n42\n烧前干土净重需大于0，请检查坩埚空重是否填写正确\n暂无计算记录…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "agriculture/estimate-area-density",
+    "inputs": {
+      "area": "42",
+      "density": "42",
+      "weight": "42",
+      "survival": "42",
+      "unit": "mu"
+    },
+    "expect": [
+      "42\n42\n42\n42\nmu\n1"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"area\":\"42\",\"density\":\"42\",\"weight\":\"42\",\"survival\":\"42\",\"unit\":\"mu\"}，输出区含「42\n42\n42\n42\nmu\n1」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "agriculture/estimate-fuel-engine-oil",
+    "inputs": {
+      "area": "42",
+      "fuel": "42",
+      "hours": "42",
+      "price": "42"
+    },
+    "expect": [
+      "42\n42\n42\n42\n1.00"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"area\":\"42\",\"fuel\":\"42\",\"hours\":\"42\",\"price\":\"42\"}，输出区含「42\n42\n42\n42\n1.00」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "agriculture/estimate-area-yield",
+    "inputs": {
+      "yieldInput": "42",
+      "area": "42",
+      "dmRate": "42",
+      "baleWeight": "42",
+      "unit": "t_ha"
+    },
+    "expect": [
+      " 干草产量（吨） 0 估算干草捆数 0.06 折合亩数 0.0042 折合公顷 1.18"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"yieldInput\":\"42\",\"area\":\"42\",\"dmRate\":\"42\",\"baleWeight\":\"42\",\"unit\":\"t_ha\"}，输出区含「 干草产量（吨） 0 估算干草捆数 0.06 折合亩数 0.0042 折合公顷 …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "agriculture/estimate-yield-rate",
+    "inputs": {
+      "fert": "42",
+      "uptake": "42",
+      "soil": "42",
+      "element": "P2O5"
+    },
+    "expect": [
+      "42\n42\n42\nP2O5\n0.00% 磷(P₂O₅) 表观利用率 过低 利用率评价 "
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"fert\":\"42\",\"uptake\":\"42\",\"soil\":\"42\",\"element\":\"P2O5\"}，输出区含「42\n42\n42\nP2O5\n0.00% 磷(P₂O₅) 表观利用率 过低 利用率…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "agriculture/fertigation-ratio",
+    "inputs": {
+      "targetEC": "42",
+      "waterEC": "42",
+      "dripFlow": "42",
+      "dripperCount": "42",
+      "duration": "42",
+      "solubility": "42",
+      "fertType": "2",
+      "stockRatio": "200"
+    },
+    "expect": [
+      "42\n42\n42\n42\n42\n42\n2\n200\n水源EC已达到或超过目标EC，无需注肥"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"targetEC\":\"42\",\"waterEC\":\"42\",\"dripFlow\":\"42\",\"dripperCount\":\"42\",\"duration\":\"42\",\"solubility\":\"42\",\"fertType\":\"2\",\"stockRatio\":\"200\"}，输出区含「42\n42\n42\n42\n42\n42\n2\n200\n水源EC已达到或超过目标EC，无…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "agriculture/estimate-soil",
+    "inputs": {
+      "years": "42",
+      "init": "42",
+      "rate": "42",
+      "threshold": "42"
+    },
+    "expect": [
+      "42\n42\n42\n42\n248949044.7 连作障碍指数 104.56×10⁶"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"years\":\"42\",\"init\":\"42\",\"rate\":\"42\",\"threshold\":\"42\"}，输出区含「42\n42\n42\n42\n248949044.7 连作障碍指数 104.56×10…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "agriculture/fertilizer-efficiency",
+    "inputs": {
+      "fertUptake": "42",
+      "fertInput": "42",
+      "ckUptake": "42",
+      "nutrientType": "P2O5"
+    },
+    "expect": [
+      "g/亩) 评价： 偏低需优化 磷肥参考范围：12%~25% 利用率偏低，建议：①分次施用减少流失；②深施覆土；③配合有机肥；④调整施肥时期"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"fertUptake\":\"42\",\"fertInput\":\"42\",\"ckUptake\":\"42\",\"nutrientType\":\"P2O5\"}，输出区含「g/亩) 评价： 偏低需优化 磷肥参考范围：12%~25% 利用率偏低，建议：①…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "agriculture/fertilizer-calculator",
+    "inputs": {
+      "area": "42",
+      "yield": "42",
+      "needN": "42",
+      "needP": "42",
+      "needK": "42",
+      "period": "top"
+    },
+    "expect": [
+      "PK比例 : N:42.0 P₂O₅:42.0 K₂O:42"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"area\":\"42\",\"yield\":\"42\",\"needN\":\"42\",\"needP\":\"42\",\"needK\":\"42\",\"period\":\"top\"}，输出区含「PK比例 : N:42.0 P₂O₅:42.0 K₂O:42」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "agriculture/greenhouse-ventilation",
+    "inputs": {
+      "ghLen": "42",
+      "ghWid": "42",
+      "ghHeight": "42",
+      "windSpeed": "42",
+      "fanEff": "42",
+      "airChanges": "25"
+    },
+    "expect": [
+      "42\n42\n42\n25\n42\n42\n74088"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"ghLen\":\"42\",\"ghWid\":\"42\",\"ghHeight\":\"42\",\"windSpeed\":\"42\",\"fanEff\":\"42\",\"airChanges\":\"25\"}，输出区含「42\n42\n42\n25\n42\n42\n74088」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "agriculture/greenhouse-rolling-time",
+    "inputs": {
+      "inTemp": "42",
+      "outTemp": "42",
+      "targetTemp": "42",
+      "humidity": "42",
+      "cropMaxTemp": "42",
+      "timePeriod": "noon",
+      "windLevel": "1"
+    },
+    "expect": [
+      "✅ 保持现状 温度在合理范围内。 42℃ 棚内温度 42℃ 棚外温度 0℃ 内外温差 42"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"inTemp\":\"42\",\"outTemp\":\"42\",\"targetTemp\":\"42\",\"humidity\":\"42\",\"cropMaxTemp\":\"42\",\"timePeriod\":\"noon\",\"windLevel\":\"1\"}，输出区含「✅ 保持现状 温度在合理范围内。 42℃ 棚内温度 42℃ 棚外温度 0℃ 内外…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "agriculture/gdd-calculator",
+    "inputs": {
+      "tbase": "42",
+      "tupper": "42",
+      "targetGDD": "42",
+      "method": "single"
+    },
+    "expect": [
+      "6天 第7天\nsingle\n42\n42\n42"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"tbase\":\"42\",\"tupper\":\"42\",\"targetGDD\":\"42\",\"method\":\"single\"}，输出区含「6天 第7天\nsingle\n42\n42\n42」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "agriculture/harvest-date-predictor",
+    "inputs": {
+      "sowDate": "abc123测试",
+      "moisture": "42",
+      "dryRate": "42",
+      "gdd": "42",
+      "cropSel": "corn"
+    },
+    "expect": [
+      "生长度日进度： 1.6%",
+      "当前：42℃·d"
+    ],
+    "ref": "自动补强（B类零用例）：注入{\"gdd\":\"42\",\"cropSel\":\"corn\"}等，输出「生长度日进度： 1.6%」（42/2700=1.5556→1.6）与「当前：42℃·d」。⚠ 原 expect 锚在「…| 120天 玉米收割要点…」上，而「已生长天数」由页面 new Date() 与今日相减得出 ⇒ 随时区/日期变化（Asia/Shanghai=120、UTC=121），CI 在 UTC 必红。已改为由注入量 gdd 决定、与时钟无关的锚点（默认 gdd=1800⇒66.7%，不含 1.6%/42℃·d ⇒ 强判别、零逃生）。"
+  },
+  {
+    "slug": "agriculture/irrigation-calculator",
+    "inputs": {
+      "area": "42",
+      "depth": "42",
+      "moisture": "42",
+      "price": "42",
+      "cycle": "42",
+      "method": "sprinkler",
+      "soil": "loam"
+    },
+    "expect": [
+      ".8 浆果膨大期\n42\nsprinkler\nloam\n42\n42\n42\n42\n🏦 喷灌 灌溉方案 75.8"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"area\":\"42\",\"depth\":\"42\",\"moisture\":\"42\",\"price\":\"42\",\"cycle\":\"42\",\"method\":\"sprinkler\",\"soil\":\"loam\"}，输出区含「.8 浆果膨大期\n42\nsprinkler\nloam\n42\n42\n42\n42\n\ud83c…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "agriculture/harvest-loss-rate",
+    "inputs": {
+      "theoryYield": "42",
+      "actualYield": "42",
+      "headerLoss": "42",
+      "threshLoss": "42",
+      "scatterLoss": "42",
+      "transportLoss": "42"
+    },
+    "expect": [
+      "分析 割台/掉穗 42kg 100.00% 脱粒/清选 42kg 100.00% 夹带/抛撒 42kg 100"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"theoryYield\":\"42\",\"actualYield\":\"42\",\"headerLoss\":\"42\",\"threshLoss\":\"42\",\"scatterLoss\":\"42\",\"transportLoss\":\"42\"}，输出区含「分析 割台/掉穗 42kg 100.00% 脱粒/清选 42kg 100.00%…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "agriculture/harvest-planner",
+    "inputs": {
+      "area": "42",
+      "yield": "42",
+      "days": "42",
+      "hours": "42",
+      "laborCost": "42",
+      "machineCost": "42",
+      "method": "combine"
+    },
+    "expect": [
+      "果纹清晰\n500\n42\n42\n42\n42\n42\ncombine"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"area\":\"42\",\"yield\":\"42\",\"days\":\"42\",\"hours\":\"42\",\"laborCost\":\"42\",\"machineCost\":\"42\",\"method\":\"combine\"}，输出区含「果纹清晰\n500\n42\n42\n42\n42\n42\ncombine」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "agriculture/irrigation-uniformity",
+    "inputs": {
+      "pt": "42"
+    },
+    "expect": [
+      "均值) × 100\n42"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"pt\":\"42\"}，输出区含「均值) × 100\n42」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "agriculture/machinery-efficiency",
+    "inputs": {
+      "totalArea": "42",
+      "laborCost": "42"
+    },
+    "expect": [
+      "油单价(元/L)\n42\n42"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"totalArea\":\"42\",\"laborCost\":\"42\"}，输出区含「油单价(元/L)\n42\n42」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "agriculture/mulch-coverage",
+    "inputs": {
+      "landLen": "42",
+      "landWid": "42",
+      "filmWid": "42",
+      "filmThk": "42",
+      "rowSpacing": "42",
+      "overlap": "42"
+    },
+    "expect": [
+      "42\n42\n42\n42\n42\n42\n搭接量过大，有效覆盖宽度为0"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"landLen\":\"42\",\"landWid\":\"42\",\"filmWid\":\"42\",\"filmThk\":\"42\",\"rowSpacing\":\"42\",\"overlap\":\"42\"}，输出区含「42\n42\n42\n42\n42\n42\n搭接量过大，有效覆盖宽度为0」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "agriculture/seed-germination-rate",
+    "inputs": {
+      "totalSeeds": "42",
+      "seedlingLen": "42",
+      "energyDay": "4"
+    },
+    "expect": [
+      "数 第7天发芽数\n42\n4\n42"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"totalSeeds\":\"42\",\"seedlingLen\":\"42\",\"energyDay\":\"4\"}，输出区含「数 第7天发芽数\n42\n4\n42」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "agriculture/ratio-10",
+    "inputs": {
+      "targetEC": "42",
+      "waterEC": "42",
+      "fertEC": "42",
+      "targetPH": "42"
+    },
+    "expect": [
+      "42\n42\n42\n⚠️ 水源 EC 已达到或超过目标 EC，无需额外注肥，建议先处理水源或降低水源 EC\n暂无计算记录\n42"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"targetEC\":\"42\",\"waterEC\":\"42\",\"fertEC\":\"42\",\"targetPH\":\"42\"}，输出区含「42\n42\n42\n⚠️ 水源 EC 已达到或超过目标 EC，无需额外注肥，建议先…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "agriculture/nongjijuzuoyexiaolv-mu-xiaoshi-duibi",
+    "inputs": {
+      "width": "42",
+      "speed": "42",
+      "time": "42",
+      "actualArea": "42"
+    },
+    "expect": [
+      "种加肥、转移等），建议优化作业路线与减少空行\n暂无计算记录"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"width\":\"42\",\"speed\":\"42\",\"time\":\"42\",\"actualArea\":\"42\"}，输出区含「种加肥、转移等），建议优化作业路线与减少空行\n暂无计算记录」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "agriculture/soil-organic-matter",
+    "inputs": {
+      "beforeWeight": "42",
+      "afterWeight": "42",
+      "temp": "400",
+      "factor": "1.8"
+    },
+    "expect": [
+      "42\n42\n400\n1.8\n灼烧后重量不应大于灼烧前，请检查数据"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"beforeWeight\":\"42\",\"afterWeight\":\"42\",\"temp\":\"400\",\"factor\":\"1.8\"}，输出区含「42\n42\n400\n1.8\n灼烧后重量不应大于灼烧前，请检查数据」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "agriculture/storage-pest-alert",
+    "inputs": {
+      "temp": "42",
+      "humidity": "42",
+      "grainMoisture": "42",
+      "storageDays": "42",
+      "grainType": "corn"
+    },
+    "expect": [
+      "℃ 30~33℃ 42 低 粉斑螟 15℃ 28~32℃ 40 低 玉"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"temp\":\"42\",\"humidity\":\"42\",\"grainMoisture\":\"42\",\"storageDays\":\"42\",\"grainType\":\"corn\"}，输出区含「℃ 30~33℃ 42 低 粉斑螟 15℃ 28~32℃ 40 低 玉」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "agriculture/straw-return",
+    "inputs": {
+      "carbon": "42",
+      "nitrogen": "42",
+      "strawAmount": "42",
+      "soilOM": "42",
+      "strawType": "corn",
+      "targetCN": "25",
+      "fertType": "carbonate"
+    },
+    "expect": [
+      "43\n0.7\n600\n25\ncarbonate\n42\n36.0 需补碳铵(kg/亩) 6.12"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"carbon\":\"42\",\"nitrogen\":\"42\",\"strawAmount\":\"42\",\"soilOM\":\"42\",\"strawType\":\"corn\",\"targetCN\":\"25\",\"fertType\":\"carbonate\"}，输出区含「43\n0.7\n600\n25\ncarbonate\n42\n36.0 需补碳铵(kg/…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "agriculture/temp-time-2",
+    "inputs": {
+      "inTemp": "42",
+      "outTemp": "42",
+      "wind": "42",
+      "area": "42"
+    },
+    "expect": [
+      "(m/s) 📌 风速过大（>6m/s），不建议卷膜，避免损膜，可改用顶部小风口缓慢放风\n暂无计算记录"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"inTemp\":\"42\",\"outTemp\":\"42\",\"wind\":\"42\",\"area\":\"42\"}，输出区含「(m/s) 📌 风速过大（>6m/s），不建议卷膜，避免损膜，可改用顶部小风口…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "agriculture/temp-2",
+    "inputs": {
+      "temp": "42",
+      "humidity": "42",
+      "moisture": "42",
+      "grain": "wheat"
+    },
+    "expect": [
+      "粮水分 📌 虫害可能活动，加强监测频次，择机通风降温降湿 💧 储粮水分偏高，存在霉变发热风险，需及时降水\n暂无计算记录"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"temp\":\"42\",\"humidity\":\"42\",\"moisture\":\"42\",\"grain\":\"wheat\"}，输出区含「粮水分 📌 虫害可能活动，加强监测频次，择机通风降温降湿 💧 储粮水分偏高，…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  }
+
+];
+
+// ---------------------------------------------------------------- main
+async function main() {
+  const only = process.argv.slice(2);
+  const cases = only.length ? CASES.filter((c) => only.some((o) => c.slug.endsWith("/" + o) || c.slug === o)) : CASES;
+  let pass = 0; const fails = [];
+  for (const c of cases) {
+    try {
+      const r = await runCase(c);
+      if (r.ok) { pass++; }
+      else {
+        fails.push(c.slug);
+        console.log("❌ " + c.slug + "  " + (r.why || "no expect match"));
+        if (r.errs && r.errs.length) console.log("     errs: " + JSON.stringify(r.errs));
+        if (r.sample) console.log("     got: " + String(r.sample).slice(0, 300));
+      }
+    } catch (e) {
+      fails.push(c.slug);
+      console.log("❌ " + c.slug + "  THROWN: " + ((e && e.message) ? e.message : String(e)));
+    }
+  }
+
+  console.log("==== agriculture calc " + pass + "/" + cases.length + " ====");
+  if (fails.length) process.exit(1);
+}
+if (require.main === module) main();

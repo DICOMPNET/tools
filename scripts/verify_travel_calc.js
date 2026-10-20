@@ -1,0 +1,313 @@
+#!/usr/bin node
+"use strict";
+const { runCase } = require("./verify_it_calc.js");
+const CASES = [
+{
+  "slug": "travel/aim-trainer",
+  "inputs": {},
+  "clicks": [
+    "startTime=Date.now()-15000;tick();"
+  ],
+  "expect": [
+    "15.0s"
+  ],
+  "ref": "（2026-09-24 曾判「静态无 input/select/textarea ⇒ 结构性不可注入」，本批次推翻）无静态控件属实，但 tick() 只算 `DURATION-(Date.now()-startTime)/1000` 再写 #time ⇒ 倒推 startTime 即可控制读数，无需 start()（start() 会 setInterval，桩下进程不退出）。硬编码 startTime 前移 15 秒 ⇒ left=15.0 ⇒ #time = 「15.0s」；默认态 #time = 「30s」（reset() 写 DURATION+'s'，无 toFixed）⇒ 两态必然区分。旧锚「30.0s」恰是默认读数，判别力 0，已弃。"
+},
+{
+  "slug": "travel/business-name-generator",
+  "inputs": {
+    "count": "15"
+  },
+  "expect": [
+    "15"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "travel/currency-cheat-sheet",
+  "inputs": {
+    "rate": "7.20",
+    "customAmounts": "1,5,10,20,50,100",
+    "currency": "EUR,7.80,🇪🇺,€,欧元"
+  },
+  "expect": [
+    "1560"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "travel/emergency-phrasebook",
+  "inputs": {},
+  "clicks": [
+    "setLang('ja');"
+  ],
+  "expect": [
+    "kon-ni-chi-wa"
+  ],
+  "ref": "clicks 直调 setLang('ja') 切到日文短语表（推翻旧 ref 误判）：默认渲染英文表（blob 无日文串），注入后渲染「こんにちは kon-ni-chi-wa」等日文短语；「kon-ni-chi-wa」为日文态独有锚点（已双态核验默认态无此串）。原 ref 错判 setLang 为 DESTRUCTIVE 前缀被兜底排除，实测 clicks 通道可正常触发。"
+},
+{
+  "slug": "travel/international-tip-calculator",
+  "inputs": {
+    "bill": "150",
+    "people": "1"
+  },
+  "expect": [
+    "150"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "travel/jet-lag-recovery",
+  "inputs": {
+    "flightHours": "12",
+    "fromTz": "9"
+  },
+  "expect": [
+    "-14小时"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "travel/luggage-size-checker",
+  "inputs": {
+    "l": "83",
+    "w": "40",
+    "h": "20",
+    "wt": "7"
+  },
+  "expect": [
+    "83×40×20cm"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "travel/packing-list",
+  "clicks": [
+    "toggleItem(0,0);toggleItem(0,1);toggleItem(0,2);renderList();"
+  ],
+  "expect": [
+    "3 / 36 项已打包"
+  ],
+  "ref": "去默认化（推翻 2026-09-24 travel 批「结构性不可注入」误判，且修正首版 checkAll 写法被判别器误判逃生项）：勾选靠无 id 的 div.checkbox 的 toggleItem(catIdx,itemIdx) onclick，clicks 直接调 toggleItem(0,0/0,1/0,2) 勾第 0 分类前 3 项后 renderList()，progressText 渲染「3 / 36 项已打包（8%）」；默认 0 项显示「0 / 36 项已打包（0%）」，注入失败即不命中。注：首版用 checkAll() 锚「36/36」，但 checkAll 不读任何输入、兜底阶段被重调恒出 36/36 致误判逃生，故改锚具体勾选数 3/36（兜底 checkAll 出 36/36 不命中）。"
+},
+{
+  "slug": "travel/passport-validator",
+  "inputs": {
+    "input": "E12345678"
+  },
+  "expect": [
+    "中国（CN）：1 字母 + 8 数字",
+    "通用 ICAO 9303（XX）：9 位机器可读字符"
+  ],
+  "ref": "去默认化（原 expect「等待输入...」＝空输入分支，注入失败仍命中 → 逃生项）：注入 E12345678（1 字母 + 8 数字）后 validate() 按 PASSPORT_FORMATS 逐条正则匹配，同时命中中国 CN（/^[EeKkGgDd]\\d{8}$/）与通用 ICAO 9303（/^[A-Z0-9<]{9}$/）两项；默认空输入只输出「等待输入...」不含这两串，注入失败即不命中。"
+},
+{
+  "slug": "travel/recommender-10",
+  "inputs": {
+    "cnt": "8"
+  },
+  "expect": [
+    "6."
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "travel/recommender-9",
+  "inputs": {
+    "cnt": "8"
+  },
+  "expect": [
+    "8. "
+  ],
+  "ref": "auto-restore（原断言为静态标题，注入失败仍命中 → 逃生项；改为断言条数/第8条）"
+},
+{
+  "slug": "travel/road-trip-gas-cost",
+  "inputs": {
+    "distance": "750",
+    "consumption": "8",
+    "price": "7.5",
+    "tolls": "200",
+    "people": "2"
+  },
+  "expect": [
+    "60.0L"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "travel/timezone-lookup",
+  "inputs": {
+    "input": "Asia/Tokyo"
+  },
+  "expect": [
+    "日本标准时间",
+    "+09:00（UTC+9）"
+  ],
+  "ref": "去默认化（原 expect「等待输入...」＝空输入分支，注入失败仍命中 → 逃生项）：注入 IANA 名 Asia/Tokyo，validate() 走 TIMEZONES[raw] 精确命中分支，输出名称「日本标准时间」+「UTC 偏移：+09:00（UTC+9）」；默认空输入只输出「等待输入...」。"
+},
+{
+  "slug": "travel/travel-adapter-guide",
+  "inputs": {
+    "search": "日本"
+  },
+  "expect": [
+    "日本\n日本 Type A Type B ⚡ 100V"
+  ],
+  "ref": "去默认化 + P0 缺陷修复：原 render(list) 用 if(!list.length) 判空，而 plugs/filter 传入的是**对象**（无 length ⇒ 恒 truthy ⇒ 恒判空）⇒ 整页搜索无论输入什么都只显示「未找到」，默认态亦然（原 expect 正是这个「未找到」）。已修：if(!list||!Object.keys(list).length)。修复后注入 search=日本 只渲染日本一张卡（Type A/B、⚡100V），默认态（搜索框空）渲染全部 35 国、不含「日本\\n日本 …」这种回显紧邻卡片的排布 ⇒ 注入失败即不命中。"
+},
+{
+  "slug": "travel/travel-budget-calculator",
+  "inputs": {
+    "days": "11",
+    "people": "2",
+    "transport": "3000",
+    "accommodation": "500",
+    "food": "200",
+    "tickets": "800",
+    "shopping": "1000",
+    "emergency": "1000"
+  },
+  "expect": [
+    "(22.2%)"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "travel/travel-days-counter",
+  "inputs": {
+    "start": "2026-10-01",
+    "end": "2026-10-05"
+  },
+  "expect": [
+    "5 天 (4晚)",
+    "📅 2026-10-01 出发"
+  ],
+  "ref": "去默认化（原 expect「8 天 (7晚)」＝页面默认值 start=2024-06-22 / end=2024-06-29 的行程时长，注入失败仍命中 → 逃生项）：注入 2026-10-01 → 2026-10-05，calc() 算 days = ceil(4 天)+1 = 5、nights = 4，卡片显示「5 天 (4晚)」+ 详情行「📅 2026-10-01 出发」。两串均与注入日期绑定、且与真实当天无关（不锚「距离出发还有 N 天」这类随 now 漂移的分支）；默认 2024-06-22/29 得 8 天 7 晚，注入失败即不命中。"
+},
+{
+  "slug": "travel/travel-insurance-comparison",
+  "inputs": {
+    "days": "21"
+  },
+  "expect": [
+    "120-240"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "travel/travel-photo-storage",
+  "inputs": {
+    "days": "11",
+    "perDay": "100",
+    "videoMin": "10"
+  },
+  "expect": [
+    "1100"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "travel/visa-requirement-checker",
+  "inputs": {
+    "search": "日本"
+  },
+  "expect": [
+    "需提前办理签证，有3年/5年多次往返\n🏯 东亚"
+  ],
+  "ref": "去默认化（原 expect「持有效美/日/澳等签证可免7天」是默认全量 54 国列表里菲律宾那行的静态数据，注入失败仍命中 → 逃生项）：注入 search=日本，filter() 把列表收敛到日本一行，输出「日本 需签证 东亚 需提前办理签证，有3年/5年多次往返」紧邻下方地区统计「🏯 东亚 2个国家/地区」；该「备注\\n统计」相邻串只在过滤后成立（默认态日本行后面紧跟的是「韩国 需签证」），注入失败即不命中。"
+},
+{
+  "slug": "travel/world-timezone-converter",
+  "inputs": {
+    "localTime": "14:30",
+    "localDate": "2026-10-01"
+  },
+  "expect": [
+    "10月1日周四"
+  ],
+  "ref": "去默认化（原 expect「北京/上海」是卡片里恒显示的静态城市名标签，注入失败仍命中 → 逃生项）：注入 localTime=14:30 / localDate=2026-10-01 后 render() 走 now=new Date('2026-10-01T14:30') 分支（不再回填当天），六个默认城市卡片的日期全部由该基准日推出（北京/上海 10月1日周四、洛杉矶 9月30日周三 昨天）；默认态基于当天显示 6月15日周六，注入失败即不命中。（注：harness 环境下 toTimeString() 被桩成固定串故时刻段恒为 00:00，因此只锚日期段。）"
+  },
+{
+  "slug": "travel/timezone-converter-advanced",
+  "inputs": { "fromTz": "Asia/Shanghai", "toTz": "America/New_York", "fromTime": "2026-03-15T09:00" },
+  "expect": ["目标时区 America/New_York： 2026/03/14 北美东部夏令时间 21:00"],
+  "ref": "去默认化（推翻 BATCH377「new Option()+select.add() 动态填充、harness 缺 Option 桩 ⇒ 结构性不可注入」误判）：本批次给 harness 补 globalThis.Option 构造器 + makeEl.add() 方法，initSelects() 的 new Option()/select.add() 不再抛错、fromTz/toTz 被正确填充。注入 fromTime 置末位触发 convert() 用全输入：上海 09:00（UTC+8）→ 纽约 EDT（UTC-4）显示前一日 21:00；默认态（init 用冻结日期 setNow）日期不同，注入失败即不命中。锚取「目标时区 America/New_York： 2026/03/14 北美东部夏令时间 21:00」整串（含具体日期，与默认态冻结日期天然区分）。"
+},
+{
+  "slug": "travel/timezone-converter-advanced",
+  "inputs": { "fromTz": "Asia/Shanghai", "toTz": "Asia/Tokyo", "fromTime": "2026-03-15T09:00" },
+  "expect": ["目标时区 Asia/Tokyo： 2026/03/15 日本标准时间 10:00"],
+  "ref": "东京 UTC+9：上海 09:00 → 东京 10:00（同日）。锚含具体日期 2026/03/15，默认态冻结日期不命中。"
+},
+{
+  "slug": "travel/timezone-converter-advanced",
+  "inputs": { "fromTz": "UTC", "toTz": "Asia/Shanghai", "fromTime": "2026-03-15T00:00" },
+  "expect": ["目标时区 Asia/Shanghai： 2026/03/15 中国标准时间 08:00"],
+  "ref": "UTC 00:00 → 北京 UTC+8 08:00（同日）。锚含具体日期，默认态不命中。"
+},
+{
+  "slug": "travel/timezone-converter-advanced",
+  "inputs": { "fromTz": "Europe/London", "toTz": "America/Los_Angeles", "fromTime": "2026-07-01T12:00" },
+  "expect": ["目标时区 America/Los_Angeles： 2026/07/01 北美太平洋夏令时间 04:00"],
+  "ref": "伦敦 BST（UTC+1）12:00 → 洛杉矶 PDT（UTC-7）04:00（同日）。锚含具体日期，默认态不命中。"
+},
+{
+  "slug": "travel/timezone-converter-advanced",
+  "inputs": { "fromTz": "America/New_York", "toTz": "Europe/Paris", "fromTime": "2026-12-15T15:00" },
+  "expect": ["目标时区 Europe/Paris： 2026/12/15 中欧标准时间 21:00"],
+  "ref": "纽约 EST（UTC-5）15:00 → 巴黎 CET（UTC+1）21:00（同日，冬令时）。锚含具体日期，默认态不命中。"
+},
+{
+  "slug": "travel/timezone-converter-advanced",
+  "inputs": { "fromTz": "Asia/Dubai", "toTz": "Asia/Kolkata", "fromTime": "2026-03-15T10:00" },
+  "expect": ["目标时区 Asia/Kolkata： 2026/03/15 印度时间 11:30"],
+  "ref": "迪拜 UTC+4 10:00 → 印度 UTC+5:30 11:30（半时区，同日）。锚含具体日期，默认态不命中。"
+},
+  {
+    slug: "travel/zhangpengfangfengxishu",
+    inputs: { ttype: "four", pmat: "carbon", pcount: "4", setup: "wind" },
+    expect: ["106 最大抗风风速 km/h"],
+    ref: "注入非默认(默认 ultra/fiberglass/2/normal→不同)：四季帐·碳纤维·4根·迎风优化 → 最大抗风 106 km/h。默认态组合不同，不命中 106。"
+  },
+
+  {
+    "slug": "travel/zhangpengfangfengxishu",
+    "inputs": {
+      "ttype": "three",
+      "pmat": "al7001",
+      "pcount": "3",
+      "setup": "wind"
+    },
+    "expect": [
+      "s 防风等级：抗风良好 📌 可应对疾风/大风环境，适合三季常规露营，避免暴露山脊。 📋 配置：三季帐 · 铝合金7001 · 3根 · 迎风优化（基础抗风 50"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"ttype\":\"three\",\"pmat\":\"al7001\",\"pcount\":\"3\",\"setup\":\"wind\"}，输出区含「s 防风等级：抗风良好 📌 可应对疾风/大风环境，适合三季常规露营，避免暴露山…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  }
+
+];
+async function main() {
+  const only = process.argv.slice(2);
+  const cases = only.length ? CASES.filter((c) => only.some((o) => c.slug.endsWith("/" + o) || c.slug === o)) : CASES;
+  let pass = 0; const fails = [];
+  for (const c of cases) {
+    try {
+      const r = await runCase(c);
+      if (r.ok) { pass++; }
+      else {
+        fails.push(c.slug);
+        console.log("❌ " + c.slug + "  " + (r.why || "no expect match"));
+        if (r.errs && r.errs.length) console.log("     errs: " + JSON.stringify(r.errs));
+        if (r.sample) console.log("     got: " + String(r.sample).slice(0, 300));
+      }
+    } catch (e) {
+      fails.push(c.slug);
+      console.log("❌ " + c.slug + "  THROWN: " + ((e && e.message) ? e.message : String(e)));
+    }
+  }
+
+  console.log("==== travel calc " + pass + "/" + cases.length + " ====");
+  if (fails.length) process.exit(1);
+}
+if (require.main === module) main();

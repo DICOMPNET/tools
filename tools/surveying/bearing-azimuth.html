@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=surveying,industry=surveying,icon=🗺️,bg=from-emerald-500 to-teal-600">
+<title>由坐标增量(Δx,Δy)求方位角 - 反算两点连线方位角并归算到 0</title>
+<link rel="canonical" href="https://chenguangwu.github.io/tools/surveying/bearing-azimuth.html">
+<meta property="og:title" content="由坐标增量(Δx,Δy)求方位角 - 反算两点连线方位角并归算到 0">
+<meta property="og:description" content="输入两点的北向、东向坐标增量（ΔN、ΔE），用 α=atan2(ΔE,ΔN) 反算两点连线方位角并归算到 0–360°，用于测量中由坐标差求边方向的方位角计算。">
+<meta property="og:url" content="https://chenguangwu.github.io/tools/surveying/bearing-azimuth.html">
+<meta name="twitter:card" content="summary">
+<meta name="description" content="输入两点的北向、东向坐标增量（ΔN、ΔE），用 α=atan2(ΔE,ΔN) 反算两点连线方位角并归算到 0–360°，用于测量中由坐标差求边方向的方位角计算。">
+<link rel="stylesheet" href="../../css/common.css">
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="../../js/common.js" defer></script>
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
+    <meta property="og:type" content="website">
+    <meta name="twitter:title" content="由坐标增量(Δx,Δy)求方位角 - 反算两点连线方位角并归算到 0">
+    <meta name="twitter:description" content="输入两点的北向、东向坐标增量（ΔN、ΔE），用 α=atan2(ΔE,ΔN) 反算两点连线方位角并归算到 0–360°，用于测量中由坐标差求边方向的方位角计算。">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"坐标反算方位角","url":"https://chenguangwu.github.io/tools/surveying/bearing-azimuth.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"输入两点的北向、东向坐标增量（ΔN、ΔE），用 α=atan2(ΔE,ΔN) 反算两点连线方位角并归算到 0–360°，用于测量中由坐标差求边方向的方位角计算。","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://chenguangwu.github.io/"},{"@type":"ListItem","position":2,"name":"测绘工程","item":"https://chenguangwu.github.io/tools/surveying/index.html"},{"@type":"ListItem","position":3,"name":"坐标反算方位角","item":"https://chenguangwu.github.io/tools/surveying/bearing-azimuth.html"}]}
+</script>
+
+<script src="../../js/i18n.js" defer></script>
+<script src="../../js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+
+
+<meta name="title-en" content="Bearing Azimuth">
+<meta name="desc-en" content="Bearing Azimuth - online utility on ToolBox.">
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/surveying/bearing-azimuth.html">
+<link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/surveying/bearing-azimuth.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/surveying/bearing-azimuth.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/surveying/bearing-azimuth.html">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:locale:alternate" content="zh_TW">
+<meta property="og:locale:alternate" content="en_US">
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
+
+<script src="/js/tool-ux.js" defer></script>
+<!-- TOOLBOX-TOOL-UX -->
+
+<script src="/js/analytics.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+<!-- TOOLBOX-TTZZ -->
+<script>
+(function(){try{
+var el = document.createElement("script");
+el.src = "https://lf1-cdn-tos.bytegoofy.com/goofy/ttzz/push.js?85d6452aa9be4d693b16cd48535a8c7ae57542f6788a41682e745be8eb99b35a8a24d2f724c31ebe20c1e4e6fba6d91caf576100b02a2870c72f38fc574066fef065d152c73bf1cbb2ebad3b5b5265d8";
+el.id = "ttzz";
+var s = document.getElementsByTagName("script")[0];
+s.parentNode.insertBefore(el, s);
+}catch(e){}
+})(window);
+</script>
+
+<script src="/js/tool-kit.js" defer></script>
+<!-- TOOLBOX-TOOL-KIT -->
+</head>
+<body>
+
+<h1 class="sr-only">坐标反算方位角</h1>
+
+<div class="nav">
+  <a href="../../index.html">← ToolBox</a>
+  <span>/ 坐标反算方位角</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+
+
+
+<nav class="breadcrumb" aria-label="面包屑导航" data-breadcrumb="1">
+  <a href="../../index.html">首页</a>
+  <span class="bc-sep">‹</span>
+  <a href="index.html">📐 测绘工程</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">坐标反算方位角</span>
+</nav>
+<div class="container">
+<div class="tool-guide-link" data-guide-link="1">
+  <a href="../../guides/bearing-azimuth-guide.html">📖 查看「由坐标增量(Δx,Δy)求方位角 使用指南」</a>
+</div>
+
+  <div class="card">
+    <h2 data-zh="由坐标增量(Δx,Δy)求方位角">Azimuth from Coordinate Increments</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="α = atan2(ΔE, ΔN)，归算至 0–360°。">Compute the azimuth (bearing) from coordinate increments Δx and Δy.</p>
+    <div class="formula-box">
+      <div class="formula-title">📐 计算公式</div>
+      <div class="formula-eq">α = atan2(Δy, Δx)</div>
+      <p class="formula-desc">α = atan2(ΔE, ΔN)，归算至 0–360°。</p>
+    </div>
+
+    <div class="input-row">
+      <div>
+        <label for="dn">北向差 ΔN (m)</label>
+        <input type="number" id="dn" value="100" step="1">
+      </div>
+      <div>
+        <label for="de">东向差 ΔE (m)</label>
+        <input type="number" id="de" value="100" step="1">
+      </div>
+    </div>
+
+    <div id="baPresets"></div>
+    <div class="toolbar">
+      <button class="btn primary" onclick="calcTool()">计算</button>
+      <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__baExport()">导出 CSV</button>
+    </div>
+
+    <div class="result-box" id="result">
+    <div id="baChart"></div>
+    <div id="baTable"></div>
+    <div id="baDiff"></div>
+    <div id="baHist"></div>
+</div>
+
+    <div class="tool-notes">
+      <div class="tool-notes-title">📌 计算说明</div>
+      <ul>
+        <li>方位角自正北顺时针。</li>
+        <li>坐标差需同基准。</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+
+<!-- 相关工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相关工具</h3>
+  <div class="related-tools-grid">
+    <a href="convert-33.html" class="related-tool-card">
+      <span class="rt-icon">🔄</span>
+      <span class="rt-info"><span class="rt-name">全站仪测距斜距/平距/高差换算</span><span class="rt-desc">全站仪测距换算器：将斜距按竖直角换算为平距与高差，用于全站仪测量数据处理与高程传递。</span></span>
+    </a>
+    <a href="coordinate-convert.html" class="related-tool-card">
+      <span class="rt-icon">🗺️</span>
+      <span class="rt-info"><span class="rt-name">坐标转换</span><span class="rt-desc">大地坐标（经纬度）→ 高斯-克吕格平面坐标（CGCS2000 椭球），含带号、中央子午线与子午线收…</span></span>
+    </a>
+    <a href="convert-46.html" class="related-tool-card">
+      <span class="rt-icon">🗺️</span>
+      <span class="rt-info"><span class="rt-name">坐标（经纬度）与度分秒转换</span><span class="rt-desc">十进制度与度分秒互转</span></span>
+    </a>
+    <a href="convert-angle-slope-1.html" class="related-tool-card">
+      <span class="rt-icon">🗺️</span>
+      <span class="rt-info"><span class="rt-name">坡度（百分比/角度）换算</span><span class="rt-desc">坡度百分比与角度互算</span></span>
+    </a>
+    <a href="scale-converter.html" class="related-tool-card">
+      <span class="rt-icon">🔄</span>
+      <span class="rt-info"><span class="rt-name">比例尺换算</span><span class="rt-desc">输入地形图比例尺（如 1:1000）与图上长度或实地距离，自动换算对应的实际距离或图上长度，用于读…</span></span>
+    </a>
+    <a href="area-24.html" class="related-tool-card">
+      <span class="rt-icon">📐</span>
+      <span class="rt-info"><span class="rt-name">地籍（界址/面积/权属）调查</span><span class="rt-desc">地籍调查测算工具：按界址点坐标或边长计算地块面积，并核对权属信息，用于地籍调查与不动产测绘。</span></span>
+    </a>
+  </div>
+</div>
+<script>
+function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
+function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
+function calcTool(){
+            const dn=num('dn'),de=num('de');
+            let az=Math.atan2(de,dn)*180/Math.PI;
+            if(az<0)az+=360;
+            const d=Math.sqrt(dn*dn+de*de);
+            const __g1=dataGrid([
+                [az.toFixed(2),'方位角 (°)'],
+                [d.toFixed(3),'水平距离 (m)'],
+                [(az<90?'北东 NE':(az<180?'南东 SE':(az<270?'南西 SW':'北西 NW'))), '所在象限'],
+                [(90-az).toFixed(2), '与正东方向夹角 (°)']
+            ]);ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
+        }
+function resetForm(){document.getElementById('dn').value = '100';
+      document.getElementById('de').value = '100';
+      calcTool();}
+calcTool();
+
+function __baN(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __baList(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __baL(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+var __baT={'方位角 (°)':'Azimuth (°)','水平距离 (m)':'Horizontal distance (m)','北东 NE':'NE','南东 SE':'SE','南西 SW':'SW','北西 NW':'NW','所在象限':'Quadrant','与正东方向夹角 (°)':'Angle from east (°)'};
+var __tb_ba_dg=dataGrid;
+dataGrid=function(rows){if(typeof TBKit!=='undefined'&&TBKit.util.isEn()){rows=rows.map(function(r){return[(typeof r[0]==='string'?(__baT[r[0]]||r[0]):r[0]),(r[1]==null?r[1]:(__baT[r[1]]||r[1]))];});}return __tb_ba_dg(rows);};
+
+
+
+function __baExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#baTable','bearing-azimuth.csv');}catch(e){} }
+function __baExtras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var dn=__baN('dn'), de=__baN('de');
+        if(!(dn!==0||de!==0))return;
+        var az=Math.atan2(de,dn)*180/Math.PI; if(az<0)az+=360;
+        var d=Math.sqrt(dn*dn+de*de);
+        TBKit.chart.scatter('#baChart',{points:[[0,0],[de,dn]],height:230,xLabel:__baL('ΔE','东向 ΔE'),title:__baL('Direction vector (az '+az.toFixed(1)+'°)','方向向量（方位角 '+az.toFixed(1)+'°）')});
+        var quad=az<90?__baL('NE (I)','北东 NE（Ⅰ）'):az<180?__baL('SE (II)','南东 SE（Ⅱ）'):az<270?__baL('SW (III)','南西 SW（Ⅲ）'):__baL('NW (IV)','北西 NW（Ⅳ）');
+        var rows=__baL(
+            [['ΔN',dn.toFixed(3)],['ΔE',de.toFixed(3)],['azimuth (°)',az.toFixed(2)],['distance (m)',d.toFixed(3)],['quadrant',quad],['angle from east (°)',(90-az).toFixed(2)],['angle from north (°)',az.toFixed(2)]],
+            [['ΔN',dn.toFixed(3)],['ΔE',de.toFixed(3)],['方位角 (°)',az.toFixed(2)],['水平距离 (m)',d.toFixed(3)],['所在象限',quad],['与正东夹角 (°)',(90-az).toFixed(2)],['与正北夹角 (°)',az.toFixed(2)]]);
+        TBKit.matrix.table('#baTable',{head:__baL(['Metric','Value'],['指标','数值']),rows:rows});
+        TBKit.history.record({az:Number(az.toFixed(2)),dn:dn,de:de});
+        TBKit.util.diffBox('#baDiff',['az']);
+        TBKit.history.mount('#baHist',function(v){ if(v.az!=null){document.getElementById('dn').value=v.dn;document.getElementById('de').value=v.de;} calcTool(); });
+    }catch(e){}
+}
+function __baPresets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#baPresets',[
+            {label:'东北 45° (100,100)',labelEn:'NE 45° (100,100)',values:{dn:100,de:100}},
+            {label:'东南 (100,-100)',labelEn:'SE (100,-100)',values:{dn:100,de:-100}},
+            {label:'正北 (200,0)',labelEn:'Due north (200,0)',values:{dn:200,de:0}}
+        ],function(){ calcTool(); });
+    }catch(e){}
+}
+
+var __tb_ba0 = calcTool;
+calcTool = function(){ __tb_ba0(); try{ __baExtras(); }catch(e){} };
+function __baBoot(){ try{ __baPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+// readyState 判定须防「桩环境无 readyState」：harness 的 document 桩不提供 readyState（undefined），
+// 旧写法 `=== "loading"` 会走 else 在脚本求值时立即启动 boot，早于页面自身 DOMContentLoaded init
+// ⇒ 元素创建顺序改变 ⇒ 跨元素多行 expect 失配。生产浏览器解析期 readyState==="loading" ⇒ 走
+// addEventListener；已加载完（complete/interactive）⇒ 立即启动。
+if (document.readyState && document.readyState !== "loading") __baBoot();
+else document.addEventListener("DOMContentLoaded", __baBoot);
+</script>
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto 0;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+.deep-dive a.term-link{color:var(--tool-accent,#FF6B35);text-decoration:none;border-bottom:1px dashed currentColor;}
+.deep-dive a.term-link:hover{border-bottom-style:solid;}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：方位角与象限角互转</h2>
+<h3>💡 常见使用场景</h3>
+<ul class="dd-list">
+<li>方位角(0–360°)转象限角(NθE 等)。</li>
+<li>放样/导航用象限角更直观。</li>
+<li>正反方位角相差 180°。</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">转象限角</div><div class="dd-ex-body">方位角 45°→N45°E；135°→S45°E；200°→S20°W；315°→N45°W。</div></div>
+<div class="dd-example"><div class="dd-ex-title">反方位角</div><div class="dd-ex-body">正方位 60°，反方位=60+180=240°（过 360 减 360），用于往返测边校核。</div></div>
+<h3>❓ 常见问题（FAQ）</h3>
+<dl class="dd-faq">
+<dt>方位角和象限角区别？</dt><dd>方位角从正北顺时针 0–360°；象限角从北/南向东西 0–90°，各表一象限。</dd>
+<dt>反方位角为什么 +180？</dt><dd>反向视线与正向差 180°，用于闭合导线与对向观测一致性检查。</dd>
+</dl>
+</div>
+</section>
+</body>
+</html>

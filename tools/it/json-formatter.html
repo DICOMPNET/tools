@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=dev,industry=it,icon=📄,bg=#fff3e0">
+<meta name="description" content="JSON 格式化 / 美化 / 压缩是一款免费的在线IT 开发工具，在线 JSON 格式化工具，解析文本后按层级美化缩进或压缩去空白，校验语法错误并定位行列，支持高亮与折叠，便于 API 调试，纯前端。纯前端运行、数据不上传、无需注册，打开">
+<meta name="keywords" content="JSON格式化,JSON格式化在线,在线JSON格式化,JSON美化,JSON压缩,JSON校验,JSON解析,JSON工具,开发工具,在线工具">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://chenguangwu.github.io/tools/it/json-formatter.html">
+<meta property="og:title" content="JSON 格式化 / 美化 / 压缩 - 语法错误">
+<meta property="og:description" content="JSON 格式化 / 美化 / 压缩是一款免费的在线IT 开发工具，在线 JSON 格式化工具，解析文本后按层级美化缩进或压缩去空白，校验语法错误并定位行列，支持高亮与折叠，便于 API 调试，纯前端。纯前端运行、数据不上传、无需注册，打开">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://chenguangwu.github.io/tools/it/json-formatter.html">
+<meta name="twitter:card" content="summary">
+
+<title>JSON 格式化 / 美化 / 压缩 - 语法错误</title>
+<meta name="theme-color" content="#FF6B35">
+<link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+<link rel="icon" href="../../favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="apple-touch-icon" href="../../apple-touch-icon.png">
+<link rel="stylesheet" href="../../css/common.css">
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="../../js/common.js" defer></script>
+<style>
+.json-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px;}
+.json-actions .btn-group{display:flex;gap:4px;flex-wrap:wrap;}
+.json-actions .spacer{flex:1;min-width:8px;}
+.json-actions label{font-size:13px;color:var(--text-muted);display:flex;align-items:center;gap:6px;margin:0;white-space:nowrap;}
+.json-actions select{padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;background:var(--card-bg);color:var(--text);outline:none;}
+.json-actions select:focus{border-color:var(--primary);}
+
+.editor-card{background:var(--result-bg);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:12px;}
+.editor-card label{display:flex;align-items:center;justify-content:space-between;font-size:13px;color:var(--text-muted);margin-bottom:8px;}
+.editor-card label .tag{font-size:11px;padding:2px 8px;border-radius:20px;background:rgba(255,107,53,0.08);color:var(--primary);font-weight:600;}
+.editor-card textarea{background:var(--card-bg);min-height:180px;margin-bottom:0;}
+
+.json-output{
+  background:var(--result-bg);
+  color:var(--text);
+  border-radius:12px;
+  padding:14px;
+  border:1px solid var(--border);
+  font-family:'SF Mono','Courier New',monospace;
+  font-size:13px;
+  line-height:1.7;
+  min-height:200px;
+  max-height:500px;
+  overflow:auto;
+  white-space:pre;
+}
+.json-output.raw{white-space:pre;}
+.json-tree{white-space:normal;padding:12px 10px;}
+.tree-line{display:flex;align-items:center;gap:3px;min-height:28px;padding-left:calc(var(--tree-level) * 20px);white-space:nowrap;}
+.tree-toggle,.tree-spacer{width:18px;flex:0 0 18px;text-align:center;}
+.tree-toggle{border:0;background:transparent;color:#7aa8f8;cursor:pointer;padding:0;font:inherit;line-height:1;}
+.tree-toggle:hover{color:var(--primary);}
+.tree-token{border:0;background:transparent;font:inherit;font-family:inherit;line-height:1.5;padding:1px 3px;border-radius:5px;cursor:copy;white-space:pre-wrap;text-align:left;}
+.tree-token:hover,.tree-token:focus-visible{background:rgba(255,107,53,.10);outline:none;}
+.tree-copy-mark{margin-left:4px;font-family:inherit;font-size:11px;opacity:.45;}
+.tree-token:hover .tree-copy-mark,.tree-token:focus-visible .tree-copy-mark{opacity:1;color:var(--primary);}
+.tree-key{color:#4b83ec;}
+.tree-string{color:#16a06b;}
+.tree-number{color:#dc6d24;}
+.tree-boolean{color:#8b5bd6;}
+.tree-null{color:#7b8798;font-style:italic;}
+.tree-bracket{color:#e35d76;font-weight:600;}
+.tree-count{color:var(--text-muted);font-size:12px;margin-left:4px;}
+.tree-close{color:#e35d76;}
+body.dark .json-tree{background:#1e1e2e;border-color:#34344f;}
+body.dark .tree-key{color:#89b4fa;} body.dark .tree-string{color:#a6e3a1;}
+body.dark .tree-number{color:#fab387;} body.dark .tree-boolean{color:#cba6f7;}
+body.dark .tree-null,.dark .tree-count{color:#a6adc8;} body.dark .tree-bracket,.dark .tree-close{color:#f38ba8;}
+
+.output-meta{display:flex;gap:12px;align-items:center;flex-wrap:wrap;}
+.output-meta .status{font-size:12px;display:inline-flex;align-items:center;gap:4px;}
+.output-meta .status.ok{color:var(--success);}
+.output-meta .status.err{color:var(--danger);}
+.output-meta .size{font-size:12px;color:var(--text-muted);margin-left:auto;}
+
+.empty-state{text-align:center;padding:40px 20px;color:var(--text-muted);font-size:14px;}
+.empty-state .icon{font-size:40px;margin-bottom:12px;opacity:0.6;}
+
+@media(max-width:768px){
+  .json-actions{gap:8px;}
+  .json-actions .btn-group{width:100%;}
+  .json-actions .btn-group .btn{flex:1 1 calc(50% - 2px);min-width:calc(50% - 2px);padding:9px 10px;font-size:12px;justify-content:center;}
+  .json-actions label{width:100%;justify-content:space-between;}
+  .json-output{min-height:160px;font-size:12px;padding:12px;}
+  .tree-line{padding-left:calc(var(--tree-level) * 14px);}
+}
+</style>
+
+
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="JSON 格式化 / 美化 / 压缩 - 语法错误">
+<meta name="twitter:description" content="JSON 格式化 / 美化 / 压缩是一款免费的在线IT 开发工具，在线 JSON 格式化工具，解析文本后按层级美化缩进或压缩去空白，校验语法错误并定位行列，支持高亮与折叠，便于 API 调试，纯前端。纯前端运行、数据不上传、无需注册，打开">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "JSON格式化工具",
+  "description": "免费在线JSON格式化工具，支持JSON美化、压缩、校验、语法高亮、层级折叠。纯前端本地处理，无需上传，数据安全。",
+  "url": "https://chenguangwu.github.io/tools/it/json-formatter.html",
+  "applicationCategory": "UtilitiesApplication",
+  "operatingSystem": "Web",
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "CNY"
+  },
+  "inLanguage": "zh-CN",
+  "isAccessibleForFree": true,
+  "browserRequirements": "Requires JavaScript. Requires HTML5.",
+  "softwareVersion": "1.0"
+}
+</script>
+
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"JSON格式化工具","url":"https://chenguangwu.github.io/tools/it/json-formatter.html","applicationCategory":"DeveloperApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"JSON 格式化 / 美化 / 压缩是一款免费的在线IT 开发工具，在线 JSON 格式化工具，解析文本后按层级美化缩进或压缩去空白，校验语法错误并定位行列，支持高亮与折叠，便于 API 调试，纯前端。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://chenguangwu.github.io/"},{"@type":"ListItem","position":2,"name":"IT 开发","item":"https://chenguangwu.github.io/tools/it/index.html"},{"@type":"ListItem","position":3,"name":"JSON格式化工具","item":"https://chenguangwu.github.io/tools/it/json-formatter.html"}]}
+</script>
+
+<script src="../../js/i18n.js" defer></script>
+<script src="../../js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+
+
+<meta name="title-en" content="JSON Format">
+<meta name="desc-en" content="JSON Format - format text online with instant output.">
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/it/json-formatter.html">
+<link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/it/json-formatter.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/it/json-formatter.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/it/json-formatter.html">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:locale:alternate" content="zh_TW">
+<meta property="og:locale:alternate" content="en_US">
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
+
+<script src="/js/tool-ux.js" defer></script>
+<!-- TOOLBOX-TOOL-UX -->
+
+<script src="/js/hot-tool-enhancements.js" defer></script>
+<!-- TOOLBOX-HOT-TOOL-UX -->
+
+<script src="/js/analytics.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+
+<!-- TOOLBOX-TTZZ -->
+<script>
+(function(){try{
+var el = document.createElement("script");
+el.src = "https://lf1-cdn-tos.bytegoofy.com/goofy/ttzz/push.js?85d6452aa9be4d693b16cd48535a8c7ae57542f6788a41682e745be8eb99b35a8a24d2f724c31ebe20c1e4e6fba6d91caf576100b02a2870c72f38fc574066fef065d152c73bf1cbb2ebad3b5b5265d8";
+el.id = "ttzz";
+var s = document.getElementsByTagName("script")[0];
+s.parentNode.insertBefore(el, s);
+}catch(e){}
+})(window);
+</script>
+
+<script src="/js/tool-kit.js" defer></script>
+<!-- TOOLBOX-TOOL-KIT -->
+</head>
+<body>
+<h1 class="sr-only">JSON格式化工具</h1>
+
+
+<div class="nav">
+  <a href="../../index.html">← ToolBox</a>
+  <span>/ JSON 格式化</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+
+
+
+
+<nav class="breadcrumb" aria-label="面包屑导航" data-breadcrumb="1">
+  <a href="../../index.html">首页</a>
+  <span class="bc-sep">‹</span>
+  <a href="index.html">💻 开发</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">JSON格式化工具</span>
+</nav>
+
+<div class="tool-guide-link" data-guide-link="1">
+  <a href="../../guides/json-formatter-guide.html">📖 查看「JSON 格式化使用指南」</a>
+</div>
+<div class="container">
+  <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
+    <h2>📄 <span data-i18n="it.json-formatter.title" data-i18n-fb="JSON 格式化 / 美化 / 压缩">JSON Formatter</span></h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-i18n="it.json-formatter.intro" data-i18n-fb="支持语法高亮、树形视图、排序、转义/反转义、JSONP 提取等高级功能。纯前端处理，数据不上传。">Syntax highlighting, tree view, sorting, escape/unescape, JSONP extraction. Pure frontend, no upload.</p>
+<!-- TOOLBOX-POLISH -->
+
+<div class="formula-box">
+  <div class="formula-title">📐 工作原理与说明</div>
+  <div class="formula-desc">将 JSON 文本解析为对象树后重新序列化：美化按 2/4 空格缩进、保留层级；压缩去除空白；校验在解析失败时定位错误行列。支持语法高亮与层级折叠便于阅读。</div>
+  <ul class="formula-list">
+    <li>合法 JSON 要求双引号键、无尾逗号、无注释（JSON5 才支持）。</li>
+    <li>纯前端解析，粘贴内容不离开浏览器，适合脱敏前本地处理。</li>
+  </ul>
+</div>
+
+
+
+    <div class="editor-card">
+      <label>
+        <span>输入 JSON</span>
+        <span class="tag" id="inputTag">等待输入</span>
+      </label>
+      <textarea id="input" placeholder='粘贴 JSON 到这里，支持从 JSONP、日志、代码片段中自动提取 JSON...' oninput="onInputChange()"></textarea>
+    </div>
+
+    <div class="json-actions">
+      <div class="btn-group">
+        <button type="button" class="btn primary" onclick="formatJSON()">✨ 美化</button>
+        <button type="button" class="btn" onclick="minifyJSON()">🗜️ 压缩</button>
+        <button type="button" class="btn" onclick="validateJSON()">✅ 校验</button>
+        <button type="button" class="btn" onclick="sortJSON()">🔀 排序</button>
+      </div>
+      <div class="btn-group">
+        <button type="button" class="btn" onclick="escapeJSON()">↔️ 转义</button>
+        <button type="button" class="btn" onclick="unescapeJSON()">↩️ 反转义</button>
+        <button type="button" class="btn" onclick="extractJSON()">🧲 提取</button>
+      </div>
+      <div class="spacer"></div>
+      <label>缩进
+        <select id="indent" onchange="if(lastValidJSON) renderOutput()">
+          <option value="2">2 空格</option>
+          <option value="4">4 空格</option>
+          <option value="tab">Tab</option>
+          <option value="0">无空格</option>
+        </select>
+      </label>
+    </div>
+
+    <div id="viewJson" class="json-output json-tree" aria-live="polite">等待输入...</div>
+
+    <div class="toolbar" style="margin-top:12px;margin-bottom:0;">
+      <button type="button" class="btn primary" onclick="copyResult()">📋 复制结果</button>
+      <button type="button" class="btn" onclick="downloadResult()">💾 下载 JSON</button>
+      <button type="button" class="btn" onclick="loadSample()">📦 示例</button>
+      <button type="button" class="btn danger" onclick="clearAll()">🗑️ 清空</button>
+      <div style="flex:1;"></div>
+      <span style="font-size:12px;color:var(--text-muted);" id="resultStat"></span>
+    </div>
+    <div id="jsonChart" style="margin-top:12px;"></div>
+    <div class="toolbar" style="margin-top:10px;flex-wrap:wrap;">
+      <button type="button" class="btn" onclick="__jsonExport()">⬇️ 导出结构统计 CSV</button>
+    </div>
+    <table id="jsonTable" class="result-table" style="width:100%;margin-top:10px;display:none;">
+      <thead></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto 0;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+.deep-dive a.term-link{color:var(--tool-accent,#FF6B35);text-decoration:none;border-bottom:1px dashed currentColor;}
+.deep-dive a.term-link:hover{border-bottom-style:solid;}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：JSON 格式化 / 美化 / 压缩</h2>
+<h3>💡 常见使用场景</h3>
+<ul class="dd-list">
+<li>美化 / 压缩 <a class="term-link" href="/tools/data/calc-2.html">JSON</a>：把压缩成单行的 JSON 按缩进展开便于阅读，或反向压缩以节省网络传输与日志体积。JSON 语法规范见 RFC 8259（https://datatracker.ietf.org/doc/html/rfc8259）。</li>
+<li>定位语法错误：解析失败时本工具会标出错误所在的行与列，快速定位缺引号、尾逗号、注释等非法的位置。</li>
+<li>本地脱敏前处理：粘贴含敏感字段的 JSON，在浏览器内格式化 / 抽取，内容不上传，适合在提交到协作工具前先理清结构。</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">格式化与压缩</div><div class="dd-ex-body">输入 {&quot;name&quot;:&quot;John&quot;,&quot;age&quot;:30,&quot;tags&quot;:[&quot;a&quot;,&quot;b&quot;]} 点击美化后按 2 空格缩进展开为多行；点击压缩则去除所有空白回到单行。仅调整空白，键值与顺序不变。</div></div>
+<div class="dd-example"><div class="dd-ex-title">校验报错定位</div><div class="dd-ex-body">输入 {&quot;a&quot;:1,}，末尾多了一个逗号（非法尾逗号），解析失败并提示错误行列（如第 1 行第 8 列附近），据此删除多余逗号即可通过。标准 JSON 不允许尾逗号与注释。</div></div>
+<h3>❓ 常见问题（FAQ）</h3>
+<dl class="dd-faq">
+<dt>格式化会改变数据吗？</dt><dd>不会。格式化只增删空白与调整缩进，键值、数组顺序、数据类型全部保持不变；压缩是格式化的逆操作。</dd>
+<dt>为什么解析失败会报出行列？</dt><dd>JSON 解析器在遇错时记录已消费的字符位置，可换算成行号与列号。常见错误：键或字符串用了单引号、键名无双引号、存在尾逗号、混入了 // 或 /* 注释（标准 JSON 不支持，JSON5 才支持）。</dd>
+<dt>大文件会变慢吗？</dt><dd>纯前端解析对几 MB 的 JSON 一般仍可接受；若文件极大（数十 MB），建议先用日志 / 编辑器的局部片段排查，避免一次性粘贴卡顿。</dd>
+</dl>
+</div>
+</section>
+<!-- 注意事项区块 -->
+<div class="tool-notes" style="--tool-accent:#FF6B35;">
+  <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
+  <ul>
+      <li>本工具纯前端运行，数据不会上传到服务器</li>
+      <li>建议在主流浏览器（Chrome/Safari/Firefox/Edge）中使用</li>
+      <li>计算结果仅供参考，请以实际应用场景为准</li>
+  </ul>
+</div>
+<!-- /注意事项区块 -->
+</div>
+
+<script>
+let lastValidJSON = null;
+let treeCopyValues = [];
+
+const input = document.getElementById('input');
+const viewJson = document.getElementById('viewJson');
+const inputTag = document.getElementById('inputTag');
+
+function getIndent() {
+  const v = document.getElementById('indent').value;
+  if (v === 'tab') return '\t';
+  if (v === '0') return 0;
+  return parseInt(v);
+}
+
+function onInputChange() {
+  autoValidate();
+}
+
+function autoValidate() {
+  const val = input.value.trim();
+  if (!val) {
+    inputTag.textContent = '等待输入';
+    inputTag.className = 'tag';
+    lastValidJSON = null;
+    renderEmpty();
+    return;
+  }
+  try {
+    const obj = JSON.parse(val);
+    lastValidJSON = obj;
+    inputTag.textContent = '✅ JSON 有效';
+    inputTag.className = 'tag';
+    inputTag.style.background = 'rgba(16,185,129,0.10)';
+    inputTag.style.color = 'var(--success)';
+    renderOutput();
+  } catch(e) {
+    lastValidJSON = null;
+    inputTag.textContent = '❌ ' + e.message.substring(0, 40);
+    inputTag.style.background = 'rgba(239,68,68,0.10)';
+    inputTag.style.color = 'var(--danger)';
+  }
+}
+
+function renderEmpty() {
+  treeCopyValues = [];
+  viewJson.textContent = '等待输入...';
+  document.getElementById('resultStat').textContent = '';
+}
+
+function storeTreeCopy(value) {
+  treeCopyValues.push(String(value));
+  return treeCopyValues.length - 1;
+}
+
+function treeToken(text, cssClass, copyValue, label) {
+  const id = storeTreeCopy(copyValue);
+  return `<button type="button" class="tree-token ${cssClass}" onclick="copyTreePart(${id}, '${label}')" title="点击复制${label}">${text}<span class="tree-copy-mark" aria-hidden="true">⧉</span></button>`;
+}
+
+function renderValue(val) {
+  if (val === null) return treeToken('null', 'tree-null', 'null', '值');
+  if (typeof val === 'string') return treeToken(`&quot;${escapeHtml(val)}&quot;`, 'tree-string', val, '值');
+  if (typeof val === 'number') return treeToken(String(val), 'tree-number', val, '值');
+  if (typeof val === 'boolean') return treeToken(String(val), 'tree-boolean', val, '值');
+  return treeToken(escapeHtml(String(val)), '', String(val), '值');
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+}
+
+function toggleTree(id, button) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  if (el.style.display === 'none') {
+    el.style.display = 'block';
+    button.textContent = '▼';
+  } else {
+    el.style.display = 'none';
+    button.textContent = '▶';
+  }
+}
+
+function copyTreePart(index, label) {
+  const value = treeCopyValues[index];
+  if (value == null) return;
+  ToolBox.copyText(value);
+  ToolBox.showToast(`已复制${label}`);
+}
+
+function renderTree(value, level = 0, key = null) {
+  const hasKey = key !== null;
+  const prefix = hasKey
+    ? `${treeToken(`&quot;${escapeHtml(key)}&quot;`, 'tree-key', key, '键')}<span>: </span>`
+    : '';
+  const isCollection = value !== null && typeof value === 'object';
+  if (!isCollection) {
+    return `<div class="tree-line" style="--tree-level:${level}"><span class="tree-spacer"></span>${prefix}${renderValue(value)}</div>`;
+  }
+
+  const isArray = Array.isArray(value);
+  const entries = isArray ? value : Object.keys(value);
+  const id = `tree_${Math.random().toString(36).slice(2, 11)}`;
+  const open = isArray ? '[' : '{';
+  const close = isArray ? ']' : '}';
+  const countLabel = `${entries.length} ${isArray ? '项' : '字段'}`;
+  const serialized = JSON.stringify(value, null, getIndent() || 2);
+  let html = `<div class="tree-line" style="--tree-level:${level}">`;
+  html += `<button type="button" class="tree-toggle" onclick="toggleTree('${id}', this)" aria-label="折叠">▼</button>${prefix}`;
+  html += `<span class="tree-bracket">${open}</span><span class="tree-count">${countLabel}</span>`;
+  html += treeToken('复制', 'tree-container-copy', serialized, isArray ? '数组' : '对象');
+  html += `</div><div id="${id}" class="tree-children">`;
+  if (isArray) {
+    value.forEach((item) => { html += renderTree(item, level + 1); });
+  } else {
+    Object.keys(value).forEach((childKey) => { html += renderTree(value[childKey], level + 1, childKey); });
+  }
+  html += `</div><div class="tree-line tree-close" style="--tree-level:${level}"><span class="tree-spacer"></span><span>${close}</span></div>`;
+  return html;
+}
+
+function __jsonStats(v){
+  var st={object:0,array:0,string:0,number:0,boolean:0,null:0,keys:0,maxDepth:1,total:0};
+  function walk(x,d){
+    st.total++;
+    if(d>st.maxDepth)st.maxDepth=d;
+    if(x===null){st.null++;return;}
+    var t=typeof x;
+    if(Array.isArray(x)){st.array++;x.forEach(function(i){walk(i,d+1);});return;}
+    if(t==='object'){st.object++;Object.keys(x).forEach(function(k){st.keys++;walk(x[k],d+1);});return;}
+    if(t==='string')st.string++;
+    else if(t==='number')st.number++;
+    else if(t==='boolean')st.boolean++;
+  }
+  walk(v,1);
+  return st;
+}
+function __jsonExtras(){
+  if(typeof TBKit==='undefined')return;
+  if(typeof lastValidJSON==='undefined'||lastValidJSON===null)return;
+  var en=(TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
+  var st=__jsonStats(lastValidJSON);
+  var names={object:[en?'Object':'对象',st.object],array:[en?'Array':'数组',st.array],string:[en?'String':'字符串',st.string],number:[en?'Number':'数字',st.number],boolean:[en?'Boolean':'布尔',st.boolean],null:[en?'Null':'空值',st.null]};
+  var order=['object','array','string','number','boolean','null'];
+  if(TBKit.chart&&TBKit.chart.bar){
+    try{
+      TBKit.chart.bar('#jsonChart',{labels:order.map(function(k){return names[k][0];}),series:[{name:en?'Node count':'节点数',data:order.map(function(k){return names[k][1];})}],height:200,title:en?'JSON node type distribution':'JSON 节点类型分布'});
+    }catch(e){}
+  }
+  var t=document.getElementById('jsonTable');if(!t)return;
+  var tb=t.querySelector('tbody');tb.innerHTML='';
+  var th=t.querySelector('thead');
+  var size=JSON.stringify(lastValidJSON).length;
+  var rows=[[en?'Total nodes':'总节点数',st.total,''],[en?'Max depth':'最大层级深度',st.maxDepth],[en?'Object key count':'对象键总数',st.keys],[en?'Value nodes':'值节点数',st.string+st.number+st.boolean+st.null],[en?'Serialized size (chars)':'序列化字符数',size]];
+  if(th)th.innerHTML='<tr><th>'+(en?'Metric':'统计项')+'</th><th>'+(en?'Value':'数值')+'</th></tr>';
+  rows.forEach(function(r){
+    var tr=document.createElement('tr');
+    var c1=document.createElement('td');c1.textContent=r[0];tr.appendChild(c1);
+    var c2=document.createElement('td');c2.textContent=r[1];tr.appendChild(c2);
+    tb.appendChild(tr);
+  });
+  order.forEach(function(k){
+    var tr=document.createElement('tr');
+    var c1=document.createElement('td');c1.textContent=names[k][0];tr.appendChild(c1);
+    var c2=document.createElement('td');c2.textContent=names[k][1];tr.appendChild(c2);
+    tb.appendChild(tr);
+  });
+  t.style.display='';
+}
+function __jsonExport(){
+  if(typeof TBKit==='undefined')return;
+  if(typeof lastValidJSON==='undefined'||lastValidJSON===null){
+    ToolBox.showToast((TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())?'Please load valid JSON first':'请先输入或加载有效 JSON','warning');return;
+  }
+  __jsonExtras();
+  var t=document.getElementById('jsonTable');
+  if(t&&t.querySelector('tbody').children.length){TBKit.util.exportTable('#jsonTable','json_structure_stats.csv');}
+}
+function renderOutput() {
+  if (!lastValidJSON) return;
+  const ind = getIndent();
+  treeCopyValues = [];
+  const __h0=renderTree(lastValidJSON);if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){viewJson.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}viewJson.innerHTML=__h0;
+
+  const size = JSON.stringify(lastValidJSON).length;
+  const lines = JSON.stringify(lastValidJSON, null, ind).split('\n').length;
+  document.getElementById('resultStat').textContent = `${size.toLocaleString()} 字符 · ${lines} 行`;
+  if(typeof __jsonExtras==='function'){try{__jsonExtras();}catch(e){}}
+}
+
+function formatJSON() {
+  try {
+    const obj = JSON.parse(input.value);
+    lastValidJSON = obj;
+    const ind = getIndent();
+    input.value = JSON.stringify(obj, null, ind);
+    autoValidate();
+    ToolBox.showToast(i18nText('toast.msg554'));
+  } catch(e) {
+    ToolBox.showToast('❌ ' + e.message);
+  }
+}
+
+function minifyJSON() {
+  try {
+    const obj = JSON.parse(input.value);
+    lastValidJSON = obj;
+    input.value = JSON.stringify(obj);
+    autoValidate();
+    ToolBox.showToast(i18nText('toast.msg096'));
+  } catch(e) {
+    ToolBox.showToast('❌ ' + e.message);
+  }
+}
+
+function validateJSON() {
+  try {
+    const obj = JSON.parse(input.value);
+    lastValidJSON = obj;
+    const type = Array.isArray(obj) ? '数组' : typeof obj === 'object' ? '对象' : typeof obj;
+    const size = JSON.stringify(obj).length;
+    renderOutput();
+    ToolBox.showToast(`✅ 有效 | ${type} | ${size.toLocaleString()} 字符`);
+  } catch(e) {
+    ToolBox.showToast('❌ ' + e.message);
+  }
+}
+
+function sortJSON() {
+  try {
+    const obj = JSON.parse(input.value);
+    const sorted = sortKeys(obj);
+    lastValidJSON = sorted;
+    const ind = getIndent();
+    input.value = JSON.stringify(sorted, null, ind);
+    renderOutput();
+    ToolBox.showToast(i18nText('toast.msg983'));
+  } catch(e) {
+    ToolBox.showToast('❌ ' + e.message);
+  }
+}
+
+function sortKeys(obj) {
+  if (Array.isArray(obj)) return obj.map(sortKeys);
+  if (obj !== null && typeof obj === 'object') {
+    const sorted = {};
+    Object.keys(obj).sort().forEach(k => {
+      sorted[k] = sortKeys(obj[k]);
+    });
+    return sorted;
+  }
+  return obj;
+}
+
+function escapeJSON() {
+  try {
+    const obj = JSON.parse(input.value);
+    const escaped = JSON.stringify(obj);
+    input.value = escaped;
+    ToolBox.showToast(i18nText('toast.msg308'));
+  } catch(e) {
+    const escaped = JSON.stringify(input.value);
+    input.value = escaped;
+    ToolBox.showToast(i18nText('toast.msg309'));
+  }
+}
+
+function unescapeJSON() {
+  try {
+    const unescaped = JSON.parse(input.value);
+    if (typeof unescaped === 'string') {
+      input.value = unescaped;
+    } else {
+      input.value = JSON.stringify(unescaped, null, 2);
+    }
+    autoValidate();
+    ToolBox.showToast(i18nText('toast.msg102'));
+  } catch(e) {
+    ToolBox.showToast('❌ 反转义失败: ' + e.message);
+  }
+}
+
+function extractJSON() {
+  const text = input.value;
+  let match = null;
+  let maxLen = 0;
+
+  const tryParse = (str) => {
+    try { return JSON.parse(str); } catch(e) { return null; }
+  };
+
+  const patterns = [
+    /\{[\s\S]*\}/g,
+    /\[[\s\S]*\]/g,
+  ];
+
+  for (const pat of patterns) {
+    let m;
+    while ((m = pat.exec(text)) !== null) {
+      for (let len = m[0].length; len >= 2; len--) {
+        const substr = m[0].substring(0, len);
+        const obj = tryParse(substr);
+        if (obj !== null && substr.length > maxLen) {
+          maxLen = substr.length;
+          match = { obj, str: substr };
+        }
+        if (match) break;
+      }
+    }
+  }
+
+  if (match) {
+    lastValidJSON = match.obj;
+    input.value = JSON.stringify(match.obj, null, getIndent());
+    renderOutput();
+    autoValidate();
+    ToolBox.showToast(`提取成功 (${maxLen} 字符)`);
+  } else {
+    ToolBox.showToast(i18nText('toast.msg036'));
+  }
+}
+
+function copyResult() {
+  const text = lastValidJSON ? JSON.stringify(lastValidJSON, null, getIndent()) : '';
+  if (!text || text === '等待输入...') { ToolBox.showToast(i18nText('toast.msg474')); return; }
+  ToolBox.copyText(text);
+}
+
+function downloadResult() {
+  let text = '';
+  if (lastValidJSON) text = JSON.stringify(lastValidJSON, null, getIndent());
+  if (!text) { ToolBox.showToast(i18nText('toast.msg473')); return; }
+  ToolBox.downloadText(text, 'formatted.json');
+}
+
+function clearAll() {
+  input.value = '';
+  lastValidJSON = null;
+  renderEmpty();
+  autoValidate();
+}
+
+function loadSample() {
+  input.value = JSON.stringify({
+    "name": "ToolBox",
+    "version": "2.0",
+    "stats": {
+      "tools": 1010,
+      "industries": 12,
+      "categories": 12
+    },
+    "features": ["纯前端", "免费使用", "无需注册", "深色模式"],
+    "author": {
+      "name": "ToolBox Team",
+      "email": "hello@toolbox.dev",
+      "website": "https://toolbox.dev"
+    },
+    "isActive": true,
+    "rating": 4.8,
+    "tags": ["工具", "效率", "开发"],
+    "config": null
+  }, null, 2);
+  autoValidate();
+}
+
+input.addEventListener('paste', () => {
+  setTimeout(() => { if (input.value.trim()) autoValidate(); }, 100);
+});
+
+loadSample();
+</script><script>
+// tool-intro折叠交互
+document.addEventListener('DOMContentLoaded',function(){
+  var headers=document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click',function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+</script>
+<!-- SEO 介绍区块 -->
+
+</div>
+
+</div>
+
+<!-- 相关工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相关工具</h3>
+  <div class="related-tools-grid">
+    <a href="properties-parser.html" class="related-tool-card">
+      <span class="rt-icon">📄</span>
+      <span class="rt-info"><span class="rt-name">.properties 解析器 - 免费开发工具，properties 解析器 | ToolBox免费在线工具箱</span><span class="rt-desc">.properties 解析器</span></span>
+    </a>
+    <a href="ast-viewer.html" class="related-tool-card">
+      <span class="rt-icon">💻</span>
+      <span class="rt-info"><span class="rt-name">AST抽象语法树查看器 - 在线解析JavaScript代码生成AST树形结构，支持节点 | ToolBox免费在线工具箱</span><span class="rt-desc">AST 抽象语法树查看器</span></span>
+    </a>
+    <a href="css-minifier.html" class="related-tool-card">
+      <span class="rt-icon">🧹</span>
+      <span class="rt-info"><span class="rt-name">CSS 压缩/美化工具 - 免费开发工具，CSS 压缩/格式化/美化 | ToolBox免费在线工具箱</span><span class="rt-desc">CSS 压缩/格式化/美化</span></span>
+    </a>
+    <a href="css-formatter.html" class="related-tool-card">
+      <span class="rt-icon">🏋️</span>
+      <span class="rt-info"><span class="rt-name">CSS 格式化 - 免费开发工具，在线CSS 格式化 | ToolBox免费在线工具箱</span><span class="rt-desc">CSS 格式化</span></span>
+    </a>
+    <a href="cron.html" class="related-tool-card">
+      <span class="rt-icon">✨</span>
+      <span class="rt-info"><span class="rt-name">Cron 表达式生成器 - 免费开发工具，在线Cron 表达式生成器 | ToolBox免费在线工具箱</span><span class="rt-desc">⏰ Cron 表达式生成器</span></span>
+    </a>
+    <a href="graphql-formatter.html" class="related-tool-card">
+      <span class="rt-icon">🏋️</span>
+      <span class="rt-info"><span class="rt-name">GraphQL 格式化 - 免费开发工具，在线GraphQL 格式化 | ToolBox免费在线工具箱</span><span class="rt-desc">◈ GraphQL 格式化</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro open" id="toolIntro">
+  <div class="tool-intro-header">
+    <span class="intro-icon-wrap"><span class="intro-icon">📖</span>关于「JSON格式化工具」</span>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="tool-intro-body">
+    <h4><span class="h4-icon">📝</span>工具简介</h4>
+    <p>免费在线JSON格式化工具，支持JSON美化、压缩、校验、语法高亮、层级折叠。纯前端本地处理，无需上传，数据安全。。专为开发者打造的在线工具，纯前端运行，代码不离开浏览器。</p>
+
+      </div>
+</div>
+<!-- /SEO 介绍区块 -->
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "报错了怎么定位问题？", "acceptedAnswer": {"@type": "Answer", "text": "报错信息会尽量指出出错的大致位置（如第几行、哪个字符附近）。常见原因：末尾多了逗号、引号未闭合、用了单引号或注释——JSON 标准不支持这些写法。"}}, {"@type": "Question", "name": "支持 JSON5 / 注释吗？", "acceptedAnswer": {"@type": "Answer", "text": "标准 JSON 不支持注释与单引号；若你的源文件是 JSON5，请先去掉注释与单引号再格式化，否则会被判为非法。"}}]}</script>
+<script>
+(function(){try{
+  var NS="tools/it/json-formatter.html";
+  function k(id){return 'tb_uxp_'+NS+'#'+id;}
+  function save(el){try{
+    if(el.type==='checkbox'){localStorage.setItem(k(el.id),el.checked?'1':'0');}
+    else if(el.type==='radio'){if(el.checked)localStorage.setItem(k(el.id),el.value);}
+    else{localStorage.setItem(k(el.id),el.value);}
+  }catch(e){}}
+  function restore(){try{
+    document.querySelectorAll('input:not([type=password]):not([readonly]):not([disabled]),textarea:not([readonly]):not([disabled]),select').forEach(function(el){
+      if(!el.id)return;
+      var v=localStorage.getItem(k(el.id));if(v===null)return;
+      try{
+        if(el.type==='checkbox'){el.checked=(v==='1');}
+        else if(el.type==='radio'){el.checked=(el.value===v);}
+        else{el.value=v;}
+        el.dispatchEvent(new Event('input',{bubbles:true}));
+        el.dispatchEvent(new Event('change',{bubbles:true}));
+      }catch(e){}
+    });
+  }catch(e){}}
+  document.querySelectorAll('input:not([type=password]):not([readonly]):not([disabled]),textarea:not([readonly]):not([disabled]),select').forEach(function(el){
+    if(!el.id)return;
+    el.addEventListener('input',function(){save(el);});
+    el.addEventListener('change',function(){save(el);});
+  });
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',restore);
+  else restore();
+}catch(e){}})();
+</script>
+</body>
+</html>

@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=finance,industry=futures,icon=📈,bg=#fff3e0">
+<meta name="description" content="期权盈亏图是一款免费的在线期货交易工具，输入期权执行价、权利金与标的现价，绘制看涨或看跌期权到期损益曲线（买方/卖方），标出盈亏平衡点与最大盈亏，用于期权策略分析。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+<meta name="keywords" content="期权盈亏图,期权损益图,看涨期权,看跌期权,期权交易,金融财务,在线工具,免费工具,ToolBox">
+<title>期权盈亏图 - 看涨或看跌期权到期损益曲线</title>
+<link rel="canonical" href="https://chenguangwu.github.io/tools/futures/option-payoff.html">
+<meta property="og:title" content="期权盈亏图 - 看涨或看跌期权到期损益曲线">
+<meta property="og:description" content="期权盈亏图是一款免费的在线期货交易工具，输入期权执行价、权利金与标的现价，绘制看涨或看跌期权到期损益曲线（买方/卖方），标出盈亏平衡点与最大盈亏，用于期权策略分析。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+<meta property="og:url" content="https://chenguangwu.github.io/tools/futures/option-payoff.html">
+<meta name="twitter:card" content="summary">
+<link rel="stylesheet" href="../../css/common.css">
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="../../js/common.js" defer></script>
+<style>
+.chart-wrap{position:relative;width:100%;margin:12px 0;}
+.chart-wrap canvas{width:100%;height:340px;display:block;border-radius:8px;}
+.legend{display:flex;gap:16px;justify-content:center;margin-top:8px;flex-wrap:wrap;}
+.legend-item{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-light);}
+.legend-dot{width:12px;height:12px;border-radius:3px;}
+.type-tabs{display:flex;gap:0;margin-bottom:16px;border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+.type-tab{flex:1;padding:12px;text-align:center;cursor:pointer;font-size:13px;font-weight:500;background:var(--card-bg);color:var(--text-light);transition:all 0.2s;border:none;}
+.type-tab.active{background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:#fff;}
+</style>
+
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
+    <meta property="og:type" content="website">
+    <meta name="twitter:title" content="期权盈亏图 - 看涨或看跌期权到期损益曲线">
+    <meta name="twitter:description" content="期权盈亏图是一款免费的在线期货交易工具，输入期权执行价、权利金与标的现价，绘制看涨或看跌期权到期损益曲线（买方/卖方），标出盈亏平衡点与最大盈亏，用于期权策略分析。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"期权盈亏图","url":"https://chenguangwu.github.io/tools/futures/option-payoff.html","applicationCategory":"FinanceApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"期权盈亏图是一款免费的在线期货交易工具，输入期权执行价、权利金与标的现价，绘制看涨或看跌期权到期损益曲线（买方/卖方），标出盈亏平衡点与最大盈亏，用于期权策略分析。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://chenguangwu.github.io/"},{"@type":"ListItem","position":2,"name":"期货交易","item":"https://chenguangwu.github.io/tools/futures/index.html"},{"@type":"ListItem","position":3,"name":"期权盈亏图","item":"https://chenguangwu.github.io/tools/futures/option-payoff.html"}]}
+</script>
+
+<script src="../../js/i18n.js" defer></script>
+<script src="../../js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+
+
+<meta name="title-en" content="Option Payoff">
+<meta name="desc-en" content="Option Payoff - online utility on ToolBox.">
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/futures/option-payoff.html">
+<link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/futures/option-payoff.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/futures/option-payoff.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/futures/option-payoff.html">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:locale:alternate" content="zh_TW">
+<meta property="og:locale:alternate" content="en_US">
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
+
+<script src="/js/tool-ux.js" defer></script>
+<!-- TOOLBOX-TOOL-UX -->
+
+<script src="/js/analytics.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+<script type="application/ld+json">
+{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "期权盈亏图是做什么的？", "acceptedAnswer": {"@type": "Answer", "text": "输入期权执行价、权利金与标的现价，绘制看涨或看跌期权到期损益曲线（买方/卖方），标出盈亏平衡点与最大盈亏，用于期权策略分析。"}}, {"@type": "Question", "name": "如何使用期权盈亏图？", "acceptedAnswer": {"@type": "Answer", "text": "在对应的输入框或选项中填写、选择所需参数，点击「计算」或「生成」按钮即可运行，结果会在结果区实时显示，支持复制与导出。"}}, {"@type": "Question", "name": "计算结果准确吗？", "acceptedAnswer": {"@type": "Answer", "text": "本工具在你的本地浏览器中实时计算，不依赖服务器；只要输入的参数正确，结果即按对应的规则得出。涉及经验估算的部分仅供参考，不作为正式依据。"}}, {"@type": "Question", "name": "期权盈亏图适合哪些场景？", "acceptedAnswer": {"@type": "Answer", "text": "工作与生活中的相关计算与查询。"}}, {"@type": "Question", "name": "使用本工具需要联网或上传数据吗？", "acceptedAnswer": {"@type": "Answer", "text": "不需要。所有计算均在你的设备本地完成，数据不会上传到任何服务器，可放心使用。"}}]}
+</script>
+<!-- TOOLBOX-TTZZ -->
+<script>
+(function(){try{
+var el = document.createElement("script");
+el.src = "https://lf1-cdn-tos.bytegoofy.com/goofy/ttzz/push.js?85d6452aa9be4d693b16cd48535a8c7ae57542f6788a41682e745be8eb99b35a8a24d2f724c31ebe20c1e4e6fba6d91caf576100b02a2870c72f38fc574066fef065d152c73bf1cbb2ebad3b5b5265d8";
+el.id = "ttzz";
+var s = document.getElementsByTagName("script")[0];
+s.parentNode.insertBefore(el, s);
+}catch(e){}
+})(window);
+</script>
+
+<script src="/js/tool-kit.js" defer></script>
+<!-- TOOLBOX-TOOL-KIT -->
+</head>
+<body>
+<h1 class="sr-only">期权盈亏图</h1>
+
+
+<div class="nav">
+  <a href="../../index.html">← ToolBox</a>
+  <span>/ 期权盈亏图</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+
+
+
+
+<nav class="breadcrumb" aria-label="面包屑导航" data-breadcrumb="1">
+  <a href="../../index.html">首页</a>
+  <span class="bc-sep">‹</span>
+  <a href="index.html">📉 期货交易</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">期权盈亏图</span>
+</nav>
+<div class="container">
+<div class="tool-guide-link" data-guide-link="1">
+  <a href="../../guides/option-payoff-guide.html">📖 查看「期权到期损益分析使用指南」</a>
+</div>
+
+  <div class="card tool-card-accent" style="--tool-accent:#F59E0B;">
+    <h2 data-zh="📈 期权盈亏图">Option Payoff</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="看涨/看跌期权到期损益曲线可视化，支持买方/卖方">Option Payoff</p>
+    <div class="formula-box">
+      <div class="formula-title">📐 工作原理与说明</div>
+      <p class="formula-desc" data-zh="「看涨/看跌期权到期损益曲线可视化，支持买方/卖方」按输入参数进行专业计算并输出结果。">Option Payoff: computes and outputs results from the input parameters.</p>
+    </div>
+
+    <div class="type-tabs">
+      <button class="type-tab active" data-type="call" data-side="buy" onclick="switchType('call','buy',this)">📈 买入看涨</button>
+      <button class="type-tab" data-type="put" data-side="buy" onclick="switchType('put','buy',this)">📉 买入看跌</button>
+      <button class="type-tab" data-type="call" data-side="sell" onclick="switchType('call','sell',this)">📊 卖出看涨</button>
+      <button class="type-tab" data-type="put" data-side="sell" onclick="switchType('put','sell',this)">📈 卖出看跌</button>
+    </div>
+
+    <div class="input-row">
+      <div>
+        <label>行权价 K</label>
+        <input type="number" id="strike" value="100" step="any" min="0" oninput="calc()">
+      </div>
+      <div>
+        <label>权利金 p</label>
+        <input type="number" id="premium" value="5" step="any" min="0" oninput="calc()">
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <div id="option_payoffPresets"></div><button type="button" class="btn primary" onclick="calc()">绘制</button><button class="btn" type="button" onclick="__option_payoffExport()">导出明细 CSV</button>
+      <button type="button" class="btn" onclick="copyResult()">复制结果</button>
+    </div>
+
+    <div class="stat-grid" id="statGrid"></div>
+    <div class="result-box" id="result"></div> <div id="option_payoffTable"></div> <div id="option_payoffDiff"></div> <div id="option_payoffChart"></div> <div id="option_payoffHist"></div>
+  </div>
+
+  <div class="card">
+    <h3>📉 到期损益曲线</h3>
+    <div class="chart-wrap"><canvas id="chart"></canvas></div>
+    <div class="legend">
+      <div class="legend-item"><span class="legend-dot" style="background:#667eea;"></span>损益曲线</div>
+      <div class="legend-item"><span class="legend-dot" style="background:#4caf50;"></span>盈亏平衡点</div>
+      <div class="legend-item"><span class="legend-dot" style="background:rgba(76,175,80,0.3);"></span>盈利区</div>
+      <div class="legend-item"><span class="legend-dot" style="background:rgba(244,67,54,0.3);"></span>亏损区</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>📋 公式说明</h3>
+    <div class="ref-card">
+      <h4>📈 买入看涨 (Long Call)</h4>
+      <p>盈亏 = max(S - K, 0) - p | 盈亏平衡 = K + p | 最大亏损 = p | 最大盈利无限</p>
+    </div>
+    <div class="ref-card">
+      <h4>📉 买入看跌 (Long Put)</h4>
+      <p>盈亏 = max(K - S, 0) - p | 盈亏平衡 = K - p | 最大亏损 = p | 最大盈利 = K - p</p>
+    </div>
+    <div class="ref-card">
+      <h4>📊 卖出看涨 (Short Call)</h4>
+      <p>盈亏 = p - max(S - K, 0) | 盈亏平衡 = K + p | 最大盈利 = p | 最大亏损无限</p>
+    </div>
+    <div class="ref-card">
+      <h4>📈 卖出看跌 (Short Put)</h4>
+      <p>盈亏 = p - max(K - S, 0) | 盈亏平衡 = K - p | 最大盈利 = p | 最大亏损 = K - p</p>
+    </div>
+    <div class="tip-box tip-info">盈亏图显示期权持有至到期的损益，未考虑时间价值。实际交易中期权价格还受波动率、时间衰减等因素影响。</div>
+  </div>
+
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto 0;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+.deep-dive a.term-link{color:var(--tool-accent,#FF6B35);text-decoration:none;border-bottom:1px dashed currentColor;}
+.deep-dive a.term-link:hover{border-bottom-style:solid;}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：期权到期损益分析</h2>
+<h3>💡 常见使用场景</h3>
+<ul class="dd-list">
+<li>策略盈亏可视化</li>
+<li><a class="term-link" href="/tools/accounting/break-even-units.html">盈亏平衡点</a>测算</li>
+<li>买方/卖方风险对比</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">方法</div><div class="dd-ex-body">看涨买方损益 = max(S_T−K,0)−权利金，<a class="term-link" href="/tools/finance/break-even-calculator.html">盈亏平衡</a>点 = K+权利金，最大亏损为权利金、最大盈利理论无限；看跌与卖方规则对称。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例（演示）</div><div class="dd-ex-body">看涨买方 K=100、权利金 5 → 盈亏平衡点 105；标的小于 100 亏损封顶 5（权利金），大于 105 后每涨 1 赚 1，盈利理论无限。卖方则盈利封顶 5、亏损理论无限。仅供策略理解，非投资建议。</div></div>
+<h3>❓ 常见问题（FAQ）</h3>
+<dl class="dd-faq">
+<dt>买方一定比卖方好？</dt><dd>不一定；买方亏有限但胜率常低，卖方胜率高但尾部风险大，按观点与资金匹配。</dd>
+<dt>盈亏平衡点含权利金吗？</dt><dd>含。看涨买方须涨过 K+权利金才回本，这是常被忽略的成本。</dd>
+</dl>
+</div>
+</section>
+<!-- 注意事项区块 -->
+<div class="tool-notes" style="--tool-accent:#F59E0B;">
+  <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
+  <ul>
+      <li>本工具纯前端运行，数据不会上传到服务器</li>
+      <li>建议在主流浏览器（Chrome/Safari/Firefox/Edge）中使用</li>
+      <li>计算结果仅供参考，请以实际应用场景为准</li>
+  </ul>
+</div>
+<!-- /注意事项区块 -->
+</div>
+
+<script>
+var currentType = 'call';
+var currentSide = 'buy';
+
+function switchType(type, side, btn){
+  currentType = type;
+  currentSide = side;
+  document.querySelectorAll('.type-tab').forEach(function(t){
+    t.classList.toggle('active', t.dataset.type === type && t.dataset.side === side);
+  });
+  calc();
+}
+
+function getVal(id){
+  var el = document.getElementById(id);
+  return el ? (+el.value || 0) : 0;
+}
+
+function profitAt(s, K, p, type, side){
+  if(type === 'call' && side === 'buy') return Math.max(s - K, 0) - p;
+  if(type === 'put' && side === 'buy') return Math.max(K - s, 0) - p;
+  if(type === 'call' && side === 'sell') return p - Math.max(s - K, 0);
+  if(type === 'put' && side === 'sell') return p - Math.max(K - s, 0);
+  return 0;
+}
+
+function calc(){
+  var K = getVal('strike');
+  var p = getVal('premium');
+  if(K <= 0 || p < 0){
+    document.getElementById('statGrid').innerHTML='';
+    document.getElementById('result').innerHTML='<p style="color:var(--danger);">请输入有效的行权价和权利金</p>';
+    return;
+  }
+  var bep = currentType === 'call' ? K + p : K - p;
+  var typeName = (currentType === 'call' ? '看涨' : '看跌') + (currentSide === 'buy' ? '买方' : '卖方');
+
+  var maxProfit, maxLoss;
+  if(currentType === 'call' && currentSide === 'buy'){ maxProfit = Infinity; maxLoss = p; }
+  else if(currentType === 'put' && currentSide === 'buy'){ maxProfit = K - p; maxLoss = p; }
+  else if(currentType === 'call' && currentSide === 'sell'){ maxProfit = p; maxLoss = Infinity; }
+  else { maxProfit = p; maxLoss = K - p; }
+
+  var statHtml = '<div class="stat-card"><div class="val">' + bep.toFixed(2) + '</div><div class="lbl">盈亏平衡点</div></div>'
+    + '<div class="stat-card"><div class="val" style="color:var(--success);">' + (isFinite(maxProfit) ? '¥' + ToolBox.formatNumber(maxProfit, 2) : '无限') + '</div><div class="lbl">最大盈利</div></div>'
+    + '<div class="stat-card"><div class="val" style="color:var(--danger);">' + (isFinite(maxLoss) ? '¥' + ToolBox.formatNumber(maxLoss, 2) : '无限') + '</div><div class="lbl">最大亏损</div></div>';
+  const __g3=statHtml;document.getElementById('statGrid').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
+
+  var html = '<h3 style="margin-bottom:10px;font-size:15px;">📋 损益分析</h3>';
+  html += '<p>策略：<strong>' + typeName + '</strong></p>';
+  html += '<p>行权价 K = <strong>' + K + '</strong> | 权利金 p = <strong>' + p + '</strong></p>';
+  html += '<p>盈亏平衡点 = <strong style="color:var(--primary);">' + bep.toFixed(2) + '</strong></p>';
+  html += '<p>最大盈利：<strong style="color:var(--success);">' + (isFinite(maxProfit) ? '¥' + ToolBox.formatNumber(maxProfit, 2) : '理论无限') + '</strong></p>';
+  html += '<p>最大亏损：<strong style="color:var(--danger);">' + (isFinite(maxLoss) ? '¥' + ToolBox.formatNumber(maxLoss, 2) : '理论无限') + '</strong></p>';
+  if(currentSide === 'buy'){
+    html += '<p style="font-size:13px;color:var(--text-light);">买方亏损有限（最多权利金），适合方向性交易。</p>';
+  } else {
+    html += '<p style="font-size:13px;color:var(--text-light);">卖方盈利有限（最多权利金），承担较大风险。</p>';
+  }
+  const __g4=html;document.getElementById('result').innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
+
+  drawChart(K, p, bep);
+}
+
+function drawChart(K, p, bep){
+  var canvas = document.getElementById('chart');
+  var dpr = window.devicePixelRatio || 1;
+  var rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  var ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  var w = rect.width, h = rect.height;
+
+  var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  var textColor = isDark ? '#a8b0bf' : '#666';
+  var gridColor = isDark ? '#2a3140' : '#e8ecf1';
+
+  ctx.clearRect(0, 0, w, h);
+  var pad = {top: 30, right: 30, bottom: 40, left: 70};
+  var cw = w - pad.left - pad.right;
+  var ch = h - pad.top - pad.bottom;
+
+  var range = Math.max(K * 0.5, p * 4);
+  var minS = Math.max(0, K - range);
+  var maxS = K + range;
+
+  var points = 200;
+  var data = [];
+  var maxProfit = -Infinity, minProfit = Infinity;
+  for(var i = 0; i <= points; i++){
+    var s = minS + (maxS - minS) * (i / points);
+    var profit = profitAt(s, K, p, currentType, currentSide);
+    data.push({s: s, profit: profit});
+    if(profit > maxProfit) maxProfit = profit;
+    if(profit < minProfit) minProfit = profit;
+  }
+
+  var yMax = Math.max(maxProfit, p * 2, 1);
+  var yMin = Math.min(minProfit, -p * 2, -1);
+  var yRange = yMax - yMin || 1;
+
+  ctx.strokeStyle = gridColor;
+  ctx.lineWidth = 1;
+  ctx.font = '11px -apple-system,sans-serif';
+  ctx.fillStyle = textColor;
+
+  var ySteps = 5;
+  for(var i = 0; i <= ySteps; i++){
+    var y = pad.top + (ch / ySteps) * i;
+    ctx.beginPath();
+    ctx.moveTo(pad.left, y);
+    ctx.lineTo(pad.left + cw, y);
+    ctx.stroke();
+    var val = yMax - yRange * (i / ySteps);
+    ctx.textAlign = 'right';
+    ctx.fillText(val.toFixed(2), pad.left - 8, y + 4);
+  }
+
+  var zeroY = pad.top + ch - ((0 - yMin) / yRange) * ch;
+  ctx.strokeStyle = isDark ? '#4a5568' : '#999';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(pad.left, zeroY);
+  ctx.lineTo(pad.left + cw, zeroY);
+  ctx.stroke();
+  ctx.fillStyle = textColor;
+  ctx.textAlign = 'right';
+  ctx.fillText('0', pad.left - 8, zeroY + 4);
+
+  var xSteps = 5;
+  for(var j = 0; j <= xSteps; j++){
+    var xVal = minS + (maxS - minS) * (j / xSteps);
+    var x = pad.left + (cw / xSteps) * j;
+    ctx.textAlign = 'center';
+    ctx.fillText(xVal.toFixed(0), x, h - pad.bottom + 20);
+  }
+
+  // 盈利区填充
+  var profitGrad = ctx.createLinearGradient(0, pad.top, 0, zeroY);
+  profitGrad.addColorStop(0, 'rgba(76,175,80,0.25)');
+  profitGrad.addColorStop(1, 'rgba(76,175,80,0.02)');
+  var lossGrad = ctx.createLinearGradient(0, zeroY, 0, pad.top + ch);
+  lossGrad.addColorStop(0, 'rgba(244,67,54,0.02)');
+  lossGrad.addColorStop(1, 'rgba(244,67,54,0.25)');
+
+  // 盈利区域
+  ctx.beginPath();
+  ctx.moveTo(pad.left, zeroY);
+  data.forEach(function(d, i){
+    var x = pad.left + (cw / points) * i;
+    var y = pad.top + ch - ((d.profit - yMin) / yRange) * ch;
+    if(y <= zeroY){
+      if(i === 0 || data[i-1].profit < 0) ctx.lineTo(x, zeroY);
+      ctx.lineTo(x, y);
+    }
+  });
+  ctx.lineTo(pad.left + cw, zeroY);
+  ctx.closePath();
+  ctx.fillStyle = profitGrad;
+  ctx.fill();
+
+  // 亏损区域
+  ctx.beginPath();
+  ctx.moveTo(pad.left, zeroY);
+  data.forEach(function(d, i){
+    var x = pad.left + (cw / points) * i;
+    var y = pad.top + ch - ((d.profit - yMin) / yRange) * ch;
+    if(y >= zeroY){
+      if(i === 0 || data[i-1].profit > 0) ctx.lineTo(x, zeroY);
+      ctx.lineTo(x, y);
+    }
+  });
+  ctx.lineTo(pad.left + cw, zeroY);
+  ctx.closePath();
+  ctx.fillStyle = lossGrad;
+  ctx.fill();
+
+  // 损益曲线
+  ctx.beginPath();
+  ctx.strokeStyle = '#667eea';
+  ctx.lineWidth = 2.5;
+  ctx.lineJoin = 'round';
+  data.forEach(function(d, i){
+    var x = pad.left + (cw / points) * i;
+    var y = pad.top + ch - ((d.profit - yMin) / yRange) * ch;
+    if(i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+
+  // 盈亏平衡点
+  if(bep >= minS && bep <= maxS){
+    var bepX = pad.left + ((bep - minS) / (maxS - minS)) * cw;
+    ctx.strokeStyle = '#4caf50';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([5, 5]);
+    ctx.beginPath();
+    ctx.moveTo(bepX, pad.top);
+    ctx.lineTo(bepX, pad.top + ch);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = '#4caf50';
+    ctx.fillRect(bepX - 35, pad.top - 18, 70, 18);
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 11px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('盈亏平衡', bepX, pad.top - 5);
+  }
+
+  // 行权价线
+  if(K >= minS && K <= maxS){
+    var kX = pad.left + ((K - minS) / (maxS - minS)) * cw;
+    ctx.strokeStyle = isDark ? '#5a6378' : '#aaa';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([3, 3]);
+    ctx.beginPath();
+    ctx.moveTo(kX, pad.top);
+    ctx.lineTo(kX, pad.top + ch);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = textColor;
+    ctx.font = '11px -apple-system,sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('K=' + K, kX, h - pad.bottom + 36);
+  }
+
+  ctx.fillStyle = textColor;
+  ctx.font = '11px -apple-system,sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('标的价格 S', pad.left + cw / 2, h - 8);
+  ctx.save();
+  ctx.translate(14, pad.top + ch / 2);
+  ctx.rotate(-Math.PI / 2);
+  ctx.fillText('损益', 0, 0);
+  ctx.restore();
+}
+
+function copyResult(){
+  var text = document.getElementById('result').innerText;
+  ToolBox.copyText(text, i18nText('msg439'));
+}
+
+calc();
+var resizeTimer;
+window.addEventListener('resize', function(){
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(calc, 100);
+});
+</script>
+
+<!-- SEO 介绍区块 -->
+
+</div>
+
+</div>
+
+<!-- 相关工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相关工具</h3>
+  <div class="related-tools-grid">
+    <a href="../finance/text-reverse-words.html" class="related-tool-card">
+      <span class="rt-icon">📖</span>
+      <span class="rt-info"><span class="rt-name">单词顺序反转 - 免费文本处理工具，在线单词顺序反转 | ToolBox免费在线工具箱</span><span class="rt-desc">单词顺序反转</span></span>
+    </a>
+    <a href="../finance/word-counter.html" class="related-tool-card">
+      <span class="rt-icon">📊</span>
+      <span class="rt-info"><span class="rt-name">字数统计 - 免费文本处理工具，字数统计工具 | ToolBox免费在线工具箱</span><span class="rt-desc">字数统计工具</span></span>
+    </a>
+    <a href="../finance/word-wrap.html" class="related-tool-card">
+      <span class="rt-icon">💰</span>
+      <span class="rt-info"><span class="rt-name">自动换行 - 免费文本处理工具，在线自动换行 | ToolBox免费在线工具箱</span><span class="rt-desc">自动换行</span></span>
+    </a>
+    <a href="../finance/word-frequency.html" class="related-tool-card">
+      <span class="rt-icon">📊</span>
+      <span class="rt-info"><span class="rt-name">词频统计 - 免费文本处理工具，词频统计工具 | ToolBox免费在线工具箱</span><span class="rt-desc">词频统计工具</span></span>
+    </a>
+    <a href="../finance/mirror-text.html" class="related-tool-card">
+      <span class="rt-icon">🏦</span>
+      <span class="rt-info"><span class="rt-name">镜像文字 - 免费文本处理工具，在线镜像文字 | ToolBox免费在线工具箱</span><span class="rt-desc">镜像文字</span></span>
+    </a>
+    
+  </div>
+</div>
+<div class="tool-intro open" id="toolIntro">
+  <div class="tool-intro-header">
+    <span class="intro-icon-wrap"><span class="intro-icon">📖</span>关于「期权盈亏图」</span>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="tool-intro-body">
+    <h4><span class="h4-icon">📝</span>工具简介</h4>
+    <p>期权盈亏图绘制 - 看涨看跌期权盈亏曲线可视化，Canvas图表工具，免费使用。。专业金融计算工具，采用标准财务公式，数据本地处理不泄露。</p>
+    <h4><span class="h4-icon">✨</span>功能特点</h4>
+    <ul class="intro-features">
+      <li>采用标准金融计算公式</li>
+      <li>支持多种参数灵活配置</li>
+      <li>实时计算，结果即时显示</li>
+      <li>财务数据不上传，安全可靠</li>
+    </ul>
+    <h4><span class="h4-icon">🎯</span>使用场景</h4>
+    <ul class="intro-scenes">
+      <li>个人理财与投资规划</li>
+      <li>贷款还款方案计算</li>
+      <li>投资收益分析</li>
+      <li>学习金融知识</li>
+    </ul>
+    </div>
+</div>
+<!-- /SEO 介绍区块 -->
+
+<script>
+// tool-intro折叠交互
+document.addEventListener('DOMContentLoaded',function(){
+  var headers=document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click',function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+
+var __option_payoff_last=0,__option_payoff_skip=false;
+function __option_payoffSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __option_payoffResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __option_payoffTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __option_payoffRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__option_payoffTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#option_payoffTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#option_payoffDiff');
+        TBKit.history.mount('#option_payoffHist',function(rec){
+            __option_payoff_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __option_payoff_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__option_payoffTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#option_payoffChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __option_payoffExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__option_payoff_skip) return;
+    var snap=__option_payoffSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__option_payoffResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__option_payoff_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __option_payoff_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __option_payoffRender(keys,rk,en);
+}
+function __option_payoffExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#option_payoffTable','option-payoff.csv'); } catch(e){}
+}
+function __option_payoffPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#option_payoffPresets',[{label:'默认参数',labelEn:'Default',values:{'strike':'100', 'premium':'5'}}],function(){ calc(); });
+}
+var __option_payoff_f0=(typeof calc==='function')?calc:null;
+if(__option_payoff_f0){
+    calc=function(){ var __r=__option_payoff_f0.apply(null,arguments); try{ __option_payoffExtras(); }catch(e){} return __r; };
+}
+function __option_payoffBoot(){ try{ __option_payoffPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __option_payoffBoot();
+else document.addEventListener('DOMContentLoaded', __option_payoffBoot);
+</script>
+
+<style>.opt-result-interpret{max-width:960px;margin:16px auto;padding:0 16px;}
+.opt-result-interpret .ir-card{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:16px;padding:20px;margin-bottom:16px;box-shadow:var(--shadow-sm,0 1px 3px rgba(0,0,0,.06));}
+.opt-result-interpret h2{font-size:18px;margin:0 0 12px;color:var(--heading,#1F2937);}
+.opt-result-interpret h3{font-size:14px;margin:14px 0 6px;color:var(--primary,#FF6B35);}
+.opt-result-interpret p{font-size:13.5px;line-height:1.75;color:var(--text-secondary,#6B7280);margin:0 0 4px;}
+.opt-result-interpret code{background:var(--result-bg,#f6f6f6);padding:1px 5px;border-radius:5px;font-size:12.5px;}</style>
+<section class="opt-result-interpret"><div class="ir-card">
+<h2>📊 结果解读</h2>
+<h3>盈亏结构</h3><p>看涨期权买方盈亏 = max(到期价−行权价,0)−权利金；看跌相反。盈亏平衡点 = 行权价±权利金。卖方为买方镜像、收益封顶于权利金。</p>
+<h3>用途</h3><p>绘制不同到期价下盈亏，评估策略风险收益；杠杆与时效（Theta）显著影响实际结果。</p>
+<h3>边界</h3><p>本图按到期静态盈亏，未含希腊字母动态与保证金；期权高风险，仅供学习，实盘请合规并自担风险。</p>
+</div></section>
+</body>
+</html>

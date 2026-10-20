@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=text,industry=finance,icon=📊,bg=#e8eaf6">
+<meta name="description" content="对中英文文本分词并统计词频，可过滤停用词、忽略大小写、限定最小词长，输出唯一词数、总词次、词汇丰富度 TTR、首词占比与前 10 词累计占比，并按频次列出 Top N 高频词及占比。">
+<meta name="keywords" content="词频统计,词频统计在线,在线词频统计,文本处理,金融财务,词频统计工具,在线工具,免费工具,ToolBox">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://chenguangwu.github.io/tools/finance/word-frequency.html">
+<meta property="og:title" content="词频统计工具 - 免费在线金融财务工具">
+<meta property="og:description" content="对中英文文本分词并统计词频，可过滤停用词、忽略大小写、限定最小词长，输出唯一词数、总词次、词汇丰富度 TTR、首词占比与前 10 词累计占比，并按频次列出 Top N 高频词及占比。">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://chenguangwu.github.io/tools/finance/word-frequency.html">
+<meta name="twitter:card" content="summary">
+
+<title>词频统计工具 - 免费在线金融财务工具</title>
+<meta name="theme-color" content="#FF6B35">
+<link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+<link rel="icon" href="../../favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="apple-touch-icon" href="../../apple-touch-icon.png">
+<link rel="stylesheet" href="../../css/common.css">
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="../../js/common.js" defer></script>
+<style>
+.word-bar{display:flex;align-items:center;gap:8px;padding:6px 0;font-size:13px;border-bottom:1px solid var(--border);}
+.word-text{min-width:80px;max-width:160px;overflow:hidden;text-overflow:ellipsis;font-weight:600;color:var(--text);flex-shrink:0;}
+.word-bar-wrap{flex:1;height:18px;background:var(--result-bg);border-radius:4px;overflow:hidden;min-width:0;}
+.word-bar-fill{height:100%;background:linear-gradient(90deg,#667eea,#764ba2);transition:width 0.3s;}
+.word-count{width:90px;text-align:right;color:var(--text-light);flex-shrink:0;}
+.word-count strong{color:var(--primary);}
+.stopwords-box{margin-top:12px;}
+</style>
+
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "词频统计",
+  "description": "词频统计 - 免费文本处理工具，词频统计工具。",
+  "url": "https://chenguangwu.github.io/tools/finance/word-frequency.html",
+  "applicationCategory": "UtilitiesApplication",
+  "operatingSystem": "Web",
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "CNY"
+  },
+  "inLanguage": "zh-CN",
+  "isAccessibleForFree": true,
+  "browserRequirements": "Requires JavaScript. Requires HTML5.",
+  "softwareVersion": "1.0"
+}
+</script>
+
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
+    <meta name="twitter:title" content="词频统计工具 - 免费在线金融财务工具">
+    <meta name="twitter:description" content="对中英文文本分词并统计词频，可过滤停用词、忽略大小写、限定最小词长，输出唯一词数、总词次、词汇丰富度 TTR、首词占比与前 10 词累计占比，并按频次列出 Top N 高频词及占比。">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"词频统计","url":"https://chenguangwu.github.io/tools/finance/word-frequency.html","applicationCategory":"DeveloperApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"对中英文文本分词并统计词频，可过滤停用词、忽略大小写、限定最小词长，输出唯一词数、总词次、词汇丰富度 TTR、首词占比与前 10 词累计占比，并按频次列出 Top N 高频词及占比。","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://chenguangwu.github.io/"},{"@type":"ListItem","position":2,"name":"金融财务","item":"https://chenguangwu.github.io/tools/finance/index.html"},{"@type":"ListItem","position":3,"name":"词频统计","item":"https://chenguangwu.github.io/tools/finance/word-frequency.html"}]}
+</script>
+
+<script src="../../js/i18n.js" defer></script>
+<script src="../../js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+
+
+<meta name="title-en" content="Word Frequency">
+<meta name="desc-en" content="Word Frequency - online utility on ToolBox.">
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/finance/word-frequency.html">
+<link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/finance/word-frequency.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/finance/word-frequency.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/finance/word-frequency.html">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:locale:alternate" content="zh_TW">
+<meta property="og:locale:alternate" content="en_US">
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
+
+<script src="/js/tool-ux.js" defer></script>
+<!-- TOOLBOX-TOOL-UX -->
+
+<script src="/js/analytics.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+<!-- TOOLBOX-TTZZ -->
+<script>
+(function(){try{
+var el = document.createElement("script");
+el.src = "https://lf1-cdn-tos.bytegoofy.com/goofy/ttzz/push.js?85d6452aa9be4d693b16cd48535a8c7ae57542f6788a41682e745be8eb99b35a8a24d2f724c31ebe20c1e4e6fba6d91caf576100b02a2870c72f38fc574066fef065d152c73bf1cbb2ebad3b5b5265d8";
+el.id = "ttzz";
+var s = document.getElementsByTagName("script")[0];
+s.parentNode.insertBefore(el, s);
+}catch(e){}
+})(window);
+</script>
+
+<script src="/js/tool-kit.js" defer></script>
+<!-- TOOLBOX-TOOL-KIT -->
+</head>
+<body>
+<h1 class="sr-only">词频统计</h1>
+
+
+<div class="nav">
+  <a href="../../index.html">← ToolBox</a>
+  <span>/ 词频统计</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+
+
+
+
+<nav class="breadcrumb" aria-label="面包屑导航" data-breadcrumb="1">
+  <a href="../../index.html">首页</a>
+  <span class="bc-sep">‹</span>
+  <a href="index.html">💰 金融财务</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">词频统计</span>
+</nav>
+<div class="container">
+  <div class="card tool-card-accent" style="--tool-accent:#F59E0B;">
+     <h2 data-zh="📊 词频统计工具">📊 Word Frequency Counter</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="对中英文文本分词并统计词频，可过滤停用词、限定词长，输出唯一词数、词汇丰富度与 Top N 高频词">Tokenise Chinese and English text and rank word frequency, with stop-word filtering and minimum word length, reporting unique words, lexical richness (TTR) and the top frequent terms.</p>
+    <div class="formula-box">
+      <div class="formula-title">📐 统计口径</div>
+      <div class="formula-eq">词频占比 = 该词出现次数 ÷ 展示词合计次数 × 100%　　TTR = 唯一词数 ÷ 总词次</div>
+      <p class="formula-desc">英文按 <b>[a-z]+</b> 正则切词（可选忽略大小写、可选停用词过滤）；中文按连续汉字串切分后取 <b>最小词长</b>（默认 2 字）的滑窗，逐窗计数，因此「测试」一词在「测试文本测试」中计 2 次。所有统计量都基于过滤后的词表：<b>总词次</b> = 全部词的次数之和，<b>唯一词数</b> = 不同词形个数，<b>词汇丰富度 TTR</b> = 唯一词数 ÷ 总词次（越高说明用词越分散），<b>首词占比</b> 与 <b>前 10 词累计占比</b> 反映词频集中度。</p>
+    </div>
+    <label>输入文本（支持中英文混合）</label>
+    <textarea id="input" placeholder="输入或粘贴文本..." oninput="analyze()">Hello world. Hello ToolBox. This is a test. This is only a test. 测试文本，测试中文分词效果。中文分词测试。</textarea>
+    <div class="input-row">
+      <div>
+        <label>显示前 N 个</label>
+        <input type="number" id="topN" value="20" min="1" max="500" oninput="analyze()">
+      </div>
+      <div>
+        <label>最小词长（中文）</label>
+        <input type="number" id="minLen" value="2" min="1" max="10" oninput="analyze()">
+      </div>
+      <div>
+        <label>忽略大小写</label>
+        <select id="ignoreCase" onchange="analyze()">
+          <option value="1">是</option>
+          <option value="0">否</option>
+        </select>
+      </div>
+    </div>
+    <div class="checkbox-row">
+      <label><input type="checkbox" id="filterStopwords" checked> 过滤停用词</label>
+      <label><input type="checkbox" id="enOnly"> 仅英文</label>
+      <label><input type="checkbox" id="zhOnly"> 仅中文</label>
+    </div>
+    <div class="toolbar">
+      <div id="word_frequencyPresets"></div><button type="button" class="btn primary" onclick="analyze()">分析</button><button class="btn" type="button" onclick="__word_frequencyExport()">导出明细 CSV</button>
+      <button type="button" class="btn success" onclick="copyResult()">复制结果</button>
+      <button type="button" class="btn" onclick="clearAll()">清空</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>📊 词频结果</h2>
+    <div class="result-box" id="result" style="max-height:600px;overflow:auto;">请输入文本进行分析...</div> <div id="word_frequencyTable"></div> <div id="word_frequencyDiff"></div> <div id="word_frequencyChart"></div> <div id="word_frequencyHist"></div>
+  </div>
+
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto 0;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+.deep-dive a.term-link{color:var(--tool-accent,#FF6B35);text-decoration:none;border-bottom:1px dashed currentColor;}
+.deep-dive a.term-link:hover{border-bottom-style:solid;}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：词频统计（中英文分词 · TTR · Top N）</h2>
+<h3>💡 常见使用场景</h3>
+<ul class="dd-list">
+<li><a class="term-link" href="/tools/it/keyword-extractor.html">关键词提取</a>：从访谈记录、用户评论、问卷开放题里抽出高频词</li>
+<li>文案自检：检查用词重复、口头禅过多、同义词混用</li>
+<li>语言学习：用 TTR 衡量一段英文写作的词汇丰富度</li>
+<li>主题摸底：做词云或主题聚类前先跑一轮词频，确认语料是否够用</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">方法</div><div class="dd-ex-body">英文按 [a-z]+ 切词（可选忽略<a class="term-link" href="/tools/it/case-converter.html">大小写</a>、可选停用词过滤），中文按连续汉字串切分后按最小词长取窗口，逐词累计次数后按频次降序排列。页面同时输出六项指标：唯一词数、总词次、词汇丰富度 TTR = 唯一词数 ÷ 总词次、首词占比、前 10 词累计占比、长词数（≥5 字符），下方明细表给出每个词的次数与占比。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">文本 &quot;Hello world. Hello ToolBox. This is a test. This is only a test.&quot;，最小词长 2、开启停用词过滤 → 唯一词数 5、总词次 7、TTR 71.43%、首词占比 28.57%，其中 hello 与 test 各出现 2 次（各占 28.57%）。关闭停用词过滤后唯一词数升到 8、总词次升到 13、TTR 降到 61.54%。空白输入会提示先输入文本。</div></div>
+<h3>❓ 常见问题（FAQ）</h3>
+<dl class="dd-faq">
+<dt>为什么中文分词结果和分词软件不一样？</dt><dd>本工具用的是轻量切分：把连续汉字串切开后按最小词长取窗口，没有词典与词性模型，所以「测试文本」这类串可能同时产出整串与其中的短窗口。做严格的词频调研时请用专业分词工具复核，或把最小词长调大以过滤碎片。</dd>
+<dt>TTR 高低怎么判断？</dt><dd>TTR 随文本长度自然下降：几百词的短文常在 60%~80%，上万词的长文降到 30% 以下都属正常。它的用途是比较篇幅相当的两段文本用词是否更丰富，跨长度比较没有意义；必要时可先截取等长片段再比。</dd>
+<dt>停用词过滤会改变什么？</dt><dd>开启后 the / a / of / is 之类高频虚词会被剔除，总词次与唯一词数同时下降，剩下的词更接近主题词；但占比口径的分母也变小了，所以两份文本要在同一开关状态下比较。</dd>
+</dl>
+</div>
+</section>
+<!-- 注意事项区块 -->
+<div class="tool-notes" style="--tool-accent:#F59E0B;">
+  <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
+  <ul>
+      <li>词汇丰富度 TTR = 唯一词数 ÷ 总词次，文本越长该值天然越低，比较不同长度的文本时不宜只看 TTR。</li>
+      <li>英文停用词过滤基于内置词表（the / a / of / is 等）；开启后总词次与唯一词数都会下降，占比口径随之改变。</li>
+      <li>中文按连续汉字串切分后再按最小词长做滑窗，未引入词典分词，属轻量切分；严格的分词结果请用专业分词工具复核。</li>
+      <li>最小词长按字符数计（英文按字母数）。设为 2 可滤掉 is / a 之类的短词，设为 4 以上更适合提取主题词。</li>
+      <li>全部统计在浏览器内完成，粘贴长文或内部资料都不会上传到服务器。</li>
+  </ul>
+</div>
+<!-- /注意事项区块 -->
+</div>
+
+<script>
+function toggleToolTheme(){
+  const cur = document.documentElement.getAttribute('data-theme');
+  if(cur === 'dark'){
+    document.documentElement.removeAttribute('data-theme');
+    document.querySelector('.theme-btn').textContent = '🌙';
+    localStorage.setItem('toolbox_theme','light');
+  }else{
+    document.documentElement.setAttribute('data-theme','dark');
+    document.querySelector('.theme-btn').textContent = '☀️';
+    localStorage.setItem('toolbox_theme','dark');
+  }
+}
+(function(){
+  if(localStorage.getItem('toolbox_theme') === 'dark'){
+    document.documentElement.setAttribute('data-theme','dark');
+    document.addEventListener('DOMContentLoaded', () => {
+      const b = document.querySelector('.theme-btn');
+      if(b) b.textContent = '☀️';
+    });
+  }
+})();
+
+const input = document.getElementById('input');
+
+const stopWords = new Set([
+  // 英文
+  'the','a','an','and','or','but','is','are','was','were','be','been','being','have','has','had',
+  'do','does','did','will','would','should','could','may','might','must','can','of','in','on','at',
+  'to','for','with','by','from','as','this','that','these','those','i','you','he','she','it','we',
+  'they','my','your','his','her','its','our','their','me','him','us','them','what','which','who','whom',
+  // 中文
+  '的','了','是','在','和','与','或','也','都','就','还','又','才','只','便','而','且','如','若','则',
+  '我','你','他','她','它','们','这','那','一','个','些','不','没','无','有','为','以','于','把','被',
+  '向','从','到','对','给','着','过','来','去','上','下','中','里','外','前','后'
+]);
+
+function analyze(){
+  const text = input.value;
+  const result = document.getElementById('result');
+  if(!text || !text.trim()){ result.textContent = '请输入文本进行分析...'; return; }
+  const ignoreCase = document.getElementById('ignoreCase').value === '1';
+  const topN = parseInt(document.getElementById('topN').value) || 20;
+  const minLen = parseInt(document.getElementById('minLen').value) || 1;
+  const filterStop = document.getElementById('filterStopwords').checked;
+  const enOnly = document.getElementById('enOnly').checked;
+  const zhOnly = document.getElementById('zhOnly').checked;
+
+  const processed = ignoreCase ? text.toLowerCase() : text;
+  const map = new Map();
+
+  // 英文单词
+  if(!zhOnly){
+    const enWords = processed.match(/[a-z]+/gi) || [];
+    enWords.forEach(w => {
+      const key = ignoreCase ? w.toLowerCase() : w;
+      if(filterStop && stopWords.has(key.toLowerCase())) return;
+      if(key.length < 1) return;
+      map.set(key, (map.get(key) || 0) + 1);
+    });
+  }
+
+  // 中文 N-gram（简单分词：2-4 字组合，取最高频）
+  if(!enOnly){
+    const zhChunks = processed.match(/[\u4e00-\u9fff]+/g) || [];
+    zhChunks.forEach(chunk => {
+      // 用 2-gram 和 3-gram
+      const counts = new Map();
+      for(let n = minLen; n <= Math.min(4, chunk.length); n++){
+        for(let i = 0; i + n <= chunk.length; i++){
+          const w = chunk.substr(i, n);
+          counts.set(w, (counts.get(w) || 0) + 1);
+        }
+      }
+      // 简化：只取 2 字组合
+      for(let i = 0; i + minLen <= chunk.length; i++){
+        const w = chunk.substr(i, minLen);
+        if(filterStop && stopWords.has(w)) continue;
+        map.set(w, (map.get(w) || 0) + 1);
+      }
+    });
+  }
+
+  const sorted = Array.from(map.entries()).sort((a,b) => b[1] - a[1]).slice(0, topN);
+  if(sorted.length === 0){ result.textContent = '没有符合条件的词'; return; }
+
+  const maxCount = sorted[0][1];
+  const total = sorted.reduce((s, [,c]) => s + c, 0);
+
+  // ---- 全量口径统计（不限于展示的前 N 个）----
+  let totalAll = 0;
+  map.forEach(c => { totalAll += c; });
+  const uniqueAll = map.size;
+  const ttr = totalAll > 0 ? uniqueAll / totalAll : 0;
+  const top1Share = totalAll > 0 ? maxCount / totalAll * 100 : 0;
+  const allCounts = Array.from(map.values()).sort((a,b) => b - a);
+  const top10Share = totalAll > 0
+    ? allCounts.slice(0, 10).reduce((s,c) => s + c, 0) / totalAll * 100 : 0;
+  let longWords = 0;
+  map.forEach((c, w) => { if(w.length >= 5) longWords++; });
+  function statCard(v, l){ return '<div class="stat-card"><div class="val">' + v + '</div><div class="lbl">' + l + '</div></div>'; }
+  const statHtml = '<div class="stat-grid">'
+    + statCard(uniqueAll, '唯一词数')
+    + statCard(totalAll, '总词次')
+    + statCard((ttr * 100).toFixed(2) + '%', '词汇丰富度 TTR')
+    + statCard(top1Share.toFixed(2) + '%', '首词占比')
+    + statCard(top10Share.toFixed(2) + '%', '前 10 词累计占比')
+    + statCard(longWords, '长词数（≥5 字符）')
+    + '</div>';
+  let html = `<p style="margin-bottom:10px;" data-zh="共 ${map.size} 个不同词，显示前 ${sorted.length} 个（合计出现 ${total} 次）">Found ${map.size} distinct words, showing top ${sorted.length} (total ${total} occurrences)</p>`;
+  html = statHtml + html;
+  html += sorted.map(([word, count]) => {
+    const pct = maxCount > 0 ? (count / maxCount * 100) : 0;
+    const freq = (count / total * 100).toFixed(2);
+    return `<div class="word-bar">
+      <div class="word-text" title="${escapeHtml(word)}">${escapeHtml(word)}</div>
+      <div class="word-bar-wrap"><div class="word-bar-fill" style="width:${pct}%"></div></div>
+      <div class="word-count"><strong>${count}</strong> (${freq}%)</div>
+    </div>`;
+  }).join('');
+  const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){result.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}result.innerHTML=__h0;
+}
+
+function escapeHtml(s){
+  return String(s).replace(/[<>&"]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));
+}
+
+function copyResult(){
+  const text = document.getElementById('result').innerText;
+  if(!text || text.startsWith('请输入')){ alert('请先分析文本'); return; }
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = event.target.closest('.btn');
+    if(btn){ const old = btn.textContent; btn.textContent = '✅ 已复制'; setTimeout(() => btn.textContent = old, 1500); }
+  });
+}
+
+function clearAll(){
+  input.value = '';
+  analyze();
+}
+
+analyze();
+</script><script>
+// tool-intro折叠交互
+document.addEventListener('DOMContentLoaded',function(){
+  var headers=document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click',function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+
+var __word_frequency_last=0,__word_frequency_skip=false;
+function __word_frequencySnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __word_frequencyResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __word_frequencyTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __word_frequencyRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__word_frequencyTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#word_frequencyTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#word_frequencyDiff');
+        TBKit.history.mount('#word_frequencyHist',function(rec){
+            __word_frequency_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                analyze();
+            }catch(e2){}
+            __word_frequency_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__word_frequencyTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#word_frequencyChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __word_frequencyExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__word_frequency_skip) return;
+    var snap=__word_frequencySnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__word_frequencyResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__word_frequency_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __word_frequency_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __word_frequencyRender(keys,rk,en);
+}
+function __word_frequencyExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#word_frequencyTable','word-frequency.csv'); } catch(e){}
+}
+function __word_frequencyPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#word_frequencyPresets',[{label:'默认参数',labelEn:'Default',values:{'topN':'20', 'minLen':'2', 'ignoreCase':'1'}}],function(){ analyze(); });
+}
+var __word_frequency_f0=(typeof analyze==='function')?analyze:null;
+if(__word_frequency_f0){
+    analyze=function(){ var __r=__word_frequency_f0.apply(null,arguments); try{ __word_frequencyExtras(); }catch(e){} return __r; };
+}
+function __word_frequencyBoot(){ try{ __word_frequencyPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __word_frequencyBoot();
+else document.addEventListener('DOMContentLoaded', __word_frequencyBoot);
+</script>
+<!-- SEO 介绍区块 -->
+
+</div>
+
+</div>
+
+<!-- 相关工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相关工具</h3>
+  <div class="related-tools-grid">
+    <a href="text-reverse-words.html" class="related-tool-card">
+      <span class="rt-icon">📖</span>
+      <span class="rt-info"><span class="rt-name">单词顺序反转 - 免费文本处理工具，在线单词顺序反转 | ToolBox免费在线工具箱</span><span class="rt-desc">单词顺序反转</span></span>
+    </a>
+    <a href="word-counter.html" class="related-tool-card">
+      <span class="rt-icon">📊</span>
+      <span class="rt-info"><span class="rt-name">字数统计 - 免费文本处理工具，字数统计工具 | ToolBox免费在线工具箱</span><span class="rt-desc">字数统计工具</span></span>
+    </a>
+    <a href="word-wrap.html" class="related-tool-card">
+      <span class="rt-icon">💰</span>
+      <span class="rt-info"><span class="rt-name">自动换行 - 免费文本处理工具，在线自动换行 | ToolBox免费在线工具箱</span><span class="rt-desc">自动换行</span></span>
+    </a>
+    <a href="mirror-text.html" class="related-tool-card">
+      <span class="rt-icon">🏦</span>
+      <span class="rt-info"><span class="rt-name">镜像文字 - 免费文本处理工具，在线镜像文字 | ToolBox免费在线工具箱</span><span class="rt-desc">镜像文字</span></span>
+    </a>
+    
+    <a href="vcard-qr.html" class="related-tool-card">
+      <span class="rt-icon">🔳</span>
+      <span class="rt-info"><span class="rt-name">vCard 二维码 - 免费生成器工具，在线vCard 二维码 | ToolBox免费在线工具箱</span><span class="rt-desc">vCard 二维码</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro open" id="toolIntro">
+  <div class="tool-intro-header">
+    <span class="intro-icon-wrap"><span class="intro-icon">📖</span>关于「词频统计」</span>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="tool-intro-body">
+    <h4><span class="h4-icon">📝</span>工具简介</h4>
+    <p>对中英文文本分词并统计词频：可开关英文停用词过滤、忽略大小写、只统计英文或只统计中文，还能限定最小词长与 Top N。一次输出唯一词数、总词次、词汇丰富度 TTR、首词占比、前 10 词累计占比与长词数六项指标，并按频次排序列出高频词及占比。</p>
+    <h4><span class="h4-icon">✨</span>功能特点</h4>
+    <ul class="intro-features">
+      <li>唯一词数 / 总词次 / TTR / 首词占比 / 前 10 词累计占比 / 长词数六项指标一次算全</li>
+      <li>可开关英文停用词过滤、忽略大小写、只统计英文或只统计中文</li>
+      <li>最小词长与 Top N 可调，长文可分块粘贴逐段统计</li>
+      <li>中英文混排按字符与词分别切分，标点、数字自动剔除</li>
+      <li>纯前端处理，粘贴长文与内部资料都不会上传</li>
+    </ul>
+    <h4><span class="h4-icon">🎯</span>使用场景</h4>
+    <ul class="intro-scenes">
+      <li>从访谈记录、用户评论、问卷开放题里抽出高频关键词</li>
+      <li>检查文案用词是否重复、口头禅是否过多</li>
+      <li>英语写作与备考时统计词汇丰富度（TTR）</li>
+      <li>做词云或主题分析前先跑一轮词频摸底</li>
+    </ul>
+    </div>
+</div>
+<!-- /SEO 介绍区块 -->
+</body>
+</html>

@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=dev,industry=it,icon=💻,bg=#e3f2fd">
+<meta name="description" content="基于官方 TypeScript 5.3 编译器，将 TypeScript 代码实时编译为 JavaScript。支持选择目标版本、模块系统，并显示编译诊断信息。所有编译在浏览器本地完成，代码不会上传。">
+<meta name="keywords" content="TypeScript编译器,TS转JS,TypeScript转JavaScript,在线TS编译器,TS编译,TypeScript在线,开发工具,IT开发,在线工具,免费工具,ToolBox">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://chenguangwu.github.io/tools/it/typescript-compiler.html">
+<meta property="og:title" content="TypeScript 转 JavaScript 编译器 - 代码不会上传">
+<meta property="og:description" content="基于官方 TypeScript 5.3 编译器，将 TypeScript 代码实时编译为 JavaScript。支持选择目标版本、模块系统，并显示编译诊断信息。所有编译在浏览器本地完成，代码不会上传。">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://chenguangwu.github.io/tools/it/typescript-compiler.html">
+<meta name="twitter:card" content="summary">
+<meta name="theme-color" content="#FF6B35">
+<link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+<link rel="icon" href="../../favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="apple-touch-icon" href="../../apple-touch-icon.png">
+<title>TypeScript 转 JavaScript 编译器 - 代码不会上传</title>
+<link rel="stylesheet" href="../../css/common.css">
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="../../js/common.js" defer></script>
+<style>
+/* 本页容器加宽，便于左右双栏编辑 */
+.container{max-width:1100px;}
+
+.ts-desc{font-size:13px;color:var(--text-muted);margin-bottom:14px;line-height:1.6;}
+
+/* 编译选项行 */
+.opt-row{
+  display:flex;
+  gap:14px;
+  margin-bottom:12px;
+  flex-wrap:wrap;
+  align-items:center;
+}
+.opt-row .opt-item{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-secondary);}
+.opt-row .opt-item > label{margin:0;font-size:12.5px;color:var(--text-light);font-weight:500;white-space:nowrap;}
+.opt-row select{
+  width:auto;
+  min-width:130px;
+  padding:7px 12px;
+  font-size:13px;
+  flex:0 0 auto;
+}
+.opt-row .opt-check{display:flex;align-items:center;gap:5px;cursor:pointer;font-size:13px;color:var(--text-secondary);user-select:none;}
+.opt-row .opt-check input[type="checkbox"]{width:auto;accent-color:var(--primary);cursor:pointer;}
+
+/* 编译器主体：左右分栏 */
+.compiler-wrapper{
+  display:flex;
+  gap:0;
+  height:480px;
+  border:1px solid var(--border);
+  border-radius:12px;
+  overflow:hidden;
+  margin-top:4px;
+}
+.editor-panel,.output-panel{
+  display:flex;
+  flex-direction:column;
+  flex:1;
+  min-width:0;
+}
+.editor-panel{border-right:1px solid var(--border);}
+
+.panel-header{
+  display:flex;
+  align-items:center;
+  padding:8px 14px;
+  background:var(--result-bg);
+  border-bottom:1px solid var(--border);
+  flex-shrink:0;
+  font-size:13px;
+  font-weight:600;
+  color:var(--text-secondary);
+  gap:8px;
+}
+.panel-header .lang-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.dot-ts{background:#3178C6;}
+.dot-js{background:#F7DF1E;}
+.panel-header .panel-title{flex:1;}
+.panel-header .panel-meta{font-size:11px;color:var(--text-muted);font-weight:500;}
+
+.compiler-wrapper textarea{
+  flex:1;
+  width:100%;
+  padding:14px;
+  font-family:'SF Mono','Fira Code','Courier New',monospace;
+  font-size:13px;
+  line-height:1.7;
+  resize:none;
+  border:none;
+  border-radius:0;
+  background:var(--card-bg);
+  color:var(--text);
+  tab-size:2;
+  outline:none;
+  min-height:0;
+}
+.compiler-wrapper textarea:focus{
+  box-shadow:none;
+  border-color:transparent;
+}
+.output-panel textarea{
+  background:var(--result-bg);
+  cursor:default;
+}
+
+/* 诊断面板 */
+.diag-panel{
+  border:1px solid var(--border);
+  border-radius:12px;
+  margin-top:12px;
+  overflow:hidden;
+}
+.diag-header{
+  display:flex;
+  align-items:center;
+  padding:8px 14px;
+  background:var(--result-bg);
+  border-bottom:1px solid var(--border);
+  font-size:13px;
+  font-weight:600;
+  color:var(--text-secondary);
+  gap:8px;
+  cursor:pointer;
+  transition:background 0.2s;
+}
+.diag-header:hover{background:var(--bg-hover);}
+.diag-header .diag-title{flex:1;display:flex;align-items:center;gap:6px;}
+.diag-header .diag-count{
+  padding:1px 8px;
+  border-radius:10px;
+  font-size:11px;
+  font-weight:600;
+  background:var(--success);
+  color:#fff;
+  transition:background 0.2s;
+}
+.diag-header .diag-arrow{transition:transform 0.2s;font-size:11px;color:var(--text-muted);}
+.diag-panel.collapsed .diag-arrow{transform:rotate(-90deg);}
+.diag-panel.collapsed .diag-body{display:none;}
+.diag-body{
+  max-height:220px;
+  overflow-y:auto;
+  font-family:'SF Mono','Fira Code','Courier New',monospace;
+  font-size:12px;
+  line-height:1.6;
+}
+.diag-line{
+  padding:7px 14px;
+  border-bottom:1px solid rgba(0,0,0,0.04);
+  word-break:break-word;
+  display:flex;
+  align-items:flex-start;
+  gap:8px;
+  flex-wrap:wrap;
+}
+[data-theme="dark"] .diag-line{border-bottom-color:rgba(255,255,255,0.04);}
+.diag-line.error{color:var(--danger);background:rgba(239,68,68,0.05);}
+.diag-line.warn{color:var(--warning);background:rgba(245,158,11,0.05);}
+.diag-line.info{color:var(--info);background:rgba(59,130,246,0.04);}
+.diag-prefix{font-weight:700;flex-shrink:0;min-width:54px;}
+.diag-code{font-weight:600;opacity:0.85;flex-shrink:0;}
+.diag-loc{opacity:0.7;flex-shrink:0;}
+.diag-msg{flex:1;min-width:120px;}
+.diag-empty{
+  padding:16px 14px;
+  text-align:center;
+  color:var(--success);
+  font-size:12.5px;
+  font-family:inherit;
+}
+.diag-loading{
+  padding:16px 14px;
+  text-align:center;
+  color:var(--text-muted);
+  font-size:12.5px;
+  font-family:inherit;
+}
+
+/* 编译统计 */
+.compile-stats{
+  display:flex;
+  gap:10px;
+  margin-top:12px;
+  flex-wrap:wrap;
+  font-size:12.5px;
+}
+.compile-stats .stat-chip{
+  background:var(--result-bg);
+  border:1px solid var(--border);
+  border-radius:8px;
+  padding:6px 12px;
+  color:var(--text-secondary);
+}
+.compile-stats .stat-chip strong{color:var(--primary);font-weight:600;}
+
+/* 移动端适配 */
+@media(max-width:768px){
+  .compiler-wrapper{
+    flex-direction:column;
+    height:auto;
+  }
+  .editor-panel{
+    border-right:none;
+    border-bottom:1px solid var(--border);
+  }
+  .editor-panel textarea{min-height:240px;}
+  .output-panel textarea{min-height:240px;}
+  .opt-row select{flex:1 1 100%;}
+  .opt-row .opt-item{flex:1 1 calc(50% - 14px);}
+}
+</style>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "TypeScript 转 JavaScript 编译器",
+  "description": "基于官方 TypeScript 编译器的在线 TS 转 JS 工具，支持多目标版本、模块系统、诊断信息，纯前端运行，代码不上传。",
+  "url": "https://chenguangwu.github.io/tools/it/typescript-compiler.html",
+  "applicationCategory": "DeveloperApplication",
+  "operatingSystem": "Web",
+  "offers": {"@type": "Offer", "price": "0", "priceCurrency": "CNY"},
+  "inLanguage": "zh-CN",
+  "isAccessibleForFree": true,
+  "browserRequirements": "Requires JavaScript. Requires HTML5.",
+  "softwareVersion": "1.0"
+}
+</script>
+
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
+    <meta name="twitter:title" content="TypeScript 转 JavaScript 编译器 - 代码不会上传">
+    <meta name="twitter:description" content="基于官方 TypeScript 5.3 编译器，将 TypeScript 代码实时编译为 JavaScript。支持选择目标版本、模块系统，并显示编译诊断信息。所有编译在浏览器本地完成，代码不会上传。">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"TypeScript转JavaScript编译器","url":"https://chenguangwu.github.io/tools/it/typescript-compiler.html","applicationCategory":"DeveloperApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"基于官方 TypeScript 5.3 编译器，将 TypeScript 代码实时编译为 JavaScript。支持选择目标版本、模块系统，并显示编译诊断信息。所有编译在浏览器本地完成，代码不会上传。","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://chenguangwu.github.io/"},{"@type":"ListItem","position":2,"name":"IT 开发","item":"https://chenguangwu.github.io/tools/it/index.html"},{"@type":"ListItem","position":3,"name":"TypeScript转JavaScript编译器","item":"https://chenguangwu.github.io/tools/it/typescript-compiler.html"}]}
+</script>
+
+<script src="../../js/i18n.js" defer></script>
+<script src="../../js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+
+
+<meta name="title-en" content="TypeScript Compiler">
+<meta name="desc-en" content="TypeScript Compiler - run and process online in your browser.">
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/it/typescript-compiler.html">
+<link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/it/typescript-compiler.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/it/typescript-compiler.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/it/typescript-compiler.html">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:locale:alternate" content="zh_TW">
+<meta property="og:locale:alternate" content="en_US">
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
+
+<script src="/js/tool-ux.js" defer></script>
+<!-- TOOLBOX-TOOL-UX -->
+
+<script src="/js/analytics.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+
+
+<!-- TOOLBOX-TTZZ -->
+<script>
+(function(){try{
+var el = document.createElement("script");
+el.src = "https://lf1-cdn-tos.bytegoofy.com/goofy/ttzz/push.js?85d6452aa9be4d693b16cd48535a8c7ae57542f6788a41682e745be8eb99b35a8a24d2f724c31ebe20c1e4e6fba6d91caf576100b02a2870c72f38fc574066fef065d152c73bf1cbb2ebad3b5b5265d8";
+el.id = "ttzz";
+var s = document.getElementsByTagName("script")[0];
+s.parentNode.insertBefore(el, s);
+}catch(e){}
+})(window);
+</script>
+
+<script src="/js/tool-kit.js" defer></script>
+<!-- TOOLBOX-TOOL-KIT -->
+</head>
+<body>
+
+<div class="nav">
+  <a href="../../index.html">&larr; ToolBox</a>
+  <span>/ TypeScript转JavaScript编译器</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+
+
+
+
+<nav class="breadcrumb" aria-label="面包屑导航" data-breadcrumb="1">
+  <a href="../../index.html">首页</a>
+  <span class="bc-sep">‹</span>
+  <a href="index.html">💻 开发</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">TypeScript转JavaScript编译器</span>
+</nav>
+<div class="container">
+  <h1 class="sr-only">TypeScript转JavaScript编译器</h1>
+  <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
+    <h2 data-zh="💻 TypeScript 转 JavaScript 编译器">💻 TypeScript Compiler</h2>
+<div class="formula-box">
+  <div class="formula-title">📐 工作原理与说明</div>
+  <div class="formula-desc">把 TypeScript 编译为 JavaScript。</div>
+  <ul class="formula-list">
+    <li><b>流程</b>：先做类型检查，再擦除类型注解，并按 target 降级语法（如转为 ES5）。</li>
+    <li><b>类型擦除</b>：类型信息只在编译期存在，运行时不可见，因此无法用于运行时校验。</li>
+    <li><b>配置</b>：tsconfig.json 控制 target、module、strict、lib 与输出目录。</li>
+    <li><b>提醒</b>：编译不校验外部数据，接口返回值等仍需做运行时校验。</li>
+  </ul>
+</div>
+
+    <p class="ts-desc" data-zh="基于官方 TypeScript 5.3 编译器，将 TypeScript 代码实时编译为 JavaScript。支持选择目标版本、模块系统，并显示编译诊断信息。所有编译在浏览器本地完成，代码不会上传。">Compile TypeScript to JavaScript in your browser — try code without a toolchain.</p>
+
+    <!-- 工具栏 -->
+    <div class="toolbar">
+      <button type="button" class="btn primary" onclick="compile()">▶ 编译</button>
+      <button type="button" class="btn" onclick="loadSample()">📝 加载示例</button>
+      <button type="button" class="btn" onclick="clearAll()">🗑 清空</button>
+      <button type="button" class="btn success" onclick="copyJs()">📋 复制 JS</button>
+      <button type="button" class="btn" onclick="downloadJs()">⬇ 下载 JS</button>
+    </div>
+
+    <!-- 编译选项 -->
+    <div class="opt-row">
+      <div class="opt-item">
+        <label for="optTarget">目标版本</label>
+        <select id="optTarget" onchange="compile()">
+          <option value="ES3">ES3</option>
+          <option value="ES5">ES5</option>
+          <option value="ES6">ES6 (ES2015)</option>
+          <option value="ES2017">ES2017</option>
+          <option value="ES2020" selected>ES2020</option>
+          <option value="ESNext">ESNext</option>
+        </select>
+      </div>
+      <div class="opt-item">
+        <label for="optModule">模块系统</label>
+        <select id="optModule" onchange="compile()">
+          <option value="None">None</option>
+          <option value="CommonJS" selected>CommonJS</option>
+          <option value="AMD">AMD</option>
+          <option value="ESNext">ESNext</option>
+        </select>
+      </div>
+      <label class="opt-check"><input type="checkbox" id="optRemoveComments" onchange="compile()"> 移除注释</label>
+      <label class="opt-check"><input type="checkbox" id="optStrict" onchange="compile()"> 严格模式 (strict)</label>
+      <label class="opt-check"><input type="checkbox" id="optIsolated" checked onchange="compile()"> isolatedModules</label>
+    </div>
+
+    <!-- 左右分栏：输入 / 输出 -->
+    <div class="compiler-wrapper">
+      <div class="editor-panel">
+        <div class="panel-header">
+          <span class="lang-dot dot-ts"></span>
+          <span class="panel-title">TypeScript 输入</span>
+          <span class="panel-meta">支持 Tab 缩进</span>
+        </div>
+        <textarea id="tsInput" spellcheck="false" placeholder="在此输入 TypeScript 代码..."></textarea>
+      </div>
+      <div class="output-panel">
+        <div class="panel-header">
+          <span class="lang-dot dot-js"></span>
+          <span class="panel-title">JavaScript 输出</span>
+          <span class="panel-meta" id="outputMeta">只读</span>
+        </div>
+        <textarea id="jsOutput" spellcheck="false" readonly placeholder="编译后的 JavaScript 将显示在这里..."></textarea>
+      </div>
+    </div>
+
+    <!-- 编译统计 -->
+    <div class="compile-stats">
+      <div class="stat-chip">编译耗时：<strong id="statTime">-</strong> ms</div>
+      <div class="stat-chip">输出行数：<strong id="statLines">-</strong> 行</div>
+      <div class="stat-chip">输出大小：<strong id="statSize">-</strong> 字符</div>
+    </div>
+
+    <div id="tsPresets" style="margin:14px 0 6px;"></div>
+    <div id="tsRefTbl" style="margin-top:12px;"></div>
+    <!-- 诊断信息 -->
+    <div class="diag-panel" id="diagPanel">
+      <div class="diag-header" onclick="toggleDiag()">
+        <span class="diag-title">🩺 编译诊断信息</span>
+        <span class="diag-count" id="diagCount">0</span>
+        <span class="diag-arrow">▼</span>
+      </div>
+      <div class="diag-body" id="diagBody">
+        <div class="diag-empty">等待编译...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 注意事项 -->
+  <div class="tool-notes" style="--tool-accent:#FF6B35;">
+    <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
+    <ul>
+      <li>本工具使用 <code>ts.transpileModule</code> 进行单文件转译，会移除类型注解但不做完整类型检查</li>
+      <li>类型错误（如赋值类型不匹配）不会被检测，仅语法错误和部分语义错误会出现在诊断面板</li>
+      <li>需要完整类型检查请使用本地 <code>tsc</code> 或 IDE</li>
+      <li>所有编译在浏览器本地完成，代码不会上传到服务器</li>
+      <li>建议在主流浏览器（Chrome/Safari/Firefox/Edge）中使用</li>
+    </ul>
+  </div>
+</div>
+
+<!-- 示例代码（纯文本存储，避免转义问题） -->
+<script type="text/plain" id="sampleTs">
+// TypeScript 示例：接口、泛型、类型注解
+interface User {
+  id: number;
+  name: string;
+  email?: string;
+  readonly createdAt: Date;
+}
+
+interface Repository<T> {
+  findAll(): T[];
+  findById(id: number): T | undefined;
+  add(item: T): void;
+}
+
+class UserRepository implements Repository<User> {
+  private users: User[] = [];
+
+  constructor(initial: User[] = []) {
+    this.users = initial;
+  }
+
+  findAll(): User[] {
+    return this.users;
+  }
+
+  findById(id: number): User | undefined {
+    return this.users.find(u => u.id === id);
+  }
+
+  add(user: User): void {
+    this.users.push(user);
+  }
+}
+
+// 泛型函数
+function firstOrNull<T>(arr: T[]): T | null {
+  return arr.length > 0 ? arr[0] : null;
+}
+
+function greet(user: User): string {
+  return `Hello, ${user.name}!`;
+}
+
+const repo = new UserRepository([
+  { id: 1, name: "Alice", email: "alice@example.com", createdAt: new Date() },
+  { id: 2, name: "Bob", createdAt: new Date() }
+]);
+
+repo.findAll().forEach(user => {
+  console.log(greet(user));
+});
+
+const found = repo.findById(1);
+if (found) {
+  console.log("Found:", found.name);
+}
+
+const first = firstOrNull(repo.findAll());
+console.log("First user:", first?.name);
+
+// 枚举
+enum Status { Active = "ACTIVE", Inactive = "INACTIVE" }
+const current: Status = Status.Active;
+console.log("Status:", current);
+</script>
+
+<!-- TypeScript 编译器（CDN） -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/typescript/5.3.3/typescript.min.js"></script>
+<script>
+/* ===== 状态 ===== */
+let compileTimer = null;
+let tsReady = (typeof ts !== 'undefined');
+
+/* ===== 编译选项映射 ===== */
+const TARGET_MAP = {
+  'ES3': () => ts.ScriptTarget.ES3,
+  'ES5': () => ts.ScriptTarget.ES5,
+  'ES6': () => ts.ScriptTarget.ES2015,
+  'ES2017': () => ts.ScriptTarget.ES2017,
+  'ES2020': () => ts.ScriptTarget.ES2020,
+  'ESNext': () => ts.ScriptTarget.ESNext
+};
+const MODULE_MAP = {
+  'None': () => ts.ModuleKind.None,
+  'CommonJS': () => ts.ModuleKind.CommonJS,
+  'AMD': () => ts.ModuleKind.AMD,
+  'ESNext': () => ts.ModuleKind.ESNext
+};
+
+const getOptions = () => {
+  const targetKey = document.getElementById('optTarget').value;
+  const moduleKey = document.getElementById('optModule').value;
+  return {
+    compilerOptions: {
+      target: TARGET_MAP[targetKey](),
+      module: MODULE_MAP[moduleKey](),
+      removeComments: document.getElementById('optRemoveComments').checked,
+      strict: document.getElementById('optStrict').checked,
+      isolatedModules: document.getElementById('optIsolated').checked,
+      sourceMap: false,
+      inlineSourceMap: false,
+      noEmitOnError: false
+    },
+    reportDiagnostics: true
+  };
+};
+
+/* ===== 偏移量转行列 ===== */
+const getLineCol = (code, pos) => {
+  if (pos == null || pos < 0 || pos > code.length) return { line: 0, col: 0 };
+  const before = code.substring(0, pos);
+  const lines = before.split('\n');
+  return { line: lines.length, col: lines[lines.length - 1].length + 1 };
+};
+
+/* ===== 主编译函数 ===== */
+const compile = () => {
+  tsReady = (typeof ts !== 'undefined');
+  if (!tsReady) {
+    setDiagLoading('正在加载 TypeScript 编译器，请稍候...');
+    return;
+  }
+  const code = document.getElementById('tsInput').value;
+  if (!code.trim()) {
+    document.getElementById('jsOutput').value = '';
+    clearDiagnostics();
+    updateStats(0, 0, 0);
+    return;
+  }
+
+  const t0 = (window.performance && performance.now) ? performance.now() : Date.now();
+  let result;
+  try {
+    result = ts.transpileModule(code, getOptions());
+  } catch (e) {
+    const msg = (e && e.message) ? e.message : String(e);
+    showDiagnostics([{ category: 1, code: 0, messageText: '编译异常：' + msg, start: 0 }], code);
+    document.getElementById('jsOutput').value = '';
+    updateStats(0, 0, 0);
+    return;
+  }
+  const t1 = (window.performance && performance.now) ? performance.now() : Date.now();
+
+  const js = result.outputText || '';
+  document.getElementById('jsOutput').value = js;
+
+  const diags = result.diagnostics || [];
+  showDiagnostics(diags, code);
+
+  const lines = js ? js.split('\n').length : 0;
+  updateStats(t1 - t0, lines, js.length);
+};
+
+/* ===== 诊断显示 ===== */
+const clearDiagnostics = () => {
+  const body = document.getElementById('diagBody');
+  body.innerHTML = '<div class="diag-empty">等待编译...</div>';
+  const countEl = document.getElementById('diagCount');
+  countEl.textContent = '0';
+  countEl.style.background = 'var(--success)';
+};
+
+const setDiagLoading = (msg) => {
+  const body = document.getElementById('diagBody');
+  body.innerHTML = '<div class="diag-loading">' + ToolBox.escHtml(msg || '加载中...') + '</div>';
+  const countEl = document.getElementById('diagCount');
+  countEl.textContent = '…';
+  countEl.style.background = 'var(--text-muted)';
+};
+
+const showDiagnostics = (diags, code) => {
+  const body = document.getElementById('diagBody');
+  const countEl = document.getElementById('diagCount');
+  if (!diags || diags.length === 0) {
+    body.innerHTML = '<div class="diag-empty">✓ 编译通过，无诊断信息</div>';
+    countEl.textContent = '0';
+    countEl.style.background = 'var(--success)';
+    return;
+  }
+  let errors = 0, warnings = 0;
+  let html = '';
+  diags.forEach((d) => {
+    const cat = d.category;
+    let type = 'info', label = 'MSG';
+    // ts.DiagnosticCategory: 0=Warning, 1=Error, 2=Suggestion, 3=Message
+    if (cat === 1) { type = 'error'; label = 'ERROR'; errors++; }
+    else if (cat === 0) { type = 'warn'; label = 'WARN'; warnings++; }
+    else if (cat === 2) { type = 'info'; label = 'SUGGEST'; warnings++; }
+    else { type = 'info'; label = 'INFO'; warnings++; }
+
+    const msg = ts.flattenDiagnosticMessageText(d.messageText, '\n');
+    let loc = '';
+    if (code && d.start != null) {
+      const lc = getLineCol(code, d.start);
+      loc = '(第 ' + lc.line + ' 行, 第 ' + lc.col + ' 列)';
+    }
+    const codeStr = (d.code != null) ? 'TS' + d.code : '';
+    html += '<div class="diag-line ' + type + '">'
+      + '<span class="diag-prefix">' + label + '</span>'
+      + '<span class="diag-code">' + ToolBox.escHtml(codeStr) + '</span>'
+      + '<span class="diag-loc">' + ToolBox.escHtml(loc) + '</span>'
+      + '<span class="diag-msg">' + ToolBox.escHtml(msg) + '</span>'
+      + '</div>';
+  });
+  body.innerHTML = html;
+  const total = errors + warnings;
+  countEl.textContent = String(total);
+  countEl.style.background = errors > 0 ? 'var(--danger)' : 'var(--warning)';
+};
+
+const toggleDiag = () => {
+  document.getElementById('diagPanel').classList.toggle('collapsed');
+};
+
+/* ===== 统计更新 ===== */
+const updateStats = (ms, lines, size) => {
+  document.getElementById('statTime').textContent = (ms != null ? ms.toFixed(2) : '-');
+  document.getElementById('statLines').textContent = (lines != null ? lines : '-');
+  document.getElementById('statSize').textContent = (size != null ? size : '-');
+  const meta = document.getElementById('outputMeta');
+  if (lines && lines > 0) {
+    meta.textContent = lines + ' 行 · 只读';
+  } else {
+    meta.textContent = '只读';
+  }
+};
+
+/* ===== 工具栏功能 ===== */
+const loadSample = () => {
+  const sample = document.getElementById('sampleTs').textContent.replace(/^\n/, '');
+  document.getElementById('tsInput').value = sample;
+  compile();
+  ToolBox.showToast(i18nText('toast.msg524'), 'success');
+};
+
+const clearAll = () => {
+  document.getElementById('tsInput').value = '';
+  document.getElementById('jsOutput').value = '';
+  clearDiagnostics();
+  updateStats(0, 0, 0);
+  ToolBox.showToast(i18nText(), 'info');
+};
+
+const copyJs = () => {
+  const js = document.getElementById('jsOutput').value;
+  if (!js) { ToolBox.showToast(i18nText('toast.msg479'), 'warning'); return; }
+  ToolBox.copyText(js, i18nText('msg066'));
+};
+
+const downloadJs = () => {
+  const js = document.getElementById('jsOutput').value;
+  if (!js) { ToolBox.showToast(i18nText('toast.msg478'), 'warning'); return; }
+  const targetKey = document.getElementById('optTarget').value;
+  const filename = 'compiled-' + targetKey.toLowerCase() + '.js';
+  ToolBox.downloadText(filename, js, 'text/javascript;charset=utf-8');
+  ToolBox.showToast('已开始下载 ' + filename, 'success');
+};
+
+/* ===== Tab 缩进支持 ===== */
+const setupTabIndent = () => {
+  const ta = document.getElementById('tsInput');
+  ta.addEventListener('keydown', (e) => {
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      const start = ta.selectionStart;
+      const end = ta.selectionEnd;
+      ta.value = ta.value.substring(0, start) + '  ' + ta.value.substring(end);
+      ta.selectionStart = ta.selectionEnd = start + 2;
+      ta.dispatchEvent(new Event('input'));
+    }
+  });
+};
+
+/* ===== 实时编译（300ms 防抖） ===== */
+const setupLiveCompile = () => {
+  const ta = document.getElementById('tsInput');
+  ta.addEventListener('input', () => {
+    clearTimeout(compileTimer);
+    compileTimer = setTimeout(compile, 300);
+  });
+};
+
+/* ===== tool-intro 折叠 ===== */
+const setupIntroToggle = () => {
+  const headers = document.querySelectorAll('.tool-intro-header');
+  headers.forEach((h) => {
+    h.addEventListener('click', () => {
+      h.parentElement.classList.toggle('open');
+    });
+  });
+};
+
+/* ===== 初始化 ===== */
+const init = () => {
+  setupTabIndent();
+  setupLiveCompile();
+  setupIntroToggle();
+
+  // 加载默认示例
+  loadSampleSilently();
+
+  // 若 TS 已加载则立即编译，否则轮询等待
+  if (typeof ts !== 'undefined') {
+    compile();
+  } else {
+    setDiagLoading('正在加载 TypeScript 编译器，请稍候...');
+    let tries = 0;
+    const wait = setInterval(() => {
+      tries++;
+      if (typeof ts !== 'undefined') {
+        clearInterval(wait);
+        compile();
+      } else if (tries > 60) {
+        clearInterval(wait);
+        showDiagnostics([{ category: 1, code: 0, messageText: 'TypeScript 编译器加载失败，请检查网络后刷新页面。', start: 0 }], '');
+      }
+    }, 200);
+  }
+};
+
+const loadSampleSilently = () => {
+  const sample = document.getElementById('sampleTs').textContent.replace(/^\n/, '');
+  document.getElementById('tsInput').value = sample;
+};
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}
+</script>
+
+<!-- SEO 介绍区块 -->
+
+</div>
+
+</div>
+
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto 0;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+.deep-dive a.term-link{color:var(--tool-accent,#FF6B35);text-decoration:none;border-bottom:1px dashed currentColor;}
+.deep-dive a.term-link:hover{border-bottom-style:solid;}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：TypeScript 转 JavaScript</h2>
+<h3>💡 常见使用场景</h3>
+<ul class="dd-list">
+<li>把 TS 类型擦除编译为可运行 JS。</li>
+<li>验证一段 TS 代码的编译结果：看清类型擦除后剩下什么，以及装饰器、枚举被降级成了什么形态。</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">编译</div><div class="dd-ex-body">`let x: number = 1;` → `let x = 1;`（类型注解被移除）。</div></div>
+<h3>❓ 常见问题（FAQ）</h3>
+<dl class="dd-faq">
+<dt>类型检查在编译时做吗？</dt><dd>是，tsc 编译同时做类型检查，浏览器只跑 JS。</dd>
+<dt>为什么编译通过了运行时仍然报错？</dt><dd>因为 TypeScript 的类型只在编译期起作用，运行时类型信息被完全擦除；来自接口响应、<a class="term-link" href="/tools/data/calc-2.html">JSON</a>.parse 或用户输入的数据，编译器无从校验。因此关键边界必须用运行时校验（如 schema 校验库）守住，类型是第二道防线而不是唯一防线。</dd>
+</dl>
+</div>
+</section>
+<!-- 相关工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相关工具</h3>
+  <div class="related-tools-grid">
+    <a href="properties-parser.html" class="related-tool-card">
+      <span class="rt-icon">📄</span>
+      <span class="rt-info"><span class="rt-name">.properties 解析器 - 免费开发工具，properties 解析器 | ToolBox免费在线工具箱</span><span class="rt-desc">.properties 解析器</span></span>
+    </a>
+    <a href="ast-viewer.html" class="related-tool-card">
+      <span class="rt-icon">💻</span>
+      <span class="rt-info"><span class="rt-name">AST抽象语法树查看器 - 在线解析JavaScript代码生成AST树形结构，支持节点 | ToolBox免费在线工具箱</span><span class="rt-desc">AST 抽象语法树查看器</span></span>
+    </a>
+    <a href="css-minifier.html" class="related-tool-card">
+      <span class="rt-icon">🧹</span>
+      <span class="rt-info"><span class="rt-name">CSS 压缩/美化工具 - 免费开发工具，CSS 压缩/格式化/美化 | ToolBox免费在线工具箱</span><span class="rt-desc">CSS 压缩/格式化/美化</span></span>
+    </a>
+    <a href="css-formatter.html" class="related-tool-card">
+      <span class="rt-icon">🏋️</span>
+      <span class="rt-info"><span class="rt-name">CSS 格式化 - 免费开发工具，在线CSS 格式化 | ToolBox免费在线工具箱</span><span class="rt-desc">CSS 格式化</span></span>
+    </a>
+    <a href="cron.html" class="related-tool-card">
+      <span class="rt-icon">✨</span>
+      <span class="rt-info"><span class="rt-name">Cron 表达式生成器 - 免费开发工具，在线Cron 表达式生成器 | ToolBox免费在线工具箱</span><span class="rt-desc">⏰ Cron 表达式生成器</span></span>
+    </a>
+    <a href="graphql-formatter.html" class="related-tool-card">
+      <span class="rt-icon">🏋️</span>
+      <span class="rt-info"><span class="rt-name">GraphQL 格式化 - 免费开发工具，在线GraphQL 格式化 | ToolBox免费在线工具箱</span><span class="rt-desc">◈ GraphQL 格式化</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro open" id="toolIntro">
+  <div class="tool-intro-header">
+    <span class="intro-icon-wrap"><span class="intro-icon">📖</span>关于「TypeScript转JavaScript编译器」</span>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="tool-intro-body">
+    <h4><span class="h4-icon">📝</span>工具简介</h4>
+    <p>TypeScript 转 JavaScript 编译器是一款基于官方 TypeScript 5.3 编译器的在线工具。它在浏览器本地调用 <code>ts.transpileModule</code> API，将 TypeScript 代码实时转译为 JavaScript，支持选择 ES3 到 ESNext 的目标版本与 None、CommonJS、AMD、ESNext 模块系统，并提供编译诊断信息。所有代码处理都在浏览器中完成，不会上传到任何服务器，保障隐私安全。</p>
+    <h4><span class="h4-icon">✨</span>功能特点</h4>
+    <ul class="intro-features">
+      <li>基于官方 TypeScript 5.3 编译器</li>
+      <li>左右分栏实时编辑与输出</li>
+      <li>支持 ES3/ES5/ES6/ES2017/ES2020/ESNext 目标</li>
+      <li>支持 None/CommonJS/AMD/ESNext 模块系统</li>
+      <li>移除注释、严格模式、isolatedModules 选项</li>
+      <li>300ms 防抖实时编译</li>
+      <li>编译诊断信息（错误/警告/位置）</li>
+      <li>显示编译耗时与输出行数</li>
+      <li>Tab 键缩进支持</li>
+      <li>一键复制 / 下载 JS 文件</li>
+      <li>深色模式与移动端响应式</li>
+    </ul>
+    <h4><span class="h4-icon">🎯</span>使用场景</h4>
+    <ul class="intro-scenes">
+      <li>学习 TypeScript 语法与类型系统</li>
+      <li>验证 TS 代码降级为不同 ES 版本的效果</li>
+      <li>将含类型注解、接口、泛型的 TS 转为 JS</li>
+      <li>快速查看枚举、可选链等特性的编译产物</li>
+      <li>在线调试 TS 语法错误</li>
+      <li>老项目降级到 ES5 兼容旧浏览器</li>
+    </ul>
+    </div>
+</div>
+<!-- /SEO 介绍区块 -->
+
+<script>
+(function(){try{
+  var NS="tools/it/typescript-compiler.html";
+  function k(id){return 'tb_uxp_'+NS+'#'+id;}
+  function save(el){try{
+    if(el.type==='checkbox'){localStorage.setItem(k(el.id),el.checked?'1':'0');}
+    else if(el.type==='radio'){if(el.checked)localStorage.setItem(k(el.id),el.value);}
+    else{localStorage.setItem(k(el.id),el.value);}
+  }catch(e){}}
+  function restore(){try{
+    document.querySelectorAll('input:not([type=password]):not([readonly]):not([disabled]),textarea:not([readonly]):not([disabled]),select').forEach(function(el){
+      if(!el.id)return;
+      var v=localStorage.getItem(k(el.id));if(v===null)return;
+      try{
+        if(el.type==='checkbox'){el.checked=(v==='1');}
+        else if(el.type==='radio'){el.checked=(el.value===v);}
+        else{el.value=v;}
+        el.dispatchEvent(new Event('input',{bubbles:true}));
+        el.dispatchEvent(new Event('change',{bubbles:true}));
+      }catch(e){}
+    });
+  }catch(e){}}
+  document.querySelectorAll('input:not([type=password]):not([readonly]):not([disabled]),textarea:not([readonly]):not([disabled]),select').forEach(function(el){
+    if(!el.id)return;
+    el.addEventListener('input',function(){save(el);});
+    el.addEventListener('change',function(){save(el);});
+  });
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',restore);
+  else restore();
+}catch(e){}})();
+</script>
+<script>
+(function(){
+  function __tsT(zh,en){return (typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())?en:zh;}
+function __mkTable(host,title,head,rows){
+  var html='<h4 style="font-size:14px;font-weight:600;margin:14px 0 8px;color:var(--heading,#333);">'+title+'</h4>'
+    +'<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr>';
+  head.forEach(function(h){html+='<th style="border:1px solid var(--border,#eee);padding:6px 8px;text-align:left;background:var(--bg-subtle,#f9fafb);white-space:nowrap;">'+h+'</th>';});
+  html+='</tr></thead><tbody>';
+  rows.forEach(function(r){html+='<tr>';r.forEach(function(c){html+='<td style="border:1px solid var(--border,#eee);padding:6px 8px;white-space:nowrap;">'+c+'</td>';});html+='</tr>';});
+  html+='</tbody></table></div>';
+  host.innerHTML=html;
+}
+
+  var BT_BASIC = '// 基础类型注解\nlet count: number = 42;\nlet name: string = "ToolBox";\nconst active: boolean = true;';
+  var BT_CLASS = 'interface User {\n  id: number;\n  name: string;\n}\nclass Admin implements User {\n  id: number;\n  name: string;\n  constructor(id: number, name: string) {\n    this.id = id;\n    this.name = name;\n  }\n}';
+  var BT_GENERIC = 'function first<T>(arr: T[]): T | undefined {\n  return arr[0];\n}\nconst a = first<number>([1, 2, 3]);';
+  var BT_ASYNC = 'async function load(): Promise<string> {\n  const res = await fetch("/api");\n  return res.text();\n}';
+  var TS_PRESETS=[
+    {label:'基础类型',labelEn:'Basic Types',values:{tsInput:BT_BASIC,optTarget:'ES5',optModule:'CommonJS'},after:function(){if(typeof compile==='function')compile();}},
+    {label:'类与接口',labelEn:'Classes & Interfaces',values:{tsInput:BT_CLASS,optTarget:'ES2017',optModule:'ESNext'},after:function(){if(typeof compile==='function')compile();}},
+    {label:'泛型',labelEn:'Generics',values:{tsInput:BT_GENERIC,optTarget:'ES2015',optModule:'CommonJS'},after:function(){if(typeof compile==='function')compile();}},
+    {label:'异步 Async',labelEn:'Async/Await',values:{tsInput:BT_ASYNC,optTarget:'ES2017',optModule:'ESNext'},after:function(){if(typeof compile==='function')compile();}}
+  ];
+  function __tsPresets(){var host=document.getElementById('tsPresets');if(!host)return;if(typeof TBKit!=='undefined'&&TBKit.preset&&TBKit.preset.bar){TBKit.preset.bar(host,TS_PRESETS,null);}}
+  function __tsRefTbl(){
+    var host=document.getElementById('tsRefTbl');if(!host)return;
+    var head=[__tsT('配置项','Option'),__tsT('常用取值','Common values'),__tsT('说明','Note')];
+    var rows=[
+      [__tsT('目标版本 target','Target version'),__tsT('ES3 / ES5 / ES2015 / ES2017 / ES2020 / ESNext','ES3 / ES5 / ES2015 / ES2017 / ES2020 / ESNext'),__tsT('版本越低兼容性越好，越高语法特性越多','Lower = better compat; higher = more syntax features')],
+      [__tsT('模块系统 module','Module system'),__tsT('None / CommonJS / AMD / UMD / ESNext','None / CommonJS / AMD / UMD / ESNext'),__tsT('Node 用 CommonJS，浏览器用 ESNext','Node uses CommonJS, browser uses ESNext')],
+      [__tsT('严格模式 strict','Strict mode'),__tsT('true / false','true / false'),__tsT('开启后类型检查更严格','Enables stricter type checking')],
+      [__tsT('本工具限制','Tool limitation'),__tsT('仅 transpileModule，移除类型注解','transpileModule only, strips types'),__tsT('不做完整类型检查','No full type checking')]
+    ];
+    __mkTable(host,__tsT('TypeScript 编译选项参考','TypeScript compiler options'),head,rows);
+  }
+  function __tsAll(){try{if(typeof TBKit!=='undefined'){__tsPresets();__tsRefTbl();}}catch(e){}}
+  if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',__tsAll);}else{__tsAll();}
+  document.addEventListener('toolbox:langchange',__tsAll);
+})();
+</script>
+
+</body>
+</html>

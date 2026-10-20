@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=reference,industry=agriculture,icon=⏱️,bg=#fff3e0">
+<meta name="description" content="采蜜期（摇蜜周期）安排是一款免费的在线农业种植工具，按蜂箱的流蜜周期与开始日期排定摇蜜（取蜜）计划，生成摇蜜日历与提醒，辅助蜂场作业组织与蜜源调度。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+<title>采蜜期（摇蜜周期）安排 - 生成摇蜜日历与提醒</title>
+<link rel="canonical" href="https://chenguangwu.github.io/tools/agriculture/cycle-honey.html">
+<meta property="og:title" content="采蜜期（摇蜜周期）安排 - 生成摇蜜日历与提醒">
+<meta property="og:description" content="采蜜期（摇蜜周期）安排是一款免费的在线农业种植工具，按蜂箱的流蜜周期与开始日期排定摇蜜（取蜜）计划，生成摇蜜日历与提醒，辅助蜂场作业组织与蜜源调度。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+<meta property="og:url" content="https://chenguangwu.github.io/tools/agriculture/cycle-honey.html">
+<meta name="twitter:card" content="summary">
+<link rel="stylesheet" href="../../css/common.css">
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="../../js/common.js" defer></script>
+<style>
+.hive-card{background:var(--result-bg);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px;transition:all 0.2s;}
+.hive-card:hover{border-color:var(--primary);box-shadow:var(--shadow-sm);}
+.hive-card .hive-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+.hive-card .hive-name{font-weight:600;font-size:15px;color:var(--heading);}
+.hive-card .hive-loc{font-size:12px;color:var(--text-muted);}
+.hive-card .hive-info{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;margin-top:6px;}
+.hive-card .hive-info span{color:var(--text-secondary);}
+.hive-card .hive-info b{color:var(--primary);}
+.flow-badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;}
+.flow-active{background:rgba(16,185,129,0.12);color:var(--success);}
+.flow-weak{background:rgba(245,158,11,0.12);color:var(--warning);}
+.flow-none{background:rgba(156,163,175,0.12);color:var(--text-muted);}
+.countdown-box{display:flex;gap:8px;align-items:center;margin-top:8px;padding:8px 12px;background:var(--card-bg);border-radius:10px;border:1px solid var(--border);font-size:13px;}
+.countdown-box .days{font-size:20px;font-weight:700;color:var(--primary);min-width:40px;text-align:center;}
+.extr-btn{color:var(--danger);border:1px solid var(--border);background:var(--card-bg);border-radius:8px;padding:4px 10px;font-size:12px;cursor:pointer;}
+.extr-btn:hover{border-color:var(--primary);}
+.empty{text-align:center;padding:24px;color:var(--text-muted);font-size:14px;}
+.month-cal{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px;}
+.month-cell{padding:10px 8px;border-radius:10px;text-align:center;font-size:12px;border:1px solid var(--border);transition:all 0.2s;}
+.month-cell.active{background:rgba(16,185,129,0.1);border-color:var(--success);}
+.month-cell.weak{background:rgba(245,158,11,0.08);border-color:var(--warning);}
+.month-cell .m{font-weight:600;font-size:13px;color:var(--heading);}
+.month-cell .s{font-size:11px;color:var(--text-muted);margin-top:2px;}
+</style>
+
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
+    <meta property="og:type" content="website">
+    <meta name="twitter:title" content="采蜜期（摇蜜周期）安排 - 生成摇蜜日历与提醒">
+    <meta name="twitter:description" content="采蜜期（摇蜜周期）安排是一款免费的在线农业种植工具，按蜂箱的流蜜周期与开始日期排定摇蜜（取蜜）计划，生成摇蜜日历与提醒，辅助蜂场作业组织与蜜源调度。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"采蜜期（摇蜜周期）安排","url":"https://chenguangwu.github.io/tools/agriculture/cycle-honey.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"采蜜期（摇蜜周期）安排是一款免费的在线农业种植工具，按蜂箱的流蜜周期与开始日期排定摇蜜（取蜜）计划，生成摇蜜日历与提醒，辅助蜂场作业组织与蜜源调度。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://chenguangwu.github.io/"},{"@type":"ListItem","position":2,"name":"农业种植","item":"https://chenguangwu.github.io/tools/agriculture/index.html"},{"@type":"ListItem","position":3,"name":"采蜜期（摇蜜周期）安排","item":"https://chenguangwu.github.io/tools/agriculture/cycle-honey.html"}]}
+</script>
+
+<script src="../../js/i18n.js" defer></script>
+<script src="../../js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+
+
+<meta name="title-en" content="Cycle Honey">
+<meta name="desc-en" content="Cycle Honey - online utility on ToolBox.">
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/agriculture/cycle-honey.html">
+<link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/agriculture/cycle-honey.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/agriculture/cycle-honey.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/agriculture/cycle-honey.html">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:locale:alternate" content="zh_TW">
+<meta property="og:locale:alternate" content="en_US">
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
+
+<script src="/js/tool-ux.js" defer></script>
+<!-- TOOLBOX-TOOL-UX -->
+
+<script src="/js/analytics.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+<!-- TOOLBOX-TTZZ -->
+<script>
+(function(){try{
+var el = document.createElement("script");
+el.src = "https://lf1-cdn-tos.bytegoofy.com/goofy/ttzz/push.js?85d6452aa9be4d693b16cd48535a8c7ae57542f6788a41682e745be8eb99b35a8a24d2f724c31ebe20c1e4e6fba6d91caf576100b02a2870c72f38fc574066fef065d152c73bf1cbb2ebad3b5b5265d8";
+el.id = "ttzz";
+var s = document.getElementsByTagName("script")[0];
+s.parentNode.insertBefore(el, s);
+}catch(e){}
+})(window);
+</script>
+
+<script src="/js/tool-kit.js" defer></script>
+<!-- TOOLBOX-TOOL-KIT -->
+</head>
+<body>
+<h1 class="sr-only">采蜜期（摇蜜周期）安排</h1>
+<div class="nav">
+  <a href="../../index.html">← ToolBox</a>
+  <span>/ 采蜜期（摇蜜周期）安排</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+
+
+
+<nav class="breadcrumb" aria-label="面包屑导航" data-breadcrumb="1">
+  <a href="../../index.html">首页</a>
+  <span class="bc-sep">‹</span>
+  <a href="index.html">🌾 蜜蜂养殖</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">采蜜期（摇蜜周期）安排</span>
+</nav>
+<div class="container">
+<div class="tool-guide-link" data-guide-link="1">
+  <a href="../../guides/cycle-honey-guide.html">📖 查看「采蜜期（摇蜜周期）安排使用指南」</a>
+</div>
+
+  <div class="card">
+    <h2 data-zh="⏱️ 采蜜期（摇蜜周期）安排">⏱️ Honey Harvest Cycle Planner</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="管理蜂群摇蜜周期，追踪蜂箱位置与采蜜进度，自动计算下次摇蜜日期，记录每次摇蜜产量。数据本地存储。">Plan the honey-extraction cycle for each hive from its flow period and start date, and generate a harvest schedule to keep apiary work organised.</p>
+
+    <h3>➕ 添加蜂箱</h3>
+        <div class="formula-box">
+      <div class="formula-title">📐 计算公式 / 原理</div>
+      <div class="formula-eq">下次摇蜜日 = 上次取蜜日 + 流蜜周期(天)；周期按 7~14 天校验</div>
+      <div class="formula-desc">为每个蜂箱登记流蜜周期与起始日期，按「上次取蜜日 + 流蜜周期」递推下次摇蜜日并生成日历与提醒，避免过早取蜜影响封盖成熟、或过迟导致蜜压子圈。数据存于浏览器本地（localStorage），纯前端不上传。</div>
+    </div>
+<div class="input-row">
+      <div>
+        <label>蜂箱名称</label>
+        <input type="text" id="hiveName" placeholder="如 1号箱">
+      </div>
+      <div>
+        <label>放置位置</label>
+        <input type="text" id="hiveLoc" placeholder="如 油菜田东侧">
+      </div>
+      <div>
+        <label>流蜜周期(天)</label>
+        <input type="number" id="hiveCycle" value="10" min="7" max="14" step="1">
+      </div>
+      <div>
+        <label>开始日期</label>
+        <input type="date" id="hiveStart">
+      </div>
+    </div>
+    <div class="toolbar">
+      <button class="btn primary" onclick="addHive()">➕ 添加蜂箱</button>
+      <button class="btn" onclick="fillToday()">⏰ 填入今天</button>
+    </div>
+    <div style="margin:10px 0 4px;font-size:13px;color:var(--text-muted);">🍯 示例蜂场（一键填充演示数据）：</div>
+    <div class="toolbar">
+      <button type="button" class="btn" onclick="applyHoneyPreset('single')">单箱起步</button>
+      <button type="button" class="btn" onclick="applyHoneyPreset('multi')">三箱轮作</button>
+      <button type="button" class="btn" onclick="applyHoneyPreset('overdue')">到期提醒</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>🐝 蜂箱列表与摇蜜排期</h3>
+    <div id="hiveList"><div class="empty">暂无蜂箱，请先添加</div></div>
+  </div>
+
+  <div class="card">
+    <h3>🛢️ 摇蜜记录</h3>
+    <div class="input-row">
+      <div>
+        <label>选择蜂箱</label>
+        <select id="extrHive"></select>
+      </div>
+      <div>
+        <label>摇蜜日期</label>
+        <input type="date" id="extrDate">
+      </div>
+      <div>
+        <label>产量(kg)</label>
+        <input type="number" id="extrAmount" placeholder="如 5.5" step="0.1" min="0">
+      </div>
+    </div>
+    <div class="toolbar">
+      <button class="btn primary" onclick="addExtraction()">🛢️ 记录摇蜜</button>
+      <button class="btn" onclick="exportExtr()">📥 导出记录</button>
+    </div>
+    <div id="extrList" style="margin-top:12px;"></div>
+  </div>
+
+  <div class="card">
+    <h3>📅 蜜源流蜜日历</h3>
+    <p style="font-size:12px;color:var(--text-muted);margin-bottom:8px;">按月份显示主要蜜源流蜜情况（华东地区参考，实际因地域而异）</p>
+    <div class="month-cal" id="monthCal"></div>
+    <div id="seasonTip" style="margin-top:12px;"></div>
+    <div id="honeyChart" style="margin-top:12px;"></div>
+  </div>
+
+  <div class="card">
+    <h3>📊 产量统计</h3>
+    <div id="statsArea"><div class="empty">暂无摇蜜记录</div></div>
+  </div>
+</div>
+
+<script>
+var HIVES_KEY = 'tb_honey_hives';
+var EXTR_KEY = 'tb_honey_extr';
+var hives = [];
+var extractions = [];
+
+// 蜜源流蜜日历数据
+var FLOW_CALENDAR = [
+  { m: 1, name: '一月', flow: 'none', source: '休眠期', tip: '蜜蜂越冬期，注意保温和补饲，不宜摇蜜。确保巢内蜜量充足。' },
+  { m: 2, name: '二月', flow: 'weak', source: '早花/梅花', tip: '少量早花蜜源，蜜蜂开始春繁，以繁殖为主，一般不摇蜜。检查蜂王产卵情况。' },
+  { m: 3, name: '三月', flow: 'active', source: '油菜花', tip: '油菜花大流蜜期！摇蜜黄金期，7-10天一个周期。注意防范分蜂热。' },
+  { m: 4, name: '四月', flow: 'active', source: '油菜/紫云英', tip: '紫云英和油菜尾期，流蜜旺盛，继续摇蜜。加强蜂群管理，预防自然分蜂。' },
+  { m: 5, name: '五月', flow: 'active', source: '柑橘/刺槐', tip: '柑橘花、刺槐花期，优质蜜源。10天左右摇蜜一次，注意采集蜂群强度。' },
+  { m: 6, name: '六月', flow: 'weak', source: '枣花/乌桕', tip: '部分地区枣花、乌桕流蜜，但气温升高，蜜量减少。注意蜂群降温和喂水。' },
+  { m: 7, name: '七月', flow: 'none', source: '度夏期', tip: '高温度夏期，多数地区蜜源断档。以保蜂为主，遮阴通风，补充糖水。' },
+  { m: 8, name: '八月', flow: 'none', source: '度夏期', tip: '持续高温，蜜蜂活动减少。继续保持遮阴补水，防治螨虫，准备秋繁。' },
+  { m: 9, name: '九月', flow: 'weak', source: '盐肤木/秋花', tip: '秋繁开始，部分盐肤木等秋季蜜源。以繁殖越冬蜂为主，谨慎摇蜜。' },
+  { m: 10, name: '十月', flow: 'active', source: '茶花/荞麦', tip: '茶花、荞麦花期，秋季流蜜期。可适当摇蜜，但需留足越冬饲料。' },
+  { m: 11, name: '十一月', flow: 'weak', source: '枇杷/野花', tip: '枇杷花等晚秋蜜源，蜜量不大。开始准备越冬，留足存蜜。' },
+  { m: 12, name: '十二月', flow: 'none', source: '越冬期', tip: '蜜蜂进入越冬状态，不摇蜜。做好箱外保温，减少开箱打扰。' }
+];
+
+function load() {
+  try { hives = JSON.parse(localStorage.getItem(HIVES_KEY)) || []; } catch(e) { hives = []; }
+  try { extractions = JSON.parse(localStorage.getItem(EXTR_KEY)) || []; } catch(e) { extractions = []; }
+}
+function saveHives() { localStorage.setItem(HIVES_KEY, JSON.stringify(hives)); }
+function saveExtr() { localStorage.setItem(EXTR_KEY, JSON.stringify(extractions)); }
+
+function fmtDate(d) {
+  if (typeof d === 'number') d = new Date(d);
+  var p = function(n){ return n < 10 ? '0' + n : n; };
+  return d.getFullYear() + '-' + p(d.getMonth()+1) + '-' + p(d.getDate());
+}
+function todayStr() { return fmtDate(new Date()); }
+function fillToday() {
+  document.getElementById('hiveStart').value = todayStr();
+  document.getElementById('extrDate').value = todayStr();
+}
+
+function addHive() {
+  var name = document.getElementById('hiveName').value.trim();
+  var loc = document.getElementById('hiveLoc').value.trim();
+  var cycle = parseInt(document.getElementById('hiveCycle').value);
+  var start = document.getElementById('hiveStart').value;
+  if (!name) { ToolBox.showToast(i18nText('toast.msg900'), 'error'); return; }
+  if (!cycle || cycle < 7 || cycle > 14) { ToolBox.showToast(i18nText('toast.msg110'), 'error'); return; }
+  if (!start) { ToolBox.showToast(i18nText('toast.msg936'), 'error'); return; }
+  hives.push({ id: Date.now(), name: name, loc: loc || '未标注', cycle: cycle, start: start, createdAt: Date.now() });
+  saveHives();
+  document.getElementById('hiveName').value = '';
+  document.getElementById('hiveLoc').value = '';
+  document.getElementById('hiveStart').value = '';
+  render();
+  ToolBox.showToast(i18nText('toast.msg578'));
+}
+
+function applyHoneyPreset(kind){
+  if(!kind) return;
+  var base = Date.now();
+  function daysAgo(n){ return fmtDate(new Date(base - n*86400000)); }
+  function mkHive(id,name,loc,cycle,startOffset){
+    return { id: id, name: name, loc: loc, cycle: cycle, start: daysAgo(startOffset), createdAt: base };
+  }
+  hives = [];
+  extractions = [];
+  if(kind==='single'){
+    hives.push(mkHive(900001,'1号箱','果园',10,30));
+    extractions.push({ id: 910001, hiveId: 900001, hiveName: '1号箱', date: daysAgo(20), amount: 6.5 });
+  } else if(kind==='multi'){
+    hives.push(mkHive(900002,'1号箱','果园',10,30));
+    hives.push(mkHive(900003,'2号箱','油菜田',12,45));
+    hives.push(mkHive(900004,'3号箱','槐树林',14,60));
+    extractions.push({ id: 910002, hiveId: 900002, hiveName: '1号箱', date: daysAgo(20), amount: 6.5 });
+    extractions.push({ id: 910003, hiveId: 900003, hiveName: '2号箱', date: daysAgo(33), amount: 5.0 });
+    extractions.push({ id: 910004, hiveId: 900004, hiveName: '3号箱', date: daysAgo(46), amount: 4.2 });
+  } else if(kind==='overdue'){
+    hives.push(mkHive(900005,'到期箱','阳台',7,45));
+  } else { return; }
+  saveHives();
+  saveExtr();
+  ['hiveName','hiveLoc','hiveStart','extrAmount'].forEach(function(id){
+    var el=document.getElementById(id); if(el) el.value='';
+  });
+  render();
+  ToolBox.showToast('已填充示例蜂场数据');
+}
+
+function delHive(id) {
+  if (!confirm('确定删除此蜂箱？相关摇蜜记录将保留。')) return;
+  hives = hives.filter(function(h){ return h.id !== id; });
+  saveHives();
+  render();
+  ToolBox.showToast(i18nText('toast.deleted'));
+}
+
+function getFlowStatus(month) {
+  var cal = FLOW_CALENDAR[month - 1];
+  return cal;
+}
+
+function getLastExtraction(hiveId) {
+  var hiveExtr = extractions.filter(function(e){ return e.hiveId === hiveId; }).sort(function(a, b){ return new Date(a.date) - new Date(b.date); });
+  return hiveExtr.length ? hiveExtr[hiveExtr.length - 1] : null;
+}
+
+function getNextExtraction(hive) {
+  var last = getLastExtraction(hive.id);
+  var baseDate = last ? new Date(last.date) : new Date(hive.start);
+  var nextDate = new Date(baseDate);
+  nextDate.setDate(nextDate.getDate() + hive.cycle);
+  return nextDate;
+}
+
+function getDaysUntil(date) {
+  var today = new Date(todayStr());
+  var diff = Math.ceil((date - today) / (1000 * 60 * 60 * 24));
+  return diff;
+}
+
+function renderHives() {
+  var list = document.getElementById('hiveList');
+  if (!hives.length) { const __h0='<div class="empty">暂无蜂箱，请先添加</div>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){list.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}list.innerHTML=__h0; return; }
+  var nowMonth = new Date().getMonth() + 1;
+  var flow = getFlowStatus(nowMonth);
+  var html = '';
+  hives.forEach(function(h) {
+    var next = getNextExtraction(h);
+    var days = getDaysUntil(next);
+    var last = getLastExtraction(h.id);
+    var canExtract = flow.flow !== 'none';
+    var badge = canExtract
+      ? '<span class="flow-badge flow-active">流蜜期</span>'
+      : '<span class="flow-badge flow-none">非流蜜期</span>';
+    var dayColor = days <= 0 ? 'var(--danger)' : (days <= 3 ? 'var(--warning)' : 'var(--primary)');
+    var dayText = days <= 0 ? '已到摇蜜时间' : days + ' 天';
+    var totalAmount = extractions.filter(function(e){ return e.hiveId === h.id; }).reduce(function(a, b){ return a + b.amount; }, 0);
+    html += '<div class="hive-card">';
+    html += '<div class="hive-head"><span class="hive-name">🍯 ' + ToolBox.escHtml(h.name) + '</span><span class="hive-loc">📍 ' + ToolBox.escHtml(h.loc) + '</span></div>';
+    html += '<div class="hive-info">';
+    html += '<span>周期：<b>' + h.cycle + '天</b></span>';
+    html += '<span>起始：<b>' + h.start + '</b></span>';
+    html += '<span>累计产蜜：<b>' + totalAmount.toFixed(1) + ' kg</b></span>';
+    html += '<span>' + badge + '</span>';
+    html += '</div>';
+    html += '<div class="hive-info">';
+    html += '<span>上次摇蜜：<b>' + (last ? last.date : '尚未摇蜜') + '</b></span>';
+    html += '<span>下次摇蜜：<b>' + fmtDate(next) + '</b></span>';
+    html += '</div>';
+    html += '<div class="countdown-box"><span class="days" style="color:' + dayColor + ';">' + dayText + '</span><span style="color:var(--text-secondary);">' + (days <= 0 ? '建议尽快摇蜜' : '距离下次摇蜜') + '</span></div>';
+    if (!canExtract) {
+      html += '<div class="tip-box tip-warn" style="margin-top:8px;">⚠️ 当前为非流蜜期(' + flow.source + ')，不建议摇蜜，以免影响蜂群越冬/度夏</div>';
+    }
+    html += '<div style="margin-top:8px;"><button class="extr-btn" onclick="quickExtr(' + h.id + ')">🛢️ 快速记录摇蜜</button> <button class="extr-btn" onclick="delHive(' + h.id + ')" style="color:var(--danger);">删除蜂箱</button></div>';
+    html += '</div>';
+  });
+  const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){list.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}list.innerHTML=__h1;
+}
+
+function quickExtr(hiveId) {
+  var hive = hives.find(function(h){ return h.id === hiveId; });
+  if (!hive) return;
+  var amount = prompt('请输入本次摇蜜产量(kg)：', '5');
+  if (amount === null) return;
+  var amt = parseFloat(amount);
+  if (isNaN(amt) || amt < 0) { ToolBox.showToast(i18nText('toast.msg809'), 'error'); return; }
+  extractions.push({ id: Date.now(), hiveId: hiveId, hiveName: hive.name, date: todayStr(), amount: amt });
+  saveExtr();
+  render();
+  ToolBox.showToast('摇蜜已记录：' + hive.name + ' ' + amt + 'kg');
+}
+
+function addExtraction() {
+  var hiveId = parseInt(document.getElementById('extrHive').value);
+  var date = document.getElementById('extrDate').value;
+  var amount = parseFloat(document.getElementById('extrAmount').value);
+  if (!hiveId) { ToolBox.showToast(i18nText('toast.msg949'), 'error'); return; }
+  if (!date) { ToolBox.showToast(i18nText('toast.msg940'), 'error'); return; }
+  if (isNaN(amount) || amount < 0) { ToolBox.showToast(i18nText('toast.msg809'), 'error'); return; }
+  var hive = hives.find(function(h){ return h.id === hiveId; });
+  extractions.push({ id: Date.now(), hiveId: hiveId, hiveName: hive ? hive.name : '未知', date: date, amount: amount });
+  saveExtr();
+  document.getElementById('extrAmount').value = '';
+  render();
+  ToolBox.showToast(i18nText('toast.msg379'));
+}
+
+function delExtr(id) {
+  extractions = extractions.filter(function(e){ return e.id !== id; });
+  saveExtr();
+  render();
+  ToolBox.showToast(i18nText('toast.deleted'));
+}
+
+function renderExtrList() {
+  var list = document.getElementById('extrList');
+  var sel = document.getElementById('extrHive');
+  const __h2='<option value="">请选择蜂箱</option>' + hives.map(function(h){ return '<option value="' + h.id + '">' + ToolBox.escHtml(h.name) + '</option>'; }).join('');if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){sel.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}sel.innerHTML=__h2;
+  if (!extractions.length) { const __h3='<div class="empty">暂无摇蜜记录</div>';if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){list.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}list.innerHTML=__h3; return; }
+  var sorted = extractions.slice().sort(function(a, b){ return new Date(b.date) - new Date(a.date); });
+  var html = '<table><thead><tr><th>日期</th><th>蜂箱</th><th>产量(kg)</th><th>操作</th></tr></thead><tbody>';
+  sorted.forEach(function(e) {
+    html += '<tr><td>' + e.date + '</td><td>' + ToolBox.escHtml(e.hiveName) + '</td><td><strong style="color:var(--primary);">' + e.amount.toFixed(1) + '</strong></td><td><button class="extr-btn" onclick="delExtr(' + e.id + ')" style="color:var(--danger);">删除</button></td></tr>';
+  });
+  html += '</tbody></table>';
+  const __h4=html;if((typeof __h4==='number'&&!isFinite(__h4))||/Infinity/.test(String(__h4))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h4)){list.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}list.innerHTML=__h4;
+}
+
+function renderMonthCal() {
+  var nowMonth = new Date().getMonth() + 1;
+  var html = '';
+  FLOW_CALENDAR.forEach(function(c) {
+    var cls = c.flow === 'active' ? 'active' : (c.flow === 'weak' ? 'weak' : '');
+    var highlight = c.m === nowMonth ? 'border-color:var(--primary);box-shadow:0 0 0 2px rgba(255,107,53,0.15);' : '';
+    html += '<div class="month-cell ' + cls + '" style="' + highlight + '">';
+    html += '<div class="m">' + c.name + '</div>';
+    html += '<div class="s">' + c.source + '</div>';
+    html += '</div>';
+  });
+  const __h5=html;if((typeof __h5==='number'&&!isFinite(__h5))||/Infinity/.test(String(__h5))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h5)){document.getElementById('monthCal').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('monthCal').innerHTML=__h5;
+  var tip = FLOW_CALENDAR[nowMonth - 1];
+  var tipCls = tip.flow === 'active' ? 'tip-success' : (tip.flow === 'weak' ? 'tip-warn' : 'tip-info');
+  const __h6='<div class="tip-box ' + tipCls + '"><strong>本月(' + tip.name + ')蜜源：' + tip.source + '</strong><br>' + tip.tip + '</div>';if((typeof __h6==='number'&&!isFinite(__h6))||/Infinity/.test(String(__h6))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h6)){document.getElementById('seasonTip').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('seasonTip').innerHTML=__h6;
+}
+
+function renderStats() {
+  var area = document.getElementById('statsArea');
+  if (!extractions.length) { const __h7='<div class="empty">暂无摇蜜记录</div>';if((typeof __h7==='number'&&!isFinite(__h7))||/Infinity/.test(String(__h7))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h7)){area.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}area.innerHTML=__h7; return; }
+  var total = extractions.reduce(function(a, b){ return a + b.amount; }, 0);
+  var count = extractions.length;
+  var avg = total / count;
+  // by hive
+  var byHive = {};
+  extractions.forEach(function(e) {
+    if (!byHive[e.hiveName]) byHive[e.hiveName] = 0;
+    byHive[e.hiveName] += e.amount;
+  });
+  var maxHive = '', maxAmt = 0;
+  for (var k in byHive) { if (byHive[k] > maxAmt) { maxAmt = byHive[k]; maxHive = k; } }
+  // by month
+  var byMonth = {};
+  extractions.forEach(function(e) {
+    var m = e.date.slice(0, 7);
+    if (!byMonth[m]) byMonth[m] = 0;
+    byMonth[m] += e.amount;
+  });
+  var monthRows = Object.keys(byMonth).sort().reverse().map(function(m) {
+    return '<tr><td>' + m + '</td><td><strong style="color:var(--primary);">' + byMonth[m].toFixed(1) + ' kg</strong></td></tr>';
+  }).join('');
+  var html = '<div class="stat-grid">';
+  html += '<div class="stat-card"><div class="val">' + total.toFixed(1) + '</div><div class="lbl">总产量(kg)</div></div>';
+  html += '<div class="stat-card"><div class="val">' + count + '</div><div class="lbl">摇蜜次数</div></div>';
+  html += '<div class="stat-card"><div class="val">' + avg.toFixed(1) + '</div><div class="lbl">平均每次(kg)</div></div>';
+  html += '<div class="stat-card"><div class="val">' + maxAmt.toFixed(1) + '</div><div class="lbl">最高蜂箱(' + ToolBox.escHtml(maxHive) + ')</div></div>';
+  html += '</div>';
+  html += '<h4 style="font-size:14px;margin:14px 0 8px;color:var(--heading);">按月产量</h4>';
+  html += '<table><thead><tr><th>月份</th><th>产量</th></tr></thead><tbody>' + monthRows + '</tbody></table>';
+  const __h8=html;if((typeof __h8==='number'&&!isFinite(__h8))||/Infinity/.test(String(__h8))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h8)){area.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}area.innerHTML=__h8;
+}
+
+function exportExtr() {
+  if (!extractions.length) { ToolBox.showToast(i18nText('toast.msg431'), 'info'); return; }
+  var lines = '日期,蜂箱,产量(kg)\n';
+  extractions.sort(function(a, b){ return new Date(a.date) - new Date(b.date); }).forEach(function(e) {
+    lines += e.date + ',' + e.hiveName + ',' + e.amount + '\n';
+  });
+  ToolBox.downloadText('摇蜜记录_' + todayStr() + '.csv', lines);
+  ToolBox.showToast(i18nText('toast.saved'));
+}
+
+function __honeyChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart)return;
+  var en=TBKit.util.isEn();
+  var labels=FLOW_CALENDAR.map(function(c){return en?('M'+c.m):c.name;});
+  var data=FLOW_CALENDAR.map(function(c){return c.flow==='active'?2:(c.flow==='weak'?1:0);});
+  TBKit.chart.bar('#honeyChart',{title:en?'Monthly honey flow intensity':'各月蜜源流蜜强度',labels:labels,series:[{name:en?'Intensity':'强度',data:data}]});
+}
+function render() {
+  renderHives();
+  renderExtrList();
+  renderMonthCal();
+  renderStats();
+  try{ __honeyChart(); }catch(e){}
+}
+
+load();
+fillToday();
+render();
+</script>
+
+<div class="tool-notes">
+  <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
+  <ul>
+    <li>流蜜日历以华东地区为参考，实际蜜源花期因地域、海拔、气候而异，请结合当地情况调整</li>
+    <li>摇蜜周期建议在流蜜期为 7-14 天，非流蜜期不宜摇蜜，以免影响蜂群生存</li>
+    <li>每次摇蜜后请确保蜂箱内留足存蜜，至少保留 1-2 脾蜜供蜂群食用</li>
+    <li>「快速记录摇蜜」会以今天为日期记录产量，适合现场操作时使用</li>
+    <li>数据保存在浏览器本地，清除缓存会丢失，建议定期导出备份</li>
+  </ul>
+</div>
+
+
+</div>
+
+</div>
+
+
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto 0;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+.deep-dive a.term-link{color:var(--tool-accent,#FF6B35);text-decoration:none;border-bottom:1px dashed currentColor;}
+.deep-dive a.term-link:hover{border-bottom-style:solid;}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：采蜜期（摇蜜周期）安排</h2>
+<h3>💡 常见使用场景</h3>
+<ul class="dd-list">
+<li>按蜂箱登记流蜜周期（7~14 天）与起始日期，推算每个蜂箱的下次摇蜜（取蜜）日期。</li>
+<li>多箱排期：汇总各箱摇蜜日生成日历，协调人手与摇蜜机，避免同一天多箱挤占。</li>
+<li>跟踪取蜜记录与产量，按箱统计累计取蜜量，评估蜜源期供给与蜂群产能。</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">荆条花期单箱摇蜜排期</div><div class="dd-ex-body">5 月 20 日入场，流蜜周期设 10 天，则下次摇蜜为 5 月 30 日，依次递推 6 月 9 日、6 月 19 日。若封盖率不足，人工延后 2~3 天再取，避免取到未成熟蜜导致发酵。</div></div>
+<h3>❓ 常见问题（FAQ）</h3>
+<dl class="dd-faq">
+<dt>流蜜周期设几天合适？</dt><dd>以蜜源植物泌蜜节奏与封盖情况为准，常见 7~14 天。大流蜜期宜偏短（7~10 天），零星蜜源可偏长；工具要求落在 7~14 天区间内。</dd>
+<dt>为什么要按箱分别排期？</dt><dd>各箱群势、王龄、入场时间不同，泌蜜与封盖进度并不一致。按箱排期可避免「一刀切」，减少取未熟蜜与伤子的风险。</dd>
+<dt>数据会保存到服务器吗？</dt><dd>蜂箱与取蜜记录存于浏览器本地存储（localStorage），不上传服务器；清除浏览器数据会一并清空。建议定期把取蜜记录另存备份。</dd>
+</dl>
+</div>
+</section>
+<!-- 相关工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相关工具</h3>
+  <div class="related-tools-grid">
+    <a href="detector-nutrition.html" class="related-tool-card">
+      <span class="rt-icon">🥗</span>
+      <span class="rt-info"><span class="rt-name">花粉（发酵）全营养检测 - 蜂花粉经乳酸菌发酵后破壁更易吸收</span><span class="rt-desc">发酵花粉全营养检测</span></span>
+    </a>
+    <a href="detector-13.html" class="related-tool-card">
+      <span class="rt-icon">🔍</span>
+      <span class="rt-info"><span class="rt-name">蜂螨（寄生率）检测 - 狄斯瓦螨是危害蜜蜂最严重的外寄生虫</span><span class="rt-desc">蜂螨寄生率检测</span></span>
+    </a>
+    <a href="calc-37.html" class="related-tool-card">
+      <span class="rt-icon">🧮</span>
+      <span class="rt-info"><span class="rt-name">光照累积量（每日光积分DLI）计算</span><span class="rt-desc">按日光照强度与时长积分计算每日光积分 DLI，评估设施作物光环境是否充足，适用于温室补光设计、育苗光</span></span>
+    </a>
+    <a href="convert-content-1.html" class="related-tool-card">
+      <span class="rt-icon">🔄</span>
+      <span class="rt-info"><span class="rt-name">农产品干物质含量与水分换算</span><span class="rt-desc">在农产品含水率与干物质含量间互算，输入初重与含水率得干物质重，适用于粮储保管、收购计价与加工原料核算</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro open" id="toolIntro">
+  <div class="tool-intro-header">
+    <span class="intro-icon-wrap"><span class="intro-icon">📖</span>关于「采蜜期（摇蜜周期）安排」</span>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="tool-intro-body">
+    <h4><span class="h4-icon">📝</span>工具简介</h4>
+    <p>养蜂人的摇蜜周期管理工具。支持添加蜂箱并记录位置、流蜜周期和起始日期，内置 12 个月蜜源流蜜日历，自动计算每箱下次摇蜜日期与倒计时，记录每次摇蜜产量并生成按月、按箱的产量统计，帮助养蜂人科学安排采蜜计划。</p>
+    <h4><span class="h4-icon">✨</span>功能特点</h4>
+    <ul class="intro-features">
+      <li>蜂箱位置与周期管理</li>
+      <li>自动摇蜜日期计算</li>
+      <li>12 月流蜜日历参考</li>
+      <li>摇蜜产量记录</li>
+      <li>按月按箱统计</li>
+      <li>季节养护提示</li>
+    </ul>
+    <h4><span class="h4-icon">🎯</span>使用场景</h4>
+    <ul class="intro-scenes">
+      <li>定地养蜂摇蜜排期</li>
+      <li>追花夺蜜转场规划</li>
+      <li>蜂场产量记录分析</li>
+      <li>多蜂箱采蜜统筹</li>
+    </ul>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  var headers = document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h) {
+    h.addEventListener('click', function() { this.parentElement.classList.toggle('open'); });
+  });
+  try{ __honeyChart(); }catch(e){}
+});
+window.addEventListener('toolbox:langchange', function(){ try{ __honeyChart(); }catch(e){} });
+</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "摇蜜周期一般多长？", "acceptedAnswer": {"@type": "Answer", "text": "流蜜盛期通常 5–7 天可摇一次，以蜜脾约七至八成封盖、含水降至 18% 以下为宜；流蜜末期或群势弱时延长至 10 天左右，避免摇未成熟蜜。"}}, {"@type": "Question", "name": "采蜜期如何减少对蜂群的影响？", "acceptedAnswer": {"@type": "Answer", "text": "选晴暖上午提脾、抖蜂后快摇快还，尽量不伤子脾；留足边蜜与粉脾供蜂群自用，流蜜中断前不空摇，防止蜂群缺粮起盗。"}}]}</script>
+</body>
+</html>

@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=game,industry=fun,icon=🎮,bg=#fff8e1">
+<title>1A2B 猜数字（Bulls &amp; Cows）- 在线趣味工具</title>
+<link rel="canonical" href="https://chenguangwu.github.io/tools/fun/1a2b-guess.html">
+<meta property="og:title" content="1A2B 猜数字（Bulls &amp; Cows）- 在线趣味工具">
+<meta property="og:description" content="1A2B 猜数字（Bulls &amp; Cows）- 在线趣味工具是一款免费的在线娱乐游戏工具，经典 1A2B 猜数字：4/5 位多难度、xAyB 反馈、候选数推理辅助与最佳记录。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+<meta property="og:url" content="https://chenguangwu.github.io/tools/fun/1a2b-guess.html">
+<meta name="twitter:card" content="summary">
+<meta name="description" content="1A2B 猜数字（Bulls &amp; Cows）- 在线趣味工具是一款免费的在线娱乐游戏工具，经典 1A2B 猜数字：4/5 位多难度、xAyB 反馈、候选数推理辅助与最佳记录。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+<link rel="stylesheet" href="../../css/common.css">
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="../../js/common.js" defer></script>
+<!-- TOOLBOX-WEBAPP-LD -->
+<!-- TOOLBOX-SECURITY -->
+<style>
+.g2-wrap{max-width:780px}
+.g2-top{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-bottom:14px}
+.g2-modes{display:inline-flex;gap:6px;background:var(--bg-hover);padding:4px;border-radius:12px;flex-wrap:wrap}
+.g2-modes button{border:0;background:transparent;color:var(--text-secondary);padding:7px 12px;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;transition:.18s}
+.g2-modes button.on{background:var(--card-bg);color:var(--primary);box-shadow:var(--shadow-sm)}
+.g2-stat{font-size:13px;color:var(--text-secondary);background:var(--bg-hover);padding:6px 12px;border-radius:999px;font-weight:600}
+.g2-board{display:grid;grid-template-columns:1fr 260px;gap:16px;margin-bottom:14px}
+@media(max-width:680px){.g2-board{grid-template-columns:1fr}}
+.g2-card{border:1px solid var(--border);border-radius:16px;padding:18px;background:var(--card-bg)}
+.g2-secret{display:flex;gap:8px;justify-content:center;margin-bottom:12px}
+.g2-cell{width:48px;height:56px;border-radius:10px;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:800;color:var(--text-muted);background:var(--bg-hover)}
+.g2-cell.filled{color:var(--primary);border-color:var(--primary)}
+.g2-cell.correct{background:rgba(16,185,129,.15);border-color:var(--success);color:var(--success)}
+.g2-cell.wrongpos{background:rgba(245,158,11,.15);border-color:var(--warning);color:var(--warning)}
+.g2-hist{margin-top:4px;max-height:340px;overflow-y:auto}
+.g2-row{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;padding:8px 10px;border-bottom:1px dashed var(--border);font-size:14px}
+.g2-row:last-child{border-bottom:0}
+.g2-row .g{font-family:ui-monospace,Menlo,monospace;font-weight:700;letter-spacing:2px;color:var(--heading)}
+.g2-row .r{font-family:ui-monospace,Menlo,monospace;font-weight:800;color:var(--primary);text-align:right;white-space:nowrap}
+.g2-row .n{color:var(--text-muted);font-size:12px;width:22px}
+.g2-side h3{font-size:13px;color:var(--text-secondary);margin:0 0 8px}
+.g2-side .panel{border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:12px;background:var(--result-bg)}
+.g2-info{display:flex;justify-content:space-between;font-size:13px;padding:4px 0;color:var(--text-secondary)}
+.g2-info b{color:var(--heading);font-family:ui-monospace,Menlo,monospace}
+.g2-best{font-size:12.5px;color:var(--text-muted);line-height:1.7}
+.g2-inputrow{display:flex;gap:8px;margin-top:12px}
+.g2-guess{font-size:22px;letter-spacing:4px;text-align:center;font-family:ui-monospace,Menlo,monospace;font-weight:700}
+.g2-keypad{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:14px}
+.g2-keypad button{padding:14px 0;font-size:20px;font-weight:700;border:1px solid var(--border);border-radius:12px;background:var(--bg-card);color:var(--text);cursor:pointer;transition:.15s;font-family:ui-monospace,Menlo,monospace}
+.g2-keypad button:hover{border-color:var(--primary);background:var(--bg-hover)}
+.g2-keypad button:active{transform:scale(.96)}
+.g2-keypad button.act{background:var(--gradient-primary);color:#fff;border:0}
+.g2-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.g2-result{border-radius:14px;padding:16px;margin-top:6px;font-size:14px;line-height:1.7}
+.g2-result.win{background:rgba(16,185,129,.10);border:1px solid rgba(16,185,129,.3)}
+.g2-result.lose{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25)}
+.g2-result .ans{font-size:20px;font-weight:800;color:var(--primary);font-family:ui-monospace,Menlo,monospace;letter-spacing:3px}
+.g2-note{font-size:12.5px;color:var(--text-muted);line-height:1.7;margin-top:10px}
+.g2-toggle{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--text-secondary);cursor:pointer;margin-top:8px}
+@media(max-width:680px){.g2-cell{width:42px;height:50px;font-size:22px}.g2-keypad button{padding:12px 0;font-size:18px}}
+</style>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://chenguangwu.github.io/"},{"@type":"ListItem","position":2,"name":"娱乐游戏","item":"https://chenguangwu.github.io/tools/fun/index.html"},{"@type":"ListItem","position":3,"name":"1A2B 猜数字","item":"https://chenguangwu.github.io/tools/fun/1a2b-guess.html"}]}
+</script>
+
+<script src="/js/analytics.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"1A2B 猜数字","url":"https://chenguangwu.github.io/tools/fun/1a2b-guess.html","applicationCategory":"GamesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"1A2B 猜数字（Bulls &amp; Cows）- 在线趣味工具是一款免费的在线娱乐游戏工具，经典 1A2B 猜数字：4/5 位多难度、xAyB 反馈、候选数推理辅助与最佳记录。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+</script>
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
+
+<meta name="twitter:title" content="1A2B 猜数字（Bulls &amp; Cows）- 在线趣味工具">
+<meta name="twitter:description" content="1A2B 猜数字（Bulls &amp; Cows）- 在线趣味工具是一款免费的在线娱乐游戏工具，经典 1A2B 猜数字：4/5 位多难度、xAyB 反馈、候选数推理辅助与最佳记录。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+<meta property="og:type" content="website">
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script src="../../js/i18n.js" defer></script>
+<script src="../../js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+<meta name="title-en" content="1a2b Guess">
+<meta name="desc-en" content="1a2b Guess - online utility on ToolBox.">
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/fun/1a2b-guess.html">
+<link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/fun/1a2b-guess.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/fun/1a2b-guess.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/fun/1a2b-guess.html">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:locale:alternate" content="zh_TW">
+<meta property="og:locale:alternate" content="en_US">
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
+
+<script src="/js/tool-ux.js" defer></script>
+<!-- TOOLBOX-TOOL-UX -->
+<!-- TOOLBOX-TTZZ -->
+<script>
+(function(){try{
+var el = document.createElement("script");
+el.src = "https://lf1-cdn-tos.bytegoofy.com/goofy/ttzz/push.js?85d6452aa9be4d693b16cd48535a8c7ae57542f6788a41682e745be8eb99b35a8a24d2f724c31ebe20c1e4e6fba6d91caf576100b02a2870c72f38fc574066fef065d152c73bf1cbb2ebad3b5b5265d8";
+el.id = "ttzz";
+var s = document.getElementsByTagName("script")[0];
+s.parentNode.insertBefore(el, s);
+}catch(e){}
+})(window);
+</script>
+
+<script src="/js/tool-kit.js" defer></script>
+<!-- TOOLBOX-TOOL-KIT -->
+</head>
+<body>
+
+<h1 class="sr-only">1A2B 猜数字</h1>
+
+<div class="nav">
+  <a href="../../index.html">← ToolBox</a>
+  <span>/ 1A2B 猜数字</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+<nav class="breadcrumb" aria-label="面包屑导航" data-breadcrumb="1">
+  <a href="../../index.html">首页</a>
+  <span class="bc-sep">‹</span>
+  <a href="index.html">🎮 趣味工具</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">1A2B 猜数字</span>
+</nav>
+
+
+<div class="tool-guide-link" data-guide-link="1">
+  <a href="../../guides/1a2b-guess-guide.html">📖 查看「1A2B 猜数字（Bulls &amp; Cows）使用指南」</a>
+</div>
+<div class="container g2-wrap">
+  <div class="card tool-card-accent" style="--tool-accent:#F59E0B;">
+    <h2 data-zh="🎮 1A2B 猜数字：逻辑推理 · Bulls & Cows">🎮 1A2B Number Guessing Game (Bulls &amp; Cows)</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px;" data-zh="经典 1A2B（公牛与奶牛）推理游戏：电脑生成一组不重复数字，你每次猜一个组合，系统给出 xAyB 提示——A 表示数字与位置都对，B 表示数字对但位置错。配合推理辅助表与可能解计数，用最少步数破解出答案。">Classic Bulls &amp; Cows guessing game with 4- and 5-digit difficulty levels, xAyB feedback, candidate-number reasoning help and a best-score record.</p>
+
+    <div class="g2-top">
+      <div class="g2-modes" role="group" aria-label="难度模式">
+        <button data-mode="4n" class="on">4 位 · 不重复</button>
+        <button data-mode="4d">4 位 · 可重复</button>
+        <button data-mode="5n">5 位 · 不重复</button>
+      </div>
+      <span class="g2-stat" id="g2Best">最佳：—</span>
+    </div>
+
+    <div class="g2-board">
+      <div class="g2-card">
+        <div class="g2-secret" id="g2Secret"></div>
+        <div class="g2-hist" id="g2Hist">
+          <div class="dr-empty g2-empty" style="text-align:center;color:var(--text-muted);padding:24px;font-size:13px">还没有猜测，输入第一个组合开始推理吧。</div>
+        </div>
+
+        <div class="g2-inputrow">
+          <input type="text" id="g2Guess" class="g2-guess" placeholder="依次输入数字" inputmode="numeric" autocomplete="off" maxlength="5" style="flex:1">
+          <button class="btn btn-primary" id="g2Submit">猜！</button>
+        </div>
+
+        <label class="g2-toggle"><input type="checkbox" id="g2KpOn" checked> 显示数字键盘（适配移动端）</label>
+        <div class="g2-keypad" id="g2Keypad"></div>
+
+        <div class="g2-actions">
+          <button class="btn" id="g2New">新一局</button>
+          <button class="btn" id="g2Giveup">放弃看答案</button>
+          <button class="btn" id="g2Clear">清空输入</button>
+        </div>
+      </div>
+
+      <div class="g2-side">
+        <div class="panel">
+          <h3>本局数据</h3>
+          <div class="g2-info"><span>已用步数</span><b id="g2Steps">0</b></div>
+          <div class="g2-info"><span>可能解数量</span><b id="g2Poss">—</b></div>
+          <div class="g2-info"><span>当前模式</span><b id="g2ModeLabel">4N</b></div>
+          <div class="g2-info"><span>剩余机会</span><b id="g2Chance">不限</b></div>
+        </div>
+        <div class="panel">
+          <h3>规则速记</h3>
+          <div class="g2-best">
+            <b style="color:var(--success)">A</b>：数字与位置都正确<br>
+            <b style="color:var(--warning)">B</b>：数字正确但位置错误<br>
+            例如答案 <b>1234</b>、猜 <b>1359</b> → <b>1A1B</b>（1 位对、3 错位）。
+          </div>
+        </div>
+        <div class="panel">
+          <h3>最佳记录</h3>
+          <div class="g2-best" id="g2BestDetail">—</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="g2Result"></div>
+
+    <div class="panel" style="margin-top:14px;">
+      <h3>📊 对局统计</h3>
+      <div class="toolbar" style="margin:6px 0;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+        <button type="button" class="btn" onclick="__g2Export('stats')">导出对局统计 CSV</button>
+        <button type="button" class="btn" onclick="__g2Export('game')">导出当局猜测明细 CSV</button>
+        <button type="button" class="btn" onclick="__g2ClearGames()">清空对局历史</button>
+      </div>
+      <div id="__g2Trend" style="margin:8px 0;"></div>
+      <div id="__g2StatsTable"></div>
+      <h4 style="font-size:13px;margin:14px 0 6px;color:var(--text-secondary);">当局猜测明细</h4>
+      <div id="__g2GameTable"></div>
+    </div>
+
+    <div class="g2-note">技巧：优先用“试探性”组合覆盖更多数字，根据 xAyB 逐步排除；右侧“可能解数量”会随每次有效猜测快速缩小，接近 1 时基本可锁定答案。所有数据仅保存在本地浏览器。</div>
+  </div>
+</div>
+
+
+<!-- 相关工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相关工具</h3>
+  <div class="related-tools-grid">
+    <a href="generator-24.html" class="related-tool-card">
+      <span class="rt-icon">🧩</span>
+      <span class="rt-info"><span class="rt-name">数字谜题生成（24点游戏）</span><span class="rt-desc">数字谜题生成（24点游戏）是一款免费的在线娱乐游戏工具，数字谜题生成（24点游戏）。免费在线工具…</span></span>
+    </a>
+    <a href="generator-2.html" class="related-tool-card">
+      <span class="rt-icon">🧩</span>
+      <span class="rt-info"><span class="rt-name">数独生成器 / 求解器</span><span class="rt-desc">数独生成器/求解器。一键生成不同难度的数独题目并给出参考答案，也可粘贴题目求解，用于数独练习与休闲…</span></span>
+    </a>
+    <a href="generator-laugh.html" class="related-tool-card">
+      <span class="rt-icon">✨</span>
+      <span class="rt-info"><span class="rt-name">笑声音效生成器（合成）</span><span class="rt-desc">笑声音效合成器。基于 Web Audio API 在浏览器内实时合成多样化笑声，可随机微调参数、下…</span></span>
+    </a>
+    <a href="riddle-generator.html" class="related-tool-card">
+      <span class="rt-icon">✨</span>
+      <span class="rt-info"><span class="rt-name">谜语生成器</span><span class="rt-desc">从题库随机出题或按关键词生成谜语，附答案可切换显示，适合聚会互动与语文趣味，纯前端出题可重复游玩。</span></span>
+    </a>
+    <a href="generator-3.html" class="related-tool-card">
+      <span class="rt-icon">🧩</span>
+      <span class="rt-info"><span class="rt-name">迷宫生成器（自动生成并求解）</span><span class="rt-desc">迷宫生成器。采用随机化算法自动生成迷宫并附带 BFS/A* 求解路径，支持网格尺寸调节，纯前端生成…</span></span>
+    </a>
+    <a href="random-name-gen.html" class="related-tool-card">
+      <span class="rt-icon">🎲</span>
+      <span class="rt-info"><span class="rt-name">随机姓名生成器</span><span class="rt-desc">批量生成随机姓名，可选风格与数量，用于占位示例、角色起名、分组抽签等场景，全部在浏览器本地生成。</span></span>
+    </a>
+  </div>
+</div>
+<script>
+(function () {
+  'use strict';
+
+  /* ============================================================
+   * 1. 模式配置
+   * ========================================================== */
+  var MODES = {
+    '4n': { len:4, unique:true },
+    '4d': { len:4, unique:false },
+    '5n': { len:5, unique:true }
+  };
+  var modeKey='4n';
+  var cfg=MODES[modeKey];
+
+  /* ============================================================
+   * 2. 工具函数
+   * ========================================================== */
+  function $(id){ return document.getElementById(id); }
+  function escapeHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function shuffle(arr){
+    for(var i=arr.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)); var t=arr[i]; arr[i]=arr[j]; arr[j]=t; }
+    return arr;
+  }
+  function getBest(){
+    try{ var s=JSON.parse(localStorage.getItem('tb_g2_best')||'null'); if(s&&typeof s==='object') return s; }catch(e){}
+    return {};
+  }
+  function setBest(o){ try{ localStorage.setItem('tb_g2_best',JSON.stringify(o)); }catch(e){} }
+  var _toastTimer=null;
+  function toast(msg){
+    var el=$('g2Toast');
+    if(!el){ el=document.createElement('div'); el.id='g2Toast';
+      el.style.cssText='position:fixed;left:50%;bottom:32px;transform:translateX(-50%) translateY(20px);background:rgba(31,41,55,.94);color:#fff;padding:10px 18px;border-radius:999px;font-size:13px;z-index:9999;opacity:0;transition:.22s;pointer-events:none;box-shadow:0 6px 20px rgba(0,0,0,.2)';
+      document.body.appendChild(el); }
+    el.textContent=msg; el.style.opacity='1'; el.style.transform='translateX(-50%) translateY(0)';
+    clearTimeout(_toastTimer);
+    _toastTimer=setTimeout(function(){ el.style.opacity='0'; el.style.transform='translateX(-50%) translateY(20px)'; },1600);
+  }
+
+  /* ============================================================
+   * 3. 生成答案 + 候选集
+   * ========================================================== */
+  var secret=[];        // 答案数组
+  var history=[];       // 猜测记录 {g:'1234', a:1, b:2}
+  var candidates=[];    // 剩余可能解
+  var steps=0;
+  var finished=false;
+  var MAX_STEPS=12;
+
+  function genSecret(){
+    var digits=[0,1,2,3,4,5,6,7,8,9];
+    var s=[];
+    if(cfg.unique){
+      shuffle(digits);
+      s=digits.slice(0,cfg.len);
+    } else {
+      for(var i=0;i<cfg.len;i++){ s.push(Math.floor(Math.random()*10)); }
+    }
+    return s;
+  }
+
+  // 枚举所有合法候选（用于可能解计数）
+  function buildCandidates(){
+    var list=[];
+    var len=cfg.len;
+    if(cfg.unique){
+      var digits=[0,1,2,3,4,5,6,7,8,9];
+      function rec(prefix){
+        if(prefix.length===len){ list.push(prefix.slice()); return; }
+        for(var i=0;i<digits.length;i++){
+          if(prefix.indexOf(digits[i])<0){ prefix.push(digits[i]); rec(prefix); prefix.pop(); }
+        }
+      }
+      rec([]);
+    } else {
+      (function rec2(prefix){
+        if(prefix.length===len){ list.push(prefix.slice()); return; }
+        for(var d=0;d<10;d++){ prefix.push(d); rec2(prefix); prefix.pop(); }
+      })([]);
+    }
+    return list;
+  }
+
+  // 计算 xAyB
+  function score(guess, ans){
+    var a=0,b=0;
+    var usedAns=[], usedGuess=[];
+    for(var i=0;i<ans.length;i++){
+      if(guess[i]===ans[i]){ a++; usedAns[i]=true; usedGuess[i]=true; }
+    }
+    for(var i2=0;i2<ans.length;i2++){
+      if(usedGuess[i2]) continue;
+      for(var j=0;j<ans.length;j++){
+        if(usedAns[j]) continue;
+        if(guess[i2]===ans[j]){ b++; usedAns[j]=true; usedGuess[i2]=true; break; }
+      }
+    }
+    return {a:a,b:b};
+  }
+
+  // 用当前所有历史过滤候选集
+  function refineCandidates(){
+    candidates = candidates.filter(function(c){
+      for(var k=0;k<history.length;k++){
+        var h=history[k];
+        var sc=score(c,h.g);
+        if(sc.a!==h.a || sc.b!==h.b) return false;
+      }
+      return true;
+    });
+  }
+
+  /* ============================================================
+   * 4. 渲染
+   * ========================================================== */
+  function renderSecret(){
+    var box=$('g2Secret');
+    var html='';
+    for(var i=0;i<cfg.len;i++){
+      html+='<div class="g2-cell" data-pos="'+i+'"></div>';
+    }
+    const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){box.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}box.innerHTML=__h0;
+  }
+  function paintGuessToSecret(){
+    var raw=currentInput();
+    var cells=$('g2Secret').children;
+    for(var i=0;i<cells.length;i++){
+      cells[i].textContent = (i<raw.length)? raw.charAt(i) : '';
+      cells[i].className='g2-cell'+(i<raw.length?' filled':'');
+    }
+  }
+  function renderHist(){
+    var box=$('g2Hist');
+    if(!history.length){ const __h1='<div style="text-align:center;color:var(--text-muted);padding:24px;font-size:13px">还没有猜测，输入第一个组合开始推理吧。</div>';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){box.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}box.innerHTML=__h1; return; }
+    var html='';
+    history.forEach(function(h,idx){
+      html+='<div class="g2-row">'+
+        '<span class="n">'+(idx+1)+'</span>'+
+        '<span class="g">'+escapeHtml(h.g.join(''))+'</span>'+
+        '<span class="r">'+h.a+'A'+h.b+'B</span>'+
+      '</div>';
+    });
+    const __h2=html;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){box.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}box.innerHTML=__h2;
+    box.scrollTop=box.scrollHeight;
+  }
+  function renderStats(){
+    $('g2Steps').textContent=steps;
+    $('g2ModeLabel').textContent=(cfg.len+(cfg.unique?'N':'D')).toUpperCase();
+    $('g2Poss').textContent= finished? '—' : candidates.length.toLocaleString();
+    $('g2Chance').textContent= (MAX_STEPS-steps>0)? (MAX_STEPS-steps) : '最后一步';
+  }
+
+  /* ============================================================
+   * 5. 输入处理
+   * ========================================================== */
+  function currentInput(){
+    return $('g2Guess').value.replace(/[^0-9]/g,'').slice(0,cfg.len);
+  }
+  function setInput(s){ $('g2Guess').value=s; paintGuessToSecret(); }
+
+  function buildKeypad(){
+    var kp=$('g2Keypad');
+    var html='';
+    for(var d=0;d<10;d++){
+      html+='<button data-k="'+d+'">'+d+'</button>';
+    }
+    html+='<button class="act" data-act="del">⌫</button>';
+    html+='<button class="act" data-act="ok">✓</button>';
+    const __h3=html;if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){kp.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}kp.innerHTML=__h3;
+    Array.prototype.forEach.call(kp.querySelectorAll('button'),function(b){
+      b.addEventListener('click',function(){
+        if(b.getAttribute('data-act')==='del'){
+          setInput(currentInput().slice(0,-1));
+        } else if(b.getAttribute('data-act')==='ok'){
+          submitGuess();
+        } else {
+          var cur=currentInput();
+          if(cur.length<cfg.len){ setInput(cur+b.getAttribute('data-k')); }
+        }
+      });
+    });
+  }
+  function toggleKeypad(){
+    $('g2Keypad').style.display = $('g2KpOn').checked? 'grid':'none';
+  }
+
+  /* ============================================================
+   * 6. 提交猜测
+   * ========================================================== */
+  function submitGuess(){
+    if(finished){ toast('本局已结束，点“新一局”再来'); return; }
+    var raw=currentInput();
+    if(raw.length<cfg.len){ toast('请输入 '+cfg.len+' 位数字'); return; }
+    var g=raw.split('').map(function(x){ return parseInt(x,10); });
+    if(cfg.unique){
+      var seen={}; var dup=false;
+      for(var i=0;i<g.length;i++){ if(seen[g[i]]){dup=true;break;} seen[g[i]]=true; }
+      if(dup){ toast('该模式要求数字不重复'); return; }
+    }
+    var sc=score(g,secret);
+    history.push({g:g,a:sc.a,b:sc.b});
+    steps++;
+    refineCandidates();
+
+    if(sc.a===cfg.len){
+      finish(true);
+    } else if(steps>=MAX_STEPS){
+      finish(false);
+    }
+    setInput('');
+    renderHist();
+    renderStats();
+  }
+
+  /* ============================================================
+   * 7. 结束 / 最佳记录
+   * ========================================================== */
+  function finish(win){
+    finished=true;
+    var box=$('g2Result');
+    var ansStr=secret.join('');
+    var best=getBest();
+    var rec=best[modeKey];
+    var isNewBest=false;
+    if(win){
+      if(!rec || steps<rec.steps){ rec={steps:steps,won:true}; best[modeKey]=rec; setBest(best); isNewBest=true; }
+    }
+    if(win){
+      box.className='g2-result win';
+      const __h4='<h4 style="font-size:15px;margin-bottom:8px">🎉 推理成功！</h4>'+
+        '<p style="color:var(--text-secondary)">答案就是 <span class="ans">'+ansStr+'</span></p>'+
+        '<p style="margin-top:6px;color:var(--text-secondary)">你用了 <b style="color:var(--success)">'+steps+'</b> 步破解，剩余可能解 '+candidates.length.toLocaleString()+' 个。</p>'+
+        (isNewBest?'<p style="margin-top:6px;color:var(--primary);font-weight:700">🏆 新纪录！这是「'+(cfg.len+(cfg.unique?'N':'D')).toUpperCase()+'」模式的最佳成绩。</p>':'');if((typeof __h4==='number'&&!isFinite(__h4))||/Infinity/.test(String(__h4))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h4)){box.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}box.innerHTML=__h4;
+    } else {
+      box.className='g2-result lose';
+      const __h5='<h4 style="font-size:15px;margin-bottom:8px">💡 步数用尽</h4>'+
+        '<p style="color:var(--text-secondary)">正确答案是 <span class="ans">'+ansStr+'</span></p>'+
+        '<p style="margin-top:6px;color:var(--text-secondary)">下次试试先用组合覆盖更多数字，收窄可能解。</p>';if((typeof __h5==='number'&&!isFinite(__h5))||/Infinity/.test(String(__h5))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h5)){box.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}box.innerHTML=__h5;
+    }
+    renderBestPanel();
+    renderStats();
+  }
+
+  function renderBestPanel(){
+    var best=getBest();
+    var txt='';
+    ['4n','4d','5n'].forEach(function(k){
+      var r=best[k];
+      var label=(MODES[k].len+(MODES[k].unique?'N':'D')).toUpperCase();
+      txt += '<div style="display:flex;justify-content:space-between;padding:3px 0">'+
+        '<span>'+label+'</span><b style="color:var(--primary);font-family:ui-monospace,Menlo,monospace">'+
+        (r? (r.won? r.steps+' 步':'未通关') : '—')+'</b></div>';
+    });
+    const __h6=txt;if((typeof __h6==='number'&&!isFinite(__h6))||/Infinity/.test(String(__h6))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h6)){$('g2BestDetail').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}$('g2BestDetail').innerHTML=__h6;
+    var rec=best[modeKey];
+    $('g2Best').textContent='最佳：'+(rec? (rec.won? rec.steps+' 步':'—') : '—');
+  }
+
+  /* ============================================================
+   * 8. 新局 / 放弃
+   * ========================================================== */
+  function newGame(){
+    cfg=MODES[modeKey];
+    secret=genSecret();
+    history=[];
+    steps=0;
+    finished=false;
+    candidates=buildCandidates();
+    const __h7='';if((typeof __h7==='number'&&!isFinite(__h7))||/Infinity/.test(String(__h7))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h7)){$('g2Result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}$('g2Result').innerHTML=__h7;
+    $('g2Result').className='';
+    $('g2Guess').disabled=false;
+    renderSecret();
+    renderHist();
+    renderStats();
+    setInput('');
+    toast('新一局已生成：'+cfg.len+' 位'+(cfg.unique?'不重复':'可重复'));
+  }
+  function giveUp(){
+    if(finished){ toast('本局已经结束'); return; }
+    finished=true;
+    var box=$('g2Result');
+    box.className='g2-result lose';
+    const __h8='<h4 style="font-size:15px;margin-bottom:8px">🙈 已放弃</h4>'+
+      '<p style="color:var(--text-secondary)">答案是 <span class="ans">'+secret.join('')+'</span></p>';if((typeof __h8==='number'&&!isFinite(__h8))||/Infinity/.test(String(__h8))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h8)){box.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}box.innerHTML=__h8;
+    renderStats();
+  }
+
+  /* ============================================================
+   * 9. 事件绑定
+   * ========================================================== */
+  Array.prototype.forEach.call(document.querySelectorAll('.g2-modes button'),function(btn){
+    btn.addEventListener('click',function(){
+      if(!finished && history.length){
+        if(!confirm('切换模式会放弃当前这局，确定吗？')) return;
+      }
+      Array.prototype.forEach.call(document.querySelectorAll('.g2-modes button'),function(b){ b.classList.remove('on'); });
+      btn.classList.add('on');
+      modeKey=btn.getAttribute('data-mode');
+      newGame();
+      renderBestPanel();
+    });
+  });
+  $('g2Submit').addEventListener('click',submitGuess);
+  $('g2Guess').addEventListener('input',function(){ this.value=this.value.replace(/[^0-9]/g,'').slice(0,cfg.len); paintGuessToSecret(); });
+  $('g2Guess').addEventListener('keydown',function(e){ if(e.key==='Enter'){ submitGuess(); } });
+  $('g2KpOn').addEventListener('change',toggleKeypad);
+  $('g2New').addEventListener('click',newGame);
+  $('g2Giveup').addEventListener('click',function(){ giveUp(); });
+  $('g2Clear').addEventListener('click',function(){ setInput(''); });
+
+  /* ============================================================
+   * 10. 初始化
+   * ========================================================== */
+  /* ============================================================
+   * 11. 对局统计 / 当局明细 / 导出（功能增强）
+   * ========================================================== */
+  var G2_GKEY='tb_g2_games_v1';
+  function g2En(){ try{ return (typeof TBKit!=='undefined' && TBKit.util.isEn()); }catch(e){ return false; } }
+  function g2T(zh,en){ return g2En()?en:zh; }
+  function g2GamesLoad(){ try{ var a=JSON.parse(localStorage.getItem(G2_GKEY)||'[]'); return Array.isArray(a)?a:[]; }catch(e){ return []; } }
+  function g2GamesSave(a){ try{ localStorage.setItem(G2_GKEY, JSON.stringify(a.slice(0,100))); }catch(e){} }
+  function g2FmtDate(t){ var d=new Date(t); function q(x){return (x<10?'0':'')+x;} return d.getFullYear()+'-'+q(d.getMonth()+1)+'-'+q(d.getDate()); }
+  function g2ResLabel(r){ if(r.gave) return g2T('放弃','Gave up'); return r.win? g2T('猜中','Won') : g2T('未猜中','Lost'); }
+
+  function __g2RecordGame(win, gave){
+    var a=g2GamesLoad();
+    a.unshift({ t:Date.now(), mode:modeKey, win:!!win, gave:!!gave, steps:steps, secret:secret.join('') });
+    a=a.slice(0,100); g2GamesSave(a);
+    __g2RenderStats();
+  }
+
+  function __g2RenderStats(){
+    var box=document.getElementById('__g2StatsTable'); if(!box) return;
+    var a=g2GamesLoad();
+    if(!a.length){
+      box.innerHTML='<p style="font-size:13px;color:var(--text-muted);padding:8px 0;">'+g2T('暂无对局记录，完成一局后自动统计','No games yet. Stats appear after your first game.')+'</p>';
+      var tg=document.getElementById('__g2Trend'); if(tg) tg.innerHTML='';
+      return;
+    }
+    var byMode={};
+    a.forEach(function(r){
+      var s=byMode[r.mode]||(byMode[r.mode]={n:0,win:0,lose:0,gave:0,best:null,stepsSum:0});
+      s.n++;
+      if(r.gave) s.gave++; else if(r.win){ s.win++; s.stepsSum+=r.steps; if(s.best==null||r.steps<s.best) s.best=r.steps; } else s.lose++;
+    });
+    var head=[g2T('模式','Mode'),g2T('总局数','Games'),g2T('猜中','Won'),g2T('未猜中','Lost'),g2T('放弃','Gave up'),g2T('胜率','Win rate'),g2T('最佳步数','Best steps'),g2T('平均步数','Avg steps')];
+    var h='<div style="overflow-x:auto;"><table class="tbk-matrix"><thead><tr>'+head.map(function(c){return '<th>'+c+'</th>';}).join('')+'</tr></thead><tbody>';
+    ['4n','4d','5n'].forEach(function(k){
+      var s=byMode[k];
+      if(!s){ h+='<tr><td>'+k.toUpperCase()+'</td><td>0</td><td>0</td><td>0</td><td>0</td><td>—</td><td>—</td><td>—</td></tr>'; return; }
+      var rate=Math.round((s.win+s.lose>0)? s.win/(s.win+s.lose)*100 : 0);
+      h+='<tr><td>'+k.toUpperCase()+'</td><td>'+s.n+'</td><td>'+s.win+'</td><td>'+s.lose+'</td><td>'+s.gave+'</td><td>'+rate+'%</td><td>'+(s.best==null?'—':s.best)+'</td><td>'+(s.win?Math.round(s.stepsSum/s.win*10)/10:'—')+'</td></tr>';
+    });
+    box.innerHTML=h+'</tbody></table></div>';
+    if(typeof TBKit!=='undefined'){
+      var asc=a.slice().reverse().slice(-20);
+      try{ TBKit.chart.line('#__g2Trend',{ title:g2T('近 20 局所用步数','Steps per Game (last 20)'),
+        labels:asc.map(function(r){ return g2FmtDate(r.t)+' '+r.mode.toUpperCase(); }),
+        series:[{name:g2T('步数','Steps'),data:asc.map(function(r){ return r.steps; })}] }); }catch(e){}
+    }
+  }
+
+  function __g2RenderGame(){
+    var box=document.getElementById('__g2GameTable'); if(!box) return;
+    var head=[g2T('步序','Step'),g2T('猜测','Guess'),g2T('A','A'),g2T('B','B')];
+    if(!history.length){
+      box.innerHTML='<p style="font-size:13px;color:var(--text-muted);padding:8px 0;">'+g2T('本局还没有猜测','No guesses in the current game yet.')+'</p>';
+      return;
+    }
+    var h='<div style="overflow-x:auto;"><table class="tbk-matrix"><thead><tr>'+head.map(function(c){return '<th>'+c+'</th>';}).join('')+'</tr></thead><tbody>';
+    history.forEach(function(r,i){
+      h+='<tr><td>'+(i+1)+'</td><td>'+r.g.join('')+'</td><td>'+r.a+'</td><td>'+r.b+'</td></tr>';
+    });
+    box.innerHTML=h+'</tbody></table></div>';
+  }
+
+  window.__g2Export=function(which){
+    if(typeof TBKit==='undefined') return;
+    var en=TBKit.util.isEn();
+    var head, rows, fname;
+    if(which==='game'){
+      head=[en?'Step':'步序',en?'Guess':'猜测',en?'A':'A',en?'B':'B'];
+      rows=[head];
+      history.forEach(function(r,i){ rows.push([i+1, r.g.join(''), r.a, r.b]); });
+      fname=en?'current-game-guesses.csv':'当局猜测明细.csv';
+    } else {
+      head=[en?'Date':'日期',en?'Mode':'模式',en?'Result':'结果',en?'Steps':'步数',en?'Secret':'答案'];
+      rows=[head];
+      g2GamesLoad().forEach(function(r){ rows.push([g2FmtDate(r.t), r.mode.toUpperCase(), g2ResLabel(r), r.steps, r.secret]); });
+      fname=en?'game-stats.csv':'对局统计.csv';
+    }
+    var t=document.getElementById('__g2Hidden');
+    if(!t){ t=document.createElement('table'); t.id='__g2Hidden'; t.style.display='none'; document.body.appendChild(t); }
+    t.innerHTML='<thead><tr>'+head.map(function(c){return '<th>'+c+'</th>';}).join('')+'</tr></thead><tbody>'+
+      rows.slice(1).map(function(r){ return '<tr>'+r.map(function(c){ return '<td>'+String(c)+'</td>'; }).join('')+'</tr>'; }).join('')+'</tbody>';
+    TBKit.util.exportTable('#__g2Hidden', fname);
+  };
+
+  window.__g2ClearGames=function(){ g2GamesSave([]); __g2RenderStats(); };
+
+  var __g2finish0=finish;
+  finish=function(win){ var wasFinished=finished; __g2finish0(win); if(!wasFinished){ try{ __g2RecordGame(win,false); }catch(e){} } };
+  var __g2giveup0=giveUp;
+  giveUp=function(){ var wasFinished=finished; __g2giveup0(); if(!wasFinished){ try{ __g2RecordGame(false,true); }catch(e){} } };
+  var __g2renderhist0=renderHist;
+  renderHist=function(){ __g2renderhist0(); try{ __g2RenderGame(); }catch(e){} };
+  document.addEventListener('toolbox:langchange', function(){ try{ __g2RenderStats(); __g2RenderGame(); }catch(e){} });
+
+  buildKeypad();
+  toggleKeypad();
+  renderBestPanel();
+  newGame();
+  __g2RenderStats();
+  __g2RenderGame();
+})();
+</script>
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto 0;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+.deep-dive a.term-link{color:var(--tool-accent,#FF6B35);text-decoration:none;border-bottom:1px dashed currentColor;}
+.deep-dive a.term-link:hover{border-bottom-style:solid;}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：1A2B 猜数字游戏</h2>
+<h3>💡 常见使用场景</h3>
+<ul class="dd-list">
+<li>逻辑热身：给定 4 位不重复数字答案，每次猜后按 xAyB 反馈（A=数字位置都对、B=数字对但位置错）逐轮缩小候选。</li>
+<li>教学演示：用反馈做排除法推理，训练演绎思维，适合数学/编程入门讲解。</li>
+<li>人机对战：设定难度（4/5 位）挑战最少步数破关，记录最佳成绩。</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">方法（xAyB 规则）</div><div class="dd-ex-body">答案为 4 位互不相同的数字；你猜 4 位后系统回报「xAyB」：A=数字与位置都正确的个数，B=数字正确但位置错误的个数。例：答案 1234，你猜 1243 → 1 与 2 位置对(2A)，3 与 4 数字对但互换(2B)，即 2A2B。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例（推理演示）</div><div class="dd-ex-body">设答案 5072。第1猜 1234→0A1B（仅 2 数字对但位置错）；第2猜 5678→1A1B（5 位置对、7 数字对位置错）；第3猜 5076→3A0B（5/0/7 全中、6 错）；第4猜 5072→4A0B 猜中。4 步破关。难度越高位越多，候选空间随位数阶乘增长。</div></div>
+<h3>❓ 常见问题（FAQ）</h3>
+<dl class="dd-faq">
+<dt>为什么有时 A 少但 B 多？</dt><dd>B 表示数字在答案里但放错了列；A+B 才是「命中的数字总数」，据此可固定已定位的数字、只调整 B 类数字的位置。</dd>
+<dt>最少几步能必中？</dt><dd>无统一上界，取决于反馈信息量；熟练玩家对 4 位常 5~8 步，关键是用每次 xAyB 做候选集交集而非盲目试。</dd>
+</dl>
+</div>
+</section>
+</body>
+</html>

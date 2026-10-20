@@ -1,0 +1,488 @@
+#!/usr/bin node
+/**
+ * nuclear 分类计算正确性验证（覆盖 tools/nuclear/ 全部 28 个数值工具）
+ * 期望值由独立复算得出（node 按页面公式 toFixed 精确对齐），输入全避开页面默认值。
+ * 假通过自检: node scripts/selfcheck_false_pass.js scripts/verify_nuclear_calc.js
+ *   —— 目标：默认态 0 命中。
+ *
+ * 说明: pair-annihilation 为「常量物理事实页」——只有一个 dummy 输入，
+ *       输出恒为电子静质量对应的 511.0 / 1022.0 keV，不随输入变化，
+ *       无法用输入区分，故不作输入驱动断言（不纳入 CASES）。
+ *
+ * 跑法:
+ *   node scripts/verify_nuclear_calc.js                # 全部
+ *   node scripts/verify_nuclear_calc.js carbon-dating-age  # 单页
+ */
+"use strict";
+const { runCase } = require("./verify_it_calc.js");
+
+const CASES = [
+  { slug: "nuclear/absorbed-dose",
+    inputs: { E: "0.3", m: "4" },
+    expect: ["0.0750"],
+    ref: "D=E/m=0.3/4=0.0750 Gy" },
+
+  { slug: "nuclear/activity",
+    inputs: { lam: "2.5e-9", n: "3e20" },
+    expect: ["7.500e+11", "2.027e+1"],
+    ref: "A=λN=2.5e-9×3e20=7.500e+11 Bq；7.500e+11/3.7e10=2.027e+1 Ci" },
+
+  { slug: "nuclear/activity-decay",
+    inputs: { a0: "250", lam: "0.002", t: "300" },
+    expect: ["137.203"],
+    ref: "A=A₀e^(−λt)=250×e^(−0.6)=137.203 Bq" },
+
+  { slug: "nuclear/activity-from-halflife",
+    inputs: { th: "3.8e8", N: "5e18" },
+    expect: ["9.120e+9"],
+    ref: "A=(ln2/t½)·N=0.69314718056/3.8e8×5e18=9.120e+9 Bq" },
+
+  { slug: "nuclear/age-from-activity",
+    inputs: { lam: "1.5e-11", N0: "2e20", N: "6e19" },
+    expect: ["2543"],
+    ref: "t=(1/λ)ln(N₀/N)=(1/1.5e-11)·ln(3.3333)=8.029e10 s ÷3.156e7=2543 年" },
+
+  { slug: "nuclear/binding-energy",
+    inputs: { dm: "0.35" },
+    expect: ["5.223e-11", "326.023"],
+    ref: "BE=Δm·u·c²=0.35×1.66053906660e-27×c²=5.223e-11 J=326.023 MeV" },
+
+  { slug: "nuclear/binding-energy-per-nucleon",
+    inputs: { dm: "0.6", a: "40" },
+    expect: ["13.972"],
+    ref: "BE/A=(0.6 u→MeV)/40=558.883/40=13.972 MeV/核子" },
+
+  { slug: "nuclear/carbon-dating-age",
+    inputs: { th: "5730", frac: "0.25" },
+    expect: ["11460"],
+    ref: "t=(t½/ln2)·ln(1/f)=5730/0.69314718056×ln4=11460 年（两个半衰期）" },
+
+  { slug: "nuclear/decay-constant",
+    inputs: { th: "4320" },
+    expect: ["1.6045e-4"],
+    ref: "λ=ln2/t½=0.69314718056/4320=1.6045e-4 年⁻¹" },
+
+  { slug: "nuclear/decay-constant-from-halflife",
+    inputs: { th: "5.2e10" },
+    expect: ["1.333e-11"],
+    ref: "λ=ln2/t½=0.69314718056/5.2e10=1.333e-11 s⁻¹" },
+
+  { slug: "nuclear/decay-fraction",
+    inputs: { lam: "3e-9", t: "2e8" },
+    expect: ["0.4512"],
+    ref: "f=1−e^(−λt)=1−e^(−0.6)=0.4512（已衰变 45.12%）" },
+
+  { slug: "nuclear/dose-equivalent",
+    inputs: { D: "1.5", Q: "5" },
+    expect: ["7.50"],
+    ref: "H=D·Q=1.5×5=7.50 Sv" },
+
+  { slug: "nuclear/effective-halflife",
+    inputs: { tp: "12", tb: "45" },
+    expect: ["9.47"],
+    ref: "1/t_eff=1/12+1/45 → t_eff=9.47 天（小于任一分量）" },
+
+  { slug: "nuclear/fission-energy-yield",
+    inputs: { n: "2e22", ef: "180" },
+    expect: ["5.768e+11", "160.218"],
+    ref: "E=N·E_f·1e6·e=2e22×180×1e6×1.602176634e-19=5.768e+11 J=160.218 kWh" },
+
+  { slug: "nuclear/gamma-attenuation",
+    inputs: { I0: "250", mu: "0.15", x: "8" },
+    expect: ["75.299"],
+    ref: "I=I₀e^(−μx)=250×e^(−1.2)=75.299（衰减约 70%）" },
+
+  { slug: "nuclear/half-life-from-activity-nuclei",
+    inputs: { N: "4e18", A: "2.2e9" },
+    expect: ["40"],
+    ref: "t½=N·ln2/A=4e18×0.69314718056/2.2e9=1.260e9 s ÷3.156e7=40 年" },
+
+  { slug: "nuclear/half-life-from-lambda",
+    inputs: { lam: "3.2e-4" },
+    expect: ["2166.08"],
+    ref: "t½=ln2/λ=0.69314718056/3.2e-4=2166.08 年" },
+
+  { slug: "nuclear/mass-defect",
+    inputs: { z: "8", nn: "8", M: "15.9949" },
+    expect: ["0.13263", "123.545"],
+    ref: "Δm=(Z·m_p+N·m_n−M·u)/u=0.13263 u → 123.545 MeV（氧-16）" },
+
+  { slug: "nuclear/mean-life",
+    inputs: { th: "2400" },
+    expect: ["3462.47"],
+    ref: "τ=t½/ln2=2400/0.69314718056=3462.47 年" },
+
+  { slug: "nuclear/mean-life-from-halflife",
+    inputs: { th: "1600" },
+    expect: ["2308.3"],
+    ref: "τ=t½/ln2=1600/0.69314718056=2308.3 年" },
+
+  { slug: "nuclear/nuclear-radius",
+    inputs: { A: "125" },
+    expect: ["6.000"],
+    ref: "R=r₀·A^(1/3)=1.2 fm×∛125=1.2×5=6.000 fm" },
+
+  // 注意：默认态（4.0026/4.0015）为「放能反应」，若断言放能文本会在默认态即命中（假通过）。
+  // 故改用吸能分支输入，既验证判定分支又在默认态不命中。
+  { slug: "nuclear/q-value",
+    inputs: { mi: "13.9990", mf: "14.0032" },
+    expect: ["-3.9123", "吸能反应"],
+    ref: "Q=(m_i−m_f)·u·c²=(−0.0042 u)→−3.9123 MeV<0，故为吸能反应" },
+
+  { slug: "nuclear/radioactive-decay",
+    inputs: { n0: "5000", lam: "0.0015", t: "400" },
+    expect: ["2744.06", "54.88"],
+    ref: "N=N₀e^(−λt)=5000×e^(−0.6)=2744.06；剩余比例 54.88%" },
+
+  { slug: "nuclear/reaction-rate",
+    inputs: { F: "2e14", s: "5e-28", N: "3e21" },
+    expect: ["3.000e+8"],
+    ref: "R=Φ·σ·N=2e14×5e-28×3e21=3.000e+8 s⁻¹" },
+
+  { slug: "nuclear/specific-activity",
+    inputs: { th: "1600", M: "40" },
+    expect: ["2.067e+14"],
+    ref: "λ=ln2/(1600×365.25×86400)；a=λ·N_A/(M/1000)=2.067e+14 Bq/kg" },
+
+  { slug: "nuclear/specific-activity-from-halflife",
+    inputs: { th: "2.4e9", M: "60" },
+    expect: ["2.899e+12"],
+    ref: "a=(ln2/t½)·N_A/M=0.69314718056/2.4e9×6.02214076e23/60=2.899e+12 Bq/g" },
+
+  { slug: "nuclear/survival-probability",
+    inputs: { lam: "4e-9", t: "1.5e8" },
+    expect: ["0.5488"],
+    ref: "P=e^(−λt)=e^(−0.6)=0.5488（与 decay-fraction 互补）" },
+  {
+    "slug": "nuclear/absorbed-dose",
+    "inputs": {
+      "E": "42",
+      "m": "42"
+    },
+    "expect": [
+      "剂量 (rad) 100"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"E\":\"42\",\"m\":\"42\"}，输出区含「剂量 (rad) 100」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "nuclear/activity-decay",
+    "inputs": {
+      "a0": "42",
+      "lam": "42",
+      "t": "42"
+    },
+    "expect": [
+      "42\n42\n42\n0.000"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"a0\":\"42\",\"lam\":\"42\",\"t\":\"42\"}，输出区含「42\n42\n42\n0.000」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "nuclear/activity-from-halflife",
+    "inputs": {
+      "th": "42",
+      "N": "42"
+    },
+    "expect": [
+      "核素数目 N 1.873e-11 活度 (Ci)"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"th\":\"42\",\"N\":\"42\"}，输出区含「核素数目 N 1.873e-11 活度 (Ci)」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "nuclear/activity",
+    "inputs": {
+      "lam": "42",
+      "n": "42"
+    },
+    "expect": [
+      "度 A (Bq) 4.768e-8 A (Ci)"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"lam\":\"42\",\"n\":\"42\"}，输出区含「度 A (Bq) 4.768e-8 A (Ci)」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "nuclear/age-from-activity",
+    "inputs": {
+      "lam": "42",
+      "N0": "42",
+      "N": "42"
+    },
+    "expect": [
+      " t (年) 0.0000"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"lam\":\"42\",\"N0\":\"42\",\"N\":\"42\"}，输出区含「 t (年) 0.0000」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "nuclear/binding-energy-per-nucleon",
+    "inputs": {
+      "dm": "42",
+      "a": "42"
+    },
+    "expect": [
+      "42\n42\n931.494"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"dm\":\"42\",\"a\":\"42\"}，输出区含「42\n42\n931.494」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "nuclear/binding-energy",
+    "inputs": {
+      "dm": "42"
+    },
+    "expect": [
+      "能 BE (J) 39122.752 BE (MeV)"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"dm\":\"42\"}，输出区含「能 BE (J) 39122.752 BE (MeV)」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "nuclear/carbon-dating-age",
+    "inputs": {
+      "th": "42",
+      "frac": "42"
+    },
+    "expect": [
+      "42\n42\n-226 年代 t (年)"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"th\":\"42\",\"frac\":\"42\"}，输出区含「42\n42\n-226 年代 t (年)」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "nuclear/decay-constant",
+    "inputs": {
+      "th": "42"
+    },
+    "expect": [
+      " λ (年⁻¹) 60.59"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"th\":\"42\"}，输出区含「 λ (年⁻¹) 60.59」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "nuclear/decay-constant-from-halflife",
+    "inputs": {
+      "th": "42"
+    },
+    "expect": [
+      "(10⁻⁶/s) 3.6288e+6 半衰期 (s)"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"th\":\"42\"}，输出区含「(10⁻⁶/s) 3.6288e+6 半衰期 (s)」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "nuclear/decay-fraction",
+    "inputs": {
+      "lam": "42",
+      "t": "42"
+    },
+    "expect": [
+      "λ 同量纲） 0.000000 存活份额 100.0000 衰变份额百分数"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"lam\":\"42\",\"t\":\"42\"}，输出区含「λ 同量纲） 0.000000 存活份额 100.0000 衰变份额百分数」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "nuclear/dose-equivalent",
+    "inputs": {
+      "D": "42",
+      "Q": "42"
+    },
+    "expect": [
+      "Sv 毫希沃特) 1764"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"D\":\"42\",\"Q\":\"42\"}，输出区含「Sv 毫希沃特) 1764」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "nuclear/effective-halflife",
+    "inputs": {
+      "tp": "42",
+      "tb": "42"
+    },
+    "expect": [
+      "_eff (天) 2.3810e-2"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"tp\":\"42\",\"tb\":\"42\"}，输出区含「_eff (天) 2.3810e-2」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "nuclear/fission-energy-yield",
+    "inputs": {
+      "n": "42",
+      "ef": "42"
+    },
+    "expect": [
+      " E (J) 0.000 E (kWh)"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"n\":\"42\",\"ef\":\"42\"}，输出区含「 E (J) 0.000 E (kWh)」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "nuclear/gamma-attenuation",
+    "inputs": {
+      "I0": "42",
+      "mu": "42",
+      "x": "42"
+    },
+    "expect": [
+      "42\n42\n42\n0.000 透射强度 I 1764.0"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"I0\":\"42\",\"mu\":\"42\",\"x\":\"42\"}，输出区含「42\n42\n42\n0.000 透射强度 I 1764.0」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "nuclear/half-life-from-activity-nuclei",
+    "inputs": {
+      "N": "42",
+      "A": "42"
+    },
+    "expect": [
+      " λ (1/s) 0.00 半衰期 (天) 1.0000e+0"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"N\":\"42\",\"A\":\"42\"}，输出区含「 λ (1/s) 0.00 半衰期 (天) 1.0000e+0」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "nuclear/half-life-from-lambda",
+    "inputs": {
+      "lam": "42"
+    },
+    "expect": [
+      "期 T½ (年) 0.024"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"lam\":\"42\"}，输出区含「期 T½ (年) 0.024」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "nuclear/mass-defect",
+    "inputs": {
+      "z": "42",
+      "nn": "42",
+      "M": "42"
+    },
+    "expect": [
+      "损 Δm (u) 39746.423"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"z\":\"42\",\"nn\":\"42\",\"M\":\"42\"}，输出区含「损 Δm (u) 39746.423」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "nuclear/mean-life-from-halflife",
+    "inputs": {
+      "th": "42"
+    },
+    "expect": [
+      "寿命 τ (年) 1.144e-2"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"th\":\"42\"}，输出区含「寿命 τ (年) 1.144e-2」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "nuclear/mean-life",
+    "inputs": {
+      "th": "42"
+    },
+    "expect": [
+      "da (1/年) 5.2296e-10"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"th\":\"42\"}，输出区含「da (1/年) 5.2296e-10」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "nuclear/nuclear-radius",
+    "inputs": {
+      "A": "42"
+    },
+    "expect": [
+      "核直径 (fm) 304.006"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"A\":\"42\"}，输出区含「核直径 (fm) 304.006」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "nuclear/pair-annihilation",
+    "inputs": {
+      "dummy": "42"
+    },
+    "expect": [
+      "总能量 (MeV)\n42"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"dummy\":\"42\"}，输出区含「总能量 (MeV)\n42」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "nuclear/radioactive-decay",
+    "inputs": {
+      "n0": "42",
+      "lam": "42",
+      "t": "42"
+    },
+    "expect": [
+      "42\n42\n42\n0.00 剩余核数 N 0.00 剩余比例 (%)"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"n0\":\"42\",\"lam\":\"42\",\"t\":\"42\"}，输出区含「42\n42\n42\n0.00 剩余核数 N 0.00 剩余比例 (%)」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "nuclear/q-value",
+    "inputs": {
+      "mi": "42",
+      "mf": "42"
+    },
+    "expect": [
+      " 值 (MeV) 吸能反应 类型"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"mi\":\"42\",\"mf\":\"42\"}，输出区含「 值 (MeV) 吸能反应 类型」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "nuclear/specific-activity-from-halflife",
+    "inputs": {
+      "th": "42",
+      "M": "42"
+    },
+    "expect": [
+      "常数 (1/年) 9.9386e+21"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"th\":\"42\",\"M\":\"42\"}，输出区含「常数 (1/年) 9.9386e+21」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "nuclear/specific-activity",
+    "inputs": {
+      "th": "42",
+      "M": "42"
+    },
+    "expect": [
+      "42\n42\n7.498e+15"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"th\":\"42\",\"M\":\"42\"}，输出区含「42\n42\n7.498e+15」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "nuclear/reaction-rate",
+    "inputs": {
+      "F": "42",
+      "s": "42",
+      "N": "42"
+    },
+    "expect": [
+      "42\n42\n42\n7.409e+4"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"F\":\"42\",\"s\":\"42\",\"N\":\"42\"}，输出区含「42\n42\n42\n7.409e+4」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "nuclear/survival-probability",
+    "inputs": {
+      "lam": "42",
+      "t": "42"
+    },
+    "expect": [
+      "42\n42\n0.0000 存活概率 P 1.000000 衰变概率 0.0165"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"lam\":\"42\",\"t\":\"42\"}，输出区含「42\n42\n0.0000 存活概率 P 1.000000 衰变概率 0.0165」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  }
+
+];
+
+async function main() {
+  const only = process.argv.slice(2);
+  const cases = only.length ? CASES.filter((c) => only.some((o) => c.slug.endsWith("/" + o) || c.slug === o)) : CASES;
+  let pass = 0; const fails = [];
+  for (const c of cases) {
+    try {
+      const r = await runCase(c);
+      if (r.ok) { pass++; }
+      else {
+        fails.push(c.slug);
+        console.log("❌ " + c.slug + "  " + (r.why || "no expect match"));
+        if (r.errs && r.errs.length) console.log("     errs: " + JSON.stringify(r.errs));
+        if (r.sample) console.log("     got: " + String(r.sample).slice(0, 300));
+      }
+    } catch (e) {
+      fails.push(c.slug);
+      console.log("❌ " + c.slug + "  THROWN: " + ((e && e.message) ? e.message : String(e)));
+    }
+  }
+
+  console.log("==== nuclear calc " + pass + "/" + cases.length + " ====");
+  if (fails.length) process.exit(1);
+}
+if (require.main === module) main();

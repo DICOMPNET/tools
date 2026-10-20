@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=calculator,industry=meteorology,icon=🧮,bg=#e8f5e9">
+<title>降水量计算 - 计算降水强度并判定暴雨等级</title>
+<link rel="canonical" href="https://chenguangwu.github.io/tools/meteorology/precipitation-calc.html">
+<meta property="og:title" content="降水量计算 - 计算降水强度并判定暴雨等级">
+<meta property="og:description" content="降水量计算是一款免费的在线气象天气工具，输入降水量与降水历时，计算降水强度并判定暴雨等级，再按汇水面积估算总降水量，用于气象与排水分析。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+<meta property="og:url" content="https://chenguangwu.github.io/tools/meteorology/precipitation-calc.html">
+<meta name="twitter:card" content="summary">
+<meta name="description" content="降水量计算是一款免费的在线气象天气工具，输入降水量与降水历时，计算降水强度并判定暴雨等级，再按汇水面积估算总降水量，用于气象与排水分析。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+<link rel="stylesheet" href="../../css/common.css">
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="../../js/common.js" defer></script>
+<style>
+.field-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
+.field-grid label{font-size:12px;color:var(--text-muted);margin-bottom:4px;display:block;}
+.result-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:14px 0;}
+.result-item{background:var(--result-bg);border:1px solid var(--border);border-radius:12px;padding:14px;text-align:center;}
+.result-item:hover{border-color:var(--primary);}
+.result-item .val{font-size:20px;font-weight:700;color:var(--primary);}
+.result-item .lbl{font-size:12px;color:var(--text-muted);margin-top:4px;}
+.grade-tag{display:inline-block;padding:6px 16px;border-radius:20px;font-size:14px;font-weight:700;margin-top:10px;}
+@media(max-width:768px){.field-grid{grid-template-columns:1fr;}}
+</style>
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
+    <meta property="og:type" content="website">
+    <meta name="twitter:title" content="降水量计算 - 计算降水强度并判定暴雨等级">
+    <meta name="twitter:description" content="降水量计算是一款免费的在线气象天气工具，输入降水量与降水历时，计算降水强度并判定暴雨等级，再按汇水面积估算总降水量，用于气象与排水分析。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"降水量计算","url":"https://chenguangwu.github.io/tools/meteorology/precipitation-calc.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"降水量计算是一款免费的在线气象天气工具，输入降水量与降水历时，计算降水强度并判定暴雨等级，再按汇水面积估算总降水量，用于气象与排水分析。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://chenguangwu.github.io/"},{"@type":"ListItem","position":2,"name":"气象天气","item":"https://chenguangwu.github.io/tools/meteorology/index.html"},{"@type":"ListItem","position":3,"name":"降水量计算","item":"https://chenguangwu.github.io/tools/meteorology/precipitation-calc.html"}]}
+</script>
+
+<script src="../../js/i18n.js" defer></script>
+<script src="../../js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+
+<meta name="title-en" content="Precipitation Calc">
+<meta name="desc-en" content="Precipitation Calc - compute values online with accurate results.">
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/meteorology/precipitation-calc.html">
+<link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/meteorology/precipitation-calc.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/meteorology/precipitation-calc.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/meteorology/precipitation-calc.html">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:locale:alternate" content="zh_TW">
+<meta property="og:locale:alternate" content="en_US">
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
+
+<script src="/js/tool-ux.js" defer></script>
+<!-- TOOLBOX-TOOL-UX -->
+
+<script src="/js/analytics.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+<!-- TOOLBOX-TTZZ -->
+<script>
+(function(){try{
+var el = document.createElement("script");
+el.src = "https://lf1-cdn-tos.bytegoofy.com/goofy/ttzz/push.js?85d6452aa9be4d693b16cd48535a8c7ae57542f6788a41682e745be8eb99b35a8a24d2f724c31ebe20c1e4e6fba6d91caf576100b02a2870c72f38fc574066fef065d152c73bf1cbb2ebad3b5b5265d8";
+el.id = "ttzz";
+var s = document.getElementsByTagName("script")[0];
+s.parentNode.insertBefore(el, s);
+}catch(e){}
+})(window);
+</script>
+
+<script src="/js/tool-kit.js" defer></script>
+<!-- TOOLBOX-TOOL-KIT -->
+</head>
+<body>
+<h1 class="sr-only">降水量计算</h1>
+
+<div class="nav"><a href="../../index.html">← ToolBox</a><span>/ 降水量计算</span><button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button></div>
+
+<nav class="breadcrumb" aria-label="面包屑导航" data-breadcrumb="1">
+  <a href="../../index.html">首页</a>
+  <span class="bc-sep">‹</span>
+  <a href="index.html">🌤️ 气象天气</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">降水量计算</span>
+</nav>
+<div class="container">
+<div class="tool-guide-link" data-guide-link="1">
+  <a href="../../guides/precipitation-calc-guide.html">📖 查看「降水量计算 使用指南」</a>
+</div>
+
+  <div class="card tool-card-accent" style="--tool-accent:#06B6D4;">
+    <h2 data-zh="🧮 降水量计算">🧮 Precipitation Amount Calculator</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="由降水量与历时计算降水强度、判定降水等级，并按面积估算水量">Convert and total rainfall depth, catchment area and accumulated volume.</p>
+<div class="formula-box">
+  <div class="formula-title">📐 工作原理与说明</div>
+      <div class="formula-eq">降水强度 = 降水量(mm) ÷ 降水历时；1 小时雨量分级为低于 2.5 mm 小雨、2.5 至 8 mm 中雨、8 至 16 mm 大雨、16 mm 以上暴雨（24 小时 50 mm 以上亦称暴雨）；总降水量 = 降水量(mm) × 汇水面积(m²) ÷ 1000，结果以立方米或吨计，用于排水与内涝评估。</div>
+  
+</div>
+
+    <div class="field-grid">
+      <div><label>降水量 (mm)</label><input type="number" id="amt" value="18" step="0.1" min="0" oninput="calc()"></div>
+      <div><label>历时 (分钟)</label><input type="number" id="dur" value="60" step="1" min="1" oninput="calc()"></div>
+      <div><label>面积 (m²，选填)</label><input type="number" id="area" value="1000" step="1" min="0" oninput="calc()"></div>
+    </div>
+    <div class="toolbar" style="margin-top:14px;">
+      <div id="precipitation_calcPresets"></div><button type="button" class="btn primary" onclick="calc()">计算</button><button class="btn" type="button" onclick="__precipitation_calcExport()">导出明细 CSV</button>
+      <button type="button" class="btn success" onclick="copyResult()">复制结果</button>
+    </div>
+    <div class="result-grid" id="grid"></div>
+    <div class="result-box" id="detail"></div> <div id="precipitation_calcTable"></div> <div id="precipitation_calcDiff"></div> <div id="precipitation_calcChart"></div> <div id="precipitation_calcHist"></div>
+    <div class="info-box">降水等级（中国气象，按1小时强度）：小雨＜2.5、中雨2.6—8.0、大雨8.1—15.9、暴雨≥16 mm/h；1 mm 降水折合每平方米 1 升水。</div>
+  </div>
+
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto 0;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+.deep-dive a.term-link{color:var(--tool-accent,#FF6B35);text-decoration:none;border-bottom:1px dashed currentColor;}
+.deep-dive a.term-link:hover{border-bottom-style:solid;}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：降水量计算</h2>
+<h3>💡 常见使用场景</h3>
+<ul class="dd-list">
+<li>由降雨强度与历时算总降水量。</li>
+<li>把 mm 换算成单位面积水量（1mm=1L/m²）。</li>
+<li>暴雨量级分级（中/大/暴/大暴）。</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">强度×时间</div><div class="dd-ex-body">雨强 10 mm/h、持续 3 h → 降水量 30 mm；1 mm 降水=1 m² 落 1 L 水，100 m² 屋顶收 3000 L。</div></div>
+<div class="dd-example"><div class="dd-ex-title">暴雨分级</div><div class="dd-ex-body">24h 降水 50–99.9 mm 暴雨、100–249.9 大暴雨、≥250 特大暴雨；本例 30 mm 属大雨。</div></div>
+<h3>❓ 常见问题（FAQ）</h3>
+<dl class="dd-faq">
+<dt>mm 和厘米怎么换？</dt><dd>1 mm=0.1 cm，降水量本就是「水深」单位，与面积相乘得体积。</dd>
+<dt>1mm 水多吗？</dt><dd>1 mm=1 L/m²，看起来薄但城市 1 km² 面积就落 1000 吨水，积水看排水速度。</dd>
+</dl>
+</div>
+</section>
+<!-- 注意事项区块 -->
+<div class="tool-notes" style="--tool-accent:#06B6D4;">
+  <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
+  <ul>
+      <li>本工具纯前端运行，数据不会上传到服务器</li>
+      <li>建议在主流浏览器（Chrome/Safari/Firefox/Edge）中使用</li>
+      <li>计算结果仅供参考，请以实际应用场景为准</li>
+  </ul>
+</div>
+<!-- /注意事项区块 -->
+</div>
+<script>
+function v(id){return parseFloat(document.getElementById(id).value);}
+function grade1h(i){
+  if(i<2.5)return {n:'小雨',cls:'grade-excellent'};
+  if(i<=8.0)return {n:'中雨',cls:'grade-good'};
+  if(i<=15.9)return {n:'大雨',cls:'grade-pass'};
+  if(i<=31.9)return {n:'暴雨',cls:'grade-fail'};
+  if(i<=70)return {n:'大暴雨',cls:'grade-fail'};
+  return {n:'特大暴雨',cls:'grade-fail'};
+}
+function calc(){
+  var amt=v('amt'),dur=v('dur'),area=v('area');
+  var grid=document.getElementById('grid'),det=document.getElementById('detail');
+  if(isNaN(amt)||isNaN(dur)||dur<=0){grid.innerHTML='';det.innerHTML='';return;}
+  var mmMin=amt/dur;
+  var mmH=mmMin*60;
+  var g=grade1h(mmH);
+  var cards='<div class="result-item"><div class="val">'+mmMin.toFixed(2)+'</div><div class="lbl">强度 mm/min</div></div>'+
+    '<div class="result-item"><div class="val">'+mmH.toFixed(1)+'</div><div class="lbl">强度 mm/h</div></div>'+
+    '<div class="result-item"><div class="val">'+amt.toFixed(1)+'</div><div class="lbl">累计降水 mm</div></div>';
+  if(area>0){
+    var liters=amt*area; // 1mm*1m²=1L
+    var m3=liters/1000;
+    cards+='<div class="result-item"><div class="val">'+m3.toFixed(2)+'</div><div class="lbl">水量 m³</div></div>'+
+      '<div class="result-item"><div class="val">'+liters.toFixed(0)+'</div><div class="lbl">水量 升</div></div>';
+  }
+  const __g3=cards;grid.innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
+  const __g4='<p>降水强度：<strong>'+mmH.toFixed(1)+' mm/h</strong>，判定等级：<span class="grade-tag '+g.cls+'">'+g.n+'</span></p>'+
+    (area>0?('<p>在 '+area.toFixed(0)+' m² 面积上折合水量约 <strong>'+m3.toFixed(2)+' m³</strong>（'+liters.toFixed(0)+' 升）。</p>'):'')+
+    '<p>历时 '+dur+' 分钟，累计降水 '+amt.toFixed(1)+' mm。</p>';det.innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
+}
+function copyResult(){
+  var t=document.getElementById('detail').innerText;
+  if(!t){ToolBox.showToast(i18nText(),'warning');return;}
+  ToolBox.copyText(t, i18nText());
+}
+calc();
+</script>
+
+<!-- SEO 介绍区块 -->
+
+</div>
+
+</div>
+
+<!-- 相关工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相关工具</h3>
+  <div class="related-tools-grid">
+    
+    <a href="../science/barcode-pharmacode.html" class="related-tool-card">
+      <span class="rt-icon">🏷️</span>
+      <span class="rt-info"><span class="rt-name">Pharmacode 条形码 - 免费生成器工具，在线Pharmacode 条形码 | ToolBox免费在线工具箱</span><span class="rt-desc">Pharmacode 条形码</span></span>
+    </a>
+    
+    
+    
+    <a href="../misc/truth-table.html" class="related-tool-card">
+      <span class="rt-icon">✨</span>
+      <span class="rt-info"><span class="rt-name">逻辑真值表生成器 - 科学研究在线工具 | ToolBox免费在线工具箱</span><span class="rt-desc">逻辑真值表生成器</span></span>
+    </a>
+    <a href="generator-30.html" class="related-tool-card">
+      <span class="rt-icon">⛅</span>
+      <span class="rt-info"><span class="rt-name">雾（能见度）生成条件</span><span class="rt-desc">雾能见度生成条件工具按温湿度与降温条件估算雾的形成概率与能见度等级，适合天气预报、交通与航空能见度预</span></span>
+    </a>
+    <a href="calc-84.html" class="related-tool-card">
+      <span class="rt-icon">☢️</span>
+      <span class="rt-info"><span class="rt-name">日照辐射计算</span><span class="rt-desc">输入纬度、年中第几日、日照时数，按 Angstrom-Prescott 公式估算地外辐射、到达地表太</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro open" id="toolIntro">
+  <div class="tool-intro-header">
+    <span class="intro-icon-wrap"><span class="intro-icon">📖</span>关于「降水量计算」</span>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="tool-intro-body">
+    <h4><span class="h4-icon">📝</span>工具简介</h4>
+    <p>降水量计算是一款科学研究领域的在线工具。科学研究工具，采用标准科学公式，计算精准。</p>
+    <h4><span class="h4-icon">✨</span>功能特点</h4>
+    <ul class="intro-features">
+      <li>采用标准科学计算公式</li>
+      <li>支持多种参数配置</li>
+      <li>实时计算，即时显示结果</li>
+      <li>数据不上传，安全可靠</li>
+    </ul>
+    <h4><span class="h4-icon">🎯</span>使用场景</h4>
+    <ul class="intro-scenes">
+      <li>科学实验数据分析</li>
+      <li>物理化学计算</li>
+      <li>学术研究辅助</li>
+      <li>学习科学知识</li>
+    </ul>
+    </div>
+</div>
+<!-- /SEO 介绍区块 -->
+
+<script>
+// tool-intro折叠交互
+document.addEventListener('DOMContentLoaded',function(){
+  var headers=document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click',function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+
+var __precipitation_calc_last=0,__precipitation_calc_skip=false;
+function __precipitation_calcSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __precipitation_calcResText(){
+    var r=document.querySelector('.result-box');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __precipitation_calcTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __precipitation_calcRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__precipitation_calcTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#precipitation_calcTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#precipitation_calcDiff');
+        TBKit.history.mount('#precipitation_calcHist',function(rec){
+            __precipitation_calc_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __precipitation_calc_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__precipitation_calcTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#precipitation_calcChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __precipitation_calcExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__precipitation_calc_skip) return;
+    var snap=__precipitation_calcSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__precipitation_calcResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__precipitation_calc_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __precipitation_calc_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __precipitation_calcRender(keys,rk,en);
+}
+function __precipitation_calcExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#precipitation_calcTable','precipitation-calc.csv'); } catch(e){}
+}
+function __precipitation_calcPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#precipitation_calcPresets',[{label:'默认参数',labelEn:'Default',values:{'amt':'18', 'dur':'60', 'area':'1000'}}],function(){ calc(); });
+}
+var __precipitation_calc_f0=(typeof calc==='function')?calc:null;
+if(__precipitation_calc_f0){
+    calc=function(){ var __r=__precipitation_calc_f0.apply(null,arguments); try{ __precipitation_calcExtras(); }catch(e){} return __r; };
+}
+function __precipitation_calcBoot(){ try{ __precipitation_calcPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __precipitation_calcBoot();
+else document.addEventListener('DOMContentLoaded', __precipitation_calcBoot);
+</script>
+
+</body>
+</html>

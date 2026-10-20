@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=calculator,industry=urban,icon=🧮,bg=#e8eaf6">
+<meta name="description" content="用地平衡表是一款免费的在线城市规划工具，输入城市各类用地（居住、公服、道路、绿地等）面积与人口，计算用地比例与人均指标，并对照规划标准校核平衡，用于控规与方案比选。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+<title>用地平衡表 - 免费在线城市规划工具</title>
+<link rel="canonical" href="https://chenguangwu.github.io/tools/urban/land-use.html">
+<meta property="og:title" content="用地平衡表 - 免费在线城市规划工具">
+<meta property="og:description" content="用地平衡表是一款免费的在线城市规划工具，输入城市各类用地（居住、公服、道路、绿地等）面积与人口，计算用地比例与人均指标，并对照规划标准校核平衡，用于控规与方案比选。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+<meta property="og:url" content="https://chenguangwu.github.io/tools/urban/land-use.html">
+<meta name="twitter:card" content="summary">
+<link rel="stylesheet" href="../../css/common.css">
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="../../js/common.js" defer></script>
+<style>
+.formula-box{background:var(--result-bg);border:1px solid var(--border);border-radius:10px;padding:14px;margin:12px 0;font-size:13px;line-height:1.8;color:var(--text-light);}
+.stat-grid-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin:12px 0;}
+.stat-card{background:var(--result-bg);border:1px solid var(--border);border-radius:10px;padding:14px;text-align:center;}
+.stat-card .val{font-size:20px;font-weight:700;color:var(--primary);}
+.stat-card .lbl{font-size:12px;color:var(--text-muted);margin-top:4px;}
+.grade-tag{display:inline-block;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600;}
+.land-row{display:grid;grid-template-columns:120px 1fr 80px 80px 80px;gap:8px;align-items:center;padding:8px;border-bottom:1px solid var(--border);font-size:13px;}
+.land-row.header{font-weight:600;background:var(--th-bg);border-radius:8px 8px 0 0;border-bottom:2px solid var(--primary);}
+.land-row.total{font-weight:600;background:var(--result-bg);border-radius:0 0 8px 8px;}
+.land-row .land-name{font-size:13px;}
+.land-row input{padding:6px 8px;font-size:13px;}
+.land-row .pct{text-align:right;color:var(--primary);font-weight:600;}
+.land-row .percap{text-align:right;color:var(--text-light);font-size:12px;}
+.land-row .bar{height:16px;background:var(--border);border-radius:4px;overflow:hidden;}
+.land-row .bar-fill{height:100%;border-radius:4px;}
+@media(max-width:768px){
+  .land-row{grid-template-columns:90px 1fr 60px 50px;}
+  .land-row .percap{display:none;}
+  .land-row .land-name{font-size:12px;}
+}
+</style>
+
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
+    <meta property="og:type" content="website">
+    <meta name="twitter:title" content="用地平衡表 - 免费在线城市规划工具">
+    <meta name="twitter:description" content="用地平衡表是一款免费的在线城市规划工具，输入城市各类用地（居住、公服、道路、绿地等）面积与人口，计算用地比例与人均指标，并对照规划标准校核平衡，用于控规与方案比选。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"用地平衡计算","url":"https://chenguangwu.github.io/tools/urban/land-use.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"用地平衡表是一款免费的在线城市规划工具，输入城市各类用地（居住、公服、道路、绿地等）面积与人口，计算用地比例与人均指标，并对照规划标准校核平衡，用于控规与方案比选。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://chenguangwu.github.io/"},{"@type":"ListItem","position":2,"name":"城市规划","item":"https://chenguangwu.github.io/tools/urban/index.html"},{"@type":"ListItem","position":3,"name":"用地平衡计算","item":"https://chenguangwu.github.io/tools/urban/land-use.html"}]}
+</script>
+
+<script src="../../js/i18n.js" defer></script>
+<script src="../../js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+
+
+<meta name="title-en" content="Land Use">
+<meta name="desc-en" content="Land Use - online utility on ToolBox.">
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/urban/land-use.html">
+<link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/urban/land-use.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/urban/land-use.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/urban/land-use.html">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:locale:alternate" content="zh_TW">
+<meta property="og:locale:alternate" content="en_US">
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
+
+<script src="/js/tool-ux.js" defer></script>
+<!-- TOOLBOX-TOOL-UX -->
+
+<script src="/js/analytics.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+<!-- TOOLBOX-TTZZ -->
+<script>
+(function(){try{
+var el = document.createElement("script");
+el.src = "https://lf1-cdn-tos.bytegoofy.com/goofy/ttzz/push.js?85d6452aa9be4d693b16cd48535a8c7ae57542f6788a41682e745be8eb99b35a8a24d2f724c31ebe20c1e4e6fba6d91caf576100b02a2870c72f38fc574066fef065d152c73bf1cbb2ebad3b5b5265d8";
+el.id = "ttzz";
+var s = document.getElementsByTagName("script")[0];
+s.parentNode.insertBefore(el, s);
+}catch(e){}
+})(window);
+</script>
+
+<script src="/js/tool-kit.js" defer></script>
+<!-- TOOLBOX-TOOL-KIT -->
+</head>
+<body>
+<h1 class="sr-only">用地平衡计算</h1>
+
+<div class="nav">
+  <a href="../../index.html">← ToolBox</a>
+  <span>/ 用地平衡</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+
+
+
+<nav class="breadcrumb" aria-label="面包屑导航" data-breadcrumb="1">
+  <a href="../../index.html">首页</a>
+  <span class="bc-sep">‹</span>
+  <a href="index.html">🏙️ 城市规划</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">用地平衡计算</span>
+</nav>
+
+<div class="tool-guide-link" data-guide-link="1">
+  <a href="../../guides/land-use-guide.html">📖 查看「用地平衡表 使用指南」</a>
+</div>
+<div class="container">
+<div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
+<h2 data-zh="🧮 用地平衡表">Land Use</h2>
+<p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="城市各类用地面积比例与人均指标计算，含规划标准校核">Land Use - online utility on ToolBox.</p>
+
+<div class="input-row">
+  <div>
+    <label>规划人口 (人)</label>
+    <input type="number" id="inPop" value="100000" min="100" step="1000" oninput="calc()">
+  </div>
+  <div>
+    <label>城市规模</label>
+    <select id="inCityType" onchange="calc()">
+      <option value="large" selected>大城市（人均80~105m²）</option>
+      <option value="medium">中等城市（人均85~110m²）</option>
+      <option value="small">小城市（人均90~115m²）</option>
+    </select>
+  </div>
+</div>
+
+<div id="landTable"></div>
+
+<div class="stat-grid-2">
+  <div class="stat-card"><div class="val" id="resTotal">--</div><div class="lbl">总用地</div></div>
+  <div class="stat-card"><div class="val" id="resPerCap">--</div><div class="lbl">人均用地</div></div>
+  <div class="stat-card"><div class="val" id="resBuilt">--</div><div class="lbl">建设用地占比</div></div>
+  <div class="stat-card"><div class="val" id="resCheck">--</div><div class="lbl">校核结果</div></div>
+</div>
+
+<div class="result-box" id="result"></div> <div id="land_useTable"></div> <div id="land_useDiff"></div> <div id="land_useChart"></div> <div id="land_useHist"></div>
+
+<div class="formula-box">
+  <strong>📐 用地分类标准（GB50137-2011）</strong>
+  <p>居住用地：25~40%，人均 23~38 m²<br>
+  公共管理与服务：5~8%，人均 5~9 m²<br>
+  道路交通：10~25%，人均 10~25 m²<br>
+  绿地与广场：10~15%，人均 10~15 m²<br>
+  工业用地：15~30%（工业区）<br>
+  人均建设用地：大城市 80~105，中等 85~110，小城市 90~115 m²</p>
+</div>
+
+<div class="tip-box tip-info">💡 用地平衡表是控制性详细规划的核心内容，各类用地比例需满足规范要求，总用地面积与人均用地指标需协调。</div>
+
+<div class="toolbar">
+  <div id="land_usePresets"></div><button type="button" class="btn primary" onclick="calc()">🧮 计算</button><button class="btn" type="button" onclick="__land_useExport()">导出明细 CSV</button>
+  <button type="button" class="btn" onclick="copyResult()">📋 复制结果</button>
+  <button type="button" class="btn" onclick="resetForm()">🔄 重置</button>
+</div>
+</div>
+
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto 0;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+.deep-dive a.term-link{color:var(--tool-accent,#FF6B35);text-decoration:none;border-bottom:1px dashed currentColor;}
+.deep-dive a.term-link:hover{border-bottom-style:solid;}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：用地构成与比例计算</h2>
+<h3>💡 常见使用场景</h3>
+<ul class="dd-list">
+<li>控制性详细规划编制&quot;<a class="term-link" href="/guides/land-use-guide.html">用地平衡表</a>&quot;：列出居住(R)、公共管理与服务(A)、商业服务(B)、工业(M)、道路(S)、公用设施(U)、绿地与广场(G)等七类用地的面积与占比。</li>
+<li>校核人均建设用地 = 总用地 ×10000 ÷ 规划人口，判断是否落在城市规模标准区间内。</li>
+<li>逐类校核占地比例是否落在分类标准区间（如居住用地 25%–40%、绿地 10%–15%）。</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">用地平衡表算例</div><div class="dd-ex-body">规划人口 80000 人，七类用地面积（ha）：R=300, A=80, B=60, M=100, S=150, U=20, G=120，合计 830 ha：
+人均建设用地 = 830 × 10000 / 80000 = 103.8 m²/人（大城市标准 80–105，达标）；
+居住用地占比 = 300 / 830 × 100% = 36.1%（标准 25%–40%，达标）；
+绿地占比 = 120 / 830 × 100% = 14.5%（标准 10%–15%，达标）。
+全部校核通过即&quot;达标&quot;，否则需调整各类用地面积。</div></div>
+<h3>❓ 常见问题（FAQ）</h3>
+<dl class="dd-faq">
+<dt>用地分类代码 R/A/B/M/S/U/G 分别代表什么？</dt><dd>R 居住用地、A 公共管理与公共服务、B 商业服务业设施、M 工业、S 道路与交通设施、U 公用设施、G 绿地与广场。这是《城市用地分类与规划建设用地标准》GB 50137 的一级类代码。</dd>
+<dt>人均建设用地标准的意义？</dt><dd>它反映了规划的人均土地集约程度，是控规的核心指标之一。标准按城市规模（大/中/小城市、镇、村庄）给出区间，过低意味拥挤、过高则土地浪费。</dd>
+</dl>
+</div>
+</section>
+<!-- 注意事项区块 -->
+<div class="tool-notes" style="--tool-accent:#FF6B35;">
+  <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
+  <ul>
+      <li>本工具纯前端运行，数据不会上传到服务器</li>
+      <li>建议在主流浏览器（Chrome/Safari/Firefox/Edge）中使用</li>
+      <li>计算结果仅供参考，请以实际应用场景为准</li>
+  </ul>
+</div>
+<!-- /注意事项区块 -->
+</div>
+<script>
+var LAND_TYPES=[
+  {key:'R',name:'居住用地',color:'#FF6B35',default:300,stdMin:25,stdMax:40,perCapMin:23,perCapMax:38},
+  {key:'A',name:'公共管理与服务',color:'#7C3AED',default:80,stdMin:5,stdMax:8,perCapMin:5,perCapMax:9},
+  {key:'B',name:'商业服务业设施',color:'#3B82F6',default:60,stdMin:5,stdMax:15,perCapMin:5,perCapMax:15},
+  {key:'M',name:'工业用地',color:'#6B7280',default:100,stdMin:15,stdMax:30,perCapMin:15,perCapMax:30},
+  {key:'S',name:'道路交通设施',color:'#F59E0B',default:150,stdMin:10,stdMax:25,perCapMin:10,perCapMax:25},
+  {key:'U',name:'公用设施',color:'#10B981',default:20,stdMin:3,stdMax:6,perCapMin:3,perCapMax:6},
+  {key:'G',name:'绿地与广场',color:'#22C55E',default:120,stdMin:10,stdMax:15,perCapMin:10,perCapMax:15}
+];
+var CITY_STD={large:{min:80,max:105,name:'大城市'},medium:{min:85,max:110,name:'中等城市'},small:{min:90,max:115,name:'小城市'}};
+function fmt(v,d){if(!isFinite(v))return '--';return Number(v).toFixed(d!=null?d:1);}
+function buildTable(){
+  var html='<div class="land-row header"><span>用地类型</span><span>面积(ha)</span><span>比例</span><span>人均m²</span><span>校核</span></div>';
+  LAND_TYPES.forEach(function(l){
+    html+='<div class="land-row">'+
+      '<span class="land-name" style="color:'+l.color+';">'+l.name+'</span>'+
+      '<input type="number" id="area_'+l.key+'" value="'+l.default+'" min="0" step="5" oninput="calc()">'+
+      '<span class="pct" id="pct_'+l.key+'">--</span>'+
+      '<span class="percap" id="percap_'+l.key+'">--</span>'+
+      '<span id="check_'+l.key+'">--</span>'+
+      '</div>';
+  });
+  html+='<div class="land-row total"><span>合计</span><span id="totalArea">--</span><span class="pct" id="totalPct">100%</span><span class="percap" id="totalPerCap">--</span><span></span></div>';
+  const __g1=html;document.getElementById('landTable').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
+}
+function calc(){
+  var pop=parseFloat(document.getElementById('inPop').value);
+  var cityType=document.getElementById('inCityType').value;
+  if(!pop||pop<=0)return;
+  var total=0;
+  var data=[];
+  LAND_TYPES.forEach(function(l){
+    var area=parseFloat(document.getElementById('area_'+l.key).value)||0;
+    total+=area;
+    data.push({key:l.key,name:l.name,area:area,color:l.color,stdMin:l.stdMin,stdMax:l.stdMax,perCapMin:l.perCapMin,perCapMax:l.perCapMax});
+  });
+  var perCapTotal=total*10000/pop;
+  var cityStd=CITY_STD[cityType];
+  var issues=[];
+  data.forEach(function(d){
+    var pct=total>0?d.area/total*100:0;
+    var perCap=d.area*10000/pop;
+    var okPct=pct>=d.stdMin&&pct<=d.stdMax;
+    const __g2=fmt(pct,1)+'%';document.getElementById('pct_'+d.key).textContent=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
+    const __g3=fmt(perCap,1);document.getElementById('percap_'+d.key).textContent=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
+    var ck=document.getElementById('check_'+d.key);
+    const __g4='<span class="grade-tag '+(okPct?'grade-excellent':'grade-fail')+'" style="font-size:10px;">'+(okPct?'OK':'!')+'</span>';ck.innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
+    if(!okPct)issues.push(d.name+fmt(pct,1)+'%(标'+d.stdMin+'~'+d.stdMax+'%)');
+  });
+  const __g5=fmt(total,1)+' ha';document.getElementById('totalArea').textContent=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
+  document.getElementById('totalPct').textContent='100%';
+  const __g7=fmt(perCapTotal,1);document.getElementById('totalPerCap').textContent=(typeof __g7==='number'?(isFinite(__g7)?__g7:'—'):String(__g7).replace(/Infinity|NaN/g,'—'));
+  // built area = total minus G (green) is not standard; use total as construction land
+  var okPerCap=perCapTotal>=cityStd.min&&perCapTotal<=cityStd.max;
+  const __g8=fmt(total,1)+' ha';document.getElementById('resTotal').textContent=(typeof __g8==='number'?(isFinite(__g8)?__g8:'—'):String(__g8).replace(/Infinity|NaN/g,'—'));
+  const __g9=fmt(perCapTotal,1)+' m²';document.getElementById('resPerCap').textContent=(typeof __g9==='number'?(isFinite(__g9)?__g9:'—'):String(__g9).replace(/Infinity|NaN/g,'—'));
+  document.getElementById('resBuilt').textContent='100%';
+  var allOk=okPerCap&&issues.length===0;
+  const __g11='<span class="grade-tag '+(allOk?'grade-excellent':'grade-fail')+'">'+(allOk?'达标':'需调整')+'</span>';document.getElementById('resCheck').innerHTML=(typeof __g11==='number'?(isFinite(__g11)?__g11:'—'):String(__g11).replace(/Infinity|NaN/g,'—'));
+  var detail='<p><strong>规划人口：</strong>'+pop.toLocaleString()+' 人</p>';
+  detail+='<p><strong>城市规模：</strong>'+cityStd.name+'（人均 '+cityStd.min+'~'+cityStd.max+' m²）</p>';
+  detail+='<p><strong>总用地：</strong>'+fmt(total,1)+' 公顷 ('+(total*0.01).toFixed(3)+' km²)</p>';
+  detail+='<p><strong>人均建设用地：</strong>'+fmt(perCapTotal,1)+' m²/人 '+
+    '<span class="grade-tag '+(okPerCap?'grade-excellent':'grade-fail')+'">'+(okPerCap?'达标':'超标')+'</span></p>';
+  detail+='<p><strong>各类用地明细：</strong></p>';
+  data.forEach(function(d){
+    var pct=total>0?d.area/total*100:0;
+    var perCap=d.area*10000/pop;
+    detail+='<p style="padding-left:12px;font-size:12px;">'+d.name+'：'+fmt(d.area,1)+'ha，'+fmt(pct,1)+'%，人均'+fmt(perCap,1)+'m²</p>';
+  });
+  if(issues.length>0){
+    detail+='<p style="color:var(--danger);margin-top:8px;">⚠️ 存在问题：'+issues.join('；')+'</p>';
+  }
+  const __g12=detail;document.getElementById('result').innerHTML=(typeof __g12==='number'?(isFinite(__g12)?__g12:'—'):String(__g12).replace(/Infinity|NaN/g,'—'));
+  window._lastResult={total:total,perCap:perCapTotal,ok:allOk,pop:pop,cityType:cityStd.name,issues:issues};
+}
+function copyResult(){
+  if(!window._lastResult)return;
+  var r=window._lastResult;
+  ToolBox.copyText('用地平衡表计算结果：\n规划人口: '+r.pop.toLocaleString()+' 人\n城市规模: '+r.cityType+'\n总用地: '+fmt(r.total,1)+' ha\n人均用地: '+fmt(r.perCap,1)+' m²\n校核: '+(r.ok?'达标':'需调整')+(r.issues.length>0?'\n问题: '+r.issues.join('；'):''));
+}
+function resetForm(){
+  document.getElementById('inPop').value=100000;
+  document.getElementById('inCityType').value='large';
+  LAND_TYPES.forEach(function(l){
+    document.getElementById('area_'+l.key).value=l.default;
+  });
+  calc();
+}
+buildTable();
+calc();
+</script>
+
+<!-- SEO 介绍区块 -->
+
+</div>
+
+</div>
+
+<!-- 相关工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相关工具</h3>
+  <div class="related-tools-grid">
+    <a href="../biz/presentation-timer.html" class="related-tool-card">
+      <span class="rt-icon">⏱️</span>
+      <span class="rt-info"><span class="rt-name">演讲计时器 - 免费开发工具，在线演讲计时器 | ToolBox免费在线工具箱</span><span class="rt-desc">演讲计时器</span></span>
+    </a>
+    <a href="../biz/markdown-quote.html" class="related-tool-card">
+      <span class="rt-icon">📝</span>
+      <span class="rt-info"><span class="rt-name">Markdown 引用转换器 - 免费文本处理工具，在线Markdown 引用转换器 | ToolBox免费在线工具箱</span><span class="rt-desc">Markdown 引用转换器</span></span>
+    </a>
+    <a href="../biz/markdown.html" class="related-tool-card">
+      <span class="rt-icon">📝</span>
+      <span class="rt-info"><span class="rt-name">Markdown 预览 - 免费文本处理工具，Markdown 实时预览 | ToolBox免费在线工具箱</span><span class="rt-desc">Markdown 实时预览</span></span>
+    </a>
+    <a href="../biz/unicode-normalize.html" class="related-tool-card">
+      <span class="rt-icon">🏋️</span>
+      <span class="rt-info"><span class="rt-name">Unicode 规范化 - 免费文本处理工具，在线Unicode 规范化 | ToolBox免费在线工具箱</span><span class="rt-desc">Unicode 规范化</span></span>
+    </a>
+    <a href="../biz/zalgo-text.html" class="related-tool-card">
+      <span class="rt-icon">💼</span>
+      <span class="rt-info"><span class="rt-name">Zalgo 文字 - 免费文本处理工具，Zalgo 文字生成器 | ToolBox免费在线工具箱</span><span class="rt-desc">Zalgo 文字生成器</span></span>
+    </a>
+    <a href="../biz/superscript-text.html" class="related-tool-card">
+      <span class="rt-icon">💼</span>
+      <span class="rt-info"><span class="rt-name">上标文字 - 免费文本处理工具，在线上标文字 | ToolBox免费在线工具箱</span><span class="rt-desc">⬆️ 上标文字</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro open" id="toolIntro">
+  <div class="tool-intro-header">
+    <span class="intro-icon-wrap"><span class="intro-icon">📖</span>关于「用地平衡计算」</span>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="tool-intro-body">
+    <h4><span class="h4-icon">📝</span>工具简介</h4>
+    <p>用地平衡表计算器 - 城市各类用地面积比例与人均指标计算。。商业办公工具，提升工作效率，数据本地处理保护隐私。</p>
+    <h4><span class="h4-icon">✨</span>功能特点</h4>
+    <ul class="intro-features">
+      <li>操作简单，一键完成</li>
+      <li>纯前端处理，数据不上传</li>
+      <li>支持批量操作</li>
+      <li>结果可复制或下载</li>
+    </ul>
+    <h4><span class="h4-icon">🎯</span>使用场景</h4>
+    <ul class="intro-scenes">
+      <li>日常办公文档处理</li>
+      <li>会议与项目管理</li>
+      <li>数据整理与汇总</li>
+      <li>团队协作辅助</li>
+    </ul>
+    </div>
+</div>
+<!-- /SEO 介绍区块 -->
+
+<script>
+// tool-intro折叠交互
+document.addEventListener('DOMContentLoaded',function(){
+  var headers=document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click',function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+
+var __land_use_last=0,__land_use_skip=false;
+function __land_useSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __land_useResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __land_useTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __land_useRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__land_useTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#land_useTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#land_useDiff');
+        TBKit.history.mount('#land_useHist',function(rec){
+            __land_use_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __land_use_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__land_useTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#land_useChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __land_useExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__land_use_skip) return;
+    var snap=__land_useSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__land_useResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__land_use_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __land_use_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __land_useRender(keys,rk,en);
+}
+function __land_useExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#land_useTable','land-use.csv'); } catch(e){}
+}
+function __land_usePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#land_usePresets',[{label:'默认参数',labelEn:'Default',values:{'inPop':'100000', 'inCityType':'large'}}],function(){ calc(); });
+}
+var __land_use_f0=(typeof calc==='function')?calc:null;
+if(__land_use_f0){
+    calc=function(){ var __r=__land_use_f0.apply(null,arguments); try{ __land_useExtras(); }catch(e){} return __r; };
+}
+function __land_useBoot(){ try{ __land_usePresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __land_useBoot();
+else document.addEventListener('DOMContentLoaded', __land_useBoot);
+</script>
+
+</body>
+</html>

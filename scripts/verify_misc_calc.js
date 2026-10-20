@@ -1,0 +1,131 @@
+#!/usr/bin node
+"use strict";
+const { runCase } = require("./verify_it_calc.js");
+const CASES = [
+{
+  "slug": "math/complex-number",
+  "inputs": {
+    "aRe": "6",
+    "aIm": "4",
+    "bRe": "1",
+    "bIm": "-2"
+  },
+  "expect": [
+    "(33.690068°)"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "math/function-plotter",
+  "inputs": {
+    "xMin": "-15",
+    "xMax": "10",
+    "yMin": "-10",
+    "yMax": "10",
+    "p_a": "1",
+    "p_b": "10",
+    "p_c": "-4",
+    "p_w": "1",
+    "p_phi": "0",
+    "p_expr": "sin(x)*2"
+  },
+  "expect": [
+    "-15"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "math/magic-square",
+  "inputs": {
+    "order": "8"
+  },
+  "expect": [
+    "369"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "science/physics-constants",
+  "inputs": {},
+  "expect": [
+    "原子物理"
+  ],
+  "ref": "auto-restore(default)；**2026-09-26 复核判死（勿重复评估）**：setCat(k) 走 initTabs()+renderList()，前者只给按钮切 active class（CATS 名称文本全部常驻），后者对 CONSTANTS 做 `filter(curCat==='all'||c.cat===curCat)` 后 map 渲染 —— 过滤是**顺序保持型**（命中行的顺序与原表一致）⇒ 注入态输出恒为「默认全量」的顺序子序列，任何常数名/数值都已被默认态包含（§10.5 B 组判据）。搜索框同理。`emptyHint` 只切 style.display（collectStrings 不采 style）。"
+},
+{
+  "slug": "misc/scientific-notation",
+  "inputs": {
+    "rawInput": "602214076000000000000000",
+    "mantissaInput": "6.022",
+    "expInput": "35"
+  },
+  "expect": [
+    "6.022e+35"
+  ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "misc/statistics-distribution",
+  "inputs": {
+    "mu": "2",
+    "sigma": "1.5",
+    "xval": "3",
+    "aVal": "6",
+    "bVal": "7",
+    "lambda": "3",
+    "kval": "5",
+    "nval": "10",
+    "pval": "0.5"
+  },
+  "expect": [
+    "P(X ≤ 3) = 0.747508"
+  ],
+  "ref": "auto-restore（去默认化：μ=2,σ=1.5,x=3 → z=0.6667、Φ=0.747508；Python math.erf 复算 0.7475075。默认 μ=0,σ=1,x=1 得 0.841345）"
+},
+{
+  "slug": "misc/truth-table",
+  "inputs": {
+    "exprInput": "A and (B or not C)_X"
+  },
+  "expect": [
+    "无法识别字符"
+  ],
+  "ref": "auto-restore"
+},
+  {
+    "slug": "misc/unit-prefix",
+    "inputs": {
+      "valueInput": "42",
+      "unitInput": "abc123测试"
+    },
+    "expect": [
+      " = 0.000042\n42\nabc123测试\nY yotta 4.200e-26 Yabc123测试 Z zetta 4.200e-23 Zabc123测试 E exa 4.200e-20 Eabc123测试 P peta 4.200e-"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"valueInput\":\"42\",\"unitInput\":\"abc123测试\"}，输出区含「 = 0.000042\n42\nabc123测试\nY yotta 4.200e-2…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  }
+
+];
+async function main() {
+  const only = process.argv.slice(2);
+  const cases = only.length ? CASES.filter((c) => only.some((o) => c.slug.endsWith("/" + o) || c.slug === o)) : CASES;
+  let pass = 0; const fails = [];
+  for (const c of cases) {
+    try {
+      const r = await runCase(c);
+      if (r.ok) { pass++; }
+      else {
+        fails.push(c.slug);
+        console.log("❌ " + c.slug + "  " + (r.why || "no expect match"));
+        if (r.errs && r.errs.length) console.log("     errs: " + JSON.stringify(r.errs));
+        if (r.sample) console.log("     got: " + String(r.sample).slice(0, 300));
+      }
+    } catch (e) {
+      fails.push(c.slug);
+      console.log("❌ " + c.slug + "  THROWN: " + ((e && e.message) ? e.message : String(e)));
+    }
+  }
+
+  console.log("==== misc calc " + pass + "/" + cases.length + " ====");
+  if (fails.length) process.exit(1);
+}
+if (require.main === module) main();

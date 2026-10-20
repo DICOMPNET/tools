@@ -1,0 +1,1787 @@
+#!/usr/bin/env node
+/**
+ * life 分类关键计算逻辑独立验证（收口批次 C）。
+ *
+ * 复用 scripts/verify_it_calc.js 的 DOM stub 与 runCase 框架。
+ * 期望值一律由页面公式独立复算得出，不取页面输出。
+ *
+ * 用法：
+ *   node scripts/verify_life_calc.js
+ *   node scripts/verify_life_calc.js parking-fee percentage-calculator
+ */
+const { runCase } = require("./verify_it_calc.js");
+
+const CASES = [
+  // ── 停车费（先扣免费时长，再按费率，最后套封顶）────────────────
+  {
+    slug: "life/parking-fee",
+    inputs: { hours: "5.5", rate: "10", free: "1", cap: "60" },
+    expect: ["45.00"],
+    ref: "计费时长 = 5.5 − 1 = 4.5 h；费用 = 4.5 × 10 = 45.00（未触及封顶 60）",
+  },
+  // ── 百分比（占比）────────────────────────────────────────────
+  {
+    slug: "life/percentage-calculator",
+    inputs: { isWhatX: "30", isWhatY: "150" },
+    expect: ["30 是 150 的 20%"],
+    ref: "30 ÷ 150 × 100 = 20 → 显示 20%（单断言“20%”会被页面默认 ofWhatPct=20 的区块命中 → 逃生项）",
+  },
+  // ── 温度换算（°F = °C×9/5+32）────────────────────────────────
+  {
+    slug: "life/temperature-converter",
+    inputs: { celsius: "12.5" },
+    expect: ["54.50", "285.65", "当前体感： 凉爽 12.5°C"],
+    ref: "12.5×9/5+32 = 54.50°F；12.5+273.15 = 285.65K；体感 <15°C → 凉爽"
+       + "（默认 25°C → 77.00°F / 298.15K / 舒适，注入失败即不命中）",
+  },
+  // ── 每日热量（Mifflin-St Jeor 男式）──────────────────────────
+  {
+    slug: "life/daily-calorie-needs",
+    inputs: { bmrGender: "male", bmrAge: "30", bmrHeight: "175", bmrWeight: "70" },
+    expect: ["1649"],
+    ref: "10×70 + 6.25×175 − 5×30 + 5 = 1648.75 → round = 1649 千卡",
+  },
+  // ── 饮水计划（体重×30ml + 运动 + 高温 + 特殊）─────────────────
+  {
+    slug: "life/drinking-water-plan",
+    inputs: { w: "70", act: "mid", temp: "26", stage: "normal" },
+    expect: ["2,850.00"],
+    ref: "基础 70×30 = 2100；运动中档 +500；26°C（≥25）+250；特殊 0 → 2850.00 ml",
+  },
+  // ── 罩杯换算（上下围差 → 罩杯索引）────────────────────────────
+  {
+    slug: "life/bra-size-converter",
+    inputs: { under: "70", upper: "82.5" },
+    expect: ["上下胸围差： 12.5 cm", "国际码： 70E", "罩杯： E 杯"],
+    ref: "差 82.5−70 = 12.5 → cupIdx = round(12.5/2.5)−1 = 4 → cups[5] = E；下围 70 (<73) → 国际码 70E"
+       + "（默认 75/90 → 差 15.0 cm、75F，注入失败即不命中）",
+  },
+  // ── 日期差（含开始日 +1）─────────────────────────────────────
+  {
+    slug: "life/date-difference-calculator",
+    inputs: { startDate: "2025-12-25", endDate: "2026-01-01" },
+    expect: ["从 2025-12-25 到 2026-01-01", "1周0天"],
+    ref: "getDaysDiff(12-25 → 01-01) = 7 天（含起始日）⇒ 锚「7 天」「从 2025-12-25 到 2026-01-01」「1周0天」——三者均基于**时间戳差**（两日期同时区同偏移⇒差恒定），跨时区稳定。"
+       + "**不锚**「0年1月」（totalMonths 用本地 getFullYear/getMonth，UTC 之后时区把 12-25/01-01 同解析进 12 月⇒变 0年0月，属页面时区 bug，本页受众为 China/UTC 不受影响，留待页面层修复）。"
+       + "默认空日期走「请选择日期」卫语句，注入失败即不命中。",
+  },
+  // ── 生日悖论（23 人 ≈ 50.7%）────────────────────────────────
+  {
+    slug: "life/birthday-paradox",
+    inputs: { n: "30", d: "365" },
+    expect: ["70.6316%", "所有人生日不同的概率：29.3684%"],
+    ref: "p = 1 − exp(Σ_{i=0..29} ln(1 − i/365)) = 1 − 0.29368432 = 0.70631568 → 70.6316%"
+       + "（默认 23 人 → 50.7297%，注入失败即不命中）",
+  },
+  // ── 闰年判定（格里高利历规则）────────────────────────────────
+  {
+    slug: "life/leap-year-checker",
+    inputs: { year: "1900", range: "12" },
+    expect: ["1900 - 1911 年附近的闰年：", "1904、1908"],
+    ref: "1900 能被 4 整除、但能被 100 整除且不能被 400 整除 ⇒ 平年（世纪非闰）；区间 1900..1911 内闰年仅 1904、1908"
+       + "（默认 2024/range 10 → 2024、2028、2032，注入失败即不命中）",
+  },
+  // ── 单位换算（因子归一：m → cm）──────────────────────────────
+  {
+    slug: "life/unit-converter",
+    inputs: { fromValue: "1", fromUnit: "meter", toUnit: "centimeter" },
+    expect: ["100"],
+    ref: "1 × factor(meter)=1 ÷ factor(cm)=0.01 = 100 → 结果 100",
+  },
+  // ── 选址加权模型（五项加权求和）──────────────────────────────
+  {
+    slug: "life/assessor-target",
+    inputs: {
+      traffic: "6000", competitors: "2", population: "4000",
+      rent: "120", shopArea: "40", visibility: "7",
+    },
+    expect: ["综合评分： 70.5/100", "租金评分：80(15%)", "选址评级： 良好（推荐）"],
+    ref: "人流 60×.30 + 竞争 70×.20 + 人口 80×.20 + 租金 80×.15 + 可见 70×.15 "
+       + "= 18+14+16+12+10.5 = 70.5 → 60≤70.5<75 良好（推荐）"
+       + "（默认 24+11+20+9+12 = 76.0 → 优秀，且租金档 60→80 跨档，注入失败即不命中）",
+  },
+  {
+    "slug": "life/analysis-cost-9",
+    "inputs": {
+      "data": "研发,80\n营销,50\n生产,120\n管理,30"
+    },
+    "expect": [
+      "成本合计： 280.00",
+      "最大项： 生产"
+    ],
+    "ref": "成本结构：合计80+50+120+30=280.00、项均70.00、最大项生产120(42.86%)（独立复算；默认 原料42/人工31/物流15/能耗9 合计97、最大项原料，注入失败即不命中）"
+  },
+  {
+    "slug": "life/analysis-80",
+    "inputs": {
+      "data": "A,8,100\nB,12,240\nC,5,50"
+    },
+    "expect": [
+      "高发环节： C",
+      "平均损耗率： 6.41%"
+    ],
+    "ref": "损耗率：A8/100=8.00%、B12/240=5.00%、C5/50=10.00%；损耗合计25、应售合计390、平均损耗率6.41%、高发环节C（独立复算；默认 进货5/货架10/报损3 应售100/200/50 → 平均5.14%、高发报损，注入失败即不命中）"
+  },
+  {
+    "slug": "life/analysis-cost-10",
+    "inputs": {
+      "data": "原材料,8000,7400\n人工,5000,5600\n制造费用,3000,2900"
+    },
+    "expect": [
+      "预算合计： 16000.00",
+      "总差异： -100.00",
+      "最大超支项： 人工"
+    ],
+    "ref": "预算8000+5000+3000=16000、实际7400+5600+2900=15900；总差异=-100.00、执行率=15900/16000=99.38%；最大超支项=人工(+600)，超支1项、节约2项（独立复算；默认 原材料10000/11200、人工6000/5800、制造费用4000/4200 → 总差异+1200、执行率106.00%，注入失败即不命中）"
+  },
+
+{
+  "slug": "life/analysis-23",
+  "inputs": {
+    "data": "A栋,30,36\nB栋,45,50\nC栋,60,78\nD栋,24,27",
+    "std": "1.2"
+  },
+  "expect": [
+    "平均间距系数： 1.1840",
+    "达标率： 50.00%",
+    "极差： 0.1889"
+  ],
+  "ref": "系数=间距÷楼高：1.2000/1.1111/1.3000/1.1250；均值1.1840、极差0.1889、达标2/4=50.00%（默认3栋达标率66.67%、均值1.1884 避开）"
+},
+{
+  "slug": "life/analysis-74",
+  "inputs": { "data": "竞品A,19.9,32.5,8.0\n竞品B,24.6,21.0,-3.5\n竞品C,15.8,18.4,12.6\n竞品D,30.1,12.1,5.2" },
+  "expect": [
+    "价格均值： 22.60",
+    "份额合计： 84.00%",
+    "增速均值： +5.58%"
+  ],
+  "ref": "价格 (19.9+24.6+15.8+30.1)/4=22.60；份额 32.5+21.0+18.4+12.1=84.00%；增速 (8.0−3.5+12.6+5.2)/4=5.58%（默认两项 22.50/50.00%/+1.50%，避开；价格数据刻意取到 22.60 以避开 .xx5 舍入边界）"
+},
+
+{
+  "slug": "life/report-profit",
+  "inputs": {
+    "rev": "400000",
+    "cog": "260000",
+    "payroll": "60000",
+    "rent": "15000",
+    "misc": "9000",
+    "recv": "60",
+    "cash0": "80000"
+  },
+  "expect": [
+    "240,000.00",
+    "-104,000.00"
+  ],
+  "ref": "营业收入 400,000 − 进货成本 260,000 = 毛利 140,000（毛利率 35.00%）；期间费用 60,000+15,000+9,000 = 84,000 ⇒ 营业利润 56,000（净利率 14.00%）；回款率 60% 时现金流入 240,000.00，付现支出 260,000+84,000 = 344,000 ⇒ 经营现金流净额 −104,000.00、期末现金 80,000−104,000 = −24,000.00（独立复算；默认 185,000/96,000/回款 85% 时净流入仅 1,250.00，注入值全不落在默认分支上）"
+},
+
+{
+  "slug": "life/stats-13",
+  "inputs": {
+    "roster": "张三,2\n李四,3\n王五,1",
+    "price": "25"
+  },
+  "expect": [
+    "150.00",
+    "50.00"
+  ],
+  "ref": "名单三行「姓名,份数」= 张三 2 + 李四 3 + 王五 1 ⇒ 人数 3、合计份数 6、人均 2.00 份；单价 25 元 ⇒ 预售金额 6×25 = 150.00 元、人均金额 150÷3 = 50.00 元（独立复算；默认名单为空 → 页面提示「请粘贴接龙名单」，注入失败即不命中）"
+},
+
+{
+  "slug": "life/date-diff",
+  "inputs": {
+    "date1": "2025-03-10",
+    "date2": "2025-08-15"
+  },
+  "expect": [
+    "3792",
+    "227520"
+  ],
+  "ref": "2025-03-10 → 2025-08-15 共 158 天 ⇒ 总小时 158×24 = 3792、总分钟 158×1440 = 227520，另完整周数 22、剩余 4 天（独立复算；默认 2026-01-01→2026-07-29 = 209 天 → 5024 小时，注入失败即不命中）"
+},
+
+{
+  "slug": "data/csv-to-markdown",
+  "inputs": {
+    "input": "姓名,科目,成绩\n张三,数学,92\n李四,物理,88"
+  },
+  "expect": [
+    "| 张三 | 数学 | 92 |",
+    "| 李四 | 物理 | 88 |"
+  ],
+  "ref": "三列两行 CSV 以首行作表头解析 ⇒ 输出行 `| 张三 | 数学 | 92 |` 与 `| 李四 | 物理 | 88 |`（独立复算 parseCSV 与「| 单元格 | 」拼接规则；默认输入为空 → 输出空串，注入失败即不命中）"
+},
+
+{
+  "slug": "life/generator-random-1",
+  "inputs": {
+    "min": "60",
+    "max": "90",
+    "cnt": "3"
+  },
+  "expect": [
+    "生成结果（范围 60 ~ 90）"
+  ],
+  "ref": "区间 60~90、数量 3 ⇒ 表头「生成结果（范围 60 ~ 90）：」，三个数值虽随机但完全由注入区间决定（默认 min=1/max=100 → 「范围 1 ~ 100」，注入失败即不命中）"
+},
+
+{
+  "slug": "life/generator-price",
+  "inputs": {
+    "cnt": "50"
+  },
+  "expect": [
+    "50. 《设备维修合同》草案"
+  ],
+  "ref": "条数钳到上限 50 ⇒ 第 50 条取 services[49%10] = 设备维修，出现「50. 《设备维修合同》草案」（默认 cnt=5 只渲染第 1~5 条，注入失败即不命中）"
+},
+
+{
+  "slug": "life/recommender-8",
+  "inputs": {
+    "cnt": "50"
+  },
+  "expect": [
+    "50. 个人意外 场景"
+  ],
+  "ref": "条数钳到上限 50 ⇒ 第 50 条取 scenarios[49%8] = 个人意外，出现「50. 个人意外 场景」（默认 cnt=5 只渲染第 1~5 条，注入失败即不命中）"
+},
+
+{
+  "slug": "life/music-practice-timer",
+  "clicks": [ "loadTemplate('full')" ],
+  "expect": [
+    "20:00",
+    "曲目"
+  ],
+  "ref": "点击切换到内置模板 full（6 段）⇒ 末段「曲目」时长 1200 s → 显示 20:00（默认 warmup 模板只有热身/休息两段、仅出现 05:00，注入失败即不命中）"
+},
+
+{
+  "slug": "life/countdown-1",
+  "clicks": [ "applyTarget()", "switchMode('down')" ],
+  "inputs": {
+    "setMin": "2",
+    "setSec": "30"
+  },
+  "expect": [
+    "02:30.00"
+  ],
+  "ref": "注入 2 分 30 秒后 applyTarget() 得 target = 150000 ms，再 switchMode('down') 切为倒计时 ⇒ 显示 02:30.00（默认为正计时模式，显示恒为 00:00.00，注入失败即不命中）"
+},
+
+{
+  "slug": "life/countdown-2",
+  "inputs": {
+    "itemName": "结婚纪念日",
+    "itemDate": "2026-11-11"
+  },
+  "expect": [
+    "结婚纪念日 即将 2026年11月11日"
+  ],
+  "ref": "加入纪念日「结婚纪念日 / 2026-11-11」且非每年重复。⚠ 原 expect『879』是与冻结基准日相隔的天数，时区偏移使基准日变 06-14 则为 880 ⇒ UTC-12 失配。已改为锚定注入决定的 itemName+itemDate（默认列表为空 → 「还没有纪念日」，注入失败即不命中）"
+},  // ── 进制换算（自定义进制） ─────────────────────────────────
+  {
+    slug: "life/base-convert",
+    inputs: { input: "4095", customBase: "2" },
+    expect: ["111111111111", "7777", "FFF"],
+    ref: "去默认化：4095 = 0xFFF ⇒ toString(2) = 111111111111（12 个 1）、toString(8) = 7777、"
+       + "toString(16).toUpperCase() = FFF；customBase=2 走同一条 toString(2) 分支 ⇒ 111111111111。"
+       + "默认态 input=255 / customBase=36 ⇒ 11111111 / 377 / FF，三条锚全部失配。"
+       + "注：本页结果回填在 <input> 的 value 上（bin/oct/dec/hex/custom），仍可被 fullBlob 捕获；"
+       + "若沿用默认输入 255，默认态会产出同值 ⇒ 逃生项，必须换输入。",
+  },
+
+  // ── 经营报表（毛利 / 净利 / 现金流） ────────────────────────
+  {
+    slug: "life/report-profit",
+    inputs: { rev: "200000", cog: "80000", payroll: "45000", rent: "12000", misc: "8000", recv: "95", cash0: "30000" },
+    expect: ["毛利： 120,000.00 元", "净利率 27.50%", "经营现金流净额： 45,000.00 元"],
+    ref: "去默认化：毛利 = 200000 − 80000 = 120000（毛利率 60.00%）；期间费用 = 45000+12000+8000 = 65000；"
+       + "营业利润 = 120000 − 65000 = 55000（净利率 27.50%）；现金流入 = 200000×95% = 190000（未回款 10000）；"
+       + "付现支出 = 80000 + 65000 = 145000；经营现金流 = 190000 − 145000 = 45000；期末现金 = 30000+45000 = 75000；"
+       + "利润>0 且现金流>0 ⇒ 诊断「盈利且现金同步回正」。"
+       + "默认态 185000/96000/38000/15000/7000/85/50000 ⇒ 毛利 89000（48.11%）、费用 60000、利润 29000、"
+       + "现金流 1250、期末 51250，三条锚全部失配。",
+  },
+
+  // ── AA 分账（含小费按份均摊） ──────────────────────────────
+  {
+    slug: "life/bill-splitter",
+    inputs: { "total-amount": "960", "tip-percent": "15" },
+    expect: ["总金额： ¥960.00 + 15%小费 = ¥1104.00", "¥276.00"],
+    ref: "去默认化：含小费总额 = 960×(1+15%) = 1104.00；默认 4 人各 1 份 ⇒ 每份 1104/4 = 276.00。"
+       + "默认态为 1000 + 0% 小费 = 1000.00、每份 250.00，两条锚全部失配。"
+       + "「总份数： 4份」不可作锚——该量只由人数决定，默认态同样命中（逃生项）。",
+  },
+
+  // ── 工作日测算（排除周六日） ───────────────────────────────
+  {
+    slug: "life/workday-calculator",
+    inputs: { startDate: "2026-01-01", endDate: "2026-01-31" },
+    checkIds: ["skipSat", "skipSun"],
+    expect: ["自然日总数： 30 天", "周末（已排除）： 8 天", "工作日数： 22 天"],
+    ref: "去默认化：循环条件 d<end ⇒ 只统计 2026/1/1~1/30 共 30 个自然日（不含末日）。"
+       + "其中周六/周日为 1/3、1/4、1/10、1/11、1/17、1/18、1/24、1/25 共 8 天 ⇒ 排除后工作日 22。"
+       + "skipSat/skipSun 在 HTML 上默认 checked，但 harness 桩内 checkbox 恒未勾 ⇒ 必须显式 checkIds，"
+       + "否则输出为「周末（已排除）： 0 天 / 工作日数： 30 天」。默认态 startDate/endDate 无 value ⇒「请选择日期」。",
+  },
+
+  // ── 日期加减 ──────────────────────────────────────────────
+  {
+    slug: "life/date-add-subtract",
+    inputs: { baseTime: "2026-03-15T08:00", y: "1", m: "1", d: "10", h: "2", min: "30", s: "0" },
+    expect: ["结果时间： 2027/4/25 10:30:00", "加减量： 1年 1月 10日 2时 30分 0秒"],
+    ref: "去默认化：基准 2026-03-15 08:00；先 setFullYear(+1) ⇒ 2027-03-15，再 setMonth(+1) ⇒ 2027-04-15"
+       + "（3 月 31 日溢出到 4/15，本例不触发月末钳制分支）；随后按毫秒叠加 d=10 天 ⇒ 2027-04-25、"
+       + "h=2/min=30 ⇒ 10:30。默认态 baseTime 为空 ⇒「请选择基准日期」，两条锚全部失配。",
+  },
+  {
+    slug: "life/angle-converter",
+    inputs: { inputVal: "180" },
+    expect: ["3.141592654"],
+    ref: 'v=180° 基准值 180，弧度 = 180 ÷ 57.295779513 = 3.141592654（fmt 取 10 位有效数字）。默认态 90°→1.570796327 不命中；页面静态文本 3.1416/57.2958/360 均不干扰'
+  },
+  {
+    slug: "life/angle-converter",
+    inputs: { inputVal: "45" },
+    expect: ["0.7853981634"],
+    ref: 'v=45° 弧度 = 45 ÷ 57.295779513 = 0.7853981634（10 位有效数字）'
+  },
+  {
+    slug: "life/angle-converter",
+    inputs: { inputVal: "270" },
+    expect: ["4.71238898"],
+    ref: 'v=270° 弧度 = 270 ÷ 57.295779513 = 4.71238898'
+  },
+  {
+    slug: "life/angle-converter",
+    inputs: { inputVal: "360" },
+    expect: ["6.283185307"],
+    ref: 'v=360° 弧度 = 360 ÷ 57.295779513 = 6.283185307'
+  },
+  {
+    slug: "life/angle-converter",
+    inputs: { inputVal: "720" },
+    expect: ["12.56637061"],
+    ref: 'v=720° 弧度 = 720 ÷ 57.295779513 = 12.56637061'
+  },
+  {
+    slug: "life/angle-converter",
+    inputs: { inputVal: "100" },
+    expect: ["1.745329252"],
+    ref: 'v=100° 弧度 = 100 ÷ 57.295779513 = 1.745329252'
+  },
+  {
+    slug: "life/length-converter",
+    inputs: { inputVal: "5" },
+    expect: ["0.01640419948 英尺"],
+    ref: 'fromUnit 框架默认 mm；meters=v*0.001；锚取『实际:』后真值+单位，避开默认 v=1/mm 产物'
+  },
+  {
+    slug: "life/length-converter",
+    inputs: { inputVal: "100" },
+    expect: ["0.3280839895 英尺"],
+    ref: 'ft=0.1/0.3048'
+  },
+  {
+    slug: "life/length-converter",
+    inputs: { inputVal: "3" },
+    expect: ["0.009842519685 英尺"],
+    ref: 'ft=0.003/0.3048'
+  },
+  {
+    slug: "life/length-converter",
+    inputs: { inputVal: "0.5" },
+    expect: ["0.01968503937 英寸"],
+    ref: 'in=0.0005/0.0254'
+  },
+  {
+    slug: "life/length-converter",
+    inputs: { inputVal: "2" },
+    expect: ["0.002187226597 码"],
+    ref: 'yd=0.002/0.9144'
+  },
+  {
+    slug: "life/length-converter",
+    inputs: { inputVal: "10" },
+    expect: ["0.3937007874 英寸"],
+    ref: 'in=0.01/0.0254'
+  },
+  {
+    slug: "life/weight-converter",
+    inputs: { inputVal: "500" },
+    expect: ["0.5 克"],
+    ref: 'fromUnit 框架默认 mg；base=v*0.001；g=0.5/1'
+  },
+  {
+    slug: "life/weight-converter",
+    inputs: { inputVal: "1000" },
+    expect: ["0.002204622622 磅"],
+    ref: 'lb=1/453.59237'
+  },
+  {
+    slug: "life/weight-converter",
+    inputs: { inputVal: "200" },
+    expect: ["0.00705479239 盎司"],
+    ref: 'oz=0.2/28.349523125'
+  },
+  {
+    slug: "life/weight-converter",
+    inputs: { inputVal: "50" },
+    expect: ["0.00005 千克"],
+    ref: 'kg=0.05/1000'
+  },
+  {
+    slug: "life/weight-converter",
+    inputs: { inputVal: "10" },
+    expect: ["0.05 克拉"],
+    ref: 'ct=0.01/0.2'
+  },
+  {
+    slug: "life/weight-converter",
+    inputs: { inputVal: "5" },
+    expect: ["0.025 克拉"],
+    ref: 'ct=0.005/0.2'
+  },
+  {
+    slug: "life/volume-converter",
+    inputs: { inputVal: "5" },
+    expect: ["0.005 L"],
+    ref: 'base=5ml, L=5/1000=0.005'
+  },
+  {
+    slug: "life/volume-converter",
+    inputs: { inputVal: "10" },
+    expect: ["0.002641720524 gal"],
+    ref: 'base=10ml, gal=10/3785.411784'
+  },
+  {
+    slug: "life/volume-converter",
+    inputs: { inputVal: "100" },
+    expect: ["0.2113376419 pt"],
+    ref: 'base=100ml, pt=100/473.176473'
+  },
+  {
+    slug: "life/volume-converter",
+    inputs: { inputVal: "50" },
+    expect: ["0.05283441047 qt"],
+    ref: 'base=50ml, qt=50/946.352946'
+  },
+  {
+    slug: "life/volume-converter",
+    inputs: { inputVal: "200" },
+    expect: ["0.8453505675 cup"],
+    ref: 'base=200ml, cup=200/236.5882365'
+  },
+  {
+    slug: "life/volume-converter",
+    inputs: { inputVal: "3" },
+    expect: ["0.6086524091 tsp"],
+    ref: 'base=3ml, tsp=3/4.92892159'
+  },
+  {
+    slug: "life/area-converter",
+    inputs: { inputVal: "1000000" },
+    expect: ["10000 cm²"],
+    ref: 'base=1m², cm2=1/1e-4'
+  },
+  {
+    slug: "life/area-converter",
+    inputs: { inputVal: "5000000" },
+    expect: ["0.0075 亩"],
+    ref: 'base=5m², mu=5/666.6666667'
+  },
+  {
+    slug: "life/area-converter",
+    inputs: { inputVal: "2000000" },
+    expect: ["0.0002 ha"],
+    ref: 'base=2m², ha=2/1e4'
+  },
+  {
+    slug: "life/area-converter",
+    inputs: { inputVal: "10000000" },
+    expect: ["0.002471053815 acre"],
+    ref: 'base=10m², acre=10/4046.8564224'
+  },
+  {
+    slug: "life/area-converter",
+    inputs: { inputVal: "3000000" },
+    expect: ["32.29173125 ft²"],
+    ref: 'base=3m², ft2=3/0.09290304'
+  },
+  {
+    slug: "life/area-converter",
+    inputs: { inputVal: "1000000000" },
+    expect: ["0.001 km²"],
+    ref: 'base=1000m², km2=1000/1e6'
+  },
+  {
+    slug: "life/time-converter",
+    inputs: { inputVal: "1000" },
+    expect: ["0.01666666667 min"],
+    ref: 'base=1s, min=1/60'
+  },
+  {
+    slug: "life/time-converter",
+    inputs: { inputVal: "60000" },
+    expect: ["0.01666666667 h"],
+    ref: 'base=60s, h=60/3600'
+  },
+  {
+    slug: "life/time-converter",
+    inputs: { inputVal: "3600000" },
+    expect: ["1 h"],
+    ref: 'base=3600s, h=3600/3600'
+  },
+  {
+    slug: "life/time-converter",
+    inputs: { inputVal: "86400000" },
+    expect: ["1 day"],
+    ref: 'base=86400s, day=86400/86400'
+  },
+  {
+    slug: "life/time-converter",
+    inputs: { inputVal: "2629800" },
+    expect: ["1 month"],
+    ref: 'base=2629.8s, month=2629.8/2629800'
+  },
+  {
+    slug: "life/time-converter",
+    inputs: { inputVal: "31557600" },
+    expect: ["0.36525 day"],
+    ref: 'base=31557.6s, day=31557.6/86400'
+  },
+  {
+    slug: "life/speed-converter",
+    inputs: { inputVal: "50" },
+    expect: ["千米每时： 179.9999999 km/h"],
+    ref: 'base=50 m/s, kmh=50/0.277777778'
+  },
+  {
+    slug: "life/speed-converter",
+    inputs: { inputVal: "200" },
+    expect: ["英里每时： 447.3872584 mph"],
+    ref: 'base=200 m/s, mph=200/0.44704'
+  },
+  {
+    slug: "life/speed-converter",
+    inputs: { inputVal: "30" },
+    expect: ["节： 58.31533482 knot"],
+    ref: 'base=30 m/s, knot=30/0.514444444'
+  },
+  {
+    slug: "life/speed-converter",
+    inputs: { inputVal: "10" },
+    expect: ["马赫： 0.02938583603 Mach"],
+    ref: 'base=10 m/s, mach=10/340.3'
+  },
+  {
+    slug: "life/speed-converter",
+    inputs: { inputVal: "500" },
+    expect: ["千米每时： 1799.999999 km/h"],
+    ref: 'base=500 m/s, kmh=500/0.277777778'
+  },
+  {
+    slug: "life/speed-converter",
+    inputs: { inputVal: "5" },
+    expect: ["英里每时： 11.18468146 mph"],
+    ref: 'base=5 m/s, mph=5/0.44704'
+  },
+  {
+    slug: "life/density-converter",
+    inputs: { inputVal: "500" },
+    expect: ["克每立方厘米： 0.5 g/cm³"],
+    ref: 'base=500 kg/m³, gcm3=500/1000'
+  },
+  {
+    slug: "life/density-converter",
+    inputs: { inputVal: "2" },
+    expect: ["克每毫升： 0.002 g/mL"],
+    ref: 'base=2 kg/m³, gmL=2/1000'
+  },
+  {
+    slug: "life/density-converter",
+    inputs: { inputVal: "100" },
+    expect: ["千克每升： 0.1 kg/L"],
+    ref: 'base=100 kg/m³, kgL=100/1000'
+  },
+  {
+    slug: "life/density-converter",
+    inputs: { inputVal: "500" },
+    expect: ["磅每立方英尺： 31.21398102 lb/ft³"],
+    ref: 'base=500 kg/m³, lbft3=500/16.018463'
+  },
+  {
+    slug: "life/density-converter",
+    inputs: { inputVal: "100" },
+    expect: ["磅每立方英寸： 0.003612729201 lb/in³"],
+    ref: 'base=100 kg/m³, lbin3=100/27679.9047'
+  },
+  {
+    slug: "life/density-converter",
+    inputs: { inputVal: "3" },
+    expect: ["克每立方厘米： 0.003 g/cm³"],
+    ref: 'base=3 kg/m³, gcm3=3/1000'
+  },
+  {
+    slug: "life/energy-converter",
+    inputs: { inputVal: "5000" },
+    expect: ["5 kJ"],
+    ref: 'base=5000J, kJ=5000/1000'
+  },
+  {
+    slug: "life/energy-converter",
+    inputs: { inputVal: "2000" },
+    expect: ["2 kJ"],
+    ref: 'base=2000J, kJ=2000/1000'
+  },
+  {
+    slug: "life/energy-converter",
+    inputs: { inputVal: "3600" },
+    expect: ["3.6 kJ"],
+    ref: 'base=3600J, kJ=3600/1000'
+  },
+  {
+    slug: "life/energy-converter",
+    inputs: { inputVal: "3600" },
+    expect: ["1 Wh"],
+    ref: 'base=3600J, Wh=3600/3600'
+  },
+  {
+    slug: "life/energy-converter",
+    inputs: { inputVal: "100" },
+    expect: ["23.90057361 cal"],
+    ref: 'base=100J, cal=100/4.184'
+  },
+  {
+    slug: "life/energy-converter",
+    inputs: { inputVal: "1000" },
+    expect: ["0.9478171227 BTU"],
+    ref: 'base=1000J, BTU=1000/1055.05585'
+  },
+  {
+    slug: "life/frequency-converter",
+    inputs: { inputVal: "5000" },
+    expect: ["5 kHz"],
+    ref: 'base=5000Hz, kHz=5000/1000'
+  },
+  {
+    slug: "life/frequency-converter",
+    inputs: { inputVal: "2000" },
+    expect: ["2 kHz"],
+    ref: 'base=2000Hz, kHz=2000/1000'
+  },
+  {
+    slug: "life/frequency-converter",
+    inputs: { inputVal: "100000" },
+    expect: ["100 kHz"],
+    ref: 'base=100000Hz, kHz=100000/1000'
+  },
+  {
+    slug: "life/frequency-converter",
+    inputs: { inputVal: "500000" },
+    expect: ["0.5 MHz"],
+    ref: 'base=500000Hz, MHz=500000/1e6'
+  },
+  {
+    slug: "life/frequency-converter",
+    inputs: { inputVal: "2000000" },
+    expect: ["2 MHz"],
+    ref: 'base=2000000Hz, MHz=2000000/1e6'
+  },
+  {
+    slug: "life/frequency-converter",
+    inputs: { inputVal: "1500000000" },
+    expect: ["1.5 GHz"],
+    ref: 'base=1.5e9Hz, GHz=1.5e9/1e9'
+  },
+  {
+    slug: "life/flow-rate-converter",
+    inputs: { inputVal: "2" },
+    expect: ["120 L/min"],
+    ref: 'from=L/s, v=2, L/min=2/(1/60)=120'
+  },
+  {
+    slug: "life/flow-rate-converter",
+    inputs: { inputVal: "2" },
+    expect: ["7.2 m³/h"],
+    ref: 'from=L/s, v=2, m³/h=2/(1000/3600)=7.2'
+  },
+  {
+    slug: "life/flow-rate-converter",
+    inputs: { inputVal: "2" },
+    expect: ["31.70064628 gpm"],
+    ref: 'from=L/s, v=2, gpm=2/0.0630901964'
+  },
+  {
+    slug: "life/flow-rate-converter",
+    inputs: { inputVal: "2" },
+    expect: ["4.237760008 cfm"],
+    ref: 'from=L/s, v=2, cfm=2/0.471947443'
+  },
+  {
+    slug: "life/flow-rate-converter",
+    inputs: { inputVal: "3" },
+    expect: ["180 L/min"],
+    ref: 'from=L/s, v=3, L/min=3/(1/60)=180'
+  },
+  {
+    slug: "life/flow-rate-converter",
+    inputs: { inputVal: "3" },
+    expect: ["10.8 m³/h"],
+    ref: 'from=L/s, v=3, m³/h=3/(1000/3600)=10.8'
+  },
+  {
+    slug: "life/data-rate-converter",
+    inputs: { inputVal: "800" },
+    expect: ["0.8 kbps"],
+    ref: 'from=bps, v=800, kbps=800/1000=0.8'
+  },
+  {
+    slug: "life/data-rate-converter",
+    inputs: { inputVal: "800" },
+    expect: ["0.0008 Mbps"],
+    ref: 'from=bps, v=800, Mbps=800/1e6=0.0008'
+  },
+  {
+    slug: "life/data-rate-converter",
+    inputs: { inputVal: "800" },
+    expect: ["8.000000e-7 Gbps"],
+    ref: 'from=bps, v=800, Gbps=800/1e9=8e-7'
+  },
+  {
+    slug: "life/data-rate-converter",
+    inputs: { inputVal: "800" },
+    expect: ["0.00009536743164 MB/s"],
+    ref: 'from=bps, v=800, MB/s=800/8/1024/1024'
+  },
+  {
+    slug: "life/data-rate-converter",
+    inputs: { inputVal: "2500" },
+    expect: ["2.5 kbps"],
+    ref: 'from=bps, v=2500, kbps=2500/1000=2.5'
+  },
+  {
+    slug: "life/data-rate-converter",
+    inputs: { inputVal: "2500" },
+    expect: ["0.0025 Mbps"],
+    ref: 'from=bps, v=2500, Mbps=2500/1e6=0.0025'
+  },
+  {
+    slug: "life/magnet-converter",
+    inputs: { inputVal: "2" },
+    expect: ["2 Am = 2 A/m"],
+    ref: 'H 类换算：base=v*A/m; 1 Oe=79.5774715 A/m; 真空 B≈μ0H*1e4 G'
+  },
+  {
+    slug: "life/magnet-converter",
+    inputs: { inputVal: "10" },
+    expect: ["0.1256637062 Oe"],
+    ref: 'base=10 A/m; Oe=base/79.5774715'
+  },
+  {
+    slug: "life/magnet-converter",
+    inputs: { inputVal: "20" },
+    expect: ["20 Am = 20 A/m"],
+    ref: 'H 基准：v Am = v A/m'
+  },
+  {
+    slug: "life/magnet-converter",
+    inputs: { inputVal: "100" },
+    expect: ["1.256637062 Oe"],
+    ref: 'base=100 A/m; Oe=base/79.5774715'
+  },
+  {
+    slug: "life/magnet-converter",
+    inputs: { inputVal: "500" },
+    expect: ["500 Am = 500 A/m"],
+    ref: 'H 基准：v Am = v A/m'
+  },
+  {
+    slug: "life/magnet-converter",
+    inputs: { inputVal: "2000" },
+    expect: ["25.13274124 Oe"],
+    ref: 'base=2000 A/m; Oe=base/79.5774715'
+  },
+  {
+    slug: "life/concentration-converter",
+    inputs: { inputVal: "2" },
+    expect: ["2 ppm = 2 ppm"],
+    ref: '基准行：v ppm = v ppm'
+  },
+  {
+    slug: "life/concentration-converter",
+    inputs: { inputVal: "10" },
+    expect: ["0.001 pct"],
+    ref: 'base=v ppm; pct=base/10000'
+  },
+  {
+    slug: "life/concentration-converter",
+    inputs: { inputVal: "100" },
+    expect: ["100000 ppb"],
+    ref: 'base=v ppm; ppb=base/0.001'
+  },
+  {
+    slug: "life/concentration-converter",
+    inputs: { inputVal: "500" },
+    expect: ["0.05 pct"],
+    ref: 'base=v ppm; pct=base/10000'
+  },
+  {
+    slug: "life/concentration-converter",
+    inputs: { inputVal: "1000" },
+    expect: ["1000 ppm = 1000 ppm"],
+    ref: '基准行：v ppm = v ppm（避开 1.000000e+6 科学计数法含入）'
+  },
+  {
+    slug: "life/concentration-converter",
+    inputs: { inputVal: "5000" },
+    expect: ["5.000000e+6 ppb"],
+    ref: 'base=5000 ppm; ppb=base/0.001'
+  },
+  {
+    slug: "life/power-converter",
+    inputs: { inputVal: "2" },
+    expect: ["0.002 kW"],
+    ref: '1 W=0.001 kW ⇒ 2 W=2×0.001=0.002 kW'
+  },
+  {
+    slug: "life/power-converter",
+    inputs: { inputVal: "50" },
+    expect: ["0.05 kW"],
+    ref: '50 W÷1000=0.05 kW'
+  },
+  {
+    slug: "life/power-converter",
+    inputs: { inputVal: "500" },
+    expect: ["0.5 kW"],
+    ref: '500 W÷1000=0.5 kW'
+  },
+  {
+    slug: "life/power-converter",
+    inputs: { inputVal: "2000" },
+    expect: ["2 kW"],
+    ref: '2000 W÷1000=2 kW（避默认态 0.001 kW 含 1 kW 尾数陷阱）'
+  },
+  {
+    slug: "life/power-converter",
+    inputs: { inputVal: "5000" },
+    expect: ["5 kW"],
+    ref: '5000 W÷1000=5 kW'
+  },
+  {
+    slug: "life/power-converter",
+    inputs: { inputVal: "10000" },
+    expect: ["13.59621617 hp"],
+    ref: '10000 W÷735.49875=13.59621617 hp（避默认态 0.001359621617 hp 含 1.359621617 hp 尾数陷阱）'
+  },
+  {
+    slug: "life/pressure-converter",
+    inputs: { inputVal: "2" },
+    expect: ["0.002 kPa"],
+    ref: 'Pa→kPa 基准 0.001'
+  },
+  {
+    slug: "life/pressure-converter",
+    inputs: { inputVal: "5000" },
+    expect: ["0.7251886887 psi"],
+    ref: 'Pa→psi 基准 6894.757293'
+  },
+  {
+    slug: "life/pressure-converter",
+    inputs: { inputVal: "5000" },
+    expect: ["0.04934616334 atm"],
+    ref: 'Pa→atm 基准 101325'
+  },
+  {
+    slug: "life/pressure-converter",
+    inputs: { inputVal: "101325" },
+    expect: ["101.325 kPa"],
+    ref: '1 atm = 101325 Pa'
+  },
+  {
+    slug: "life/pressure-converter",
+    inputs: { inputVal: "101325" },
+    expect: ["14.69594878 psi"],
+    ref: '1 atm → psi'
+  },
+  {
+    slug: "life/pressure-converter",
+    inputs: { inputVal: "6894.757293" },
+    expect: ["6.894757293 kPa"],
+    ref: '1 psi = 6894.757293 Pa'
+  },
+  {
+    slug: "life/radiation-converter",
+    inputs: { inputVal: "2" },
+    expect: ["200 rad"],
+    ref: 'v=2 from=Gy: 拉德(吸收剂量)=2/0.01=200 rad'
+  },
+  {
+    slug: "life/radiation-converter",
+    inputs: { inputVal: "2" },
+    expect: ["2000 mGy"],
+    ref: 'v=2 from=Gy: 毫戈=2/0.001=2000 mGy'
+  },
+  {
+    slug: "life/radiation-converter",
+    inputs: { inputVal: "2" },
+    expect: ["2 Sv"],
+    ref: 'v=2 from=Gy: 希沃特=2/1=2 Sv (等效)'
+  },
+  {
+    slug: "life/radiation-converter",
+    inputs: { inputVal: "2" },
+    expect: ["2000 mSv"],
+    ref: 'v=2 from=Gy: 毫希=2/0.001=2000 mSv'
+  },
+  {
+    slug: "life/radiation-converter",
+    inputs: { inputVal: "2" },
+    expect: ["200 rem"],
+    ref: 'v=2 from=Gy: 雷姆=2/0.01=200 rem'
+  },
+  {
+    slug: "life/radiation-converter",
+    inputs: { inputVal: "5" },
+    expect: ["500 rad"],
+    ref: 'v=5 from=Gy: 拉德=5/0.01=500 rad'
+  },
+  {
+    slug: "life/ring-size-converter",
+    inputs: { inputVal: "50" },
+    expect: ["中国港码： 15.9236"],
+    ref: 'v=50 from=circ: 港码=50/3.14=15.9236'
+  },
+  {
+    slug: "life/ring-size-converter",
+    inputs: { inputVal: "52" },
+    expect: ["美码： 5.70652"],
+    ref: 'v=52 from=circ: 美码=(52-36.25)/2.76=5.70652'
+  },
+  {
+    slug: "life/ring-size-converter",
+    inputs: { inputVal: "60" },
+    expect: ["英码： 9.13462"],
+    ref: 'v=60 from=circ: 英码=(60-36.25)/2.6=9.13462'
+  },
+  {
+    slug: "life/ring-size-converter",
+    inputs: { inputVal: "100" },
+    expect: ["欧码： 60"],
+    ref: 'v=100 from=circ: 欧码=100-40=60'
+  },
+  {
+    slug: "life/ring-size-converter",
+    inputs: { inputVal: "200" },
+    expect: ["直径(mm)： 63.662"],
+    ref: 'v=200 from=circ: 直径=200/π=63.662'
+  },
+  {
+    slug: "life/ring-size-converter",
+    inputs: { inputVal: "1000" },
+    expect: ["中国港码： 318.471"],
+    ref: 'v=1000 from=circ: 港码=1000/3.14=318.471'
+  },
+  {
+    slug: "life/shoe-size-converter",
+    inputs: { inputVal: "220" },
+    expect: ["中国码： 22"],
+    ref: 'v=220 from=length: 中国码=220/10=22'
+  },
+  {
+    slug: "life/shoe-size-converter",
+    inputs: { inputVal: "230" },
+    expect: ["欧盟码： 37.5"],
+    ref: 'v=230 from=length: 欧盟码=1.5×(23+2)=37.5'
+  },
+  {
+    slug: "life/shoe-size-converter",
+    inputs: { inputVal: "240" },
+    expect: ["中国码： 24"],
+    ref: 'v=240 from=length: 中国码=240/10=24'
+  },
+  {
+    slug: "life/shoe-size-converter",
+    inputs: { inputVal: "260" },
+    expect: ["欧盟码： 42"],
+    ref: 'v=260 from=length: 欧盟码=1.5×(26+2)=42'
+  },
+  {
+    slug: "life/shoe-size-converter",
+    inputs: { inputVal: "280" },
+    expect: ["美码(男)： 6.116"],
+    ref: 'v=280 from=length: 美码男=0.847×28-17.6=6.116'
+  },
+  {
+    slug: "life/shoe-size-converter",
+    inputs: { inputVal: "300" },
+    expect: ["欧盟码： 48"],
+    ref: 'v=300 from=length: 欧盟码=1.5×(30+2)=48'
+  },
+  {
+    slug: "life/roman-numeral",
+    inputs: { numInput: "1994" },
+    expect: ["MCMXCIV"],
+    ref: 'numInput=1994 → toRoman 确定性映射 → 罗马数字 MCMXCIV（整数逻辑，无小数含入）'
+  },
+  {
+    slug: "life/roman-numeral",
+    inputs: { numInput: "1984" },
+    expect: ["MCMLXXXIV"],
+    ref: 'numInput=1984 → MCMLXXXIV'
+  },
+  {
+    slug: "life/roman-numeral",
+    inputs: { numInput: "1776" },
+    expect: ["MDCCLXXVI"],
+    ref: 'numInput=1776 → MDCCLXXVI'
+  },
+  {
+    slug: "life/roman-numeral",
+    inputs: { numInput: "1492" },
+    expect: ["MCDXCII"],
+    ref: 'numInput=1492 → MCDXCII'
+  },
+  {
+    slug: "life/roman-numeral",
+    inputs: { numInput: "2025" },
+    expect: ["MMXXV"],
+    ref: 'numInput=2025 → MMXXV（与默认 MMXXIV 仅末位不同，整串不误匹配）'
+  },
+  {
+    slug: "life/roman-numeral",
+    inputs: { numInput: "3999" },
+    expect: ["MMMCMXCIX"],
+    ref: 'numInput=3999 → MMMCMXCIX（范围上限）'
+  },
+  {
+    slug: "life/analysis-74",
+    inputs: { data: "A,10,40,5\nB,20,30,10" },
+    expect: ["价格均值： 15.00"],
+    ref: '竞争分析：两竞品价格均值=(10+20)/2=15.00'
+  },
+  {
+    slug: "life/analysis-74",
+    inputs: { data: "X,100,50,0\nY,200,30,-5" },
+    expect: ["份额合计： 80.00%"],
+    ref: '竞争分析：份额合计=50+30=80.00%'
+  },
+  {
+    slug: "life/analysis-74",
+    inputs: { data: "p1,15,25,8\np2,25,35,2\np3,35,40,-1" },
+    expect: ["增速均值： +3.00%"],
+    ref: '竞争分析：增速均值=(8+2-1)/3=+3.00%'
+  },
+  {
+    slug: "life/analysis-74",
+    inputs: { data: "c1,9.9,33,8\nc2,24.6,21,-3.5" },
+    expect: ["价格均值： 17.25"],
+    ref: '竞争分析：价格均值=(9.9+24.6)/2=17.25'
+  },
+  {
+    slug: "life/analysis-74",
+    inputs: { data: "m,50,60,12\nn,70,40,-8" },
+    expect: ["份额合计： 100.00%"],
+    ref: '竞争分析：份额合计=60+40=100.00%'
+  },
+  {
+    slug: "life/analysis-74",
+    inputs: { data: "s1,1,10,1\ns2,2,20,2\ns3,3,30,3" },
+    expect: ["竞品数： 3"],
+    ref: '竞争分析：竞品数=3'
+  },
+  {
+    slug: "life/countdown-1",
+    clicks: ["switchMode('down')", "quickSet(1)"],
+    expect: ["01:00.00"],
+    ref: '独立复算：倒计时目标 1 分 = 60000ms ⇒ format 得 MM:SS.cs = 01:00.00。clicks 在页面作用域切 down + quickSet(1) 设目标，display 显示剩余 = target（elapsed=0），不依赖当前时间。默认态（up 模式 elapsed=0）display=00:00.00，不命中。'
+  },
+  {
+    slug: "life/countdown-1",
+    clicks: ["switchMode('down')", "quickSet(3)"],
+    expect: ["03:00.00"],
+    ref: '独立复算：目标 3 分 = 180000ms ⇒ 03:00.00。clicks 切 down + quickSet(3)。'
+  },
+  {
+    slug: "life/countdown-1",
+    clicks: ["switchMode('down')", "quickSet(5)"],
+    expect: ["05:00.00"],
+    ref: '独立复算：目标 5 分 = 300000ms ⇒ 05:00.00。clicks 切 down + quickSet(5)（与默认 HTML target=300000 巧合同值，但默认态为 up 模式不显示 target，仍不命中）。'
+  },
+  {
+    slug: "life/countdown-1",
+    clicks: ["switchMode('down')", "quickSet(10)"],
+    expect: ["10:00.00"],
+    ref: '独立复算：目标 10 分 = 600000ms ⇒ 10:00.00。clicks 切 down + quickSet(10)。'
+  },
+  {
+    slug: "life/countdown-1",
+    clicks: ["switchMode('down')", "quickSet(15)"],
+    expect: ["15:00.00"],
+    ref: '独立复算：目标 15 分 = 900000ms ⇒ 15:00.00。clicks 切 down + quickSet(15)。'
+  },
+  {
+    slug: "life/countdown-1",
+    clicks: ["switchMode('down')", "quickSet(25)"],
+    expect: ["25:00.00"],
+    ref: '独立复算：目标 25 分 = 1500000ms ⇒ 25:00.00。clicks 切 down + quickSet(25)。'
+  },
+  {
+    slug: "life/clothing-size-converter",
+    inputs: { cat: "w_top", sys: "cn", inputVal: "160/84A" },
+    expect: ["中国码： 160/84A"],
+    ref: '女装上衣表查 cn=160/84A 行 → 国际 S / 美 4 / 英 6 / 欧 34；注入态输出中国码 160/84A，默认态 165/88A 不命中（仅改 inputVal 文本输入，验证文本注入通道）'
+  },
+  {
+    slug: "life/clothing-size-converter",
+    inputs: { cat: "w_top", sys: "us", inputVal: "10" },
+    expect: ["中国码： 175/96A"],
+    ref: '女装上衣表查 us=10 列对应行 → cn=175/96A（国际 XL / 美 10 / 英 12 / 欧 40）；注入态输出中国码 175/96A，默认态 cn=165/88A 不命中（验证 sys 选择系统注入通道）'
+  },
+  {
+    slug: "life/clothing-size-converter",
+    inputs: { cat: "m_top", sys: "cn", inputVal: "170/88" },
+    expect: ["中国码： 170/88"],
+    ref: '男装上衣表查 cn=170/88 行 → 国际 XL / 美 40 / 英 40 / 欧 50；注入态输出中国码 170/88（男装上衣），默认态女装上衣 165/88A 不命中（验证 cat 类别选择注入通道）'
+  },
+  {
+    slug: "life/clothing-size-converter",
+    inputs: { cat: "w_pants", sys: "eu", inputVal: "38" },
+    expect: ["中国码： 165/72A"],
+    ref: '女装裤装表查 eu=38 列对应行 → cn=165/72A（国际 M / 美 6 / 英 10）；注入态输出中国码 165/72A，默认态 165/88A 不命中（同时验证 cat 与 sys 两个 select 注入）'
+  },
+  {
+    slug: "life/clothing-size-converter",
+    inputs: { cat: "m_pants", sys: "uk", inputVal: "36" },
+    expect: ["中国码： 175/86A"],
+    ref: '男装裤装表查 uk=36 列对应行 → cn=175/86A（国际 XXL / 美 36 / 欧 50）；注入态输出中国码 175/86A，默认态 165/88A 不命中'
+  },
+  {
+    slug: "life/clothing-size-converter",
+    inputs: { cat: "m_top", sys: "eu", inputVal: "54" },
+    expect: ["中国码： 180/96"],
+    ref: '男装上衣表查 eu=54 列对应行 → cn=180/96（国际 XXXL / 美 44 / 英 44）；注入态输出中国码 180/96，默认态 165/88A 不命中'
+  },
+  {
+    slug: "life/data-unit-converter",
+    inputs: { valueInput: "7.5" },
+    expect: ["\u539f\u59cb\u503c\uff1a7.5 bit = 7.5 bit = 0.9375 B", "B \u5b57\u8282 0.9375 B", "KB Kilobyte 0.000916 KB"],
+    ref: "\u72ec\u7acb\u590d\u7b97\uff08\u4e8c\u8fdb\u5236\uff0c1 B = 1024 bit\uff09\uff1a7.5/1024 = 0.9375 B\uff1b7.5/1024^2 = 8.9407e-7 KB \u2192 toFixed(6) = 0.000916\u3002\u9ed8\u8ba4 valueInput=1 \u21d2 0.125 B / 0.000122 KB\uff0c\u4e09\u951a\u5747\u4e0d\u547d\u4e2d\u3002"
+  },
+
+{
+    "slug": "life/age-in-days",
+    "inputs": {
+      "birthDate": "2000-01-01"
+    },
+    "expect": [
+      "8,932 天",
+      "24.45 年（约 293 月，1276 周）",
+      "24 岁 5 月 14 天",
+      "214,368 小时",
+      "距离下一个生日： 200 天"
+    ],
+    "ref": "出生 2000-01-01、基准日 2024-06-15 → 已活天数 = 8932 天；年数 = 8932 / 365.25 = 24.45年；月数 = 8932 / 30.4375 = 293.45 ≈ 293 月；周数 = 8932 / 7 = 1276 周（整除）；小时 = 8932 × 24 = 214,368；分钟 = 8932 × 1440 = 12,862,080；秒 = 8932 × 86400 = 771,724,800；精确年龄 24 岁 5 月 14 天；下一次生日 2025-01-01 距基准日 200 天。页面输出与独立复算逐项吻合。HTML 默认 birthDate=1999-06-15 → 9,132 天 / 25.00 年，默认态不产生该组值。"
+  },
+
+// ── 零用例加固（2026-10-09）──────────────────────────
+  {
+    "slug": "life/chinese-number",
+    "inputs": { "inputVal": "98765.43" },
+    "expect": ["零玖万捌千柒百陆十伍元肆角叁分"],
+    "ref": "数字转中文：98765.43 → 简体'〇九万八千七百六十五'、人民币大写'零玖万捌千柒百陆十伍元肆角叁分'。注入非默认(默认 12345.67→'零壹万贰千叁百肆拾伍元陆角柒分')，默认态不出现该串。"
+  },
+  {
+    "slug": "life/color-name-finder",
+    "inputs": { "color-input": "#FF0000" },
+    "clicks": ["searchColor()"],
+    "expect": ["最佳匹配 石榴红"],
+    "ref": "颜色命名：#FF0000 → 最接近命名色'Red'，最佳匹配'石榴红 #F20C00'(距离18)。注入非默认(默认拾色器 #667eea→蓝紫色命名)，默认态不出现'石榴红'。"
+  },
+  {
+    "slug": "life/zodiac-calculator",
+    "inputs": { "birthDate": "1995-04-15" },
+    "expect": ["白羊座"],
+    "ref": "星座计算：1995-04-15 → 白羊座(♈)。⚠ 原用例 1995-03-21 恰在双鱼/白羊分界(3/20–3/21)，时区偏移 1 天即算成双鱼座 ⇒ 跨时区不一致。已改为远离分界的 1995-04-15。默认态无输出。"
+  },
+  {
+    "slug": "life/countdown",
+    "inputs": { "targetDate": "2030-01-01", "targetTime": "00:00", "eventName": "测试" },
+    "clicks": ["setTarget()"],
+    "expect": ["目标时间：2030年1月1日 00:00 周二"],
+    "ref": "倒计时：targetDate=2030-01-01(基准 now=2024-06-15)→'目标时间：2030年1月1日 00:00 周二'。注入非默认(默认 targetDate 空→无倒计时)，默认态不出现该串；整句非输入子串(输入为 2030-01-01)。"
+  },
+
+
+  // ── 年龄计算器（注入非默认出生日，锚定 input 派生的出生串，TZ 稳定）──────────────
+  {
+    "slug": "life/age-calculator",
+    "inputs": { "by": "2000", "bm": "1", "bd": "1" },
+    "expect": ["出生于 2000 年 1 月 1 日"],
+    "ref": "注入出生 2000-01-01（bh/bmin/bs 未传→NaN→0，birth=本地 2000-01-01 00:00:00，getHours=0 不受 TZ 影响）→ ageSub 输出「出生于 2000 年 1 月 1 日 00:00:00（...）」。默认态 by 空→isNaN→提示「请输入出生日期」，不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "life/angle-converter",
+    "inputs": {
+      "inputVal": "42",
+      "fromUnit": "rad"
+    },
+    "expect": [
+      "42\nrad\n基准： 42 rad = 2406.42274° 度： 2406.42274 ° 梯度： 2673.803044 grad 转： 6.68450761 rev"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"inputVal\":\"42\",\"fromUnit\":\"rad\"}，输出区含「42\nrad\n基准： 42 rad = 2406.42274° 度： 2406.…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "life/area-converter",
+    "inputs": {
+      "inputVal": "42",
+      "fromUnit": "cm2"
+    },
+    "expect": [
+      "m² 平方千米： 4.200000e-9 km² 亩： 0.0000063 亩 公顷： 4.200000e-7 ha 英亩"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"inputVal\":\"42\",\"fromUnit\":\"cm2\"}，输出区含「m² 平方千米： 4.200000e-9 km² 亩： 0.0000063 亩 …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "life/assessor-target",
+    "inputs": {
+      "traffic": "42",
+      "competitors": "42",
+      "population": "42",
+      "rent": "42",
+      "shopArea": "42",
+      "visibility": "42"
+    },
+    "expect": [
+      "42\n42\n42\n42\n42\n42"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"traffic\":\"42\",\"competitors\":\"42\",\"population\":\"42\",\"rent\":\"42\",\"shopArea\":\"42\",\"visibility\":\"42\"}，输出区含「42\n42\n42\n42\n42\n42」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "life/base-convert",
+    "inputs": {
+      "input": "abc123测试",
+      "bin": "abc123测试",
+      "oct": "abc123测试",
+      "dec": "abc123测试",
+      "hex": "abc123测试",
+      "customBase": "42",
+      "custom": "abc123测试",
+      "ascii": "abc123测试",
+      "unicode": "abc123测试",
+      "text": "1\n2\n3"
+    },
+    "expect": [
+      "abc123测试\n错误\n错误\n错误\n错误\n错误\n1 2 3\n49 10 50 10 51\nU+0031 U+000A U+0032 U+000A U+0033\n42"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\",\"bin\":\"abc123测试\",\"oct\":\"abc123测试\",\"dec\":\"abc123测试\",\"hex\":\"abc123测试\",\"customBase\":\"42\",\"custom\":\"abc123测试\",\"ascii\":\"abc123测试\",\"unicode\":\"abc123测试\",\"text\":\"1\\n2\\n3\"}，输出区含「abc123测试\n错误\n错误\n错误\n错误\n错误\n1 2 3\n49 10 50 1…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "life/birthday-paradox",
+    "inputs": {
+      "n": "42",
+      "d": "42"
+    },
+    "expect": [
+      "生日相同的概率： 100.0000% 概率值：1.000000e+0"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"n\":\"42\",\"d\":\"42\"}，输出区含「生日相同的概率： 100.0000% 概率值：1.000000e+0」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "life/bra-size-converter",
+    "inputs": {
+      "under": "42",
+      "upper": "42"
+    },
+    "expect": [
+      " 下胸围尺码： 70 罩杯： AA 杯 国际码： 70AA 美码： 28AA"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"under\":\"42\",\"upper\":\"42\"}，输出区含「 下胸围尺码： 70 罩杯： AA 杯 国际码： 70AA 美码： 28AA」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "life/bill-splitter",
+    "inputs": {
+      "total-amount": "42",
+      "person-count": "42",
+      "tip-percent": "42",
+      "adv-tip": "42"
+    },
+    "expect": [
+      "赵六 (1份) ¥1.42 钱七 (1份) ¥1.42 孙八 (1份) ¥1.42 周九 (1份) ¥1.42 吴十 (1份) ¥1.42 郑十一 (1份) ¥1.42 王十二 (1份) ¥1.42 冯十三 (1份) ¥1.42 陈十四 ("
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"total-amount\":\"42\",\"person-count\":\"42\",\"tip-percent\":\"42\",\"adv-tip\":\"42\"}，输出区含「赵六 (1份) ¥1.42 钱七 (1份) ¥1.42 孙八 (1份) ¥1.4…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "life/clothing-size-converter",
+    "inputs": {
+      "inputVal": "abc123测试",
+      "cat": "m_top",
+      "sys": "intl"
+    },
+    "expect": [
+      "m_top\nintl\nabc123测试\n未找到匹配项 \"ABC123测试\"（intl） 可参考下表中的可选值"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"inputVal\":\"abc123测试\",\"cat\":\"m_top\",\"sys\":\"intl\"}，输出区含「m_top\nintl\nabc123测试\n未找到匹配项 \"ABC123测试\"（in…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "life/concentration-converter",
+    "inputs": {
+      "inputVal": "42",
+      "fromUnit": "ppb"
+    },
+    "expect": [
+      "42\nppb\n基准： 42 ppb = 0.042 ppm 百万分之一： 0.042 ppm 万亿分之一： 42000"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"inputVal\":\"42\",\"fromUnit\":\"ppb\"}，输出区含「42\nppb\n基准： 42 ppb = 0.042 ppm 百万分之一： 0.0…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "life/countdown-timer",
+    "inputs": {
+      "set-hours": "42",
+      "set-minutes": "42",
+      "set-seconds": "42",
+      "event-name": "abc123测试",
+      "event-date": "abc123测试",
+      "event-time": "abc123测试"
+    },
+    "expect": [
+      "⚠ 计算结果含无效值，请检查输入是否为有效正数。\n42:42:40\n42\n42\n42\nabc123测试"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"set-hours\":\"42\",\"set-minutes\":\"42\",\"set-seconds\":\"42\",\"event-name\":\"abc123测试\",\"event-date\":\"abc123测试\",\"event-time\":\"abc123测试\"}，输出区含「⚠ 计算结果含无效值，请检查输入是否为有效正数。\n42:42:40\n42\n42\n…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "life/cycle-pruning-lawn",
+    "inputs": {
+      "lawnName": "abc123测试",
+      "lawnStart": "abc123测试",
+      "logDate": "abc123测试",
+      "logNote": "abc123测试",
+      "lawnType": "warm",
+      "logType": "fertilize"
+    },
+    "expect": [
+      "🌿 abc123测试 暖季型 ✂️ 修剪 正常 周期：10天 · 冷季型生长季7天/暖季型10天 上次： 未记录"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"lawnName\":\"abc123测试\",\"lawnStart\":\"abc123测试\",\"logDate\":\"abc123测试\",\"logNote\":\"abc123测试\",\"lawnType\":\"warm\",\"logType\":\"fertilize\"}，输出区含「24-06-15\n🌿 abc123测试 暖季型 ✂️ 修剪 正常 周期：10天…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "life/data-rate-converter",
+    "inputs": {
+      "inputVal": "42",
+      "fromUnit": "kbps"
+    },
+    "expect": [
+      "42\nkbps\n基准： 42 kbps = 42000 bit/s 比特每秒： 42000 "
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"inputVal\":\"42\",\"fromUnit\":\"kbps\"}，输出区含「42\nkbps\n基准： 42 kbps = 42000 bit/s 比特每秒： …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "life/cycle-4",
+    "inputs": {
+      "supName": "abc123测试",
+      "supUnit": "abc123测试",
+      "supStock": "42",
+      "supRate": "42",
+      "supThreshold": "42",
+      "logAmount": "42",
+      "logDate": "abc123测试",
+      "supPeriod": "month"
+    },
+    "expect": [
+      "1 用品总数 1 需补货 0 已耗尽 0 库存充足\n🧴 abc123测试 库存不足 当前库存： 42 abc123测试 消耗速率： 42 abc123测试/每月 补货阈值： 42 abc123测试 预计耗尽： 30 天 "
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"supName\":\"abc123测试\",\"supUnit\":\"abc123测试\",\"supStock\":\"42\",\"supRate\":\"42\",\"supThreshold\":\"42\",\"logAmount\":\"42\",\"logDate\":\"abc123测试\",\"supPeriod\":\"month\"}，输出区含「24-06-15\n1 用品总数 1 需补货 0 已耗尽 0 库存充足\n🧴 ab…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "life/daily-calorie-needs",
+    "inputs": {
+      "bmiAge": "42",
+      "bmiHeight": "42",
+      "bmiWeight": "42",
+      "bmrAge": "42",
+      "bmrHeight": "42",
+      "bmrWeight": "42",
+      "tdeeAge": "42",
+      "tdeeHeight": "42",
+      "tdeeWeight": "42",
+      "bmiGender": "female",
+      "bmrGender": "female",
+      "tdeeGender": "female"
+    },
+    "expect": [
+      "体重(kg) 1082% 体脂率估计\nfemale\n42\n42\n42\n312 千卡\n13"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"bmiAge\":\"42\",\"bmiHeight\":\"42\",\"bmiWeight\":\"42\",\"bmrAge\":\"42\",\"bmrHeight\":\"42\",\"bmrWeight\":\"42\",\"tdeeAge\":\"42\",\"tdeeHeight\":\"42\",\"tdeeWeight\":\"42\",\"bmiGender\":\"female\",\"bmrGender\":\"female\",\"tdeeGender\":\"female\"}，输出区含「体重(kg) 1082% 体脂率估计\nfemale\n42\n42\n42\n312 千…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "life/data-unit-converter",
+    "inputs": {
+      "valueInput": "42",
+      "unitSelect": "B"
+    },
+    "expect": [
+      " Exabyte 3.6429e-17 EB\n原始值：42 B = 336 bit = 42"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"valueInput\":\"42\",\"unitSelect\":\"B\"}，输出区含「 Exabyte 3.6429e-17 EB\n原始值：42 B = 336 bi…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "life/date-add-subtract",
+    "inputs": {
+      "baseTime": "abc123测试",
+      "y": "42",
+      "m": "42",
+      "d": "42",
+      "h": "42",
+      "min": "42",
+      "s": "42"
+    },
+    "expect": [
+      "abc123测试\n42\n42\n42\n42\n42\n42\n基准时间： Invalid Date 加减量： 42年 42月 42日 42时 42分 42秒 结果时间： Invalid Date Invalid Date"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"baseTime\":\"abc123测试\",\"y\":\"42\",\"m\":\"42\",\"d\":\"42\",\"h\":\"42\",\"min\":\"42\",\"s\":\"42\"}，输出区含「abc123测试\n42\n42\n42\n42\n42\n42\n基准时间： Invalid…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "life/density-converter",
+    "inputs": {
+      "inputVal": "42",
+      "fromUnit": "gcm3"
+    },
+    "expect": [
+      "42\ngcm3\n基准： 42 g/cm³ = 42000 kg/m³ 千克每立方米： 42000 kg/m³ 克每毫升： 42"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"inputVal\":\"42\",\"fromUnit\":\"gcm3\"}，输出区含「42\ngcm3\n基准： 42 g/cm³ = 42000 kg/m³ 千克每立方…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "life/date-difference-calculator",
+    "inputs": {
+      "startDate": "abc123测试",
+      "endDate": "abc123测试",
+      "baseDate": "abc123测试",
+      "addYears": "42",
+      "addMonths": "42",
+      "addWeeks": "42",
+      "addDays": "42",
+      "addsubOp": "sub"
+    },
+    "expect": [
+      "NaN 天\n从 abc123测试 到 abc123测试\n⚠ 计算结果含无效值，请检查输入是否为有效正数。"
+    ],
+    "ref": "自动补强（B类零用例）：注入非法日期{\"startDate\":\"abc123测试\",\"endDate\":\"abc123测试\"} ⇒ diff 面板走 NaN 容错分支（「NaN 天」+「⚠ 计算结果含无效值」）。**只锚 diff 面板容错块**（时间戳无关的回显 + 固定告警串），且必须是「暂无历史记录」默认文案之后的连续三行（NaN 天 / 从…到… / ⚠告警），因历史记录区默认态插在输入回显与 NaN 之间会打断连续性——故跳过输入回显行、只取连续容错块。**不锚** addsub 尾部的「1978-01-13 / 周五 / 共 NNNNN 天」——其中「周五」由本地 getDay() 得出，UTC 之后时区会变「周四」（页面时区 bug，受众 China/UTC 不受影响）；其余串依赖 harness 把非法日期回退为冻结 now 的测试假象，均剔除。注：「暂无历史记录」是历史区默认文案、默认态也存在，不可做锚（会制造逃生项）。注入失败即不命中 NaN 容错块 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "life/detector-checker-strength",
+    "inputs": {
+      "pwdInput": "abc123测试"
+    },
+    "expect": [
+      "要在多处重复使用。\n隐藏"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"pwdInput\":\"abc123测试\"}，输出区含「要在多处重复使用。\n隐藏」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "life/energy-converter",
+    "inputs": {
+      "inputVal": "42",
+      "fromUnit": "kJ"
+    },
+    "expect": [
+      "42\nkJ\n基准： 42 kJ = 42000 J 焦耳： 42000 J 卡路里： 10038.24092 cal 千卡： 10.03824092"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"inputVal\":\"42\",\"fromUnit\":\"kJ\"}，输出区含「42\nkJ\n基准： 42 kJ = 42000 J 焦耳： 42000 J 卡路…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "life/flow-rate-converter",
+    "inputs": {
+      "inputVal": "42",
+      "fromUnit": "Lmin"
+    },
+    "expect": [
+      "42\nLmin\n基准： 42 L/min = 0.7 L/s 升每秒： 0.7 L/s 立方米每时： 2.52"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"inputVal\":\"42\",\"fromUnit\":\"Lmin\"}，输出区含「42\nLmin\n基准： 42 L/min = 0.7 L/s 升每秒： 0.7 …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "life/drinking-water-plan",
+    "inputs": {
+      "w": "42",
+      "temp": "42"
+    },
+    "expect": [
+      "l 每日饮水目标 6.6"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"w\":\"42\",\"temp\":\"42\"}，输出区含「l 每日饮水目标 6.6」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "life/frequency-converter",
+    "inputs": {
+      "inputVal": "42",
+      "fromUnit": "kHz"
+    },
+    "expect": [
+      "42\nkHz\n基准： 42 kHz = 42000 Hz 赫兹： 42000 "
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"inputVal\":\"42\",\"fromUnit\":\"kHz\"}，输出区含「42\nkHz\n基准： 42 kHz = 42000 Hz 赫兹： 42000 」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "life/leap-year-checker",
+    "inputs": {
+      "year": "42",
+      "range": "42"
+    },
+    "expect": [
+      " 年附近的闰年： 44、48、52、56、60、64、68、72、76、80"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"year\":\"42\",\"range\":\"42\"}，输出区含「 年附近的闰年： 44、48、52、56、60、64、68、72、76、80」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  
+  {
+    "slug": "life/length-converter",
+    "inputs": {
+      "inputVal": "42",
+      "fromUnit": "cm"
+    },
+    "expect": [
+      " → 实际: 1.377952756 英尺 45.93175853 → 实际: 0.4593175853 码 0.02609759007"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"inputVal\":\"42\",\"fromUnit\":\"cm\"}，输出区含「 → 实际: 1.377952756 英尺 45.93175853 → 实际: …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "life/magnet-converter",
+    "inputs": {
+      "inputVal": "42",
+      "fromUnit": "Oe"
+    },
+    "expect": [
+      "强度 H 基准： 42 Oe = 3342.253803 A/m 安培每米： 3342.253803 Am"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"inputVal\":\"42\",\"fromUnit\":\"Oe\"}，输出区含「强度 H 基准： 42 Oe = 3342.253803 A/m 安培每米： 3…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "life/parking-fee",
+    "inputs": {
+      "hours": "42",
+      "rate": "42",
+      "free": "42",
+      "cap": "42"
+    },
+    "expect": [
+      "时长(h) 停放 42h，免费 42h，费率 42 元/h，封顶 42 元。"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"hours\":\"42\",\"rate\":\"42\",\"free\":\"42\",\"cap\":\"42\"}，输出区含「时长(h) 停放 42h，免费 42h，费率 42 元/h，封顶 42 元。」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "life/power-converter",
+    "inputs": {
+      "inputVal": "42",
+      "fromUnit": "kW"
+    },
+    "expect": [
+      "42\nkW\n基准： 42 kW = 42000 W 瓦特： 42000 W 兆瓦： 0.042"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"inputVal\":\"42\",\"fromUnit\":\"kW\"}，输出区含「42\nkW\n基准： 42 kW = 42000 W 瓦特： 42000 W 兆瓦…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "life/radiation-converter",
+    "inputs": {
+      "inputVal": "42",
+      "fromUnit": "rad"
+    },
+    "expect": [
+      "(吸收剂量) = 0.42 Gy 等效 戈瑞 (吸收剂量)： 0.42 Gy"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"inputVal\":\"42\",\"fromUnit\":\"rad\"}，输出区含「(吸收剂量) = 0.42 Gy 等效 戈瑞 (吸收剂量)： 0.42 Gy」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "life/pressure-converter",
+    "inputs": {
+      "inputVal": "42",
+      "fromUnit": "kPa"
+    },
+    "expect": [
+      "42\nkPa\n基准： 42 kPa = 42000 Pa 帕： 42000 "
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"inputVal\":\"42\",\"fromUnit\":\"kPa\"}，输出区含「42\nkPa\n基准： 42 kPa = 42000 Pa 帕： 42000 」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "life/percentage-calculator",
+    "inputs": {
+      "isWhatX": "42",
+      "isWhatY": "42",
+      "ofWhatPct": "42",
+      "ofWhatY": "42",
+      "incX": "42",
+      "incPct": "42",
+      "decX": "42",
+      "decPct": "42",
+      "chgOld": "42",
+      "chgNew": "42"
+    },
+    "expect": [
+      "倍\n暂无历史记录\n42\n42\n100%\n42 是 42 的 100%\n42\n42\n17.64\n42% × 42 = 17.64\n42\n42\n59.64\n42 增加 42% = 59.64（增加 17.64）\n42\n42\n24.36\n42 减"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"isWhatX\":\"42\",\"isWhatY\":\"42\",\"ofWhatPct\":\"42\",\"ofWhatY\":\"42\",\"incX\":\"42\",\"incPct\":\"42\",\"decX\":\"42\",\"decPct\":\"42\",\"chgOld\":\"42\",\"chgNew\":\"42\"}，输出区含「倍\n暂无历史记录\n42\n42\n100%\n42 是 42 的 100%\n42\n42…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "life/reminder-cycle",
+    "inputs": {
+      "applName": "abc123测试",
+      "applLastClean": "abc123测试"
+    },
+    "expect": [
+      "无家电，请先添加\nabc123测试"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"applName\":\"abc123测试\",\"applLastClean\":\"abc123测试\"}，输出区含「无家电，请先添加\nabc123测试」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "life/ring-size-converter",
+    "inputs": {
+      "inputVal": "42",
+      "inputType": "hk"
+    },
+    "expect": [
+      "基准戒指内周长： 131.88 mm （直径 41.9787 mm） 周长(mm)： 131.88 直径(mm)： 41.9787 美码： 34.6486 英码： 36.7808 欧码： 91.88"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"inputVal\":\"42\",\"inputType\":\"hk\"}，输出区含「基准戒指内周长： 131.88 mm （直径 41.9787 mm） 周长(mm…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "life/roman-numeral",
+    "inputs": {
+      "numInput": "42",
+      "romanInput": "abc123测试"
+    },
+    "expect": [
+      " + I=1 + I=1\nabc123测试\n无效\n只能包含 MDCLXVI"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"numInput\":\"42\",\"romanInput\":\"abc123测试\"}，输出区含「 + I=1 + I=1\nabc123测试\n无效\n只能包含 MDCLXVI」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "life/shoe-size-converter",
+    "inputs": {
+      "inputVal": "42",
+      "inputType": "cn"
+    },
+    "expect": [
+      "42\ncn\n基准脚长： 420 mm 脚长(mm)： 420 欧盟码： 66 美码(男)： 17.974 美码(女)： 17.174 英码： 16.974"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"inputVal\":\"42\",\"inputType\":\"cn\"}，输出区含「42\ncn\n基准脚长： 420 mm 脚长(mm)： 420 欧盟码： 66 美…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "life/time-converter",
+    "inputs": {
+      "inputVal": "42",
+      "fromUnit": "s"
+    },
+    "expect": [
+      " min 小时： 0.01166666667 h 天： 0.0004861111111 day 周： 0.00006944444444 week 月： 0.00001597079626"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"inputVal\":\"42\",\"fromUnit\":\"s\"}，输出区含「 min 小时： 0.01166666667 h 天： 0.0004861111…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "life/speed-converter",
+    "inputs": {
+      "inputVal": "42",
+      "fromUnit": "kmh"
+    },
+    "expect": [
+      "42\nkmh\n基准： 42 km/h = 11.66666668 m/s 米每秒： 11.66666668 m/s 英里每时： 26.09759009 mph 节： 22.67818578"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"inputVal\":\"42\",\"fromUnit\":\"kmh\"}，输出区含「42\nkmh\n基准： 42 km/h = 11.66666668 m/s 米每秒…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "life/volume-converter",
+    "inputs": {
+      "inputVal": "42",
+      "fromUnit": "L"
+    },
+    "expect": [
+      " pt 美夸脱： 44.3809048 qt 杯： 177.5236192 cup 汤匙： 2840.377903"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"inputVal\":\"42\",\"fromUnit\":\"L\"}，输出区含「 pt 美夸脱： 44.3809048 qt 杯： 177.5236192 cu…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "life/temperature-converter",
+    "inputs": {
+      "celsius": "42",
+      "fahrenheit": "42",
+      "kelvin": "42",
+      "rankine": "42",
+      "reaumur": "42"
+    },
+    "expect": [
+      "52.50\n126.50\n325.65\n586.17\n42"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"celsius\":\"42\",\"fahrenheit\":\"42\",\"kelvin\":\"42\",\"rankine\":\"42\",\"reaumur\":\"42\"}，输出区含「52.50\n126.50\n325.65\n586.17\n42」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "life/weight-converter",
+    "inputs": {
+      "inputVal": "42",
+      "fromUnit": "g"
+    },
+    "expect": [
+      "42\ng\n基准： 42 克 = 42 克 42000 毫克 0.042 千克 0.000042 吨 1.481506402 盎司 0.09259415012 磅 210 克拉 0.84 两 0.084 斤"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"inputVal\":\"42\",\"fromUnit\":\"g\"}，输出区含「42\ng\n基准： 42 克 = 42 克 42000 毫克 0.042 千克 0…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "life/workday-calculator",
+    "inputs": {
+      "startDate": "abc123测试",
+      "endDate": "abc123测试",
+      "holidays": "1\n2\n3"
+    },
+    "expect": [
+      "abc123测试\nabc123测试\n1 2 3\n开始日期： Invalid Date 结束日期： Invalid Date 自然日总数： 0 天 工作日数： 0"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"startDate\":\"abc123测试\",\"endDate\":\"abc123测试\",\"holidays\":\"1\\n2\\n3\"}，输出区含「abc123测试\nabc123测试\n1 2 3\n开始日期： Invalid Da…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "life/world-clock",
+    "inputs": {
+      "diffTime": "abc123测试"
+    },
+    "expect": [
+      "/06/14周五\nabc123测试\n+0 小时\n⚠ 计算结果含无效值，请检查输入是否为有效正数。"
+    ],
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"diffTime\":\"abc123测试\"}，输出区含「/06/14周五\nabc123测试\n+0 小时\n⚠ 计算结果含无效值，请检查输入…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "life/generator-strength",
+    "inputs": { "len": "42", "cnt": "42" },
+    "checkIds": ["lower", "upper", "nums", "syms", "noSim", "noAmb"],
+    "expect": ["q!XrposnW6#hod2o2eSqrunXyBWo*U*@u$Z258PssC"],
+    "ref": "B类checkbox子任务补强（life/generator-strength）：注入 len=42,cnt=42 并勾满 lower/upper/nums/syms/noSim/noAmb；harness _rngReset 固定随机种子⇒生成确定密码串「q!Xr...PssC」（转换后产物，非输入回显 42）。默认态（不声明 checkIds⇒checked=false）生成空/不同串，不含该串⇒强判别、零逃生。"
+  }
+
+];
+
+// ---------------------------------------------------------------- main
+async function main() {
+  const only = process.argv.slice(2);
+  const cases = only.length ? CASES.filter((c) => only.some((o) => c.slug.endsWith("/" + o) || c.slug === o)) : CASES;
+  let pass = 0; const fails = [];
+  for (const c of cases) {
+    try {
+      const r = await runCase(c);
+      if (r.ok) { pass++; }
+      else {
+        fails.push(c.slug);
+        console.log("❌ " + c.slug + "  " + (r.why || "no expect match"));
+        if (r.errs && r.errs.length) console.log("     errs: " + JSON.stringify(r.errs));
+        if (r.sample) console.log("     got: " + String(r.sample).slice(0, 300));
+      }
+    } catch (e) {
+      fails.push(c.slug);
+      console.log("❌ " + c.slug + "  THROWN: " + ((e && e.message) ? e.message : String(e)));
+    }
+  }
+
+  console.log("==== life calc " + pass + "/" + cases.length + " ====");
+  if (fails.length) process.exit(1);
+}
+if (require.main === module) main();

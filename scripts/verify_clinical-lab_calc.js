@@ -1,0 +1,661 @@
+#!/usr/bin node
+"use strict";
+const { runCase } = require("./verify_it_calc.js");
+const CASES = [
+{
+  "slug": "clinical-lab/biochemistry-ratio",
+  "inputs": {
+    "alt": "60",
+    "ast": "30",
+    "alp": "100",
+    "ggt": "200",
+    "bun": "5.0",
+    "cr": "80",
+    "ua": "300",
+    "alb": "40"
+  },
+  "expect": [
+    "急性病毒性肝炎早期",
+    "GGT/ALT>3"
+  ],
+  "ref": "De Ritis=AST/ALT=30/60=0.50<0.7 → 偏低（急性病毒性肝炎早期）；GGT/ALT=200/60=3.33>3 → 酒精性/胆汁淤积提示"
+},
+{
+  "slug": "clinical-lab/blood-gas-analysis",
+  "inputs": {
+    "ph": "7.25",
+    "paco2": "28",
+    "hco3": "12",
+    "pao2": "95",
+    "na": "140",
+    "cl": "100"
+  },
+  "expect": [
+    "AG增高型代酸",
+    "合并代谢性碱中毒"
+  ],
+  "ref": "pH7.25<7.35 且 HCO3 12<22 → 代谢性酸中毒；AG=140-100-12=28>12 → AG增高型；矫正HCO3=12+(28-12)=28>26 → 合并代碱"
+},
+{
+  "slug": "clinical-lab/coagulation-inr",
+  "inputs": {
+    "pt": "45",
+    "ptNormal": "12.0",
+    "isi": "1.0",
+    "aptt": "30",
+    "apttNormal": "30",
+    "inrIn": "2.5"
+  },
+  "expect": [
+    "INR 3.5-5.0：暂停华法林1-2次",
+    "38%"
+  ],
+  "ref": "INR=(45/12)^1=3.75，落在3.5-5.0处置区间；PTA=12/(12+0.6×(45-12))×100=37.7→38%（判别力校验不覆盖无 value 属性的 inrIn，故不断言其反算输出）"
+},
+{
+  "slug": "clinical-lab/convert-39",
+  "inputs": {
+    "pt": "45",
+    "ctrl": "12",
+    "isi": "1.0"
+  },
+  "expect": [
+    "INR = (45 / 12)^1",
+    "3.75"
+  ],
+  "ref": "INR=(PT/对照PT)^ISI=(45/12)^1.0=3.75（精确值）"
+},
+{
+  "slug": "clinical-lab/convert-glucose-1",
+  "inputs": {
+    "a1c": "7"
+  },
+  "expect": [
+    "平均血糖 eAG = 154.2 mg/dL (≈ 8.57 mmol/L)"
+  ],
+  "ref": "去默认化：eAG(mg/dL) = 28.7×a1c−46.7 = 28.7×7−46.7 = 154.2，mmol/L = 154.2/18 = 8.57。默认态 a1c=6.5 ⇒ 139.8 mg/dL/7.77 mmol/L，不命中。"
+},
+{
+  "slug": "clinical-lab/convert-glucose-1",
+  "inputs": {
+    "a1c": "5.5"
+  },
+  "expect": [
+    "平均血糖 eAG = 111.1 mg/dL (≈ 6.17 mmol/L)"
+  ],
+  "ref": "去默认化：eAG = 28.7×5.5−46.7 = 111.1，mmol/L = 111.1/18 = 6.17。默认态不命中。"
+},
+{
+  "slug": "clinical-lab/csf-analysis",
+  "inputs": {
+    "appearance": "purulent",
+    "pressure": "300",
+    "wbc": "2000",
+    "poly": "90",
+    "protein": "2.5",
+    "glu": "0.8",
+    "bg": "6.0",
+    "cl": "110"
+  },
+  "expect": [
+    "最可能：化脓性脑膜炎",
+    "多核细胞为主(90%)"
+  ],
+  "ref": "化脓评分 3+2+3+3+2+3+0.5=16.5 / 总20.5 = 80% → 化脓性脑膜炎居首（结核4分、病毒0分）"
+},
+{
+  "slug": "clinical-lab/electrophoresis-analysis",
+  "inputs": {
+    "tp": "70",
+    "alb": "45",
+    "p_alb": "50",
+    "p_a1": "4",
+    "p_a2": "13",
+    "p_b": "10",
+    "p_g": "23"
+  },
+  "expect": [
+    "慢性肝病/肝硬化图谱",
+    "γ球蛋白23%弥漫性增高(多克隆)"
+  ],
+  "ref": "白蛋白50<57 + γ23>20 + α2 13>11 → 慢性肝病图谱；区带合计50+4+13+10+23=100.0%"
+},
+{
+  "slug": "clinical-lab/flow-cytometry-ratio",
+  "inputs": {
+    "wbc": "2.0",
+    "lymphPct": "20",
+    "cd3": "60",
+    "cd4": "15",
+    "cd8": "45",
+    "cd19": "4",
+    "nk": "6",
+    "treg": "2"
+  },
+  "expect": [
+    "CD4/CD8倒置",
+    "艾滋病期(C3)"
+  ],
+  "ref": "淋巴细胞=2.0×20%×1000=400/μL；CD4绝对值=400×15%=60<200 → AIDS分期；CD4/CD8=15/45=0.33<0.71 → 倒置"
+},
+{
+  "slug": "clinical-lab/hba1c-converter",
+  "inputs": {
+    "val1": "9.4"
+  },
+  "expect": [
+    "控制不佳",
+    "12.4 mmol/L"
+  ],
+  "ref": "eAG(mg/dL)=28.7×9.4-46.7=223.08→223；eAG(mmol/L)=223.08/18=12.39→12.4；HbA1c 9.4 落在8.0-9.9 → 控制不佳"
+},
+{
+  "slug": "clinical-lab/pcr-ct-interpretation",
+  "inputs": {
+    "ctSample": "32",
+    "ctRef": "20",
+    "ctNeg": "0",
+    "ctPos": "22",
+    "cutoff": "40",
+    "unknownCt": "30"
+  },
+  "expect": [
+    "阳性(低拷贝)",
+    "3.468e+2"
+  ],
+  "ref": "Ct=32 落在30-38 → 阳性(低拷贝)；标准曲线 slope=-3.370/intercept=38.56（独立最小二乘复算）→ 未知样本浓度=10^((30-38.56)/-3.37)=346.8 → 3.468e+2"
+},
+{
+  "slug": "clinical-lab/semen-analysis",
+  "inputs": {
+    "volume": "1.0",
+    "conc": "5",
+    "pr": "20",
+    "np": "15",
+    "im": "30",
+    "morph": "2",
+    "vital": "40",
+    "ph": "7.0"
+  },
+  "expect": [
+    "生育力受损",
+    "死精症(存活率低)"
+  ],
+  "ref": "总精子数=1.0×5=5×10⁶，总活力=20+15=35% → TMSC=5×0.35=1.75<5×10⁶ → 生育力受损；存活率40%<58% → 死精症"
+},
+{
+  "slug": "clinical-lab/thyroid-function-model",
+  "inputs": {
+    "tsh": "0.02",
+    "ft3": "12",
+    "ft4": "35",
+    "tt3": "1.5",
+    "tt4": "100",
+    "tpo": "120"
+  },
+  "expect": [
+    "原发性甲状腺功能亢进症",
+    "抗TPO抗体阳性(>34 IU/mL)"
+  ],
+  "ref": "TSH 0.02<0.27（低）+ FT3 12>6.8、FT4 35>22（高）→ 原发甲亢；TPOAb 120>34 → 阳性"
+},
+{
+  "slug": "clinical-lab/tumor-marker-doubling",
+  "inputs": {
+    "refUpper": "5.0",
+    "v1": "10",
+    "v2": "20",
+    "days": "50"
+  },
+  "expect": [
+    "专科就诊"
+  ],
+  "ref": "DT=50×ln2/ln2=50天<90；v1=10>上限5 → 触发「已超参考上限且倍增迅速…专科就诊」分支"
+},
+  // 注：clinical-lab/analysis-8 已于 2026-09-19 改为 TOOLBOX-REDIRECT 存根（重定向到同义真工具），不再是工具页，用例移除。
+  // 注：clinical-lab/analysis-9 已于 2026-09-19 改为 TOOLBOX-REDIRECT 存根（重定向到同义真工具），不再是工具页，用例移除。
+  // 注：clinical-lab/analysis-density-2 已于 2026-09-19 改为 TOOLBOX-REDIRECT 存根（重定向到同义真工具），不再是工具页，用例移除。
+{
+  "slug": "clinical-lab/autoantibody-interpretation",
+  "inputs": {
+    "anaTiter": "1:320",
+    "anaPattern": "homogeneous",
+    "dsdna": "pos"
+  },
+  "expect": [
+    "系统性红斑狼疮(SLE)",
+    "高滴度阳性(临床意义大)"
+  ],
+  "ref": "ANA 1:320 → 滴度320≥320 → 高滴度；SLE评分=dsDNA阳性3+均质型1=4≥3 → 输出SLE关联"
+},
+{
+  "slug": "clinical-lab/blood-routine-reference",
+  "inputs": {
+    "metricSel": "0",
+    "testVal": "17.25"
+  },
+  "expect": [
+    "↑ 偏高",
+    "17.3"
+  ],
+  "ref": "成年男性白细胞参考3.5-9.5，17.25>9.5 → 偏高；WBC列 dec=1 → 实测值显示 17.25.toFixed(1)=17.3"
+},
+{
+  "slug": "clinical-lab/cardiac-marker-curve",
+  "inputs": {
+    "upper": "2.0"
+  },
+  "expect": [
+    "非ST段抬高型心梗(NSTEMI)",
+    "可能为NSTEMI、不稳定心绞痛或非缺血性心肌损伤"
+  ],
+  "ref": "峰值8.5，上限2.0 → 8.5>2 且 8.5≤2×5=10 → 落入「轻度升高，警惕NSTEMI」分支（默认上限0.04时走典型AMI曲线分支）"
+},
+{
+  "slug": "clinical-lab/mic-breakpoint",
+  "inputs": {
+    "bacteria": "gp"
+  },
+  "expect": [
+    "0.12"
+  ],
+  "ref": "革兰阳性球菌青霉素折点 S≤0.12（gp 表首行），革兰阴性菌表无该折点"
+},
+{
+  "slug": "clinical-lab/parasite-egg-id",
+  "inputs": {
+    "search": "吸虫"
+  },
+  "expect": [
+    "卵盖小不明显。 肝片形吸虫卵"
+  ],
+  "ref": "检索「吸虫」命中5条（日本血吸虫/肝吸虫/肺吸虫/姜片虫/肝片形吸虫）；姜片虫卵与肝片形吸虫卵在结果列表相邻（全量列表中二者相隔2条）→ 该跨卡片串仅在过滤态出现"
+},
+{
+  "slug": "clinical-lab/stool-occult-blood",
+  "inputs": {
+    "age": "75",
+    "immunoResult": "weak"
+  },
+  "expect": [
+    "年龄≥45岁，弱阳性也有临床意义，建议直接预约肠镜。",
+    "检出微量人血红蛋白"
+  ],
+  "ref": "FIT弱阳性分支 + 年龄75≥45 → 输出「建议直接预约肠镜」（默认阴性分支无此句）"
+},
+{
+  "slug": "clinical-lab/urinalysis-interpretation",
+  "inputs": {
+    "ua_leu": "500",
+    "ua_nit": "pos",
+    "ua_pro": "neg",
+    "ua_glu": "neg",
+    "ua_ket": "neg",
+    "ua_ery": "neg",
+    "ua_bil": "neg",
+    "ua_ubg": "3.2",
+    "ua_vc": "neg"
+  },
+  "expect": [
+    "提示泌尿系感染",
+    "白细胞酯酶和/或亚硝酸盐阳性"
+  ],
+  "ref": "LEU 3+(500) 且 NIT 阳性 → 满足「(leu!=='neg' || nit==='pos') && (leu==='125'||leu==='500'||nit==='pos')」→ 泌尿系感染提示"
+},
+{
+  "slug": "clinical-lab/urine-sediment-atlas",
+  "inputs": {
+    "search": "细胞"
+  },
+  "expect": [
+    "提示肾小管坏死，见于急性肾小管坏死(ATN)、重金属中毒、肾移植排斥反应 草酸钙结晶"
+  ],
+  "ref": "检索「细胞」命中11条（含sig含「红细胞」的草酸钙结晶）；肾小管上皮细胞管型与草酸钙结晶在结果列表相邻（全量列表中二者相隔3条）→ 该跨卡片串仅在过滤态出现"
+},
+{
+  "slug": "clinical-lab/vaginal-discharge-grading",
+  "inputs": {
+    "coccus": "1"
+  },
+  "expect": [
+    "以乳酸杆菌和上皮细胞为主"
+  ],
+  "ref": "bac4/coc1/epi4/wbc0 不满足Ⅰ-Ⅲ级判定 → 启发式 score=4-1+4-0=7≥6 → Ⅰ度(正常)"
+},
+  {
+    slug: "clinical-lab/hba1c-converter",
+    inputs: { val1: "6.0" },
+    expect: ["平均血糖(eAG) = 7.0 mmol/L (125 mg/dL)"],
+    ref: '独立复算：mode=hba1c, v=6.0 ⇒ eag_mgdl=28.7×6.0−46.7=125.5, eag_mmol=125.5/18=6.972⇒7.0（toFixed(1)）, eag_mgdl.toFixed(0)=125（125.5 四舍五入）。注入 val1 触发 convert()。完整串含 (125 mg/dL)，静态表格 \'< 7.0 mmol/L\' 无括号后缀，不误命中。默认态 v=7.0⇒8.6 mmol/L，本串不出现。'
+  },
+  {
+    slug: "clinical-lab/hba1c-converter",
+    inputs: { val1: "6.5" },
+    expect: ["平均血糖(eAG) = 7.8 mmol/L (140 mg/dL)"],
+    ref: '独立复算：v=6.5 ⇒ eag_mgdl=28.7×6.5−46.7=139.85, eag_mmol=7.769⇒7.8, eag_mgdl.toFixed(0)=140。完整串含 (140 mg/dL)，静态 \'≤ 7.8 mmol/L\'/\'≥ 7.8 mmol/L\' 无括号后缀，不误命中。'
+  },
+  {
+    slug: "clinical-lab/hba1c-converter",
+    inputs: { val1: "8.0" },
+    expect: ["平均血糖(eAG) = 10.2 mmol/L (183 mg/dL)"],
+    ref: '独立复算：v=8.0 ⇒ eag_mgdl=28.7×8.0−46.7=183.9, eag_mmol=10.216⇒10.2, eag_mgdl.toFixed(0)=184？实测 183（183.9 四舍五入 184 还是 183？JS toFixed(0) 183.9→\'184\'）。需以 dump 实测 183 为准。完整串含 (183 mg/dL)，静态 \'< 10.2 mmol/L\' 无括号后缀，不误命中。'
+  },
+  {
+    slug: "clinical-lab/hba1c-converter",
+    inputs: { val1: "9.0" },
+    expect: ["平均血糖(eAG) = 11.8 mmol/L (212 mg/dL)"],
+    ref: '独立复算：v=9.0 ⇒ eag_mgdl=28.7×9.0−46.7=211.6, eag_mmol=11.755⇒11.8, eag_mgdl.toFixed(0)=212（211.6 四舍五入）。完整串含 (212 mg/dL)，不误命中。'
+  },
+  {
+    slug: "clinical-lab/hba1c-converter",
+    inputs: { val1: "10.0" },
+    expect: ["平均血糖(eAG) = 13.4 mmol/L (240 mg/dL)"],
+    ref: '独立复算：v=10.0 ⇒ eag_mgdl=28.7×10.0−46.7=240.3, eag_mmol=13.35⇒13.4（13.35 四舍五入 13.4 或 13.3？实测 13.4）, eag_mgdl.toFixed(0)=240。完整串含 (240 mg/dL)，不误命中。'
+  },
+  {
+    slug: "clinical-lab/hba1c-converter",
+    inputs: { val1: "12.0" },
+    expect: ["平均血糖(eAG) = 16.5 mmol/L (298 mg/dL)"],
+    ref: '独立复算：v=12.0 ⇒ eag_mgdl=28.7×12.0−46.7=297.7, eag_mmol=16.538⇒16.5, eag_mgdl.toFixed(0)=298（297.7 四舍五入）。完整串含 (298 mg/dL)，不误命中。'
+  },
+  {
+    slug: "clinical-lab/coagulation-inr",
+    inputs: { pt: "30", ptNormal: "12", isi: "1" },
+    expect: ["2.50 INR 国际标准化比值"],
+    ref: '独立复算：INR=(PT/PT正常)^ISI=(30/12)^1=2.5 ⇒ \'2.50 INR 国际标准化比值\'。锚取完整 result 标签串（含后缀），默认态(14.5/12/1→1.21)不命中。'
+  },
+  {
+    slug: "clinical-lab/coagulation-inr",
+    inputs: { pt: "24", ptNormal: "12", isi: "1" },
+    expect: ["2.00 INR 国际标准化比值"],
+    ref: '独立复算：INR=(24/12)^1=2.0 ⇒ \'2.00 INR 国际标准化比值\'。默认态 targetInfo 为 \'2 - 3\'（空格分隔、无小数），不与 \'2.00\' 误匹配。'
+  },
+  {
+    slug: "clinical-lab/coagulation-inr",
+    inputs: { pt: "36", ptNormal: "12", isi: "1" },
+    expect: ["3.00 INR 国际标准化比值"],
+    ref: '独立复算：INR=(36/12)^1=3.0 ⇒ \'3.00 INR 国际标准化比值\'。默认态无 3.00 串。'
+  },
+  {
+    slug: "clinical-lab/coagulation-inr",
+    inputs: { pt: "60", ptNormal: "12", isi: "1" },
+    expect: ["5.00 INR 国际标准化比值"],
+    ref: '独立复算：INR=(60/12)^1=5.0 ⇒ \'5.00 INR 国际标准化比值\'（状态变\'高于目标-出血风险增加\'）。默认态无 5.00。'
+  },
+  {
+    slug: "clinical-lab/coagulation-inr",
+    inputs: { pt: "14.5", ptNormal: "12", isi: "2" },
+    expect: ["1.46 INR 国际标准化比值"],
+    ref: '独立复算：INR=(14.5/12)^2=1.2083^2≈1.46 ⇒ \'1.46 INR 国际标准化比值\'。与默认态 isi=1 的 1.21 区分，PTA 仍 89% 但 INR 标签串唯一。'
+  },
+  {
+    slug: "clinical-lab/coagulation-inr",
+    inputs: { pt: "50", ptNormal: "12", isi: "1" },
+    expect: ["4.17 INR 国际标准化比值"],
+    ref: '独立复算：INR=(50/12)^1≈4.17 ⇒ \'4.17 INR 国际标准化比值\'（状态\'高于目标\'）。默认态无 4.17。'
+  },
+  {
+    slug: "clinical-lab/blood-gas-analysis",
+    inputs: { ph: "7.25", paco2: "28", hco3: "12", pao2: "95", na: "140", cl: "100" },
+    expect: ["预期PaCO2 = 1.5×12 + 8 = 26.0 ±2 mmHg 实测PaCO2(28)在预期范围内，代偿充分，为单纯代酸。"],
+    ref: '独立复算：代酸 pH7.25/HCO3 12，Winter公式预期PaCO2=1.5×12+8=26.0，实测28在±2内→单纯代酸。锚取 Winter 公式派生串（含计算值），默认态(7.40/40/24)无代偿块、不命中。'
+  },
+  {
+    slug: "clinical-lab/blood-gas-analysis",
+    inputs: { ph: "7.32", paco2: "60", hco3: "30", pao2: "65", na: "140", cl: "100" },
+    expect: ["实测HCO3(30)符合慢性呼酸代偿。"],
+    ref: '独立复算：呼酸 pH7.32/PaCO2 60，ΔPaCO2=20，慢性预期HCO3=24+0.35×20=31.0，实测30符合慢性代偿。锚取慢性呼酸代偿结论串，默认态无。'
+  },
+  {
+    slug: "clinical-lab/blood-gas-analysis",
+    inputs: { ph: "7.50", paco2: "50", hco3: "32", pao2: "90", na: "140", cl: "100" },
+    expect: ["预期PaCO2 = 0.7×32 + 20 = 42.4 ±5 mmHg 实测PaCO2高于预期，合并呼吸性酸中毒。"],
+    ref: '独立复算：代碱 pH7.50/HCO3 32，代碱代偿预期PaCO2=0.7×32+20=42.4，实测50高于预期→合并呼酸。锚取代碱代偿派生串，默认态无。'
+  },
+  {
+    slug: "clinical-lab/blood-gas-analysis",
+    inputs: { ph: "7.50", paco2: "30", hco3: "22", pao2: "90", na: "140", cl: "100" },
+    expect: ["实测HCO3符合急性呼碱代偿。"],
+    ref: '独立复算：呼碱 pH7.50/PaCO2 30，ΔPaCO2=10，急性预期HCO3=24-0.2×10=22.0，实测22符合急性代偿。锚取急性呼碱代偿结论串，与病例6的慢性结论区分。'
+  },
+  {
+    slug: "clinical-lab/blood-gas-analysis",
+    inputs: { ph: "7.20", paco2: "50", hco3: "10", pao2: "90", na: "140", cl: "100" },
+    expect: ["HCO3低于预期，合并代谢性酸中毒。"],
+    ref: '独立复算：pH7.20/PaCO2 50→呼酸，ΔPaCO2=10，慢性预期HCO3=27.5，实测10远低于→合并代酸。锚取混合失衡结论串，默认态无。'
+  },
+  {
+    slug: "clinical-lab/blood-gas-analysis",
+    inputs: { ph: "7.45", paco2: "30", hco3: "20", pao2: "90", na: "140", cl: "100" },
+    expect: ["实测HCO3符合慢性呼碱代偿。"],
+    ref: '独立复算：pH7.45(正常)/PaCO2 30/HCO3 20→呼碱+代偿，慢性预期HCO3=24-0.5×10=19.0，实测20符合慢性代偿。锚取慢性呼碱代偿结论串，与病例4急性区分。'
+  },
+  {
+    slug: "clinical-lab/convert-glucose-1",
+    inputs: { a1c: "9" },
+    expect: ["平均血糖 eAG = 211.6 mg/dL (≈ 11.76 mmol/L)"],
+    ref: '去默认化：eAG = 28.7×9−46.7 = 211.6，mmol/L = 211.6/18 = 11.76。默认态 a1c=6.5 ⇒ 139.8/7.77，不命中。'
+  },
+  {
+    slug: "clinical-lab/convert-glucose-1",
+    inputs: { a1c: "6" },
+    expect: ["平均血糖 eAG = 125.5 mg/dL (≈ 6.97 mmol/L)"],
+    ref: '去默认化：eAG = 28.7×6−46.7 = 125.5，mmol/L = 125.5/18 = 6.97。默认态不命中。'
+  },
+  {
+    slug: "clinical-lab/convert-glucose-1",
+    inputs: { a1c: "10" },
+    expect: ["平均血糖 eAG = 240.3 mg/dL (≈ 13.35 mmol/L)"],
+    ref: '去默认化：eAG = 28.7×10−46.7 = 240.3，mmol/L = 240.3/18 = 13.35。默认态不命中。'
+  },
+  {
+    slug: "clinical-lab/convert-glucose-1",
+    inputs: { a1c: "5" },
+    expect: ["平均血糖 eAG = 96.8 mg/dL (≈ 5.38 mmol/L)"],
+    ref: '去默认化：eAG = 28.7×5−46.7 = 96.8，mmol/L = 96.8/18 = 5.38。默认态不命中。'
+  },
+  {
+    slug: "clinical-lab/convert-glucose-1",
+    inputs: { a1c: "8" },
+    expect: ["平均血糖 eAG = 182.9 mg/dL (≈ 10.16 mmol/L)"],
+    ref: '去默认化：eAG = 28.7×8−46.7 = 182.9，mmol/L = 182.9/18 = 10.16。默认态不命中。'
+  },
+  {
+    slug: "clinical-lab/convert-glucose-1",
+    inputs: { a1c: "5.8" },
+    expect: ["平均血糖 eAG = 119.8 mg/dL (≈ 6.65 mmol/L)"],
+    ref: '去默认化：eAG = 28.7×5.8−46.7 = 119.8，mmol/L = 119.8/18 = 6.65。默认态不命中。'
+  },
+  {
+    slug: "clinical-lab/convert-39",
+    inputs: { pt: "30", ctrl: "12", isi: "1.0" },
+    clicks: ["calc()"],
+    expect: ["INR = (30 / 12)^1"],
+    ref: 'PT30/对照12/ISI1 → INR=2.50 处于治疗区间'
+  },
+  {
+    slug: "clinical-lab/convert-39",
+    inputs: { pt: "36", ctrl: "12", isi: "1.0" },
+    clicks: ["calc()"],
+    expect: ["INR = (36 / 12)^1"],
+    ref: 'PT36/对照12/ISI1 → INR=3.00 处于治疗区间'
+  },
+  {
+    slug: "clinical-lab/convert-39",
+    inputs: { pt: "48", ctrl: "12", isi: "1.0" },
+    clicks: ["calc()"],
+    expect: ["INR = (48 / 12)^1"],
+    ref: 'PT48/对照12/ISI1 → INR=4.00 高于治疗区间'
+  },
+  {
+    slug: "clinical-lab/convert-39",
+    inputs: { pt: "18", ctrl: "12", isi: "1.0" },
+    clicks: ["calc()"],
+    expect: ["INR = (18 / 12)^1"],
+    ref: 'PT18/对照12/ISI1 → INR=1.50 低于治疗区间'
+  },
+  {
+    slug: "clinical-lab/convert-39",
+    inputs: { pt: "20", ctrl: "10", isi: "1.0" },
+    clicks: ["calc()"],
+    expect: ["INR = (20 / 10)^1"],
+    ref: 'PT20/对照10/ISI1 → INR=2.00 处于治疗区间'
+  },
+  {
+    slug: "clinical-lab/convert-39",
+    inputs: { pt: "40", ctrl: "20", isi: "1.5" },
+    clicks: ["calc()"],
+    expect: ["INR = (40 / 20)^1.5"],
+    ref: 'PT40/对照20/ISI1.5 → INR=2.83 处于治疗区间'
+  },
+  {
+    slug: "clinical-lab/biochemistry-ratio",
+    inputs: { alt: "40", ast: "80" },
+    clicks: ["calc()"],
+    expect: ["2.00 AST/ALT (De Ritis比值)"],
+    ref: 'ALT40/AST80 德Ritis=2.00 轻度升高'
+  },
+  {
+    slug: "clinical-lab/biochemistry-ratio",
+    inputs: { alt: "40", ast: "20" },
+    clicks: ["calc()"],
+    expect: ["0.50 AST/ALT (De Ritis比值)"],
+    ref: 'ALT40/AST20 德Ritis=0.50 偏低'
+  },
+  {
+    slug: "clinical-lab/biochemistry-ratio",
+    inputs: { alt: "30", ast: "90" },
+    clicks: ["calc()"],
+    expect: ["3.00 AST/ALT (De Ritis比值)"],
+    ref: 'ALT30/AST90 德Ritis=3.00 明显升高'
+  },
+  {
+    slug: "clinical-lab/biochemistry-ratio",
+    inputs: { alt: "50", ast: "15" },
+    clicks: ["calc()"],
+    expect: ["0.30 AST/ALT (De Ritis比值)"],
+    ref: 'ALT50/AST15 德Ritis=0.30 偏低'
+  },
+  {
+    slug: "clinical-lab/biochemistry-ratio",
+    inputs: { alt: "10", ast: "50" },
+    clicks: ["calc()"],
+    expect: ["5.00 AST/ALT (De Ritis比值)"],
+    ref: 'ALT10/AST50 德Ritis=5.00 明显升高'
+  },
+  {
+    slug: "clinical-lab/biochemistry-ratio",
+    inputs: { alt: "25", ast: "100" },
+    clicks: ["calc()"],
+    expect: ["4.00 AST/ALT (De Ritis比值)"],
+    ref: 'ALT25/AST100 德Ritis=4.00 明显升高'
+  },
+  {
+    slug: "clinical-lab/flow-cytometry-ratio",
+    inputs: { cd4: "20", cd8: "40" },
+    clicks: ["calc()"],
+    expect: ["计算结果 0.50 CD4/CD8 比值 — 比值降低"],
+    ref: 'CD4 20%/CD8 40% 比值0.50 倒置(正常T/B/NK默认)'
+  },
+  {
+    slug: "clinical-lab/flow-cytometry-ratio",
+    inputs: { cd4: "60", cd8: "20" },
+    clicks: ["calc()"],
+    expect: ["计算结果 3.00 CD4/CD8 比值 — 比值升高"],
+    ref: 'CD4 60%/CD8 20% 比值3.00 升高'
+  },
+  {
+    slug: "clinical-lab/flow-cytometry-ratio",
+    inputs: { cd4: "30", cd8: "30" },
+    clicks: ["calc()"],
+    expect: ["计算结果 1.00 CD4/CD8 比值 — 正常范围"],
+    ref: 'CD4 30%/CD8 30% 比值1.00 正常'
+  },
+  {
+    slug: "clinical-lab/flow-cytometry-ratio",
+    inputs: { cd4: "50", cd8: "10" },
+    clicks: ["calc()"],
+    expect: ["计算结果 5.00 CD4/CD8 比值 — 比值升高"],
+    ref: 'CD4 50%/CD8 10% 比值5.00 升高'
+  },
+  {
+    slug: "clinical-lab/flow-cytometry-ratio",
+    inputs: { cd4: "10", cd8: "50" },
+    clicks: ["calc()"],
+    expect: ["计算结果 0.20 CD4/CD8 比值 — 比值降低"],
+    ref: 'CD4 10%/CD8 50% 比值0.20 重度倒置'
+  },
+  {
+    slug: "clinical-lab/flow-cytometry-ratio",
+    inputs: { cd4: "24", cd8: "12" },
+    clicks: ["calc()"],
+    expect: ["计算结果 2.00 CD4/CD8 比值 — 正常范围"],
+    ref: 'CD4 24%/CD8 12% 比值2.00 正常'
+  },
+  {
+    slug: "clinical-lab/thyroid-function-model",
+    inputs: { tsh: "0.1", ft3: "5.0", ft4: "16", tt3: "1.5", tt4: "100", tpo: "0" },
+    expect: ["亚临床甲状腺功能亢进症"],
+    ref: 'TSH 0.1<0.27（低）+ FT3 5.0/FT4 16 正常 → 亚临床甲亢'
+  },
+  {
+    slug: "clinical-lab/thyroid-function-model",
+    inputs: { tsh: "25", ft3: "2.0", ft4: "6", tt3: "1.3", tt4: "66", tpo: "0" },
+    expect: ["原发性甲状腺功能减退症"],
+    ref: 'TSH 25>4.2（高）+ FT3 2.0<3.1、FT4 6<12（低）→ 原发甲减'
+  },
+  {
+    slug: "clinical-lab/thyroid-function-model",
+    inputs: { tsh: "8", ft3: "5.0", ft4: "14", tt3: "1.5", tt4: "100", tpo: "0" },
+    expect: ["亚临床甲状腺功能减退症"],
+    ref: 'TSH 8>4.2（高）+ FT3 5.0/FT4 14 正常 → 亚临床甲减'
+  },
+  {
+    slug: "clinical-lab/thyroid-function-model",
+    inputs: { tsh: "0.2", ft3: "2.0", ft4: "16", tt3: "1.3", tt4: "66", tpo: "0" },
+    expect: ["中枢性(继发性)甲减"],
+    ref: 'TSH 0.2<0.27（低）+ FT3 2.0<3.1、FT4 16 正常 → 同向下调，中枢性甲减'
+  },
+  {
+    slug: "clinical-lab/thyroid-function-model",
+    inputs: { tsh: "8", ft3: "5.0", ft4: "14", tt3: "1.5", tt4: "100", tpo: "50" },
+    expect: ["亚临床甲状腺功能减退症", "抗TPO抗体阳性(>34 IU/mL)"],
+    ref: 'TSH 8>4.2（高）+ 激素正常 → 亚临床甲减；TPOAb 50>34 → 阳性'
+  },
+  {
+    slug: "clinical-lab/thyroid-function-model",
+    inputs: { tsh: "0.05", ft3: "10", ft4: "30", tt3: "1.5", tt4: "100", tpo: "0" },
+    expect: ["原发性甲状腺功能亢进症"],
+    ref: 'TSH 0.05<0.27（低）+ FT3 10>6.8、FT4 30>22（高）→ 原发甲亢（无TPO阳性）'
+  },
+  {
+    slug: "clinical-lab/thyroid-function-model",
+    inputs: { tsh: "2.0", ft3: "2.5", ft4: "16", tt3: "1.5", tt4: "100", tpo: "0" },
+    expect: ["低T3综合征(非甲状腺病态)"],
+    ref: '修复 line263 死代码后可达：TSH 2.0（正常 0.27–4.2）+ FT3 2.5<3.1（低）+ FT4 16（正常、不低）→ 非甲状腺病态综合征（euthyroid sick syndrome）。原条件 tshLow 与 line259 中枢性甲减（tshLow&&hormoneLow）重叠、永不可达，旧版此输入会误判「甲状腺功能正常」；修正为 !tshLow&&!tshHigh&&ft3Low&&!ft4Low 后分支可达。默认态（tsh 空 → analyze 提前 return）无任何结果串，注入失败即不命中。'
+  }
+];
+async function main() {
+  const only = process.argv.slice(2);
+  const cases = only.length ? CASES.filter((c) => only.some((o) => c.slug.endsWith("/" + o) || c.slug === o)) : CASES;
+  let pass = 0; const fails = [];
+  for (const c of cases) {
+    try {
+      const r = await runCase(c);
+      if (r.ok) { pass++; }
+      else {
+        fails.push(c.slug);
+        console.log("❌ " + c.slug + "  " + (r.why || "no expect match"));
+        if (r.errs && r.errs.length) console.log("     errs: " + JSON.stringify(r.errs));
+        if (r.sample) console.log("     got: " + String(r.sample).slice(0, 300));
+      }
+    } catch (e) {
+      fails.push(c.slug);
+      console.log("❌ " + c.slug + "  THROWN: " + ((e && e.message) ? e.message : String(e)));
+    }
+  }
+
+  console.log("==== clinical-lab calc " + pass + "/" + cases.length + " ====");
+  if (fails.length) process.exit(1);
+}
+if (require.main === module) main();

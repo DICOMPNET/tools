@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=reference,industry=automotive,icon=🔮,bg=#e8f5e9">
+<meta name="description" content="公交到站时间预估是一款免费的在线汽车交通工具，输入公交发车间隔或具体时刻表与当前时间，估算下一班车的到达时刻与已等待时长，支持多线路对比查看。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+<meta name="keywords" content="公交到站,公交时刻表,到站预估,公交等待,出行规划,公交线路,速查表,在线工具,免费工具,ToolBox">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://chenguangwu.github.io/tools/automotive/bus-arrival-estimator.html">
+<title>公交到站时间预估 - 免费在线汽车交通工具</title>
+<meta property="og:title" content="公交到站时间预估 - 免费在线汽车交通工具">
+<meta property="og:description" content="公交到站时间预估是一款免费的在线汽车交通工具，输入公交发车间隔或具体时刻表与当前时间，估算下一班车的到达时刻与已等待时长，支持多线路对比查看。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+<meta property="og:url" content="https://chenguangwu.github.io/tools/automotive/bus-arrival-estimator.html">
+<meta name="twitter:card" content="summary">
+<meta name="theme-color" content="#FF6B35">
+<link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+<link rel="icon" href="../../favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="apple-touch-icon" href="../../apple-touch-icon.png">
+<link rel="stylesheet" href="../../css/common.css">
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="../../js/common.js" defer></script>
+<style>
+.route-card { background:var(--result-bg); border:1px solid var(--border); border-radius:12px; padding:16px; margin-bottom:12px; }
+.route-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+.route-name { font-weight:600; font-size:15px; color:var(--heading); }
+.route-del { font-size:12px; color:var(--danger); cursor:pointer; padding:4px 8px; border:1px solid var(--border); border-radius:8px; background:none; transition:all .2s; }
+.route-del:hover { border-color:var(--danger); background:rgba(239,68,68,0.06); }
+.mode-select { display:flex; gap:8px; margin-bottom:12px; }
+.mode-btn { padding:8px 16px; border:1.5px solid var(--border); border-radius:10px; background:var(--bg-card); cursor:pointer; font-size:13px; color:var(--text-secondary); transition:all .2s; }
+.mode-btn.active { background:var(--gradient-primary); color:#fff; border-color:transparent; }
+.waiting-progress { margin:12px 0; }
+.waiting-info { display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px; }
+.waiting-bar { height:12px; background:var(--border); border-radius:6px; overflow:hidden; position:relative; }
+.waiting-fill { height:100%; border-radius:6px; transition:width 0.3s ease; }
+.waiting-fill.green { background:linear-gradient(90deg,#10B981,#34D399); }
+.waiting-fill.yellow { background:linear-gradient(90deg,#F59E0B,#FBBF24); }
+.waiting-fill.red { background:linear-gradient(90deg,#EF4444,#F87171); }
+.arrival-info { text-align:center; padding:20px 0; }
+.arrival-time { font-size:36px; font-weight:800; color:var(--primary); }
+.arrival-label { font-size:13px; color:var(--text-muted); margin-top:4px; }
+.schedule-list { margin-top:8px; }
+.schedule-item { display:inline-block; padding:6px 12px; margin:3px; border-radius:8px; background:var(--bg-card); border:1px solid var(--border); font-size:13px; color:var(--text-secondary); }
+.schedule-item.next { background:rgba(255,107,53,0.1); border-color:var(--primary); color:var(--primary); font-weight:600; }
+.schedule-item.past { opacity:0.4; text-decoration:line-through; }
+.multi-result { margin-top:12px; }
+.compare-row { display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid var(--border); }
+.compare-row:last-child { border-bottom:none; }
+.compare-route { font-weight:600; font-size:14px; min-width:60px; color:var(--heading); }
+.compare-time { font-size:20px; font-weight:700; color:var(--primary); min-width:70px; }
+.compare-detail { font-size:12px; color:var(--text-muted); }
+@media(max-width:768px) {
+  .arrival-time { font-size:28px; }
+  .mode-select { flex-wrap:wrap; }
+  .compare-row { flex-wrap:wrap; gap:6px; }
+}
+</style>
+
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
+    <meta property="og:type" content="website">
+    <meta name="twitter:title" content="公交到站时间预估 - 免费在线汽车交通工具">
+    <meta name="twitter:description" content="公交到站时间预估是一款免费的在线汽车交通工具，输入公交发车间隔或具体时刻表与当前时间，估算下一班车的到达时刻与已等待时长，支持多线路对比查看。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+<!-- TOOLBOX-WEBAPP-LD -->
+
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "为什么估算和实际情况常有偏差？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "固定间隔只是计划值，实际受路况、红绿灯、上下客时长、司机驾驶节奏影响会波动。精确到站应以车载 GPS 实时回传为准，本估算适合无实时数据的粗略参考。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "换乘该怎么用？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "把前一条线的预计到达时刻加上步行与候车时间，再叠加上一条线的发车间隔，判断能否赶上衔接班次；两条线间隔接近时建议预留 5 分钟以上缓冲，避免追尾式误车。"
+      }
+    }
+  ]
+}
+</script>
+<meta name="title-en" content="Bus Arrival Estimator">
+<meta name="desc-en" content="Bus Arrival Estimator - online utility on ToolBox.">
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/automotive/bus-arrival-estimator.html">
+<link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/automotive/bus-arrival-estimator.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/automotive/bus-arrival-estimator.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/automotive/bus-arrival-estimator.html">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:locale:alternate" content="zh_TW">
+<meta property="og:locale:alternate" content="en_US">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://chenguangwu.github.io/"},{"@type":"ListItem","position":2,"name":"汽车交通","item":"https://chenguangwu.github.io/tools/automotive/index.html"},{"@type":"ListItem","position":3,"name":"公交到站时间预估","item":"https://chenguangwu.github.io/tools/automotive/bus-arrival-estimator.html"}]}
+</script>
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"公交到站时间预估","url":"https://chenguangwu.github.io/tools/automotive/bus-arrival-estimator.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"公交到站时间预估是一款免费的在线汽车交通工具，输入公交发车间隔或具体时刻表与当前时间，估算下一班车的到达时刻与已等待时长，支持多线路对比查看。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script src="../../js/i18n.js" defer></script>
+<script src="../../js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
+
+<script src="/js/tool-ux.js" defer></script>
+<!-- TOOLBOX-TOOL-UX -->
+
+<script src="/js/analytics.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+<!-- TOOLBOX-TTZZ -->
+<script>
+(function(){try{
+var el = document.createElement("script");
+el.src = "https://lf1-cdn-tos.bytegoofy.com/goofy/ttzz/push.js?85d6452aa9be4d693b16cd48535a8c7ae57542f6788a41682e745be8eb99b35a8a24d2f724c31ebe20c1e4e6fba6d91caf576100b02a2870c72f38fc574066fef065d152c73bf1cbb2ebad3b5b5265d8";
+el.id = "ttzz";
+var s = document.getElementsByTagName("script")[0];
+s.parentNode.insertBefore(el, s);
+}catch(e){}
+})(window);
+</script>
+
+<script src="/js/tool-kit.js" defer></script>
+<!-- TOOLBOX-TOOL-KIT -->
+</head>
+<body>
+<h1 class="sr-only">公交到站时间预估</h1>
+<div class="nav">
+  <a href="../../index.html">← ToolBox</a>
+  <span>/ 公交到站时间预估</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+<nav class="breadcrumb" aria-label="面包屑导航" data-breadcrumb="1">
+  <a href="../../index.html">首页</a>
+  <span class="bc-sep">‹</span>
+  <a href="index.html">🚗 汽车交通</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">公交到站时间预估</span>
+</nav>
+<div class="container">
+  <div class="card tool-card-accent" style="--tool-accent:#0f766e;">
+    <h2 data-zh="🔮 公交到站时间预估">Bus Arrival Estimator</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="输入公交发车间隔或具体时刻表与当前时间，估算下一班车的到达时刻与已等待时长，支持多线路对比查看。">Input bus headway or timetable and current time to estimate the next bus arrival and elapsed wait, with multi-route comparison.</p>
+    <div class="input-row">
+      <div><label>发车间隔 (分钟)</label><input type="number" id="interval" value="10" oninput="calc()" min="1" step="1"></div>
+      <div><label>上一班离站时刻</label><input type="time" id="last" value="09:05" oninput="calc()"></div>
+    </div>
+    <div class="input-row">
+      <div><label>当前时刻</label><input type="time" id="now" value="09:12" oninput="calc()"></div>
+      <div><label>起点到本站行驶时间 (分钟)</label><input type="number" id="ride" value="0" oninput="calc()" min="0" step="1"></div>
+    </div>
+    <div class="input-row">
+      <div><label>平均误差 (±分钟)</label><input type="number" id="err" value="2" oninput="calc()" min="0" step="1"></div>
+      <div><label>线路</label>
+        <select id="line" onchange="calc()">
+          <option value="1">1 路</option>
+          <option value="2">2 路</option>
+          <option value="3">3 路</option>
+        </select>
+      </div>
+    </div>
+    <div class="input-row">
+      <div><label>对比线路发车间隔 (分钟)</label><input type="number" id="iv2" value="15" oninput="calc()" min="1" step="1"></div>
+      <div><label>对比线路上一班离站</label><input type="time" id="last2" value="09:02" oninput="calc()"></div>
+    </div>
+    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__bus_arrival_estimatorExport()">导出明细 CSV</button></div><div class="safe-main" id="result"></div> <div id="bus_arrival_estimatorTable"></div> <div id="bus_arrival_estimatorDiff"></div> <div id="bus_arrival_estimatorChart"></div> <div id="bus_arrival_estimatorHist"></div>
+    <div class="dist-grid" id="distGrid"></div>
+    <div class="formula-box" id="formulaBox"></div>
+    <div id="adviceBox"></div>
+  </div>
+  <div class="card">
+    <h3>⏱️ 等待时长与发车间隔关系</h3>
+    <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:12px;">
+      <tr>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border,#e5e7eb);">发车间隔</th>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border,#e5e7eb);">平均等待</th>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border,#e5e7eb);">最长等待</th>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border,#e5e7eb);">建议预留</th>
+      </tr>
+      <tr><td style="padding:6px 8px;">5 分钟</td><td style="padding:6px 8px;">2.5 分钟</td><td style="padding:6px 8px;">5 分钟</td><td style="padding:6px 8px;">7 分钟</td></tr>
+      <tr><td style="padding:6px 8px;">10 分钟</td><td style="padding:6px 8px;">5 分钟</td><td style="padding:6px 8px;">10 分钟</td><td style="padding:6px 8px;">13 分钟</td></tr>
+      <tr><td style="padding:6px 8px;">15 分钟</td><td style="padding:6px 8px;">7.5 分钟</td><td style="padding:6px 8px;">15 分钟</td><td style="padding:6px 8px;">19 分钟</td></tr>
+      <tr><td style="padding:6px 8px;">20 分钟</td><td style="padding:6px 8px;">10 分钟</td><td style="padding:6px 8px;">20 分钟</td><td style="padding:6px 8px;">25 分钟</td></tr>
+    </table>
+    <div class="scene-card">
+      <h4>🔁 换乘衔接</h4>
+      <p>把前一条线的预计到达时刻加上步行与候车时间，再叠加换乘线路的发车间隔，判断能否赶上衔接班次。两条线间隔接近时建议预留 5 分钟以上缓冲。</p>
+    </div>
+    <div class="scene-card">
+      <h4>📡 估算与实时的差别</h4>
+      <p>固定间隔只是计划值，实际受路况、红绿灯、上下客时长与驾驶节奏影响会波动。精确到站应以车载 GPS 实时回传为准，本估算适合无实时数据的粗略参考。</p>
+    </div>
+    <div class="info-box">💡 早高峰与平峰发车间隔通常不同，建议按所在时段选用对应间隔；跨零点线路应注意时刻表跨日。</div>
+  </div>
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto 0;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+.deep-dive a.term-link{color:var(--tool-accent,#FF6B35);text-decoration:none;border-bottom:1px dashed currentColor;}
+.deep-dive a.term-link:hover{border-bottom-style:solid;}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：公交到站时间预估</h2>
+<h3>💡 常见使用场景</h3>
+<ul class="dd-list">
+<li>候车乘客输入线路发车间隔或时刻表与当前时间，估算下一班车到达时刻与已等待时长，决定是否改乘或继续等。</li>
+<li>多线路比选时，并列查看各线下一班预计到达，选择最快出发的方案。</li>
+<li>调度或家属远程查看时，用平均间隔加站点偏移粗略预估，作为实时 GPS 数据的补充参考。</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">按固定间隔估算</div><div class="dd-ex-body">某线发车间隔 10 分钟，上一班离站时刻 09:05，当前时刻 09:12，则下一班约 09:15 到达，已等待 7 分钟、还需约 3 分钟；若按平均误差 ±2 分钟，建议预留 09:13–09:17 的到达窗口。</div></div>
+<h3>❓ 常见问题（FAQ）</h3>
+<dl class="dd-faq">
+<dt>为什么估算和实际情况常有偏差？</dt><dd>固定间隔只是计划值，实际受路况、红绿灯、上下客时长、司机驾驶节奏影响会波动。精确到站应以车载 GPS 实时回传为准，本估算适合无实时数据的粗略参考。</dd>
+<dt>换乘该怎么用？</dt><dd>把前一条线的预计到达时刻加上步行与候车时间，再叠加上一条线的发车间隔，判断能否赶上衔接班次；两条线间隔接近时建议预留 5 分钟以上缓冲，避免追尾式误车。</dd>
+</dl>
+</div>
+</section>
+<!-- 注意事项区块 -->
+<div class="tool-notes" style="--tool-accent:#0f766e;">
+  <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
+  <ul>
+    <li>本工具纯前端运行，数据不会上传到服务器</li>
+    <li>建议在主流浏览器（Chrome/Safari/Firefox/Edge）中使用</li>
+    <li>按固定间隔估算，实际受路况与上下客影响，精确到站请以实时 GPS 数据为准</li>
+  </ul>
+</div>
+</div>
+<!-- 相关工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相关工具</h3>
+  <div class="related-tools-grid">
+    <a href="recommender-6.html" class="related-tool-card">
+      <span class="rt-icon">🚗</span>
+      <span class="rt-info"><span class="rt-name">胎压（监测/充气）推荐</span><span class="rt-desc">根据车型、载重与季节推荐前后轮标准胎压，提示冷胎与热胎读数差异及充气注意事项，帮助延长轮胎寿命并保…</span></span>
+    </a>
+    <a href="calc-2.html" class="related-tool-card">
+      <span class="rt-icon">⚡</span>
+      <span class="rt-info"><span class="rt-name">发动机功率/扭矩换算</span><span class="rt-desc">根据功率、扭矩与转速之间的物理关系进行换算，支持 kW 与 PS（公制马力）互转。</span></span>
+    </a>
+    <a href="oil-change-countdown.html" class="related-tool-card">
+      <span class="rt-icon">📅</span>
+      <span class="rt-info"><span class="rt-name">机油更换倒计时</span><span class="rt-desc">输入已行驶里程、机油周期与驾驶习惯系数，估算下次机油更换的剩余里程或天数，避免过度保养或超期损伤。</span></span>
+    </a>
+    <a href="countdown-engine-oil.html" class="related-tool-card">
+      <span class="rt-icon">📅</span>
+      <span class="rt-info"><span class="rt-name">机油更换里程倒计时</span><span class="rt-desc">机油更换里程倒计时，按机油类型与驾驶习惯系数智能计算建议换油间隔与剩余里程，支持多车管理、数据本地…</span></span>
+    </a>
+    <a href="calc-3.html" class="related-tool-card">
+      <span class="rt-icon">🚗</span>
+      <span class="rt-info"><span class="rt-name">轮胎胎压换算</span><span class="rt-desc">在 bar、psi、kPa、kg/cm² 之间换算轮胎气压，并查看常用参考值。</span></span>
+    </a>
+    <a href="transport-calculator.html" class="related-tool-card">
+      <span class="rt-icon">🚚</span>
+      <span class="rt-info"><span class="rt-name">交通物流计算器</span><span class="rt-desc">涵盖刹车距离、油耗成本、货物换算、燃油效率、行驶时间、轮胎尺寸等多种交通物流常用计算</span></span>
+    </a>
+  </div>
+</div>
+<script>function __tbInputGuard(_ids,_labels){
+  var __TPL='请填写「%s」后再计算。';
+  var __TPL2="<p style=\"color:var(--danger)\">⚠ 「%s」是本计算的分母，不能为 0。</p>";
+  var __TPL3="<p style=\"color:var(--danger)\">⚠ 「%s」不能为负值。</p>";
+  var _vals=[],_firstBad=-1;
+  var _REQ=['interval', 'ride', 'err', 'iv2'];
+  for(var _i=0;_i<_ids.length;_i++){
+    var _e=document.getElementById(_ids[_i]);
+    if(!_e) continue;
+    var _raw=String(_e.value==null?'':_e.value).trim();
+    var _num=parseFloat(_raw);
+    var _need=(_REQ.indexOf(_ids[_i])>=0);
+    if(_raw===''){ if(_need&&_firstBad<0)_firstBad=_i; _vals.push(NaN); continue; }
+    if(_e.type==='number'||_e.tagName==='TEXTAREA'){
+      if(_need&&isNaN(_num)){ if(_firstBad<0)_firstBad=_i; _vals.push(NaN); continue; }
+      _vals.push(_num);
+    } else _vals.push(_raw);
+  }
+  if(_firstBad>=0){
+    var _bad=_firstBad;
+    var _lbl=(_labels&&_labels[_bad])||_ids[_bad];
+    var __msg=__TPL.replace('%s',_lbl);
+    var _fe=document.getElementById(_ids[_bad]);
+    if(_fe&&_fe.classList&&_fe.classList.add)_fe.classList.add('input-error');
+    return __msg;
+  }
+  // 分母项：__D 由真浏览器逐项置零探测得出，命中即说明该输入在此页作分母
+  var __D={"interval": "interval", "last": "last"};
+  for(var _d=0;_d<_ids.length;_d++){
+    if(!(_ids[_d] in __D)) continue;
+    var _de=document.getElementById(_ids[_d]);
+    if(!_de) continue;
+    if(_de.classList&&_de.classList.remove)_de.classList.remove('input-error');
+    if(parseFloat(String(_de.value==null?'':_de.value).trim())===0){
+      if(_de.classList&&_de.classList.add)_de.classList.add('input-error');
+      return __TPL2.replace('%s',__D[_ids[_d]]);
+    }
+  }
+  // 负值受限项：__N 由真浏览器逐项置 -1 探测得出（质量/体积/年限/样本量等物理量）
+  var __N={"interval": "interval", "last": "last"};
+  for(var _n=0;_n<_ids.length;_n++){
+    if(!(_ids[_n] in __N)) continue;
+    var _ne=document.getElementById(_ids[_n]);
+    if(!_ne) continue;
+    var _nv=parseFloat(String(_ne.value==null?'':_ne.value).trim());
+    if(!isNaN(_nv)&&_nv<0){
+      if(_ne.classList&&_ne.classList.add)_ne.classList.add('input-error');
+      return __TPL3.replace('%s',__N[_ids[_n]]);
+    }
+  }
+  // 全零：任何一项作分母都会得到 Infinity/NaN。页面公式本身没错，是输入无意义
+  var _nums=[];
+  for(var _z=0;_z<_vals.length;_z++){ if(typeof _vals[_z]==='number'&&!isNaN(_vals[_z])) _nums.push(_vals[_z]); }
+  if(!_nums.length) return '';
+  if(_nums.length>0){
+    var _allZero=true;
+    for(var _z2=0;_z2<_nums.length;_z2++){ if(_nums[_z2]!==0){ _allZero=false; break; } }
+    if(_allZero) return "<p style=\"color:var(--danger)\">⚠ 输入不能全为 0：至少需要一项非零数值，否则计算无意义。</p>";
+  }
+  for(var _k=0;_k<_ids.length;_k++){
+    var _e2=document.getElementById(_ids[_k]);
+    if(_e2&&_e2.classList&&_e2.classList.remove)_e2.classList.remove('input-error');
+  }
+  return '';
+}
+
+
+function fmtNum(n,d){d=d==null?2:d;if(!isFinite(n))return '--';return parseFloat(n.toFixed(d)).toString();}
+function val(id){return parseFloat(document.getElementById(id).value);}
+function str(id){return document.getElementById(id).value;}
+function toMin(s){
+  var p=(s||'').split(':'); if(p.length<2) return NaN;
+  return parseInt(p[0],10)*60+parseInt(p[1],10);
+}
+function fmtT(m){
+  m=((m%1440)+1440)%1440;
+  var h=Math.floor(m/60), mm=m%60;
+  return (h<10?'0':'')+h+':'+(mm<10?'0':'')+mm;
+}
+function nextArrival(last, iv, now, ride){
+  var n=last+iv;
+  if(iv<=0) return NaN;
+  while(n<now) n+=iv;
+  return n+ride;
+}
+function calc(){
+    var __ig=__tbInputGuard(['interval', 'last', 'now', 'ride', 'err', 'iv2', 'last2'],["发车间隔 (分钟)", "上一班离站时刻", "当前时刻", "起点到本站行驶时间 (分钟)", "平均误差 (±分钟)", "对比线路发车间隔 (分钟)", "对比线路上一班离站"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
+var R=document.getElementById('result'),G=document.getElementById('distGrid'),
+      F=document.getElementById('formulaBox'),A=document.getElementById('adviceBox');
+  var iv=val('interval'), last=toMin(str('last')), now=toMin(str('now'));
+  var ride=val('ride'), err=val('err');
+  var iv2=val('iv2'), last2=toMin(str('last2'));
+  var lineN=str('line');
+
+  var arr=nextArrival(last,iv,now,ride);
+  var wait=now-last, togo=arr-now;
+  var wLo=arr-err, wHi=arr+err;
+  var arr2=nextArrival(last2,iv2,now,ride);
+
+  var best=(arr2&&arr2<arr)?'对比线路更早':'本线路更早';
+  var who=arr2? (best==='对比线路更早'?'对比线路':'本线路') : '本线路';
+
+  const __g2='<div class="result-grid">'
+    +'<div class="result-item"><div class="result-label">下一班到达</div><div class="result-value">'+fmtT(arr)+'</div></div>'
+    +'<div class="result-item"><div class="result-label">已等待</div><div class="result-value">'+fmtNum(wait,0)+' 分钟</div></div>'
+    +'<div class="result-item"><div class="result-label">还需等待</div><div class="result-value">'+fmtNum(togo,0)+' 分钟</div></div>'
+    +'<div class="result-item"><div class="result-label">到达窗口</div><div class="result-value">'+fmtT(wLo)+' ~ '+fmtT(wHi)+'</div></div>'
+    +'</div>';R.innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
+
+  const __g3='<div class="dist-grid">'
+    +'<div class="dist-card"><h4>本线路（'+lineN+' 路）</h4><p>间隔 '+fmtNum(iv,0)+' 分钟</p><p>到达 '+fmtT(arr)+'（约 '+fmtNum(togo,0)+' 分钟后）</p></div>'
+    +'<div class="dist-card"><h4>对比线路</h4><p>间隔 '+fmtNum(iv2,0)+' 分钟</p><p>到达 '+(arr2?fmtT(arr2):'—')+'（'+(arr2?('约 '+fmtNum(arr2-now,0)+' 分钟后'):'—')+'）</p></div>'
+    +'<div class="dist-card"><h4>建议出发</h4><p>'+who+'</p><p>提前 '+fmtNum(Math.max(0,err+1),0)+' 分钟到站</p></div>'
+    +'<div class="dist-card"><h4>线路平均间隔</h4><p>'+fmtNum((iv+iv2)/2,1)+' 分钟</p><p>综合平均等待约 '+fmtNum((iv+iv2)/4,1)+' 分钟</p></div>'
+    +'</div>';G.innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
+
+  var rows='';
+  for(var i=0;i<8;i++){
+    var tag=(i===0)?'下一班':'第 '+(i+1)+' 班';
+    rows+='<tr><td style="padding:5px 8px;">'+tag+'</td>'
+      +'<td style="padding:5px 8px;">'+fmtT(arr+i*iv)+'</td>'
+      +'<td style="padding:5px 8px;">'+fmtNum(arr+i*iv-now,0)+'</td>'
+      +'<td style="padding:5px 8px;">'+fmtT(arr+i*iv-err)+' ~ '+fmtT(arr+i*iv+err)+'</td></tr>';
+  }
+  const __g4='<div class="formula-title">📐 估算口径</div>'
+    +'<div class="formula-line">下一班发车 = 上一班离站时刻 + n × 发车间隔（取首个晚于当前时刻者）</div>'
+    +'<div class="formula-line">预计到达 = 下一班发车时刻 + 起点到本站行驶时间</div>'
+    +'<div class="formula-line">已等待 = 当前时刻 − 上一班离站时刻；还需等待 = 预计到达 − 当前时刻</div>'
+    +'<table style="width:100%;border-collapse:collapse;font-size:13px;margin-top:10px;">'
+    +'<tr><th style="text-align:left;padding:5px 8px;border-bottom:1px solid var(--border,#e5e7eb);">班次</th>'
+    +'<th style="text-align:left;padding:5px 8px;border-bottom:1px solid var(--border,#e5e7eb);">到达时刻</th>'
+    +'<th style="text-align:left;padding:5px 8px;border-bottom:1px solid var(--border,#e5e7eb);">距现在 (分钟)</th>'
+    +'<th style="text-align:left;padding:5px 8px;border-bottom:1px solid var(--border,#e5e7eb);">到达窗口</th></tr>'
+    +rows+'</table>';F.innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
+
+  var ad='';
+  ad+='<div class="tip-info">🚌 本线路下一班约 '+fmtT(arr)+' 到达，已等待 '+fmtNum(wait,0)+' 分钟，还需约 '+fmtNum(togo,0)+' 分钟；建议预留 '+fmtT(wLo)+'~'+fmtT(wHi)+' 的到达窗口。</div>';
+  if(arr2&&arr2<arr) ad+='<div class="tip-warn">⚠️ 对比线路预计 '+fmtT(arr2)+' 到达，比本线路早 '+fmtNum(arr-arr2,0)+' 分钟，赶时间可考虑改乘。</div>';
+  if(togo<=err) ad+='<div class="tip-warn">⚠️ 剩余等待已小于平均误差，建议立即到站等候，避免错过班次。</div>';
+  const __g5=ad;A.innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
+}
+calc();
+
+var __bus_arrival_estimator_last=0,__bus_arrival_estimator_skip=false;
+function __bus_arrival_estimatorSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __bus_arrival_estimatorResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __bus_arrival_estimatorTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __bus_arrival_estimatorRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__bus_arrival_estimatorTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#bus_arrival_estimatorTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#bus_arrival_estimatorDiff');
+        TBKit.history.mount('#bus_arrival_estimatorHist',function(rec){
+            __bus_arrival_estimator_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __bus_arrival_estimator_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__bus_arrival_estimatorTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#bus_arrival_estimatorChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __bus_arrival_estimatorExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__bus_arrival_estimator_skip) return;
+    var snap=__bus_arrival_estimatorSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__bus_arrival_estimatorResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__bus_arrival_estimator_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __bus_arrival_estimator_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __bus_arrival_estimatorRender(keys,rk,en);
+}
+function __bus_arrival_estimatorExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#bus_arrival_estimatorTable','bus-arrival-estimator.csv'); } catch(e){}
+}
+function __bus_arrival_estimatorPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#bus_arrival_estimatorPresets',[{label:'默认参数',labelEn:'Default',values:{'interval':'10', 'last':'09:05', 'now':'09:12', 'ride':'0', 'err':'2', 'line':'1', 'iv2':'15', 'last2':'09:02'}}],function(){ calc(); });
+}
+var __bus_arrival_estimator_f0=(typeof calc==='function')?calc:null;
+if(__bus_arrival_estimator_f0){
+    calc=function(){ var __r=__bus_arrival_estimator_f0.apply(null,arguments); try{ __bus_arrival_estimatorExtras(); }catch(e){} return __r; };
+}
+function __bus_arrival_estimatorBoot(){ try{ __bus_arrival_estimatorPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __bus_arrival_estimatorBoot();
+else document.addEventListener('DOMContentLoaded', __bus_arrival_estimatorBoot);
+</script>
+</body>
+</html>

@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=engineer,industry=admin,icon=🔍,bg=#e3f2fd">
+<title>会议冲突检测 - 免费在线行政管理工具</title>
+<link rel="canonical" href="https://chenguangwu.github.io/tools/admin/meeting-conflict.html">
+<meta property="og:title" content="会议冲突检测 - 免费在线行政管理工具">
+<meta property="og:description" content="会议冲突检测是一款免费的在线行政管理工具，会议时间冲突检测工具，添加多个日程时间段自动检测重叠并可视化时间轴，帮助行政人员统筹排期、避免撞档。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+<meta property="og:url" content="https://chenguangwu.github.io/tools/admin/meeting-conflict.html">
+<meta name="twitter:card" content="summary">
+<meta name="description" content="会议冲突检测是一款免费的在线行政管理工具，会议时间冲突检测工具，添加多个日程时间段自动检测重叠并可视化时间轴，帮助行政人员统筹排期、避免撞档。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+<link rel="stylesheet" href="../../css/common.css">
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="../../js/common.js" defer></script>
+<style>
+.event-row{display:flex;gap:8px;margin-bottom:8px;align-items:center;flex-wrap:wrap;}
+.event-row input[type="text"]{flex:1;min-width:120px;}
+.event-row input[type="time"]{width:90px;flex-shrink:0;}
+.event-row .arrow{color:var(--text-muted);font-size:13px;flex-shrink:0;}
+.event-row .del{width:34px;height:38px;border-radius:8px;border:1px solid var(--border);background:var(--card-bg);cursor:pointer;color:var(--danger);font-size:16px;flex-shrink:0;}
+.timeline{position:relative;margin-top:12px;padding-left:0;}
+.tl-track{position:relative;height:40px;background:var(--result-bg);border-radius:8px;margin-bottom:6px;overflow:hidden;border:1px solid var(--border);}
+.tl-bar{position:absolute;top:4px;bottom:4px;border-radius:6px;display:flex;align-items:center;padding:0 8px;font-size:11px;color:#fff;font-weight:500;overflow:hidden;white-space:nowrap;min-width:30px;}
+.tl-label{font-size:12px;color:var(--text-secondary);margin-bottom:4px;display:flex;justify-content:space-between;}
+.conflict-item{background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);border-radius:10px;padding:10px 12px;margin-bottom:8px;font-size:13px;}
+.conflict-item .c-title{font-weight:600;color:var(--danger);}
+.ok-item{background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.25);border-radius:10px;padding:10px 12px;font-size:13px;color:var(--success);}
+</style>
+
+
+
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免费在线工具">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
+    <meta property="og:type" content="website">
+    <meta name="twitter:title" content="会议冲突检测 - 免费在线行政管理工具">
+    <meta name="twitter:description" content="会议冲突检测是一款免费的在线行政管理工具，会议时间冲突检测工具，添加多个日程时间段自动检测重叠并可视化时间轴，帮助行政人员统筹排期、避免撞档。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"会议冲突检测","url":"https://chenguangwu.github.io/tools/admin/meeting-conflict.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"会议冲突检测是一款免费的在线行政管理工具，会议时间冲突检测工具，添加多个日程时间段自动检测重叠并可视化时间轴，帮助行政人员统筹排期、避免撞档。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://chenguangwu.github.io/"},{"@type":"ListItem","position":2,"name":"行政管理","item":"https://chenguangwu.github.io/tools/admin/index.html"},{"@type":"ListItem","position":3,"name":"会议冲突检测","item":"https://chenguangwu.github.io/tools/admin/meeting-conflict.html"}]}
+</script>
+
+<script src="../../js/i18n.js" defer></script>
+<script src="../../js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+
+
+<meta name="title-en" content="Meeting Conflict">
+<meta name="desc-en" content="Meeting Conflict - online utility on ToolBox.">
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/admin/meeting-conflict.html">
+<link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/admin/meeting-conflict.html">
+<link rel="alternate" hreflang="en-US" href="https://chenguangwu.github.io/tools/admin/meeting-conflict.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://chenguangwu.github.io/tools/admin/meeting-conflict.html">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:locale:alternate" content="zh_TW">
+<meta property="og:locale:alternate" content="en_US">
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
+
+<script src="/js/tool-ux.js" defer></script>
+<!-- TOOLBOX-TOOL-UX -->
+
+<script src="/js/analytics.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+<!-- TOOLBOX-TTZZ -->
+<script>
+(function(){try{
+var el = document.createElement("script");
+el.src = "https://lf1-cdn-tos.bytegoofy.com/goofy/ttzz/push.js?85d6452aa9be4d693b16cd48535a8c7ae57542f6788a41682e745be8eb99b35a8a24d2f724c31ebe20c1e4e6fba6d91caf576100b02a2870c72f38fc574066fef065d152c73bf1cbb2ebad3b5b5265d8";
+el.id = "ttzz";
+var s = document.getElementsByTagName("script")[0];
+s.parentNode.insertBefore(el, s);
+}catch(e){}
+})(window);
+</script>
+
+<script src="/js/tool-kit.js" defer></script>
+<!-- TOOLBOX-TOOL-KIT -->
+</head>
+<body>
+<h1 class="sr-only">会议冲突检测</h1>
+
+
+<div class="nav">
+  <a href="../../index.html">← ToolBox</a>
+  <span>/ 会议冲突检测</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+
+
+
+
+<nav class="breadcrumb" aria-label="面包屑导航" data-breadcrumb="1">
+  <a href="../../index.html">首页</a>
+  <span class="bc-sep">‹</span>
+  <a href="index.html">🗂️ 行政管理</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">会议冲突检测</span>
+</nav>
+
+<div class="tool-guide-link" data-guide-link="1">
+  <a href="../../guides/meeting-conflict-guide.html">📖 查看「会议冲突检测 使用指南」</a>
+</div>
+<div class="container">
+  <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
+    <h2 data-zh="🔍 会议冲突检测">Meeting Conflict</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="添加多个日程时间段，自动检测时间冲突并可视化时间轴">Meeting Conflict</p>
+
+    <h3 style="font-size:14px;margin:8px 0 6px;">日程列表</h3>
+    <div id="eventList"></div>
+    <div class="toolbar" style="margin-top:6px;">
+      <button type="button" class="btn" onclick="addEvent()">➕ 添加日程</button>
+      <button type="button" class="btn" onclick="loadDemo()">📁 示例</button>
+      <button type="button" class="btn danger" onclick="clearEvents()">🗑️ 清空</button>
+    </div>
+
+    <h3 style="font-size:14px;margin:16px 0 6px;">📊 时间轴可视化</h3>
+    <div id="timeline" class="timeline"></div>
+
+    <h3 style="font-size:14px;margin:16px 0 6px;">🔍 冲突检测结果</h3>
+    <div id="conflictResult"></div>
+
+    <div class="stat-grid" id="stats" style="margin-top:14px;"></div>
+    <div class="tabs" id="mcTabs"><button class="tab-btn active" data-v="chart"></button><button class="tab-btn" data-v="table"></button></div>
+    <div id="mcChart" style="margin-top:14px;"></div>
+    <div class="card" id="mcTableCard" style="display:none;margin-top:14px;">
+      <h3 id="mcTableTitle"></h3>
+      <table><thead><tr><th id="mcTh0"></th><th id="mcTh1"></th><th id="mcTh2"></th><th id="mcTh3"></th></tr></thead><tbody id="mcTbody"></tbody></table>
+    </div>
+  </div>
+
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto 0;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+.deep-dive a.term-link{color:var(--tool-accent,#FF6B35);text-decoration:none;border-bottom:1px dashed currentColor;}
+.deep-dive a.term-link:hover{border-bottom-style:solid;}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：会议冲突检测</h2>
+<h3>💡 常见使用场景</h3>
+<ul class="dd-list">
+<li>把多名同事的日程（名称、时间）汇总后检测撞车，提前发出冲突预警，便于改期或委派他人。</li>
+<li>同一会议室被多场会议申请时，用工具核对时间轴，标出资源争用时段并分配优先级。</li>
+<li>混合'现场 + 远程'排期时，检测同一主持人的线下会与线上会是否重叠，避免分身。</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">同一主持人的两场日程撞车</div><div class="dd-ex-body">录入日程：需求评审 周三 14:00-15:00、迭代规划 周三 14:30-15:30、站会 周四 09:30-09:45。工具发现需求评审与迭代规划在 14:30-15:00 重叠，提示同一主持人无法兼顾，建议迭代规划顺延 30 分钟或与需求评审错峰。</div></div>
+<h3>❓ 常见问题（FAQ）</h3>
+<dl class="dd-faq">
+<dt>和'<a class="term-link" href="/guides/detector-time-guide.html">会议时间冲突检测</a>'有什么区别？</dt><dd>两者都做时间区间重叠判定，侧重点不同：本工具偏向'日程/人员'维度的撞车预警与改期建议，另一工具偏向'按日期排布'的会议室与时段检测。可按习惯任选其一，结论一致。</dd>
+<dt>检测出冲突后怎么处理？</dt><dd>优先调整低优先级会议时间，或变更主持人/ venue；若必须并行，拆分会场或改为异步评审。工具只给冲突清单与建议，最终排期以会议组织方确认为准。</dd>
+</dl>
+</div>
+</section>
+<!-- 注意事项区块 -->
+<div class="tool-notes" style="--tool-accent:#FF6B35;">
+  <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
+  <ul>
+      <li>本工具纯前端运行，数据不会上传到服务器</li>
+      <li>建议在主流浏览器（Chrome/Safari/Firefox/Edge）中使用</li>
+      <li>计算结果仅供参考，请以实际应用场景为准</li>
+  </ul>
+</div>
+<!-- /注意事项区块 -->
+</div>
+
+<script>
+var events=[
+  {name:'晨会',start:'09:00',end:'10:00'},
+  {name:'产品评审',start:'09:30',end:'11:00'},
+  {name:'午餐',start:'12:00',end:'13:00'},
+  {name:'客户拜访',start:'14:00',end:'15:30'},
+  {name:'部门周会',start:'15:00',end:'16:00'}
+];
+
+function toMin(t){
+  var p=t.split(':');
+  return (parseInt(p[0])||0)*60+(parseInt(p[1])||0);
+}
+function toTime(m){
+  var h=Math.floor(m/60), mm=m%60;
+  return String(h).padStart(2,'0')+':'+String(mm).padStart(2,'0');
+}
+
+function renderList(){
+  var box=document.getElementById('eventList');
+  const __h0=events.map(function(e,i){
+    return '<div class="event-row">'+
+      '<input type="text" value="'+ToolBox.escHtml(e.name)+'" placeholder="日程名称" oninput="updateEvent('+i+',\'name\',this.value)">'+
+      '<input type="time" value="'+e.start+'" oninput="updateEvent('+i+',\'start\',this.value)">'+
+      '<span class="arrow">→</span>'+
+      '<input type="time" value="'+e.end+'" oninput="updateEvent('+i+',\'end\',this.value)">'+
+      '<button class="del" onclick="removeEvent('+i+')">×</button>'+
+    '</div>';
+  }).join('');if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){box.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}box.innerHTML=__h0;
+}
+
+function updateEvent(i,field,val){
+  events[i][field]=val;
+  render();
+}
+function addEvent(){ events.push({name:'新日程',start:'10:00',end:'11:00'}); renderList(); render(); }
+function removeEvent(i){ events.splice(i,1); renderList(); render(); }
+function clearEvents(){ events=[]; renderList(); render(); }
+function loadDemo(){
+  events=[
+    {name:'晨会',start:'09:00',end:'10:00'},
+    {name:'产品评审',start:'09:30',end:'11:00'},
+    {name:'午餐',start:'12:00',end:'13:00'},
+    {name:'客户拜访',start:'14:00',end:'15:30'},
+    {name:'部门周会',start:'15:00',end:'16:00'}
+  ];
+  renderList(); render();
+}
+
+function detect(){
+  var valid=events.filter(function(e){
+    return e.start && e.end && toMin(e.end)>toMin(e.start);
+  }).map(function(e,i){
+    return {name:e.name,start:toMin(e.start),end:toMin(e.end),idx:i};
+  });
+
+  var conflicts=[];
+  for(var i=0;i<valid.length;i++){
+    for(var j=i+1;j<valid.length;j++){
+      var a=valid[i], b=valid[j];
+      if(a.start<b.end && b.start<a.end){
+        var overlapStart=Math.max(a.start,b.start);
+        var overlapEnd=Math.min(a.end,b.end);
+        conflicts.push({a:a,b:b,overlapStart:overlapStart,overlapEnd:overlapEnd,dur:overlapEnd-overlapStart});
+      }
+    }
+  }
+  return {valid:valid,conflicts:conflicts};
+}
+
+function render(){
+  var result=detect();
+  var valid=result.valid, conflicts=result.conflicts;
+
+  var minStart=valid.length?Math.min.apply(null,valid.map(function(e){return e.start;})):0;
+  var maxEnd=valid.length?Math.max.apply(null,valid.map(function(e){return e.end;})):1440;
+  if(maxEnd<=minStart) maxEnd=minStart+60;
+  var span=maxEnd-minStart;
+
+  var colors=['#FF6B35','#7C3AED','#00C9A7','#F59E0B','#3B82F6','#EF4444','#8B5CF6','#10B981'];
+  var conflictIdx={};
+  conflicts.forEach(function(c){
+    conflictIdx[c.a.idx]=true; conflictIdx[c.b.idx]=true;
+  });
+
+  var tlHtml='';
+  valid.forEach(function(e,i){
+    var left=(e.start-minStart)/span*100;
+    var width=(e.end-e.start)/span*100;
+    var color=conflictIdx[e.idx]?'#EF4444':colors[i%colors.length];
+    tlHtml+='<div class="tl-label"><span>'+ToolBox.escHtml(e.name)+'</span><span>'+toTime(e.start)+' - '+toTime(e.end)+'</span></div>';
+    tlHtml+='<div class="tl-track"><div class="tl-bar" style="left:'+left+'%;width:'+width+'%;background:'+color+';">'+ToolBox.escHtml(e.name)+'</div></div>';
+  });
+  if(!valid.length) tlHtml='<p style="color:var(--text-muted);font-size:13px;">暂无日程</p>';
+  const __h1=tlHtml;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('timeline').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('timeline').innerHTML=__h1;
+
+  var resHtml='';
+  if(conflicts.length===0){
+    resHtml='<div class="ok-item">✓ 未发现时间冲突，所有日程安排合理</div>';
+  }else{
+    conflicts.forEach(function(c){
+      resHtml+='<div class="conflict-item">'+
+        '<div class="c-title">⚠ 冲突：'+ToolBox.escHtml(c.a.name)+' 与 '+ToolBox.escHtml(c.b.name)+'</div>'+
+        '<div>重叠时段：'+toTime(c.overlapStart)+' - '+toTime(c.overlapEnd)+'（重叠 '+c.dur+' 分钟）</div>'+
+      '</div>';
+    });
+  }
+  const __h2=resHtml;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('conflictResult').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('conflictResult').innerHTML=__h2;
+
+  var totalDur=valid.reduce(function(s,e){return s+(e.end-e.start);},0);
+  const __h3='<div class="stat-card"><div class="val">'+valid.length+'</div><div class="lbl">有效日程</div></div>'+
+    '<div class="stat-card"><div class="val" style="color:'+(conflicts.length?'var(--danger)':'var(--success)')+';">'+conflicts.length+'</div><div class="lbl">冲突数量</div></div>'+
+    '<div class="stat-card"><div class="val">'+totalDur+'分钟</div><div class="lbl">总时长</div></div>'+
+    '<div class="stat-card"><div class="val">'+toTime(minStart)+'-'+toTime(maxEnd)+'</div><div class="lbl">时间范围</div></div>';if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){document.getElementById('stats').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('stats').innerHTML=__h3;
+}
+
+renderList();
+render();
+
+function __mcExtras(){
+  if(typeof TBKit==='undefined'||!TBKit.chart) return;
+  var host=document.getElementById('mcChart'); if(!host) return;
+  if(!events.length){host.innerHTML='';return;}
+  var en=TBKit.util.isEn();
+  var labels=[],data=[];
+  events.forEach(function(e,i){
+    var s=toMin(e.start||'0:0'), en2=toMin(e.end||'0:0');
+    var dur=en2>s?en2-s:0;
+    labels.push(en?(('Event '+(i+1))):(e.name||'未命名'));
+    data.push(dur);
+  });
+  TBKit.chart.bar('#mcChart',{
+    labels:labels,
+    series:[{name:en?'Duration (min)':'时长(分钟)',data:data}],
+    height:240,
+    title:en?'Duration of each agenda item (minutes)':'各日程时长（分钟）'
+  });
+  try{__mcTable();}catch(e){}
+}
+
+function __mcTable(){
+  if(typeof TBKit==='undefined'||!TBKit.util) return;
+  var en=TBKit.util.isEn();
+  var t0=document.getElementById('mcTh0'),t1=document.getElementById('mcTh1'),t2=document.getElementById('mcTh2'),t3=document.getElementById('mcTh3');
+  var title=document.getElementById('mcTableTitle'),tb=document.getElementById('mcTbody');
+  if(!t0||!tb) return;
+  t0.textContent=en?'#':'序号';
+  t1.textContent=en?'Agenda':'日程';
+  t2.textContent=en?'Time':'起止时间';
+  t3.textContent=en?'Duration (min)':'时长(分钟)';
+  title.textContent=en?'Agenda details':'日程明细';
+  if(!events.length){tb.innerHTML='<tr><td colspan="4" style="text-align:center;color:var(--text-muted)">'+(en?'No agenda':'暂无日程')+'</td></tr>';return;}
+  tb.innerHTML=events.map(function(e,i){
+    var s=toMin(e.start||'0:0'),e2=toMin(e.end||'0:0');
+    var dur=e2>s?e2-s:0;
+    return '<tr><td>'+(i+1)+'</td><td>'+ToolBox.escHtml(e.name||'未命名')+'</td><td>'+toTime(s)+' - '+toTime(e2)+'</td><td>'+dur+'</td></tr>';
+  }).join('');
+}
+
+(function(){
+  function fill(){var en=(typeof TBKit!=='undefined'&&TBKit.util)?TBKit.util.isEn():false;var t=document.getElementById('mcTabs');if(!t)return;t.querySelector('[data-v="chart"]').textContent=en?'📊 Chart':'📊 图表';t.querySelector('[data-v="table"]').textContent=en?'📋 Table':'📋 明细';}
+  function bind(){var tabs=document.getElementById('mcTabs');if(!tabs||tabs.dataset.bound)return;tabs.dataset.bound='1';fill();tabs.querySelectorAll('.tab-btn').forEach(function(b){b.addEventListener('click',function(){tabs.querySelectorAll('.tab-btn').forEach(function(x){x.classList.remove('active');});b.classList.add('active');var v=b.getAttribute('data-v');var chart=document.getElementById('mcChart'),card=document.getElementById('mcTableCard');if(v==='chart'){chart.style.display='';card.style.display='none';}else{chart.style.display='none';card.style.display='';try{__mcTable();}catch(e){}}});});}
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bind);else bind();
+  window.addEventListener('toolbox:langchange',function(){try{fill();}catch(e){}});
+})();
+var __mcRender=render;
+render=function(){__mcRender();__mcExtras();};
+if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',function(){__mcExtras();});}else{__mcExtras();}
+window.addEventListener('toolbox:langchange',function(){try{__mcExtras();}catch(e){}});
+</script>
+
+<!-- SEO 介绍区块 -->
+
+</div>
+
+</div>
+
+<!-- 相关工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相关工具</h3>
+  <div class="related-tools-grid">
+    <a href="../biz/presentation-timer.html" class="related-tool-card">
+      <span class="rt-icon">⏱️</span>
+      <span class="rt-info"><span class="rt-name">演讲计时器 - 免费开发工具，在线演讲计时器 | ToolBox免费在线工具箱</span><span class="rt-desc">演讲计时器</span></span>
+    </a>
+    <a href="../biz/markdown-quote.html" class="related-tool-card">
+      <span class="rt-icon">📝</span>
+      <span class="rt-info"><span class="rt-name">Markdown 引用转换器 - 免费文本处理工具，在线Markdown 引用转换器 | ToolBox免费在线工具箱</span><span class="rt-desc">Markdown 引用转换器</span></span>
+    </a>
+    <a href="../biz/markdown.html" class="related-tool-card">
+      <span class="rt-icon">📝</span>
+      <span class="rt-info"><span class="rt-name">Markdown 预览 - 免费文本处理工具，Markdown 实时预览 | ToolBox免费在线工具箱</span><span class="rt-desc">Markdown 实时预览</span></span>
+    </a>
+    <a href="../biz/unicode-normalize.html" class="related-tool-card">
+      <span class="rt-icon">🏋️</span>
+      <span class="rt-info"><span class="rt-name">Unicode 规范化 - 免费文本处理工具，在线Unicode 规范化 | ToolBox免费在线工具箱</span><span class="rt-desc">Unicode 规范化</span></span>
+    </a>
+    <a href="../biz/zalgo-text.html" class="related-tool-card">
+      <span class="rt-icon">💼</span>
+      <span class="rt-info"><span class="rt-name">Zalgo 文字 - 免费文本处理工具，Zalgo 文字生成器 | ToolBox免费在线工具箱</span><span class="rt-desc">Zalgo 文字生成器</span></span>
+    </a>
+    <a href="../biz/superscript-text.html" class="related-tool-card">
+      <span class="rt-icon">💼</span>
+      <span class="rt-info"><span class="rt-name">上标文字 - 免费文本处理工具，在线上标文字 | ToolBox免费在线工具箱</span><span class="rt-desc">⬆️ 上标文字</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro open" id="toolIntro">
+  <div class="tool-intro-header">
+    <span class="intro-icon-wrap"><span class="intro-icon">📖</span>关于「会议冲突检测」</span>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="tool-intro-body">
+    <h4><span class="h4-icon">📝</span>工具简介</h4>
+    <p>会议冲突检测是一款商业办公领域的在线工具。商业办公工具，提升工作效率，数据本地处理保护隐私。</p>
+    <h4><span class="h4-icon">✨</span>功能特点</h4>
+    <ul class="intro-features">
+      <li>操作简单，一键完成</li>
+      <li>纯前端处理，数据不上传</li>
+      <li>支持批量操作</li>
+      <li>结果可复制或下载</li>
+    </ul>
+    <h4><span class="h4-icon">🎯</span>使用场景</h4>
+    <ul class="intro-scenes">
+      <li>日常办公文档处理</li>
+      <li>会议与项目管理</li>
+      <li>数据整理与汇总</li>
+      <li>团队协作辅助</li>
+    </ul>
+    </div>
+</div>
+<!-- /SEO 介绍区块 -->
+
+<script>
+// tool-intro折叠交互
+document.addEventListener('DOMContentLoaded',function(){
+  var headers=document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click',function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+</script>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "和'会议时间冲突检测'有什么区别？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "两者都做时间区间重叠判定，侧重点不同：本工具偏向'日程/人员'维度的撞车预警与改期建议，另一工具偏向'按日期排布'的会议室与时段检测。可按习惯任选其一，结论一致。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "检测出冲突后怎么处理？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "优先调整低优先级会议时间，或变更主持人/ venue；若必须并行，拆分会场或改为异步评审。工具只给冲突清单与建议，最终排期以会议组织方确认为准。"
+      }
+    }
+  ]
+}
+</script>
+<script>
+(function(){try{
+  var NS="tools/admin/meeting-conflict.html";
+  function k(id){return 'tb_uxp_'+NS+'#'+id;}
+  function save(el){try{
+    if(el.type==='checkbox'){localStorage.setItem(k(el.id),el.checked?'1':'0');}
+    else if(el.type==='radio'){if(el.checked)localStorage.setItem(k(el.id),el.value);}
+    else{localStorage.setItem(k(el.id),el.value);}
+  }catch(e){}}
+  function restore(){try{
+    document.querySelectorAll('input:not([type=password]):not([readonly]):not([disabled]),textarea:not([readonly]):not([disabled]),select').forEach(function(el){
+      if(!el.id)return;
+      var v=localStorage.getItem(k(el.id));if(v===null)return;
+      try{
+        if(el.type==='checkbox'){el.checked=(v==='1');}
+        else if(el.type==='radio'){el.checked=(el.value===v);}
+        else{el.value=v;}
+        el.dispatchEvent(new Event('input',{bubbles:true}));
+        el.dispatchEvent(new Event('change',{bubbles:true}));
+      }catch(e){}
+    });
+  }catch(e){}}
+  document.querySelectorAll('input:not([type=password]):not([readonly]):not([disabled]),textarea:not([readonly]):not([disabled]),select').forEach(function(el){
+    if(!el.id)return;
+    el.addEventListener('input',function(){save(el);});
+    el.addEventListener('change',function(){save(el);});
+  });
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',restore);
+  else restore();
+}catch(e){}})();
+</script>
+</body>
+</html>
