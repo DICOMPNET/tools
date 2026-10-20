@@ -7,6 +7,15 @@ window._hmt = window._hmt || [];
   s.parentNode.insertBefore(hm, s);
 })();
 
+// ===== 在线客服（Knocket SDK / TRTC）：async 动态加载，等效于官方要求的 </body> 前插入 =====
+(function () {
+  var ks = document.createElement('script');
+  ks.src = 'https://trtc.io/knocket-sdk/sdk.js?identifier=39e8e5cabbfa4dec53&v=1792484199285';
+  ks.async = true;
+  var s = document.getElementsByTagName('script')[0];
+  s.parentNode.insertBefore(ks, s);
+})();
+
 (function(global){
 'use strict';
 

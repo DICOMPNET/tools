@@ -25,6 +25,12 @@ FREEZE_PATHS = [                   # 冻结路径：永远保持本仓库自己�
     "index.html",                  # 首页无广告版（上游版本含静态广告位）
     "about.html",                  # about 无广告版（上游版本含"支持我们"推广段 + 广告位）
     "js/analytics.js",             # 统计空壳（百度统计在 common.js 顶部；上游版本含 51.la/Clarity/旧百度key）
+    "logo.svg",                    # 站点 logo（本地新版；上游版本为旧图，同批 6 个图标文件一并冻结）
+    "favicon.svg",
+    "favicon.ico",
+    "apple-touch-icon.png",
+    "logo-192.png",
+    "logo-512.png",
     "scripts/run_gates.py",        # Windows 适配：python3 → sys.executable
     "scripts/gen_opencc_locales.mjs",  # ROOT_PAGES 增加 disclaimer.html（zh-tw 生成清单）
     "scripts/check_clarity_refs.py",   # 统计守卫豁免 TOOLBOX-REDIRECT 存根页
