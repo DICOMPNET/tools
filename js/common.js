@@ -1604,11 +1604,6 @@ var CN_UI_TEXT_MAP = {
   '本地数据管理': 'privacy.badge_aria',
   '请输入有效数字': 'validate.number',
   '加载中…': 'common.loading',
-  '— 广告 —': 'ad.label',
-  '— 推广 —': 'ad.label_promo',
-  '— Sponsored —': 'ad.label_promo',
-  '— Advertising —': 'ad.label',
-  '去看看 →': 'ad.taobao_cta',
   '查看更多': 'tool.guide_link',
   '📖 使用指南': 'tool.guide_link',
   '结果为空！': 'tool.result_empty'
@@ -2496,154 +2491,6 @@ document.addEventListener('DOMContentLoaded', function trackToolLaunch(){
   });
 })();
 
-// 淘宝推广链接（全站唯一维护点，勿在别处硬编码）
-// PC 与移动端是两条不同的落地页：手机浏览器打开 PC 落地页会被淘宝强制要求登录，
-// 因此移动端必须走 WAP 链接（免登录）。断点与 css/common.css 的 mobile-only 一致：max-width:767px。
-var TOOLBOX_TAOBAO_AD_URL = {
-  pc: 'https://s.click.taobao.com/UItQ6Hk',
-  m: 'https://s.click.taobao.com/5e6P6Hk'
-};
-function toolboxTaobaoAdUrl(){
-  return (window.innerWidth < 768) ? TOOLBOX_TAOBAO_AD_URL.m : TOOLBOX_TAOBAO_AD_URL.pc;
-}
-// 暴露到 ToolBox 命名空间：供非工具页（如 about.html）复用同一条 PC/WAP 双链逻辑，
-// 避免各页面各自硬编码断点判断导致手机端误走 PC 链（会被淘宝强制登录→转化归零）。
-if (global.ToolBox) global.ToolBox.toolboxTaobaoAdUrl = toolboxTaobaoAdUrl;
-
-// 领券中心推广链接：该活动位 PC 与手机端是同一条链接，无需区分 PC/WAP。
-var TOOLBOX_COUPON_AD_URL = 'https://s.click.taobao.com/1zCDD9j';
-function toolboxCouponAdUrl(){ return TOOLBOX_COUPON_AD_URL; }
-if (global.ToolBox) global.ToolBox.toolboxCouponAdUrl = toolboxCouponAdUrl;
-
-// 淘宝推广两则卡片的内容（不含外层容器）。抽成函数供「轮播帧」与「并排网格」复用，
-// 避免同一份卡片结构抄两遍，改文案时漏改一处。
-var TOOLBOX_AD_ICON_TAOBAO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>';
-var TOOLBOX_AD_ICON_COUPON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M13 5v2"/><path d="M13 17v2"/><path d="M13 11v2"/></svg>';
-
-// 领券中心卡片（PC/手机同一条链接，无需区分设备）
-function toolboxCouponAdCardInner(){
-  return '<a class="tool-ad-card tool-ad-card--coupon" href="' + TOOLBOX_COUPON_AD_URL + '" target="_blank" rel="noopener sponsored">'
-    + '<div class="tool-ad-content"><div class="tool-ad-icon tool-ad-icon--coupon">' + TOOLBOX_AD_ICON_COUPON + '</div>'
-    + '<div class="tool-ad-text"><span class="tool-ad-title" data-i18n="ad.coupon_title" data-i18n-fb="领券中心">领券中心</span>'
-    + '<span class="tool-ad-desc" data-i18n="ad.coupon_desc" data-i18n-fb="抢大额官方补贴，先领券再下单">抢大额官方补贴，先领券再下单</span></div>'
-    + '<span class="tool-ad-cta tool-ad-cta--coupon" data-i18n="ad.coupon_cta" data-i18n-fb="去领券 →">去领券 →</span></div></a>';
-}
-// 淘宝精选卡片（必须按设备取链接：手机走 PC 链会被淘宝要求登录→转化归零）
-function toolboxTaobaoAdCardInner(){
-  return '<a class="tool-ad-card" href="' + toolboxTaobaoAdUrl() + '" target="_blank" rel="noopener sponsored">'
-    + '<div class="tool-ad-content"><div class="tool-ad-icon">' + TOOLBOX_AD_ICON_TAOBAO + '</div>'
-    + '<div class="tool-ad-text"><span class="tool-ad-title" data-i18n="ad.taobao_title" data-i18n-fb="淘宝精选">淘宝精选</span>'
-    + '<span class="tool-ad-desc" data-i18n="ad.taobao_desc" data-i18n-fb="精选好物，限时优惠">精选好物，限时优惠</span></div>'
-    + '<span class="tool-ad-cta" data-i18n="ad.taobao_cta" data-i18n-fb="去看看 →">去看看 →</span></div></a>';
-}
-// 带外层容器（内容下方并排区用）；data-ad-pos 供点击埋点区分位置
-function toolboxAdCardBlock(pos, inner){
-  return '<div class="tool-ad-banner" data-ad-pos="' + pos + '">' + inner + '</div>';
-}
-// 内容下方并排区：领券中心恒在第一格（DOM 顺序决定，不用 order 以免打乱朗读顺序）
-function toolboxAdGridHtml(posCoupon, posTaobao){
-  return '<div class="tool-ad-grid">'
-    + toolboxAdCardBlock(posCoupon, toolboxCouponAdCardInner())
-    + toolboxAdCardBlock(posTaobao, toolboxTaobaoAdCardInner())
-    + '</div>';
-}
-if (global.ToolBox) global.ToolBox.toolboxAdGridHtml = toolboxAdGridHtml;
-
-// 轮播两帧：帧1 领券中心（站点主色系），帧2 淘宝精选
-// data-ad-slot = 第几帧（1 起）
-function toolboxAdSlidesHtml(){
-  return '<div class="ad-slide is-active" data-ad-slot="1">' + toolboxCouponAdCardInner() + '</div>'
-    + '<div class="ad-slide" data-ad-slot="2">' + toolboxTaobaoAdCardInner() + '</div>';
-}
-function toolboxAdCarouselHtml(){
-  return '<div class="ad-carousel-track">' + toolboxAdSlidesHtml() + '</div>'
-    + '<div class="ad-carousel-dots">'
-    + '<button type="button" class="ad-dot is-active" aria-current="true" aria-label="广告 1" data-i18n-aria="ad.dot1_aria"></button>'
-    + '<button type="button" class="ad-dot" aria-current="false" aria-label="广告 2" data-i18n-aria="ad.dot2_aria"></button>'
-    + '</div>';
-}
-
-// 广告轮播：5 秒自动切换；悬停 / 页面隐藏时暂停；尊重 prefers-reduced-motion（不开自动播放）
-function toolboxInitAdCarousel(root){
-  var slides = root.querySelectorAll('.ad-slide');
-  var dots = root.querySelectorAll('.ad-dot');
-  if (slides.length < 2) return;
-  var idx = 0, timer = null;
-  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  function go(n){
-    idx = (n + slides.length) % slides.length;
-    for (var k = 0; k < slides.length; k++){
-      slides[k].classList.toggle('is-active', k === idx);
-      if (dots[k]) {
-        dots[k].classList.toggle('is-active', k === idx);
-        dots[k].setAttribute('aria-current', k === idx ? 'true' : 'false');
-      }
-    }
-  }
-  function start(){ if (!timer && !reduce) timer = setInterval(function(){ go(idx + 1); }, 5000); }
-  function stop(){ if (timer) { clearInterval(timer); timer = null; } }
-  root.addEventListener('mouseenter', stop);
-  root.addEventListener('mouseleave', start);
-  for (var k = 0; k < dots.length; k++) {
-    (function(i){ dots[i].addEventListener('click', function(){ go(i); stop(); start(); }); })(k);
-  }
-  document.addEventListener('visibilitychange', function(){ document.hidden ? stop() : start(); });
-  go(0);
-  start();
-}
-if (global.ToolBox) {
-  global.ToolBox.toolboxInitAdCarousel = toolboxInitAdCarousel;
-  global.ToolBox.toolboxAdCarouselHtml = toolboxAdCarouselHtml;
-}
-
-// Auto-insert Taobao ad banner into tool pages
-(function(){
-  document.addEventListener('DOMContentLoaded', function(){
-    // i18n.js also waits for DOMContentLoaded; defer until its handler has run.
-    setTimeout(function(){
-      if(document.querySelector('.tool-ad-banner')) return;
-      var container = document.querySelector('.container');
-      if(!container) return;
-      var label = document.createElement('div');
-      label.className = 'tool-ad-label';
-      label.setAttribute('data-i18n', 'ad.label_promo');
-      label.setAttribute('data-i18n-fb', '— 推广 —');
-      label.textContent = '— 推广 —';
-      container.parentNode.insertBefore(label, container);
-      // 注：I18n.apply(root) 只扫描 root 的后代、不含 root 自身，故 label 自身
-      //     无法通过 apply 翻译，必须在此显式翻译一次；后续切换语言由
-      //     I18n 的 apply(document) 统一处理（label 已在 DOM 中且带 data-i18n）。
-      if (window.I18n && typeof window.I18n.t === 'function') {
-        label.textContent = window.I18n.t('ad.label_promo', '— 推广 —');
-      }
-      // 顶部为两则广告轮播：首屏黄金位若两行堆叠会挤压正文，且同类广告并排显得堆砌；
-      // 轮播保持单一视觉焦点、曝光轮换，且不增加占位高度。
-      var adDiv = document.createElement('div');
-      adDiv.className = 'tool-ad-banner ad-carousel';
-      adDiv.setAttribute('data-ad-pos', 'tool-top');
-      adDiv.innerHTML = toolboxAdCarouselHtml();
-      container.parentNode.insertBefore(adDiv, container);
-      if (window.I18n && typeof window.I18n.apply === 'function') window.I18n.apply(adDiv);
-      toolboxInitAdCarousel(adDiv);
-    }, 0);
-  });
-})();
-
-// 首页两处广告位：静态 HTML 中淘宝帧只写占位 href，PC/WAP 双链仍由本文件统一修正
-// （手机打开 PC 落地页会被淘宝强制登录）：
-//   ① 热门工具下方 = 两则轮播（#homeAdCarousel），修正后启动轮播；
-//   ② 页面最下方   = 两则并排（静态卡片，不在 carousel 容器内）。
-// 故修正目标必须全页扫描，只在轮播容器内查会漏掉并排区。
-(function(){
-  document.addEventListener('DOMContentLoaded', function(){
-    Array.prototype.forEach.call(document.querySelectorAll('[data-ad-link="taobao"]'), function(a){
-      a.setAttribute('href', toolboxTaobaoAdUrl());
-    });
-    var root = document.getElementById('homeAdCarousel');
-    if (root) toolboxInitAdCarousel(root);
-  });
-})();
-
 function resolveCanvasColor(value, fallback){
   var color=String(value||'').trim();
   var variable=color.match(/^var\((--[\w-]+)\)$/);
@@ -2900,65 +2747,6 @@ global.Chain = (function(){
   };
 })();
 
-// ===== B4-03 轻度广告横幅 =====
-// 规则：仅工具页、非 PWA（standalone）模式展示；位于内容底部，非弹窗、不遮挡、不影响工具操作。
-// 配置：设置 window.TOOLBOX_ADS_CLIENT（AdSense client id，如 'ca-pub-123456'）即启用 AdSense；
-//       未配置时展示低调的自有推广占位（不上线任何第三方广告，保持纯前端零依赖）。
-function isStandaloneMode(){
-  try {
-    if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) return true;
-    if (window.navigator && window.navigator.standalone === true) return true;
-  } catch(e){}
-  return false;
-}
-if (global.ToolBox) global.ToolBox.isStandaloneMode = isStandaloneMode;
-function injectAdBanner(){
-  try {
-    if (isStandaloneMode()) return;              // PWA 安装后不展示广告位
-    var nav = document.querySelector('.nav');
-    if (!nav) return;                             // 仅工具页
-    if (document.getElementById('toolboxAd')) return;
-    var container = document.querySelector('.container');
-    if (!container) return;
-    var ad = document.createElement('div');
-    ad.id = 'toolboxAd';
-    ad.setAttribute('style', 'max-width:960px;margin:30px auto 10px;text-align:center;');
-    var label = document.createElement('div');
-    label.className = 'tool-ad-label';
-    label.setAttribute('data-i18n', 'ad.label');
-    label.setAttribute('data-i18n-fb', '— 推广 —');
-    label.textContent = '— 推广 —';
-    var box = document.createElement('div');
-    box.id = 'toolboxAdBox';
-    if (window.TOOLBOX_ADS_CLIENT) {
-      box.innerHTML = '<ins class="adsbygoogle" style="display:inline-block;width:728px;height:90px;" ' +
-        'data-ad-client="' + window.TOOLBOX_ADS_CLIENT + '" ' +
-        'data-ad-slot="' + (window.TOOLBOX_ADS_SLOT || '0000000000') + '"></ins>';
-      if (!window.__adsenseLoaded) {
-        window.__adsenseLoaded = true;
-        var s = document.createElement('script');
-        s.async = true;
-        s.crossOrigin = 'anonymous';
-        s.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=' + window.TOOLBOX_ADS_CLIENT;
-        document.head.appendChild(s);
-      }
-    } else {
-      // 淘宝联盟推广：两则卡片并排（领券中心在前），复用与轮播同一套卡片组件。
-      // 注意：淘宝精选必须按设备选择 PC / 移动端链接，移动端用 PC 链接会被淘宝要求登录。
-      box.innerHTML = toolboxAdGridHtml('tool-bottom-coupon', 'tool-bottom-taobao');
-    }
-    ad.appendChild(label);
-    // 内容下方出口位：两则一次给全，不影响首屏；AdSense 模式下不叠加，避免两套广告体系混投。
-    ad.appendChild(box);
-    container.appendChild(ad);
-    if (window.I18n && typeof window.I18n.apply === 'function') window.I18n.apply(ad);
-  } catch(e){}
-}
-document.addEventListener('DOMContentLoaded', function(){
-  // Keep this in sync with the top banner: wait for i18n.js DOMContentLoaded init.
-  setTimeout(injectAdBanner, 0);
-});
-
 // ===== 全站统一顶部导航 / 底部页脚（与首页 index.html 一致）=====
 // 规则：仅工具页（存在 .nav 或路径含 /tools/）生效；删除旧 .nav，注入 .nav-top/.nav-mobile
 // 与 .footer/.tab-bar，中间工具内容区保持不变。搜索跳转 search.html（不加载首页 app.js）。
@@ -3086,14 +2874,6 @@ function buildUnifiedFooter(){
         '<div>' +
           '<div class="footer-brand"><img src="/logo-32.png" alt="ToolBox"><span>ToolBox</span></div>' +
           '<p class="footer-desc" data-i18n="footer.desc" data-i18n-fb="5000+ 跨行业纯前端在线工具，数据不出浏览器，保护你的隐私安全。">5000+ 跨行业纯前端在线工具，数据不出浏览器，保护你的隐私安全。</p>' +
-          '<div class="footer-friend">' +
-            '<div class="footer-friend-label" data-i18n="ad.label" data-i18n-fb="— 推广 —">— 推广 —</div>' +
-            '<div class="footer-friend-links">' +
-            '<a class="footer-friend-link footer-friend-link--coupon" data-ad-pos="footer-coupon" href="' + TOOLBOX_COUPON_AD_URL + '" target="_blank" rel="noopener sponsored" data-i18n="footer.friend_link2" data-i18n-fb="领券中心：抢大额官方补贴">领券中心：抢大额官方补贴</a>' +
-            '<a class="footer-friend-link" data-ad-pos="footer-taobao" href="' + toolboxTaobaoAdUrl() + '" target="_blank" rel="noopener sponsored" data-i18n="footer.friend_link" data-i18n-fb="友情链接：淘宝精选好物">友情链接：淘宝精选好物</a>' +
-            '</div>' +
-            '<div class="footer-friend-tip" data-i18n="footer.friend_tip" data-i18n-fb="（通过此链接下单可支持我们）">（通过此链接下单可支持我们）</div>' +
-          '</div>' +
         '</div>' +
         '<div class="desktop-only-block">' +
           '<h2 data-i18n="section.hotcat" data-i18n-fb="热门分类">热门分类</h2>' +
@@ -3121,7 +2901,6 @@ function buildUnifiedFooter(){
             '<li><a href="' + root + 'guides/index.html" data-i18n="nav.guides" data-i18n-fb="使用指南">使用指南</a></li>' +
             '<li><a href="' + root + 'chains.html" data-i18n="foot.chains" data-i18n-fb="工具链组合">工具链组合</a></li>' +
             '<li><a href="' + root + 'sitemap.html" data-i18n="foot.sitemap" data-i18n-fb="站点地图">站点地图</a></li>' +
-            '<li><a href="https://github.com/chenguangwu/chenguangwu.github.io/issues" target="_blank" rel="noopener" data-i18n="foot.contact" data-i18n-fb="联系反馈">联系反馈</a></li>' +
             '<li><a href="#" id="tbFooterPrivacyLink" style="cursor:pointer" data-i18n="foot.manage_data" data-i18n-fb="管理本地数据">管理本地数据</a></li>' +
           '</ul>' +
         '</div>' +

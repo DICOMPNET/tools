@@ -282,14 +282,6 @@ var LANG_REGISTRY = [
       // 顶栏 Logo 副标题
       'brand.sub': 'Tools Wiki',
       'breadcrumb.nav': 'Categories',
-      'ad.label': '— Sponsored —',
-      'ad.taobao_title': 'Taobao Picks',
-      'ad.taobao_desc': 'Curated quality goods, limited-time offers',
-      'ad.taobao_cta': 'Shop now →',
-      'ad.taobao_desc_m': 'Curated quality goods',
-      'ad.coupon_title': 'Coupon Center',
-      'ad.coupon_desc': 'Grab official subsidies, claim coupons before checkout',
-      'ad.coupon_cta': 'Get coupons →',
       'foot.tool_json': 'JSON Formatter',
       'foot.tool_qr': 'QR Code Generator',
       'foot.tool_pwd': 'Password Generator',
@@ -297,7 +289,6 @@ var LANG_REGISTRY = [
       'foot.tool_regex': 'Regex Tester',
       'foot.tool_timestamp': 'Timestamp Converter',
       'foot.sitemap': 'Sitemap',
-      'foot.contact': 'Contact & Feedback',
       'foot.manage_data': 'Manage Local Data',
       'foot.about': 'About Us',
       'foot.disclaimer': 'Disclaimer',
@@ -433,34 +424,15 @@ var LANG_REGISTRY = [
       'tool.file_upload_hint': 'Please upload an image first',
       'tool.image_load_error': 'Image failed to load',
       'tool.image_load_ok': 'Image loaded',
-      'ad.label_promo': '— Sponsored —',
-      'ad.label': '— Advertising —',
       // aria-label 专用（EN 态读屏不应念中文）：广告轮播圆点、footer 实时数据、about 页区块
-      'ad.dot1_aria': 'Ad slide 1',
-      'ad.dot2_aria': 'Ad slide 2',
       'nav.back_top': 'Back to top',
       'tool.pick_time': 'Pick a time',
       'tool.result_actions': 'Result actions',
       'foot.la_widget_aria': 'ToolBox real-time visit data',
       'about.stats_aria': 'Site statistics',
-      'about.ad_section_aria': 'Sponsored',
-      'ad.taobao_title': 'Taobao Picks',
-      'ad.taobao_desc': 'Curated quality products, limited-time offers',
-      'ad.taobao_cta': 'Check it out →',
-      'ad.coupon_title': 'Coupon Center',
-      'ad.coupon_desc': 'Grab official subsidies, claim coupons before checkout',
-      'ad.coupon_cta': 'Get coupons →',
-      'ad.track_event': 'Ad click',
-      'ad.fallback_text': '⭐ Bookmark ToolBox: 5000+ free tools anytime · Pure frontend · Data stays in browser',
       // 页脚友情链接（淘宝客文字广告）
-      'footer.friend_link': 'Friend link: Taobao Picks',
-      'footer.friend_link2': 'Coupon Center: claim official subsidies',
       'footer.friend_tip': '(orders via this link support us)',
       // 关于页面 - 支持我们（淘宝客说明）
-      'about.support_title': 'Support Us',
-      'about.support_p1': 'ToolBox is free forever, no login, no sign-up. We keep the project running through small Taobao affiliate commissions.',
-      'about.support_p2': 'When you find something nice on Taobao, just enter through the "Taobao Picks" link on our pages — the price is identical to opening Taobao directly, you pay nothing extra. We receive a small commission from that order.',
-      'about.support_p3': 'If ToolBox has helped you, this is the best support you can offer. Thanks for every smooth experience.'
     }
   };
 
