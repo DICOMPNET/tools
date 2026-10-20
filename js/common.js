@@ -1,3 +1,12 @@
+// ===== 百度统计（全站，common.js 被所有公开页面引用，含 zh-tw 与 search.html）=====
+window._hmt = window._hmt || [];
+(function () {
+  var hm = document.createElement('script');
+  hm.src = 'https://hm.baidu.com/hm.js?bc97d1345447857f935b5aa21deb0125';
+  var s = document.getElementsByTagName('script')[0];
+  s.parentNode.insertBefore(hm, s);
+})();
+
 (function(global){
 'use strict';
 
@@ -2113,7 +2122,6 @@ global.ToolBox = {
   clearInvalid: clearInvalid,
   validateNumberInput: validateNumberInput,
   enhanceTimeInput: null,
-  Analytics: global.ToolBox && global.ToolBox.Analytics,
   injectPrivacyBadge: injectPrivacyBadge,
   openPrivacyModal: openPrivacyModal,
   ensurePrivacyScript: ensurePrivacyScript,
@@ -2542,7 +2550,7 @@ function toolboxAdGridHtml(posCoupon, posTaobao){
 if (global.ToolBox) global.ToolBox.toolboxAdGridHtml = toolboxAdGridHtml;
 
 // 轮播两帧：帧1 领券中心（站点主色系），帧2 淘宝精选
-// data-ad-slot = 第几帧（1 起），供 js/ad_metrics.js 在点击埋点里区分「领券中心 / 淘宝精选」
+// data-ad-slot = 第几帧（1 起）
 function toolboxAdSlidesHtml(){
   return '<div class="ad-slide is-active" data-ad-slot="1">' + toolboxCouponAdCardInner() + '</div>'
     + '<div class="ad-slide" data-ad-slot="2">' + toolboxTaobaoAdCardInner() + '</div>';
@@ -2617,8 +2625,6 @@ if (global.ToolBox) {
       container.parentNode.insertBefore(adDiv, container);
       if (window.I18n && typeof window.I18n.apply === 'function') window.I18n.apply(adDiv);
       toolboxInitAdCarousel(adDiv);
-      // 点击埋点：由 js/ad_metrics.js 统一委托上报（读 data-ad-pos / data-ad-slot）。
-      // 此处**不要**再绑定 —— 委托在 capture 阶段已上报，重复绑定会让一次点击记两次。
     }, 0);
   });
 })();
@@ -2637,28 +2643,6 @@ if (global.ToolBox) {
     if (root) toolboxInitAdCarousel(root);
   });
 })();
-
-// 复用统一统计入口，覆盖公共功能页。
-(function (document) {
-  if (document.querySelector('script[src="/js/analytics.js"], script[src$="/js/analytics.js"]')) return;
-  var script = document.createElement('script');
-  script.src = '/js/analytics.js';
-  script.async = true;
-  document.head.appendChild(script);
-})(document);
-
-// 广告点击埋点（全站唯一入口，一次覆盖六个广告位）。
-// 与 analytics.js 同批注入：所有页面都引 js/common.js（首页 / 工具页 / about / 指南页），
-// 故无需逐页加 <script>。⚠️ 2026-09-04 重写首页 head 时曾把本文件的加载点连带删掉，
-// 造成全站广告点击静默不上报（ad_tb 无数据、无报错），此注入行勿再删。
-(function (document) {
-  if (document.querySelector('script[src="/js/ad_metrics.js"], script[src$="/js/ad_metrics.js"]')) return;
-  var script = document.createElement('script');
-  script.src = '/js/ad_metrics.js';
-  // 不设 async：动态脚本 async=false 时按插入顺序执行，保证排在 analytics.js 之后
-  script.async = false;
-  document.head.appendChild(script);
-})(document);
 
 function resolveCanvasColor(value, fallback){
   var color=String(value||'').trim();
@@ -3064,6 +3048,7 @@ function buildUnifiedHeader(){
         '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>' +
         '<span class="nav-btn-label" data-i18n="nav.recent" data-i18n-fb="最近使用">最近使用</span>' +
       '</button>' +
+      '<a class="nav-icon-btn" href="https://more.dicomp.net/" target="_blank" rel="noopener" title="更多" aria-label="更多" data-i18n-title="nav.more" data-i18n-aria="nav.more"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg><span class="nav-btn-label" data-i18n="nav.more" data-i18n-fb="更多">更多</span></a>' +
       '<span class="nav-lang-slot"></span>' +
     '</div>';
 
@@ -3080,6 +3065,7 @@ function buildUnifiedHeader(){
         '<span class="nav-btn-label" data-i18n="nav.search" data-i18n-fb="搜索工具">搜索工具</span>' +
       '</button>' +
       '<button class="nav-icon-btn" onclick="ToolBox.toggleToolTheme()" title="切换主题" aria-label="切换主题" data-i18n-title="nav.theme" data-i18n-aria="nav.theme"><span class="tb-theme-icon" style="font-size:16px">🌙</span><span class="nav-btn-label" data-i18n="nav.theme" data-i18n-fb="切换主题">切换主题</span></button>' +
+      '<a class="nav-icon-btn" href="https://more.dicomp.net/" target="_blank" rel="noopener" title="更多" aria-label="更多" data-i18n-title="nav.more" data-i18n-aria="nav.more"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg><span class="nav-btn-label" data-i18n="nav.more" data-i18n-fb="更多">更多</span></a>' +
     '</div>';
 
   wrap.appendChild(desk);
@@ -3131,6 +3117,7 @@ function buildUnifiedFooter(){
           '<h2 data-i18n="section.about" data-i18n-fb="关于">关于</h2>' +
           '<ul>' +
             '<li><a href="' + root + 'about.html" data-i18n="foot.about" data-i18n-fb="关于我们">关于我们</a></li>' +
+            '<li><a href="' + root + 'disclaimer.html" data-i18n="foot.disclaimer" data-i18n-fb="免责声明">免责声明</a></li>' +
             '<li><a href="' + root + 'guides/index.html" data-i18n="nav.guides" data-i18n-fb="使用指南">使用指南</a></li>' +
             '<li><a href="' + root + 'chains.html" data-i18n="foot.chains" data-i18n-fb="工具链组合">工具链组合</a></li>' +
             '<li><a href="' + root + 'sitemap.html" data-i18n="foot.sitemap" data-i18n-fb="站点地图">站点地图</a></li>' +
@@ -3139,8 +3126,7 @@ function buildUnifiedFooter(){
           '</ul>' +
         '</div>' +
       '</div>' +
-      '<div id="footerLaWidget" class="footer-la-widget" aria-label="ToolBox 实时访问数据" data-i18n-aria="foot.la_widget_aria"></div>' +
-      '<div class="footer-copy" data-i18n="footer.privacy" data-i18n-fb="© 2026 ToolBox · 纯前端在线工具 · 数据不上传，安全可靠">© 2026 ToolBox · 纯前端在线工具 · 数据不上传，安全可靠</div>' +
+      '<div class="footer-copy" data-i18n="footer.privacy" data-i18n-fb="© 2026 ToolBox · 纯前端在线工具 · 内容仅供学习交流使用">© 2026 ToolBox · 纯前端在线工具 · 内容仅供学习交流使用</div>' +
     '</div>';
 
   // 移动端底部 Tab 栏 + 回顶按钮
@@ -3185,62 +3171,6 @@ function buildUnifiedFooter(){
   return wrap;
 }
 
-/* 51.la 实时数据挂件（全站 footer 版权行上方）
-   - 配色固定走"暗底"档：footer 背景是 #1A1A2E→#141425 的固定深色渐变、不随 data-theme 变化，
-     因此不像 about.html 那样挂 MutationObserver 监听主题；
-     背景取 #17172A（渐变中下段近似值）使 widget 与 footer 视觉无缝。
-   - 数值用主色 #FF6B35：暗底对比度 5.66:1 达 WCAG AA，且与 footer 橙色高亮调性一致。
-   - 懒加载：footer 位于页面底部，用 IntersectionObserver 等它滚入视口再注入脚本，
-     避免 5000+ 工具页首屏就多一次第三方脚本请求（首屏 0 影响）。
-   - **不能加 s.crossOrigin='anonymous'**：curl 验证 51.la v6 widget.js 服务器
-     不返回 Access-Control-Allow-Origin 头（HTTP 200 但无 CORS），
-     动态插入的 script 在有 crossOrigin 属性时会被浏览器默默丢弃（不发警告、不 fetch），
-     而静态写在 HTML 里的 <script crossorigin> 浏览器允许不校验——所以官方代码（直接贴 HTML）
-     能显示、动态创建的就静默失败。51.la 官方给的代码用 crossorigin 是为了内联静态写法，
-     动态挂载必须去掉这个属性。 */
-function mountFooterLaWidget(){
-  try {
-    if (typeof isStandaloneMode === 'function' && isStandaloneMode()) return;  // PWA 安装后不展示
-    var box = document.getElementById('footerLaWidget');
-    if (!box) return;
-    // theme 字段顺序：borderColor,titleColor,color,numberColor,backgroundColor,iconColor,fontSize
-    // 老板反馈"下面空太多了/颜色再优化"第二轮：标题与描述同色、整体降饱和度
-    // - backgroundColor #0F0F1E：嵌入式深色卡片（不变）
-    // - borderColor     #262640：弱化分隔线（不变）
-    // - titleColor      #94A3B8：标题文字（**与描述同色**，从 #E5E7EB 降级）
-    // - color           #94A3B8：描述文字（不变）
-    // - numberColor     #B8C0CC：数字（**柔和浅蓝灰**，从 #FF6B35 降级；
-    //                    SDK 默认给数字 span 加 font-weight:bold，靠字重区分数据，不靠颜色）
-    // - iconColor       #FF8C5A：备用
-    var THEME = '#262640,#94A3B8,#94A3B8,#B8C0CC,#0F0F1E,#FF8C5A,14';
-    var DISPLAY = '1,1,1,1,1,1,1,0';
-    var done = false;
-    function mount(){
-      if (done) return;
-      done = true;
-      var s = document.createElement('script');
-      // 关键：id 必须精确等于 'LA-DATA-WIDGET'。51.la v6 widget SDK 内部硬编码
-      // document.getElementsByTagName('script') 循环匹配 "LA-DATA-WIDGET"===id，
-      // 改成任何其他名字（如 LA-DATA-WIDGET-FOOTER）都匹配不到 → n() 返回 null
-      // → 走 console.error("can not found this script element") 分支，widget 不渲染。
-      // 全站只保留这一个挂载点，不要在同页再加第二个同 id 的 script。
-      s.id = 'LA-DATA-WIDGET';
-      s.charset = 'UTF-8';
-      // 关键：不设 crossOrigin 属性。51.la v6 widget 服务器无 CORS 头（curl 验证），
-      // 设了 crossOrigin='anonymous' 会导致浏览器默默丢弃请求、不发警告。
-      s.src = 'https://v6-widget.51.la/v6/3R0rVW6KKmLfdAFz/quote.js?theme=' + THEME + '&f=14&display=' + DISPLAY;
-      box.appendChild(s);
-    }
-    if (!window.IntersectionObserver) { mount(); return; }
-    var io = new IntersectionObserver(function(entries){
-      for (var i = 0; i < entries.length; i++) {
-        if (entries[i].isIntersecting) { io.disconnect(); mount(); break; }
-      }
-    }, { rootMargin: '200px' });
-    io.observe(box);
-  } catch(e){}
-}
-
 function syncToolThemeIcon(){
   var dark = document.documentElement.getAttribute('data-theme') === 'dark' ||
              (document.body && document.body.classList.contains('dark'));
@@ -3256,7 +3186,6 @@ function injectUnifiedChrome(){
     document.body.insertBefore(header, document.body.firstChild);
     var footer = buildUnifiedFooter();
     document.body.appendChild(footer);
-    mountFooterLaWidget();
 
     // 全站二级分类导航（首页同款行业下拉大面板 .tb-topnav）：只有首页静态引用了
     // nav-menu.js，其余统一导航页面在此动态补齐，避免逐页手改静态 HTML。
@@ -4225,14 +4154,6 @@ function tbSeRefreshCode(){
   var pre = box.querySelector('.tb-se-code pre');
   if (pre) pre.textContent = tbSeEmbedCode();
 }
-function tbSeTrack(evt){
-  try {
-    if (global.ToolBox && global.ToolBox.Analytics &&
-        typeof global.ToolBox.Analytics.track === 'function') {
-      global.ToolBox.Analytics.track(evt, { page: tbSePath() });
-    }
-  } catch(e){}
-}
 function injectShareEmbed(){
   try {
     if (document.querySelector('.tb-share-embed')) return;
@@ -4313,7 +4234,6 @@ function injectShareEmbed(){
       head.addEventListener('click', function(){
         var open = wrap.classList.toggle('open');
         head.setAttribute('aria-expanded', open ? 'true' : 'false');
-        if (open) tbSeTrack('share_embed_open');
       });
     }
     var tabs = wrap.querySelectorAll('.tb-se-tab');
@@ -4339,10 +4259,10 @@ function injectShareEmbed(){
       var node = null, val = '';
       if (act === 'copy-code') {
         node = wrap.querySelector('.tb-se-code pre');
-        if (node) { val = node.textContent || ''; tbSeTrack('share_embed_copy'); }
+        if (node) { val = node.textContent || ''; }
       } else if (act === 'copy-link') {
         node = wrap.querySelector('.tb-se-link input');
-        if (node) { val = node.value || ''; tbSeTrack('share_embed_copy_link'); }
+        if (node) { val = node.value || ''; }
       }
       if (val && global.ToolBox && typeof global.ToolBox.copyText === 'function') global.ToolBox.copyText(val);
     });

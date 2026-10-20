@@ -28,12 +28,12 @@ GATES = (
     # 纯静态源码文本扫描（不跑页面、秒级、100% 覆盖），故置于 build 之前以快速失败。
     (
         "expect anti-pattern",
-        ("python3", "scripts/check_expect_antipattern.py"),
+        (sys.executable, "scripts/check_expect_antipattern.py"),
     ),
-    ("build", ("python3", "_build.py")),
-    ("static tests", ("python3", "_test_static.py")),
-    ("dead-link audit", ("python3", "_audit_links.py", "--check")),
-    ("asset audit", ("python3", "_audit_assets.py", "--check")),
+    ("build", (sys.executable, "_build.py")),
+    ("static tests", (sys.executable, "_test_static.py")),
+    ("dead-link audit", (sys.executable, "_audit_links.py", "--check")),
+    ("asset audit", (sys.executable, "_audit_assets.py", "--check")),
     # 防复发（缺陷 N）：构建期英文预渲染曾把页面 intro 注入 <script> 内 JS 字符串的
     # <p> 提示位（未转义撇号/换行）→ 脚本整块 SyntaxError、计算器静默失效。既有门禁
     # （静态结构/链接/资源/calc 冒烟/用例断言）都不校验 inline JS 语法，故单列一道。
@@ -297,7 +297,7 @@ GATES = (
     # 与 scripts/_ux_baseline_snapshot.json 比对：任一分类均分下降、薄弱页增加、
     # 或全站均分下降即失败 —— 保证「改造只加分不减分」，杜绝为凑指标而删模块。
     # 基线提升（每批改造验收后）由人工执行：cp _ux_baseline.json _ux_baseline_snapshot.json。
-    ("ux baseline regression", ("python3", "scripts/_ux_baseline.py", "--gate")),
+    ("ux baseline regression", (sys.executable, "scripts/_ux_baseline.py", "--gate")),
 )
 
 

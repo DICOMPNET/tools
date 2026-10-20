@@ -16,7 +16,7 @@ import OpenCC from 'opencc-js';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SITE = 'https://chenguangwu.github.io';
 const MARKER = '.toolbox-opencc-locale';
-const ROOT_PAGES = ['index.html', 'search.html', 'chains.html', 'about.html', 'sitemap.html', 'embed.html', '404.html'];
+const ROOT_PAGES = ['index.html', 'search.html', 'chains.html', 'about.html', 'disclaimer.html', 'sitemap.html', 'embed.html', '404.html'];
 const LOCALES = [
   { code: 'zh-TW', dir: 'zh-tw', to: 'twp', og: 'zh_TW' }
 ];

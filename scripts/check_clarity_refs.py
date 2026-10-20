@@ -51,6 +51,9 @@ def main():
                 content = f.read()
         except Exception:
             continue
+        # TOOLBOX-REDIRECT 重定向存根页（meta refresh 即跳走）不加载统计，豁免
+        if 'TOOLBOX-REDIRECT' in content:
+            continue
         if CLARITY_SNIPPET not in content:
             missing.append(rel)
 

@@ -44,6 +44,7 @@ var LANG_REGISTRY = [
       'nav.hot': 'Hot tools',
       'nav.recent': 'Recent',
       'nav.fav': 'Favorites',
+      'nav.more': 'More',
       'nav.guide': 'User Guide',
       // index.html 顶部用的是 nav.guides（复数），与 nav.guide 并存，
       // 否则 key 不匹配会回退到中文兜底「使用指南」
@@ -115,7 +116,7 @@ var LANG_REGISTRY = [
       'explore.subtitle': 'Explore 5000+ free online tools',
       'explore.hint': 'Pick a category above, or search directly · Pure frontend, your data stays local',
       'explore.hot': 'Popular Industries',
-      'footer.privacy': 'Pure frontend · Data never leaves your browser',
+      'footer.privacy': 'Pure frontend · For learning purposes only',
       // common.js 的 buildUnifiedFooter() 会动态注入 footer，缺这个键会回退中文
       'footer.desc': '5000+ cross-industry pure frontend tools. Your data never leaves your browser.',
       // 移动端底部 Tab
@@ -299,6 +300,15 @@ var LANG_REGISTRY = [
       'foot.contact': 'Contact & Feedback',
       'foot.manage_data': 'Manage Local Data',
       'foot.about': 'About Us',
+      'foot.disclaimer': 'Disclaimer',
+      'disclaimer.title': 'Disclaimer',
+      'disclaimer.source_t': 'Project Source',
+      'disclaimer.source_p': 'This site is built on the open-source project chenguangwu/chenguangwu.github.io under the MIT license, for learning and communication purposes only.',
+      'disclaimer.copyright_t': 'Copyright',
+      'disclaimer.copyright_p': 'Copyright of redistributed content belongs to the original copyright holders. Commercial use without permission is prohibited.',
+      'disclaimer.takedown_t': 'Takedown',
+      'disclaimer.takedown_p': 'If any content infringes your rights, please contact the site owner. It will be removed promptly after verification.',
+      'disclaimer.agree': 'By accessing this site, you acknowledge and agree to this disclaimer.',
       'foot.chains': 'Tool Chains',
       'ind.view_all': 'View all {n} industries →',
       'ind.collapse': 'Collapse ↑',
