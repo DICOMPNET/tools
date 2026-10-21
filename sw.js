@@ -19,7 +19,7 @@
  *   TOOLS    - 已访问页面 HTML，网络优先并持久化
  * AI 模型由 Transformers.js 自行缓存于独立 Cache Storage，不在此重复缓存。
  */
-const BUILD = '3c388c713d';                       // 由 _build.py 注入（内容 hash，勿手改）
+const BUILD = '99362eb471';                       // 由 _build.py 注入（内容 hash，勿手改）
 const SHELL = 'tb-shell-v4';
 const RUNTIME = 'tb-rt-v4-' + BUILD;
 const TOOLS = 'tb-tools-v4-' + BUILD;
@@ -32,28 +32,28 @@ const NAV_GRACE = 1000;    // 导航宽限窗（ms）：弱网超过此值立即
 // 预缓存核心应用外壳（仅作离线兜底：在线时一律走网络优先，不会被旧副本钉死）
 const PRECACHE = [
   '/',
-  '/index.html',
-  '/404.html',
-  '/manifest.json',
-  '/css/common.css',
-  '/css/style.css',
-  '/js/app.js',
-  '/js/common.js',
-  '/js/hot-tool-enhancements.js',
-  '/js/chart.js',
-  '/js/i18n.js',
-  '/js/toolbox-stub.js',
-  '/js/freemium.js',
-  '/js/ai-core.js',
-  '/js/qrcode.js',
-  '/vendor/fuse.min.js',
-  '/chains.html',
-  '/search.html',
-  '/favicon.svg',
-  '/logo-128.png',
-  '/logo-192.png',
-  '/logo-512.png',
-  '/apple-touch-icon.png'
+  './index.html',
+  './404.html',
+  './manifest.json',
+  './css/common.css',
+  './css/style.css',
+  './js/app.js',
+  './js/common.js',
+  './js/hot-tool-enhancements.js',
+  './js/chart.js',
+  './js/i18n.js',
+  './js/toolbox-stub.js',
+  './js/freemium.js',
+  './js/ai-core.js',
+  './js/qrcode.js',
+  './vendor/fuse.min.js',
+  './chains.html',
+  './search.html',
+  './favicon.svg',
+  './logo-128.png',
+  './logo-192.png',
+  './logo-512.png',
+  './apple-touch-icon.png'
 ];
 
 let KILLED = false; // 紧急开关命中后停止拦截，全部请求放行到网络
@@ -79,7 +79,7 @@ self.addEventListener('activate', (event) => {
 // 紧急开关：站点根下 sw-kill.json = {"disabled":true} 时清空缓存并注销自身
 async function checkKillSwitch() {
   try {
-    const resp = await fetch('/sw-kill.json?_swv=' + BUILD, { cache: 'no-store' });
+    const resp = await fetch('./sw-kill.json?_swv=' + BUILD, { cache: 'no-store' });
     if (!resp.ok) return;
     const data = await resp.json();
     if (data && data.disabled === true) {
@@ -176,7 +176,7 @@ self.addEventListener('fetch', (event) => {
 
   if (req.mode === 'navigate') {
     // 导航请求：网络优先，断网回退页面缓存，再回退首页（离线可用）
-    event.respondWith(raceCache(req, TOOLS, caches.match('/index.html')));
+    event.respondWith(raceCache(req, TOOLS, caches.match('./index.html')));
     return;
   }
 
@@ -193,7 +193,7 @@ self.addEventListener('fetch', (event) => {
   }
 
   // 其它（工具页 HTML 直接访问等）：网络优先 + 快速回退缓存
-  event.respondWith(raceCache(req, TOOLS, caches.match('/index.html')));
+  event.respondWith(raceCache(req, TOOLS, caches.match('./index.html')));
 });
 
 // 供页面调用：手动清缓存 / 立即接管

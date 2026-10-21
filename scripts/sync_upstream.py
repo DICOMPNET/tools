@@ -34,6 +34,14 @@ FREEZE_PATHS = [                   # 冻结路径：永远保持本仓库自己�
     "scripts/run_gates.py",        # Windows 适配：python3 → sys.executable
     "scripts/gen_opencc_locales.mjs",  # ROOT_PAGES 增加 disclaimer.html（zh-tw 生成清单）
     "scripts/check_clarity_refs.py",   # 统计守卫豁免 TOOLBOX-REDIRECT 存根页
+    "_build.py",                   # 尾部集成 relocalize_paths.py（任意子路径部署适配）
+    "scripts/relocalize_paths.py",  # 同上：构建后处理脚本本体
+    "js/app.js",                   # tools.json fetch 挂载根自适应（window.TB_ROOT）
+    "js/home-categories.js",       # industry-groups fetch 挂载根自适应
+    "js/nav-menu.js",              # localeUrl/TB_ROOT 挂载根自适应
+    "js/category-index.js",        # industry-*.json fetch 挂载根自适应
+    "js/guide-i18n.js",            # guides 字典 fetch 挂载根自适应
+    "js/tool-page-runtime.js",     # SW 注册挂载根自适应
 ]
 DRY_RUN = "--dry-run" in sys.argv
 

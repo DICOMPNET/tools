@@ -28,16 +28,19 @@
     if (!l) l = document.documentElement.lang || '';
     return String(l).toLowerCase().indexOf('en') === 0;
   }
+  // 站点根自适应：从脚本自身 URL 回推挂载根（"/" 或 "/tools/" 等）
+  var TB_ROOT = (function(){ try { return new URL('../', document.currentScript.src).pathname; } catch(e){ return '/'; } })();
+  function tbPathN(){ var p = location.pathname || '/'; if (TB_ROOT !== '/' && p.indexOf(TB_ROOT) === 0) p = '/' + p.slice(TB_ROOT.length); return p; }
   // 繁体静态站点(/zh-tw)：站内绝对路径链接统一加 /zh-tw 前缀，避免点击跳回简体根。
   // 资源(/js /css /json /i18n 及静态文件)不加前缀。相对路径保持原样（繁体页下自然解析正确）。
   function localeUrl(h) {
     try {
       if (typeof h !== 'string' || h.charAt(0) !== '/') return h;
-      if (location.pathname.indexOf('/zh-tw') !== 0) return h;   // 非繁体页不处理
+      if (tbPathN().indexOf('/zh-tw') !== 0) return h;           // 非繁体页不处理
       if (h.indexOf('/zh-tw') === 0) return h;                    // 已带前缀
-      if (/^\/(?:js|css|json|i18n)\b/.test(h)) return h;         // 资源目录
-      if (/\.(?:png|jpe?g|gif|svg|ico|webp|avif|xml|txt|json|css|js|woff2?|ttf|eot|map|pdf|zip|gz|mp4|webm|mp3|webmanifest)$/.test(h)) return h; // 静态资源
-      return '/zh-tw' + h;
+      if (/^\/(?:js|css|json|i18n)\b/.test(h)) return TB_ROOT.replace(/\/$/, '') + h;  // 资源目录 → 挂载根相对
+      if (/\.(?:png|jpe?g|gif|svg|ico|webp|avif|xml|txt|json|css|js|woff2?|ttf|eot|map|pdf|zip|gz|mp4|webm|mp3|webmanifest)$/.test(h)) return TB_ROOT.replace(/\/$/, '') + h; // 静态资源
+      return TB_ROOT + 'zh-tw' + h;
     } catch (e) { return h; }
   }
   // 名称/描述按语言取：英文态优先 en，否则中文
@@ -70,7 +73,7 @@
   async function loadGroups() {
     if (loaded) return groups;
     try {
-      const url = window.I18n && I18n.assetUrl ? I18n.assetUrl('/json/industry-groups.json') : '/json/industry-groups.json';
+      const url = window.I18n && I18n.assetUrl ? I18n.assetUrl('/json/industry-groups.json') : TB_ROOT + 'json/industry-groups.json';
       const res = await fetch(url);
       groups = await res.json();
       loaded = true;

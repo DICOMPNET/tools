@@ -439,6 +439,20 @@ var LANG_REGISTRY = [
   var KEY = 'toolbox_lang';
   var current = 'zh-CN';
 
+  // ===== 站点根自适应（任意子路径部署）=====
+  // i18n.js 位于 <挂载根>/js/ 下，从自身脚本 URL 回推站点根（"/" 或 "/tools/" 等）。
+  var TB_ROOT = (function () {
+    try { return new URL('../', document.currentScript.src).pathname; }
+    catch (e) { return '/'; }
+  })();
+  function tbPath() {
+    try {
+      var p = location.pathname || '/';
+      if (TB_ROOT !== '/' && p.indexOf(TB_ROOT) === 0) p = '/' + p.slice(TB_ROOT.length);
+      return p;
+    } catch (e) { return '/'; }
+  }
+
   // ===== 工具函数 =====
   function isValidLang(lang) {
     for (var i = 0; i < LANG_REGISTRY.length; i++) {
@@ -499,26 +513,28 @@ var LANG_REGISTRY = [
   function isStaticTraditional() { return current === 'zh-TW'; }
 
   function localeFromPath() {
-    var path = (location.pathname || '').replace(/^\/+/, '');
+    var path = tbPath().replace(/^\/+/, '');
     if (path === 'zh-tw' || path.indexOf('zh-tw/') === 0) return 'zh-TW';
     return null;
   }
 
   function sourcePath() {
-    var path = (location.pathname || '').replace(/^\/+/, '');
+    var path = tbPath().replace(/^\/+/, '');
     return path.replace(/^zh-(?:tw|hk)\/?/i, '');
   }
 
   function assetUrl(url) {
     if (!url || /^(?:[a-z][a-z0-9+.-]*:|\/\/)/i.test(url)) return url;
-    var prefix = current === 'zh-TW' ? '/zh-tw' : '';
+    // 站点根绝对引用 → 挂载根相对（任意子路径部署自适应）
+    if (url.charAt(0) === '/') return TB_ROOT.replace(/\/$/, '') + url;
+    var prefix = current === 'zh-TW' ? (TB_ROOT + 'zh-tw') : '';
     if (!prefix) return url;
-    return prefix + (url.charAt(0) === '/' ? url : '/' + url);
+    return prefix + '/' + url;
   }
 
   function routeFor(lang) {
     var path = sourcePath();
-    var prefix = lang === 'zh-TW' ? '/zh-tw/' : '/';
+    var prefix = lang === 'zh-TW' ? (TB_ROOT + 'zh-tw/') : TB_ROOT;
     var target = prefix + path;
     if (!path) target = prefix;
     var query = '';
@@ -547,7 +563,7 @@ var LANG_REGISTRY = [
       var href = a.getAttribute('href');
       if (!href || href.indexOf('/zh-tw') === 0) continue;   // 已是繁体路径
       if (RES_LINK_PREFIX.test(href) || RES_LINK_SUFFIX.test(href)) continue;  // 资源不动
-      a.setAttribute('href', '/zh-tw' + href);
+      a.setAttribute('href', TB_ROOT + 'zh-tw' + href);
     }
   }
   function startAnchorObserver() {
@@ -984,7 +1000,7 @@ var LANG_REGISTRY = [
       if (last === 'index.html' || last.endsWith('.en.html')) return;
       if (document.getElementById('guide-i18n-script')) return;
       var s = document.createElement('script');
-      s.src = '/js/guide-i18n.js';
+      s.src = TB_ROOT + 'js/guide-i18n.js';
       s.defer = true;
       s.id = 'guide-i18n-script';
       document.head.appendChild(s);
@@ -993,7 +1009,7 @@ var LANG_REGISTRY = [
 
   function loadRegionalPack() {
     if (!isStaticTraditional() || !window.fetch) return;
-    var file = '/i18n/locale-zh-TW.json';
+    var file = TB_ROOT + 'i18n/locale-zh-TW.json';
     fetch(file, { cache: 'no-cache' })
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (pack) {

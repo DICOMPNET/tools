@@ -693,7 +693,7 @@ async function ensureSearchIndexLoaded() {
     // 在繁体页仍抓简体索引、工具名回退简体的 bug（与顶栏下拉同源）。
     const dataUrl = (window.I18n && typeof I18n.assetUrl === 'function')
       ? I18n.assetUrl('/json/tools.json')
-      : '/json/tools.json';
+      : (window.TB_ROOT || '/') + 'json/tools.json';
     const res = await fetch(dataUrl);
     allSearchIndex = (await res.json()).map(_toolToShort);
     searchIndexLoaded = true;
