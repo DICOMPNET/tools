@@ -83,6 +83,32 @@
       if (!isZh && /ToolBox/.test(back.textContent)) back.textContent = I18n.t('nav.back', '← ToolBox');
     }
 
+    // 顶部导航当前工具名（.nav > span 形如「/ 工具名」）：英文态下与面包屑当前项（.bc-current）
+    // 同源，须一并英文化。此前仅当 per-page 字典恰好含「/ 工具名」键时才会被第三层 applyEnDict
+    // 串内替换偶然覆盖，绝大多数工具页缺该键 ⇒ 英文态顶部导航残留中文工具名（全站级缺陷）。
+    // 现于框架层系统性处理：剥离「/ 」前缀取工具名 → pickEn(per-page) 或 BODY_PHRASE_MAP(全局)
+    // 命中即译、前缀原样回填；已英文化（无汉字）的页面跳过，绝不覆盖 applyEnDict 已产出的更优译文。
+    var navName = document.querySelector('.nav > span');
+    if (navName) {
+      if (isZh) {
+        if (NAV_ORIG.has(navName)) navName.textContent = NAV_ORIG.get(navName);
+      } else {
+        var nnt = navName.textContent;
+        if (/[一-鿿]/.test(nnt)) {
+          var nmm = nnt.match(/^\/\s*(.+)$/);
+          if (nmm) {
+            var nm2 = nmm[1];
+            var nen = pickEn(nm2);
+            if (!nen && BODY_PHRASE_MAP && BODY_PHRASE_MAP.hasOwnProperty(nm2)) nen = BODY_PHRASE_MAP[nm2];
+            if (nen && nen !== nm2) {
+              if (!NAV_ORIG.has(navName)) NAV_ORIG.set(navName, nnt);
+              navName.textContent = '/ ' + nen;
+            }
+          }
+        }
+      }
+    }
+
     // 常见按钮文案（按已知中文精确匹配替换，避免误伤）
     translateButtons(isZh);
     // 通用 UI 词精确短语自动英文化（label/button/option 确定性部分）
@@ -130,6 +156,7 @@
   }
   var BT_ORIG = new WeakMap();
   var WAIT_ORIG = new WeakMap();
+  var NAV_ORIG = new WeakMap();   // 顶部导航工具名原文缓存（zh 态还原用）
 
   // ---- 通用 UI 词精确短语自动英文化（零 MT，基于全站真实高频短语提取）----
   // 仅精确匹配完整短语，避免误翻正文里的相同字词；覆盖 label/button/option 的确定性 UI 词。
@@ -149,7 +176,7 @@
     return { prefix: m[0].trim(), core: s.slice(m[0].length).trim() };
   }
   function translateGenericUI(isZh) {
-    var nodes = document.querySelectorAll('label, button.btn, .toolbar .btn, select option, .json-actions .btn, .tab-btn');
+    var nodes = document.querySelectorAll('label, button.btn, .toolbar .btn, select option, .json-actions .btn, .tab-btn, .tbk-tab');
     for (var i = 0; i < nodes.length; i++) {
       var el = nodes[i];
       // 守卫：含「表单控件」或「带 id 后代」的容器不得整节点替换 —— el.textContent = tr
@@ -764,10 +791,15 @@
     EN_ORIG = [];
   }
 
-  // 查表：per-tool 字典优先（更具体），全局通用层兜底
+  // 查表：per-tool 字典优先（更具体），全局通用层兜底；BODY_PHRASE_MAP 全局正文短语表作最终兜底。
+  // 【修复 2026-10-22】旧 pickEn 仅查 EN_DICT/EN_COMMON，导致动态增量翻译（MutationObserver 的
+  // dynTranslateNode 与 applyEnDict(b) 文本节点分支）命中不了 BODY_PHRASE_MAP 的全局译文 ——
+  // 运行时注入的相关工具标题「🔗 相关工具」、结果区「导出 CSV」、deep-dive「📚 深度解析…」等
+  // 独立文本节点永远残留中文。现补 BODY_PHRASE_MAP 兜底：exact 命中即译，动态/静态路径一致收敛、零回环。
   function pickEn(key) {
     if (EN_DICT && EN_DICT[key]) return EN_DICT[key];
     if (EN_COMMON && EN_COMMON[key]) return EN_COMMON[key];
+    if (BODY_PHRASE_MAP && BODY_PHRASE_MAP.hasOwnProperty(key)) return BODY_PHRASE_MAP[key];
     return null;
   }
 

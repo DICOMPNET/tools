@@ -15,7 +15,7 @@ from pathlib import Path
 
 
 API_BASE = "https://ssl.bing.com/webmaster/api.svc/json"
-DEFAULT_SITE = "https://tools.dicomp.net/"
+DEFAULT_SITE = "https://chenguangwu.github.io/"
 
 
 def get_json(endpoint: str, api_key: str, site_url: str) -> list[dict]:

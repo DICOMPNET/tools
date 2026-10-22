@@ -205,7 +205,7 @@ def main():
     targets = rows[:limit] if limit else rows
     done = skip = 0
     for r in targets:
-        p = r['page'].replace('https://tools.dicomp.net/', '')
+        p = r['page'].replace('https://chenguangwu.github.io/', '')
         fp = os.path.join(ROOT, p)
         if not os.path.exists(fp):
             continue

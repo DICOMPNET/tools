@@ -7,7 +7,7 @@
   因此直接修补静态页即可立即生效。
 - 仅补充社交分享卡片标签，不影响搜索 CTR；规范与工具页 _build.py fix A 一致。
 - 取值来源：description 复用 <meta name="description">；og:title 复用 <meta property="og:title">；
-  社交图统一用 https://tools.dicomp.net/og-image.png（与全站一致）。
+  社交图统一用 https://chenguangwu.github.io/og-image.png（与全站一致）。
 
 用法：
     python3 scripts/fix_guides_social.py
@@ -18,7 +18,7 @@ import html
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 G = os.path.join(ROOT, 'guides')
-IMG = 'https://tools.dicomp.net/og-image.png'
+IMG = 'https://chenguangwu.github.io/og-image.png'
 IMG_ALT = 'ToolBox - 免费在线工具与使用指南'
 
 

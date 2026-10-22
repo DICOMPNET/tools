@@ -18,7 +18,7 @@ import datetime
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 GUIDES_DIR = os.path.join(ROOT, "guides")
-SITE = "https://tools.dicomp.net"
+SITE = "https://chenguangwu.github.io"
 TODAY = "2026-08-07"
 
 CLUSTERS = {

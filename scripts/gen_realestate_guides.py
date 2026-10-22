@@ -17,7 +17,7 @@ Article/BreadcrumbList/FAQPage + 内联 CSS + breadcrumb/h1/lead/章节/相关�
   按 legal 版「同键即覆盖」的写法会顶掉 hydraulic 已有的正确映射。
   本脚本改用「追加」语义：仅当现有条目并非归属 realestate 时才新增一条。
   可行性依据：_build.py 的 GUIDE_MAP_IND 通过反查指南正文里的绝对 URL
-  （https://tools.dicomp.net/tools/<行业>/<tool>.html）判定归属，
+  （https://chenguangwu.github.io/tools/<行业>/<tool>.html）判定归属，
   因此同一 basename 的多条记录可各自精确命中本行业，互不干扰。
   指南文件名另用 realestate- 前缀消歧，避免覆盖他行业已生成的指南文件。
 
@@ -42,7 +42,7 @@ GUIDES_DIR = os.path.join(ROOT, "guides")
 TOOLS_DIR = os.path.join(ROOT, "tools", "realestate")
 IND = "realestate"
 DATE = "2026-09-13"
-SITE = "https://tools.dicomp.net"
+SITE = "https://chenguangwu.github.io"
 
 # 名实不符待整改，暂不生成（见模块 docstring）
 EXCLUDE = {"summary-second-hand"}

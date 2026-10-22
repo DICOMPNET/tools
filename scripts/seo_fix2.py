@@ -5,7 +5,7 @@
 import os, re, json
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
-SITE = 'https://tools.dicomp.net'
+SITE = 'https://chenguangwu.github.io'
 OG_IMG = SITE + '/og-image.png'
 
 def esc(s):

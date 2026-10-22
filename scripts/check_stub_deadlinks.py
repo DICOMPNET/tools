@@ -8,7 +8,7 @@
 import os, re
 from urllib.parse import urlparse, urljoin
 
-ROOT = "/Users/cgw/project/cgw/tools.dicomp.net"
+ROOT = "/Users/cgw/project/cgw/chenguangwu.github.io"
 SITE_HOST = "tools.dicomp.net"
 MARKER = "TOOLBOX-REDIRECT"
 
