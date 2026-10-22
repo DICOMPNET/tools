@@ -45,9 +45,7 @@
     if (!('serviceWorker' in navigator)) return;
     window.addEventListener('load', function(){
       // updateViaCache:'none' —— 不让 HTTP 缓存拖延 sw.js 的更新检测
-      // TB_ROOT：从脚本自身 URL 回推站点根，任意子路径部署自适应
-      var tbRoot = (function(){ try { return new URL('../', document.currentScript.src).pathname; } catch(e){ return '/'; } })();
-      navigator.serviceWorker.register(tbRoot + 'sw.js', { updateViaCache: 'none' }).then(function(reg){
+      navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' }).then(function(reg){
         reg.update().catch(function(){});
       }).catch(function(){});
     });

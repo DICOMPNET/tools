@@ -16,22 +16,6 @@ window._hmt = window._hmt || [];
   s.parentNode.insertBefore(ks, s);
 })();
 
-// ===== 站点根自适应（任意子路径部署）=====
-// common.js 位于 <挂载根>/js/ 下，从自身脚本 URL 回推站点根（如 "/" 或 "/tools/"）。
-// tbPath() 把 location.pathname 归一为「挂载相对路径」（根部署语义），原有
-// indexOf('/tools/')、seg[0]==='zh-tw' 等判断逻辑无需改动即可在子路径下工作。
-var TB_ROOT = (function () {
-  try { return new URL('../', document.currentScript.src).pathname; }
-  catch (e) { return '/'; }
-})();
-function tbPath() {
-  try {
-    var p = location.pathname || '/';
-    if (TB_ROOT !== '/' && p.indexOf(TB_ROOT) === 0) p = '/' + p.slice(TB_ROOT.length);
-    return p;
-  } catch (e) { return '/'; }
-}
-
 (function(global){
 'use strict';
 
@@ -2231,7 +2215,7 @@ function ensurePrivacyScript(cb){
   if(!s){
     s = document.createElement('script');
     s.id = 'tb-privacy-script';
-    s.src = TB_ROOT + 'js/privacy.js';
+    s.src = '/js/privacy.js';
     s.defer = true;
     s.onload = cb;
     document.head.appendChild(s);
@@ -2248,7 +2232,7 @@ document.addEventListener('DOMContentLoaded', injectPrivacyBadge);
 function ensureChartLib(cb){
   if(window.ToolBox && window.ToolBox.chart){ cb(); return; }
   var s = document.createElement('script');
-  s.src = TB_ROOT + 'js/chart.js';
+  s.src = '/js/chart.js';
   s.onload = cb;
   document.head.appendChild(s);
 }
@@ -2323,7 +2307,7 @@ document.addEventListener('DOMContentLoaded', ensureCharts);
 
 // 收藏 + 最近使用（与首页 app.js 共享 favTools / recentTools 两个 localStorage key，数组存相对 URL）
 function getToolUrl(){
-  try { return tbPath().replace(/^\/+/, ''); } catch(e){ return ''; }
+  try { return location.pathname.replace(/^\/+/, ''); } catch(e){ return ''; }
 }
 function getFavs(){
   try { return JSON.parse(localStorage.getItem(FAV_KEY) || '[]'); } catch(e){ return []; }
@@ -2385,7 +2369,7 @@ function renderRelatedTools(){
   if(!ind) return;
   var relatedTitle = i18nText('tool.related', '🔗 相关工具');
   var loadingText = i18nText('common.loading', '加载中…');
-  var cur = tbPath().replace(/^\/+/, '').replace(/^zh-(?:tw|hk)\//i, '');
+  var cur = (location.pathname || '').replace(/^\/+/, '').replace(/^zh-(?:tw|hk)\//i, '');
   var wrap = document.createElement('div');
   wrap.className = 'related-tools card';
   wrap.style.marginTop = '20px';
@@ -2462,7 +2446,7 @@ document.addEventListener('DOMContentLoaded', function enhanceThemeBtnA11y(){
 document.addEventListener('DOMContentLoaded', function trackToolLaunch(){
   try {
     if (!window.ToolBox || !ToolBox.Metrics) return;
-    var p = tbPath();
+    var p = location.pathname || '';
     if (p.indexOf('/tools/') === -1) return;
     var parts = p.split('/').filter(Boolean);
     var file = parts[parts.length - 1];
@@ -2776,15 +2760,15 @@ global.Chain = (function(){
 // 规则：仅工具页（存在 .nav 或路径含 /tools/）生效；删除旧 .nav，注入 .nav-top/.nav-mobile
 // 与 .footer/.tab-bar，中间工具内容区保持不变。搜索跳转 search.html（不加载首页 app.js）。
 function toolPageRootPrefix(){
-    // 工具页位于 tools/<industry>/xxx.html → 站点根为 ../../；兜底用 /
-    try {
-      var p = tbPath();
+  // 工具页位于 tools/<industry>/xxx.html → 站点根为 ../../；兜底用 /
+  try {
+    var p = location.pathname || '';
     var seg = p.split('/').filter(Boolean);
     if (seg[0] === 'zh-tw') {
       // 动态注入的导航、相关工具和页脚必须始终留在繁体静态站点内。
       // 使用 locale 绝对根可同时覆盖根页、行业页、工具页和指南页，
       // 避免按当前目录深度回退时意外落到简体 `/tools/`。
-      return TB_ROOT + 'zh-tw/';
+      return '/zh-tw/';
     }
     // tools/industry/xxx.html → 两级
     if (seg.length >= 2 && seg[0] === 'tools') return '../../';
@@ -2798,7 +2782,7 @@ function toolPageRootPrefix(){
 // 是否站点根目录首页（index.html）。首页有自己专属的移动端 Tab 栏（首页内 app.js
 // 函数驱动的页内弹层），因此统一页脚在首页不重复注入 .tab-bar，避免双份。
 function isHomepage(){
-  var p = tbPath();
+  var p = location.pathname || '';
   var seg = p.split('/').filter(Boolean);
   // zh-tw/ 是独立静态首页，不是简体首页的子内容页。
   if (seg[0] === 'zh-tw') seg.shift();
@@ -2815,7 +2799,7 @@ function buildUnifiedHeader(){
   // / 含旧 .nav 的页面。
   // search.html 作为搜索跳转页维持原状，不被统一改造波及。
   // 注：release_dashboard.html 为 .gitignore 忽略的内部文件，不纳入统一导航改造。
-  var path = tbPath();
+  var path = location.pathname || '';
   var isTarget = path.indexOf('/tools/') !== -1
               || path.indexOf('/guides/') !== -1
               || isHomepage()
@@ -2840,7 +2824,7 @@ function buildUnifiedHeader(){
   desk.className = 'nav-top desktop-only';
   desk.innerHTML =
     '<div class="nav-logo" onclick="location.href=\'' + root + 'index.html\'" style="cursor:pointer">' +
-      '<img src="' + TB_ROOT + 'logo.svg" alt="ToolBox Logo">' +
+      '<img src="/logo.svg" alt="ToolBox Logo">' +
       '<div class="nav-logo-text"><span class="nav-logo-name">ToolBox</span><span class="nav-logo-sub" data-i18n="brand.sub" data-i18n-fb="工具百科">工具百科</span></div>' +
     '</div>' +
     '<form class="nav-search" action="' + root + 'search.html" method="GET" onsubmit="if(!this.q.value.trim()){event.preventDefault();return false;}">' +
@@ -2870,7 +2854,7 @@ function buildUnifiedHeader(){
   mob.className = 'nav-mobile mobile-only';
   mob.innerHTML =
     '<div class="nav-mobile-logo" onclick="location.href=\'' + root + 'index.html\'" style="cursor:pointer">' +
-      '<img src="' + TB_ROOT + 'logo.svg" alt="ToolBox Logo"><span>ToolBox</span>' +
+      '<img src="/logo.svg" alt="ToolBox Logo"><span>ToolBox</span>' +
     '</div>' +
     '<div class="nav-mobile-actions">' +
       '<button class="nav-icon-btn" onclick="if(window.openMobileSearch)openMobileSearch();else location.href=\'' + root + 'search.html\'" title="搜索工具" aria-label="搜索工具" data-i18n-title="nav.search" data-i18n-aria="nav.search">' +
@@ -2897,7 +2881,7 @@ function buildUnifiedFooter(){
     '<div class="footer-inner">' +
       '<div class="footer-grid">' +
         '<div>' +
-          '<div class="footer-brand"><img src="' + TB_ROOT + 'logo-32.png" alt="ToolBox"><span>ToolBox</span></div>' +
+          '<div class="footer-brand"><img src="/logo-32.png" alt="ToolBox"><span>ToolBox</span></div>' +
           '<p class="footer-desc" data-i18n="footer.desc" data-i18n-fb="5000+ 跨行业纯前端在线工具，数据不出浏览器，保护你的隐私安全。">5000+ 跨行业纯前端在线工具，数据不出浏览器，保护你的隐私安全。</p>' +
         '</div>' +
         '<div class="desktop-only-block">' +
@@ -3003,10 +2987,10 @@ function injectUnifiedChrome(){
       if (!isEmbedded && !hasNavMenu) {
         var nmCss = document.createElement('link');
         nmCss.rel = 'stylesheet';
-        nmCss.href = TB_ROOT + 'css/nav-menu.css';
+        nmCss.href = '/css/nav-menu.css';
         document.head.appendChild(nmCss);
         var nmJs = document.createElement('script');
-        nmJs.src = TB_ROOT + 'js/nav-menu.js';
+        nmJs.src = '/js/nav-menu.js';
         nmJs.defer = true;
         document.head.appendChild(nmJs);
       }
@@ -3094,7 +3078,7 @@ function loadToolSearch(){
     if (document.getElementById('tbToolSearchJs')) return;
     var s = document.createElement('script');
     s.id = 'tbToolSearchJs';
-    s.src = TB_ROOT + 'js/tool-search.js';
+    s.src = '/js/tool-search.js';
     s.async = false;
     document.head.appendChild(s);
   } catch (e) {}
@@ -3888,7 +3872,7 @@ function tbSeEsc(s){
 }
 function tbSePath(){
   var p = '';
-  try { p = tbPath() || ''; } catch(e){}
+  try { p = location.pathname || ''; } catch(e){}
   return p.replace(/^\/+/, '');
 }
 function tbSeI18n(){

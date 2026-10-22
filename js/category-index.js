@@ -16,10 +16,9 @@
   if (!lists.length) return;
 
   var cache = {};
-  var TB_ROOT = (function(){ try { return new URL('../', document.currentScript.src).pathname; } catch(e){ return '/'; } })();
   function load(ind) {
     if (cache[ind]) return cache[ind];
-    cache[ind] = fetch(TB_ROOT + 'json/industry-' + ind + '.json', { credentials: 'same-origin' })
+    cache[ind] = fetch('/json/industry-' + ind + '.json', { credentials: 'same-origin' })
       .then(function (r) { return r.ok ? r.json() : []; })
       .catch(function () { return []; });
     return cache[ind];

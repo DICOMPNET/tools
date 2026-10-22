@@ -112,14 +112,7 @@ s.parentNode.insertBefore(el, s);
   <a href="../../guides/torus-volume-guide.html">📖 查看「由主半径与管半径求环体体积 使用指南」</a>
 </div>
 
-  <style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#3b82f6)}.tbk-tab.active{background:var(--accent,#3b82f6);color:#fff;border-color:var(--accent,#3b82f6)}.tbk-panel{margin-top:6px}</style>
-<div class="tbk-tabbar" role="tablist">
-  <button type="button" class="tbk-tab" data-pane="res">结果</button>
-  <button type="button" class="tbk-tab" data-pane="tbl">数据表</button>
-  <button type="button" class="tbk-tab" data-pane="pre">预设</button>
-  <button type="button" class="tbk-tab" data-pane="his">历史</button>
-</div>
-<div class="card">
+  <div class="card">
     <h2 data-zh="由主半径与管半径求环体体积">Torus Volume Calculator</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="输入主半径 R（到管中心）与管半径 r，求环体体积。">Compute torus volume from major radius R (to tube center) and tube radius r using V = 2·π²·R·r².</p>
     <div class="formula-box">
@@ -150,7 +143,6 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="result-box" id="result"></div>
-<div id="__tbnDiff" style="margin-top:8px"></div>
     <div id="torus_volumeTable"></div>
     <h3 style="margin:14px 0 8px;">🍩 典型环面物体参考（按当前 r/R 比例标记）</h3>
     <div id="torus_volumeRef"></div>
@@ -278,7 +270,7 @@ function __torus_volumeExtras(){
         [en?'Equiv. sphere radius (same S)':'等表面积球半径 (m)', +__Rs.toFixed(4)],
       ]
     });
-    TBKit.history.record({R:__torus_volumeRaw('R'), r:__torus_volumeRaw('r'), result: 2*Math.PI*Math.PI*num('R')*num('r')*num('r')});
+    TBKit.history.record({R:__torus_volumeRaw('R'), r:__torus_volumeRaw('r')});
     function __torus_volumeRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
     TBKit.history.mount('#torus_volumeHist',function(rec){ __torus_volumeRestore(rec); calcTool(); });
 }
@@ -344,49 +336,5 @@ else document.addEventListener('DOMContentLoaded', __torus_volumeBoot);
 </dl>
 </div>
 </section>
-<script>/*TBKIT-INJECT-START*/
-(function(){
-  var P={"res": ["result"], "tbl": ["torus_volumeTable"], "pre": ["torus_volumePresets"], "his": ["torus_volumeHist"]};
-  var L={res:['结果','Result'],chart:['图表','Chart'],tbl:['数据表','Data'],pre:['预设','Presets'],his:['历史','History']};
-  function tabify(){
-    var bar=document.querySelector('.tbk-tabbar');
-    if(!bar||!bar.querySelectorAll) return;
-    var btns=bar.querySelectorAll('.tbk-tab');
-    if(!btns||!btns.length) return;
-    var en=false;
-    try{ if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn) en=TBKit.util.isEn(); }catch(e){}
-    if(!en&&document.documentElement&&(document.documentElement.lang||'').indexOf('en')>=0) en=true;
-    for(var i=0;i<btns.length;i++){var p=btns[i].getAttribute('data-pane');btns[i].textContent=en?L[p][1]:L[p][0];}
-    function show(pane){
-      for(var k in P){var ids=P[k];for(var i=0;i<ids.length;i++){var el=document.getElementById(ids[i]);if(el&&el.style)el.style.display=(k===pane?'':'none');}}
-      for(var j=0;j<btns.length;j++){btns[j].className='tbk-tab'+(btns[j].getAttribute('data-pane')===pane?' active':'');}
-    }
-    for(var i=0;i<btns.length;i++){(function(b){b.addEventListener('click',function(){show(b.getAttribute('data-pane'));});})(btns[i]);}
-    show(btns[0].getAttribute('data-pane'));
-  }
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',tabify);else tabify();
-})();
-/*TBKIT-INJECT-END*/</script>
-<script>
-var __dtor=function(){
-  if(typeof TBKit==='undefined')return;
-  var EN=false;try{EN=TBKit.util.isEn();}catch(e){}
-  var LBL=EN?'Compare':'对比结果';
-  var arr=[];try{arr=TBKit.history.list();}catch(e){}
-  var rec=null;
-  for(var i=0;i<arr.length;i++){var ks=Object.keys(arr[i].d||{});if(ks.length&&ks.indexOf(LBL)<0){rec=arr[i];break;}}
-  if(!rec||typeof rec.t!=='number'||Date.now()-rec.t>8000)return;
-  var kk=Object.keys(rec.d||{});
-  if(!kk.length)return;
-  var k=-1<0?kk[kk.length-1]:kk[-1];
-  if(!k)return;
-  var acc=parseFloat(String(rec.d[k]).replace(/[^0-9.\-]/g,''));
-  if(!isFinite(acc))return;
-  var r={};r[LBL]=acc;
-  if(TBKit.history&&TBKit.history.record)TBKit.history.record(r);
-  if(TBKit.util&&TBKit.util.diffBox)TBKit.util.diffBox('#__tbnDiff',[LBL]);
-};
-var __f0=calcTool;calcTool=function(){var __r=__f0.apply(null,arguments);__dtor();return __r;};
-</script>
 </body>
 </html>

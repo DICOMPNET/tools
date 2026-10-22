@@ -124,7 +124,7 @@
     };
 
     try {
-      const url = I18n.assetUrl('/json/industry-groups.json');
+      const url = window.I18n && I18n.assetUrl ? I18n.assetUrl('/json/industry-groups.json') : '/json/industry-groups.json';
       const res = await fetch(url);
       const groups = await res.json();
       render(groups);

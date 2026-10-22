@@ -36,11 +36,10 @@
 
   function hasCJK(s) { return CJK.test(s); }
 
-  var TB_ROOT = (function(){ try { return new URL('../', document.currentScript.src).pathname; } catch(e){ return '/'; } })();
   function loadCommon() {
     if (EN_COMMON || EN_COMMON_LOADING || !window.fetch) return Promise.resolve(EN_COMMON);
     EN_COMMON_LOADING = true;
-    return fetch(TB_ROOT + 'i18n/guides/_common.json', { cache: 'no-cache' })
+    return fetch('/i18n/guides/_common.json', { cache: 'no-cache' })
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (d) { EN_COMMON = d || {}; EN_COMMON_LOADING = false; return EN_COMMON; })
       .catch(function () { EN_COMMON = {}; EN_COMMON_LOADING = false; return EN_COMMON; });
@@ -48,7 +47,7 @@
 
   function loadDict() {
     if (!window.fetch) return Promise.resolve(null);
-    return fetch(TB_ROOT + 'i18n/guides/' + SLUG + '.json', { cache: 'no-cache' })
+    return fetch('/i18n/guides/' + SLUG + '.json', { cache: 'no-cache' })
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (d) { if (d && d.map) EN_DICT = d.map; return d; })
       .catch(function () { return null; });

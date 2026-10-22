@@ -4872,12 +4872,3 @@ if __name__ == '__main__':
     _r = subprocess.run([sys.executable, _gen_nav], check=False)
     if _r.returncode != 0:
         print('[warn] gen_industry_groups 返回非零，导航数据可能未更新', file=sys.stderr)
-
-    # 任意子路径部署适配：站点根绝对引用 → 相对引用。
-    # 必须在所有产物（含 main 后置的导航刷新）全部写完后执行；幂等。
-    _reloc = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'scripts', 'relocalize_paths.py')
-    _r = subprocess.run([sys.executable, _reloc], capture_output=True, text=True)
-    print(_r.stdout.strip())
-    if _r.returncode != 0:
-        print(_r.stderr, file=sys.stderr)
-        raise SystemExit(1)
