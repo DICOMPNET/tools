@@ -295,7 +295,7 @@ def check_i18n_foundation():
             # 校验至少一个非 x-default 的 hreflang 指向可达绝对 URL
             import re as _re
             alts = _re.findall(r'hreflang="([^"]+)"\s+href="(https?://[^"]+)"', idx)
-            bad = [h for h in alts if not h[1].startswith('https://tools.dicomp.net/')]
+            bad = [h for h in alts if not h[1].startswith('https://chenguangwu.github.io/')]
             if bad:
                 print('  ⚠️ 发现不可达 hreflang 链接: %s' % ', '.join(b[0] for b in bad))
             else:

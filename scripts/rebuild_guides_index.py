@@ -75,7 +75,7 @@ def main():
             print('   ... 共 %d' % len(empty_pages))
 
     lis = ''.join(
-        '<li><a href="https://tools.dicomp.net/guides/%s-guide.html">%s</a>'
+        '<li><a href="https://chenguangwu.github.io/guides/%s-guide.html">%s</a>'
         '<span style="color:var(--muted);font-size:13px;"> — %s</span></li>'
         % (slug, html.escape(title), html.escape(desc[:120]))
         for slug, title, desc in entries)

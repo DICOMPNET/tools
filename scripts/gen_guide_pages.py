@@ -17,7 +17,7 @@ import os, re, json, html, argparse
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 GUIDES_DIR = os.path.join(ROOT, 'guides')
-SITE = 'https://tools.dicomp.net'
+SITE = 'https://chenguangwu.github.io'
 DD_PATH = os.path.join(ROOT, 'i18n', 'tools', 'content_deepdive.json')
 GJ_PATH = os.path.join(ROOT, 'json', 'guides.json')
 
@@ -33,13 +33,13 @@ TPL = '''<!DOCTYPE html>
 <meta property="og:site_name" content="ToolBox">
 <meta property="og:url" content="{canonical}">
 <meta property="og:description" content="{desc}">
-<meta property="og:image" content="https://tools.dicomp.net/og-image.png">
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="{title}使用指南 - ToolBox">
 <meta name="twitter:description" content="{desc}">
-<meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
 <link rel="canonical" href="{canonical}">
 <script type="application/ld+json">
 {{"@context":"https://schema.org","@type":"Article","headline":"{title}使用指南","description":"{desc}","author":{{"@type":"Organization","name":"ToolBox"}}}}
@@ -221,7 +221,7 @@ def main():
         if not fresh:
             print('guides/index.html 已含全部条目，跳过追加')
         new_li = ''.join(
-            '<li><a href="https://tools.dicomp.net/guides/%s-guide.html">%s使用指南</a>'
+            '<li><a href="https://chenguangwu.github.io/guides/%s-guide.html">%s使用指南</a>'
             '<span style="color:var(--muted);font-size:13px;"> — %s</span></li>'
             % (m['guide'].split('/')[-1].replace('-guide.html', ''), html.escape(m['title'].replace('使用指南', '')),
                html.escape(desc[:50])) for m in fresh)
