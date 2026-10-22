@@ -8,11 +8,13 @@
 机制：工作区整体重置为上游树（收上游的修改与新增），
 再把 FREEZE_PATHS 中的路径恢复为本仓库自己的版本，最后一次性 commit。
 HEAD 独有文件（本地运维脚本、配置等）自动保留，不视为"上游删除"。
+EXCLUDE_PATHS 中的文件在快照后直接删除（本地已永久移除的上游文件，防每轮复活）。
 不依赖共同 git 历史，冻结语义永久有效。
 
 前提：运行前工作区必须干净（所有本地改动已 commit），
 否则冻结路径上的未提交改动会被覆盖丢失。
 """
+import os
 import subprocess
 import sys
 
@@ -35,6 +37,10 @@ FREEZE_PATHS = [                   # 冻结路径：永远保持本仓库自己�
     "scripts/gen_opencc_locales.mjs",  # ROOT_PAGES 增加 disclaimer.html（zh-tw 生成清单）
     "scripts/check_clarity_refs.py",   # 统计守卫豁免 TOOLBOX-REDIRECT 存根页
     ".gitignore",                  # 本地忽略规则（tools.zip >100MB 不可入库，上游版本无此行会致误提交）
+]
+EXCLUDE_PATHS = [                  # 排除路径：上游仍有、但本地已永久删除的文件（read-tree 后强制删除，防每轮复活）
+    "js/ad_metrics.js",            # 广告埋点（推广信息，已清理）
+    "json/analytics_51la_overview.json",  # 51.la 统计数据缓存（非百度统计，已清理）
 ]
 DRY_RUN = "--dry-run" in sys.argv
 
@@ -66,8 +72,9 @@ if upstream_head == local_head:
 head_only = [l for l in git("diff", "--name-only", "--diff-filter=D",
                             "HEAD", UPSTREAM_REF).splitlines() if l]
 
-# 3. 差异摘要（排除冻结路径与本地独有文件，只看会真正更新的内容）
+# 3. 差异摘要（排除冻结路径、排除路径与本地独有文件，只看会真正更新的内容）
 pathspec = (["."] + [":(exclude)%s" % p for p in FREEZE_PATHS]
+            + [":(exclude)%s" % p for p in EXCLUDE_PATHS]
             + [":(exclude)%s" % f for f in head_only])
 stat = git("diff", "--stat", "HEAD", UPSTREAM_REF, "--", *pathspec)
 last = stat.splitlines()[-1] if stat else "0 files changed"
@@ -101,6 +108,12 @@ for p in FREEZE_PATHS:
         print("已冻结: %s" % p)
     else:
         print("跳过冻结: %s（本仓库尚无此路径）" % p)
+
+# 5.5 删除排除路径（上游仍有、本地已永久删除的文件，read-tree 会把它们带回来）
+for p in EXCLUDE_PATHS:
+    if os.path.exists(p):
+        git("rm", "-f", "-q", "--", p)
+        print("已排除: %s" % p)
 
 # 6. 恢复本地独有文件（分批防命令行超长）
 if head_only:

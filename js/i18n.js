@@ -430,9 +430,6 @@ var LANG_REGISTRY = [
       'tool.result_actions': 'Result actions',
       'foot.la_widget_aria': 'ToolBox real-time visit data',
       'about.stats_aria': 'Site statistics',
-      // 页脚友情链接（淘宝客文字广告）
-      'footer.friend_tip': '(orders via this link support us)',
-      // 关于页面 - 支持我们（淘宝客说明）
     }
   };
 
