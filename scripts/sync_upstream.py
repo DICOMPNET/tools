@@ -96,22 +96,34 @@ head_only = [l for l in git("diff", "--name-only", "--diff-filter=D",
                             "HEAD", UPSTREAM_REF).splitlines() if l]
 
 # 3. 差异摘要（排除冻结路径、排除路径与本地独有文件，只看会真正更新的内容）
-#    head_only 可能数千项（如 zh-tw 入库后），拼接命令行会超 Windows 32KB 限制，
-#    改用 --pathspec-from-file 传参。
-import tempfile
+#    head_only 可能数千项（如 zh-tw 入库后），拼接 pathspec 会超 Windows 命令行限制；
+#    本机 git diff 也不支持 --pathspec-from-file。改为 --numstat 全量取回后在内存过滤聚合。
 
 def diff_stat_excluded():
-    specs = (["."] + [":(exclude)%s" % p for p in FREEZE_PATHS]
-             + [":(exclude)%s" % p for p in EXCLUDE_PATHS]
-             + [":(exclude)%s" % f for f in head_only])
-    fd, tmp = tempfile.mkstemp(suffix=".txt")
-    try:
-        with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as tf:
-            tf.write("\n".join(specs))
-        return git("diff", "--stat", "HEAD", UPSTREAM_REF,
-                   "--pathspec-from-file=%s" % tmp)
-    finally:
-        os.unlink(tmp)
+    num = git("diff", "--numstat", "--no-renames", "HEAD", UPSTREAM_REF)
+    head_only_set = set(head_only)
+    exclude_set = set(EXCLUDE_PATHS)
+    freeze_keys = [p.rstrip("/") for p in FREEZE_PATHS]
+
+    def skip(p):
+        if p in head_only_set or p in exclude_set:
+            return True
+        return any(p == k or p.startswith(k + "/") for k in freeze_keys)
+
+    files = ins = dels = 0
+    for line in num.splitlines():
+        parts = line.split("\t")
+        if len(parts) < 3:
+            continue
+        a, d, p = parts[0], parts[1], "\t".join(parts[2:])
+        if skip(p):
+            continue
+        files += 1
+        if a != "-":
+            ins += int(a)
+        if d != "-":
+            dels += int(d)
+    return "%d files changed, %d insertions(+), %d deletions(-)" % (files, ins, dels)
 
 stat = diff_stat_excluded()
 last = stat.splitlines()[-1] if stat else "0 files changed"
