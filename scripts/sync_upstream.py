@@ -96,10 +96,24 @@ head_only = [l for l in git("diff", "--name-only", "--diff-filter=D",
                             "HEAD", UPSTREAM_REF).splitlines() if l]
 
 # 3. 差异摘要（排除冻结路径、排除路径与本地独有文件，只看会真正更新的内容）
-pathspec = (["."] + [":(exclude)%s" % p for p in FREEZE_PATHS]
-            + [":(exclude)%s" % p for p in EXCLUDE_PATHS]
-            + [":(exclude)%s" % f for f in head_only])
-stat = git("diff", "--stat", "HEAD", UPSTREAM_REF, "--", *pathspec)
+#    head_only 可能数千项（如 zh-tw 入库后），拼接命令行会超 Windows 32KB 限制，
+#    改用 --pathspec-from-file 传参。
+import tempfile
+
+def diff_stat_excluded():
+    specs = (["."] + [":(exclude)%s" % p for p in FREEZE_PATHS]
+             + [":(exclude)%s" % p for p in EXCLUDE_PATHS]
+             + [":(exclude)%s" % f for f in head_only])
+    fd, tmp = tempfile.mkstemp(suffix=".txt")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as tf:
+            tf.write("\n".join(specs))
+        return git("diff", "--stat", "HEAD", UPSTREAM_REF,
+                   "--pathspec-from-file=%s" % tmp)
+    finally:
+        os.unlink(tmp)
+
+stat = diff_stat_excluded()
 last = stat.splitlines()[-1] if stat else "0 files changed"
 print("\n将更新的内容（已排除冻结路径与本地独有文件）: %s" % last)
 if head_only:
