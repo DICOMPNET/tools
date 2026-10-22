@@ -1,0 +1,1018 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-opencc-locale="zh-tw">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=encode,industry=it,icon=🔤,bg=#f3e5f5">
+<meta name="description" content="Base64編解碼工具是一款免費的線上IT 開發工具，📁 點選選擇檔案，或拖拽檔案到這裡。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta name="keywords" content="Base64,Base64編碼,Base64解碼,Base64線上,Base64加密,Base64解密,線上編碼,編解碼工具,開發工具">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://tools.dicomp.net/zh-tw/tools/it/base64-converter.html">
+<meta property="og:title" content="Base64編解碼工具 - 免費線上開發工具">
+<meta property="og:description" content="Base64編解碼工具是一款免費的線上IT 開發工具，📁 點選選擇檔案，或拖拽檔案到這裡。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://tools.dicomp.net/zh-tw/tools/it/base64-converter.html">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Base64編解碼工具 - 免費線上開發工具">
+<meta name="twitter:description" content="Base64編解碼工具是一款免費的線上IT 開發工具，📁 點選選擇檔案，或拖拽檔案到這裡。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+
+<title>Base64編解碼工具 - 免費線上開發工具</title>
+<meta name="theme-color" content="#FF6B35">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="stylesheet" href="/css/common.css">
+<style>
+/* 仅补充 common.css 未覆盖的局部样式 */
+.algo-select{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;}
+.algo-btn{padding:8px 14px;border:1.5px solid var(--border);background:var(--card-bg);border-radius:10px;cursor:pointer;font-size:13px;color:var(--text-light);transition:all 0.2s;font-weight:500;}
+.algo-btn:hover{border-color:var(--primary);color:var(--primary);background:var(--bg-hover);}
+.algo-btn.active{background:var(--gradient-primary);color:#fff;border-color:transparent;}
+.batch-result{max-height:220px;overflow-y:auto;padding:0 !important;}
+.batch-item{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-bottom:1px solid var(--border);font-size:13px;gap:10px;}
+.batch-item:last-child{border-bottom:none;}
+.batch-item .src{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-light);}
+.batch-item .dst{flex:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:'SF Mono','Courier New','Fira Code',monospace;color:var(--primary);}
+.batch-item button{padding:4px 10px;font-size:12px;flex-shrink:0;}
+.history-item{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-radius:12px;cursor:pointer;transition:all 0.2s;font-size:13px;border:1px solid var(--border);margin-bottom:8px;background:var(--card-bg);}
+.history-item:hover{background:var(--result-bg);border-color:var(--primary);transform:translateX(2px);}
+.history-item .h-src{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-light);margin-right:10px;}
+.history-item .h-meta{flex-shrink:0;color:var(--text-muted);font-size:12px;display:flex;align-items:center;gap:8px;}
+.history-item .h-meta .tag{padding:2px 8px;border-radius:20px;background:var(--result-bg);font-size:11px;font-weight:500;border:1px solid var(--border);}
+.preview-box{text-align:center;padding:16px;border:1px solid var(--border);border-radius:12px;margin-top:12px;background:var(--result-bg);}
+.preview-box img{max-width:100%;max-height:300px;border-radius:8px;}
+.file-drop{border:2px dashed var(--border);border-radius:12px;padding:32px 20px;text-align:center;cursor:pointer;transition:all 0.2s;color:var(--text-muted);background:var(--card-bg);}
+.file-drop:hover,.file-drop.drag{border-color:var(--primary);color:var(--primary);background:var(--bg-hover);}
+.file-drop p{font-size:14px;margin-bottom:4px;font-weight:500;}
+.file-drop .hint{font-size:12px;}
+.file-info{margin-top:12px;padding:14px;background:var(--result-bg);border-radius:12px;font-size:13px;border:1px solid var(--border);}
+.file-info p{margin:4px 0;}
+@media(max-width:600px){
+  .algo-btn{flex:1;text-align:center;padding:8px 10px;font-size:12px;}
+  .batch-item{flex-wrap:wrap;gap:6px;}
+  .batch-item .src,.batch-item .dst{flex:1 1 100%;white-space:normal;}
+}
+</style>
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/common.js" defer></script>
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Base64編解碼工具","description":"免費線上Base64編碼解碼工具，支援字串和檔案的Base64轉換，支援UTF-8中文。純前端本地處理，資料不上傳。","url":"https://tools.dicomp.net/zh-tw/tools/it/base64-converter.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Web","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"},"inLanguage":"zh-TW","isAccessibleForFree":true,"browserRequirements":"Requires JavaScript. Requires HTML5.","softwareVersion":"1.0"}</script>
+
+
+<meta property="og:image" content="https://tools.dicomp.net/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免費線上工具">
+<meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免費線上工具">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Base64編解碼工具","url":"https://tools.dicomp.net/zh-tw/tools/it/base64-converter.html","applicationCategory":"DeveloperApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"Base64編解碼工具是一款免費的線上IT 開發工具，📁 點選選擇檔案，或拖拽檔案到這裡。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首頁","item":"https://tools.dicomp.net/zh-tw/"},{"@type":"ListItem","position":2,"name":"IT 開發","item":"https://tools.dicomp.net/zh-tw/tools/it/index.html"},{"@type":"ListItem","position":3,"name":"Base64編解碼工具","item":"https://tools.dicomp.net/zh-tw/tools/it/base64-converter.html"}]}</script>
+
+<script src="/js/i18n.js" defer></script>
+<script src="/js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+
+
+<meta name="title-en" content="Base64 Encode/Decode">
+<meta name="desc-en" content="Base64 Encode/Decode - convert values online with instant results.">
+
+
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
+
+<script src="/js/tool-ux.js" defer></script>
+<!-- TOOLBOX-TOOL-UX -->
+<script src="/js/analytics.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Base64 是加密嗎？","acceptedAnswer":{"@type":"Answer","text":"不是。Base64 只是編碼（二進位制↔文本對映），任何人都能解碼，不含任何金鑰或保密性，絕不能用來保護敏感資料。"}},{"@type":"Question","name":"為什麼編碼後變長了約 1/3？","acceptedAnswer":{"@type":"Answer","text":"Base64 每 3 位元組原始資料變成 4 個可列印字元，體積約膨脹 33%，這是編碼的固有代價。"}},{"@type":"Question","name":"URL 裡為什麼有時看到 - 和 _ 而不是 + 和 /？","acceptedAnswer":{"@type":"Answer","text":"標準 Base64 的 + / = 在 URL 中有特殊含義，URL-safe 變體把它們替換為 - _ 並去掉填充 =，適合直接拼進查詢引數。"}}]}</script>
+
+<script src="/js/hot-tool-enhancements.js" defer></script>
+<!-- TOOLBOX-HOT-TOOL-UX -->
+<!-- TOOLBOX-TTZZ -->
+<script>
+(function(){try{
+var el = document.createElement("script");
+el.src = "https://lf1-cdn-tos.bytegoofy.com/goofy/ttzz/push.js?85d6452aa9be4d693b16cd48535a8c7ae57542f6788a41682e745be8eb99b35a8a24d2f724c31ebe20c1e4e6fba6d91caf576100b02a2870c72f38fc574066fef065d152c73bf1cbb2ebad3b5b5265d8";
+el.id = "ttzz";
+var s = document.getElementsByTagName("script")[0];
+s.parentNode.insertBefore(el, s);
+}catch(e){}
+})(window);
+</script>
+
+<script src="/js/tool-kit.js" defer></script>
+<!-- TOOLBOX-TOOL-KIT -->
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://tools.dicomp.net/tools/it/base64-converter.html">
+<link rel="alternate" hreflang="zh-TW" href="https://tools.dicomp.net/zh-tw/tools/it/base64-converter.html">
+<link rel="alternate" hreflang="en-US" href="https://tools.dicomp.net/tools/it/base64-converter.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://tools.dicomp.net/tools/it/base64-converter.html">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+</head>
+<body>
+<h1 class="sr-only">Base64編解碼工具</h1>
+
+<div class="nav">
+  <a href="/zh-tw/index.html">← ToolBox</a>
+  <span>/ Base64/32/85 編解碼</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+
+
+<nav class="breadcrumb" aria-label="麵包屑導航" data-breadcrumb="1">
+  <a href="/zh-tw/index.html">首頁</a>
+  <span class="bc-sep">‹</span>
+  <a href="/zh-tw/tools/it/index.html">💻 開發</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">Base64編解碼工具</span>
+</nav>
+
+<div class="tool-guide-link" data-guide-link="1">
+  <a href="/zh-tw/guides/base64-guide.html">📖 檢視「Base64 編解碼使用指南」</a>
+</div>
+<div class="container">
+  <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
+    <h2 data-zh="🔤 Base64 編解碼工具">🔤 Base64 Encoder / Decoder</h2>
+<div class="formula-box">
+  <div class="formula-title">📐 工作原理與說明</div>
+  <div class="formula-desc">把二進位制資料編碼為可安全穿越文本協議的 ASCII 字串，是表示層變換而非加密。</div>
+  <ul class="formula-list">
+    <li><b>分組</b>：每 3 位元組（24 位）切為 4 個 6 位組，對映到 A–Z a–z 0–9 + / 共 64 個字元。</li>
+    <li><b>填充</b>：不足 3 位元組時用 <code>=</code> 補 1–2 個；URL 安全變體用 <code>-</code> 與 <code>_</code> 替代 <code>+</code> <code>/</code>。</li>
+    <li><b>體積</b>：編碼後約為原文的 4/3（膨脹約 33%），不能當壓縮用。</li>
+    <li><b>用途</b>：在 JSON、HTML、郵件等文本協議中承載二進位制；不提供任何機密性。</li>
+  </ul>
+</div>
+
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-i18n="it.base64.intro" data-i18n-fb="支援文本、檔案與批次模式的 Base64 / Base32 / Base85 編解碼，全程在瀏覽器內完成。">Encode and decode Base64, Base32 and Base85 in your browser — text, files and batch mode, all local with no upload.</p>
+
+    <div class="algo-select">
+      <button type="button" class="algo-btn active" data-algo="base64" onclick="setAlgo('base64')">Base64</button>
+      <button type="button" class="algo-btn" data-algo="base32" onclick="setAlgo('base32')">Base32</button>
+      <button type="button" class="algo-btn" data-algo="base85" onclick="setAlgo('base85')">Base85</button>
+    </div>
+
+    <div class="tabs">
+      <button type="button" class="tab-btn active" data-tab="text" onclick="switchTab('text')">📝 文本模式</button>
+      <button type="button" class="tab-btn" data-tab="file" onclick="switchTab('file')">📁 檔案模式</button>
+      <button type="button" class="tab-btn" data-tab="batch" onclick="switchTab('batch')">📊 批次處理</button>
+    </div>
+
+    <div id="tabText" class="tab-content active">
+      <div class="checkbox-row">
+        <label><input type="checkbox" id="urlSafe"> URL安全模式</label>
+        <label><input type="checkbox" id="autoDetect" checked> 自動檢測輸入型別</label>
+      </div>
+      <label>輸入內容</label>
+      <textarea id="input" placeholder="输入要编码的文本，或要解码的 Base64/32/85 字符串..." oninput="onInputChange()"></textarea>
+
+      <div class="stat-grid" style="margin-top:12px;">
+        <div class="stat-card"><div class="val" id="statInLen">0</div><div class="lbl">輸入字元數</div></div>
+        <div class="stat-card"><div class="val" id="statOutLen">0</div><div class="lbl">輸出字元數</div></div>
+        <div class="stat-card"><div class="val" id="statInSize">0 B</div><div class="lbl">輸入大小</div></div>
+        <div class="stat-card"><div class="val" id="statRatio">-</div><div class="lbl">膨脹率</div></div>
+      </div>
+
+      <div class="toolbar">
+        <button type="button" class="btn primary" onclick="encodeText()">編碼 ↑</button>
+        <button type="button" class="btn primary" onclick="decodeText()">解碼 ↓</button>
+        <button type="button" class="btn success" onclick="copyOutput()">複製結果</button>
+        <button type="button" class="btn" onclick="swapIO()">⇅ 交換</button>
+        <button type="button" class="btn" onclick="clearAll()">清空</button>
+        <button type="button" class="btn" onclick="loadBase64Sample('encode')">示例·編碼</button>
+        <button type="button" class="btn" onclick="loadBase64Sample('decode')">示例·解碼</button>
+      </div>
+
+      <label>輸出結果</label>
+      <textarea id="output" placeholder="结果将显示在这里..." readonly></textarea>
+
+      <div id="imagePreview" class="preview-box" style="display:none;">
+        <p style="margin-bottom:8px;font-size:13px;color:var(--text-light);">🖼️ 圖片預覽</p>
+        <img id="previewImg" alt="preview" onerror="document.getElementById('imagePreview').style.display='none'">
+      </div>
+    </div>
+
+    <div id="tabFile" class="tab-content">
+      <div id="fileDrop" class="file-drop">
+        <p>📁 點選選擇檔案，或拖拽檔案到這裡</p>
+        <p class="hint">支援圖片、文件等各類檔案</p>
+        <input type="file" id="fileInput" style="display:none">
+      </div>
+
+      <div id="fileResult" style="display:none;">
+        <div class="file-info">
+          <p><strong>檔名：</strong><span id="fileName">-</span></p>
+          <p><strong>檔案大小：</strong><span id="fileSize">-</span></p>
+          <p><strong>檔案型別：</strong><span id="fileType">-</span></p>
+        </div>
+        <div id="filePreview" class="preview-box" style="display:none;">
+          <img id="filePreviewImg" alt="preview">
+        </div>
+        <label style="margin-top:12px;">編碼結果（Data URI）</label>
+        <textarea id="fileOutput" style="min-height:100px;"></textarea>
+        <div class="toolbar" style="margin-top:8px;">
+          <button type="button" class="btn success" onclick="copyFileOutput()">複製</button>
+          <button type="button" class="btn" onclick="downloadResult()">下載</button>
+          <button type="button" class="btn danger" onclick="clearFile()">清除</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="tabBatch" class="tab-content">
+      <label>每行一條文本</label>
+      <textarea id="batchInput" placeholder="line1&#10;line2&#10;line3" style="min-height:120px;"></textarea>
+      <div class="toolbar">
+        <button type="button" class="btn primary" onclick="batchEncode()">批次編碼</button>
+        <button type="button" class="btn primary" onclick="batchDecode()">批次解碼</button>
+        <button type="button" class="btn success" onclick="copyBatchResult()">複製全部結果</button>
+        <button type="button" class="btn" onclick="clearBatch()">清空</button>
+      </div>
+      <label>處理結果</label>
+      <div id="batchResult" class="result-box batch-result">
+        <p style="padding:16px;text-align:center;color:var(--text-muted);">結果將顯示在這裡</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>📜 歷史記錄</h2>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <span style="font-size:13px;color:var(--text-muted);">最近 10 條記錄</span>
+      <button type="button" class="btn danger" style="padding:6px 12px;font-size:12px;" onclick="clearHistory()">清空歷史</button>
+    </div>
+    <div id="historyList">
+      <p style="text-align:center;color:var(--text-muted);font-size:13px;padding:20px;">暫無歷史記錄</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>📐 編碼演算法對比（按當前輸入實測）</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">用當前「文本編碼」頁輸入框的內容（為空時用內建樣例）分別按各演算法編碼，比較輸出長度與膨脹率。</p>
+    <div id="b64CompareChart"></div>
+    <h3 style="margin:14px 0 8px;">🧮 演算法特性對照</h3>
+    <div id="b64AlgoTable"></div>
+    <h3 style="margin:14px 0 8px;">🔤 字元集參考</h3>
+    <div id="b64CharsetTable"></div>
+    <div class="toolbar" style="margin-top:12px;">
+      <button type="button" class="btn" onclick="window.__b64ExportAlgo()">⬇️ 匯出演算法對照 CSV</button>
+      <button type="button" class="btn" onclick="window.__b64ExportCharset()">⬇️ 匯出字元集 CSV</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>📚 技術說明</h2>
+
+    <h3>Base64</h3>
+    <p style="font-size:13px;color:var(--text-light);margin-bottom:8px;">
+      Base64 是一種基於 64 個可列印字元來表示二進位制資料的編碼方式，使用 A-Z、a-z、0-9、+、/ 共 64 個字元（URL安全模式使用 - 和 _）。每 3 個位元組編碼為 4 個字元，資料膨脹約 33%。常用於電子郵件、URL、資料儲存等場景。
+    </p>
+
+    <h3 style="margin-top:12px;">Base32</h3>
+    <p style="font-size:13px;color:var(--text-light);margin-bottom:8px;">
+      Base32 使用 A-Z 和 2-7 共 32 個字元，每 5 個位元組編碼為 8 個字元，資料膨脹約 60%。相比 Base64，它不區分大小寫，更適合不區分大小寫的系統（如 DNS、檔名）。
+    </p>
+
+    <h3 style="margin-top:12px;">Base85 (Ascii85)</h3>
+    <p style="font-size:13px;color:var(--text-light);margin-bottom:8px;">
+      Base85 使用 85 個 ASCII 字元，每 4 個位元組編碼為 5 個字元，資料膨脹約 25%，是編碼效率最高的常見編碼方式。常用於 PostScript、PDF 等格式中。
+    </p>
+
+    <h3 style="margin-top:12px;">URL安全模式</h3>
+    <p style="font-size:13px;color:var(--text-light);">
+      URL安全的 Base64 將 + 替換為 -，/ 替換為 _，並移除末尾的 = 填充，使編碼結果可安全用於 URL 和檔名。
+    </p>
+  </div>
+
+  <div class="tool-notes" style="--tool-accent:#FF6B35;">
+    <div class="tool-notes-title">⚠️ 使用說明與注意事項</div>
+    <ul>
+      <li>本工具純前端執行，資料不會上傳到伺服器</li>
+      <li>建議在主流瀏覽器（Chrome/Safari/Firefox/Edge）中使用</li>
+      <li>計算結果僅供參考，請以實際應用場景為準</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+(function(){
+  var currentAlgo = 'base64';
+  var HISTORY_KEY = 'base64_history';
+  var MAX_HISTORY = 10;
+
+  var BASE32_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+  var BASE85_CHARS = '!"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstu';
+
+  function setAlgo(algo){
+    currentAlgo = algo;
+    document.querySelectorAll('.algo-btn').forEach(function(b){
+      b.classList.toggle('active', b.dataset.algo === algo);
+    });
+    var urlSafe = document.getElementById('urlSafe');
+    urlSafe.disabled = algo !== 'base64';
+    urlSafe.parentElement.style.opacity = algo === 'base64' ? '1' : '0.5';
+    onInputChange();
+  }
+
+  function switchTab(tab){
+    document.querySelectorAll('.tab-btn').forEach(function(b){
+      b.classList.toggle('active', b.dataset.tab === tab);
+    });
+    document.querySelectorAll('.tab-content').forEach(function(p){
+      p.classList.toggle('active', p.id === 'tab' + tab.charAt(0).toUpperCase() + tab.slice(1));
+    });
+  }
+
+  function getByteLength(str){
+    return new TextEncoder().encode(str).length;
+  }
+
+  function formatSize(bytes){
+    if(bytes < 1024) return bytes + ' B';
+    if(bytes < 1024*1024) return (bytes/1024).toFixed(1) + ' KB';
+    return (bytes/(1024*1024)).toFixed(2) + ' MB';
+  }
+
+  function updateStats(input, output){
+    var inLen = input ? input.length : 0;
+    var outLen = output ? output.length : 0;
+    var inBytes = input ? getByteLength(input) : 0;
+    document.getElementById('statInLen').textContent = inLen;
+    document.getElementById('statOutLen').textContent = outLen;
+    document.getElementById('statInSize').textContent = formatSize(inBytes);
+    if(inBytes > 0 && outLen > 0){
+      var ratio = ((outLen - inBytes) / inBytes * 100).toFixed(1);
+      document.getElementById('statRatio').textContent = (ratio >= 0 ? '+' : '') + ratio + '%';
+    } else {
+      document.getElementById('statRatio').textContent = '-';
+    }
+  }
+
+  function utf8ToBytes(str){
+    return new TextEncoder().encode(str);
+  }
+
+  function bytesToUtf8(bytes){
+    return new TextDecoder().decode(bytes);
+  }
+
+  function base64Encode(bytes, urlSafe){
+    var binary = '';
+    for(var i=0;i<bytes.length;i++) binary += String.fromCharCode(bytes[i]);
+    var encoded = btoa(binary);
+    if(urlSafe){
+      encoded = encoded.replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+    }
+    return encoded;
+  }
+
+  function base64Decode(str, urlSafe){
+    if(urlSafe){
+      str = str.replace(/-/g,'+').replace(/_/g,'/');
+      while(str.length % 4) str += '=';
+    }
+    var binary = atob(str);
+    var bytes = new Uint8Array(binary.length);
+    for(var i=0;i<binary.length;i++) bytes[i] = binary.charCodeAt(i);
+    return bytes;
+  }
+
+  function base32Encode(bytes){
+    var result = '';
+    var buffer = 0;
+    var bits = 0;
+    for(var i=0;i<bytes.length;i++){
+      buffer = (buffer << 8) | bytes[i];
+      bits += 8;
+      while(bits >= 5){
+        bits -= 5;
+        result += BASE32_CHARS[(buffer >> bits) & 0x1F];
+      }
+    }
+    if(bits > 0){
+      buffer <<= (5 - bits);
+      result += BASE32_CHARS[buffer & 0x1F];
+    }
+    while(result.length % 8) result += '=';
+    return result;
+  }
+
+  function base32Decode(str){
+    str = str.toUpperCase().replace(/=+$/,'');
+    var bytes = [];
+    var buffer = 0;
+    var bits = 0;
+    for(var i=0;i<str.length;i++){
+      var idx = BASE32_CHARS.indexOf(str[i]);
+      if(idx === -1) continue;
+      buffer = (buffer << 5) | idx;
+      bits += 5;
+      if(bits >= 8){
+        bits -= 8;
+        bytes.push((buffer >> bits) & 0xFF);
+      }
+    }
+    return new Uint8Array(bytes);
+  }
+
+  function base85Encode(bytes){
+    var result = '';
+    var len = bytes.length;
+    var pad = len % 4;
+    if(pad > 0){
+      var padded = new Uint8Array(len + (4 - pad));
+      padded.set(bytes);
+      bytes = padded;
+    }
+    for(var i=0;i<bytes.length;i+=4){
+      // >>> 0 转无符号：UTF-8 多字节（≥0x80）时 <<24 会溢出为负数，导致 value%85 为负、字符表取到 undefined
+      var value = (((bytes[i] << 24) | (bytes[i+1] << 16) | (bytes[i+2] << 8) | bytes[i+3]) >>> 0);
+      if(value === 0 && i < len){
+        result += 'z';
+        continue;
+      }
+      var encoded = '';
+      for(var j=0;j<5;j++){
+        encoded = BASE85_CHARS[value % 85] + encoded;
+        value = Math.floor(value / 85);
+      }
+      result += encoded;
+    }
+    if(pad > 0){
+      result = result.substring(0, result.length - (4 - pad));
+    }
+    return '<~' + result + '~>';
+  }
+
+  function base85Decode(str){
+    str = str.replace(/^<~|~>$/g,'').replace(/\s/g,'');
+    var bytes = [];
+    var value = 0;
+    var count = 0;
+    for(var i=0;i<str.length;i++){
+      var c = str[i];
+      if(c === 'z'){
+        if(count !== 0) throw new Error('Invalid z position');
+        bytes.push(0,0,0,0);
+        continue;
+      }
+      var idx = BASE85_CHARS.indexOf(c);
+      if(idx === -1) continue;
+      value = value * 85 + idx;
+      count++;
+      if(count === 5){
+        bytes.push((value >> 24) & 0xFF, (value >> 16) & 0xFF, (value >> 8) & 0xFF, value & 0xFF);
+        value = 0;
+        count = 0;
+      }
+    }
+    if(count > 0){
+      for(var j=count;j<5;j++) value = value * 85 + 84;
+      for(var k=0;k<count-1;k++){
+        bytes.push((value >> (24 - k*8)) & 0xFF);
+      }
+    }
+    return new Uint8Array(bytes);
+  }
+
+  function encode(str, urlSafe){
+    var bytes = utf8ToBytes(str);
+    if(currentAlgo === 'base64') return base64Encode(bytes, urlSafe);
+    if(currentAlgo === 'base32') return base32Encode(bytes);
+    if(currentAlgo === 'base85') return base85Encode(bytes);
+    return '';
+  }
+
+  function decode(str, urlSafe){
+    var bytes;
+    if(currentAlgo === 'base64') bytes = base64Decode(str, urlSafe);
+    else if(currentAlgo === 'base32') bytes = base32Decode(str);
+    else if(currentAlgo === 'base85') bytes = base85Decode(str);
+    return bytesToUtf8(bytes);
+  }
+
+  function looksLikeEncoded(str){
+    str = str.trim();
+    if(!str) return false;
+    if(currentAlgo === 'base64'){
+      var s = str.replace(/^data:[^;]+;base64,/,'').replace(/=+$/,'');
+      return /^[A-Za-z0-9+\/_-]+$/.test(s) && s.length > 8;
+    }
+    if(currentAlgo === 'base32'){
+      var s2 = str.replace(/=+$/,'').toUpperCase();
+      return /^[A-Z2-7]+$/.test(s2) && s2.length > 8;
+    }
+    if(currentAlgo === 'base85'){
+      return str.startsWith('<~') || /^[!-u\s]+$/.test(str.trim());
+    }
+    return false;
+  }
+
+  function onInputChange(){
+    var input = document.getElementById('input').value;
+    var output = document.getElementById('output').value;
+    updateStats(input, output);
+
+    var preview = document.getElementById('imagePreview');
+    var img = document.getElementById('previewImg');
+    if(currentAlgo === 'base64' && /^data:image\//.test(output)){
+      preview.style.display = 'block';
+      img.src = output;
+    } else if(currentAlgo === 'base64' && /^data:image\//.test(input)){
+      preview.style.display = 'block';
+      img.src = input;
+    } else {
+      preview.style.display = 'none';
+    }
+  }
+
+  function addHistory(input, output, action){
+    try{
+      var history = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+      var item = {
+        algo: currentAlgo,
+        action: action,
+        input: input.substring(0, 200),
+        output: output.substring(0, 200),
+        time: Date.now()
+      };
+      history.unshift(item);
+      if(history.length > MAX_HISTORY) history = history.slice(0, MAX_HISTORY);
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+      renderHistory();
+    }catch(e){}
+  }
+
+  function renderHistory(){
+    var list = document.getElementById('historyList');
+    var history;
+    try{
+      history = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+    }catch(e){ history = []; }
+    if(history.length === 0){
+      const __h0='<p style="text-align:center;color:var(--text-muted);font-size:13px;padding:20px;">暂无历史记录</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){list.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}list.innerHTML=__h0;
+      return;
+    }
+    var html = '';
+    history.forEach(function(item, idx){
+      var time = new Date(item.time);
+      var timeStr = time.getHours().toString().padStart(2,'0') + ':' + time.getMinutes().toString().padStart(2,'0');
+      html += '<div class="history-item" onclick="loadHistory(' + idx + ')">';
+      html += '<span class="h-src">' + ToolBox.escHtml(item.input.substring(0, 50)) + '</span>';
+      html += '<span class="h-meta"><span class="tag">' + item.algo.toUpperCase() + '</span><span class="tag">' + (item.action === 'encode' ? '编码' : '解码') + '</span>' + timeStr + '</span>';
+      html += '</div>';
+    });
+    const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){list.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}list.innerHTML=__h1;
+  }
+
+  function loadHistory(idx){
+    try{
+      var history = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+      var item = history[idx];
+      if(!item) return;
+      setAlgo(item.algo);
+      switchTab('text');
+      document.getElementById('input').value = item.input;
+      document.getElementById('output').value = item.output;
+      onInputChange();
+      ToolBox.showToast(i18nText());
+    }catch(e){}
+  }
+
+  function clearHistory(){
+    if(!confirm('确定要清空所有历史记录吗？')) return;
+    try{
+      localStorage.removeItem(HISTORY_KEY);
+      renderHistory();
+      ToolBox.showToast(i18nText('toast.msg273'));
+    }catch(e){}
+  }
+
+  function encodeText(){
+    var input = document.getElementById('input').value;
+    if(!input) return ToolBox.showToast(i18nText('toast.msg903'), 'warning');
+    var urlSafe = document.getElementById('urlSafe').checked;
+    try{
+      var result = encode(input, urlSafe);
+      document.getElementById('output').value = result;
+      onInputChange();
+      addHistory(input, result, 'encode');
+    }catch(e){
+      ToolBox.showToast('编码失败：' + e.message, 'error');
+    }
+  }
+
+  function decodeText(){
+    var input = document.getElementById('input').value.trim();
+    if(!input) return ToolBox.showToast(i18nText('toast.msg906'), 'warning');
+    var urlSafe = document.getElementById('urlSafe').checked;
+    var autoDetect = document.getElementById('autoDetect').checked;
+    if(autoDetect && currentAlgo === 'base64' && /^data:[^;]+;base64,/.test(input)){
+      input = input.replace(/^data:[^;]+;base64,/,'');
+    }
+    try{
+      var result = decode(input, urlSafe);
+      document.getElementById('output').value = result;
+      onInputChange();
+      addHistory(input, result, 'decode');
+    }catch(e){
+      ToolBox.showToast('解码失败：请输入有效的 ' + currentAlgo.toUpperCase() + ' 字符串', 'error');
+    }
+  }
+
+  function copyOutput(){
+    var output = document.getElementById('output').value;
+    if(!output) return ToolBox.showToast(i18nText(), 'warning');
+    ToolBox.copyText(output);
+  }
+
+  function swapIO(){
+    var input = document.getElementById('input');
+    var output = document.getElementById('output');
+    var tmp = input.value;
+    input.value = output.value;
+    output.value = tmp;
+    onInputChange();
+  }
+
+  function clearAll(){
+    document.getElementById('input').value = '';
+    document.getElementById('output').value = '';
+    onInputChange();
+  }
+
+  var fileDrop = null;
+  var fileInput = null;
+
+  function initFileDrop(){
+    fileDrop = document.getElementById('fileDrop');
+    fileInput = document.getElementById('fileInput');
+    fileDrop.onclick = function(){ fileInput.click(); };
+    fileDrop.ondragover = function(e){
+      e.preventDefault();
+      fileDrop.classList.add('drag');
+    };
+    fileDrop.ondragleave = function(){ fileDrop.classList.remove('drag'); };
+    fileDrop.ondrop = function(e){
+      e.preventDefault();
+      fileDrop.classList.remove('drag');
+      if(e.dataTransfer.files.length){
+        handleFile(e.dataTransfer.files[0]);
+      }
+    };
+    fileInput.onchange = function(){
+      if(fileInput.files.length) handleFile(fileInput.files[0]);
+    };
+  }
+
+  function handleFile(file){
+    document.getElementById('fileName').textContent = file.name;
+    document.getElementById('fileSize').textContent = formatSize(file.size);
+    document.getElementById('fileType').textContent = file.type || '未知';
+
+    var reader = new FileReader();
+    reader.onload = function(e){
+      var dataUrl = e.target.result;
+      var base64Data = dataUrl;
+
+      if(currentAlgo === 'base64'){
+        if(document.getElementById('urlSafe').checked){
+          var parts = dataUrl.split(',');
+          var encoded = parts[1].replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+          base64Data = parts[0] + ',' + encoded;
+        }
+        document.getElementById('fileOutput').value = base64Data;
+      } else {
+        var binary = atob(dataUrl.split(',')[1]);
+        var bytes = new Uint8Array(binary.length);
+        for(var i=0;i<binary.length;i++) bytes[i] = binary.charCodeAt(i);
+        var encoded;
+        if(currentAlgo === 'base32') encoded = base32Encode(bytes);
+        else encoded = base85Encode(bytes);
+        document.getElementById('fileOutput').value = encoded;
+      }
+
+      document.getElementById('fileResult').style.display = 'block';
+
+      var preview = document.getElementById('filePreview');
+      var img = document.getElementById('filePreviewImg');
+      if(file.type && file.type.startsWith('image/')){
+        preview.style.display = 'block';
+        img.src = dataUrl;
+      } else {
+        preview.style.display = 'none';
+      }
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function copyFileOutput(){
+    var output = document.getElementById('fileOutput').value;
+    if(!output) return ToolBox.showToast(i18nText(), 'warning');
+    ToolBox.copyText(output);
+  }
+
+  function downloadResult(){
+    var output = document.getElementById('fileOutput').value;
+    if(!output) return;
+    var fileName = document.getElementById('fileName').textContent || 'encoded';
+    ToolBox.downloadText(fileName + '.' + currentAlgo + '.txt', output);
+  }
+
+  function clearFile(){
+    document.getElementById('fileResult').style.display = 'none';
+    document.getElementById('fileInput').value = '';
+    document.getElementById('fileOutput').value = '';
+  }
+
+  function batchEncode(){
+    var input = document.getElementById('batchInput').value;
+    var lines = input.split('\n').filter(function(l){ return l.trim(); });
+    if(lines.length === 0) return ToolBox.showToast(i18nText('toast.msg904'), 'warning');
+    var urlSafe = document.getElementById('urlSafe').checked;
+    var results = [];
+    lines.forEach(function(line){
+      try{
+        results.push({src: line, dst: encode(line, urlSafe), ok: true});
+      }catch(e){
+        results.push({src: line, dst: e.message, ok: false});
+      }
+    });
+    renderBatchResult(results);
+  }
+
+  function batchDecode(){
+    var input = document.getElementById('batchInput').value;
+    var lines = input.split('\n').filter(function(l){ return l.trim(); });
+    if(lines.length === 0) return ToolBox.showToast(i18nText('toast.msg907'), 'warning');
+    var urlSafe = document.getElementById('urlSafe').checked;
+    var results = [];
+    lines.forEach(function(line){
+      try{
+        results.push({src: line, dst: decode(line.trim(), urlSafe), ok: true});
+      }catch(e){
+        results.push({src: line, dst: '解码失败', ok: false});
+      }
+    });
+    renderBatchResult(results);
+  }
+
+  function renderBatchResult(results){
+    var container = document.getElementById('batchResult');
+    var html = '';
+    results.forEach(function(r, i){
+      html += '<div class="batch-item">';
+      html += '<span class="src" title="' + ToolBox.escHtml(r.src) + '">' + ToolBox.escHtml(r.src.substring(0, 30)) + '</span>';
+      html += '<span style="color:var(--text-muted);">→</span>';
+      html += '<span class="dst" style="color:' + (r.ok ? 'var(--primary)' : 'var(--danger)') + '" title="' + ToolBox.escHtml(r.dst) + '">' + ToolBox.escHtml(r.dst.substring(0, 40)) + '</span>';
+      html += '<button type="button" class="btn success" style="padding:4px 8px;font-size:11px;" onclick="copyBatchItem(' + i + ')">复制</button>';
+      html += '</div>';
+    });
+    const __h2=html;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){container.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}container.innerHTML=__h2;
+    window._batchResults = results;
+  }
+
+  function copyBatchItem(idx){
+    if(!window._batchResults || !window._batchResults[idx]) return;
+    ToolBox.copyText(window._batchResults[idx].dst);
+  }
+
+  function copyBatchResult(){
+    if(!window._batchResults || window._batchResults.length === 0) return ToolBox.showToast(i18nText(), 'warning');
+    var text = window._batchResults.map(function(r){ return r.dst; }).join('\n');
+    ToolBox.copyText(text);
+  }
+
+  function clearBatch(){
+    document.getElementById('batchInput').value = '';
+    const __h3='<p style="padding:16px;text-align:center;color:var(--text-muted);">结果将显示在这里</p>';if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){document.getElementById('batchResult').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('batchResult').innerHTML=__h3;
+    window._batchResults = null;
+  }
+
+  function loadBase64Sample(kind){
+    switchTab('text');
+    var el = document.getElementById('input');
+    if(kind === 'encode'){
+      el.value = 'Hello, Base64! 你好，世界 🌍';
+      encodeText();
+    } else {
+      el.value = 'SGVsbG8sIFdvcmxkIQ==';
+      decodeText();
+    }
+  }
+
+  window.setAlgo = setAlgo;
+  window.switchTab = switchTab;
+  window.loadBase64Sample = loadBase64Sample;
+  window.onInputChange = onInputChange;
+  window.encodeText = encodeText;
+  window.decodeText = decodeText;
+  // 编码算法对比（供对比卡片跨算法实测输出长度）
+  window.__b64Enc = {
+    bytes: utf8ToBytes,
+    base64: function (bytes) { return base64Encode(bytes, false); },
+    base32: base32Encode,
+    base85: base85Encode
+  };
+  window.copyOutput = copyOutput;
+  window.swapIO = swapIO;
+  window.clearAll = clearAll;
+  window.copyFileOutput = copyFileOutput;
+  window.downloadResult = downloadResult;
+  window.clearFile = clearFile;
+  window.batchEncode = batchEncode;
+  window.batchDecode = batchDecode;
+  window.copyBatchItem = copyBatchItem;
+  window.copyBatchResult = copyBatchResult;
+  window.clearBatch = clearBatch;
+  window.loadHistory = loadHistory;
+  window.clearHistory = clearHistory;
+
+  initFileDrop();
+  renderHistory();
+})();
+</script>
+<script>
+// 编码算法对比卡片（依赖 IIFE 暴露的 window.__b64Enc 与 TBKit）
+(function(){
+  function __b64L(en,zh){ return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh; }
+  function __b64CurrentText(){
+    var el=document.getElementById('input');
+    var t=el?(el.value||''):'';
+    if(!t) t=__b64L('Hello, World! 你好，世界！','Hello, World! 你好，世界！');
+    return t;
+  }
+  function __b64Encoded(){
+    if(typeof window.__b64Enc!=='object'||!window.__b64Enc) return null;
+    try{
+      var bytes=window.__b64Enc.bytes(__b64CurrentText());
+      return {
+        bytes: bytes.length,
+        base64: window.__b64Enc.base64(bytes).length,
+        base32: window.__b64Enc.base32(bytes).length,
+        base85: window.__b64Enc.base85(bytes).length
+      };
+    }catch(e){ return null; }
+  }
+  function __b64RenderCompare(){
+    if(typeof TBKit==='undefined')return;
+    var en=__b64L(true,false);
+    var enc=__b64Encoded();
+    if(enc){
+      TBKit.chart.bar('#b64CompareChart',{
+        title: __b64L('Output length by algorithm (current input)','各算法输出长度（当前输入实测）'),
+        labels: [__b64L('Input bytes','输入字节'),'Base64','Base32','Base85'],
+        series: [{ name: __b64L('Length (chars)','长度（字符）'), data: [enc.bytes, enc.base64, enc.base32, enc.base85] }]
+      });
+    }
+    var algos=[
+      ['Base64','Base64',64,'+33.3%（3 字节 → 4 字符）','邮件、Data URI、JWT','MIME 标准，最通用'],
+      ['Base32','Base32',32,'+60%（5 字节 → 8 字符）','DNS、人声念读、大小写不敏感场景','无小写混淆，适合口述'],
+      ['Base85 (Ascii85)','Base85 (Ascii85)',85,'+25%（4 字节 → 5 字符）','PDF、PostScript、Git 补丁','效率最高，字符集连续'],
+    ];
+    var algoRows=algos.map(function(a){
+      var actual = enc? (a[0]==='Base64'?enc.base64:(a[0]==='Base32'?enc.base32:enc.base85)) : null;
+      var ratioRaw = (actual!=null&&enc&&enc.bytes>0)?(((actual-enc.bytes)/enc.bytes*100).toFixed(1)):null;
+      var ratio = ratioRaw==null?'—':((ratioRaw>=0?'+':'')+ratioRaw+'%');
+      return [ __b64L(a[1],a[0]), a[2], a[3], actual==null?'—':actual, ratio, __b64L(a[5],a[4]) ];
+    });
+    TBKit.matrix.table('#b64AlgoTable',{
+      head: __b64L(['Algorithm','Charset size','Theoretical overhead','Actual output (chars)','Actual overhead','Notes'],
+                   ['算法','字符集大小','理论膨胀率','实测输出长度','实测膨胀率','适用场景']),
+      rows: algoRows
+    });
+    var charsets=[
+      ['Base64','Base64','A–Z、a–z、0–9、+、/（URL 安全：-、_），= 补尾'],
+      ['Base32','Base32','A–Z、2–7，= 补尾'],
+      ['Base85 (Ascii85)','Base85 (Ascii85)',"ASCII 33–117（'!'–'u'）连续区间，Adobe 变体以 <~ ~> 包裹"],
+    ];
+    TBKit.matrix.table('#b64CharsetTable',{
+      head: __b64L(['Algorithm','Character set'],['算法','字符集']),
+      rows: charsets.map(function(c){ return [ __b64L(c[1],c[0]), c[2] ]; })
+    });
+  }
+  window.__b64ExportAlgo=function(){ if(typeof TBKit==='undefined')return; try{ TBKit.util.exportTable('#b64AlgoTable','base64-algorithms.csv'); }catch(e){} };
+  window.__b64ExportCharset=function(){ if(typeof TBKit==='undefined')return; try{ TBKit.util.exportTable('#b64CharsetTable','base64-charsets.csv'); }catch(e){} };
+  function __b64Boot(){ __b64RenderCompare(); }
+  if (document.readyState && document.readyState !== 'loading') __b64Boot();
+  else document.addEventListener('DOMContentLoaded', __b64Boot);
+  // 输入变化时刷新实测列（节流到 300ms）
+  var __b64Timer=null;
+  document.addEventListener('input', function(e){
+    var t=e.target;
+    if(!t||t.id!=='input') return;
+    if(__b64Timer) clearTimeout(__b64Timer);
+    __b64Timer=setTimeout(__b64RenderCompare,300);
+  });
+  document.addEventListener('toolbox:langchange', function(){ __b64RenderCompare(); });
+})();
+</script>
+<script>
+// tool-intro折叠交互
+document.addEventListener('DOMContentLoaded',function(){
+  var headers=document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click',function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+</script>
+
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto 0;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+.deep-dive a.term-link{color:var(--tool-accent,#FF6B35);text-decoration:none;border-bottom:1px dashed currentColor;}
+.deep-dive a.term-link:hover{border-bottom-style:solid;}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：Base64 編解碼工具</h2>
+<h3>💡 常見使用場景</h3>
+<ul class="dd-list">
+<li>在介面聯調或郵件附件傳輸時，常需把二進位制或特殊字元轉成純 ASCII 文本，Base64 是最常用的方案。</li>
+<li>前端把圖片以 data:image/png;base64,… 內聯進 HTML/<a class="term-link" href="/zh-tw/tools/it/css-formatter.html">CSS</a> 時，可用本工具快速得到編碼串。</li>
+<li>除錯閘道器日誌裡出現 Base64 串時，貼上進來即可還原成可讀原文。</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">編碼 &quot;Hello, World!&quot;</div><div class="dd-ex-body">輸入 `Hello, World!` → 輸出 `SGVsbG8sIFdvcmxkIQ==`（共 16 位元組原文編碼為 20 字元，長度約膨脹 33%）。</div></div>
+<h3>❓ 常見問題（FAQ）</h3>
+<dl class="dd-faq">
+<dt>Base64 是加密嗎？</dt><dd>不是。Base64 只是編碼，任何人都能解碼，不能用於保密；保密請使用 AES/<a class="term-link" href="/zh-tw/tools/it/hmac-generator.html">HMAC</a> 等。</dd>
+<dt>為什麼編碼後長度變長？</dt><dd>每 3 位元組原文編碼為 4 個字元，因此體積約變為原來的 4/3。</dd>
+</dl>
+</div>
+</section>
+<!-- 相關工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相關工具</h3>
+  <div class="related-tools-grid">
+    <a href="/zh-tw/tools/it/properties-parser.html" class="related-tool-card">
+      <span class="rt-icon">📄</span>
+      <span class="rt-info"><span class="rt-name">.properties 解析器 - 免費開發工具，properties 解析器 | ToolBox免費線上工具箱</span><span class="rt-desc">.properties 解析器</span></span>
+    </a>
+    <a href="/zh-tw/tools/it/ast-viewer.html" class="related-tool-card">
+      <span class="rt-icon">💻</span>
+      <span class="rt-info"><span class="rt-name">AST抽象語法樹檢視器 - 線上解析JavaScript程式碼生成AST樹形結構，支援節點 | ToolBox免費線上工具箱</span><span class="rt-desc">AST 抽象語法樹檢視器</span></span>
+    </a>
+    <a href="/zh-tw/tools/it/css-minifier.html" class="related-tool-card">
+      <span class="rt-icon">🧹</span>
+      <span class="rt-info"><span class="rt-name">CSS 壓縮/美化工具 - 免費開發工具，CSS 壓縮/格式化/美化 | ToolBox免費線上工具箱</span><span class="rt-desc">CSS 壓縮/格式化/美化</span></span>
+    </a>
+    <a href="/zh-tw/tools/it/css-formatter.html" class="related-tool-card">
+      <span class="rt-icon">🏋️</span>
+      <span class="rt-info"><span class="rt-name">CSS 格式化 - 免費開發工具，線上CSS 格式化 | ToolBox免費線上工具箱</span><span class="rt-desc">CSS 格式化</span></span>
+    </a>
+    <a href="/zh-tw/tools/it/cron.html" class="related-tool-card">
+      <span class="rt-icon">✨</span>
+      <span class="rt-info"><span class="rt-name">Cron 表示式生成器 - 免費開發工具，線上Cron 表示式生成器 | ToolBox免費線上工具箱</span><span class="rt-desc">⏰ Cron 表示式生成器</span></span>
+    </a>
+    <a href="/zh-tw/tools/it/graphql-formatter.html" class="related-tool-card">
+      <span class="rt-icon">🏋️</span>
+      <span class="rt-info"><span class="rt-name">GraphQL 格式化 - 免費開發工具，線上GraphQL 格式化 | ToolBox免費線上工具箱</span><span class="rt-desc">◈ GraphQL 格式化</span></span>
+    </a>
+  </div>
+</div>
+
+<div class="tool-intro open" id="toolIntro">
+  <div class="tool-intro-header">
+    <span class="intro-icon-wrap"><span class="intro-icon">📖</span>關於「Base64編解碼工具」</span>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="tool-intro-body">
+    <h4><span class="h4-icon">📝</span>工具簡介</h4>
+    <p>免費線上Base64編碼解碼工具，支援字串和檔案的Base64轉換，支援UTF-8中文。純前端本地處理，資料不上傳。專為開發者打造的線上工具，純前端執行，程式碼不離開瀏覽器。</p>
+  </div>
+</div>
+</body>
+</html>

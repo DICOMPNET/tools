@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-opencc-locale="zh-tw">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=calculator,industry=automotive,icon=🚚,bg=#e3f2fd">
+<title>交通物流計算器 - 免費線上汽車交通工具</title>
+<link rel="canonical" href="https://tools.dicomp.net/zh-tw/tools/automotive/transport-calculator.html">
+<meta property="og:title" content="交通物流計算器 - 免費線上汽車交通工具">
+<meta property="og:description" content="交通物流計算器是一款免費的線上汽車交通工具，涵蓋剎車距離、油耗成本、貨物換算、燃油效率、行駛時間、輪胎尺寸等多種交通物流常用計算。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta property="og:url" content="https://tools.dicomp.net/zh-tw/tools/automotive/transport-calculator.html">
+<meta name="twitter:card" content="summary">
+<meta name="description" content="交通物流計算器是一款免費的線上汽車交通工具，涵蓋剎車距離、油耗成本、貨物換算、燃油效率、行駛時間、輪胎尺寸等多種交通物流常用計算。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<link rel="stylesheet" href="/css/common.css">
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/common.js" defer></script>
+<style>
+.calc-section { margin-top: 16px; }
+.calc-section h3 { margin-bottom: 12px; font-size: 16px; color: var(--heading); display: flex; align-items: center; gap: 6px; }
+.quick-select { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+.quick-btn { padding: 6px 14px; border-radius: 8px; border: 1px solid var(--border); background: var(--card-bg); color: var(--text-secondary); font-size: 12px; cursor: pointer; transition: all 0.2s; font-weight: 500; }
+.quick-btn:hover { border-color: var(--primary); color: var(--primary); }
+.quick-btn.active { background: var(--gradient-primary); color: #fff; border-color: transparent; }
+.formula-box { background: var(--result-bg); border: 1px dashed var(--border); border-radius: 10px; padding: 12px 14px; margin-top: 10px; font-size: 13px; color: var(--text-secondary); line-height: 1.7; }
+.formula-box code { font-family: 'SF Mono', 'Courier New', monospace; background: rgba(255,107,53,0.08); padding: 2px 6px; border-radius: 4px; color: var(--primary); font-size: 12px; }
+.result-highlight { font-size: 28px; font-weight: 800; color: var(--primary); margin: 8px 0; line-height: 1.2; }
+.result-detail { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-top: 12px; }
+.result-item { background: var(--result-bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px; text-align: center; }
+.result-item .r-val { font-size: 20px; font-weight: 700; color: var(--primary); }
+.result-item .r-lbl { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+.compare-row { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 10px; margin: 6px 0; font-size: 14px; }
+.compare-row.heavier { background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.2); }
+.compare-row.lighter { background: var(--result-bg); border: 1px solid var(--border); }
+.compare-row .tag { padding: 3px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; margin-left: auto; }
+.tag-winner { background: rgba(16,185,129,0.15); color: #059669; }
+.speed-warn { background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.2); border-radius: 10px; padding: 10px 14px; font-size: 13px; color: #D97706; margin-top: 8px; }
+.speed-ok { background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.2); border-radius: 10px; padding: 10px 14px; font-size: 13px; color: #059669; margin-top: 8px; }
+.direction-arrow { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; background: var(--gradient-primary); color: #fff; font-size: 18px; margin: 12px auto; }
+</style>
+
+
+
+<meta property="og:image" content="https://tools.dicomp.net/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免費線上工具">
+<meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免費線上工具">
+    <meta property="og:type" content="website">
+    <meta name="twitter:title" content="交通物流計算器 - 免費線上汽車交通工具">
+    <meta name="twitter:description" content="交通物流計算器是一款免費的線上汽車交通工具，涵蓋剎車距離、油耗成本、貨物換算、燃油效率、行駛時間、輪胎尺寸等多種交通物流常用計算。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<!-- TOOLBOX-WEBAPP-LD -->
+
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"空載率怎麼影響成本？","acceptedAnswer":{"@type":"Answer","text":"噸公里成本按實載重量攤，空載率高則單位成本陡升。提升裝載率與回程帶貨是降成本關鍵。"}},{"@type":"Question","name":"固定成本要不要算？","acceptedAnswer":{"@type":"Answer","text":"折舊、保險、司機工時屬固定成本，長途大批次攤薄後佔比小，短途零散單固定成本佔比高，報價需覆蓋。"}}]}</script>
+<meta name="title-en" content="Traffic Logistics Calculator">
+<meta name="desc-en" content="Traffic Logistics Calculator - compute values online with accurate results.">
+
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首頁","item":"https://tools.dicomp.net/zh-tw/"},{"@type":"ListItem","position":2,"name":"汽車交通","item":"https://tools.dicomp.net/zh-tw/tools/automotive/index.html"},{"@type":"ListItem","position":3,"name":"交通物流計算器","item":"https://tools.dicomp.net/zh-tw/tools/automotive/transport-calculator.html"}]}</script>
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"交通物流計算器","url":"https://tools.dicomp.net/zh-tw/tools/automotive/transport-calculator.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"交通物流計算器是一款免費的線上汽車交通工具，涵蓋剎車距離、油耗成本、貨物換算、燃油效率、行駛時間、輪胎尺寸等多種交通物流常用計算。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script src="/js/i18n.js" defer></script>
+<script src="/js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
+
+<script src="/js/tool-ux.js" defer></script>
+<!-- TOOLBOX-TOOL-UX -->
+
+<script src="/js/analytics.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+<!-- TOOLBOX-TTZZ -->
+<script>
+(function(){try{
+var el = document.createElement("script");
+el.src = "https://lf1-cdn-tos.bytegoofy.com/goofy/ttzz/push.js?85d6452aa9be4d693b16cd48535a8c7ae57542f6788a41682e745be8eb99b35a8a24d2f724c31ebe20c1e4e6fba6d91caf576100b02a2870c72f38fc574066fef065d152c73bf1cbb2ebad3b5b5265d8";
+el.id = "ttzz";
+var s = document.getElementsByTagName("script")[0];
+s.parentNode.insertBefore(el, s);
+}catch(e){}
+})(window);
+</script>
+
+<script src="/js/tool-kit.js" defer></script>
+<!-- TOOLBOX-TOOL-KIT -->
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://tools.dicomp.net/tools/automotive/transport-calculator.html">
+<link rel="alternate" hreflang="zh-TW" href="https://tools.dicomp.net/zh-tw/tools/automotive/transport-calculator.html">
+<link rel="alternate" hreflang="en-US" href="https://tools.dicomp.net/tools/automotive/transport-calculator.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://tools.dicomp.net/tools/automotive/transport-calculator.html">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+</head>
+<body>
+<h1 class="sr-only">交通物流計算器</h1>
+<div class="nav">
+  <a href="/zh-tw/index.html">← ToolBox</a>
+  <span>/ 交通物流計算器</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+<nav class="breadcrumb" aria-label="麵包屑導航" data-breadcrumb="1">
+  <a href="/zh-tw/index.html">首頁</a>
+  <span class="bc-sep">‹</span>
+  <a href="/zh-tw/tools/automotive/index.html">🚗 汽車交通</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">交通物流計算器</span>
+</nav>
+<div class="container">
+  <style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#3b82f6)}.tbk-tab.active{background:var(--accent,#3b82f6);color:#fff;border-color:var(--accent,#3b82f6)}.tbk-panel{margin-top:6px}</style>
+<div class="tbk-tabbar" role="tablist">
+  <button type="button" class="tbk-tab" data-pane="res">結果</button>
+  <button type="button" class="tbk-tab" data-pane="tbl">資料表</button>
+  <button type="button" class="tbk-tab" data-pane="his">歷史</button>
+</div>
+<div class="card tool-card-accent" style="--tool-accent:#1565c0;">
+    <h2 data-zh="🚚 交通物流計算器">Traffic Logistics Calculator</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="涵蓋剎車距離、油耗成本、貨物換算、燃油效率、行駛時間、輪胎尺寸等多種交通物流常用計算。">Covers common traffic and logistics calculations: braking distance, fuel cost, cargo conversion, fuel efficiency, travel time, and tire size.</p>
+    <div class="input-row">
+      <div><div data-tb="preset" data-tb-presets='[{"label": "示例数据", "labelEn": "Example", "values": {"km": "300", "fc": "20", "price": "7.5", "speed": "60", "load": "5", "rate": "60", "v0": "60", "rt": "1", "vol": "10", "wt": "6", "tire": "205/55R16", "mu": "6.5"}}]'></div>
+<label>行駛里程 (km)</label><input type="number" id="km" value="300" oninput="calc()" min="0" step="any"></div>
+      <div><label>百公里油耗 (L)</label><input type="number" id="fc" value="20" oninput="calc()" min="0" step="any"></div>
+    </div>
+    <div class="input-row">
+      <div><label>油價 (元/L)</label><input type="number" id="price" value="7.5" oninput="calc()" min="0" step="0.01"></div>
+      <div><label>平均車速 (km/h)</label><input type="number" id="speed" value="60" oninput="calc()" min="1" step="any"></div>
+    </div>
+    <div class="input-row">
+      <div><label>額定載重 (噸)</label><input type="number" id="load" value="5" oninput="calc()" min="0" step="any"></div>
+      <div><label>實際裝載率 (%)</label><input type="number" id="rate" value="60" oninput="calc()" min="0" max="100" step="any"></div>
+    </div>
+    <div class="input-row">
+      <div><label>制動初速 (km/h)</label><input type="number" id="v0" value="60" oninput="calc()" min="0" step="any"></div>
+      <div><label>駕駛員反應時間 (s)</label><input type="number" id="rt" value="1" oninput="calc()" min="0" step="0.1"></div>
+    </div>
+    <div class="input-row">
+      <div><label>貨物體積 (m³)</label><input type="number" id="vol" value="10" oninput="calc()" min="0" step="any"></div>
+      <div><label>貨物重量 (噸)</label><input type="number" id="wt" value="6" oninput="calc()" min="0" step="any"></div>
+    </div>
+    <div class="input-row">
+      <div><label>輪胎規格（如 205/55R16）</label><input type="text" id="tire" value="205/55R16" oninput="calc()"></div>
+      <div><label>荷載係數（幹瀝青 6.5 / 溼滑 4.5）</label><input type="number" id="mu" value="6.5" oninput="calc()" min="1" step="0.1"></div>
+    </div>
+    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__transport_calculatorExport()">匯出明細 CSV</button></div><div class="safe-main" id="result"></div> <div id="transport_calculatorTable"></div> <div id="transport_calculatorDiff"></div> <div id="transport_calculatorChart"></div> <div id="transport_calculatorHist"></div>
+    <div class="dist-grid" id="distGrid"></div>
+    <div class="formula-box" id="formulaBox"></div>
+    <div id="adviceBox"></div>
+  </div>
+  <div class="card">
+    <h3>📖 物流成本與安全距離參考</h3>
+    <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:12px;">
+      <tr>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border,#e5e7eb);">運價檔位</th>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border,#e5e7eb);">噸公里成本</th>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border,#e5e7eb);">說明</th>
+      </tr>
+      <tr><td style="padding:6px 8px;">整車滿載長途</td><td style="padding:6px 8px;">0.25 ~ 0.40 元</td><td style="padding:6px 8px;">裝載率高，固定成本攤薄</td></tr>
+      <tr><td style="padding:6px 8px;">整車半載</td><td style="padding:6px 8px;">0.45 ~ 0.70 元</td><td style="padding:6px 8px;">空載率高，單位成本陡升</td></tr>
+      <tr><td style="padding:6px 8px;">零擔拼貨</td><td style="padding:6px 8px;">0.80 ~ 1.50 元</td><td style="padding:6px 8px;">含分揀、裝卸與中轉</td></tr>
+    </table>
+    <div class="scene-card">
+      <h4>🛑 剎車距離三要素</h4>
+      <p>總停車距離 = 反應距離（車速 × 反應時間）+ 制動距離（v²/2a）。車速翻倍制動距離約變 4 倍，雨天附著係數下降還會進一步拉長。</p>
+    </div>
+    <div class="scene-card">
+      <h4>📦 輕泡貨與重貨</h4>
+      <p>密度低於約 0.3 t/m³ 屬輕泡貨，按體積計費更虧；高於 1 t/m³ 屬重貨，受載重限制。報價前先算密度再選計費方式。</p>
+    </div>
+    <div class="info-box">💡 噸公里成本只含燃油，實為「燃油噸公里成本」。報價還須加折舊、保險、司機工時、路橋費與裝卸費，短途零散單這些固定成本佔比更高。</div>
+  </div>
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto 0;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+.deep-dive a.term-link{color:var(--tool-accent,#FF6B35);text-decoration:none;border-bottom:1px dashed currentColor;}
+.deep-dive a.term-link:hover{border-bottom-style:solid;}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：運輸成本估算</h2>
+<h3>💡 常見使用場景</h3>
+<ul class="dd-list">
+<li>配送前按貨物重量、體積、里程與車型核算噸公里成本，報價或控本。</li>
+<li>對比自有車與外包運費，決策運力配置。</li>
+<li>多趟次按空載率與油耗最佳化路線與裝載率。</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">噸公里成本演算</div><div class="dd-ex-body">貨車載重 5 噸、百公里油耗 20L、油價 7.5 元/L，跑 300km 油費=300/100×20×7.5=450 元，噸公里成本=450/(5×300)=0.3 元。若滿載率僅 60%，實際噸公里升到 0.5 元。</div></div>
+<h3>❓ 常見問題（FAQ）</h3>
+<dl class="dd-faq">
+<dt>空載率怎麼影響成本？</dt><dd>噸公里成本按實載重量攤，空載率高則單位成本陡升。提升裝載率與回程帶貨是降成本關鍵。</dd>
+<dt>固定成本要不要算？</dt><dd>折舊、保險、司機工時屬固定成本，長途大批次攤薄後佔比小，短途零散單固定成本佔比高，報價需覆蓋。</dd>
+</dl>
+</div>
+</section>
+<!-- 注意事項區塊 -->
+<div class="tool-notes" style="--tool-accent:#1565c0;">
+  <div class="tool-notes-title">⚠️ 使用說明與注意事項</div>
+  <ul>
+    <li>本工具純前端執行，資料不會上傳到伺服器</li>
+    <li>建議在主流瀏覽器（Chrome/Safari/Firefox/Edge）中使用</li>
+    <li>噸公里成本僅含燃油費用，報價須另行覆蓋折舊、保險、司機工時與路橋費</li>
+  </ul>
+</div>
+</div>
+<!-- 相關工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相關工具</h3>
+  <div class="related-tools-grid">
+    <a href="/zh-tw/tools/automotive/recommender-6.html" class="related-tool-card">
+      <span class="rt-icon">🚗</span>
+      <span class="rt-info"><span class="rt-name">胎壓（監測/充氣）推薦</span><span class="rt-desc">根據車型、載重與季節推薦前後輪標準胎壓，提示冷胎與熱胎讀數差異及充氣注意事項，幫助延長輪胎壽命並保…</span></span>
+    </a>
+    <a href="/zh-tw/tools/automotive/calc-2.html" class="related-tool-card">
+      <span class="rt-icon">⚡</span>
+      <span class="rt-info"><span class="rt-name">發動機功率/扭矩換算</span><span class="rt-desc">根據功率、扭矩與轉速之間的物理關係進行換算，支援 kW 與 PS（公制馬力）互轉。</span></span>
+    </a>
+    <a href="/zh-tw/tools/automotive/oil-change-countdown.html" class="related-tool-card">
+      <span class="rt-icon">📅</span>
+      <span class="rt-info"><span class="rt-name">機油更換倒計時</span><span class="rt-desc">輸入已行駛里程、機油週期與駕駛習慣係數，估算下次機油更換的剩餘里程或天數，避免過度保養或超期損傷。</span></span>
+    </a>
+    <a href="/zh-tw/tools/automotive/countdown-engine-oil.html" class="related-tool-card">
+      <span class="rt-icon">📅</span>
+      <span class="rt-info"><span class="rt-name">機油更換里程倒計時</span><span class="rt-desc">機油更換里程倒計時，按機油型別與駕駛習慣係數智慧計算建議換油間隔與剩餘里程，支援多車管理、資料本地…</span></span>
+    </a>
+    <a href="/zh-tw/tools/automotive/calc-3.html" class="related-tool-card">
+      <span class="rt-icon">🚗</span>
+      <span class="rt-info"><span class="rt-name">輪胎胎壓換算</span><span class="rt-desc">在 bar、psi、kPa、kg/cm² 之間換算輪胎氣壓，並檢視常用參考值。</span></span>
+    </a>
+    <a href="/zh-tw/tools/automotive/wear-brake.html" class="related-tool-card">
+      <span class="rt-icon">🚗</span>
+      <span class="rt-info"><span class="rt-name">剎車片磨損限度</span><span class="rt-desc">按盤厚、MIN 極限與跳動量判斷剎車盤能否繼續使用，並估算剩餘可磨壽命。</span></span>
+    </a>
+  </div>
+</div>
+<script>
+function fmtNum(n,d){d=d==null?2:d;if(!isFinite(n))return '--';return parseFloat(n.toFixed(d)).toString();}
+function val(id){return parseFloat(document.getElementById(id).value);}
+function str(id){return document.getElementById(id).value;}
+function calc(){
+  var R=document.getElementById('result'),G=document.getElementById('distGrid'),
+      F=document.getElementById('formulaBox'),A=document.getElementById('adviceBox');
+  var km=val('km'),fc=val('fc'),price=val('price'),speed=val('speed');
+  var load=val('load'),rate=val('rate'),v0=val('v0'),rt=val('rt');
+  var vol=val('vol'),wt=val('wt'),mu=val('mu');
+  var tire=document.getElementById('tire').value;
+  if(isNaN(km)||isNaN(fc)||isNaN(price)||km<=0||fc<=0){
+    R.innerHTML='<div class="safe-val">--</div><div class="safe-sub">请输入有效的里程与油耗</div>';
+    G.innerHTML='';F.innerHTML='';A.innerHTML='';return;
+  }
+  var oilCost=km/100*fc*price;
+  var loaded=load*rate/100;
+  var tkm=(loaded>0)?oilCost/(loaded*km):0;
+  var tkmFull=(load>0)?oilCost/(load*km):0;
+  var hours=(speed>0)?km/speed:0;
+  var vms=v0/3.6;
+  var react=vms*rt;
+  var brake=(mu>0)?vms*vms/(2*mu):0;
+  var stopDist=react+brake;
+  var density=(vol>0)?wt/vol:0;
+  var m=tire.match(/(\d+)\s*\/\s*(\d+)\s*R\s*(\d+)/i);
+  var dia=0,circ=0,side=0;
+  if(m){
+    var w=parseFloat(m[1]),ar=parseFloat(m[2]),rim=parseFloat(m[3]);
+    side=w*ar/100;
+    dia=rim*25.4+2*side;
+    circ=Math.PI*dia/1000;
+  }
+  const __g5='<div class="safe-val">油费 '+fmtNum(oilCost,0)+' 元 · 吨公里 '+fmtNum(tkm,2)+' 元</div>'+
+    '<div class="safe-sub">装载率 '+fmtNum(rate,0)+'% 下实载 '+fmtNum(loaded,2)+' 吨</div>';R.innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
+  const __g6='<div class="dist-card"><div class="v">'+fmtNum(oilCost,0)+'</div><div class="l">燃油费用 (元)</div></div>'+
+    '<div class="dist-card"><div class="v">'+fmtNum(tkm,2)+'</div><div class="l">吨公里成本 (元)</div></div>'+
+    '<div class="dist-card"><div class="v">'+fmtNum(tkmFull,2)+'</div><div class="l">满载吨公里 (元)</div></div>'+
+    '<div class="dist-card"><div class="v">'+fmtNum(hours,1)+'</div><div class="l">行驶时间 (h)</div></div>'+
+    '<div class="dist-card"><div class="v">'+fmtNum(stopDist,1)+'</div><div class="l">停车总距离 (m)</div></div>'+
+    '<div class="dist-card"><div class="v">'+fmtNum(density,2)+'</div><div class="l">货物密度 (t/m³)</div></div>'+
+    '<div class="dist-card"><div class="v">'+fmtNum(dia,0)+'</div><div class="l">轮胎直径 (mm)</div></div>'+
+    '<div class="dist-card"><div class="v">'+fmtNum(circ,3)+'</div><div class="l">轮胎周长 (m)</div></div>';G.innerHTML=(typeof __g6==='number'?(isFinite(__g6)?__g6:'—'):String(__g6).replace(/Infinity|NaN/g,'—'));
+  const __g7='<div class="fb-title">核心公式</div>'+
+    '<div class="fb-row">燃油费用 = 里程 ÷ 100 × 百公里油耗 × 油价</div>'+
+    '<div class="fb-row">吨公里成本 = 燃油费用 ÷（实载吨数 × 里程）</div>'+
+    '<div class="fb-row">行驶时间 = 里程 ÷ 平均车速</div>'+
+    '<div class="fb-row">停车总距离 = 车速 × 反应时间 + 车速² ÷ (2 × 减速度)</div>'+
+    '<div class="fb-row">货物密度 = 重量 ÷ 体积</div>'+
+    '<div class="fb-row">轮胎直径 = 轮辋直径 × 25.4 + 2 × 断面宽 × 扁平比；周长 = π × 直径</div>';F.innerHTML=(typeof __g7==='number'?(isFinite(__g7)?__g7:'—'):String(__g7).replace(/Infinity|NaN/g,'—'));
+  var ad='';
+  if(tkm>0.8&&rate<80){ ad='<div class="tip-warn">⚠️ 吨公里成本 '+fmtNum(tkm,2)+' 元偏高，主因装载率仅 '+fmtNum(rate,0)+'%。提升装载率或安排回程带货可显著摊薄。</div>'; }
+  else if(tkm>0&&tkm<=0.4){ ad='<div class="tip-success">✅ 吨公里成本 '+fmtNum(tkm,2)+' 元，处于整车满载合理区间，运力利用良好。</div>'; }
+  else{ ad='<div class="tip-info">ℹ️ 吨公里成本 '+fmtNum(tkm,2)+' 元，属常规水平；注意上述仅含燃油，报价还需覆盖固定成本。</div>'; }
+  if(v0>0){ ad+='<div class="tip-info">ℹ️ '+fmtNum(v0,0)+' km/h 时停车总距离约 '+fmtNum(stopDist,1)+' 米（含 '+fmtNum(rt,1)+' 秒反应），请据此保持跟车距离。</div>'; }
+  const __g8=ad;A.innerHTML=(typeof __g8==='number'?(isFinite(__g8)?__g8:'—'):String(__g8).replace(/Infinity|NaN/g,'—'));
+}
+calc();
+
+var __transport_calculator_last=0,__transport_calculator_skip=false;
+function __transport_calculatorSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __transport_calculatorResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __transport_calculatorTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __transport_calculatorRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__transport_calculatorTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#transport_calculatorTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#transport_calculatorDiff');
+        TBKit.history.mount('#transport_calculatorHist',function(rec){
+            __transport_calculator_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __transport_calculator_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__transport_calculatorTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#transport_calculatorChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __transport_calculatorExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__transport_calculator_skip) return;
+    var snap=__transport_calculatorSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__transport_calculatorResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__transport_calculator_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __transport_calculator_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __transport_calculatorRender(keys,rk,en);
+}
+function __transport_calculatorExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#transport_calculatorTable','transport-calculator.csv'); } catch(e){}
+}
+function __transport_calculatorPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#transport_calculatorPresets',[{label:'默认参数',labelEn:'Default',values:{'km':'300', 'fc':'20', 'price':'7.5', 'speed':'60', 'load':'5', 'rate':'60', 'v0':'60', 'rt':'1', 'vol':'10', 'wt':'6', 'tire':'205/55R16', 'mu':'6.5'}}],function(){ calc(); });
+}
+var __transport_calculator_f0=(typeof calc==='function')?calc:null;
+if(__transport_calculator_f0){
+    calc=function(){ var __r=__transport_calculator_f0.apply(null,arguments); try{ __transport_calculatorExtras(); }catch(e){} return __r; };
+}
+function __transport_calculatorBoot(){ try{ __transport_calculatorPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __transport_calculatorBoot();
+else document.addEventListener('DOMContentLoaded', __transport_calculatorBoot);
+</script>
+
+
+<script>/*TBKIT-INJECT-START*/
+(function(){
+  var P={"res": ["result", "transport_calculatorChart"], "tbl": ["transport_calculatorTable"], "his": ["transport_calculatorHist"]};
+  var L={res:['结果','Result'],chart:['图表','Chart'],tbl:['数据表','Data'],pre:['预设','Presets'],his:['历史','History']};
+  function tabify(){
+    var bar=document.querySelector('.tbk-tabbar');
+    if(!bar||!bar.querySelectorAll) return;
+    var btns=bar.querySelectorAll('.tbk-tab');
+    if(!btns||!btns.length) return;
+    var en=false;
+    try{ if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn) en=TBKit.util.isEn(); }catch(e){}
+    if(!en&&document.documentElement&&(document.documentElement.lang||'').indexOf('en')>=0) en=true;
+    for(var i=0;i<btns.length;i++){var p=btns[i].getAttribute('data-pane');btns[i].textContent=en?L[p][1]:L[p][0];}
+    function show(pane){
+      for(var k in P){var ids=P[k];for(var i=0;i<ids.length;i++){var el=document.getElementById(ids[i]);if(el&&el.style)el.style.display=(k===pane?'':'none');}}
+      for(var j=0;j<btns.length;j++){btns[j].className='tbk-tab'+(btns[j].getAttribute('data-pane')===pane?' active':'');}
+    }
+    for(var i=0;i<btns.length;i++){(function(b){b.addEventListener('click',function(){show(b.getAttribute('data-pane'));});})(btns[i]);}
+    show(btns[0].getAttribute('data-pane'));
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',tabify);else tabify();
+})();
+/*TBKIT-INJECT-END*/</script>
+</body>
+</html>

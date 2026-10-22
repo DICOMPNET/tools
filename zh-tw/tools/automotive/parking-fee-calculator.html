@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-opencc-locale="zh-tw">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=calculator,industry=automotive,icon=💰,bg=#f3e5f5">
+<meta name="description" content="停車費用計算器（汽車）是一款免費的線上汽車交通工具，停車費用計算器，支援封頂、免費時長、夜間優惠等多種計費規則求停車費，方便出行停車預算。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta name="keywords" content="停車費計算,停車場費用,停車計費,封頂費用,免費停車,夜間停車,金融計算,線上工具,免費工具,ToolBox">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://tools.dicomp.net/zh-tw/tools/automotive/parking-fee-calculator.html">
+<title>停車費用計算器（汽車） - 方便出行停車預算</title>
+<meta property="og:title" content="停車費用計算器（汽車） - 方便出行停車預算">
+<meta property="og:description" content="停車費用計算器（汽車）是一款免費的線上汽車交通工具，停車費用計算器，支援封頂、免費時長、夜間優惠等多種計費規則求停車費，方便出行停車預算。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta property="og:url" content="https://tools.dicomp.net/zh-tw/tools/automotive/parking-fee-calculator.html">
+<meta name="twitter:card" content="summary">
+<meta name="theme-color" content="#FF6B35">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="stylesheet" href="/css/common.css">
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/common.js" defer></script>
+<style>
+.fee-big { text-align:center; padding:20px 0; }
+.fee-amount { font-size:48px; font-weight:800; color:var(--primary); line-height:1.2; }
+.fee-unit { font-size:14px; color:var(--text-muted); margin-top:4px; }
+.detail-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:12px; }
+.detail-item { background:var(--result-bg); border:1px solid var(--border); border-radius:12px; padding:14px; text-align:center; }
+.detail-item .item-val { font-size:20px; font-weight:700; color:var(--primary); }
+.detail-item .item-lbl { font-size:12px; color:var(--text-muted); margin-top:2px; }
+.breakdown { margin-top:16px; }
+.breakdown-row { display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--border); font-size:14px; }
+.breakdown-row:last-child { border-bottom:none; }
+.breakdown-row .blbl { color:var(--text-secondary); }
+.breakdown-row .bval { font-weight:600; }
+.breakdown-row.total { border-top:2px solid var(--border); border-bottom:none; margin-top:4px; padding-top:12px; }
+.breakdown-row.total .bval { font-size:20px; color:var(--primary); }
+.breakdown-row.discount .bval { color:#059669; }
+.night-section { margin-top:12px; padding:12px; background:rgba(124,58,237,0.06); border-radius:12px; border:1px solid rgba(124,58,237,0.15); }
+.night-section label { font-size:13px; color:var(--secondary); }
+@media(max-width:768px) {
+  .fee-amount { font-size:36px; }
+  .detail-grid { grid-template-columns:1fr 1fr; gap:8px; }
+}
+</style>
+
+
+
+<meta property="og:image" content="https://tools.dicomp.net/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免費線上工具">
+<meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免費線上工具">
+    <meta property="og:type" content="website">
+    <meta name="twitter:title" content="停車費用計算器（汽車） - 方便出行停車預算">
+    <meta name="twitter:description" content="停車費用計算器（汽車）是一款免費的線上汽車交通工具，停車費用計算器，支援封頂、免費時長、夜間優惠等多種計費規則求停車費，方便出行停車預算。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<!-- TOOLBOX-WEBAPP-LD -->
+
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"封頂是怎麼算的？","acceptedAnswer":{"@type":"Answer","text":"封頂指單個自然日（或一次進場）費用不超過該上限，超過部分不再累加。跨天停放通常每日重新計封頂。"}},{"@type":"Question","name":"免費時段怎麼用？","acceptedAnswer":{"@type":"Answer","text":"多數商場消費滿額免 1–2 小時，短停可借免費時段免單；超時按規則從進場起算，非從免費結束起算。"}}]}</script>
+<meta name="title-en" content="Parking Fee Calculator - ( Car )">
+<meta name="desc-en" content="Parking Fee Calculator - ( Car ) - compute values online with accurate results.">
+
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首頁","item":"https://tools.dicomp.net/zh-tw/"},{"@type":"ListItem","position":2,"name":"汽車交通","item":"https://tools.dicomp.net/zh-tw/tools/automotive/index.html"},{"@type":"ListItem","position":3,"name":"停車費用計算器（汽車）","item":"https://tools.dicomp.net/zh-tw/tools/automotive/parking-fee-calculator.html"}]}</script>
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"停車費用計算器（汽車）","url":"https://tools.dicomp.net/zh-tw/tools/automotive/parking-fee-calculator.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"停車費用計算器（汽車）是一款免費的線上汽車交通工具，停車費用計算器，支援封頂、免費時長、夜間優惠等多種計費規則求停車費，方便出行停車預算。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script src="/js/i18n.js" defer></script>
+<script src="/js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
+
+<script src="/js/tool-ux.js" defer></script>
+<!-- TOOLBOX-TOOL-UX -->
+
+<script src="/js/analytics.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+<!-- TOOLBOX-TTZZ -->
+<script>
+(function(){try{
+var el = document.createElement("script");
+el.src = "https://lf1-cdn-tos.bytegoofy.com/goofy/ttzz/push.js?85d6452aa9be4d693b16cd48535a8c7ae57542f6788a41682e745be8eb99b35a8a24d2f724c31ebe20c1e4e6fba6d91caf576100b02a2870c72f38fc574066fef065d152c73bf1cbb2ebad3b5b5265d8";
+el.id = "ttzz";
+var s = document.getElementsByTagName("script")[0];
+s.parentNode.insertBefore(el, s);
+}catch(e){}
+})(window);
+</script>
+
+<script src="/js/tool-kit.js" defer></script>
+<!-- TOOLBOX-TOOL-KIT -->
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://tools.dicomp.net/tools/automotive/parking-fee-calculator.html">
+<link rel="alternate" hreflang="zh-TW" href="https://tools.dicomp.net/zh-tw/tools/automotive/parking-fee-calculator.html">
+<link rel="alternate" hreflang="en-US" href="https://tools.dicomp.net/tools/automotive/parking-fee-calculator.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://tools.dicomp.net/tools/automotive/parking-fee-calculator.html">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+</head>
+<body>
+<h1 class="sr-only">停車費用計算器（汽車）</h1>
+<div class="nav">
+  <a href="/zh-tw/index.html">← ToolBox</a>
+  <span>/ 停車費用計算器（汽車）</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+<nav class="breadcrumb" aria-label="麵包屑導航" data-breadcrumb="1">
+  <a href="/zh-tw/index.html">首頁</a>
+  <span class="bc-sep">‹</span>
+  <a href="/zh-tw/tools/automotive/index.html">🚗 汽車交通</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">停車費用計算器（汽車）</span>
+</nav>
+<div class="container">
+  <style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#3b82f6)}.tbk-tab.active{background:var(--accent,#3b82f6);color:#fff;border-color:var(--accent,#3b82f6)}.tbk-panel{margin-top:6px}</style>
+<div class="tbk-tabbar" role="tablist">
+  <button type="button" class="tbk-tab" data-pane="res">結果</button>
+  <button type="button" class="tbk-tab" data-pane="tbl">資料表</button>
+  <button type="button" class="tbk-tab" data-pane="his">歷史</button>
+</div>
+<div class="card tool-card-accent" style="--tool-accent:#7c3aed;">
+    <h2 data-zh="💰 停車費用計算器（汽車）">Parking Fee Calculator ( Car ) - Parking Fee Calculator</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="按首時段、後續計費單位與單日封頂規則計算停車費，支援免費時長與跨天停放，輔助出行成本預算。">Calculate parking fees by first-period rate, subsequent billing units, and daily cap, with free duration and overnight parking support, for travel cost budgeting.</p>
+    <div class="input-row">
+      <div><div data-tb="preset" data-tb-presets='[{"label": "示例数据", "labelEn": "Example", "values": {"firstMin": "60", "firstFee": "10", "unitMin": "30", "unitFee": "5", "parkMin": "180", "cap": "60", "freeMin": "0", "days": "1"}}]'></div>
+<label>首時段時長 (分鐘)</label><input type="number" id="firstMin" value="60" oninput="calc()" min="1" step="1"></div>
+      <div><label>首時段費用 (元)</label><input type="number" id="firstFee" value="10" oninput="calc()" min="0" step="0.5"></div>
+    </div>
+    <div class="input-row">
+      <div><label>後續計費單位 (分鐘)</label><input type="number" id="unitMin" value="30" oninput="calc()" min="1" step="1"></div>
+      <div><label>後續單位單價 (元)</label><input type="number" id="unitFee" value="5" oninput="calc()" min="0" step="0.5"></div>
+    </div>
+    <div class="input-row">
+      <div><label>停放時長 (分鐘)</label><input type="number" id="parkMin" value="180" oninput="calc()" min="0" step="1"></div>
+      <div><label>單日封頂 (元，0 表示不封頂)</label><input type="number" id="cap" value="60" oninput="calc()" min="0" step="1"></div>
+    </div>
+    <div class="input-row">
+      <div><label>免費時長 (分鐘，僅首段抵扣)</label><input type="number" id="freeMin" value="0" oninput="calc()" min="0" step="1"></div>
+      <div><label>跨天數 (天)</label><input type="number" id="days" value="1" oninput="calc()" min="1" step="1"></div>
+    </div>
+    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__parking_fee_calculatorExport()">匯出明細 CSV</button></div><div class="safe-main" id="result"></div> <div id="parking_fee_calculatorTable"></div> <div id="parking_fee_calculatorDiff"></div> <div id="parking_fee_calculatorChart"></div> <div id="parking_fee_calculatorHist"></div>
+    <div class="dist-grid" id="distGrid"></div>
+    <div class="formula-box" id="formulaBox"><div class="formula-eq">停車費 = 首段費 + 超時費；超時分鐘 = max(0, 停車時長 − 首段時長 − 免費時長)；超時費 = ⌈超時分鐘 ÷ 計費單位⌉ × 單位費率；單日封頂 cap；多天按天數累加。</div></div>
+    <div id="adviceBox"></div>
+  </div>
+  <div class="card">
+    <h3>📖 常見計費規則對照</h3>
+    <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:12px;">
+      <tr>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border,#e5e7eb);">場景</th>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border,#e5e7eb);">典型規則</th>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border,#e5e7eb);">長停策略</th>
+      </tr>
+      <tr><td style="padding:6px 8px;">商場</td><td style="padding:6px 8px;">首 1 小時免費/半價，消費滿額免 1~2 小時</td><td style="padding:6px 8px;">滿額免時優先，超時按全時長計</td></tr>
+      <tr><td style="padding:6px 8px;">醫院</td><td style="padding:6px 8px;">分時段單價，探視時段優惠</td><td style="padding:6px 8px;">按天封頂通常更划算</td></tr>
+      <tr><td style="padding:6px 8px;">機場</td><td style="padding:6px 8px;">首 15~30 分鐘免費，長停按日封頂</td><td style="padding:6px 8px;">長停選遠端車場或按日套餐</td></tr>
+      <tr><td style="padding:6px 8px;">路側泊位</td><td style="padding:6px 8px;">按 15/30 分鐘累加，夜間免費</td><td style="padding:6px 8px;">夜間免費時段可省整段費用</td></tr>
+    </table>
+    <div class="scene-card">
+      <h4>🧮 為什麼長停反而便宜</h4>
+      <p>封頂是按自然日或單次進場設上限。超過某時長後費用不再累加，因此「分段計費總額 &gt; 封頂」時，實際支付即為封頂價。</p>
+    </div>
+    <div class="scene-card">
+      <h4>⏱️ 不足一單位怎麼算</h4>
+      <p>絕大多數車場對不足一個計費單位的部分按「進一法」收費，即停 61 分鐘按 90 分鐘計。本工具即按進一法計算。</p>
+    </div>
+    <div class="info-box">💡 需要跨天停放時，把「跨天數」設為實際天數，費用按每日重新計封頂累加。實際以車場公示牌為準。</div>
+  </div>
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto 0;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+.deep-dive a.term-link{color:var(--tool-accent,#FF6B35);text-decoration:none;border-bottom:1px dashed currentColor;}
+.deep-dive a.term-link:hover{border-bottom-style:solid;}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：停車費用計算</h2>
+<h3>💡 常見使用場景</h3>
+<ul class="dd-list">
+<li>估算商場、醫院、機場等不同時段與封頂規則的<a class="term-link" href="/zh-tw/tools/life/parking-fee.html">停車費</a>，規劃出行成本。</li>
+<li>對比路邊泊位與停車場價格，選擇更划算的停放方式。</li>
+<li>長期包月或夜間停車時核算單價是否優於按次計費。</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">分段計費與封頂</div><div class="dd-ex-body">首小時 10 元、之後每 30 分鐘 5 元、單日封頂 60 元。停 3 小時=10+5×4=30 元；停 10 小時觸發封頂僅 60 元，長停比短時單價更划算。</div></div>
+<h3>❓ 常見問題（FAQ）</h3>
+<dl class="dd-faq">
+<dt>封頂是怎麼算的？</dt><dd>封頂指單個自然日（或一次進場）費用不超過該上限，超過部分不再累加。跨天停放通常每日重新計封頂。</dd>
+<dt>免費時段怎麼用？</dt><dd>多數商場消費滿額免 1–2 小時，短停可借免費時段免單；超時按規則從進場起算，非從免費結束起算。</dd>
+</dl>
+</div>
+</section>
+<!-- 注意事項區塊 -->
+<div class="tool-notes" style="--tool-accent:#7c3aed;">
+  <div class="tool-notes-title">⚠️ 使用說明與注意事項</div>
+  <ul>
+    <li>本工具純前端執行，資料不會上傳到伺服器</li>
+    <li>建議在主流瀏覽器（Chrome/Safari/Firefox/Edge）中使用</li>
+    <li>實際計費以車場公示牌為準，進出場時間與免費規則判定可能存在差異</li>
+  </ul>
+</div>
+</div>
+<!-- 相關工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相關工具</h3>
+  <div class="related-tools-grid">
+    <a href="/zh-tw/tools/automotive/recommender-6.html" class="related-tool-card">
+      <span class="rt-icon">🚗</span>
+      <span class="rt-info"><span class="rt-name">胎壓（監測/充氣）推薦</span><span class="rt-desc">根據車型、載重與季節推薦前後輪標準胎壓，提示冷胎與熱胎讀數差異及充氣注意事項，幫助延長輪胎壽命並保…</span></span>
+    </a>
+    <a href="/zh-tw/tools/automotive/calc-2.html" class="related-tool-card">
+      <span class="rt-icon">⚡</span>
+      <span class="rt-info"><span class="rt-name">發動機功率/扭矩換算</span><span class="rt-desc">根據功率、扭矩與轉速之間的物理關係進行換算，支援 kW 與 PS（公制馬力）互轉。</span></span>
+    </a>
+    <a href="/zh-tw/tools/automotive/oil-change-countdown.html" class="related-tool-card">
+      <span class="rt-icon">📅</span>
+      <span class="rt-info"><span class="rt-name">機油更換倒計時</span><span class="rt-desc">輸入已行駛里程、機油週期與駕駛習慣係數，估算下次機油更換的剩餘里程或天數，避免過度保養或超期損傷。</span></span>
+    </a>
+    <a href="/zh-tw/tools/automotive/countdown-engine-oil.html" class="related-tool-card">
+      <span class="rt-icon">📅</span>
+      <span class="rt-info"><span class="rt-name">機油更換里程倒計時</span><span class="rt-desc">機油更換里程倒計時，按機油型別與駕駛習慣係數智慧計算建議換油間隔與剩餘里程，支援多車管理、資料本地…</span></span>
+    </a>
+    <a href="/zh-tw/tools/automotive/calc-3.html" class="related-tool-card">
+      <span class="rt-icon">🚗</span>
+      <span class="rt-info"><span class="rt-name">輪胎胎壓換算</span><span class="rt-desc">在 bar、psi、kPa、kg/cm² 之間換算輪胎氣壓，並檢視常用參考值。</span></span>
+    </a>
+    <a href="/zh-tw/tools/automotive/transport-calculator.html" class="related-tool-card">
+      <span class="rt-icon">🚚</span>
+      <span class="rt-info"><span class="rt-name">交通物流計算器</span><span class="rt-desc">涵蓋剎車距離、油耗成本、貨物換算、燃油效率、行駛時間、輪胎尺寸等多種交通物流常用計算</span></span>
+    </a>
+  </div>
+</div>
+<script>
+function fmtNum(n,d){d=d==null?2:d;if(!isFinite(n))return '--';return parseFloat(n.toFixed(d)).toString();}
+function val(id){return parseFloat(document.getElementById(id).value);}
+function str(id){return document.getElementById(id).value;}
+function calc(){
+  var R=document.getElementById('result'),G=document.getElementById('distGrid'),
+      F=document.getElementById('formulaBox'),A=document.getElementById('adviceBox');
+  var firstMin=val('firstMin'),firstFee=val('firstFee');
+  var unitMin=val('unitMin'),unitFee=val('unitFee');
+  var parkMin=val('parkMin'),cap=val('cap'),freeMin=val('freeMin'),days=val('days');
+  if(isNaN(parkMin)||isNaN(firstMin)||isNaN(firstFee)||parkMin<0||firstMin<=0){
+    R.innerHTML='<div class="safe-val">--</div><div class="safe-sub">请输入有效的时长与费率</div>';
+    G.innerHTML='';F.innerHTML='';A.innerHTML='';return;
+  }
+  var pay=Math.max(0, parkMin-(freeMin>0?freeMin:0));
+  var oneDay, units=0;
+  if(pay<=firstMin){ oneDay=firstFee; }
+  else{
+    units=Math.ceil((pay-firstMin)/unitMin);
+    oneDay=firstFee+units*unitFee;
+  }
+  var cappedDay=(cap>0&&oneDay>cap)?cap:oneDay;
+  var d=(days>0)?Math.floor(days):1;
+  var total=cappedDay*d;
+  var cappedNow=(cap>0&&oneDay>cap);
+  const __g5='<div class="safe-val">应付 '+fmtNum(total,1)+' 元</div><div class="safe-sub">单日 '+fmtNum(cappedDay,1)+' 元'+(cappedNow?'（已触发封顶）':'')+(d>1?' × '+d+' 天':'')+'</div>';R.innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
+  const __g6='<div class="dist-card"><div class="v">'+fmtNum(total,1)+'</div><div class="l">应付总额 (元)</div></div>'+
+    '<div class="dist-card"><div class="v">'+fmtNum(cappedDay,1)+'</div><div class="l">单日费用 (元)</div></div>'+
+    '<div class="dist-card"><div class="v">'+units+'</div><div class="l">后续计费单位数</div></div>'+
+    '<div class="dist-card"><div class="v">'+fmtNum(pay,0)+'</div><div class="l">计费时长 (分钟)</div></div>'+
+    '<div class="dist-card"><div class="v">'+fmtNum(firstFee,1)+'</div><div class="l">首段费用 (元)</div></div>'+
+    '<div class="dist-card"><div class="v">'+fmtNum(units*unitFee,1)+'</div><div class="l">后续费用 (元)</div></div>';G.innerHTML=(typeof __g6==='number'?(isFinite(__g6)?__g6:'—'):String(__g6).replace(/Infinity|NaN/g,'—'));
+  const __g7='<div class="fb-title">分段计费规则</div>'+
+    '<div class="fb-row">计费时长 = 停放时长 − 免费时长</div>'+
+    '<div class="fb-row">若计费时长 ≤ 首时段：费用 = 首时段费用</div>'+
+    '<div class="fb-row">否则：费用 = 首时段费用 + 进一法（(计费时长 − 首时段) ÷ 单位时长）× 单位单价</div>'+
+    '<div class="fb-row">单日费用 = min(分段费用, 单日封顶)</div>'+
+    '<div class="fb-row">总额 = 单日费用 × 跨天数</div>';F.innerHTML=(typeof __g7==='number'?(isFinite(__g7)?__g7:'—'):String(__g7).replace(/Infinity|NaN/g,'—'));
+  var ad='';
+  if(cappedNow){ ad='<div class="tip-success">✅ 分段累计已达 '+fmtNum(oneDay,1)+' 元，超过封顶 '+fmtNum(cap,1)+' 元，按封顶计费更划算，本次长停反而摊低了小时均价。</div>'; }
+  else if(cap>0&&firstFee+units*unitFee>cap*0.8){ ad='<div class="tip-info">ℹ️ 距离封顶仅差 '+fmtNum(cap-oneDay,1)+' 元，再停不久即触发封顶，可考虑延长停放时间。</div>'; }
+  else{ ad='<div class="tip-info">ℹ️ 未触发封顶，按分段规则正常计费。</div>'; }
+  if(parkMin>0){ ad+='<div class="tip-info">ℹ️ 折合小时均价约 '+fmtNum(total/(parkMin/60),1)+' 元/小时。</div>'; }
+  const __g8=ad;A.innerHTML=(typeof __g8==='number'?(isFinite(__g8)?__g8:'—'):String(__g8).replace(/Infinity|NaN/g,'—'));
+}
+calc();
+
+var __parking_fee_calculator_last=0,__parking_fee_calculator_skip=false;
+function __parking_fee_calculatorSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __parking_fee_calculatorResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __parking_fee_calculatorTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __parking_fee_calculatorRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__parking_fee_calculatorTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#parking_fee_calculatorTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#parking_fee_calculatorDiff');
+        TBKit.history.mount('#parking_fee_calculatorHist',function(rec){
+            __parking_fee_calculator_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __parking_fee_calculator_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__parking_fee_calculatorTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#parking_fee_calculatorChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __parking_fee_calculatorExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__parking_fee_calculator_skip) return;
+    var snap=__parking_fee_calculatorSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__parking_fee_calculatorResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__parking_fee_calculator_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __parking_fee_calculator_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __parking_fee_calculatorRender(keys,rk,en);
+}
+function __parking_fee_calculatorExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#parking_fee_calculatorTable','parking-fee-calculator.csv'); } catch(e){}
+}
+function __parking_fee_calculatorPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#parking_fee_calculatorPresets',[{label:'默认参数',labelEn:'Default',values:{'firstMin':'60', 'firstFee':'10', 'unitMin':'30', 'unitFee':'5', 'parkMin':'180', 'cap':'60', 'freeMin':'0', 'days':'1'}}],function(){ calc(); });
+}
+var __parking_fee_calculator_f0=(typeof calc==='function')?calc:null;
+if(__parking_fee_calculator_f0){
+    calc=function(){ var __r=__parking_fee_calculator_f0.apply(null,arguments); try{ __parking_fee_calculatorExtras(); }catch(e){} return __r; };
+}
+function __parking_fee_calculatorBoot(){ try{ __parking_fee_calculatorPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __parking_fee_calculatorBoot();
+else document.addEventListener('DOMContentLoaded', __parking_fee_calculatorBoot);
+</script>
+
+
+<script>/*TBKIT-INJECT-START*/
+(function(){
+  var P={"res": ["result", "parking_fee_calculatorChart"], "tbl": ["parking_fee_calculatorTable"], "his": ["parking_fee_calculatorHist"]};
+  var L={res:['结果','Result'],chart:['图表','Chart'],tbl:['数据表','Data'],pre:['预设','Presets'],his:['历史','History']};
+  function tabify(){
+    var bar=document.querySelector('.tbk-tabbar');
+    if(!bar||!bar.querySelectorAll) return;
+    var btns=bar.querySelectorAll('.tbk-tab');
+    if(!btns||!btns.length) return;
+    var en=false;
+    try{ if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn) en=TBKit.util.isEn(); }catch(e){}
+    if(!en&&document.documentElement&&(document.documentElement.lang||'').indexOf('en')>=0) en=true;
+    for(var i=0;i<btns.length;i++){var p=btns[i].getAttribute('data-pane');btns[i].textContent=en?L[p][1]:L[p][0];}
+    function show(pane){
+      for(var k in P){var ids=P[k];for(var i=0;i<ids.length;i++){var el=document.getElementById(ids[i]);if(el&&el.style)el.style.display=(k===pane?'':'none');}}
+      for(var j=0;j<btns.length;j++){btns[j].className='tbk-tab'+(btns[j].getAttribute('data-pane')===pane?' active':'');}
+    }
+    for(var i=0;i<btns.length;i++){(function(b){b.addEventListener('click',function(){show(b.getAttribute('data-pane'));});})(btns[i]);}
+    show(btns[0].getAttribute('data-pane'));
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',tabify);else tabify();
+})();
+/*TBKIT-INJECT-END*/</script>
+</body>
+</html>

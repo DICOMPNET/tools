@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-opencc-locale="zh-tw">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=engineer,industry=mining,icon=⛏️,bg=#78716c">
+<meta name="description" content="礦石密度/孔隙率是一款免費的線上礦業冶金工具，礦石密度與孔隙率工具由真密度、體積密度與堆密度求孔隙率，輔助礦石物性表徵與選礦工藝引數確定。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta name="keywords" content="礦石密度/孔隙率,礦石密度/孔隙率線上,線上礦石密度/孔隙率,數學計算,礦業冶金,礦石密度,孔隙率,線上工具,免費工具,ToolBox">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://tools.dicomp.net/zh-tw/tools/mining/mineral-density.html">
+<meta property="og:title" content="礦石密度/孔隙率 - 體積密度與堆密度求孔隙率">
+<meta property="og:description" content="礦石密度/孔隙率是一款免費的線上礦業冶金工具，礦石密度與孔隙率工具由真密度、體積密度與堆密度求孔隙率，輔助礦石物性表徵與選礦工藝引數確定。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://tools.dicomp.net/zh-tw/tools/mining/mineral-density.html">
+<meta name="twitter:card" content="summary">
+
+<title>礦石密度/孔隙率 - 體積密度與堆密度求孔隙率</title>
+<meta name="theme-color" content="#FF6B35">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="stylesheet" href="/css/common.css">
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/common.js" defer></script>
+<style>
+.mineral-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:16px; }
+.mineral-btn { padding:10px 4px; background:var(--bg-card); border:1px solid var(--border-color); border-radius:8px; cursor:pointer; text-align:center; font-size:12px; }
+.mineral-btn.active { background:var(--primary); color:#fff; border-color:var(--primary); }
+.result-block { background:var(--bg-card); padding:12px; border-radius:8px; margin-bottom:8px; }
+.result-label { font-size:11px; color:var(--text-muted); }
+.result-value { font-size:18px; color:var(--primary); font-weight:bold; }
+.compare-bar { display:flex; gap:4px; height:24px; margin:6px 0; }
+.compare-seg { flex:1; background:var(--primary); border-radius:3px; }
+</style>
+
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"體積密度和真密度差很多正常嗎？","acceptedAnswer":{"@type":"Answer","text":"正常。體積密度含孔隙（用總體積），真密度只算固體骨架（用固體體積），二者差就是孔隙貢獻。多孔岩石（如砂岩孔隙率 5–25%）兩者差明顯；緻密金屬礦（如磁鐵礦）真密度可達 5 左右、體積密度因裂隙略低。偏差過大才懷疑樣品問題。"}},{"@type":"Question","name":"堆密度 1.20 和體積密度 2.00 為什麼不同？","acceptedAnswer":{"@type":"Answer","text":"堆密度是散粒自然堆積（含顆粒間空隙），體積密度是整塊（含閉孔）。工具用體積密度×0.6 作鬆散經驗估算，僅作參考；真實堆密度應實測（如容器法），尤其影響礦倉/堆場容量設計。"}}]}</script>
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首頁","item":"https://tools.dicomp.net/zh-tw/"},{"@type":"ListItem","position":2,"name":"礦業冶金","item":"https://tools.dicomp.net/zh-tw/tools/mining/index.html"},{"@type":"ListItem","position":3,"name":"礦石密度/孔隙率","item":"https://tools.dicomp.net/zh-tw/tools/mining/mineral-density.html"}]}</script>
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"礦石密度/孔隙率","url":"https://tools.dicomp.net/zh-tw/tools/mining/mineral-density.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"礦石密度/孔隙率是一款免費的線上礦業冶金工具，礦石密度與孔隙率工具由真密度、體積密度與堆密度求孔隙率，輔助礦石物性表徵與選礦工藝引數確定。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<meta property="og:image" content="https://tools.dicomp.net/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免費線上工具">
+<meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免費線上工具">
+
+<meta name="twitter:title" content="礦石密度/孔隙率 - 體積密度與堆密度求孔隙率">
+<meta name="twitter:description" content="礦石密度/孔隙率是一款免費的線上礦業冶金工具，礦石密度與孔隙率工具由真密度、體積密度與堆密度求孔隙率，輔助礦石物性表徵與選礦工藝引數確定。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script src="/js/i18n.js" defer></script>
+<script src="/js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+<meta name="title-en" content="Mineral Density">
+<meta name="desc-en" content="Mineral Density - online utility on ToolBox.">
+
+
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
+
+<script src="/js/tool-ux.js" defer></script>
+<!-- TOOLBOX-TOOL-UX -->
+
+<script src="/js/analytics.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+<!-- TOOLBOX-TTZZ -->
+<script>
+(function(){try{
+var el = document.createElement("script");
+el.src = "https://lf1-cdn-tos.bytegoofy.com/goofy/ttzz/push.js?85d6452aa9be4d693b16cd48535a8c7ae57542f6788a41682e745be8eb99b35a8a24d2f724c31ebe20c1e4e6fba6d91caf576100b02a2870c72f38fc574066fef065d152c73bf1cbb2ebad3b5b5265d8";
+el.id = "ttzz";
+var s = document.getElementsByTagName("script")[0];
+s.parentNode.insertBefore(el, s);
+}catch(e){}
+})(window);
+</script>
+
+<script src="/js/tool-kit.js" defer></script>
+<!-- TOOLBOX-TOOL-KIT -->
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://tools.dicomp.net/tools/mining/mineral-density.html">
+<link rel="alternate" hreflang="zh-TW" href="https://tools.dicomp.net/zh-tw/tools/mining/mineral-density.html">
+<link rel="alternate" hreflang="en-US" href="https://tools.dicomp.net/tools/mining/mineral-density.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://tools.dicomp.net/tools/mining/mineral-density.html">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+</head>
+<body>
+<h1 class="sr-only">礦石密度/孔隙率</h1>
+
+<div class="nav">
+  <a href="/zh-tw/index.html">← ToolBox</a>
+  <span>/ 礦石密度</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+
+
+
+<nav class="breadcrumb" aria-label="麵包屑導航" data-breadcrumb="1">
+  <a href="/zh-tw/index.html">首頁</a>
+  <span class="bc-sep">‹</span>
+  <a href="/zh-tw/tools/mining/index.html">⛏️ 礦業冶金</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">礦石密度/孔隙率</span>
+</nav>
+<div class="container">
+  <style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#3b82f6)}.tbk-tab.active{background:var(--accent,#3b82f6);color:#fff;border-color:var(--accent,#3b82f6)}.tbk-panel{margin-top:6px}</style>
+<div class="tbk-tabbar" role="tablist">
+  <button type="button" class="tbk-tab" data-pane="res">結果</button>
+  <button type="button" class="tbk-tab" data-pane="tbl">資料表</button>
+  <button type="button" class="tbk-tab" data-pane="pre">預設</button>
+  <button type="button" class="tbk-tab" data-pane="his">歷史</button>
+</div>
+<div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
+    <h2 data-zh="⛏️ 礦石密度/孔隙率">Mineral Density</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="真密度、體積密度、堆密度、孔隙率">Mineral Density</p>
+    <div class="formula-box">
+      <div class="formula-title">📐 工作原理與說明</div>
+      <p class="formula-desc" data-zh="核心計算公式（按輸入變數）：|(bulkDensity - ref.bd)| ÷ ref.bd × 100；(1 - Vs ÷ V) × 100；bulkDensity × 0.6">Key formulas: |(bulkDensity - ref.bd)| ÷ ref.bd × 100; (1 - Vs ÷ V) × 100; bulkDensity × 0.6</p>
+    </div>
+
+    <p style="font-size:13px;margin-bottom:8px;">礦石型別</p>
+    <div class="mineral-grid" id="mineralGrid"></div>
+
+    <div class="input-row">
+      <label>礦石質量 (kg 或 t)</label>
+      <input type="number" id="mass" value="1000" min="0">
+    </div>
+    <div class="input-row">
+      <label>容器體積 (L 或 m³)</label>
+      <input type="number" id="volume" value="500" min="0">
+    </div>
+    <div class="input-row">
+      <label>固體真實體積 (L 或 m³)</label>
+      <input type="number" id="solidVol" value="350" min="0">
+    </div>
+
+    <div class="toolbar">
+      <div id="mineral_densityPresets"></div>
+      <button type="button" class="btn primary" onclick="calc()">⛏️ 計算密度</button>
+      <button class="btn" type="button" onclick="__mineral_densityExport()">匯出明細 CSV</button>
+    </div>
+
+    <div class="result-box" id="result">
+      <p style="text-align:center;color:var(--text-muted);">👆 輸入測量資料</p>
+    </div>
+    <div id="mineral_densityTable"></div>
+    <div id="mineral_densityDiff"></div>
+    <div id="mineral_densityChart"></div>
+    <div id="mineral_densityHist"></div>
+  </div>
+
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto 0;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+.deep-dive a.term-link{color:var(--tool-accent,#FF6B35);text-decoration:none;border-bottom:1px dashed currentColor;}
+.deep-dive a.term-link:hover{border-bottom-style:solid;}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：礦石密度/孔隙率</h2>
+<h3>💡 常見使用場景</h3>
+<ul class="dd-list">
+<li>實驗室測定：輸入質量、總體積與固體體積，求體積密度（堆密度近似）、真密度與孔隙率，對照參考礦物判斷巖性。</li>
+<li>選礦判斷：孔隙率過高提示疏鬆、易泥化或含水高，影響破碎磨礦與選別。</li>
+<li>異常識別：實測密度與參考值偏差過大時，提示樣品可能混樣或含孔洞/次生礦物。</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">公式口徑</div><div class="dd-ex-body">體積密度（堆密度近似）=質量/總體積；真密度=質量/固體體積；孔隙率=(1−固體體積/總體積)×100%；孔隙比=(總體積−固體體積)/固體體積；堆密度≈體積密度×0.6（鬆散經驗值）；偏差=實測與參考值差/參考值。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例（鐵礦石參考）</div><div class="dd-ex-body">質量 1000 kg、總體積 500 L、固體體積 350 L（鐵礦石參考 真密度 5.1、體積密度 3.2、堆密度 2.4 t/m³）。體積密度 2.00 t/m³、真密度 2.857 t/m³、孔隙率 30.0%、孔隙比 0.429、堆密度 1.20 t/m³；與參考偏差 真密度 44.0%、體積密度 37.5%，判『高孔隙』。</div></div>
+<div class="dd-example"><div class="dd-ex-title">邊界：固體體積缺失</div><div class="dd-ex-body">未填固體體積時只算體積密度，不算真密度/孔隙率。孔隙率=30.0% 正處『&gt;30 高孔隙』臨界（程式碼用 &gt;30 嚴格大於），本例 30.0 不觸發高孔隙、歸正常；實測若 30.1% 即判高孔隙，錄入應留餘量。</div></div>
+<h3>❓ 常見問題（FAQ）</h3>
+<dl class="dd-faq">
+<dt>體積密度和真密度差很多正常嗎？</dt><dd>正常。體積密度含孔隙（用總體積），真密度只算固體骨架（用固體體積），二者差就是孔隙貢獻。多孔岩石（如砂岩孔隙率 5–25%）兩者差明顯；緻密金屬礦（如磁鐵礦）真密度可達 5 左右、體積密度因裂隙略低。偏差過大才懷疑樣品問題。</dd>
+<dt>堆密度 1.20 和體積密度 2.00 為什麼不同？</dt><dd>堆密度是散粒自然堆積（含顆粒間空隙），體積密度是整塊（含閉孔）。工具用體積密度×0.6 作鬆散經驗估算，僅作參考；真實堆密度應實測（如容器法），尤其影響礦倉/堆場容量設計。</dd>
+</dl>
+</div>
+</section>
+<!-- 注意事項區塊 -->
+<div class="tool-notes" style="--tool-accent:#FF6B35;">
+  <div class="tool-notes-title">⚠️ 使用說明與注意事項</div>
+  <ul>
+      <li>本工具純前端執行，資料不會上傳到伺服器</li>
+      <li>建議在主流瀏覽器（Chrome/Safari/Firefox/Edge）中使用</li>
+      <li>計算結果僅供參考，請以實際應用場景為準</li>
+  </ul>
+</div>
+<!-- /注意事項區塊 -->
+</div>
+<script>
+const MINERALS = {
+  coal: { n: '煤炭', td: 1.4, bd: 0.85, sd: 0.95, d: '无烟煤 ~1.5' },
+  iron: { n: '铁矿石', td: 5.1, bd: 3.2, sd: 2.4, d: '磁铁矿 ~5.2' },
+  copper: { n: '铜矿石', td: 4.5, bd: 2.7, sd: 2.0, d: '黄铜矿 ~4.5' },
+  limestone: { n: '石灰石', td: 2.7, bd: 2.4, sd: 1.6, d: '致密灰岩' },
+  granite: { n: '花岗岩', td: 2.7, bd: 2.6, sd: 1.8, d: '孔隙率 <1%' },
+  sandstone: { n: '砂岩', td: 2.65, bd: 2.3, sd: 1.7, d: '孔隙率 5-25%' },
+};
+let cur = 'iron';
+function renderMinerals() {
+  const __g1=Object.entries(MINERALS).map(([k, v]) =>
+    `<div class="mineral-btn ${k===cur?'active':''}" onclick="cur='${k}';renderMinerals();">${v.n}<br><span style="font-size:10px;opacity:0.7;">${v.d}</span></div>`
+  ).join('');document.getElementById('mineralGrid').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
+}
+function calc() {
+  const m = +document.getElementById('mass').value || 0;
+  const V = +document.getElementById('volume').value || 0;
+  const Vs = +document.getElementById('solidVol').value || 0;
+  if (m<=0||V<=0) { ToolBox.showToast(i18nText(),'error'); return; }
+  // 单位统一: 假设质量 kg, 体积 L → 密度 t/m³
+  // 1 L = 0.001 m³, 1 t = 1000 kg
+  const bulkDensity = m / V; // 体积密度 (堆密度近似)
+  let trueDensity = 0, porosity = 0, voidRatio = 0, stackDensity = 0;
+  if (Vs > 0) {
+    trueDensity = m / Vs;
+    porosity = (1 - Vs / V) * 100;
+    voidRatio = (V - Vs) / Vs;
+  }
+  // 堆密度经验估算 (粗略)
+  stackDensity = bulkDensity * 0.6;
+
+  const ref = MINERALS[cur];
+  const devTrue = Vs > 0 ? Math.abs(trueDensity - ref.td) / ref.td * 100 : 0;
+  const devBulk = Math.abs(bulkDensity - ref.bd) / ref.bd * 100;
+
+  let level = '✅ 正常';
+  if (Vs > 0) {
+    if (porosity > 30) level = '⚠️ 高孔隙';
+    else if (porosity < 1) level = '✅ 致密';
+  }
+
+  const __g2=`
+    <h3 style="text-align:center;margin-bottom:12px;">⛏️ 密度分析报告</h3>
+    <p style="text-align:center;font-size:12px;color:var(--text-muted);margin-bottom:16px;">${ref.n} · 质量 ${m} · 体积 ${V}</p>
+
+    ${Vs > 0 ? `
+    <div class="result-block">
+      <div class="result-label">真密度 (True Density)</div>
+      <div class="result-value">${trueDensity.toFixed(2)} t/m³</div>
+      <p style="font-size:11px;color:var(--text-muted);margin-top:4px;">参考 ${ref.td} · 偏差 ${devTrue.toFixed(1)}%</p>
+    </div>
+    ` : ''}
+    <div class="result-block">
+      <div class="result-label">体积密度 (Bulk Density)</div>
+      <div class="result-value">${bulkDensity.toFixed(2)} t/m³</div>
+      <p style="font-size:11px;color:var(--text-muted);margin-top:4px;">参考 ${ref.bd} · 偏差 ${devBulk.toFixed(1)}%</p>
+    </div>
+    <div class="result-block">
+      <div class="result-label">堆密度 (Stack)</div>
+      <div class="result-value">${stackDensity.toFixed(2)} t/m³</div>
+      <p style="font-size:11px;color:var(--text-muted);margin-top:4px;">松散堆积参考 ${ref.sd}</p>
+    </div>
+    ${Vs > 0 ? `
+    <div class="result-block">
+      <div class="result-label">孔隙率 (Porosity)</div>
+      <div class="result-value">${porosity.toFixed(1)}%</div>
+      <p style="font-size:11px;color:${porosity > 20 ? 'var(--primary)' : 'var(--text-muted)'};margin-top:4px;">${level}</p>
+    </div>
+    <div class="result-block">
+      <div class="result-label">孔隙比 (e)</div>
+      <div class="result-value">${voidRatio.toFixed(2)}</div>
+    </div>
+    ` : `
+    <p style="font-size:12px;color:var(--text-muted);text-align:center;margin-top:8px;">💡 填入固体真实体积可计算真密度和孔隙率</p>
+    `}
+  `;document.getElementById('result').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
+}
+renderMinerals();
+ToolBox.initToolTheme();
+</script><script>
+// tool-intro折叠交互
+document.addEventListener('DOMContentLoaded',function(){
+  var headers=document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click',function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+
+var __mineral_density_last=0,__mineral_density_skip=false;
+function __mineral_densitySnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __mineral_densityResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __mineral_densityTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __mineral_densityRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__mineral_densityTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#mineral_densityTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#mineral_densityDiff');
+        TBKit.history.mount('#mineral_densityHist',function(rec){
+            __mineral_density_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __mineral_density_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__mineral_densityTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#mineral_densityChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __mineral_densityExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__mineral_density_skip) return;
+    var snap=__mineral_densitySnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__mineral_densityResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__mineral_density_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __mineral_density_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __mineral_densityRender(keys,rk,en);
+}
+function __mineral_densityExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#mineral_densityTable','mineral-density.csv'); } catch(e){}
+}
+function __mineral_densityPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#mineral_densityPresets',[{label:'默认参数',labelEn:'Default',values:{mass:'1000', volume:'500', solidVol:'350'}}],function(){ calc(); });
+}
+var __mineral_density_f0=(typeof calc==='function')?calc:null;
+if(__mineral_density_f0){
+    calc=function(){ var __r=__mineral_density_f0.apply(null,arguments); try{ __mineral_densityExtras(); }catch(e){} return __r; };
+}
+function __mineral_densityBoot(){ try{ __mineral_densityPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __mineral_densityBoot();
+else document.addEventListener('DOMContentLoaded', __mineral_densityBoot);
+</script>
+<!-- SEO 介紹區塊 -->
+
+</div>
+
+</div>
+
+
+<!-- 相關工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相關工具</h3>
+  <div class="related-tools-grid">
+    <a href="/zh-tw/tools/mining/ore-grade.html" class="related-tool-card">
+      <span class="rt-icon">🔄</span>
+      <span class="rt-info"><span class="rt-name">礦石品位換算 - 科學研究領域的線上工具</span><span class="rt-desc">礦石品位換算</span></span>
+    </a>
+    <a href="/zh-tw/tools/mining/convert-grade-ore.html" class="related-tool-card">
+      <span class="rt-icon">🔄</span>
+      <span class="rt-info"><span class="rt-name">礦石品位（克/噸）與價值換算</span><span class="rt-desc">礦石品位與價值換算工具將克/噸品位按金屬價格換算為礦石價值，並做單位換算，適合選礦、貿易與資源估值。</span></span>
+    </a>
+
+    <a href="/zh-tw/tools/mining/reserve-estimate.html" class="related-tool-card">
+      <span class="rt-icon">🔮</span>
+      <span class="rt-info"><span class="rt-name">儲量估算器 - 科學研究領域的線上工具</span><span class="rt-desc">儲量估算器</span></span>
+    </a>
+    <a href="/zh-tw/tools/mining/excavation-volume.html" class="related-tool-card">
+      <span class="rt-icon">📐</span>
+      <span class="rt-info"><span class="rt-name">挖方量計算 - 礦業冶金領域的線上工具</span><span class="rt-desc">挖方量計算器</span></span>
+    </a>
+
+  </div>
+</div>
+<div class="tool-intro open" id="toolIntro">
+  <div class="tool-intro-header">
+    <span class="intro-icon-wrap"><span class="intro-icon">📖</span>關於「礦石密度/孔隙率」</span>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="tool-intro-body">
+    <h4><span class="h4-icon">📝</span>工具簡介</h4>
+    <p>礦石密度/孔隙率。礦業冶金工具，幫助計算礦物引數與指標。</p>
+    <h4><span class="h4-icon">✨</span>功能特點</h4>
+    <ul class="intro-features">
+      <li>支援多種礦業引數</li>
+      <li>計算精準，即時顯示結果</li>
+      <li>純前端處理，資料不上傳</li>
+      <li>支援手機使用，隨時計算</li>
+    </ul>
+    <h4><span class="h4-icon">🎯</span>使用場景</h4>
+    <ul class="intro-scenes">
+      <li>礦物含量計算</li>
+      <li>冶金引數分析</li>
+      <li>採礦工程計算</li>
+      <li>礦業資料處理</li>
+    </ul>
+    </div>
+</div>
+<!-- /SEO 介紹區塊 -->
+
+
+<script>/*TBKIT-INJECT-START*/
+(function(){
+  var P={"res": ["result", "mineral_densityChart"], "tbl": ["mineral_densityTable"], "pre": ["mineral_densityPresets"], "his": ["mineral_densityHist"]};
+  var L={res:['结果','Result'],chart:['图表','Chart'],tbl:['数据表','Data'],pre:['预设','Presets'],his:['历史','History']};
+  function tabify(){
+    var bar=document.querySelector('.tbk-tabbar');
+    if(!bar||!bar.querySelectorAll) return;
+    var btns=bar.querySelectorAll('.tbk-tab');
+    if(!btns||!btns.length) return;
+    var en=false;
+    try{ if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn) en=TBKit.util.isEn(); }catch(e){}
+    if(!en&&document.documentElement&&(document.documentElement.lang||'').indexOf('en')>=0) en=true;
+    for(var i=0;i<btns.length;i++){var p=btns[i].getAttribute('data-pane');btns[i].textContent=en?L[p][1]:L[p][0];}
+    function show(pane){
+      for(var k in P){var ids=P[k];for(var i=0;i<ids.length;i++){var el=document.getElementById(ids[i]);if(el&&el.style)el.style.display=(k===pane?'':'none');}}
+      for(var j=0;j<btns.length;j++){btns[j].className='tbk-tab'+(btns[j].getAttribute('data-pane')===pane?' active':'');}
+    }
+    for(var i=0;i<btns.length;i++){(function(b){b.addEventListener('click',function(){show(b.getAttribute('data-pane'));});})(btns[i]);}
+    show(btns[0].getAttribute('data-pane'));
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',tabify);else tabify();
+})();
+/*TBKIT-INJECT-END*/</script>
+</body>
+</html>

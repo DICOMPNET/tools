@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-opencc-locale="zh-tw">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=calculator,industry=music,icon=🎵,bg=#9c27b0">
+<meta name="description" content="音訊頻率分析器是一款免費的線上音樂藝術工具，音訊頻率分析器藉助麥克風即時檢測音高、頻率與音名，將聲音視覺化為頻譜，適合練耳、調音與聲學實驗。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta name="keywords" content="音樂分析,音樂分析線上,線上音樂分析,音樂藝術,音訊頻率分析器,線上工具,免費工具,ToolBox">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://tools.dicomp.net/zh-tw/tools/music/music-analysis.html">
+<meta property="og:title" content="音訊頻率分析器 - 免費線上音樂藝術工具">
+<meta property="og:description" content="音訊頻率分析器是一款免費的線上音樂藝術工具，音訊頻率分析器藉助麥克風即時檢測音高、頻率與音名，將聲音視覺化為頻譜，適合練耳、調音與聲學實驗。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://tools.dicomp.net/zh-tw/tools/music/music-analysis.html">
+<meta name="twitter:card" content="summary">
+
+<title>音訊頻率分析器 - 免費線上音樂藝術工具</title>
+<meta name="theme-color" content="#FF6B35">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="stylesheet" href="/css/common.css">
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/common.js" defer></script>
+<style>
+.freq-display{font-size:32px;font-weight:bold;color:var(--primary);text-align:center;font-family:monospace;margin:10px 0;}
+.note-display{font-size:20px;text-align:center;color:var(--text-light);margin-bottom:10px;}
+.canvas-box{background:var(--result-bg);border:1px solid var(--border);border-radius:10px;padding:12px;margin:12px 0;text-align:center;}
+canvas{max-width:100%;height:auto;display:block;margin:0 auto;}
+.stat-row{display:flex;gap:12px;flex-wrap:wrap;margin:12px 0;}
+.stat-item{flex:1;min-width:120px;background:var(--result-bg);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center;}
+.stat-item .v{font-size:20px;font-weight:bold;color:var(--primary);font-family:monospace;}
+.stat-item .l{font-size:11px;color:var(--text-muted);margin-top:4px;}
+</style>
+
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"音樂分析","description":"音樂分析 - 免費線上工具，音訊頻率分析器。","url":"https://tools.dicomp.net/zh-tw/tools/music/music-analysis.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Web","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"},"inLanguage":"zh-TW","isAccessibleForFree":true,"browserRequirements":"Requires JavaScript. Requires HTML5.","softwareVersion":"1.0"}</script>
+
+
+
+<meta property="og:image" content="https://tools.dicomp.net/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免費線上工具">
+<meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免費線上工具">
+    <meta name="twitter:title" content="音訊頻率分析器 - 免費線上音樂藝術工具">
+    <meta name="twitter:description" content="音訊頻率分析器是一款免費的線上音樂藝術工具，音訊頻率分析器藉助麥克風即時檢測音高、頻率與音名，將聲音視覺化為頻譜，適合練耳、調音與聲學實驗。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"音樂分析","url":"https://tools.dicomp.net/zh-tw/tools/music/music-analysis.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"音訊頻率分析器是一款免費的線上音樂藝術工具，音訊頻率分析器藉助麥克風即時檢測音高、頻率與音名，將聲音視覺化為頻譜，適合練耳、調音與聲學實驗。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首頁","item":"https://tools.dicomp.net/zh-tw/"},{"@type":"ListItem","position":2,"name":"音樂藝術","item":"https://tools.dicomp.net/zh-tw/tools/music/index.html"},{"@type":"ListItem","position":3,"name":"音樂分析","item":"https://tools.dicomp.net/zh-tw/tools/music/music-analysis.html"}]}</script>
+
+<script src="/js/i18n.js" defer></script>
+<script src="/js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+
+
+<meta name="title-en" content="Music Analysis">
+<meta name="desc-en" content="Music Analysis - online utility on ToolBox.">
+
+
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
+
+<script src="/js/tool-ux.js" defer></script>
+<!-- TOOLBOX-TOOL-UX -->
+
+<script src="/js/analytics.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"音訊頻率分析器是做什麼的？","acceptedAnswer":{"@type":"Answer","text":"音訊頻率分析器藉助麥克風即時檢測音高、頻率與音名，將聲音視覺化為頻譜，適合練耳、調音與聲學實驗。"}},{"@type":"Question","name":"如何使用音訊頻率分析器？","acceptedAnswer":{"@type":"Answer","text":"在對應的輸入框或選項中填寫、選擇所需引數，點選「計算」或「生成」按鈕即可執行，結果會在結果區即時顯示，支援複製與匯出。"}},{"@type":"Question","name":"計算結果準確嗎？","acceptedAnswer":{"@type":"Answer","text":"本工具在你的本地瀏覽器中即時計算，不依賴伺服器；只要輸入的引數正確，結果即按對應的規則得出。涉及經驗估算的部分僅供參考，不作為正式依據。"}},{"@type":"Question","name":"音訊頻率分析器適合哪些場景？","acceptedAnswer":{"@type":"Answer","text":"工作與生活中的相關計算與查詢。"}},{"@type":"Question","name":"使用本工具需要聯網或上傳資料嗎？","acceptedAnswer":{"@type":"Answer","text":"不需要。所有計算均在你的裝置本地完成，資料不會上傳到任何伺服器，可放心使用。"}}]}</script>
+<!-- TOOLBOX-TTZZ -->
+<script>
+(function(){try{
+var el = document.createElement("script");
+el.src = "https://lf1-cdn-tos.bytegoofy.com/goofy/ttzz/push.js?85d6452aa9be4d693b16cd48535a8c7ae57542f6788a41682e745be8eb99b35a8a24d2f724c31ebe20c1e4e6fba6d91caf576100b02a2870c72f38fc574066fef065d152c73bf1cbb2ebad3b5b5265d8";
+el.id = "ttzz";
+var s = document.getElementsByTagName("script")[0];
+s.parentNode.insertBefore(el, s);
+}catch(e){}
+})(window);
+</script>
+
+<script src="/js/tool-kit.js" defer></script>
+<!-- TOOLBOX-TOOL-KIT -->
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://tools.dicomp.net/tools/music/music-analysis.html">
+<link rel="alternate" hreflang="zh-TW" href="https://tools.dicomp.net/zh-tw/tools/music/music-analysis.html">
+<link rel="alternate" hreflang="en-US" href="https://tools.dicomp.net/tools/music/music-analysis.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://tools.dicomp.net/tools/music/music-analysis.html">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+</head>
+<body>
+<h1 class="sr-only">音樂分析</h1>
+
+<div class="nav">
+  <a href="/zh-tw/index.html">← ToolBox</a>
+  <span>/ 音樂分析</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+
+
+
+<nav class="breadcrumb" aria-label="麵包屑導航" data-breadcrumb="1">
+  <a href="/zh-tw/index.html">首頁</a>
+  <span class="bc-sep">‹</span>
+  <a href="/zh-tw/tools/music/index.html">🎵 音樂藝術</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">音樂分析</span>
+</nav>
+
+<div class="tool-guide-link" data-guide-link="1">
+  <a href="/zh-tw/guides/music-analysis-guide.html">📖 檢視「音訊頻率分析器 使用指南」</a>
+</div>
+<div class="container">
+  <style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#3b82f6)}.tbk-tab.active{background:var(--accent,#3b82f6);color:#fff;border-color:var(--accent,#3b82f6)}.tbk-panel{margin-top:6px}</style>
+<div class="tbk-tabbar" role="tablist">
+  <button type="button" class="tbk-tab" data-pane="res">結果</button>
+  <button type="button" class="tbk-tab" data-pane="tbl">資料表</button>
+  <button type="button" class="tbk-tab" data-pane="pre">預設</button>
+  <button type="button" class="tbk-tab" data-pane="his">歷史</button>
+</div>
+<div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
+    <h2 data-zh="🎵 音訊頻率分析器">Music Analysis</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="使用麥克風即時檢測音高、頻率與音名">Music Analysis</p>
+    <div class="formula-box">
+      <div class="formula-title">📐 工作原理與說明</div>
+      <p class="formula-desc" data-zh="「使用麥克風即時檢測音高、頻率與音名」按輸入引數進行專業計算並輸出結果。">Music Analysis: computes and outputs results from the input parameters.</p>
+    </div>
+
+    <div class="toolbar">
+      <button type="button" class="btn primary" id="start-btn" onclick="startAnalysis()">🎤 開始分析</button>
+      <button type="button" class="btn" id="stop-btn" onclick="stopAnalysis()" disabled>⏹ 停止</button>
+    </div>
+
+    <div class="canvas-box">
+      <div class="freq-display" id="freq-display">— Hz</div>
+      <div class="note-display" id="note-display">點選開始分析</div>
+      <canvas id="wave-canvas" width="600" height="100"></canvas>
+    </div>
+
+    <div class="stat-row">
+      <div class="stat-item">
+        <div class="v" id="stat-freq">0</div>
+        <div class="l">頻率 (Hz)</div>
+      </div>
+      <div class="stat-item">
+        <div class="v" id="stat-note">—</div>
+        <div class="l">音名</div>
+      </div>
+      <div class="stat-item">
+        <div class="v" id="stat-cent">0</div>
+        <div class="l">音分偏差</div>
+      </div>
+      <div class="stat-item">
+        <div class="v" id="stat-octave">—</div>
+        <div class="l">八度</div>
+      </div>
+    </div>
+
+    <div class="info-box" style="margin-top:16px;">
+      💡 提示：使用麥克風靠近單一音源（如鋼琴、人聲、口哨）效果最佳。需要瀏覽器麥克風許可權。
+    </div>
+
+    <h3 style="margin-top:24px;">常見頻率參考</h3>
+    <table style="width:100%;border-collapse:collapse;font-size:13px;">
+      <tr><th>音名</th><th>頻率(Hz)</th><th>說明</th></tr>
+      <tr><td>A4</td><td>440.00</td><td>國際標準音高（調音基準）</td></tr>
+      <tr><td>C4</td><td>261.63</td><td>中央 C，鋼琴中音區起點</td></tr>
+      <tr><td>C5</td><td>523.25</td><td>高音 C</td></tr>
+      <tr><td>A3</td><td>220.00</td><td>A4 降八度</td></tr>
+      <tr><td>A2</td><td>110.00</td><td>低音區</td></tr>
+      <tr><td>C2</td><td>65.41</td><td>大提琴最低音</td></tr>
+      <tr><td>E2</td><td>82.41</td><td>吉他最低音</td></tr>
+    </table>
+
+    <h3 style="margin-top:24px;">音訊引數計算</h3>
+    <div class="input-row">
+      <input type="number" id="sample-rate" placeholder="取樣率" value="44100">
+      <input type="number" id="bit-depth" placeholder="位深" value="16">
+      <input type="number" id="channels" placeholder="聲道" value="2">
+      <input type="number" id="duration-sec" placeholder="時長(秒)" value="60">
+    </div>
+    <div id="music_analysisPresets"></div><button type="button" class="btn primary" onclick="calcAudioSize()">計算檔案大小</button><button class="btn" type="button" onclick="__music_analysisExport()">匯出明細 CSV</button>
+    <div class="result-box" id="audio-size-result" style="margin-top:12px;"></div> <div id="music_analysisTable"></div> <div id="music_analysisDiff"></div> <div id="music_analysisChart"></div> <div id="music_analysisHist"></div>
+  </div>
+
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto 0;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+.deep-dive a.term-link{color:var(--tool-accent,#FF6B35);text-decoration:none;border-bottom:1px dashed currentColor;}
+.deep-dive a.term-link:hover{border-bottom-style:solid;}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：音訊頻率分析器（即時頻譜）</h2>
+<h3>💡 常見使用場景</h3>
+<ul class="dd-list">
+<li>用麥克風即時測音高/頻率，輔助練耳與調音</li>
+<li>把人聲/樂器聲視覺化為頻譜，看基頻與泛音分佈</li>
+<li>聲學實驗裡抓暫態峰值頻率做記錄</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">即時音高檢測</div><div class="dd-ex-body">對訊號做 FFT 取幅值最大頻點 f，再按 C0=16.3516 Hz 算 MIDI 號 n = 12·log2(f/C0)，取整得最近音名、小數×100 得音分偏差，如 440 Hz → A4（偏差 0）。</div></div>
+<div class="dd-example"><div class="dd-ex-title">頻譜觀察</div><div class="dd-ex-body">唱 A4 時基頻約 440 Hz，其上方 880、1320 Hz 等整數倍為泛音；頻譜圖橫軸頻率、縱軸幅度，峰值列即諧波結構。</div></div>
+<h3>❓ 常見問題（FAQ）</h3>
+<dl class="dd-faq">
+<dt>分析器怎麼找到音高？</dt><dd>常用自相關或 FFT 峰值法：FFT 找能量最大頻點近似基頻，自相關更抗諧波干擾；結果再換算音名與音分。</dd>
+<dt>為什麼有時測不準？</dt><dd>噪聲大、多音同時響或基頻弱（如鼓）會偏；安靜環境、單音、靠近麥克風最穩。</dd>
+</dl>
+</div>
+</section>
+<!-- 注意事項區塊 -->
+<div class="tool-notes" style="--tool-accent:#FF6B35;">
+  <div class="tool-notes-title">⚠️ 使用說明與注意事項</div>
+  <ul>
+      <li>本工具純前端執行，資料不會上傳到伺服器</li>
+      <li>建議在主流瀏覽器（Chrome/Safari/Firefox/Edge）中使用</li>
+      <li>計算結果僅供參考，請以實際應用場景為準</li>
+  </ul>
+</div>
+<!-- /注意事項區塊 -->
+</div>
+
+<script>
+let audioCtx = null;
+let analyser = null;
+let stream = null;
+let animationId = null;
+let waveCanvas = null;
+let waveCtx = null;
+
+const NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+const A4_FREQ = 440;
+
+function freqToNote(freq) {
+  if (freq <= 0) return { note: '—', octave: 0, cents: 0, idx: -1 };
+  const noteNum = 12 * Math.log2(freq / A4_FREQ) + 69;
+  const rounded = Math.round(noteNum);
+  const cents = Math.round((noteNum - rounded) * 100);
+  const noteIdx = rounded % 12;
+  const octave = Math.floor(rounded / 12) - 1;
+  return { note: NOTE_NAMES[noteIdx], octave, cents, idx: noteIdx };
+}
+
+async function startAnalysis() {
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const source = audioCtx.createMediaStreamSource(stream);
+    analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 2048;
+    source.connect(analyser);
+
+    waveCanvas = document.getElementById('wave-canvas');
+    waveCtx = waveCanvas.getContext('2d');
+
+    document.getElementById('start-btn').disabled = true;
+    document.getElementById('stop-btn').disabled = false;
+    ToolBox.showToast(i18nText(), 'success');
+
+    analyze();
+  } catch(e) {
+    ToolBox.showToast('无法访问麦克风: ' + e.message, 'warn');
+  }
+}
+
+function stopAnalysis() {
+  if (animationId) cancelAnimationFrame(animationId);
+  if (stream) stream.getTracks().forEach(t => t.stop());
+  if (audioCtx) { try { audioCtx.close(); } catch(e) {} }
+  animationId = null;
+  stream = null;
+  audioCtx = null;
+  analyser = null;
+  document.getElementById('start-btn').disabled = false;
+  document.getElementById('stop-btn').disabled = true;
+  document.getElementById('freq-display').textContent = '— Hz';
+  document.getElementById('note-display').textContent = '已停止';
+  waveCtx.clearRect(0, 0, waveCanvas.width, waveCanvas.height);
+}
+
+function analyze() {
+  if (!analyser) return;
+  const buffer = new Float32Array(analyser.fftSize);
+  analyser.getFloatTimeDomainData(buffer);
+
+  waveCtx.fillStyle = 'rgba(102,126,234,0.05)';
+  waveCtx.fillRect(0, 0, waveCanvas.width, waveCanvas.height);
+  waveCtx.strokeStyle = '#667eea';
+  waveCtx.lineWidth = 2;
+  waveCtx.beginPath();
+  for (let i = 0; i < buffer.length; i++) {
+    const x = (i / buffer.length) * waveCanvas.width;
+    const y = (0.5 + buffer[i] * 0.5) * waveCanvas.height;
+    if (i === 0) waveCtx.moveTo(x, y);
+    else waveCtx.lineTo(x, y);
+  }
+  waveCtx.stroke();
+
+  let rms = 0;
+  for (let i = 0; i < buffer.length; i++) rms += buffer[i] * buffer[i];
+  rms = Math.sqrt(rms / buffer.length);
+
+  if (rms > 0.01) {
+    const freq = autoCorrelate(buffer, audioCtx.sampleRate);
+    if (freq > 0) {
+      const note = freqToNote(freq);
+      document.getElementById('freq-display').textContent = freq.toFixed(2) + ' Hz';
+      document.getElementById('note-display').textContent = `${note.note}${note.octave} (${note.cents > 0 ? '+' : ''}${note.cents}音分)`;
+      document.getElementById('stat-freq').textContent = freq.toFixed(1);
+      document.getElementById('stat-note').textContent = note.note + note.octave;
+      document.getElementById('stat-cent').textContent = (note.cents > 0 ? '+' : '') + note.cents;
+      document.getElementById('stat-octave').textContent = note.octave;
+    }
+  } else {
+    document.getElementById('freq-display').textContent = '— Hz';
+    document.getElementById('note-display').textContent = '等待声音...';
+  }
+
+  animationId = requestAnimationFrame(analyze);
+}
+
+function autoCorrelate(buffer, sampleRate) {
+  const SIZE = buffer.length;
+  let rms = 0;
+  for (let i = 0; i < SIZE; i++) rms += buffer[i] * buffer[i];
+  rms = Math.sqrt(rms / SIZE);
+  if (rms < 0.01) return -1;
+
+  let r1 = 0, r2 = SIZE - 1, thres = 0.2;
+  for (let i = 0; i < SIZE / 2; i++) {
+    if (Math.abs(buffer[i]) < thres) { r1 = i; break; }
+  }
+  for (let i = 1; i < SIZE / 2; i++) {
+    if (Math.abs(buffer[SIZE - i]) < thres) { r2 = SIZE - i; break; }
+  }
+  const buf = buffer.slice(r1, r2);
+  const NEW_SIZE = buf.length;
+  const c = new Array(NEW_SIZE).fill(0);
+  for (let i = 0; i < NEW_SIZE; i++) {
+    for (let j = 0; j < NEW_SIZE - i; j++) c[i] += buf[j] * buf[j + i];
+  }
+  let d = 0;
+  while (d < c.length - 1 && c[d] > c[d + 1]) d++;
+  let maxval = -1, maxpos = -1;
+  for (let i = d; i < NEW_SIZE; i++) {
+    if (c[i] > maxval) { maxval = c[i]; maxpos = i; }
+  }
+  let T0 = maxpos;
+  const x1 = c[T0 - 1] || 0, x2 = c[T0], x3 = c[T0 + 1] || 0;
+  const a = (x1 + x3 - 2 * x2) / 2;
+  const b = (x3 - x1) / 2;
+  if (a) T0 = T0 - b / (2 * a);
+  return sampleRate / T0;
+}
+
+function calcAudioSize() {
+  const sr = +document.getElementById('sample-rate').value || 44100;
+  const bd = +document.getElementById('bit-depth').value || 16;
+  const ch = +document.getElementById('channels').value || 2;
+  const dur = +document.getElementById('duration-sec').value || 60;
+  const bytesPerSec = sr * bd / 8 * ch;
+  const totalBytes = bytesPerSec * dur;
+  const totalMB = totalBytes / (1024 * 1024);
+  const __h0=`
+    <p>码率: <strong>${(bytesPerSec * 8 / 1000).toFixed(0)} kbps</strong></p>
+    <p>每秒: <strong>${(bytesPerSec / 1024).toFixed(2)} KB/s</strong></p>
+    <p>${dur}秒总大小: <strong>${totalMB.toFixed(2)} MB</strong></p>
+    <p>每小时: <strong>${(totalMB * 3600 / dur).toFixed(2)} MB</strong></p>
+  `;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('audio-size-result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('audio-size-result').innerHTML=__h0;
+}
+
+calcAudioSize();
+ToolBox.initToolTheme();
+</script><script>
+// tool-intro折叠交互
+document.addEventListener('DOMContentLoaded',function(){
+  var headers=document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click',function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+
+var __music_analysis_last=0,__music_analysis_skip=false;
+function __music_analysisSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __music_analysisResText(){
+    var r=document.querySelector('.result-box');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __music_analysisTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __music_analysisRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__music_analysisTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#music_analysisTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#music_analysisDiff');
+        TBKit.history.mount('#music_analysisHist',function(rec){
+            __music_analysis_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calcAudioSize();
+            }catch(e2){}
+            __music_analysis_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__music_analysisTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#music_analysisChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __music_analysisExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__music_analysis_skip) return;
+    var snap=__music_analysisSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__music_analysisResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__music_analysis_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __music_analysis_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __music_analysisRender(keys,rk,en);
+}
+function __music_analysisExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#music_analysisTable','music-analysis.csv'); } catch(e){}
+}
+function __music_analysisPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#music_analysisPresets',[{label:'默认参数',labelEn:'Default',values:{'sample-rate':'44100', 'bit-depth':'16', 'channels':'2', 'duration-sec':'60'}}],function(){ calcAudioSize(); });
+}
+var __music_analysis_f0=(typeof calcAudioSize==='function')?calcAudioSize:null;
+if(__music_analysis_f0){
+    calcAudioSize=function(){ var __r=__music_analysis_f0.apply(null,arguments); try{ __music_analysisExtras(); }catch(e){} return __r; };
+}
+function __music_analysisBoot(){ try{ __music_analysisPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __music_analysisBoot();
+else document.addEventListener('DOMContentLoaded', __music_analysisBoot);
+</script>
+<!-- SEO 介紹區塊 -->
+
+</div>
+
+</div>
+
+
+<!-- 相關工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相關工具</h3>
+  <div class="related-tools-grid">
+    <a href="/zh-tw/tools/music/chord-progression.html" class="related-tool-card">
+      <span class="rt-icon">🎵</span>
+      <span class="rt-info"><span class="rt-name">和絃進行生成器 - 免費線上和絃進行生成器，隨機生成流行和絃進行</span><span class="rt-desc">&amp;#127926; 和絃進行生成器</span></span>
+    </a>
+    <a href="/zh-tw/tools/music/random-training-rhythm.html" class="related-tool-card">
+      <span class="rt-icon">🎲</span>
+      <span class="rt-info"><span class="rt-name">節奏訓練（隨機節奏點選）</span><span class="rt-desc">隨機播放節奏型要求跟點，訓練節拍感與穩定度，統計準確率與速度，適合樂器入門，純前端執行。</span></span>
+    </a>
+    <a href="/zh-tw/tools/music/generator-1.html" class="related-tool-card">
+      <span class="rt-icon">🎵</span>
+      <span class="rt-info"><span class="rt-name">音階生成器（大調/小調/五聲音階）</span><span class="rt-desc">音階生成器按大調、小調與五聲音階等調式生成對應音名序列並支援試聽，適合樂理學習、即興創作與樂器練習…</span></span>
+    </a>
+    <a href="/zh-tw/tools/music/bpm-converter.html" class="related-tool-card">
+      <span class="rt-icon">🏎️</span>
+      <span class="rt-info"><span class="rt-name">BPM速度轉換器 - BPM與音符時長、延遲時間、LFO頻率、取樣長度互轉</span><span class="rt-desc">&amp;#9201;&amp;#65039; BPM 速度轉換器</span></span>
+    </a>
+    <a href="/zh-tw/tools/music/convert-speed.html" class="related-tool-card">
+      <span class="rt-icon">🏎️</span>
+      <span class="rt-info"><span class="rt-name">歌曲速度轉換（BPM微調）</span><span class="rt-desc">輸入原曲BPM與目標BPM，計算速度比例並對音訊做變速處理，支援即時試聽與微調，用於翻唱移調、練琴…</span></span>
+    </a>
+    <a href="/zh-tw/tools/music/audio-converter.html" class="related-tool-card">
+      <span class="rt-icon">🔄</span>
+      <span class="rt-info"><span class="rt-name">音訊轉換 - 音樂藝術領域的線上工具</span><span class="rt-desc">音訊格式轉換引數</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro open" id="toolIntro">
+  <div class="tool-intro-header">
+    <span class="intro-icon-wrap"><span class="intro-icon">📖</span>關於「音樂分析」</span>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="tool-intro-body">
+    <h4><span class="h4-icon">📝</span>工具簡介</h4>
+    <p>音樂分析是一款音樂藝術領域的線上工具。音樂藝術工具，純前端實現，支援即時試聽。</p>
+    <h4><span class="h4-icon">✨</span>功能特點</h4>
+    <ul class="intro-features">
+      <li>純前端實現，無需安裝</li>
+      <li>支援多種音樂引數配置</li>
+      <li>即時生成，即時試聽</li>
+      <li>操作簡單，上手快速</li>
+    </ul>
+    <h4><span class="h4-icon">🎯</span>使用場景</h4>
+    <ul class="intro-scenes">
+      <li>音樂創作與編曲輔助</li>
+      <li>樂理學習與練習</li>
+      <li>音訊處理與轉換</li>
+      <li>藝術創作的靈感工具</li>
+    </ul>
+    </div>
+</div>
+<!-- /SEO 介紹區塊 -->
+<section class="opt-guide"><h2>如何使用音訊頻率分析器</h2><ol><li>在對應的輸入框或選項中填寫、選擇所需引數。</li><li>點選「計算」或「生成」按鈕執行。</li><li>在結果區檢視輸出，可複製結果或匯出使用。</li></ol><h2>引數說明</h2><ul class="param-list"><li>取樣率</li><li>位深</li><li>聲道</li><li>時長(秒)</li></ul><h2>適用場景</h2><p>工作與生活中的相關計算與查詢。</p></section><section class="opt-faq"><h2>常見問題</h2><dl class="faq-list"><dt>音訊頻率分析器是做什麼的？</dt><dd>音訊頻率分析器藉助麥克風即時檢測音高、頻率與音名，將聲音視覺化為頻譜，適合練耳、調音與聲學實驗。</dd><dt>如何使用音訊頻率分析器？</dt><dd>在對應的輸入框或選項中填寫、選擇所需引數，點選「計算」或「生成」按鈕即可執行，結果會在結果區即時顯示，支援複製與匯出。</dd><dt>計算結果準確嗎？</dt><dd>本工具在你的本地瀏覽器中即時計算，不依賴伺服器；只要輸入的引數正確，結果即按對應的規則得出。涉及經驗估算的部分僅供參考，不作為正式依據。</dd><dt>音訊頻率分析器適合哪些場景？</dt><dd>工作與生活中的相關計算與查詢。</dd><dt>使用本工具需要聯網或上傳資料嗎？</dt><dd>不需要。所有計算均在你的裝置本地完成，資料不會上傳到任何伺服器，可放心使用。</dd></dl></section>
+
+
+<script>/*TBKIT-INJECT-START*/
+(function(){
+  var P={"res": ["audio-size-result", "music_analysisChart"], "tbl": ["music_analysisTable"], "pre": ["music_analysisPresets"], "his": ["music_analysisHist"]};
+  var L={res:['结果','Result'],chart:['图表','Chart'],tbl:['数据表','Data'],pre:['预设','Presets'],his:['历史','History']};
+  function tabify(){
+    var bar=document.querySelector('.tbk-tabbar');
+    if(!bar||!bar.querySelectorAll) return;
+    var btns=bar.querySelectorAll('.tbk-tab');
+    if(!btns||!btns.length) return;
+    var en=false;
+    try{ if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn) en=TBKit.util.isEn(); }catch(e){}
+    if(!en&&document.documentElement&&(document.documentElement.lang||'').indexOf('en')>=0) en=true;
+    for(var i=0;i<btns.length;i++){var p=btns[i].getAttribute('data-pane');btns[i].textContent=en?L[p][1]:L[p][0];}
+    function show(pane){
+      for(var k in P){var ids=P[k];for(var i=0;i<ids.length;i++){var el=document.getElementById(ids[i]);if(el&&el.style)el.style.display=(k===pane?'':'none');}}
+      for(var j=0;j<btns.length;j++){btns[j].className='tbk-tab'+(btns[j].getAttribute('data-pane')===pane?' active':'');}
+    }
+    for(var i=0;i<btns.length;i++){(function(b){b.addEventListener('click',function(){show(b.getAttribute('data-pane'));});})(btns[i]);}
+    show(btns[0].getAttribute('data-pane'));
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',tabify);else tabify();
+})();
+/*TBKIT-INJECT-END*/</script>
+</body>
+</html>

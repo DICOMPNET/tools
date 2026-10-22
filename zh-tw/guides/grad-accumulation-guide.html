@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-opencc-locale="zh-tw">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>梯度累積步數 使用指南 - ToolBox</title>
+<meta name="description" content="依據目標等效批次與單卡批次，計算梯度累積步數，適用於視訊記憶體受限下的等效大批次訓練配置與分散式策略設計。等效 batch 相同則統計近似一致，但累積使更新頻率降低、訓練更慢；學習率應按等效 batch 調整，而非單卡 bat。">
+<meta property="og:title" content="梯度累積步數 使用指南">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="ToolBox">
+<meta property="og:url" content="https://tools.dicomp.net/zh-tw/guides/grad-accumulation-guide.html">
+<meta property="og:description" content="依據目標等效批次與單卡批次，計算梯度累積步數，適用於視訊記憶體受限下的等效大批次訓練配置與分散式策略設計。等效 batch 相同則統計近似一致，但累積使更新頻率降低、訓練更慢；學習率應按等效 batch 調整，而非單卡 bat。">
+<meta name="twitter:title" content="梯度累積步數 使用指南">
+<meta name="twitter:description" content="依據目標等效批次與單卡批次，計算梯度累積步數，適用於視訊記憶體受限下的等效大批次訓練配置與分散式策略設計。等效 batch 相同則統計近似一致，但累積使更新頻率降低、訓練更慢；學習率應按等效 batch 調整，而非單卡 bat。">
+<meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 免費線上工具與使用指南">
+<meta property="og:image" content="https://tools.dicomp.net/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="canonical" href="https://tools.dicomp.net/zh-tw/guides/grad-accumulation-guide.html">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"梯度累積步數 使用指南","description":"依據目標等效批次與單卡批次，計算梯度累積步數，適用於視訊記憶體受限下的等效大批次訓練配置與分散式策略設計。","author":{"@type":"Organization","name":"ToolBox"},"datePublished":"2026-09-13","dateModified":"2026-09-13","mainEntityOfPage":{"@type":"WebPage","@id":"https://tools.dicomp.net/zh-tw/guides/grad-accumulation-guide.html"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"ToolBox","item":"https://tools.dicomp.net/zh-tw/"},{"@type":"ListItem","position":2,"name":"使用指南","item":"https://tools.dicomp.net/zh-tw/guides/index.html"},{"@type":"ListItem","position":3,"name":"梯度累積步數 使用指南","item":"https://tools.dicomp.net/zh-tw/guides/grad-accumulation-guide.html"}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"累積會影響收斂嗎？","acceptedAnswer":{"@type":"Answer","text":"等效 batch 相同則統計近似一致，但累積使更新頻率降低、訓練更慢；學習率應按等效 batch 調整，而非單卡 batch。"}},{"@type":"Question","name":"累積步數設太大怎樣？","acceptedAnswer":{"@type":"Answer","text":"等效 batch 過大易泛化變差、視訊記憶體雖省但訓練極慢；且 BN 統計仍按小 batch，與真實大 batch 有偏差，需同步調大 BN 動量或使用同步 BN。"}}]}</script>
+<style>
+:root{--primary:#FF6B35;--text:#1F2937;--muted:#6B7280;--border:#E5E7EB;--bg:#FFFAF7;}
+*{box-sizing:border-box;}
+body{margin:0;font-family:"Noto Sans SC","Plus Jakarta Sans",system-ui,sans-serif;color:var(--text);background:var(--bg);line-height:1.75;}
+.breadcrumb a{color:var(--primary);text-decoration:none;margin-right:6px;}
+.breadcrumb a:hover{text-decoration:underline;}
+main{max-width:820px;margin:0 auto;padding:28px 20px 60px;}
+h1{font-size:28px;margin:0 0 8px;}
+.lead{font-size:16px;color:var(--muted);margin:0 0 22px;}
+h2{font-size:20px;margin:28px 0 10px;color:var(--primary);}
+ul,ol{padding-left:22px;}
+li{margin:8px 0;}
+.related{margin-top:26px;padding:16px;background:#fff;border:1px solid var(--border);border-radius:14px;}
+.related h3{margin:0 0 10px;font-size:16px;color:var(--text);}
+.tool-chip{display:inline-block;margin:4px 6px 4px 0;padding:6px 12px;border:1px solid var(--border);border-radius:999px;color:var(--primary);text-decoration:none;font-size:14px;}
+.tool-chip:hover{background:var(--primary);color:#fff;}
+.faq{margin-top:26px;}
+.faq dt{font-weight:700;margin-top:14px;}
+.faq dd{margin:4px 0 0;color:var(--muted);}
+.back{margin-top:30px;padding:16px;background:#fff;border:1px solid var(--border);border-radius:14px;}
+.back a{color:var(--primary);font-weight:700;text-decoration:none;}
+</style>
+<script src="/js/analytics.js" defer></script>
+<link rel="stylesheet" href="/css/site-chrome.css">
+<link rel="stylesheet" href="/css/common.css">
+<script src="/js/i18n.js" defer></script>
+<script src="/js/common.js" defer></script>
+<meta name="title-zh" content="梯度累積步數 使用指南">
+<!-- TOOLBOX-TTZZ -->
+<script>
+(function(){try{
+var el = document.createElement("script");
+el.src = "https://lf1-cdn-tos.bytegoofy.com/goofy/ttzz/push.js?85d6452aa9be4d693b16cd48535a8c7ae57542f6788a41682e745be8eb99b35a8a24d2f724c31ebe20c1e4e6fba6d91caf576100b02a2870c72f38fc574066fef065d152c73bf1cbb2ebad3b5b5265d8";
+el.id = "ttzz";
+var s = document.getElementsByTagName("script")[0];
+s.parentNode.insertBefore(el, s);
+}catch(e){}
+})(window);
+</script>
+
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://tools.dicomp.net/guides/grad-accumulation-guide.html">
+<link rel="alternate" hreflang="zh-TW" href="https://tools.dicomp.net/zh-tw/guides/grad-accumulation-guide.html">
+<link rel="alternate" hreflang="en-US" href="https://tools.dicomp.net/guides/grad-accumulation-guide.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://tools.dicomp.net/guides/grad-accumulation-guide.html">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+</head>
+<body>
+<nav class="breadcrumb"><a href="https://tools.dicomp.net/">ToolBox</a> / <a href="https://tools.dicomp.net/guides/index.html">使用指南</a> / <span>梯度累積步數 使用指南</span></nav>
+<main>
+<h1>梯度累積步數 使用指南</h1>
+<p class="lead">依據目標等效批次與單卡批次，計算梯度累積步數，適用於視訊記憶體受限下的等效大批次訓練配置與分散式策略設計。</p>
+<h2>計算公式與原理</h2>
+<p><strong>累積步數 = ⌈目標批次 / (單卡批次 × 卡數)⌉</strong></p><p>視訊記憶體不夠放大 batch 時，用小批次連續跑若干步再把梯度相加、只做一次引數更新，等效於大批次訓練。注意歸一化層統計與 BatchNorm 仍按小批次計算，與真正的大 batch 不完全等價；學習率要按等效批次同步放大。</p>
+<h2>使用步驟</h2>
+<ol><li>填寫「目標批次」。</li><li>填寫「單卡批次」。</li><li>填寫「GPU 數」。</li><li>結果區會即時更新；可一鍵複製結果用於記錄或彙報。</li></ol>
+<h2>典型使用場景</h2>
+<ul><li>等效 batch=單卡 batch×累積步數×GPU 數；累積步數=目標 batch/單卡 batch。</li><li>視訊記憶體不足時用小 batch 累積多次再更新，模擬大 batch 的統計效果。</li><li>累積期間不更新引數、只累加梯度，故最佳化步數變少、訓練更慢但等效 batch 更大。</li></ul>
+<h2>算例參考</h2>
+<ul><li><strong>累積步數計算</strong>：目標 batch=128、單卡 batch=32、2 卡 → 累積步數=128/(32×2)=2。每 2 個小步累加梯度後更新一次，等效 batch=128。</li></ul>
+<h2>注意事項</h2>
+<p>結果為按上述公式得到的<strong>理論估算值</strong>，實際表現受資料分佈、實現細節與執行環境影響，落地決策請以實測為準；本工具純前端執行，輸入不上傳伺服器。</p>
+<div class="related">
+<h3>相關工具</h3>
+<a class="tool-chip" href="https://tools.dicomp.net/tools/ai/image-classification.html">影像分類識別</a>
+<a class="tool-chip" href="https://tools.dicomp.net/tools/ai/inference-throughput.html">推理吞吐估算</a>
+<a class="tool-chip" href="https://tools.dicomp.net/tools/ai/k-means.html">聚類 K-Means 代價</a>
+<a class="tool-chip" href="https://tools.dicomp.net/tools/ai/l1-l2.html">L1 L2 正則化懲罰</a>
+</div>
+<dl class="faq">
+<dt>累積會影響收斂嗎？</dt><dd>等效 batch 相同則統計近似一致，但累積使更新頻率降低、訓練更慢；學習率應按等效 batch 調整，而非單卡 batch。</dd>
+<dt>累積步數設太大怎樣？</dt><dd>等效 batch 過大易泛化變差、視訊記憶體雖省但訓練極慢；且 BN 統計仍按小 batch，與真實大 batch 有偏差，需同步調大 BN 動量或使用同步 BN。</dd>
+</dl>
+<div class="back"><a href="https://tools.dicomp.net/tools/ai/grad-accumulation.html">→ 開啟梯度累積步數工具</a></div>
+</main>
+</body>
+</html>

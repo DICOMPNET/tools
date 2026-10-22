@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-opencc-locale="zh-tw">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=math,industry=photo2,icon=📐,bg=#e3f2fd">
+<title>曝光三角形 - 快門速度與 ISO 三者之一</title>
+<link rel="canonical" href="https://tools.dicomp.net/zh-tw/tools/photo2/exposure-triangle.html">
+<meta property="og:title" content="曝光三角形 - 快門速度與 ISO 三者之一">
+<meta property="og:description" content="調整光圈、快門速度與 ISO 三者之一，工具聯動計算保持等量曝光所需的另兩項引數變化，演示曝光三角形此消彼長的關係，幫助攝影者在不改變亮度前提下控制景深與運動模糊。">
+<meta property="og:url" content="https://tools.dicomp.net/zh-tw/tools/photo2/exposure-triangle.html">
+<meta name="twitter:card" content="summary">
+<meta name="description" content="調整光圈、快門速度與 ISO 三者之一，工具聯動計算保持等量曝光所需的另兩項引數變化，演示曝光三角形此消彼長的關係，幫助攝影者在不改變亮度前提下控制景深與運動模糊。">
+<link rel="stylesheet" href="/css/common.css">
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/common.js" defer></script>
+<style>
+.tri-viz{text-align:center;padding:16px 0;}
+.tri-viz svg{max-width:280px;}
+.ev-bar{display:flex;align-items:center;gap:8px;margin:8px 0;font-size:13px;}
+.ev-bar .ev-lbl{width:60px;text-align:right;flex-shrink:0;color:var(--text-light);font-size:12px;}
+.ev-bar .ev-track{flex:1;height:24px;background:var(--border);border-radius:6px;overflow:hidden;}
+.ev-bar .ev-fill{height:100%;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:600;transition:width 0.3s;}
+</style>
+
+
+
+<meta property="og:image" content="https://tools.dicomp.net/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免費線上工具">
+<meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免費線上工具">
+    <meta property="og:type" content="website">
+    <meta name="twitter:title" content="曝光三角形 - 快門速度與 ISO 三者之一">
+    <meta name="twitter:description" content="調整光圈、快門速度與 ISO 三者之一，工具聯動計算保持等量曝光所需的另兩項引數變化，演示曝光三角形此消彼長的關係，幫助攝影者在不改變亮度前提下控制景深與運動模糊。">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"曝光三角形","url":"https://tools.dicomp.net/zh-tw/tools/photo2/exposure-triangle.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"調整光圈、快門速度與 ISO 三者之一，工具聯動計算保持等量曝光所需的另兩項引數變化，演示曝光三角形此消彼長的關係，幫助攝影者在不改變亮度前提下控制景深與運動模糊。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首頁","item":"https://tools.dicomp.net/zh-tw/"},{"@type":"ListItem","position":2,"name":"攝影后期","item":"https://tools.dicomp.net/zh-tw/tools/photo2/index.html"},{"@type":"ListItem","position":3,"name":"曝光三角形","item":"https://tools.dicomp.net/zh-tw/tools/photo2/exposure-triangle.html"}]}</script>
+
+<script src="/js/i18n.js" defer></script>
+<script src="/js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+
+
+<meta name="title-en" content="Exposure Triangle">
+<meta name="desc-en" content="Exposure Triangle - online utility on ToolBox.">
+
+
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
+
+<script src="/js/tool-ux.js" defer></script>
+<!-- TOOLBOX-TOOL-UX -->
+
+<script src="/js/analytics.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+<!-- TOOLBOX-TTZZ -->
+<script>
+(function(){try{
+var el = document.createElement("script");
+el.src = "https://lf1-cdn-tos.bytegoofy.com/goofy/ttzz/push.js?85d6452aa9be4d693b16cd48535a8c7ae57542f6788a41682e745be8eb99b35a8a24d2f724c31ebe20c1e4e6fba6d91caf576100b02a2870c72f38fc574066fef065d152c73bf1cbb2ebad3b5b5265d8";
+el.id = "ttzz";
+var s = document.getElementsByTagName("script")[0];
+s.parentNode.insertBefore(el, s);
+}catch(e){}
+})(window);
+</script>
+
+<script src="/js/tool-kit.js" defer></script>
+<!-- TOOLBOX-TOOL-KIT -->
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://tools.dicomp.net/tools/photo2/exposure-triangle.html">
+<link rel="alternate" hreflang="zh-TW" href="https://tools.dicomp.net/zh-tw/tools/photo2/exposure-triangle.html">
+<link rel="alternate" hreflang="en-US" href="https://tools.dicomp.net/tools/photo2/exposure-triangle.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://tools.dicomp.net/tools/photo2/exposure-triangle.html">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+</head>
+<body>
+<h1 class="sr-only">曝光三角形</h1>
+
+<div class="nav">
+  <a href="/zh-tw/index.html">← ToolBox</a>
+  <span>/ 曝光三角形</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+
+
+
+<nav class="breadcrumb" aria-label="麵包屑導航" data-breadcrumb="1">
+  <a href="/zh-tw/index.html">首頁</a>
+  <span class="bc-sep">‹</span>
+  <a href="/zh-tw/tools/photo2/index.html">🎞️ 攝影后期</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">曝光三角形</span>
+</nav>
+
+<div class="tool-guide-link" data-guide-link="1">
+  <a href="/zh-tw/guides/exposure-triangle-guide.html">📖 檢視「曝光三角形 使用指南」</a>
+</div>
+<div class="container">
+  <style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#3b82f6)}.tbk-tab.active{background:var(--accent,#3b82f6);color:#fff;border-color:var(--accent,#3b82f6)}.tbk-panel{margin-top:6px}</style>
+<div class="tbk-tabbar" role="tablist">
+  <button type="button" class="tbk-tab" data-pane="res">結果</button>
+  <button type="button" class="tbk-tab" data-pane="tbl">資料表</button>
+  <button type="button" class="tbk-tab" data-pane="pre">預設</button>
+  <button type="button" class="tbk-tab" data-pane="his">歷史</button>
+</div>
+<div class="card tool-card-accent" style="--tool-accent:#7C3AED;">
+    <h2 data-zh="📐 曝光三角形">Exposure Triangle</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="光圈、快門、ISO 三者聯動計算，等量曝光換算">Exposure Triangle</p>
+
+    <div class="input-row">
+      <div>
+        <label>光圈 (f值)</label>
+        <select id="aperture">
+          <option value="1.4">f/1.4</option>
+          <option value="1.8">f/1.8</option>
+          <option value="2">f/2.0</option>
+          <option value="2.8">f/2.8</option>
+          <option value="4">f/4.0</option>
+          <option value="5.6" selected>f/5.6</option>
+          <option value="8">f/8.0</option>
+          <option value="11">f/11</option>
+          <option value="16">f/16</option>
+          <option value="22">f/22</option>
+        </select>
+      </div>
+      <div>
+        <label>快門速度</label>
+        <select id="shutter">
+          <option value="0.001">1/1000s</option>
+          <option value="0.002">1/500s</option>
+          <option value="0.004">1/250s</option>
+          <option value="0.008">1/125s</option>
+          <option value="0.01667" selected>1/60s</option>
+          <option value="0.033">1/30s</option>
+          <option value="0.0667">1/15s</option>
+          <option value="0.125">1/8s</option>
+          <option value="0.25">1/4s</option>
+          <option value="0.5">1/2s</option>
+          <option value="1">1s</option>
+        </select>
+      </div>
+      <div>
+        <label>ISO</label>
+        <select id="iso">
+          <option value="50">50</option>
+          <option value="100" selected>100</option>
+          <option value="200">200</option>
+          <option value="400">400</option>
+          <option value="800">800</option>
+          <option value="1600">1600</option>
+          <option value="3200">3200</option>
+          <option value="6400">6400</option>
+          <option value="12800">12800</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <div id="exposure_trianglePresets"></div><button type="button" class="btn primary" onclick="calcEV()">📐 計算曝光</button><button class="btn" type="button" onclick="__exposure_triangleExport()">匯出明細 CSV</button>
+      <button type="button" class="btn" onclick="calcEquivalent()">等量曝光組合</button>
+    </div>
+
+    <div class="tri-viz" id="triViz"></div>
+
+    <div class="result-box" id="result">
+      <p style="text-align:center;color:var(--text-muted);">👆 選擇引數後計算</p>
+    </div> <div id="exposure_triangleTable"></div> <div id="exposure_triangleDiff"></div> <div id="exposure_triangleChart"></div> <div id="exposure_triangleHist"></div>
+
+    <div class="tip-box tip-info" style="margin-top:16px;">
+      <strong>EV（曝光值）公式：</strong> EV = log₂(N² / t)，其中 N 為光圈 f 值，t 為快門時間（秒）。ISO 100 為基準，每提高一檔 ISO，EV 需減 1。
+    </div>
+  </div>
+
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto 0;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+.deep-dive a.term-link{color:var(--tool-accent,#FF6B35);text-decoration:none;border-bottom:1px dashed currentColor;}
+.deep-dive a.term-link:hover{border-bottom-style:solid;}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：曝光三角形</h2>
+<h3>💡 常見使用場景</h3>
+<ul class="dd-list">
+<li>逆光人像想用大光圈虛化背景時，需在<a class="term-link" href="/zh-tw/tools/design/exposure-triangle-calculator.html">曝光三角</a>形中提高<a class="term-link" href="/zh-tw/tools/design/shutter-speed-calculator.html">快門速度</a>或降低 ISO，避免畫面過曝。</li>
+<li>弱光手持拍攝為壓低快門防抖，往往開大光圈或提升 ISO，但需權衡景深變淺與噪點增加。</li>
+<li>拍攝運動物體需高速快門定格瞬間，可用開大光圈或提高 ISO 補償進光量，維持曝光不變。</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">預設引數下的曝光值</div><div class="dd-ex-body">以 f/5.6、1/60s、ISO100 為例：EV100=log₂(5.6²÷0.0167)≈10.9，ISO 調整 0 檔，實際 EV≈10.9，對應「晴天戶外」場景；調整任一頂點（光圈/快門/ISO）一檔，需用另兩項反向補償以保持等量曝光。</div></div>
+<h3>❓ 常見問題（FAQ）</h3>
+<dl class="dd-faq">
+<dt>EV 值代表什麼含義？</dt><dd>EV（曝光值）量化進光量，數值每加 1 表示進光量翻倍、減 1 表示減半；它是光圈、快門、ISO 三者的綜合結果。</dd>
+<dt>為什麼改一檔光圈要補償其他引數？</dt><dd><a class="term-link" href="/zh-tw/tools/it/triangle-calculator.html">三角形</a>任一頂點改變都會改變總進光量，保持等量曝光須由另兩個頂點反向補償相同檔數，畫面亮度才不變化。</dd>
+</dl>
+</div>
+</section>
+<!-- 注意事項區塊 -->
+<div class="tool-notes" style="--tool-accent:#7C3AED;">
+  <div class="tool-notes-title">⚠️ 使用說明與注意事項</div>
+  <ul>
+      <li>本工具純前端執行，資料不會上傳到伺服器</li>
+      <li>建議在主流瀏覽器（Chrome/Safari/Firefox/Edge）中使用</li>
+      <li>計算結果僅供參考，請以實際應用場景為準</li>
+  </ul>
+</div>
+<!-- /注意事項區塊 -->
+</div>
+<script>
+function log2(v){return Math.log(v)/Math.log(2);}
+
+function calcEV(){
+  var N=+document.getElementById('aperture').value;
+  var t=+document.getElementById('shutter').value;
+  var iso=+document.getElementById('iso').value;
+  var ev100=log2(N*N/t);
+  var isoStops=log2(iso/100);
+  var evAdj=ev100-isoStops;
+  // 画三角形可视化
+  const __h0='<svg viewBox="0 0 280 200">'+
+    '<polygon points="140,20 40,170 240,170" fill="none" stroke="var(--primary)" stroke-width="2"/>'+
+    '<circle cx="140" cy="20" r="22" fill="var(--primary)" opacity="0.15"/>'+
+    '<text x="140" y="26" text-anchor="middle" font-size="11" fill="var(--text)">光圈 f/'+N+'</text>'+
+    '<circle cx="40" cy="170" r="22" fill="var(--secondary)" opacity="0.15"/>'+
+    '<text x="40" y="174" text-anchor="middle" font-size="11" fill="var(--text)">快门</text>'+
+    '<text x="40" y="188" text-anchor="middle" font-size="10" fill="var(--text-light)">'+fmtShutter(t)+'</text>'+
+    '<circle cx="240" cy="170" r="22" fill="var(--accent)" opacity="0.15"/>'+
+    '<text x="240" y="174" text-anchor="middle" font-size="11" fill="var(--text)">ISO</text>'+
+    '<text x="240" y="188" text-anchor="middle" font-size="10" fill="var(--text-light)">'+iso+'</text>'+
+    '<text x="140" y="110" text-anchor="middle" font-size="22" font-weight="bold" fill="var(--primary)">EV '+evAdj.toFixed(1)+'</text>'+
+    '</svg>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('triViz').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('triViz').innerHTML=__h0;
+
+  var scene=getScene(evAdj);
+  const __h1='<h3>曝光结果</h3>'+
+    '<p>EV100（ISO100基准）：<strong>'+ev100.toFixed(1)+'</strong></p>'+
+    '<p>当前 ISO 调整：<strong>'+(isoStops>=0?'+':'')+isoStops.toFixed(1)+' 档</strong></p>'+
+    '<p>实际曝光值 EV：<strong>'+evAdj.toFixed(1)+'</strong></p>'+
+    '<p>适用场景：<strong>'+scene+'</strong></p>'+
+    '<p style="margin-top:12px;font-size:12px;color:var(--text-muted);">光圈 f/'+N+'，快门 '+fmtShutter(t)+'，ISO '+iso+'</p>';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h1;
+}
+
+function calcEquivalent(){
+  var N=+document.getElementById('aperture').value;
+  var t=+document.getElementById('shutter').value;
+  var iso=+document.getElementById('iso').value;
+  var baseEV=log2(N*N/t)-log2(iso/100);
+  var stops=[-2,-1,0,1,2];
+  var rows=[];
+  stops.forEach(function(s){
+    var factor=Math.pow(2,s);
+    var newN=N*factor;
+    var newT=t/factor;
+    var newIso=iso*factor;
+    // 找最接近的标准光圈
+    var stdN=findNearestAperture(newN);
+    var stdT=findNearestShutter(newT);
+    var stdIso=findNearestISO(newIso);
+    var actualEV=log2(stdN*stdN/stdT)-log2(stdIso/100);
+    var diff=actualEV-baseEV;
+    rows.push('<tr><td style="text-align:center;font-weight:600;">'+(s>0?'+'+s:s)+' 档</td>'+
+      '<td style="text-align:center;">f/'+stdN+'</td>'+
+      '<td style="text-align:center;">'+fmtShutter(stdT)+'</td>'+
+      '<td style="text-align:center;">'+stdIso+'</td>'+
+      '<td style="text-align:center;">'+actualEV.toFixed(1)+'</td>'+
+      '<td style="text-align:center;color:'+Math.abs(diff)<0.3?'var(--success)':'var(--warning)'+';">'+(diff>=0?'+':'')+diff.toFixed(2)+'</td></tr>');
+  });
+  const __h2='<h3>等量曝光组合（EV '+baseEV.toFixed(1)+'）</h3>'+
+    '<table><thead><tr><th>调整</th><th>光圈</th><th>快门</th><th>ISO</th><th>EV</th><th>偏差</th></tr></thead><tbody>'+
+    rows.join('')+'</tbody></table>'+
+    '<p style="font-size:12px;color:var(--text-muted);margin-top:8px;">等量曝光：调整一档光圈/快门/ISO，用其他参数补偿，总进光量不变</p>';if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h2;
+}
+
+var STD_APERTURES=[1.4,1.8,2,2.8,4,5.6,8,11,16,22];
+var STD_SHUTTERS=[0.001,0.002,0.004,0.008,0.01667,0.033,0.0667,0.125,0.25,0.5,1];
+var STD_ISOS=[50,100,200,400,800,1600,3200,6400,12800];
+
+function findNearestAperture(v){return STD_APERTURES.reduce(function(a,b){return Math.abs(b-v)<Math.abs(a-v)?b:a;});}
+function findNearestShutter(v){return STD_SHUTTERS.reduce(function(a,b){return Math.abs(b-v)<Math.abs(a-v)?b:a;});}
+function findNearestISO(v){return STD_ISOS.reduce(function(a,b){return Math.abs(b-v)<Math.abs(a-v)?b:a;});}
+
+function fmtShutter(t){
+  if(t<1) return '1/'+Math.round(1/t)+'s';
+  return t+'s';
+}
+
+function getScene(ev){
+  if(ev<=-2) return '极暗夜景，需三脚架';
+  if(ev<=2) return '黄昏/室内暗光';
+  if(ev<=6) return '阴天/室内自然光';
+  if(ev<=10) return '多云/阴影';
+  if(ev<=14) return '晴天户外';
+  if(ev<=16) return '晴天海滩/雪景';
+  return '强日光/高反光';
+}
+
+calcEV();
+ToolBox.initToolTheme();
+</script>
+
+<!-- SEO 介紹區塊 -->
+
+</div>
+
+</div>
+
+<!-- 相關工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相關工具</h3>
+  <div class="related-tools-grid">
+    <a href="/zh-tw/tools/design/generator-10.html" class="related-tool-card">
+      <span class="rt-icon">📈</span>
+      <span class="rt-info"><span class="rt-name">CSS動畫生成器（關鍵幀視覺化） - 免費線上工具，純前端處理 | ToolBox免費線上工具箱</span><span class="rt-desc">CSS動畫生成器（關鍵幀視覺化）</span></span>
+    </a>
+
+    <a href="/zh-tw/tools/design/web-audio-metronome.html" class="related-tool-card">
+      <span class="rt-icon">🎵</span>
+      <span class="rt-info"><span class="rt-name">Web Audio 節拍器 - 免費生成器工具，線上節拍器 | ToolBox免費線上工具箱</span><span class="rt-desc">線上節拍器</span></span>
+    </a>
+    <a href="/zh-tw/tools/design/generator-8.html" class="related-tool-card">
+      <span class="rt-icon">🔳</span>
+      <span class="rt-info"><span class="rt-name">二維碼生成器（已有，可加強定製） - 免費線上工具，純前端處理 | ToolBox免費線上工具箱</span><span class="rt-desc">二維碼生成器（已有，可加強定製）</span></span>
+    </a>
+    <a href="/zh-tw/tools/design/generator-9.html" class="related-tool-card">
+      <span class="rt-icon">🏷️</span>
+      <span class="rt-info"><span class="rt-name">條形碼生成器（EAN-13等） - 免費線上工具，純前端處理 | ToolBox免費線上工具箱</span><span class="rt-desc">條形碼生成器（EAN-13等）</span></span>
+    </a>
+    <a href="/zh-tw/tools/design/generator-6.html" class="related-tool-card">
+      <span class="rt-icon">📈</span>
+      <span class="rt-info"><span class="rt-name">盒子陰影生成器（視覺化調整） - 免費線上工具，純前端處理 | ToolBox免費線上工具箱</span><span class="rt-desc">盒子陰影生成器（視覺化調整）</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro open" id="toolIntro">
+  <div class="tool-intro-header">
+    <span class="intro-icon-wrap"><span class="intro-icon">📖</span>關於「曝光三角形」</span>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="tool-intro-body">
+    <h4><span class="h4-icon">📝</span>工具簡介</h4>
+    <p>曝光三角形是一款面向攝影愛好者的線上曝光計算工具，幫助理解光圈、快門、ISO 三者此消彼長的關係，在不改變亮度前提下控制景深與運動模糊。</p>
+    <h4><span class="h4-icon">✨</span>功能特點</h4>
+    <ul class="intro-features">
+      <li>三角聯動計算，任一引數變化即時換算另兩項</li>
+      <li>即時視覺化曝光值與適用場景分級</li>
+      <li>一鍵生成等量曝光組合對照表</li>
+      <li>純前端執行，資料不上傳</li>
+    </ul>
+    <h4><span class="h4-icon">🎯</span>使用場景</h4>
+    <ul class="intro-scenes">
+      <li>逆光人像虛化背景時控制曝光</li>
+      <li>弱光手持防抖權衡景深與噪點</li>
+      <li>運動物體高速快門定格</li>
+      <li>風光夜景長曝光引數規劃</li>
+    </ul>
+    </div>
+</div>
+<!-- /SEO 介紹區塊 -->
+
+<script>
+// tool-intro折叠交互
+document.addEventListener('DOMContentLoaded',function(){
+  var headers=document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click',function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+
+var __exposure_triangle_last=0,__exposure_triangle_skip=false;
+function __exposure_triangleSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __exposure_triangleResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __exposure_triangleTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __exposure_triangleRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__exposure_triangleTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#exposure_triangleTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#exposure_triangleDiff');
+        TBKit.history.mount('#exposure_triangleHist',function(rec){
+            __exposure_triangle_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calcEV();
+            }catch(e2){}
+            __exposure_triangle_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__exposure_triangleTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#exposure_triangleChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __exposure_triangleExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__exposure_triangle_skip) return;
+    var snap=__exposure_triangleSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__exposure_triangleResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__exposure_triangle_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __exposure_triangle_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __exposure_triangleRender(keys,rk,en);
+}
+function __exposure_triangleExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#exposure_triangleTable','exposure-triangle.csv'); } catch(e){}
+}
+function __exposure_trianglePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#exposure_trianglePresets',[{label:'默认参数',labelEn:'Default',values:{'aperture':'1.4', 'shutter':'0.001', 'iso':'50'}}],function(){ calcEV(); });
+}
+var __exposure_triangle_f0=(typeof calcEV==='function')?calcEV:null;
+if(__exposure_triangle_f0){
+    calcEV=function(){ var __r=__exposure_triangle_f0.apply(null,arguments); try{ __exposure_triangleExtras(); }catch(e){} return __r; };
+}
+function __exposure_triangleBoot(){ try{ __exposure_trianglePresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __exposure_triangleBoot();
+else document.addEventListener('DOMContentLoaded', __exposure_triangleBoot);
+</script>
+
+
+
+<script>/*TBKIT-INJECT-START*/
+(function(){
+  var P={"res": ["result", "exposure_triangleChart"], "tbl": ["exposure_triangleTable"], "pre": ["exposure_trianglePresets"], "his": ["exposure_triangleHist"]};
+  var L={res:['结果','Result'],chart:['图表','Chart'],tbl:['数据表','Data'],pre:['预设','Presets'],his:['历史','History']};
+  function tabify(){
+    var bar=document.querySelector('.tbk-tabbar');
+    if(!bar||!bar.querySelectorAll) return;
+    var btns=bar.querySelectorAll('.tbk-tab');
+    if(!btns||!btns.length) return;
+    var en=false;
+    try{ if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn) en=TBKit.util.isEn(); }catch(e){}
+    if(!en&&document.documentElement&&(document.documentElement.lang||'').indexOf('en')>=0) en=true;
+    for(var i=0;i<btns.length;i++){var p=btns[i].getAttribute('data-pane');btns[i].textContent=en?L[p][1]:L[p][0];}
+    function show(pane){
+      for(var k in P){var ids=P[k];for(var i=0;i<ids.length;i++){var el=document.getElementById(ids[i]);if(el&&el.style)el.style.display=(k===pane?'':'none');}}
+      for(var j=0;j<btns.length;j++){btns[j].className='tbk-tab'+(btns[j].getAttribute('data-pane')===pane?' active':'');}
+    }
+    for(var i=0;i<btns.length;i++){(function(b){b.addEventListener('click',function(){show(b.getAttribute('data-pane'));});})(btns[i]);}
+    show(btns[0].getAttribute('data-pane'));
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',tabify);else tabify();
+})();
+/*TBKIT-INJECT-END*/</script>
+</body>
+</html>

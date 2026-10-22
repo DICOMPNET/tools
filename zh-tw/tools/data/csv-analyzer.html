@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-opencc-locale="zh-tw">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=dev,industry=data,icon=📊,bg=#3b82f6">
+<meta name="description" content="CSV 分析器是一款免費的線上資料分析工具，貼上或上傳 CSV 資料，自動解析列結構並統計每列的型別、空值與分佈，輔助資料預覽與清洗前的快速檢查。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta name="keywords" content="CSV 分析器,CSV 分析器線上,線上CSV 分析器,開發工具,資料分析,CSV,分析器,線上工具,免費工具,ToolBox">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://tools.dicomp.net/zh-tw/tools/data/csv-analyzer.html">
+<meta property="og:title" content="CSV 分析器 - 貼上或上傳 CSV 資料">
+<meta property="og:description" content="CSV 分析器是一款免費的線上資料分析工具，貼上或上傳 CSV 資料，自動解析列結構並統計每列的型別、空值與分佈，輔助資料預覽與清洗前的快速檢查。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://tools.dicomp.net/zh-tw/tools/data/csv-analyzer.html">
+<meta name="twitter:card" content="summary">
+
+<title>CSV 分析器 - 貼上或上傳 CSV 資料</title>
+<meta name="theme-color" content="#FF6B35">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="stylesheet" href="/css/common.css">
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/common.js" defer></script>
+<style>
+.data-input { width:100%; min-height:140px; font-family:monospace; font-size:12px; padding:8px; border:1px solid var(--border-color); border-radius:6px; background:var(--bg-body); color:var(--text-primary); resize:vertical; }
+table.csv-table { width:100%; font-size:11px; border-collapse:collapse; margin-bottom:12px; }
+table.csv-table th, table.csv-table td { padding:4px 8px; border:1px solid var(--border-color); text-align:left; }
+table.csv-table th { background:var(--bg-card); font-weight:bold; }
+table.csv-table tr:nth-child(even) td { background:var(--bg-card); }
+.result-block { background:var(--bg-card); padding:12px; border-radius:8px; margin-bottom:8px; }
+.result-label { font-size:11px; color:var(--text-muted); }
+.result-value { font-size:18px; color:var(--primary); font-weight:bold; }
+.col-stats { display:grid; grid-template-columns:repeat(2,1fr); gap:8px; }
+</style>
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"能處理多大檔案？","acceptedAnswer":{"@type":"Answer","text":"解析在本地進行，受瀏覽器記憶體限制；超大檔案建議抽樣或拆分後再分析，避免卡頓。"}},{"@type":"Question","name":"型別判斷準確嗎？","acceptedAnswer":{"@type":"Answer","text":"按樣本值推斷文本/數值/日期等型別，僅作參考；混合內容會標記為文本，關鍵列請人工複核。"}},{"@type":"Question","name":"分析結果能匯出嗎？","acceptedAnswer":{"@type":"Answer","text":"通常可複製統計結果或匯出概要；具體以頁面按鈕為準，所有過程均在本地完成。"}}]}</script>
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首頁","item":"https://tools.dicomp.net/zh-tw/"},{"@type":"ListItem","position":2,"name":"資料分析","item":"https://tools.dicomp.net/zh-tw/tools/data/index.html"},{"@type":"ListItem","position":3,"name":"CSV 分析器","item":"https://tools.dicomp.net/zh-tw/tools/data/csv-analyzer.html"}]}</script>
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"CSV 分析器","url":"https://tools.dicomp.net/zh-tw/tools/data/csv-analyzer.html","applicationCategory":"DeveloperApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"CSV 分析器是一款免費的線上資料分析工具，貼上或上傳 CSV 資料，自動解析列結構並統計每列的型別、空值與分佈，輔助資料預覽與清洗前的快速檢查。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<meta property="og:image" content="https://tools.dicomp.net/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免費線上工具">
+<meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免費線上工具">
+
+<meta name="twitter:title" content="CSV 分析器 - 貼上或上傳 CSV 資料">
+<meta name="twitter:description" content="CSV 分析器是一款免費的線上資料分析工具，貼上或上傳 CSV 資料，自動解析列結構並統計每列的型別、空值與分佈，輔助資料預覽與清洗前的快速檢查。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script src="/js/i18n.js" defer></script>
+<script src="/js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+<meta name="title-en" content="CSV Analyzer">
+<meta name="desc-en" content="CSV Analyzer - online utility on ToolBox.">
+
+
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
+
+<script src="/js/tool-ux.js" defer></script>
+<!-- TOOLBOX-TOOL-UX -->
+
+<script src="/js/analytics.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+<!-- TOOLBOX-TTZZ -->
+<script>
+(function(){try{
+var el = document.createElement("script");
+el.src = "https://lf1-cdn-tos.bytegoofy.com/goofy/ttzz/push.js?85d6452aa9be4d693b16cd48535a8c7ae57542f6788a41682e745be8eb99b35a8a24d2f724c31ebe20c1e4e6fba6d91caf576100b02a2870c72f38fc574066fef065d152c73bf1cbb2ebad3b5b5265d8";
+el.id = "ttzz";
+var s = document.getElementsByTagName("script")[0];
+s.parentNode.insertBefore(el, s);
+}catch(e){}
+})(window);
+</script>
+
+<script src="/js/tool-kit.js" defer></script>
+<!-- TOOLBOX-TOOL-KIT -->
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://tools.dicomp.net/tools/data/csv-analyzer.html">
+<link rel="alternate" hreflang="zh-TW" href="https://tools.dicomp.net/zh-tw/tools/data/csv-analyzer.html">
+<link rel="alternate" hreflang="en-US" href="https://tools.dicomp.net/tools/data/csv-analyzer.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://tools.dicomp.net/tools/data/csv-analyzer.html">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+</head>
+<body>
+<h1 class="sr-only">CSV 分析器</h1>
+
+<div class="nav">
+  <a href="/zh-tw/index.html">← ToolBox</a>
+  <span>/ CSV 分析</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+<nav class="breadcrumb" aria-label="麵包屑導航" data-breadcrumb="1">
+  <a href="/zh-tw/index.html">首頁</a>
+  <span class="bc-sep">‹</span>
+  <a href="/zh-tw/tools/data/index.html">📊 資料分析</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">CSV 分析器</span>
+</nav>
+<div class="container">
+  <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
+    <h2 data-zh="📊 CSV 分析器">CSV Analyzer</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="解析 CSV 資料,統計每列資訊">CSV Analyzer</p>
+<div class="formula-box">
+  <div class="formula-title">📐 工作原理與說明</div>
+      <div class="formula-eq">CSV 分析逐列統計：行數 = 資料行（不含表頭），列數 = 首行欄位數；數值列統計最小值、最大值、均值 = Σ值 ÷ 有效個數、中位數（排序後取中間值或中間兩值平均）；空值率 = 空單元格數 ÷ 總單元格數 × 100%；列型別按非空值的數值、日期、文本佔比判定。</div>
+
+</div>
+
+    <div class="input-row">
+      <label>分隔符</label>
+      <select id="delim">
+        <option value=",">逗號 (,)</option>
+        <option value="\t">製表符 (\t)</option>
+        <option value=";">分號 (;)</option>
+        <option value="|">豎線 (|)</option>
+      </select>
+    </div>
+
+    <div class="input-row">
+      <label>CSV 資料</label>
+      <textarea class="data-input" id="csvInput">name,age,score,city
+张三,25,85.5,北京
+李四,30,92.0,上海
+王五,28,78.5,广州
+赵六,35,88.0,深圳
+钱七,22,95.5,杭州
+孙八,40,72.0,成都</textarea>
+    </div>
+
+    <div class="toolbar">
+      <div id="csv_analyzerPresets"></div>
+      <button type="button" class="btn primary" onclick="analyze()">📊 分析</button>
+      <button class="btn" type="button" onclick="__csv_analyzerExport()">匯出明細 CSV</button>
+      <button type="button" class="btn" onclick="document.getElementById('csvInput').value=''">清空</button>
+    </div>
+
+    <div class="result-box" id="result">
+      <p style="text-align:center;color:var(--text-muted);">👆 貼上 CSV 資料</p>
+    </div>
+    <div id="csv_analyzerTable"></div>
+    <div id="csv_analyzerDiff"></div>
+    <div id="csv_analyzerChart"></div>
+    <div id="csv_analyzerHist"></div>
+  </div>
+
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto 0;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+.deep-dive a.term-link{color:var(--tool-accent,#FF6B35);text-decoration:none;border-bottom:1px dashed currentColor;}
+.deep-dive a.term-link:hover{border-bottom-style:solid;}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：CSV 分析器</h2>
+<h3>💡 常見使用場景</h3>
+<ul class="dd-list">
+<li>清洗前置檢：匯入 CSV 先統計各列空值率與型別，確定哪些列需要先補全或轉換再進分析。</li>
+<li>異常初篩：檢視數值列的最大最小與分佈，快速發現單位不一致或明顯錄入錯誤的離群值。</li>
+<li>結構確認：核對列名與行數，確認匯出欄位與預期一致，避免後續透視或關聯時錯位。</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">使用者表空值檢查</div><div class="dd-ex-body">上傳含「姓名,手機,城市」的 CSV，工具顯示「手機」列空值率 8%、「城市」列 2%，據此先補全省略欄位再做後續聚合。</div></div>
+<h3>❓ 常見問題（FAQ）</h3>
+<dl class="dd-faq">
+<dt>能處理多大檔案？</dt><dd>解析在本地進行，受瀏覽器記憶體限制；超大檔案建議抽樣或拆分後再分析，避免卡頓。</dd>
+<dt>型別判斷準確嗎？</dt><dd>按樣本值推斷文本/數值/日期等型別，僅作參考；混合內容會標記為文本，關鍵列請人工複核。</dd>
+<dt>分析結果能匯出嗎？</dt><dd>通常可複製統計結果或匯出概要；具體以頁面按鈕為準，所有過程均在本地完成。</dd>
+</dl>
+</div>
+</section>
+<!-- 注意事項區塊 -->
+<div class="tool-notes" style="--tool-accent:#FF6B35;">
+  <div class="tool-notes-title">⚠️ 使用說明與注意事項</div>
+  <ul>
+      <li>本工具純前端執行，資料不會上傳到伺服器</li>
+      <li>建議在主流瀏覽器（Chrome/Safari/Firefox/Edge）中使用</li>
+      <li>計算結果僅供參考，請以實際應用場景為準</li>
+  </ul>
+</div>
+<!-- /注意事項區塊 -->
+</div>
+<script>
+function parseCSV(text, delim) {
+  const lines = text.trim().split('\n').filter(l => l.trim());
+  if (lines.length === 0) return { headers: [], rows: [] };
+  const splitLine = (line) => {
+    const result = [];
+    let cur = '', inQuote = false;
+    for (let i = 0; i < line.length; i++) {
+      const c = line[i];
+      if (c === '"') inQuote = !inQuote;
+      else if (c === delim && !inQuote) { result.push(cur); cur = ''; }
+      else cur += c;
+    }
+    result.push(cur);
+    return result.map(s => s.trim());
+  };
+  const headers = splitLine(lines[0]);
+  const rows = lines.slice(1).map(splitLine);
+  return { headers, rows };
+}
+
+function isNumeric(s) { return !isNaN(parseFloat(s)) && isFinite(s) && s.trim() !== ''; }
+
+function analyzeCol(values) {
+  const nums = values.filter(isNumeric).map(parseFloat);
+  if (nums.length === 0) return null;
+  const sum = nums.reduce((a, b) => a + b, 0);
+  const sorted = [...nums].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  const median = sorted.length % 2 ? sorted[mid] : (sorted[mid-1] + sorted[mid]) / 2;
+  const mean = sum / nums.length;
+  const variance = nums.reduce((a, b) => a + (b - mean) ** 2, 0) / nums.length;
+  const std = Math.sqrt(variance);
+  return {
+    count: nums.length,
+    sum, mean, median,
+    min: Math.min(...nums),
+    max: Math.max(...nums),
+    std, variance,
+    q1: sorted[Math.floor(sorted.length * 0.25)] || 0,
+    q3: sorted[Math.floor(sorted.length * 0.75)] || 0,
+  };
+}
+
+function analyze() {
+  const text = document.getElementById('csvInput').value;
+  const delimRaw = document.getElementById('delim').value;
+  const delim = delimRaw === '\\t' ? '\t' : delimRaw;
+  const { headers, rows } = parseCSV(text, delim);
+  if (headers.length === 0) { ToolBox.showToast(i18nText('toast.msg748'), 'error'); return; }
+
+  // 转置列数据
+  const colData = headers.map((h, i) => rows.map(r => r[i] || ''));
+  const colStats = headers.map((h, i) => ({
+    name: h,
+    type: colData[i].filter(v => v !== '').every(isNumeric) ? 'numeric' : 'text',
+    stats: analyzeCol(colData[i]),
+    unique: new Set(colData[i].filter(v => v !== '')).size,
+    nullCount: colData[i].filter(v => v === '').length,
+  }));
+
+  // 表格预览
+  const tableHtml = `
+    <h3 style="text-align:center;margin:12px 0 8px;">📋 数据预览 (前 10 行)</h3>
+    <table class="csv-table">
+      <tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr>
+      ${rows.slice(0, 10).map(r => `<tr>${r.map(c => `<td>${c}</td>`).join('')}</tr>`).join('')}
+    </table>
+    ${rows.length > 10 ? `<p style="text-align:center;font-size:11px;color:var(--text-muted);">... 还有 ${rows.length - 10} 行</p>` : ''}
+  `;
+
+  // 列统计
+  const statsHtml = `
+    <h3 style="text-align:center;margin:12px 0 8px;">📊 列统计</h3>
+    <div class="col-stats">
+      ${colStats.map(s => `
+        <div class="result-block">
+          <div class="result-label">${s.name} (${s.type})</div>
+          ${s.type === 'numeric' && s.stats ? `
+            <div class="result-value" style="font-size:14px;">均值 ${s.stats.mean.toFixed(2)}</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">
+              总和: ${s.stats.sum.toFixed(2)}<br/>
+              中位数: ${s.stats.median.toFixed(2)}<br/>
+              最小: ${s.stats.min} · 最大: ${s.stats.max}<br/>
+              标准差: ${s.stats.std.toFixed(2)}<br/>
+              Q1: ${s.stats.q1.toFixed(2)} · Q3: ${s.stats.q3.toFixed(2)}<br/>
+              唯一: ${s.unique} · 缺失: ${s.nullCount}
+            </div>
+          ` : `
+            <div class="result-value" style="font-size:14px;">${s.unique} 个不同值</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">缺失: ${s.nullCount}</div>
+          `}
+        </div>
+      `).join('')}
+    </div>
+  `;
+
+  // 总览
+  const overviewHtml = `
+    <h3 style="text-align:center;margin-bottom:8px;">📈 总览</h3>
+    <div class="result-block"><div class="result-label">行数</div><div class="result-value">${rows.length}</div></div>
+    <div class="result-block"><div class="result-label">列数</div><div class="result-value">${headers.length}</div></div>
+    <div class="result-block"><div class="result-label">总单元格</div><div class="result-value" style="font-size:14px;">${rows.length * headers.length}</div></div>
+    <div class="result-block"><div class="result-label">数值列</div><div class="result-value" style="font-size:14px;">${colStats.filter(s => s.type === 'numeric').length}</div></div>
+  `;
+
+  const __h0=overviewHtml + tableHtml + statsHtml;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h0;
+}
+
+analyze();
+ToolBox.initToolTheme();
+</script><script>
+// tool-intro折叠交互
+document.addEventListener('DOMContentLoaded',function(){
+  var headers=document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click',function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+
+var __csv_analyzer_last=0,__csv_analyzer_skip=false;
+function __csv_analyzerSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __csv_analyzerResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __csv_analyzerTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __csv_analyzerRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__csv_analyzerTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#csv_analyzerTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#csv_analyzerDiff');
+        TBKit.history.mount('#csv_analyzerHist',function(rec){
+            __csv_analyzer_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                analyze();
+            }catch(e2){}
+            __csv_analyzer_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__csv_analyzerTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#csv_analyzerChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __csv_analyzerExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__csv_analyzer_skip) return;
+    var snap=__csv_analyzerSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__csv_analyzerResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__csv_analyzer_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __csv_analyzer_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __csv_analyzerRender(keys,rk,en);
+}
+function __csv_analyzerExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#csv_analyzerTable','csv-analyzer.csv'); } catch(e){}
+}
+function __csv_analyzerPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#csv_analyzerPresets',[{label:'默认参数',labelEn:'Default',values:{delim:','}}],function(){ analyze(); });
+}
+var __csv_analyzer_f0=(typeof analyze==='function')?analyze:null;
+if(__csv_analyzer_f0){
+    analyze=function(){ var __r=__csv_analyzer_f0.apply(null,arguments); try{ __csv_analyzerExtras(); }catch(e){} return __r; };
+}
+function __csv_analyzerBoot(){ try{ __csv_analyzerPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __csv_analyzerBoot();
+else document.addEventListener('DOMContentLoaded', __csv_analyzerBoot);
+</script>
+<!-- SEO 介紹區塊 -->
+
+</div>
+
+</div>
+
+<!-- 相關工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相關工具</h3>
+  <div class="related-tools-grid">
+    <a href="/zh-tw/tools/data/calc-2.html" class="related-tool-card">
+      <span class="rt-icon">🧹</span>
+      <span class="rt-info"><span class="rt-name">JSON格式化 - 線上開發工具工具 | ToolBox免費線上工具箱</span><span class="rt-desc">JSON格式化</span></span>
+    </a>
+    <a href="/zh-tw/tools/data/data-visualizer.html" class="related-tool-card">
+      <span class="rt-icon">📈</span>
+      <span class="rt-info"><span class="rt-name">資料視覺化 - 免費開發工具，線上資料視覺化 | ToolBox免費線上工具箱</span><span class="rt-desc">資料視覺化</span></span>
+    </a>
+    <a href="/zh-tw/tools/data/pivot-table.html" class="related-tool-card">
+      <span class="rt-icon">📊</span>
+      <span class="rt-info"><span class="rt-name">資料透視表 - 免費開發工具，線上資料透視表 | ToolBox免費線上工具箱</span><span class="rt-desc">資料透視表</span></span>
+    </a>
+    <a href="/zh-tw/tools/data/data-cleaner.html" class="related-tool-card">
+      <span class="rt-icon">🔎</span>
+      <span class="rt-info"><span class="rt-name">資料清洗 - 免費文本處理工具，線上資料清洗 | ToolBox免費線上工具箱</span><span class="rt-desc">資料清洗</span></span>
+    </a>
+
+    <a href="/zh-tw/tools/data/generator-report.html" class="related-tool-card">
+      <span class="rt-icon">✨</span>
+      <span class="rt-info"><span class="rt-name">報表（自動生成/傳送）模板 - 免費線上工具，純前端處理 | ToolBox免費線上工具箱</span><span class="rt-desc">報表（自動生成/傳送）模板</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro open" id="toolIntro">
+  <div class="tool-intro-header">
+    <span class="intro-icon-wrap"><span class="intro-icon">📖</span>關於「CSV 分析器」</span>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="tool-intro-body">
+    <h4><span class="h4-icon">📝</span>工具簡介</h4>
+    <p>CSV 分析器。資料分析工具，幫助快速處理與視覺化資料。</p>
+    <h4><span class="h4-icon">✨</span>功能特點</h4>
+    <ul class="intro-features">
+      <li>支援多種資料格式匯入</li>
+      <li>純前端計算，資料不洩露</li>
+      <li>視覺化圖表展示結果</li>
+      <li>支援資料篩選與排序</li>
+    </ul>
+    <h4><span class="h4-icon">🎯</span>使用場景</h4>
+    <ul class="intro-scenes">
+      <li>日常資料分析與統計</li>
+      <li>資料清洗與格式轉換</li>
+      <li>報表製作輔助</li>
+      <li>學習資料分析方法</li>
+    </ul>
+    </div>
+</div>
+<!-- /SEO 介紹區塊 -->
+<style>.opt-result-interpret{max-width:960px;margin:16px auto;padding:0 16px;}
+.opt-result-interpret .ir-card{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:16px;padding:20px;margin-bottom:16px;box-shadow:var(--shadow-sm,0 1px 3px rgba(0,0,0,.06));}
+.opt-result-interpret h2{font-size:18px;margin:0 0 12px;color:var(--heading,#1F2937);}
+.opt-result-interpret h3{font-size:14px;margin:14px 0 6px;color:var(--primary,#FF6B35);}
+.opt-result-interpret p{font-size:13.5px;line-height:1.75;color:var(--text-secondary,#6B7280);margin:0 0 4px;}
+.opt-result-interpret code{background:var(--result-bg,#f6f6f6);padding:1px 5px;border-radius:5px;font-size:12.5px;}</style>
+<section class="opt-result-interpret"><div class="ir-card">
+<h2>📊 結果解讀</h2>
+<h3>結果含義</h3><p>CSV 分析：對錶格資料做概要統計、缺失檢測與基本透視；結果展示行/列數、缺失項與關鍵統計量（均值、最值等）。</p>
+<h3>用途</h3><p>用於資料清洗前體檢與快速洞察；複雜分析建議在專用工具中完成。本工具在本地處理，資料不上傳。</p>
+</div></section>
+</body>
+</html>

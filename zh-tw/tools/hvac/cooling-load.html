@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-opencc-locale="zh-tw">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=engineer,industry=hvac,icon=❄️,bg=#e8f5e9">
+<meta name="description" content="輸入房間尺寸、圍護結構、人員裝置散熱與朝向等引數，按簡化冷負荷係數法逐項計算圍護結構、新風與室內熱源負荷，彙總並乘 1.1 安全係數後給出總冷負荷（W），據此推薦空調機型與匹數。">
+<title>空調負荷計算器 - 免費線上暖通空調工具</title>
+<link rel="canonical" href="https://tools.dicomp.net/zh-tw/tools/hvac/cooling-load.html">
+<meta property="og:title" content="空調負荷計算器 - 免費線上暖通空調工具">
+<meta property="og:description" content="輸入房間尺寸、圍護結構、人員裝置散熱與朝向等引數，按簡化冷負荷係數法逐項計算圍護結構、新風與室內熱源負荷，彙總並乘 1.1 安全係數後給出總冷負荷（W），據此推薦空調機型與匹數。">
+<meta property="og:url" content="https://tools.dicomp.net/zh-tw/tools/hvac/cooling-load.html">
+<meta name="twitter:card" content="summary">
+<link rel="stylesheet" href="/css/common.css">
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/common.js" defer></script>
+<style>
+  /* 页面局部样式：负荷明细条 */
+  .load-bar-row{display:flex;align-items:center;gap:10px;margin:8px 0;font-size:13px;}
+  .load-bar-row .lb-lbl{width:96px;flex-shrink:0;color:var(--text-secondary);font-weight:500;font-size:12.5px;}
+  .load-bar-row .lb-bg{flex:1;height:24px;background:var(--border);border-radius:8px;overflow:hidden;position:relative;}
+  .load-bar-row .lb-fill{height:100%;border-radius:8px;background:var(--gradient-primary);transition:width .5s cubic-bezier(.4,0,.2,1);display:flex;align-items:center;justify-content:flex-end;padding-right:8px;color:#fff;font-size:11px;font-weight:600;min-width:0;white-space:nowrap;}
+  .load-bar-row .lb-fill.empty{background:var(--bg-hover);color:var(--text-muted);}
+  .load-bar-row .lb-pct{width:54px;flex-shrink:0;text-align:right;color:var(--text-muted);font-size:12px;}
+  .field-group-title{font-size:13px;font-weight:600;color:var(--primary);margin:4px 0 10px;display:flex;align-items:center;gap:6px;}
+  .result-total{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;}
+  .result-total .big{font-size:30px;font-weight:800;color:var(--primary);letter-spacing:-.5px;}
+  .result-total .unit{font-size:14px;color:var(--text-muted);}
+  .sub-card{background:var(--result-bg);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-top:12px;}
+  .sub-card h3{margin-bottom:10px;}
+  @media(max-width:768px){
+    .load-bar-row .lb-lbl{width:74px;font-size:12px;}
+    .load-bar-row .lb-pct{width:46px;font-size:11px;}
+    .result-total .big{font-size:26px;}
+  }
+</style>
+
+
+
+<meta property="og:image" content="https://tools.dicomp.net/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免費線上工具">
+<meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免費線上工具">
+    <meta property="og:type" content="website">
+    <meta name="twitter:title" content="空調負荷計算器 - 免費線上暖通空調工具">
+    <meta name="twitter:description" content="輸入房間尺寸、圍護結構、人員裝置散熱與朝向等引數，按簡化冷負荷係數法逐項計算圍護結構、新風與室內熱源負荷，彙總並乘 1.1 安全係數後給出總冷負荷（W），據此推薦空調機型與匹數。">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"空調負荷計算器","url":"https://tools.dicomp.net/zh-tw/tools/hvac/cooling-load.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"輸入房間尺寸、圍護結構、人員裝置散熱與朝向等引數，按簡化冷負荷係數法逐項計算圍護結構、新風與室內熱源負荷，彙總並乘 1.1 安全係數後給出總冷負荷（W），據此推薦空調機型與匹數。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首頁","item":"https://tools.dicomp.net/zh-tw/"},{"@type":"ListItem","position":2,"name":"暖通空調","item":"https://tools.dicomp.net/zh-tw/tools/hvac/index.html"},{"@type":"ListItem","position":3,"name":"空調負荷計算器","item":"https://tools.dicomp.net/zh-tw/tools/hvac/cooling-load.html"}]}</script>
+
+<script src="/js/i18n.js" defer></script>
+<script src="/js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+
+
+<meta name="title-en" content="Cooling Load">
+<meta name="desc-en" content="Cooling Load - online utility on ToolBox.">
+
+
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
+
+<script src="/js/tool-ux.js" defer></script>
+<!-- TOOLBOX-TOOL-UX -->
+
+<script src="/js/analytics.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+<!-- TOOLBOX-TTZZ -->
+<script>
+(function(){try{
+var el = document.createElement("script");
+el.src = "https://lf1-cdn-tos.bytegoofy.com/goofy/ttzz/push.js?85d6452aa9be4d693b16cd48535a8c7ae57542f6788a41682e745be8eb99b35a8a24d2f724c31ebe20c1e4e6fba6d91caf576100b02a2870c72f38fc574066fef065d152c73bf1cbb2ebad3b5b5265d8";
+el.id = "ttzz";
+var s = document.getElementsByTagName("script")[0];
+s.parentNode.insertBefore(el, s);
+}catch(e){}
+})(window);
+</script>
+
+<script src="/js/tool-kit.js" defer></script>
+<!-- TOOLBOX-TOOL-KIT -->
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://tools.dicomp.net/tools/hvac/cooling-load.html">
+<link rel="alternate" hreflang="zh-TW" href="https://tools.dicomp.net/zh-tw/tools/hvac/cooling-load.html">
+<link rel="alternate" hreflang="en-US" href="https://tools.dicomp.net/tools/hvac/cooling-load.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://tools.dicomp.net/tools/hvac/cooling-load.html">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+</head>
+<body>
+<h1 class="sr-only">空調負荷計算器</h1>
+<div class="nav">
+  <a href="/zh-tw/index.html">← ToolBox</a>
+  <span>/ 空調負荷計算器</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()" aria-label="切換主題">🌙</button>
+</div>
+
+
+
+
+
+<nav class="breadcrumb" aria-label="麵包屑導航" data-breadcrumb="1">
+  <a href="/zh-tw/index.html">首頁</a>
+  <span class="bc-sep">‹</span>
+  <a href="/zh-tw/tools/hvac/index.html">❄️ 暖通空調</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">空調負荷計算器</span>
+</nav>
+
+<div class="tool-guide-link" data-guide-link="1">
+  <a href="/zh-tw/guides/cooling-load-guide.html">📖 檢視「空調負荷計算器 使用指南」</a>
+</div>
+<div class="container">
+  <style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#3b82f6)}.tbk-tab.active{background:var(--accent,#3b82f6);color:#fff;border-color:var(--accent,#3b82f6)}.tbk-panel{margin-top:6px}</style>
+<div class="tbk-tabbar" role="tablist">
+  <button type="button" class="tbk-tab" data-pane="res">結果</button>
+  <button type="button" class="tbk-tab" data-pane="tbl">資料表</button>
+  <button type="button" class="tbk-tab" data-pane="pre">預設</button>
+  <button type="button" class="tbk-tab" data-pane="his">歷史</button>
+</div>
+<div class="card tool-card-accent" style="--tool-accent:#00C9A7;--tool-accent-dark:#00C9A7;">
+    <h2 data-zh="❄️ 空調負荷計算器">Cooling Load</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px;" data-zh="基於簡化冷負荷係數法，計算房間各項冷負荷並給出空調選型建議">Cooling Load</p>
+    <div class="formula-box">
+      <div class="formula-title">📐 工作原理與說明</div>
+      <p class="formula-desc" data-zh="核心計算公式（按輸入變數）：Math.ceil(total ÷ HP_WATT)；freshVol × RHO × dh ÷ 3.6；V × ρ × Δh ÷ 3.6  (W)">Key formulas: Math.ceil(total ÷ HP_WATT); freshVol × RHO × dh ÷ 3.6; V × ρ × Δh ÷ 3.6  (W)</p>
+    </div>
+
+    <!-- 圍護結構引數 -->
+    <div class="field-group-title">🏗️ 圍護結構引數</div>
+    <div class="input-row">
+      <div><label>房間面積 (m²)</label><input type="number" id="area" value="30" min="0" step="any" enterkeyhint="done" aria-label="房間面積"></div>
+      <div><label>層高 (m)</label><input type="number" id="height" value="3.0" min="0" step="any" enterkeyhint="done" aria-label="層高"></div>
+      <div><label>朝向</label>
+        <select id="orientation" aria-label="窗戶朝向">
+          <option value="南">南</option>
+          <option value="东南">東南</option>
+          <option value="东" selected>東</option>
+          <option value="东北">東北</option>
+          <option value="北">北</option>
+          <option value="西北">西北</option>
+          <option value="西">西</option>
+          <option value="西南">西南</option>
+        </select>
+      </div>
+    </div>
+    <div class="input-row">
+      <div><label>外牆面積 (m²)</label><input type="number" id="wallArea" value="15" min="0" step="any" enterkeyhint="done" aria-label="外牆面積"></div>
+      <div><label>外牆傳熱係數 K (W/m²·K)</label><input type="number" id="kWall" value="1.5" min="0" step="any" enterkeyhint="done" aria-label="外牆傳熱係數"></div>
+      <div><label>窗戶面積 (m²)</label><input type="number" id="winArea" value="6" min="0" step="any" enterkeyhint="done" aria-label="窗戶面積"></div>
+    </div>
+    <div class="input-row">
+      <div><label>窗戶型別</label>
+        <select id="winType" aria-label="窗戶型別" onchange="onWinTypeChange()">
+          <option value="single">單層玻璃</option>
+          <option value="double">雙層玻璃</option>
+          <option value="insul">中空玻璃</option>
+          <option value="lowe">Low-E 中空玻璃</option>
+        </select>
+      </div>
+      <div><label>窗戶傳熱係數 K_win (W/m²·K)</label><input type="number" id="kWin" value="5.8" min="0" step="any" enterkeyhint="done" aria-label="窗戶傳熱係數"></div>
+    </div>
+    <div class="input-row">
+      <div><label>室內設計溫度 tn (°C)</label><input type="number" id="tn" value="26" step="any" enterkeyhint="done" aria-label="室內設計溫度"></div>
+      <div><label>室外計算溫度 tw (°C)</label><input type="number" id="tw" value="34" step="any" enterkeyhint="done" aria-label="室外計算溫度"></div>
+    </div>
+
+    <!-- 內部熱源 -->
+    <div class="field-group-title" style="margin-top:18px;">👥 內部熱源</div>
+    <div class="input-row">
+      <div><label>人員數量 (人)</label><input type="number" id="people" value="5" min="0" step="1" enterkeyhint="done" aria-label="人員數量"></div>
+      <div><label>活動強度</label>
+        <select id="activity" aria-label="人員活動強度" onchange="onActivityChange()">
+          <option value="rest">靜坐（住宅/靜處）</option>
+          <option value="vlight" selected>極輕勞動（辦公）</option>
+          <option value="light">輕勞動</option>
+          <option value="medium">中等勞動</option>
+          <option value="heavy">重勞動</option>
+        </select>
+      </div>
+    </div>
+    <div class="input-row">
+      <div><label>裝置功率 (W)</label><input type="number" id="equipPower" value="800" min="0" step="any" enterkeyhint="done" aria-label="裝置功率"></div>
+      <div><label>裝置同時使用係數</label><input type="number" id="equipFactor" value="0.8" min="0" max="1" step="any" enterkeyhint="done" aria-label="裝置同時使用係數"></div>
+      <div><label>照明功率 (W)</label><input type="number" id="lightPower" value="400" min="0" step="any" enterkeyhint="done" aria-label="照明功率"></div>
+    </div>
+
+    <!-- 新風引數 -->
+    <div class="field-group-title" style="margin-top:18px;">🌬️ 新風引數</div>
+    <div class="input-row">
+      <div><label>新風量標準 (m³/h·人)</label><input type="number" id="freshAirPer" value="30" min="0" step="any" enterkeyhint="done" aria-label="新風量標準"></div>
+      <div><label>室外焓值 hw (kJ/kg)</label><input type="number" id="hw" value="85" step="any" enterkeyhint="done" aria-label="室外焓值"></div>
+      <div><label>室內焓值 hn (kJ/kg)</label><input type="number" id="hn" value="53" step="any" enterkeyhint="done" aria-label="室內焓值"></div>
+    </div>
+
+    <div class="toolbar">
+      <div id="cooling_loadPresets"></div><button class="btn primary" type="button" onclick="calc()">❄️ 計算冷負荷</button><button class="btn" type="button" onclick="__cooling_loadExport()">匯出明細 CSV</button>
+      <button class="btn" type="button" onclick="copyRes()">📋 複製結果</button>
+      <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
+    </div>
+
+    <div class="result-box" id="res"></div> <div id="cooling_loadTable"></div> <div id="cooling_loadDiff"></div> <div id="cooling_loadChart"></div> <div id="cooling_loadHist"></div>
+    <div class="info-box">💡 計算依據：Q1=K·F·(tw-tn) 外牆傳熱；Q2=K_win·F_win·(tw-tn)+太陽輻射附加；Q3=人數×(顯熱+潛熱)；Q4=裝置功率×同時使用係數；Q5=照明功率×0.8；Q6=新風量×ρ×(hw-hn)；總負荷 Q=ΣQi×1.1（安全係數）。空氣密度 ρ=1.2 kg/m³。</div>
+
+    <div class="tool-notes" style="--tool-accent:#00C9A7;">
+      <div class="tool-notes-title">⚠️ 使用說明與注意事項</div>
+      <ul>
+        <li>本工具採用<strong>簡化冷負荷係數法</strong>，適用於一般民用建築空調初步設計與選型估算</li>
+        <li>太陽輻射附加按朝向取垂直面太陽輻射強度（夏季典型值）×窗戶面積×遮陽係數 SC 自動計算</li>
+        <li>窗戶型別、活動強度切換時會自動填充對應傳熱係數、SC 與新風標準，可手動修改</li>
+        <li>焓值為空氣狀態引數，夏季室外約 85 kJ/kg、室內 26°C/50% 約 53 kJ/kg，可按實際查焓溼圖調整</li>
+        <li>結果僅供參考，實際工程請結合《民用建築供暖通風與空氣調節設計規範》GB 50736 詳算</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ===== 常量与参考数据表 ===== */
+var RHO = 1.2;        // 空气密度 kg/m³
+var SAFETY = 1.1;     // 安全系数
+var LIGHT_FACTOR = 0.8; // 照明镇流器等附加系数
+var HP_WATT = 2500;   // 1匹空调制冷量(W)
+
+// 朝向 → 垂直面太阳辐射强度(W/m²，夏季典型峰值)
+var ORIENTATION_SOLAR = {
+  '南':180, '东南':260, '东':320, '东北':200,
+  '北':100, '西北':280, '西':350, '西南':300
+};
+
+// 窗户类型 → 传热系数K 与 遮阳系数SC
+var WIN_TYPES = {
+  'single': {K:5.8, SC:0.85},
+  'double': {K:2.8, SC:0.70},
+  'insul':  {K:1.8, SC:0.60},
+  'lowe':   {K:1.5, SC:0.40}
+};
+
+// 活动强度 → 每人显热(sh)/潜热(lh)/新风标准(fresh)
+var ACTIVITY = {
+  'rest':   {sh:60,  lh:73,  fresh:30},
+  'vlight': {sh:65,  lh:69,  fresh:30},
+  'light':  {sh:72,  lh:124, fresh:40},
+  'medium': {sh:86,  lh:210, fresh:50},
+  'heavy':  {sh:108, lh:358, fresh:60}
+};
+
+/* ===== 工具函数 ===== */
+function num(id){
+  var v = parseFloat(document.getElementById(id).value);
+  return isNaN(v) ? 0 : v;
+}
+function setInvalid(id, invalid){
+  var el = document.getElementById(id);
+  if(!el) return;
+  if(invalid){ el.classList.add('input-error'); el.setAttribute('aria-invalid','true'); }
+  else { el.classList.remove('input-error'); el.removeAttribute('aria-invalid'); }
+}
+function clamp(v){ return v < 0 ? 0 : v; }
+function fmt(v, d){ v = Number(v); if(!isFinite(v)) v = 0; return v.toFixed(d == null ? 1 : d); }
+
+function onWinTypeChange(){
+  var t = WIN_TYPES[document.getElementById('winType').value];
+  if(t){ document.getElementById('kWin').value = t.K; }
+  calc();
+}
+function onActivityChange(){
+  var a = ACTIVITY[document.getElementById('activity').value];
+  if(a){ document.getElementById('freshAirPer').value = a.fresh; }
+  calc();
+}
+
+/* ===== 核心计算 ===== */
+function calc(){
+  // 读取并校验
+  var area = num('area'), height = num('height');
+  var wallArea = num('wallArea'), kWall = num('kWall');
+  var winArea = num('winArea'), kWin = num('kWin');
+  var tn = num('tn'), tw = num('tw');
+  var people = num('people');
+  var equipPower = num('equipPower'), equipFactor = num('equipFactor');
+  var lightPower = num('lightPower');
+  var freshAirPer = num('freshAirPer'), hw = num('hw'), hn = num('hn');
+
+  var orientation = document.getElementById('orientation').value;
+  var winType = WIN_TYPES[document.getElementById('winType').value];
+  var act = ACTIVITY[document.getElementById('activity').value];
+  var SC = winType ? winType.SC : 0.7;
+
+  // 校验关键字段
+  ['area','wallArea','winArea','people'].forEach(function(id){
+    setInvalid(id, num(id) < 0);
+  });
+
+  var dt = tw - tn;                          // 室内外温差
+  var volume = area * height;                // 房间体积
+
+  // Q1 外墙冷负荷
+  var q1 = kWall * wallArea * dt;
+
+  // Q2 窗户冷负荷 = 传热 + 太阳辐射附加
+  var q2Cond = kWin * winArea * dt;
+  var solarIrr = ORIENTATION_SOLAR[orientation] || 0;
+  var q2Solar = solarIrr * winArea * SC;
+  var q2 = q2Cond + q2Solar;
+
+  // Q3 人员冷负荷
+  var sh = act ? act.sh : 0, lh = act ? act.lh : 0;
+  var q3 = people * (sh + lh);
+
+  // Q4 设备冷负荷
+  var q4 = equipPower * equipFactor;
+
+  // Q5 照明冷负荷
+  var q5 = lightPower * LIGHT_FACTOR;
+
+  // Q6 新风冷负荷: Q = V * ρ * Δh / 3.6  (W)
+  var freshVol = people * freshAirPer;
+  var dh = hw - hn;
+  var q6 = freshVol * RHO * dh / 3.6;
+
+  // 各项负荷（计入总负荷时取非负）
+  var items = [
+    {key:'q1', name:'外墙 Q1', raw:q1, detail:'K·F·(tw−tn)'},
+    {key:'q2', name:'窗户 Q2', raw:q2, detail:'传热 + 太阳辐射附加'},
+    {key:'q3', name:'人员 Q3', raw:q3, detail:'人数×(显热+潜热)'},
+    {key:'q4', name:'设备 Q4', raw:q4, detail:'功率×同时使用系数'},
+    {key:'q5', name:'照明 Q5', raw:q5, detail:'功率×0.8'},
+    {key:'q6', name:'新风 Q6', raw:q6, detail:'V·ρ·(hw−hn)'}
+  ];
+  items.forEach(function(it){ it.val = clamp(it.raw); });
+
+  var subtotal = 0;
+  items.forEach(function(it){ subtotal += it.val; });
+  var total = subtotal * SAFETY;
+  var areaIndex = area > 0 ? total / area : 0;        // W/m²
+  var recHP = Math.ceil(total / HP_WATT);             // 推荐匹数(向上取整)
+  if(recHP < 1) recHP = 1;
+
+  renderResult(items, subtotal, total, areaIndex, recHP, volume, freshVol, dt, dh, q2Cond, q2Solar, solarIrr, SC, sh, lh);
+}
+
+/* ===== 结果渲染 ===== */
+function renderResult(items, subtotal, total, areaIndex, recHP, volume, freshVol, dt, dh, q2Cond, q2Solar, solarIrr, SC, sh, lh){
+  var base = subtotal > 0 ? subtotal : 1; // 占比基准(未含安全系数的合计)
+  var bars = items.map(function(it){
+    var pct = base > 0 ? (it.val / base * 100) : 0;
+    var w = pct > 100 ? 100 : pct;
+    var fillCls = it.val <= 0 ? 'lb-fill empty' : 'lb-fill';
+    return '<div class="load-bar-row">' +
+      '<span class="lb-lbl">' + it.name + '</span>' +
+      '<div class="lb-bg"><div class="' + fillCls + '" style="width:' + w.toFixed(1) + '%">' + (it.val>0 ? fmt(it.val,0)+'W' : '0W') + '</div></div>' +
+      '<span class="lb-pct">' + pct.toFixed(1) + '%</span>' +
+    '</div>';
+  }).join('');
+
+  var cards = items.map(function(it){
+    var pct = base > 0 ? (it.val / base * 100) : 0;
+    return '<div class="data-card"><div class="num">' + fmt(it.val, 0) + '</div><div class="label">' + it.name + ' · ' + pct.toFixed(0) + '%</div></div>';
+  }).join('');
+
+  var html =
+    '<div class="result-total">' +
+      '<span class="big">' + fmt(total, 0) + '</span><span class="unit">W</span>' +
+      '<span class="unit">≈ ' + fmt(total/1000, 2) + ' kW</span>' +
+    '</div>' +
+    '<p style="font-size:12.5px;color:var(--text-muted);margin-top:2px;">含 1.1 安全系数 | 各项合计 ' + fmt(subtotal,0) + ' W | 房间体积 ' + fmt(volume,1) + ' m³</p>' +
+
+    '<div class="stat-grid" style="margin-top:14px;">' +
+      '<div class="stat-card"><div class="val">' + fmt(total,0) + '</div><div class="lbl">总冷负荷 (W)</div></div>' +
+      '<div class="stat-card"><div class="val">' + fmt(areaIndex,0) + '</div><div class="lbl">面积指标 (W/m²)</div></div>' +
+      '<div class="stat-card"><div class="val">' + recHP + '</div><div class="lbl">推荐空调 (匹)</div></div>' +
+      '<div class="stat-card"><div class="val">' + fmt(freshVol,0) + '</div><div class="lbl">新风量 (m³/h)</div></div>' +
+    '</div>' +
+
+    '<div class="sub-card">' +
+      '<h3>📊 各项冷负荷明细</h3>' +
+      '<div class="data-grid">' + cards + '</div>' +
+      '<div style="margin-top:10px;">' + bars + '</div>' +
+    '</div>' +
+
+    '<div class="sub-card">' +
+      '<h3>🧮 计算过程</h3>' +
+      '<p style="font-size:13px;color:var(--text-secondary);line-height:1.8;">' +
+        '温差 Δt = tw − tn = ' + fmt(num('tw'),1) + ' − ' + fmt(num('tn'),1) + ' = <strong>' + fmt(dt,1) + ' °C</strong><br>' +
+        'Q1 外墙 = ' + fmt(num('kWall'),2) + ' × ' + fmt(num('wallArea'),1) + ' × ' + fmt(dt,1) + ' = <strong>' + fmt(items[0].val,0) + ' W</strong><br>' +
+        'Q2 窗户 = ' + fmt(q2Cond,0) + '（传热）+ ' + fmt(q2Solar,0) + '（辐射 ' + fmt(solarIrr,0) + '×' + fmt(num('winArea'),1) + '×' + SC + '）= <strong>' + fmt(items[1].val,0) + ' W</strong><br>' +
+        'Q3 人员 = ' + num('people') + ' × (' + sh + '+' + lh + ') = <strong>' + fmt(items[2].val,0) + ' W</strong><br>' +
+        'Q4 设备 = ' + fmt(num('equipPower'),0) + ' × ' + fmt(num('equipFactor'),2) + ' = <strong>' + fmt(items[3].val,0) + ' W</strong><br>' +
+        'Q5 照明 = ' + fmt(num('lightPower'),0) + ' × 0.8 = <strong>' + fmt(items[4].val,0) + ' W</strong><br>' +
+        'Q6 新风 = ' + fmt(freshVol,0) + ' × 1.2 × ' + fmt(dh,1) + ' ÷ 3.6 = <strong>' + fmt(items[5].val,0) + ' W</strong><br>' +
+        '总负荷 Q = (' + fmt(subtotal,0) + ') × 1.1 = <strong style="color:var(--primary);">' + fmt(total,0) + ' W</strong>' +
+      '</p>' +
+    '</div>' +
+
+    '<div class="tip-box tip-info" style="margin-top:12px;">' +
+      '🏗️ 选型建议：按制冷量 ' + fmt(total,0) + ' W，建议选用 <strong>' + recHP + ' 匹</strong>空调（1匹≈2500W）。' +
+      '面积冷负荷指标 ' + fmt(areaIndex,0) + ' W/m²，' +
+      (areaIndex < 100 ? '偏低，保温性能良好' : areaIndex < 180 ? '处于常规范围' : '偏高，建议加强隔热或降低内部热源') + '。' +
+    '</div>';
+
+  const __g1=html;document.getElementById('res').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
+}
+
+/* ===== 操作按钮 ===== */
+function copyRes(){
+  var text = document.getElementById('res').innerText;
+  if(!text || text.trim() === ''){ ToolBox.showToast(i18nText(),'warning'); return; }
+  ToolBox.copyText(text);
+}
+function resetAll(){
+  var defaults = {
+    area:30, height:3.0, orientation:'东', wallArea:15, kWall:1.5,
+    winArea:6, winType:'single', kWin:5.8, tn:26, tw:34,
+    people:5, activity:'vlight', equipPower:800, equipFactor:0.8, lightPower:400,
+    freshAirPer:30, hw:85, hn:53
+  };
+  Object.keys(defaults).forEach(function(k){
+    var el = document.getElementById(k);
+    if(!el) return;
+    if(el.tagName === 'SELECT'){ el.value = defaults[k]; }
+    else { el.value = defaults[k]; }
+  });
+  ['area','wallArea','winArea','people'].forEach(function(id){ setInvalid(id,false); });
+  calc();
+  ToolBox.showToast(i18nText('toast.msg326'),'info');
+}
+
+document.addEventListener('DOMContentLoaded', function(){
+  // 同步初始下拉项对应的填充值
+  onWinTypeChange();
+  onActivityChange();
+  calc();
+});
+calc();
+
+var __cooling_load_last=0,__cooling_load_skip=false;
+function __cooling_loadSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __cooling_loadResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __cooling_loadTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __cooling_loadRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__cooling_loadTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#cooling_loadTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#cooling_loadDiff');
+        TBKit.history.mount('#cooling_loadHist',function(rec){
+            __cooling_load_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __cooling_load_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__cooling_loadTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#cooling_loadChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __cooling_loadExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__cooling_load_skip) return;
+    var snap=__cooling_loadSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__cooling_loadResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__cooling_load_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __cooling_load_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __cooling_loadRender(keys,rk,en);
+}
+function __cooling_loadExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#cooling_loadTable','cooling-load.csv'); } catch(e){}
+}
+function __cooling_loadPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#cooling_loadPresets',[{label:'默认参数',labelEn:'Default',values:{'area':'30', 'height':'3.0', 'orientation':'南', 'wallArea':'15', 'kWall':'1.5', 'winArea':'6', 'winType':'single', 'kWin':'5.8', 'tn':'26', 'tw':'34', 'people':'5', 'activity':'rest'}}],function(){ calc(); });
+}
+var __cooling_load_f0=(typeof calc==='function')?calc:null;
+if(__cooling_load_f0){
+    calc=function(){ var __r=__cooling_load_f0.apply(null,arguments); try{ __cooling_loadExtras(); }catch(e){} return __r; };
+}
+function __cooling_loadBoot(){ try{ __cooling_loadPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __cooling_loadBoot();
+else document.addEventListener('DOMContentLoaded', __cooling_loadBoot);
+</script>
+
+<!-- SEO 介紹區塊 -->
+
+</div>
+
+</div>
+
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto 0;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+.deep-dive a.term-link{color:var(--tool-accent,#FF6B35);text-decoration:none;border-bottom:1px dashed currentColor;}
+.deep-dive a.term-link:hover{border-bottom-style:solid;}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：空調冷負荷分項疊加估算</h2>
+<h3>💡 常見使用場景</h3>
+<ul class="dd-list">
+<li>辦公室按圍護、人員、裝置、照明、新風五項求和得總冷負荷。</li>
+<li>不同功能房間（機房/會議室/商鋪）調各項權重重算。</li>
+<li>估算總冷負荷後反推主機容量與配電。</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">100㎡ 辦公室</div><div class="dd-ex-body">圍護 q1≈30 W/㎡×100=3000 W、人員 10 人×120 W=1200 W、裝置 2 kW×0.8=1600 W、照明 1 kW×0.8=800 W、新風約 1500 W，合計 ≈ 8100 W ≈ 8.1 kW。</div></div>
+<div class="dd-example"><div class="dd-ex-title">指標法粗算</div><div class="dd-ex-body">取綜合指標 150 W/㎡ × 100㎡ = 15 kW 作上限參考，與分項法對照取穩妥值。</div></div>
+<h3>❓ 常見問題（FAQ）</h3>
+<dl class="dd-faq">
+<dt>分項法和指標法用哪個？</dt><dd>方案階段用指標法快速估，深化設計用分項法逐項核算，二者偏差大時應查各項輸入。</dd>
+<dt><a class="term-link" href="/zh-tw/tools/hvac/fresh-air-load.html">新風負荷</a>佔比為何高？</dt><dd>夏季室外焓遠高於室內，新風常佔總負荷 20%~40%，是節能重點。</dd>
+</dl>
+</div>
+</section>
+<!-- 相關工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相關工具</h3>
+  <div class="related-tools-grid">
+    <a href="/zh-tw/tools/hvac/dehumidifier.html" class="related-tool-card">
+      <span class="rt-icon">🧮</span>
+      <span class="rt-info"><span class="rt-name">dehumidifier</span><span class="rt-desc">除溼量計算器 Dehumidifier Sizing</span></span>
+    </a>
+    <a href="/zh-tw/tools/hvac/cooling-tower.html" class="related-tool-card">
+      <span class="rt-icon">🧮</span>
+      <span class="rt-info"><span class="rt-name">冷卻塔散熱與補水量計算器 - 線上計算冷卻塔散熱量、冷卻範圍、接近度、蒸發損失、飄水損失、 | ToolBox免費線上工具箱</span><span class="rt-desc">冷卻塔散熱與補水量計算器</span></span>
+    </a>
+    <a href="/zh-tw/tools/hvac/chiller-efficiency.html" class="related-tool-card">
+      <span class="rt-icon">🧮</span>
+      <span class="rt-info"><span class="rt-name">冷機COP/EER能效計算器 - 免費線上計算冷水機組效能係數(COP)、能效比(EER)、單 | ToolBox免費線上工具箱</span><span class="rt-desc">&amp;#127981; 冷機COP/EER能效計算器</span></span>
+    </a>
+    <a href="/zh-tw/tools/hvac/fresh-air-load.html" class="related-tool-card">
+      <span class="rt-icon">🧮</span>
+      <span class="rt-info"><span class="rt-name">新風負荷計算器 - 線上計算新風全熱負荷、顯熱負荷、潛熱負荷，基於焓溼圖公式 h | ToolBox免費線上工具箱</span><span class="rt-desc">新風負荷計算器</span></span>
+    </a>
+    <a href="/zh-tw/tools/hvac/pump-calculator.html" class="related-tool-card">
+      <span class="rt-icon">💧</span>
+      <span class="rt-info"><span class="rt-name">水泵揚程流量計算器 - 水泵揚程與流量計算器，線上計算管路流速、沿程阻力損失、區域性阻 | ToolBox免費線上工具箱</span><span class="rt-desc">水泵揚程與流量計算器</span></span>
+    </a>
+    <a href="/zh-tw/tools/hvac/supply-air.html" class="related-tool-card">
+      <span class="rt-icon">🏎️</span>
+      <span class="rt-info"><span class="rt-name">送風量與風速設計計算器 - 免費暖通空調設計工具，線上計算空調送風量、換氣次數、送風口數 | ToolBox免費線上工具箱</span><span class="rt-desc">送風量與風速設計計算器</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro open" id="toolIntro">
+  <div class="tool-intro-header" onclick="this.parentElement.classList.toggle('open')">
+    <span class="intro-icon-wrap"><span class="intro-icon">📖</span>關於「空調負荷計算器」</span>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="tool-intro-body">
+    <h4><span class="h4-icon">📝</span>工具簡介</h4>
+    <p>空調負荷計算器是一款基於簡化冷負荷係數法的暖通空調（HVAC）設計輔助工具。輸入房間圍護結構、內部熱源與新風引數後，自動計算外牆、窗戶（含太陽輻射附加）、人員、裝置、照明、新風六項冷負荷，並彙總總冷負荷、面積冷負荷指標與空調匹數選型建議。純前端執行，資料不上傳，適合空調初步設計與選型估算。</p>
+    <h4><span class="h4-icon">✨</span>功能特點</h4>
+    <ul class="intro-features">
+      <li>簡化冷負荷係數法，覆蓋六大熱源</li>
+      <li>窗戶型別自動匹配傳熱係數與遮陽係數 SC</li>
+      <li>按朝向自動計算太陽輻射附加負荷</li>
+      <li>活動強度自動匹配人均顯熱/潛熱與新風標準</li>
+      <li>資料卡片 + 佔比條形圖直觀展示各項負荷</li>
+      <li>自動給出面積指標與空調匹數選型建議</li>
+      <li>純前端處理，資料不上傳伺服器</li>
+    </ul>
+    <h4><span class="h4-icon">🎯</span>使用場景</h4>
+    <ul class="intro-scenes">
+      <li>住宅/辦公室空調選型估算</li>
+      <li>暖通課程設計與負荷計算練習</li>
+      <li>裝修前製冷量需求快速評估</li>
+      <li>機房/商業空間冷量複核</li>
+      <li>新風系統風量與負荷校核</li>
+      <li>建築節能與隔熱改造評估</li>
+    </ul>
+    </div>
+</div>
+<!-- /SEO 介紹區塊 -->
+
+
+<script>/*TBKIT-INJECT-START*/
+(function(){
+  var P={"res": ["res", "cooling_loadChart"], "tbl": ["cooling_loadTable"], "pre": ["cooling_loadPresets"], "his": ["cooling_loadHist"]};
+  var L={res:['结果','Result'],chart:['图表','Chart'],tbl:['数据表','Data'],pre:['预设','Presets'],his:['历史','History']};
+  function tabify(){
+    var bar=document.querySelector('.tbk-tabbar');
+    if(!bar||!bar.querySelectorAll) return;
+    var btns=bar.querySelectorAll('.tbk-tab');
+    if(!btns||!btns.length) return;
+    var en=false;
+    try{ if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn) en=TBKit.util.isEn(); }catch(e){}
+    if(!en&&document.documentElement&&(document.documentElement.lang||'').indexOf('en')>=0) en=true;
+    for(var i=0;i<btns.length;i++){var p=btns[i].getAttribute('data-pane');btns[i].textContent=en?L[p][1]:L[p][0];}
+    function show(pane){
+      for(var k in P){var ids=P[k];for(var i=0;i<ids.length;i++){var el=document.getElementById(ids[i]);if(el&&el.style)el.style.display=(k===pane?'':'none');}}
+      for(var j=0;j<btns.length;j++){btns[j].className='tbk-tab'+(btns[j].getAttribute('data-pane')===pane?' active':'');}
+    }
+    for(var i=0;i<btns.length;i++){(function(b){b.addEventListener('click',function(){show(b.getAttribute('data-pane'));});})(btns[i]);}
+    show(btns[0].getAttribute('data-pane'));
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',tabify);else tabify();
+})();
+/*TBKIT-INJECT-END*/</script>
+</body>
+</html>

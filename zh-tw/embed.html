@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-opencc-locale="zh-tw">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>工具嵌入 · ToolBox 開發者文件</title>
+<meta name="title-en" content="Tool Embedding - ToolBox Developer Docs">
+<meta name="description" content="ToolBox 工具嵌入 API 文件：通過 iframe 將任意純前端工具嵌入你的網站、部落格或文件，資料全部在瀏覽器本地處理。適合日常快速計算與核對，結果可一鍵複製，免費線上使用。">
+<meta name="desc-en" content="ToolBox embedding API docs: embed any pure front-end tool into your website, blog or document via an iframe. All data is processed locally in the visitor's browser.">
+<style>
+  :root{--primary:#FF6B35;--secondary:#7C3AED;--text:#1F2937;--muted:#6B7280;--border:#E5E7EB;--bg:#FFFAF7;--card:#fff;}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei',sans-serif;background:var(--bg);color:var(--text);line-height:1.7;padding:32px 16px}
+  .wrap{max-width:820px;margin:0 auto}
+  h1{font-size:26px;margin-bottom:6px}
+  h2{font-size:18px;margin:28px 0 10px}
+  p{color:var(--muted);margin-bottom:10px}
+  code{background:#f3f4f6;padding:2px 6px;border-radius:5px;font-size:13px;font-family:ui-monospace,Menlo,Consolas,monospace}
+  pre{background:#1E1E2E;color:#E5E7EB;padding:16px;border-radius:12px;overflow-x:auto;font-size:13px;line-height:1.6;margin:10px 0}
+  table{width:100%;border-collapse:collapse;margin:10px 0;font-size:14px}
+  th,td{border:1px solid var(--border);padding:8px 10px;text-align:left}
+  th{background:#fff5f0}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:18px;margin:14px 0;box-shadow:0 4px 16px rgba(255,107,53,0.06)}
+  .preview{border:1px solid var(--border);border-radius:12px;overflow:hidden;height:420px;margin-top:10px}
+  .preview iframe{width:100%;height:100%;border:0}
+  a{color:var(--primary)}
+  .tag{display:inline-block;background:linear-gradient(135deg,var(--primary),var(--secondary));color:#fff;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600}
+</style>
+
+<link rel="stylesheet" href="/css/site-chrome.css">
+<script src="/js/analytics.js" defer></script>
+<script src="/js/i18n.js" defer></script>
+<script src="/js/common.js" defer></script>
+<!-- TOOLBOX-TTZZ -->
+<script>
+(function(){try{
+var el = document.createElement("script");
+el.src = "https://lf1-cdn-tos.bytegoofy.com/goofy/ttzz/push.js?85d6452aa9be4d693b16cd48535a8c7ae57542f6788a41682e745be8eb99b35a8a24d2f724c31ebe20c1e4e6fba6d91caf576100b02a2870c72f38fc574066fef065d152c73bf1cbb2ebad3b5b5265d8";
+el.id = "ttzz";
+var s = document.getElementsByTagName("script")[0];
+s.parentNode.insertBefore(el, s);
+}catch(e){}
+})(window);
+</script>
+
+
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://tools.dicomp.net/embed.html">
+<link rel="alternate" hreflang="zh-TW" href="https://tools.dicomp.net/zh-tw/embed.html">
+<link rel="alternate" hreflang="en-US" href="https://tools.dicomp.net/embed.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://tools.dicomp.net/embed.html">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+</head>
+<body>
+<div class="wrap">
+  <h1 data-i18n="emb.h1" data-i18n-fb="🧩 工具嵌入 API">🧩 工具嵌入 API</h1>
+  <p data-i18n-html="emb.intro" data-i18n-html-fb="ToolBox 的所有工具均为纯前端实现，可直接通过 <code>&lt;iframe&gt;</code> 嵌入到你的网站、博客或文档中，数据全部在访客浏览器本地处理。">ToolBox 的所有工具均為純前端實現，可直接通過 <code>&lt;iframe&gt;</code> 嵌入到你的網站、部落格或文件中，資料全部在訪客瀏覽器本地處理。</p>
+  <span class="tag" data-i18n="emb.tag" data-i18n-fb="免費 · 無後端 · 資料不出瀏覽器">免費 · 無後端 · 資料不出瀏覽器</span>
+
+  <h2 data-i18n="emb.s1_title" data-i18n-fb="1. 推薦寫法：帶署名回鏈">1. 推薦寫法：帶署名回鏈</h2>
+  <p data-i18n-html="emb.s1_body" data-i18n-html-fb="<strong>iframe 本身不傳遞 SEO 權重</strong>——搜尋引擎看到的是 iframe 的 <code>src</code>，不會給嵌入方或本站加分。真正有價值的是 iframe 下方那條<strong>可點選、可抓取的署名連結</strong>。因此推薦用下面這段完整程式碼："><strong>iframe 本身不傳遞 SEO 權重</strong>——搜尋引擎看到的是 iframe 的 <code>src</code>，不會給嵌入方或本站加分。真正有價值的是 iframe 下方那條<strong>可點選、可抓取的署名連結</strong>。因此推薦用下面這段完整程式碼：</p>
+  <pre>&lt;div class="toolbox-embed"&gt;
+  &lt;iframe
+    src="https://tools.dicomp.net/tools/it/json-formatter.html?embed=1"
+    width="100%" height="520"
+    style="border:0;border-radius:12px" loading="lazy"
+    title="JSON Formatter"&gt;&lt;/iframe&gt;
+  &lt;p style="margin:6px 0 0;font:12px/1.5 system-ui,-apple-system,sans-serif;text-align:right"&gt;
+    &lt;a href="https://tools.dicomp.net/tools/it/json-formatter.html" target="_blank" rel="noopener"&gt;JSON Formatter &middot; ToolBox&lt;/a&gt;
+  &lt;/p&gt;
+&lt;/div&gt;</pre>
+  <p data-i18n-html="emb.s1_note" data-i18n-html-fb="不必手抄：打开<strong>任意工具頁</strong>，頁面底部都有「分享與嵌入」區塊，展開即可一鍵複製適配當前工具的程式碼（可選高度與深淺主題）。">不必手抄：開啟<strong>任意工具頁</strong>，頁面底部都有「分享與嵌入」區塊，展開即可一鍵複製適配當前工具的程式碼（可選高度與深淺主題）。</p>
+
+  <h2 data-i18n="emb.s2_title" data-i18n-fb="2. 基礎嵌入（最簡寫法）">2. 基礎嵌入（最簡寫法）</h2>
+  <p data-i18n-html="emb.s2_body" data-i18n-html-fb="将任意工具页 URL 放入 iframe 即可（<em>注意：這種裸 iframe 不含回鏈，不會傳遞權重</em>）：">將任意工具頁 URL 放入 iframe 即可（<em>注意：這種裸 iframe 不含回鏈，不會傳遞權重</em>）：</p>
+  <pre>&lt;iframe
+  src="https://tools.dicomp.net/tools/it/json-formatter.html?embed=1"
+  width="100%" height="520" style="border:0;border-radius:12px"
+  loading="lazy"&gt;&lt;/iframe&gt;</pre>
+
+  <h2 data-i18n="emb.s3_title" data-i18n-fb="3. 嵌入引數">3. 嵌入引數</h2>
+  <table>
+    <tr><th data-i18n="emb.th_param" data-i18n-fb="引數">引數</th><th data-i18n="emb.th_desc" data-i18n-fb="說明">說明</th><th data-i18n="emb.th_example" data-i18n-fb="示例">示例</th></tr>
+    <tr><td><code>embed</code></td><td data-i18n-html="emb.param_embed" data-i18n-html-fb="开启嵌入模式，自动隐藏导航栏、面包屑、隐私标识与主题按钮">開啟嵌入模式，自動隱藏導航欄、麵包屑、隱私標識與主題按鈕</td><td><code>?embed=1</code></td></tr>
+    <tr><td><code>theme</code></td><td data-i18n-html="emb.param_theme" data-i18n-html-fb="强制主题：<code>dark</code> 或 <code>light</code>">強制主題：<code>dark</code> 或 <code>light</code></td><td><code>?theme=dark</code></td></tr>
+    <tr><td><code>accent</code></td><td data-i18n-html="emb.param_accent" data-i18n-html-fb="自定义主题色（十六进制，含 #）">自定義主題色（十六進位制，含 #）</td><td><code>?accent=%23FF6B35</code></td></tr>
+  </table>
+
+  <h2 data-i18n="emb.s4_title" data-i18n-fb="4. 組合示例">4. 組合示例</h2>
+  <pre>&lt;iframe
+  src="https://tools.dicomp.net/tools/finance/compound-interest.html?embed=1&amp;theme=dark&amp;accent=%237C3AED"
+  width="100%" height="560" style="border:0;border-radius:12px"
+  loading="lazy"&gt;&lt;/iframe&gt;</pre>
+
+  <h2 data-i18n="emb.s5_title" data-i18n-fb="5. 即時預覽">5. 即時預覽</h2>
+  <div class="card">
+    <p data-i18n-html="emb.s5_body" data-i18n-html-fb="下方为「复利计算器」嵌入预览（深色主题 + 紫色主题色）：">下方為「複利計算器」嵌入預覽（深色主題 + 紫色主題色）：</p>
+    <div class="preview">
+      <iframe src="/zh-tw/tools/finance/compound-interest.html?embed=1&theme=dark&accent=%237C3AED" loading="lazy"></iframe>
+    </div>
+  </div>
+
+  <h2 data-i18n="emb.s6_title" data-i18n-fb="6. 注意事項與 SEO 說明">6. 注意事項與 SEO 說明</h2>
+  <ul style="color:var(--muted);padding-left:20px">
+    <li data-i18n="emb.li1" data-i18n-fb="嵌入頁與官網完全一致，所有計算在訪客本地完成，無需你的伺服器承擔算力。">嵌入頁與官網完全一致，所有計算在訪客本地完成，無需你的伺服器承擔算力。</li>
+    <li data-i18n="emb.li2" data-i18n-fb="建議為 iframe 設定合適的固定高度（工具頁內容高度隨輸入變化）。">建議為 iframe 設定合適的固定高度（工具頁內容高度隨輸入變化）。</li>
+    <li data-i18n="emb.li3" data-i18n-fb="如被瀏覽器攔截（X-Frame-Options），本站點已允許同源/跨域 iframe 嵌入。">如被瀏覽器攔截（X-Frame-Options），本站點已允許同源/跨域 iframe 嵌入。</li>
+    <li data-i18n-html="emb.li4" data-i18n-html-fb="<strong>關於權重</strong>：iframe 不傳遞連結權重，只有頁面裡真實存在的 <code>&lt;a href&gt;</code> 才會傳遞。若希望這次嵌入也算作對 ToolBox 的一次推薦，請保留第 1 節中的署名回鏈（不要給它加 <code>rel=&quot;nofollow&quot;</code>）；若不方便展示，去掉也完全沒問題，工具照樣可用。"><strong>關於權重</strong>：iframe 不傳遞連結權重，只有頁面裡真實存在的 <code>&lt;a href&gt;</code> 才會傳遞。若希望這次嵌入也算作對 ToolBox 的一次推薦，請保留第 1 節中的署名回鏈（不要給它加 <code>rel=&quot;nofollow&quot;</code>）；若不方便展示，去掉也完全沒問題，工具照樣可用。</li>
+  </ul>
+
+  <p style="margin-top:24px"><a href="/zh-tw/index.html" data-i18n="emb.back" data-i18n-fb="← 返回 ToolBox 首頁">← 返回 ToolBox 首頁</a></p>
+</div>
+</body>
+</html>

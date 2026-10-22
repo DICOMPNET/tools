@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-opencc-locale="zh-tw">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>XXTEA 加密解密使用指南 - ToolBox</title>
+<meta name="description" content="XXTEA 加密解密使用指南：TEA 家族中修正版塊密碼，適合嵌入式小資料加密。本指南整理核心功能、適用場景、使用步驟與常見問題，純前端免費線上使用，資料不上傳。">
+<meta property="og:title" content="XXTEA 加密解密使用指南 - ToolBox">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="ToolBox">
+<meta property="og:url" content="https://tools.dicomp.net/zh-tw/guides/xxtea-guide.html">
+<meta property="og:description" content="XXTEA 加密解密使用指南：TEA 家族中修正版塊密碼，適合嵌入式小資料加密。本指南整理核心功能、適用場景、使用步驟與常見問題，純前端免費線上使用，資料不上傳。">
+<meta property="og:image" content="https://tools.dicomp.net/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="XXTEA 加密解密使用指南 - ToolBox">
+<meta name="twitter:description" content="XXTEA 加密解密使用指南：TEA 家族中修正版塊密碼，適合嵌入式小資料加密。本指南整理核心功能、適用場景、使用步驟與常見問題，純前端免費線上使用，資料不上傳。">
+<meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
+<link rel="canonical" href="https://tools.dicomp.net/zh-tw/guides/xxtea-guide.html">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"XXTEA 加密解密使用指南","description":"XXTEA 加密解密使用指南：TEA 家族中修正版塊密碼，適合嵌入式小資料加密。本指南整理核心功能、適用場景、使用步驟與常見問題，純前端免費線上使用，資料不上傳。","author":{"@type":"Organization","name":"ToolBox"}}</script>
+<style>
+:root{--primary:#FF6B35;--text:#1F2937;--muted:#6B7280;--border:#E5E7EB;--bg:#FFFAF7;}
+*{box-sizing:border-box;}
+body{margin:0;font-family:"Noto Sans SC","Plus Jakarta Sans",system-ui,sans-serif;color:var(--text);background:var(--bg);line-height:1.75;}
+header{padding:18px 20px;border-bottom:1px solid var(--border);background:#fff;}
+.breadcrumb a{color:var(--primary);text-decoration:none;margin-right:6px;}
+main{max-width:780px;margin:0 auto;padding:28px 20px 60px;}
+h1{font-size:28px;margin:0 0 8px;}
+.lead{font-size:16px;color:var(--muted);margin:0 0 22px;}
+h2{font-size:20px;margin:28px 0 10px;color:var(--primary);}
+ul,ol{padding-left:22px;}
+li{margin:6px 0;}
+dl{margin:0;}
+dt{font-weight:700;margin-top:12px;}
+dd{margin:4px 0 0;color:var(--muted);}
+.back{margin-top:30px;padding:16px;background:#fff;border:1px solid var(--border);border-radius:14px;}
+.back a{color:var(--primary);font-weight:700;text-decoration:none;}
+footer{text-align:center;color:var(--muted);font-size:13px;padding:24px;border-top:1px solid var(--border);}
+</style>
+<script src="/js/analytics.js" defer></script>
+<script src="/js/i18n.js" defer></script>
+<script src="/js/common.js" defer></script>
+<link rel="stylesheet" href="/css/common.css">
+<!-- TOOLBOX-TTZZ -->
+<script>
+(function(){try{
+var el = document.createElement("script");
+el.src = "https://lf1-cdn-tos.bytegoofy.com/goofy/ttzz/push.js?85d6452aa9be4d693b16cd48535a8c7ae57542f6788a41682e745be8eb99b35a8a24d2f724c31ebe20c1e4e6fba6d91caf576100b02a2870c72f38fc574066fef065d152c73bf1cbb2ebad3b5b5265d8";
+el.id = "ttzz";
+var s = document.getElementsByTagName("script")[0];
+s.parentNode.insertBefore(el, s);
+}catch(e){}
+})(window);
+</script>
+
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://tools.dicomp.net/guides/xxtea-guide.html">
+<link rel="alternate" hreflang="zh-TW" href="https://tools.dicomp.net/zh-tw/guides/xxtea-guide.html">
+<link rel="alternate" hreflang="en-US" href="https://tools.dicomp.net/guides/xxtea-guide.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://tools.dicomp.net/guides/xxtea-guide.html">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+</head>
+<body>
+<header><nav class="breadcrumb"><a href="https://tools.dicomp.net/">ToolBox</a> / <a href="https://tools.dicomp.net/#guides">使用指南</a> / <span>XXTEA 加密解密</span></nav></header>
+<main>
+<h1>XXTEA 加密解密 使用指南</h1>
+<p class="lead">XXTEA 把明文當 32 位字陣列做多輪 Feistel 式混淆，金鑰 128 位。…</p>
+<h2>核心功能</h2>
+<ul><li>XXTEA 分組密碼加解密，程式碼量小、適合嵌入式與 IoT 場景</li><li>以 128 位金鑰對資料塊做 32 輪以上的 Feistel 類運算</li><li>輸出支援 Base64 與十六進位制</li><li>適合資源受限裝置上的小資料加密與協議對接</li></ul>
+<h2>適用場景</h2>
+<ul><li>TEA 家族中修正版塊密碼，適合嵌入式小資料加密。</li><li>在嵌入式或 IoT 裝置上做小資料加密：分組小、程式碼量低，適合資源受限環境。</li></ul>
+<h2>使用步驟</h2>
+<ol><li>確認資料長度與對方約定：XXTEA 按塊處理，兩端填充規則必須一致</li><li>填入 16 位元組（128 位）金鑰，兩端必須完全一致</li><li>選擇明文/密文輸入格式與輸出格式（Base64 或十六進位制）</li><li>點加密或解密，得到結果</li><li>新專案建議改用 AES-GCM 等帶認證的套件；XXTEA 不提供完整性校驗</li></ol>
+<h2>實用技巧</h2>
+<ul><li>新專案應優先選擇 AES-GCM 或 ChaCha20-Poly1305 這類經過廣泛分析、帶完整性校驗的 AEAD 演算法</li><li>在嵌入式或 IoT 裝置上做小資料加密：分組小、程式碼量低，適合資源受限環境。</li></ul>
+<h2>常見問題</h2>
+<dl><dt>XXTEA 適合大檔案嗎？</dt><dd>可行但不如 AES 經過廣泛審計，謹慎用於高安全場景。</dd><dt>新專案該選它嗎？</dt><dd>一般不建議。XXTEA 雖修正了原始 TEA 的等價金鑰問題，但仍有已知攻擊（在選擇明文條件下可被攻破），且塊大小僅 64 位，處理大量資料時存在生日界問題。新專案應優先選擇 AES-GCM 或 ChaCha20-Poly1305 這類經過廣泛分析、帶完整性校驗的 AEAD 演算法。</dd></dl>
+<div class="back"><a href="https://tools.dicomp.net/tools/it/xxtea.html">→ 去使用 XXTEA 加密解密（免費 · 純前端 · 資料不上傳）</a></div>
+</main>
+<footer>© 2026 ToolBox · 純前端線上工具 · 資料不上傳，安全可靠</footer>
+</body>
+</html>

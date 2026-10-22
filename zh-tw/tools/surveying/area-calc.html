@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-opencc-locale="zh-tw">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=math,industry=surveying,icon=📐,bg=#e8f5e9">
+<title>面積計算 - 免費線上測繪工程工具</title>
+<link rel="canonical" href="https://tools.dicomp.net/zh-tw/tools/surveying/area-calc.html">
+<meta property="og:title" content="面積計算 - 免費線上測繪工程工具">
+<meta property="og:description" content="依次輸入多邊形各頂點座標（可動態增減頂點），用鞋帶公式（Shoelace）計算閉合多邊形的面積與周長，並在介面上即時繪出圖形，適合地塊、宗地面積量算。">
+<meta property="og:url" content="https://tools.dicomp.net/zh-tw/tools/surveying/area-calc.html">
+<meta name="twitter:card" content="summary">
+<meta name="description" content="依次輸入多邊形各頂點座標（可動態增減頂點），用鞋帶公式（Shoelace）計算閉合多邊形的面積與周長，並在介面上即時繪出圖形，適合地塊、宗地面積量算。">
+<link rel="stylesheet" href="/css/common.css">
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/common.js" defer></script>
+<style>
+.pts-head{display:grid;grid-template-columns:50px 1fr 1fr 40px;gap:6px;font-size:12px;color:var(--text-muted);font-weight:600;margin-bottom:4px;}
+.pts-head div{padding:0 4px;}
+.pt-row{display:grid;grid-template-columns:50px 1fr 1fr 40px;gap:6px;align-items:center;margin-bottom:6px;}
+.pt-row .idx{font-size:13px;color:var(--text-muted);text-align:center;padding:0 4px;}
+.pt-row input{padding:8px 10px;font-size:13px;}
+.add-btn{background:none;border:1px dashed var(--primary);color:var(--primary);padding:8px;border-radius:10px;cursor:pointer;font-size:13px;width:100%;margin-top:4px;}
+.del-btn{background:none;border:none;color:var(--danger);cursor:pointer;font-size:16px;}
+.result-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:14px 0;}
+.result-item{background:var(--result-bg);border:1px solid var(--border);border-radius:12px;padding:14px;text-align:center;}
+.result-item:hover{border-color:var(--primary);}
+.result-item .val{font-size:18px;font-weight:700;color:var(--primary);}
+.result-item .lbl{font-size:12px;color:var(--text-muted);margin-top:4px;}
+.canvas-wrap{margin-top:14px;border:1px solid var(--border);border-radius:12px;overflow:hidden;background:var(--card-bg);}
+.canvas-wrap canvas{display:block;width:100%;}
+</style>
+
+
+
+<meta property="og:image" content="https://tools.dicomp.net/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免費線上工具">
+<meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免費線上工具">
+    <meta property="og:type" content="website">
+    <meta name="twitter:title" content="面積計算 - 免費線上測繪工程工具">
+    <meta name="twitter:description" content="依次輸入多邊形各頂點座標（可動態增減頂點），用鞋帶公式（Shoelace）計算閉合多邊形的面積與周長，並在介面上即時繪出圖形，適合地塊、宗地面積量算。">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"面積計算","url":"https://tools.dicomp.net/zh-tw/tools/surveying/area-calc.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"依次輸入多邊形各頂點座標（可動態增減頂點），用鞋帶公式（Shoelace）計算閉合多邊形的面積與周長，並在介面上即時繪出圖形，適合地塊、宗地面積量算。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首頁","item":"https://tools.dicomp.net/zh-tw/"},{"@type":"ListItem","position":2,"name":"測繪工程","item":"https://tools.dicomp.net/zh-tw/tools/surveying/index.html"},{"@type":"ListItem","position":3,"name":"面積計算","item":"https://tools.dicomp.net/zh-tw/tools/surveying/area-calc.html"}]}</script>
+
+<script src="/js/i18n.js" defer></script>
+<script src="/js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+
+
+<meta name="title-en" content="Area Calculate">
+<meta name="desc-en" content="Area Calculate - compute values online with accurate results.">
+
+
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
+
+<script src="/js/tool-ux.js" defer></script>
+<!-- TOOLBOX-TOOL-UX -->
+
+<script src="/js/analytics.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"面積計算是做什麼的？","acceptedAnswer":{"@type":"Answer","text":"依次輸入多邊形各頂點座標（可動態增減頂點），用鞋帶公式（Shoelace）計算閉合多邊形的面積與周長，並在介面上即時繪出圖形，適合地塊、宗地面積量算。"}},{"@type":"Question","name":"如何使用面積計算？","acceptedAnswer":{"@type":"Answer","text":"在對應的輸入框或選項中填寫、選擇所需引數，點選「計算」或「生成」按鈕即可執行，結果會在結果區即時顯示，支援複製與匯出。"}},{"@type":"Question","name":"計算結果準確嗎？","acceptedAnswer":{"@type":"Answer","text":"本工具在你的本地瀏覽器中即時計算，不依賴伺服器；只要輸入的引數正確，結果即按對應的規則得出。涉及經驗估算的部分僅供參考，不作為正式依據。"}},{"@type":"Question","name":"面積計算適合哪些場景？","acceptedAnswer":{"@type":"Answer","text":"工作與生活中的相關計算與查詢。"}},{"@type":"Question","name":"使用本工具需要聯網或上傳資料嗎？","acceptedAnswer":{"@type":"Answer","text":"不需要。所有計算均在你的裝置本地完成，資料不會上傳到任何伺服器，可放心使用。"}}]}</script>
+<!-- TOOLBOX-TTZZ -->
+<script>
+(function(){try{
+var el = document.createElement("script");
+el.src = "https://lf1-cdn-tos.bytegoofy.com/goofy/ttzz/push.js?85d6452aa9be4d693b16cd48535a8c7ae57542f6788a41682e745be8eb99b35a8a24d2f724c31ebe20c1e4e6fba6d91caf576100b02a2870c72f38fc574066fef065d152c73bf1cbb2ebad3b5b5265d8";
+el.id = "ttzz";
+var s = document.getElementsByTagName("script")[0];
+s.parentNode.insertBefore(el, s);
+}catch(e){}
+})(window);
+</script>
+
+<script src="/js/tool-kit.js" defer></script>
+<!-- TOOLBOX-TOOL-KIT -->
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://tools.dicomp.net/tools/surveying/area-calc.html">
+<link rel="alternate" hreflang="zh-TW" href="https://tools.dicomp.net/zh-tw/tools/surveying/area-calc.html">
+<link rel="alternate" hreflang="en-US" href="https://tools.dicomp.net/tools/surveying/area-calc.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://tools.dicomp.net/tools/surveying/area-calc.html">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+</head>
+<body>
+<h1 class="sr-only">面積計算</h1>
+
+<div class="nav"><a href="/zh-tw/index.html">← ToolBox</a><span>/ 面積計算</span><button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button></div>
+
+
+
+
+<nav class="breadcrumb" aria-label="麵包屑導航" data-breadcrumb="1">
+  <a href="/zh-tw/index.html">首頁</a>
+  <span class="bc-sep">‹</span>
+  <a href="/zh-tw/tools/surveying/index.html">📐 測繪工程</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">面積計算</span>
+</nav>
+<div class="container">
+<div class="tool-guide-link" data-guide-link="1">
+  <a href="/zh-tw/guides/area-calc-guide.html">📖 檢視「面積計算 使用指南」</a>
+</div>
+
+  <style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#3b82f6)}.tbk-tab.active{background:var(--accent,#3b82f6);color:#fff;border-color:var(--accent,#3b82f6)}.tbk-panel{margin-top:6px}</style>
+<div class="tbk-tabbar" role="tablist">
+  <button type="button" class="tbk-tab" data-pane="res">結果</button>
+  <button type="button" class="tbk-tab" data-pane="tbl">資料表</button>
+  <button type="button" class="tbk-tab" data-pane="pre">預設</button>
+  <button type="button" class="tbk-tab" data-pane="his">歷史</button>
+</div>
+<div class="card tool-card-accent" style="--tool-accent:#06B6D4;">
+    <h2 data-zh="📐 面積計算">📐 Area Calculator</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="多邊形面積與周長計算（鞋帶公式），支援動態增減頂點並可視化">Compute the area of common plane figures from measured dimensions.</p>
+    <div class="formula-box">
+      <div class="formula-title">📐 計算公式</div>
+      <div class="formula-eq">A = 長 × 寬（矩形）或 ½|Σ(x_i·y_{i+1}−x_{i+1}·y_i)|</div>
+      <p class="formula-desc">多邊形面積與周長計算（鞋帶公式），支援動態增減頂點並可視化</p>
+    </div>
+    <input type="hidden" id="acRoute" value="">
+    <div class="pts-head"><div>點號</div><div>x (m)</div><div>y (m)</div><div></div></div>
+    <div id="pts"></div>
+    <button type="button" class="add-btn" onclick="addPt()">+ 新增頂點</button>
+    <div id="acaPresets"></div>
+    <div class="toolbar" style="margin-top:14px;">
+      <button type="button" class="btn primary" onclick="calc()">計算</button>
+      <button type="button" class="btn success" onclick="copyResult()">複製結果</button>
+      <button type="button" class="btn" onclick="__acaExport()">匯出 CSV</button>
+      <button type="button" class="btn" onclick="loadDemo()">示例</button>
+    </div>
+    <div class="result-grid" id="grid"></div>
+    <div class="result-box" id="detail"></div>
+    <div id="acaChart"></div>
+    <div id="acaTable"></div>
+    <div id="acaDiff"></div>
+    <div id="acaHist"></div>
+    <div class="canvas-wrap"><canvas id="cv"></canvas></div>
+    <div class="info-box">面積公式（鞋帶法）：A = ½|Σ(xᵢ·yᵢ₊₁ − xᵢ₊₁·yᵢ)|；周長為相鄰頂點距離之和。頂點應按順時針或逆時針順序輸入。</div>
+  </div>
+
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto 0;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+.deep-dive a.term-link{color:var(--tool-accent,#FF6B35);text-decoration:none;border-bottom:1px dashed currentColor;}
+.deep-dive a.term-link:hover{border-bottom-style:solid;}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：座標面積（鞋帶公式）</h2>
+<h3>💡 常見使用場景</h3>
+<ul class="dd-list">
+<li>由多邊形頂點座標算面積與周長。</li>
+<li>宗地/紅線面積核算。</li>
+<li>自動視覺化與畝換算。</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">鞋帶公式</div><div class="dd-ex-body">四頂點 (0,0)(100,0)(100,50)(0,50)：面積=½|Σ(xᵢyᵢ₊₁−xᵢ₊₁yᵢ)|=½|5000|=5000 m²=7.5 畝，周長 300m。</div></div>
+<div class="dd-example"><div class="dd-ex-title">不規則</div><div class="dd-ex-body">多頂點按順序輸入，公式對凸/凹多邊形均適用，面積為絕對值，頂點順序錯會得負值取 abs。</div></div>
+<h3>❓ 常見問題（FAQ）</h3>
+<dl class="dd-faq">
+<dt>頂點順序有要求嗎？</dt><dd>須按邊界順/逆時針連續排列、首尾相接，跳點會算錯面積。</dd>
+<dt>畝怎麼換？</dt><dd>面積 m² ÷666.67=畝；國土常用，工程也用公頃(10000 m²)。</dd>
+</dl>
+</div>
+</section>
+<!-- 注意事項區塊 -->
+<div class="tool-notes" style="--tool-accent:#06B6D4;">
+  <div class="tool-notes-title">⚠️ 使用說明與注意事項</div>
+  <ul>
+      <li>本工具純前端執行，資料不會上傳到伺服器</li>
+      <li>建議在主流瀏覽器（Chrome/Safari/Firefox/Edge）中使用</li>
+      <li>計算結果僅供參考，請以實際應用場景為準</li>
+  </ul>
+</div>
+<!-- /注意事項區塊 -->
+</div>
+<script>
+var PTS=[{x:0,y:0},{x:100,y:0},{x:100,y:80},{x:0,y:80}];
+function renderPts(){
+  var html='';
+  PTS.forEach(function(p,i){
+    html+='<div class="pt-row"><div class="idx">P'+(i+1)+'</div>'+
+      '<input type="number" value="'+p.x+'" step="0.1" oninput="upd('+i+',\'x\',this.value)">'+
+      '<input type="number" value="'+p.y+'" step="0.1" oninput="upd('+i+',\'y\',this.value)">'+
+      '<button type="button" class="del-btn" onclick="delPt('+i+')">×</button></div>';
+  });
+  const __g1=html;document.getElementById('pts').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
+}
+function upd(i,k,val){PTS[i][k]=parseFloat(val)||0;calc();}
+function addPt(){PTS.push({x:0,y:0});renderPts();calc();}
+function delPt(i){if(PTS.length>3){PTS.splice(i,1);renderPts();calc();}}
+function loadDemo(){PTS=[{x:0,y:0},{x:120,y:0},{x:120,y:90},{x:40,y:90},{x:0,y:60}];renderPts();calc();}
+function calc(){
+  var __EN=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
+  var grid=document.getElementById('grid'),det=document.getElementById('detail');
+  if(PTS.length<3){grid.innerHTML='';det.innerHTML='至少需要3个顶点';return;}
+  var n=PTS.length,sumA=0,peri=0;
+  for(var i=0;i<n;i++){
+    var j=(i+1)%n;
+    var xi=PTS[i].x,yi=PTS[i].y,xj=PTS[j].x,yj=PTS[j].y;
+    sumA+=xi*yj-xj*yi;
+    peri+=Math.sqrt((xj-xi)*(xj-xi)+(yj-yi)*(yj-yi));
+  }
+  var area=Math.abs(sumA)/2;
+  var cx=0,cy=0;
+  for(i=0;i<n;i++){j=(i+1)%n;var f=PTS[i].x*PTS[j].y-PTS[j].x*PTS[i].y;cx+=(PTS[i].x+PTS[j].x)*f;cy+=(PTS[i].y+PTS[j].y)*f;}
+  var denom=area*6;var sign=sumA<0?-1:1;
+  cx=cx/denom*sign;cy=cy/denom*sign;
+  var mu=area/666.667; // 亩 (1亩≈666.67m²)
+  const __g4='<div class="result-item"><div class="val">'+area.toFixed(2)+'</div><div class="lbl">'+(__EN?'Area (m²)':'面积 m²')+'</div></div>'+
+    '<div class="result-item"><div class="val">'+mu.toFixed(3)+'</div><div class="lbl">'+(__EN?'Area (mu)':'面积 亩')+'</div></div>'+
+    '<div class="result-item"><div class="val">'+peri.toFixed(2)+'</div><div class="lbl">'+(__EN?'Perimeter (m)':'周长 m')+'</div></div>'+
+    '<div class="result-item"><div class="val">('+cx.toFixed(1)+', '+cy.toFixed(1)+')</div><div class="lbl">'+(__EN?'Centroid':'重心坐标')+'</div></div>';grid.innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
+  const __g5=(__EN?'<p>📊 '+n+' vertices, area = <strong>':'<p>📊 '+n+' 个顶点，面积 = <strong>')+area.toFixed(2)+' m²</strong>'+(__EN?' (':'（')+mu.toFixed(3)+(__EN?' mu), perimeter = <strong>':' 亩），周长 = <strong>')+peri.toFixed(2)+' m</strong></p>'+
+    (__EN?'<p>Centroid: (':'<p>重心坐标：(')+cx.toFixed(2)+', '+cy.toFixed(2)+')</p>'+
+    (__EN?'<p>Area = ½|Σ(xᵢ·yᵢ₊₁ − xᵢ₊₁·yᵢ)| = ½|':'<p>面积 = ½|Σ(xᵢ·yᵢ₊₁ − xᵢ₊₁·yᵢ)| = ½|')+sumA.toFixed(2)+'| = '+area.toFixed(2)+' m²</p>';det.innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
+  draw();
+}
+function draw(){
+  var cv=document.getElementById('cv');
+  if(!cv||typeof cv.getContext!=='function')return;
+  var W=(cv.parentElement&&cv.parentElement.clientWidth)||cv.width||600,dpr=window.devicePixelRatio||1;
+  cv.width=W*dpr;cv.height=260*dpr;cv.style.width=W+'px';cv.style.height='260px';
+  var ctx=cv.getContext('2d');ctx.scale(dpr,dpr);ctx.clearRect(0,0,W,260);
+  if(PTS.length<3)return;
+  var xs=PTS.map(function(p){return p.x;}),ys=PTS.map(function(p){return p.y;});
+  var minX=Math.min.apply(null,xs),maxX=Math.max.apply(null,xs),minY=Math.min.apply(null,ys),maxY=Math.max.apply(null,ys);
+  var rangeX=Math.max(maxX-minX,1),rangeY=Math.max(maxY-minY,1);
+  var pad=24,scale=Math.min((W-2*pad)/rangeX,(260-2*pad)/rangeY);
+  var ox=pad-minX*scale,oy=260-pad+minY*scale; // y flip
+  ctx.beginPath();
+  PTS.forEach(function(p,i){var X=p.x*scale+ox,Y=-p.y*scale+oy;i?ctx.lineTo(X,Y):ctx.moveTo(X,Y);});
+  ctx.closePath();
+  var isDark=document.body.classList.contains('dark');
+  ctx.fillStyle=isDark?'rgba(255,107,53,0.18)':'rgba(255,107,53,0.12)';
+  ctx.fill();ctx.strokeStyle='#FF6B35';ctx.lineWidth=2;ctx.stroke();
+  PTS.forEach(function(p,i){var X=p.x*scale+ox,Y=-p.y*scale+oy;
+    ctx.beginPath();ctx.arc(X,Y,4,0,Math.PI*2);ctx.fillStyle='#7C3AED';ctx.fill();
+    ctx.fillStyle=isDark?'#F3F4F6':'#1F2937';ctx.font='11px sans-serif';ctx.textAlign='center';ctx.fillText('P'+(i+1),X,Y-8);});
+}
+function copyResult(){
+  var t=document.getElementById('detail').innerText;
+  if(!t||t.indexOf('至少')===0){ToolBox.showToast(i18nText(), 'warning');return;}
+  ToolBox.copyText(t, i18nText());
+}
+renderPts();calc();
+
+function __acaN(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __acaList(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __acaL(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __acaExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#acaTable','polygon-area.csv');}catch(e){} }
+function __acaRoute(name){
+  var P=name==='lshape'?[{x:0,y:0},{x:80,y:0},{x:80,y:40},{x:40,y:40},{x:40,y:70},{x:0,y:70}]
+    :name==='triangle'?[{x:0,y:0},{x:100,y:0},{x:50,y:60}]
+    :[{x:0,y:0},{x:60,y:0},{x:60,y:40},{x:0,y:40}];
+  PTS.length=0;P.forEach(function(p){PTS.push(p);});
+  renderPts();
+}
+function __acaExtras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        if(PTS.length<3)return;
+        var n=PTS.length,labs=[],edges=[],rows=[],peri=0,i,j,d,sumA=0;
+        for(i=0;i<n;i++){
+            j=(i+1)%n;
+            d=Math.sqrt(Math.pow(PTS[j].x-PTS[i].x,2)+Math.pow(PTS[j].y-PTS[i].y,2));
+            peri+=d;sumA+=PTS[i].x*PTS[j].y-PTS[j].x*PTS[i].y;
+            labs.push('P'+(i+1)+'-P'+(j+1));
+            edges.push(Number(d.toFixed(2)));
+            rows.push(__acaL(['P'+(i+1),PTS[i].x.toFixed(2),PTS[i].y.toFixed(2),d.toFixed(2),peri.toFixed(2)],['P'+(i+1),PTS[i].x.toFixed(2),PTS[i].y.toFixed(2),d.toFixed(2),peri.toFixed(2)]));
+        }
+        TBKit.chart.bar('#acaChart',{labels:labs,series:[{name:__acaL('edge length (m)','边长 (m)'),data:edges}],height:220,title:__acaL('Edge lengths ('+n+' vertices, perimeter '+peri.toFixed(2)+' m)','各边边长（'+n+' 顶点，周长 '+peri.toFixed(2)+' m）')});
+        TBKit.matrix.table('#acaTable',{head:__acaL(['Point','x (m)','y (m)','Edge to next (m)','Cumulative perimeter (m)'],['点号','x (m)','y (m)','到下一点边长 (m)','累计周长 (m)']),rows:rows});
+        TBKit.history.record({pts:JSON.stringify(PTS),area:Number((Math.abs(sumA)/2).toFixed(2)),peri:Number(peri.toFixed(2))});
+        TBKit.util.diffBox('#acaDiff',['area']);
+        TBKit.history.mount('#acaHist',function(v){ if(v.pts==null)return;
+            try{ var arr=JSON.parse(v.pts); if(arr&&arr.length>=3){ PTS.length=0; arr.forEach(function(p){PTS.push(p);}); renderPts(); } }catch(e){}
+            calc(); });
+    }catch(e){}
+}
+function __acaPresets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#acaPresets',[
+            {label:'矩形 60×40（2400 m²）',labelEn:'Rectangle 60x40 (2400 m²)',values:{acRoute:'rect'}},
+            {label:'L 形地块（6 顶点）',labelEn:'L-shaped parcel (6 vertices)',values:{acRoute:'lshape'}},
+            {label:'三角形地块（3 顶点）',labelEn:'Triangular parcel (3 vertices)',values:{acRoute:'triangle'}}
+        ],function(){
+            var r=(document.getElementById('acRoute')||{}).value||'rect';
+            try{ __acaRoute(r); }catch(e){}
+            calc();
+        });
+    }catch(e){}
+}
+
+var __tb_aca0 = calc;
+calc = function(){ __tb_aca0(); try{ __acaExtras(); }catch(e){} };
+function __acaBoot(){ try{ __acaPresets(); }catch(e){} try{ calc(); }catch(e){} }
+// readyState 判定须防「桩环境无 readyState」：harness 的 document 桩不提供 readyState（undefined），
+// 旧写法 `=== "loading"` 会走 else 在脚本求值时立即启动 boot，早于页面自身 DOMContentLoaded init
+// ⇒ 元素创建顺序改变 ⇒ 跨元素多行 expect 失配。生产浏览器解析期 readyState==="loading" ⇒ 走
+// addEventListener；已加载完（complete/interactive）⇒ 立即启动。
+if (document.readyState && document.readyState !== "loading") __acaBoot();
+else document.addEventListener("DOMContentLoaded", __acaBoot);
+</script>
+
+<!-- SEO 介紹區塊 -->
+
+</div>
+
+</div>
+
+<!-- 相關工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相關工具</h3>
+  <div class="related-tools-grid">
+
+    <a href="/zh-tw/tools/science/barcode-pharmacode.html" class="related-tool-card">
+      <span class="rt-icon">🏷️</span>
+      <span class="rt-info"><span class="rt-name">Pharmacode 條形碼 - 免費生成器工具，線上Pharmacode 條形碼 | ToolBox免費線上工具箱</span><span class="rt-desc">Pharmacode 條形碼</span></span>
+    </a>
+
+
+
+    <a href="/zh-tw/tools/misc/truth-table.html" class="related-tool-card">
+      <span class="rt-icon">✨</span>
+      <span class="rt-info"><span class="rt-name">邏輯真值表生成器 - 科學研究線上工具 | ToolBox免費線上工具箱</span><span class="rt-desc">邏輯真值表生成器</span></span>
+    </a>
+    <a href="/zh-tw/tools/surveying/convert-33.html" class="related-tool-card">
+      <span class="rt-icon">🔄</span>
+      <span class="rt-info"><span class="rt-name">全站儀測距斜距/平距/高差換算</span><span class="rt-desc">全站儀測距換算器：將斜距按豎直角換算為平距與高差，用於全站儀測量資料處理與高程傳遞。</span></span>
+    </a>
+    <a href="/zh-tw/tools/surveying/coordinate-convert.html" class="related-tool-card">
+      <span class="rt-icon">🗺️</span>
+      <span class="rt-info"><span class="rt-name">座標轉換</span><span class="rt-desc">大地座標（經緯度）→ 高斯-克呂格平面座標（CGCS2000 橢球），含帶號、中央子午線與子午線收斂</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro open" id="toolIntro">
+  <div class="tool-intro-header">
+    <span class="intro-icon-wrap"><span class="intro-icon">📖</span>關於「面積計算」</span>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="tool-intro-body">
+    <h4><span class="h4-icon">📝</span>工具簡介</h4>
+    <p>面積計算是一款科學研究領域的線上工具。科學研究工具，採用標準科學公式，計算精準。</p>
+    <h4><span class="h4-icon">✨</span>功能特點</h4>
+    <ul class="intro-features">
+      <li>採用標準科學計算公式</li>
+      <li>支援多種引數配置</li>
+      <li>即時計算，即時顯示結果</li>
+      <li>資料不上傳，安全可靠</li>
+    </ul>
+    <h4><span class="h4-icon">🎯</span>使用場景</h4>
+    <ul class="intro-scenes">
+      <li>科學實驗資料分析</li>
+      <li>物理化學計算</li>
+      <li>學術研究輔助</li>
+      <li>學習科學知識</li>
+    </ul>
+    </div>
+</div>
+<!-- /SEO 介紹區塊 -->
+
+<script>
+// tool-intro折叠交互
+document.addEventListener('DOMContentLoaded',function(){
+  var headers=document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click',function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+</script>
+
+<section class="opt-guide"><h2>如何使用面積計算</h2><ol><li>在對應的輸入框或選項中填寫、選擇所需引數。</li><li>點選「計算」或「生成」按鈕執行。</li><li>在結果區檢視輸出，可複製結果或匯出使用。</li></ol><h2>適用場景</h2><p>工作與生活中的相關計算與查詢。</p></section><section class="opt-faq"><h2>常見問題</h2><dl class="faq-list"><dt>面積計算是做什麼的？</dt><dd>依次輸入多邊形各頂點座標（可動態增減頂點），用鞋帶公式（Shoelace）計算閉合多邊形的面積與周長，並在介面上即時繪出圖形，適合地塊、宗地面積量算。</dd><dt>如何使用面積計算？</dt><dd>在對應的輸入框或選項中填寫、選擇所需引數，點選「計算」或「生成」按鈕即可執行，結果會在結果區即時顯示，支援複製與匯出。</dd><dt>計算結果準確嗎？</dt><dd>本工具在你的本地瀏覽器中即時計算，不依賴伺服器；只要輸入的引數正確，結果即按對應的規則得出。涉及經驗估算的部分僅供參考，不作為正式依據。</dd><dt>面積計算適合哪些場景？</dt><dd>工作與生活中的相關計算與查詢。</dd><dt>使用本工具需要聯網或上傳資料嗎？</dt><dd>不需要。所有計算均在你的裝置本地完成，資料不會上傳到任何伺服器，可放心使用。</dd></dl></section>
+
+
+<script>/*TBKIT-INJECT-START*/
+(function(){
+  var P={"res": ["detail", "acaChart"], "tbl": ["acaTable"], "pre": ["acaPresets"], "his": ["acaHist"]};
+  var L={res:['结果','Result'],chart:['图表','Chart'],tbl:['数据表','Data'],pre:['预设','Presets'],his:['历史','History']};
+  function tabify(){
+    var bar=document.querySelector('.tbk-tabbar');
+    if(!bar||!bar.querySelectorAll) return;
+    var btns=bar.querySelectorAll('.tbk-tab');
+    if(!btns||!btns.length) return;
+    var en=false;
+    try{ if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn) en=TBKit.util.isEn(); }catch(e){}
+    if(!en&&document.documentElement&&(document.documentElement.lang||'').indexOf('en')>=0) en=true;
+    for(var i=0;i<btns.length;i++){var p=btns[i].getAttribute('data-pane');btns[i].textContent=en?L[p][1]:L[p][0];}
+    function show(pane){
+      for(var k in P){var ids=P[k];for(var i=0;i<ids.length;i++){var el=document.getElementById(ids[i]);if(el&&el.style)el.style.display=(k===pane?'':'none');}}
+      for(var j=0;j<btns.length;j++){btns[j].className='tbk-tab'+(btns[j].getAttribute('data-pane')===pane?' active':'');}
+    }
+    for(var i=0;i<btns.length;i++){(function(b){b.addEventListener('click',function(){show(b.getAttribute('data-pane'));});})(btns[i]);}
+    show(btns[0].getAttribute('data-pane'));
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',tabify);else tabify();
+})();
+/*TBKIT-INJECT-END*/</script>
+</body>
+</html>

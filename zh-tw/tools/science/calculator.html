@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-opencc-locale="zh-tw">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=calculator,industry=science,icon=🔬,bg=#e8eaf6">
+<meta name="description" content="科學計算器是一款免費的線上科學研究工具，提供四則、冪、對數、三角函式等科學運算，支援括號與歷史，適合學習作業與工程速算，純前端執行無需安裝。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta name="keywords" content="科學計算器,科學計算器線上,線上科學計算器,數學計算,科學研究,線上工具,免費工具,ToolBox">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://tools.dicomp.net/zh-tw/tools/science/calculator.html">
+<meta property="og:title" content="科學計算器 - 免費線上科學研究工具">
+<meta property="og:description" content="科學計算器是一款免費的線上科學研究工具，提供四則、冪、對數、三角函式等科學運算，支援括號與歷史，適合學習作業與工程速算，純前端執行無需安裝。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://tools.dicomp.net/zh-tw/tools/science/calculator.html">
+<meta name="twitter:card" content="summary">
+
+<title>科學計算器 - 免費線上科學研究工具</title>
+<meta name="theme-color" content="#FF6B35">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="stylesheet" href="/css/common.css">
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/common.js" defer></script>
+<style>
+.calc-display{
+  background:#1a1a2e;color:#fff;padding:20px;border-radius:12px;
+  text-align:right;font-family:'SF Mono','Courier New',monospace;
+  font-size:36px;font-weight:300;min-height:80px;
+  display:flex;flex-direction:column;justify-content:flex-end;
+  word-break:break-all;line-height:1.2;margin-bottom:12px;
+}
+.calc-history{font-size:13px;color:#888;min-height:18px;margin-bottom:6px;}
+.calc-grid{
+  display:grid;
+  grid-template-columns:repeat(5,1fr);
+  gap:8px;
+}
+.calc-btn{
+  padding:16px 4px;border-radius:10px;border:none;cursor:pointer;
+  font-size:17px;font-weight:500;background:#fff;color:#333;
+  border:1px solid var(--border);transition:all 0.1s;
+}
+.calc-btn:hover{background:#f8f9ff;border-color:var(--primary);}
+.calc-btn:active{transform:scale(0.96);}
+.calc-btn.op{background:#f0f4ff;color:var(--primary);font-weight:600;}
+.calc-btn.fn{background:#fff3e0;color:#ff9800;font-size:14px;}
+.calc-btn.eq{background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:#fff;font-weight:600;}
+.calc-btn.clear{background:#ffebee;color:var(--danger);}
+.calc-btn.span2{grid-column:span 2;}
+.calc-modes{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;}
+.calc-modes button{
+  padding:6px 14px;border-radius:16px;border:1px solid var(--border);
+  background:#fff;color:var(--text-light);font-size:12px;cursor:pointer;
+}
+.calc-modes button.active{background:var(--primary);color:#fff;border-color:var(--primary);}
+@media(max-width:600px){
+  .calc-display{font-size:28px;padding:16px;min-height:70px;}
+  .calc-grid{gap:6px;}
+  .calc-btn{padding:14px 4px;font-size:15px;}
+  .calc-btn.fn{font-size:12px;}
+}
+@media(max-width:380px){
+  .calc-btn{padding:12px 2px;font-size:13px;}
+  .calc-display{font-size:22px;}
+}
+</style>
+
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"科學計算器","description":"科學計算器 - 免費數學計算工具，線上科學計算器，免費使用。","url":"https://tools.dicomp.net/zh-tw/tools/science/calculator.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Web","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"},"inLanguage":"zh-TW","isAccessibleForFree":true,"browserRequirements":"Requires JavaScript. Requires HTML5.","softwareVersion":"1.0"}</script>
+
+
+
+<meta property="og:image" content="https://tools.dicomp.net/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免費線上工具">
+<meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免費線上工具">
+    <meta name="twitter:title" content="科學計算器 - 免費線上科學研究工具">
+    <meta name="twitter:description" content="科學計算器是一款免費的線上科學研究工具，提供四則、冪、對數、三角函式等科學運算，支援括號與歷史，適合學習作業與工程速算，純前端執行無需安裝。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"科學計算器","url":"https://tools.dicomp.net/zh-tw/tools/science/calculator.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"科學計算器是一款免費的線上科學研究工具，提供四則、冪、對數、三角函式等科學運算，支援括號與歷史，適合學習作業與工程速算，純前端執行無需安裝。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首頁","item":"https://tools.dicomp.net/zh-tw/"},{"@type":"ListItem","position":2,"name":"科學研究","item":"https://tools.dicomp.net/zh-tw/tools/science/index.html"},{"@type":"ListItem","position":3,"name":"科學計算器","item":"https://tools.dicomp.net/zh-tw/tools/science/calculator.html"}]}</script>
+
+<script src="/js/i18n.js" defer></script>
+<script src="/js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+
+
+<meta name="title-en" content="Science Calculator">
+<meta name="desc-en" content="Science Calculator - compute values online with accurate results.">
+
+
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
+
+<script src="/js/tool-ux.js" defer></script>
+<!-- TOOLBOX-TOOL-UX -->
+
+<script src="/js/analytics.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+
+<script src="/js/hot-tool-enhancements.js" defer></script>
+<!-- TOOLBOX-HOT-TOOL-UX -->
+<!-- TOOLBOX-TTZZ -->
+<script>
+(function(){try{
+var el = document.createElement("script");
+el.src = "https://lf1-cdn-tos.bytegoofy.com/goofy/ttzz/push.js?85d6452aa9be4d693b16cd48535a8c7ae57542f6788a41682e745be8eb99b35a8a24d2f724c31ebe20c1e4e6fba6d91caf576100b02a2870c72f38fc574066fef065d152c73bf1cbb2ebad3b5b5265d8";
+el.id = "ttzz";
+var s = document.getElementsByTagName("script")[0];
+s.parentNode.insertBefore(el, s);
+}catch(e){}
+})(window);
+</script>
+
+<script src="/js/tool-kit.js" defer></script>
+<!-- TOOLBOX-TOOL-KIT -->
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://tools.dicomp.net/tools/science/calculator.html">
+<link rel="alternate" hreflang="zh-TW" href="https://tools.dicomp.net/zh-tw/tools/science/calculator.html">
+<link rel="alternate" hreflang="en-US" href="https://tools.dicomp.net/tools/science/calculator.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://tools.dicomp.net/tools/science/calculator.html">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+</head>
+<body>
+<h1 class="sr-only">科學計算器</h1>
+
+
+<div class="nav">
+  <a href="/zh-tw/index.html">← ToolBox</a>
+  <span>/ 科學計算器</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+
+
+
+
+<nav class="breadcrumb" aria-label="麵包屑導航" data-breadcrumb="1">
+  <a href="/zh-tw/index.html">首頁</a>
+  <span class="bc-sep">‹</span>
+  <a href="/zh-tw/tools/science/index.html">🔬 科學研究</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">科學計算器</span>
+</nav>
+<div class="container">
+  <div class="card tool-card-accent" style="--tool-accent:#06B6D4;">
+     <h2 data-zh="🔬 科學計算器">🔬 Scientific Calculator</h2>
+<div class="formula-box">
+  <div class="formula-title">📐 工作原理與說明</div>
+  <div class="formula-desc">本計算器基於標準數學運算與單位換算約定，輸入按數字格式解析，結果即時輸出；純前端本地計算，資料不上傳伺服器。 工具名稱：科學計算器 - 科學研究領域的線上工具。</div>
+</div>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="提供四則、冪、對數、三角函式等科學運算，支援括號與歷史，適合學習作業與工程速算，純前端執行無需安裝。">A browser scientific calculator with the four operations, powers, logarithms, trigonometry, brackets and history, all offline.</p>
+
+
+    <div class="calc-modes">
+      <button class="active" data-mode="deg" onclick="setMode('deg')">DEG 角度</button>
+      <button data-mode="rad" onclick="setMode('rad')">RAD 弧度</button>
+    </div>
+
+    <div class="calc-display">
+      <div class="calc-history" id="history"></div>
+      <div id="display">0</div>
+    </div>
+
+    <div class="calc-grid">
+      <button type="button" class="calc-btn clear" onclick="clearAll()">AC</button>
+      <button type="button" class="calc-btn clear" onclick="backspace()">⌫</button>
+      <button type="button" class="calc-btn fn" onclick="appendChar('(',1)">(</button>
+      <button type="button" class="calc-btn fn" onclick="appendChar(')',1)">)</button>
+      <button type="button" class="calc-btn op" onclick="appendChar('/',1)">÷</button>
+
+      <button type="button" class="calc-btn fn" onclick="insertFunc('sin(')">sin</button>
+      <button type="button" class="calc-btn fn" onclick="insertFunc('cos(')">cos</button>
+      <button type="button" class="calc-btn fn" onclick="insertFunc('tan(')">tan</button>
+      <button type="button" class="calc-btn fn" onclick="insertFunc('log(')">log</button>
+      <button type="button" class="calc-btn op" onclick="appendChar('*',1)">×</button>
+
+      <button type="button" class="calc-btn fn" onclick="insertFunc('ln(')">ln</button>
+      <button type="button" class="calc-btn" onclick="appendChar('7')">7</button>
+      <button type="button" class="calc-btn" onclick="appendChar('8')">8</button>
+      <button type="button" class="calc-btn" onclick="appendChar('9')">9</button>
+      <button type="button" class="calc-btn op" onclick="appendChar('-',1)">−</button>
+
+      <button type="button" class="calc-btn fn" onclick="insertFunc('sqrt(')">√</button>
+      <button type="button" class="calc-btn" onclick="appendChar('4')">4</button>
+      <button type="button" class="calc-btn" onclick="appendChar('5')">5</button>
+      <button type="button" class="calc-btn" onclick="appendChar('6')">6</button>
+      <button type="button" class="calc-btn op" onclick="appendChar('+',1)">+</button>
+
+      <button type="button" class="calc-btn fn" onclick="insertPow()">xʸ</button>
+      <button type="button" class="calc-btn" onclick="appendChar('1')">1</button>
+      <button type="button" class="calc-btn" onclick="appendChar('2')">2</button>
+      <button type="button" class="calc-btn" onclick="appendChar('3')">3</button>
+      <button type="button" class="calc-btn eq span2" onclick="calculate()">=</button>
+
+      <button type="button" class="calc-btn fn" onclick="insertConst('PI')">π</button>
+      <button type="button" class="calc-btn" onclick="appendChar('0')">0</button>
+      <button type="button" class="calc-btn" onclick="appendChar('.')">.</button>
+      <button type="button" class="calc-btn fn" onclick="insertConst('E')">e</button>
+    </div>
+
+    <div class="toolbar" style="margin-top:16px;">
+      <button type="button" class="btn" onclick="copyResult(this)">複製結果</button>
+      <button type="button" class="btn" onclick="clearHistory()">清空歷史</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>📋 計算歷史</h2>
+    <div id="historyList" style="max-height:240px;overflow:auto;font-family:'SF Mono',monospace;font-size:13px;"></div>
+<div id="__tbnExtras" style="margin-top:12px"></div>
+
+  </div>
+
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto 0;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+.deep-dive a.term-link{color:var(--tool-accent,#FF6B35);text-decoration:none;border-bottom:1px dashed currentColor;}
+.deep-dive a.term-link:hover{border-bottom-style:solid;}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：科學計算器</h2>
+<h3>💡 常見使用場景</h3>
+<ul class="dd-list">
+<li>科學計算：冪、對數、三角、階乘。</li>
+<li>課堂演算與工程現場快速計算複合表示式。</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">計算</div><div class="dd-ex-body">2¹⁰=1024；sin(30°)=0.5；log₁₀(1000)=3；5!=120。</div></div>
+<h3>❓ 常見問題（FAQ）</h3>
+<dl class="dd-faq">
+<dt>角度單位？</dt><dd>注意 DEG/RAD 模式，sin(30°)=0.5 但 sin(π/6 rad) 同值。</dd>
+<dt>精度有多高？</dt><dd>雙精度浮點約 15–16 位<a class="term-link" href="/zh-tw/tools/science/significant-figures.html">有效數字</a>，連續運算應避免逐步舍入誤差。</dd>
+</dl>
+</div>
+</section>
+<!-- 注意事項區塊 -->
+<div class="tool-notes" style="--tool-accent:#06B6D4;">
+  <div class="tool-notes-title">⚠️ 使用說明與注意事項</div>
+  <ul>
+      <li>本工具純前端執行，資料不會上傳到伺服器</li>
+      <li>建議在主流瀏覽器（Chrome/Safari/Firefox/Edge）中使用</li>
+      <li>計算結果僅供參考，請以實際應用場景為準</li>
+  </ul>
+</div>
+<!-- /注意事項區塊 -->
+</div>
+
+<script>
+let expression = '';
+let resultShown = false;
+let mode = 'deg';
+const history = [];
+
+const display = document.getElementById('display');
+const historyEl = document.getElementById('history');
+const historyList = document.getElementById('historyList');
+
+function updateDisplay(){
+  display.textContent = expression || '0';
+}
+
+function appendChar(ch, isOp){
+  if(resultShown && !isOp && /[0-9.]/.test(ch)){
+    expression = '';
+    resultShown = false;
+  } else if(resultShown && isOp){
+    resultShown = false;
+  } else if(resultShown){
+    expression = '';
+    resultShown = false;
+  }
+  expression += ch;
+  updateDisplay();
+}
+
+function insertFunc(fn){
+  if(resultShown){ expression = ''; resultShown = false; }
+  expression += fn;
+  updateDisplay();
+}
+
+function insertPow(){
+  if(resultShown){ resultShown = false; }
+  expression += '^';
+  updateDisplay();
+}
+
+function insertConst(name){
+  if(resultShown){ expression = ''; resultShown = false; }
+  expression += name;
+  updateDisplay();
+}
+
+function backspace(){
+  if(resultShown){ expression = ''; resultShown = false; }
+  else expression = expression.slice(0, -1);
+  updateDisplay();
+}
+
+function clearAll(){
+  expression = '';
+  resultShown = false;
+  historyEl.textContent = '';
+  updateDisplay();
+}
+
+function clearHistory(){
+  history.length = 0;
+  renderHistory();
+}
+
+function setMode(m){
+  mode = m;
+  document.querySelectorAll('.calc-modes button').forEach(b => b.classList.toggle('active', b.dataset.mode === m));
+}
+
+function tokenizeAndEval(expr){
+  // 替换符号
+  expr = expr.replace(/×/g,'*').replace(/÷/g,'/').replace(/−/g,'-');
+  // 幂运算 ^ → **
+  expr = expr.replace(/\^/g,'**');
+  // 三角函数/对数 转换
+  if(mode === 'deg'){
+    expr = expr.replace(/sin\(/g, 'Math.sin(_d2r(')
+               .replace(/cos\(/g, 'Math.cos(_d2r(')
+               .replace(/tan\(/g, 'Math.tan(_d2r(');
+  } else {
+    expr = expr.replace(/sin\(/g,'Math.sin(').replace(/cos\(/g,'Math.cos(').replace(/tan\(/g,'Math.tan(');
+  }
+  expr = expr.replace(/log\(/g,'Math.log10(').replace(/ln\(/g,'Math.log(').replace(/sqrt\(/g,'Math.sqrt(');
+  expr = expr.replace(/\bPI\b/g,'Math.PI').replace(/\bE\b/g,'Math.E');
+
+  const _d2r = (d) => d * Math.PI / 180;
+  const fn = new Function('_d2r', 'return ' + expr);
+  return fn(_d2r);
+}
+
+function calculate(){
+  if(!expression) return;
+  try{
+    const r = tokenizeAndEval(expression);
+    if(typeof r !== 'number' || !isFinite(r)) throw new Error();
+    const formatted = formatNumber(r);
+    historyEl.textContent = expression + ' =';
+    history.unshift({expr: expression, result: formatted});
+    if(history.length > 50) history.pop();
+    renderHistory();
+    expression = formatted.toString();
+    resultShown = true;
+    updateDisplay();
+  }catch(e){
+    historyEl.textContent = '表达式错误';
+    display.textContent = 'Error';
+    setTimeout(() => { if(display.textContent === 'Error') updateDisplay(); }, 1200);
+  }
+}
+
+function formatNumber(n){
+  if(Number.isInteger(n)) return n;
+  const abs = Math.abs(n);
+  if(abs < 1e-10 || abs >= 1e15) return n.toExponential(8);
+  return parseFloat(n.toPrecision(12));
+}
+
+function renderHistory(){
+  if(!history.length){ const __h0='<p style="color:var(--text-muted);font-size:13px;">暂无历史记录</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){historyList.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}historyList.innerHTML=__h0; return; }
+  const __h1=history.map(h => `
+    <div style="padding:8px 4px;border-bottom:1px solid #f0f0f0;cursor:pointer;" onclick="useHistory('${h.result}')">
+      <div style="color:var(--text-muted);font-size:12px;">${escapeHtml(h.expr)}</div>
+      <div style="color:var(--primary);font-weight:600;">= ${escapeHtml(h.result.toString())}</div>
+    </div>
+  `).join('');if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){historyList.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}historyList.innerHTML=__h1;
+}
+
+function useHistory(result){
+  expression = result.toString();
+  resultShown = false;
+  historyEl.textContent = '';
+  updateDisplay();
+}
+
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+function copyResult(btn){
+  // 兼容真实点击（onclick="copyResult(this)"）与无 event 上下文的自动化/键盘触发
+  btn = btn || (typeof event !== 'undefined' && event ? event.target : null);
+  const text = display.textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    if (!btn) return;
+    const old = btn.textContent;
+    btn.textContent = '✅ 已复制'; setTimeout(() => { if (btn) btn.textContent = old; }, 1200);
+  }).catch(function(){});
+}
+
+// 键盘支持
+document.addEventListener('keydown', (e) => {
+  if(e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+  if(/[0-9.+\-*/()^]/.test(e.key)){ appendChar(e.key); }
+  else if(e.key === 'Enter' || e.key === '='){ e.preventDefault(); calculate(); }
+  else if(e.key === 'Backspace'){ backspace(); }
+  else if(e.key === 'Escape'){ clearAll(); }
+});
+
+renderHistory();
+</script><script>
+// tool-intro折叠交互
+document.addEventListener('DOMContentLoaded',function(){
+  var headers=document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click',function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+</script>
+<!-- SEO 介紹區塊 -->
+
+</div>
+
+</div>
+
+<!-- 相關工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相關工具</h3>
+  <div class="related-tools-grid">
+
+    <a href="/zh-tw/tools/science/barcode-pharmacode.html" class="related-tool-card">
+      <span class="rt-icon">🏷️</span>
+      <span class="rt-info"><span class="rt-name">Pharmacode 條形碼 - 免費生成器工具，線上Pharmacode 條形碼 | ToolBox免費線上工具箱</span><span class="rt-desc">Pharmacode 條形碼</span></span>
+    </a>
+
+
+
+    <a href="/zh-tw/tools/misc/truth-table.html" class="related-tool-card">
+      <span class="rt-icon">✨</span>
+      <span class="rt-info"><span class="rt-name">邏輯真值表生成器 - 科學研究線上工具 | ToolBox免費線上工具箱</span><span class="rt-desc">邏輯真值表生成器</span></span>
+    </a>
+
+    <a href="/zh-tw/tools/science/rc-time-constant.html" class="related-tool-card">
+      <span class="rt-icon">📡</span>
+      <span class="rt-info"><span class="rt-name">RC時間常數計算</span><span class="rt-desc">⏱️ RC時間常數 (τ) 計算器</span></span>
+    </a>
+    <a href="/zh-tw/tools/science/si-unit-converter.html" class="related-tool-card">
+      <span class="rt-icon">🔄</span>
+      <span class="rt-info"><span class="rt-name">SI單位轉換器</span><span class="rt-desc">國際單位（SI）轉換器：覆蓋 7 個 SI 基本量、詞頭（千/毫/微等）與匯出單位換算，用於物理量單</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro open" id="toolIntro">
+  <div class="tool-intro-header">
+    <span class="intro-icon-wrap"><span class="intro-icon">📖</span>關於「科學計算器」</span>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="tool-intro-body">
+    <h4><span class="h4-icon">📝</span>工具簡介</h4>
+    <p>科學計算器是一款科學研究領域的線上工具。科學研究工具，採用標準科學公式，計算精準。</p>
+    <h4><span class="h4-icon">✨</span>功能特點</h4>
+    <ul class="intro-features">
+      <li>採用標準科學計算公式</li>
+      <li>支援多種引數配置</li>
+      <li>即時計算，即時顯示結果</li>
+      <li>資料不上傳，安全可靠</li>
+    </ul>
+    <h4><span class="h4-icon">🎯</span>使用場景</h4>
+    <ul class="intro-scenes">
+      <li>科學實驗資料分析</li>
+      <li>物理化學計算</li>
+      <li>學術研究輔助</li>
+      <li>學習科學知識</li>
+    </ul>
+    </div>
+</div>
+<!-- /SEO 介紹區塊 -->
+<script>
+var __eca=function(){
+  if(typeof TBKit==='undefined')return;
+  var acc=(function(){return (typeof history!=='undefined'&&history.length>0)?history.length:NaN;})();
+  if(typeof acc!=='number'||!isFinite(acc)||acc<0)return;
+  var lab=(function(){if(typeof history==='undefined'||!history.length)return '';var h=history[0];return '最近：'+h.expr+' = '+h.result;})();
+  var EN=false;try{EN=TBKit.util.isEn();}catch(e){}
+  var LBL=EN?'Calculations per Session':'记录单次会话计算数(次)';
+  var T=EN?{hist:'Practice History',sc:'Score',no:'#',time:'Time',exp:'Export CSV',file:'practice-history.csv',col:'Type'}
+          :{hist:'练习成绩历史',sc:'成绩值',no:'序号',time:'时间',exp:'导出 CSV',file:'practice-history.csv',col:'类型'};
+  var KEY='__tbn_calculator';
+  var hist=[];try{hist=JSON.parse(localStorage.getItem(KEY)||'[]');}catch(e){hist=[];}
+  if(!Array.isArray(hist))hist=[];
+  var last=hist[hist.length-1];
+  if(!last||last.v!==acc||(lab&&last.l!==lab)){hist.push({t:Date.now(),v:acc,l:lab||''});}
+  if(hist.length>30)hist=hist.slice(-30);
+  try{localStorage.setItem(KEY,JSON.stringify(hist));}catch(e){}
+  var __rec={};__rec[LBL]=acc;if(TBKit.history&&TBKit.history.record)TBKit.history.record(__rec);
+  var host=document.getElementById('__tbnExtras');
+  if(!host)return;
+  if(hist.length<2){host.innerHTML='<p style="color:var(--text-muted);font-size:13px;margin:8px 0">'+(EN?'Records appear after 2+ sessions.':'游戏 2 局以上后显示成绩趋势图。')+'</p>';return;}
+  host.innerHTML='<h3 style="font-size:15px;margin:8px 0">'+T.hist+'（'+LBL+'）</h3><div id="__tbnChart"></div><div id="__tbnTable"></div><div id="__tbnDiff"></div>';
+  var labels=hist.map(function(h,i){return '#'+(i+1);});
+  if(TBKit.chart&&TBKit.chart.line){try{TBKit.chart.line('#__tbnChart',{labels:labels,series:[{name:LBL,data:hist.map(function(h){return h.v;})}]});}catch(e){}}
+  var rows=hist.map(function(h,i){return ['#'+(i+1),new Date(h.t).toLocaleString(),h.v,h.l||''];});
+  if(TBKit.matrix&&TBKit.matrix.table){try{TBKit.matrix.table('#__tbnTable',{head:[T.no,T.time,T.sc,T.col],rows:rows,search:false});}catch(e){}}
+  if(TBKit.util&&TBKit.util.diffBox)TBKit.util.diffBox('#__tbnDiff',[LBL]);
+  var btn=document.createElement('button');
+  btn.type='button';btn.className='btn';btn.textContent=T.exp;
+  btn.onclick=function(){if(TBKit.export&&TBKit.export.csv)TBKit.export.csv(T.file,rows);};
+  host.appendChild(btn);
+};
+var __f0=calculate;calculate=function(){var __r=__f0.apply(null,arguments);__eca();return __r;};
+</script>
+</body>
+</html>

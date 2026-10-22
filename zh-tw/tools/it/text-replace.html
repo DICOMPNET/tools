@@ -1,0 +1,980 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-opencc-locale="zh-tw">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=text,industry=it,icon=💻,bg=#e0f7fa">
+<title>文本替換工具 - 免費線上開發工具</title>
+<link rel="canonical" href="https://tools.dicomp.net/zh-tw/tools/it/text-replace.html">
+<meta property="og:title" content="文本替換工具 - 免費線上開發工具">
+<meta property="og:description" content="文本替換工具是一款免費的線上IT 開發工具，在原文中執行文本替換，既支援普通字串替換，也支援正規表示式替換，即時標出所有匹配位置並預覽替換結果，方便在批次修改前確認改動範圍。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta property="og:url" content="https://tools.dicomp.net/zh-tw/tools/it/text-replace.html">
+<meta name="twitter:card" content="summary">
+<meta name="description" content="文本替換工具是一款免費的線上IT 開發工具，在原文中執行文本替換，既支援普通字串替換，也支援正規表示式替換，即時標出所有匹配位置並預覽替換結果，方便在批次修改前確認改動範圍。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<link rel="stylesheet" href="/css/common.css">
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/common.js" defer></script>
+<style>
+  .replace-preview {
+    font-family: 'SF Mono', 'Courier New', 'Fira Code', monospace;
+    font-size: 14px;
+    line-height: 1.7;
+    white-space: pre-wrap;
+    word-break: break-all;
+    max-height: 300px;
+    overflow-y: auto;
+  }
+  .match-highlight {
+    background: rgba(255, 107, 53, 0.25);
+    border-radius: 3px;
+    padding: 1px 2px;
+    border-bottom: 2px solid var(--primary);
+  }
+  .match-info-row {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .match-info-row .info-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 500;
+    background: rgba(255, 107, 53, 0.08);
+    border: 1px solid rgba(255, 107, 53, 0.2);
+    color: var(--primary);
+  }
+  .match-info-row .info-chip .chip-val {
+    font-weight: 700;
+    font-size: 15px;
+  }
+  .context-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  .context-list li {
+    padding: 8px 12px;
+    margin-bottom: 6px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-family: 'SF Mono', 'Courier New', 'Fira Code', monospace;
+    line-height: 1.6;
+    word-break: break-all;
+    background: var(--result-bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+  }
+  .context-list li .ctx-num {
+    color: var(--text-muted);
+    font-size: 12px;
+    margin-right: 8px;
+    user-select: none;
+  }
+  .error-tip {
+    color: var(--danger);
+    font-size: 13px;
+    margin-top: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  [data-theme="dark"] .match-highlight {
+    background: rgba(255, 138, 92, 0.3);
+  }
+  [data-theme="dark"] .match-info-row .info-chip {
+    background: rgba(255, 138, 92, 0.12);
+    border-color: rgba(255, 138, 92, 0.3);
+  }
+  @media (max-width: 768px) {
+    .replace-preview { font-size: 13px; }
+    .match-info-row { gap: 8px; }
+    .match-info-row .info-chip { font-size: 12px; padding: 5px 10px; }
+    .match-info-row .info-chip .chip-val { font-size: 14px; }
+  }
+</style>
+
+
+
+<meta property="og:image" content="https://tools.dicomp.net/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免費線上工具">
+<meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免費線上工具">
+    <meta property="og:type" content="website">
+    <meta name="twitter:title" content="文本替換工具 - 免費線上開發工具">
+    <meta name="twitter:description" content="文本替換工具是一款免費的線上IT 開發工具，在原文中執行文本替換，既支援普通字串替換，也支援正規表示式替換，即時標出所有匹配位置並預覽替換結果，方便在批次修改前確認改動範圍。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"文本替換工具","url":"https://tools.dicomp.net/zh-tw/tools/it/text-replace.html","applicationCategory":"DeveloperApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"文本替換工具是一款免費的線上IT 開發工具，在原文中執行文本替換，既支援普通字串替換，也支援正規表示式替換，即時標出所有匹配位置並預覽替換結果，方便在批次修改前確認改動範圍。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首頁","item":"https://tools.dicomp.net/zh-tw/"},{"@type":"ListItem","position":2,"name":"IT 開發","item":"https://tools.dicomp.net/zh-tw/tools/it/index.html"},{"@type":"ListItem","position":3,"name":"文本替換工具","item":"https://tools.dicomp.net/zh-tw/tools/it/text-replace.html"}]}</script>
+
+<script src="/js/i18n.js" defer></script>
+<script src="/js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+
+
+<meta name="title-en" content="Text Replace">
+<meta name="desc-en" content="Text Replace - online utility on ToolBox.">
+
+
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
+
+<script src="/js/tool-ux.js" defer></script>
+<!-- TOOLBOX-TOOL-UX -->
+
+<script src="/js/analytics.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+<!-- TOOLBOX-TTZZ -->
+<script>
+(function(){try{
+var el = document.createElement("script");
+el.src = "https://lf1-cdn-tos.bytegoofy.com/goofy/ttzz/push.js?85d6452aa9be4d693b16cd48535a8c7ae57542f6788a41682e745be8eb99b35a8a24d2f724c31ebe20c1e4e6fba6d91caf576100b02a2870c72f38fc574066fef065d152c73bf1cbb2ebad3b5b5265d8";
+el.id = "ttzz";
+var s = document.getElementsByTagName("script")[0];
+s.parentNode.insertBefore(el, s);
+}catch(e){}
+})(window);
+</script>
+
+<script src="/js/tool-kit.js" defer></script>
+<!-- TOOLBOX-TOOL-KIT -->
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://tools.dicomp.net/tools/it/text-replace.html">
+<link rel="alternate" hreflang="zh-TW" href="https://tools.dicomp.net/zh-tw/tools/it/text-replace.html">
+<link rel="alternate" hreflang="en-US" href="https://tools.dicomp.net/tools/it/text-replace.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://tools.dicomp.net/tools/it/text-replace.html">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+</head>
+<body>
+<h1 class="sr-only">文本替換工具</h1>
+
+
+<!-- 導航欄 -->
+<div class="nav">
+  <a href="/zh-tw/index.html">← ToolBox</a>
+  <span>/ 文本替換工具</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+
+
+
+
+<nav class="breadcrumb" aria-label="麵包屑導航" data-breadcrumb="1">
+  <a href="/zh-tw/index.html">首頁</a>
+  <span class="bc-sep">‹</span>
+  <a href="/zh-tw/tools/it/index.html">💻 開發</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">文本替換工具</span>
+</nav>
+<div class="container">
+
+  <!-- 主卡片 -->
+  <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
+    <h2 data-zh="💻 文本替換工具">💻 Text Replace</h2>
+<div class="formula-box">
+  <div class="formula-title">📐 工作原理與說明</div>
+  <div class="formula-desc">批次查詢並替換文本。</div>
+  <ul class="formula-list">
+    <li><b>模式</b>：支援普通字串替換與正規表示式替換，可全域性替換或限定次數。</li>
+    <li><b>捕獲組</b>：正則替換中可用 <code>$1</code>、<code>$2</code> 引用分組內容重新組合文本。</li>
+    <li><b>選項</b>：可配置是否忽略大小寫、是否整詞匹配、是否多行模式。</li>
+    <li><b>建議</b>：替換前先預覽結果，避免誤替換造成難以恢復的損失。</li>
+  </ul>
+</div>
+
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="支援普通文本替換和正規表示式替換，即時預覽匹配位置">Find and replace text in your browser — batch-edit strings with literals or regex.</p>
+
+    <!-- 原始文本輸入 -->
+    <label>原始文本</label>
+    <textarea id="sourceText" rows="8" placeholder="在此输入或粘贴需要处理的文本内容..."></textarea>
+
+    <div style="margin-top:16px;"></div>
+
+    <!-- 查詢與替換輸入 -->
+    <div class="input-row">
+      <div>
+        <label>查詢內容</label>
+        <input type="text" id="findInput" placeholder="輸入要查詢的文本或正規表示式">
+      </div>
+      <div>
+        <label>替換為</label>
+        <input type="text" id="replaceInput" placeholder="輸入替換後的文本（支援 $1 $2 引用）">
+      </div>
+    </div>
+
+    <!-- 選項設定 -->
+    <div class="checkbox-row">
+      <label><input type="checkbox" id="optCase"> 區分大小寫</label>
+      <label><input type="checkbox" id="optRegex"> 使用正規表示式</label>
+      <label><input type="checkbox" id="optGlobal" checked> 全域性替換</label>
+      <label><input type="checkbox" id="optMultiline"> 多行模式</label>
+    </div>
+
+    <!-- 操作按鈕 -->
+    <div class="toolbar">
+      <button type="button" class="btn primary" onclick="doReplace()">替換</button>
+      <button type="button" class="btn" onclick="previewMatch()">預覽匹配</button>
+      <button type="button" class="btn warning" onclick="undoReplace()">撤銷</button>
+      <button type="button" class="btn success" onclick="copyResult()">複製結果</button>
+      <button type="button" class="btn" onclick="downloadResult()">下載結果</button>
+      <button type="button" class="btn danger" onclick="clearAll()">清空</button>
+    </div>
+
+    <div style="margin-top:12px;">
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px;">📌 常見預設（一鍵填入示例並替換）</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button type="button" class="btn" onclick="applyReplacePreset('tab')">製表符→空格</button>
+        <button type="button" class="btn" onclick="applyReplacePreset('blank')">刪除多餘空行</button>
+        <button type="button" class="btn" onclick="applyReplacePreset('trail')">刪除行尾空格</button>
+      </div>
+    </div>
+
+    <!-- 錯誤提示區 -->
+    <div id="errorArea"></div>
+
+    <!-- 統計資訊 -->
+    <div id="statsArea" style="display:none;">
+      <div class="match-info-row">
+        <span class="info-chip">匹配數量 <span class="chip-val" id="matchCount">0</span></span>
+        <span class="info-chip">替換次數 <span class="chip-val" id="replaceCount">0</span></span>
+        <span class="info-chip">字元變化 <span class="chip-val" id="charDelta">0</span></span>
+      </div>
+    </div>
+
+    <!-- 匹配預覽 -->
+    <div id="previewArea" style="display:none;">
+      <h3 style="margin-bottom:8px;">匹配預覽</h3>
+      <div class="result-box">
+        <div class="replace-preview" id="previewContent"></div>
+      </div>
+      <div id="contextArea"></div>
+    </div>
+
+    <!-- 替換結果 -->
+    <div id="resultArea" style="display:none;">
+      <h3 style="margin-bottom:8px;">替換結果</h3>
+      <textarea id="resultText" rows="8" readonly style="background:var(--result-bg);cursor:text;"></textarea>
+    </div>
+
+    <div id="trExtras" style="margin-top:14px;">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+        <button type="button" class="btn" onclick="__trExport()">⬇️ 匯出替換明細 CSV</button>
+        <span style="font-size:12px;color:var(--text-muted);">匯出匹配統計與匹配位置明細（前 200 條）</span>
+      </div>
+      <div id="trChart" style="margin-top:10px;"></div>
+      <table id="trTable" class="result-table" style="width:100%;margin-top:10px;">
+        <thead></thead><tbody></tbody>
+      </table>
+      <div id="trHistory"></div>
+    </div>
+  </div>
+
+  <!-- SEO 工具介紹 -->
+
+</div>
+
+</div>
+
+<!-- 相關工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相關工具</h3>
+  <div class="related-tools-grid">
+    <a href="/zh-tw/tools/it/properties-parser.html" class="related-tool-card">
+      <span class="rt-icon">📄</span>
+      <span class="rt-info"><span class="rt-name">.properties 解析器 - 免費開發工具，properties 解析器 | ToolBox免費線上工具箱</span><span class="rt-desc">.properties 解析器</span></span>
+    </a>
+    <a href="/zh-tw/tools/it/ast-viewer.html" class="related-tool-card">
+      <span class="rt-icon">💻</span>
+      <span class="rt-info"><span class="rt-name">AST抽象語法樹檢視器 - 線上解析JavaScript程式碼生成AST樹形結構，支援節點 | ToolBox免費線上工具箱</span><span class="rt-desc">AST 抽象語法樹檢視器</span></span>
+    </a>
+    <a href="/zh-tw/tools/it/css-minifier.html" class="related-tool-card">
+      <span class="rt-icon">🧹</span>
+      <span class="rt-info"><span class="rt-name">CSS 壓縮/美化工具 - 免費開發工具，CSS 壓縮/格式化/美化 | ToolBox免費線上工具箱</span><span class="rt-desc">CSS 壓縮/格式化/美化</span></span>
+    </a>
+    <a href="/zh-tw/tools/it/css-formatter.html" class="related-tool-card">
+      <span class="rt-icon">🏋️</span>
+      <span class="rt-info"><span class="rt-name">CSS 格式化 - 免費開發工具，線上CSS 格式化 | ToolBox免費線上工具箱</span><span class="rt-desc">CSS 格式化</span></span>
+    </a>
+    <a href="/zh-tw/tools/it/cron.html" class="related-tool-card">
+      <span class="rt-icon">✨</span>
+      <span class="rt-info"><span class="rt-name">Cron 表示式生成器 - 免費開發工具，線上Cron 表示式生成器 | ToolBox免費線上工具箱</span><span class="rt-desc">⏰ Cron 表示式生成器</span></span>
+    </a>
+    <a href="/zh-tw/tools/it/graphql-formatter.html" class="related-tool-card">
+      <span class="rt-icon">🏋️</span>
+      <span class="rt-info"><span class="rt-name">GraphQL 格式化 - 免費開發工具，線上GraphQL 格式化 | ToolBox免費線上工具箱</span><span class="rt-desc">◈ GraphQL 格式化</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro">
+    <div class="tool-intro-header" onclick="toggleIntro(this)">
+      <span class="intro-icon-wrap"><span class="intro-icon">🔄</span> 文本替換工具介紹</span>
+      <span class="arrow">▼</span>
+    </div>
+    <div class="tool-intro-body">
+      <p>純前端文本替換工具，支援普通查詢替換和正規表示式替換，所有處理在瀏覽器本地完成，資料不上傳。</p>
+
+      <h4><span class="h4-icon">✨</span> 功能特點</h4>
+      <ul class="intro-features">
+        <li>普通文本替換</li>
+        <li>正規表示式替換</li>
+        <li>區分大小寫</li>
+        <li>全域性替換</li>
+        <li>多行模式</li>
+        <li>匹配預覽高亮</li>
+        <li>替換計數統計</li>
+        <li>撤銷恢復</li>
+        <li>結果複製下載</li>
+        <li>純前端零上傳</li>
+      </ul>
+
+      <h4><span class="h4-icon">📍</span> 使用場景</h4>
+      <ul class="intro-scenes">
+        <li>批次修改文本中的關鍵詞</li>
+        <li>用正則清理日誌檔案格式</li>
+        <li>程式碼重構時的批次變數重新命名</li>
+        <li>CSV/文本資料的批次格式化</li>
+        <li>HTML 標籤清理與替換</li>
+        <li>多行文本的行首行尾處理</li>
+      </ul>
+
+      </div>
+  </div>
+
+
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto 0;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+.deep-dive a.term-link{color:var(--tool-accent,#FF6B35);text-decoration:none;border-bottom:1px dashed currentColor;}
+.deep-dive a.term-link:hover{border-bottom-style:solid;}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：文本替換工具</h2>
+<h3>💡 常見使用場景</h3>
+<ul class="dd-list">
+<li>批次按字面或正則替換。</li>
+<li>批次改造程式碼或資料：把某個欄位名、路徑或標識一次性替換成新值，比逐個手工改可靠。</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">替換</div><div class="dd-ex-body">把 `foo` 全換成 `bar`（支援正則 `f.o`）。</div></div>
+<h3>❓ 常見問題（FAQ）</h3>
+<dl class="dd-faq">
+<dt>正則替換能引用分組嗎？</dt><dd>可，如 `$1` 引用捕獲組。</dd>
+<dt>為什麼替換後出現了意外結果？</dt><dd>常見原因：未轉義特殊字元導致按正則而非字面量匹配（如把 . 當萬用字元）、替換串裡的 $1 被當作分組引用、匹配範圍過寬誤傷了不該改的地方。建議先用查詢確認命中數量與位置，再小批次替換，並用版本控制保留可回滾的記錄。</dd>
+</dl>
+</div>
+</section>
+<!-- 注意事項區塊 -->
+<div class="tool-notes" style="--tool-accent:#FF6B35;">
+  <div class="tool-notes-title">⚠️ 使用說明與注意事項</div>
+  <ul>
+      <li>本工具純前端執行，資料不會上傳到伺服器</li>
+      <li>建議在主流瀏覽器（Chrome/Safari/Firefox/Edge）中使用</li>
+      <li>計算結果僅供參考，請以實際應用場景為準</li>
+  </ul>
+</div>
+<!-- /注意事項區塊 -->
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  // 保存原始文本用于撤销
+  let originalText = '';
+  let lastResultText = '';
+
+  // 获取选项状态
+  function getOptions() {
+    return {
+      caseSensitive: document.getElementById('optCase').checked,
+      useRegex: document.getElementById('optRegex').checked,
+      global: document.getElementById('optGlobal').checked,
+      multiline: document.getElementById('optMultiline').checked
+    };
+  }
+
+  // 构建正则标志
+  function buildFlags(opts) {
+    let flags = '';
+    if (!opts.caseSensitive) flags += 'i';
+    if (opts.global) flags += 'g';
+    if (opts.multiline) flags += 'm';
+    return flags;
+  }
+
+  // 安全构建正则
+  function buildRegex(pattern, opts) {
+    const flags = buildFlags(opts);
+    return new RegExp(pattern, flags);
+  }
+
+  // 执行查找，返回匹配信息
+  function findMatches(text, pattern, opts) {
+    if (!pattern) return { matches: [], count: 0, error: null };
+
+    try {
+      if (opts.useRegex) {
+        const regex = buildRegex(pattern, opts);
+        const matches = [];
+        let m;
+        const searchRegex = new RegExp(pattern, buildFlags(opts));
+        // For counting, we need global flag temporarily
+        const countRegex = new RegExp(pattern, buildFlags({ ...opts, global: true }));
+        const allMatches = text.match(countRegex);
+        const count = allMatches ? allMatches.length : 0;
+
+        // Collect match positions for preview (limit to first 200)
+        const posRegex = new RegExp(pattern, buildFlags({ ...opts, global: true }));
+        let match;
+        let idx = 0;
+        while ((match = posRegex.exec(text)) !== null && idx < 200) {
+          matches.push({ index: match.index, length: match[0].length, text: match[0] });
+          idx++;
+          if (match[0].length === 0) posRegex.lastIndex++; // Avoid infinite loop on zero-length matches
+        }
+        return { matches, count, error: null };
+      } else {
+        // Plain text search
+        const searchStr = opts.caseSensitive ? pattern : pattern.toLowerCase();
+        const targetStr = opts.caseSensitive ? text : text.toLowerCase();
+        const matches = [];
+        let count = 0;
+        let startIdx = 0;
+
+        while (true) {
+          const foundIdx = targetStr.indexOf(searchStr, startIdx);
+          if (foundIdx === -1) break;
+          matches.push({ index: foundIdx, length: searchStr.length, text: pattern });
+          count++;
+          if (!opts.global) break;
+          startIdx = foundIdx + 1;
+          if (count > 500) break; // Safety limit
+        }
+        return { matches, count, error: null };
+      }
+    } catch (e) {
+      return { matches: [], count: 0, error: e.message };
+    }
+  }
+
+  // 高亮预览文本
+  function highlightText(text, matches) {
+    if (matches.length === 0) return ToolBox.escHtml(text);
+
+    // Sort matches by index ascending
+    const sorted = matches.slice().sort((a, b) => a.index - b.index);
+    const MAX_CHARS = 8000; // Limit preview length
+    const result = [];
+    let lastEnd = 0;
+
+    for (let i = 0; i < sorted.length; i++) {
+      const m = sorted[i];
+      if (m.index >= MAX_CHARS) break;
+
+      // Add text before match
+      if (m.index > lastEnd) {
+        result.push(ToolBox.escHtml(text.substring(lastEnd, m.index)));
+      }
+
+      // Add highlighted match
+      const matchText = text.substring(m.index, m.index + m.length);
+      result.push('<span class="match-highlight">' + ToolBox.escHtml(matchText) + '</span>');
+      lastEnd = m.index + m.length;
+    }
+
+    // Add remaining text
+    if (lastEnd < MAX_CHARS) {
+      result.push(ToolBox.escHtml(text.substring(lastEnd, MAX_CHARS)));
+    }
+
+    return result.join('');
+  }
+
+  // 生成匹配上下文列表（最多显示 10 个）
+  function buildContextList(text, matches) {
+    if (matches.length === 0) return '';
+    const sorted = matches.slice().sort((a, b) => a.index - b.index);
+    const show = sorted.slice(0, 10);
+    const CONTEXT = 30; // 前后字符数
+
+    let html = '<h3 style="margin-top:12px;margin-bottom:8px;">匹配位置（前 10 个）</h3><ul class="context-list">';
+    show.forEach((m, i) => {
+      const start = Math.max(0, m.index - CONTEXT);
+      const end = Math.min(text.length, m.index + m.length + CONTEXT);
+      let ctx = text.substring(start, end).replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      // Highlight the match portion
+      const localStart = m.index - start;
+      const localEnd = localStart + m.length;
+      ctx = ToolBox.escHtml(text.substring(start, m.index))
+        + '<span class="match-highlight">' + ToolBox.escHtml(m.text) + '</span>'
+        + ToolBox.escHtml(text.substring(m.index + m.length, end));
+      html += '<li><span class="ctx-num">#' + (i + 1) + ' [' + m.index + ']</span>' + ctx + '</li>';
+    });
+    html += '</ul>';
+    return html;
+  }
+
+  // 执行替换
+  window.doReplace = function() {
+    const text = document.getElementById('sourceText').value;
+    const pattern = document.getElementById('findInput').value;
+    const replacement = document.getElementById('replaceInput').value;
+    const opts = getOptions();
+
+    // Clear previous
+    const __h0='';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('errorArea').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('errorArea').innerHTML=__h0;
+    document.getElementById('previewArea').style.display = 'none';
+
+    if (!text) {
+      ToolBox.showToast(i18nText('toast.msg685'), 'warning');
+      return;
+    }
+    if (!pattern) {
+      ToolBox.showToast(i18nText('toast.msg875'), 'warning');
+      return;
+    }
+
+    // Find matches for counting
+    const matchInfo = findMatches(text, pattern, opts);
+    if (matchInfo.error) {
+      const __h1='<div class="error-tip">正则表达式错误：' + ToolBox.escHtml(matchInfo.error) + '</div>';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('errorArea').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('errorArea').innerHTML=__h1;
+      ToolBox.showToast(i18nText('toast.msg454'), 'error');
+      return;
+    }
+
+    let result;
+    let replaceCount = matchInfo.count;
+
+    try {
+      if (opts.useRegex) {
+        if (opts.global) {
+          const regex = buildRegex(pattern, opts);
+          result = text.replace(regex, replacement);
+        } else {
+          // Non-global: only replace first match
+          const regex = buildRegex(pattern, opts);
+          result = text.replace(regex, replacement);
+        }
+      } else {
+        if (opts.global) {
+          if (!opts.caseSensitive) {
+            const parts = text.toLowerCase().split(pattern.toLowerCase());
+            result = parts.join(replacement);
+          } else {
+            const parts = text.split(pattern);
+            result = parts.join(replacement);
+          }
+        } else {
+          // Non-global case-insensitive plain replace
+          const searchStr = opts.caseSensitive ? pattern : pattern.toLowerCase();
+          const targetStr = opts.caseSensitive ? text : text.toLowerCase();
+          const idx = targetStr.indexOf(searchStr);
+          if (idx !== -1) {
+            result = text.substring(0, idx) + replacement + text.substring(idx + pattern.length);
+          } else {
+            result = text;
+          }
+        }
+      }
+    } catch (e) {
+      const __h2='<div class="error-tip">替换执行错误：' + ToolBox.escHtml(e.message) + '</div>';if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('errorArea').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('errorArea').innerHTML=__h2;
+      ToolBox.showToast(i18nText('toast.msg436'), 'error');
+      return;
+    }
+
+    // Save for undo
+    originalText = text;
+    lastResultText = result;
+
+    // Calculate char delta
+    const delta = result.length - text.length;
+
+    // Show stats
+    document.getElementById('statsArea').style.display = 'block';
+    document.getElementById('matchCount').textContent = matchInfo.count;
+    document.getElementById('replaceCount').textContent = replaceCount;
+    document.getElementById('charDelta').textContent = (delta >= 0 ? '+' : '') + delta;
+
+    // Show result
+    document.getElementById('resultArea').style.display = 'block';
+    document.getElementById('resultText').value = result;
+
+    if (matchInfo.count === 0) {
+      ToolBox.showToast(i18nText('toast.msg441'), 'info');
+    } else {
+      ToolBox.showToast('替换完成，共 ' + replaceCount + ' 处', 'success');
+    }
+  };
+
+  // 预览匹配
+  window.previewMatch = function() {
+    const text = document.getElementById('sourceText').value;
+    const pattern = document.getElementById('findInput').value;
+    const opts = getOptions();
+
+    const __h3='';if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){document.getElementById('errorArea').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('errorArea').innerHTML=__h3;
+    document.getElementById('resultArea').style.display = 'none';
+
+    if (!text) {
+      ToolBox.showToast(i18nText('toast.msg685'), 'warning');
+      return;
+    }
+    if (!pattern) {
+      ToolBox.showToast(i18nText('toast.msg875'), 'warning');
+      return;
+    }
+
+    const matchInfo = findMatches(text, pattern, opts);
+    if (matchInfo.error) {
+      const __h4='<div class="error-tip">正则表达式错误：' + ToolBox.escHtml(matchInfo.error) + '</div>';if((typeof __h4==='number'&&!isFinite(__h4))||/Infinity/.test(String(__h4))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h4)){document.getElementById('errorArea').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('errorArea').innerHTML=__h4;
+      ToolBox.showToast(i18nText('toast.msg454'), 'error');
+      return;
+    }
+
+    // Show stats
+    document.getElementById('statsArea').style.display = 'block';
+    document.getElementById('matchCount').textContent = matchInfo.count;
+    document.getElementById('replaceCount').textContent = '—';
+    document.getElementById('charDelta').textContent = '—';
+
+    // Show preview
+    document.getElementById('previewArea').style.display = 'block';
+    const __h5=matchInfo.count > 0
+        ? highlightText(text, matchInfo.matches)
+        : '<span style="color:var(--text-muted);">未找到匹配内容</span>';if((typeof __h5==='number'&&!isFinite(__h5))||/Infinity/.test(String(__h5))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h5)){document.getElementById('previewContent').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('previewContent').innerHTML=__h5;
+
+    // Show context list
+    const __h6=matchInfo.count > 0 ? buildContextList(text, matchInfo.matches) : '';if((typeof __h6==='number'&&!isFinite(__h6))||/Infinity/.test(String(__h6))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h6)){document.getElementById('contextArea').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('contextArea').innerHTML=__h6;
+
+    if (matchInfo.count === 0) {
+      ToolBox.showToast(i18nText('toast.msg441'), 'info');
+    } else {
+      ToolBox.showToast('找到 ' + matchInfo.count + ' 个匹配', 'info');
+    }
+  };
+
+  // 撤销替换
+  window.undoReplace = function() {
+    if (!originalText) {
+      ToolBox.showToast(i18nText('toast.msg481'), 'warning');
+      return;
+    }
+    document.getElementById('sourceText').value = originalText;
+    document.getElementById('resultArea').style.display = 'none';
+    document.getElementById('statsArea').style.display = 'none';
+    document.getElementById('previewArea').style.display = 'none';
+    const __h7='';if((typeof __h7==='number'&&!isFinite(__h7))||/Infinity/.test(String(__h7))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h7)){document.getElementById('errorArea').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('errorArea').innerHTML=__h7;
+    originalText = '';
+    lastResultText = '';
+    ToolBox.showToast(i18nText('toast.msg235'), 'success');
+  };
+
+  // 复制结果
+  window.copyResult = function() {
+    const text = document.getElementById('resultText').value;
+    if (!text) {
+      ToolBox.showToast(i18nText('toast.copy_target_missing'), 'warning');
+      return;
+    }
+    ToolBox.copyText(text, i18nText());
+  };
+
+  // 下载结果
+  window.downloadResult = function() {
+    const text = document.getElementById('resultText').value;
+    if (!text) {
+      ToolBox.showToast(i18nText('toast.empty_download'), 'warning');
+      return;
+    }
+    ToolBox.downloadText('replaced-text.txt', text);
+    ToolBox.showToast(i18nText('toast.msg392'), 'success');
+  };
+
+  // 清空
+  window.clearAll = function() {
+    document.getElementById('sourceText').value = '';
+    document.getElementById('findInput').value = '';
+    document.getElementById('replaceInput').value = '';
+    document.getElementById('resultArea').style.display = 'none';
+    document.getElementById('statsArea').style.display = 'none';
+    document.getElementById('previewArea').style.display = 'none';
+    const __h8='';if((typeof __h8==='number'&&!isFinite(__h8))||/Infinity/.test(String(__h8))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h8)){document.getElementById('errorArea').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('errorArea').innerHTML=__h8;
+    originalText = '';
+    lastResultText = '';
+    ToolBox.showToast(i18nText('toast.msg275'), 'success');
+  };
+
+  // 切换工具介绍折叠
+  window.toggleIntro = function(header) {
+    header.parentElement.classList.toggle('open');
+  };
+
+  // 预设示例：一键填入源文本/查找/替换并立即执行
+  window.applyReplacePreset = function(kind) {
+    const src = document.getElementById('sourceText');
+    const find = document.getElementById('findInput');
+    const rep = document.getElementById('replaceInput');
+    const optCase = document.getElementById('optCase');
+    const optRegex = document.getElementById('optRegex');
+    const optGlobal = document.getElementById('optGlobal');
+    const optMultiline = document.getElementById('optMultiline');
+    function set(o) { optCase.checked = o.c; optRegex.checked = o.r; optGlobal.checked = o.g; optMultiline.checked = o.m; }
+    if (kind === 'tab') {
+      src.value = 'name\tid\tage\n张三\t1\t20\n李四\t2\t25';
+      find.value = '\t';
+      rep.value = ' ';
+      set({ c: false, r: false, g: true, m: false });
+    } else if (kind === 'blank') {
+      src.value = '第一行\n\n\n第二行\n\n第三行';
+      find.value = '\\n\\s*\\n';
+      rep.value = '\\n';
+      set({ c: false, r: true, g: true, m: true });
+    } else if (kind === 'trail') {
+      src.value = 'line1   \nline2\t \nline3';
+      find.value = ' +$';
+      rep.value = '';
+      set({ c: false, r: true, g: true, m: true });
+    } else {
+      return;
+    }
+    doReplace();
+  };
+
+  // 快捷键：Enter 执行替换
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && !e.shiftKey && !e.ctrlKey && !e.metaKey) {
+      const tag = document.activeElement.tagName;
+      if (tag === 'INPUT' && document.activeElement.type === 'text') {
+        e.preventDefault();
+        doReplace();
+      }
+    }
+  });
+
+})();
+</script>
+<script>
+function __trIsEn(){ return (typeof TBKit!=='undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()); }
+function __trOpts(){
+  return {
+    cs: document.getElementById('optCase').checked,
+    re: document.getElementById('optRegex').checked,
+    g: document.getElementById('optGlobal').checked,
+    m: document.getElementById('optMultiline').checked
+  };
+}
+function __trFlags(o){ var f=''; if(!o.cs)f+='i'; if(o.g)f+='g'; if(o.m)f+='m'; return f; }
+function __trFind(text, pattern, o){
+  var out=[];
+  if(!text || !pattern) return out;
+  try{
+    if(o.re){
+      var rx=new RegExp(pattern, __trFlags({cs:o.cs, re:o.re, g:true, m:o.m}));
+      var m, c=0;
+      while((m=rx.exec(text))!==null && c<2000){
+        out.push({i:m.index, len:m[0].length, t:m[0]});
+        c++;
+        if(m[0].length===0) rx.lastIndex++;
+      }
+    } else {
+      var s=o.cs?pattern:pattern.toLowerCase();
+      var tg=o.cs?text:text.toLowerCase();
+      var st=0, c2=0;
+      while(true){
+        var idx=tg.indexOf(s, st);
+        if(idx===-1) break;
+        out.push({i:idx, len:s.length, t:text.substr(idx, s.length)});
+        c2++;
+        if(!o.g) break;
+        st=idx+1;
+        if(c2>2000) break;
+      }
+    }
+  }catch(e){}
+  return out;
+}
+function __trSnap(){
+  var text=document.getElementById('sourceText').value||'';
+  var pattern=document.getElementById('findInput').value||'';
+  var o=__trOpts();
+  var hits=__trFind(text, pattern, o);
+  var resEl=document.getElementById('resultText');
+  var result=(resEl && resEl.value!==undefined)?resEl.value:'';
+  var shown=document.getElementById('resultArea') && document.getElementById('resultArea').style.display!=='none';
+  return {text:text, pattern:pattern, hits:hits, result:shown?result:''};
+}
+function __trExtras(){
+  if(typeof TBKit==='undefined')return;
+  var en=__trIsEn();
+  var s=__trSnap();
+  var len=s.text.length, cnt=s.hits.length;
+  var maxLen=0, gaps=[], prev=null;
+  s.hits.forEach(function(h){ if(h.len>maxLen) maxLen=h.len; if(prev!==null) gaps.push(h.i-prev); prev=h.i; });
+  var avgGap = gaps.length ? Math.round(gaps.reduce(function(a,b){return a+b;},0)/gaps.length) : 0;
+  var cover = len ? (s.hits.reduce(function(a,h){return a+h.len;},0)/len*100) : 0;
+  var outLen = s.result ? s.result.length : null;
+  var delta = (outLen!==null) ? outLen-len : null;
+  var t=document.getElementById('trTable');
+  if(t){
+    var th=t.querySelector('thead');
+    if(th) th.innerHTML = en?'<tr><th>Item</th><th>Value</th></tr>':'<tr><th>项目</th><th>结果</th></tr>';
+    var body=t.querySelector('tbody'); body.innerHTML='';
+    var rows = en
+      ? [['Source length',String(len)],['Matches',String(cnt)],['Longest match',String(maxLen)],
+         ['Avg gap between matches',String(avgGap)],['Coverage of matched chars',cover.toFixed(1)+'%'],
+         ['Output length',(outLen===null?'—':String(outLen))],['Char delta',(delta===null?'—':(delta===0?'0':(delta>0?'+'+delta:String(delta))))]]
+      : [['原始字符数',String(len)],['匹配数量',String(cnt)],['最长匹配长度',String(maxLen)],
+         ['平均匹配间距',String(avgGap)],['匹配字符占比',cover.toFixed(1)+'%'],
+         ['结果字符数',(outLen===null?'—':String(outLen))],['字符变化',(delta===null?'—':(delta===0?'0':(delta>0?'+'+delta:String(delta))))]];
+    rows.forEach(function(r){
+      var tr=document.createElement('tr');
+      [r[0],r[1]].forEach(function(v){var td=document.createElement('td');td.textContent=v;tr.appendChild(td);});
+      body.appendChild(tr);
+    });
+  }
+  var host=document.getElementById('trChart');
+  if(host){
+    if(cnt>0 && len>0){
+      var N=10, buckets=new Array(N).fill(0);
+      s.hits.forEach(function(h){
+        var b=Math.floor(h.i/len*N); if(b<0)b=0; if(b>=N)b=N-1; buckets[b]++;
+      });
+      TBKit.chart.bar('#trChart',{labels:buckets.map(function(_,i){return String(i+1);}),
+        series:[{name:en?'Matches':'匹配数',data:buckets}],height:200,
+        title:en?'Distribution of matches across text (10 segments)':'匹配在文本中的分布（10 段）'});
+    } else { host.innerHTML=''; }
+  }
+  if(cnt>0){
+    TBKit.history.record({find:s.pattern, matches:cnt}, 2000);
+    var hh=document.getElementById('trHistory');
+    if(hh) TBKit.history.mount('#trHistory', function(rec){
+      if(!rec||!rec.find)return;
+      document.getElementById('findInput').value=rec.find;
+      doReplace();
+    });
+  }
+}
+function __trExport(){
+  if(typeof TBKit==='undefined')return;
+  var en=__trIsEn();
+  var s=__trSnap();
+  var len=s.text.length, cnt=s.hits.length;
+  var rows=[];
+  rows.push(en?['Item','Value']:['项目','结果']);
+  rows.push(en?['Source length',String(len)]:['原始字符数',String(len)]);
+  rows.push(en?['Matches',String(cnt)]:['匹配数量',String(cnt)]);
+  rows.push(en?['Output length',String(s.result?s.result.length:0)]:['结果字符数',String(s.result?s.result.length:0)]);
+  rows.push([]);
+  rows.push(en?['#','Position','Matched text']:['#','位置','匹配内容']);
+  s.hits.slice(0,200).forEach(function(h,i){
+    rows.push([String(i+1), String(h.i), h.t]);
+  });
+  try{ TBKit.util.exportCsv('text-replace.csv', rows); }catch(e){}
+}
+var __trReplace0 = window.doReplace;
+window.doReplace = function(){ var __r=__trReplace0.apply(null,arguments); try{ __trExtras(); }catch(e){} return __r; };
+var __trPreview0 = window.previewMatch;
+window.previewMatch = function(){ var __r=__trPreview0.apply(null,arguments); try{ __trExtras(); }catch(e){} return __r; };
+function __trBoot(){ try{ __trExtras(); }catch(e){} }
+if(document.readyState && document.readyState!=='loading') __trBoot();
+else document.addEventListener('DOMContentLoaded', __trBoot);
+</script>
+
+
+<!-- SEO 介紹區塊 -->
+<div class="tool-intro open" id="toolIntro">
+  <div class="tool-intro-header">
+    <span class="intro-icon-wrap"><span class="intro-icon">📖</span>關於「文本替換工具」</span>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="tool-intro-body">
+    <h4><span class="h4-icon">📝</span>工具簡介</h4>
+    <p>文本替換工具是一款IT 開發領域的線上工具。專為開發者打造的線上工具，純前端執行，程式碼不離開瀏覽器。</p>
+
+      </div>
+</div>
+<!-- /SEO 介紹區塊 -->
+
+<script>
+// tool-intro折叠交互
+document.addEventListener('DOMContentLoaded',function(){
+  var headers=document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click',function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+</script>
+
+
+<script>
+(function(){try{
+  var NS="tools/it/text-replace.html";
+  function k(id){return 'tb_uxp_'+NS+'#'+id;}
+  function save(el){try{
+    if(el.type==='checkbox'){localStorage.setItem(k(el.id),el.checked?'1':'0');}
+    else if(el.type==='radio'){if(el.checked)localStorage.setItem(k(el.id),el.value);}
+    else{localStorage.setItem(k(el.id),el.value);}
+  }catch(e){}}
+  function restore(){try{
+    document.querySelectorAll('input:not([type=password]):not([readonly]):not([disabled]),textarea:not([readonly]):not([disabled]),select').forEach(function(el){
+      if(!el.id)return;
+      var v=localStorage.getItem(k(el.id));if(v===null)return;
+      try{
+        if(el.type==='checkbox'){el.checked=(v==='1');}
+        else if(el.type==='radio'){el.checked=(el.value===v);}
+        else{el.value=v;}
+        el.dispatchEvent(new Event('input',{bubbles:true}));
+        el.dispatchEvent(new Event('change',{bubbles:true}));
+      }catch(e){}
+    });
+  }catch(e){}}
+  document.querySelectorAll('input:not([type=password]):not([readonly]):not([disabled]),textarea:not([readonly]):not([disabled]),select').forEach(function(el){
+    if(!el.id)return;
+    el.addEventListener('input',function(){save(el);});
+    el.addEventListener('change',function(){save(el);});
+  });
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',restore);
+  else restore();
+}catch(e){}})();
+</script>
+</body>
+</html>

@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-opencc-locale="zh-tw">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title data-i18n-head="guide.jwt-debugger.title" data-i18n-head-fb="JWT 调试：拆解 Header / Payload / Signature - ToolBox">JWT 除錯：拆解 Header / Payload / Signature - ToolBox</title>
+<meta name="description" data-i18n-head="guide.jwt-debugger.desc" data-i18n-head-fb="JWT 三段结构如何解码，claims 怎么看，签名验证的前提与安全注意（别粘生产密钥）。本指南整理核心功能、适用场景、使用步骤与常见问题，纯前端免费在线使用，数据不上传。" data-attr="content" content="JWT 三段結構如何解碼，claims 怎麼看，簽名驗證的前提與安全注意（別粘生產金鑰）。本指南整理核心功能、適用場景、使用步驟與常見問題，純前端免費線上使用，資料不上傳。">
+<meta property="og:title" content="JWT 除錯：拆解 Header / Payload / Signature - ToolBox">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="ToolBox">
+<meta property="og:url" content="https://tools.dicomp.net/zh-tw/guides/jwt-debugger-guide.html">
+<meta property="og:description" content="JWT 三段結構如何解碼，claims 怎麼看，簽名驗證的前提與安全注意（別粘生產金鑰）。本指南整理核心功能、適用場景、使用步驟與常見問題，純前端免費線上使用，資料不上傳。">
+<meta name="twitter:title" content="JWT 除錯：拆解 Header / Payload / Signature - ToolBox">
+<meta name="twitter:description" content="JWT 三段結構如何解碼，claims 怎麼看，簽名驗證的前提與安全注意（別粘生產金鑰）。本指南整理核心功能、適用場景、使用步驟與常見問題，純前端免費線上使用，資料不上傳。">
+<meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 免費線上工具與使用指南">
+<meta property="og:image" content="https://tools.dicomp.net/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="canonical" href="https://tools.dicomp.net/zh-tw/guides/jwt-debugger-guide.html">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"JWT 除錯：拆解 Header / Payload / Signature","description":"JWT 三段結構如何解碼，claims 怎麼看，簽名驗證的前提與安全注意（別粘生產金鑰）。","author":{"@type":"Organization","name":"ToolBox"},"datePublished":"2026-08-07","dateModified":"2026-08-07","mainEntityOfPage":{"@type":"WebPage","@id":"https://tools.dicomp.net/zh-tw/guides/jwt-debugger-guide.html"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"ToolBox","item":"https://tools.dicomp.net/zh-tw/"},{"@type":"ListItem","position":2,"name":"使用指南","item":"https://tools.dicomp.net/zh-tw/#guides"},{"@type":"ListItem","position":3,"name":"開發者工具","item":"https://tools.dicomp.net/zh-tw/guides/cluster-dev.html"},{"@type":"ListItem","position":4,"name":"JWT 除錯：拆解 Header / Payload / Signature","item":"https://tools.dicomp.net/zh-tw/guides/jwt-debugger-guide.html"}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Base64URL 和普通 Base64 一樣嗎？","acceptedAnswer":{"@type":"Answer","text":"類似但把 + / 換成 - _ 並去掉填充 =，更適合放在 URL 中。"}},{"@type":"Question","name":"為什麼解碼出 exp 但頁面說已過期？","acceptedAnswer":{"@type":"Answer","text":"exp 是 Unix 秒，需對照當前時間；可用時間戳工具核對。"}},{"@type":"Question","name":"能在瀏覽器裡驗證簽名嗎？","acceptedAnswer":{"@type":"Answer","text":"可以持金鑰驗證，但金鑰暴露在前端有風險；生產驗證務必放服務端。"}}]}</script>
+<style>
+:root{--primary:#FF6B35;--text:#1F2937;--muted:#6B7280;--border:#E5E7EB;--bg:#FFFAF7;}
+*{box-sizing:border-box;}
+body{margin:0;font-family:"Noto Sans SC","Plus Jakarta Sans",system-ui,sans-serif;color:var(--text);background:var(--bg);line-height:1.75;}
+.breadcrumb a{color:var(--primary);text-decoration:none;margin-right:6px;}
+.breadcrumb a:hover{text-decoration:underline;}
+main{max-width:820px;margin:0 auto;padding:28px 20px 60px;}
+h1{font-size:28px;margin:0 0 8px;}
+.lead{font-size:16px;color:var(--muted);margin:0 0 22px;}
+h2{font-size:20px;margin:28px 0 10px;color:var(--primary);}
+.toc{background:#fff;border:1px solid var(--border);border-radius:14px;padding:14px 18px;margin:18px 0;}
+.toc ul{margin:0;padding-left:20px;}
+.toc a{color:var(--text);text-decoration:none;}
+.toc a:hover{color:var(--primary);}
+pre{background:#0f172a;color:#e2e8f0;padding:14px 16px;border-radius:12px;overflow:auto;font-size:13px;line-height:1.6;}
+code{background:#fff3e0;padding:1px 5px;border-radius:5px;font-size:.92em;}
+pre code{background:none;padding:0;}
+.related{margin-top:26px;padding:16px;background:#fff;border:1px solid var(--border);border-radius:14px;}
+.related h3{margin:0 0 10px;font-size:16px;color:var(--text);}
+.tool-chip{display:inline-block;margin:4px 6px 4px 0;padding:6px 12px;border:1px solid var(--border);border-radius:999px;color:var(--primary);text-decoration:none;font-size:14px;}
+.tool-chip:hover{background:var(--primary);color:#fff;}
+.faq{margin-top:26px;}
+.faq dt{font-weight:700;margin-top:14px;}
+.faq dd{margin:4px 0 0;color:var(--muted);}
+.back{margin-top:30px;padding:16px;background:#fff;border:1px solid var(--border);border-radius:14px;}
+.back a{color:var(--primary);font-weight:700;text-decoration:none;}
+</style>
+
+<script src="/js/analytics.js" defer></script>
+
+<script defer src="https://tools.dicomp.net/js/i18n.js"></script>
+<script defer src="https://tools.dicomp.net/js/guide-en-pack.js"></script>
+<script defer src="https://tools.dicomp.net/js/guide-i18n.js"></script>
+<script src="/js/common.js" defer></script>
+
+<meta name="title-zh" content="JWT 除錯：拆解 Header / Payload / Signature - ToolBox">
+<link rel="stylesheet" href="/css/site-chrome.css">
+<link rel="stylesheet" href="/css/common.css">
+<!-- TOOLBOX-TTZZ -->
+<script>
+(function(){try{
+var el = document.createElement("script");
+el.src = "https://lf1-cdn-tos.bytegoofy.com/goofy/ttzz/push.js?85d6452aa9be4d693b16cd48535a8c7ae57542f6788a41682e745be8eb99b35a8a24d2f724c31ebe20c1e4e6fba6d91caf576100b02a2870c72f38fc574066fef065d152c73bf1cbb2ebad3b5b5265d8";
+el.id = "ttzz";
+var s = document.getElementsByTagName("script")[0];
+s.parentNode.insertBefore(el, s);
+}catch(e){}
+})(window);
+</script>
+
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://tools.dicomp.net/guides/jwt-debugger-guide.html">
+<link rel="alternate" hreflang="zh-TW" href="https://tools.dicomp.net/zh-tw/guides/jwt-debugger-guide.html">
+<link rel="alternate" hreflang="en-US" href="https://tools.dicomp.net/guides/jwt-debugger-guide.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://tools.dicomp.net/guides/jwt-debugger-guide.html">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+</head>
+<body>
+<nav class="breadcrumb"><a href="https://tools.dicomp.net/">ToolBox</a> / <a href="https://tools.dicomp.net/#guides">使用指南</a> / <a href="https://tools.dicomp.net/guides/cluster-dev.html">開發者工具</a> / <span>JWT 除錯：拆解 Header / Payload / Signature</span></nav>
+<main>
+<h1 data-i18n="guide.jwt-debugger.title" data-i18n-fb="JWT 除錯：拆解 Header / Payload / Signature">JWT 除錯：拆解 Header / Payload / Signature</h1>
+<p class="lead" data-i18n="guide.jwt-debugger.intro" data-i18n-fb="JWT 三段結構如何解碼，claims 怎麼看，簽名驗證的前提與安全注意（別粘生產金鑰）。">JWT 三段結構如何解碼，claims 怎麼看，簽名驗證的前提與安全注意（別粘生產金鑰）。</p>
+<div class="toc"><strong>目錄</strong><ul><li><a href="#s0" data-i18n="guide.jwt-debugger.sec0" data-i18n-fb="JWT 的三段結構">JWT 的三段結構</a></li><li><a href="#s1" data-i18n="guide.jwt-debugger.sec1" data-i18n-fb="重點看 Payload 的 claims">重點看 Payload 的 claims</a></li><li><a href="#s2" data-i18n="guide.jwt-debugger.sec2" data-i18n-fb="簽名驗證的邊界">簽名驗證的邊界</a></li><li><a href="#s3" data-i18n="guide.jwt-debugger.sec3" data-i18n-fb="安全注意">安全注意</a></li></ul></div>
+<h2 id="s0" data-i18n="guide.jwt-debugger.sec0" data-i18n-fb="JWT 的三段結構">JWT 的三段結構</h2>
+<p data-i18n="guide.jwt-debugger.p0.0" data-i18n-fb="JWT（JSON Web Token）形如 header.payload.signature，前兩段是 Base64URL 編碼的 JSON，第三段是簽名。用 . 分割即可分別解碼檢視。">JWT（JSON Web Token）形如 <code>header.payload.signature</code>，前兩段是 Base64URL 編碼的 JSON，第三段是簽名。用 . 分割即可分別解碼檢視。</p>
+<h2 id="s1" data-i18n="guide.jwt-debugger.sec1" data-i18n-fb="重點看 Payload 的 claims">重點看 Payload 的 claims</h2>
+<p data-i18n="guide.jwt-debugger.p1.0" data-i18n-fb="sub 主體、iss 簽發者、exp 過期時間（Unix 秒）、iat 簽發時間。exp 過期後 token 應被拒絕。"><code>sub</code> 主體、<code>iss</code> 簽發者、<code>exp</code> 過期時間（Unix 秒）、<code>iat</code> 簽發時間。exp 過期後 token 應被拒絕。</p>
+<h2 id="s2" data-i18n="guide.jwt-debugger.sec2" data-i18n-fb="簽名驗證的邊界">簽名驗證的邊界</h2>
+<p data-i18n="guide.jwt-debugger.p2.0" data-i18n-fb="僅解碼不驗證簽名；要驗證簽名必須持有對應金鑰/公鑰，且應在服務端完成。前端除錯只做可讀性解碼。">僅解碼不驗證簽名；要驗證簽名必須持有對應金鑰/公鑰，且應在服務端完成。前端除錯只做可讀性解碼。</p>
+<h2 id="s3" data-i18n="guide.jwt-debugger.sec3" data-i18n-fb="安全注意">安全注意</h2>
+<p data-i18n="guide.jwt-debugger.p3.0" data-i18n-fb="JWT 中不要放密碼等敏感資訊（它只是編碼不是加密），且切勿把生產金鑰貼上到不可信頁面。">JWT 中不要放密碼等敏感資訊（它只是編碼不是加密），且切勿把生產金鑰貼上到不可信頁面。</p>
+<div class="related"><h3>相關工具</h3><a class="tool-chip" href="/zh-tw/tools/it/jwt-debugger.html">JWT 偵錯程式</a>
+<a class="tool-chip" href="/zh-tw/tools/it/base64-converter.html">Base64 編解碼</a>
+<a class="tool-chip" href="/zh-tw/tools/it/timestamp-converter.html">時間戳轉換</a><p class="back"></p></div><div class="faq"><h2 data-i18n="guide.jwt-debugger.sec4" data-i18n-fb="常見問題">常見問題</h2><dl><dt data-i18n="guide.jwt-debugger.faqs.0.q" data-i18n-fb="Base64URL 和普通 Base64 一樣嗎？">Base64URL 和普通 Base64 一樣嗎？</dt><dd data-i18n="guide.jwt-debugger.faqs.0.a" data-i18n-fb="類似但把 + / 換成 - _ 並去掉填充 =，更適合放在 URL 中。">類似但把 + / 換成 - _ 並去掉填充 =，更適合放在 URL 中。</dd>
+<dt data-i18n="guide.jwt-debugger.faqs.0.q" data-i18n-fb="為什麼解碼出 exp 但頁面說已過期？">為什麼解碼出 exp 但頁面說已過期？</dt><dd data-i18n="guide.jwt-debugger.faqs.1.a" data-i18n-fb="exp 是 Unix 秒，需對照當前時間；可用時間戳工具核對。">exp 是 Unix 秒，需對照當前時間；可用時間戳工具核對。</dd>
+<dt data-i18n="guide.jwt-debugger.faqs.0.q" data-i18n-fb="能在瀏覽器裡驗證簽名嗎？">能在瀏覽器裡驗證簽名嗎？</dt><dd data-i18n="guide.jwt-debugger.faqs.2.a" data-i18n-fb="可以持金鑰驗證，但金鑰暴露在前端有風險；生產驗證務必放服務端。">可以持金鑰驗證，但金鑰暴露在前端有風險；生產驗證務必放服務端。</dd></dl></div>
+<div class="back"><a href="https://tools.dicomp.net/guides/cluster-dev.html">← 返回「開發者工具」內容叢集</a></div>
+</main>
+</body>
+</html>

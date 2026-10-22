@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-opencc-locale="zh-tw">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=dev,industry=it,icon=💻,bg=#e3f2fd">
+<meta name="description" content="線上 Less 轉 CSS 編譯器，基於 less.js 將 Less 預處理程式碼即時編譯為標準 CSS，支援變數、巢狀、混合與函式，便於前端開發除錯，純前端。">
+<meta name="keywords" content="Less編譯器,Less轉CSS,Less to CSS,線上Less編譯,Less前處理器,Less線上工具,CSS前處理器,Less變數,Less混合mixin,Less巢狀,免費工具,純前端">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://tools.dicomp.net/zh-tw/tools/it/less-compiler.html">
+<meta property="og:title" content="Less 轉 CSS 編譯器 - 混合與函式">
+<meta property="og:description" content="線上 Less 轉 CSS 編譯器，基於 less.js 將 Less 預處理程式碼即時編譯為標準 CSS，支援變數、巢狀、混合與函式，便於前端開發除錯，純前端。">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://tools.dicomp.net/zh-tw/tools/it/less-compiler.html">
+<meta name="twitter:card" content="summary">
+
+<title>Less 轉 CSS 編譯器 - 混合與函式</title>
+<meta name="theme-color" content="#FF6B35">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="stylesheet" href="/css/common.css">
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/common.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/less@4/dist/less.min.js"></script>
+<style>
+.editor-wrap{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+@media(max-width:768px){.editor-wrap{grid-template-columns:1fr;}}
+.editor-panel{display:flex;flex-direction:column;gap:6px;}
+.editor-panel > label{font-size:13px;font-weight:600;color:var(--text-secondary);display:flex;align-items:center;justify-content:space-between;}
+.editor-panel > label .badge{font-size:11px;font-weight:500;color:var(--text-muted);background:var(--result-bg);padding:2px 8px;border-radius:6px;border:1px solid var(--border);}
+textarea{min-height:380px;font-family:'SF Mono','Fira Code','Courier New',monospace;font-size:13px;line-height:1.6;resize:vertical;tab-size:2;}
+#output{min-height:380px;font-family:'SF Mono','Fira Code','Courier New',monospace;font-size:13px;line-height:1.6;background:var(--result-bg);border:1.5px solid var(--border);border-radius:12px;padding:14px;white-space:pre-wrap;word-break:break-all;overflow:auto;}
+#output.error-state{border-color:var(--danger);color:var(--danger);background:rgba(239,68,68,0.06);}
+#output.empty-state{color:var(--text-muted);font-style:italic;}
+.options-bar{display:flex;gap:16px;flex-wrap:wrap;align-items:center;margin-bottom:12px;padding:12px 14px;background:var(--result-bg);border:1px solid var(--border);border-radius:12px;}
+.option-toggle{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-secondary);cursor:pointer;user-select:none;}
+.option-toggle input[type="checkbox"]{width:16px;height:16px;cursor:pointer;accent-color:var(--primary);}
+.switch{position:relative;display:inline-block;width:38px;height:20px;flex-shrink:0;}
+.switch input{opacity:0;width:0;height:0;}
+.slider{position:absolute;cursor:pointer;inset:0;background:var(--border);border-radius:20px;transition:0.25s;}
+.slider::before{content:"";position:absolute;height:14px;width:14px;left:3px;top:3px;background:#fff;border-radius:50%;transition:0.25s;box-shadow:0 1px 3px rgba(0,0,0,0.2);}
+.switch input:checked + .slider{background:var(--primary);}
+.switch input:checked + .slider::before{transform:translateX(18px);}
+.stat-row{display:flex;gap:12px;flex-wrap:wrap;margin-top:12px;font-size:12.5px;color:var(--text-light);}
+.stat-item{background:var(--result-bg);padding:6px 12px;border-radius:8px;border:1px solid var(--border);}
+.stat-item strong{color:var(--primary);font-weight:600;}
+.error-panel{margin-top:12px;border-radius:10px;overflow:hidden;display:none;}
+.error-panel.show{display:block;}
+.error-panel-header{background:rgba(239,68,68,0.1);color:var(--danger);padding:8px 14px;font-size:13px;font-weight:600;display:flex;align-items:center;gap:6px;}
+.error-panel-body{background:rgba(239,68,68,0.04);color:var(--danger);padding:12px 14px;font-size:12.5px;line-height:1.6;font-family:'SF Mono','Courier New',monospace;white-space:pre-wrap;word-break:break-all;}
+.status-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;}
+.status-dot.ok{background:var(--success);}
+.status-dot.err{background:var(--danger);}
+.status-dot.idle{background:var(--text-muted);}
+</style>
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Less 轉 CSS 編譯器","description":"線上將 Less 前處理器程式碼編譯為標準 CSS，支援變數、混合、巢狀、運算、函式等特性，純前端瀏覽器處理。","url":"https://tools.dicomp.net/zh-tw/tools/it/less-compiler.html","applicationCategory":"DeveloperApplication","operatingSystem":"Web","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"},"inLanguage":"zh-TW","isAccessibleForFree":true,"browserRequirements":"Requires JavaScript. Requires HTML5.","softwareVersion":"1.0"}</script>
+
+
+
+<meta property="og:image" content="https://tools.dicomp.net/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免費線上工具">
+<meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免費線上工具">
+    <meta name="twitter:title" content="Less 轉 CSS 編譯器 - 混合與函式">
+    <meta name="twitter:description" content="線上 Less 轉 CSS 編譯器，基於 less.js 將 Less 預處理程式碼即時編譯為標準 CSS，支援變數、巢狀、混合與函式，便於前端開發除錯，純前端。">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Less轉CSS編譯器","url":"https://tools.dicomp.net/zh-tw/tools/it/less-compiler.html","applicationCategory":"DeveloperApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"線上 Less 轉 CSS 編譯器，基於 less.js 將 Less 預處理程式碼即時編譯為標準 CSS，支援變數、巢狀、混合與函式，便於前端開發除錯，純前端。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首頁","item":"https://tools.dicomp.net/zh-tw/"},{"@type":"ListItem","position":2,"name":"IT 開發","item":"https://tools.dicomp.net/zh-tw/tools/it/index.html"},{"@type":"ListItem","position":3,"name":"Less 轉 CSS 編譯器","item":"https://tools.dicomp.net/zh-tw/tools/it/less-compiler.html"}]}</script>
+
+<script src="/js/i18n.js" defer></script>
+<script src="/js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+
+
+<meta name="title-en" content="Less Compiler">
+<meta name="desc-en" content="Less Compiler - run and process online in your browser.">
+
+
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
+
+<script src="/js/tool-ux.js" defer></script>
+<!-- TOOLBOX-TOOL-UX -->
+
+<script src="/js/analytics.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+
+
+<!-- TOOLBOX-TTZZ -->
+<script>
+(function(){try{
+var el = document.createElement("script");
+el.src = "https://lf1-cdn-tos.bytegoofy.com/goofy/ttzz/push.js?85d6452aa9be4d693b16cd48535a8c7ae57542f6788a41682e745be8eb99b35a8a24d2f724c31ebe20c1e4e6fba6d91caf576100b02a2870c72f38fc574066fef065d152c73bf1cbb2ebad3b5b5265d8";
+el.id = "ttzz";
+var s = document.getElementsByTagName("script")[0];
+s.parentNode.insertBefore(el, s);
+}catch(e){}
+})(window);
+</script>
+
+<script src="/js/tool-kit.js" defer></script>
+<!-- TOOLBOX-TOOL-KIT -->
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://tools.dicomp.net/tools/it/less-compiler.html">
+<link rel="alternate" hreflang="zh-TW" href="https://tools.dicomp.net/zh-tw/tools/it/less-compiler.html">
+<link rel="alternate" hreflang="en-US" href="https://tools.dicomp.net/tools/it/less-compiler.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://tools.dicomp.net/tools/it/less-compiler.html">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+</head>
+<body>
+<h1 class="sr-only">Less轉CSS編譯器</h1>
+<div class="nav">
+  <a href="/zh-tw/index.html">← ToolBox</a>
+  <span>/ IT開發 / Less轉CSS編譯器</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+
+
+
+<nav class="breadcrumb" aria-label="麵包屑導航" data-breadcrumb="1">
+  <a href="/zh-tw/index.html">首頁</a>
+  <span class="bc-sep">‹</span>
+  <a href="/zh-tw/tools/it/index.html">💻 開發</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">Less 轉 CSS 編譯器</span>
+</nav>
+<div class="container">
+  <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
+    <h2 data-zh="💻 Less 轉 CSS 編譯器">💻 Less Compiler</h2>
+<div class="formula-box">
+  <div class="formula-title">📐 工作原理與說明</div>
+  <div class="formula-desc">把 Less 編譯為標準 CSS。</div>
+  <ul class="formula-list">
+    <li><b>特性</b>：變數 <code>@var</code>、巢狀規則、混合（mixin）、運算與內建函式。</li>
+    <li><b>編譯</b>：變數求值、mixin 內聯展開、巢狀選擇器展開為後代選擇器。</li>
+    <li><b>&amp; 符號</b>：代表父選擇器，用於偽類與拼接（如 <code>&amp;:hover</code>）。</li>
+    <li><b>注意</b>：過度巢狀會生成過長的選擇器鏈，導致優先順序過高難以覆蓋。</li>
+  </ul>
+</div>
+
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="將 Less 前處理器程式碼即時編譯為標準 CSS，支援變數、混合、巢狀、運算、函式等全部特性，純前端處理">Compile Less to CSS in your browser — turn variables and mixins into plain stylesheets.</p>
+
+    <div class="options-bar">
+      <label class="option-toggle">
+        <span class="switch"><input type="checkbox" id="optCompress"><span class="slider"></span></span>
+        壓縮模式 (compress)
+      </label>
+      <label class="option-toggle">
+        <span class="switch"><input type="checkbox" id="optStrictMath"><span class="slider"></span></span>
+        嚴格數學 (strictMath)
+      </label>
+      <label class="option-toggle">
+        <span class="switch"><input type="checkbox" id="optStrictUnits"><span class="slider"></span></span>
+        嚴格單位 (strictUnits)
+      </label>
+    </div>
+
+    <div class="toolbar">
+      <button type="button" class="btn primary" onclick="compile(true)">⚡ 編譯</button>
+      <button type="button" class="btn" onclick="loadSample()">📋 載入示例</button>
+      <button type="button" class="btn" onclick="copyOutput()">複製 CSS</button>
+      <div id="less_compilerPresets"></div><button type="button" class="btn success" onclick="downloadOutput()">下載 CSS</button><button class="btn" type="button" onclick="__less_compilerExport()">匯出明細 CSV</button>
+      <button type="button" class="btn danger" onclick="clearAll()">清空</button>
+    </div>
+
+    <div class="editor-wrap">
+      <div class="editor-panel">
+        <label>Less 輸入 <span class="badge" id="inputStat">0 行</span></label>
+        <textarea id="input" placeholder="在此输入 Less 代码..." spellcheck="false"></textarea>
+      </div>
+      <style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#3b82f6)}.tbk-tab.active{background:var(--accent,#3b82f6);color:#fff;border-color:var(--accent,#3b82f6)}.tbk-panel{margin-top:6px}</style>
+<div class="tbk-tabbar" role="tablist">
+  <button type="button" class="tbk-tab" data-pane="chart">圖表</button>
+  <button type="button" class="tbk-tab" data-pane="tbl">資料表</button>
+  <button type="button" class="tbk-tab" data-pane="pre">預設</button>
+  <button type="button" class="tbk-tab" data-pane="his">歷史</button>
+</div>
+<div class="editor-panel">
+        <label>CSS 輸出 <span class="status-dot idle" id="statusDot"></span><span id="statusText" style="font-size:12px;color:var(--text-muted);">等待編譯</span></label>
+        <div id="output" class="empty-state">編譯結果將顯示在此處...</div> <div id="less_compilerTable"></div> <div id="less_compilerDiff"></div> <div id="less_compilerChart"></div> <div id="less_compilerHist"></div>
+      </div>
+    </div>
+
+    <div class="stat-row" id="stats" style="display:none;">
+      <div class="stat-item">編譯耗時: <strong id="compileTime">0</strong> ms</div>
+      <div class="stat-item">輸出行數: <strong id="outputLines">0</strong> 行</div>
+      <div class="stat-item">輸出大小: <strong id="outputSize">0</strong> 位元組</div>
+    </div>
+
+    <div class="error-panel" id="errorPanel">
+      <div class="error-panel-header">❌ 編譯錯誤</div>
+      <div class="error-panel-body" id="errorBody"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>📖 使用說明</h3>
+    <div class="ref-card">
+      <h4>功能說明</h4>
+      <ul>
+        <li><strong>即時編譯</strong>：輸入 Less 程式碼時自動延遲編譯，無需手動點選</li>
+        <li><strong>變數 Variables</strong>：<code>@width: 10px;</code> 定義變數，可在全域性複用</li>
+        <li><strong>混合 Mixins</strong>：<code>.bordered();</code> 引用一組屬性集合</li>
+        <li><strong>巢狀 Nesting</strong>：支援選擇器層級巢狀，結構更清晰</li>
+        <li><strong>運算 Operations</strong>：支援加減乘除等數學運算</li>
+        <li><strong>函式 Functions</strong>：<code>darken()</code>、<code>lighten()</code>、<code>fade()</code> 等顏色與數學函式</li>
+      </ul>
+    </div>
+    <div class="ref-card">
+      <h4>編譯選項</h4>
+      <ul>
+        <li><strong>壓縮模式</strong>：移除註釋和多餘空白，輸出最小體積 CSS</li>
+        <li><strong>嚴格數學</strong>：僅在括號內執行數學運算，避免 <code>font: 12px/1.5</code> 被計算</li>
+        <li><strong>嚴格單位</strong>：單位不一致時報錯，而非自動轉換</li>
+        <li><strong>Tab 縮排</strong>：輸入框中按 Tab 鍵可插入兩個空格縮排</li>
+      </ul>
+    </div>
+  </div>
+
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto 0;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+.deep-dive a.term-link{color:var(--tool-accent,#FF6B35);text-decoration:none;border-bottom:1px dashed currentColor;}
+.deep-dive a.term-link:hover{border-bottom-style:solid;}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：Less 轉 CSS 編譯器</h2>
+<h3>💡 常見使用場景</h3>
+<ul class="dd-list">
+<li>把 Less 變數/巢狀編譯為標準 <a class="term-link" href="/zh-tw/tools/it/css-formatter.html">CSS</a>。</li>
+<li>維護老專案時把 Less 編譯成 CSS 核對產物：確認巢狀展開後的選擇器層級與變數替換結果符合預期。</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">編譯</div><div class="dd-ex-body">`@c:red; .a{color:@c; .b{font:12px}}` → `.a{color:red}.a .b{font:12px}`。</div></div>
+<h3>❓ 常見問題（FAQ）</h3>
+<dl class="dd-faq">
+<dt>Less 變數與 CSS 變數區別？</dt><dd>Less 編譯期替換，CSS 變數執行時生效。</dd>
+<dt>變數沒替換是什麼原因？</dt><dd>Less 變數是編譯期替換，作用域遵循「就近優先、延遲求值」：變數可在定義之後被修改，最終取最後一次賦值，因此寫在使用之後也會生效，這點與直覺不同。另外 @import 順序、變數插值（@{name}）與轉義（~&quot;...&quot;）都會影響替換結果。</dd>
+</dl>
+</div>
+</section>
+<!-- 注意事項區塊 -->
+<div class="tool-notes" style="--tool-accent:#FF6B35;">
+  <div class="tool-notes-title">⚠️ 使用說明與注意事項</div>
+  <ul>
+      <li>本工具純前端執行，資料不會上傳到伺服器</li>
+      <li>編譯依賴 less.js（CDN 載入），首次使用需等待指令碼載入完成</li>
+      <li>建議在主流瀏覽器（Chrome/Safari/Firefox/Edge）中使用</li>
+      <li>即時編譯有 400ms 防抖延遲，避免頻繁觸發影響效能</li>
+  </ul>
+</div>
+<!-- /注意事項區塊 -->
+</div>
+
+<!-- SEO 介紹區塊 -->
+
+</div>
+
+</div>
+
+<!-- 相關工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相關工具</h3>
+  <div class="related-tools-grid">
+    <a href="/zh-tw/tools/it/properties-parser.html" class="related-tool-card">
+      <span class="rt-icon">📄</span>
+      <span class="rt-info"><span class="rt-name">.properties 解析器 - 免費開發工具，properties 解析器 | ToolBox免費線上工具箱</span><span class="rt-desc">.properties 解析器</span></span>
+    </a>
+    <a href="/zh-tw/tools/it/ast-viewer.html" class="related-tool-card">
+      <span class="rt-icon">💻</span>
+      <span class="rt-info"><span class="rt-name">AST抽象語法樹檢視器 - 線上解析JavaScript程式碼生成AST樹形結構，支援節點 | ToolBox免費線上工具箱</span><span class="rt-desc">AST 抽象語法樹檢視器</span></span>
+    </a>
+    <a href="/zh-tw/tools/it/css-minifier.html" class="related-tool-card">
+      <span class="rt-icon">🧹</span>
+      <span class="rt-info"><span class="rt-name">CSS 壓縮/美化工具 - 免費開發工具，CSS 壓縮/格式化/美化 | ToolBox免費線上工具箱</span><span class="rt-desc">CSS 壓縮/格式化/美化</span></span>
+    </a>
+    <a href="/zh-tw/tools/it/css-formatter.html" class="related-tool-card">
+      <span class="rt-icon">🏋️</span>
+      <span class="rt-info"><span class="rt-name">CSS 格式化 - 免費開發工具，線上CSS 格式化 | ToolBox免費線上工具箱</span><span class="rt-desc">CSS 格式化</span></span>
+    </a>
+    <a href="/zh-tw/tools/it/cron.html" class="related-tool-card">
+      <span class="rt-icon">✨</span>
+      <span class="rt-info"><span class="rt-name">Cron 表示式生成器 - 免費開發工具，線上Cron 表示式生成器 | ToolBox免費線上工具箱</span><span class="rt-desc">⏰ Cron 表示式生成器</span></span>
+    </a>
+    <a href="/zh-tw/tools/it/graphql-formatter.html" class="related-tool-card">
+      <span class="rt-icon">🏋️</span>
+      <span class="rt-info"><span class="rt-name">GraphQL 格式化 - 免費開發工具，線上GraphQL 格式化 | ToolBox免費線上工具箱</span><span class="rt-desc">◈ GraphQL 格式化</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro open" id="toolIntro">
+  <div class="tool-intro-header">
+    <span class="intro-icon-wrap"><span class="intro-icon">📖</span>關於「Less 轉 CSS 編譯器」</span>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="tool-intro-body">
+    <h4><span class="h4-icon">📝</span>工具簡介</h4>
+    <p>Less 轉 CSS 編譯器是一款線上工具，可將 Less 前處理器程式碼即時編譯為瀏覽器可識別的標準 CSS。基於 less.js 引擎，支援變數、混合、巢狀、運算、函式等 Less 全部核心特性。所有編譯均在瀏覽器本地完成，程式碼不離開你的裝置。</p>
+    <h4><span class="h4-icon">✨</span>功能特點</h4>
+    <ul class="intro-features">
+      <li>純前端處理，程式碼不上傳伺服器</li>
+      <li>即時編譯，輸入即編譯</li>
+      <li>支援變數、混合、巢狀語法</li>
+      <li>支援運算與內建函式</li>
+      <li>壓縮模式輸出最小體積</li>
+      <li>嚴格數學/嚴格單位模式</li>
+      <li>編譯耗時與輸出統計</li>
+      <li>詳細錯誤資訊提示</li>
+      <li>一鍵複製與下載 CSS</li>
+      <li>支援深色模式</li>
+    </ul>
+    <h4><span class="h4-icon">🎯</span>使用場景</h4>
+    <ul class="intro-scenes">
+      <li>前端專案 Less 樣式開發除錯</li>
+      <li>快速預覽 Less 編譯效果</li>
+      <li>學習 Less 語法與特性</li>
+      <li>將 Less 程式碼轉換為純 CSS</li>
+      <li>CSS 前處理器技術選型評估</li>
+      <li>線上編寫可複用的樣式元件</li>
+    </ul>
+    </div>
+</div>
+<!-- /SEO 介紹區塊 -->
+
+<script>
+const SAMPLE_LESS = `// Less 变量定义
+@primary-color: #FF6B35;
+@secondary-color: #7C3AED;
+@base-font-size: 16px;
+@border-radius: 12px;
+@spacing: 20px;
+
+// 混合 Mixin
+.flex-center() {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.card-shadow() {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+}
+
+// 嵌套与运算
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: @spacing;
+
+  .header {
+    .flex-center();
+    padding: @spacing * 0.5;
+    background: linear-gradient(135deg, @primary-color, @secondary-color);
+    border-radius: @border-radius;
+
+    h1 {
+      color: #fff;
+      font-size: @base-font-size * 1.5;
+      margin: 0;
+    }
+  }
+
+  .card {
+    background: #fff;
+    border-radius: @border-radius;
+    padding: @spacing;
+    .card-shadow();
+    margin-bottom: @spacing;
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    }
+
+    .btn {
+      padding: 10px @spacing;
+      border: none;
+      border-radius: @border-radius;
+      font-size: @base-font-size * 0.875;
+      cursor: pointer;
+      transition: all 0.25s ease;
+
+      &.primary {
+        background: @primary-color;
+        color: #fff;
+
+        &:hover {
+          background: darken(@primary-color, 8%);
+        }
+      }
+
+      &.secondary {
+        background: @secondary-color;
+        color: #fff;
+      }
+    }
+  }
+}`;
+
+const SAMPLES = [SAMPLE_LESS];
+let sampleIndex = 0;
+let compileTimer = null;
+let lastCompiledCSS = '';
+
+const inputEl = document.getElementById('input');
+const outputEl = document.getElementById('output');
+const errorPanel = document.getElementById('errorPanel');
+const errorBody = document.getElementById('errorBody');
+const statsEl = document.getElementById('stats');
+
+function getOptions() {
+  return {
+    compress: document.getElementById('optCompress').checked,
+    strictMath: document.getElementById('optStrictMath').checked,
+    strictUnits: document.getElementById('optStrictUnits').checked
+  };
+}
+
+function setStatus(state, text) {
+  const dot = document.getElementById('statusDot');
+  const txt = document.getElementById('statusText');
+  dot.className = 'status-dot ' + state;
+  txt.textContent = text;
+}
+
+function showInputStat() {
+  const lines = inputEl.value.split('\n').length;
+  document.getElementById('inputStat').textContent = lines + ' 行';
+}
+
+function hideError() {
+  errorPanel.classList.remove('show');
+}
+
+function showError(msg) {
+  errorBody.textContent = msg;
+  errorPanel.classList.add('show');
+  outputEl.classList.add('error-state');
+  outputEl.classList.remove('empty-state');
+  outputEl.textContent = '编译失败，请查看下方错误信息';
+  setStatus('err', '编译错误');
+  statsEl.style.display = 'none';
+}
+
+function compile(manual) {
+  const lessCode = inputEl.value;
+  if (!lessCode.trim()) {
+    outputEl.textContent = '编译结果将显示在此处...';
+    outputEl.classList.add('empty-state');
+    outputEl.classList.remove('error-state');
+    hideError();
+    statsEl.style.display = 'none';
+    setStatus('idle', '等待输入');
+    lastCompiledCSS = '';
+    return;
+  }
+
+  if (typeof less === 'undefined') {
+    showError('less.js 尚未加载完成，请稍后重试...');
+    return;
+  }
+
+  const opts = getOptions();
+  const start = performance.now();
+
+  less.render(lessCode, {
+    compress: opts.compress,
+    strictMath: opts.strictMath,
+    strictUnits: opts.strictUnits
+  }).then(function(output) {
+    const css = output.css;
+    lastCompiledCSS = css;
+    const elapsed = Math.round(performance.now() - start);
+
+    outputEl.classList.remove('error-state', 'empty-state');
+    outputEl.textContent = css;
+    hideError();
+
+    const lineCount = css.split('\n').length;
+    const sizeBytes = new Blob([css]).size;
+    document.getElementById('compileTime').textContent = elapsed;
+    document.getElementById('outputLines').textContent = lineCount;
+    document.getElementById('outputSize').textContent = sizeBytes.toLocaleString();
+    statsEl.style.display = 'flex';
+    setStatus('ok', '编译成功');
+
+    if (manual) ToolBox.showToast(i18nText('toast.msg551'), 'success');
+  }).catch(function(err) {
+    let msg = err.message || String(err);
+    if (err.line) msg += '\n行号: ' + err.line;
+    if (err.column) msg += '  列号: ' + err.column;
+    if (err.filename) msg += '\n文件: ' + err.filename;
+    showError(msg);
+    lastCompiledCSS = '';
+    if (manual) ToolBox.showToast(i18nText('toast.msg550'), 'error');
+  });
+}
+
+function debouncedCompile() {
+  if (compileTimer) clearTimeout(compileTimer);
+  setStatus('idle', '编译中...');
+  compileTimer = setTimeout(function() { compile(false); }, 400);
+}
+
+function loadSample() {
+  inputEl.value = SAMPLES[sampleIndex % SAMPLES.length];
+  sampleIndex++;
+  showInputStat();
+  compile(true);
+  ToolBox.showToast(i18nText('toast.msg525'), 'info');
+}
+
+function copyOutput() {
+  if (!lastCompiledCSS) {
+    ToolBox.showToast(i18nText('toast.msg423'), 'warning');
+    return;
+  }
+  ToolBox.copyText(lastCompiledCSS, i18nText('msg025'));
+}
+
+function downloadOutput() {
+  if (!lastCompiledCSS) {
+    ToolBox.showToast(i18nText('toast.msg422'), 'warning');
+    return;
+  }
+  ToolBox.downloadText('styles.css', lastCompiledCSS, 'text/css;charset=utf-8');
+  ToolBox.showToast(i18nText('toast.msg004'), 'success');
+}
+
+function clearAll() {
+  inputEl.value = '';
+  outputEl.textContent = '编译结果将显示在此处...';
+  outputEl.classList.add('empty-state');
+  outputEl.classList.remove('error-state');
+  hideError();
+  statsEl.style.display = 'none';
+  setStatus('idle', '等待输入');
+  lastCompiledCSS = '';
+  showInputStat();
+  ToolBox.showToast(i18nText(), 'info');
+}
+
+// 输入框 Tab 键缩进
+inputEl.addEventListener('keydown', function(e) {
+  if (e.key === 'Tab') {
+    e.preventDefault();
+    const start = this.selectionStart;
+    const end = this.selectionEnd;
+    this.value = this.value.substring(0, start) + '  ' + this.value.substring(end);
+    this.selectionStart = this.selectionEnd = start + 2;
+    debouncedCompile();
+  }
+});
+
+inputEl.addEventListener('input', function() {
+  showInputStat();
+  debouncedCompile();
+});
+
+// 选项变化时重新编译
+['optCompress', 'optStrictMath', 'optStrictUnits'].forEach(function(id) {
+  document.getElementById(id).addEventListener('change', function() { compile(false); });
+});
+
+// 初始化：加载默认示例
+inputEl.value = SAMPLE_LESS;
+showInputStat();
+// 等待 less.js 加载完成
+function initCompile() {
+  if (typeof less !== 'undefined') {
+    compile(false);
+  } else {
+    setTimeout(initCompile, 200);
+  }
+}
+initCompile();
+</script>
+<script>
+// tool-intro 折叠交互
+document.addEventListener('DOMContentLoaded', function() {
+  var headers = document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h) {
+    h.addEventListener('click', function() {
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+
+var __less_compiler_last=0,__less_compiler_skip=false;
+function __less_compilerSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __less_compilerResText(){
+    var r=document.getElementById('output');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __less_compilerTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __less_compilerRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__less_compilerTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#less_compilerTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#less_compilerDiff');
+        TBKit.history.mount('#less_compilerHist',function(rec){
+            __less_compiler_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                downloadOutput();
+            }catch(e2){}
+            __less_compiler_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__less_compilerTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#less_compilerChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __less_compilerExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__less_compiler_skip) return;
+    var snap=__less_compilerSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__less_compilerResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__less_compiler_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __less_compiler_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __less_compilerRender(keys,rk,en);
+}
+function __less_compilerExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#less_compilerTable','less-compiler.csv'); } catch(e){}
+}
+function __less_compilerPresets(){
+    if (typeof TBKit === 'undefined') return;
+}
+var __less_compiler_f0=(typeof downloadOutput==='function')?downloadOutput:null;
+if(__less_compiler_f0){
+    downloadOutput=function(){ var __r=__less_compiler_f0.apply(null,arguments); try{ __less_compilerExtras(); }catch(e){} return __r; };
+}
+function __less_compilerBoot(){ try{ __less_compilerPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __less_compilerBoot();
+else document.addEventListener('DOMContentLoaded', __less_compilerBoot);
+</script>
+
+
+<script>/*TBKIT-INJECT-START*/
+(function(){
+  var P={"chart": ["less_compilerChart"], "tbl": ["less_compilerTable"], "pre": ["less_compilerPresets"], "his": ["less_compilerHist"]};
+  var L={res:['结果','Result'],chart:['图表','Chart'],tbl:['数据表','Data'],pre:['预设','Presets'],his:['历史','History']};
+  function tabify(){
+    var bar=document.querySelector('.tbk-tabbar');
+    if(!bar||!bar.querySelectorAll) return;
+    var btns=bar.querySelectorAll('.tbk-tab');
+    if(!btns||!btns.length) return;
+    var en=false;
+    try{ if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn) en=TBKit.util.isEn(); }catch(e){}
+    if(!en&&document.documentElement&&(document.documentElement.lang||'').indexOf('en')>=0) en=true;
+    for(var i=0;i<btns.length;i++){var p=btns[i].getAttribute('data-pane');btns[i].textContent=en?L[p][1]:L[p][0];}
+    function show(pane){
+      for(var k in P){var ids=P[k];for(var i=0;i<ids.length;i++){var el=document.getElementById(ids[i]);if(el&&el.style)el.style.display=(k===pane?'':'none');}}
+      for(var j=0;j<btns.length;j++){btns[j].className='tbk-tab'+(btns[j].getAttribute('data-pane')===pane?' active':'');}
+    }
+    for(var i=0;i<btns.length;i++){(function(b){b.addEventListener('click',function(){show(b.getAttribute('data-pane'));});})(btns[i]);}
+    show(btns[0].getAttribute('data-pane'));
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',tabify);else tabify();
+})();
+/*TBKIT-INJECT-END*/</script>
+</body>
+</html>

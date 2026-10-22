@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-opencc-locale="zh-tw">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=robotics,industry=robotics,icon=🏎️,bg=from-teal-500 to-emerald-600">
+<title>由末端線速度與臂長求關節角速度 - L 計算對應關節角速度</title>
+<link rel="canonical" href="https://tools.dicomp.net/zh-tw/tools/robotics/joint-angular-velocity.html">
+<meta property="og:title" content="由末端線速度與臂長求關節角速度 - L 計算對應關節角速度">
+<meta property="og:description" content="輸入機械臂末端線速度 v 與連桿臂長 L，工具按 ω=v/L 計算對應關節角速度，用於示教運動中由期望笛卡爾速度反解關節轉速，保證軌跡平滑與安全限速。">
+<meta property="og:url" content="https://tools.dicomp.net/zh-tw/tools/robotics/joint-angular-velocity.html">
+<meta name="twitter:card" content="summary">
+<meta name="description" content="輸入機械臂末端線速度 v 與連桿臂長 L，工具按 ω=v/L 計算對應關節角速度，用於示教運動中由期望笛卡爾速度反解關節轉速，保證軌跡平滑與安全限速。">
+<link rel="stylesheet" href="/css/common.css">
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/common.js" defer></script>
+
+
+<meta property="og:image" content="https://tools.dicomp.net/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免費線上工具">
+<meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免費線上工具">
+    <meta property="og:type" content="website">
+    <meta name="twitter:title" content="由末端線速度與臂長求關節角速度 - L 計算對應關節角速度">
+    <meta name="twitter:description" content="輸入機械臂末端線速度 v 與連桿臂長 L，工具按 ω=v/L 計算對應關節角速度，用於示教運動中由期望笛卡爾速度反解關節轉速，保證軌跡平滑與安全限速。">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"關節角速度計算器","url":"https://tools.dicomp.net/zh-tw/tools/robotics/joint-angular-velocity.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"輸入機械臂末端線速度 v 與連桿臂長 L，工具按 ω=v/L 計算對應關節角速度，用於示教運動中由期望笛卡爾速度反解關節轉速，保證軌跡平滑與安全限速。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首頁","item":"https://tools.dicomp.net/zh-tw/"},{"@type":"ListItem","position":2,"name":"機器人學","item":"https://tools.dicomp.net/zh-tw/tools/robotics/index.html"},{"@type":"ListItem","position":3,"name":"關節角速度計算器","item":"https://tools.dicomp.net/zh-tw/tools/robotics/joint-angular-velocity.html"}]}</script>
+
+<script src="/js/i18n.js" defer></script>
+<script src="/js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+
+
+<meta name="title-en" content="Joint Angular Velocity">
+<meta name="desc-en" content="Joint Angular Velocity - online utility on ToolBox.">
+
+
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
+
+<script src="/js/tool-ux.js" defer></script>
+<!-- TOOLBOX-TOOL-UX -->
+
+<script src="/js/analytics.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+<!-- TOOLBOX-TTZZ -->
+<script>
+(function(){try{
+var el = document.createElement("script");
+el.src = "https://lf1-cdn-tos.bytegoofy.com/goofy/ttzz/push.js?85d6452aa9be4d693b16cd48535a8c7ae57542f6788a41682e745be8eb99b35a8a24d2f724c31ebe20c1e4e6fba6d91caf576100b02a2870c72f38fc574066fef065d152c73bf1cbb2ebad3b5b5265d8";
+el.id = "ttzz";
+var s = document.getElementsByTagName("script")[0];
+s.parentNode.insertBefore(el, s);
+}catch(e){}
+})(window);
+</script>
+
+<script src="/js/tool-kit.js" defer></script>
+<!-- TOOLBOX-TOOL-KIT -->
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://tools.dicomp.net/tools/robotics/joint-angular-velocity.html">
+<link rel="alternate" hreflang="zh-TW" href="https://tools.dicomp.net/zh-tw/tools/robotics/joint-angular-velocity.html">
+<link rel="alternate" hreflang="en-US" href="https://tools.dicomp.net/tools/robotics/joint-angular-velocity.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://tools.dicomp.net/tools/robotics/joint-angular-velocity.html">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+</head>
+<body>
+
+<h1 class="sr-only">關節角速度計算器</h1>
+
+<div class="nav">
+  <a href="/zh-tw/index.html">← ToolBox</a>
+  <span>/ 關節角速度計算器</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+
+
+
+<nav class="breadcrumb" aria-label="麵包屑導航" data-breadcrumb="1">
+  <a href="/zh-tw/index.html">首頁</a>
+  <span class="bc-sep">‹</span>
+  <a href="/zh-tw/tools/robotics/index.html">🤖 機器人學</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">關節角速度計算器</span>
+</nav>
+
+<div class="tool-guide-link" data-guide-link="1">
+  <a href="/zh-tw/guides/joint-angular-velocity-guide.html">📖 檢視「由末端線速度與臂長求關節角速度 使用指南」</a>
+</div>
+<div class="container">
+  <div class="card">
+    <h2 data-zh="由末端線速度與臂長求關節角速度">Joint Angular Velocity Calculator</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="輸入末端線速度 v 與臂長 L，求關節角速度。">Input end-effector linear velocity v and arm length L, compute joint angular velocity ω = v/L for teaching-motion velocity decomposition.</p>
+    <div class="formula-box">
+      <div class="formula-title">📐 計算公式</div>
+      <div class="formula-eq">ω = v / L</div>
+      <p class="formula-desc">輸入末端線速度 v 與臂長 L，求關節角速度。</p>
+    </div>
+
+    <div class="input-row">
+      <div>
+        <label for="v">末端線速度 v (m/s)</label>
+        <input type="number" id="v" value="0.5" step="0.05" oninput="calcTool()">
+      </div>
+      <div>
+        <label for="L">臂長 L (m)</label>
+        <input type="number" id="L" value="0.3" step="0.05" oninput="calcTool()">
+      </div>
+    </div>
+
+    <div id="joint_angular_velocityPresets"></div>
+
+    <div class="toolbar">
+      <button class="btn primary" onclick="calcTool()">計算</button>
+      <button class="btn" onclick="resetForm()">重置</button>
+      <button class="btn" onclick="__joint_angular_velocityExport()">匯出明細 CSV</button>
+    </div>
+
+    <div class="result-box" id="result"></div>
+    <div id="joint_angular_velocityTable"></div>
+    <div id="joint_angular_velocityDiff"></div>
+    <div id="joint_angular_velocityHist"></div>
+
+    <div class="tool-notes">
+      <div class="tool-notes-title">📌 計算說明</div>
+      <ul>
+        <li>ω = v/L。</li>
+        <li>v=0.5,L=0.3 → 1.667 rad/s。</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+
+<!-- 相關工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相關工具</h3>
+  <div class="related-tools-grid">
+    <a href="/zh-tw/tools/robotics/pid-controller.html" class="related-tool-card">
+      <span class="rt-icon">🧮</span>
+      <span class="rt-info"><span class="rt-name">PID 控制器輸出計算器</span><span class="rt-desc">PID 控制器輸出計算器：輸入比例、積分、微分系數與誤差訊號，按 PID 控制律即時計算控制器輸出，</span></span>
+    </a>
+    <a href="/zh-tw/tools/robotics/end-effector-reach.html" class="related-tool-card">
+      <span class="rt-icon">🧮</span>
+      <span class="rt-info"><span class="rt-name">二連桿工作空間計算器</span><span class="rt-desc">二連桿工作空間計算器：輸入兩段連桿長度，求平面二連桿末端可達的環形工作空間內半徑與外半徑，輔助機械臂</span></span>
+    </a>
+    <a href="/zh-tw/tools/robotics/forward-kinematics-2r.html" class="related-tool-card">
+      <span class="rt-icon">🧮</span>
+      <span class="rt-info"><span class="rt-name">二連桿正運動學計算器</span><span class="rt-desc">二連桿正運動學計算器：輸入兩段關節角與連桿長度，按正運動學公式求末端執行器 (x, y) 座標，用於</span></span>
+    </a>
+    <a href="/zh-tw/tools/robotics/inverse-kinematics-2r.html" class="related-tool-card">
+      <span class="rt-icon">🧮</span>
+      <span class="rt-info"><span class="rt-name">二連桿逆運動學計算器</span><span class="rt-desc">由 (x,y) 反解關節角 θ₁,θ₂</span></span>
+    </a>
+    <a href="/zh-tw/tools/robotics/gravity-comp-torque.html" class="related-tool-card">
+      <span class="rt-icon">🔩</span>
+      <span class="rt-info"><span class="rt-name">關節重力補償扭矩計算器</span><span class="rt-desc">由連桿質量、長度與角度求重力扭矩</span></span>
+    </a>
+    <a href="/zh-tw/tools/robotics/gear-ratio-torque.html" class="related-tool-card">
+      <span class="rt-icon">🔩</span>
+      <span class="rt-info"><span class="rt-name">減速比扭矩放大計算器</span><span class="rt-desc">由輸入扭矩與減速比求輸出扭矩</span></span>
+    </a>
+  </div>
+</div>
+<script>function __tbInputGuard(_ids,_labels){
+  var __TPL='请填写「%s」后再计算。';
+  var __TPL2="<p style=\"color:var(--danger)\">⚠ 「%s」是本计算的分母，不能为 0。</p>";
+  var _vals=[],_firstBad=-1;
+  var _REQ=['v', 'L'];
+  for(var _i=0;_i<_ids.length;_i++){
+    var _e=document.getElementById(_ids[_i]);
+    if(!_e) continue;
+    var _raw=String(_e.value==null?'':_e.value).trim();
+    var _num=parseFloat(_raw);
+    var _need=(_REQ.indexOf(_ids[_i])>=0);
+    if(_raw===''){ if(_need&&_firstBad<0)_firstBad=_i; _vals.push(NaN); continue; }
+    if(_e.type==='number'||_e.tagName==='TEXTAREA'){
+      if(_need&&isNaN(_num)){ if(_firstBad<0)_firstBad=_i; _vals.push(NaN); continue; }
+      _vals.push(_num);
+    } else _vals.push(_raw);
+  }
+  if(_firstBad>=0){
+    var _bad=_firstBad;
+    var _lbl=(_labels&&_labels[_bad])||_ids[_bad];
+    var __msg=__TPL.replace('%s',_lbl);
+    var _fe=document.getElementById(_ids[_bad]);
+    if(_fe&&_fe.classList&&_fe.classList.add)_fe.classList.add('input-error');
+    return __msg;
+  }
+  // 分母项：__D 由真浏览器逐项置零探测得出，命中即说明该输入在此页作分母
+  var __D={"v": "末端线速度 v (m/s)", "L": "臂长 L (m)"};
+  for(var _d=0;_d<_ids.length;_d++){
+    if(!(_ids[_d] in __D)) continue;
+    var _de=document.getElementById(_ids[_d]);
+    if(!_de) continue;
+    if(_de.classList&&_de.classList.remove)_de.classList.remove('input-error');
+    if(parseFloat(String(_de.value==null?'':_de.value).trim())===0){
+      if(_de.classList&&_de.classList.add)_de.classList.add('input-error');
+      return __TPL2.replace('%s',__D[_ids[_d]]);
+    }
+  }
+  // 全零：任何一项作分母都会得到 Infinity/NaN。页面公式本身没错，是输入无意义
+  var _nums=[];
+  for(var _z=0;_z<_vals.length;_z++){ if(typeof _vals[_z]==='number'&&!isNaN(_vals[_z])) _nums.push(_vals[_z]); }
+  if(!_nums.length) return '';
+  if(_nums.length>0){
+    var _allZero=true;
+    for(var _z2=0;_z2<_nums.length;_z2++){ if(_nums[_z2]!==0){ _allZero=false; break; } }
+    if(_allZero) return "<p style=\"color:var(--danger)\">⚠ 输入不能全为 0：至少需要一项非零数值，否则计算无意义。</p>";
+  }
+  for(var _k=0;_k<_ids.length;_k++){
+    var _e2=document.getElementById(_ids[_k]);
+    if(_e2&&_e2.classList&&_e2.classList.remove)_e2.classList.remove('input-error');
+  }
+  return '';
+}
+
+
+function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
+function dataGrid(rows){if(!Array.isArray(rows))return '<div class="data-grid"><div class="data-card"><div class="num">—</div><div class="label">渲染异常</div></div></div>';let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
+function calcTool(){
+              var __ig=__tbInputGuard(['v', 'L'],["末端线速度 v (m/s)", "臂长 L (m)"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
+const v=num('v'),L=num('L');
+            const w=v/L;
+            const __g2=dataGrid([
+                [w.toFixed(3),'角速度 ω (rad/s)'],
+                [(w*60/(2*Math.PI)).toFixed(2), '转速 (r/min)'],
+                [(1/w).toFixed(3), '转过 1 rad 所需时间 (s)']
+            ]);ToolBox.setResult('result',(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));
+        }
+function resetForm(){document.getElementById('v').value = '0.5';
+      document.getElementById('L').value = '0.3';
+      calcTool();}
+calcTool();
+
+function __joint_angular_velocityNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __joint_angular_velocityExtras(){
+    function __joint_angular_velocityRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
+    if (typeof TBKit === 'undefined') return;
+    var v=num('v'),L=num('L');
+    var w=v/L;
+    if (!isFinite(__joint_angular_velocityNum('v')) || !isFinite(__joint_angular_velocityNum('L'))) return;
+    var en=TBKit.util.isEn();
+    TBKit.matrix.table('#joint_angular_velocityTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: [
+            ['角速度 ω (rad/s)', w.toFixed(3)],
+            ['转速 (r/min)', (w*60/(2*Math.PI)).toFixed(2)],
+            ['转过 1 rad 所需时间 (s)', (1/w).toFixed(3)],
+        ]
+    });
+    TBKit.history.record({v:__joint_angular_velocityRaw('v'), L:__joint_angular_velocityRaw('L'), w:w});
+    function __joint_angular_velocityRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
+    TBKit.history.mount('#joint_angular_velocityHist',function(rec){ __joint_angular_velocityRestore(rec); calcTool(); });
+    TBKit.util.diffBox('#joint_angular_velocityDiff',['w']);
+}
+function __joint_angular_velocityExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#joint_angular_velocityTable','joint-angular-velocity.csv'); } catch(e){}
+}
+function __joint_angular_velocityPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#joint_angular_velocityPresets',[
+        {label:'默认',labelEn:'Default',values:{v:'0.5', L:'0.3'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{v:'1', L:'0.6'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{v:'0.25', L:'0.15'}},
+    ],function(){ calcTool(); });
+}
+var __tb_fn0 = calcTool;
+calcTool = function(){ __tb_fn0(); try{ __joint_angular_velocityExtras(); }catch(e){} };
+function __joint_angular_velocityBoot(){ try{ __joint_angular_velocityPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __joint_angular_velocityBoot();
+else document.addEventListener('DOMContentLoaded', __joint_angular_velocityBoot);
+</script>
+<div class="jav-tabs" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+<button type="button" class="tab-btn" data-pane="chart">📊 圖表</button>
+<button type="button" class="tab-btn" data-pane="table">📋 資料表</button>
+</div>
+<div id="javChart" style="margin-top:8px;"></div>
+<div id="javTable" style="margin-top:8px;display:none;"></div>
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto 0;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+.deep-dive a.term-link{color:var(--tool-accent,#FF6B35);text-decoration:none;border-bottom:1px dashed currentColor;}
+.deep-dive a.term-link:hover{border-bottom-style:solid;}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：關節角速度</h2>
+<h3>💡 常見使用場景</h3>
+<ul class="dd-list">
+<li>末端線速換關節角速。</li>
+<li>單轉動關節運動。</li>
+<li>速度規劃。</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">線速 0.5m/s、臂長 0.3m</div><div class="dd-ex-body">ω=v/L=0.5/0.3=1.67 rad/s。</div></div>
+<div class="dd-example"><div class="dd-ex-title">臂長 0.6m</div><div class="dd-ex-body">ω=0.83 rad/s，同線速下長臂角速減半。</div></div>
+<h3>❓ 常見問題（FAQ）</h3>
+<dl class="dd-faq">
+<dt>適用場景？</dt><dd>單轉動關節、末端沿切向線速 v 時。</dd>
+<dt>與<a class="term-link" href="/zh-tw/tools/kinematics/angular-accel.html">角加速度</a>？</dt><dd>a_t=L·α，<a class="term-link" href="/zh-tw/tools/kinematics/tangential-accel.html">切向加速度</a>同理。</dd>
+</dl>
+</div>
+</section>
+<script>
+function __javSweep(){
+  var v=num('v'), L0=num('L');
+  if(!isFinite(v)||!isFinite(L0)||v<=0||L0<=0)return null;
+  var labels=[],dW=[],rows=[];
+  var mults=[0.25,0.5,0.75,1,1.5,2,4];
+  for(var k=0;k<mults.length;k++){
+    var L=L0*mults[k], w=v/L;
+    labels.push((Math.round(L*1000)/1000).toFixed(3));
+    dW.push(Math.round(w*1000)/1000);
+    rows.push([(Math.round(L*1000)/1000).toFixed(3),(Math.round(w*1000)/1000).toFixed(3)]);
+  }
+  return {labels:labels,dW:dW,rows:rows};
+}
+function __javChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
+  var s=__javSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.chart.line('#javChart',{title:en?'Joint Angular Velocity vs Link Length (w = v / L)':'关节角速度随连杆长反比变化（ω = v/L）',labels:s.labels,series:[{name:en?'Angular vel w (rad/s)':'角速度 ω (rad/s)',data:s.dW}]});
+}
+function __javTable(){
+  if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
+  var s=__javSweep(); if(!s)return;
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  TBKit.matrix.table('#javTable',{head:en?['Link length L (m)','Angular vel w (rad/s)']:['连杆长 L (m)','角速度 ω (rad/s)'],rows:s.rows});
+}
+
+function __javShow(which){
+  var c=document.getElementById('javChart'), t=document.getElementById('javTable');
+  if(!c||!t)return;
+  if(which==='table'){c.style.display='none';t.style.display='';}
+  else{c.style.display='';t.style.display='none';}
+}
+function __javTabInit(){
+  var btns=document.querySelectorAll('.jav-tabs .tab-btn');
+  if(!btns||!btns.length)return;
+  for(var i=0;i<btns.length;i++){
+    (function(b){b.addEventListener('click',function(){__javShow(b.getAttribute('data-pane')||'chart');});})(btns[i]);
+  }
+}
+var __javFn=calcTool;calcTool=function(){try{__javFn();}catch(e){}try{__javChart();}catch(e){}try{__javTable();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__javChart();}catch(e){}try{__javTable();}catch(e){}});
+try{__javTabInit();}catch(e){}
+</script>
+</body>
+</html>

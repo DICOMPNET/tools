@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-opencc-locale="zh-tw">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ReLU 與 LeakyReLU 使用指南 - ToolBox</title>
+<meta name="description" content="輸入特徵值，計算 ReLU 與 LeakyReLU 啟用輸出並可視化對比，適用於啟用函式教學、梯度特性演示與網路結構理解。ReLU 在負區梯度恆為 0，若神經元輸出長期為負則永久不更新(死亡)。">
+<meta property="og:title" content="ReLU 與 LeakyReLU 使用指南">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="ToolBox">
+<meta property="og:url" content="https://tools.dicomp.net/zh-tw/guides/relu-leakyrelu-guide.html">
+<meta property="og:description" content="輸入特徵值，計算 ReLU 與 LeakyReLU 啟用輸出並可視化對比，適用於啟用函式教學、梯度特性演示與網路結構理解。ReLU 在負區梯度恆為 0，若神經元輸出長期為負則永久不更新(死亡)。">
+<meta name="twitter:title" content="ReLU 與 LeakyReLU 使用指南">
+<meta name="twitter:description" content="輸入特徵值，計算 ReLU 與 LeakyReLU 啟用輸出並可視化對比，適用於啟用函式教學、梯度特性演示與網路結構理解。ReLU 在負區梯度恆為 0，若神經元輸出長期為負則永久不更新(死亡)。">
+<meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 免費線上工具與使用指南">
+<meta property="og:image" content="https://tools.dicomp.net/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="canonical" href="https://tools.dicomp.net/zh-tw/guides/relu-leakyrelu-guide.html">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"ReLU 與 LeakyReLU 使用指南","description":"輸入特徵值，計算 ReLU 與 LeakyReLU 啟用輸出並可視化對比，適用於啟用函式教學、梯度特性演示與網路結構理解。","author":{"@type":"Organization","name":"ToolBox"},"datePublished":"2026-09-13","dateModified":"2026-09-13","mainEntityOfPage":{"@type":"WebPage","@id":"https://tools.dicomp.net/zh-tw/guides/relu-leakyrelu-guide.html"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"ToolBox","item":"https://tools.dicomp.net/zh-tw/"},{"@type":"ListItem","position":2,"name":"使用指南","item":"https://tools.dicomp.net/zh-tw/guides/index.html"},{"@type":"ListItem","position":3,"name":"ReLU 與 LeakyReLU 使用指南","item":"https://tools.dicomp.net/zh-tw/guides/relu-leakyrelu-guide.html"}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"為什麼用 LeakyReLU 而不是 ReLU？","acceptedAnswer":{"@type":"Answer","text":"ReLU 在負區梯度恆為 0，若神經元輸出長期為負則永久不更新(死亡)。LeakyReLU 給負區小斜率保留學習訊號，訓練更穩。"}},{"@type":"Question","name":"負值區斜率 α 取多大？","acceptedAnswer":{"@type":"Answer","text":"常用 0.01~0.1 固定，或引數化(PReLU)讓模型學 α；α 過大負區訊號過強、過小則接近 ReLU，0.01 是常見預設。"}}]}</script>
+<style>
+:root{--primary:#FF6B35;--text:#1F2937;--muted:#6B7280;--border:#E5E7EB;--bg:#FFFAF7;}
+*{box-sizing:border-box;}
+body{margin:0;font-family:"Noto Sans SC","Plus Jakarta Sans",system-ui,sans-serif;color:var(--text);background:var(--bg);line-height:1.75;}
+.breadcrumb a{color:var(--primary);text-decoration:none;margin-right:6px;}
+.breadcrumb a:hover{text-decoration:underline;}
+main{max-width:820px;margin:0 auto;padding:28px 20px 60px;}
+h1{font-size:28px;margin:0 0 8px;}
+.lead{font-size:16px;color:var(--muted);margin:0 0 22px;}
+h2{font-size:20px;margin:28px 0 10px;color:var(--primary);}
+ul,ol{padding-left:22px;}
+li{margin:8px 0;}
+.related{margin-top:26px;padding:16px;background:#fff;border:1px solid var(--border);border-radius:14px;}
+.related h3{margin:0 0 10px;font-size:16px;color:var(--text);}
+.tool-chip{display:inline-block;margin:4px 6px 4px 0;padding:6px 12px;border:1px solid var(--border);border-radius:999px;color:var(--primary);text-decoration:none;font-size:14px;}
+.tool-chip:hover{background:var(--primary);color:#fff;}
+.faq{margin-top:26px;}
+.faq dt{font-weight:700;margin-top:14px;}
+.faq dd{margin:4px 0 0;color:var(--muted);}
+.back{margin-top:30px;padding:16px;background:#fff;border:1px solid var(--border);border-radius:14px;}
+.back a{color:var(--primary);font-weight:700;text-decoration:none;}
+</style>
+<script src="/js/analytics.js" defer></script>
+<link rel="stylesheet" href="/css/site-chrome.css">
+<link rel="stylesheet" href="/css/common.css">
+<script src="/js/i18n.js" defer></script>
+<script src="/js/common.js" defer></script>
+<meta name="title-zh" content="ReLU 與 LeakyReLU 使用指南">
+<!-- TOOLBOX-TTZZ -->
+<script>
+(function(){try{
+var el = document.createElement("script");
+el.src = "https://lf1-cdn-tos.bytegoofy.com/goofy/ttzz/push.js?85d6452aa9be4d693b16cd48535a8c7ae57542f6788a41682e745be8eb99b35a8a24d2f724c31ebe20c1e4e6fba6d91caf576100b02a2870c72f38fc574066fef065d152c73bf1cbb2ebad3b5b5265d8";
+el.id = "ttzz";
+var s = document.getElementsByTagName("script")[0];
+s.parentNode.insertBefore(el, s);
+}catch(e){}
+})(window);
+</script>
+
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://tools.dicomp.net/guides/relu-leakyrelu-guide.html">
+<link rel="alternate" hreflang="zh-TW" href="https://tools.dicomp.net/zh-tw/guides/relu-leakyrelu-guide.html">
+<link rel="alternate" hreflang="en-US" href="https://tools.dicomp.net/guides/relu-leakyrelu-guide.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://tools.dicomp.net/guides/relu-leakyrelu-guide.html">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+</head>
+<body>
+<nav class="breadcrumb"><a href="https://tools.dicomp.net/">ToolBox</a> / <a href="https://tools.dicomp.net/guides/index.html">使用指南</a> / <span>ReLU 與 LeakyReLU 使用指南</span></nav>
+<main>
+<h1>ReLU 與 LeakyReLU 使用指南</h1>
+<p class="lead">輸入特徵值，計算 ReLU 與 LeakyReLU 啟用輸出並可視化對比，適用於啟用函式教學、梯度特性演示與網路結構理解。</p>
+<h2>計算公式與原理</h2>
+<p><strong>ReLU = max(0, x)；LeakyReLU = x (x≥0) 否則 αx；ELU = x (x≥0) 否則 α(eˣ − 1)</strong></p><p>ReLU 計算極快且正區間梯度恆為 1，但負區間硬置 0 會造成"死神經元"；LeakyReLU 用很小的 α（常 0.01）保留一絲負梯度；ELU 負區間平滑趨近 −α，輸出均值更接近 0，收斂更快但含指數運算成本略高。</p>
+<h2>使用步驟</h2>
+<ol><li>填寫「輸入 x」。</li><li>填寫「LeakyReLU 斜率 α」。</li><li>結果區會即時更新；可一鍵複製結果用於記錄或彙報。</li></ol>
+<h2>典型使用場景</h2>
+<ul><li>ReLU(x)=max(0,x)，負值輸出 0，帶來稀疏性與非負性；負值區梯度為 0 易致'神經元死亡'。</li><li>LeakyReLU(x)=max(αx,x)，負值給小斜率 α(如 0.01)保留微弱梯度，緩解死亡。</li><li>二者均為非線性啟用，使網路能擬合複雜函式。</li></ul>
+<h2>算例參考</h2>
+<ul><li><strong>啟用對比</strong>：x=−2, α=0.01：ReLU=0(梯度斷流)，LeakyReLU=0.01×(−2)=−0.02(保留微弱訊號)。x=3 時二者均輸出 3。</li></ul>
+<h2>注意事項</h2>
+<p>結果為按上述公式得到的<strong>理論估算值</strong>，實際表現受資料分佈、實現細節與執行環境影響，落地決策請以實測為準；本工具純前端執行，輸入不上傳伺服器。</p>
+<div class="related">
+<h3>相關工具</h3>
+<a class="tool-chip" href="https://tools.dicomp.net/tools/ai/rmse.html">均方誤差 RMSE</a>
+<a class="tool-chip" href="https://tools.dicomp.net/tools/ai/roc-auc.html">ROC AUC 近似</a>
+<a class="tool-chip" href="https://tools.dicomp.net/tools/ai/sentiment-analysis.html">情感分析</a>
+<a class="tool-chip" href="https://tools.dicomp.net/tools/ai/sigmoid.html">Sigmoid 輸出</a>
+</div>
+<dl class="faq">
+<dt>為什麼用 LeakyReLU 而不是 ReLU？</dt><dd>ReLU 在負區梯度恆為 0，若神經元輸出長期為負則永久不更新(死亡)。LeakyReLU 給負區小斜率保留學習訊號，訓練更穩。</dd>
+<dt>負值區斜率 α 取多大？</dt><dd>常用 0.01~0.1 固定，或引數化(PReLU)讓模型學 α；α 過大負區訊號過強、過小則接近 ReLU，0.01 是常見預設。</dd>
+</dl>
+<div class="back"><a href="https://tools.dicomp.net/tools/ai/relu-leakyrelu.html">→ 開啟ReLU 與 LeakyReLU工具</a></div>
+</main>
+</body>
+</html>

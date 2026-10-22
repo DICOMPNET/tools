@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-opencc-locale="zh-tw">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>聚類 K-Means 代價 使用指南 - ToolBox</title>
+<meta name="description" content="K-Means 代價估算器，輸入樣本與簇中心估算聚類慣性 inertia(簇內平方和)，用於評估聚類緊緻度與 k 選擇。不是。k 越大 inertia 越小，k=樣本數時為 0 但失去聚類意義；應兼顧緊緻性與簇數簡潔，用。">
+<meta property="og:title" content="聚類 K-Means 代價 使用指南">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="ToolBox">
+<meta property="og:url" content="https://tools.dicomp.net/zh-tw/guides/k-means-guide.html">
+<meta property="og:description" content="K-Means 代價估算器，輸入樣本與簇中心估算聚類慣性 inertia(簇內平方和)，用於評估聚類緊緻度與 k 選擇。不是。k 越大 inertia 越小，k=樣本數時為 0 但失去聚類意義；應兼顧緊緻性與簇數簡潔，用。">
+<meta name="twitter:title" content="聚類 K-Means 代價 使用指南">
+<meta name="twitter:description" content="K-Means 代價估算器，輸入樣本與簇中心估算聚類慣性 inertia(簇內平方和)，用於評估聚類緊緻度與 k 選擇。不是。k 越大 inertia 越小，k=樣本數時為 0 但失去聚類意義；應兼顧緊緻性與簇數簡潔，用。">
+<meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 免費線上工具與使用指南">
+<meta property="og:image" content="https://tools.dicomp.net/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="canonical" href="https://tools.dicomp.net/zh-tw/guides/k-means-guide.html">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"聚類 K-Means 代價 使用指南","description":"K-Means 代價估算器，輸入樣本與簇中心估算聚類慣性 inertia(簇內平方和)，用於評估聚類緊緻度與 k 選擇。","author":{"@type":"Organization","name":"ToolBox"},"datePublished":"2026-09-13","dateModified":"2026-09-13","mainEntityOfPage":{"@type":"WebPage","@id":"https://tools.dicomp.net/zh-tw/guides/k-means-guide.html"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"ToolBox","item":"https://tools.dicomp.net/zh-tw/"},{"@type":"ListItem","position":2,"name":"使用指南","item":"https://tools.dicomp.net/zh-tw/guides/index.html"},{"@type":"ListItem","position":3,"name":"聚類 K-Means 代價 使用指南","item":"https://tools.dicomp.net/zh-tw/guides/k-means-guide.html"}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"inertia 越小越好嗎？","acceptedAnswer":{"@type":"Answer","text":"不是。k 越大 inertia 越小，k=樣本數時為 0 但失去聚類意義；應兼顧緊緻性與簇數簡潔，用手肘/輪廓係數平衡。"}},{"@type":"Question","name":"異常值怎麼處理？","acceptedAnswer":{"@type":"Answer","text":"異常值會大幅拉高 inertia 並偏移質心，可先做離群檢測或用 K-Medoids(基於距離中位數)更穩健。"}}]}</script>
+<style>
+:root{--primary:#FF6B35;--text:#1F2937;--muted:#6B7280;--border:#E5E7EB;--bg:#FFFAF7;}
+*{box-sizing:border-box;}
+body{margin:0;font-family:"Noto Sans SC","Plus Jakarta Sans",system-ui,sans-serif;color:var(--text);background:var(--bg);line-height:1.75;}
+.breadcrumb a{color:var(--primary);text-decoration:none;margin-right:6px;}
+.breadcrumb a:hover{text-decoration:underline;}
+main{max-width:820px;margin:0 auto;padding:28px 20px 60px;}
+h1{font-size:28px;margin:0 0 8px;}
+.lead{font-size:16px;color:var(--muted);margin:0 0 22px;}
+h2{font-size:20px;margin:28px 0 10px;color:var(--primary);}
+ul,ol{padding-left:22px;}
+li{margin:8px 0;}
+.related{margin-top:26px;padding:16px;background:#fff;border:1px solid var(--border);border-radius:14px;}
+.related h3{margin:0 0 10px;font-size:16px;color:var(--text);}
+.tool-chip{display:inline-block;margin:4px 6px 4px 0;padding:6px 12px;border:1px solid var(--border);border-radius:999px;color:var(--primary);text-decoration:none;font-size:14px;}
+.tool-chip:hover{background:var(--primary);color:#fff;}
+.faq{margin-top:26px;}
+.faq dt{font-weight:700;margin-top:14px;}
+.faq dd{margin:4px 0 0;color:var(--muted);}
+.back{margin-top:30px;padding:16px;background:#fff;border:1px solid var(--border);border-radius:14px;}
+.back a{color:var(--primary);font-weight:700;text-decoration:none;}
+</style>
+<script src="/js/analytics.js" defer></script>
+<link rel="stylesheet" href="/css/site-chrome.css">
+<link rel="stylesheet" href="/css/common.css">
+<script src="/js/i18n.js" defer></script>
+<script src="/js/common.js" defer></script>
+<meta name="title-zh" content="聚類 K-Means 代價 使用指南">
+<!-- TOOLBOX-TTZZ -->
+<script>
+(function(){try{
+var el = document.createElement("script");
+el.src = "https://lf1-cdn-tos.bytegoofy.com/goofy/ttzz/push.js?85d6452aa9be4d693b16cd48535a8c7ae57542f6788a41682e745be8eb99b35a8a24d2f724c31ebe20c1e4e6fba6d91caf576100b02a2870c72f38fc574066fef065d152c73bf1cbb2ebad3b5b5265d8";
+el.id = "ttzz";
+var s = document.getElementsByTagName("script")[0];
+s.parentNode.insertBefore(el, s);
+}catch(e){}
+})(window);
+</script>
+
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://tools.dicomp.net/guides/k-means-guide.html">
+<link rel="alternate" hreflang="zh-TW" href="https://tools.dicomp.net/zh-tw/guides/k-means-guide.html">
+<link rel="alternate" hreflang="en-US" href="https://tools.dicomp.net/guides/k-means-guide.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://tools.dicomp.net/guides/k-means-guide.html">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+</head>
+<body>
+<nav class="breadcrumb"><a href="https://tools.dicomp.net/">ToolBox</a> / <a href="https://tools.dicomp.net/guides/index.html">使用指南</a> / <span>聚類 K-Means 代價 使用指南</span></nav>
+<main>
+<h1>聚類 K-Means 代價 使用指南</h1>
+<p class="lead">K-Means 代價估算器，輸入樣本與簇中心估算聚類慣性 inertia(簇內平方和)，用於評估聚類緊緻度與 k 選擇。</p>
+<h2>計算公式與原理</h2>
+<p><strong>Inertia 估算 ≈ n·dim·spread²/k；每簇樣本 ≈ ⌈n/k⌉</strong></p><p>在樣本近似均勻分佈的假設下，簇內平方和隨 K 增大按 1/k 衰減，可用於快速預判需要多少簇。實際資料有簇密度差異時，應結合業務含義定 K，而不是隻看指標拐點。</p>
+<h2>使用步驟</h2>
+<ol><li>填寫「樣本數」。</li><li>填寫「聚類數」。</li><li>填寫「維度」。</li><li>填寫「簇內散佈」。</li><li>結果區會即時更新；可一鍵複製結果用於記錄或彙報。</li></ol>
+<h2>典型使用場景</h2>
+<ul><li>慣性 inertia=Σ‖x−μ_k‖²(簇內平方和 WCSS)，越小聚類越緊緻。</li><li>inertia 隨 k 增大單調下降，需用拐點(手肘)或輪廓係數選 k。</li><li>K-Means 對初始中心與異常值敏感，常多次初始化取最優。</li></ul>
+<h2>算例參考</h2>
+<ul><li><strong>代價比較</strong>：k=2 時 inertia=500, k=3 時=300, k=4 時=220。inertia 持續下降，k=3→4 降幅(80)明顯小於 2→3(200)，結合業務選 k=3 或 4。</li></ul>
+<h2>注意事項</h2>
+<p>結果為按上述公式得到的<strong>理論估算值</strong>，實際表現受資料分佈、實現細節與執行環境影響，落地決策請以實測為準；本工具純前端執行，輸入不上傳伺服器。</p>
+<div class="related">
+<h3>相關工具</h3>
+<a class="tool-chip" href="https://tools.dicomp.net/tools/ai/l1-l2.html">L1 L2 正則化懲罰</a>
+<a class="tool-chip" href="https://tools.dicomp.net/tools/ai/l1-l2-regularization.html">L1/L2 正則項</a>
+<a class="tool-chip" href="https://tools.dicomp.net/tools/ai/lr-decay.html">學習率衰減</a>
+<a class="tool-chip" href="https://tools.dicomp.net/tools/ai/lr-warmup.html">學習率預熱步數</a>
+</div>
+<dl class="faq">
+<dt>inertia 越小越好嗎？</dt><dd>不是。k 越大 inertia 越小，k=樣本數時為 0 但失去聚類意義；應兼顧緊緻性與簇數簡潔，用手肘/輪廓係數平衡。</dd>
+<dt>異常值怎麼處理？</dt><dd>異常值會大幅拉高 inertia 並偏移質心，可先做離群檢測或用 K-Medoids(基於距離中位數)更穩健。</dd>
+</dl>
+<div class="back"><a href="https://tools.dicomp.net/tools/ai/k-means.html">→ 開啟聚類 K-Means 代價工具</a></div>
+</main>
+</body>
+</html>

@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-opencc-locale="zh-tw">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=calculator,industry=energy,icon=⚡,bg=#fff3e0">
+<title>待機功耗計算器 - 免費線上能源電力工具</title>
+<link rel="canonical" href="https://tools.dicomp.net/zh-tw/tools/energy/standby-power-calculator.html">
+<meta property="og:title" content="待機功耗計算器 - 免費線上能源電力工具">
+<meta property="og:description" content="待機功耗計算器是一款免費的線上能源電力工具，勾選家中常用電器並設定數量，按各裝置待機功耗計算全家待機總功率，並估算關閉待機一年可節省的電費金額。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta property="og:url" content="https://tools.dicomp.net/zh-tw/tools/energy/standby-power-calculator.html">
+<meta name="twitter:card" content="summary">
+<meta name="description" content="待機功耗計算器是一款免費的線上能源電力工具，勾選家中常用電器並設定數量，按各裝置待機功耗計算全家待機總功率，並估算關閉待機一年可節省的電費金額。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<link rel="stylesheet" href="/css/common.css">
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/common.js" defer></script>
+<style>
+.appliance-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin:12px 0;}
+.appliance-item{display:flex;align-items:center;gap:10px;padding:12px;border:1.5px solid var(--border);border-radius:12px;background:var(--card-bg);transition:all 0.2s;cursor:pointer;}
+.appliance-item:hover{border-color:var(--primary);box-shadow:var(--shadow-sm);}
+.appliance-item.checked{border-color:var(--primary);background:var(--bg-hover);}
+.appliance-item input[type="checkbox"]{width:18px;height:18px;accent-color:var(--primary);cursor:pointer;flex-shrink:0;}
+.appliance-icon{font-size:24px;flex-shrink:0;}
+.appliance-info{flex:1;min-width:0;}
+.appliance-name{font-size:13px;font-weight:600;color:var(--text);display:block;}
+.appliance-power{font-size:11px;color:var(--text-muted);}
+.qty-control{display:flex;align-items:center;gap:4px;flex-shrink:0;}
+.qty-control button{width:24px;height:24px;border:1px solid var(--border);background:var(--card-bg);border-radius:6px;cursor:pointer;font-size:14px;color:var(--text);display:flex;align-items:center;justify-content:center;line-height:1;}
+.qty-control button:hover{border-color:var(--primary);color:var(--primary);}
+.qty-control input{width:40px;text-align:center;padding:4px;border:1px solid var(--border);border-radius:6px;font-size:13px;}
+.compare-box{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:12px 0;}
+.compare-card{padding:14px;border-radius:12px;text-align:center;}
+.compare-card.waste{background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);}
+.compare-card.save{background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.2);}
+.compare-card .amount{font-size:22px;font-weight:700;}
+.compare-card.waste .amount{color:var(--danger);}
+.compare-card.save .amount{color:var(--success);}
+.compare-card .desc{font-size:12px;color:var(--text-muted);margin-top:4px;}
+@media(max-width:768px){.appliance-grid{grid-template-columns:1fr;}.compare-box{grid-template-columns:1fr;}}
+</style>
+
+
+
+<meta property="og:image" content="https://tools.dicomp.net/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免費線上工具">
+<meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免費線上工具">
+    <meta property="og:type" content="website">
+    <meta name="twitter:title" content="待機功耗計算器 - 免費線上能源電力工具">
+    <meta name="twitter:description" content="待機功耗計算器是一款免費的線上能源電力工具，勾選家中常用電器並設定數量，按各裝置待機功耗計算全家待機總功率，並估算關閉待機一年可節省的電費金額。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"待機功耗計算器","url":"https://tools.dicomp.net/zh-tw/tools/energy/standby-power-calculator.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"待機功耗計算器是一款免費的線上能源電力工具，勾選家中常用電器並設定數量，按各裝置待機功耗計算全家待機總功率，並估算關閉待機一年可節省的電費金額。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首頁","item":"https://tools.dicomp.net/zh-tw/"},{"@type":"ListItem","position":2,"name":"能源電力","item":"https://tools.dicomp.net/zh-tw/tools/energy/index.html"},{"@type":"ListItem","position":3,"name":"待機功耗計算器","item":"https://tools.dicomp.net/zh-tw/tools/energy/standby-power-calculator.html"}]}</script>
+
+<script src="/js/i18n.js" defer></script>
+<script src="/js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+
+
+<meta name="title-en" content="Standby Power Calculator">
+<meta name="desc-en" content="Standby Power Calculator - compute values online with accurate results.">
+
+
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
+
+<script src="/js/tool-ux.js" defer></script>
+<!-- TOOLBOX-TOOL-UX -->
+
+<script src="/js/analytics.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+<!-- TOOLBOX-TTZZ -->
+<script>
+(function(){try{
+var el = document.createElement("script");
+el.src = "https://lf1-cdn-tos.bytegoofy.com/goofy/ttzz/push.js?85d6452aa9be4d693b16cd48535a8c7ae57542f6788a41682e745be8eb99b35a8a24d2f724c31ebe20c1e4e6fba6d91caf576100b02a2870c72f38fc574066fef065d152c73bf1cbb2ebad3b5b5265d8";
+el.id = "ttzz";
+var s = document.getElementsByTagName("script")[0];
+s.parentNode.insertBefore(el, s);
+}catch(e){}
+})(window);
+</script>
+
+<script src="/js/tool-kit.js" defer></script>
+<!-- TOOLBOX-TOOL-KIT -->
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://tools.dicomp.net/tools/energy/standby-power-calculator.html">
+<link rel="alternate" hreflang="zh-TW" href="https://tools.dicomp.net/zh-tw/tools/energy/standby-power-calculator.html">
+<link rel="alternate" hreflang="en-US" href="https://tools.dicomp.net/tools/energy/standby-power-calculator.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://tools.dicomp.net/tools/energy/standby-power-calculator.html">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+</head>
+<body>
+<h1 class="sr-only">待機功耗計算器</h1>
+
+<div class="nav">
+  <a href="/zh-tw/index.html">← ToolBox</a>
+  <span>/ 待機功耗計算器</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+
+
+
+
+<nav class="breadcrumb" aria-label="麵包屑導航" data-breadcrumb="1">
+  <a href="/zh-tw/index.html">首頁</a>
+  <span class="bc-sep">‹</span>
+  <a href="/zh-tw/tools/energy/index.html">⚡ 能源電力</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">待機功耗計算器</span>
+</nav>
+<div class="container">
+<div class="tool-guide-link" data-guide-link="1">
+  <a href="/zh-tw/guides/standby-power-calculator-guide.html">📖 檢視「待機功耗計算器 使用指南」</a>
+</div>
+
+  <style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#3b82f6)}.tbk-tab.active{background:var(--accent,#3b82f6);color:#fff;border-color:var(--accent,#3b82f6)}.tbk-panel{margin-top:6px}</style>
+<div class="tbk-tabbar" role="tablist">
+  <button type="button" class="tbk-tab" data-pane="res">結果</button>
+  <button type="button" class="tbk-tab" data-pane="tbl">資料表</button>
+  <button type="button" class="tbk-tab" data-pane="pre">預設</button>
+  <button type="button" class="tbk-tab" data-pane="his">歷史</button>
+</div>
+<div class="card tool-card-accent" style="--tool-accent:#06B6D4;">
+    <h2 data-zh="⚡ 待機功耗計算器">⚡ Standby Power Calculator</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="勾選家中的電器並設定數量，計算待機總功耗和關閉待機可節省的電費">Sum the standby consumption of appliances, power multiplied by hours, to reveal the yearly cost of always-on devices.</p>
+    <div class="formula-box">
+      <div class="formula-title">📐 計算公式</div>
+      <div class="formula-eq">待機功耗 = Σ(P_i × t_i)</div>
+      <p class="formula-desc">勾選家中的電器並設定數量，計算待機總功耗和關閉待機可節省的電費</p>
+    </div>
+
+    <div class="input-row">
+      <div>
+        <label>電價 (元/kWh)</label>
+        <input type="number" id="elecPrice" value="0.58" min="0" max="2" step="0.01" oninput="calc()">
+      </div>
+      <div>
+        <label>每日待機時長 (小時)</label>
+        <input type="number" id="standbyHours" value="20" min="1" max="24" step="1" oninput="calc()">
+      </div>
+    </div>
+
+    <h3 style="margin:16px 0 8px;">勾選待機中的電器</h3>
+    <div class="appliance-grid" id="applianceGrid"></div>
+
+    <div class="toolbar">
+      <div id="standby_power_calculatorPresets"></div><button type="button" class="btn primary" onclick="calc()">計算</button><button class="btn" type="button" onclick="__standby_power_calculatorExport()">匯出明細 CSV</button>
+      <button type="button" class="btn" onclick="selectAll(true)">全選</button>
+      <button type="button" class="btn" onclick="selectAll(false)">全不選</button>
+      <button type="button" class="btn" onclick="copyResult()">複製結果</button>
+    </div>
+
+    <div class="compare-box">
+      <div class="compare-card waste">
+        <div class="amount" id="wasteAmount">¥0</div>
+        <div class="desc">每年待機浪費電費</div>
+      </div>
+      <div class="compare-card save">
+        <div class="amount" id="saveAmount">¥0</div>
+        <div class="desc">關閉待機可節省電費</div>
+      </div>
+    </div>
+
+    <div class="result-box" id="result"></div> <div id="standby_power_calculatorTable"></div> <div id="standby_power_calculatorDiff"></div> <div id="standby_power_calculatorChart"></div> <div id="standby_power_calculatorHist"></div>
+  </div>
+
+  <div class="card">
+    <h3>📊 常見電器待機功耗參考</h3>
+    <p style="font-size:12px;color:var(--text-muted);margin-bottom:10px;">以下為常見家用電器的典型待機功率資料，實際值因品牌型號而異</p>
+    <table>
+      <thead><tr><th>電器</th><th>待機功率</th><th>日待機耗電 (20h)</th><th>年待機耗電</th><th>年電費</th></tr></thead>
+      <tbody id="refTable"></tbody>
+    </table>
+    <div class="tip-box tip-warn" style="margin-top:12px;">
+      💡 機頂盒是"待機耗電大戶"，單臺年待機電費可達數十元。建議長期不用的電器徹底斷電（拔插頭或使用帶開關的插排）。
+    </div>
+  </div>
+
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto 0;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+.deep-dive a.term-link{color:var(--tool-accent,#FF6B35);text-decoration:none;border-bottom:1px dashed currentColor;}
+.deep-dive a.term-link:hover{border-bottom-style:solid;}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：待機功耗計算器</h2>
+<h3>💡 常見使用場景</h3>
+<ul class="dd-list">
+<li>盤點家庭待機電器找耗電大戶。</li>
+<li>估算智慧插排斷電的年節省。</li>
+<li>對比不同電器的待機佔比。</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">家庭待機年費</div><div class="dd-ex-body">機頂盒 15 W、路由器 6 W、電視 3 W 等共約 30 W 待機 20 h/日：日耗 0.6 kWh、年 219 kWh、電費約 127 元。全部斷電後年省約 127 元，且延長裝置壽命。提示：機頂盒待機佔比高，優先處理。</div></div>
+<h3>❓ 常見問題（FAQ）</h3>
+<dl class="dd-faq">
+<dt>待機真的耗電嗎？</dt><dd>耗。多數家電待機仍有電源電路耗電，長年累積可觀，尤其機頂盒、音響、介面卡。</dd>
+<dt>怎麼最省事地消除待機？</dt><dd>用帶開關插排或智慧插座一鍵斷電，不必逐個拔插頭；定時類可設自動斷電。</dd>
+</dl>
+</div>
+</section>
+<!-- 注意事項區塊 -->
+<div class="tool-notes" style="--tool-accent:#06B6D4;">
+  <div class="tool-notes-title">⚠️ 使用說明與注意事項</div>
+  <ul>
+      <li>本工具純前端執行，資料不會上傳到伺服器</li>
+      <li>建議在主流瀏覽器（Chrome/Safari/Firefox/Edge）中使用</li>
+      <li>計算結果僅供參考，請以實際應用場景為準</li>
+  </ul>
+</div>
+<!-- /注意事項區塊 -->
+</div>
+
+<script>
+const appliances = [
+  { id: 'tv', name: '电视机', icon: '📺', power: 3.0, defaultQty: 1 },
+  { id: 'ac', name: '空调', icon: '❄️', power: 5.0, defaultQty: 1 },
+  { id: 'stb', name: '机顶盒', icon: '📡', power: 15.0, defaultQty: 1 },
+  { id: 'pc', name: '电脑', icon: '💻', power: 2.0, defaultQty: 1 },
+  { id: 'router', name: '路由器', icon: '📶', power: 6.0, defaultQty: 1 },
+  { id: 'washer', name: '洗衣机', icon: '🌀', power: 0.5, defaultQty: 1 },
+  { id: 'microwave', name: '微波炉', icon: '🍲', power: 3.0, defaultQty: 1 },
+  { id: 'waterheater', name: '电热水器', icon: '🚿', power: 4.0, defaultQty: 1 },
+  { id: 'speaker', name: '音响/功放', icon: '🔊', power: 5.0, defaultQty: 0 },
+  { id: 'console', name: '游戏机', icon: '🎮', power: 2.5, defaultQty: 0 },
+  { id: 'monitor', name: '显示器', icon: '🖥️', power: 1.5, defaultQty: 0 },
+  { id: 'printer', name: '打印机', icon: '🖨️', power: 4.0, defaultQty: 0 },
+  { id: 'charger', name: '充电器', icon: '🔋', power: 0.5, defaultQty: 2 },
+  { id: 'fan', name: '电风扇', icon: '🌀', power: 1.0, defaultQty: 0 },
+  { id: 'oven', name: '电烤箱', icon: '🍞', power: 2.0, defaultQty: 0 }
+];
+
+function buildAppliances() {
+  const grid = document.getElementById('applianceGrid');
+  let html = '';
+  appliances.forEach(function(a) {
+    html += '<div class="appliance-item" id="item-' + a.id + '" onclick="toggleItem(\'' + a.id + '\', event)">';
+    html += '<input type="checkbox" id="chk-' + a.id + '" ' + (a.defaultQty > 0 ? 'checked' : '') + ' onclick="toggleItem(\'' + a.id + '\', event)">';
+    html += '<span class="appliance-icon">' + a.icon + '</span>';
+    html += '<div class="appliance-info"><span class="appliance-name">' + a.name + '</span>';
+    html += '<span class="appliance-power">待机 ' + a.power + ' W</span></div>';
+    html += '<div class="qty-control">';
+    html += '<button onclick="adjustQty(\'' + a.id + '\',-1,event)">−</button>';
+    html += '<input type="number" id="qty-' + a.id + '" value="' + a.defaultQty + '" min="0" max="20" onclick="event.stopPropagation()" oninput="calc()">';
+    html += '<button onclick="adjustQty(\'' + a.id + '\',1,event)">+</button>';
+    html += '</div>';
+    html += '</div>';
+  });
+  const __g1=html;grid.innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
+  updateItemStyles();
+}
+
+function toggleItem(id, e) {
+  if (e) e.stopPropagation();
+  const chk = document.getElementById('chk-' + id);
+  chk.checked = !chk.checked;
+  if (chk.checked && parseInt(document.getElementById('qty-' + id).value) === 0) {
+    document.getElementById('qty-' + id).value = 1;
+  }
+  updateItemStyles();
+  calc();
+}
+
+function adjustQty(id, delta, e) {
+  if (e) e.stopPropagation();
+  const inp = document.getElementById('qty-' + id);
+  let val = parseInt(inp.value) || 0;
+  val = Math.max(0, Math.min(20, val + delta));
+  inp.value = val;
+  if (val > 0) {
+    document.getElementById('chk-' + id).checked = true;
+  }
+  updateItemStyles();
+  calc();
+}
+
+function updateItemStyles() {
+  appliances.forEach(function(a) {
+    const item = document.getElementById('item-' + a.id);
+    const chk = document.getElementById('chk-' + a.id);
+    if (chk.checked) item.classList.add('checked');
+    else item.classList.remove('checked');
+  });
+}
+
+function selectAll(state) {
+  appliances.forEach(function(a) {
+    document.getElementById('chk-' + a.id).checked = state;
+    if (state && parseInt(document.getElementById('qty-' + a.id).value) === 0) {
+      document.getElementById('qty-' + a.id).value = 1;
+    }
+  });
+  updateItemStyles();
+  calc();
+}
+
+function calc() {
+  const price = parseFloat(document.getElementById('elecPrice').value) || 0.58;
+  const hours = parseFloat(document.getElementById('standbyHours').value) || 20;
+
+  let totalPower = 0;
+  let activeItems = [];
+
+  appliances.forEach(function(a) {
+    const chk = document.getElementById('chk-' + a.id);
+    const qty = parseInt(document.getElementById('qty-' + a.id).value) || 0;
+    if (chk.checked && qty > 0) {
+      const power = a.power * qty;
+      totalPower += power;
+      activeItems.push({ name: a.name, icon: a.icon, power: a.power, qty: qty, total: power });
+    }
+  });
+
+  const dayKwh = (totalPower * hours) / 1000;
+  const monthKwh = dayKwh * 30;
+  const yearKwh = dayKwh * 365;
+  const yearCost = yearKwh * price;
+  const monthCost = monthKwh * price;
+
+  const __g2='¥' + yearCost.toFixed(1);document.getElementById('wasteAmount').textContent=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
+  const __g3='¥' + yearCost.toFixed(1);document.getElementById('saveAmount').textContent=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
+
+  let html = '<div class="stat-grid">';
+  html += '<div class="stat-card"><div class="val">' + totalPower.toFixed(1) + '</div><div class="lbl">总待机功率 W</div></div>';
+  html += '<div class="stat-card"><div class="val">' + dayKwh.toFixed(3) + '</div><div class="lbl">日耗电 kWh</div></div>';
+  html += '<div class="stat-card"><div class="val">' + yearKwh.toFixed(1) + '</div><div class="lbl">年耗电 kWh</div></div>';
+  html += '<div class="stat-card"><div class="val">¥' + yearCost.toFixed(1) + '</div><div class="lbl">年电费</div></div>';
+  html += '</div>';
+
+  if (activeItems.length > 0) {
+    html += '<h3 style="margin-top:16px;font-size:14px;">电器明细</h3>';
+    html += '<table><thead><tr><th>电器</th><th>单台功率</th><th>数量</th><th>合计功率</th><th>年电费</th></tr></thead><tbody>';
+    activeItems.forEach(function(it) {
+      const yk = (it.total * hours * 365) / 1000 * price;
+      html += '<tr><td>' + it.icon + ' ' + it.name + '</td><td>' + it.power + ' W</td><td>' + it.qty + '</td><td>' + it.total.toFixed(1) + ' W</td><td>¥' + yk.toFixed(1) + '</td></tr>';
+    });
+    html += '</tbody></table>';
+  } else {
+    html += '<div class="tip-box tip-info" style="margin-top:12px;">请勾选待机中的电器进行计算</div>';
+  }
+
+  html += '<div class="tip-box tip-success" style="margin-top:12px;">';
+  html += '💡 关闭待机后每年可节省 <strong>¥' + yearCost.toFixed(1) + '</strong> 电费（' + yearKwh.toFixed(1) + ' kWh）。';
+  html += '按月计算可省 <strong>¥' + monthCost.toFixed(1) + '</strong>。建议使用带独立开关的智能插排，一键切断待机电源。</div>';
+
+  const __g4=html;document.getElementById('result').innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
+}
+
+function buildRefTable() {
+  const price = 0.58;
+  const hours = 20;
+  let html = '';
+  appliances.forEach(function(a) {
+    const dayK = (a.power * hours) / 1000;
+    const yearK = dayK * 365;
+    const yearC = yearK * price;
+    html += '<tr><td>' + a.icon + ' ' + a.name + '</td><td>' + a.power + ' W</td><td>' + dayK.toFixed(3) + ' kWh</td><td>' + yearK.toFixed(1) + ' kWh</td><td>¥' + yearC.toFixed(1) + '</td></tr>';
+  });
+  const __g5=html;document.getElementById('refTable').innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
+}
+
+function copyResult() {
+  const el = document.getElementById('result');
+  if (el) ToolBox.copyText(el.innerText, i18nText('toast.msg544'));
+}
+
+buildAppliances();
+buildRefTable();
+calc();
+</script>
+
+<!-- SEO 介紹區塊 -->
+
+</div>
+
+</div>
+
+<!-- 相關工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相關工具</h3>
+  <div class="related-tools-grid">
+
+    <a href="/zh-tw/tools/science/barcode-pharmacode.html" class="related-tool-card">
+      <span class="rt-icon">🏷️</span>
+      <span class="rt-info"><span class="rt-name">Pharmacode 條形碼 - 免費生成器工具，線上Pharmacode 條形碼 | ToolBox免費線上工具箱</span><span class="rt-desc">Pharmacode 條形碼</span></span>
+    </a>
+
+
+
+    <a href="/zh-tw/tools/misc/truth-table.html" class="related-tool-card">
+      <span class="rt-icon">✨</span>
+      <span class="rt-info"><span class="rt-name">邏輯真值表生成器 - 科學研究線上工具 | ToolBox免費線上工具箱</span><span class="rt-desc">邏輯真值表生成器</span></span>
+    </a>
+    <a href="/zh-tw/tools/energy/convert-emission.html" class="related-tool-card">
+      <span class="rt-icon">🌾</span>
+      <span class="rt-info"><span class="rt-name">溫室氣體排放換算（CO₂當量）</span><span class="rt-desc">將甲烷、氧化亞氮等溫室氣體按全球增溫潛勢折算為 CO₂ 當量，用於碳排核算與對比，純前端換算便於快速</span></span>
+    </a>
+    <a href="/zh-tw/tools/energy/battery-capacity-wh.html" class="related-tool-card">
+      <span class="rt-icon">🧊</span>
+      <span class="rt-info"><span class="rt-name">電池容量換算</span><span class="rt-desc">輸入電池容量（Ah）與標稱電壓（V），工具按 能量=容量×電壓 換算為瓦時（Wh），也支援反向由 W</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro open" id="toolIntro">
+  <div class="tool-intro-header">
+    <span class="intro-icon-wrap"><span class="intro-icon">📖</span>關於「待機功耗計算器」</span>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="tool-intro-body">
+    <h4><span class="h4-icon">📝</span>工具簡介</h4>
+    <p>待機功耗計算器是一款能源電力領域的線上工具。基於標準物理與工程公式，計算精準、結果可信。</p>
+    <h4><span class="h4-icon">✨</span>功能特點</h4>
+    <ul class="intro-features">
+      <li>基於標準物理與工程公式</li>
+      <li>支援多種引數配置</li>
+      <li>即時計算，即時顯示結果</li>
+      <li>資料不上傳，安全可靠</li>
+    </ul>
+    <h4><span class="h4-icon">🎯</span>使用場景</h4>
+    <ul class="intro-scenes">
+      <li>用電與能耗資料分析</li>
+      <li>電功率與能量換算</li>
+      <li>能源方案評估輔助</li>
+      <li>學習能源電學知識</li>
+    </ul>
+    </div>
+</div>
+<!-- /SEO 介紹區塊 -->
+
+<script>
+// tool-intro折叠交互
+document.addEventListener('DOMContentLoaded',function(){
+  var headers=document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click',function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+
+var __standby_power_calculator_last=0,__standby_power_calculator_skip=false;
+function __standby_power_calculatorSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __standby_power_calculatorResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __standby_power_calculatorTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __standby_power_calculatorRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__standby_power_calculatorTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#standby_power_calculatorTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#standby_power_calculatorDiff');
+        TBKit.history.mount('#standby_power_calculatorHist',function(rec){
+            __standby_power_calculator_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __standby_power_calculator_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__standby_power_calculatorTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#standby_power_calculatorChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __standby_power_calculatorExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__standby_power_calculator_skip) return;
+    var snap=__standby_power_calculatorSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__standby_power_calculatorResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__standby_power_calculator_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __standby_power_calculator_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __standby_power_calculatorRender(keys,rk,en);
+}
+function __standby_power_calculatorExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#standby_power_calculatorTable','standby-power-calculator.csv'); } catch(e){}
+}
+function __standby_power_calculatorPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#standby_power_calculatorPresets',[{label:'默认参数',labelEn:'Default',values:{'elecPrice':'0.58', 'standbyHours':'20'}}],function(){ calc(); });
+}
+var __standby_power_calculator_f0=(typeof calc==='function')?calc:null;
+if(__standby_power_calculator_f0){
+    calc=function(){ var __r=__standby_power_calculator_f0.apply(null,arguments); try{ __standby_power_calculatorExtras(); }catch(e){} return __r; };
+}
+function __standby_power_calculatorBoot(){ try{ __standby_power_calculatorPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __standby_power_calculatorBoot();
+else document.addEventListener('DOMContentLoaded', __standby_power_calculatorBoot);
+</script>
+
+
+
+<script>/*TBKIT-INJECT-START*/
+(function(){
+  var P={"res": ["result", "standby_power_calculatorChart"], "tbl": ["standby_power_calculatorTable"], "pre": ["standby_power_calculatorPresets"], "his": ["standby_power_calculatorHist"]};
+  var L={res:['结果','Result'],chart:['图表','Chart'],tbl:['数据表','Data'],pre:['预设','Presets'],his:['历史','History']};
+  function tabify(){
+    var bar=document.querySelector('.tbk-tabbar');
+    if(!bar||!bar.querySelectorAll) return;
+    var btns=bar.querySelectorAll('.tbk-tab');
+    if(!btns||!btns.length) return;
+    var en=false;
+    try{ if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn) en=TBKit.util.isEn(); }catch(e){}
+    if(!en&&document.documentElement&&(document.documentElement.lang||'').indexOf('en')>=0) en=true;
+    for(var i=0;i<btns.length;i++){var p=btns[i].getAttribute('data-pane');btns[i].textContent=en?L[p][1]:L[p][0];}
+    function show(pane){
+      for(var k in P){var ids=P[k];for(var i=0;i<ids.length;i++){var el=document.getElementById(ids[i]);if(el&&el.style)el.style.display=(k===pane?'':'none');}}
+      for(var j=0;j<btns.length;j++){btns[j].className='tbk-tab'+(btns[j].getAttribute('data-pane')===pane?' active':'');}
+    }
+    for(var i=0;i<btns.length;i++){(function(b){b.addEventListener('click',function(){show(b.getAttribute('data-pane'));});})(btns[i]);}
+    show(btns[0].getAttribute('data-pane'));
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',tabify);else tabify();
+})();
+/*TBKIT-INJECT-END*/</script>
+</body>
+</html>

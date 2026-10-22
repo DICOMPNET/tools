@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-opencc-locale="zh-tw">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>線性迴歸分析 使用指南 - ToolBox</title>
+<meta name="description" content="輸入成對的 X、Y 資料，用最小二乘法擬合一元線性迴歸 y=a+bx，給出斜率、截距、判定係數 R² 及各點殘差，用於分析兩變數線性關係強弱">
+<meta property="og:title" content="線性迴歸分析 使用指南">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="ToolBox">
+<meta property="og:url" content="https://tools.dicomp.net/zh-tw/guides/regression-analysis-guide.html">
+<meta property="og:description" content="輸入成對的 X、Y 資料，用最小二乘法擬合一元線性迴歸 y=a+bx，給出斜率、截距、判定係數 R² 及各點殘差，用於分析兩變數線性關係強弱">
+<meta name="twitter:title" content="線性迴歸分析 使用指南">
+<meta name="twitter:description" content="輸入成對的 X、Y 資料，用最小二乘法擬合一元線性迴歸 y=a+bx，給出斜率、截距、判定係數 R² 及各點殘差，用於分析兩變數線性關係強弱">
+<meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 免費線上工具與使用指南">
+<meta property="og:image" content="https://tools.dicomp.net/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="canonical" href="https://tools.dicomp.net/zh-tw/guides/regression-analysis-guide.html">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"線性迴歸分析 使用指南","description":"輸入成對的 X、Y 資料，用最小二乘法擬合一元線性迴歸 y=a+bx，給出斜率、截距、判定係數 R² 及各點殘差，用於分析兩變數線性關係強弱","author":{"@type":"Organization","name":"ToolBox"},"datePublished":"2026-09-16","dateModified":"2026-09-16","mainEntityOfPage":{"@type":"WebPage","@id":"https://tools.dicomp.net/zh-tw/guides/stats-regression-analysis-guide.html"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"ToolBox","item":"https://tools.dicomp.net/zh-tw/"},{"@type":"ListItem","position":2,"name":"使用指南","item":"https://tools.dicomp.net/zh-tw/guides/index.html"},{"@type":"ListItem","position":3,"name":"線性迴歸分析 使用指南","item":"https://tools.dicomp.net/zh-tw/guides/stats-regression-analysis-guide.html"}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"R² 高就代表模型可靠嗎？","acceptedAnswer":{"@type":"Answer","text":"R² 高只說明自變數解釋了大部分變異，不代表因果。還需檢查殘差是否隨機、是否存在異常點，以及是否過度外推。"}},{"@type":"Question","name":"斜率置信區間怎麼用？","acceptedAnswer":{"@type":"Answer","text":"斜率 b 的 95% 置信區間 [1.9324, 2.0409] 不含 0，說明自變數與因變數存在顯著線性關係；若區間跨越 0 則關係不顯著。"}}]}</script>
+<style>
+:root{--primary:#FF6B35;--text:#1F2937;--muted:#6B7280;--border:#E5E7EB;--bg:#FFFAF7;}
+*{box-sizing:border-box;}
+body{margin:0;font-family:"Noto Sans SC","Plus Jakarta Sans",system-ui,sans-serif;color:var(--text);background:var(--bg);line-height:1.75;}
+.breadcrumb a{color:var(--primary);text-decoration:none;margin-right:6px;}
+.breadcrumb a:hover{text-decoration:underline;}
+main{max-width:820px;margin:0 auto;padding:28px 20px 60px;}
+h1{font-size:28px;margin:0 0 8px;}
+.lead{font-size:16px;color:var(--muted);margin:0 0 22px;}
+h2{font-size:20px;margin:28px 0 10px;color:var(--primary);}
+ul,ol{padding-left:22px;}
+li{margin:8px 0;}
+.related{margin-top:26px;padding:16px;background:#fff;border:1px solid var(--border);border-radius:14px;}
+.related h3{margin:0 0 10px;font-size:16px;color:var(--text);}
+.tool-chip{display:inline-block;margin:4px 6px 4px 0;padding:6px 12px;border:1px solid var(--border);border-radius:999px;color:var(--primary);text-decoration:none;font-size:14px;}
+.tool-chip:hover{background:var(--primary);color:#fff;}
+.faq{margin-top:26px;}
+.faq dt{font-weight:700;margin-top:14px;}
+.faq dd{margin:4px 0 0;color:var(--muted);}
+.back{margin-top:30px;padding:16px;background:#fff;border:1px solid var(--border);border-radius:14px;}
+.back a{color:var(--primary);font-weight:700;text-decoration:none;}
+</style>
+<script src="/js/analytics.js" defer></script>
+<link rel="stylesheet" href="/css/site-chrome.css">
+<link rel="stylesheet" href="/css/common.css">
+<script src="/js/i18n.js" defer></script>
+<script src="/js/common.js" defer></script>
+<!-- TOOLBOX-TTZZ -->
+<script>
+(function(){try{
+var el = document.createElement("script");
+el.src = "https://lf1-cdn-tos.bytegoofy.com/goofy/ttzz/push.js?85d6452aa9be4d693b16cd48535a8c7ae57542f6788a41682e745be8eb99b35a8a24d2f724c31ebe20c1e4e6fba6d91caf576100b02a2870c72f38fc574066fef065d152c73bf1cbb2ebad3b5b5265d8";
+el.id = "ttzz";
+var s = document.getElementsByTagName("script")[0];
+s.parentNode.insertBefore(el, s);
+}catch(e){}
+})(window);
+</script>
+
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://tools.dicomp.net/guides/regression-analysis-guide.html">
+<link rel="alternate" hreflang="zh-TW" href="https://tools.dicomp.net/zh-tw/guides/regression-analysis-guide.html">
+<link rel="alternate" hreflang="en-US" href="https://tools.dicomp.net/guides/regression-analysis-guide.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://tools.dicomp.net/guides/regression-analysis-guide.html">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+</head>
+<body>
+<nav class="breadcrumb"><a href="https://tools.dicomp.net/">ToolBox</a> / <a href="https://tools.dicomp.net/guides/index.html">使用指南</a> / <span>線性迴歸分析 使用指南</span></nav>
+<main>
+<h1>線性迴歸分析 使用指南</h1>
+<p class="lead">輸入成對的 X、Y 資料，用最小二乘法擬合一元線性迴歸 y=a+bx，給出斜率、截距、判定係數 R² 及各點殘差，用於分析兩變數線性關係強弱並做趨勢預測。</p>
+<h2>功能說明</h2>
+<p>輸入成對的 X、Y 資料，用最小二乘法擬合一元線性迴歸 y=a+bx，給出斜率、截距、判定係數 R² 及各點殘差，用於分析兩變數線性關係強弱並做趨勢預測。</p>
+<h2>典型使用場景</h2>
+<ul><li>分析廣告投入與銷售額的關係：用歷史成對資料擬合 y=a+bx，量化每單位投入帶來的銷售增量。</li><li>預測場景：得到迴歸方程後，代入新的自變數 X 預測因變數 Y（如 x=11 時預測 y）。</li><li>評估擬合優劣：用決定係數 R² 判斷自變數解釋因變數變異的比例，R² 越接近 1 擬合越好。</li></ul>
+<h2>算例參考</h2>
+<ul><li><strong>最小二乘擬合與預測</strong>：以 x=1…10、y=2.1,3.9,…,19.7 為例，最小二乘得斜率 b=1.9867、截距 a=0.0733，方程 ŷ=0.0733+1.9867·x；相關係數 r=0.9994、決定係數 R²=0.9989（擬合極好）。斜率標準誤 0.0235、t=84.4408、95% 置信區間 [1.9324, 2.0409]。代入 x=11 預測 ŷ≈21.9267。</li></ul>
+<h2>注意事項</h2>
+<p>本工具純前端執行，輸入內容不上傳伺服器；結果為按上述口徑得到的<strong>理論估算值</strong>。實際應用受裝置引數、測量條件與當地規範影響，請以裝置銘牌、檢測報告與現行標準為準，重大決策建議諮詢專業人士。</p>
+<div class="related">
+<h3>相關工具</h3>
+<a class="tool-chip" href="https://tools.dicomp.net/tools/stats/sample-size.html">樣本量計算</a>
+<a class="tool-chip" href="https://tools.dicomp.net/tools/stats/statistical-tests.html">統計檢驗</a>
+<a class="tool-chip" href="https://tools.dicomp.net/tools/stats/data-distribution.html">資料分佈分析</a>
+<a class="tool-chip" href="https://tools.dicomp.net/tools/stats/regression-analysis.html">線性迴歸分析</a>
+</div>
+<dl class="faq">
+<dt>R² 高就代表模型可靠嗎？</dt><dd>R² 高只說明自變數解釋了大部分變異，不代表因果。還需檢查殘差是否隨機、是否存在異常點，以及是否過度外推。</dd>
+<dt>斜率置信區間怎麼用？</dt><dd>斜率 b 的 95% 置信區間 [1.9324, 2.0409] 不含 0，說明自變數與因變數存在顯著線性關係；若區間跨越 0 則關係不顯著。</dd>
+</dl>
+<div class="back"><a href="https://tools.dicomp.net/tools/stats/regression-analysis.html">→ 開啟線性迴歸分析工具</a></div>
+</main>
+</body>
+</html>

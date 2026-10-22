@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-opencc-locale="zh-tw">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=reference,industry=chinese,icon=🀄,bg=#fff8e1">
+<title>中文文化工具箱 - 免費線上中華文化工具</title>
+<link rel="canonical" href="https://tools.dicomp.net/zh-tw/tools/chinese/chinese-culture.html">
+<meta property="og:title" content="中文文化工具箱 - 免費線上中華文化工具">
+<meta property="og:description" content="中文文化工具箱是一款免費的線上中華文化工具，古詩詞 / 成語接龍 / 漢字筆畫 / 認知偏差 / 名言警句 / 道德困境。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta property="og:url" content="https://tools.dicomp.net/zh-tw/tools/chinese/chinese-culture.html">
+<meta name="twitter:card" content="summary">
+<meta name="description" content="中文文化工具箱是一款免費的線上中華文化工具，古詩詞 / 成語接龍 / 漢字筆畫 / 認知偏差 / 名言警句 / 道德困境。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<link rel="stylesheet" href="/css/common.css">
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/common.js" defer></script>
+<style>
+.poem-card{background:var(--result-bg);border:1px solid var(--border);border-radius:14px;padding:20px;margin:12px 0;position:relative;overflow:hidden;}
+.poem-card::before{content:'';position:absolute;top:0;left:0;width:4px;height:100%;background:var(--gradient-primary);border-radius:4px 0 0 4px;}
+.poem-card .poem-title{font-size:18px;font-weight:700;color:var(--heading);margin-bottom:4px;padding-left:12px;}
+.poem-card .poem-meta{font-size:13px;color:var(--text-muted);margin-bottom:12px;padding-left:12px;}
+.poem-card .poem-content{font-size:15px;line-height:2;color:var(--text);padding:12px;background:var(--card-bg);border-radius:10px;border:1px solid var(--border);margin:8px 0;font-style:italic;}
+.poem-card .poem-analysis{font-size:13px;color:var(--text-secondary);line-height:1.8;padding:8px 12px 0;}
+.idiom-chain{display:flex;flex-direction:column;gap:8px;margin:12px 0;}
+.idiom-item{padding:12px 16px;border-radius:12px;border:1px solid var(--border);background:var(--result-bg);transition:all 0.2s;}
+.idiom-item:first-child{border-color:var(--primary);background:rgba(255,107,53,0.06);}
+.idiom-item:last-child{border-color:var(--secondary);background:rgba(124,58,237,0.06);animation:fadeIn 0.3s ease;}
+.idiom-item .idiom-text{font-size:18px;font-weight:700;color:var(--heading);}
+.idiom-item .idiom-hint{font-size:12px;color:var(--text-muted);margin-top:4px;}
+.bias-card{background:var(--result-bg);border:1px solid var(--border);border-radius:14px;padding:20px;margin:12px 0;transition:all 0.3s;position:relative;overflow:hidden;}
+.bias-card:hover{transform:translateY(-2px);box-shadow:var(--shadow);}
+.bias-card .bias-name{font-size:17px;font-weight:700;color:var(--primary);margin-bottom:6px;}
+.bias-card .bias-category{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;background:rgba(124,58,237,0.1);color:var(--secondary);margin-bottom:10px;}
+.bias-card .bias-def{font-size:14px;color:var(--text);line-height:1.7;margin-bottom:8px;}
+.bias-card .bias-example{font-size:13px;color:var(--text-secondary);line-height:1.7;padding:10px 12px;background:var(--card-bg);border-radius:10px;border:1px solid var(--border);margin-bottom:8px;}
+.bias-card .bias-example::before{content:'💡 示例：';font-weight:600;color:var(--secondary);}
+.bias-card .bias-avoid{font-size:13px;color:var(--success);line-height:1.7;padding:8px 12px;background:rgba(16,185,129,0.06);border-radius:10px;border:1px solid rgba(16,185,129,0.15);}
+.bias-card .bias-avoid::before{content:'✅ 如何避免：';font-weight:600;}
+.quote-card{background:var(--result-bg);border:1px solid var(--border);border-radius:14px;padding:24px;margin:12px 0;text-align:center;position:relative;}
+.quote-card::before{content:'\201C';position:absolute;top:8px;left:16px;font-size:60px;color:var(--primary);opacity:0.15;font-family:Georgia,serif;line-height:1;}
+.quote-card::after{content:'\201D';position:absolute;bottom:-10px;right:16px;font-size:60px;color:var(--secondary);opacity:0.15;font-family:Georgia,serif;line-height:1;}
+.quote-card .quote-text{font-size:16px;line-height:1.8;color:var(--text);font-style:italic;margin-bottom:12px;padding:0 20px;position:relative;z-index:1;}
+.quote-card .quote-author{font-size:13px;color:var(--text-muted);font-weight:600;}
+.dilemma-card{background:var(--result-bg);border:1px solid var(--border);border-radius:14px;padding:20px;margin:12px 0;}
+.dilemma-card .dilemma-title{font-size:18px;font-weight:700;color:var(--heading);margin-bottom:12px;display:flex;align-items:center;gap:8px;}
+.dilemma-card .dilemma-title .dilemma-icon{font-size:24px;}
+.dilemma-card .dilemma-scenario{font-size:14px;color:var(--text);line-height:1.8;margin-bottom:16px;padding:14px;background:var(--card-bg);border-radius:12px;border:1px solid var(--border);}
+.dilemma-option{padding:14px;border:2px solid var(--border);border-radius:12px;margin-bottom:10px;cursor:pointer;transition:all 0.25s;font-size:14px;color:var(--text);}
+.dilemma-option:hover{border-color:var(--primary);background:rgba(255,107,53,0.04);}
+.dilemma-option.selected{border-color:var(--primary);background:rgba(255,107,53,0.08);}
+.dilemma-option .option-label{font-weight:700;color:var(--primary);margin-bottom:6px;}
+.dilemma-analysis{margin-top:14px;padding:16px;background:var(--card-bg);border-radius:12px;border:1px solid var(--border);display:none;animation:fadeIn 0.3s ease;}
+.dilemma-analysis.show{display:block;}
+.dilemma-analysis .analysis-title{font-weight:700;color:var(--heading);margin-bottom:10px;font-size:15px;}
+.dilemma-analysis .analysis-school{margin:10px 0;padding:10px 14px;border-radius:10px;border-left:3px solid var(--secondary);background:var(--result-bg);}
+.dilemma-analysis .analysis-school .school-name{font-weight:700;color:var(--secondary);font-size:13px;margin-bottom:4px;}
+.dilemma-analysis .analysis-school .school-view{font-size:13px;color:var(--text-secondary);line-height:1.7;}
+.stroke-grid{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0;}
+.stroke-char{display:flex;flex-direction:column;align-items:center;justify-content:center;width:52px;height:64px;background:var(--result-bg);border:1px solid var(--border);border-radius:10px;transition:all 0.2s;}
+.stroke-char:hover{border-color:var(--primary);transform:translateY(-2px);}
+.stroke-char .char-text{font-size:22px;font-weight:700;color:var(--heading);}
+.stroke-char .char-stroke{font-size:11px;color:var(--text-muted);margin-top:2px;}
+.stroke-total{font-size:28px;font-weight:800;color:var(--primary);text-align:center;margin:12px 0;}
+.filter-bar{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;}
+.filter-btn{padding:6px 14px;border-radius:20px;border:1px solid var(--border);background:var(--card-bg);color:var(--text-secondary);font-size:12px;cursor:pointer;transition:all 0.2s;font-weight:500;}
+.filter-btn:hover,.filter-btn.active{border-color:var(--primary);color:var(--primary);background:rgba(255,107,53,0.06);}
+.score-display{display:flex;gap:16px;align-items:center;margin:12px 0;}
+.score-display .score-item{text-align:center;}
+.score-display .score-val{font-size:24px;font-weight:800;color:var(--primary);}
+.score-display .score-label{font-size:12px;color:var(--text-muted);}
+.input-group{display:flex;gap:8px;margin-bottom:12px;}
+.input-group input{flex:1;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+@keyframes pulse{0%,100%{transform:scale(1);}50%{transform:scale(1.05);}}
+.shake{animation:shake 0.5s ease;}
+@keyframes shake{0%,100%{transform:translateX(0);}25%{transform:translateX(-5px);}75%{transform:translateX(5px);}}
+.empty-state{text-align:center;padding:40px 20px;color:var(--text-muted);font-size:14px;}
+.empty-state .empty-icon{font-size:48px;margin-bottom:12px;opacity:0.5;}
+@media(max-width:768px){
+  .poem-card .poem-title{font-size:16px;}
+  .poem-card .poem-content{font-size:14px;padding:10px;}
+  .idiom-item .idiom-text{font-size:16px;}
+  .quote-card .quote-text{font-size:15px;}
+  .bias-card .bias-name{font-size:15px;}
+  .stroke-char{width:44px;height:56px;}
+  .stroke-char .char-text{font-size:18px;}
+}
+</style>
+
+
+
+<meta property="og:image" content="https://tools.dicomp.net/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免費線上工具">
+<meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免費線上工具">
+    <meta property="og:type" content="website">
+    <meta name="twitter:title" content="中文文化工具箱 - 免費線上中華文化工具">
+    <meta name="twitter:description" content="中文文化工具箱是一款免費的線上中華文化工具，古詩詞 / 成語接龍 / 漢字筆畫 / 認知偏差 / 名言警句 / 道德困境。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"中文文化工具箱","url":"https://tools.dicomp.net/zh-tw/tools/chinese/chinese-culture.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"中文文化工具箱是一款免費的線上中華文化工具，古詩詞 / 成語接龍 / 漢字筆畫 / 認知偏差 / 名言警句 / 道德困境。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首頁","item":"https://tools.dicomp.net/zh-tw/"},{"@type":"ListItem","position":2,"name":"中華文化","item":"https://tools.dicomp.net/zh-tw/tools/chinese/index.html"},{"@type":"ListItem","position":3,"name":"中文文化工具箱","item":"https://tools.dicomp.net/zh-tw/tools/chinese/chinese-culture.html"}]}</script>
+
+<script src="/js/i18n.js" defer></script>
+<script src="/js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+
+
+<meta name="title-en" content="Chinese Culture">
+<meta name="desc-en" content="Chinese Culture - online utility on ToolBox.">
+
+
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
+
+<script src="/js/tool-ux.js" defer></script>
+<!-- TOOLBOX-TOOL-UX -->
+
+<script src="/js/analytics.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+<!-- TOOLBOX-TTZZ -->
+<script>
+(function(){try{
+var el = document.createElement("script");
+el.src = "https://lf1-cdn-tos.bytegoofy.com/goofy/ttzz/push.js?85d6452aa9be4d693b16cd48535a8c7ae57542f6788a41682e745be8eb99b35a8a24d2f724c31ebe20c1e4e6fba6d91caf576100b02a2870c72f38fc574066fef065d152c73bf1cbb2ebad3b5b5265d8";
+el.id = "ttzz";
+var s = document.getElementsByTagName("script")[0];
+s.parentNode.insertBefore(el, s);
+}catch(e){}
+})(window);
+</script>
+
+<script src="/js/tool-kit.js" defer></script>
+<!-- TOOLBOX-TOOL-KIT -->
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://tools.dicomp.net/tools/chinese/chinese-culture.html">
+<link rel="alternate" hreflang="zh-TW" href="https://tools.dicomp.net/zh-tw/tools/chinese/chinese-culture.html">
+<link rel="alternate" hreflang="en-US" href="https://tools.dicomp.net/tools/chinese/chinese-culture.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://tools.dicomp.net/tools/chinese/chinese-culture.html">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+</head>
+<body>
+<h1 class="sr-only">中文文化工具箱</h1>
+
+
+<div class="nav">
+  <a href="/zh-tw/index.html">&larr; ToolBox</a>
+  <span>/ 中文文化工具箱</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">&#127769;</button>
+</div>
+
+
+
+
+
+<nav class="breadcrumb" aria-label="麵包屑導航" data-breadcrumb="1">
+  <a href="/zh-tw/index.html">首頁</a>
+  <span class="bc-sep">‹</span>
+  <a href="/zh-tw/tools/chinese/index.html">🀄 中華文化</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">中文文化工具箱</span>
+</nav>
+
+<div class="tool-guide-link" data-guide-link="1">
+  <a href="/zh-tw/guides/chinese-culture-guide.html">📖 檢視「中文文化工具箱 使用指南」</a>
+</div>
+<div class="container">
+  <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
+    <h2 data-zh="🀄 中文文化工具箱">Chinese Culture</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="古詩詞 / 成語接龍 / 漢字筆畫 / 認知偏差 / 名言警句 / 道德困境">Chinese Culture</p>
+
+    <div class="tabs" id="mainTabs">
+      <button type="button" class="tab-btn active" onclick="switchTab('poem')">&#127912; 古詩詞</button>
+      <button type="button" class="tab-btn" onclick="switchTab('idiom')">&#129300; 成語接龍</button>
+      <button type="button" class="tab-btn" onclick="switchTab('stroke')">&#9997; 漢字筆畫</button>
+      <button type="button" class="tab-btn" onclick="switchTab('bias')">&#129504; 認知偏差</button>
+      <button type="button" class="tab-btn" onclick="switchTab('quote')">&#128172; 名言警句</button>
+      <button type="button" class="tab-btn" onclick="switchTab('dilemma')">&#2696;&#65039; 道德困境</button>
+    </div>
+
+    <div style="margin:10px 0 4px;font-size:13px;color:var(--text-muted);">📜 示例查詢（一鍵演示）：</div>
+    <div class="toolbar">
+      <button type="button" class="btn" onclick="applyCulturePreset('libai')">李白詩選</button>
+      <button type="button" class="btn" onclick="applyCulturePreset('silent')">《靜夜思》</button>
+      <button type="button" class="btn" onclick="applyCulturePreset('yong')">「永」字筆畫</button>
+      <button type="button" class="btn" onclick="applyCulturePreset('bias')">錨定效應</button>
+      <button type="button" class="btn" onclick="applyCulturePreset('quote')">隨機名言</button>
+    </div>
+
+    <!-- ========== 1. 古詩詞 ========== -->
+    <div class="tab-content active" id="tab-poem">
+      <div class="filter-bar" id="poemFilters">
+        <button type="button" class="filter-btn active" onclick="filterPoems('all',this)">全部</button>
+        <button type="button" class="filter-btn" onclick="filterPoems('dynasty',this)">按朝代</button>
+        <button type="button" class="filter-btn" onclick="filterPoems('type',this)">按型別</button>
+        <button type="button" class="filter-btn" onclick="filterPoems('author',this)">按作者</button>
+      </div>
+      <div id="poemSubFilter" class="filter-bar" style="display:none;"></div>
+      <div class="toolbar">
+        <input type="search" id="poemSearch" placeholder="搜尋詩名、作者或內容..." oninput="searchPoems()">
+        <button type="button" class="btn primary" onclick="randomPoem()">&#127922; 隨機一首</button>
+        <button type="button" class="btn" onclick="copyPoem()">&#128203; 複製</button>
+      </div>
+      <div id="poemDisplay"></div>
+      <div id="poemList" style="max-height:500px;overflow-y:auto;"></div>
+    </div>
+
+    <!-- ========== 2. 成語接龍 ========== -->
+    <div class="tab-content" id="tab-idiom">
+      <div class="toolbar">
+        <button type="button" class="btn primary" id="idiomModeBtn" onclick="toggleIdiomMode()">&#127918; 模式：人機</button>
+        <button type="button" class="btn" onclick="resetIdiom()">&#128260; 重新開始</button>
+      </div>
+      <p id="idiomHint" style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">人機模式：輸入成語，AI 接龍。機器出題模式：AI 出題，你來接。</p>
+      <div class="score-display" id="idiomScore">
+        <div class="score-item"><div class="score-val" id="idiomScoreVal">0</div><div class="score-label">得分</div></div>
+        <div class="score-item"><div class="score-val" id="idiomChainVal">0</div><div class="score-label">連擊</div></div>
+        <div class="score-item"><div class="score-val" id="idiomTimeVal">0</div><div class="score-label">用時(秒)</div></div>
+      </div>
+      <div class="input-group">
+        <input type="text" id="idiomInput" placeholder="請輸入四字成語..." onkeydown="if(event.key==='Enter')submitIdiom()">
+        <button type="button" class="btn primary" onclick="submitIdiom()">&#9654; 接龍</button>
+      </div>
+      <div class="idiom-chain" id="idiomChain">
+        <div class="empty-state"><div class="empty-icon">&#127918;</div>輸入成語開始接龍吧</div>
+      </div>
+    </div>
+
+    <!-- ========== 3. 漢字筆畫 ========== -->
+    <div class="tab-content" id="tab-stroke">
+      <div class="toolbar">
+        <input type="text" id="strokeInput" placeholder="輸入漢字或詞語查詢筆畫數..." oninput="queryStrokes()" style="flex:1;">
+        <button type="button" class="btn" onclick="strokeInput.value='';queryStrokes()">&#128260; 清空</button>
+      </div>
+      <div id="strokeResult"></div>
+      <div class="tip-box tip-info" style="margin-top:12px;">
+        收錄常用漢字 1000+ 個筆畫資料。輸入漢字或詞語，即可查詢每個字的筆畫數及總筆畫。
+      </div>
+    </div>
+
+    <!-- ========== 4. 認知偏差 ========== -->
+    <div class="tab-content" id="tab-bias">
+      <div class="filter-bar" id="biasFilters">
+        <button type="button" class="filter-btn active" onclick="filterBias('all',this)">全部</button>
+        <button type="button" class="filter-btn" onclick="filterBias('decision',this)">決策偏差</button>
+        <button type="button" class="filter-btn" onclick="filterBias('memory',this)">記憶偏差</button>
+        <button type="button" class="filter-btn" onclick="filterBias('social',this)">社會偏差</button>
+        <button type="button" class="filter-btn" onclick="filterBias('probability',this)">機率偏差</button>
+      </div>
+      <div class="toolbar">
+        <button type="button" class="btn primary" onclick="randomBias()">&#127922; 隨機抽卡</button>
+        <input type="search" id="biasSearch" placeholder="搜尋認知偏差..." oninput="searchBias()" style="flex:1;">
+      </div>
+      <div id="biasDisplay"></div>
+    </div>
+
+    <!-- ========== 5. 名言警句 ========== -->
+    <div class="tab-content" id="tab-quote">
+      <div class="filter-bar" id="quoteFilters">
+        <button type="button" class="filter-btn active" onclick="filterQuotes('all',this)">全部</button>
+        <button type="button" class="filter-btn" onclick="filterQuotes('life',this)">人生</button>
+        <button type="button" class="filter-btn" onclick="filterQuotes('learn',this)">學習</button>
+        <button type="button" class="filter-btn" onclick="filterQuotes('motivation',this)">勵志</button>
+        <button type="button" class="filter-btn" onclick="filterQuotes('philosophy',this)">哲理</button>
+        <button type="button" class="filter-btn" onclick="filterQuotes('wisdom',this)">智慧</button>
+        <button type="button" class="filter-btn" onclick="filterQuotes('love',this)">情感</button>
+      </div>
+      <div class="toolbar">
+        <input type="search" id="quoteSearch" placeholder="搜尋名言..." oninput="searchQuotes()" style="flex:1;">
+        <button type="button" class="btn primary" onclick="randomQuote()">&#127922; 隨機一條</button>
+        <button type="button" class="btn" onclick="copyQuote()">&#128203; 複製</button>
+      </div>
+      <div id="quoteDisplay"></div>
+      <div id="quoteList" style="max-height:500px;overflow-y:auto;"></div>
+    </div>
+
+    <!-- ========== 6. 道德困境 ========== -->
+    <div class="tab-content" id="tab-dilemma">
+      <div class="toolbar">
+        <button type="button" class="btn primary" onclick="randomDilemma()">&#127922; 隨機困境</button>
+        <button type="button" class="btn" onclick="prevDilemma()">&#9664; 上一個</button>
+        <button type="button" class="btn" onclick="nextDilemma()">&#9654; 下一個</button>
+      </div>
+      <div id="dilemmaDisplay">
+        <div class="empty-state"><div class="empty-icon">&#2696;&#65039;</div>點選"隨機困境"開始探索</div>
+      </div>
+    </div>
+  </div>
+
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto 0;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+.deep-dive a.term-link{color:var(--tool-accent,#FF6B35);text-decoration:none;border-bottom:1px dashed currentColor;}
+.deep-dive a.term-link:hover{border-bottom-style:solid;}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：中文文化工具箱</h2>
+<h3>💡 常見使用場景</h3>
+<ul class="dd-list">
+<li>寫作或演講想用一個貼切的成語，輸入關鍵詞查到釋義、出處與近義/反義，避免望文生義或用錯語境。</li>
+<li>臨近春節、端午、中秋等傳統節日，檢視節日起源、習俗與對應農曆日期，用於文案、活動策劃或給孩子講傳統。</li>
+<li>賞析古詩詞時檢索作者、朝代、名句與創作背景，或查證「二十四節氣」的日期與物候含義，輔助文化學習。</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">查成語「守株待兔」的出處</div><div class="dd-ex-body">輸入「守株待兔」：釋義為比喻死守經驗、不知變通；出自《韓非子·五蠹》；近義「刻舟求劍」，反義「隨機應變」，可用於提醒做事要因時制宜。</div></div>
+<h3>❓ 常見問題（FAQ）</h3>
+<dl class="dd-faq">
+<dt>工具箱包含哪些文化模組？</dt><dd>通常含成語詞典、古詩詞檢索、傳統節日與節氣、姓名文化等；具體以頁面可用模組為準，純前端本地查詢、資料不上傳。</dd>
+<dt>詩詞檢索支援按作者或朝代篩選嗎？</dt><dd>支援按作者、朝代、名句關鍵詞檢索，便於做專題賞析或教學舉例，結果均為公開典籍整理內容。</dd>
+<dt>節日日期為何有時和公曆不一致？</dt><dd>春節、端午、中秋等以農曆為準，公曆日期逐年浮動；可用<a class="term-link" href="/zh-tw/guides/lunar-calendar-guide.html">農曆公曆互轉</a>工具精確換算具體年份的對應日。</dd>
+</dl>
+</div>
+</section>
+<!-- 注意事項區塊 -->
+<div class="tool-notes" style="--tool-accent:#FF6B35;">
+  <div class="tool-notes-title">⚠️ 使用說明與注意事項</div>
+  <ul>
+      <li>本工具純前端執行，資料不會上傳到伺服器</li>
+      <li>建議在主流瀏覽器（Chrome/Safari/Firefox/Edge）中使用</li>
+      <li>計算結果僅供參考，請以實際應用場景為準</li>
+  </ul>
+</div>
+<!-- /注意事項區塊 -->
+</div>
+
+<script src="/js/tools/chinese-culture.js"></script>
+
+<!-- SEO 介紹區塊 -->
+
+</div>
+
+</div>
+
+<!-- 相關工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相關工具</h3>
+  <div class="related-tools-grid">
+    <a href="/zh-tw/tools/chinese/chinese-radical-lookup.html" class="related-tool-card">
+      <span class="rt-icon">📚</span>
+      <span class="rt-info"><span class="rt-name">偏旁部首查詢</span><span class="rt-desc">查詢漢字的偏旁與部首</span></span>
+    </a>
+    <a href="/zh-tw/tools/chinese/lunar-calendar.html" class="related-tool-card">
+      <span class="rt-icon">🔄</span>
+      <span class="rt-info"><span class="rt-name">農曆轉換</span><span class="rt-desc">農曆公曆互轉</span></span>
+    </a>
+    <a href="/zh-tw/tools/chinese/chinese-character.html" class="related-tool-card">
+      <span class="rt-icon">📚</span>
+      <span class="rt-info"><span class="rt-name">漢字查詢</span><span class="rt-desc">輸入漢字，查詢其拼音、部首、筆畫數與基本釋義，支援快速識字與語文教學參考，純前端離線可用。</span></span>
+    </a>
+    <a href="/zh-tw/tools/chinese/stroke-order-viewer.html" class="related-tool-card">
+      <span class="rt-icon">🀄</span>
+      <span class="rt-info"><span class="rt-name">筆畫筆順演示</span><span class="rt-desc">演示漢字筆畫與書寫順序</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro open" id="toolIntro">
+  <div class="tool-intro-header">
+    <span class="intro-icon-wrap"><span class="intro-icon">📖</span>關於「中文文化工具箱」</span>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="tool-intro-body">
+    <h4><span class="h4-icon">📝</span>工具簡介</h4>
+    <p>中文文化工具箱彙集成語釋義出處、古詩詞檢索、傳統節日節氣與姓名文化等國學小工具，純前端本地查詢，一站式瞭解漢字背後的語言文化與典故。</p>
+    <h4><span class="h4-icon">✨</span>功能特點</h4>
+    <ul class="intro-features"><li>成語典故：查釋義、出處與近義反義，避免望文生義</li><li>詩詞檢索：按作者、朝代、名句關鍵詞檢索並檢視創作背景</li><li>節令常識：查傳統節日來源習俗與二十四節氣物候含義</li></ul>
+    <h4><span class="h4-icon">🎯</span>使用場景</h4>
+    <ul class="intro-scenes"><li>寫作演講：選貼切成語並核對出處與語境</li><li>節慶策劃：查節日來源習俗與農曆日期，安排活動</li><li>文化學習：檢索詩詞背景與節氣含義，輔助賞析</li></ul>
+    </div>
+</div>
+<!-- /SEO 介紹區塊 -->
+
+<script>
+// tool-intro折叠交互
+document.addEventListener('DOMContentLoaded',function(){
+  var headers=document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click',function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+</script>
+
+<script>
+(function(){try{
+  var NS="tools/chinese/chinese-culture.html";
+  function k(id){return 'tb_uxp_'+NS+'#'+id;}
+  function save(el){try{
+    if(el.type==='checkbox'){localStorage.setItem(k(el.id),el.checked?'1':'0');}
+    else if(el.type==='radio'){if(el.checked)localStorage.setItem(k(el.id),el.value);}
+    else{localStorage.setItem(k(el.id),el.value);}
+  }catch(e){}}
+  function restore(){try{
+    document.querySelectorAll('input:not([type=password]):not([readonly]):not([disabled]),textarea:not([readonly]):not([disabled]),select').forEach(function(el){
+      if(!el.id)return;
+      var v=localStorage.getItem(k(el.id));if(v===null)return;
+      try{
+        if(el.type==='checkbox'){el.checked=(v==='1');}
+        else if(el.type==='radio'){el.checked=(el.value===v);}
+        else{el.value=v;}
+        el.dispatchEvent(new Event('input',{bubbles:true}));
+        el.dispatchEvent(new Event('change',{bubbles:true}));
+      }catch(e){}
+    });
+  }catch(e){}}
+  document.querySelectorAll('input:not([type=password]):not([readonly]):not([disabled]),textarea:not([readonly]):not([disabled]),select').forEach(function(el){
+    if(!el.id)return;
+    el.addEventListener('input',function(){save(el);});
+    el.addEventListener('change',function(){save(el);});
+  });
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',restore);
+  else restore();
+}catch(e){}})();
+</script>
+</body>
+</html>

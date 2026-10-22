@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-opencc-locale="zh-tw">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=convert,industry=sports,icon=🔄,bg=#e3f2fd">
+<title>鐵人三項轉換時間計算 - 跑步各段成績與轉換區耗時</title>
+<link rel="canonical" href="https://tools.dicomp.net/zh-tw/tools/sports/triathlon-transition.html">
+<meta property="og:title" content="鐵人三項轉換時間計算 - 跑步各段成績與轉換區耗時">
+<meta property="og:description" content="鐵人三項轉換時間計算是一款免費的線上體育競技工具，輸入游泳、騎行、跑步各段成績與轉換區耗時，計算總成績並可視化各段佔比，用於鐵人三項賽後復盤與薄弱環節分析。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta property="og:url" content="https://tools.dicomp.net/zh-tw/tools/sports/triathlon-transition.html">
+<meta name="twitter:card" content="summary">
+<meta name="description" content="鐵人三項轉換時間計算是一款免費的線上體育競技工具，輸入游泳、騎行、跑步各段成績與轉換區耗時，計算總成績並可視化各段佔比，用於鐵人三項賽後復盤與薄弱環節分析。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<link rel="stylesheet" href="/css/common.css">
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/common.js" defer></script>
+<style>
+.sub-label { font-size: 13px; color: var(--text-muted); margin-bottom: 16px; }
+.pie-chart {
+  width: 180px; height: 180px; border-radius: 50%; margin: 16px auto;
+  position: relative; background: conic-gradient(#3B82F6 0% 25%, #FF6B35 25% 35%, #10B981 35% 75%, #F59E0B 75% 85%, #7C3AED 85% 100%);
+}
+.pie-chart .pie-center {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  width: 90px; height: 90px; border-radius: 50%; background: var(--card-bg);
+  display: flex; align-items: center; justify-content: center; flex-direction: column;
+  box-shadow: 0 0 0 2px var(--border);
+}
+.pie-center .total-val { font-size: 18px; font-weight: 700; color: var(--primary); }
+.pie-center .total-lbl { font-size: 10px; color: var(--text-muted); }
+.legend-row { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin: 12px 0; }
+.legend-item { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--text-secondary); }
+.legend-dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+</style>
+
+
+
+<meta property="og:image" content="https://tools.dicomp.net/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免費線上工具">
+<meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免費線上工具">
+    <meta property="og:type" content="website">
+    <meta name="twitter:title" content="鐵人三項轉換時間計算 - 跑步各段成績與轉換區耗時">
+    <meta name="twitter:description" content="鐵人三項轉換時間計算是一款免費的線上體育競技工具，輸入游泳、騎行、跑步各段成績與轉換區耗時，計算總成績並可視化各段佔比，用於鐵人三項賽後復盤與薄弱環節分析。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"鐵人三項轉換時間計算","url":"https://tools.dicomp.net/zh-tw/tools/sports/triathlon-transition.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"鐵人三項轉換時間計算是一款免費的線上體育競技工具，輸入游泳、騎行、跑步各段成績與轉換區耗時，計算總成績並可視化各段佔比，用於鐵人三項賽後復盤與薄弱環節分析。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首頁","item":"https://tools.dicomp.net/zh-tw/"},{"@type":"ListItem","position":2,"name":"體育競技","item":"https://tools.dicomp.net/zh-tw/tools/sports/index.html"},{"@type":"ListItem","position":3,"name":"鐵人三項轉換時間計算","item":"https://tools.dicomp.net/zh-tw/tools/sports/triathlon-transition.html"}]}</script>
+
+<script src="/js/i18n.js" defer></script>
+<script src="/js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+
+
+<meta name="title-en" content="Triathlon Transition">
+<meta name="desc-en" content="Triathlon Transition - online utility on ToolBox.">
+
+
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
+
+<script src="/js/tool-ux.js" defer></script>
+<!-- TOOLBOX-TOOL-UX -->
+
+<script src="/js/analytics.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+<!-- TOOLBOX-TTZZ -->
+<script>
+(function(){try{
+var el = document.createElement("script");
+el.src = "https://lf1-cdn-tos.bytegoofy.com/goofy/ttzz/push.js?85d6452aa9be4d693b16cd48535a8c7ae57542f6788a41682e745be8eb99b35a8a24d2f724c31ebe20c1e4e6fba6d91caf576100b02a2870c72f38fc574066fef065d152c73bf1cbb2ebad3b5b5265d8";
+el.id = "ttzz";
+var s = document.getElementsByTagName("script")[0];
+s.parentNode.insertBefore(el, s);
+}catch(e){}
+})(window);
+</script>
+
+<script src="/js/tool-kit.js" defer></script>
+<!-- TOOLBOX-TOOL-KIT -->
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://tools.dicomp.net/tools/sports/triathlon-transition.html">
+<link rel="alternate" hreflang="zh-TW" href="https://tools.dicomp.net/zh-tw/tools/sports/triathlon-transition.html">
+<link rel="alternate" hreflang="en-US" href="https://tools.dicomp.net/tools/sports/triathlon-transition.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://tools.dicomp.net/tools/sports/triathlon-transition.html">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+</head>
+<body>
+<h1 class="sr-only">鐵人三項轉換時間計算</h1>
+
+
+<div class="nav">
+  <a href="/zh-tw/index.html">← ToolBox</a>
+  <span>/ 鐵人三項轉換時間計算</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+
+
+
+
+<nav class="breadcrumb" aria-label="麵包屑導航" data-breadcrumb="1">
+  <a href="/zh-tw/index.html">首頁</a>
+  <span class="bc-sep">‹</span>
+  <a href="/zh-tw/tools/sports/index.html">⚽ 體育競技</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">鐵人三項轉換時間計算</span>
+</nav>
+<div class="container">
+  <style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#3b82f6)}.tbk-tab.active{background:var(--accent,#3b82f6);color:#fff;border-color:var(--accent,#3b82f6)}.tbk-panel{margin-top:6px}</style>
+<div class="tbk-tabbar" role="tablist">
+  <button type="button" class="tbk-tab" data-pane="res">結果</button>
+  <button type="button" class="tbk-tab" data-pane="tbl">資料表</button>
+  <button type="button" class="tbk-tab" data-pane="pre">預設</button>
+  <button type="button" class="tbk-tab" data-pane="his">歷史</button>
+</div>
+<div class="card tool-card-accent" style="--tool-accent:#10B981;">
+    <h2 data-zh="🔄 鐵人三項轉換時間計算">🔄 Triathlon Transition Time Calculator</h2>
+    <p class="sub-label" data-zh="計算鐵人三項各段成績、轉換區時間和總成績，視覺化各段佔比">Enter swim, bike and run segment results and transition-zone times to compute total time and visualize each segment’s share for triathlon post-race review and weakness analysis.</p>
+
+    <div class="input-row" style="margin-top:12px;">
+      <div>
+        <label>游泳時間 (分:秒)</label>
+        <input type="text" id="swim-time" placeholder="例: 28:30" oninput="calc()">
+      </div>
+      <div>
+        <label>T1 轉換時間 (分:秒)</label>
+        <input type="text" id="t1-time" placeholder="例: 5:00" oninput="calc()">
+      </div>
+    </div>
+
+        <div class="formula-box">
+      <div class="formula-title">📐 計算公式 / 原理</div>
+      <div class="formula-eq">總成績 = T<sub>游泳</sub> + T<sub>騎行</sub> + T<sub>跑步</sub> + T<sub>換項</sub></div>
+      <div class="formula-desc">鐵人三項總成績為三段用時加換項(T1/T2)之和；視覺化各段佔比定位薄弱環節，換項每節省數秒即可在總成績上等價於一截速度提升。</div>
+    </div>
+<div class="input-row">
+      <div>
+        <label>騎車時間 (時:分:秒)</label>
+        <input type="text" id="bike-time" placeholder="例: 1:15:00" oninput="calc()">
+      </div>
+      <div>
+        <label>T2 轉換時間 (分:秒)</label>
+        <input type="text" id="t2-time" placeholder="例: 4:30" oninput="calc()">
+      </div>
+    </div>
+
+    <div class="input-row">
+      <div>
+        <label>跑步時間 (時:分:秒)</label>
+        <input type="text" id="run-time" placeholder="例: 1:50:00" oninput="calc()">
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <div id="triathlon_transitionPresets"></div>
+      <button type="button" class="btn primary" onclick="calc()">計算</button>
+      <button class="btn" type="button" onclick="__triathlon_transitionExport()">匯出明細 CSV</button>
+      <button type="button" class="btn" onclick="fillExample()">填充示例</button>
+      <button type="button" class="btn" onclick="copyResult()">複製結果</button>
+    </div>
+
+    <div class="result-box" id="result"></div>
+    <div id="triathlon_transitionTable"></div>
+    <div id="triathlon_transitionDiff"></div>
+    <div id="triathlon_transitionChart"></div>
+    <div id="triathlon_transitionHist"></div>
+  </div>
+
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto 0;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+.deep-dive a.term-link{color:var(--tool-accent,#FF6B35);text-decoration:none;border-bottom:1px dashed currentColor;}
+.deep-dive a.term-link:hover{border-bottom-style:solid;}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：鐵人三項轉換時間計算</h2>
+<h3>💡 常見使用場景</h3>
+<ul class="dd-list">
+<li>與 convert-time 同，核算 T1/T2。</li>
+<li>賽前演練遊-騎-跑轉換用時，找出換項耗時環節針對性壓縮。</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">核算</div><div class="dd-ex-body">T1+T2 合計控在 2–3 min 內為優秀轉換。</div></div>
+<h3>❓ 常見問題（FAQ）</h3>
+<dl class="dd-faq">
+<dt>轉換練什麼？</dt><dd>熟練穿脫裝備、動線最短。</dd>
+<dt>轉換時間影響名次大嗎？</dt><dd>精英間游泳跑步差小，轉換每省 10 秒等同賽道提速，常被低估。</dd>
+</dl>
+</div>
+</section>
+<!-- 注意事項區塊 -->
+<div class="tool-notes" style="--tool-accent:#10B981;">
+  <div class="tool-notes-title">⚠️ 使用說明與注意事項</div>
+  <ul>
+      <li>本工具純前端執行，資料不會上傳到伺服器</li>
+      <li>建議在主流瀏覽器（Chrome/Safari/Firefox/Edge）中使用</li>
+      <li>計算結果僅供參考，請以實際應用場景為準</li>
+  </ul>
+</div>
+<!-- /注意事項區塊 -->
+</div>
+
+<script>
+function parseTime(str) {
+  if (!str) return 0;
+  var parts = str.split(':').map(Number);
+  if (parts.some(isNaN)) return 0;
+  var secs = 0;
+  if (parts.length === 3) { secs = parts[0]*3600 + parts[1]*60 + parts[2]; }
+  else if (parts.length === 2) { secs = parts[0]*60 + parts[1]; }
+  else if (parts.length === 1) { secs = parts[0]; }
+  return Math.max(0, secs);
+}
+
+function fmtTime(totalSec) {
+  var h = Math.floor(totalSec / 3600);
+  var m = Math.floor((totalSec % 3600) / 60);
+  var s = Math.round(totalSec % 60);
+  if (h > 0) return h + ':' + String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+  return m + ':' + String(s).padStart(2,'0');
+}
+
+function calc() {
+  var swim = parseTime(document.getElementById('swim-time').value);
+  var t1 = parseTime(document.getElementById('t1-time').value);
+  var bike = parseTime(document.getElementById('bike-time').value);
+  var t2 = parseTime(document.getElementById('t2-time').value);
+  var run = parseTime(document.getElementById('run-time').value);
+  var total = swim + t1 + bike + t2 + run;
+
+  if (total <= 0) {
+    document.getElementById('result').innerHTML='<p style="color:var(--danger);">请至少填写一项时间</p>';
+    return;
+  }
+
+  var segments = [
+    { name: '游泳', time: swim, color: '#3B82F6' },
+    { name: 'T1 转换', time: t1, color: '#FF6B35' },
+    { name: '骑车', time: bike, color: '#10B981' },
+    { name: 'T2 转换', time: t2, color: '#F59E0B' },
+    { name: '跑步', time: run, color: '#7C3AED' }
+  ];
+
+  // Build pie gradient
+  var gradientParts = [];
+  var startPct = 0;
+  segments.forEach(function(seg) {
+    var pct = total > 0 ? (seg.time / total * 100) : 0;
+    if (pct > 0) {
+      gradientParts.push(seg.color + ' ' + startPct.toFixed(1) + '% ' + (startPct + pct).toFixed(1) + '%');
+    }
+    startPct += pct;
+  });
+
+  // Pie chart HTML
+  var html = '<div style="text-align:center;">';
+  html += '<div class="pie-chart" style="background: conic-gradient(' + gradientParts.join(', ') + ');">';
+  html += '<div class="pie-center"><div class="total-val">' + fmtTime(total) + '</div><div class="total-lbl">总时间</div></div>';
+  html += '</div>';
+  html += '<div class="legend-row">';
+  segments.forEach(function(seg) {
+    var pct = total > 0 ? (seg.time / total * 100) : 0;
+    if (seg.time > 0) {
+      html += '<div class="legend-item"><div class="legend-dot" style="background:' + seg.color + ';"></div>' + seg.name + ' ' + pct.toFixed(1) + '%</div>';
+    }
+  });
+  html += '</div></div>';
+
+  // Stats grid
+  html += '<div class="stat-grid" style="margin-top:16px;">';
+  html += '<div class="stat-card"><div class="val">' + fmtTime(total) + '</div><div class="lbl">总时间</div></div>';
+  html += '<div class="stat-card"><div class="val">' + fmtTime(t1 + t2) + '</div><div class="lbl">转换区总时间</div></div>';
+  html += '<div class="stat-card"><div class="val">' + fmtTime(swim + bike + run) + '</div><div class="lbl">运动净时间</div></div>';
+  html += '</div>';
+
+  // Table
+  html += '<div style="margin-top:16px;font-weight:600;color:var(--heading);font-size:14px;margin-bottom:8px;">分段成绩详情</div>';
+  html += '<table><thead><tr><th>阶段</th><th>时间</th><th>占比</th><th>可视化</th></tr></thead><tbody>';
+  segments.forEach(function(seg) {
+    var pct = total > 0 ? (seg.time / total * 100) : 0;
+    if (seg.time > 0) {
+      html += '<tr>';
+      html += '<td><strong>' + seg.name + '</strong></td>';
+      html += '<td>' + fmtTime(seg.time) + '</td>';
+      html += '<td>' + pct.toFixed(1) + '%</td>';
+      html += '<td><div class="bar-row" style="margin:0;"><div class="bar-bg"><div class="bar-fill" style="width:' + pct + '%;background:' + seg.color + ';"></div></div></div></td>';
+      html += '</tr>';
+    }
+  });
+  html += '<tr style="font-weight:700;"><td>总计</td><td>' + fmtTime(total) + '</td><td>100%</td><td></td></tr>';
+  html += '</tbody></table>';
+
+  // T1+T2 analysis
+  var transTotal = t1 + t2;
+  if (transTotal > 0) {
+    var transPct = transTotal / total * 100;
+    var grade = '';
+    var tipClass = '';
+    if (transPct < 5) { grade = '优秀 - 转换效率极高'; tipClass = 'tip-success'; }
+    else if (transPct < 8) { grade = '良好 - 转换区控制得当'; tipClass = 'tip-info'; }
+    else if (transPct < 12) { grade = '一般 - 有优化空间'; tipClass = 'tip-warn'; }
+    else { grade = '偏慢 - 建议练习转换技巧'; tipClass = 'tip-error'; }
+    html += '<div class="tip-box ' + tipClass + '" style="margin-top:12px;"><strong>转换区分析：</strong>转换时间占总时间 ' + transPct.toFixed(1) + '%（' + fmtTime(transTotal) + '），' + grade + '</div>';
+  }
+
+  const __g2=html;document.getElementById('result').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
+}
+
+function fillExample() {
+  document.getElementById('swim-time').value = '28:30';
+  document.getElementById('t1-time').value = '5:00';
+  document.getElementById('bike-time').value = '1:15:00';
+  document.getElementById('t2-time').value = '4:30';
+  document.getElementById('run-time').value = '1:50:00';
+  calc();
+  ToolBox.showToast(i18nText());
+}
+
+function copyResult() {
+  var el = document.getElementById('result');
+  if (el && el.innerText) {
+    ToolBox.copyText(el.innerText.replace(/\s+/g, ' ').trim());
+  }
+}
+
+document.addEventListener('DOMContentLoaded', calc);
+</script>
+
+
+<!-- SEO 介紹區塊 -->
+
+</div>
+
+</div>
+
+<!-- 相關工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相關工具</h3>
+  <div class="related-tools-grid">
+    <a href="/zh-tw/tools/health/breath-timer.html" class="related-tool-card">
+      <span class="rt-icon">🫁</span>
+      <span class="rt-info"><span class="rt-name">呼吸計時器 - 免費開發工具，線上呼吸計時器 | ToolBox免費線上工具箱</span><span class="rt-desc">呼吸計時器</span></span>
+    </a>
+    <a href="/zh-tw/tools/accessibility/voice-synthesis.html" class="related-tool-card">
+      <span class="rt-icon">♿</span>
+      <span class="rt-info"><span class="rt-name">語音合成 - 健康醫療線上工具 | ToolBox免費線上工具箱</span><span class="rt-desc">語音合成</span></span>
+    </a>
+    <a href="/zh-tw/tools/health/rehab-timer.html" class="related-tool-card">
+      <span class="rt-icon">🦿</span>
+      <span class="rt-info"><span class="rt-name">康復訓練計時器 - 健康醫療線上工具 | ToolBox免費線上工具箱</span><span class="rt-desc">⏱️ 康復訓練計時器</span></span>
+    </a>
+    <a href="/zh-tw/tools/health/stretch-generator.html" class="related-tool-card">
+      <span class="rt-icon">✨</span>
+      <span class="rt-info"><span class="rt-name">拉伸動作生成器 - 拉伸動作隨機生成器 - 根據身體部位和時長，隨機生成一套拉伸 | ToolBox免費線上工具箱</span><span class="rt-desc">拉伸動作隨機生成器</span></span>
+    </a>
+    <a href="/zh-tw/tools/sports/yoga-pose-generator.html" class="related-tool-card">
+      <span class="rt-icon">🎲</span>
+      <span class="rt-info"><span class="rt-name">瑜伽體式隨機生成 - 健康醫療線上工具 | ToolBox免費線上工具箱</span><span class="rt-desc">瑜伽體式隨機生成</span></span>
+    </a>
+    <a href="/zh-tw/tools/sports/climbing-grade-converter.html" class="related-tool-card">
+      <span class="rt-icon">🧗</span>
+      <span class="rt-info"><span class="rt-name">攀巖難度等級轉換 - 健康醫療線上工具 | ToolBox免費線上工具箱</span><span class="rt-desc">攀巖難度等級轉換</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro open" id="toolIntro">
+  <div class="tool-intro-header">
+    <span class="intro-icon-wrap"><span class="intro-icon">📖</span>關於「鐵人三項轉換時間計算」</span>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="tool-intro-body">
+    <h4><span class="h4-icon">📝</span>工具簡介</h4>
+    <p>鐵人三項轉換時間計算是一款健康醫療領域的線上工具。健康指標計算工具，基於權威醫學標準，資料本地處理保護隱私。</p>
+    <h4><span class="h4-icon">✨</span>功能特點</h4>
+    <ul class="intro-features">
+      <li>基於權威健康標準計算</li>
+      <li>支援多種引數輸入</li>
+      <li>提供詳細的健康參考建議</li>
+      <li>健康資料不上傳，隱私安全</li>
+    </ul>
+    <h4><span class="h4-icon">🎯</span>使用場景</h4>
+    <ul class="intro-scenes">
+      <li>日常健康監測與管理</li>
+      <li>健身計劃制定參考</li>
+      <li>體檢報告解讀輔助</li>
+      <li>健康知識學習</li>
+    </ul>
+    </div>
+</div>
+<!-- /SEO 介紹區塊 -->
+
+<script>
+// tool-intro折叠交互
+document.addEventListener('DOMContentLoaded',function(){
+  var headers=document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click',function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+
+var __triathlon_transition_last=0,__triathlon_transition_skip=false;
+function __triathlon_transitionSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __triathlon_transitionResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __triathlon_transitionTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __triathlon_transitionRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__triathlon_transitionTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#triathlon_transitionTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#triathlon_transitionDiff');
+        TBKit.history.mount('#triathlon_transitionHist',function(rec){
+            __triathlon_transition_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __triathlon_transition_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__triathlon_transitionTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#triathlon_transitionChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __triathlon_transitionExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__triathlon_transition_skip) return;
+    var snap=__triathlon_transitionSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__triathlon_transitionResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__triathlon_transition_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __triathlon_transition_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __triathlon_transitionRender(keys,rk,en);
+}
+function __triathlon_transitionExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#triathlon_transitionTable','triathlon-transition.csv'); } catch(e){}
+}
+function __triathlon_transitionPresets(){
+    if (typeof TBKit === 'undefined') return;
+}
+var __triathlon_transition_f0=(typeof calc==='function')?calc:null;
+if(__triathlon_transition_f0){
+    calc=function(){ var __r=__triathlon_transition_f0.apply(null,arguments); try{ __triathlon_transitionExtras(); }catch(e){} return __r; };
+}
+function __triathlon_transitionBoot(){ try{ __triathlon_transitionPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __triathlon_transitionBoot();
+else document.addEventListener('DOMContentLoaded', __triathlon_transitionBoot);
+</script>
+
+
+
+<script>/*TBKIT-INJECT-START*/
+(function(){
+  var P={"res": ["result", "triathlon_transitionChart"], "tbl": ["triathlon_transitionTable"], "pre": ["triathlon_transitionPresets"], "his": ["triathlon_transitionHist"]};
+  var L={res:['结果','Result'],chart:['图表','Chart'],tbl:['数据表','Data'],pre:['预设','Presets'],his:['历史','History']};
+  function tabify(){
+    var bar=document.querySelector('.tbk-tabbar');
+    if(!bar||!bar.querySelectorAll) return;
+    var btns=bar.querySelectorAll('.tbk-tab');
+    if(!btns||!btns.length) return;
+    var en=false;
+    try{ if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn) en=TBKit.util.isEn(); }catch(e){}
+    if(!en&&document.documentElement&&(document.documentElement.lang||'').indexOf('en')>=0) en=true;
+    for(var i=0;i<btns.length;i++){var p=btns[i].getAttribute('data-pane');btns[i].textContent=en?L[p][1]:L[p][0];}
+    function show(pane){
+      for(var k in P){var ids=P[k];for(var i=0;i<ids.length;i++){var el=document.getElementById(ids[i]);if(el&&el.style)el.style.display=(k===pane?'':'none');}}
+      for(var j=0;j<btns.length;j++){btns[j].className='tbk-tab'+(btns[j].getAttribute('data-pane')===pane?' active':'');}
+    }
+    for(var i=0;i<btns.length;i++){(function(b){b.addEventListener('click',function(){show(b.getAttribute('data-pane'));});})(btns[i]);}
+    show(btns[0].getAttribute('data-pane'));
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',tabify);else tabify();
+})();
+/*TBKIT-INJECT-END*/</script>
+</body>
+</html>

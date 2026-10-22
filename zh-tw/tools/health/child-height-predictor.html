@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-opencc-locale="zh-tw">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=calculator,industry=health,icon=👶,bg=#e8f5e9">
+<meta name="description" content="兒童成年身高預測是一款免費的線上健康醫療工具，輸入父母身高與目標子女的性別，依據遺傳靶身高公式預測子女成年後的身高範圍，並給出生長參考，幫助家長了解孩子的遺傳潛力與發育預期。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta name="keywords" content="兒童身高預測器,兒童身高預測器線上,線上兒童身高預測器,數學計算,健康醫療,兒童成年身高預測,線上工具,免費工具,ToolBox">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://tools.dicomp.net/zh-tw/tools/health/child-height-predictor.html">
+<meta property="og:title" content="兒童成年身高預測 - 免費線上健康醫療工具">
+<meta property="og:description" content="兒童成年身高預測是一款免費的線上健康醫療工具，輸入父母身高與目標子女的性別，依據遺傳靶身高公式預測子女成年後的身高範圍，並給出生長參考，幫助家長了解孩子的遺傳潛力與發育預期。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://tools.dicomp.net/zh-tw/tools/health/child-height-predictor.html">
+<meta name="twitter:card" content="summary">
+
+<title>兒童成年身高預測 - 免費線上健康醫療工具</title>
+<meta name="theme-color" content="#FF6B35">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="stylesheet" href="/css/common.css">
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/common.js" defer></script>
+<style>
+.gender-tabs{display:flex;gap:8px;margin-bottom:12px;}
+.gender-tabs button{flex:1;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--card-bg);cursor:pointer;font-size:14px;color:var(--text-light);}
+.gender-tabs button.active{background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:#fff;border-color:transparent;}
+.result-main{text-align:center;padding:24px;background:var(--result-bg);border-radius:12px;margin-top:12px;}
+.result-value{font-size:56px;font-weight:700;color:var(--primary);line-height:1.2;}
+.result-label{font-size:16px;font-weight:600;margin-top:8px;color:var(--text-light);}
+.result-range{font-size:14px;color:var(--text-muted);margin-top:4px;}
+.tabs{display:flex;gap:4px;margin-bottom:12px;background:var(--bg);padding:4px;border-radius:8px;}
+.tabs button{flex:1;padding:8px 12px;border-radius:6px;border:none;background:transparent;cursor:pointer;font-size:13px;color:var(--text-light);}
+.tabs button.active{background:var(--card-bg);color:var(--primary);font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,0.08);}
+.section-title{font-size:15px;font-weight:600;color:var(--heading);margin:16px 0 8px;display:flex;align-items:center;gap:6px;}
+.detail-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px dashed var(--border);font-size:13px;}
+.detail-row:last-child{border-bottom:none;}
+.detail-row .label{color:var(--text-light);}
+.detail-row .value{font-weight:600;}
+.advice-box{background:var(--result-bg);border-radius:8px;padding:12px;margin-top:8px;font-size:13px;line-height:1.6;}
+.advice-box strong{color:var(--primary);}
+.height-visual{margin:20px 0;position:relative;height:180px;display:flex;align-items:flex-end;justify-content:center;gap:40px;}
+.height-bar{width:40px;border-radius:8px 8px 0 0;position:relative;transition:height 0.5s;}
+.height-bar.father{background:linear-gradient(to top,#667eea,#764ba2);}
+.height-bar.mother{background:linear-gradient(to top,#f093fb,#f5576c);}
+.height-bar.child{background:linear-gradient(to top,#4facfe,#00f2fe);}
+.height-bar-label{position:absolute;top:-24px;left:50%;transform:translateX(-50%);font-size:12px;font-weight:600;white-space:nowrap;}
+.height-bar-name{position:absolute;bottom:-20px;left:50%;transform:translateX(-50%);font-size:11px;color:var(--text-muted);white-space:nowrap;}
+.factor-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-top:12px;}
+.factor-card{background:var(--result-bg);border-radius:8px;padding:12px;text-align:center;}
+.factor-card .factor-icon{font-size:24px;margin-bottom:4px;}
+.factor-card .factor-name{font-size:13px;font-weight:600;color:var(--heading);}
+.factor-card .factor-desc{font-size:11px;color:var(--text-muted);margin-top:2px;}
+.tag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;}
+.tag-genetic{background:#e3f2fd;color:#1565c0;}
+.tag-env{background:#fff8e1;color:#f57f17;}
+@media(max-width:600px){
+  .result-value{font-size:42px;}
+  .height-visual{gap:20px;}
+  .height-bar{width:30px;}
+}
+</style>
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"兒童身高預測器","description":"兒童身高預測器 - 免費數學計算工具，兒童成年身高預測。","url":"https://tools.dicomp.net/zh-tw/tools/health/child-height-predictor.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Web","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"},"inLanguage":"zh-TW","isAccessibleForFree":true,"browserRequirements":"Requires JavaScript. Requires HTML5.","softwareVersion":"1.0"}</script>
+
+<meta property="og:image" content="https://tools.dicomp.net/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免費線上工具">
+<meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免費線上工具">
+    <meta name="twitter:title" content="兒童成年身高預測 - 免費線上健康醫療工具">
+    <meta name="twitter:description" content="兒童成年身高預測是一款免費的線上健康醫療工具，輸入父母身高與目標子女的性別，依據遺傳靶身高公式預測子女成年後的身高範圍，並給出生長參考，幫助家長了解孩子的遺傳潛力與發育預期。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"兒童身高預測器","url":"https://tools.dicomp.net/zh-tw/tools/health/child-height-predictor.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"兒童成年身高預測是一款免費的線上健康醫療工具，輸入父母身高與目標子女的性別，依據遺傳靶身高公式預測子女成年後的身高範圍，並給出生長參考，幫助家長了解孩子的遺傳潛力與發育預期。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首頁","item":"https://tools.dicomp.net/zh-tw/"},{"@type":"ListItem","position":2,"name":"健康醫療","item":"https://tools.dicomp.net/zh-tw/tools/health/index.html"},{"@type":"ListItem","position":3,"name":"兒童身高預測器","item":"https://tools.dicomp.net/zh-tw/tools/health/child-height-predictor.html"}]}</script>
+
+<script src="/js/i18n.js" defer></script>
+<script src="/js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+
+<meta name="title-en" content="Child Height Predictor">
+<meta name="desc-en" content="Child Height Predictor - online utility on ToolBox.">
+
+
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
+
+<script src="/js/tool-ux.js" defer></script>
+<!-- TOOLBOX-TOOL-UX -->
+
+<script src="/js/analytics.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+<!-- TOOLBOX-TTZZ -->
+<script>
+(function(){try{
+var el = document.createElement("script");
+el.src = "https://lf1-cdn-tos.bytegoofy.com/goofy/ttzz/push.js?85d6452aa9be4d693b16cd48535a8c7ae57542f6788a41682e745be8eb99b35a8a24d2f724c31ebe20c1e4e6fba6d91caf576100b02a2870c72f38fc574066fef065d152c73bf1cbb2ebad3b5b5265d8";
+el.id = "ttzz";
+var s = document.getElementsByTagName("script")[0];
+s.parentNode.insertBefore(el, s);
+}catch(e){}
+})(window);
+</script>
+
+<script src="/js/tool-kit.js" defer></script>
+<!-- TOOLBOX-TOOL-KIT -->
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://tools.dicomp.net/tools/health/child-height-predictor.html">
+<link rel="alternate" hreflang="zh-TW" href="https://tools.dicomp.net/zh-tw/tools/health/child-height-predictor.html">
+<link rel="alternate" hreflang="en-US" href="https://tools.dicomp.net/tools/health/child-height-predictor.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://tools.dicomp.net/tools/health/child-height-predictor.html">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+</head>
+<body>
+<h1 class="sr-only">兒童身高預測器</h1>
+
+<div class="nav">
+  <a href="/zh-tw/index.html">← ToolBox</a>
+  <span>/ 兒童身高預測</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+<nav class="breadcrumb" aria-label="麵包屑導航" data-breadcrumb="1">
+  <a href="/zh-tw/index.html">首頁</a>
+  <span class="bc-sep">‹</span>
+  <a href="/zh-tw/tools/health/index.html">❤️ 健康醫療</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">兒童身高預測器</span>
+</nav>
+<div class="container">
+<div class="tool-guide-link" data-guide-link="1">
+  <a href="/zh-tw/guides/child-height-predictor-guide.html">📖 檢視「兒童成年身高預測使用指南」</a>
+</div>
+
+  <div class="card tool-card-accent" style="--tool-accent:#10B981;">
+    <h2 data-zh="👶 兒童成年身高預測">👶 Child Adult Height Predictor</h2>
+    <div class="formula-box">
+      <div class="formula-title">📐 計算公式</div>
+      <div class="formula-eq">男孩靶身高(cm) = (父身高 + 母身高 + 13) ÷ 2<br>女孩靶身高(cm) = (父身高 + 母身高 − 13) ÷ 2；預期範圍 = 靶身高 ± 5 cm</div>
+    </div>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="根據父母身高預測子女遺傳靶身高及成年身高範圍">Predict a child's adult height from the mid-parental height formula with the sex adjustment, and give the expected range around the target.</p>
+<div class="formula-box">
+  <div class="formula-title">📐 工作原理與說明</div>
+
+</div>
+
+
+    <div class="gender-tabs">
+      <button class="active" data-gender="male" onclick="setGender('male')">👦 男孩</button>
+      <button data-gender="female" onclick="setGender('female')">👧 女孩</button>
+    </div>
+
+    <div class="input-row">
+      <div><div data-tb="preset" data-tb-presets='[{"label": "10岁男孩示例", "labelEn": "Sample boy 10y", "values": {"father": 180, "mother": 168, "age": 10, "childHeight": 140}}]'></div>
+<label>父親身高 (cm)</label><input type="number" id="father" value="175" oninput="calc()"></div>
+      <div><label>母親身高 (cm)</label><input type="number" id="mother" value="162" oninput="calc()"></div>
+    </div>
+
+    <div class="input-row">
+      <div><label>孩子當前年齡 (歲，選填)</label><input type="number" id="age" placeholder="2-18歲" oninput="calc()"></div>
+      <div><label>孩子當前身高 (cm，選填)</label><input type="number" id="childHeight" placeholder="當前身高" oninput="calc()"></div>
+    </div>
+
+    <div class="result-main">
+      <div class="result-value" id="targetHeight">--</div>
+      <div class="result-label">遺傳靶身高</div>
+      <div class="result-range" id="heightRange">--</div>
+    </div>
+
+    <div class="stat-grid" style="margin-top:16px;">
+      <div class="stat-card"><div class="val" id="fatherH">--</div><div class="lbl">父親身高</div></div>
+      <div class="stat-card"><div class="val" id="motherH">--</div><div class="lbl">母親身高</div></div>
+      <div class="stat-card"><div class="val" id="midParent">--</div><div class="lbl">父母平均</div></div>
+      <div class="stat-card"><div class="val" id="percentile">--</div><div class="lbl">身高百分位</div></div>
+    </div>
+
+    <div class="height-visual" id="heightVisual">
+      <div class="height-bar father" id="barFather">
+        <div class="height-bar-label" id="labelFather">--</div>
+        <div class="height-bar-name">父親</div>
+      </div>
+      <div class="height-bar mother" id="barMother">
+        <div class="height-bar-label" id="labelMother">--</div>
+        <div class="height-bar-name">母親</div>
+      </div>
+      <div class="height-bar child" id="barChild">
+        <div class="height-bar-label" id="labelChild">--</div>
+        <div class="height-bar-name">預測</div>
+      </div>
+
+      <div class="toolbar" style="margin-top:12px;">
+        <button type="button" class="btn" data-zh="⬇️ 匯出身高預測結果 CSV" onclick="__chpExport()">⬇️ Export Height Prediction CSV</button>
+        <span style="font-size:13px;color:var(--text-muted);" data-zh="父母身高、靶身高、預測範圍與百分位可匯出為 CSV">Parent heights, target height, predicted range, and percentile can be exported as CSV</span>
+      </div>
+      <table id="chpTable" class="result-table" style="width:100%;margin-top:10px;display:none;"><thead></thead><tbody></tbody></table>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>📋 詳細資訊</h2>
+    <div class="tabs">
+      <button class="active" onclick="switchTab('formulas',this)">預測方法</button>
+      <button onclick="switchTab('factors',this)">影響因素</button>
+      <button onclick="switchTab('advice',this)">增高建議</button>
+    </div>
+
+    <div id="tabFormulas">
+      <div class="section-title">📐 遺傳靶身高公式 (CMH法)</div>
+      <div class="advice-box">
+        <strong>男孩靶身高：</strong>(父親身高 + 母親身高 + 13) ÷ 2 cm<br>
+        <strong>女孩靶身高：</strong>(父親身高 + 母親身高 - 13) ÷ 2 cm<br>
+        <strong>預測範圍：</strong>靶身高 ± 5 cm（約 ± 1個標準差）
+      </div>
+
+      <div class="section-title">📐 其他預測方法</div>
+      <div class="advice-box">
+        <strong>1. 骨齡預測法：</strong>通過X光片評估骨齡，結合當前身高預測成年身高，是最準確的方法，需到醫院進行。<br><br>
+        <strong>2. 父母身高均值法：</strong>簡單估算，誤差較大。<br><br>
+        <strong>3. 生長曲線追蹤法：</strong>定期監測身高，繪製生長曲線，根據趨勢預測。<br><br>
+        <strong>4. 嬰兒期身高預測：</strong>2歲時身高 × 2 約等於成年身高（粗略估計）。
+      </div>
+
+      <div class="section-title">💡 預測準確性</div>
+      <div class="advice-box">
+        <strong>遺傳因素約佔 60-80%</strong>，環境因素約佔 20-40%。<br><br>
+        遺傳靶身高預測有 ± 5 cm 的誤差範圍是正常的。如果孩子的實際生長明顯偏離預測，建議諮詢兒科內分泌醫生。
+      </div>
+    </div>
+
+    <div id="tabFactors" style="display:none;">
+      <div class="section-title">🧬 影響身高的因素</div>
+      <div class="factor-grid">
+        <div class="factor-card">
+          <div class="factor-icon">🧬</div>
+          <div class="factor-name">遺傳</div>
+          <div class="factor-desc">佔60-80%</div>
+        </div>
+        <div class="factor-card">
+          <div class="factor-icon">🥗</div>
+          <div class="factor-name">營養</div>
+          <div class="factor-desc">蛋白質、鈣、維D</div>
+        </div>
+        <div class="factor-card">
+          <div class="factor-icon">🏃</div>
+          <div class="factor-name">運動</div>
+          <div class="factor-desc">彈跳伸展運動</div>
+        </div>
+        <div class="factor-card">
+          <div class="factor-icon">😴</div>
+          <div class="factor-name">睡眠</div>
+          <div class="factor-desc">生長激素分泌</div>
+        </div>
+        <div class="factor-card">
+          <div class="factor-icon">😊</div>
+          <div class="factor-name">心理</div>
+          <div class="factor-desc">情緒影響生長</div>
+        </div>
+        <div class="factor-card">
+          <div class="factor-icon">🏥</div>
+          <div class="factor-name">疾病</div>
+          <div class="factor-desc">慢病影響發育</div>
+        </div>
+      </div>
+
+      <div class="section-title">📊 各年齡段生長特點</div>
+      <table>
+        <thead><tr><th>階段</th><th>年齡</th><th>年生長速度</th><th>關鍵因素</th></tr></thead>
+        <tbody>
+          <tr><td>嬰兒期</td><td>0-1歲</td><td>25 cm/年</td><td>營養、餵養</td></tr>
+          <tr><td>幼兒期</td><td>1-3歲</td><td>10-12 cm/年</td><td>營養、睡眠</td></tr>
+          <tr><td>學齡前期</td><td>3-6歲</td><td>6-8 cm/年</td><td>營養、運動</td></tr>
+          <tr><td>學齡期</td><td>6-10歲</td><td>5-7 cm/年</td><td>運動、睡眠</td></tr>
+          <tr><td>青春期</td><td>10-18歲</td><td>7-12 cm/年</td><td>性激素、營養</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div id="tabAdvice" style="display:none;">
+      <div class="section-title">🥗 營養建議</div>
+      <div class="advice-box">
+        <strong>蛋白質：</strong>每日保證充足優質蛋白質（魚、禽、蛋、奶、豆製品）<br>
+        • 學齡前：20-30g/天<br>
+        • 學齡期：30-50g/天<br>
+        • 青春期：50-70g/天<br><br>
+        <strong>鈣：</strong>骨骼發育必需<br>
+        • 4-6歲：800mg/天<br>
+        • 7-10歲：1000mg/天<br>
+        • 11-13歲：1200mg/天<br><br>
+        <strong>維生素D：</strong>促進鈣吸收<br>
+        • 每日 400-800 IU<br>
+        • 多曬太陽可自身合成<br><br>
+        <strong>鋅：</strong>促進生長發育<br>
+        • 多吃海產品、堅果、瘦肉
+      </div>
+
+      <div class="section-title">🏃 運動建議</div>
+      <div class="advice-box">
+        <strong>有助於長高的運動：</strong><br>
+        • 彈跳類：跳繩、籃球、排球、跳高<br>
+        • 伸展類：游泳、體操、瑜伽、引體向上<br>
+        • 全身性：跑步、游泳、騎腳踏車<br><br>
+        <strong>運動頻率：</strong><br>
+        • 每天至少60分鐘中等強度運動<br>
+        • 每週至少3次彈跳或伸展運動<br>
+        • 避免過度負重運動（如大重量舉重）
+      </div>
+
+      <div class="section-title">😴 睡眠建議</div>
+      <div class="advice-box">
+        <strong>生長激素分泌規律：</strong><br>
+        • 深睡眠時分泌最旺盛<br>
+        • 入睡後1-2小時達到高峰<br>
+        • 夜間分泌量佔全天70%以上<br><br>
+        <strong>推薦睡眠時間：</strong><br>
+        • 3-6歲：10-12小時/天<br>
+        • 7-12歲：10小時/天<br>
+        • 13-18歲：8-10小時/天<br><br>
+        <strong>提高睡眠質量：</strong><br>
+        • 規律作息，定時入睡起床<br>
+        • 睡前1小時不看電子螢幕<br>
+        • 保持臥室黑暗、安靜、涼爽
+      </div>
+
+      <div class="section-title">⚠️ 何時需要就醫</div>
+      <div class="advice-box">
+        出現以下情況建議諮詢兒科內分泌醫生：<br>
+        • 身高明顯低於同齡兒童（第3百分位以下）<br>
+        • 年生長速度低於4-5cm（學齡期後）<br>
+        • 青春期過早或過晚出現<br>
+        • 父母身高正常但孩子明顯偏矮<br>
+        • 骨齡與實際年齡相差2歲以上<br>
+        • 伴有其他異常症狀
+      </div>
+    </div>
+  </div>
+
+  <div class="info-box">
+    ⚠️ 本工具僅供參考，身高預測基於遺傳因素估算，實際身高受營養、運動、睡眠、疾病等多種因素影響。如有生長發育 concerns，請諮詢兒科醫生。</div>
+
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto 0;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+.deep-dive a.term-link{color:var(--tool-accent,#FF6B35);text-decoration:none;border-bottom:1px dashed currentColor;}
+.deep-dive a.term-link:hover{border-bottom-style:solid;}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：兒童成年身高預測</h2>
+<h3>💡 常見使用場景</h3>
+<ul class="dd-list">
+<li>用父母身高（中親身高法）預估子女成年身高區間，作為生長發育參考基線。</li>
+<li>比對預測值與當前實測身高百分位，判斷生長是否沿預期軌跡。</li>
+<li>科普遺傳與環境（營養/運動/睡眠）對最終身高的影響權重。</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">可復現算例：成年身高預測</div><div class="dd-ex-body">輸入：父親 175 cm、母親 162 cm。
+中親身高 = (175 + 162) ÷ 2 = 168.5 cm。
+男孩預測 = 168.5 + 6.5 = 175.0 cm；女孩預測 = 168.5 − 6.5 = 162.0 cm。
+遺傳範圍約 ±1 個<a class="term-link" href="/zh-tw/tools/it/standard-deviation.html">標準差</a>（約 ±8 cm），即男孩 167–183 cm、女孩 154–170 cm。
+結論：該組合子女成年身高男孩約 175 cm、女孩約 162 cm，實際受營養睡眠運動影響在 ±8 cm 內波動。</div></div>
+<h3>❓ 常見問題（FAQ）</h3>
+<dl class="dd-faq">
+<dt>父母都不高，孩子就一定矮嗎？</dt><dd>遺傳決定約 70–80%，但營養、睡眠、運動、疾病等佔 20–30%。預測值只是區間中值，後天管理到位可貼近甚至略超上限；預測不能替代兒科生長監測。</dd>
+<dt>為什麼男孩加 6.5、女孩減 6.5？</dt><dd>這是中親身高法的經驗校正值（男孩約 +6.5 cm、女孩約 −6.5 cm，即 ±13/2），源於兩性成年身高差異。更精細可用 Tanner 骨齡法，本工具給出區間而非單點更準確。</dd>
+</dl>
+</div>
+</section>
+<!-- 注意事項區塊 -->
+<div class="tool-notes" style="--tool-accent:#10B981;">
+  <div class="tool-notes-title">⚠️ 使用說明與注意事項</div>
+  <ul>
+      <li>本工具純前端執行，資料不會上傳到伺服器</li>
+      <li>建議在主流瀏覽器（Chrome/Safari/Firefox/Edge）中使用</li>
+      <li>計算結果僅供參考，請以實際應用場景為準</li>
+  </ul>
+</div>
+<!-- /注意事項區塊 -->
+</div>
+
+<script>
+let gender = 'male';
+let currentTab = 'formulas';
+
+function setGender(g){
+  gender = g;
+  document.querySelectorAll('.gender-tabs button').forEach(b =>
+    b.classList.toggle('active', b.dataset.gender === g)
+  );
+  calc();
+}
+
+function switchTab(tab, btn){
+  currentTab = tab;
+  document.querySelectorAll('.tabs button').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  ['formulas','factors','advice'].forEach(t => {
+    document.getElementById('tab' + t.charAt(0).toUpperCase() + t.slice(1)).style.display = t === tab ? 'block' : 'none';
+  });
+}
+
+function estimatePercentile(height, sex){
+  const median = sex === 'male' ? 172.5 : 160.5;
+  const sd = 6.5;
+  const z = (height - median) / sd;
+  if(z < -2) return 'P3以下';
+  if(z < -1) return 'P10-P25';
+  if(z < 0) return 'P25-P50';
+  if(z < 1) return 'P50-P75';
+  if(z < 2) return 'P75-P90';
+  return 'P97以上';
+}
+
+function calc(){
+  const f = parseFloat(document.getElementById('father').value);
+  const m = parseFloat(document.getElementById('mother').value);
+  const age = parseFloat(document.getElementById('age').value);
+  const ch = parseFloat(document.getElementById('childHeight').value);
+
+  if(!f || !m || f <= 0 || m <= 0){
+    document.getElementById('targetHeight').textContent = '--';
+    document.getElementById('heightRange').textContent = '请输入父母身高';
+    return;
+  }
+
+  const midParent = (f + m) / 2;
+  let target = gender === 'male' ? (f + m + 13) / 2 : (f + m - 13) / 2;
+  const minH = target - 5;
+  const maxH = target + 5;
+
+  const __g2=target.toFixed(1) + ' cm';document.getElementById('targetHeight').textContent=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
+  const __g3='预测范围: ' + minH.toFixed(1) + ' - ' + maxH.toFixed(1) + ' cm';document.getElementById('heightRange').textContent=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
+
+  const __g4=f + ' cm';document.getElementById('fatherH').textContent=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
+  const __g5=m + ' cm';document.getElementById('motherH').textContent=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
+  const __g6=midParent.toFixed(1) + ' cm';document.getElementById('midParent').textContent=(typeof __g6==='number'?(isFinite(__g6)?__g6:'—'):String(__g6).replace(/Infinity|NaN/g,'—'));
+  const __g7=estimatePercentile(target, gender);document.getElementById('percentile').textContent=(typeof __g7==='number'?(isFinite(__g7)?__g7:'—'):String(__g7).replace(/Infinity|NaN/g,'—'));
+
+  const maxHeight = Math.max(f, m, maxH) * 1.1;
+  const minHeight = 100;
+  const range = maxHeight - minHeight;
+
+  document.getElementById('barFather').style.height = ((f - minHeight) / range * 100) + '%';
+  document.getElementById('barMother').style.height = ((m - minHeight) / range * 100) + '%';
+  document.getElementById('barChild').style.height = ((target - minHeight) / range * 100) + '%';
+
+  const __g8=f + 'cm';document.getElementById('labelFather').textContent=(typeof __g8==='number'?(isFinite(__g8)?__g8:'—'):String(__g8).replace(/Infinity|NaN/g,'—'));
+  const __g9=m + 'cm';document.getElementById('labelMother').textContent=(typeof __g9==='number'?(isFinite(__g9)?__g9:'—'):String(__g9).replace(/Infinity|NaN/g,'—'));
+  const __g10=target.toFixed(0) + 'cm';document.getElementById('labelChild').textContent=(typeof __g10==='number'?(isFinite(__g10)?__g10:'—'):String(__g10).replace(/Infinity|NaN/g,'—'));
+}
+
+function __chpExport(){
+  if(typeof TBKit==='undefined') return;
+  try{
+    var en=TBKit.util.isEn();
+    var f=parseFloat(document.getElementById('father').value);
+    var m=parseFloat(document.getElementById('mother').value);
+    if(!f||!m||f<=0||m<=0) return;
+    var ageEl=document.getElementById('age');
+    var chEl=document.getElementById('childHeight');
+    var age=ageEl?parseFloat(ageEl.value):NaN;
+    var ch=chEl?parseFloat(chEl.value):NaN;
+    var midParent=(f+m)/2;
+    var target=gender==='male'?(f+m+13)/2:(f+m-13)/2;
+    var rows=[
+      [en?'Father height (cm)':'父亲身高 (cm)',f],
+      [en?'Mother height (cm)':'母亲身高 (cm)',m],
+      [en?'Child sex':'孩子性别',gender==='male'?(en?'Male':'男孩'):(en?'Female':'女孩')],
+      [en?'Child age (years)':'孩子年龄 (岁)',isFinite(age)?age:'—'],
+      [en?'Current height (cm)':'当前身高 (cm)',isFinite(ch)?ch:'—'],
+      [en?'Mid-parental height (cm)':'父母平均身高 (cm)',midParent.toFixed(1)],
+      [en?'Target height (cm)':'遗传靶身高 (cm)',target.toFixed(1)],
+      [en?'Predicted range (cm)':'预测范围 (cm)',(target-5).toFixed(1)+' – '+(target+5).toFixed(1)],
+      [en?'Height percentile':'身高百分位',estimatePercentile(target,gender)]
+    ];
+    var tb=document.querySelector('#chpTable tbody');
+    if(!tb) return;
+    var h='';
+    rows.forEach(function(r){ h+='<tr><td>'+r[0]+'</td><td>'+r[1]+'</td></tr>'; });
+    tb.innerHTML=h;
+    TBKit.util.exportTable('#chpTable','child-height-predictor.csv');
+  }catch(e){}
+}
+
+calc();
+</script><script>
+// tool-intro折叠交互
+document.addEventListener('DOMContentLoaded',function(){
+  var headers=document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click',function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+</script>
+<!-- SEO 介紹區塊 -->
+
+</div>
+
+</div>
+
+<!-- 相關工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相關工具</h3>
+  <div class="related-tools-grid">
+    <a href="/zh-tw/tools/health/breath-timer.html" class="related-tool-card">
+      <span class="rt-icon">🫁</span>
+      <span class="rt-info"><span class="rt-name">呼吸計時器 - 免費開發工具，線上呼吸計時器 | ToolBox免費線上工具箱</span><span class="rt-desc">呼吸計時器</span></span>
+    </a>
+    <a href="/zh-tw/tools/accessibility/voice-synthesis.html" class="related-tool-card">
+      <span class="rt-icon">♿</span>
+      <span class="rt-info"><span class="rt-name">語音合成 - 健康醫療線上工具 | ToolBox免費線上工具箱</span><span class="rt-desc">語音合成</span></span>
+    </a>
+    <a href="/zh-tw/tools/health/rehab-timer.html" class="related-tool-card">
+      <span class="rt-icon">🦿</span>
+      <span class="rt-info"><span class="rt-name">康復訓練計時器 - 健康醫療線上工具 | ToolBox免費線上工具箱</span><span class="rt-desc">⏱️ 康復訓練計時器</span></span>
+    </a>
+    <a href="/zh-tw/tools/health/stretch-generator.html" class="related-tool-card">
+      <span class="rt-icon">✨</span>
+      <span class="rt-info"><span class="rt-name">拉伸動作生成器 - 拉伸動作隨機生成器 - 根據身體部位和時長，隨機生成一套拉伸 | ToolBox免費線上工具箱</span><span class="rt-desc">拉伸動作隨機生成器</span></span>
+    </a>
+    <a href="/zh-tw/tools/sports/yoga-pose-generator.html" class="related-tool-card">
+      <span class="rt-icon">🎲</span>
+      <span class="rt-info"><span class="rt-name">瑜伽體式隨機生成 - 健康醫療線上工具 | ToolBox免費線上工具箱</span><span class="rt-desc">瑜伽體式隨機生成</span></span>
+    </a>
+    <a href="/zh-tw/tools/sports/climbing-grade-converter.html" class="related-tool-card">
+      <span class="rt-icon">🧗</span>
+      <span class="rt-info"><span class="rt-name">攀巖難度等級轉換 - 健康醫療線上工具 | ToolBox免費線上工具箱</span><span class="rt-desc">攀巖難度等級轉換</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro open" id="toolIntro">
+  <div class="tool-intro-header">
+    <span class="intro-icon-wrap"><span class="intro-icon">📖</span>關於「兒童身高預測器」</span>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="tool-intro-body">
+    <h4><span class="h4-icon">📝</span>工具簡介</h4>
+    <p>兒童身高預測器。健康指標計算工具，基於權威醫學標準，資料本地處理保護隱私。</p>
+    <h4><span class="h4-icon">✨</span>功能特點</h4>
+    <ul class="intro-features">
+      <li>基於權威健康標準計算</li>
+      <li>支援多種引數輸入</li>
+      <li>提供詳細的健康參考建議</li>
+      <li>健康資料不上傳，隱私安全</li>
+    </ul>
+    <h4><span class="h4-icon">🎯</span>使用場景</h4>
+    <ul class="intro-scenes">
+      <li>日常健康監測與管理</li>
+      <li>健身計劃制定參考</li>
+      <li>體檢報告解讀輔助</li>
+      <li>健康知識學習</li>
+    </ul>
+    </div>
+</div>
+<!-- /SEO 介紹區塊 -->
+<script>
+(function(){try{
+  var NS="tools/health/child-height-predictor.html";
+  function k(id){return 'tb_uxp_'+NS+'#'+id;}
+  function save(el){try{
+    if(el.type==='checkbox'){localStorage.setItem(k(el.id),el.checked?'1':'0');}
+    else if(el.type==='radio'){if(el.checked)localStorage.setItem(k(el.id),el.value);}
+    else{localStorage.setItem(k(el.id),el.value);}
+  }catch(e){}}
+  function restore(){try{
+    document.querySelectorAll('input:not([type=password]):not([readonly]):not([disabled]),textarea:not([readonly]):not([disabled]),select').forEach(function(el){
+      if(!el.id)return;
+      var v=localStorage.getItem(k(el.id));if(v===null)return;
+      try{
+        if(el.type==='checkbox'){el.checked=(v==='1');}
+        else if(el.type==='radio'){el.checked=(el.value===v);}
+        else{el.value=v;}
+        el.dispatchEvent(new Event('input',{bubbles:true}));
+        el.dispatchEvent(new Event('change',{bubbles:true}));
+      }catch(e){}
+    });
+  }catch(e){}}
+  document.querySelectorAll('input:not([type=password]):not([readonly]):not([disabled]),textarea:not([readonly]):not([disabled]),select').forEach(function(el){
+    if(!el.id)return;
+    el.addEventListener('input',function(){save(el);});
+    el.addEventListener('change',function(){save(el);});
+  });
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',restore);
+  else restore();
+}catch(e){}})();
+</script>
+</body>
+</html>

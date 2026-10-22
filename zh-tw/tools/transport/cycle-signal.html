@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-opencc-locale="zh-tw">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=math,industry=transport,icon=📡,bg=#e3f2fd">
+<meta name="description" content="交叉口訊號週期配時方案是一款免費的線上交通運輸工具，基於 Webster 法計算最佳週期、分配有效綠燈時間，並繪製訊號時序圖。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<title>交叉口訊號週期配時方案 - 分配有效綠燈時間</title>
+<link rel="canonical" href="https://tools.dicomp.net/zh-tw/tools/transport/cycle-signal.html">
+<meta property="og:title" content="交叉口訊號週期配時方案 - 分配有效綠燈時間">
+<meta property="og:description" content="交叉口訊號週期配時方案是一款免費的線上交通運輸工具，基於 Webster 法計算最佳週期、分配有效綠燈時間，並繪製訊號時序圖。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta property="og:url" content="https://tools.dicomp.net/zh-tw/tools/transport/cycle-signal.html">
+<meta name="twitter:card" content="summary">
+<link rel="stylesheet" href="/css/common.css">
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/common.js" defer></script>
+<style>
+  .phase-row{display:grid;grid-template-columns:34px 1fr 80px 70px 70px;gap:6px;align-items:center;margin-bottom:6px;}
+  .phase-row .pi{font-weight:700;color:var(--primary);text-align:center;font-size:14px;}
+  .seg{height:26px;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:600;min-width:0;}
+  .seg-green{background:var(--success);}
+  .seg-yellow{background:var(--warning);}
+  .seg-red{background:var(--danger);}
+  .timeline{display:flex;height:34px;border-radius:8px;overflow:hidden;border:1px solid var(--border);margin-top:8px;}
+  .timeline .seg{border-radius:0;border-right:1px solid rgba(255,255,255,.35);}
+  .axis{display:flex;justify-content:space-between;font-size:10px;color:var(--text-muted);margin-top:4px;}
+  .legend{display:flex;gap:14px;font-size:12px;color:var(--text-light);flex-wrap:wrap;margin-top:6px;}
+  .legend span{display:inline-flex;align-items:center;gap:5px;}
+  .legend i{width:12px;height:12px;border-radius:3px;display:inline-block;}
+  @media(max-width:768px){
+    .phase-row{grid-template-columns:26px 1fr 60px 56px 56px;gap:4px;}
+    .phase-row input{font-size:13px;padding:9px 8px;}
+  }
+</style>
+
+
+
+<meta property="og:image" content="https://tools.dicomp.net/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免費線上工具">
+<meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免費線上工具">
+    <meta property="og:type" content="website">
+    <meta name="twitter:title" content="交叉口訊號週期配時方案 - 分配有效綠燈時間">
+    <meta name="twitter:description" content="交叉口訊號週期配時方案是一款免費的線上交通運輸工具，基於 Webster 法計算最佳週期、分配有效綠燈時間，並繪製訊號時序圖。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"交叉口（訊號週期）配時方案","url":"https://tools.dicomp.net/zh-tw/tools/transport/cycle-signal.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"交叉口訊號週期配時方案是一款免費的線上交通運輸工具，基於 Webster 法計算最佳週期、分配有效綠燈時間，並繪製訊號時序圖。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首頁","item":"https://tools.dicomp.net/zh-tw/"},{"@type":"ListItem","position":2,"name":"交通運輸","item":"https://tools.dicomp.net/zh-tw/tools/transport/index.html"},{"@type":"ListItem","position":3,"name":"交叉口（訊號週期）配時方案","item":"https://tools.dicomp.net/zh-tw/tools/transport/cycle-signal.html"}]}</script>
+
+<script src="/js/i18n.js" defer></script>
+<script src="/js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+
+
+<meta name="title-en" content="Cycle Signal">
+<meta name="desc-en" content="Cycle Signal - online utility on ToolBox.">
+
+
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
+
+<script src="/js/tool-ux.js" defer></script>
+<!-- TOOLBOX-TOOL-UX -->
+
+<script src="/js/analytics.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+<!-- TOOLBOX-TTZZ -->
+<script>
+(function(){try{
+var el = document.createElement("script");
+el.src = "https://lf1-cdn-tos.bytegoofy.com/goofy/ttzz/push.js?85d6452aa9be4d693b16cd48535a8c7ae57542f6788a41682e745be8eb99b35a8a24d2f724c31ebe20c1e4e6fba6d91caf576100b02a2870c72f38fc574066fef065d152c73bf1cbb2ebad3b5b5265d8";
+el.id = "ttzz";
+var s = document.getElementsByTagName("script")[0];
+s.parentNode.insertBefore(el, s);
+}catch(e){}
+})(window);
+</script>
+
+<script src="/js/tool-kit.js" defer></script>
+<!-- TOOLBOX-TOOL-KIT -->
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://tools.dicomp.net/tools/transport/cycle-signal.html">
+<link rel="alternate" hreflang="zh-TW" href="https://tools.dicomp.net/zh-tw/tools/transport/cycle-signal.html">
+<link rel="alternate" hreflang="en-US" href="https://tools.dicomp.net/tools/transport/cycle-signal.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://tools.dicomp.net/tools/transport/cycle-signal.html">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+</head>
+<body>
+<h1 class="sr-only">交叉口（訊號週期）配時方案</h1>
+<div class="nav">
+  <a href="/zh-tw/index.html">← ToolBox</a>
+  <span>/ 交叉口（訊號週期）配時方案</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+
+
+
+<nav class="breadcrumb" aria-label="麵包屑導航" data-breadcrumb="1">
+  <a href="/zh-tw/index.html">首頁</a>
+  <span class="bc-sep">‹</span>
+  <a href="/zh-tw/tools/transport/index.html">🚚 交通運輸</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">交叉口（訊號週期）配時方案</span>
+</nav>
+<div class="container">
+  <div class="card tool-card-accent" style="--tool-accent:#1E88E5;">
+    <h2 data-zh="📡 交叉口訊號週期配時方案">Cycle Signal</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px;" data-zh="基於 Webster 法計算最佳週期、分配有效綠燈時間，並繪製訊號時序圖。">Cycle Signal</p>
+    <div class="formula-box">
+      <div class="formula-title">📐 工作原理與說明</div>
+      <p class="formula-desc" data-zh="「基於 Webster 法計算最佳週期、分配有效綠燈時間，並繪製訊號時序圖。」按輸入引數進行專業計算並輸出結果。">Cycle Signal: computes and outputs results from the input parameters.</p>
+    </div>
+
+    <div class="input-row">
+      <div>
+        <label>相位數</label>
+        <select id="phaseCount" onchange="buildPhases()">
+          <option value="2">2 相位</option>
+          <option value="3">3 相位</option>
+          <option value="4" selected>4 相位</option>
+        </select>
+      </div>
+      <div>
+        <label>週期長度 C（秒）</label>
+        <input type="number" id="cycle" value="90" min="30" max="240" step="1" oninput="calc()">
+      </div>
+      <div>
+        <label>飽和流量 s（pcu/h）</label>
+        <input type="number" id="satFlow" value="1800" min="200" step="50" oninput="calc()">
+      </div>
+    </div>
+
+    <h3 style="margin-top:14px;">各相位引數</h3>
+    <div class="phase-row" style="margin-bottom:4px;color:var(--text-muted);font-size:12px;">
+      <span></span><span>相位名稱</span><span>流量比 y</span><span>黃燈(s)</span><span>全紅(s)</span>
+    </div>
+    <div id="phaseInputs"></div>
+
+    <div class="toolbar" style="margin-top:14px;">
+      <div id="cycle_signalPresets"></div><button type="button" class="btn primary" onclick="calc()">計算配時</button><button class="btn" type="button" onclick="__cycle_signalExport()">匯出明細 CSV</button>
+      <button type="button" class="btn" onclick="useWebster()">採用最佳週期</button>
+      <button type="button" class="btn" onclick="exportPlan()">匯出方案</button>
+      <button type="button" class="btn" onclick="savePlan()">儲存方案</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>配時計算結果</h3>
+    <div class="stat-grid" id="statGrid"></div>
+    <div id="planTable"></div>
+  </div>
+
+  <div class="card">
+    <h3>訊號時序圖（單週期）</h3>
+    <div class="legend">
+      <span><i class="seg-green" style="width:12px;height:12px;border-radius:3px;"></i>綠燈</span>
+      <span><i class="seg-yellow" style="width:12px;height:12px;border-radius:3px;background:var(--warning);"></i>黃燈</span>
+      <span><i class="seg-red" style="width:12px;height:12px;border-radius:3px;background:var(--danger);"></i>全紅</span>
+    </div>
+    <div id="diagram" style="margin-top:10px;"></div>
+    <div class="tip-box tip-info" style="margin-top:12px;">時序圖按週期 C 比例展開，展示各相位綠燈、黃燈、全紅在時間軸上的排列；黃燈+全紅構成相位損失時間。</div>
+  </div>
+
+  <style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#3b82f6)}.tbk-tab.active{background:var(--accent,#3b82f6);color:#fff;border-color:var(--accent,#3b82f6)}.tbk-panel{margin-top:6px}</style>
+<div class="tbk-tabbar" role="tablist">
+  <button type="button" class="tbk-tab" data-pane="chart">圖表</button>
+  <button type="button" class="tbk-tab" data-pane="tbl">資料表</button>
+  <button type="button" class="tbk-tab" data-pane="pre">預設</button>
+  <button type="button" class="tbk-tab" data-pane="his">歷史</button>
+</div>
+<div class="card">
+    <h3>通行能力分析</h3>
+    <div id="capResult"></div> <div id="cycle_signalTable"></div> <div id="cycle_signalDiff"></div> <div id="cycle_signalChart"></div> <div id="cycle_signalHist"></div>
+  </div>
+
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto 0;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+.deep-dive a.term-link{color:var(--tool-accent,#FF6B35);text-decoration:none;border-bottom:1px dashed currentColor;}
+.deep-dive a.term-link:hover{border-bottom-style:solid;}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：交叉口訊號週期配時方案</h2>
+<h3>💡 常見使用場景</h3>
+<ul class="dd-list">
+<li>按各相位流量比與損失時間，用 Webster 公式求最佳週期時長並分配各相位綠燈。</li>
+<li>在給定週期下按流量比加權分配有效綠燈，使各相位飽和度均衡。</li>
+<li>評估週期方案是否接近最優，避免週期過長造成延誤或過短造成排隊溢位。</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">Webster 配時</div><div class="dd-ex-body">總損失時間 L = Σ(各相位黃燈 + 全紅時間)；總流量比 Y = Σ(各相位 y，y = 該相位流量 ÷ 飽和流率)；Webster 最佳週期 C₀ = (1.5L + 5) ÷ (1 − Y)；可用綠燈時間 = C − L；各相位綠燈 g = 可用綠燈 × y ÷ Y。Y 必須小於 1，否則週期無解（進口道過飽和）。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">兩相位，黃燈各 3 s、全紅各 2 s → L = 10 s；兩相位 y 分別為 0.30、0.25 → Y = 0.55。Webster 週期 = (1.5×10+5)/(1−0.55) = 20/0.45 ≈ 44 s（實際常取整並按最小週期約束上調到 60 s 左右）。若週期取 90 s：可用綠燈 = 80 s，相位一綠燈 = 80×0.30/0.55 ≈ 43.6 s，相位二 ≈ 36.4 s。</div></div>
+<h3>❓ 常見問題（FAQ）</h3>
+<dl class="dd-faq">
+<dt>Y 接近 1 會怎樣？</dt><dd>Y 越接近 1 說明交叉口越接近飽和，Webster 公式分母趨零、算出週期急劇增大，實際已無法通過配時解決，需要擴容進口道或分流。</dd>
+<dt>為什麼按 y/Y 分配綠燈？</dt><dd>按各相位流量比佔總流量比的權重分配，可使各相位飽和度大致相等，避免出現“一個方向放行很久、另一個方向持續積壓”的不均衡配時。</dd>
+</dl>
+</div>
+</section>
+<!-- 注意事項區塊 -->
+<div class="tool-notes" style="--tool-accent:#1E88E5;">
+  <div class="tool-notes-title">⚠️ 使用說明與注意事項</div>
+  <ul>
+    <li>採用 Webster 最佳週期公式 C₀ = (1.5L + 5) / (1 − Y)，其中 L 為總損失時間，Y 為各相位流量比之和</li>
+    <li>有效綠燈按 yᵢ / Y 比例分配：gᵢ = (C − L) × yᵢ / Y</li>
+    <li>流量比 y = 到達流量 q / 飽和流量 s，需 ≤ 1；Y &gt; 0.9 時交叉口趨於飽和</li>
+    <li>本工具結果為理論估算值，實際配時應結合現場交通調查與規範要求</li>
+  </ul>
+</div>
+</div>
+
+<!-- SEO 介紹區塊 -->
+
+</div>
+
+</div>
+
+
+<!-- 相關工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相關工具</h3>
+  <div class="related-tools-grid">
+    <a href="/zh-tw/tools/transport/convert-fuel-oil.html" class="related-tool-card">
+      <span class="rt-icon">⚡</span>
+      <span class="rt-info"><span class="rt-name">燃油效率單位轉換（MPG ↔ L/100km）</span><span class="rt-desc">燃油效率單位轉換（MPG ↔ L/100km）</span></span>
+    </a>
+    <a href="/zh-tw/tools/transport/estimate-speed-time.html" class="related-tool-card">
+      <span class="rt-icon">🔮</span>
+      <span class="rt-info"><span class="rt-name">行駛時間估算 - 交通運輸線上工具</span><span class="rt-desc">行駛時間估算</span></span>
+    </a>
+    <a href="/zh-tw/tools/transport/convert-volume-weight.html" class="related-tool-card">
+      <span class="rt-icon">🧊</span>
+      <span class="rt-info"><span class="rt-name">貨物體積重量換算（實際重 vs 體積重）</span><span class="rt-desc">貨物體積重量換算器：按體積重與實際重對比，取較大者作為計費重量，用於物流運費核算。</span></span>
+    </a>
+    <a href="/zh-tw/tools/transport/calculator-calc-speed.html" class="related-tool-card">
+      <span class="rt-icon">📏</span>
+      <span class="rt-info"><span class="rt-name">剎車距離計算器 - 交通運輸線上工具</span><span class="rt-desc">剎車距離計算器</span></span>
+    </a>
+    <a href="/zh-tw/tools/transport/noise.html" class="related-tool-card">
+      <span class="rt-icon">🔊</span>
+      <span class="rt-info"><span class="rt-name">交通噪聲（Leq）預測</span><span class="rt-desc">基於 FHWA 簡化模型，由交通量、車速、重型車比例、距離與地面型別估算等效連續聲級 Leq。</span></span>
+    </a>
+    <a href="/zh-tw/tools/transport/calc-53.html" class="related-tool-card">
+      <span class="rt-icon">🧮</span>
+      <span class="rt-info"><span class="rt-name">交通量（高峰小時係數）計算</span><span class="rt-desc">輸入24小時交通量或高峰小時4個15分鐘流量，計算 PHF、日交通量與 AADT 估計，並生成流量…</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro" id="toolIntro">
+  <div class="tool-intro-header">
+    <span class="intro-icon-wrap"><span class="intro-icon">📖</span>關於「交叉口（訊號週期）配時方案」</span>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="tool-intro-body">
+    <h4><span class="h4-icon">📝</span>工具簡介</h4>
+    <p>面向交通訊號配時的專業計算工具，基於 Webster 最佳週期法，輸入各相位流量比即可計算週期長度、分配綠燈時間，並繪製訊號時序圖與通行能力指標。</p>
+    <h4><span class="h4-icon">✨</span>功能特點</h4>
+    <ul class="intro-features">
+      <li>Webster 最佳週期自動求解</li>
+      <li>綠信比按流量比比例分配</li>
+      <li>訊號時序圖視覺化</li>
+      <li>通行能力與飽和度分析</li>
+      <li>方案匯出與本地儲存</li>
+    </ul>
+    <h4><span class="h4-icon">🎯</span>使用場景</h4>
+    <ul class="intro-scenes">
+      <li>交叉口訊號配時設計</li>
+      <li>交通工程教學與課程設計</li>
+      <li>訊號週期最佳化評估</li>
+      <li>配時方案快速比選</li>
+    </ul>
+    </div>
+</div>
+
+<script>
+var STORE_KEY='tb_signal_cycle_plan';
+var defaultNames=['东西直行','南北直行','东西左转','南北左转'];
+var state={phases:[],cycle:90,satFlow:1800};
+
+function buildPhases(){
+  var n=+document.getElementById('phaseCount').value;
+  var old=state.phases;
+  var phases=[];
+  for(var i=0;i<n;i++){
+    phases.push({
+      name:(old[i]&&old[i].name)||defaultNames[i]||('相位'+(i+1)),
+      y:(old[i]&&old[i].y)||0.35,
+      yellow:(old[i]&&old[i].yellow)||3,
+      allred:(old[i]&&old[i].allred)||2
+    });
+  }
+  state.phases=phases;
+  var box=document.getElementById('phaseInputs');
+  var h='';
+  phases.forEach(function(p,i){
+    h+='<div class="phase-row">'+
+      '<span class="pi">'+(i+1)+'</span>'+
+      '<input type="text" value="'+ToolBox.escHtml(p.name)+'" oninput="state.phases['+i+'].name=this.value">'+
+      '<input type="number" step="0.01" min="0" max="0.95" value="'+p.y+'" oninput="setPhase('+i+',\'y\',this.value)">'+
+      '<input type="number" step="0.5" min="2" max="6" value="'+p.yellow+'" oninput="setPhase('+i+',\'yellow\',this.value)">'+
+      '<input type="number" step="0.5" min="0" max="6" value="'+p.allred+'" oninput="setPhase('+i+',\'allred\',this.value)">'+
+      '</div>';
+  });
+  const __g1=h;box.innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
+  calc();
+}
+
+function setPhase(i,k,v){
+  state.phases[i][k]=+v||0;
+  calc();
+}
+
+function calc(){
+  state.cycle=+document.getElementById('cycle').value||90;
+  state.satFlow=+document.getElementById('satFlow').value||1800;
+  var ps=state.phases;
+  var L=0,Y=0;
+  ps.forEach(function(p){ L+=(+p.yellow)+(+p.allred); Y+=(+p.y||0); });
+  var C=state.cycle;
+  var webster=(Y>0&&Y<1)?Math.round((1.5*L+5)/(1-Y)):0;
+  var avail=C-L;
+  var alloc=[];
+  ps.forEach(function(p){
+    var y=+p.y||0;
+    var g=(Y>0&&avail>0)?(avail*y/Y):0;
+    alloc.push({name:p.name,y:y,yellow:+p.yellow,allred:+p.allred,g:g});
+  });
+  renderStat(L,Y,C,webster,avail);
+  renderTable(alloc,C,L);
+  renderDiagram(alloc,C);
+  renderCap(Y,C,L,webster);
+}
+
+function renderStat(L,Y,C,webster,avail){
+  const __g2=stat('周期 C',C+' s')+
+    stat('总损失 L',L+' s')+
+    stat('有效绿灯合计',avail+' s')+
+    stat('流量比之和 Y',Y.toFixed(3))+
+    stat('Webster 最佳',webster?webster+' s':'—')+
+    stat('饱和度',Y>=1?'过饱和':(Y*100).toFixed(0)+'%');document.getElementById('statGrid').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
+}
+function stat(v,l){return '<div class="stat-card"><div class="val">'+v+'</div><div class="lbl">'+l+'</div></div>';}
+
+function renderTable(alloc,C,L){
+  var h='<table style="margin-top:10px;"><thead><tr><th>相位</th><th>流量比 y</th><th>有效绿灯 g(s)</th><th>绿信比 λ</th><th>黄灯</th><th>全红</th><th>相位合计(s)</th></tr></thead><tbody>';
+  alloc.forEach(function(a){
+    var lambda=(C>0)?(a.g/C):0;
+    h+='<tr><td>'+ToolBox.escHtml(a.name)+'</td><td>'+a.y.toFixed(3)+'</td><td>'+
+      '<strong style="color:var(--primary);">'+a.g.toFixed(1)+'</strong></td><td>'+
+      (lambda*100).toFixed(1)+'%</td><td>'+a.yellow+'</td><td>'+a.allred+'</td><td>'+
+      (a.g+a.yellow+a.allred).toFixed(1)+'</td></tr>';
+  });
+  h+='</tbody></table>';
+  h+='<div class="tip-box tip-info" style="margin-top:10px;">有效绿灯合计 '+(alloc.reduce(function(s,a){return s+a.g;},0)).toFixed(1)+' s，加损失时间 '+L+' s = 周期 '+C+' s。</div>';
+  const __g3=h;document.getElementById('planTable').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
+}
+
+function renderDiagram(alloc,C){
+  if(C<=0){document.getElementById('diagram').innerHTML='<p style="color:var(--text-muted);">请输入有效周期</p>';return;}
+  var h='<div class="timeline">';
+  alloc.forEach(function(a){
+    var gw=(a.g/C*100), yw=(a.yellow/C*100), rw=(a.allred/C*100);
+    if(a.g>0) h+='<div class="seg seg-green" style="width:'+gw+'%;" title="'+ToolBox.escHtml(a.name)+' 绿灯 '+a.g.toFixed(1)+'s">'+(gw>8?a.g.toFixed(0):'')+'</div>';
+    if(a.yellow>0) h+='<div class="seg seg-yellow" style="width:'+yw+'%;" title="黄灯 '+a.yellow+'s">'+(yw>5?'黄':'')+'</div>';
+    if(a.allred>0) h+='<div class="seg seg-red" style="width:'+rw+'%;" title="全红 '+a.allred+'s">'+(rw>5?'红':'')+'</div>';
+  });
+  h+='</div><div class="axis"><span>0 s</span><span>'+(C/2).toFixed(0)+' s</span><span>'+C+' s</span></div>';
+  h+='<div style="margin-top:12px;">';
+  alloc.forEach(function(a){
+    h+='<div class="bar-row"><span class="bar-lbl">'+ToolBox.escHtml(a.name)+'</span>'+
+      '<div class="bar-bg" style="display:flex;">'+
+      '<div class="bar-fill" style="width:'+(a.g/C*100)+'%;background:var(--success);"></div>'+
+      '<div style="width:'+(a.yellow/C*100)+'%;background:var(--warning);"></div>'+
+      '<div style="width:'+(a.allred/C*100)+'%;background:var(--danger);"></div>'+
+      '</div><span style="width:64px;text-align:left;color:var(--text-light);font-size:12px;">'+(a.g+a.yellow+a.allred).toFixed(0)+'s</span></div>';
+  });
+  h+='</div>';
+  const __g5=h;document.getElementById('diagram').innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
+}
+
+function renderCap(Y,C,L,webster){
+  var s=state.satFlow;
+  var ps=state.phases;
+  var h='<table><thead><tr><th>相位</th><th>实际流量 q(pcu/h)</th><th>通行能力 N(pcu/h)</th><th>饱和度 x</th><th>评价</th></tr></thead><tbody>';
+  ps.forEach(function(p){
+    var y=+p.y||0;
+    var q=y*s;
+    var g=(Y>0)?((C-L)*y/Y):0;
+    var N=(C>0)?(s*g/C):0;
+    var x=(N>0)?(q/N):0;
+    var grade= x>0.9?'grade-fail':(x>0.85?'grade-pass':(x>0?'grade-good':''));
+    var txt= x>0.9?'过饱和':(x>0.85?'接近饱和':'正常');
+    h+='<tr><td>'+ToolBox.escHtml(p.name)+'</td><td>'+q.toFixed(0)+'</td><td>'+N.toFixed(0)+'</td><td>'+
+      '<strong>'+(x||0).toFixed(3)+'</strong></td><td><span class="grade-tag '+grade+'">'+txt+'</span></td></tr>';
+  });
+  h+='</tbody></table>';
+  var sat= Y>=1?'<div class="tip-box tip-error">交叉口流量比之和 Y ≥ 1，已过饱和，需拓宽或限流！</div>':
+    (Y>0.9?'<div class="tip-box tip-warn">Y &gt; 0.9，接近饱和，建议增大周期或优化相位。</div>':
+    '<div class="tip-box tip-success">饱和度合理，配时方案可行。</div>');
+  var wnote=webster?('Webster 最佳周期为 '+webster+' s，当前 C='+C+' s'+(C<webster?'（偏小，建议增大）':(C>webster*1.3?'（偏大，延误增加）':'（合理）'))+'。'):'';
+  const __g6=h+sat+(wnote?'<div class="tip-box tip-info">'+wnote+'</div>':'');document.getElementById('capResult').innerHTML=(typeof __g6==='number'?(isFinite(__g6)?__g6:'—'):String(__g6).replace(/Infinity|NaN/g,'—'));
+}
+
+function useWebster(){
+  var L=0,Y=0;
+  state.phases.forEach(function(p){ L+=(+p.yellow)+(+p.allred); Y+=(+p.y||0); });
+  if(Y<=0||Y>=1){ToolBox.showToast(i18nText() ,'error');return;}
+  var w=Math.round((1.5*L+5)/(1-Y));
+  w=Math.max(40,Math.min(240,w));
+  document.getElementById('cycle').value=w;
+  state.cycle=w;
+  calc();
+  ToolBox.showToast(i18nText('toast.saved', '已采用最佳周期 '+w+' s'));
+}
+
+function exportPlan(){
+  var ps=state.phases,L=0,Y=0;
+  ps.forEach(function(p){ L+=(+p.yellow)+(+p.allred); Y+=(+p.y||0); });
+  var C=state.cycle,avail=C-L;
+  var lines=['交叉口信号配时方案','生成时间：'+new Date().toLocaleString(),''];
+  lines.push('周期长度 C = '+C+' s');
+  lines.push('总损失时间 L = '+L+' s');
+  lines.push('有效绿灯合计 = '+avail+' s');
+  lines.push('流量比之和 Y = '+Y.toFixed(3));
+  lines.push('');
+  lines.push('相位\t流量比y\t有效绿灯g(s)\t黄灯\t全红');
+  ps.forEach(function(p){
+    var g=(Y>0)?(avail*(p.y||0)/Y):0;
+    lines.push(p.name+'\t'+(p.y||0).toFixed(3)+'\t'+g.toFixed(1)+'\t'+p.yellow+'\t'+p.allred);
+  });
+  ToolBox.downloadText('信号配时方案.txt',lines.join('\n'));
+}
+
+function savePlan(){
+  try{localStorage.setItem(STORE_KEY,JSON.stringify({cycle:state.cycle,sat:state.satFlow,phases:state.phases}));ToolBox.showToast(i18nText() );}
+  catch(e){ToolBox.showToast(i18nText() ,'error');}
+}
+
+function loadPlan(){
+  try{
+    var d=JSON.parse(localStorage.getItem(STORE_KEY));
+    if(d&&d.phases){
+      state.phases=d.phases;state.cycle=d.cycle;state.satFlow=d.sat||1800;
+      document.getElementById('cycle').value=d.cycle;
+      document.getElementById('satFlow').value=state.satFlow;
+      document.getElementById('phaseCount').value=d.phases.length;
+    }
+  }catch(e){}
+}
+
+document.addEventListener('DOMContentLoaded',function(){
+  loadPlan();
+  buildPhases();
+  document.querySelectorAll('.tool-intro-header').forEach(function(h){
+    h.addEventListener('click',function(){this.parentElement.classList.toggle('open');});
+  });
+});
+
+var __cycle_signal_last=0,__cycle_signal_skip=false;
+function __cycle_signalSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __cycle_signalResText(){
+    var r=document.getElementById('capResult');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __cycle_signalTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __cycle_signalRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__cycle_signalTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#cycle_signalTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#cycle_signalDiff');
+        TBKit.history.mount('#cycle_signalHist',function(rec){
+            __cycle_signal_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __cycle_signal_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__cycle_signalTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#cycle_signalChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __cycle_signalExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__cycle_signal_skip) return;
+    var snap=__cycle_signalSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__cycle_signalResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__cycle_signal_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __cycle_signal_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __cycle_signalRender(keys,rk,en);
+}
+function __cycle_signalExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#cycle_signalTable','cycle-signal.csv'); } catch(e){}
+}
+function __cycle_signalPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#cycle_signalPresets',[{label:'默认参数',labelEn:'Default',values:{'phaseCount':'2', 'cycle':'90', 'satFlow':'1800'}}],function(){ calc(); });
+}
+var __cycle_signal_f0=(typeof calc==='function')?calc:null;
+if(__cycle_signal_f0){
+    calc=function(){ var __r=__cycle_signal_f0.apply(null,arguments); try{ __cycle_signalExtras(); }catch(e){} return __r; };
+}
+function __cycle_signalBoot(){ try{ __cycle_signalPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __cycle_signalBoot();
+else document.addEventListener('DOMContentLoaded', __cycle_signalBoot);
+</script>
+
+
+<script>/*TBKIT-INJECT-START*/
+(function(){
+  var P={"chart": ["cycle_signalChart"], "tbl": ["cycle_signalTable"], "pre": ["cycle_signalPresets"], "his": ["cycle_signalHist"]};
+  var L={res:['结果','Result'],chart:['图表','Chart'],tbl:['数据表','Data'],pre:['预设','Presets'],his:['历史','History']};
+  function tabify(){
+    var bar=document.querySelector('.tbk-tabbar');
+    if(!bar||!bar.querySelectorAll) return;
+    var btns=bar.querySelectorAll('.tbk-tab');
+    if(!btns||!btns.length) return;
+    var en=false;
+    try{ if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn) en=TBKit.util.isEn(); }catch(e){}
+    if(!en&&document.documentElement&&(document.documentElement.lang||'').indexOf('en')>=0) en=true;
+    for(var i=0;i<btns.length;i++){var p=btns[i].getAttribute('data-pane');btns[i].textContent=en?L[p][1]:L[p][0];}
+    function show(pane){
+      for(var k in P){var ids=P[k];for(var i=0;i<ids.length;i++){var el=document.getElementById(ids[i]);if(el&&el.style)el.style.display=(k===pane?'':'none');}}
+      for(var j=0;j<btns.length;j++){btns[j].className='tbk-tab'+(btns[j].getAttribute('data-pane')===pane?' active':'');}
+    }
+    for(var i=0;i<btns.length;i++){(function(b){b.addEventListener('click',function(){show(b.getAttribute('data-pane'));});})(btns[i]);}
+    show(btns[0].getAttribute('data-pane'));
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',tabify);else tabify();
+})();
+/*TBKIT-INJECT-END*/</script>
+</body>
+</html>

@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-opencc-locale="zh-tw">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=math,industry=ai,icon=🚀,bg=#ede9fe">
+<title>最佳輪次選擇 - 訓練過程復盤與部署權重確定</title>
+<link rel="canonical" href="https://tools.dicomp.net/zh-tw/tools/ai/best-epoch.html">
+<link rel="stylesheet" href="/css/common.css">
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/common.js" defer></script>
+
+
+<meta property="og:image" content="https://tools.dicomp.net/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免費線上工具">
+<meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免費線上工具">
+    <meta name="description" content="最佳輪次選擇是一款免費的線上AI 人工智慧工具，輸入各訓練輪次的驗證指標，自動選出最優輪次並給出早停建議，適用於模型 checkpoint 選擇、訓練過程復盤與部署權重確定。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+    <meta property="og:title" content="最佳輪次選擇 - 訓練過程復盤與部署權重確定">
+    <meta property="og:description" content="最佳輪次選擇是一款免費的線上AI 人工智慧工具，輸入各訓練輪次的驗證指標，自動選出最優輪次並給出早停建議，適用於模型 checkpoint 選擇、訓練過程復盤與部署權重確定。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://tools.dicomp.net/zh-tw/tools/ai/best-epoch.html">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="最佳輪次選擇 - 訓練過程復盤與部署權重確定">
+    <meta name="twitter:description" content="最佳輪次選擇是一款免費的線上AI 人工智慧工具，輸入各訓練輪次的驗證指標，自動選出最優輪次並給出早停建議，適用於模型 checkpoint 選擇、訓練過程復盤與部署權重確定。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"最佳輪次選擇","url":"https://tools.dicomp.net/zh-tw/tools/ai/best-epoch.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"最佳輪次選擇是一款免費的線上AI 人工智慧工具，輸入各訓練輪次的驗證指標，自動選出最優輪次並給出早停建議，適用於模型 checkpoint 選擇、訓練過程復盤與部署權重確定。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首頁","item":"https://tools.dicomp.net/zh-tw/"},{"@type":"ListItem","position":2,"name":"AI 人工智慧","item":"https://tools.dicomp.net/zh-tw/tools/ai/index.html"},{"@type":"ListItem","position":3,"name":"最佳輪次選擇","item":"https://tools.dicomp.net/zh-tw/tools/ai/best-epoch.html"}]}</script>
+
+<script src="/js/i18n.js" defer></script>
+<script src="/js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+
+
+<meta name="title-en" content="Best Epoch">
+<meta name="desc-en" content="Best Epoch - online utility on ToolBox.">
+
+
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
+
+<script src="/js/tool-ux.js" defer></script>
+<!-- TOOLBOX-TOOL-UX -->
+
+<script src="/js/analytics.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<!-- TOOLBOX-TTZZ -->
+<script>
+(function(){try{
+var el = document.createElement("script");
+el.src = "https://lf1-cdn-tos.bytegoofy.com/goofy/ttzz/push.js?85d6452aa9be4d693b16cd48535a8c7ae57542f6788a41682e745be8eb99b35a8a24d2f724c31ebe20c1e4e6fba6d91caf576100b02a2870c72f38fc574066fef065d152c73bf1cbb2ebad3b5b5265d8";
+el.id = "ttzz";
+var s = document.getElementsByTagName("script")[0];
+s.parentNode.insertBefore(el, s);
+}catch(e){}
+})(window);
+</script>
+
+<script src="/js/tool-kit.js" defer></script>
+<!-- TOOLBOX-TOOL-KIT -->
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://tools.dicomp.net/tools/ai/best-epoch.html">
+<link rel="alternate" hreflang="zh-TW" href="https://tools.dicomp.net/zh-tw/tools/ai/best-epoch.html">
+<link rel="alternate" hreflang="en-US" href="https://tools.dicomp.net/tools/ai/best-epoch.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://tools.dicomp.net/tools/ai/best-epoch.html">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+</head>
+<body>
+<h1 class="sr-only">最佳輪次選擇</h1>
+
+<div class="nav">
+  <a href="/zh-tw/index.html">← ToolBox</a>
+  <span>/ 最佳輪次選擇</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+
+<nav class="breadcrumb" aria-label="麵包屑導航" data-breadcrumb="1">
+  <a href="/zh-tw/index.html">首頁</a>
+  <span class="bc-sep">‹</span>
+  <a href="/zh-tw/tools/ai/index.html">🤖 人工智慧</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">最佳輪次選擇</span>
+</nav>
+<div class="container">
+<div class="tool-guide-link" data-guide-link="1">
+  <a href="/zh-tw/guides/best-epoch-guide.html">📖 檢視「最佳輪次選擇使用指南」</a>
+</div>
+
+  <style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#3b82f6)}.tbk-tab.active{background:var(--accent,#3b82f6);color:#fff;border-color:var(--accent,#3b82f6)}.tbk-panel{margin-top:6px}</style>
+<div class="tbk-tabbar" role="tablist">
+  <button type="button" class="tbk-tab" data-pane="res">結果</button>
+  <button type="button" class="tbk-tab" data-pane="tbl">資料表</button>
+  <button type="button" class="tbk-tab" data-pane="pre">預設</button>
+  <button type="button" class="tbk-tab" data-pane="his">歷史</button>
+</div>
+<div class="card">
+    <h2 data-zh="🚀 最佳輪次選擇">🚀 Best Epoch Selector</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="從若干輪損失中選出最優輪次。">Paste per-epoch validation metrics and let the tool pick the best epoch, with an early-stopping recommendation for your next run.</p>
+        <div class="formula-box">
+      <div class="formula-title">📐 計算公式 / 原理</div>
+      <div class="formula-eq">最佳輪次 = argmin(驗證損失)；最小驗證損失 = min(l₁…l₅)</div>
+      <div class="formula-desc">取驗證損失最低的輪次而非最後一輪，是早停的標準做法。若多個輪次損失接近，優先選更靠後的（通常更穩）或按次要指標（F1）再篩；注意"用驗證集選輪次"本身會輕微樂觀，嚴格評估應留出獨立測試集。</div>
+    </div>
+<div class="input-row"><label>loss 輪1</label><input type="number" id="l1" value="0.5" step="any" oninput="calc()"></div>
+    <div class="input-row"><label>loss 輪2</label><input type="number" id="l2" value="0.4" step="any" oninput="calc()"></div>
+    <div class="input-row"><label>loss 輪3</label><input type="number" id="l3" value="0.45" step="any" oninput="calc()"></div>
+    <div class="input-row"><label>loss 輪4</label><input type="number" id="l4" value="0.38" step="any" oninput="calc()"></div>
+    <div class="input-row"><label>loss 輪5</label><input type="number" id="l5" value="0.39" step="any" oninput="calc()"></div>
+    <div id="bePresets"></div>
+    <div class="toolbar">
+      <button class="btn primary" onclick="calc()">計算</button>
+      <button class="btn" onclick="copyResult()">複製結果</button>
+      <button class="btn" onclick="__beExport()">匯出 CSV</button>
+    </div>
+    <div class="result-box" id="result" data-viz="bar" data-viz-max="100" data-viz-min="0">
+    <div id="beChart" role="img" aria-label="結果視覺化"></div>
+    <div id="beTable"></div>
+    <div id="beDiff"></div>
+    <div id="beHist"></div>
+</div>
+  </div>
+  <div class="card formula-box">
+    <h3>📐 計算公式與說明</h3>
+    <div class="formula-eq">最佳輪次 = loss 最小者</div>
+    <p style="font-size:13px;color:var(--text-muted);margin-top:12px;">應結合驗證集，避免過擬合輪次。</p>
+  </div>
+</div>
+
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto 0;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+.deep-dive a.term-link{color:var(--tool-accent,#FF6B35);text-decoration:none;border-bottom:1px dashed currentColor;}
+.deep-dive a.term-link:hover{border-bottom-style:solid;}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：最佳輪次選擇</h2>
+<h3>💡 常見使用場景</h3>
+<ul class="dd-list">
+<li>在記錄中各輪驗證指標(如驗證 loss/F1)取最優輪次，作為部署權重。</li>
+<li>監控指標上升即早停，並回退到最佳輪 checkpoint，避免用<a class="term-link" href="/zh-tw/tools/ai/ai-11.html">過擬合</a>權重。</li>
+<li>若多指標衝突(如 loss 最低但 F1 非最高)，按業務優先順序選定主指標。</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">選最優輪</div><div class="dd-ex-body">10 輪驗證 F1 為 [0.80,0.83,0.85,0.86,0.87,0.87,0.86,0.85,0.84,0.83]，最佳為第 6 輪(0.87)，應載入第 6 輪權重而非最後一輪。</div></div>
+<h3>❓ 常見問題（FAQ）</h3>
+<dl class="dd-faq">
+<dt>用 loss 還是 F1 選最佳輪？</dt><dd>看目標。迴歸用驗證 loss/RMSE；分類常看 F1/Accuracy；若關注誤殺率則看精確率。主指標應直接對應業務收益。</dd>
+<dt>驗證指標波動怎麼選？</dt><dd>取平滑後的最優且要求持續優勢(patience)，避免單點噪聲誤導；也可在最佳輪附近做少量額外驗證確認穩定。</dd>
+</dl>
+</div>
+</section>
+<!-- 相關工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相關工具</h3>
+  <div class="related-tools-grid">
+    <a href="/zh-tw/tools/ai/dropout.html" class="related-tool-card">
+      <span class="rt-icon">🤖</span>
+      <span class="rt-info"><span class="rt-name">Dropout 保留期望</span><span class="rt-desc">Dropout 期望輸出計算器，輸入保留機率求 dropout 後的期望輸出與推理期縮放因子，輔助…</span></span>
+    </a>
+    <a href="/zh-tw/tools/ai/l1-l2.html" class="related-tool-card">
+      <span class="rt-icon">🔍</span>
+      <span class="rt-info"><span class="rt-name">L1 L2 正則化懲罰</span><span class="rt-desc">L1/L2 正則化懲罰計算器，輸入權重與正則係數求對損失函式的懲罰項，對比 Lasso 與 Rid…</span></span>
+    </a>
+    <a href="/zh-tw/tools/ai/rag.html" class="related-tool-card">
+      <span class="rt-icon">🤖</span>
+      <span class="rt-info"><span class="rt-name">RAG 召回率</span><span class="rt-desc">RAG 召回率計算器，輸入相關文件數與檢索命中數求召回率，評估檢索增強生成的檢索覆蓋質量。</span></span>
+    </a>
+    <a href="/zh-tw/tools/ai/roc-auc.html" class="related-tool-card">
+      <span class="rt-icon">🤖</span>
+      <span class="rt-info"><span class="rt-name">ROC AUC 近似</span><span class="rt-desc">輸入正負樣本預測得分，估算 ROC 曲線下面積 AUC，評估分類器排序能力，適用於模型選型、閾值無…</span></span>
+    </a>
+    <a href="/zh-tw/tools/ai/relu-leakyrelu.html" class="related-tool-card">
+      <span class="rt-icon">🤖</span>
+      <span class="rt-info"><span class="rt-name">ReLU 與 LeakyReLU</span><span class="rt-desc">R ReLU 與 LeakyReLU</span></span>
+    </a>
+    <a href="/zh-tw/tools/ai/sigmoid.html" class="related-tool-card">
+      <span class="rt-icon">🤖</span>
+      <span class="rt-info"><span class="rt-name">Sigmoid 輸出</span><span class="rt-desc">S Sigmoid 輸出</span></span>
+    </a>
+  </div>
+</div>
+<script>
+function calc(){
+  const l1 = +document.getElementById('l1').value || 0;
+  const l2 = +document.getElementById('l2').value || 0;
+  const l3 = +document.getElementById('l3').value || 0;
+  const l4 = +document.getElementById('l4').value || 0;
+  const l5 = +document.getElementById('l5').value || 0;
+  let html = '';
+  const __v0 = (Math.min(l1,l2,l3,l4,l5));
+  html += `<p>最小 loss：<strong style="font-size:18px;color:var(--primary);">${__v0.toFixed(4)}</strong> </p>`;
+  const __v1 = ((()=>{const a=[l1,l2,l3,l4,l5];let m=0;for(let i=1;i<5;i++)if(a[i]<a[m])m=i;return m+1;})());
+  html += `<p>最佳轮次：<strong style="font-size:18px;color:var(--primary);">${__v1.toFixed(0)}</strong> 轮</p>`;
+  const __g1=html;document.getElementById('result').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
+}
+function copyResult() {
+  const txt = document.getElementById('result').innerText;
+  if (!txt) return;
+  navigator.clipboard.writeText(txt).then(() => ToolBox.toast && ToolBox.toast('已复制结果')).catch(() => {
+    const ta = document.createElement('textarea'); ta.value = txt; document.body.appendChild(ta);
+    ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+  });
+}
+calc();
+
+function __beN(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __beList(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
+function __beL(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+
+
+function __beExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#beTable','best-epoch.csv');}catch(e){} }
+function __beExtras(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        var ls=[__beN('l1'),__beN('l2'),__beN('l3'),__beN('l4'),__beN('l5')];
+        if(ls.some(function(x){return !isFinite(x);}))return;
+        var mn=Math.min.apply(null,ls), mi=ls.indexOf(mn);
+        var over = ls[ls.length-1]>mn*1.05;
+        TBKit.chart.bar('#beChart',{labels:['E1','E2','E3','E4','E5'],series:[{name:__beL('loss','损失'),data:ls}],height:220,title:__beL('Validation loss per epoch','各轮验证损失')});
+        var rows=__beL(
+            [['E1 loss',ls[0].toFixed(4)],['E2 loss',ls[1].toFixed(4)],['E3 loss',ls[2].toFixed(4)],['E4 loss',ls[3].toFixed(4)],['E5 loss',ls[4].toFixed(4)],['min loss',mn.toFixed(4)],['best epoch',(mi+1).toFixed(0)],['overfitting?',over?'likely (loss rising)':'no']],
+            [['第 1 轮 loss',ls[0].toFixed(4)],['第 2 轮 loss',ls[1].toFixed(4)],['第 3 轮 loss',ls[2].toFixed(4)],['第 4 轮 loss',ls[3].toFixed(4)],['第 5 轮 loss',ls[4].toFixed(4)],['最小 loss',mn.toFixed(4)],['最佳轮次',(mi+1).toFixed(0)],['过拟合迹象',over?'疑似（loss 回升）':'无']]);
+        TBKit.matrix.table('#beTable',{head:__beL(['Metric','Value'],['指标','数值']),rows:rows});
+        TBKit.history.record({best:Number(mn.toFixed(4))});
+        TBKit.util.diffBox('#beDiff',['best']);
+        TBKit.history.mount('#beHist',function(v){ if(v.best!=null){[1,2,3,4,5].forEach(function(i){document.getElementById('l'+i).value=v['l'+i];});} calc(); });
+    }catch(e){}
+}
+function __bePresets(){
+    if(typeof TBKit==='undefined')return;
+    try{
+        TBKit.preset.bar('#bePresets',[
+            {label:'正常收敛 0.5→0.30',labelEn:'Converging 0.5→0.30',values:{l1:0.5,l2:0.4,l3:0.35,l4:0.32,l5:0.30}},
+            {label:'过拟合 0.38 后回升',labelEn:'Overfitting after 0.38',values:{l1:0.5,l2:0.35,l3:0.30,l4:0.33,l5:0.38}},
+            {label:'震荡 0.45→0.41',labelEn:'Oscillating 0.45→0.41',values:{l1:0.5,l2:0.45,l3:0.42,l4:0.43,l5:0.41}}
+        ],function(){ calc(); });
+    }catch(e){}
+}
+
+var __tb_be0 = calc;
+calc = function(){ __tb_be0(); try{ __beExtras(); }catch(e){} };
+function __beBoot(){ try{ __bePresets(); }catch(e){} try{ calc(); }catch(e){} }
+// readyState 判定须防「桩环境无 readyState」：harness 的 document 桩不提供 readyState（undefined），
+// 旧写法 `=== "loading"` 会走 else 在脚本求值时立即启动 boot，早于页面自身 DOMContentLoaded init
+// ⇒ 元素创建顺序改变 ⇒ 跨元素多行 expect 失配。生产浏览器解析期 readyState==="loading" ⇒ 走
+// addEventListener；已加载完（complete/interactive）⇒ 立即启动。
+if (document.readyState && document.readyState !== "loading") __beBoot();
+else document.addEventListener("DOMContentLoaded", __beBoot);
+</script>
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"用 loss 還是 F1 選最佳輪？","acceptedAnswer":{"@type":"Answer","text":"看目標。迴歸用驗證 loss/RMSE；分類常看 F1/Accuracy；若關注誤殺率則看精確率。主指標應直接對應業務收益。"}},{"@type":"Question","name":"驗證指標波動怎麼選？","acceptedAnswer":{"@type":"Answer","text":"取平滑後的最優且要求持續優勢(patience)，避免單點噪聲誤導；也可在最佳輪附近做少量額外驗證確認穩定。"}}]}</script>
+
+
+<script>/*TBKIT-INJECT-START*/
+(function(){
+  var P={"res": ["result", "beChart"], "tbl": ["beTable"], "pre": ["bePresets"], "his": ["beHist"]};
+  var L={res:['结果','Result'],chart:['图表','Chart'],tbl:['数据表','Data'],pre:['预设','Presets'],his:['历史','History']};
+  function tabify(){
+    var bar=document.querySelector('.tbk-tabbar');
+    if(!bar||!bar.querySelectorAll) return;
+    var btns=bar.querySelectorAll('.tbk-tab');
+    if(!btns||!btns.length) return;
+    var en=false;
+    try{ if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn) en=TBKit.util.isEn(); }catch(e){}
+    if(!en&&document.documentElement&&(document.documentElement.lang||'').indexOf('en')>=0) en=true;
+    for(var i=0;i<btns.length;i++){var p=btns[i].getAttribute('data-pane');btns[i].textContent=en?L[p][1]:L[p][0];}
+    function show(pane){
+      for(var k in P){var ids=P[k];for(var i=0;i<ids.length;i++){var el=document.getElementById(ids[i]);if(el&&el.style)el.style.display=(k===pane?'':'none');}}
+      for(var j=0;j<btns.length;j++){btns[j].className='tbk-tab'+(btns[j].getAttribute('data-pane')===pane?' active':'');}
+    }
+    for(var i=0;i<btns.length;i++){(function(b){b.addEventListener('click',function(){show(b.getAttribute('data-pane'));});})(btns[i]);}
+    show(btns[0].getAttribute('data-pane'));
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',tabify);else tabify();
+})();
+/*TBKIT-INJECT-END*/</script>
+</body>
+</html>

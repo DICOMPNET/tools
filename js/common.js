@@ -3843,7 +3843,7 @@ global.fmtNum = function(n, digits){
 // 关键设计：纯 <iframe> 嵌入不传递权重，只有可抓取的 <a href> 回链才传递。
 // 因此生成的嵌入代码片段自带一行品牌署名链接，且不加 rel="nofollow"（用户自愿署名，属白帽）。
 // 代码以纯文本形式放在 <pre> 中，不产生真实 DOM 链接，不影响站内链接结构。
-var TB_SE_ORIGIN = 'https://chenguangwu.github.io';
+var TB_SE_ORIGIN = 'https://tools.dicomp.net';
 
 function tbSeLang(){
   var l = '';

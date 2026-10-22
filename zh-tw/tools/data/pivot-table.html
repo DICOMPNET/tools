@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-opencc-locale="zh-tw">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=dev,industry=data,icon=📊,bg=#3b82f6">
+<meta name="description" content="資料透視表是一款免費的線上資料分析工具，匯入表格資料並選擇行、列與聚合方式（求和/計數/均值），生成二維透視彙總表，用於多維度資料分析與報表。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta name="keywords" content="資料透視表,資料透視表線上,線上資料透視表,開發工具,資料分析,線上工具,免費工具,ToolBox">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://tools.dicomp.net/zh-tw/tools/data/pivot-table.html">
+<meta property="og:title" content="資料透視表 - 免費線上資料分析工具">
+<meta property="og:description" content="資料透視表是一款免費的線上資料分析工具，匯入表格資料並選擇行、列與聚合方式（求和/計數/均值），生成二維透視彙總表，用於多維度資料分析與報表。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://tools.dicomp.net/zh-tw/tools/data/pivot-table.html">
+<meta name="twitter:card" content="summary">
+
+<title>資料透視表 - 免費線上資料分析工具</title>
+<meta name="theme-color" content="#FF6B35">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="stylesheet" href="/css/common.css">
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/common.js" defer></script>
+<style>
+.data-input { width:100%; min-height:120px; font-family:monospace; font-size:12px; padding:8px; border:1px solid var(--border-color); border-radius:6px; background:var(--bg-body); color:var(--text-primary); resize:vertical; }
+table.pivot { width:100%; font-size:11px; border-collapse:collapse; margin-bottom:12px; }
+table.pivot th, table.pivot td { padding:4px 8px; border:1px solid var(--border-color); text-align:right; }
+table.pivot th { background:var(--bg-card); font-weight:bold; }
+table.pivot td.row-header, table.pivot th.row-header { background:var(--bg-card); text-align:left; font-weight:bold; }
+table.pivot td.total { background:rgba(59,130,246,0.1); font-weight:bold; }
+.result-block { background:var(--bg-card); padding:12px; border-radius:8px; margin-bottom:8px; }
+</style>
+
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"資料透視表","description":"資料透視表 - 免費開發工具，線上資料透視表，免費使用。","url":"https://tools.dicomp.net/zh-tw/tools/data/pivot-table.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Web","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"},"inLanguage":"zh-TW","isAccessibleForFree":true,"browserRequirements":"Requires JavaScript. Requires HTML5.","softwareVersion":"1.0"}</script>
+
+
+
+<meta property="og:image" content="https://tools.dicomp.net/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免費線上工具">
+<meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免費線上工具">
+    <meta name="twitter:title" content="資料透視表 - 免費線上資料分析工具">
+    <meta name="twitter:description" content="資料透視表是一款免費的線上資料分析工具，匯入表格資料並選擇行、列與聚合方式（求和/計數/均值），生成二維透視彙總表，用於多維度資料分析與報表。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"資料透視表","url":"https://tools.dicomp.net/zh-tw/tools/data/pivot-table.html","applicationCategory":"DeveloperApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"資料透視表是一款免費的線上資料分析工具，匯入表格資料並選擇行、列與聚合方式（求和/計數/均值），生成二維透視彙總表，用於多維度資料分析與報表。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首頁","item":"https://tools.dicomp.net/zh-tw/"},{"@type":"ListItem","position":2,"name":"資料分析","item":"https://tools.dicomp.net/zh-tw/tools/data/index.html"},{"@type":"ListItem","position":3,"name":"資料透視表","item":"https://tools.dicomp.net/zh-tw/tools/data/pivot-table.html"}]}</script>
+
+<script src="/js/i18n.js" defer></script>
+<script src="/js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+
+
+<meta name="title-en" content="Pivot Table">
+<meta name="desc-en" content="Pivot Table - online utility on ToolBox.">
+
+
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
+
+<script src="/js/tool-ux.js" defer></script>
+<!-- TOOLBOX-TOOL-UX -->
+
+<script src="/js/analytics.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+<!-- TOOLBOX-TTZZ -->
+<script>
+(function(){try{
+var el = document.createElement("script");
+el.src = "https://lf1-cdn-tos.bytegoofy.com/goofy/ttzz/push.js?85d6452aa9be4d693b16cd48535a8c7ae57542f6788a41682e745be8eb99b35a8a24d2f724c31ebe20c1e4e6fba6d91caf576100b02a2870c72f38fc574066fef065d152c73bf1cbb2ebad3b5b5265d8";
+el.id = "ttzz";
+var s = document.getElementsByTagName("script")[0];
+s.parentNode.insertBefore(el, s);
+}catch(e){}
+})(window);
+</script>
+
+<script src="/js/tool-kit.js" defer></script>
+<!-- TOOLBOX-TOOL-KIT -->
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://tools.dicomp.net/tools/data/pivot-table.html">
+<link rel="alternate" hreflang="zh-TW" href="https://tools.dicomp.net/zh-tw/tools/data/pivot-table.html">
+<link rel="alternate" hreflang="en-US" href="https://tools.dicomp.net/tools/data/pivot-table.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://tools.dicomp.net/tools/data/pivot-table.html">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+</head>
+<body>
+<h1 class="sr-only">資料透視表</h1>
+
+<div class="nav">
+  <a href="/zh-tw/index.html">← ToolBox</a>
+  <span>/ 資料透視</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+
+
+
+<nav class="breadcrumb" aria-label="麵包屑導航" data-breadcrumb="1">
+  <a href="/zh-tw/index.html">首頁</a>
+  <span class="bc-sep">‹</span>
+  <a href="/zh-tw/tools/data/index.html">📊 資料分析</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">資料透視表</span>
+</nav>
+<div class="container">
+  <style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#3b82f6)}.tbk-tab.active{background:var(--accent,#3b82f6);color:#fff;border-color:var(--accent,#3b82f6)}.tbk-panel{margin-top:6px}</style>
+<div class="tbk-tabbar" role="tablist">
+  <button type="button" class="tbk-tab" data-pane="res">結果</button>
+  <button type="button" class="tbk-tab" data-pane="tbl">資料表</button>
+  <button type="button" class="tbk-tab" data-pane="pre">預設</button>
+  <button type="button" class="tbk-tab" data-pane="his">歷史</button>
+</div>
+<div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
+    <h2 data-zh="📊 資料透視表">Pivot Table</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="二維聚合表 (求和/計數/均值)">Pivot Table</p>
+
+    <div class="input-row">
+      <label>CSV 資料</label>
+      <textarea class="data-input" id="inputData">地区,产品,销量,利润
+华北,A,100,20
+华北,B,150,30
+华东,A,200,40
+华东,B,180,36
+华南,A,120,24
+华南,B,90,18
+华北,A,110,22
+华东,B,160,32</textarea>
+    </div>
+
+    <div class="input-row">
+      <label>行欄位 (列名)</label>
+      <input type="text" id="rowField" value="地区">
+    </div>
+    <div class="input-row">
+      <label>列欄位 (列名)</label>
+      <input type="text" id="colField" value="产品">
+    </div>
+    <div class="input-row">
+      <label>值欄位 (列名)</label>
+      <input type="text" id="valField" value="销量">
+    </div>
+    <div class="input-row">
+      <label>聚合方式</label>
+      <select id="agg">
+        <option value="sum">求和</option>
+        <option value="count">計數</option>
+        <option value="avg">平均值</option>
+        <option value="min">最小值</option>
+        <option value="max">最大值</option>
+      </select>
+    </div>
+
+    <div class="toolbar">
+      <div id="pivot_tablePresets"></div>
+      <button type="button" class="btn primary" onclick="pivot()">📊 生成</button>
+      <button class="btn" type="button" onclick="__pivot_tableExport()">匯出明細 CSV</button>
+    </div>
+
+    <div class="result-box" id="result">
+      <p style="text-align:center;color:var(--text-muted);">👆 配置並生成</p>
+    </div>
+    <div id="pivot_tableTable"></div>
+    <div id="pivot_tableDiff"></div>
+    <div id="pivot_tableChart"></div>
+    <div id="pivot_tableHist"></div>
+  </div>
+
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto 0;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+.deep-dive a.term-link{color:var(--tool-accent,#FF6B35);text-decoration:none;border-bottom:1px dashed currentColor;}
+.deep-dive a.term-link:hover{border-bottom-style:solid;}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：資料透視表</h2>
+<h3>💡 常見使用場景</h3>
+<ul class="dd-list">
+<li>銷售彙總：按地區與月份透視求和，快速看各區域逐月走勢。</li>
+<li>頻次統計：按類別計數，識別哪類記錄佔比最高。</li>
+<li>均值對比：按分組求均值，比較不同渠道的平均客單或時長。</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">地區×月份銷售額</div><div class="dd-ex-body">匯入「地區,月份,金額」三列，行選地區、列選月份、值選金額(求和)，工具輸出二維表，交叉格即為該地該月合計，便於直接彙報。</div></div>
+<h3>❓ 常見問題（FAQ）</h3>
+<dl class="dd-faq">
+<dt>支援哪些聚合？</dt><dd>常見求和、計數、均值等；具體以頁面可選為準，均為本地計算。</dd>
+<dt>空值怎麼處理？</dt><dd>聚合時通常忽略空單元格；若需視作 0 請先清洗，結論以頁面說明為準。</dd>
+<dt>大數據會慢嗎？</dt><dd>計算在本地進行，受瀏覽器效能限制；超大數據建議先篩選或抽樣再透視。</dd>
+</dl>
+</div>
+</section>
+<!-- 注意事項區塊 -->
+<div class="tool-notes" style="--tool-accent:#FF6B35;">
+  <div class="tool-notes-title">⚠️ 使用說明與注意事項</div>
+  <ul>
+      <li>本工具純前端執行，資料不會上傳到伺服器</li>
+      <li>建議在主流瀏覽器（Chrome/Safari/Firefox/Edge）中使用</li>
+      <li>計算結果僅供參考，請以實際應用場景為準</li>
+  </ul>
+</div>
+<!-- /注意事項區塊 -->
+</div>
+<script>
+function pivot() {
+  const text = document.getElementById('inputData').value.trim();
+  const lines = text.split('\n').filter(l => l.trim());
+  if (lines.length < 2) { ToolBox.showToast(i18nText('toast.msg747'), 'error'); return; }
+  const headers = lines[0].split(',').map(s => s.trim());
+  const rows = lines.slice(1).map(l => {
+    const cells = l.split(',').map(s => s.trim());
+    const obj = {};
+    headers.forEach((h, i) => obj[h] = cells[i] || '');
+    return obj;
+  });
+
+  const rowField = document.getElementById('rowField').value;
+  const colField = document.getElementById('colField').value;
+  const valField = document.getElementById('valField').value;
+  const agg = document.getElementById('agg').value;
+
+  if (!headers.includes(rowField) || !headers.includes(colField)) {
+    ToolBox.showToast(i18nText('toast.msg129'), 'error');
+    return;
+  }
+
+  // 收集行/列值
+  const rowVals = [...new Set(rows.map(r => r[rowField]))].filter(v => v);
+  const colVals = [...new Set(rows.map(r => r[colField]))].filter(v => v);
+
+  // 聚合
+  const grid = {};
+  const totals = {};
+  rowVals.forEach(r => {
+    grid[r] = {};
+    totals[r] = [];
+    colVals.forEach(c => {
+      const matched = rows.filter(row => row[rowField] === r && row[colField] === c);
+      const vals = matched.map(row => parseFloat(row[valField])).filter(n => !isNaN(n));
+      let v = 0;
+      if (agg === 'sum') v = vals.reduce((a, b) => a + b, 0);
+      else if (agg === 'count') v = matched.length;
+      else if (agg === 'avg') v = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
+      else if (agg === 'min') v = vals.length ? Math.min(...vals) : 0;
+      else if (agg === 'max') v = vals.length ? Math.max(...vals) : 0;
+      grid[r][c] = v;
+      totals[r].push(v);
+    });
+  });
+
+  // 表格
+  const tableHtml = `
+    <h3 style="text-align:center;margin-bottom:8px;">🔄 透视表 (${agg})</h3>
+    <table class="pivot">
+      <tr><th class="row-header">${rowField} \\ ${colField}</th>
+        ${colVals.map(c => `<th>${c}</th>`).join('')}
+        <th class="total">合计</th>
+      </tr>
+      ${rowVals.map(r => {
+        const rTotal = agg === 'avg' ? totals[r].reduce((a, b) => a + b, 0) / totals[r].length : totals[r].reduce((a, b) => a + b, 0);
+        return `<tr>
+          <td class="row-header">${r}</td>
+          ${colVals.map(c => `<td>${formatV(grid[r][c], agg)}</td>`).join('')}
+          <td class="total">${formatV(rTotal, agg)}</td>
+        </tr>`;
+      }).join('')}
+      <tr>
+        <td class="row-header">合计</td>
+        ${colVals.map(c => {
+          const allVals = rowVals.flatMap(r => totals[r]);
+          const colVals2 = rowVals.map(r => grid[r][c]);
+          let total;
+          if (agg === 'avg') total = colVals2.reduce((a, b) => a + b, 0) / colVals2.length;
+          else total = colVals2.reduce((a, b) => a + b, 0);
+          return `<td class="total">${formatV(total, agg)}</td>`;
+        }).join('')}
+        <td class="total">${formatV(rowVals.flatMap(r => totals[r]).reduce((a, b) => a + b, 0), agg)}</td>
+      </tr>
+    </table>
+  `;
+
+  const __h0=tableHtml;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h0;
+}
+
+function formatV(v, agg) {
+  if (agg === 'count') return v;
+  if (agg === 'avg') return v.toFixed(2);
+  return v.toFixed(0);
+}
+
+pivot();
+ToolBox.initToolTheme();
+</script><script>
+// tool-intro折叠交互
+document.addEventListener('DOMContentLoaded',function(){
+  var headers=document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click',function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+
+var __pivot_table_last=0,__pivot_table_skip=false;
+function __pivot_tableSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __pivot_tableResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __pivot_tableTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __pivot_tableRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__pivot_tableTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#pivot_tableTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#pivot_tableDiff');
+        TBKit.history.mount('#pivot_tableHist',function(rec){
+            __pivot_table_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                pivot();
+            }catch(e2){}
+            __pivot_table_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__pivot_tableTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#pivot_tableChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __pivot_tableExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__pivot_table_skip) return;
+    var snap=__pivot_tableSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__pivot_tableResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__pivot_table_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __pivot_table_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __pivot_tableRender(keys,rk,en);
+}
+function __pivot_tableExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#pivot_tableTable','pivot-table.csv'); } catch(e){}
+}
+function __pivot_tablePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#pivot_tablePresets',[{label:'默认参数',labelEn:'Default',values:{rowField:'地区', colField:'产品', valField:'销量', agg:'sum'}}],function(){ pivot(); });
+}
+var __pivot_table_f0=(typeof pivot==='function')?pivot:null;
+if(__pivot_table_f0){
+    pivot=function(){ var __r=__pivot_table_f0.apply(null,arguments); try{ __pivot_tableExtras(); }catch(e){} return __r; };
+}
+function __pivot_tableBoot(){ try{ __pivot_tablePresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __pivot_tableBoot();
+else document.addEventListener('DOMContentLoaded', __pivot_tableBoot);
+</script>
+<!-- SEO 介紹區塊 -->
+
+</div>
+
+</div>
+
+<!-- 相關工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相關工具</h3>
+  <div class="related-tools-grid">
+    <a href="/zh-tw/tools/data/csv-analyzer.html" class="related-tool-card">
+      <span class="rt-icon">📊</span>
+      <span class="rt-info"><span class="rt-name">CSV 分析器 - 免費開發工具，線上CSV 分析器 | ToolBox免費線上工具箱</span><span class="rt-desc">CSV 分析器</span></span>
+    </a>
+    <a href="/zh-tw/tools/data/calc-2.html" class="related-tool-card">
+      <span class="rt-icon">🧹</span>
+      <span class="rt-info"><span class="rt-name">JSON格式化 - 線上開發工具工具 | ToolBox免費線上工具箱</span><span class="rt-desc">JSON格式化</span></span>
+    </a>
+    <a href="/zh-tw/tools/data/data-visualizer.html" class="related-tool-card">
+      <span class="rt-icon">📈</span>
+      <span class="rt-info"><span class="rt-name">資料視覺化 - 免費開發工具，線上資料視覺化 | ToolBox免費線上工具箱</span><span class="rt-desc">資料視覺化</span></span>
+    </a>
+    <a href="/zh-tw/tools/data/data-cleaner.html" class="related-tool-card">
+      <span class="rt-icon">🔎</span>
+      <span class="rt-info"><span class="rt-name">資料清洗 - 免費文本處理工具，線上資料清洗 | ToolBox免費線上工具箱</span><span class="rt-desc">資料清洗</span></span>
+    </a>
+
+    <a href="/zh-tw/tools/data/generator-report.html" class="related-tool-card">
+      <span class="rt-icon">✨</span>
+      <span class="rt-info"><span class="rt-name">報表（自動生成/傳送）模板 - 免費線上工具，純前端處理 | ToolBox免費線上工具箱</span><span class="rt-desc">報表（自動生成/傳送）模板</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro open" id="toolIntro">
+  <div class="tool-intro-header">
+    <span class="intro-icon-wrap"><span class="intro-icon">📖</span>關於「資料透視表」</span>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="tool-intro-body">
+    <h4><span class="h4-icon">📝</span>工具簡介</h4>
+    <p>資料透視表是一款資料分析領域的線上工具。資料分析工具，幫助快速處理與視覺化資料。</p>
+    <h4><span class="h4-icon">✨</span>功能特點</h4>
+    <ul class="intro-features">
+      <li>支援多種資料格式匯入</li>
+      <li>純前端計算，資料不洩露</li>
+      <li>視覺化圖表展示結果</li>
+      <li>支援資料篩選與排序</li>
+    </ul>
+    <h4><span class="h4-icon">🎯</span>使用場景</h4>
+    <ul class="intro-scenes">
+      <li>日常資料分析與統計</li>
+      <li>資料清洗與格式轉換</li>
+      <li>報表製作輔助</li>
+      <li>學習資料分析方法</li>
+    </ul>
+    </div>
+</div>
+<!-- /SEO 介紹區塊 -->
+
+
+<script>/*TBKIT-INJECT-START*/
+(function(){
+  var P={"res": ["result", "pivot_tableChart"], "tbl": ["pivot_tableTable"], "pre": ["pivot_tablePresets"], "his": ["pivot_tableHist"]};
+  var L={res:['结果','Result'],chart:['图表','Chart'],tbl:['数据表','Data'],pre:['预设','Presets'],his:['历史','History']};
+  function tabify(){
+    var bar=document.querySelector('.tbk-tabbar');
+    if(!bar||!bar.querySelectorAll) return;
+    var btns=bar.querySelectorAll('.tbk-tab');
+    if(!btns||!btns.length) return;
+    var en=false;
+    try{ if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn) en=TBKit.util.isEn(); }catch(e){}
+    if(!en&&document.documentElement&&(document.documentElement.lang||'').indexOf('en')>=0) en=true;
+    for(var i=0;i<btns.length;i++){var p=btns[i].getAttribute('data-pane');btns[i].textContent=en?L[p][1]:L[p][0];}
+    function show(pane){
+      for(var k in P){var ids=P[k];for(var i=0;i<ids.length;i++){var el=document.getElementById(ids[i]);if(el&&el.style)el.style.display=(k===pane?'':'none');}}
+      for(var j=0;j<btns.length;j++){btns[j].className='tbk-tab'+(btns[j].getAttribute('data-pane')===pane?' active':'');}
+    }
+    for(var i=0;i<btns.length;i++){(function(b){b.addEventListener('click',function(){show(b.getAttribute('data-pane'));});})(btns[i]);}
+    show(btns[0].getAttribute('data-pane'));
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',tabify);else tabify();
+})();
+/*TBKIT-INJECT-END*/</script>
+</body>
+</html>

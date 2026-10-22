@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-opencc-locale="zh-tw">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cron 表示式生成器使用指南 - ToolBox</title>
+<meta name="description" content="Cron 表示式生成器使用指南：生成並解析 5/6 段 cron。標準 5 段無秒，Quartz 為 6 段含秒。本指南整理核心功能、適用場景、使用步驟與常見問題，純前端免費線上使用，資料不上傳。">
+<meta property="og:title" content="Cron 表示式生成器使用指南 - ToolBox">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="ToolBox">
+<meta property="og:url" content="https://tools.dicomp.net/zh-tw/guides/cron-guide.html">
+<meta property="og:description" content="Cron 表示式生成器使用指南：生成並解析 5/6 段 cron。標準 5 段無秒，Quartz 為 6 段含秒。本指南整理核心功能、適用場景、使用步驟與常見問題，純前端免費線上使用，資料不上傳。">
+<meta property="og:image" content="https://tools.dicomp.net/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Cron 表示式生成器使用指南 - ToolBox">
+<meta name="twitter:description" content="Cron 表示式生成器使用指南：生成並解析 5/6 段 cron。標準 5 段無秒，Quartz 為 6 段含秒。本指南整理核心功能、適用場景、使用步驟與常見問題，純前端免費線上使用，資料不上傳。">
+<meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
+<link rel="canonical" href="https://tools.dicomp.net/zh-tw/guides/cron-guide.html">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"Cron 表示式生成器使用指南","description":"Cron 表示式生成器使用指南：生成並解析 5/6 段 cron。標準 5 段無秒，Quartz 為 6 段含秒。本指南整理核心功能、適用場景、使用步驟與常見問題，純前端免費線上使用，資料不上傳。","author":{"@type":"Organization","name":"ToolBox"}}</script>
+<style>
+:root{--primary:#FF6B35;--text:#1F2937;--muted:#6B7280;--border:#E5E7EB;--bg:#FFFAF7;}
+*{box-sizing:border-box;}
+body{margin:0;font-family:"Noto Sans SC","Plus Jakarta Sans",system-ui,sans-serif;color:var(--text);background:var(--bg);line-height:1.75;}
+header{padding:18px 20px;border-bottom:1px solid var(--border);background:#fff;}
+.breadcrumb a{color:var(--primary);text-decoration:none;margin-right:6px;}
+main{max-width:780px;margin:0 auto;padding:28px 20px 60px;}
+h1{font-size:28px;margin:0 0 8px;}
+.lead{font-size:16px;color:var(--muted);margin:0 0 22px;}
+h2{font-size:20px;margin:28px 0 10px;color:var(--primary);}
+ul,ol{padding-left:22px;}
+li{margin:6px 0;}
+dl{margin:0;}
+dt{font-weight:700;margin-top:12px;}
+dd{margin:4px 0 0;color:var(--muted);}
+.back{margin-top:30px;padding:16px;background:#fff;border:1px solid var(--border);border-radius:14px;}
+.back a{color:var(--primary);font-weight:700;text-decoration:none;}
+footer{text-align:center;color:var(--muted);font-size:13px;padding:24px;border-top:1px solid var(--border);}
+</style>
+<script src="/js/analytics.js" defer></script>
+<script src="/js/i18n.js" defer></script>
+<script src="/js/common.js" defer></script>
+<link rel="stylesheet" href="/css/common.css">
+<!-- TOOLBOX-TTZZ -->
+<script>
+(function(){try{
+var el = document.createElement("script");
+el.src = "https://lf1-cdn-tos.bytegoofy.com/goofy/ttzz/push.js?85d6452aa9be4d693b16cd48535a8c7ae57542f6788a41682e745be8eb99b35a8a24d2f724c31ebe20c1e4e6fba6d91caf576100b02a2870c72f38fc574066fef065d152c73bf1cbb2ebad3b5b5265d8";
+el.id = "ttzz";
+var s = document.getElementsByTagName("script")[0];
+s.parentNode.insertBefore(el, s);
+}catch(e){}
+})(window);
+</script>
+
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://tools.dicomp.net/guides/cron-guide.html">
+<link rel="alternate" hreflang="zh-TW" href="https://tools.dicomp.net/zh-tw/guides/cron-guide.html">
+<link rel="alternate" hreflang="en-US" href="https://tools.dicomp.net/guides/cron-guide.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://tools.dicomp.net/guides/cron-guide.html">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+</head>
+<body>
+<header><nav class="breadcrumb"><a href="https://tools.dicomp.net/">ToolBox</a> / <a href="https://tools.dicomp.net/#guides">使用指南</a> / <span>Cron 表示式生成器</span></nav></header>
+<main>
+<h1>Cron 表示式生成器 使用指南</h1>
+<p class="lead">每 5 分鐘 「*/5 * * * *」。</p>
+<h2>核心功能</h2>
+<ul><li>視覺化編輯五段（或六段）cron 表示式並即時預覽</li><li>支援直接貼上已有表示式反向解析</li><li>給出最近若干次執行時間的提示</li><li>避免手寫 cron 時把分與時寫反</li></ul>
+<h2>適用場景</h2>
+<ul><li>生成並解析 5/6 段 cron。</li><li>給定時備份配表示式：0 3 * * * 表示每天凌晨 3 點執行，先用本工具解析一遍確認語義，再寫進 crontab，避免配成每分鐘觸發。</li></ul>
+<h2>使用步驟</h2>
+<ol><li>確定要執行的週期：每 N 分鐘、每小時第幾分、每天幾點等</li><li>在表示式輸入框填入或編輯 cron 表示式（分 時 日 月 周）</li><li>觀察下方解析結果與最近執行時間是否符合預期</li><li>注意伺服器時區：cron 按部署機器的時區觸發，容器裡常是 UTC</li><li>把表示式粘到 crontab 前，先在預發環境試跑一次</li></ol>
+<h2>實用技巧</h2>
+<ul><li>生成並解析 5/6 段 cron。</li><li>給定時備份配表示式：0 3 * * * 表示每天凌晨 3 點執行，先用本工具解析一遍確認語義，再寫進 crontab，避免配成每分鐘觸發。</li></ul>
+<h2>常見問題</h2>
+<dl><dt>秒級 cron？</dt><dd>標準 5 段無秒，Quartz 為 6 段含秒。</dd><dt>配置沒生效怎麼排查？</dt><dd>依次檢查：表示式欄位數（5 段 vs 6 段）、執行使用者是否有許可權、命令是否用了絕對路徑（cron 的 PATH 很短）、指令碼是否有可執行許可權、環境變數是否缺失。最後看 /var/log/cron 或把輸出重定向到日誌檔案，確認是否真的執行過。</dd></dl>
+<div class="back"><a href="https://tools.dicomp.net/tools/it/cron.html">→ 去使用 Cron 表示式生成器（免費 · 純前端 · 資料不上傳）</a></div>
+</main>
+<footer>© 2026 ToolBox · 純前端線上工具 · 資料不上傳，安全可靠</footer>
+</body>
+</html>

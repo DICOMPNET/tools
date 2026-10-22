@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-opencc-locale="zh-tw">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=reference,industry=automotive,icon=🧮,bg=#ffebee">
+<meta name="description" content="違章罰款金額計算（汽車）是一款免費的線上汽車交通工具，選擇違章型別和嚴重程度，檢視罰款金額和扣分標準（基於2022年道交法）。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta name="keywords" content="違章罰款,交通違章,超速罰款,闖紅燈,違章停車,酒駕處罰,扣分查詢,速查表,線上工具,免費工具,ToolBox">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://tools.dicomp.net/zh-tw/tools/automotive/traffic-fine-calculator.html">
+<title>違章罰款金額計算（汽車） - 檢視罰款金額和扣分標準</title>
+<meta property="og:title" content="違章罰款金額計算（汽車） - 檢視罰款金額和扣分標準">
+<meta property="og:description" content="違章罰款金額計算（汽車）是一款免費的線上汽車交通工具，選擇違章型別和嚴重程度，檢視罰款金額和扣分標準（基於2022年道交法）。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta property="og:url" content="https://tools.dicomp.net/zh-tw/tools/automotive/traffic-fine-calculator.html">
+<meta name="twitter:card" content="summary">
+<meta name="theme-color" content="#FF6B35">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="stylesheet" href="/css/common.css">
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/common.js" defer></script>
+<style>
+.violation-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:8px; margin-bottom:16px; }
+.violation-btn { padding:12px 10px; background:var(--bg-card); border:1.5px solid var(--border); border-radius:12px; cursor:pointer; text-align:center; font-size:13px; transition:all .2s; }
+.violation-btn:hover { border-color:var(--primary); transform:translateY(-2px); }
+.violation-btn.active { background:var(--gradient-primary); color:#fff; border-color:transparent; }
+.violation-btn .v-icon { font-size:22px; display:block; margin-bottom:4px; }
+.severity-select { margin-bottom:16px; }
+.severity-btns { display:flex; gap:8px; flex-wrap:wrap; }
+.severity-btn { padding:8px 18px; border:1.5px solid var(--border); border-radius:10px; background:var(--bg-card); cursor:pointer; font-size:13px; color:var(--text-secondary); transition:all .2s; }
+.severity-btn:hover { border-color:var(--primary); }
+.severity-btn.active { border-color:var(--primary); background:rgba(255,107,53,0.1); color:var(--primary); font-weight:600; }
+.penalty-card { background:var(--result-bg); border:1px solid var(--border); border-radius:12px; padding:20px; margin-top:12px; text-align:center; }
+.penalty-row { display:flex; justify-content:space-around; flex-wrap:wrap; gap:16px; margin-top:16px; }
+.penalty-item { text-align:center; }
+.penalty-num { font-size:32px; font-weight:800; }
+.penalty-num.fine { color:#EF4444; }
+.penalty-num.points { color:#F59E0B; }
+.penalty-num.detention { color:#7C3AED; }
+.penalty-lbl { font-size:13px; color:var(--text-muted); margin-top:4px; }
+.law-ref { margin-top:16px; padding:14px; background:rgba(59,130,246,0.06); border:1px solid rgba(59,130,246,0.15); border-radius:12px; }
+.law-ref h4 { font-size:14px; color:#2563EB; margin-bottom:8px; }
+.law-ref p { font-size:13px; color:var(--text-secondary); line-height:1.7; margin:4px 0; }
+.all-table { margin-top:16px; }
+.all-table th, .all-table td { font-size:12px; padding:8px; }
+.tag-light { display:inline-block; padding:2px 8px; border-radius:6px; font-size:11px; font-weight:500; }
+.tag-danger { background:rgba(239,68,68,0.1); color:#DC2626; }
+.tag-warning { background:rgba(245,158,11,0.1); color:#D97706; }
+.tag-info { background:rgba(59,130,246,0.1); color:#2563EB; }
+.tag-purple { background:rgba(124,58,237,0.1); color:#7C3AED; }
+@media(max-width:768px) {
+  .violation-grid { grid-template-columns:repeat(3,1fr); gap:6px; }
+  .penalty-num { font-size:24px; }
+  .severity-btns { flex-wrap:wrap; }
+}
+</style>
+
+
+
+<meta property="og:image" content="https://tools.dicomp.net/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免費線上工具">
+<meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免費線上工具">
+    <meta property="og:type" content="website">
+    <meta name="twitter:title" content="違章罰款金額計算（汽車） - 檢視罰款金額和扣分標準">
+    <meta name="twitter:description" content="違章罰款金額計算（汽車）是一款免費的線上汽車交通工具，選擇違章型別和嚴重程度，檢視罰款金額和扣分標準（基於2022年道交法）。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<!-- TOOLBOX-WEBAPP-LD -->
+
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"記分會跨年清零嗎？","acceptedAnswer":{"@type":"Answer","text":"記分按記分週期（初次領證日起 12 個月）計算，不是自然年。週期結束前未達 12 分且罰款已繳，記分清除；滿 12 分須學習。"}},{"@type":"Question","name":"滯納金怎麼算？","acceptedAnswer":{"@type":"Answer","text":"逾期不履行處罰決定才產生滯納金，一般每日按罰款數額 3% 且不超過本金。現場單 15 日內、電子眼收到通知後按指定期限處理可免。"}}]}</script>
+<meta name="title-en" content="Traffic Fine Calculator">
+<meta name="desc-en" content="Traffic Fine Calculator - compute values online with accurate results.">
+
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首頁","item":"https://tools.dicomp.net/zh-tw/"},{"@type":"ListItem","position":2,"name":"汽車交通","item":"https://tools.dicomp.net/zh-tw/tools/automotive/index.html"},{"@type":"ListItem","position":3,"name":"違章罰款金額計算（汽車）","item":"https://tools.dicomp.net/zh-tw/tools/automotive/traffic-fine-calculator.html"}]}</script>
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"違章罰款金額計算（汽車）","url":"https://tools.dicomp.net/zh-tw/tools/automotive/traffic-fine-calculator.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"違章罰款金額計算（汽車）是一款免費的線上汽車交通工具，選擇違章型別和嚴重程度，檢視罰款金額和扣分標準（基於2022年道交法）。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script src="/js/i18n.js" defer></script>
+<script src="/js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
+
+<script src="/js/tool-ux.js" defer></script>
+<!-- TOOLBOX-TOOL-UX -->
+
+<script src="/js/analytics.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+<!-- TOOLBOX-TTZZ -->
+<script>
+(function(){try{
+var el = document.createElement("script");
+el.src = "https://lf1-cdn-tos.bytegoofy.com/goofy/ttzz/push.js?85d6452aa9be4d693b16cd48535a8c7ae57542f6788a41682e745be8eb99b35a8a24d2f724c31ebe20c1e4e6fba6d91caf576100b02a2870c72f38fc574066fef065d152c73bf1cbb2ebad3b5b5265d8";
+el.id = "ttzz";
+var s = document.getElementsByTagName("script")[0];
+s.parentNode.insertBefore(el, s);
+}catch(e){}
+})(window);
+</script>
+
+<script src="/js/tool-kit.js" defer></script>
+<!-- TOOLBOX-TOOL-KIT -->
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://tools.dicomp.net/tools/automotive/traffic-fine-calculator.html">
+<link rel="alternate" hreflang="zh-TW" href="https://tools.dicomp.net/zh-tw/tools/automotive/traffic-fine-calculator.html">
+<link rel="alternate" hreflang="en-US" href="https://tools.dicomp.net/tools/automotive/traffic-fine-calculator.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://tools.dicomp.net/tools/automotive/traffic-fine-calculator.html">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+</head>
+<body>
+<h1 class="sr-only">違章罰款金額計算（汽車）</h1>
+<div class="nav">
+  <a href="/zh-tw/index.html">← ToolBox</a>
+  <span>/ 違章罰款金額計算（汽車）</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+<nav class="breadcrumb" aria-label="麵包屑導航" data-breadcrumb="1">
+  <a href="/zh-tw/index.html">首頁</a>
+  <span class="bc-sep">‹</span>
+  <a href="/zh-tw/tools/automotive/index.html">🚗 汽車交通</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">違章罰款金額計算（汽車）</span>
+</nav>
+<div class="container">
+  <style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#3b82f6)}.tbk-tab.active{background:var(--accent,#3b82f6);color:#fff;border-color:var(--accent,#3b82f6)}.tbk-panel{margin-top:6px}</style>
+<div class="tbk-tabbar" role="tablist">
+  <button type="button" class="tbk-tab" data-pane="res">結果</button>
+  <button type="button" class="tbk-tab" data-pane="tbl">資料表</button>
+  <button type="button" class="tbk-tab" data-pane="his">歷史</button>
+</div>
+<div class="card tool-card-accent" style="--tool-accent:#b91c1c;">
+    <h2 data-zh="🧮 違章罰款金額計算（汽車）">Traffic Fine Calculator</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="選擇違章型別和嚴重程度，檢視罰款金額和扣分標準（基於2022年道交法）">Select violation type and severity to view fine amounts and penalty points based on the 2022 Road Traffic Law.</p>
+    <div class="input-row">
+      <div><div data-tb="preset" data-tb-presets='[{"label": "示例数据", "labelEn": "Example", "values": {"had": "6", "cut": "0", "kind": "8", "lic": "7", "paid": "1", "mode": "1"}}]'></div>
+<label>違章型別</label>
+        <select id="kind" onchange="calc()">
+          <option value="0">飲酒後駕駛機動車（12 分）</option>
+          <option value="1">高速/快速路超速 50% 以上（12 分）</option>
+          <option value="2">高速/快速路倒車、逆行、穿越中央分隔帶掉頭（12 分）</option>
+          <option value="3">高速公路/快速路違法停車（9 分）</option>
+          <option value="4">未懸掛號牌或故意遮擋、汙損號牌（9 分）</option>
+          <option value="5">駕駛與準駕車型不符的機動車（9 分）</option>
+          <option value="6">高速/快速路超速 20%~50%（6 分）</option>
+          <option value="7">非高速道路超速 50% 以上（6 分）</option>
+          <option value="8" selected>不按交通訊號燈指示通行（闖紅燈，6 分）</option>
+          <option value="9">高速/快速路違法佔用應急車道行駛（6 分）</option>
+          <option value="10">駕駛證被暫扣/扣留期間駕駛（6 分）</option>
+          <option value="11">非高速道路超速 20%~50%（3 分）</option>
+          <option value="12">高速/快速路不按規定車道行駛（3 分）</option>
+          <option value="13">不按規定超車、讓行，或非高速道路逆行（3 分）</option>
+          <option value="14">駕駛時撥打、接聽手持電話（3 分）</option>
+          <option value="15">行經人行橫道不按規定減速、停車、避讓行人（3 分）</option>
+          <option value="16">在高速公路上行駛低於規定最低時速（3 分）</option>
+          <option value="17">不按規定會車，或非高速道路不按規定倒車、掉頭（1 分）</option>
+          <option value="18">不按規定使用燈光（1 分）</option>
+          <option value="19">違反禁令標誌、禁止標線指示（1 分）</option>
+          <option value="20">駕駛機動車時未按規定系安全帶（1 分）</option>
+          <option value="21">載貨長度、寬度、高度超過規定（1 分）</option>
+          <option value="22">駕駛摩托車不戴安全頭盔（1 分）</option>
+        </select>
+      </div>
+      <div><label>準駕車型</label>
+        <select id="lic" onchange="calc()">
+          <option value="7" selected>小型車（C 類，滿分學習 7 天）</option>
+          <option value="30">大型車（A/B 類，滿分學習 30 天）</option>
+        </select>
+      </div>
+    </div>
+    <div class="input-row">
+      <div><label>本記分週期已記分 (分)</label><input type="number" id="had" value="6" oninput="calc()" min="0" max="60" step="1"></div>
+      <div><label>已通過學法減分扣減 (分)</label><input type="number" id="cut" value="0" oninput="calc()" min="0" max="6" step="1"></div>
+    </div>
+    <div class="input-row">
+      <div><label>罰款繳納情況</label>
+        <select id="paid" onchange="calc()">
+          <option value="1" selected>已繳清</option>
+          <option value="0">尚未繳納</option>
+        </select>
+      </div>
+      <div><label>處罰方式</label>
+        <select id="mode" onchange="calc()">
+          <option value="1" selected>電子監控（非現場）</option>
+          <option value="0">現場處罰決定書</option>
+        </select>
+      </div>
+    </div>
+    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__traffic_fine_calculatorExport()">匯出明細 CSV</button></div><div class="safe-main" id="result"></div> <div id="traffic_fine_calculatorTable"></div> <div id="traffic_fine_calculatorDiff"></div> <div id="traffic_fine_calculatorChart"></div> <div id="traffic_fine_calculatorHist"></div>
+    <div class="dist-grid" id="distGrid"></div>
+    <div class="formula-box" id="formulaBox"></div>
+    <div id="adviceBox"></div>
+  </div>
+  <div class="card">
+    <h3>⚖️ 記分與滿分處理規則</h3>
+    <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:12px;">
+      <tr>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border,#e5e7eb);">規則項</th>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border,#e5e7eb);">規定</th>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border,#e5e7eb);">依據</th>
+      </tr>
+      <tr><td style="padding:6px 8px;">記分週期</td><td style="padding:6px 8px;">12 個月，滿分 12 分，自初次領證之日起連續計算</td><td style="padding:6px 8px;">第 163 號令第三條</td></tr>
+      <tr><td style="padding:6px 8px;">分值檔位</td><td style="padding:6px 8px;">12 / 9 / 6 / 3 / 1 分</td><td style="padding:6px 8px;">第 163 號令第七條</td></tr>
+      <tr><td style="padding:6px 8px;">週期清零</td><td style="padding:6px 8px;">未滿 12 分且罰款已繳，週期結束記分清除；有罰款逾期未繳，對應記分轉入下一週期</td><td style="padding:6px 8px;">第 163 號令第十五條</td></tr>
+      <tr><td style="padding:6px 8px;">滿分學習</td><td style="padding:6px 8px;">滿 12 分扣留駕駛證，參加 7 天學習（大型車 30 天），考試合格且繳清罰款後清除</td><td style="padding:6px 8px;">第 163 號令第十七至二十三條</td></tr>
+      <tr><td style="padding:6px 8px;">學法減分</td><td style="padding:6px 8px;">網上學習 3 日累計滿 30 分鐘且合格減 1 分；現場學習滿 1 小時減 2 分；公益活動滿 1 小時減 1 分；每週期最高減 6 分</td><td style="padding:6px 8px;">第 163 號令第二十五、二十七條</td></tr>
+      <tr><td style="padding:6px 8px;">罰款幅度</td><td style="padding:6px 8px;">一般通行違法警告或 20~200 元；超速 50% 以上等 200~2000 元；飲酒駕駛 1000~2000 元並暫扣 6 個月</td><td style="padding:6px 8px;">《道交法》第 90、91、99 條</td></tr>
+    </table>
+    <div class="scene-card">
+      <h4>⏳ 滯納金與處理時限</h4>
+      <p>現場處罰決定書應自收到之日起 15 日內繳納罰款；逾期不履行處罰決定的，每日按罰款數額的百分之三加處罰款，加處罰款總額不得超出罰款數額本身。電子監控記錄應先接受處理、領取處罰決定書，再按期繳納，未處理期間不產生滯納金但會被鎖定業務辦理。</p>
+    </div>
+    <div class="scene-card">
+      <h4>📍 關於金額的地區差異</h4>
+      <p>《道路交通安全違法行為記分管理辦法》第三十五條明確：省、自治區、直轄市公安廳、局可以在本辦法規定的處罰幅度範圍內制定具體執行標準。因此同一種違法在不同地區的實際罰款金額可能存在差異，本頁給出的是法定幅度，具體金額以處罰決定書與當地交警部門公示為準。</p>
+    </div>
+    <div class="info-box">⚠️ 本工具為記分與幅度的通用速查，不構成法律意見。對處罰有異議時，可在法定期限內申請行政複議或提起行政訴訟。</div>
+  </div>
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto 0;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+.deep-dive a.term-link{color:var(--tool-accent,#FF6B35);text-decoration:none;border-bottom:1px dashed currentColor;}
+.deep-dive a.term-link:hover{border-bottom-style:solid;}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：交通違章罰款與扣分計算</h2>
+<h3>💡 常見使用場景</h3>
+<ul class="dd-list">
+<li>收到違章通知後按程式碼與地區標準核算罰款金額與記分數，評估複議必要性。</li>
+<li>多地違章合併統計總分，預判是否達扣證（12 分）紅線。</li>
+<li>對比現場罰單與電子眼處理時限與滯納金。</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">累計記分與滿分預警</div><div class="dd-ex-body">公安部令第 163 號（2022 年 4 月 1 日施行）規定一次記分分值為 12、9、6、3、1 分。闖紅燈（不按交通訊號燈指示通行）記 6 分，高速/快速路超速 20%~50% 記 6 分，飲酒後駕駛、高速/快速路超速 50% 以上記 12 分。注意普通小型車超速 20% 以下不記分（僅對校車、中型以上客貨及危險品運輸車在非高速道路超速 10%~20% 記 1 分）。記分週期為 12 個月、滿分 12 分，自初次領證之日起連續計算；同一週期內兩筆 6 分即達滿分，須扣留駕駛證並參加 7 天滿分學習（大型車 30 天），考試合格且繳清罰款後記分方可清除。符合條件的駕駛人每週期可通過學法減分最多扣減 6 分。</div></div>
+<h3>❓ 常見問題（FAQ）</h3>
+<dl class="dd-faq">
+<dt>記分會跨年清零嗎？</dt><dd>記分按記分週期（初次領證日起 12 個月）計算，不是自然年。週期結束前未達 12 分且罰款已繳，記分清除；滿 12 分須學習。</dd>
+<dt>滯納金怎麼算？</dt><dd>逾期不履行處罰決定才產生滯納金，一般每日按罰款數額 3% 且不超過本金。現場單 15 日內、電子眼收到通知後按指定期限處理可免。</dd>
+</dl>
+</div>
+</section>
+<!-- 注意事項區塊 -->
+<div class="tool-notes" style="--tool-accent:#b91c1c;">
+  <div class="tool-notes-title">⚠️ 使用說明與注意事項</div>
+  <ul>
+    <li>本工具純前端執行，資料不會上傳到伺服器</li>
+    <li>建議在主流瀏覽器（Chrome/Safari/Firefox/Edge）中使用</li>
+    <li>記分依據公安部令第 163 號（2022-04-01 施行），罰款為道交法法定幅度，具體金額以處罰決定書與當地交警公示為準</li>
+  </ul>
+</div>
+</div>
+<!-- 相關工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相關工具</h3>
+  <div class="related-tools-grid">
+    <a href="/zh-tw/tools/automotive/recommender-6.html" class="related-tool-card">
+      <span class="rt-icon">🚗</span>
+      <span class="rt-info"><span class="rt-name">胎壓（監測/充氣）推薦</span><span class="rt-desc">根據車型、載重與季節推薦前後輪標準胎壓，提示冷胎與熱胎讀數差異及充氣注意事項，幫助延長輪胎壽命並保…</span></span>
+    </a>
+    <a href="/zh-tw/tools/automotive/calc-2.html" class="related-tool-card">
+      <span class="rt-icon">⚡</span>
+      <span class="rt-info"><span class="rt-name">發動機功率/扭矩換算</span><span class="rt-desc">根據功率、扭矩與轉速之間的物理關係進行換算，支援 kW 與 PS（公制馬力）互轉。</span></span>
+    </a>
+    <a href="/zh-tw/tools/automotive/oil-change-countdown.html" class="related-tool-card">
+      <span class="rt-icon">📅</span>
+      <span class="rt-info"><span class="rt-name">機油更換倒計時</span><span class="rt-desc">輸入已行駛里程、機油週期與駕駛習慣係數，估算下次機油更換的剩餘里程或天數，避免過度保養或超期損傷。</span></span>
+    </a>
+    <a href="/zh-tw/tools/automotive/countdown-engine-oil.html" class="related-tool-card">
+      <span class="rt-icon">📅</span>
+      <span class="rt-info"><span class="rt-name">機油更換里程倒計時</span><span class="rt-desc">機油更換里程倒計時，按機油型別與駕駛習慣係數智慧計算建議換油間隔與剩餘里程，支援多車管理、資料本地…</span></span>
+    </a>
+    <a href="/zh-tw/tools/automotive/calc-3.html" class="related-tool-card">
+      <span class="rt-icon">🚗</span>
+      <span class="rt-info"><span class="rt-name">輪胎胎壓換算</span><span class="rt-desc">在 bar、psi、kPa、kg/cm² 之間換算輪胎氣壓，並檢視常用參考值。</span></span>
+    </a>
+    <a href="/zh-tw/tools/automotive/transport-calculator.html" class="related-tool-card">
+      <span class="rt-icon">🚚</span>
+      <span class="rt-info"><span class="rt-name">交通物流計算器</span><span class="rt-desc">涵蓋剎車距離、油耗成本、貨物換算、燃油效率、行駛時間、輪胎尺寸等多種交通物流常用計算</span></span>
+    </a>
+  </div>
+</div>
+<script>
+function fmtNum(n,d){d=d==null?2:d;if(!isFinite(n))return '--';return parseFloat(n.toFixed(d)).toString();}
+function val(id){return parseFloat(document.getElementById(id).value);}
+function str(id){return document.getElementById(id).value;}
+// 数据源：公安部令第 163 号《道路交通安全违法行为记分管理办法》（2022-04-01 施行）
+//        《道路交通安全法》第 90 / 91 / 99 条（罚款幅度）
+var TF_TYPES=[
+  {n:'饮酒后驾驶机动车', p:12, f:'1000~2000 元', e:'并处暂扣驾驶证 6 个月'},
+  {n:'高速/城市快速路超速 50% 以上（小型车）', p:12, f:'200~2000 元', e:'可并处吊销驾驶证'},
+  {n:'高速/城市快速路倒车、逆行、穿越中央分隔带掉头', p:12, f:'200~2000 元', e:'可并处吊销驾驶证'},
+  {n:'高速公路/城市快速路违法停车', p:9, f:'警告或 20~200 元', e:''},
+  {n:'未悬挂号牌或故意遮挡、污损号牌', p:9, f:'警告或 20~200 元', e:''},
+  {n:'驾驶与准驾车型不符的机动车', p:9, f:'200~2000 元', e:''},
+  {n:'高速/城市快速路超速 20%~50%（小型车）', p:6, f:'警告或 20~200 元', e:''},
+  {n:'非高速道路超速 50% 以上（小型车）', p:6, f:'200~2000 元', e:''},
+  {n:'不按交通信号灯指示通行（闯红灯）', p:6, f:'警告或 20~200 元', e:''},
+  {n:'高速/城市快速路违法占用应急车道行驶', p:6, f:'警告或 20~200 元', e:''},
+  {n:'驾驶证被暂扣/扣留期间驾驶机动车', p:6, f:'200~2000 元', e:''},
+  {n:'非高速道路超速 20%~50%（小型车）', p:3, f:'警告或 20~200 元', e:''},
+  {n:'高速/城市快速路不按规定车道行驶', p:3, f:'警告或 20~200 元', e:''},
+  {n:'不按规定超车、让行，或非高速道路逆行', p:3, f:'警告或 20~200 元', e:''},
+  {n:'驾驶时拨打、接听手持电话', p:3, f:'警告或 20~200 元', e:''},
+  {n:'行经人行横道不按规定减速、停车、避让行人', p:3, f:'警告或 20~200 元', e:''},
+  {n:'在高速公路上行驶低于规定最低时速', p:3, f:'警告或 20~200 元', e:''},
+  {n:'不按规定会车，或非高速道路不按规定倒车、掉头', p:1, f:'警告或 20~200 元', e:''},
+  {n:'不按规定使用灯光', p:1, f:'警告或 20~200 元', e:''},
+  {n:'违反禁令标志、禁止标线指示', p:1, f:'警告或 20~200 元', e:''},
+  {n:'驾驶机动车时未按规定系安全带', p:1, f:'警告或 20~200 元', e:''},
+  {n:'载货长度、宽度、高度超过规定', p:1, f:'警告或 20~200 元', e:''},
+  {n:'驾驶摩托车不戴安全头盔', p:1, f:'警告或 20~200 元', e:''}
+];
+function calc(){
+  var R=document.getElementById('result'),G=document.getElementById('distGrid'),
+      F=document.getElementById('formulaBox'),A=document.getElementById('adviceBox');
+  var idx=parseInt(str('kind'),10)||0;
+  var lic=val('lic'), had=val('had'), cut=val('cut');
+  var paid=val('paid'), mode=val('mode');
+  var t=TF_TYPES[idx]||TF_TYPES[0];
+
+  var eff=Math.max(0, had-cut);        // 已减分后的现有记分
+  var total=eff+t.p;                   // 加上本次后的累计
+  var cutLeft=Math.max(0, 6-cut);      // 本周期剩余可减分额度
+  var over=total>=12;
+  var needCut=Math.max(0, total-11);   // 想压到 11 分需再减的分数
+
+  const __g1='<div class="result-grid">'
+    +'<div class="result-item"><div class="result-label">本次记分</div><div class="result-value">'+fmtNum(t.p,0)+' 分</div></div>'
+    +'<div class="result-item"><div class="result-label">累计记分</div><div class="result-value">'+fmtNum(total,0)+' / 12 分</div></div>'
+    +'<div class="result-item"><div class="result-label">罚款幅度</div><div class="result-value">'+t.f+'</div></div>'
+    +'<div class="result-item"><div class="result-label">是否达满分</div><div class="result-value">'+(over?'已达 12 分':'未达 12 分')+'</div></div>'
+    +'</div>';R.innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
+
+  const __g2='<div class="dist-grid">'
+    +'<div class="dist-card"><h4>违纪类型</h4><p style="font-size:12px;">'+t.n+'</p><p>'+(t.e?t.e:'无附加处罚')+'</p></div>'
+    +'<div class="dist-card"><h4>学法减分额度</h4><p>剩余 '+fmtNum(cutLeft,0)+' 分</p><p>本周期上限 6 分</p></div>'
+    +'<div class="dist-card"><h4>清零条件</h4><p>'+(paid?'罚款已缴清':'罚款未缴清')+'</p><p>'+(paid?'周期结束可清除':'逾期未缴记分转入下周期')+'</p></div>'
+    +'<div class="dist-card"><h4>满分处理</h4><p>'+(over?'扣留驾驶证':'无需满分学习')+'</p><p>'+(over?'学习 '+fmtNum(lic,0)+' 天并考试':'继续保持')+'</p></div>'
+    +'</div>';G.innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
+
+  var rows='';
+  var seq=[1,3,6,9,12];
+  for(var i=0;i<seq.length;i++){
+    var q=seq[i];
+    var after=q*t.p;
+    rows+='<tr><td style="padding:5px 8px;">'+q+' 次</td>'
+      +'<td style="padding:5px 8px;">'+fmtNum(after,0)+'</td>'
+      +'<td style="padding:5px 8px;">'+fmtNum(Math.max(0,eff+after-cut),0)+'</td>'
+      +'<td style="padding:5px 8px;color:'+((eff+after-cut)>=12?'#dc2626':'#059669')+';">'+((eff+after-cut)>=12?'需满分学习':'正常')+'</td></tr>';
+  }
+  const __g3='<div class="formula-title">📐 计算口径</div>'
+    +'<div class="formula-line">累计记分 = （本周期已记分 − 学法减分扣减）+ 本次记分（同类多次按倍数累加）</div>'
+    +'<div class="formula-line">记分周期 12 个月、满分 12 分，自初次领证之日起连续计算</div>'
+    +'<div class="formula-line">学法减分一个记分周期内累计最高扣减 6 分</div>'
+    +'<div class="formula-line">累积满 12 分扣留驾驶证并参加满分学习；二次满 12 分或累计 24~36 分加考道路驾驶技能</div>'
+    +'<table style="width:100%;border-collapse:collapse;font-size:13px;margin-top:10px;">'
+    +'<tr><th style="text-align:left;padding:5px 8px;border-bottom:1px solid var(--border,#e5e7eb);">同类次数</th>'
+    +'<th style="text-align:left;padding:5px 8px;border-bottom:1px solid var(--border,#e5e7eb);">本次累计</th>'
+    +'<th style="text-align:left;padding:5px 8px;border-bottom:1px solid var(--border,#e5e7eb);">总累计 (分)</th>'
+    +'<th style="text-align:left;padding:5px 8px;border-bottom:1px solid var(--border,#e5e7eb);">状态</th></tr>'
+    +rows+'</table>';F.innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
+
+  var ad='';
+  if(over) ad+='<div class="tip-bad">⛔ 累计记分 '+fmtNum(total,0)+' 分已达满分线，驾驶证将被扣留，须参加为期 '+fmtNum(lic,0)+' 天的满分学习并考试合格、缴清罚款后方可清除记分。'+(total>=24?'累计 '+fmtNum(total,0)+' 分，属二次以上满分，须加考道路驾驶技能。':'')+'</div>';
+  else if(total>=9) ad+='<div class="tip-warn">⚠️ 累计记分 '+fmtNum(total,0)+' 分，距满分仅剩 '+fmtNum(12-total,0)+' 分，建议谨慎驾驶；符合条件的可通过学法减分最多再减 '+fmtNum(Math.min(cutLeft,needCut),0)+' 分。</div>';
+  else ad+='<div class="tip-info">✅ 累计记分 '+fmtNum(total,0)+' 分，未接近满分线。'+(cutLeft>0?'本周期还有 '+fmtNum(cutLeft,0)+' 分学法减分额度可用。':'')+'</div>';
+  if(!paid) ad+='<div class="tip-warn">💰 罚款尚未缴清。未缴罚款对应的记分将转入下一记分周期，不会随周期结束清除。</div>';
+  else if(over) ad+='<div class="tip-info">💰 罚款已缴清，但本周期累计已达满分，须完成满分学习、考试合格后记分方可清除。</div>';
+  else ad+='<div class="tip-info">💰 罚款已缴清且未满 12 分，本记分周期结束后该记分予以清除。</div>';
+  if(mode<1) ad+='<div class="tip-info">🧾 现场处罚决定书：应自收到之日起 15 日内缴纳罚款，逾期按每日 3% 加处罚款（总额不超过罚款本金）。</div>';
+  else ad+='<div class="tip-info">📷 电子监控记录：应先到窗口或线上接受处理、取得处罚决定书后再按期缴纳，未处理不产生滞纳金但会锁定相关业务。</div>';
+  const __g4=ad;A.innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
+}
+calc();
+
+var __traffic_fine_calculator_last=0,__traffic_fine_calculator_skip=false;
+function __traffic_fine_calculatorSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __traffic_fine_calculatorResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __traffic_fine_calculatorTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __traffic_fine_calculatorRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__traffic_fine_calculatorTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#traffic_fine_calculatorTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#traffic_fine_calculatorDiff');
+        TBKit.history.mount('#traffic_fine_calculatorHist',function(rec){
+            __traffic_fine_calculator_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __traffic_fine_calculator_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__traffic_fine_calculatorTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#traffic_fine_calculatorChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __traffic_fine_calculatorExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__traffic_fine_calculator_skip) return;
+    var snap=__traffic_fine_calculatorSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__traffic_fine_calculatorResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__traffic_fine_calculator_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __traffic_fine_calculator_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __traffic_fine_calculatorRender(keys,rk,en);
+}
+function __traffic_fine_calculatorExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#traffic_fine_calculatorTable','traffic-fine-calculator.csv'); } catch(e){}
+}
+function __traffic_fine_calculatorPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#traffic_fine_calculatorPresets',[{label:'默认参数',labelEn:'Default',values:{'kind':'0', 'lic':'7', 'had':'6', 'cut':'0', 'paid':'1', 'mode':'1'}}],function(){ calc(); });
+}
+var __traffic_fine_calculator_f0=(typeof calc==='function')?calc:null;
+if(__traffic_fine_calculator_f0){
+    calc=function(){ var __r=__traffic_fine_calculator_f0.apply(null,arguments); try{ __traffic_fine_calculatorExtras(); }catch(e){} return __r; };
+}
+function __traffic_fine_calculatorBoot(){ try{ __traffic_fine_calculatorPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __traffic_fine_calculatorBoot();
+else document.addEventListener('DOMContentLoaded', __traffic_fine_calculatorBoot);
+</script>
+
+
+<script>/*TBKIT-INJECT-START*/
+(function(){
+  var P={"res": ["result", "traffic_fine_calculatorChart"], "tbl": ["traffic_fine_calculatorTable"], "his": ["traffic_fine_calculatorHist"]};
+  var L={res:['结果','Result'],chart:['图表','Chart'],tbl:['数据表','Data'],pre:['预设','Presets'],his:['历史','History']};
+  function tabify(){
+    var bar=document.querySelector('.tbk-tabbar');
+    if(!bar||!bar.querySelectorAll) return;
+    var btns=bar.querySelectorAll('.tbk-tab');
+    if(!btns||!btns.length) return;
+    var en=false;
+    try{ if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn) en=TBKit.util.isEn(); }catch(e){}
+    if(!en&&document.documentElement&&(document.documentElement.lang||'').indexOf('en')>=0) en=true;
+    for(var i=0;i<btns.length;i++){var p=btns[i].getAttribute('data-pane');btns[i].textContent=en?L[p][1]:L[p][0];}
+    function show(pane){
+      for(var k in P){var ids=P[k];for(var i=0;i<ids.length;i++){var el=document.getElementById(ids[i]);if(el&&el.style)el.style.display=(k===pane?'':'none');}}
+      for(var j=0;j<btns.length;j++){btns[j].className='tbk-tab'+(btns[j].getAttribute('data-pane')===pane?' active':'');}
+    }
+    for(var i=0;i<btns.length;i++){(function(b){b.addEventListener('click',function(){show(b.getAttribute('data-pane'));});})(btns[i]);}
+    show(btns[0].getAttribute('data-pane'));
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',tabify);else tabify();
+})();
+/*TBKIT-INJECT-END*/</script>
+</body>
+</html>

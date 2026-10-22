@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-opencc-locale="zh-tw">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=calculator,industry=fitness,icon=⚡,bg=#e8f5e9">
+<meta name="description" content="跑步卡路里計算器是一款免費的線上健身運動工具，基於當前體重和配速估算。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。適合工程估算、日常換算與快速複核，結果可一鍵複製。">
+<meta name="keywords" content="跑步卡路里計算器,跑步卡路里計算器線上,線上跑步卡路里計算器,數學計算,健康醫療,跑步卡路里消耗計算器,線上工具,免費工具,ToolBox">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://tools.dicomp.net/zh-tw/tools/fitness/running-calories.html">
+<meta property="og:title" content="跑步卡路里計算器 - 免費線上健身運動工具">
+<meta property="og:description" content="跑步卡路里計算器是一款免費的線上健身運動工具，基於當前體重和配速估算。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。適合工程估算、日常換算與快速複核，結果可一鍵複製。">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://tools.dicomp.net/zh-tw/tools/fitness/running-calories.html">
+<meta name="twitter:card" content="summary">
+
+<title>跑步卡路里計算器 - 免費線上健身運動工具</title>
+<meta name="theme-color" content="#FF6B35">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="stylesheet" href="/css/common.css">
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/common.js" defer></script>
+<style>
+.input-mode-tabs{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;}
+.input-mode-tabs button{flex:1;min-width:100px;padding:10px 12px;border-radius:8px;border:1px solid var(--border);background:var(--card-bg);cursor:pointer;font-size:13px;color:var(--text-light);}
+.input-mode-tabs button.active{background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:#fff;border-color:transparent;}
+.gender-tabs{display:flex;gap:8px;margin-bottom:12px;}
+.gender-tabs button{flex:1;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--card-bg);cursor:pointer;font-size:14px;color:var(--text-light);}
+.gender-tabs button.active{background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:#fff;border-color:transparent;}
+.hr-input{display:none;}
+.hr-input.show{display:block;}
+.pace-input{display:flex;gap:8px;align-items:flex-end;}
+.pace-input > div{flex:1;}
+.pace-input .sep{flex:0 0 auto;padding-bottom:12px;color:var(--text-muted);font-size:18px;}
+.fat-burn{padding:16px;border-radius:12px;background:linear-gradient(135deg,#fff8e1,#ffecb3);text-align:center;margin-top:12px;}
+[data-theme="dark"] .fat-burn{background:linear-gradient(135deg,rgba(255,193,7,0.1),rgba(255,152,0,0.1));}
+.fat-burn .fat-val{font-size:32px;font-weight:700;color:#ff9800;}
+.fat-burn .fat-lbl{font-size:13px;color:#e65100;margin-top:4px;}
+.race-ref{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-top:12px;}
+.race-card{padding:12px;border-radius:8px;background:var(--result-bg);text-align:center;border:1px solid var(--border);}
+.race-card .race-icon{font-size:20px;margin-bottom:4px;}
+.race-card .race-name{font-size:12px;font-weight:600;margin-bottom:4px;}
+.race-card .race-cal{font-size:16px;font-weight:700;color:var(--primary);}
+.race-card .race-time{font-size:11px;color:var(--text-muted);margin-top:2px;}
+.method-toggle{display:flex;gap:8px;margin-bottom:12px;}
+.method-toggle label{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--card-bg);cursor:pointer;font-size:13px;}
+.method-toggle input[type="radio"]{accent-color:var(--primary);}
+.training-effect{padding:12px;border-radius:8px;background:var(--result-bg);margin-top:12px;border-left:4px solid;}
+.training-effect h4{font-size:14px;margin-bottom:6px;}
+.training-effect p{font-size:12px;color:var(--text-light);line-height:1.6;}
+@media(max-width:600px){
+  .input-mode-tabs button{flex:0 0 calc(33.33% - 6px);font-size:12px;padding:8px;}
+  .race-ref{grid-template-columns:repeat(2,1fr);}
+}
+</style>
+
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"為什麼和手錶 / App 顯示不一樣？","acceptedAnswer":{"@type":"Answer","text":"不同裝置演算法、心率區間、地形與個體代謝率不同會有差異，通常 ±10-20%。本工具為基於體重距離的經驗估算，適合做趨勢對比而非精確計量。"}},{"@type":"Question","name":"跑步燃脂要注意什麼？","acceptedAnswer":{"@type":"Answer","text":"持續 30 分鐘以上中低強度更利於脂肪供能；配合心率區間（如有）更準確。跑前熱身、跑後拉伸，循序漸進避免受傷。"}}]}</script>
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首頁","item":"https://tools.dicomp.net/zh-tw/"},{"@type":"ListItem","position":2,"name":"健身運動","item":"https://tools.dicomp.net/zh-tw/tools/fitness/index.html"},{"@type":"ListItem","position":3,"name":"跑步卡路里消耗計算器","item":"https://tools.dicomp.net/zh-tw/tools/fitness/running-calories.html"}]}</script>
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"跑步卡路里計算器","url":"https://tools.dicomp.net/zh-tw/tools/fitness/running-calories.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"跑步卡路里計算器是一款免費的線上健身運動工具，基於當前體重和配速估算。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。適合工程估算、日常換算與快速複核，結果可一鍵複製。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<meta property="og:image" content="https://tools.dicomp.net/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免費線上工具">
+<meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免費線上工具">
+
+<meta name="twitter:title" content="跑步卡路里計算器 - 免費線上健身運動工具">
+<meta name="twitter:description" content="跑步卡路里計算器是一款免費的線上健身運動工具，基於當前體重和配速估算。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。適合工程估算、日常換算與快速複核，結果可一鍵複製。">
+
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script src="/js/i18n.js" defer></script>
+<script src="/js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+<meta name="title-en" content="Running Calories">
+<meta name="desc-en" content="Running Calories - online utility on ToolBox.">
+
+
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
+
+<script src="/js/tool-ux.js" defer></script>
+<!-- TOOLBOX-TOOL-UX -->
+
+<script src="/js/analytics.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+<!-- TOOLBOX-TTZZ -->
+<script>
+(function(){try{
+var el = document.createElement("script");
+el.src = "https://lf1-cdn-tos.bytegoofy.com/goofy/ttzz/push.js?85d6452aa9be4d693b16cd48535a8c7ae57542f6788a41682e745be8eb99b35a8a24d2f724c31ebe20c1e4e6fba6d91caf576100b02a2870c72f38fc574066fef065d152c73bf1cbb2ebad3b5b5265d8";
+el.id = "ttzz";
+var s = document.getElementsByTagName("script")[0];
+s.parentNode.insertBefore(el, s);
+}catch(e){}
+})(window);
+</script>
+
+<script src="/js/tool-kit.js" defer></script>
+<!-- TOOLBOX-TOOL-KIT -->
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://tools.dicomp.net/tools/fitness/running-calories.html">
+<link rel="alternate" hreflang="zh-TW" href="https://tools.dicomp.net/zh-tw/tools/fitness/running-calories.html">
+<link rel="alternate" hreflang="en-US" href="https://tools.dicomp.net/tools/fitness/running-calories.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://tools.dicomp.net/tools/fitness/running-calories.html">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+</head>
+<body>
+<h1 class="sr-only">跑步卡路里計算器</h1>
+
+<div class="nav">
+  <a href="/zh-tw/index.html">← ToolBox</a>
+  <span>/ 跑步卡路里計算器</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+
+
+
+<nav class="breadcrumb" aria-label="麵包屑導航" data-breadcrumb="1">
+  <a href="/zh-tw/index.html">首頁</a>
+  <span class="bc-sep">‹</span>
+  <a href="/zh-tw/tools/fitness/index.html">🏋️ 健康醫療</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">跑步卡路里計算器</span>
+</nav>
+<div class="container">
+<div class="tool-guide-link" data-guide-link="1">
+  <a href="/zh-tw/guides/running-calories-guide.html">📖 檢視「使用指南」</a>
+</div>
+
+  <div class="card tool-card-accent" style="--tool-accent:#10B981;">
+    <h2 data-zh="⚡ 跑步卡路里消耗計算器">⚡ Running Calorie Burn Calculator</h2>
+    <div class="formula-box">
+      <div class="formula-title">📐 計算公式</div>
+      <div class="formula-eq">熱量(kcal) = MET × 體重(kg) × 時間(h)<br>MET 由配速查表得到；心率法按平均心率、靜息心率與年齡另行估算</div>
+    </div>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="多種輸入方式，精確估算跑步消耗的卡路里">Estimate calories burned while running from pace, distance and body weight using MET values, or switch to the heart-rate method for a personalised figure.</p>
+
+    <div class="input-mode-tabs">
+      <button class="active" data-mode="pace" onclick="setInputMode('pace')">配速+距離</button>
+      <button data-mode="time" onclick="setInputMode('time')">時間+距離</button>
+      <button data-mode="pacetime" onclick="setInputMode('pacetime')">配速+時間</button>
+    </div>
+
+    <div class="gender-tabs">
+      <button class="active" data-gender="male" onclick="setGender('male')">👨 男性</button>
+      <button data-gender="female" onclick="setGender('female')">👩 女性</button>
+    </div>
+
+    <div class="input-row">
+      <div><div data-tb="preset" data-tb-presets='[{"label": "示例数据", "labelEn": "Example", "values": {"weight": "65", "age": "30", "paceMin": "6", "paceSec": "0", "distance": "5", "distance2": "5", "timeMin": "30", "timeSec": "0", "paceMin2": "6", "paceSec2": "0", "timeHour": "0", "timeMin2": "30", "avgHr": "150", "rhr": "65", "pcalcDist": "10", "pcalcPaceMin": "5", "pcalcPaceSec": "30"}}]'></div>
+<label>體重 (kg)</label><input type="number" id="weight" value="65" min="20" max="200" oninput="calc()"></div>
+      <div><label>年齡</label><input type="number" id="age" value="30" min="10" max="100" oninput="calc()"></div>
+    </div>
+
+    <div id="paceMode">
+      <div class="input-row">
+        <div>
+          <label>配速 (分:秒/km)</label>
+          <div class="pace-input">
+            <div><input type="number" id="paceMin" value="6" min="3" max="20" oninput="calc()"></div>
+            <span class="sep">:</span>
+            <div><input type="number" id="paceSec" value="0" min="0" max="59" oninput="calc()"></div>
+          </div>
+        </div>
+        <div><label>距離 (km)</label><input type="number" id="distance" value="5" min="0.1" step="0.1" oninput="calc()"></div>
+      </div>
+    </div>
+
+    <div id="timeMode" style="display:none;">
+      <div class="input-row">
+        <div><label>距離 (km)</label><input type="number" id="distance2" value="5" min="0.1" step="0.1" oninput="calc()"></div>
+        <div>
+          <label>時間 (分:秒)</label>
+          <div class="pace-input">
+            <div><input type="number" id="timeMin" value="30" min="1" oninput="calc()"></div>
+            <span class="sep">:</span>
+            <div><input type="number" id="timeSec" value="0" min="0" max="59" oninput="calc()"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="pacetimeMode" style="display:none;">
+      <div class="input-row">
+        <div>
+          <label>配速 (分:秒/km)</label>
+          <div class="pace-input">
+            <div><input type="number" id="paceMin2" value="6" min="3" max="20" oninput="calc()"></div>
+            <span class="sep">:</span>
+            <div><input type="number" id="paceSec2" value="0" min="0" max="59" oninput="calc()"></div>
+          </div>
+        </div>
+        <div>
+          <label>時間 (小時:分)</label>
+          <div class="pace-input">
+            <div><input type="number" id="timeHour" value="0" min="0" oninput="calc()"></div>
+            <span class="sep">:</span>
+            <div><input type="number" id="timeMin2" value="30" min="0" max="59" oninput="calc()"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:8px;">
+      <label><input type="checkbox" id="useHr" onchange="toggleHr()"> 使用心率（更精準）</label>
+    </div>
+
+    <div id="hrInput" class="hr-input">
+      <div class="input-row" style="margin-top:8px;">
+        <div><label>平均心率 (bpm)</label><input type="number" id="avgHr" value="150" min="60" max="220" oninput="calc()"></div>
+        <div><label>靜息心率 (bpm)</label><input type="number" id="rhr" value="65" min="30" max="120" oninput="calc()"></div>
+      </div>
+    </div>
+
+    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__running_caloriesExport()">匯出明細 CSV</button></div><div class="result-box" style="text-align:center;padding:24px;margin-top:16px;">
+      <div style="font-size:14px;color:var(--text-muted);margin-bottom:4px;">卡路里消耗</div>
+      <div style="font-size:56px;font-weight:700;color:var(--primary);" id="calVal">--</div>
+      <div style="font-size:14px;color:var(--text-muted);">kcal</div>
+      <div class="stat-grid" style="margin-top:20px;">
+        <div class="stat-card"><div class="val" id="timeVal">--</div><div class="lbl">運動時長</div></div>
+        <div class="stat-card"><div class="val" id="distVal">--</div><div class="lbl">跑步距離</div></div>
+        <div class="stat-card"><div class="val" id="paceVal">--</div><div class="lbl">配速</div></div>
+        <div class="stat-card"><div class="val" id="metVal">--</div><div class="lbl">MET值</div></div>
+      </div>
+      <div class="fat-burn">
+        <div class="fat-val" id="fatVal">--</div>
+        <div class="fat-lbl">🔥 估算脂肪燃燒 (約1g脂肪=9kcal)</div>
+      </div>
+    </div> <div id="running_caloriesTable"></div> <div id="running_caloriesDiff"></div> <div id="running_caloriesChart"></div> <div id="running_caloriesHist"></div>
+  </div>
+
+  <div class="card">
+    <h3>🏅 常見跑步距離消耗參考</h3>
+    <p style="font-size:12px;color:var(--text-muted);margin-bottom:8px;">基於當前體重和配速估算</p>
+    <div class="race-ref" id="raceRef"></div>
+  </div>
+
+  <div class="card">
+    <h3>💪 訓練效果評估</h3>
+    <div id="trainingEffect"></div>
+  </div>
+
+  <div class="card">
+    <h3>📝 配速計算器</h3>
+    <p style="font-size:12px;color:var(--text-muted);margin-bottom:8px;">時間、距離、配速互算</p>
+    <div class="input-row">
+      <div><label>距離 (km)</label><input type="number" id="pcalcDist" value="10" oninput="calcPace()"></div>
+      <div>
+        <label>配速 (分:秒)</label>
+        <div class="pace-input">
+          <div><input type="number" id="pcalcPaceMin" value="5" oninput="calcPace()"></div>
+          <span class="sep">:</span>
+          <div><input type="number" id="pcalcPaceSec" value="30" oninput="calcPace()"></div>
+        </div>
+      </div>
+    </div>
+    <div class="result-box" id="pcalcResult" style="text-align:center;"></div>
+  </div>
+
+  <div class="card" style="background:var(--result-bg);border-left:4px solid var(--primary);">
+    <h3 style="color:var(--primary);">💡 健康建議</h3>
+    <p style="font-size:13px;color:var(--text-light);line-height:1.8;">
+      <strong>重要提示：</strong>本計算器僅供參考，不能替代專業教練或醫生的建議。<br>
+      • 卡路里消耗為估算值，實際消耗受個體差異影響<br>
+      • 跑步前請充分熱身，避免運動損傷<br>
+      • 建議每週跑步3-5次，每次30-60分鐘<br>
+      • 減脂需要結合飲食控制，製造熱量缺口<br>
+      • 如有心血管疾病或其他慢性病，請遵醫囑運動
+    </p>
+  </div>
+
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto 0;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+.deep-dive a.term-link{color:var(--tool-accent,#FF6B35);text-decoration:none;border-bottom:1px dashed currentColor;}
+.deep-dive a.term-link:hover{border-bottom-style:solid;}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：跑步卡路里消耗計算器</h2>
+<h3>💡 常見使用場景</h3>
+<ul class="dd-list">
+<li>估算單次跑步消耗：按體重、距離、配速估算熱量消耗，適合制定減脂 / 有氧計劃時快速對照。</li>
+<li>對比不同距離：可同時檢視 1/3/5/10 公里及半馬、全馬的預估消耗，直觀感受里程與熱量關係。</li>
+<li>結合配速看效率：相同距離下配速越慢單位時間消耗越低，但總時長更長；工具按預設體重（約 60kg、6min/km）給出基準數值。</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">算例：預設引數（約 60kg、6min/km）</div><div class="dd-ex-body">1 公里約 72 kcal（6 分鐘）；5 公里約 358 kcal（30 分鐘）；10 公里約 715 kcal；半程馬拉松約 1508 kcal；全程馬拉松約 3017 kcal。實際消耗隨體重、坡度、配速變化。</div></div>
+<h3>❓ 常見問題（FAQ）</h3>
+<dl class="dd-faq">
+<dt>為什麼和手錶 / App 顯示不一樣？</dt><dd>不同裝置演算法、<a class="term-link" href="/zh-tw/tools/healthcare/heart-rate-zones.html">心率區間</a>、地形與個體代謝率不同會有差異，通常 ±10-20%。本工具為基於體重距離的經驗估算，適合做趨勢對比而非精確計量。</dd>
+<dt>跑步燃脂要注意什麼？</dt><dd>持續 30 分鐘以上中低強度更利於脂肪供能；配合心率區間（如有）更準確。跑前熱身、跑後拉伸，循序漸進避免受傷。</dd>
+</dl>
+</div>
+</section>
+<!-- 注意事項區塊 -->
+<div class="tool-notes" style="--tool-accent:#10B981;">
+  <div class="tool-notes-title">⚠️ 使用說明與注意事項</div>
+  <ul>
+      <li>本工具純前端執行，資料不會上傳到伺服器</li>
+      <li>建議在主流瀏覽器（Chrome/Safari/Firefox/Edge）中使用</li>
+      <li>計算結果僅供參考，請以實際應用場景為準</li>
+  </ul>
+</div>
+<!-- /注意事項區塊 -->
+</div>
+<script>
+let inputMode = 'pace';
+let gender = 'male';
+let useHr = false;
+
+const races = [
+  {name:'1公里',dist:1,icon:'🥇'},
+  {name:'3公里',dist:3,icon:'🥈'},
+  {name:'5公里',dist:5,icon:'🏃'},
+  {name:'10公里',dist:10,icon:'🏃‍♂️'},
+  {name:'半程马拉松',dist:21.0975,icon:'🏅'},
+  {name:'全程马拉松',dist:42.195,icon:'🏆'}
+];
+
+function setInputMode(m){
+  inputMode = m;
+  document.querySelectorAll('.input-mode-tabs button').forEach(b=>{
+    b.classList.toggle('active', b.dataset.mode === m);
+  });
+  document.getElementById('paceMode').style.display = m === 'pace' ? 'block' : 'none';
+  document.getElementById('timeMode').style.display = m === 'time' ? 'block' : 'none';
+  document.getElementById('pacetimeMode').style.display = m === 'pacetime' ? 'block' : 'none';
+  calc();
+}
+
+function setGender(g){
+  gender = g;
+  document.querySelectorAll('.gender-tabs button').forEach(b=>{
+    b.classList.toggle('active', b.dataset.gender === g);
+  });
+  calc();
+}
+
+function toggleHr(){
+  useHr = document.getElementById('useHr').checked;
+  document.getElementById('hrInput').classList.toggle('show', useHr);
+  calc();
+}
+
+function getPaceSecPerKm(){
+  if(inputMode === 'pace'){
+    const pm = parseInt(document.getElementById('paceMin').value) || 6;
+    const ps = parseInt(document.getElementById('paceSec').value) || 0;
+    return pm * 60 + ps;
+  } else if(inputMode === 'time'){
+    const d = parseFloat(document.getElementById('distance2').value) || 5;
+    const tm = parseInt(document.getElementById('timeMin').value) || 30;
+    const ts = parseInt(document.getElementById('timeSec').value) || 0;
+    const totalSec = tm * 60 + ts;
+    return totalSec / d;
+  } else {
+    const pm = parseInt(document.getElementById('paceMin2').value) || 6;
+    const ps = parseInt(document.getElementById('paceSec2').value) || 0;
+    return pm * 60 + ps;
+  }
+}
+
+function getDistance(){
+  if(inputMode === 'pace'){
+    return parseFloat(document.getElementById('distance').value) || 5;
+  } else if(inputMode === 'time'){
+    return parseFloat(document.getElementById('distance2').value) || 5;
+  } else {
+    const paceSec = getPaceSecPerKm();
+    const th = parseInt(document.getElementById('timeHour').value) || 0;
+    const tm = parseInt(document.getElementById('timeMin2').value) || 30;
+    const totalSec = th * 3600 + tm * 60;
+    return totalSec / paceSec;
+  }
+}
+
+function getTimeMin(){
+  if(inputMode === 'pace'){
+    const paceSec = getPaceSecPerKm();
+    const d = getDistance();
+    return (paceSec * d) / 60;
+  } else if(inputMode === 'time'){
+    const tm = parseInt(document.getElementById('timeMin').value) || 30;
+    const ts = parseInt(document.getElementById('timeSec').value) || 0;
+    return tm + ts / 60;
+  } else {
+    const th = parseInt(document.getElementById('timeHour').value) || 0;
+    const tm = parseInt(document.getElementById('timeMin2').value) || 30;
+    return th * 60 + tm;
+  }
+}
+
+function getMetFromPace(paceSecPerKm){
+  const speedKmh = 3600 / paceSecPerKm;
+  if(speedKmh >= 16) return 19;
+  if(speedKmh >= 14) return 16;
+  if(speedKmh >= 12) return 13.5;
+  if(speedKmh >= 11) return 11.8;
+  if(speedKmh >= 10) return 11;
+  if(speedKmh >= 9) return 9.8;
+  if(speedKmh >= 8) return 8.3;
+  if(speedKmh >= 6) return 6;
+  return 3.8;
+}
+
+function calcCaloriesHr(weight, age, avgHr, rhr, timeMin, isMale){
+  if(isMale){
+    return (-55.0969 + 0.6309 * avgHr + 0.1988 * weight + 0.2017 * age) * timeMin / 4.184;
+  } else {
+    return (-20.4022 + 0.4472 * avgHr - 0.1263 * weight + 0.074 * age) * timeMin / 4.184;
+  }
+}
+
+function fmtTime(totalMin){
+  const h = Math.floor(totalMin / 60);
+  const m = Math.round(totalMin % 60);
+  if(h > 0) return h + 'h ' + m + 'min';
+  return m + 'min';
+}
+
+function fmtPace(secPerKm){
+  const m = Math.floor(secPerKm / 60);
+  const s = Math.round(secPerKm % 60);
+  return m + "'" + String(s).padStart(2, '0') + '"';
+}
+
+function getTrainingEffect(dist, paceSec, timeMin){
+  const speedKmh = 3600 / paceSec;
+  if(timeMin < 20){
+    return {level:'轻度',color:'#4caf50',desc:'短时间运动，主要起到热身和活动身体的作用。建议适当延长运动时间以获得更好的训练效果。'};
+  }
+  if(speedKmh < 8){
+    return {level:'轻松',color:'#8bc34a',desc:'低强度慢跑，适合初学者和恢复日。可以有效燃烧脂肪，改善心肺功能。建议每周3-5次。'};
+  }
+  if(speedKmh < 11){
+    return {level:'中等',color:'#ff9800',desc:'中等强度跑步，能有效提升心肺耐力和燃烧卡路里。是有氧训练的黄金区间。建议每周2-4次。'};
+  }
+  if(speedKmh < 14){
+    return {level:'较高',color:'#f44336',desc:'较高强度跑步，对心肺功能和乳酸阈值有很好的提升效果。注意控制训练量，避免过度训练。'};
+  }
+  return {level:'高强度',color:'#9c27b0',desc:'高强度跑步，能有效提升最大摄氧量和速度能力。建议间歇训练方式进行，充分恢复。'};
+}
+
+function calc(){
+  const w = parseFloat(document.getElementById('weight').value);
+  const age = parseInt(document.getElementById('age').value);
+  if(!w || !age) return;
+
+  const paceSec = getPaceSecPerKm();
+  const dist = getDistance();
+  const timeMin = getTimeMin();
+
+  if(paceSec <= 0 || dist <= 0 || timeMin <= 0) return;
+
+  let calories;
+  let met;
+  let method;
+
+  if(useHr){
+    const avgHr = parseInt(document.getElementById('avgHr').value) || 150;
+    const rhr = parseInt(document.getElementById('rhr').value) || 65;
+    calories = calcCaloriesHr(w, age, avgHr, rhr, timeMin, gender === 'male');
+    met = getMetFromPace(paceSec);
+    method = '心率法';
+  } else {
+    met = getMetFromPace(paceSec);
+    calories = met * w * timeMin / 60;
+    method = 'MET值法';
+  }
+
+  calories = Math.round(calories);
+  const fatGram = Math.round(calories / 9 * 10) / 10;
+
+  const __g0=calories;document.getElementById('calVal').textContent=(typeof __g0==='number'?(isFinite(__g0)?__g0:'—'):String(__g0).replace(/Infinity|NaN/g,'—'));
+  const __g1=fmtTime(timeMin);document.getElementById('timeVal').textContent=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
+  const __g2=dist.toFixed(2);document.getElementById('distVal').textContent=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
+  const __g3=fmtPace(paceSec);document.getElementById('paceVal').textContent=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
+  const __g4=met.toFixed(1);document.getElementById('metVal').textContent=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
+  const __g5=fatGram + 'g';document.getElementById('fatVal').textContent=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
+
+  let raceHtml = '';
+  races.forEach(r=>{
+    const rTime = paceSec * r.dist / 60;
+    let rCal;
+    if(useHr){
+      const avgHr = parseInt(document.getElementById('avgHr').value) || 150;
+      const rhr = parseInt(document.getElementById('rhr').value) || 65;
+      rCal = Math.round(calcCaloriesHr(w, age, avgHr, rhr, rTime, gender === 'male'));
+    } else {
+      rCal = Math.round(met * w * rTime / 60);
+    }
+    raceHtml += '<div class="race-card">'+
+      '<div class="race-icon">'+r.icon+'</div>'+
+      '<div class="race-name">'+r.name+'</div>'+
+      '<div class="race-cal">'+rCal+' kcal</div>'+
+      '<div class="race-time">'+fmtTime(rTime)+'</div>'+
+      '</div>';
+  });
+  const __g6=raceHtml;document.getElementById('raceRef').innerHTML=(typeof __g6==='number'?(isFinite(__g6)?__g6:'—'):String(__g6).replace(/Infinity|NaN/g,'—'));
+
+  const effect = getTrainingEffect(dist, paceSec, timeMin);
+  const __g17='<div class="training-effect" style="border-color:'+effect.color+';">'+
+    '<h4 style="color:'+effect.color+';">训练强度：'+effect.level+'</h4>'+
+    '<p>'+effect.desc+'</p>'+
+    '<p style="margin-top:8px;"><strong>🔥 消耗热量：</strong>'+calories+' kcal，约等于'+fatGram+'g脂肪</p>'+
+    '<p><strong>⏱ 运动时长：</strong>'+fmtTime(timeMin)+'</p>'+
+    '<p><strong>📏 跑步距离：</strong>'+dist.toFixed(2)+' km</p>'+
+    '</div>';document.getElementById('trainingEffect').innerHTML=(typeof __g17==='number'?(isFinite(__g17)?__g17:'—'):String(__g17).replace(/Infinity|NaN/g,'—'));
+}
+
+function calcPace(){
+  const d = parseFloat(document.getElementById('pcalcDist').value);
+  const pm = parseInt(document.getElementById('pcalcPaceMin').value) || 0;
+  const ps = parseInt(document.getElementById('pcalcPaceSec').value) || 0;
+  if(!d) return;
+
+  const paceSec = pm * 60 + ps;
+  const totalSec = paceSec * d;
+  const speedKmh = 3600 / paceSec;
+
+  const h = Math.floor(totalSec / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
+  const s = Math.round(totalSec % 60);
+
+  let timeStr = '';
+  if(h > 0) timeStr += h + ':' + String(m).padStart(2, '0');
+  else timeStr += m;
+  timeStr += ':' + String(s).padStart(2, '0');
+
+  const __g9='<div class="stat-grid">'+
+    '<div class="stat-card"><div class="val">'+timeStr+'</div><div class="lbl">完赛时间</div></div>'+
+    '<div class="stat-card"><div class="val">'+speedKmh.toFixed(1)+'</div><div class="lbl">速度 km/h</div></div>'+
+    '<div class="stat-card"><div class="val">'+fmtPace(paceSec)+'</div><div class="lbl">配速 /km</div></div>'+
+    '</div>';document.getElementById('pcalcResult').innerHTML=(typeof __g9==='number'?(isFinite(__g9)?__g9:'—'):String(__g9).replace(/Infinity|NaN/g,'—'));
+}
+
+calc();
+calcPace();
+</script><script>
+// tool-intro折叠交互
+document.addEventListener('DOMContentLoaded',function(){
+  var headers=document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click',function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+
+var __running_calories_last=0,__running_calories_skip=false;
+function __running_caloriesSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __running_caloriesResText(){
+    var r=document.querySelector('.result-box');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __running_caloriesTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __running_caloriesRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__running_caloriesTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#running_caloriesTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#running_caloriesDiff');
+        TBKit.history.mount('#running_caloriesHist',function(rec){
+            __running_calories_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __running_calories_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__running_caloriesTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#running_caloriesChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __running_caloriesExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__running_calories_skip) return;
+    var snap=__running_caloriesSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__running_caloriesResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__running_calories_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __running_calories_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __running_caloriesRender(keys,rk,en);
+}
+function __running_caloriesExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#running_caloriesTable','running-calories.csv'); } catch(e){}
+}
+function __running_caloriesPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#running_caloriesPresets',[{label:'默认参数',labelEn:'Default',values:{'weight':'65', 'age':'30', 'paceMin':'6', 'paceSec':'0', 'distance':'5', 'distance2':'5', 'timeMin':'30', 'timeSec':'0', 'paceMin2':'6', 'paceSec2':'0', 'timeHour':'0', 'timeMin2':'30'}}],function(){ calc(); });
+}
+var __running_calories_f0=(typeof calc==='function')?calc:null;
+if(__running_calories_f0){
+    calc=function(){ var __r=__running_calories_f0.apply(null,arguments); try{ __running_caloriesExtras(); }catch(e){} return __r; };
+}
+function __running_caloriesBoot(){ try{ __running_caloriesPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __running_caloriesBoot();
+else document.addEventListener('DOMContentLoaded', __running_caloriesBoot);
+</script>
+<!-- SEO 介紹區塊 -->
+
+</div>
+
+</div>
+
+<!-- 相關工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相關工具</h3>
+  <div class="related-tools-grid">
+
+    <a href="/zh-tw/tools/accessibility/voice-synthesis.html" class="related-tool-card">
+      <span class="rt-icon">♿</span>
+      <span class="rt-info"><span class="rt-name">語音合成 - 健康醫療線上工具 | ToolBox免費線上工具箱</span><span class="rt-desc">語音合成</span></span>
+    </a>
+
+
+    <a href="/zh-tw/tools/sports/yoga-pose-generator.html" class="related-tool-card">
+      <span class="rt-icon">🎲</span>
+      <span class="rt-info"><span class="rt-name">瑜伽體式隨機生成 - 健康醫療線上工具 | ToolBox免費線上工具箱</span><span class="rt-desc">瑜伽體式隨機生成</span></span>
+    </a>
+    <a href="/zh-tw/tools/sports/climbing-grade-converter.html" class="related-tool-card">
+      <span class="rt-icon">🧗</span>
+      <span class="rt-info"><span class="rt-name">攀巖難度等級轉換 - 健康醫療線上工具 | ToolBox免費線上工具箱</span><span class="rt-desc">攀巖難度等級轉換</span></span>
+    </a>
+    <a href="/zh-tw/tools/fitness/generator.html" class="related-tool-card">
+      <span class="rt-icon">✨</span>
+      <span class="rt-info"><span class="rt-name">啞鈴/槓鈴配重組合生成器</span><span class="rt-desc">啞鈴/槓鈴配重組合生成器。輸入目標重量與可用槓鈴片規格，在前端生成可拼出該重量的配重組合方案，方便訓</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro open" id="toolIntro">
+  <div class="tool-intro-header">
+    <span class="intro-icon-wrap"><span class="intro-icon">📖</span>關於「跑步卡路里計算器」</span>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="tool-intro-body">
+    <h4><span class="h4-icon">📝</span>工具簡介</h4>
+    <p>跑步卡路里計算器。健康指標計算工具，基於權威醫學標準，資料本地處理保護隱私。</p>
+    <h4><span class="h4-icon">✨</span>功能特點</h4>
+    <ul class="intro-features">
+      <li>基於權威健康標準計算</li>
+      <li>支援多種引數輸入</li>
+      <li>提供詳細的健康參考建議</li>
+      <li>健康資料不上傳，隱私安全</li>
+    </ul>
+    <h4><span class="h4-icon">🎯</span>使用場景</h4>
+    <ul class="intro-scenes">
+      <li>日常健康監測與管理</li>
+      <li>健身計劃制定參考</li>
+      <li>體檢報告解讀輔助</li>
+      <li>健康知識學習</li>
+    </ul>
+    </div>
+</div>
+<!-- /SEO 介紹區塊 -->
+</body>
+</html>

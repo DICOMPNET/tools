@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-opencc-locale="zh-tw">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=validator,industry=health,icon=❤️,bg=#e3f2fd">
+<meta name="description" content="血壓分類評估器是一款免費的線上健康醫療工具，輸入收縮壓和舒張壓數值，依據中國高血壓防治指南的標準劃分血壓分類（正常、正常高值、高血壓等），並給出對應的健康風險提示與就醫建議參考。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta name="keywords" content="血壓分類評估,血壓分類評估線上,線上血壓分類評估,數學計算,健康醫療,血壓分類評估器,線上工具,免費工具,ToolBox">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://tools.dicomp.net/zh-tw/tools/health/blood-pressure-classifier.html">
+<meta property="og:title" content="血壓分類評估器 - 免費線上健康醫療工具">
+<meta property="og:description" content="血壓分類評估器是一款免費的線上健康醫療工具，輸入收縮壓和舒張壓數值，依據中國高血壓防治指南的標準劃分血壓分類（正常、正常高值、高血壓等），並給出對應的健康風險提示與就醫建議參考。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://tools.dicomp.net/zh-tw/tools/health/blood-pressure-classifier.html">
+<meta name="twitter:card" content="summary">
+
+<title>血壓分類評估器 - 免費線上健康醫療工具</title>
+<meta name="theme-color" content="#FF6B35">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="stylesheet" href="/css/common.css">
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/common.js" defer></script>
+<style>
+.bp-gauge{position:relative;width:200px;height:100px;margin:0 auto;overflow:hidden;}
+.bp-gauge-bg{position:absolute;bottom:0;width:200px;height:100px;border-radius:100px 100px 0 0;background:linear-gradient(to right,#4caf50 0%,#4caf50 30%,#ff9800 30%,#ff9800 50%,#ff5722 50%,#ff5722 65%,#f44336 65%,#f44336 80%,#b71c1c 80%,#b71c1c 100%);}
+.bp-needle{position:absolute;bottom:0;left:50%;width:4px;height:85px;background:#333;transform-origin:bottom center;transform:translateX(-50%) rotate(-90deg);transition:transform .5s;border-radius:2px;}
+.bp-needle::before{content:'';position:absolute;top:-8px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:8px solid transparent;border-right:8px solid transparent;border-top:12px solid #333;}
+.bp-center{position:absolute;bottom:-15px;left:50%;transform:translateX(-50%);width:30px;height:30px;background:var(--bg-card);border:4px solid #333;border-radius:50%;z-index:2;}
+.bp-labels{display:flex;justify-content:space-between;width:220px;margin:8px auto 0;font-size:10px;color:var(--text-muted);}
+.tab-row{display:flex;gap:4px;margin-bottom:12px;border-bottom:1px solid var(--border-color);flex-wrap:wrap;}
+.tab-item{padding:8px 12px;cursor:pointer;border-radius:6px 6px 0 0;font-size:13px;color:var(--text-secondary);}
+.tab-item.active{color:var(--primary);border-bottom:2px solid var(--primary);}
+.tab-pane{display:none;}
+.tab-pane.active{display:block;}
+.ref-table{width:100%;border-collapse:collapse;font-size:13px;}
+.ref-table th,.ref-table td{padding:8px 10px;text-align:center;border-bottom:1px solid var(--border-color);}
+.ref-table th{background:var(--bg-hover);font-weight:600;}
+.ref-table td:first-child{text-align:left;}
+.level-optimal{color:#4caf50;font-weight:600;}
+.level-normal{color:#8bc34a;font-weight:600;}
+.level-high-normal{color:#ffc107;font-weight:600;}
+.level-grade1{color:#ff9800;font-weight:600;}
+.level-grade2{color:#f44336;font-weight:600;}
+.level-grade3{color:#b71c1c;font-weight:600;}
+.advice-list{font-size:13px;line-height:1.8;color:var(--text-secondary);}
+.advice-list strong{color:var(--text-primary);}
+</style>
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"血壓分類評估","description":"血壓分類評估 - 免費數學計算工具，血壓分類評估器。","url":"https://tools.dicomp.net/zh-tw/tools/health/blood-pressure-classifier.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Web","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"},"inLanguage":"zh-TW","isAccessibleForFree":true,"browserRequirements":"Requires JavaScript. Requires HTML5.","softwareVersion":"1.0"}</script>
+
+<meta property="og:image" content="https://tools.dicomp.net/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免費線上工具">
+<meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免費線上工具">
+    <meta name="twitter:title" content="血壓分類評估器 - 免費線上健康醫療工具">
+    <meta name="twitter:description" content="血壓分類評估器是一款免費的線上健康醫療工具，輸入收縮壓和舒張壓數值，依據中國高血壓防治指南的標準劃分血壓分類（正常、正常高值、高血壓等），並給出對應的健康風險提示與就醫建議參考。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"血壓分類評估","url":"https://tools.dicomp.net/zh-tw/tools/health/blood-pressure-classifier.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"血壓分類評估器是一款免費的線上健康醫療工具，輸入收縮壓和舒張壓數值，依據中國高血壓防治指南的標準劃分血壓分類（正常、正常高值、高血壓等），並給出對應的健康風險提示與就醫建議參考。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首頁","item":"https://tools.dicomp.net/zh-tw/"},{"@type":"ListItem","position":2,"name":"健康醫療","item":"https://tools.dicomp.net/zh-tw/tools/health/index.html"},{"@type":"ListItem","position":3,"name":"血壓分類評估","item":"https://tools.dicomp.net/zh-tw/tools/health/blood-pressure-classifier.html"}]}</script>
+
+<script src="/js/i18n.js" defer></script>
+<script src="/js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+
+<meta name="title-en" content="Blood Pressure Classifier">
+<meta name="desc-en" content="Blood Pressure Classifier - online utility on ToolBox.">
+
+
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
+
+<script src="/js/tool-ux.js" defer></script>
+<!-- TOOLBOX-TOOL-UX -->
+
+<script src="/js/analytics.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+<!-- TOOLBOX-TTZZ -->
+<script>
+(function(){try{
+var el = document.createElement("script");
+el.src = "https://lf1-cdn-tos.bytegoofy.com/goofy/ttzz/push.js?85d6452aa9be4d693b16cd48535a8c7ae57542f6788a41682e745be8eb99b35a8a24d2f724c31ebe20c1e4e6fba6d91caf576100b02a2870c72f38fc574066fef065d152c73bf1cbb2ebad3b5b5265d8";
+el.id = "ttzz";
+var s = document.getElementsByTagName("script")[0];
+s.parentNode.insertBefore(el, s);
+}catch(e){}
+})(window);
+</script>
+
+<script src="/js/tool-kit.js" defer></script>
+<!-- TOOLBOX-TOOL-KIT -->
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://tools.dicomp.net/tools/health/blood-pressure-classifier.html">
+<link rel="alternate" hreflang="zh-TW" href="https://tools.dicomp.net/zh-tw/tools/health/blood-pressure-classifier.html">
+<link rel="alternate" hreflang="en-US" href="https://tools.dicomp.net/tools/health/blood-pressure-classifier.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://tools.dicomp.net/tools/health/blood-pressure-classifier.html">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+</head>
+<body>
+<h1 class="sr-only">血壓分類評估</h1>
+
+<div class="nav">
+  <a href="/zh-tw/index.html">← ToolBox</a>
+  <span>/ 血壓分類評估</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+<nav class="breadcrumb" aria-label="麵包屑導航" data-breadcrumb="1">
+  <a href="/zh-tw/index.html">首頁</a>
+  <span class="bc-sep">‹</span>
+  <a href="/zh-tw/tools/health/index.html">❤️ 健康醫療</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">血壓分類評估</span>
+</nav>
+
+<div class="tool-guide-link" data-guide-link="1">
+  <a href="/zh-tw/guides/blood-pressure-classifier-guide.html">📖 檢視「血壓分級與家庭自測解讀使用指南」</a>
+</div>
+<div class="container">
+  <div class="card tool-card-accent" style="--tool-accent:#10B981;">
+    <h2 data-zh="❤️ 血壓分類評估器">❤️ Blood Pressure Category Classifier</h2>
+    <div class="formula-box">
+      <div class="formula-title">📐 計算公式</div>
+      <div class="formula-eq">脈壓 = 收縮壓 − 舒張壓　　MAP = 舒張壓 + 脈壓 ÷ 3<br>分級：正常 &lt;120/80，升高 120–129，1級 130–139/80–89，2級 ≥140/90（按 ACC/AHA 2017）</div>
+    </div>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="根據收縮壓和舒張壓判斷血壓分類（中國高血壓防治指南標準）">Classify a systolic/diastolic reading into normal, elevated or hypertension stages, and show pulse pressure and mean arterial pressure alongside tailored advice.</p>
+<div class="formula-box">
+  <div class="formula-title">📐 工作原理與說明</div>
+
+</div>
+
+
+    <div class="input-row">
+      <div><div data-tb="preset" data-tb-presets='[{"label": "示例数据", "labelEn": "Example", "values": {"sys": "120", "dia": "80", "age": "40", "gender": "male"}}]'></div>
+<label>收縮壓 (高壓 mmHg)</label><input type="number" id="sys" value="120" oninput="calc()"></div>
+      <div><label>舒張壓 (低壓 mmHg)</label><input type="number" id="dia" value="80" oninput="calc()"></div>
+    </div>
+
+    <div class="input-row">
+      <div><label>年齡 (歲)</label><input type="number" id="age" value="40" oninput="calc()"></div>
+      <div><label>性別</label>
+        <select id="gender" onchange="calc()">
+          <option value="male">男</option>
+          <option value="female">女</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__blood_pressure_classifierExport()">匯出明細 CSV</button></div>
+    <div class="result-box">
+      <div style="text-align:center;padding:12px 0;">
+        <div style="font-size:36px;font-weight:700;" id="bpCat">--</div>
+        <div style="font-size:14px;color:var(--text-muted);margin-top:4px;" id="bpAdv">--</div>
+        <div style="font-size:13px;color:var(--text-secondary);margin-top:8px;" id="bpRange">--</div>
+      </div>
+
+      <div class="bp-gauge">
+        <div class="bp-gauge-bg"></div>
+        <div class="bp-needle" id="needle"></div>
+        <div class="bp-center"></div>
+      </div>
+      <div class="bp-labels">
+        <span>90</span>
+        <span>120</span>
+        <span>140</span>
+        <span>160</span>
+        <span>180</span>
+        <span>200+</span>
+      </div>
+
+      <div class="stat-grid" style="margin-top:16px;" id="statsGrid"></div>
+    </div>
+    <div id="blood_pressure_classifierTable"></div>
+    <div id="blood_pressure_classifierDiff"></div>
+    <div id="blood_pressure_classifierChart"></div>
+    <div id="blood_pressure_classifierHist"></div>
+
+    <div class="tab-row">
+      <div class="tab-item active" onclick="switchTab('standard')">分類標準</div>
+      <div class="tab-item" onclick="switchTab('measure')">正確測量</div>
+      <div class="tab-item" onclick="switchTab('life')">生活幹預</div>
+      <div class="tab-item" onclick="switchTab('risk')">風險評估</div>
+    </div>
+
+    <div id="tab-standard" class="tab-pane active">
+      <h3 style="font-size:14px;margin-bottom:10px;">中國高血壓防治指南（2023年修訂版）</h3>
+      <table class="ref-table">
+        <tr><th>分類</th><th>收縮壓 (mmHg)</th><th>舒張壓 (mmHg)</th></tr>
+        <tr><td class="level-optimal">理想血壓</td><td>&lt; 120</td><td>&lt; 80</td></tr>
+        <tr><td class="level-normal">正常血壓</td><td>120 - 129</td><td>80 - 84</td></tr>
+        <tr><td class="level-high-normal">正常高值</td><td>130 - 139</td><td>85 - 89</td></tr>
+        <tr><td class="level-grade1">1級高血壓（輕度）</td><td>140 - 159</td><td>90 - 99</td></tr>
+        <tr><td class="level-grade2">2級高血壓（中度）</td><td>160 - 179</td><td>100 - 109</td></tr>
+        <tr><td class="level-grade3">3級高血壓（重度）</td><td>≥ 180</td><td>≥ 110</td></tr>
+        <tr><td class="level-grade2">單純收縮期高血壓</td><td>≥ 140</td><td>&lt; 90</td></tr>
+      </table>
+      <p style="font-size:12px;color:var(--text-muted);margin-top:8px;">注：當收縮壓和舒張壓分屬不同級別時，以較高的分級為準</p>
+    </div>
+
+    <div id="tab-measure" class="tab-pane">
+      <h3 style="font-size:14px;margin-bottom:10px;">正確測量血壓的方法</h3>
+      <div class="advice-list">
+        <p><strong>📋 測量前準備</strong></p>
+        <p>• 測量前30分鐘內不吸菸、不喝咖啡、不運動</p>
+        <p>• 排空膀胱，安靜休息至少5分鐘</p>
+        <p>• 選擇合適的袖帶（袖帶氣囊應包裹80%上臂周徑）</p>
+        <br>
+        <p><strong>📐 測量姿勢</strong></p>
+        <p>• 取坐位，背靠椅背，雙腳平放地面</p>
+        <p>• 上臂裸露，置於桌面，與心臟同一水平</p>
+        <p>• 袖帶下緣距肘窩2-3cm，鬆緊以能插入1指為宜</p>
+        <br>
+        <p><strong>⏰ 測量時間與次數</strong></p>
+        <p>• 每日早晚各測1次，每次測2-3遍，間隔1分鐘</p>
+        <p>• 早上：起床後1小時內，服藥前、早餐前、排尿後</p>
+        <p>• 晚上：睡前30分鐘內</p>
+        <p>• 初診或治療早期：連續測量7天，取後6天平均值</p>
+      </div>
+    </div>
+
+    <div id="tab-life" class="tab-pane">
+      <h3 style="font-size:14px;margin-bottom:10px;">高血壓生活方式干預</h3>
+      <div class="advice-list">
+        <p><strong>🍽️ 合理膳食（DASH飲食）</strong></p>
+        <p>• 限鹽：每日＜5g（約一啤酒瓶蓋），減少隱性鹽攝入</p>
+        <p>• 增鉀：多吃新鮮蔬果、豆類、菌菇類</p>
+        <p>• 減少飽和脂肪和膽固醇，增加優質蛋白</p>
+        <br>
+        <p><strong>🏃 規律運動</strong></p>
+        <p>• 每週≥150分鐘中等強度有氧運動（快走、慢跑、游泳）</p>
+        <p>• 每週2-3次抗阻力量訓練</p>
+        <p>• 運動時收縮壓避免超過220mmHg</p>
+        <br>
+        <p><strong>😴 其他</strong></p>
+        <p>• 控制體重：BMI＜24，腰圍男＜90cm、女＜85cm</p>
+        <p>• 戒菸限酒：男性酒精＜25g/天，女性＜15g/天</p>
+        <p>• 減輕精神壓力，保持心理平衡</p>
+        <p>• 保證充足睡眠，每晚7-8小時</p>
+      </div>
+    </div>
+
+    <div id="tab-risk" class="tab-pane">
+      <h3 style="font-size:14px;margin-bottom:10px;">高血壓心血管風險分層</h3>
+      <table class="ref-table">
+        <tr><th>血壓分級</th><th>低危</th><th>中危</th><th>高危</th><th>很高危</th></tr>
+        <tr><td class="level-high-normal">正常高值</td><td>無危險因素</td><td>1-2個危險因素</td><td>≥3個危險因素</td><td>有臨床併發症</td></tr>
+        <tr><td class="level-grade1">1級高血壓</td><td>無危險因素</td><td>1-2個危險因素</td><td>≥3個危險因素或靶器官損害</td><td>有臨床併發症</td></tr>
+        <tr><td class="level-grade2">2級高血壓</td><td>-</td><td>無或1-2個危險因素</td><td>≥3個危險因素或靶器官損害</td><td>有臨床併發症</td></tr>
+        <tr><td class="level-grade3">3級高血壓</td><td>-</td><td>-</td><td>無或有危險因素</td><td>有臨床併發症</td></tr>
+      </table>
+      <p style="font-size:12px;color:var(--text-muted);margin-top:8px;">
+        危險因素：高血壓、年齡（男≥45歲，女≥55歲）、吸菸、血脂異常、早發心血管病家族史、肥胖、缺乏體力活動<br>
+        靶器官損害：左心室肥厚、頸動脈內膜增厚或斑塊、腎功能受損等
+      </p>
+    </div>
+
+    <div class="info-box" style="margin-top:16px;">
+      ⚠️ 本工具僅供參考，不能替代醫療診斷。血壓異常請及時就醫，高血壓患者請遵醫囑監測和用藥。
+    </div>
+  </div>
+
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto 0;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+.deep-dive a.term-link{color:var(--tool-accent,#FF6B35);text-decoration:none;border-bottom:1px dashed currentColor;}
+.deep-dive a.term-link:hover{border-bottom-style:solid;}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：血壓分級與脈壓分析器</h2>
+<h3>💡 常見使用場景</h3>
+<ul class="dd-list">
+<li>家庭自測血壓後，按最新指南判斷屬於正常/升高/1級/2級高血壓，決定是否需要就醫或調整生活方式。</li>
+<li>關注脈壓（收縮壓−舒張壓）偏大或偏小時，結合平均動脈壓(MAP)評估血管彈性與灌注風險。</li>
+<li>長期隨訪記錄中對比收縮壓/舒張壓比值變化，輔助識別單純收縮期高血壓等老年性改變。</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">可復現算例：<a class="term-link" href="/zh-tw/tools/healthcare/blood-pressure-grade.html">血壓分級</a></div><div class="dd-ex-body">輸入：收縮壓 120 mmHg、舒張壓 80 mmHg、年齡 40。
+計算：脈壓 = 120 − 80 = 40 mmHg；平均動脈壓 MAP ≈ 舒張壓 + 1/3×脈壓 = 80 + 13.3 = 93.3（約 93）mmHg；收縮/舒張比 = 120/80 = 1.50。
+結論：120/80 屬正常血壓，脈壓 40 在正常區間（正常 30–50），心血管<a class="term-link" href="/zh-tw/tools/pr/risk-assessment.html">風險評估</a>為低危基線。</div></div>
+<h3>❓ 常見問題（FAQ）</h3>
+<dl class="dd-faq">
+<dt>脈壓過大或過小分別代表什麼？</dt><dd>脈壓 &gt;60 mmHg（如 150/80）常見於動脈硬化、老年性單純收縮期高血壓；脈壓 &lt;30 mmHg 可見於主動脈瓣狹窄、低心排血量。本工具給出脈壓數值，但異常須結合臨床由醫生判斷，不能替代診斷。</dd>
+<dt>為什麼平均動脈壓不是簡單的（高+低）÷2？</dt><dd>心臟舒張期遠長於收縮期，MAP 更接近「舒張壓 + 1/3 脈壓」而非算術平均。本工具採用該近似，用於評估器官灌注壓力；危重或術中應以來自有創監測的精確值為準。</dd>
+</dl>
+</div>
+</section>
+<!-- 注意事項區塊 -->
+<div class="tool-notes" style="--tool-accent:#10B981;">
+  <div class="tool-notes-title">⚠️ 使用說明與注意事項</div>
+  <ul>
+      <li>本工具純前端執行，資料不會上傳到伺服器</li>
+      <li>建議在主流瀏覽器（Chrome/Safari/Firefox/Edge）中使用</li>
+      <li>計算結果僅供參考，請以實際應用場景為準</li>
+  </ul>
+</div>
+<!-- /注意事項區塊 -->
+</div>
+<script>
+function classifyBP(sys, dia) {
+  const s = +sys, d = +dia;
+
+  if(s >= 180 || d >= 110) return { cat:'3级高血压（重度）', adv:'请立即就医治疗！', color:'#b71c1c', level:'grade3' };
+  if(s >= 160 || d >= 100) return { cat:'2级高血压（中度）', adv:'请及时就医，规范治疗', color:'#f44336', level:'grade2' };
+  if(s >= 140 || d >= 90) return { cat:'1级高血压（轻度）', adv:'建议就医，改善生活方式', color:'#ff9800', level:'grade1' };
+  if(s >= 130 || d >= 85) return { cat:'正常高值', adv:'注意生活方式，定期监测血压', color:'#ffc107', level:'high-normal' };
+  if(s >= 120 || d >= 80) return { cat:'正常血压', adv:'继续保持健康生活方式', color:'#8bc34a', level:'normal' };
+  if(s < 90 || d < 60) return { cat:'低血压', adv:'如伴头晕请就医，注意体位变化', color:'#2196f3', level:'low' };
+  return { cat:'理想血压', adv:'非常棒！继续保持健康生活', color:'#4caf50', level:'optimal' };
+}
+
+function calc() {
+  const s = parseInt(document.getElementById('sys').value);
+  const d = parseInt(document.getElementById('dia').value);
+  const age = parseInt(document.getElementById('age').value);
+  const gender = document.getElementById('gender').value;
+
+  if(!s || !d) return;
+
+  const result = classifyBP(s, d);
+
+  const __g1=result.cat;document.getElementById('bpCat').textContent=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
+  document.getElementById('bpCat').style.color = result.color;
+  const __g2=result.adv;document.getElementById('bpAdv').textContent=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
+  const __g3=`血压: ${s}/${d} mmHg (收缩压/舒张压)`;document.getElementById('bpRange').textContent=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
+
+  const minBP = 90, maxBP = 200;
+  let angle;
+  if(s <= minBP) angle = -90;
+  else if(s >= maxBP) angle = 90;
+  else angle = -90 + ((s - minBP) / (maxBP - minBP)) * 180;
+  document.getElementById('needle').style.transform = `translateX(-50%) rotate(${angle}deg)`;
+
+  const pulse = s - d;
+  const map = Math.round(d + pulse/3);
+  const __g4='<div class="stat-card"><div class="val">' + pulse + '</div><div class="lbl">脉压 (mmHg)</div></div>' +
+    '<div class="stat-card"><div class="val">' + map + '</div><div class="lbl">平均动脉压</div></div>' +
+    '<div class="stat-card"><div class="val">' + (s/d).toFixed(2) + '</div><div class="lbl">收缩/舒张比</div></div>';document.getElementById('statsGrid').innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
+}
+
+function switchTab(name) {
+  document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('tab-' + name).classList.add('active');
+}
+
+calc();
+</script><script>
+// tool-intro折叠交互
+document.addEventListener('DOMContentLoaded',function(){
+  var headers=document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click',function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+
+var __blood_pressure_classifier_last=0,__blood_pressure_classifier_skip=false;
+function __blood_pressure_classifierSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __blood_pressure_classifierResText(){
+    var r=document.querySelector('.result-box');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __blood_pressure_classifierTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __blood_pressure_classifierRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__blood_pressure_classifierTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#blood_pressure_classifierTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#blood_pressure_classifierDiff');
+        TBKit.history.mount('#blood_pressure_classifierHist',function(rec){
+            __blood_pressure_classifier_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __blood_pressure_classifier_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__blood_pressure_classifierTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#blood_pressure_classifierChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __blood_pressure_classifierExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__blood_pressure_classifier_skip) return;
+    var snap=__blood_pressure_classifierSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__blood_pressure_classifierResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__blood_pressure_classifier_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __blood_pressure_classifier_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __blood_pressure_classifierRender(keys,rk,en);
+}
+function __blood_pressure_classifierExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#blood_pressure_classifierTable','blood-pressure-classifier.csv'); } catch(e){}
+}
+function __blood_pressure_classifierPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#blood_pressure_classifierPresets',[{label:'默认参数',labelEn:'Default',values:{'sys':'120', 'dia':'80', 'age':'40', 'gender':'male'}}],function(){ calc(); });
+}
+var __blood_pressure_classifier_f0=(typeof calc==='function')?calc:null;
+if(__blood_pressure_classifier_f0){
+    calc=function(){ var __r=__blood_pressure_classifier_f0.apply(null,arguments); try{ __blood_pressure_classifierExtras(); }catch(e){} return __r; };
+}
+function __blood_pressure_classifierBoot(){ try{ __blood_pressure_classifierPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __blood_pressure_classifierBoot();
+else document.addEventListener('DOMContentLoaded', __blood_pressure_classifierBoot);
+</script>
+<!-- SEO 介紹區塊 -->
+
+</div>
+
+</div>
+
+<!-- 相關工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相關工具</h3>
+  <div class="related-tools-grid">
+    <a href="/zh-tw/tools/health/breath-timer.html" class="related-tool-card">
+      <span class="rt-icon">🫁</span>
+      <span class="rt-info"><span class="rt-name">呼吸計時器 - 免費開發工具，線上呼吸計時器 | ToolBox免費線上工具箱</span><span class="rt-desc">呼吸計時器</span></span>
+    </a>
+    <a href="/zh-tw/tools/accessibility/voice-synthesis.html" class="related-tool-card">
+      <span class="rt-icon">♿</span>
+      <span class="rt-info"><span class="rt-name">語音合成 - 健康醫療線上工具 | ToolBox免費線上工具箱</span><span class="rt-desc">語音合成</span></span>
+    </a>
+    <a href="/zh-tw/tools/health/rehab-timer.html" class="related-tool-card">
+      <span class="rt-icon">🦿</span>
+      <span class="rt-info"><span class="rt-name">康復訓練計時器 - 健康醫療線上工具 | ToolBox免費線上工具箱</span><span class="rt-desc">⏱️ 康復訓練計時器</span></span>
+    </a>
+    <a href="/zh-tw/tools/health/stretch-generator.html" class="related-tool-card">
+      <span class="rt-icon">✨</span>
+      <span class="rt-info"><span class="rt-name">拉伸動作生成器 - 拉伸動作隨機生成器 - 根據身體部位和時長，隨機生成一套拉伸 | ToolBox免費線上工具箱</span><span class="rt-desc">拉伸動作隨機生成器</span></span>
+    </a>
+    <a href="/zh-tw/tools/sports/yoga-pose-generator.html" class="related-tool-card">
+      <span class="rt-icon">🎲</span>
+      <span class="rt-info"><span class="rt-name">瑜伽體式隨機生成 - 健康醫療線上工具 | ToolBox免費線上工具箱</span><span class="rt-desc">瑜伽體式隨機生成</span></span>
+    </a>
+    <a href="/zh-tw/tools/sports/climbing-grade-converter.html" class="related-tool-card">
+      <span class="rt-icon">🧗</span>
+      <span class="rt-info"><span class="rt-name">攀巖難度等級轉換 - 健康醫療線上工具 | ToolBox免費線上工具箱</span><span class="rt-desc">攀巖難度等級轉換</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro open" id="toolIntro">
+  <div class="tool-intro-header">
+    <span class="intro-icon-wrap"><span class="intro-icon">📖</span>關於「血壓分類評估」</span>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="tool-intro-body">
+    <h4><span class="h4-icon">📝</span>工具簡介</h4>
+    <p>血壓分類評估。健康指標計算工具，基於權威醫學標準，資料本地處理保護隱私。</p>
+    <h4><span class="h4-icon">✨</span>功能特點</h4>
+    <ul class="intro-features">
+      <li>基於權威健康標準計算</li>
+      <li>支援多種引數輸入</li>
+      <li>提供詳細的健康參考建議</li>
+      <li>健康資料不上傳，隱私安全</li>
+    </ul>
+    <h4><span class="h4-icon">🎯</span>使用場景</h4>
+    <ul class="intro-scenes">
+      <li>日常健康監測與管理</li>
+      <li>健身計劃制定參考</li>
+      <li>體檢報告解讀輔助</li>
+      <li>健康知識學習</li>
+    </ul>
+    </div>
+</div>
+<!-- /SEO 介紹區塊 -->
+</body>
+</html>

@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-opencc-locale="zh-tw">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=image,industry=design,icon=🎨,bg=#e8f5e9">
+<meta name="description" content="畫素藝術繪製器是一款免費的線上設計創意工具，網格化畫素繪製，支援畫筆、橡皮、填充、吸管，可撤銷重做，匯出原始/放大版 PNG。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta name="keywords" content="畫素藝術繪製器,畫素藝術繪製器線上,線上畫素藝術繪製器,圖片處理,設計創意,線上工具,免費工具,ToolBox">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://tools.dicomp.net/zh-tw/tools/design/pixel-art.html">
+<meta property="og:title" content="畫素藝術繪製器 - 免費線上設計創意工具">
+<meta property="og:description" content="畫素藝術繪製器是一款免費的線上設計創意工具，網格化畫素繪製，支援畫筆、橡皮、填充、吸管，可撤銷重做，匯出原始/放大版 PNG。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://tools.dicomp.net/zh-tw/tools/design/pixel-art.html">
+<meta name="twitter:card" content="summary">
+
+<title>畫素藝術繪製器 - 免費線上設計創意工具</title>
+<meta name="theme-color" content="#FF6B35">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="stylesheet" href="/css/common.css">
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/common.js" defer></script>
+<style>
+.layout{display:grid;grid-template-columns:200px 1fr;gap:16px;}
+@media(max-width:680px){.layout{grid-template-columns:1fr;}}
+.tool-panel{background:#fafafa;border:1px solid var(--border);border-radius:8px;padding:14px;}
+.tool-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:14px;}
+.tool-btn{aspect-ratio:1;border:1px solid var(--border);border-radius:6px;background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;transition:all 0.15s;}
+.tool-btn:hover{border-color:var(--primary);}
+.tool-btn.active{background:var(--primary);color:#fff;border-color:var(--primary);}
+.palette{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:12px;}
+.palette-color{aspect-ratio:1;border-radius:6px;cursor:pointer;border:2px solid transparent;transition:transform 0.1s;}
+.palette-color.active{border-color:var(--primary);transform:scale(1.08);}
+.palette-color:hover{transform:scale(1.08);}
+.canvas-area{background:#fff;border:1px solid var(--border);border-radius:8px;padding:14px;}
+.canvas-wrap{position:relative;width:100%;max-width:480px;margin:0 auto;touch-action:none;}
+#canvas{display:block;width:100%;image-rendering:pixelated;image-rendering:crisp-edges;cursor:crosshair;background:#fff;}
+.coord{font-size:13px;color:var(--text-light);text-align:center;margin-top:10px;font-family:'SF Mono','Courier New',monospace;}
+.size-row{display:flex;gap:6px;margin-bottom:12px;}
+.size-btn{flex:1;padding:8px;border:1px solid var(--border);border-radius:6px;background:#fff;cursor:pointer;font-size:13px;}
+.size-btn.active{background:var(--primary);color:#fff;border-color:var(--primary);}
+.color-input-row{display:flex;gap:6px;align-items:center;margin-bottom:10px;}
+.color-input-row input[type="color"]{width:36px;height:30px;border:1px solid var(--border);border-radius:6px;cursor:pointer;padding:2px;background:none;}
+.color-input-row input[type="text"]{flex:1;font-size:13px;padding:6px 8px;}
+</style>
+
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"畫素藝術繪製器","description":"畫素藝術繪製器 - 免費圖片處理工具，線上畫素藝術繪製器，免費使用。","url":"https://tools.dicomp.net/zh-tw/tools/design/pixel-art.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Web","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"},"inLanguage":"zh-TW","isAccessibleForFree":true,"browserRequirements":"Requires JavaScript. Requires HTML5.","softwareVersion":"1.0"}</script>
+
+
+
+<meta property="og:image" content="https://tools.dicomp.net/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免費線上工具">
+<meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免費線上工具">
+    <meta name="twitter:title" content="畫素藝術繪製器 - 免費線上設計創意工具">
+    <meta name="twitter:description" content="畫素藝術繪製器是一款免費的線上設計創意工具，網格化畫素繪製，支援畫筆、橡皮、填充、吸管，可撤銷重做，匯出原始/放大版 PNG。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"畫素藝術繪製器","url":"https://tools.dicomp.net/zh-tw/tools/design/pixel-art.html","applicationCategory":"MultimediaApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"畫素藝術繪製器是一款免費的線上設計創意工具，網格化畫素繪製，支援畫筆、橡皮、填充、吸管，可撤銷重做，匯出原始/放大版 PNG。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首頁","item":"https://tools.dicomp.net/zh-tw/"},{"@type":"ListItem","position":2,"name":"設計創意","item":"https://tools.dicomp.net/zh-tw/tools/design/index.html"},{"@type":"ListItem","position":3,"name":"畫素藝術繪製器","item":"https://tools.dicomp.net/zh-tw/tools/design/pixel-art.html"}]}</script>
+
+<script src="/js/i18n.js" defer></script>
+<script src="/js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+
+
+<meta name="title-en" content="Pixel Art">
+<meta name="desc-en" content="Pixel Art - online utility on ToolBox.">
+
+
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
+
+<script src="/js/tool-ux.js" defer></script>
+<!-- TOOLBOX-TOOL-UX -->
+
+<script src="/js/analytics.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+<!-- TOOLBOX-TTZZ -->
+<script>
+(function(){try{
+var el = document.createElement("script");
+el.src = "https://lf1-cdn-tos.bytegoofy.com/goofy/ttzz/push.js?85d6452aa9be4d693b16cd48535a8c7ae57542f6788a41682e745be8eb99b35a8a24d2f724c31ebe20c1e4e6fba6d91caf576100b02a2870c72f38fc574066fef065d152c73bf1cbb2ebad3b5b5265d8";
+el.id = "ttzz";
+var s = document.getElementsByTagName("script")[0];
+s.parentNode.insertBefore(el, s);
+}catch(e){}
+})(window);
+</script>
+
+<script src="/js/tool-kit.js" defer></script>
+<!-- TOOLBOX-TOOL-KIT -->
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://tools.dicomp.net/tools/design/pixel-art.html">
+<link rel="alternate" hreflang="zh-TW" href="https://tools.dicomp.net/zh-tw/tools/design/pixel-art.html">
+<link rel="alternate" hreflang="en-US" href="https://tools.dicomp.net/tools/design/pixel-art.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://tools.dicomp.net/tools/design/pixel-art.html">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+</head>
+<body>
+<h1 class="sr-only">畫素藝術繪製器</h1>
+
+
+<div class="nav">
+  <a href="/zh-tw/index.html">← ToolBox</a>
+  <span>/ 畫素藝術繪製器</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+
+
+
+
+<nav class="breadcrumb" aria-label="麵包屑導航" data-breadcrumb="1">
+  <a href="/zh-tw/index.html">首頁</a>
+  <span class="bc-sep">‹</span>
+  <a href="/zh-tw/tools/design/index.html">🎨 設計創意</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">畫素藝術繪製器</span>
+</nav>
+<div class="container">
+  <div class="card tool-card-accent" style="--tool-accent:#7C3AED;">
+     <h2 data-zh="🎨 畫素藝術繪製器">🎨 Pixel Art Editor</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px;" data-zh="網格化畫素繪製，支援畫筆、橡皮、填充、吸管，可撤銷重做，匯出原始/放大版 PNG。">A grid-based pixel editor with pen, eraser, fill and eyedropper tools plus undo/redo and PNG export at original or enlarged size.</p>    <div class="formula-box">
+      <div class="formula-title">📐 計算公式 / 原理</div>
+      <div class="formula-desc">網格化畫素繪製：以二維陣列儲存每個畫素的顏色，支援畫筆、橡皮、填充與吸管，可撤銷重做並匯出原始或放大版 PNG；用於畫素畫創作。</div>
+    </div>
+
+
+    <div class="layout">
+      <div class="tool-panel">
+        <label>畫布尺寸</label>
+        <div class="size-row">
+          <div class="size-btn" data-size="16" onclick="setSize(16)">16×16</div>
+          <div class="size-btn active" data-size="32" onclick="setSize(32)">32×32</div>
+          <div class="size-btn" data-size="64" onclick="setSize(64)">64×64</div>
+        </div>
+
+        <label>工具</label>
+        <div class="tool-grid">
+          <div class="tool-btn active" data-tool="brush" title="畫筆" onclick="setTool('brush')">🖌</div>
+          <div class="tool-btn" data-tool="eraser" title="橡皮" onclick="setTool('eraser')">🧽</div>
+          <div class="tool-btn" data-tool="fill" title="填充桶" onclick="setTool('fill')">🪣</div>
+          <div class="tool-btn" data-tool="pick" title="吸管" onclick="setTool('pick')">💉</div>
+        </div>
+
+        <label>調色盤</label>
+        <div class="palette" id="palette"></div>
+
+        <label>自定義顏色</label>
+        <div class="color-input-row">
+          <input type="color" id="colorPicker" value="#000000" oninput="setColor(this.value)">
+          <input type="text" id="colorText" value="#000000" oninput="onColorText(this.value)">
+        </div>
+
+        <div class="toolbar" style="flex-direction:column;">
+          <button type="button" class="btn" onclick="undo()">↩ 撤銷</button>
+          <button type="button" class="btn" onclick="redo()">↪ 重做</button>
+          <button type="button" class="btn danger" onclick="clearCanvas()">🗑 清空</button>
+          <button type="button" class="btn success" onclick="exportPNG(1)">⬇ 匯出原始</button>
+          <button type="button" class="btn primary" onclick="exportPNG(__paExportScale())">⬇ 匯出放大版</button>
+        </div>
+      </div>
+
+      <!-- 增強面板（功能增強） -->
+      <div class="tool-panel" style="margin-top:12px;">
+        <label>色板預設</label>
+        <div class="toolbar" style="flex-wrap:wrap;gap:6px;">
+          <button type="button" class="btn" onclick="__paSetPalette('classic')">經典 16 色</button>
+          <button type="button" class="btn" onclick="__paSetPalette('db16')">DB16</button>
+          <button type="button" class="btn" onclick="__paSetPalette('gameboy')">GameBoy 4 色</button>
+          <button type="button" class="btn" onclick="__paSetPalette('cga')">CGA 16 色</button>
+          <button type="button" class="btn" onclick="__paSetPalette('gray4')">灰階 4 色</button>
+        </div>
+
+        <label id="paTplLabel" style="margin-top:10px;display:block;"></label>
+        <div id="paPresets" style="margin:6px 0;"></div>
+        <input type="hidden" id="paTpl" value="">
+        <label style="margin-top:10px;display:block;">映象與網格</label>
+        <div class="toolbar" style="flex-direction:column;align-items:flex-start;gap:6px;">
+          <label style="display:flex;gap:6px;align-items:center;"><input type="checkbox" id="paMirrorX" onchange="__paSetMirror(this.checked)"> 水平對稱繪製</label>
+          <label style="display:flex;gap:6px;align-items:center;"><input type="checkbox" id="paGridOn" checked onchange="__paSetGrid(this.checked)"> 顯示網格線</label>
+        </div>
+
+        <label style="margin-top:10px;display:block;">匯出倍率（放大版）</label>
+        <div class="toolbar" style="flex-wrap:wrap;gap:6px;align-items:center;">
+          <input type="number" id="paScale" min="1" max="64" value="16" style="width:72px;" onchange="__paRenderInfo()">
+          <button type="button" class="btn" onclick="__paQuickScale(8)">×8</button>
+          <button type="button" class="btn" onclick="__paQuickScale(16)">×16</button>
+          <button type="button" class="btn" onclick="__paQuickScale(32)">×32</button>
+        </div>
+        <div id="paInfo" style="font-size:12px;color:var(--text-muted);margin-top:10px;"></div>
+      </div>
+
+      <div class="canvas-area">
+        <div class="canvas-wrap">
+          <canvas id="canvas"></canvas>
+        </div>
+        <div class="coord" id="coord">座標：—</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2 id="paRefTitle"></h2>
+    <table class="data-table">
+      <thead><tr><th id="paRefTh0"></th><th id="paRefTh1"></th><th id="paRefTh2"></th><th id="paRefTh3"></th></tr></thead>
+      <tbody id="paRefTbody"></tbody>
+    </table>
+    <p id="paRefNote" style="font-size:12px;color:var(--text-muted);margin-top:8px;"></p>
+  </div>
+
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto 0;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+.deep-dive a.term-link{color:var(--tool-accent,#FF6B35);text-decoration:none;border-bottom:1px dashed currentColor;}
+.deep-dive a.term-link:hover{border-bottom-style:solid;}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：畫素藝術繪製器</h2>
+<h3>💡 常見使用場景</h3>
+<ul class="dd-list">
+<li>做圖示、頭像。</li>
+<li>遊戲素材。</li>
+<li>畫素風插畫。</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">畫 16×16 小圖示</div><div class="dd-ex-body">&lt;p&gt;&lt;strong&gt;輸入：&lt;/strong&gt;網格 16×16、選色落格。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;處理：&lt;/strong&gt;逐格上色。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;輸出：&lt;/strong&gt;匯出 PNG，本地完成。&lt;/p&gt;</div></div>
+<h3>❓ 常見問題（FAQ）</h3>
+<dl class="dd-faq">
+<dt>能放大不糊嗎？</dt><dd><a class="term-link" href="/zh-tw/tools/design/pixel-art-generator.html">畫素畫</a>靠鄰近取樣放大保硬邊；向量放大才會糊。</dd>
+<dt>匯出什麼格式？</dt><dd>匯出 PNG 保硬邊；避免 JPG 引入噪點破壞畫素感。</dd>
+<dt>會儲存或上傳我的內容嗎？</dt><dd>結果以瀏覽器即時計算為準，純前端本地處理、資料不上傳；生成的樣式與程式碼僅作快速產出參考，正式專案請以設計系統、規範與瀏覽器實測為準。</dd>
+</dl>
+</div>
+</section>
+<!-- 注意事項區塊 -->
+<div class="tool-notes" style="--tool-accent:#7C3AED;">
+  <div class="tool-notes-title">⚠️ 使用說明與注意事項</div>
+  <ul>
+      <li>本工具純前端執行，資料不會上傳到伺服器</li>
+      <li>建議在主流瀏覽器（Chrome/Safari/Firefox/Edge）中使用</li>
+      <li>計算結果僅供參考，請以實際應用場景為準</li>
+  </ul>
+</div>
+<!-- /注意事項區塊 -->
+</div>
+
+<script>
+const PRESET_COLORS=['#000000','#ffffff','#7f7f7f','#c3c3c3','#ed1c24','#ff7f27','#fff200','#22b14c','#00a2e8','#3f48cc','#a349a4','#b97a57','#ffaec9','#ffc90e','#efe4b0','#b5e61d'];
+const canvas=document.getElementById('canvas');
+const ctx=canvas.getContext('2d');
+let gridSize=32;
+let pixelSize=15; // 每个像素的显示大小
+let pixels=[];    // 二维数组存储颜色
+let currentTool='brush';
+let currentColor='#000000';
+let isDrawing=false;
+let history=[];
+let historyIndex=-1;
+let mirrorX=false;
+let showGrid=true;
+let paletteSet='classic';
+
+// 色板预设（复古平台常用色板）
+const PA_PALETTES={
+  classic:PRESET_COLORS,
+  db16:['#140c1c','#442434','#30346d','#4e4a4e','#854c30','#346524','#d04648','#757161','#597dce','#d27d2c','#8595a1','#6daa2c','#d2aa99','#6dc2ca','#dad45e','#deeed6'],
+  gameboy:['#0f380f','#306230','#8bac0f','#9bbc0f'],
+  cga:['#000000','#0000aa','#00aa00','#00aaaa','#aa0000','#aa00aa','#aa5500','#aaaaaa','#555555','#5555ff','#55ff55','#55ffff','#ff5555','#ff55ff','#ffff55','#ffffff'],
+  gray4:['#000000','#555555','#aaaaaa','#ffffff']
+};
+let PALETTE_COLORS=PRESET_COLORS;
+
+function __paEn(){ try{ return (typeof TBKit!=='undefined' && TBKit.util.isEn()); }catch(e){ return false; } }
+function __paT(zh,en){ return __paEn()?en:zh; }
+
+window.__paSetPalette = function(name){
+  if(!PA_PALETTES[name])return;
+  paletteSet=name;
+  PALETTE_COLORS=PA_PALETTES[name];
+  initPalette();
+  __paRenderInfo();
+};
+
+window.__paSetMirror = function(on){
+  mirrorX=!!on;
+  __paRenderInfo();
+};
+
+window.__paSetGrid = function(on){
+  showGrid=!!on;
+  redraw();
+  __paRenderInfo();
+};
+
+window.__paQuickScale = function(v){
+  var el=document.getElementById('paScale');
+  if(el)el.value=v;
+  __paRenderInfo();
+};
+
+function __paExportScale(){
+  var el=document.getElementById('paScale');
+  var v=parseInt(el&&el.value)||16;
+  return Math.max(1,Math.min(64,v));
+}
+
+function __paRenderInfo(){
+  var box=document.getElementById('paInfo');
+  if(!box)return;
+  var used=0;
+  const colors=new Set();
+  for(let y=0;y<gridSize;y++){
+    for(let x=0;x<gridSize;x++){
+      if(pixels[y][x]!==null){ used++; colors.add(pixels[y][x]); }
+    }
+  }
+  box.textContent=__paT(
+    '网格 '+gridSize+' × '+gridSize+' ｜ 已上色 '+used+' / '+(gridSize*gridSize)+' 格 ｜ 使用颜色 '+colors.size+' 种 ｜ 镜像 '+(mirrorX?'开':'关')+' ｜ 网格线 '+(showGrid?'开':'关')+' ｜ 放大倍率 ×'+__paExportScale(),
+    'Grid '+gridSize+' x '+gridSize+' | filled '+used+' / '+(gridSize*gridSize)+' cells | '+colors.size+' color(s) used | mirror '+(mirrorX?'on':'off')+' | grid '+(showGrid?'on':'off')+' | scale x'+__paExportScale()
+  );
+}
+
+function initPalette(){
+  const pal=document.getElementById('palette');
+  const __h0=PALETTE_COLORS.map(c=>'<div class="palette-color'+(c===currentColor?' active':'')+'" style="background:'+c+'" data-color="'+c+'" onclick="setColor(\''+c+'\')"></div>').join('');if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){pal.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}pal.innerHTML=__h0;
+}
+
+function setSize(size){
+  if(history.length>0&&!confirm('更改画布尺寸会清空当前内容，确定？'))return;
+  gridSize=size;
+  document.querySelectorAll('.size-btn').forEach(b=>b.classList.toggle('active',+b.dataset.size===size));
+  initPixels();
+  resizeCanvas();
+  history=[];historyIndex=-1;
+  saveHistory();
+  redraw();
+}
+
+function initPixels(){
+  pixels=[];
+  for(let y=0;y<gridSize;y++){
+    const row=[];
+    for(let x=0;x<gridSize;x++)row.push(null); // null = 透明
+    pixels.push(row);
+  }
+}
+
+function resizeCanvas(){
+  const wrap=canvas.parentElement;
+  const w=wrap.clientWidth;
+  pixelSize=Math.floor(w/gridSize);
+  if(pixelSize<4)pixelSize=4;
+  const total=pixelSize*gridSize;
+  canvas.width=total;
+  canvas.height=total;
+  canvas.style.width=total+'px';
+  canvas.style.height=total+'px';
+}
+
+function setTool(tool){
+  currentTool=tool;
+  document.querySelectorAll('.tool-btn').forEach(b=>b.classList.toggle('active',b.dataset.tool===tool));
+  canvas.style.cursor=tool==='pick'?'copy':tool==='fill'?'cell':'crosshair';
+}
+
+function setColor(c){
+  currentColor=c;
+  document.querySelectorAll('.palette-color').forEach(el=>el.classList.toggle('active',el.dataset.color===c));
+  document.getElementById('colorPicker').value=c;
+  document.getElementById('colorText').value=c;
+}
+
+function onColorText(c){
+  if(/^#[0-9a-fA-F]{6}$/.test(c)){
+    currentColor=c.toLowerCase();
+    document.getElementById('colorPicker').value=currentColor;
+    document.querySelectorAll('.palette-color').forEach(el=>el.classList.remove('active'));
+  }
+}
+
+function getPixelPos(e){
+  const rect=canvas.getBoundingClientRect();
+  let x,y;
+  if(e.touches&&e.touches[0]){
+    x=e.touches[0].clientX-rect.left;
+    y=e.touches[0].clientY-rect.top;
+  }else{
+    x=e.clientX-rect.left;
+    y=e.clientY-rect.top;
+  }
+  const px=Math.floor(x/pixelSize);
+  const py=Math.floor(y/pixelSize);
+  if(px<0||px>=gridSize||py<0||py>=gridSize)return null;
+  return {x:px,y:py};
+}
+
+function startDraw(e){
+  e.preventDefault();
+  const pos=getPixelPos(e);
+  if(!pos)return;
+  isDrawing=true;
+  applyTool(pos);
+}
+
+function draw(e){
+  if(!isDrawing)return;
+  e.preventDefault();
+  const pos=getPixelPos(e);
+  if(!pos)return;
+  applyTool(pos);
+}
+
+function endDraw(e){
+  if(!isDrawing)return;
+  if(e)e.preventDefault();
+  isDrawing=false;
+  saveHistory();
+  __paRenderInfo();
+}
+
+function applyTool(pos){
+  if(currentTool==='brush'){
+    pixels[pos.y][pos.x]=currentColor;
+    if(mirrorX){
+      const mx=gridSize-1-pos.x;
+      if(mx!==pos.x)pixels[pos.y][mx]=currentColor;
+    }
+    redraw();
+  }else if(currentTool==='eraser'){
+    pixels[pos.y][pos.x]=null;
+    if(mirrorX){
+      const mx=gridSize-1-pos.x;
+      if(mx!==pos.x)pixels[pos.y][mx]=null;
+    }
+    redraw();
+  }else if(currentTool==='fill'){
+    floodFill(pos.x,pos.y,pixels[pos.y][pos.x],currentColor);
+    if(mirrorX){
+      floodFill(gridSize-1-pos.x,pos.y,pixels[pos.y][gridSize-1-pos.x],currentColor);
+    }
+    redraw();
+    saveHistory();
+    isDrawing=false;
+  }else if(currentTool==='pick'){
+    const c=pixels[pos.y][pos.x];
+    if(c){setColor(c);}
+    isDrawing=false;
+  }
+}
+
+function floodFill(x,y,target,replacement){
+  if(target===replacement)return;
+  const stack=[[x,y]];
+  while(stack.length){
+    const [cx,cy]=stack.pop();
+    if(cx<0||cx>=gridSize||cy<0||cy>=gridSize)continue;
+    if(pixels[cy][cx]!==target)continue;
+    pixels[cy][cx]=replacement;
+    stack.push([cx+1,cy],[cx-1,cy],[cx,cy+1],[cx,cy-1]);
+  }
+}
+
+function redraw(){
+  ctx.fillStyle='#ffffff';
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+  // 透明棋盘格背景
+  for(let y=0;y<gridSize;y++){
+    for(let x=0;x<gridSize;x++){
+      if(pixels[y][x]===null){
+        if((x+y)%2===0){
+          ctx.fillStyle='#f0f0f0';
+        }else{
+          ctx.fillStyle='#ffffff';
+        }
+        ctx.fillRect(x*pixelSize,y*pixelSize,pixelSize,pixelSize);
+      }else{
+        ctx.fillStyle=pixels[y][x];
+        ctx.fillRect(x*pixelSize,y*pixelSize,pixelSize,pixelSize);
+      }
+    }
+  }
+  // 网格线（可手动开关）
+  if(showGrid&&pixelSize>=4){
+    ctx.strokeStyle='#e8ecf1';
+    ctx.lineWidth=1;
+    for(let i=0;i<=gridSize;i++){
+      ctx.beginPath();ctx.moveTo(i*pixelSize,0);ctx.lineTo(i*pixelSize,canvas.height);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(0,i*pixelSize);ctx.lineTo(canvas.width,i*pixelSize);ctx.stroke();
+    }
+  }
+}
+
+function saveHistory(){
+  // 截断 redo 部分
+  history=history.slice(0,historyIndex+1);
+  // 深拷贝
+  history.push(pixels.map(r=>r.slice()));
+  historyIndex=history.length-1;
+  // 限制历史长度
+  if(history.length>50){history.shift();historyIndex--;}
+}
+
+function undo(){
+  if(historyIndex<=0)return;
+  historyIndex--;
+  pixels=history[historyIndex].map(r=>r.slice());
+  redraw();
+  __paRenderInfo();
+}
+
+function redo(){
+  if(historyIndex>=history.length-1)return;
+  historyIndex++;
+  pixels=history[historyIndex].map(r=>r.slice());
+  redraw();
+  __paRenderInfo();
+}
+
+function clearCanvas(){
+  initPixels();
+  saveHistory();
+  redraw();
+  __paRenderInfo();
+}
+
+function exportPNG(scale){
+  // scale=1 为原始尺寸（每像素 1），scale>1 为放大版
+  const tmp=document.createElement('canvas');
+  tmp.width=gridSize*scale;
+  tmp.height=gridSize*scale;
+  const tctx=tmp.getContext('2d');
+  tctx.imageSmoothingEnabled=false;
+  for(let y=0;y<gridSize;y++){
+    for(let x=0;x<gridSize;x++){
+      if(pixels[y][x]!==null){
+        tctx.fillStyle=pixels[y][x];
+        tctx.fillRect(x*scale,y*scale,scale,scale);
+      }
+    }
+  }
+  const url=tmp.toDataURL('image/png');
+  const a=document.createElement('a');
+  a.href=url;
+  a.download='pixel-art-'+gridSize+'x'+gridSize+'-'+(scale===1?__paT('原始','original'):'x'+scale)+'-'+Date.now()+'.png';
+  a.click();
+}
+
+// 坐标显示
+canvas.addEventListener('mousemove',e=>{
+  const pos=getPixelPos(e);
+  if(pos){document.getElementById('coord').textContent=__paT('坐标：','Coord: ')+'('+pos.x+', '+pos.y+')';}
+});
+canvas.addEventListener('mouseleave',()=>{document.getElementById('coord').textContent=__paT('坐标：—','Coord: —');});
+
+// 事件绑定
+canvas.addEventListener('mousedown',startDraw);
+canvas.addEventListener('mousemove',draw);
+canvas.addEventListener('mouseup',endDraw);
+canvas.addEventListener('mouseleave',endDraw);
+canvas.addEventListener('touchstart',startDraw,{passive:false});
+canvas.addEventListener('touchmove',draw,{passive:false});
+canvas.addEventListener('touchend',endDraw,{passive:false});
+
+window.addEventListener('resize',()=>{resizeCanvas();redraw();});
+
+// 初始化
+initPalette();
+initPixels();
+resizeCanvas();
+saveHistory();
+redraw();
+__paRenderInfo();
+
+// 语言切换：刷新信息条与坐标
+document.addEventListener('toolbox:langchange',function(){
+  try{
+    __paRenderInfo();
+    document.getElementById('coord').textContent=__paT('坐标：—','Coord: —');
+  }catch(e){}
+});
+</script><script>
+// tool-intro折叠交互
+document.addEventListener('DOMContentLoaded',function(){
+  var headers=document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click',function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+</script>
+<!-- SEO 介紹區塊 -->
+
+</div>
+
+</div>
+
+<!-- 相關工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相關工具</h3>
+  <div class="related-tools-grid">
+    <a href="/zh-tw/tools/design/generator-10.html" class="related-tool-card">
+      <span class="rt-icon">📈</span>
+      <span class="rt-info"><span class="rt-name">CSS動畫生成器（關鍵幀視覺化） - 免費線上工具，純前端處理 | ToolBox免費線上工具箱</span><span class="rt-desc">CSS動畫生成器（關鍵幀視覺化）</span></span>
+    </a>
+
+    <a href="/zh-tw/tools/design/web-audio-metronome.html" class="related-tool-card">
+      <span class="rt-icon">🎵</span>
+      <span class="rt-info"><span class="rt-name">Web Audio 節拍器 - 免費生成器工具，線上節拍器 | ToolBox免費線上工具箱</span><span class="rt-desc">線上節拍器</span></span>
+    </a>
+    <a href="/zh-tw/tools/design/generator-8.html" class="related-tool-card">
+      <span class="rt-icon">🔳</span>
+      <span class="rt-info"><span class="rt-name">二維碼生成器（已有，可加強定製） - 免費線上工具，純前端處理 | ToolBox免費線上工具箱</span><span class="rt-desc">二維碼生成器（已有，可加強定製）</span></span>
+    </a>
+    <a href="/zh-tw/tools/design/generator-9.html" class="related-tool-card">
+      <span class="rt-icon">🏷️</span>
+      <span class="rt-info"><span class="rt-name">條形碼生成器（EAN-13等） - 免費線上工具，純前端處理 | ToolBox免費線上工具箱</span><span class="rt-desc">條形碼生成器（EAN-13等）</span></span>
+    </a>
+    <a href="/zh-tw/tools/design/generator-6.html" class="related-tool-card">
+      <span class="rt-icon">📈</span>
+      <span class="rt-info"><span class="rt-name">盒子陰影生成器（視覺化調整） - 免費線上工具，純前端處理 | ToolBox免費線上工具箱</span><span class="rt-desc">盒子陰影生成器（視覺化調整）</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro open" id="toolIntro">
+  <div class="tool-intro-header">
+    <span class="intro-icon-wrap"><span class="intro-icon">📖</span>關於「畫素藝術繪製器」</span>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="tool-intro-body">
+    <h4><span class="h4-icon">📝</span>工具簡介</h4>
+    <p>畫素藝術繪製器。設計創意工具，視覺化操作，一鍵生成 CSS 程式碼。</p>
+    <h4><span class="h4-icon">✨</span>功能特點</h4>
+    <ul class="intro-features">
+      <li>視覺化操作，所見即所得</li>
+      <li>支援即時預覽與除錯</li>
+      <li>一鍵複製 CSS 程式碼</li>
+      <li>純前端執行，無需安裝</li>
+    </ul>
+    <h4><span class="h4-icon">🎯</span>使用場景</h4>
+    <ul class="intro-scenes">
+      <li>前端開發中的樣式設計</li>
+      <li>UI 設計師配色與佈局參考</li>
+      <li>快速生成 CSS 效果程式碼</li>
+      <li>設計靈感探索與原型製作</li>
+    </ul>
+    </div>
+</div>
+<!-- /SEO 介紹區塊 -->
+<script>
+(function(){try{
+  var NS="tools/design/pixel-art.html";
+  function k(id){return 'tb_uxp_'+NS+'#'+id;}
+  function save(el){try{
+    if(el.type==='checkbox'){localStorage.setItem(k(el.id),el.checked?'1':'0');}
+    else if(el.type==='radio'){if(el.checked)localStorage.setItem(k(el.id),el.value);}
+    else{localStorage.setItem(k(el.id),el.value);}
+  }catch(e){}}
+  function restore(){try{
+    document.querySelectorAll('input:not([type=password]):not([readonly]):not([disabled]),textarea:not([readonly]):not([disabled]),select').forEach(function(el){
+      if(!el.id)return;
+      var v=localStorage.getItem(k(el.id));if(v===null)return;
+      try{
+        if(el.type==='checkbox'){el.checked=(v==='1');}
+        else if(el.type==='radio'){el.checked=(el.value===v);}
+        else{el.value=v;}
+        el.dispatchEvent(new Event('input',{bubbles:true}));
+        el.dispatchEvent(new Event('change',{bubbles:true}));
+      }catch(e){}
+    });
+  }catch(e){}}
+  document.querySelectorAll('input:not([type=password]):not([readonly]):not([disabled]),textarea:not([readonly]):not([disabled]),select').forEach(function(el){
+    if(!el.id)return;
+    el.addEventListener('input',function(){save(el);});
+    el.addEventListener('change',function(){save(el);});
+  });
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',restore);
+  else restore();
+}catch(e){}})();
+</script>
+<script>
+(function(){
+  var __PA_MAP={'.':null,' ':null,'K':'#000000','W':'#ffffff','G':'#7f7f7f','L':'#c3c3c3','R':'#ed1c24','O':'#ff7f27','Y':'#fff200','N':'#22b14c','B':'#00a2e8','P':'#3f48cc','M':'#a349a4','S':'#b97a57','F':'#ffaec9','E':'#ffc90e','D':'#efe4b0','V':'#b5e61d'};
+  var __PA_TEMPLATES={
+    heart:[
+      '...RR.....RR....',
+      '..RRRR...RRRR...',
+      '.RRRRRR.RRRRRR..',
+      'RRWWRRRRRRRRRR..',
+      'RRRRRRRRRRRRRRRR',
+      'RRRRRRRRRRRRRRRR',
+      'RRRRRRRRRRRRRRRR',
+      '.RRRRRRRRRRRRR..',
+      '..RRRRRRRRRRRR..',
+      '...RRRRRRRRRR...',
+      '....RRRRRRRR....',
+      '.....RRRRRR.....',
+      '......RRRR......',
+      '.......RR.......',
+      '................',
+      '................',
+    ],
+    invader:[
+      '................',
+      '................',
+      '....K.....K.....',
+      '.....K...K......',
+      '....KKKKKKK.....',
+      '...KKWKKKKKK....',
+      '...KKWKKKKWKK...',
+      '..KKWKKKKKKWKK..',
+      '..KKKKKKKKKKKK..',
+      '..KKK.KKKK.KKK..',
+      '...K...KK...K...',
+      '...K...KK...K...',
+      '................',
+      '................',
+      '................',
+      '................',
+    ],
+    mushroom:[
+      '................',
+      '.....RRRRRR.....',
+      '...RRWWRRWWRR...',
+      '..RRWWWRRWWWRR..',
+      '.RRWWWWRRWWWWR..',
+      '.RRWWWWRRWWWWR..',
+      'RRRRRRRRRRRRRRRR',
+      'RRRRRRRRRRRRRRRR',
+      '.RRRRRRRRRRRRR..',
+      '...SSSSSSSSSS...',
+      '...SSWSSSSWSS...',
+      '...SSSSSSSSSS...',
+      '...SSSSSSSSSS...',
+      '....SSSSSSSS....',
+      '.....SSSSSS.....',
+      '................',
+    ],
+    smiley:[
+      '................',
+      '.....YYYYYY.....',
+      '...YYYYYYYYYY...',
+      '..YYYKKYYYKKYY..',
+      '..YYYKKYYYKKYY..',
+      '.YYYYYYYYYYYYY..',
+      '.YYYYYYYYYYYYY..',
+      '.YYYYYKKKKYYYYY.',
+      '.YYYYKKKKKKYYYY.',
+      '.YYYKKKKKKKKYYY.',
+      '..YYYKKKKKKYYY..',
+      '...YYYKKKKYYY...',
+      '.....YYKKYY.....',
+      '................',
+      '................',
+      '................',
+    ],
+    cat:[
+      '................',
+      '..K........K....',
+      '..KK......KK....',
+      '..KKK....KKK....',
+      '.KKKKKKKKKKKK...',
+      '.KKKKKKKKKKKK...',
+      '.KKEKKKKKKEKK...',
+      '.KKEKKKKKKEKK...',
+      '.KKKKKMMKKKKK...',
+      '.KKKKKKKKKKKK...',
+      '..KKKKKKKKKKK...',
+      '...KKKKKKKKK....',
+      '....KKKKKKK.....',
+      '................',
+      '................',
+      '................',
+    ],
+  };
+  window.__paApplyTemplate=function(name){
+    try{
+      var tpl=__PA_TEMPLATES[name];
+      if(!tpl||typeof gridSize==='undefined')return;
+      var TH=tpl.length,TW=0,i;
+      for(i=0;i<TH;i++){if(tpl[i].length>TW)TW=tpl[i].length;}
+      if(!TW)return;
+      saveHistory();
+      for(var y=0;y<gridSize;y++){
+        var ty=Math.min(TH-1,Math.floor(y*TH/gridSize));
+        for(var x=0;x<gridSize;x++){
+          var tx=Math.min(TW-1,Math.floor(x*TW/gridSize));
+          var ch=tpl[ty].charAt(tx);
+          pixels[y][x]=__PA_MAP.hasOwnProperty(ch)?__PA_MAP[ch]:null;
+        }
+      }
+      redraw();
+      if(typeof __paRenderInfo==='function')__paRenderInfo();
+    }catch(e){}
+  };
+  function __paTplAfter(){
+    var v=document.getElementById('paTpl').value;
+    if(v&&typeof window.__paApplyTemplate==='function')window.__paApplyTemplate(v);
+  }
+  function __paTplAll(){
+    if(typeof TBKit==='undefined'||!TBKit.preset||!TBKit.preset.bar)return;
+    var en=false;try{en=TBKit.util.isEn();}catch(e){}
+    var lb=document.getElementById('paTplLabel');
+    if(lb)lb.textContent=en?'Canvas templates':'\u753b\u5e03\u6a21\u677f';
+    TBKit.preset.bar('#paPresets',[
+      {label:'\u2764\ufe0f \u7231\u5fc3',labelEn:'Heart',values:{paTpl:'heart'}},
+      {label:'\ud83d\udc7e \u592a\u7a7a\u4fb5\u7565\u8005',labelEn:'Space invader',values:{paTpl:'invader'}},
+      {label:'\ud83c\udf44 \u83c7\u830e',labelEn:'Mushroom',values:{paTpl:'mushroom'}},
+      {label:'\ud83d\ude0a \u7b11\u8138',labelEn:'Smiley',values:{paTpl:'smiley'}},
+      {label:'\ud83d\udc31 \u5c0f\u732b',labelEn:'Cat',values:{paTpl:'cat'}}
+    ],__paTplAfter);
+  }
+  document.addEventListener('DOMContentLoaded',__paTplAll);
+  document.addEventListener('toolbox:langchange',__paTplAll);
+})();
+</script>
+<script>
+var paRef={
+  t:function(zh,en){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;},
+  rows:[[
+  ['16 \u00d7 16','256 \u683c','\u56fe\u6807\u3001\u8868\u60c5\u3001\u8ff7\u4f60\u5934\u50cf','\u00d716 \u2013 \u00d732'],
+  ['32 \u00d7 32','1024 \u683c','\u6e38\u620f\u7cbe\u7075\u3001\u590d\u53e4\u5934\u50cf','\u00d78 \u2013 \u00d716'],
+  ['64 \u00d7 64','4096 \u683c','\u573a\u666f\u63d2\u753b\u3001\u7cbe\u7ec6\u56fe\u6848','\u00d74 \u2013 \u00d78']
+],[
+  ['16 \u00d7 16','256 cells','Icons, emoji, mini avatars','\u00d716 \u2013 \u00d732'],
+  ['32 \u00d7 32','1024 cells','Game sprites, retro avatars','\u00d78 \u2013 \u00d716'],
+  ['64 \u00d7 64','4096 cells','Scene art, detailed patterns','\u00d74 \u2013 \u00d78']
+]],
+  cols:[['\u753b\u5e03\u5c3a\u5bf8','Canvas size'],['\u603b\u683c\u6570','Cells'],['\u9002\u7528\u573a\u666f','Best for'],['\u63a8\u8350\u5bfc\u51fa\u500d\u7387','Export scale']],
+  tz:'\ud83d\udcd0 \u753b\u5e03\u5c3a\u5bf8\u4e0e\u5bfc\u51fa\u53c2\u8003',te:'\ud83d\udcd0 Canvas Size & Export Reference',nz:'\u5bfc\u51fa\u653e\u5927\u7248\u4f7f\u7528\u6700\u8fd1\u90bb\u7f29\u653e\uff0c\u4fdd\u6301\u78d5\u58a8\u9996\u5229\u843d\uff1b\u753b\u5e03\u6a21\u677f\u4f1a\u81ea\u52a8\u6309\u5f53\u524d\u5c3a\u5bf8\u7f29\u653e\u586b\u5145\u3002',ne:'The enlarged export uses nearest-neighbor scaling to keep pixels crisp. Canvas templates auto-scale to the current size.',
+  go:function(){
+    if(typeof TBKit==='undefined')return;
+    try{
+      var en=TBKit.util.isEn();
+      var R=this.rows[en?1:0],C=this.cols;
+      var tb=document.getElementById('paRefTbody');
+      if(tb)tb.innerHTML=R.map(function(r){
+        return '<tr>'+r.map(function(c,i){return '<td>'+(i===0?'<strong>'+c+'</strong>':c)+'</td>';}).join('')+'</tr>';
+      }).join('');
+      var hs=[['paRefTh0',this.t(C[0][0],C[0][1])],['paRefTh1',this.t(C[1][0],C[1][1])],['paRefTh2',this.t(C[2][0],C[2][1])],['paRefTh3',this.t(C[3][0],C[3][1])]];
+      hs.forEach(function(p){var el=document.getElementById(p[0]);if(el)el.textContent=p[1];});
+      var nt=document.getElementById('paRefNote');
+      if(nt)nt.textContent=this.t(this.nz,this.ne);
+    }catch(e){}
+  }
+};
+document.addEventListener('DOMContentLoaded',function(){var f=document.getElementById('paRefTitle');if(f)f.textContent=paRef.t(paRef.tz,paRef.te);paRef.go();});
+document.addEventListener('toolbox:langchange',function(){var f=document.getElementById('paRefTitle');if(f)f.textContent=paRef.t(paRef.tz,paRef.te);paRef.go();});
+</script>
+</body>
+</html>

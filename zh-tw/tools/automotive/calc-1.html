@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-opencc-locale="zh-tw">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset='UTF-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1.0, viewport-fit=cover'>
+<meta name='toolbox' content='cat=engineer,industry=automotive,icon=🚗,bg=#FFF5F0'>
+<title>汽車百公里加速時間估算 - 行駛阻力等引數</title>
+<meta name="toolbox" content="cat=math,industry=automotive,icon=🚙,bg=#eceff1">
+<link rel="canonical" href="https://tools.dicomp.net/zh-tw/tools/automotive/calc-1.html">
+<meta property="og:title" content="汽車百公里加速時間估算 - 行駛阻力等引數">
+<meta property="og:description" content="汽車百公里加速時間估算是一款免費的線上汽車交通工具，輸入功率、車重、行駛阻力等引數，按運動學估算車輛從靜止加速到百公里時速所需時間，輔助動力效能橫向對比。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta property="og:url" content="https://tools.dicomp.net/zh-tw/tools/automotive/calc-1.html">
+<meta name="twitter:card" content="summary">
+<link rel='stylesheet' href='/css/common.css'>
+<script src='/js/common.js'></script>
+<style>
+.formula{font-size:12px;color:var(--text-muted);background:var(--result-bg);padding:10px 14px;border-radius:10px;margin-top:10px;line-height:1.6;}
+@media (max-width:640px){.input-row{flex-direction:column;align-items:stretch;}}
+</style>
+
+
+
+<meta property="og:image" content="https://tools.dicomp.net/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免費線上工具">
+<meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免費線上工具">
+    <meta name="description" content="汽車百公里加速時間估算是一款免費的線上汽車交通工具，輸入功率、車重、行駛阻力等引數，按運動學估算車輛從靜止加速到百公里時速所需時間，輔助動力效能橫向對比。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+    <meta property="og:type" content="website">
+    <meta name="twitter:title" content="汽車百公里加速時間估算 - 行駛阻力等引數">
+    <meta name="twitter:description" content="汽車百公里加速時間估算是一款免費的線上汽車交通工具，輸入功率、車重、行駛阻力等引數，按運動學估算車輛從靜止加速到百公里時速所需時間，輔助動力效能橫向對比。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<!-- TOOLBOX-WEBAPP-LD -->
+
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首頁","item":"https://tools.dicomp.net/zh-tw/"},{"@type":"ListItem","position":2,"name":"汽車交通","item":"https://tools.dicomp.net/zh-tw/tools/automotive/index.html"},{"@type":"ListItem","position":3,"name":"汽車百公里加速時間估算","item":"https://tools.dicomp.net/zh-tw/tools/automotive/calc-1.html"}]}</script>
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"汽車百公里加速時間估算","url":"https://tools.dicomp.net/zh-tw/tools/automotive/calc-1.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"汽車百公里加速時間估算是一款免費的線上汽車交通工具，輸入功率、車重、行駛阻力等引數，按運動學估算車輛從靜止加速到百公里時速所需時間，輔助動力效能橫向對比。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script src="/js/i18n.js" defer></script>
+<script src="/js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+<meta name="title-en" content="0-100 km/h Acceleration Estimator">
+<meta name="desc-en" content="Estimate a vehicle 0-100 km/h acceleration time.">
+
+
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
+
+<script src="/js/tool-ux.js" defer></script>
+<!-- TOOLBOX-TOOL-UX -->
+
+<script src="/js/analytics.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+<!-- TOOLBOX-TTZZ -->
+<script>
+(function(){try{
+var el = document.createElement("script");
+el.src = "https://lf1-cdn-tos.bytegoofy.com/goofy/ttzz/push.js?85d6452aa9be4d693b16cd48535a8c7ae57542f6788a41682e745be8eb99b35a8a24d2f724c31ebe20c1e4e6fba6d91caf576100b02a2870c72f38fc574066fef065d152c73bf1cbb2ebad3b5b5265d8";
+el.id = "ttzz";
+var s = document.getElementsByTagName("script")[0];
+s.parentNode.insertBefore(el, s);
+}catch(e){}
+})(window);
+</script>
+
+<script src="/js/tool-kit.js" defer></script>
+<!-- TOOLBOX-TOOL-KIT -->
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://tools.dicomp.net/tools/automotive/calc-1.html">
+<link rel="alternate" hreflang="zh-TW" href="https://tools.dicomp.net/zh-tw/tools/automotive/calc-1.html">
+<link rel="alternate" hreflang="en-US" href="https://tools.dicomp.net/tools/automotive/calc-1.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://tools.dicomp.net/tools/automotive/calc-1.html">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+</head>
+<body>
+<h1 class="sr-only">汽車百公里加速時間估算</h1>
+<div class="nav">
+  <a href="/zh-tw/index.html">← ToolBox</a>
+  <span>/ 汽車百公里加速時間估算</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+<nav class="breadcrumb" aria-label="麵包屑導航" data-breadcrumb="1">
+  <a href="/zh-tw/index.html">首頁</a>
+  <span class="bc-sep">‹</span>
+  <a href="/zh-tw/tools/automotive/index.html">🚗 汽車交通</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">汽車百公里加速時間估算</span>
+</nav>
+<div class="container">
+  <style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#3b82f6)}.tbk-tab.active{background:var(--accent,#3b82f6);color:#fff;border-color:var(--accent,#3b82f6)}.tbk-panel{margin-top:6px}</style>
+<div class="tbk-tabbar" role="tablist">
+  <button type="button" class="tbk-tab" data-pane="res">結果</button>
+  <button type="button" class="tbk-tab" data-pane="tbl">資料表</button>
+  <button type="button" class="tbk-tab" data-pane="his">歷史</button>
+</div>
+<div class="card tool-card-accent" style="--tool-accent:#0369a1;">
+    <h2 data-zh="🏁 汽車百公里加速時間估算">0-100 km/h Acceleration Estimator</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="輸入整車質量、功率、傳動比與輪胎引數，按扭矩段與功率段兩段模型估算 0–100 km/h 加速時間，並給出打滑判定與不同功率對照。">Estimate a vehicle 0-100 km/h acceleration time.</p>
+    <div class="input-row">
+      <div><div data-tb="preset" data-tb-presets='[{"label": "示例数据", "labelEn": "Example", "values": {"m": "1500", "P": "130", "T": "250", "i": "12", "r": "0.32", "eff": "88", "cda": "0.65", "mu": "0.9", "sh": "2", "st": "0.35", "drv": "0.55"}}]'></div>
+<label>整車質量 (kg)</label><input type="number" id="m" value="1500" oninput="calc()" min="300" max="4000" step="50"></div>
+      <div><label>發動機最大功率 (kW)</label><input type="number" id="P" value="130" oninput="calc()" min="20" max="1200" step="5"></div>
+    </div>
+    <div class="input-row">
+      <div><label>峰值扭矩 (N·m)</label><input type="number" id="T" value="250" oninput="calc()" min="50" max="1600" step="10"></div>
+      <div><label>一檔總傳動比（含主減）</label><input type="number" id="i" value="12" oninput="calc()" min="3" max="25" step="0.5"></div>
+    </div>
+    <div class="input-row">
+      <div><label>輪胎滾動半徑 (m)</label><input type="number" id="r" value="0.32" oninput="calc()" min="0.2" max="0.55" step="0.01"></div>
+      <div><label>傳動效率 (%)</label><input type="number" id="eff" value="88" oninput="calc()" min="60" max="100" step="1"></div>
+    </div>
+    <div class="input-row">
+      <div><label>風阻 CdA (m²)</label><input type="number" id="cda" value="0.65" oninput="calc()" min="0.2" max="2" step="0.05"></div>
+      <div><label>驅動形式</label>
+        <select id="drv" onchange="calc()">
+          <option value="0.55" selected>前驅（加速時前軸載荷下降）</option>
+          <option value="0.58">後驅（加速時後軸載荷增加）</option>
+          <option value="0.95">四驅（四輪共同附著）</option>
+        </select>
+      </div>
+    </div>
+    <div class="input-row">
+      <div><label>輪胎附著係數 μ</label><input type="number" id="mu" value="0.9" oninput="calc()" min="0.3" max="1.4" step="0.05"></div>
+      <div><label>換擋次數 / 單次換擋耗時 (s)</label>
+        <input type="number" id="sh" value="2" oninput="calc()" min="0" max="6" step="1" style="width:46%;display:inline-block;">
+        <input type="number" id="st" value="0.35" oninput="calc()" min="0" max="1.5" step="0.05" style="width:46%;display:inline-block;margin-left:6px;">
+      </div>
+    </div>
+    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__calc_1Export()">匯出明細 CSV</button></div><div class="safe-main" id="result"></div> <div id="calc_1Table"></div> <div id="calc_1Diff"></div> <div id="calc_1Chart"></div> <div id="calc_1Hist"></div>
+    <div class="dist-grid" id="distGrid"></div>
+    <div class="formula-box" id="formulaBox"></div>
+    <div id="adviceBox"></div>
+  </div>
+  <div class="card">
+    <h3>📊 比功率與加速能力對照</h3>
+    <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:12px;">
+      <tr>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border,#e5e7eb);">比功率 (kW/t)</th>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border,#e5e7eb);">0–100 km/h 量級</th>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border,#e5e7eb);">對應車型</th>
+      </tr>
+      <tr><td style="padding:6px 8px;">≤ 60</td><td style="padding:6px 8px;">12 s 以上</td><td style="padding:6px 8px;">經濟型小車、微面</td></tr>
+      <tr><td style="padding:6px 8px;">60 ~ 80</td><td style="padding:6px 8px;">10 ~ 12 s</td><td style="padding:6px 8px;">家用緊湊型轎車</td></tr>
+      <tr><td style="padding:6px 8px;">80 ~ 100</td><td style="padding:6px 8px;">8 ~ 10 s</td><td style="padding:6px 8px;">主流中型轎車</td></tr>
+      <tr><td style="padding:6px 8px;">100 ~ 130</td><td style="padding:6px 8px;">6 ~ 8 s</td><td style="padding:6px 8px;">2.0T 中型車、效能取向 SUV</td></tr>
+      <tr><td style="padding:6px 8px;">130 ~ 180</td><td style="padding:6px 8px;">5 ~ 6 s</td><td style="padding:6px 8px;">效能車、雙電機電車</td></tr>
+      <tr><td style="padding:6px 8px;">≥ 180</td><td style="padding:6px 8px;">4 s 以內</td><td style="padding:6px 8px;">高效能跑車、高效能電車</td></tr>
+    </table>
+    <p style="font-size:12px;color:var(--text-secondary,#6b7280);">上表為行業慣例量級（官方公佈或實測口徑），用於快速定位動力水平；本工具按兩段模型計算，結果是同一組引數下的相對比較值，與官方成績可能因測試條件不同而有差異。</p>
+    <div class="scene-card">
+      <h4>⚙️ 兩段式加速模型</h4>
+      <p>車速較低時受峰值扭矩與傳動比限制（扭矩段），加速度基本恆定；車速升高後發動機進入功率限制區（功率段），加速度隨車速上升而下降，因為 a = P ÷ (m·v)。本工具用兩段模型分別積分，比單一的「平均加速度」估算更接近實測。</p>
+    </div>
+    <div class="scene-card">
+      <h4>🛞 為什麼大馬力前驅車反而慢</h4>
+      <p>驅動輪能傳遞的縱向力受附著條件限制：F ≤ μ·N，N 為驅動輪載荷。加速時載荷向後轉移，前驅車前軸載荷下降，一檔起步很容易打滑、甚至出現扭矩轉向；後驅與四驅能把更多載荷壓到驅動輪上，同樣的動力能更充分地用於加速。</p>
+    </div>
+    <div class="scene-card">
+      <h4>📉 功率提升的邊際效應</h4>
+      <p>本模型固定一檔傳動比與附著條件，因此功率大幅提升後瓶頸會轉移到牽引力與附著力上——再加大馬力，加速時間也難有明顯改善。實際高效能車會相應加大一檔傳動比、加寬輪胎並最佳化驅動輪載荷分配，這也是「馬力翻倍、成績未必減半」的原因。</p>
+    </div>
+    <div class="info-box">💡 電動車在起步即輸出最大扭矩，扭矩段更寬，因此同比功率下 0–100 km/h 通常比燃油車快；但高速段受電機功率與減速比限制，後段加速會明顯減弱。</div>
+  </div>
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto 0;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+.deep-dive a.term-link{color:var(--tool-accent,#FF6B35);text-decoration:none;border-bottom:1px dashed currentColor;}
+.deep-dive a.term-link:hover{border-bottom-style:solid;}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：汽車百公里加速時間估算</h2>
+<h3>💡 常見使用場景</h3>
+<ul class="dd-list">
+<li>購車橫向對比時，輸入功率、車重與阻力引數，估算 0–100km/h 加速時間，輔助判斷動力是否夠用。</li>
+<li>改裝前後用同一組引數對比（如刷 ECU 增功率），量化加速效能提升幅度。</li>
+<li>電動車與燃油車對比時，用輪端功率與車重估算，注意電動車低速扭矩大、起步更快的特性。</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">兩段模型估算 0–100 km/h</div><div class="dd-ex-body">整車質量 1500 kg、最大功率 130 kW、峰值扭矩 250 N·m、一檔總傳動比 12、輪胎滾動半徑 0.32 m、傳動效率 88%、風阻 CdA 0.65、前驅、附著係數 0.9 時：輪端功率 = 130 × 0.88 = 114.4 kW，一檔輪端最大驅動力 = 250 × 12 × 0.88 ÷ 0.32 = 8250 N。扭矩段 0~49.9 km/h、加速度約 4.86 m/s²（受前驅附著上限約束）用時 2.86 s；功率段 49.9~100 km/h 用時 4.09 s；兩次換擋損失 0.7 s，合計約 7.65 s，<a class="term-link" href="/zh-tw/tools/kinematics/avg-acceleration.html">平均加速度</a> 3.63 m/s²，比功率 86.7 kW/t。若附著係數降到 0.5，附著上限降至 2.70 m/s²，同樣的動力估算結果會拉長到約 9.94 s。</div></div>
+<h3>❓ 常見問題（FAQ）</h3>
+<dl class="dd-faq">
+<dt>為什麼估算值常比官方快？</dt><dd>官方 0–100km/h 多在理想路面、一檔到底或彈射起步測得，且取多次最好成績；日常估算若把傳動效率、輪胎打滑、換擋動力中斷算進去會更接近真實。大馬力車打滑更明顯，差距更大。</dd>
+<dt>車重和功率哪個影響更大？</dt><dd>加速能力近似由功率質量比（比功率，kW/t）決定。同功率下車越重越慢；同車重下功率越高越快。比功率約 80kW/t 對應 0–100 約 7–8s，120kW/t 可進入 5s 級。</dd>
+</dl>
+</div>
+</section>
+<!-- 注意事項區塊 -->
+<div class="tool-notes" style="--tool-accent:#0369a1;">
+  <div class="tool-notes-title">⚠️ 使用說明與注意事項</div>
+  <ul>
+    <li>本工具純前端執行，資料不會上傳到伺服器</li>
+    <li>建議在主流瀏覽器（Chrome/Safari/Firefox/Edge）中使用</li>
+    <li>估算已計入滾動阻力、空氣阻力與換擋中斷；起步若超出附著上限會打滑，實際時間更長</li>
+  </ul>
+</div>
+</div>
+<!-- 相關工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相關工具</h3>
+  <div class="related-tools-grid">
+    <a href="/zh-tw/tools/automotive/recommender-6.html" class="related-tool-card">
+      <span class="rt-icon">🚗</span>
+      <span class="rt-info"><span class="rt-name">胎壓（監測/充氣）推薦</span><span class="rt-desc">根據車型、載重與季節推薦前後輪標準胎壓，提示冷胎與熱胎讀數差異及充氣注意事項，幫助延長輪胎壽命並保…</span></span>
+    </a>
+    <a href="/zh-tw/tools/automotive/calc-2.html" class="related-tool-card">
+      <span class="rt-icon">⚡</span>
+      <span class="rt-info"><span class="rt-name">發動機功率/扭矩換算</span><span class="rt-desc">根據功率、扭矩與轉速之間的物理關係進行換算，支援 kW 與 PS（公制馬力）互轉。</span></span>
+    </a>
+    <a href="/zh-tw/tools/automotive/oil-change-countdown.html" class="related-tool-card">
+      <span class="rt-icon">📅</span>
+      <span class="rt-info"><span class="rt-name">機油更換倒計時</span><span class="rt-desc">輸入已行駛里程、機油週期與駕駛習慣係數，估算下次機油更換的剩餘里程或天數，避免過度保養或超期損傷。</span></span>
+    </a>
+    <a href="/zh-tw/tools/automotive/countdown-engine-oil.html" class="related-tool-card">
+      <span class="rt-icon">📅</span>
+      <span class="rt-info"><span class="rt-name">機油更換里程倒計時</span><span class="rt-desc">機油更換里程倒計時，按機油型別與駕駛習慣係數智慧計算建議換油間隔與剩餘里程，支援多車管理、資料本地…</span></span>
+    </a>
+    <a href="/zh-tw/tools/automotive/calc-3.html" class="related-tool-card">
+      <span class="rt-icon">🚗</span>
+      <span class="rt-info"><span class="rt-name">輪胎胎壓換算</span><span class="rt-desc">在 bar、psi、kPa、kg/cm² 之間換算輪胎氣壓，並檢視常用參考值。</span></span>
+    </a>
+    <a href="/zh-tw/tools/automotive/transport-calculator.html" class="related-tool-card">
+      <span class="rt-icon">🚚</span>
+      <span class="rt-info"><span class="rt-name">交通物流計算器</span><span class="rt-desc">涵蓋剎車距離、油耗成本、貨物換算、燃油效率、行駛時間、輪胎尺寸等多種交通物流常用計算</span></span>
+    </a>
+  </div>
+</div>
+<script>
+function fmtNum(n,d){d=d==null?2:d;if(!isFinite(n))return '--';return parseFloat(n.toFixed(d)).toString();}
+function val(id){return parseFloat(document.getElementById(id).value);}
+function str(id){return document.getElementById(id).value;}
+function calc(){
+  var R=document.getElementById('result'),G=document.getElementById('distGrid'),
+      F=document.getElementById('formulaBox'),A=document.getElementById('adviceBox');
+  var m=val('m'), P=val('P'), T=val('T'), i=val('i'), r=val('r');
+  var eff=val('eff'), cda=val('cda'), drv=val('drv'), mu=val('mu');
+  var sh=val('sh'), st=val('st');
+
+  var v=100/3.6;                       // 目标末速 m/s
+  var g=9.81, rho=1.225, fr=0.012;
+  var Pw=P*(eff/100)*1000;             // 轮端功率 W
+  var Fmax=(r>0)?T*i*(eff/100)/r:0;    // 一档轮端最大驱动力 N
+  var Froll=m*g*fr;                    // 滚动阻力 N
+
+  // 扭矩段：净驱动力 = Fmax − 滚动阻力
+  var a1=(Fmax-Froll)/m;
+  var v1=(Fmax>0)?Math.min(v, Pw/Fmax):0;   // 扭矩段结束车速
+  // 附着限制
+  var aT=mu*g*drv;
+  var slip=a1>aT;
+  if(slip) a1=aT;
+  var t1=(a1>0.01)?v1/a1:Infinity;
+
+  // 功率段：数值积分 ∫dv/a(v)
+  var t2=0, ok=true;
+  if(v>v1){
+    var n=240, dv=(v-v1)/n;
+    for(var j=0;j<n;j++){
+      var vm=v1+(j+0.5)*dv;
+      var Fd=Pw/vm - Froll - 0.5*rho*cda*vm*vm;
+      var a=Fd/m;
+      if(a<=0.005){ ok=false; break; }
+      t2+=dv/a;
+    }
+  }
+  var tShift=sh*st;
+  var total=ok?(t1+t2+tShift):Infinity;
+  var aAvg=isFinite(total)&&total>0?v/total:0;
+  var pwPer=m>0?P/(m/1000):0;          // 比功率 kW/t
+  var Fnet=Fmax-Froll;
+
+  var st_,cls;
+  if(!ok){ st_='动力不足，无法达到 100 km/h'; cls='bad'; }
+  else if(slip){ st_='起步受附着限制（打滑）'; cls='warn'; }
+  else { st_='估算完成'; cls='ok'; }
+
+  const __g1='<div class="result-grid">'
+    +'<div class="result-item"><div class="result-label">0–100 km/h</div><div class="result-value">'+(isFinite(total)?fmtNum(total,2)+' s':'—')+'</div></div>'
+    +'<div class="result-item"><div class="result-label">平均加速度</div><div class="result-value">'+fmtNum(aAvg,2)+' m/s²</div></div>'
+    +'<div class="result-item"><div class="result-label">比功率</div><div class="result-value">'+fmtNum(pwPer,1)+' kW/t</div></div>'
+    +'<div class="result-item"><div class="result-label">判定</div><div class="result-value">'+st_+'</div></div>'
+    +'</div>';R.innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
+
+  const __g2='<div class="dist-grid">'
+    +'<div class="dist-card"><h4>扭矩段</h4><p>0 ~ '+fmtNum(v1*3.6,1)+' km/h</p><p>用时 '+fmtNum(t1,2)+' s，a='+fmtNum(a1,2)+' m/s²</p></div>'
+    +'<div class="dist-card"><h4>功率段</h4><p>'+fmtNum(v1*3.6,1)+' ~ 100 km/h</p><p>用时 '+fmtNum(t2,2)+' s</p></div>'
+    +'<div class="dist-card"><h4>换挡损失</h4><p>'+fmtNum(sh,0)+' 次 × '+fmtNum(st,2)+' s</p><p>合计 '+fmtNum(tShift,2)+' s</p></div>'
+    +'<div class="dist-card"><h4>附着上限</h4><p>'+fmtNum(aT,2)+' m/s²</p><p>'+(slip?'实际受此限制':'未触发打滑')+'</p></div>'
+    +'</div>';G.innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
+
+  var rows='';
+  var ps=[60,90,120,150,180,220,300];
+  for(var k=0;k<ps.length;k++){
+    var Pk=ps[k]*(eff/100)*1000;
+    var ak=(Fmax-Froll)/m;
+    var v1k=(Fmax>0)?Math.min(v,Pk/Fmax):0;
+    if(ak>aT) ak=aT;
+    var tk=(ak>0.01)?v1k/ak:Infinity;
+    var t2k=0, okk=true;
+    if(v>v1k){
+      var nn=160, dvv=(v-v1k)/nn;
+      for(var j2=0;j2<nn;j2++){
+        var vmk=v1k+(j2+0.5)*dvv;
+        var Fdk=Pk/vmk-Froll-0.5*rho*cda*vmk*vmk;
+        var akk=Fdk/m;
+        if(akk<=0.005){ okk=false; break; }
+        t2k+=dvv/akk;
+      }
+    }
+    var tk2=okk?(tk+t2k+tShift):Infinity;
+    var pw=ps[k]/(m/1000);
+    rows+='<tr><td style="padding:5px 8px;">'+ps[k]+'</td>'
+      +'<td style="padding:5px 8px;">'+fmtNum(pw,1)+'</td>'
+      +'<td style="padding:5px 8px;">'+(isFinite(tk2)?fmtNum(tk2,2):'达不到')+'</td>'
+      +'<td style="padding:5px 8px;">'+(isFinite(tk2)?fmtNum(v/tk2,2):'—')+'</td>'
+      +'<td style="padding:5px 8px;">'+(Pk/1000>P?'+':'')+fmtNum(Pk/1000-P,0)+' kW</td></tr>';
+  }
+  const __g3='<div class="formula-title">📐 计算口径</div>'
+    +'<div class="formula-line">轮端功率 Pw = 发动机功率 × 传动效率；轮端最大驱动力 Fmax = 峰值扭矩 × 一档传动比 × 效率 ÷ 滚动半径</div>'
+    +'<div class="formula-line">扭矩段（v ≤ Pw/Fmax）：a₁ = (Fmax − F_roll) ÷ m，加速度近似恒定</div>'
+    +'<div class="formula-line">功率段：a(v) = [Pw ÷ v − F_roll − 0.5·ρ·CdA·v²] ÷ m，按数值积分求时间</div>'
+    +'<div class="formula-line">滚动阻力 F_roll = m·g·f_r（f_r ≈ 0.012）；附着上限 a ≤ μ·g·驱动轮载荷比</div>'
+    +'<div class="formula-line">总时间 = 扭矩段 + 功率段 + 换挡次数 × 单次换挡耗时</div>'
+    +'<table style="width:100%;border-collapse:collapse;font-size:13px;margin-top:10px;">'
+    +'<tr><th style="text-align:left;padding:5px 8px;border-bottom:1px solid var(--border,#e5e7eb);">功率 (kW)</th>'
+    +'<th style="text-align:left;padding:5px 8px;border-bottom:1px solid var(--border,#e5e7eb);">比功率</th>'
+    +'<th style="text-align:left;padding:5px 8px;border-bottom:1px solid var(--border,#e5e7eb);">0–100 (s)</th>'
+    +'<th style="text-align:left;padding:5px 8px;border-bottom:1px solid var(--border,#e5e7eb);">平均 a</th>'
+    +'<th style="text-align:left;padding:5px 8px;border-bottom:1px solid var(--border,#e5e7eb);">vs 当前</th></tr>'
+    +rows+'</table>';F.innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
+
+  var ad='';
+  if(!ok) ad+='<div class="tip-bad">⛔ 在给定参数下，'+(Fmax/1000).toFixed(1)+' kN 的轮端驱动力与阻力在 100 km/h 前已平衡，加速无法完成，请核对功率、传动比与轮胎半径。</div>';
+  else if(slip) ad+='<div class="tip-warn">⚠️ 一档驱动力产生的加速度 '+fmtNum((Fmax-Froll)/m,2)+' m/s² 超过附着上限 '+fmtNum(aT,2)+' m/s²，起步阶段轮胎会打滑，实际加速时间比理论值更长且难以稳定复现。建议改善驱动轮载荷分配或使用更高附着轮胎。</div>';
+  else ad+='<div class="tip-info">✅ 估算 0–100 km/h 约 '+fmtNum(total,2)+' s（扭矩段 '+fmtNum(t1,2)+' s + 功率段 '+fmtNum(t2,2)+' s + 换挡 '+fmtNum(tShift,2)+' s），比功率 '+fmtNum(pwPer,1)+' kW/t。</div>';
+  if(isFinite(total)&&total<7&&!slip) ad+='<div class="tip-info">🚀 该动力水平下加速能力较强，注意起步时的轮胎与传动系统负荷。</div>';
+  if(isFinite(total)&&total>12) ad+='<div class="tip-warn">🐢 加速偏慢，超车并线时需预留更长距离，建议提前降挡拉高转速。</div>';
+  ad+='<div class="tip-info">📌 官方公布的 0–100 km/h 多在理想路面、弹射起步并取最好成绩，本估算包含了滚动阻力、空气阻力与换挡中断，通常比官方值更接近日常实测。</div>';
+  const __g4=ad;A.innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
+}
+calc();
+
+var __calc_1_last=0,__calc_1_skip=false;
+function __calc_1Snap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __calc_1ResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __calc_1Time(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __calc_1Render(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__calc_1Time(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#calc_1Table',{head:head,rows:rows});
+        TBKit.util.diffBox('#calc_1Diff');
+        TBKit.history.mount('#calc_1Hist',function(rec){
+            __calc_1_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __calc_1_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__calc_1Time(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#calc_1Chart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __calc_1Extras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__calc_1_skip) return;
+    var snap=__calc_1Snap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__calc_1ResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__calc_1_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __calc_1_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __calc_1Render(keys,rk,en);
+}
+function __calc_1Export(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#calc_1Table','calc-1.csv'); } catch(e){}
+}
+function __calc_1Presets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#calc_1Presets',[{label:'默认参数',labelEn:'Default',values:{'m':'1500', 'P':'130', 'T':'250', 'i':'12', 'r':'0.32', 'eff':'88', 'cda':'0.65', 'drv':'0.55', 'mu':'0.9', 'sh':'2', 'st':'0.35'}}],function(){ calc(); });
+}
+var __calc_1_f0=(typeof calc==='function')?calc:null;
+if(__calc_1_f0){
+    calc=function(){ var __r=__calc_1_f0.apply(null,arguments); try{ __calc_1Extras(); }catch(e){} return __r; };
+}
+function __calc_1Boot(){ try{ __calc_1Presets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __calc_1Boot();
+else document.addEventListener('DOMContentLoaded', __calc_1Boot);
+</script>
+
+
+<script>/*TBKIT-INJECT-START*/
+(function(){
+  var P={"res": ["result", "calc_1Chart"], "tbl": ["calc_1Table"], "his": ["calc_1Hist"]};
+  var L={res:['结果','Result'],chart:['图表','Chart'],tbl:['数据表','Data'],pre:['预设','Presets'],his:['历史','History']};
+  function tabify(){
+    var bar=document.querySelector('.tbk-tabbar');
+    if(!bar||!bar.querySelectorAll) return;
+    var btns=bar.querySelectorAll('.tbk-tab');
+    if(!btns||!btns.length) return;
+    var en=false;
+    try{ if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn) en=TBKit.util.isEn(); }catch(e){}
+    if(!en&&document.documentElement&&(document.documentElement.lang||'').indexOf('en')>=0) en=true;
+    for(var i=0;i<btns.length;i++){var p=btns[i].getAttribute('data-pane');btns[i].textContent=en?L[p][1]:L[p][0];}
+    function show(pane){
+      for(var k in P){var ids=P[k];for(var i=0;i<ids.length;i++){var el=document.getElementById(ids[i]);if(el&&el.style)el.style.display=(k===pane?'':'none');}}
+      for(var j=0;j<btns.length;j++){btns[j].className='tbk-tab'+(btns[j].getAttribute('data-pane')===pane?' active':'');}
+    }
+    for(var i=0;i<btns.length;i++){(function(b){b.addEventListener('click',function(){show(b.getAttribute('data-pane'));});})(btns[i]);}
+    show(btns[0].getAttribute('data-pane'));
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',tabify);else tabify();
+})();
+/*TBKIT-INJECT-END*/</script>
+</body>
+</html>

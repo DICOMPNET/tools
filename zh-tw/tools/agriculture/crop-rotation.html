@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-opencc-locale="zh-tw">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=reference,industry=agriculture,icon=📐,bg=#f1f8e9">
+<title>作物輪作週期規劃表 - 自動生成4年輪作規劃表</title>
+<link rel="canonical" href="https://tools.dicomp.net/zh-tw/tools/agriculture/crop-rotation.html">
+<meta property="og:title" content="作物輪作週期規劃表 - 自動生成4年輪作規劃表">
+<meta property="og:description" content="作物輪作週期規劃表是一款免費的線上農業種植工具，基於&quot;豆科 → 禾本科 → 葉菜類 → 根莖類&quot;迴圈原理，選擇種植面積和起始季節，自動生成4年輪作規劃表，標註每季作物及換茬理由。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta property="og:url" content="https://tools.dicomp.net/zh-tw/tools/agriculture/crop-rotation.html">
+<meta name="twitter:card" content="summary">
+<meta name="description" content="作物輪作週期規劃表是一款免費的線上農業種植工具，基於&quot;豆科 → 禾本科 → 葉菜類 → 根莖類&quot;迴圈原理，選擇種植面積和起始季節，自動生成4年輪作規劃表，標註每季作物及換茬理由。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">豆科 → 禾本科 → 葉菜類 → 根莖類"迴圈原理，選擇種植面積和起始季節，自動生成4年輪作規劃表，標註每季作物及換茬理由。免費線上工具，純前端本地處理，資料不上傳。">
+<link rel="stylesheet" href="/css/common.css">
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/common.js" defer></script>
+<style>
+.crop-type-tag {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.type-legume { background: rgba(16,185,129,0.12); color: #059669; }
+.type-grass { background: rgba(245,158,11,0.12); color: #D97706; }
+.type-leaf { background: rgba(59,130,246,0.12); color: #2563EB; }
+.type-root { background: rgba(124,58,237,0.12); color: #7C3AED; }
+[data-theme="dark"] .type-legume { color: #34D399; }
+[data-theme="dark"] .type-grass { color: #FBBF24; }
+[data-theme="dark"] .type-leaf { color: #60A5FA; }
+[data-theme="dark"] .type-root { color: #9B6CF5; }
+.rotation-table th, .rotation-table td {
+  vertical-align: top;
+  font-size: 13px;
+}
+.rotation-table th {
+  text-align: center;
+  white-space: nowrap;
+}
+.crop-cell {
+  font-weight: 600;
+}
+.reason-cell {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+.plan-card {
+  background: var(--result-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-bottom: 10px;
+}
+.plan-card .plan-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.plan-card .plan-year {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--primary);
+}
+.plan-card .plan-crops {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.crops-row {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+.crop-pill {
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+  border: 1px solid var(--border);
+  background: var(--card-bg);
+}
+.legend-row {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin: 10px 0;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.legend-row .legend-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.legend-color {
+  width: 12px;
+  height: 12px;
+  border-radius: 4px;
+}
+.knowledge-card {
+  background: var(--result-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin-bottom: 8px;
+}
+.knowledge-card .kc-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+.knowledge-card .kc-name {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--heading);
+}
+.knowledge-card .kc-desc {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+.summary-box {
+  background: linear-gradient(135deg, rgba(16,185,129,0.06), rgba(0,201,167,0.06));
+  border: 1px solid rgba(16,185,129,0.2);
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-top: 12px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.7;
+}
+.summary-box strong { color: var(--success); }
+@media(max-width:768px) {
+  .rotation-table { font-size: 11px; }
+  .rotation-table th, .rotation-table td { padding: 8px 6px; }
+  .reason-cell { font-size: 11px; }
+}
+</style>
+
+
+
+<meta property="og:image" content="https://tools.dicomp.net/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免費線上工具">
+<meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免費線上工具">
+    <meta property="og:type" content="website">
+    <meta name="twitter:title" content="作物輪作週期規劃表 - 自動生成4年輪作規劃表">
+    <meta name="twitter:description" content="作物輪作週期規劃表是一款免費的線上農業種植工具，基於&quot;豆科 → 禾本科 → 葉菜類 → 根莖類&quot;迴圈原理，選擇種植面積和起始季節，自動生成4年輪作規劃表，標註每季作物及換茬理由。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"作物輪作週期規劃表","url":"https://tools.dicomp.net/zh-tw/tools/agriculture/crop-rotation.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"作物輪作週期規劃表是一款免費的線上農業種植工具，基於&quot;豆科 → 禾本科 → 葉菜類 → 根莖類&quot;迴圈原理，選擇種植面積和起始季節，自動生成4年輪作規劃表，標註每季作物及換茬理由。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首頁","item":"https://tools.dicomp.net/zh-tw/"},{"@type":"ListItem","position":2,"name":"農業種植","item":"https://tools.dicomp.net/zh-tw/tools/agriculture/index.html"},{"@type":"ListItem","position":3,"name":"作物輪作週期規劃表","item":"https://tools.dicomp.net/zh-tw/tools/agriculture/crop-rotation.html"}]}</script>
+
+<script src="/js/i18n.js" defer></script>
+<script src="/js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+
+
+<meta name="title-en" content="Crop Rotation">
+<meta name="desc-en" content="Crop Rotation - online utility on ToolBox.">
+
+
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
+
+<script src="/js/tool-ux.js" defer></script>
+<!-- TOOLBOX-TOOL-UX -->
+
+<script src="/js/analytics.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+<!-- TOOLBOX-TTZZ -->
+<script>
+(function(){try{
+var el = document.createElement("script");
+el.src = "https://lf1-cdn-tos.bytegoofy.com/goofy/ttzz/push.js?85d6452aa9be4d693b16cd48535a8c7ae57542f6788a41682e745be8eb99b35a8a24d2f724c31ebe20c1e4e6fba6d91caf576100b02a2870c72f38fc574066fef065d152c73bf1cbb2ebad3b5b5265d8";
+el.id = "ttzz";
+var s = document.getElementsByTagName("script")[0];
+s.parentNode.insertBefore(el, s);
+}catch(e){}
+})(window);
+</script>
+
+<script src="/js/tool-kit.js" defer></script>
+<!-- TOOLBOX-TOOL-KIT -->
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://tools.dicomp.net/tools/agriculture/crop-rotation.html">
+<link rel="alternate" hreflang="zh-TW" href="https://tools.dicomp.net/zh-tw/tools/agriculture/crop-rotation.html">
+<link rel="alternate" hreflang="en-US" href="https://tools.dicomp.net/tools/agriculture/crop-rotation.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://tools.dicomp.net/tools/agriculture/crop-rotation.html">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+</head>
+<body>
+<h1 class="sr-only">作物輪作週期規劃表</h1>
+
+
+<div class="nav">
+  <a href="/zh-tw/index.html">&larr; ToolBox</a>
+  <span>/ 作物輪作週期規劃表</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+
+
+
+
+<nav class="breadcrumb" aria-label="麵包屑導航" data-breadcrumb="1">
+  <a href="/zh-tw/index.html">首頁</a>
+  <span class="bc-sep">‹</span>
+  <a href="/zh-tw/tools/agriculture/index.html">🌾 農業種植</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">作物輪作週期規劃表</span>
+</nav>
+<div class="container">
+<div class="tool-guide-link" data-guide-link="1">
+  <a href="/zh-tw/guides/crop-rotation-guide.html">📖 檢視「作物輪作週期規劃表使用指南」</a>
+</div>
+
+  <div class="card tool-card-accent" style="--tool-accent:#3B82F6;">
+    <h2 data-zh="📐 作物輪作週期規劃表">📐 Crop Rotation Planner</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="基於&quot;豆科 → 禾本科 → 葉菜類 → 根莖類&quot;迴圈原理，選擇種植面積和起始季節，自動生成4年輪作規劃表，標註每季作物及換茬理由。">Based on the legume → cereal → leafy → root rotation principle, pick area and starting season to generate a four-year rotation plan with the crop and reason for each season.</p>
+
+    <h3>輪作設定</h3>
+    <div class="input-row">
+      <div>
+        <label>種植面積 (畝)</label>
+        <input type="number" id="areaInput" value="10" min="0.1" step="0.5">
+      </div>
+      <div>
+        <label>起始季節</label>
+        <select id="seasonInput">
+          <option value="春">春（3-5月）</option>
+          <option value="夏">夏（6-8月）</option>
+          <option value="秋">秋（9-11月）</option>
+          <option value="冬">冬（12-2月）</option>
+        </select>
+      </div>
+      <div>
+        <label>輪作模式</label>
+        <select id="modeInput">
+          <option value="standard">標準四季輪作（推薦）</option>
+          <option value="simple">簡化兩季輪作</option>
+        </select>
+      </div>
+    </div>
+    <div class="toolbar">
+      <div id="crop_rotationPresets"></div><button type="button" class="btn primary" onclick="generatePlan()">生成規劃表</button><button class="btn" type="button" onclick="__crop_rotationExport()">匯出明細 CSV</button>
+      <button type="button" class="btn" onclick="exportPlan()">匯出為文本</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="legend-row">
+      <div class="legend-item"><span class="legend-color" style="background:rgba(16,185,129,0.3);border:1px solid #10B981;"></span>豆科（固氮養地）</div>
+      <div class="legend-item"><span class="legend-color" style="background:rgba(245,158,11,0.3);border:1px solid #F59E0B;"></span>禾本科（耗氮需肥）</div>
+      <div class="legend-item"><span class="legend-color" style="background:rgba(59,130,246,0.3);border:1px solid #3B82F6;"></span>葉菜類（淺根速生）</div>
+      <div class="legend-item"><span class="legend-color" style="background:rgba(124,58,237,0.3);border:1px solid #7C3AED;"></span>根莖類（深根疏鬆）</div>
+    </div>
+    <p style="font-size:12px;color:var(--text-muted);margin-bottom:12px;">輪作核心原則：豆科作物根瘤固氮後為禾本科提供養分；禾本科消耗地力後換葉菜（淺根）；葉菜後換根莖類（深根疏鬆土壤）；根莖後回豆科，形成良性迴圈。</p>
+  </div>
+
+  <div class="card" id="planCard" style="display:none;">
+    <h3>4年輪作規劃表</h3>
+    <div id="planSummary" class="summary-box"></div> <div id="crop_rotationTable"></div> <div id="crop_rotationDiff"></div> <div id="crop_rotationChart"></div> <div id="crop_rotationHist"></div>
+    <div style="margin-top:16px;overflow-x:auto;">
+      <table class="rotation-table" id="rotationTable"></table>
+    </div>
+    <div id="planCards"></div>
+  </div>
+
+  <div class="card">
+    <h3>作物輪作知識庫</h3>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">12種常見作物的輪作相容性與特性</p>
+    <div id="knowledgeBase"></div>
+  </div>
+
+  <!-- 工具介紹（SEO） -->
+
+</div>
+
+</div>
+
+<!-- 相關工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相關工具</h3>
+  <div class="related-tools-grid">
+
+    <a href="/zh-tw/tools/funeral/grave-design.html" class="related-tool-card">
+      <span class="rt-icon">📐</span>
+      <span class="rt-info"><span class="rt-name">墓地碑文設計器 - 線上設計碑文排版與墓地面積，含碑文模板 | ToolBox免費線上工具箱</span><span class="rt-desc">墓地碑文設計器</span></span>
+    </a>
+    <a href="/zh-tw/tools/wedding/seating-chart.html" class="related-tool-card">
+      <span class="rt-icon">💒</span>
+      <span class="rt-info"><span class="rt-name">賓客座點陣圖 - 日常生活線上工具 | ToolBox免費線上工具箱</span><span class="rt-desc">賓客座點陣圖</span></span>
+    </a>
+    <a href="/zh-tw/tools/life/generator-strength.html" class="related-tool-card">
+      <span class="rt-icon">🔑</span>
+      <span class="rt-info"><span class="rt-name">密碼生成器（帶強度檢測） - 可自定義長度、字元型別，生成高強度隨機密碼並即時評估密碼強度 | ToolBox免費線上工具箱</span><span class="rt-desc">密碼生成器（帶強度檢測）</span></span>
+    </a>
+    <a href="/zh-tw/tools/funeral/ceremony-timeline.html" class="related-tool-card">
+      <span class="rt-icon">📜</span>
+      <span class="rt-info"><span class="rt-name">追悼會時間軸規劃器 - 線上規劃追悼會流程時間軸，含各環節時長與注意事項 | ToolBox免費線上工具箱</span><span class="rt-desc">⏰ 追悼會時間軸規劃器</span></span>
+    </a>
+    <a href="/zh-tw/tools/life/generator-random-1.html" class="related-tool-card">
+      <span class="rt-icon">🎲</span>
+      <span class="rt-info"><span class="rt-name">隨機數生成器（範圍任意） - 免費線上工具，純前端處理 | ToolBox免費線上工具箱</span><span class="rt-desc">隨機數生成器（範圍任意）</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro" id="toolIntro">
+    <div class="tool-intro-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="intro-icon-wrap"><span class="intro-icon">🔄</span> 工具介紹與使用說明</span>
+      <span class="arrow">▼</span>
+    </div>
+    <div class="tool-intro-body">
+      <p>作物輪作是農業生產中保持土壤肥力、減少病蟲害的重要措施。本工具基於"豆科→禾本科→葉菜類→根莖類"的經典輪作迴圈原理，幫助種植者快速生成4年輪作規劃方案。</p>
+      <h4><span class="h4-icon">✨</span> 功能特點</h4>
+      <ul class="intro-features">
+        <li>內建12種常見作物知識庫</li>
+        <li>自動生成4年輪作規劃表</li>
+        <li>標註每季作物及換茬理由</li>
+        <li>支援標準四季與簡化兩季模式</li>
+        <li>輪作相容性查詢</li>
+        <li>可匯出規劃文本</li>
+      </ul>
+      <h4><span class="h4-icon">📋</span> 使用場景</h4>
+      <ul class="intro-scenes">
+        <li>家庭菜園種植規劃</li>
+        <li>小型農場輪作安排</li>
+        <li>社群農園土地管理</li>
+        <li>農業教學演示</li>
+      </ul>
+      </div>
+  </div>
+
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto 0;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+.deep-dive a.term-link{color:var(--tool-accent,#FF6B35);text-decoration:none;border-bottom:1px dashed currentColor;}
+.deep-dive a.term-link:hover{border-bottom-style:solid;}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：作物輪作週期規劃表</h2>
+<h3>💡 常見使用場景</h3>
+<ul class="dd-list">
+<li>按科屬、需肥特性、病蟲寄主安排 2~4 年輪作順序。</li>
+<li>豆科養地、禾本科耗地、塊根類深松交替。</li>
+<li>用於減輕連作障礙、均衡地力。</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">三年輪作方案</div><div class="dd-ex-body">第 1 年玉米（禾本科、耗氮）→ 第 2 年大豆（豆科、固氮養地）→ 第 3 年馬鈴薯（塊莖、深根鬆土、避同科病害）。三年後回到玉米，地力與病害均顯著優於連作。</div></div>
+<h3>❓ 常見問題（FAQ）</h3>
+<dl class="dd-faq">
+<dt>輪作為什麼能減輕病害？</dt><dd>多數土傳病害有專一寄主。寄主停種 1~2 年後土壤中病原菌因缺食衰減，下茬再種時基數低，發病輕。</dd>
+<dt>豆科之後為什麼要種禾本科？</dt><dd>豆科固氮后土壤速效氮較高，禾本科需氮多正好利用；且兩者科屬不同、病蟲不交叉，是經典『養用結合』組合。</dd>
+</dl>
+</div>
+</section>
+<!-- 注意事項區塊 -->
+<div class="tool-notes" style="--tool-accent:#3B82F6;">
+  <div class="tool-notes-title">⚠️ 使用說明與注意事項</div>
+  <ul>
+      <li>本工具純前端執行，資料不會上傳到伺服器</li>
+      <li>建議在主流瀏覽器（Chrome/Safari/Firefox/Edge）中使用</li>
+      <li>計算結果僅供參考，請以實際應用場景為準</li>
+  </ul>
+</div>
+<!-- /注意事項區塊 -->
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  // 作物类型
+  var TYPE_LEGUME = 'legume';   // 豆科
+  var TYPE_GRASS = 'grass';     // 禾本科
+  var TYPE_LEAF = 'leaf';       // 叶菜类
+  var TYPE_ROOT = 'root';       // 根茎类
+
+  var TYPE_NAMES = {};
+  TYPE_NAMES[TYPE_LEGUME] = '豆科';
+  TYPE_NAMES[TYPE_GRASS] = '禾本科';
+  TYPE_NAMES[TYPE_LEAF] = '叶菜类';
+  TYPE_NAMES[TYPE_ROOT] = '根茎类';
+
+  var TYPE_CLASSES = {};
+  TYPE_CLASSES[TYPE_LEGUME] = 'type-legume';
+  TYPE_CLASSES[TYPE_GRASS] = 'type-grass';
+  TYPE_CLASSES[TYPE_LEAF] = 'type-leaf';
+  TYPE_CLASSES[TYPE_ROOT] = 'type-root';
+
+  // 作物知识库（至少12种）
+  var CROPS = {
+    '大豆': {
+      type: TYPE_LEGUME,
+      seasons: ['春', '夏'],
+      growthDays: 90,
+      desc: '豆科固氮作物，根瘤菌可固定空气中氮素，改善土壤肥力，是优良前茬。',
+      goodAfter: [TYPE_ROOT, TYPE_GRASS],
+      badAfter: [TYPE_LEGUME],
+      icon: '🫘'
+    },
+    '花生': {
+      type: TYPE_LEGUME,
+      seasons: ['春', '夏'],
+      growthDays: 110,
+      desc: '豆科固氮作物，耐旱耐瘠，适合沙质土壤，能提升土壤含氮量。',
+      goodAfter: [TYPE_ROOT, TYPE_GRASS],
+      badAfter: [TYPE_LEGUME],
+      icon: '🥜'
+    },
+    '玉米': {
+      type: TYPE_GRASS,
+      seasons: ['春', '夏'],
+      growthDays: 100,
+      desc: '禾本科耗氮作物，需肥量大，适合安排在豆科作物之后种植。',
+      goodAfter: [TYPE_LEGUME],
+      badAfter: [TYPE_GRASS],
+      icon: '🌽'
+    },
+    '小麦': {
+      type: TYPE_GRASS,
+      seasons: ['秋', '冬'],
+      growthDays: 210,
+      desc: '禾本科越冬作物，耐寒，适合秋播夏收，与夏作物搭配实现一年两熟。',
+      goodAfter: [TYPE_LEGUME, TYPE_ROOT],
+      badAfter: [TYPE_GRASS],
+      icon: '🌾'
+    },
+    '水稻': {
+      type: TYPE_GRASS,
+      seasons: ['春', '夏'],
+      growthDays: 120,
+      desc: '禾本科水田作物，需水量大，水旱轮作可有效改善土壤结构。',
+      goodAfter: [TYPE_LEGUME],
+      badAfter: [TYPE_GRASS],
+      icon: '🍚'
+    },
+    '番茄': {
+      type: TYPE_LEAF,
+      seasons: ['春', '夏'],
+      growthDays: 80,
+      desc: '茄果类蔬菜，喜温，根系较浅，忌与茄科作物连作以防青枯病。',
+      goodAfter: [TYPE_GRASS, TYPE_LEGUME],
+      badAfter: [TYPE_LEAF],
+      icon: '🍅'
+    },
+    '白菜': {
+      type: TYPE_LEAF,
+      seasons: ['秋', '冬'],
+      growthDays: 60,
+      desc: '十字花科叶菜，速生，根系浅，吸收表层养分，忌与十字花科连作。',
+      goodAfter: [TYPE_GRASS, TYPE_ROOT],
+      badAfter: [TYPE_LEAF],
+      icon: '🥬'
+    },
+    '黄瓜': {
+      type: TYPE_LEAF,
+      seasons: ['春', '夏'],
+      growthDays: 70,
+      desc: '葫芦科蔓生蔬菜，喜温湿，需搭架，忌与瓜类连作以防霜霉病。',
+      goodAfter: [TYPE_GRASS, TYPE_LEGUME],
+      badAfter: [TYPE_LEAF],
+      icon: '🥒'
+    },
+    '茄子': {
+      type: TYPE_LEAF,
+      seasons: ['春', '夏'],
+      growthDays: 90,
+      desc: '茄科蔬菜，喜温，根系中等，忌与茄科（番茄、辣椒）连作。',
+      goodAfter: [TYPE_GRASS, TYPE_LEGUME],
+      badAfter: [TYPE_LEAF],
+      icon: '🍆'
+    },
+    '辣椒': {
+      type: TYPE_LEAF,
+      seasons: ['春', '夏'],
+      growthDays: 85,
+      desc: '茄科蔬菜，喜温暖，忌与茄科连作，适合在禾本科或豆科后茬种植。',
+      goodAfter: [TYPE_GRASS, TYPE_LEGUME],
+      badAfter: [TYPE_LEAF],
+      icon: '🌶️'
+    },
+    '萝卜': {
+      type: TYPE_ROOT,
+      seasons: ['秋', '冬'],
+      growthDays: 55,
+      desc: '十字花科根菜，肉质根可疏松土壤，深根吸收下层养分。',
+      goodAfter: [TYPE_LEAF, TYPE_GRASS],
+      badAfter: [TYPE_ROOT],
+      icon: '🥕'
+    },
+    '土豆': {
+      type: TYPE_ROOT,
+      seasons: ['春', '秋'],
+      growthDays: 90,
+      desc: '茄科块茎作物，块茎生长可疏松土壤，忌与茄科连作以防晚疫病。',
+      goodAfter: [TYPE_LEAF, TYPE_GRASS],
+      badAfter: [TYPE_ROOT, TYPE_LEAF],
+      icon: '🥔'
+    }
+  };
+
+  // 轮作顺序：豆科 → 禾本科 → 叶菜类 → 根茎类 → 循环
+  var ROTATION_ORDER = [TYPE_LEGUME, TYPE_GRASS, TYPE_LEAF, TYPE_ROOT];
+
+  // 换茬理由
+  var REASONS = {};
+  REASONS[TYPE_LEGUME + '->' + TYPE_GRASS] = '豆科固氮后土壤含氮量高，禾本科喜氮，正好利用前茬积累的养分，减少化肥用量。';
+  REASONS[TYPE_GRASS + '->' + TYPE_LEAF] = '禾本科耗氮较多，表层养分仍充足，叶菜类根系浅、速生，适合利用表层剩余养分。';
+  REASONS[TYPE_LEAF + '->' + TYPE_ROOT] = '叶菜类吸收表层养分后，根茎类深根可吸收下层养分并疏松土壤，改善土层结构。';
+  REASONS[TYPE_ROOT + '->' + TYPE_LEGUME] = '根茎类疏松土壤后透气性好，利于豆科根瘤菌固氮，开启新一轮养分循环。';
+
+  // 按类型获取可选作物
+  function getCropsByType(type) {
+    var result = [];
+    Object.keys(CROPS).forEach(function(name) {
+      if (CROPS[name].type === type) result.push(name);
+    });
+    return result;
+  }
+
+  // 获取下一季节
+  function nextSeason(season) {
+    var seasons = ['春', '夏', '秋', '冬'];
+    var idx = seasons.indexOf(season);
+    return seasons[(idx + 1) % 4];
+  }
+
+  // 根据季节和类型选择最合适的作物
+  function pickCrop(type, season, usedCrops) {
+    var candidates = getCropsByType(type);
+    // 优先选适合该季节的
+    var suitable = candidates.filter(function(name) {
+      return CROPS[name].seasons.indexOf(season) !== -1 && usedCrops.indexOf(name) === -1;
+    });
+    if (suitable.length > 0) return suitable[0];
+    // 次选未用过的
+    var unused = candidates.filter(function(name) {
+      return usedCrops.indexOf(name) === -1;
+    });
+    if (unused.length > 0) return unused[0];
+    // 兜底
+    return candidates[0];
+  }
+
+  function getReason(fromType, toType) {
+    var key = fromType + '->' + toType;
+    if (REASONS[key]) return REASONS[key];
+    if (fromType === toType) return '同类型连作不推荐，建议调整。';
+    return '类型轮换，减少同科病虫害，均衡利用土壤养分。';
+  }
+
+  window.generatePlan = function() {
+    var area = parseFloat(document.getElementById('areaInput').value);
+    var startSeason = document.getElementById('seasonInput').value;
+    var mode = document.getElementById('modeInput').value;
+
+    if (isNaN(area) || area <= 0) {
+      ToolBox.showToast(i18nText('toast.msg858'), 'warning');
+      return;
+    }
+
+    var years = 4;
+    var usedCrops = [];
+    var plan = []; // plan[year] = [{season, type, crop, reason}, ...]
+    var startTypeIdx = 0; // 从豆科开始
+
+    var seasonsPerYear = mode === 'simple' ? 2 : 4;
+    var seasonList = mode === 'simple' ? ['春', '秋'] : ['春', '夏', '秋', '冬'];
+
+    // 调整起始季节在 seasonList 中的位置
+    var startSeasonIdx = seasonList.indexOf(startSeason);
+    if (startSeasonIdx === -1) {
+      // 简化模式下起始季节不在列表中，找最接近的
+      startSeasonIdx = 0;
+    }
+
+    var currentTypeIdx = startTypeIdx;
+    var currentSeasonIdx = startSeasonIdx;
+
+    for (var y = 0; y < years; y++) {
+      var yearPlan = [];
+      for (var s = 0; s < seasonsPerYear; s++) {
+        var season = seasonList[(currentSeasonIdx + s) % seasonsPerYear];
+        var typeIdx = (currentTypeIdx + s) % ROTATION_ORDER.length;
+        var type = ROTATION_ORDER[typeIdx];
+        var crop = pickCrop(type, season, usedCrops);
+        usedCrops.push(crop);
+
+        var prevType = null;
+        if (yearPlan.length > 0) {
+          prevType = yearPlan[yearPlan.length - 1].type;
+        } else if (plan.length > 0) {
+          var prevYear = plan[plan.length - 1];
+          prevType = prevYear[prevYear.length - 1].type;
+        }
+        var reason = prevType ? getReason(prevType, type) : '轮作起始，豆科固氮养地为后续作物打基础。';
+
+        yearPlan.push({
+          season: season,
+          type: type,
+          crop: crop,
+          reason: reason
+        });
+      }
+      plan.push(yearPlan);
+      currentTypeIdx = (currentTypeIdx + seasonsPerYear) % ROTATION_ORDER.length;
+      currentSeasonIdx = (currentSeasonIdx + seasonsPerYear) % seasonsPerYear;
+    }
+
+    renderPlan(plan, area, startSeason, mode);
+  };
+
+  function renderPlan(plan, area, startSeason, mode) {
+    var card = document.getElementById('planCard');
+    card.style.display = 'block';
+
+    // 摘要
+    var summary = '规划面积：<strong>' + area + ' 亩</strong> ｜ 起始季节：<strong>' + startSeason + '</strong> ｜ 轮作周期：<strong>4年</strong> ｜ 模式：<strong>' + (mode === 'standard' ? '标准四季轮作' : '简化两季轮作') + '</strong><br>';
+    summary += '轮作循环：豆科（固氮养地）→ 禾本科（利用氮素）→ 叶菜类（浅根速生）→ 根茎类（深根疏松）→ 回到豆科，循环往复，均衡利用土壤各层养分。';
+    const __h0=summary;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('planSummary').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('planSummary').innerHTML=__h0;
+
+    // 表格
+    var seasonLabels = mode === 'simple' ? ['春季茬', '秋季茬'] : ['春季茬', '夏季茬', '秋季茬', '冬季茬'];
+    var html = '<thead><tr><th>年份</th>';
+    seasonLabels.forEach(function(lbl) { html += '<th>' + lbl + '</th>'; });
+    html += '</tr></thead><tbody>';
+
+    plan.forEach(function(yearPlan, yi) {
+      html += '<tr><td><strong>第' + (yi + 1) + '年</strong></td>';
+      yearPlan.forEach(function(slot) {
+        var crop = CROPS[slot.crop];
+        html += '<td>'
+          + '<div class="crop-cell">' + crop.icon + ' ' + ToolBox.escHtml(slot.crop) + '</div>'
+          + '<span class="crop-type-tag ' + TYPE_CLASSES[slot.type] + '">' + TYPE_NAMES[slot.type] + '</span>'
+          + '<div class="reason-cell" style="margin-top:4px;">' + ToolBox.escHtml(slot.reason) + '</div>'
+          + '</td>';
+      });
+      html += '</tr>';
+    });
+    html += '</tbody>';
+    const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('rotationTable').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('rotationTable').innerHTML=__h1;
+
+    // 卡片视图
+    var cardsHtml = '';
+    plan.forEach(function(yearPlan, yi) {
+      var cropNames = yearPlan.map(function(s) { return s.crop; });
+      cardsHtml += '<div class="plan-card">'
+        + '<div class="plan-head">'
+        + '<span class="plan-year">第 ' + (yi + 1) + ' 年</span>'
+        + '<span class="plan-crops">作物：' + ToolBox.escHtml(cropNames.join(' → ')) + '</span>'
+        + '</div>'
+        + '<div class="crops-row">';
+      yearPlan.forEach(function(slot) {
+        var crop = CROPS[slot.crop];
+        cardsHtml += '<span class="crop-pill">' + crop.icon + ' ' + ToolBox.escHtml(slot.season) + '季·' + ToolBox.escHtml(slot.crop) + '</span>';
+      });
+      cardsHtml += '</div></div>';
+    });
+    const __h2=cardsHtml;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('planCards').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('planCards').innerHTML=__h2;
+
+    ToolBox.showToast(i18nText('toast.msg581'), 'success');
+  }
+
+  window.exportPlan = function() {
+    var card = document.getElementById('planCard');
+    if (card.style.display === 'none') {
+      ToolBox.showToast(i18nText('toast.msg663'), 'warning');
+      return;
+    }
+    var table = document.getElementById('rotationTable');
+    var rows = table.querySelectorAll('tbody tr');
+    var area = document.getElementById('areaInput').value;
+    var startSeason = document.getElementById('seasonInput').value;
+    var lines = [];
+    lines.push('作物轮作周期规划表');
+    lines.push('种植面积：' + area + ' 亩 ｜ 起始季节：' + startSeason);
+    lines.push('轮作循环：豆科 → 禾本科 → 叶菜类 → 根茎类');
+    lines.push('========================================');
+    rows.forEach(function(row, i) {
+      lines.push('');
+      lines.push('【第' + (i + 1) + '年】');
+      var cells = row.querySelectorAll('td');
+      for (var j = 1; j < cells.length; j++) {
+        var cellText = cells[j].innerText.replace(/\n/g, ' ').trim();
+        lines.push('  ' + cellText);
+      }
+    });
+    lines.push('');
+    lines.push('========================================');
+    lines.push('生成时间：' + new Date().toLocaleString('zh-CN'));
+    ToolBox.downloadText('作物轮作规划表.txt', lines.join('\n'));
+  };
+
+  function renderKnowledgeBase() {
+    var html = '';
+    Object.keys(CROPS).forEach(function(name) {
+      var c = CROPS[name];
+      var goodAfterStr = c.goodAfter.map(function(t) { return TYPE_NAMES[t]; }).join('、');
+      var badAfterStr = c.badAfter.map(function(t) { return TYPE_NAMES[t]; }).join('、');
+      var seasonStr = c.seasons.join('、');
+      html += '<div class="knowledge-card">'
+        + '<div class="kc-head">'
+        + '<span class="kc-name">' + c.icon + ' ' + ToolBox.escHtml(name) + '</span>'
+        + '<span class="crop-type-tag ' + TYPE_CLASSES[c.type] + '">' + TYPE_NAMES[c.type] + '</span>'
+        + '</div>'
+        + '<div class="kc-desc">'
+        + '<strong>适种季节：</strong>' + ToolBox.escHtml(seasonStr) + ' ｜ '
+        + '<strong>生长期：</strong>' + c.growthDays + '天<br>'
+        + '<strong>宜前茬：</strong>' + ToolBox.escHtml(goodAfterStr) + ' ｜ '
+        + '<strong>忌前茬：</strong>' + ToolBox.escHtml(badAfterStr) + '<br>'
+        + ToolBox.escHtml(c.desc)
+        + '</div>'
+        + '</div>';
+    });
+    const __h3=html;if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){document.getElementById('knowledgeBase').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('knowledgeBase').innerHTML=__h3;
+  }
+
+  // 初始化
+  renderKnowledgeBase();
+  generatePlan();
+
+})();
+</script><script>
+// tool-intro折叠交互
+document.addEventListener('DOMContentLoaded',function(){
+  var headers=document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click',function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+
+var __crop_rotation_last=0,__crop_rotation_skip=false;
+function __crop_rotationSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __crop_rotationResText(){
+    var r=document.getElementById('planSummary');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __crop_rotationTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __crop_rotationRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__crop_rotationTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#crop_rotationTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#crop_rotationDiff');
+        TBKit.history.mount('#crop_rotationHist',function(rec){
+            __crop_rotation_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                generatePlan();
+            }catch(e2){}
+            __crop_rotation_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__crop_rotationTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#crop_rotationChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __crop_rotationExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__crop_rotation_skip) return;
+    var snap=__crop_rotationSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__crop_rotationResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__crop_rotation_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __crop_rotation_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __crop_rotationRender(keys,rk,en);
+}
+function __crop_rotationExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#crop_rotationTable','crop-rotation.csv'); } catch(e){}
+}
+function __crop_rotationPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#crop_rotationPresets',[{label:'默认参数',labelEn:'Default',values:{'areaInput':'10', 'seasonInput':'春', 'modeInput':'standard'}}],function(){ generatePlan(); });
+}
+var __crop_rotation_f0=(typeof generatePlan==='function')?generatePlan:null;
+if(__crop_rotation_f0){
+    generatePlan=function(){ var __r=__crop_rotation_f0.apply(null,arguments); try{ __crop_rotationExtras(); }catch(e){} return __r; };
+}
+function __crop_rotationBoot(){ try{ __crop_rotationPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __crop_rotationBoot();
+else document.addEventListener('DOMContentLoaded', __crop_rotationBoot);
+</script>
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"輪作為什麼能減輕病害？","acceptedAnswer":{"@type":"Answer","text":"多數土傳病害有專一寄主。寄主停種 1~2 年後土壤中病原菌因缺食衰減，下茬再種時基數低，發病輕。"}},{"@type":"Question","name":"豆科之後為什麼要種禾本科？","acceptedAnswer":{"@type":"Answer","text":"豆科固氮后土壤速效氮較高，禾本科需氮多正好利用；且兩者科屬不同、病蟲不交叉，是經典『養用結合』組合。"}}]}</script>
+</body>
+</html>

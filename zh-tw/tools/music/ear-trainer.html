@@ -1,0 +1,1082 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-opencc-locale="zh-tw">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=game,industry=music,icon=🎮,bg=#e3f2fd">
+<meta name="description" content="耳訓練器是一款免費的線上音樂藝術工具，耳訓練器基於 Web Audio API 播放音程與和絃並訓練聽音辨識，反覆練習可提升視唱練耳與即興演奏的聽力基礎，適合音樂學習者。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta name="keywords" content="耳訓練,聽音訓練,音程識別,和絃識別,樂理訓練,視唱練耳,音樂學習,線上工具,免費工具,ToolBox">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://tools.dicomp.net/zh-tw/tools/music/ear-trainer.html">
+<meta property="og:title" content="耳訓練器 - 免費線上音樂藝術工具">
+<meta property="og:description" content="耳訓練器是一款免費的線上音樂藝術工具，耳訓練器基於 Web Audio API 播放音程與和絃並訓練聽音辨識，反覆練習可提升視唱練耳與即興演奏的聽力基礎，適合音樂學習者。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://tools.dicomp.net/zh-tw/tools/music/ear-trainer.html">
+<meta name="twitter:card" content="summary">
+
+<title>耳訓練器 - 免費線上音樂藝術工具</title>
+<meta name="theme-color" content="#FF6B35">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="stylesheet" href="/css/common.css">
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/common.js" defer></script>
+<style>
+/* 训练模式选择 */
+.mode-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 16px;
+  background: var(--result-bg);
+  border-radius: 12px;
+  padding: 4px;
+}
+.mode-tab {
+  flex: 1;
+  padding: 10px 16px;
+  border: none;
+  background: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--text-light);
+  transition: all 0.2s;
+}
+.mode-tab:hover {
+  color: var(--primary);
+  background: var(--bg-hover);
+}
+.mode-tab.active {
+  background: var(--gradient-primary);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(255,107,53,0.25);
+}
+
+/* 难度选择 */
+.difficulty-group {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.diff-btn {
+  padding: 8px 16px;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  background: var(--card-bg);
+  color: var(--text-light);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.diff-btn:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+.diff-btn.active {
+  border-color: var(--primary);
+  background: rgba(255,107,53,0.08);
+  color: var(--primary);
+  font-weight: 600;
+}
+
+/* 播放方式选择 */
+.play-style-group {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.play-style-btn {
+  padding: 8px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  background: var(--card-bg);
+  color: var(--text-light);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.play-style-btn:hover {
+  border-color: var(--secondary);
+  color: var(--secondary);
+}
+.play-style-btn.active {
+  border-color: var(--secondary);
+  background: rgba(124,58,237,0.08);
+  color: var(--secondary);
+  font-weight: 600;
+}
+
+/* 播放按钮区域 */
+.play-area {
+  text-align: center;
+  padding: 32px 0 24px;
+}
+.play-btn {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  border: none;
+  background: var(--gradient-primary);
+  color: #fff;
+  font-size: 36px;
+  cursor: pointer;
+  box-shadow: 0 6px 24px rgba(255,107,53,0.3);
+  transition: all 0.25s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+.play-btn:hover {
+  transform: scale(1.06);
+  box-shadow: 0 8px 32px rgba(255,107,53,0.4);
+}
+.play-btn:active {
+  transform: scale(0.97);
+}
+.play-btn.playing {
+  animation: pulse-ring 1.5s ease-in-out infinite;
+}
+@keyframes pulse-ring {
+  0%, 100% { box-shadow: 0 6px 24px rgba(255,107,53,0.3); }
+  50% { box-shadow: 0 6px 40px rgba(255,107,53,0.5), 0 0 0 12px rgba(255,107,53,0.1); }
+}
+.play-hint {
+  margin-top: 12px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+/* 选项按钮网格 */
+.options-grid {
+  display: grid;
+  gap: 8px;
+  margin-top: 16px;
+}
+.options-grid.cols-3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+.options-grid.cols-4 {
+  grid-template-columns: repeat(4, 1fr);
+}
+.option-btn {
+  padding: 14px 8px;
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  background: var(--card-bg);
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: center;
+  line-height: 1.3;
+}
+.option-btn:hover:not(:disabled) {
+  border-color: var(--primary);
+  background: var(--bg-hover);
+  transform: translateY(-1px);
+}
+.option-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+.option-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+.option-btn.correct {
+  border-color: var(--success);
+  background: rgba(16,185,129,0.1);
+  color: #059669;
+  font-weight: 700;
+}
+.option-btn.wrong {
+  border-color: var(--danger);
+  background: rgba(239,68,68,0.08);
+  color: #DC2626;
+}
+.option-btn.reveal {
+  border-color: var(--warning);
+  background: rgba(245,158,11,0.08);
+  color: #D97706;
+  font-weight: 700;
+}
+.option-btn .option-short {
+  display: block;
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+/* 反馈区域 */
+.feedback {
+  text-align: center;
+  padding: 16px;
+  margin-top: 16px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  display: none;
+  animation: fadeIn 0.3s ease;
+}
+.feedback.show { display: block; }
+.feedback.correct-fb {
+  background: rgba(16,185,129,0.1);
+  border: 1px solid rgba(16,185,129,0.3);
+  color: #059669;
+}
+.feedback.wrong-fb {
+  background: rgba(239,68,68,0.08);
+  border: 1px solid rgba(239,68,68,0.25);
+  color: #DC2626;
+}
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* 音符信息 */
+.note-info {
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--text-light);
+  line-height: 1.7;
+}
+
+/* 连击动画 */
+.streak-pop {
+  display: inline-block;
+  animation: streakBounce 0.4s ease;
+}
+@keyframes streakBounce {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.3); }
+  100% { transform: scale(1); }
+}
+
+/* 移动端适配 */
+@media (max-width: 768px) {
+  .options-grid.cols-3 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .options-grid.cols-4 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .play-btn {
+    width: 80px;
+    height: 80px;
+    font-size: 30px;
+  }
+  .play-area {
+    padding: 24px 0 16px;
+  }
+  .mode-tab {
+    padding: 9px 12px;
+    font-size: 13px;
+  }
+}
+</style>
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"耳訓練器","description":"耳訓練器 - 線上聽音識別音程與和絃訓練工具，使用 Web Audio API 合成音色，支援音程識別和和絃識別兩種訓練模式。","url":"https://tools.dicomp.net/zh-tw/tools/music/ear-trainer.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Web Browser","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"},"author":{"@type":"Person","name":"ToolBox"}}</script>
+
+
+
+<meta property="og:image" content="https://tools.dicomp.net/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免費線上工具">
+<meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免費線上工具">
+    <meta name="twitter:title" content="耳訓練器 - 免費線上音樂藝術工具">
+    <meta name="twitter:description" content="耳訓練器是一款免費的線上音樂藝術工具，耳訓練器基於 Web Audio API 播放音程與和絃並訓練聽音辨識，反覆練習可提升視唱練耳與即興演奏的聽力基礎，適合音樂學習者。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"耳訓練器","url":"https://tools.dicomp.net/zh-tw/tools/music/ear-trainer.html","applicationCategory":"GamesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"耳訓練器是一款免費的線上音樂藝術工具，耳訓練器基於 Web Audio API 播放音程與和絃並訓練聽音辨識，反覆練習可提升視唱練耳與即興演奏的聽力基礎，適合音樂學習者。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首頁","item":"https://tools.dicomp.net/zh-tw/"},{"@type":"ListItem","position":2,"name":"音樂藝術","item":"https://tools.dicomp.net/zh-tw/tools/music/index.html"},{"@type":"ListItem","position":3,"name":"耳訓練器","item":"https://tools.dicomp.net/zh-tw/tools/music/ear-trainer.html"}]}</script>
+
+<script src="/js/i18n.js" defer></script>
+<script src="/js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+
+
+<meta name="title-en" content="Ear Trainer">
+<meta name="desc-en" content="Ear Trainer - online utility on ToolBox.">
+
+
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
+
+<script src="/js/tool-ux.js" defer></script>
+<!-- TOOLBOX-TOOL-UX -->
+
+<script src="/js/analytics.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+<!-- TOOLBOX-TTZZ -->
+<script>
+(function(){try{
+var el = document.createElement("script");
+el.src = "https://lf1-cdn-tos.bytegoofy.com/goofy/ttzz/push.js?85d6452aa9be4d693b16cd48535a8c7ae57542f6788a41682e745be8eb99b35a8a24d2f724c31ebe20c1e4e6fba6d91caf576100b02a2870c72f38fc574066fef065d152c73bf1cbb2ebad3b5b5265d8";
+el.id = "ttzz";
+var s = document.getElementsByTagName("script")[0];
+s.parentNode.insertBefore(el, s);
+}catch(e){}
+})(window);
+</script>
+
+<script src="/js/tool-kit.js" defer></script>
+<!-- TOOLBOX-TOOL-KIT -->
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://tools.dicomp.net/tools/music/ear-trainer.html">
+<link rel="alternate" hreflang="zh-TW" href="https://tools.dicomp.net/zh-tw/tools/music/ear-trainer.html">
+<link rel="alternate" hreflang="en-US" href="https://tools.dicomp.net/tools/music/ear-trainer.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://tools.dicomp.net/tools/music/ear-trainer.html">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+</head>
+<body>
+<h1 class="sr-only">耳訓練器</h1>
+
+
+<!-- 導航欄 -->
+<div class="nav">
+  <a href="/zh-tw/index.html">← ToolBox</a>
+  <span>/ 耳訓練器</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+
+
+
+
+<nav class="breadcrumb" aria-label="麵包屑導航" data-breadcrumb="1">
+  <a href="/zh-tw/index.html">首頁</a>
+  <span class="bc-sep">‹</span>
+  <a href="/zh-tw/tools/music/index.html">🎵 音樂藝術</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">耳訓練器</span>
+</nav>
+
+<div class="tool-guide-link" data-guide-link="1">
+  <a href="/zh-tw/guides/ear-trainer-guide.html">📖 檢視「耳訓練器 使用指南」</a>
+</div>
+<div class="container">
+  <!-- 主卡片 -->
+  <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
+    <h2 data-zh="🎮 耳訓練器">Ear Trainer</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="聽音識別音程與和絃，提升你的音樂聽力">Ear Trainer</p>
+
+    <!-- 訓練模式選擇 -->
+    <div class="mode-tabs">
+      <button class="mode-tab active" onclick="setMode('interval')">🎵 音程識別</button>
+      <button class="mode-tab" onclick="setMode('chord')">🎶 和絃識別</button>
+    </div>
+
+    <!-- 難度選擇 -->
+    <div class="difficulty-group" id="difficultyGroup">
+      <!-- 動態渲染 -->
+    </div>
+
+    <!-- 播放方式（僅音程模式） -->
+    <div class="play-style-group" id="playStyleGroup">
+      <button type="button" class="play-style-btn active" onclick="setPlayStyle('simultaneous')">同時發聲</button>
+      <button type="button" class="play-style-btn" onclick="setPlayStyle('arpeggio')">先後發聲（琶音）</button>
+    </div>
+
+    <!-- 播放按鈕 -->
+    <div class="play-area">
+      <button type="button" class="play-btn" id="playBtn" onclick="playCurrent()">▶</button>
+      <div class="play-hint" id="playHint">點選播放，聽後選擇答案</div>
+    </div>
+
+    <!-- 選項區域 -->
+    <div class="options-grid" id="optionsGrid">
+      <!-- 動態渲染 -->
+    </div>
+
+    <!-- 反饋區域 -->
+    <div class="feedback" id="feedback"></div>
+  </div>
+
+  <!-- 統計卡片 -->
+  <div class="card">
+    <h3>📊 訓練統計</h3>
+    <div class="stat-grid" id="statGrid">
+      <div class="stat-card">
+        <div class="val" id="statTotal">0</div>
+        <div class="lbl">總題數</div>
+      </div>
+      <div class="stat-card">
+        <div class="val" id="statCorrect">0</div>
+        <div class="lbl">正確數</div>
+      </div>
+      <div class="stat-card">
+        <div class="val" id="statRate">0%</div>
+        <div class="lbl">正確率</div>
+      </div>
+      <div class="stat-card">
+        <div class="val" id="statStreak">0</div>
+        <div class="lbl">連擊數</div>
+      </div>
+    </div>
+    <div class="toolbar">
+      <button type="button" class="btn" onclick="resetStats()">重置統計</button>
+      <button type="button" class="btn primary" onclick="newRound()">下一題</button>
+      <button type="button" class="btn" onclick="window.__earExport()">⬇️ 匯出音程參考表 CSV</button>
+    </div>
+  </div>
+
+  <!-- 音程參考表 -->
+  <div class="card" id="refCard">
+    <h3>📖 音程參考</h3>
+    <div class="result-box" id="refContent" style="margin-top:0;">
+      <!-- 動態渲染 -->
+    </div>
+<div id="__tbnExtras" style="margin-top:12px"></div>
+
+    <table id="earHidden" style="display:none;"><thead><tr><th>Item</th><th>Abbr</th><th>Detail</th><th>Example</th></tr></thead><tbody></tbody></table>
+  </div>
+
+  <!-- SEO 介紹 -->
+
+</div>
+
+</div>
+
+
+<!-- 相關工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相關工具</h3>
+  <div class="related-tools-grid">
+    <a href="/zh-tw/tools/music/chord-progression.html" class="related-tool-card">
+      <span class="rt-icon">🎵</span>
+      <span class="rt-info"><span class="rt-name">和絃進行生成器 - 免費線上和絃進行生成器，隨機生成流行和絃進行</span><span class="rt-desc">&amp;#127926; 和絃進行生成器</span></span>
+    </a>
+    <a href="/zh-tw/tools/music/random-training-rhythm.html" class="related-tool-card">
+      <span class="rt-icon">🎲</span>
+      <span class="rt-info"><span class="rt-name">節奏訓練（隨機節奏點選）</span><span class="rt-desc">隨機播放節奏型要求跟點，訓練節拍感與穩定度，統計準確率與速度，適合樂器入門，純前端執行。</span></span>
+    </a>
+    <a href="/zh-tw/tools/music/generator-1.html" class="related-tool-card">
+      <span class="rt-icon">🎵</span>
+      <span class="rt-info"><span class="rt-name">音階生成器（大調/小調/五聲音階）</span><span class="rt-desc">音階生成器按大調、小調與五聲音階等調式生成對應音名序列並支援試聽，適合樂理學習、即興創作與樂器練習…</span></span>
+    </a>
+    <a href="/zh-tw/tools/music/bpm-converter.html" class="related-tool-card">
+      <span class="rt-icon">🏎️</span>
+      <span class="rt-info"><span class="rt-name">BPM速度轉換器 - BPM與音符時長、延遲時間、LFO頻率、取樣長度互轉</span><span class="rt-desc">&amp;#9201;&amp;#65039; BPM 速度轉換器</span></span>
+    </a>
+    <a href="/zh-tw/tools/music/convert-speed.html" class="related-tool-card">
+      <span class="rt-icon">🏎️</span>
+      <span class="rt-info"><span class="rt-name">歌曲速度轉換（BPM微調）</span><span class="rt-desc">輸入原曲BPM與目標BPM，計算速度比例並對音訊做變速處理，支援即時試聽與微調，用於翻唱移調、練琴…</span></span>
+    </a>
+    <a href="/zh-tw/tools/music/audio-converter.html" class="related-tool-card">
+      <span class="rt-icon">🔄</span>
+      <span class="rt-info"><span class="rt-name">音訊轉換 - 音樂藝術領域的線上工具</span><span class="rt-desc">音訊格式轉換引數</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro" id="toolIntro">
+    <div class="tool-intro-header" onclick="toggleIntro()">
+      <span class="intro-icon-wrap">
+        <span class="intro-icon">👂</span>
+        <span>關於耳訓練器</span>
+      </span>
+      <span class="arrow">▼</span>
+    </div>
+    <div class="tool-intro-body">
+      <p>耳訓練器是一款基於 Web Audio API 的線上聽音訓練工具，幫助你提升音樂聽力技能。通過反覆練習音程和和絃的識別，你可以更快地聽辨音高關係，為視唱練耳、即興演奏和音樂創作打下堅實基礎。</p>
+      <h4><span class="h4-icon">✨</span> 功能特點</h4>
+      <ul class="intro-features">
+        <li>音程識別（12種音程）</li>
+        <li>和絃識別（大三/小三/增三/減三）</li>
+        <li>三種難度級別</li>
+        <li>同時發聲 / 琶音兩種播放方式</li>
+        <li>即時統計與連擊計數</li>
+        <li>純前端處理，無需聯網</li>
+      </ul>
+      <h4><span class="h4-icon">🎯</span> 使用場景</h4>
+      <ul class="intro-scenes">
+        <li>音樂學生日常練耳</li>
+        <li>樂理課程輔助訓練</li>
+        <li>合唱團 / 樂隊聽力訓練</li>
+        <li>音樂愛好者自學提升</li>
+      </ul>
+      </div>
+  </div>
+
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto 0;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+.deep-dive a.term-link{color:var(--tool-accent,#FF6B35);text-decoration:none;border-bottom:1px dashed currentColor;}
+.deep-dive a.term-link:hover{border-bottom-style:solid;}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：耳訓練器（音程/和絃辨識）</h2>
+<h3>💡 常見使用場景</h3>
+<ul class="dd-list">
+<li>聽兩個音判音程（小二度到大七度），練相對音感</li>
+<li>聽和絃判型別（大/小/屬七等），提升和聲辨識</li>
+<li>反覆隨機出題並即時反饋，建立音程與聽感的對映</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">音程半音數</div><div class="dd-ex-body">相鄰音名半音差：小二度 1、大二度 2、小三度 3、大三度 4、純四度 5、三全音 6、純五度 7、小六度 8、大六度 9、小七度 10、大七度 11、八度 12。</div></div>
+<div class="dd-example"><div class="dd-ex-title">和絃辨識</div><div class="dd-ex-body">同時響 C-E-G 為大三（明亮）、C-E♭-G 為小三（柔和）、C-E-G-B♭ 為屬七（帶張力）；聽色彩與完成度區分。</div></div>
+<h3>❓ 常見問題（FAQ）</h3>
+<dl class="dd-faq">
+<dt>怎麼練相對音感？</dt><dd>從純五度、大三度等色彩鮮明的音程入手，記住參照曲（如《星球大戰》開頭純五度），再擴充套件到全部半音級數。</dd>
+<dt>和絃辨識從哪開始？</dt><dd>先分大/小三和絃（明/暗），再加屬七（解決感）、大七（爵士柔光）；每次聽後看答案建立聽覺記憶。</dd>
+</dl>
+</div>
+</section>
+<!-- 注意事項區塊 -->
+<div class="tool-notes" style="--tool-accent:#FF6B35;">
+  <div class="tool-notes-title">⚠️ 使用說明與注意事項</div>
+  <ul>
+      <li>本工具純前端執行，資料不會上傳到伺服器</li>
+      <li>建議在主流瀏覽器（Chrome/Safari/Firefox/Edge）中使用</li>
+      <li>計算結果僅供參考，請以實際應用場景為準</li>
+  </ul>
+</div>
+<!-- /注意事項區塊 -->
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  /* ========== 音频引擎 ========== */
+  let audioCtx = null;
+
+  function getAudioCtx() {
+    if (!audioCtx) {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
+    return audioCtx;
+  }
+
+  // MIDI 音符号 -> 频率
+  function midiToFreq(midi) {
+    return 440 * Math.pow(2, (midi - 69) / 12);
+  }
+
+  // 播放单个音符
+  function playNote(freq, startTime, duration, ctx, gainNode) {
+    const osc = ctx.createOscillator();
+    const noteGain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(freq, startTime);
+    // 淡入淡出
+    const fadeTime = 0.05;
+    noteGain.gain.setValueAtTime(0, startTime);
+    noteGain.gain.linearRampToValueAtTime(0.35, startTime + fadeTime);
+    noteGain.gain.setValueAtTime(0.35, startTime + duration - fadeTime);
+    noteGain.gain.linearRampToValueAtTime(0, startTime + duration);
+    osc.connect(noteGain);
+    noteGain.connect(gainNode);
+    osc.start(startTime);
+    osc.stop(startTime + duration + 0.01);
+  }
+
+  /* ========== 音程定义 ========== */
+  const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+
+  const INTERVALS = [
+    { id: 'minor2',    name: '小二度',     semitones: 1,  short: 'm2' },
+    { id: 'major2',    name: '大二度',     semitones: 2,  short: 'M2' },
+    { id: 'minor3',    name: '小三度',     semitones: 3,  short: 'm3' },
+    { id: 'major3',    name: '大三度',     semitones: 4,  short: 'M3' },
+    { id: 'perfect4',  name: '纯四度',     semitones: 5,  short: 'P4' },
+    { id: 'tritone',   name: '增四度/减五度', semitones: 6, short: 'TT' },
+    { id: 'perfect5',  name: '纯五度',     semitones: 7,  short: 'P5' },
+    { id: 'minor6',    name: '小六度',     semitones: 8,  short: 'm6' },
+    { id: 'major6',    name: '大六度',     semitones: 9,  short: 'M6' },
+    { id: 'minor7',    name: '小七度',     semitones: 10, short: 'm7' },
+    { id: 'major7',    name: '大七度',     semitones: 11, short: 'M7' },
+    { id: 'octave',    name: '纯八度',     semitones: 12, short: 'P8' }
+  ];
+
+  const INTERVAL_DIFFICULTY = {
+    easy: ['minor3', 'major3', 'perfect5', 'octave'],
+    medium: ['minor3', 'major3', 'perfect4', 'perfect5', 'minor6', 'octave'],
+    hard: INTERVALS.map(function(i) { return i.id; })
+  };
+
+  /* ========== 和弦定义 ========== */
+  const CHORDS = [
+    { id: 'major',   name: '大三和弦', intervals: [4, 7], short: 'Major' },
+    { id: 'minor',   name: '小三和弦', intervals: [3, 7], short: 'Minor' },
+    { id: 'aug',     name: '增三和弦', intervals: [4, 8], short: 'Aug' },
+    { id: 'dim',     name: '减三和弦', intervals: [3, 6], short: 'Dim' }
+  ];
+
+  const CHORD_DIFFICULTY = {
+    easy: ['major', 'minor'],
+    hard: CHORDS.map(function(c) { return c.id; })
+  };
+
+  /* ========== 状态管理 ========== */
+  let state = {
+    mode: 'interval',         // 'interval' | 'chord'
+    difficulty: 'easy',
+    playStyle: 'simultaneous', // 'simultaneous' | 'arpeggio'
+    // 当前题目
+    currentAnswer: null,      // interval id 或 chord id
+    currentRootMidi: 0,
+    currentNoteNames: [],
+    answered: false,
+    // 统计
+    total: 0,
+    correct: 0,
+    streak: 0,
+    bestStreak: 0
+  };
+
+  /* ========== DOM 引用 ========== */
+  function $(id) { return document.getElementById(id); }
+
+  /* ========== 渲染函数 ========== */
+
+  function renderDifficulty() {
+    const group = $('difficultyGroup');
+    const playStyleGroup = $('playStyleGroup');
+    if (state.mode === 'interval') {
+      playStyleGroup.style.display = 'flex';
+      const diffs = [
+        { id: 'easy', name: '简单（4种音程）' },
+        { id: 'medium', name: '中等（6种音程）' },
+        { id: 'hard', name: '困难（全部12种）' }
+      ];
+      const __h0=diffs.map(function(d) {
+        const cls = d.id === state.difficulty ? 'diff-btn active' : 'diff-btn';
+        return '<button class="' + cls + '" onclick="EarTrainer.setDifficulty(\'' + d.id + '\')">' + d.name + '</button>';
+      }).join('');if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){group.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}group.innerHTML=__h0;
+    } else {
+      playStyleGroup.style.display = 'none';
+      const diffs = [
+        { id: 'easy', name: '简单（大小三和弦）' },
+        { id: 'hard', name: '困难（全部4种）' }
+      ];
+      const __h1=diffs.map(function(d) {
+        const cls = d.id === state.difficulty ? 'diff-btn active' : 'diff-btn';
+        return '<button class="' + cls + '" onclick="EarTrainer.setDifficulty(\'' + d.id + '\')">' + d.name + '</button>';
+      }).join('');if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){group.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}group.innerHTML=__h1;
+    }
+  }
+
+  function renderOptions() {
+    const grid = $('optionsGrid');
+    const __h2='';if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){grid.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}grid.innerHTML=__h2;
+    if (state.mode === 'interval') {
+      const pool = INTERVAL_DIFFICULTY[state.difficulty] || INTERVAL_DIFFICULTY.easy;
+      const cols = pool.length <= 4 ? 'cols-4' : 'cols-3';
+      grid.className = 'options-grid ' + cols;
+      pool.forEach(function(id) {
+        const interval = INTERVALS.find(function(i) { return i.id === id; });
+        if (!interval) return;
+        const btn = document.createElement('button');
+        btn.className = 'option-btn';
+        btn.setAttribute('data-id', id);
+        const __h3=interval.name + '<span class="option-short">' + interval.short + '</span>';if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){btn.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}btn.innerHTML=__h3;
+        btn.onclick = function() { EarTrainer.selectAnswer(id); };
+        grid.appendChild(btn);
+      });
+    } else {
+      const pool = CHORD_DIFFICULTY[state.difficulty] || CHORD_DIFFICULTY.easy;
+      const cols = pool.length <= 4 ? 'cols-4' : 'cols-3';
+      grid.className = 'options-grid ' + cols;
+      pool.forEach(function(id) {
+        const chord = CHORDS.find(function(c) { return c.id === id; });
+        if (!chord) return;
+        const btn = document.createElement('button');
+        btn.className = 'option-btn';
+        btn.setAttribute('data-id', id);
+        const __h4=chord.name + '<span class="option-short">' + chord.short + '</span>';if((typeof __h4==='number'&&!isFinite(__h4))||/Infinity/.test(String(__h4))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h4)){btn.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}btn.innerHTML=__h4;
+        btn.onclick = function() { EarTrainer.selectAnswer(id); };
+        grid.appendChild(btn);
+      });
+    }
+  }
+
+  function renderRefTable() {
+    const el = $('refContent');
+    if (state.mode === 'interval') {
+      let html = '<table><thead><tr><th>音程</th><th>简称</th><th>半音数</th><th>示例（C为根音）</th></tr></thead><tbody>';
+      INTERVALS.forEach(function(iv) {
+        const topNote = iv.semitones;
+        const topName = NOTE_NAMES[topNote % 12];
+        html += '<tr><td><strong>' + iv.name + '</strong></td><td>' + iv.short + '</td><td>' + iv.semitones + '</td><td>C → ' + topName + '</td></tr>';
+      });
+      html += '</tbody></table>';
+      const __h5=html;if((typeof __h5==='number'&&!isFinite(__h5))||/Infinity/.test(String(__h5))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h5)){el.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}el.innerHTML=__h5;
+      $('refCard').style.display = '';
+    } else {
+      let html = '<table><thead><tr><th>和弦</th><th>英文</th><th>结构</th><th>示例（C为根音）</th></tr></thead><tbody>';
+      CHORDS.forEach(function(ch) {
+        html += '<tr><td><strong>' + ch.name + '</strong></td><td>' + ch.short + '</td><td>根音 + ' + ch.intervals.join('+') + ' 半音</td><td>C ' + ch.intervals.map(function(s) { return NOTE_NAMES[s]; }).join('-') + '</td></tr>';
+      });
+      html += '</tbody></table>';
+      const __h6=html;if((typeof __h6==='number'&&!isFinite(__h6))||/Infinity/.test(String(__h6))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h6)){el.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}el.innerHTML=__h6;
+      $('refCard').style.display = '';
+    }
+  }
+
+    var __eet=function(){
+    if(typeof TBKit==='undefined')return;
+    var acc=(function(){return (typeof state!=='undefined'&&state.total>0)?state.total:NaN;})();
+    if(typeof acc!=='number'||!isFinite(acc)||acc<0)return;
+    var lab=(function(){if(typeof state==='undefined'||!state.total)return '';return Math.round(state.correct/state.total*100)+'% 正确 · 连胜'+(typeof state.streak!=='undefined'?state.streak:0);})();
+    var EN=false;try{EN=TBKit.util.isEn();}catch(e){}
+    var LBL=EN?'Total Questions':'记录答题总数(题)';
+    var T=EN?{hist:'Practice History',sc:'Score',no:'#',time:'Time',exp:'Export CSV',file:'practice-history.csv',col:'Type'}
+            :{hist:'练习成绩历史',sc:'成绩值',no:'序号',time:'时间',exp:'导出 CSV',file:'practice-history.csv',col:'类型'};
+    var KEY='__tbn_ear_trainer';
+    var hist=[];try{hist=JSON.parse(localStorage.getItem(KEY)||'[]');}catch(e){hist=[];}
+    if(!Array.isArray(hist))hist=[];
+    var last=hist[hist.length-1];
+    if(!last||last.v!==acc||(lab&&last.l!==lab)){hist.push({t:Date.now(),v:acc,l:lab||''});}
+    if(hist.length>30)hist=hist.slice(-30);
+    try{localStorage.setItem(KEY,JSON.stringify(hist));}catch(e){}
+    var __rec={};__rec[LBL]=acc;if(TBKit.history&&TBKit.history.record)TBKit.history.record(__rec);
+    var host=document.getElementById('__tbnExtras');
+    if(!host)return;
+    if(hist.length<2){host.innerHTML='<p style="color:var(--text-muted);font-size:13px;margin:8px 0">'+(EN?'Records appear after 2+ sessions.':'游戏 2 局以上后显示成绩趋势图。')+'</p>';return;}
+    host.innerHTML='<h3 style="font-size:15px;margin:8px 0">'+T.hist+'（'+LBL+'）</h3><div id="__tbnChart"></div><div id="__tbnTable"></div><div id="__tbnDiff"></div>';
+    var labels=hist.map(function(h,i){return '#'+(i+1);});
+    if(TBKit.chart&&TBKit.chart.line){try{TBKit.chart.line('#__tbnChart',{labels:labels,series:[{name:LBL,data:hist.map(function(h){return h.v;})}]});}catch(e){}}
+    var rows=hist.map(function(h,i){return ['#'+(i+1),new Date(h.t).toLocaleString(),h.v,h.l||''];});
+    if(TBKit.matrix&&TBKit.matrix.table){try{TBKit.matrix.table('#__tbnTable',{head:[T.no,T.time,T.sc,T.col],rows:rows,search:false});}catch(e){}}
+    if(TBKit.util&&TBKit.util.diffBox)TBKit.util.diffBox('#__tbnDiff',[LBL]);
+    var btn=document.createElement('button');
+    btn.type='button';btn.className='btn';btn.textContent=T.exp;
+    btn.onclick=function(){if(TBKit.export&&TBKit.export.csv)TBKit.export.csv(T.file,rows);};
+    host.appendChild(btn);
+  };
+
+function updateStats() {
+      __eet();
+    $('statTotal').textContent = state.total;
+    $('statCorrect').textContent = state.correct;
+    const rate = state.total > 0 ? Math.round(state.correct / state.total * 100) : 0;
+    $('statRate').textContent = rate + '%';
+    $('statStreak').textContent = state.streak;
+  }
+
+  /* ========== 音频播放 ========== */
+
+  function playSound() {
+    const ctx = getAudioCtx();
+    const masterGain = ctx.createGain();
+    masterGain.gain.setValueAtTime(1, ctx.currentTime);
+    masterGain.connect(ctx.destination);
+
+    const noteDuration = 1.5;
+    const playBtn = $('playBtn');
+    playBtn.classList.add('playing');
+
+    if (state.mode === 'interval') {
+      const interval = INTERVALS.find(function(i) { return i.id === state.currentAnswer; });
+      const rootFreq = midiToFreq(state.currentRootMidi);
+      const topFreq = midiToFreq(state.currentRootMidi + interval.semitones);
+
+      if (state.playStyle === 'simultaneous') {
+        playNote(rootFreq, ctx.currentTime, noteDuration, ctx, masterGain);
+        playNote(topFreq, ctx.currentTime, noteDuration, ctx, masterGain);
+      } else {
+        // 琶音：先后播放
+        playNote(rootFreq, ctx.currentTime, noteDuration * 0.8, ctx, masterGain);
+        playNote(topFreq, ctx.currentTime + 0.5, noteDuration * 0.8, ctx, masterGain);
+      }
+    } else {
+      // 和弦模式：三个音同时播放
+      const chord = CHORDS.find(function(c) { return c.id === state.currentAnswer; });
+      const rootFreq = midiToFreq(state.currentRootMidi);
+      const midFreq = midiToFreq(state.currentRootMidi + chord.intervals[0]);
+      const topFreq = midiToFreq(state.currentRootMidi + chord.intervals[1]);
+      playNote(rootFreq, ctx.currentTime, noteDuration, ctx, masterGain);
+      playNote(midFreq, ctx.currentTime, noteDuration, ctx, masterGain);
+      playNote(topFreq, ctx.currentTime, noteDuration, ctx, masterGain);
+    }
+
+    setTimeout(function() {
+      playBtn.classList.remove('playing');
+    }, (state.mode === 'interval' && state.playStyle === 'arpeggio') ? 2000 : 1800);
+  }
+
+  /* ========== 出题逻辑 ========== */
+
+  function generateQuestion() {
+    state.answered = false;
+    hideFeedback();
+    enableOptions();
+
+    if (state.mode === 'interval') {
+      const pool = INTERVAL_DIFFICULTY[state.difficulty] || INTERVAL_DIFFICULTY.easy;
+      const idx = Math.floor(Math.random() * pool.length);
+      state.currentAnswer = pool[idx];
+      // 随机根音，范围 C3-C5（MIDI 48-72）
+      state.currentRootMidi = 48 + Math.floor(Math.random() * 25);
+      const interval = INTERVALS.find(function(i) { return i.id === state.currentAnswer; });
+      const topMidi = state.currentRootMidi + interval.semitones;
+      state.currentNoteNames = [
+        NOTE_NAMES[state.currentRootMidi % 12] + (Math.floor(state.currentRootMidi / 12) - 1),
+        NOTE_NAMES[topMidi % 12] + (Math.floor(topMidi / 12) - 1)
+      ];
+    } else {
+      const pool = CHORD_DIFFICULTY[state.difficulty] || CHORD_DIFFICULTY.easy;
+      const idx = Math.floor(Math.random() * pool.length);
+      state.currentAnswer = pool[idx];
+      state.currentRootMidi = 48 + Math.floor(Math.random() * 20);
+      const chord = CHORDS.find(function(c) { return c.id === state.currentAnswer; });
+      const midMidi = state.currentRootMidi + chord.intervals[0];
+      const topMidi = state.currentRootMidi + chord.intervals[1];
+      state.currentNoteNames = [
+        NOTE_NAMES[state.currentRootMidi % 12] + (Math.floor(state.currentRootMidi / 12) - 1),
+        NOTE_NAMES[midMidi % 12] + (Math.floor(midMidi / 12) - 1),
+        NOTE_NAMES[topMidi % 12] + (Math.floor(topMidi / 12) - 1)
+      ];
+    }
+
+    $('playHint').textContent = '点击播放，听后选择答案';
+    renderOptions();
+  }
+
+  /* ========== 答案处理 ========== */
+
+  function selectAnswer(selectedId) {
+    if (state.answered) return;
+    state.answered = true;
+    state.total++;
+
+    const isCorrect = selectedId === state.currentAnswer;
+    if (isCorrect) {
+      state.correct++;
+      state.streak++;
+      if (state.streak > state.bestStreak) state.bestStreak = state.streak;
+      highlightOption(selectedId, 'correct');
+      showFeedback(true, '');
+      ToolBox.showToast(state.streak >= 3 ? '连击 x' + state.streak + ' !' : '正确!', 'success');
+    } else {
+      state.streak = 0;
+      highlightOption(selectedId, 'wrong');
+      highlightOption(state.currentAnswer, 'reveal');
+      const correctName = state.mode === 'interval'
+        ? (INTERVALS.find(function(i) { return i.id === state.currentAnswer; }) || {}).name
+        : (CHORDS.find(function(c) { return c.id === state.currentAnswer; }) || {}).name;
+      showFeedback(false, '正确答案: ' + correctName + ' | 音符: ' + state.currentNoteNames.join(' - '));
+      ToolBox.showToast(i18nText(), 'error');
+    }
+
+    disableOptions();
+    updateStats();
+    $('playHint').textContent = '选择答案后，点击"下一题"继续';
+  }
+
+  function highlightOption(id, className) {
+    const btns = document.querySelectorAll('.option-btn');
+    btns.forEach(function(btn) {
+      if (btn.getAttribute('data-id') === id) {
+        btn.classList.add(className);
+      }
+    });
+  }
+
+  function showFeedback(isCorrect, detail) {
+    const el = $('feedback');
+    el.className = 'feedback show ' + (isCorrect ? 'correct-fb' : 'wrong-fb');
+    if (isCorrect) {
+      let streakHtml = state.streak >= 3 ? '<br><span class="streak-pop" style="font-size:20px;">🔥 连击 x' + state.streak + '</span>' : '';
+      const __h7='✅ 回答正确!' + streakHtml;if((typeof __h7==='number'&&!isFinite(__h7))||/Infinity/.test(String(__h7))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h7)){el.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}el.innerHTML=__h7;
+    } else {
+      const __h8='❌ 回答错误<div class="note-info">' + detail + '</div>';if((typeof __h8==='number'&&!isFinite(__h8))||/Infinity/.test(String(__h8))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h8)){el.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}el.innerHTML=__h8;
+    }
+  }
+
+  function hideFeedback() {
+    const el = $('feedback');
+    el.className = 'feedback';
+    const __h9='';if((typeof __h9==='number'&&!isFinite(__h9))||/Infinity/.test(String(__h9))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h9)){el.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}el.innerHTML=__h9;
+  }
+
+  function enableOptions() {
+    const btns = document.querySelectorAll('.option-btn');
+    btns.forEach(function(btn) {
+      btn.disabled = false;
+      btn.className = 'option-btn';
+    });
+  }
+
+  function disableOptions() {
+    const btns = document.querySelectorAll('.option-btn');
+    btns.forEach(function(btn) {
+      btn.disabled = true;
+    });
+  }
+
+  /* ========== 公开接口 ========== */
+
+  window.EarTrainer = {
+    setMode: function(mode) {
+      state.mode = mode;
+      // 切换时重置难度到默认
+      state.difficulty = 'easy';
+      if (mode === 'chord') {
+        state.playStyle = 'simultaneous';
+      }
+      // 更新 tab 样式
+      document.querySelectorAll('.mode-tab').forEach(function(tab) {
+        tab.classList.remove('active');
+      });
+      if (mode === 'interval') {
+        document.querySelectorAll('.mode-tab')[0].classList.add('active');
+      } else {
+        document.querySelectorAll('.mode-tab')[1].classList.add('active');
+      }
+      renderDifficulty();
+      renderRefTable();
+      generateQuestion();
+    },
+
+    setDifficulty: function(diff) {
+      state.difficulty = diff;
+      renderDifficulty();
+      generateQuestion();
+    },
+
+    setPlayStyle: function(style) {
+      state.playStyle = style;
+      document.querySelectorAll('.play-style-btn').forEach(function(btn) {
+        btn.classList.remove('active');
+      });
+      document.querySelectorAll('.play-style-btn').forEach(function(btn) {
+        if (btn.textContent.indexOf(style === 'simultaneous' ? '同时' : '先后') >= 0) {
+          btn.classList.add('active');
+        }
+      });
+    },
+
+    selectAnswer: selectAnswer,
+
+    resetStats: function() {
+      state.total = 0;
+      state.correct = 0;
+      state.streak = 0;
+      state.bestStreak = 0;
+      updateStats();
+      ToolBox.showToast(i18nText(), 'info');
+    }
+  };
+
+  // 供外部调用的便捷函数
+  window.setMode = function(mode) { EarTrainer.setMode(mode); };
+  window.setPlayStyle = function(style) { EarTrainer.setPlayStyle(style); };
+  window.setDifficulty = function(diff) { EarTrainer.setDifficulty(diff); };
+  window.resetStats = function() { EarTrainer.resetStats(); };
+
+  window.playCurrent = function() {
+    playSound();
+  };
+
+  window.newRound = function() {
+    generateQuestion();
+  };
+
+  // SEO 折叠面板
+  window.toggleIntro = function() {
+    const el = $('toolIntro');
+    el.classList.toggle('open');
+  };
+
+  /* ========== 初始化 ========== */
+  renderDifficulty();
+  renderRefTable();
+  generateQuestion();
+  updateStats();
+
+})();
+</script>
+<script>
+// ============ 导出音程/和弦参考表 CSV ============
+var __EAR_EN={
+  '小二度':'Minor 2nd','大二度':'Major 2nd','小三度':'Minor 3rd','大三度':'Major 3rd',
+  '纯四度':'Perfect 4th','增四度/减五度':'Tritone','纯五度':'Perfect 5th',
+  '小六度':'Minor 6th','大六度':'Major 6th','小七度':'Minor 7th','大七度':'Major 7th','纯八度':'Octave',
+  '大三和弦':'Major Triad','小三和弦':'Minor Triad','增三和弦':'Augmented Triad','减三和弦':'Diminished Triad'
+};
+function __earRow(cells){
+  var tr=document.createElement('tr');
+  cells.forEach(function(c){var td=document.createElement('td');td.textContent=c;tr.appendChild(td);});
+  return tr;
+}
+function __earExport(){
+  if(typeof TBKit==='undefined')return;
+  var en=TBKit.util.isEn();
+  var tbody=document.querySelector('#earHidden tbody');
+  if(!tbody)return;
+  tbody.innerHTML='';
+  var tbl=document.querySelector('#refContent table tbody');
+  if(!tbl){ if(typeof ToolBox!=='undefined'&&ToolBox.showToast)ToolBox.showToast(en?'Reference table not ready':'参考表尚未生成'); return; }
+  var trs=tbl.querySelectorAll('tr');
+  for(var i=0;i<trs.length;i++){
+    var tds=trs[i].querySelectorAll('td');
+    if(tds.length<4)continue;
+    var cells=[];
+    for(var j=0;j<4;j++){
+      var s=(tds[j].textContent||'').trim();
+      if(en){
+        if(j===0) s=__EAR_EN[s]||s;
+        else s=s.replace(/根音/g,'Root').replace(/半音/g,'semitones');
+      }
+      cells.push(s);
+    }
+    tbody.appendChild(__earRow(cells));
+  }
+  TBKit.util.exportTable('#earHidden', en?'interval-reference.csv':'音程参考表.csv');
+}
+</script><script>
+// tool-intro折叠交互
+document.addEventListener('DOMContentLoaded',function(){
+  var headers=document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click',function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+</script>
+
+</body>
+</html>

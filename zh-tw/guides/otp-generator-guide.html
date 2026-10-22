@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-opencc-locale="zh-tw">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OTP 生成器（HOTP/TOTP）使用指南 - ToolBox</title>
+<meta name="description" content="OTP 生成器（HOTP/TOTP）使用指南：演示基於時間的一次性口令（如 2FA）。TOTP 以時間視窗為計數器，過期需重新算。本指南整理核心功能、適用場景、使用步驟與常見問題，純前端免費線上使用，資料不上傳。">
+<meta property="og:title" content="OTP 生成器（HOTP/TOTP）使用指南 - ToolBox">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="ToolBox">
+<meta property="og:url" content="https://tools.dicomp.net/zh-tw/guides/otp-generator-guide.html">
+<meta property="og:description" content="OTP 生成器（HOTP/TOTP）使用指南：演示基於時間的一次性口令（如 2FA）。TOTP 以時間視窗為計數器，過期需重新算。本指南整理核心功能、適用場景、使用步驟與常見問題，純前端免費線上使用，資料不上傳。">
+<meta property="og:image" content="https://tools.dicomp.net/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="OTP 生成器（HOTP/TOTP）使用指南 - ToolBox">
+<meta name="twitter:description" content="OTP 生成器（HOTP/TOTP）使用指南：演示基於時間的一次性口令（如 2FA）。TOTP 以時間視窗為計數器，過期需重新算。本指南整理核心功能、適用場景、使用步驟與常見問題，純前端免費線上使用，資料不上傳。">
+<meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
+<link rel="canonical" href="https://tools.dicomp.net/zh-tw/guides/otp-generator-guide.html">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"OTP 生成器（HOTP/TOTP）使用指南","description":"OTP 生成器（HOTP/TOTP）使用指南：演示基於時間的一次性口令（如 2FA）。TOTP 以時間視窗為計數器，過期需重新算。本指南整理核心功能、適用場景、使用步驟與常見問題，純前端免費線上使用，資料不上傳。","author":{"@type":"Organization","name":"ToolBox"}}</script>
+<style>
+:root{--primary:#FF6B35;--text:#1F2937;--muted:#6B7280;--border:#E5E7EB;--bg:#FFFAF7;}
+*{box-sizing:border-box;}
+body{margin:0;font-family:"Noto Sans SC","Plus Jakarta Sans",system-ui,sans-serif;color:var(--text);background:var(--bg);line-height:1.75;}
+header{padding:18px 20px;border-bottom:1px solid var(--border);background:#fff;}
+.breadcrumb a{color:var(--primary);text-decoration:none;margin-right:6px;}
+main{max-width:780px;margin:0 auto;padding:28px 20px 60px;}
+h1{font-size:28px;margin:0 0 8px;}
+.lead{font-size:16px;color:var(--muted);margin:0 0 22px;}
+h2{font-size:20px;margin:28px 0 10px;color:var(--primary);}
+ul,ol{padding-left:22px;}
+li{margin:6px 0;}
+dl{margin:0;}
+dt{font-weight:700;margin-top:12px;}
+dd{margin:4px 0 0;color:var(--muted);}
+.back{margin-top:30px;padding:16px;background:#fff;border:1px solid var(--border);border-radius:14px;}
+.back a{color:var(--primary);font-weight:700;text-decoration:none;}
+footer{text-align:center;color:var(--muted);font-size:13px;padding:24px;border-top:1px solid var(--border);}
+</style>
+<script src="/js/analytics.js" defer></script>
+<script src="/js/i18n.js" defer></script>
+<script src="/js/common.js" defer></script>
+<link rel="stylesheet" href="/css/common.css">
+<!-- TOOLBOX-TTZZ -->
+<script>
+(function(){try{
+var el = document.createElement("script");
+el.src = "https://lf1-cdn-tos.bytegoofy.com/goofy/ttzz/push.js?85d6452aa9be4d693b16cd48535a8c7ae57542f6788a41682e745be8eb99b35a8a24d2f724c31ebe20c1e4e6fba6d91caf576100b02a2870c72f38fc574066fef065d152c73bf1cbb2ebad3b5b5265d8";
+el.id = "ttzz";
+var s = document.getElementsByTagName("script")[0];
+s.parentNode.insertBefore(el, s);
+}catch(e){}
+})(window);
+</script>
+
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://tools.dicomp.net/guides/otp-generator-guide.html">
+<link rel="alternate" hreflang="zh-TW" href="https://tools.dicomp.net/zh-tw/guides/otp-generator-guide.html">
+<link rel="alternate" hreflang="en-US" href="https://tools.dicomp.net/guides/otp-generator-guide.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://tools.dicomp.net/guides/otp-generator-guide.html">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+</head>
+<body>
+<header><nav class="breadcrumb"><a href="https://tools.dicomp.net/">ToolBox</a> / <a href="https://tools.dicomp.net/#guides">使用指南</a> / <span>OTP 生成器（HOTP/TOTP）</span></nav></header>
+<main>
+<h1>OTP 生成器（HOTP/TOTP） 使用指南</h1>
+<p class="lead">金鑰 + 當前 30 秒計數 → 6 位動態碼（每 30 秒變化）。…</p>
+<h2>核心功能</h2>
+<ul><li>按 TOTP（基於時間）與 HOTP（基於計數）生成一次性口令</li><li>可選 6 位或 8 位口令長度，適配不同驗證器要求</li><li>帶剩餘有效時間提示，便於理解 30 秒視窗</li><li>用於驗證 2FA 接入的金鑰與時間同步是否正確</li></ul>
+<h2>適用場景</h2>
+<ul><li>演示基於時間的一次性口令（如 2FA）。</li><li>驗證 2FA 接入是否正確：用同一金鑰在兩側分別生成，比對結果一致說明演算法與時間同步都沒問題。</li></ul>
+<h2>使用步驟</h2>
+<ol><li>確認服務端給的是 Base32 金鑰（常見形如 JBSWY3DPEHPK3PXP）</li><li>把金鑰貼上進輸入框，去掉空格</li><li>選擇口令位數（多數站點用 6 位）</li><li>選擇 TOTP 還是 HOTP：TOTP 依賴時間，HOTP 依賴計數器</li><li>把生成的口令與手機驗證器對照；不一致時優先查裝置時間是否偏差超過 30 秒</li></ol>
+<h2>實用技巧</h2>
+<ul><li>服務端通常接受前後各一個視窗以容忍輕微偏差</li><li>驗證 2FA 接入是否正確：用同一金鑰在兩側分別生成，比對結果一致說明演算法與時間同步都沒問題。</li></ul>
+<h2>常見問題</h2>
+<dl><dt>為什麼 30 秒失效？</dt><dd>TOTP 以時間視窗為計數器，過期需重新算。</dd><dt>驗證碼對不上是什麼原因？</dt><dd>最常見是時間不同步：TOTP 基於 Unix 時間按 30 秒步長計算，客戶端與服務端時鐘相差超過容差視窗就會失敗，應先校準 NTP。其次是金鑰錄入錯誤（Base32 大小寫或空格），以及把 HOTP 當成 TOTP。服務端通常接受前後各一個視窗以容忍輕微偏差。</dd></dl>
+<div class="back"><a href="https://tools.dicomp.net/tools/it/otp-generator.html">→ 去使用 OTP 生成器（HOTP/TOTP）（免費 · 純前端 · 資料不上傳）</a></div>
+</main>
+<footer>© 2026 ToolBox · 純前端線上工具 · 資料不上傳，安全可靠</footer>
+</body>
+</html>

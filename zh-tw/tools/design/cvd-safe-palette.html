@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-opencc-locale="zh-tw">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=design,industry=design,icon=🎨,bg=#e8f5e9">
+<title>色盲安全配色生成器 - 免費線上設計創意工具</title>
+<link rel="canonical" href="https://tools.dicomp.net/zh-tw/tools/design/cvd-safe-palette.html">
+<meta property="og:title" content="色盲安全配色生成器 - 免費線上設計創意工具">
+<meta property="og:description" content="生成在紅綠 / 藍黃 / 全色盲等 8 種色覺型別下都能清晰區分的配色方案：支援順序、發散、定性三類模式，在 OKLCH 感知均勻空間取樣並做 8 型色覺變換校驗，用貪心演算法選出各型下兩兩色差儘可能大的一組顏色。">
+<meta name="twitter:card" content="summary">
+<meta name="description" content="生成在紅綠 / 藍黃 / 全色盲等 8 種色覺型別下都能清晰區分的配色方案：支援順序、發散、定性三類模式，在 OKLCH 感知均勻空間取樣並做 8 型色覺變換校驗，用貪心演算法選出各型下兩兩色差儘可能大的一組顏色。">
+<link rel="stylesheet" href="/css/common.css">
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/common.js" defer></script>
+<!-- TOOLBOX-WEBAPP-LD -->
+<!-- TOOLBOX-SECURITY -->
+<style>
+.cs-wrap{max-width:1180px}
+.cs-ctl{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;align-items:end}
+.cs-field{display:flex;flex-direction:column;gap:5px}
+.cs-field label{font-size:12px;font-weight:600;color:var(--text-secondary)}
+.cs-locks{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0;align-items:flex-end}
+.cs-lock{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;color:var(--text-muted)}
+.cs-lock input[type=color]{width:46px;height:40px;padding:2px;border:1px solid var(--border);border-radius:8px;background:var(--bg-card);cursor:pointer}
+.cs-lock .row{display:flex;align-items:center;gap:3px}
+.cs-lock input[type=checkbox]{accent-color:var(--primary);width:15px;height:15px}
+.cs-lock button{border:0;background:transparent;color:var(--text-muted);cursor:pointer;font-size:14px;line-height:1;padding:1px 4px;border-radius:4px}
+.cs-lock button:hover{color:var(--danger);background:rgba(239,68,68,.12)}
+.cs-canvas-box{border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;background:var(--bg-card);margin-top:6px}
+.cs-canvas-box canvas{display:block;width:100%;height:auto}
+.cs-ladder{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0;align-items:center}
+.cs-ladder .sw{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10px;color:var(--text-muted);font-family:ui-monospace,Menlo,monospace}
+.cs-ladder .sw b{width:38px;height:38px;border-radius:8px;border:1px solid var(--border)}
+.cs-ladder .arrow{color:var(--text-muted);font-size:14px}
+.cs-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table.cs-tbl{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:10px}
+table.cs-tbl th,table.cs-tbl td{border:1px solid var(--border);padding:6px 8px;text-align:center}
+table.cs-tbl th{background:var(--th-bg);font-weight:700;color:var(--text-secondary)}
+table.cs-tbl td.k{text-align:left;font-weight:600;background:var(--bg-hover);white-space:nowrap}
+.cs-pass{color:var(--success);font-weight:700}
+.cs-fail{color:var(--danger);font-weight:700}
+.cs-warn{background:rgba(239,68,68,.10);border-left:3px solid var(--danger);padding:8px 12px;border-radius:6px;font-size:12.5px;color:var(--text-secondary);margin-top:8px;line-height:1.65}
+.cs-warn b{color:var(--danger)}
+.cs-ok{background:rgba(16,185,129,.10);border-left:3px solid var(--success);padding:8px 12px;border-radius:6px;font-size:12.5px;color:var(--text-secondary);margin-top:8px}
+.cs-rng{width:100%;accent-color:var(--primary)}
+.cs-copyrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.cs-mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.cs-note{font-size:12px;color:var(--text-muted);line-height:1.7;margin-top:12px;padding:10px 12px;background:var(--bg-hover);border-radius:8px}
+.cs-loading{padding:22px;text-align:center;color:var(--text-muted);font-size:13px}
+@media(max-width:640px){
+  .cs-lock input[type=color]{width:42px;height:36px}
+}
+</style>
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首頁","item":"https://tools.dicomp.net/zh-tw/"},{"@type":"ListItem","position":2,"name":"設計創意","item":"https://tools.dicomp.net/zh-tw/tools/design/index.html"},{"@type":"ListItem","position":3,"name":"色盲安全配色生成器","item":"https://tools.dicomp.net/zh-tw/tools/design/cvd-safe-palette.html"}]}</script>
+
+<script src="/js/analytics.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"色盲安全配色生成器","url":"https://tools.dicomp.net/zh-tw/tools/design/cvd-safe-palette.html","applicationCategory":"MultimediaApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"生成在紅綠 / 藍黃 / 全色盲等 8 種色覺型別下都能清晰區分的配色方案：支援順序、發散、定性三類模式，在 OKLCH 感知均勻空間取樣並做 8 型色覺變換校驗，用貪心演算法選出各型下兩兩色差儘可能大的一組顏色。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<meta property="og:image" content="https://tools.dicomp.net/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免費線上工具">
+<meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免費線上工具">
+
+<meta name="twitter:title" content="色盲安全配色生成器 - 免費線上設計創意工具">
+<meta name="twitter:description" content="生成在紅綠 / 藍黃 / 全色盲等 8 種色覺型別下都能清晰區分的配色方案：支援順序、發散、定性三類模式，在 OKLCH 感知均勻空間取樣並做 8 型色覺變換校驗，用貪心演算法選出各型下兩兩色差儘可能大的一組顏色。">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://tools.dicomp.net/zh-tw/tools/design/cvd-safe-palette.html">
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script src="/js/i18n.js" defer></script>
+<script src="/js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+<meta name="title-en" content="Cvd Safe Palette">
+<meta name="desc-en" content="Cvd Safe Palette - online utility on ToolBox.">
+
+
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
+
+<script src="/js/tool-ux.js" defer></script>
+<!-- TOOLBOX-TOOL-UX -->
+<!-- TOOLBOX-TTZZ -->
+<script>
+(function(){try{
+var el = document.createElement("script");
+el.src = "https://lf1-cdn-tos.bytegoofy.com/goofy/ttzz/push.js?85d6452aa9be4d693b16cd48535a8c7ae57542f6788a41682e745be8eb99b35a8a24d2f724c31ebe20c1e4e6fba6d91caf576100b02a2870c72f38fc574066fef065d152c73bf1cbb2ebad3b5b5265d8";
+el.id = "ttzz";
+var s = document.getElementsByTagName("script")[0];
+s.parentNode.insertBefore(el, s);
+}catch(e){}
+})(window);
+</script>
+
+<script src="/js/tool-kit.js" defer></script>
+<!-- TOOLBOX-TOOL-KIT -->
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://tools.dicomp.net/tools/design/cvd-safe-palette.html">
+<link rel="alternate" hreflang="zh-TW" href="https://tools.dicomp.net/zh-tw/tools/design/cvd-safe-palette.html">
+<link rel="alternate" hreflang="en-US" href="https://tools.dicomp.net/tools/design/cvd-safe-palette.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://tools.dicomp.net/tools/design/cvd-safe-palette.html">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+</head>
+<body>
+<nav class="breadcrumb" aria-label="麵包屑導航" data-breadcrumb="1">
+  <a href="/zh-tw/index.html">首頁</a>
+  <span class="bc-sep">‹</span>
+  <a href="/zh-tw/tools/design/index.html">🎨 色覺與色彩無障礙</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">色盲安全配色生成器</span>
+</nav>
+
+
+<h1 class="sr-only">色盲安全配色生成器</h1>
+
+<div class="nav">
+  <a href="/zh-tw/index.html">← ToolBox</a>
+  <span>/ 色盲安全配色生成器</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+<nav class="breadcrumb" aria-label="麵包屑導航">
+  <a href="/zh-tw/index.html">首頁</a>
+  <span class="bc-sep">‹</span>
+  <a href="/zh-tw/tools/design/index.html">🎨 色覺與色彩無障礙</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">色盲安全配色生成器</span>
+</nav>
+
+<div class="container cs-wrap">
+  <div class="card tool-card-accent" style="--tool-accent:#16a34a;">
+    <h2 data-zh="🎨 色盲安全配色生成器">🎨 Colorblind-Safe Palette Generator</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="生成在紅綠/藍黃色盲、全色盲等 8 種色覺型別下都能清晰區分的配色方案。支援順序（sequential）/ 發散（diverging）/ 定性（qualitative）三類模式，可鎖定關鍵顏色讓生成圍繞它擴充套件；採用「明暗交替 / 最大化明度差」策略保證色覺缺陷下可分；用 canvas 即時並排預覽 8 型模擬，並通過 WCAG 2.1 對比度校驗，一鍵複製 HEX / CSS 變數 / JSON。">Generate palettes that stay clearly distinguishable across 8 types of color vision, with sequential / diverging / qualitative modes, color locking, a lightness-alternation strategy, live 8-type previews and WCAG 2.1 checks — exported as HEX, CSS variables or JSON.</p>
+
+    <div class="formula-box">
+      <div class="formula-title">📐 安全配色原理</div>
+      <p class="formula-desc">所有候選色在 OKLCH 感知均勻空間取樣，逐一做 8 型色覺變換（Machado 矩陣用於紅/綠色盲，灰度去色用於全色盲）後轉 CIE Lab，用貪心演算法選出「全部 8 型下兩兩最小 ΔE」儘可能大的一組顏色。核心策略：色覺缺陷主要壓縮色相差異，而明度（L*）差異基本保留——因此順序配色走單色明度梯度、定性配色做明暗交替、發散配色讓中心最亮兩端最暗，都能在 CVD 下保持可分辨。WCAG 對比度 = (L亮+0.05)/(L暗+0.05)。</p>
+    </div>
+
+    <!-- 控制區 -->
+    <div class="cs-ctl">
+      <div id="cvPresets" style="margin:10px 0;"></div>
+      <div class="cs-field">
+        <label for="csMode">配色模式</label>
+        <select id="csMode" style="height:40px;padding:0 10px;border:1px solid var(--border);border-radius:8px;background:var(--bg-card);color:var(--text-primary);font-size:14px">
+          <option value="qualitative">定性 qualitative（分類）</option>
+          <option value="sequential">順序 sequential（單色梯度）</option>
+          <option value="diverging">發散 diverging（兩極對比）</option>
+        </select>
+      </div>
+      <div class="cs-field">
+        <label for="csCount"><span>顏色數量</span> <span class="cs-mono" id="csCountv">6</span></label>
+        <input type="range" id="csCount" min="3" max="10" value="6" class="cs-rng">
+      </div>
+      <div class="cs-field">
+        <label for="csStrategy">區分策略</label>
+        <select id="csStrategy" style="height:40px;padding:0 10px;border:1px solid var(--border);border-radius:8px;background:var(--bg-card);color:var(--text-primary);font-size:14px">
+          <option value="auto">自動（按模式最優）</option>
+          <option value="lightness">明暗交替優先</option>
+          <option value="maxmin">最大化最小色差</option>
+        </select>
+      </div>
+      <div class="cs-field">
+        <label>操作</label>
+        <button class="btn btn-primary" id="csGen" style="height:40px">生成安全配色</button>
+      </div>
+    </div>
+
+    <!-- 鎖定顏色 -->
+    <div style="margin-top:14px">
+      <strong style="font-size:13px;color:var(--text-primary)">🔒 鎖定顏色（勾選後生成將圍繞它們擴充套件）</strong>
+      <div class="cs-locks" id="csLocks"></div>
+      <button class="btn" id="csAddLock">+ 新增鎖定色</button>
+    </div>
+
+    <!-- 結果 -->
+    <div class="tabs" id="csTabs">
+      <button type="button" class="tab-btn active" data-v="out"></button>
+      <button type="button" class="tab-btn" data-v="guide"></button>
+    </div>
+    <div id="csOut"><div class="cs-loading">點選「生成安全配色」開始</div></div>
+    <div id="csGuide" style="display:none;margin-top:12px;"></div>
+    <table id="csHidden" style="display:none"><thead><tr><th>Index</th><th>HEX</th><th>Contrast vs White</th><th>Contrast vs Black</th><th>AA Text</th><th>AAA Text</th></tr></thead><tbody></tbody></table>
+
+    <div class="cs-note"><span>使用邊界說明：</span><span>本工具是設計與自查輔助工具，所有模擬基於色彩科學模型的數學推算，</span><b>不等同於醫學診斷</b><span>。即便配色在 8 型下 ΔE 充足，真實色覺障礙者仍可能受顯示器、環境光與個體差異影響；涉及安全關鍵資訊（如交通、醫療圖表）請勿僅依賴顏色，務必配合形狀、紋理或文字標籤。模型採用線性嚴重度插值，與真實光譜響應存在偏差。</span></div>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ============================================================
+   * 1. 色彩科学基础
+   * ========================================================== */
+  var M_PROTAN = [[0.152286, 1.052583, -0.204868], [0.114503, 0.786281, 0.099216], [-0.003882, -0.048116, 1.051998]];
+  var M_DEUTAN = [[0.367322, 0.860646, -0.227968], [0.280085, 0.672501, 0.047413], [-0.011820, 0.042940, 0.968881]];
+  var M_TRITAN = [[1.255528, -0.076749, -0.178779], [-0.078411, 0.930809, 0.147602], [0.004733, 0.691367, 0.303900]];
+
+  function clamp(v, a, b) { return v < a ? a : (v > b ? b : v); }
+  function isEn() { return !!(window.I18n && window.I18n.get && window.I18n.get() === 'en-US'); }
+  function B(zh, en) { return isEn() ? en : zh; }
+
+  function srgbToLin(c) { c /= 255; return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); }
+  function linToSrgb(c) {
+    c = clamp(c, 0, 1);
+    var v = c <= 0.0031308 ? c * 12.92 : 1.055 * Math.pow(c, 1 / 2.4) - 0.055;
+    return Math.round(clamp(v, 0, 1) * 255);
+  }
+  function hexToRgb(hex) {
+    var h = String(hex || '').trim().replace(/^#/, '');
+    if (h.length === 3) { h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2]; }
+    if (!/^[0-9a-fA-F]{6}$/.test(h)) { return null; }
+    var n = parseInt(h, 16);
+    return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  }
+  function rgbToHex(r, g, b) {
+    function p(x) { var s = clamp(Math.round(x), 0, 255).toString(16); return s.length < 2 ? '0' + s : s; }
+    return ('#' + p(r) + p(g) + p(b)).toUpperCase();
+  }
+  function relLuminance(rgb) { return 0.2126 * srgbToLin(rgb[0]) + 0.7152 * srgbToLin(rgb[1]) + 0.0722 * srgbToLin(rgb[2]); }
+  function wcagContrast(a, b) { var l1 = relLuminance(a), l2 = relLuminance(b); var hi = Math.max(l1, l2), lo = Math.min(l1, l2); return (hi + 0.05) / (lo + 0.05); }
+
+  /* ---- 8 种色觉类型（含正常，用于优化与 canvas 行）---- */
+  var VTYPES = [
+    { key: 'normal', zh: '正常', en: 'Normal', mode: 'identity' },
+    { key: 'protanopia', zh: '红色盲', en: 'Protanopia', mode: 'machado', m: M_PROTAN, sev: 1.0 },
+    { key: 'protanomaly', zh: '红色弱', en: 'Protanomaly', mode: 'machado', m: M_PROTAN, sev: 0.6 },
+    { key: 'deuteranopia', zh: '绿色盲', en: 'Deuteranopia', mode: 'machado', m: M_DEUTAN, sev: 1.0 },
+    { key: 'deuteranomaly', zh: '绿色弱', en: 'Deuteranomaly', mode: 'machado', m: M_DEUTAN, sev: 0.6 },
+    { key: 'tritanopia', zh: '蓝色盲', en: 'Tritanopia', mode: 'machado', m: M_TRITAN, sev: 1.0 },
+    { key: 'tritanomaly', zh: '蓝色弱', en: 'Tritanomaly', mode: 'machado', m: M_TRITAN, sev: 0.6 },
+    { key: 'achromatopsia', zh: '全色盲/灰度', en: 'Achromatopsia', mode: 'gray' }
+  ];
+  var VMAP = {}; VTYPES.forEach(function (t) { VMAP[t.key] = t; });
+
+  function effMatrix(type, sev) {
+    if (type.mode !== 'machado') { return null; }
+    var s = clamp(sev, 0, 1), out = [];
+    for (var i = 0; i < 3; i++) { out.push([0, 0, 0]); for (var j = 0; j < 3; j++) { var id = (i === j) ? 1 : 0; out[i][j] = id + (type.m[i][j] - id) * s; } }
+    return out;
+  }
+  function simulate(rgb, key) {
+    var t = VMAP[key];
+    if (!t || t.mode === 'identity') { return rgb.slice(); }
+    var r = srgbToLin(rgb[0]), g = srgbToLin(rgb[1]), b = srgbToLin(rgb[2]);
+    var o;
+    if (t.mode === 'gray') { var y = 0.2126 * r + 0.7152 * g + 0.0722 * b; o = [y, y, y]; }
+    else {
+      var m = effMatrix(t, t.sev !== undefined ? t.sev : 1);
+      o = [m[0][0] * r + m[0][1] * g + m[0][2] * b, m[1][0] * r + m[1][1] * g + m[1][2] * b, m[2][0] * r + m[2][1] * g + m[2][2] * b];
+    }
+    return [linToSrgb(o[0]), linToSrgb(o[1]), linToSrgb(o[2])];
+  }
+
+  var M_XYZ = [[0.4124564, 0.3575761, 0.1804375], [0.2126729, 0.7151522, 0.0721750], [0.0193339, 0.1191920, 0.9503041]];
+  var WHITE = [0.95047, 1.0, 1.08883];
+  function rgbToLab(rgb) {
+    var r = srgbToLin(rgb[0]), g = srgbToLin(rgb[1]), b = srgbToLin(rgb[2]);
+    var X = (M_XYZ[0][0] * r + M_XYZ[0][1] * g + M_XYZ[0][2] * b) / WHITE[0];
+    var Y = (M_XYZ[1][0] * r + M_XYZ[1][1] * g + M_XYZ[1][2] * b) / WHITE[1];
+    var Z = (M_XYZ[2][0] * r + M_XYZ[2][1] * g + M_XYZ[2][2] * b) / WHITE[2];
+    function f(t) { return t > 0.008856 ? Math.pow(t, 1 / 3) : (7.787 * t + 16 / 116); }
+    return [116 * f(Y) - 16, 500 * (f(X) - f(Y)), 200 * (f(Y) - f(Z))];
+  }
+  function deltaE2000(lab1, lab2) {
+    var L1 = lab1[0], a1 = lab1[1], b1 = lab1[2], L2 = lab2[0], a2 = lab2[1], b2 = lab2[2];
+    var C1 = Math.sqrt(a1 * a1 + b1 * b1), C2 = Math.sqrt(a2 * a2 + b2 * b2);
+    var Cb = (C1 + C2) / 2;
+    var G = 0.5 * (1 - Math.sqrt(Math.pow(Cb, 7) / (Math.pow(Cb, 7) + Math.pow(25, 7))));
+    var a1p = a1 * (1 + G), a2p = a2 * (1 + G);
+    var C1p = Math.sqrt(a1p * a1p + b1 * b1), C2p = Math.sqrt(a2p * a2p + b2 * b2);
+    var h1p = Math.atan2(b1, a1p); if (h1p < 0) { h1p += 2 * Math.PI; }
+    var h2p = Math.atan2(b2, a2p); if (h2p < 0) { h2p += 2 * Math.PI; }
+    var dLp = L2 - L1, dCp = C2p - C1p, dhp = 0;
+    if (C1p * C2p !== 0) { dhp = h2p - h1p; if (dhp > Math.PI) { dhp -= 2 * Math.PI; } else if (dhp < -Math.PI) { dhp += 2 * Math.PI; } }
+    var dHp = 2 * Math.sqrt(C1p * C2p) * Math.sin(dhp / 2);
+    var Lbp = (L1 + L2) / 2, Cbp = (C1p + C2p) / 2;
+    var hbp;
+    if (C1p * C2p === 0) { hbp = h1p + h2p; }
+    else if (Math.abs(h1p - h2p) <= Math.PI) { hbp = (h1p + h2p) / 2; }
+    else if (h1p + h2p < 2 * Math.PI) { hbp = (h1p + h2p + 2 * Math.PI) / 2; }
+    else { hbp = (h1p + h2p - 2 * Math.PI) / 2; }
+    var T = 1 - 0.17 * Math.cos(hbp - Math.PI / 6) + 0.24 * Math.cos(2 * hbp) + 0.32 * Math.cos(3 * hbp + Math.PI / 30) - 0.20 * Math.cos(4 * hbp - 63 * Math.PI / 180);
+    var dTh = 30 * Math.PI / 180 * Math.exp(-Math.pow((hbp * 180 / Math.PI - 275) / 25, 2));
+    var Rc = 2 * Math.sqrt(Math.pow(Cbp, 7) / (Math.pow(Cbp, 7) + Math.pow(25, 7)));
+    var Sl = 1 + (0.015 * Math.pow(Lbp - 50, 2)) / Math.sqrt(20 + Math.pow(Lbp - 50, 2));
+    var Sc = 1 + 0.045 * Cbp, Sh = 1 + 0.015 * Cbp * T;
+    var Rt = -Math.sin(2 * dTh) * Rc;
+    return Math.sqrt(Math.pow(dLp / Sl, 2) + Math.pow(dCp / Sc, 2) + Math.pow(dHp / Sh, 2) + Rt * (dCp / Sc) * (dHp / Sh));
+  }
+  function oklchToRgb(L, C, hDeg) {
+    var h = hDeg * Math.PI / 180;
+    var a = C * Math.cos(h), b = C * Math.sin(h);
+    var l_ = L + 0.3963377774 * a + 0.2158037573 * b;
+    var m_ = L - 0.1055613458 * a - 0.0638541728 * b;
+    var s_ = L - 0.0894841775 * a - 1.2914855480 * b;
+    var l = l_ * l_ * l_, m = m_ * m_ * m_, s = s_ * s_ * s_;
+    var r = 4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s;
+    var g = -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s;
+    var bb = -0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s;
+    return [linToSrgb(r), linToSrgb(g), linToSrgb(bb)];
+  }
+  function rgbToOklch(rgb) {
+    var r = srgbToLin(rgb[0]), g = srgbToLin(rgb[1]), b = srgbToLin(rgb[2]);
+    var l = 0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b;
+    var m = 0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b;
+    var s = 0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b;
+    var l_ = Math.cbrt(l), m_ = Math.cbrt(m), s_ = Math.cbrt(s);
+    var L = 0.2104542553 * l_ + 0.7936177850 * m_ - 0.0040720468 * s_;
+    var A = 1.9779984951 * l_ - 2.4285922050 * m_ + 0.4505937099 * s_;
+    var B = 0.0259040371 * l_ + 0.7827717662 * m_ - 0.8086757660 * s_;
+    var C = Math.sqrt(A * A + B * B);
+    var h = Math.atan2(B, A) * 180 / Math.PI; if (h < 0) { h += 360; }
+    return [L, C, h];
+  }
+
+  /* 两色在 8 型下的最小 ΔE */
+  function minDeltaAcross8(rgbA, rgbB) {
+    var la = VTYPES.map(function (t) { return rgbToLab(simulate(rgbA, t.key)); });
+    var lb = VTYPES.map(function (t) { return rgbToLab(simulate(rgbB, t.key)); });
+    var mn = Infinity;
+    for (var i = 0; i < VTYPES.length; i++) { var d = deltaE2000(la[i], lb[i]); if (d < mn) { mn = d; } }
+    return mn;
+  }
+
+  /* ============================================================
+   * 2. DOM 助手
+   * ========================================================== */
+  function $(id) { return document.getElementById(id); }
+  function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+  function copyText(t) {
+    if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(t).then(function () { toast(B('已复制 ', 'Copied ') + t); }, function () { fallbackCopy(t); }); }
+    else { fallbackCopy(t); }
+  }
+  function fallbackCopy(t) {
+    var ta = document.createElement('textarea'); ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); toast(B('已复制 ', 'Copied ') + t); } catch (e) { toast(B('复制失败', 'Copy failed')); }
+    document.body.removeChild(ta);
+  }
+  var _toastTimer = null;
+  function toast(msg) {
+    var el = $('csToast');
+    if (!el) { el = document.createElement('div'); el.id = 'csToast'; el.style.cssText = 'position:fixed;left:50%;bottom:32px;transform:translateX(-50%) translateY(20px);background:rgba(31,41,55,.94);color:#fff;padding:10px 18px;border-radius:999px;font-size:13px;z-index:9999;opacity:0;transition:.22s;pointer-events:none;box-shadow:0 6px 20px rgba(0,0,0,.2)'; document.body.appendChild(el); }
+    el.textContent = msg; el.style.opacity = '1'; el.style.transform = 'translateX(-50%) translateY(0)';
+    clearTimeout(_toastTimer); _toastTimer = setTimeout(function () { el.style.opacity = '0'; el.style.transform = 'translateX(-50%) translateY(20px)'; }, 1600);
+  }
+  function downloadBlob(data, filename, mime) {
+    var blob = (data instanceof Blob) ? data : new Blob([data], { type: mime || 'application/octet-stream' });
+    var url = URL.createObjectURL(blob); var a = document.createElement('a'); a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); setTimeout(function () { document.body.removeChild(a); URL.revokeObjectURL(url); }, 400);
+  }
+
+  /* ============================================================
+   * 3. 状态
+   * ========================================================== */
+  var S = { mode: 'qualitative', count: 6, strategy: 'auto', locks: [], result: null };
+
+  /* ---- 锁定色编辑器 ---- */
+  function renderLocks() {
+    var box = $('csLocks');
+    if (!S.locks.length) { const __h0='<span class="cs-note" style="margin:0">未锁定颜色。生成将自动选择最优起点。</span>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){box.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}box.innerHTML=__h0; return; }
+    var h = '';
+    S.locks.forEach(function (lk, i) {
+      h += '<div class="cs-lock">' +
+        '<div class="row"><input type="checkbox" ' + (lk.locked ? 'checked' : '') + ' data-i="' + i + '" data-act="lock" title="锁定"><button data-i="' + i + '" data-act="del" title="删除">×</button></div>' +
+        '<input type="color" value="' + lk.hex.toLowerCase() + '" data-i="' + i + '" data-act="color">' +
+        '<span class="cs-mono">' + lk.hex + '</span></div>';
+    });
+    const __h1=h;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){box.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}box.innerHTML=__h1;
+  }
+  $('csLocks').addEventListener('click', function (e) {
+    var b = e.target.closest ? e.target.closest('button[data-act="del"]') : null;
+    if (!b) { return; }
+    S.locks.splice(parseInt(b.getAttribute('data-i'), 10), 1); renderLocks();
+  });
+  $('csLocks').addEventListener('change', function (e) {
+    var t = e.target;
+    var i = parseInt(t.getAttribute('data-i'), 10);
+    if (t.getAttribute('data-act') === 'lock') { S.locks[i].locked = t.checked; }
+    else if (t.getAttribute('data-act') === 'color') {
+      var c = hexToRgb(t.value);
+      if (c) { S.locks[i].hex = rgbToHex(c[0], c[1], c[2]); S.locks[i].rgb = c; renderLocks(); }
+    }
+  });
+  $('csAddLock').addEventListener('click', function () {
+    S.locks.push({ hex: '#16A34A', rgb: [22, 163, 74], locked: true });
+    renderLocks();
+  });
+
+  /* ============================================================
+   * 4. 配色生成
+   * ========================================================== */
+  function buildCandidates() {
+    var out = [];
+    for (var h = 0; h < 360; h += 5) {
+      for (var L = 0.34; L <= 0.90; L += 0.06) {
+        for (var C = 0.04; C <= 0.20; C += 0.04) {
+          out.push({ L: L, C: C, h: h, rgb: oklchToRgb(L, C, h) });
+        }
+      }
+    }
+    return out;
+  }
+  var CAND = null;
+  function candLabs(c) { return VTYPES.map(function (t) { return rgbToLab(simulate(c.rgb, t.key)); }); }
+
+  function greedyQualitative(n, seeds) {
+    if (!CAND) { CAND = buildCandidates().map(function (c) { c.labs = candLabs(c); return c; }); }
+    var chosen = seeds.slice();
+    var alt = 0; // 明暗交替
+    while (chosen.length < n) {
+      var targetL = (alt % 2 === 0) ? 0.80 : 0.46; alt++;
+      var best = null, bestScore = -Infinity;
+      for (var i = 0; i < CAND.length; i++) {
+        var c = CAND[i];
+        if (Math.abs(c.L - targetL) > 0.16) { continue; }
+        var minD = Infinity;
+        for (var j = 0; j < chosen.length; j++) {
+          var d = minDeltaAcross8(c.rgb, chosen[j].rgb);
+          if (d < minD) { minD = d; }
+        }
+        if (minD > bestScore) { bestScore = minD; best = c; }
+      }
+      if (!best) { break; }
+      chosen.push(best);
+    }
+    return chosen.map(function (c) { return c.rgb; });
+  }
+
+  function rampSequential(n, seeds) {
+    var hue = 250, C = 0.10;
+    if (seeds.length) { var o = rgbToOklch(seeds[0].rgb || seeds[0]); hue = o[2]; C = clamp(o[1], 0.05, 0.16); }
+    var seq = [];
+    for (var i = 0; i < n; i++) { var t = n === 1 ? 0 : i / (n - 1); var L = 0.90 - 0.58 * t; seq.push(oklchToRgb(L, C, hue)); }
+    // 锁定色覆盖到对应位置
+    seeds.forEach(function (s, k) { if (k < seq.length) { seq[k] = (s.rgb || s); } });
+    return seq;
+  }
+
+  function rampDiverging(n, seeds) {
+    var h1 = 12, h2 = 220, C = 0.13;
+    if (seeds.length >= 1) { h1 = rgbToOklch(seeds[0].rgb || seeds[0])[2]; }
+    if (seeds.length >= 2) { h2 = rgbToOklch(seeds[1].rgb || seeds[1])[2]; }
+    function lerpHue(a, b, t) { var d = ((b - a + 540) % 360) - 180; return (a + d * t + 360) % 360; }
+    var seq = [];
+    for (var i = 0; i < n; i++) {
+      var t = n === 1 ? 0 : i / (n - 1);
+      var L = 0.32 + 0.58 * Math.abs(2 * t - 1); // 中心最亮，两极最暗
+      var h = lerpHue(h1, h2, t);
+      seq.push(oklchToRgb(L, C, h));
+    }
+    seeds.forEach(function (s, k) { if (k < seq.length) { seq[k] = (s.rgb || s); } });
+    return seq;
+  }
+
+  function generate() {
+    var n = S.count;
+    var seeds = S.locks.filter(function (l) { return l.locked && l.rgb; }).map(function (l) { return l; });
+    var mode = S.mode, strat = S.strategy;
+    var seq;
+    if (mode === 'sequential') { seq = rampSequential(n, seeds); }
+    else if (mode === 'diverging') { seq = rampDiverging(n, seeds); }
+    else {
+      // qualitative：strategy 影响起始
+      if (strat === 'lightness' || strat === 'auto') { seq = greedyQualitative(n, seeds); }
+      else { seq = greedyQualitative(n, seeds); }
+    }
+    // 若种子超过 n，截断
+    if (seq.length > n) { seq = seq.slice(0, n); }
+    S.result = seq;
+    return seq;
+  }
+
+  /* ============================================================
+   * 5. 渲染：canvas 8型并排 / 明度阶梯 / WCAG
+   * ========================================================== */
+  function drawCanvas(seq) {
+    var box = $('csCanvasBox');
+    var dpr = window.devicePixelRatio || 1;
+    var cssW = box.clientWidth || 720;
+    var rows = VTYPES.length;
+    var labelW = 96;
+    var rowH = 30;
+    var blockW = (cssW - labelW) / seq.length;
+    var cssH = rows * rowH + 6;
+    var cv = $('csCanvas');
+    cv.width = Math.round(cssW * dpr); cv.height = Math.round(cssH * dpr);
+    cv.style.height = cssH + 'px';
+    var ctx = cv.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, cssW, cssH);
+    ctx.textBaseline = 'middle';
+    ctx.font = '11px sans-serif';
+    for (var r = 0; r < rows; r++) {
+      var t = VTYPES[r];
+      var y = r * rowH + 3;
+      ctx.fillStyle = '#6B7280';
+      ctx.fillText(isEn() ? t.en : t.zh, 4, y + rowH / 2);
+      for (var i = 0; i < seq.length; i++) {
+        var o = simulate(seq[i], t.key);
+        ctx.fillStyle = 'rgb(' + o[0] + ',' + o[1] + ',' + o[2] + ')';
+        ctx.fillRect(labelW + i * blockW, y, blockW - 1, rowH - 2);
+      }
+    }
+  }
+
+  function renderLadder(seq) {
+    var h = '';
+    seq.forEach(function (c, i) {
+      var hex = rgbToHex(c[0], c[1], c[2]);
+      h += '<div class="cs-ladder"><div class="sw"><b style="background:' + hex + '"></b>' + hex + '</div>';
+      if (i < seq.length - 1) { h += '<span class="arrow">→</span>'; }
+      h += '</div>';
+    });
+    // 明度阶梯
+    var ls = seq.map(function (c) { return rgbToLab(c)[0]; });
+    var gaps = []; for (var i = 1; i < ls.length; i++) { gaps.push(ls[i] - ls[i - 1]); }
+    var minGap = gaps.length ? Math.min.apply(null, Math.abs(gaps[0]) ? gaps : gaps) : 0;
+    var absGaps = gaps.map(function (g) { return Math.abs(g); });
+    var mg = absGaps.length ? Math.min.apply(null, absGaps) : 0;
+    h += '<div class="cs-note" style="margin:8px 0 0">明度（L*）序列：' + ls.map(function (v) { return v.toFixed(0); }).join(' → ') +
+      '　相邻最小间隔 <b class="' + (mg >= 10 ? 'cs-pass' : 'cs-fail') + '">' + mg.toFixed(1) + '</b>' +
+      (mg >= 10 ? '（≥10，转灰度可分辨）' : '（&lt;10，转灰度可能混淆，建议明暗交替）') + '</div>';
+    const __h2=h;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){$('csLadder').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}$('csLadder').innerHTML=__h2;
+  }
+
+  function renderWcag(seq) {
+    var h = '<thead><tr><th>颜色</th><th>HEX</th><th>对白底对比</th><th>对黑底对比</th><th>AA 正文</th><th>AAA 正文</th></tr></thead><tbody>';
+    var fails = 0;
+    seq.forEach(function (c) {
+      var hex = rgbToHex(c[0], c[1], c[2]);
+      var cw = wcagContrast(c, [255, 255, 255]);
+      var cb = wcagContrast(c, [0, 0, 0]);
+      var aa = cw >= 4.5 || cb >= 4.5;
+      var aaa = cw >= 7 || cb >= 7;
+      if (!aa) { fails++; }
+      h += '<tr><td class="k"><span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:' + hex + ';vertical-align:-1px;margin-right:5px"></span>' + (isEn() ? 'Swatch' : '色块') + '</td>' +
+        '<td class="cs-mono">' + hex + '</td>' +
+        '<td>' + cw.toFixed(2) + ':1</td><td>' + cb.toFixed(2) + ':1</td>' +
+        '<td class="' + (aa ? 'cs-pass' : 'cs-fail') + '">' + (aa ? '✓' : '✗') + '</td>' +
+        '<td class="' + (aaa ? 'cs-pass' : 'cs-fail') + '">' + (aaa ? '✓' : '✗') + '</td></tr>';
+    });
+    h += '</tbody>';
+    const __h3=h;if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){$('csWcag').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}$('csWcag').innerHTML=__h3;
+
+    // 相邻对比（图例/坐标轴文字常见用法）
+    var adjMin = Infinity, adjPair = null;
+    for (var i = 0; i < seq.length - 1; i++) {
+      var d = wcagContrast(seq[i], seq[i + 1]);
+      if (d < adjMin) { adjMin = d; adjPair = [rgbToHex(seq[i][0], seq[i][1], seq[i][2]), rgbToHex(seq[i + 1][0], seq[i + 1][1], seq[i + 1][2])]; }
+    }
+    var adjOk = adjMin >= 3;
+    const __h4=(fails === 0
+      ? '<div class="cs-ok">✓ 所有颜色对白/黑底的文本对比均达 AA（≥4.5:1）' + (isEn() ? '' : '，适合正文文字。') + '</div>'
+      : '<div class="cs-warn">⚠ 有 ' + fails + ' 个颜色对白或黑底文本对比未达 AA（≥4.5:1），作正文文字时需配合底色块或描边。</div>') +
+      (adjPair ? '<div class="' + (adjOk ? 'cs-ok' : 'cs-warn') + '">' + (adjOk ? '✓' : '⚠') + ' 相邻两色最小对比 ' + adjMin.toFixed(2) + ':1（' + adjPair[0] + ' ↔ ' + adjPair[1] + '）' + (adjOk ? '，达到非文字元素 AA（≥3:1）。' : '，低于非文字元素 AA（≥3:1），相邻摆放时需加分隔或标签。') + '</div>' : '');if((typeof __h4==='number'&&!isFinite(__h4))||/Infinity/.test(String(__h4))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h4)){$('csWcagVerdict').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}$('csWcagVerdict').innerHTML=__h4;
+  }
+
+  function renderResult() {
+    var seq = S.result;
+    var out = $('csOut');
+    if (!seq) { const __h5='<div class="cs-loading">点击「生成安全配色」开始</div>';if((typeof __h5==='number'&&!isFinite(__h5))||/Infinity/.test(String(__h5))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h5)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h5; return; }
+    var hexes = seq.map(function (c) { return rgbToHex(c[0], c[1], c[2]); });
+
+    // 全局最小 ΔE（8型）
+    var globalMin = Infinity, worst = null;
+    for (var i = 0; i < seq.length; i++) {
+      for (var j = i + 1; j < seq.length; j++) {
+        var d = minDeltaAcross8(seq[i], seq[j]);
+        if (d < globalMin) { globalMin = d; worst = [hexes[i], hexes[j]]; }
+      }
+    }
+    var ok = globalMin >= 12;
+
+    var verdict = (ok
+      ? '<div class="cs-ok">✓ 该组配色在全部 8 种色觉类型下两两最小 ΔE = <b>' + globalMin.toFixed(1) + '</b>（阈值 12），最难分的一对是 <span class="cs-mono">' + worst[0] + '</span> ↔ <span class="cs-mono">' + worst[1] + '</span>。'
+      : '<div class="cs-warn">⚠ 当前约束下搜索到的最小 ΔE = <b>' + globalMin.toFixed(1) + '</b>（目标 12）。最难分的一对是 <span class="cs-mono">' + worst[0] + '</span> ↔ <span class="cs-mono">' + worst[1] + '</span>。可减少颜色数量、改用「明暗交替优先」策略，或换一个明度差更大的锁定色。') + '</div>';
+
+    const __h6='<div style="margin-top:16px"><strong style="font-size:14px;color:var(--text-primary)">🎨 8 型模拟并排预览（canvas）</strong>' +
+      '<div class="cs-canvas-box" id="csCanvasBox"><canvas id="csCanvas"></canvas></div></div>' +
+      '<div style="margin-top:14px"><strong style="font-size:14px;color:var(--text-primary)">明度阶梯（保证灰度可分辨）</strong><div class="cs-ladder" id="csLadder"></div></div>' +
+      '<div style="margin-top:14px"><strong style="font-size:14px;color:var(--text-primary)">WCAG 2.1 对比度校验</strong><div class="cs-scroll"><table class="cs-tbl" id="csWcag"></table></div><div id="csWcagVerdict"></div></div>' +
+      verdict +
+      '<div class="cs-copyrow">' +
+      '<button class="btn btn-primary" id="csCopyHex">复制 HEX</button>' +
+      '<button class="btn" id="csCopyCss">复制 CSS 变量</button>' +
+      '<button class="btn" id="csCopyJson">复制 JSON</button>' +
+      '<button class="btn" id="csExport">导出 PNG 预览</button>' +
+      '<button class="btn" id="csExportCsv">⬇️ 导出对比度 CSV</button>' +
+      '</div>';if((typeof __h6==='number'&&!isFinite(__h6))||/Infinity/.test(String(__h6))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h6)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h6;
+
+    drawCanvas(seq);
+    renderLadder(seq);
+    renderWcag(seq);
+
+    $('csCopyHex').addEventListener('click', function () { copyText(hexes.join(', ')); });
+    $('csCopyCss').addEventListener('click', function () {
+      copyText(':root {\n' + hexes.map(function (x, i) { return '  --cvd-color-' + (i + 1) + ': ' + x + ';'; }).join('\n') + '\n}');
+    });
+    $('csCopyJson').addEventListener('click', function () {
+      copyText(JSON.stringify({ mode: S.mode, count: S.count, palette: hexes, minDeltaE8Types: +globalMin.toFixed(2) }, null, 2));
+    });
+    $('csExport').addEventListener('click', function () {
+      var cv = $('csCanvas');
+      cv.toBlob(function (blob) { if (blob) { downloadBlob(blob, 'cvd-safe-palette.png', 'image/png'); } }, 'image/png');
+    });
+    $('csExportCsv').addEventListener('click', function () {
+      if (typeof TBKit === 'undefined' || !S.result) { return; }
+      var en = TBKit.util.isEn();
+      var tbody = document.querySelector('#csHidden tbody');
+      if (!tbody) { return; }
+      tbody.innerHTML = '';
+      S.result.forEach(function (c, i) {
+        var hex = rgbToHex(c[0], c[1], c[2]);
+        var cw = wcagContrast(c, [255, 255, 255]);
+        var cb = wcagContrast(c, [0, 0, 0]);
+        var aa = (cw >= 4.5 || cb >= 4.5) ? 'Yes' : 'No';
+        var aaa = (cw >= 7 || cb >= 7) ? 'Yes' : 'No';
+        var tr = document.createElement('tr');
+        tr.innerHTML = '<td>' + (i + 1) + '</td><td>' + hex + '</td><td>' + cw.toFixed(2) + ':1</td><td>' + cb.toFixed(2) + ':1</td><td>' + aa + '</td><td>' + aaa + '</td>';
+        tbody.appendChild(tr);
+      });
+      TBKit.util.exportTable('#csHidden', en ? 'cvd-safe-palette-contrast.csv' : '色盲安全配色对比度.csv');
+    });
+  }
+
+  /* ============================================================
+   * 6. 事件绑定与初始化
+   * ========================================================== */
+  $('csMode').addEventListener('change', function () { S.mode = this.value; });
+  $('csCount').addEventListener('input', function () { S.count = parseInt(this.value, 10); $('csCountv').textContent = this.value; });
+  $('csStrategy').addEventListener('change', function () { S.strategy = this.value; });
+  $('csGen').addEventListener('click', function () {
+    const __h7='<div class="cs-loading">正在搜索最优安全配色…</div>';if((typeof __h7==='number'&&!isFinite(__h7))||/Infinity/.test(String(__h7))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h7)){$('csOut').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}$('csOut').innerHTML=__h7;
+    setTimeout(function () { generate(); renderResult(); }, 30);
+  });
+
+  // 初始锁定一个示例色
+  S.locks = [{ hex: '#0EA5E9', rgb: [14, 165, 233], locked: false }];
+  renderLocks();
+  // 首屏自动生成一组
+  setTimeout(function () { generate(); renderResult(); }, 30);
+
+  var _reT = null;
+  document.addEventListener('toolbox:langchange', function () {
+    clearTimeout(_reT);
+    _reT = setTimeout(function () { if (S.result) { renderResult(); } }, 300);
+  });
+})();
+</script>
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto 0;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+.deep-dive a.term-link{color:var(--tool-accent,#FF6B35);text-decoration:none;border-bottom:1px dashed currentColor;}
+.deep-dive a.term-link:hover{border-bottom-style:solid;}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：色盲安全配色生成器</h2>
+<h3>💡 常見使用場景</h3>
+<ul class="dd-list">
+<li><a class="term-link" href="/zh-tw/tools/data/data-visualizer.html">資料視覺化</a>配色：為圖表、地圖生成在色盲視角下仍兩兩可分的分類色板。</li>
+<li>品牌與 UI 規範：產出主色/輔助色組合，滿足無障礙可辨識基線。</li>
+<li>教學/科研作圖：避免紅綠配對，改用藍橙或加紋理與標註。</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">可辨識度校驗</div><div class="dd-ex-body">在 OKLCH 取樣 6 色，逐對做 8 型色覺變換（紅/綠用 Machado 矩陣、全色盲用去色）後比較；若某對變換後感知距離過小，剔除其一併補採，最終 6 色在各類色覺缺陷下最小感知距離均超閾值。</div></div>
+<h3>❓ 常見問題（FAQ）</h3>
+<dl class="dd-faq">
+<dt>為什麼用 OKLCH 而不是 RGB/HSL？</dt><dd>OKLCH 在感知上近似均勻，按它取樣與比較距離更貼近「人眼覺得差多少」，避免 RGB/HSL 等距卻觀感不等的問題。</dd>
+<dt>安全配色是否意味著顏色不好看？</dt><dd>不是。安全是指「在色覺缺陷下仍可區分」，仍可在 OKLCH 內按明度/色相約束挑選美觀且對比充分的組合。</dd>
+<dt>僅靠換顏色夠嗎？</dt><dd>關鍵區分建議「顏色+形狀/紋理/標註」多重編碼，單靠配色在重度缺陷下仍可能吃力，多重編碼更穩妥。</dd>
+</dl>
+</div>
+</section>
+<!-- 相關工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相關工具</h3>
+  <div class="related-tools-grid">
+    <a href="/zh-tw/tools/design/colorblind-simulator.html" class="related-tool-card">
+      <span class="rt-icon">🧪</span>
+      <span class="rt-info"><span class="rt-name">色盲模擬器 Pro</span><span class="rt-desc">專業色覺缺陷（CVD）模擬器：支援紅色盲、紅色弱、綠色盲、綠色弱、藍色盲、藍色弱、全色盲、藍錐單色…</span></span>
+    </a>
+    <a href="/zh-tw/tools/design/palette-cvd-checker.html" class="related-tool-card">
+      <span class="rt-icon">🎨</span>
+      <span class="rt-info"><span class="rt-name">調色盤色覺可辨識度檢查器</span><span class="rt-desc">檢查配色在 8 種色覺型別與灰度下的兩兩 ΔE 可辨識度，輸出混淆預警、灰度明度階梯評分與一鍵修正建</span></span>
+    </a>
+    <a href="/zh-tw/tools/design/farnsworth-d15-test.html" class="related-tool-card">
+      <span class="rt-icon">📝</span>
+      <span class="rt-info"><span class="rt-name">Farnsworth D-15 色相排列測試</span><span class="rt-desc">瀏覽器版 Farnsworth D-15 色相排列測試：15 個等亮度色帽拖拽排序，輸出色相軌跡圖、</span></span>
+    </a>
+    <a href="/zh-tw/tools/design/generator-38.html" class="related-tool-card">
+      <span class="rt-icon">✨</span>
+      <span class="rt-info"><span class="rt-name">AI（輔助/生成/最佳化）探索</span><span class="rt-desc">按「角色 + 任務 + 上下文 + 輸出格式 + 約束」五要素拼裝結構化提示詞：選擇任務型別與輸出格</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro open" id="toolIntro">
+  <div class="tool-intro-header">
+    <span class="intro-icon-wrap"><span class="intro-icon">📖</span>關於「色盲安全配色生成器」</span>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="tool-intro-body">
+    <h4><span class="h4-icon">📝</span>工具簡介</h4>
+    <p>在 OKLCH 感知均勻空間取樣並做色覺缺陷變換校驗，生成在色盲視角下仍兩兩可分的調色盤。</p>
+    <h4><span class="h4-icon">✨</span>功能特點</h4>
+    <ul class="intro-features"><li>OKLCH 感知取樣</li><li>逐對可辨識校驗</li><li>風險對剔除補採</li></ul>
+    <h4><span class="h4-icon">🎯</span>使用場景</h4>
+    <ul class="intro-scenes"><li>資料視覺化配色</li><li>品牌/UI 規範</li><li>教學科研作圖</li></ul>
+  </div>
+</div>
+<!-- /SEO 介紹區塊 -->
+
+<script>
+// tool-intro折叠交互
+document.addEventListener('DOMContentLoaded',function(){
+  var headers=document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click',function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+</script>
+<script>
+(function(){
+  var CV_PRESETS=[
+    {label:'分类 6 色（自动策略）',labelEn:'Qualitative 6 (auto)',values:{csMode:'qualitative',csCount:'6',csStrategy:'auto'}},
+    {label:'顺序渐变 5 色',labelEn:'Sequential 5',values:{csMode:'sequential',csCount:'5',csStrategy:'auto'}},
+    {label:'发散对比 7 色',labelEn:'Diverging 7',values:{csMode:'diverging',csCount:'7',csStrategy:'auto'}},
+    {label:'明暗交替定性 8 色',labelEn:'Lightness 8',values:{csMode:'qualitative',csCount:'8',csStrategy:'lightness'}},
+    {label:'最大色差定性 6 色',labelEn:'Max-min 6',values:{csMode:'qualitative',csCount:'6',csStrategy:'maxmin'}}
+  ];
+  function cvAfter(){
+    // generate() 在页面 IIFE 内不可见；触发页面自己的生成按钮完成重算
+    var g=document.getElementById('csGen');
+    if(g){try{g.click();}catch(e){}}
+  }
+  function cvAll(){
+    if(typeof TBKit==='undefined'||!TBKit.preset||!TBKit.preset.bar) return;
+    TBKit.preset.bar('#cvPresets',CV_PRESETS,cvAfter);
+  }
+  document.addEventListener('DOMContentLoaded',cvAll);
+  document.addEventListener('toolbox:langchange',cvAll);
+  // F61: 配色参数持久化 + WCAG 对比度标准表 tabs
+  var CV_PKEY = 'cvdSafePaletteParams';
+  function cvB(zh, en) { return (typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()) ? en : zh; }
+  function cvSave() {
+    try {
+      var m = document.getElementById('csMode'), c = document.getElementById('csCount'), s = document.getElementById('csStrategy');
+      if (!m || !c || !s) return;
+      localStorage.setItem(CV_PKEY, JSON.stringify({ mode: m.value, count: c.value, strategy: s.value }));
+    } catch (e) {}
+  }
+  function cvRestore() {
+    try {
+      var raw = localStorage.getItem(CV_PKEY); if (!raw) return;
+      var s = JSON.parse(raw); if (!s) return;
+      var m = document.getElementById('csMode'), c = document.getElementById('csCount'), st = document.getElementById('csStrategy');
+      if (m && s.mode) { m.value = s.mode; m.dispatchEvent(new Event('change', { bubbles: true })); }
+      if (c && s.count) { c.value = s.count; c.dispatchEvent(new Event('input', { bubbles: true })); }
+      if (st && s.strategy) { st.value = s.strategy; st.dispatchEvent(new Event('change', { bubbles: true })); }
+    } catch (e) {}
+  }
+  function cvGuide() {
+    var host = document.getElementById('csGuide'); if (!host) return;
+    var rows = [
+      { zh: ['AA 正文文字', '4.5:1', '普通字号正文的最低合规线'], en: ['AA body text', '4.5:1', 'Minimum for normal-size body text'] },
+      { zh: ['AA 大字文字', '3:1', '≥18pt 或 14pt 粗体的大字文本'], en: ['AA large text', '3:1', 'Large text: 18pt+, or 14pt bold'] },
+      { zh: ['AAA 正文文字', '7:1', '增强合规线，适合长时阅读'], en: ['AAA body text', '7:1', 'Enhanced level for long reading'] },
+      { zh: ['AAA 大字文字', '4.5:1', '大号文本的增强合规线'], en: ['AAA large text', '4.5:1', 'Enhanced level for large text'] },
+      { zh: ['非文本元素', '3:1', '图标、边框、焦点指示器等'], en: ['Non-text elements', '3:1', 'Icons, borders, focus indicators'] }
+    ];
+    var html = '<h4 style="font-size:14px;font-weight:600;margin-bottom:8px;color:var(--heading,#333);">' + cvB('WCAG 2.x 对比度标准速查', 'WCAG 2.x contrast quick reference') + '</h4>'
+      + '<table style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr>'
+      + '<th style="padding:8px 10px;border-bottom:2px solid var(--border,#eee);text-align:left;">' + cvB('级别与用途', 'Level & use') + '</th>'
+      + '<th style="padding:8px 10px;border-bottom:2px solid var(--border,#eee);text-align:left;">' + cvB('最低对比度', 'Min contrast') + '</th>'
+      + '<th style="padding:8px 10px;border-bottom:2px solid var(--border,#eee);text-align:left;">' + cvB('说明', 'Notes') + '</th></tr></thead><tbody>';
+    rows.forEach(function (r) {
+      html += '<tr><td style="padding:7px 10px;border-bottom:1px solid var(--border,#eee);white-space:nowrap;font-weight:600;">' + cvB(r.zh[0], r.en[0]) + '</td>'
+        + '<td style="padding:7px 10px;border-bottom:1px solid var(--border,#eee);color:var(--primary);font-weight:700;">' + r.zh[1] + '</td>'
+        + '<td style="padding:7px 10px;border-bottom:1px solid var(--border,#eee);">' + cvB(r.zh[2], r.en[2]) + '</td></tr>';
+    });
+    html += '</tbody></table><p style="font-size:12px;color:var(--text-muted);margin-top:8px;line-height:1.7;">'
+      + cvB('对比度按 WCAG 相对亮度公式计算：浅色与深色各取一次，只要有一侧达标即算通过。生成结果中的每个色块都会标注与黑/白的对比度及 AA/AAA 达标情况，可直接用于图表与界面配色选型。', 'Contrast follows the WCAG relative-luminance formula, checked against both white and black; passing either side counts. Each generated swatch is annotated with its black/white contrast and AA/AAA status.') + '</p>';
+    host.innerHTML = html;
+  }
+  function cvTab(v) {
+    var bar = document.getElementById('csTabs'); if (!bar) return;
+    bar.querySelectorAll('.tab-btn').forEach(function (b) { b.classList.toggle('active', b.getAttribute('data-v') === v); });
+    var o = document.getElementById('csOut'), g = document.getElementById('csGuide');
+    if (o) o.style.display = (v === 'out') ? '' : 'none';
+    if (g) g.style.display = (v === 'guide') ? '' : 'none';
+    if (v === 'guide') { try { cvGuide(); } catch (e) {} }
+  }
+  function cvTabs() {
+    var bar = document.getElementById('csTabs'); if (!bar) return;
+    var b0 = bar.querySelector('.tab-btn[data-v="out"]'), b1 = bar.querySelector('.tab-btn[data-v="guide"]');
+    if (b0) b0.textContent = '🎨 ' + cvB('当前配色', 'Current palette');
+    if (b1) b1.textContent = '📋 ' + cvB('对比度标准', 'Contrast standard');
+    bar.querySelectorAll('.tab-btn').forEach(function (b) { b.addEventListener('click', function () { try { cvTab(b.getAttribute('data-v')); } catch (e) {} }); });
+  }
+  var genBtn = document.getElementById('csGen');
+  if (genBtn) genBtn.addEventListener('click', function () { setTimeout(cvSave, 60); });
+  document.addEventListener('DOMContentLoaded', function () { cvTabs(); cvRestore(); });
+  document.addEventListener('toolbox:langchange', function () { cvTabs(); try { cvGuide(); } catch (e) {} });
+})();
+</script>
+</body>
+</html>

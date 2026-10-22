@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-opencc-locale="zh-tw">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=design,industry=design,icon=🧪,bg=#ede9fe">
+<title>色盲模擬器 Pro - 免費線上設計創意工具</title>
+<link rel="canonical" href="https://tools.dicomp.net/zh-tw/tools/design/colorblind-simulator.html">
+<meta property="og:title" content="色盲模擬器 Pro - 免費線上設計創意工具">
+<meta property="og:description" content="專業色覺缺陷（CVD）模擬器：支援紅色盲、紅色弱、綠色盲、綠色弱、藍色盲、藍色弱、全色盲、藍錐單色共 8 種色覺型別的即時模擬，可對單個顏色、整組調色盤或上傳圖片做變換，並內建 WCAG 對比度檢查與 CIE ΔE 色差提示；全部計算在瀏覽">
+<meta property="og:url" content="https://tools.dicomp.net/zh-tw/tools/design/colorblind-simulator.html">
+<meta name="twitter:card" content="summary">
+<meta name="description" content="專業色覺缺陷（CVD）模擬器：支援紅色盲、紅色弱、綠色盲、綠色弱、藍色盲、藍色弱、全色盲、藍錐單色共 8 種色覺型別的即時模擬，可對單個顏色、整組調色盤或上傳圖片做變換，並內建 WCAG 對比度檢查與 CIE ΔE 色差提示；全部計算在瀏覽">
+<link rel="stylesheet" href="/css/common.css">
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/common.js" defer></script>
+<!-- TOOLBOX-WEBAPP-LD -->
+<!-- TOOLBOX-SECURITY -->
+<style>
+.cbs-wrap{max-width:1180px}
+.cbs-tabs{display:flex;gap:6px;flex-wrap:wrap;border-bottom:2px solid var(--border);margin-bottom:18px}
+.cbs-tab{padding:10px 16px;border:0;background:transparent;color:var(--text-secondary);font-size:14px;font-weight:600;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;border-radius:8px 8px 0 0;transition:.18s}
+.cbs-tab:hover{background:var(--bg-hover);color:var(--text-primary)}
+.cbs-tab[aria-selected="true"]{color:var(--primary);border-bottom-color:var(--primary);background:var(--bg-hover)}
+.cbs-pane{display:none}
+.cbs-pane.on{display:block}
+.cbs-grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
+.cbs-swatch{border:1px solid var(--border);border-radius:var(--radius-md);overflow:hidden;background:var(--bg-card);transition:.18s}
+.cbs-swatch:hover{box-shadow:var(--shadow-md);transform:translateY(-2px)}
+.cbs-swatch.sel{border-color:var(--primary);box-shadow:0 0 0 3px rgba(255,107,53,.18)}
+.cbs-chip{height:78px;display:block;width:100%}
+.cbs-meta{padding:8px 10px}
+.cbs-meta .n{font-size:13px;font-weight:700;color:var(--text-primary);line-height:1.3}
+.cbs-meta .h{font-size:11px;color:var(--text-muted);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;margin-top:3px;letter-spacing:.3px}
+.cbs-meta .d{font-size:11px;color:var(--text-muted);margin-top:2px}
+.cbs-big{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:16px 0}
+.cbs-bigbox{border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;background:var(--bg-card)}
+.cbs-bigchip{height:132px}
+.cbs-biglabel{padding:9px 12px;font-size:13px;font-weight:600;text-align:center;color:var(--text-secondary);border-top:1px solid var(--border)}
+.cbs-ctl{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;align-items:end}
+.cbs-field{display:flex;flex-direction:column;gap:5px}
+.cbs-field label{font-size:12px;font-weight:600;color:var(--text-secondary)}
+.cbs-preview-strip{display:flex;height:56px;border-radius:var(--radius-md);overflow:hidden;border:1px solid var(--border);margin:10px 0}
+.cbs-preview-strip>div{flex:1}
+.cbs-bar{display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px dashed var(--border);flex-wrap:wrap}
+.cbs-bar:last-child{border-bottom:0}
+.cbs-bar .lbl{width:118px;flex-shrink:0;font-size:13px;font-weight:600;color:var(--text-primary)}
+.cbs-bar .strip{flex:1;display:flex;height:44px;border-radius:8px;overflow:hidden;border:1px solid var(--border);min-width:200px}
+.cbs-bar .strip i{flex:1;display:block}
+.cbs-bar .tip{font-size:12px;color:var(--text-muted);width:100%;padding-left:0}
+.cbs-warn{background:rgba(239,68,68,.10);border-left:3px solid var(--danger);padding:8px 12px;border-radius:6px;font-size:12.5px;color:var(--text-secondary);margin-top:8px;line-height:1.65}
+.cbs-warn b{color:var(--danger)}
+.cbs-ok{background:rgba(16,185,129,.10);border-left:3px solid var(--success);padding:8px 12px;border-radius:6px;font-size:12.5px;color:var(--text-secondary);margin-top:8px}
+table.cbs-tbl{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:10px}
+table.cbs-tbl th,table.cbs-tbl td{border:1px solid var(--border);padding:6px 8px;text-align:center}
+table.cbs-tbl th{background:var(--th-bg);font-weight:700;color:var(--text-secondary)}
+table.cbs-tbl td.k{text-align:left;font-weight:600;background:var(--bg-hover)}
+td.bad{background:rgba(239,68,68,.16);color:var(--danger);font-weight:700}
+td.warn{background:rgba(245,158,11,.16);font-weight:700}
+td.good{background:rgba(16,185,129,.14)}
+.cbs-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.cbs-legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--text-muted);margin-top:8px}
+.cbs-legend span{display:inline-flex;align-items:center;gap:5px}
+.cbs-legend i{width:12px;height:12px;border-radius:3px;display:inline-block}
+.cvs-stage{position:relative;border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;background:repeating-conic-gradient(#e5e7eb 0% 25%,#fff 0% 50%) 50%/18px 18px}
+.cvs-stage img,.cvs-stage canvas{display:block;width:100%;height:auto}
+.cbs-cmp{position:relative;border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;user-select:none;touch-action:none}
+.cbs-cmp canvas{display:block;width:100%;height:auto}
+.cbs-slider{position:absolute;top:0;bottom:0;width:2px;background:#fff;box-shadow:0 0 0 1px rgba(0,0,0,.35);cursor:ew-resize;z-index:3}
+.cbs-slider::after{content:"◀ ▶";position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;color:#111;border-radius:999px;padding:5px 7px;font-size:10px;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,.28)}
+.cbs-tag{position:absolute;top:8px;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:700;background:rgba(0,0,0,.62);color:#fff;z-index:2;pointer-events:none}
+.cbs-tag.l{left:8px}
+.cbs-tag.r{right:8px}
+.cbs-rng{width:100%;accent-color:var(--primary)}
+.cbs-hint{font-size:12px;color:var(--text-muted);margin-top:6px;line-height:1.6}
+.cbs-palrow{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:10px 0}
+.cbs-palitem{position:relative;border:1px solid var(--border);border-radius:8px;padding:5px 26px 5px 8px;font-size:11.5px;font-family:ui-monospace,Menlo,monospace;background:var(--bg-card)}
+.cbs-palitem b{display:block;width:100%;height:20px;border-radius:4px;margin-bottom:3px}
+.cbs-del{position:absolute;top:2px;right:3px;border:0;background:transparent;color:var(--text-muted);cursor:pointer;font-size:14px;line-height:1;padding:2px 4px;border-radius:4px}
+.cbs-del:hover{background:rgba(239,68,68,.14);color:var(--danger)}
+.cbs-pass{color:var(--success);font-weight:700}
+.cbs-fail{color:var(--danger);font-weight:700}
+.cbs-note{font-size:12px;color:var(--text-muted);line-height:1.7;margin-top:12px;padding:10px 12px;background:var(--bg-hover);border-radius:8px}
+.cbs-mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.cbs-loading{padding:26px;text-align:center;color:var(--text-muted);font-size:13px}
+@media(max-width:640px){
+  .cbs-big{grid-template-columns:1fr}
+  .cbs-grid{grid-template-columns:repeat(auto-fill,minmax(120px,1fr))}
+  .cbs-bar .lbl{width:100%}
+  .cbs-tab{padding:9px 11px;font-size:13px}
+}
+</style>
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首頁","item":"https://tools.dicomp.net/zh-tw/"},{"@type":"ListItem","position":2,"name":"設計創意","item":"https://tools.dicomp.net/zh-tw/tools/design/index.html"},{"@type":"ListItem","position":3,"name":"Color Blindness Simulator Pro","item":"https://tools.dicomp.net/zh-tw/tools/design/colorblind-simulator.html"}]}</script>
+
+<script src="/js/analytics.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"色盲模擬器 Pro","url":"https://tools.dicomp.net/zh-tw/tools/design/colorblind-simulator.html","applicationCategory":"MultimediaApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"專業色覺缺陷（CVD）模擬器：支援紅色盲、紅色弱、綠色盲、綠色弱、藍色盲、藍色弱、全色盲、藍錐單色共 8 種色覺型別的即時模擬，可對單個顏色、整組調色盤或上傳圖片做變換，並內建 WCAG 對比度檢查與 CIE ΔE 色差提示；全部計算在瀏覽器本地完成，圖片不會上傳。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<meta property="og:image" content="https://tools.dicomp.net/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免費線上工具">
+<meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免費線上工具">
+
+<meta name="twitter:title" content="色盲模擬器 Pro - 免費線上設計創意工具">
+<meta name="twitter:description" content="專業色覺缺陷（CVD）模擬器：支援紅色盲、紅色弱、綠色盲、綠色弱、藍色盲、藍色弱、全色盲、藍錐單色共 8 種色覺型別的即時模擬，可對單個顏色、整組調色盤或上傳圖片做變換，並內建 WCAG 對比度檢查與 CIE ΔE 色差提示；全部計算在瀏覽">
+<meta property="og:type" content="website">
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script src="/js/i18n.js" defer></script>
+<script src="/js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+<meta name="title-en" content="Colorblind Simulator">
+<meta name="desc-en" content="Colorblind Simulator - online utility on ToolBox.">
+
+
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
+
+<script src="/js/tool-ux.js" defer></script>
+<!-- TOOLBOX-TOOL-UX -->
+<!-- TOOLBOX-TTZZ -->
+<script>
+(function(){try{
+var el = document.createElement("script");
+el.src = "https://lf1-cdn-tos.bytegoofy.com/goofy/ttzz/push.js?85d6452aa9be4d693b16cd48535a8c7ae57542f6788a41682e745be8eb99b35a8a24d2f724c31ebe20c1e4e6fba6d91caf576100b02a2870c72f38fc574066fef065d152c73bf1cbb2ebad3b5b5265d8";
+el.id = "ttzz";
+var s = document.getElementsByTagName("script")[0];
+s.parentNode.insertBefore(el, s);
+}catch(e){}
+})(window);
+</script>
+
+<script src="/js/tool-kit.js" defer></script>
+<!-- TOOLBOX-TOOL-KIT -->
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://tools.dicomp.net/tools/design/colorblind-simulator.html">
+<link rel="alternate" hreflang="zh-TW" href="https://tools.dicomp.net/zh-tw/tools/design/colorblind-simulator.html">
+<link rel="alternate" hreflang="en-US" href="https://tools.dicomp.net/tools/design/colorblind-simulator.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://tools.dicomp.net/tools/design/colorblind-simulator.html">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+</head>
+<body>
+
+<h1 class="sr-only">色盲模擬器 Pro</h1>
+
+<div class="nav">
+  <a href="/zh-tw/index.html">← ToolBox</a>
+  <span>/ 色盲模擬器 Pro</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+<nav class="breadcrumb" aria-label="麵包屑導航" data-breadcrumb="1">
+  <a href="/zh-tw/index.html">首頁</a>
+  <span class="bc-sep">‹</span>
+  <a href="/zh-tw/tools/design/index.html">🎨 色覺與色彩無障礙</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">色盲模擬器 Pro</span>
+</nav>
+
+<div class="container cbs-wrap">
+<div class="tool-guide-link" data-guide-link="1">
+  <a href="/zh-tw/guides/color-blindness-sim-guide.html">📖 檢視「色盲模擬器使用指南」</a>
+</div>
+
+  <div class="card tool-card-accent" style="--tool-accent:#7C3AED;">
+    <h2 data-zh="🧪 色盲模擬器 Pro：8 型模擬 · 圖片 · WCAG · 安全配色">🧪 Color Blindness Simulator Pro</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="專業色覺缺陷（CVD）模擬器。支援紅色盲、紅色弱、綠色盲、綠色弱、藍色盲、藍色弱、全色盲、藍錐單色共 8 種色覺型別的即時模擬，可對單個顏色、整組調色盤或上傳圖片做變換；內建 WCAG 2.1 對比度檢查、CIE ΔE 色差矩陣與色盲安全配色建議。全部計算在瀏覽器本地完成，圖片不會上傳到任何伺服器。">A professional color vision deficiency (CVD) simulator. It models 8 vision types in real time — protanopia, protanomaly, deuteranopia, deuteranomaly, tritanopia, tritanomaly, achromatopsia and blue-cone monochromacy — and transforms a single color, an entire palette or an uploaded image. Includes a WCAG 2.1 contrast checker, a CIE Delta-E confusion matrix and color-blind-safe palette suggestions. Everything runs locally in your browser; images are never uploaded.</p>
+
+    <div class="formula-box">
+      <div class="formula-title">📐 色彩模擬原理</div>
+      <p class="formula-desc">紅色盲/綠色盲/藍色盲採用 Machado、Oliveira 與 Fernandes（2009）提出的線性 RGB 變換矩陣，該矩陣把「sRGB → LMS 錐體響應 → 缺陷錐體補償 → 逆變換」三步合併為單個 3×3 矩陣，作用於線性光（linear-light）RGB。色弱（anomaly）通過在單位矩陣與完全型矩陣之間按嚴重度線性插值得到。全色盲按 Rec.709 亮度直接灰度化。藍錐單色視為近似模型：亮度走暗視覺光效函式 V′(λ)（視杆在紅光端響應極弱、綠光端最敏感，因此患者看紅色最暗、看綠色偏亮），色調僅保留 S 錐相對同亮度灰階的「藍超出量」，故白偏藍、黃轉灰、紅轉暗灰。色差計算走 sRGB → CIE XYZ(D65) → CIE Lab，提供 ΔE76 與 ΔE2000 兩種度量。</p>
+    </div>
+
+    <div class="cbs-tabs" role="tablist">
+      <button class="cbs-tab" role="tab" aria-selected="true" data-pane="single">🎯 單色模擬</button>
+      <button class="cbs-tab" role="tab" aria-selected="false" data-pane="palette">🎨 調色盤</button>
+      <button class="cbs-tab" role="tab" aria-selected="false" data-pane="image">🖼️ 圖片模擬</button>
+      <button class="cbs-tab" role="tab" aria-selected="false" data-pane="wcag">📏 WCAG 對比度</button>
+      <button class="cbs-tab" role="tab" aria-selected="false" data-pane="safe">🌈 安全配色</button>
+    </div>
+
+    <!-- ============ PANE 1 · 單色 ============ -->
+    <section class="cbs-pane on" id="pane-single">
+      <div class="cbs-ctl">
+        <div class="cbs-field">
+          <label for="c1Color">取色</label>
+          <input type="color" id="c1Color" value="#FF6B35" style="height:40px;width:100%;padding:2px;border:1px solid var(--border);border-radius:8px;background:var(--bg-card);cursor:pointer">
+        </div>
+        <div class="cbs-field">
+          <label for="c1Hex">HEX</label>
+          <input type="text" id="c1Hex" class="cbs-mono" value="#FF6B35" maxlength="7" spellcheck="false" style="height:40px;padding:0 10px;border:1px solid var(--border);border-radius:8px;background:var(--bg-card);color:var(--text-primary);font-size:14px">
+        </div>
+        <div class="cbs-field">
+          <label for="c1R">R <span class="cbs-mono" id="c1Rv">255</span></label>
+          <input type="range" id="c1R" min="0" max="255" value="255" class="cbs-rng">
+        </div>
+        <div class="cbs-field">
+          <label for="c1G">G <span class="cbs-mono" id="c1Gv">107</span></label>
+          <input type="range" id="c1G" min="0" max="255" value="107" class="cbs-rng">
+        </div>
+        <div class="cbs-field">
+          <label for="c1B">B <span class="cbs-mono" id="c1Bv">53</span></label>
+          <input type="range" id="c1B" min="0" max="255" value="53" class="cbs-rng">
+        </div>
+        <div class="cbs-field">
+          <label for="c1Sev"><span>嚴重度</span> <span class="cbs-mono" id="c1Sevv">100%</span></label>
+          <input type="range" id="c1Sev" min="0" max="100" value="100" class="cbs-rng">
+        </div>
+      </div>
+      <p class="cbs-hint">嚴重度僅在色弱型（anomaly）上按預設 60% 起算；完全型（opia）預設 100%。拖動滑桿可觀察從輕度色弱到完全色盲的連續變化。</p>
+
+      <div class="cbs-big">
+        <div class="cbs-bigbox">
+          <div class="cbs-bigchip" id="c1Orig" style="background:#FF6B35"></div>
+          <div class="cbs-biglabel"><span>原始顏色</span> <span class="cbs-mono" id="c1OrigHex">#FF6B35</span></div>
+        </div>
+        <div class="cbs-bigbox">
+          <div class="cbs-bigchip" id="c1Sim"></div>
+          <div class="cbs-biglabel"><span id="c1SimName">紅色盲 Protanopia</span> · <span class="cbs-mono" id="c1SimHex">—</span></div>
+        </div>
+      </div>
+
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-top:6px">
+        <strong style="font-size:14px;color:var(--text-primary)">8 種色覺型別下的呈現</strong>
+        <span class="cbs-hint" style="margin:0">點選卡片切換放大對比 · 點選 HEX 複製</span>
+      </div>
+      <div class="cbs-grid" id="c1Grid"></div>
+      <div class="toolbar" style="margin-top:10px;">
+        <button type="button" class="btn" onclick="window.__cbsExport()">⬇️ 匯出模擬結果 CSV</button>
+      </div>
+      <table id="cbsHidden" style="display:none;"><thead><tr><th>Vision Type</th><th>Simulated Hex</th><th>Delta E</th><th>Difference</th></tr></thead><tbody></tbody></table>
+      <div class="cbs-legend">
+        <span><i style="background:#10B981"></i><span>ΔE 0–5 幾乎無差異</span></span>
+        <span><i style="background:#F59E0B"></i><span>ΔE 5–15 可察覺</span></span>
+        <span><i style="background:#EF4444"></i><span>ΔE &gt;15 與原色明顯不同</span></span>
+      </div>
+    </section>
+
+    <!-- ============ PANE 2 · 調色盤 ============ -->
+    <section class="cbs-pane" id="pane-palette">
+      <div class="cbs-field" style="margin-bottom:8px">
+        <label for="c2Input">調色盤（每行一個 HEX，或用逗號/空格分隔，最多 12 色）</label>
+        <textarea id="c2Input" rows="3" spellcheck="false" class="cbs-mono" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--bg-card);color:var(--text-primary);font-size:13px;line-height:1.7">#FF6B35
+#7C3AED
+#00C9A7
+#3B82F6
+#F59E0B</textarea>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px">
+        <button class="btn btn-primary" id="c2Apply">解析並分析</button>
+        <button class="btn" id="c2Demo">載入示例配色</button>
+        <button class="btn" id="c2SortL">按明度排序</button>
+        <button class="btn" id="c2Export">匯出報告 JSON</button>
+      </div>
+      <div class="cbs-palrow" id="c2Chips"></div>
+      <p class="cbs-hint" id="c2GrayTip"></p>
+
+      <strong style="font-size:14px;color:var(--text-primary);display:block;margin:16px 0 4px">各色覺型別下的調色盤</strong>
+      <div id="c2Bars"></div>
+
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-top:18px">
+        <strong style="font-size:14px;color:var(--text-primary)"><span>色差矩陣 · 混淆預警</span></strong>
+        <select id="c2Type" style="padding:7px 10px;border:1px solid var(--border);border-radius:8px;background:var(--bg-card);color:var(--text-primary);font-size:13px"></select>
+      </div>
+      <div class="cbs-scroll"><table class="cbs-tbl" id="c2Matrix"></table></div>
+      <div id="c2Warn"></div>
+      <div class="cbs-note"><span>ΔE（CIE Lab 色差）判讀：</span><b>&lt; 5</b><span> 兩色在該色覺下幾乎無法區分，屬於嚴重混淆；</span><b>5–10</b><span> 難以區分，不建議用於需要編碼語義的圖表；</span><b>10–20</b><span> 可區分但需鄰近對比；</span><b>&gt; 20</b><span> 區分清晰。圖表配色建議保證任意兩色在全部 8 型下 ΔE ≥ 10。</span></div>
+    </section>
+
+    <!-- ============ PANE 3 · 圖片 ============ -->
+    <section class="cbs-pane" id="pane-image">
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
+        <input type="file" id="c3File" accept="image/*" style="font-size:13px;color:var(--text-secondary)">
+        <button class="btn" id="c3Demo">載入示例圖（程式化生成）</button>
+        <button class="btn btn-primary" id="c3Export" disabled>匯出 8 型並列圖 PNG</button>
+        <span class="cbs-hint" style="margin:0;display:flex;align-items:center;gap:5px">
+          <input type="checkbox" id="c3Label" checked> <label for="c3Label" style="margin:0;cursor:pointer">圖上標註型別名</label>
+        </span>
+      </div>
+      <p class="cbs-hint">圖片僅在本地處理：讀取後繪製到 canvas 逐畫素做矩陣變換，全程無網路請求。為控制耗時，超大圖會先等比縮放到最長邊 1280px。</p>
+      <div id="c3Stage" style="margin-top:12px">
+        <div class="cbs-loading" id="c3Empty">尚未選擇圖片。請點選上方「選擇檔案」，或載入內建示例圖體驗效果。</div>
+      </div>
+    </section>
+
+    <!-- ============ PANE 4 · WCAG ============ -->
+    <section class="cbs-pane" id="pane-wcag">
+      <div class="cbs-ctl">
+        <div class="cbs-field">
+          <label for="c4Fg">前景色（文字）</label>
+          <input type="color" id="c4Fg" value="#1F2937" style="height:40px;width:100%;padding:2px;border:1px solid var(--border);border-radius:8px;background:var(--bg-card);cursor:pointer">
+        </div>
+        <div class="cbs-field">
+          <label for="c4FgHex">前景 HEX</label>
+          <input type="text" id="c4FgHex" class="cbs-mono" value="#1F2937" maxlength="7" spellcheck="false" style="height:40px;padding:0 10px;border:1px solid var(--border);border-radius:8px;background:var(--bg-card);color:var(--text-primary);font-size:14px">
+        </div>
+        <div class="cbs-field">
+          <label for="c4Bg">背景色</label>
+          <input type="color" id="c4Bg" value="#FFFFFF" style="height:40px;width:100%;padding:2px;border:1px solid var(--border);border-radius:8px;background:var(--bg-card);cursor:pointer">
+        </div>
+        <div class="cbs-field">
+          <label for="c4BgHex">背景 HEX</label>
+          <input type="text" id="c4BgHex" class="cbs-mono" value="#FFFFFF" maxlength="7" spellcheck="false" style="height:40px;padding:0 10px;border:1px solid var(--border);border-radius:8px;background:var(--bg-card);color:var(--text-primary);font-size:14px">
+        </div>
+        <div class="cbs-field">
+          <label for="c4Size">文字尺寸</label>
+          <select id="c4Size" style="height:40px;padding:0 10px;border:1px solid var(--border);border-radius:8px;background:var(--bg-card);color:var(--text-primary);font-size:14px">
+            <option value="normal">常規正文（&lt;18.66px 粗體 / &lt;24px）</option>
+            <option value="large">大號文字（≥18.66px 粗體 / ≥24px）</option>
+            <option value="ui">非文字元素（圖示 / 邊框）</option>
+          </select>
+        </div>
+        <div class="cbs-field">
+          <label>互換前景/背景</label>
+          <button class="btn" id="c4Swap" style="height:40px">⇅ 互換</button>
+        </div>
+      </div>
+      <div class="cbs-preview-strip" id="c4Strip"></div>
+      <div class="cbs-scroll"><table class="cbs-tbl" id="c4Table"></table></div>
+      <div id="c4Verdict"></div>
+      <div class="cbs-note"><span>WCAG 2.1 對比度 =(L</span><sub><span>亮</span></sub><span>+0.05)/(L</span><sub><span>暗</span></sub><span>+0.05)，L 為相對亮度。達標線：常規正文 AA 需 ≥4.5:1、AAA 需 ≥7:1；大號文字 AA 需 ≥3:1、AAA 需 ≥4.5:1；非文字元素需 ≥3:1。注意：色覺模擬會改變顏色的相對亮度，因此同一組配色在不同色覺型別下的對比度並不相同——這正是本表要暴露的問題。</span></div>
+    </section>
+
+    <!-- ============ PANE 5 · 安全配色 ============ -->
+    <section class="cbs-pane" id="pane-safe">
+      <div class="cbs-ctl">
+        <div class="cbs-field">
+          <label for="c5Base">基準色</label>
+          <input type="color" id="c5Base" value="#FF6B35" style="height:40px;width:100%;padding:2px;border:1px solid var(--border);border-radius:8px;background:var(--bg-card);cursor:pointer">
+        </div>
+        <div class="cbs-field">
+          <label for="c5BaseHex">基準 HEX</label>
+          <input type="text" id="c5BaseHex" class="cbs-mono" value="#FF6B35" maxlength="7" spellcheck="false" style="height:40px;padding:0 10px;border:1px solid var(--border);border-radius:8px;background:var(--bg-card);color:var(--text-primary);font-size:14px">
+        </div>
+        <div class="cbs-field">
+          <label for="c5Count"><span>生成數量</span> <span class="cbs-mono" id="c5Countv">5</span></label>
+          <input type="range" id="c5Count" min="2" max="8" value="5" class="cbs-rng">
+        </div>
+        <div class="cbs-field">
+          <label for="c5Mode">策略</label>
+          <select id="c5Mode" style="height:40px;padding:0 10px;border:1px solid var(--border);border-radius:8px;background:var(--bg-card);color:var(--text-primary);font-size:14px">
+            <option value="maxmin">最大化最小色差（推薦）</option>
+            <option value="lightness">明暗階梯優先（灰度可分）</option>
+            <option value="hue">色相均分（保留色相感）</option>
+          </select>
+        </div>
+        <div class="cbs-field">
+          <label>操作</label>
+          <button class="btn btn-primary" id="c5Gen" style="height:40px">生成安全配色</button>
+        </div>
+      </div>
+      <p class="cbs-hint">在 OKLCH 感知均勻空間取樣候選色，逐一做 8 型色覺變換後轉 CIE Lab，用貪心演算法選出使「全部 8 型下兩兩最小 ΔE」儘可能大的一組顏色。</p>
+      <div id="c5Out"></div>
+    </section>
+
+    <div class="cbs-note" style="border-left:3px solid var(--warning)">
+      <b><span>使用邊界說明：</span></b><span>本工具是設計與自查輔助工具，所有模擬結果來自色彩科學模型的數學推算，</span><b><span>不等同於醫學診斷</span></b><span>，也不能替代色覺檢查（如石原色盲檢測圖、Farnsworth D-15 排列測試）。若要確認自己是否患有色覺障礙，請到醫療機構做專業檢查。模型的已知侷限：藍錐單色視為近似實現；嚴重度插值採用線性方案，與真實 anomaly 光譜響應存在偏差；不同顯示器色域與亮度也會影響觀感。
+    </div>
+  </div>
+</div>
+
+<script src="/js/tools/colorblind-simulator.js"></script>
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto 0;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+.deep-dive a.term-link{color:var(--tool-accent,#FF6B35);text-decoration:none;border-bottom:1px dashed currentColor;}
+.deep-dive a.term-link:hover{border-bottom-style:solid;}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：色盲模擬器</h2>
+<h3>💡 常見使用場景</h3>
+<ul class="dd-list">
+<li>設計自查：UI、圖表、地圖配色在紅綠/藍黃色盲視角下模擬，提前發現「靠色不可分」的問題。</li>
+<li>無障礙評審：對海報、儀表盤、教學圖做色盲視角複核，滿足 WCAG 對比與可辨識要求。</li>
+<li>科普演示：把同一圖在各類色覺缺陷下並排展示，直觀說明觀感差異。</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">紅綠<a class="term-link" href="/zh-tw/guides/color-blindness-sim-guide.html">色盲模擬</a></div><div class="dd-ex-body">取影像線性光 RGB，按 Machado 紅色盲（protan）嚴重度矩陣變換後回 gamma；若原圖用紅/綠編碼兩組資料，模擬後兩色趨近黃棕、難以區分，提示改用藍/橙或疊加形狀編碼。</div></div>
+<h3>❓ 常見問題（FAQ）</h3>
+<dl class="dd-faq">
+<dt>模擬器能替代真實色覺檢測嗎？</dt><dd>不能。它展示的是近似觀感，用於設計預判與科普，真實色覺評估需由眼科或專業色覺測試完成。</dd>
+<dt>為什麼同一紅綠色盲不同人差異大？</dt><dd>色覺缺陷有程度之分（輕度/中度/重度），且紅（protan）/綠（deutan）型別不同，矩陣嚴重度引數不同，模擬結果隨之變化。</dd>
+<dt>模擬矩陣的原理是什麼？</dt><dd>主流用 Machado、Oliveira 與 Fernandes（2009）提出的按嚴重度插值的線性 RGB 變換，作用於線性光空間再回顯，比簡單去色更接近真實色覺偏移。</dd>
+</dl>
+</div>
+</section>
+<!-- 相關工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相關工具</h3>
+  <div class="related-tools-grid">
+    <a href="/zh-tw/tools/design/cvd-safe-palette.html" class="related-tool-card">
+      <span class="rt-icon">🎨</span>
+      <span class="rt-info"><span class="rt-name">色盲安全配色生成器</span><span class="rt-desc">生成在 8 種色覺型別下均可區分的安全配色，支援順序/發散/定性模式、鎖定色、明暗交替策略、8 型實</span></span>
+    </a>
+    <a href="/zh-tw/tools/design/palette-cvd-checker.html" class="related-tool-card">
+      <span class="rt-icon">🎨</span>
+      <span class="rt-info"><span class="rt-name">調色盤色覺可辨識度檢查器</span><span class="rt-desc">檢查配色在 8 種色覺型別與灰度下的兩兩 ΔE 可辨識度，輸出混淆預警、灰度明度階梯評分與一鍵修正建</span></span>
+    </a>
+    <a href="/zh-tw/tools/design/farnsworth-d15-test.html" class="related-tool-card">
+      <span class="rt-icon">📝</span>
+      <span class="rt-info"><span class="rt-name">Farnsworth D-15 色相排列測試</span><span class="rt-desc">瀏覽器版 Farnsworth D-15 色相排列測試：15 個等亮度色帽拖拽排序，輸出色相軌跡圖、</span></span>
+    </a>
+    <a href="/zh-tw/tools/design/generator-38.html" class="related-tool-card">
+      <span class="rt-icon">✨</span>
+      <span class="rt-info"><span class="rt-name">AI（輔助/生成/最佳化）探索</span><span class="rt-desc">按「角色 + 任務 + 上下文 + 輸出格式 + 約束」五要素拼裝結構化提示詞：選擇任務型別與輸出格</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro open" id="toolIntro">
+  <div class="tool-intro-header">
+    <span class="intro-icon-wrap"><span class="intro-icon">📖</span>關於「色盲模擬器 Pro」</span>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="tool-intro-body">
+    <h4><span class="h4-icon">📝</span>工具簡介</h4>
+    <p>用 Machado 線性 RGB 變換矩陣把影像模擬為各型色覺缺陷觀感，幫助設計前預判配色在色覺缺陷人群中的可讀性。</p>
+    <h4><span class="h4-icon">✨</span>功能特點</h4>
+    <ul class="intro-features"><li>紅/綠/藍多型模擬</li><li>按嚴重度插值</li><li>影像即時預覽</li></ul>
+    <h4><span class="h4-icon">🎯</span>使用場景</h4>
+    <ul class="intro-scenes"><li>UI/圖表配色自查</li><li>無障礙評審複核</li><li>色覺差異科普演示</li></ul>
+  </div>
+</div>
+<!-- /SEO 介紹區塊 -->
+
+<script>
+// ============ 导出 8 型模拟结果 CSV（读 DOM，不依赖外部 JS 内部状态）============
+var __CBS_TYPE_EN={protanopia:'Protanopia',protanomaly:'Protanomaly',deuteranopia:'Deuteranopia',deuteranomaly:'Deuteranomaly',tritanopia:'Tritanopia',tritanomaly:'Tritanomaly',achromatopsia:'Achromatopsia',bluecone:'Blue-Cone Monochromacy'};
+var __CBS_TAG_EN={'几乎无差异':'Nearly identical','可察觉':'Noticeable','明显不同':'Clearly different'};
+function __cbsRow(cells){
+  var tr=document.createElement('tr');
+  cells.forEach(function(c){var td=document.createElement('td');td.textContent=c;tr.appendChild(td);});
+  return tr;
+}
+function __cbsExport(){
+  if(typeof TBKit==='undefined')return;
+  var en=TBKit.util.isEn();
+  var tbody=document.querySelector('#cbsHidden tbody');
+  if(!tbody)return;
+  tbody.innerHTML='';
+  var cards=document.querySelectorAll('#c1Grid .cbs-swatch');
+  if(!cards.length){ if(typeof ToolBox!=='undefined'&&ToolBox.showToast)ToolBox.showToast(en?'No simulation result yet':'暂无模拟结果'); return; }
+  for(var i=0;i<cards.length;i++){
+    var c=cards[i];
+    var key=c.getAttribute('data-key')||'';
+    var hEl=c.querySelector('.h');
+    var hex=hEl?(hEl.getAttribute('data-copy')||hEl.textContent||'').trim():'';
+    var dEl=c.querySelector('.d');
+    var dtxt=dEl?(dEl.textContent||''):'';
+    var m=dtxt.match(/ΔE\s*([\d.]+)/);
+    var de=m?m[1]:'';
+    var tag=dtxt.replace(/ΔE\s*[\d.]+\s*/,'').replace(/^[·\s]+/,'').trim();
+    tbody.appendChild(__cbsRow([
+      en?(__CBS_TYPE_EN[key]||key):key,
+      hex,
+      de,
+      en?(__CBS_TAG_EN[tag]||tag):tag
+    ]));
+  }
+  TBKit.util.exportTable('#cbsHidden', en?'cvd-simulation.csv':'色觉模拟结果.csv');
+}
+</script>
+<script>
+// tool-intro折叠交互
+document.addEventListener('DOMContentLoaded',function(){
+  var headers=document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click',function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+</script>
+<script>
+(function(){try{
+  var NS="tools/design/colorblind-simulator.html";
+  function k(id){return 'tb_uxp_'+NS+'#'+id;}
+  function save(el){try{
+    if(el.type==='checkbox'){localStorage.setItem(k(el.id),el.checked?'1':'0');}
+    else if(el.type==='radio'){if(el.checked)localStorage.setItem(k(el.id),el.value);}
+    else{localStorage.setItem(k(el.id),el.value);}
+  }catch(e){}}
+  function restore(){try{
+    document.querySelectorAll('input:not([type=password]):not([type=file]):not([type=button]):not([type=submit]):not([type=reset]):not([type=hidden]):not([readonly]):not([disabled]),textarea:not([readonly]):not([disabled]),select').forEach(function(el){
+      if(!el.id)return;
+      var v=localStorage.getItem(k(el.id));if(v===null)return;
+      try{
+        if(el.type==='checkbox'){el.checked=(v==='1');}
+        else if(el.type==='radio'){el.checked=(el.value===v);}
+        else{el.value=v;}
+        el.dispatchEvent(new Event('input',{bubbles:true}));
+        el.dispatchEvent(new Event('change',{bubbles:true}));
+      }catch(e){}
+    });
+  }catch(e){}}
+  document.querySelectorAll('input:not([type=password]):not([type=file]):not([type=button]):not([type=submit]):not([type=reset]):not([type=hidden]):not([readonly]):not([disabled]),textarea:not([readonly]):not([disabled]),select').forEach(function(el){
+    if(!el.id)return;
+    el.addEventListener('input',function(){save(el);});
+    el.addEventListener('change',function(){save(el);});
+  });
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',restore);
+  else restore();
+}catch(e){}})();
+</script></body>
+</html>

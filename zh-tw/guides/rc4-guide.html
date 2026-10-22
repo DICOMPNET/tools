@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-opencc-locale="zh-tw">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RC4 / ARC4 加密解密使用指南 - ToolBox</title>
+<meta name="description" content="RC4 / ARC4 加密解密使用指南：輕量流密碼，僅用於相容歷史協議。新系統不建議，優先 AES-GCM/ChaCha20。本指南整理核心功能、適用場景、使用步驟與常見問題，純前端免費線上使用，資料不上傳。">
+<meta property="og:title" content="RC4 / ARC4 加密解密使用指南 - ToolBox">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="ToolBox">
+<meta property="og:url" content="https://tools.dicomp.net/zh-tw/guides/rc4-guide.html">
+<meta property="og:description" content="RC4 / ARC4 加密解密使用指南：輕量流密碼，僅用於相容歷史協議。新系統不建議，優先 AES-GCM/ChaCha20。本指南整理核心功能、適用場景、使用步驟與常見問題，純前端免費線上使用，資料不上傳。">
+<meta property="og:image" content="https://tools.dicomp.net/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="RC4 / ARC4 加密解密使用指南 - ToolBox">
+<meta name="twitter:description" content="RC4 / ARC4 加密解密使用指南：輕量流密碼，僅用於相容歷史協議。新系統不建議，優先 AES-GCM/ChaCha20。本指南整理核心功能、適用場景、使用步驟與常見問題，純前端免費線上使用，資料不上傳。">
+<meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
+<link rel="canonical" href="https://tools.dicomp.net/zh-tw/guides/rc4-guide.html">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"RC4 / ARC4 加密解密使用指南","description":"RC4 / ARC4 加密解密使用指南：輕量流密碼，僅用於相容歷史協議。新系統不建議，優先 AES-GCM/ChaCha20。本指南整理核心功能、適用場景、使用步驟與常見問題，純前端免費線上使用，資料不上傳。","author":{"@type":"Organization","name":"ToolBox"}}</script>
+<style>
+:root{--primary:#FF6B35;--text:#1F2937;--muted:#6B7280;--border:#E5E7EB;--bg:#FFFAF7;}
+*{box-sizing:border-box;}
+body{margin:0;font-family:"Noto Sans SC","Plus Jakarta Sans",system-ui,sans-serif;color:var(--text);background:var(--bg);line-height:1.75;}
+header{padding:18px 20px;border-bottom:1px solid var(--border);background:#fff;}
+.breadcrumb a{color:var(--primary);text-decoration:none;margin-right:6px;}
+main{max-width:780px;margin:0 auto;padding:28px 20px 60px;}
+h1{font-size:28px;margin:0 0 8px;}
+.lead{font-size:16px;color:var(--muted);margin:0 0 22px;}
+h2{font-size:20px;margin:28px 0 10px;color:var(--primary);}
+ul,ol{padding-left:22px;}
+li{margin:6px 0;}
+dl{margin:0;}
+dt{font-weight:700;margin-top:12px;}
+dd{margin:4px 0 0;color:var(--muted);}
+.back{margin-top:30px;padding:16px;background:#fff;border:1px solid var(--border);border-radius:14px;}
+.back a{color:var(--primary);font-weight:700;text-decoration:none;}
+footer{text-align:center;color:var(--muted);font-size:13px;padding:24px;border-top:1px solid var(--border);}
+</style>
+<script src="/js/analytics.js" defer></script>
+<script src="/js/i18n.js" defer></script>
+<script src="/js/common.js" defer></script>
+<link rel="stylesheet" href="/css/common.css">
+<!-- TOOLBOX-TTZZ -->
+<script>
+(function(){try{
+var el = document.createElement("script");
+el.src = "https://lf1-cdn-tos.bytegoofy.com/goofy/ttzz/push.js?85d6452aa9be4d693b16cd48535a8c7ae57542f6788a41682e745be8eb99b35a8a24d2f724c31ebe20c1e4e6fba6d91caf576100b02a2870c72f38fc574066fef065d152c73bf1cbb2ebad3b5b5265d8";
+el.id = "ttzz";
+var s = document.getElementsByTagName("script")[0];
+s.parentNode.insertBefore(el, s);
+}catch(e){}
+})(window);
+</script>
+
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://tools.dicomp.net/guides/rc4-guide.html">
+<link rel="alternate" hreflang="zh-TW" href="https://tools.dicomp.net/zh-tw/guides/rc4-guide.html">
+<link rel="alternate" hreflang="en-US" href="https://tools.dicomp.net/guides/rc4-guide.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://tools.dicomp.net/guides/rc4-guide.html">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+</head>
+<body>
+<header><nav class="breadcrumb"><a href="https://tools.dicomp.net/">ToolBox</a> / <a href="https://tools.dicomp.net/#guides">使用指南</a> / <span>RC4 / ARC4 加密解密</span></nav></header>
+<main>
+<h1>RC4 / ARC4 加密解密 使用指南</h1>
+<p class="lead">RC4 以金鑰排程生成偽隨機流與明文異或；因偏弱偏（前若干位元組有偏）已被棄用。…</p>
+<h2>核心功能</h2>
+<ul><li>RC4 / ARC4 流密碼加解密（加密與解密是同一操作）</li><li>可選 drop768 / drop1024 / drop2048，丟棄前若干位元組輸出以緩解偏置</li><li>輸出支援 Base64 與十六進位制</li><li>僅用於相容歷史協議，新系統不應採用</li></ul>
+<h2>適用場景</h2>
+<ul><li>輕量流密碼，僅用於相容歷史協議。</li><li>維護老協議相容：某些遺留系統仍在用 RC4，需要按同樣演算法加解密才能對接——但新系統絕不應再採用。</li></ul>
+<h2>使用步驟</h2>
+<ol><li>確認對方確實用 RC4（如遺留協議），否則改用 AES</li><li>選擇變體：若對方實現丟棄前 N 位元組，這裡選對應的 drop 值才能對上</li><li>輸入金鑰：RC4 金鑰長度可變，但必須與對方完全相同（按位元組）</li><li>填入明文或密文，輸出格式選 Base64 或十六進位制</li><li>結果拿去與對方實現比對；不一致時先查變體與金鑰編碼（UTF-8 還是 Latin-1）</li></ol>
+<h2>實用技巧</h2>
+<ul><li>新系統不建議，優先 AES-GCM/ChaCha20</li><li>維護老協議相容：某些遺留系統仍在用 RC4，需要按同樣演算法加解密才能對接——但新系統絕不應再採用。</li></ul>
+<h2>常見問題</h2>
+<dl><dt>RC4 還能用嗎？</dt><dd>新系統不建議，優先 AES-GCM/ChaCha20。</dd><dt>RC4 具體有什麼問題？</dt><dd>三點：一是金鑰排程存在偏差，密文前若干位元組的統計特性會洩露金鑰資訊（Fluhrer-Mantin-Shamir 攻擊，曾用於破解 WEP）；二是大量已知的不變數與弱金鑰；三是缺乏 IV 使用規範，重用金鑰流即可被破譯。RFC 7465 已明確禁止在 TLS 中使用 RC4。</dd></dl>
+<div class="back"><a href="https://tools.dicomp.net/tools/it/rc4.html">→ 去使用 RC4 / ARC4 加密解密（免費 · 純前端 · 資料不上傳）</a></div>
+</main>
+<footer>© 2026 ToolBox · 純前端線上工具 · 資料不上傳，安全可靠</footer>
+</body>
+</html>

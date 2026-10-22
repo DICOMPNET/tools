@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-opencc-locale="zh-tw">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>引數數量估算 使用指南 - ToolBox</title>
+<meta name="description" content="輸入層寬、卷積核數與通道數，估算全連線層與卷積層引數量，適用於模型規模評估、視訊記憶體預算與輕量化設計。卷積權值共享且區域性連線，引數只與核大小、通道數有關，與特徵圖尺寸無關；全連線則隨輸入輸出維度乘積增長。">
+<meta property="og:title" content="引數數量估算 使用指南">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="ToolBox">
+<meta property="og:url" content="https://tools.dicomp.net/zh-tw/guides/ai-6-guide.html">
+<meta property="og:description" content="輸入層寬、卷積核數與通道數，估算全連線層與卷積層引數量，適用於模型規模評估、視訊記憶體預算與輕量化設計。卷積權值共享且區域性連線，引數只與核大小、通道數有關，與特徵圖尺寸無關；全連線則隨輸入輸出維度乘積增長。">
+<meta name="twitter:title" content="引數數量估算 使用指南">
+<meta name="twitter:description" content="輸入層寬、卷積核數與通道數，估算全連線層與卷積層引數量，適用於模型規模評估、視訊記憶體預算與輕量化設計。卷積權值共享且區域性連線，引數只與核大小、通道數有關，與特徵圖尺寸無關；全連線則隨輸入輸出維度乘積增長。">
+<meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 免費線上工具與使用指南">
+<meta property="og:image" content="https://tools.dicomp.net/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="canonical" href="https://tools.dicomp.net/zh-tw/guides/ai-6-guide.html">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"引數數量估算 使用指南","description":"輸入層寬、卷積核數與通道數，估算全連線層與卷積層引數量，適用於模型規模評估、視訊記憶體預算與輕量化設計。","author":{"@type":"Organization","name":"ToolBox"},"datePublished":"2026-09-13","dateModified":"2026-09-13","mainEntityOfPage":{"@type":"WebPage","@id":"https://tools.dicomp.net/zh-tw/guides/ai-6-guide.html"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"ToolBox","item":"https://tools.dicomp.net/zh-tw/"},{"@type":"ListItem","position":2,"name":"使用指南","item":"https://tools.dicomp.net/zh-tw/guides/index.html"},{"@type":"ListItem","position":3,"name":"引數數量估算 使用指南","item":"https://tools.dicomp.net/zh-tw/guides/ai-6-guide.html"}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"為什麼卷積層引數量遠小於全連線？","acceptedAnswer":{"@type":"Answer","text":"卷積權值共享且區域性連線，引數只與核大小、通道數有關，與特徵圖尺寸無關；全連線則隨輸入輸出維度乘積增長。"}},{"@type":"Question","name":"偏置是否總要加？","acceptedAnswer":{"@type":"Answer","text":"並非必須。BN 後接的卷積常設 bias=False 以免冗餘；最後一層或需學習截距時保留偏置。"}}]}</script>
+<style>
+:root{--primary:#FF6B35;--text:#1F2937;--muted:#6B7280;--border:#E5E7EB;--bg:#FFFAF7;}
+*{box-sizing:border-box;}
+body{margin:0;font-family:"Noto Sans SC","Plus Jakarta Sans",system-ui,sans-serif;color:var(--text);background:var(--bg);line-height:1.75;}
+.breadcrumb a{color:var(--primary);text-decoration:none;margin-right:6px;}
+.breadcrumb a:hover{text-decoration:underline;}
+main{max-width:820px;margin:0 auto;padding:28px 20px 60px;}
+h1{font-size:28px;margin:0 0 8px;}
+.lead{font-size:16px;color:var(--muted);margin:0 0 22px;}
+h2{font-size:20px;margin:28px 0 10px;color:var(--primary);}
+ul,ol{padding-left:22px;}
+li{margin:8px 0;}
+.related{margin-top:26px;padding:16px;background:#fff;border:1px solid var(--border);border-radius:14px;}
+.related h3{margin:0 0 10px;font-size:16px;color:var(--text);}
+.tool-chip{display:inline-block;margin:4px 6px 4px 0;padding:6px 12px;border:1px solid var(--border);border-radius:999px;color:var(--primary);text-decoration:none;font-size:14px;}
+.tool-chip:hover{background:var(--primary);color:#fff;}
+.faq{margin-top:26px;}
+.faq dt{font-weight:700;margin-top:14px;}
+.faq dd{margin:4px 0 0;color:var(--muted);}
+.back{margin-top:30px;padding:16px;background:#fff;border:1px solid var(--border);border-radius:14px;}
+.back a{color:var(--primary);font-weight:700;text-decoration:none;}
+</style>
+<script src="/js/analytics.js" defer></script>
+<link rel="stylesheet" href="/css/site-chrome.css">
+<link rel="stylesheet" href="/css/common.css">
+<script src="/js/i18n.js" defer></script>
+<script src="/js/common.js" defer></script>
+<meta name="title-zh" content="引數數量估算 使用指南">
+<!-- TOOLBOX-TTZZ -->
+<script>
+(function(){try{
+var el = document.createElement("script");
+el.src = "https://lf1-cdn-tos.bytegoofy.com/goofy/ttzz/push.js?85d6452aa9be4d693b16cd48535a8c7ae57542f6788a41682e745be8eb99b35a8a24d2f724c31ebe20c1e4e6fba6d91caf576100b02a2870c72f38fc574066fef065d152c73bf1cbb2ebad3b5b5265d8";
+el.id = "ttzz";
+var s = document.getElementsByTagName("script")[0];
+s.parentNode.insertBefore(el, s);
+}catch(e){}
+})(window);
+</script>
+
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://tools.dicomp.net/guides/ai-6-guide.html">
+<link rel="alternate" hreflang="zh-TW" href="https://tools.dicomp.net/zh-tw/guides/ai-6-guide.html">
+<link rel="alternate" hreflang="en-US" href="https://tools.dicomp.net/guides/ai-6-guide.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://tools.dicomp.net/guides/ai-6-guide.html">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+</head>
+<body>
+<nav class="breadcrumb"><a href="https://tools.dicomp.net/">ToolBox</a> / <a href="https://tools.dicomp.net/guides/index.html">使用指南</a> / <span>引數數量估算 使用指南</span></nav>
+<main>
+<h1>引數數量估算 使用指南</h1>
+<p class="lead">輸入層寬、卷積核數與通道數，估算全連線層與卷積層引數量，適用於模型規模評估、視訊記憶體預算與輕量化設計。</p>
+<h2>計算公式與原理</h2>
+<p><strong>全連線引數 = in × out + out（偏置）；3×3 卷積引數 = in × out × 9 + out；視訊記憶體 MB = 引數 × 4 / 1024 / 1024</strong></p><p>按層的權重矩陣規模累加估算引數量，再按每引數 4 位元組（FP32）折算視訊記憶體。這只是推理權重的下限，訓練還要額外放梯度、最佳化器狀態（Adam 再翻 2 倍）與啟用值，實際佔用通常是權重的 4–6 倍。</p>
+<h2>使用步驟</h2>
+<ol><li>填寫「輸入維度」。</li><li>填寫「輸出維度」。</li><li>填寫「是否含偏置 1=是」。</li><li>填寫「是否卷積 1=是」。</li><li>結果區會即時更新；可一鍵複製結果用於記錄或彙報。</li></ol>
+<h2>典型使用場景</h2>
+<ul><li>全連線層引數=(輸入維度+1)×輸出維度，+1 為偏置。</li><li>卷積層引數=(k²×C_in+1)×C_out，k 為核邊長；深度可分離卷積引數量顯著降低。</li><li>引數量直接決定視訊記憶體(≈引數量×精度位元組)與推理延遲，是輕量化設計的核心約束。</li></ul>
+<h2>算例參考</h2>
+<ul><li><strong>卷積層引數量</strong>：3×3 卷積、輸入通道 64、輸出通道 128：引數=(3²×64+1)×128=(576+1)×128=73728。若改為深度可分離(3×3×64+1×64×128)=576+8192=8768，僅為原先約 12%。</li></ul>
+<h2>注意事項</h2>
+<p>結果為按上述公式得到的<strong>理論估算值</strong>，實際表現受資料分佈、實現細節與執行環境影響，落地決策請以實測為準；本工具純前端執行，輸入不上傳伺服器。</p>
+<div class="related">
+<h3>相關工具</h3>
+<a class="tool-chip" href="https://tools.dicomp.net/tools/ai/ai-7.html">混淆矩陣指標</a>
+<a class="tool-chip" href="https://tools.dicomp.net/tools/ai/ai-8.html">梯度下降一步</a>
+<a class="tool-chip" href="https://tools.dicomp.net/tools/ai/ai-9.html">資訊增益近似</a>
+<a class="tool-chip" href="https://tools.dicomp.net/tools/ai/ai-code-review.html">AI 程式碼審查</a>
+</div>
+<dl class="faq">
+<dt>為什麼卷積層引數量遠小於全連線？</dt><dd>卷積權值共享且區域性連線，引數只與核大小、通道數有關，與特徵圖尺寸無關；全連線則隨輸入輸出維度乘積增長。</dd>
+<dt>偏置是否總要加？</dt><dd>並非必須。BN 後接的卷積常設 bias=False 以免冗餘；最後一層或需學習截距時保留偏置。</dd>
+</dl>
+<div class="back"><a href="https://tools.dicomp.net/tools/ai/ai-6.html">→ 開啟引數數量估算工具</a></div>
+</main>
+</body>
+</html>

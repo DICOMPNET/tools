@@ -11,7 +11,7 @@ from urllib.parse import unquote, urlparse
 
 
 FIELDS = ["query", "page", "impressions", "clicks", "ctr", "position"]
-SITE_ORIGIN = "https://chenguangwu.github.io"
+SITE_ORIGIN = "https://tools.dicomp.net"
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 

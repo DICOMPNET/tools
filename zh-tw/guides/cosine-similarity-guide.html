@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-opencc-locale="zh-tw">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>餘弦相似度 使用指南 - ToolBox</title>
+<meta name="description" content="輸入兩個向量，計算餘弦相似度以衡量方向一致性，適用於文本語義匹配、推薦召回與嵌入向量比對。說明兩向量夾角大於 90°，語義傾向相反(如反義句、對立情感)。多數相似度場景只取非負區間，需按業務決定是否保留負值。">
+<meta property="og:title" content="餘弦相似度 使用指南">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="ToolBox">
+<meta property="og:url" content="https://tools.dicomp.net/zh-tw/guides/cosine-similarity-guide.html">
+<meta property="og:description" content="輸入兩個向量，計算餘弦相似度以衡量方向一致性，適用於文本語義匹配、推薦召回與嵌入向量比對。說明兩向量夾角大於 90°，語義傾向相反(如反義句、對立情感)。多數相似度場景只取非負區間，需按業務決定是否保留負值。">
+<meta name="twitter:title" content="餘弦相似度 使用指南">
+<meta name="twitter:description" content="輸入兩個向量，計算餘弦相似度以衡量方向一致性，適用於文本語義匹配、推薦召回與嵌入向量比對。說明兩向量夾角大於 90°，語義傾向相反(如反義句、對立情感)。多數相似度場景只取非負區間，需按業務決定是否保留負值。">
+<meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 免費線上工具與使用指南">
+<meta property="og:image" content="https://tools.dicomp.net/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="canonical" href="https://tools.dicomp.net/zh-tw/guides/cosine-similarity-guide.html">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"餘弦相似度 使用指南","description":"輸入兩個向量，計算餘弦相似度以衡量方向一致性，適用於文本語義匹配、推薦召回與嵌入向量比對。","author":{"@type":"Organization","name":"ToolBox"},"datePublished":"2026-09-13","dateModified":"2026-09-13","mainEntityOfPage":{"@type":"WebPage","@id":"https://tools.dicomp.net/zh-tw/guides/cosine-similarity-guide.html"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"ToolBox","item":"https://tools.dicomp.net/zh-tw/"},{"@type":"ListItem","position":2,"name":"使用指南","item":"https://tools.dicomp.net/zh-tw/guides/index.html"},{"@type":"ListItem","position":3,"name":"餘弦相似度 使用指南","item":"https://tools.dicomp.net/zh-tw/guides/cosine-similarity-guide.html"}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"餘弦為負說明什麼？","acceptedAnswer":{"@type":"Answer","text":"說明兩向量夾角大於 90°，語義傾向相反(如反義句、對立情感)。多數相似度場景只取非負區間，需按業務決定是否保留負值。"}},{"@type":"Question","name":"為什麼先歸一化？","acceptedAnswer":{"@type":"Answer","text":"歸一化後模長均為 1，餘弦=內積，便於用內積加速檢索(如 FAISS)；且消除向量長度對相似度的影響，聚焦方向。"}}]}</script>
+<style>
+:root{--primary:#FF6B35;--text:#1F2937;--muted:#6B7280;--border:#E5E7EB;--bg:#FFFAF7;}
+*{box-sizing:border-box;}
+body{margin:0;font-family:"Noto Sans SC","Plus Jakarta Sans",system-ui,sans-serif;color:var(--text);background:var(--bg);line-height:1.75;}
+.breadcrumb a{color:var(--primary);text-decoration:none;margin-right:6px;}
+.breadcrumb a:hover{text-decoration:underline;}
+main{max-width:820px;margin:0 auto;padding:28px 20px 60px;}
+h1{font-size:28px;margin:0 0 8px;}
+.lead{font-size:16px;color:var(--muted);margin:0 0 22px;}
+h2{font-size:20px;margin:28px 0 10px;color:var(--primary);}
+ul,ol{padding-left:22px;}
+li{margin:8px 0;}
+.related{margin-top:26px;padding:16px;background:#fff;border:1px solid var(--border);border-radius:14px;}
+.related h3{margin:0 0 10px;font-size:16px;color:var(--text);}
+.tool-chip{display:inline-block;margin:4px 6px 4px 0;padding:6px 12px;border:1px solid var(--border);border-radius:999px;color:var(--primary);text-decoration:none;font-size:14px;}
+.tool-chip:hover{background:var(--primary);color:#fff;}
+.faq{margin-top:26px;}
+.faq dt{font-weight:700;margin-top:14px;}
+.faq dd{margin:4px 0 0;color:var(--muted);}
+.back{margin-top:30px;padding:16px;background:#fff;border:1px solid var(--border);border-radius:14px;}
+.back a{color:var(--primary);font-weight:700;text-decoration:none;}
+</style>
+<script src="/js/analytics.js" defer></script>
+<link rel="stylesheet" href="/css/site-chrome.css">
+<link rel="stylesheet" href="/css/common.css">
+<script src="/js/i18n.js" defer></script>
+<script src="/js/common.js" defer></script>
+<meta name="title-zh" content="餘弦相似度 使用指南">
+<!-- TOOLBOX-TTZZ -->
+<script>
+(function(){try{
+var el = document.createElement("script");
+el.src = "https://lf1-cdn-tos.bytegoofy.com/goofy/ttzz/push.js?85d6452aa9be4d693b16cd48535a8c7ae57542f6788a41682e745be8eb99b35a8a24d2f724c31ebe20c1e4e6fba6d91caf576100b02a2870c72f38fc574066fef065d152c73bf1cbb2ebad3b5b5265d8";
+el.id = "ttzz";
+var s = document.getElementsByTagName("script")[0];
+s.parentNode.insertBefore(el, s);
+}catch(e){}
+})(window);
+</script>
+
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://tools.dicomp.net/guides/cosine-similarity-guide.html">
+<link rel="alternate" hreflang="zh-TW" href="https://tools.dicomp.net/zh-tw/guides/cosine-similarity-guide.html">
+<link rel="alternate" hreflang="en-US" href="https://tools.dicomp.net/guides/cosine-similarity-guide.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://tools.dicomp.net/guides/cosine-similarity-guide.html">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+</head>
+<body>
+<nav class="breadcrumb"><a href="https://tools.dicomp.net/">ToolBox</a> / <a href="https://tools.dicomp.net/guides/index.html">使用指南</a> / <span>餘弦相似度 使用指南</span></nav>
+<main>
+<h1>餘弦相似度 使用指南</h1>
+<p class="lead">輸入兩個向量，計算餘弦相似度以衡量方向一致性，適用於文本語義匹配、推薦召回與嵌入向量比對。</p>
+<h2>計算公式與原理</h2>
+<p><strong>cos θ = (Σaᵢbᵢ) / (√Σaᵢ² · √Σbᵢ²)</strong></p><p>餘弦相似度取值範圍 [−1,1]，1 為同向、0 為正交、−1 為反向。因為做了模長歸一化，它對向量整體縮放不敏感，適合比較長度差異很大的文本或特徵向量；若需要同時反映模長差異應改回歐氏距離。</p>
+<h2>使用步驟</h2>
+<ol><li>填寫「向量A1」。</li><li>填寫「A2」。</li><li>填寫「A3」。</li><li>填寫「向量B1」。</li><li>填寫「B2」。</li><li>填寫「B3」。</li><li>結果區會即時更新；可一鍵複製結果用於記錄或彙報。</li></ol>
+<h2>典型使用場景</h2>
+<ul><li>cos(x,y)=Σxᵢyᵢ/(‖x‖·‖y‖)，取值 [−1,1]，1 為同方向、0 正交、−1 反向。</li><li>對向量歸一化後，餘弦等價於內積，計算更快且利於檢索索引。</li><li>文本/影像嵌入比對幾乎都用餘弦，因模長常受頻率或亮度干擾不代表語義。</li></ul>
+<h2>算例參考</h2>
+<ul><li><strong>兩向量夾角</strong>：x=(1,2,2), y=(2,4,4)：‖x‖=3,‖y‖=6,內積=2+8+8=18 → cos=18/(3×6)=1，兩向量同向(實際 y=2x)，完全相似。</li></ul>
+<h2>注意事項</h2>
+<p>結果為按上述公式得到的<strong>理論估算值</strong>，實際表現受資料分佈、實現細節與執行環境影響，落地決策請以實測為準；本工具純前端執行，輸入不上傳伺服器。</p>
+<div class="related">
+<h3>相關工具</h3>
+<a class="tool-chip" href="https://tools.dicomp.net/tools/ai/cross-entropy.html">交叉熵損失</a>
+<a class="tool-chip" href="https://tools.dicomp.net/tools/ai/dropout.html">Dropout 保留期望</a>
+<a class="tool-chip" href="https://tools.dicomp.net/tools/ai/elbow-wcss.html">手肘法 WCSS 降幅</a>
+<a class="tool-chip" href="https://tools.dicomp.net/tools/ai/epoch-time.html">單輪訓練時長</a>
+</div>
+<dl class="faq">
+<dt>餘弦為負說明什麼？</dt><dd>說明兩向量夾角大於 90°，語義傾向相反(如反義句、對立情感)。多數相似度場景只取非負區間，需按業務決定是否保留負值。</dd>
+<dt>為什麼先歸一化？</dt><dd>歸一化後模長均為 1，餘弦=內積，便於用內積加速檢索(如 FAISS)；且消除向量長度對相似度的影響，聚焦方向。</dd>
+</dl>
+<div class="back"><a href="https://tools.dicomp.net/tools/ai/cosine-similarity.html">→ 開啟餘弦相似度工具</a></div>
+</main>
+</body>
+</html>

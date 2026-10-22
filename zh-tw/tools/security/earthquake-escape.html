@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-opencc-locale="zh-tw">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=reference,industry=security,icon=🔤,bg=#fff3e0">
+<title>地震逃生路線規劃 - 個性化地震逃生建議</title>
+<link rel="canonical" href="https://tools.dicomp.net/zh-tw/tools/security/earthquake-escape.html">
+<meta property="og:title" content="地震逃生路線規劃 - 個性化地震逃生建議">
+<meta property="og:description" content="地震逃生路線規劃是一款免費的線上網路安全工具，根據居住環境生成個性化地震逃生建議，包括避險位置、逃生路線和震後注意事項。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta property="og:url" content="https://tools.dicomp.net/zh-tw/tools/security/earthquake-escape.html">
+<meta name="twitter:card" content="summary">
+<meta name="description" content="地震逃生路線規劃是一款免費的線上網路安全工具，根據居住環境生成個性化地震逃生建議，包括避險位置、逃生路線和震後注意事項。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<link rel="stylesheet" href="/css/common.css">
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/common.js" defer></script>
+<style>
+.house-type {
+  background: var(--card-bg); border: 2px solid var(--border);
+  border-radius: 14px; padding: 16px; cursor: pointer;
+  transition: all 0.25s; text-align: center;
+}
+.house-type:hover { border-color: var(--primary); transform: translateY(-2px); box-shadow: var(--shadow-sm); }
+.house-type.selected { border-color: var(--primary); background: var(--bg-hover); box-shadow: 0 0 0 3px rgba(255,107,53,0.1); }
+.house-type .ht-icon { font-size: 32px; }
+.house-type .ht-name { font-size: 14px; font-weight: 600; color: var(--heading); margin-top: 6px; }
+.house-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; margin-bottom: 16px; }
+.escape-step {
+  display: flex; gap: 12px; padding: 14px;
+  background: var(--result-bg); border: 1px solid var(--border);
+  border-radius: 12px; margin-bottom: 8px; transition: all 0.2s;
+}
+.escape-step:hover { border-color: var(--primary); }
+.escape-step .es-num {
+  width: 32px; height: 32px; border-radius: 10px;
+  background: var(--gradient-primary); color: #fff;
+  font-size: 14px; font-weight: 700; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+.escape-step .es-body { flex: 1; min-width: 0; }
+.escape-step .es-title { font-size: 14px; font-weight: 600; color: var(--heading); }
+.escape-step .es-desc { font-size: 12px; color: var(--text-secondary); line-height: 1.6; margin-top: 3px; }
+.danger-tag {
+  display: inline-block; padding: 3px 10px; border-radius: 6px;
+  font-size: 11px; font-weight: 600;
+}
+.danger-low { background: rgba(16,185,129,0.1); color: #059669; }
+.danger-mid { background: rgba(245,158,11,0.1); color: #D97706; }
+.danger-high { background: rgba(239,68,68,0.1); color: #DC2626; }
+[data-theme="dark"] .danger-low { color: #34D399; }
+[data-theme="dark"] .danger-mid { color: #FBBF24; }
+[data-theme="dark"] .danger-high { color: #F87171; }
+.shelter-card {
+  background: var(--result-bg); border: 1px solid var(--border);
+  border-radius: 12px; padding: 14px; margin-bottom: 8px;
+}
+.shelter-card .sc-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.shelter-card .sc-icon { font-size: 20px; }
+.shelter-card .sc-title { font-size: 14px; font-weight: 600; color: var(--heading); }
+.shelter-card .sc-desc { font-size: 12px; color: var(--text-secondary); line-height: 1.6; }
+.danger-zone {
+  display: flex; align-items: flex-start; gap: 8px;
+  padding: 10px 12px; border-radius: 10px; margin-bottom: 6px;
+  font-size: 13px; line-height: 1.5;
+}
+.dz-avoid { background: rgba(239,68,68,0.06); border: 1px solid rgba(239,68,68,0.2); }
+.dz-safe { background: rgba(16,185,129,0.06); border: 1px solid rgba(16,185,129,0.2); }
+.dz-avoid .dz-icon { color: #DC2626; }
+.dz-safe .dz-icon { color: #059669; }
+</style>
+
+
+
+<meta property="og:image" content="https://tools.dicomp.net/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免費線上工具">
+<meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免費線上工具">
+    <meta property="og:type" content="website">
+    <meta name="twitter:title" content="地震逃生路線規劃 - 個性化地震逃生建議">
+    <meta name="twitter:description" content="地震逃生路線規劃是一款免費的線上網路安全工具，根據居住環境生成個性化地震逃生建議，包括避險位置、逃生路線和震後注意事項。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"地震逃生路線規劃","url":"https://tools.dicomp.net/zh-tw/tools/security/earthquake-escape.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"地震逃生路線規劃是一款免費的線上網路安全工具，根據居住環境生成個性化地震逃生建議，包括避險位置、逃生路線和震後注意事項。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首頁","item":"https://tools.dicomp.net/zh-tw/"},{"@type":"ListItem","position":2,"name":"網路安全","item":"https://tools.dicomp.net/zh-tw/tools/security/index.html"},{"@type":"ListItem","position":3,"name":"地震逃生路線規劃","item":"https://tools.dicomp.net/zh-tw/tools/security/earthquake-escape.html"}]}</script>
+
+<script src="/js/i18n.js" defer></script>
+<script src="/js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+
+
+<meta name="title-en" content="Earthquake Escape">
+<meta name="desc-en" content="Earthquake Escape - online utility on ToolBox.">
+
+
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
+
+<script src="/js/tool-ux.js" defer></script>
+<!-- TOOLBOX-TOOL-UX -->
+
+<script src="/js/analytics.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+<!-- TOOLBOX-TTZZ -->
+<script>
+(function(){try{
+var el = document.createElement("script");
+el.src = "https://lf1-cdn-tos.bytegoofy.com/goofy/ttzz/push.js?85d6452aa9be4d693b16cd48535a8c7ae57542f6788a41682e745be8eb99b35a8a24d2f724c31ebe20c1e4e6fba6d91caf576100b02a2870c72f38fc574066fef065d152c73bf1cbb2ebad3b5b5265d8";
+el.id = "ttzz";
+var s = document.getElementsByTagName("script")[0];
+s.parentNode.insertBefore(el, s);
+}catch(e){}
+})(window);
+</script>
+
+<script src="/js/tool-kit.js" defer></script>
+<!-- TOOLBOX-TOOL-KIT -->
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://tools.dicomp.net/tools/security/earthquake-escape.html">
+<link rel="alternate" hreflang="zh-TW" href="https://tools.dicomp.net/zh-tw/tools/security/earthquake-escape.html">
+<link rel="alternate" hreflang="en-US" href="https://tools.dicomp.net/tools/security/earthquake-escape.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://tools.dicomp.net/tools/security/earthquake-escape.html">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+</head>
+<body>
+<h1 class="sr-only">地震逃生路線規劃</h1>
+
+
+<div class="nav">
+  <a href="/zh-tw/index.html">&larr; ToolBox</a>
+  <span>/ 地震逃生路線規劃</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+
+
+
+
+<nav class="breadcrumb" aria-label="麵包屑導航" data-breadcrumb="1">
+  <a href="/zh-tw/index.html">首頁</a>
+  <span class="bc-sep">‹</span>
+  <a href="/zh-tw/tools/security/index.html">🔒 網路安全</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">地震逃生路線規劃</span>
+</nav>
+<div class="container">
+  <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
+    <h2 data-zh="🔤 地震逃生路線規劃">Earthquake Escape</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="根據居住環境生成個性化地震逃生建議，包括避險位置、逃生路線和震後注意事項。">Earthquake Escape</p>
+
+    <h3>選擇居住型別</h3>
+    <div class="house-grid" id="houseGrid"></div>
+
+    <div class="input-row" style="flex-direction:column;">
+    <div class="toolbar" style="margin-top:8px;">
+      <span style="font-size:13px;color:var(--text-muted);">常見場景預設：</span>
+      <button type="button" class="btn" onclick="applyQuakePreset('lowrise')">🏢 公寓低層</button>
+<button type="button" class="btn" onclick="applyQuakePreset('highrise')">🏙️ 公寓高層</button>
+<button type="button" class="btn" onclick="applyQuakePreset('house')">🏠 獨棟別墅</button>
+    </div>
+
+      <div style="width:100%;">
+        <label>所在樓層</label>
+        <select id="floorSelect">
+          <option value="low">低樓層（1-3層）</option>
+          <option value="mid">中樓層（4-10層）</option>
+          <option value="high">高樓層（11層以上）</option>
+        </select>
+      </div>
+    </div>
+    <div class="toolbar">
+      <button type="button" class="btn primary" onclick="generatePlan()">生成逃生方案</button>
+    </div>
+  </div>
+
+  <div id="planCard" class="card" style="display:none;">
+    <h3>逃生行動方案</h3>
+    <div id="escapeSteps"></div>
+  </div>
+
+  <div id="zoneCard" class="card" style="display:none;">
+    <h3>避險區域分析</h3>
+    <div style="margin-bottom:12px;">
+      <p style="font-size:13px;font-weight:600;color:var(--heading);margin-bottom:8px;">✅ 推薦避險位置</p>
+      <div id="safeZones"></div>
+    </div>
+    <div>
+      <p style="font-size:13px;font-weight:600;color:var(--heading);margin-bottom:8px;">❌ 危險區域（應遠離）</p>
+      <div id="dangerZones"></div>
+    </div>
+  </div>
+
+  <div id="shelterCard" class="card" style="display:none;">
+    <h3>震後避難與自救要點</h3>
+    <div id="shelterTips"></div>
+    <div class="toolbar" style="margin-top:14px;">
+      <button id="eqExport" class="btn" onclick="__eqExport()">⬇️ 匯出完整逃生方案 CSV</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card" id="eqCompareCard">
+      <h3 id="eqCompareTitle"></h3>
+      <div style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;font-size:13px;">
+          <thead><tr id="eqCompareHead"></tr></thead>
+          <tbody id="eqCompareBody"></tbody>
+        </table>
+      </div>
+      <p id="eqCompareNote" style="font-size:12px;color:var(--text-muted);margin-top:8px;line-height:1.7;"></p>
+    </div>
+    <h3>地震應急通用知識</h3>
+    <div class="ref-card">
+      <h4>🌍 地震預警與應對</h4>
+      <ul>
+        <li><strong>黃金12秒：</strong>從感覺到晃動到劇烈震動約有12秒，這是寶貴的逃生/避險時間</li>
+        <li><strong>伏地·遮擋·手抓牢：</strong>國際通用避險口訣（Drop, Cover, Hold on）</li>
+        <li><strong>不要乘坐電梯：</strong>地震時停電困在電梯內極其危險</li>
+        <li><strong>不要跳樓：</strong>二樓以上跳樓造成的傷害往往超過地震本身</li>
+      </ul>
+    </div>
+    <div class="ref-card">
+      <h4>📦 家庭防震準備</h4>
+      <ul>
+        <li>固定高大傢俱，防止傾倒傷人</li>
+        <li>床頭不掛重物，遠離窗戶和玻璃</li>
+        <li>準備家庭應急包（水、食物、藥品、手電筒、哨子）</li>
+        <li>與家人約定緊急集合地點和聯絡方式</li>
+        <li>瞭解所在社群的應急避難場所位置</li>
+      </ul>
+    </div>
+    <div class="tip-box tip-error">如果被埋壓：保持冷靜，儲存體力；用石塊敲擊管線或牆壁發出求救訊號；不要大聲呼喊以免吸入粉塵；儘量清理口鼻附近灰塵保持呼吸暢通。</div>
+  </div>
+
+
+</div>
+
+</div>
+
+<!-- 相關工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相關工具</h3>
+  <div class="related-tools-grid">
+    <a href="/zh-tw/tools/it/properties-parser.html" class="related-tool-card">
+      <span class="rt-icon">📄</span>
+      <span class="rt-info"><span class="rt-name">.properties 解析器 - 免費開發工具，properties 解析器 | ToolBox免費線上工具箱</span><span class="rt-desc">.properties 解析器</span></span>
+    </a>
+    <a href="/zh-tw/tools/it/ast-viewer.html" class="related-tool-card">
+      <span class="rt-icon">💻</span>
+      <span class="rt-info"><span class="rt-name">AST抽象語法樹檢視器 - 線上解析JavaScript程式碼生成AST樹形結構，支援節點 | ToolBox免費線上工具箱</span><span class="rt-desc">AST 抽象語法樹檢視器</span></span>
+    </a>
+    <a href="/zh-tw/tools/it/css-minifier.html" class="related-tool-card">
+      <span class="rt-icon">🧹</span>
+      <span class="rt-info"><span class="rt-name">CSS 壓縮/美化工具 - 免費開發工具，CSS 壓縮/格式化/美化 | ToolBox免費線上工具箱</span><span class="rt-desc">CSS 壓縮/格式化/美化</span></span>
+    </a>
+    <a href="/zh-tw/tools/it/css-formatter.html" class="related-tool-card">
+      <span class="rt-icon">🏋️</span>
+      <span class="rt-info"><span class="rt-name">CSS 格式化 - 免費開發工具，線上CSS 格式化 | ToolBox免費線上工具箱</span><span class="rt-desc">CSS 格式化</span></span>
+    </a>
+    <a href="/zh-tw/tools/it/cron.html" class="related-tool-card">
+      <span class="rt-icon">✨</span>
+      <span class="rt-info"><span class="rt-name">Cron 表示式生成器 - 免費開發工具，線上Cron 表示式生成器 | ToolBox免費線上工具箱</span><span class="rt-desc">⏰ Cron 表示式生成器</span></span>
+    </a>
+    <a href="/zh-tw/tools/it/graphql-formatter.html" class="related-tool-card">
+      <span class="rt-icon">🏋️</span>
+      <span class="rt-info"><span class="rt-name">GraphQL 格式化 - 免費開發工具，線上GraphQL 格式化 | ToolBox免費線上工具箱</span><span class="rt-desc">◈ GraphQL 格式化</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro" id="toolIntro">
+    <div class="tool-intro-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="intro-icon-wrap"><span class="intro-icon">🏚️</span> 工具介紹與使用說明</span>
+      <span class="arrow">▼</span>
+    </div>
+    <div class="tool-intro-body">
+      <p>地震逃生路線規劃工具根據不同居住環境，生成個性化的地震避險方案和逃生建議。</p>
+      <h4><span class="h4-icon">✨</span> 功能特點</h4>
+      <ul class="intro-features">
+        <li>按戶型生成逃生方案</li>
+        <li>避險區域分析</li>
+        <li>震後避難要點</li>
+        <li>危險位置警示</li>
+        <li>通用防震知識</li>
+      </ul>
+      <h4><span class="h4-icon">📋</span> 使用場景</h4>
+      <ul class="intro-scenes">
+        <li>家庭防震準備</li>
+        <li>辦公場所安全</li>
+        <li>學校安全教育</li>
+        <li>社群應急演練</li>
+      </ul>
+    </div>
+  </div>
+
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto 0;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+.deep-dive a.term-link{color:var(--tool-accent,#FF6B35);text-decoration:none;border-bottom:1px dashed currentColor;}
+.deep-dive a.term-link:hover{border-bottom-style:solid;}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：地震逃生路線規劃</h2>
+<h3>💡 常見使用場景</h3>
+<ul class="dd-list">
+<li>入住新居、寫字樓或宿舍後，提前按建築型別規劃就近避險位置與兩條以上疏散路線。</li>
+<li>學校、單位組織應急演練時，按場地（教室/辦公區/合租屋）生成針對性避險與疏散要點。</li>
+<li>家庭安全教育中，向老人和兒童說明不同房間的避險位置，避免震時慌亂。</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">以「高層公寓」為例生成建議</div><div class="dd-ex-body">避險優先選擇承重牆牆角、小開間（衛生間、廚房）等易形成三角空間的位置，遠離外牆、玻璃窗與吊燈；主震劇烈時切勿乘電梯，應就地躲避，待晃動減弱後有序走樓梯撤離至空曠地帶；震後第一時間檢查燃氣閥門與電路，確認安全後再使用。獨棟或別墅注意遠離高大傢俱與圍牆；學校教室則聽從指令沿預定路線快速疏散到操場。</div></div>
+<h3>❓ 常見問題（FAQ）</h3>
+<dl class="dd-faq">
+<dt>高層住戶地震時要不要跑下樓？</dt><dd>強烈震動時先就地避險（伏地、遮擋、抓牢），不要盲目跑動——樓梯擁擠、墜物與眩暈都會增加危險；主震過去後再有序撤離。日常應熟悉最近的安全樓梯與樓外集合點。</dd>
+<dt>逃生路線規劃要考慮哪些要素？</dt><dd>至少準備兩條相互獨立的安全出口，避開玻璃幕牆、高大貨架與外牆；集合點選在遠離建築的空曠處；同時預想夜間、停電等場景，並在門口、床頭放置手電與應急包，確保隨時可取。</dd>
+</dl>
+</div>
+</section>
+<!-- 注意事項區塊 -->
+<div class="tool-notes" style="--tool-accent:#FF6B35;">
+  <div class="tool-notes-title">⚠️ 使用說明與注意事項</div>
+  <ul>
+      <li>本工具純前端執行，資料不會上傳到伺服器</li>
+      <li>建議在主流瀏覽器（Chrome/Safari/Firefox/Edge）中使用</li>
+      <li>計算結果僅供參考，請以實際應用場景為準</li>
+  </ul>
+</div>
+<!-- /注意事項區塊 -->
+</div>
+
+<script>
+(function(){
+  'use strict';
+
+  var HOUSE_TYPES = [
+    { id:'apartment', name:'高层公寓', icon:'🏢', desc:'钢筋混凝土高层住宅' },
+    { id:'multi', name:'多层住宅', icon:'🏚️', desc:'6层以下砖混/框架结构' },
+    { id:'house', name:'独栋/别墅', icon:'🏠', desc:'低层独立住宅' },
+    { id:'dorm', name:'宿舍/合租', icon:'🛏️', desc:'集体宿舍或合租房' },
+    { id:'office', name:'办公场所', icon:'💼', desc:'写字楼/办公区域' },
+    { id:'school', name:'学校教室', icon:'🏫', desc:'教学场所' }
+  ];
+
+  var selectedHouse = 'apartment';
+
+  function renderHouseTypes(){
+    var html = '';
+    HOUSE_TYPES.forEach(function(h){
+      html += '<div class="house-type' + (h.id===selectedHouse?' selected':'') + '" onclick="selectHouse(\''+h.id+'\')">'
+        + '<div class="ht-icon">'+h.icon+'</div>'
+        + '<div class="ht-name">'+ToolBox.escHtml(h.name)+'</div>'
+        + '</div>';
+    });
+    const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('houseGrid').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('houseGrid').innerHTML=__h0;
+  }
+
+  window.selectHouse = function(id){
+    selectedHouse = id;
+    renderHouseTypes();
+    try { __eqCompare(); } catch (e) {}
+  };
+
+  // F60: 各居住类型逃生策略对比表
+  var EQ_COMPARE = {
+    apartment: { zh: '高层公寓', en: 'Apartment (high-rise)', coreZh: '就地避险优先，勿冒险下楼', coreEn: 'Shelter in place first; do not risk the stairs', spotZh: '卫生间/储藏室等小开间', spotEn: 'Small rooms (bathroom, storage)', evacZh: '高楼层震后走楼梯撤离，禁电梯', evacEn: 'Use stairs after the quake; never the elevator' },
+    multi: { zh: '多层住宅', en: 'Multi-story home', coreZh: '低层可撤、高层就地避险', coreEn: 'Evacuate from low floors; shelter on high floors', spotZh: '坚固家具下方/承重墙角', spotEn: 'Under sturdy furniture / load-bearing corners', evacZh: '1-3 层走楼梯撤离，4 层以上避险', evacEn: 'Floors 1-3 use stairs; 4+ shelter in place' },
+    house: { zh: '独栋住宅', en: 'Single house', coreZh: '第一时间撤至室外', coreEn: 'Get outdoors immediately', spotZh: '室外远离房屋的空旷处', spotEn: 'Open ground away from the building', evacZh: '立即撤离，保持与房屋高度相当的距离', evacEn: 'Evacuate at once; keep a distance equal to the building height' },
+    dorm: { zh: '宿舍', en: 'Dormitory', coreZh: '先避险，后有序疏散', coreEn: 'Shelter first, then evacuate in order', spotZh: '书桌下方/床铺三角空间', spotEn: 'Under desks / bed triangle space', evacZh: '震后按疏散路线撤离至操场', evacEn: 'Follow evacuation routes to the playground after the quake' },
+    office: { zh: '办公场所', en: 'Office', coreZh: '就地避险，防踩踏', coreEn: 'Shelter in place; avoid stampedes', spotZh: '办公桌下方', spotEn: 'Under office desks', evacZh: '震后走消防楼梯至应急集合点', evacEn: 'Use fire stairs to the assembly point after the quake' },
+    school: { zh: '学校教室', en: 'Classroom', coreZh: '听指挥就地避险', coreEn: 'Shelter in place under teacher direction', spotZh: '课桌下方', spotEn: 'Under desks', evacZh: '震后有序疏散至操场集合', evacEn: 'Evacuate in order to the playground after the quake' }
+  };
+  function __eqT(zh, en) { return (typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()) ? en : zh; }
+  function __eqCompare() {
+    var head = document.getElementById('eqCompareHead'), body = document.getElementById('eqCompareBody');
+    if (!head || !body) return;
+    var en = (typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn());
+    var cols = [__eqT('居住类型', 'Place type'), __eqT('核心策略', 'Core strategy'), __eqT('首选避险位置', 'Shelter spot'), __eqT('撤离建议', 'Evacuation advice')];
+    head.innerHTML = cols.map(function (c) { return '<th style="padding:8px 10px;border-bottom:2px solid var(--border,#eee);text-align:left;white-space:nowrap;">' + c + '</th>'; }).join('');
+    var rows = '';
+    Object.keys(EQ_COMPARE).forEach(function (k) {
+      var d = EQ_COMPARE[k];
+      var sel = k === selectedHouse;
+      var bg = sel ? 'background:var(--bg-hover,#f0f0f0);color:var(--primary,#FF6B35);' : '';
+      rows += '<tr><td style="padding:7px 10px;border-bottom:1px solid var(--border,#eee);white-space:nowrap;font-weight:600;' + bg + '">' + __eqT(d.zh, d.en) + '</td>'
+        + '<td style="padding:7px 10px;border-bottom:1px solid var(--border,#eee);' + bg + '">' + __eqT(d.coreZh, d.coreEn) + '</td>'
+        + '<td style="padding:7px 10px;border-bottom:1px solid var(--border,#eee);' + bg + '">' + __eqT(d.spotZh, d.spotEn) + '</td>'
+        + '<td style="padding:7px 10px;border-bottom:1px solid var(--border,#eee);' + bg + '">' + __eqT(d.evacZh, d.evacEn) + '</td></tr>';
+    });
+    body.innerHTML = rows;
+    document.getElementById('eqCompareTitle').textContent = __eqT('各居住类型逃生策略对比', 'Evacuation strategy comparison by place type');
+    document.getElementById('eqCompareNote').textContent = __eqT('高亮行为当前选择的居住类型。总原则：伏地、遮挡、手抓牢；主震结束后走楼梯撤离，远离建筑物与危险物，余震期间不返回室内。', 'The highlighted row is your selected place type. General rules: drop, cover, hold on; after the main shock use stairs, stay away from buildings and hazards, and do not re-enter until it is declared safe.');
+  }
+  try { __eqCompare(); } catch (e) {}
+  window.addEventListener('toolbox:langchange', function(){ try { __eqCompare(); } catch (e) {} });
+
+  var ESCAPE_PLANS = {
+    apartment: [
+      { title:'立即就地避险', desc:'高楼层不建议往外跑。迅速躲到卫生间、储藏室等小开间房间，或坚固桌子下方。远离阳台、窗户和外墙。' },
+      { title:'伏地·遮挡·手抓牢', desc:'蹲下或趴下，降低重心；用枕头、靠垫保护头部；抓住牢固的桌腿或床腿保持稳定。' },
+      { title:'震动停止后撤离', desc:'主震结束后，走楼梯（禁止电梯）迅速下楼。注意保护头部，防范余震和坠落物。' },
+      { title:'前往空旷避难所', desc:'到达地面后，前往小区广场、公园等开阔地带。远离高楼、广告牌、电线杆。' },
+      { title:'检查伤情与求助', desc:'检查自己和家人是否受伤，拨打120急救或119救援。不要返回楼内直至官方确认安全。' }
+    ],
+    multi: [
+      { title:'迅速判断逃生方向', desc:'低层住宅可在黄金12秒内尝试撤离。1-3层优先走楼梯逃生，4层以上就地避险。' },
+      { title:'就近避险或撤离', desc:'若决定撤离，用枕头或书包护头，沿楼梯快速下楼。若来不及，躲到坚固家具下方或承重墙角。' },
+      { title:'避开危险区域', desc:'撤离时远离阳台、悬挑构件、楼梯转角处。注意老旧砖混结构可能有预制板脱落风险。' },
+      { title:'到达安全区域', desc:'撤离到小区院内或街道开阔处，远离建筑物（保持建筑物高度1.5倍以上的距离）。' },
+      { title:'等待官方通知', desc:'不要返回室内取物。关注官方发布的震情信息和安全指引，配合疏散安排。' }
+    ],
+    house: [
+      { title:'迅速撤至室外', desc:'低层独栋住宅应第一时间跑到室外空旷区域。开门确保出口畅通，避免门框变形卡住。' },
+      { title:'保护头部快速移动', desc:'用双手或枕头护住头部，快速但不要奔跑，注意脚下平稳。' },
+      { title:'远离建筑物', desc:'到达室外后远离房屋（至少保持房屋高度的距离），防范墙体倒塌、瓦片坠落。' },
+      { title:'避开危险物', desc:'远离围墙、烟囱、大树、电线杆、变压器等可能倒塌的物体。' },
+      { title:'检查房屋结构', desc:'震动停止后，从外部观察房屋是否有裂缝、倾斜。确认安全前不要进入室内。' }
+    ],
+    dorm: [
+      { title:'迅速下床避险', desc:'不要贪恋物品，立即离开床铺。上铺同学优先下床，注意避免踩踏。' },
+      { title:'躲到坚固位置', desc:'躲到书桌下方或床铺与墙壁形成的三角空间。远离窗户、衣柜和挂物。' },
+      { title:'保护头部', desc:'用枕头、被子或双手保护头部和颈部。抓住牢固物体保持稳定。' },
+      { title:'有序撤离', desc:'震动停止后，按疏散路线有序离开宿舍楼。走楼梯禁电梯，不要拥挤推搡。' },
+      { title:'前往操场集合', desc:'到操场等开阔地带集合清点人数。协助受伤同学，等待救援和官方通知。' }
+    ],
+    office: [
+      { title:'就地避险', desc:'迅速躲到办公桌下方，远离玻璃隔断、文件柜和吊灯。不要冲向出口造成踩踏。' },
+      { title:'保护头部', desc:'用公文包、靠垫或双手保护头部。抓住桌腿保持稳定，背对窗户。' },
+      { title:'震动后有序撤离', desc:'主震结束后，按应急疏散路线走楼梯下楼。帮助同事，不要拥挤。' },
+      { title:'禁止使用电梯', desc:'电梯可能停电或故障，必须走消防楼梯。注意防范坠落物和碎玻璃。' },
+      { title:'到达疏散集合点', desc:'到公司指定的应急集合点（通常为楼下广场），清点人数，等待进一步指示。' }
+    ],
+    school: [
+      { title:'教室内就地避险', desc:'迅速躲到课桌下方，双手抱头抓牢桌腿。不要惊慌跑动，听从老师指挥。' },
+      { title:'远离窗户和墙体', desc:'避开窗户、玻璃、外墙和悬挂物（如吊扇、投影仪）。不在楼梯间停留。' },
+      { title:'有序疏散', desc:'震动停止后，按班级有序撤离。前排先走，不推挤不逆行，护住头部。' },
+      { title:'前往操场集合', desc:'到达操场等开阔地带，按班级集合清点人数。远离教学楼、围墙、大树。' },
+      { title:'清点与安抚', desc:'老师清点学生人数，报告失踪或受伤情况。安抚学生情绪，等待家长接领或官方通知。' }
+    ]
+  };
+
+  var SAFE_ZONES = {
+    common: [
+      { icon:'🚽', title:'卫生间/小开间', desc:'空间小、管道多、结构相对稳固，是室内最佳避险处' },
+      { icon:'🪑', title:'坚固家具下方', desc:'结实的桌子、床铺下方，可形成生存空间' },
+      { icon:'🧱', title:'承重墙角', desc:'建筑物承重墙交汇处结构较强，蹲下护头' },
+      { icon:'🏃', title:'室外开阔地', desc:'广场、操场、公园等远离建筑物的空旷区域' }
+    ],
+    apartment: [
+      { icon:'🚿', title:'卫生间', desc:'有水源、管道支撑、空间小，避险首选' },
+      { icon:'🗄️', title:'储藏室', desc:'小开间，杂物少，结构稳固' }
+    ],
+    house: [
+      { icon:'🌳', title:'院子空地', desc:'远离房屋的院子中央开阔区域' },
+      { icon:'🚗', title:'车库外通道', desc:'室外空旷通道，远离建筑' }
+    ]
+  };
+
+  var DANGER_ZONES = [
+    { icon:'🪟', title:'窗户和玻璃门', desc:'玻璃破碎可能造成严重切割伤' },
+    { icon:'🪜', title:'楼梯间', desc:'结构薄弱，易坍塌，且奔跑易踩踏' },
+    { icon:'🚛', title:'阳台和悬挑结构', desc:'非承重结构，地震时易断裂坠落' },
+    { icon:'📚', title:'高大衣柜/书架', desc:'可能倾倒砸伤，应提前固定' },
+    { icon:'🔌', title:'厨房', desc:'燃气管道、电器、刀具，有火灾和伤害风险' },
+    { icon:'🏗️', title:'外墙和女儿墙', desc:'外墙砖块、装饰物可能脱落' },
+    { icon:'🛗', title:'电梯', desc:'可能停电困人，严禁使用' }
+  ];
+
+  var SHELTER_TIPS = [
+    { icon:'🎒', title:'应急包随身携带', desc:'撤离时携带家庭应急包（水、食物、药品、手电筒、哨子、身份证件）' },
+    { icon:'🚫', title:'不要返回室内', desc:'余震随时可能发生，确认安全前不要返回楼内取物' },
+    { icon:'📱', title:'节约手机电量', desc:'用短信代替电话报告平安，留电量等待救援通知' },
+    { icon:'💧', title:'保存饮用水', desc:'断水情况下节约使用存水，优先保证饮水' },
+    { icon:'🆘', title:'被困时求救', desc:'敲击管道或墙壁发出有节奏信号，不要大声呼喊以免吸入粉尘' },
+    { icon:'🩹', title:'自救互救', desc:'止血包扎伤口，被埋压者先清理口鼻确保呼吸，不要强行拖拽' },
+    { icon:'📢', title:'关注官方信息', desc:'通过收音机或手机关注地震部门发布的震情和避难指引' },
+    { icon:'🏘️', title:'前往避难场所', desc:'到政府设立的应急避难场所（学校操场、公园、体育馆等）登记安置' }
+  ];
+
+  window.generatePlan = function(){
+    var floor = document.getElementById('floorSelect').value;
+    var steps = ESCAPE_PLANS[selectedHouse] || ESCAPE_PLANS.apartment;
+
+    // 高楼层公寓特殊提示
+    if(selectedHouse === 'apartment' && floor === 'high'){
+      steps = steps.slice();
+      steps[0] = { title:'就地避险（勿尝试下楼）', desc:'高楼层来不及下楼逃生，立即就近避险是最好的选择。躲到卫生间或小开间，远离窗户和外墙。' };
+    }
+
+    var html = '';
+    steps.forEach(function(s, idx){
+      html += '<div class="escape-step">'
+        + '<div class="es-num">'+(idx+1)+'</div>'
+        + '<div class="es-body">'
+        + '<div class="es-title">'+ToolBox.escHtml(s.title)+'</div>'
+        + '<div class="es-desc">'+ToolBox.escHtml(s.desc)+'</div>'
+        + '</div></div>';
+    });
+    const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('escapeSteps').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('escapeSteps').innerHTML=__h1;
+    document.getElementById('planCard').style.display = 'block';
+
+    // 避险区域
+    var safeList = (SAFE_ZONES[selectedHouse] || []).concat(SAFE_ZONES.common);
+    var safeHtml = '';
+    safeList.forEach(function(z){
+      safeHtml += '<div class="danger-zone dz-safe">'
+        + '<span class="dz-icon">'+z.icon+'</span>'
+        + '<div><strong>'+ToolBox.escHtml(z.title)+'</strong> — '+ToolBox.escHtml(z.desc)+'</div>'
+        + '</div>';
+    });
+    const __h2=safeHtml;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('safeZones').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('safeZones').innerHTML=__h2;
+
+    var dangerHtml = '';
+    DANGER_ZONES.forEach(function(z){
+      dangerHtml += '<div class="danger-zone dz-avoid">'
+        + '<span class="dz-icon">'+z.icon+'</span>'
+        + '<div><strong>'+ToolBox.escHtml(z.title)+'</strong> — '+ToolBox.escHtml(z.desc)+'</div>'
+        + '</div>';
+    });
+    const __h3=dangerHtml;if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){document.getElementById('dangerZones').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('dangerZones').innerHTML=__h3;
+    document.getElementById('zoneCard').style.display = 'block';
+
+    // 避难要点
+    var shelterHtml = '';
+    SHELTER_TIPS.forEach(function(t){
+      shelterHtml += '<div class="shelter-card">'
+        + '<div class="sc-head">'
+        + '<span class="sc-icon">'+t.icon+'</span>'
+        + '<span class="sc-title">'+ToolBox.escHtml(t.title)+'</span>'
+        + '</div>'
+        + '<div class="sc-desc">'+ToolBox.escHtml(t.desc)+'</div>'
+        + '</div>';
+    });
+    const __h4=shelterHtml;if((typeof __h4==='number'&&!isFinite(__h4))||/Infinity/.test(String(__h4))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h4)){document.getElementById('shelterTips').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('shelterTips').innerHTML=__h4;
+    document.getElementById('shelterCard').style.display = 'block';
+
+    ToolBox.showToast(i18nText(), 'success');
+  };
+
+  renderHouseTypes();
+  generatePlan();
+})();
+</script>
+<script>
+(function(){
+  window.__eqExport=function(){
+    if(typeof TBKit==='undefined') return;
+    var en=TBKit.util.isEn();
+    var rows=[[en?'Category':'类别',en?'Title':'标题',en?'Note':'说明']];
+    function grab(sel, cat){
+      var nodes=document.querySelectorAll(sel);
+      nodes.forEach(function(n){
+        var title=n.querySelector('.es-title, .sc-title, strong');
+        var desc=n.querySelector('.es-desc, .sc-desc, div:last-child');
+        var t=title?title.textContent.trim():'';
+        var d=desc?desc.textContent.trim():'';
+        if(t||d) rows.push([cat,t,d]);
+      });
+    }
+    grab('#escapeSteps .escape-step','逃生步骤');
+    grab('#safeZones .danger-zone','安全区域');
+    grab('#dangerZones .danger-zone','危险区域');
+    grab('#shelterTips .shelter-card','避难要点');
+    if(rows.length<=1) return;
+    var t=document.getElementById('eqHidden');
+    if(!t){ t=document.createElement('table'); t.id='eqHidden'; t.style.display='none'; document.body.appendChild(t); }
+    t.innerHTML='<tbody>'+rows.map(function(r){return '<tr>'+r.map(function(c){return '<td>'+(c==null?'':c)+'</td>';}).join('')+'</tr>';}).join('')+'</tbody>';
+    TBKit.util.exportTable('#eqHidden','earthquake-escape-plan.csv');
+  };
+})();
+</script>
+<script>
+// tool-intro折叠交互
+document.addEventListener('DOMContentLoaded',function(){
+  var headers=document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click',function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+</script>
+
+<script>
+(function(){try{
+  var NS="tools/security/earthquake-escape.html";
+  function k(id){return 'tb_uxp_'+NS+'#'+id;}
+  function save(el){try{
+    if(el.type==='checkbox'){localStorage.setItem(k(el.id),el.checked?'1':'0');}
+    else if(el.type==='radio'){if(el.checked)localStorage.setItem(k(el.id),el.value);}
+    else{localStorage.setItem(k(el.id),el.value);}
+  }catch(e){}}
+  function restore(){try{
+    document.querySelectorAll('input:not([type=password]):not([readonly]):not([disabled]),textarea:not([readonly]):not([disabled]),select').forEach(function(el){
+      if(!el.id)return;
+      var v=localStorage.getItem(k(el.id));if(v===null)return;
+      try{
+        if(el.type==='checkbox'){el.checked=(v==='1');}
+        else if(el.type==='radio'){el.checked=(el.value===v);}
+        else{el.value=v;}
+        el.dispatchEvent(new Event('input',{bubbles:true}));
+        el.dispatchEvent(new Event('change',{bubbles:true}));
+      }catch(e){}
+    });
+  }catch(e){}}
+  document.querySelectorAll('input:not([type=password]):not([readonly]):not([disabled]),textarea:not([readonly]):not([disabled]),select').forEach(function(el){
+    if(!el.id)return;
+    el.addEventListener('input',function(){save(el);});
+    el.addEventListener('change',function(){save(el);});
+  });
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',restore);
+  else restore();
+}catch(e){}})();
+
+window.applyQuakePreset = function(kind){
+  if(!kind) return;
+  var cfg = kind==='lowrise' ? {h:'apartment',f:'low'}
+          : kind==='highrise' ? {h:'apartment',f:'high'}
+          : kind==='house' ? {h:'house',f:'low'} : null;
+  if(!cfg) return;
+  if(typeof selectHouse==='function') selectHouse(cfg.h);
+  var fl = document.getElementById('floorSelect');
+  if(fl) fl.value = cfg.f;
+  if(typeof generatePlan==='function') generatePlan();
+};
+</script>
+</body>
+</html>

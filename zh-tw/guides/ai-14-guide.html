@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-opencc-locale="zh-tw">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>詞嵌入餘弦檢索 使用指南 - ToolBox</title>
+<meta name="description" content="詞嵌入餘弦檢索器，計算查詢向量與文件向量的餘弦相似度並排序，用於 RAG 與語義檢索的相似度評估。歸一化後二者單調相關，但餘弦更關注方向、對模長不敏感，適合文本嵌入；未歸一化時歐氏會被向量長度主導，檢索效果通常更差。">
+<meta property="og:title" content="詞嵌入餘弦檢索 使用指南">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="ToolBox">
+<meta property="og:url" content="https://tools.dicomp.net/zh-tw/guides/ai-14-guide.html">
+<meta property="og:description" content="詞嵌入餘弦檢索器，計算查詢向量與文件向量的餘弦相似度並排序，用於 RAG 與語義檢索的相似度評估。歸一化後二者單調相關，但餘弦更關注方向、對模長不敏感，適合文本嵌入；未歸一化時歐氏會被向量長度主導，檢索效果通常更差。">
+<meta name="twitter:title" content="詞嵌入餘弦檢索 使用指南">
+<meta name="twitter:description" content="詞嵌入餘弦檢索器，計算查詢向量與文件向量的餘弦相似度並排序，用於 RAG 與語義檢索的相似度評估。歸一化後二者單調相關，但餘弦更關注方向、對模長不敏感，適合文本嵌入；未歸一化時歐氏會被向量長度主導，檢索效果通常更差。">
+<meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 免費線上工具與使用指南">
+<meta property="og:image" content="https://tools.dicomp.net/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="canonical" href="https://tools.dicomp.net/zh-tw/guides/ai-14-guide.html">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"詞嵌入餘弦檢索 使用指南","description":"詞嵌入餘弦檢索器，計算查詢向量與文件向量的餘弦相似度並排序，用於 RAG 與語義檢索的相似度評估。","author":{"@type":"Organization","name":"ToolBox"},"datePublished":"2026-09-13","dateModified":"2026-09-13","mainEntityOfPage":{"@type":"WebPage","@id":"https://tools.dicomp.net/zh-tw/guides/ai-14-guide.html"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"ToolBox","item":"https://tools.dicomp.net/zh-tw/"},{"@type":"ListItem","position":2,"name":"使用指南","item":"https://tools.dicomp.net/zh-tw/guides/index.html"},{"@type":"ListItem","position":3,"name":"詞嵌入餘弦檢索 使用指南","item":"https://tools.dicomp.net/zh-tw/guides/ai-14-guide.html"}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"餘弦和歐氏在檢索裡差別大嗎？","acceptedAnswer":{"@type":"Answer","text":"歸一化後二者單調相關，但餘弦更關注方向、對模長不敏感，適合文本嵌入；未歸一化時歐氏會被向量長度主導，檢索效果通常更差。"}},{"@type":"Question","name":"召回不準怎麼排查？","acceptedAnswer":{"@type":"Answer","text":"先看向量模型是否適配領域(通用模型對專業詞弱)，再查切分粒度與停用詞；也可換混合檢索(向量+關鍵詞)補召回。"}}]}</script>
+<style>
+:root{--primary:#FF6B35;--text:#1F2937;--muted:#6B7280;--border:#E5E7EB;--bg:#FFFAF7;}
+*{box-sizing:border-box;}
+body{margin:0;font-family:"Noto Sans SC","Plus Jakarta Sans",system-ui,sans-serif;color:var(--text);background:var(--bg);line-height:1.75;}
+.breadcrumb a{color:var(--primary);text-decoration:none;margin-right:6px;}
+.breadcrumb a:hover{text-decoration:underline;}
+main{max-width:820px;margin:0 auto;padding:28px 20px 60px;}
+h1{font-size:28px;margin:0 0 8px;}
+.lead{font-size:16px;color:var(--muted);margin:0 0 22px;}
+h2{font-size:20px;margin:28px 0 10px;color:var(--primary);}
+ul,ol{padding-left:22px;}
+li{margin:8px 0;}
+.related{margin-top:26px;padding:16px;background:#fff;border:1px solid var(--border);border-radius:14px;}
+.related h3{margin:0 0 10px;font-size:16px;color:var(--text);}
+.tool-chip{display:inline-block;margin:4px 6px 4px 0;padding:6px 12px;border:1px solid var(--border);border-radius:999px;color:var(--primary);text-decoration:none;font-size:14px;}
+.tool-chip:hover{background:var(--primary);color:#fff;}
+.faq{margin-top:26px;}
+.faq dt{font-weight:700;margin-top:14px;}
+.faq dd{margin:4px 0 0;color:var(--muted);}
+.back{margin-top:30px;padding:16px;background:#fff;border:1px solid var(--border);border-radius:14px;}
+.back a{color:var(--primary);font-weight:700;text-decoration:none;}
+</style>
+<script src="/js/analytics.js" defer></script>
+<link rel="stylesheet" href="/css/site-chrome.css">
+<link rel="stylesheet" href="/css/common.css">
+<script src="/js/i18n.js" defer></script>
+<script src="/js/common.js" defer></script>
+<meta name="title-zh" content="詞嵌入餘弦檢索 使用指南">
+<!-- TOOLBOX-TTZZ -->
+<script>
+(function(){try{
+var el = document.createElement("script");
+el.src = "https://lf1-cdn-tos.bytegoofy.com/goofy/ttzz/push.js?85d6452aa9be4d693b16cd48535a8c7ae57542f6788a41682e745be8eb99b35a8a24d2f724c31ebe20c1e4e6fba6d91caf576100b02a2870c72f38fc574066fef065d152c73bf1cbb2ebad3b5b5265d8";
+el.id = "ttzz";
+var s = document.getElementsByTagName("script")[0];
+s.parentNode.insertBefore(el, s);
+}catch(e){}
+})(window);
+</script>
+
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://tools.dicomp.net/guides/ai-14-guide.html">
+<link rel="alternate" hreflang="zh-TW" href="https://tools.dicomp.net/zh-tw/guides/ai-14-guide.html">
+<link rel="alternate" hreflang="en-US" href="https://tools.dicomp.net/guides/ai-14-guide.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://tools.dicomp.net/guides/ai-14-guide.html">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+</head>
+<body>
+<nav class="breadcrumb"><a href="https://tools.dicomp.net/">ToolBox</a> / <a href="https://tools.dicomp.net/guides/index.html">使用指南</a> / <span>詞嵌入餘弦檢索 使用指南</span></nav>
+<main>
+<h1>詞嵌入餘弦檢索 使用指南</h1>
+<p class="lead">詞嵌入餘弦檢索器，計算查詢向量與文件向量的餘弦相似度並排序，用於 RAG 與語義檢索的相似度評估。</p>
+<h2>計算公式與原理</h2>
+<p><strong>cos(q, d) = (q·d)/(‖q‖·‖d‖)，檢索取 top-k 最大者</strong></p><p>稠密檢索的標準打分：查詢向量與文件向量做點積後各自歸一化，等價於夾角餘弦。實際系統常用內積近似加 ANN 索引（HNSW/IVF）加速，此時必須保證向量已歸一化，否則內積會被模長帶偏。</p>
+<h2>使用步驟</h2>
+<ol><li>填寫「查詢 q1」。</li><li>填寫「查詢 q2」。</li><li>填寫「文件 d1」。</li><li>填寫「文件 d2」。</li><li>結果區會即時更新；可一鍵複製結果用於記錄或彙報。</li></ol>
+<h2>典型使用場景</h2>
+<ul><li>將查詢與文件編碼為向量，按餘弦相似度排序返回最相近項，是語義檢索的核心。</li><li>RAG 中先用向量庫召回 top-k，再送大模型生成，召回質量直接決定答案上限。</li><li>餘弦對向量模長不敏感，適合比較語義方向；短文本需配合歸一化與去停用詞。</li></ul>
+<h2>算例參考</h2>
+<ul><li><strong>查詢召回排序</strong>：查詢'蘋果公司股價'，文件向量('蘋果,財報')cos=0.82、('水果,營養')cos=0.31、('iPhone,釋出會')cos=0.76 → 召回排序為財報&gt;iPhone&gt;水果，正確命中企業語義。</li></ul>
+<h2>注意事項</h2>
+<p>結果為按上述公式得到的<strong>理論估算值</strong>，實際表現受資料分佈、實現細節與執行環境影響，落地決策請以實測為準；本工具純前端執行，輸入不上傳伺服器。</p>
+<div class="related">
+<h3>相關工具</h3>
+<a class="tool-chip" href="https://tools.dicomp.net/tools/ai/ai-15.html">貝葉斯後驗機率</a>
+<a class="tool-chip" href="https://tools.dicomp.net/tools/ai/ai-16.html">模型融合加權投票</a>
+<a class="tool-chip" href="https://tools.dicomp.net/tools/ai/ai-17.html">提示詞上下文視窗</a>
+<a class="tool-chip" href="https://tools.dicomp.net/tools/ai/ai-4.html">歐氏距離</a>
+</div>
+<dl class="faq">
+<dt>餘弦和歐氏在檢索裡差別大嗎？</dt><dd>歸一化後二者單調相關，但餘弦更關注方向、對模長不敏感，適合文本嵌入；未歸一化時歐氏會被向量長度主導，檢索效果通常更差。</dd>
+<dt>召回不準怎麼排查？</dt><dd>先看向量模型是否適配領域(通用模型對專業詞弱)，再查切分粒度與停用詞；也可換混合檢索(向量+關鍵詞)補召回。</dd>
+</dl>
+<div class="back"><a href="https://tools.dicomp.net/tools/ai/ai-14.html">→ 開啟詞嵌入餘弦檢索工具</a></div>
+</main>
+</body>
+</html>

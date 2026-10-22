@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-opencc-locale="zh-tw">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=engineer,industry=automotive,icon=⏱️,bg=#ea580c">
+<meta name="description" content="汽車保養週期計算器是一款免費的線上汽車交通工具，汽車保養週期計算器，估算機油機濾空濾變速箱油等保養間隔與費用參考，輔助養車規劃。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta name="keywords" content="保養週期計算器,保養週期計算器線上,線上保養週期計算器,數學計算,汽車交通,汽車保養週期計算器,線上工具,免費工具,ToolBox">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://tools.dicomp.net/zh-tw/tools/automotive/oil-change.html">
+<meta property="og:title" content="汽車保養週期計算器 - 免費線上汽車交通工具">
+<meta property="og:description" content="汽車保養週期計算器是一款免費的線上汽車交通工具，汽車保養週期計算器，估算機油機濾空濾變速箱油等保養間隔與費用參考，輔助養車規劃。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://tools.dicomp.net/zh-tw/tools/automotive/oil-change.html">
+<meta name="twitter:card" content="summary">
+
+<title>汽車保養週期計算器 - 免費線上汽車交通工具</title>
+<meta name="theme-color" content="#FF6B35">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="stylesheet" href="/css/common.css">
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/common.js" defer></script>
+<style>
+.maintenance-card{background:linear-gradient(135deg,rgba(234,88,12,0.1),rgba(249,115,22,0.1));border-radius:12px;padding:20px;margin-bottom:16px;}
+.next-maintenance{font-size:36px;font-weight:700;color:var(--primary);text-align:center;}
+.maint-label{font-size:13px;color:var(--text-muted);text-align:center;margin-top:4px;}
+.oil-type-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:8px;margin:12px 0;}
+.oil-btn{padding:10px;border:2px solid var(--border);border-radius:8px;text-align:center;cursor:pointer;font-size:12px;transition:all 0.2s;background:var(--card-bg);}
+.oil-btn.active{border-color:var(--primary);background:rgba(234,88,12,0.08);}
+.oil-btn .name{font-weight:600;margin-bottom:2px;}
+.oil-btn .interval{font-size:10px;color:var(--text-muted);}
+.maint-table{width:100%;border-collapse:collapse;font-size:12px;margin-top:12px;}
+.maint-table th,.maint-table td{padding:8px;border:1px solid var(--border);text-align:left;}
+.maint-table th{background:var(--result-bg);font-weight:600;}
+.maint-item{display:flex;justify-content:space-between;align-items:center;padding:10px;border-bottom:1px solid var(--border);font-size:13px;}
+.maint-item .status{padding:3px 8px;border-radius:10px;font-size:11px;font-weight:600;}
+.status-due{background:#fef2f2;color:#dc2626;}
+.status-soon{background:#fffbeb;color:#d97706;}
+.status-ok{background:#f0fdf4;color:#16a34a;}
+</style>
+
+
+
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"全合成真的能 1 萬 km 嗎？","acceptedAnswer":{"@type":"Answer","text":"正規全合成在良好工況下可行，但需結合車況與油樣。渦輪增壓、長期擁堵應適當縮短，且以手冊下限為準。"}},{"@type":"Question","name":"機油標號怎麼看？","acceptedAnswer":{"@type":"Answer","text":"如 5W-30，W 前數字代表低溫流動性（越小越耐寒），橫線後數字代表 100°C 運動黏度。按手冊推薦黏度選，勿隨意降黏。"}}]}</script>
+<meta name="twitter:title" content="汽車保養週期計算器 - 免費線上汽車交通工具">
+<meta name="twitter:description" content="汽車保養週期計算器是一款免費的線上汽車交通工具，汽車保養週期計算器，估算機油機濾空濾變速箱油等保養間隔與費用參考，輔助養車規劃。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta name="title-en" content="Oil Change">
+<meta name="desc-en" content="Oil Change - online utility on ToolBox.">
+
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首頁","item":"https://tools.dicomp.net/zh-tw/"},{"@type":"ListItem","position":2,"name":"汽車交通","item":"https://tools.dicomp.net/zh-tw/tools/automotive/index.html"},{"@type":"ListItem","position":3,"name":"汽車保養週期計算器","item":"https://tools.dicomp.net/zh-tw/tools/automotive/oil-change.html"}]}</script>
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"汽車保養週期計算器","url":"https://tools.dicomp.net/zh-tw/tools/automotive/oil-change.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"汽車保養週期計算器是一款免費的線上汽車交通工具，汽車保養週期計算器，估算機油機濾空濾變速箱油等保養間隔與費用參考，輔助養車規劃。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<meta property="og:image" content="https://tools.dicomp.net/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免費線上工具">
+<meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免費線上工具">
+
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script src="/js/i18n.js" defer></script>
+<script src="/js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
+
+<script src="/js/tool-ux.js" defer></script>
+<!-- TOOLBOX-TOOL-UX -->
+
+<script src="/js/analytics.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+<!-- TOOLBOX-TTZZ -->
+<script>
+(function(){try{
+var el = document.createElement("script");
+el.src = "https://lf1-cdn-tos.bytegoofy.com/goofy/ttzz/push.js?85d6452aa9be4d693b16cd48535a8c7ae57542f6788a41682e745be8eb99b35a8a24d2f724c31ebe20c1e4e6fba6d91caf576100b02a2870c72f38fc574066fef065d152c73bf1cbb2ebad3b5b5265d8";
+el.id = "ttzz";
+var s = document.getElementsByTagName("script")[0];
+s.parentNode.insertBefore(el, s);
+}catch(e){}
+})(window);
+</script>
+
+<script src="/js/tool-kit.js" defer></script>
+<!-- TOOLBOX-TOOL-KIT -->
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://tools.dicomp.net/tools/automotive/oil-change.html">
+<link rel="alternate" hreflang="zh-TW" href="https://tools.dicomp.net/zh-tw/tools/automotive/oil-change.html">
+<link rel="alternate" hreflang="en-US" href="https://tools.dicomp.net/tools/automotive/oil-change.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://tools.dicomp.net/tools/automotive/oil-change.html">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+</head>
+<body>
+<h1 class="sr-only">汽車保養週期計算器</h1>
+<div class="nav">
+  <a href="/zh-tw/index.html">← ToolBox</a>
+  <span>/ 汽車保養週期計算器</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+<nav class="breadcrumb" aria-label="麵包屑導航" data-breadcrumb="1">
+  <a href="/zh-tw/index.html">首頁</a>
+  <span class="bc-sep">‹</span>
+  <a href="/zh-tw/tools/automotive/index.html">🚗 汽車交通</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">汽車保養週期計算器</span>
+</nav>
+<div class="container">
+  <style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#3b82f6)}.tbk-tab.active{background:var(--accent,#3b82f6);color:#fff;border-color:var(--accent,#3b82f6)}.tbk-panel{margin-top:6px}</style>
+<div class="tbk-tabbar" role="tablist">
+  <button type="button" class="tbk-tab" data-pane="res">結果</button>
+  <button type="button" class="tbk-tab" data-pane="tbl">資料表</button>
+  <button type="button" class="tbk-tab" data-pane="his">歷史</button>
+</div>
+<div class="card tool-card-accent" style="--tool-accent:#b45309;">
+    <h2 data-zh="⏱️ 汽車保養週期計算器">Oil Change</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="汽車保養週期計算器，估算機油機濾空濾變速箱油等保養間隔與費用參考，輔助養車規劃。">Car maintenance interval calculator estimating service intervals and cost references for engine oil, oil filter, air filter, and transmission fluid to help plan car care.</p>
+    <div class="input-row">
+      <div><div data-tb="preset" data-tb-presets='[{"label": "示例数据", "labelEn": "Example", "values": {"yearKm": "15000", "curKm": "30000", "doneKm": "3000", "oType": "semi", "cond": "city", "turbo": "no"}}]'></div>
+<label>機油型別</label><select id="oType" onchange="calc()">
+        <option value="mineral">礦物油</option>
+        <option value="semi" selected>半合成</option>
+        <option value="full">全合成</option>
+      </select></div>
+      <div><label>年行駛里程 (km)</label><input type="number" id="yearKm" value="15000" oninput="calc()" min="0" step="any"></div>
+    </div>
+    <div class="input-row">
+      <div><label>用車工況</label><select id="cond" onchange="calc()">
+        <option value="highway">高速暢通為主</option>
+        <option value="city" selected>城市一般路況</option>
+        <option value="jam">長期擁堵 / 短途</option>
+      </select></div>
+      <div><label>是否渦輪增壓</label><select id="turbo" onchange="calc()">
+        <option value="no" selected>否（自然吸氣）</option>
+        <option value="yes">是（渦輪增壓）</option>
+      </select></div>
+    </div>
+    <div class="input-row">
+      <div><label>當前里程 (km)</label><input type="number" id="curKm" value="30000" oninput="calc()" min="0" step="any"></div>
+      <div><label>距上次換油已行駛 (km)</label><input type="number" id="doneKm" value="3000" oninput="calc()" min="0" step="any"></div>
+    </div>
+    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__oil_changeExport()">匯出明細 CSV</button></div><div class="safe-main" id="result"></div> <div id="oil_changeTable"></div> <div id="oil_changeDiff"></div> <div id="oil_changeChart"></div> <div id="oil_changeHist"></div>
+    <div class="dist-grid" id="distGrid"></div>
+    <div class="formula-box" id="formulaBox"><div class="formula-eq">換油週期 = 基礎里程 × 工況係數 × 渦輪系數：高速 ×1.15、擁堵 ×0.75、渦輪增壓 ×0.85；建議下次換油里程 = 當前里程 + 週期。</div></div>
+    <div id="adviceBox"></div>
+  </div>
+  <div class="card">
+    <h3>📖 機油型別基礎週期與修正係數</h3>
+    <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:12px;">
+      <tr>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border,#e5e7eb);">機油型別</th>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border,#e5e7eb);">基礎里程</th>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border,#e5e7eb);">時間上限</th>
+      </tr>
+      <tr><td style="padding:6px 8px;">礦物油</td><td style="padding:6px 8px;">5000 km</td><td style="padding:6px 8px;">6 個月</td></tr>
+      <tr><td style="padding:6px 8px;">半合成</td><td style="padding:6px 8px;">7500 km</td><td style="padding:6px 8px;">8 個月</td></tr>
+      <tr><td style="padding:6px 8px;">全合成</td><td style="padding:6px 8px;">10000 km</td><td style="padding:6px 8px;">12 個月</td></tr>
+    </table>
+    <div class="scene-card">
+      <h4>🚦 工況係數</h4>
+      <p>高速暢通 ×1.15（機油工況好）；城市一般 ×1.0；長期擁堵短途 ×0.75（冷啟動多、燃油稀釋與油泥更快累積）。</p>
+    </div>
+    <div class="scene-card">
+      <h4>🌀 渦輪增壓</h4>
+      <p>渦輪轉速高、油溫高，機油劣化更快，週期統一 ×0.85，並優先選用符合廠家認證的全合成油。</p>
+    </div>
+    <div class="info-box">💡 里程與時間「先到為準」：即便里程未到，超過時間上限也應更換，因為機油氧化與新增劑衰減不可逆。</div>
+  </div>
+  <div class="card">
+    <h3>🗓️ 整車保養專案週期參考</h3>
+    <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:12px;">
+      <tr>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border,#e5e7eb);">保養專案</th>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border,#e5e7eb);">里程週期</th>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border,#e5e7eb);">時間週期</th>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border,#e5e7eb);">備註</th>
+      </tr>
+      <tr><td style="padding:6px 8px;">機油 + 機油濾芯</td><td style="padding:6px 8px;">5000 ~ 10000 km</td><td style="padding:6px 8px;">6 ~ 12 個月</td><td style="padding:6px 8px;">按機油型別，本頁主算</td></tr>
+      <tr><td style="padding:6px 8px;">空氣濾芯</td><td style="padding:6px 8px;">15000 ~ 20000 km</td><td style="padding:6px 8px;">12 個月</td><td style="padding:6px 8px;">多塵環境減半</td></tr>
+      <tr><td style="padding:6px 8px;">空調濾芯</td><td style="padding:6px 8px;">15000 ~ 20000 km</td><td style="padding:6px 8px;">12 個月</td><td style="padding:6px 8px;">霧霾重地區 6 個月</td></tr>
+      <tr><td style="padding:6px 8px;">汽油濾芯</td><td style="padding:6px 8px;">30000 ~ 40000 km</td><td style="padding:6px 8px;">24 個月</td><td style="padding:6px 8px;">外接式週期更短</td></tr>
+      <tr><td style="padding:6px 8px;">剎車油</td><td style="padding:6px 8px;">40000 km</td><td style="padding:6px 8px;">24 個月</td><td style="padding:6px 8px;">含水量 &gt;3% 即換</td></tr>
+      <tr><td style="padding:6px 8px;">防凍液</td><td style="padding:6px 8px;">60000 km</td><td style="padding:6px 8px;">48 個月</td><td style="padding:6px 8px;">長效型可 10 年</td></tr>
+      <tr><td style="padding:6px 8px;">火花塞</td><td style="padding:6px 8px;">30000 ~ 60000 km</td><td style="padding:6px 8px;">—</td><td style="padding:6px 8px;">銥金可 80000 km</td></tr>
+      <tr><td style="padding:6px 8px;">變速箱油</td><td style="padding:6px 8px;">60000 ~ 80000 km</td><td style="padding:6px 8px;">48 個月</td><td style="padding:6px 8px;">AT/CVT 差異大</td></tr>
+      <tr><td style="padding:6px 8px;">正時皮帶</td><td style="padding:6px 8px;">60000 ~ 100000 km</td><td style="padding:6px 8px;">60 個月</td><td style="padding:6px 8px;">斷帶損失大，宜提前</td></tr>
+    </table>
+    <div class="info-box">💡 上述為通用參考區間，渦輪增壓、擁堵短途、多塵或高寒工況應整體縮短 20%~30%；以隨車保養手冊為準。</div>
+  </div>
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto 0;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+.deep-dive a.term-link{color:var(--tool-accent,#FF6B35);text-decoration:none;border-bottom:1px dashed currentColor;}
+.deep-dive a.term-link:hover{border-bottom-style:solid;}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：機油更換週期計算</h2>
+<h3>💡 常見使用場景</h3>
+<ul class="dd-list">
+<li>根據機油型別（礦物/半合成/全合成）與用車環境確定合適的換油里程或月份。</li>
+<li>對比不同機油等級的耐久性與價格，算長期保養成本。</li>
+<li>渦輪增壓、直噴發動機按更嚴要求選機油與週期，保護渦輪。</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">按機油型別定週期</div><div class="dd-ex-body">礦物油約 5000km/6 個月，半合成約 7500km/8 個月，全合成約 10000km/12 個月。一輛年跑 1.5 萬 km 的車用全合成約每年換 1–2 次即可。</div></div>
+<h3>❓ 常見問題（FAQ）</h3>
+<dl class="dd-faq">
+<dt>全合成真的能 1 萬 km 嗎？</dt><dd>正規全合成在良好工況下可行，但需結合車況與油樣。渦輪增壓、長期擁堵應適當縮短，且以手冊下限為準。</dd>
+<dt>機油標號怎麼看？</dt><dd>如 5W-30，W 前數字代表低溫流動性（越小越耐寒），橫線後數字代表 100°C <a class="term-link" href="/zh-tw/tools/fluid/kinematic-viscosity.html">運動黏度</a>。按手冊推薦黏度選，勿隨意降黏。</dd>
+</dl>
+</div>
+</section>
+<!-- 注意事項區塊 -->
+<div class="tool-notes" style="--tool-accent:#b45309;">
+  <div class="tool-notes-title">⚠️ 使用說明與注意事項</div>
+  <ul>
+    <li>本工具純前端執行，資料不會上傳到伺服器</li>
+    <li>建議在主流瀏覽器（Chrome/Safari/Firefox/Edge）中使用</li>
+    <li>里程與時間先到為準，嚴苛工況即使里程未到也應按時間上限更換</li>
+  </ul>
+</div>
+</div>
+<!-- 相關工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相關工具</h3>
+  <div class="related-tools-grid">
+    <a href="/zh-tw/tools/automotive/recommender-6.html" class="related-tool-card">
+      <span class="rt-icon">🚗</span>
+      <span class="rt-info"><span class="rt-name">胎壓（監測/充氣）推薦</span><span class="rt-desc">根據車型、載重與季節推薦前後輪標準胎壓，提示冷胎與熱胎讀數差異及充氣注意事項，幫助延長輪胎壽命並保…</span></span>
+    </a>
+    <a href="/zh-tw/tools/automotive/calc-2.html" class="related-tool-card">
+      <span class="rt-icon">⚡</span>
+      <span class="rt-info"><span class="rt-name">發動機功率/扭矩換算</span><span class="rt-desc">根據功率、扭矩與轉速之間的物理關係進行換算，支援 kW 與 PS（公制馬力）互轉。</span></span>
+    </a>
+    <a href="/zh-tw/tools/automotive/oil-change-countdown.html" class="related-tool-card">
+      <span class="rt-icon">📅</span>
+      <span class="rt-info"><span class="rt-name">機油更換倒計時</span><span class="rt-desc">輸入已行駛里程、機油週期與駕駛習慣係數，估算下次機油更換的剩餘里程或天數，避免過度保養或超期損傷。</span></span>
+    </a>
+    <a href="/zh-tw/tools/automotive/countdown-engine-oil.html" class="related-tool-card">
+      <span class="rt-icon">📅</span>
+      <span class="rt-info"><span class="rt-name">機油更換里程倒計時</span><span class="rt-desc">機油更換里程倒計時，按機油型別與駕駛習慣係數智慧計算建議換油間隔與剩餘里程，支援多車管理、資料本地…</span></span>
+    </a>
+    <a href="/zh-tw/tools/automotive/calc-3.html" class="related-tool-card">
+      <span class="rt-icon">🚗</span>
+      <span class="rt-info"><span class="rt-name">輪胎胎壓換算</span><span class="rt-desc">在 bar、psi、kPa、kg/cm² 之間換算輪胎氣壓，並檢視常用參考值。</span></span>
+    </a>
+    <a href="/zh-tw/tools/automotive/transport-calculator.html" class="related-tool-card">
+      <span class="rt-icon">🚚</span>
+      <span class="rt-info"><span class="rt-name">交通物流計算器</span><span class="rt-desc">涵蓋剎車距離、油耗成本、貨物換算、燃油效率、行駛時間、輪胎尺寸等多種交通物流常用計算</span></span>
+    </a>
+  </div>
+</div>
+<script>
+function fmtNum(n,d){d=d==null?2:d;if(!isFinite(n))return '--';return parseFloat(n.toFixed(d)).toString();}
+function val(id){return parseFloat(document.getElementById(id).value);}
+function str(id){return document.getElementById(id).value;}
+var BASE={mineral:{km:5000,mon:6},semi:{km:7500,mon:8},full:{km:10000,mon:12}};
+function calc(){
+  var R=document.getElementById('result'),G=document.getElementById('distGrid'),
+      F=document.getElementById('formulaBox'),A=document.getElementById('adviceBox');
+  var type=str('oType'),yearKm=val('yearKm'),cur=val('curKm'),done=val('doneKm');
+  var cond=str('cond'),turbo=str('turbo');
+  if(isNaN(yearKm)||isNaN(cur)||isNaN(done)||yearKm<=0){
+    R.innerHTML='<div class="safe-val">--</div><div class="safe-sub">请输入有效的里程数据</div>';
+    G.innerHTML='';F.innerHTML='';A.innerHTML='';return;
+  }
+  var b=BASE[type];
+  var cf=(cond==='highway')?1.15:(cond==='jam'?0.75:1.0);
+  var tf=(turbo==='yes')?0.85:1.0;
+  var km=Math.round(b.km*cf*tf/500)*500;
+  if(km<1000){ km=1000; }
+  var mon=b.mon;
+  if(cf<1){ mon=Math.round(b.mon*0.85); }
+  if(turbo==='yes'){ mon=Math.round(mon*0.9); }
+  var perYear=Math.ceil(yearKm/km);
+  var next=cur+km;
+  var left=km-done;
+  var months=km/(yearKm/12);
+  var stat=(left<=0)?'已到期':'剩余 '+fmtNum(left,0)+' km';
+  const __g5='<div class="safe-val">建议 '+fmtNum(km,0)+' km / '+mon+' 个月</div><div class="safe-sub">'+stat+(left<=0?'，请尽快更换':'')+'</div>';R.innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
+  const __g6='<div class="dist-card"><div class="v">'+fmtNum(km,0)+'</div><div class="l">建议换油里程 (km)</div></div>'+
+    '<div class="dist-card"><div class="v">'+mon+'</div><div class="l">时间上限 (月)</div></div>'+
+    '<div class="dist-card"><div class="v">'+perYear+'</div><div class="l">年换油次数 (次)</div></div>'+
+    '<div class="dist-card"><div class="v">'+fmtNum(next,0)+'</div><div class="l">下次换油里程 (km)</div></div>';G.innerHTML=(typeof __g6==='number'?(isFinite(__g6)?__g6:'—'):String(__g6).replace(/Infinity|NaN/g,'—'));
+  const __g7='<div class="fb-title">计算规则</div>'+
+    '<div class="fb-row">建议里程 = 基础里程 × 工况系数 × 涡轮系数（四舍五入至 500km）</div>'+
+    '<div class="fb-row">基础里程：矿物 5000 / 半合成 7500 / 全合成 10000 km</div>'+
+    '<div class="fb-row">工况系数：高速 ×1.15 / 城市 ×1.0 / 拥堵短途 ×0.75；涡轮 ×0.85</div>'+
+    '<div class="fb-row">年换油次数 = 年里程 ÷ 建议里程（向上取整）</div>'+
+    '<div class="fb-row">本次：'+fmtNum(km,0)+' km 约合 '+fmtNum(months,1)+' 个月，下次约在 '+fmtNum(next,0)+' km 或更早（先到为准）</div>';F.innerHTML=(typeof __g7==='number'?(isFinite(__g7)?__g7:'—'):String(__g7).replace(/Infinity|NaN/g,'—'));
+  var ad='';
+  if(left<=0){ ad='<div class="tip-warn">⚠️ 距上次换油已行驶 '+fmtNum(done,0)+' km，已超过建议里程，请尽快更换机油与机滤。</div>'; }
+  else if(left<=km*0.2){ ad='<div class="tip-info">ℹ️ 已接近换油里程（剩余 '+fmtNum(left,0)+' km），可安排近期保养。</div>'; }
+  else{ ad='<div class="tip-success">✅ 距下次换油还有约 '+fmtNum(left,0)+' km，正常使用即可。</div>'; }
+  if(cond==='jam'){ ad+='<div class="tip-warn">⚠️ 长期拥堵短途属于「严苛工况」，即便里程很低也建议按时间上限换油。</div>'; }
+  const __g8=ad;A.innerHTML=(typeof __g8==='number'?(isFinite(__g8)?__g8:'—'):String(__g8).replace(/Infinity|NaN/g,'—'));
+}
+calc();
+
+var __oil_change_last=0,__oil_change_skip=false;
+function __oil_changeSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __oil_changeResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __oil_changeTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __oil_changeRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__oil_changeTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#oil_changeTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#oil_changeDiff');
+        TBKit.history.mount('#oil_changeHist',function(rec){
+            __oil_change_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __oil_change_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__oil_changeTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#oil_changeChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __oil_changeExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__oil_change_skip) return;
+    var snap=__oil_changeSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__oil_changeResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__oil_change_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __oil_change_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __oil_changeRender(keys,rk,en);
+}
+function __oil_changeExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#oil_changeTable','oil-change.csv'); } catch(e){}
+}
+function __oil_changePresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#oil_changePresets',[{label:'默认参数',labelEn:'Default',values:{'oType':'mineral', 'yearKm':'15000', 'cond':'highway', 'turbo':'no', 'curKm':'30000', 'doneKm':'3000'}}],function(){ calc(); });
+}
+var __oil_change_f0=(typeof calc==='function')?calc:null;
+if(__oil_change_f0){
+    calc=function(){ var __r=__oil_change_f0.apply(null,arguments); try{ __oil_changeExtras(); }catch(e){} return __r; };
+}
+function __oil_changeBoot(){ try{ __oil_changePresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __oil_changeBoot();
+else document.addEventListener('DOMContentLoaded', __oil_changeBoot);
+</script>
+
+
+<script>/*TBKIT-INJECT-START*/
+(function(){
+  var P={"res": ["result", "oil_changeChart"], "tbl": ["oil_changeTable"], "his": ["oil_changeHist"]};
+  var L={res:['结果','Result'],chart:['图表','Chart'],tbl:['数据表','Data'],pre:['预设','Presets'],his:['历史','History']};
+  function tabify(){
+    var bar=document.querySelector('.tbk-tabbar');
+    if(!bar||!bar.querySelectorAll) return;
+    var btns=bar.querySelectorAll('.tbk-tab');
+    if(!btns||!btns.length) return;
+    var en=false;
+    try{ if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn) en=TBKit.util.isEn(); }catch(e){}
+    if(!en&&document.documentElement&&(document.documentElement.lang||'').indexOf('en')>=0) en=true;
+    for(var i=0;i<btns.length;i++){var p=btns[i].getAttribute('data-pane');btns[i].textContent=en?L[p][1]:L[p][0];}
+    function show(pane){
+      for(var k in P){var ids=P[k];for(var i=0;i<ids.length;i++){var el=document.getElementById(ids[i]);if(el&&el.style)el.style.display=(k===pane?'':'none');}}
+      for(var j=0;j<btns.length;j++){btns[j].className='tbk-tab'+(btns[j].getAttribute('data-pane')===pane?' active':'');}
+    }
+    for(var i=0;i<btns.length;i++){(function(b){b.addEventListener('click',function(){show(b.getAttribute('data-pane'));});})(btns[i]);}
+    show(btns[0].getAttribute('data-pane'));
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',tabify);else tabify();
+})();
+/*TBKIT-INJECT-END*/</script>
+</body>
+</html>

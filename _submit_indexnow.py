@@ -22,8 +22,8 @@ import xml.etree.ElementTree as ET
 # ==================== 配置区 ====================
 API_URL = 'https://api.indexnow.org/IndexNow'
 KEY = 'c355d2d375dc40469dc213f2f28e2d76'
-KEY_LOCATION = 'https://chenguangwu.github.io/c355d2d375dc40469dc213f2f28e2d76.txt'
-HOST = 'chenguangwu.github.io'
+KEY_LOCATION = 'https://tools.dicomp.net/c355d2d375dc40469dc213f2f28e2d76.txt'
+HOST = 'tools.dicomp.net'
 SITEMAP_FILE = 'sitemap.xml'
 BATCH_SIZE = 10       # 每批提交的URL数量（小批次=流式模式）
 BATCH_DELAY = 1       # 每批之间的间隔秒数（避免限流）

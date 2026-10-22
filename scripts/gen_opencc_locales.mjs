@@ -14,7 +14,7 @@ import { fileURLToPath } from 'node:url';
 import OpenCC from 'opencc-js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const SITE = 'https://chenguangwu.github.io';
+const SITE = 'https://tools.dicomp.net';
 const MARKER = '.toolbox-opencc-locale';
 const ROOT_PAGES = ['index.html', 'search.html', 'chains.html', 'about.html', 'disclaimer.html', 'sitemap.html', 'embed.html', '404.html'];
 const LOCALES = [

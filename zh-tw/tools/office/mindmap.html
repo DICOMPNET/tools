@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-opencc-locale="zh-tw">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=design,industry=office,icon=👀,bg=#f5f5f5">
+<meta name="description" content="思維導圖編輯器是一款免費的線上辦公文件工具，在左側用 Markdown 縮排書寫層級，右側即時生成思維導圖，支援縮放、拖拽與匯出。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta name="keywords" content="思維導圖,markmap,線上思維導圖,Markdown思維導圖,腦圖,思維導圖線上,導圖編輯器,SVG匯出,PNG匯出,免費工具,ToolBox">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://tools.dicomp.net/zh-tw/tools/office/mindmap.html">
+<meta property="og:title" content="思維導圖編輯器 - 免費線上辦公文件工具">
+<meta property="og:description" content="思維導圖編輯器是一款免費的線上辦公文件工具，在左側用 Markdown 縮排書寫層級，右側即時生成思維導圖，支援縮放、拖拽與匯出。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://tools.dicomp.net/zh-tw/tools/office/mindmap.html">
+<meta name="twitter:card" content="summary">
+<title>思維導圖編輯器 - 免費線上辦公文件工具</title>
+<meta name="theme-color" content="#FF6B35">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="stylesheet" href="/css/common.css">
+<style>
+.mm-split{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:stretch;}
+.mm-pane{display:flex;flex-direction:column;min-width:0;}
+.mm-pane > label{font-size:13px;color:var(--text-secondary);margin-bottom:6px;font-weight:500;display:flex;align-items:center;gap:6px;}
+.mm-pane > label .hint{font-size:12px;color:var(--text-muted);font-weight:400;margin-left:auto;}
+#editor{width:100%;flex:1;min-height:440px;font-family:'SF Mono','Fira Code','Courier New',monospace;font-size:14px;line-height:1.75;resize:vertical;border-radius:12px;tab-size:2;}
+.mm-view-wrap{position:relative;background:var(--result-bg);border:1px solid var(--border);border-radius:12px;overflow:hidden;display:flex;flex-direction:column;min-height:480px;}
+#mindmap{width:100%;flex:1;min-height:440px;display:block;background:transparent;}
+.mm-error{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:24px;font-size:14px;color:var(--text-muted);}
+.mm-fit-btn{position:absolute;top:10px;right:10px;z-index:5;padding:6px 12px;border-radius:8px;font-size:12px;border:1px solid var(--border);background:var(--card-bg);color:var(--text-secondary);cursor:pointer;display:inline-flex;align-items:center;gap:4px;box-shadow:var(--shadow-sm);transition:all 0.2s;}
+.mm-fit-btn:hover{border-color:var(--primary);color:var(--primary);}
+.kbd-row{display:flex;flex-wrap:wrap;gap:8px 16px;font-size:12px;color:var(--text-muted);margin-top:10px;}
+.kbd-row span{display:inline-flex;align-items:center;gap:4px;}
+@media(max-width:768px){
+  .mm-split{grid-template-columns:1fr;}
+  #editor{min-height:240px;font-size:15px;}
+  .mm-view-wrap{min-height:340px;}
+  #mindmap{min-height:300px;}
+}
+</style>
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/common.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+<script src="https://cdn.jsdelivr.net/npm/markmap-view"></script>
+<script src="https://cdn.jsdelivr.net/npm/markmap-lib@0.17"></script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"思維導圖編輯器","description":"使用 Markdown 語法即時生成可縮放拖拽的思維導圖，支援匯出 SVG/PNG，純前端處理資料不上傳。","url":"https://tools.dicomp.net/zh-tw/tools/office/mindmap.html","applicationCategory":"DesignApplication","operatingSystem":"Web","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"},"inLanguage":"zh-TW","isAccessibleForFree":true,"browserRequirements":"Requires JavaScript. Requires HTML5.","softwareVersion":"1.0"}</script>
+
+
+
+<meta property="og:image" content="https://tools.dicomp.net/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免費線上工具">
+<meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免費線上工具">
+    <meta name="twitter:title" content="思維導圖編輯器 - 免費線上辦公文件工具">
+    <meta name="twitter:description" content="思維導圖編輯器是一款免費的線上辦公文件工具，在左側用 Markdown 縮排書寫層級，右側即時生成思維導圖，支援縮放、拖拽與匯出。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"思維導圖編輯器","url":"https://tools.dicomp.net/zh-tw/tools/office/mindmap.html","applicationCategory":"MultimediaApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"思維導圖編輯器是一款免費的線上辦公文件工具，在左側用 Markdown 縮排書寫層級，右側即時生成思維導圖，支援縮放、拖拽與匯出。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首頁","item":"https://tools.dicomp.net/zh-tw/"},{"@type":"ListItem","position":2,"name":"辦公文件","item":"https://tools.dicomp.net/zh-tw/tools/office/index.html"},{"@type":"ListItem","position":3,"name":"思維導圖","item":"https://tools.dicomp.net/zh-tw/tools/office/mindmap.html"}]}</script>
+
+<script src="/js/i18n.js" defer></script>
+<script src="/js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+
+
+<meta name="title-en" content="Mindmap">
+<meta name="desc-en" content="Mindmap - online utility on ToolBox.">
+
+
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
+
+<script src="/js/tool-ux.js" defer></script>
+<!-- TOOLBOX-TOOL-UX -->
+
+<script src="/js/analytics.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+<!-- TOOLBOX-TTZZ -->
+<script>
+(function(){try{
+var el = document.createElement("script");
+el.src = "https://lf1-cdn-tos.bytegoofy.com/goofy/ttzz/push.js?85d6452aa9be4d693b16cd48535a8c7ae57542f6788a41682e745be8eb99b35a8a24d2f724c31ebe20c1e4e6fba6d91caf576100b02a2870c72f38fc574066fef065d152c73bf1cbb2ebad3b5b5265d8";
+el.id = "ttzz";
+var s = document.getElementsByTagName("script")[0];
+s.parentNode.insertBefore(el, s);
+}catch(e){}
+})(window);
+</script>
+
+<script src="/js/tool-kit.js" defer></script>
+<!-- TOOLBOX-TOOL-KIT -->
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://tools.dicomp.net/tools/office/mindmap.html">
+<link rel="alternate" hreflang="zh-TW" href="https://tools.dicomp.net/zh-tw/tools/office/mindmap.html">
+<link rel="alternate" hreflang="en-US" href="https://tools.dicomp.net/tools/office/mindmap.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://tools.dicomp.net/tools/office/mindmap.html">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+</head>
+<body>
+<h1 class="sr-only">思維導圖編輯器</h1>
+
+<div class="nav">
+  <a href="/zh-tw/index.html">← ToolBox</a>
+  <span>/ 思維導圖</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()" aria-label="切換主題">🌙</button>
+</div>
+
+
+
+
+
+<nav class="breadcrumb" aria-label="麵包屑導航" data-breadcrumb="1">
+  <a href="/zh-tw/index.html">首頁</a>
+  <span class="bc-sep">‹</span>
+  <a href="/zh-tw/tools/office/index.html">📄 辦公文件</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">思維導圖</span>
+</nav>
+
+<div class="tool-guide-link" data-guide-link="1">
+  <a href="/zh-tw/guides/mindmap-guide.html">📖 檢視「思維導圖編輯器 使用指南」</a>
+</div>
+<div class="container">
+  <div class="card tool-card-accent" style="--tool-accent:#7C3AED;">
+    <h2 data-zh="👀 思維導圖編輯器">Mindmap</h2>
+    <p style="font-size:13px;color:var(--text-secondary);margin-bottom:14px;" data-zh="在左側用 Markdown 縮排書寫層級，右側即時生成思維導圖，支援縮放、拖拽與匯出。">Mindmap - online utility on ToolBox.</p>
+
+    <div class="toolbar">
+      <button type="button" class="btn primary" id="btnSample">載入示例</button>
+      <button type="button" class="btn" id="btnClear">清空</button>
+      <button type="button" class="btn" id="btnCopy">複製 Markdown</button>
+      <button type="button" class="btn" id="btnSvg">下載 SVG</button>
+      <button type="button" class="btn" id="btnPng">下載 PNG</button>
+      <button type="button" class="btn" id="btnFit">適應螢幕</button>
+    </div>
+    <div id="mmPresets" style="margin:10px 0;"></div>
+
+    <div class="mm-split">
+      <div class="mm-pane">
+        <label for="editor">Markdown 編輯區<span class="hint">Tab 增加層級 / Shift+Tab 減少</span></label>
+        <textarea id="editor" placeholder="# 主题&#10;## 分支一&#10;- 子节点&#10;## 分支二" spellcheck="false"></textarea>
+      </div>
+      <div class="mm-pane">
+        <label>思維導圖預覽<span class="hint">滾輪縮放 · 拖拽平移 · 單擊摺疊</span></label>
+        <div class="mm-view-wrap" id="mmWrap">
+          <button type="button" class="mm-fit-btn" id="btnFitInner" title="適應螢幕">⤢ 適應</button>
+          <svg id="mindmap" class="markmap"></svg>
+        </div>
+      </div>
+    </div>
+
+    <div class="info-box">
+      所有內容僅在瀏覽器本地處理，不會上傳到伺服器；輸入會自動儲存到本地，重新整理不丟失。
+    </div>
+  </div>
+
+  <div class="card">
+    <h2 id="mmRefTitle"></h2>
+    <table class="data-table">
+      <thead><tr><th id="mmRefTh0"></th><th id="mmRefTh1"></th><th id="mmRefTh2"></th><th id="mmRefTh3"></th></tr></thead>
+      <tbody id="mmRefTbody"></tbody>
+    </table>
+    <p id="mmRefNote" style="font-size:12px;color:var(--text-muted);margin-top:8px;"></p>
+  </div>
+
+  <!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto 0;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+.deep-dive a.term-link{color:var(--tool-accent,#FF6B35);text-decoration:none;border-bottom:1px dashed currentColor;}
+.deep-dive a.term-link:hover{border-bottom-style:solid;}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：思維導圖編輯器</h2>
+<h3>💡 常見使用場景</h3>
+<ul class="dd-list">
+<li>做讀書筆記或頭腦風暴時，用 # 標題與 - 列表的縮排直接表達層級，右側自動生成思維導圖，比手動畫節點更快。</li>
+<li>整理會議議題時，把中心主題放在一級、討論點放在子級，縮排越深層級越深，結構一目瞭然。</li>
+<li>準備彙報大綱時，先把要點寫成 Markdown 大綱再匯出圖片，配合縮放、拖拽、節點摺疊展開做演示。</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">示例：用縮排語法寫一張思維導圖</div><div class="dd-ex-body"># 產品規劃
+## 使用者增長
+- 渠道投放
+- 活動裂變
+## 體驗最佳化
+- 效能
+- 互動
+
+左側按縮排書寫，右側即時生成導圖；滾輪縮放、拖拽平移、單擊圓點可摺疊/展開子節點。匯出 PNG 前先點「適應螢幕」讓內容完整顯示。</div></div>
+<h3>❓ 常見問題（FAQ）</h3>
+<dl class="dd-faq">
+<dt>如何調整節點層級？</dt><dd>用 # 表示標題層級、用 - 列表表示子節點，縮排越多層級越深；Tab 鍵可快速縮排調整從屬關係。</dd>
+<dt>怎麼匯出完整思維導圖？</dt><dd>支援匯出 SVG 與 PNG；匯出 PNG 前建議先點「適應螢幕」，確保所有內容落在畫布內不被裁切，草稿儲存在 localStorage。</dd>
+</dl>
+</div>
+</section>
+<!-- 注意事項區塊 -->
+  <div class="tool-notes">
+    <div class="tool-notes-title">⚠️ 使用說明</div>
+    <ul>
+      <li>用 <kbd>#</kbd> 標題或 <kbd>-</kbd> 列表表示層級，縮排越多層級越深</li>
+      <li>思維導圖支援滑鼠滾輪縮放、按住拖拽平移、單擊圓點摺疊/展開子節點</li>
+      <li>匯出 PNG 前建議先點選「適應螢幕」讓內容完整顯示</li>
+      <li>資料本地保存於 localStorage，清除瀏覽器資料會丟失草稿</li>
+    </ul>
+  </div>
+
+  <!-- SEO 介紹區塊 -->
+
+</div>
+
+</div>
+
+<!-- 相關工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相關工具</h3>
+  <div class="related-tools-grid">
+
+    <a href="/zh-tw/tools/office/pdf-merge.html" class="related-tool-card">
+      <span class="rt-icon">🔀</span>
+      <span class="rt-info"><span class="rt-name">PDF合併工具 - 免費線上合併多個PDF檔案，支援拖拽排序 | ToolBox免費線上工具箱</span><span class="rt-desc">PDF合併工具</span></span>
+    </a>
+    <a href="/zh-tw/tools/office/pdf-split.html" class="related-tool-card">
+      <span class="rt-icon">🔀</span>
+      <span class="rt-info"><span class="rt-name">PDF拆分工具 - 線上提取PDF指定頁面 - PDF拆分工具 - 免費線上PDF頁面提取工具 | ToolBox免費線上工具箱</span><span class="rt-desc">PDF 拆分工具</span></span>
+    </a>
+    <a href="/zh-tw/tools/office/pdf-rotate.html" class="related-tool-card">
+      <span class="rt-icon">🖼️</span>
+      <span class="rt-info"><span class="rt-name">PDF頁面旋轉工具 - 免費線上PDF頁面旋轉工具，支援單頁旋轉、批次旋轉、全部旋轉 | ToolBox免費線上工具箱</span><span class="rt-desc">PDF頁面旋轉工具</span></span>
+    </a>
+    <a href="/zh-tw/tools/office/flowchart.html" class="related-tool-card">
+      <span class="rt-icon">📄</span>
+      <span class="rt-info"><span class="rt-name">流程圖繪製工具（Mermaid） - 流程圖繪製工具 - 基於 Mermaid 的線上流程圖、 | ToolBox免費線上工具箱</span><span class="rt-desc">流程圖繪製工具</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro open" id="toolIntro">
+    <div class="tool-intro-header">
+      <span class="intro-icon-wrap"><span class="intro-icon">🧠</span>關於「思維導圖編輯器」</span>
+      <span class="arrow">▼</span>
+    </div>
+    <div class="tool-intro-body">
+      <h4><span class="h4-icon">📝</span>工具簡介</h4>
+      <p>思維導圖編輯器基於 markmap 引擎，將 Markdown 文本即時轉換為可互動的思維導圖。無需安裝、無需註冊，開啟即用，適合快速梳理思路與知識結構。</p>
+      <h4><span class="h4-icon">✨</span>功能特點</h4>
+      <ul class="intro-features">
+        <li>Markdown 即時渲染</li>
+        <li>縮放拖拽互動</li>
+        <li>節點摺疊展開</li>
+        <li>SVG / PNG 匯出</li>
+        <li>本地自動儲存</li>
+        <li>Tab 快捷縮排</li>
+        <li>深色模式適配</li>
+        <li>純前端零上傳</li>
+      </ul>
+      <h4><span class="h4-icon">🎯</span>使用場景</h4>
+      <ul class="intro-scenes">
+        <li>學習筆記與知識梳理</li>
+        <li>專案方案頭腦風暴</li>
+        <li>會議提綱與任務分解</li>
+        <li>產品功能結構梳理</li>
+        <li>讀書筆記與讀後總結</li>
+        <li>課程大綱與教學準備</li>
+      </ul>
+      </div>
+  </div>
+  <!-- /SEO 介紹區塊 -->
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var STORAGE_KEY = "toolbox_mindmap_md";
+  var editor = document.getElementById("editor");
+  var svgEl = document.getElementById("mindmap");
+  var mmWrap = document.getElementById("mmWrap");
+
+  var SAMPLE = "# ToolBox 思维导图\n" +
+    "\n## 核心功能\n- Markdown 实时渲染\n- 缩放与拖拽交互\n- 自动保存草稿\n## 导出能力\n### 矢量导出\n- SVG 矢量图\n- PNG 高清图\n### 文本操作\n- 复制 Markdown\n- 一键清空重置\n## 快捷键\n- `Tab` 增加缩进层级\n- `Shift+Tab` 减少缩进层级\n## 应用场景\n- 学习笔记整理\n- 项目方案脑暴\n- 知识体系梳理";
+
+  // 校验 markmap 库是否加载成功
+  if (!window.markmap || !window.markmap.Markmap || !window.markmap.Transformer) {
+    const __h0='<div class="mm-error">思维导图库加载失败，请检查网络连接后刷新页面重试。</div>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){mmWrap.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}mmWrap.innerHTML=__h0;
+    ['btnSvg','btnPng','btnFit','btnFitInner'].forEach(function(id){var b=document.getElementById(id);if(b)b.disabled=true;});
+    return;
+  }
+
+  var Markmap = window.markmap.Markmap;
+  var Transformer = window.markmap.Transformer;
+  var transformer = new Transformer();
+  var mm = null;
+
+  var opts = {
+    duration: 300,
+    maxWidth: 320,
+    initialExpandLevel: -1,
+    spacingHorizontal: 80,
+    spacingVertical: 8,
+    paddingX: 8,
+    zoom: true,
+    pan: true
+  };
+
+  function transformMd(md){
+    try {
+      var r = transformer.transform(md || "");
+      return r ? r.root : null;
+    } catch(e){
+      console.error("markmap transform error:", e);
+      return null;
+    }
+  }
+
+  function syncDark(){
+    var dark = document.body.classList.contains("dark") ||
+      document.documentElement.getAttribute("data-theme") === "dark";
+    mmWrap.classList.toggle("markmap-dark", dark);
+  }
+
+  function render(){
+    var root = transformMd(editor.value);
+    if (!root) { return; }
+    if (!mm) {
+      mm = Markmap.create(svgEl, opts, root);
+    } else {
+      mm.setData(root);
+    }
+    syncDark();
+  }
+
+  var renderDebounced = ToolBox.debounce(render, 300);
+  var saveDebounced = ToolBox.debounce(function(){
+    try { localStorage.setItem(STORAGE_KEY, editor.value); } catch(e){}
+  }, 500);
+
+  // 主题变化同步思维导图配色
+  var themeObs = new MutationObserver(function(){ syncDark(); });
+  themeObs.observe(document.body, { attributes: true, attributeFilter: ["class"] });
+  themeObs.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+
+  // 输入实时渲染
+  editor.addEventListener("input", function(){
+    renderDebounced();
+    saveDebounced();
+  });
+
+  // Tab / Shift+Tab 缩进
+  editor.addEventListener("keydown", function(e){
+    if (e.key !== "Tab") { return; }
+    e.preventDefault();
+    var start = this.selectionStart;
+    var end = this.selectionEnd;
+    var val = this.value;
+    if (start === end) {
+      this.value = val.slice(0, start) + "  " + val.slice(end);
+      this.selectionStart = this.selectionEnd = start + 2;
+    } else {
+      var lineStart = val.lastIndexOf("\n", start - 1) + 1;
+      var selected = val.slice(lineStart, end);
+      var lines = selected.split("\n");
+      var newText;
+      if (e.shiftKey) {
+        newText = lines.map(function(l){ return l.replace(/^ {1,2}/, ""); }).join("\n");
+      } else {
+        newText = lines.map(function(l){ return "  " + l; }).join("\n");
+      }
+      this.value = val.slice(0, lineStart) + newText + val.slice(end);
+      this.selectionStart = lineStart;
+      this.selectionEnd = lineStart + newText.length;
+    }
+    renderDebounced();
+    saveDebounced();
+  });
+
+  // 工具栏按钮
+  document.getElementById("btnSample").addEventListener("click", function(){
+    editor.value = SAMPLE;
+    render();
+    saveDebounced();
+    ToolBox.showToast(i18nText('toast.saved'));
+  });
+
+  document.getElementById("btnClear").addEventListener("click", function(){
+    editor.value = "";
+    render();
+    saveDebounced();
+    ToolBox.showToast(i18nText('toast.cleared'), "info");
+  });
+
+  document.getElementById("btnCopy").addEventListener("click", function(){
+    ToolBox.copyText(editor.value, i18nText('toast.copy_success'));
+  });
+
+  function fitView(){
+    if (mm) { mm.fit(); }
+  }
+  document.getElementById("btnFit").addEventListener("click", fitView);
+  document.getElementById("btnFitInner").addEventListener("click", fitView);
+
+  // 导出 SVG
+  document.getElementById("btnSvg").addEventListener("click", function(){
+    if (!mm) { ToolBox.showToast(i18nText('toast.invalid_input'), "warning"); return; }
+    mm.fit();
+    setTimeout(function(){
+      var clone = svgEl.cloneNode(true);
+      var rect = svgEl.getBoundingClientRect();
+      clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+      clone.setAttribute("xmlns:xlink", "http://www.w3.org/1999/xlink");
+      clone.setAttribute("width", Math.ceil(rect.width));
+      clone.setAttribute("height", Math.ceil(rect.height));
+      clone.classList.remove("markmap-dark");
+      var data = new XMLSerializer().serializeToString(clone);
+      ToolBox.downloadText("mindmap.svg", '<?xml version="1.0" encoding="UTF-8"?>\n' + data, "image/svg+xml;charset=utf-8");
+      ToolBox.showToast(i18nText('toast.saved'));
+    }, 360);
+  });
+
+  // 导出 PNG
+  document.getElementById("btnPng").addEventListener("click", function(){
+    if (!mm) { ToolBox.showToast(i18nText('toast.invalid_input'), "warning"); return; }
+    mm.fit();
+    setTimeout(function(){
+      var clone = svgEl.cloneNode(true);
+      var rect = svgEl.getBoundingClientRect();
+      var w = Math.ceil(rect.width);
+      var h = Math.ceil(rect.height);
+      if (w < 1 || h < 1) { ToolBox.showToast(i18nText('toast.export_failed'), "error"); return; }
+      clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+      clone.setAttribute("xmlns:xlink", "http://www.w3.org/1999/xlink");
+      clone.setAttribute("width", w);
+      clone.setAttribute("height", h);
+      clone.classList.remove("markmap-dark");
+      var data = new XMLSerializer().serializeToString(clone);
+      var svgBlob = new Blob([data], { type: "image/svg+xml;charset=utf-8" });
+      var url = URL.createObjectURL(svgBlob);
+      var img = new Image();
+      img.onload = function(){
+        var scale = 2;
+        var canvas = document.createElement("canvas");
+        canvas.width = w * scale;
+        canvas.height = h * scale;
+        var ctx = canvas.getContext("2d");
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.scale(scale, scale);
+        ctx.drawImage(img, 0, 0);
+        URL.revokeObjectURL(url);
+        canvas.toBlob(function(blob){
+          if (!blob) { ToolBox.showToast(i18nText('toast.saved'), "error"); return; }
+          var a = document.createElement("a");
+          a.href = URL.createObjectURL(blob);
+          a.download = "mindmap.png";
+          document.body.appendChild(a);
+          a.click();
+          setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 0);
+          ToolBox.showToast(i18nText('toast.saved'));
+        }, "image/png");
+      };
+      img.onerror = function(){
+        URL.revokeObjectURL(url);
+        ToolBox.showToast(i18nText('toast.saved'), "error");
+      };
+      img.src = url;
+    }, 360);
+  });
+
+  // tool-intro 折叠交互
+  var introHeader = document.querySelector(".tool-intro-header");
+  if (introHeader) {
+    introHeader.addEventListener("click", function(){
+      document.getElementById("toolIntro").classList.toggle("open");
+    });
+  }
+
+  // 初始化：读取本地草稿或加载示例
+  var saved = null;
+  try { saved = localStorage.getItem(STORAGE_KEY); } catch(e){}
+  editor.value = (saved && saved.trim()) ? saved : SAMPLE;
+  render();
+})();
+</script>
+<script>
+(function(){
+  var MM_TPLP={
+    meeting:{label:'\ud83d\udccb \u4f1a\u8bae\u7eaa\u8981',labelEn:'Meeting notes',md:"# 项目周会纪要\n## 会议信息\n- 时间：本周五 14:00\n- 参会：产品 / 设计 / 前端 / 后端\n## 议题讨论\n### 需求评审\n- 结论：同意 V1.2 需求范围\n- 待确认：第三方登录排期\n### 体验问题\n- 首屏加载偏慢，需拆分资源\n## 行动项\n- 产品：更新 PRD 并同步全员\n- 前端：拆分首屏资源加载\n- 后端：提供登录接口时间表"},
+    reading:{label:'\ud83d\udcda \u8bfb\u4e66\u7b14\u8bb0',labelEn:'Reading notes',md:"# 《认知觉醒》读书笔记\n## 核心观点\n- 元认知：审视自己的思考过程\n- 舒适区边缘：成长发生在拉伸区\n## 金句摘录\n- 焦虑的根源是想同时做很多事，又想立即看到效果\n## 行动计划\n- 每日晨间日记 10 分钟\n- 用清单法拆解复杂任务"},
+    project:{label:'\ud83c\udfaf \u9879\u76ee\u8ba1\u5212',labelEn:'Project plan',md:"# 新版官网改版计划\n## 阶段一 · 调研\n- 用户访谈 8 人\n- 竞品分析 3 家\n## 阶段二 · 设计\n- 信息架构梳理\n- 视觉规范输出\n## 阶段三 · 开发\n- 组件库搭建\n- 页面开发与联调\n## 里程碑\n- 10/20 设计评审\n- 11/10 提测"},
+    weekly:{label:'\ud83d\udcc4 \u5de5\u4f5c\u5468\u62a5',labelEn:'Weekly report',md:"# 第 42 周工作周报\n## 本周完成\n- 搜索模块\\u62fc音容错上线\n- \\u4fee\\u590d 3 \\u4e2a P1 \\u7ea7\\u7f3a\\u9677\n## \\u6570\\u636e\\u53d8\\u5316\n- \\u8df3\\u51fa\\u7387\\u4e0b\\u964d 4.2%\n## \\u4e0b\\u5468\\u8ba1\\u5212\n- \\u5de5\\u5177\\u9875 A \\u7ea7\\u7387\\u63d0\\u5347\\u81f3 75%\n- \\u542f\\u52a8\\u82f1\\u6587 i18n \\u62bd\\u68c0\n## \\u98ce\\u9669\\u4e0e\\u963b\\u585e\n- \\u7b2c\\u4e09\\u65b9\\u63a5\\u53e3\\u6587\\u6863\\u5ef6\\u8fdf"},
+    brainstorm:{label:'\ud83d\udca1 \u5934\u8111\u98ce\u66b4',labelEn:'Brainstorm',md:"# 新产品头脑风暴\n## 目标用户\n- 需要快速处理表格的运营\n## 痛点\n- 重复格式整理耗时\n- 跨表数据比对困难\n## 创意方向\n- 模板化一键美化\n- 自然语言查询表格\n## 筛选标准\n- 实现成本低\n- 两周内可上线验证"},
+  };
+  var MM_TEMPLATES=Object.keys(MM_TPLP).map(function(k){var o=MM_TPLP[k];return {label:o.label,labelEn:o.labelEn,values:{editor:o.md}};});
+  function mmAll(){
+    if(typeof TBKit==='undefined'||!TBKit.preset||!TBKit.preset.bar)return;
+    TBKit.preset.bar('#mmPresets',MM_TEMPLATES,function(){});
+  }
+  document.addEventListener('DOMContentLoaded',mmAll);
+  document.addEventListener('toolbox:langchange',mmAll);
+})();
+</script>
+<script>
+var mmRef={
+  t:function(zh,en){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;},
+  rows:[[
+  ['<code># 主题</code>','1 级','导图中心主题','每张图只有一个'],
+  ['<code>## 分支</code>','2 级','一级分支','主要分类'],
+  ['<code>### 子分支</code>','3 级','二级分支','更细的分类'],
+  ['<code>- 节点</code>','叶节点','普通节点','最常用的写法'],
+  ['<code>- [ ] 待办</code>','叶节点','未勾选节点','计划类内容'],
+  ['<code>- [x] 完成</code>','叶节点','已勾选节点','复盘类内容'],
+  ['两个空格缩进','更深一层','挂到上方节点','Tab / Shift+Tab 快捷调整'],
+  ['<code>`代码`</code>','行内','等宽文本','适合放接口名、命令'],
+  ['三反引号包裹','代码块','多行等宽','贴示例代码片段']
+],[
+  ['<code># Topic</code>','Level 1','Root node (map center)','Only one per map'],
+  ['<code>## Branch</code>','Level 2','First-level branch','Main category'],
+  ['<code>### Sub-branch</code>','Level 3','Second-level branch','Finer category'],
+  ['<code>- Node</code>','Leaf','Plain node','Most common form'],
+  ['<code>- [ ] Todo</code>','Leaf','Unchecked node','For plans'],
+  ['<code>- [x] Done</code>','Leaf','Checked node','For reviews'],
+  ['Two-space indent','One level deeper','Nested under the node above','Tab / Shift+Tab to adjust'],
+  ['<code>`code`</code>','Inline','Monospace text','API names, commands'],
+  ['Triple backticks','Code block','Multi-line monospace','Paste sample code']
+]],
+  cols:[['\u5199\u6cd5','Syntax'],['\u5c42\u7ea7','Level'],['\u6e32\u67d3\u4e3a','Renders as'],['\u8bf4\u660e','Notes']],
+  tz:'\u2328\ufe0f Markdown \u5c42\u7ea7\u8bed\u6cd5\u901f\u67e5',te:'\u2328\ufe0f Markdown Syntax Cheatsheet',nz:'\u5de6\u4fa7\u7f16\u8f91\u5668\u652f\u6301 # \u6807\u9898\u5c42\u7ea7\u4e0e - \u5217\u8868\u7f29\u8fdb\uff1b\u9009\u4e2d\u884c\u540e Tab \u589e\u52a0\u5c42\u7ea7\u3001Shift+Tab \u51cf\u5c11\u5c42\u7ea7\u3002',ne:'The editor supports # heading levels and - list indentation. Select a line and press Tab to go one level deeper, Shift+Tab to go back.',
+  go:function(){
+    if(typeof TBKit==='undefined')return;
+    try{
+      var en=TBKit.util.isEn();
+      var R=this.rows[en?1:0],C=this.cols;
+      var tb=document.getElementById('mmRefTbody');
+      if(tb)tb.innerHTML=R.map(function(r){
+        return '<tr>'+r.map(function(c,i){return '<td>'+(i===0?'<strong>'+c+'</strong>':c)+'</td>';}).join('')+'</tr>';
+      }).join('');
+      var hs=[['mmRefTh0',this.t(C[0][0],C[0][1])],['mmRefTh1',this.t(C[1][0],C[1][1])],['mmRefTh2',this.t(C[2][0],C[2][1])],['mmRefTh3',this.t(C[3][0],C[3][1])]];
+      hs.forEach(function(p){var el=document.getElementById(p[0]);if(el)el.textContent=p[1];});
+      var nt=document.getElementById('mmRefNote');
+      if(nt)nt.textContent=this.t(this.nz,this.ne);
+    }catch(e){}
+  }
+};
+document.addEventListener('DOMContentLoaded',function(){var f=document.getElementById('mmRefTitle');if(f)f.textContent=mmRef.t(mmRef.tz,mmRef.te);mmRef.go();});
+document.addEventListener('toolbox:langchange',function(){var f=document.getElementById('mmRefTitle');if(f)f.textContent=mmRef.t(mmRef.tz,mmRef.te);mmRef.go();});
+</script>
+</body>
+</html>

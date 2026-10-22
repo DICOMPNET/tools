@@ -42,6 +42,27 @@ EXCLUDE_PATHS = [                  # 排除路径：上游仍有、但本地已�
     "js/ad_metrics.js",            # 广告埋点（推广信息，已清理）
     "json/analytics_51la_overview.json",  # 51.la 统计数据缓存（非百度统计，已清理）
 ]
+# 本地补丁：同步覆盖上游文件后自动重打的字符串替换（防站点域名等本地化改动被上游版本冲掉；幂等）
+LOCAL_PATCH_FILES = [
+    "_build.py",                          # 站点域名（canonical/sitemap/hreflang/JSON-LD/og）
+    "_submit_indexnow.py",                # IndexNow 提交 HOST/KEY_LOCATION
+    "_submit_indexnow_deadlinks.py",
+    "_submit_bing_url_api.py",
+    "_gsc_submit_sitemap.py",
+    "_gsc_inspect_urls.py",
+    "_check_bing_index.py",
+    "_gen_guides.py",
+    "_gen_blank_tools.py",
+    "_test_static.py",                    # hreflang 校验断言站点域名
+    "js/tools/cognitive-assessment.js",   # canvas 导出水印文案
+    "scripts/gen_guide_pages.py",         # 指南页生成器（og:SITE 域名）
+    "scripts/submit_google_indexing_api.py",  # GSC Indexing API 提交 SITE_URL
+    "robots.txt",                         # 静态文件，Sitemap 行带站点域名
+]
+DOMAIN_PATCHES = [                        # (旧串, 新串)，按序应用；MIT 署名文案（i18n.js/disclaimer.html）不在名单内、不受影响
+    ("https://tools.dicomp.net", "https://tools.dicomp.net"),
+    ("chenguangwu.github.io/tools/cognition/", "tools.dicomp.net/tools/cognition/"),
+]
 DRY_RUN = "--dry-run" in sys.argv
 
 
@@ -114,6 +135,23 @@ for p in EXCLUDE_PATHS:
     if os.path.exists(p):
         git("rm", "-f", "-q", "--", p)
         print("已排除: %s" % p)
+
+# 5.6 重打本地补丁（站点域名等本地化替换；二进制替换保换行符原样，幂等）
+patched = []
+for p in LOCAL_PATCH_FILES:
+    if not os.path.isfile(p):
+        continue
+    with open(p, "rb") as f:
+        src = f.read()
+    out = src
+    for old, new in DOMAIN_PATCHES:
+        out = out.replace(old.encode("utf-8"), new.encode("utf-8"))
+    if out != src:
+        with open(p, "wb") as f:
+            f.write(out)
+        patched.append(p)
+if patched:
+    print("已重打本地补丁: %s" % ", ".join(patched))
 
 # 6. 恢复本地独有文件（分批防命令行超长）
 if head_only:

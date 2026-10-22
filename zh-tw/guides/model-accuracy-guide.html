@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-opencc-locale="zh-tw">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>模型準確率 使用指南 - ToolBox</title>
+<meta name="description" content="輸入混淆矩陣，計算分類準確率及各類別正確率，適用於模型效果評估、錯誤分析與報告產出。在不平衡或多類場景中常見，說明模型偏向多數/易分樣本。應報告各類別準確率與混淆矩陣，而非只看整體數字。">
+<meta property="og:title" content="模型準確率 使用指南">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="ToolBox">
+<meta property="og:url" content="https://tools.dicomp.net/zh-tw/guides/model-accuracy-guide.html">
+<meta property="og:description" content="輸入混淆矩陣，計算分類準確率及各類別正確率，適用於模型效果評估、錯誤分析與報告產出。在不平衡或多類場景中常見，說明模型偏向多數/易分樣本。應報告各類別準確率與混淆矩陣，而非只看整體數字。">
+<meta name="twitter:title" content="模型準確率 使用指南">
+<meta name="twitter:description" content="輸入混淆矩陣，計算分類準確率及各類別正確率，適用於模型效果評估、錯誤分析與報告產出。在不平衡或多類場景中常見，說明模型偏向多數/易分樣本。應報告各類別準確率與混淆矩陣，而非只看整體數字。">
+<meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 免費線上工具與使用指南">
+<meta property="og:image" content="https://tools.dicomp.net/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="canonical" href="https://tools.dicomp.net/zh-tw/guides/model-accuracy-guide.html">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"模型準確率 使用指南","description":"輸入混淆矩陣，計算分類準確率及各類別正確率，適用於模型效果評估、錯誤分析與報告產出。","author":{"@type":"Organization","name":"ToolBox"},"datePublished":"2026-09-13","dateModified":"2026-09-13","mainEntityOfPage":{"@type":"WebPage","@id":"https://tools.dicomp.net/zh-tw/guides/model-accuracy-guide.html"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"ToolBox","item":"https://tools.dicomp.net/zh-tw/"},{"@type":"ListItem","position":2,"name":"使用指南","item":"https://tools.dicomp.net/zh-tw/guides/index.html"},{"@type":"ListItem","position":3,"name":"模型準確率 使用指南","item":"https://tools.dicomp.net/zh-tw/guides/model-accuracy-guide.html"}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"整體準確率高但某類很差是正常的嗎？","acceptedAnswer":{"@type":"Answer","text":"在不平衡或多類場景中常見，說明模型偏向多數/易分樣本。應報告各類別準確率與混淆矩陣，而非只看整體數字。"}},{"@type":"Question","name":"準確率和 F1 衝突聽誰的？","acceptedAnswer":{"@type":"Answer","text":"看業務代價。若漏檢/誤判代價高(醫療、風控)，優先看精確率/召回/F1 與具體類別指標，而非整體準確率。"}}]}</script>
+<style>
+:root{--primary:#FF6B35;--text:#1F2937;--muted:#6B7280;--border:#E5E7EB;--bg:#FFFAF7;}
+*{box-sizing:border-box;}
+body{margin:0;font-family:"Noto Sans SC","Plus Jakarta Sans",system-ui,sans-serif;color:var(--text);background:var(--bg);line-height:1.75;}
+.breadcrumb a{color:var(--primary);text-decoration:none;margin-right:6px;}
+.breadcrumb a:hover{text-decoration:underline;}
+main{max-width:820px;margin:0 auto;padding:28px 20px 60px;}
+h1{font-size:28px;margin:0 0 8px;}
+.lead{font-size:16px;color:var(--muted);margin:0 0 22px;}
+h2{font-size:20px;margin:28px 0 10px;color:var(--primary);}
+ul,ol{padding-left:22px;}
+li{margin:8px 0;}
+.related{margin-top:26px;padding:16px;background:#fff;border:1px solid var(--border);border-radius:14px;}
+.related h3{margin:0 0 10px;font-size:16px;color:var(--text);}
+.tool-chip{display:inline-block;margin:4px 6px 4px 0;padding:6px 12px;border:1px solid var(--border);border-radius:999px;color:var(--primary);text-decoration:none;font-size:14px;}
+.tool-chip:hover{background:var(--primary);color:#fff;}
+.faq{margin-top:26px;}
+.faq dt{font-weight:700;margin-top:14px;}
+.faq dd{margin:4px 0 0;color:var(--muted);}
+.back{margin-top:30px;padding:16px;background:#fff;border:1px solid var(--border);border-radius:14px;}
+.back a{color:var(--primary);font-weight:700;text-decoration:none;}
+</style>
+<script src="/js/analytics.js" defer></script>
+<link rel="stylesheet" href="/css/site-chrome.css">
+<link rel="stylesheet" href="/css/common.css">
+<script src="/js/i18n.js" defer></script>
+<script src="/js/common.js" defer></script>
+<meta name="title-zh" content="模型準確率 使用指南">
+<!-- TOOLBOX-TTZZ -->
+<script>
+(function(){try{
+var el = document.createElement("script");
+el.src = "https://lf1-cdn-tos.bytegoofy.com/goofy/ttzz/push.js?85d6452aa9be4d693b16cd48535a8c7ae57542f6788a41682e745be8eb99b35a8a24d2f724c31ebe20c1e4e6fba6d91caf576100b02a2870c72f38fc574066fef065d152c73bf1cbb2ebad3b5b5265d8";
+el.id = "ttzz";
+var s = document.getElementsByTagName("script")[0];
+s.parentNode.insertBefore(el, s);
+}catch(e){}
+})(window);
+</script>
+
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://tools.dicomp.net/guides/model-accuracy-guide.html">
+<link rel="alternate" hreflang="zh-TW" href="https://tools.dicomp.net/zh-tw/guides/model-accuracy-guide.html">
+<link rel="alternate" hreflang="en-US" href="https://tools.dicomp.net/guides/model-accuracy-guide.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://tools.dicomp.net/guides/model-accuracy-guide.html">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+</head>
+<body>
+<nav class="breadcrumb"><a href="https://tools.dicomp.net/">ToolBox</a> / <a href="https://tools.dicomp.net/guides/index.html">使用指南</a> / <span>模型準確率 使用指南</span></nav>
+<main>
+<h1>模型準確率 使用指南</h1>
+<p class="lead">輸入混淆矩陣，計算分類準確率及各類別正確率，適用於模型效果評估、錯誤分析與報告產出。</p>
+<h2>計算公式與原理</h2>
+<p><strong>準確率 = (TP+TN)/(TP+TN+FP+FN)×100%</strong></p><p>分類模型最直觀的整體判對比例。它隱含"各類代價相同"的假設，當負樣本佔絕大多數時（如 99:1 的欺詐檢測），恆判負類即可拿到 99% 準確率卻毫無價值，此時必須配合精確率、召回率或 MCC 一起判讀。</p>
+<h2>使用步驟</h2>
+<ol><li>填寫「TP」。</li><li>填寫「TN」。</li><li>填寫「FP」。</li><li>填寫「FN」。</li><li>結果區會即時更新；可一鍵複製結果用於記錄或彙報。</li></ol>
+<h2>典型使用場景</h2>
+<ul><li>整體準確率=(正確預測數)/(總樣本數)，按混淆矩陣 TP+TN 之和計算。</li><li>各類別正確率=該類別預測正確數/該類別樣本數，揭示對少數類的表現。</li><li>類別不平衡時整體準確率易虛高，需結合宏/微平均與混淆矩陣解讀。</li></ul>
+<h2>算例參考</h2>
+<ul><li><strong>整體與各類別</strong>：三類各 100 樣本，A 類對 90、B 類對 80、C 類對 60 → 整體準確率=(90+80+60)/300=76.7%；各類別 90%/80%/60%，可見模型在 C 類最弱。</li></ul>
+<h2>注意事項</h2>
+<p>結果為按上述公式得到的<strong>理論估算值</strong>，實際表現受資料分佈、實現細節與執行環境影響，落地決策請以實測為準；本工具純前端執行，輸入不上傳伺服器。</p>
+<div class="related">
+<h3>相關工具</h3>
+<a class="tool-chip" href="https://tools.dicomp.net/tools/ai/multi-agent-overhead.html">多智慧體通訊開銷</a>
+<a class="tool-chip" href="https://tools.dicomp.net/tools/ai/ocr.html">OCR 文字識別</a>
+<a class="tool-chip" href="https://tools.dicomp.net/tools/ai/precision-recall.html">精確率與召回率</a>
+<a class="tool-chip" href="https://tools.dicomp.net/tools/ai/quantization-ratio.html">量化壓縮比</a>
+</div>
+<dl class="faq">
+<dt>整體準確率高但某類很差是正常的嗎？</dt><dd>在不平衡或多類場景中常見，說明模型偏向多數/易分樣本。應報告各類別準確率與混淆矩陣，而非只看整體數字。</dd>
+<dt>準確率和 F1 衝突聽誰的？</dt><dd>看業務代價。若漏檢/誤判代價高(醫療、風控)，優先看精確率/召回/F1 與具體類別指標，而非整體準確率。</dd>
+</dl>
+<div class="back"><a href="https://tools.dicomp.net/tools/ai/model-accuracy.html">→ 開啟模型準確率工具</a></div>
+</main>
+</body>
+</html>

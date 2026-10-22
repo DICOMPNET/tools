@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-opencc-locale="zh-tw">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=calculator,industry=marketing,icon=🧮,bg=#e8f5e9">
+<meta name="description" content="ROAS計算器是一款免費的線上營銷推廣工具，計算廣告支出回報率（Return on Ad Spend），評估廣告投放效果。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta name="keywords" content="ROAS計算器,ROAS計算器線上,線上ROAS計算器,數學計算,營銷推廣,線上工具,免費工具,ToolBox">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://tools.dicomp.net/zh-tw/tools/marketing/marketing-roas-calculator.html">
+<meta property="og:title" content="ROAS計算器 - 免費線上營銷推廣工具">
+<meta property="og:description" content="ROAS計算器是一款免費的線上營銷推廣工具，計算廣告支出回報率（Return on Ad Spend），評估廣告投放效果。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://tools.dicomp.net/zh-tw/tools/marketing/marketing-roas-calculator.html">
+<meta name="twitter:card" content="summary">
+
+<title>ROAS計算器 - 免費線上營銷推廣工具</title>
+<meta name="theme-color" content="#FF6B35">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="stylesheet" href="/css/common.css">
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/common.js" defer></script>
+<style>
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--border);margin-bottom:16px;flex-wrap:wrap;}
+.tab-btn{padding:10px 16px;border:none;background:none;cursor:pointer;font-size:14px;color:var(--text-muted);border-bottom:2px solid transparent;font-weight:500;transition:all 0.15s;}
+.tab-btn:hover{color:var(--text);}
+.tab-btn.active{color:var(--primary);border-bottom-color:var(--primary);}
+.tab-panel{display:none;}
+.tab-panel.active{display:block;}
+.metric-card{background:var(--result-bg);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:12px;}
+.metric-card .label{font-size:13px;color:var(--text-muted);margin-bottom:4px;}
+.metric-card .value{font-size:24px;font-weight:700;color:var(--primary);}
+.metric-card .sub{font-size:12px;color:var(--text-muted);margin-top:4px;}
+.ref-table{font-size:13px;}
+.ref-table th{font-weight:600;}
+.history-item{padding:12px;border:1px solid var(--border);border-radius:8px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;}
+.history-item .info{font-size:13px;color:var(--text-light);}
+.history-item .actions{display:flex;gap:6px;}
+.history-item .btn{padding:6px 12px;font-size:12px;}
+.empty-state{text-align:center;padding:32px;color:var(--text-muted);font-size:14px;}
+.formula-box{background:var(--result-bg);border:1px solid var(--border);border-radius:8px;padding:12px;margin:8px 0;font-family:'SF Mono','Courier New',monospace;font-size:13px;}
+.explain-section{margin-bottom:16px;}
+.explain-section h4{font-size:14px;font-weight:600;margin-bottom:8px;color:var(--heading);}
+.explain-section p{font-size:13px;color:var(--text-light);line-height:1.7;margin-bottom:8px;}
+.explain-section ul{font-size:13px;color:var(--text-light);line-height:1.8;padding-left:20px;}
+.related-metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-top:12px;}
+.related-metric{background:var(--card-bg);border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center;}
+.related-metric .val{font-size:16px;font-weight:600;color:var(--primary);}
+.related-metric .lbl{font-size:11px;color:var(--text-muted);margin-top:2px;}
+.input-group{margin-bottom:12px;}
+.input-hint{font-size:12px;color:var(--text-muted);margin-top:4px;}
+.gauge-container{display:flex;justify-content:center;margin:12px 0;}
+.gauge{position:relative;width:180px;height:90px;overflow:hidden;}
+.gauge-bg{position:absolute;width:180px;height:180px;border-radius:50%;border:16px solid var(--border);box-sizing:border-box;top:0;left:0;}
+.gauge-fill{position:absolute;width:180px;height:180px;border-radius:50%;border:16px solid transparent;border-top-color:var(--primary);border-left-color:var(--primary);box-sizing:border-box;top:0;left:0;transform:rotate(-45deg);transition:transform 0.4s;}
+.gauge-value{position:absolute;bottom:0;left:0;right:0;text-align:center;font-size:24px;font-weight:700;color:var(--primary);}
+.gauge-label{text-align:center;font-size:12px;color:var(--text-muted);margin-top:4px;}
+@media(max-width:600px){
+  .tab-btn{padding:8px 12px;font-size:13px;}
+  .metric-card .value{font-size:20px;}
+}
+</style>
+
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"ROAS計算器","description":"ROAS計算器 - 免費數學計算工具，線上ROAS計算器，免費使用。","url":"https://tools.dicomp.net/zh-tw/tools/marketing/marketing-roas-calculator.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Web","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"},"inLanguage":"zh-TW","isAccessibleForFree":true,"browserRequirements":"Requires JavaScript. Requires HTML5.","softwareVersion":"1.0"}</script>
+
+
+
+<meta property="og:image" content="https://tools.dicomp.net/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免費線上工具">
+<meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免費線上工具">
+    <meta name="twitter:title" content="ROAS計算器 - 免費線上營銷推廣工具">
+    <meta name="twitter:description" content="ROAS計算器是一款免費的線上營銷推廣工具，計算廣告支出回報率（Return on Ad Spend），評估廣告投放效果。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"ROAS計算器","url":"https://tools.dicomp.net/zh-tw/tools/marketing/marketing-roas-calculator.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"ROAS計算器是一款免費的線上營銷推廣工具，計算廣告支出回報率（Return on Ad Spend），評估廣告投放效果。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首頁","item":"https://tools.dicomp.net/zh-tw/"},{"@type":"ListItem","position":2,"name":"營銷推廣","item":"https://tools.dicomp.net/zh-tw/tools/marketing/index.html"},{"@type":"ListItem","position":3,"name":"ROAS計算器","item":"https://tools.dicomp.net/zh-tw/tools/marketing/marketing-roas-calculator.html"}]}</script>
+
+<script src="/js/i18n.js" defer></script>
+<script src="/js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+
+
+<meta name="title-en" content="ROASCalculator">
+<meta name="desc-en" content="ROASCalculator - compute values online with accurate results.">
+
+
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
+
+<script src="/js/tool-ux.js" defer></script>
+<!-- TOOLBOX-TOOL-UX -->
+
+<script src="/js/analytics.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+<!-- TOOLBOX-TTZZ -->
+<script>
+(function(){try{
+var el = document.createElement("script");
+el.src = "https://lf1-cdn-tos.bytegoofy.com/goofy/ttzz/push.js?85d6452aa9be4d693b16cd48535a8c7ae57542f6788a41682e745be8eb99b35a8a24d2f724c31ebe20c1e4e6fba6d91caf576100b02a2870c72f38fc574066fef065d152c73bf1cbb2ebad3b5b5265d8";
+el.id = "ttzz";
+var s = document.getElementsByTagName("script")[0];
+s.parentNode.insertBefore(el, s);
+}catch(e){}
+})(window);
+</script>
+
+<script src="/js/tool-kit.js" defer></script>
+<!-- TOOLBOX-TOOL-KIT -->
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://tools.dicomp.net/tools/marketing/marketing-roas-calculator.html">
+<link rel="alternate" hreflang="zh-TW" href="https://tools.dicomp.net/zh-tw/tools/marketing/marketing-roas-calculator.html">
+<link rel="alternate" hreflang="en-US" href="https://tools.dicomp.net/tools/marketing/marketing-roas-calculator.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://tools.dicomp.net/tools/marketing/marketing-roas-calculator.html">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+</head>
+<body>
+<h1 class="sr-only">ROAS計算器</h1>
+
+<div class="nav">
+  <a href="/zh-tw/index.html">← ToolBox</a>
+  <span>/ ROAS計算器</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+
+
+
+<nav class="breadcrumb" aria-label="麵包屑導航" data-breadcrumb="1">
+  <a href="/zh-tw/index.html">首頁</a>
+  <span class="bc-sep">‹</span>
+  <a href="/zh-tw/tools/marketing/index.html">📢 營銷推廣</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">ROAS計算器</span>
+</nav>
+<div class="container">
+<div class="tool-guide-link" data-guide-link="1">
+  <a href="/zh-tw/guides/marketing-roas-calculator-guide.html">📖 檢視「ROAS計算器 使用指南」</a>
+</div>
+
+  <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
+    <h2 data-zh="🧮 ROAS計算器">🧮 ROAS Calculator</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="計算廣告支出回報率（Return on Ad Spend），評估廣告投放效果">Compute return on ad spend from revenue and ad cost.</p>
+
+    <div class="tabs">
+      <button type="button" class="tab-btn active" data-tab="calc">計算</button>
+      <button type="button" class="tab-btn" data-tab="explain">說明</button>
+      <button type="button" class="tab-btn" data-tab="reference">參考</button>
+      <button type="button" class="tab-btn" data-tab="history">歷史</button>
+    </div>
+
+    <div class="tab-panel active" id="tab-calc">
+      <div class="input-row">
+        <div class="input-group">
+          <div data-tb="preset" data-tb-presets='[{"label": "示例数据", "labelEn": "Example", "values": {"adSpend": "5000", "adRevenue": "20000"}}]'></div>
+<label>廣告花費（元）</label>
+          <input type="number" id="adSpend" value="5000" min="0" oninput="calc()">
+          <div class="input-hint">投放廣告的總費用</div>
+        </div>
+        <div class="input-group">
+          <label>廣告帶來的收入（元）</label>
+          <input type="number" id="adRevenue" value="20000" min="0" oninput="calc()">
+          <div class="input-hint">廣告直接或間接帶來的收入</div>
+        </div>
+      </div>
+
+      <div class="toolbar">
+        <button type="button" class="btn primary" onclick="saveHistory()">儲存到歷史</button>
+        <button type="button" class="btn" onclick="resetForm()">重置</button>
+      </div>
+
+      <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__marketing_roas_calculatorExport()">匯出明細 CSV</button></div>
+    <div id="result"></div>
+    <div id="marketing_roas_calculatorTable"></div>
+    <div id="marketing_roas_calculatorDiff"></div>
+    <div id="marketing_roas_calculatorChart"></div>
+    <div id="marketing_roas_calculatorHist"></div>
+    </div>
+
+    <div class="tab-panel" id="tab-explain">
+      <div class="explain-section">
+        <h4>什麼是ROAS？</h4>
+        <p>ROAS（Return on Ad Spend，廣告支出回報率）是衡量廣告投放效果的核心指標。它表示每投入1元廣告費能帶來多少元收入，是評估廣告效率的關鍵指標。</p>
+      </div>
+      <div class="explain-section">
+        <h4>計算公式</h4>
+        <div class="formula-box">ROAS = 廣告收入 / 廣告花費</div>
+        <p>例如：花費5000元廣告費，帶來20000元收入，則 ROAS = 20000 / 5000 = 4x（或400%）。</p>
+      </div>
+      <div class="explain-section">
+        <h4>ROAS等級標準</h4>
+        <ul>
+          <li><strong>優秀（≥4x）</strong>：廣告效率很高，利潤空間大</li>
+          <li><strong>良好（2.5x - 4x）</strong>：廣告效果不錯，可繼續最佳化</li>
+          <li><strong>一般（1.5x - 2.5x）</strong>：勉強持平或微利，需要最佳化</li>
+          <li><strong>較差（＜1.5x）</strong>：可能虧損，需大幅最佳化或停止投放</li>
+        </ul>
+      </div>
+      <div class="explain-section">
+        <h4>ROAS與ROI的區別</h4>
+        <p>ROAS只考慮廣告花費帶來的收入，而ROI（投資回報率）考慮的是總成本（包括產品成本、運營成本等）帶來的利潤。ROAS側重廣告效率，ROI側重整體盈利。</p>
+      </div>
+    </div>
+
+    <div class="tab-panel" id="tab-reference">
+      <div class="explain-section">
+        <h4>各行業ROAS參考值</h4>
+        <table class="ref-table">
+          <thead>
+            <tr><th>行業</th><th>平均ROAS</th><th>優秀水平</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>電商零售</td><td>2.5x - 4x</td><td>≥5x</td></tr>
+            <tr><td>教育培訓</td><td>2x - 3.5x</td><td>≥4.5x</td></tr>
+            <tr><td>金融服務</td><td>1.5x - 3x</td><td>≥4x</td></tr>
+            <tr><td>遊戲應用</td><td>2x - 4x</td><td>≥5x</td></tr>
+            <tr><td>旅遊酒店</td><td>2x - 3.5x</td><td>≥4.5x</td></tr>
+            <tr><td>醫療健康</td><td>1.5x - 3x</td><td>≥4x</td></tr>
+            <tr><td>房地產</td><td>1x - 2.5x</td><td>≥3x</td></tr>
+            <tr><td>B2B服務</td><td>2x - 4x</td><td>≥5x</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="explain-section">
+        <h4>各廣告平臺平均ROAS</h4>
+        <table class="ref-table">
+          <thead>
+            <tr><th>平臺</th><th>平均ROAS</th><th>特點</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Google搜尋</td><td>2x - 4x</td><td>高意向，轉化好</td></tr>
+            <tr><td>Facebook/Instagram</td><td>1.5x - 3.5x</td><td>量大，需精準定向</td></tr>
+            <tr><td>抖音/TikTok</td><td>1.5x - 3x</td><td>爆發性強，波動大</td></tr>
+            <tr><td>小紅書</td><td>2x - 4x</td><td>種草屬性強，ROI高</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="explain-section">
+        <h4>提升ROAS的策略</h4>
+        <ul>
+          <li>最佳化廣告創意和落地頁，提升轉化率</li>
+          <li>精準定向目標人群，減少無效曝光</li>
+          <li>提高客單價和復購率，增加客戶終身價值</li>
+          <li>A/B測試不同廣告素材和投放策略</li>
+          <li>關注歸因模型，合理評估各渠道貢獻</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="tab-panel" id="tab-history">
+      <div class="toolbar">
+        <button type="button" class="btn danger" onclick="clearHistory()">清空歷史</button>
+      </div>
+      <div id="historyList"></div>
+    </div>
+  </div>
+
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto 0;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+.deep-dive a.term-link{color:var(--tool-accent,#FF6B35);text-decoration:none;border-bottom:1px dashed currentColor;}
+.deep-dive a.term-link:hover{border-bottom-style:solid;}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：ROAS 廣告回報</h2>
+<h3>💡 常見使用場景</h3>
+<ul class="dd-list">
+<li>算每 1 元廣告帶來多少收入。</li>
+<li>由利潤反推<a class="term-link" href="/zh-tw/tools/finance/break-even-calculator.html">盈虧平衡</a> ROAS。</li>
+<li>多Campaign 按 ROAS 排序砍低效。</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">基礎 ROAS</div><div class="dd-ex-body">花費 10000、廣告收入 20000 → ROAS=20000/10000=2.0x，利潤=10000，<a class="term-link" href="/zh-tw/tools/accounting/net-profit-margin.html">淨利率</a>=10000/20000=50%；盈虧平衡 ROAS=1/<a class="term-link" href="/zh-tw/tools/accounting/gross-margin.html">毛利率</a>。</div></div>
+<div class="dd-example"><div class="dd-ex-title">分級</div><div class="dd-ex-body">ROAS≥4 優秀、2.5–4 良好、1.5–2.5 一般、&lt;1.5 較差；2.0x 處「一般」，可最佳化素材提效。</div></div>
+<h3>❓ 常見問題（FAQ）</h3>
+<dl class="dd-faq">
+<dt>ROAS=2 算好嗎？</dt><dd>看毛利率。毛利率 50% 時平衡 ROAS=2，剛好打平；毛利率低則已虧，需結合利潤看。</dd>
+<dt>ROAS 和 <a class="term-link" href="/zh-tw/tools/marketing/marketing-roi.html">ROI</a> 區別？</dt><dd>ROAS=收入/花費，ROI=(收入−總成本)/總成本，ROI 扣了貨與固定成本更反映真盈利。</dd>
+</dl>
+</div>
+</section>
+<!-- 注意事項區塊 -->
+<div class="tool-notes" style="--tool-accent:#FF6B35;">
+  <div class="tool-notes-title">⚠️ 使用說明與注意事項</div>
+  <ul>
+      <li>本工具純前端執行，資料不會上傳到伺服器</li>
+      <li>建議在主流瀏覽器（Chrome/Safari/Firefox/Edge）中使用</li>
+      <li>計算結果僅供參考，請以實際應用場景為準</li>
+  </ul>
+</div>
+<!-- /注意事項區塊 -->
+</div>
+
+<script>function __tbInputGuard(_ids,_labels){
+  var __TPL='请填写「%s」后再计算。';
+  var __TPL2="<p style=\"color:var(--danger)\">⚠ 「%s」是本计算的分母，不能为 0。</p>";
+  var _vals=[],_firstBad=-1;
+  var _REQ=['adSpend', 'adRevenue'];
+  for(var _i=0;_i<_ids.length;_i++){
+    var _e=document.getElementById(_ids[_i]);
+    if(!_e) continue;
+    var _raw=String(_e.value==null?'':_e.value).trim();
+    var _num=parseFloat(_raw);
+    var _need=(_REQ.indexOf(_ids[_i])>=0);
+    if(_raw===''){ if(_need&&_firstBad<0)_firstBad=_i; _vals.push(NaN); continue; }
+    if(_e.type==='number'||_e.tagName==='TEXTAREA'){
+      if(_need&&isNaN(_num)){ if(_firstBad<0)_firstBad=_i; _vals.push(NaN); continue; }
+      _vals.push(_num);
+    } else _vals.push(_raw);
+  }
+  if(_firstBad>=0){
+    var _bad=_firstBad;
+    var _lbl=(_labels&&_labels[_bad])||_ids[_bad];
+    var __msg=__TPL.replace('%s',_lbl);
+    var _fe=document.getElementById(_ids[_bad]);
+    if(_fe&&_fe.classList&&_fe.classList.add)_fe.classList.add('input-error');
+    return __msg;
+  }
+  // 分母项：__D 由真浏览器逐项置零探测得出，命中即说明该输入在此页作分母
+  var __D={"adRevenue": "adRevenue"};
+  for(var _d=0;_d<_ids.length;_d++){
+    if(!(_ids[_d] in __D)) continue;
+    var _de=document.getElementById(_ids[_d]);
+    if(!_de) continue;
+    if(_de.classList&&_de.classList.remove)_de.classList.remove('input-error');
+    if(parseFloat(String(_de.value==null?'':_de.value).trim())===0){
+      if(_de.classList&&_de.classList.add)_de.classList.add('input-error');
+      return __TPL2.replace('%s',__D[_ids[_d]]);
+    }
+  }
+  // 全零：任何一项作分母都会得到 Infinity/NaN。页面公式本身没错，是输入无意义
+  var _nums=[];
+  for(var _z=0;_z<_vals.length;_z++){ if(typeof _vals[_z]==='number'&&!isNaN(_vals[_z])) _nums.push(_vals[_z]); }
+  if(!_nums.length) return '';
+  if(_nums.length>0){
+    var _allZero=true;
+    for(var _z2=0;_z2<_nums.length;_z2++){ if(_nums[_z2]!==0){ _allZero=false; break; } }
+    if(_allZero) return "<p style=\"color:var(--danger)\">⚠ 输入不能全为 0：至少需要一项非零数值，否则计算无意义。</p>";
+  }
+  for(var _k=0;_k<_ids.length;_k++){
+    var _e2=document.getElementById(_ids[_k]);
+    if(_e2&&_e2.classList&&_e2.classList.remove)_e2.classList.remove('input-error');
+  }
+  return '';
+}
+
+
+const STORAGE_KEY = 'roas_calculator_history';
+const MAX_HISTORY = 20;
+
+function switchTab(tabName) {
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.tab === tabName);
+  });
+  document.querySelectorAll('.tab-panel').forEach(panel => {
+    panel.classList.toggle('active', panel.id === 'tab-' + tabName);
+  });
+  if (tabName === 'history') renderHistory();
+}
+
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+});
+
+function calc() {
+  const spend = parseFloat(document.getElementById('adSpend').value);
+  const revenue = parseFloat(document.getElementById('adRevenue').value);
+  const r = document.getElementById('result');
+
+  if (isNaN(spend) || isNaN(revenue) || spend <= 0) {
+    r.innerHTML='<div class="metric-card"><p style="color:var(--text-muted);">请输入有效的广告花费和收入</p></div>';
+    return;
+  }
+
+  const roas = revenue / spend;
+  const roasPercent = roas * 100;
+  const profit = revenue - spend;
+  const profitMargin = (profit / revenue) * 100;
+  const multiplier = roas;
+
+  let roasLevel, roasColor;
+  if (roas >= 4) { roasLevel = '优秀'; roasColor = '#4caf50'; }
+  else if (roas >= 2.5) { roasLevel = '良好'; roasColor = '#2196f3'; }
+  else if (roas >= 1.5) { roasLevel = '一般'; roasColor = '#ff9800'; }
+  else { roasLevel = '较差'; roasColor = '#f44336'; }
+
+  const gaugeRotation = Math.min(Math.max(roas, 0.5), 6) / 6 * 180 - 135;
+
+  const __g2=`
+    <div class="metric-card">
+      <div class="label">ROAS 广告支出回报率</div>
+      <div class="value" style="color:${roasColor};">${roas.toFixed(2)}x</div>
+      <div class="sub">等级：${roasLevel} · 即 ${roasPercent.toFixed(0)}%</div>
+    </div>
+
+    <div class="gauge-container">
+      <div class="gauge">
+        <div class="gauge-bg"></div>
+        <div class="gauge-fill" style="transform:rotate(${gaugeRotation}deg);border-top-color:${roasColor};border-left-color:${roasColor};"></div>
+        <div class="gauge-value" style="color:${roasColor};">${roas.toFixed(1)}x</div>
+      </div>
+    </div>
+    <div class="gauge-label">0.5x &nbsp;&nbsp; 2x &nbsp;&nbsp; 4x &nbsp;&nbsp; 6x</div>
+
+    <div class="metric-card">
+      <div class="label">详细数据拆解</div>
+      <table style="margin-top:8px;font-size:13px;width:100%;">
+        <tr><td style="padding:4px 0;color:var(--text-light);">广告花费</td><td style="text-align:right;font-weight:600;">¥${ToolBox.formatNumber(spend, 2)}</td></tr>
+        <tr><td style="padding:4px 0;color:var(--text-light);">广告收入</td><td style="text-align:right;font-weight:600;">¥${ToolBox.formatNumber(revenue, 2)}</td></tr>
+        <tr><td style="padding:4px 0;color:var(--text-light);">广告毛利润</td><td style="text-align:right;font-weight:600;color:${profit >= 0 ? '#4caf50' : '#f44336'};">¥${ToolBox.formatNumber(profit, 2)}</td></tr>
+        <tr><td style="padding:4px 0;color:var(--text-light);">毛利率</td><td style="text-align:right;font-weight:600;">${profitMargin.toFixed(1)}%</td></tr>
+        <tr><td style="padding:4px 0;color:var(--text-light);">每1元广告回报</td><td style="text-align:right;font-weight:600;">¥${roas.toFixed(2)}</td></tr>
+      </table>
+    </div>
+
+    <div class="metric-card">
+      <div class="label">相关指标联动</div>
+      <div class="related-metrics">
+        <div class="related-metric">
+          <div class="val">${profitMargin.toFixed(1)}%</div>
+          <div class="lbl">广告毛利率</div>
+        </div>
+        <div class="related-metric">
+          <div class="val">${(100 / (profitMargin || 1)).toFixed(2)}x</div>
+          <div class="lbl">盈亏平衡ROAS</div>
+        </div>
+        <div class="related-metric">
+          <div class="val">${(roas / 3 * 100).toFixed(0)}%</div>
+          <div class="lbl">行业基准达成率</div>
+        </div>
+        <div class="related-metric">
+          <div class="val">${((revenue - spend) / spend * 100).toFixed(0)}%</div>
+          <div class="lbl">投资回报率(ROI)</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:12px;font-size:12px;color:var(--text-muted);text-align:center;">
+      公式：ROAS = 广告收入 / 广告花费
+    </div>
+  `;r.innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
+}
+
+function saveHistory() {
+    var __ig=__tbInputGuard(['adSpend', 'adRevenue'],["广告花费（元）", "广告带来的收入（元）"]);if(__ig){const __g3=__ig;ToolBox.setResult("result",(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—')));return;}
+const spend = parseFloat(document.getElementById('adSpend').value);
+  const revenue = parseFloat(document.getElementById('adRevenue').value);
+
+  if (isNaN(spend) || isNaN(revenue) || spend <= 0) {
+    ToolBox.showToast(i18nText(),'error');
+    return;
+  }
+
+  const roas = revenue / spend;
+  const record = {
+    id: Date.now(),
+    spend: spend,
+    revenue: revenue,
+    roas: roas,
+    profit: revenue - spend,
+    time: new Date().toLocaleString('zh-CN')
+  };
+
+  let history = getHistory();
+  history.unshift(record);
+  if (history.length > MAX_HISTORY) history = history.slice(0, MAX_HISTORY);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
+  ToolBox.showToast(i18nText());
+}
+
+function getHistory() {
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+  } catch (e) { return []; }
+}
+
+function renderHistory() {
+  const history = getHistory();
+  const container = document.getElementById('historyList');
+
+  if (history.length === 0) {
+    container.innerHTML='<div class="empty-state">暂无历史记录<br><span style="font-size:12px;">在「计算」页点击「保存到历史」</span></div>';
+    return;
+  }
+
+  const __g5=history.map(item => {
+    let level = item.roas >= 4 ? '优秀' : item.roas >= 2.5 ? '良好' : item.roas >= 1.5 ? '一般' : '较差';
+    return `
+      <div class="history-item">
+        <div>
+          <div style="font-weight:600;">ROAS: ${item.roas.toFixed(2)}x <span style="font-size:12px;color:var(--text-muted);">(${level})</span></div>
+          <div class="info">花费 ¥${ToolBox.formatNumber(item.spend,0)} · 收入 ¥${ToolBox.formatNumber(item.revenue,0)} · 利润 ¥${ToolBox.formatNumber(item.profit,0)}</div>
+          <div class="info">${item.time}</div>
+        </div>
+        <div class="actions">
+          <button type="button" class="btn" onclick="loadHistory(${item.id})">使用</button>
+          <button type="button" class="btn danger" onclick="deleteHistory(${item.id})">删除</button>
+        </div>
+      </div>
+    `;
+  }).join('');container.innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
+}
+
+function loadHistory(id) {
+  const history = getHistory();
+  const item = history.find(h => h.id === id);
+  if (!item) return;
+
+  document.getElementById('adSpend').value = item.spend;
+  document.getElementById('adRevenue').value = item.revenue;
+  calc();
+  switchTab('calc');
+  ToolBox.showToast(i18nText());
+}
+
+function deleteHistory(id) {
+  let history = getHistory();
+  history = history.filter(h => h.id !== id);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
+  renderHistory();
+  ToolBox.showToast(i18nText());
+}
+
+function clearHistory() {
+  if (!confirm('确定要清空所有历史记录吗？')) return;
+  localStorage.removeItem(STORAGE_KEY);
+  renderHistory();
+  ToolBox.showToast(i18nText());
+}
+
+function resetForm() {
+  document.getElementById('adSpend').value = 5000;
+  document.getElementById('adRevenue').value = 20000;
+  calc();
+}
+
+document.addEventListener('DOMContentLoaded', calc);
+document.querySelectorAll('input,textarea').forEach(el => {
+  el.addEventListener('input', calc);
+});
+</script><script>
+// tool-intro折叠交互
+document.addEventListener('DOMContentLoaded',function(){
+  var headers=document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click',function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+
+var __marketing_roas_calculator_last=0,__marketing_roas_calculator_skip=false;
+function __marketing_roas_calculatorSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __marketing_roas_calculatorResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __marketing_roas_calculatorTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __marketing_roas_calculatorRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__marketing_roas_calculatorTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#marketing_roas_calculatorTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#marketing_roas_calculatorDiff');
+        TBKit.history.mount('#marketing_roas_calculatorHist',function(rec){
+            __marketing_roas_calculator_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __marketing_roas_calculator_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__marketing_roas_calculatorTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#marketing_roas_calculatorChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __marketing_roas_calculatorExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__marketing_roas_calculator_skip) return;
+    var snap=__marketing_roas_calculatorSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__marketing_roas_calculatorResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__marketing_roas_calculator_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __marketing_roas_calculator_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __marketing_roas_calculatorRender(keys,rk,en);
+}
+function __marketing_roas_calculatorExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#marketing_roas_calculatorTable','marketing-roas-calculator.csv'); } catch(e){}
+}
+function __marketing_roas_calculatorPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#marketing_roas_calculatorPresets',[{label:'默认参数',labelEn:'Default',values:{adSpend:'5000', adRevenue:'20000'}}],function(){ calc(); });
+}
+var __marketing_roas_calculator_f0=(typeof calc==='function')?calc:null;
+if(__marketing_roas_calculator_f0){
+    calc=function(){ var __r=__marketing_roas_calculator_f0.apply(null,arguments); try{ __marketing_roas_calculatorExtras(); }catch(e){} return __r; };
+}
+function __marketing_roas_calculatorBoot(){ try{ __marketing_roas_calculatorPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __marketing_roas_calculatorBoot();
+else document.addEventListener('DOMContentLoaded', __marketing_roas_calculatorBoot);
+</script>
+<!-- SEO 介紹區塊 -->
+
+</div>
+
+</div>
+
+
+<!-- 相關工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相關工具</h3>
+  <div class="related-tools-grid">
+    <a href="/zh-tw/tools/marketing/marketing-keyword-density.html" class="related-tool-card">
+      <span class="rt-icon">🔍</span>
+      <span class="rt-info"><span class="rt-name">SEO關鍵詞密度檢查器 - 免費文本處理工具，線上SEO關鍵詞密度檢查器，免費使用</span><span class="rt-desc">SEO關鍵詞密度檢查器</span></span>
+    </a>
+    <a href="/zh-tw/tools/marketing/xiaohongshu-counter.html" class="related-tool-card">
+      <span class="rt-icon">✨</span>
+      <span class="rt-info"><span class="rt-name">小紅書文案計數器</span><span class="rt-desc">小紅書文案計數器線上工具，即時統計標題與正文字元數、表情與話題標籤數量，提示平臺字數限制，便於合規…</span></span>
+    </a>
+    <a href="/zh-tw/tools/marketing/marketing-utm-builder.html" class="related-tool-card">
+      <span class="rt-icon">📢</span>
+      <span class="rt-info"><span class="rt-name">UTM引數構建器 - 免費生成器工具，線上UTM引數構建器，免費使用</span><span class="rt-desc">UTM引數構建器</span></span>
+    </a>
+    <a href="/zh-tw/tools/marketing/utm-builder.html" class="related-tool-card">
+      <span class="rt-icon">✨</span>
+      <span class="rt-info"><span class="rt-name">UTM引數生成器 - 免費生成器工具，線上UTM引數生成器，免費使用</span><span class="rt-desc">UTM引數生成器</span></span>
+    </a>
+    <a href="/zh-tw/tools/marketing/marketing-chinese-hashtag-generator.html" class="related-tool-card">
+      <span class="rt-icon">#️⃣</span>
+      <span class="rt-info"><span class="rt-name">中文營銷話題標籤生成器 - 免費生成器工具，線上中文營銷話題標籤生成器，免費使用</span><span class="rt-desc">#️⃣ 中文營銷話題標籤生成器</span></span>
+    </a>
+    <a href="/zh-tw/tools/marketing/marketing-qr-campaign-tracker.html" class="related-tool-card">
+      <span class="rt-icon">🔳</span>
+      <span class="rt-info"><span class="rt-name">二維碼活動追蹤器 - 免費生成器工具，線上二維碼活動追蹤器，免費使用</span><span class="rt-desc">二維碼活動追蹤器</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro open" id="toolIntro">
+  <div class="tool-intro-header">
+    <span class="intro-icon-wrap"><span class="intro-icon">📖</span>關於「ROAS計算器」</span>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="tool-intro-body">
+    <h4><span class="h4-icon">📝</span>工具簡介</h4>
+    <p>ROAS計算器。營銷分析工具，幫助量化評估營銷效果與 ROI。</p>
+    <h4><span class="h4-icon">✨</span>功能特點</h4>
+    <ul class="intro-features">
+      <li>支援多維度資料分析</li>
+      <li>即時計算，結果即時顯示</li>
+      <li>支援圖表視覺化</li>
+      <li>營銷資料不上傳，安全可靠</li>
+    </ul>
+    <h4><span class="h4-icon">🎯</span>使用場景</h4>
+    <ul class="intro-scenes">
+      <li>營銷活動效果分析</li>
+      <li>ROI 計算與預算規劃</li>
+      <li>渠道資料對比與決策</li>
+      <li>學習營銷分析方法</li>
+    </ul>
+    </div>
+</div>
+<!-- /SEO 介紹區塊 -->
+</body>
+</html>

@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-opencc-locale="zh-tw">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=engineer,industry=energy,icon=⛅,bg=#e3f2fd">
+<title>風力發電功率估算 - 風力發電機的理論功率</title>
+<link rel="canonical" href="https://tools.dicomp.net/zh-tw/tools/energy/wind-power-estimator.html">
+<meta property="og:title" content="風力發電功率估算 - 風力發電機的理論功率">
+<meta property="og:description" content="風力發電功率估算是一款免費的線上能源電力工具，輸入風速、風輪直徑或葉片引數，工具估算風力發電機的理論功率並乘以效率得到實際輸出，用於風場或微型風機評估。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta property="og:url" content="https://tools.dicomp.net/zh-tw/tools/energy/wind-power-estimator.html">
+<meta name="twitter:card" content="summary">
+<meta name="description" content="風力發電功率估算是一款免費的線上能源電力工具，輸入風速、風輪直徑或葉片引數，工具估算風力發電機的理論功率並乘以效率得到實際輸出，用於風場或微型風機評估。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<link rel="stylesheet" href="/css/common.css">
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/common.js" defer></script>
+<style>
+.wind-viz{background:linear-gradient(180deg,#e3f2fd 0%,#bbdefb 100%);border-radius:12px;padding:20px;margin:12px 0;text-align:center;position:relative;overflow:hidden;}
+.wind-viz .turbine{font-size:48px;display:inline-block;animation:spin 3s linear infinite;}
+@keyframes spin{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
+.wind-viz .wind-lines{position:absolute;top:0;left:0;right:0;bottom:0;pointer-events:none;overflow:hidden;}
+.wind-viz .wind-line{position:absolute;height:2px;background:rgba(255,255,255,0.5);border-radius:1px;animation:windMove 2s linear infinite;}
+@keyframes windMove{from{transform:translateX(-100%);}to{transform:translateX(200%);}}
+.cp-bar{height:22px;background:var(--border-color);border-radius:6px;overflow:hidden;margin:3px 0;}
+.cp-fill{height:100%;border-radius:6px;background:var(--gradient-primary);transition:width 0.4s;display:flex;align-items:center;padding-left:8px;color:#fff;font-size:11px;font-weight:500;min-width:30px;}
+.curve-hint{background:var(--result-bg);border:1px dashed var(--border);border-radius:10px;padding:12px;margin:10px 0;font-size:12px;color:var(--text-secondary);line-height:1.7;}
+</style>
+
+
+
+<meta property="og:image" content="https://tools.dicomp.net/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免費線上工具">
+<meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免費線上工具">
+    <meta property="og:type" content="website">
+    <meta name="twitter:title" content="風力發電功率估算 - 風力發電機的理論功率">
+    <meta name="twitter:description" content="風力發電功率估算是一款免費的線上能源電力工具，輸入風速、風輪直徑或葉片引數，工具估算風力發電機的理論功率並乘以效率得到實際輸出，用於風場或微型風機評估。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"風力發電功率估算","url":"https://tools.dicomp.net/zh-tw/tools/energy/wind-power-estimator.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"風力發電功率估算是一款免費的線上能源電力工具，輸入風速、風輪直徑或葉片引數，工具估算風力發電機的理論功率並乘以效率得到實際輸出，用於風場或微型風機評估。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首頁","item":"https://tools.dicomp.net/zh-tw/"},{"@type":"ListItem","position":2,"name":"能源電力","item":"https://tools.dicomp.net/zh-tw/tools/energy/index.html"},{"@type":"ListItem","position":3,"name":"風力發電功率估算","item":"https://tools.dicomp.net/zh-tw/tools/energy/wind-power-estimator.html"}]}</script>
+
+<script src="/js/i18n.js" defer></script>
+<script src="/js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+
+
+<meta name="title-en" content="Wind Power Estimator">
+<meta name="desc-en" content="Wind Power Estimator - online utility on ToolBox.">
+
+
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
+
+<script src="/js/tool-ux.js" defer></script>
+<!-- TOOLBOX-TOOL-UX -->
+
+<script src="/js/analytics.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+<!-- TOOLBOX-TTZZ -->
+<script>
+(function(){try{
+var el = document.createElement("script");
+el.src = "https://lf1-cdn-tos.bytegoofy.com/goofy/ttzz/push.js?85d6452aa9be4d693b16cd48535a8c7ae57542f6788a41682e745be8eb99b35a8a24d2f724c31ebe20c1e4e6fba6d91caf576100b02a2870c72f38fc574066fef065d152c73bf1cbb2ebad3b5b5265d8";
+el.id = "ttzz";
+var s = document.getElementsByTagName("script")[0];
+s.parentNode.insertBefore(el, s);
+}catch(e){}
+})(window);
+</script>
+
+<script src="/js/tool-kit.js" defer></script>
+<!-- TOOLBOX-TOOL-KIT -->
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://tools.dicomp.net/tools/energy/wind-power-estimator.html">
+<link rel="alternate" hreflang="zh-TW" href="https://tools.dicomp.net/zh-tw/tools/energy/wind-power-estimator.html">
+<link rel="alternate" hreflang="en-US" href="https://tools.dicomp.net/tools/energy/wind-power-estimator.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://tools.dicomp.net/tools/energy/wind-power-estimator.html">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+</head>
+<body>
+<h1 class="sr-only">風力發電功率估算</h1>
+
+<div class="nav">
+  <a href="/zh-tw/index.html">← ToolBox</a>
+  <span>/ 風力發電功率估算</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+
+
+
+
+<nav class="breadcrumb" aria-label="麵包屑導航" data-breadcrumb="1">
+  <a href="/zh-tw/index.html">首頁</a>
+  <span class="bc-sep">‹</span>
+  <a href="/zh-tw/tools/energy/index.html">⚡ 能源電力</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">風力發電功率估算</span>
+</nav>
+<div class="container">
+<div class="tool-guide-link" data-guide-link="1">
+  <a href="/zh-tw/guides/wind-power-estimator-guide.html">📖 檢視「風力發電功率估算 使用指南」</a>
+</div>
+
+  <style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#3b82f6)}.tbk-tab.active{background:var(--accent,#3b82f6);color:#fff;border-color:var(--accent,#3b82f6)}.tbk-panel{margin-top:6px}</style>
+<div class="tbk-tabbar" role="tablist">
+  <button type="button" class="tbk-tab" data-pane="res">結果</button>
+  <button type="button" class="tbk-tab" data-pane="tbl">資料表</button>
+  <button type="button" class="tbk-tab" data-pane="pre">預設</button>
+  <button type="button" class="tbk-tab" data-pane="his">歷史</button>
+</div>
+<div class="card tool-card-accent" style="--tool-accent:#06B6D4;">
+    <h2 data-zh="⛅ 風力發電功率估算">⛅ Wind Turbine Power Estimator</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="根據風速、葉片引數估算風力發電機的理論功率與實際輸出功率">Estimate wind turbine output from wind speed, blade radius, air density and power coefficient, with annual energy production.</p>
+    <div class="formula-box">
+      <div class="formula-title">📐 計算公式</div>
+      <div class="formula-eq">P = ½·ρ·A·v³·Cp</div>
+      <p class="formula-desc">根據風速、葉片引數估算風力發電機的理論功率與實際輸出功率</p>
+    </div>
+
+    <div class="wind-viz">
+      <div class="wind-lines" id="windLines"></div>
+      <div class="turbine" id="turbineIcon">🌀</div>
+      <p style="margin-top:8px;font-size:14px;color:#1565c0;font-weight:600;" id="vizText">輸入風速開始估算</p>
+    </div>
+
+    <div class="input-row">
+      <div>
+        <label>風速 (m/s)</label>
+        <input type="number" id="windSpeed" value="12" min="0" step="0.1" oninput="calc()">
+      </div>
+      <div>
+        <label>葉片半徑 (m)</label>
+        <input type="number" id="bladeRadius" value="40" min="0.1" step="0.1" oninput="calc()">
+      </div>
+    </div>
+    <div class="input-row">
+      <div>
+        <label>空氣密度 (kg/m³)</label>
+        <input type="number" id="airDensity" value="1.225" min="0.1" step="0.001" oninput="calc()">
+      </div>
+      <div>
+        <label>風能利用係數 Cp</label>
+        <input type="number" id="cpValue" value="0.40" min="0" max="0.593" step="0.01" oninput="calc()">
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <div id="wind_power_estimatorPresets"></div><button type="button" class="btn primary" onclick="calc()">計算</button><button class="btn" type="button" onclick="__wind_power_estimatorExport()">匯出明細 CSV</button>
+      <button type="button" class="btn" onclick="resetAll()">重置</button>
+      <button type="button" class="btn" onclick="copyResult()">複製結果</button>
+    </div>
+
+    <div class="result-box" id="result"></div> <div id="wind_power_estimatorTable"></div> <div id="wind_power_estimatorDiff"></div> <div id="wind_power_estimatorChart"></div> <div id="wind_power_estimatorHist"></div>
+  </div>
+
+  <div class="card">
+    <h3>📊 風能利用係數 Cp 對照表</h3>
+    <p style="font-size:12px;color:var(--text-muted);margin-bottom:10px;">貝茨極限（理論最大值）= 0.593，實際風力發電機 Cp 通常在 0.2~0.5 之間</p>
+    <div id="cpTable"></div>
+    <div class="curve-hint">
+      <strong>風速-功率關係說明：</strong><br>
+      功率與風速的<strong>三次方</strong>成正比（P ∝ v³），風速翻倍則功率增至 8 倍。<br>
+      例如：風速從 6 m/s 增至 12 m/s，相同引數下功率增加 2³ = <strong>8 倍</strong>。<br>
+      因此選址時風速是決定風電經濟性的最關鍵因素。
+    </div>
+  </div>
+
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto 0;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+.deep-dive a.term-link{color:var(--tool-accent,#FF6B35);text-decoration:none;border-bottom:1px dashed currentColor;}
+.deep-dive a.term-link:hover{border-bottom-style:solid;}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：風力發電功率估算</h2>
+<h3>💡 常見使用場景</h3>
+<ul class="dd-list">
+<li>離網站點評估風機+電池互補供電。</li>
+<li>對比風機與光伏的年利用小時差異。</li>
+<li>按容量係數快速估算年發電量。</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">小風機年發電估算</div><div class="dd-ex-body">額定 10 kW、當地容量係數 0.28、年 8760 h：年發電≈10×8760×0.28≈24528 kWh。提示：容量係數遠低於光伏利用小時時，需評估風資源穩定性與冬季供熱用電匹配。</div></div>
+<h3>❓ 常見問題（FAQ）</h3>
+<dl class="dd-faq">
+<dt>容量係數和利用率一樣嗎？</dt><dd>接近。容量係數=實際年發電/（額定×8760），反映資源與停機綜合；風電波動大，容量係數地域差異顯著。</dd>
+<dt>風機和光伏怎麼互補？</dt><dd>冬春風大、夏秋光好，二者互補可平抑出力；離網系統加儲能與柴油備份提升可靠性。</dd>
+</dl>
+</div>
+</section>
+<!-- 注意事項區塊 -->
+<div class="tool-notes" style="--tool-accent:#06B6D4;">
+  <div class="tool-notes-title">⚠️ 使用說明與注意事項</div>
+  <ul>
+      <li>本工具純前端執行，資料不會上傳到伺服器</li>
+      <li>建議在主流瀏覽器（Chrome/Safari/Firefox/Edge）中使用</li>
+      <li>計算結果僅供參考，請以實際應用場景為準</li>
+  </ul>
+</div>
+<!-- /注意事項區塊 -->
+</div>
+
+<script>
+function calc() {
+  const v = parseFloat(document.getElementById('windSpeed').value) || 0;
+  const r = parseFloat(document.getElementById('bladeRadius').value) || 0;
+  const rho = parseFloat(document.getElementById('airDensity').value) || 1.225;
+  const cp = Math.min(parseFloat(document.getElementById('cpValue').value) || 0.4, 0.593);
+
+  const A = Math.PI * r * r;
+  const pTheory = 0.5 * rho * A * Math.pow(v, 3);
+  const pActual = pTheory * cp;
+  const pKW = pActual / 1000;
+  const pMW = pActual / 1000000;
+  const sweepArea = A;
+  const annualEnergy = pKW * 24 * 365 * 0.3; // assume 30% capacity factor
+  const annualMWh = annualEnergy / 1000;
+
+  const vizText = document.getElementById('vizText');
+  const turbineIcon = document.getElementById('turbineIcon');
+  if (v <= 0) {
+    vizText.textContent = '请输入有效风速';
+    turbineIcon.style.animationDuration = '0s';
+  } else {
+    const speed = Math.max(0.3, 6 - v * 0.3);
+    turbineIcon.style.animationDuration = speed + 's';
+    const __g2=v.toFixed(1) + ' m/s 风速 | 实际功率 ' + formatPower(pActual);vizText.textContent=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
+  }
+
+  let html = '<div class="stat-grid">';
+  html += '<div class="stat-card"><div class="val">' + formatPower(pTheory) + '</div><div class="lbl">理论功率</div></div>';
+  html += '<div class="stat-card"><div class="val">' + formatPower(pActual) + '</div><div class="lbl">实际功率</div></div>';
+  html += '<div class="stat-card"><div class="val">' + sweepArea.toFixed(0) + '</div><div class="lbl">扫风面积 m²</div></div>';
+  html += '<div class="stat-card"><div class="val">' + annualMWh.toFixed(1) + '</div><div class="lbl">年发电量 MWh</div></div>';
+  html += '</div>';
+
+  html += '<div style="margin-top:12px;font-size:13px;color:var(--text-secondary);line-height:1.8;">';
+  html += '<p>公式：P = 0.5 × ρ × A × v³ × Cp</p>';
+  html += '<p>扫风面积 A = π × r² = π × ' + r + '² = <strong>' + A.toFixed(1) + ' m²</strong></p>';
+  html += '<p>风能功率 = 0.5 × ' + rho + ' × ' + A.toFixed(1) + ' × ' + v + '³ = <strong>' + formatPower(pTheory) + '</strong></p>';
+  html += '<p>实际输出 = ' + formatPower(pTheory) + ' × ' + cp.toFixed(2) + ' = <strong>' + formatPower(pActual) + '</strong></p>';
+  html += '<p style="margin-top:6px;font-size:12px;color:var(--text-muted);">年发电量按 30% 容量系数估算（实际值取决于风场条件和运维水平）</p>';
+  html += '</div>';
+
+  const __g3=html;document.getElementById('result').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
+}
+
+function formatPower(watts) {
+  if (watts >= 1e6) return (watts / 1e6).toFixed(2) + ' MW';
+  if (watts >= 1e3) return (watts / 1e3).toFixed(1) + ' kW';
+  return watts.toFixed(1) + ' W';
+}
+
+function resetAll() {
+  document.getElementById('windSpeed').value = 12;
+  document.getElementById('bladeRadius').value = 40;
+  document.getElementById('airDensity').value = 1.225;
+  document.getElementById('cpValue').value = 0.40;
+  calc();
+  ToolBox.showToast(i18nText());
+}
+
+function copyResult() {
+  const el = document.getElementById('result');
+  if (el) ToolBox.copyText(el.innerText, i18nText());
+}
+
+function buildCpTable() {
+  const cpData = [
+    [0.10, '老旧/小型风机', '效率很低，已逐步淘汰'],
+    [0.15, '早期商用风机', '早期技术，叶片设计较简单'],
+    [0.20, '普通小型风机', '常见于分布式风电'],
+    [0.25, '标准中小型', '性能够用，成本较低'],
+    [0.30, '现代中型风机', '主流商用水平'],
+    [0.35, '高效中型风机', '先进叶片气动设计'],
+    [0.40, '大型商用风机', '主流大型风电机组'],
+    [0.45, '高端海上风机', '海上风电专用机型'],
+    [0.50, '顶尖原型机', '接近极限，试验性质'],
+    [0.593, '贝茨理论极限', '物理上限，不可超越']
+  ];
+
+  let html = '<table><thead><tr><th>Cp 值</th><th>类型</th><th>说明</th><th>效率占比</th></tr></thead><tbody>';
+  cpData.forEach(function(row) {
+    const pct = Math.round((row[0] / 0.593) * 100);
+    html += '<tr><td><strong>' + row[0].toFixed(2) + '</strong></td><td>' + row[1] + '</td><td>' + row[2] + '</td>';
+    html += '<td><div class="cp-bar"><div class="cp-fill" style="width:' + pct + '%;">' + pct + '%</div></div></td></tr>';
+  });
+  html += '</tbody></table>';
+  const __g4=html;document.getElementById('cpTable').innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
+}
+
+function buildWindLines() {
+  const container = document.getElementById('windLines');
+  for (let i = 0; i < 6; i++) {
+    const line = document.createElement('div');
+    line.className = 'wind-line';
+    line.style.top = (10 + i * 15) + '%';
+    line.style.width = (40 + Math.random() * 60) + 'px';
+    line.style.animationDelay = (Math.random() * 2) + 's';
+    line.style.animationDuration = (1.5 + Math.random()) + 's';
+    container.appendChild(line);
+  }
+}
+
+buildCpTable();
+buildWindLines();
+calc();
+</script>
+
+<!-- SEO 介紹區塊 -->
+
+</div>
+
+</div>
+
+<!-- 相關工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相關工具</h3>
+  <div class="related-tools-grid">
+
+    <a href="/zh-tw/tools/science/barcode-pharmacode.html" class="related-tool-card">
+      <span class="rt-icon">🏷️</span>
+      <span class="rt-info"><span class="rt-name">Pharmacode 條形碼 - 免費生成器工具，線上Pharmacode 條形碼 | ToolBox免費線上工具箱</span><span class="rt-desc">Pharmacode 條形碼</span></span>
+    </a>
+
+
+
+    <a href="/zh-tw/tools/misc/truth-table.html" class="related-tool-card">
+      <span class="rt-icon">✨</span>
+      <span class="rt-info"><span class="rt-name">邏輯真值表生成器 - 科學研究線上工具 | ToolBox免費線上工具箱</span><span class="rt-desc">邏輯真值表生成器</span></span>
+    </a>
+    <a href="/zh-tw/tools/energy/convert-emission.html" class="related-tool-card">
+      <span class="rt-icon">🌾</span>
+      <span class="rt-info"><span class="rt-name">溫室氣體排放換算（CO₂當量）</span><span class="rt-desc">將甲烷、氧化亞氮等溫室氣體按全球增溫潛勢折算為 CO₂ 當量，用於碳排核算與對比，純前端換算便於快速</span></span>
+    </a>
+    <a href="/zh-tw/tools/energy/battery-capacity-wh.html" class="related-tool-card">
+      <span class="rt-icon">🧊</span>
+      <span class="rt-info"><span class="rt-name">電池容量換算</span><span class="rt-desc">輸入電池容量（Ah）與標稱電壓（V），工具按 能量=容量×電壓 換算為瓦時（Wh），也支援反向由 W</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro open" id="toolIntro">
+  <div class="tool-intro-header">
+    <span class="intro-icon-wrap"><span class="intro-icon">📖</span>關於「風力發電功率估算」</span>
+    <span class="arrow">▼</span>
+  </div>
+  <div class="tool-intro-body">
+    <h4><span class="h4-icon">📝</span>工具簡介</h4>
+    <p>風力發電功率估算是一款能源電力領域的線上工具。基於標準物理與工程公式，計算精準、結果可信。</p>
+    <h4><span class="h4-icon">✨</span>功能特點</h4>
+    <ul class="intro-features">
+      <li>基於標準物理與工程公式</li>
+      <li>支援多種引數配置</li>
+      <li>即時計算，即時顯示結果</li>
+      <li>資料不上傳，安全可靠</li>
+    </ul>
+    <h4><span class="h4-icon">🎯</span>使用場景</h4>
+    <ul class="intro-scenes">
+      <li>用電與能耗資料分析</li>
+      <li>電功率與能量換算</li>
+      <li>能源方案評估輔助</li>
+      <li>學習能源電學知識</li>
+    </ul>
+    </div>
+</div>
+<!-- /SEO 介紹區塊 -->
+
+<script>
+// tool-intro折叠交互
+document.addEventListener('DOMContentLoaded',function(){
+  var headers=document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click',function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+
+var __wind_power_estimator_last=0,__wind_power_estimator_skip=false;
+function __wind_power_estimatorSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __wind_power_estimatorResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __wind_power_estimatorTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __wind_power_estimatorRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__wind_power_estimatorTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#wind_power_estimatorTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#wind_power_estimatorDiff');
+        TBKit.history.mount('#wind_power_estimatorHist',function(rec){
+            __wind_power_estimator_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __wind_power_estimator_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__wind_power_estimatorTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#wind_power_estimatorChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __wind_power_estimatorExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__wind_power_estimator_skip) return;
+    var snap=__wind_power_estimatorSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__wind_power_estimatorResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__wind_power_estimator_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __wind_power_estimator_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __wind_power_estimatorRender(keys,rk,en);
+}
+function __wind_power_estimatorExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#wind_power_estimatorTable','wind-power-estimator.csv'); } catch(e){}
+}
+function __wind_power_estimatorPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#wind_power_estimatorPresets',[{label:'默认参数',labelEn:'Default',values:{'windSpeed':'12', 'bladeRadius':'40', 'airDensity':'1.225', 'cpValue':'0.40'}}],function(){ calc(); });
+}
+var __wind_power_estimator_f0=(typeof calc==='function')?calc:null;
+if(__wind_power_estimator_f0){
+    calc=function(){ var __r=__wind_power_estimator_f0.apply(null,arguments); try{ __wind_power_estimatorExtras(); }catch(e){} return __r; };
+}
+function __wind_power_estimatorBoot(){ try{ __wind_power_estimatorPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __wind_power_estimatorBoot();
+else document.addEventListener('DOMContentLoaded', __wind_power_estimatorBoot);
+</script>
+
+
+
+<script>/*TBKIT-INJECT-START*/
+(function(){
+  var P={"res": ["result", "wind_power_estimatorChart"], "tbl": ["wind_power_estimatorTable"], "pre": ["wind_power_estimatorPresets"], "his": ["wind_power_estimatorHist"]};
+  var L={res:['结果','Result'],chart:['图表','Chart'],tbl:['数据表','Data'],pre:['预设','Presets'],his:['历史','History']};
+  function tabify(){
+    var bar=document.querySelector('.tbk-tabbar');
+    if(!bar||!bar.querySelectorAll) return;
+    var btns=bar.querySelectorAll('.tbk-tab');
+    if(!btns||!btns.length) return;
+    var en=false;
+    try{ if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn) en=TBKit.util.isEn(); }catch(e){}
+    if(!en&&document.documentElement&&(document.documentElement.lang||'').indexOf('en')>=0) en=true;
+    for(var i=0;i<btns.length;i++){var p=btns[i].getAttribute('data-pane');btns[i].textContent=en?L[p][1]:L[p][0];}
+    function show(pane){
+      for(var k in P){var ids=P[k];for(var i=0;i<ids.length;i++){var el=document.getElementById(ids[i]);if(el&&el.style)el.style.display=(k===pane?'':'none');}}
+      for(var j=0;j<btns.length;j++){btns[j].className='tbk-tab'+(btns[j].getAttribute('data-pane')===pane?' active':'');}
+    }
+    for(var i=0;i<btns.length;i++){(function(b){b.addEventListener('click',function(){show(b.getAttribute('data-pane'));});})(btns[i]);}
+    show(btns[0].getAttribute('data-pane'));
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',tabify);else tabify();
+})();
+/*TBKIT-INJECT-END*/</script>
+</body>
+</html>

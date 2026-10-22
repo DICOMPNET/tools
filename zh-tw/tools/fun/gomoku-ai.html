@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-opencc-locale="zh-tw">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="toolbox" content="cat=game,industry=fun,icon=🎮,bg=#dcfce7,name=五子棋人機對戰">
+  <title>五子棋人機對戰 - 活三等棋型做啟發式評估選點</title>
+  <link rel="stylesheet" href="/css/common.css">
+  <script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/common.js" defer></script>
+  <style>
+    .board {display:grid;grid-template-columns:repeat(15,1fr);gap:2px;max-width:500px;margin:auto;}
+    .cell {width:100%;aspect-ratio:1;background:#f7fee7;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;}
+  </style>
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首頁","item":"https://tools.dicomp.net/zh-tw/"},{"@type":"ListItem","position":2,"name":"娛樂遊戲","item":"https://tools.dicomp.net/zh-tw/tools/fun/index.html"},{"@type":"ListItem","position":3,"name":"五子棋人機對戰","item":"https://tools.dicomp.net/zh-tw/tools/fun/gomoku-ai.html"}]}</script>
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"五子棋人機對戰","url":"https://tools.dicomp.net/zh-tw/tools/fun/gomoku-ai.html","applicationCategory":"GamesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"五子棋人機對戰是一款免費的線上娛樂遊戲工具，與 AI 在 15×15 標準棋盤上對弈五子棋，AI 按活四、活三等棋型做啟發式評估選點，純前端本地推理、可離線遊玩。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<meta property="og:image" content="https://tools.dicomp.net/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免費線上工具">
+<meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免費線上工具">
+
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script src="/js/i18n.js" defer></script>
+<script src="/js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+
+<meta name="description" content="五子棋人機對戰是一款免費的線上娛樂遊戲工具，與 AI 在 15×15 標準棋盤上對弈五子棋，AI 按活四、活三等棋型做啟發式評估選點，純前端本地推理、可離線遊玩。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta property="og:title" content="五子棋人機對戰 - 活三等棋型做啟發式評估選點">
+<meta property="og:description" content="五子棋人機對戰是一款免費的線上娛樂遊戲工具，與 AI 在 15×15 標準棋盤上對弈五子棋，AI 按活四、活三等棋型做啟發式評估選點，純前端本地推理、可離線遊玩。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta name="twitter:title" content="五子棋人機對戰 - 活三等棋型做啟發式評估選點">
+<meta name="twitter:description" content="五子棋人機對戰是一款免費的線上娛樂遊戲工具，與 AI 在 15×15 標準棋盤上對弈五子棋，AI 按活四、活三等棋型做啟發式評估選點，純前端本地推理、可離線遊玩。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<link rel="canonical" href="https://tools.dicomp.net/zh-tw/tools/fun/gomoku-ai.html">
+
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://tools.dicomp.net/zh-tw/tools/fun/gomoku-ai.html">
+<meta name="twitter:card" content="summary">
+
+<meta name="title-en" content="Gomoku Ai">
+<meta name="desc-en" content="Gomoku Ai - online utility on ToolBox.">
+
+
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
+
+<script src="/js/tool-ux.js" defer></script>
+<!-- TOOLBOX-TOOL-UX -->
+
+<script src="/js/analytics.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<!-- TOOLBOX-TTZZ -->
+<script>
+(function(){try{
+var el = document.createElement("script");
+el.src = "https://lf1-cdn-tos.bytegoofy.com/goofy/ttzz/push.js?85d6452aa9be4d693b16cd48535a8c7ae57542f6788a41682e745be8eb99b35a8a24d2f724c31ebe20c1e4e6fba6d91caf576100b02a2870c72f38fc574066fef065d152c73bf1cbb2ebad3b5b5265d8";
+el.id = "ttzz";
+var s = document.getElementsByTagName("script")[0];
+s.parentNode.insertBefore(el, s);
+}catch(e){}
+})(window);
+</script>
+
+<script src="/js/tool-kit.js" defer></script>
+<!-- TOOLBOX-TOOL-KIT -->
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://tools.dicomp.net/tools/fun/gomoku-ai.html">
+<link rel="alternate" hreflang="zh-TW" href="https://tools.dicomp.net/zh-tw/tools/fun/gomoku-ai.html">
+<link rel="alternate" hreflang="en-US" href="https://tools.dicomp.net/tools/fun/gomoku-ai.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://tools.dicomp.net/tools/fun/gomoku-ai.html">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+</head>
+<body>
+<h1 class="sr-only">五子棋人機對戰</h1>
+
+<div class="nav">
+  <a href="/zh-tw/index.html">← ToolBox</a>
+  <span>/ 五子棋人機對戰</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+<nav class="breadcrumb" aria-label="麵包屑導航" data-breadcrumb="1">
+  <a href="/zh-tw/index.html">首頁</a>
+  <span class="bc-sep">‹</span>
+  <a href="/zh-tw/tools/fun/index.html">🎮 娛樂遊戲</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">五子棋人機對戰</span>
+</nav>
+<div class="container">
+<div class="tool-guide-link" data-guide-link="1">
+  <a href="/zh-tw/guides/gomoku-ai-guide.html">📖 檢視「五子棋人機對戰使用指南」</a>
+</div>
+
+  <div class="card">
+    <h2 data-zh="🎮 五子棋人機對戰">🎮 Gomoku AI</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="簡化版人機五子棋，AI 按周圍棋勢打分。">Play against a heuristic Gomoku AI on a 15x15 board. The engine scores open fours, open threes and other patterns to choose its moves.</p>
+<div class="formula-box">
+  <div class="formula-title">📐 工作原理與說明</div>
+      <div class="formula-eq">五子棋 AI 按棋型評分選點：活四（必勝）權重 10000、衝四 1000、活三 1000、眠三 100、活二 100、眠二 10；候選點得分 = 己方成五威脅分 × 攻擊係數 + 對方威脅分 × 防守係數；在 15×15 棋盤上對距已有棋子 2 格內的空點逐一評分取最大，可疊加極小極大搜尋與 alpha-beta 剪枝。</div>
+
+</div>
+
+    <div class="toolbar">
+      <button class="btn primary" onclick="initGame()">開始新局</button>
+      <button class="btn" onclick="undo()">悔1手</button>
+    </div>
+    <div id="status" style="margin:10px 0;font-size:13px;color:var(--text-muted)"></div>
+    <div class="board" id="board"></div>
+  </div>
+</div>
+
+
+<!-- 相關工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相關工具</h3>
+  <div class="related-tools-grid">
+    <a href="/zh-tw/tools/fun/generator-24.html" class="related-tool-card">
+      <span class="rt-icon">🧩</span>
+      <span class="rt-info"><span class="rt-name">數字謎題生成（24點遊戲）</span><span class="rt-desc">數字謎題生成（24點遊戲）是一款免費的線上娛樂遊戲工具，數字謎題生成（24點遊戲）。免費線上工具…</span></span>
+    </a>
+    <a href="/zh-tw/tools/fun/generator-2.html" class="related-tool-card">
+      <span class="rt-icon">🧩</span>
+      <span class="rt-info"><span class="rt-name">數獨生成器 / 求解器</span><span class="rt-desc">數獨生成器/求解器。一鍵生成不同難度的數獨題目並給出參考答案，也可貼上題目求解，用於數獨練習與休閒…</span></span>
+    </a>
+    <a href="/zh-tw/tools/fun/generator-laugh.html" class="related-tool-card">
+      <span class="rt-icon">✨</span>
+      <span class="rt-info"><span class="rt-name">笑聲音效生成器（合成）</span><span class="rt-desc">笑聲音效合成器。基於 Web Audio API 在瀏覽器內即時合成多樣化笑聲，可隨機微調引數、下…</span></span>
+    </a>
+    <a href="/zh-tw/tools/fun/riddle-generator.html" class="related-tool-card">
+      <span class="rt-icon">✨</span>
+      <span class="rt-info"><span class="rt-name">謎語生成器</span><span class="rt-desc">從題庫隨機出題或按關鍵詞生成謎語，附答案可切換顯示，適合聚會互動與語文趣味，純前端出題可重複遊玩。</span></span>
+    </a>
+    <a href="/zh-tw/tools/fun/generator-3.html" class="related-tool-card">
+      <span class="rt-icon">🧩</span>
+      <span class="rt-info"><span class="rt-name">迷宮生成器（自動生成並求解）</span><span class="rt-desc">迷宮生成器。採用隨機化演算法自動生成迷宮並附帶 BFS/A* 求解路徑，支援網格尺寸調節，純前端生成…</span></span>
+    </a>
+    <a href="/zh-tw/tools/fun/random-name-gen.html" class="related-tool-card">
+      <span class="rt-icon">🎲</span>
+      <span class="rt-info"><span class="rt-name">隨機姓名生成器</span><span class="rt-desc">批次生成隨機姓名，可選風格與數量，用於佔位示例、角色起名、分組抽籤等場景，全部在瀏覽器本地生成。</span></span>
+    </a>
+  </div>
+</div>
+<script>
+const SIZE = 15;
+let board = [];
+let turn = 1;
+let history = [];
+const EMPTY = 0;
+const BLACK = 1;
+const WHITE = -1;
+
+function initGame() {
+  board = Array.from({ length: SIZE }, () => Array(SIZE).fill(EMPTY));
+  history = [];
+  turn = BLACK;
+  renderBoard();
+  setStatus('你执黑，先手落子');
+}
+
+function setStatus(txt) {
+  document.getElementById('status').textContent = txt;
+}
+
+function renderBoard() {
+  const root = document.getElementById('board');
+  const __h0='';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){root.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}root.innerHTML=__h0;
+  for (let r = 0; r < SIZE; r++) {
+    for (let c = 0; c < SIZE; c++) {
+      const cell = document.createElement('div');
+      cell.className = 'cell';
+      if (board[r][c] === BLACK) cell.textContent = '●';
+      if (board[r][c] === WHITE) cell.textContent = '○';
+      cell.addEventListener('click', () => playerMove(r, c));
+      root.appendChild(cell);
+    }
+  }
+}
+
+function playerMove(r, c) {
+  if (turn !== BLACK || board[r][c] !== EMPTY) return;
+  place(r, c, BLACK);
+}
+
+function place(r, c, color) {
+  board[r][c] = color;
+  history.push([r, c, color]);
+  renderBoard();
+
+  if (checkWin(r, c, color)) {
+    setStatus(color === BLACK ? '你赢了！' : 'AI 获胜！');
+    return;
+  }
+
+  if (history.length === SIZE * SIZE) {
+    setStatus('平局');
+    return;
+  }
+
+  turn = -color;
+  if (turn === WHITE) {
+    setStatus('AI 思考中...');
+    setTimeout(() => aiMove(), 100);
+  } else {
+    setStatus('你的回合');
+  }
+}
+
+function checkWin(r, c, color) {
+  const dirs = [[1,0],[0,1],[1,1],[1,-1]];
+  for (const [dr, dc] of dirs) {
+    let cnt = 1;
+    for (let k = 1; k < 5; k++) {
+      const nr = r + dr * k;
+      const nc = c + dc * k;
+      if (nr < 0 || nr >= SIZE || nc < 0 || nc >= SIZE || board[nr][nc] !== color) break;
+      cnt += 1;
+    }
+    for (let k = 1; k < 5; k++) {
+      const nr = r - dr * k;
+      const nc = c - dc * k;
+      if (nr < 0 || nr >= SIZE || nc < 0 || nc >= SIZE || board[nr][nc] !== color) break;
+      cnt += 1;
+    }
+    if (cnt >= 5) return true;
+  }
+  return false;
+}
+
+function score(r, c, color) {
+  if (board[r][c] !== EMPTY) return -1e9;
+  const dirs = [[1,0],[0,1],[1,1],[1,-1]];
+  let s = 0;
+  for (const [dr, dc] of dirs) {
+    let link = 1;
+    for (let k = 1; k <= 4; k++) {
+      const nr = r + dr * k;
+      const nc = c + dc * k;
+      if (nr < 0 || nr >= SIZE || nc < 0 || nc >= SIZE) break;
+      if (board[nr][nc] === color) link += 1;
+    }
+    for (let k = 1; k <= 4; k++) {
+      const nr = r - dr * k;
+      const nc = c - dc * k;
+      if (nr < 0 || nr >= SIZE || nc < 0 || nc >= SIZE) break;
+      if (board[nr][nc] === color) link += 1;
+    }
+    s += Math.pow(10, link);
+  }
+  return s;
+}
+
+function aiMove() {
+  let best = -1e9;
+  let pickR = Math.floor(SIZE / 2);
+  let pickC = Math.floor(SIZE / 2);
+
+  for (let r = 0; r < SIZE; r++) {
+    for (let c = 0; c < SIZE; c++) {
+      if (board[r][c] !== EMPTY) continue;
+      const val = score(r, c, WHITE) * 1.6 + score(r, c, BLACK) * 0.8;
+      if (val > best) {
+        best = val;
+        pickR = r;
+        pickC = c;
+      }
+    }
+  }
+
+  place(pickR, pickC, WHITE);
+}
+
+function undo() {
+  const last = history.pop();
+  if (!last) return;
+  const [r1, c1] = last;
+  board[r1][c1] = EMPTY;
+  turn = BLACK;
+  renderBoard();
+  setStatus('已悔1步，当前轮到你');
+}
+
+initGame();
+
+
+/* ═════ 本地记录 · 趋势 · 导出（数据只存本机浏览器，不上传服务器） ═════ */
+var __tbDict = {
+  '时间':['Time','时间'], '得分':['Score','得分'], '正确率':['Accuracy','正确率'],
+  '错题数':['Wrong','错题数'], '结果':['Result','结果'], '用时':['Duration','用时'],
+  '步数':['Moves','步数'], '难度':['Level','难度'], '模式':['Mode','模式'],
+  '评级':['Grade','评级'], '等级':['Grade','等级'], '备注':['Note','备注'],
+  '名称':['Name','名称'], '数值':['Value','数值'], '详情':['Detail','详情'],
+  '局数':['Rounds','局数'], '正确':['Correct','正确'], '错误':['Wrong','错误'],
+  '总分':['Total','总分'], '题数':['Questions','题数'], '答对':['Correct','答对'],
+  '分级':['Level','分级'], '高危项':['Top risks','高危项'], '设备':['Device','设备'],
+  '系统':['OS','系统'], '分辨率':['Resolution','分辨率'], '语言':['Language','语言'],
+  '剩余':['Remaining','剩余'], '日期':['Date','日期'], '类型':['Type','类型'],
+  '节日':['Festival','节日'], '星期':['Weekday','星期'], '剩余天数':['Days left','剩余天数'],
+  '最近节日':['Next event','最近节日'], '核心':['CPU cores','核心'], '浏览器':['Browser','浏览器'],
+  '时长':['Length','时长'], '曲目':['Track','曲目'], '按键':['Keys','按键'],
+  '命中':['Hits','命中'], '准确率':['Accuracy','准确率'], '速度':['Speed','速度'],
+  '关卡':['Stage','关卡'], '连击':['Combo','连击'], '字符':['Character','字符'],
+  '笔顺':['Stroke order','笔顺'], '成语':['Idiom','成语'], '回合':['Rounds','回合']
+};
+function __tbL(en, zh){ return (typeof TBKit !== 'undefined' && TBKit.util.isEn()) ? en : zh; }
+function __tbTr(k){ var d = __tbDict[k]; return d ? __tbL(d[0], d[1]) : k; }
+function __tbTime(){
+  var d = new Date();
+  function p(x){ return (x < 10 ? '0' : '') + x; }
+  return p(d.getMonth()+1) + '-' + p(d.getDate()) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+}
+/* 首次真实交互后才记账：避免页面加载时的自动 calc / 自动开局写进历史 */
+function __tbArm(){
+  if (window.__tbArmed) return;
+  window.__tbArmed = true;
+  try {
+    document.removeEventListener('pointerdown', __tbArm);
+    document.removeEventListener('keydown', __tbArm);
+    document.removeEventListener('change', __tbArm);
+  } catch (e) {}
+}
+try {
+  document.addEventListener('pointerdown', __tbArm);
+  document.addEventListener('keydown', __tbArm);
+  document.addEventListener('change', __tbArm);
+} catch (e) {}
+function __tbHistSave(rec){
+  if (typeof TBKit === 'undefined' || !rec || !window.__tbArmed) return;
+  try { TBKit.history.record(rec, window.__tbCoalesce || 0); } catch (e) {}
+  __tbHistRender();
+}
+function __tbHistRender(){
+  if (typeof TBKit === 'undefined') return;
+  var box = document.getElementById('tbHistTable');
+  if (!box) return;
+  var cbox = document.getElementById('tbHistChart');
+  var tip = document.getElementById('tbHistTip');
+  var arr = TBKit.history.list();
+  if (!arr.length) {
+    box.innerHTML = '<p style="font-size:12px;color:var(--text-muted);">' +
+      __tbL('No records yet — finish one round and it will be saved on this device.',
+            '暂无记录，完成一次后自动保存在本机。') + '</p>';
+    if (cbox) cbox.innerHTML = '';
+    if (tip) tip.innerHTML = '';
+    return;
+  }
+  var head = [];
+  for (var k0 in arr[0].d) {
+    if (k0 === '__v') continue;
+    if (Object.prototype.hasOwnProperty.call(arr[0].d, k0)) head.push(k0);
+  }
+  var rows = [], pts = [], labels = [];
+  for (var i = 0; i < arr.length; i++) {
+    var d = arr[i].d || {};
+    var row = [];
+    for (var j = 0; j < head.length; j++) row.push(d[head[j]] == null ? '' : String(d[head[j]]));
+    rows.push(row);
+    pts.push(typeof d.__v === 'number' ? d.__v : 0);
+    labels.push('#' + (arr.length - i));
+  }
+  rows.reverse(); pts.reverse(); labels.reverse();
+  if (!window.__tbNoChart && cbox && TBKit.chart && TBKit.chart.line) {
+    try { TBKit.chart.line(cbox, { labels: labels, series: [{ name: __tbL('Trend', '趋势'), data: pts }] }); } catch (e) {}
+  }
+  try { TBKit.matrix.table(box, { head: head.map(__tbTr), rows: rows }); } catch (e) {}
+  if (tip) {
+    var df = null;
+    try { df = TBKit.history.diffLast(['__v']); } catch (e) {}
+    if (df && df.__v) {
+      var dv = df.__v.delta;
+      tip.innerHTML = '<div class="tip-box ' + (dv > 0 ? 'tip-success' : (dv < 0 ? 'tip-error' : 'tip-warn')) +
+        '">' + __tbL('Change vs last round: ', '较上次：') + (dv > 0 ? '+' : '') + dv + '</div>';
+    } else { tip.innerHTML = ''; }
+  }
+}
+function __tbHistExport(){
+  if (typeof TBKit === 'undefined') return;
+  var ok = false;
+  try { ok = TBKit.util.exportTable('#tbHistTable', window.__tbCsvName || 'history.csv'); } catch (e) {}
+  if (!ok && typeof ToolBox !== 'undefined' && ToolBox.toast) {
+    try { ToolBox.toast(__tbL('No records to export yet', '暂无可导出的记录')); } catch (e) {}
+  }
+}
+function __tbHistClear(){
+  if (typeof TBKit === 'undefined') return;
+  try { TBKit.history.clear(); } catch (e) {}
+  __tbHistRender();
+}
+function __tbHistInit(){
+  try {
+    var h = document.getElementById('tbHistTitle');
+    if (h) h.textContent = __tbL(window.__tbEnTitle || 'Trend & History', window.__tbZhTitle || '成绩趋势与历史记录');
+    var p = document.getElementById('tbHistSub');
+    if (p) p.textContent = __tbL('Every round is saved locally on this device only. Export CSV for backup or clear anytime.',
+                                 '每次完成后自动保存在本机浏览器，可导出 CSV 备份或随时清空。');
+    var b1 = document.getElementById('tbExpBtn');
+    if (b1) b1.textContent = __tbL('Export CSV', '导出 CSV');
+    var b2 = document.getElementById('tbClrBtn');
+    if (b2) b2.textContent = __tbL('Clear records', '清空记录');
+    var xl = window.__tbExtraLabels || {};
+    for (var xid in xl) {
+      if (!Object.prototype.hasOwnProperty.call(xl, xid)) continue;
+      var xb = document.getElementById(xid);
+      if (xb) xb.textContent = __tbL(xl[xid][0], xl[xid][1]);
+    }
+  } catch (e) {}
+  __tbHistRender();
+}
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', __tbHistInit);
+else setTimeout(__tbHistInit, 0);
+
+window.__tbCsvName = 'gomoku-history.csv';
+
+window.__tbZhTitle = "📈 对战战绩与历史记录";
+window.__tbEnTitle = "📈 Match Records & History";
+
+/* 出结果后自动落一条本机记录（包装原 place，不改其计算逻辑） */
+var __tbF_place = (typeof place === 'function') ? place : null;
+if (__tbF_place) {
+  place = function () {
+    var __r = __tbF_place.apply(null, arguments);
+    try { __tbHistSave((function(){var win=(typeof checkWin==='function')&&checkWin(r,c,color);var full=history.length===SIZE*SIZE;if(!win&&!full)return null;return {时间:__tbTime(),结果:__tbL(win?(color===BLACK?'Win':'Lose'):'Draw',win?(color===BLACK?'胜':'负'):'和棋'),步数:history.length,__v:history.length};})()); } catch (e) {}
+    return __r;
+  };
+}
+
+</script>
+
+  <style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#3b82f6)}.tbk-tab.active{background:var(--accent,#3b82f6);color:#fff;border-color:var(--accent,#3b82f6)}.tbk-panel{margin-top:6px}</style>
+<div class="tbk-tabbar" role="tablist">
+  <button type="button" class="tbk-tab" data-pane="chart">圖表</button>
+  <button type="button" class="tbk-tab" data-pane="tbl">資料表</button>
+</div>
+<div class="card" id="tbHistCard">
+    <h3 id="tbHistTitle">📈 📈 對戰戰績與歷史記錄</h3>
+    <p id="tbHistSub" style="font-size:12px;color:var(--text-muted);">每次完成後自動儲存在本機瀏覽器，可匯出 CSV 備份或隨時清空。</p>
+
+    <div id="tbHistChart"></div>
+    <div id="tbHistTip"></div>
+    <div id="tbHistTable"></div>
+    <div class="toolbar" style="margin-top:12px;">
+
+      <button type="button" class="btn" id="tbExpBtn" onclick="window.__tbHistExport()">匯出 CSV</button>
+      <button type="button" class="btn" id="tbClrBtn" onclick="window.__tbHistClear()">清空記錄</button>
+    </div>
+  </div>
+
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto 0;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+.deep-dive a.term-link{color:var(--tool-accent,#FF6B35);text-decoration:none;border-bottom:1px dashed currentColor;}
+.deep-dive a.term-link:hover{border-bottom-style:solid;}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：五子棋人機對戰</h2>
+<h3>💡 常見使用場景</h3>
+<ul class="dd-list">
+<li>人機對戰：與內建 AI 輪流落子，先連五子勝，適合單人練棋。</li>
+<li>難度調節：AI 按搜尋深度/棋型權重評估，可調強中弱。</li>
+<li>演算法演示：觀察 AI 如何優先堵活四、搶活三，理解啟發式博弈。</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">方法（AI 策略）</div><div class="dd-ex-body">規則同<a class="term-link" href="/zh-tw/tools/fun/gomoku.html">五子棋</a>；AI 啟發式評估棋盤：優先成五 &gt; 堵對方活四 &gt; 自己做活四/活三 &gt; 堵衝四。難度越高搜尋越深、越少漏防。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例（演示）</div><div class="dd-ex-body">玩家在 (3,3)(3,4)(3,5) 做成活三，AI 優先堵 (3,2) 或 (3,6) 防其成四；若玩家同時有 (5,5)(6,6) 另一活三，AI 只能堵一處，玩家趁另一方向成五獲勝。製造「雙活三」是贏 AI 的關鍵。</div></div>
+<h3>❓ 常見問題（FAQ）</h3>
+<dl class="dd-faq">
+<dt>AI 水平如何？</dt><dd>啟發式 + 淺層搜尋，約業餘中級；高水平玩家可用雙活三/衝四逼其失誤。</dd>
+<dt>能調整先手嗎？</dt><dd>通常玩家執黑先手；若想挑戰，可選 AI 先手增加難度。</dd>
+</dl>
+</div>
+</section>
+
+
+<script>/*TBKIT-INJECT-START*/
+(function(){
+  var P={"chart": ["tbHistChart"], "tbl": ["tbHistTable"]};
+  var L={res:['结果','Result'],chart:['图表','Chart'],tbl:['数据表','Data'],pre:['预设','Presets'],his:['历史','History']};
+  function tabify(){
+    var bar=document.querySelector('.tbk-tabbar');
+    if(!bar||!bar.querySelectorAll) return;
+    var btns=bar.querySelectorAll('.tbk-tab');
+    if(!btns||!btns.length) return;
+    var en=false;
+    try{ if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn) en=TBKit.util.isEn(); }catch(e){}
+    if(!en&&document.documentElement&&(document.documentElement.lang||'').indexOf('en')>=0) en=true;
+    for(var i=0;i<btns.length;i++){var p=btns[i].getAttribute('data-pane');btns[i].textContent=en?L[p][1]:L[p][0];}
+    function show(pane){
+      for(var k in P){var ids=P[k];for(var i=0;i<ids.length;i++){var el=document.getElementById(ids[i]);if(el&&el.style)el.style.display=(k===pane?'':'none');}}
+      for(var j=0;j<btns.length;j++){btns[j].className='tbk-tab'+(btns[j].getAttribute('data-pane')===pane?' active':'');}
+    }
+    for(var i=0;i<btns.length;i++){(function(b){b.addEventListener('click',function(){show(b.getAttribute('data-pane'));});})(btns[i]);}
+    show(btns[0].getAttribute('data-pane'));
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',tabify);else tabify();
+})();
+/*TBKIT-INJECT-END*/</script>
+</body>
+</html>

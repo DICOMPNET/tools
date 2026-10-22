@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-opencc-locale="zh-tw">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=generate,industry=security,icon=⛅,bg=#ffebee">
+<title>煙霧報警器自檢計時器 - 免費線上網路安全工具</title>
+<link rel="canonical" href="https://tools.dicomp.net/zh-tw/tools/security/smoke-alarm-test.html">
+<meta property="og:title" content="煙霧報警器自檢計時器 - 免費線上網路安全工具">
+<meta property="og:description" content="煙霧報警器自檢計時器是一款免費的線上網路安全工具，每月定期測試煙霧報警器是否正常工作。按下測試按鈕，計時15秒，記錄自檢結果，保障家庭消防安全。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta property="og:url" content="https://tools.dicomp.net/zh-tw/tools/security/smoke-alarm-test.html">
+<meta name="twitter:card" content="summary">
+<meta name="description" content="煙霧報警器自檢計時器是一款免費的線上網路安全工具，每月定期測試煙霧報警器是否正常工作。按下測試按鈕，計時15秒，記錄自檢結果，保障家庭消防安全。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<link rel="stylesheet" href="/css/common.css">
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/common.js" defer></script>
+<style>
+.timer-display {
+  text-align: center;
+  padding: 30px 20px;
+  background: var(--result-bg);
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  margin-bottom: 16px;
+}
+.timer-display .td-time {
+  font-size: 56px;
+  font-weight: 800;
+  font-family: 'SF Mono','Courier New',monospace;
+  color: var(--primary);
+  letter-spacing: 2px;
+  line-height: 1;
+}
+.timer-display .td-status {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-top: 12px;
+}
+.timer-display.testing .td-time { color: var(--warning); animation: pulse 1s infinite; }
+.timer-display.done .td-time { color: var(--success); }
+.timer-display.failed .td-time { color: var(--danger); }
+@keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.6;} }
+.test-step {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px; background: var(--result-bg);
+  border: 1px solid var(--border); border-radius: 10px;
+  margin-bottom: 6px; font-size: 13px;
+}
+.test-step .ts-num {
+  width: 24px; height: 24px; border-radius: 6px;
+  background: var(--gradient-primary); color: #fff;
+  font-size: 12px; font-weight: 700; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+.test-step .ts-text { color: var(--text-secondary); flex: 1; }
+.history-record {
+  background: var(--result-bg); border: 1px solid var(--border);
+  border-radius: 12px; padding: 12px 14px; margin-bottom: 8px;
+}
+.history-record .hr-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+.history-record .hr-date { font-size: 13px; font-weight: 600; color: var(--heading); }
+.history-record .hr-result { font-size: 11px; padding: 2px 8px; border-radius: 6px; font-weight: 600; }
+.hr-pass { background: rgba(16,185,129,0.1); color: #059669; }
+.hr-fail { background: rgba(239,68,68,0.1); color: #DC2626; }
+.history-record .hr-detail { font-size: 12px; color: var(--text-muted); }
+[data-theme="dark"] .hr-pass { color: #34D399; }
+[data-theme="dark"] .hr-fail { color: #F87171; }
+.reminder-box {
+  background: linear-gradient(135deg, rgba(255,107,53,0.06), rgba(124,58,237,0.06));
+  border: 1px solid rgba(255,107,53,0.15);
+  border-radius: 12px; padding: 14px 16px; margin-top: 12px;
+  font-size: 13px; color: var(--text-secondary); line-height: 1.6;
+}
+.reminder-box strong { color: var(--primary); }
+.alarm-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 10px; border-radius: 6px; font-size: 11px; font-weight: 600;
+}
+.badge-location { background: rgba(59,130,246,0.1); color: #2563EB; }
+</style>
+
+<meta property="og:image" content="https://tools.dicomp.net/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免費線上工具">
+<meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免費線上工具">
+    <meta property="og:type" content="website">
+    <meta name="twitter:title" content="煙霧報警器自檢計時器 - 免費線上網路安全工具">
+    <meta name="twitter:description" content="煙霧報警器自檢計時器是一款免費的線上網路安全工具，每月定期測試煙霧報警器是否正常工作。按下測試按鈕，計時15秒，記錄自檢結果，保障家庭消防安全。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"煙霧報警器自檢計時器","url":"https://tools.dicomp.net/zh-tw/tools/security/smoke-alarm-test.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"煙霧報警器自檢計時器是一款免費的線上網路安全工具，每月定期測試煙霧報警器是否正常工作。按下測試按鈕，計時15秒，記錄自檢結果，保障家庭消防安全。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首頁","item":"https://tools.dicomp.net/zh-tw/"},{"@type":"ListItem","position":2,"name":"網路安全","item":"https://tools.dicomp.net/zh-tw/tools/security/index.html"},{"@type":"ListItem","position":3,"name":"煙霧報警器自檢計時器","item":"https://tools.dicomp.net/zh-tw/tools/security/smoke-alarm-test.html"}]}</script>
+
+<script src="/js/i18n.js" defer></script>
+<script src="/js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+
+<meta name="title-en" content="Smoke Alarm Test">
+<meta name="desc-en" content="Smoke Alarm Test - online utility on ToolBox.">
+
+
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
+
+<script src="/js/tool-ux.js" defer></script>
+<!-- TOOLBOX-TOOL-UX -->
+
+<script src="/js/analytics.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+<!-- TOOLBOX-TTZZ -->
+<script>
+(function(){try{
+var el = document.createElement("script");
+el.src = "https://lf1-cdn-tos.bytegoofy.com/goofy/ttzz/push.js?85d6452aa9be4d693b16cd48535a8c7ae57542f6788a41682e745be8eb99b35a8a24d2f724c31ebe20c1e4e6fba6d91caf576100b02a2870c72f38fc574066fef065d152c73bf1cbb2ebad3b5b5265d8";
+el.id = "ttzz";
+var s = document.getElementsByTagName("script")[0];
+s.parentNode.insertBefore(el, s);
+}catch(e){}
+})(window);
+</script>
+
+<script src="/js/tool-kit.js" defer></script>
+<!-- TOOLBOX-TOOL-KIT -->
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://tools.dicomp.net/tools/security/smoke-alarm-test.html">
+<link rel="alternate" hreflang="zh-TW" href="https://tools.dicomp.net/zh-tw/tools/security/smoke-alarm-test.html">
+<link rel="alternate" hreflang="en-US" href="https://tools.dicomp.net/tools/security/smoke-alarm-test.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://tools.dicomp.net/tools/security/smoke-alarm-test.html">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+</head>
+<body>
+<h1 class="sr-only">煙霧報警器自檢計時器</h1>
+
+<div class="nav">
+  <a href="/zh-tw/index.html">&larr; ToolBox</a>
+  <span>/ 煙霧報警器自檢計時器</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+
+<nav class="breadcrumb" aria-label="麵包屑導航" data-breadcrumb="1">
+  <a href="/zh-tw/index.html">首頁</a>
+  <span class="bc-sep">‹</span>
+  <a href="/zh-tw/tools/security/index.html">🔒 網路安全</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">煙霧報警器自檢計時器</span>
+</nav>
+<div class="container">
+  <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
+    <h2 data-zh="⛅ 煙霧報警器自檢計時器">Smoke Alarm Test</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="每月定期測試煙霧報警器是否正常工作。按下測試按鈕，計時15秒，記錄自檢結果，保障家庭消防安全。">Smoke Alarm Test</p>
+<div class="formula-box">
+  <div class="formula-title">📐 工作原理與說明</div>
+      <div class="formula-eq">煙霧報警器每月自檢一次：按住測試鍵 15 秒，報警器應發出不低於 85 dB 的警報音；若無聲或音量明顯減弱說明電池欠壓或感測器失效，須更換電池或整機；光電式報警器壽命約 8 至 10 年、離子式約 5 至 8 年，到期須整機更換；年檢覆蓋率 = 已完成檢測數 ÷ 應檢總數 × 100%，檢測記錄建議按月歸檔。</div>
+
+</div>
+
+    <div class="timer-display" id="timerDisplay">
+      <div class="td-time" id="timerTime">15</div>
+      <div class="td-status" id="timerStatus">準備就緒 — 按下報警器測試按鈕後點擊"開始計時"</div>
+    </div>
+
+    <div class="input-row" style="flex-direction:column;">
+      <div style="width:100%;">
+        <label>報警器位置</label>
+        <select id="alarmLocation">
+          <option value="客厅">客廳</option>
+          <option value="卧室">臥室</option>
+          <option value="厨房附近">廚房附近</option>
+          <option value="走廊">走廊</option>
+          <option value="儿童房">兒童房</option>
+          <option value="地下室">地下室</option>
+          <option value="车库">車庫</option>
+          <option value="阁楼">閣樓</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="toolbar" style="margin-top:8px;">
+      <span style="font-size:13px;color:var(--text-muted);">常見位置預設：</span>
+      <button type="button" class="btn" onclick="applyAlarmPreset('living')">🛋️ 客廳</button>
+<button type="button" class="btn" onclick="applyAlarmPreset('kitchen')">🍳 廚房附近</button>
+<button type="button" class="btn" onclick="applyAlarmPreset('bedroom')">🛏️ 臥室</button>
+    </div>
+
+    <div class="toolbar">
+      <button type="button" class="btn primary" id="startTimerBtn" onclick="startTimer()">開始計時</button>
+      <button type="button" class="btn success" onclick="recordPass()">測試通過</button>
+      <button type="button" class="btn danger" onclick="recordFail()">測試失敗</button>
+      <button type="button" class="btn" onclick="resetTimer()">重置</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>自檢操作步驟</h3>
+    <div id="stepList"></div>
+    <div class="reminder-box">
+      <strong>📅 建議頻率：</strong>每月至少測試一次每個報警器。<br>
+      <strong>🔋 電池更換：</strong>每年更換一次電池（建議春秋換季時）。<br>
+      <strong>🔄 使用壽命：</strong>煙霧報警器一般壽命8-10年，到期需整體更換。<br>
+      <strong>🏠 安裝位置：</strong>每層樓、每個臥室外、廚房附近（距烹飪區至少3米）都應安裝。
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="history-header">
+      <h3>自檢歷史記錄</h3>
+      <span style="display:flex;gap:8px;">
+        <button type="button" class="btn" onclick="__alarmExport()">⬇️ 匯出自檢記錄 CSV</button>
+        <button type="button" class="btn danger" onclick="clearHistory()">清空記錄</button>
+      </span>
+    </div>
+    <div id="historyList"></div>
+  </div>
+
+  <div class="card">
+    <h3>煙霧報警器維護知識</h3>
+    <div class="ref-card">
+      <h4>🔥 報警器型別</h4>
+      <ul>
+        <li><strong>光電式：</strong>對陰燃煙霧敏感，適合臥室、客廳，誤報率低</li>
+        <li><strong>離子式：</strong>對明火煙霧敏感，響應快，適合廚房附近</li>
+        <li><strong>複合式：</strong>同時具備光電和離子感測，覆蓋面廣</li>
+        <li><strong>一氧化碳複合：</strong>同時檢測煙霧和CO，適合有燃氣裝置的區域</li>
+      </ul>
+    </div>
+    <div class="ref-card">
+      <h4>⚠️ 常見問題處理</h4>
+      <ul>
+        <li><strong>誤報頻繁：</strong>檢查是否距廚房/浴室太近，清潔感測器灰塵</li>
+        <li><strong>不報警：</strong>檢查電池電量、感測器是否過期，及時更換</li>
+        <li><strong>蜂鳴間歇響：</strong>通常是電池電量低的提示，立即更換電池</li>
+        <li><strong>測試無反應：</strong>清潔後仍無反應需更換報警器</li>
+      </ul>
+    </div>
+    <div class="tip-box tip-warn">烹飪產生的油煙可能觸發誤報，不要因此拆除電池。如頻繁誤報，考慮將報警器移遠烹飪區或更換為光電式。</div>
+  </div>
+
+
+</div>
+
+</div>
+
+<!-- 相關工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相關工具</h3>
+  <div class="related-tools-grid">
+    <a href="/zh-tw/tools/it/properties-parser.html" class="related-tool-card">
+      <span class="rt-icon">📄</span>
+      <span class="rt-info"><span class="rt-name">.properties 解析器 - 免費開發工具，properties 解析器 | ToolBox免費線上工具箱</span><span class="rt-desc">.properties 解析器</span></span>
+    </a>
+    <a href="/zh-tw/tools/it/ast-viewer.html" class="related-tool-card">
+      <span class="rt-icon">💻</span>
+      <span class="rt-info"><span class="rt-name">AST抽象語法樹檢視器 - 線上解析JavaScript程式碼生成AST樹形結構，支援節點 | ToolBox免費線上工具箱</span><span class="rt-desc">AST 抽象語法樹檢視器</span></span>
+    </a>
+    <a href="/zh-tw/tools/it/css-minifier.html" class="related-tool-card">
+      <span class="rt-icon">🧹</span>
+      <span class="rt-info"><span class="rt-name">CSS 壓縮/美化工具 - 免費開發工具，CSS 壓縮/格式化/美化 | ToolBox免費線上工具箱</span><span class="rt-desc">CSS 壓縮/格式化/美化</span></span>
+    </a>
+    <a href="/zh-tw/tools/it/css-formatter.html" class="related-tool-card">
+      <span class="rt-icon">🏋️</span>
+      <span class="rt-info"><span class="rt-name">CSS 格式化 - 免費開發工具，線上CSS 格式化 | ToolBox免費線上工具箱</span><span class="rt-desc">CSS 格式化</span></span>
+    </a>
+    <a href="/zh-tw/tools/it/cron.html" class="related-tool-card">
+      <span class="rt-icon">✨</span>
+      <span class="rt-info"><span class="rt-name">Cron 表示式生成器 - 免費開發工具，線上Cron 表示式生成器 | ToolBox免費線上工具箱</span><span class="rt-desc">⏰ Cron 表示式生成器</span></span>
+    </a>
+    <a href="/zh-tw/tools/it/graphql-formatter.html" class="related-tool-card">
+      <span class="rt-icon">🏋️</span>
+      <span class="rt-info"><span class="rt-name">GraphQL 格式化 - 免費開發工具，線上GraphQL 格式化 | ToolBox免費線上工具箱</span><span class="rt-desc">◈ GraphQL 格式化</span></span>
+    </a>
+  </div>
+</div>
+<div class="tool-intro" id="toolIntro">
+    <div class="tool-intro-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="intro-icon-wrap"><span class="intro-icon">🔥</span> 工具介紹與使用說明</span>
+      <span class="arrow">▼</span>
+    </div>
+    <div class="tool-intro-body">
+      <p>煙霧報警器自檢計時器幫助你定期測試家中煙霧報警器的工作狀態，記錄測試歷史，保障家庭消防安全。</p>
+      <h4><span class="h4-icon">✨</span> 功能特點</h4>
+      <ul class="intro-features">
+        <li>15秒標準測試計時</li>
+        <li>按位置記錄自檢</li>
+        <li>自檢歷史存檔</li>
+        <li>測試通過/失敗標記</li>
+        <li>維護知識參考</li>
+      </ul>
+      <h4><span class="h4-icon">📋</span> 使用場景</h4>
+      <ul class="intro-scenes">
+        <li>家庭消防安全</li>
+        <li>月度安全檢查</li>
+        <li>租房安全自查</li>
+        <li>物業消防管理</li>
+      </ul>
+    </div>
+  </div>
+
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto 0;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+.deep-dive a.term-link{color:var(--tool-accent,#FF6B35);text-decoration:none;border-bottom:1px dashed currentColor;}
+.deep-dive a.term-link:hover{border-bottom-style:solid;}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：煙霧報警器自檢計時器</h2>
+<h3>💡 常見使用場景</h3>
+<ul class="dd-list">
+<li>家庭每月消防自檢：按步驟按下測試鍵、計時 15 秒並記錄每隻報警器的狀態。</li>
+<li>房東或物業對多戶或多層建築的報警器批次測試，逐只標記通過或失敗。</li>
+<li>新裝報警器驗收時，用計時器確認鳴響持續性與停止響應是否正常。</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">以「單隻報警器月度自檢」為例</div><div class="dd-ex-body">八步流程：① 通知家人測試聲音會很響；② 走到報警器下方找到 Test 測試按鈕；③ 按住按鈕直到報警器鳴響；④ 確認正常鳴響後點擊「開始計時」；⑤ 持續按住 15 秒確認持續發聲；⑥ 鬆開按鈕，報警器應立即停止；⑦ 若不響或鬆手後仍持續鳴響，標記「測試失敗」；⑧ 記錄結果並移至下一隻繼續。計時器幫助客觀判斷「持續鳴響滿 15 秒」與停止響應是否達標。</div></div>
+<h3>❓ 常見問題（FAQ）</h3>
+<dl class="dd-faq">
+<dt>為什麼要每個月都測試？</dt><dd>報警器靠電池供電、長期不動易因電池耗盡或積塵失效；月度測試能在關鍵時刻失靈前發現問題，是家庭消防最基本也最有效的預防措施。</dd>
+<dt>測試時一直響、按停不下來怎麼辦？</dt><dd>先鬆開測試鍵；若仍持續鳴響，多為電池電量異常或裝置故障，先更換電池，仍異常則更換整機；必要時拔下電池並聯系售後，切勿用膠帶長期封住報警器。</dd>
+</dl>
+</div>
+</section>
+<!-- 注意事項區塊 -->
+<div class="tool-notes" style="--tool-accent:#FF6B35;">
+  <div class="tool-notes-title">⚠️ 使用說明與注意事項</div>
+  <ul>
+      <li>本工具純前端執行，資料不會上傳到伺服器</li>
+      <li>建議在主流瀏覽器（Chrome/Safari/Firefox/Edge）中使用</li>
+      <li>計算結果僅供參考，請以實際應用場景為準</li>
+  </ul>
+</div>
+<!-- /注意事項區塊 -->
+</div>
+
+<script>
+(function(){
+  'use strict';
+
+  var STORAGE_KEY = 'toolbox_smoke_alarm_history';
+  var TEST_DURATION = 15;
+  var timerInterval = null;
+  var currentTime = TEST_DURATION;
+  var timerActive = false;
+
+  var STEPS = [
+    '通知家人即将测试报警器（声音会很响）',
+    '走到报警器下方，找到"Test"测试按钮',
+    '按住测试按钮不放，直到报警器发出响声',
+    '确认报警器正常鸣响后，点击"开始计时"',
+    '持续按住按钮15秒，确保报警器持续鸣响',
+    '松开按钮，报警器应停止鸣响',
+    '如报警器持续鸣响或无反应，标记为"测试失败"',
+    '记录测试结果，移至下一个报警器继续测试'
+  ];
+
+  function renderSteps(){
+    var html = '';
+    STEPS.forEach(function(s, idx){
+      html += '<div class="test-step">'
+        + '<div class="ts-num">'+(idx+1)+'</div>'
+        + '<div class="ts-text">'+ToolBox.escHtml(s)+'</div>'
+        + '</div>';
+    });
+    const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('stepList').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('stepList').innerHTML=__h0;
+  }
+
+  window.startTimer = function(){
+    if(timerActive){ return; }
+    timerActive = true;
+    currentTime = TEST_DURATION;
+    var display = document.getElementById('timerDisplay');
+    display.className = 'timer-display testing';
+    document.getElementById('timerStatus').textContent = '正在测试... 请确认报警器持续鸣响';
+    document.getElementById('startTimerBtn').disabled = true;
+
+    timerInterval = setInterval(function(){
+      currentTime--;
+      document.getElementById('timerTime').textContent = currentTime;
+      if(currentTime <= 0){
+        clearInterval(timerInterval);
+        timerInterval = null;
+        timerActive = false;
+        display.className = 'timer-display done';
+        document.getElementById('timerStatus').textContent = '计时完成 ✓ 报警器持续鸣响15秒，测试通过！';
+        document.getElementById('startTimerBtn').disabled = false;
+        ToolBox.showToast(i18nText(), 'success');
+        // 自动记录通过
+        autoRecordPass();
+      }
+    }, 1000);
+  };
+
+  function autoRecordPass(){
+    var location = document.getElementById('alarmLocation').value;
+    var record = {
+      id: Date.now().toString(36),
+      date: new Date().toLocaleString('zh-CN'),
+      location: location,
+      result: 'pass',
+      duration: TEST_DURATION,
+      note: '自动记录：计时完成，报警器正常'
+    };
+    var history = getHistory();
+    history.unshift(record);
+    saveHistory(history);
+    renderHistory();
+  }
+
+  window.recordPass = function(){
+    if(timerActive){
+      clearInterval(timerInterval);
+      timerInterval = null;
+      timerActive = false;
+    }
+    var location = document.getElementById('alarmLocation').value;
+    var elapsed = TEST_DURATION - currentTime;
+    var record = {
+      id: Date.now().toString(36),
+      date: new Date().toLocaleString('zh-CN'),
+      location: location,
+      result: 'pass',
+      duration: elapsed,
+      note: '手动记录：报警器鸣响正常'
+    };
+    var history = getHistory();
+    history.unshift(record);
+    saveHistory(history);
+    renderHistory();
+    resetTimer();
+    ToolBox.showToast(i18nText(), 'success');
+  };
+
+  window.recordFail = function(){
+    if(timerActive){
+      clearInterval(timerInterval);
+      timerInterval = null;
+      timerActive = false;
+    }
+    var location = document.getElementById('alarmLocation').value;
+    var note = prompt('请描述失败原因（如不响、声音小、间歇响等）：', '报警器无响应');
+    if(note === null){ resetTimer(); return; }
+    var record = {
+      id: Date.now().toString(36),
+      date: new Date().toLocaleString('zh-CN'),
+      location: location,
+      result: 'fail',
+      duration: 0,
+      note: note || '未说明'
+    };
+    var history = getHistory();
+    history.unshift(record);
+    saveHistory(history);
+    renderHistory();
+    resetTimer();
+    ToolBox.showToast(i18nText(), 'warning');
+  };
+
+  window.resetTimer = function(){
+    if(timerInterval){ clearInterval(timerInterval); timerInterval = null; }
+    timerActive = false;
+    currentTime = TEST_DURATION;
+    var display = document.getElementById('timerDisplay');
+    display.className = 'timer-display';
+    document.getElementById('timerTime').textContent = TEST_DURATION;
+    document.getElementById('timerStatus').textContent = '准备就绪 — 按下报警器测试按钮后点击"开始计时"';
+    document.getElementById('startTimerBtn').disabled = false;
+  };
+
+  window.clearHistory = function(){
+    if(!confirm('确认清空所有自检记录？')) return;
+    saveHistory([]);
+    renderHistory();
+    ToolBox.showToast(i18nText(), 'info');
+  };
+
+  function getHistory(){
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); }
+    catch(e){ return []; }
+  }
+  function saveHistory(list){
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(list)); }
+    catch(e){}
+  }
+
+  function renderHistory(){
+    var list = getHistory();
+    var container = document.getElementById('historyList');
+    if(list.length === 0){
+      const __h1='<div style="text-align:center;padding:30px 20px;color:var(--text-muted);font-size:14px;">暂无自检记录，完成首次测试后将显示在此</div>';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){container.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}container.innerHTML=__h1;
+      return;
+    }
+    var html = '';
+    list.forEach(function(r){
+      var resultText = r.result === 'pass' ? '通过 ✓' : '失败 ✗';
+      var resultClass = r.result === 'pass' ? 'hr-pass' : 'hr-fail';
+      var durationText = r.result === 'pass' ? '鸣响 ' + r.duration + ' 秒' : '未鸣响';
+      html += '<div class="history-record">'
+        + '<div class="hr-head">'
+        + '<span class="hr-date">📍 ' + ToolBox.escHtml(r.location) + ' · ' + ToolBox.escHtml(r.date) + '</span>'
+        + '<span class="hr-result ' + resultClass + '">' + resultText + '</span>'
+        + '</div>'
+        + '<div class="hr-detail">' + ToolBox.escHtml(durationText) + ' | ' + ToolBox.escHtml(r.note) + '</div>'
+        + '</div>';
+    });
+    const __h2=html;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){container.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}container.innerHTML=__h2;
+  }
+
+  renderSteps();
+  renderHistory();
+})();
+</script><script>
+// tool-intro折叠交互
+document.addEventListener('DOMContentLoaded',function(){
+  var headers=document.querySelectorAll('.tool-intro-header');
+  headers.forEach(function(h){
+    h.addEventListener('click',function(){
+      this.parentElement.classList.toggle('open');
+    });
+  });
+});
+</script>
+<script>
+function applyAlarmPreset(kind){
+  if(!kind) return;
+  var v = kind==='living' ? '客厅' : kind==='kitchen' ? '厨房附近' : kind==='bedroom' ? '卧室' : null;
+  if(!v) return;
+  var el = document.getElementById('alarmLocation');
+  if(!el) return;
+  el.value = v;
+}
+</script>
+<script>
+function __alarmExport(){
+  if(typeof TBKit==='undefined') return;
+  var en=TBKit.util.isEn();
+  var key='toolbox_smoke_alarm_history';
+  var list=[];
+  try{list=JSON.parse(localStorage.getItem(key)||'[]');}catch(e){list=[];}
+  if(!list.length){TBKit.util.toast(en?'No self-check records yet':'暂无自检记录');return;}
+  var html='<table id="alarmHidden" style="display:none"><thead><tr>'
+    +'<th>'+(en?'#':'序号')+'</th>'
+    +'<th>'+(en?'Date':'日期时间')+'</th>'
+    +'<th>'+(en?'Location':'位置')+'</th>'
+    +'<th>'+(en?'Result':'结果')+'</th>'
+    +'<th>'+(en?'Duration(s)':'鸣响秒数')+'</th>'
+    +'<th>'+(en?'Note':'备注')+'</th>'
+    +'</tr></thead><tbody>';
+  list.forEach(function(r,i){
+    html+='<tr><td>'+(i+1)+'</td><td>'+r.date+'</td><td>'+r.location+'</td><td>'+(r.result==='pass'?(en?'Pass':'通过'):(en?'Fail':'失败'))+'</td><td>'+r.duration+'</td><td>'+(r.note||'')+'</td></tr>';
+  });
+  html+='</tbody></table>';
+  var host=document.createElement('div');host.innerHTML=html;document.body.appendChild(host);
+  TBKit.util.exportTable('#alarmHidden','smoke-alarm-history.csv');
+  setTimeout(function(){document.body.removeChild(host);},300);
+}
+</script>
+
+
+</body>
+</html>

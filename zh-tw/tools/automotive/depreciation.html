@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-opencc-locale="zh-tw">
+<head>
+
+<script src="/js/tool-page-runtime.js" defer></script>
+<!-- TOOLBOX-TOOL-RUNTIME -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="toolbox" content="cat=calculator,industry=automotive,icon=📉,bg=#1e40af">
+<meta name="description" content="汽車折舊計算器是一款免費的線上汽車交通工具，汽車折舊計算器，支援直線、雙倍餘額遞減、年限總和與分段四種方法估算殘值與折舊，輔助資產核算。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta name="keywords" content="汽車折舊計算,汽車折舊計算線上,線上汽車折舊計算,數學計算,汽車交通,汽車折舊計算器,線上工具,免費工具,ToolBox">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://tools.dicomp.net/zh-tw/tools/automotive/depreciation.html">
+<meta property="og:title" content="汽車折舊計算器 - 免費線上汽車交通工具">
+<meta property="og:description" content="汽車折舊計算器是一款免費的線上汽車交通工具，汽車折舊計算器，支援直線、雙倍餘額遞減、年限總和與分段四種方法估算殘值與折舊，輔助資產核算。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://tools.dicomp.net/zh-tw/tools/automotive/depreciation.html">
+<meta name="twitter:card" content="summary">
+
+<title>汽車折舊計算器 - 免費線上汽車交通工具</title>
+<meta name="theme-color" content="#FF6B35">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="stylesheet" href="/css/common.css">
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/common.js" defer></script>
+<style>
+.method-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:8px; margin-bottom:16px; }
+.method-btn { padding:10px 4px; background:var(--bg-card); border:1px solid var(--border-color); border-radius:8px; cursor:pointer; text-align:center; font-size:12px; }
+.method-btn.active { background:var(--primary); color:#fff; border-color:var(--primary); }
+.result-block { background:var(--bg-card); padding:12px; border-radius:8px; margin-bottom:8px; }
+.result-label { font-size:11px; color:var(--text-muted); }
+.result-value { font-size:18px; color:var(--primary); font-weight:bold; }
+.chart-box { display:flex; align-items:flex-end; height:80px; gap:4px; padding:8px; background:var(--bg-card); border-radius:6px; margin:8px 0; }
+.bar-col { flex:1; background:var(--primary); border-radius:3px 3px 0 0; position:relative; min-height:4px; }
+.bar-col .lbl { position:absolute; bottom:-16px; left:0; right:0; text-align:center; font-size:8px; color:var(--text-muted); }
+</style>
+
+
+
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"哪種折舊法對車主最直觀？","acceptedAnswer":{"@type":"Answer","text":"直線法每年等額、最易理解，適合個人估殘值；雙倍餘額遞減與年數總和前期折舊快，更貼近新車前幾年貶值猛的現實，企業常用以體現資產消耗。估賣價時多用市場行情對照而非單純折舊公式。"}},{"@type":"Question","name":"為什麼新車第一年貶最多？","acceptedAnswer":{"@type":"Answer","text":"新車落地即轉為二手車，購置稅、保險、牌證等附加成本不計入二手車價，且首任車主溢價消失，故首年折舊常達 15%–25%；之後逐年趨緩。豪華品牌與冷門車首貶更明顯。"}}]}</script>
+<meta name="twitter:title" content="汽車折舊計算器 - 免費線上汽車交通工具">
+<meta name="twitter:description" content="汽車折舊計算器是一款免費的線上汽車交通工具，汽車折舊計算器，支援直線、雙倍餘額遞減、年限總和與分段四種方法估算殘值與折舊，輔助資產核算。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta name="title-en" content="Car Depreciation Calculator">
+<meta name="desc-en" content="Car Depreciation Calculator - online utility on ToolBox.">
+
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首頁","item":"https://tools.dicomp.net/zh-tw/"},{"@type":"ListItem","position":2,"name":"汽車交通","item":"https://tools.dicomp.net/zh-tw/tools/automotive/index.html"},{"@type":"ListItem","position":3,"name":"汽車折舊計算器","item":"https://tools.dicomp.net/zh-tw/tools/automotive/depreciation.html"}]}</script>
+<!-- TOOLBOX-WEBAPP-LD -->
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"汽車折舊計算器","url":"https://tools.dicomp.net/zh-tw/tools/automotive/depreciation.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"汽車折舊計算器是一款免費的線上汽車交通工具，汽車折舊計算器，支援直線、雙倍餘額遞減、年限總和與分段四種方法估算殘值與折舊，輔助資產核算。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<meta property="og:image" content="https://tools.dicomp.net/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免費線上工具">
+<meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免費線上工具">
+
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+<script src="/js/privacy.js" defer></script>
+<!-- TOOLBOX-PRIVACY-SCRIPT -->
+
+<script src="/js/metrics.js" defer></script>
+<!-- TOOLBOX-METRICS-SCRIPT -->
+
+<script src="/js/i18n.js" defer></script>
+<script src="/js/tool-i18n.js" defer></script>
+<!-- TOOLBOX-I18N-SCRIPT -->
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
+
+<script src="/js/tool-ux.js" defer></script>
+<!-- TOOLBOX-TOOL-UX -->
+
+<script src="/js/analytics.js" defer></script>
+<!-- TOOLBOX-CLARITY -->
+<!-- TOOLBOX-TTZZ -->
+<script>
+(function(){try{
+var el = document.createElement("script");
+el.src = "https://lf1-cdn-tos.bytegoofy.com/goofy/ttzz/push.js?85d6452aa9be4d693b16cd48535a8c7ae57542f6788a41682e745be8eb99b35a8a24d2f724c31ebe20c1e4e6fba6d91caf576100b02a2870c72f38fc574066fef065d152c73bf1cbb2ebad3b5b5265d8";
+el.id = "ttzz";
+var s = document.getElementsByTagName("script")[0];
+s.parentNode.insertBefore(el, s);
+}catch(e){}
+})(window);
+</script>
+
+<script src="/js/tool-kit.js" defer></script>
+<!-- TOOLBOX-TOOL-KIT -->
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://tools.dicomp.net/tools/automotive/depreciation.html">
+<link rel="alternate" hreflang="zh-TW" href="https://tools.dicomp.net/zh-tw/tools/automotive/depreciation.html">
+<link rel="alternate" hreflang="en-US" href="https://tools.dicomp.net/tools/automotive/depreciation.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://tools.dicomp.net/tools/automotive/depreciation.html">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+</head>
+<body>
+<h1 class="sr-only">汽車折舊計算器</h1>
+<div class="nav">
+  <a href="/zh-tw/index.html">← ToolBox</a>
+  <span>/ 汽車折舊計算器</span>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+</div>
+<nav class="breadcrumb" aria-label="麵包屑導航" data-breadcrumb="1">
+  <a href="/zh-tw/index.html">首頁</a>
+  <span class="bc-sep">‹</span>
+  <a href="/zh-tw/tools/automotive/index.html">🚗 汽車交通</a>
+  <span class="bc-sep">‹</span>
+  <span class="bc-current">汽車折舊計算器</span>
+</nav>
+<div class="container">
+  <style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#3b82f6)}.tbk-tab.active{background:var(--accent,#3b82f6);color:#fff;border-color:var(--accent,#3b82f6)}.tbk-panel{margin-top:6px}</style>
+<div class="tbk-tabbar" role="tablist">
+  <button type="button" class="tbk-tab" data-pane="res">結果</button>
+  <button type="button" class="tbk-tab" data-pane="tbl">資料表</button>
+  <button type="button" class="tbk-tab" data-pane="his">歷史</button>
+</div>
+<div class="card tool-card-accent" style="--tool-accent:#1e40af;">
+    <h2 data-zh="📉 汽車折舊計算器">Car Depreciation Calculate</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="支援直線、雙倍餘額遞減與年數總和三種方法估算車輛殘值與逐年折舊，輔助賣車定價與資產核算。">Estimate vehicle residual value and annual depreciation using straight-line, double-declining-balance, and sum-of-years-digits methods, helping with resale pricing and asset accounting.</p>
+    <div class="input-row">
+      <div><div data-tb="preset" data-tb-presets='[{"label": "示例数据", "labelEn": "Example", "values": {"price": "20", "res": "5", "years": "5", "used": "3", "kmY": "1.5", "method": "straight"}}]'></div>
+<label>裸車價 (萬元)</label><input type="number" id="price" value="20" oninput="calc()" min="0" step="any"></div>
+      <div><label>預計殘值率 (%)</label><input type="number" id="res" value="5" oninput="calc()" min="0" max="100" step="any"></div>
+    </div>
+    <div class="input-row">
+      <div><label>使用年限 (年)</label><input type="number" id="years" value="5" oninput="calc()" min="1" step="1"></div>
+      <div><label>已使用 (年)</label><input type="number" id="used" value="3" oninput="calc()" min="0" step="1"></div>
+    </div>
+    <div class="input-row">
+      <div><label>折舊方法</label><select id="method" onchange="calc()">
+        <option value="straight" selected>直線法（每年等額）</option>
+        <option value="ddb">雙倍餘額遞減法（前期快）</option>
+        <option value="soy">年數總和法（加速）</option>
+      </select></div>
+      <div><label>每年行駛里程 (萬 km)</label><input type="number" id="kmY" value="1.5" oninput="calc()" min="0" step="any"></div>
+    </div>
+    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__depreciationExport()">匯出明細 CSV</button></div><div class="safe-main" id="result"></div> <div id="depreciationTable"></div> <div id="depreciationDiff"></div> <div id="depreciationChart"></div> <div id="depreciationHist"></div>
+    <div class="dist-grid" id="distGrid"></div>
+    <div class="formula-box" id="formulaBox"></div>
+    <div id="adviceBox"></div>
+  </div>
+  <div class="card">
+    <h3>📖 三種折舊方法對比</h3>
+    <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:12px;">
+      <tr>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border,#e5e7eb);">方法</th>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border,#e5e7eb);">年折舊規律</th>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border,#e5e7eb);">適用</th>
+      </tr>
+      <tr><td style="padding:6px 8px;">直線法</td><td style="padding:6px 8px;">每年等額，最易理解</td><td style="padding:6px 8px;">個人估殘值、簡單核算</td></tr>
+      <tr><td style="padding:6px 8px;">雙倍餘額遞減</td><td style="padding:6px 8px;">按淨值 × (2÷年限)，最後兩年改直線</td><td style="padding:6px 8px;">企業資產、體現早期消耗</td></tr>
+      <tr><td style="padding:6px 8px;">年數總和</td><td style="padding:6px 8px;">按剩餘年數佔比遞減</td><td style="padding:6px 8px;">加速折舊、稅收籌劃</td></tr>
+    </table>
+    <div class="scene-card">
+      <h4>📉 新車第一年跌最多</h4>
+      <p>新車落地即轉二手，購置稅、保險、上牌等附加成本不計入二手車價，首年折舊常達 15%~25%，之後逐年趨緩。</p>
+    </div>
+    <div class="scene-card">
+      <h4>💱 公式法與行情法</h4>
+      <p>公式法反映資產消耗節奏，但真實賣價更受品牌保值率、里程、車況與市場供需影響。定價時結合二手車平臺同年份同款報價。</p>
+    </div>
+    <div class="info-box">💡 賣車估殘值建議用「直線法 + 市場行情」雙對照；企業做賬與稅務處理則須按財務制度選定方法並保持一致。</div>
+  </div>
+<!-- TOOLBOX-DEEP-DIVE -->
+<style>
+.deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
+.deep-dive > .card{margin-bottom:0;}
+@media(max-width:600px){.deep-dive{margin:14px auto 0;}}
+.deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
+.deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
+.deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
+.deep-dive .dd-faq{margin:8px 0 4px;}
+.deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
+.deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
+.deep-dive a.term-link{color:var(--tool-accent,#FF6B35);text-decoration:none;border-bottom:1px dashed currentColor;}
+.deep-dive a.term-link:hover{border-bottom-style:solid;}
+
+</style>
+<section class="deep-dive" data-deep-dive="1">
+<div class="card">
+<h2>📚 深度解析：汽車折舊計算器</h2>
+<h3>💡 常見使用場景</h3>
+<ul class="dd-list">
+<li>賣車前用直線、<a class="term-link" href="/zh-tw/tools/accounting/depreciation-declining.html">雙倍餘額遞減</a>、年數總和、分段等方法估算當前殘值，設定合理掛牌價。</li>
+<li>企業資產核算時，按稅法或財務制度選擇<a class="term-link" href="/zh-tw/guides/depreciation-compare-guide.html">折舊方法</a>，計算各年折舊額與賬面淨值。</li>
+<li>購車決策中，對比不同方法下的前幾年折舊曲線，理解新車落地即大幅貶值的特徵。</li>
+</ul>
+<div class="dd-example"><div class="dd-ex-title">直線法與雙倍餘額遞減對比</div><div class="dd-ex-body">裸車 20 萬元、殘值率 5%（殘值 1 萬）、使用年限 5 年。直線法年折舊=(20−1)/5=3.8 萬，每年相同。雙倍餘額遞減法年率=2/5=40%，第 1 年折舊=20×40%=8 萬、賬面 12 萬；第 2 年=12×40%=4.8 萬；最後兩年將剩餘淨值扣殘值平分，前期折舊遠快於直線法。</div></div>
+<h3>❓ 常見問題（FAQ）</h3>
+<dl class="dd-faq">
+<dt>哪種折舊法對車主最直觀？</dt><dd>直線法每年等額、最易理解，適合個人估殘值；雙倍餘額遞減與年數總和前期折舊快，更貼近新車前幾年貶值猛的現實，企業常用以體現資產消耗。估賣價時多用市場行情對照而非單純折舊公式。</dd>
+<dt>為什麼新車第一年貶最多？</dt><dd>新車落地即轉為二手車，購置稅、保險、牌證等附加成本不計入二手車價，且首任車主溢價消失，故首年折舊常達 15%–25%；之後逐年趨緩。豪華品牌與冷門車首貶更明顯。</dd>
+</dl>
+</div>
+</section>
+<!-- 注意事項區塊 -->
+<div class="tool-notes" style="--tool-accent:#1e40af;">
+  <div class="tool-notes-title">⚠️ 使用說明與注意事項</div>
+  <ul>
+    <li>本工具純前端執行，資料不會上傳到伺服器</li>
+    <li>建議在主流瀏覽器（Chrome/Safari/Firefox/Edge）中使用</li>
+    <li>公式法結果反映資產消耗節奏，真實成交價還須對照二手車市場行情</li>
+  </ul>
+</div>
+</div>
+<!-- 相關工具 -->
+<div class="related-tools" data-related-tools="1">
+  <h3 class="related-tools-title">🔗 相關工具</h3>
+  <div class="related-tools-grid">
+    <a href="/zh-tw/tools/automotive/recommender-6.html" class="related-tool-card">
+      <span class="rt-icon">🚗</span>
+      <span class="rt-info"><span class="rt-name">胎壓（監測/充氣）推薦</span><span class="rt-desc">根據車型、載重與季節推薦前後輪標準胎壓，提示冷胎與熱胎讀數差異及充氣注意事項，幫助延長輪胎壽命並保…</span></span>
+    </a>
+    <a href="/zh-tw/tools/automotive/calc-2.html" class="related-tool-card">
+      <span class="rt-icon">⚡</span>
+      <span class="rt-info"><span class="rt-name">發動機功率/扭矩換算</span><span class="rt-desc">根據功率、扭矩與轉速之間的物理關係進行換算，支援 kW 與 PS（公制馬力）互轉。</span></span>
+    </a>
+    <a href="/zh-tw/tools/automotive/oil-change-countdown.html" class="related-tool-card">
+      <span class="rt-icon">📅</span>
+      <span class="rt-info"><span class="rt-name">機油更換倒計時</span><span class="rt-desc">輸入已行駛里程、機油週期與駕駛習慣係數，估算下次機油更換的剩餘里程或天數，避免過度保養或超期損傷。</span></span>
+    </a>
+    <a href="/zh-tw/tools/automotive/countdown-engine-oil.html" class="related-tool-card">
+      <span class="rt-icon">📅</span>
+      <span class="rt-info"><span class="rt-name">機油更換里程倒計時</span><span class="rt-desc">機油更換里程倒計時，按機油型別與駕駛習慣係數智慧計算建議換油間隔與剩餘里程，支援多車管理、資料本地…</span></span>
+    </a>
+    <a href="/zh-tw/tools/automotive/calc-3.html" class="related-tool-card">
+      <span class="rt-icon">🚗</span>
+      <span class="rt-info"><span class="rt-name">輪胎胎壓換算</span><span class="rt-desc">在 bar、psi、kPa、kg/cm² 之間換算輪胎氣壓，並檢視常用參考值。</span></span>
+    </a>
+    <a href="/zh-tw/tools/automotive/transport-calculator.html" class="related-tool-card">
+      <span class="rt-icon">🚚</span>
+      <span class="rt-info"><span class="rt-name">交通物流計算器</span><span class="rt-desc">涵蓋剎車距離、油耗成本、貨物換算、燃油效率、行駛時間、輪胎尺寸等多種交通物流常用計算</span></span>
+    </a>
+  </div>
+</div>
+<script>
+function fmtNum(n,d){d=d==null?2:d;if(!isFinite(n))return '--';return parseFloat(n.toFixed(d)).toString();}
+function val(id){return parseFloat(document.getElementById(id).value);}
+function str(id){return document.getElementById(id).value;}
+function calc(){
+  var R=document.getElementById('result'),G=document.getElementById('distGrid'),
+      F=document.getElementById('formulaBox'),A=document.getElementById('adviceBox');
+  var price=val('price'),res=val('res'),years=Math.round(val('years')),used=Math.round(val('used'));
+  var method=str('method'),kmY=val('kmY');
+  if(isNaN(price)||isNaN(res)||isNaN(years)||price<=0||years<1||years>1000){
+    R.innerHTML='<div class="safe-val">--</div><div class="safe-sub">请输入有效的车价与年限</div>';
+    G.innerHTML='';F.innerHTML='';A.innerHTML='';return;
+  }
+  if(used<0){ used=0; }
+  var residual=price*res/100;
+  var dep=[],net=[],cur=price,i,d;
+  if(method==='straight'){
+    d=(price-residual)/years;
+    for(i=1;i<=years;i++){ dep.push(d); cur-=d; net.push(cur); }
+  } else if(method==='ddb'){
+    for(i=1;i<=years;i++){
+      if(i>years-2){ d=(cur-residual)/(years-i+1); }
+      else { d=cur*(2/years); }
+      if(cur-d<residual){ d=cur-residual; }
+      if(d<0){ d=0; }
+      dep.push(d); cur-=d; net.push(cur);
+    }
+  } else {
+    var sum=years*(years+1)/2;
+    for(i=1;i<=years;i++){ d=(price-residual)*(years-i+1)/sum; dep.push(d); cur-=d; net.push(cur); }
+  }
+  var acc=0;
+  for(i=0;i<used&&i<years;i++){ acc+=dep[i]; }
+  var book=(used<=0)?price:((used>=years)?residual:net[used-1]);
+  var first=dep[0];
+  var perKm=(kmY>0)?(acc/(used>0?used:1))/(kmY):0;
+  const __g5='<div class="safe-val">当前残值约 '+fmtNum(book,2)+' 万元</div>'+
+    '<div class="safe-sub">第 1 年折旧 '+fmtNum(first,2)+' 万元 · 累计折旧 '+fmtNum(acc,2)+' 万元</div>';R.innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
+  const __g6='<div class="dist-card"><div class="v">'+fmtNum(book,2)+'</div><div class="l">当前账面残值 (万元)</div></div>'+
+    '<div class="dist-card"><div class="v">'+fmtNum(first,2)+'</div><div class="l">第 1 年折旧 (万元)</div></div>'+
+    '<div class="dist-card"><div class="v">'+fmtNum(acc,2)+'</div><div class="l">累计折旧 (万元)</div></div>'+
+    '<div class="dist-card"><div class="v">'+fmtNum(residual,2)+'</div><div class="l">预计残值下限 (万元)</div></div>'+
+    '<div class="dist-card"><div class="v">'+fmtNum(acc/(used>0?used:1),2)+'</div><div class="l">年均折旧 (万元)</div></div>'+
+    '<div class="dist-card"><div class="v">'+fmtNum(perKm,2)+'</div><div class="l">每万 km 折旧 (万元)</div></div>';G.innerHTML=(typeof __g6==='number'?(isFinite(__g6)?__g6:'—'):String(__g6).replace(/Infinity|NaN/g,'—'));
+  const __g7='<div class="fb-title">折旧公式</div>'+
+    '<div class="fb-row">直线法：年折旧 =（车价 − 残值）÷ 使用年限</div>'+
+    '<div class="fb-row">双倍余额递减：年折旧 = 期初净值 ×（2 ÷ 使用年限），最后两年改按剩余净值均摊</div>'+
+    '<div class="fb-row">年数总和：第 k 年折旧 =（车价 − 残值）×（年限 − k + 1）÷ 年限×(年限+1)÷2</div>'+
+    '<div class="fb-row">当前净值 = 车价 − 累计折旧</div>';F.innerHTML=(typeof __g7==='number'?(isFinite(__g7)?__g7:'—'):String(__g7).replace(/Infinity|NaN/g,'—'));
+  var rows='';
+  for(i=0;i<years;i++){
+    rows+='<tr><td style="padding:5px 8px;">第 '+(i+1)+' 年</td>'+
+      '<td style="padding:5px 8px;">'+fmtNum(dep[i],2)+'</td>'+
+      '<td style="padding:5px 8px;">'+fmtNum(net[i],2)+'</td>'+
+      '<td style="padding:5px 8px;">'+(i+1<=used?'已计提':'未计提')+'</td></tr>';
+  }
+  const __g8='<div class="tip-info">ℹ️ 折旧明细（单位：万元）</div>'+
+    '<table style="width:100%;border-collapse:collapse;font-size:13px;margin-top:6px;">'+
+    '<tr><th style="text-align:left;padding:5px 8px;border-bottom:1px solid var(--border,#e5e7eb);">年度</th>'+
+    '<th style="text-align:left;padding:5px 8px;border-bottom:1px solid var(--border,#e5e7eb);">本年折旧</th>'+
+    '<th style="text-align:left;padding:5px 8px;border-bottom:1px solid var(--border,#e5e7eb);">期末净值</th>'+
+    '<th style="text-align:left;padding:5px 8px;border-bottom:1px solid var(--border,#e5e7eb);">状态</th></tr>'+rows+'</table>'+
+    '<div class="tip-info" style="margin-top:8px;">ℹ️ 残值率越低、年限越短，前期折旧越猛。真实卖价还受品牌保值率与车况影响，建议对照二手车行情。</div>';A.innerHTML=(typeof __g8==='number'?(isFinite(__g8)?__g8:'—'):String(__g8).replace(/Infinity|NaN/g,'—'));
+}
+calc();
+
+var __depreciation_last=0,__depreciation_skip=false;
+function __depreciationSnap(){
+    var out={};
+    var els=document.querySelectorAll('input[id],select[id],textarea[id]');
+    for(var i=0;i<els.length;i++){
+        var e=els[i];
+        var t=(e.type||'').toLowerCase();
+        if(t==='button'||t==='submit'||t==='hidden') continue;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        if(v!==''&&v!=null) out[e.id]=v;
+    }
+    return out;
+}
+function __depreciationResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    return t.slice(0,80);
+}
+function __depreciationTime(t){
+    var d=new Date(t);
+    function q(x){return (x<10?'0':'')+x;}
+    return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
+}
+function __depreciationRender(keys,rk,en){
+    try{
+        var arr=TBKit.history.list().slice(0,10);
+        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var rows=arr.map(function(it){
+            var row=[__depreciationTime(it.t)];
+            for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var r=it.d[rk];row.push(r==null?'':r);
+            return row;
+        });
+        TBKit.matrix.table('#depreciationTable',{head:head,rows:rows});
+        TBKit.util.diffBox('#depreciationDiff');
+        TBKit.history.mount('#depreciationHist',function(rec){
+            __depreciation_skip=true;
+            try{
+                for(var k in rec){
+                    if(k===rk) continue;
+                    var e=document.getElementById(k);
+                    if(!e) continue;
+                    var t=(e.type||'').toLowerCase();
+                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+                    else{e.value=rec[k];}
+                }
+                calc();
+            }catch(e2){}
+            __depreciation_skip=false;
+        });
+        var nums=[],labels=[];
+        for(var j=arr.length-1;j>=0;j--){
+            var v=parseFloat(arr[j].d[rk]);
+            if(isFinite(v)){nums.push(v);labels.push(__depreciationTime(arr[j].t));}
+        }
+        if(nums.length>=2){
+            TBKit.chart.line('#depreciationChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+        }
+    }catch(e3){}
+}
+function __depreciationExtras(){
+    if (typeof TBKit === 'undefined') return;
+    if (__depreciation_skip) return;
+    var snap=__depreciationSnap();
+    var keys=Object.keys(snap);
+    if(!keys.length) return;
+    if(keys.length>12) keys=keys.slice(0,12);
+    var res=__depreciationResText();
+    if(!res) return;
+    var en=TBKit.util.isEn();
+    var rk=en?'Result':'结果';
+    var now=Date.now();
+    if(now-__depreciation_last<1000) return;
+    var last=null;
+    try{ last=TBKit.history.last(); }catch(e){}
+    if(last){
+        var same=true;
+        for(var i=0;i<keys.length;i++){
+            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+        }
+        if(same&&String(last[rk])===String(res)) return;
+    }
+    __depreciation_last=now;
+    var rec={};
+    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec[rk]=res;
+    TBKit.history.record(rec);
+    __depreciationRender(keys,rk,en);
+}
+function __depreciationExport(){
+    if (typeof TBKit === 'undefined') return;
+    try { TBKit.util.exportTable('#depreciationTable','depreciation.csv'); } catch(e){}
+}
+function __depreciationPresets(){
+    if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#depreciationPresets',[{label:'默认参数',labelEn:'Default',values:{'price':'20', 'res':'5', 'years':'5', 'used':'3', 'method':'straight', 'kmY':'1.5'}}],function(){ calc(); });
+}
+var __depreciation_f0=(typeof calc==='function')?calc:null;
+if(__depreciation_f0){
+    calc=function(){ var __r=__depreciation_f0.apply(null,arguments); try{ __depreciationExtras(); }catch(e){} return __r; };
+}
+function __depreciationBoot(){ try{ __depreciationPresets(); }catch(e){} }
+if (document.readyState && document.readyState !== 'loading') __depreciationBoot();
+else document.addEventListener('DOMContentLoaded', __depreciationBoot);
+</script>
+
+
+<script>/*TBKIT-INJECT-START*/
+(function(){
+  var P={"res": ["result", "depreciationChart"], "tbl": ["depreciationTable"], "his": ["depreciationHist"]};
+  var L={res:['结果','Result'],chart:['图表','Chart'],tbl:['数据表','Data'],pre:['预设','Presets'],his:['历史','History']};
+  function tabify(){
+    var bar=document.querySelector('.tbk-tabbar');
+    if(!bar||!bar.querySelectorAll) return;
+    var btns=bar.querySelectorAll('.tbk-tab');
+    if(!btns||!btns.length) return;
+    var en=false;
+    try{ if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn) en=TBKit.util.isEn(); }catch(e){}
+    if(!en&&document.documentElement&&(document.documentElement.lang||'').indexOf('en')>=0) en=true;
+    for(var i=0;i<btns.length;i++){var p=btns[i].getAttribute('data-pane');btns[i].textContent=en?L[p][1]:L[p][0];}
+    function show(pane){
+      for(var k in P){var ids=P[k];for(var i=0;i<ids.length;i++){var el=document.getElementById(ids[i]);if(el&&el.style)el.style.display=(k===pane?'':'none');}}
+      for(var j=0;j<btns.length;j++){btns[j].className='tbk-tab'+(btns[j].getAttribute('data-pane')===pane?' active':'');}
+    }
+    for(var i=0;i<btns.length;i++){(function(b){b.addEventListener('click',function(){show(b.getAttribute('data-pane'));});})(btns[i]);}
+    show(btns[0].getAttribute('data-pane'));
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',tabify);else tabify();
+})();
+/*TBKIT-INJECT-END*/</script>
+</body>
+</html>
