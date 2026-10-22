@@ -8,8 +8,8 @@
 import os, re
 from urllib.parse import urlparse, urljoin
 
-ROOT = "/Users/cgw/project/cgw/chenguangwu.github.io"
-SITE_HOST = "chenguangwu.github.io"
+ROOT = "/Users/cgw/project/cgw/tools.dicomp.net"
+SITE_HOST = "tools.dicomp.net"
 MARKER = "TOOLBOX-REDIRECT"
 
 # 1. 收集桩：tools/ 下含 TOOLBOX-REDIRECT 标记的 .html（排除 zh-tw 产物）

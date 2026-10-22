@@ -17,7 +17,7 @@ import os
 import re
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SITE = "https://chenguangwu.github.io"
+SITE = "https://tools.dicomp.net"
 TOOLS_JSON = os.path.join(ROOT, "json", "tools.json")
 OUT_MD = os.path.join(ROOT, "backlink-plan.md")
 OUT_CSV = os.path.join(ROOT, "backlink-targets.csv")

@@ -170,9 +170,9 @@ TPL = """<!DOCTYPE html>
 <meta property="og:description" content="{desc}">
 <meta name="twitter:title" content="{title}">
 <meta name="twitter:description" content="{desc}">
-<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
 <meta name="twitter:image:alt" content="ToolBox - Free Online Tools & Guides">
-<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image" content="https://tools.dicomp.net/og-image.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="ToolBox - Free Online Tools & Guides">
@@ -215,7 +215,7 @@ li{margin:8px 0;}
 <script src="../js/common.js" defer></script>
 </head>
 <body>
-<nav class="breadcrumb"><a href="https://chenguangwu.github.io/">ToolBox</a> / <a href="https://chenguangwu.github.io/guides/index.html">Guides</a> / <span>{title}</span></nav>
+<nav class="breadcrumb"><a href="https://tools.dicomp.net/">ToolBox</a> / <a href="https://tools.dicomp.net/guides/index.html">Guides</a> / <span>{title}</span></nav>
 <main>
 <h1>{title}</h1>
 <p class="lead">{intro}</p>
@@ -230,7 +230,7 @@ li{margin:8px 0;}
 <ul>{tips}</ul>
 <div class="related"><h3>Related Tool</h3>{related_chips}</div>
 <div class="faq"><h2 id="s4">FAQ</h2><dl>{faqs}</dl></div>
-<div class="back"><a href="https://chenguangwu.github.io/guides/index.html">&larr; Back to Guides</a></div>
+<div class="back"><a href="https://tools.dicomp.net/guides/index.html">&larr; Back to Guides</a></div>
 </main>
 </body>
 </html>"""
@@ -285,8 +285,8 @@ def main():
         slug = g['slug']
         tool = g['tool']
         title = g['name']
-        canonical = 'https://chenguangwu.github.io/guides/%s-guide.en.html' % slug
-        zh_url = 'https://chenguangwu.github.io/guides/%s-guide.html' % slug
+        canonical = 'https://tools.dicomp.net/guides/%s-guide.en.html' % slug
+        zh_url = 'https://tools.dicomp.net/guides/%s-guide.html' % slug
         article_json = json.dumps({
             '@context': 'https://schema.org', '@type': 'Article',
             'inLanguage': 'en-US', 'headline': title,
@@ -299,9 +299,9 @@ def main():
             '@context': 'https://schema.org', '@type': 'BreadcrumbList',
             'itemListElement': [
                 {'@type': 'ListItem', 'position': 1, 'name': 'ToolBox',
-                 'item': 'https://chenguangwu.github.io/'},
+                 'item': 'https://tools.dicomp.net/'},
                 {'@type': 'ListItem', 'position': 2, 'name': 'Guides',
-                 'item': 'https://chenguangwu.github.io/guides/index.html'},
+                 'item': 'https://tools.dicomp.net/guides/index.html'},
                 {'@type': 'ListItem', 'position': 3, 'name': title,
                  'item': canonical}]}, ensure_ascii=False)
         faq_json = json.dumps({
@@ -309,7 +309,7 @@ def main():
             'mainEntity': [{'@type': 'Question', 'name': q,
                             'acceptedAnswer': {'@type': 'Answer', 'text': a}}
                            for q, a in g['faqs']]}, ensure_ascii=False)
-        related_chips = ('<a class="tool-chip" href="https://chenguangwu.github.io/%s?lang=en">%s &rarr;</a>'
+        related_chips = ('<a class="tool-chip" href="https://tools.dicomp.net/%s?lang=en">%s &rarr;</a>'
                          '<a class="tool-chip" href="%s">&#127760; &#20013;&#25991;</a>' % (tool, esc(title), zh_url))
         html = (TPL
                 .replace('{title}', esc(title))

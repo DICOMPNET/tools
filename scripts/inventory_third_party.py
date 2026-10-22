@@ -19,7 +19,7 @@ from urllib.parse import urlparse
 from collections import defaultdict
 
 ROOT = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
-SELF_HOSTS = {'chenguangwu.github.io', 'localhost', '127.0.0.1', ''}
+SELF_HOSTS = {'tools.dicomp.net', 'localhost', '127.0.0.1', ''}
 URL_RE = re.compile(r'https?://[a-zA-Z0-9._:-]+(?:/[^\s"\'`,)>\]]*)?')
 
 # Hosts that are identifiers, not network resources

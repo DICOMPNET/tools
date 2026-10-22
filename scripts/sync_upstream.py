@@ -60,10 +60,16 @@ LOCAL_PATCH_FILES = [
     "scripts/gen_guide_pages.py",         # 指南页生成器（og:SITE 域名）
     "scripts/submit_google_indexing_api.py",  # GSC Indexing API 提交 SITE_URL
     "robots.txt",                         # 静态文件，Sitemap 行带站点域名
+    "scripts/check_stub_deadlinks.py",    # 死链自查 SITE_HOST（裸域名常量）
+    "scripts/inventory_third_party.py",   # 第三方外链自查 SELF_HOSTS（裸域名常量）
+    "tools/it/short-link-generator.html", # 工具页示例默认值为站点主页（用户可见）
 ]
 DOMAIN_PATCHES = [                        # (旧串, 新串)，按序应用；MIT 署名文案（i18n.js/disclaimer.html）不在名单内、不受影响
-    ("https://tools.dicomp.net", "https://tools.dicomp.net"),
+    ("https://chenguangwu.github.io", "https://tools.dicomp.net"),
     ("chenguangwu.github.io/tools/cognition/", "tools.dicomp.net/tools/cognition/"),
+    # 裸域名常量（提交脚本 HOST/SITE_HINT、自查脚本 SELF_HOSTS 等，带引号形态防误伤署名文案）
+    ("'chenguangwu.github.io'", "'tools.dicomp.net'"),
+    ("\"chenguangwu.github.io\"", "\"tools.dicomp.net\""),
 ]
 DRY_RUN = "--dry-run" in sys.argv
 
@@ -178,6 +184,7 @@ for p in LOCAL_PATCH_FILES:
         with open(p, "wb") as f:
             f.write(out)
         patched.append(p)
+        git("add", "--", p)   # read-tree 已把索引重置为上游版本，补丁必须同步写入索引才会进 commit
 if patched:
     print("已重打本地补丁: %s" % ", ".join(patched))
 

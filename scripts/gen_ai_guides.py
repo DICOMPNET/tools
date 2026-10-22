@@ -30,7 +30,7 @@ GUIDES_DIR = os.path.join(ROOT, "guides")
 TOOLS_DIR = os.path.join(ROOT, "tools", "ai")
 IND = "ai"
 DATE = "2026-09-13"
-SITE = "https://chenguangwu.github.io"
+SITE = "https://tools.dicomp.net"
 
 from fix_ai_formula_map import MAP as FORMULA_MAP  # noqa: E402
 

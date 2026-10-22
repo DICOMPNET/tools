@@ -15,16 +15,16 @@ HTML_TPL = '''<!DOCTYPE html>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="toolbox" content="cat={cat},industry={industry},icon={icon},bg={bg}">
 <title>{title} - ToolBox</title>
-<link rel="canonical" href="https://chenguangwu.github.io/tools/{industry}/{filename}">
+<link rel="canonical" href="https://tools.dicomp.net/tools/{industry}/{filename}">
 <meta property="og:title" content="{title} - ToolBox">
 <meta property="og:description" content="{desc}">
 <meta property="og:type" content="website">
-<meta property="og:url" content="https://chenguangwu.github.io/tools/{industry}/{filename}">
-<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:url" content="https://tools.dicomp.net/tools/{industry}/{filename}">
+<meta property="og:image" content="https://tools.dicomp.net/og-image.png">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="{title} - ToolBox">
 <meta name="twitter:description" content="{desc}">
-<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
 <link rel="stylesheet" href="../../css/common.css">
 <script src="../../js/common.js"></script>
 </head>
