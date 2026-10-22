@@ -33,6 +33,8 @@ FREEZE_PATHS = [                   # 冻结路径：永远保持本仓库自己�
     "apple-touch-icon.png",
     "logo-192.png",
     "logo-512.png",
+    "logo-128.png",                # SW 预缓存清单引用（页脚/manifest 等场景）
+    "logo-32.png",                 # 页脚品牌区 footer-brand 用图（曾漏冻结被上游旧图覆盖）
     "scripts/run_gates.py",        # Windows 适配：python3 → sys.executable
     "scripts/gen_opencc_locales.mjs",  # ROOT_PAGES 增加 disclaimer.html（zh-tw 生成清单）
     "scripts/check_clarity_refs.py",   # 统计守卫豁免 TOOLBOX-REDIRECT 存根页
