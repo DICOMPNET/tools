@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 
-<script src="../../js/tool-page-runtime.js" defer></script>
+<script src="/js/tool-page-runtime.js" defer></script>
 <!-- TOOLBOX-TOOL-RUNTIME -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -15,7 +15,7 @@
 <meta name="twitter:card" content="summary">
 <meta name="description" content="无障碍卫生间是一款免费的在线无障碍工具工具，无障碍卫生间设施尺寸规范速查工具，提供洗手台、坐便器、回转半径等关键尺寸与平面布局示意，辅助适老化与无障碍设计与工程验收。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
 <link rel="stylesheet" href="../../css/common.css">
-<script src="../../js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
 <style>
   .layout-svg{width:100%;max-width:560px;display:block;margin:8px auto;background:var(--result-bg);border:1px solid var(--border);border-radius:12px;}
@@ -46,10 +46,10 @@
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
 <!-- TOOLBOX-SECURITY -->
 
-<script src="../../js/privacy.js" defer></script>
+<script src="/js/privacy.js" defer></script>
 <!-- TOOLBOX-PRIVACY-SCRIPT -->
 
-<script src="../../js/metrics.js" defer></script>
+<script src="/js/metrics.js" defer></script>
 <!-- TOOLBOX-METRICS-SCRIPT -->
 
 <script type="application/ld+json">
@@ -71,15 +71,15 @@
 <meta property="og:locale" content="zh_CN">
 <meta property="og:locale:alternate" content="zh_TW">
 <meta property="og:locale:alternate" content="en_US">
-<link rel="preload" as="style" href="../../css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link rel="stylesheet" href="../../css/nav-menu.css"></noscript>
-<script src="../../js/industry-info.js" defer></script>
-<script src="../../js/nav-menu.js" defer></script>
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
 
-<script src="../../js/tool-ux.js" defer></script>
+<script src="/js/tool-ux.js" defer></script>
 <!-- TOOLBOX-TOOL-UX -->
 
-<script src="../../js/analytics.js" defer></script>
+<script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 <!-- TOOLBOX-TTZZ -->
 <script>
@@ -93,7 +93,7 @@ s.parentNode.insertBefore(el, s);
 })(window);
 </script>
 
-<script src="../../js/tool-kit.js" defer></script>
+<script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
 </head>
 <body>
@@ -153,6 +153,8 @@ s.parentNode.insertBefore(el, s);
 
     <div id="tab-checklist" class="tab-content">
       <div id="checklistBox"></div>
+<div id="__tbmExtras" style="margin-top:12px"></div>
+
       <div class="toolbar" style="margin-top:12px;">
         <button type="button" class="btn success" onclick="exportChecklist()">导出验收清单</button>
       </div>
@@ -398,5 +400,41 @@ document.addEventListener('DOMContentLoaded',function(){
 
 
 <script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "结果出现波动时该如何处理？", "acceptedAnswer": {"@type": "Answer", "text": "先确认是否为口径变更，再核对输入边界；若确属规则变化，及时同步新假设。"}}, {"@type": "Question", "name": "是否需要额外日志？", "acceptedAnswer": {"@type": "Answer", "text": "建议保留输入快照与关键参数，便于问题可追溯、可复盘。"}}]}</script>
+<script>
+var __tbm=function(){
+  if(typeof TBKit==='undefined')return;
+  var EN=false;try{EN=TBKit.util.isEn();}catch(e){}
+  var T=EN?{hist:'Section Review Log',no:'#',time:'Time',sec:'Section',freq:'Visits',exp:'Export CSV',file:'restroom-review.csv',hint:'Switch between sections to build your review log.'}
+          :{hist:'章节查阅记录',no:'序号',time:'时间',sec:'章节',freq:'查阅次数',exp:'导出 CSV',file:'restroom-review.csv',hint:'切换章节后自动生成查阅记录。'};
+  var KEY='__tbm_tcm_restroom';
+  var hist=[];try{hist=JSON.parse(localStorage.getItem(KEY)||'[]');}catch(e){hist=[];}
+  if(!Array.isArray(hist))hist=[];
+  var host=document.getElementById('__tbmExtras');
+  if(!host)return;
+  if(hist.length<2){host.innerHTML='<p style="color:var(--text-muted);font-size:13px;margin:8px 0">'+T.hint+'</p>';return;}
+  var cnt={};hist.forEach(function(h){cnt[h.l]=(cnt[h.l]||0)+1;});
+  var entries=Object.keys(cnt).map(function(k){return [k,cnt[k]];}).sort(function(a,b){return b[1]-a[1];}).slice(0,8);
+  host.innerHTML='<h3 style="font-size:15px;margin:8px 0">'+T.hist+'</h3><div id="__tbmChart"></div><div id="__tbmTable"></div>';
+  if(TBKit.chart&&TBKit.chart.bar){try{TBKit.chart.bar('#__tbmChart',{labels:entries.map(function(e){return e[0];}),series:[{name:T.freq,data:entries.map(function(e){return e[1];})}]});}catch(e){}}
+  var rows=hist.map(function(h,i){return ['#'+(i+1),new Date(h.t).toLocaleString(),h.l];});
+  if(TBKit.matrix&&TBKit.matrix.table){try{TBKit.matrix.table('#__tbmTable',{head:[T.no,T.time,T.sec],rows:rows,search:false});}catch(e){}}
+  var btn=document.createElement('button');
+  btn.type='button';btn.className='btn';btn.textContent=T.exp;
+  btn.onclick=function(){if(TBKit.util&&TBKit.util.exportTable)TBKit.util.exportTable('#__tbmTable',T.file);};
+  host.appendChild(btn);
+};
+var __tbmRecord=function(name){
+  if(typeof TBKit==='undefined')return;
+  var EN=false;try{EN=TBKit.util.isEn();}catch(e){}
+  var M={layout:['平面布局','Floor Layout'],dims:['设施尺寸','Fixture Dimensions'],checklist:['验收清单','Acceptance Checklist']};
+  var lab=(M[name]||[String(name),String(name)])[EN?1:0];
+  var hist=[];try{hist=JSON.parse(localStorage.getItem('__tbm_tcm_restroom')||'[]');}catch(e){hist=[];}
+  if(!Array.isArray(hist))hist=[];
+  hist.push({t:Date.now(),l:lab});
+  if(hist.length>30)hist=hist.slice(-30);
+  try{localStorage.setItem('__tbm_tcm_restroom',JSON.stringify(hist));}catch(e){}
+};
+var __f0=switchTab;switchTab=function(){var __r=__f0.apply(null,arguments);try{__tbmRecord(arguments[0]);__tbm();}catch(e){}return __r;};
+</script>
 </body>
 </html>

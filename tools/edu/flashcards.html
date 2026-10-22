@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 
-<script src="../../js/tool-page-runtime.js" defer></script>
+<script src="/js/tool-page-runtime.js" defer></script>
 <!-- TOOLBOX-TOOL-RUNTIME -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -18,7 +18,7 @@
 <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
 <link rel="icon" type="image/x-icon" href="../../favicon.ico">
 <link rel="stylesheet" href="../../css/common.css">
-<script src="../../js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
 <script type="application/ld+json">
 {
@@ -421,10 +421,10 @@
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
 <!-- TOOLBOX-SECURITY -->
 
-<script src="../../js/privacy.js" defer></script>
+<script src="/js/privacy.js" defer></script>
 <!-- TOOLBOX-PRIVACY-SCRIPT -->
 
-<script src="../../js/metrics.js" defer></script>
+<script src="/js/metrics.js" defer></script>
 <!-- TOOLBOX-METRICS-SCRIPT -->
 
 <script type="application/ld+json">
@@ -446,15 +446,15 @@
 <meta property="og:locale" content="zh_CN">
 <meta property="og:locale:alternate" content="zh_TW">
 <meta property="og:locale:alternate" content="en_US">
-<link rel="preload" as="style" href="../../css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link rel="stylesheet" href="../../css/nav-menu.css"></noscript>
-<script src="../../js/industry-info.js" defer></script>
-<script src="../../js/nav-menu.js" defer></script>
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
 
-<script src="../../js/tool-ux.js" defer></script>
+<script src="/js/tool-ux.js" defer></script>
 <!-- TOOLBOX-TOOL-UX -->
 
-<script src="../../js/analytics.js" defer></script>
+<script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 <!-- TOOLBOX-TTZZ -->
 <script>
@@ -468,7 +468,7 @@ s.parentNode.insertBefore(el, s);
 })(window);
 </script>
 
-<script src="../../js/tool-kit.js" defer></script>
+<script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
 </head>
 <body>
@@ -533,6 +533,8 @@ s.parentNode.insertBefore(el, s);
         <div class="stats-label">未学</div>
       </div>
     </div>
+<div id="__tbpExtras" style="margin-top:12px"></div>
+
 
     <!-- 卡片区域 -->
     <div style="margin-top:24px;">
@@ -679,7 +681,7 @@ s.parentNode.insertBefore(el, s);
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>数据来源？</dt><dd>内置常用字表与基础词表，本地处理。</dd>
-<dt>适合谁？</dt><dd>儿童识字启蒙与英语<a class="term-link" href="../../tools/edu/word-memory.html">单词记忆</a>。</dd>
+<dt>适合谁？</dt><dd>儿童识字启蒙与英语<a class="term-link" href="/tools/edu/word-memory.html">单词记忆</a>。</dd>
 <dt>顺序？</dt><dd>可打乱卡片顺序防止机械记忆。</dd>
 </dl>
 </div>
@@ -1415,6 +1417,35 @@ document.addEventListener('DOMContentLoaded', function() {
   renderStats();
   renderProgressDots();
 });
+var __tbp=function(){
+  if(typeof TBKit==='undefined')return;
+  var s=(function(){var b=getBaseCards(state.mode),k=0,u=0;for(var i=0;i<b.length;i++){var key=state.mode+'_'+i;if(state.progress[key]==='know')k++;else if(state.progress[key]==='unknown')u++;}return {k:k,l:u,t:b.length};})();
+  if(!s||typeof s.k!=='number'||typeof s.l!=='number')return;
+  var EN=false;try{EN=TBKit.util.isEn();}catch(e){}
+  var LBL=EN?'记忆卡进度':'记忆卡进度';
+  var T=EN?{hist:'Progress History',k:'Mastered',l:'Learning',no:'#',time:'Time',exp:'Export CSV',file:'progress-history.csv'}
+          :{hist:'学习进度历史',k:'已掌握',l:'学习中',no:'序号',time:'时间',exp:'导出 CSV',file:'progress-history.csv'};
+  var KEY='__tbp_flashcards';
+  var hist=[];try{hist=JSON.parse(localStorage.getItem(KEY)||'[]');}catch(e){hist=[];}
+  if(!Array.isArray(hist))hist=[];
+  var last=hist[hist.length-1];
+  if(!last||last.k!==s.k||last.l!==s.l){hist.push({t:Date.now(),k:s.k,l:s.l});}
+  if(hist.length>30)hist=hist.slice(-30);
+  try{localStorage.setItem(KEY,JSON.stringify(hist));}catch(e){}
+  var host=document.getElementById('__tbpExtras');
+  if(!host)return;
+  if(hist.length<2){host.innerHTML='<p style="color:var(--text-muted);font-size:13px;margin:8px 0">'+(EN?'Keep going — the progress trend chart appears after 2+ records.':'继续学习，记录 2 次以上后显示进度趋势图。')+'</p>';return;}
+  host.innerHTML='<h3 style="font-size:15px;margin:8px 0">'+T.hist+'（'+LBL+'）</h3><div id="__tbpChart"></div><div id="__tbpTable"></div>';
+  var labels=hist.map(function(h,i){return '#'+(i+1);});
+  if(TBKit.chart&&TBKit.chart.line){try{TBKit.chart.line('#__tbpChart',{labels:labels,series:[{name:T.k,data:hist.map(function(h){return h.k;})},{name:T.l,data:hist.map(function(h){return h.l;})}]});}catch(e){}}
+  var rows=hist.map(function(h,i){return ['#'+(i+1),new Date(h.t).toLocaleString(),h.k,h.l];});
+  if(TBKit.matrix&&TBKit.matrix.table){try{TBKit.matrix.table('#__tbpTable',{head:[T.no,T.time,T.k,T.l],rows:rows,search:false});}catch(e){}}
+  var btn=document.createElement('button');
+  btn.type='button';btn.className='btn';btn.textContent=T.exp;
+  btn.onclick=function(){if(TBKit.util&&TBKit.util.exportTable)TBKit.util.exportTable('#__tbpTable',T.file);};
+  host.appendChild(btn);
+};
+var __f0=renderStats;renderStats=function(){var __r=__f0.apply(null,arguments);__tbp();return __r;};
 </script><script>
 // tool-intro折叠交互
 document.addEventListener('DOMContentLoaded',function(){

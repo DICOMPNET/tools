@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 
-<script src="../../js/tool-page-runtime.js" defer></script>
+<script src="/js/tool-page-runtime.js" defer></script>
 <!-- TOOLBOX-TOOL-RUNTIME -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -23,7 +23,7 @@
 <link rel="icon" href="../../favicon.ico" sizes="16x16 32x32 48x48">
 <link rel="apple-touch-icon" href="../../apple-touch-icon.png">
 <link rel="stylesheet" href="../../css/common.css">
-<script src="../../js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
 <style>
 .countdown-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:20px 0;}
@@ -86,10 +86,10 @@
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
 <!-- TOOLBOX-SECURITY -->
 
-<script src="../../js/privacy.js" defer></script>
+<script src="/js/privacy.js" defer></script>
 <!-- TOOLBOX-PRIVACY-SCRIPT -->
 
-<script src="../../js/metrics.js" defer></script>
+<script src="/js/metrics.js" defer></script>
 <!-- TOOLBOX-METRICS-SCRIPT -->
 
 <script type="application/ld+json">
@@ -111,15 +111,15 @@
 <meta property="og:locale" content="zh_CN">
 <meta property="og:locale:alternate" content="zh_TW">
 <meta property="og:locale:alternate" content="en_US">
-<link rel="preload" as="style" href="../../css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link rel="stylesheet" href="../../css/nav-menu.css"></noscript>
-<script src="../../js/industry-info.js" defer></script>
-<script src="../../js/nav-menu.js" defer></script>
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
 
-<script src="../../js/tool-ux.js" defer></script>
+<script src="/js/tool-ux.js" defer></script>
 <!-- TOOLBOX-TOOL-UX -->
 
-<script src="../../js/analytics.js" defer></script>
+<script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 <!-- TOOLBOX-TTZZ -->
 <script>
@@ -133,7 +133,7 @@ s.parentNode.insertBefore(el, s);
 })(window);
 </script>
 
-<script src="../../js/tool-kit.js" defer></script>
+<script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
 </head>
 <body>
@@ -252,7 +252,8 @@ s.parentNode.insertBefore(el, s);
       <div id="cdChart" style="margin-top:12px;"></div>
       <div class="card" id="cdTableCard" style="display:none;margin-top:12px;">
         <h3 id="cdTableTitle"></h3>
-        <table><thead><tr><th id="cdTh0"></th><th id="cdTh1"></th><th id="cdTh2"></th></tr></thead><tbody id="cdTbody"></tbody></table>
+        <button type="button" class="tbk-export-btn" data-tgt="">导出 CSV</button>
+<table><thead><tr><th id="cdTh0"></th><th id="cdTh1"></th><th id="cdTh2"></th></tr></thead><tbody id="cdTbody"></tbody></table>
       </div>
     </div>
   </div>
@@ -291,7 +292,7 @@ s.parentNode.insertBefore(el, s);
 <h2>📚 深度解析：多功能倒计时器</h2>
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
-<li>循环/分段<a class="term-link" href="../../guides/countdown-timer-guide.html">倒计时</a>。</li>
+<li>循环/分段<a class="term-link" href="/guides/countdown-timer-guide.html">倒计时</a>。</li>
 <li>HIIT 训练设 40 秒练 / 20 秒休循环，自动切换无需手动掐表。</li>
 </ul>
 <div class="dd-example"><div class="dd-ex-title">使用</div><div class="dd-ex-body">训练 40s 练/20s 休循环，自动切换。</div></div>
@@ -643,5 +644,34 @@ document.addEventListener('DOMContentLoaded',function(){
     </div>
 </div>
 <!-- /SEO 介绍区块 -->
-</body>
+<script>/* tbk_exp_ */
+(function(){try{
+  function tbkExport(btn){
+    var tid=btn.getAttribute('data-tgt');
+    var tbl=tid?document.getElementById(tid):null;
+    if(!tbl){tbl=document.querySelector('table');}
+    if(!tbl)return;
+    var rows=[].slice.call(tbl.querySelectorAll('tr'));
+    var csv=[];
+    rows.forEach(function(tr){
+      var cells=[].slice.call(tr.querySelectorAll('th,td'));
+      var line=cells.map(function(c){
+        var t=(c.textContent||'').replace(/\s+/g,' ').trim();
+        if(/[",\n]/.test(t)) t='"'+t.replace(/"/g,'""')+'"';
+        return t;
+      }).join(',');
+      csv.push(line);
+    });
+    var blob=new Blob([csv.join('\n')],{type:'text/csv;charset=utf-8'});
+    var url=URL.createObjectURL(blob);
+    var a=document.createElement('a');
+    a.href=url; a.download=(tid||'table')+'.csv';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function(){URL.revokeObjectURL(url);},1000);
+  }
+  document.querySelectorAll('.tbk-export-btn').forEach(function(b){
+    b.addEventListener('click',function(){try{tbkExport(b);}catch(e){}});
+  });
+}catch(e){}})();
+</script></body>
 </html>

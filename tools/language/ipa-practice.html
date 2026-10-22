@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 
-<script src="../../js/tool-page-runtime.js" defer></script>
+<script src="/js/tool-page-runtime.js" defer></script>
 <!-- TOOLBOX-TOOL-RUNTIME -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -15,7 +15,7 @@
 <meta name="twitter:card" content="summary">
 <meta name="description" content="国际音标发音练习是一款免费的在线语言翻译工具，点击国际音标(IPA)音素查看发音部位、发音方法与例词，支持语音朗读跟读，帮助英语、语言学学习者掌握标准音标发音。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
 <link rel="stylesheet" href="../../css/common.css">
-<script src="../../js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
 <style>
 .mode-tabs{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap;}
@@ -72,10 +72,10 @@
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
 <!-- TOOLBOX-SECURITY -->
 
-<script src="../../js/privacy.js" defer></script>
+<script src="/js/privacy.js" defer></script>
 <!-- TOOLBOX-PRIVACY-SCRIPT -->
 
-<script src="../../js/metrics.js" defer></script>
+<script src="/js/metrics.js" defer></script>
 <!-- TOOLBOX-METRICS-SCRIPT -->
 
 <script type="application/ld+json">
@@ -97,15 +97,15 @@
 <meta property="og:locale" content="zh_CN">
 <meta property="og:locale:alternate" content="zh_TW">
 <meta property="og:locale:alternate" content="en_US">
-<link rel="preload" as="style" href="../../css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link rel="stylesheet" href="../../css/nav-menu.css"></noscript>
-<script src="../../js/industry-info.js" defer></script>
-<script src="../../js/nav-menu.js" defer></script>
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
 
-<script src="../../js/tool-ux.js" defer></script>
+<script src="/js/tool-ux.js" defer></script>
 <!-- TOOLBOX-TOOL-UX -->
 
-<script src="../../js/analytics.js" defer></script>
+<script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 <!-- TOOLBOX-TTZZ -->
 <script>
@@ -119,7 +119,7 @@ s.parentNode.insertBefore(el, s);
 })(window);
 </script>
 
-<script src="../../js/tool-kit.js" defer></script>
+<script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
 </head>
 <body>
@@ -150,6 +150,8 @@ s.parentNode.insertBefore(el, s);
       <button class="mode-tab active" onclick="switchMode('browse')">浏览学习</button>
       <button class="mode-tab" onclick="switchMode('quiz')">练习测验</button>
     </div>
+<div id="__tbnExtras" style="margin-top:12px"></div>
+
 
     <div id="browseMode">
       <div id="ipaDetail">
@@ -468,6 +470,37 @@ function resetQuizScore() {
 }
 
 buildGrids();
+var __tbn=function(){
+  if(typeof TBKit==='undefined')return;
+  var acc=quizScore.correct;
+  if(typeof acc!=='number'||!isFinite(acc)||acc<0)return;
+  var EN=false;try{EN=TBKit.util.isEn();}catch(e){}
+  var LBL=EN?'答对题数':'答对题数';
+  var T=EN?{hist:'Practice History',sc:'Score',no:'#',time:'Time',exp:'Export CSV',file:'practice-history.csv'}
+          :{hist:'练习成绩历史',sc:'成绩值',no:'序号',time:'时间',exp:'导出 CSV',file:'practice-history.csv'};
+  var KEY='__tbn_ipa_quiz';
+  var hist=[];try{hist=JSON.parse(localStorage.getItem(KEY)||'[]');}catch(e){hist=[];}
+  if(!Array.isArray(hist))hist=[];
+  var last=hist[hist.length-1];
+  if(!last||last.v!==acc){hist.push({t:Date.now(),v:acc});}
+  if(hist.length>30)hist=hist.slice(-30);
+  try{localStorage.setItem(KEY,JSON.stringify(hist));}catch(e){}
+  var __rec={};__rec[LBL]=acc;if(TBKit.history&&TBKit.history.record)TBKit.history.record(__rec);
+  var host=document.getElementById('__tbnExtras');
+  if(!host)return;
+  if(hist.length<2){host.innerHTML='<p style="color:var(--text-muted);font-size:13px;margin:8px 0">'+(EN?'Records appear after 2+ sessions.':'练习 2 次以上后显示成绩趋势图。')+'</p>';return;}
+  host.innerHTML='<h3 style="font-size:15px;margin:8px 0">'+T.hist+'（'+LBL+'）</h3><div id="__tbnChart"></div><div id="__tbnTable"></div><div id="__tbnDiff"></div>';
+  var labels=hist.map(function(h,i){return '#'+(i+1);});
+  if(TBKit.chart&&TBKit.chart.line){try{TBKit.chart.line('#__tbnChart',{labels:labels,series:[{name:LBL,data:hist.map(function(h){return h.v;})}]});}catch(e){}}
+  var rows=hist.map(function(h,i){return ['#'+(i+1),new Date(h.t).toLocaleString(),h.v];});
+  if(TBKit.matrix&&TBKit.matrix.table){try{TBKit.matrix.table('#__tbnTable',{head:[T.no,T.time,T.sc],rows:rows,search:false});}catch(e){}}
+  if(TBKit.util&&TBKit.util.diffBox)TBKit.util.diffBox('#__tbnDiff',[LBL]);
+  var btn=document.createElement('button');
+  btn.type='button';btn.className='btn';btn.textContent=T.exp;
+  btn.onclick=function(){if(TBKit.export&&TBKit.export.csv)TBKit.export.csv(T.file,rows);};
+  host.appendChild(btn);
+};
+var __f0=updateQuizScore;updateQuizScore=function(){var __r=__f0.apply(null,arguments);__tbn();return __r;};
 </script>
 
 <!-- SEO 介绍区块 -->

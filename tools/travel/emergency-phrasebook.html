@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 
-<script src="../../js/tool-page-runtime.js" defer></script>
+<script src="/js/tool-page-runtime.js" defer></script>
 <!-- TOOLBOX-TOOL-RUNTIME -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -23,7 +23,7 @@
 <link rel="icon" href="../../favicon.ico" sizes="16x16 32x32 48x48">
 <link rel="apple-touch-icon" href="../../apple-touch-icon.png">
 <link rel="stylesheet" href="../../css/common.css">
-<script src="../../js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
 <style>
 .phrase-item{padding:12px;border-bottom:1px solid var(--border);}
@@ -75,10 +75,10 @@
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
 <!-- TOOLBOX-SECURITY -->
 
-<script src="../../js/privacy.js" defer></script>
+<script src="/js/privacy.js" defer></script>
 <!-- TOOLBOX-PRIVACY-SCRIPT -->
 
-<script src="../../js/metrics.js" defer></script>
+<script src="/js/metrics.js" defer></script>
 <!-- TOOLBOX-METRICS-SCRIPT -->
 
 <script type="application/ld+json">
@@ -99,15 +99,15 @@
 <meta property="og:locale" content="zh_CN">
 <meta property="og:locale:alternate" content="zh_TW">
 <meta property="og:locale:alternate" content="en_US">
-<link rel="preload" as="style" href="../../css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link rel="stylesheet" href="../../css/nav-menu.css"></noscript>
-<script src="../../js/industry-info.js" defer></script>
-<script src="../../js/nav-menu.js" defer></script>
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
 
-<script src="../../js/tool-ux.js" defer></script>
+<script src="/js/tool-ux.js" defer></script>
 <!-- TOOLBOX-TOOL-UX -->
 
-<script src="../../js/analytics.js" defer></script>
+<script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 <!-- TOOLBOX-TTZZ -->
 <script>
@@ -121,7 +121,7 @@ s.parentNode.insertBefore(el, s);
 })(window);
 </script>
 
-<script src="../../js/tool-kit.js" defer></script>
+<script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
 </head>
 <body>
@@ -155,6 +155,8 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn" onclick="window.__epExport()">⬇️ 导出全部短语 CSV</button>
     </div>
     <div id="phrases"></div>
+<div id="__tbmExtras" style="margin-top:12px"></div>
+
     <table id="epHidden" style="display:none"><thead><tr><th>Language</th><th>Chinese</th><th>Phrase</th><th>Pronunciation</th></tr></thead><tbody></tbody></table>
   </div>
 
@@ -188,7 +190,7 @@ s.parentNode.insertBefore(el, s);
 <div class="dd-example"><div class="dd-ex-title">多语种覆盖</div><div class="dd-ex-body">内置 en/ja/ko/th/fr/es 六语，切换标签即换词表；如泰国「ช่วยด้วย」（救我）、法语「Appelez la police」（叫警察）。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>支持离线朗读吗？</dt><dd>依赖浏览器<a class="term-link" href="../../tools/accessibility/voice-synthesis.html">语音合成</a>，多数环境无需联网；部分移动端首次需联网加载语音包。</dd>
+<dt>支持离线朗读吗？</dt><dd>依赖浏览器<a class="term-link" href="/tools/accessibility/voice-synthesis.html">语音合成</a>，多数环境无需联网；部分移动端首次需联网加载语音包。</dd>
 <dt>能加本地语言吗？</dt><dd>词表为内置固定集合，新语种需改源码扩充，不在运行时录入。</dd>
 </dl>
 </div>
@@ -403,5 +405,37 @@ document.addEventListener('DOMContentLoaded',function(){
     </div>
 </div>
 <!-- /SEO 介绍区块 -->
+<script>
+var __tbm=function(){
+  if(typeof TBKit==='undefined')return;
+  var lab='';
+  try{var r=document.getElementById('phrases');if(r){lab=(r.textContent||'').replace(/\s+/g,' ').trim().slice(0,40);}}catch(e){}
+  if(!lab)return;
+  var EN=false;try{EN=TBKit.util.isEn();}catch(e){}
+  var T=EN?{hist:'Diagnosis Records',no:'#',time:'Time',item:'Item',freq:'Frequency',exp:'Export CSV',file:'tcm-history.csv',hint:'Browse 2+ items to see the frequency chart.'}
+          :{hist:'辨证记录历史',no:'序号',time:'时间',item:'条目',freq:'查看次数',exp:'导出 CSV',file:'tcm-history.csv',hint:'查看 2 个以上条目后显示条目频次图。'};
+  var KEY='__tbm_tcm_phrase';
+  var hist=[];try{hist=JSON.parse(localStorage.getItem(KEY)||'[]');}catch(e){hist=[];}
+  if(!Array.isArray(hist))hist=[];
+  var last=hist[hist.length-1];
+  if(!last||last.l!==lab){hist.push({t:Date.now(),l:lab});}
+  if(hist.length>30)hist=hist.slice(-30);
+  try{localStorage.setItem(KEY,JSON.stringify(hist));}catch(e){}
+  var host=document.getElementById('__tbmExtras');
+  if(!host)return;
+  if(hist.length<2){host.innerHTML='<p style="color:var(--text-muted);font-size:13px;margin:8px 0">'+T.hint+'</p>';return;}
+  var cnt={};hist.forEach(function(h){cnt[h.l]=(cnt[h.l]||0)+1;});
+  var entries=Object.keys(cnt).map(function(k){return [k,cnt[k]];}).sort(function(a,b){return b[1]-a[1];}).slice(0,8);
+  host.innerHTML='<h3 style="font-size:15px;margin:8px 0">'+T.hist+'</h3><div id="__tbmChart"></div><div id="__tbmTable"></div>';
+  if(TBKit.chart&&TBKit.chart.bar){try{TBKit.chart.bar('#__tbmChart',{labels:entries.map(function(e){return e[0];}),series:[{name:T.freq,data:entries.map(function(e){return e[1];})}]});}catch(e){}}
+  var rows=hist.map(function(h,i){return ['#'+(i+1),new Date(h.t).toLocaleString(),h.l];});
+  if(TBKit.matrix&&TBKit.matrix.table){try{TBKit.matrix.table('#__tbmTable',{head:[T.no,T.time,T.item],rows:rows,search:false});}catch(e){}}
+  var btn=document.createElement('button');
+  btn.type='button';btn.className='btn';btn.textContent=T.exp;
+  btn.onclick=function(){if(TBKit.util&&TBKit.util.exportTable)TBKit.util.exportTable('#__tbmTable',T.file);};
+  host.appendChild(btn);
+};
+var __f0=renderPhrases;renderPhrases=function(){var __r=__f0.apply(null,arguments);__tbm();return __r;};
+</script>
 </body>
 </html>
