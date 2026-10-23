@@ -17,7 +17,7 @@ import os, html as H
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TOOLS_DIR = os.path.join(ROOT, "tools")
 IT_ZH = "IT 开发"
-BASE = "https://chenguangwu.github.io"
+BASE = "https://tools.dicomp.net"
 
 TEMPLATE = """<!DOCTYPE html>
 <html lang="zh-CN">

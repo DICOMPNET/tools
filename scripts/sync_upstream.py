@@ -65,10 +65,10 @@ LOCAL_PATCH_FILES = [
     "tools/it/short-link-generator.html", # 工具页示例默认值为站点主页（用户可见）
 ]
 DOMAIN_PATCHES = [                        # (旧串, 新串)，按序应用；MIT 署名文案（i18n.js/disclaimer.html）不在名单内、不受影响
-    ("https://chenguangwu.github.io", "https://tools.dicomp.net"),
-    ("chenguangwu.github.io/tools/cognition/", "tools.dicomp.net/tools/cognition/"),
+    ("https://tools.dicomp.net", "https://tools.dicomp.net"),
+    ("tools.dicomp.net/tools/cognition/", "tools.dicomp.net/tools/cognition/"),
     # 裸域名常量（提交脚本 HOST/SITE_HINT、自查脚本 SELF_HOSTS 等，带引号形态防误伤署名文案）
-    ("'chenguangwu.github.io'", "'tools.dicomp.net'"),
+    ("'tools.dicomp.net'", "'tools.dicomp.net'"),
     ("\"chenguangwu.github.io\"", "\"tools.dicomp.net\""),
 ]
 DRY_RUN = "--dry-run" in sys.argv
@@ -194,6 +194,31 @@ if head_only:
         git("checkout", "HEAD", "--", *head_only[i:i + 50])
     print("已恢复本地独有文件: %d 个" % len(head_only))
 
-# 7. 提交
+# 7. 全局域名补丁：read-tree 带回的全部内容页（8000+）也需替换域名，
+#    仅靠 LOCAL_PATCH_FILES 名单覆盖不到。DOMAIN_PATCHES 各对均不含
+#    "github.com/" 前缀与引号边界，MIT 署名（i18n.js/disclaimer.html 的
+#    chenguangwu/chenguangwu.github.io 仓库名与 github 链接）不受影响。
+#    四类形态均安全：https://tools.dicomp.net、cognition 特例、
+#    带引号裸域名（仓库署名串前有 / 无引号，不匹配）。
+dom_changed = 0
+tracked = [f for f in git("ls-files").splitlines() if f]
+for p in tracked:
+    try:
+        with open(p, "rb") as f:
+            src = f.read()
+    except OSError:
+        continue
+    out = src
+    for old, new in DOMAIN_PATCHES:
+        out = out.replace(old.encode("utf-8"), new.encode("utf-8"))
+    if out != src:
+        with open(p, "wb") as f:
+            f.write(out)
+        git("add", "--", p)
+        dom_changed += 1
+if dom_changed:
+    print("已全局重打域名补丁: %d 个文件" % dom_changed)
+
+# 8. 提交
 git("commit", "-m", "同步上游内容（css 样式保持本地版本）")
 print("\n完成。确认无误后: git push origin main")

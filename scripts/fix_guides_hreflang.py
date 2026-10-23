@@ -44,7 +44,7 @@ import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 GUIDES = os.path.join(ROOT, 'guides')
-BASE = 'https://chenguangwu.github.io/guides/'
+BASE = 'https://tools.dicomp.net/guides/'
 
 LINK_RE = re.compile(
     r'[ \t]*<link[^>]*?hreflang="([^"]+)"[^>]*?href="([^"]+)"[^>]*>\s*\n?'
