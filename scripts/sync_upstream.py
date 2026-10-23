@@ -73,6 +73,13 @@ DOMAIN_PATCHES = [                        # (旧串, 新串)，按序应用；MI
 ]
 # 本脚本自身不得被全局域名补丁改写：上面「旧串」就是匹配源，改了即变恒等替换（已踩坑两次）
 SELF_PATH = os.path.abspath(__file__)
+# 单文件定向替换：某些页面需替换「上游 GitHub 仓库地址」这类非站点域名形态，
+# 但不能加进 DOMAIN_PATCHES 全局规则（会误伤 disclaimer.html / i18n.js 的 MIT 署名链接）
+FILE_PATCHES = {
+    "tools/it/short-link-generator.html": [
+        ("https://github.com/chenguangwu/chenguangwu.github.io", "https://tools.dicomp.net/"),
+    ],
+}
 DRY_RUN = "--dry-run" in sys.argv
 
 
@@ -189,6 +196,21 @@ for p in LOCAL_PATCH_FILES:
         git("add", "--", p)   # read-tree 已把索引重置为上游版本，补丁必须同步写入索引才会进 commit
 if patched:
     print("已重打本地补丁: %s" % ", ".join(patched))
+
+# 5.7 单文件定向替换
+for fp, pairs in FILE_PATCHES.items():
+    if not os.path.isfile(fp):
+        continue
+    with open(fp, "rb") as f:
+        src = f.read()
+    out = src
+    for old, new in pairs:
+        out = out.replace(old.encode("utf-8"), new.encode("utf-8"))
+    if out != src:
+        with open(fp, "wb") as f:
+            f.write(out)
+        git("add", "--", fp)
+        print("已定向替换: %s" % fp)
 
 # 6. 恢复本地独有文件（分批防命令行超长）
 if head_only:
