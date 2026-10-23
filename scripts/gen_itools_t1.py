@@ -17,16 +17,16 @@ TPL = '''<!DOCTYPE html>
 <meta name="toolbox" content="cat=dev,industry=it,icon=__ICON__,bg=__BG__">
 <title>__TITLE__ - ToolBox</title>
 <meta name="description" content="__DESC__">
-<link rel="canonical" href="https://chenguangwu.github.io/tools/it/__FN__">
+<link rel="canonical" href="https://tools.dicomp.net/tools/it/__FN__">
 <meta property="og:title" content="__TITLE__">
 <meta property="og:description" content="__DESC__">
 <meta property="og:type" content="website">
-<meta property="og:url" content="https://chenguangwu.github.io/tools/it/__FN__">
-<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:url" content="https://tools.dicomp.net/tools/it/__FN__">
+<meta property="og:image" content="https://tools.dicomp.net/og-image.png">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="__TITLE__">
 <meta name="twitter:description" content="__DESC__">
-<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
 <link rel="stylesheet" href="../../css/common.css">
 <script>window.__tbq=window.__tbq||[];window.ToolBox=window.ToolBox||{};['initToolTheme','addToolStyles','showToast','toast','copyText','copyToClipboard','copyFromElement','downloadText','injectPrivacyBadge','toggleFavTool','addToRecentTool','toggleToolTheme','applyTheme'].forEach(function(k){if(typeof window.ToolBox[k]!=='function')window.ToolBox[k]=function(){window.__tbq.push([k,[].slice.call(arguments)]);};});</script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>

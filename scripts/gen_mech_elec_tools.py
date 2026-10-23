@@ -445,10 +445,10 @@ TEMPLATE = """<!DOCTYPE html>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="toolbox" content="cat=__CAT__,industry=__INDUSTRY__,icon=__ICON__,bg=__BG__">
 <title>__TITLE__ - ToolBox</title>
-<link rel="canonical" href="https://chenguangwu.github.io/tools/__INDUSTRY__/__SLUG__.html">
+<link rel="canonical" href="https://tools.dicomp.net/tools/__INDUSTRY__/__SLUG__.html">
 <meta property="og:title" content="__TITLE__">
 <meta property="og:description" content="__DESC__">
-<meta property="og:url" content="https://chenguangwu.github.io/tools/__INDUSTRY__/__SLUG__.html">
+<meta property="og:url" content="https://tools.dicomp.net/tools/__INDUSTRY__/__SLUG__.html">
 <meta name="twitter:card" content="summary">
 <meta name="description" content="__DESC__">
 <link rel="stylesheet" href="../../css/common.css">
@@ -456,21 +456,21 @@ TEMPLATE = """<!DOCTYPE html>
 <script src="../../js/common.js" defer></script>
 
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://chenguangwu.github.io/"},{"@type":"ListItem","position":2,"name":"__CATZH__","item":"https://chenguangwu.github.io/tools/__INDUSTRY__/index.html"},{"@type":"ListItem","position":3,"name":"__TITLE__","item":"https://chenguangwu.github.io/tools/__INDUSTRY__/__SLUG__.html"}]}
+{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://tools.dicomp.net/"},{"@type":"ListItem","position":2,"name":"__CATZH__","item":"https://tools.dicomp.net/tools/__INDUSTRY__/index.html"},{"@type":"ListItem","position":3,"name":"__TITLE__","item":"https://tools.dicomp.net/tools/__INDUSTRY__/__SLUG__.html"}]}
 </script>
 
-<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image" content="https://tools.dicomp.net/og-image.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="ToolBox - 5000+免费在线工具">
-<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
 <meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
     <meta property="og:type" content="website">
     <meta name="twitter:title" content="__TITLE__">
     <meta name="twitter:description" content="__DESC__">
 
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebApplication","name":"__TITLE__","url":"https://chenguangwu.github.io/tools/__INDUSTRY__/__SLUG__.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","description":"__TITLE__","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+{"@context":"https://schema.org","@type":"WebApplication","name":"__TITLE__","url":"https://tools.dicomp.net/tools/__INDUSTRY__/__SLUG__.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","description":"__TITLE__","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
 </script>
 
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">

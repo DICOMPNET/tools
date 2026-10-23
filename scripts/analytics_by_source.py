@@ -116,7 +116,7 @@ def main():
     gap.sort(reverse=True)
     print('\n两源展示量差异最大的页面（口径不同，切勿相加）：')
     for _, p, b, c in gap[:10]:
-        print('  bing=%-6d clarity=%-6d  %s' % (b, c, p.replace('https://chenguangwu.github.io/', '') or '/'))
+        print('  bing=%-6d clarity=%-6d  %s' % (b, c, p.replace('https://tools.dicomp.net/', '') or '/'))
 
     # 分来源的高曝光低点击候选（只基于 Bing 的搜索展示，口径纯净）
     print('\n仅基于 Bing 搜索展示的高曝光低点击页面（imp>10, ctr<3%%, 位置 3~15）：')
@@ -128,7 +128,7 @@ def main():
     for r in cand[:20]:
         print('  %5d imp | %2d clk | pos %s | %s'
               % (r['impressions'], r['clicks'], r['position'],
-                 r['page'].replace('https://chenguangwu.github.io/', '') or '/'))
+                 r['page'].replace('https://tools.dicomp.net/', '') or '/'))
     if not cand:
         print('  （无）')
     return 0

@@ -62,7 +62,7 @@ import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
 
 # ==================== 配置区 ====================
-SITE_URL = 'https://chenguangwu.github.io/'
+SITE_URL = 'https://tools.dicomp.net/'
 SITEMAP_FILE = 'sitemap.xml'
 API_BASE = 'https://ssl.bing.com/webmaster/api.svc/json'
 NS = '{http://www.sitemaps.org/schemas/sitemap/0.9}'

@@ -858,7 +858,7 @@ def localized_i18n_url(abs_url, locale):
     if locale == 'en-US':
         return abs_url + ('&' if '?' in abs_url else '?') + 'lang=en-US'
     prefix = I18N_STATIC_DIRS[locale]
-    base = 'https://chenguangwu.github.io'
+    base = 'https://tools.dicomp.net'
     suffix = abs_url[len(base):] if abs_url.startswith(base) else abs_url
     if suffix in ('', '/'):
         return base + '/' + prefix + '/'
@@ -909,7 +909,7 @@ def _xhtml_alternates(abs_url):
     会忽略或当作中文处理，无害。
     """
     base = re.sub(r'^https://chenguangwu\.github\.io/zh-(?:tw|hk)(?=/|$)',
-                  'https://chenguangwu.github.io', abs_url)
+                  'https://tools.dicomp.net', abs_url)
     return '\n'.join(
         '    <xhtml:link rel="alternate" hreflang="%s" href="%s"/>'
         % (loc, localized_i18n_url(base, loc))
@@ -2370,7 +2370,7 @@ def _canon_sitemap_url(url):
     映射表键域只有 zh-CN 形式，故查表前先剥掉 /zh-tw 前缀。
     """
     return re.sub(r'^https://chenguangwu\.github\.io/zh-tw(?=/|$)',
-                  'https://chenguangwu.github.io', url)
+                  'https://tools.dicomp.net', url)
 
 
 def _local_file_for(url):
@@ -2442,13 +2442,13 @@ def generate_sitemap(tools, category_inds=None):
     today = datetime.now().strftime('%Y-%m-%d')
     lines = ['<?xml version="1.0" encoding="UTF-8"?>']
     lines.append('<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">')
-    lines.extend(_localized_url_blocks('https://chenguangwu.github.io/', today, 'daily', '1.0'))
-    lines.extend(_localized_url_blocks('https://chenguangwu.github.io/sitemap.html', today, 'weekly', '0.9'))
-    lines.extend(_localized_url_blocks('https://chenguangwu.github.io/search.html', today, 'weekly', '0.9'))
+    lines.extend(_localized_url_blocks('https://tools.dicomp.net/', today, 'daily', '1.0'))
+    lines.extend(_localized_url_blocks('https://tools.dicomp.net/sitemap.html', today, 'weekly', '0.9'))
+    lines.extend(_localized_url_blocks('https://tools.dicomp.net/search.html', today, 'weekly', '0.9'))
     # Category index pages
     if category_inds:
         for ind in sorted(category_inds):
-            lines.extend(_localized_url_blocks('https://chenguangwu.github.io/tools/%s/index.html' % ind, today, 'weekly', '0.9'))
+            lines.extend(_localized_url_blocks('https://tools.dicomp.net/tools/%s/index.html' % ind, today, 'weekly', '0.9'))
     # guides/ 指南页（自动扫描，避免重跑构建后丢失）
     # 若某指南存在同名 .en.html 英文版，则声明双向 hreflang（zh 文件 <-> en 文件）；
     # 否则沿用既有 ?lang=en 约定（与工具页一致），保持旧行为、最小 diff。
@@ -2458,16 +2458,16 @@ def generate_sitemap(tools, category_inds=None):
             if fn.endswith('.en.html'):
                 continue  # 孤儿化：英文副本 .en.html 不进 sitemap（2026-09-21 老板指令，保留文件一个月后删）
             if fn.endswith('.html') and fn != 'index.html':
-                abs_url = 'https://chenguangwu.github.io/guides/%s' % fn
+                abs_url = 'https://tools.dicomp.net/guides/%s' % fn
                 lines.extend(_localized_url_blocks(abs_url, today, 'monthly', '0.8'))
     # chains.html 工具链页（B3-05）
     if os.path.isfile(os.path.join(ROOT, 'chains.html')):
-        lines.extend(_localized_url_blocks('https://chenguangwu.github.io/chains.html', today, 'weekly', '0.8'))
+        lines.extend(_localized_url_blocks('https://tools.dicomp.net/chains.html', today, 'weekly', '0.8'))
     # about.html 关于我们
     if os.path.isfile(os.path.join(ROOT, 'about.html')):
-        lines.extend(_localized_url_blocks('https://chenguangwu.github.io/about.html', today, 'monthly', '0.7'))
+        lines.extend(_localized_url_blocks('https://tools.dicomp.net/about.html', today, 'monthly', '0.7'))
     for t in tools:
-        url = 'https://chenguangwu.github.io/' + t['url']
+        url = 'https://tools.dicomp.net/' + t['url']
         lines.extend(_localized_url_blocks(url, today, 'monthly', '0.8'))
     lines.append('</urlset>')
     return '\n'.join(lines) + '\n'
@@ -2523,11 +2523,11 @@ def generate_core_sitemap(today):
     lines = ['<?xml version="1.0" encoding="UTF-8"?>',
              '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" '
              'xmlns:xhtml="http://www.w3.org/1999/xhtml">']
-    lines.extend(_localized_url_blocks('https://chenguangwu.github.io/', today, 'daily', '1.0'))
-    lines.extend(_localized_url_blocks('https://chenguangwu.github.io/sitemap.html', today, 'weekly', '0.9'))
-    lines.extend(_localized_url_blocks('https://chenguangwu.github.io/search.html', today, 'weekly', '0.9'))
+    lines.extend(_localized_url_blocks('https://tools.dicomp.net/', today, 'daily', '1.0'))
+    lines.extend(_localized_url_blocks('https://tools.dicomp.net/sitemap.html', today, 'weekly', '0.9'))
+    lines.extend(_localized_url_blocks('https://tools.dicomp.net/search.html', today, 'weekly', '0.9'))
     if os.path.isfile(os.path.join(ROOT, 'about.html')):
-        lines.extend(_localized_url_blocks('https://chenguangwu.github.io/about.html', today, 'monthly', '0.7'))
+        lines.extend(_localized_url_blocks('https://tools.dicomp.net/about.html', today, 'monthly', '0.7'))
     # guides/ 目录下的指南页（自动扫描，避免重跑构建后丢失）
     guides_dir = os.path.join(ROOT, 'guides')
     if os.path.isdir(guides_dir):
@@ -2535,7 +2535,7 @@ def generate_core_sitemap(today):
             if fn.endswith('.en.html'):
                 continue  # 孤儿化：英文副本 .en.html 不进 sitemap（2026-09-21 老板指令，保留文件一个月后删）
             if fn.endswith('.html') and fn != 'index.html':
-                lines.extend(_localized_url_blocks('https://chenguangwu.github.io/guides/%s' % fn,
+                lines.extend(_localized_url_blocks('https://tools.dicomp.net/guides/%s' % fn,
                                                    today, 'monthly', '0.8'))
     lines.append('</urlset>')
     return '\n'.join(lines) + '\n'
@@ -2546,9 +2546,9 @@ def generate_industry_sitemap(ind, ind_tools, today):
     lines = ['<?xml version="1.0" encoding="UTF-8"?>',
              '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" '
              'xmlns:xhtml="http://www.w3.org/1999/xhtml">']
-    lines.extend(_localized_url_blocks('https://chenguangwu.github.io/tools/%s/index.html' % ind, today, 'weekly', '0.9'))
+    lines.extend(_localized_url_blocks('https://tools.dicomp.net/tools/%s/index.html' % ind, today, 'weekly', '0.9'))
     for t in sorted(ind_tools, key=lambda x: x['name']):
-        url = 'https://chenguangwu.github.io/' + t['url']
+        url = 'https://tools.dicomp.net/' + t['url']
         lines.extend(_localized_url_blocks(url, today, 'monthly', '0.8'))
     lines.append('</urlset>')
     return '\n'.join(lines) + '\n'
@@ -2607,7 +2607,7 @@ def generate_html_sitemap(tools):
 <meta name="desc-en" content="ToolBox sitemap: browse all 5000+ free online tools across 268 industry categories. Search and Traditional Chinese supported — quickly locate the calculator or converter you need.">
 <meta property="og:title" content="站点地图 - ToolBox 免费在线工具集合">
 <meta property="og:description" content="ToolBox 在线工具站点地图：按 268 个行业分类浏览全部 5000+ 免费在线工具，支持搜索与繁体中文，快速定位需要的计算器与转换器。">
-<link rel="canonical" href="https://chenguangwu.github.io/sitemap.html">
+<link rel="canonical" href="https://tools.dicomp.net/sitemap.html">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <link rel="stylesheet" href="/css/site-chrome.css">
 <style>
@@ -3700,7 +3700,7 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
 
         # 3. Add BreadcrumbList structured data (idempotent)
         if 'BreadcrumbList' not in content:
-            bc_json = '\n<script type="application/ld+json">\n{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://chenguangwu.github.io/"},{"@type":"ListItem","position":2,"name":"%s","item":"https://chenguangwu.github.io/tools/%s/index.html"},{"@type":"ListItem","position":3,"name":"%s","item":"https://chenguangwu.github.io/%s"}]}\n</script>' % (ind_name, industry, esc_html_py(t['name']), t['url'])
+            bc_json = '\n<script type="application/ld+json">\n{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://tools.dicomp.net/"},{"@type":"ListItem","position":2,"name":"%s","item":"https://tools.dicomp.net/tools/%s/index.html"},{"@type":"ListItem","position":3,"name":"%s","item":"https://tools.dicomp.net/%s"}]}\n</script>' % (ind_name, industry, esc_html_py(t['name']), t['url'])
             content = _inject_into_document_head(content, bc_json + '\n')
 
         # 3.5 Add shared tool runtime bootstrap (SW + theme + tool-intro interaction)
@@ -3766,7 +3766,7 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
         # 控制字符时，未转义会导致 WebApplication JSON 非法、整块被 Google 丢弃。
         # 顺序：先 doubling 反斜杠，再去控制字符。
         app_desc = app_desc.replace('\\', '\\\\').replace('\n', ' ').replace('\r', ' ').replace('\t', ' ')
-        app_json_block = '\n<!-- TOOLBOX-WEBAPP-LD -->\n<script type="application/ld+json">\n{"@context":"https://schema.org","@type":"WebApplication","name":"%s","url":"https://chenguangwu.github.io/%s","applicationCategory":"%s","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":%s,"description":"%s","image":"https://chenguangwu.github.io/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}\n</script>' % (tool_name_esc, t['url'], app_cat, json.dumps(I18N_LOCALES, ensure_ascii=False), app_desc)
+        app_json_block = '\n<!-- TOOLBOX-WEBAPP-LD -->\n<script type="application/ld+json">\n{"@context":"https://schema.org","@type":"WebApplication","name":"%s","url":"https://tools.dicomp.net/%s","applicationCategory":"%s","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":%s,"description":"%s","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}\n</script>' % (tool_name_esc, t['url'], app_cat, json.dumps(I18N_LOCALES, ensure_ascii=False), app_desc)
 
         def _replace_webapp_ld(src):
             # 注意：标记注释位于 <script> 之外，必须一并纳入匹配范围，
@@ -3801,7 +3801,7 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
 
         # 4. Add og:image / twitter:image (idempotent)
         if 'og:image' not in content:
-            image_meta = '\n<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">\n<meta property="og:image:width" content="1200">\n<meta property="og:image:height" content="630">\n<meta property="og:image:alt" content="ToolBox - 5000+免费在线工具">\n<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">\n<meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">\n'
+            image_meta = '\n<meta property="og:image" content="https://tools.dicomp.net/og-image.png">\n<meta property="og:image:width" content="1200">\n<meta property="og:image:height" content="630">\n<meta property="og:image:alt" content="ToolBox - 5000+免费在线工具">\n<meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">\n<meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">\n'
             content = content.replace('</head>', image_meta + '</head>', 1)
 
         # 4.0 中文优先 <title>（2026-08-29 反转：目标用户以中文为主）。
@@ -3911,11 +3911,11 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
             content = re.sub(r'<meta name="twitter:description" content="[^"]*"[^>]*>',
                              lambda m: re.sub(r'content="[^"]*"', lambda mm: 'content="%s"' % seo_desc, m.group(0), count=1), content, count=1)
         if 'rel="canonical"' not in content:
-            seo_tags += '\n<link rel="canonical" href="https://chenguangwu.github.io/%s">' % t['url']
+            seo_tags += '\n<link rel="canonical" href="https://tools.dicomp.net/%s">' % t['url']
         if 'og:type' not in content:
             seo_tags += '\n<meta property="og:type" content="website">'
         if 'og:url' not in content:
-            seo_tags += '\n<meta property="og:url" content="https://chenguangwu.github.io/%s">' % t['url']
+            seo_tags += '\n<meta property="og:url" content="https://tools.dicomp.net/%s">' % t['url']
         if 'twitter:card' not in content:
             seo_tags += '\n<meta name="twitter:card" content="summary">'
         if seo_tags:
@@ -3946,7 +3946,7 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
             content = content.replace('</head>', i18n_script + '</head>', 1)
 
         # 4.9 多语言 SEO：hreflang + og:locale（构建期常量，幂等，批次4）
-        abs_url = 'https://chenguangwu.github.io/' + t['url']
+        abs_url = 'https://tools.dicomp.net/' + t['url']
         content = inject_hreflang(content, abs_url)
 
         # 5. Related tools section — 修剪模式（根治删除工具后残留死链，且不引入算法回归）
@@ -4450,19 +4450,19 @@ def generate_category_indexes(tools):
         parts.append('<meta property="og:title" content="%s">\n' % esc_html_py(title_zh))
         parts.append('<meta property="og:description" content="%s">\n' % esc_html_py(desc_meta_zh))
         parts.append('<meta property="og:type" content="website">\n')
-        parts.append('<meta property="og:url" content="https://chenguangwu.github.io/tools/%s/index.html">\n' % ind)
+        parts.append('<meta property="og:url" content="https://tools.dicomp.net/tools/%s/index.html">\n' % ind)
         parts.append('<meta property="og:site_name" content="ToolBox">\n')
-        parts.append('<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">\n')
+        parts.append('<meta property="og:image" content="https://tools.dicomp.net/og-image.png">\n')
         parts.append('<meta property="og:image:width" content="1200">\n')
         parts.append('<meta property="og:image:height" content="630">\n')
         parts.append('<meta property="og:image:alt" content="ToolBox - 5000+免费在线工具">\n')
         parts.append('<meta name="twitter:card" content="summary_large_image">\n')
         parts.append('<meta name="twitter:title" content="%s">\n' % esc_html_py(title_zh))
         parts.append('<meta name="twitter:description" content="%s">\n' % esc_html_py(desc_meta_zh))
-        parts.append('<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">\n')
+        parts.append('<meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">\n')
         parts.append('<meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">\n')
         parts.append('<title>%s</title>\n' % esc_html_py(title_zh))
-        parts.append('<link rel="canonical" href="https://chenguangwu.github.io/tools/%s/index.html">\n' % ind)
+        parts.append('<link rel="canonical" href="https://tools.dicomp.net/tools/%s/index.html">\n' % ind)
         parts.append('<link rel="icon" type="image/svg+xml" href="/favicon.svg">\n')
         # critical CSS 不再内联：其规则 100% 被下方阻塞加载的 common.css 覆盖（详见 2804 行注释）。
         parts.append('<link rel="stylesheet" href="../../css/common.css">\n')
@@ -4482,11 +4482,11 @@ def generate_category_indexes(tools):
         parts.append('<script src="/js/nav-menu.js" defer></script>\n')
         parts.append('<script src="/js/category-index.js" defer></script>\n')
         # 多语言 SEO：hreflang + og:locale（构建期常量，批次4）
-        parts.append(build_hreflang_block('https://chenguangwu.github.io/tools/%s/index.html' % ind))
+        parts.append(build_hreflang_block('https://tools.dicomp.net/tools/%s/index.html' % ind))
         # CollectionPage structured data
-        parts.append('<script type="application/ld+json">\n{"@context":"https://schema.org","@type":"CollectionPage","name":"%s工具","url":"https://chenguangwu.github.io/tools/%s/index.html","description":"%s"}\n</script>\n' % (esc_html_py(ind_name), ind, esc_html_py(desc_meta_zh)))
+        parts.append('<script type="application/ld+json">\n{"@context":"https://schema.org","@type":"CollectionPage","name":"%s工具","url":"https://tools.dicomp.net/tools/%s/index.html","description":"%s"}\n</script>\n' % (esc_html_py(ind_name), ind, esc_html_py(desc_meta_zh)))
         # BreadcrumbList structured data
-        parts.append('<script type="application/ld+json">\n{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://chenguangwu.github.io/"},{"@type":"ListItem","position":2,"name":"%s","item":"https://chenguangwu.github.io/tools/%s/index.html"}]}\n</script>\n' % (esc_html_py(ind_name), ind))
+        parts.append('<script type="application/ld+json">\n{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://tools.dicomp.net/"},{"@type":"ListItem","position":2,"name":"%s","item":"https://tools.dicomp.net/tools/%s/index.html"}]}\n</script>\n' % (esc_html_py(ind_name), ind))
         # FAQPage 结构化数据：与页面可见 FAQ 文本一致，强化索引信号（全站覆盖）
         parts.append(CAUTO.faq_ld(_seo, count))
         parts.append('</head>\n<body>\n')
@@ -4761,7 +4761,7 @@ def main():
     with open(INDEX_FILE, 'r', encoding='utf-8') as f:
         idx_html = f.read()
     if 'og:image' not in idx_html:
-        image_meta = '<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">\n<meta property="og:image:width" content="1200">\n<meta property="og:image:height" content="630">\n<meta property="og:image:alt" content="ToolBox - 5000+免费在线工具">\n<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">\n<meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">\n'
+        image_meta = '<meta property="og:image" content="https://tools.dicomp.net/og-image.png">\n<meta property="og:image:width" content="1200">\n<meta property="og:image:height" content="630">\n<meta property="og:image:alt" content="ToolBox - 5000+免费在线工具">\n<meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">\n<meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">\n'
         idx_html = idx_html.replace('<meta property="og:type" content="website">',
                                     '<meta property="og:type" content="website">\n' + image_meta, 1)
         with open(INDEX_FILE, 'w', encoding='utf-8') as f:
@@ -4771,7 +4771,7 @@ def main():
     # 多语言 SEO：首页注入 hreflang + og:locale（构建期常量，幂等，批次4）
     with open(INDEX_FILE, 'r', encoding='utf-8') as f:
         idx_html = f.read()
-    new_idx_html = inject_hreflang(idx_html, 'https://chenguangwu.github.io/')
+    new_idx_html = inject_hreflang(idx_html, 'https://tools.dicomp.net/')
     if new_idx_html != idx_html:
         idx_html = new_idx_html
         with open(INDEX_FILE, 'w', encoding='utf-8') as f:
@@ -4787,25 +4787,25 @@ def main():
         by_industry.setdefault(t['industry'], []).append(t)
 
     # 构建全站 URL 序列（与根 sitemap 顺序一致），一次性分配/补全 lastmod 映射
-    all_urls = ['https://chenguangwu.github.io/',
-                'https://chenguangwu.github.io/sitemap.html',
-                'https://chenguangwu.github.io/search.html']
+    all_urls = ['https://tools.dicomp.net/',
+                'https://tools.dicomp.net/sitemap.html',
+                'https://tools.dicomp.net/search.html']
     if category_inds:
         for ind in sorted(category_inds):
-            all_urls.append('https://chenguangwu.github.io/tools/%s/index.html' % ind)
+            all_urls.append('https://tools.dicomp.net/tools/%s/index.html' % ind)
     guides_dir = os.path.join(ROOT, 'guides')
     if os.path.isdir(guides_dir):
         for fn in sorted(os.listdir(guides_dir)):
             if fn.endswith('.en.html'):
                 continue  # 孤儿化：与 generate_sitemap() 键域保持一致，英文副本不入 lastmod 映射
             if fn.endswith('.html') and fn != 'index.html':
-                all_urls.append('https://chenguangwu.github.io/guides/%s' % fn)
+                all_urls.append('https://tools.dicomp.net/guides/%s' % fn)
     if os.path.isfile(os.path.join(ROOT, 'chains.html')):
-        all_urls.append('https://chenguangwu.github.io/chains.html')
+        all_urls.append('https://tools.dicomp.net/chains.html')
     if os.path.isfile(os.path.join(ROOT, 'about.html')):
-        all_urls.append('https://chenguangwu.github.io/about.html')
+        all_urls.append('https://tools.dicomp.net/about.html')
     for t in tools:
-        all_urls.append('https://chenguangwu.github.io/' + t['url'])
+        all_urls.append('https://tools.dicomp.net/' + t['url'])
     global _LASTMOD_MAP
     _LASTMOD_MAP = ensure_lastmod_map(all_urls, today)
 

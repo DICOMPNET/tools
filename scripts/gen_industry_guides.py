@@ -29,7 +29,7 @@ from datetime import date
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 GUIDES_DIR = os.path.join(ROOT, "guides")
-SITE = "https://chenguangwu.github.io"
+SITE = "https://tools.dicomp.net"
 DATE = date.today().isoformat()
 
 DEFAULT_NOTE = (

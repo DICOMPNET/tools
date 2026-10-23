@@ -23,7 +23,7 @@ def localized_i18n_url(abs_url, locale):
     if locale == 'en-US':
         return abs_url + ('&' if '?' in abs_url else '?') + 'lang=en-US'
     prefix = I18N_STATIC_DIRS[locale]
-    base = 'https://chenguangwu.github.io'
+    base = 'https://tools.dicomp.net'
     suffix = abs_url[len(base):] if abs_url.startswith(base) else abs_url
     if suffix in ('', '/'):
         return base + '/' + prefix + '/'
@@ -68,7 +68,7 @@ def main():
         if I18N_HREFLANG_MARKER in s:
             skipped += 1
             continue
-        abs_url = 'https://chenguangwu.github.io/tools/%s/%s.html' % (cat, base)
+        abs_url = 'https://tools.dicomp.net/tools/%s/%s.html' % (cat, base)
         s2 = inject_hreflang(s, abs_url)
         if s2 != s:
             open(f, 'w', encoding='utf-8').write(s2)
