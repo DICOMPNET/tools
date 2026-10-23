@@ -200,7 +200,7 @@ if head_only:
 #    chenguangwu/chenguangwu.github.io 仓库名与 github 链接）不受影响。
 #    四类形态均安全：https://tools.dicomp.net、cognition 特例、
 #    带引号裸域名（仓库署名串前有 / 无引号，不匹配）。
-dom_changed = 0
+dom_files = []
 tracked = [f for f in git("ls-files").splitlines() if f]
 for p in tracked:
     try:
@@ -214,10 +214,12 @@ for p in tracked:
     if out != src:
         with open(p, "wb") as f:
             f.write(out)
-        git("add", "--", p)
-        dom_changed += 1
-if dom_changed:
-    print("已全局重打域名补丁: %d 个文件" % dom_changed)
+        dom_files.append(p)
+# 批量 add（逐文件 add 会起数千个 git 进程，极慢）
+for i in range(0, len(dom_files), 100):
+    git("add", "--", *dom_files[i:i + 100])
+if dom_files:
+    print("已全局重打域名补丁: %d 个文件" % len(dom_files))
 
 # 8. 提交
 git("commit", "-m", "同步上游内容（css 样式保持本地版本）")
