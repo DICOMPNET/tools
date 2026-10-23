@@ -7,7 +7,7 @@ import os, json, html, sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 GUIDES_DIR = os.path.join(ROOT, 'guides')
-SITE = 'https://tools.dicomp.net'
+SITE = 'https://chenguangwu.github.io'
 
 # 每篇：slug(=工具 basename 去 .html), ind, base(工具文件名), name, desc, intro,
 #       features, scenarios, steps, tips, faqs[(q,a),...]
@@ -595,14 +595,14 @@ TPL = '''<!DOCTYPE html>
 <meta property="og:site_name" content="ToolBox">
 <meta property="og:url" content="{canonical}">
 <meta property="og:description"{head_desc_attr} content="{desc}">
-<meta property="og:image" content="https://tools.dicomp.net/og-image.png">
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="ToolBox - 免费在线工具与使用指南">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title"{head_title_attr2} content="{title}使用指南 - ToolBox">
 <meta name="twitter:description"{head_desc_attr} content="{desc}">
-<meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
 <meta name="twitter:image:alt" content="ToolBox - 免费在线工具与使用指南">
 <link rel="canonical" href="{canonical}">
 <link rel="alternate" hreflang="zh-CN" href="{canonical}">
@@ -611,9 +611,9 @@ TPL = '''<!DOCTYPE html>
 <script type="application/ld+json">
 {"@context":"https://schema.org","@type":"Article","headline":"{title}使用指南","description":"{desc}","author":{"@type":"Organization","name":"ToolBox"},"inLanguage":"zh-CN"}
 </script>
-<script defer src="https://tools.dicomp.net/js/i18n.js"></script>
-<script defer src="https://tools.dicomp.net/js/guide-en-pack.js"></script>
-<script defer src="https://tools.dicomp.net/js/guide-i18n.js"></script>
+<script defer src="https://chenguangwu.github.io/js/i18n.js"></script>
+<script defer src="https://chenguangwu.github.io/js/guide-en-pack.js"></script>
+<script defer src="https://chenguangwu.github.io/js/guide-i18n.js"></script>
 <style>
 :root{--primary:#FF6B35;--text:#1F2937;--muted:#6B7280;--border:#E5E7EB;--bg:#FFFAF7;}
 *{box-sizing:border-box;}
@@ -783,7 +783,7 @@ def main():
     if os.path.exists(ip):
         s = open(ip, encoding='utf-8').read()
         new_li = ''.join(
-            '<li><a href="https://tools.dicomp.net/guides/%s-guide.html">%s使用指南</a><span style="color:var(--muted);font-size:13px;"> — %s</span></li>'
+            '<li><a href="https://chenguangwu.github.io/guides/%s-guide.html">%s使用指南</a><span style="color:var(--muted);font-size:13px;"> — %s</span></li>'
             % (g['slug'], html.escape(g['name']), html.escape(g['desc'])) for g in allg)
         if '</ul>' in s:
             s = s.replace('</ul>', new_li + '</ul>', 1)

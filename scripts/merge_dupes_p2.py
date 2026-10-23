@@ -11,7 +11,7 @@ import os, re
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-BASE = "https://tools.dicomp.net"
+BASE = "https://chenguangwu.github.io"
 
 # (被合并文件相对 tools/ 的路径, 规范文件同目录下的文件名)
 PAIRS = [

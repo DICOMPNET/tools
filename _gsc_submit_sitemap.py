@@ -33,7 +33,7 @@ from google.auth.transport.requests import Request
 import requests
 
 # ==================== 配置区 ====================
-SITE_HINT = 'tools.dicomp.net'
+SITE_HINT = 'chenguangwu.github.io'
 SITEMAP_REL_PATH = 'sitemap.xml'          # 项目根目录下的 sitemap 文件名
 DEFAULT_CREDENTIAL = os.path.expanduser('~/.workbuddy/gsc_service_account.json')
 SCOPE = 'https://www.googleapis.com/auth/webmasters'

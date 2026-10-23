@@ -10,7 +10,7 @@ GUIDES_DIR = os.path.join(ROOT, 'guides')
 JSON_DIR = os.path.join(ROOT, 'json')
 os.makedirs(GUIDES_DIR, exist_ok=True)
 
-SITE = 'https://tools.dicomp.net'
+SITE = 'https://chenguangwu.github.io'
 
 # 工具元数据：slug(指南文件名前缀) / tool(仓库根相对路径) / 显示名 / 描述
 # 每篇指南含：intro(引言) / features(核心功能) / scenarios(适用场景) / steps(使用步骤) / tips(实用技巧) / faqs(常见问题)

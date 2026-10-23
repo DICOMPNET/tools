@@ -53,7 +53,7 @@ except ImportError as exc:
 
 
 ROOT = Path(__file__).resolve().parents[1]
-SITE_URL = 'https://tools.dicomp.net/'
+SITE_URL = 'https://chenguangwu.github.io/'
 SITEMAP_FILE = ROOT / 'sitemap.xml'
 HOT_TOOLS_FILE = ROOT / 'json' / 'hot-tools.json'
 TRAFFIC_FILE = ROOT / 'analytics_traffic_merged.csv'

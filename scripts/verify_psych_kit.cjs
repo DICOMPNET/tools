@@ -19,7 +19,7 @@ function load(rel) {
   const vc = new VirtualConsole();
   vc.on('jsdomError', () => { });
   const dom = new JSDOM(html, {
-    url: 'https://tools.dicomp.net/' + rel,
+    url: 'https://chenguangwu.github.io/' + rel,
     runScripts: 'dangerously',
     pretendToBeVisual: true,
     virtualConsole: vc

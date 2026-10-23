@@ -1109,8 +1109,8 @@
     });
     ctx.fillStyle = '#9CA3AF';
     ctx.font = '13px -apple-system,system-ui,sans-serif';
-    ctx.fillText(B('娱乐与自测参考，非临床诊断 · tools.dicomp.net/tools/cognition/',
-      'For self-tracking and entertainment, not a clinical diagnosis - tools.dicomp.net/tools/cognition/'), 56, H - 56);
+    ctx.fillText(B('娱乐与自测参考，非临床诊断 · chenguangwu.github.io/tools/cognition/',
+      'For self-tracking and entertainment, not a clinical diagnosis - chenguangwu.github.io/tools/cognition/'), 56, H - 56);
     cv.toBlob(function (blob) {
       if (blob) { download(blob, 'scope-cognitive-result.png', 'image/png'); }
     }, 'image/png');

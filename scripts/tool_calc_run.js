@@ -109,7 +109,7 @@ function runOne(slug, cfg) {
   const sandbox = {
     document,
     localStorage,
-    location: { pathname: `/tools/${cfg.industry}/${slug}.html`, href: 'https://tools.dicomp.net/' },
+    location: { pathname: `/tools/${cfg.industry}/${slug}.html`, href: 'https://chenguangwu.github.io/' },
     navigator: { userAgent: 'node', language: 'zh-CN' },
     window: {},
     ToolBox,

@@ -104,8 +104,8 @@ def main() -> int:
 
         # 4) BreadcrumbList 结构化数据
         if "industry" in touched:
-            nb = new.replace("https://tools.dicomp.net/tools/fire/index.html",
-                             "https://tools.dicomp.net/tools/fire-rescue/index.html")
+            nb = new.replace("https://chenguangwu.github.io/tools/fire/index.html",
+                             "https://chenguangwu.github.io/tools/fire-rescue/index.html")
             if nb != new:
                 touched.append("breadcrumb-ld")
                 new = nb

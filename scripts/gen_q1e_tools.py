@@ -22,7 +22,7 @@ import os, html as H
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TOOLS_DIR = os.path.join(ROOT, "tools")
-BASE = "https://tools.dicomp.net"
+BASE = "https://chenguangwu.github.io"
 
 IND_ZH = {"it": "IT开发", "design": "平面设计", "text": "文本处理", "encode": "编码转换"}
 

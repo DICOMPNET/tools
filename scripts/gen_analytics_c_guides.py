@@ -18,7 +18,7 @@ import re
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 GUIDES_DIR = os.path.join(ROOT, 'guides')
-SITE = 'https://tools.dicomp.net'
+SITE = 'https://chenguangwu.github.io'
 DATE = '2026-08-31'
 
 GUIDES = [
@@ -528,9 +528,9 @@ TPL = """<!DOCTYPE html>
 <meta property="og:description" content="{desc}">
 <meta name="twitter:title" content="{title}">
 <meta name="twitter:description" content="{desc}">
-<meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
+<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
 <meta name="twitter:image:alt" content="ToolBox - 免费在线工具与使用指南">
-<meta property="og:image" content="https://tools.dicomp.net/og-image.png">
+<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="canonical" href="{canonical}">
 <script type="application/ld+json">{article_json}</script>
@@ -568,7 +568,7 @@ li{margin:8px 0;}
 <meta name="title-zh" content="{title} - ToolBox">
 </head>
 <body>
-<nav class="breadcrumb"><a href="https://tools.dicomp.net/">ToolBox</a> / <a href="https://tools.dicomp.net/guides/index.html">使用指南</a> / <span>{title}</span></nav>
+<nav class="breadcrumb"><a href="https://chenguangwu.github.io/">ToolBox</a> / <a href="https://chenguangwu.github.io/guides/index.html">使用指南</a> / <span>{title}</span></nav>
 <main>
 <h1>{title}</h1>
 <p class="lead">{intro}</p>
@@ -583,7 +583,7 @@ li{margin:8px 0;}
 <ul>{tips}</ul>
 <div class="related"><h3>相关工具</h3>{related_chips}</div>
 <div class="faq"><h2 id="s4">常见问题</h2><dl>{faqs}</dl></div>
-<div class="back"><a href="https://tools.dicomp.net/guides/index.html">&larr; 返回「使用指南」中心</a></div>
+<div class="back"><a href="https://chenguangwu.github.io/guides/index.html">&larr; 返回「使用指南」中心</a></div>
 </main>
 </body>
 </html>"""
@@ -680,7 +680,7 @@ def main():
     if os.path.isfile(ip):
         s = open(ip, encoding='utf-8').read()
         new_li = ''.join(
-            '<li><a href="https://tools.dicomp.net/guides/%s-guide.html">%s使用指南</a>'
+            '<li><a href="https://chenguangwu.github.io/guides/%s-guide.html">%s使用指南</a>'
             '<span style="color:var(--muted);font-size:13px;"> — %s</span></li>'
             % (g['slug'], html.escape(g['name']), html.escape(g['desc'])) for g in GUIDES)
         m = re.search(r'全部指南</h2>', s)

@@ -30,7 +30,7 @@ GUIDES_DIR = os.path.join(ROOT, "guides")
 TOOLS_DIR = os.path.join(ROOT, "tools", "agriculture")
 IND = "agriculture"
 DATE = "2026-09-13"
-SITE = "https://tools.dicomp.net"
+SITE = "https://chenguangwu.github.io"
 
 from fix_agriculture_formula_map import MAP as FORMULA_MAP  # noqa: E402
 

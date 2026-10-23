@@ -50,7 +50,7 @@ import datetime
 import argparse
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SITE = "https://tools.dicomp.net/"
+SITE = "https://chenguangwu.github.io/"
 CHECKPOINT = os.path.join(ROOT, "_index_coverage_state.json")
 OUT_CSV = os.path.join(ROOT, "index_coverage.csv")
 OUT_JSON = os.path.join(ROOT, "index_coverage.json")

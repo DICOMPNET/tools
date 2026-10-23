@@ -11,7 +11,7 @@ import os, re, json, html, sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 GUIDES_DIR = os.path.join(ROOT, 'guides')
-SITE = 'https://tools.dicomp.net'
+SITE = 'https://chenguangwu.github.io'
 
 def esc(s):
     return html.escape(str(s))
@@ -725,9 +725,9 @@ def inject(html, slug):
     scripts = ('<link rel="alternate" hreflang="zh-CN" href="%s">\n'
                '<link rel="alternate" hreflang="en-US" href="%s">\n'
                '<link rel="alternate" hreflang="x-default" href="%s">\n'
-               '<script defer src="https://tools.dicomp.net/js/i18n.js"></script>\n'
-               '<script defer src="https://tools.dicomp.net/js/guide-en-pack.js"></script>\n'
-               '<script defer src="https://tools.dicomp.net/js/guide-i18n.js"></script>\n') % (canonical, canonical, canonical)
+               '<script defer src="https://chenguangwu.github.io/js/i18n.js"></script>\n'
+               '<script defer src="https://chenguangwu.github.io/js/guide-en-pack.js"></script>\n'
+               '<script defer src="https://chenguangwu.github.io/js/guide-i18n.js"></script>\n') % (canonical, canonical, canonical)
     html = html.replace('</head>', scripts + '</head>', 1)
     # h1
     html = re.sub(r'(<h1[^>]*)>(.*?)(</h1>)',

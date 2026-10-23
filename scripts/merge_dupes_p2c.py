@@ -7,7 +7,7 @@ loser 文件多带有与所在目录不符的 industry 元数据（如 pr/ 下 m
 import os, re
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-BASE = "https://tools.dicomp.net"
+BASE = "https://chenguangwu.github.io"
 
 # (被合并文件真实相对路径, keeper 所在行业, keeper 文件名)
 PAIRS = [

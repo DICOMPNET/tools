@@ -32,7 +32,7 @@ GUIDES_DIR = os.path.join(ROOT, "guides")
 TOOLS_DIR = os.path.join(ROOT, "tools", "legal")
 IND = "legal"
 DATE = "2026-09-13"
-SITE = "https://tools.dicomp.net"
+SITE = "https://chenguangwu.github.io"
 
 # 纯展示 / 低专业度，不生成指南
 EXCLUDE = {"calendar-qr", "calendar", "legal-reference", "legal-calculator"}

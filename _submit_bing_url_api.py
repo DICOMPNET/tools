@@ -37,8 +37,8 @@ import urllib.request
 import xml.etree.ElementTree as ET
 
 # ==================== 配置区 ====================
-HOST = 'tools.dicomp.net'
-SITE_URL = 'https://tools.dicomp.net/'
+HOST = 'chenguangwu.github.io'
+SITE_URL = 'https://chenguangwu.github.io/'
 SITEMAP_FILE = 'sitemap.xml'
 API_ENDPOINT = 'https://ssl.bing.com/webmaster/api.svc/json/SubmitUrlbatch'
 QUOTA_ENDPOINT = 'https://ssl.bing.com/webmaster/api.svc/json/GetUrlSubmissionQuota'

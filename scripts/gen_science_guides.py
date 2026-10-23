@@ -19,7 +19,7 @@ import os
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 GUIDES_DIR = os.path.join(ROOT, "guides")
 DATE = "2026-09-12"
-SITE = "https://tools.dicomp.net"
+SITE = "https://chenguangwu.github.io"
 
 CONTENT = {
     "newtons-second": {

@@ -16,7 +16,7 @@ import os, html as H
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TOOLS_DIR = os.path.join(ROOT, "tools")
-BASE = "https://tools.dicomp.net"
+BASE = "https://chenguangwu.github.io"
 IND_ZH = {"finance": "金融投资", "securities": "证券投资", "health": "健康医疗",
           "decor": "室内装修", "construction": "建筑地产", "electrical": "电气工程",
           "steel": "钢铁冶金", "fun": "娱乐游戏", "ecommerce": "电子商务",
