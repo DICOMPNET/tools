@@ -144,6 +144,7 @@ s.parentNode.insertBefore(el, s);
       <ul>
         <li>鋼管 Φ48×3.5：截面積 A=489mm²，截面模量 W=5078mm³，回轉半徑 i=15.8mm，f=205MPa</li>
         <li>排距取 1.05m，擋風係數 φ≈0.6，腳手板自重 0.35kN/m²，每 2 步設一層</li>
+        <li>立杆計算長度係數 μ=1.6（兩步三跨/三步三跨常用值）；連牆件稀疏時應取 1.8~2.1 重算</li>
         <li>本驗算為單立杆穩定簡化計算，高大於 50m 需分段卸荷及專業驗算</li>
         <li>按 Enter 快速計算，Ctrl/Cmd + Enter 複製結果；純前端執行，資料不上傳</li>
       </ul>
@@ -187,7 +188,7 @@ function calc(){
   var N=1.2*(Ng1+Ng2)+1.4*Nq; // kN
   // wind moment
   var Mw=0.9*1.4*w0*0.6*a*h*h/10; // kN·m
-  var lam=h*1000/I_SEC;
+  var lam=1.6*h*1000/I_SEC; // 立杆计算长度 l0 = μ·h，μ=1.6（两步三跨/三步三跨间常用值，连墙件更稀时取1.8~2.1）
   var phi=phiOf(lam);
   var sigma=N*1000/(phi*A_SEC)+Mw*1e6/W_SEC; // MPa
   var K=F_STEEL/sigma;
@@ -358,12 +359,12 @@ else document.addEventListener('DOMContentLoaded', __calc_206Boot);
 <li>風載校核：計入風彎矩組合應力</li>
 <li>合格判定：安全係數 K≥1 為安全</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">方法</div><div class="dd-ex-body">軸力 N=1.2×(立杆自重+構配件重)+1.4×施工荷載；長細比 λ=步距×1000÷回轉半徑 i（Φ48×3.5 取 i=15.8mm）；穩定係數 φ 按 λ 查表插值；應力 σ=N×1000/(φ×A)+Mw×10⁶/W；安全係數 K=fy/σ（fy=205MPa），K≥1 安全。</div></div>
-<div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">q=3kN/m²、w₀=0.5、立杆間距 a=1.5m、步距 1.8m、H=30m：N≈19.90kN，λ=1.8×1000÷15.8≈113.9，φ≈0.536，風彎矩 Mw≈0.184kN·m，σ≈112.1MPa，K=205÷112.1≈1.83 → 安全（K&gt;1）。</div></div>
+<div class="dd-example"><div class="dd-ex-title">方法</div><div class="dd-ex-body">軸力 N=1.2×(立杆自重+構配件重)+1.4×施工荷載；長細比 λ=μ·步距×1000÷回轉半徑 i（立杆計算長度 l₀=μ·h，μ=1.6，Φ48×3.5 取 i=15.8mm）；穩定係數 φ 按 λ 查表插值；應力 σ=N×1000/(φ×A)+Mw×10⁶/W；安全係數 K=fy/σ（fy=205MPa），K≥1 安全。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">q=3kN/m²、w₀=0.5、立杆間距 a=1.5m、步距 1.8m、H=30m：N≈19.90kN，λ=1.6×1800÷15.8≈182.3，φ≈0.225，風彎矩 Mw≈0.184kN·m，σ≈217.3MPa，K=205÷217.3≈0.94 → 不滿足（K&lt;1，需減小間距/步距或增設卸荷）。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
 <dt>安全係數 K≥1 就夠了嗎？</dt><dd>K≥1 表示不考慮缺陷時滿足，但實際腳手架含初彎曲、節點鬆動等，規範另有穩定承載力公式與構造要求；K 僅作快速校核，正式須按 JGJ130 驗算。</dd>
-<dt>風彎矩什麼時候不能忽略？</dt><dd>高腳手架或大風壓地區風彎矩顯著，本例 Mw 約佔總應力 1/3；沿海地區須用正確基本風壓 w₀ 並考慮風振。</dd>
+<dt>風彎矩什麼時候不能忽略？</dt><dd>高腳手架或大風壓地區風彎矩顯著，本例 Mw 約佔總應力 1/6；沿海地區須用正確基本風壓 w₀ 並考慮風振。</dd>
 </dl>
 </div>
 </section>

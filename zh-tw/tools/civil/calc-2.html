@@ -119,7 +119,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="按鋼筋外包尺寸、彎折角度及彎弧內徑計算下料長度，自動扣除量度差值並增加彎鉤長度。">Compute rebar cutting length from bends and hook.</p>
     <div class="formula-box">
       <div class="formula-title">📐 計算公式</div>
-      <div class="formula-eq">D = 係數 × d，</div>
+      <div class="formula-eq">D = 係數 × d（預設 2.5d）</div>
       <p class="formula-desc">按鋼筋外包尺寸、彎折角度及彎弧內徑計算下料長度，自動扣除量度差值並增加彎鉤長度。</p>
     </div>
 
@@ -164,10 +164,6 @@ s.parentNode.insertBefore(el, s);
         </select>
       </div>
       <div>
-        <label for="cover">保護層厚度 c（mm）</label>
-        <input type="number" id="cover" value="25" step="1" min="0">
-      </div>
-      <div>
         <label for="num">根數</label>
         <input type="number" id="num" value="1" step="1" min="1">
       </div>
@@ -183,8 +179,8 @@ s.parentNode.insertBefore(el, s);
     <div class="tool-notes">
       <div class="tool-notes-title">📌 計算說明</div>
       <ul>
-        <li>量度差值 Δ = (D/2 + d) × θ_rad − (D/2 + d) × sin(θ_rad)，D 為彎弧內徑</li>
-        <li>180° 半圓彎鉤增加長度 ≈ 6.25d；135° 斜彎鉤 ≈ 4.9d；90° 直彎鉤 ≈ 3.5d</li>
+        <li>量度差值 Δ = 2×(D/2 + d)×tan(α/2) − α_rad×(D + d)/2，即外包尺寸 − 中心線展開長；α > 90° 時按 90°+(α−90°) 兩段分解</li>
+        <li>D=2.5d 時彎鉤增加長度：180° 半圓彎鉤 ≈ 6.25d；135° 斜彎鉤 ≈ 4.9d；90° 直彎鉤 ≈ 3.5d（按 弧長+3d−(D/2+d) 隨 D 換算）</li>
         <li>下料長度 = 外包尺寸之和 − 量度差值 + 彎鉤增加長度</li>
         <li>彎弧內徑 D = 係數 × d，本工具預設 2.5d</li>
       </ul>
@@ -224,21 +220,35 @@ s.parentNode.insertBefore(el, s);
   </div>
 </div>
 <script>
-function hookAddLen(type, d) {
+// 弯钩增加长度 = 弯钩中心线弧长 + 平直段(3d) − 外皮缩短量(D/2+d)
+// D=2.5d 时精确复现经典值：180°→6.25d、135°→4.9d、90°→3.5d；D 变化时按几何换算
+function hookAddLen(type, d, D) {
+  var arc;
   switch (String(type)) {
-    case '180': return 6.25 * d;
-    case '135': return 4.9 * d;
-    case '90': return 3.5 * d;
+    case '180': arc = (D + d) / 2 * Math.PI; break;
+    case '135': arc = (D + d) / 2 * (3 * Math.PI / 4); break;
+    case '90':  arc = (D + d) / 2 * (Math.PI / 2); break;
     default: return 0;
   }
+  return arc + 3 * d - (D / 2 + d);
 }
 
 function bendDeduction(D, d, angleDeg) {
   if (angleDeg <= 0) return 0;
-  const R = D / 2 + d;
-  const rad = angleDeg * Math.PI / 180;
-  // 中心线弧长 - 弦长（量度差值）
-  return R * rad - 2 * R * Math.sin(rad / 2);
+  // 量度差值 Δ = 外包尺寸 − 中心线展开长（经典钢筋下料口径）
+  // α ≤ 90°：Δ = 2×(D/2 + d)×tan(α/2) − (D+d)/2×α_rad
+  //   （交点法外包，与常用弯曲调整值表一致：30°→0.3d、45°→0.5d、60°→0.9d、90°→2.29d@D=5d）
+  // α > 90°：钝角单弯按 90°+(α−90°) 两段分解计，复现教材表 135°→2.83d@D=5d（经验常取 3d）；
+  //   若对钝角直接外推交点法会得 9.8d，与教材/16G101 口径差 3 倍以上，属错误外推
+  var t = angleDeg * Math.PI / 180;
+  if (angleDeg <= 90) {
+    return 2 * (D / 2 + d) * Math.tan(t / 2) - t * (D + d) / 2;
+  }
+  var t90 = Math.PI / 2;
+  var d90 = 2 * (D / 2 + d) * Math.tan(t90 / 2) - t90 * (D + d) / 2;
+  var t2 = (angleDeg - 90) * Math.PI / 180;
+  var d2 = 2 * (D / 2 + d) * Math.tan(t2 / 2) - t2 * (D + d) / 2;
+  return d90 + d2;
 }
 
 function calcRebar() {
@@ -257,7 +267,7 @@ function calcRebar() {
   }
 
   const D = factor * d;
-  const hookAdd = hookAddLen(hookType, d);
+  const hookAdd = hookAddLen(hookType, d, D);
   const delta1 = bendDeduction(D, d, a1);
   const delta2 = bendDeduction(D, d, a2);
   const single = L1 + L2 - delta1 - delta2 + hookAdd;
@@ -285,7 +295,6 @@ function resetForm() {
   document.getElementById('angle2').value = 0;
   document.getElementById('bendFactor').value = 2.5;
   document.getElementById('hookType').value = '0';
-  document.getElementById('cover').value = 25;
   document.getElementById('num').value = 1;
   calcRebar();
 }
@@ -390,7 +399,7 @@ function __calc_2Export(){
 }
 function __calc_2Presets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#calc_2Presets',[{label:'默认参数',labelEn:'Default',values:{'straight1':'3000', 'straight2':'0', 'diameter':'20', 'angle1':'90', 'angle2':'0', 'bendFactor':'2.5', 'hookType':'0', 'cover':'25', 'num':'1'}}],function(){ calcRebar(); });
+    TBKit.preset.bar('#calc_2Presets',[{label:'默认参数',labelEn:'Default',values:{'straight1':'3000', 'straight2':'0', 'diameter':'20', 'angle1':'90', 'angle2':'0', 'bendFactor':'2.5', 'hookType':'0', 'num':'1'}}],function(){ calcRebar(); });
 }
 var __calc_2_f0=(typeof calcRebar==='function')?calcRebar:null;
 if(__calc_2_f0){
@@ -426,10 +435,10 @@ else document.addEventListener('DOMContentLoaded', __calc_2Boot);
 <li>彎折鋼筋（如雨棚、懸挑）：按彎曲直徑 D 與鋼筋直徑 d 查彎曲調整值，避免成型後偏短。</li>
 <li>批次下料最佳化：按定尺長度 9/12m 套裁，減少接頭與廢料。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">90°彎鉤下料調整</div><div class="dd-ex-body">直段外包 3000mm，端部 90°彎鉤（D=5d，d=20mm）：彎曲調整值≈2×彎折外皮增量，單彎約扣 2d=40mm；再加彎鉤增長，淨下料≈3000-40+彎鉤增量，按翻樣表取值。</div></div>
+<div class="dd-example"><div class="dd-ex-title">90°彎鉤下料調整</div><div class="dd-ex-body">直段外包 3000mm，端部 90°彎鉤（D=5d，d=20mm）：彎曲調整值≈2×彎折外皮增量，單彎約扣 2.3d≈46mm；再加彎鉤增長，淨下料≈3000-46+彎鉤增量，按翻樣表取值。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
-<dt>彎曲調整值從哪來？</dt><dd>由彎曲處外皮拉伸、內皮壓縮的幾何差得出，與彎心直徑 D 和 d 有關（如 90° 約 2d、135° 約 3d 量級），按 16G101 或廠家表取。</dd>
+<dt>彎曲調整值從哪來？</dt><dd>由彎曲處外皮拉伸、內皮壓縮的幾何差得出，與彎心直徑 D 和 d 有關（如 D=5d 時 90° 約 2.3d、135° 約 2.8d；鈍角按 90°+(α−90°) 兩段分解計，經驗常取 3d），按 16G101 或廠家表取。</dd>
 <dt>180°彎鉤增加多少？</dt><dd>光圓鋼筋（HPB300）末端 180° 彎鉤增加長度約為 6.25d（含平直段），機械錨固或焊接時可不計。</dd>
 <dt>下料長了短了有何後果？</dt><dd>長了浪費、節點衝突；短了錨固不足影響受力，故翻樣須按保護層、搭接、錨固綜合取定，並留量差餘量。</dd>
 </dl>
