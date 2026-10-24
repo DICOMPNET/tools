@@ -2466,9 +2466,6 @@ def generate_sitemap(tools, category_inds=None):
     # about.html 关于我们
     if os.path.isfile(os.path.join(ROOT, 'about.html')):
         lines.extend(_localized_url_blocks('https://tools.dicomp.net/about.html', today, 'monthly', '0.7'))
-    # disclaimer.html 免责声明（本地新增页，需持续进 sitemap）
-    if os.path.isfile(os.path.join(ROOT, 'disclaimer.html')):
-        lines.extend(_localized_url_blocks('https://tools.dicomp.net/disclaimer.html', today, 'monthly', '0.5'))
     for t in tools:
         url = 'https://tools.dicomp.net/' + t['url']
         lines.extend(_localized_url_blocks(url, today, 'monthly', '0.8'))
@@ -2531,8 +2528,6 @@ def generate_core_sitemap(today):
     lines.extend(_localized_url_blocks('https://tools.dicomp.net/search.html', today, 'weekly', '0.9'))
     if os.path.isfile(os.path.join(ROOT, 'about.html')):
         lines.extend(_localized_url_blocks('https://tools.dicomp.net/about.html', today, 'monthly', '0.7'))
-    if os.path.isfile(os.path.join(ROOT, 'disclaimer.html')):
-        lines.extend(_localized_url_blocks('https://tools.dicomp.net/disclaimer.html', today, 'monthly', '0.5'))
     # guides/ 目录下的指南页（自动扫描，避免重跑构建后丢失）
     guides_dir = os.path.join(ROOT, 'guides')
     if os.path.isdir(guides_dir):
@@ -2835,10 +2830,9 @@ def _build_consistency_check(tools, category_inds):
                             if fn.endswith('.html') and fn != 'index.html' and not fn.endswith('.en.html')])
     has_chains = 1 if os.path.isfile(os.path.join(ROOT, 'chains.html')) else 0
     has_about = 1 if os.path.isfile(os.path.join(ROOT, 'about.html')) else 0
-    has_disclaimer = 1 if os.path.isfile(os.path.join(ROOT, 'disclaimer.html')) else 0
     # 孤儿化(2026-09-21 老板指令): .en.html 英文副本不再进 sitemap，仅保留文件一个月后删
     expected_sitemap_urls = (
-        (expected_tools + 3 + len(category_inds) + guides_count + has_chains + has_about + has_disclaimer)
+        (expected_tools + 3 + len(category_inds) + guides_count + has_chains + has_about)
         * len(I18N_STATIC_LOCALES)
     )
     actual_sitemap_urls = _count_xml_urls(SITEMAP_FILE)
@@ -4784,26 +4778,6 @@ def main():
             f.write(idx_html)
         print('Updated hreflang in index.html')
 
-    # 其他根页面也注入 hreflang（zh-tw 版本有简中必须有，双向一致）
-    _ROOT_PAGES_FOR_HREFLANG = [
-        ('about.html',    'https://tools.dicomp.net/about.html'),
-        ('search.html',   'https://tools.dicomp.net/search.html'),
-        ('chains.html',   'https://tools.dicomp.net/chains.html'),
-        ('embed.html',    'https://tools.dicomp.net/embed.html'),
-        ('404.html',      'https://tools.dicomp.net/404.html'),
-    ]
-    for _fn, _abs in _ROOT_PAGES_FOR_HREFLANG:
-        _fp = os.path.join(ROOT, _fn)
-        if not os.path.isfile(_fp):
-            continue
-        with open(_fp, 'r', encoding='utf-8') as _f:
-            _content = _f.read()
-        _new = inject_hreflang(_content, _abs)
-        if _new != _content:
-            with open(_fp, 'w', encoding='utf-8') as _f:
-                _f.write(_new)
-            print('Updated hreflang in %s' % _fn)
-
     # Generate one root sitemap. Per-industry sitemap files duplicated the same
     # URLs and added hundreds of generated files to every build and commit.
     from datetime import datetime
@@ -4830,8 +4804,6 @@ def main():
         all_urls.append('https://tools.dicomp.net/chains.html')
     if os.path.isfile(os.path.join(ROOT, 'about.html')):
         all_urls.append('https://tools.dicomp.net/about.html')
-    if os.path.isfile(os.path.join(ROOT, 'disclaimer.html')):
-        all_urls.append('https://tools.dicomp.net/disclaimer.html')
     for t in tools:
         all_urls.append('https://tools.dicomp.net/' + t['url'])
     global _LASTMOD_MAP
