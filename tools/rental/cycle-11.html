@@ -134,7 +134,7 @@ s.parentNode.insertBefore(el, s);
     <h2 data-zh="⏱️ 水电（读数/周期）结算">Cycle 11</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="记录电表、水表、燃气表读数，自动计算用量与费用，支持阶梯电价，生成结算报告。">Cycle 11 - online utility on ToolBox.</p>
     <div class="formula-box">
-      <div class="formula-title">📐 工作原理与说明</div>
+      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">用量 = 本次读数 − 上次读数（负值记 0）。单一费率：费用 = 用量 × 单价。阶梯电价：第 i 档区间 = 本档上限 − 上一档上限，该档用量 = min(剩余用量, 区间)，费用 = 该档用量 × 档单价，剩余用量递减后进入下一档。结算对电 / 水 / 气三类分别按相邻读数逐段计算并汇总，总费用为三类之和，结算记录最多保留最近 12 条</div>
       <p class="formula-desc" data-zh="「记录电表、水表、燃气表读数，自动计算用量与费用，支持阶梯电价，生成结算报告。」按输入参数进行专业计算并输出结果。">Cycle 11 - online utility on ToolBox.: computes and outputs results from the input parameters.</p>
     </div>
 
@@ -160,6 +160,7 @@ s.parentNode.insertBefore(el, s);
   <div class="card" id="settlementCard" style="display:none;">
     <h3>结算报告</h3>
     <div id="settlementBody"></div>
+    <div id="c11Chart" style="margin-top:12px;"></div>
   </div>
 
   <div class="card">
@@ -561,6 +562,41 @@ document.addEventListener('DOMContentLoaded', function() {
     h.addEventListener('click', function() { this.parentElement.classList.toggle('open'); });
   });
 });
+</script>
+<script>/*TBKIT-CHART-INJECT-C11*/
+var __C11_M=[['electric','电费','Electric'],['water','水费','Water'],['gas','燃气费','Gas']];
+function __c11ChartDraw(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.bar) return;
+  try{
+    var host=document.getElementById('c11Chart');
+    if(!host) return;
+    if(typeof data==='undefined'||typeof calcCost!=='function') return;
+    var en=TBKit.util.isEn();
+    var labels=[],vals=[],total=0;
+    __C11_M.forEach(function(m){
+      var rs=(data.readings[m[0]]||[]);
+      var cost=0;
+      for(var i=1;i<rs.length;i++){
+        var u=(rs[i].value||0)-(rs[i-1].value||0);
+        if(u<0)u=0;
+        cost+=calcCost(m[0],u).cost;
+      }
+      vals.push(Math.round(cost*100)/100);
+      total+=cost;
+      labels.push(en?m[2]:m[1]);
+    });
+    TBKit.chart.bar(host,{labels:labels,series:[{name:en?'Cost (CNY)':'费用 (元)',data:vals}],title:(en?'Meter costs (total ¥':'各表计费用（合计 ¥')+total.toFixed(2)+(en?')':'）')});
+  }catch(e){}
+}
+(function(){
+  ['calcSettlement','updateReading','addReading','delReading'].forEach(function(fn){
+    if(typeof window[fn]!=='function') return;
+    var f0=window[fn];
+    window[fn]=function(){var r=f0.apply(this,arguments);try{__c11ChartDraw();}catch(e){}return r;};
+  });
+  document.addEventListener('toolbox:langchange',function(){try{__c11ChartDraw();}catch(e){}});
+})();
+(function(){function b(){try{__c11ChartDraw();}catch(e){}}if(document.readyState&&document.readyState!=='loading')b();else document.addEventListener('DOMContentLoaded',b);})();
 </script>
 </body>
 </html>

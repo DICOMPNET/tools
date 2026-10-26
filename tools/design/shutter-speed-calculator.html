@@ -136,7 +136,7 @@ s.parentNode.insertBefore(el, s);
 <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="计算手持拍摄的安全快门速度，避免手抖模糊">Estimate a safe handheld shutter speed from the focal length to avoid motion blur, useful when setting up a shot.</p>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理与说明</div>
-      <div class="formula-eq">安全快门 t ≤ 1 / (f × k)（k 为裁切系数；经验法则为焦距倒数）</div>
+      <div class="formula-eq">安全快门：等效焦距 = 焦距 × 裁切系数，基础快门 = 1 ÷ 等效焦距（秒）；在标准档位表（1、1/2、1/4 … 1/1000 秒）中取第一个时长不超过基础快门的档位（向更快方向取整）；防抖每档允许把快门再放慢一级（朝表首 1 秒方向回退，最多回退到 1 秒档）得最终安全快门。校验：无强校验，焦距、裁切系数、防抖档缺省分别按 50、1、0 兜底。判据：场景参考表给出 1/1000 凝固高速运动、1/500 体育动作、1/250 行走的人、1/60 手持下限、1/15 建议三脚架、2 秒瀑布拉丝等典型档位。</div>
       <div class="formula-desc">依据“安全快门 ≈ 焦距倒数”的经验法则：焦距越长越易手抖，需要更快快门；有防抖可放宽若干档，用于手持拍摄的曝光参数参考。</div>
   
 </div>
@@ -154,6 +154,7 @@ s.parentNode.insertBefore(el, s);
 </div>
 <table id="ssTable" class="result-table" style="width:100%;margin-top:10px;display:none;"><thead></thead><tbody></tbody></table>
 <div id="guide"></div>
+<div id="ssChart"></div>
 </div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
@@ -389,5 +390,34 @@ document.addEventListener('DOMContentLoaded',function(){
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',restore);
   else restore();
 }catch(e){}})();
+</script>
+<script>/*TBKIT-CHART-INJECT-SS*/
+var __SS_F=[14,24,35,50,85,135,200,400];
+function __ssChartDraw(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line) return;
+  try{
+    var host=document.getElementById('ssChart');
+    if(!host) return;
+    var f=parseFloat(document.getElementById('focal').value);
+    if(!isFinite(f)||f<=0) f=50;
+    var crop=parseFloat(document.getElementById('crop').value);
+    if(!isFinite(crop)||crop<=0) crop=1;
+    var isStops=parseFloat(document.getElementById('is').value);
+    if(!isFinite(isStops)||isStops<0) isStops=0;
+    var en=TBKit.util.isEn();
+    var labels=[],base=[],withIs=[];
+    __SS_F.forEach(function(fv){
+      var d1=fv*crop;
+      var d2=Math.max(1,Math.round(d1/Math.pow(2,isStops)));
+      labels.push(String(fv));
+      base.push(d1);
+      withIs.push(d2);
+    });
+    TBKit.chart.line(host,{labels:labels,series:[{name:en?'No IS (1/x s)':'无防抖 (1/X s)',data:base},{name:en?'With IS (1/x s)':'含防抖 (1/X s)',data:withIs}],title:(en?'Safe shutter vs focal length (crop ':'安全快门-焦距曲线（裁切系数 ')+crop+(en?')':'）')});
+  }catch(e){}
+}
+var __tb_fn0=calc;
+calc=function(){__tb_fn0();try{__ssChartDraw();}catch(e){}};
+(function(){function b(){try{__ssChartDraw();}catch(e){}}if(document.readyState&&document.readyState!=='loading')b();else document.addEventListener('DOMContentLoaded',b);})();
 </script>
 </body></html>

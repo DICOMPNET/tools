@@ -28,6 +28,9 @@
 | https://tools.dicomp.net/tools/pets/kennel-space.html | https://tools.dicomp.net/tools/pet/kennel-space.html | 2026-10-10 | 2026-11-10 | 待删 | 繁体同理 |
 | https://tools.dicomp.net/tools/pets/index.html | https://tools.dicomp.net/tools/pet/index.html | 2026-10-10 | 2026-11-10 | 待删 | 分类落地页存根；繁体同理 |
 | https://tools.dicomp.net/tools/general/frequency-3.html | https://tools.dicomp.net/tools/music/instrument-tuning.html | 2026-10-12 | 2026-11-12 | 待删 | 跨分类重复副本；繁体同理 |
+| https://tools.dicomp.net/tools/insurance/calc-pv-1.html | https://tools.dicomp.net/tools/realestate/pv.html | 2026-08-25 | 2026-09-25 | 待删（超期补登记） | 2026-10-25 公式审计时发现漏登记；繁体同理 |
+| https://tools.dicomp.net/tools/insurance/estimate-20.html | https://tools.dicomp.net/tools/insurance/surrender-value.html | 2026-08-25 | 2026-09-25 | 待删（超期补登记） | 同上；繁体同理 |
+| https://tools.dicomp.net/tools/insurance/stats-5.html | https://tools.dicomp.net/tools/insurance/loss-ratio.html | 2026-08-25 | 2026-09-25 | 待删（超期补登记） | 同上；繁体同理 |
 | https://tools.dicomp.net/tools/general/calculator-calc-11.html | https://tools.dicomp.net/tools/math/complex-number.html | 2026-10-12 | 2026-11-12 | 待删 | 跨分类重复副本；繁体同理 |
 | https://tools.dicomp.net/tools/misc/unit-prefix.html | https://tools.dicomp.net/tools/general/convert-22.html | 2026-10-12 | 2026-11-12 | 待删 | 跨分类重复副本；繁体同理 |
 | https://tools.dicomp.net/tools/misc/scientific-notation.html | https://tools.dicomp.net/tools/general/convert-21.html | 2026-10-12 | 2026-11-12 | 待删 | 跨分类重复副本；繁体同理 |

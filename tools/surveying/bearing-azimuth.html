@@ -124,7 +124,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="α = atan2(ΔE, ΔN)，归算至 0–360°。">Compute the azimuth (bearing) from coordinate increments Δx and Δy.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">α = atan2(Δy, Δx)</div>
+      <div class="formula-eq">坐标方位角 α = atan2(东坐标增量 ΔE, 北坐标增量 ΔN) × 180÷π（北基准顺时针，负角 +360° 归一到 0–360°）；水平距离 D = √(ΔN² + ΔE²)；与正东方向夹角 = 90° − α。校验：无强校验，两增量缺省按 0。判据：α &lt;90° 北东(NE)、&lt;180° 南东(SE)、&lt;270° 南西(SW)、否则北西(NW)；方位角保留 2 位、距离 3 位小数。</div>
       <p class="formula-desc">α = atan2(ΔE, ΔN)，归算至 0–360°。</p>
     </div>
 
@@ -206,7 +206,7 @@ function calcTool(){
                 [az.toFixed(2),'方位角 (°)'],
                 [d.toFixed(3),'水平距离 (m)'],
                 [(az<90?'北东 NE':(az<180?'南东 SE':(az<270?'南西 SW':'北西 NW'))), '所在象限'],
-                [(90-az).toFixed(2), '与正东方向夹角 (°)']
+                [((90-az+540)%360-180).toFixed(2), '与正东方向夹角 (°，带符号)']
             ]);ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
         }
 function resetForm(){document.getElementById('dn').value = '100';
@@ -234,8 +234,8 @@ function __baExtras(){
         TBKit.chart.scatter('#baChart',{points:[[0,0],[de,dn]],height:230,xLabel:__baL('ΔE','东向 ΔE'),title:__baL('Direction vector (az '+az.toFixed(1)+'°)','方向向量（方位角 '+az.toFixed(1)+'°）')});
         var quad=az<90?__baL('NE (I)','北东 NE（Ⅰ）'):az<180?__baL('SE (II)','南东 SE（Ⅱ）'):az<270?__baL('SW (III)','南西 SW（Ⅲ）'):__baL('NW (IV)','北西 NW（Ⅳ）');
         var rows=__baL(
-            [['ΔN',dn.toFixed(3)],['ΔE',de.toFixed(3)],['azimuth (°)',az.toFixed(2)],['distance (m)',d.toFixed(3)],['quadrant',quad],['angle from east (°)',(90-az).toFixed(2)],['angle from north (°)',az.toFixed(2)]],
-            [['ΔN',dn.toFixed(3)],['ΔE',de.toFixed(3)],['方位角 (°)',az.toFixed(2)],['水平距离 (m)',d.toFixed(3)],['所在象限',quad],['与正东夹角 (°)',(90-az).toFixed(2)],['与正北夹角 (°)',az.toFixed(2)]]);
+            [['ΔN',dn.toFixed(3)],['ΔE',de.toFixed(3)],['azimuth (°)',az.toFixed(2)],['distance (m)',d.toFixed(3)],['quadrant',quad],['angle from east (°)',((90-az+540)%360-180).toFixed(2)],['angle from north (°)',az.toFixed(2)]],
+            [['ΔN',dn.toFixed(3)],['ΔE',de.toFixed(3)],['方位角 (°)',az.toFixed(2)],['水平距离 (m)',d.toFixed(3)],['所在象限',quad],['与正东夹角 (°，带符号)',((90-az+540)%360-180).toFixed(2)],['与正北夹角 (°)',az.toFixed(2)]]);
         TBKit.matrix.table('#baTable',{head:__baL(['Metric','Value'],['指标','数值']),rows:rows});
         TBKit.history.record({az:Number(az.toFixed(2)),dn:dn,de:de});
         TBKit.util.diffBox('#baDiff',['az']);

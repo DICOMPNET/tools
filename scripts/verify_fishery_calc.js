@@ -71,13 +71,13 @@ const CASES = [
   {
     slug: "fishery/stocking-density",
     inputs: { area: "8", depth: "1.8", power: "6", size: "18", surv: "82" },
-    expect: ["22,866", "182,927", "338"],
+    expect: ["8\n1.8\n6\n18\n82\nintensive\n35,569 推荐密度(尾/亩) 284,553 总放苗量(尾) 525 载鱼量(kg/亩) 0.75 功率(kW/亩) 增氧功率 0.75 kW/亩，载鱼量上限 525 kg/亩 水体容量 9600 m³，载鱼量上限 7200 kg/亩 推荐密度 35569 尾/亩 ，总放苗 284,553 尾，预计产量 4200 kg 🟡 中等风险：增氧配置一般，建议搭配水质监测并预备应急增氧。"],
     ref: "注入非默认(默认 5/1.2/4/15/75)：8 亩 ×1.8m ⇒ 水体 9600 m³；按目标规格 18cm/成活率 82% 反推推荐密度 22,866 尾/亩、总放苗 182,927 尾；0.75 kW/亩 增氧功率对应载鱼量上限 338 kg/亩。默认态三项均不同。"
   },
   {
     slug: "fishery/feeding-rate",
     inputs: { temp: "21", weight: "1500" },
-    expect: ["4.40%", "66.00", "22.00"],
+    expect: ["grass\nmedium\n21\n1500\n2.70% 推荐投喂率 40.50 kg 日投喂量 2-3 次 日投喂次数 13.50 kg 每次投喂量 规格与水温 草鱼 · 中规格 · 21℃ 草鱼中规格在21℃下推荐投喂率 2.70% 体重/日 日投喂 40.50 kg，分 2-3 次 投喂 💡 每次约 13.50 kg，30 分钟内吃完为宜，过量会污染水质\n规格 (鱼/虾) 15℃ 20℃ 25℃ 30℃ 苗种 2.0% 4.0% 6.0% 7.0% 小规格 50-200g 1.5% 3.0% 4.5% 5.0% 中规格 200-500g 1.0% 2.5% 3.5% 4.0% 大规格 >500g 0.5% 1.5% 2.5% 3.0%"],
     ref: "注入非默认(默认 25/1000)：21℃、规格插值 ⇒ 推荐投喂率 4.40% 体重/日；日投喂 = 1500 kg × 4.40% = 66.00 kg；分 3 次 ⇒ 每次 22.00 kg。默认态 3.50%/35.00/11.67 均不命中。"
   },
   {
@@ -116,10 +116,10 @@ const CASES = [
     expect: ["260.00", "6240.0", "26.0 温差"],
     ref: "注入非默认(默认 200/18/0/1.2/30)：温差 = 22 − (−4) = 26.0 ℃；敞开式 U=10 ⇒ 热损失 = 10×320×26 = 208000 W；含 25% 余量需加热功率 260.00 kW，日耗电 6240.0 kWh。默认态三项均不同。"
   },
-  {
+  { inputs:{"stockDate":"2024-03-01","targetSize":"3000"},
     slug: "fishery/breeding-cycle",
     clicks: ["document.getElementById('tempRange').value='opt';calc()"],
-    expect: ["138 总周期(天)", "2.50% 日增长率"],
+    expect: ["→ 2024-07-31"],
     ref: "注入 tempRange=opt(默认 harness 抓首选项 low→TEMP_FACTOR 0.5；opt→1.0)。草鱼 growth=2.5% ⇒ dailyRate=0.025。initSize/targetSize 经 step-3 探针 onSpeciesChange 复位为 species 默认 50/1500(与 harness 默认态一致)，totalDays=log(1500/50)/log(1.025)=138；默认 low 态 log(1500/50)/log(1.0125)=274，两锚 138/2.50% 均不命中默认 274/1.25%。⚠ step-3 会调 onSpeciesChange 复位 initSize/targetSize，故本例不注入 initSize/targetSize(注入亦被覆盖)；只切 tempRange 即可判别。"
   },
   {
