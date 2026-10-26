@@ -109,7 +109,7 @@ s.parentNode.insertBefore(el, s);
   <div class='card'>
     <h2 data-zh="⚙️ 管道沿程水頭損失">⚙️ Pipe Friction Head Loss Calculator</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理與說明</div>
+  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">流量換算：單位為 L/s 時 Q = 流量 ÷ 1000，否則 Q = 流量 ÷ 3600（m³/s）；管徑 D = 毫米值 ÷ 1000（m）；海澄-威廉沿程水頭損失 hf = 10.67 × 管長 × Q^1.852 ÷ (C^1.852 × D^4.87)（m）；壓降 ΔP = hf × 9.80665（kPa，按水計）；管內流速 v = Q ÷ (π × (D ÷ 2)²)（m/s）；流量、管長非負且管徑與 C 值須大於 0</div>
   <p class="formula-desc" data-zh="本工程計算基於標準物理與材料公式，輸入為標準工程單位，結果僅供參考。 工具名稱：管道沿程水頭損失 - 水利工程線上工具。">Compute friction head loss along a pipe.</p>
 </div>
 
@@ -152,6 +152,7 @@ s.parentNode.insertBefore(el, s);
       <button class='btn' onclick='copyResult()'>複製結果</button>
     </div>
     <div class='result-box' id='result'><p>請輸入引數後計算。</p></div>
+    <div id="hy3Chart"></div>
     <div class='info-box' style='margin-top:12px;'>C 值參考：PVC/PE 新管 140，新鋼管 120，舊鋼管/鑄鐵管 90~100，混凝土管 120。結果未含區域性水頭損失。</div>
     <div style="margin-top:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
       <button type="button" class="btn" data-zh="⬇️ 匯出管道水頭損失結果 CSV" onclick="__pipeHlExport()">⬇️ Export Pipe Head Loss Results CSV</button>
@@ -338,5 +339,42 @@ function __pipeHlExport(){
 </dl>
 </div>
 </section>
+<script>/*TBKIT-CHART-INJECT-HY3*/
+function __hy3ChartDraw(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line) return;
+  try{
+    var host=document.getElementById('hy3Chart');
+    if(!host) return;
+    var flow=parseFloat(document.getElementById('flow').value)||0;
+    var unit=document.getElementById('flowUnit').value;
+    var dMm=parseFloat(document.getElementById('diameter').value)||0;
+    var L=parseFloat(document.getElementById('length').value)||0;
+    var C=parseFloat(document.getElementById('c').value)||0;
+    if(!(flow>0)||!(dMm>0)||!(L>0)||!(C>0)) return;
+    var D=dMm/1000;
+    var unitTxt=unit==='lps'?' L/s':' m³/h';
+    var labels=[],vals=[];
+    for(var i=0;i<10;i++){
+      var fv=flow*(0.2+1.8*i/9);
+      var Q=unit==='lps'?fv/1000:fv/3600;
+      var hf=10.67*L*Math.pow(Q,1.852)/(Math.pow(C,1.852)*Math.pow(D,4.87));
+      labels.push((fv>=10?Math.round(fv):fv.toFixed(1))+unitTxt);
+      vals.push(hf);
+    }
+    var en=TBKit.util.isEn();
+    TBKit.chart.line(host,{labels:labels,series:[{name:en?'Head loss hf (m)':'沿程水头损失 hf (m)',data:vals}],title:en?('Head loss vs flow (DN'+Math.round(dMm)+', L='+Math.round(L)+' m, C='+Math.round(C)+')'):('沿程水头损失-流量曲线（DN'+Math.round(dMm)+'·L='+Math.round(L)+' m·C='+Math.round(C)+'）')});
+  }catch(e){}
+}
+var __tb_fn0=window.calculate;
+window.calculate=function(){__tb_fn0();try{__hy3ChartDraw();}catch(e){}};
+var __tb_p0=window.applyHw3Preset;
+window.applyHw3Preset=function(k){__tb_p0(k);try{__hy3ChartDraw();}catch(e){}};
+(function(){
+  var ids=['flow','flowUnit','diameter','length','c'];
+  function wire(){ids.forEach(function(id){var el=document.getElementById(id);if(!el||el.getAttribute('data-tbkc-wired'))return;el.setAttribute('data-tbkc-wired','1');el.addEventListener('input',__hy3ChartDraw);el.addEventListener('change',__hy3ChartDraw);});}
+  function b(){wire();try{__hy3ChartDraw();}catch(e){}}
+  if(document.readyState&&document.readyState!=='loading')b();else document.addEventListener('DOMContentLoaded',b);
+})();
+</script>
 </body>
 </html>

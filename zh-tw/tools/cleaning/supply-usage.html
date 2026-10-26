@@ -134,7 +134,7 @@ s.parentNode.insertBefore(el, s);
     <h2 data-zh="🧮 清潔用品消耗計算器">Supply Usage</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="根據清潔面積與頻率，估算各類清潔用品消耗量與補貨週期">Supply Usage</p>
     <div class="formula-box">
-      <div class="formula-title">📐 工作原理與說明</div>
+      <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">日用量 = 面積 × 單位消耗 × 清潔頻次；週期用量 = 日用量 × 統計天數；需購量 = 週期用量 + 日用量 × 安全庫存天數；採購包裝數 = ⌈需購量 ÷ 包裝規格⌉</div>
       <p class="formula-desc" data-zh="核心計算公式（按輸入變數）：Math.ceil(totalNeed ÷ s.packSize)">Key formulas: Math.ceil(totalNeed ÷ s.packSize)</p>
     </div>
 
@@ -149,8 +149,8 @@ s.parentNode.insertBefore(el, s);
           <option value="1" selected>每天 1 次</option>
           <option value="2">每天 2 次</option>
           <option value="0.5">每 2 天 1 次</option>
-          <option value="0.33">每週 2 次</option>
-          <option value="0.14">每週 1 次</option>
+          <option value="0.286">每週 2 次</option>
+          <option value="0.143">每週 1 次</option>
         </select>
       </div>
       <div>
@@ -267,10 +267,12 @@ function calc(){
   }
 
   var totalCost = 0;
+  var totalUse = 0;
   var html = '<thead><tr><th>用品</th><th>单位消耗</th><th>周期用量</th><th>含安全库存</th><th>建议采购</th></tr></thead><tbody>';
 
   SUPPLIES.forEach(function(s){
     var dailyUse = area * s.rate * freq;
+    totalUse += dailyUse;
     var periodUse = dailyUse * period;
     var safetyStock = dailyUse * safety;
     var totalNeed = periodUse + safetyStock;
@@ -288,7 +290,7 @@ function calc(){
   const __g3=html;document.getElementById('supplyTable').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
 
   // 统计
-  var totalDaily = area * freq;
+  var totalDaily = totalUse;
   var items = SUPPLIES.length;
   var topItem = SUPPLIES[0];
   var topDaily = area * topItem.rate * freq;

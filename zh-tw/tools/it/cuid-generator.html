@@ -134,7 +134,7 @@ s.parentNode.insertBefore(el, s);
     <h2 data-zh="🆔 CUID 生成器">🆔 CUID Generator</h2>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理與說明</div>
-  <div class="formula-eq">c + base36(時間戳) + 計數器 + 指紋 + 隨機數</div>
+  <div class="formula-eq">CUID 生成規則：id = c + base36(Date.now 時間戳) + 計數器（(counter+1) mod 36⁴ 後 base36 補齊 4 字元）+ 指紋（navigator 鍵數 base36 拼 3 位隨機數、補齊 4 字元）+ 兩組各 2 字元 base36 隨機塊。校驗：生成數量 parseInt 直取，結果含 NaN/Infinity 時顯示錯誤提示。判據：同毫秒內靠計數器遞增保證不重複，隨機段保證不可預測性。</div>
   <div class="formula-desc">CUID（Collision-resistant Unique Identifier）為單機與分散式場景下的抗碰撞 ID 設計，結構為：小寫 c 開頭 + 時間戳（base36，保證大致按生成順序遞增）+ 單機計數器（同毫秒內自增，避免同一程序碰撞）+ 客戶端指紋（瀏覽器/程序特徵雜湊，區分不同機器）+ 隨機數。相比 UUID v4，它在資料庫索引上更友好（字首有序、減少頁分裂），但因含指紋資訊，不應用於需要不可預測性的安全場景。</div>
 </div>
 
@@ -373,7 +373,7 @@ var __cuid_generator_f0=(typeof generate==='function')?generate:null;
 if(__cuid_generator_f0){
     generate=function(){ var __r=__cuid_generator_f0.apply(null,arguments); try{ __cuid_generatorExtras(); }catch(e){} return __r; };
 }
-function __cuid_generatorBoot(){ try{ __cuid_generatorPresets(); }catch(e){} }
+function __cuid_generatorBoot(){ try{ __cuid_generatorPresets(); }catch(e){} try{ generate(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __cuid_generatorBoot();
 else document.addEventListener('DOMContentLoaded', __cuid_generatorBoot);
 </script>

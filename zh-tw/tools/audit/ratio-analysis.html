@@ -134,7 +134,7 @@ s.parentNode.insertBefore(el, s);
     <h2 data-zh="📊 財務比率分析">Ratio Analysis</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="輸入資產負債表與利潤表關鍵資料，自動計算償債、營運、盈利能力比率並給出評價">Ratio Analysis</p>
     <div class="formula-box">
-      <div class="formula-title">📐 工作原理與說明</div>
+      <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">財務報表比率分析<br>流動比率 = 流動資產 ÷ 流動負債（參考 2:1）<br>速動比率 = (流動資產 − 存貨) ÷ 流動負債（參考 1:1）<br>資產負債率 = 總負債 ÷ 總資產（<50% 較穩健）<br>權益乘數 = 總資產 ÷ 股東權益（反映財務槓桿，=1+產權比率）<br>產權比率 = 總負債 ÷ 股東權益（=權益乘數−1）<br>存貨週轉率 = 營業成本 ÷ 存貨；存貨週轉天數 = 365 ÷ 存貨週轉率<br>總資產週轉率 = 營業收入 ÷ 總資產<br>毛利率 = (營收 − 營業成本) ÷ 營收<br>淨利率 = 淨利潤 ÷ 營業收入<br>ROA = 淨利潤 ÷ 總資產；ROE = 淨利潤 ÷ 股東權益<br>綜合評價 10 分制：流動比率 ≥2 得 2（≥1.5 得 1）｜速動 ≥1 得 2（≥0.8 得 1）<br>　資產負債率 ≤50% 得 2（≤70% 得 1）｜淨利率 ≥15% 得 2（≥8% 得 1）｜ROE ≥15% 得 2（≥10% 得 1）<br>總分 ≥8 良好｜≥5 一般｜其他 偏弱</div>
       <p class="formula-desc" data-zh="「輸入資產負債表與利潤表關鍵資料，自動計算償債、營運、盈利能力比率並給出評價」按輸入引數進行專業計算並輸出結果。">Ratio Analysis: computes and outputs results from the input parameters.</p>
     </div>
 
@@ -260,7 +260,8 @@ function calc(){
   var current=cl>0?ca/cl:0;
   var quick=cl>0?(ca-inv)/cl:0;
   var debt=ta>0?tl/ta:0;
-  var equityMult=eq>0?tl/eq:0;
+  var equityMult=eq>0?ta/eq:0;
+  var debtToEquity=eq>0?tl/eq:0;
 
   var inventoryTurn=inv>0?cogs/inv:0;
   var inventoryDays=inventoryTurn>0?365/inventoryTurn:0;
@@ -281,6 +282,8 @@ function calc(){
   solHtml+=ratioCard('资产负债率',pct(debt*100),'','总负债/总资产，衡量长期偿债能力与财务风险，50%以下较稳健',g,debt*100,'#00C9A7');
   g=grade(equityMult,1.5,2.5,false);
   solHtml+=ratioCard('权益乘数',equityMult.toFixed(2),'倍','总资产/股东权益，反映财务杠杆程度，越高杠杆越大',g,equityMult/4*100,'#F59E0B');
+  g=grade(debtToEquity,1,1.5,false);
+  solHtml+=ratioCard('产权比率',debtToEquity.toFixed(2),'倍','总负债/股东权益，衡量负债与权益的结构比例，1:1 以下较稳健',g,debtToEquity/2*100,'#3B82F6');
   const __g1=solHtml;document.getElementById('solvency').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 
   var opHtml='';

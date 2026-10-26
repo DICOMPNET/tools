@@ -119,7 +119,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="按引數量與位元組數估算權重視訊記憶體。">Estimate the VRAM needed for model weights and inference from parameter count, precision bytes and activation overhead, to choose deployment hardware.</p>
         <div class="formula-box">
       <div class="formula-title">📐 計算公式 / 原理</div>
-      <div class="formula-eq">權重視訊記憶體 ≈ 引數量 × 每引數位元組數；總視訊記憶體 ≈ 權重 + 啟用/1000</div>
+      <div class="formula-eq">視訊記憶體估算（本頁程式碼口徑）：權重視訊記憶體 W=引數量(十億)×每引數位元組數（GB，精度口徑 FP32=4、FP16=2、INT8=1 位元組）；總視訊記憶體=W+啟用MB÷1000（GB）。校驗：無強校驗，空值按 0 兜底；圖表與明細要求引數量、每引數位元組均&gt;0。判據：總視訊記憶體≤24GB 判「能放進 24GB 卡」，否則判「不夠」。</div>
       <div class="formula-desc">推理視訊記憶體主要由權重決定：FP16 為 2 位元組、INT8 為 1 位元組、FP32 為 4 位元組。訓練還要加梯度與 Adam 狀態（各再佔 1 份與 2 份權重），加上隨批次與序列長度增長的啟用值，常是權重本身的數倍。</div>
     </div>
 <div class="input-row"><label>引數量(十億)</label><input type="number" id="params" value="10" step="any" oninput="calc()"></div>
@@ -140,7 +140,7 @@ s.parentNode.insertBefore(el, s);
   </div>
   <div class="card formula-box">
     <h3>📐 計算公式與說明</h3>
-    <div class="formula-eq">視訊記憶體 ≈ 引數(十億)×位元組 + 啟用開銷</div>
+    <div class="formula-eq">視訊記憶體判讀（與上式互補）：總視訊記憶體隨引數量線性增長，頁面按 1/3/7/13/30/70B 引數量掃描出折線；每十億引數視訊記憶體=每引數位元組數（GB），啟用以 MB 輸入後 ÷1000 折算 GB 計入總量。校驗：與上方一致，引數量、每引數位元組&gt;0 才渲染。判據：無固定分級，精度位元組減半權重視訊記憶體同比例減半，啟用開銷由輸入 MB 直接給定（預設含 FP16 推理、FP32 訓練、INT8 量化三檔）。</div>
     <p style="font-size:13px;color:var(--text-muted);margin-top:12px;">訓練還需最佳化器狀態（通常 2–4 倍權重）。</p>
   </div>
 </div>

@@ -122,12 +122,12 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="輸入加油記錄，自動計算油耗並檢測異常，發現車輛潛在問題">Input refueling records to auto-compute fuel consumption and detect anomalies, revealing potential vehicle issues.</p>
     <div class="formula-box">
       <div class="formula-title">📐 計算公式</div>
-      <div class="formula-eq">區間油耗 = 本次加油量 ÷ (本次里程 − 上次里程) × 100  [L/100km]</div>
-      <div class="formula-eq">區間油費 = 加油量 × 油價</div>
-      <div class="formula-eq">每公里成本 = 區間油費 ÷ 區間裡程</div>
-      <div class="formula-eq">平均油耗 = Σ區間油耗 ÷ 期數</div>
-      <div class="formula-eq">標準差 σ = √( Σ(區間油耗 − 平均油耗)² ÷ 期數 )</div>
-      <div class="formula-eq">異常閾值 = 平均油耗 + 1.5 × σ（超閾即標紅異常）</div>
+      <div class="formula-eq">區間油耗 = 本次加油量 ÷ (本次里程 − 上次里程) × 100（L/100km）：逐加油區間按里程差折算百公里油耗，區間裡程 ≤0 的記錄跳過不計入樣本。校驗：至少 2 條記錄才能計算，油耗序列為空時提示檢查里程讀數。判據：區間油耗為平均、標準差與異常閾值判定的基礎樣本。</div>
+      <div class="formula-eq">區間油費 = 本次加油量 × 油價（元）：按每次加油升數與當時油價逐條計價，總油費 = Σ區間油費。校驗：至少 2 條記錄才能參與統計。判據：區間油費 ÷ 區間裡程即得每公里成本，油價波動直接體現為各區間油費差異。</div>
+      <div class="formula-eq">每公里成本 = 區間油費 ÷ 區間裡程（元/km），全期口徑 = 總油費 ÷ 總里程。校驗：區間裡程 ≤0 的記錄跳過。判據：油價越高或區間油耗越大每公里成本越高，與平均油耗、總油費卡同步聯動。</div>
+      <div class="formula-eq">平均油耗 = Σ區間油耗 ÷ 期數（L/100km）：對全部有效區間的百公里油耗取算術平均。校驗：至少 2 條記錄且油耗序列非空。判據：平均油耗是異常閾值「平均 + 1.5σ」的基準項，另輸出油耗範圍 min~max 對照。</div>
+      <div class="formula-eq">標準差 σ = √(Σ(區間油耗 − 平均油耗)² ÷ 期數)（總體標準差口徑）：衡量各區間油耗對平均值的離散程度。校驗：至少 2 條有效記錄方可參與統計。判據：σ 越小說明油耗越穩定，σ 直接決定異常閾值的寬窄。</div>
+      <div class="formula-eq">異常閾值 = 平均油耗 + 1.5 × σ，區間油耗超閾值即標紅 ⚠️ 判異常。分級：&gt;閾值紅色異常、&gt;平均油耗黃色偏高、其餘綠色正常；趨勢條寬 = 該區間油耗 ÷ 最大區間油耗 × 100%。校驗：依賴至少 2 條有效記錄。判據：1.5σ 為固定倍數口徑，命中異常的區間應結合駕駛工況與路況複核。</div>
       <div class="formula-desc">說明：採用"加滿至跳槍 ÷ 區間裡程 × 100"實測法最準；按行駛里程升序排序後逐期計算，偏離均值 1.5 倍標準差的期次判定為油耗異常，提示胎壓/空濾/氧感測器等隱患。</div>
     </div>
 
@@ -145,6 +145,7 @@ s.parentNode.insertBefore(el, s);
   <div class="card">
     <h2>📊 油耗分析</h2>
     <div id="result"></div>
+    <div id="faChart"></div>
 
     <div class="toolbar" style="margin-top:12px;">
       <button type="button" class="btn" data-zh="⬇️ 匯出油耗分析結果 CSV" onclick="__faExport()">⬇️ Export Fuel Analysis CSV</button>
@@ -517,6 +518,40 @@ document.addEventListener('DOMContentLoaded',function(){
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',restore);
   else restore();
 }catch(e){}})();
+</script>
+<script>/*TBKIT-CHART-INJECT-FA*/
+function __faChartDraw(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line) return;
+  try{
+    var host=document.getElementById('faChart');
+    if(!host) return;
+    if(typeof records==='undefined'||!records||records.length<3) return;
+    var sorted=records.slice().sort(function(a,b){return a.mileage-b.mileage;});
+    var cons=[];
+    for(var i=1;i<sorted.length;i++){
+      var dist=sorted[i].mileage-sorted[i-1].mileage;
+      if(dist<=0) continue;
+      cons.push({d:String(sorted[i].date).slice(5),v:sorted[i].liters/dist*100});
+    }
+    if(cons.length<2) return;
+    var sum=0;
+    for(var k=0;k<cons.length;k++) sum+=cons[k].v;
+    var avg=sum/cons.length;
+    var sq=0;
+    for(var k2=0;k2<cons.length;k2++) sq+=Math.pow(cons[k2].v-avg,2);
+    var thr=avg+Math.sqrt(sq/cons.length)*1.5;
+    var en=TBKit.util.isEn();
+    var labels=[],vals=[],thrs=[];
+    for(var m=0;m<cons.length;m++){labels.push(cons[m].d);vals.push(cons[m].v);thrs.push(thr);}
+    TBKit.chart.line(host,{labels:labels,series:[
+      {name:en?'Interval consumption':'区间油耗',data:vals},
+      {name:en?'Anomaly threshold':'异常阈值',data:thrs}
+    ],title:(en?'Fuel consumption trend (avg ':'油耗趋势（平均 ')+avg.toFixed(1)+(en?', threshold ':'，阈值 ')+thr.toFixed(1)+' L/100km'+(en?')':'）')});
+  }catch(e){}
+}
+var __tb_fn0=calc;
+calc=function(){__tb_fn0();try{__faChartDraw();}catch(e){}};
+(function(){function b(){try{__faChartDraw();}catch(e){}}if(document.readyState&&document.readyState!=='loading')b();else document.addEventListener('DOMContentLoaded',b);})();
 </script>
 </body>
 </html>

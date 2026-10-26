@@ -119,7 +119,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="由資料集與批次計算每輪訓練步數。">Compute the number of training steps per epoch from dataset size and batch size, for training-loop and sharding checks.</p>
         <div class="formula-box">
       <div class="formula-title">📐 計算公式 / 原理</div>
-      <div class="formula-eq">每卡步數 = ⌈樣本數 / 批次⌉；每步覆蓋樣本 = 批次 × 卡數</div>
+      <div class="formula-eq">每卡訓練步數（本頁程式碼口徑）：每卡步數=⌈資料集樣本數÷批次大小⌉（向上取整）；每步覆蓋樣本=批次大小×GPU 數。校驗：無強校驗，空值按 0 兜底；結果非有限時提示「部分結果無定義（分母為 0 或輸入為空）」。判據：無固定分級，除不盡的餘數樣本併入最後一步。</div>
       <div class="formula-desc">多卡資料並行時，全域性批次 = 單卡批次 × 卡數，每卡步數不變但每步實際看到的樣本翻倍數等於卡數。因此擴卡後要保持等效訓練強度，需按比例調大學習率或增加輪數。</div>
     </div>
 <div class="input-row"><label>資料集大小</label><input type="number" id="data" value="50000" step="any" oninput="calc()"></div>
@@ -140,7 +140,7 @@ s.parentNode.insertBefore(el, s);
   </div>
   <div class="card formula-box">
     <h3>📐 計算公式與說明</h3>
-    <div class="formula-eq">步數 = ⌈資料/批次⌉</div>
+    <div class="formula-eq">步數判讀（與上式互補）：步數=⌈資料÷批次⌉ 僅由資料規模與批次決定、與卡數無關——卡數只改變每步吞吐（每步覆蓋樣本=批次×卡數），頁面兩項並列展示。校驗：與上方一致，空值按 0 兜底。判據：無固定分級，批次增大步數按比例減少，資料量翻倍步數翻倍。</div>
     <p style="font-size:13px;color:var(--text-muted);margin-top:12px;">分散式下每卡步數不變，總樣本覆蓋相同。</p>
   </div>
 </div>

@@ -111,7 +111,7 @@ s.parentNode.insertBefore(el, s);
     <h2 data-zh="💧 孔口出流計算">💧 Orifice Flow Calculator</h2>
     <div class="formula-box">
       <div class="formula-title">📐 計算公式</div>
-      <div class="formula-eq">Q = Cd·A·√(2gH)</div>
+      <div class="formula-eq">孔口出流：孔口面積 A = π(d÷2)²（直徑 mm 先化 m，另按 cm² 回顯）；出流量 Q = 流量係數 Cd × A × √(2×9.80665×作用水頭H)（m³/s，回顯 L/s）；收縮斷面流速 v = Cd × √(2gH)（m/s）。校驗：直徑或水頭 ≤0、Cd ≤0 或 &gt;1 時提示「請輸入有效正數」並返回。判據：無固定分級，Q 與 √H 成正比、與孔徑平方成正比。</div>
       <div class="formula-desc">孔口出流按托里拆利公式的修正形式計算：理想流速為 √(2gH)，乘孔口面積 A = πd²/4 得理論流量，再乘流量係數 Cd 修正收縮與粘性損失。銳緣孔口 Cd 一般取 0.60~0.65，修圓孔口可達 0.98，出流量與作用水頭的平方根成正比。</div>
     </div>
     <p style='font-size:13px;color:var(--text-muted);margin-bottom:16px;' data-zh="根據孔口直徑、作用水頭和流量係數，計算薄壁孔口的出流量、孔口面積與收縮流速。">Compute discharge through an orifice.</p>
@@ -140,6 +140,7 @@ s.parentNode.insertBefore(el, s);
       <button class='btn' onclick='copyResult()'>複製結果</button>
     </div>
     <div class='result-box' id='result'><p>請輸入引數後計算。</p></div>
+    <div id="hy4Chart"></div>
     <div class="toolbar" style="margin-top:10px;">
       <button id="orificeExport" class="btn" style="display:none;" onclick="__orificeExport()">⬇️ 匯出計算結果 CSV</button>
     </div>
@@ -330,5 +331,39 @@ s.parentNode.insertBefore(el, s);
 </div>
 </section>
 <section class="opt-guide"><h2>如何使用孔口出流計算</h2><ol><li>在對應的輸入框或選項中填寫、選擇所需引數。</li><li>點選「計算」或「生成」按鈕執行。</li><li>在結果區檢視輸出，可複製結果或匯出使用。</li></ol><h2>引數說明</h2><ul class="param-list"><li>孔口直徑（mm）</li><li>作用水頭 H（m）</li><li>流量係數 Cd</li></ul><h2>適用場景</h2><p>工作與生活中的相關計算與查詢。</p></section><section class="opt-faq"><h2>常見問題</h2><dl class="faq-list"><dt>孔口出流計算是做什麼的？</dt><dd>孔口出流線上計算器，輸入水頭、孔口面積與流量係數求得出流流量，用於給排水與液壓設計，純前端執行。</dd><dt>如何使用孔口出流計算？</dt><dd>在對應的輸入框或選項中填寫、選擇所需引數，點選「計算」或「生成」按鈕即可執行，結果會在結果區即時顯示，支援複製與匯出。</dd><dt>計算結果準確嗎？</dt><dd>本工具在你的本地瀏覽器中即時計算，不依賴伺服器；只要輸入的引數正確，結果即按對應的規則得出。涉及經驗估算的部分僅供參考，不作為正式依據。</dd><dt>孔口出流計算適合哪些場景？</dt><dd>工作與生活中的相關計算與查詢。</dd><dt>使用本工具需要聯網或上傳資料嗎？</dt><dd>不需要。所有計算均在你的裝置本地完成，資料不會上傳到任何伺服器，可放心使用。</dd></dl></section>
+<script>/*TBKIT-CHART-INJECT-HY4*/
+function __hy4ChartDraw(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line) return;
+  try{
+    var host=document.getElementById('hy4Chart');
+    if(!host) return;
+    var dMm=parseFloat(document.getElementById('diameter').value)||0;
+    var H=parseFloat(document.getElementById('head').value)||0;
+    var Cd=parseFloat(document.getElementById('cd').value)||0;
+    if(!(dMm>0)||!(H>0)||!(Cd>0)||Cd>1) return;
+    var d=dMm/1000;
+    var A=Math.PI*Math.pow(d/2,2);
+    var labels=[],vals=[];
+    for(var i=0;i<10;i++){
+      var Hi=H*(0.2+1.8*i/9);
+      var Qls=Cd*A*Math.sqrt(2*9.80665*Hi)*1000;
+      labels.push(Hi.toFixed(1)+' m');
+      vals.push(Qls);
+    }
+    var en=TBKit.util.isEn();
+    TBKit.chart.line(host,{labels:labels,series:[{name:en?'Discharge Q (L/s)':'出流量 Q (L/s)',data:vals}],title:en?('Discharge vs head (d = '+dMm+' mm, Cd = '+Cd+')'):('出流量-作用水头曲线（d='+dMm+' mm·Cd='+Cd+'）')});
+  }catch(e){}
+}
+var __tb_fn0=window.calculate;
+window.calculate=function(){__tb_fn0();try{__hy4ChartDraw();}catch(e){}};
+var __tb_p0=window.applyOrificePreset;
+window.applyOrificePreset=function(k){__tb_p0(k);try{__hy4ChartDraw();}catch(e){}};
+(function(){
+  var ids=['diameter','head','cd'];
+  function wire(){ids.forEach(function(id){var el=document.getElementById(id);if(!el||el.getAttribute('data-tbkc-wired'))return;el.setAttribute('data-tbkc-wired','1');el.addEventListener('input',__hy4ChartDraw);el.addEventListener('change',__hy4ChartDraw);});}
+  function b(){wire();try{__hy4ChartDraw();}catch(e){}}
+  if(document.readyState&&document.readyState!=='loading')b();else document.addEventListener('DOMContentLoaded',b);
+})();
+</script>
 </body>
 </html>

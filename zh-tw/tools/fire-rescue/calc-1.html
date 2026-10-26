@@ -109,6 +109,10 @@ s.parentNode.insertBefore(el, s);
 <div class='container' data-page-node-id="OyQ54rJ0AbSAnCbD1AltPD">
   <div class='card' data-page-node-id="zljOx6mt9tFOc4KTNGzodw">
     <h2 data-zh="🔥 消防水槍充實水柱計算" data-page-node-id="3cIJ2zOW97TpC0MohTTZY7">Base64 Encode / Decode</h2>
+<div class="formula-box">
+  <div class="formula-title">📐 工作原理與說明</div>
+  <div class="formula-eq">水柱揚程 H(m) = 壓力(MPa) × 100；理想射程 Sk = H ÷ (1 + φ·H)（φ 由水帶口徑決定）；實際射程 = Sk × 折減係數</div>
+</div>
 <div class="formula-box" data-page-node-id="Dcq5f4UEATVF6CIW2KQbq1">
   <div class="formula-title" data-page-node-id="KnCE4t4oEgFpHPuNeDNGxi">📐 工作原理與說明</div>
   <p class="formula-desc" data-zh="充實水柱按《消防給水及消火栓系統技術規範》GB 50974 計算：先由噴嘴壓力換算壓力水柱 Hq，再按 Sk = Hq/(1+φ·Hq) 求充實水柱，φ 按噴嘴口徑取 13mm→0.0165、16mm→0.0124、19mm→0.0097、22mm→0.0077；出口流速按 v=√(2gHq) 計算。" data-page-node-id="O1ZfP0P9ncnhwJaKz5Gfsm">Solid stream length is computed per GB 50974: Sk = Hq/(1+φ·Hq), with φ set by nozzle size (13mm→0.0165, 16mm→0.0124, 19mm→0.0097, 22mm→0.0077); exit velocity follows v=√(2gHq).</p>
@@ -149,6 +153,7 @@ s.parentNode.insertBefore(el, s);
       <button class='btn' onclick='copyResult()' data-page-node-id="BicQk1wH18Lin6jn2GH2Hx">複製結果</button>
     </div>
     <div class='result-box' id='result' data-page-node-id="pVbeQIXMKyfnBKp167oLc2"><p data-page-node-id="EycqdrhcOaQkZVXGbDt7EQ">請輸入引數後計算。</p></div>
+    <div id="fr1Chart"></div>
     <div style="margin-top:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
       <button type="button" class="btn" data-zh="⬇️ 匯出計算結果為 CSV" onclick="__frExport()">⬇️ Export Calculation Result CSV</button>
       <span style="font-size:12px;color:var(--text-muted);" data-zh="引數與結果可匯出為 CSV 備案">Parameters and results can be exported as CSV for record</span>
@@ -337,5 +342,41 @@ function __frExport(){
 </div>
 </section>
 
+<script>/*TBKIT-CHART-INJECT-FR1*/
+function __fr1ChartDraw(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line) return;
+  try{
+    var host=document.getElementById('fr1Chart');
+    if(!host) return;
+    var p=parseFloat(document.getElementById('pressure').value);
+    var dn=parseFloat(document.getElementById('nozzle').value)||19;
+    var c=parseFloat(document.getElementById('coeff').value);
+    var angle=parseFloat(document.getElementById('angle').value);
+    if(!(p>0)||!(c>0)||c>1||isNaN(angle)||angle<0||angle>90) return;
+    var PHI={13:0.0165,16:0.0124,19:0.0097,22:0.0077};
+    var phi=PHI[dn]||(0.79/Math.pow(dn,1.5));
+    var labels=[],vals=[];
+    for(var i=0;i<10;i++){
+      var pi=p*(0.2+1.8*i/9);
+      var headM=pi*100;
+      var sk=headM/(1+phi*headM)*c;
+      labels.push(pi.toFixed(2)+' MPa');
+      vals.push(sk);
+    }
+    var en=TBKit.util.isEn();
+    TBKit.chart.line(host,{labels:labels,series:[{name:en?'Solid stream length (m)':'充实水柱长度 (m)',data:vals}],title:en?('Solid stream length vs nozzle pressure (nozzle '+dn+' mm)'):('充实水柱长度-喷嘴压力曲线（'+dn+' mm 口径）')});
+  }catch(e){}
+}
+var __tb_fn0=window.calculate;
+window.calculate=function(){__tb_fn0();try{__fr1ChartDraw();}catch(e){}};
+var __tb_p0=window.applyNozzlePreset;
+window.applyNozzlePreset=function(k){__tb_p0(k);try{__fr1ChartDraw();}catch(e){}};
+(function(){
+  var ids=['pressure','nozzle','coeff','angle'];
+  function wire(){ids.forEach(function(id){var el=document.getElementById(id);if(!el||el.getAttribute('data-tbkc-wired'))return;el.setAttribute('data-tbkc-wired','1');el.addEventListener('input',__fr1ChartDraw);el.addEventListener('change',__fr1ChartDraw);});}
+  function b(){wire();try{__fr1ChartDraw();}catch(e){}}
+  if(document.readyState&&document.readyState!=='loading')b();else document.addEventListener('DOMContentLoaded',b);
+})();
+</script>
 </body>
 </html>

@@ -115,7 +115,7 @@ s.parentNode.insertBefore(el, s);
 <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="輸入鑽孔視厚度、地層傾角、礦體規模，計算真厚度、真面積與體積等建模引數">Compute 3D geological modeling params from borehole thickness, dip and ore body size.</p>
     <div class="formula-box">
       <div class="formula-title">📐 計算公式</div>
-      <div class="formula-eq">三維建模引數 = 網格/插值</div>
+      <div class="formula-eq">三維地質建模引數（本頁程式碼口徑，無網格/插值邏輯）：真厚度 t = 鑽孔視厚度 h × cosθ（θ 地層傾角，轉弧度參與計算）；真面積 A = 走向長 L × 傾向延 S；體積 V = A × t（另折算萬 m³）；水平投影面積 = L×S×cosθ；礦石量 = V × 礦石體重 D（t，體重未填時礦石量不計）；水平厚度 = h×sinθ、單位厚度水平延展 = t ÷ tanθ。校驗：五項必填守衛；h/L/S 為負或傾角 &lt;0、≥90° 報「請輸入有效引數（傾角 0-89°）」並標紅對應輸入框。判據：無分級，假定鑽孔垂直（斜孔需另行換算）、傾向延伸按層面真長度計。</div>
       <p class="formula-desc">輸入鑽孔視厚度、地層傾角、礦體規模，計算真厚度、真面積與體積等建模引數</p>
     </div>
 <div class="input-row">
@@ -217,10 +217,10 @@ var h=parseFloat(document.getElementById('h').value);
     '<div class="data-grid" style="margin-top:8px;">'+
     '<div class="data-card"><div class="num">'+(V/10000).toFixed(4)+'</div><div class="label">体积 (万m³)</div></div>'+
     '<div class="data-card"><div class="num">'+(isNaN(D)?'—':Q.toFixed(2))+'</div><div class="label">矿石量 (t)</div></div>'+
-    '<div class="data-card"><div class="num">'+(h*Math.sin(dipRad)).toFixed(3)+'</div><div class="label">铅垂厚度 (m)</div></div>'+
+    '<div class="data-card"><div class="num">'+(h*Math.sin(dipRad)).toFixed(3)+'</div><div class="label">水平厚度 (m)</div></div>'+
     '<div class="data-card"><div class="num">'+(t/Math.tan(dipRad)||0).toFixed(2)+'</div><div class="label">单位厚度水平延展 (m)</div></div>'+
     '</div>';
-  lastResult='三维地质建模参数\n钻孔视厚度 h = '+h+' m\n地层倾角 θ = '+dip+'°\n走向长度 L = '+L+' m\n倾向延伸 S = '+S+' m\n矿石体重 D = '+(isNaN(D)?'未填':D)+' t/m³\n真厚度 t = '+t.toFixed(3)+' m\n真面积 A = '+A.toFixed(2)+' m²\n水平投影面积 = '+Ah.toFixed(2)+' m²\n铅垂厚度 = '+(h*Math.sin(dipRad)).toFixed(3)+' m\n体积 V = '+V.toFixed(2)+' m³ ('+(V/10000).toFixed(4)+' 万m³)\n矿石量 = '+(isNaN(D)?'未填体重':Q.toFixed(2)+' t');
+  lastResult='三维地质建模参数\n钻孔视厚度 h = '+h+' m\n地层倾角 θ = '+dip+'°\n走向长度 L = '+L+' m\n倾向延伸 S = '+S+' m\n矿石体重 D = '+(isNaN(D)?'未填':D)+' t/m³\n真厚度 t = '+t.toFixed(3)+' m\n真面积 A = '+A.toFixed(2)+' m²\n水平投影面积 = '+Ah.toFixed(2)+' m²\n水平厚度 = '+(h*Math.sin(dipRad)).toFixed(3)+' m\n体积 V = '+V.toFixed(2)+' m³ ('+(V/10000).toFixed(4)+' 万m³)\n矿石量 = '+(isNaN(D)?'未填体重':Q.toFixed(2)+' t');
   const __g3=html;document.getElementById('res').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
 }
 function copyRes(){if(!lastResult){ToolBox.showToast(i18nText(),'warning');return;}ToolBox.copyText(lastResult);}
@@ -389,8 +389,8 @@ else document.addEventListener('DOMContentLoaded', __sanweidizhijianmocanshuBoot
 <li>建模體積：輸入走向長、傾向延與真厚度得塊段體積與礦石量</li>
 <li>投影對比：比較真面積與水平投影面積差異，輔助三維建模精度控制</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">方法</div><div class="dd-ex-body">公式：真厚度 t = 視厚度 h × cos(傾角θ)；真面積 A = 走向長 L × 傾向延 S；體積 V = A × t；水平投影面積 Ah = L×S×cosθ；鉛垂厚度 = h×sinθ；礦石量 Q = V × 體重 D。傾角 θ 取 0–89°（本地計算，單位 m、t/m³）。</div></div>
-<div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">例：鑽孔視厚 h=5m、θ=25°、L=300m、S=200m、D=2.7 t/m³ → t=5×cos25°=4.532m、A=60000 m²、V=60000×4.532=271892 m³（27.19 萬m³）、Ah=54378 m²、鉛垂厚=2.113m、Q=271892×2.7=734109 t。</div></div>
+<div class="dd-example"><div class="dd-ex-title">方法</div><div class="dd-ex-body">公式：真厚度 t = 視厚度 h × cos(傾角θ)；真面積 A = 走向長 L × 傾向延 S；體積 V = A × t；水平投影面積 Ah = L×S×cosθ；水平厚度 = h×sinθ；礦石量 Q = V × 體重 D。傾角 θ 取 0–89°（本地計算，單位 m、t/m³）。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">例：鑽孔視厚 h=5m、θ=25°、L=300m、S=200m、D=2.7 t/m³ → t=5×cos25°=4.532m、A=60000 m²、V=60000×4.532=271892 m³（27.19 萬m³）、Ah=54378 m²、水平厚=2.113m、Q=271892×2.7=734109 t。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
 <dt>視厚度和真厚度差多少？</dt><dd>差在 cosθ。傾角越大差異越顯著：θ=25° 時真厚約為視厚的 90.6%，θ=60° 時僅 50%。陡傾礦體若誤把視厚當真厚會嚴重高估體積。</dd>
@@ -428,7 +428,7 @@ else document.addEventListener('DOMContentLoaded', __sanweidizhijianmocanshuBoot
     </a>
   </div>
 </div>
-<div class="tool-intro open" id="toolIntro"><div class="tool-intro-header"><span class="intro-icon-wrap"><span class="intro-icon">📖</span>關於「三維地質建模引數」</span><span class="arrow">▼</span></div><div class="tool-intro-body"><h4><span class="h4-icon">📝</span>工具簡介</h4><p>三維地質建模引數計算工具，依據鑽孔視厚度、地層傾角與礦體規模，計算真厚度、真面積、水平投影面積與體積等建模關鍵引數，支援礦石量估算。</p><h4><span class="h4-icon">✨</span>功能特點</h4><ul class="intro-features"><li>自動換算真厚度與鉛垂厚度</li><li>同時輸出真面積、水平投影與體積</li><li>支援礦石量估算</li><li>純前端計算，建模資料本地處理</li></ul><h4><span class="h4-icon">🎯</span>使用場景</h4><ul class="intro-scenes"><li>三維地質/礦體建模引數計算</li><li>儲量估算輔助</li><li>鑽孔資料空間校正</li><li>地質建模教學演示</li></ul></div></div>
+<div class="tool-intro open" id="toolIntro"><div class="tool-intro-header"><span class="intro-icon-wrap"><span class="intro-icon">📖</span>關於「三維地質建模引數」</span><span class="arrow">▼</span></div><div class="tool-intro-body"><h4><span class="h4-icon">📝</span>工具簡介</h4><p>三維地質建模引數計算工具，依據鑽孔視厚度、地層傾角與礦體規模，計算真厚度、真面積、水平投影面積與體積等建模關鍵引數，支援礦石量估算。</p><h4><span class="h4-icon">✨</span>功能特點</h4><ul class="intro-features"><li>自動換算真厚度與水平厚度</li><li>同時輸出真面積、水平投影與體積</li><li>支援礦石量估算</li><li>純前端計算，建模資料本地處理</li></ul><h4><span class="h4-icon">🎯</span>使用場景</h4><ul class="intro-scenes"><li>三維地質/礦體建模引數計算</li><li>儲量估算輔助</li><li>鑽孔資料空間校正</li><li>地質建模教學演示</li></ul></div></div>
 
 
 <script>/*TBKIT-INJECT-START*/

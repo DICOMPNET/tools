@@ -122,11 +122,11 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="選擇車型，輸入當前里程與上次更換里程，計算剩餘更換里程與預估時間">Select model and input current and last-replacement mileage to compute remaining timing belt or chain replacement distance and estimated time.</p>
     <div class="formula-box">
       <div class="formula-title">📐 計算公式（正時皮帶）</div>
-      <div class="formula-eq">下次更換里程 = 上次更換里程 + 廠建議間隔里程</div>
-      <div class="formula-eq">剩餘里程 = max(0, 下次更換里程 − 當前里程)</div>
-      <div class="formula-eq">使用進度 = (當前里程 − 上次更換里程) ÷ 廠建議間隔里程 × 100%</div>
-      <div class="formula-eq">日均里程 = 年均里程 ÷ 365</div>
-      <div class="formula-eq">剩餘天數 = 剩餘里程 ÷ 日均里程</div>
+      <div class="formula-eq">下次更換里程 = 基準里程 + 廠建議間隔（基準取上次更換里程，上次未填（0）時按 0 起算；間隔按所選車型查建議表，鏈條車型且間隔為 0 時走免維護分支，僅提示不做里程計算）。校驗：各里程輸入按非負處理（max(0, 值)）。</div>
+      <div class="formula-eq">剩餘里程 = max(0, 下次更換里程 − 當前里程)，負值截 0 表示已超期。校驗：當前里程與上次更換里程均按非負處理。判據：剩餘里程 ≤0 判「已超期，立即更換」並提示已超 當前里程−下次更換里程 km。</div>
+      <div class="formula-eq">使用進度 = (當前里程 − 基準里程) ÷ 廠建議間隔 × 100%，封頂 100%（基準里程與下次更換同口徑，上次未填按 0）。校驗：無強校驗，里程非負截 0。判據：剩餘里程 ≤ 間隔×10% 判「即將到期」（警告色），其餘為「狀態正常」。</div>
+      <div class="formula-eq">日均里程 = 年均里程 ÷ 365（年均里程預設按 15000，輸入強制至少 1，按 max(1, 值) 兜底防除零）。校驗：無強校驗，非數按預設值。判據：日均里程越大同樣剩餘里程折算的剩餘天數越短，僅作時間餘量換算。</div>
+      <div class="formula-eq">剩餘天數 = 剩餘里程 &gt;0 時按 round(剩餘里程 ÷ 日均里程) 取整，剩餘里程為 0（已超期）時直接記 0。校驗：日均里程按 ≥1 兜底防除零。判據：剩餘天數與剩餘里程、進度條同源聯動展示保養時間餘量。</div>
       <div class="formula-desc">說明：正時鏈條（廠建議間隔 = 0）設計免維護，僅定期檢查張緊器與導板；正時皮帶按"里程或年限先到"更換，斷裂會頂氣門導致發動機大修。</div>
     </div>
 

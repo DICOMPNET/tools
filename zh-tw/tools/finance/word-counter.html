@@ -168,7 +168,7 @@ s.parentNode.insertBefore(el, s);
   <div class="card tool-card-accent" style="--tool-accent:#F59E0B;">
      <h2 data-zh="📈 字數統計工具">📈 Word Counter</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理與說明</div>
+  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">文本統計與可讀性分析<br>總字元數 = 文本長度｜不含空格 = 去空白後長度<br>中文字元 = [\u4e00-\u9fff] 匹配數<br>英文單詞 = [a-zA-Z]+ 匹配數｜行數 = \n 切分<br>段落數 = 空行分段｜句子數 = [。！？!?.] 匹配數<br>預計閱讀時間 = max(⌈中文字數÷400⌉, ⌈英文詞數÷200⌉) 分鐘<br>平均句長 = 總詞數 ÷ 句子數<br>平均每詞字元 = 不含空格字元 ÷ 總詞數<br>難度判據：句長 >20 較難｜>12 中等｜其他 簡單</div>
   <div class="formula-desc">本文本工具基於標準字元編碼與文本處理規則，純前端執行，程式碼不離開瀏覽器。 工具名稱：字數統計 - 金融財務領域的線上工具。</div>
 </div>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="統計中英文及字元數，區分單詞與漢字並排除空白，適合論文字數限制核對與文稿潤色，純前端即時統計可複製結果。">Count words, characters and Chinese characters while excluding whitespace, for essay limits and proofreading.</p>
@@ -191,6 +191,7 @@ s.parentNode.insertBefore(el, s);
     <div class="readability" id="readability"></div>
       <div class="density" id="densitySection" style="display:none;">
         <h3>高頻詞統計（前10）</h3>
+        <div id="wcChart" style="margin:0 0 10px;"></div>
         <div class="density-list" id="densityList"></div>
       </div>
       <div class="toolbar" style="margin-top:14px;">
@@ -400,6 +401,31 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   });
 });
+</script>
+<script>/*TBKIT-CHART-INJECT-WC*/
+function __wcChartDraw(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.bar) return;
+  try{
+    var host=document.getElementById('wcChart');
+    if(!host) return;
+    var src=document.getElementById('input');
+    var t=src?src.value:'';
+    if(!t||!t.trim()){host.innerHTML='';return;}
+    var ws=(t.toLowerCase().match(/[a-z]+/g)||[]).filter(function(w){return w.length>=2;});
+    if(!ws.length){host.innerHTML='';return;}
+    var cm={};
+    ws.forEach(function(w){cm[w]=(cm[w]||0)+1;});
+    var top=Object.keys(cm).map(function(k){return [k,cm[k]];}).sort(function(a,b){return b[1]-a[1];}).slice(0,10);
+    var en=TBKit.util.isEn();
+    TBKit.chart.bar(host,{labels:top.map(function(x){return x[0];}),
+      series:[{name:en?'Count':'频次',data:top.map(function(x){return x[1];})}],
+      height:240,title:en?'Word frequency Top 10':'词频 Top 10'});
+  }catch(e){}
+}
+var __wc_fn0=analyze;
+analyze=function(){var r=__wc_fn0.apply(this,arguments);try{__wcChartDraw();}catch(e){}return r;};
+document.addEventListener('toolbox:langchange',function(){try{__wcChartDraw();}catch(e){}});
+(function(){function b(){try{__wcChartDraw();}catch(e){}}if(document.readyState&&document.readyState!=='loading')b();else document.addEventListener('DOMContentLoaded',b);})();
 </script>
 <!-- SEO 介紹區塊 -->
 

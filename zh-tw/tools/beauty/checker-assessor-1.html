@@ -109,7 +109,7 @@ s.parentNode.insertBefore(el, s);
     <h2 data-zh="⚖️ 質量（檢查/評估/改進）機制">Quality ( Check / Evaluate / Improvement ) Mechanism</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="基於 PDCA 迴圈的化妝品質量檢查-評估-改進機制，輸出各階段成熟度與改進路徑">Quality ( Check / Evaluate / Improvement ) Mechanism</p>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理與說明</div>
+  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">PDCA 質量改進機制成熟度評估<br>四階段（Plan 計劃 / Do 執行 / Check 檢查 / Act 改進）各自若干條目<br>條目按 1-5 分五級量表打分<br>階段平均分 = 該階段條目得分算術平均<br>綜合成熟度 = 四階段平均分 ÷ 4<br>階段等級：≥4.5 持續最佳化｜≥3.5 有效執行｜≥2.5 部分實施｜≥1.5 初步建立｜其他 未建立<br>綜合等級：≥4.5 卓越｜≥3.5 成熟｜≥2.5 發展中｜≥1.5 初始｜其他 薄弱<br>體系完整度 = 綜合成熟度 ÷ 5 × 100%<br>薄弱項統計：得分 ≤2 的條目，按階段彙總並輸出優先改進清單<br>改進路徑：≤2 分項須制定改進計劃，明確責任人與完成時限</div>
   <p class="formula-desc">按 PDCA 四階段（計劃-執行-檢查-改進）逐項評分，均權得到體系成熟度。C（檢查）提供資料、A（改進）形成閉環，任一階段偏低均會拉低綜合分，據此定位薄弱環。</p>
 </div>
 
@@ -134,6 +134,7 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn" onclick="resetAll()">重置</button>
     </div>
     <div class="result-box" id="res"></div>
+    <div id="ca1Chart" style="margin-top:12px;"></div>
     <div class="toolbar" style="margin-top:10px;">
       <button type="button" class="btn" data-zh="⬇️ 匯出 PDCA 評估結果 CSV" onclick="__pdca1Export()">⬇️ Export PDCA Assessment CSV</button>
       <span style="font-size:13px;color:var(--text-muted);" data-zh="16 項評估分、四階段成熟度與綜合評級可匯出為 CSV">All 16 item scores, four-stage maturity, and overall rating can be exported as CSV</span>
@@ -447,5 +448,37 @@ document.addEventListener('DOMContentLoaded',function(){
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',restore);
   else restore();
 }catch(e){}})();
-</script></body>
+</script><script>/*TBKIT-CHART-INJECT-CA1*/
+function __ca1ChartDraw(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.bar) return;
+  try{
+    var host=document.getElementById('ca1Chart');
+    if(!host) return;
+    if(typeof stages==='undefined') return;
+    var en=TBKit.util.isEn();
+    var keys=['plan','do','check','act'];
+    var pfx={plan:'P','do':'D',check:'C',act:'A'};
+    var labels=[],vals=[],sum=0;
+    keys.forEach(function(st){
+      stages[st].forEach(function(q,i){
+        var sel=document.getElementById(st+i);
+        var v=sel?parseInt(sel.value,10):3;
+        if(!isFinite(v))v=3;
+        vals.push(v);sum+=v;
+        labels.push(pfx[st]+(i+1));
+      });
+    });
+    if(!vals.length) return;
+    var overall=sum/vals.length;
+    var lv=overall>=4.5?'卓越':overall>=3.5?'成熟':overall>=2.5?'发展中':overall>=1.5?'初始':'薄弱';
+    var lvEn=overall>=4.5?'Excellent':overall>=3.5?'Mature':overall>=2.5?'Developing':overall>=1.5?'Initial':'Weak';
+    TBKit.chart.bar(host,{labels:labels,max:5,series:[{name:en?'Item score':'各项得分',data:vals}],title:(en?'Item scores (overall ':'各检查项得分（综合 ')+overall.toFixed(2)+(en?'/5, ':'/5，')+(en?lvEn:lv)+(en?')':'）')});
+  }catch(e){}
+}
+var __tb_fn0=calc;
+calc=function(){__tb_fn0();try{__ca1ChartDraw();}catch(e){}};
+document.addEventListener('toolbox:langchange',function(){try{__ca1ChartDraw();}catch(e){}});
+(function(){function b(){try{__ca1ChartDraw();}catch(e){}}if(document.readyState&&document.readyState!=='loading')b();else document.addEventListener('DOMContentLoaded',b);})();
+</script>
+</body>
 </html>

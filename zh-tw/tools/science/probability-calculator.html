@@ -141,7 +141,7 @@ s.parentNode.insertBefore(el, s);
      <h2 data-zh="🧮 機率計算器">🧮 Probability Calculator</h2>
     <p style="color:var(--text-muted);font-size:13px;margin-bottom:8px;" data-zh="常見機率分佈計算與視覺化">Compute event probabilities for common discrete and continuous distributions and visualise the distribution curve.</p>    <div class="formula-box">
       <div class="formula-title">📐 計算公式 / 原理</div>
-      <div class="formula-eq">P(a<X<b) = Φ((b−μ)/σ) − Φ((a−μ)/σ)</div>
+      <div class="formula-eq">機率計算（本頁程式碼口徑，六模式）：正態 between P(a≤X≤b)=Φ((b−μ)÷σ)−Φ((a−μ)÷σ)（Φ 由 erf 實現，另支援 pdf/cdf/逆 cdf）；二項 pmf=C(n,k)·p^k·(1−p)^(n−k)、between=CDF(b)−(a&gt;0 時 CDF(a−1) 否則 0)；泊松 pmf=λ^k·e^(−λ)÷k!；均勻、指數按標準 pdf/cdf/逆 cdf；基本機率獨立時 P(A∩B)=P(A)P(B)、P(A∪B)=P(A)+P(B)−P(A)P(B)，互斥時交為 0、並取 min(1, pa+pb)。校驗：正態 σ&gt;0、逆 cdf 機率∈(0,1)、二項 n≥1 且 p∈[0,1]、泊松 λ≥0、均勻上界&gt;下界、指數 λ&gt;0、基本機率∈[0,1]，否則分項提示並中止。判據：無固定分級，各分佈附 E(X)/Var(X) 卡片——正態 μ,σ²、二項 np,np(1−p)、泊松 λ,λ、均勻 (a+b)÷2,(b−a)²÷12、指數 1÷λ,1÷λ²。</div>
       <div class="formula-desc">正態分佈機率按標準正態累積分佈 Φ 求區間機率；二項/泊松等分佈按各自機率質量函式累加，二項分佈在 n 較大時可用正態近似。</div>
     </div>
 
@@ -249,6 +249,8 @@ function normalInv(p, mu, sigma){
 
 function binomialPMF(k, n, p){
   if(k<0||k>n) return 0;
+  if(p<=0) return k===0?1:0;
+  if(p>=1) return k===n?1:0;
   let logC = 0;
   for(let i=1;i<=k;i++){
     logC += Math.log((n-k+i)/i);
@@ -266,6 +268,7 @@ function binomialCDF(k, n, p){
 
 function poissonPMF(k, lambda){
   if(k<0) return 0;
+  if(lambda<=0) return k===0?1:0;
   let logPMF = -lambda + k*Math.log(lambda);
   for(let i=2;i<=k;i++) logPMF -= Math.log(i);
   return Math.exp(logPMF);

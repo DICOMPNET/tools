@@ -122,7 +122,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="輸入元素個數 n，求圓排列數。">Compute the number of circular permutations of n items as (n-1)!.</p>
     <div class="formula-box">
       <div class="formula-title">📐 計算公式</div>
-      <div class="formula-eq">環形排列數 = (n−1)!</div>
+      <div class="formula-eq">圓排列：環形排列數 = (n−1)!（固定一元素消去旋轉等價）；對照全排列 n!；項鍊/手鐲排列數（翻轉亦等價）= n≥3 ? (n−1)! ÷ 2 : (n≥1 ? 1 : 0)。校驗：n 封頂 1000、&lt;1 提示報錯；結果按對數空間計算並自動轉科學計數，超大 n 不再溢位。判據：無固定分級，可翻轉時在圓排列基礎上再除以 2。</div>
       <p class="formula-desc">輸入元素個數 n，求圓排列數。</p>
     </div>
 
@@ -185,13 +185,15 @@ s.parentNode.insertBefore(el, s);
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){
-            function factN(k){let r=1;for(let i=2;i<=k;i++)r*=i;return r;}
+            function lnFact(k){let s=0;for(let i=2;i<=k;i++)s+=Math.log(i);return s;}
+            function fmtExp(ln){if(ln<=709)return Math.exp(ln).toLocaleString('en-US',{maximumFractionDigits:0});const e=Math.floor(ln/Math.LN10);return Math.exp(ln-e*Math.LN10).toFixed(3)+'e+'+e;}
             const n=Math.min(num('n'), 1000);
-            const P=factN(n-1);
+            if(!(n>=1)){ToolBox.setResult('result','请输入正整数 n');return;}
+            const lnP=lnFact(n-1);
             const __g1=dataGrid([
-                [P.toFixed(0),'圆排列数 (n−1)!'],
-                [(factN(n)).toFixed(0), '全排列 n!'],
-                [(n>=3?(P/2):(n>=1?1:0)).toFixed(0), '项链排列数（含翻转对称）']
+                [fmtExp(lnP),'圆排列数 (n−1)!'],
+                [fmtExp(lnFact(n)), '全排列 n!'],
+                [(n>=3?fmtExp(lnP-Math.LN2):(n>=1?'1':'0')), '项链排列数（含翻转对称）']
             ]);ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
         }
 function resetForm(){document.getElementById('n').value = '5';

@@ -135,7 +135,7 @@ s.parentNode.insertBefore(el, s);
     <h2 data-zh="⚖️ 年齡(骨齡)推斷器">Bone Age Estimation</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="基於骨化中心出現、骨骺癒合及恥骨聯合面形態推斷個體生物學年齡">Bone Age Estimation</p>
     <div class="formula-box">
-      <div class="formula-title">📐 工作原理與說明</div>
+      <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">骨齡推斷（分發育階段模型）<br>胎兒：股骨長法 胎齡(周) ≈ 0.43×FL(mm) + 4.5<br>頂臀長法（Robinson）胎齡(周) ≈ (8.052×√CRL + 23.73)/7；兩法取均值<br>嬰幼兒：腕骨數+1；掌指骨骺數×0.4+0.5；加權 0.6/0.4<br>青少年（TW3 簡化）：橈骨 5+等級×1.3｜掌骨 5+等級×1.2｜指骨 5+等級×1.25，取均值，女性 −1 歲<br>青春期：各骨骺部位癒合狀態（未癒合/癒合中/完全癒合）對映年齡後取均值<br>成人：恥骨聯合面 Suchey-Brooks 期均值×0.45 + 第4肋×0.35 + 顱縫×0.20<br>第4肋年齡 = 17+(級−1)×7.5（女性 −2）；顱縫年齡 = 25+級×7<br>女性骨發育通常早男性 1–2 年；成人推斷標準差大（±5–12 年）</div>
       <p class="formula-desc" data-zh="核心計算公式（按輸入變數）：(sb.mean × 0.45 + ribAge × 0.35 + sutureAge × 0.20)；(ageByRadius + ageByMeta + ageByPhal) ÷ 3；(ageByCarpal × 0.6 + ageByMeta × 0.4)">Key formulas: (sb.mean × 0.45 + ribAge × 0.35 + sutureAge × 0.20); (ageByRadius + ageByMeta + ageByPhal) ÷ 3; (ageByCarpal × 0.6 + ageByMeta × 0.4)</p>
     </div>
 
@@ -375,10 +375,10 @@ function calc() {
     var femurLen = parseFloat(document.getElementById('femurLen') ? document.getElementById('femurLen').value : 0) || 0;
     var crl = parseFloat(document.getElementById('crl') ? document.getElementById('crl').value : 0) || 0;
     method = '胎儿股骨长度/顶臀长法';
-    // 股骨长 → 胎龄(周) ≈ 6.752 + 0.2127 * FL(mm)  (近似)
-    var ageByFemur = 6.752 + 0.2127 * femurLen;
-    // CRL → 胎龄(周) ≈ (CRL + 6.5*1.037) / 0.88 (近似)
-    var ageByCRL = 0.017 * crl + 4.5;
+    // 股骨长 → 胎龄(周) ≈ 0.43×FL(mm) + 4.5（产科参考：FL=50mm≈26 周，与 Hadlock/INTERGROWTH 一致）
+    var ageByFemur = 0.43 * femurLen + 4.5;
+    // 顶臀长 → 胎龄(周)：Robinson 经典公式 GA(天)=8.052×√CRL + 23.73，折算周（CRL=120mm≈16 周）
+    var ageByCRL = (8.052 * Math.sqrt(crl) + 23.73) / 7;
     estAge = (ageByFemur + ageByCRL) / 2;
     ageRange = (estAge - 2).toFixed(0) + ' ~ ' + (estAge + 2).toFixed(0) + ' 周';
     details = '股骨长推算：' + ageByFemur.toFixed(1) + '周；顶臀长推算：' + ageByCRL.toFixed(1) + '周';

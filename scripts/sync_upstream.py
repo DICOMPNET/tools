@@ -79,6 +79,19 @@ FILE_PATCHES = {
     "tools/it/short-link-generator.html": [
         ("https://github.com/chenguangwu/chenguangwu.github.io", "https://tools.dicomp.net/"),
     ],
+    # ADFGVX 密码页两处缺陷（上游版本 localeCompare 依赖浏览器语言、默认方阵串 37 字符含重复 M 且 Z 落在
+    # 第 37 位 ⇒ 加密 Z 输出 "undefined"）。修好后门禁 it/adfgvx-cipher 不再受 ICU 排序影响。
+    "tools/it/adfgvx-cipher.html": [
+        ("pairs.sort((a, b) => a.ch.localeCompare(b.ch));",
+         "pairs.sort((a, b) => (a.ch < b.ch ? -1 : a.ch > b.ch ? 1 : 0));"),
+        ("const DEFAULT_KEY = 'NA1C3H8TB2OME5WRPD4F6G7I9J0KLMQSUVXYZ';",
+         "const DEFAULT_KEY = 'NA1C3H8TB2OME5WRPD4F6G7I9J0KLQSUVXYZ';"),
+    ],
+    # 同上：门禁用例的 expect 原带「 U V X Y」（默认方阵末格），方阵改成 36 字符后末格变 Z ⇒ 只留密文断言
+    "scripts/verify_it_calc.js": [
+        ('" U V X Y\\nabc123测试\\n1 2 3\\nG A V A F D X X"',
+         '"abc123测试\\n1 2 3\\nG A V A F D X X"'),
+    ],
 }
 DRY_RUN = "--dry-run" in sys.argv
 

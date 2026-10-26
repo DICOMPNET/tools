@@ -119,7 +119,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="從若干輪損失中選出最優輪次。">Paste per-epoch validation metrics and let the tool pick the best epoch, with an early-stopping recommendation for your next run.</p>
         <div class="formula-box">
       <div class="formula-title">📐 計算公式 / 原理</div>
-      <div class="formula-eq">最佳輪次 = argmin(驗證損失)；最小驗證損失 = min(l₁…l₅)</div>
+      <div class="formula-eq">最佳輪次判定（argmin 完整口徑）：最小驗證損失 minLoss = min(l₁…l₅)；最佳輪次 = 線性掃描取最小值所在輪（嚴格小於比較 a[i]&lt;a[m]，並列時保留更早出現的輪次，下標+1 即輪號）。校驗：無強校驗，五輪驗證損失空值按 0 兜底。判據：無分級，minLoss 保留四位小數、最佳輪次取整數輪。</div>
       <div class="formula-desc">取驗證損失最低的輪次而非最後一輪，是早停的標準做法。若多個輪次損失接近，優先選更靠後的（通常更穩）或按次要指標（F1）再篩；注意"用驗證集選輪次"本身會輕微樂觀，嚴格評估應留出獨立測試集。</div>
     </div>
 <div class="input-row"><label>loss 輪1</label><input type="number" id="l1" value="0.5" step="any" oninput="calc()"></div>
@@ -142,7 +142,7 @@ s.parentNode.insertBefore(el, s);
   </div>
   <div class="card formula-box">
     <h3>📐 計算公式與說明</h3>
-    <div class="formula-eq">最佳輪次 = loss 最小者</div>
+    <div class="formula-eq">早停判讀口徑：最佳輪次 = 五輪驗證損失中最小者所在輪；損失隨輪次遞減說明仍在收斂、可繼續訓練，觸底回升即出現過擬合拐點，應早停並回滾到該輪權重（並列取更早輪更穩妥）。校驗：無強校驗，未填損失按 0 計。判據：無固定分級，最佳輪次同時用於評估泛化——訓練損失續降而驗證損失回升即泛化開始劣化。</div>
     <p style="font-size:13px;color:var(--text-muted);margin-top:12px;">應結合驗證集，避免過擬合輪次。</p>
   </div>
 </div>

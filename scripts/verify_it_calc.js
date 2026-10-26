@@ -3625,9 +3625,9 @@ const CASES = [
       "output": "1\n2\n3"
     },
     "expect": [
-      " U V X Y\nabc123测试\n1 2 3\nG A V A F D X X"
+      "abc123测试\n1 2 3\nG A V A F D X X"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"key\":\"abc123测试\",\"transKey\":\"abc123测试\",\"input\":\"1\\n2\\n3\",\"output\":\"1\\n2\\n3\"}，输出区含「 U V X Y\nabc123测试\n1 2 3\nG A V A F D X X」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"key\":\"abc123测试\",\"transKey\":\"abc123测试\",\"input\":\"1\\n2\\n3\",\"output\":\"1\\n2\\n3\"}，输出区含「abc123测试\n1 2 3\nG A V A F D X X」（置换密钥行 + 明文行 + 密文行）；默认态（输入回退、输出区为空）不含该串 ⇒ 强判别、零逃生。⚠️ 原 expect 还带首行「 U V X Y」（6×6 方阵末格），已删除：默认方阵串修正为 36 字符后末格变成 Z，该片段不再稳定，断言落在密文本体上更可靠。"
   },
   {
     "slug": "it/area-code-lookup",

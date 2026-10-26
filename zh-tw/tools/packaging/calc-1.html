@@ -110,7 +110,7 @@ s.parentNode.insertBefore(el, s);
     <h2 data-zh="📦 紙箱外箱尺寸計算">Shipping Carton Dimensions Calculator</h2>
     <div class="formula-box">
       <div class="formula-title">📐 計算公式</div>
-      <div class="formula-eq">外箱尺寸 = 產品內尺寸 + 2×(緩衝厚度 + 紙板厚度)</div>
+      <div class="formula-eq">外箱尺寸 = Math.ceil(產品內尺寸 + 2×(緩衝厚度 + 紙板厚度))，長寬高三向同式各加 2×(緩衝+紙板) 並向上取整；空間利用率 = 產品淨體積(內長×內寬×內高÷1e9) ÷ 外箱體積(外長×外寬×外高÷1e9) × 100%（外體積為 0 時記 0）。校驗：內尺寸、緩衝厚度、紙板厚度任一為負即提示「請輸入有效非負數」（0 允許）。判據：利用率越高包裝空間越緊湊，緩衝/紙板越厚外箱放大越多。</div>
     </div>
     <p style='font-size:13px;color:var(--text-muted);margin-bottom:16px;' data-zh="根據產品內尺寸、緩衝材料厚度和紙板厚度，計算紙箱外箱尺寸、體積與空間利用率。">Compute outer carton dimensions for packaging.</p>
     <div class='input-row'>
@@ -127,13 +127,14 @@ s.parentNode.insertBefore(el, s);
       <button class='btn' onclick='copyResult()'>複製結果</button>
     </div>
     <div class='result-box' id='result'>
+<p>請輸入引數後計算。</p></div>
     <div class="toolbar" style="margin-top:8px;">
       <span style="font-size:13px;color:var(--text-muted);">常見箱型預設：</span>
       <button type="button" class="btn" onclick="applyCartonPreset('phone')">📱 手機小件</button>
 <button type="button" class="btn" onclick="applyCartonPreset('shoe')">👟 鞋服箱包</button>
 <button type="button" class="btn" onclick="applyCartonPreset('appliance')">🧊 家電整機</button>
     </div>
-<p>請輸入引數後計算。</p></div>
+    <div id="ctChart"></div>
     <div class='info-box' style='margin-top:12px;'>外箱尺寸 = 產品內尺寸 + 2×(緩衝厚度 + 紙板厚度)。結果向上取整到毫米，便於實際選材。</div>
     <div style="margin-top:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
       <button type="button" class="btn" data-zh="⬇️ 匯出紙箱尺寸計算結果 CSV" onclick="__cartonExport()">⬇️ Export Carton Size Results CSV</button>
@@ -317,5 +318,49 @@ function applyCartonPreset(kind){
 </dl>
 </div>
 </section>
+<script>/*TBKIT-CHART-INJECT-CT*/
+function __ctChartDraw(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.bar) return;
+  try{
+    var host=document.getElementById('ctChart');
+    if(!host) return;
+    var inner=[],i,v;
+    var ids=['inL','inW','inH'];
+    for(i=0;i<ids.length;i++){
+      v=parseFloat(document.getElementById(ids[i]).value);
+      if(!isFinite(v)||v<0) return;
+      inner.push(v);
+    }
+    var pad=parseFloat(document.getElementById('pad').value);
+    var board=parseFloat(document.getElementById('board').value);
+    if(!isFinite(pad)||!isFinite(board)||pad<0||board<0) return;
+    var add=2*(pad+board);
+    var outer=inner.map(function(x){return Math.ceil(x+add);});
+    var en=TBKit.util.isEn();
+    TBKit.chart.bar(host,{labels:en?['L','W','H']:['长','宽','高'],series:[{name:en?'Inner (mm)':'内尺寸 (mm)',data:inner},{name:en?'Outer (mm)':'外尺寸 (mm)',data:outer}],title:(en?'Inner vs outer size (per-side add ':'内外尺寸对比（单边加放 ')+add+' mm'+(en?')':'）')});
+  }catch(e){}
+}
+(function(){
+  var ids=['inL','inW','inH','pad','board'];
+  function wire(){
+    ids.forEach(function(id){
+      var el=document.getElementById(id);
+      if(!el||el.getAttribute('data-ct-wired')) return;
+      el.setAttribute('data-ct-wired','1');
+      el.addEventListener('input',__ctChartDraw);
+      el.addEventListener('change',__ctChartDraw);
+    });
+  }
+  function wrapCalc(){
+    if(window.__ctWrapped) return;
+    if(typeof window.calculate!=='function') return;
+    window.__ctWrapped=1;
+    var f0=window.calculate;
+    window.calculate=function(){f0();try{__ctChartDraw();}catch(e){}};
+  }
+  function b(){wire();wrapCalc();try{__ctChartDraw();}catch(e){}}
+  if(document.readyState&&document.readyState!=='loading')b();else document.addEventListener('DOMContentLoaded',b);
+})();
+</script>
 </body>
 </html>

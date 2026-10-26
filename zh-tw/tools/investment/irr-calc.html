@@ -122,7 +122,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="專案自身現金收益率，二分法數值求解。">Compute the internal rate of return from period cash flows using bisection search for the discount rate that makes NPV = 0.</p>
     <div class="formula-box">
       <div class="formula-title">📐 計算公式</div>
-      <div class="formula-eq">NPV = Σ CF_t/(1+r)^t = 0</div>
+      <div class="formula-eq">內部收益率 IRR（數值解）：IRR 為使 NPV = Σ CF_t ÷ (1+r)^t = 0 的折現率 r（CF₀ 首期投資通常為負）；求解用二分法——區間 [−0.99, 10]、迭代 200 次，NPV(中點)&gt;0 則抬低下界、否則壓低上界，收斂取區間中點，×100 顯示（%）。校驗：無強校驗，五期現金流空值按 0 兜底。判據：無固定分級，IRR 高於資金成本（基準收益率）則專案可行，常規現金流僅一次變號時解唯一。</div>
       <p class="formula-desc">專案自身現金收益率，二分法數值求解。</p>
     </div>
 
@@ -209,8 +209,12 @@ function irr(cfs){let lo=-0.99, hi=10;
   return (lo+hi)/2;}
 
             const cfs=[num('cf0'),num('cf1'),num('cf2'),num('cf3'),num('cf4')];
+            var scCnt=0,prev=0;for(var si=0;si<cfs.length;si++){var vv=cfs[si];if(vv===0)continue;if(prev!==0&&((prev>0)!==(vv>0)))scCnt++;prev=vv;}
+            var noRoot=npv(-0.99,cfs)*npv(10,cfs)>0;
+            var irrVerdict=noRoot?'⚠ 搜索区间 [−99%, 1000%] 内无 IRR 零点，下值无意义':(scCnt>1?'⚠ 现金流变号 '+scCnt+' 次，可能存在多重 IRR，下值仅为其中之一':'常规现金流（单次变号），解唯一');
             const __g1=dataGrid([
-                [(irr(cfs)*100).toFixed(2),'内部收益率 IRR (%)']
+                [(irr(cfs)*100).toFixed(2),'内部收益率 IRR (%)'],
+                [irrVerdict,'求解有效性判据']
             ]);ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
         }
 function resetForm(){document.getElementById('cf0').value = '-1000';
