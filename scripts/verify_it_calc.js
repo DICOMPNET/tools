@@ -321,6 +321,18 @@ const CASES = [
     ref: "Unix 时间戳 0 = 1970-01-01T00:00:00Z（UTC 纪元）",
   },
   {
+    slug: "it/timestamp-converter",
+    inputs: { smartInput: "1735660800" },
+    expect: ["识别为秒时间戳（10 位）", "2024-12-31T16:00:00.000Z"],
+    ref: "智能粘贴识别·秒：1735660800 < 1e12 ⇒ 判秒，同步填秒/毫秒/日期三框并 renderResults。ISO 行由 date.toISOString() 输出，UTC 确定（免时区漂移）。默认态 smartInput 空 ⇒ hint 清空、零命中。两条 expect 均依赖被测输入（识别文案由位数决定、ISO 由时间值决定）。",
+  },
+  {
+    slug: "it/timestamp-converter",
+    inputs: { smartInput: "1735660800000" },
+    expect: ["识别为毫秒时间戳（13 位）", "2024-12-31T16:00:00.000Z"],
+    ref: "智能粘贴识别·毫秒：1735660800000 ≥ 1e12 ⇒ 判毫秒（等价 1735660800 s），与上条共用同一 ISO 锚、识别文案不同 ⇒ 互不命中、判别器可区分两态。",
+  },
+  {
     slug: "it/standard-deviation",
     inputs: { data: "1,2,3,4" },
     expect: ["1.291", "1.118"],
@@ -947,6 +959,13 @@ const CASES = [
     clicks: ["calcTool()"],
     expect: ["无匹配"],
     ref: "`abc` 不匹配邮箱正则 ⇒ 匹配数 0 且结果区落「无匹配」；默认示例文本可命中，结论相反。",
+  },
+  {
+    slug: "it/regex-common",
+    inputs: { txt: "x a@b.com y c@d.org z", cat: "email", limit: "8" },
+    clicks: ["calcTool()"],
+    expect: ["命中位置（字符偏移）：#1 [2-9] a@b.com、#2 [12-19] c@d.org"],
+    ref: "S6 原文高亮：matchAll 逐段 <mark> 包裹 + 命中偏移明细。偏移由输入文本决定（x=0 空格=1 ⇒ a@b.com=[2-9]；c@d.org=[12-19]），默认样例（abc@example.com 13812345678…）不含该偏移组合 ⇒ 不命中。条目（『、』分隔 + 顺序号）与偏移都在被测输出中，判别力强。注意默认态样例也产「原文高亮（2 处）」字样，故不能以该标题单独作锚（铁律⑥或关系）。"
   },
   {
     slug: "it/vector-magnitude",
@@ -1709,6 +1728,13 @@ const CASES = [
     ref: "独立复算：同上口径，`abc` 的 CRC-8 = 0x5f。同一页面换输入各写一条，两条 expect 互不相同。",
   },
   {
+    slug: "it/crc-calculator",
+    inputs: { input: "abc" },
+    clicks: ["document.getElementById('customOn').checked=true; calc();"],
+    expect: ["自定义模型 (width=8, poly=0x07) 0x5f"],
+    ref: "自定义 CRC 模型（2026-10-26）：勾选 customOn 后按六参（width=8/poly=07/init=00/refin=0/refout=0/xorout=00）= 标准 CRC-8 ⇒ abc = 0x5f，自洽核对；锚含「自定义模型」卡名区分内置卡。判别态 clicks 清空 ⇒ 无自定义卡，零交集。（clicks 内勾选而非 checks：checks 机制对该页行为不稳，clicks 直调可控。）",
+  },
+  {
     slug: "it/decimal-encode",
     inputs: { input: "AB" },
     clicks: ["enc()"],
@@ -1987,6 +2013,20 @@ const CASES = [
     clicks: ["formatToml()"],
     expect: ["a = 1"],
     ref: "TOML 规范化：`name=value` ⇒ `name = value`。默认样例是多节 TOML，首行不是本串。",
+  },
+  {
+    slug: "it/toml-formatter",
+    inputs: { input: "a = 1\nbroken line\nb = 2" },
+    clicks: ["validateToml()"],
+    expect: ["第 2 行：缺少「=」"],
+    ref: "严格校验（validateToml 专用，format 仍宽松）：第 2 行 `broken line` 无 `=` 且非表头 ⇒ 报「第 2 行：缺少「=」」。默认样例合法 ⇒ 默认态无该串，强判别。",
+  },
+  {
+    slug: "it/toml-formatter",
+    inputs: { input: "[owner] # c\nname = \"Tom\"\ndesc = \"\"\"multi\nline\"\"\"\nport = 8080\nhost = \"db\"" },
+    clicks: ["validateToml()"],
+    expect: ["✅ TOML 语法验证通过！（共 4 个键值对，1 个表）"],
+    ref: "严格校验合法输入：行内注释表头 + 多行字符串（值侧三引号跨行）+ 常规键值 ⇒ 通过并输出输入相关统计（4 kv：name/desc/port/host；1 表：owner）。多行字符串若被逐行误判会报「第 5 行缺少 =」。默认样例是 3 kv 0 表 ⇒ 默认态无本串，强判别（修复既往「两态同值」逃生）。",
   },
   {
     slug: "it/xxencode",
@@ -2681,6 +2721,18 @@ const CASES = [
        + "网络地址 = 2886732085 & 0xFFF00000 = 2885681152 ⇒ 172.16.0.0（主机位非零，与上例同页的另一形态）；"
        + "广播地址 = 2885681152 + (2^20−1) = 2886729727 ⇒ 172.31.255.255；"
        + "可用主机 = 2^20 − 2 = 1048574 ⇒ 千分位 1,048,574；通配符 = 0.15.255.255。默认态均不命中。",
+  },
+  {
+    slug: "it/ip-calculator",
+    inputs: { batchInput: "10.0.0.0/8\n192.168.1.0/24\n172.16.5.0/12" },
+    expect: ["共 3 条：有效 3，无效 0"],
+    ref: "批量 CIDR 解析·全有效：/8 ⇒ 16,777,214 主机（2^24−2）、/12 ⇒ 掩码 255.255.240.0、/24 ⇒ 254。⚠ 锚只能用统计串——主机数/掩码串在「掩码对照表」（harness 兜底直调 buildMaskTable 渲染进 blob）同样出现，作 expect 即逃生（铁律⑥或关系）；统计串由输入行数与有效性决定（默认 batchInput 空 ⇒ batchRes 空、零命中），对照表不含该串。",
+  },
+  {
+    slug: "it/ip-calculator",
+    inputs: { batchInput: "10.0.0.0 255.255.0.0\n300.1.1.1/24\n192.168.1.5" },
+    expect: ["共 3 条：有效 2，无效 1"],
+    ref: "批量 CIDR 解析·混合容错：点分掩码 255.255.0.0 ⇒ /16（65,534 主机）；300.x 越界 ⇒ ❌ 无效；裸 IP ⇒ /32（网络=广播=自身、1 主机）。⚠ 主机数/掩码串撞掩码对照表不可作锚，统计串独占（对照表无「共 N 条」格式）。与上条统计串不同 ⇒ 互不命中、判别器可区分。",
   },
   // ── .gitignore 生成（勾选技术栈 → 拼接忽略规则）──
   {
@@ -3452,6 +3504,36 @@ const CASES = [
     ],
     "ref": "注入 '30 9 * * 1-5'（工作日 09:30）；冻结基准日 2024-06-15(周六) 时，下次工作日为 06-17(周一) 09:30。页面 HTML 默认 manualInput='0 0 * * *'（每天 00:00）只产生 2024-06-16 00:00，不出现 06-17 09:30。"
   },
+  {
+    "slug": "it/cron",
+    "inputs": { "nlInput": "每天 08:30" },
+    "expect": ["解析为： 30 8 * * * 含义：每天 08:30"],
+    "ref": "人类语→表达式（S6 反向翻译）·每天+冒号时间：30 8 * * *。整串锚（表达式+归一化含义）全部由被测输入决定；默认 nlInput 空 ⇒ nlBox 清空零命中。注：parseHumanCron 成功后同步 parseToVisual，blob 含可视化面板产出，属预期噪音。"
+  },
+  {
+    "slug": "it/cron",
+    "inputs": { "nlInput": "每周一 09:15" },
+    "expect": ["解析为： 15 9 * * 1 含义：每周一 09:15"],
+    "ref": "人类语→表达式·周修饰：每周X → week=1-6/0（一=1），与上条同构不同锚互不命中。曾出 bug：note 拼接得「每一」，已修为「每周一」。"
+  },
+  {
+    "slug": "it/cron",
+    "inputs": { "nlInput": "每月 1 号 2:30" },
+    "expect": ["解析为： 30 2 1 * * 含义：每月 1 号 02:30"],
+    "ref": "人类语→表达式·日修饰+冒号时间：曾出真 bug——旧正则可选分组使「1 号」在最早起点匹配成功（h=1、m=0）吞掉真正 2:30，得 0 1 1 * *。修复：严格 HH:MM 模式优先于「X点」宽松模式。本锚守护该回归。"
+  },
+  {
+    "slug": "it/cron",
+    "inputs": { "nlInput": "下午 3 点" },
+    "expect": ["解析为： 0 15 * * * 含义：每天 15:00"],
+    "ref": "人类语→表达式·十二时辰映射：下午X点(1-11)=X+12，下午12点=12、晚上12点=0；「3 点」无分钟 ⇒ 0 分。默认态与其它用例不产 15 点 ⇒ 不命中。"
+  },
+  {
+    "slug": "it/cron",
+    "inputs": { "nlInput": "每 15 分钟" },
+    "expect": ["解析为： */15 * * * * 含义：每 15 分钟"],
+    "ref": "人类语→表达式·步长句式（无时间词）：每 X 分钟 → */X * * * *（X=1 退化为 *）。曾出 bug：该分支 noteFull 未赋值输出 undefined，已修。"
+  },
 
   {
     "slug": "it/csv-to-yaml",
@@ -3627,7 +3709,7 @@ const CASES = [
     "expect": [
       "abc123测试\n1 2 3\nG A V A F D X X"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"key\":\"abc123测试\",\"transKey\":\"abc123测试\",\"input\":\"1\\n2\\n3\",\"output\":\"1\\n2\\n3\"}，输出区含「abc123测试\n1 2 3\nG A V A F D X X」（置换密钥行 + 明文行 + 密文行）；默认态（输入回退、输出区为空）不含该串 ⇒ 强判别、零逃生。⚠️ 原 expect 还带首行「 U V X Y」（6×6 方阵末格），已删除：默认方阵串修正为 36 字符后末格变成 Z，该片段不再稳定，断言落在密文本体上更可靠。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"key\":\"abc123测试\",\"transKey\":\"abc123测试\",\"input\":\"1\\n2\\n3\",\"output\":\"1\\n2\\n3\"}，输出区含「 U V X Y\nabc123测试\n1 2 3\nG A V A F D X X」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "it/area-code-lookup",
@@ -3916,6 +3998,20 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"a\":\"abc123测试\",\"b\":\"abc123测试\",\"op\":\"OR\"}，输出区含「abc123测试\nOR\nabc123测试」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。G06-S1 首屏自跑改变了元素创建序 ⇒ blob 字段序随之改变，expect 容忍新旧两种字段序；判别力不变。"
   },
   {
+    slug: "it/bitwise-calculator",
+    inputs: { a: "12", b: "10", op: "AND" },
+    clicks: ["calc()"],
+    expect: ["A 00000000 | 00000000 | 00000000 | 00001100 B 00000000 | 00000000 | 00000000 | 00001010 R", "与 A 不同：1 位"],
+    ref: "S3 位对齐可视化：A/B/R 三行 8 位分组（12=…00001100、10=…00001010）+ 与 A 差异统计（1100→1000 仅第 2 位清零 ⇒ 1 位）。默认 a=0 ⇒ A 行全 0 且「与 A 不同：0 位」，双锚均不命中。"
+  },
+  {
+    slug: "it/bitwise-calculator",
+    inputs: { a: "12", b: "0", op: "NOT" },
+    clicks: ["calc()"],
+    expect: ["按位取反：1→0 共 2 位，0→1 共 30 位"],
+    ref: "S3 位对齐可视化·NOT：12=0b1100（2 个 1、30 个 0）逐位取反 ⇒ 1→0 共 2 位、0→1 共 30 位。曾出 bug：用「总差异数 32−flips」推导方向计数恒得 0/32，已改为逐位方向计数。默认 a=0 ⇒ 1→0 共 0 位，不命中。"
+  },
+  {
     "slug": "it/binary-to-text",
     "inputs": {
       "input": "1\n2\n3",
@@ -4091,6 +4187,14 @@ const CASES = [
       " Binary 00110001 00001010 00110010 00001010 001100"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\"}，输出区含「 Binary 00110001 00001010 00110010 00001…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "it/char-encoder",
+    "inputs": { "input": "Hi中" },
+    "expect": [
+      "U+4E2D e4 b8 ad 11100100 10111000 10101101"
+    ],
+    "ref": "E1 字节视图（2026-10-26）：#byteViewBox 逐字符对照表，「中」= U+4E2D → UTF-8 三字节 e4 b8 ad（11100100 10111000 10101101）。默认态 input 为空 ⇒ byteView 清空不渲染，零交集。"
   },
   {
     "slug": "it/calc-subnet",
@@ -6487,9 +6591,9 @@ const CASES = [
       "builtUrl": "1\n2\n3"
     },
     "expect": [
-      "除\n暂无历史记录\nabc123测试\nabc123测试\nabc123测试\nabc123测试\n1 2 3\n1 2 3\n5\n5\n5 B\n+0.0%"
+      "删除\n暂无历史记录\n1 2 3\n1 2 3\nabc123测试\nabc123测试\nabc123测试\nabc123测试\n5\n5\n5 B\n+0.0%"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"baseUrl\":\"abc123测试\",\"parseInput\":\"abc123测试\",\"asciiFilter\":\"abc123测试\",\"input\":\"1\\n2\\n3\",\"output\":\"1\\n2\\n3\",\"builtUrl\":\"1\\n2\\n3\"}，输出区含「除\n暂无历史记录\nabc123测试\nabc123测试\nabc123测试\nabc1…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"baseUrl\":\"abc123测试\",\"parseInput\":\"abc123测试\",\"asciiFilter\":\"abc123测试\",\"input\":\"1\\n2\\n3\",\"output\":\"1\\n2\\n3\",\"builtUrl\":\"1\\n2\\n3\"}，输出区含「删除\n暂无历史记录\n1 2 3\n1 2 3\nabc123测试…」；2026-10-26 页面加默认样例+首屏静默渲染后段序变化，按漂移修复流程以隔离 fullBlob 实测重写（判别力不变：abc123测试 为注入专属值，默认样例编码产物不含该串）。默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "it/url-encoder-advanced",
@@ -6548,9 +6652,9 @@ const CASES = [
       "output": "1\n2\n3"
     },
     "expect": [
-      "abc123测试\n1 2 3"
+      "begin 644 abc123测试 #,0HR \"\"C, ` end"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"fname\":\"abc123测试\",\"input\":\"1\\n2\\n3\",\"output\":\"1\\n2\\n3\"}，输出区含「abc123测试\n1 2 3」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"fname\":\"abc123测试\",\"input\":\"1\\n2\\n3\",\"output\":\"1\\n2\\n3\"}。2026-10-26 S1 首屏即答案改造后：boot 首渲染令 input/output 先于 fname 登记 ⇒ 值回显段序变化，旧锚「abc123测试\\n1 2 3」断裂；改锚为兜底 enc() 的确定性产物 begin 644 abc123测试 头（依赖注入的 fname，默认态 file.txt ⇒ 不含该串，判别力保持且更强）。"
   },
   {
     "slug": "it/uuid-v5-generator",

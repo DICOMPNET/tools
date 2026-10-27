@@ -20,6 +20,19 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  "slug": "cardiology/ambulatory-bp",
+  "inputs": {
+    "avg24_sbp": "148",
+    "avg24_dbp": "86",
+    "followDate": "2024-03-10"
+  },
+  "expect": [
+    "随访计划（评估日 2024-03-10，24h平均 高血压）",
+    "第3次随访：2024-06-08（评估后 90 天"
+  ],
+  "ref": "随访计划生成器（03-66）：avg24 148/86 ≥135/85 ⇒ 24h平均 高血压 ⇒ 日程 14/30/90/365 天。2024-03-10 +90 天 = 2024-06-08（3 月余 21 + 4 月 30 + 5 月 31 = 82，余 8 天 → 6/8；闰年 2/29 在起点前不影响）。默认 followDate 为空 ⇒ 日程块不渲染；discriminator 将 avg24_sbp 换回默认 142、followDate 换回空 ⇒ 两条锚零交集。日期对固定、与运行日无关（铁律④）。"
+},
+{
   "slug": "cardiology/antiarrhythmic-class",
   "clicks": [
     "showClass('4', {classList:{add:function(){},remove:function(){}}})"
@@ -125,9 +138,37 @@ const CASES = [
     "cacs": "280"
   },
   "expect": [
-    "93岁"
+    "50–75百分位"
   ],
-  "ref": "auto-restore"
+  "ref": "注入 age=93/cacs=280：CACS=280 落 [100,400) → 中度钙化；年龄分位 50–75百分位（默认 age=62/cacs=280 同为中钙，但分位是 ≥75百分位 ⇒ 「50–75百分位」随注入变化、零交集）。原 expect「93岁」输入回显、「中度钙化」默认态同命中（cacs 默认恰为 280）均不可用。S3 参考区间标尺 refBar(#cacsRefBar) 已加（bands: 无/轻/中/广/重，max1500），harness 因 TBKit 守卫不渲染但文本定位已落 #result。"
+},
+{
+  "slug": "cardiology/coronary-calcium",
+  "inputs": {
+    "sex": "m",
+    "age": "55",
+    "cacs": "50",
+    "followDate": "2024-01-15"
+  },
+  "expect": [
+    "随访计划（评估日 2024-01-15，轻度钙化）",
+    "第1次随访：2027-01-14（评估后 1095 天"
+  ],
+  "ref": "随访计划生成器铺开五（03-73）：CACS=50 → 轻度钙化 → 1095 天复查；2024-01-15+1095 天（含 2024-02-29 闰日，366+365+365）= 2027-01-14。followDate 默认空 ⇒ 日程块不渲染，老用例零交集。"
+},
+{
+  "slug": "cardiology/coronary-calcium",
+  "inputs": {
+    "sex": "f",
+    "age": "70",
+    "cacs": "600",
+    "followDate": "2024-01-15"
+  },
+  "expect": [
+    "随访计划（评估日 2024-01-15，广泛钙化）",
+    "第1次随访：2025-01-14（评估后 365 天"
+  ],
+  "ref": "CACS=600 → 广泛钙化 → 365 天年度复查 + 冠脉 CTA 评估；2024-01-15+365 天（跨 2024-02-29）= 2025-01-14。"
 },
 {
   "slug": "cardiology/cpet-analysis",
@@ -214,6 +255,19 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  "slug": "cardiology/hypertension-jnc",
+  "inputs": {
+    "sbp": "145",
+    "dbp": "92",
+    "followDate": "2024-01-15"
+  },
+  "expect": [
+    "随访计划（评估日 2024-01-15，中危）",
+    "第2次随访：2024-04-14（评估后 90 天"
+  ],
+  "ref": "随访计划生成器（03-65）：sbp=145→2级、dbp=92→2级 ⇒ 1级高血压；无危险因素/TOD/ACC（默认未勾选）⇒ 中危（grade≥2 分支）。中危日程 30/90 天：2024-01-15 +30 天 = 2024-02-14（闰年 2 月 29 天不影响）、+90 天 = 2024-04-14（16+29+31=76 天到 3 月底，余 14 天 → 4/14）。默认 followDate 为空 ⇒ 日程块不渲染，两条锚均随注入出现、零交集；日期对固定、与运行日无关（铁律④）。"
+},
+{
   "slug": "cardiology/myocardial-bridge",
   "inputs": {
     "compression": "98",
@@ -233,7 +287,8 @@ const CASES = [
     "ntprobnp": "1850"
   },
   "expect": [
-    "1800"
+    "NT-proBNP≥1800 pg/mL(>75岁截断值)",
+    "NT-proBNP 1850 pg/mL → 落在 纳入区（>75岁，纳入截断 1800 pg/mL）"
   ],
   "ref": "auto-restore"
 },

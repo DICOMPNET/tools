@@ -9,16 +9,37 @@ const CASES = [
     "ast": "30",
     "alp": "100",
     "ggt": "200",
-    "bun": "5.0",
-    "cr": "80",
+    "bun": "6.0",
+    "cr": "70",
     "ua": "300",
     "alb": "40"
   },
   "expect": [
     "急性病毒性肝炎早期",
-    "GGT/ALT>3"
+    "GGT/ALT>3",
+    "AST/ALT（De Ritis）0.50 → 落在 偏低",
+    "BUN/Cr（美制）21.2 → 落在 升高",
+    "R因子1.80 → 落在 胆汁淤积型DILI"
   ],
-  "ref": "De Ritis=AST/ALT=30/60=0.50<0.7 → 偏低（急性病毒性肝炎早期）；GGT/ALT=200/60=3.33>3 → 酒精性/胆汁淤积提示"
+  "ref": "De Ritis=AST/ALT=30/60=0.50<0.7 → 偏低（急性病毒性肝炎早期）；GGT/ALT=200/60=3.33>3 → 酒精性/胆汁淤积提示；参考区间定位（03-69 S3 标尺）：De Ritis 0.50→偏低、BUN/Cr=(6×2.8)/(70/88.4)=21.2>20→升高（肾前性氮质血症）、R=(60/40)/(100/120)=1.80→胆汁淤积型。bun=6.0/cr=70 刻意取非页面默认（默认 5.0/80），否则 B 态同值逃生（判别器实测抓到 15.5 逃生，已改）"
+},
+{
+  "slug": "clinical-lab/biochemistry-ratio",
+  "inputs": {
+    "alt": "20",
+    "ast": "80",
+    "alp": "300",
+    "ggt": "100",
+    "bun": "12",
+    "cr": "50",
+    "ua": "400",
+    "alb": "30"
+  },
+  "expect": [
+    "AST/ALT（De Ritis）4.00 → 落在 明显升高",
+    "BUN/Cr（美制）59.4 → 落在 升高"
+  ],
+  "ref": "03-69 S3 标尺新增：De Ritis=80/20=4.00>2 → 明显升高（高度提示酒精性肝病）；BUN/Cr=(12×2.8)/(50/88.4)=59.4>20 → 升高（肾前性氮质血症）"
 },
 {
   "slug": "clinical-lab/blood-gas-analysis",
@@ -32,9 +53,12 @@ const CASES = [
   },
   "expect": [
     "AG增高型代酸",
-    "合并代谢性碱中毒"
+    "合并代谢性碱中毒",
+    "pH 7.25 → 酸血症",
+    "PaCO2 28 mmHg → 低碳酸",
+    "HCO3- 12 mmol/L → 降低"
   ],
-  "ref": "pH7.25<7.35 且 HCO3 12<22 → 代谢性酸中毒；AG=140-100-12=28>12 → AG增高型；矫正HCO3=12+(28-12)=28>26 → 合并代碱"
+  "ref": "pH7.25<7.35 且 HCO3 12<22 → 代谢性酸中毒；AG=140-100-12=28>12 → AG增高型；矫正HCO3=12+(28-12)=28>26 → 合并代碱；参考区间定位：pH 酸血症 / PaCO2 低碳酸 / HCO3 降低"
 },
 {
   "slug": "clinical-lab/coagulation-inr",
@@ -48,7 +72,8 @@ const CASES = [
   },
   "expect": [
     "INR 3.5-5.0：暂停华法林1-2次",
-    "38%"
+    "38%",
+    "INR 3.75 → 落在 偏高（房颤 目标 2.0–3.0）"
   ],
   "ref": "INR=(45/12)^1=3.75，落在3.5-5.0处置区间；PTA=12/(12+0.6×(45-12))×100=37.7→38%（判别力校验不覆盖无 value 属性的 inrIn，故不断言其反算输出）"
 },
@@ -116,9 +141,12 @@ const CASES = [
   },
   "expect": [
     "慢性肝病/肝硬化图谱",
-    "γ球蛋白23%弥漫性增高(多克隆)"
+    "γ球蛋白23%弥漫性增高(多克隆)",
+    "白蛋白 50.0% → 落在 偏低",
+    "α2球蛋白 13.0% → 落在 偏高",
+    "γ球蛋白 23.0% → 落在 偏高"
   ],
-  "ref": "白蛋白50<57 + γ23>20 + α2 13>11 → 慢性肝病图谱；区带合计50+4+13+10+23=100.0%"
+  "ref": "白蛋白50<57 + γ23>20 + α2 13>11 → 慢性肝病图谱；区带合计50+4+13+10+23=100.0%；参考区间定位（03-70 S3 标尺）：三锚均依赖注入百分比（默认 60/8/19 均为正常带 ⇒ 零交集）"
 },
 {
   "slug": "clinical-lab/flow-cytometry-ratio",
@@ -134,9 +162,47 @@ const CASES = [
   },
   "expect": [
     "CD4/CD8倒置",
-    "艾滋病期(C3)"
+    "艾滋病期(C3)",
+    "CD4/CD8比值0.33 → 落在 降低(倒置)",
+    "CD4绝对值60/μL → 落在 重度抑制"
   ],
-  "ref": "淋巴细胞=2.0×20%×1000=400/μL；CD4绝对值=400×15%=60<200 → AIDS分期；CD4/CD8=15/45=0.33<0.71 → 倒置"
+  "ref": "淋巴细胞=2.0×20%×1000=400/μL；CD4绝对值=400×15%=60<200 → AIDS分期；CD4/CD8=15/45=0.33<0.71 → 倒置；参考区间定位（03-72 S3 标尺）：比值0.33→降低(倒置)、CD4绝对值60→重度抑制（依赖注入值，默认态 ratio=1.60/cd4Abs=840 均为正常带 ⇒ 零交集）"
+},
+{
+  "slug": "clinical-lab/flow-cytometry-ratio",
+  "inputs": {
+    "wbc": "2.0",
+    "lymphPct": "20",
+    "cd3": "60",
+    "cd4": "70",
+    "cd8": "15",
+    "cd19": "4",
+    "nk": "6",
+    "treg": "2"
+  },
+  "expect": [
+    "CD4/CD8比值4.67 → 落在 升高",
+    "CD4绝对值280/μL → 落在 偏低"
+  ],
+  "ref": "CD4/CD8=70/15=4.67>2.78 → 升高；CD4绝对值=400×70%=280 → 200–414 偏低带（03-72 S3 标尺，默认态均正常带零交集）"
+},
+{
+  "slug": "clinical-lab/flow-cytometry-ratio",
+  "inputs": {
+    "wbc": "2.5",
+    "lymphPct": "40",
+    "cd3": "70",
+    "cd4": "45",
+    "cd8": "20",
+    "cd19": "12",
+    "nk": "15",
+    "treg": "5"
+  },
+  "expect": [
+    "CD4/CD8比值2.25 → 落在 正常范围",
+    "CD4绝对值450/μL → 落在 边缘(414–500)"
+  ],
+  "ref": "CD4/CD8=45/20=2.25 → 正常带；CD4绝对值=2.5×40%×1000×45%=450 → 414–500 边缘带（03-72 S3 标尺；默认态比值 1.60 数值不同、cd4Abs=840 正常带 ⇒ 零交集）"
 },
 {
   "slug": "clinical-lab/hba1c-converter",
@@ -145,9 +211,21 @@ const CASES = [
   },
   "expect": [
     "控制不佳",
-    "12.4 mmol/L"
+    "12.4 mmol/L",
+    "HbA1c 9.4% → 落在 不佳（正常"
   ],
-  "ref": "eAG(mg/dL)=28.7×9.4-46.7=223.08→223；eAG(mmol/L)=223.08/18=12.39→12.4；HbA1c 9.4 落在8.0-9.9 → 控制不佳"
+  "ref": "eAG(mg/dL)=28.7×9.4-46.7=223.08→223；eAG(mmol/L)=223.08/18=12.39→12.4；HbA1c 9.4 落在8.0-9.9 → 控制不佳；参考区间定位：落在「不佳」带（≥8.0%）"
+},
+{
+  "slug": "clinical-lab/hba1c-converter",
+  "inputs": {
+    "val1": "9.4",
+    "testDate": "2024-01-15"
+  },
+  "expect": [
+    "下次复查：2024-04-15（未达标：3 个月后复查）"
+  ],
+  "ref": "随访计划生成器铺开（03-53）：HbA1c 9.4 ≥7.0 → 未达标 → 间隔 3 个月；2024-01-15 +3 个月 = 2024-04-15。默认 testDate 空 ⇒ 该 li 不渲染，零交集；EN 走 __T（Next check: … recheck in 3 months）。"
 },
 {
   "slug": "clinical-lab/pcr-ct-interpretation",
@@ -161,9 +239,40 @@ const CASES = [
   },
   "expect": [
     "阳性(低拷贝)",
-    "3.468e+2"
+    "3.468e+2",
+    "样本Ct 32 → 落在 阳性(低拷贝)"
   ],
-  "ref": "Ct=32 落在30-38 → 阳性(低拷贝)；标准曲线 slope=-3.370/intercept=38.56（独立最小二乘复算）→ 未知样本浓度=10^((30-38.56)/-3.37)=346.8 → 3.468e+2"
+  "ref": "Ct=32 落在30-38 → 阳性(低拷贝)；标准曲线 slope=-3.370/intercept=38.56（独立最小二乘复算）→ 未知样本浓度=10^((30-38.56)/-3.37)=346.8 → 3.468e+2；参考区间定位（03-68 S3 标尺）：样本Ct 32 → 落在 阳性(低拷贝)（依赖注入 ct，默认 25 为高拷贝 ⇒ 零交集）"
+},
+{
+  "slug": "clinical-lab/pcr-ct-interpretation",
+  "inputs": {
+    "ctSample": "39",
+    "ctRef": "20",
+    "ctNeg": "0",
+    "ctPos": "22",
+    "cutoff": "40",
+    "unknownCt": "30"
+  },
+  "expect": [
+    "样本Ct 39 → 落在 弱阳性(灰区)"
+  ],
+  "ref": "03-68 S3 标尺新增：Ct=39 ∈ [38,40) → 灰区带（默认 ct=25 为高拷贝 ⇒ 锚依赖注入，零交集）"
+},
+{
+  "slug": "clinical-lab/pcr-ct-interpretation",
+  "inputs": {
+    "ctSample": "42",
+    "ctRef": "20",
+    "ctNeg": "0",
+    "ctPos": "22",
+    "cutoff": "40",
+    "unknownCt": "30"
+  },
+  "expect": [
+    "样本Ct 42 → 落在 阴性"
+  ],
+  "ref": "03-68 S3 标尺新增：Ct=42 ≥ 判定阈值 40 → 阴性带（默认 ct=25 ⇒ 锚依赖注入，零交集）"
 },
 {
   "slug": "clinical-lab/semen-analysis",
@@ -195,9 +304,11 @@ const CASES = [
   },
   "expect": [
     "原发性甲状腺功能亢进症",
-    "抗TPO抗体阳性(>34 IU/mL)"
+    "抗TPO抗体阳性(>34 IU/mL)",
+    "TSH 0.02 mIU/L → 落在 偏低",
+    "FT4 35 pmol/L → 落在 偏高"
   ],
-  "ref": "TSH 0.02<0.27（低）+ FT3 12>6.8、FT4 35>22（高）→ 原发甲亢；TPOAb 120>34 → 阳性"
+  "ref": "TSH 0.02<0.27（低）+ FT3 12>6.8、FT4 35>22（高）→ 原发甲亢；TPOAb 120>34 → 阳性；参考区间定位（03-71 S3 标尺）：TSH/FT4 锚均非默认（2.0/16）⇒ 零交集"
 },
 {
   "slug": "clinical-lab/tumor-marker-doubling",
@@ -241,6 +352,36 @@ const CASES = [
   "ref": "成年男性白细胞参考3.5-9.5，17.25>9.5 → 偏高；WBC列 dec=1 → 实测值显示 17.25.toFixed(1)=17.3"
 },
 {
+  // S3 参考区间定位卡（03-63）：metricSel=all 时不渲染 ⇒ 默认态零交集
+  "slug": "clinical-lab/blood-routine-reference",
+  "inputs": {
+    "metricSel": "0",
+    "testVal": "17.25"
+  },
+  "expect": [
+    "参考区间定位（白细胞计数 WBC）",
+    "实测值 17.3 ×10⁹/L → 偏高",
+    "（偏离 上限 81.6%）",
+    "参考区间 3.5–9.5"
+  ],
+  "ref": "WBC 17.25 超上限 9.5 → 定位卡「偏高」+ 偏离幅度 (17.25-9.5)/9.5=81.58%→81.6%；默认 metricSel=all ⇒ 定位卡不渲染零交集。"
+},
+{
+  // 报告单批量解读（03-67）：reportText 空 ⇒ 卡不渲染零交集
+  "slug": "clinical-lab/blood-routine-reference",
+  "clicks": [
+    "document.getElementById('reportText').value='WBC: 3.2\\n血红蛋白 HGB 105\\n血小板计数 PLT 450'; __brBatch();"
+  ],
+  "expect": [
+    "报告单批量解读（当前人群：成年男性）",
+    "白细胞计数 WBC 3.2 ×10⁹/L → 偏低 （低于下限 3.5，偏离 8.6%）",
+    "血红蛋白 HGB 105 g/L → 偏低 （低于下限 130，偏离 19.2%）",
+    "血小板计数 PLT 450 ×10⁹/L → 偏高 （高于上限 350，偏离 28.6%）",
+    "共识别 3 项，其中 3 项超出参考区间。"
+  ],
+  "ref": "批量解读（03-67）：成年男性表 WBC 3.2<3.5 → 偏低 (3.2-3.5)/3.5=8.57%→8.6%；HGB 105<130 → 偏低 (105-130)/130=19.23%→19.2%（dec=0 → 下限 130）；PLT 450>350 → 偏高 (450-350)/350=28.57%→28.6%。指标名匹配取 token 命中最长者（「血红蛋白」不会误配「平均红细胞血红蛋白」）。reportText 默认空 ⇒ __brBatch 不清空即空 ⇒ 默认态不含锚；判别器清 clicks ⇒ 零交集。"
+},
+{
   "slug": "clinical-lab/cardiac-marker-curve",
   "inputs": {
     "upper": "2.0"
@@ -260,6 +401,19 @@ const CASES = [
     "0.12"
   ],
   "ref": "革兰阳性球菌青霉素折点 S≤0.12（gp 表首行），革兰阴性菌表无该折点"
+},
+{
+  // S3 判定汇总定位卡（03-64）：micVal 空 ⇒ 卡不渲染零交集
+  "slug": "clinical-lab/mic-breakpoint",
+  "inputs": {
+    "bacteria": "gn",
+    "micVal": "4"
+  },
+  "expect": [
+    "判定汇总定位（MIC 4 μg/mL，革兰阴性肠杆菌",
+    "敏感 9 药 · 中介 4 药 · 耐药 5 药"
+  ],
+  "ref": "gn 表 18 药按 MIC=4 判定：S 9（≤8 折点）/I 4/R 5；默认 micVal 空 ⇒ 汇总卡不渲染零交集。"
 },
 {
   "slug": "clinical-lab/parasite-egg-id",
@@ -301,6 +455,17 @@ const CASES = [
     "白细胞酯酶和/或亚硝酸盐阳性"
   ],
   "ref": "LEU 3+(500) 且 NIT 阳性 → 满足「(leu!=='neg' || nit==='pos') && (leu==='125'||leu==='500'||nit==='pos')」→ 泌尿系感染提示"
+},
+{
+  "slug": "clinical-lab/urinalysis-interpretation",
+  "clicks": [
+    "document.getElementById('ua_sg').value='1.030'; document.getElementById('ua_ph').value='8.0'; interpret();"
+  ],
+  "expect": [
+    "尿比重 1.030 → 落在 偏高",
+    "pH 8.0 → 落在 偏碱"
+  ],
+  "ref": "S3 标尺 ref-card：sg 1.030≥1.025 → 偏高带、pH 8.0≥7.5 → 偏碱带。该页 select 无 onchange（interpret 仅按钮/启动触发），inputs 注入不重渲染，故用 clicks 在页面作用域直调 interpret()。判别器清 clicks 且无 inputs → 兜底 interpret 渲染默认 sg=1.015/pH=6.0（正常带），两条 expect 均随注入变化、默认态不出现。"
 },
 {
   "slug": "clinical-lab/urine-sediment-atlas",
@@ -613,25 +778,25 @@ const CASES = [
   {
     slug: "clinical-lab/thyroid-function-model",
     inputs: { tsh: "0.2", ft3: "2.0", ft4: "16", tt3: "1.3", tt4: "66", tpo: "0" },
-    expect: ["中枢性(继发性)甲减"],
-    ref: 'TSH 0.2<0.27（低）+ FT3 2.0<3.1、FT4 16 正常 → 同向下调，中枢性甲减'
+    expect: ["中枢性(继发性)甲减", "TSH 0.2 mIU/L → 落在 偏低"],
+    ref: 'TSH 0.2<0.27（低）+ FT3 2.0<3.1、FT4 16 正常 → 同向下调，中枢性甲减；03-71 标尺锚（tsh 非默认）'
   },
   {
     slug: "clinical-lab/thyroid-function-model",
     inputs: { tsh: "8", ft3: "5.0", ft4: "14", tt3: "1.5", tt4: "100", tpo: "50" },
-    expect: ["亚临床甲状腺功能减退症", "抗TPO抗体阳性(>34 IU/mL)"],
-    ref: 'TSH 8>4.2（高）+ 激素正常 → 亚临床甲减；TPOAb 50>34 → 阳性'
+    expect: ["亚临床甲状腺功能减退症", "抗TPO抗体阳性(>34 IU/mL)", "TSH 8 mIU/L → 落在 偏高", "FT4 14 pmol/L → 落在 正常"],
+    ref: 'TSH 8>4.2（高）+ 激素正常 → 亚临床甲减；TPOAb 50>34 → 阳性；03-71 标尺锚：TSH 8 非默认；FT4 14<16 下限带边缘仍正常（12–22）且非默认值'
   },
   {
     slug: "clinical-lab/thyroid-function-model",
     inputs: { tsh: "0.05", ft3: "10", ft4: "30", tt3: "1.5", tt4: "100", tpo: "0" },
-    expect: ["原发性甲状腺功能亢进症"],
-    ref: 'TSH 0.05<0.27（低）+ FT3 10>6.8、FT4 30>22（高）→ 原发甲亢（无TPO阳性）'
+    expect: ["原发性甲状腺功能亢进症", "TSH 0.05 mIU/L → 落在 偏低"],
+    ref: 'TSH 0.05<0.27（低）+ FT3 10>6.8、FT4 30>22（高）→ 原发甲亢（无TPO阳性）；03-71 标尺锚（tsh 非默认）'
   },
   {
     slug: "clinical-lab/thyroid-function-model",
     inputs: { tsh: "2.0", ft3: "2.5", ft4: "16", tt3: "1.5", tt4: "100", tpo: "0" },
-    expect: ["低T3综合征(非甲状腺病态)"],
+    expect: ["低T3综合征(非甲状腺病态)", "FT3 2.5 pmol/L → 落在 偏低"],
     ref: '修复 line263 死代码后可达：TSH 2.0（正常 0.27–4.2）+ FT3 2.5<3.1（低）+ FT4 16（正常、不低）→ 非甲状腺病态综合征（euthyroid sick syndrome）。原条件 tshLow 与 line259 中枢性甲减（tshLow&&hormoneLow）重叠、永不可达，旧版此输入会误判「甲状腺功能正常」；修正为 !tshLow&&!tshHigh&&ft3Low&&!ft4Low 后分支可达。默认态（tsh 空 → analyze 提前 return）无任何结果串，注入失败即不命中。'
   }
 ];

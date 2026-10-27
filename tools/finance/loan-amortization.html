@@ -165,18 +165,18 @@ s.parentNode.insertBefore(el, s);
 <div class="input-row">
       <div>
         <label>贷款金额（元）</label>
-        <input type="number" id="loanAmount" value="500000" step="any" oninput="calc()">
+        <input type="number" id="loanAmount" value="500000" step="any" oninput="calc()" placeholder="如 500000">
       </div>
       <div>
         <label>年利率（%）</label>
-        <input type="number" id="annualRate" value="4.9" step="any" oninput="calc()">
+        <input type="number" id="annualRate" value="4.9" step="any" oninput="calc()" placeholder="如 4.9">
       </div>
     </div>
 
     <div class="input-row">
       <div>
         <label>贷款年限</label>
-        <input type="number" id="loanYears" value="30" step="any" oninput="calc()">
+        <input type="number" id="loanYears" value="30" step="any" oninput="calc()" placeholder="如 30">
       </div>
       <div>
         <label>还款方式</label>
@@ -193,11 +193,11 @@ s.parentNode.insertBefore(el, s);
       <div class="input-row">
         <div>
           <label>气球贷还款期数（月）</label>
-          <input type="number" id="balloonMonths" value="60" oninput="calc()">
+          <input type="number" id="balloonMonths" value="60" oninput="calc()" placeholder="如 60">
         </div>
         <div>
           <label>期末尾款比例（%）</label>
-          <input type="number" id="balloonRatio" value="50" step="any" oninput="calc()">
+          <input type="number" id="balloonRatio" value="50" step="any" oninput="calc()" placeholder="如 50">
         </div>
       </div>
     </div>
@@ -216,11 +216,11 @@ s.parentNode.insertBefore(el, s);
     <div class="input-row">
       <div>
         <label>提前还款期数（第N期后）</label>
-        <input type="number" id="prepayMonth" value="24" min="1" oninput="calcPrepay()">
+        <input type="number" id="prepayMonth" value="24" min="1" oninput="calcPrepay()" placeholder="如 24">
       </div>
       <div>
         <label>提前还款金额（元）</label>
-        <input type="number" id="prepayAmount" value="100000" step="any" oninput="calcPrepay()">
+        <input type="number" id="prepayAmount" value="100000" step="any" oninput="calcPrepay()" placeholder="如 100000">
       </div>
     </div>
     <div class="checkbox-row">
@@ -245,6 +245,7 @@ s.parentNode.insertBefore(el, s);
   <div class="card">
     <h3>📋 完整还款计划表</h3>
     <div id="scheduleTable" style="max-height:500px;overflow-y:auto;"></div>
+    <div id="yearlyTable" style="max-height:400px;overflow-y:auto;margin-top:12px;"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -479,6 +480,27 @@ function renderSchedule() {
   }
   html += '</tbody></table>';
   const __g4=html;document.getElementById('scheduleTable').innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
+  renderYearly();
+}
+
+// —— S3 逐年拆解汇总表：按 12 期聚合（年/年还款/年本金/年利息/年末余额）——
+function renderYearly(){
+  var host=document.getElementById('yearlyTable'); if(!host) return;
+  var en=false; try{ if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn) en=TBKit.util.isEn(); }catch(e){}
+  if(!scheduleData.length){ host.innerHTML=''; return; }
+  var th=function(z,e2){return en?e2:z;};
+  var html='<table><thead><tr><th>'+th('年份','Year')+'</th><th>'+th('年还款额','Paid')+'</th><th>'+th('其中本金','Principal')+'</th><th>'+th('其中利息','Interest')+'</th><th>'+th('年末剩余本金','Balance EOY')+'</th></tr></thead><tbody>';
+  var py=0,pp=0,pi=0,y=1;
+  for(var i=0;i<scheduleData.length;i++){
+    var s=scheduleData[i];
+    py+=s.payment; pp+=s.principal; pi+=s.interest;
+    if((i+1)%12===0||i===scheduleData.length-1){
+      html+='<tr><td>'+th('第'+y+'年','Year '+y)+'</td><td>'+fmt(py)+'</td><td>'+fmt(pp)+'</td><td style="color:var(--danger);">'+fmt(pi)+'</td><td>'+fmt(s.balance)+'</td></tr>';
+      y++; py=0; pp=0; pi=0;
+    }
+  }
+  html+='</tbody></table><p style="font-size:11.5px;color:var(--text-muted);margin-top:4px;">'+th('按每 12 期聚合；提前还款模拟后按重算排期同步更新。','Aggregated per 12 periods; updates with recalculated schedule after prepayment simulation.')+'</p>';
+  const __g5=html;host.innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
 }
 
 function drawPieChart(principal, interest) {
@@ -881,7 +903,12 @@ function __loan_amortizationExport(){
 }
 function __loan_amortizationPresets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#loan_amortizationPresets',[{label:'默认参数',labelEn:'Default',values:{'loanAmount':'500000', 'annualRate':'4.9', 'loanYears':'30', 'repayMethod':'equal', 'balloonMonths':'60', 'balloonRatio':'50', 'prepayMonth':'24', 'prepayAmount':'100000'}}],function(){ calc(); });
+    TBKit.preset.bar('#loan_amortizationPresets',[
+      {label:'默认参数',labelEn:'Default',values:{'loanAmount':'500000', 'annualRate':'4.9', 'loanYears':'30', 'repayMethod':'equal', 'balloonMonths':'60', 'balloonRatio':'50', 'prepayMonth':'24', 'prepayAmount':'100000'}},
+      {label:'一线首套300万·25年·3.9%',labelEn:'Tier-1 first home 3M/25y/3.9%',values:{'loanAmount':'3000000', 'annualRate':'3.9', 'loanYears':'25', 'repayMethod':'equal', 'balloonMonths':'60', 'balloonRatio':'50', 'prepayMonth':'24', 'prepayAmount':'100000'}},
+      {label:'二套200万·30年·5.2%·等额本金',labelEn:'Second home 2M/30y/5.2% principal',values:{'loanAmount':'2000000', 'annualRate':'5.2', 'loanYears':'30', 'repayMethod':'principal', 'balloonMonths':'60', 'balloonRatio':'50', 'prepayMonth':'24', 'prepayAmount':'100000'}},
+      {label:'提前还款50万@第24期',labelEn:'Prepay 500k at month 24',values:{'loanAmount':'2000000', 'annualRate':'4.2', 'loanYears':'30', 'repayMethod':'equal', 'balloonMonths':'60', 'balloonRatio':'50', 'prepayMonth':'24', 'prepayAmount':'500000'}}
+    ],function(){ calc(); });
 }
 var __loan_amortization_f0=(typeof calc==='function')?calc:null;
 if(__loan_amortization_f0){

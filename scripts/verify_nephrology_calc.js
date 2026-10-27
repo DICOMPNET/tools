@@ -24,9 +24,10 @@ const CASES = [
     "pth": "300"
   },
   "expect": [
-    "5.30"
+    "5.30",
+    "钙磷乘积 9.54 mmol²/L² → 落在 显著升高"
   ],
-  "ref": "auto-restore"
+  "ref": "校正血钙 = 5.2 + 0.02×(40−35) = 5.30 mmol/L；Ca×P = 5.30 × 1.8 = 9.54 mmol²/L² ⇒ 落在「显著升高」带（≥5.5）"
 },
 {
   "slug": "nephrology/calc-1",
@@ -42,12 +43,27 @@ const CASES = [
   "slug": "nephrology/ckd-staging",
   "inputs": {
     "egfr": "68",
-    "uacr": "80"
+    "uacr": "150"
   },
   "expect": [
-    "68"
+    "68",
+    "eGFR 68 mL/min/1.73m² → 落在 G2 轻度↓（健康参考 ≥90）",
+    "UACR 150 mg/g → 落在 A2 微量"
   ],
   "ref": "auto-restore"
+},
+{
+  "slug": "nephrology/ckd-staging",
+  "inputs": {
+    "egfr": "28",
+    "uacr": "400",
+    "baseDate": "2024-01-15"
+  },
+  "expect": [
+    "随访计划（基线 2024-01-15，很高风险）",
+    "第1次复查：2024-05-15"
+  ],
+  "ref": "随访计划生成器（03-52）：egfr=28→G4、uacr=400→A3 ⇒ 很高风险 ⇒ 间隔 4 个月×3 次。2024-01-15 +4/+8/+12 个月 = 2024-05-15 / 2024-09-15 / 2025-01-15（2024 闰年含 2/29 不影响月加法）。默认 baseDate 为空 ⇒ 日程块不渲染，两条锚均随注入出现、零交集。"
 },
 {
   "slug": "nephrology/creatinine-clearance",
@@ -58,9 +74,10 @@ const CASES = [
     "bsa": "1.73"
   },
   "expect": [
-    "(10000"
+    "(10000",
+    "校正Ccr 104.2 mL/min → 落在 正常"
   ],
-  "ref": "auto-restore"
+  "ref": "Ccr=(10000×1.04)/100=104.2 mL/min（BSA 1.73 无需校正）；参考区间定位：落在「正常」带（80–120 mL/min）"
 },
 {
   "slug": "nephrology/dialysis-ktv",
@@ -72,9 +89,9 @@ const CASES = [
     "postWeight": "65"
   },
   "expect": [
-    "(4-3.5×0.2105)×2/65"
+    "透析充分（理想）"
   ],
-  "ref": "auto-restore"
+  "ref": "spKt/V = -ln(8/38 - 0.008×4) + (4-3.5×0.2105)×2/65 ≈ 1.82 ≥ 目标1.2+0.2=1.4（freq 默认3次/周）→ 透析充分（理想）。原用例 expect 为派生公式片段「(4-3.5×0.2105)×2/65」，偏弱，改为充分性结论强串；默认参数算得不同 spKt/V，与「透析充分（理想）」零交集。S3 标尺 refBar(#ktvRefBar) 已加（bands: 不足/临界/达标/理想，max2.5）。"
 },
 {
   "slug": "nephrology/diuretic-conversion",
@@ -144,9 +161,10 @@ const CASES = [
     "h24Val": "40"
   },
   "expect": [
-    "68.0"
+    "68.0",
+    "68.0 mg/g → 落在 微量"
   ],
-  "ref": "auto-restore"
+  "ref": "UACR 68 mg/g 落在微量白蛋白尿带（30–300 mg/g）；参考区间定位文本随 uacrVal 联动"
 },
 {
   "slug": "nephrology/nephrotic-syndrome",

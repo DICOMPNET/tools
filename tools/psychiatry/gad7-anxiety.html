@@ -119,6 +119,7 @@ s.parentNode.insertBefore(el, s);
   <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
     <h2 data-zh="💭 焦虑(GAD-7)广泛性评估器">Gad7 Anxiety</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="根据过去两周内的感受自评7个焦虑症状条目，筛查广泛性焦虑严重程度。共7题，每题0-3分。">Gad7 Anxiety</p>
+<div class="ref-cite" style="font-size:12.5px;line-height:1.75;color:var(--text-muted);background:var(--bg-hover);border-left:3px solid var(--primary);border-radius:0 8px 8px 0;padding:8px 12px;margin:0 0 14px;" data-zh="📖 原始文献：Spitzer RL, Kroenke K, Williams JBW, Löwe B. A brief measure for assessing generalized anxiety disorder: the GAD-7. Arch Intern Med. 2006;166(10):1092-1097. ｜ 自评 · 7 条目 · 约 2 分钟 · 0–21 分 · 划界分 ≥10（中度焦虑）">📖 Source: Spitzer RL, Kroenke K, Williams JBW, Löwe B. A brief measure for assessing generalized anxiety disorder: the GAD-7. Arch Intern Med. 2006;166(10):1092-1097. | Self-report · 7 items · ~2 min · 0–21 · cutoff ≥10 (moderate anxiety)</div>
 <div class="formula-box">
   
   
@@ -341,7 +342,47 @@ function copyResult(){
   var total=A.reduce(function(s,v){return s+v;},0);
   ToolBox.copyText('GAD-7 焦虑量表总分：'+total+'/21','tool.copy_ok');
 }
-var __gd0=calc; calc=function(){__gd0(); __gd7Extras();};
+/* —— 门诊记录（EMR note）：把量表结果整理成可直接粘进门诊病历的文本（中英双语） —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById('result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+           :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+function __emrData(){
+  var done=A.filter(function(v){return v>=0;}).length; if(done<QS.length) return;
+  var total=A.reduce(function(s,v){return s+v;},0), lv=__gd7LevelName(total), pos=[], i, qt;
+  for(i=0;i<A.length;i++){
+    if(A[i]<2) continue;
+    qt=(typeof QS[i]==='string')?QS[i]:(QS[i].t||'');
+    pos.push({i:i+1,t:qt,o:OPTS[A[i]]});
+  }
+  var sevEn={'无焦虑':'minimal','轻度焦虑':'mild','中度焦虑':'moderate','重度焦虑':'severe'}[lv]||lv;
+  __emrNote({name:'GAD-7 广泛性焦虑量表（7 条目 · 近 2 周）', nameEn:'GAD-7 Generalized Anxiety Disorder scale (7 items, past 2 weeks)',
+    result:'总分 '+total+'/21，分级：'+lv, resultEn:'total '+total+'/21, severity: '+sevEn+' anxiety',
+    pos:pos, hintZh:__gd7Advice(lv)[0], hintEn:__gd7Advice(lv)[1]});
+}
+var __gd0=calc; calc=function(){__gd0(); __gd7Extras(); try{__emrData();}catch(e){}};
 render();calc();
 __gd7MountHist();
 </script>
