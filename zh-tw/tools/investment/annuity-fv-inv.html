@@ -147,7 +147,38 @@ s.parentNode.insertBefore(el, s);
     <div id="annuity_fv_invDiff"></div>
     <div id="annuity_fv_invHist"></div>
 
-    <div class="tool-notes">
+    <!-- 公式/標準引據 -->
+<div class="card" id="constRefBox">
+  <h3 data-zh="📐 年金終值公式引據">📐 Annuity Future Value</h3>
+  <div style="overflow-x:auto;">
+    <table style="width:100%;border-collapse:collapse;font-size:13px;">
+      <thead><tr>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="專案">Item</th>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="公式 / 說明">Formula / Note</th>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="出處 / 標準">Source / Standard</th>
+      </tr></thead>
+      <tbody>
+        <tr>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="普通年金終值">Ordinary annuity FV</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="FV = PMT·[(1+r)ⁿ−1]/r">FV = PMT*[(1+r)^n-1]/r</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="貨幣時間價值（TVM）">Time Value of Money (TVM)</td>
+        </tr>
+        <tr>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="期初年金終值">Annuity due FV</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="FV_due = FV·(1+r)">FV_due = FV*(1+r)</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="TVM 變體">TVM variant</td>
+        </tr>
+        <tr>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="引數">Parameters</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="PMT, r, n">PMT, r per period, n periods</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="標準記號">Standard notation</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="tool-notes">
       <div class="tool-notes-title">📌 計算說明</div>
       <ul>
         <li>適用於定期定額投資。</li>
@@ -157,6 +188,18 @@ s.parentNode.insertBefore(el, s);
   </div>
 </div>
 
+
+<!-- 止盈目標反推年化 -->
+<div class="card">
+  <h3 data-zh="🎯 止盈目標反推年化收益率">🎯 Reverse Annualized Return</h3>
+  <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="已知目標終值、每月定投額與期數，反推所需月利率與等效年化收益率（內部收益率口徑）。">Given target FV, monthly contribution and periods, reverse the required monthly rate and equivalent annualized return (IRR basis).</p>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+    <div><label data-zh="每月定投 PMT（元）">Monthly PMT (¥)</label><input type="number" id="tgPMT" value="100" min="0" step="10" oninput="calcTargetReturn()"></div>
+    <div><label data-zh="定投期數 n（月）">Periods n (months)</label><input type="number" id="tgn" value="10" min="1" step="1" oninput="calcTargetReturn()"></div>
+    <div style="grid-column:1/3;"><label data-zh="目標終值 FV（元）">Target FV (¥)</label><input type="number" id="tgFV" value="1000" min="0" step="100" oninput="calcTargetReturn()"></div>
+  </div>
+  <div class="result-box" id="targetReturnBox" style="margin-top:14px;"></div>
+</div>
 
 <!-- 相關工具 -->
 <div class="related-tools" data-related-tools="1">
@@ -273,6 +316,37 @@ function resetForm(){document.getElementById('PMT').value = '1000';
       calcTool();}
 calcTool();
 
+function __invIsEn(){
+  try{ if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn) return TBKit.util.isEn(); }catch(e){}
+  if(/[?&]lang=en/.test(location.search)) return true;
+  var l=(document.documentElement.getAttribute('lang')||'').toLowerCase();
+  return l.indexOf('en')===0;
+}
+function __solveRate(PMT, n, FV){
+  // f(r)=PMT*((1+r)^n-1)/r - FV, 单调增；二分反解每期利率 r（r>-1）
+  if(PMT<=0||n<1||FV<=0) return null;
+  function f(r){ if(Math.abs(r)<1e-12) return PMT*n - FV; return PMT*(Math.pow(1+r,n)-1)/r - FV; }
+  var lo=-0.999, hi=10;
+  if(f(lo)>0) return lo;
+  if(f(hi)<0) return null;
+  for(var i=0;i<90;i++){ var mid=(lo+hi)/2; if(f(mid)>0) hi=mid; else lo=mid; }
+  return (lo+hi)/2;
+}
+function calcTargetReturn(){
+  var PMT=parseFloat(document.getElementById('tgPMT').value)||0;
+  var n=parseInt(document.getElementById('tgn').value)||0;
+  var FV=parseFloat(document.getElementById('tgFV').value)||0;
+  var en=__invIsEn();
+  if(PMT<=0||n<1||FV<=0){ document.getElementById('targetReturnBox').innerHTML='<p>'+(en?'Enter PMT>0, n≥1, FV>0':'请输入 PMT>0、n≥1、FV>0')+'</p>'; return; }
+  var r=__solveRate(PMT,n,FV);
+  if(r===null){ document.getElementById('targetReturnBox').innerHTML='<p>'+(en?'Target exceeds achievable range even at 1000% per period':'目标过大，即便每期1000%利率也无法达成')+'</p>'; return; }
+  var annual=Math.pow(1+r,12)-1;
+  var html='<p>'+ (en?'Required monthly rate':'所需月利率') +': <strong>'+ (r*100).toFixed(2) +'%</strong></p>'+
+           '<p>'+ (en?'Equivalent annualized return (IRR)':'等效年化收益率（IRR口径）') +': <strong>'+ (annual*100).toFixed(2) +'%</strong></p>'+
+           '<p style="font-size:12px;color:var(--text-muted);">'+ (en?'Total contributed: ':'累计投入: ') + (PMT*n).toFixed(2) +' 元，收益 '+(FV-PMT*n).toFixed(2)+' 元</p>';
+  document.getElementById('targetReturnBox').innerHTML=html;
+}
+
 function __annuity_fv_invNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
 function __annuity_fv_invExtras(){
     function __annuity_fv_invRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
@@ -308,7 +382,7 @@ function __annuity_fv_invPresets(){
 }
 var __tb_fn0 = calcTool;
 calcTool = function(){ __tb_fn0(); try{ __annuity_fv_invExtras(); }catch(e){} };
-function __annuity_fv_invBoot(){ try{ __annuity_fv_invPresets(); }catch(e){} try{ calcTool(); }catch(e){} }
+function __annuity_fv_invBoot(){ try{ __annuity_fv_invPresets(); }catch(e){} try{ calcTool(); }catch(e){} try{ calcTargetReturn(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __annuity_fv_invBoot();
 else document.addEventListener('DOMContentLoaded', __annuity_fv_invBoot);
 </script>
