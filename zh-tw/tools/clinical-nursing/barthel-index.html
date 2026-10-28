@@ -131,6 +131,7 @@ s.parentNode.insertBefore(el, s);
   <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
     <h2 data-zh="📋 日常生活能力 Barthel 指數分級器">Barthel Index</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="Barthel指數評估日常生活活動能力（ADL），10個專案評分（0-100分），分值越高獨立性越強。點選選項自動計分。">Barthel Index</p>
+<div class="ref-cite" style="font-size:12.5px;line-height:1.75;color:var(--text-muted);background:var(--bg-hover);border-left:3px solid var(--primary);border-radius:0 8px 8px 0;padding:8px 12px;margin:0 0 14px;" data-zh="📖 原始文獻：Mahoney FI, Barthel DW. Functional evaluation: the Barthel Index. Md State Med J. 1965;14:61-65. ｜ 他評 · 10 項 ADL · 0–100 分 · 100 獨立 / 60–99 輕度依賴 / 41–60 中度 / ≤40 重度依賴">📖 Source: Mahoney FI, Barthel DW. Functional evaluation: the Barthel Index. Md State Med J. 1965;14:61-65. | Clinician-rated · 10 ADL items · 0–100 · 100 independent / ≤40 severe dependence</div>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">Barthel指數(ADL) = Σ(進食+洗澡+修飾+穿衣+大便+小便+如廁+轉移+行走+上下樓梯) 共10項　分級：≥100 完全自理 / ≥75 輕度 / ≥50 中度 / ≥25 重度 / <25 完全依賴</div>
   <p class="formula-desc">本健康工具基於通用生理常數與經驗公式估算，結果僅供參考，不替代專業醫療診斷與建議。 工具名稱：日常生活能力Barthel指數分級器 - 日常生活能力 Barthel 指數分級器。</p>
@@ -340,6 +341,74 @@ function copyResult(){
 
 renderItems();
 calc();
+
+/* —— 门诊记录（EMR note）：把评估结果整理成可直接粘进护理记录/病历的文本（中英双语） —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById(cfg.boxId||'result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i+' '+((cfg.optEn&&p.k&&cfg.optEn[p.k])||'')):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  if(!cfg.noPos){
+    L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+             :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  }
+  if(cfg.extra) L.push(en?cfg.extraEn:cfg.extra);
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+var __EMR_KEY_EN={eating:'Feeding',bathing:'Bathing',grooming:'Grooming',dressing:'Dressing',bowels:'Bowel',bladder:'Bladder',toilet:'Toilet use',transfer:'Transfers',walking:'Mobility',stairs:'Stairs'};
+function __emrBand(total){
+  if(total>=100) return ['完全自理','患者日常生活完全独立，无需他人帮助。','independent','Fully independent in activities of daily living.'];
+  if(total>=75) return ['轻度功能缺陷','大部分 ADL 可自理，需少量帮助，建议适当康复训练。','mild dependency','Mostly independent; minimal assistance and light rehabilitation.'];
+  if(total>=50) return ['中度功能缺陷','需较多帮助才能完成 ADL，建议制定康复计划并加强日常生活训练。','moderate dependency','Needs considerable help; structured rehabilitation and ADL training.'];
+  if(total>=25) return ['重度功能缺陷','大部分 ADL 需他人帮助，建议加强护理并预防并发症。','severe dependency','Most ADL need help; strengthen nursing and prevent complications.'];
+  return ['完全依赖','所有 ADL 完全依赖他人，需全面护理，注意预防压疮、感染等并发症。','total dependency','All ADL fully dependent; comprehensive nursing, prevent pressure injury and infection.'];
+  return null;
+}
+function __emrData(){
+  var ARR=(typeof items!=='undefined')?items:((typeof dimensions!=='undefined')?dimensions:null);
+  if(!ARR||typeof scores==='undefined') return;
+  var el=document.getElementById('result'); if(!el) return;
+  var total=0,maxTot=0,rows=[],i,j,v,it,optTxt,maxV;
+  for(i=0;i<ARR.length;i++){
+    it=ARR[i]; v=scores[it.key]||0; total+=v;
+    maxV=0; optTxt='';
+    for(j=0;j<it.options.length;j++){
+      if(it.options[j].val>maxV) maxV=it.options[j].val;
+      if(it.options[j].val===v) optTxt=String(it.options[j].text||'');
+    }
+    maxTot+=maxV;
+    rows.push({i:i+1,t:it.name,o:optTxt,k:it.key});
+  }
+  var b=__emrBand(total)||['未分级','','ungraded',''];
+  __emrNote({name:'Barthel 指数（ADL · 10 项 · 满分 100）', nameEn:'Barthel Index (ADL, 10 items, max 100)',
+    result:'总分 '+total+'/'+maxTot+'，分级：'+b[0],
+    resultEn:'total '+total+'/'+maxTot+', band: '+b[2],
+    pos:rows, hintZh:b[1], hintEn:b[3],
+    extra:'满分（各条目最高分之和）'+maxTot+'；得分率 '+Math.round(total/maxTot*100)+'%；条目明细见上',
+    extraEn:'Maximum possible '+maxTot+'; score ratio '+Math.round(total/maxTot*100)+'%; item detail above',
+    optEn:__EMR_KEY_EN});
+}
+
+var __emrW0=(typeof calc==='function')?calc:null;
+if(__emrW0){ calc=function(){ var __er=__emrW0.apply(null,arguments); try{__emrData();}catch(e){} return __er; }; }
+try{ __emrData(); }catch(e){}
 </script>
 
 <!-- SEO 介紹區塊 -->

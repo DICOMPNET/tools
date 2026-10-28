@@ -130,22 +130,36 @@ s.parentNode.insertBefore(el, s);
 <div class="input-row">
       <div>
         <label>年終獎金額（元）</label>
-        <input type="number" id="bonus" value="36000" min="0" step="100" oninput="calc()">
+        <input type="number" id="bonus" value="36000" min="0" step="100" oninput="calc()" placeholder="如 36000">
       </div>
       <div>
         <label>月工資（元）</label>
-        <input type="number" id="salary" value="10000" min="0" step="100" oninput="calc()">
+        <input type="number" id="salary" value="10000" min="0" step="100" oninput="calc()" placeholder="如 10000">
       </div>
     </div>
 
     <div class="input-row">
       <div>
         <label>年度專項扣除（社保公積金等，元）</label>
-        <input type="number" id="social" value="0" min="0" step="100" oninput="calc()">
+        <input type="number" id="social" value="0" min="0" step="100" oninput="calc()" placeholder="如 0">
       </div>
       <div>
         <label>年度專項附加扣除（元）</label>
-        <input type="number" id="extra" value="0" min="0" step="100" oninput="calc()">
+        <input type="number" id="extra" value="0" min="0" step="100" oninput="calc()" placeholder="如 0">
+      </div>
+      <div style="flex:1 1 100%;margin-top:6px;">
+        <label>專項附加扣除分項模擬（年額，選填）</label>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:8px;">
+          <div><label style="font-size:12px;color:var(--text-muted);">子女教育</label><input type="number" id="ed_child" value="0" min="0" step="100" oninput="__edSum()" placeholder="如 24000（2000/月·孩）"></div>
+          <div><label style="font-size:12px;color:var(--text-muted);">繼續教育</label><input type="number" id="ed_cont" value="0" min="0" step="100" oninput="__edSum()" placeholder="如 4800（400/月）"></div>
+          <div><label style="font-size:12px;color:var(--text-muted);">大病醫療</label><input type="number" id="ed_med" value="0" min="0" step="100" oninput="__edSum()" placeholder="如 20000（限額 80000）"></div>
+          <div><label style="font-size:12px;color:var(--text-muted);">住房貸款利息</label><input type="number" id="ed_loan" value="0" min="0" step="100" oninput="__edSum()" placeholder="如 12000（1000/月）"></div>
+          <div><label style="font-size:12px;color:var(--text-muted);">住房租金</label><input type="number" id="ed_rent" value="0" min="0" step="100" oninput="__edSum()" placeholder="如 18000（1500/月）"></div>
+          <div><label style="font-size:12px;color:var(--text-muted);">贍養老人</label><input type="number" id="ed_elder" value="0" min="0" step="100" oninput="__edSum()" placeholder="如 36000（3000/月）"></div>
+          <div><label style="font-size:12px;color:var(--text-muted);">3歲以下嬰幼兒照護</label><input type="number" id="ed_infant" value="0" min="0" step="100" oninput="__edSum()" placeholder="如 24000（2000/月·孩）"></div>
+        </div>
+        <div id="edSumBox" style="margin-top:8px;font-size:13px;color:var(--text);"></div>
+        <button type="button" class="btn" onclick="__edApply()" style="margin-top:6px;">將分項合計填入上方專項附加扣除</button>
       </div>
     </div>
 
@@ -155,10 +169,14 @@ s.parentNode.insertBefore(el, s);
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
 
+    <div style="margin:12px 0 0;padding:9px 12px;border:1px solid var(--border,#e5e7eb);border-left:4px solid #F59E0B;border-radius:8px;font-size:12px;line-height:1.7;color:var(--text-muted,#666);background:var(--card-bg,#fff);" data-zh="📅 稅率口徑：本頁稅率與速算扣除數截至 2026-10（中國現行稅制快照）；稅制調整後請以最新政策與稅務機關公告為準。">📅 Tax rules snapshot as of Oct 2026 (current PRC tax rules); after any reform, defer to the latest official announcements.</div>
     <div class="result-box" id="res"></div> <div id="calc_8Table"></div> <div id="calc_8Diff"></div> <div id="calc_8Chart"></div> <div id="calc_8Hist"></div>
 
     <div class="tip-box tip-info">
       📖 <strong>稅率表（綜合所得/全年一次性獎金）</strong>：年應納稅所得額 ≤3.6萬 3%（速算扣除0）；3.6-14.4萬 10%（2520）；14.4-30萬 20%（16920）；30-42萬 25%（31920）；42-66萬 30%（52920）；66-96萬 35%（85920）；>96萬 45%（181920）。
+    </div>
+    <div class="tip-box tip-info">
+      🧮 <strong>速算扣除數是怎麼來的？</strong>逐檔推導：第 k 檔速算扣除數 = 上一檔速算扣除數 + 上一檔上限 ×（本檔稅率 − 上一檔稅率）。它等於「按上一檔逐段累加」與「全額按本檔稅率」的差額，所以能一步算出稅額：稅 = 應納稅所得額 × 本檔稅率 − 本檔速算扣除數。逐檔驗算：10% 檔 0 + 3.6萬×(10%−3%) = 2520；20% 檔 2520 + 14.4萬×(20%−10%) = 16920；25% 檔 16920 + 30萬×(25%−20%) = 31920；30% 檔 31920 + 42萬×(30%−25%) = 52920；35% 檔 52920 + 66萬×(35%−30%) = 85920；45% 檔 85920 + 96萬×(45%−35%) = 181920。
     </div>
     <div class="tip-box tip-warn">⚠️ 計算假設無其他綜合所得收入，實際應以年度彙算清繳為準。本工具僅供參考，不構成稅務建議。</div>
   </div>
@@ -227,6 +245,27 @@ function findBracket(amount){
 }
 
 function money(n){ return '¥' + ToolBox.formatNumber(Math.round(n)); }
+
+// —— 专项附加扣除 7 项分项模拟（标准定额：子女教育 2000/月·孩、继续教育 400/月、大病医疗年限额 80000、
+//     住房贷款利息 1000/月、住房租金 800–1500/月、赡养老人 3000/月、婴幼儿照护 2000/月·孩）——
+function __edT(en,zh){
+  try{ if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn()) return en; }catch(e){}
+  return zh;
+}
+function __edSum(){
+  var ids=['ed_child','ed_cont','ed_med','ed_loan','ed_rent','ed_elder','ed_infant'];
+  var sum=0;
+  ids.forEach(function(id){ sum += parseFloat(document.getElementById(id).value) || 0; });
+  var box=document.getElementById('edSumBox');
+  if(box) box.innerHTML=__edT('Subtotal: '+sum+' CNY/year (7 deductible items, year basis)','分项合计：'+sum+' 元/年（7 项分项按年填列）');
+  return sum;
+}
+function __edApply(){
+  var sum=__edSum();
+  var extra=document.getElementById('extra');
+  extra.value=sum;
+  calc();
+}
 
 function calc(){
   var bonus = parseFloat(document.getElementById('bonus').value) || 0;
@@ -323,6 +362,7 @@ var KEY = 'tb_bonus_tax';
 });
 
 calc();
+try{ __edSum(); }catch(e){}
 
 var __calc_8_last=0,__calc_8_skip=false;
 function __calc_8Snap(){
@@ -422,7 +462,11 @@ function __calc_8Export(){
 }
 function __calc_8Presets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#calc_8Presets',[{label:'默认参数',labelEn:'Default',values:{'bonus':'36000', 'salary':'10000', 'social':'0', 'extra':'0'}}],function(){ calc(); });
+    TBKit.preset.bar('#calc_8Presets',[
+      {label:'默认参数',labelEn:'Default',values:{'bonus':'36000', 'salary':'10000', 'social':'0', 'extra':'0'}},
+      {label:'北京月薪2万·有房有娃',labelEn:'Beijing 20k, mortgage + child',values:{'bonus':'24000', 'salary':'20000', 'social':'25000', 'extra':'36000'}},
+      {label:'年终奖10万怎么发',labelEn:'100k bonus, which way',values:{'bonus':'100000', 'salary':'20000', 'social':'25000', 'extra':'36000'}}
+    ],function(){ calc(); });
 }
 var __calc_8_f0=(typeof calc==='function')?calc:null;
 if(__calc_8_f0){

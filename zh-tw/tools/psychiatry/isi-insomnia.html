@@ -118,6 +118,7 @@ s.parentNode.insertBefore(el, s);
   <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
     <h2 data-zh="😴 睡眠(ISI)失眠嚴重度評估器">Isi Insomnia</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="失眠嚴重程度指數(ISI)，評估最近兩週失眠症狀的性質與嚴重程度。共7題，每題0-4分，總分0-28分。">Isi Insomnia</p>
+<div class="ref-cite" style="font-size:12.5px;line-height:1.75;color:var(--text-muted);background:var(--bg-hover);border-left:3px solid var(--primary);border-radius:0 8px 8px 0;padding:8px 12px;margin:0 0 14px;" data-zh="📖 原始文獻：Bastien CH, Vallières A, Morin CM. Validation of the Insomnia Severity Index as an outcome measure for insomnia research. Sleep Med. 2001;2(4):297-307. ｜ 自評 · 7 條目 · 約 3 分鐘 · 0–28 分 · ≥15 分提示臨床失眠">📖 Source: Bastien CH, Vallières A, Morin CM. Validation of the Insomnia Severity Index as an outcome measure for insomnia research. Sleep Med. 2001;2(4):297-307. | Self-report · 7 items · ~3 min · 0–28 · ≥15 indicates clinical insomnia</div>
 <div class="formula-box">
 
 
@@ -339,7 +340,46 @@ function copyResult(){
   var total=A.reduce(function(s,v){return s+v;},0);
   ToolBox.copyText('ISI 失眠严重度指数：'+total+'/28','tool.copy_ok');
 }
-var __is0=calc; calc=function(){__is0(); __isiExtras();};
+/* —— 门诊记录（EMR note）：把量表结果整理成可直接粘进门诊病历的文本（中英双语） —— */
+function __emrEn(){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)return TBKit.util.isEn();}catch(e){}try{return /lang=en-US/i.test(location.search);}catch(e){}return false;}
+function __emrEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __emrNote(cfg){
+  if(!cfg) return;
+  var el=document.getElementById('result'); if(!el) return;
+  var en=__emrEn(), sep=en?'; ':'；', L=[];
+  var pos=(cfg.pos||[]).map(function(p){ return en?('Q'+p.i):('Q'+p.i+' '+p.t+'（'+p.o+'）'); });
+  L.push(en?('['+cfg.nameEn+']'):('【'+cfg.name+'】'));
+  L.push((en?'Result: ':'结果：')+(en?cfg.resultEn:cfg.result));
+  L.push(en?(pos.length?('Positive items ('+pos.length+'): '+pos.join(sep)):'Positive items: none')
+           :(pos.length?('阳性条目（共 '+pos.length+' 项）：'+pos.join(sep)):'阳性条目：无'));
+  L.push((en?'Clinical note: ':'临床提示：')+(en?cfg.hintEn:cfg.hintZh));
+  L.push(en?'Assessment date: __________  Assessor: __________':'评估日期：__________　评估者：__________');
+  L.push(en?'(Self-report/screening scale; for clinical communication only, not a diagnostic determination.)':'（自评/筛查量表，结果仅供临床沟通参考，不作为诊断依据）');
+  window.__EMR_NOTE=L.join('\n');
+  var pre=document.getElementById('emrPre');
+  if(pre){ pre.innerHTML=__emrEsc(window.__EMR_NOTE); return; }
+  var hd=en?'📋 Clinic note (ready to paste into EMR)':'📋 门诊记录（可直接复制进病历）';
+  var btn=en?'Copy clinic note':'复制门诊记录';
+  var __box=document.createElement('div');
+  __box.className='note-box'; __box.id='emrBox'; __box.setAttribute('data-pk-ignore','1');
+  __box.setAttribute('style','margin-top:12px;padding:10px 12px;border:1px dashed var(--border,#d1d5db);border-radius:8px;background:var(--bg-hover,#f8fafc);');
+  __box.innerHTML='<div style="font-size:12.5px;font-weight:700;margin-bottom:6px;">'+hd+'</div><pre id="emrPre" style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.75;margin:0 0 8px;">'+__emrEsc(window.__EMR_NOTE)+'</pre><button type="button" class="btn" onclick="__copyEmrNote()" style="font-size:12.5px;padding:4px 10px;">'+btn+'</button>';
+  el.appendChild(__box);
+}
+function __copyEmrNote(){ try{ if(typeof ToolBox!=='undefined'&&ToolBox.copyText&&window.__EMR_NOTE) ToolBox.copyText(window.__EMR_NOTE,'tool.copy_ok'); }catch(e){} }
+function __emrData(){
+  var done=A.filter(function(v){return v>=0;}).length; if(done<QS.length) return;
+  var total=A.reduce(function(s,v){return s+v;},0), lv=__isiLevelName(total), pos=[], i;
+  for(i=0;i<A.length;i++){
+    if(A[i]<3) continue;
+    pos.push({i:i+1,t:__isiText(i),o:__isiOpts(i)[A[i]]});
+  }
+  var sevEn={'无失眠':'no insomnia','亚临床失眠':'subclinical insomnia','中度失眠':'moderate insomnia','重度失眠':'severe insomnia'}[lv]||lv;
+  __emrNote({name:'ISI 失眠严重程度指数（7 条目 · 近 2 周）', nameEn:'ISI Insomnia Severity Index (7 items, past 2 weeks)',
+    result:'总分 '+total+'/28，分级：'+lv, resultEn:'total '+total+'/28, severity: '+sevEn,
+    pos:pos, hintZh:__isiAdvice(lv)[0], hintEn:__isiAdvice(lv)[1]});
+}
+var __is0=calc; calc=function(){__is0(); __isiExtras(); try{__emrData();}catch(e){}};
 render();calc();
 __isiMountHist();
 </script>

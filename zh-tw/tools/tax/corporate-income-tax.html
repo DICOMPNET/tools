@@ -124,11 +124,19 @@ s.parentNode.insertBefore(el, s);
     <div class="input-row">
       <div>
         <label for="profit">應納稅所得額</label>
-        <input type="number" id="profit" value="1000000" step="10000">
+        <input type="number" id="profit" value="1000000" step="10000" placeholder="如 1000000">
       </div>
       <div>
         <label for="r">稅率 (%)</label>
-        <input type="number" id="r" value="25" step="1">
+        <input type="number" id="r" value="25" step="1" placeholder="如 25">
+      </div>
+      <div>
+        <label for="citOpt">適用優惠口徑</label>
+        <select id="citOpt" onchange="calcTool()">
+          <option value="none">法定稅率（用上方稅率輸入）</option>
+          <option value="small">小型微利企業（≤300萬，實際稅負 5%）</option>
+          <option value="high">高新技術企業（15%）</option>
+        </select>
       </div>
     </div>
 
@@ -140,6 +148,7 @@ s.parentNode.insertBefore(el, s);
       <button class="btn" onclick="__corporate_income_taxExport()">匯出明細 CSV</button>
     </div>
 
+    <div style="margin:12px 0 0;padding:9px 12px;border:1px solid var(--border,#e5e7eb);border-left:4px solid #F59E0B;border-radius:8px;font-size:12px;line-height:1.7;color:var(--text-muted,#666);background:var(--card-bg,#fff);" data-zh="📅 稅率口徑：本頁稅率與速算扣除數截至 2026-10（中國現行稅制快照）；稅制調整後請以最新政策與稅務機關公告為準。">📅 Tax rules snapshot as of Oct 2026 (current PRC tax rules); after any reform, defer to the latest official announcements.</div>
     <div class="result-box" id="result"></div>
     <div id="corporate_income_taxTable"></div>
     <div id="corporate_income_taxDiff"></div>
@@ -190,13 +199,24 @@ s.parentNode.insertBefore(el, s);
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){
-            const p = num('profit'), r = num('r') / 100;
-            const __g1=dataGrid([
+            const p = num('profit');
+            var modeEl = document.getElementById('citOpt');
+            var mode = modeEl ? modeEl.value : 'none';
+            var r, note = '';
+            if(mode === 'small'){
+                if(p <= 3000000){ r = 0.05; note = '小型微利企业优惠：减按 25% 计入 × 20% 税率，实际税负 5%（2023–2027 政策期，≤300 万；另需从业 ≤300 人、资产 ≤5000 万）'; }
+                else { r = 0.25; note = '应纳税所得额超过 300 万元，不符合小型微利企业条件，按法定 25% 计'; }
+            }
+            else if(mode === 'high'){ r = 0.15; note = '高新技术企业优惠税率 15%'; }
+            else { r = num('r') / 100; }
+            var rows = [
                 [(p * r).toFixed(2), '企业所得税额'],
                 [(p * (1 - r)).toFixed(2), '税后利润'],
                 [(r*100).toFixed(2), '所得税税率 (%)'],
                 [(p/((p*r)||1)).toFixed(4), '利润/税额 倍数']
-            ]);ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
+            ];
+            if(note) rows.push([note, '优惠口径']);
+            const __g1=dataGrid(rows);ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
         }
 function resetForm(){document.getElementById('profit').value = '1000000';
       document.getElementById('r').value = '25';
