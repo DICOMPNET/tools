@@ -192,6 +192,31 @@ s.parentNode.insertBefore(el, s);
     </div>
   </div>
 
+  <div class="card">
+    <h3 data-zh="📊 逐年摊还明细">📊 Yearly Amortization Schedule</h3>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:10px;" data-zh="按还款方式逐月推算，汇总每年偿还的本金、利息及年末剩余本金">Month-by-month simulation summarized per year: principal paid, interest paid and remaining balance.</p>
+    <div id="amortTable"></div>
+  </div>
+
+<!-- Formula & Standard References -->
+<div class="card" id="constRefBox">
+  <h3 data-zh="📐 公式与标准引据">Formula &amp; Standard References</h3>
+  <div style="overflow-x:auto;">
+    <table style="width:100%;border-collapse:collapse;font-size:13px;">
+      <thead><tr>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="项目">Item</th>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="公式 / 说明">Formula / Note</th>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="出处 / 标准">Source / Standard</th>
+      </tr></thead>
+      <tbody>
+        <tr><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="首付比例下限">Down-payment floor</span></td><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="2024-05 起全国下限：首套 15%、二套 25%，各城市可因城施策">Since May 2024 national floors are 15% first-home / 25% second-home, with city discretion</span></td><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="中国人民银行 国家金融监督管理总局 2024-05-17 通知">PBoC &amp; NFRA notice, May 17, 2024</span></td></tr>
+        <tr><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="等额本息月供">Annuity payment</span></td><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="M = P × r(1+r)^n ÷ ((1+r)^n − 1)，r 为月利率">M = P × r(1+r)^n ÷ ((1+r)^n − 1), r monthly rate</span></td><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="贷款等额本息标准公式">Standard annuity amortization formula</span></td></tr>
+        <tr><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="等额本金月供">Equal-principal payment</span></td><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="每月还本 P/n + 余额×r，前期压力大、总利息少">Principal P/n plus interest on balance; heavier early payments, less total interest</span></td><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="贷款还款方式惯例">Standard repayment-method practice</span></td></tr>
+        <tr><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="LPR 定价">LPR pricing</span></td><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="房贷利率 = 最近月份 LPR + 基点加点，重定价周期按合同约定">Mortgage rate = latest LPR + spread, repriced per contract</span></td><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="央行 LPR 机制公告">PBoC LPR mechanism</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -265,6 +290,8 @@ function calc(){
   const loanAmount = total - downPayment;
   const months = years * 12;
   const monthlyRate = rate / 100 / 12;
+  let monthlyPayment = 0;
+  const method = getMethod();
 
   let html = `
     <div class="data-grid">
@@ -278,7 +305,6 @@ function calc(){
 
   if(getMethod() === 'equal-payment'){
     // 等额本息
-    let monthlyPayment = 0;
     if(monthlyRate > 0){
       monthlyPayment = loanAmount * monthlyRate * Math.pow(1 + monthlyRate, months) / (Math.pow(1 + monthlyRate, months) - 1);
     } else {
@@ -309,7 +335,33 @@ function calc(){
       <p>支付利息：<strong style="color:var(--danger);">¥${fmt(totalInterest)}</strong></p>
     `;
   }
+  renderAmort(loanAmount, months, monthlyRate, method, monthlyPayment);
   const __g2=html;document.getElementById('result').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
+}
+
+function renderAmort(loanAmount, months, monthlyRate, method, monthlyPayment){
+  var el=document.getElementById('amortTable');
+  if(!el) return;
+  if(!(loanAmount>0)||!(months>0)){el.innerHTML='';return;}
+  var __EN=((typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn())||/lang=en-US/i.test(location.search)||/^en/i.test(document.documentElement.lang||''));
+  var __T=function(en,zh){return __EN?en:zh;};
+  var yrs=Math.ceil(months/12);
+  var bal=loanAmount;
+  var rows='';
+  for(var y=1;y<=yrs;y++){
+    var yPri=0,yInt=0;
+    for(var m=0;m<12 && (y-1)*12+m<months;m++){
+      var mInt=bal*monthlyRate;
+      var mPri=(method==='equal-payment')?(monthlyPayment-mInt):(loanAmount/months);
+      yPri+=mPri; yInt+=mInt;
+      bal-=mPri;
+    }
+    if(bal<0) bal=0;
+    rows+='<tr><td>'+__T('Year '+y,'第'+y+'年')+'</td><td style="text-align:right;">¥'+fmt(yPri)+'</td><td style="text-align:right;">¥'+fmt(yInt)+'</td><td style="text-align:right;">¥'+fmt(bal)+'</td></tr>';
+  }
+  el.innerHTML='<table style="width:100%;border-collapse:collapse;font-size:13px;">'
+    +'<thead><tr style="background:var(--bg,#f5f5f5);"><th style="padding:6px;text-align:left;">'+__T('Year','年份')+'</th><th style="padding:6px;text-align:right;">'+__T('Principal/yr','年还本金')+'</th><th style="padding:6px;text-align:right;">'+__T('Interest/yr','年还利息')+'</th><th style="padding:6px;text-align:right;">'+__T('Balance EOY','年末剩余本金')+'</th></tr></thead>'
+    +'<tbody>'+rows+'</tbody></table>';
 }
 
 function copyResult(){

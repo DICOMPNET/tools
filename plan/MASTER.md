@@ -42,11 +42,11 @@
 | 02-金融财务 | finance.md / banking-investment-securities.md / tax-accounting-audit.md / insurance.md | 🟡 进行中：finance 功能缺陷 4 批已修（个税年终奖双口径 / 提前还款节省额口径 / 发票金额大写 / 汇率手动模式 / 定投止盈反推 / 债券 ±100bp）；tax-accounting-audit、insurance 待开发 |
 | 03-医疗健康 | scales.md / lab-diagnosis.md / drug-dosing.md / specialties.md | 🟡 进行中（7 批）：lab-diagnosis S3 标尺 8 页 + drug-dosing「年龄→参考体重 + 肝肾功能减量提示」2 页 + scales S7 引据 42 页；组件 `TBKit.chart.refBar` 已上线；specialties 待开发（孕周时间轴/视力互换经真机核验**已实现**，该条目需重估） |
 | 04-设计创意 | design.md / image.md | 🔴 待开发 |
-| 05-生活消费 | photo-video.md / food-travel.md / sports-fitness.md / home-decor.md / life.md | 🔴 待开发 |
+| 05-生活消费 | photo-video.md / food-travel.md / sports-fitness.md / home-decor.md / life.md | 🟡 进行中：功能缺口批14-19 已收口（气象/水文/健身配速反推/烘焙酵母换算/涂料门窗扣减/窗帘双层/菜单定价反推）；life 倒计时类因铁律④禁测 now 未做 |
 | 06-商业运营 | marketing-sales.md / ecommerce-logistics.md / hr-legal.md / realestate.md / biz-startup.md | 🔴 待开发 |
 | 07-教育学习 | edu-language.md / research-library.md | 🔴 待开发 |
 | 08-工程制造 | machinery-metalwork.md / electrical-electronics.md / construction-energy.md / aero-robotics.md | 🔴 待开发 |
-| 09-自然科学 | science-math-statistics.md / physics-optics-quantum.md / earth-geo.md | 🔴 待开发 |
+| 09-自然科学 | science-math-statistics.md / physics-optics-quantum.md / earth-geo.md | 🟡 进行中：S7 引据已落地 70 页（physics-optics-quantum 60 + earth-geo 10）；其余分类文件待开发 |
 | 10-农业养殖 | agriculture.md / fishery-aquaculture.md / livestock-eco-forestry.md | 🔴 待开发 |
 | 11-文娱爱好 | fun-entertainment.md / culture-collection.md | 🔴 待开发 |
 | 12-长尾行业 | _others.md（<20 页的其余 190+ 行业） | 🟡 仅收录已知问题 |

@@ -159,6 +159,7 @@ s.parentNode.insertBefore(el, s);
     <div class="tabs">
       <button type="button" class="tab-btn active" onclick="switchTab('calc')">🧪 计算</button>
       <button type="button" class="tab-btn" onclick="switchTab('guide')">📖 使用说明</button>
+      <button type="button" class="tab-btn" onclick="switchTab('purity')">🧮 折纯汇总</button>
       <button type="button" class="tab-btn" onclick="switchTab('ref')">📋 参考数据</button>
       <button type="button" class="tab-btn" onclick="switchTab('history')">📜 历史记录</button>
     </div>
@@ -201,6 +202,19 @@ s.parentNode.insertBefore(el, s);
     <div id="fertilizer_calculatorHist"></div>
       <div id="chartWrap" style="display:none;"><div class="chart-container"><canvas id="chart"></canvas></div></div>
     </div>
+    <div id="tab-purity" class="tab-content">
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="输入多种肥料的施用量，自动折算各肥纯养分与合计，避免重复计量。">Enter the amount applied for each fertilizer; the tool converts to pure nutrients and totals them to avoid double counting.</p>
+      <div class="ref-card">
+        <table class="purity-table"><thead><tr><th>肥料品种</th><th>施用量(kg)</th><th>N(kg)</th><th>P₂O₅(kg)</th><th>K₂O(kg)</th></tr></thead><tbody id="purityBody"></tbody></table>
+      </div>
+      <div class="toolbar">
+        <button type="button" class="btn primary" onclick="calcPurity()">🧮 折算汇总</button>
+        <button type="button" class="btn" onclick="resetPurity()">🔄 重置</button>
+        <button type="button" class="btn" onclick="TBKit.util.exportTable('#purityTable','fertilizer-purity.csv')">导出 CSV</button>
+      </div>
+      <div id="purityTable"></div>
+      <div id="purityTotal"></div>
+    </div>
     <div id="tab-guide" class="tab-content">
       <div class="ref-card">
         <h4>📐 施肥量计算公式</h4>
@@ -235,6 +249,26 @@ s.parentNode.insertBefore(el, s);
       <div id="historyList" class="history-list"></div>
     </div>
   </div>
+
+<!-- Formula & Standard References -->
+<div class="card" id="constRefBox">
+  <h3 data-zh="📐 公式与标准引据">Formula &amp; Standard References</h3>
+  <div style="overflow-x:auto;">
+    <table style="width:100%;border-collapse:collapse;font-size:13px;">
+      <thead><tr>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="项目">Item</th>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="公式 / 说明">Formula / Note</th>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="出处 / 标准">Source / Standard</th>
+      </tr></thead>
+      <tbody>
+        <tr><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="养分换算">Nutrient conversion</span></td><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="P₂O₅ = P × 2.291；K₂O = K × 1.205">P2O5 = P × 2.291; K2O = K × 1.205</span></td><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="FAO 肥料手册 / IFA 数据">FAO Fertilizer Manual</span></td></tr>
+        <tr><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="施肥量">Fertilizer rate</span></td><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="施肥量 = 目标养分需要量 / (肥料养分含量 × 利用率)">Rate = need / (content × η)</span></td><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="NY/T 496 肥料合理使用准则">NY/T 496-2010</span></td></tr>
+        <tr><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="测土配方">Soil test based fertilization</span></td><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="推荐施肥 = (目标产量需养量 − 土壤供养量)/肥料利用率">Balance method</span></td><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="农业农村部测土配方施肥技术规范">MOA Circular [2011] No.49</span></td></tr>
+
+      </tbody>
+    </table>
+  </div>
+</div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
@@ -307,7 +341,8 @@ s.parentNode.insertBefore(el, s);
     return __msg;
   }
   // 分母项：__D 由真浏览器逐项置零探测得出，命中即说明该输入在此页作分母
-  var __D={"needP": "needP"};
+  // 修正：calc 实际为 needP/needN 与 needK/needN，needN 才是分母；原 needP 误判会错误拦截「仅追氮肥」(needP=0) 的合理输入
+  var __D={"needN": "needN"};
   for(var _d=0;_d<_ids.length;_d++){
     if(!(_ids[_d] in __D)) continue;
     var _de=document.getElementById(_ids[_d]);
@@ -353,7 +388,7 @@ var CROPS=[
   {name:'柑橘',yield:2000,n:12,p:6,k:15}
 ];
 function $(id){return document.getElementById(id);}
-function switchTab(t){document.querySelectorAll('.tab-btn').forEach(function(b,i){var T=['calc','guide','ref','history'];b.classList.toggle('active',T[i]===t);});document.querySelectorAll('.tab-content').forEach(function(c){c.classList.remove('active');});$('tab-'+t).classList.add('active');if(t==='history')renderHistory();}
+function switchTab(t){document.querySelectorAll('.tab-btn').forEach(function(b,i){var T=['calc','guide','purity','ref','history'];b.classList.toggle('active',T[i]===t);});document.querySelectorAll('.tab-content').forEach(function(c){c.classList.remove('active');});$('tab-'+t).classList.add('active');if(t==='history')renderHistory();if(t==='purity')initPurity();}
 function initSelects(){
   var nOpts='<option value="">-- 选择氮肥 --</option>',pOpts='<option value="">-- 选择磷肥 --</option>',kOpts='<option value="">-- 选择钾肥 --</option>';
   FERTILIZERS.forEach(function(f,i){
@@ -371,6 +406,32 @@ function initTables(){
   const __g5=FERTILIZERS.map(function(f){return '<tr><td>'+f.name+'</td><td>'+(f.n||'-')+'</td><td>'+(f.p||'-')+'</td><td>'+(f.k||'-')+'</td><td>'+({n:'氮肥',p:'磷肥',k:'钾肥',np:'氮磷肥',nk:'氮钾肥',npk:'复合肥'}[f.type])+'</td></tr>';}).join('');$('fertTable').innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
   const __g6=CROPS.map(function(c){return '<tr><td>'+c.name+'</td><td>'+c.n+'</td><td>'+c.p+'</td><td>'+c.k+'</td></tr>';}).join('');$('cropTable').innerHTML=(typeof __g6==='number'?(isFinite(__g6)?__g6:'—'):String(__g6).replace(/Infinity|NaN/g,'—'));
 }
+var PURITY_DEFS=[0,4,8,11];
+function initPurity(){
+  if($('purityBody')&&$('purityBody').children.length)return;
+  if(!$('purityBody'))return;
+  var html='';
+  for(var i=0;i<4;i++){
+    var opts=FERTILIZERS.map(function(f,j){return '<option value="'+j+'"'+(j===PURITY_DEFS[i]?' selected':'')+'>'+f.name+'</option>';}).join('');
+    html+='<tr><td><select id="pSel'+i+'">'+opts+'</select></td><td><input type="number" id="pAmt'+i+'" value="" min="0" step="1" placeholder="0"></td><td id="pN'+i+'">—</td><td id="pP'+i+'">—</td><td id="pK'+i+'">—</td></tr>';
+  }
+  $('purityBody').innerHTML=html;
+}
+function calcPurity(){
+  var tN=0,tP=0,tK=0;
+  for(var i=0;i<4;i++){
+    var f=FERTILIZERS[$('pSel'+i).value];
+    var amt=parseFloat($('pAmt'+i).value)||0;
+    var n=(f.n/100)*amt,p=(f.p/100)*amt,k=(f.k/100)*amt;
+    tN+=n;tP+=p;tK+=k;
+    $('pN'+i).textContent=isFinite(n)?n.toFixed(2):'—';
+    $('pP'+i).textContent=isFinite(p)?p.toFixed(2):'—';
+    $('pK'+i).textContent=isFinite(k)?k.toFixed(2):'—';
+  }
+  var rows=[];for(var j=0;j<4;j++){var a=parseFloat($('pAmt'+j).value)||0;if(a>0)rows.push(FERTILIZERS[$('pSel'+j).value].name+' '+a+'kg');}
+  const __gP='<div class="tip-box tip-success"><strong>✅ 合计纯养分</strong>：N '+tN.toFixed(2)+' kg、P₂O₅ '+tP.toFixed(2)+' kg、K₂O '+tK.toFixed(2)+' kg'+(rows.length?'（'+rows.join(' + ')+'）':'')+'</div>';$('purityTotal').innerHTML=(typeof __gP==='number'?(isFinite(__gP)?__gP:'—'):String(__gP).replace(/Infinity|NaN/g,'—'));
+}
+function resetPurity(){for(var i=0;i<4;i++){$('pAmt'+i).value='';$('pN'+i).textContent='—';$('pP'+i).textContent='—';$('pK'+i).textContent='—';}$('purityTotal').innerHTML='';}
 function applyCrop(){
   var i=$('crop').value;if(i==='')return;
   var c=CROPS[i];
@@ -432,7 +493,40 @@ function loadHistory(i){var r=getHistory()[i];if(!r)return;$('area').value=r.are
 function clearHistory(){if(confirm('清空历史?')){localStorage.removeItem(HK);renderHistory();ToolBox.showToast(i18nText('toast.cleared'));}}
 function resetForm(){$('crop').value='';$('area').value=10;$('yield').value=500;$('needN').value=12;$('needP').value=6;$('needK').value=10;$('fertN').value=0;$('fertP').value=4;$('fertK').value=8;calc();}
 window.addEventListener('resize',function(){if($('chartWrap').style.display!=='none')calc();});
-initSelects();initTables();calc();
+var SOLAR_TERMS=[
+  {n:'立春',d:'2/4',t:'春耕备耕、设施蔬菜育苗、果树修剪'},
+  {n:'雨水',d:'2/19',t:'冬小麦返青水、早春蔬菜播种、耙地保墒'},
+  {n:'惊蛰',d:'3/5',t:'春耕开始、小麦拔节肥、果树嫁接'},
+  {n:'春分',d:'3/20',t:'春播全面展开、小麦追施拔节肥'},
+  {n:'清明',d:'4/4',t:'水稻育秧、春玉米播种、茶树修剪'},
+  {n:'谷雨',d:'4/20',t:'棉花播种、病虫害始盛期防治'},
+  {n:'立夏',d:'5/5',t:'小麦灌浆水、稻田分蘖管理'},
+  {n:'小满',d:'5/21',t:'夏收准备、稻麦田间排水'},
+  {n:'芒种',d:'6/5',t:'夏收夏种、水稻移栽、抢晴晒粮'},
+  {n:'夏至',d:'6/21',t:'夏管追肥防早衰、玉米大喇叭口期肥'},
+  {n:'小暑',d:'7/7',t:'防汛排涝、经济作物保花保果'},
+  {n:'大暑',d:'7/22',t:'防暑抗旱、晚稻追施穗肥'},
+  {n:'立秋',d:'8/7',t:'秋粮灌浆、秋蔬菜播种'},
+  {n:'处暑',d:'8/23',t:'秋收准备、畜禽秋季防疫'},
+  {n:'白露',d:'9/7',t:'秋收秋耕、冬小麦备播整地'},
+  {n:'秋分',d:'9/23',t:'全面秋收、冬小麦与油菜播种'},
+  {n:'寒露',d:'10/8',t:'冬小麦播种、果树施基肥'},
+  {n:'霜降',d:'10/23',t:'晚秋作物收获、块茎类入窖储藏'},
+  {n:'立冬',d:'11/7',t:'冬灌保墒、设施农业保温起步'},
+  {n:'小雪',d:'11/22',t:'蔬菜大棚管理、积造农家肥'},
+  {n:'大雪',d:'12/7',t:'越冬作物防冻、农田水利整修'},
+  {n:'冬至',d:'12/22',t:'小麦越冬管理、落叶果树修剪'},
+  {n:'小寒',d:'1/5',t:'设施蔬菜保温、畜禽防寒保暖'},
+  {n:'大寒',d:'1/20',t:'备耕备种、果树冬季修剪'}
+];
+function initCalendar(){
+  var sec=$('solarCalendar');if(!sec)return;
+  if(sec.dataset.built)return;
+  var rows=SOLAR_TERMS.map(function(s){return '<tr><td><strong>'+s.n+'</strong></td><td>'+s.d+'</td><td>'+s.t+'</td></tr>';}).join('');
+  sec.innerHTML='<h2>📅 二十四节气候农事一览</h2><p>按节气安排播种、施肥、收获与田间管理，是传统农事的核心时间轴。下表列出各节气公历约期与主要农事，供种植计划参考。</p><div class="ref-card"><table class="term-table"><thead><tr><th>节气</th><th>公历约期</th><th>主要农事</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+  sec.dataset.built='1';
+}
+initSelects();initTables();calc();initCalendar();
 </script><script>
 // tool-intro折叠交互
 document.addEventListener('DOMContentLoaded',function(){
@@ -450,6 +544,9 @@ document.addEventListener('DOMContentLoaded',function(){
 
 </div>
 
+
+<!-- 农时日历（节气↔农事静态模块，SEO 流量入口） -->
+<section class="opt-guide" id="solarCalendar" style="--tool-accent:#FF6B35;"></section>
 
 <!-- 相关工具 -->
 <div class="related-tools" data-related-tools="1">
@@ -626,7 +723,13 @@ function __fertilizer_calculatorExport(){
 }
 function __fertilizer_calculatorPresets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#fertilizer_calculatorPresets',[{label:'默认参数',labelEn:'Default',values:{period:'base', area:'10', yield:'500', needN:'12', needP:'6', needK:'10'}}],function(){ calc(); });
+    TBKit.preset.bar('#fertilizer_calculatorPresets',[
+      {label:'默认参数',labelEn:'Default',values:{period:'base', area:'10', yield:'500', needN:'12', needP:'6', needK:'10'}},
+      {label:'小麦返青期追肥',labelEn:'Wheat reviving topdressing',values:{period:'top', area:'10', yield:'450', needN:'8', needP:'0', needK:'0', fertN:'0', fertP:'', fertK:''}},
+      {label:'水稻穗肥',labelEn:'Rice panicle fertilizer',values:{period:'top', area:'10', yield:'500', needN:'5', needP:'0', needK:'4', fertN:'0', fertP:'', fertK:'8'}},
+      {label:'玉米大喇叭口期追肥',labelEn:'Corn bell-mouth topdressing',values:{period:'top', area:'10', yield:'550', needN:'10', needP:'0', needK:'5', fertN:'0', fertP:'', fertK:'8'}},
+      {label:'番茄膨果期追肥',labelEn:'Tomato fruit-expansion topdressing',values:{period:'top', area:'10', yield:'5000', needN:'8', needP:'0', needK:'6', fertN:'0', fertP:'', fertK:'8'}}
+    ],function(){ calc(); });
 }
 var __fertilizer_calculator_f0=(typeof calc==='function')?calc:null;
 if(__fertilizer_calculator_f0){

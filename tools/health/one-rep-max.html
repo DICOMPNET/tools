@@ -212,6 +212,12 @@ s.parentNode.insertBefore(el, s);
   </div>
 
   <div class="card">
+    <h3>💪 训练周期处方表</h3>
+    <p style="font-size:12px;color:var(--text-muted);margin-bottom:8px;">基于当前 1RM 自动换算常见组次方案的实际负重区间</p>
+    <div class="percent-table" id="programTable"></div>
+  </div>
+
+  <div class="card">
     <h3>💪 力量等级评估</h3>
     <div id="levelInfo"></div>
   </div>
@@ -233,6 +239,25 @@ s.parentNode.insertBefore(el, s);
     </p>
   </div>
 
+<!-- Formula & Standard References -->
+<div class="card" id="constRefBox">
+  <h3 data-zh="📐 公式与标准引据">Formula &amp; Standard References</h3>
+  <div style="overflow-x:auto;">
+    <table style="width:100%;border-collapse:collapse;font-size:13px;">
+      <thead><tr>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="项目">Item</th>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="公式 / 说明">Formula / Note</th>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="出处 / 标准">Source / Standard</th>
+      </tr></thead>
+      <tbody>
+        <tr><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="Epley 公式">Epley formula</span></td><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="1RM = w × (1 + r/30)，w 为重量 kg、r 为次数">1RM = w × (1 + r/30), w = load, r = reps</span></td><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="Epley 1985（NSCA 力量训练基础）">Epley 1985 (NSCA strength training literature)</span></td></tr>
+        <tr><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="Brzycki 公式">Brzycki formula</span></td><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="1RM = w × 36 ÷ (37 − r)，次数≤10 时最准">1RM = w × 36 ÷ (37 − r); most accurate ≤10 reps</span></td><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="Brzycki 1993, JOPERD">Brzycki 1993, JOPERD</span></td></tr>
+        <tr><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="适用范围">Applicability</span></td><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="次数 &gt;10 次误差显著放大（耐力成分混入），建议 3~6 RM 实测">Above 10 reps error grows markedly (endurance admixture); test 3–6 RM instead</span></td><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="NSCA Essentials of Strength Training">NSCA Essentials of Strength Training</span></td></tr>
+        <tr><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="训练百分比">Training percentages</span></td><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="力量 85%~95% 1RM×3~5 次；肌肥大 67%~85%×6~12 次；耐力 ≤67%×12+">Strength 85%–95%×3–5; hypertrophy 67%–85%×6–12; endurance ≤67%×12+</span></td><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="ACSM 抗阻训练立场声明">ACSM resistance-training position stand</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -429,6 +454,21 @@ function calc(){
   });
   pHtml += '</tbody></table>';
   const __g5=pHtml;document.getElementById('percentTable').innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
+
+  const programs = [
+    {name:'5×5 力量', sets:5, reps:5, lo:80, hi:85, use:'增力/肌肥大'},
+    {name:'3×5 力量', sets:3, reps:5, lo:75, hi:80, use:'神经适应/力量'},
+    {name:'3×8 肌肥大', sets:3, reps:8, lo:65, hi:70, use:'肌肥大'},
+    {name:'4×10 肌耐力', sets:4, reps:10, lo:60, hi:65, use:'肌耐力'}
+  ];
+  let prHtml = '<table><thead><tr><th>方案</th><th>组×次</th><th>强度(%1RM)</th><th>建议重量(kg)</th><th>用途</th></tr></thead><tbody>';
+  programs.forEach(function(p){
+    const wLo = Math.round(onerm * p.lo / 100 * 10) / 10;
+    const wHi = Math.round(onerm * p.hi / 100 * 10) / 10;
+    prHtml += '<tr><td>'+p.name+'</td><td>'+p.sets+'×'+p.reps+'</td><td>'+p.lo+'-'+p.hi+'%</td><td>'+wLo+'-'+wHi+'</td><td>'+p.use+'</td></tr>';
+  });
+  prHtml += '</tbody></table>';
+  const __g5b=prHtml;document.getElementById('programTable').innerHTML=(typeof __g5b==='number'?(isFinite(__g5b)?__g5b:'—'):String(__g5b).replace(/Infinity|NaN/g,'—'));
   
   let tipHtml = '';
   trainingTips.forEach(t=>{
