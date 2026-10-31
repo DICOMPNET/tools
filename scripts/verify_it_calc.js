@@ -2640,10 +2640,12 @@ const CASES = [
   },
   {
     slug: "it/string-obfuscator",
-    inputs: { input: "Hello" },
+    // 注入值必须避开页面预填样例 `Hello World 123`：原注入 `Hello` 的全角产物 `Ｈｅｌｌｏ`
+    // 是预填产物 `Ｈｅｌｌｏ Ｗｏｒｌｄ １２３` 的前缀子串 ⇒ 默认态同样命中（逃生项）。改 `Hi`。
+    inputs: { input: "Hi" },
     clicks: ["obfuscate()"],
-    expect: ["Ｈｅｌｌｏ", "原文 5 字符 → 输出 5 字符"],
-    ref: "字符串混淆（全角化）：`Hello` 逐字符转全角 ⇒ `Ｈｅｌｌｏ`（`H`→`Ｈ` U+FF28…，**Unicode 全角区映射可手查**）；统计行「原文 5 字符 → 输出 5 字符」与输入长度自洽。默认样例不同 ⇒ 不命中。",
+    expect: ["Ｈｉ", "原文 2 字符 → 输出 2 字符"],
+    ref: "字符串混淆（全角化）：`Hi` 逐字符转全角 ⇒ `Ｈｉ`（`H`→`Ｈ` U+FF28、**Unicode 全角区映射可手查**）；统计行「原文 2 字符 → 输出 2 字符」与输入长度自洽。默认样例 `Hello World 123` 产物为 `Ｈｅｌｌｏ Ｗｏｒｌｄ １２３`，两锚均不命中。",
   },
 
   // ---- BATCH249 同页第二组（4 例） ----
@@ -3739,7 +3741,7 @@ const CASES = [
       "algo": "sha256"
     },
     "expect": [
-      "abc123测试\n1 2 3\nsha256\n待签名串： &secret=abc123测试 签名结果： b652f9dbc2b4dd477559b3f0635242da8094a23d1c5b3eb9b8993ddae28f18c5"
+      "sha256\nabc123测试\n1 2 3\n待签名串： &secret=abc123测试 签名结果： b652f9dbc2b4dd477559b3f0635242da8094a23d1c5b3eb9b8993ddae28f18c5"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"secret\":\"abc123测试\",\"params\":\"1\\n2\\n3\",\"algo\":\"sha256\"}，输出区含「abc123测试\n1 2 3\nsha256\n待签名串： &secret=abc1…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -3943,7 +3945,7 @@ const CASES = [
       "rounds": "10"
     },
     "expect": [
-      "abc123测试\n1 2 3\n10\n哈希格式无效：bcrypt is not defined"
+      "abc123测试\n10\n哈希格式无效：bcrypt is not defined\n1 2 3"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"plain\":\"abc123测试\",\"hashOut\":\"1\\n2\\n3\",\"rounds\":\"10\"}，输出区含「abc123测试\n1 2 3\n10\n哈希格式无效：bcrypt is not d…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -5384,7 +5386,7 @@ const CASES = [
       "conf": "0.95"
     },
     "expect": [
-      "42\n42\n42\n0.95\np 必须在 0~1 之间"
+      "p 必须在 0~1 之间\n42\n42\n0.95\n42"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"n\":\"42\",\"p\":\"42\",\"N\":\"42\",\"conf\":\"0.95\"}，输出区含「42\n42\n42\n0.95\np 必须在 0~1 之间」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -5965,7 +5967,7 @@ const CASES = [
       "flavor": "verbose"
     },
     "expect": [
-      "1 2 3\n1 2 3\nverbose"
+      "1 2 3\nverbose\n1 2 3"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\",\"output\":\"1\\n2\\n3\",\"flavor\":\"verbose\"}，输出区含「1 2 3\n1 2 3\nverbose」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -6135,7 +6137,7 @@ const CASES = [
       "text": "1\n2\n3"
     },
     "expect": [
-      "abc123测试\n42\n1 2 3\n1 ← 1 2 ← 2 3 ← 3"
+      "1 2 3\nabc123测试\n42\n1 ← 1 2 ← 2 3 ← 3"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"sep\":\"abc123测试\",\"maxLen\":\"42\",\"text\":\"1\\n2\\n3\"}，输出区含「abc123测试\n42\n1 2 3\n1 ← 1 2 ← 2 3 ← 3」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -6250,7 +6252,7 @@ const CASES = [
       "tail": "one"
     },
     "expect": [
-      "42\n42\n42\none\nPlease enter valid parameters."
+      "Please enter valid parameters.\n42\n42\n42\none"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"d\":\"42\",\"n\":\"42\",\"alpha\":\"42\",\"tail\":\"one\"}，输出区含「42\n42\n42\none\nPlease enter valid paramete…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -6337,7 +6339,7 @@ const CASES = [
       "resultText": "1\n2\n3"
     },
     "expect": [
-      "abc123测试\nabc123测试\n1 2 3\n1 2 3"
+      "1 2 3\nabc123测试\nabc123测试\n0\n0\n+0\n1 2 3"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"findInput\":\"abc123测试\",\"replaceInput\":\"abc123测试\",\"sourceText\":\"1\\n2\\n3\",\"resultText\":\"1\\n2\\n3\"}，输出区含「abc123测试\nabc123测试\n1 2 3\n1 2 3」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },

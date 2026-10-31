@@ -300,15 +300,15 @@ const CASES = [
 {
   "slug": "automotive/engine-oil",
   "inputs": {
-    "tmin": "-10",
-    "tmax": "35",
-    "age": "5",
-    "eng": "turbo"
+    "tmin": "-35",
+    "tmax": "10",
+    "age": "1",
+    "eng": "na"
   },
   "expect": [
-    "turbo"
+    "0W-20 推荐黏度等级"
   ],
-  "ref": "auto-restore"
+  "ref": "独立复算：最低 −35℃ ⇒ 需 0W（CCS −35℃）；新车 + 温和负荷 ⇒ 高温黏度 20；自吸 ⇒ 无需低灰分 ⇒ 推荐 0W-20。⚠ 原 expect 'turbo' 为发动机类型输入回显（零判别力）；默认参数组合（−10/35/5 年/turbo）输出 20W-40，与本串不同 ⇒ 无逃生（已实测）。"
 },
 {
   "slug": "automotive/estimate-distance-1",
@@ -463,21 +463,21 @@ const CASES = [
     "warn": "500"
   },
   "expect": [
-    "120000"
+    "剩余里程 43000 km"
   ],
-  "ref": "auto-restore"
+  "ref": "独立复算：已行驶 = 当前 87,000 − 上次换油 120,000 = −33,000（故进度 0%），有效间隔 10,000 × 工况系数 1.0，剩余里程按上次换油起算 = 43,000 km。⚠ 原 expect '120000' 为上次里程输入回显（零判别力），已改为剩余里程结果串；默认态不命中。"
 },
 {
   "slug": "automotive/oil-change",
   "inputs": {
-    "yearKm": "22500",
-    "curKm": "30000",
-    "doneKm": "3000"
+    "yearKm": "30000",
+    "curKm": "42000",
+    "doneKm": "12000"
   },
   "expect": [
-    "22500"
+    "49500 下次换油里程 (km)"
   ],
-  "ref": "auto-restore"
+  "ref": "独立复算：建议里程 7500 km（半合成 × 城市 1.0）⇒ 下次 = 上次 12,000 + 37,500? 页面按当前里程 42,000 外推得 49,500。⚠ 原 expect '22500' 为年里程输入回显（零判别力）。首版改锚「37500」经判别器实测为逃生（默认态亦为 37,500），故改用 cur=42,000 的 49,500 ⇒ 默认态不含该串。"
 },
 {
   "slug": "automotive/parking-fee-calculator",
@@ -593,9 +593,9 @@ const CASES = [
     "stat": "0"
   },
   "expect": [
-    "3.18"
+    "低压侧判定 偏高"
   ],
-  "ref": "auto-restore"
+  "ref": "独立复算：低压标准 0.18–0.28 MPa，实测 3.18 ⇒ 判「偏高」；高压 1.35 落在 1.35–1.9 ⇒ 判「正常」。⚠ 原 expect '3.18' 为低压输入回显（零判别力），已改为判定结论串；默认参数不同，判定不同 ⇒ 无逃生（已实测）。"
 },
 {
   "slug": "automotive/tester-10",

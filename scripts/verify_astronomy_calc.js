@@ -71,14 +71,14 @@ const CASES = [
 {
   "slug": "astronomy/gravitational-force",
   "inputs": {
-    "m1": "5.97e24_X",
+    "m1": "5.97e24",
     "m2": "7.35e22",
-    "r": "3.84e8"
+    "r": "1.0e8"
   },
   "expect": [
-    "5.97e24_X"
+    "2.929e+21 引力 F (N)"
   ],
-  "ref": "auto-restore"
+  "ref": "独立复算：F = G·m₁·m₂/r² = 6.674e−11 × 5.97e24 × 7.35e22 / (1.0e8)² = 2.929e21 N。⚠ 原用例注入 '5.97e24_X' 并断言同串（输入回显、零判别力）；默认参数（地月 3.84e8）算得 1.986e20 N，与本串不同 ⇒ 无逃生（已实测）。"
 },
 {
   "slug": "astronomy/horizon-distance",
@@ -126,23 +126,23 @@ const CASES = [
 {
   "slug": "astronomy/kepler-third-period",
   "inputs": {
-    "a": "1.496e11_X",
-    "M": "1.989e30"
+    "a": "1.496e11",
+    "M": "3.978e30"
   },
   "expect": [
-    "1.496e11_X"
+    "258.25 轨道周期 T (天)"
   ],
-  "ref": "auto-restore"
+  "ref": "独立复算：T = 2π√(a³/(GM)) = 2π√((1.496e11)³/(6.674e−11×3.978e30)) ≈ 2.231e7 s = 258.25 天。⚠ 原用例注入 '1.496e11_X' 并断言同串（输入回显、零判别力）；默认中心天体质量 1.989e30 得 365.22 天，与本串不同 ⇒ 无逃生（已实测）。"
 },
 {
   "slug": "astronomy/light-travel-time",
   "inputs": {
-    "d": "1.496e11_X"
+    "d": "5.0e11"
   },
   "expect": [
-    "1.496e11_X"
+    "27.797 传播时间 t (min)"
   ],
-  "ref": "auto-restore"
+  "ref": "独立复算：t = d/c = 5.0e11/2.998e8 = 1667.8 s = 27.797 min。⚠ 原用例注入 '1.496e11_X' 并断言同串（输入回显、零判别力）；默认 1 AU ⇒ 8.317 min，与本串不同 ⇒ 无逃生。"
 },
 {
   "slug": "astronomy/magnitude-comparator",
@@ -170,14 +170,14 @@ const CASES = [
 {
   "slug": "astronomy/observation-conditions",
   "inputs": {
-    "latInput": "59.9042",
-    "lonInput": "116.4074",
-    "cloudInput": "20"
+    "latInput": "22.3193",
+    "lonInput": "114.1694",
+    "cloudInput": "85"
   },
   "expect": [
-    "59.9042"
+    "5.2 / 10 观测条件：一般"
   ],
-  "ref": "auto-restore"
+  "ref": "独立复算：云量 85% ⇒ 天气项 3.2、光污染 6.0、月光 5.7 加权得 5.2/10 ⇒ 评级「一般」。⚠ 原 expect '59.9042' 为纬度输入回显（零判别力）。首版改锚「6.5/10 良好」经判别器实测为逃生（默认云量即 6.5），故改用 cloud=85 的 5.2/10 ⇒ 默认态不含该串。"
 },
 {
   "slug": "astronomy/observation-conditions",
@@ -192,12 +192,12 @@ const CASES = [
 {
   "slug": "astronomy/schwarzschild-radius",
   "inputs": {
-    "M": "1.989e30_X"
+    "M": "4.0e30"
   },
   "expect": [
-    "1.989e30_X"
+    "5.941 史瓦西半径 r_s (km)"
   ],
-  "ref": "auto-restore"
+  "ref": "独立复算：r_s = 2GM/c² = 2×6.674e−11×4.0e30/(3.0e8)² = 5.941e3 m = 5.941 km。⚠ 原用例注入 '1.989e30_X' 并断言同串（输入回显、零判别力）；默认 M=1.989e30 得 2.954 km，与本串不同 ⇒ 无逃生。"
 },
 {
   "slug": "astronomy/solar-declination",
