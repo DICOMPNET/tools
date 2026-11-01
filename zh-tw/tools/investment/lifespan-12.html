@@ -121,7 +121,7 @@ s.parentNode.insertBefore(el, s);
       <div class="formula-desc">基於節能壽命經濟性模型：以裝置功率、執行時間與節能率估算年節電量，乘電價與壽命得累計節能收益，用於節能改造投資回收評估。</div>
     </div>
 <div class="input-row">
-      <div><div data-tb="preset" data-tb-presets='[{"label": "示例数据", "labelEn": "Example", "values": {"vPower": "15", "vHours": "8", "vDays": "300", "vSave": "30", "vPrice": "0.8", "vLife": "10", "vInvest": "50000"}}]'></div>
+      <div><div data-tb="preset" data-tb-presets='[{"label":"设备功率(kW)15·日运行时间(h)8·年运行天数300…","labelEn":"vPower=15 · vHours=8 · vDays=300 · vSav…","values":{"vPower":"15","vHours":"8","vDays":"300","vSave":"30","vPrice":"0.8","vLife":"10","vInvest":"50000"}}]'></div>
 <label>裝置功率 (kW)</label><input type="number" id="vPower" value="15" step="any" style="font-size:16px;" oninput="calc()" enterkeyhint="done" aria-label="裝置功率" placeholder="如 15"></div>
       <div><label>日執行時間 (h)</label><input type="number" id="vHours" value="8" step="any" style="font-size:16px;" oninput="calc()" enterkeyhint="done" aria-label="日執行時間" placeholder="如 8"></div>
       <div><label>年執行天數</label><input type="number" id="vDays" value="300" step="any" style="font-size:16px;" oninput="calc()" enterkeyhint="done" aria-label="年執行天數" placeholder="如 300"></div>
@@ -139,7 +139,8 @@ s.parentNode.insertBefore(el, s);
       <button class="btn" type="button" onclick="copyRes()">📋 複製結果</button>
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
-    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__lifespan_12Export()">匯出明細 CSV</button></div><div class="result-box" id="res"></div> <div id="lifespan_12Table"></div> <div id="lifespan_12Diff"></div> <div id="lifespan_12Chart"></div> <div id="lifespan_12Hist"></div>
+    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__lifespan_12Export()">匯出明細 CSV</button></div><div class="result-box" id="res"></div>
+<div id="resRefBar" style="margin-top:12px"></div> <div id="lifespan_12Table"></div> <div id="lifespan_12Diff"></div> <div id="lifespan_12Chart"></div> <div id="lifespan_12Hist"></div>
     <div class="info-box">💡 年節電量 = 功率 × 日執行 × 年天數 × 節能率；年節能費 = 年節電量 × 電價；回報期 = 投資 / 年節能費</div>
     <div class="tool-notes" style="--tool-accent:#FF6B35;">
 <div class="card" id="constRefBox">
@@ -241,7 +242,8 @@ function calc(){
     '<div class="data-card"><div class="num">'+netBenefit.toFixed(0)+'</div><div class="label">净收益 (元)</div></div>'+
     '<div class="data-card"><div class="num">'+(co2Reduction/1000).toFixed(1)+'</div><div class="label">碳减排 (吨CO₂)</div></div>'+
     '</div>'+
-    '<div class="info-box" style="margin-top:8px;">📋 '+advice+'</div>';document.getElementById('res').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
+    '<div class="info-box" style="margin-top:8px;">📋 '+advice+'</div>';try{ if(typeof payback==='number'&&isFinite(payback)&&typeof TBKit!=='undefined'&&TBKit.chart&&TBKit.chart.refBar){ TBKit.chart.refBar('#resRefBar',{value:payback,unit:'yrs',bands:[{"lo":0,"hi":5,"label":{"zh":"回报良好","en":"Good payback"},"color":"#10B981"},{"lo":5,"hi":null,"label":{"zh":"回报一般","en":"Moderate payback"},"color":"#F59E0B"}],title:((TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())?'Reference range':'参考区间标尺')}); } }catch(e){}
+  document.getElementById('res').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
   lastResult='节能寿命计算\n设备功率:'+p+'kW, 日运行:'+h+'h, 年运行:'+d+'天\n节能率:'+s+'%, 电价:'+pr+'元/kWh, 寿命:'+l+'年\n年耗电量:'+annualKwh.toFixed(0)+'kWh\n年节电量:'+annualSave.toFixed(0)+'kWh\n年节能费:'+annualCost.toFixed(0)+'元\n全寿命节电量:'+totalSave.toFixed(0)+'kWh\n全寿命节能收益:'+totalBenefit.toFixed(0)+'元\n净收益:'+netBenefit.toFixed(0)+'元\n投资回报期:'+payback.toFixed(1)+'年\n投资回报率:'+roi.toFixed(0)+'%\n碳减排:'+(co2Reduction/1000).toFixed(1)+'吨CO₂\n'+advice;
 }
 function copyRes(){if(!lastResult){ToolBox.showToast(i18nText(),'warning');return;}ToolBox.copyText(lastResult);}

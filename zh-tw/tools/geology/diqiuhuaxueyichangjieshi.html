@@ -119,14 +119,15 @@ s.parentNode.insertBefore(el, s);
       <p class="formula-desc">輸入元素含量、背景值與標準差，計算標準化異常值（Z 值）並判定異常類別與強度</p>
     </div>
 <div class="input-row">
-  <div style="flex:1;"><div data-tb="preset" data-tb-presets='[{"label": "示例数据", "labelEn": "Example", "values": {"ename": "铜 Cu", "c": "80", "b": "30", "sd": "10"}}]'></div>
+  <div style="flex:1;"><div data-tb="preset" data-tb-presets='[{"label":"元素名称铜 Cu·元素含量C(μg/g)80·背景值B(μ…","labelEn":"ename=铜 Cu · c=80 · b=30 · sd=10","values":{"ename":"铜 Cu","c":"80","b":"30","sd":"10"}}]'></div>
 <label>元素名稱</label><input type="text" id="ename" value="铜 Cu" style="font-size:16px;" aria-label="元素名稱"></div>
   <div style="flex:1;"><label>元素含量 C (μg/g)</label><input type="number" id="c" value="80" step="any" style="font-size:16px;" oninput="calc()" enterkeyhint="done" aria-label="元素含量" placeholder="如 80"></div>
   <div style="flex:1;"><label>背景值 B (μg/g)</label><input type="number" id="b" value="30" step="any" style="font-size:16px;" oninput="calc()" enterkeyhint="done" aria-label="背景值" placeholder="如 30"></div>
   <div style="flex:1;"><label>標準差 σ (μg/g)</label><input type="number" id="sd" value="10" step="any" style="font-size:16px;" oninput="calc()" enterkeyhint="done" aria-label="標準差" placeholder="如 10"></div>
 </div>
 <div class="toolbar"><button class="btn primary" type="button" onclick="calc();saveHistory()">🧮 計算</button><button class="btn" type="button" onclick="copyRes()">📋 複製結果</button><button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button></div>
-<div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__diqiuhuaxueyichangjieshiExport()">匯出明細 CSV</button></div><div class="result-box" id="res"></div> <div id="diqiuhuaxueyichangjieshiTable"></div> <div id="diqiuhuaxueyichangjieshiDiff"></div> <div id="diqiuhuaxueyichangjieshiChart"></div> <div id="diqiuhuaxueyichangjieshiHist"></div>
+<div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__diqiuhuaxueyichangjieshiExport()">匯出明細 CSV</button></div><div class="result-box" id="res"></div>
+<div id="resRefBar" style="margin-top:12px"></div> <div id="diqiuhuaxueyichangjieshiTable"></div> <div id="diqiuhuaxueyichangjieshiDiff"></div> <div id="diqiuhuaxueyichangjieshiChart"></div> <div id="diqiuhuaxueyichangjieshiHist"></div>
 <div class="info-box">💡 標準化異常值 Z = (C−B)/σ；襯度係數 Ac = C/B。Z&lt;2 背景，2-3 弱異常，3-4 中異常，&gt;4 強異常。</div>
 <div class="tool-notes" style="--tool-accent:#A16207;"><div class="tool-notes-title">⚠️ 注意事項</div><ul><li>Z 值法要求背景服從近似正態分佈</li><li>異常強度按標準差倍數分級</li><li>負異常（Z&lt;−2）提示貧化，需另行解釋</li><li>解釋應結合地質背景與多元素組合</li></ul></div>
 <div style="margin-top:16px;"><div class="history-header"><h3>🕘 最近計算</h3><button class="btn" type="button" style="padding:6px 12px;font-size:12px;" onclick="clearHistory()">清空</button></div><div class="history-list" id="historyBox"><div class="history-empty">暫無計算記錄</div></div></div>
@@ -160,7 +161,8 @@ function calc(){
     '</div>'+
     '<div class="info-box" style="margin-top:8px;color:'+color+';">'+ToolBox.escHtml(name)+' 异常类别：<strong>'+category+'</strong> · '+intensity+'</div>';
   lastResult='地球化学异常解释\n元素：'+name+'\n元素含量 C = '+c+' μg/g\n背景值 B = '+b+' μg/g\n标准差 σ = '+sd+' μg/g\n标准化异常值 Z = '+Z.toFixed(3)+'\n衬度系数 Ac = '+ac.toFixed(3)+'\n绝对异常量 = '+(c-b).toFixed(2)+' μg/g\n异常类别：'+category+'\n异常强度：'+intensity;
-  const __g2=html;document.getElementById('res').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
+  const __g2=html;try{ if(typeof Z==='number'&&isFinite(Z)&&typeof TBKit!=='undefined'&&TBKit.chart&&TBKit.chart.refBar){ TBKit.chart.refBar('#resRefBar',{value:Z,unit:'',bands:[{"lo":0,"hi":2,"label":{"zh":"背景范围","en":"Background"},"color":"#10B981"},{"lo":2,"hi":3,"label":{"zh":"弱异常","en":"Weak anomaly"},"color":"#84CC16"},{"lo":3,"hi":null,"label":{"zh":"中异常","en":"Moderate anomaly"},"color":"#F59E0B"}],title:((TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())?'Reference range':'参考区间标尺')}); } }catch(e){}
+  document.getElementById('res').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 }
 function copyRes(){if(!lastResult){ToolBox.showToast(i18nText(),'warning');return;}ToolBox.copyText(lastResult);}
 function resetAll(){document.getElementById('ename').value='铜 Cu';document.getElementById('c').value=80;document.getElementById('b').value=30;document.getElementById('sd').value=10;calc();ToolBox.showToast(i18nText(),'info');}

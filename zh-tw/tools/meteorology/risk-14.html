@@ -124,7 +124,7 @@ s.parentNode.insertBefore(el, s);
   <p>氣象健康風險由溫度、溼度、風速、氣壓四要素偏離舒適區的危害函式加權：fT=|T−22|/28、fRH=|RH−55|/60、fV=V/18、fP=|P−1013|/40（均截斷 0–1），綜合 R=100×(0.35fT+0.20fRH+0.20fV+0.25fP)；R 越高，對心腦血管與呼吸道疾病的誘發風險越大，敏感人群需加強防護。</p>
 </div>
 <div class="input-row">
-      <div><div data-tb="preset" data-tb-presets='[{"label": "示例数据", "labelEn": "Example", "values": {"t": "35", "rh": "40", "v": "3", "p": "1013"}}]'></div>
+      <div><div data-tb="preset" data-tb-presets='[{"label":"温度T(°C)35·相对湿度RH(%)40·风速V(m/s…","labelEn":"t=35 · rh=40 · v=3 · p=1013","values":{"t":"35","rh":"40","v":"3","p":"1013"}}]'></div>
 <label>溫度 T (°C)</label><input type="number" id="t" value="35" step="any" oninput="calc()" enterkeyhint="done" placeholder="如 35"></div>
       <div><label>相對溼度 RH (%)</label><input type="number" id="rh" value="40" min="0" max="100" step="any" oninput="calc()" enterkeyhint="done" placeholder="如 40（0–100）"></div>
     </div>
@@ -137,7 +137,8 @@ s.parentNode.insertBefore(el, s);
       <button class="btn" type="button" onclick="copyRes()">📋 複製結果</button>
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
-    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__risk_14Export()">匯出明細 CSV</button></div><div class="result-box" id="res"></div> <div id="risk_14Table"></div> <div id="risk_14Diff"></div> <div id="risk_14Chart"></div> <div id="risk_14Hist"></div>
+    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__risk_14Export()">匯出明細 CSV</button></div><div class="result-box" id="res"></div>
+<div id="resRefBar" style="margin-top:12px"></div> <div id="risk_14Table"></div> <div id="risk_14Diff"></div> <div id="risk_14Chart"></div> <div id="risk_14Hist"></div>
     <div class="info-box">💡 公式：R = 100×(0.35·f(T)+0.20·f(RH)+0.20·f(V)+0.25·f(P))，f 為各要素偏離舒適區並歸一化的危害函式，R 越大風險越高。</div>
     <div class="tool-notes" style="--tool-accent:#EF4444;">
 <div class="card" id="constRefBox">
@@ -214,7 +215,8 @@ function calc(){
   html+='</tbody></table>';
   var tipClass=R>=75?'tip-error':R>=50?'tip-warn':'tip-success';
   html+='<div class="tip-box '+tipClass+'" style="margin-top:12px;">'+desc+'</div>';
-  const __g1=html;document.getElementById('res').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
+  const __g1=html;try{ if(typeof R==='number'&&isFinite(R)&&typeof TBKit!=='undefined'&&TBKit.chart&&TBKit.chart.refBar){ TBKit.chart.refBar('#resRefBar',{value:R,unit:'',bands:[{"lo":0,"hi":25,"label":{"zh":"低风险","en":"Low risk"},"color":"#10B981"},{"lo":25,"hi":50,"label":{"zh":"中低风险","en":"Low-moderate risk"},"color":"#84CC16"},{"lo":50,"hi":75,"label":{"zh":"中高风险","en":"Moderate-high risk"},"color":"#F59E0B"},{"lo":75,"hi":null,"label":{"zh":"高风险","en":"High risk"},"color":"#F97316"}],title:((TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())?'Reference range':'参考区间标尺')}); } }catch(e){}
+  document.getElementById('res').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
   lastResult='气象健康风险预警\n温度:'+T+'°C 湿度:'+RH+'% 风速:'+V+'m/s 气压:'+P+'hPa\n风险指数:'+R.toFixed(0)+'（'+level+'）\n温度贡献:'+cT.toFixed(1)+' 湿度贡献:'+cRH.toFixed(1)+' 风速贡献:'+cV.toFixed(1)+' 气压贡献:'+cP.toFixed(1)+'\n'+desc;
 }
 function copyRes(){if(!lastResult){ToolBox.showToast(i18nText(),'warning');return;}ToolBox.copyText(lastResult);}

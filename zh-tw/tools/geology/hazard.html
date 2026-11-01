@@ -119,7 +119,7 @@ s.parentNode.insertBefore(el, s);
       <p class="formula-desc">輸入坡度、巖性、降雨量、坡高，綜合評價滑坡/崩塌等地質災害危險等級</p>
     </div>
 <div class="input-row">
-  <div style="flex:1;"><div data-tb="preset" data-tb-presets='[{"label": "示例数据", "labelEn": "Example", "values": {"slope": "35", "height": "40", "rain": "80", "litho": "3"}}]'></div>
+  <div style="flex:1;"><div data-tb="preset" data-tb-presets='[{"label":"坡度(°)35·坡高(m)40·日降雨量(mm)80·岩性…","labelEn":"slope=35 · height=40 · rain=80 · litho=3","values":{"slope":"35","height":"40","rain":"80","litho":"3"}}]'></div>
 <label>坡度 (°)</label><input type="number" id="slope" value="35" step="any" style="font-size:16px;" oninput="calc()" enterkeyhint="done" aria-label="坡度" placeholder="如 35"></div>
   <div style="flex:1;"><label>坡高 (m)</label><input type="number" id="height" value="40" step="any" style="font-size:16px;" oninput="calc()" enterkeyhint="done" aria-label="坡高" placeholder="如 40"></div>
   <div style="flex:1;"><label>日降雨量 (mm)</label><input type="number" id="rain" value="80" step="any" style="font-size:16px;" oninput="calc()" enterkeyhint="done" aria-label="日降雨量" placeholder="如 80"></div>
@@ -136,7 +136,8 @@ s.parentNode.insertBefore(el, s);
   </div>
 </div>
 <div class="toolbar"><button class="btn primary" type="button" onclick="calc();saveHistory()">🧮 計算</button><button class="btn" type="button" onclick="copyRes()">📋 複製結果</button><button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button></div>
-<div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__hazardExport()">匯出明細 CSV</button></div><div class="result-box" id="res"></div> <div id="hazardTable"></div> <div id="hazardDiff"></div> <div id="hazardChart"></div> <div id="hazardHist"></div>
+<div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__hazardExport()">匯出明細 CSV</button></div><div class="result-box" id="res"></div>
+<div id="resRefBar" style="margin-top:12px"></div> <div id="hazardTable"></div> <div id="hazardDiff"></div> <div id="hazardChart"></div> <div id="hazardHist"></div>
 <div class="info-box">💡 採用加權評分模型：坡度(0.35)+巖性(0.25)+降雨(0.25)+坡高(0.15)，綜合得分劃分四級危險等級。</div>
 <div class="tool-notes" style="--tool-accent:#A16207;"><div class="tool-notes-title">⚠️ 注意事項</div><ul><li>本評估為定性半定量方法，僅作初判參考</li><li>降雨量為誘發因素，暴雨期需提高警戒等級</li><li>實際災害評估應結合水文地質、植被與人類工程活動</li><li>軟土與鬆散堆積在同等坡度下風險顯著升高</li></ul></div>
 <div style="margin-top:16px;"><div class="history-header"><h3>🕘 最近計算</h3><button class="btn" type="button" style="padding:6px 12px;font-size:12px;" onclick="clearHistory()">清空</button></div><div class="history-list" id="historyBox"><div class="history-empty">暫無計算記錄</div></div></div>
@@ -178,7 +179,8 @@ function calc(){
     '</div>'+
     '<div class="info-box" style="margin-top:8px;color:'+color+';">评估结论：<strong>'+grade+' '+level+'</strong>　建议：'+advice+'</div>';
   lastResult='地质灾害风险评估\n坡度 = '+slope+'° (评分'+ss+')\n坡高 = '+height+'m (评分'+sh+')\n日降雨量 = '+rain+'mm (评分'+sr+')\n岩性评分 = '+sl+'\n综合危险指数 = '+total.toFixed(2)+'\n危险等级 = '+grade+' '+level+'\n建议：'+advice;
-  const __g2=html;document.getElementById('res').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
+  const __g2=html;try{ if(typeof total==='number'&&isFinite(total)&&typeof TBKit!=='undefined'&&TBKit.chart&&TBKit.chart.refBar){ TBKit.chart.refBar('#resRefBar',{value:total,unit:'',bands:[{"lo":0,"hi":1.8,"label":{"zh":"Ⅰ级","en":"Class I"},"color":"#10B981"},{"lo":1.8,"hi":2.6,"label":{"zh":"Ⅱ级","en":"Class II"},"color":"#F59E0B"},{"lo":2.6,"hi":null,"label":{"zh":"Ⅲ级","en":"Class III"},"color":"#EF4444"}],title:((TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())?'Reference range':'参考区间标尺')}); } }catch(e){}
+  document.getElementById('res').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 }
 function copyRes(){if(!lastResult){ToolBox.showToast(i18nText(),'warning');return;}ToolBox.copyText(lastResult);}
 function resetAll(){document.getElementById('slope').value=35;document.getElementById('height').value=40;document.getElementById('rain').value=80;document.getElementById('litho').value=3;calc();ToolBox.showToast(i18nText(),'info');}

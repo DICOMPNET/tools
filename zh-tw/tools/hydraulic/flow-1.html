@@ -124,7 +124,7 @@ s.parentNode.insertBefore(el, s);
       <p class="formula-desc">基於多年平均流量與生態基流係數計算最小下洩流量，結合 Tennant 法評價生態狀況</p>
     </div>
     <div class="input-row">
-      <div><div data-tb="preset" data-tb-presets='[{"label": "示例数据", "labelEn": "Example", "values": {"qavg": "50", "k": "0.2", "qdry": "15", "days": "365"}}]'></div>
+      <div><div data-tb="preset" data-tb-presets='[{"label":"多年平均流量Q̄(m³/s)50·生态基流系数k0.2·枯…","labelEn":"qavg=50 · k=0.2 · qdry=15 · days=365","values":{"qavg":"50","k":"0.2","qdry":"15","days":"365"}}]'></div>
 <label>多年平均流量 Q̄ (m³/s)</label><input type="number" id="qavg" value="50" step="any" enterkeyhint="done" placeholder="如 50"></div>
       <div><label>生態基流係數 k</label><input type="number" id="k" value="0.2" step="any" enterkeyhint="done" placeholder="如 0.2"></div>
       <div><label>枯水期流量 Q枯 (m³/s)</label><input type="number" id="qdry" value="15" step="any" enterkeyhint="done" placeholder="如 15"></div>
@@ -137,7 +137,8 @@ s.parentNode.insertBefore(el, s);
       <button class="btn" type="button" onclick="copyRes()">📋 複製結果</button>
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
-    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__flow_1Export()">匯出明細 CSV</button></div><div class="result-box" id="res"></div> <div id="flow_1Table"></div> <div id="flow_1Diff"></div> <div id="flow_1Chart"></div> <div id="flow_1Hist"></div>
+    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__flow_1Export()">匯出明細 CSV</button></div><div class="result-box" id="res"></div>
+<div id="resRefBar" style="margin-top:12px"></div> <div id="flow_1Table"></div> <div id="flow_1Diff"></div> <div id="flow_1Chart"></div> <div id="flow_1Hist"></div>
     <div class="info-box">💡 最小下洩流量 Qmin=k·Q̄；年生態需水量 W=Qmin×86400×天數；Tennant法按Q̄百分比評價</div>
     <div class="tool-notes" style="--tool-accent:#0EA5E9;">
 <!-- Formula & Standard References -->
@@ -214,7 +215,8 @@ function calc(){
   if(tennantPct<20){html+='<div class="tip-box tip-warn">生态基流占比仅 '+fmt(tennantPct,1)+'%（<20%），生态状况较差，建议提高基流系数</div>';}
   else if(tennantPct>=30){html+='<div class="tip-box tip-success">生态基流占比 '+fmt(tennantPct,1)+'%，生态状况良好</div>';}
   if(qdry>0&&Qmin>qdry){html+='<div class="tip-box tip-error">最小下泄流量 ('+fmt(Qmin,2)+' m³/s)大于枯水期流量 ('+fmt(qdry,2)+' m³/s)，枯水期生态基流无法保障，需补水调节</div>';}
-  const __g3=html;resBox.innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
+  const __g3=html;try{ if(typeof tennantPct==='number'&&isFinite(tennantPct)&&typeof TBKit!=='undefined'&&TBKit.chart&&TBKit.chart.refBar){ TBKit.chart.refBar('#resRefBar',{value:tennantPct,unit:'',bands:[{"lo":60,"hi":null,"label":{"zh":"极好","en":"Excellent"},"color":"#10B981"},{"lo":40,"hi":60,"label":{"zh":"好","en":"Good"},"color":"#84CC16"},{"lo":30,"hi":40,"label":{"zh":"较好","en":"Fair"},"color":"#F59E0B"},{"lo":20,"hi":30,"label":{"zh":"一般","en":"Fair"},"color":"#F97316"},{"lo":10,"hi":20,"label":{"zh":"较差","en":"Poor"},"color":"#EF4444"},{"lo":null,"hi":10,"label":{"zh":"最差（严重不足）","en":"Worst (severely short)"},"color":"#8B5CF6"}],title:((TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())?'Reference range':'参考区间标尺')}); } }catch(e){}
+  resBox.innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
   lastResult='生态最小下泄流量计算\n最小下泄流量 = '+fmt(Qmin,2)+' m³/s\n年生态需水量 = '+fmt(Wyear/1e8,4)+' 亿m³\n月生态需水量 = '+fmt(Wmonth/1e4,1)+' 万m³\n占多年平均 = '+fmt(tennantPct,1)+'%\nTennant评价：'+level;
 }
 function copyRes(){

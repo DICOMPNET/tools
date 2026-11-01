@@ -121,7 +121,7 @@ s.parentNode.insertBefore(el, s);
       <div class="formula-desc">依據腐蝕速率、初始壁厚、腐蝕裕量與已使用年限，結合環境等級估算耐腐蝕剩餘壽命，為檢修與更換計劃提供決策依據。</div>
     </div>
 <div class="input-row">
-      <div><div data-tb="preset" data-tb-presets='[{"label": "示例数据", "labelEn": "Example", "values": {"vRate": "0.1", "vThick": "10", "vAllow": "2", "vUsed": "0", "vEnv": "1"}}]'></div>
+      <div><div data-tb="preset" data-tb-presets='[{"label":"腐蚀速率(mm/年)0.1·初始壁厚(mm)10·腐蚀裕量…","labelEn":"vRate=0.1 · vThick=10 · vAllow=2 · vUse…","values":{"vRate":"0.1","vThick":"10","vAllow":"2","vUsed":"0","vEnv":"1"}}]'></div>
 <label>腐蝕速率 (mm/年)</label><input type="number" id="vRate" value="0.1" step="any" min="0" style="font-size:16px;" oninput="calc()" enterkeyhint="done" aria-label="腐蝕速率" placeholder="如 0.1"></div>
       <div><label>初始壁厚 (mm)</label><input type="number" id="vThick" value="10" step="any" min="0" style="font-size:16px;" oninput="calc()" enterkeyhint="done" aria-label="初始壁厚" placeholder="如 10"></div>
       <div><label>腐蝕裕量 (mm)</label><input type="number" id="vAllow" value="2" step="any" min="0" style="font-size:16px;" oninput="calc()" enterkeyhint="done" aria-label="腐蝕裕量" placeholder="如 2"></div>
@@ -144,6 +144,7 @@ s.parentNode.insertBefore(el, s);
     </div>
     <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__lifespan_corrosionExport()">匯出明細 CSV</button></div>
     <div class="result-box" id="res"></div>
+<div id="resRefBar" style="margin-top:12px"></div>
     <div id="lifespan_corrosionTable"></div>
     <div id="lifespan_corrosionDiff"></div>
     <div id="lifespan_corrosionChart"></div>
@@ -230,7 +231,8 @@ function calc(){
     '<div class="data-card"><div class="num">'+corroded.toFixed(2)+'</div><div class="label">已腐蚀量 (mm)</div></div>'+
     '<div class="data-card"><div class="num">'+wallRatio.toFixed(1)+'%</div><div class="label">壁厚完好率</div></div>'+
     '<div class="data-card"><div class="num" style="font-size:14px;">'+advice+'</div><div class="label">评估</div></div>'+
-    '</div>';document.getElementById('res').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
+    '</div>';try{ if(typeof remainLife==='number'&&isFinite(remainLife)&&typeof TBKit!=='undefined'&&TBKit.chart&&TBKit.chart.refBar){ TBKit.chart.refBar('#resRefBar',{value:remainLife,unit:'',bands:[{"lo":0,"hi":1,"label":{"zh":"已超寿命","en":"End of life"},"color":"#EF4444"},{"lo":1,"hi":2,"label":{"zh":"剩余极短","en":"Very short"},"color":"#F97316"},{"lo":2,"hi":5,"label":{"zh":"剩余有限","en":"Limited"},"color":"#F59E0B"},{"lo":5,"hi":null,"label":{"zh":"寿命正常","en":"Normal"},"color":"#10B981"}],title:((TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())?'Reference range':'参考区间标尺')}); } }catch(e){}
+  document.getElementById('res').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
   lastResult='耐腐蚀寿命计算\n腐蚀速率='+rate+'mm/年, 初始壁厚='+thick+'mm, 腐蚀裕量='+allow+'mm\n已使用='+used+'年, 环境='+envName+'\n修正腐蚀速率='+adjRate.toFixed(4)+'mm/年\n当前壁厚='+remaining.toFixed(2)+'mm\n已腐蚀量='+corroded.toFixed(2)+'mm\n总设计寿命='+totalLife.toFixed(1)+'年\n剩余寿命='+remainLife.toFixed(1)+'年\n建议检测周期='+inspectionCycle.toFixed(1)+'年\n壁厚完好率='+wallRatio.toFixed(1)+'%\n'+advice;
 }
 function copyRes(){if(!lastResult){ToolBox.showToast(i18nText(),'warning');return;}ToolBox.copyText(lastResult);}

@@ -125,7 +125,7 @@ s.parentNode.insertBefore(el, s);
       <p class="formula-desc">輸入流量、揚程、軸功率，計算水泵有效功率、執行效率與能耗（水的密度 ρ=1000kg/m³，g=9.81m/s²）</p>
     </div>
     <div class="input-row">
-      <div><div data-tb="preset" data-tb-presets='[{"label": "示例数据", "labelEn": "Example", "values": {"q": "360", "h": "30", "p": "50", "hours": "4000", "price": "0.7"}}]'></div>
+      <div><div data-tb="preset" data-tb-presets='[{"label":"流量Q(m³/h)360·扬程H(m)30·轴功率P(kW…","labelEn":"q=360 · h=30 · p=50 · hours=4000 · pric…","values":{"q":"360","h":"30","p":"50","hours":"4000","price":"0.7"}}]'></div>
 <label>流量 Q (m³/h)</label><input type="number" id="q" value="360" step="any" enterkeyhint="done" placeholder="如 360"></div>
       <div><label>揚程 H (m)</label><input type="number" id="h" value="30" step="any" enterkeyhint="done" placeholder="如 30"></div>
       <div><label>軸功率 P (kW)</label><input type="number" id="p" value="50" step="any" enterkeyhint="done" placeholder="如 50"></div>
@@ -139,7 +139,8 @@ s.parentNode.insertBefore(el, s);
       <button class="btn" type="button" onclick="copyRes()">📋 複製結果</button>
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
-    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__power_3Export()">匯出明細 CSV</button></div><div class="result-box" id="res"></div> <div id="power_3Table"></div> <div id="power_3Diff"></div> <div id="power_3Chart"></div> <div id="power_3Hist"></div>
+    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__power_3Export()">匯出明細 CSV</button></div><div class="result-box" id="res"></div>
+<div id="resRefBar" style="margin-top:12px"></div> <div id="power_3Table"></div> <div id="power_3Diff"></div> <div id="power_3Chart"></div> <div id="power_3Hist"></div>
     <div class="info-box">💡 有效功率 Pe = ρ·g·Q·H/1000，泵效率 η = Pe/P×100%；Q 需換算為 m³/s（÷3600）</div>
     <div class="tool-notes" style="--tool-accent:#0EA5E9;">
 <!-- Formula & Standard References -->
@@ -216,7 +217,8 @@ function calc(){
     '</div>';
   if(eta<60){html+='<div class="tip-box tip-warn">泵效率偏低（'+fmt(eta,1)+'%），建议检查叶轮磨损、密封泄漏或更换高效泵</div>';}
   if(eta>90){html+='<div class="tip-box tip-warn">效率超过 90%，请核对轴功率输入是否偏小</div>';}
-  const __g4=html;resBox.innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
+  const __g4=html;try{ if(typeof eta==='number'&&isFinite(eta)&&typeof TBKit!=='undefined'&&TBKit.chart&&TBKit.chart.refBar){ TBKit.chart.refBar('#resRefBar',{value:eta,unit:'%',bands:[{"lo":80,"hi":null,"label":{"zh":"优秀","en":"Excellent"},"color":"#10B981"},{"lo":70,"hi":80,"label":{"zh":"良好","en":"Good"},"color":"#84CC16"},{"lo":60,"hi":70,"label":{"zh":"合格","en":"Acceptable"},"color":"#F59E0B"},{"lo":null,"hi":60,"label":{"zh":"偏低","en":"Low"},"color":"#EF4444"}],title:((TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())?'Reference range':'参考区间标尺')}); } }catch(e){}
+  resBox.innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
   lastResult='泵站效率计算\n有效功率 Pe = '+fmt(pe,2)+' kW\n泵效率 η = '+fmt(eta,2)+'%（'+level+'）\n日耗电量 = '+fmt(dailyE,1)+' kWh\n年耗电量 = '+fmt(yearE,0)+' kWh\n年电费 = '+fmt(yearCost,0)+' 元';
 }
 function copyRes(){
