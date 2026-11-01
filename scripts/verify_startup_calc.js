@@ -26,6 +26,7 @@ const CASES = [
   "expect": [
     "示例科技有限公司_X"
   ],
+    ref: "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
   "ref": "auto-restore"
 },
 {
@@ -62,6 +63,7 @@ const CASES = [
   "expect": [
     "weighted"
   ],
+    ref: "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
   "ref": "auto-restore"
 },
 {
@@ -74,6 +76,7 @@ const CASES = [
   "expect": [
     "示例科技有限公司_X"
   ],
+    ref: "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
   "ref": "auto-restore"
 },
 {
@@ -108,9 +111,7 @@ const CASES = [
     "cmp_uv_lo": "200",
     "cmp_uv_hi": "500"
   },
-  "expect": [
-    "450.00"
-  ],
+  "expect": [ "1,100.00 万" ],
   "ref": "auto-restore"
 },{
   "slug": "startup/valuation-calculator",

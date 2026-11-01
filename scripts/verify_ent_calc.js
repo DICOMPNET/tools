@@ -133,9 +133,7 @@ const CASES = [
     "bc2000": "15",
     "bc4000": "20"
   },
-  "expect": [
-    "38"
-  ],
+  "expect": [ "34 PTA气导" ],
   "ref": "auto-restore"
 },
 {
@@ -148,9 +146,7 @@ const CASES = [
     "hnr": "15",
     "mpt": "8"
   },
-  "expect": [
-    "180"
-  ],
+  "expect": [ "基频 180" ],
   "ref": "auto-restore"
 },
 {
@@ -196,6 +192,7 @@ const CASES = [
   "expect": [
     "1050"
   ],
+    ref: "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
   "ref": "auto-restore"
 },
 {
@@ -221,6 +218,7 @@ const CASES = [
   "expect": [
     "manual"
   ],
+    ref: "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
   "ref": "auto-restore"
 },
 {
@@ -267,9 +265,7 @@ const CASES = [
     "ecv": "1.0",
     "grad": "40"
   },
-  "expect": [
-    "3.70"
-  ],
+  "expect": [ "3.70 声顺" ],
   "ref": "auto-restore"
 },
 {

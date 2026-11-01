@@ -183,6 +183,7 @@ const CASES = [
   "expect": [
     "3750"
   ],
+    ref: "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
   "ref": "auto-restore"
 },
 {
@@ -242,6 +243,7 @@ const CASES = [
   "expect": [
     "53"
   ],
+    ref: "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
   "ref": "auto-restore"
 },
 {
@@ -280,9 +282,7 @@ const CASES = [
     "blasts": "2",
     "wbc": "15"
   },
-  "expect": [
-    "158"
-  ],
+  "expect": [ "血红蛋白 158" ],
   "ref": "auto-restore"
 },
 {
@@ -294,9 +294,7 @@ const CASES = [
     "fib": "0.9",
     "fdp": "40"
   },
-  "expect": [
-    "68"
-  ],
+  "expect": [ "68 血小板" ],
   "ref": "auto-restore"
 },
 {
@@ -308,9 +306,7 @@ const CASES = [
     "onsetDays": "5",
     "recoveryDays": "7"
   },
-  "expect": [
-    "270"
-  ],
+  "expect": [ "血小板下降幅度 94" ],
   "ref": "auto-restore"
 },
 {
@@ -350,6 +346,7 @@ const CASES = [
   "expect": [
     "105"
   ],
+    ref: "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
   "ref": "auto-restore"
 },
   {

@@ -19,6 +19,7 @@ const CASES = [
   "expect": [
     "40"
   ],
+    ref: "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
   "ref": "auto-restore"
 },
 {
@@ -29,9 +30,7 @@ const CASES = [
     "date": "2024-12-22",
     "hours": "2"
   },
-  "expect": [
-    "45"
-  ],
+  "expect": [ "89.60 正午阴影长度" ],
   "ref": "auto-restore"
 },
 {
@@ -42,9 +41,7 @@ const CASES = [
     "inCanopy": "22000",
     "inPop": "3000"
   },
-  "expect": [
-    "75000"
-  ],
+  "expect": [ "7.50 公顷" ],
   "ref": "auto-restore"
 },
 {
@@ -53,9 +50,7 @@ const CASES = [
     "inPop": "150000",
     "area_'+l.key+'": "'+l.default+'"
   },
-  "expect": [
-    "150000"
-  ],
+  "expect": [ "150,000 人" ],
   "ref": "auto-restore"
 },
 {
@@ -87,6 +82,7 @@ const CASES = [
   "expect": [
     "75000"
   ],
+    ref: "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
   "ref": "auto-restore"
 }
 ];

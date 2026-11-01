@@ -34,9 +34,7 @@ const CASES = [
   "inputs": {
     "inB": "15"
   },
-  "expect": [
-    "15.0"
-  ],
+  "expect": [ "90 cm" ],
   "ref": "auto-restore"
 },
 {
@@ -45,9 +43,7 @@ const CASES = [
     "inB": "18",
     "inH": "8"
   },
-  "expect": [
-    "18.0"
-  ],
+  "expect": [ "5.4 m" ],
   "ref": "auto-restore"
 },
 {

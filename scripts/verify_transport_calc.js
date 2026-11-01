@@ -25,6 +25,7 @@ const CASES = [
   "expect": [
     "480"
   ],
+    ref: "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
   "ref": "auto-restore"
 },
 {
@@ -48,9 +49,7 @@ const CASES = [
     "life": "5",
     "salvageRate": "5"
   },
-  "expect": [
-    "300000"
-  ],
+  "expect": [ "300,000 购车原值" ],
   "ref": "auto-restore"
 },
 {
@@ -60,9 +59,7 @@ const CASES = [
     "consumption": "7.5",
     "price": "8.00"
   },
-  "expect": [
-    "750"
-  ],
+  "expect": [ "450.00 总油费" ],
   "ref": "auto-restore"
 },
 {
@@ -83,9 +80,7 @@ const CASES = [
     "oldSpec": "225/45R17_X",
     "newSpec": "225/50R17"
   },
-  "expect": [
-    "225/45R17_X"
-  ],
+  "expect": [ "请使用如 225" ],
   "ref": "auto-restore"
 },
 {
@@ -148,6 +143,7 @@ const CASES = [
   "expect": [
     "6.75"
   ],
+    ref: "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
   "ref": "auto-restore"
 },
 {

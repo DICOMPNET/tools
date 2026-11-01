@@ -26,9 +26,7 @@ const CASES = [
     "val": "1",
     "from": "1.852"
   },
-  "expect": [
-    "1.852"
-  ],
+  "expect": [ "1 千米/时" ],
   "ref": "auto-restore"
 },
 {
@@ -80,6 +78,7 @@ const CASES = [
   "expect": [
     "45"
   ],
+    ref: "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
   "ref": "auto-restore"
 }
 ];

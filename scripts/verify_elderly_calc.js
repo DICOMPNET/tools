@@ -18,9 +18,7 @@ const CASES = [
   "inputs": {
     "age": "113"
   },
-  "expect": [
-    "113"
-  ],
+  "expect": [ "113 年龄" ],
   "ref": "auto-restore"
 },
 {
@@ -61,6 +59,7 @@ const CASES = [
   "expect": [
     "上午"
   ],
+    ref: "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
   "ref": "auto-restore"
 },
 {
@@ -106,6 +105,7 @@ const CASES = [
   "expect": [
     "12"
   ],
+    ref: "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
   "ref": "auto-restore"
 }
 ,

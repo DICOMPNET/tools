@@ -8,9 +8,7 @@ const CASES = [
     "avgSalary": "15000",
     "capSalary": "30000"
   },
-  "expect": [
-    "15000"
-  ],
+  "expect": [ "15,000 计算月工资" ],
   "ref": "auto-restore"
 },
 {
@@ -21,6 +19,7 @@ const CASES = [
   "expect": [
     "45"
   ],
+    ref: "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
   "ref": "auto-restore"
 },
 {

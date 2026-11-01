@@ -38,6 +38,7 @@ const CASES = [
   "expect": [
     "lower"
   ],
+    ref: "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
   "ref": "auto-restore"
 },
 {
@@ -55,6 +56,7 @@ const CASES = [
   "expect": [
     "mid"
   ],
+    ref: "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
   "ref": "auto-restore"
 },
 {
@@ -64,9 +66,7 @@ const CASES = [
     "enwpm": "200",
     "src": "在纯前端工具站里，阅读时长估算是一个很实用的小功能，帮助用户判断一篇长文需要投入多少时间。"
   },
-  "expect": [
-    "450"
-  ],
+  "expect": [ "450 字/分" ],
   "ref": "auto-restore"
 },
 {
@@ -98,9 +98,7 @@ const CASES = [
     "src": "leet speak is fun",
     "level": "mid"
   },
-  "expect": [
-    "mid"
-  ],
+  "expect": [ "15 fun" ],
   "ref": "auto-restore"
 },
 {
@@ -112,6 +110,7 @@ const CASES = [
   "expect": [
     "HELLO_X"
   ],
+    ref: "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
   "ref": "auto-restore"
 },
 {

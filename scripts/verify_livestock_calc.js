@@ -71,9 +71,7 @@ const CASES = [
     "breedTimes": "2",
     "gestation": "283"
   },
-  "expect": [
-    "113"
-  ],
+  "expect": [ "113 天" ],
   "ref": "auto-restore"
 },
 {
@@ -84,6 +82,7 @@ const CASES = [
   "expect": [
     "cattle"
   ],
+    ref: "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
   "ref": "auto-restore"
 },
 {
@@ -297,9 +296,7 @@ const CASES = [
     "feedIntake": "2.5",
     "temp": "22"
   },
-  "expect": [
-    "12.00"
-  ],
+  "expect": [ "12.00 L/头·天" ],
   "ref": "auto-restore"
 },
 {

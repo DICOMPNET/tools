@@ -228,8 +228,8 @@ const CASES = [
   {
     slug: "design/badge-generator",
     inputs: { text: "TOOLBOX", fontSize: "20", radius: "14", textColor: "#ffffff", bgColor: "#2563eb" },
-    expect: ["TOOLBOX"],
-    ref: "独立复算：#text 注入 `TOOLBOX` ⇒ 预览区与 CSS 代码均使用注入文本 ⇒ 锚 `TOOLBOX`。默认态 #text 的 value 为 `New` ⇒ 不命中；同时把 fontSize/radius/bgColor 一并换成非默认值（默认 12 / 12 / #667eea），防止退化成『只有 text 参与计算』的假通过。"
+    expect: ["font-size:20px;font-weight:600;border-radius:14px"],
+    ref: "独立复算：字号 20px、圆角 14px 被写进生成的 CSS（默认 12px/12px）。⚠ 原 expect TOOLBOX 为徽标文字输入回显（零判别力）；本页可见产物都由输入拼出，故锚「随参数变化的 CSS 片段」而非文字。默认态 font-size:12px;font-weight:600;border-radius:12px，不命中 ⇒ 无逃生（已双态实测）。"
        + "⚠ 该页 `#preview` 与 `#cssOutput` 均渲染注入文本，属『回显类』页面：锚必须与默认态逐字不同，不可锚任何固定装饰串（如 `BADGE`、`badge`）。",
   },
   {
@@ -314,8 +314,8 @@ const CASES = [
   {
     slug: "design/toast-generator",
     inputs: { message: "TOOLBOX-OK", radius: "14", bgColor: "#0f172a" },
-    expect: ["TOOLBOX-OK"],
-    ref: "独立复算：`#preview` 把 `#message` 写进 `.toast` 节点（`✓ ${message} ×`）⇒ message=TOOLBOX-OK 时预览区出现该串。默认态 message 为页面默认值 ⇒ 不命中。"
+    expect: ["border-radius: 14px"],
+    ref: "独立复算：圆角 14px 写进生成的 .toast CSS（默认 8px）。⚠ 原 expect TOOLBOX-OK 为提示文字输入回显（零判别力）。默认态 border-radius: 8px，不命中 ⇒ 无逃生（已双态实测）。"
         + "⚠ 回显型页：锚必须与默认态逐字不同；本例同时给 radius=14 / bgColor=#0f172a 等非默认伴生参数，防止日后退化成『只有 message 参与渲染』的假通过（该页另有 `#cssOutput`，但注入态未采集到内容，故只锚预览回显）。",
   },
 
@@ -637,8 +637,8 @@ const CASES = [
   {
     slug: "design/favicon-generator",
     inputs: { textInput: "AB", fgColor: "#f43f5e", bgColor: "#0f172a", fontSize: "22", fontWeight: "700" },
-    expect: ["AB"],
-    ref: "浏览器地址栏 favicon 预览 `#browserFavicon` 直接渲染 `textInput` 的首字母组合：默认文本是 `F`（默认文字 'Favicon'），注入 `AB` 后变 `AB` ⇒ 默认态必然不命中。\n"
+    expect: [ "#0f172a" ],
+    ref: "浏览器地址栏 favicon 预览 `#browserFavicon` 直接渲染 `textInput` 的首字母组合：默认文本是 `F`（默认文字 'Favicon'），注入 `AB` 后变 `AB` ⇒ 默认态必然不命中。\n ⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。"
       + "⚠ 这是「输入 → 结果区文本渲染」型锚，不是纯输入框回显：被测点是**渲染管线**而非回显本身，页面默认值与注入值明确错开。\n"
       + "⚠ `errs` 里的 `canvas.toBlob is not a function` / `draw: ... 'getC...` 是 harness 无 canvas 2d 上下文的产物，不阻断 `#browserFavicon` 写入；`#sizesPreview` 是常量（16×16px…256×256px），不锚。",
   },
@@ -661,13 +661,13 @@ const CASES = [
     slug: "design/material-color",
     inputs: { searchInput: "zzzz" },
     expect: ["未找到匹配颜色"],
-    ref: "顺序保持型筛选 ⇒ 注入命中词（如 `red`）只会渲染默认态的子集、任何锚都成默认态子串（逃生项），故改走反用：注入无匹配词 `zzzz` ⇒ 落空态。⚠ 该空态安全的前提是零参 `render()` 的 filter 默认为空串、渲染全量、不复现空态；若页面兜底改成带 filter 调用需重评。",
+    ref: "顺序保持型筛选 ⇒ 注入命中词（如 `red`）只会渲染默认态的子集、任何锚都成默认态子串（逃生项），故改走反用：注入无匹配词 `zzzz` ⇒ 落空态。⚠ 该空态安全的前提是零参 `render()` 的 filter 默认为空串、渲染全量、不复现空态；若页面兜底改成带 filter 调用需重评。 ⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
   },
   {
     slug: "design/tailwind-colors",
     inputs: { searchInput: "zzzz" },
     expect: ["未找到匹配颜色"],
-    ref: "与 material-color 同模板同渲染函数，空态成因与安全性一致；两例同锚但落在不同页，可互相兜住模板改动。",
+    ref: "与 material-color 同模板同渲染函数，空态成因与安全性一致；两例同锚但落在不同页，可互相兜住模板改动。 ⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
   },
 
   // ── §7.4 零用例加固：design 确定性页（注入非默认 + harness 实测锚）──
@@ -711,7 +711,7 @@ const CASES = [
     slug: "design/font-preview",
     inputs: { fpText: "ZZPREVZZ" },
     expect: ["ZZPREVZZ"],
-    ref: "注入唯一预览文字 ZZPREVZZ。fpText 的 input 监听器更新 state.text 后 render()，将 ZZPREVZZ 渲染进每个可见字体的预览区（escHtml 转义后仍为文本，去标签后保留）。默认态 fpText=『永和九年岁在癸丑』，不出现 ZZPREVZZ。render 纯本地 fonts 对象、不触网，确定性强。",
+    ref: "注入唯一预览文字 ZZPREVZZ。fpText 的 input 监听器更新 state.text 后 render()，将 ZZPREVZZ 渲染进每个可见字体的预览区（escHtml 转义后仍为文本，去标签后保留）。默认态 fpText=『永和九年岁在癸丑』，不出现 ZZPREVZZ。render 纯本地 fonts 对象、不触网，确定性强。 ⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
   },
   // ── 零用例收敛（2026-10-09）：design 29 页中仅本页可收敛 ──
   {
@@ -724,7 +724,7 @@ const CASES = [
     slug: "design/cvd-safe-palette",
     inputs: { csMode: "sequential", csStrategy: "lightness" },
     expect: ["sequential"],
-    ref: "注入 csMode=sequential（默认 qualitative）、csStrategy=lightness（默认 auto）。输出第2/4行变为 'sequential'/'lightness'，默认态为 'qualitative'/'auto' 完全不含 ⇒ 0 逃生。注：csCount 是 range，注入会触发页面 csCount.input 读取报错，故本例不注入 csCount；颜色序列与 ΔE 文本为固定的 6 色结果区、不随 mode 变化，仅 mode/strategy/count 文本行随输入变化，故以 mode 串作判别点。纯前端无随机。",
+    ref: "⚠ 下拉值回显（结构性不可修）：csMode=sequential / csStrategy=lightness 注入后，模式与策略标签确实变化，但实测色板（#A2828B → #1B179C → …）、ΔE、对比度表在默认 qualitative/auto 下**逐字节相同** —— 该页色板由固定种子搜索生成、不受模式/策略影响 ⇒ 任何色板数值锚都会在默认态命中（已双态实测 A/B 一致）。能区分的只有 `sequential`/`lightness` 两个下拉回显本身，故维持原断言。",
   },
   {
     "slug": "design/avatar-generator",
@@ -1641,6 +1641,7 @@ const CASES = [
     "expect": [
       "\nabc123测试"
     ],
+    ref: "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
     "ref": "自动补强（B类零用例）：注入非默认输入{\"colorPicker\":\"abc123测试\",\"colorText\":\"abc123测试\"}，输出区含「\nabc123测试」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {

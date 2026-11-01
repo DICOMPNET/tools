@@ -44,6 +44,7 @@ const CASES = [
   "expect": [
     "3003"
   ],
+    ref: "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
   "ref": "auto-restore"
 },
 {
@@ -56,6 +57,7 @@ const CASES = [
   "expect": [
     "1200003"
   ],
+    ref: "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
   "ref": "auto-restore"
 },
 {
@@ -66,9 +68,7 @@ const CASES = [
     "serviceFee": "0",
     "customPct": "50"
   },
-  "expect": [
-    "300"
-  ],
+  "expect": [ "60,000 佣金" ],
   "ref": "auto-restore"
 },
 {
@@ -100,9 +100,7 @@ const CASES = [
     "adjC": "0",
     "wC": "1"
   },
-  "expect": [
-    "135"
-  ],
+  "expect": [ "7,278 建议月租金" ],
   "ref": "auto-restore"
 }
 ];

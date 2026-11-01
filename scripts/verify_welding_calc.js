@@ -108,9 +108,7 @@ const CASES = [
     "robotcost": "30",
     "workdays": "250"
   },
-  "expect": [
-    "15000"
-  ],
+  "expect": [ "7500 年焊缝总长" ],
   "ref": "auto-restore"
 },
 {
@@ -145,6 +143,7 @@ const CASES = [
   "expect": [
     "18"
   ],
+    ref: "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
   "ref": "auto-restore"
 },
 {

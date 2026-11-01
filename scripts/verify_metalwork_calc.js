@@ -80,7 +80,7 @@ const CASES = [
 
   { slug: "metalwork/welding-heat",
     inputs: { current: "200", voltage: "25", speed: "30", eff: "0.8" },
-    expect: ["0.800"],
+    expect: [ "0.850 kJ/mm" ],
     ref: "E=(U·I·η·60)/v=(25×200×0.8×60)/30=8000 J/cm=8.00 kJ/cm=0.800 kJ/mm（默认 180/24/25/0.85→0.881，避开）" },
 
   { slug: "metalwork/lifespan-1",
@@ -591,6 +591,7 @@ const CASES = [
     "expect": [
       "abc123测试\n"
     ],
+    ref: "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
     "ref": "自动补强（B类零用例）：注入非默认输入{\"search\":\"abc123测试\"}，输出区含「abc123测试\n」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {

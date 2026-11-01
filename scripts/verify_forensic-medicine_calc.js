@@ -88,9 +88,7 @@ const CASES = [
     "diatomType": "3",
     "waterType": "8"
   },
-  "expect": [
-    "23"
-  ],
+  "expect": [ "23 个/10g" ],
   "ref": "auto-restore"
 },
 {
@@ -116,6 +114,7 @@ const CASES = [
   "expect": [
     "medium"
   ],
+    ref: "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
   "ref": "auto-restore"
 },
 {
@@ -126,6 +125,7 @@ const CASES = [
   "expect": [
     "dc"
   ],
+    ref: "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
   "ref": "auto-restore"
 },
 {
@@ -155,9 +155,7 @@ const CASES = [
   "inputs": {
     "diameter": "120"
   },
-  "expect": [
-    "120"
-  ],
+  "expect": [ "毛发直径 120" ],
   "ref": "auto-restore"
 },
 {
@@ -188,6 +186,7 @@ const CASES = [
   "expect": [
     "inhalation"
   ],
+    ref: "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
   "ref": "auto-restore"
 },
 {
@@ -221,6 +220,7 @@ const CASES = [
   "expect": [
     "linear"
   ],
+    ref: "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
   "ref": "auto-restore"
 }
 ];

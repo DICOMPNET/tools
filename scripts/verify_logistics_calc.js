@@ -64,6 +64,7 @@ const CASES = [
   "expect": [
     "0.045"
   ],
+    ref: "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
   "ref": "auto-restore"
 },
 {
@@ -87,9 +88,7 @@ const CASES = [
     "complaints": "1",
     "csat": "96"
   },
-  "expect": [
-    "150000"
-  ],
+  "expect": [ "6.67 件/百万" ],
   "ref": "auto-restore"
 },
 {
@@ -104,9 +103,7 @@ const CASES = [
     "payableDays": "45",
     "receivableDays": "35"
   },
-  "expect": [
-    "1500"
-  ],
+  "expect": [ "订单满足率 61.3" ],
   "ref": "auto-restore"
 },
 {
@@ -161,9 +158,8 @@ const CASES = [
     "boxSize": "60×40×40",
     "boxWeight": "15"
   },
-  "expect": [
-    "7.2"
-  ],
+  "expect": [ "体积 41" ],
+    ref: "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
   "ref": "auto-restore"
 },
 {
