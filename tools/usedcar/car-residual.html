@@ -146,14 +146,14 @@ s.parentNode.insertBefore(el, s);
       </div>
       <div>
         <label>已使用年限（年）</label>
-        <input type="number" id="years" value="3" min="0" step="1" oninput="calc()" placeholder="如 3">
+        <input type="number" id="years" value="3" min="0" max="30" step="1" oninput="calc()" placeholder="如 3">
       </div>
     </div>
 
     <div id="extraRow" class="input-row" style="display:none;">
       <div>
         <label>折旧年限（年）</label>
-        <input type="number" id="life" value="10" min="1" step="1" oninput="calc()" placeholder="如 10">
+        <input type="number" id="life" value="10" min="1" max="30" step="1" oninput="calc()" placeholder="如 10">
       </div>
       <div>
         <label>残值率（%）</label>
@@ -325,13 +325,30 @@ function calc(){
     var __ig=__tbInputGuard(['price', 'years', 'life', 'salvage'],["新车购置价（元）", "已使用年限（年）", "折旧年限（年）", "残值率（%）"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
 var method = document.getElementById('method').value;
   var price = parseFloat(document.getElementById('price').value);
-  var years = Math.min(parseFloat(document.getElementById('years').value)||0, 1000);
+  var years = parseFloat(document.getElementById('years').value);
   var extra = document.getElementById('extraRow');
   extra.style.display = (method === 'straight' || method === 'double') ? '' : 'none';
 
-  if(isNaN(price) || price < 0 || isNaN(years) || years < 0){
-    document.getElementById('result').innerHTML='<p style="color:var(--danger);">请输入有效的价格与年限</p>';
+  if(isNaN(price) || price < 0){
+    document.getElementById('result').innerHTML='<p style="color:var(--danger);">新车购置价需为有效的非负数值</p>';
     return;
+  }
+  if(isNaN(years) || years < 0 || years > 30){
+    document.getElementById('result').innerHTML='<p style="color:var(--danger);">已使用年限需在 0–30 年之间</p>';
+    return;
+  }
+
+  var life = parseFloat(document.getElementById('life').value);
+  var salvage = parseFloat(document.getElementById('salvage').value);
+  if(method === 'straight' || method === 'double'){
+    if(isNaN(life) || life < 1 || life > 30){
+      document.getElementById('result').innerHTML='<p style="color:var(--danger);">折旧年限需在 1–30 年之间</p>';
+      return;
+    }
+    if(isNaN(salvage) || salvage < 0 || salvage > 100){
+      document.getElementById('result').innerHTML='<p style="color:var(--danger);">残值率需在 0–100 之间</p>';
+      return;
+    }
   }
 
   var residual = 0;
@@ -352,23 +369,19 @@ var method = document.getElementById('method').value;
       dep += price * curR * frac;
     }
     residual = Math.max(price - dep, price * 0.05);
-    rate = dep / price * 100;
+    rate = (1 - residual / price) * 100;
     detail = '54321阶梯折旧，累计折旧 ' + rate.toFixed(1) + '%';
   } else if(method === 'straight'){
-    var life = parseFloat(document.getElementById('life').value) || 10;
-    var salvage = parseFloat(document.getElementById('salvage').value) || 5;
     var salvageVal = price * salvage / 100;
     var annualDep = (price - salvageVal) / life;
     var dep = annualDep * years;
     residual = Math.max(price - dep, salvageVal);
-    rate = dep / price * 100;
+    rate = (1 - residual / price) * 100;
     detail = '直线折旧，年折旧 ¥' + ToolBox.formatNumber(annualDep, 2) + '，残值率 ' + salvage + '%';
   } else if(method === 'double'){
-    var life2 = parseFloat(document.getElementById('life').value) || 10;
-    var salvage2 = parseFloat(document.getElementById('salvage').value) || 5;
-    var salvageVal2 = price * salvage2 / 100;
+    var salvageVal2 = price * salvage / 100;
     var book = price;
-    var annualRate = 2 / life2;
+    var annualRate = 2 / life;
     var fullYears = Math.floor(years);
     for(var j = 0; j < fullYears; j++){
       var d = book * annualRate;
@@ -420,13 +433,13 @@ document.addEventListener('DOMContentLoaded',function(){
   <div class="related-tools-grid">
     
     
-    <a href="../misc2/tax-refund.html" class="related-tool-card">
+    <a href="../travel/estimate-15.html" class="related-tool-card">
       <span class="rt-icon">🧾</span>
       <span class="rt-info"><span class="rt-name">境外购物退税估算</span><span class="rt-desc">境外购物退税估算（综合）</span></span>
     </a>
     
     
-    <a href="../misc2/cigarette-tar.html" class="related-tool-card">
+    <a href="../health/convert-content.html" class="related-tool-card">
       <span class="rt-icon">🫁</span>
       <span class="rt-info"><span class="rt-name">尼古丁焦油换算</span><span class="rt-desc">尼古丁焦油换算</span></span>
     </a>
@@ -594,7 +607,7 @@ function __car_residualExport(){
 }
 function __car_residualPresets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#car_residualPresets',[{label:'默认参数',labelEn:'Default',values:{method:'rule', price:'150000', years:'3', life:'10', salvage:'5'}}],function(){ calc(); });
+    TBKit.preset.bar('#car_residualPresets',[{label:'默认参数',labelEn:'Default',values:{method:'rule', price:'150000', years:'3', life:'10', salvage:'5'}},{"label":"小规模","labelEn":"Small scale","values":{"price":"75000"}},{"label":"大规模","labelEn":"Large scale","values":{"price":"225000"}},{"label":"极端工况","labelEn":"Extreme case","values":{"price":"300000"}}],function(){ calc(); });
 }
 var __car_residual_f0=(typeof calc==='function')?calc:null;
 if(__car_residual_f0){

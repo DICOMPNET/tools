@@ -40,7 +40,7 @@
     <meta name="twitter:description" content="微生物药敏(MIC)折点对照器是一款免费的在线临床检验工具，CLSI 折点对照，输入MIC值自动判定敏感(S)/中介(I)/耐药(R)。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
 <!-- TOOLBOX-WEBAPP-LD -->
 <script type="application/ld+json">
-{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "S 就一定有效吗？", "acceptedAnswer": {"@type": "Answer", "text": "不一定，还需看感染部位浓度、患者免疫与 PK/PD；折点是群体概率，非个体保证。"}}, {"@type": "Question", "name": "CLSI 和 EUCAST 一样吗？", "acceptedAnswer": {"@type": "Answer", "text": "有差异，同一 MIC 可能判读不同，报告应注明采用标准。"}}, {"@type": "Question", "name": "能直接选抗生素吗？", "acceptedAnswer": {"@type": "Answer", "text": "不能，经验性/目标性用药由医师与临床药师综合决定，本工具仅做折点对照。"}}]}
+{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "S 就一定有效吗？", "acceptedAnswer": {"@type": "Answer", "text": "不一定，还需看感染部位浓度、患者免疫与 PK/PD；折点是群体概率，非个体保证。"}}, {"@type": "Question", "name": "CLSI 和 EUCAST 一样吗？", "acceptedAnswer": {"@type": "Answer", "text": "有差异，同一 MIC 可能判读不同。本页采用 CLSI M100 2023 折点，报告应注明采用标准。"}}, {"@type": "Question", "name": "能直接选抗生素吗？", "acceptedAnswer": {"@type": "Answer", "text": "不能，经验性/目标性用药由医师与临床药师综合决定，本工具仅做折点对照。"}}]}
 </script>
 
 <script type="application/ld+json">
@@ -127,8 +127,8 @@ s.parentNode.insertBefore(el, s);
     <h2 data-zh="⚖️ 微生物药敏(MIC)折点对照器">Mic Breakpoint</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="CLSI 折点对照，输入MIC值自动判定敏感(S)/中介(I)/耐药(R)">Mic Breakpoint</p>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">按所选细菌取折点表逐药判定：MIC ≤ S 折点判 S 敏感，MIC ≥ R 折点判 R 耐药，介于两者之间判 I 中介；中介区间显示为 &gt;S 且 &lt;R，缺任一侧时显示 —；MIC 未填或折点缺失时不判读</div>
-  <p class="formula-desc">按 CLSI/EUCAST 标准将测得 MIC 与折点比对，判读敏感/中介/耐药；仅供复核，用药由感染科与药师决定。</p>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">按所选细菌取折点表逐药判定：MIC ≤ S 折点判 S 敏感，MIC ≥ R 折点判 R 耐药，介于两者之间判 I 中介；中介区间显示为 &gt;S 且 &lt;R，缺任一侧时显示 —；MIC 未填或折点缺失时不判读；MIC 须为正数且落在 2 倍稀释系列（0.125、0.25、0.5、1、2、4…，允许约 ±8% 误差），否则不输出 S/I/R</div>
+  <p class="formula-desc">按 CLSI M100（2023）标准将测得 MIC 与折点比对，判读敏感/中介/耐药；仅供复核，用药由感染科与药师决定。</p>
 </div>
 
 
@@ -142,7 +142,7 @@ s.parentNode.insertBefore(el, s);
           <option value="ent">肠球菌</option>
         </select>
       </div>
-      <div><label>输入MIC值(μg/mL)</label><input type="number" id="micVal" placeholder="输入MIC对照折点" step="0.01" oninput="renderDrugs()"></div>
+      <div><label>输入MIC值(μg/mL)</label><input type="number" id="micVal" placeholder="输入MIC对照折点" step="0.01" oninput="renderDrugs()"><div id="micHint" style="font-size:12px;color:var(--danger);margin-top:4px;"></div></div>
     </div>
 
     <div class="toolbar">
@@ -151,7 +151,7 @@ s.parentNode.insertBefore(el, s);
 
     <div id="drugArea"></div>
     <div id="bpChart"></div>
-    <table id="bpHidden" style="display:none;"><thead><tr><th>Drug</th><th>S (<= mcg/mL)</th><th>R (>= mcg/mL)</th><th>I Range</th><th>Interpretation</th></tr></thead><tbody></tbody></table>
+    <table id="bpHidden" style="display:none;"><thead><tr><th>Drug</th><th>S (<= mcg/mL)</th><th>R (>= mcg/mL)</th><th>I Range</th><th>Interpretation</th><th>Standard</th><th>Version</th></tr></thead><tbody></tbody></table>
 
     <div class="info-box" style="margin-top:16px;">
       <strong>判读标准(CLSI 2023)：</strong><br>
@@ -185,14 +185,14 @@ s.parentNode.insertBefore(el, s);
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
 <li>血/尿培养报出 MIC 后，按菌种与药物查对应折点判读 S/I/R。</li>
-<li>不同标准（CLSI vs EUCAST）折点差异比对。</li>
+<li>按 CLSI M100 折点表逐药对照，输出 S/I/R 判读。</li>
 <li>教学演示折点与 PK/PD 靶点（如 %fT&gt;MIC）关系。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">大肠杆菌左氧氟沙星示例</div><div class="dd-ex-body">测得 MIC 0.06 mg/L，对照 EUCAST 大肠杆敏感折点（≤1）判为 S；若 MIC 8 则 ≥2 判 R，需换方案。</div></div>
+<div class="dd-example"><div class="dd-ex-title">大肠杆菌左氧氟沙星示例</div><div class="dd-ex-body">测得 MIC 0.06 μg/mL，对照本页 CLSI M100 大肠杆菌左氧氟沙星折点（S≤0.5、R≥4）判为 S；若 MIC 8 则 ≥4 判 R，需换方案。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>S 就一定有效吗？</dt><dd>不一定，还需看感染部位浓度、患者免疫与 PK/PD；折点是群体概率，非个体保证。</dd>
-<dt>CLSI 和 EUCAST 一样吗？</dt><dd>有差异，同一 MIC 可能判读不同，报告应注明采用标准。</dd>
+<dt>CLSI 和 EUCAST 一样吗？</dt><dd>有差异，同一 MIC 可能判读不同。本页采用 CLSI M100 2023 折点，报告应注明采用标准。</dd>
 <dt>能直接选抗生素吗？</dt><dd>不能，经验性/目标性用药由医师与临床药师综合决定，本工具仅做折点对照。</dd>
 </dl>
 </div>
@@ -208,7 +208,7 @@ s.parentNode.insertBefore(el, s);
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="药敏折点">MIC breakpoint</td>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="按折点判敏感/中介/耐药">R = f(MIC, breakpoint)</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);">CLSI / EUCAST MIC breakpoint</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);">CLSI M100 MIC breakpoint</td>
         </tr>
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="折点分级">S/I/R grading</td>
@@ -316,14 +316,28 @@ var BP = {
   ]
 };
 
+function __bpMicCheck(raw){
+  var s=String(raw==null?'':raw).trim();
+  if(s==='')return {ok:false,empty:true,val:NaN,msg:''};
+  var v=parseFloat(s);
+  if(!isFinite(v)||v<=0)return {ok:false,val:NaN,msg:'请输入有效 MIC（>0）；当前输入“'+s+'”无效'};
+  var d=Math.abs(Math.log(v)/Math.LN2-Math.round(Math.log(v)/Math.LN2));
+  if(d>0.12)return {ok:false,val:v,msg:'请输入 2 倍稀释系列 MIC（如 0.125、0.25、0.5、1、2、4 μg/mL）；当前输入“'+s+'”不在系列内，无法判定'};
+  return {ok:true,val:v,msg:''};
+}
 function renderDrugs(){
   var b = document.getElementById('bacteria').value;
-  var mic = parseFloat(document.getElementById('micVal').value);
+  var __raw = String(document.getElementById('micVal').value||'').trim();
+  var __chk = __bpMicCheck(__raw);
+  var mic = __chk.val;
+  var micOk = __chk.ok;
+  var __hint = document.getElementById('micHint');
+  if(__hint)__hint.textContent = __chk.msg||'';
   var list = BP[b];
   var html = '<table class="bp-table"><thead><tr><th>抗菌药物</th><th>S 敏感(≤)</th><th>R 耐药(≥)</th><th>I 中介</th><th>输入MIC判定</th></tr></thead><tbody>';
   list.forEach(function(d){
     var interp = '—';
-    if(!isNaN(mic) && d.s!=='-' && d.r!=='-'){
+    if(micOk && d.s!=='-' && d.r!=='-'){
       if(mic<=d.s) interp = '<span class="s-tag">S 敏感</span>';
       else if(mic>=d.r) interp = '<span class="r-tag">R 耐药</span>';
       else interp = '<span class="i-tag">I 中介</span>';
@@ -333,7 +347,7 @@ function renderDrugs(){
   });
   html += '</tbody></table>';
   // S3 判定汇总定位卡：输入 MIC 后汇总各药 S/I/R
-  if(!isNaN(mic)){
+  if(micOk){
     var __en=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn())?true:false;
     var __bName={gn:__en?'Enterobacterales':'革兰阴性肠杆菌',gp:__en?'Staphylococcus (GP)':'革兰阳性(葡萄球菌)',pa:__en?'P. aeruginosa':'铜绿假单胞菌',sa:__en?'S. pneumoniae':'肺炎链球菌',ent:__en?'Enterococcus':'肠球菌'}[b]||b;
     var __sN=0,__iN=0,__rN=0,__nt=0,__rows=[];
@@ -370,14 +384,16 @@ window.__bpExport=function(){
   if(typeof TBKit==='undefined')return;
   var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
   var b=document.getElementById('bacteria').value;
-  var mic=parseFloat(document.getElementById('micVal').value);
+  var __chk=__bpMicCheck(document.getElementById('micVal').value);
+  var mic=__chk.val;
+  var micOk=__chk.ok;
   var list=BP[b];
   if(!list)return;
   var tbody=document.querySelector('#bpHidden tbody');if(!tbody)return;
   tbody.innerHTML='';
   list.forEach(function(d){
     var interp='—',interpEn='Not tested';
-    if(!isNaN(mic)&&d.s!=='-'&&d.r!=='-'){
+    if(micOk&&d.s!=='-'&&d.r!=='-'){
       if(mic<=d.s){interp='S 敏感';interpEn='S Susceptible';}
       else if(mic>=d.r){interp='R 耐药';interpEn='R Resistant';}
       else{interp='I 中介';interpEn='I Intermediate';}
@@ -391,7 +407,9 @@ window.__bpExport=function(){
       d.s!=='-'?String(d.s):'-',
       d.r!=='-'?String(d.r):'-',
       en?iRangeEn:iRange,
-      en?interpEn:interp
+      en?interpEn:interp,
+      'CLSI M100',
+      '2023'
     ];
     cells.forEach(function(v){
       var td=document.createElement('td');td.textContent=v;tr.appendChild(td);
@@ -447,11 +465,11 @@ renderDrugs();
   </div>
   <div class="tool-intro-body">
     <h4><span class="h4-icon">📝</span>工具简介</h4>
-    <p>微生物药敏 MIC 折点对照器。输入菌种、药物与测得 MIC，按 CLSI/EUCAST 标准判读敏感(S)/中介(I)/耐药(R)；仅供复核，用药由感染科与药师决定。</p>
+    <p>微生物药敏 MIC 折点对照器。输入菌种、药物与测得 MIC，按 CLSI M100（2023）标准判读敏感(S)/中介(I)/耐药(R)；仅供复核，用药由感染科与药师决定。</p>
     <h4><span class="h4-icon">✨</span>功能特点</h4>
-    <ul class="intro-features"><li>CLSI/EUCAST 折点对照</li><li>S·I·R 自动判读</li><li>多标准差异提示</li></ul>
+    <ul class="intro-features"><li>CLSI M100 折点对照</li><li>S·I·R 自动判读</li><li>判定汇总与 CSV 导出</li></ul>
     <h4><span class="h4-icon">🎯</span>使用场景</h4>
-    <ul class="intro-scenes"><li>药敏报告复核</li><li>不同标准折点比对</li><li>教学演示 PK/PD 折点含义</li></ul>
+    <ul class="intro-scenes"><li>药敏报告复核</li><li>S/I/R 判读规则教学</li><li>教学演示 PK/PD 折点含义</li></ul>
     </div>
 </div>
 <!-- /SEO 介绍区块 -->
@@ -511,9 +529,11 @@ function __bpChartDraw(){
     if(!b||!micEl) return;
     var list=BP[b.value];
     if(!list) return;
-    var mic=parseFloat(micEl.value);
+    var __chk=__bpMicCheck(micEl.value);
+    var mic=__chk.val;
+    var micOk=__chk.ok;
     var nS=0,nI=0,nR=0;
-    if(!isNaN(mic)){
+    if(micOk){
       list.forEach(function(d){
         if(d.s==='-'||d.r==='-') return;
         if(mic<=d.s)nS++;
@@ -524,7 +544,7 @@ function __bpChartDraw(){
     var en=TBKit.util.isEn();
     var labels=en?['S','I','R']:['S 敏感','I 中介','R 耐药'];
     var names=en?['Susceptible','Intermediate','Resistant']:['敏感','中介','耐药'];
-    var title=isNaN(mic)
+    var title=!micOk
       ?(en?'Enter MIC to tally S/I/R drugs':'输入 MIC 后统计各药物 S/I/R 判定')
       :((en?'At MIC ':'MIC=')+mic+(en?' ug/mL: S ':' μg/mL：S')+nS+(en?' / I ':' / I ')+nI+(en?' / R ':' / R ')+nR);
     TBKit.chart.bar(host,{labels:labels,series:[

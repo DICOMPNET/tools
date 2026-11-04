@@ -44,12 +44,13 @@ const CASES = [
 {
   "slug": "language/generator-19",
   "inputs": {
-    "cnt": "8"
+    "phrase": "Application Programming Interface\n区块链技术"
   },
   "expect": [
-    "6."
+    "1. Application Programming Interface → 缩写 ： API",
+    "2. 区块链技术 → 缩写 ： 区链技"
   ],
-  "ref": "auto-restore"
+  "ref": "真实短语输入：英文按单词取首字母（API）→ 输出「1. Application Programming Interface → 缩写 ： API」；中文按内置词表最大正向匹配分词为「区块/链/技术」，取各词组首字 ⇒ 区链技（不再隔字取字成区链术）→「2. 区块链技术 → 缩写 ： 区链技」。默认 textarea 为「Natural Language Processing / Machine Learning」⇒ 默认输出 NLP、ML，两条断言均失配；页面静态深度解析虽有 API 字样，但不含带序号与「→ 缩写 ：」的完整行。"
 },
 {
   "slug": "language/idiom-solitaire",
@@ -116,25 +117,26 @@ const CASES = [
 {
   "slug": "language/text-polisher",
   "inputs": {
-    "input": "这是一段 测试文本，里面有  多余空格 。中英文 混排时 , 标点容易出错 。_X"
+    "input": "我觉得这个方案其实非常好，然后我们赶紧开始开始吧。"
   },
   "expect": [
-    "41"
+    "这个方案非常好，随后我们赶紧开始吧。",
+    "已优化 4 处"
   ],
-  "ref": "auto-restore"
+  "ref": "本地口语清理：删除填充词「我觉得」「其实」各 1 处、把「然后」改写为「随后」1 处、合并重复词「开始开始」为「开始」1 处 ⇒ 共 4 处；输出「这个方案非常好，随后我们赶紧开始吧。」且信息区显示「已优化 4 处」。默认输入含多余空格与半角标点但不是口语句，默认态既无「随后」也无「已优化 4 处」⇒ 两条断言仅注入态成立。"
 },
 {
-  // 原为 all_default 弱用例（两个注入键均为空串 = 页面默认），expect「Tomorrow」是 QUICK 静态词表（逃生项）。
-  // QUICK=['你好',…,'Home'] 整体渲染进 #quick-row ⇒ 词表内任何英文词都零判别力，必须避开（Today/Tomorrow/
-  // Sorry/Water/Fire/Home 全部在表内）。俄罗斯/西班牙 不在表内。
+  // 原为 all_default 弱用例（注入键为空串 = 页面默认），expect「Tomorrow」是 QUICK 静态词表（逃生项），已废弃。
+  // 「谢谢你好」是连续中文，必须靠最大正向匹配切成「谢谢 + 你好」才能逐段译出；旧实现按整段 /[\u4e00-\u9fa5]+/g
+  // 切词后整段查不到词条即落空，故该串仅修复后成立。
   "slug": "language/translator",
   "inputs": {
-    "src-text": "俄罗斯 西班牙"
+    "src-text": "谢谢你好"
   },
   "expect": [
-    "RussiaSpain"
+    "Thank you. Hello."
   ],
-  "ref": "src-lang/tgt-lang 默认即 zh→en：中文按 /[\u4e00-\u9fa5]+/g 切词得 [俄罗斯,西班牙] → 词典译为 [Russia,Spain] → src==='zh' 时以空串 join ⇒ 「RussiaSpain」（此 join 规则为本页既有行为，未来若改为空格连接需同步改 expect）。默认态 src-text 为空 → trans() 提前 return，#tgt-text 保持空 ⇒ 该串失配。"
+  "ref": "最大正向匹配：谢谢(Thank you) + 你好(Hello) ⇒ 相邻译文以「. 」连接并补句末句点 ⇒ 「Thank you. Hello.」；未命中片段保留原文。src-lang/tgt-lang 默认即 zh→en，默认态 src-text 为空 → trans() 提前 return，#tgt-text 保持空 ⇒ 该串失配。"
 },
 {
   "slug": "language/vocabulary-builder",
@@ -160,9 +162,9 @@ const CASES = [
       "input-text": "1\n2\n3"
     },
     "expect": [
-      "1 2 3\n5\n0\n1\n6\n📋 发现的问题 字词 - 注意\"做/坐\"区分 1 2 3 💡 建议: 根据上下文确认 字词 - 注意\"做/坐\"区分 1 2 3 💡 建议: 根据上下文确认 字词 - 注意\"做/坐\"区分 1 2 3 💡 建"
+      "1 2 3\n5\n0\n1\n0"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"input-text\":\"1\\n2\\n3\"}，输出区含「1 2 3\n5\n0\n1\n6\n📋 发现的问题 字词 - 注意\"做/坐\"区分 1 …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "EL-J14 同步：注入 5 字符无规则文本后，统计口径为字符 5 / 单词 0 / 句 1 / 问题 0（修复前零长度正则刷出 5 条假问题）。锚「1 2 3\\n5\\n0\\n1\\n0」四统计串：默认样例（73 字符 / 2 词 / 2 句）不命中 ⇒ 零逃生。"
   },
   {
     "slug": "language/spanish-accent-rules",
@@ -173,6 +175,81 @@ const CASES = [
       "abc123测试\n分析结果: abc123测试 ab c 1 2 3 测 试 重音音节 试 (第1音节，从后数) 以辅音(非n/s)结尾，重音在末音节 总音节数 7 个音节 音节划分: ab - c - 1 - 2 - 3 - 测 - 试 "
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"wordInput\":\"abc123测试\"}，输出区含「abc123测试\n分析结果: abc123测试 ab c 1 2 3 测 试 重…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "language/vocabulary-builder",
+    "clicks": [
+      "var s={vocab_streak:JSON.stringify({days:1,last:'2024-11-01'})};localStorage.getItem=function(k){return s[k]||null;};localStorage.setItem=function(k,v){s[k]=String(v);};var o=[];checkStreak(new Date(2024,10,2,7,30));o.push(document.getElementById('s-streak').textContent);checkStreak(new Date(2024,10,2,8,30));o.push(document.getElementById('s-streak').textContent);checkStreak(new Date(2024,10,3,0,30));o.push(document.getElementById('s-streak').textContent);document.getElementById('vbHidden').textContent='QSTREAK:'+o.join('|');"
+    ],
+    "expect": [
+      "QSTREAK:2|2|3"
+    ],
+    "ref": "EL-J9 回归（本地日界）：昨日 2024-11-01 已有 1 天，本地 11-02 07:30 首练 ⇒ 2 天；同日 08:30 再练不得再加 ⇒ 仍 2；本地 11-03 00:30 ⇒ 3。旧实现按 UTC 日期：11-02 07:30（UTC 仍 11-01）判同日不增 ⇒ 1，08:30（UTC 11-02）才增 ⇒ 2，11-03 00:30（UTC 仍 11-02）又不增 ⇒ 2，即 1|2|2，必 FAIL。"
+  },
+  {
+    "slug": "language/grammar-checker",
+    "inputs": {
+      "input-text": "<script>teh</script>"
+    },
+    "clicks": [
+      "check()"
+    ],
+    "expect": [
+      "&lt;script&gt; teh &lt;/script&gt;"
+    ],
+    "ref": "EL-J14 回归：输入含真实标签 <script> 且命中 teh 规则时，原文入 innerHTML 前必须转义 ⇒ 结果区出现实体串「&lt;script&gt;teh&lt;/script&gt;」（采集器把 <mark> 高亮标签剥成空格，故锚点为带空格的 &lt;script&gt; teh &lt;/script&gt;）。旧实现直接拼原文，innerHTML 里是真 <script> 标签，采集器剥标签后只剩 teh，不可能命中实体串。"
+  },
+  {
+    "slug": "language/grammar-checker",
+    "inputs": {
+      "input-text": "<b>teh</b>"
+    },
+    "clicks": [
+      "check()"
+    ],
+    "expect": [
+      "&lt;b&gt; teh &lt;/b&gt;"
+    ],
+    "ref": "EL-J14 回归（<b> 变体）：转义后实体串为「&lt;b&gt;teh&lt;/b&gt;」，<mark> 被剥成空格后锚点为「&lt;b&gt; teh &lt;/b&gt;」。旧实现把 <b> 当真实标签渲染/吞掉，采集器剥标签后只剩 teh，不命中。"
+  },
+  {
+    "slug": "language/calc-2",
+    "inputs": {
+      "wordCount": "800",
+      "comprehension": "150",
+      "minutes": "3",
+      "seconds": "30"
+    },
+    "expect": [
+      "请输入有效的字数、用时和理解度（理解度须为 0–100）。"
+    ],
+    "ref": "EL-J25 回归：理解度 150 越界必须拒绝。独立复算：字面速度 800 / 3.5 = 228.571 → 228.6 字/分，150% 时旧实现输出有效速度 342.9 > 字面速度，属无效值。默认理解度 80 显示 182.9 且无此提示串 ⇒ 强判别。"
+  },
+  {
+    "slug": "language/calc-2",
+    "inputs": {
+      "wordCount": "800",
+      "comprehension": "-10",
+      "minutes": "3",
+      "seconds": "30"
+    },
+    "expect": [
+      "请输入有效的字数、用时和理解度（理解度须为 0–100）。"
+    ],
+    "ref": "EL-J25 下界：理解度 -10 越界必须拒绝（旧实现会输出有效速度 228.6 × -10% = -22.9 字/分）。默认理解度 80 无此提示串 ⇒ 强判别。"
+  },
+  {
+    "slug": "language/calc-2",
+    "inputs": {
+      "wordCount": "800",
+      "comprehension": "100",
+      "minutes": "3",
+      "seconds": "30"
+    },
+    "expect": [
+      "理解度 100%，有效速度 = 228.6 × 100% = 228.6 字/分"
+    ],
+    "ref": "EL-J25 上界：理解度 100% 合法且有效速度封顶等于字面速度。独立复算：800 / (3 + 30/60) = 228.571 → 228.6；有效 = min(228.571, 228.571 × 1.0) = 228.6，不大于字面速度。默认 80% 输出 182.9，本串不命中。"
   }
 
 ];

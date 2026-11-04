@@ -3,7 +3,7 @@
 window.INDUSTRY_INFO = {
   'it'                   : { name: 'IT 开发', icon: '💻', hot: 30347069 },
   'life'                 : { name: '日常生活', icon: '🏠', hot: 11719587 },
-  'finance'              : { name: '金融财务', icon: '💰', hot: 10224032 },
+  'finance'              : { name: '金融财务', icon: '💰', hot: 10224033 },
   'design'               : { name: '设计创意', icon: '🎨', hot: 8175862 },
   'image'                : { name: '图像处理', icon: '🖼️', hot: 5082268 },
   'office'               : { name: '办公文档', icon: '📄', hot: 5005146 },
@@ -121,7 +121,7 @@ window.INDUSTRY_INFO = {
   'gas'                  : { name: '燃气工程', icon: '🔥', hot: 126466 },
   'safety'               : { name: '安全生产', icon: '🦺', hot: 125029 },
   'gardening'            : { name: '园艺种植', icon: '🌿', hot: 124285 },
-  'language'             : { name: '语言翻译', icon: '🌍', hot: 123740 },
+  'language'             : { name: '语言翻译', icon: '🌍', hot: 123741 },
   'leather'              : { name: '皮革加工', icon: '👜', hot: 122016 },
   'decor'                : { name: '室内装修', icon: '🛋️', hot: 119665 },
   'restaurant'           : { name: '餐饮经营', icon: '🍽️', hot: 114959 },

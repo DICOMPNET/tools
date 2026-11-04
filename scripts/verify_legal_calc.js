@@ -112,6 +112,16 @@ const CASES = [
   },
   {
     slug: "legal/traffic-accident-compensation",
+    inputs: {
+      liability: "0.5", injuryLevel: "0", age: "30", disposableIncome: "60000",
+      avgWage: "0", dependentExpense: "0", medicalExpense: "30000",
+      hospitalDays: "0", monthlyIncome: "0", missedDays: "0",
+    },
+    expect: ["对方应赔偿： 26,500"],
+    ref: "损失合计=医疗30000+交通500+财产2000=32500；交强险有责限额内：医疗18000+死亡伤残500+财产2000=20500 不分责；超出12000×50%=6000 ⇒ 对方应赔 20500+6000=26500。旧实现 32500×0.5=16250（交强险也被打折），防回归。",
+  },
+  {
+    slug: "legal/traffic-accident-compensation",
     inputs: { liability: "1", injuryLevel: "10", age: "30", disposableIncome: "60000" },
     expect: ["120,000"],
     ref: "十级系数=0.1：残疾赔偿金=60000×20年×0.1=120,000（" + "10%" + "不依赖收入，属逃生项，已剔除）",
@@ -347,6 +357,18 @@ const CASES = [
     ref: "注入非默认(默认 amount=500000/hours=20/baseFee=10000/riskRatio=15)：按标的额分段累计 ⇒ 民事一审（北京）参考区间 29,600 − 44,400 元（区间上下界分别含风险代理比例折算）。默认态区间不同。"
   },
   {
+    slug: "legal/lawyer-fee-reference",
+    inputs: { caseType: "risk", amount: "500000", baseFee: "10000", riskRatio: "15", region: "bj" },
+    expect: ["费用构成：基础费 10,000 元", "75,000 元提成", "85,000 元"],
+    ref: "W5-C 风险代理比例参与计算：基础费 10,000 + 500,000×15% = 75,000 提成 ⇒ 合计 85,000 元（未超标的额 30% 上限 150,000）。旧实现忽略风险比例，仅出基础费 10,000 元，三条期望均不命中。"
+  },
+  {
+    slug: "legal/lawyer-fee-reference",
+    inputs: { caseType: "risk", amount: "100000", baseFee: "5000", riskRatio: "30", region: "bj" },
+    expect: ["已触及标的额 30% 上限（30,000 元），按上限计收。"],
+    ref: "W5-C 风险代理 30% 上限：基础费 5,000 + 100,000×30% = 35,000 ⇒ 触及标的额 30% 上限 30,000，按上限计收。旧实现只出 5,000 元且无上限提示。"
+  },
+  {
     slug: "legal/marriage-property-agreement",
     inputs: { houseValue: "3000000", carValue: "250000", savings: "500000", investments: "150000", otherAssets: "80000", jointDebt: "600000", maleRatio: "60", femaleRatio: "40" },
     expect: ["3980000.00", "3380000.00", "2028000.00", "1352000.00"],
@@ -512,9 +534,9 @@ const CASES = [
       "specialRatio": "1"
     },
     "expect": [
-      "0.3\n42\n2\n42\n42\n支付方月收入： 42 元 支付比例： 30% 子女年龄：42岁，距成年还有 0 年（0"
+      "支付方月收入： 42 元 支付比例： 30%"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"monthlyIncome\":\"42\",\"childAge\":\"42\",\"livingCost\":\"42\",\"customRatio\":\"42\",\"specialExpense\":\"42\",\"childCount\":\"2\",\"paymentRatio\":\"0.3\",\"specialRatio\":\"1\"}，输出区含「0.3\n42\n2\n42\n42\n支付方月收入： 42 元 支付比例： 30% 子女…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "注入月收入 42、比例 30%、子女 2 名：断言标题行（含收入与比例）。新增子女数量参与后，基础抚养费=42×0.3=12.6 但按当地生活水平 42 兜底，每名子女 21 元/月。"
   },
   {
     "slug": "legal/debt-statute-limitations",

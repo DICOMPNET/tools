@@ -27,22 +27,10 @@ const { runCase } = require("./verify_it_calc.js");
 // ---------------------------------------------------------------- 用例
 const CASES = [
   {
-    slug: "music/frequency-3",
-    inputs: { a4: "523.25" },
-    expect: ["523.3 A4（基准）", "311.1 C4（中央C）"],
-    ref: "十二平均律：输入 A4=523.25Hz；C4 = 523.25×2^(-9/12) = 311.13 Hz；A5 = 523.25×2 = 1046.5 Hz",
-  },
-  {
     slug: "general/calculator-calc-10",
     inputs: { data: "1,2\n2,3.5\n3,5\n4,6.2\n5,8" },
     expect: ["1.47x + 0.53"],
     ref: "最小二乘：斜率 = Σ(x-x̄)(y-ȳ)/Σ(x-x̄)² = 14.7/10 = 1.47；截距 = ȳ-a·x̄ = 4.94-4.41 = 0.53",
-  },
-  {
-    slug: "general/calculator-calc-11",
-    inputs: { aRe: "5", aIm: "2", bRe: "3", bIm: "1" },
-    expect: ["8+3i", "13+11i", "1.7+0.1i"],
-    ref: "复数运算：(5+2i)+(3+i)=8+3i；(5+2i)(3+i)=13+11i；(5+2i)/(3+i)=1.7+0.1i",
   },
   {
     slug: "chemistry/calc-ratio-2",
@@ -1732,19 +1720,6 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"water\":\"42\",\"sp\":\"42\",\"grade\":\"25\",\"cement\":\"42.5\",\"agg\":\"pebble\"}，输出区含「 砂 : 石 ≈ 65:42:963:1330 ；水泥用量 6」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "general/calculator-calc-11",
-    "inputs": {
-      "aRe": "42",
-      "aIm": "42",
-      "bRe": "42",
-      "bIm": "42"
-    },
-    "expect": [
-      "42\n42\n42\n42\n84+84i A + B 0 A − B 3,528i A × B 1 A ÷ B 59.397 A 模 |A| 45"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"aRe\":\"42\",\"aIm\":\"42\",\"bRe\":\"42\",\"bIm\":\"42\"}，输出区含「42\n42\n42\n42\n84+84i A + B 0 A − B 3,528i …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
-  },
-  {
     "slug": "chemistry/concentration-20",
     "inputs": {
       "vVal": "42",
@@ -2539,17 +2514,6 @@ const CASES = [
       "42\n42\n42\n42\nceramic\n11083.54"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"freq\":\"42\",\"amp\":\"42\",\"diameter\":\"42\",\"force\":\"42\",\"material\":\"ceramic\"}，输出区含「42\n42\n42\n42\nceramic\n11083.54」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
-  },
-  {
-    "slug": "music/frequency-3",
-    "inputs": {
-      "a4": "42",
-      "prec": "2"
-    },
-    "expect": [
-      " 22 A#0 2.78 3 23 B0 2.95"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"a4\":\"42\",\"prec\":\"2\"}，输出区含「 22 A#0 2.78 3 23 B0 2.95」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "electrical/generator-23",

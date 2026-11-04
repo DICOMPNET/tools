@@ -256,11 +256,20 @@ s.parentNode.insertBefore(el, s);
 
 <script>
 function calc(){
-  var fev1=parseFloat(document.getElementById('fev1').value)||0;
-  var fvc=parseFloat(document.getElementById('fvc').value)||0;
-  var fev1pp=parseFloat(document.getElementById('fev1pp').value)||0;
-  var fvcpp=parseFloat(document.getElementById('fvcpp').value)||0;
+  var fev1=parseFloat(document.getElementById('fev1').value);
+  var fvc=parseFloat(document.getElementById('fvc').value);
+  var fev1pp=parseFloat(document.getElementById('fev1pp').value);
+  var fvcpp=parseFloat(document.getElementById('fvcpp').value);
   var cutoff=parseFloat(document.getElementById('cutoff').value);
+
+  if(!isFinite(fev1)||!isFinite(fvc)||fev1<=0||fvc<=0||fev1>=fvc){
+    document.getElementById('result').innerHTML='<p style="color:var(--text-muted);">请输入有效的 FEV1 与 FVC（FEV1 须大于 0 且小于 FVC）。</p>';
+    return;
+  }
+  if(!isFinite(fev1pp)||!isFinite(fvcpp)||fev1pp<=0||fvcpp<=0){
+    document.getElementById('result').innerHTML='<p style="color:var(--text-muted);">请输入有效的 FEV1%pred 与 FVC%pred（须大于 0）。</p>';
+    return;
+  }
 
   var ratio = fvc>0 ? fev1/fvc : 0;
   var ratioPct = ratio*100;
@@ -488,7 +497,7 @@ function __pulmonary_functionExport(){
 }
 function __pulmonary_functionPresets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#pulmonary_functionPresets',[{label:'默认参数',labelEn:'Default',values:{'fev1':'2.10', 'fvc':'3.50', 'fev1pp':'68', 'fvcpp':'88', 'cutoff':'0.70'}}],function(){ calc(); });
+    TBKit.preset.bar('#pulmonary_functionPresets',[{label:'默认参数',labelEn:'Default',values:{'fev1':'2.10', 'fvc':'3.50', 'fev1pp':'68', 'fvcpp':'88', 'cutoff':'0.70'}},{"label":"正常通气","labelEn":"Normal ventilation","values":{"fev1":"3.2","fvc":"4.0","fev1pp":"95","fvcpp":"100","cutoff":"0.70"}},{"label":"COPD GOLD 2","labelEn":"COPD GOLD 2","values":{"fev1":"1.8","fvc":"3.4","fev1pp":"60","fvcpp":"85","cutoff":"0.70"}},{"label":"限制性障碍","labelEn":"Restrictive disorder","values":{"fev1":"2.2","fvc":"2.9","fev1pp":"70","fvcpp":"65","cutoff":"0.70"}}],function(){ calc(); });
 }
 var __pulmonary_function_f0=(typeof calc==='function')?calc:null;
 if(__pulmonary_function_f0){

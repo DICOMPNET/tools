@@ -34,8 +34,44 @@ const CASES = [
     "weight": "30",
     "age": ""
   },
-  "expect": ["对乙酰氨基酚（扑热息痛）（解热镇痛） 布洛芬（解热镇痛） 阿莫西林（抗生素） 阿莫西林克拉维酸（抗生素） 头孢氨苄（先锋IV）（抗生素） 头孢呋辛酯（抗生素） 头孢曲松（抗生素） 阿奇霉素（抗生素） 克拉霉素（抗生素） 苯巴比妥（抗癫痫）（神经系统） 苯妥英钠（抗癫痫）（神经系统） 地塞米松（激素） 泼尼松（强的松）（激素） 万古霉素（抗生素） 氨茶碱（呼吸系统） 左乙拉西坦（神经系统）\nq4h（每4小时） q6h（每6小时） q8h（每8小时） q12h（每12小时） q24h（每日一次）\n对乙酰氨基酚（扑热息痛） 分类：解热镇痛 | 推荐剂量：10-15 mg/kg/次 | 常用间隔 q6h 每4-6小时一次，儿童单次不超过 15mg/kg，日总量≤60mg/kg（成人≤4g/日）。\n暂无计算记录\n30\nmid\n375.0 mg 单次剂量 375.0 mg 每日总量（1次） 1.80 g 儿童最大日剂量 ✓ 当前剂量在安全范围内。给药方案：375.0 mg q0h，每日 1 次。"],
-  "ref": "auto-restore"
+  "expect": ["375.0 mg 单次剂量", "1.80 g 有效最大日剂量（取较小值）"],
+  "ref": "auto-restore（D-N5 后同步：年龄空值按成人口径，且有效上限取 min(成人绝对上限, 儿童按体重上限)，原「儿童最大日剂量」标签改为「有效最大日剂量（取较小值）」；30 kg 扑热息痛中位仍为 1.80 g，故数值不变）"
+},
+{
+  "slug": "medical/calculator-calc-2",
+  "inputs": {
+    "drug": "5",
+    "freq": "12",
+    "tier": "high",
+    "weight": "60",
+    "age": ""
+  },
+  "expect": ["已超过最大日剂量 1.00 g"],
+  "ref": "D-N5 年龄空值实况：头孢呋辛酯（idx 5）30 mg/kg q12h、60 kg ⇒ 单次 1800 mg、日 3600 mg；儿童按体重上限 60×60 = 3600 mg，成人绝对上限 1000 mg，有效上限 = min = 1000 mg ⇒ 超限并给出封顶 500.0 mg。旧实现年龄空值按儿童上限 3600 mg，日 3600 未超限、无该提示；默认态 500/20/中位/q0h 日 250 mg 远低于上限 1200 mg，不命中。",
+},
+{
+  "slug": "medical/calculator-calc-2",
+  "inputs": {
+    "drug": "0",
+    "freq": "4",
+    "tier": "high",
+    "weight": "30",
+    "age": "13"
+  },
+  "expect": ["年龄 13 岁：按儿童口径处理（未满 14 岁）", "已超过最大日剂量 1.80 g"],
+  "ref": "D-N5 13 岁：对乙酰氨基酚上限档 15 mg/kg q4h、30 kg ⇒ 单次 450 mg、日 2700 mg；儿童按体重上限 60×30 = 1800 mg，成人绝对上限 4000 mg，有效上限 min = 1800 mg ⇒ 超限。旧实现 13 岁走儿童口径本也 1800 mg，但新增「年龄 13 岁」明确标注；默认态年龄空值只会显示「年龄未填写」，不命中。",
+},
+{
+  "slug": "medical/calculator-calc-2",
+  "inputs": {
+    "drug": "0",
+    "freq": "4",
+    "tier": "high",
+    "weight": "30",
+    "age": "14"
+  },
+  "expect": ["年龄 14 岁：按成人口径处理（≥14 岁）", "已超过最大日剂量 1.80 g"],
+  "ref": "D-N5 14 岁边界：旧实现切到成人绝对上限 4000 mg ⇒ 日 2700 mg 不超限；修复后仍取 min(4000, 1800) = 1800 mg ⇒ 超限，结论与 13 岁一致不再翻转。默认态年龄空值为「年龄未填写」，不命中。",
 },
 {
   "slug": "medical/calculator-calc-due-date",
@@ -62,6 +98,17 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  "slug": "medical/calculator-calc-infusion",
+  "inputs": {
+    "vol": "240",
+    "dur": "4",
+    "drop": "20",
+    "drug": "nacl3"
+  },
+  "expect": ["当前 3%氯化钠 速率 = 0.510 mEq/kg/h"],
+  "ref": "D-N8 首次切换实况：240 mL/4 h/60 kg，滴系数 20 ⇒ 60.0 mL/h；切换 3%NaCl 后默认浓度 0.51 mEq/mL ⇒ 30.6 mEq/h ÷ 60 kg = 0.510 mEq/kg/h，超过 0.5 限值应判超限。旧实现 onchange 先 calc（用旧浓度 0.4）再 toggle 改浓度 ⇒ 首次算得 0.400 并误判安全；默认态 drug=none 无该速率串 ⇒ 判别力成立（注入 conc 会掩盖该缺陷，故不注入）。",
+},
+{
   "slug": "medical/clinical-tools",
   "inputs": {
     "meld_bili": "2.0",
@@ -74,6 +121,19 @@ const CASES = [
     "E3+V5+M6"
   ],
   "ref": "auto-restore"
+},
+{
+  "slug": "medical/clinical-tools",
+  "inputs": {
+    "meld_bili": "3.0",
+    "meld_cr": "2.0",
+    "meld_inr": "1.5",
+    "meld_na": "130"
+  },
+  "expect": [
+    "MELD-Na = 26.0（已纳入血钠校正）"
+  ],
+  "ref": "W1-A 回归：标准 MELD = 3.78×ln(3.0) + 11.2×ln(1.5) + 9.57×ln(2.0) + 6.43 = 21.8；血钠 130（钳制区间内）⇒ MELD-Na = 21.8 + 1.32×7 − 0.033×21.8×7 = 26.0。四项输入均非默认（2.0/1.0/1.2/140）；旧实现输出 MELD-Na 恒 6，本串不命中。"
 },
 {
   "slug": "medical/convert-glucose",
@@ -109,6 +169,36 @@ const CASES = [
     "滴速 = 50.00 滴/分"
   ],
   "ref": "去默认化：滴速 = 250×20/100 = 50.00 滴/分。默认态不命中。"
+},
+{
+  "slug": "medical/convert-time-infusion",
+  "inputs": {
+    "vol": "500",
+    "df": "20",
+    "time": "0"
+  },
+  "expect": ["输注时间须大于 0"],
+  "ref": "D-N10 时长 0 实况：旧实现 time=0 ⇒ 500×20÷0 = Infinity 滴/分；修复后逐项守卫判 time>0 失败，清空主结果并提示「输注时间须大于 0」，不输出 Infinity/NaN。默认 time=120 有效，不含该提示 ⇒ 判别力成立。"
+},
+{
+  "slug": "medical/convert-time-infusion",
+  "inputs": {
+    "vol": "500",
+    "df": "0",
+    "time": "120"
+  },
+  "expect": ["滴系数须大于 0"],
+  "ref": "D-N10 逐项校验：滴系数 0 时旧实现滴速 0、总滴数 0 且无提示；修复后判 df>0 失败并提示。默认 df=20 有效，不含该提示 ⇒ 判别力成立。"
+},
+{
+  "slug": "medical/convert-time-infusion",
+  "inputs": {
+    "vol": "0",
+    "df": "20",
+    "time": "120"
+  },
+  "expect": ["液体量须大于 0"],
+  "ref": "D-N10 逐项校验：液体量 0 时旧实现滴速 0、总滴数 0 且无提示；修复后判 vol>0 失败并提示整句「液体量须大于 0」。默认 vol=500 有效，不含该提示 ⇒ 判别力成立。"
 },
 {
   "slug": "medical/dosage-calculator",
@@ -155,6 +245,34 @@ const CASES = [
   "ref": "drug value=3 ⇒ DRUGS[3]=阿莫西林（索引序：对乙酰氨基酚0/布洛芬1/阿司匹林2/阿莫西林3），经肾排泄；肾功能重度下降（Ccr 15–29）⇒ 显著减量或延长间隔。默认药物为对乙酰氨基酚（肝脏）且 renalFunc 回落 normal ⇒ 两条均不命中。"
 },
 {
+  "slug": "medical/dosage-calculator",
+  "inputs": {
+    "weight": "70",
+    "height": "165",
+    "age": "28"
+  },
+  "clicks": ["document.getElementById('drug').value='5';onDrugChange();"],
+  "expect": [
+    "2686.8 mg",
+    "按体表面积（mg/m²）：1500 mg/m² × BSA 1.79 m²"
+  ],
+  "ref": "BSA 基准药物：头孢曲松（DRUGS[5]，成人 bsa=1500 mg/m²；childW=50 仅用于儿童）。复算：BSA=√(165×70÷3600)=1.79118 m²；单次=1.79118×1500=2686.773 → toFixed(1)=2686.8 mg。修复前按 weight 把 1500 当 mg/kg 乘 70 = 105000 mg。输入 70/165/28 均非默认（60/170/30），默认药物为对乙酰氨基酚 ⇒ 两条均不命中。"
+},
+{
+  "slug": "medical/dosage-calculator",
+  "inputs": {
+    "weight": "20",
+    "height": "118",
+    "age": "5"
+  },
+  "clicks": ["document.getElementById('drug').value='2';onDrugChange();"],
+  "expect": [
+    "儿童禁用：「阿司匹林」",
+    "未计算 剂量基准"
+  ],
+  "ref": "阿司匹林（DRUGS[2]）childW=0 且 childContra=true：5 岁（<14）⇒ basisFor 返回 contra ⇒ renderBlocked，结果区不输出数字剂量并显示儿童禁用/剂量基准未计算。修复前按成人 10 mg/kg×20 kg 输出 200.0 mg 且无结果区警示。注入 20/118/5 均非默认（60/170/30），失败态回落成人态 ⇒ 两条动态锚均不命中（「儿童禁用」原生字串在药物下拉与静态说明里恒存在，不能作锚）。"
+},
+{
   "slug": "medical/drug-info",
   "inputs": {
     "search": "zzzqx"
@@ -173,7 +291,7 @@ const CASES = [
     "bf": ""
   },
   "expect": [
-    "+149.3%"
+    "+7.9%"
   ],
   "ref": "auto-restore"
 },
@@ -196,6 +314,18 @@ const CASES = [
     "900.0mg"
   ],
   "ref": "auto-restore"
+},
+{
+  "slug": "medical/medical-calculator",
+  "inputs": {
+    "dose_weight": "60",
+    "dose_per_kg": "10",
+    "dose_freq": "1.5"
+  },
+  "expect": [
+    "每次剂量 = 600.0mg / 1.5次 = 400.0mg"
+  ],
+  "ref": "D-N23 小数频次：旧实现 parseInt 把 1.5 截断为 1，每日 600.0mg 被算成每次 600.0mg；修复后 parseFloat 保留 1.5 ⇒ 600.0 ÷ 1.5 = 400.0mg。默认 freq=3 时该串为「600.0mg / 3次 = 200.0mg」，不命中 ⇒ 强判别。"
 },
 {
   "slug": "medical/reminder-2",

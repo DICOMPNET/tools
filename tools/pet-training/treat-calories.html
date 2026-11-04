@@ -146,7 +146,7 @@ s.parentNode.insertBefore(el, s);
     </div>
     <div class="input-row">
       <div>
-        <div data-tb="preset" data-tb-presets='[{"label":"体重(kg)10·零食单颗热量(kcal)15·每日零食颗…","labelEn":"weight=10 · treatCal=15 · treatCount=5 …","values":{"weight":"10","treatCal":"15","treatCount":"5","petType":"dog","activity":"normal","neutered":"no"}}]'></div>
+        <div data-tb="preset" data-tb-presets='[{"label":"体重(kg)10·零食单颗热量(kcal)15·每日零食颗…","labelEn":"weight=10 · treatCal=15 · treatCount=5 …","values":{"weight":"10","treatCal":"15","treatCount":"5","petType":"dog","activity":"normal","neutered":"no"}},{"label":"小规模","labelEn":"Small scale","values":{"weight":"5"}},{"label":"大规模","labelEn":"Large scale","values":{"weight":"15"}},{"label":"极端工况","labelEn":"Extreme case","values":{"weight":"20"}}]'></div>
 <label>宠物类型</label>
         <select id="petType" onchange="calc()">
           <option value="dog" selected>🐶 狗狗</option>
@@ -293,8 +293,14 @@ function calc(){
   var treatCount=parseFloat(document.getElementById('treatCount').value);
   var activity=document.getElementById('activity').value;
   var neutered=document.getElementById('neutered').value;
-  if(!weight||weight<=0||!treatCal||treatCal<=0||treatCount==null){
-    document.getElementById('result').innerHTML='<div class="cal-val">--</div><div class="cal-sub">请输入有效数值</div>';
+  var weightBad=!(isFinite(weight)&&weight>0);
+  var calBad=!(isFinite(treatCal)&&treatCal>0);
+  var countBad=!(isFinite(treatCount)&&treatCount>=0&&Math.floor(treatCount)===treatCount);
+  document.getElementById('weight').classList.toggle('input-error',weightBad);
+  document.getElementById('treatCal').classList.toggle('input-error',calBad);
+  document.getElementById('treatCount').classList.toggle('input-error',countBad);
+  if(weightBad||calBad||countBad){
+    document.getElementById('result').innerHTML='<div class="cal-val">--</div><div class="cal-sub">请输入有效数值：体重与单颗热量须为正数，颗数须为非负整数。</div>';
     document.getElementById('dailyGrid').innerHTML='';
     document.getElementById('advice').innerHTML='';
     return;
@@ -510,7 +516,7 @@ function __treat_caloriesExport(){
 }
 function __treat_caloriesPresets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#treat_caloriesPresets',[{label:'默认参数',labelEn:'Default',values:{'petType':'dog', 'weight':'10', 'treatCal':'15', 'treatCount':'5', 'activity':'normal', 'neutered':'no'}}],function(){ calc(); });
+    TBKit.preset.bar('#treat_caloriesPresets',[{"label":"默认参数","labelEn":"Default","values":{"petType":"dog","weight":"10","treatCal":"15","treatCount":"5","activity":"normal","neutered":"no"}}],function(){ calc(); });
 }
 var __treat_calories_f0=(typeof calc==='function')?calc:null;
 if(__treat_calories_f0){

@@ -61,6 +61,42 @@ const CASES = [
   "ref": "pH7.25<7.35 且 HCO3 12<22 → 代谢性酸中毒；AG=140-100-12=28>12 → AG增高型；矫正HCO3=12+(28-12)=28>26 → 合并代碱；参考区间定位：pH 酸血症 / PaCO2 低碳酸 / HCO3 降低"
 },
 {
+  "slug": "clinical-lab/blood-gas-analysis",
+  "inputs": { "ph": "7.20", "paco2": "60", "hco3": "30", "pao2": "55", "na": "140", "cl": "100" },
+  "expect": ["II型呼吸衰竭"],
+  "ref": "PaO2 55<60 且 PaCO2 60≥50 → II 型呼吸衰竭（两者必须同时满足）；对照 L-N1 修复前会把 PaO2 70/PaCO2 55 也误判 II 型。"
+},
+{
+  "slug": "clinical-lab/blood-gas-analysis",
+  "inputs": { "ph": "7.46", "paco2": "38", "hco3": "24", "pao2": "55", "na": "140", "cl": "100" },
+  "expect": ["I型呼吸衰竭"],
+  "ref": "PaO2 55<60 但 PaCO2 38<50 → I 型呼吸衰竭；修复前高碳酸伴低氧会被误判 I 型，本用例锁定正确分支。"
+},
+{
+  "slug": "clinical-lab/blood-gas-analysis",
+  "inputs": { "ph": "7.36", "paco2": "55", "hco3": "28", "pao2": "70", "na": "140", "cl": "100" },
+  "expect": ["高碳酸血症"],
+  "ref": "PaCO2 55≥50 但 PaO2 70≥60 → 仅高碳酸血症，不判 II 型呼衰；修复前 PaCO2 单独高即误判 II 型。"
+},
+{
+  "slug": "clinical-lab/blood-gas-analysis",
+  "inputs": { "ph": "7.33", "paco2": "60", "hco3": "34", "pao2": "90", "na": "140", "cl": "100" },
+  "expect": ["实测HCO3(34)符合慢性呼酸代偿（预期 31.0 ±3）。"],
+  "ref": "L-N2 官方示例：ΔPaCO2=20，慢性预期 HCO3=31.0，实测 34 恰好落在 ±3 闭合区间 → 慢性代偿；修复前 <3 严格判断把它排除并误报代酸。"
+},
+{
+  "slug": "clinical-lab/blood-gas-analysis",
+  "inputs": { "ph": "7.33", "paco2": "60", "hco3": "36", "pao2": "90", "na": "140", "cl": "100" },
+  "expect": ["HCO3高于预期，合并代谢性碱中毒。"],
+  "ref": "慢性预期 31.0，实测 36>34（上界 +3）→ 合并代谢性碱中毒，确认上侧分支仍可触发。"
+},
+{
+  "slug": "clinical-lab/blood-gas-analysis",
+  "inputs": { "ph": "7.20", "paco2": "60", "hco3": "24", "pao2": "90", "na": "140", "cl": "100" },
+  "expect": ["HCO3低于预期，合并代谢性酸中毒。"],
+  "ref": "急性预期 26.0（|24-26|=2 不在急性严格窗口），慢性预期 31.0，实测 24<28（下界 -3）→ 合并代谢性酸中毒。"
+},
+{
   "slug": "clinical-lab/coagulation-inr",
   "inputs": {
     "pt": "45",
@@ -382,6 +418,86 @@ const CASES = [
   "ref": "批量解读（03-67）：成年男性表 WBC 3.2<3.5 → 偏低 (3.2-3.5)/3.5=8.57%→8.6%；HGB 105<130 → 偏低 (105-130)/130=19.23%→19.2%（dec=0 → 下限 130）；PLT 450>350 → 偏高 (450-350)/350=28.57%→28.6%。指标名匹配取 token 命中最长者（「血红蛋白」不会误配「平均红细胞血红蛋白」）。reportText 默认空 ⇒ __brBatch 不清空即空 ⇒ 默认态不含锚；判别器清 clicks ⇒ 零交集。"
 },
 {
+  // 单位换算：HGB 显式 g/dL → g/L ×10（03-67 高优：修复前把 13.5 直接当 g/L 判「偏低」）
+  "slug": "clinical-lab/blood-routine-reference",
+  "clicks": [
+    "document.getElementById('reportText').value='HGB 13.5 g/dL'; __brBatch();"
+  ],
+  "expect": [
+    "血红蛋白 HGB 135 g/L → 正常 （由 13.5 g/dL 换算）",
+    "共识别 1 项，其中 0 项超出参考区间。"
+  ],
+  "ref": "显式单位 g/dL 按 ×10 换算：13.5 g/dL=135 g/L，成年男性 130–175 → 正常。修复前直接把 13.5 当 g/L 判「偏低」并丢单位。默认 reportText 空 ⇒ 无批量卡；判别器清 clicks ⇒ 零交集。"
+},
+{
+  // 行首序号：`1 WBC 8.0` 的首个数字是序号，不是检验值
+  "slug": "clinical-lab/blood-routine-reference",
+  "clicks": [
+    "document.getElementById('reportText').value='1 WBC 8.0'; __brBatch();"
+  ],
+  "expect": [
+    "白细胞计数 WBC 8.0 ×10⁹/L → 正常",
+    "共识别 1 项，其中 0 项超出参考区间。"
+  ],
+  "ref": "指标名之后的唯一数值才是检验值：跳过行首序号 1，取 8.0（3.5–9.5 正常）。修复前取首个数字 1 → 误判「偏低」。默认 reportText 空 ⇒ 零交集。"
+},
+{
+  // 未识别单位：只标「待确认」，不输出正常/异常
+  "slug": "clinical-lab/blood-routine-reference",
+  "clicks": [
+    "document.getElementById('reportText').value='HGB 13.5 mg/dL'; __brBatch();"
+  ],
+  "expect": [
+    "HGB 13.5 mg/dL → 待确认 （未识别单位「mg/dL」，请核对识别值与单位）"
+  ],
+  "ref": "mg/dL 不是血红蛋白表内单位 ⇒ pending，不计入判读；修复前按 g/L 判「偏低」。默认 reportText 空 ⇒ 零交集。"
+},
+{
+  // 多数字歧义：同一行出现两个候选数值 ⇒ 待确认
+  "slug": "clinical-lab/blood-routine-reference",
+  "clicks": [
+    "document.getElementById('reportText').value='WBC 8.0 12.5'; __brBatch();"
+  ],
+  "expect": [
+    "WBC 8.0 12.5 → 待确认 （识别到多个数值，无法确定检验值，请核对识别值与单位）"
+  ],
+  "ref": "指标名之后有 8.0 与 12.5 两个数值，无法确定检验值 ⇒ pending；修复前取首个 8.0 直接判正常、掩盖歧义。默认 reportText 空 ⇒ 零交集。"
+},
+{
+  // XSS 回归：未识别原文必须转义（修复前 innerHTML 直接拼接）
+  "slug": "clinical-lab/blood-routine-reference",
+  "clicks": [
+    "document.getElementById('reportText').value='<img src=x onerror=alert(1)>'; __brBatch();"
+  ],
+  "expect": [
+    "&lt;img src=x onerror=alert(1)&gt;"
+  ],
+  "ref": "未识别行经 __brEsc 转义后以文本呈现；修复前 raw 直接进 innerHTML，标签被解析成 img 且 onerror 可执行。默认 reportText 空 ⇒ 零交集。"
+},
+{
+  // 普通 < / & 转义回归
+  "slug": "clinical-lab/blood-routine-reference",
+  "clicks": [
+    "document.getElementById('reportText').value='散点 < & 复查'; __brBatch();"
+  ],
+  "expect": [
+    "散点 &lt; &amp; 复查"
+  ],
+  "ref": "未识别行中的 < 与 & 必须转成实体，避免破坏 DOM；默认 reportText 空 ⇒ 零交集。"
+},
+{
+  // 人群切换：旧批量结果须按新人群重算，不能残留旧判读
+  "slug": "clinical-lab/blood-routine-reference",
+  "clicks": [
+    "document.getElementById('reportText').value='HGB 120'; __brBatch(); switchGroup({classList:{add:function(){},remove:function(){},toggle:function(){},contains:function(){return false;}}},'adult-f');"
+  ],
+  "expect": [
+    "报告单批量解读（当前人群：成年女性）",
+    "血红蛋白 HGB 120 g/L → 正常"
+  ],
+  "ref": "HGB 120 在成年男性 130–175 为偏低、在成年女性 115–150 为正常；切换人群后 __brBatch 重跑 ⇒ 标题与判读同步更新。修复前只刷新参考表、批量卡仍是「成年男性/偏低」。默认 reportText 空 ⇒ 零交集；判别器清 clicks ⇒ 零交集。"
+},
+{
   "slug": "clinical-lab/cardiac-marker-curve",
   "inputs": {
     "upper": "2.0"
@@ -414,6 +530,34 @@ const CASES = [
     "敏感 9 药 · 中介 4 药 · 耐药 5 药"
   ],
   "ref": "gn 表 18 药按 MIC=4 判定：S 9（≤8 折点）/I 4/R 5；默认 micVal 空 ⇒ 汇总卡不渲染零交集。"
+},
+{
+  "slug": "clinical-lab/mic-breakpoint",
+  "inputs": { "bacteria": "gn", "micVal": "-1" },
+  "expect": ["请输入有效 MIC（>0）；当前输入“-1”无效"],
+  "ref": "L-N5 非法 MIC：-1 非正数 ⇒ micOk=false，清空判定汇总卡、逐药判定列保持「—」并输出提示；修复前 parseFloat(-1)=-1 落在 mic<=d.s 被误判「S 敏感」（最危险方向）。默认 micVal 空 ⇒ 空值提示串不含“-1”，判别器把 micVal 换回默认空串后本串失配。"
+},
+{
+  "slug": "clinical-lab/mic-breakpoint",
+  "inputs": { "bacteria": "gn", "micVal": "0" },
+  "expect": ["请输入有效 MIC（>0）；当前输入“0”无效"],
+  "ref": "L-N5 非法 MIC：0 同样被排除在 S/I/R 判读之外（修复前 0<=0.5 折点判 S）。判别器换回默认空串 ⇒ 提示串不含“0”，本串失配。"
+},
+{
+  // L-N5：非 2 倍稀释序列的 MIC（3）不得判 S/I/R
+  "slug": "clinical-lab/mic-breakpoint",
+  "inputs": { "bacteria": "gn", "micVal": "3" },
+  "expect": ["请输入 2 倍稀释系列 MIC（如 0.125、0.25、0.5、1、2、4 μg/mL）；当前输入“3”不在系列内，无法判定"],
+  "ref": "MIC=3 不在 2 倍稀释序列（log2(3)≈1.585，距最近整数 0.415>0.12）⇒ micOk=false，逐药判定保持「—」、汇总卡不渲染。修复前 3<=8 折点被误判 S。默认 micVal 空 ⇒ 提示串不含“3”，判别器换回默认空串后失配。"
+},
+{
+  // CSV 增加「标准/版本」列：用 TBKit 桩捕获导出表 tbody
+  "slug": "clinical-lab/mic-breakpoint",
+  "clicks": [
+    "window.TBKit={util:{isEn:function(){return false;},exportTable:function(){}},chart:{bar:function(){}}};document.getElementById('micVal').value='4';var __cap=null;var __qs=document.querySelector;document.querySelector=function(s){var e=__qs(s);if(s==='#bpHidden tbody')__cap=e;return e;};window.__bpExport();document.getElementById('drugArea').innerHTML+=' 标准列='+(__cap&&__cap.innerHTML.indexOf('CLSI M100')>=0)+' 版本列='+(__cap&&__cap.innerHTML.indexOf('2023')>=0);"
+  ],
+  "expect": ["标准列=true 版本列=true"],
+  "ref": "导出 CSV 的隐藏表每行追加 Standard=CLSI M100、Version=2023 两列；修复前仅 5 列（无标准/版本）。默认态不调用 __bpExport ⇒ 哨兵串不存在；判别器清 clicks ⇒ 零交集。"
 },
 {
   "slug": "clinical-lab/parasite-egg-id",
@@ -468,6 +612,28 @@ const CASES = [
   "ref": "S3 标尺 ref-card：sg 1.030≥1.025 → 偏高带、pH 8.0≥7.5 → 偏碱带。该页 select 无 onchange（interpret 仅按钮/启动触发），inputs 注入不重渲染，故用 clicks 在页面作用域直调 interpret()。判别器清 clicks 且无 inputs → 兜底 interpret 渲染默认 sg=1.015/pH=6.0（正常带），两条 expect 均随注入变化、默认态不出现。"
 },
 {
+  "slug": "clinical-lab/urinalysis-interpretation",
+  "clicks": [
+    "document.getElementById('ua_leu').value='500'; document.getElementById('ua_nit').value='pos'; document.getElementById('ua_pro').value=''; document.getElementById('ua_sg').value=''; document.getElementById('ua_ph').value=''; document.getElementById('ua_glu').value=''; document.getElementById('ua_ket').value=''; document.getElementById('ua_ubg').value=''; document.getElementById('ua_bil').value=''; document.getElementById('ua_ery').value=''; document.getElementById('ua_vc').value=''; interpret();"
+  ],
+  "expect": [
+    "提示泌尿系感染",
+    "另有 9 项未检测"
+  ],
+  "ref": "E 缺陷修复（空项误判）：注入 LEU 3+(500)/NIT 阳性，SG/PH/PRO/GLU/KET/UBG/BIL/ERY/VC 共 9 项留空 → 判为「未检测」9 项，notes 非空故走「另有 9 项未检测（…），未纳入综合判读」分支；旧实现 pro='' 会因 pro!=='neg' 误报「提示蛋白尿」，新实现 tested('pro') 守卫后不再输出。判别器清 clicks 回到无注入态（jsdom 下仅 SG/PH 有默认值、其余 select 为空 → 9 项未检测且 notes 为空）→ 该态输出的是「有 9 项未检测」（无「另有」、无感染提示），两条 expect 均不出现，故无逃生项。"
+},
+{
+  "slug": "clinical-lab/urinalysis-interpretation",
+  "clicks": [
+    "document.getElementById('ua_sg').value='1.015'; document.getElementById('ua_ph').value='6.0'; document.getElementById('ua_leu').value='neg'; document.getElementById('ua_nit').value='neg'; document.getElementById('ua_pro').value=''; document.getElementById('ua_glu').value='neg'; document.getElementById('ua_ket').value='neg'; document.getElementById('ua_ubg').value='3.2'; document.getElementById('ua_bil').value='neg'; document.getElementById('ua_ery').value='neg'; document.getElementById('ua_vc').value='neg'; interpret();"
+  ],
+  "expect": [
+    "有 1 项未检测（蛋白质 PRO）",
+    "未检测：蛋白质 PRO"
+  ],
+  "ref": "蛋白空值负向断言：SG/PH 与其余 8 项全部显式置为正常值、仅 PRO 清空 → 判为「未检测」仅 1 项（蛋白质 PRO），notes 为空故走「有 1 项未检测（蛋白质 PRO）…已检测项目未见明显异常组合」；旧实现 pro='' 触发 pro!=='neg' 误报「提示蛋白尿」，新实现 tested('pro') 守卫后不报。判别器清 clicks 回到无注入态（9 项未检测）→ 输出为「有 9 项未检测（白细胞酯酶 LEU、亚硝酸盐 NIT、蛋白质 PRO…）」，两条 expect 均不出现，故无逃生项。"
+},
+{
   "slug": "clinical-lab/urine-sediment-atlas",
   "inputs": {
     "search": "细胞"
@@ -479,13 +645,13 @@ const CASES = [
 },
 {
   "slug": "clinical-lab/vaginal-discharge-grading",
-  "inputs": {
-    "coccus": "1"
-  },
-  "expect": [
-    "以乳酸杆菌和上皮细胞为主"
+  "clicks": [
+    "document.getElementById('coccus').value='1';grade();var r=document.getElementById('result');r.innerHTML+=' Ⅰ度判定='+(r.innerHTML.indexOf('Ⅰ度(正常)')>=0)+' 描述='+(r.innerHTML.indexOf('以乳酸杆菌和上皮细胞为主')>=0);"
   ],
-  "ref": "bac4/coc1/epi4/wbc0 不满足Ⅰ-Ⅲ级判定 → 启发式 score=4-1+4-0=7≥6 → Ⅰ度(正常)"
+  "expect": [
+    "Ⅰ度判定=true 描述=true"
+  ],
+  "ref": "原有 fallback 用例（bac4/coc1/epi4/wbc0 不满足表驱动四档 → 启发式 score=7≥6 → Ⅰ度）改用 clicks+哨兵：L-N12 修复后页面默认 4/0/4/0 已是Ⅰ度，若沿用静态描述锚会在注入失败时仍命中；哨兵仅在显式调用 grade() 后写入，判别器清 clicks 即失配。"
 },
   {
     slug: "clinical-lab/hba1c-converter",
@@ -568,7 +734,7 @@ const CASES = [
   {
     slug: "clinical-lab/blood-gas-analysis",
     inputs: { ph: "7.32", paco2: "60", hco3: "30", pao2: "65", na: "140", cl: "100" },
-    expect: ["实测HCO3(30)符合慢性呼酸代偿。"],
+    expect: ["实测HCO3(30)符合慢性呼酸代偿（预期 31.0 ±3）。"],
     ref: '独立复算：呼酸 pH7.32/PaCO2 60，ΔPaCO2=20，慢性预期HCO3=24+0.35×20=31.0，实测30符合慢性代偿。锚取慢性呼酸代偿结论串，默认态无。'
   },
   {
@@ -592,8 +758,20 @@ const CASES = [
   {
     slug: "clinical-lab/blood-gas-analysis",
     inputs: { ph: "7.45", paco2: "30", hco3: "20", pao2: "90", na: "140", cl: "100" },
-    expect: ["实测HCO3符合慢性呼碱代偿。"],
+    expect: ["实测HCO3符合慢性呼碱代偿（预期 19.0 ±3）。"],
     ref: '独立复算：pH7.45(正常)/PaCO2 30/HCO3 20→呼碱+代偿，慢性预期HCO3=24-0.5×10=19.0，实测20符合慢性代偿。锚取慢性呼碱代偿结论串，与病例4急性区分。'
+  },
+  {
+    slug: "clinical-lab/blood-gas-analysis",
+    inputs: { ph: "", paco2: "60", hco3: "30", pao2: "90", na: "140", cl: "100" },
+    expect: ["请填写 pH、PaCO2、HCO3（均需大于 0）"],
+    ref: 'L-N3 缺项清空：pH 空值 ⇒ num() 归零 ⇒ analyze 走无效分支，清空 #result 后输出缺项提示；修复前直接 return，首屏/上次判读（正常酸碱平衡）滞留。默认 pH=7.40 全项有效 ⇒ 提示串零交集，判别器把 ph 换回 7.40 即失配。'
+  },
+  {
+    slug: "clinical-lab/blood-gas-analysis",
+    clicks: ["document.getElementById('ph').value='7.25';document.getElementById('paco2').value='28';document.getElementById('hco3').value='12';analyze();document.getElementById('hco3').value='0';analyze();"],
+    expect: ["请填写 pH、PaCO2、HCO3（均需大于 0）"],
+    ref: 'L-N3 旧结论清空：先按 7.25/28/12 渲染代酸结果，再把 HCO3 置 0 重算 ⇒ 无效分支覆盖 #result 为缺项提示（复制/导出入口也随 __bgaValid 拦截），不残留上次判读。判别器清 clicks 后页面按默认有效值分析，不出现提示串。'
   },
   {
     slug: "clinical-lab/convert-glucose-1",
@@ -798,6 +976,263 @@ const CASES = [
     inputs: { tsh: "2.0", ft3: "2.5", ft4: "16", tt3: "1.5", tt4: "100", tpo: "0" },
     expect: ["低T3综合征(非甲状腺病态)", "FT3 2.5 pmol/L → 落在 偏低"],
     ref: '修复 line263 死代码后可达：TSH 2.0（正常 0.27–4.2）+ FT3 2.5<3.1（低）+ FT4 16（正常、不低）→ 非甲状腺病态综合征（euthyroid sick syndrome）。原条件 tshLow 与 line259 中枢性甲减（tshLow&&hormoneLow）重叠、永不可达，旧版此输入会误判「甲状腺功能正常」；修正为 !tshLow&&!tshHigh&&ft3Low&&!ft4Low 后分支可达。默认态（tsh 空 → analyze 提前 return）无任何结果串，注入失败即不命中。'
+  },
+  {
+    "slug": "clinical-lab/stool-occult-blood",
+    "inputs": { "age": "", "immunoResult": "neg" },
+    "expect": [
+      "本次判读年龄段：未提供年龄（仅通用建议）",
+      "年龄未提供或无效，以上为通用建议"
+    ],
+    "ref": "L-N6 年龄空值：age='' 不再被 parseInt(...)||50 兜底成 50 岁，判读走通用建议（「若无消化道症状，定期体检即可」）并明确提示补充年龄，结果区标注「未提供年龄（仅通用建议）」；默认 age=50 走「建议每年复查FIT」与「年龄 ≥50 岁」，两条锚均不出现（判别器把 age 换回默认 50 即失配）。"
+  },
+  {
+    "slug": "clinical-lab/stool-occult-blood",
+    "inputs": { "age": "125", "immunoResult": "neg" },
+    "expect": [
+      "年龄需为 0–120 的整数（当前输入「125」未参与判读）。",
+      "本次判读年龄段：年龄无效（未参与判读）"
+    ],
+    "ref": "L-N6 越界：125>120 ⇒ 字段级提示（#ageHint）且不参与年龄分层判读，结果区标「年龄无效（未参与判读）」；默认 age=50 为合法值、提示串为空，判别器换回 50 后两条锚均失配。"
+  },
+  {
+    "slug": "clinical-lab/stool-occult-blood",
+    "inputs": { "age": "0", "immunoResult": "neg" },
+    "expect": [
+      "本次判读年龄段：年龄 <45 岁",
+      "结果阴性。若无消化道症状，定期体检即可。"
+    ],
+    "ref": "L-N6 零岁：0 是合法年龄（0–120 整数），修复前 `||50` 把 0 当作假值变成 50 岁；现输出「<45 岁」年龄段与通用建议。默认 age=50 ⇒ 年龄段 ≥50 且给「每年复查FIT」，两条锚均不出现。"
+  },
+  {
+    "slug": "clinical-lab/stool-occult-blood",
+    "clicks": [
+      "document.getElementById('method').value='chem'; switchMethod(); document.getElementById('eatRedMeat').checked=true; selectChem('2+');"
+    ],
+    "expect": [
+      "结论：受干扰不可判读",
+      "本次化学法结果受饮食（红肉/动物血）干扰，不能判定为消化道出血，暂不作为阳性结论。",
+      "禁食红肉、动物血、维生素C、铁剂3天后复查化学法；或直接改用免疫法(FIT)复查确认。"
+    ],
+    "ref": "L-N7 化学法阳性+红肉：修复前 realPos=false 且唯一结论分支 `else if(!interfer.length)` 不命中，只剩大号「2+」和干扰提示、无结论块；现将大号主结论替换为「受干扰不可判读」，并输出禁食 3 天复查/改 FIT 的结论框。判别器清 clicks 回到默认免疫法态（负性结果）⇒ 三条锚均不出现。"
+  },
+  {
+    "slug": "clinical-lab/tumor-marker-doubling",
+    "clicks": [
+      "document.getElementById('v1').value='10';document.getElementById('v2').value='40';document.getElementById('days').value='';document.getElementById('d1').value='2024-01-02';document.getElementById('d2').value='2024-01-02';calc();"
+    ],
+    "expect": [
+      "两次检测日期相同（间隔 0 天），无法计算倍增时间或半衰期。请确认日期，或改用「间隔天数」输入。"
+    ],
+    "ref": "L-N8 相同日期：修复前 Math.abs(t2-t1)=0 ⇒ dt=0 ⇒ DT=0 并显示「倍增极快(高度侵袭)」；现 diff===0 直接提示无法计算。判别器清 clicks 回到页面默认 d1/d2（相差 90 天、10→20）⇒ 无该提示串。"
+  },
+  {
+    "slug": "clinical-lab/tumor-marker-doubling",
+    "clicks": [
+      "document.getElementById('v1').value='10';document.getElementById('v2').value='20';document.getElementById('days').value='';document.getElementById('d1').value='2024-03-01';document.getElementById('d2').value='2024-01-01';calc();"
+    ],
+    "expect": [
+      "第二次检测日期早于第一次（日期顺序相反），无法计算。请按时间先后填写日期，或改用「间隔天数」输入。"
+    ],
+    "ref": "L-N8 倒序日期：修复前 Math.abs 把 -60 天当作 +60 天照常算 DT；现 diff<0 明确提示日期顺序相反、不计算。判别器清 clicks ⇒ 默认日期正序 90 天，不出现提示串。"
+  },
+  {
+    "slug": "clinical-lab/tumor-marker-doubling",
+    "clicks": [
+      "document.getElementById('v1').value='10';document.getElementById('v2').value='40';document.getElementById('days').value='';document.getElementById('d1').value='2024-01-01';document.getElementById('d2').value='2024-01-11';calc();"
+    ],
+    "expect": [
+      "倍增时间 5.0天",
+      "间隔 10天"
+    ],
+    "ref": "L-N8 有符号正差：d1=2024-01-01、d2=2024-01-11 ⇒ dt=10 天，DT=10×ln2/ln4=5.0 天（修复前后此处同为 10，作为「正序日期仍按 t2-t1 计算」的对照锚）；默认日期相差 90 天 ⇒ 两条锚均不出现。"
+  },
+  {
+    "slug": "clinical-lab/tumor-marker-doubling",
+    "clicks": [
+      "document.getElementById('v1').value='30';document.getElementById('v2').value='30';document.getElementById('days').value='30';calc();"
+    ],
+    "expect": [
+      "无变化",
+      "两次检测数值相同（30），间隔 30天，未见升降变化，无法计算倍增时间或下降半衰期。"
+    ],
+    "ref": "L-N8 等值：修复前 v2 不进 rising 分支 ⇒ 进下降半衰期，ln(1)=0 使半衰期 Infinity；现单独「无变化」结论、不算 DT/半衰期。判别器清 clicks ⇒ 默认 10→20 为上升态，两条锚均不出现。"
+  },
+  {
+    "slug": "clinical-lab/tumor-marker-doubling",
+    "clicks": [
+      "document.getElementById('v1').value='10';document.getElementById('v2').value='20';document.getElementById('days').value='50';document.getElementById('d1').value='2024-01-01';document.getElementById('d2').value='2024-01-02';calc();"
+    ],
+    "expect": [
+      "已按填写的间隔天数计算（50 天），两次检测日期不参与本次计算。"
+    ],
+    "ref": "L-N8 优先级说明：同时给出正数天数与日期时明确「天数优先、日期不参与」；默认 days 空 ⇒ 按日期计算，无该说明串。"
+  },
+  {
+    "slug": "clinical-lab/tumor-marker-doubling",
+    "clicks": [
+      "document.getElementById('v1').value='10';document.getElementById('v2').value='20';document.getElementById('days').value='0';calc();"
+    ],
+    "expect": [
+      "间隔天数需为正数（当前输入「0」无法计算倍增时间）；如需按日期计算，请清空「间隔天数」。"
+    ],
+    "ref": "L-N8 零间隔：天数输入 0 不再静默回落到日期计算，直接提示无法计算；默认 days 空 ⇒ 提示串不出现。"
+  },
+  {
+    "slug": "clinical-lab/tumor-marker-doubling",
+    "clicks": [
+      "window.TBKit={util:{isEn:function(){return false;}},chart:{refBar:function(sel,o){document.getElementById('tumor_doublingRefBar').innerHTML='SCALE:'+o.value.toFixed(1);}}};document.getElementById('v1').value='10';document.getElementById('v2').value='20';document.getElementById('days').value='15';calc();document.getElementById('v2').value='5';document.getElementById('days').value='30';calc();document.getElementById('result').innerHTML+=' 标尺已清空='+(document.getElementById('tumor_doublingRefBar').innerHTML==='');"
+    ],
+    "expect": [
+      "半衰期 30.0天",
+      "标尺已清空=true"
+    ],
+    "ref": "L-N8 下降分支清旧标尺：先 10→20/15 天渲染 DT 标尺（桩写入 SCALE:15.0），再 10→5/30 天进入下降半衰期（t½=30×ln2/ln2=30.0 天）；修复前下降分支不渲染也不清空，旧标尺残留 ⇒ 「标尺已清空=false」。判别器清 clicks ⇒ 默认上升态、无「半衰期 30.0天」且无哨兵串。"
+  },
+  {
+    "slug": "clinical-lab/tumor-marker-doubling",
+    "clicks": [
+      "window.TBKit={util:{isEn:function(){return false;}},chart:{refBar:function(sel,o){document.getElementById('tumor_doublingRefBar').innerHTML='SCALE:'+o.value.toFixed(1);}}};document.getElementById('v1').value='10';document.getElementById('v2').value='20';document.getElementById('days').value='15';calc();document.getElementById('v1').value='';calc();document.getElementById('result').innerHTML+=' 无效态标尺已清空='+(document.getElementById('tumor_doublingRefBar').innerHTML==='');"
+    ],
+    "expect": [
+      "无效态标尺已清空=true"
+    ],
+    "ref": "L-N8 无效分支清旧标尺：先渲染 DT 标尺，再把 v1 置空触发无效分支（早退不再渲染）；修复前早退不清标尺 ⇒ 「无效态标尺已清空=false」。判别器清 clicks ⇒ 默认有效输入 + 无桩写入 + 无哨兵串。"
+  },
+  {
+    "slug": "clinical-lab/coagulation-inr",
+    "inputs": { pt: "6", ptNormal: "12", isi: "1" },
+    "expect": ["0.50 PT比值 · 缩短"],
+    "ref": "L-N8：INR=(6/12)^1=0.50<0.8 ⇒ 方向「缩短」，PT 比值仍显示数值 0.50（修复前比值被替换成「延长」）。默认态 INR 1.21、比值 1.21，不命中。"
+  },
+  {
+    "slug": "clinical-lab/coagulation-inr",
+    "inputs": { pt: "12", ptNormal: "12", isi: "1" },
+    "expect": ["1.00 PT比值 · 正常"],
+    "ref": "L-N8 三态之正常：INR=(12/12)^1=1.00，0.8≤INR≤1.2 ⇒ 方向「正常」、比值 1.00。默认态(14.5/12)不命中。"
+  },
+  {
+    "slug": "clinical-lab/coagulation-inr",
+    "inputs": { pt: "30", ptNormal: "12", isi: "1" },
+    "expect": ["2.50 PT比值 · 延长"],
+    "ref": "L-N8 三态之延长：INR=2.50>1.2 ⇒ 方向「延长」、比值 2.50。默认态不命中。"
+  },
+  {
+    "slug": "clinical-lab/csf-analysis",
+    "clicks": [
+      "document.getElementById('appearance').value='clear';document.getElementById('pressure').value='160';document.getElementById('wbc').value='8';document.getElementById('poly').value='45';document.getElementById('protein').value='0.35';document.getElementById('glu').value='3.2';document.getElementById('bg').value='5.0';document.getElementById('cl').value='122';analyze();var r=document.getElementById('result');r.innerHTML+=' 正常卡片='+(r.innerHTML.indexOf('未见明显异常（脑脊液常规/生化在参考范围内）')>=0)+' 异常项0='+(r.innerHTML.indexOf('异常项 0 项')>=0)+' 含病毒='+(r.innerHTML.indexOf('病毒性脑膜炎')>=0);"
+    ],
+    "expect": [
+      "正常卡片=true 异常项0=true 含病毒=false"
+    ],
+    "ref": "L-N13 正常值：外观清亮、压力160、WBC 8、多核45%、蛋白0.35、糖3.2/血糖5.0、氯122 全部在参考范围 ⇒ 异常项 0，走「无异常/正常」类别；哨兵同时断言正常卡片与「异常项 0 项」出现、结果不含「病毒性脑膜炎」（修复前默认及全正常输入被判病毒性 100%）。判别器清 clicks 后无哨兵串且默认态虽也为正常卡片，但 expect 仅认哨兵 ⇒ 失配。"
+  },
+  {
+    "slug": "clinical-lab/csf-analysis",
+    "clicks": [
+      "document.getElementById('appearance').value='clear';document.getElementById('pressure').value='180';document.getElementById('wbc').value='80';document.getElementById('poly').value='20';document.getElementById('protein').value='0.6';document.getElementById('glu').value='3.2';document.getElementById('bg').value='5.5';document.getElementById('cl').value='120';analyze();"
+    ],
+    "expect": ["最可能：病毒性脑膜炎"],
+    "ref": "L-N13 对照：病毒性典型（WBC 80、淋巴 80%、蛋白 0.6 轻度升高、糖正常）⇒ 异常项 3 项达门槛，病毒得分 2+2+1=5 > 结核 4、化脓 1，仍输出病毒性倾向（确认正常项不计分后不会把病毒性误判为正常）。"
+  },
+  {
+    "slug": "clinical-lab/vaginal-discharge-grading",
+    "clicks": [
+      "document.getElementById('bacilli').value='4';document.getElementById('coccus').value='0';document.getElementById('epithelium').value='4';document.getElementById('wbc').value='0';grade();var r=document.getElementById('result');r.innerHTML+=' Ⅰ度判定='+(r.innerHTML.indexOf('Ⅰ度(正常)')>=0)+' 描述='+(r.innerHTML.indexOf('以乳酸杆菌和上皮细胞为主')>=0);"
+    ],
+    "expect": ["Ⅰ度判定=true 描述=true"],
+    "ref": "L-N12 边界 4/0/4/0（页面默认组合）：满足Ⅰ度且是Ⅱ度超集，修复前先判Ⅱ度 ⇒ 误输出Ⅱ度；现Ⅰ度先判。用 clicks 而非 inputs（该组合恰等于页面默认，避免 all_default 计数）。"
+  },
+  {
+    "slug": "clinical-lab/vaginal-discharge-grading",
+    "inputs": { bacilli: "2", coccus: "0", epithelium: "2", wbc: "1" },
+    "expect": ["Ⅱ度(正常)", "乳酸杆菌和上皮细胞较多"],
+    "ref": "L-N12 边界 2/0/2/1：不满足Ⅰ度（杆菌/上皮不足），满足Ⅱ度 ⇒ Ⅱ度(正常)。默认 4/0/4/0 不命中。"
+  },
+  {
+    "slug": "clinical-lab/vaginal-discharge-grading",
+    "inputs": { bacilli: "0", coccus: "2", epithelium: "1", wbc: "2" },
+    "expect": ["Ⅲ度(异常)", "乳酸杆菌减少，球菌增多"],
+    "ref": "L-N12 边界 0/2/1/2：杆菌≤1、球菌≥1、上皮≤1、WBC≥2 ⇒ Ⅲ度(异常)。默认态不命中。"
+  },
+  {
+    "slug": "clinical-lab/vaginal-discharge-grading",
+    "inputs": { bacilli: "0", coccus: "4", epithelium: "0", wbc: "3" },
+    "expect": ["Ⅳ度(异常)", "乳酸杆菌和上皮细胞消失"],
+    "ref": "L-N12 边界 0/4/0/3：杆菌 0、球菌 4、上皮 0、WBC>30 ⇒ Ⅳ度(异常)。默认态不命中。"
+  },
+  {
+    "slug": "clinical-lab/convert-glucose-1",
+    "inputs": { a1c: "" },
+    "expect": ["请输入有效 HbA1c（3–20%）；当前输入「」未参与换算，结果已清空。"],
+    "ref": "L-N14 空值：parseFloat('')=NaN，修复前 `+value||0` 令 a1c=0 ⇒ eAG=-46.7 且判「正常」；现提示非法并清空结果。默认 6.5 有效 ⇒ 提示串不出现。"
+  },
+  {
+    "slug": "clinical-lab/convert-glucose-1",
+    "inputs": { a1c: "-1" },
+    "expect": ["请输入有效 HbA1c（3–20%）；当前输入「-1」未参与换算，结果已清空。"],
+    "ref": "L-N14 负值：a1c=-1 ⇒ eAG=-75.4（修复前照常输出并判正常）；现范围校验 3–20% 拦截并清空。默认态不命中。"
+  },
+  {
+    "slug": "clinical-lab/convert-glucose-1",
+    "inputs": { a1c: "21" },
+    "expect": ["请输入有效 HbA1c（3–20%）；当前输入「21」未参与换算，结果已清空。"],
+    "ref": "L-N14 上限：a1c=21 超出 3–20% ⇒ 提示非法并清空；默认态不命中。"
+  },
+  {
+    "slug": "clinical-lab/cardiac-marker-curve",
+    "clicks": [
+      "document.getElementById('markerType').value='ckmb';onMarkerChange();"
+    ],
+    "expect": ["CK-MB 动态分析", "上限 5", "非ST段抬高型心梗(NSTEMI)"],
+    "ref": "L-N15 切换联动：切到 CK-MB 时 onMarkerChange 把 99th 上限同步为 5.0 ng/mL（修复前沿用 0.04 ⇒ 8.5 被放大 213×、误判典型 AMI）；8.5>5 且 ≤25 ⇒ NSTEMI 分支，SVG 标注「上限 5」。判别器清 clicks 回到 cTnI/0.04 默认态，不命中。"
+  },
+  {
+    "slug": "clinical-lab/cardiac-marker-curve",
+    "inputs": { upper: "-0.04" },
+    "expect": ["请输入大于 0 的参考上限（99百分位，ng/mL）；当前输入「-0.04」无效。"],
+    "ref": "L-N15 上限校验：负值修复前被 parseFloat 后照常参与运算（比值方向相反），现直接提示并清空结果。默认 0.04 有效 ⇒ 提示串不出现。"
+  },
+  {
+    "slug": "clinical-lab/autoantibody-interpretation",
+    "inputs": { anaTiter: "1:320", dsdna: "pos" },
+    "clicks": [
+      "document.getElementById('result').innerHTML+=' 含抗Sm='+(document.getElementById('result').innerHTML.indexOf('抗Sm')>=0);"
+    ],
+    "expect": [
+      "系统性红斑狼疮(SLE)",
+      "标志抗体：抗dsDNA（关联强度高）",
+      "含抗Sm=false"
+    ],
+    "ref": "L-N16 动态拼接：仅抗dsDNA 阳性（ANA 1:320、核型未选）⇒ SLE 评分 3≥3，标志抗体只列实际阳性的抗dsDNA；修复前 filter 恒真把未检出的抗Sm/抗Rib-P/抗PCNA 一并列出 ⇒ 哨兵为 true。默认态 ANA 阴性、无 SLE 卡片，不命中。"
+  },
+  {
+    "slug": "clinical-lab/hba1c-converter",
+    "inputs": { val1: "" },
+    "expect": ["请输入有效数值后再换算，结果已清空。"],
+    "ref": "L-N17 空值：empty ⇒ parseFloat=NaN，现提示缺项并清空 #result/#val2/#refBar。默认 7.0 有效 ⇒ 提示串不出现。"
+  },
+  {
+    "slug": "clinical-lab/hba1c-converter",
+    "inputs": { val1: "2" },
+    "expect": ["HbA1c 需在 3–20% 之间，当前输入「2」无效，结果已清空。"],
+    "ref": "L-N17 低值：修复前 2% ⇒ eAG 10.7 mg/dL(0.6 mmol/L) 且判「正常」；现 3–20% 范围校验拦截并清空。默认 7.0 不命中。"
+  },
+  {
+    "slug": "clinical-lab/hba1c-converter",
+    "clicks": [
+      "setMode('glu');document.getElementById('val1').value='40';convert();"
+    ],
+    "expect": ["血糖需在 1–35 mmol/L 之间，当前输入「40」无效，结果已清空。"],
+    "ref": "L-N17 血糖上限：血糖模式输入 40 mmol/L 超出 1–35 ⇒ 提示并清空（修复前照常反算 HbA1c 25.9%）。默认 hba1c 模式且 val1=7.0，判别器清 clicks 不命中。"
+  },
+  {
+    "slug": "clinical-lab/hba1c-converter",
+    "clicks": [
+      "document.getElementById('val2').value='2';convertReverse();"
+    ],
+    "expect": ["HbA1c 需在 3–20% 之间，当前输入「2.9」无效，结果已清空。"],
+    "ref": "L-N17 反算下限：血糖 2 mmol/L ⇒ HbA1c=(2×18+46.7)/28.7=2.87→2.9%，convertReverse 写回 val1=2.9 后 convert() 触发 3–20% 校验并清空（修复前判「正常」）。默认 val2 空、val1=7.0 ⇒ 不命中。"
   }
 ];
 async function main() {

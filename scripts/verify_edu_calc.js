@@ -23,8 +23,8 @@ const CASES = [
   {
     slug: "edu/calc-4",
     inputs: { currentScore: "80", currentWeight: "60", targetScore: "90", remainingParts: "2" },
-    expect: ["25.00", "10.00"],
-    ref: "剩余权重=100−60=40.0%；还需加权分=90−80=10.00；剩余考核均分=10/40×100=25.00；每项=25.00；25≤60 → 目标可行",
+    expect: ["105.00", "目标不可行"],
+    ref: "已获得加权分=80×60%=48；还需加权分=90−48=42；剩余权重=40%；剩余均分=42/40×100=105>100 ⇒ 目标不可行（旧代码误用 90−80 得 25，已修）",
   },
   {
     slug: "edu/exam-score-calculator",
@@ -203,10 +203,10 @@ const CASES = [
   },
   {
     slug: "edu/grade-calculator",
-    clicks: ["addCourse();addCourse();addCourse();addCourse();updateCourse(1,'92');updateCourse(2,'78');updateCourse(3,'65');updateCourse(4,'88');calc();"],
-    expect: ["82.8"],
-    ref: "成绩分析器：四门课加权后 avgScore = 82.8。默认态加满 4 门默认课 ⇒ avgScore 为另一值（不命中 82.8）。"
-       + "这是唯一需要确认的强判别量；rankResult / percentile 等派生量随课程表变动，本例只锚加权均分。",
+    clicks: ["removeCourse(4);removeCourse(3);removeCourse(2);updateCourse(0,'score',90);updateCourse(0,'credit',2);updateCourse(1,'score',70);updateCourse(1,'credit',3);calc();"],
+    dumpIds: ["totalScore"],
+    expect: ["78.00"],
+    ref: "成绩分析器：两门课 90 分×2 学分 + 70 分×3 学分 ⇒ 加权均分 = (180+210)/5 = 78.00。默认 5 门课加权为 85.89 ⇒ 强判别。",
   },
   {
     slug: "edu/chinese-zodiac",
@@ -300,9 +300,9 @@ const CASES = [
       "nums": "1 2 3 4"
     },
     "expect": [
-      "命中 4 个示例： (4 * 6) = 24 (6 * 4) = 24 (2 * 12) = 24 (12 * 2) = 24"
+      "命中 6 个示例： (4 * (3 + (1 + 2))) = 24"
     ],
-    "ref": "24 点独立复算（穷举 +−×÷ 四则）：1,2,3,4 可解出 24，例如 (1+3) × (2+4) = 4 × 6 = 24；亦可12 × 2 = 24（其中 12 = 4×3、2 = 2×1的组合）。页面给出的 4 个示例 (4×6)、(6×4)、(2×12)、(12×2) 均为合法的24 点解，命中 4 个。HTML 默认 nums='5,5,5,1' → 命中 2 个示例，默认态不产生该 4 示例串。"
+    "ref": "24 点独立复算（穷举 +−×÷ 四则）：1,2,3,4 可解出 24，例如 4 × (3 + (1 + 2)) = 4 × 6 = 24。修复后表达式保留原始数字与中间层，不再退化成 (4 * 6) 这类丢失来源的式子；本次命中 6 个示例，首条即 4 × (3 + (1 + 2))。HTML 默认 nums='5,5,5,1' → 不产生该串。"
   },
   // ── 零用例收敛（2026-10-09）────────────────────────────
   {
@@ -368,9 +368,10 @@ const CASES = [
       "remainingParts": "42"
     },
     "expect": [
-      "42\n42\n42\n42\n0.0"
+      "24.36",
+      "42.00"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"currentScore\":\"42\",\"currentWeight\":\"42\",\"targetScore\":\"42\",\"remainingParts\":\"42\"}，输出区含「42\n42\n42\n42\n0.0」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "注入 42/42/42/42：已获加权分=42×42%=17.64；还需 42−17.64=24.36；剩余权重 58%；剩余均分=24.36/58×100=42.00。"
   },
   {
     "slug": "edu/calc-3",
@@ -482,7 +483,7 @@ const CASES = [
       "text": "1\n2\n3"
     },
     "expect": [
-      "1 2 3\n📊 字数统计 0 中文字数 5 总字符数 3 不含空格 0 标点符号 1 段落数 3 行数 短文 字数偏少，建议补充内容"
+      "1 2 3\n📊 字数统计 0 中文字数 5 总字符数 3 不含空格 0 标点符号 3 段落数 3 行数 短文 字数偏少，建议补充内容"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"title\":\"abc123测试\",\"text\":\"1\\n2\\n3\"}，输出区含「1 2 3\n📊 字数统计 0 中文字数 5 总字符数 3 不含空格 0 标点符…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -607,7 +608,7 @@ const CASES = [
       "rStd": "42"
     },
     "expect": [
-      "5\nB - 良好\n42\n42\n42\n42\n42\n42\n35.3\n6.7\n16.0 分\n很容易 🌟\n目标很容易达到，保持状态即可\n42\n42\n42\n42\n0.00\n50.0%\n第 22 名\n超过 50.0% 的同学\n+0.0 分\n前50% "
+      "5\nB - 良好\n42\n42\n42\n42\n42\n42\n28.0\n14.0\n42.0 分\n很容易 🌟\n目标很容易达到，保持状态即可\n42\n42\n42\n42\n0.00\n50.0%\n第 22 名\n超过 50.0% 的同学\n+0.0 分\n前50% "
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"tRegular\":\"42\",\"tRegularWeight\":\"42\",\"tMidterm\":\"42\",\"tMidtermWeight\":\"42\",\"tTarget\":\"42\",\"tFinalWeight\":\"42\",\"rMyScore\":\"42\",\"rAvg\":\"42\",\"rTotal\":\"42\",\"rStd\":\"42\"}，输出区含「5\nB - 良好\n42\n42\n42\n42\n42\n42\n35.3\n6.7\n16.0…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -685,6 +686,82 @@ const CASES = [
       "0个 100%\nabc123测试\n0\n没有找到匹配的单词"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"wordSearch\":\"abc123测试\",\"filterLevel\":\"0\"}，输出区含「0个 100%\nabc123测试\n0\n没有找到匹配的单词」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "edu/pinyin-typing-practice",
+    "clicks": [
+      "currentText='中国';resetTyping();window.__ptApplyInput('zhongguo');var st=window.__ptState();document.getElementById('ptTypeSel').value='PT1:'+(st.finished?1:0)+'|ACC='+document.getElementById('accuracy').textContent+'|ERR='+document.getElementById('errors').textContent+'|PROG='+document.getElementById('progress').textContent;"
+    ],
+    "expect": [
+      "PT1:1|ACC=100%|ERR=0|PROG=100%"
+    ],
+    "ref": "EL-J3 回归：真拼音判分。「中国」对应 zhong+guo（8 个字母），输入 zhongguo 应完成且 100%。旧实现逐字比对汉字，输入拼音只会计 1 个字符且不完成 ⇒ PT1 不可能为完成态。"
+  },
+  {
+    "slug": "edu/pinyin-typing-practice",
+    "clicks": [
+      "currentText='中国';resetTyping();window.__ptApplyInput('中国');var st=window.__ptState();document.getElementById('ptTypeSel').value='PT2:'+(st.finished?1:0)+'|ACC='+document.getElementById('accuracy').textContent+'|ERR='+document.getElementById('errors').textContent+'|PROG='+document.getElementById('progress').textContent;"
+    ],
+    "expect": [
+      "PT2:0|ACC=100%|ERR=0|PROG=0%"
+    ],
+    "ref": "EL-J3 反向锚：直接照抄汉字「中国」不应被当作拼音输入（归一化后 0 个字母、未完成、进度 0%），证明题目与答案不再是同一串。"
+  },
+  {
+    "slug": "edu/pinyin-typing-practice",
+    "clicks": [
+      "currentText='中国';resetTyping();window.__ptApplyInput('zhonggou');var st=window.__ptState();document.getElementById('ptTypeSel').value='PT3:'+(st.finished?1:0)+'|ACC='+document.getElementById('accuracy').textContent+'|ERR='+document.getElementById('errors').textContent+'|PROG='+document.getElementById('progress').textContent;"
+    ],
+    "expect": [
+      "PT3:1|ACC=50%|ERR=1|PROG=100%"
+    ],
+    "ref": "EL-J3 判分回归：zhonggou 把「guo」拼成「gou」，第 2 字判错 ⇒ 完成、正确率 50%、错误 1 个。旧实现按汉字比对，该输入既不完成也不产生此锚点。"
+  },
+  {
+    "slug": "edu/english-vocabulary",
+    "inputs": {
+      "qCount": "-5"
+    },
+    "clicks": [
+      "startQuiz();var n=questions.length;var m=document.getElementById('qCountHint').textContent;document.getElementById('vocabChart').textContent='QNEG:'+n+'|'+m;"
+    ],
+    "expect": [
+      "QNEG:20|题量须为 1–100 的整数，已回退为默认 20 题"
+    ],
+    "ref": "EL-J4 回归：题量 -5 越界 ⇒ 提示并回退默认 20 题，抽题数必须为 20。旧实现 parseInt(-5) 直接 slice(0,-5)，100 词表剩 95 题且无提示，不可能产出 QNEG:20。"
+  },
+  {
+    "slug": "edu/english-vocabulary",
+    "inputs": {
+      "qCount": "101"
+    },
+    "clicks": [
+      "startQuiz();var n=questions.length;var m=document.getElementById('qCountHint').textContent;document.getElementById('vocabChart').textContent='QHI:'+n+'|'+m;"
+    ],
+    "expect": [
+      "QHI:20|题量须为 1–100 的整数，已回退为默认 20 题"
+    ],
+    "ref": "EL-J4 上界回归：题量 101 超出 1–100 ⇒ 同样提示并回退默认 20 题。旧实现 Math.min(101,100)=100 题、无提示，不可能产出 QHI:20。"
+  },
+  {
+    "slug": "edu/english-vocabulary",
+    "clicks": [
+      "document.getElementById('qCount').value='1';startQuiz();var a=questions.length;document.getElementById('qCount').value='5';startQuiz();document.getElementById('vocabChart').textContent='QOK:'+a+'|'+questions.length;"
+    ],
+    "expect": [
+      "QOK:1|5"
+    ],
+    "ref": "EL-J4 合法边界：题量 1 与 5 均在 1–100 内，抽题数应分别为 1 与 5，且不弹越界提示。默认态不产生 QOK 锚点。"
+  },
+  {
+    "slug": "edu/english-vocabulary",
+    "clicks": [
+      "questions=[{word:'assimilate',answer:'适应',options:['容纳；适应','适应'],answerIndex:1}];currentQ=0;score=0;wrongCount=0;answered=false;showQuestion();var bs=document.querySelectorAll('.option-btn');var marks=[];bs.forEach(function(b,i){b.classList.add=function(c){marks.push(i+':'+c);};});answer(0,bs[0]);document.getElementById('vocabChart').textContent='QSTRICT:'+marks.join(',')+'|wrong='+wrongCount;"
+    ],
+    "expect": [
+      "QSTRICT:0:wrong,1:correct|wrong=1"
+    ],
+    "ref": "EL-J5 回归：选项 0「容纳；适应」以「适应」结尾但并非答案，选它必须只标红 0、且仅把真正答案（索引 1）标绿 ⇒ 标记序列 0:wrong,1:correct。旧实现用 endsWith 找正确项，会把 0、1 同时标绿 ⇒ 0:wrong,0:correct,1:correct。"
   }
 
 ];

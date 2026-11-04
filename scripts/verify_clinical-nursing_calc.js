@@ -41,9 +41,20 @@ const CASES = [
     "ageGroup": "infant"
   },
   "expect": [
-    "【简易呼吸器（球囊-面罩）通气参数】 结果：心肺复苏（CPR） · 婴儿 → 通气频率 12-20 次/分、潮气量 100-150 mL、送气时间 1 秒、送气间隔 4 秒、按压通气比 30:2",
+    "【简易呼吸器（球囊-面罩）通气参数】 结果：心肺复苏（CPR） · 婴儿 → 通气频率 20-30 次/分、潮气量 100-150 mL、送气时间 1 秒、送气间隔 2 秒、按压通气比 30:2、球囊 成人型 1500 mL"
       ],
-  "ref": "门诊记录：场景默认 CPR、年龄组切婴儿 ⇒ 12-20 次/分、潮气量 100-150 mL、间隔 4 秒、按压通气比 30:2。默认态为成人 ⇒ 8-10 次/分、400-600 mL、间隔 6 秒，与本用例零交集。"
+  "ref": "门诊记录：场景默认 CPR、年龄组切婴儿 ⇒ 20-30 次/分（每 2-3 秒 1 次）、潮气量 100-150 mL、间隔 2 秒、按压通气比 30:2，记录附带所选框定球囊容量。默认态为成人 ⇒ 10 次/分、400-600 mL、间隔 6 秒，与本用例零交集。"
+},
+{
+  "slug": "clinical-nursing/bag-valve-mask",
+  "inputs": {
+    "ageGroup": "infant",
+    "bagSize": "adult"
+  },
+  "expect": [
+    "球囊过大：婴儿应选婴儿型(240mL)"
+  ],
+  "ref": "D-N29 球囊容量参与校验：旧实现完全不读 bagSize，婴儿选成人型(1500mL) 仍静默给出婴儿参数；修复后按年龄与球囊比对给出红字不匹配提示。默认成人+成人型为匹配态，不含该串 ⇒ 强判别、零逃生。"
 },
 {
   "slug": "clinical-nursing/barthel-index",
@@ -151,9 +162,26 @@ const CASES = [
     "extraFlush": "2"
   },
   "expect": [
-    "【中心静脉导管（CVC）冲封管方案】 结果：CVC中心静脉导管 · 3 腔 · 冲洗液 肝素盐水 100 U/mL → 每腔冲管 3.5 mL、总冲管 10.5 mL、总封管 5.4 mL、肝素总量 540 U",
+    "【中心静脉导管（CVC）冲封管方案】 结果：CVC中心静脉导管 · 3 腔 · 封管液 肝素盐水 100 U/mL → 每腔冲管 3.5 mL、总冲管 10.5 mL、总封管 5.4 mL、肝素总量 540 U",
       ],
   "ref": "门诊记录：每腔冲管 = 1.5 + 2 = 3.5 mL，3 腔 ⇒ 总冲管 10.5 mL；封管每腔 1.5×1.2 = 1.8 ⇒ 总封管 5.4 mL；肝素 5.4×100 = 540 U。默认态 1 腔、生理盐水 ⇒ 每腔 3.5、总冲管 3.5、总封管 3.5、无肝素，与本用例零交集。"
+},
+{
+  "slug": "clinical-nursing/cvc-maintenance",
+  "inputs": {
+    "lumens": "2",
+    "flushType": "saline",
+    "cathVol": "2",
+    "extraFlush": "1"
+  },
+  "clicks": [
+    "currentType='dialysis';calc()"
+  ],
+  "expect": [
+    "封管液 高浓度肝素盐水 1000 U/mL",
+    "肝素总量 4,800 U"
+  ],
+  "ref": "B3 回归：透析导管 + 注入生理盐水封管液（旧实现按 saline 算 ⇒ 肝素 0，错误）。修正后导管类型强制高浓度肝素 1000 U/mL：每腔冲管 2+1=3.0 mL、总冲管 6.0 mL；封管每腔 2×1.2=2.4 ⇒ 总封管 4.8 mL；肝素 4.8×1000=4800 U。默认态 CVC+生理盐水 ⇒ 无肝素，零交集。"
 },
 {
   "slug": "clinical-nursing/cycle-7",
@@ -193,14 +221,44 @@ const CASES = [
   "ref": "门诊记录：NEX 法 14 + 28 + 10 = 52 cm。默认态 18 + 25 + 10 = 53 cm，与本用例零交集（整串含分段数值，非只差 1 的数字）。"
 },
 {
+  "slug": "clinical-nursing/gastric-tube-depth",
+  "inputs": {
+    "height": "182",
+    "noseXiphoid": "37"
+  },
+  "clicks": [
+    "currentMethod='formula';calc()"
+  ],
+  "expect": [
+    "鼻尖→剑突实测 37 cm + 10 cm",
+    "预计置入深度 47 cm"
+  ],
+  "ref": "B2 回归：身高公式法有实测 NEX 时应按 NEX+10 计算。旧实现 182×0.2+37=73.4 → 73 cm；修正后 37+10=47 cm。默认态（NEX 测量法）18+25+10=53 cm，零交集。"
+},
+{
+  "slug": "clinical-nursing/gastric-tube-depth",
+  "inputs": {
+    "height": "182",
+    "noseXiphoid": ""
+  },
+  "clicks": [
+    "currentMethod='formula';calc()"
+  ],
+  "expect": [
+    "身高 182 cm × 0.25 + 10 cm",
+    "预计置入深度 56 cm"
+  ],
+  "ref": "B2 回归：清空实测 NEX 时不得把空值当 0 或默认 77 混算。旧实现 182×0.2+0=36 cm；修正后身高估算 182×0.25+10=55.5 → 56 cm。默认态 53 cm，零交集。"
+},
+{
   "slug": "clinical-nursing/generator-pressure",
   "inputs": {
     "cnt": "10"
   },
   "expect": [
-    "生成 10 条压力性损伤预防要点"
+    "生成结果：共 6 条"
   ],
-  "ref": "双态零交集：expect 仅锚定稳定计数（生成条数随 cnt 变），不抓 Math.random 随机内容。判别器清空 inputs（默认 cnt=5）→ 期望 5 条 ≠ 10 条 ⇒ 非逃生项。"
+  "ref": "上限封顶：cnt=10 只允许 6 个分期各 1 条，输出「共 6 条」；默认 cnt=5 输出「共 5 条」，判别器清空 inputs 亦为 5 条 ⇒ 非逃生项，且不抓 Math.random 随机内容。"
 },
 {
   "slug": "clinical-nursing/iv-drip-rate",
@@ -215,6 +273,39 @@ const CASES = [
     "总滴数 5,000 滴（每秒约 0.4 滴）"
   ],
   "ref": "门诊记录：250 mL × 20 滴/mL ÷ 225 分钟 = 22.2 → 22 滴/分；泵速 250/225×60 = 66.7 mL/h；总滴数 5000。默认态 500 mL / 4 h / 20 滴/mL ⇒ 42 滴/分、125.0 mL/h、10,000 滴，与本用例零交集。"
+},
+{
+  "slug": "clinical-nursing/iv-drip-rate",
+  "inputs": {
+    "volume": "500",
+    "hours": "",
+    "minutes": "",
+    "dropFactor": "20"
+  },
+  "expect": ["【静脉输液滴速推算】 结果：参数不完整"],
+  "ref": "D-N11 清空时间：totalMinutes = 0×60+0 = 0 ⇒ 旧实现结果区置 --，但 window.__EMR_SUM 未清空，EMR 记录继续沿用上一次「125.0 mL/h / 10,000 滴」；修复后置空并写入「参数不完整」新记录，旧滴速不再沿用。默认 hours=4/minutes=0 有效，不含该串 ⇒ 判别力成立。"
+},
+{
+  "slug": "clinical-nursing/iv-drip-rate",
+  "inputs": {
+    "volume": "500",
+    "hours": "4",
+    "minutes": "0",
+    "dropFactor": "60"
+  },
+  "expect": ["结果：总量 500 mL / 滴系数 60 滴/mL", "当前 125 滴/分、泵速 125 mL/h 在常规范围"],
+  "ref": "D-N11 阈值随滴系数失真：500 mL/4 h、60 滴/mL ⇒ 125 mL/h、125 滴/分。旧实现按 dr>60 判「偏快」（125 滴/分），但泵速 125 mL/h 属常规（20 滴/mL 换算约 42 滴/分）。修复后按泵速 mL/h 判定 ⇒ 常规范围；默认 df=20 时记录为「滴系数 20 滴/mL」，不含 60 串 ⇒ 判别力成立。"
+},
+{
+  "slug": "clinical-nursing/iv-drip-rate",
+  "inputs": {
+    "volume": "300",
+    "hours": "1",
+    "minutes": "0",
+    "dropFactor": "20"
+  },
+  "expect": ["约合 20 滴/mL 输液器 60 滴/分以上"],
+  "ref": "D-N11 上阈值复核：300 mL/1 h ⇒ 泵速 300 mL/h > 180，判偏快（旧实现按 300 滴/分 > 60 也判偏快，结论一致，用于锁定新口径不丢偏快分支）。默认 125 mL/h 不命中。"
 },
 {
   "slug": "clinical-nursing/morse-score",
@@ -249,6 +340,18 @@ const CASES = [
     "该装置适用流量 1–6 L/min、最高 FiO₂ 44%；湿化：≤4L不需，＞4L需湿化；估算 PaO₂ 约 205 mmHg"
   ],
   "ref": "门诊记录：鼻导管 FiO₂ = 21 + 4×5 = 41%（上限 44% 未触发）；PaO₂ 估算 41×5 = 205 mmHg。默认态 flowRate=2 ⇒ 29%、PaO₂ 145，与本用例零交集。注：原实现把 `pao2` 暴露给记录钩子时该变量尚未定义（null），已改为在钩子里按 fio2×5 直接计算。"
+},
+{
+  "slug": "clinical-nursing/oxygen-concentration",
+  "inputs": {
+    "flowRate": "12"
+  },
+  "expect": [
+    "鼻导管12L/min对应FiO2约69%",
+    "＞6L/min 超出鼻导管可靠范围",
+    "建议改用普通面罩或高流量鼻导管"
+  ],
+  "ref": "鼻导管不再静默封顶 44%：FiO₂ = 21 + 4×12 = 69%（原实现显示 44%）；流量＞6 L/min 触发警示并建议改面罩。默认态 flowRate=2 ⇒ 28% 且无警示，三串均不命中。"
 },
 {
   "slug": "clinical-nursing/pain-nrs",
@@ -322,7 +425,30 @@ const CASES = [
   "expect": [
     "当前负压 260 mmHg（≈34.6 kPa）→ 超过安全范围"
   ],
-  "ref": "门诊记录：inputs 写 260 mmHg（页面默认 150），REC 在 evaluate(p) 处捕获 typeof p==='number' 守卫后的压力值与患者类别，输出「成人 · 安全范围 150–200 · 当前负压 260 mmHg（≈34.6 kPa）→ 超过安全范围」并给出黏膜损伤临床提示。默认态 150 mmHg ⇒「在安全范围内」，零交集。"
+  "ref": "门诊记录：inputs 写 260 mmHg（页面默认 150，已非安全值），REC 在 evaluate(p) 处捕获 typeof p==='number' 守卫后的压力值与患者类别，输出「成人 · 安全范围 80–120 · 当前负压 260 mmHg（≈34.6 kPa）→ 超过安全范围」并给出黏膜损伤临床提示。默认态 150 mmHg（≈20.0 kPa）数值串不同，零交集。"
+},
+{
+  "slug": "clinical-nursing/suction-pressure",
+  "inputs": {
+    "currentPressure": "130"
+  },
+  "expect": [
+    "患者类别 成人 · 安全范围 80–120 mmHg · 当前负压 130 mmHg（≈17.3 kPa）→ 超过安全范围（黏膜损伤风险）"
+  ],
+  "ref": "W1-B 回归：AARC 成人推荐 80–120 mmHg，130 mmHg 属过高。输入 130 非默认（150）；旧实现成人区间 150–200 ⇒ 判「在安全范围内」，本串不命中。"
+},
+{
+  "slug": "clinical-nursing/suction-pressure",
+  "inputs": {
+    "currentPressure": "110"
+  },
+  "clicks": [
+    "selectAge('child',{classList:{add:function(){}}})"
+  ],
+  "expect": [
+    "患者类别 儿童 · 安全范围 80–100 mmHg · 当前负压 110 mmHg（≈14.6 kPa）→ 超过安全范围（黏膜损伤风险）"
+  ],
+  "ref": "W1-B 回归：年龄选择必须真正改变区间。clicks 切儿童（80–100 mmHg）后 110 mmHg 属过高；旧实现儿童 100–150 ⇒ 判「在安全范围内」，本串不命中。输入 110 非默认（150）。"
 },
 {
   "slug": "clinical-nursing/surgical-position-risk",

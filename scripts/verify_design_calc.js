@@ -44,6 +44,18 @@ const CASES = [
     ref: "去默认化（原 val=100/base=1920 全与默认相同）：vw = px ÷ 视口宽 × 100 = 250 ÷ 1600 × 100 = 15.6250。默认 100/1920 得 5.2083vw",
   },
   {
+    slug: "design/vh-vw",
+    inputs: { mode: "px2vw", val: "100", base: "" },
+    expect: ["⚠ 请输入大于 0 的基准视口尺寸（px）。"],
+    ref: "基准视口清空：修复前 `num()` 把空串转成 0 后静默回落 1920，输出 5.2083vw；修复后应直接提示并拒绝按默认视口换算。默认态（100/1920）不含该提示串 ⇒ 判别明确。",
+  },
+  {
+    slug: "design/vh-vw",
+    inputs: { mode: "px2vw", val: "-100", base: "1920" },
+    expect: ["⚠ 请输入不小于 0 的数值。"],
+    ref: "负值输入：修复前 -100 → -5.2083vw 原样透传；修复后应提示数值须 ≥0 且不输出负换算结果。默认 100 不含该提示 ⇒ 判别明确。",
+  },
+  {
     slug: "design/image-dpi-converter",
     inputs: { w1: "960", h1: "540", dpi1: "300" },
     expect: ["81.28", "45.72", "93.26"],
@@ -67,6 +79,18 @@ const CASES = [
     expect: ["h5 19.2px"],
     ref: "等比字阶 size_i = base × ratio^i：16 × 1.2¹ = 19.2（h6 为基准 16，h5 为 19.2）",
   },
+  {
+    slug: "design/typography-scale",
+    inputs: { baseSize: "16.5", ratio: "1.2" },
+    expect: ["⚠ 基准字号需为 8–48 之间的整数。"],
+    ref: "非整数基准：修复前 parseInt 静默截成 16 后照常生成；修复后应显式提示并清空结果。默认基数 16 不含该提示 ⇒ 判别明确。",
+  },
+  {
+    slug: "design/typography-scale",
+    inputs: { baseSize: "100", ratio: "1.25" },
+    expect: ["--h6-size: 48px"],
+    ref: "上界夹取：修复前 base=100 原样生成 h6=100px；修复后按 BASE_MAX=48 夹取并回写输入框 ⇒ 首档 CSS 变量为 48px。默认 16/1.25 得 16px ⇒ 判别明确。",
+  },
 
   // ── 色度学类 ───────────────────────────────────────────────────
   {
@@ -88,12 +112,30 @@ const CASES = [
       + " ⇒ #ffb87b / RGB(255,184,123)（暖白/日出）。默认 5500K 得 #ffedde / 255,237,222",
   },
   {
+    slug: "design/color-temperature-converter",
+    inputs: { temp: "-2000" },
+    expect: ["⚠ 请输入 1000–40000K 之间的有效色温。"],
+    ref: "负色温：修复前 k=-20 走对数分支得到 NaN 通道并生成 `#NaNNaNNaN` 非法 HEX；修复后应提示范围并清空预览/RGB。默认 5500K 不含该提示 ⇒ 判别明确。",
+  },
+  {
     slug: "design/color-shade-generator",
     inputs: { hex: "#0EA5E9", steps: "4" },
     expect: ["#cfedfb"],
     ref: "去默认化（原 hex=#6366F1/steps=5 全与默认相同）：mix(c,t,r) = round(c+(t−c)·r)，基色 rgb(14,165,233)、"
       + "steps=4 ⇒ 最浅 tint f = 4/5 = 0.8：R = round(14+241×0.8) = 207、G = round(165+90×0.8) = 237、"
       + "B = round(233+22×0.8) = 251 → #cfedfb。默认 #6366F1/5 得 #e5e6fd",
+  },
+  {
+    slug: "design/color-shade-generator",
+    inputs: { hex: "#6366F1", steps: "" },
+    expect: ["⚠️ 请输入 1–20 之间的整数档数。"],
+    ref: "清空档数：修复前空串经 `parseFloat||0` → 1 档静默生成；修复后应显式提示并拒绝生成。默认 5 档不含该提示 ⇒ 判别明确。",
+  },
+  {
+    slug: "design/color-shade-generator",
+    inputs: { hex: "#6366F1", steps: "1000" },
+    expect: ["⚠️ 档数超过上限 20，已按 20 档生成。"],
+    ref: "超大档数：修复前 1000 档会渲染 2001 张卡片；修复后按上限 20 夹取并回写输入框，同时给出上限提示。默认 5 档不含该提示 ⇒ 判别明确。",
   },
 
   // ── 摄影光学类 ─────────────────────────────────────────────────
@@ -105,6 +147,13 @@ const CASES = [
       + "近点 = H·s/(H+(s−f)) = 86012×3000/(86012+2915) = 2.90m（远点 3.11m，景深 0.20m）。默认得 46.3m / 1.92m",
   },
   {
+    slug: "design/depth-of-field-calculator",
+    inputs: { sensor: "1", focal: "24", aperture: "8", distance: "5" },
+    expect: ["1.63m ~ ∞"],
+    ref: "对焦距离 5000mm 超过超焦距 H = 24²/(8×0.03) = 2400mm：修复前把近点也误判为无穷，输出 `Infinitym ~ ∞`；"
+      + "修复后近点 = H·s/(H+(s−f)) = 2400×5000/(2400+5000−24) = 1626.9mm → 1.63m，仅远点为 ∞。默认 50mm/f1.8/2m 得 1.92m ~ 2.08m ⇒ 判别明确。",
+  },
+  {
     slug: "design/focal-length-equivalent",
     inputs: { focal: "35", fromSensor: "fullframe", toSensor: "aps-c" },
     expect: ["56.0mm", "35.6° × 24.2°"],
@@ -112,6 +161,13 @@ const CASES = [
       + "35mm 转 APS-C（佳能，裁切 1.6×）⇒ 等效焦距 = 35 × 1.6 = 56.0mm；"
       + "视角 = 2·atan(36/(2×56)) = 35.64°、2·atan(24/(2×56)) = 24.19° → 35.6° × 24.2°（全画幅 36×24mm）。"
       + "默认 50mm 同画幅得 50.0mm / 39.6° × 27.0°",
+  },
+  {
+    slug: "design/focal-length-equivalent",
+    inputs: { focal: "0", fromSensor: "fullframe", toSensor: "aps-c" },
+    expect: ["⚠ 请输入 1–2000mm 之间的有效焦距。"],
+    ref: "零焦距：修复前 `+value||0` 得到 0，输出 `0.0mm` 等效与 `180.0° × 180.0°` 视角（FOV 退化、条宽 NaN）；"
+      + "修复后应显式提示并清空结果条。默认 50mm 不含该提示 ⇒ 判别明确。",
   },
   {
     slug: "design/detector-29",
@@ -284,6 +340,14 @@ const CASES = [
         + "⚠ `#patternType` 为 select，注入 `dots` 后输出仍是 checker 串（该 select 在 harness 内只切换预览 class、不改写 cssOutput）⇒ 本例只锚随 size 变化的数值连排，不把 patternType 计入被测点。",
   },
   {
+    slug: "design/pattern-generator",
+    inputs: { size: "20", color1: "#22c55e", color2: "#0f172a" },
+    clicks: ["currentType='diamonds';generate();"],
+    expect: ["conic-gradient(from 45deg, #0f172a 0deg 90deg, transparent 90deg 180deg, #0f172a 180deg 270deg, transparent 270deg 360deg)"],
+    ref: "菱形图案：修复前 `diamonds` 与 `triangles` 共用同一条 45° 双层 linear-gradient 串（输出完全相同）；"
+      + "修复后 `diamonds` 走 conic-gradient 四象限交替（from 45deg 形成菱形平铺）。默认 triangles 不含 `conic-gradient` ⇒ 判别明确。",
+  },
+  {
     slug: "design/grid-pattern",
     inputs: { cellSize: "28", lineWidth: "3", lineColor: "#a855f7", bgColor: "#fef3c7" },
     expect: ["linear-gradient(90deg, #a855f7 3px, transparent 3px); background-size: 28px 28px;"],
@@ -303,6 +367,24 @@ const CASES = [
     expect: [".skeleton { background: linear-gradient(90deg, #fef3c7 25%, #fde68a 37%, #fef3c7 63%); background-size: 400% 100%; animation: skelLoading 2.2s ease infinite; border-radius: 10px; }"],
     ref: "独立复算：`#cssOutput` 单条 `.skeleton { … }` 把 baseColor（25%/63% 停）、highlightColor（37% 停）、duration（`skelLoading ${duration}s`）、radius 四项拼进同一条声明 ⇒ 注入后整句成立，任意一项漏注入都会缺对应片段。默认态为页面默认值 ⇒ 不命中。"
         + "⚠ 该页把全部字段合并成一条 CSS，锚必须整句连排；只锚 `background:` 或只锚 `border-radius:` 都可能撞默认态子串。",
+  },
+  {
+    slug: "design/skeleton-loader",
+    inputs: { radius: "0", duration: "2.2", baseColor: "#fef3c7", highlightColor: "#fde68a" },
+    expect: ["border-radius: 0px;"],
+    ref: "圆角 0：修复前 `parseInt(value)||4` 把合法的 0 改成 4；修复后应保留 0 ⇒ CSS 输出 `border-radius: 0px;`。默认圆角 4px ⇒ 判别明确。",
+  },
+  {
+    slug: "design/skeleton-loader",
+    inputs: { radius: "10", duration: "0", baseColor: "#fef3c7", highlightColor: "#fde68a" },
+    expect: ["skelLoading 0s ease infinite"],
+    ref: "时长 0：修复前 `parseFloat(value)||1.4` 把合法的 0 静默改成 1.4s；修复后应保留 0 ⇒ CSS 输出 `animation: skelLoading 0s ease infinite`（可作静态骨架）。默认 1.4s ⇒ 判别明确。",
+  },
+  {
+    slug: "design/skeleton-loader",
+    inputs: { radius: "10", duration: "-3", baseColor: "#fef3c7", highlightColor: "#fde68a" },
+    expect: ["⚠ 动画时长需为不小于 0 的数字（秒）。"],
+    ref: "负时长：修复前 -3 原样拼成非法的 `animation: skelLoading -3s ease infinite`；修复后应显式提示并拒绝生成。默认 1.4s 不含该提示 ⇒ 判别明确。",
   },
   {
     slug: "design/shadow-generator",
@@ -595,6 +677,14 @@ const CASES = [
       + "⚠ 不锚 `--color-4/5`：它们依赖同样受污染的派生链，锚前三档已足够锁定被测点。",
   },
   {
+    slug: "design/color-palette-generator",
+    inputs: { baseColor: "#808080" },
+    expect: ["黑底 5.32:1 AA", "白底 3.95:1 ✗"],
+    ref: "色块文字对比度：WCAG 相对亮度 —— #808080 线性化后 L = 0.2159，黑字对比度 = (0.2159+0.05)/0.05 = 5.32:1、"
+      + "白字 = 1.05/0.2659 = 3.95:1 ⇒ 应按 WCAG 选黑字并标注 5.32:1 AA。修复前用亮度阈值 YIQ=128 判 `>128` 为假而选白字（3.95:1 未达 AA）。"
+      + "默认基色 #667eea 的派生色不含该串 ⇒ 判别明确。",
+  },
+  {
     slug: "design/generator-6",
     inputs: { cnt: "6" },
     expect: [".shadow-6 { box-shadow:"],
@@ -705,7 +795,14 @@ const CASES = [
     inputs: { svgInput: "<svg xmlns='http://www.w3.org/2000/svg' width='20' height='20'><text x='0' y='15'>probeTB2026</text></svg>" },
     clicks: ["generate()"],
     expect: ["probeTB2026"],
-    ref: "注入带唯一文本标记 probeTB2026 的 SVG。generate() 将 svgInput 原文写入 preview.innerHTML，文本节点 probeTB2026 进入输出。注意：采集器会去标签，故标记必须置于 <text> 内容而非 id 属性（属性会被整块吞掉）。默认态 svgInput 为空 ⇒ 输出『请输入 SVG 代码』，不出现 probeTB2026。纯前端无随机。",
+    ref: "注入带唯一文本标记 probeTB2026 的 SVG。generate() 对输入做安全清洗后写入 preview.innerHTML，文本节点 probeTB2026 进入输出。注意：采集器会去标签，故标记必须置于 <text> 内容而非 id 属性（属性会被整块吞掉）。默认态 svgInput 为空 ⇒ 输出『请输入 SVG 代码』，不出现 probeTB2026。纯前端无随机。",
+  },
+  {
+    slug: "design/svg-viewer",
+    inputs: { svgInput: "<svg xmlns='http://www.w3.org/2000/svg' onload='alert(1)'><script>alert(2)</script><text x='0' y='15'>SVGXSS2026</text></svg>" },
+    clicks: ["generate()"],
+    expect: ["已移除 SVG 中的不安全脚本或事件属性", "SVGXSS2026"],
+    ref: "安全修复判别：注入含 onload 与 <script> 的 SVG。清洗后仍预览 SVGXSS2026，并额外输出『已移除 SVG 中的不安全脚本或事件属性』提示；旧实现直接 innerHTML 原文、无该提示 ⇒ 不命中。默认态无该提示。",
   },
   {
     slug: "design/font-preview",
@@ -1068,9 +1165,9 @@ const CASES = [
       "sensor": "1.5"
     },
     "expect": [
-      "1.5\n42\n42\n42\n—m ~ ∞\n—m 近点清晰 ∞ 远点清晰 2.1m 超焦距"
+      "2.00m ~ ∞\n2.00m 近点清晰 ∞ 远点清晰 2.1m 超焦距"
     ],
-    "ref": "自动补强（B类零用例，2026-10-25 去双重裁剪后 h=f²/(N·c)=42²/(42×0.02)=2100mm=2.1m（f/42 光圈、APS-C c=0.02），s=42m>h ⇒ near/far=∞，超焦距=h+f≈2.1m；默认态（50mm/1.8/2m/全幅 → 46.4m）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例，2026-10-25 去双重裁剪后 h=f²/(N·c)=42²/(42×0.02)=2100mm=2.1m（f/42 光圈、APS-C c=0.02）；s=42m>h ⇒ 仅远点=∞，近点 = h·s/(h+s−f) = 2100×42000/(2100+42000−42) = 2001.9mm → 2.00m。原 expect `—m ~ ∞` 记录的是修复前「近点也误判为 ∞」的缺陷输出（经通用替换成 —），现按正确公式更新。默认态（50mm/1.8/2m/全幅 → 46.4m）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "design/detector-28",
@@ -1413,6 +1510,17 @@ const CASES = [
       "42\n42\n42\n42"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"cx\":\"42\",\"cy\":\"42\",\"cw\":\"42\",\"ch\":\"42\"}，输出区含「42\n42\n42\n42」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "design/image-cropper",
+    "inputs": { "cx": "12", "cy": "34", "cw": "56", "ch": "78" },
+    "clicks": [
+      "origImg={width:200,height:160};generate();window.__n1=document.getElementById('dlName').textContent;window.__h1=document.getElementById('downloadLink').href;origImg={width:240,height:180};document.getElementById('cx').value='5';document.getElementById('cy').value='6';document.getElementById('cw').value='70';document.getElementById('ch').value='80';generate();var __n2=document.getElementById('dlName').textContent;var __h2=document.getElementById('downloadLink').href;document.getElementById('dlName').textContent=__n2+'|nameChanged='+(window.__n1!==__n2)+'|hrefSet='+!!__h2+'|hrefFirstSet='+!!window.__h1;"
+    ],
+    "expect": [
+      "cropped_240x180_5-6_70x80.png|nameChanged=true|hrefSet=true|hrefFirstSet=true"
+    ],
+    "ref": "换图/改参回归：先以 200×160 原图 + 裁剪(12,34,56×78) 生成下载名 cropped_200x160_12-34_56x78.png，再换 240×180 原图并把参数改为(5,6,70×80) 重跑 generate()。断言新文件名为 cropped_240x180_5-6_70x80.png、nameChanged=true（与上一张不同）、下载链接 href 已置为当前 canvas 数据（hrefSet/hrefFirstSet=true）。旧实现下载入口恒指上一张裁剪结果且 href 不随裁剪刷新，本用例不命中。"
   },
   {
     "slug": "design/image-resizer",
@@ -2015,6 +2123,26 @@ const CASES = [
     clicks: ["applyPreset(21);"],
     expect: ["box-shadow: 0px 20px 25px -5px rgba(0,0,0,0.1), 0px 8px 10px -6px rgba(0,0,0,0.1);"],
     ref: "TW xl 预设（index 21，Tailwind shadow-2xl）：两层 rgba 保留原串。默认态零交集。"
+  },
+  {
+    slug: "design/shadow-generator",
+    inputs: { offsetX: "6", offsetY: "8", blur: "14", spread: "7", color: "#f43f5e", colorText: "#f43f5e" },
+    // setMode('text') 后把预览的内联 textShadow 追加进 code 元素，一次校验导出与预览同步
+    clicks: ["setMode('text'); document.getElementById('code').textContent += ' | ' + document.getElementById('preview').style.textShadow;"],
+    expect: ["text-shadow: 6px 8px 14px #f43f5e; | 6px 8px 14px #f43f5e"],
+    ref: "N4-C text-shadow 只有 offset-x offset-y blur color：即使扩散=7px 也必须省略第 4 个长度值，"
+       + "导出声明与预览内联值一致为「6px 8px 14px #f43f5e」。旧实现拼成「6px 8px 14px 7px #f43f5e」，"
+       + "整条声明非法；默认 box 模式输出含 spread，本用例只锚文字阴影模式。"
+  },
+  {
+    slug: "design/spinner-generator",
+    inputs: { size: "64", speed: "2", spinType: "border" },
+    // generate() 后读取预览专用 <style>，用前缀锚定，避免误命中 textarea 里本就存在的一份 keyframes
+    clicks: ["document.getElementById('output').textContent = 'PREVIEWSTYLE:' + document.getElementById('spinnerPreviewStyle').textContent;"],
+    expect: ["PREVIEWSTYLE:@keyframes spinGen { to { transform: rotate(360deg); } }"],
+    ref: "N4-D 预览动画：keyframes 必须真正进入预览样式节点（旧页面从未注入，预览只读到内联 animation 而无"
+       + "对应 @keyframes ⇒ 全静止）。前缀 PREVIEWSTYLE 确保区分于 cssOutput 导出文本；默认 generate() 同样"
+       + "执行但旧实现该前缀后为空，故可强判别修复前后。"
   }
 
 ];

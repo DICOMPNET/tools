@@ -189,8 +189,9 @@ s.parentNode.insertBefore(el, s);
 
 <div class="formula-box">
   <strong>📐 计算公式</strong>
-  <div class="formula">Ra = up·Σ(qsi·li) + qp·Ap</div>
+  <div class="formula">Ra = up·Σ(qsi·li,eff) + qp·Ap</div>
   <p>单桩竖向承载力特征值 Ra = 桩周总侧阻 + 桩端阻力<br>
+  侧阻有效长度逐层截断：l1,eff = min(l1, L)、l2,eff = min(l2, L − l1,eff)、l3,eff = L − l1,eff − l2,eff（不小于 0），超出桩长的土层厚度不计入侧阻<br>
   up = π·d（桩周长），Ap = π·d²/4（桩端面积）<br>
   需要桩数 n = N / Ra（取整，并适当富余）</p>
 </div>
@@ -223,19 +224,19 @@ s.parentNode.insertBefore(el, s);
 </style>
 <section class="deep-dive" data-deep-dive="1">
 <div class="card">
-<h2>📚 深度解析：基础计算（地基承载力）</h2>
+<h2>📚 深度解析：桩基础承载力计算</h2>
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
-<li>独立基础尺寸试算：输入上部轴力与<a class="term-link" href="/tools/civil/dijichengzailijisuan.html">地基承载力</a>特征值，估算所需基底面积，再按偏心复核底面压力是否不超过 1.2 倍特征值。</li>
-<li>软弱地基处理比选：当原状土承载力不足时，比较换填、桩基与复合地基的方案工程量，结合造价选择经济处理深度。</li>
-<li>既有建筑增层核算：改造项目用现有基底面积反算可承受轴力，判断能否直接增层或需加固地基。</li>
+<li>摩擦桩单桩承载力估算：按桩径、桩长与各土层侧阻/端阻算出 Ra，再由上部荷载确定桩数。</li>
+<li>桩型方案比选：比较不同桩径、桩长下侧阻与端阻的占比，判断以侧阻为主还是端阻为主。</li>
+<li>桩数初估与布桩：按 Ra 取整并结合承台尺寸、群桩效应与上部荷载留富余，供方案阶段估算。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">演练示例（轴心受压）</div><div class="dd-ex-body">上部轴力 2000 kN、地基承载力特征值 180 kPa、基础埋深 1.5 m、土重度 18 kN/m³：所需基底面积 A ≈ 2000/(180-1.5×18) ≈ 12.8 m²（约 3.6 m×3.6 m）。增大承载力可看面积缩小。</div></div>
+<div class="dd-example"><div class="dd-ex-title">演练示例（默认参数）</div><div class="dd-ex-body">桩径 d=1.2 m、桩长 L=25 m、qp=1200 kPa，土层侧阻 45/60/80 kPa、厚度 10/10 m（第三层取剩余 5 m），上部荷载 12000 kN：up=π×1.2≈3.77 m、Ap=π×1.2²/4≈1.131 m²；总侧阻=3.77×(45×10+60×10+80×5)=3.77×1450≈5466.4 kN，总端阻=1200×1.131≈1357.2 kN，Ra≈6823.5 kN（侧阻约占 80.1%、端阻 19.9%）；桩数 n=ceil(12000/6823.5)=2 根，单桩承担 6000 kN。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>地基承载力特征值从哪里来？</dt><dd>由岩土工程勘察报告通过载荷试验或经验公式给出，需考虑深度与宽度修正；本工具输入的应是修正后的设计值，严禁直接套用原始数据。</dd>
-<dt>偏心荷载下如何验算？</dt><dd>偏心时基底出现梯形/<a class="term-link" href="/tools/it/triangle-calculator.html">三角形</a>压力分布，最大压力 pmax 应 ≤1.2fa 且平均压力 ≤fa；本工具轴心公式仅为初估，偏心工况须用弯矩参与的组合式。</dd>
-<dt>结果能直接用于基础施工图吗？</dt><dd>基础设计还涉及沉降、抗震与构造配筋，须按 GB 50007 与勘察报告由注册工程师完成，本工具结果用于方案比选与初步尺寸。</dd>
+<dt>侧阻与端阻特征值从哪里取？</dt><dd>由岩土勘察报告或 JGJ 94-2008 经验表给出，应取特征值（标准值需按规范折减）；施工工艺（钻孔、打入、后注浆）会显著改变侧阻取值。</dd>
+<dt>为什么第三层侧阻不用输入厚度？</dt><dd>本工具按桩长逐层截断：前两层厚度先扣减，剩余桩长自动归入第三层，超出桩长的土层不参与侧阻，避免把无效土层计入。</dd>
+<dt>桩数算出来能直接布桩吗？</dt><dd>n 仅按上部荷载与单桩 Ra 取整；实际布桩还需考虑承台尺寸、群桩效应、偏心弯矩、沉降与构造要求，并留适当富余。</dd>
 </dl>
 </div>
 </section>
@@ -285,7 +286,11 @@ function calc(){
   if(!d||d<=0)return;
   var up=Math.PI*d;
   var Ap=Math.PI*d*d/4;
-  var sideSum=qs1*l1+qs2*l2+qs3*(Math.max(0,L-l1-l2));
+  var rem=Math.max(0,L);
+  var e1=Math.min(Math.max(l1,0),rem); rem-=e1;
+  var e2=Math.min(Math.max(l2,0),rem); rem-=e2;
+  var e3=Math.max(0,rem);
+  var sideSum=qs1*e1+qs2*e2+qs3*e3;
   var totalSide=up*sideSum;
   var totalTip=qp*Ap;
   var Ra=totalSide+totalTip;
@@ -343,10 +348,7 @@ calc();
     
     
     
-    <a href="../misc/truth-table.html" class="related-tool-card">
-      <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">逻辑真值表生成器 - 科学研究在线工具 | ToolBox免费在线工具箱</span><span class="rt-desc">逻辑真值表生成器</span></span>
-    </a>
+    
     <a href="span-calc.html" class="related-tool-card">
       <span class="rt-icon">🧮</span>
       <span class="rt-info"><span class="rt-name">跨度计算</span><span class="rt-desc">桥跨布置计算器，根据桥梁总长与跨数求单孔跨径、墩台数量及连续梁弯矩估算，辅助桥型方案比选。</span></span>
@@ -354,6 +356,10 @@ calc();
     <a href="deflection-calc.html" class="related-tool-card">
       <span class="rt-icon">🌉</span>
       <span class="rt-info"><span class="rt-name">挠度计算</span><span class="rt-desc">桥梁挠度计算器，求简支梁在均布或集中荷载下的挠度并校核允许挠度，输入弹性模量、惯性矩与跨径，保障刚度</span></span>
+    </a>
+    <a href="material-qty.html" class="related-tool-card">
+      <span class="rt-icon">📐</span>
+      <span class="rt-info"><span class="rt-name">材料用量估算</span><span class="rt-desc">桥梁材料用量估算器，按单孔或全桥估算主梁混凝土、桥面铺装与钢筋用量，辅助概预算与备料。</span></span>
     </a>
   </div>
 </div>
@@ -373,7 +379,7 @@ calc();
     </ul>
     <h4><span class="h4-icon">🎯</span>使用场景</h4>
     <ul class="intro-scenes">
-      <li>独立基础尺寸试算：输入上部轴力与地基承载力特征值，估算所需基底面积，再按偏心复核底面压力是否不超过 1.2 倍特征值。</li><li>软弱地基处理比选：当原状土承载力不足时，比较换填、桩基与复合地基的方案工程量，结合造价选择经济处理深度。</li><li>既有建筑增层核算：改造项目用现有基底面积反算可承受轴力，判断能否直接增层或需加固地基。</li>
+      <li>摩擦桩单桩承载力估算：按桩径、桩长与各土层侧阻/端阻算出 Ra，再由上部荷载确定桩数。</li><li>桩型方案比选：比较不同桩径、桩长下侧阻与端阻的占比，判断以侧阻为主还是端阻为主。</li><li>桩数初估与布桩：按 Ra 取整并结合承台尺寸、群桩效应与上部荷载留富余，供方案阶段估算。</li>
     </ul>
     </div>
 </div>
@@ -488,7 +494,7 @@ function __foundation_calcExport(){
 }
 function __foundation_calcPresets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#foundation_calcPresets',[{label:'默认参数',labelEn:'Default',values:{'inD':'1.2', 'inL':'25', 'inQp':'1200', 'inQs1':'45', 'inL1':'10', 'inQs2':'60', 'inL2':'10', 'inQs3':'80', 'inN':'12000'}}],function(){ calc(); });
+    TBKit.preset.bar('#foundation_calcPresets',[{label:'默认参数',labelEn:'Default',values:{'inD':'1.2', 'inL':'25', 'inQp':'1200', 'inQs1':'45', 'inL1':'10', 'inQs2':'60', 'inL2':'10', 'inQs3':'80', 'inN':'12000'}},{"label":"小规模","labelEn":"Small scale","values":{"inD":"0.6"}},{"label":"大规模","labelEn":"Large scale","values":{"inD":"1.8"}},{"label":"极端工况","labelEn":"Extreme case","values":{"inD":"2.4"}}],function(){ calc(); });
 }
 var __foundation_calc_f0=(typeof calc==='function')?calc:null;
 if(__foundation_calc_f0){
