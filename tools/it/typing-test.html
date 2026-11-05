@@ -530,7 +530,7 @@ function endTest(){
   document.getElementById('resultsCard').scrollIntoView({behavior:'smooth', block:'nearest'});
 
   // 保存历史
-  const history = JSON.parse(localStorage.getItem('typingHistory') || '[]');
+  const history = (function(){try{return JSON.parse(localStorage.getItem('typingHistory') || '[]')}catch(e){try{localStorage.removeItem('typingHistory')}catch(_){}return []}})();
   history.unshift({
     date: new Date().toLocaleString('zh-CN'),
     lang, wpm: finalWpm, acc: finalAcc, chars: totalKeys, errors
@@ -541,7 +541,7 @@ function endTest(){
 }
 
 function renderHistory(){
-  const history = JSON.parse(localStorage.getItem('typingHistory') || '[]');
+  const history = (function(){try{return JSON.parse(localStorage.getItem('typingHistory') || '[]')}catch(e){try{localStorage.removeItem('typingHistory')}catch(_){}return []}})();
   const list = document.getElementById('historyList');
   if(history.length === 0){
     const __h1='<p style="color:var(--text-muted);font-size:13px;text-align:center;padding:12px;" data-zh="暂无历史记录">No history yet.</p>';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){list.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}list.innerHTML=__h1;
@@ -698,12 +698,13 @@ document.addEventListener('DOMContentLoaded',function(){
       var cells=[].slice.call(tr.querySelectorAll('th,td'));
       var line=cells.map(function(c){
         var t=(c.textContent||'').replace(/\s+/g,' ').trim();
-        if(/[",\n]/.test(t)) t='"'+t.replace(/"/g,'""')+'"';
+        if(/^[=+\-@\t\r]/.test(t)) t="'"+t;
+        if(/[",\n\r]/.test(t)) t='"'+t.replace(/"/g,'""')+'"';
         return t;
       }).join(',');
       csv.push(line);
     });
-    var blob=new Blob([csv.join('\n')],{type:'text/csv;charset=utf-8'});
+    var blob=new Blob(['\ufeff'+csv.join('\n')],{type:'text/csv;charset=utf-8'});
     var url=URL.createObjectURL(blob);
     var a=document.createElement('a');
     a.href=url; a.download=(tid||'table')+'.csv';

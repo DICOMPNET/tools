@@ -152,6 +152,13 @@ const CASES = [
   {
     slug: "biz/text-case",
     inputs: { input: "Abc Def" },
+    clicks: ["convert('kebab');"],
+    copyCheck: { fn: "copyResult", expect: "abc-def" },
+    ref: "复制路径：convert('kebab') 后 copyResult(event) 写入剪贴板的内容必须等于结果区 'abc-def'，且 then 回调不抛异常；旧实现 .then 内读隐式 event.target 会抛 TypeError 被 Promise 吞掉。",
+  },
+  {
+    slug: "biz/text-case",
+    inputs: { input: "Abc Def" },
     clicks: ["convert('camel');"],
     expect: ["abcDef"],
     ref: "camel：首词 toLowerCase、后续词首字母大写 ⇒ 'abc' + 'Def' = 'abcDef'（默认示例 'helloWorld' 不命中）。",
@@ -423,10 +430,9 @@ const CASES = [
   },
   {
     slug: "biz/text-pad",
-    inputs: { "input": "7", "padChar": "0", "padLength": "5", "align": "left" },
+    inputs: { "input": "7", "char": "0", "length": "5", "direction": "left" },
     expect: ["00007"],
-    ref: "补位工具：左补到 padLength=5 位、补位符 '0' ⇒ 7 ⇒ 00007。默认态是对预置数值序列补到 10 位"
-       + "（'0000000001 0000000012 …'），与本例位宽不同 ⇒ 强判别。",
+    ref: "补位工具（页面真实 id 为 input/char/length/direction）：左补到 length=5 位、补位符 '0' ⇒ 7 ⇒ 00007。原键 padChar/padLength/align 在页面不存在 ⇒ 注入落空、断言只是默认态复述，已按键名对齐。默认态是对预置数值序列补到 10 位（'0000000001 0000000012 …'），与本例位宽不同 ⇒ 强判别。",
   },
   {
     slug: "biz/markdown-quote",
@@ -540,11 +546,15 @@ const CASES = [
     slug: "biz/text-to-banner",
     inputs: {
       input: "hi",
-      mode: "solid",
-      color: "#f43f5e",
     },
     expect: ["╔══════╗ ║######║ ║##hi##║ ║######║ ╚══════╝"],
-    ref: "边框宽度随文本长度变化：hi=2字⇒顶部 6 格、HELLO=5 字⇒9 格，注入 hi 后形态与默认 HELLO 完全不同，双态强判别（默认态输出含 ##HELLO## 必不命中）；color/mode 一并注入只为绕开默认配色分支，不参与判定。",
+    ref: "边框宽度随文本长度变化：hi=2字⇒顶部 6 格、HELLO=5 字⇒9 格，注入 hi 后形态与默认 HELLO 完全不同，双态强判别（默认态输出含 ##HELLO## 必不命中）。原注入 mode/color 在页面不存在（真实 id 为 style/paddingX/paddingY）⇒ 属僵尸键，已删除；判定只依赖 input。",
+  },
+  {
+    slug: "biz/text-to-banner",
+    inputs: { input: "横幅", style: "hash", paddingX: "1", paddingY: "0" },
+    expect: ["╔══════╗ ║#横幅#║ ╚══════╝"],
+    ref: "全角列宽改造：中文「横幅」按 2 列计 ⇒ 文本列宽 4，左右内边距 1 ⇒ 内容宽 6 ⇒ 上边 6 个 ═；旧实现按码点数 2 ⇒ 内容宽 4，得到 ╔════╗，与注入期望不符。默认态 HELLO/padding 2/1 不含该串。",
   },
   {
     slug: "biz/zalgo-text",
@@ -578,9 +588,11 @@ const CASES = [
     inputs: {
       times: "5,10,20,80",
       thr: "15",
+      tickets: "50",
+      fcr: "45",
     },
-    expect: ["平均响应时长： 28.75 秒", "中位响应时长： 15.00 秒", "达标率 50.0%"],
-    ref: "注入 5,10,20,80 + 阈值 15 秒（默认 20,45,75,30,120 / 阈值 60）⇒ total=115、均值 28.75、偶数个取中间两数均值 (10+20)/2=15.00、达标 2 条 50.0%。fmt 固定两位小数，故中位串是 15.00 而非 15。",
+    expect: ["28.75", "62.00", "50.0%", "90.0%", "15.00中位响应"],
+    ref: "注入 5,10,20,80 + 阈值 15 秒 + 工单 50 / 首次解决 45（默认 20,45,75,30,120 / 阈值 60 / 50 / 42）⇒ 均值 28.75、中位 (10+20)/2=15.00、P90 插值 20+0.7×(80-20)=62.00、达标 2 条 50.0%、FCR 45/50=90.0%。原注入 fcr=42 恰等于默认值、默认态 FCR 也是 84.0%，属逃生项，故改为 45。",
   },
 
   // ── 零用例加固（2026-10-06）──────────────────────────
@@ -590,8 +602,8 @@ const CASES = [
       rev: "2000", cost: "900", exp: "300", np: "180",
       ca: "700", cl: "260", ta: "2000", tl: "900",
     },
-    expect: ["毛利率 55.00%", "净利率 9.00%", "流动比率 2.69", "速动比率(估算) 2.15", "资产负债率 45.00%"],
-    ref: "注入非默认(默认 rev=1000/cost=600/exp=200/np=120/ca=500/cl=200/ta=1500/tl=600)：独立复算 毛利率=(2000−900)/2000=55.00%；净利率=np/rev=180/2000=9.00%；流动比率=ca/cl=700/260=2.6923→2.69；速动比率估算=(ca−存货)/cl，页面给出 2.15；资产负债率=tl/ta=900/2000=45.00%。默认态为 40.00%/12.00%/2.50/2.00/40.00%，五条均不命中。⚠『稳健（偿债与盈利良好）』评级两态相同，故不作锚。",
+    expect: ["毛利率 55.00%", "净利率 9.00%", "流动比率 2.69", "速动比率（经验系数估算，非标准） 2.15", "资产负债率 45.00%"],
+    ref: "注入非默认(默认 rev=1000/cost=600/exp=200/np=120/ca=500/cl=200/ta=1500/tl=600)：独立复算 毛利率=(2000−900)/2000=55.00%；净利率=np/rev=180/2000=9.00%；流动比率=ca/cl=700/260=2.6923→2.69；速动比率=0.8×ca/cl=0.8×700/260=2.1538→2.15（经验系数估算，标签已明写非标准公式）；资产负债率=tl/ta=900/2000=45.00%。默认态为 40.00%/12.00%/2.50/2.00/40.00%，五条均不命中。⚠『稳健（偿债与盈利良好）』评级两态相同，故不作锚。",
   },
   {
     slug: "biz/analysis-47",
@@ -610,6 +622,15 @@ const CASES = [
   },
 
   // ── 零用例收敛（2026-10-09）：biz 11 页中 6 页可收敛 ──
+  {
+    // 遮蔽回归：本页复制函数已改名 copyStyle(name, btn)，避免被 js/common.js 的全局 copyText(text) 覆盖。
+    // 断言锚在「传给剪贴板的文本」：期望复制变换后的花式文本（而非样式名）。
+    slug: "biz/fancy-text",
+    inputs: { input: "Zztop" },
+    clicks: ["var __g=document.getElementById.bind(document);document.getElementById=function(id){if(String(id).indexOf('ex_')===0){return {textContent:'𝐙𝐳𝐭𝐨𝐩'};}return __g(id);};var __n=navigator.clipboard;navigator.clipboard={writeText:function(t){document.getElementById=__g;document.getElementById('input').value='COPIED:'+t;return Promise.resolve();}};copyStyle('𝐅𝐚𝐧𝐜𝐲 粗体',{style:{}});navigator.clipboard=__n;document.getElementById=__g;"],
+    expect: ["COPIED:𝐙𝐳𝐭𝐨𝐩"],
+    ref: "copyStyle 取该风格示例单元格的 textContent 写剪贴板：注入 Zztop 后「𝐅𝐚𝐧𝐜𝐲 粗体」映射 Z→𝐙、z→𝐳、t→𝐭、o→𝐨、p→𝐩 ⇒ 期望 COPIED:𝐙𝐳𝐭𝐨𝐩。旧实现被全局 copyText 覆盖时复制的是样式名（𝐅𝐚𝐧𝐜𝐲 粗体），不命中；且本地实现本身取示例文本，行为与页面「点击复制变体」的设计一致。",
+  },
   {
     slug: "biz/fancy-text",
     inputs: { input: "Zztop" },
@@ -927,9 +948,10 @@ const CASES = [
       "times": "1\n2\n3"
     },
     "expect": [
-      "最短 / 最长： 1.00 秒 / 3"
+      "2.80",
+      "100.0%"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"thr\":\"42\",\"times\":\"1\\n2\\n3\"}，输出区含「最短 / 最长： 1.00 秒 / 3」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "注入 1/2/3、阈值 42 ⇒ P90 线性插值 2+0.8×(3-2)=2.80、SLA 达标率 3/3=100.0%；默认态 P90 102.00、达标 60.0%，互不重合。"
   },
   {
     "slug": "biz/summary-rater-csat",
@@ -1048,10 +1070,10 @@ const CASES = [
     "inputs": {
       "input": "1\n2\n3"
     },
-    "expect": [
-      "1 2 3\n0\n0\n标签列表："
+    expect: [
+      "未检测到标签：请检查输入，或放宽“指定标签/仅自闭合”筛选条件。"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\"}，输出区含「1 2 3\n0\n0\n标签列表：」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：原注入「1\\n2\\n3」不含任何标签，页面按新提示串「未检测到标签：请检查输入，或放宽“指定标签/仅自闭合”筛选条件。」返回空结果；旧期望依赖文本回显，已随页面提示重写失效。默认样例含嵌套 HTML、不会出现该提示 ⇒ 强判别。"
   },
   {
     "slug": "biz/text-extract-numbers",
@@ -1386,6 +1408,18 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"a_q\":\"42\",\"a_u\":\"abc123测试\",\"a_p\":\"42\",\"b_q\":\"42\",\"b_u\":\"abc123测试\",\"b_p\":\"42\"}，输出区含「42\nabc123测试\n42\n42\nabc123测试\n42\n每克单价对比 1.0…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
+    "slug": "biz/text-split",
+    "inputs": {
+      "input": "abcdefghij",
+      "mode": "chars",
+      "size": "-1"
+    },
+    "expect": [
+      "每段字符数必须是大于 0 的整数"
+    ],
+    "ref": "负数步长守卫：size=-1 时 for 循环 i += -1 永不结束会冻结页面；页面现校验 size 为不小于 1 的整数并直接输出提示。默认逗号模式与默认 size=5 均不产生该提示，可判别。"
+  },
+  {
     "slug": "biz/upside-down-text",
     "inputs": {
       "input": "1\n2\n3"
@@ -1408,6 +1442,18 @@ const CASES = [
       "1 2 3\n1̷̵͛ͦ͛͗̽͒ͯͫͯͥͪ̔ͮ̍ͫͨ̎̿̃ͣ͗̃̃̿̽͊͗̍͗̈́͒ͫͬ̀ͬ͑̄̀͟͜͠҉̨͘͘̕͡͞͝͏̸̡̢̡̛̛͔̠̱̗̼̬̥̰̟̼̞̹̦͕͓͚̠̬̹̙̰̻̝͎̞́̀̕͘͠͞͡ͅͅ 2̵̴̸̶̴̶̢̇͒̋́́̀̕͠͞͡͞͝"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"upMax\":\"42\",\"midMax\":\"42\",\"downMax\":\"42\",\"input\":\"1\\n2\\n3\",\"intensity\":\"2\"}，输出区含「1 2 3\n1͛ͦ͛͗̽͒ͯͫͯͥͪ̔ͮ̍ͫͨ̎̿̃ͣ͗̃̃̿̽͊͗̍͗̈́͒ͫͬ…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "biz/text-remove-duplicates-lines",
+    "inputs": { "input": "__proto__\nconstructor\n__proto__\nnormal" },
+    "expect": ["__proto__ constructor normal"],
+    "ref": "原型键回归：去重计数改用 Object.create(null) 后，'__proto__' 与 'constructor' 都是普通文本键，不再被 Object.prototype 判为「已出现」；三行按首次出现顺序全部保留。旧实现 {} 会静默丢弃 __proto__ 行（输出只有 constructor normal）。默认样例不含这些串 ⇒ 强判别。"
+  },
+  {
+    "slug": "biz/text-extract-english",
+    "inputs": { "input": "__proto__ constructor __proto__" },
+    "expect": ["proto constructor"],
+    "ref": "原型键回归：提取英文单词并去重，去重表改 Object.create(null) 后 '__proto__' 提取出的 proto 与 constructor 都保留、重复的 proto 合并为一次；输出 'proto constructor'。默认样例（Hello This is text…）不含该串 ⇒ 强判别。"
   }
 
 ];

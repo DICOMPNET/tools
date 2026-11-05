@@ -150,6 +150,21 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  "slug": "hematology/hemophilia-treatment",
+  "inputs": {
+    "weight": "84",
+    "current": "2"
+  },
+  "clicks": [
+    "document.getElementById('bleedType').value='custom';document.getElementById('target').value='55';calc();"
+  ],
+  "expect": [
+    "2230",
+    "预期峰值活性 ≈ 55%"
+  ],
+  "ref": "FVIII 自定义目标 55%、当前 2%：剂量 = 84×(55−2)×0.5 = 2226 → 取整 2230 IU；1 IU/kg 提升 2%，预期峰值 = 2 + round((2230/84)×2) = 2 + round(53.10) = 55%。修复前实现误用「÷回收率」，得 2+round(2230/84/2)=2+13=15%，与目标 55% 自相矛盾。注入值 weight=84/current=2 均异于页面默认 70/1，避免 all_default。"
+},
+{
   "slug": "hematology/hlh-diagnosis",
   "inputs": {
     "c4_tg": "6.5",
@@ -286,6 +301,13 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  "slug": "hematology/rater-5",
+  "inputs": { "age": "1", "symptoms": "1", "hb": "90", "blasts": "2", "wbc": "30" },
+  "expect": ["中位生存期约 16 个月"],
+  "ref": "DIPSS 总分 = 年龄>65(1) + 体质症状(1) + HGB<100(2) + 原始≥1%(1) + WBC>25(1) = 6 ⇒ 高危（5–6 分）"
+    + "（修复前 HGB 只加 1 分、分段为 0–1/2/3/4–5，同一输入仅 5 分仍高危但 1 分会被误判低危）；默认态 age=0/symptoms=0/hb=105/blasts=2/wbc=15 ⇒ 1 分中危-1，不出现 16 个月。"
+},
+{
   "slug": "hematology/rater-6",
   "inputs": {
     "plt": "68",
@@ -360,16 +382,67 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"drug\":\"quinine\"}，输出区含「录于病历） 4. 必要时短期使用IVIG或糖皮质激素（重症）」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
+    "slug": "hematology/itp-risk-score",
+    "inputs": { "drug": "quinine" },
+    "checks": ["1"],
+    "expect": ["总分：4分", "药物再激发：+1分"],
+    "ref": "反向计分/上限核对：四项各上限 2 分（c4 原实现 +3 分使实际可达 9 而页面写「满分 8」，已改回 +2）。"
+      + "该页用 querySelector(name:checked) 逐组取值，桩只能以 checks 统一注入 ⇒ 四组各 1 分、总分 4 分；"
+      + "默认全勾为 8 分「确定」，两锚均不出现。"
+  },
+  {
     "slug": "hematology/generator-analysis",
     "inputs": {
-      "cnt": "42"
+      "lag": "3",
+      "ttp": "8",
+      "peak": "150",
+      "thalf": "8"
     },
     "expect": [
-      "M·min 样本 10 滞后期 3.08"
+      "= 2106.2 nM·min"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"cnt\":\"42\"}，输出区含「M·min 样本 10 滞后期 3.08」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "确定性算例：上升段 0.5×150×(8−3)=375.0，下降段 150×8/ln2=1731.2，ETP=2106.2 nM·min；默认 5/12/200/10 得 3585.4，注入态不含该串 ⇒ 区分真计算与随机参数。"
+  },
+  { slug: "hematology/detector-5",
+    inputs: { granCD59: "", granCD55: "", rbcCD59: "", monoCD59: "", type2: "", type3: "", ldh: "", hb: "" },
+    expect: ["请填写全部流式指标（LDH、Hb 需大于 0）后再判读。"],
+    ref: "空态守卫：8 项全清空时不再按 0 计算（旧实现 → 克隆 0%「未检测到 PNH 克隆」+ LDH 0「正常/轻度升高」+ Hb 0「重度贫血」的伪结论），改为只输出填写提示。默认态 35/32/15/28/10/25/450/85 有值 ⇒ 提示串不出现。" }
+  ,
+  {
+    // 宣称 vs 实现：ISTH 原文 D-二聚体只有 无/中度/显著 三档 0/1/2 分；旧实现误用 0/2/3。
+    slug: "hematology/dic-scoring",
+    inputs: { plt: "68", ddimer: "12", pt: "4", fib: "1.2" },
+    checkIds: ["hasDisease"],
+    expect: ["非显性DIC（可能）", "D-二聚体 显著升高 (12mg/L) → +2"],
+    ref: "血小板 68(+1) + D-二聚体 12→显著升高(+2) + PT 4s(+1) + 纤维蛋白原 1.2(+0) = 4 分 ⇒ 非显性 DIC（3–4 分）。旧实现显著升高 +3 ⇒ 5 分误判「显性DIC」，故两串均为强判别。默认 inputs 45/8.5/6/1.2 得 4 分且明细为「中度升高 → +1」，不出现这两串。"
+  },
+  {
+    // 宣称 vs 实现：IPSS-R 2012 原始细胞分档为 0/1/2/3（>10% 计 3 分），旧实现误为 4 分。
+    slug: "hematology/ipss-r",
+    inputs: { blasts: "10.5", hgb: "85", anc: "0.8", plt: "50" },
+    expect: ["骨髓原始细胞 10.5% → +3", "5.5 IPSS-R 总分"],
+    ref: "核型默认良好(+1) + 原始 10.5%(+3) + HGB 85(+1) + ANC 0.8(+0) + PLT 50(+0.5) = 5.5 分 ⇒ 高危。旧实现 >10% 计 +4 ⇒ 6.5 分「极高危」，故总分与明细双向判别。"
+  },
+  {
+    // 宣称 vs 实现：ELN 2020 的 3 个月节点应看 BCR-ABL≤10%（早期分子学反应），旧实现套用 6/12 月的 ≤0.1%。
+    slug: "hematology/cml-monitoring",
+    inputs: { months: "3", bcrabl: "5" },
+    expect: ["治疗3个月BCR-ABL≤10%（ELN 2020 早期分子学反应）"],
+    ref: "3 个月 BCR-ABL 5% ≤10% ⇒ 最佳反应。旧实现按 ≤0.1% 判定 ⇒ 「警告」；默认 months=12/bcrabl=0.5 ⇒ 12 月分支，不出现该串。"
+  },
+  {
+    slug: "hematology/cml-monitoring",
+    inputs: { months: "3", bcrabl: "15" },
+    expect: ["BCR-ABL>10%，按 ELN 2020 属治疗失败（需复查确认）"],
+    ref: "3 个月 BCR-ABL 15% >10% ⇒ 治疗失败。旧实现仅给「警告」，故该串为强判别；默认 12 月分支不出现。"
+  },
+  {
+    // 宣称 vs 实现：IPSS-MF/DIPSS/DIPSS-plus 原文均为「外周血原始细胞 ≥1%」计 1 分，旧实现用 >1 漏掉恰好 1%。
+    slug: "hematology/mpn-scoring",
+    inputs: { age: "65", hgb: "120", wbc: "9", blasts: "1", plt: "100" },
+    expect: ["1 总评分", "中危-1组"],
+    ref: "IPSS-MF：年龄 65 不外(+0)、HGB 120(+0)、WBC 9(+0)、原始 1%(+1) ⇒ 1 分「中危-1」。旧实现 >1% 才计分 ⇒ 0 分「低危」，总分与明细双向判别。若注入失败回退默认（HGB 95 +1、原始 2% +1 ⇒ 2 分），「1 总评分」不出现 ⇒ 无逃生。"
   }
-
 ];
 async function main() {
   const only = process.argv.slice(2);

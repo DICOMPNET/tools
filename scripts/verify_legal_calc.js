@@ -391,8 +391,8 @@ const CASES = [
   {
     slug: "legal/feisu-ipo-simu-binggou-yewu",
     inputs: { v0: "2", v1: "8" },
-    expect: ["0.10 亿元服务费预估"],
-    ref: "注入非默认(默认 v0=1→0.05 亿元服务费预估)：v0=2 ⇒ 服务费预估 = v0×0.05 = 0.10 亿元。默认态 0.05 亿元服务费预估不命中 0.10。"
+    expect: ["0.16 亿元服务费预估"],
+    ref: "注入非默认(默认 v0=1,v1=5 → 0.40 亿元服务费预估)：v0=2(私募)、v1=8 ⇒ 服务费 = 8×0.02 = 0.16 亿元（费率为按业务类型的 B×0.08/0.02/0.05，不是 v0×0.05）。默认态 0.40 不命中 0.16。"
   },
   {
     slug: "legal/legal-age",
@@ -792,9 +792,10 @@ const CASES = [
       "rentPayType": "3"
     },
     "expect": [
-      "意\n共 25 条\nabc123测试\nutility\n42\n42\nlayoff\n42\n解除原因： 经济性裁员 42 补偿月数（N） 1,764 经济补偿金（元） 计算公式： 月工资 &times; 42个月 = 1,764 元 计算前提： 工"
+      "解除原因： 经济性裁员 42 补偿月数（N） 1,764 经济补偿金（元） 计算公式： 月工资 &times; 42个月 = 1,764 元",
+      "2个月 押金 84 押金金额（元） 126 总租金（元）"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"tmSearch\":\"abc123测试\",\"marriageSearch\":\"abc123测试\",\"patentDate\":\"abc123测试\",\"laborYears\":\"42\",\"laborSalary\":\"42\",\"laborAvgSalary\":\"42\",\"rentMonthly\":\"42\",\"patentType\":\"utility\",\"laborReason\":\"layoff\",\"rentPeriod\":\"3\",\"rentDeposit\":\"2\",\"rentPayType\":\"3\"}，输出区含「意\n共 25 条\nabc123测试\nutility\n42\n42\nlayoff\n4…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"tmSearch\":\"abc123测试\",\"marriageSearch\":\"abc123测试\",\"patentDate\":\"abc123测试\",\"laborYears\":\"42\",\"laborSalary\":\"42\",\"laborAvgSalary\":\"42\",\"rentMonthly\":\"42\",\"patentType\":\"utility\",\"laborReason\":\"layoff\",\"rentPeriod\":\"3\",\"rentDeposit\":\"2\",\"rentPayType\":\"3\"}，断言落在劳动补偿与租金两模块的合成串（42×42=1,764、押金 2×42=84、总租金 3×42=126）：默认态两模块均为空值提示、不含该串 ⇒ 强判别、零逃生。原 expect 是「按元素注册顺序整段拼接」的自动快照，锚点跨越 patentResult——专利日期非法时页面改为显式「无效值」提示（此前 toISOString 直接抛 RangeError），该快照随之断裂，故改为模块级语义锚。"
   },
   {
     "slug": "legal/overtime-pay",
@@ -922,6 +923,12 @@ const CASES = [
       "性伤残补助金： 25 个月 × 42元 = 1,05"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"monthlySalary\":\"42\",\"avgSalary\":\"42\",\"disabilityLevel\":\"2\",\"terminateRelation\":\"1\"}，输出区含「性伤残补助金： 25 个月 × 42元 = 1,05」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "legal/calendar",
+    "clicks": ["viewYear=2024;viewMonth=2;render();showDetail(2024,2,29)"],
+    "expect": ["2024 年 2 月", "2024-02-29"],
+    "ref": "切到 2024 年 2 月 ⇒ 标题「2024 年 2 月」（闰年 29 天），再点日期 2024-02-29 的详情 ⇒ 详情区含「2024-02-29」。默认视图取冻结基准日 2024-06-15 ⇒ 标题「2024 年 6 月」、详情为初始提示，两锚均不命中（判别时清空 clicks 即回默认视图）。"
   }
 
 ];

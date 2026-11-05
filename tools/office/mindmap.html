@@ -44,9 +44,9 @@
 </style>
 <script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
-<script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
-<script src="https://cdn.jsdelivr.net/npm/markmap-view"></script>
-<script src="https://cdn.jsdelivr.net/npm/markmap-lib@0.17"></script>
+<script src="https://cdn.jsdelivr.net/npm/d3@7.9.2" integrity="sha384-LxfWGZyh6PaLjBRPf7NWiEYs9Mn0UQ6ZmqbLLZhxlOBBNWF2a2K0Pfc5efkrNnhQ" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/markmap-view@0.17.2" integrity="sha384-f/G/pSqt4DsaSKUriX2u1niV+tlKt1zApiaNgneSF37ZeOjgmY4DIwtqeWuuzfAe" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/markmap-lib@0.17.2" integrity="sha384-j7/R51sDlwtsBZWW8UGwtuNFgGORgZstaNIDnYzCkxRHsGX03nwXqEDWbgVV94fz" crossorigin="anonymous"></script>
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -355,6 +355,53 @@ s.parentNode.insertBefore(el, s);
   // 校验 markmap 库是否加载成功
   if (!window.markmap || !window.markmap.Markmap || !window.markmap.Transformer) {
     const __h0='<div class="mm-error">思维导图库加载失败，请检查网络连接后刷新页面重试。</div>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){mmWrap.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}mmWrap.innerHTML=__h0;
+    // 降级渲染：CDN 被墙 / 离线时库不可用，若只留一句报错页面对用户毫无价值。
+    // 这里用纯 JS 把 Markdown 大纲渲染成嵌套 <ul>，并保持输入实时刷新（Tab 缩进等
+    // 依赖库的功能不可用，但内容始终可见）。不改 PNG/SVG 导出路径（库缺失时按钮已禁用）。
+    var __mmEsc = function(s){
+      return String(s == null ? "" : s)
+        .replace(/&/g, "&amp;").replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    };
+    var __mmIsEn = /^en/i.test((document.documentElement && document.documentElement.lang) || "") ||
+      /[?&]lang=en/i.test((window.location && window.location.search) || "");
+    var __mmOutline = function(md){
+      var nodes = [];
+      var cur = 0;
+      String(md || "").split(/\r?\n/).forEach(function(line){
+        var t = line.replace(/\t/g, "  ");
+        var h = t.match(/^\s{0,3}(#{1,6})\s+(\S.*)$/);
+        if (h) { cur = h[1].length; nodes.push({ level: cur, text: h[2] }); return; }
+        var li = t.match(/^\s*([-*+])\s+(\S.*)$/);
+        if (li) {
+          var indent = (t.match(/^\s*/) || [""])[0].length;
+          nodes.push({ level: cur + 1 + Math.floor(indent / 2), text: li[2] });
+        }
+      });
+      var html = '<div class="mm-fallback">';
+      html += '<p class="mm-fallback-note" data-zh="思维导图库未加载，已降级为纯文本大纲（仍可继续编辑）。">' +
+        (__mmIsEn ? "Mindmap library failed to load; showing a plain outline instead." : "思维导图库未加载，已降级为纯文本大纲（仍可继续编辑）。") + '</p>';
+      html += '<div class="mm-fallback-meta" data-zh="大纲节点：' + nodes.length + '">' +
+        (__mmIsEn ? "Outline nodes: " : "大纲节点：") + nodes.length + '</div>';
+      if (nodes.length) {
+        html += '<ul class="mm-fallback-list">';
+        var depth = 0, prev = 0;
+        nodes.forEach(function(n, i){
+          var lv = Math.max(1, n.level);
+          if (i === 0) lv = 1;
+          else if (lv > prev + 1) lv = prev + 1;
+          if (lv > depth) { while (depth < lv) { html += "<ul>"; depth++; } }
+          else { while (depth > lv) { html += "</ul></li>"; depth--; } html += "</li>"; }
+          html += '<li data-level="' + lv + '">' + __mmEsc(n.text);
+          prev = lv;
+        });
+        while (depth > 0) { html += "</li></ul>"; depth--; }
+      }
+      return html + '</div>';
+    };
+    var __mmPaint = function(){ mmWrap.innerHTML = __h0 + __mmOutline(editor.value); };
+    __mmPaint();
+    editor.addEventListener("input", __mmPaint);
     ['btnSvg','btnPng','btnFit','btnFitInner'].forEach(function(id){var b=document.getElementById(id);if(b)b.disabled=true;});
     return;
   }
@@ -503,8 +550,13 @@ s.parentNode.insertBefore(el, s);
       var fo = fos[i];
       if (fo.querySelector("img")) { try { console.warn("[mindmap] image node skipped in PNG export (use SVG export to keep it)"); } catch(e){} }
       var r = fo.getBoundingClientRect();
-      var x = r.left - svgRect.left;
-      var y = r.top - svgRect.top;
+      // 必须用父节点局部坐标：markmap 的节点包在带 translate 的 <g> 里，
+      // 复用屏幕坐标会被父级 translate 整体平移，导致文字飞出画布。
+      var bb = { x: 0, y: 0, width: 0, height: 0 };
+      try { bb = fo.getBBox(); } catch(e){}
+      var x = bb.x;
+      var y = bb.y;
+      var foH = bb.height || r.height;
       var inner = fo.querySelector("div") || fo;
       var st = null;
       try { st = window.getComputedStyle(inner); } catch(e){}
@@ -515,7 +567,7 @@ s.parentNode.insertBefore(el, s);
       var txt = (fo.innerText || fo.textContent || "").replace(/\u00a0/g, " ").trim();
       var t = document.createElementNS(NS, "text");
       t.setAttribute("x", x + 4);
-      t.setAttribute("y", y + r.height / 2 + fs * 0.35);
+      t.setAttribute("y", y + foH / 2 + fs * 0.35);
       t.setAttribute("font-size", fs);
       t.setAttribute("font-family", (st && st.fontFamily) || "sans-serif");
       t.setAttribute("fill", fill);
@@ -535,7 +587,7 @@ s.parentNode.insertBefore(el, s);
         ts.textContent = lines[j].trim();
         t.appendChild(ts);
       }
-      if (fosC[i]) { clone.replaceChild(t, fosC[i]); }
+      if (fosC[i] && fosC[i].parentNode) { fosC[i].parentNode.replaceChild(t, fosC[i]); }
     }
     return clone;
   }
@@ -545,6 +597,7 @@ s.parentNode.insertBefore(el, s);
     if (!mm) { ToolBox.showToast(i18nText('toast.invalid_input'), "warning"); return; }
     mm.fit();
     setTimeout(function(){
+      try {
       var clone = buildPngClone();
       var rect = svgEl.getBoundingClientRect();
       var w = Math.ceil(rect.width);
@@ -561,6 +614,8 @@ s.parentNode.insertBefore(el, s);
       var img = new Image();
       img.onload = function(){
         var scale = 2;
+        var limitMsg = canvasExportError(w * scale, h * scale);
+        if (limitMsg) { URL.revokeObjectURL(url); ToolBox.showToast(limitMsg, "error"); return; }
         var canvas = document.createElement("canvas");
         canvas.width = w * scale;
         canvas.height = h * scale;
@@ -584,7 +639,7 @@ s.parentNode.insertBefore(el, s);
             ToolBox.showToast(i18nText('toast.saved'));
           }, "image/png");
         } catch (err) {
-          if (!done) { URL.revokeObjectURL(url); ToolBox.showToast(i18nText('toast.export_failed'), "error"); }
+          if (!done) { URL.revokeObjectURL(url); ToolBox.showToast(i18nText('toast.export_failed') + (err.name || err.message || ''), "error"); }
         }
       };
       img.onerror = function(){
@@ -592,6 +647,9 @@ s.parentNode.insertBefore(el, s);
         ToolBox.showToast(i18nText('toast.export_failed'), "error");
       };
       img.src = url;
+      } catch (e) {
+        ToolBox.showToast(i18nText('toast.export_failed') + (e.name || e.message || ''), "error");
+      }
     }, 360);
   });
 

@@ -157,7 +157,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="在线将图片水平或垂直镜像翻转，一键生成反相构图，纯前端处理图片不上传，适合修正反向照片与制作对称视觉效果。">Mirror an image horizontally or vertically to fix reversed shots or build symmetric compositions, processed locally.</p>
 
     <label>上传图片</label>
-    <input type="file" id="fileInput" accept="image/*">
+    <input type="file" id="fileInput" accept="image/png,image/jpeg,image/webp,image/gif">
     <div class="toolbar">
       <button type="button" class="btn primary" onclick="flip('h')">水平翻转</button>
       <button type="button" class="btn primary" onclick="flip('v')">垂直翻转</button>
@@ -256,9 +256,19 @@ function clearResult(){
     lastObjectURL = '';
   }
 }
+function __svgFileBlocked(file){
+  if(!file) return false;
+  var t=String(file.type||'').toLowerCase(), n=String(file.name||'').toLowerCase();
+  if(t.indexOf('image/svg')===0||/\.svg$/i.test(n)){
+    var m='仅支持位图（PNG/JPG/WebP），不支持 SVG';
+    try{ if(typeof showToast==='function') showToast(m,'error'); else if(window.ToolBox&&ToolBox.showToast) ToolBox.showToast(m,'error'); }catch(e){}
+    return true;
+  }
+  return false;
+}
 document.getElementById('fileInput').addEventListener('change', (e) => {
   const file = e.target.files[0];
-  if(!file) return;
+  if(!file || __svgFileBlocked(file)) return;
   // 换图立即作废上一张的翻转结果，避免下载/复制仍指向旧图
   clearResult();
   origImg = null; currentImg = null;
@@ -285,6 +295,9 @@ document.getElementById('fileInput').addEventListener('change', (e) => {
   };
   reader.readAsDataURL(file);
 });
+function __flExportFail(msg){
+  try{ if(typeof showToast==='function') showToast(msg,'error'); else if(window.ToolBox&&ToolBox.showToast) ToolBox.showToast(msg,'error'); else alert(msg); }catch(e){}
+}
 function flip(mode){
   const src = currentImg || origImg;
   if(!src){ alert('请先上传图片'); return; }
@@ -299,7 +312,12 @@ function flip(mode){
     ctx.translate(canvas.width, canvas.height); ctx.scale(-1, -1);
   }
   ctx.drawImage(src, 0, 0);
-  lastURL = canvas.toDataURL('image/png');
+  try { lastURL = canvas.toDataURL('image/png'); }
+  catch (e) {
+    lastURL = ''; lastBlob = null;
+    __flExportFail('导出失败：' + ((e && (e.name || e.message)) || '未知错误'));
+    return;
+  }
   lastBlob = null;
   if(lastObjectURL){
     try { URL.revokeObjectURL(lastObjectURL); } catch(e){}
@@ -308,9 +326,13 @@ function flip(mode){
   // 优先保留 Blob 便于下载，异步回调只接受本次翻转的结果
   const sourceURL = lastURL;
   if(canvas.toBlob){
-    canvas.toBlob((blob) => {
-      if(blob && lastURL === sourceURL) lastBlob = blob;
-    }, 'image/png');
+    try {
+      canvas.toBlob((blob) => {
+        if(lastURL !== sourceURL) return;
+        if(!blob){ __flExportFail('导出失败：浏览器未能生成 PNG（画布可能被污染）'); return; }
+        lastBlob = blob;
+      }, 'image/png');
+    } catch (e) { __flExportFail('导出失败：' + ((e && (e.name || e.message)) || '未知错误')); }
   }
   const newImg = new Image();
   newImg.onload = () => { currentImg = newImg; };

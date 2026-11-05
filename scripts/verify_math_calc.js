@@ -20,6 +20,7 @@ const CASES = [
   { slug: "math/slope-line", inputs: { x1: "0", y1: "0", x2: "2", y2: "6" }, expect: ["3.0000"], ref: "斜率 k=(6−0)/(2−0)=3.0000（默认 (1,2)-(4,8)=2.0000 避开）" },
   { slug: "math/fibonacci-n", inputs: { n: "30" }, expect: ["832,040"], ref: "F(30)=832040（千分位 832,040；默认 n=20→6765 避开）" },
   { slug: "math/factorial-calc", inputs: { n: "12" }, expect: ["4.7900e+8"], ref: "12!=479001600=4.7900e+8（科学计数法；默认 n=10 避开）" },
+  { slug: "math/factorial-calc", inputs: { n: "0" }, clicks: ["calcTool()"], expect: ["1.0000e+0"], ref: "0!=1（约定）：科学计数 1.0000e+0；n=0 时几何平均 (0!)^(1/0) 未定义，页面显式标 '—'（旧实现被 ||1 替换成 1.0000）。默认 n=10 ⇒ 3.6288e+6，不命中。" },
   { slug: "math/combination", inputs: { n: "12", r: "5" }, expect: ["792"], ref: "C(12,5)=792（默认 10,3→120 避开）" },
   { slug: "math/permutation", inputs: { n: "9", r: "4" }, expect: ["3,024"], ref: "P(9,4)=9×8×7×6=3024（千分位 3,024；默认 10,3→720 避开）" },
   { slug: "math/root-calc", inputs: { x: "27" }, expect: ["3.000000"], ref: "∛27=3.000000（√27=5.196152；默认 x=2 避开）" },
@@ -463,9 +464,9 @@ const CASES = [
       "op": "integrate"
     },
     "expect": [
-      "~-—\n📐 数值积分 ∫[42, 42] f(x)dx — 方法 梯形法则, n=1000"
+      "📐 数值积分 ∫[42, 42] f(x)dx — 方法 梯形法则, n=1000"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"func\":\"abc123测试\",\"a\":\"42\",\"b\":\"42\",\"x0\":\"42\",\"op\":\"integrate\"}，输出区含「~-—\n📐 数值积分 ∫[42, 42] f(x)dx — 方法 梯形法则, …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"func\":\"abc123测试\",\"a\":\"42\",\"b\":\"42\",\"x0\":\"42\",\"op\":\"integrate\"}，输出区含「📐 数值积分 ∫[42, 42] f(x)dx — 方法 梯形法则, …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。修复后无有限采样点不再绘制 SVG，旧期望中的「~-—」（NaN 坐标轴文字）已移除。"
   },
   {
     "slug": "math/geometry-calculator",
@@ -617,9 +618,9 @@ const CASES = [
       "c": "42"
     },
     "expect": [
-      "42\n42\n42\n无实根（Δ 判别式 Δ"
+      "42\n42\n42\n-0.5000 + 0.8660i"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"a\":\"42\",\"b\":\"42\",\"c\":\"42\"}，输出区含「42\n42\n42\n无实根（Δ 判别式 Δ」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "Δ=42²−4·42·42=−5292<0 ⇒ 共轭复根主值 −0.5±0.8660i（旧实现只输出「无实根」）；a=b=c=42 非默认值，默认 1/−3/2 实根态不含该串。"
   },
   {
     "slug": "math/power-calc",
@@ -654,6 +655,72 @@ const CASES = [
       "42\n42\n42\n42\n斜率不存在（竖直线） k"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"x1\":\"42\",\"y1\":\"42\",\"x2\":\"42\",\"y2\":\"42\"}，输出区含「42\n42\n42\n42\n斜率不存在（竖直线） k」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "math/prime-check",
+    "inputs": { "n": "2.5" },
+    "expect": ["请输入非负整数 n"],
+    "ref": "小数输入必须拒绝：旧实现 Math.round(2.5)=3 误报「3 是质数」；新实现要求 ^\\d+$。默认 n=97 不出现该提示 ⇒ 判别态专属。"
+  },
+  {
+    "slug": "math/gcd-lcm",
+    "inputs": { "a": "4.5", "b": "36" },
+    "expect": ["请输入整数 a 与 b"],
+    "ref": "旧实现 Math.round(4.5)=5 静默取整；新实现拒绝小数/空值。默认 48/36 不出现该提示。"
+  },
+  {
+    "slug": "math/nth-term-geometric",
+    "inputs": { "a1": "2", "r": "3", "n": "2.5" },
+    "expect": ["项数 n 必须为正整数"],
+    "ref": "旧实现 n=2.5 直接参与 r^(n−1) 得到无意义值；新实现要求正整数。默认 n=4 不出现该提示。"
+  },
+  {
+    "slug": "math/root-calc",
+    "inputs": { "x": "-16" },
+    "expect": ["1.414214 + 1.414214i"],
+    "ref": "−16 的四次方根主值 = 2·e^{iπ/4} = 1.414214 + 1.414214i；旧实现错误输出纯虚数「2.000000i」。默认 x=2 不出现该串。"
+  },
+  {
+    "slug": "math/factorial-calc",
+    "inputs": { "n": "2.5" },
+    "expect": ["n 必须是非负整数"],
+    "ref": "旧实现 Math.round(2.5)=3 静默按 3! 计算；新实现拒绝小数。默认 n=10 不出现该提示。"
+  },
+  {
+    "slug": "math/fibonacci-n",
+    "inputs": { "n": "2.5" },
+    "expect": ["n 必须是非负整数"],
+    "ref": "旧实现 Math.round(2.5)=3 静默返回 F(3)；新实现拒绝小数。默认 n=20 不出现该提示。"
+  },
+  {
+    "slug": "math/fibonacci-n",
+    "inputs": { "n": "1200" },
+    "expect": ["n 上限为 1000"],
+    "ref": "旧实现 Math.min(Math.round(n),1000) 把 1200 静默截成 F(1000) 且无提示；新实现明确拒绝。默认 20 不出现。"
+  },
+  {
+    "slug": "math/modulo-calc",
+    "inputs": { "a": "-8", "b": "3" },
+    "expect": ["1.0000"],
+    "ref": "向下取整商 q=floor(−8/3)=−3，配套余数 r=−8−3×(−3)=1；旧实现用 JS 截断余数 −8%3=−2 与商 −3 自相矛盾。默认 17/5 的余数为 2.0000，不命中。"
+  },
+  {
+    "slug": "math/power-calc",
+    "inputs": { "x": "-8", "y": "0.5" },
+    "expect": ["负底数配非整数指数"],
+    "ref": "(−8)^0.5 在实数域无定义（复平面上为多值），旧实现 NaN 经兜底替换成「—」且无解释；新实现明确提示。默认 2^10 不出现。"
+  },
+  {
+    "slug": "math/percent-change",
+    "inputs": { "old": "80", "new": "" },
+    "expect": ["请输入原始值和新值"],
+    "ref": "旧实现 num('new') 把空值静默当 0，输出「−100%」；新实现要求两个输入都有值。默认 80→100 不出现该提示。"
+  },
+  {
+    "slug": "math/function-plotter",
+    "clicks": ["ToolBox.showToast=function(m){document.getElementById('__svg_probe').textContent='TOAST:'+m;};document.getElementById('plotCanvas').toDataURL=function(){throw new Error('boom')};downloadPlot();"],
+    "expect": ["TOAST:导出失败：Error"],
+    "ref": "失败注入：plotCanvas.toDataURL 抛 Error + 录制 ToolBox.showToast ⇒ 必须出现「TOAST:导出失败：Error」。修复前异常裸冒成 pageerror、成功 toast 不执行；默认态无 TOAST: 串 ⇒ 判别明确。"
   }
 
 ];

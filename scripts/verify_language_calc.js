@@ -88,7 +88,7 @@ const CASES = [
     "• World → W • Health → H • Organization → O",
     "15\n2\n7\n2\n2\n2\n2\n1\n0\n0"
   ],
-  "ref": "① 缩写：三词各取首字母（acroCase 默认 upper，radio 落 checked 默认态）→ WHO，明细项「• World → W • Health → H • Organization → O」；② 字符统计「Hello 世界！AB 12.」→ 总字符 15 / 汉字 2 / 字母 7 / 数字 2 / 标点 2 / 空格 2 / 单词 2 / 句子 1（blob 按元素创建顺序拼接，故用换行符做连续断言）。默认态两 textarea 皆空 ⇒ 缩写面板隐藏、统计全 0，两组 expect 均失配。"
+  "ref": "① 缩写：三词各取首字母（acroCase 默认 upper，radio 落 checked 默认态）→ WHO，明细项「• World → W • Health → H • Organization → O」；② 字符统计「Hello 世界！AB 12.」→ 总字符 15 / 汉字 2 / 字母 7 / 数字 2 / 标点 2 / 空格 2 / 单词 2 / 句子 1（blob 按元素创建顺序拼接，故用换行符做连续断言）。默认态两 textarea 皆空 ⇒ 缩写面板隐藏、字符统计区显示「—」与「请输入文本后再统计。」提示，两组 expect 均失配。"
 },
 {
   // 原为 no_inputs 弱用例（inputs 空），expect「gentlemen.」是 PHRASES 全量列表里的静态短语（逃生项）。
@@ -155,6 +155,20 @@ const CASES = [
       "Wolf (狼)\nabc123测试\n0\n1\n0\n未找到包含 \"abc123测试\" 的名词。当前词库包含 184 个名词。"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"searchInput\":\"abc123测试\"}，输出区含「Wolf (狼)\nabc123测试\n0\n1\n0\n未找到包含 \"abc123测试\"…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "language/grammar-checker",
+    "inputs": {
+      "input-text": "He go home. She go home."
+    },
+    "clicks": [
+      "check()"
+    ],
+    "expect": [
+      "主谓一致",
+      "问题密度： 1.00"
+    ],
+    "ref": "主谓一致规则 + 密度：注入 2 句、2 处 he/she + go 缺 -s ⇒ 问题 2、句数 2、密度 1.00（建议局部修订）。默认样例无问题、密度 0.00 ⇒ 注入失败即不命中。"
   },
   {
     "slug": "language/grammar-checker",
@@ -250,6 +264,14 @@ const CASES = [
       "理解度 100%，有效速度 = 228.6 × 100% = 228.6 字/分"
     ],
     "ref": "EL-J25 上界：理解度 100% 合法且有效速度封顶等于字面速度。独立复算：800 / (3 + 30/60) = 228.571 → 228.6；有效 = min(228.571, 228.571 × 1.0) = 228.6，不大于字面速度。默认 80% 输出 182.9，本串不命中。"
+  }
+
+  // ── 空态回归：textarea 清空后必须提示「请输入」，不得输出全 0 统计 ──
+  ,{
+    "slug": "language/stats-2",
+    "inputs": { "text": "" },
+    "expect": ["请输入待统计文本后再统计。"],
+    "ref": "空态回归：textarea 清空时旧实现按空串统计并输出「总字符数 0 … 行数 0」九项伪结果；现要求提示且不输出统计值。默认示例文本非空（16/15 等数值），不含该提示 ⇒ 强判别。"
   }
 
 ];

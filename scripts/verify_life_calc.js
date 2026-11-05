@@ -49,12 +49,27 @@ const CASES = [
        + "逐日 min(日费,60) 累加 = 180.00，三日日费均超过 60、均触发封顶。旧实现整段封顶一次 ⇒ 60。"
        + "锚含真实日期 2026-01-01 与「封顶已生效 3 天」，默认态/未注入 startTime 均不命中。",
   },
+  {
+    slug: "life/parking-fee",
+    inputs: { hours: "-2", rate: "10", free: "0", cap: "60" },
+    expect: ["均不能为负数"],
+    ref: "负时长属于非法输入：应提示「时长、费率、免费时长与封顶价均不能为负数」，"
+       + "而不是按 max(0,h−free) 静默算出 0 元；默认 3.5h 正常出费，注入负值即命中错误提示。",
+  },
   // ── 百分比（占比）────────────────────────────────────────────
   {
     slug: "life/percentage-calculator",
     inputs: { isWhatX: "30", isWhatY: "150" },
     expect: ["30 是 150 的 20%"],
     ref: "30 ÷ 150 × 100 = 20 → 显示 20%（单断言“20%”会被页面默认 ofWhatPct=20 的区块命中 → 逃生项）",
+  },
+  {
+    slug: "life/percentage-calculator",
+    inputs: { isWhatX: "１，２００", isWhatY: "２,０００" },
+    clicks: ["calcIsWhat()"],
+    expect: ["1,200 是 2,000 的 60%"],
+    ref: "输入归一化：全角数字 １２００、千分位 2,000 归一后为 1200/2000 ⇒ 60%；"
+       + "旧实现 parseFloat('１，２００')=NaN ⇒ 显示 --，注入失败即不命中。",
   },
   // ── 温度换算（°F = °C×9/5+32）────────────────────────────────
   {
@@ -159,6 +174,57 @@ const CASES = [
     expect: ["区号： 0123 - 未知城市"],
     ref: "未收录号段回退：前缀 123 不在号段表 ⇒ 按 3 位回退 0123，并保留「未知城市」提示（注入失败即不命中）",
   },
+  {
+    slug: "life/phone-lookup",
+    inputs: { input: "+8613300133000" },
+    expect: ["可能运营商： 电信"],
+    ref: "+86 国际格式：国内号码 13300133000 命中中国大陆手机号规则 ⇒ 运营商按 133 号段推断为电信"
+       + "（默认值 +86 13800138000 推断为移动，不会命中「电信」）；"
+       + "旧实现只对无国家代码的本地号码做推断，+86 时只显示国家代码与国内号码。",
+  },
+  {
+    slug: "life/phone-lookup",
+    inputs: { input: "+8675512345678" },
+    expect: ["区号： 0755 - 深圳"],
+    ref: "+86 固话省略长途前缀：国内号码 75512345678 补 0 后按 0755 识别为深圳；"
+       + "默认值 13800138000 无 0755 锚，注入失败即不命中。",
+  },
+  {
+    "slug": "life/analysis-cost-10",
+    "inputs": {
+      "data": "办公 用品,100,120\n团建,3000,3500"
+    },
+    "expect": [
+      "预算合计： 3100.00",
+      "最大超支项： 团建"
+    ],
+    "ref": "名称含空格：第一行「办公 用品,100,120」应识别为名称「办公 用品」、预算 100、实际 120；"
+      + "旧实现按空格切分后取 p[1]='用品' ⇒ NaN 整行丢弃，预算合计仅 3000.00，注入失败即不命中。"
+  },
+  {
+    "slug": "life/analysis-cost-10",
+    "inputs": {
+      "data": "办公 用品，１００元，１,２００元\n团建,3000,3500"
+    },
+    "expect": [
+      "预算合计： 3100.00",
+      "实际合计： 4700.00"
+    ],
+    "ref": "输入归一化：全角数字 １００、千分位 1,200、单位后缀「元」应解析为 100/1200；"
+      + "预算 100+3000=3100、实际 1200+3500=4700。旧实现 parseFloat('１００元')=NaN ⇒ 整行丢弃，注入失败即不命中。"
+  },
+  {
+    "slug": "life/analysis-cost-10",
+    "inputs": {
+      "data": "坏行\n团建,3000,3500"
+    },
+    "expect": [
+      "存在无法解析的行，已跳过。",
+      "坏行"
+    ],
+    "ref": "无法解析的行不再静默丢弃：提示「存在无法解析的行，已跳过。」并列出原文「坏行」，"
+      + "同时仍保留可解析的团建行；默认输入全部可解析，注入失败即不命中。"
+  },
   // ── 选址加权模型（五项加权求和）──────────────────────────────
   {
     slug: "life/assessor-target",
@@ -166,10 +232,20 @@ const CASES = [
       traffic: "6000", competitors: "2", population: "4000",
       rent: "120", shopArea: "40", visibility: "7",
     },
-    expect: ["综合评分： 70.5/100", "租金评分：80(15%)", "选址评级： 良好（推荐）"],
-    ref: "人流 60×.30 + 竞争 70×.20 + 人口 80×.20 + 租金 80×.15 + 可见 70×.15 "
-       + "= 18+14+16+12+10.5 = 70.5 → 60≤70.5<75 良好（推荐）"
-       + "（默认 24+11+20+9+12 = 76.0 → 优秀，且租金档 60→80 跨档，注入失败即不命中）",
+    expect: ["综合评分： 73.3/100", "租金评分：80(13%)", "选址评级： 良好（推荐）"],
+    ref: "人流 60×.28 + 竞争 70×.18 + 人口 80×.18 + 租金 80×.13 + 可见 70×.13 + 面积 100×.10 "
+       + "= 16.8+12.6+14.4+10.4+9.1+10 = 73.3 → 60≤73.3<75 良好（推荐）"
+       + "（旧五项加权 70.5 会失配，注入失败即不命中）",
+  },
+  {
+    slug: "life/assessor-target",
+    inputs: {
+      traffic: "6000", competitors: "2", population: "4000",
+      rent: "120", shopArea: "40", visibility: "50",
+    },
+    expect: ["可见性已按上限 10 计算", "可见性评分：100(13%)", "综合评分： 77.2/100"],
+    ref: "可见性 50 分超出 0–10 区间，应按上限夹取为 10 ⇒ 可见性评分 100；"
+       + "综合 = 16.8+12.6+14.4+10.4+13+10 = 77.2。旧实现不夹取 ⇒ 可见性 500 分、综合 139.0，注入失败即不命中。",
   },
   {
     "slug": "life/analysis-cost-9",
@@ -181,6 +257,20 @@ const CASES = [
       "最大项： 生产"
     ],
     "ref": "成本结构：合计80+50+120+30=280.00、项均70.00、最大项生产120(42.86%)（独立复算；默认 原料42/人工31/物流15/能耗9 合计97、最大项原料，注入失败即不命中）"
+  },
+  {
+    "slug": "life/analysis-cost-9",
+    "inputs": {
+      "data": "原料,60,变动\n人工,40,固定\n物流,20,变动\n能耗,10,固定",
+      "qty": "2000",
+      "price": "0.10"
+    },
+    "expect": [
+      "固定成本： 50.00",
+      "盈亏平衡产量： 833.3",
+      "单位变动成本： 0.0400"
+    ],
+    "ref": "固定/变动拆分：固定=人工40+能耗10=50.00（38.46%），变动=80.00；单位变动成本=80/2000=0.04，边际贡献=0.10−0.04=0.06，平衡产量=50/0.06=833.3；变动项排序原料60→物流20。默认数据/产量/单价得到 40.00 与 634.9，注入失败即不命中。"
   },
   {
     "slug": "life/analysis-80",
@@ -259,6 +349,33 @@ const CASES = [
     "50.00"
   ],
   "ref": "名单三行「姓名,份数」= 张三 2 + 李四 3 + 王五 1 ⇒ 人数 3、合计份数 6、人均 2.00 份；单价 25 元 ⇒ 预售金额 6×25 = 150.00 元、人均金额 150÷3 = 50.00 元（独立复算；默认名单为空 → 页面提示「请粘贴接龙名单」，注入失败即不命中）"
+},
+
+{
+  "slug": "life/stats-13",
+  "inputs": {
+    "roster": "张三,1.5\n李四,1",
+    "price": "20"
+  },
+  "expect": [
+    "合计份数： 2.50",
+    "下单最多： 1.50",
+    "预售金额： 50.00"
+  ],
+  "ref": "小数份数口径一致：合计 1.5+1 = 2.5 份须显示 2.50（而非取整成 2），金额 2.5×20 = 50.00；"
+    + "旧实现 fmt(total,0) 会显示 2 份，与金额按 2.5 计算自相矛盾，注入失败即不命中。"
+},
+{
+  "slug": "life/stats-13",
+  "inputs": {
+    "roster": "张三,2\n李四,3\n王五,1",
+    "price": "25"
+  },
+  "expect": [
+    "李四 50.0% · 张三 33.3% · 王五 16.7%",
+    "1 份 1 人 · 2–3 份 2 人 · 4 份及以上 0 人"
+  ],
+  "ref": "占比与分档：张三2+李四3+王五1=6 份 ⇒ 占比 3/6=50.0%、2/6=33.3%、1/6=16.7%；分档 1 份 1 人、2–3 份 2 人、4 份及以上 0 人。旧实现只输出人数/份数/金额/极值，无占比与分档两条 ⇒ 注入失败即不命中。"
 },
 
 {
@@ -365,6 +482,12 @@ const CASES = [
        + "默认态 input=255 / customBase=36 ⇒ 11111111 / 377 / FF，三条锚全部失配。"
        + "注：本页结果回填在 <input> 的 value 上（bin/oct/dec/hex/custom），仍可被 fullBlob 捕获；"
        + "若沿用默认输入 255，默认态会产出同值 ⇒ 逃生项，必须换输入。",
+  },
+  {
+    slug: "life/base-convert",
+    inputs: { input: "4095", customBase: "2" },
+    copyCheck: { fn: "copyVal", btnArg: true, args: ["hex"], expect: "FFF" },
+    ref: "复制路径：copyVal('hex', btn) 写入剪贴板的内容必须等于结果区 hex=FFF，且 then 回调不抛异常；旧实现 .then 内读隐式 event.target 会抛 TypeError 被 Promise 吞掉。",
   },
 
   // ── 经营报表（毛利 / 净利 / 现金流） ────────────────────────
@@ -486,19 +609,19 @@ const CASES = [
   {
     slug: "life/length-converter",
     inputs: { inputVal: "5" },
-    expect: ["5000 毫米 500 厘米 0.005 千米 196.8503937 英寸"],
-    ref: 'fromUnit 框架默认 mm；meters=v*0.001；锚取『实际:』后真值+单位，避开默认 v=1/mm 产物'
+    expect: ["5,000 毫米 500 厘米 0.005 千米 196.8503937 英寸"],
+    ref: 'fromUnit 框架默认 mm；meters=v*0.001；锚取「基准：」后连排真值（页面用 toLocaleString 千分位，≥1000 的毫米/厘米带逗号），避开默认 v=1/mm 产物'
   },
   {
     slug: "life/length-converter",
     inputs: { inputVal: "100" },
-    expect: ["100000 毫米 10000 厘米 0.1 千米 3937.007874 英寸"],
+    expect: ["100,000 毫米 10,000 厘米 0.1 千米 3,937.007874 英寸"],
     ref: 'ft=0.1/0.3048'
   },
   {
     slug: "life/length-converter",
     inputs: { inputVal: "3" },
-    expect: ["3000 毫米 300 厘米 0.003 千米 118.1102362 英寸"],
+    expect: ["3,000 毫米 300 厘米 0.003 千米 118.1102362 英寸"],
     ref: 'ft=0.003/0.3048'
   },
   {
@@ -510,19 +633,19 @@ const CASES = [
   {
     slug: "life/length-converter",
     inputs: { inputVal: "2" },
-    expect: ["2000 毫米 200 厘米 0.002 千米 78.74015748 英寸"],
+    expect: ["2,000 毫米 200 厘米 0.002 千米 78.74015748 英寸"],
     ref: 'yd=0.002/0.9144'
   },
   {
     slug: "life/length-converter",
     inputs: { inputVal: "10" },
-    expect: ["10000 毫米 1000 厘米 0.01 千米 393.7007874 英寸"],
+    expect: ["10,000 毫米 1,000 厘米 0.01 千米 393.7007874 英寸"],
     ref: 'in=0.01/0.0254'
   },
   {
     slug: "life/length-converter",
     inputs: { inputVal: "175", fromUnit: "cm" },
-    expect: ["基准： 175 厘米 = 1.75 米 1750 毫米"],
+    expect: ["基准： 175 厘米 = 1.75 米 1,750 毫米"],
     ref: '修复判别：175cm 换算后毫米应为 1750（旧模板拼成 175000 → 实际: 1750）；锚定基准行与首个结果行紧邻形态，旧输出在中间插入 175000 故不命中'
   },
   {
@@ -1074,8 +1197,8 @@ const CASES = [
   {
     slug: "life/ring-size-converter",
     inputs: { inputVal: "52" },
-    expect: ["美码： 5.70652"],
-    ref: 'v=52 from=circ: 美码=(52-36.25)/2.76=5.70652'
+    expect: ["美码： 6.05769"],
+    ref: 'v=52 from=circ: 美码=(52-36.25)/2.6=6.05769（旧斜率 2.76 得 5.70652，与英码斜率不一致）'
   },
   {
     slug: "life/ring-size-converter",
@@ -1165,6 +1288,13 @@ const CASES = [
     inputs: { inputType: "eu", inputVal: "42" },
     expect: ["基准脚长： 260 mm", "美码(男)： 9", "中国码(mm)： 260"],
     ref: "LF-N14 EU 输入：EU42 ⇒ 260mm、US男 9、CN 260；旧实现 EU42 反解 266.7mm。",
+  },
+  {
+    slug: "life/shoe-size-converter",
+    inputs: { inputType: "eu", inputVal: "5" },
+    expect: ["脚长需在 100–400 mm 范围内"],
+    ref: "越界拦截：EU5 ⇒ (5+10)×5 = 75 mm，低于成人可换算范围，应提示 100–400 mm；"
+       + "旧实现会输出 EU5/CN75/US-28 这类非正美码，注入失败即不命中。",
   },
   {
     slug: "life/roman-numeral",
@@ -1336,8 +1466,22 @@ const CASES = [
   {
     "slug": "life/chinese-number",
     "inputs": { "inputVal": "98765.43" },
-    "expect": ["玖万捌千柒百陆十伍元肆角叁分"],
-    "ref": "数字转中文：98765.43 → 简体'〇九万八千七百六十五'、人民币大写'零玖万捌千柒百陆十伍元肆角叁分'。注入非默认(默认 12345.67→'零壹万贰千叁百肆拾伍元陆角柒分')，默认态不出现该串。"
+    "expect": ["玖万捌仟柒佰陆拾伍元肆角叁分"],
+    "ref": "数字转中文：98765.43 → 简体'〇九万八千七百六十五'、人民币大写'零玖万捌仟柒佰陆拾伍元肆角叁分'（大写必须用拾/佰/仟）。注入非默认(默认 12345.67→'零壹万贰仟叁佰肆拾伍元陆角柒分')，默认态不出现该串。"
+  },
+  {
+    "slug": "life/chinese-number",
+    "inputs": { "inputVal": "一万亿" },
+    "expect": ["1000000000000"],
+    "ref": "反解「万亿」：一万亿 = 1×10^12 ⇒ 阿拉伯数字 1000000000000；旧实现只认「万/亿」两个量级，"
+      + "「亿」段被清零后输出 10000，注入失败即不命中。"
+  },
+  {
+    "slug": "life/chinese-number",
+    "inputs": { "inputVal": "一万亿零五十点五" },
+    "expect": ["1000000000050.5"],
+    "ref": "往返一致性：万亿量级 + 零位 + 小数一并反解 ⇒ 1000000000050.5；"
+      + "缺「兆」量级或小数点处理时会得到 50.5 / 10000 等错误值，注入失败即不命中。"
   },
   {
     "slug": "life/color-name-finder",
@@ -1586,9 +1730,10 @@ const CASES = [
       "s": "42"
     },
     "expect": [
-      "abc123测试\n42\n42\n42\n42\n42\n42\n基准时间： Invalid Date 加减量： 42年 42月 42日 42时 42分 42秒 结果时间： Invalid Date Invalid Date"
+      "基准日期无效，请重新选择"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"baseTime\":\"abc123测试\",\"y\":\"42\",\"m\":\"42\",\"d\":\"42\",\"h\":\"42\",\"min\":\"42\",\"s\":\"42\"}，输出区含「abc123测试\n42\n42\n42\n42\n42\n42\n基准时间： Invalid…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非法基准串 abc123测试 时，旧实现继续输出 Invalid Date；"
+      + "现显式提示「基准日期无效，请重新选择」。默认态 baseTime 为空 ⇒ 只出现「请选择基准日期」⇒ 不命中。"
   },
   {
     "slug": "life/density-converter",
@@ -1790,7 +1935,7 @@ const CASES = [
       "inputType": "hk"
     },
     "expect": [
-      "基准戒指内周长： 82 mm （直径 26.1014 mm） 周长(mm)： 82 直径(mm)： 26.1014 美码： 16.5761 英码： 17.5962 欧码： 82 意码： 42"
+      "基准戒指内周长： 82 mm （直径 26.1014 mm） 周长(mm)： 82 直径(mm)： 26.1014 美码： 17.5962 英码： 17.5962 欧码： 82 意码： 42"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"inputVal\":\"42\",\"inputType\":\"hk\"}，输出区含「基准戒指内周长： 131.88 mm （直径 41.9787 mm） 周长(mm…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -2180,6 +2325,275 @@ const CASES = [
     ref: "LF-N50 2.54 cm ⇄ in：旧 swap 只滚动页面，点后仍是「基准： 2.54 厘米」且无目标行；"
        + "现互换 from/to 并把输入换成上次目标值 1 in ⇒ 「基准： 1 英寸」+「目标单位： 2.54 厘米」。"
        + "默认 1 m→100 cm 不含上述锚 ⇒ 强判别。",
+  },
+  // ── 年龄天数：2/29 生日在平年按 2/28、生日当天为 0 天 ─────────────
+  {
+    slug: "life/age-in-days",
+    inputs: { birthDate: "2000-02-29" },
+    expect: ["（2025-02-28）"],
+    ref: "固定基准日 2024-06-15：2000-02-29 出生的下一个生日在 2025 年（平年），"
+       + "应按 2/28 夹取 ⇒ 输出含「（2025-02-28）」。旧实现 new Date(2025,1,29) 自动进位为 3/1 ⇒「（2025-03-01）」。"
+       + "默认生日为 25 年前的同一天，不含该锚。",
+  },
+  {
+    slug: "life/age-in-days",
+    inputs: { birthDate: "2000-03-01" },
+    clicks: ["calc(new Date(2024,2,1,8,0,0));"],
+    expect: ["（今天）"],
+    ref: "注入生日 3/1、基准时刻 2024-03-01 08:00 ⇒ 下一个生日就是今天（0 天）；"
+       + "旧实现 next=今天零点 < now（08:00）⇒ 进位到 2025-03-01，显示 365 天。"
+       + "基准日改用 3/1 而非 6/15，是为了避开页面默认生日（基准日 25 年前同月日，天然也是「今天」）造成的逃生项。",
+  },
+  {
+    slug: "life/age-in-days",
+    clicks: [
+      "var t=new Date();var ds=t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0');"
+        + "document.getElementById('birthDate').value=ds;"
+        + "calc(new Date(t.getFullYear(),t.getMonth(),t.getDate(),0,30));",
+    ],
+    expect: ["已活： 0 天"],
+    ref: "当天 00:30 出生（本地日历零点）⇒ 已活 0 天；"
+       + "旧实现 new Date('YYYY-MM-DD') 按 UTC 零点解析，在东八区变成当天 08:00 > 00:30 ⇒ 误报「出生日期不能晚于今天」。",
+  },
+  // ── 时间戳：负值/小数秒的 auto 单位判定 ─────────────────────────
+  {
+    slug: "life/timestamp",
+    inputs: { timestampInput: "-1000000000", formatSelect: "auto" },
+    clicks: ["document.getElementById('timezoneSelect').value='UTC';convertTimestamp();"],
+    expect: ["1938-04-24 22:13:20.000"],
+    ref: "-1,000,000,000 秒（1938-04-24T22:13:20Z）在 auto 下应按「秒」识别；"
+       + "旧实现用 String(ts).length<=10 判位，负号让长度变 11 ⇒ 当成毫秒 ⇒ 1969-12-20。锚定为 UTC 输出。",
+  },
+  {
+    slug: "life/timestamp",
+    inputs: { timestampInput: "1700000000.5", formatSelect: "auto" },
+    clicks: ["document.getElementById('timezoneSelect').value='UTC';convertTimestamp();"],
+    expect: ["2023-11-14 22:13:20.500"],
+    ref: "小数秒 1700000000.5 应保留毫秒（2023-11-14T22:13:20.500Z）；"
+       + "旧实现 parseInt 截断且按字符串长度(12)>10 判为毫秒 ⇒ 得 1970-01-20。",
+  },
+  {
+    slug: "life/temperature-converter",
+    inputs: { celsius: "" },
+    expect: ["请输入有效的温度数值"],
+    ref: "清空摄氏度后旧实现 parseFloat('')||0 静默按 0℃ 换算，其他单位显示 32°F/273.15K；"
+       + "现显式提示且不覆盖其他输入。提示文案按当前页面语言取中文（harness 为 zh-CN），英文态取英文。默认 25℃ ⇒ 不命中。",
+  },
+  {
+    slug: "life/assessor-target",
+    inputs: { rent: "" },
+    expect: ["Please fill in all 6 fields with valid numbers."],
+    ref: "租金清空后旧实现 +''||0 按 0 元静默计入评分；现要求 6 项均有效。默认租金非 0 ⇒ 不命中。",
+  },
+  {
+    slug: "life/parking-fee",
+    inputs: { hours: "" },
+    expect: ["Enter a valid duration, rate, free minutes and cap (use 0 if not applicable)."],
+    ref: "停车时长清空后旧实现 num() 返回 0 ⇒ 显示免费；现显式拦截空值，不再把空值当 0 元。",
+  },
+  {
+    slug: "life/report-profit",
+    inputs: { cog: "" },
+    expect: ["Please fill in all 7 amounts (enter 0 for items with no activity)."],
+    ref: "营业成本清空后旧实现 num() 返回 0 ⇒ 毛利率虚高到 100%；现要求 7 项均填写（无发生额填 0）。",
+  },
+  {
+    slug: "life/drinking-water-plan",
+    inputs: { w: "" },
+    expect: ["请输入有效的体重与气温。"],
+    ref: "体重清空后旧实现 num() 返回 0，w<=0 分支才拦截；现 num() 返回 null 直接提示，"
+       + "避免把空值与 0 混为一谈。默认 70kg ⇒ 不命中。",
+  },
+  {
+    slug: "life/date-add-subtract",
+    inputs: { h: "" },
+    expect: ["Enter valid years, months, days, hours, minutes and seconds (use 0 for no change)."],
+    ref: "小时清空后旧实现 num() 返回 0 静默按「加 0 小时」处理；现显式提示空值。默认 0 ⇒ 不命中。",
+  },
+  {
+    slug: "life/candle-burn-time",
+    inputs: { wicks: "" },
+    expect: ["请选择有效的烛芯数量与燃烧环境"],
+    ref: "烛芯数清空后 parseInt('') 为 NaN，旧实现继续输出 NaN/—；现显式提示。默认 1 芯 ⇒ 不命中。",
+  },
+  {
+    slug: "life/date-difference-calculator",
+    inputs: { baseDate: "2026-01-05", addYears: "abc" },
+    expect: ["加减量需为有效整数"],
+    ref: "加减量填非整数后旧实现 parseInt||0 静默按 0 处理 ⇒ 结果退回基准日期、用户误以为生效；"
+       + "现显式提示。默认 addYears=0 ⇒ 不命中（默认无基准日期走「请选择基准日期」，亦不命中）。",
+  },
+  {
+    slug: "life/bill-splitter",
+    inputs: {},
+    // 静态 DOM 里的 .item-row 未进 harness 桩登记表 ⇒ clicks 内临时替换 querySelectorAll，
+    // 返回一行「名称=餐费、金额为空、首位参与人勾选」的哑行，等价用户清空默认行金额后重算。
+    clicks: [
+      "var rq=document.querySelectorAll;var row={querySelectorAll:function(s){if(s==='input')return [{value:'餐费'},{value:''}];if(/checkbox/.test(s))return [{checked:true},{checked:false},{checked:false},{checked:false}];return [];}};document.querySelectorAll=function(s){if(s==='#items-list .item-row')return [row];return rq.call(document,s);};calcAdvanced();",
+    ],
+    expect: ["⚠ 第 1 行金额需为有效正数，已停止计算。"],
+    ref: "逐项分摊：行内有名称/参与人但金额清空时，旧实现 parseFloat('')||0 静默跳过该行 ⇒ 合计漏项；"
+       + "现显式停止并指出行号。默认行金额 0（显式填写）仍按空行跳过，默认态输出不变 ⇒ 该用例可判别。",
+  },
+  {
+    slug: "life/analysis-23",
+    inputs: { std: "0" },
+    expect: ["判定标准（日照间距系数）需为大于 0 的数值，已停止计算。"],
+    ref: "判定标准填 0 后旧实现 parseFloat('0') → 0 被 `||1.2` 静默替换 ⇒ 达标/不达标结论按 1.2 判；"
+       + "现显式提示且不再输出表格。默认 1.2 ⇒ 不命中。",
+  },
+  {
+    slug: "life/analysis-cost-9",
+    inputs: {
+      data: "原料,42,变动\n人工,31,固定",
+      qty: "abc",
+    },
+    expect: ["产量需为大于 0 的数值，已停止计算。"],
+    ref: "产量填非法值后旧实现 parseFloat('abc')=NaN ⇒ 单位成本/盈亏平衡整段静默消失，用户以为不适用；"
+       + "现显式提示并停止。默认 1000 ⇒ 不命中。",
+  },
+  {
+    slug: "life/generator-random-1",
+    inputs: { cnt: "0" },
+    expect: ["生成数量需为 1–50 的整数。"],
+    ref: "生成数量填 0 后旧实现 parseInt('0')||1 静默只生成 1 个、超过 50 也会被静默夹到 50；"
+       + "现显式要求 1–50 的整数。默认 5 ⇒ 不命中。",
+  },
+  {
+    slug: "life/color-name-finder",
+    clicks: [
+      "document.getElementById('search-results').innerHTML='DE76='+Math.round(colorDistance('#FF0000','#000000'))+'/WLUM='+(Math.round(luminance('#FF0000')*1000)/1000);",
+    ],
+    expect: ["DE76=117", "WLUM=0.213"],
+    ref: "色差改为 CIE 1976 L*a*b* ΔE*ab（纯红 vs 纯黑：ΔE=117.3 ⇒ 117；旧 RGB 欧氏距离为 255）⇒ 与引据表「感知度量、非通道差」一致；"
+       + "文字色改按 WCAG 相对亮度，纯红 L=0.2126（取 0.213，旧 YIQ 0.299）⇒ 与白对比 4.0:1、与黑 5.25:1，应选黑字。"
+       + "默认查询态输出不含 DE76/WLUM 串。",
+  },
+  {
+    slug: "life/world-clock",
+    clicks: [
+      "var bad=ALL_CITIES.filter(function(c){try{new Intl.DateTimeFormat('en-US',{timeZone:c.id});return false;}catch(e){return true;}});document.getElementById('clockGrid').innerHTML='BADCOUNT='+bad.length;",
+    ],
+    expect: ["BADCOUNT=0"],
+    ref: "IANA 时区 ID 必须被 Intl 接受。修复前 America/Miami、America/Seattle、America/Boston、America/Honolulu、"
+       + "America/Rio_de_Janeiro、Asia/Doha 共 6 个非法 ID ⇒ Intl 抛 RangeError、对应时钟恒为「--:--:--」；"
+       + "现 73 个 ID 全部合法、无重复 ⇒ 计数 0。默认时钟网格不含 BADCOUNT 串。",
+  },
+  {
+    slug: "life/zodiac-calculator",
+    inputs: { birthDate: "2000-02-29" },
+    expect: ["2000年2月29日"],
+    ref: "出生日期按本地年月日构造（new Date(2000,1,29)）而非 new Date('2000-02-29') 的 UTC 解析："
+       + "后者在 UTC 负时区会回退到 2 月 28 日。2000 年为闰年、2 月 29 日存在 ⇒ 回显必须与输入一致。"
+       + "默认值为 25 年前的日期（1999-06-15），不命中。",
+  },
+  {
+    slug: "life/generator-price",
+    inputs: { unitPrice: "20000", qty: "3", taxRate: "13", discountRate: "25" },
+    expect: ["合同总额：¥50,850", "预付款（30%）：¥15,255", "尾款：¥35,595", "违约金（10%）：¥5,085"],
+    ref: "先折扣后计税：小计 20000×3=60000，折扣 60000×25%=15000，净额 45000，税额 45000×13%=5850，"
+       + "总额 round(50850)=50850；预付款 round(50850×30%)=round(15255)=15255，尾款 50850−15255=35595，"
+       + "违约金 round(5085)=5085。默认输入为 10000/2/6/10（总额 19080），注入值不同 ⇒ 旧随机生成器不可能命中固定四值。",
+  },
+  {
+    slug: "life/chinese-number",
+    inputs: { inputVal: "54321.78" },
+    expect: ["五万四千三百二十一点七八", "伍万肆仟叁佰贰拾壹元柒角捌分"],
+    ref: "简体读数 54321 → 五万四千三百二十一、小数逐位「点七八」；人民币大写按分量化："
+       + "伍万肆仟叁佰贰拾壹元柒角捌分（54321.78 元）。默认 12345.67 ⇒ 注入值不同，旧实现也不会命中该组串。",
+  },
+  {
+    slug: "life/chinese-number",
+    inputs: { inputVal: "10086" },
+    expect: ["一万零八十六"],
+    ref: "10086 = 1×10000 + 86，节内补「零」⇒ 一万零八十六（deep-dive 示例值）。"
+       + "默认 12345.67 的读数不含该串 ⇒ 注入失败即不命中。",
+  },
+  {
+    slug: "life/cycle-pruning-lawn",
+    clicks: ["document.getElementById('lawnList').innerHTML='PARSE='+fmtDate(parseLocalDate('2024-02-29'));"],
+    expect: ["PARSE=2024-02-29"],
+    ref: "日期字符串必须按本地年月日解析（new Date(2024,1,29)），闰日 2 月 29 日往返格式化仍为 2024-02-29；"
+       + "旧实现 new Date('2024-02-29') 按 UTC 解析，在 UTC 负时区会回退到 2 月 28 日。默认草坪列表不含 PARSE 串。",
+  },
+  {
+    slug: "life/reminder-cycle",
+    clicks: ["document.getElementById('applList').innerHTML='PARSE='+fmtDate(parseLocalDate('2024-02-29'));"],
+    expect: ["PARSE=2024-02-29"],
+    ref: "同上：周期提醒的下次日期基于本地闰日解析，2 月 29 日往返不偏移；旧 UTC 解析在负时区回退一天。"
+       + "默认提醒列表不含 PARSE 串。",
+  },
+
+  // ── 日期差（闰日跨年：本地年月日构造 + 含开始日）────────────────
+  {
+    slug: "life/date-difference-calculator",
+    inputs: { startDate: "2024-02-29", endDate: "2025-03-01" },
+    expect: ["367 天", "从 2024-02-29 到 2025-03-01", "1年1月"],
+    ref: "闰日跨年：2024-02-29 → 2025-03-01 时间戳差 366 天，含开始日 +1 = 367 天；"
+       + "2024-02 → 2025-03 共 13 个月 = 1年1月。日期控件按本地年月日构造，"
+       + "负时区不因 UTC 解析回退到 2/28（默认 6 月区间不含这三条锚）。",
+  },
+
+  // ── 密码生成器（随机源审计 B 类：长度 × 字符集）────────────────────
+  {
+    slug: "life/generator-strength",
+    checkIds: ["lower", "upper", "nums"],
+    clicks: [
+      'gen();(function(){var p=document.getElementById("mainPwd").textContent;var ok=p.length===16&&/^[A-Za-z0-9]+$/.test(p);document.getElementById("mainPwd").textContent=ok?"STRENGTH-PWD-FMT-OK-16":"STRENGTH-PWD-FMT-FAIL:"+p.length;})()'
+    ],
+    expect: ["STRENGTH-PWD-FMT-OK-16"],
+    ref: "只勾小写+大写+数字（未勾符号）⇒ 字符池 62；长度默认 16、数量默认 1 ⇒ 主密码 16 位且仅含 [A-Za-z0-9]。随机内容不可断言，故锚长度与字符集。默认 harness 下所有复选框为 false，页面自跑 gen() 走 resetPwdState 输出「请至少选择一种字符类型」，不含该标记。生成路径已改 secureInt（crypto.getRandomValues + 拒绝采样）。",
+  },
+
+  // ── 2026-11-05：温度绝对零度下界 + 日期加减月末夹取 ────────────────
+  {
+    slug: "life/temperature-converter",
+    inputs: { celsius: "-300" },
+    expect: ["温度不能低于绝对零度"],
+    ref: "−300℃ 低于绝对零度 −273.15℃：旧实现照算得 −26.85K（负开尔文无意义）。现拒绝换算并提示；"
+       + "默认 25℃ 不显示提示 ⇒ 注入失败不命中。",
+  },
+  {
+    slug: "life/temperature-converter",
+    inputs: { celsius: "-273.15" },
+    expect: ["-273.15\n-459.67\n0.00"],
+    ref: "绝对零度边界应放行：−273.15℃ = 0.00K = −459.67℉（C+273.15、C×9/5+32）。"
+       + "需锚连续跨字段串「-273.15\\n-459.67\\n0.00」：单锚「-459.67」「0.00」会命中页面静态说明/公式示例文本，注入失败仍 PASS（逃生项）。默认 25℃ 输出 25.00/77.00/298.15，不命中。",
+  },
+  {
+    slug: "life/temperature-converter",
+    inputs: { celsius: "0" },
+    expect: ["0.00\n32.00\n273.15"],
+    ref: "0℃ = 32.00℉ = 273.15K（水的冰点）。同样用三字段连续串，避开静态参考表中的 273.15 单值；"
+       + "默认 25℃ ⇒ 25.00/77.00/298.15，注入失败不命中。",
+  },
+  {
+    slug: "life/temperature-converter",
+    inputs: { kelvin: "-10" },
+    expect: ["温度不能低于绝对零度"],
+    ref: "K 输入越界：−10K = −283.15℃ < −273.15℃ ⇒ 拒绝并提示（此前只校验 ℃ 输入）。"
+       + "默认 K 为空、无提示 ⇒ 可判别。",
+  },
+  {
+    slug: "life/temperature-converter",
+    inputs: { fahrenheit: "-500" },
+    expect: ["温度不能低于绝对零度"],
+    ref: "℉ 输入越界：−500℉ = −284.44℃ < −273.15℃ ⇒ 拒绝；绝对零度 −459.67℉ 本身放行。"
+       + "默认 ℉ 为空、无提示 ⇒ 可判别。",
+  },
+  {
+    slug: "life/date-difference-calculator",
+    inputs: { baseDate: "2024-01-31", addYears: "0", addMonths: "1", addWeeks: "0", addDays: "0" },
+    expect: ["2024-02-29"],
+    ref: "月末夹取（闰年）：2024-01-31 加 1 个月，旧实现 setMonth 溢出到 3/2；"
+       + "现夹到目标月最后一天 = 2024-02-29。默认 baseDate 为空（提示「请选择基准日期」）⇒ 注入失败不命中。",
+  },
+  {
+    slug: "life/date-difference-calculator",
+    inputs: { baseDate: "2023-01-31", addYears: "0", addMonths: "1", addWeeks: "0", addDays: "0" },
+    expect: ["2023-02-28"],
+    ref: "月末夹取（平年）：2023-01-31 +1 月 → 2023-02-28（旧 setMonth 溢出到 3/3）；"
+       + "与闰年用例（2024-02-29）互为判别，证明按目标月天数夹取而非固定 28。",
   }
 
 ];

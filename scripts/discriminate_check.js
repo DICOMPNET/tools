@@ -11,25 +11,97 @@
  *   （实测 68 例改造中，6 例通过了零交集断言却在注入失败时仍 PASS）。
  *
  * 做法：
- *   对用例的 inputs 逐键换回页面 HTML 里的 value 默认值（模拟注入失败），
+ *   对用例的 inputs 逐键换回页面 HTML 里的默认值（模拟注入失败），
  *   然后跑 runCase —— 用例必须 FAIL。仍 PASS 的即含逃生项，需收紧 expect。
  *
- * 用法：
- *   node scripts/discriminate_check.js                       # 全站（慢）
- *   node scripts/discriminate_check.js verify_energy_calc.js # 指定脚本
+ * 产出完整性（2026-11-05 新增，堵「静默退出 = exit 0 = CI 通过」）：
+ *   - 全站模式改为**逐文件子进程**跑：任何单个页面的用例把进程静默干掉，
+ *     只影响它自己的子进程，父进程照常汇总并打印统计行；
+ *   - 父进程注册 exit 钩子：只要没打印统计行就强制 exit 1（绝不静默退出）；
+ *   - 统计行缺失、`已检 = 0`、`已检 < TB_DISCRIM_MIN`（默认 8000）一律 FAIL；
+ *   - 子进程无统计行的文件单独列为「隔离跑」，可显式报告，不吞掉；
+ *     「有隔离文件」默认判 FAIL（子进程无统计行 = 该文件用例从未被判别）；本地排障可
+ *     设 `TB_DISCRIM_STRICT_CHILD=0` 临时放宽。
  *
- * 退出码：0 = 全部用例判别力有效；1 = 发现逃生项。
+ * 用法：
+ *   node scripts/discriminate_check.js                        # 全站（逐文件隔离子进程）
+ *   node scripts/discriminate_check.js verify_energy_calc.js  # 指定脚本（单进程严格模式）
+ *   node scripts/discriminate_check.js --selftest             # 自检：证明上述防线真的会变红
+ *
+ * 环境变量：
+ *   TB_STUB_FIDELITY=1     启用桩保真解析（默认 legacy）
+ *   TB_STUB_LEGACY=1       强制回 legacy（逃生开关，优先级最高）
+ *   TB_DISCRIM_MIN=N       已检下限（默认 8000）
+ *   TB_DISCRIM_REPORT=1    额外输出 `REPORT <json>` 行（逐条用例明细，供工单/取证）
+ *   TB_DISCRIM_CHILD_TIMEOUT=ms  单文件子进程超时（默认 120000）
+ *
+ * 退出码：0 = 全部用例判别力有效；1 = 发现逃生项 / 产出不完整 / 低于已检下限。
  */
 const fs = require("fs");
 const path = require("path");
+const { spawnSync } = require("child_process");
 
+// 全站模式：用例全部在逐文件子进程里执行，父进程自身 __executedCases 恒 0。
+// 告知 verify_it_calc 的「0 用例守卫」不要按父进程判红（子进程 argv 含文件名，不受影响）。
+process.env.TB_DISCRIM_PARENT = "1";
 const ARGV = process.argv.slice(2);        // 必须提前保存：verify_it_calc.js 运行期会替换 process
 const REAL_PROCESS = process;             // 同上：运行期写 REAL_PROCESS.exitCode 无效，须用真实引用
+// 同理保存真实 console.log：tools/it/code-runner.html 会在用例里改写 window.console，
+// 直接用 console.log 的话，跑过该页之后所有输出（含最终汇总）都会被吞掉。
+const REAL_LOG = console.log.bind(console);
 const ROOT = path.resolve(__dirname, "..");
 const { runCase } = require(path.join(ROOT, "scripts", "verify_it_calc.js"));
+const stub = require(path.join(ROOT, "scripts", "lib_stub.js"));
+// 动态 id 默认值：页面 JS 运行期拼 innerHTML 生成的控件（id="pt'+i+'" 等），
+// 静态解析取不到 ⇒ 此前一律 unresolved 跳过。解析器只读、纯内存桩。
+const { dynamicDefaults } = require(path.join(ROOT, "scripts", "lib_dynamic_defaults.js"));
+const DYN_DEFAULTS_CACHE = new Map();   // slug -> { [id]: default }
+// 逃生开关（仅排障用）：TB_DYN_DEFAULTS=0 关闭动态默认值解析，回到「动态 id ⇒ unresolved」旧口径，
+// 用于复核「改前基线」或定位「解析后 skip→PASS」的归属。
+const DYN_DISABLED = process.env.TB_DYN_DEFAULTS === "0";
+
+const FILES_ONLY = ARGV.filter((a) => !a.startsWith("--"));
+const SELFTEST = ARGV.includes("--selftest");
+const MIN_CHECKED = Number(process.env.TB_DISCRIM_MIN || 8000);
+const CHILD_TIMEOUT = Number(process.env.TB_DISCRIM_CHILD_TIMEOUT || 120000);
+// 单条用例超时：harness 兜底阶段会无参调用页面全部顶层函数，若某函数返回一个「永不
+// settle 的 Promise」（如 office/pdf-split 的 pdfjsReady() 轮询在桩定时器预算耗尽后
+// 再也不会 resolve/reject），await 就永远挂住 —— 子进程静默退出、整个文件被判隔离，
+// 其用例从未真正判别。用 Promise.race 给每条用例兜底：超时按 FAIL 计（注入失败时该
+// 用例没有 PASS，属负向证据成立），并单独打印 ⏱ 行便于追溯，不放宽任何判定。
+const CASE_TIMEOUT = Number(process.env.TB_DISCRIM_CASE_TIMEOUT || 15000);
+const REPORT = process.env.TB_DISCRIM_REPORT === "1";
+// 默认严格：任何「无统计行的隔离文件」都必须判 FAIL（其用例全部逃过判别）。
+const STRICT_CHILD = process.env.TB_DISCRIM_STRICT_CHILD !== "0";
+
+// ---------------------------------------------------------------- 产出完整性断言
+// 关键：任何「没跑到终点就退出」都必须变成 exit 1。Node 在事件循环为空时会静默
+// exit 0（如 office/pdf-split 的 pdfjsReady 轮询 Promise 在 harness 内永不 settle，
+// 定时器又不持有事件循环）—— 这种情况此前会被 CI 当成「全站 0 逃生」通过。
+let statsPrinted = false;
+REAL_PROCESS.on("exit", () => {
+  if (statsPrinted) return;
+  try {
+    REAL_PROCESS.stdout.write("\n❌ 产出不完整：未打印统计行（疑似静默退出），强制 exit 1\n");
+  } catch (e) { /* 忽略输出失败，仍要改退出码 */ }
+  REAL_PROCESS.exitCode = 1;
+});
+
+/** 统一判断「这一轮统计是否可信」，返回问题清单（空 = 通过） */
+function integrityProblems(agg, opts) {
+  const p = [];
+  if (agg.total === 0) p.push("已检 = 0（整轮没有真正执行任何用例）");
+  else if (opts.enforceMin && agg.total < MIN_CHECKED) {
+    p.push(`已检 ${agg.total} < 既定下限 ${MIN_CHECKED}（疑似跑到一半就退出）`);
+  }
+  if (opts.isolatedCount && STRICT_CHILD) {
+    p.push(`有 ${opts.isolatedCount} 个 verify 文件无统计行（静默退出，未计入总量）`);
+  }
+  return p;
+}
 
 /** 从页面 HTML 提取 input/select 的 id → 默认值（截断 deep-dive，避免抓到示例） */
-function pageDefaults(slug) {
+function pageDefaults(slug, wanted) {
   const fp = path.join(ROOT, "tools", slug + ".html");
   if (!fs.existsSync(fp)) return null;
   const raw = fs.readFileSync(fp, "utf8");
@@ -43,49 +115,33 @@ function pageDefaults(slug) {
   const CTRL = /<(?:input|select|textarea)\b/i;
   if (cut > 0 && !CTRL.test(body) && CTRL.test(raw)) body = raw;
   const out = {};
-  // 1) <input> 的 value 默认
-  const re = /<input\b[^>]*>/g;
-  let m;
-  while ((m = re.exec(body))) {
-    const tag = m[0];
-    const id = (tag.match(/id=["']([^"']+)["']/) || [])[1];
-    const val = (tag.match(/value=["']([^"']*)["']/) || [])[1];
-    // 复选框/单选/按钮的 `value` 不是页面读取的「输入值」（页面读 .checked），
-    // 把它们「回退空串」既无意义、又会把行为等同默认的用例误报成逃生项 ⇒ 跳过。
-    const typ = ((tag.match(/type=["']([^"']*)["']/) || [])[1] || "text").toLowerCase();
-    if (!id || /^(checkbox|radio|button|submit|reset|file|image)$/.test(typ)) continue;
-    // 无 value 属性 ⇒ 真机默认空串（与 runCase 的 defaults/sel 口径一致）。
-    // 旧版直接丢弃这类键 ⇒ 判别器无法把它们换回默认 ⇒ 整例被判「跳过」而漏检。
-    // 「首次出现优先」（2026-09-24）：部分页面存在**重复 id**（多页签结构，如
-    // engineering/heat-transfer 有两个 id="k"，value 分别 50 与 0.04）。浏览器
-    // getElementById 返回**第一个**，旧版循环覆盖会取到最后一个 ⇒ 与真机默认不符，
-    // 导致「注入值恰等于末个同名控件的默认值」时 usable=false，整例又被静默跳过。
-    if (out[id] === undefined) out[id] = val !== undefined ? val : "";
-  }
-  // 2) <select> 的默认选中项（selected option 优先，否则取首个 option）
-  //    关键修复：旧版只抓 input，导致 select 类输入（如 hirschberg 的 fixing/reflex）
-  //    永远无法「换回默认」→ 判别力校验误报逃生项。真实测试其实有效（默认「正位」/
-  //    非默认「明显眼位偏斜」经 probe 实测确认），是校验器盲区而非盲区用例。
-  const selRe = /<select\b[^>]*\bid=["']([^"']+)["'][^>]*>([\s\S]*?)<\/select>/g;
-  // 3) <textarea> 默认值（如各分析/统计页的 id="data" 多值输入）
-  //    关键修复（2026-09-20）：旧版 pageDefaults 不解析 textarea，导致「注入失败」模拟
-  //    永远无法把 textarea 类输入换回默认 → 这类用例被误报为「逃生项」（实为校验器盲区），
-  //    同时真正依赖 textarea 默认值的弱用例也从未被本门禁覆盖（基线注释已记录此缺口）。
-  //    补齐后与 runCase 的 defaults 提取口径一致：textarea 也能被回退、被真实校验。
-  const taRe = /<textarea[^>]*id=["']([^"']+)["'][^>]*>([\s\S]*?)<\/textarea>/g;
-  let ta;
-  while ((ta = taRe.exec(body))) {
-    if (out[ta[1]] === undefined) {
-      out[ta[1]] = ta[2].replace(/&#10;/g, "\n").replace(/&quot;/g, '"').replace(/&amp;/g, "&");
+  // 默认走 legacy（TB_STUB_FIDELITY=1 才启用保真解析；TB_STUB_LEGACY=1 永久逃生）。
+  if (!stub.stubFidelity()) {
+    Object.assign(out, stub.legacyPageDefaults(body));
+  } else {
+    // 1) <input> 的 value 默认（共用 lib_stub：属性顺序/引号无关；跳过 checkbox/radio）
+    Object.assign(out, stub.parseInputDefaults(body, { skipTypes: /^(checkbox|radio|button|submit|reset|file|image)$/ }));
+    // 2) <textarea> 初始文本（首次出现优先，input 同名时不覆盖）
+    for (const [id, v] of Object.entries(stub.parseTextareaDefaults(body))) {
+      if (out[id] === undefined) out[id] = v;
+    }
+    // 3) <select> 默认选中项（共用 lib_stub：尊重 selected，两种写法皆可，无则回退首个）
+    for (const [id, opts] of Object.entries(stub.parseSelects(body))) {
+      if (out[id] === undefined) out[id] = stub.selectDefault(opts);
     }
   }
-  let s;
-  while ((s = selRe.exec(body))) {
-    const id = s[1];
-    const inner = s[2];
-    const sel = inner.match(/<option[^>]*\bselected\b[^>]*value=["']([^"']*)["']/i)
-             || inner.match(/<option[^>]*value=["']([^"']*)["']/i);
-    if (out[id] === undefined) out[id] = sel ? sel[1] : "";
+  // 4) 静态解析不到的键 → 执行页面渲染函数，读动态生成控件的默认值。
+  //    只补缺失键（wanted 由用例 inputs 提供），无缺失时不跑，避免全站无谓开销。
+  if (!DYN_DISABLED && Array.isArray(wanted) && wanted.length) {
+    const missing = wanted.filter((k) => out[k] === undefined);
+    if (missing.length) {
+      let dyn = DYN_DEFAULTS_CACHE.get(slug);
+      if (dyn === undefined) {
+        try { dyn = dynamicDefaults(raw); } catch (e) { dyn = {}; }
+        DYN_DEFAULTS_CACHE.set(slug, dyn);
+      }
+      for (const k of missing) if (dyn[k] !== undefined) out[k] = dyn[k];
+    }
   }
   return out;
 }
@@ -96,100 +152,314 @@ function listFiles() {
     .sort();
 }
 
-(async () => {
-  const args = ARGV;
-  const files = args.length ? args : listFiles();
+/** 文件解析：支持 scripts/ 下的裸文件名，也支持自检用的绝对路径（/tmp 假 harness） */
+function resolveFile(f) {
+  return path.isAbsolute(f) ? f : path.join(ROOT, "scripts", f);
+}
 
-  let total = 0, stillPass = 0, fail = 0, skipped = 0;
+function reportRec(obj) {
+  if (REPORT) REAL_PROCESS.stdout.write("REPORT " + JSON.stringify(obj) + "\n");
+}
+
+/** 单条用例带超时执行：返回值与 runCase 相同；超时抛 message=CASE_TIMEOUT 的错误 */
+async function runCaseGuarded(c) {
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error("CASE_TIMEOUT")), CASE_TIMEOUT);
+  });
+  try { return await Promise.race([runCase(c), timeout]); }
+  finally { clearTimeout(timer); }
+}
+
+/** 单文件用例扫描（子进程与单进程严格模式共用）；返回统计与逃生清单 */
+async function sweepFile(f) {
+  const stats = { total: 0, fail: 0, stillPass: 0, skipped: 0 };
   const bad = [];
+  const fp = resolveFile(f);
+  if (!fs.existsSync(fp)) { REAL_LOG("SKIP(不存在)", f); return { stats, bad }; }
+  const src = fs.readFileSync(fp, "utf8");
+  const m = src.match(/const CASES = (\[[\s\S]*?\n\]);/);
+  if (!m) { REAL_LOG("SKIP(无 CASES)", f); return { stats, bad }; }
+  let CASES;
+  try { CASES = eval(m[1]); } catch (e) { REAL_LOG("SKIP(解析失败)", f, e.message); return { stats, bad }; }
 
-  for (const f of files) {
-    const fp = path.join(ROOT, "scripts", f);
-    if (!fs.existsSync(fp)) { console.log("SKIP(不存在)", f); continue; }
-    const src = fs.readFileSync(fp, "utf8");
-    const m = src.match(/const CASES = (\[[\s\S]*?\n\]);/);
-    if (!m) { console.log("SKIP(无 CASES)", f); continue; }
-    let CASES;
-    try { CASES = eval(m[1]); } catch (e) { console.log("SKIP(解析失败)", f, e.message); continue; }
+  for (const c of CASES) {
+    // checkIds（复选框选中态）/ radios（单选组取值）/ clicks（click 驱动页的模拟点击序列）
+    // 是 2026-09-24 起 harness 支持的注入字段，与 inputs 等价地构成「被测输入」。
+    // 模拟注入失败 = 一并清空这三者。
+    const hasInj =
+      (Array.isArray(c.checkIds) && c.checkIds.length > 0) ||
+      (c.radios && Object.keys(c.radios).length > 0) ||
+      (Array.isArray(c.clicks) && c.clicks.length > 0);
+    const clearInject = { checkIds: [], radios: {}, checks: [], clicks: [] };
+    // checks（声明「已选中项」的 value）同样构成真实注入，但它可能只作 inputs 的修饰项，
+    // 故仅在「无 inputs」分支并入适用性判定（与 selfcheck_false_pass.weakKind 口径一致）：
+    // 否则纯 checks 驱动的量表页会被计入 skipped 而漏检。
+    const hasChecks = Array.isArray(c.checks) && c.checks.length > 0;
+    const base = { file: f, slug: c.slug, ref: c.ref || "", expect: c.expect || [] };
 
-    for (const c of CASES) {
-      // checkIds（复选框选中态）/ radios（单选组取值）/ clicks（click 驱动页的模拟点击序列）
-      // 是 2026-09-24 起 harness 支持的注入字段，与 inputs 等价地构成「被测输入」。
-      // 模拟注入失败 = 一并清空这三者。
-      const hasInj =
-        (Array.isArray(c.checkIds) && c.checkIds.length > 0) ||
-        (c.radios && Object.keys(c.radios).length > 0) ||
-        (Array.isArray(c.clicks) && c.clicks.length > 0);
-      const clearInject = { checkIds: [], radios: {}, checks: [], clicks: [] };
-      // checks（声明「已选中项」的 value）同样构成真实注入，但它可能只作 inputs 的修饰项，
-      // 故仅在「无 inputs」分支并入适用性判定（与 selfcheck_false_pass.weakKind 口径一致）：
-      // 否则纯 checks 驱动的量表页会被计入 skipped 而漏检。
-      const hasChecks = Array.isArray(c.checks) && c.checks.length > 0;
-      if (!c.inputs || Object.keys(c.inputs).length === 0) {
-        if (!hasInj && !hasChecks) { skipped++; continue; }   // 真正无任何注入的用例不适用
-        // 清空复选框/单选注入 → 页面回到「全未勾选」态，expect 必须失配，否则即逃生项。
-        total++;
-        let r0;
-        try { r0 = await runCase(Object.assign({}, c, clearInject)); }
-        catch (e) { fail++; continue; }
-        if (r0.ok) { stillPass++; bad.push(`${c.slug} (via=${r0.via})`); }
-        else fail++;
-        continue;
+    if (!c.inputs || Object.keys(c.inputs).length === 0) {
+      if (!hasInj && !hasChecks) {
+        stats.skipped++;
+        reportRec(Object.assign({}, base, { kind: "skip", why: "no-inject", inputs: {} }));
+        continue;   // 真正无任何注入的用例不适用
       }
-      const defs = pageDefaults(c.slug);
-      if (!defs) { skipped++; continue; }
-      const injected = {};
-      let usable = hasInj;   // 有复选框/单选注入时，即便 inputs 全为默认值也可模拟失败
-      for (const k of Object.keys(c.inputs)) {
-        if (defs[k] !== undefined && String(defs[k]) !== String(c.inputs[k])) {
-          injected[k] = String(defs[k]);   // 换回默认值 = 模拟注入失败
-          usable = true;
-        } else {
-          injected[k] = String(c.inputs[k]);
+      // 清空复选框/单选注入 → 页面回到「全未勾选」态，expect 必须失配，否则即逃生项。
+      stats.total++;
+      let r0;
+      try { r0 = await runCaseGuarded(Object.assign({}, c, clearInject)); }
+      catch (e) {
+        if (e && e.message === "CASE_TIMEOUT") {
+          REAL_LOG(`⏱ ${c.slug} 用例超时 ${CASE_TIMEOUT}ms（无参兜底函数返回永不 settle 的 Promise），按注入失败态计 FAIL`);
         }
+        stats.fail++; continue;
       }
-      if (!usable) { skipped++; continue; }  // 注入值本就等于默认值，无法模拟
-      total++;
-      let r;
-      try { r = await runCase(Object.assign({}, c, { inputs: injected }, clearInject)); }
-      catch (e) { fail++; continue; }
-      if (r.ok) { stillPass++; bad.push(`${c.slug} (via=${r.via})`); }
-      else fail++;
+      if (r0.ok) {
+        stats.stillPass++;
+        bad.push(`${c.slug} (via=${r0.via})`);
+        reportRec(Object.assign({}, base, {
+          kind: "escape", via: r0.via, why: "clear-inject-still-pass",
+          inputs: c.inputs || {}, checkIds: c.checkIds || [], radios: c.radios || {}, clicks: c.clicks || [],
+        }));
+      } else stats.fail++;
+      continue;
     }
+    const defs = pageDefaults(c.slug, Object.keys(c.inputs));
+    if (!defs) {
+      stats.skipped++;
+      reportRec(Object.assign({}, base, { kind: "skip", why: "no-page", inputs: c.inputs }));
+      continue;
+    }
+    const injected = {};
+    let usable = hasInj;   // 有复选框/单选注入时，即便 inputs 全为默认值也可模拟失败
+    const sameAsDefault = [];
+    const unresolved = [];
+    for (const k of Object.keys(c.inputs)) {
+      if (defs[k] !== undefined && String(defs[k]) !== String(c.inputs[k])) {
+        injected[k] = String(defs[k]);   // 换回默认值 = 模拟注入失败
+        usable = true;
+      } else {
+        injected[k] = String(c.inputs[k]);
+        if (defs[k] !== undefined) sameAsDefault.push({ id: k, def: String(defs[k]), injected: String(c.inputs[k]) });
+        else unresolved.push(k);
+      }
+    }
+    if (!usable && !hasInj) {
+      stats.skipped++;
+      // 区分两类跳过（口径必须分开，否则工单会把「控件解析不到」误当成 all_default 弱用例）：
+      //   all-default  —— 所有键都能解析到默认值，且注入值恰好等于默认值（真弱用例）
+      //   unresolved   —— 至少一个键在页面 HTML 里找不到默认值（桩/页面解析缺口，需人工）
+      reportRec(Object.assign({}, base, {
+        kind: "skip",
+        why: unresolved.length ? "unresolved" : "all-default",
+        inputs: c.inputs, sameAsDefault, unresolved,
+        defaults: defs,
+      }));
+      continue;  // 注入值本就等于默认值，无法模拟
+    }
+    stats.total++;
+    let r;
+    try { r = await runCaseGuarded(Object.assign({}, c, { inputs: injected }, clearInject)); }
+    catch (e) {
+      if (e && e.message === "CASE_TIMEOUT") {
+        REAL_LOG(`⏱ ${c.slug} 用例超时 ${CASE_TIMEOUT}ms（无参兜底函数返回永不 settle 的 Promise），按注入失败态计 FAIL`);
+      }
+      stats.fail++; continue;
+    }
+    if (r.ok) {
+      stats.stillPass++;
+      bad.push(`${c.slug} (via=${r.via})`);
+      reportRec(Object.assign({}, base, {
+        kind: "escape", via: r.via, why: "revert-to-default-still-pass",
+        inputs: c.inputs || {}, checkIds: c.checkIds || [], radios: c.radios || {}, clicks: c.clicks || [],
+        reverted: injected,
+      }));
+    } else stats.fail++;
   }
+  return { stats, bad };
+}
 
-  console.log(`\n==== 判别力验证（模拟注入失败 → 用例应 FAIL）====`);
-  console.log(`已检: ${total} | 正确变红: ${fail} | 仍 PASS(逃生项): ${stillPass} | 跳过: ${skipped}`);
-  if (bad.length) {
-    console.log("\n仍 PASS（expect 含不依赖被测点的逃生项，需收紧）:");
-    bad.forEach((b) => console.log("  -", b));
+/** 解析子进程输出里的统计行 */
+const STATS_RE = /已检: (\d+) \| 正确变红: (\d+) \| 仍 PASS\(逃生项\): (\d+) \| 跳过: (\d+)/;
+
+/** 单文件隔离跑：子进程 + 超时 kill；无统计行 = 该文件静默退出，单独报告 */
+function runIsolated(f) {
+  const r = spawnSync(REAL_PROCESS.execPath, [__filename, f], {
+    cwd: ROOT, encoding: "utf8", timeout: CHILD_TIMEOUT, env: REAL_PROCESS.env,
+  });
+  const out = (r.stdout || "") + (r.stderr || "");
+  const m = out.match(STATS_RE);
+  if (!m) {
+    const why = r.status === null
+      ? `超时或被信号终止（${r.signal || "?"}）`
+      : `无统计行就退出（exit ${r.status}）`;
+    return { ok: false, why, out };
   }
+  const totals = { total: +m[1], fail: +m[2], stillPass: +m[3], skipped: +m[4] };
+  const bad = out.split("\n").map((l) => l.trim()).filter((l) => l.startsWith("- ")).map((l) => l.slice(2));
+  return { ok: true, totals, bad };
+}
 
-  // 基线防回归：存量逃生项入基线，只准降不准增；新增逃生项立即变红。
-  // 仅在「全站模式」下比对基线（指定单个脚本时按严格模式：有任何逃生项即红）。
-  const isFullSite = !ARGV.length;
-  const BASE_FP = path.join(ROOT, "scripts", "discriminate_baseline.json");
-  if (isFullSite && fs.existsSync(BASE_FP)) {
-    const base = JSON.parse(fs.readFileSync(BASE_FP, "utf8"));
-    if (stillPass > base.escape) {
-      console.log(`\n❌ 突破基线：逃生项 ${stillPass} > 基线 ${base.escape}（新增 ${stillPass - base.escape} 个）`);
-      REAL_PROCESS.exitCode = 1;   // 注意：verify_it_calc.js 会覆盖 process.exit，只能用 exitCode
+// ---------------------------------------------------------------- 自检（证明防线有效）
+function selftest() {
+  let failed = 0;
+  const say = (ok, msg) => { REAL_LOG((ok ? "  ✅ " : "  ❌ ") + msg); if (!ok) failed++; };
+
+  // ① 静默退出（未打印统计行）必须变红：子进程模拟「跑到一半就 return」
+  const silent = spawnSync(REAL_PROCESS.execPath, [__filename, "--selftest-silent-parent"], {
+    cwd: ROOT, encoding: "utf8",
+    env: Object.assign({}, REAL_PROCESS.env, { TB_DISCRIM_SELFTEST_SILENT: "1" }),
+  });
+  say(silent.status === 1, `未打印统计行就跑完 → exit ${silent.status}（期望 1）`);
+
+  // ② 只跑 3 条的假 harness：低于已检下限必须判 FAIL
+  const fakePath = path.join(require("os").tmpdir(), "_disc_selftest_fake_calc.js");
+  fs.writeFileSync(fakePath, [
+    "const CASES = [",
+    '  { slug: "office/pdf-split", inputs: {}, clicks: ["process.exit(0)"], expect: ["x"], ref: "selftest" },',
+    "];",
+    "",
+  ].join("\n"));
+  const truncated = (() => {
+    // 子进程静默退出是「无统计行」的唯一可靠模拟：页面作用域里 process 不可达
+    // （clicks 里的 process.exit(0) 会被 sandbox 拦成普通异常），故用测试专用环境变量
+    // 让子进程在扫描前直接退出（见文件末尾 TB_DISCRIM_SELFTEST_SILENT 分支）。
+    REAL_PROCESS.env.TB_DISCRIM_SELFTEST_SILENT = "1";
+    try { return runIsolated(fakePath); }
+    finally { delete REAL_PROCESS.env.TB_DISCRIM_SELFTEST_SILENT; }
+  })();
+  say(!truncated.ok, `子进程静默退出（无统计行）→ ${truncated.ok ? "被当成通过" : "识别为隔离：" + truncated.why}`);
+
+  // ③ 统计行存在但已检过低 → 下限守卫必须变红
+  const problems = integrityProblems({ total: 3, fail: 3, stillPass: 0, skipped: 0 }, { enforceMin: true });
+  say(problems.length > 0, `已检=3 < 下限 ${MIN_CHECKED} → ${problems.length ? "判 FAIL：" + problems[0] : "被放过"}`);
+
+  // ④ 正常规模统计行 → 守卫不应误伤
+  const okProblems = integrityProblems({ total: 9000, fail: 8998, stillPass: 2, skipped: 54 }, { enforceMin: true });
+  say(okProblems.length === 0, `已检=9000 → ${okProblems.length ? "误判 FAIL：" + okProblems[0] : "正常放行"}`);
+
+  // ⑤ 隔离文件（子进程无统计行）：默认严格必须判 FAIL（只有 TB_DISCRIM_STRICT_CHILD=0 才放宽）
+  const isoProblems = integrityProblems(
+    { total: 9000, fail: 8990, stillPass: 0, skipped: 55 },
+    { enforceMin: true, isolatedCount: 1 }
+  );
+  say(
+    isoProblems.some((x) => x.includes("无统计行")),
+    `默认严格：1 个隔离文件 → ${isoProblems.length ? "判 FAIL：" + isoProblems[0] : "被放过"}`,
+  );
+
+  REAL_LOG(failed ? `\n❌ 自检失败 ${failed} 项` : "\n✅ 自检通过：静默退出/截断跑/低总量均会变红");
+  statsPrinted = true;   // 自检本身已完整输出，勿触发「产出不完整」钩子
+  REAL_PROCESS.exitCode = failed ? 1 : 0;
+}
+
+// 模拟「跑到一半就 return」：不打印任何统计行直接退出（供 --selftest 的第 ① 项）
+if (process.env.TB_DISCRIM_SELFTEST_SILENT === "1") {
+  REAL_PROCESS.exitCode = 0;
+  return;
+}
+
+(async () => {
+  if (SELFTEST) return selftest();
+
+  // ---------- 单文件严格模式（argv 指定脚本）：行为与历史版本一致
+  if (FILES_ONLY.length) {
+    const agg = { total: 0, fail: 0, stillPass: 0, skipped: 0 };
+    const bad = [];
+    for (const f of FILES_ONLY) {
+      const r = await sweepFile(f);
+      agg.total += r.stats.total; agg.fail += r.stats.fail;
+      agg.stillPass += r.stats.stillPass; agg.skipped += r.stats.skipped;
+      bad.push(...r.bad);
+    }
+    REAL_LOG(`\n==== 判别力验证（模拟注入失败 → 用例应 FAIL）====`);
+    REAL_LOG(`已检: ${agg.total} | 正确变红: ${agg.fail} | 仍 PASS(逃生项): ${agg.stillPass} | 跳过: ${agg.skipped}`);
+    statsPrinted = true;
+    if (bad.length) {
+      REAL_LOG("\n仍 PASS（expect 含不依赖被测点的逃生项，需收紧）:");
+      bad.forEach((b) => REAL_LOG("  -", b));
+    }
+    const problems = integrityProblems(agg, { enforceMin: false });
+    if (problems.length) {
+      REAL_LOG("\n❌ 产出完整性不合格：\n  - " + problems.join("\n  - "));
+      REAL_PROCESS.exitCode = 1;
       return;
     }
-    if (stillPass < base.escape) {
-      console.log(`\n⚠️ 逃生项已下降（${base.escape} → ${stillPass}），请将基线同步下调后提交。`);
-      REAL_PROCESS.exitCode = 1;   // 强制棘轮：下降时必须更新基线，防止悄悄回涨
-      return;
-    }
-    console.log(`\n✅ 逃生项 ${stillPass} = 基线 ${base.escape}，无新增（存量见基线注释）`);
+    if (bad.length) { REAL_PROCESS.exitCode = 1; return; }
+    if (agg.total) REAL_LOG("✅ 全部用例在注入失败时均会变红 —— 判别力真实有效");
     REAL_PROCESS.exitCode = 0;
     return;
   }
 
+  // ---------- 全站模式：逐文件子进程（单页静默退出不拖垮整轮）
+  const files = listFiles();
+  const agg = { total: 0, fail: 0, stillPass: 0, skipped: 0 };
+  const bad = [];
+  const isolated = [];
+  for (const f of files) {
+    const r = runIsolated(f);
+    if (!r.ok) { isolated.push({ file: f, why: r.why }); continue; }
+    agg.total += r.totals.total; agg.fail += r.totals.fail;
+    agg.stillPass += r.totals.stillPass; agg.skipped += r.totals.skipped;
+    bad.push(...r.bad);
+  }
+
+  REAL_LOG(`\n==== 判别力验证（模拟注入失败 → 用例应 FAIL）====`);
+  REAL_LOG(`已检: ${agg.total} | 正确变红: ${agg.fail} | 仍 PASS(逃生项): ${agg.stillPass} | 跳过: ${agg.skipped}`);
+  statsPrinted = true;
+  if (isolated.length) {
+    REAL_LOG(`\n⚠️ 逐文件隔离：${isolated.length} 个 verify 文件无统计行（静默退出，贡献计 0；已单独列出，未当作通过）:`);
+    isolated.forEach((x) => REAL_LOG("  -", x.file + " → " + x.why));
+  }
   if (bad.length) {
+    REAL_LOG("\n仍 PASS（expect 含不依赖被测点的逃生项，需收紧）:");
+    bad.forEach((b) => REAL_LOG("  -", b));
+  }
+
+  const problems = integrityProblems(agg, { enforceMin: true, isolatedCount: isolated.length });
+  if (problems.length) {
+    REAL_LOG("\n❌ 产出完整性不合格：\n  - " + problems.join("\n  - "));
     REAL_PROCESS.exitCode = 1;
     return;
   }
-  if (total) console.log("✅ 全部用例在注入失败时均会变红 —— 判别力真实有效");
+
+  // 基线防回归：存量逃生项入基线，只准降不准增；新增逃生项立即变红。
+  const BASE_FP = path.join(ROOT, "scripts", "discriminate_baseline.json");
+  if (fs.existsSync(BASE_FP)) {
+    const basey = JSON.parse(fs.readFileSync(BASE_FP, "utf8"));
+    if (agg.stillPass > basey.escape) {
+      REAL_LOG(`\n❌ 突破基线：逃生项 ${agg.stillPass} > 基线 ${basey.escape}（新增 ${agg.stillPass - basey.escape} 个）`);
+      REAL_PROCESS.exitCode = 1;   // 注意：verify_it_calc.js 会覆盖 process.exit，只能用 exitCode
+      return;
+    }
+    if (agg.stillPass < basey.escape) {
+      REAL_LOG(`\n⚠️ 逃生项已下降（${basey.escape} → ${agg.stillPass}），请将基线同步下调后提交。`);
+      REAL_PROCESS.exitCode = 1;   // 强制棘轮：下降时必须更新基线，防止悄悄回涨
+      return;
+    }
+    // 跳过数棘轮：跳过 = 无任何可模拟注入的用例，其 expect 从未被判别。新增跳过必须
+    // 显式改基线（逼提交者看一眼「这条用例为什么判别不了」），下降同样要求同步。
+    if (typeof basey.skipped !== "number") {
+      REAL_LOG(`\n❌ 基线缺少 skipped 字段（当前跳过 ${agg.skipped}）：请在 discriminate_baseline.json 显式登记。`);
+      REAL_PROCESS.exitCode = 1;
+      return;
+    }
+    if (agg.skipped > basey.skipped) {
+      REAL_LOG(`\n❌ 跳过 ${agg.skipped} > 基线 ${basey.skipped}（新增 ${agg.skipped - basey.skipped} 条未参与判别，需补可解析默认值或显式改基线）`);
+      REAL_PROCESS.exitCode = 1;
+      return;
+    }
+    if (agg.skipped < basey.skipped) {
+      REAL_LOG(`\n⚠️ 跳过已下降（${basey.skipped} → ${agg.skipped}），请将基线同步下调后提交。`);
+      REAL_PROCESS.exitCode = 1;
+      return;
+    }
+    REAL_LOG(`\n✅ 逃生项 ${agg.stillPass} = 基线 ${basey.escape}，跳过 ${agg.skipped} = 基线 ${basey.skipped}（无新增）`);
+    REAL_PROCESS.exitCode = 0;
+    return;
+  }
+
+  if (bad.length) { REAL_PROCESS.exitCode = 1; return; }
+  if (agg.total) REAL_LOG("✅ 全部用例在注入失败时均会变红 —— 判别力真实有效");
   REAL_PROCESS.exitCode = 0;
 })();

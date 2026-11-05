@@ -167,7 +167,7 @@ s.parentNode.insertBefore(el, s);
 <!-- TOOLBOX-POLISH -->
 
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">农药配比计算<br>总用水量 = 每亩用水量(L) × 面积(亩)<br>由目标浓度：稀释倍数 = 1,000,000 / 目标ppm；每亩用药量 = (每亩用水 / 稀释倍数) × (100 / 有效成分%)<br>由稀释倍数反推：目标ppm = 1,000,000 / 稀释倍数<br>由亩用药量反推：稀释倍数 = 每亩用水(mL)×1000 / (亩用药量 × 有效%)<br>总用药量 = 每亩用药量 × 面积；采用二步稀释法（先母液后加水）</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">农药配比计算<br>总用水量 = 每亩用水量(L) × 面积(亩)<br>由目标浓度：稀释倍数 = 有效成分百分数 × 10000 / 目标ppm；每亩用药量 = 每亩用水 ÷ 稀释倍数<br>由稀释倍数反推：目标ppm = 有效成分百分数 × 10000 / 稀释倍数<br>由亩用药量反推：稀释倍数 = 每亩用水(mL) / 亩用药量(g，按制剂实物计)<br>总用药量 = 每亩用药量 × 面积；采用二步稀释法（先母液后加水）</div>
   <p class="formula-desc">按标签推荐浓度换算实际用药量。<b>原药体积 = 目标药液总量 ÷ 稀释倍数</b>；或 <b>用药量 = 面积 × 单位面积推荐量</b>（如 mL/亩、g/亩）。已给水量时：原药量 = 水量 × 推荐浓度比。</p>
   <ul class="formula-list">
     <li>严格遵守安全间隔期与最大残留限量（MRL），禁止超量。</li>
@@ -204,6 +204,10 @@ s.parentNode.insertBefore(el, s);
         <div id="dilutionRow" style="display:none;">
           <label>稀释倍数</label>
           <input type="number" id="dilutionTimes" value="1000" min="10" step="10" oninput="calc()" placeholder="如 1000">
+        </div>
+        <div id="dosageRow" style="display:none;">
+          <label>每亩制剂用量(g 或 mL)</label>
+          <input type="number" id="pesticidePerMu" value="50" min="0.1" step="0.1" oninput="calc()" placeholder="如 50">
         </div>
       </div>
 
@@ -263,7 +267,7 @@ s.parentNode.insertBefore(el, s);
       <div class="ref-card">
         <h4>📐 计算公式</h4>
         <p><strong>按稀释倍数计算：</strong>药剂用量 = 配水量 ÷ 稀释倍数</p>
-        <p><strong>按ppm浓度计算：</strong>稀释倍数 = 1,000,000 ÷ 目标ppm；药剂用量 = (配水量 ÷ 稀释倍数) × (100 ÷ 有效成分含量)</p>
+        <p><strong>按ppm浓度计算：</strong>稀释倍数 = 有效成分百分数 × 10000 ÷ 目标ppm；药剂用量 = 配水量 ÷ 稀释倍数</p>
         <p><strong>按有效成分用量：</strong>药剂用量 = (有效成分用量 ÷ 有效成分含量) × 100</p>
       </div>
 
@@ -468,7 +472,7 @@ function renderPesticideSelect(){
 
 function renderPesticideTable(){
   $('pesticideTable').querySelector('tbody').innerHTML = COMMON_PESTICIDES.map(function(p){
-    return '<tr><td>' + p.name + '</td><td>' + p.pct + '%</td><td>' + (p.dilution ? p.dilution + '倍' : (1000000/p.ppm).toFixed(0) + '倍') + '</td><td>' + p.days + '</td><td>' + p.target + '</td></tr>';
+    return '<tr><td>' + p.name + '</td><td>' + p.pct + '%</td><td>' + (p.dilution ? p.dilution + '倍' : (p.pct * 10000 / p.ppm).toFixed(0) + '倍') + '</td><td>' + p.days + '</td><td>' + p.target + '</td></tr>';
   }).join('');
 }
 
@@ -477,6 +481,7 @@ function selectMethod(id){
   renderMethodGrid();
   $('ppmRow').style.display = id === 'ppm' ? 'block' : 'none';
   $('dilutionRow').style.display = id === 'dilution' ? 'block' : 'none';
+  $('dosageRow').style.display = id === 'dosage' ? 'block' : 'none';
   calc();
 }
 
@@ -521,18 +526,32 @@ function calc(){
 
   if(currentMethod.id === 'ppm'){
     targetPpm = parseFloat($('targetPpm').value) || 0;
-    if(targetPpm <= 0){ $('chartWrap').style.display = 'none'; return; }
-    dilutionTimes = 1000000 / targetPpm;
-    pesticidePerMu = (water / dilutionTimes) * (100 / activePct);
+    if(targetPpm <= 0){
+      $('result').innerHTML='<p style="text-align:center;color:var(--danger);">请输入有效的目标浓度（ppm）</p>';
+      $('chartWrap').style.display = 'none';
+      return;
+    }
+    // 稀释倍数 = (1,000,000 × 有效成分%) / 目标 ppm，已按制剂含量折算
+    dilutionTimes = activePct * 10000 / targetPpm;
+    pesticidePerMu = water / dilutionTimes;
   } else if(currentMethod.id === 'dilution'){
     dilutionTimes = parseFloat($('dilutionTimes').value) || 0;
-    if(dilutionTimes <= 0){ $('chartWrap').style.display = 'none'; return; }
-    targetPpm = 1000000 / dilutionTimes;
-    pesticidePerMu = (water / dilutionTimes) * (100 / activePct);
+    if(dilutionTimes <= 0){
+      $('result').innerHTML='<p style="text-align:center;color:var(--danger);">请输入有效的稀释倍数</p>';
+      $('chartWrap').style.display = 'none';
+      return;
+    }
+    targetPpm = activePct * 10000 / dilutionTimes;
+    pesticidePerMu = water / dilutionTimes;
   } else {
-    pesticidePerMu = parseFloat($('pesticidePerMu') ? $('pesticidePerMu').value : 50) || 50;
-    dilutionTimes = (water * 1000) / (pesticidePerMu * activePct / 100);
-    targetPpm = 1000000 / dilutionTimes;
+    pesticidePerMu = parseFloat($('pesticidePerMu').value) || 0;
+    if(pesticidePerMu <= 0){
+      $('result').innerHTML='<p style="text-align:center;color:var(--danger);">请输入有效的每亩制剂用量</p>';
+      $('chartWrap').style.display = 'none';
+      return;
+    }
+    dilutionTimes = (water * 1000) / pesticidePerMu;
+    targetPpm = activePct * 10000 / dilutionTimes;
   }
 
   totalPesticide = pesticidePerMu * area;
@@ -601,58 +620,71 @@ function drawChart(perMu, totalWater, totalPest, area){
   var ctx = canvas.getContext('2d');
   if(!ctx){ return; }
   var container = canvas.parentElement;
-  canvas.width = container.clientWidth;
-  canvas.height = container.clientHeight;
-  var w = canvas.width, h = canvas.height;
+  var cssW = container.clientWidth, cssH = container.clientHeight;
+  var dpr = window.devicePixelRatio || 1;
+  canvas.width = Math.round(cssW * dpr);
+  canvas.height = Math.round(cssH * dpr);
+  canvas.style.width = cssW + 'px';
+  canvas.style.height = cssH + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  var w = cssW, h = cssH;
   if(w <= 0 || h <= 0){ return; }
   ctx.clearRect(0, 0, w, h);
 
   var padding = {top:20, right:20, bottom:40, left:50};
   var cw = w - padding.left - padding.right;
   var ch = h - padding.top - padding.bottom;
-  var maxVal = Math.max(perMu * 1.2, 200);
+  var gap = 16;
+  var panelW = (cw - gap) / 2;
 
-  ctx.strokeStyle = 'rgba(128,128,128,0.15)';
-  ctx.lineWidth = 1;
-  ctx.font = '11px -apple-system, sans-serif';
-  ctx.fillStyle = resolveCanvasColor('var(--text-muted)', '#6B7280');
-
-  for(var i=0; i<=5; i++){
-    var y = padding.top + ch - (ch * i / 5);
-    var val = maxVal * i / 5;
-    ctx.textAlign = 'right';
-    ctx.fillText(val.toFixed(0) + 'ml', padding.left - 8, y + 4);
-    ctx.beginPath();
-    ctx.moveTo(padding.left, y);
-    ctx.lineTo(w - padding.right, y);
-    ctx.stroke();
-  }
-
-  var barW = cw / 5;
-  var bars = [
-    {label:'亩用药量', val:perMu, color:'var(--primary)'},
-    {label:'1亩用水量', val:totalWater/area, color:'#2196f3'},
-    {label:'总用药量', val:totalPest, color:'#4caf50'},
-    {label:'总用水量', val:totalWater, color:'#ff9800'}
-  ];
-
-  bars.forEach(function(b, i){
-    var x = padding.left + barW * i + barW * 0.2;
-    var bh = (b.val / maxVal) * ch;
-    var by = padding.top + ch - bh;
-    var baseColor=resolveCanvasColor(b.color,'#FF6B35');
-    var gradient = ctx.createLinearGradient(0, by, 0, by + bh);
-    gradient.addColorStop(0, baseColor);
-    gradient.addColorStop(1, canvasColorWithAlpha(baseColor,'#FF6B35',0.5));
-    ctx.fillStyle = gradient;
-    ctx.fillRect(x, by, barW * 0.6, bh);
+  function drawPanel(x0, unit, title, bars){
+    var maxVal = Math.max.apply(null, bars.map(function(b){return b.val;})) * 1.2;
+    if(!isFinite(maxVal) || maxVal <= 0){ maxVal = 1; }
+    ctx.strokeStyle = 'rgba(128,128,128,0.15)';
+    ctx.lineWidth = 1;
+    for(var i=0; i<=4; i++){
+      var y = padding.top + ch - (ch * i / 4);
+      ctx.fillStyle = resolveCanvasColor('var(--text-muted)', '#6B7280');
+      ctx.font = '10px -apple-system, sans-serif';
+      ctx.textAlign = 'right';
+      ctx.fillText((maxVal * i / 4).toFixed(0) + unit, x0 - 6, y + 4);
+      ctx.beginPath();
+      ctx.moveTo(x0, y);
+      ctx.lineTo(x0 + panelW, y);
+      ctx.stroke();
+    }
     ctx.fillStyle = resolveCanvasColor('var(--text)', '#1F2937');
     ctx.textAlign = 'center';
-    ctx.font = '10px -apple-system, sans-serif';
-    ctx.fillText(b.val.toFixed(0), x + barW * 0.3, by - 6);
-    ctx.fillStyle = resolveCanvasColor('var(--text-muted)', '#6B7280');
-    ctx.fillText(b.label, x + barW * 0.3, h - 12);
-  });
+    ctx.font = '11px -apple-system, sans-serif';
+    ctx.fillText(title, x0 + panelW / 2, padding.top - 6);
+    var barW = panelW / bars.length;
+    bars.forEach(function(b, i){
+      var bh = (b.val / maxVal) * ch;
+      var by = padding.top + ch - bh;
+      var x = x0 + barW * i + barW * 0.2;
+      var baseColor = resolveCanvasColor(b.color, '#FF6B35');
+      var gradient = ctx.createLinearGradient(0, by, 0, by + bh);
+      gradient.addColorStop(0, baseColor);
+      gradient.addColorStop(1, canvasColorWithAlpha(baseColor, '#FF6B35', 0.5));
+      ctx.fillStyle = gradient;
+      ctx.fillRect(x, by, barW * 0.6, bh);
+      ctx.fillStyle = resolveCanvasColor('var(--text)', '#1F2937');
+      ctx.textAlign = 'center';
+      ctx.font = '10px -apple-system, sans-serif';
+      ctx.fillText(b.val.toFixed(0), x + barW * 0.3, by - 6);
+      ctx.fillStyle = resolveCanvasColor('var(--text-muted)', '#6B7280');
+      ctx.fillText(b.label, x + barW * 0.3, h - 14);
+    });
+  }
+
+  drawPanel(padding.left, 'ml', '用药量(ml/g)', [
+    {label:'亩用药量', val:perMu, color:'var(--primary)'},
+    {label:'总用药量', val:totalPest, color:'#4caf50'}
+  ]);
+  drawPanel(padding.left + panelW + gap, 'L', '用水量(L)', [
+    {label:'亩用水量', val:totalWater/area, color:'#2196f3'},
+    {label:'总用水量', val:totalWater, color:'#ff9800'}
+  ]);
 }
 
 function saveHistory(){

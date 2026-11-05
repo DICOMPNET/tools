@@ -218,6 +218,22 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  "slug": "automotive/countdown-engine-oil",
+  "inputs": {
+    "car": "我的爱车",
+    "last": "75000",
+    "cur": "54000",
+    "kmY": "15000"
+  },
+  "clicks": [
+    "localStorage.getItem=function(){return JSON.stringify([{car:'<svg/onload=alert(1)>',last:0,cur:1000,oil:'10000|',habit:'1',turbo:'1',kmY:1000}]);};renderGarage();"
+  ],
+  "expect": [
+    "&lt;svg/onload=alert(1)&gt;"
+  ],
+  "ref": "存储型转义：车库记录来自 localStorage，车辆名直拼 innerHTML/onclick 会在打开页面时执行；转义后 &lt;svg … &gt; 仅作为文本保留。harness 的 localStorage 默认返回 null，故用 click 覆写 getItem 注入恶意记录再重渲染；默认记录为空不命中。"
+},
+{
   "slug": "automotive/current-3",
   "inputs": {
     "volt": "17.5",
@@ -237,10 +253,13 @@ const CASES = [
   "inputs": {
     "wPos": "rear"
   },
-  "expect": [
-    "后雨刷状态正常"
+  "clicks": [
+    "vehicles=[{id:'v1',name:'测试车',freq:'normal',wipers:[{id:'w1',pos:'rear',date:'2024-05-01',brand:'测试'}]}];activeVeh='v1';render();"
   ],
-  "ref": "auto-restore"
+  "expect": [
+    "后雨刷状态正常，预计还有 8 个月需更换"
+  ],
+  "ref": "注入一台装后雨刷的车辆后 render() 才有雨刷卡片：normal 档周期 9 个月，2024-05-01 距冻结基准日 2024-06-15 仅 1 个月 ⇒ remainMonths=8 >1 ⇒ 提示框「✅ 后雨刷状态正常，预计还有 8 个月需更换。」。**裸「状态正常」是逃生项**（via=saveWiper）：注入失败时兜底链会依次调用 saveVeh() 建默认车「我的车辆」（freq=normal）、saveWiper() 以冻结日 2024-06-15 补一条前雨刷 ⇒ remainMonths=9 >1，同样落 statusText「状态正常」与「✅ 前雨刷状态正常，预计还有 9 个月需更换。」。注入态与兜底态数值/位置均不同（后雨刷 8 个月 vs 前雨刷 9 个月）⇒ 锚整句（含位置与剩余月数）后默认态不命中。"
 },
 {
   "slug": "automotive/cycle-belt",
@@ -936,7 +955,25 @@ const CASES = [
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"inputVal\":\"42\",\"fromUnit\":\"mpgUS\"}，输出区含「42\nmpgUS\n基准： 42 mpg(美) = 5.6003472 L/100…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
-
+  {
+    // 2026-11-05：addMonths 由裸 setMonth 改为「目标月首日 + 日夹取」，锚月末结果。
+    "slug": "automotive/auto-beauty-calc-1",
+    "inputs": { "lastDate": "2026-01-31", "months": "1" },
+    "expect": ["2026-02-28"],
+    "ref": "月末夹取：2026-01-31 +1 月，旧 setMonth 溢出到 2026-03-03；现夹到目标月末 = 2026-02-28。默认基准日不同 ⇒ 不命中。"
+  },
+  {
+    "slug": "automotive/auto-beauty-calc-1",
+    "inputs": { "lastDate": "2024-01-31", "months": "1" },
+    "expect": ["2024-02-29"],
+    "ref": "闰年月末夹取：2024-01-31 +1 月 → 2024-02-29（旧 setMonth 得 2024-03-02）；与平年用例互证按目标月天数夹取。"
+  },
+  {
+    "slug": "automotive/auto-beauty-calc-1",
+    "inputs": { "lastDate": "2026-11-30", "months": "3" },
+    "expect": ["2027-02-28"],
+    "ref": "跨年 + 月末：2026-11-30 +3 月 = 2027-02-28（旧 setMonth 得 2027-03-02）。"
+  }
 
 ];
 async function main() {

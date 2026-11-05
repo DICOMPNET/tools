@@ -15,6 +15,17 @@ const CASES = [
   "ref": "Cronbach α：4 被试 3 条目，总分 12/9/14/7 → 总分方差 7.25，条目方差合计 1.25+0.6875+0.6875=2.625→2.63，α=3/2×(1−2.625/7.25)=0.9569（独立复算，非页面默认矩阵）"
 },
 {
+  "slug": "research/analysis-49",
+  "inputs": {
+    "matrix": "8,7,8,6\n7,6,7,6\n9,8,9,7\n6,5,6,4\n7,7,8,6\n8,7,7,6"
+  },
+  "expect": [
+    "0.816",
+    "16.467"
+  ],
+  "ref": "KMO/Bartlett：6×4 矩阵强相关，相关矩阵逆阵求得偏相关，KMO=Σr²/(Σr²+Σp²)=0.816（良好）；|R|=0.0029923，χ²=-[6-1-(2×4+5)/6]×ln|R|=16.467，df=6。页面默认 5 条目矩阵得 KMO 0.553 / χ² 22.006，注入失败即不命中。"
+},
+{
   "slug": "research/analysis-50",
   "inputs": { "data": "A公司,520\nB公司,380\nC公司,260\nD公司,150\nE公司,90" },
   "expect": [
@@ -58,6 +69,17 @@ const CASES = [
   "ref": "重做为定性编码：6 条全编码，主题频次 价格高×4/配送慢×3/质量差×2/服务好×2，总编码数=12（默认数据=10，故 discriminative），覆盖率=100%。非默认输入+独立复算。"
 },
 {
+  "slug": "research/analysis-54",
+  "inputs": {
+    "data": "用户A,__proto__,constructor\n用户B,__proto__,constructor\n用户C,constructor"
+  },
+  "expect": [
+    "__proto__ 2",
+    "constructor 3"
+  ],
+  "ref": "主题名可恰为 Object.prototype 的魔法键：旧实现 `freq={}` 下 `freq['__proto__']` 读到原型对象、赋值又被 __proto__ setter 丢弃，该主题整行不出现在 Top10；`constructor` 同理读到继承函数。改 Object.create(null) 后两键按普通键计数：__proto__×2、constructor×3。默认数据不含这两个词。"
+},
+{
   "slug": "research/assessor-50",
   "inputs": {
     "reach": "75000",
@@ -80,7 +102,7 @@ const CASES = [
 {
   "slug": "research/tester-17",
   "inputs": {
-    "novelty": "11",
+    "novelty": "9",
     "usefulness": "8",
     "feasibility": "6",
     "marketFit": "7",
@@ -92,9 +114,10 @@ const CASES = [
     "sampleSize": "100"
   },
   "expect": [
-    "80.0/100"
+    "75.0/100",
+    "75 概念评分"
   ],
-  "ref": "auto-restore"
+  "ref": "概念评分=(新颖9+实用8+可行6+市场7)/4×10=75.0（概念良好，65–79）；卡片取整显示 75。默认新颖 7 ⇒ 70.0/70，两条锚均不命中。原用例新颖=11 超出 1–10 校验（此时页面仅输出提示），且期望 80.0 无判别依据，已改为合法非默认输入并独立复算。"
 }
 ,
 {

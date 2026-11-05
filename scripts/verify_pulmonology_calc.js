@@ -18,6 +18,17 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  "slug": "pulmonology/anti-tb-dosing",
+  "inputs": {
+    "wt": "72",
+    "age": "30"
+  },
+  "expect": [
+    "Z 2000mg + E 1250mg"
+  ],
+  "ref": "体重分档边界回归：72 kg 属 >70 kg 档 ⇒ PZA 2000 mg、EMB 1250 mg（INH=min(72×5,300)=300、RIF=600）。页面旧实现以 75 kg 为档界，72 kg 落在 50–75 档输出 Z 1750 + E 1000；体重分档（中国指南/WHO ≥70 kg 档）应以 70 kg 为界。默认 55 kg 输出 Z 1750 + E 1000 ⇒ 零交集。"
+},
+{
   // 默认 pao2=80/fio2=40 → P/F=200 重度 ARDS；注入 90/21 → P/F=429 → 氧合功能正常
   "slug": "pulmonology/calc-48",
   "inputs": {
@@ -94,8 +105,32 @@ const CASES = [
     "b": "1",
     "c": "1"
   },
-  "expect": ["1\n1\n1\nprimary\nmoderate\n10% 肺压缩估计 少量气胸但有症状 评估 计算明细 A=1, B=1, C=1 cm 平均胸膜间距 = (1+1+1)/3 = 1.00 cm 肺压缩% ≈ 1.00 × 10 = 10% 类型：原发性自发性 少量气胸但有症状 有症状的小量气胸可考虑简易抽气(14-16G套管针第2肋间)，若抽气后未复张或复发则胸腔闭式引流。"],
+  "expect": ["1\n1\n1\nprimary\nmoderate\n10% 肺压缩估计 少量气胸但有症状 评估 计算明细 A=1, B=1, C=1 cm 平均胸膜间距 = (1+1+1)/3 = 1.00 cm 肺压缩% ≈ 1.00 × 10 = 10% 类型：原发性自发性 参考：本页按 Rhea 法估算（本页估算），BTS 指南以胸膜间距 ≥2 cm 区分大小，CT 测量更准确；需影像科/临床复核。 少量气胸但有症状 有症状的小量气胸可考虑简易抽气(14-16G套管针第2肋间)，若抽气后未复张或复发则胸腔闭式引流。"],
   "ref": "auto-restore"
+},
+{
+  "slug": "pulmonology/pneumothorax",
+  "clicks": [
+    "document.getElementById('a').value='';document.getElementById('b').value='';document.getElementById('c').value='';calc();var r=document.getElementById('result');r.innerHTML+=' 空值拦截='+(r.innerHTML.indexOf('空值或负值')>=0)+' 仍给建议='+(r.innerHTML.indexOf('少量气胸')>=0);"
+  ],
+  "expect": ["空值拦截=true 仍给建议=false"],
+  "ref": "L-N38 空值：修复前 parseFloat('')||0 ⇒ A=B=C=0 ⇒ 0% 仍输出「少量气胸、可观察」；现提示空值/负值并清空结果。默认 2/3/2 有效 ⇒ 哨兵串不出现。"
+},
+{
+  "slug": "pulmonology/pneumothorax",
+  "inputs": { a: "0", b: "0", c: "0", type: "traumatic" },
+  "clicks": [
+    "calc();var r=document.getElementById('result');r.innerHTML+=' 零值拦截='+(r.innerHTML.indexOf('均为 0')>=0);"
+  ],
+  "expect": ["零值拦截=true"],
+  "ref": "L-N38 零值：三处均为 0 无法估计气胸，提示核对测量值；修复前照常给 0% 与观察建议。默认 2/3/2 不命中。"
+},
+{
+  "slug": "pulmonology/pneumothorax",
+  "inputs": { a: "1", b: "1", c: "1", type: "traumatic", symptom: "mild" },
+  "clicks": ["calc()"],
+  "expect": ["创伤性气胸", "按 ATLS 评估合并伤"],
+  "ref": "L-N38 分支：创伤性气胸修复前落入「少量气胸」通用分支，现单独提示 ATLS 评估合并伤与引流；默认类型 primary 不命中。"
 },
 {
   // 默认 2.10/3.50 → 60.0% 阻塞 GOLD 2；注入 3.0/3.5/95/95 → 85.7% 正常
@@ -111,6 +146,34 @@ const CASES = [
     "通气功能正常，未见阻塞性或限制性通气障碍。"
   ],
   "ref": "auto-restore"
+},
+{
+  "slug": "pulmonology/pulmonary-function",
+  "inputs": {
+    "fev1": "3.0",
+    "fvc": "3.5",
+    "fev1pp": "55",
+    "fvcpp": "95",
+    "cutoff": "0.70"
+  },
+  "expect": [
+    "FEV1 占预计值降低（未达阻塞/限制判据）"
+  ],
+  "ref": "ATS/ERS 三参数口径：一秒率 0.857 不低于 0.70、FVC 95% 不低于 80%，但 FEV1 55% <80% ⇒ 不得判「正常」，输出 FEV1 降低分支。修复前该输入被判「通气功能正常」；默认态无此分型串 ⇒ 强判别。"
+},
+{
+  "slug": "pulmonology/pulmonary-function",
+  "inputs": {
+    "fev1": "3.0",
+    "fvc": "3.5",
+    "fev1pp": "85",
+    "fvcpp": "95",
+    "cutoffCustom": "0.90"
+  },
+  "expect": [
+    "轻度气流受限"
+  ],
+  "ref": "自定义阈值/LLN 输入生效：一秒率 0.857 < 自定义 0.90 ⇒ 阻塞性；FEV1%pred 85 ⇒ GOLD 1（轻度）。默认态（阈值 0.70、FEV1%pred 68）为 GOLD 2「中度」⇒ 「轻度气流受限」仅注入态出现。"
 },
 {
   // 默认 mip=45 → 高于下限 43（正常）；注入 mip=30 → 吸气肌无力
@@ -301,17 +364,45 @@ const CASES = [
   "ref": "STOP-BANG 八项各 1 分：S(打鼾)+T(疲倦)+O(呼吸暂停)+P(高血压)+BMI>35 = 5 → 5/8 → 高危"
 },
 {
-  // 默认（harness 首选项）smear=neg → 传染性低；注入 3+/pos/rif_s → 有传染性需隔离
+  // 默认（harness 首选项）smear=3+ / culture=pos ⇒ 有传染性；注入涂片阴性 ⇒ 传染性低
   "slug": "pulmonology/tb-resistance",
   "inputs": {
-    "smear": "3+",
-    "culture": "pos",
+    "smear": "neg",
+    "culture": "pending",
     "xpert": "rif_s"
   },
-  "expect": [
-    "有传染性，需呼吸道隔离"
+  "clicks": [
+    "document.getElementById('d_rif').checked=false;calc()"
   ],
-  "ref": "auto-restore"
+  "expect": [
+    "传染性低",
+    "药物敏感结核(DS-TB)"
+  ],
+  "ref": "涂片阴性 + 培养未回 + Xpert 利福平敏感 ⇒ 依据 Xpert 仍可分型 DS-TB；infective = smear!=='neg' || culture==='pos' ⇒ false ⇒「传染性低」。原用例期望「有传染性，需呼吸道隔离」，而页面默认态（涂片 3+、培养阳性）本就含该串 ⇒ 逃生；改锚默认态不产生的阴性分支。默认态类型为 RR-TB（Xpert rif_r）⇒ 两条均不命中。"
+},
+{
+  "slug": "pulmonology/tb-resistance",
+  "clicks": [
+    "document.getElementById('smear').value='neg';document.getElementById('culture').value='neg';document.getElementById('xpert').value='na';calc();var r=document.getElementById('result');r.innerHTML+=' 无证据拦截='+(r.innerHTML.indexOf('无细菌学证据')>=0)+' 有方案='+(r.innerHTML.indexOf('2HRZE')>=0);"
+  ],
+  "expect": ["无证据拦截=true 有方案=false"],
+  "ref": "L-N40 证据门槛：涂片阴性/培养阴性/GeneXpert 未做 ⇒ 修复前直接输出 DS-TB 与 2HRZE/4HR 方案；现提示无细菌学证据、不给分型与方案。默认即为该态 ⇒ 用 clicks 并比对哨兵；默认无「耐药分型」卡片，哨兵不出现。"
+},
+{
+  "slug": "pulmonology/tb-resistance",
+  "clicks": [
+    "document.getElementById('smear').value='neg';document.getElementById('culture').value='pos';document.getElementById('xpert').value='rif_r';document.getElementById('d_rif').checked=false;document.getElementById('d_inh').checked=false;document.getElementById('d_fq').checked=true;calc();"
+  ],
+  "expect": ["Pre-XDR-TB(准广泛耐药)", "MDR/RR + 耐氟喹诺酮"],
+  "ref": "L-N40 RR-TB+FQ：利福平耐药（GeneXpert）且异烟肼敏感、氟喹诺酮耐药 ⇒ WHO 2021 属 Pre-XDR（MDR/RR + FQ）；修复前仅 rifR&&dInh 分支才查 FQ，RR-TB 被降级为普通 RR-TB。默认 d_rif 勾选且 d_fq 未勾 ⇒ 不命中。"
+},
+{
+  "slug": "pulmonology/tb-resistance",
+  "clicks": [
+    "document.getElementById('smear').value='3+';document.getElementById('culture').value='pos';document.getElementById('xpert').value='rif_r';document.getElementById('d_rif').checked=false;document.getElementById('d_inh').checked=true;document.getElementById('d_pza').checked=true;calc();var r=document.getElementById('result');r.innerHTML+=' 含PZA提示='+(r.innerHTML.indexOf('吡嗪酰胺')>=0&&r.innerHTML.indexOf('须避免含该药')>=0)+' 含Xpert确认='+(r.innerHTML.indexOf('需培养/表型药敏确认')>=0);"
+  ],
+  "expect": ["含PZA提示=true 含Xpert确认=true"],
+  "ref": "L-N40 PZA/分子确认：MDR（R+I 耐药）且 PZA 耐药时方案提示须避开 PZA；GeneXpert rif_r 但未勾选利福平耐药表型时提示需表型确认。修复前 MDR 分支完全忽略 PZA/EMB，也不提示 Xpert 需确认。默认 d_rif 勾选 ⇒ 确认提示不出现。"
 },
 {
   // 默认 rul_ap → 右上叶尖段（叩击同侧肩胛上方）；注入 rml → 右中叶（叩击右侧乳头下方）
@@ -326,7 +417,13 @@ const CASES = [
 },
 {
   // 勾选 DVT(3)+其他诊断(3)+心率>100(1.5) → 7.5 分 > 6 → 高危（概率约 37.5%，直接 CTPA）。
-  // 原用例 inputs 为空、expect 取默认态 "1.3%)"（0 分低危）⇒ 零判别力，已去默认化。
+  // 仅心率>100 = 1.5 分：原版三档低危阈值为 <2（含 1.5），应落低危；旧实现 if(score<=1) 误判中危。
+  "slug": "pulmonology/wells-pe",
+  "checkIds": ["hr"],
+  "expect": ["总分 = 1.5"],
+  "ref": "Wells PE 仅心率>100 = 1.5 分；三档分层低危为 <2 分（约 1.3%）、中危 2–6（约 16.2%）、高危 ≥7（约 37.5%）。1.5 必须落低危；旧实现 if(score<=1) 会把它误判为中危，零交集。",
+},
+{
   "slug": "pulmonology/wells-pe",
   "checkIds": [
     "dvt",
@@ -337,7 +434,11 @@ const CASES = [
     "37.5%"
   ],
   "ref": "Wells PE 加权：DVT 3 + 其他诊断可能 3 + 心率>100 1.5 = 7.5 > 6 → 高危（～37.5%）"
-}
+},
+  { slug: "pulmonology/light-criteria",
+    inputs: { pfProt: "", sProt: "", pfLdh: "", sLdh: "", sLdhUl: "" },
+    expect: ["请填写胸水与血清蛋白/LDH（均需大于 0）后再判读。"],
+    ref: "空态守卫：五项全清空时不再按 0 计算（旧实现 → 蛋白比值 0.00/LDH 比值 0.00 → 判「漏出液」），改为只输出填写提示。默认态 42/65/320/200/250 有值 ⇒ 提示串不出现。" }
 ];
 async function main() {
   const only = process.argv.slice(2);

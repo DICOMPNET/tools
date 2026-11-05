@@ -116,16 +116,23 @@ s.parentNode.insertBefore(el, s);
 </div>
 <div class="card tool-card-accent" style="--tool-accent:#E11D48;--tool-accent-dark:#E11D48;">
     <h2 data-zh="⚽ 乒乓球（相持/发球）得分">Table Tennis Score Calculator (Rally / Serve)</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="按相持与发球得分计算乒乓球单局总分与平均得分，用于技术结构分析。">A table-tennis rally/serve scoring tool: log rally and serve-round points to compute scoring rate and key-point performance for technique-tactics analysis.</p>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="按相持与发球的得分/失分计算各环节得分率、得分占比与关键分得分率，用于技术结构分析。">A table-tennis rally/serve scoring tool: enter points won and lost in each phase to compute scoring rates, share of points and key-point performance.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">乒乓球相持/发球得分统计（本页代码口径，生效为后段简化版）：总分=相持得分 A+发球得分 B；联动量：平均分=(A+B)÷2、分差=|A−B|。校验：两输入经输入守卫必填且须为有限数值，否则提示请输入两个有效数值后再计算。判据：无固定分级，分差越大两项技术贡献越失衡，平均分即两项均值。</div>
-      <p class="formula-desc">乒乓球得分由相持与发球等环节构成：总分=相持+发球，平均=总分÷2，差距=|相持−发球|。据此分析得分结构，优化技战术侧重与训练安排。</p>
+      <div class="formula-eq">相持得分率 = 相持得分 ÷ (相持得分+相持失分)；发球得分率 = 发球得分 ÷ (发球得分+发球失分)；总得分率 = (相持得分+发球得分) ÷ 全部得失分之和；关键分得分率 = 关键分得分 ÷ 关键分总数（总数为 0 时显示“—”）。校验：四项环节得分/失分须为非负整数，且对应环节总球数 >0，否则提示补全。判据：不给“优秀/差”的固定阈值，只给出各环节得分率与得分来源占比，由使用者结合自身水平对比。</div>
+      <p class="formula-desc">分环节统计乒乓球得失分：相持得分率、发球得分率、总得分率、关键分得分率与得分来源占比。用于对比同一选手多场比赛或训练前后的技术结构变化。</p>
     </div>
     <div class="input-row">
-      <div><label>相持得分</label><input type="number" id="v0" value="8" step="any" oninput="calc()" enterkeyhint="done" aria-label="相持" placeholder="如 8"></div>
-      <div style="display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px;"><button class="btn" type="button" onclick="swapValues()" title="互换 A/B" aria-label="互换 A/B" style="padding:10px 12px;">⇄</button></div>
-      <div><label>发球得分</label><input type="number" id="v1" value="5" step="any" oninput="calc()" enterkeyhint="done" aria-label="发球" placeholder="如 5"></div>
+      <div><label>相持得分</label><input type="number" id="v0" value="8" min="0" step="1" oninput="calc()" enterkeyhint="done" aria-label="相持得分" placeholder="e.g. 8"></div>
+      <div><label>相持失分</label><input type="number" id="v1" value="7" min="0" step="1" oninput="calc()" enterkeyhint="done" aria-label="相持失分" placeholder="e.g. 7"></div>
+    </div>
+    <div class="input-row">
+      <div><label>发球得分</label><input type="number" id="v2" value="5" min="0" step="1" oninput="calc()" enterkeyhint="done" aria-label="发球得分" placeholder="e.g. 5"></div>
+      <div><label>发球失分</label><input type="number" id="v3" value="4" min="0" step="1" oninput="calc()" enterkeyhint="done" aria-label="发球失分" placeholder="e.g. 4"></div>
+    </div>
+    <div class="input-row">
+      <div><label>关键分得分（可选）</label><input type="number" id="v4" value="2" min="0" step="1" oninput="calc()" enterkeyhint="done" aria-label="关键分得分" placeholder="e.g. 2"></div>
+      <div><label>关键分总数（可选）</label><input type="number" id="v5" value="5" min="0" step="1" oninput="calc()" enterkeyhint="done" aria-label="关键分总数" placeholder="e.g. 5"></div>
     </div>
     <div class="toolbar">
       <div id="pingpangqiu_xiangchi_faqiu_defenPresets"></div>
@@ -139,7 +146,7 @@ s.parentNode.insertBefore(el, s);
     <div id="pingpangqiu_xiangchi_faqiu_defenDiff"></div>
     <div id="pingpangqiu_xiangchi_faqiu_defenChart"></div>
     <div id="pingpangqiu_xiangchi_faqiu_defenHist"></div>
-    <div class="info-box">💡 总分 = 相持 + 发球；平均分 = 总分 ÷ 2。</div>
+    <div class="info-box">💡 得分率 = 得分 ÷（得分+失分）。分环节统计能区分“发球抢攻强但相持弱”这类结构问题；本工具不给出“优秀/差”的固定阈值。</div>
 <div class="tool-notes" style="--tool-accent:#E11D48;">
 <!-- Formula & Standard References -->
 <div class="card" id="constRefBox">
@@ -201,285 +208,6 @@ function readInputs(){
   setInvalid(elA,isNaN(a));
   setInvalid(elB,isNaN(b));
   return {a:isNaN(a)?0:a,b:isNaN(b)?0:b,valid:!isNaN(a)&&!isNaN(b)};
-}
-function calc(){
-
-  var iv=readInputs();
-  var a=iv.a,b=iv.b;
-  var labelEls=document.querySelectorAll('.input-row label');
-  var lA=labelEls[0]?labelEls[0].textContent.replace(/\s*\([^)]*\)/g,'').trim():'A';
-  var lB=labelEls[1]?labelEls[1].textContent.replace(/\s*\([^)]*\)/g,'').trim():'B';
-  var title=document.querySelector('h1')?document.querySelector('h1').textContent:'';
-  var html='';
-  if(/分级|分型|分度|分层|风险|判读|判定|鉴别|诊断|严重度|定量|程度|监测|评估/.test(title)){
-    var score=(a+b)/2;
-    var level=score<25?'正常':score<50?'轻度':score<75?'中度':'重度';
-    var color=score<25?'#10B981':score<50?'#F59E0B':score<75?'#FF6B35':'#EF4444';
-    html='<div class="data-grid">'+
-    '<div class="data-card"><div class="num" style="color:'+color+';font-size:1.4em">'+level+'</div><div class="label">评估结果</div></div>'+
-    '<div class="data-card"><div class="num">'+score.toFixed(1)+'</div><div class="label">综合评分</div></div>'+
-    '<div class="data-card"><div class="num">'+a.toFixed(2)+'</div><div class="label">'+lA+'</div></div>'+
-    '<div class="data-card"><div class="num">'+b.toFixed(2)+'</div><div class="label">'+lB+'</div></div>'+
-    '</div>';
-  }else if(/比例|比率|占比|百分比|转化率|利用率|配比|稀释/.test(title)){
-    var g=b?gcd(a,b):0;
-    var sr=g?(a/g)+':'+(b/g):'-';
-    var pct=b?(a/b*100).toFixed(2)+'%':'-';
-    var ratio=b?(a/b).toFixed(4):'-';
-    html='<div class="data-grid">'+
-    '<div class="data-card"><div class="num">'+sr+'</div><div class="label">最简比</div></div>'+
-    '<div class="data-card"><div class="num">'+pct+'</div><div class="label">'+lA+'占比</div></div>'+
-    '<div class="data-card"><div class="num">'+ratio+'</div><div class="label">'+lA+'/'+lB+'</div></div>'+
-    '<div class="data-card"><div class="num">'+(a+b).toFixed(2)+'</div><div class="label">总量</div></div>'+
-    '</div>';
-  }else if(/成本|费用|价格|利润|收益|回报|估值|预算|报价|保费|费率|费收|佣金/.test(title)){
-    var total=a*b;
-    var profit=a-b;
-    var margin=b?(a/b*100).toFixed(2)+'%':'-';
-    html='<div class="data-grid">'+
-    '<div class="data-card"><div class="num">\u00a5'+total.toFixed(2)+'</div><div class="label">总额(A\u00d7B)</div></div>'+
-    '<div class="data-card"><div class="num">\u00a5'+profit.toFixed(2)+'</div><div class="label">差额(A-B)</div></div>'+
-    '<div class="data-card"><div class="num">\u00a5'+a.toFixed(2)+'</div><div class="label">'+lA+'</div></div>'+
-    '<div class="data-card"><div class="num">\u00a5'+b.toFixed(2)+'</div><div class="label">'+lB+'</div></div>'+
-    '</div>';
-  }else if(/面积|体积|容积/.test(title)){
-    var area=a*b;
-    var peri=2*(a+b);
-    var diag=Math.sqrt(a*a+b*b);
-    var lbl=/体积|容积/.test(title)?'体积':'面积';
-    html='<div class="data-grid">'+
-    '<div class="data-card"><div class="num">'+area.toFixed(2)+'</div><div class="label">'+lbl+'(A\u00d7B)</div></div>'+
-    '<div class="data-card"><div class="num">'+peri.toFixed(2)+'</div><div class="label">周长2(A+B)</div></div>'+
-    '<div class="data-card"><div class="num">'+diag.toFixed(2)+'</div><div class="label">对角线</div></div>'+
-    '<div class="data-card"><div class="num">'+(b?(a/b).toFixed(4):'-')+'</div><div class="label">长宽比</div></div>'+
-    '</div>';
-  }else if(/效率|速率|收率|产出/.test(title)){
-    var eff=b?(a/b*100).toFixed(2)+'%':'-';
-    var loss=b-a;
-    html='<div class="data-grid">'+
-    '<div class="data-card"><div class="num">'+eff+'</div><div class="label">效率</div></div>'+
-    '<div class="data-card"><div class="num">'+loss.toFixed(2)+'</div><div class="label">损耗</div></div>'+
-    '<div class="data-card"><div class="num">'+a.toFixed(2)+'</div><div class="label">'+lA+'</div></div>'+
-    '<div class="data-card"><div class="num">'+b.toFixed(2)+'</div><div class="label">'+lB+'</div></div>'+
-    '</div>';
-  }else if(/浓度|含量/.test(title)){
-    var conc=b?(a/b*1000).toFixed(2)+' g/L':'-';
-    var pct=b?(a/(a+b)*100).toFixed(2)+'%':'-';
-    html='<div class="data-grid">'+
-    '<div class="data-card"><div class="num">'+conc+'</div><div class="label">浓度</div></div>'+
-    '<div class="data-card"><div class="num">'+pct+'</div><div class="label">质量百分比</div></div>'+
-    '<div class="data-card"><div class="num">'+a.toFixed(2)+'</div><div class="label">'+lA+'</div></div>'+
-    '<div class="data-card"><div class="num">'+b.toFixed(2)+'</div><div class="label">'+lB+'</div></div>'+
-    '</div>';
-  }else if(/速度|转速|频率|BPM/.test(title)){
-    var speed=b?(a/b).toFixed(2):'-';
-    html='<div class="data-grid">'+
-    '<div class="data-card"><div class="num">'+speed+'</div><div class="label">速率(A/B)</div></div>'+
-    '<div class="data-card"><div class="num">'+((a+b)/2).toFixed(2)+'</div><div class="label">平均值</div></div>'+
-    '<div class="data-card"><div class="num">'+(a-b).toFixed(2)+'</div><div class="label">差值</div></div>'+
-    '<div class="data-card"><div class="num">'+(b?(a/b).toFixed(4):'-')+'</div><div class="label">比值</div></div>'+
-    '</div>';
-  }else if(/温度|温升/.test(title)){
-    var avg=(a+b)/2;
-    var diff=a-b;
-    var aF=a*9/5+32;
-    var aK=a+273.15;
-    html='<div class="data-grid">'+
-    '<div class="data-card"><div class="num">'+avg.toFixed(2)+' \u2103</div><div class="label">平均温度</div></div>'+
-    '<div class="data-card"><div class="num">'+diff.toFixed(2)+' \u2103</div><div class="label">温差</div></div>'+
-    '<div class="data-card"><div class="num">'+aF.toFixed(2)+' \u2109</div><div class="label">A(华氏)</div></div>'+
-    '<div class="data-card"><div class="num">'+aK.toFixed(2)+' K</div><div class="label">A(开尔文)</div></div>'+
-    '</div>';
-  }else if(/压力|压降|压强/.test(title)){
-    var diff=a-b;
-    var pct=b?(diff/b*100).toFixed(2)+'%':'-';
-    html='<div class="data-grid">'+
-    '<div class="data-card"><div class="num">'+diff.toFixed(2)+' kPa</div><div class="label">压差</div></div>'+
-    '<div class="data-card"><div class="num">'+pct+'</div><div class="label">变化率</div></div>'+
-    '<div class="data-card"><div class="num">'+a.toFixed(2)+'</div><div class="label">'+lA+'</div></div>'+
-    '<div class="data-card"><div class="num">'+b.toFixed(2)+'</div><div class="label">'+lB+'</div></div>'+
-    '</div>';
-  }else if(/功率|能耗|电量/.test(title)){
-    var power=a*b;
-    html='<div class="data-grid">'+
-    '<div class="data-card"><div class="num">'+power.toFixed(2)+' W</div><div class="label">功率(A\u00d7B)</div></div>'+
-    '<div class="data-card"><div class="num">'+(power/1000).toFixed(4)+' kW</div><div class="label">功率(kW)</div></div>'+
-    '<div class="data-card"><div class="num">'+a.toFixed(2)+'</div><div class="label">'+lA+'</div></div>'+
-    '<div class="data-card"><div class="num">'+b.toFixed(2)+'</div><div class="label">'+lB+'</div></div>'+
-    '</div>';
-  }else if(/距离|长度|高度|宽度|半径|直径|厚度|深度|间距/.test(title)){
-    var sum=a+b;
-    var diff=a-b;
-    var pct=b?(a/b*100).toFixed(2)+'%':'-';
-    html='<div class="data-grid">'+
-    '<div class="data-card"><div class="num">'+sum.toFixed(2)+'</div><div class="label">总和</div></div>'+
-    '<div class="data-card"><div class="num">'+diff.toFixed(2)+'</div><div class="label">差值</div></div>'+
-    '<div class="data-card"><div class="num">'+(b?(a/b).toFixed(4):'-')+'</div><div class="label">比值</div></div>'+
-    '<div class="data-card"><div class="num">'+pct+'</div><div class="label">百分比</div></div>'+
-    '</div>';
-  }else if(/时间|时长|周期/.test(title)){
-    var totalMin=a+b;
-    var hours=Math.floor(totalMin/60);
-    var mins=totalMin%60;
-    html='<div class="data-grid">'+
-    '<div class="data-card"><div class="num">'+hours+'h'+mins+'m</div><div class="label">总时间</div></div>'+
-    '<div class="data-card"><div class="num">'+(a-b).toFixed(2)+'</div><div class="label">时间差</div></div>'+
-    '<div class="data-card"><div class="num">'+a.toFixed(2)+'</div><div class="label">'+lA+'</div></div>'+
-    '<div class="data-card"><div class="num">'+b.toFixed(2)+'</div><div class="label">'+lB+'</div></div>'+
-    '</div>';
-  }else if(/收缩|膨胀|压缩/.test(title)){
-    var rate=b?((a-b)/b*100).toFixed(2)+'%':'-';
-    html='<div class="data-grid">'+
-    '<div class="data-card"><div class="num">'+rate+'</div><div class="label">变化率</div></div>'+
-    '<div class="data-card"><div class="num">'+(a-b).toFixed(2)+'</div><div class="label">变化量</div></div>'+
-    '<div class="data-card"><div class="num">'+a.toFixed(2)+'</div><div class="label">'+lA+'</div></div>'+
-    '<div class="data-card"><div class="num">'+b.toFixed(2)+'</div><div class="label">'+lB+'</div></div>'+
-    '</div>';
-  }else if(/系数|因子|参数/.test(title)){
-    var product=a*b;
-    var ratio=b?(a/b).toFixed(4):'-';
-    html='<div class="data-grid">'+
-    '<div class="data-card"><div class="num">'+product.toFixed(4)+'</div><div class="label">乘积(A\u00d7B)</div></div>'+
-    '<div class="data-card"><div class="num">'+ratio+'</div><div class="label">比值(A/B)</div></div>'+
-    '<div class="data-card"><div class="num">'+(a+b).toFixed(4)+'</div><div class="label">和(A+B)</div></div>'+
-    '<div class="data-card"><div class="num">'+(a-b).toFixed(4)+'</div><div class="label">差(A-B)</div></div>'+
-    '</div>';
-  }else if(/承载力|荷载|强度/.test(title)){
-    var stress=b?(a/b).toFixed(2):'-';
-    var safety=b?(b/a).toFixed(2):'-';
-    html='<div class="data-grid">'+
-    '<div class="data-card"><div class="num">'+stress+'</div><div class="label">应力(A/B)</div></div>'+
-    '<div class="data-card"><div class="num">'+safety+'</div><div class="label">安全系数(B/A)</div></div>'+
-    '<div class="data-card"><div class="num">'+a.toFixed(2)+'</div><div class="label">'+lA+'</div></div>'+
-    '<div class="data-card"><div class="num">'+b.toFixed(2)+'</div><div class="label">'+lB+'</div></div>'+
-    '</div>';
-  }else if(/流量|流速/.test(title)){
-    var velocity=b?(a/b).toFixed(2):'-';
-    html='<div class="data-grid">'+
-    '<div class="data-card"><div class="num">'+velocity+'</div><div class="label">流速(A/B)</div></div>'+
-    '<div class="data-card"><div class="num">'+(a+b).toFixed(2)+'</div><div class="label">总流量</div></div>'+
-    '<div class="data-card"><div class="num">'+(a-b).toFixed(2)+'</div><div class="label">流量差</div></div>'+
-    '<div class="data-card"><div class="num">'+(b?(a/b*100).toFixed(2)+'%':'-')+'</div><div class="label">占比</div></div>'+
-    '</div>';
-  }else if(/排放|碳|CO2|碳足迹/.test(title)){
-    var emission=a*b;
-    html='<div class="data-grid">'+
-    '<div class="data-card"><div class="num">'+emission.toFixed(2)+' kg</div><div class="label">排放量(A\u00d7B)</div></div>'+
-    '<div class="data-card"><div class="num">'+(emission/1000).toFixed(4)+' t</div><div class="label">排放量(吨)</div></div>'+
-    '<div class="data-card"><div class="num">'+a.toFixed(2)+'</div><div class="label">'+lA+'</div></div>'+
-    '<div class="data-card"><div class="num">'+b.toFixed(2)+'</div><div class="label">'+lB+'</div></div>'+
-    '</div>';
-  }else if(/利息|折现|现值/.test(title)){
-    var interest=a*b/100;
-    var total=a+interest;
-    html='<div class="data-grid">'+
-    '<div class="data-card"><div class="num">\u00a5'+interest.toFixed(2)+'</div><div class="label">利息(A\u00d7B%)</div></div>'+
-    '<div class="data-card"><div class="num">\u00a5'+total.toFixed(2)+'</div><div class="label">本息合计</div></div>'+
-    '<div class="data-card"><div class="num">\u00a5'+a.toFixed(2)+'</div><div class="label">'+lA+'</div></div>'+
-    '<div class="data-card"><div class="num">'+b.toFixed(2)+'%</div><div class="label">'+lB+'</div></div>'+
-    '</div>';
-  }else if(/违约金|赔偿|补偿/.test(title)){
-    var penalty=a*b;
-    html='<div class="data-grid">'+
-    '<div class="data-card"><div class="num">\u00a5'+penalty.toFixed(2)+'</div><div class="label">金额(A\u00d7B)</div></div>'+
-    '<div class="data-card"><div class="num">\u00a5'+a.toFixed(2)+'</div><div class="label">'+lA+'</div></div>'+
-    '<div class="data-card"><div class="num">'+b.toFixed(2)+'</div><div class="label">'+lB+'</div></div>'+
-    '<div class="data-card"><div class="num">\u00a5'+(a*b*0.05).toFixed(2)+'</div><div class="label">额外5%</div></div>'+
-    '</div>';
-  }else if(/坡度|坡率|倾斜/.test(title)){
-    var slope=b?(a/b*100).toFixed(2)+'%':'-';
-    var angle=b?(Math.atan(a/b)*180/Math.PI).toFixed(2)+'\u00b0':'-';
-    html='<div class="data-grid">'+
-    '<div class="data-card"><div class="num">'+slope+'</div><div class="label">坡度</div></div>'+
-    '<div class="data-card"><div class="num">'+angle+'</div><div class="label">角度</div></div>'+
-    '<div class="data-card"><div class="num">'+a.toFixed(2)+'</div><div class="label">'+lA+'</div></div>'+
-    '<div class="data-card"><div class="num">'+b.toFixed(2)+'</div><div class="label">'+lB+'</div></div>'+
-    '</div>';
-  }else if(/估算|预测|预估/.test(title)){
-    var estimated=a*(1+b/100);
-    var growth=a*b/100;
-    html='<div class="data-grid">'+
-    '<div class="data-card"><div class="num">'+estimated.toFixed(2)+'</div><div class="label">预测值</div></div>'+
-    '<div class="data-card"><div class="num">'+growth.toFixed(2)+'</div><div class="label">增长量</div></div>'+
-    '<div class="data-card"><div class="num">'+a.toFixed(2)+'</div><div class="label">基准值</div></div>'+
-    '<div class="data-card"><div class="num">'+b.toFixed(2)+'%</div><div class="label">增长率</div></div>'+
-    '</div>';
-  }else if(/评分|得分|指数/.test(title)){
-    var total=a+b;
-    var avg=(a+b)/2;
-    var diff=Math.abs(a-b);
-    html='<div class="data-grid">'+
-    '<div class="data-card"><div class="num">'+total.toFixed(1)+'</div><div class="label">总分</div></div>'+
-    '<div class="data-card"><div class="num">'+avg.toFixed(1)+'</div><div class="label">平均分</div></div>'+
-    '<div class="data-card"><div class="num">'+a.toFixed(1)+'</div><div class="label">'+lA+'</div></div>'+
-    '<div class="data-card"><div class="num">'+b.toFixed(1)+'</div><div class="label">'+lB+'</div></div>'+
-    '</div>';
-  }else if(/尺寸|规格|孔径/.test(title)){
-    var area=a*b;
-    var ratio=b?(a/b).toFixed(4):'-';
-    html='<div class="data-grid">'+
-    '<div class="data-card"><div class="num">'+area.toFixed(2)+'</div><div class="label">面积(A\u00d7B)</div></div>'+
-    '<div class="data-card"><div class="num">'+ratio+'</div><div class="label">比例(A/B)</div></div>'+
-    '<div class="data-card"><div class="num">'+a.toFixed(2)+'</div><div class="label">'+lA+'</div></div>'+
-    '<div class="data-card"><div class="num">'+b.toFixed(2)+'</div><div class="label">'+lB+'</div></div>'+
-    '</div>';
-  }else if(/角度|方位|走向/.test(title)){
-    var sum=a+b;
-    var diff=a-b;
-    var complement=90-a;
-    html='<div class="data-grid">'+
-    '<div class="data-card"><div class="num">'+sum.toFixed(2)+'\u00b0</div><div class="label">角度和</div></div>'+
-    '<div class="data-card"><div class="num">'+diff.toFixed(2)+'\u00b0</div><div class="label">角度差</div></div>'+
-    '<div class="data-card"><div class="num">'+complement.toFixed(2)+'\u00b0</div><div class="label">余角(90-A)</div></div>'+
-    '<div class="data-card"><div class="num">'+(a*Math.PI/180).toFixed(4)+' rad</div><div class="label">A(弧度)</div></div>'+
-    '</div>';
-  }else if(/照度|亮度/.test(title)){
-    var lux=a*b;
-    html='<div class="data-grid">'+
-    '<div class="data-card"><div class="num">'+lux.toFixed(2)+' lx</div><div class="label">照度(A\u00d7B)</div></div>'+
-    '<div class="data-card"><div class="num">'+a.toFixed(2)+'</div><div class="label">'+lA+'</div></div>'+
-    '<div class="data-card"><div class="num">'+b.toFixed(2)+'</div><div class="label">'+lB+'</div></div>'+
-    '<div class="data-card"><div class="num">'+(b?(a/b).toFixed(4):'-')+'</div><div class="label">比值</div></div>'+
-    '</div>';
-  }else if(/噪声|声压|分贝/.test(title)){
-    var combined=10*Math.log10(Math.pow(10,a/10)+Math.pow(10,b/10));
-    var diff=Math.abs(a-b);
-    html='<div class="data-grid">'+
-    '<div class="data-card"><div class="num">'+combined.toFixed(2)+' dB</div><div class="label">叠加噪声</div></div>'+
-    '<div class="data-card"><div class="num">'+diff.toFixed(2)+' dB</div><div class="label">差值</div></div>'+
-    '<div class="data-card"><div class="num">'+a.toFixed(2)+'</div><div class="label">'+lA+'</div></div>'+
-    '<div class="data-card"><div class="num">'+b.toFixed(2)+'</div><div class="label">'+lB+'</div></div>'+
-    '</div>';
-  }else if(/安全库存|订货点/.test(title)){
-    var safety=Math.round(a*b);
-    var reorder=Math.round(safety+a*b);
-    html='<div class="data-grid">'+
-    '<div class="data-card"><div class="num">'+safety+'</div><div class="label">安全库存</div></div>'+
-    '<div class="data-card"><div class="num">'+reorder+'</div><div class="label">订货点</div></div>'+
-    '<div class="data-card"><div class="num">'+a.toFixed(0)+'</div><div class="label">'+lA+'</div></div>'+
-    '<div class="data-card"><div class="num">'+b.toFixed(0)+'</div><div class="label">'+lB+'</div></div>'+
-    '</div>';
-  }else{
-    var sum=a+b,diff=a-b;
-    var ratio=b?(a/b).toFixed(4):'-';
-    var pct=b?(a/b*100).toFixed(2)+'%':'-';
-    var avg=((a+b)/2).toFixed(2);
-    var larger=a>0&&b>0?(a>b?lA:(a<b?lB:'相等')):'-';
-    html='<div class="data-grid">'+
-    '<div class="data-card"><div class="num">'+a.toFixed(2)+'</div><div class="label">'+lA+'</div></div>'+
-    '<div class="data-card"><div class="num">'+b.toFixed(2)+'</div><div class="label">'+lB+'</div></div>'+
-    '<div class="data-card"><div class="num">'+ratio+'</div><div class="label">比值('+lA+'/'+lB+')</div></div>'+
-    '<div class="data-card"><div class="num">'+diff.toFixed(2)+'</div><div class="label">差值</div></div>'+
-    '</div>'+
-    '<div class="data-grid" style="margin-top:8px;">'+
-    '<div class="data-card"><div class="num">'+pct+'</div><div class="label">'+lA+'占'+lB+'</div></div>'+
-    '<div class="data-card"><div class="num">'+avg+'</div><div class="label">平均值</div></div>'+
-    '<div class="data-card"><div class="num">'+sum.toFixed(2)+'</div><div class="label">总和</div></div>'+
-    '<div class="data-card"><div class="num">'+larger+'</div><div class="label">较大者</div></div>'+
-    '</div>';
-  }
-  const __g1=html;document.getElementById('res').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
-  if(iv.valid) saveHistory(a,b);
 }
 function copyRes(){
   var text=document.getElementById('res').innerText;
@@ -552,29 +280,54 @@ document.addEventListener('DOMContentLoaded',function(){
     if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='c'){e.preventDefault();copyRes();}
   });
 });
-calc();
 </script>
 <script>
 /* 真实业务计算逻辑（页内独占，覆盖通用两参脚本） */
 function calc(){
-  var e0=document.getElementById('v0'),e1=document.getElementById('v1');
-  var A=e0?parseFloat(e0.value):NaN,B=e1?parseFloat(e1.value):NaN;
+  var vals={},bad=false;
+  ['v0','v1','v2','v3','v4','v5'].forEach(function(id){
+    var el=document.getElementById(id);
+    var v=el?parseFloat(el.value):NaN;
+    var invalid=!isFinite(v)||v<0||v>200;
+    if(el){el.classList.toggle('input-error',invalid);if(invalid)el.setAttribute('aria-invalid','true');else el.removeAttribute('aria-invalid');}
+    if(invalid)bad=true;
+    vals[id]=isFinite(v)?v:0;
+  });
   var box=document.getElementById('res');
   if(!box)return;
-  if(!isFinite(A)||!isFinite(B)){box.innerHTML='<div class="info-box">请输入两个有效数值后再计算。</div>';return;}
-  var items=[];
-  items.push([(A+B).toFixed(1), "总分"]);
-  items.push([((A+B)/2).toFixed(1), "平均分"]);
-  items.push([(Math.abs(A-B)).toFixed(1), "分差"]);
+  if(bad){box.innerHTML='<div class="info-box">请填写 0–200 的非负得分/失分数值；分数请按回合数换算成整数。</div>';return;}
 
+  var A=vals.v0,B=vals.v1,C=vals.v2,D=vals.v3,E=vals.v4,F=vals.v5;
+  var rallyTotal=A+B,serveTotal=C+D,won=A+C,lost=B+D,total=won+lost;
+  if(total<=0){box.innerHTML='<div class="info-box">相持与发球的得失分之和为 0，请至少填写一个得分或失分。</div>';return;}
+  function rate(x,y){return y>0?(x/y*100).toFixed(1)+'%':'—';}
+
+  var items=[
+    [rate(won,total),'总得分率'],
+    [rate(A,rallyTotal),'相持得分率'],
+    [rate(C,serveTotal),'发球得分率'],
+    [rate(E,F),'关键分得分率'],
+    [won>0?(A/won*100).toFixed(1)+'%':'—','相持得分占比'],
+    [won>0?(C/won*100).toFixed(1)+'%':'—','发球得分占比']
+  ];
   var html='<div class="data-grid">'+items.map(function(it){return '<div class="data-card"><div class="num">'+it[0]+'</div><div class="label">'+it[1]+'</div></div>';}).join('')+'</div>';
-  html+='💡 总分 = 相持 + 发球；平均分 = 总分 ÷ 2。';
+  html+='<p style="font-size:13px;color:var(--text-muted);margin-top:10px;">相持 '+A+' 得 / '+B+' 失，发球 '+C+' 得 / '+D+' 失，关键分 '+E+' / '+F+'；全部得失分合计 '+total+' 分。</p>';
+
+  var rt=rallyTotal>0?A/rallyTotal:NaN,st=serveTotal>0?C/serveTotal:NaN;
+  if(isFinite(rt)&&isFinite(st)){
+    var gap=Math.abs(rt-st);
+    var tip=gap<0.05?'相持与发球得分率接近，技术结构较均衡。'
+      :(rt>st?'相持得分率高于发球，得分更依赖相持回合；可加强发球变化与第三板衔接。'
+            :'发球得分率高于相持，发球抢攻效果更好；可针对性补强相持稳定性。');
+    html+='<div class="info-box" style="margin-top:10px;">'+tip+'</div>';
+  }
   const __g6=html;box.innerHTML=(typeof __g6==='number'?(isFinite(__g6)?__g6:'—'):String(__g6).replace(/Infinity|NaN/g,'—'));
   if(typeof saveHistory==='function'){try{saveHistory(A,B);}catch(e){}}
 }
 function resetAll(){
-  var a=document.getElementById('v0'),b=document.getElementById('v1');
-  if(a)a.value='8';if(b)b.value='5';calc();
+  var d={v0:'8',v1:'7',v2:'5',v3:'4',v4:'2',v5:'5'};
+  for(var k in d){var el=document.getElementById(k);if(el)el.value=d[k];}
+  calc();
 }
 try{calc();}catch(e){}
 
@@ -676,10 +429,10 @@ function __pingpangqiu_xiangchi_faqiu_defenExport(){
 }
 function __pingpangqiu_xiangchi_faqiu_defenPresets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#pingpangqiu_xiangchi_faqiu_defenPresets',[{label:'默认参数',labelEn:'Default',values:{'v0':'8', 'v1':'5'}},
-  {"label":"弧圈相持型打法","labelEn":"Loop rally style","values":{"v0":14,"v1":4}},
-  {"label":"发球抢攻型打法","labelEn":"Serve-and-attack style","values":{"v0":6,"v1":11}},
-  {"label":"均衡型打法","labelEn":"Balanced style","values":{"v0":9,"v1":8}}],function(){ calc(); });
+    TBKit.preset.bar('#pingpangqiu_xiangchi_faqiu_defenPresets',[{label:'默认参数',labelEn:'Default',values:{'v0':'8','v1':'7','v2':'5','v3':'4','v4':'2','v5':'5'}},
+  {"label":"弧圈相持型打法","labelEn":"Loop rally style","values":{"v0":12,"v1":8,"v2":3,"v3":3,"v4":1,"v5":4}},
+  {"label":"发球抢攻型打法","labelEn":"Serve-and-attack style","values":{"v0":5,"v1":9,"v2":10,"v3":4,"v4":3,"v5":5}},
+  {"label":"均衡型打法","labelEn":"Balanced style","values":{"v0":8,"v1":7,"v2":7,"v3":6,"v4":2,"v5":5}}],function(){ calc(); });
 }
 var __pingpangqiu_xiangchi_faqiu_defen_f0=(typeof calc==='function')?calc:null;
 if(__pingpangqiu_xiangchi_faqiu_defen_f0){
@@ -719,8 +472,8 @@ else document.addEventListener('DOMContentLoaded', __pingpangqiu_xiangchi_faqiu_
 <h2>📚 深度解析：乒乓球（相持/发球）得分</h2>
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
-<li>11 分制得分统计。</li>
-<li>对抗训练统计发球直接得分率与相持回合胜率，定位发球抢攻与相持短板。</li>
+<li>按相持/发球两环节记录得分与失分。</li>
+<li>对抗训练统计发球得分率、相持得分率与关键分得分率，定位发球抢攻与相持短板。</li>
 </ul>
 <div class="dd-example"><div class="dd-ex-title">统计</div><div class="dd-ex-body">发球得分率=发球直接得分/发球总数；相持得分率=相持赢球/相持总数。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>

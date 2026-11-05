@@ -26,22 +26,6 @@ const CASES = [
 },
 {
   "slug": "image/image-collage",
-  "inputs": {
-    "rows": "2",
-    "cols": "3",
-    "fixedVal": "1200",
-    "bgColor": "#ffffff",
-    "gap": "8",
-    "margin": "10",
-    "layout": "h"
-  },
-  "expect": [
-    "固定高度"
-  ],
-  "ref": "auto-restore"
-},
-{
-  "slug": "image/image-collage",
   "clicks": [
     "var p=CollageTool.fitPlan(200,100,10,10,100,100,'cover');var o=CollageTool.orderLoaded([{index:2,item:'c'},{index:0,item:'a'},{index:3,item:null},{index:1,item:'b'}]);document.getElementById('infoBox').textContent='DRAW:'+[p.dx,p.dy,p.dw,p.dh].join(',')+'|CLIP:'+[p.clip.x,p.clip.y,p.clip.w,p.clip.h].join(',')+'|ORD:'+o.join('');"
   ],
@@ -275,6 +259,100 @@ const CASES = [
     "SW1:1|SW2:0|NEW:1|SRC:1|HREF:1"
   ],
   "ref": "EL-J1 回归：上传 A → 水平翻转 → 换图 B（must 立即作废旧结果）→ 垂直翻转。旧实现换图不清 lastURL，s2.hasResult 仍为 1 且下载 href 指向 A；新实现换图即 clearResult()，s2=0，翻转后 dataURL/currentImg 均为 B、下载 href 与 dataURL 一致。"
+},
+{
+  "slug": "image/generator-15",
+  "inputs": { "cnt": "" },
+  "expect": ["请输入生成数量（1–50）后再生成。"],
+  "ref": "空态回归：生成数量清空时旧实现 `parseInt||5` 仍生成 5 张预览；现要求提示且不出图。默认态含「共 5 张」不含该提示 ⇒ 强判别。"
+}
+,
+{
+  "slug": "image/id-photo-crop",
+  "clicks": ["var g=(typeof window!=='undefined'?window.__svgFileBlocked:null)||(typeof __svgFileBlocked==='function'?__svgFileBlocked:null);document.getElementById('__svg_probe').textContent='SVG:'+(g&&g({name:'evil.svg',type:'image/svg+xml'})?'BLOCK':'PASS')+'|PNG:'+(g&&g({name:'ok.png',type:'image/png'})?'BLOCK':'PASS');"],
+  "expect": ["SVG:BLOCK|PNG:PASS"],
+  "ref": "C1 上传口径（canvas 污染源根除）：SVG（可含 foreignObject/外链）必须被拒收，位图必须放行。由真机负向自证（21/21）配套覆盖。"
+},
+{
+  "slug": "image/image-collage",
+  "clicks": ["var g=(typeof window!=='undefined'?window.__svgFileBlocked:null)||(typeof __svgFileBlocked==='function'?__svgFileBlocked:null);document.getElementById('__svg_probe').textContent='SVG:'+(g&&g({name:'evil.svg',type:'image/svg+xml'})?'BLOCK':'PASS')+'|PNG:'+(g&&g({name:'ok.png',type:'image/png'})?'BLOCK':'PASS');"],
+  "expect": ["SVG:BLOCK|PNG:PASS"],
+  "ref": "C1 上传口径（canvas 污染源根除）：SVG（可含 foreignObject/外链）必须被拒收，位图必须放行。由真机负向自证（21/21）配套覆盖。"
+},
+{
+  "slug": "image/image-compress",
+  "clicks": ["var g=(typeof window!=='undefined'?window.__svgFileBlocked:null)||(typeof __svgFileBlocked==='function'?__svgFileBlocked:null);document.getElementById('__svg_probe').textContent='SVG:'+(g&&g({name:'evil.svg',type:'image/svg+xml'})?'BLOCK':'PASS')+'|PNG:'+(g&&g({name:'ok.png',type:'image/png'})?'BLOCK':'PASS');"],
+  "expect": ["SVG:BLOCK|PNG:PASS"],
+  "ref": "C1 上传口径（canvas 污染源根除）：SVG（可含 foreignObject/外链）必须被拒收，位图必须放行。由真机负向自证（21/21）配套覆盖。"
+},
+{
+  "slug": "image/image-converter",
+  "clicks": ["var g=(typeof window!=='undefined'?window.__svgFileBlocked:null)||(typeof __svgFileBlocked==='function'?__svgFileBlocked:null);document.getElementById('__svg_probe').textContent='SVG:'+(g&&g({name:'evil.svg',type:'image/svg+xml'})?'BLOCK':'PASS')+'|PNG:'+(g&&g({name:'ok.png',type:'image/png'})?'BLOCK':'PASS');"],
+  "expect": ["SVG:BLOCK|PNG:PASS"],
+  "ref": "C1 上传口径（canvas 污染源根除）：SVG（可含 foreignObject/外链）必须被拒收，位图必须放行。由真机负向自证（21/21）配套覆盖。"
+},
+{
+  "slug": "image/image-crop",
+  "clicks": ["var g=(typeof window!=='undefined'?window.__svgFileBlocked:null)||(typeof __svgFileBlocked==='function'?__svgFileBlocked:null);document.getElementById('__svg_probe').textContent='SVG:'+(g&&g({name:'evil.svg',type:'image/svg+xml'})?'BLOCK':'PASS')+'|PNG:'+(g&&g({name:'ok.png',type:'image/png'})?'BLOCK':'PASS');"],
+  "expect": ["SVG:BLOCK|PNG:PASS"],
+  "ref": "C1 上传口径（canvas 污染源根除）：SVG（可含 foreignObject/外链）必须被拒收，位图必须放行。由真机负向自证（21/21）配套覆盖。"
+},
+{
+  "slug": "image/image-filter",
+  "clicks": ["var g=(typeof window!=='undefined'?window.__svgFileBlocked:null)||(typeof __svgFileBlocked==='function'?__svgFileBlocked:null);document.getElementById('__svg_probe').textContent='SVG:'+(g&&g({name:'evil.svg',type:'image/svg+xml'})?'BLOCK':'PASS')+'|PNG:'+(g&&g({name:'ok.png',type:'image/png'})?'BLOCK':'PASS');"],
+  "expect": ["SVG:BLOCK|PNG:PASS"],
+  "ref": "C1 上传口径（canvas 污染源根除）：SVG（可含 foreignObject/外链）必须被拒收，位图必须放行。由真机负向自证（21/21）配套覆盖。"
+},
+{
+  "slug": "image/image-mosaic",
+  "clicks": ["var g=(typeof window!=='undefined'?window.__svgFileBlocked:null)||(typeof __svgFileBlocked==='function'?__svgFileBlocked:null);document.getElementById('__svg_probe').textContent='SVG:'+(g&&g({name:'evil.svg',type:'image/svg+xml'})?'BLOCK':'PASS')+'|PNG:'+(g&&g({name:'ok.png',type:'image/png'})?'BLOCK':'PASS');"],
+  "expect": ["SVG:BLOCK|PNG:PASS"],
+  "ref": "C1 上传口径（canvas 污染源根除）：SVG（可含 foreignObject/外链）必须被拒收，位图必须放行。由真机负向自证（21/21）配套覆盖。"
+},
+{
+  "slug": "image/image-resize",
+  "clicks": ["var g=(typeof window!=='undefined'?window.__svgFileBlocked:null)||(typeof __svgFileBlocked==='function'?__svgFileBlocked:null);document.getElementById('__svg_probe').textContent='SVG:'+(g&&g({name:'evil.svg',type:'image/svg+xml'})?'BLOCK':'PASS')+'|PNG:'+(g&&g({name:'ok.png',type:'image/png'})?'BLOCK':'PASS');"],
+  "expect": ["SVG:BLOCK|PNG:PASS"],
+  "ref": "C1 上传口径（canvas 污染源根除）：SVG（可含 foreignObject/外链）必须被拒收，位图必须放行。由真机负向自证（21/21）配套覆盖。"
+},
+{
+  "slug": "image/image-rotate",
+  "clicks": ["var g=(typeof window!=='undefined'?window.__svgFileBlocked:null)||(typeof __svgFileBlocked==='function'?__svgFileBlocked:null);document.getElementById('__svg_probe').textContent='SVG:'+(g&&g({name:'evil.svg',type:'image/svg+xml'})?'BLOCK':'PASS')+'|PNG:'+(g&&g({name:'ok.png',type:'image/png'})?'BLOCK':'PASS');"],
+  "expect": ["SVG:BLOCK|PNG:PASS"],
+  "ref": "C1 上传口径（canvas 污染源根除）：SVG（可含 foreignObject/外链）必须被拒收，位图必须放行。由真机负向自证（21/21）配套覆盖。"
+},
+{
+  "slug": "image/image-watermark",
+  "clicks": ["var g=(typeof window!=='undefined'?window.__svgFileBlocked:null)||(typeof __svgFileBlocked==='function'?__svgFileBlocked:null);document.getElementById('__svg_probe').textContent='SVG:'+(g&&g({name:'evil.svg',type:'image/svg+xml'})?'BLOCK':'PASS')+'|PNG:'+(g&&g({name:'ok.png',type:'image/png'})?'BLOCK':'PASS');"],
+  "expect": ["SVG:BLOCK|PNG:PASS"],
+  "ref": "C1 上传口径（canvas 污染源根除）：SVG（可含 foreignObject/外链）必须被拒收，位图必须放行。由真机负向自证（21/21）配套覆盖。"
+},
+{
+  "slug": "image/nine-grid-cutter",
+  "clicks": ["var g=(typeof window!=='undefined'?window.__svgFileBlocked:null)||(typeof __svgFileBlocked==='function'?__svgFileBlocked:null);document.getElementById('__svg_probe').textContent='SVG:'+(g&&g({name:'evil.svg',type:'image/svg+xml'})?'BLOCK':'PASS')+'|PNG:'+(g&&g({name:'ok.png',type:'image/png'})?'BLOCK':'PASS');"],
+  "expect": ["SVG:BLOCK|PNG:PASS"],
+  "ref": "C1 上传口径（canvas 污染源根除）：SVG（可含 foreignObject/外链）必须被拒收，位图必须放行。由真机负向自证（21/21）配套覆盖。"
+},
+{
+  "slug": "image/nine-grid-cutter",
+  "clicks": ["ToolBox.showToast=function(m){document.getElementById('__svg_probe').textContent='TOAST:'+m;};downloadOne(document.createElement('canvas'),1);"],
+  "expect": ["TOAST:导出失败："],
+  "ref": "B 类失败注入：桩内 canvas.toBlob 恒回调 null（等价画布被污染时浏览器返回 null）。原本 downloadOne 里 `if (!blob) return;` 静默跳过，"
+    + "现必须走 __ngcExportFail → toast「导出失败：浏览器未能生成 PNG（画布可能被污染）」。默认态无 TOAST: 串 ⇒ 判别明确。"
+},
+{
+  "slug": "image/wechat-cover-maker",
+  "clicks": ["ToolBox.showToast=function(m){document.getElementById('__svg_probe').textContent='TOAST:'+m;};var cv=document.getElementById('cover');cv.toBlob=function(cb){cb(null)};download();"],
+  "expect": ["TOAST:导出失败：浏览器未能生成 PNG"],
+  "ref": "B 类失败注入：download() 原为 `if (!blob) return;` 静默跳过。注入 #cover.toBlob 恒回调 null + 录制 ToolBox.showToast ⇒ 必须出现「TOAST:导出失败：浏览器未能生成 PNG」。"
+    + "默认态无 TOAST: 串 ⇒ 判别明确。"
+},
+{
+  "slug": "image/gif-split",
+  "clicks": ["ToolBox.showToast=function(m){document.getElementById('__svg_probe').textContent='TOAST:'+m;};var __ce=document.createElement.bind(document);document.createElement=function(t){var e=__ce(t);if(t==='canvas'){e.toDataURL=function(){throw new Error('boom')}};return e;};makeThumb(document.createElement('canvas'),200);"],
+  "expect": ["TOAST:缩略图生成失败：Error"],
+  "ref": "失败注入：新建画布的 toDataURL 必抛 Error ⇒ makeThumb 必须 toast「缩略图生成失败：Error」并返回空串，不得让异常打断 renderFrameGrid 整帧渲染。"
+    + "修复前异常裸冒成 pageerror、整帧网格渲染中断；默认态无 TOAST: 串 ⇒ 判别明确。"
 }
 ];
 async function main() {

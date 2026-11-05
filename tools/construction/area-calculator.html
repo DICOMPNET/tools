@@ -170,7 +170,7 @@ s.parentNode.insertBefore(el, s);
 <div id="circleInputs" style="display:none;">
 <div class="input-row"><div><label>半径(m)</label><input type="number" id="radius" value="3" min="0.1" step="0.1" oninput="calc()" placeholder="如 3"></div></div>
 </div>
-<div class="input-row"><div><label>套数/房间数</label><input type="number" id="rooms" value="3" min="1" step="1" oninput="calc()" placeholder="如 3"></div><div><label>公摊系数(%)</label><input type="number" id="shared" value="20" min="0" max="50" step="1" oninput="calc()" placeholder="如 20（0–50）"></div></div>
+<div class="input-row"><div><label>套数/房间数</label><input type="number" id="rooms" value="3" min="1" step="1" oninput="calc()" placeholder="如 3"></div><div><label>公摊率(%)</label><input type="number" id="shared" value="20" min="0" max="50" step="1" oninput="calc()" placeholder="如 20（0–50）"></div></div>
 <div class="toolbar"><button type="button" class="btn primary" onclick="calc();saveHistory()">📐 计算面积</button><button type="button" class="btn" onclick="resetForm()">🔄 重置</button></div>
 <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__area_calculatorExport()">导出明细 CSV</button></div><div class="result-box" id="result"></div> <div id="area_calculatorTable"></div> <div id="area_calculatorDiff"></div> <div id="area_calculatorChart"></div> <div id="area_calculatorHist"></div>
 <div id="chartWrap" style="display:none;"><div class="chart-container"><canvas id="chart"></canvas></div></div>
@@ -318,7 +318,7 @@ function renderShapes(){const __g1=SHAPES.map(function(s,i){return '<div class="
 function selectShape(i){curShape=i;renderShapes();$('rectInputs').style.display=i===0?'block':'none';$('lInputs').style.display=i===1?'block':'none';$('circleInputs').style.display=i===2?'block':'none';calc();}
 function calc(){
   var __ig=__tbInputGuard(['len1', 'wid1', 'lA', 'lB', 'la', 'lb', 'radius', 'rooms', 'shared'],["长度(m)", "宽度(m)", "外长A(m)", "外宽B(m)", "凹长a(m)", "凹宽b(m)", "半径(m)", "套数/房间数", "公摊系数(%)"]);if(__ig){const __g2=__ig;ToolBox.setResult("result",(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));return;}
-var shape=SHAPES[curShape];var rooms=parseInt($('rooms').value)||1;var shared=parseFloat($('shared').value)||20;
+var shape=SHAPES[curShape];var rooms=parseInt($('rooms').value);if(isNaN(rooms)||rooms<1)rooms=1;var shared=parseFloat($('shared').value);if(isNaN(shared))shared=20;if(shared<0||shared>=100){$('result').innerHTML='<p style="color:var(--danger);">公摊系数须在 0%（含）到 100%（不含）之间。</p>';return;}
 var unitArea=0;
 if(shape.id==='rect'){var L=parseFloat($('len1').value)||0,W=parseFloat($('wid1').value)||0;unitArea=L*W;}
 else if(shape.id==='L'){var A=parseFloat($('lA').value)||0,B=parseFloat($('lB').value)||0,a=parseFloat($('la').value)||0,b=parseFloat($('lb').value)||0;unitArea=A*B-a*b;}

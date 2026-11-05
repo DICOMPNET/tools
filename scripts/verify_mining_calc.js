@@ -84,6 +84,18 @@ const CASES = [
   "ref": "去默认化：金属总量 = 3×500 = 1500 g，矿石价值 = 1500×1.2 = 1800 元。默认态不命中。"
 },
 {
+  "slug": "mining/convert-grade-ore",
+  "inputs": {
+    "grade": "",
+    "ton": "1000",
+    "price": "400"
+  },
+  "expect": [
+    "品位需填写 ≥0 的数值（g/t）"
+  ],
+  "ref": "新增回归：品位清空曾被 `+value||0` 当作 0 静默出「金属总量 = 0 g / 矿石价值 = 0 元」。现应提示并拒绝计算；默认 5/1000/0.5 不出现该提示"
+},
+{
   "slug": "mining/excavation-volume",
   "inputs": {
     "swell": "1.25",
@@ -103,6 +115,20 @@ const CASES = [
     "¥37,800"
   ],
   "ref": "去默认化（原 expect「单价」是卡片标签）：默认形状=长方体基坑，原状方量 = 30×12×3 = 1080.0 m³；松方量 = 1080×1.25 = 1350.0 m³；车次 = ceil(1350/20) = 68；总造价 = 1080×35 = ¥37,800。默认 25×10×2 / ×1.3 / ¥20 得 500.0 / 650.0 / ¥10,000。**注意**：本页 L/W/D 三个控件由 renderParams 模板写在 deep-dive 标记**之后**（第 244 行起），`pageDefaults` 只能取到 swell/price ⇒ 判别器模拟失败时 L/W/D 保持注入值不变，故 expect **不得**断言「1080.0 m³」（原状方量，换回 swell/price 后仍命中＝逃生项）。松方量与总造价同时依赖 swell=1.25 / price=35，回退即变 1404.0 m³ 与 ¥21,600，才会真正变红"
+},
+{
+  "slug": "mining/excavation-volume",
+  "clicks": ["cur='trapezoid';renderShapes();renderParams();document.getElementById('W1').value='8';document.getElementById('W2').value='4';document.getElementById('D').value='3';document.getElementById('L').value='20';calc()"],
+  "inputs": {
+    "W1": "8",
+    "W2": "4",
+    "D": "3",
+    "L": "20"
+  },
+  "expect": [
+    "360.0 m³"
+  ],
+  "ref": "新增回归：梯形截面按实际上口宽计算 (8+4)/2×3×20 = 360.0 m³；旧实现忽略 W1、按边坡反推上口宽（4+2×3×1=10）会得 420.0 m³"
 },
 {
   "slug": "mining/haulage-optimization",

@@ -27,10 +27,13 @@ const CASES = [
     "s-mood": "10"
   },
   "expect": [
-    "最短板：生活满意度（0 分）",
     "【幸福感指数（10 维度自评）】 结果：幸福感总分 90/100（10 维度平均 9.0）→ 等级：很高；最短板 生活满意度 0 分、最强项 身心健康 10 分；较常模(62)+28"
   ],
-  "ref": "inputs 写 10 个滑杆（id=s-<维度键>）：life=0、其余=10 ⇒ getScores 求和 90 ⇒ level(90)='很高'；min=0 落在 life、max=10 落在 health。默认 DEFAULTS=[7,6,7,6,5,6,5,7,6,6] 合计 61 ⇒ 最短板是经济状况（5 分）。注入态唯一产出「最短板：生活满意度（0 分）」，双态可区分。"
+  "ref": "inputs 写 10 个滑杆（id=s-<维度键>）：life=0、其余=10 ⇒ getScores 求和 90 ⇒ level(90)='很高'；min=0 落在 life、max=10 落在 health。"
+       + "【已修逃生项】原首锚「最短板：生活满意度（0 分）」在注入失败时仍命中：滑杆由 buildSliders() 用 innerHTML 动态生成，桩不解析 innerHTML，"
+       + "getElementById('s-*') 落空 → parseInt('')||0 = 0，10 维全 0 ⇒ 最短板恰好也是生活满意度 0 分。"
+       + "（原 ref 假设默认 DEFAULTS 生效取 61 分，与实际桩行为不符。）现只保留整条 EMR 结果串，含「幸福感总分 90/100」，"
+       + "注入失败态为 0/100，零交集。"
 },
 {
   "slug": "psychology/generator-20",
@@ -115,11 +118,11 @@ const CASES = [
     "for(var i=0;i<LR_QS.length;i++){LR_ANS[i]=3;}calc();"
   ],
   "expect": [
-    "20 / 30",
-    "乐观指数 67%",
-    "【乐观倾向自评（LOT 类量表）】 结果：乐观总分 20/30（乐观指数 67%）→ 分级：中等乐观；6 题全部作答（含反向计分题）"
+    "18 / 30",
+    "乐观指数 60%",
+    "【乐观倾向自评（LOT 类量表）】 结果：乐观总分 18/30（乐观指数 60%）→ 分级：中等乐观；6 题全部作答（含反向计分题）"
   ],
-  "ref": "LOT-R 乐观量表 6 题；计分 v=选项+1=4，其中 2 题反向（6−4=2）⇒ 4×4+2×2=20（满分 30），≥18 ⇒ 中等乐观；pct=round(20/30*100)=67%"
+  "ref": "LOT-R 乐观量表 6 题（3 乐观 + 3 悲观）；计分 v=选项+1=4，其中 3 题反向（6−4=2）⇒ 3×4+3×2=18（满分 30），≥18 ⇒ 中等乐观；pct=round(18/30*100)=60%"
 },
 {
   "slug": "psychology/rater",
@@ -162,6 +165,18 @@ const CASES = [
     "【情商（EQ）自评 · Goleman 五要素】 结果：EQ 总分 80/100（80%）→ 分级：高情商；五维度得分 自我认知:16/优秀、自我管理:16/优秀、自我激励:16/优秀、同理心:16/优秀、社交技能:16/优秀"
   ],
   "ref": "EQ 20 题分 5 维度（每维度 4 题、0–4 分 ⇒ 维度满分 20、总分 100）；全选 3（计分 v=选项+1=4）⇒ 每维度 16 分、总分 80 ≥80 ⇒「高情商」；维度分 ≥16 判定「优秀」，5 个维度全部优秀。默认态 EQ_ANS 全 null ⇒ 只输出未作答提示，零交集。"
+},
+{
+  "slug": "psychology/bubble-tea-personality-quiz",
+  "clicks": ["document.getElementById('btCard').toBlob=function(){throw new Error('boom')};document.getElementById('btPngBtn').fire('click');"],
+  "expect": ["导出失败：Error"],
+  "ref": "失败注入：结果卡 toBlob 必抛 Error ⇒ 导出入口必须 toast「导出失败：Error」并终止。修复前异常裸冒成 pageerror、且成功提示「已导出 PNG」仍会执行（给出错误事实）；默认态无该串 ⇒ 判别明确。"
+},
+{
+  "slug": "psychology/enneagram-test",
+  "clicks": ["document.getElementById('enCardCanvas').toBlob=function(){throw new Error('boom')};document.getElementById('enPngBtn').fire('click');"],
+  "expect": ["导出失败：Error"],
+  "ref": "失败注入：结果卡 toBlob 必抛 Error ⇒ 导出入口必须 toast「导出失败：Error」并终止。修复前异常裸冒成 pageerror、且成功提示「已导出结果卡 PNG」仍会执行；默认态无该串 ⇒ 判别明确。"
 }
 ];
 async function main() {

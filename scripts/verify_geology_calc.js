@@ -28,6 +28,8 @@ const CASES = [
   { slug: "geology/diqiuhuaxueyichangjieshi", inputs: { c: "150", b: "40", sd: "20" }, expect: ["5.500"], ref: "标准化异常值 Z=(C−B)/σ=(150−40)/20=5.500（衬度 Ac=150/40=3.750；默认 c=80/b=30 避开）" },
   { slug: "geology/diqiuwulishujujisuan", inputs: { method: "gravity", rho: "2.5", h: "100" }, expect: ["10.475"], ref: "重力异常 Δg=0.0419·Δρ·h=0.0419×2.5×100=10.475 mGal（g.u.=Δg×10=104.75）" },
   { slug: "geology/dip-strike", inputs: { x1: "0", y1: "0", z1: "0", x2: "1", y2: "0", z2: "-0.5", x3: "0", y3: "1", z3: "-0.5" }, expect: ["315.0"], ref: "三点定面：法向量n=(0.5,0.5,1)（东,北,上），|n|=√1.5；倾角=acos(C/|n|)=35.3°；倾向=atan2(0.5,0.5)=45.0°；走向=(45−90+360)%360=315.0°（默认 z1=100 平面且水平，避开）" },
+  { slug: "geology/dip-strike", inputs: { x1: "0", y1: "0", z1: "0", x2: "10", y2: "0", z2: "0", x3: "0", y3: "0", z3: "10" }, expect: ["270.0°", "90.0°", "直立面"], ref: "P1(0,0,0)、P2(10,0,0)、P3(0,0,10)：C=v1x·v2y−v1y·v2x=0 ⇒ C/|n|=0 判直立面，倾角 90.0°、倾向「不确定」、走向 atan2(0,−100)+90=270.0°；原实现误报「水平面、倾角 0°」" },
+  { slug: "geology/dip-strike", inputs: { x1: "0", y1: "0", z1: "100", x2: "50", y2: "0", z2: "100", x3: "0", y3: "40", z3: "100" }, expect: ["0.0°", "不确定"], ref: "P1/P2/P3 同 z=100：C=2000、|n|=2000 ⇒ |C|/|n|=1 判水平面，倾角 0.0°、走向/倾向均「不确定」；原实现会输出走向 270.0°/倾向 0.0° 的伪确定值。锚点不取「水平面」——该词在页面静态文案（图例/说明）中恒存在，属逃生项。" },
   { slug: "geology/dizhiyijipinggu", inputs: { rtype: "4", scale: "0.5", comp: "80", sci: "4" }, expect: ["3.80"], ref: "综合评分=类型×0.3+规模×0.2+完整度×0.2+科学价值×0.3；类型4=1.2、规模0.5→3×0.2=0.6、完整度80/20=4×0.2=0.8、科学价值4×0.3=1.2，合计3.80（二级省级保护；默认 scale=2.5 避开）" },
     {
     "slug": "geology/duanceng-xingzhi-weiyi-huodongxing-panding",
@@ -442,6 +444,13 @@ const CASES = [
       "最小样重 (g) 289.66 样重/最小样重 6.090e-4"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"d\":\"42\",\"m\":\"42\",\"w\":\"42\",\"cval\":\"42\",\"tol\":\"42\",\"mat\":\"0.25\"}，输出区含「最小样重 (g) 289.66 样重/最小样重 6.090e-4」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "geology/calc-1",
+    "inputs": { "drillLen": "2", "threshold": "100", "unit": "mm" },
+    "clicks": ["document.querySelectorAll=function(){return [{value:'120'},{value:'85'},{value:'250'},{value:'60'},{value:'180'},{value:'95'},{value:'310'},{value:'40'},{value:'150'}];};calcRQD()"],
+    "expect": ["50.5%", "1.010"],
+    "ref": "段长(mm)=120/85/250/60/180/95/310/40/150、阈值 100 mm ⇒ 有效段 120+250+180+310+150=1010 mm=1.010 m（5/9 段）；钻孔总长 2 m ⇒ RQD=1010/(2×1000)×100=50.5%（≥50 → 一般 Fair）。harness 不解析 addSegment() 动态生成的输入，故 clicks 以同值数组替换 querySelectorAll('#segments .seg-val') 的返回值后调用真实 calcRQD()，阈值比较/求和/分级仍全部走页面实现；默认态 0 段 ⇒ RQD 0.0%、有效岩芯总长 0.000，两锚均不命中（判别时清空 clicks 即回该默认态）。"
   }
 
 ];

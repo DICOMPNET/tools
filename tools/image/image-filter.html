@@ -157,7 +157,7 @@ s.parentNode.insertBefore(el, s);
 
     <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()">
       📁 点击或拖拽图片到这里
-      <input type="file" id="file-input" accept="image/*" style="display:none;" onchange="handleFile(this.files[0])">
+      <input type="file" id="file-input" accept="image/png,image/jpeg,image/webp,image/gif" style="display:none;" onchange="handleFile(this.files[0])">
     </div>
 
     <div id="imgfChart" style="margin-top:14px;"></div>
@@ -261,6 +261,7 @@ s.parentNode.insertBefore(el, s);
 
 <script>
 let originalImg = null;
+let originalUrl = '';
 let currentFilter = 'none';
 
 const PRESETS = [
@@ -286,20 +287,35 @@ const PRESETS = [
   { name: '蓝调', filter: 'sepia(40%) hue-rotate(160deg) saturate(120%)' }
 ];
 
+function __svgFileBlocked(file) {
+  var t = String(file.type || '').toLowerCase(), n = String(file.name || '').toLowerCase();
+  if (t.indexOf('image/svg') === 0 || /\.svg$/i.test(n)) {
+    ToolBox.showToast('仅支持位图（PNG/JPG/WebP），不支持 SVG', 'error');
+    return true;
+  }
+  return false;
+}
 function handleFile(file) {
-  if (!file || !file.type.startsWith('image/')) {
+  if (!file || __svgFileBlocked(file)) {
+    if (!file) ToolBox.showToast(i18nText('toast.msg933'), 'warn');
+    return;
+  }
+  if (!file.type.startsWith('image/')) {
     ToolBox.showToast(i18nText('toast.msg933'), 'warn');
     return;
   }
   originalImg = new Image();
+  const prevUrl = originalUrl;
+  originalUrl = URL.createObjectURL(file);
   originalImg.onload = () => {
+    if (prevUrl) URL.revokeObjectURL(prevUrl);
     const img = document.getElementById('preview-img');
     img.src = originalImg.src;
     document.getElementById('controls').style.display = '';
     renderPresets();
     applyFilter();
   };
-  originalImg.src = URL.createObjectURL(file);
+  originalImg.src = originalUrl;
 }
 
 function renderPresets() {
@@ -357,13 +373,19 @@ function downloadFiltered() {
   const ctx = canvas.getContext('2d');
   ctx.filter = currentFilter;
   ctx.drawImage(originalImg, 0, 0, w, h);
-  canvas.toBlob(blob => {
+  try { canvas.toBlob(blob => {
+    if (!blob) {
+      ToolBox.showToast('导出失败：画布可能超出浏览器上限，请换一张更小的图片。', 'error');
+      return;
+    }
     const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
+    const url = URL.createObjectURL(blob);
+    a.href = url;
     a.download = `filtered-${Date.now()}.png`;
     a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
     ToolBox.showToast(i18nText('toast.msg141'), 'success');
-  }, 'image/png');
+  }, 'image/png'); } catch (e) { ToolBox.showToast('导出失败：' + ((e && (e.name || e.message)) || '未知错误'), 'error'); }
 }
 
 const dz = document.getElementById('drop-zone');

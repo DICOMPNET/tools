@@ -562,16 +562,18 @@ function copyResult(){
 
 function saveHistory(){
   if(!lastResult)return;
-  let history=JSON.parse(localStorage.getItem(HISTORY_KEY)||'[]');
+  let history=(function(){try{return JSON.parse(localStorage.getItem(HISTORY_KEY)||'[]')}catch(e){try{localStorage.removeItem(HISTORY_KEY)}catch(_){}return []}})();
   const item={...lastResult,time:new Date().toISOString()};
   history.unshift(item);
   if(history.length>MAX_HISTORY)history=history.slice(0,MAX_HISTORY);
-  localStorage.setItem(HISTORY_KEY,JSON.stringify(history));
-  ToolBox.toast('已保存到历史记录');
+  const payload=JSON.stringify(history);
+  localStorage.setItem(HISTORY_KEY,payload);
+  if(localStorage.getItem(HISTORY_KEY)===payload)ToolBox.toast('已保存到历史记录');
+  else ToolBox.toast('未保存（本次计算不受影响）');
 }
 
 function renderHistory(){
-  const history=JSON.parse(localStorage.getItem(HISTORY_KEY)||'[]');
+  const history=(function(){try{return JSON.parse(localStorage.getItem(HISTORY_KEY)||'[]')}catch(e){try{localStorage.removeItem(HISTORY_KEY)}catch(_){}return []}})();
   const list=document.getElementById('historyList');
   if(history.length===0){
     list.innerHTML='<div class="history-empty">暂无历史记录<br><span style="font-size:12px;">计算后点击"保存到历史"按钮保存</span></div>';
@@ -588,7 +590,7 @@ function renderHistory(){
 }
 
 function loadHistory(index){
-  const history=JSON.parse(localStorage.getItem(HISTORY_KEY)||'[]');
+  const history=(function(){try{return JSON.parse(localStorage.getItem(HISTORY_KEY)||'[]')}catch(e){try{localStorage.removeItem(HISTORY_KEY)}catch(_){}return []}})();
   const item=history[index];
   if(!item)return;
   document.getElementById('v').value=item.V;

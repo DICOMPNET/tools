@@ -116,7 +116,7 @@ s.parentNode.insertBefore(el, s);
     <h2 data-zh="🏦 灌溉均匀度计算器">🏦 Irrigation Uniformity Calculator</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="基于克里斯琴森均匀系数(CU)和分布均匀度(DU)评估灌溉质量">From flow or water-depth readings at each point, compute Christiansen's uniformity coefficient (CU) and distribution uniformity (DU) to spot clogging or pressure imbalance.</p>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">灌溉均匀度三项指标<br>克里斯琴森均匀系数 CU = [1 − Σ|xi − x̄| ÷ (n × x̄)] × 100<br>分布均匀度 DU = 最低 1/4 测点均值 ÷ 总均值 × 100<br>　最低 1/4 样本数 q1Count = max(1, ⌊n÷4⌋)，取升序排列前 q1Count 个<br>变异系数 CV = 标准差 ÷ 均值 × 100（标准差为总体标准差，除以 n）<br>CU 评级：≥90% 优秀｜≥80% 良好｜≥70% 一般｜<70% 差<br>均值 x̄ = Σxi ÷ n；有效测点需 ≥2 个且非负<br>测点分布图：相对均值 ×50 换算条宽，<80% 均值红、>120% 黄、区间内主色<br>改进建议：检查管道压力、清理堵塞喷头、调整喷头间距、校核系统流量</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">灌溉均匀度三项指标<br>克里斯琴森均匀系数 CU = [1 − Σ|xi − x̄| ÷ (n × x̄)] × 100<br>分布均匀度 DU = 最低 1/4 测点均值 ÷ 总均值 × 100<br>　最低 1/4 样本数 q1Count = max(1, ⌈n÷4⌉)（向上取整，保证取样不少于 25%），取升序排列前 q1Count 个<br>变异系数 CV = 标准差 ÷ 均值 × 100（标准差为总体标准差，除以 n）<br>CU 评级：≥90% 优秀｜≥80% 良好｜≥70% 一般｜<70% 差<br>均值 x̄ = Σxi ÷ n；有效测点需 ≥2 个且非负<br>测点分布图：相对均值 ×50 换算条宽，<80% 均值红、>120% 黄、区间内主色<br>改进建议：检查管道压力、清理堵塞喷头、调整喷头间距、校核系统流量</div>
   <p class="formula-desc">克里斯琴森均匀系数 CU = 1 − Σ|x_i − x̄| / (n·x̄)；分布均匀度 DU 取低四分位测点均值/总均值。本工具按各测点水量评估喷滴灌均匀性；纯前端计算。</p>
 </div>
 
@@ -191,7 +191,7 @@ s.parentNode.insertBefore(el, s);
 <ul class="dd-list">
 <li>CU = 1 − Σ|x_i − x̄| / (n × x̄)（克里斯琴森系数）。</li>
 <li>评价喷/滴灌布水均匀性。</li>
-<li>CU ≥ 0.85 优，&lt;0.75 需整改。</li>
+<li>CU ≥ 90% 优秀，80%–90% 良好，&lt;70% 需整改。</li>
 </ul>
 <div class="dd-example"><div class="dd-ex-title">微喷均匀性检测</div><div class="dd-ex-body">12 个集水器均值 12 mm，偏差绝对值和 14.4 mm。CU = 1 − 14.4/(12×12) = 1 − 0.10 = 0.90，优等。若某喷头堵塞使偏差和升到 36，则 CU=1−36/144=0.75，临界需维护。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
@@ -218,10 +218,17 @@ var pointCount = 12;
 var DEFAULT_VALUES = [12,14,11,13,15,12,10,14,13,11,12,14];
 function renderPoints(){
   var box = document.getElementById('pointRows');
+  // 增删测点前保留已录入的现场读数，只追加/删除末行
+  var prev = {};
+  for(var k=0;k<pointCount;k++){
+    var old = document.getElementById('pt'+k);
+    if(old) prev[k] = old.value;
+  }
   var html = '<h3 style="font-size:15px;margin-bottom:10px;">各测点灌水量(mm)</h3>';
   for(var i=0;i<pointCount;i++){
-    var v = DEFAULT_VALUES[i]!==undefined ? DEFAULT_VALUES[i] : 12;
-    html += '<div class="input-row"><label>测点'+(i+1)+'</label><input type="number" id="pt'+i+'" value="'+v+'" min="0" step="0.1" oninput="calc()" placeholder="如 '+v+'"></div>';
+    var def = DEFAULT_VALUES[i]!==undefined ? DEFAULT_VALUES[i] : 12;
+    var v = prev[i]!==undefined ? prev[i] : def;
+    html += '<div class="input-row"><label>测点'+(i+1)+'</label><input type="number" id="pt'+i+'" value="'+v+'" min="0" step="0.1" oninput="calc()" placeholder="如 '+def+'"></div>';
   }
   const __g0=html;box.innerHTML=(typeof __g0==='number'?(isFinite(__g0)?__g0:'—'):String(__g0).replace(/Infinity|NaN/g,'—'));
 }
@@ -268,7 +275,8 @@ function calc(){
 
   // 分布均匀度 DU = 平均最低1/4 / 总平均 × 100
   var sorted = values.slice().sort(function(a,b){return a-b;});
-  var q1Count = Math.max(1, Math.floor(n/4));
+  // 标准要求最低 1/4 测点参与 DU 计算：向上取整，避免 n=5~7 时取样不足 25%
+  var q1Count = Math.min(n, Math.max(1, Math.ceil(n/4)));
   var q1Sum = 0;
   for(var i=0;i<q1Count;i++) q1Sum += sorted[i];
   var q1Mean = q1Sum / q1Count;
@@ -283,8 +291,8 @@ function calc(){
 
   var gradeCU = cu>=90?'grade-excellent':cu>=80?'grade-good':cu>=70?'grade-pass':'grade-fail';
   var gradeText = cu>=90?'均匀性优秀':cu>=80?'均匀性良好':cu>=70?'均匀性一般':'均匀性差';
-  var tipType = cu>=85?'tip-success':cu>=75?'tip-info':'tip-warn';
-  var tipContent = cu>=85?'灌溉均匀度良好，系统运行正常。':cu>=75?'均匀度一般，建议检查堵塞喷头和管道压力。':'均匀度偏低！建议：①检查管道压力；②清理或更换堵塞喷头；③调整喷头间距；④检查系统流量。';
+  var tipType = cu>=90?'tip-success':cu>=80?'tip-info':'tip-warn';
+  var tipContent = cu>=90?'灌溉均匀度优秀（CU≥90%），系统运行正常。':cu>=80?'均匀度良好（CU 80%–90%），建议定期检查堵塞喷头和管道压力。':'均匀度偏低（CU<80%）！建议：①检查管道压力；②清理或更换堵塞喷头；③调整喷头间距；④检查系统流量。';
 
   var html = '<div class="data-grid">';
   html += '<div class="data-card"><div class="num" style="color:var(--primary);font-size:28px;">'+cu.toFixed(1)+'%</div><div class="label">克里斯琴森系数CU</div></div>';
@@ -319,10 +327,18 @@ function calc(){
 function copyResult(){
   var values=[];
   for(var i=0;i<pointCount;i++){var el=document.getElementById('pt'+i);if(el){var v=+el.value;if(!isNaN(v)&&v>=0)values.push(v);}}
-  var n=values.length,sum=0;for(var i=0;i<n;i++)sum+=values[i];
+  var n=values.length;
+  if(n<2){ ToolBox.showToast('至少需要2个有效测点','warning'); return; }
+  var sum=0;for(var i=0;i<n;i++)sum+=values[i];
   var mean=sum/n,absDev=0;for(var i=0;i<n;i++)absDev+=Math.abs(values[i]-mean);
   var cu=mean>0?(1-absDev/(n*mean))*100:0;
-  ToolBox.copyText('灌溉均匀度：\n测点数：'+n+'\n平均灌水量：'+mean.toFixed(2)+'mm\n克里斯琴森系数CU：'+cu.toFixed(1)+'%', i18nText('toast.msg544'));
+  var sorted=values.slice().sort(function(a,b){return a-b;});
+  var q1=Math.min(n,Math.max(1,Math.ceil(n/4))),q1s=0;
+  for(var j=0;j<q1;j++)q1s+=sorted[j];
+  var du=mean>0?(q1s/q1/mean)*100:0;
+  var variance=0;for(var k2=0;k2<n;k2++)variance+=Math.pow(values[k2]-mean,2);variance/=n;
+  var cv=mean>0?(Math.sqrt(variance)/mean)*100:0;
+  ToolBox.copyText('灌溉均匀度：\n测点数：'+n+'\n平均灌水量：'+mean.toFixed(2)+'mm\n克里斯琴森系数CU：'+cu.toFixed(1)+'%\n分布均匀度DU：'+du.toFixed(1)+'%\n变异系数CV：'+cv.toFixed(1)+'%', i18nText('toast.msg544'));
 }
 renderPoints();
 calc();
@@ -340,7 +356,7 @@ function __irrExport(){
     for(j=0;j<n;j++)absDev+=Math.abs(vals[j]-mean);
     var cu=mean>0?(1-absDev/(n*mean))*100:0;
     var sorted=vals.slice().sort(function(a,b){return a-b;});
-    var q1=Math.max(1,Math.floor(n/4)),q1s=0;
+    var q1=Math.min(n,Math.max(1,Math.ceil(n/4))),q1s=0;
     for(j=0;j<q1;j++)q1s+=sorted[j];
     var du=mean>0?(q1s/q1/mean)*100:0;
     var variance=0;for(j=0;j<n;j++)variance+=Math.pow(vals[j]-mean,2);variance/=n;

@@ -158,7 +158,7 @@ s.parentNode.insertBefore(el, s);
     <div class="toolbar">
       <div id="base32_encodePresets"></div><button type="button" class="btn primary" onclick="encode32()">编码 ↑</button><button class="btn" type="button" onclick="__base32_encodeExport()">导出明细 CSV</button>
       <button type="button" class="btn primary" onclick="decode32()">解码 ↓</button>
-      <button type="button" class="btn success" onclick="copyResult()">复制结果</button>
+      <button type="button" class="btn success" onclick="copyResult(event)">复制结果</button>
       <button type="button" class="btn" onclick="clearAll()">清空</button>
       <div style="flex:1;"></div>
       <label style="margin:0;display:flex;align-items:center;gap:6px;font-size:13px;">
@@ -281,6 +281,12 @@ function base32ToBytes(str){
       bits -= 8;
     }
   }
+  // RFC 4648：符号数模 8 为 1/3/6 时末组不完整（M/MZXQS/MZXW…），
+  // 且末组剩余位必须为 0；否则会把截断串静默解成字节（旧实现 "MZ" → "f"）。
+  if(bits >= 5) throw new Error('Base32 长度无效（末组不完整）');
+  if(bits > 0 && (value & ((1 << bits) - 1)) !== 0){
+    throw new Error('Base32 填充位非零，输入可能被截断');
+  }
   return new Uint8Array(out);
 }
 
@@ -302,11 +308,11 @@ function decode32(){
   }
 }
 
-function copyResult(){
+function copyResult(ev){
   const v = document.getElementById('output').value;
   if(!v) return;
+  const btn = (ev && ev.target) ? ev.target.closest('.btn') : null;
   navigator.clipboard.writeText(v).then(() => {
-    const btn = event.target.closest('.btn');
     if(btn){ btn.textContent = '✅ 已复制'; setTimeout(() => btn.textContent = '复制结果', 1500); }
   });
 }
@@ -342,7 +348,8 @@ function __base32_encodeSnap(){
 function __base32_encodeResText(){
     var r=document.getElementById('output');
     if(!r) return '';
-    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    var isField=r.tagName==='INPUT'||r.tagName==='TEXTAREA'||r.tagName==='SELECT';
+    var t=((isField?r.value:r.textContent)||'').replace(/\s+/g,' ').trim();
     if(!t||t==='--'||t==='—'||t==='-') return '';
     if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
     return t.slice(0,80);

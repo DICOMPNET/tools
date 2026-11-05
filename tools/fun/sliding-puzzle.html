@@ -259,7 +259,7 @@ s.parentNode.insertBefore(el, s);
       <div class="img-upload-area" id="imgUploadArea" style="display:none;">
 <label class="btn">
           上传图片
-          <input type="file" accept="image/*" id="imgFileInput" onchange="handleImageUpload(event)">
+          <input type="file" accept="image/png,image/jpeg,image/webp,image/gif" id="imgFileInput" onchange="handleImageUpload(event)">
         </label>
         <img class="img-preview" id="imgPreview" style="display:none;" alt="预览">
         <button type="button" class="btn" onclick="useDefaultImage()">使用默认图片</button>
@@ -534,6 +534,11 @@ s.parentNode.insertBefore(el, s);
   window.handleImageUpload = function(e) {
     const file = e.target.files[0];
     if (!file) return;
+    const t = String(file.type || '').toLowerCase(), n = String(file.name || '').toLowerCase();
+    if (t.indexOf('image/svg') === 0 || /\.svg$/i.test(n)) {
+      ToolBox.showToast('仅支持位图（PNG/JPG/WebP），不支持 SVG', 'error');
+      return;
+    }
     const reader = new FileReader();
     reader.onload = function(ev) {
       loadImage(ev.target.result);
@@ -543,6 +548,9 @@ s.parentNode.insertBefore(el, s);
     reader.readAsDataURL(file);
   };
 
+  function __spExportFail(msg) {
+    try { if (window.ToolBox && ToolBox.showToast) ToolBox.showToast(msg, "error"); } catch (e) {}
+  }
   function loadImage(src) {
     const img = new Image();
     img.crossOrigin = "anonymous";
@@ -589,7 +597,12 @@ s.parentNode.insertBefore(el, s);
       const y = row * cellH + cellH / 2;
       ctx.fillText(String(i + 1), x, y);
     }
-    defaultImgSrc = canvas.toDataURL("image/png");
+    try { defaultImgSrc = canvas.toDataURL("image/png"); }
+    catch (e) {
+      defaultImgSrc = "";
+      __spExportFail("导出失败：" + ((e && (e.name || e.message)) || "未知错误"));
+      return;
+    }
     defaultImageLoaded = true;
     loadImage(defaultImgSrc);
     imgPreview.style.display = "none";
@@ -759,7 +772,8 @@ s.parentNode.insertBefore(el, s);
       srcCol * cellW, srcRow * cellH, cellW, cellH,
       0, 0, c.width, c.height
     );
-    tileEl.style.backgroundImage = "url(" + c.toDataURL() + ")";
+    try { tileEl.style.backgroundImage = "url(" + c.toDataURL() + ")"; }
+    catch (e) { __spExportFail("导出失败：" + ((e && (e.name || e.message)) || "未知错误")); return; }
     tileEl.style.backgroundSize = "cover";
     tileEl.style.backgroundPosition = "center";
   }

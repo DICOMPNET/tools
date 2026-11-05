@@ -163,7 +163,7 @@ s.parentNode.insertBefore(el, s);
     <div class="toolbar">
       <div id="python_escapePresets"></div><button type="button" class="btn primary" onclick="esc()">转义 ↑</button><button class="btn" type="button" onclick="__python_escapeExport()">导出明细 CSV</button>
       <button type="button" class="btn primary" onclick="unesc()">反转义 ↓</button>
-      <button type="button" class="btn success" onclick="copyResult()">复制结果</button>
+      <button type="button" class="btn success" onclick="copyResult(event)">复制结果</button>
       <button type="button" class="btn" onclick="clearAll()">清空</button>
       <div style="flex:1;"></div>
       <label style="margin:0;font-size:13px;">
@@ -274,14 +274,24 @@ function esc(){
   const qtype = document.getElementById('qtype').value;
   const isRaw = mode === 'raw';
   let q = '"';
-  let prefix = '';
   if(qtype === 'single'){ q = "'"; }
   else if(qtype === 'triple'){ q = '"""'; }
-  if(isRaw) prefix = 'r';
-  let out = prefix + q;
   if(isRaw){
-    out += text.replace(/\\/g, '\\\\').replace(new RegExp('\\' + (qtype === 'triple' ? '"""' : q), 'g'), '\\' + (qtype === 'triple' ? '"""' : q));
-  } else {
+    // 原始字符串不做任何转义（r"a\b" 的值就是 a\b）。遇到无法用 r"..." 精确表示的文本时，
+    // 退回普通字符串转义（不带 r 前缀），保证产物能被 Python 解析且转义后与原文等价。
+    const delim = qtype === 'triple' ? '"""' : q;
+    // raw 字面量会原样嵌进源码，以下内容会让源码本身非法：
+    // NUL（Python 词法器直接拒收 null 字节）、单/双引号模式下的换行（变成未闭合字符串）、
+    // 三引号模式末尾的 "（会与收尾三引号连成 4 个引号）。
+    const canRaw = !text.endsWith('\\') && !text.includes(delim) && !text.includes('\0')
+      && (qtype === 'triple' ? !text.endsWith('"') : !/[\r\n]/.test(text));
+    if(canRaw){
+      document.getElementById('output').value = 'r' + q + text + q;
+      return;
+    }
+  }
+  let out = q;
+  {
     for(const ch of text){
       const cp = ch.codePointAt(0);
       switch(ch){
@@ -294,7 +304,9 @@ function esc(){
         case '\b': out += '\\b'; break;
         case '\f': out += '\\f'; break;
         case '\v': out += '\\v'; break;
-        case '\0': out += '\\0'; break;
+        // \0 后面若紧跟八进制数字会被 Python 继续读成 \012 等三位八进制转义；
+        // 用定长两位的 \x00 才不会再吞掉后续字符。
+        case '\0': out += '\\x00'; break;
         case '\x1b': out += '\\x1b'; break;
         default:
           if(cp < 0x20){
@@ -330,7 +342,8 @@ function unesc(){
     text = text.slice(1, -1);
   }
   if(isRaw){
-    document.getElementById('output').value = text.replace(/\\(.)/g, '$1');
+    // 原始字符串里反斜杠就是字面反斜杠，不参与转义解析：去掉 r 前缀与引号后原样返回。
+    document.getElementById('output').value = text;
     return;
   }
   let out = '';
@@ -347,7 +360,6 @@ function unesc(){
         case 'f': out += '\f'; i += 2; break;
         case 'v': out += '\v'; i += 2; break;
         case 'a': out += '\x07'; i += 2; break;
-        case '0': out += '\0'; i += 2; break;
         case '\\': out += '\\'; i += 2; break;
         case '\'': out += "'"; i += 2; break;
         case '"': out += '"'; i += 2; break;
@@ -360,7 +372,7 @@ function unesc(){
         case 'U':
           out += String.fromCodePoint(parseInt(text.substr(i+2,8),16));
           i += 10; break;
-        case /[0-7]/:
+        case '0': case '1': case '2': case '3': case '4': case '5': case '6': case '7':
           let o = '';
           let k = i + 1;
           while(k < text.length && /[0-7]/.test(text[k]) && o.length < 3){ o += text[k]; k++; }
@@ -377,11 +389,11 @@ function unesc(){
   document.getElementById('output').value = out;
 }
 
-function copyResult(){
+function copyResult(ev){
   const v = document.getElementById('output').value;
   if(!v) return;
+  const btn = (ev && ev.target) ? ev.target.closest('.btn') : null;
   navigator.clipboard.writeText(v).then(() => {
-    const btn = event.target.closest('.btn');
     if(btn){ btn.textContent = '✅ 已复制'; setTimeout(() => btn.textContent = '复制结果', 1500); }
   });
 }
@@ -417,7 +429,8 @@ function __python_escapeSnap(){
 function __python_escapeResText(){
     var r=document.getElementById('output');
     if(!r) return '';
-    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    var isField=r.tagName==='INPUT'||r.tagName==='TEXTAREA'||r.tagName==='SELECT';
+    var t=((isField?r.value:r.textContent)||'').replace(/\s+/g,' ').trim();
     if(!t||t==='--'||t==='—'||t==='-') return '';
     if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
     return t.slice(0,80);

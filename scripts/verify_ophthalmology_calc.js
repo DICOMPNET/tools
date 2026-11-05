@@ -71,10 +71,10 @@ const CASES = [
 {
   "slug": "ophthalmology/convert-42",
   "inputs": {
-    "val": "4"
+    "val": "0.25"
   },
-  "expect": ["4\ndec\nlog\n-0.60 logMAR 五分记录法 5.60；视角 0.25 弧分；Snellen 20/5"],
-  "ref": "auto-restore"
+  "expect": ["0.60 logMAR", "五分记录法 4.40；小数视力 0.25；logMAR 0.60", "Snellen 20/80（6/24）；ETDRS 字母数 ≈ 25（0–70，20/20=55）"],
+  "ref": "小数 0.25 ⇒ logMAR = −log10(0.25) = 0.60；五分记录法 5 + log10(0.25) = 4.40；Snellen 20/80（6/24）；ETDRS 字母数 round((1.10−0.60)/0.02)=25。默认态 1.0 ⇒「0.00 logMAR」「Snellen 20/20」「ETDRS 字母数 ≈ 55」，与本用例零交集。原用例注入 val=4（小数视力 4.0，超出 0.01–2.0 有效域）只会命中「无效」提示，已改为有效值。"
 },
 {
   "slug": "ophthalmology/corneal-curvature",
@@ -159,9 +159,9 @@ const CASES = [
     "cct": "545"
   },
   "expect": [
-    "26.3"
+    "26.4"
   ],
-  "ref": "auto-restore"
+  "ref": "三公式均值：(25.225+26.94+27.15)/3=26.438→26.4；比值法 25.761 仅单列、不纳入均值。默认态 iop=15/cct=540 ⇒「校正后眼压(三公式估算均值)： 15.3」不命中该串。"
 },
 {
   "slug": "ophthalmology/meibomian-grading",
@@ -352,6 +352,37 @@ const CASES = [
       "right\n10\ndark\nabc123测试"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"amNote\":\"abc123测试\",\"amEye\":\"right\",\"amGrid\":\"10\",\"amBg\":\"dark\"}，输出区含「right\n10\ndark\nabc123测试」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "ophthalmology/pupil-reflex",
+    "afterLoad": true,
+    "clicks": ["sel.od=1;sel.os=2;sel.rapd=2;calc()"],
+    "expect": ["双眼直接反射均减弱，警惕动眼神经(传出)障碍", "瞳孔反射异常，建议进一步评估"],
+    "ref": "OD 直接反射 1（迟钝）+ OS 2（减弱）+ RAPD 2+ ⇒ 输出「双眼直接反射均减弱，警惕动眼神经(传出)障碍或广泛病变，建议排查。」与综合「瞳孔反射异常，建议进一步评估」。"
+       + "页面用 innerHTML 批量生成分级按钮后立刻读 children[def].classList，桩默认 children 为空 ⇒ 初始化即抛错；afterLoad 开启浏览器保真初始化后可用。"
+       + "默认态（3/3/0）为「瞳孔反射未见明显异常」⇒ 两条断言均不命中。"
+  },
+  {
+    "slug": "ophthalmology/amsler-grid-test",
+    "clicks": ["var __gei=document.getElementById.bind(document);document.getElementById=function(id){if(id==='amToast')return __gei('__svg_probe');return __gei(id);};var __ce=document.createElement.bind(document);document.createElement=function(t){var e=__ce(t);if(t==='canvas'){e.toDataURL=function(){throw new Error('boom');};}return e;};document.getElementById('amPng').fire('click');"],
+    "expect": ["导出失败：Error"],
+    "ref": "失败注入：createElement('canvas') 的 toDataURL 必抛 Error，并把页面 toast 读取的 #amToast 重定向到 #__svg_probe ⇒ 必须出现「导出失败：Error」。"
+       + "修复前异常裸冒成 pageerror、无任何可见提示且不弹「已导出 PNG」；默认态无该串 ⇒ 判别明确。"
+  },
+  {
+    "slug": "ophthalmology/astigmatism-chart",
+    "clicks": ["var __gei=document.getElementById.bind(document);document.getElementById=function(id){if(id==='asToast')return __gei('__svg_probe');return __gei(id);};var __ce=document.createElement.bind(document);document.createElement=function(t){var e=__ce(t);if(t==='canvas'){e.toDataURL=function(){throw new Error('boom');};}return e;};document.getElementById('asPng').fire('click');"],
+    "expect": ["导出失败：Error"],
+    "ref": "失败注入：createElement('canvas') 的 toDataURL 必抛 Error，并把页面 toast 读取的 #asToast 重定向到 #__svg_probe ⇒ 必须出现「导出失败：Error」。"
+       + "修复前异常裸冒成 pageerror、无任何可见提示且不弹「已导出 PNG」；默认态无该串 ⇒ 判别明确。"
+  },
+  {
+    "slug": "ophthalmology/eye-chart-toolkit",
+    "clicks": ["window.canvasExportError=window.canvasExportError||function(){return null;};document.getElementById('ecCanvas').toBlob=function(){throw new Error('boom')};document.getElementById('ecPng').fire('click');"],
+    "expect": ["导出失败：Error"],
+    "ref": "失败注入：ecCanvas.toBlob 必抛 Error ⇒ 导出入口必须 toast「导出失败：Error」并终止。"
+       + "桩内未加载 canvasExportError（真机由共享脚本注入）⇒ 用例前先给恒返回 null 的替身，确保走到 toBlob。"
+       + "修复前异常裸冒成 pageerror、无任何可见提示；默认态无该串 ⇒ 判别明确。"
   }
 
 ];

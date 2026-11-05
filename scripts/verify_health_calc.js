@@ -78,9 +78,17 @@ const CASES = [
   },
   {
     slug: "health/protein-needs",
-    inputs: { weight: "65", age: "30", activity: "1.4" },
-    expect: ["91"],
-    ref: "蛋白质 = 体重 × 活动系数 = 65 × 1.4 = 91 g；安全区间 = 65×0.8 ~ 65×2.5 = 52 – 163 g/天",
+    inputs: { weight: "72", age: "30", activity: "1.7", goal: "muscle", source: "1.0" },
+    expect: ["122 克/天", "建议范围: 58 - 180"],
+    ref: "增肌目标取下限 1.6，活动系数 1.7 → factor = max(1.7,1.6) = 1.7；蛋白质 = round(72×1.7÷1.0) = 122 g；"
+      + "安全区间 = round(72×0.8) ~ round(72×2.5) = 58 – 180 g/天（避开默认 65 kg / 1.4 / 维持 / 动物蛋白）。",
+  },
+  {
+    slug: "health/protein-needs",
+    inputs: { weight: "" },
+    expect: ["请填写体重（kg）后再计算"],
+    ref: "空态：体重清空时不得保留上一次的 91 g 结论（原实现 `if(!w||w<=0) return;` 直接返回、"
+      + "结果区仍显示旧值），应清空数值并提示补填。",
   },
   {
     slug: "health/calc-1",
@@ -91,8 +99,8 @@ const CASES = [
   {
     slug: "health/water-intake-calculator",
     inputs: { weight: "72", age: "35" },
-    expect: ["72\n35\nfemale\n1.1\n1.0\n1.0\n2400 ml\n10\n2150 ml\n2900 ml\n81 oz\n06:30 起床后空腹一杯水，补充夜间流失 — ml 08:00 早餐后1小时，帮助消化 — ml 10:00 工作间隙，提神醒脑 — ml 11:30 午餐前30分钟，增加饱腹感 — ml 13:30 午休后，恢复精力 — ml 15:30 下午茶时间，缓解疲劳 — ml 17:30 下班前，补充一天消耗 — ml 19:30 晚餐后1小时 — ml 21:00 睡前1小时，别喝太多避免起夜 — ml\n黄瓜 96% 西瓜 92% 草莓 91% 葡萄柚 91% 哈密瓜 90% 桃子 88% 橙子 87% 苹果 86% 葡萄 81% 梨 84% 番茄 94% 生菜 96% 西兰花 90% 胡萝卜 88% 土豆 79% 酸奶 85% 牛奶 87% 鸡蛋 75% 米饭 70% 面包 35%"],
-    ref: "基础 = 72 kg × 35 ml/kg = 2520 ml → 取整到 50 的倍数 = 2500 ml；杯数 = 2500÷250 = 10（避开默认 65/30）",
+    expect: ["35\n72\nfemale\n1.1\n1.0\n1.0\n2400 ml\n10\n2150 ml\n2900 ml\n81 oz\n06:30 起床后空腹一杯水，补充夜间流失 — ml 08:00 早餐后1小时，帮助消化 — ml 10:00 工作间隙，提神醒脑 — ml 11:30 午餐前30分钟，增加饱腹感 — ml 13:30 午休后，恢复精力 — ml 15:30 下午茶时间，缓解疲劳 — ml 17:30 下班前，补充一天消耗 — ml 19:30 晚餐后1小时 — ml 21:00 睡前1小时，别喝太多避免起夜 — ml\n黄瓜 96% 西瓜 92% 草莓 91% 葡萄柚 91% 哈密瓜 90% 桃子 88% 橙子 87% 苹果 86% 葡萄 81% 梨 84% 番茄 94% 生菜 96% 西兰花 90% 胡萝卜 88% 土豆 79% 酸奶 85% 牛奶 87% 鸡蛋 75% 米饭 70% 面包 35%"],
+    ref: "女性 35 岁走 30 ml/kg 档：基础 = 72×30 = 2160，×活动 1.1 = 2376 → 取整 50 的倍数 = 2400 ml；杯数 = 2400÷250 = 10（避开默认 65 kg/30 岁）。注：本条 expect 的首两值为 input 访问顺序（新校验先读 age 再读 weight ⇒ 35、72）。",
   },
   {
     slug: "health/caffeine-limit",
@@ -104,9 +112,20 @@ const CASES = [
   // ---------- 评分与评估 ----------
   {
     slug: "health/calc-2",
-    inputs: { duration: "7", latency: "10", wakings: "10", depth: "15", alertness: "15", breathing: "0" },
-    expect: ["70"],
-    ref: "总分 = 时长20(7–9h) + 潜伏期10 + 觉醒10 + 深度15 + 警觉15 + 呼吸0 = 70",
+    inputs: { duration: "6", latency: "5", wakings: "5", depth: "10", alertness: "5", breathing: "-10" },
+    clicks: ["calculate()"],
+    expect: ["30 较差"],
+    ref: "总分 = 时长15(6–7h) + 潜伏期5 + 觉醒5 + 深度10 + 警觉5 + 呼吸(−10) = 30 → 分级「较差」"
+      + "（避开默认 7/10/10/15/15/0 = 70）。必带 clicks：本页输入无 oninput/onchange，"
+      + "原用例的「70」实际命中深解静态算例文本，从未真正触发计算。",
+  },
+  {
+    slug: "health/calc-2",
+    inputs: { duration: "" },
+    clicks: ["calculate()"],
+    expect: ["请填写睡眠时长（小时）后再评分"],
+    ref: "空态：时长留空时不得按 0 分继续算（原行为 total = 0+10+10+15+15+0 = 50 判「一般」），"
+      + "应提示补填。",
   },
   {
     slug: "health/calc-3",
@@ -140,6 +159,20 @@ const CASES = [
     inputs: { age: "50", cr: "1.0", weight: "65", height: "170", formula: "cockcroft" },
     expect: ["81"],
     ref: "Cockcroft-Gault（男）：(140−50) × 65 ÷ (72 × 1.0) = 5850 ÷ 72 = 81.25 → 显示 81 mL/min",
+  },
+  {
+    slug: "health/gfr-calculator",
+    inputs: { age: "60", cr: "1.0", weight: "100", height: "170", formula: "cockcroft", wtBasis: "abw" },
+    expect: ["79.6 kg （校正体重 ABW", "88"],
+    ref: "肥胖口径对照（ABW）：IBW = 50 + 0.91×(170−152.4) = 66.016 kg；ABW = 66.016 + 0.4×(100−66.016) = 79.6096 kg；"
+       + "CrCl = (140−60)×79.6096 ÷ (72×1.0) = 88.455 → 88 mL/min。默认态（ckdepi / 65 kg / tbw）既不显示口径行也不出 88。",
+  },
+  {
+    slug: "health/gfr-calculator",
+    inputs: { age: "60", cr: "1.0", weight: "100", height: "170", formula: "cockcroft", wtBasis: "tbw" },
+    expect: ["111", "⚠ BMI 34.6 ≥ 30"],
+    ref: "同一输入改用实际体重（TBW）：(140−60)×100 ÷ (72×1.0) = 111.11 → 111 mL/min，与 ABW 口径的 88 明显不同；"
+       + "BMI = 100 ÷ 1.7² = 34.60 ≥ 30 ⇒ 输出「⚠ BMI 34.6 ≥ 30」提示改用 IBW/ABW。默认态 BMI 22.5 且非 cockcroft，不命中。",
   },
   {
     slug: "health/insulin-dose",
@@ -195,10 +228,26 @@ const CASES = [
     expect: ["65,700"],
     ref: "每日 = 15÷20×30 = 22.5 元；总计 = 22.5 × 365 × 8 = 65,700 元（避开默认 20 支/10 年/25 元）",
   },
+  {
+    slug: "health/smoking-cost-calculator",
+    inputs: { years: "0" },
+    expect: ["¥0"],
+    ref: "烟龄 0 年是合法值：修复前 `years||1` 把 0 吞成 1，0 年与 1 年输出完全相同；修复后总计 = 每日 25 元 × 365 × 0 = ¥0。默认 10 年 ⇒ ¥91,250，注入失败不命中「¥0」。",
+  },
+  {
+    slug: "health/water-intake-calculator",
+    inputs: { weight: "20", age: "0" },
+    clicks: ["document.getElementById('weight').value='20';document.getElementById('age').value='0';calc()"],
+    expect: ["2650 ml"],
+    ref: "0 岁是合法值：修复前 `age||30` 把 0 吞成 30，按成人 35 ml/kg；修复后年龄 ≤1 岁取 120 ml/kg ⇒ 20×120=2400，×活动 1.1 = 2640 → 取整 50 的倍数 = 2650 ml。默认 65 kg/30 岁 ⇒ 2500 ml，注入失败不命中。",
+  },
   {"slug": "health/child-medication-dose", "inputs": {"age": "6", "weight": "24"}, "expect": ["Clark公式（按体重 24 kg） 每次剂量： 137.1 mg （约 6.9 ml）", "Young公式（按年龄6岁）： 133.3 mg/次", "每次剂量： 120.0 ~ 240.0 mg/次", "最大日剂量： 960 mg （约 48.0 ml）"], "ref": "独立复算（ibuprofen：adultDose=400、conc=20mg/ml、unitRange=[5,10]、maxDaily=40）：Clark = 24×400/70 = 137.14 ⇒ 137.1 mg；体积 = 137.14/20 = 6.86 ⇒ 6.9 ml；Young = 6×400/(6+12) = 133.33 ⇒ 133.3；标准范围 = 5×24 ~ 10×24 = 120.0 ~ 240.0；最大日剂量 = 40×24 = 960 mg、58… 页面给 48.0 ml（960/20）。默认态（age=3、weight=15）为 85.7 mg / 4.3 ml / 64.3 mg / 75.0~150.0 / 600 mg，四锚均不命中。"},
   {"slug": "health/child-medication-dose", "inputs": {"age": "9", "weight": "31"}, "clicks": ["document.getElementById('drugSelect').value='acetaminophen';calcDose();"], "expect": ["对乙酰氨基酚（泰诺林） 规格：32mg/1ml ｜ 用药间隔：4-6小时", "每次剂量： 221.4 mg （约 6.9 ml）", "Young公式（按年龄9岁）： 214.3 mg/次", "每次剂量： 310.0 ~ 465.0 mg/次", "最大日剂量： 1860 mg （约 58.1 ml）"], "ref": "独立复算（acetaminophen：adultDose=500、conc=32mg/ml、unitRange=[10,15]、maxDaily=60）：Clark = 31×500/70 = 221.43 ⇒ 221.4 mg；体积 = 221.43/32 = 6.92 ⇒ 6.9 ml；Young = 9×500/(9+12) = 214.29 ⇒ 214.3；标准范围 = 10×31 ~ 15×31 = 310.0 ~ 465.0；最大日剂量 = 60×31 = 1860 mg、体积 1860/32 = 58.125 ⇒ 58.1 ml。切换药物须走 clicks（select 无 option selected 桩、值写在 inputs 里会被 onchange 重置），药物名锚同时验证 conc/interval 联动。默认态为布洛芬 + age3/weight15，四锚均不命中。"},
   {"slug": "health/child-medication-dose", "inputs": {"age": "6", "weight": "24"}, "clicks": ["document.getElementById('hepFunc').value='b';calcDose();"], "expect": ["6 岁：男童约 20.5 kg ，女童约 20.2 kg", "你输入 24 kg，较同龄男童中位体重高 17%", "主要清除途径：肝脏 肝功能 B 级：肝代谢药物，建议减少约 25–50%"], "ref": "WHO 生长标准体重-for-age P50：6 岁男 20.5 kg / 女 20.2 kg；输入 24 kg ⇒ (24-20.5)/20.5=17.07% ⇒ 高 17%。布洛芬主要经肝代谢（CYP2C9），Child-Pugh B 级 ⇒ 建议减 25–50% 或延长间隔。失败态（clicks 清空、age 回落默认 3）参考体重变 14.3/13.9、hepFunc 回落 normal ⇒ 三条均不命中。"},
   {"slug": "health/child-medication-dose", "inputs": {"age": "5", "weight": "18"}, "clicks": ["document.getElementById('drugSelect').value='amoxicillin';document.getElementById('renalFunc').value='severe';calcDose();"], "expect": ["5 岁：男童约 18.3 kg ，女童约 18.2 kg", "你输入 18 kg，较同龄男童中位体重低 2%", "主要清除途径：肾脏 肾功能重度下降：本品主要经肾排泄，建议显著减量"], "ref": "5 岁男童 P50 18.3 kg、女童 18.2 kg；18 kg ⇒ (18-18.3)/18.3=-1.64% ⇒ 低 2%。阿莫西林主要经肾排泄，肾功能重度下降（Ccr 15–29）⇒ 显著减量或延长间隔。失败态药物回落布洛芬（肝脏）、renalFunc 回落 normal、age 回落默认 3 岁 ⇒ 三条均不命中。"},
+  {"slug": "health/child-medication-dose", "inputs": {"age": "1.5", "weight": "10"}, "clicks": ["document.getElementById('drugSelect').value='loratadine';calcDose();"], "expect": ["10 mg（说明书绝对上限）", "1.0 ~ 2.0 mg/次"], "ref": "氯雷他定（loratadine，maxDaily=10、maxDailyAbs=true、maxSingleAbs=10、unitRange=[0.1,0.2]）：10 kg ⇒ 单次范围 1.0~2.0 mg；最大日剂量取说明书绝对上限 10 mg，不再乘以体重。修复前 maxDaily 被当作按体重值，10×10 = 100 mg/日（说明书上限的 10 倍）。默认药物为布洛芬（40 mg/kg 按体重上限 600 mg）⇒ 两条均不命中。"},
+  {"slug": "health/child-medication-dose", "inputs": {"age": "0", "weight": "3.5"}, "clicks": ["document.getElementById('drugSelect').value='acetaminophen';calcDose();"], "expect": ["0 岁：男童约 3.3 kg", "每次剂量： 25.0 mg （约 0.8 ml）", "每次剂量： 35.0 ~ 52.5 mg/次"], "ref": "0 岁（新生儿）为合法值：acetaminophen 3.5 kg ⇒ Clark = 3.5×500/70 = 25.0 mg（25/32 = 0.78 → 0.8 ml）；说明书范围 10~15 mg/kg = 35.0~52.5 mg。修复前 age<=0 被拒绝并输出「请输入有效的年龄」，默认态 age=3 ⇒ 三锚均不命中。"},
+  {"slug": "health/child-medication-dose", "inputs": {"age": "12", "weight": "80"}, "clicks": ["document.getElementById('drugSelect').value='acetaminophen';calcDose();"], "expect": ["每次剂量： 500.0 mg （约 15.6 ml）", "每次剂量： 500.0 ~ 500.0 mg/次", "最大日剂量： 4000 mg （按体重，已达成人日上限）"], "ref": "超重儿童封顶：80 kg acetaminophen ⇒ Clark 原始 80×500/70 = 571.4，封顶成人单次极量 500 mg（500/32 = 15.6 ml）；标准范围下限 10×80 = 800 > 上限 15×80 = 1200 均封顶 500，故 500.0~500.0；日剂量 60×80 = 4800 封顶成人 4000 mg/日。修复前 Clark 571.4、范围 800.0~1200.0、日剂量 4800（下限 > 上限、且超成人极量），三锚均不命中。"},
   {"slug": "health/milk-tea-calories", "inputs": {}, "checkIds": ["top_boba", "top_cheese"], "clicks": ["document.getElementById('cup').value='650';document.getElementById('tea').value='60';document.getElementById('milk').value='120';document.getElementById('sugar').value='100';calcTool();"], "expect": ["395 kcal 一杯总热量 180 kcal 茶底 + 奶类 65 kcal 糖（100% 糖度） 150 kcal 加料（boba、cheese）"], "ref": "独立复算：杯量 650ml、芝士奶盖茶底 60 + 奶精 120 ⇒ 茶底+奶类 = 180 kcal；糖热量 = round(650/100 × (100/100) × 10) = 65 kcal；加料 = 珍珠 80 + 奶盖 70 = 150 kcal；总 = 180 + 65 + 150 = 395 kcal。加料名走 el.dataset.name，桩内 dataset 不存在 ⇒ 回落 id（boba、cheese），此串本身即锚。默认态全 0（500ml/原味/无奶/无糖/无加料）为「0 kcal 一杯总热量」，四段连排串不命中。杯量/茶底/奶/糖四项 select 桩内 option selected 不生效，必须 clicks 赋值后显式调 calcTool()（页面函数名非 calc）。"},
   {"slug": "health/milk-tea-calories", "inputs": {}, "checkIds": ["top_pudding", "top_redbean"], "clicks": ["document.getElementById('cup').value='500';document.getElementById('tea').value='30';document.getElementById('milk').value='80';document.getElementById('sugar').value='50';calcTool();"], "expect": ["245 kcal 一杯总热量 110 kcal 茶底 + 奶类 25 kcal 糖（50% 糖度） 110 kcal 加料（pudding、redbean）"], "ref": "独立复算：奶茶基底 30 + 全脂牛奶 80 = 110 kcal；糖热量 = round(500/100 × (50/100) × 10) = 25 kcal；加料 = 布丁 60 + 红豆 50 = 110 kcal；总 = 110 + 25 + 110 = 245 kcal。加料名同样回落为 id（pudding、redbean）。与上一例互为对照：更换茶底/奶/糖/加料四类输入，覆盖不同糖度与不同加料组合。默认态全 0，不命中。"},
 
@@ -318,19 +367,16 @@ const CASES = [
       "chest": "42",
       "abdominal": "42",
       "thigh": "42",
-      "tricepM": "42",
-      "subscapM": "42",
-      "suprailiacM": "42",
       "tricepF": "42",
-      "subscapF": "42",
       "suprailiacF": "42",
       "biaBf": "42",
       "weight3": "42"
     },
     "expect": [
-      "康减脂是长期过程\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42"
+      "健康减脂是长期过程\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"height\":\"42\",\"weight\":\"42\",\"waist\":\"42\",\"neck\":\"42\",\"hip\":\"42\",\"height2\":\"42\",\"weight2\":\"42\",\"age2\":\"42\",\"chest\":\"42\",\"abdominal\":\"42\",\"thigh\":\"42\",\"tricepM\":\"42\",\"subscapM\":\"42\",\"suprailiacM\":\"42\",\"tricepF\":\"42\",\"subscapF\":\"42\",\"suprailiacF\":\"42\",\"biaBf\":\"42\",\"weight3\":\"42\"}，输出区含「康减脂是长期过程\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n4…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"height\":\"42\",\"weight\":\"42\",\"waist\":\"42\",\"neck\":\"42\",\"hip\":\"42\",\"height2\":\"42\",\"weight2\":\"42\",\"age2\":\"42\",\"chest\":\"42\",\"abdominal\":\"42\",\"thigh\":\"42\",\"tricepF\":\"42\",\"suprailiacF\":\"42\",\"biaBf\":\"42\",\"weight3\":\"42\"}，输出区含「康减脂是长期过程\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n4…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+       + "【注入键校准 2026-11-05】原注入的 tricepM/subscapM/suprailiacM/subscapF 在页面均无对应 input（僵尸 id ⇒ 桩造游离元素、注入落空）。页面皮褶法为 Jackson-Pollock 3 点法：男性 chest+abdominal+thigh，女性 tricepF+suprailiacF+thigh（calcSkinfoldMethod 第 445–461 行按 gender 分支读取），标准 JP3 女性用肱三头肌/髂脊/大腿，本页不需要肩胛下（subscapular）点，故删去四个不存在键，属用例错而非页面缺陷。"
   },
   {
     "slug": "health/body-surface-area",
@@ -513,9 +559,11 @@ const CASES = [
       "formula": "mdrd"
     },
     "expect": [
-      "42\n42\n1.159\nmdrd\n42\n42\n1\nG5 肾衰竭\n1 CKD-EPI 1 MDRD 立即就医！ 评估"
+      "G5 肾衰竭"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"age\":\"42\",\"cr\":\"42\",\"weight\":\"42\",\"height\":\"42\",\"race\":\"1.159\",\"formula\":\"mdrd\"}，输出区含「42\n42\n1.159\nmdrd\n42\n42\n1\nG5 肾衰竭\n1 CKD-EP…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入 age/cr=42 + MDRD，MDRD = 186 × 42^(−1.154) × 42^(−0.203) × 1.212 ≈ 1.1 → 分期 G5 肾衰竭；"
+       + "默认态（age 50 / cr 1.0 / CKD-EPI）为 G1 肾功能正常或升高 ⇒ 不命中。原先跨元素拼接断言含输入回显（age/cr/race/formula），"
+       + "新增体重口径 select 后顺序变化即失配，故只锚分期结论串。"
   },
   {
     "slug": "health/ibw-calculator",

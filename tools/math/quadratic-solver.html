@@ -229,6 +229,7 @@ s.parentNode.insertBefore(el, s);
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){
+            if(['a','b','c'].every(function(id){var e=document.getElementById(id);return !e||String(e.value).trim()==='';})){ToolBox.setResult('result','<p class="tip-error">请输入必要参数后再计算。</p>');return;}
             const a = num('a'), b = num('b'), c = num('c');
             if (a === 0) {
                 // a=0 退化为一次方程 bx+c=0，不能套求根公式（2a=0 会得 ±Infinity）
@@ -239,7 +240,13 @@ function calcTool(){
             }
             const d = b * b - 4 * a * c;
             if (d < 0) {
-                const __g1=dataGrid([['无实根（Δ<0）', '判别式 Δ']]);ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
+                // Δ<0 时两根为一对共轭复根，主值取实部 −b/2a、虚部 ±√|Δ|/2a
+                const re = -b / (2 * a), im = Math.sqrt(-d) / Math.abs(2 * a);
+                const __g1=dataGrid([
+                    [re.toFixed(4)+' + '+im.toFixed(4)+'i', '根 x₁（复根主值）'],
+                    [re.toFixed(4)+' − '+im.toFixed(4)+'i', '根 x₂（共轭）'],
+                    [d.toFixed(4), '判别式 Δ']
+                ]);ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
             } else {
                 const x1 = (-b + Math.sqrt(d)) / (2 * a);
                 const x2 = (-b - Math.sqrt(d)) / (2 * a);

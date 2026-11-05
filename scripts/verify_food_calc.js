@@ -104,6 +104,17 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  "slug": "food/dough-fermentation-time",
+  "inputs": {
+    "temp": "0",
+    "yeast": "1"
+  },
+  "expect": [
+    "8小时29分钟"
+  ],
+  "ref": "0°C 是页面允许输入（input min=0、placeholder 0–45），旧实现 temp||25 静默改成 25°C（1小时30分钟/适宜）。按 Q10：90×2^((25−0)/10)=509.1min ⇒ 8小时29分钟，温度评价「过冷」。默认 25°C ⇒ 1小时30分钟/适宜，三锚均不命中。"
+},
+{
   "slug": "food/food-calculator",
   "inputs": {
     "bakeOriginalSize": "30",
@@ -118,14 +129,27 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  "slug": "food/food-calculator",
+  "inputs": {
+    "shelfFood": "egg",
+    "shelfCondition": "freeze",
+    "shelfDate": "2026-11-01"
+  },
+  "clicks": ["calcShelf()"],
+  "expect": [
+    "该食物不建议冷冻保存"
+  ],
+  "ref": "新增回归：鸡蛋冷冻保质期 0 天曾被按「到期当天」算成剩余 0 天/已过期。现应提示不建议冷冻；默认苹果+冷藏不出现该提示"
+},
+{
   "slug": "food/food-calorie-counter",
   "clicks": [
     "addFood('主食类',0);addFood('蛋白质类',1);"
   ],
   "expect": [
-    "281 总热量 (千卡)"
+    "339 总热量 (千卡)"
   ],
-  "ref": "去默认化（原 expect「116」＝主食类米饭卡片恒显的卡路里标签，注入失败仍命中 → 逃生项）：clicks 调 addFood 加米饭(116)+鸡胸肉(165)，totals 渲染「281 总热量 (千卡) 14g 蛋白质 (估) 9g 脂肪 (估) 35g 碳水 (估)」；默认 totals 为「0 总热量 (千卡)」不含 281，注入失败即不命中。（addFood 内 localStorage.setItem 在 harness 下可用，渲染先于写入，totals 已正确生成。）"
+  "ref": "去默认化（原 expect「116」＝主食类米饭卡片恒显的卡路里标签，注入失败仍命中 → 逃生项）：clicks 调 addFood 加米饭(174)+鸡胸肉(165)，totals 渲染「339 总热量 (千卡) 17g 蛋白质 (估) 11g 脂肪 (估) 42g 碳水 (估)」；默认 totals 为「0 总热量 (千卡)」不含 339，注入失败即不命中。（口径修正：米饭由每 100g 的 116 折算到 1 碗 150g = 174；addFood 内 localStorage.setItem 在 harness 下可用，渲染先于写入，totals 已正确生成。）"
 },
 {
   "slug": "food/food-pairing",
@@ -317,6 +341,22 @@ const CASES = [
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"amount\":\"42\",\"totalW\":\"42\",\"shuIn\":\"42\",\"target\":\"42\",\"mode\":\"shu\",\"variety\":\"1\"}，输出区含「辣度判定） 品种：自定义输入，公开参考区间 42 至 42 SHU（中值 42）…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   }
+
+,
+{
+  "slug": "food/calc-concentration",
+  "inputs": {"v1": "", "v2": ""},
+  "clicks": ["calc()"],
+  "expect": ["请填写两项数值后再计算。"],
+  "ref": "空态：两项清空后不再按 0 计算，改为提示；默认 500/20 ⇒ 100.00，不命中。"
+}
+,
+{
+  "slug": "food/beer-gravity-estimator",
+  "clicks": ["malts=[{type:0,weight:8}];calc()"],
+  "expect": ["1.093", "0.931", "21.3%", "24.0°P"],
+  "ref": "麦芽投料 8 kg 淡色麦芽（PPG 37）→ GU = 37×8×2.20462 = 652.57；水量 20 L = 5.28344 gal、效率 75% ⇒ 重力单位 = 652.57×0.75/5.28344 = 92.63 ⇒ OG = 1.093；衰减 75% ⇒ FG = 1 − 0.09263×0.75 = 0.931；ABV = (1.093−0.931)×131.25 = 21.3%；Plato = 0.09263×259 = 24.0°P。默认投料（4 kg 淡色 + 0.5 kg 水晶）⇒ OG 1.052/ABV 11.9%，四锚均不命中（判别时清空 clicks 即回默认投料）。"
+}
 
 ];
 async function main() {

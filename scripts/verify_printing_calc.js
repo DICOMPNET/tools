@@ -81,10 +81,11 @@ const CASES = [
     "copies": "2000",
     "waste": "5"
   },
+  "checkIds": ["doubleSide"],
   "expect": [
-    "393.75"
+    "12,600 张"
   ],
-  "ref": "auto-restore"
+  "ref": "163 页 / 16 开 / 双面（页面默认 checked，桩内恒 false 故用 checkIds 还原）→ 5.09375 印张，按整张向上取整为 6；全张用纸 = 6×2000×1.05 = 12,600 张（25.2 令）。旧实现按小数印张算得 10,696.98 张，少备 15.1%"
 },
 {
   "slug": "printing/estimate-ink",
@@ -110,6 +111,35 @@ const CASES = [
     "2118.60"
   ],
   "ref": "auto-restore"
+},
+{
+  "slug": "printing/estimate-ink",
+  "inputs": {
+    "cArea": "0.21",
+    "cThk": "1.2",
+    "cDen": "1.1",
+    "cCopies": "1000",
+    "cC": "-5",
+    "cM": "25",
+    "cY": "35",
+    "cK": "15"
+  },
+  "expect": [
+    "CMYK 各色覆盖率需填写 0–100% 的数值"
+  ],
+  "ref": "新增回归：青色覆盖率 -5 越界，必须给出校验提示而不是算出负墨量"
+},
+{
+  "slug": "printing/convert-gsm",
+  "inputs": {
+    "gsm": "80",
+    "rho": "0",
+    "thick": "0.1"
+  },
+  "expect": [
+    "纸张紧度 ρ 需填写 0.3–2.0 的数值"
+  ],
+  "ref": "新增回归：紧度 0 曾被静默替换为 0.0001 → 厚度 800.0000 mm。现应提示并拒绝计算；默认 0.8 不出现该提示"
 }
 ];
 async function main() {

@@ -47,6 +47,25 @@ if (typeof globalThis.MutationObserver === "undefined") {
   };
 }
 
+// Mermaid：office/flowchart.html 顶层首句就是 `mermaid.initialize({...})`，而页面依赖 CDN
+// 加载 mermaid，harness 不加载外部脚本 ⇒ 缺桩时页面脚本在首句抛 ReferenceError，整页函数
+// 一个都导不出（`saveCode`/`downloadPNG` 均 undefined），只能零用例。
+// 这里只提供最小形状：initialize 记录配置、render 返回合法 SVG（不含 foreignObject，与页面
+// htmlLabels:false 的输出形态一致）、parse 返回 resolved。像素级渲染正确性不做断言（harness
+// 无真实 SVG 布局与字体度量），交真机验证。
+if (typeof globalThis.mermaid === "undefined") {
+  globalThis.mermaid = {
+    initialize(config) { this._config = config || {}; },
+    render() {
+      return Promise.resolve({
+        svg: '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="100"></svg>',
+        bindFunctions() {},
+      });
+    },
+    parse() { return Promise.resolve(true); },
+  };
+}
+
 const ROOT = path.join(__dirname, "..");
 
 // ToolBox 早期 API 桩（/js/toolbox-stub.js）源缓存：页面已将该桩外链化（<script src>），
@@ -62,6 +81,26 @@ function loadToolboxStubSrc() {
     } catch (e) { _toolboxStubSrc = ""; }
   }
   return _toolboxStubSrc;
+}
+// 共享层 /js/common.js 源缓存：TB_STUB_FIDELITY=1 时按线上真实顺序注入（defer → 页面内联之后）。
+// 目的：复现「页面顶层同名函数被共享层全局赋值覆盖」这类静默遮蔽（如 fmtNum），
+// 避免 harness 因为没加载 common.js 而把生产缺陷跑成绿。
+//
+// 开关在模块加载时一次性读取：runCase 期间页面脚本可能把 globalThis.process 覆盖成页面自己的
+// 函数（如 it/caesar-cipher 的 `process=function(){…}`，线上无害——那里 process 本就是页面函数），
+// 若在用例执行中再访问 process.env 会 TypeError、整条门禁崩掉。
+const TB_STUB_FIDELITY = process.env.TB_STUB_FIDELITY === "1";
+const TB_FIDELITY_DEBUG = !!process.env.TB_FIDELITY_DEBUG;
+const NODE_STDERR = process.stderr;
+let _commonSrc = null;
+function loadCommonSrc() {
+  if (_commonSrc === null) {
+    try {
+      const p = path.join(ROOT, "js", "common.js");
+      _commonSrc = fs.existsSync(p) ? fs.readFileSync(p, "utf8") : "";
+    } catch (e) { _commonSrc = ""; }
+  }
+  return _commonSrc;
 }
 const TOOLS_DIR = path.join(ROOT, "tools");
 
@@ -159,6 +198,14 @@ const CASES = [
     inputs: { textInput: "hello" },
     expect: ["5d41402abc4b2a76b9719d911017c592"],
     ref: "MD5('hello') = 5d41402abc4b2a76b9719d911017c592（RFC 1321 常见向量）",
+  },
+  {
+    slug: "it/md5",
+    inputs: { textInput: "a\nb" },
+    checkIds: ["lineMode"],
+    clicks: ["calcText()"],
+    expect: ["0cc175b9c0f1b6a831c399e269772661", "92eb5ffee6ae2fec3ad71c777531578f"],
+    ref: "逐行批量分支（勾选 lineMode）：'a' → 0cc175b9c0f1b6a831c399e269772661、'b' → 92eb5ffee6ae2fec3ad71c777531578f（RFC 1321 单字符向量）。默认态未勾选 lineMode，逐行表 display:none，两串均不出现；整段 'a\\nb' 的摘要也不是这两串。",
   },
   {
     slug: "it/sha",
@@ -287,9 +334,9 @@ const CASES = [
   },
   {
     slug: "it/calc-2",
-    inputs: { numInput: "255", fromBase: "10" },
-    expect: ["FF", "ff"],
-    ref: "format(255,'X') = FF",
+    inputs: { numInput: "254", fromBase: "10" },
+    expect: ["FE", "fe"],
+    ref: "format(254,'X') = FE。原用例取 255/10，恰等于页面默认值（value=\"255\"、option 10 selected）⇒ 不注入也命中、属「输入等于默认值」型假门禁；改用 254 后默认态输出 255/FF 不再命中。",
   },
   {
     slug: "it/caesar-cipher",
@@ -399,17 +446,17 @@ const CASES = [
   },
   {
     slug: "it/clamp-calculator",
-    // 页面斜率取两路较大值：slope1=(pref−min)/(vwMin/100)、slope2=(max−min)/(vwMax/100)，rem=pref−vw·vwMin/100。
-    // 注入 min=10 / max=100 / vwMin=50（pref 用默认 24）⇒ slope1=(24−10)/0.5=28、slope2=90/14.4=6.25 ⇒ vw=28、rem=24−28×0.5=10。
+    // 页面按「vwMin→preferred、vwMax→max」线性插值：slope=(max−pref)/(vwMax−vwMin)×100，rem=pref−slope×vwMin/100；min 为下限钳制。
+    // 注入 min=10 / max=100 / vwMin=50（pref 用默认 24、vwMax 默认 1440）⇒ slope=(100−24)/13.9≈5.4676→5.47vw、rem=24−5.4676×0.5≈21.266→21.27。
     inputs: { min: "10", max: "100", vwMin: "50" },
-    expect: ["生成表达式： clamp(10px, 28vw + 10px, 100px)"],
-    ref: "独立复算：slope1=(24−10)/(50/100)=28、slope2=(100−10)/(1440/100)=6.25 ⇒ 取大者 28vw；截距 rem=24−28×50/100=10 ⇒ clamp(10px, 28vw + 10px, 100px)。默认 min/max/vwMin 为 16/48/375，表达式不同 ⇒ 不命中。",
+    expect: ["生成表达式： clamp(10px, 5.47vw + 21.27px, 100px)"],
+    ref: "独立复算：slope=(100−24)/(1440−50)×100=5.4676 ⇒ 5.47vw；截距 rem=24−5.4676×50/100=21.266 ⇒ 21.27px；min=10 仅作下限 ⇒ clamp(10px, 5.47vw + 21.27px, 100px)。默认 min/max/vwMin 为 16/48/375，表达式不同 ⇒ 不命中。",
   },
   {
     slug: "it/confidence-interval",
     inputs: { mean: "100", std: "15", n: "30", conf: "0.95" },
-    expect: ["[ 94.632 , 105.368 ]", "临界值 z = 1.960"],
-    ref: "独立复算：SE=s/√n=15/√30=2.7386；95% 双侧 z=1.960 ⇒ ME=1.960×2.7386=5.3677 ⇒ CI=[94.632, 105.368]。默认输入不同（区间两端数不同）⇒ 两串均不出现。",
+    expect: ["[ 94.632 , 105.368 ]"],
+    ref: "独立复算：SE=s/√n=15/√30=2.7386；95% 双侧 z=1.960 ⇒ ME=1.960×2.7386=5.3677 ⇒ CI=[94.632, 105.368]。默认输入不同（区间两端数不同）⇒ 该串不出现。原第二条锚「临界值 z = 1.960」是 α=0.05 双侧常量、默认态即出现（静态文案），已删。",
   },
   {
     slug: "it/code-line-counter",
@@ -423,6 +470,16 @@ const CASES = [
     inputs: { txt: "hello" },
     expect: ["未检测到明显乱码特征。 修复输出： hello"],
     ref: "普通 ASCII 文本无乱码特征 ⇒ 判为「未检测到明显乱码特征」并把原文原样回吐为修复结果。默认态正文（中文占位）走另一分支，不命中（双态核验：注入 PASS / 默认 FAIL）。",
+  },
+  {
+    slug: "it/charset-detector",
+    // 「中文」的 UTF-8 字节 E4 B8 AD E6 96 87 被按 cp1252 解读 ⇒ ä¸­æ–‡
+    inputs: { txt: "\u00e4\u00b8\u00ad\u00e6\u2013\u2021" },
+    expect: [
+      "疑似 UTF-8 字节被按 Latin-1/Windows-1252 解读，已按字节还原。 修复输出： 中文",
+      "中日韩字符 2 · 拉丁字母 0 · 替换符 0 · 控制字符 0",
+    ],
+    ref: "双重编码还原：输入 ä¸­æ–‡（含软连字符 U+00AD、短破折号 U+2013、双剑号 U+2021）折算回字节 E4 B8 AD E6 96 87，按 UTF-8 解码得「中文」。首条把判定语与还原结果拼成复合串，避免默认示例本身也是乱码导致判定语恒命中；旧实现只做 6 条固定串替换，无法还原该串，两条均不命中。",
   },
   {
     slug: "it/hypergeometric-distribution",
@@ -485,10 +542,35 @@ const CASES = [
     ref: "IPv4 内嵌（非 ffff 前缀）：64:ff9b::192.0.2.1 → 64:ff9b::c000:0201 ⇒ 最长零段（4 组）压缩为 64:ff9b::c000:201。与上条共用同一 IPv4 转换路径、不同前缀位置，默认地址不命中。",
   },
   {
+    slug: "it/ipv6-converter",
+    inputs: { addr: "::ffff:192.168.001.001" },
+    clicks: ["calcTool()"],
+    expect: ["不是合法的 IPv6 地址"],
+    ref: "内嵌 IPv4 前导零：RFC 3986 / Python ipaddress 均不接受 `001` 这样的八位组（可能被解释为八进制）。旧 ipv4ToHex 用 Number('001')=1 静默接受并输出 ::ffff:c0a8:101；修复后报非法。默认 2001:db8::1 不含该提示。",
+  },
+  {
     slug: "it/ipv4-range-expander",
     inputs: { cidr: "192.168.1.0/30" },
     expect: ["192.168.1.0 网络地址 192.168.1.3 广播地址 2 可用主机数 30 前缀长度"],
     ref: "/30 网段：网络地址 192.168.1.0、广播 192.168.1.3、可用主机 2（4−2）。默认示例前缀不同 ⇒ 不命中。",
+  },
+  {
+    slug: "it/ipv4-range-expander",
+    inputs: { cidr: "10.0.0.0/31" },
+    expect: ["可用范围： 10.0.0.0 – 10.0.0.1"],
+    ref: "RFC 3021 / Python ipaddress：/31 点对点链路的两个地址均可使用（hosts=2），可用范围即网络地址到广播地址。旧实现按 `pref>=31 ⇒ 0` 报 0 个，与 it/calc-subnet 的 /31=2 自相矛盾；默认 /24 不出现该串。",
+  },
+  {
+    slug: "it/ipv4-range-expander",
+    inputs: { cidr: "10.0.0.1/32" },
+    expect: ["可用范围： 10.0.0.1"],
+    ref: "Python ipaddress：/32 为单主机地址（hosts=1），可用范围就是该地址本身。旧实现报 0 且不输出可用范围；默认 /24 不出现该串。",
+  },
+  {
+    slug: "it/ipv4-range-expander",
+    inputs: { cidr: "10.0.0.01/32" },
+    expect: ["IP 须合法"],
+    ref: "按 Python ipaddress / it/calc-subnet 口径：前导零八位组（01）非法，不能静默当 1 解析。旧实现 `+'01'` 得 1 并输出 10.0.0.1（含前导零的歧义输入被静默接受）；默认 /24 无错误提示。",
   },
   {
     slug: "it/poisson-distribution",
@@ -580,8 +662,8 @@ const CASES = [
   {
     slug: "it/text-statistics",
     inputs: { textInput: "ab cd ab ef" },
-    expect: ["11 总字符", "4 总词数"],
-    ref: "独立复算：\"ab cd ab ef\" 共 11 个字符（含 2 个空格）、按空白切出 4 个英文词、去重 3 个 ⇒ `11 总字符` / `4 总词数`。默认态为中文长文本，不命中。",
+    expect: ["11 总字符(字素)", "4 总词数"],
+    ref: "独立复算：\"ab cd ab ef\" 共 11 个字符（含 2 个空格，字素簇口径同上）、按空白切出 4 个英文词、去重 3 个 ⇒ `11 总字符(字素)` / `4 总词数`。默认态为中文长文本，不命中。",
   },
   {
     slug: "it/string-obfuscator",
@@ -632,9 +714,11 @@ const CASES = [
   },
   {
     slug: "it/summary-generator",
-    inputs: { inputText: "甲一句。乙二句？丙三句。" },
-    expect: ["甲一句。"],
-    ref: "独立复算：按句号/问号/叹号分句 3 句，权重取首个选中句 ⇒ 摘要以 `甲一句。` 开头。默认示例是 14 句长文，不命中。",
+    // boot 挂在 DOMContentLoaded（晚于注入）且会调 loadExample() 重置 inputText ⇒ 文本注入无效，改用不被 boot 重置的句数参数。
+    inputs: { sentenceCount: "8" },
+    clicks: ["generateSummary()"],
+    expect: ["技术不断演进。 已选"],
+    ref: "按权重取前 8 句时第 2 句（权重 0.38）进入入选集合 ⇒ 权重图标记「已选」；默认 3 句（legacy）/ 5 句（fidelity）的入选集合不含第 2 句（标「跳过」）⇒ 该串不出现。",
   },
   {
     slug: "it/text-replace",
@@ -665,6 +749,14 @@ const CASES = [
     clicks: ["applyOp('dedupe')", "document.getElementById('input').value='y\\nx'; applyOp('sortAsc')"],
     expect: ["x y"],
     ref: "独立复算：首轮去重 a,a,b ⇒ a/b；随后把输入改为 `y\\nx` 再升序 ⇒ `x\\ny`（不再是旧快照的 a/b）。修复前 applyOp 只用首轮快照，第二次点击仍输出 `a\\nb`，本 expect 不命中；默认态输入为空，不命中。",
+  },
+  {
+    slug: "it/text-dedupe-sort",
+    // IT-N20 回归：集合键与 Object.prototype 同名（__proto__）时不得被判为「已出现」。
+    inputs: { input: "__proto__\na\n__proto__\nb" },
+    clicks: ["applyOp('dedupe')"],
+    expect: ["__proto__ a b"],
+    ref: "独立复算：4 行按整行去重保留首次出现 ⇒ `__proto__` / `a` / `b`；修复前用普通 {} 做集合，`seen['__proto__']` 从 Object.prototype 继承后恒为真，首行即被丢弃 ⇒ 输出只剩 `a b`，本锚不命中（输入回显为 `__proto__ a __proto__ b`，不含该邻接串）。默认示例无该行。",
   },
   {
     slug: "it/text-cleaner",
@@ -877,6 +969,21 @@ const CASES = [
     ref: "独立复算：默认「通用 (JS)」风味下 `.` `*` 被转义、`/` 不转（勾「转义 /」另算）⇒ `a\\.b\\*c`。默认态输入为空直接 return，不命中。",
   },
   {
+    slug: "it/regex-escape",
+    // IT-N21 回归：非法 `\\x` 转义必须原样保留，不能抛 RangeError 中断。
+    inputs: { input: "\\x41\\xzz" },
+    clicks: ["unesc()"],
+    expect: ["A\\xzz"],
+    ref: "独立复算：`\\x41` ⇒ `A`，紧随的 `\\xzz` 不是合法两位十六进制 ⇒ 原样保留，结果 `A\\xzz`；修复前 parseInt 得 NaN，String.fromCodePoint(NaN) 抛 RangeError，按钮无输出（输入回显 `\\x41\\xzz` 不含 `A\\xzz`）。默认态输入为空，不命中。",
+  },
+  {
+    slug: "it/regex-escape",
+    inputs: { input: "\\u{1F600}" },
+    clicks: ["unesc()"],
+    expect: ["😀"],
+    ref: "独立复算：ES2015 码点转义 `\\u{1F600}` ⇒ U+1F600；修复前只认 4 位 `\\uXXXX`，会残留 `u{1F600}`。默认态输入为空，不命中。",
+  },
+  {
     slug: "it/markdown-lint",
     inputs: { src: "### 标题" },
     clicks: ["calcTool()"],
@@ -961,11 +1068,25 @@ const CASES = [
     ref: "独立复算：第 1 个 [a] 收 x=1，第 2 个同名节合并且不丢键 ⇒ {\"a\":{\"x\":\"1\",\"y\":\"2\"}}（修复前输出 { \"a\": { \"y\": \"2\" } }，x 丢失）。默认示例节名为 server/database，不命中。",
   },
   {
+    slug: "it/ini-parser",
+    inputs: { input: "[__proto__]\nx=1" },
+    clicks: ["iniToJson()"],
+    expect: ['"__proto__": { "x": "1" }'],
+    ref: "__proto__ 作为节名：修复前 `result['__proto__'] = {}` 走原型 setter、不产生自有键，JSON.stringify 输出 `{}`；改为 Object.create(null) 后是普通自有键，JSON 保留 `\"__proto__\": { \"x\": \"1\" }`。默认示例无该节名。",
+  },
+  {
     slug: "it/properties-parser",
     inputs: { input: "a=1\nb=two" },
     clicks: ["propsToJson()"],
     expect: ['{ "a": "1", "b": "two" }'],
     ref: "properties 键值转 JSON 对象，值原样保留（含非数字串 two）；默认示例键/值组合不同。",
+  },
+  {
+    slug: "it/properties-parser",
+    inputs: { input: "__proto__=x" },
+    clicks: ["propsToJson()"],
+    expect: ['"__proto__": "x"'],
+    ref: "键名恰为 `__proto__`：普通 `{}` 上赋字符串会走原型 setter 且被忽略，JSON 输出 `{}`（丢键）；Object.create(null) 后成为自有键 ⇒ `\"__proto__\": \"x\"`。默认示例键名是 app.* / db.*。",
   },
   {
     slug: "it/json-schema-validator",
@@ -1082,10 +1203,10 @@ const CASES = [
   },
   {
     slug: "it/python-formatter",
-    inputs: { input: "x=1\nif x>0:\n  print(x)" },
-    clicks: ["doMinify()"],
-    expect: ["x=1; if x>0: print(x)"],
-    ref: "压缩路径把语句以 `; ` 连接、缩进丢弃；默认示例结构不同，不命中。",
+    inputs: { input: "def f():\n    return 1" },
+    clicks: ["doValidate()"],
+    expect: ["总行数: 2 def 数量: 1"],
+    ref: "校验路径输出结构统计：两行函数定义 ⇒ 总行数 2、def 数量 1。压缩路径已改为保留物理行，不再把语句用 `; ` 串成一行。默认示例含更多 def/行数，不命中。",
   },
   {
     slug: "it/graphql-formatter",
@@ -1129,10 +1250,10 @@ const CASES = [
   },
   {
     slug: "it/js-obfuscator",
-    inputs: { inputCode: "var a=1;" },
-    clicks: ["obfuscate()"],
-    expect: ["+0%"],
-    ref: "混淆前后字节数相同 ⇒ 增幅 0%；默认示例代码更长，不命中。",
+    inputs: { inputCode: "var s=\"a\\\"b\";" },
+    clicks: ["window.ToolBox=window.ToolBox||{showToast(){},copy(){}};document.getElementById('optStringEncrypt').checked=true;obfuscate()"],
+    expect: ["\\x22"],
+    ref: "字符串加密必须把内嵌双引号写成 \\x22。旧实现条件 `ch < 128 && unescaped[i] !== quote` 直接跳过引号字符，产出 var s=\"\\x61\"\\x62\"; 这类引号提前闭合的非法源码（vm 报 Invalid or unexpected token），\\x22 不出现。默认示例代码的引号是分隔符而非内容，不含 \\x22 ⇒ 强判别。",
   },
   {
     slug: "it/regex-common",
@@ -1168,6 +1289,14 @@ const CASES = [
     clicks: ["calculate()"],
     expect: ["A × B = (0, -1, 0)"],
     ref: "i×k = −j ⇒ (0,−1,0)。默认示例 (1,0,0)×(0,1,0)=(0,0,1) 结论不同，不可用其做锚。",
+  },
+  {
+    slug: "it/vector-cross-product",
+    // IT-E1 空态：六分量全空时不得输出 (0, 0, 0)。
+    inputs: { a0: "", a1: "", a2: "", b0: "", b1: "", b2: "" },
+    clicks: ["calculate()"],
+    expect: ["请输入向量 A 与 B"],
+    ref: "空态口径：六分量全空 ⇒ 提示并 return，不给出零向量结论；修复前 getV 把空值 parseFloat 成 0，输出 `A × B = (0, 0, 0)`。默认示例 (1,2,3)×(4,5,6) 不含该提示。",
   },
   {
     slug: "it/bayes-theorem",
@@ -1262,10 +1391,10 @@ const CASES = [
   },
   {
     slug: "it/phone-parser",
-    inputs: { phone: "+8613800138000", cc: "86" },
+    inputs: { phone: "13900139000", cc: "86" },
     clicks: ["calcTool()"],
-    expect: ["国内格式（按位分组）：8 6138 0013 8000"],
-    ref: "E.164 与国内按位分组格式随号码变化；默认号码分组不同，不命中。",
+    expect: ["国内格式：139 0013 9000"],
+    ref: "E.164 与国内按位分组格式随号码变化：注入 13900139000 + 国家码 86 ⇒ E.164 +8613900139000、国内格式 139 0013 9000。原注入 13800138000 恰为页面默认号码，默认态同样输出「138 0013 8000」，属逃生项。",
   },
   {
     slug: "it/country-code-lookup",
@@ -1395,6 +1524,12 @@ const CASES = [
     ref: "11 字符文本 + 3 空格 + 2 词 ⇒ 总长 15；统计区随输入重算（默认示例文本不同）。",
   },
   {
+    slug: "it/calc-5",
+    inputs: { textInput: "abc\n中文" },
+    expect: ["6 字符 / 10 字节", "中文字符：2"],
+    ref: "UTF-8 字节数：abc=3、换行 LF=1、中文=6，共 10；码点 6（Array.from），行 2，词 2，中文字符 2。默认空文本走「请输入文本」提示路径，不出现本串 ⇒ 判别有效。",
+  },
+  {
     slug: "it/calc-7",
     inputs: { jsonInput: '{"a":{"b":[1,2,3]}}', pathInput: "a.b" },
     expect: ["路径： $.a.b"],
@@ -1488,6 +1623,21 @@ const CASES = [
     ref: "独立复算：两条 JSON 对象 ⇒ 表头 name,age + 2 行 ⇒ 2 行 × 2 列。转换走按钮 ⇒ 必须 clicks。",
   },
   {
+    slug: "it/json-to-csv",
+    inputs: { input: '[{"v":"=cmd|\' /C calc\'!A0"}]' },
+    clicks: ["toCSV()", "document.getElementById('output').value=__jsonToCsvExportSafe"],
+    expect: ["'=cmd|"],
+    ref: "CSV 公式注入回归：导出路径必须给以 = 开头的单元格加单引号；页面原始输出为 \"=cmd|…（无前导单引号），故 expect 的 '=cmd| 只能由安全导出串命中。",
+  },
+  {
+    slug: "it/json-to-csv",
+    // IT-E3 空态：清空输入后不得只留效率工具栏的空结果。
+    inputs: { input: "" },
+    clicks: ["toCSV()"],
+    expect: ["请输入非空 JSON 数组"],
+    ref: "空态口径：输入为空 ⇒ 结果区提示；修复前空分支 `out.innerHTML=''`，既不报错也无提示，结果区只剩效率工具栏的「0 个参数」。默认示例已预填 JSON，不命中。",
+  },
+  {
     slug: "it/json-to-yaml",
     inputs: { input: '{"a":1}' },
     clicks: ["doYaml()"],
@@ -1495,11 +1645,26 @@ const CASES = [
     ref: "独立复算：`---` 文档分隔 + 一级键 `a: 1`。**不能用 `loadSample()`** —— 那会渲染默认样例，默认态同命中 ⇒ 逃生项。",
   },
   {
+    slug: "it/json-to-yaml",
+    // IT-N22 回归：空串 / 结构指示符开头 / 含冒号 / .inf / 日期类字符串必须加引号；指数补 .0。
+    inputs: { input: '{"a":"","b":"- item","c":"a: b","d":".inf","e":1e21,"f":"2020-01-01"}' },
+    clicks: ["doYaml()"],
+    expect: ['b: "- item"', "e: 1.0e+21", 'a: ""'],
+    ref: "独立复算：空串裸写会被 YAML 解析成 null、`- item` 会变成序列项、`a: b` 会拆成嵌套映射、`.inf` 会变成浮点、日期会被 1.1 解析器解析成日期 ⇒ 这些字符串都必须双引号；数字 `1e+21` 补 `.0` 才能被 YAML 1.1/1.2 都识别为浮点。修复前分别输出 `a: `、`b: - item`、`e: 1e+21` 等。默认样例键值不同，不含这些邻接串。",
+  },
+  {
     slug: "it/a1z26-cipher",
     inputs: { input: "XYZ", sep: "-" },
     clicks: ["enc()"],
     expect: ["24-25-26"],
     ref: "独立复算：A=1/Z=26 ⇒ `24-25-26`。**注入必须避开默认文本 `HELLO WORLD`** —— 它的编码结果以 `23-15-18-12-4` 结尾，与本例锚成子串关系，默认态会命中 ⇒ 逃生项。",
+  },
+  {
+    slug: "it/a1z26-cipher",
+    inputs: { input: "XYZ", sep: "-" },
+    clicks: ["enc()"],
+    copyCheck: { fn: "copyResult", expect: "24-25-26" },
+    ref: "复制路径：enc() 后 copyResult(event) 写入剪贴板的内容必须等于结果区 `24-25-26`，且 then 回调不抛异常；旧实现 .then 内读隐式 event.target 会抛 TypeError 被 Promise 吞掉。",
   },
   {
     slug: "it/baudot-code",
@@ -1558,10 +1723,41 @@ const CASES = [
     ref: "独立复算：未闭合引号的记录起始于第 2 行 ⇒ 报「第 2 行：引号未闭合」；行号取记录起始物理行，多行字段场景不会错位。默认示例无此文案。",
   },
   {
+    slug: "it/csv-validator",
+    // IT-N24 回归：末尾空行不是一条记录，不得误报「列数 1（应为 2）」。
+    inputs: { src: "a,b\n1,2\n\n", sep: "," },
+    clicks: ["calcTool()"],
+    expect: ["2 行数", "✅ 未发现列数/引号问题。"],
+    ref: "独立复算：末尾空行不是记录 ⇒ 2 行、2 列、无问题；修复前空行被当成单列记录并报「列数 1（应为 2）」，且无 ✅ 结论。默认示例有列数问题，不命中。",
+  },
+  {
+    slug: "it/csv-to-html-table",
+    // IT-N25 回归：字段中间的 `\"` 是普通字符，不得开启引用段吞掉后续分隔符。
+    inputs: { csvInput: 'a,b\n1,x"y,2' },
+    clicks: ["calcTool()"],
+    expect: ['<td>x"y</td>'],
+    ref: "独立复算：RFC 4180 只允许字段起始处的双引号开启引用段 ⇒ 第二行是 3 个单元格 `1` / `x\"y` / `2`；修复前把中间双引号当引用起点，输出 `xy,2` 一个单元格（`<td>xy,2</td>`），本锚不命中。默认示例无引号。",
+  },
+  {
+    slug: "it/csv-to-yaml",
+    // IT-N26 回归：引号内换行不得切成两条记录；表头含空格须加引号。
+    inputs: { csv: 'first name,note\nTom,"line1\nline2"' },
+    clicks: ["calcTool()"],
+    expect: ['"first name": "Tom"', 'note: "line1\\nline2"'],
+    ref: "独立复算：引号内换行属于字段内容，转成 YAML 双引号后为转义的 `\\n`，表头 `first name` 含空格须加引号 ⇒ `- \"first name\": \"Tom\"` / `note: \"line1\\nline2\"`；修复前按行切分把多行字段拆成两条记录，表头也裸写。默认 CSV 为 name/age/city，不命中。",
+  },
+  {
     slug: "it/csv-to-json",
     inputs: { csvInput: "name,age\nTom,3" },
     expect: ['[{"column1":"name","column2":"age"}'],
     ref: "走「无表头」分支（桩内 checkbox 恒未勾，与真实用户未勾表头一致）⇒ 表头占位列名 column1/column2，产物是整条 JSON 数组。用整条数组做锚避免撞默认样例。",
+  },
+  {
+    slug: "it/csv-to-json",
+    inputs: { jsonInput: '{"v":"=cmd|\' /C calc\'!A0"}' },
+    clicks: ["jsonToCsv()", "document.getElementById('csvOutput').value=csvExportSafe"],
+    expect: ["'=cmd|"],
+    ref: "CSV 公式注入回归：JSON→CSV 的导出串必须给以 = 开头的单元格加单引号；原始预览为 \"=cmd|…（无前导单引号），expect 只能由安全导出串命中。",
   },
   {
     slug: "it/bluetooth-version",
@@ -1607,10 +1803,10 @@ const CASES = [
   },
   {
     slug: "it/js-formatter",
-    inputs: { input: "const a=1" },
+    inputs: { input: "function f(){\nreturn 1\n}" },
     clicks: ["doBeautify()"],
-    expect: ["const a =1"],
-    ref: "独立复算：美化 `const a=1` ⇒ `const a =1`（只在 `=` 两侧补空格）。页面 d 在 harness 内不执行/beautify 依赖 tokenize ⇒ 走 clicks。",
+    expect: ["function f(){ return 1 }"],
+    ref: "美化按原换行保留结构：函数体缩进 2 空格（默认缩进选项），语句不再被拼成一行。默认示例为 fibonacci，不命中该函数名组合。",
   },
   {
     slug: "it/mysql-cheatsheet",
@@ -1624,6 +1820,13 @@ const CASES = [
     clicks: ["buildUrl()"],
     expect: ["域名 复制 a.io"],
     ref: "独立复算：解析结果逐行给出「协议/源/域名/端口/主机/路径/查询字符串/哈希/查询参数」，锚取域名行（`a.io`）。默认示例 URL 不同，不命中。",
+  },
+  {
+    slug: "it/url-parser",
+    inputs: { urlInput: "https://e.com/?__proto__=x&constructor=y" },
+    clicks: ["parseUrl()"],
+    expect: ["__proto__"],
+    ref: "特殊键名：URLSearchParams 保留 `__proto__` / `constructor` 两个键，参数表逐行显示；默认示例只有 q/lang/page。数据容器由 `{}` 改为 `Object.create(null)` 后，JSON 导出也不再因原型继承丢键。",
   },
   {
     slug: "it/redis-cheatsheet",
@@ -1796,10 +1999,10 @@ const CASES = [
   },
   {
     slug: "it/punycode",
-    inputs: { input: "bcher" },
+    inputs: { input: "bcher.中文" },
     clicks: ["enc()"],
-    expect: ["bcher-"],
-    ref: "独立复算：纯 ASCII 输入的标准 punycode 编码 = 基本码点原样输出 + `-` 分隔位 + 空扩展段 ⇒ `bcher-`（RFC 3492 §6.1 的同形规则）。",
+    expect: ["bcher.fiq228c"],
+    ref: "独立复算：点号分段编码时纯 ASCII 标签原样保留、非 ASCII 标签走 punycode ⇒ bcher.fiq228c（与默认输入的中文域名产物不同）。",
   },
   {
     slug: "it/punycode",
@@ -1846,11 +2049,33 @@ const CASES = [
     ref: "独立复算：A=[[1,2],[3,4]]，B=[[5,6],[7,1]] ⇒ C[1][1]=1×5+2×7=19、C[1][2]=1×6+2×1=8、C[2][1]=3×5+4×7=43、C[2][2]=3×6+4×1=22。单元格 `a0..a3`／`b0..b3` 是运行期渲染（HTML 无字面 id）⇒ 必须 clicks 内按 id 赋值再 `build();calculate()`。",
   },
   {
+    slug: "it/matrix-multiplier",
+    // IT-E2 空态：四个维度全空时不得输出 0×0 结果。
+    inputs: { ar: "", ac: "", br: "", bc: "" },
+    clicks: ["calculate()"],
+    expect: ["请输入矩阵 A 与 B 的行列数"],
+    ref: "空态口径：四个维度全空 ⇒ 提示并 return；修复前 `+''` 得 0，ac===br 成立且 getM(...,0,0) 返回空数组，输出 `结果 C = A × B （0×0）`。默认 3×3 示例不含该提示。",
+  },
+  {
+    slug: "it/matrix-multiplier",
+    inputs: { ar: "2.5", ac: "2", br: "2", bc: "2" },
+    clicks: ["calculate()"],
+    expect: ["行列数须为 1–6 的整数"],
+    ref: "维度须为正整数：旧实现直接 `+value` 取 2.5，`build()` 只渲染 5 个 A 单元格，而 `getM` 按 rows=2.5 读 a4 时取到 null ⇒ 抛 `Cannot read properties of null`。修复后先校验 1–6 整数，非法即提示并 return。默认 3×3 正常计算，不含该提示。",
+  },
+  {
     slug: "it/calc-subnet",
     inputs: { ip: "10.0.0.7", cidr: "28" },
     clicks: ["calc()"],
     expect: ["10.0.0.0 网络地址"],
     ref: "独立复算：10.0.0.7/28 ⇒ 网络 10.0.0.0、广播 10.0.0.15、/28、可用主机 14。注意该页是「值在前、标签在后」的排布（`10.0.0.0 网络地址`），写反了会注入态 FAIL。",
+  },
+  {
+    slug: "it/calc-subnet",
+    inputs: { ip: "10.0.0.1", cidr: "32" },
+    clicks: ["calc()"],
+    expect: ["广播地址 /32 CIDR 前缀 1 可用主机数"],
+    ref: "Python ipaddress 3.8+ 对 /32 特例：num_addresses=1、hosts() 返回该地址本身，故可用主机数为 1（旧实现硬编码 0）。网络/广播均为 10.0.0.1；默认 192.168.1.100/24 不含该串。",
   },
   {
     slug: "it/qrcode",
@@ -1865,6 +2090,20 @@ const CASES = [
     clicks: ["calcTool()"],
     expect: ["0.1 km 10000 cm 100000 mm"],
     ref: "独立复算：100 m = 0.1 km = 10000 cm = 100000 mm = 0.062137 mi = 109.36133 yd = 328.08399 ft（量纲换算，逐项可手算）。默认示例换算的不是 `m`。",
+  },
+  {
+    slug: "it/unit-converter-advanced",
+    inputs: { cat: "length", from: "nmi", val: "1" },
+    clicks: ["calcTool()"],
+    expect: ["1852", "1.852"],
+    ref: "国际海里 nmi = 1852 m（BIPM/国际度量衡定义）：1 nmi = 1852 m = 1.852 km；默认态（from=km）输出 1000 而非 1852，故为强判别。修复前键 `nm:1852` 把海里写成了纳米，误差 1.852×10¹² 倍。",
+  },
+  {
+    slug: "it/unit-converter-advanced",
+    inputs: { cat: "length", from: "nm", val: "1" },
+    clicks: ["calcTool()"],
+    expect: ["1e-9"],
+    ref: "纳米 nm = 10⁻⁹ m（SI 词头 nano）：1 nm 换算为 1e-9 m；修复前 `nm` 键值为 1852（海里），会输出 1852 而非 1e-9。",
   },
   {
     slug: "it/text-qr",
@@ -2167,6 +2406,22 @@ const CASES = [
     ref: "独立复算：嵌套对象转成表节 ⇒ TOML 为 `a = 1` / `[b]` / `c = 2`。锚在末行，默认样例字段不同。",
   },
   {
+    slug: "it/json-to-toml",
+    // IT-N23 回归：TOML 无 null 类型，必须显式报错而不是静默改写成空字符串。
+    inputs: { input: '{"a":null}' },
+    clicks: ["doToml()"],
+    expect: ["TOML 没有 null 类型"],
+    ref: "独立复算：TOML 没有 null 类型，页面应报错；修复前 `tomlVal(null)` 返回 `\"\"`，静默把 null 变成空字符串（`a = \"\"`）。默认样例无 null，不命中。",
+  },
+  {
+    slug: "it/json-to-toml",
+    // IT-N23 回归：对象与标量混排的数组不是合法 TOML，必须报错。
+    inputs: { input: '{"a":[{"b":1},2]}' },
+    clicks: ["doToml()"],
+    expect: ["TOML 数组不支持对象与标量混排"],
+    ref: "独立复算：数组内同时含表与标量时，`tomlVal` 会退回 `JSON.stringify` 产出 `[{\"b\":1}, 2]`，这不是合法 TOML；修复后直接报错。默认样例无混排数组，不命中。",
+  },
+  {
     slug: "it/css-formatter",
     inputs: { input: "a{color:red;font-size:12px}" },
     clicks: ["doBeautify()"],
@@ -2230,6 +2485,13 @@ const CASES = [
     ref: "独立构造：header=`{\"alg\":\"RS256\",\"typ\":\"JWT\"}`、payload=`{\"a\":1}` 做 base64url（去填充）后拼 `.sig`，解析区应还原出 RS256。默认样例是 HS256 ⇒ 必须换成 RS256 才破双态。",
   },
   {
+    slug: "it/jwt-parser",
+    inputs: { jwtInput: "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJleHAiOjB9." },
+    clicks: ["parseJwt()"],
+    expect: ["⚠️ 已过期"],
+    ref: "RFC 7519 NumericDate：exp=0 合法且已过期。旧实现 `if(payload.exp)` 把 0 当 false 跳过过期判定，也漏掉 exp_human；修复后 payload 区出现「已过期」标记。默认样例 exp 在未来，不命中。",
+  },
+  {
     slug: "it/php-escape",
     inputs: { input: 'a"b', mode: "double" },
     clicks: ["esc()"],
@@ -2242,6 +2504,13 @@ const CASES = [
     clicks: ["decodeJwt()"],
     expect: ['{ "alg": "RS256", "typ": "JWT" }'],
     ref: "与 it/jwt-parser 同法构造测试向量：header/payload 的 base64url（去填充）+ `.sig`。锚在 header-json；默认样例是 HS256。",
+  },
+  {
+    slug: "it/jwt-debugger",
+    inputs: { "token-input": "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJleHAiOjB9." },
+    clicks: ["decodeJwt()"],
+    expect: ["Token已过期"],
+    ref: "RFC 7519 NumericDate：exp=0 是合法且已过期（1970-01-01T00:00:00Z），不得按 truthy 跳过。header/`payload`（`{\"exp\":0}`）base64url 去填充 + 空签名；默认样例 exp 在未来，不含「已过期」。",
   },
   {
     slug: "it/og-meta-tag-generator",
@@ -2272,6 +2541,20 @@ const CASES = [
     ref: "独立复算：UA 中 `Chrome/120.0.0.0` ⇒ 浏览器 Google Chrome 120.0.0.0；`Windows NT 10.0` ⇒ Windows 10/11；引擎 Blink。默认示例 UA 不同。",
   },
   {
+    slug: "it/user-agent-parser",
+    inputs: { uaInput: "Mozilla/5.0 (iPhone; CPU iPhone OS 17_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/120.0.6099.119 Mobile/15E148 Safari/604.1" },
+    clicks: ["parse()"],
+    expect: ["Google Chrome 120.0.6099.119"],
+    ref: "真实 iOS Chrome UA（CriOS/，不含 `Chrome/`）：旧实现落到「未知浏览器」。按 UA 规范 Chrome iOS 应识别为 Google Chrome，版本取 CriOS/ 后的号；默认示例 UA 不同。",
+  },
+  {
+    slug: "it/user-agent-parser",
+    inputs: { uaInput: "Mozilla/5.0 (Linux; Android 14; SM-S918B) AppleWebKit/537.36 (KHTML, like Gecko) SamsungBrowser/23.0.1.1 Chrome/115.0.0.0 Mobile Safari/537.36" },
+    clicks: ["parse()"],
+    expect: ["Samsung Internet 23.0.1.1"],
+    ref: "真实三星浏览器 UA 同时含 `Chrome/` 与 `SamsungBrowser/`：旧实现先命中 Chrome 分支误报 Google Chrome。SamsungBrowser/ 须先于 Chrome 判定；默认示例 UA 不同。",
+  },
+  {
     slug: "it/regex-visualizer",
     inputs: { pattern: "a+" },
     clicks: ["render()"],
@@ -2284,6 +2567,13 @@ const CASES = [
     clicks: ["formatToml()"],
     expect: ["a = 1"],
     ref: "TOML 规范化：`name=value` ⇒ `name = value`。默认样例是多节 TOML，首行不是本串。",
+  },
+  {
+    slug: "it/toml-formatter",
+    inputs: { input: "__proto__=\"x\"" },
+    clicks: ["formatToml()"],
+    expect: ["__proto__ = \"x\""],
+    ref: "键名 `__proto__`：修复前根对象 `{}` 的 `obj['__proto__']='x'` 被原型 setter 丢弃，规范化输出为空；Object.create(null) 后保留并输出 `__proto__ = \"x\"`。输入回显是 `__proto__=\"x\"`（无空格），不含本锚。",
   },
   {
     slug: "it/toml-formatter",
@@ -2356,11 +2646,18 @@ const CASES = [
     ref: "嵌套映射 `a: / b: 1` 在「结构化 → 纯文本」视图里被压成单行的 `a: b: 1`（层级由输出的缩进/父键串联表达），不是回显原文。默认态是页面自带样例，输出不同 ⇒ 不命中。",
   },
   {
+    slug: "it/yaml-formatter",
+    inputs: { input: "__proto__:\n  a: 1" },
+    clicks: ["formatYaml()"],
+    expect: ["__proto__: a: 1"],
+    ref: "键名 `__proto__`：修复前 `parent.obj['__proto__']=obj` 走原型 setter，Object.keys 看不到该键，输出丢行；改为 Object.create(null) 后正常压平为 `__proto__: a: 1`。输入是换行缩进形态，不含本锚。",
+  },
+  {
     slug: "it/go-escape",
-    inputs: { input: "a b" },
+    inputs: { input: "a\tb" },
     clicks: ["esc()"],
-    expect: ["\\a b"],
-    ref: "Go 字符串转义：整串用双引号包裹，内部双引号被转义 ⇒ 手算结果等价于「反斜杠 + 双引号」包裹 a、b 串（**逐字符可手算复算**）。默认输入不同 ⇒ 不命中。",
+    expect: ["\"a\\tb\""],
+    ref: "Go 字符串转义：制表符必须输出为 \\t（Go 规范转义表），产物形如「双引号 + a\\tb + 双引号」。旧实现 `case '\\a'` 里 JS 的 \\a 等于字符 a，导致每个 a 被误写成 \\a 而制表符之外的 'a' 串味；本例锚定 a 保持原样 + 制表符转义。默认输入不同 ⇒ 不命中。",
   },
   {
     slug: "it/crontab-generator",
@@ -2857,8 +3154,8 @@ const CASES = [
     slug: "it/go-escape",
     inputs: { input: "a\"b" },
     clicks: ["esc()"],
-    expect: ["\"\\a\\\"b\""],
-    ref: "Go 字符串转义：整串用双引号包裹，内部双引号被转义 ⇒ 手算结果等价于「反斜杠 + 双引号」包裹 a、b 串（**逐字符可手算复算**）。默认输入不同 ⇒ 不命中。",
+    expect: ["\"a\\\"b\""],
+    ref: "Go 字符串转义：整串用双引号包裹，内部双引号被转义 ⇒ \"a\\\"b\"。旧实现 `case '\\a'`（JS 里等于字符 a）把开头的 a 误转义成 \\a ⇒ 产物 \"\\a\\\"b\"，不命中本串。",
   },
   {
     slug: "it/java-escape",
@@ -2965,8 +3262,8 @@ const CASES = [
     slug: "it/hash-id-generator",
     inputs: { nums: "5, 6, 7" },
     clicks: ["generate()"],
-    expect: ["HashID: JK9Q9Zxr"],
-    ref: "HashID 编码：输入序列 `5, 6, 7` 经 HashID（页面默认 salt）⇒ `JK9Q9Zxr`（**算法确定、非回显**，默认 `1, 2, 3` ⇒ `JK9A3Ww9` ⇒ 默认态不命中）。注意 `输入: [...]` 那一段是输入回显、不可锚，只锚编码结果。",
+    expect: ["HashID: JKoJLgdr"],
+    ref: "HashID 编码：输入序列 `5, 6, 7` 经 HashID（默认 salt=`my-secret-salt`、minLen=8）⇒ `JKoJLgdr`（lottery 由 salt+输入确定性派生，同一输入必得同一 ID；默认 `1, 2, 3` ⇒ `JKd3dgk2` ⇒ 默认态不命中）。注意 `输入: [...]` 那一段是输入回显、不可锚，只锚编码结果。2026-11-05 修正：原实现用 Math.random 抽 lottery，同一输入每次输出不同，违背 Hashids 的确定性语义。",
   },
   {
     slug: "it/pbkdf2",
@@ -3130,6 +3427,12 @@ const CASES = [
     dumpIds: ["tsvOutput", "j2tStats"],
     expect: ["a l1l2", "行数： 1 列数： 1 字符数： 6"],
     ref: "同数据切 j2tNewline=remove ⇒ 换行被直接删除，输出 a l1l2（6 字符，行数/列数均 1）。与 br 例共同覆盖换行处理的两条分支。",
+  },
+  {
+    slug: "it/json-to-tsv",
+    inputs: { jsonInput: "[{\"a\":1,\"b\":2},{\"a\":3,\"b\":4}]" },
+    expect: ["a b\n1 2\n3 4", "行数： 2 列数： 2"],
+    ref: "实时重算：旧实现只在页面加载时调用一次 jsonToTsv()，textarea 没有 input 监听，改 JSON 后输出区与统计保持首屏结果。修复后输入合法 JSON 数组即自动重算 ⇒ TSV 表头 a/b、两行 1 2 与 3 4，统计 2 行 2 列。默认样本为 3 列（name/age/city），不含该表头与 `列数： 2`。",
   },
 
   // —— it/uuid-generator：UUID 解析器的结构化派生输出（版本号 / 变体 / 分段），
@@ -3348,6 +3651,14 @@ const CASES = [
     ref: "开启 trimFields ⇒ 键名与值两端空格被裁掉，键变为 a/b。这是「去空格」这一行为的正向断言，与上一条互补。",
   },
   {
+    slug: "it/csv-to-json",
+    inputs: { csvInput: "__proto__,v\nx,1" },
+    clicks: ["document.getElementById('hasHeader').checked=true;csvToJson()"],
+    dumpIds: ["jsonOutput"],
+    expect: ['{"__proto__":"x"'],
+    ref: "表头键名 `__proto__`：修复前每行对象 `obj[h]=v` 走原型 setter，JSON 丢键只剩 v；Object.create(null) 后保留自有键 ⇒ `{\"__proto__\":\"x\"`。输入是逗号分隔，不含 JSON 引号键形态。",
+  },
+  {
     // ⚠ 存疑项：字段被引号包裹且内含分隔符时，页面把引号当普通字符切开，且后半段「y」丢失。
     //   修页面后本条须同步更新。已留档上报，未擅改页面。
     slug: "it/csv-to-json",
@@ -3518,6 +3829,15 @@ const CASES = [
     ref: "删除所有换行 ⇒ 24 → 19 字符、行数降到 1（apshot 统计行数为结果串 split(换行).length）。python 复算：len('onetwothreefourfive') = 19。",
   },
   {
+    // 遮蔽回归：本页复制函数已改名 copyPlainText，避免被 js/common.js 的全局 copyText(text) 覆盖
+    //（原内联 onclick="copyText()" 命中全局实现，实际复制的是 undefined）。
+    slug: "it/rich-text-editor",
+    inputs: { source: "<p>hello world</p>" },
+    clicks: ["applySource();document.getElementById('editor').innerText='hello world';var __c=ToolBox.copyText;ToolBox.copyText=function(t){document.getElementById('source').value='COPIED:'+t;};copyPlainText();ToolBox.copyText=__c;"],
+    expect: ["COPIED:hello world"],
+    ref: "copyPlainText 取编辑区纯文本交给 ToolBox.copyText：注入 <p>hello world</p> 后应为 hello world（用例把 ToolBox.copyText 换成采集器，两种桩模式都成立）。被全局 copyText 覆盖时无参调用收到 undefined，采集到 COPIED:undefined 或直接抛错，均不命中。",
+  },
+  {
     slug: "it/rich-text-editor",
     inputs: {"source": "<p>hello world</p>"},
     clicks: ["applySource();"],
@@ -3643,9 +3963,9 @@ const CASES = [
   },
   {
     slug: "it/clamp-calculator",
-    inputs: { min: "10", pref: "30", max: "20", vwMin: "320", vwMax: "1200" },
-    expect: ["6.25vw"],
-    ref: "注入非默认(默认 16/24/48/375/1440)：斜率=(max−min)/(vwMax−vwMin)=(20−10)/(1200−320)=10/880≈0.01136→实际生成 6.25vw（harness 实测表达式 clamp(10px,6.25vw+10px,20px)）。默认态为 2.22vw，本例不命中。"
+    inputs: { min: "10", pref: "30", max: "60", vwMin: "320", vwMax: "1200" },
+    expect: ["clamp(10px, 3.41vw + 19.09px, 60px)"],
+    ref: "注入非默认(默认 16/24/48/375/1440)：slope=(max−pref)/(vwMax−vwMin)×100=(60−30)/880×100≈3.40909→3.41vw；rem=pref−slope×vwMin/100=30−3.40909×3.2≈19.0909→19.09；min 为下限 ⇒ clamp(10px, 3.41vw + 19.09px, 60px)。默认态表达式不同，本例不命中。"
   },
   {
     slug: "it/hypergeometric-distribution",
@@ -3740,10 +4060,16 @@ const CASES = [
     ref: "独立复算 SE=√(0.3×0.7/500)=0.02；z*(0.99)=2.576；E=2.576×0.02=0.0515≈±0.053；CI=[0.3−0.053,0.3+0.053]=[0.247,0.353]。默认态 95%/n=1000 输出不同，本例两锚均不命中。"
   },
   {
+    // 原写法 inputs:{a0,a1,b0,b1} 直接注入 —— 但 a*/b* 输入框由 build() 运行期渲染，
+    // 静态 HTML 只有 <select id="dim">，discriminate_check 解析不到这些 id 的默认值，
+    // 该用例整条被判 skip(unresolved)，形成 988 vs 987 的 1 条门禁缺口；且页面生产默认
+    // 是 3D（<option value="3" selected>），原 ref 里「默认 2D」的描述与实际相反。
+    // 改为 clicks：先切 2D 再 build() 重建输入框、然后注入并计算，判别力由 2D 分支提供。
     slug: "it/vector-dot-product",
-    inputs: { a0: "3", a1: "4", b0: "5", b1: "6" },
-    expect: ["39"],
-    ref: "注入非默认(默认 2D a=(1,0)/b=(0,1)点积 0)：A·B=3×5+4×6=15+24=39。默认态输出 0，本例不命中。"
+    inputs: {},
+    clicks: ["document.getElementById('dim').value='2';build();document.getElementById('a0').value=3;document.getElementById('a1').value=4;document.getElementById('b0').value=5;document.getElementById('b1').value=6;calculate()"],
+    expect: ["A · B = 39"],
+    ref: "2D 分支：dim 生产默认 3D，故须 clicks 内先切 2D + build() 重建输入框；A=(3,4)、B=(5,6) ⇒ 3×5+4×6=15+24=39（逐项可手算复算）。默认态 A=(0,0,0)、B=(0,0,0) ⇒ A · B = 0，不命中。"
   },
   {
     slug: "it/affine-cipher",
@@ -3837,6 +4163,12 @@ const CASES = [
     "ref": "YAML→JSON：注入嵌套映射（server.host / server.port），JSON.stringify(obj, null, 2) 应产出带引号键 `\"title\": \"probe\"`，且 port 按 YAML 标量类型推断为数值 5432（不带引号）。输入原文是 `title: probe`（无引号键），故 expect 形态不在输入中。默认 YAML 样例不含 probe/5432。"
   },
   {
+    "slug": "it/yaml-to-json",
+    "inputs": { "source": "__proto__: v" },
+    "expect": ["\"__proto__\": \"v\""],
+    "ref": "键名 `__proto__`：普通对象上 `obj[key]=v` 走原型 setter，JSON 输出丢键；Object.create(null)（含 sortKeys 的中间对象）后成为自有键。输入是 `__proto__: v`，不含带引号的 JSON 形态。"
+  },
+  {
     "slug": "it/toml-to-yaml",
     "inputs": { "source": "app = \"probe\"\ndebug = true\n\n[db]\nhost = \"127.0.0.1\"\nport = 5432" },
     "expect": ["debug: true", "db: host: \"127.0.0.1\""],
@@ -3847,6 +4179,12 @@ const CASES = [
     "inputs": { "source": "<root><item id=\"1\">Alpha</item><item id=\"2\">Beta</item></root>" },
     "expect": ["@id: \"1\" #text: Alpha", "@id: \"2\" #text: Beta"],
     "ref": "XML→YAML：注入含属性的同名兄弟节点。页面约定把属性写作 `@id`、文本节点写作 `#text`，重复元素收敛为序列 `- `。这两个约定形态在输入 XML 中完全不存在（输入为 `<item id=\"1\">Alpha</item>`），因而天然排除输入回显。默认样例为不同的 XML。"
+  },
+  {
+    "slug": "it/xml-to-yaml",
+    "inputs": { "source": "<root><__proto__>v</__proto__></root>" },
+    "expect": ["__proto__: v"],
+    "ref": "元素名 `__proto__`：修复前 groups 是普通 `{}`，`groups['__proto__']` 从原型继承后进入分支，`obj[g]` 也不产生自有键，输出丢该元素；groups/obj 改用 Object.create(null) 后保留为 `__proto__: v`（单字标量不加引号）。输入 XML 只有标签，不含冒号形态。"
   },
   {
     "slug": "it/dockerfile-generator",
@@ -3910,16 +4248,42 @@ const CASES = [
     "ref": "XML→TOML：根元素 `<srv>` 落成 TOML 表 `[srv]`，叶子落成键值。⚠️ XML 无标量类型信息，页面保守地把 `5432` 当作字符串 ⇒ 输出 `port = \"5432\"` 带引号（对照 it/yaml-to-toml 的 `port = 5432` 无引号：YAML 有类型推断，两者都正确，不构成缺陷）。带 `port = ` 前缀的形态在输入 XML 中不存在。"
   },
   {
+    "slug": "it/xml-to-toml",
+    "inputs": { "source": "<root><__proto__>v</__proto__></root>" },
+    "expect": ["__proto__ = \"v\""],
+    "ref": "元素名 `__proto__`：groups/obj 为普通 `{}` 时该键被原型吞掉、TOML 输出丢行；Object.create(null) 后保留为 `__proto__ = \"v\"`。输入 XML 仅含标签，不含等号形态。"
+  },
+  {
     "slug": "it/yaml-to-toml",
     "inputs": { "source": "srv:\n  host: 127.0.0.1\n  port: 5432" },
     "expect": ["[srv]", "port = 5432"],
     "ref": "YAML→TOML：嵌套映射落成 `[srv]` 表与子键；`port` 由 YAML 标量推断为数值 ⇒ 输出不带引号的 `port = 5432`（与 it/xml-to-toml 的带引号结果形成对照，差异源于源格式是否携带类型信息）。输入是 `port: 5432`，不含 `port = ` ⇒ 不与回显冲突。"
   },
   {
+    "slug": "it/yaml-to-toml",
+    "inputs": { "source": "__proto__: v" },
+    "expect": ["__proto__ = \"v\""],
+    "ref": "键名 `__proto__`：parseYaml 普通对象上赋值会丢键，TOML 输出为空；Object.create(null) 后输出 `__proto__ = \"v\"`。输入是冒号形态，不含等号形态。"
+  },
+  {
     "slug": "it/yaml-to-xml",
     "inputs": { "source": "srv:\n  host: 127.0.0.1\n  port: 5432" },
     "expect": ["&lt;srv&gt;&lt;host&gt;127.0.0.1&lt;/host&gt;&lt;port&gt;5432&lt;/port&gt;&lt;/srv&gt;"],
     "ref": "YAML→XML：同一份嵌套映射落成 `<srv><host>…</host><port>…</port></srv>`。expect 取整块实体形态（结果区经 escH 转义），输入的 YAML 原文不含尖括号 ⇒ 排除输入回显。默认样例为 note/to/from，不出现 srv/host。"
+  },
+  {
+    "slug": "it/yaml-to-xml",
+    "inputs": { "source": "__proto__: v" },
+    "expect": ["&lt;__proto__&gt;v&lt;/__proto__&gt;"],
+    "ref": "键名 `__proto__`：parseYaml 普通对象上赋值丢键 ⇒ XML 为空；Object.create(null) 后产生同名元素 `<__proto__>v</__proto__>`（XML 元素名允许下划线开头）。输入 YAML 不含尖括号，排除回显。"
+  },
+  {
+    "slug": "it/xml-to-json",
+    "domParser": true,
+    "inputs": { "input": "<root><__proto__>v</__proto__></root>" },
+    "clicks": ["doBeautify()"],
+    "expect": ["\"__proto__\": \"v\""],
+    "ref": "元素名 `__proto__`：xmlToJson 的普通对象上 `obj[k.tagName]=child` 会走原型 setter、JSON 丢键；Object.create(null) 后保留为自有的 `\"__proto__\": \"v\"`。输入 XML 仅含标签，不含 JSON 引号键形态。"
   },
   // ── §7.4 零用例收敛补录（纯前端、无 CDN/无 DOMParser 依赖，确定性文本输出）────
   {
@@ -3960,6 +4324,12 @@ const CASES = [
     "inputs": { "urlInput": "https://example.com/zzpath?zz=7" },
     "expect": ["https://example.com/zzpath"],
     "ref": "注入非默认 URL。默认态 urlInput 为 example.com/search?q=toolbox… ⇒ 基 URL 行 'https://example.com/search'；注入后基 URL 行变 'https://example.com/zzpath'，默认态完全不含该串 ⇒ 0 逃生。注：删除参数功能(delParam)在桩下报错，但 URL 拆分与基 URL 解析为纯字符串，结果可靠。纯前端无随机。"
+  },
+  {
+    "slug": "it/url-params",
+    "inputs": { "urlInput": "https://example.com/zz?q=%" },
+    "expect": ["https://example.com/zz"],
+    "ref": "畸形百分号：`%` 单独出现时 decodeURIComponent 抛 URIError，旧实现整段中断、结果区停在默认示例（`…/search?q=toolbox…`）；修复后按标准把非法转义按字面 `%` 保留，基 URL `…/zz` 正常回写。默认示例不含 `/zz` ⇒ 判别有效。"
   },
   {
     "slug": "it/a1z26-cipher",
@@ -4067,26 +4437,22 @@ const CASES = [
   },
   {
     "slug": "it/ast-viewer",
-    "inputs": {
-      "codeInput": "1\n2\n3",
-      "ecmaVersion": "2015",
-      "sourceType": "module"
-    },
+    "inputs": {},
+    "clicks": ["window.acorn={parse:function(){return {type:'Program',start:0,end:0,body:[{type:'ToolBoxProbeNode',start:0,end:0}]}}};document.getElementById('btnParse').fire('click')"],
     "expect": [
-      "1 2 3\n2015\nmodule"
+      "ToolBoxProbeNode"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"codeInput\":\"1\\n2\\n3\",\"ecmaVersion\":\"2015\",\"sourceType\":\"module\"}，输出区含「1 2 3\n2015\nmodule」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "renderJson 旧实现把守卫写成 `const __h4=esc(...).replace(cb)`，并在回调里读取 __h4 ⇒ TDZ 抛 `Cannot access '__h4' before initialization`，整个解析结果被 catch 替换成「解析失败」，AST 树与 JSON 全部丢失。修复后注入独立解析桩（window.acorn.parse 返回含唯一节点 ToolBoxProbeNode 的 AST），该串出现在结果区。默认态（无 acorn 外链）走「未能加载解析器」提示，不含该串。"
   },
   {
     "slug": "it/atbash-cipher",
     "inputs": {
-      "input": "1\n2\n3",
-      "output": "1\n2\n3"
+      "input": "abc"
     },
     "expect": [
-      "A\n暂无历史记录\n1 2 3\n1 2 3"
+      "zyx"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\",\"output\":\"1\\n2\\n3\"}，输出区含「A\n暂无历史记录\n1 2 3\n1 2 3」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "Atbash 自校验：a↔z、b↔y、c↔x ⇒ 加密 'abc' 得 'zyx'。原用例注入 '1\\n2\\n3' 且把只读输出框 output 也一并注入，期望串恰等于「输入回显 + 注入的 output 值」（'1 2 3\\n1 2 3'），属逃生形态；改注入纯字母后锚点由输入派生。2026-11-05 同批修正：真实 localStorage 桩下 saveHistory 会写历史并重渲染，原 expect 里的「暂无历史记录」不再出现（旧空桩把 setItem 吞掉才侥幸保留）。默认态输入为空 ⇒ 不命中。"
   },
   {
     "slug": "it/barcode-codabar",
@@ -4114,9 +4480,9 @@ const CASES = [
       "data": "abc123测试"
     },
     "expect": [
-      "abc123测试\n*ABC123测试*"
+      "⚠ 不支持字符「测」，Code 39 仅支持 A–Z、0–9、空格与 - . $ / + %。"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"data\":\"abc123测试\"}，输出区含「abc123测试\n*ABC123测试*」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "标准 Code 39 重写后校验字符集：注入 data=abc123测试（含汉字「测」）⇒ 输出不支持字符提示。默认样例仅含合法字符，不出现该提示 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "it/barcode-ean",
@@ -4131,12 +4497,12 @@ const CASES = [
   {
     "slug": "it/barcode-msi",
     "inputs": {
-      "data": "abc123测试"
+      "data": "abc测试"
     },
     "expect": [
-      "abc123测试\nabc123测试"
+      "⚠ 请输入至少一位数字；MSI 仅支持 0–9。"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"data\":\"abc123测试\"}，输出区含「abc123测试\nabc123测试」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "MSI 重写后先剥离非数字：注入 data=abc测试（不含任何数字）⇒ 剥离后为空，输出「⚠ 请输入至少一位数字；MSI 仅支持 0–9。」。该串不含注入值，默认样例为数字串也不出现 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "it/barcode-itf",
@@ -4154,9 +4520,9 @@ const CASES = [
       "data": "abc123测试"
     },
     "expect": [
-      "abc123测试\n123000000006"
+      "⚠ 输入含非数字字符，请只填写数字"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"data\":\"abc123测试\"}，输出区含「abc123测试\n123000000006」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "UPC-A 重写后严格校验字符集：注入 data=abc123测试（含汉字）⇒ 输出「⚠ 输入含非数字字符，请只填写数字」。默认样例为 12 位数字，不出现该提示 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "it/base32-encode",
@@ -4454,16 +4820,35 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"inputText\":\"1\\n2\\n3\"}，输出区含「#128196; 3 行\n1 2 3\n1 2 3\n1 2 3\n1 2 3\n123…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
+    // 2026-11-05 随机源改 crypto.getRandomValues 后，原「固定码 gGANM/77mCE」锚点
+    // 依赖 harness 的种子 Math.random，必然失效。随机内容不可断言，改为「条数 × 长度 ×
+    // 字符集」的结构断言：批量 8 条、每条 5 位 [0-9A-Za-z]，且 grid 恰好由 8 个
+    // 「码 + 复制导出」片段拼成。默认 batchCount=6 且不自动批量 ⇒ 不命中。
     "slug": "it/captcha-generator",
     "inputs": {
-      "bgColorPicker": "abc123测试",
-      "verifyInput": "abc123测试",
-      "batchCount": "6"
+      "batchCount": "8"
     },
-    "expect": [
-      "nQ6zE复制导出gre2B复制导出yq1uF复制导出0glzX复制导出"
+    "clicks": [
+      'batchGenerate();(function(){var g=document.getElementById("batchGrid").innerHTML;var ok=/^([0-9A-Za-z]{5}复制导出){8}$/.test(g);document.getElementById("verifyInput").value=ok?"CAPTCHA-BATCH-8x5-ALNUM-OK":"CAPTCHA-BATCH-FAIL:"+g.length;})()'
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"bgColorPicker\":\"abc123测试\",\"verifyInput\":\"abc123测试\",\"batchCount\":\"6\"}，输出区含「nQ6zE复制导出gre2B复制导出yq1uF复制导出0glzX复制导出」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "expect": [
+      "CAPTCHA-BATCH-8x5-ALNUM-OK"
+    ],
+    "ref": "批量 8 条：batchGenerate 为每条渲染 canvas（空）+ 答案 5 位字母数字 + 复制/导出按钮；桩内 appendChild 把子串拼进父 innerHTML，故 #batchGrid.innerHTML 恰为 8 组「5 位 [0-9A-Za-z] + 复制导出」的重复。断言验证条数、长度、字符集三项，随机内容本身不断言。默认 6 条且需点击批量 ⇒ 默认态为空。"
+  },
+  {
+    // 数字模式同口径复核：字符集收窄为 [0-9]，长度仍 5，条数 3。
+    "slug": "it/captcha-generator",
+    "inputs": {
+      "batchCount": "3"
+    },
+    "clicks": [
+      'setType("num");batchGenerate();(function(){var g=document.getElementById("batchGrid").innerHTML;var ok=/^([0-9]{5}复制导出){3}$/.test(g);document.getElementById("verifyInput").value=ok?"CAPTCHA-BATCH-3x5-DIGIT-OK":"CAPTCHA-BATCH-FAIL:"+g.length;})()'
+    ],
+    "expect": [
+      "CAPTCHA-BATCH-3x5-DIGIT-OK"
+    ],
+    "ref": "setType('num') 把字符集切到 0-9，batch 3 条、长度仍 5 ⇒ #batchGrid.innerHTML 恰为 3 组「5 位数字 + 复制导出」。验证数字模式字符集不含字母，同时避免「批量条数固定为 8」的单点依赖。"
   },
   {
     "slug": "it/char-encoder",
@@ -4501,9 +4886,9 @@ const CASES = [
       "txt": "1\n2\n3"
     },
     "expect": [
-      "1 2 3\n未检测到明显乱码特征。 修复输出： 1 2 3"
+      "未检测到明显乱码特征。 修复输出： 1 2 3"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"txt\":\"1\\n2\\n3\"}，输出区含「1 2 3\n未检测到明显乱码特征。 修复输出： 1 2 3」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"txt\":\"1\\n2\\n3\"}，输出区含「未检测到明显乱码特征。 修复输出： 1 2 3」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。// 2026-11-04：harness 保真度修复后 textarea 默认文本会同时进 .textContent，快照字符串顺序改变，故去掉跨元素的换行拼接断言，只锚输出域自身内容（仍含注入值 1 2 3）。"
   },
   {
     "slug": "it/chinese-name-generator",
@@ -4730,9 +5115,9 @@ const CASES = [
       "sepSel": ";"
     },
     "expect": [
-      "able>\n预览（3 行）\n数据行 3 列数 1 总行 3"
+      "数据行 3 列数 1 总行 3"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"csvInput\":\"1\\n2\\n3\",\"htmlOut\":\"1\\n2\\n3\",\"sepSel\":\";\"}，输出区含「able>\n预览（3 行）\n数据行 3 列数 1 总行 3」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入 csvInput=1/2/3、分隔符 `;`（单列 3 行）⇒ 统计「数据行 3 列数 1 总行 3」；默认示例为 3 列 2 行数据，不命中。修复后表体行会真实写入输出，不再只剩闭合标签。"
   },
   {
     "slug": "it/css-properties",
@@ -4819,18 +5204,22 @@ const CASES = [
   {
     "slug": "it/des",
     "inputs": {
-      "key": "abc123测试",
-      "iv": "abc123测试",
-      "input": "1\n2\n3",
-      "output": "1\n2\n3",
+      "key": "0123456789abcdef0123456789abcdef0123456789abcdef",
+      "iv": "0123456789abcdef",
+      "input": "hello world",
       "algo": "3des",
       "mode": "CBC",
-      "outputFormat": "hex"
+      "outputFormat": "hex",
+      "output": ""
     },
-    "expect": [
-      "CBC\n3des\n(24字节 = 48 hex字符)\nabc123测试\nabc123测试\n��\nhex"
+    "checkIds": [
+      "pkcs7"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"key\":\"abc123测试\",\"iv\":\"abc123测试\",\"input\":\"1\\n2\\n3\",\"output\":\"1\\n2\\n3\",\"algo\":\"3des\",\"mode\":\"CBC\",\"outputFormat\":\"hex\"}，输出区含「CBC\n3des\n(24字节 = 48 hex字符)\nabc123测试\nabc1…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "clicks": ["encrypt()"],
+    "expect": [
+      "80a2142026acbc3842a787847d41b09e"
+    ],
+    "ref": "openssl 交叉验证：3DES-CBC/PKCS7，key=0123…cdef（24 字节）、iv=0123456789abcdef、明文 hello world ⇒ 80a2142026acbc3842a787847d41b09e。checkIds 还原 HTML 默认勾选的 PKCS7（桩内 checkbox 恒 false，11 字节明文非 8 倍数会被拦下）。原锚「3des」是算法下拉框回显、默认态即有（静态文案），已删。"
   },
   {
     "slug": "it/docker-cheatsheet",
@@ -4871,9 +5260,9 @@ const CASES = [
       "body": "1\n2\n3"
     },
     "expect": [
-      "abc123测试\nabc123测试\n1 2 3\nmailto:abc123%E6%B5%8B%E8%AF%95?subject=abc123%E6%B5%8B%E8%AF%95"
+      "mailto:abc123%E6%B5%8B%E8%AF%95?subject=abc123%E6%B5%8B%E8%AF%95"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"to\":\"abc123测试\",\"subject\":\"abc123测试\",\"body\":\"1\\n2\\n3\"}，输出区含「abc123测试\nabc123测试\n1 2 3\nmailto:abc123%E6…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "真实 QR 改造后输出区保留 mailto 链接：注入 to/subject=abc123测试、body=1\\n2\\n3，链接前缀为 mailto:abc123%E6%B5%8B%E8%AF%95?subject=abc123%E6%B5%8B%E8%AF%95（encodeURIComponent 结果；innerHTML 中后续 & 会转 &amp;，故断言只取前段）。默认样例收件箱为 a@b.com，不出现该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "it/email-normalizer",
@@ -5002,9 +5391,9 @@ const CASES = [
       "batchAlgoSelect": "sha1"
     },
     "expect": [
-      "abc123测试\n暂无历史记录\n1 2 3\nabc123测试\n1 2 3\n1 2 3\nsha1\n1 复制 2 复制 3 复制\nMD5 bfb77520994c313d1abff83000f19dc3 复制\n❌ 未找到匹配的哈希值"
+      "MD5 bfb77520994c313d1abff83000f19dc3 复制"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"hmacKey\":\"abc123测试\",\"verifyHash\":\"abc123测试\",\"textInput\":\"1\\n2\\n3\",\"batchInput\":\"1\\n2\\n3\",\"verifyInput\":\"1\\n2\\n3\",\"batchAlgoSelect\":\"sha1\"}，输出区含「abc123测试\n暂无历史记录\n1 2 3\nabc123测试\n1 2 3\n1 2…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "独立复算：md5('1\\n2\\n3') = bfb77520994c313d1abff83000f19dc3（node crypto 实测，与页面 MD5 结果行逐字一致）。注入另一键 batchInput / verifyInput 用于覆盖批量与校验区。2026-11-05 同批修正：真实 localStorage 桩下注入即 saveHistory 写历史并重渲染，原自动补强 expect 里的「暂无历史记录」是本就不该出现的占位串（旧空桩把 setItem 吞掉才侥幸保留）；改锚结果区派生摘要，绕开 #historyList（历史行含运行时刻，必然漂移）。默认态 textInput 为空 ⇒ 不渲染摘要。"
   },
   {
     "slug": "it/hex-encode",
@@ -5123,13 +5512,13 @@ const CASES = [
   {
     "slug": "it/html-escape",
     "inputs": {
-      "input": "1\n2\n3",
+      "input": "<b>x</b>",
       "batchInput": "1\n2\n3"
     },
     "expect": [
-      ";\n暂无历史记录\n1 2 3\n1 2 3"
+      "&lt;b&gt;x&lt;/b&gt;"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\",\"batchInput\":\"1\\n2\\n3\"}，输出区含「;\n暂无历史记录\n1 2 3\n1 2 3」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "HTML 转义语义自校验：'<b>x</b>' 转义后为 '&lt;b&gt;x&lt;/b&gt;'（标签括号变实体，字母原样）。原用例注入 '1\\n2\\n3'（无特殊字符）导致输出与输入逐字相同、期望串恰等于输入回显的逃生形态；改注入含标签的文本后锚点由转义结果派生。2026-11-05 同批修正：真实 localStorage 桩下注入即写历史并重渲染，原 expect 里的「暂无历史记录」不再出现。默认态输入为空 ⇒ 不命中。"
   },
   {
     "slug": "it/html-tags",
@@ -5407,9 +5796,9 @@ const CASES = [
       "data": "1\n2\n3"
     },
     "expect": [
-      "1 2 3\n1 2 3\nJSON 格式错误"
+      "JSON Schema 解析失败"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"schema\":\"1\\n2\\n3\",\"data\":\"1\\n2\\n3\"}，输出区含「1 2 3\n1 2 3\nJSON 格式错误」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"schema\":\"1\\n2\\n3\",\"data\":\"1\\n2\\n3\"}，输出区点名「JSON Schema 解析失败」并附 JSON.parse 的行列位置；默认示例（合法 schema/data）通过校验，不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "it/json-formatter",
@@ -5444,6 +5833,13 @@ const CASES = [
       "符\ndraft-06\n4"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\",\"schemaVersion\":\"draft-06\",\"indent\":\"4\"}，输出区含「符\ndraft-06\n4」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "it/json-schema-generator",
+    "inputs": { "input": "{\"__proto__\":\"x\"}" },
+    "clicks": ["generateSchema()"],
+    "expect": ["\"__proto__\": {"],
+    "ref": "属性名 `__proto__`：修复前 schema.properties 是普通 `{}`，`properties['__proto__']=propSchema` 走原型 setter，生成结果丢属性；Object.create(null) 后写入自有键，schema 输出含 `\"__proto__\": {`。输入 JSON 是紧凑形态（冒号后无空格与左花括号），不含本锚。"
   },
   {
     "slug": "it/json-to-csv",
@@ -5616,9 +6012,9 @@ const CASES = [
       "label": "abc123测试"
     },
     "expect": [
-      "abc123测试\nabc123测试\nabc123测试\ngeo:0,0?q=abc123%E6%B5%8B%E8%AF%95"
+      "⚠ 纬度需在 -90 ~ 90 之间"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"lat\":\"abc123测试\",\"lng\":\"abc123测试\",\"label\":\"abc123测试\"}，输出区含「abc123测试\nabc123测试\nabc123测试\ngeo:0,0?q=abc…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "真实 QR 改造后经纬度做数值校验：注入 lat/lng=abc123测试，parseFloat 得 NaN ⇒ 输出「⚠ 纬度需在 -90 ~ 90 之间」。默认样例（39.9/116.4）不出现该提示 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "it/linux-cheatsheet",
@@ -5698,12 +6094,12 @@ const CASES = [
   {
     "slug": "it/math-evaluator",
     "inputs": {
-      "expr": "abc123测试"
+      "expr": "2^10 + sqrt(144)"
     },
     "expect": [
-      "fined\n表达式含非法字符（仅支持数字、运算符与函数名）"
+      "1036"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"expr\":\"abc123测试\"}，输出区含「fined\n表达式含非法字符（仅支持数字、运算符与函数名）」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "注入非默认表达式（默认 2^10 + sqrt(144) * sin(pi/6) = 1030）：2^10 + sqrt(144) = 1024 + 12 = 1036，结果区唯一出现该值。原锚「fined\\n表达式含非法字符…」实为 hist 区把表达式与 undefined 拼接的静态串（任何输入都出现），故在注入失败时仍命中、成为逃生项；改数值锚后换回默认（1030）即失配。"
   },
   {
     "slug": "it/matrix-inverter",
@@ -5733,9 +6129,10 @@ const CASES = [
       "hmacInput": "1\n2\n3"
     },
     "expect": [
-      "bfb77520994c313d1abff83000f19dc3\n1 2 3\n13febef193a79e5e7bf4453985265338\nabc123测试\n1 2 3"
+      "bfb77520994c313d1abff83000f19dc3",
+      "13febef193a79e5e7bf4453985265338"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"hmacKey\":\"abc123测试\",\"textInput\":\"1\\n2\\n3\",\"hmacInput\":\"1\\n2\\n3\"}，输出区含「bfb77520994c313d1abff83000f19dc3\n1 2 3\n1…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）改为单值锚：注入 textInput/hmacInput='1\\n2\\n3'、hmacKey='abc123测试' ⇒ 文本 MD5('1\\n2\\n3')=bfb77520994c313d1abff83000f19dc3、HMAC-MD5=13febef193a79e5e7bf4453985265338（可独立用 openssl/node 复算）。原断言把「输入值 + 两个哈希 + 表格顺序」拼成一整串，表格行顺序变化即误报（已改为只锚两个派生哈希，默认态 'Hello, MD5!' 输出不同，均不命中）。"
   },
   {
     "slug": "it/mime-type",
@@ -5908,19 +6305,6 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"inputValue\":\"abc123测试\",\"customBase\":\"42\",\"batchInput\":\"1\\n2\\n3\",\"batchOutput\":\"1\\n2\\n3\",\"inputBase\":\"8\",\"batchFrom\":\"2\",\"batchTo\":\"2\"}，输出区含「 36进制 复制\n42\n1 2 3\n1 无效 无效\n2\n2」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "it/matrix-multiplier",
-    "inputs": {
-      "ar": "42",
-      "ac": "42",
-      "br": "42",
-      "bc": "42"
-    },
-    "expect": [
-      "42\n42\n42\n42\nA (42×42) × B (42×4"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"ar\":\"42\",\"ac\":\"42\",\"br\":\"42\",\"bc\":\"42\"}，输出区含「42\n42\n42\n42\nA (42×42) × B (42×4」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
-  },
-  {
     "slug": "it/otp-generator",
     "inputs": {
       "secret": "abc123测试",
@@ -5995,13 +6379,12 @@ const CASES = [
     "slug": "it/playfair-cipher",
     "inputs": {
       "key": "abc123测试",
-      "input": "1\n2\n3",
-      "output": "1\n2\n3"
+      "input": "HELLOWORLD"
     },
     "expect": [
-      "暂无历史记录\n1 2 3\nabc123测试\nA B C D E F G H I K L M N O P Q R"
+      "KCNVMPYMQMCY"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"key\":\"abc123测试\",\"input\":\"1\\n2\\n3\",\"output\":\"1\\n2\\n3\"}，输出区含「暂无历史记录\n1 2 3\nabc123测试\nA B C D E F G H I …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "独立复算（Python 手写 Playfair，key='ABC'、明文 'HELLOWORLD'）：去重字母表 A B C D E / F G H I K / L M N O P / Q R S T U / V W X Y Z，补 X 分组得 HE LX LO WO RL DX，逐对加密 KC NV MP YM QM CY ⇒ KCNVMPYMQMCY。原用例注入 '1\\n2\\n3'（无字母，输出为空故 saveHistory 未触发）才侥幸未见历史行；改注入字母明文后由输入真实派生，且锚结果区密文、绕开 #historyList（历史行含运行时刻，必然漂移）。默认态明文为 ATTACKATDAWN ⇒ 不命中该串。"
   },
   {
     "slug": "it/polybius-cipher",
@@ -6024,9 +6407,10 @@ const CASES = [
       "k": "42"
     },
     "expect": [
-      "4： P(X = 42) = 1.50130938e+68 × 0 / 1.40500612e+51 = 0.061 概率分布图 5.7e-19 0 2.4e-17 1 5.1e-16 2 7.1e-15 3 7.5e-14 4 6.3e-"
+      "P(X = 42) = 0.061",
+      "e −λ = e −42 = 5.74952226e-19"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"lambda\":\"42\",\"k\":\"42\"}，输出区含「4： P(X = 42) = 1.50130938e+68 × 0 / 1.40…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"lambda\":\"42\",\"k\":\"42\"}，输出区含「P(X = 42) = 0.061」；分步区 e^(−42)=5.74952226e-19 说明极小真值改走科学计数法后不再被格式阈值吞成 0（原锚「× 0 /」即该缺陷产物，已随修复更新）。默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "it/prime-checker",
@@ -6065,13 +6449,13 @@ const CASES = [
   {
     "slug": "it/punycode",
     "inputs": {
-      "input": "1\n2\n3",
-      "output": "1\n2\n3"
+      "input": "a.中文"
     },
+    "clicks": ["enc()"],
     "expect": [
-      "1 2 3\n1 2 3-"
+      "a.fiq228c"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\",\"output\":\"1\\n2\\n3\"}，输出区含「1 2 3\n1 2 3-」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "独立复算（替换原「1\\n2\\n3」低价值用例）：点号分段时 ASCII 标签 a 原样保留、中文标签编码为 fiq228c ⇒ a.fiq228c；默认输入为中文域名，产物不含该串。"
   },
   {
     "slug": "it/python-cheatsheet",
@@ -6086,16 +6470,23 @@ const CASES = [
   {
     "slug": "it/python-escape",
     "inputs": {
-      "input": "1\n2\n3",
-      "output": "1\n2\n3",
+      "input": "a\\b",
+      "output": "",
       "mode": "raw",
-      "qtype": "single"
+      "qtype": "double"
     },
-    "expect": [
-      "1 2 3\n1 2 3\nraw\nsingle",
-      "1 2 3\nraw\nsingle\n1 2 3"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\",\"output\":\"1\\n2\\n3\",\"mode\":\"raw\",\"qtype\":\"single\"}，输出区含「1 2 3\n1 2 3\nraw\nsingle」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。G06-S1 首屏自跑改变了元素创建序 ⇒ blob 字段序随之改变，expect 容忍新旧两种字段序；判别力不变。"
+    "expect": ["r\"a\\b\""],
+    "ref": "Python 原始字符串不做任何转义：r\"a\\b\" 的值就是 a\\b。旧实现把反斜杠再翻倍成 r\"a\\\\b\"（值与原文不符）；本例锚定单反斜杠形态。默认 normal 模式产物带引号但与 r 前缀不同 ⇒ 回退态不命中。"
+  },
+  {
+    "slug": "it/python-escape",
+    "inputs": {
+      "input": "a\"b",
+      "mode": "raw",
+      "qtype": "double"
+    },
+    "expect": ["\"a\\\"b\""],
+    "ref": "原始字符串无法精确表示含闭合引号的文本（r\"a\"b\" 会被截断）⇒ 本页退回普通字符串转义，产物 \"a\\\"b\" 且不带 r 前缀。旧实现输出 r\"a\\\"b\"（值里残留反斜杠）⇒ 不命中。"
   },
   {
     "slug": "it/qr-decoder",
@@ -6120,6 +6511,15 @@ const CASES = [
       " defined\nM\nabc123测试\nabc123测试\nsquare"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"fg\":\"abc123测试\",\"bg\":\"abc123测试\",\"text\":\"1\\n2\\n3\",\"ecc\":\"M\",\"style\":\"square\"}，输出区含「 defined\nM\nabc123测试\nabc123测试\nsquare」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "it/qr-beautify",
+    "clicks": ["ToolBox.showToast=function(m){document.getElementById('__svg_probe').textContent='TOAST:'+m;};var c=document.getElementById('qrCanvas');c.width=100;c.toDataURL=function(){throw new Error('boom')};downloadPng();"],
+    "expect": [
+      "TOAST:导出失败：Error"
+    ],
+    "ref": "B 类失败注入：downloadPng() 内 `a.href=c.toDataURL('image/png')` 裸调。把 #qrCanvas 的 toDataURL 改为必抛 Error 并把 ToolBox.showToast 换成录音器 ⇒ 结果区必须出现「TOAST:导出失败：Error」。"
+      + "修复前异常裸冒成 pageerror、无任何提示；默认态无 TOAST: 串 ⇒ 判别明确。"
   },
   {
     "slug": "it/python-formatter",
@@ -6196,6 +6596,52 @@ const CASES = [
       "42\n42\n42\n6\n反面\n红: 4 7 9 22"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"min\":\"42\",\"max\":\"42\",\"count\":\"42\"}，输出区含「42\n42\n42\n6\n反面\n红: 4 7 9 22」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "it/random",
+    "inputs": {
+      "min": "-5",
+      "max": "0",
+      "count": "1"
+    },
+    "checkIds": ["integer"],
+    "clicks": ["generateNumbers()"],
+    "expect": ["-4"],
+    "ref": "上限 0 是合法值：旧实现 `max || 100` 把 0 当假值回退成 100，[-5,100) 的整数输出不可能为 -4；修复后按 [-5,0] 生成，固定种子下首个整数为 -4。默认态（min=0/max=100）输出非负数，不含 `-4`（输入值 -5/0/1 也不含该串）。"
+  },
+  {
+    "slug": "it/random",
+    "inputs": {
+      "min": "-5",
+      "max": "0",
+      "count": "0"
+    },
+    "checkIds": ["integer"],
+    "clicks": ["generateNumbers()"],
+    "expect": ["生成数量须为不小于 1 的整数"],
+    "ref": "数量 0 的定义域不成立：旧实现 `parseInt(...) || 1` 静默改成 1 并生成数字；修复后显式拒绝并说明原因。默认 count=1 走正常生成路径，不出现该提示。"
+  },
+  {
+    "slug": "it/random-string",
+    "inputs": {
+      "len": "8",
+      "cnt": "0"
+    },
+    "checkIds": ["top_upper"],
+    "clicks": ["calcTool()"],
+    "expect": ["生成数量至少为 1 个"],
+    "ref": "数量 0 的定义域不成立：旧实现 `parseInt(value||'5')||5` 双段兜底把 0 静默改成 5，与同函数 `if(cnt<1) cnt=1` 自相矛盾；修复后显式拒绝。默认 cnt=5 走正常生成路径，不含该提示。"
+  },
+  {
+    "slug": "it/random-string",
+    "inputs": {
+      "len": "0",
+      "cnt": "2"
+    },
+    "checkIds": ["top_upper"],
+    "clicks": ["calcTool()"],
+    "expect": ["长度至少为 1 位"],
+    "ref": "长度 0 的定义域不成立：旧实现 `parseInt(value||'16')||16` 把 0 静默改成 16；修复后显式拒绝。默认 len=16 走正常生成路径，不含该提示。"
   },
   {
     "slug": "it/rc4",
@@ -6426,9 +6872,9 @@ const CASES = [
       "msg": "1\n2\n3"
     },
     "expect": [
-      "abc123测试\n1 2 3\nsms:abc123测试?body=1%0A2%0A3"
+      "sms:abc123测试?body=1%0A2%0A3"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"phone\":\"abc123测试\",\"msg\":\"1\\n2\\n3\"}，输出区含「abc123测试\n1 2 3\nsms:abc123测试?body=1%0A2%0…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "注入非默认号码/短信（换行消息编码为 %0A）⇒ 输出区含 sms:abc123测试?body=1%0A2%0A3；默认号码/短信不同，仍为强判别。二维码库在 harness 内不执行，故断言聚焦可验证的 URI 文本。"
   },
   {
     "slug": "it/sql-cheatsheet",
@@ -6537,14 +6983,16 @@ const CASES = [
   {
     "slug": "it/summary-generator",
     "inputs": {
-      "customCount": "42",
-      "inputText": "1\n2\n3",
-      "sentenceCount": "5"
+      "sentenceCount": "custom",
+      "customCount": "14"
     },
-    "expect": [
-      "社会的方方面面。\n5\n14\n5\n469\n68"
+    "clicks": [
+      "generateSummary()"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"customCount\":\"42\",\"inputText\":\"1\\n2\\n3\",\"sentenceCount\":\"5\"}，输出区含「社会的方方面面。\n5\n14\n5\n469\n68」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "expect": [
+      "14\n14\n469\n0%"
+    ],
+    "ref": "全部 14 句入选 ⇒ 统计卡为「原文句数 14 / 摘要句数 14 / 字符数 469 / 压缩率 0%」；默认 3 句（legacy）/ 5 句（fidelity）时摘要句数非 14、压缩率非 0% ⇒ 该串不出现。原 B 类用例的 expect 是示例文本自身在 5 句下的统计（boot 的 loadExample 会重置 inputText，注入文本永不生效）⇒ 默认态命中，已改。"
   },
   {
     "slug": "it/svg-placeholder-generator",
@@ -6592,9 +7040,9 @@ const CASES = [
       "text": "1\n2\n3"
     },
     "expect": [
-      "1 2 3\n1 2 3"
+      "1 2 3"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"text\":\"1\\n2\\n3\"}，输出区含「1 2 3\n1 2 3」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "真实 QR 改造后输出区仅回显文本（canvas 不参与文本比对）：注入 text=1\\n2\\n3，innerText 归一为「1 2 3」。默认样例为「Hello, World! 你好，世界！」，不出现该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "it/text-replace",
@@ -6615,7 +7063,7 @@ const CASES = [
       "textInput": "1\n2\n3"
     },
     "expect": [
-      "1 2 3\n5 总字符 3 字符(无空格) 0 中文字 0 英文词 3 行数 1 段落 1 句子 0 总词数 0 不同词 0分钟 阅读时间\n请输入文本"
+      "1 2 3\n5 总字符(字素) 5 码点数 3 字符(无空格) 0 中文字 0 英文词 3 行数 1 段落 1 句子 0 总词数 0 不同词 0分钟 阅读时间\n请输入文本"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"textInput\":\"1\\n2\\n3\"}，输出区含「1 2 3\n5 总字符 3 字符(无空格) 0 中文字 0 英文词 3 行数 1…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -6859,9 +7307,9 @@ const CASES = [
       "builtUrl": "1\n2\n3"
     },
     "expect": [
-      "删除\n暂无历史记录\n1 2 3\n1 2 3\nabc123测试\nabc123测试\nabc123测试\nabc123测试\n5\n5\n5 B\n+0.0%"
+      "5 B\n+0.0%"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"baseUrl\":\"abc123测试\",\"parseInput\":\"abc123测试\",\"asciiFilter\":\"abc123测试\",\"input\":\"1\\n2\\n3\",\"output\":\"1\\n2\\n3\",\"builtUrl\":\"1\\n2\\n3\"}，输出区含「删除\n暂无历史记录\n1 2 3\n1 2 3\nabc123测试…」；2026-10-26 页面加默认样例+首屏静默渲染后段序变化，按漂移修复流程以隔离 fullBlob 实测重写（判别力不变：abc123测试 为注入专属值，默认样例编码产物不含该串）。默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "派生量锚：注入 '1\\n2\\n3'（5 字符 / 5 字节）后统计卡渲染输入大小 5 B、膨胀率 +0.0%（输出长度与输入字节数相等，按页面口径 (5−5)/5×100）。2026-11-05 同批修正：真实 localStorage 桩下注入即写历史并重渲染，原自动补强 expect 里的「暂无历史记录」不再出现（旧空桩把 setItem 吞掉才侥幸保留）；改为锚结果区统计值、绕开 #historyList（历史行含运行时刻，必然漂移）。默认输入为长 URL 样例 ⇒ 不出现 5 B / +0.0%。"
   },
   {
     "slug": "it/url-encoder-advanced",
@@ -6878,12 +7326,13 @@ const CASES = [
   {
     "slug": "it/url-qr",
     "inputs": {
-      "url": "abc123测试"
+      "url": "https://tools.dicomp.net/tools/it/url-qr.html",
+      "ecl": "H"
     },
     "expect": [
-      "abc123测试\nhttps://abc123测试"
+      "内容 50 字节 · 纠错等级 H · 最小版本 V6（41×41 模块）"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"url\":\"abc123测试\"}，输出区含「abc123测试\nhttps://abc123测试」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "真编码器改造：url 50 个 ASCII 字节、纠错 H（容量表 H 的 V5=44、V6=58）⇒ qrPlan 选最小版本 V6，模块 17+4×6=41 ⇒ 结果区输出该串。默认态是 github.com + M（22 字节 ⇒ V2、25×25），不含 50/V6/41，且 'H' 不是默认选项值。"
   },
   {
     "slug": "it/url-parser",
@@ -6937,13 +7386,15 @@ const CASES = [
   },
   {
     "slug": "it/vector-dot-product",
-    "inputs": {
-      "dim": "3"
-    },
-    "expect": [
-      "向量 A x y z 向量 B x y z"
+    // 原 B 类零用例断言「向量 A x y z 向量 B x y z」= 页面 build() 渲染的静态标签，
+    // 默认态即存在 ⇒ 恒真逃生。改为 4D 注入并断言算得的点积。
+    "clicks": [
+      "document.getElementById('dim').value='4';build();document.getElementById('a0').value=1;document.getElementById('a1').value=2;document.getElementById('a2').value=3;document.getElementById('a3').value=4;document.getElementById('b0').value=5;document.getElementById('b1').value=6;document.getElementById('b2').value=7;document.getElementById('b3').value=8;calculate()"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"dim\":\"3\"}，输出区含「向量 A x y z 向量 B x y z」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "expect": [
+      "A · B = 70"
+    ],
+    "ref": "4D 点积：A=(1,2,3,4)、B=(5,6,7,8) ⇒ 1×5+2×6+3×7+4×8 = 5+12+21+32 = 70（可手算复算）。默认 3D 零向量输出 A · B = 0，本例不命中。"
   },
   {
     "slug": "it/vector-cross-product",
@@ -6986,13 +7437,24 @@ const CASES = [
   },
   {
     "slug": "it/vector-magnitude",
-    "inputs": {
-      "dim": "3"
-    },
-    "expect": [
-      "无单位向量。 方向余弦：cos α = 0, cos β = 0, cos γ = 0 方向角：α = 90°, β = 90°, γ = 90°"
+    // 原用例只注入 dim:"3"（等于页面默认 selected）且断言零向量静态提示语，
+    // 默认态即命中的恒真逃生。改为 6D 零向量注入，断言仅 6D 才出现的展开式。
+    "clicks": [
+      "document.getElementById('dim').value='6';build();var i;for(i=0;i<6;i++){document.getElementById('v'+i).value=0;}calculate()"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"dim\":\"3\"}，输出区含「无单位向量。 方向余弦：cos α = 0, cos β = 0, cos γ …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "expect": [
+      "= √((0)² + (0)² + (0)² + (0)² + (0)² + (0)²)"
+    ],
+    "ref": "6D 零向量：模长展开式逐项为 (0)²，共 6 项 ⇒ 保留「零向量（|v|=0）无单位向量/方向余弦」分支覆盖（旧实现 `m||1` 分母伪造成 1 的回归），且 6 项展开式默认 3D 态（3 项）不命中，判别力真实。"
+  },
+  {
+    "slug": "it/vector-magnitude",
+    "inputs": {},
+    "clicks": ["document.getElementById('v0').value=3;document.getElementById('v1').value=4;document.getElementById('v2').value=0;calculate()"],
+    "expect": [
+      "cos α = 0.6, cos β = 0.8, cos γ = 0"
+    ],
+    "ref": "非零向量方向余弦回归：v=(3,4,0)、|v|=5 ⇒ cos α=3/5=0.6、cos β=4/5=0.8、cos γ=0/5=0。防「零向量守卫」误拦正常输入；运行时输入框无 HTML 默认值，故用 clicks 赋值。"
   },
   {
     "slug": "it/whitespace",
@@ -7082,9 +7544,9 @@ const CASES = [
       "output": "1\n2\n3"
     },
     "expect": [
-      "Y\n暂无历史记录\n1 2 3\nabc123测试\n1 2 3\n0\n明文 1 2 3 密钥 密文 1 2 3"
+      "明文 1 2 3 密钥 密文 1 2 3"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"key\":\"abc123测试\",\"input\":\"1\\n2\\n3\",\"output\":\"1\\n2\\n3\"}，输出区含「Y\n暂无历史记录\n1 2 3\nabc123测试\n1 2 3\n0\n明文 1 2 3…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "锚可视化分步表的三行结构（明文 / 密钥 / 密文，逐字符格），其值由注入 '1\\n2\\n3' 经 vigenere() 生成。2026-11-05 同批修正：真实 localStorage 桩下注入即写历史并重渲染，原自动补强 expect 里的「暂无历史记录」不再出现（旧空桩把 setItem 吞掉才侥幸保留）；改为锚结果区派生行、绕开 #historyList（历史行含运行时刻，必然漂移）。默认明文 ATTACKATDAWN ⇒ 不命中该串。"
   },
   {
     "slug": "it/yaml-formatter",
@@ -7328,8 +7790,684 @@ const CASES = [
     clicks: ["document.getElementById('baseUrl').value = 'https://example.com/?'; updateParam(0, 'q', 'key'); updateParam(0, 'a', 'value'); buildUrl();"],
     expect: ["https://example.com/?q=a"],
     ref: "IT-N80 末尾多余问号：base 以 ? 结尾时应规整为单个 ?，不能产出 ?&q=a；旧实现在含 ? 的 base 后追加 &，得到 https://example.com/?&q=a。默认 baseUrl 为空，不命中。",
-  }
+  },
+  {
+    slug: "it/decimal-encode",
+    inputs: { input: "Az", sep: "" },
+    clicks: ["enc();"],
+    expect: ["065122"],
+    ref: "IT-N310：无分隔符时必须用定长 3 位（A=065、z=122 ⇒ 065122）才能反向还原；旧实现 join('') 得 65122，解码端无法还原。改用 Az：legacy 桩把 `<option value=' '>` 的默认分隔符 trim 成空串，与 sep='' 等价 ⇒ 原注入态与默认态输出完全相同（逃生）；默认正文的码点串不含 065122 ⇒ 不命中。",
+  },
+  {
+    slug: "it/c-string-escape",
+    inputs: { input: "中文😀" },
+    clicks: ["esc();"],
+    expect: ["0001f600"],
+    ref: "IT-N335：C 的 \\x 转义只表示单字节，非 ASCII 应改用 \\uXXXX/\\UXXXXXXXX；😀 码位 U+1F600 ⇒ \\U0001f600。旧实现只输出 \\xd83d\\xde00。默认 Hello 不出现。",
+  },
+  {
+    slug: "it/c-string-escape",
+    inputs: { input: "\\132\\132" },
+    clicks: ["unesc();"],
+    expect: ["ZZ"],
+    ref: "IT-N336：\\132 八进制 = 1×64+3×8+2 = 90 = 'Z'（大写；'z' 是 122 = \\172）；旧实现 switch 的 case /[0-7]/ 是常量正则永不匹配，退化为输出字面数字。默认 Hello \"World\" 无 ZZ。",
+  },
+  {
+    slug: "it/go-escape",
+    inputs: { input: "\\172\\172" },
+    clicks: ["unesc();"],
+    expect: ["zz"],
+    ref: "IT-N337：Go 八进制转义 \\172 = 'z'；旧实现八进制分支永不命中，反转义退化成字面数字。默认 Hello 无 zz。",
+  },
+  {
+    slug: "it/php-escape",
+    inputs: { input: "\\172\\172" },
+    clicks: ["unesc();"],
+    expect: ["zz"],
+    ref: "IT-N337：PHP 双引号字符串八进制 \\172 = 'z'；旧实现八进制分支永不命中。默认 Hello 无 zz。",
+  },
+  {
+    slug: "it/python-escape",
+    inputs: { input: "\\172\\172" },
+    clicks: ["unesc();"],
+    expect: ["zz"],
+    ref: "IT-N337：Python 八进制转义 \\172 = 'z'；旧实现八进制分支永不命中，且 \\0 单独吞成 NUL。默认 Hello 无 zz。",
+  },
+  {
+    slug: "it/html-escape",
+    inputs: { input: "😀" },
+    checkIds: ["escapeAll", "escapeQuote"],
+    clicks: ["convert();"],
+    expect: ["&#128512;"],
+    ref: "IT-N339：全字符转义按码位而非 UTF-16 码元，emoji 必须是单个数值实体 &#128512;；旧实现 charCodeAt 拆成两个代理实体。默认示例为普通 HTML 文本，不出现该实体。",
+  },
+  {
+    slug: "it/html-escape",
+    inputs: { input: "\\\\n" },
+    clicks: ["setFormat({dataset:{format:'js'},classList:{add:function(){},remove:function(){}}});setMode('unescape');convert();"],
+    expect: ["\\n"],
+    ref: "IT-N340：JS 反转义须先成对消费 \\\\，`\\\\n` 表示「反斜杠+n」两个字符；旧实现先跑 /\\\\n/→换行，把转义反斜杠误当真实换行，得到「反斜杠+换行」。默认 html-name 转义态不出现该串。",
+  },
+  {
+    slug: "it/text-to-hex",
+    inputs: { input: "Hi", sep: "\\x" },
+    clicks: ["convert();"],
+    expect: ["\\x48\\x69"],
+    ref: "IT-N341：HTML 属性 value=\"\\\\x\" 得到 3 个字符（两个反斜杠+x），与 JS 的 2 字符字面量 '\\x' 恒不相等，旧实现走分隔符分支输出 48\\\\x69；改为单反斜杠后正确得到 \\x48\\x69。默认 Hello 输出不同。",
+  },
+  {
+    slug: "it/text-to-octal",
+    inputs: { input: "Hi", sep: "\\" },
+    clicks: ["convert();"],
+    expect: ["\\110\\151"],
+    ref: "IT-N342：选项值 \"\\\\\\\\\" 是 2 字符，与 '\\' 恒不相等导致前缀丢失、反斜杠反被当分隔符；修正后 H=110、i=151 ⇒ \\110\\151。默认 Hello 输出不同。",
+  },
+  {
+    slug: "it/hash",
+    inputs: { textInput: "😀" },
+    checks: ["md5"],
+    clicks: ["calculateTextHashes()"],
+    expect: ["2a02eac39d716a70ecf37579185927b6"],
+    ref: "IT 哈希真实性：hashlib.md5('😀'.encode('utf-8')) = 2a02eac39d716a70ecf37579185927b6。旧实现自写 utf8Encode 按 UTF-16 码元处理代理对，emoji 被拆成两段三字节（CESU-8），摘要错误。",
+  },
+  {
+    slug: "it/hash",
+    inputs: { textInput: "The quick brown fox jumps over the lazy dog", hmacKey: "key" },
+    checks: ["md5"],
+    checkIds: ["hmacMode"],
+    clicks: ["calculateTextHashes()"],
+    expect: ["80070713463e7749b90c2dc24911e275"],
+    ref: "IT 哈希真实性：HMAC-MD5(key='key', msg='The quick brown fox jumps over the lazy dog') = 80070713463e7749b90c2dc24911e275（RFC 2104 标准向量）。旧实现只显示占位串「HMAC-MD5 需手动实现」。",
+  },
+  {
+    slug: "it/hash",
+    inputs: {},
+    clicks: ["document.getElementById('textInput').value='';calculateTextHashes()"],
+    expect: ["请输入要计算哈希的文本"],
+    ref: "IT 空输入行为：显式提示而非静默 return 保留上一次结果；旧实现清空输入后仍显示旧摘要。",
+  },
+  {
+    slug: "it/hash-multi",
+    inputs: {},
+    clicks: ["document.getElementById('input').value='';calc()"],
+    expect: ["请输入要计算哈希的文本"],
+    ref: "IT 空输入行为：清空输入时给出提示并清空结果区；旧实现仅把结果区置空，用户看不出是「没算」还是「算完为空」。同时校正页面不再宣称支持未实现的 SHA-3。",
+  },
+  {
+    slug: "it/octal-encode",
+    inputs: { input: "150151" },
+    clicks: ["dec()"],
+    expect: ["hi"],
+    ref: "IT 八进制往返：无分隔符编码 'hi' → '150151'，解码按 3 位定长切块还原 'hi'；旧实现把整串当 1 个数（parseInt('150151',8)=53577>255）直接报错。",
+  },
+  {
+    slug: "it/octal-encode",
+    inputs: {},
+    clicks: ["document.getElementById('input').value='LEN='+document.getElementById('sep').options[3].value.length"],
+    expect: ["LEN=1"],
+    ref: "IT 双反斜杠 option：反斜杠分隔符的 value 必须只有 1 个字符；旧写法 value=\"\\\\\\\\\" 是 2 个字符（与单反斜杠永不相等、分隔符失效）。",
+  },
+  {
+    slug: "it/octal-encode",
+    inputs: { input: "\\150\\151" },
+    clicks: ["dec()"],
+    expect: ["hi"],
+    ref: "IT 八进制往返：带前缀且反斜杠分隔的 \\150\\151 应还原 'hi'；旧实现先全局删掉「\\+3 位数字」的前缀，把分隔符一并吞掉，剩下 150151 当 1 个数报错。",
+  },
+  {
+    slug: "it/text-to-unicode",
+    inputs: { txt: "😀" },
+    clicks: ["calcTool()"],
+    expect: ["U+1F600", "\\uD83D\\uDE00"],
+    ref: "IT 代理对：U+1F600 的 UTF-16 转义应为代理对 \\uD83D\\uDE00；旧实现只取 charCodeAt(0) 得到半个代理 \\uD83D。",
+  },
+  {
+    slug: "it/timestamp-converter",
+    inputs: {},
+    clicks: ["document.getElementById('smartInput').value='OFF='+zoneLabel('America/New_York',new Date(1705276800*1000)).slice(-1)"],
+    expect: ["OFF=5"],
+    ref: "IT 时区偏移：2024-01-15 UTC 的纽约为冬令时 UTC-5；旧实现用 new Date()（门禁冻结在 6 月）取偏移，全年显示 UTC-4。",
+  },
+  {
+    slug: "it/timestamp-converter",
+    inputs: { timestampSec: "1e20" },
+    clicks: ["fromTimestamp('sec')"],
+    expect: ["超出可表示范围"],
+    ref: "IT 边界：超出 JS Date ±8.64e15 毫秒的时间戳要明确报错；旧实现继续渲染出 Invalid Date 与 NaN 字段。",
+  },
+  {
+    slug: "it/string-obfuscator",
+    inputs: { input: "😀ab", mode: "rev" },
+    clicks: ["obfuscate()"],
+    expect: ["ba😀"],
+    ref: "IT 组合字符/代理对：反转应按码点而非 UTF-16 码元，'😀ab' → 'ba😀'；旧实现 split('') 反转后代理对顺序颠倒，得到非法半个字符。",
+  },
+  {
+    slug: "it/string-obfuscator",
+    inputs: { input: "😀", mode: "entity" },
+    clicks: ["obfuscate()"],
+    expect: ["&#128512;"],
+    ref: "IT 实体编码：emoji 应输出码点实体 &#128512;；旧实现按 code unit 输出 &#55357;&#56832; 两个代理半体。",
+  },
+  {
+    slug: "it/rot-cipher",
+    inputs: { input: "a", mode: "custom", shift: "-1" },
+    clicks: ["enc()"],
+    expect: ["z"],
+    ref: "IT 负位移：自定义位移 -1 时 'a' 应回绕为 'z'；旧实现 (0-1)%26=-1 → 输出 '`'（反引号）。",
+  },
+  {
+    slug: "it/time-format-converter",
+    inputs: { inTime: "100000000000" },
+    clicks: ["convertTime()"],
+    expect: ["1973-03-03T09:46:40.000Z"],
+    ref: "IT epoch 单位：12 位毫秒戳（2001-09-09 之前不足 13 位）应识别为毫秒 = 1973-03-03T09:46:40Z；旧实现漏判后交给 new Date('100000000000') 解析，直接报无法解析。",
+  },
+  {
+    slug: "it/text-truncate",
+    inputs: { input: "e\u0301XY", mode: "chars", limit: "2", ellipsis: "…" },
+    clicks: ["truncate()"],
+    expect: ["e\u0301…"],
+    ref: "IT 组合字符：按字符截断必须以字素簇为单位，'e'+U+0301 不能被拆开；旧实现 Array.from 按码点切分，limit=2 时输出 'e…' 丢失重音。",
+  },
+  {
+    slug: "it/text-to-decimal",
+    inputs: { input: "中", encoding: "ascii" },
+    clicks: ["convert()"],
+    expect: ["ASCII 模式只支持"],
+    ref: "IT 编码真实性：ASCII 模式遇非 ASCII 字符应明确拒绝并提示改用 UTF-8；旧实现 code&0xff 把 '中' 静默截成 45，输出与原文不对应。",
+  },
+  {
+    slug: "it/text-to-decimal",
+    inputs: { inputDec: "300" },
+    clicks: ["convertDecToText()"],
+    expect: ["非法十进制值"],
+    ref: "IT 往返：十进制解码遇 300（超出 0–255）应报错；旧实现静默丢弃该 token，输出空串，用户无法察觉数据丢失。",
+  },
+  {
+    slug: "it/text-statistics",
+    inputs: { textInput: "😀e\u0301" },
+    clicks: ["document.getElementById('result').innerHTML='GP='+graphemeCount('😀e\\u0301')+'/CP='+Array.from('😀e\\u0301').length;"],
+    expect: ["GP=2/CP=3"],
+    ref: "字素簇口径：'😀'（1 个字素/1 码点/2 码元）+ 'e'+U+0301（1 个字素/2 码点）合计字素 2、码点 3；旧实现 totalChars 取 UTF-16 length=4。",
+  },
+  {
+    slug: "it/text-similarity",
+    inputs: { textA: "😀abc", textB: "abc" },
+    expect: ["75.00%"],
+    ref: "字素/码点口径：A='😀abc' 按码点长度 4、B='abc' 长度 3，编辑距离 1 ⇒ 1−1/4=75.00%；旧实现按 UTF-16 码元（A 长 5、距离 2）得 60.00%。默认空输入为 0%，不命中。",
+  },
+  {
+    slug: "it/text-diff",
+    inputs: { text1: "😀", text2: "x", charDiff: true },
+    clicks: ["document.getElementById('unifiedDiff').textContent='N='+(charDiffLine('😀','x').oldHtml.match(/line-through/g)||[]).length;"],
+    expect: ["N=1"],
+    ref: "代理对：逐字符 diff 必须把 '😀' 当一个单位，与 'x' 比较只有 1 段删除；旧实现 split('') 拆成两个代理半体，产生 2 段 line-through。",
+  },
+  {
+    slug: "it/nato-alphabet",
+    inputs: { input: "😀" },
+    clicks: ["convert();document.getElementById('output').value='LEN='+document.getElementById('output').value.length;"],
+    expect: ["LEN=2"],
+    ref: "代理对：Array.from 后 emoji 保持一个码点（UTF-16 length=2）；旧实现 split('') 把两个代理半体用空格拼接，长度 5。",
+  },
+  {
+    slug: "it/case-converter",
+    inputs: { inputText: "😀😀" },
+    expect: ["2 字符"],
+    ref: "字素簇口径：两个 emoji 是 2 个可见字符，统计区显示「2 字符」；旧实现 text.length 得 4 字符。默认样例 11 字符，不含「2 字符」⇒ 强判别。",
+  },
+  {
+    slug: "it/text-replace",
+    inputs: { sourceText: "😀", findInput: "😀", replaceInput: "😁😁" },
+    clicks: ["document.getElementById('optRegex').checked=false;doReplace();document.getElementById('charDelta').textContent='DELTA='+document.getElementById('charDelta').textContent;"],
+    expect: ["DELTA=+1"],
+    ref: "字素/码点口径：'😀'→'😁😁' 按码点由 1 增至 2，字符变化 +1；旧实现按 UTF-16 长度 2→4 得 +2。",
+  },
+  {
+    slug: "it/json-schema-validator",
+    inputs: { schema: '{"type":"object"}', data: "null" },
+    clicks: ["validateJSON()"],
+    expect: ["类型不匹配"],
+    ref: "JSON 语义：字符串 null 是合法 JSON 值，应在解析成功后被判为「类型不匹配 root: 期望 object」；旧实现 parseSafely 失败返回 null 并判定「JSON 格式错误」，不会出现类型不匹配文案。默认样例（合法对象）校验通过，不命中。",
+  },
+  {
+    slug: "it/yaml-validator",
+    inputs: {},
+    clicks: ["var d={},c=d;for(var i=0;i<300;i++){c.a={};c=c.a;}var st=analyzeDocs([d]);document.getElementById('jsonOutput').textContent='DEEP='+st.tooDeep;"],
+    expect: ["DEEP=true"],
+    ref: "深度上限：300 层嵌套超过 analyzeDocs 的 200 层统计上限，应标记 tooDeep 并停止递归；旧实现无上限、会继续深递归（更深输入可栈溢出）。默认样例仅数层，不命中。",
+  },
+  {
+    slug: "it/json-path",
+    inputs: {},
+    clicks: ["var o={},c=o;for(var i=0;i<5000;i++){c.x={};c=c.x;}c.x=1;var out=[];collectRecursive(o,'x',false,out,0);document.getElementById('output').textContent='N='+out.length;"],
+    expect: ["N=65"],
+    ref: "递归上限：5000 层对象在 collectRecursive 深度 65 处截断，收集到 65 个 x；旧实现无深度上限，递归回溯栈溢出导致点击执行抛错、无输出。",
+  },
+  {
+    slug: "it/xml-validator",
+    inputs: {},
+    clicks: ["document.getElementById('result').textContent='LOC='+xmlErrorLoc('error on line 3 at column 5: mismatched tag');"],
+    expect: ["LOC=（第 3 行，第 5 列）"],
+    ref: "错误定位：Chrome 的 parsererror 文案「line 3 at column 5」应被提取为结构化行列；旧实现只原样贴整段英文错误文本。",
+  },
+  {
+    slug: "it/base32-encode",
+    inputs: { input: "😀" },
+    clicks: ["encode32()"],
+    expect: ["6CPZRAA="],
+    ref: "基数编码边界（非 BMP 字符）：UTF-8 字节 F0 9F 98 80 的标准 Base32 为 6CPZRAA=（Python base64.b32encode 独立核对，RFC 4648）。页面按码点遍历不拆坏 emoji，旧式按 UTF-16 代理对处理会得到两段错误码。",
+  },
+  {
+    slug: "it/base85-encode",
+    inputs: { input: "😀" },
+    clicks: ["enc()"],
+    expect: ["<~n=Q(u~>"],
+    ref: "Ascii85 边界：UTF-8 四字节 F0 9F 98 80 一组压成 n=Q(u，Adobe 包裹 <~…~>（Python base64.a85encode(adobe=True) 独立核对）。默认模式即 Ascii85 ⇒ 无需切档。",
+  },
+  {
+    slug: "it/quoted-printable",
+    inputs: { input: "😀" },
+    checkIds: ["upper"],
+    clicks: ["enc()"],
+    expect: ["=F0=9F=98=80"],
+    ref: "QP 边界：非 ASCII 字节一律编成 =XX；页面「大写十六进制」默认勾选（HTML checked），harness 的 checkbox 桩恒 false，故用 checkIds 还原真机默认态。Python quopri.encodestring 独立核对为 =F0=9F=98=80（大写形态）。",
+  },
+  {
+    slug: "it/html-entities-encode",
+    inputs: { input: "😀" },
+    clicks: ["document.getElementById('mode').value='decimal';enc()"],
+    expect: ["&#128512;"],
+    ref: "实体编码边界：十进制模式按码点（而非 UTF-16 码元）输出 &#128512;（U+1F600 = 128512）；按码元实现的旧班会拆成两个代理对实体。默认 named 模式对 emoji 回退十进制，但串形不同。",
+  },
+  {
+    slug: "it/punycode",
+    inputs: { input: "xn--fiq228c.a_b" },
+    clicks: ["dec()"],
+    expect: ["中文.a_b"],
+    ref: "解码边界：xn-- 标签解回中文；纯 ASCII 标签 a_b 含下划线，不在 Punycode 数字字符表（a-z/0-9/-）内，不可能是裸 Punycode ⇒ 两种勾选态下都必须原样保留。旧实现对无前缀标签一律 decode('a_b')（非法数字直接抛错），本串不命中。",
+  },
 
+  // ---- 编码/转义族可逆性矩阵（BATCH：标准解码器交叉验证） ----
+  {
+    slug: "it/base64-converter",
+    inputs: { input: "\u0000" },
+    clicks: ["document.getElementById('urlSafe').parentElement.style={};setAlgo('base85');encodeText();"],
+    expect: ["<~!!~>"],
+    ref: "Base85 边界（全零末组）：单个 NUL（UTF-8 00）不足 4 字节，标准 Ascii85 编码为 <~!!~>（Python base64.a85encode(b'\\x00', adobe=True) 独立核对）。旧实现把任意全零组都缩写成 'z'，再按末组截断把 'z' 裁掉 ⇒ <~~>，解码丢字节。默认输入 hello world 不含 NUL。",
+  },
+  {
+    slug: "it/base85-encode",
+    inputs: { input: "\u0000" },
+    clicks: ["enc()"],
+    expect: ["<~!!~>"],
+    ref: "同族交叉验证（另一页实现）：base85-encode 的全零末组本就正确（仅完整 4 字节组才用 'z'）⇒ <~!!~>；与 base64-converter 的修复后产物逐字节一致。Python base64.a85encode(adobe=True) 独立核对。",
+  },
+  {
+    slug: "it/quoted-printable",
+    inputs: { input: "a=1g", output: "KEEP-QP-MALFORMED" },
+    clicks: ["dec()"],
+    expect: ["KEEP-QP-MALFORMED"],
+    ref: "QP 解码严格性：=1g 不是两位十六进制，标准解码器必须报错；旧实现 parseInt('1g',16) 返回 1、parseInt('4',16) 返回 4，静默解成 U+0001/U+0004。错误分支只提示、不改写输出 ⇒ 预设哨兵串保留即证明未误改。",
+  },
+  {
+    slug: "it/base32-encode",
+    inputs: { input: "MZXR", output: "KEEP-B32-PAD" },
+    clicks: ["decode32()"],
+    expect: ["KEEP-B32-PAD"],
+    ref: "RFC 4648 填充位：MZXR 末组剩 4 位且低 4 位为 1（R=17），标准解码器应拒绝；旧实现直接吐出字节 'fo' 的等价物（value >>> 越界位被忽略）。错误分支不改写输出 ⇒ 哨兵保留。",
+  },
+  {
+    slug: "it/base32-encode",
+    inputs: { input: "M", output: "KEEP-B32-LEN" },
+    clicks: ["decode32()"],
+    expect: ["KEEP-B32-LEN"],
+    ref: "RFC 4648 长度：5 个符号模 8 余 1，末组不足一字节，标准解码器应拒绝（旧实现静默输出空串）。用哨兵验证未被改写。",
+  },
+  {
+    slug: "it/go-escape",
+    inputs: { input: "ab", output: "KEEP-GO-RUNE" },
+    clicks: ["document.getElementById('kind').value='rune';esc()"],
+    expect: ["KEEP-GO-RUNE"],
+    ref: "Go rune 字面量必须恰好一个 rune；'ab'、'éü' 这类多字符产物无法通过 go 编译。旧实现照样输出 'ab'。新增校验走 alert 早退、不改写输出 ⇒ 哨兵保留。",
+  },
+  {
+    slug: "it/go-escape",
+    inputs: { input: "\u0000" },
+    clicks: ["esc()"],
+    expect: ["\\x00"],
+    ref: "Go 字符串 NUL：Go 的八进制转义必须写满 3 位，\\0 单独不合法；页面走 \\x00（定长两位十六进制）⇒ 产物 \"\\x00\"。默认 Hello 不含 NUL。",
+  },
+  {
+    slug: "it/rust-escape",
+    inputs: { input: 'r#"q\'""#' },
+    clicks: ["unesc()"],
+    expect: ["q'\""],
+    ref: "Rust 原始字符串反转义：r#\"…\"# 的闭合符是 \"# 而非裸 \"；旧实现只判 text.endsWith('\"')，遇末尾 # 判定失败、原样回显。切片按 2+井号数 起点、去掉尾部 井号数+1 个字符 ⇒ q'\"。",
+  },
+  {
+    slug: "it/rust-escape",
+    inputs: { input: "é", output: "KEEP-RUST-BYTE" },
+    clicks: ["document.getElementById('kind').value='byte';esc()"],
+    expect: ["KEEP-RUST-BYTE"],
+    ref: "Rust 字节字符串 b\"…\" 只允许 ASCII 与转义，直接写非 ASCII 字符（或 b\"\\u{{…}}\"）无法编译；旧实现输出 b\"é\"。新增校验 alert 早退、不改写输出 ⇒ 哨兵保留。",
+  },
+  {
+    slug: "it/rust-escape",
+    inputs: { input: "ab", output: "KEEP-RUST-CHAR" },
+    clicks: ["document.getElementById('kind').value='char';esc()"],
+    expect: ["KEEP-RUST-CHAR"],
+    ref: "Rust char 字面量必须恰好一个 Unicode 标量；旧实现把 'ab'、'éü' 原样/拆分塞进单引号，javac 等价地无法编译。校验后哨兵保留。",
+  },
+  {
+    slug: "it/rust-escape",
+    inputs: { input: "\u0007" },
+    clicks: ["document.getElementById('kind').value='byte';esc()"],
+    expect: ["b\"\\x07\""],
+    ref: "Rust 字节串控制字符：b\"…\" 不支持 \\u{{…}}，必须用 \\xNN；BEL 码位 7 ⇒ b\"\\x07\"。旧实现输出 b\"\\u{{7}}\"，rustc 报 unknown character escape。默认 Hello 不含 BEL。",
+  },
+  {
+    slug: "it/python-escape",
+    inputs: { input: "line1\nline2" },
+    clicks: ["document.getElementById('mode').value='raw';document.getElementById('qtype').value='double';esc()"],
+    expect: ["line1\\nline2"],
+    ref: "Python raw 回退：单/双引号 raw 串不能跨行，含真实换行的文本必须退回普通转义 ⇒ \"line1\\nline2\"（ast.literal_eval 实测等价）。旧实现输出 r\"line1<换行>line2\"，Python 报 unterminated string literal。",
+  },
+  {
+    slug: "it/python-escape",
+    inputs: { input: "\u0000" },
+    clicks: ["document.getElementById('mode').value='raw';document.getElementById('qtype').value='double';esc()"],
+    expect: ["\\x00"],
+    ref: "Python raw 回退（NUL）：Python 词法器拒收源码中的 null 字节，raw 串里也不能直接含 NUL ⇒ 退回 \\x00。ast.literal_eval 实测等价；旧实现输出含裸 NUL 的 r\"…\"，compile 直接失败。",
+  },
+  {
+    slug: "it/c-string-escape",
+    inputs: { input: "\u0001A" },
+    clicks: ["esc()"],
+    expect: ["\\001A"],
+    ref: "C 十六进制转义贪婪：\\x 会吞掉后续所有十六进制字符（\"\\x01A\" = 0x1A），故下一字符是 A–F/0–9 时改用最多 3 位八进制 \\001 ⇒ 字节 0x01 后跟 'A'。cc -std=c11 编译实测字节序列 01 41 与原文一致。",
+  },
+  {
+    slug: "it/c-string-escape",
+    inputs: { input: "éA" },
+    clicks: ["esc()"],
+    expect: ["\\u00e9A"],
+    ref: "C 非 ASCII：0xA0–0xFF 必须用 \\u 通用字符名（\\u00e9）而非单字节 \\xe9，否则 cc 按执行字符集得到的字节与 UTF-8 原文不符；cc -fexec-charset=UTF-8 实测 c3 a9 41。旧实现输出 \\xe9A（且 A 会被 \\x 贪婪吞成超范围值）。",
+  },
+  {
+    slug: "it/js-escape",
+    inputs: { input: "\u00008" },
+    clicks: ["esc()"],
+    expect: ["\\x00"],
+    ref: "JS NUL 边界：\\0 后紧跟十进制数字会变成 \\08 等遗留八进制转义（严格模式 SyntaxError）；改用定长两位 \\x00 ⇒ \"\\x008\"，vm.runInNewContext 严格模式实测可解析且值为 NUL+'8'。",
+  },
+  {
+    slug: "it/php-escape",
+    inputs: { input: "a\u001b", mode: "double" },
+    clicks: ["esc()"],
+    expect: ["a\\e"],
+    ref: "PHP 双引号 ESC：\\e 是 ESC（0x1B）专用转义；旧实现 case '\\e'（JS 里等于字符 e）把每个 e 误转义成 \\e，会得到 \\ea\\e 这类串味产物。默认样例不含 ESC。",
+  },
+  {
+    slug: "it/sql-escape",
+    inputs: { input: "\u001a" },
+    clicks: ["esc()"],
+    expect: ["\\Z"],
+    ref: "MySQL 转义集完整性：mysql_real_escape_string 要求转义 Ctrl-Z（0x1A）为 \\Z；页面已覆盖 NUL/\\n/\\r/\\Z/引号/反斜杠六类必需字符。默认 O'Brien 样例不含 Ctrl-Z。",
+  },
+
+  // —— 时间族 / 进制族 / 字符集族：独立标准实现交叉验证（2026-11-04 批次）——
+  {
+    slug: "it/time-format-converter",
+    inputs: { inTime: "-86400" },
+    clicks: ["convertTime()"],
+    expect: ["1969-12-31T00:00:00.000Z"],
+    ref: "负时间戳（1970 前）：-86400 秒 = 1969-12-31T00:00:00Z。旧实现用 /^\\d+$/ 判定，负号串漏进 new Date('-86400')，被当成 ISO 年份 -86400（输出 +086400-01-01）。默认 1700000000 不命中。",
+  },
+  {
+    slug: "it/time-format-converter",
+    inputs: { inTime: "17000000000000000000" },
+    clicks: ["convertTime()"],
+    expect: ["无法解析时间"],
+    ref: "位数越界：20 位超出纳秒档（≤19 位），必须明确报错；旧实现对 >13 位一律按「纳秒」截断前 13 位，会把越界值静默算成 2023 年。",
+  },
+  {
+    slug: "it/number-base-converter",
+    inputs: { batchInput: "0x10\n10", batchFrom: "10", batchTo: "2" },
+    clicks: ["doBatchConvert()"],
+    expect: ["无效 1010"],
+    ref: "十进制分支必须只认 0-9：BigInt('0x10') 会按 JS 字面量规则算成 16，导致十进制模式悄悄接受十六进制前缀，而十六进制模式又把 '0x10' 判为非法（两条路径自相矛盾）⇒ 批量十进制→二进制须输出「无效 1010」。改走批量分支：legacy 桩把 `<option value='5' selected>` 误解析为首个 option（inputBase=2），255 在二进制非法 ⇒ 默认态同样输出「无效」（逃生）。",
+  },
+  {
+    slug: "it/integer-base-converter",
+    inputs: { num: "-255", fromBase: "10", toBase: "16" },
+    expect: ["-ff"],
+    ref: "负号支持：-255(10) = -ff(16)，与 number-base-converter 的口径对齐；旧实现按位扫描时 '-' 被判为非法数字位直接抛错，且 fromBigInt 对负数返回空串。默认 255 输出 ff，不命中。",
+  },
+  {
+    slug: "it/charset-detector",
+    inputs: { txt: "C4 E3 BA C3" },
+    expect: ["共 4 字节", "无法仅凭字节区分"],
+    ref: "字节模式：0xC4 0xE3 0xBA 0xC3 在 GB18030 下解出「你好」，Big5 下解出「斕疑」，两者均可严格解码且可读性并列 ⇒ 页面必须明确输出并列结论而非硬猜（Node TextDecoder 实测：utf-8 报非法序列、gb18030=你好、big5=斕疑）。",
+  },
+  {
+    slug: "it/charset-detector",
+    inputs: { txt: "EF BB BF E4 BD A0" },
+    expect: ["识别到 UTF-8 BOM", "最可能为"],
+    ref: "BOM 识别：EF BB BF 为 UTF-8 BOM，剥除后 3 字节 E4 BD A0 严格解码为「你」；GB18030 在剩余 0xA0 处非法、Big5 亦失败 ⇒ UTF-8 唯一可解，给唯一结论。默认示例非字节串，不命中。",
+  },
+  // ── 哈希族深度（2026-11-04）：每个期望值均由 Python hashlib / hmac / zlib 或独立位级 CRC 实现产出 ──
+  {
+    slug: "it/md5",
+    inputs: { hmacKey: "key", hmacInput: "The quick brown fox jumps over the lazy dog" },
+    clicks: ["calcHmac()"],
+    expect: ["80070713463e7749b90c2dc24911e275"],
+    ref: "Python hmac.new(b'key', b'The quick brown fox jumps over the lazy dog', hashlib.md5).hexdigest() = 80070713463e7749b90c2dc24911e275（RFC 2202 用例 1）。默认 hmacKey=mysecret / hmacInput='Hello, HMAC-MD5!' 的摘要不同，不命中。",
+  },
+  {
+    slug: "it/md5",
+    inputs: { hmacKey: "a".repeat(80), hmacInput: "hello" },
+    clicks: ["calcHmac()"],
+    expect: ["998d524a20c67f1f4463653778ff4aa9"],
+    ref: "Python hmac.new(b'a'*80, b'hello', hashlib.md5) = 998d524a…（RFC 2104：密钥长度 >64 字节须先取 MD5 原始 16 字节摘要再补块；若把 80 字节直接截断或补零，得到的是另一个值）。",
+  },
+  {
+    slug: "it/md5",
+    inputs: { textInput: "中文" },
+    checkIds: ["uppercase", "utf8"],
+    clicks: ["calcText()"],
+    expect: ["A7BAC2239FCDCB3A067903D8077C4A07"],
+    ref: "hashlib.md5('中文'.encode('utf-8')) = a7bac2239fcdcb3a067903d8077c4a07，大写开关 ⇒ 整串大写。utf8 与 uppercase 在 HTML 里默认勾选，harness 桩默认 false，故显式 checkIds 还原真机首屏态；若按 UTF-16 码元取字节会得到 f2f4599f…（非任何标准编码），可判别口径错误。",
+  },
+  {
+    slug: "it/sha",
+    inputs: { textInput: "abc" },
+    checks: ["SHA-384"],
+    clicks: ["calcText()"],
+    expect: ["cb00753f45a35e8bb5a03d699ac65007272c32ab0eded1631a8b605a43ff5bed8086072ba1e7cc2358baeca134c825a7"],
+    ref: "NIST/hashlib.sha384(b'abc') = cb00753f…4c825a7。默认只勾 SHA-256，本例换成 SHA-384 以覆盖 384 位路径。",
+  },
+  {
+    slug: "it/sha",
+    inputs: { textInput: "abc" },
+    checks: ["SHA-512"],
+    checkIds: ["uppercase"],
+    clicks: ["calcText()"],
+    expect: ["DDAF35A193617ABACC417349AE20413112E6FA4E89A97EA20A9EEEE64B55D39A2192992A274FC1A836BA3C23A3FEEBBD454D4423643CE80E2A9AC94FA54CA49F"],
+    ref: "hashlib.sha512(b'abc') = ddaf35a1…4ca49f（NIST 向量），uppercase 打开 ⇒ 全大写。与 SHA-384 例互不命中。",
+  },
+  {
+    slug: "it/hmac-generator",
+    inputs: { key: "Jefe", msg: "what do ya want for nothing?" },
+    clicks: ["calc()"],
+    expect: ["HMAC-SHA256 5bdcc146bf60754e6a042426089575c75a003f089d2739839dec58b964ec3843"],
+    ref: "RFC 4231 测试用例 2：HMAC-SHA-256('Jefe', 'what do ya want for nothing?') = 5bdcc146…ec3843（Python hmac 逐字节同值）。默认 key=secret-key / msg='Hello, HMAC!'，不命中。",
+  },
+  {
+    slug: "it/crc-calculator",
+    inputs: { input: "abc" },
+    checkIds: ["upper"],
+    clicks: ["calc()"],
+    expect: ["CRC-16/CCITT-FALSE (IBM-3740) 0x514A", "CRC-16/Modbus 0x5749", "CRC-32 0x352441C2", "CRC-64/ECMA-182 0x66501A349A0E0855"],
+    ref: "独立位级 CRC 实现（Python，参数取 reveng 目录）：'abc' ⇒ CCITT-FALSE 0x514A、Modbus 0x5749、CRC-32 0x352441C2（zlib.crc32 交叉核对）、CRC-64/ECMA-182 0x66501A349A0E0855。默认 input=123456789 与各值不同，不命中。",
+  },
+  {
+    slug: "it/crc-calculator",
+    inputs: { input: "48 65 6c 6c 6f" },
+    checkIds: ["upper", "hexInput"],
+    clicks: ["calc()"],
+    expect: ["CRC-32 0xF7D18982", "CRC-64/ECMA-182 0xFFAD3236B47900AB"],
+    ref: "可逆性对照：十六进制输入 48 65 6c 6c 6f 即 'Hello' 的 ASCII 字节。Python zlib.crc32(b'Hello')=0xf7d18982、CRC-64/ECMA-182(b'Hello')=0xffad3236b47900ab；与文本模式同输入同值，证明字节解析口径正确。",
+  },
+  {
+    slug: "it/crc-calculator",
+    inputs: { input: "ABC" },
+    checkIds: ["hexInput"],
+    clicks: ["calc()"],
+    expect: ["十六进制输入须为偶数位、且仅含 0-9 / A-F。"],
+    ref: "哈希族可逆性：3 位十六进制旧实现 new Uint8Array(1.5) 被截断成 1 字节、末尾 'C' 静默丢弃并照常输出 CRC（错误值）。修正后明示拒绝；默认输入为十进制文本且未勾 hexInput，不命中。",
+  },
+  {
+    slug: "it/crc-calculator",
+    inputs: { input: "48zz" },
+    checkIds: ["hexInput"],
+    clicks: ["calc()"],
+    expect: ["十六进制输入须为偶数位、且仅含 0-9 / A-F。"],
+    ref: "非十六进制字符旧实现 parseInt('zz',16)=NaN → 0x00，静默把 'zz' 当空字节算出 CRC。修正后拒绝；与奇数位例分别覆盖两条校验分支。",
+  },
+  {
+    slug: "it/hash-identifier",
+    inputs: { h: "5d41402abc4b2a76b9719d911017c592" },
+    clicks: ["calcTool()"],
+    expect: ["MD5 128 位（32 位十六进制）", "NTLM 32 位十六进制（Windows 口令哈希）"],
+    ref: "32 位十六进制同时是 MD5 与 NTLM 的形态（本页 FAQ 已声明）⇒ 应并列两个候选；默认值 5e884898… 是 64 位，不命中。旧实现只给 MD5。",
+  },
+  {
+    slug: "it/hash-identifier",
+    inputs: { h: "352441c2" },
+    clicks: ["calcTool()"],
+    expect: ["CRC-32 32 位校验（8 位十六进制）"],
+    ref: "8 位十六进制 = CRC-32（Python zlib.crc32(b'abc') = 0x352441c2）。旧长度表缺 8 ⇒ 只输出「未知」，属漏判。",
+  },
+  {
+    slug: "it/hash-identifier",
+    inputs: { h: "abcdef123456" },
+    clicks: ["calcTool()"],
+    expect: ["未知 无法仅凭该值判定"],
+    ref: "12 位十六进制 = 48 bit，不是 CRC-32（8 位）；旧表误标为「CRC32 / 短校验」。修正后归入无法判定；默认 64 位值不命中。",
+  },
+
+  // —— 随机源审计（2026-11-05）：B 类密码学用途改 crypto.getRandomValues 后，
+  // 随机内容本身不可断言，改为「长度 / 字符集 / 条数」结构断言。以下用例均落在
+  // 页面真实生成路径上，默认态（不点按钮或默认参数）不命中，保持判别力。 ——
+  {
+    slug: "it/cuid-generator",
+    clicks: [
+      '(function(){var id1=cuid(),id2=cuid();var ok=/^c[0-9a-z]+$/.test(id1)&&id1.length===13+Date.now().toString(36).length&&id2.length===id1.length&&id1!==id2;document.getElementById("output").innerHTML=ok?"CUID-FMT-OK":"CUID-FMT-FAIL";})()'
+    ],
+    expect: ["CUID-FMT-OK"],
+    ref: "cuid 结构 = 'c' + base36 时间戳(8) + 4 位计数器 + 4 位指纹 + 2×2 位随机 ⇒ 21 位 [0-9a-z]；计数段随调用递增，故两次值不同但长度一致。默认输出区为空，不命中。",
+  },
+  {
+    slug: "it/invite-code-generator",
+    inputs: { count: "2", len: "8" },
+    checkIds: ["upper", "num"],
+    clicks: [
+      'generate();(function(){var h=document.getElementById("output").innerHTML;var m=h.match(/<div class=\\S+>[A-Z0-9]{8}<\\/div>/g)||[];document.getElementById("output").innerHTML=m.length===2?"INVITE-FMT-OK-2x8":"INVITE-FMT-FAIL:"+m.length;})()'
+    ],
+    expect: ["INVITE-FMT-OK-2x8"],
+    ref: "只勾大写+数字（字符集 36），长度 8、条数 2 ⇒ 输出恰为 2 个 [A-Z0-9]{8} 的 code-row；默认条数 8、长度 10 且默认勾选小写，故不命中。生成路径已改 crypto.getRandomValues（拒绝采样无模偏）。",
+  },
+  {
+    slug: "it/pin-generator",
+    inputs: { len: "6", count: "3" },
+    clicks: [
+      'generate();(function(){var h=document.getElementById("output").innerHTML;var m=h.match(/<div class=\\S+>[0-9]{6}<\\/div>/g)||[];document.getElementById("output").innerHTML=m.length===3?"PIN-FMT-OK-3x6":"PIN-FMT-FAIL:"+m.length;})()'
+    ],
+    expect: ["PIN-FMT-OK-3x6"],
+    ref: "长度 6、条数 3 ⇒ 输出恰为 3 个 6 位纯数字 pin-row；默认长度 4、条数 5 ⇒ 不命中。生成路径已改 crypto.getRandomValues（拒绝采样无模偏）。",
+  },
+  {
+    slug: "it/nanoid-generator",
+    inputs: { length: "12", count: "4" },
+    clicks: [
+      'gen();(function(){var h=document.getElementById("results").innerHTML;var m=h.match(/<code>[^<]+<\\/code>/g)||[];var c=m.map(function(s){return s.slice(6,-7);});var ok=c.length===4&&c.every(function(x){return x.length===12&&/^[A-Za-z0-9_-]+$/.test(x);});document.getElementById("results").innerHTML=ok?"NANOID-FMT-OK-4x12":"NANOID-FMT-FAIL:"+c.length;})()'
+    ],
+    expect: ["NANOID-FMT-OK-4x12"],
+    ref: "默认 URL-safe 字母表（A-Za-z0-9_-），长度 12、条数 4 ⇒ 4 个 12 位串，字符集校验禁止出现表外字符。默认长度 21、条数 5 ⇒ 不命中。生成路径已改 crypto.getRandomValues。",
+  },
+  {
+    slug: "it/uuid-generator",
+    inputs: { count: "3" },
+    clicks: [
+      'generateUuid();(function(){var v=document.getElementById("output").value;var l=v.split("\\n");var ok=l.length===3&&l.every(function(x){return /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(x);});document.getElementById("output").value=ok?"UUID-V4-FMT-OK-3":"UUID-FMT-FAIL";})()'
+    ],
+    expect: ["UUID-V4-FMT-OK-3"],
+    ref: "默认 Version 4、数量 3 ⇒ 3 行小写 UUID：第 13 位固定为版本号 4、第 17 位 variant 为 8/9/a/b，其余 [0-9a-f]。默认数量 1 ⇒ 3 行断言不命中。生成路径已移除 Math.random 回退，无 crypto 时显式提示。",
+  },
+  {
+    // 遮蔽回归：copyText 原定义在 generate() 函数作用域内，内联 onclick 看不到它（会落到 common.js 全局实现、
+    // 复制按钮元素）。已提到模块作用域并改名 copyRand；本用例直接调用它，断言交给剪贴板的文本。
+    slug: "it/random-string",
+    inputs: { len: "8", cnt: "2" },
+    checkIds: ["top_upper", "top_digit"],
+    clicks: ["calcTool();var __ce=document.createElement.bind(document);document.createElement=function(t){var e=__ce(t);if(t==='textarea'){try{Object.defineProperty(e,'value',{get:function(){return '';},set:function(v){document.getElementById('result').innerHTML='COPIED:'+v;},configurable:true});}catch(err){}}return e;};copyRand({parentNode:{querySelector:function(){return {textContent:'RAND-XYZ-01'}}}});document.createElement=__ce;"],
+    expect: ["COPIED:RAND-XYZ-01"],
+    ref: "copyRand(btn) 从同行的 <code> 取 textContent 再写入临时 textarea 复制。用例用假按钮把「行内代码文本」固定为 RAND-XYZ-01，并把 createElement('textarea') 的 value 采集到结果区 ⇒ 期望 COPIED:RAND-XYZ-01。若 copyRand 不可见（仍留在 generate() 内或仍叫 copyText），调用直接抛错、结果不命中。",
+  },
+  {
+    slug: "it/random-string",
+    inputs: { len: "8", cnt: "2" },
+    checkIds: ["top_upper", "top_digit"],
+    clicks: ["calcTool()"],
+    expect: ["字符集大小 36 单串长度 8 理论熵值 41 bits"],
+    ref: "只勾大写+数字 ⇒ 字符集 36；长度 8、条数 2 ⇒ 熵 = 8·log2(36) = 41.36 → 41 bits。默认四项全勾（含小写/符号）时字符集 87、熵不同；harness 默认 checkbox 全 false 时输出「请至少选择一种字符集」，故该表头只在注入后出现。生成的字符内容不可经 escH 桩读回，故以字符集/长度/熵锚定真实生成参数。",
+  },
+  {
+    slug: "it/password-generator",
+    inputs: { length: "12" },
+    clicks: [
+      'document.getElementById("lowercase").checked=true;document.getElementById("uppercase").checked=true;document.getElementById("numbers").checked=true;generatePassword();(function(){var p=document.getElementById("passwordDisplay").textContent;var ok=p.length===12&&/^[A-Za-z0-9]+$/.test(p);document.getElementById("passwordDisplay").textContent=ok?"PWD-FMT-OK-12-ALNUM":"PWD-FMT-FAIL:"+p.length;})()'
+    ],
+    expect: ["PWD-FMT-OK-12-ALNUM"],
+    ref: "长度 12、只启用小写+大写+数字 ⇒ 每位必落在 62 字符集内（未选符号），串长恒为 12。默认长度 16、默认四项全选（含符号）⇒ 不命中。生成路径已移除 Math.random 回退。",
+  },
+  {
+    slug: "it/matrix-determinant",
+    clicks: [
+      'document.getElementById("size").value="2";build();document.getElementById("a0").value="1";document.getElementById("a1").value="1";document.getElementById("a2").value="1";document.getElementById("a3").value="1.0000000000001";calculate()'
+    ],
+    expect: ["9.992007e-14"],
+    ref: "2×2 近奇异矩阵 [[1,1],[1,1+1e-13]]：det = 1×(1+1e-13) − 1×1 = 9.992e-14（补码可表示的 1e-13 级差值）。这是条件数信号，不是浮点噪声；原 fmt 先判 |x|<1e-12 → 0 把真实小行列式吞成 0，现改为仅 x===0 返回 0、小值走科学计数法。默认 3×3 单位阵 det=1，不命中。",
+  },
+  // ── D2 批：7 个条码页的 PNG 导出失败可见（downloadBarcodePNG 的 cv.toDataURL 裸调）──
+  ...["barcode-codabar", "barcode-code128", "barcode-code39", "barcode-ean", "barcode-itf", "barcode-msi", "barcode-upc"].map(function (slug) {
+    return {
+      slug: "it/" + slug,
+      clicks: [
+        "ToolBox.showToast=function(m){document.getElementById('__svg_probe').textContent='TOAST:'+m;};"
+        + "var __qs=document.querySelector.bind(document);"
+        + "document.querySelector=function(s){if(s==='#output canvas')return {toDataURL:function(){throw new Error('boom')}};return __qs(s);};"
+        + "downloadBarcodePNG();",
+      ],
+      expect: ["TOAST:导出失败：Error"],
+      ref: "失败注入：让 `#output canvas` 返回 toDataURL 必抛 Error 的假画布 + 录制 ToolBox.showToast ⇒ 必须出现「TOAST:导出失败：Error」。"
+        + "修复前异常裸冒成 pageerror、且紧随其后仍弹「PNG 已下载」（给出错误事实）；默认态无 TOAST: 串 ⇒ 判别明确。",
+    };
+  }),
+  // ── D3 批：captcha-generator 导出失败可见（exportImage 的 toDataURL 裸调）──
+  {
+    slug: "it/captcha-generator",
+    clicks: [
+      "ToolBox.showToast=function(m){document.getElementById('__svg_probe').textContent='TOAST:'+m;};"
+      + "document.getElementById('captchaCanvas').toDataURL=function(){throw new Error('boom')};"
+      + "exportImage();",
+    ],
+    expect: ["TOAST:导出失败：Error"],
+    ref: "失败注入：captchaCanvas.toDataURL 必抛 Error + 录制 ToolBox.showToast ⇒ 必须出现「TOAST:导出失败：Error」。"
+      + "修复前异常裸冒成 pageerror、且下载失败后仍弹「已导出」；默认态无 TOAST: 串 ⇒ 判别明确。",
+  },
 ];
 
 // ---------------------------------------------------------------- DOM stub
@@ -7418,6 +8556,20 @@ function mkOpt(value, text, attrStr) {
   return o;
 }
 
+// 可选「浏览器保真初始化」开关（用例字段 afterLoad:true 时开启，默认关闭）：
+// 很多页面在脚本末尾同步 init，并用 innerHTML 批量生成按钮/卡片后立刻读
+// `children[i].classList`；动态填 <select> 的 option 后依赖浏览器自动选中首项。
+// 这两点桩默认不建模（无条件生效曾误伤其它页，故按用例 opt-in）。
+let __browserInit = false;
+// 可选「动态控件默认值登记」（用例字段 dynInputs:true 时开启，默认关闭）：
+// 页面若先 `renderMachines()` 再 `calc()`（如 agriculture/machinery-efficiency），
+// 桩内 innerHTML 生成的 input 不会进入 elements 表 ⇒ calc 读到空串 ⇒ 首屏落入「无数据」
+// 分支，用例的 expect 与注入无关地命中（假通过）。开启后 innerHTML 写入即登记
+// `id → value`，getEl 首次访问直接返回该默认值，等价真机「渲染后即有值」。
+// 默认关闭 ⇒ 既有用例路径逐字节不变（同 afterLoad 的隔离思路）。
+let __dynInputs = false;
+const __dynInputReg = new Map();
+
 function makeEl(val, opts) {
   const handlers = {};
   // 懒创建的父节点桩：页面常写 `cell.parentElement.classList.add('x')`（如
@@ -7487,6 +8639,11 @@ function makeEl(val, opts) {
     setAttribute() {},
     getAttribute() { return null; },
     removeAttribute() {},
+    // 复制路径：页面普遍 `ta.select(); document.execCommand('copy')`（common.js 的 copyText
+    // 与各工具页的本地复制实现都走这条），缺 .select/.setSelectionRange 会直接抛
+    // "select is not a function" ⇒ 复制用例整段中断、判别器子进程无统计行。
+    select() {},
+    setSelectionRange() {},
     // 动态 DOM 登记生效时（用例声明 clicks/dynDom），元素的 querySelectorAll 也走登记表 ——
     // 页面写成 `it.querySelectorAll('.q-opt')` 时才能拿到数组（超集即可，仅用于 classList.toggle），
     // 否则 `[].forEach.call(undefined, …)` 抛错、紧随其后的 calc() 被整段跳过。
@@ -7541,6 +8698,16 @@ function makeEl(val, opts) {
     set(v) {
       _h = String(v == null ? "" : v);
       if (DYN.on) dynRecord(el, _h);
+      // dynInputs（opt-in）：登记生成出来的 input/textarea 默认值（同容器后写覆盖先写，
+      // 与真机「重渲染后元素带新默认值」一致）。只登记，不创建 elements 桩。
+      if (__dynInputs) {
+        for (const m of _h.matchAll(/<(?:input|textarea)\b([^>]*)>/gi)) {
+          const idm = m[1].match(/\bid\s*=\s*["']([^"']+)["']/i);
+          if (!idm) continue;
+          const vm = m[1].match(/\bvalue\s*=\s*["']([^"']*)["']/i);
+          __dynInputReg.set(idm[1], vm ? vm[1] : "");
+        }
+      }
       // 动态填充 <select>：很多页用 `sel.innerHTML = '<option...>'` 注入选项
       // （如 agriculture/crop-yield 的 initCrops）。不解析则 `el.options` 恒空，
       // 页面读 `el.options[selectedIndex].text` 抛错使整页无法验证。仅在内容含
@@ -7560,7 +8727,24 @@ function makeEl(val, opts) {
               set(i) { _selIdx = Number(i); const o = el.options[Number(i)]; if (o) el.value = o.value; },
             });
           }
+          // 浏览器语义（仅 afterLoad 用例生效）：向空 <select> 写入 option 后，
+          // 首个选项（或带 selected 的选项）自动成为选中项，页面随后读取 .value
+          // 才能拿到合法分类（acupuncture/acupoint-combination 的 renderDisease 依赖它）。
+          if (__browserInit && el.value === "") {
+            const hit = opts.find((o) => /\bselected\b/i.test((o && o._attrs) || "")) || opts[0];
+            el.value = hit && hit.value != null ? String(hit.value) : "";
+          }
         }
+      }
+      // 浏览器语义（仅 afterLoad 用例生效）：innerHTML 写入的子元素即成为 children 节点。
+      // 页面常见「innerHTML 批量生成按钮 → 立刻 children[def].classList.add('active')」
+      // （ophthalmology/pupil-reflex 即因此初始化抛错），桩默认 children 恒空。
+      if (__browserInit) {
+        el.children = [..._h.matchAll(/<([a-zA-Z][\w-]*)([^>]*)>([\s\S]*?)<\/\1>/g)].map((m2) => {
+          const child = makeEl("");
+          child.textContent = m2[3].replace(/<[^>]+>/g, "").trim();
+          return child;
+        });
       }
     },
     get() { return _h; },
@@ -7573,7 +8757,9 @@ function inlineScripts(html) {
   for (const m of html.matchAll(/<script([^>]*)>([\s\S]*?)<\/script>/gi)) {
     const attrs = m[1] || "";
     if (/\bsrc=/i.test(attrs)) continue;
-    if (/type\s*=\s*["']?(application|text\/template|text\/tailwindcss)/i.test(attrs)) continue;
+    // ESM 内联模块（如 pdf.js 4.x 页面）不能在 harness 的 new Function 里按经典脚本执行，跳过
+    if (/type\s*=\s*["']?module/i.test(attrs)) continue;
+    if (/type\s*=\s*["']?(application|text\/template|text\/tailwindcss|text\/js-worker)/i.test(attrs)) continue;
     out.push(m[2]);
   }
   return out.filter((c) => c.trim().length > 40).join("\n");
@@ -7601,6 +8787,23 @@ function inlineHandlers(html) {
     }
   }
   return map;
+}
+
+// expect 匹配口径：除了原文命中，也接受「原文的 HTML 转义形态」命中。
+// 原因：页面若用 ToolBox.escHtml() 把结果写进 innerHTML（如 data/calc-2 的 pretty JSON），
+// 真机渲染后用户看到的是原文（引号、尖括号正常），而桩内保留的 innerHTML 字符串是转义形态
+// （&quot; / &lt;）。这是「桩只存原始 innerHTML、不建模实体解码」造成的口径差，不是页面缺陷；
+// 故对断言做等价匹配，避免把正确的页面判红。
+function htmlEscaped(s) {
+  return String(s)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+function blobHasWant(blob, want) {
+  return blob.includes(want) || blob.includes(htmlEscaped(want));
 }
 
 function collectStrings(elements) {
@@ -7758,6 +8961,10 @@ function makeXmlDomParserStub() {
   };
 }
 
+// 实际执行过的用例数（redirect 存根不计）：供「0 用例拒绝判绿」守卫使用。
+// 全站 200+ 个 verify_<ind>_calc.js 都复用本 harness，故此处一处收口即可覆盖。
+let __executedCases = 0;
+
 async function runCase(c) {
   // 每个用例都会往 globalThis（当作 window）挂函数，用后清理，避免污染下一个用例
   const before = new Set(Object.keys(globalThis));
@@ -7766,8 +8973,11 @@ async function runCase(c) {
   const _proc = globalThis.process;
   const _console = globalThis.console;
   try {
-    return await runCaseInner(c);
+    const r = await runCaseInner(c);
+    if (!r.skipped) __executedCases++;
+    return r;
   } finally {
+    __browserInit = false; // 开关只对本用例生效，绝不泄漏到后续用例
     for (const k of Object.keys(globalThis)) {
       if (!before.has(k)) { try { delete globalThis[k]; } catch (e) { /* 只读属性跳过 */ } }
     }
@@ -7778,9 +8988,15 @@ async function runCase(c) {
 
 async function runCaseInner(c) {
   _rngReset(); // 每个用例前重置随机种子，确保随机页输出与顺序/环境无关
+  // afterLoad（opt-in）：开启浏览器保真初始化（innerHTML→children、空 select 自动选首项），
+  // 并在 DOMContentLoaded 回调执行后让出一帧。默认 false ⇒ 既有用例路径逐字节不变。
+  __browserInit = !!c.afterLoad;
   // 动态 DOM 登记默认关闭：只有声明 clicks（模拟点击）或 dynDom 的用例才启用 ⇒
   // 既有用例的行为逐字节不变（§7.1 的历史教训：全站无差别生效会误伤其它页）。
   dynReset();
+  // dynInputs（opt-in）：innerHTML 生成的 input 默认值登记，须在页面脚本执行前就位。
+  __dynInputs = !!c.dynInputs;
+  __dynInputReg.clear();
   DYN.on = !!(c.dynDom || (Array.isArray(c.clicks) && c.clicks.length > 0));
   // XML 类页面需要浏览器 DOMParser；仅对显式声明 domParser:true 的用例注入（用后清理）。
   if (c.domParser && typeof globalThis.DOMParser === "undefined") {
@@ -7881,7 +9097,9 @@ async function runCaseInner(c) {
   const getEl = (id) => {
     if (!(id in elements)) {
       const v =
-        c.inputs && id in c.inputs
+        __dynInputs && __dynInputReg.has(id)
+          ? __dynInputReg.get(id)
+          : c.inputs && id in c.inputs
           ? c.inputs[id]
           : defaults[id] !== undefined
           ? defaults[id]
@@ -8002,6 +9220,9 @@ async function runCaseInner(c) {
     // 正文被整块吞掉（既有盲区，见 2678 行注释）。此处只给 createElement 路径建模该联动，
     // 不改 makeEl（id 元素的行为逐字节不变 ⇒ 既有用例不受影响）。
     createElement: () => makeEscEl(),
+    // 复制路径兜底（两条路径都覆盖）：`document.execCommand('copy')` 在真浏览器返回
+    // true/false 而非抛错，部分页的本地复制实现直接调它（it/random-string 等）。
+    execCommand: () => true,
     // SVG 类页面（accessibility/ramp-slope 等）用 createElementNS 建 svg/line/text 节点，
     // 缺此 API 整页初始化即抛 "createElementNS is not a function" ⇒ 恒不可验证。
     // 本桩不做真实命名空间渲染，仅提供与 createElement 同构的节点（含 classList/style/
@@ -8014,10 +9235,33 @@ async function runCaseInner(c) {
     documentElement: { setAttribute() {}, getAttribute() { return null; }, style: {}, classList: { add() {}, remove() {}, toggle() {} } },
     body: makeEl(""),
   };
-  const localStorage = { getItem() { return null; }, setItem() {}, removeItem() {} };
-  // sessionStorage 桩：站内只有 it/password-generator 顶层写了 `const HISTORY_STORE = sessionStorage`，
-  // 缺该全局 ⇒ 整个脚本在求值期就抛 ReferenceError ⇒ 该页在任何用例里都是「死页」（零用例即零回归）。
-  const sessionStorage = { getItem() { return null; }, setItem() {}, removeItem() {} };
+  // 真实存储语义：setItem 写入 Map、getItem 回读已写值。页面改成「写后回读才宣告成功」后，
+  // 空桩（getItem 恒 null）会让回读永远失败、页面走进失败分支，用例只拿到中间态。
+  // 可选注入（用例字段 storageFail: "quota" | "typeerror"）用于验证失败路径，不影响成功路径。
+  const makeStorage = () => {
+    const map = new Map();
+    const fail = c && c.storageFail;
+    return {
+      getItem(k) { k = String(k); return map.has(k) ? map.get(k) : null; },
+      setItem(k, v) {
+        if (fail === "quota") {
+          const err = new Error("quota exceeded (injected)");
+          err.name = "QuotaExceededError";
+          throw err;
+        }
+        if (fail === "typeerror") throw new TypeError("storage fail (injected)");
+        map.set(String(k), String(v));
+      },
+      removeItem(k) { map.delete(String(k)); },
+      clear() { map.clear(); },
+      key(i) { return Array.from(map.keys())[i] ?? null; },
+      get length() { return map.size; },
+    };
+  };
+  const localStorage = makeStorage();
+  // sessionStorage 桩：保守保留。任何页面顶层引用 sessionStorage 时，缺该全局会在求值期抛
+  // ReferenceError ⇒ 整页成为「死页」（零用例即零回归）。当前站内已无页面真实使用 sessionStorage。
+  const sessionStorage = makeStorage();
   const ToolBox = {
     setResult: (id, h) => { getEl(id).innerHTML = h; },
     // 页面 TOOLBOX-API-STUB 定义了 `T.$=function(id){return document.getElementById(id);}`，
@@ -8037,6 +9281,14 @@ async function runCaseInner(c) {
       dec = dec != null ? dec : 0;
       return n.toLocaleString("zh-CN", { minimumFractionDigits: dec, maximumFractionDigits: dec });
     },
+    // 与 js/common.js::csvCell 同实现：导出收敛到 ToolBox.csvCell 的页面，
+    // 在 `[...].map(ToolBox.csvCell)` 处若缺该成员会抛 "undefined is not a function"，
+    // 使后面的 ToolBox.downloadText 覆盖根本执行不到（表面现象就是「downloadText 桩失效」）。
+    csvCell: (value) => {
+      let t = String(value == null ? "" : value);
+      if (/^[=+\-@\t\r]/.test(t)) t = "'" + t;
+      return /[",\n\r]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t;
+    },
     // 同 stub：明细表渲染。返回 HTML 字符串即可，collectStrings 会剥离标签后再断言。
     createTable: (headers, rows) => {
       let x = "<table><thead><tr>";
@@ -8050,7 +9302,9 @@ async function runCaseInner(c) {
       return x + "</tbody></table>";
     },
   };
-  const navigator = { userAgent: "node", clipboard: { writeText() {} } };
+  // 剪贴板桩：真浏览器的 clipboard.writeText 恒返回 Promise（页面普遍 `.then(...)` 收尾），
+  // 保真模式注入的 js/common.js.copyText 也依赖这一点；返回 undefined 会让 .then 抛 TypeError。
+  const navigator = { userAgent: "node", clipboard: { writeText() { return Promise.resolve(); } } };
   // window 直接用 globalThis：内联 on* 属性编译出的函数在全局作用域执行，
   // 只能看到挂在 window（即全局）上的函数，用普通对象会导致「xxx is not defined」。
   const win = globalThis;
@@ -8099,6 +9353,9 @@ async function runCaseInner(c) {
   };
 
   const names = [...script.matchAll(/^\s*(?:async\s+)?function\s+([A-Za-z_$][\w$]*)\s*\(/gm)].map((m) => m[1]);
+  // 顶层 var/let/const 赋值（如 `var fmtNum = function(...){}`）：线上同样是 window 属性，
+  // 同样会被后执行的 common.js 覆盖。仅在保真模式下纳入导出，避免默认路径多导名字到 globalThis。
+  const varNames = [...script.matchAll(/^\s*(?:var|let|const)\s+([A-Za-z_$][\w$]*)\s*=/gm)].map((m) => m[1]);
   const PRIO = ["calcTool", "calc", "calculate", "compute", "convert", "run", "update", "render"];
   const ordered = [
     ...PRIO.filter((p) => names.includes(p)),
@@ -8109,14 +9366,35 @@ async function runCaseInner(c) {
   ];
 
   // 定时器桩（safeTimer）已前移至桩注入之前定义，供 ToolBox 早期桩的 debounce 复用，此处不再重复定义。
-  const expose = ordered.map((n) => `try{__f[${JSON.stringify(n)}]=typeof ${n}==='function'?${n}:null;}catch(e){}`).join("\n");
+  const exposeNames = TB_STUB_FIDELITY
+    ? [...ordered, ...varNames.filter((n) => !ordered.includes(n))]
+    : ordered;
+  const expose = exposeNames.map((n) => `try{__f[${JSON.stringify(n)}]=typeof ${n}==='function'?${n}:null;}catch(e){}`).join("\n");
   let fns;
   try {
-    const compiled = new Function(
+    // 保真模式下，页面里的裸 `ToolBox` 在真浏览器是「每次调用时从 window 动态解析」的活引用；
+    // 而 new Function 的 ToolBox 形参会把它钉死成注入前的旧桩对象 —— common.js 整体替换
+    // window.ToolBox 后，页面代码仍指向旧对象，点击里 `window.ToolBox.showToast=...` 改的却是
+    // 新对象，页面的提示调用打到旧桩（no-op），表现为「保真模式下导出/复制类用例整片红」。
+    // 用转发代理恢复真机的动态解析语义；默认模式仍传原桩对象，既有用例逐字节不变。
+    const toolboxArg = TB_STUB_FIDELITY
+    ? new Proxy({}, {
+        get(_, k) {
+          const T = win.ToolBox;
+          if (!T) return undefined;
+          const v = T[k];
+          return typeof v === "function" ? v.bind(T) : v;
+        },
+        set(_, k, v) { if (win.ToolBox) win.ToolBox[k] = v; return true; },
+        has(_, k) { return win.ToolBox ? k in win.ToolBox : false; },
+        deleteProperty(_, k) { if (win.ToolBox) delete win.ToolBox[k]; return true; },
+      })
+    : ToolBox;
+  const compiled = new Function(
       "document", "window", "console", "navigator", "localStorage", "sessionStorage", "ToolBox", "alert", "setTimeout", "requestAnimationFrame", "setInterval", "requestIdleCallback", "Date",
-      `var __f={};\n${script}\n${expose}\n__f["__pageEval"]=function(c){return eval(String(c));};\nreturn __f;`
+      `var __f={};\n${script}\n${expose}\n__f["__pageEval"]=function(c){return eval(String(c));};\n__f["__rebindGlobal"]=function(n){try{eval(n+' = window.'+n);}catch(e){}};\nreturn __f;`
     );
-    fns = compiled(document, win, { log() {}, warn() {}, error() {} }, navigator, localStorage, sessionStorage, ToolBox, () => {}, safeTimer, safeTimer, safeTimer, safeTimer, FrozenDate);
+    fns = compiled(document, win, { log() {}, warn() {}, error() {} }, navigator, localStorage, sessionStorage, toolboxArg, () => {}, safeTimer, safeTimer, safeTimer, safeTimer, FrozenDate);
   } catch (e) {
     return { ok: false, why: "初始化失败: " + e.message.slice(0, 80) };
   }
@@ -8125,6 +9403,55 @@ async function runCaseInner(c) {
   // 而 new Function 编译出的顶层函数只存在于函数作用域，必须先导出到 globalThis。
   for (const [n, f] of Object.entries(fns)) {
     if (typeof f === "function") { try { globalThis[n] = f; } catch (e) { /* 只读全局跳过 */ } }
+  }
+
+  // TB_STUB_FIDELITY=1：按线上真实顺序执行共享层 /js/common.js（defer → 页面内联之后、DOMContentLoaded 之前）。
+  // 线上页面顶层 `function fmtNum(){}` 是 window 属性，common.js 末尾 `global.fmtNum = ...` 会把它覆盖；
+  // harness 里页面声明只是 new Function 的局部绑定，因此注入后再把同名局部绑定显式重指到全局实现，
+  // 才能复现「桩里绿、线上错」的遮蔽。未设置该环境变量时完全不执行，既有用例逐字节不变。
+  if (TB_STUB_FIDELITY) {
+    const _commonSrc = loadCommonSrc();
+    if (_commonSrc) {
+      try {
+        // 补齐 common.js 顶层会用到的浏览器构造器，避免 ReferenceError 在到达 `global.fmtNum=...` 前中断。
+        const _pre = 'var Element=function(){};Element.prototype={};' +
+          'var Event=function(t){this.type=t;};' +
+          'var URL=function(u){this.href=String(u);this.pathname="/";this.search="";this.hash="";};' +
+          'URL.createObjectURL=function(){return "blob:x";};URL.revokeObjectURL=function(){};' +
+          'var Blob=function(){this.size=0;this.type="";};' +
+          'var IntersectionObserver=function(cb){this._cb=cb;};' +
+          'IntersectionObserver.prototype={observe:function(){},unobserve:function(){},disconnect:function(){},takeRecords:function(){return [];}};' +
+          'var matchMedia=function(){return {matches:false,media:"",addEventListener:function(){},removeEventListener:function(){},addListener:function(){},removeListener:function(){}};};';
+        if (!document.execCommand) document.execCommand = () => true;
+        new Function(
+          "window", "document", "navigator", "localStorage", "sessionStorage", "location", "history",
+          "alert", "confirm", "prompt", "setTimeout", "setInterval", "requestAnimationFrame",
+          "MutationObserver", "Option", "URLSearchParams", "Storage", "fetch", "XMLHttpRequest", "Image",
+          _pre + _commonSrc
+        )(
+          win, document, navigator, localStorage, sessionStorage, win.location, { pushState() {}, replaceState() {} },
+          () => {}, () => true, () => "", safeTimer, safeTimer, safeTimer,
+          globalThis.MutationObserver, win.Option, globalThis.URLSearchParams || function () {}, globalThis.Storage,
+          () => Promise.resolve({ ok: true, json: () => Promise.resolve({}) }), function () {}, function () {}
+        );
+      } catch (e) {
+        win.__tbFidelityError = e && e.message;
+      }
+      if (TB_FIDELITY_DEBUG) {
+        NODE_STDERR.write("[fidelity] err=" + win.__tbFidelityError + " fmtNum=" + (typeof win.fmtNum) + " ToolBox=" + (typeof win.ToolBox) + "\n");
+      }
+      // 页面顶层声明与共享层重名时，以共享层实现为准（等价线上的后执行覆盖）。
+      for (const [n, f] of Object.entries(fns)) {
+        if (typeof f === "function" && typeof win[n] === "function" && win[n] !== f && typeof fns.__rebindGlobal === "function") {
+          fns.__rebindGlobal(n);
+        }
+      }
+      // 共享层新增的全局（页面未声明同名）也要能被页面代码/点击代码按裸标识符调用。
+      for (const n of ["ToolBox", "fmtNum", "copyText", "copyToClipboard", "showToast", "toggleToolTheme",
+        "resolveCanvasColor", "canvasColorWithAlpha", "i18nText", "canvasExportError", "Chain"]) {
+        if (typeof win[n] !== "undefined") { try { globalThis[n] = win[n]; } catch (e) { /* 只读跳过 */ } }
+      }
+    }
   }
 
   const errs = [];
@@ -8193,6 +9520,9 @@ async function runCaseInner(c) {
     try { const r = cb(); if (r && typeof r.then === "function") pending.push(r); }
     catch (e) { errs.push("ready: " + e.message.slice(0, 50)); }
   }
+  // afterLoad（opt-in）：DOMContentLoaded 回调已按浏览器顺序执行完，再让出一帧，
+  // 覆盖加载事件中追加的同步初始化，之后才进行用例注入。默认路径不等 ⇒ 零变化。
+  if (c.afterLoad) await new Promise((r) => setTimeout(r, 0));
   // 1.5) snapshotOnly 快照模式（G06-S1 首屏扫描用）：只取「页面初始化后、harness 注入/兜底
   // 调用前」的真实默认态。兜底函数循环会以无参方式调用页面函数（如 selectDate()、
   // dijkstra()），部分页面会因此把结果区改写成垃圾值甚至死循环，掩盖真实首屏状态。
@@ -8242,8 +9572,8 @@ async function runCaseInner(c) {
     }
     await Promise.allSettled(pending);   // async 处理函数（如 crypto.subtle）需等其落盘
     const blob1 = collectStrings(elements);
-    for (const want of c.expect) {
-      if (blob1.includes(want)) return { ok: true, via: "input event" };
+    for (const want of (c.expect || [])) {
+      if (blobHasWant(blob1, want)) return { ok: true, via: "input event" };
     }
   }
   // 2.5) 模拟用户点击：click 驱动型页面（选项是 span/div + onclick，页面里根本没有表单控件）。
@@ -8260,9 +9590,41 @@ async function runCaseInner(c) {
     }
     await Promise.allSettled(pending);
     const blobC = collectStrings(elements);
-    for (const want of c.expect) {
-      if (blobC.includes(want)) return { ok: true, via: "click" };
+    for (const want of (c.expect || [])) {
+      if (blobHasWant(blobC, want)) return { ok: true, via: "click" };
     }
+  }
+  // 2.6) 复制回调验证（copyCheck，opt-in）：断言复制函数同步不抛、writeText 的 then 回调不抛，
+  // 且写入内容与断言一致。navigator.clipboard 替换为会记录写入并在 then 内同步执行回调的桩，
+  // 使回调异常能被本用例捕获（真机里该异常会被 Promise 吞掉）。
+  // 字段：{ fn, args?, btnArg?, expect? }；btnArg=true 时按 `fn(...args, btn)` 调用（this 传按钮的页面）。
+  if (c.copyCheck) {
+    const cc = c.copyCheck;
+    const cfn = fns[cc.fn] || globalThis[cc.fn];
+    if (typeof cfn !== "function") return { ok: false, why: "copyCheck: 函数缺失 " + cc.fn };
+    let written = "";
+    let cbErr = null;
+    const fakeBtn = {
+      textContent: "复制", innerHTML: "复制", style: {},
+      classList: { add() {}, remove() {}, toggle() {}, contains() { return false; } },
+      setAttribute() {}, getAttribute() { return null; }, closest() { return null; },
+    };
+    navigator.clipboard.writeText = (t) => {
+      written = String(t);
+      return { then(ok) { try { if (typeof ok === "function") ok(); } catch (e) { cbErr = e.message; } } };
+    };
+    try {
+      if (cc.btnArg) cfn(...(cc.args || []), fakeBtn);
+      else cfn({ target: { closest: () => fakeBtn } }, ...(cc.args || []));
+    } catch (e) {
+      return { ok: false, why: "copyCheck 抛出: " + String(e.message).slice(0, 80) };
+    }
+    if (cbErr) return { ok: false, why: "copyCheck 回调抛出: " + String(cbErr).slice(0, 80) };
+    if (!written) return { ok: false, why: "copyCheck 未写入剪贴板" };
+    if (cc.expect && !written.includes(cc.expect)) {
+      return { ok: false, why: "copyCheck 内容不匹配", sample: written.slice(0, 120) };
+    }
+    return { ok: true, via: "copyCheck" };
   }
   // 3) 兜底：直接调用候选函数
   // 跳过「状态破坏性 / 辅助」类函数：resetAll / clearHistory / restoreHistory / saveHistory /
@@ -8286,7 +9648,7 @@ async function runCaseInner(c) {
     }
     const blob = collectStrings(elements);
     for (const want of c.expect) {
-      if (blob.includes(want)) return { ok: true, via: n };
+      if (blobHasWant(blob, want)) return { ok: true, via: n };
     }
   }
   const blob = collectStrings(elements);
@@ -8384,6 +9746,18 @@ async function main() {
 }
 
 module.exports = { runCase, CASES, inlineScripts, makeEl, collectStrings, extractCases };
+
+// 0 用例守卫（CI 可执行性普查 2026-11-05）：用例集为空、或全部页面已变成
+// TOOLBOX-REDIRECT 存根时，harness 会打印「0/0 通过」并静默 exit 0 —— 属于假绿。
+// 正常跑（无 slug 过滤）时若一个真实用例都没执行，必须在 beforeExit 把退出码翻红。
+process.once("beforeExit", () => {
+  // TB_DISCRIM_PARENT：discriminate_check.js 的全站模式由**子进程**跑用例，父进程自身
+  // 一条也不执行（已检/下限由父进程自己的产出完整性断言把关），不能按「0 用例」判红。
+  if (process.argv.length <= 2 && __executedCases === 0 && !process.env.TB_DISCRIM_PARENT) {
+    console.log("❌ 0 个用例实际执行（用例集为空或全部为 redirect 存根），拒绝判绿");
+    process.exitCode = 1;
+  }
+});
 
 // 注意：runCase 会清理用例往 globalThis（当作 window）挂的属性，process 可能被页面脚本覆盖，
 // 故此处用 process.exitCode 而非 process.exit()。

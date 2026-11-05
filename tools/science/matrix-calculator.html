@@ -320,7 +320,7 @@ function getMatrix(prefix, n){
 
 function fmt(x){
   if(!isFinite(x)) return '未定义';
-  if(Math.abs(x)<1e-10) return '0';
+  if(x===0) return '0';
   if(Math.abs(x)>=1e6||Math.abs(x)<1e-3) return x.toExponential(6);
   return (Math.round(x*1e10)/1e10).toLocaleString();
 }
@@ -495,7 +495,8 @@ function calculate(){
     }
     saveHistory('A×B', n, A, B, result, null);
   } else if(op==='scale'){
-    const k = parseFloat(document.getElementById('scalar').value)||1;
+    const __rawScalar = document.getElementById('scalar').value.trim();
+    const k = (__rawScalar === '' || isNaN(parseFloat(__rawScalar))) ? 1 : parseFloat(__rawScalar);
     const result = scale(A, k);
     html = '<p><strong>矩阵 A：</strong></p>' + matrixToString(A);
     html += '<p style="margin-top:10px;"><strong>结果 k·A = '+fmt(k)+'·A：</strong></p>' + matrixToString(result);
@@ -538,7 +539,8 @@ function calculate(){
     if(r === n) steps += '<div class="step-line">满秩矩阵（秩 = '+n+'）</div>';
     saveHistory('rank(A)', n, A, null, null, r);
   } else if(op==='power'){
-    const p = parseInt(document.getElementById('scalar').value)||1;
+    const __rawP = document.getElementById('scalar').value.trim();
+    const p = (__rawP === '' || isNaN(parseInt(__rawP, 10))) ? 1 : parseInt(__rawP, 10);
     const result = matrixPower(A, p);
     if(!result){
       html = '<p style="color:var(--danger);">负幂需要可逆矩阵，当前矩阵不可逆</p>';
@@ -573,7 +575,7 @@ function showFormulas(){
 }
 
 function saveHistory(opName, n, A, B, result, scalarResult){
-  const history = JSON.parse(localStorage.getItem('matrix_history')||'[]');
+  const history = (function(){try{return JSON.parse(localStorage.getItem('matrix_history')||'[]')}catch(e){try{localStorage.removeItem('matrix_history')}catch(_){}return []}})();
   const item = {
     op: opName,
     size: n,
@@ -589,7 +591,7 @@ function saveHistory(opName, n, A, B, result, scalarResult){
 }
 
 function showHistory(){
-  const history = JSON.parse(localStorage.getItem('matrix_history')||'[]');
+  const history = (function(){try{return JSON.parse(localStorage.getItem('matrix_history')||'[]')}catch(e){try{localStorage.removeItem('matrix_history')}catch(_){}return []}})();
   if(history.length===0){
     const __h3='<p>暂无历史记录</p>';if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h3;
     return;

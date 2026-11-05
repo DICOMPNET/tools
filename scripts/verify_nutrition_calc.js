@@ -65,6 +65,25 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  "slug": "nutrition/calc-60",
+  "inputs": {
+    "sex": "f",
+    "age": "40",
+    "height": "160",
+    "weight": "60",
+    "target": "55",
+    "weeks": "10",
+    "activity": "1.2",
+    "tdeeCustom": "0"
+  },
+  "expect": [
+    "1,239",
+    "1,487"
+  ],
+  "ref": "Mifflin-St Jeor 女：BMR=10·60+6.25·160−5·40−161=1239 kcal；TDEE=BMR×1.2=1486.8→显示 1,487。"
+     + "默认态（男 30 岁/170cm/75kg，系数 1.375）为 1,592/2,190 ⇒ 两值均不命中，强判别。页面引据已改为 Mifflin-St Jeor + 活动系数，不再声称 IOM EER 方程。"
+},
+{
   "slug": "nutrition/calorie-deficit",
   "inputs": {
     "age": "42",
@@ -205,12 +224,37 @@ const CASES = [
 {
   "slug": "nutrition/generator-nutrition-label",
   "inputs": {
-    "cnt": "8"
+    "pname": "测试食品",
+    "protein": "10",
+    "fat": "20",
+    "carbs": "55",
+    "fiber": "2",
+    "sodium": "300",
+    "serving": "50"
   },
   "expect": [
-    "8. "
+    "1861.0 kJ / 444.9 kcal",
+    "930.5 kJ / 222.4 kcal",
+    "22.2%",
+    "16.7%"
   ],
-  "ref": "auto-restore — 随机营养标签生成器，改测结构标签"
+  "ref": "Atwater 改造：10×17+20×37+55×17+2×8=1861 kJ ⇒ /4.184=444.9 kcal；每份 50g = 一半（930.5 kJ / 222.4 kcal）；能量 NRV% = 1861/8400=22.2%，蛋白质 10/60=16.7%。默认态（3.0/3.2/12.0/0/60/100）能量 273.4 kJ、7.7%，不含上述数值。"
+}
+,
+{
+  "slug": "nutrition/estimate-2",
+  "inputs": {"extraSodium": ""},
+  "clicks": ["getSelected=function(){return [4];};calculate()"],
+  "expect": ["钠摄入约 350 mg"],
+  "ref": "空输入语义：额外钠留空按 0 处理（不应把空串当 NaN），已选 1 份薯片 350 mg ⇒ 钠摄入约 350 mg。判别力：注入失败时 getSelected 取不到选中卡片、额外钠回默认 0 ⇒ 走「请选择食物或填写额外钠摄入量」空态提示，不输出该串。"
+}
+,
+{
+  "slug": "nutrition/nutrition-1",
+  "inputs": {"v1": "", "v2": ""},
+  "clicks": ["calc()"],
+  "expect": ["请填写两项数值后再计算。"],
+  "ref": "空态：两项清空后不再把空串当 0 输出「0% of 0」，改为提示；默认态 150/20 ⇒ 计算报告，不命中。"
 }
 ];
 async function main() {

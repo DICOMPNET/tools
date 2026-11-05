@@ -5,8 +5,7 @@
  * 假通过自检: node scripts/selfcheck_false_pass.js scripts/verify_quantum_calc.js
  *   —— 目标：默认态 0 命中。
  *
- * 说明：pair-production-threshold 仅有 dummy 输入、输出恒为 2·m_e·c²（≈1.022 MeV），
- *   无法用输入区分，与 nuclear/pair-annihilation 同类，故不入 CASES，仅在此注明。
+ * 说明：pair-production-threshold 现按轻子种类 + 靶核反冲质量数计算，已纳入 CASES。
  *
  * 跑法:
  *   node scripts/verify_quantum_calc.js                # 全部
@@ -28,6 +27,16 @@ const CASES = [
     inputs: { n: "3" },
     expect: ["4.7626", "0.4763"],
     ref: "r_n=a₀·n²=5.2918e-11×9=4.7626 Å" },
+
+  { slug: "quantum/bohr-orbit-radius",
+    inputs: { n: "0" },
+    expect: ["请填写不小于 1 的「主量子数 n」"],
+    ref: "n=0 无轨道，必须提示补填" },
+
+  { slug: "quantum/bohr-orbit-radius",
+    inputs: { n: "2" },
+    expect: ["2.1167", "0.2117"],
+    ref: "n=2 合法，r=a₀·n²=5.2918e-11×4=2.1167 Å" },
   { slug: "quantum/boltzmann-population",
     inputs: { dE: "0.5", T: "400" },
     expect: ["5.015e-7"],
@@ -74,8 +83,8 @@ const CASES = [
     ref: "E=mc²=0.5×2.998e8²=4.494e16 J=2.805e29 MeV" },
   { slug: "quantum/photoelectric-effect",
     inputs: { f: "4e14", phi: "3.0" },
-    expect: ["-2.156e-19", "-1.346", "不能逸出（hf<φ）"],
-    ref: "K=hf−φ=6.626e-34×4e14−3.0×1.602e-19=−2.156e-19 J=−1.346 eV<0" },
+    expect: ["0.000e+0", "0.000", "不能逸出（hf 低于 φ）"],
+    ref: "hf=6.626e-34×4e14=2.6504e-19 J < φ=3.0×1.602e-19=4.806e-19 J ⇒ 不能逸出；最大动能按物理定义取 max(0, hf−φ)=0 J=0 eV（原实现输出负动能 −2.156e-19 J/−1.346 eV，非物理）" },
   { slug: "quantum/photoelectric-threshold",
     inputs: { phi: "2.3" },
     expect: ["5.561e+14"],
@@ -274,19 +283,20 @@ const CASES = [
       "phi": "42"
     },
     "expect": [
-      "动能 K (J) -42.000 K (eV) 不能逸出（hf 判定"
+      "0.000e+0 最大动能 K (J) 0.000 K (eV) 不能逸出（hf 低于 φ） 判定"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"f\":\"42\",\"phi\":\"42\"}，输出区含「动能 K (J) -42.000 K (eV) 不能逸出（hf 判定」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"f\":\"42\",\"phi\":\"42\"}，hf≪φ ⇒ 最大动能取 0 且判定「不能逸出（hf 低于 φ）」；默认态（f=1e15、φ=2）输出为「能逸出」不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "quantum/pair-production-threshold",
     "inputs": {
-      "dummy": "42"
+      "lepton": "mu",
+      "targetA": "27"
     },
     "expect": [
-      "阈值能量 (eV)\n42"
+      "212.2177"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"dummy\":\"42\"}，输出区含「阈值能量 (eV)\n42」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "注入 μ 子对 + 铝靶 A=27（默认 e/A=0）：E=2·m_μ·c²·(1+m_μ/M)，M=27×1.66053906660e-27=4.48345e-26 kg，m_μ/M=0.004201 ⇒ E=3.400e-11 J=212.2177 MeV；默认态 1.0220 MeV 不命中。"
   },
   {
     "slug": "quantum/photoelectric-threshold",
@@ -347,9 +357,9 @@ const CASES = [
       "n2": "42"
     },
     "expect": [
-      "42\n42\n0.000e+0"
+      "42\n42\n⚠ n₁ 与 n₂ 必须不同，否则不存在跃迁（1/λ=0）"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"n1\":\"42\",\"n2\":\"42\"}，输出区含「42\n42\n0.000e+0」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"n1\":\"42\",\"n2\":\"42\"}，两能级相同 ⇒ 输出区提示「⚠ n₁ 与 n₂ 必须不同，否则不存在跃迁（1/λ=0）」（原实现会得 1/λ=0 并输出 Infinity）；默认态（n₁=2、n₂=3）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "quantum/stefan-boltzmann-power",

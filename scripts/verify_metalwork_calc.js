@@ -28,6 +28,14 @@ const CASES = [
   ],
   "ref": "总数=45+28+15+8=96；加权=45×2+28×3+15×2+8×1=90+84+30+8=212；缺陷率=96/500=19.20%（默认 200 件 30/70/15.00%，避开）"
 },
+{
+  "slug": "metalwork/analysis-36",
+  "inputs": { "qty": "500", "data": "<svg/onload=alert(1)>,45,2\n缩松,28,3" },
+  "expect": [
+    "&lt;svg/onload=alert(1)&gt;"
+  ],
+  "ref": "转义：缺陷类型名来自用户输入并拼进明细表与「数量最多缺陷」；未转义时 &lt;svg onload&gt; 会被当作标签执行。转义后实体文本保留。默认数据不含尖括号，不命中。"
+},
 
   { slug: "metalwork/assessor-34",
     inputs: { testType: "nss", duration: "300", coating: "zn", stdDuration: "240",
@@ -119,6 +127,16 @@ const CASES = [
     "最大回撤： -2.82%"
   ],
   "ref": "n=7 均值 55414.29、样本标准差 2446.38、CV 4.41%；极差 6900、首末 10.38%、最大回撤 −2.82%（默认 4 期 48000..50100 均值 48975 避开）"
+},
+{
+  "slug": "metalwork/analysis-cost-price-5",
+  "inputs": {
+    "data": "<svg/onload=alert(1)>,52000\n54500"
+  },
+  "expect": [
+    "&lt;svg/onload=alert(1)&gt;"
+  ],
+  "ref": "转义：期次名取自「期次,价格」行首并拼进表格；未转义时 &lt;svg onload&gt; 会被当作标签执行。转义后实体文本保留。默认输入为纯数值，不命中。"
 },
 {
   "slug": "metalwork/analysis-35",
@@ -670,6 +688,16 @@ const CASES = [
       "率 租赁方案（原值42元 / 42个月 / 月付(期初)） 设备原值 42.00 元 残值 42 × 42% = 17.64 元 需回收本金 42 - 18 = 24.36 元 总管理费 42 × 42% × 3.5年 = 61.74 元 "
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"value\":\"42\",\"months\":\"42\",\"residual\":\"42\",\"rate\":\"42\",\"mgmtFee\":\"42\",\"payType\":\"monthly_advance\"}，输出区含「率 租赁方案（原值42元 / 42个月 / 月付(期初)） 设备原值 42.00…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "metalwork/detector-55",
+    "clicks": [
+      "for(var m=0;m<3;m++){for(var i=0;i<6;i++){document.getElementById('m'+m+'_'+i).value='2';}}calc()"
+    ],
+    "expect": ["100%", "优秀"],
+    "ref": "维修服务质量评分：3 模块 × 6 项、每项满分 2 ⇒ 总满分 36；18 个运行时下拉在页面作用域内逐一置「完全执行(2)」后调 calc() ⇒ 实得 36/36 = 100% ≥90 且无关键项缺失 ⇒「优秀」。"
+       + "默认态（不执行 clicks）各下拉取不到值（+''=0）⇒ 实得 0%、★ 关键安全项未执行 ⇒「不合格（关键项未执行）」并压到 59%，两锚均不命中。"
+       + "（下拉由 innerHTML 运行时生成，pageDefaults 取不到，故改用 clicks 显式驱动，避免进入 skip。）"
   }
 
 ];

@@ -119,6 +119,18 @@ const CASES = [
   "ref": "去默认化（原 expect「损失量」是卡片标签，与输入无关）：默认页签 cur=yield，产率 = 21.25/25×100 = 85.00%（70≤x<90 ⇒ 🟢 优秀），损失量 = 25−21.25 = 3.75 g。默认 7.5/10 得 75.00% 与 2.50 g，注入失败即不命中"
 },
 {
+  "slug": "chemical/reaction-yield",
+  "clicks": ["cur='scale';renderModes();renderParams();calc()"],
+  "inputs": {
+    "small": "5",
+    "times": "10",
+    "yield": "90",
+    "big": "80"
+  },
+  "expect": ["55.6 g", "44.4 g"],
+  "ref": "新增回归：小试 5 g、收率 90% ⇒ 小试理论量 5/0.9=5.556 g，放大 10 倍 = 55.6 g；放大收率 80% ⇒ 预计 44.4 g。旧实现直接用 5×10=50 g，会把理论量低估 10%"
+},
+{
   "slug": "chemical/solution-concentration",
   "inputs": {
     "mass": "90",
@@ -203,6 +215,33 @@ const CASES = [
     "9.025e+23"
   ],
   "ref": "auto-restore"
+},
+{
+  "slug": "chemical/convert-density-crude",
+  "inputs": {
+    "val": "0",
+    "unit": "rho"
+  },
+  "expect": [
+    "相对密度 SG 与密度 ρ 需填写大于 0 的数值"
+  ],
+  "ref": "新增回归：密度 0 曾被兜底成 0.0001 → API 1414868.5°。现应提示并拒绝计算；默认 API 35 不出现该提示"
+},
+{
+  "slug": "chemical/calc-pipeline-pressure-drop",
+  "inputs": {
+    "v0": "200",
+    "v1": "100",
+    "v2": "1.5",
+    "v3": "800",
+    "v4": "0.001",
+    "v5": "0.045"
+  },
+  "expect": [
+    "0.174 m",
+    "0.218 m"
+  ],
+  "ref": "新增回归：ρ=800 时 ΔP=1.71 kPa，折合水柱（ρ 固定 1000）= 1710÷9810 = 0.174 m，折合液柱（当前 ρ）= 1710÷(800×9.81) = 0.218 m；旧实现只给 ÷(ρ×9.81) 却标成水柱（0.218 m），与水柱口径差 25%"
 }
 ];
 async function main() {

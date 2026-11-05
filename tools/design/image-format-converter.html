@@ -514,8 +514,8 @@ s.parentNode.insertBefore(el, s);
     <div class="upload-zone" id="uploadZone">
       <span class="upload-icon">📁</span>
       <div class="upload-text">拖拽图片到此处，或点击选择文件</div>
-      <div class="upload-hint">支持 PNG、JPEG、WEBP、BMP、GIF、SVG 等常见格式，可多选批量转换</div>
-      <input type="file" id="fileInput" accept="image/*" multiple>
+      <div class="upload-hint">支持 PNG、JPEG、WEBP、BMP、GIF 等常见位图格式，可多选批量转换</div>
+      <input type="file" id="fileInput" accept="image/png,image/jpeg,image/webp,image/gif,image/bmp,image/tiff" multiple>
     </div>
 
     <!-- 文件列表 -->
@@ -839,10 +839,21 @@ s.parentNode.insertBefore(el, s);
   });
 
   // ---- 处理文件 ----
+  function __svgFileBlocked(file) {
+    var t = String(file.type || '').toLowerCase(), n = String(file.name || '').toLowerCase();
+    if (t.indexOf('image/svg') === 0 || /\.svg$/i.test(n)) {
+      ToolBox.showToast('仅支持位图（PNG/JPG/WebP），不支持 SVG', 'error');
+      return true;
+    }
+    return false;
+  }
+/* 仅测试钩子：供 verify 用例调用，不参与任何运行时分支 */
+window.__svgFileBlocked=__svgFileBlocked;
   function handleFiles(fileList) {
-    var validTypes = ['image/png','image/jpeg','image/jpg','image/webp','image/bmp','image/gif','image/svg+xml','image/tiff'];
+    var validTypes = ['image/png','image/jpeg','image/jpg','image/webp','image/bmp','image/gif','image/tiff'];
     var count = 0;
     Array.from(fileList).forEach(function(file) {
+      if (__svgFileBlocked(file)) { return; }
       if (validTypes.indexOf(file.type) === -1 && !file.type.startsWith('image/')) {
         ToolBox.showToast('不支持的文件类型: ' + file.name, 'error');
         return;
@@ -892,7 +903,7 @@ s.parentNode.insertBefore(el, s);
       if (state.results[idx]) {
         statusCls = 'done';
         statusText = formatSize(state.results[idx].size);
-        meta += ' → ' + getFormatName(state.targetFormat);
+        meta += ' → ' + getFormatName(state.results[idx].format || state.targetFormat);
       }
       html += '<div class="file-item" onclick="showPreview(' + idx + ')">'
         + '<img class="file-thumb" src="' + item.img.src + '" alt="">'
@@ -1005,6 +1016,9 @@ s.parentNode.insertBefore(el, s);
           h = Math.round(h * pct / 100);
         }
 
+        var limitMsg = canvasExportError(w, h);
+        if (limitMsg) { ToolBox.showToast(item.name + '：' + limitMsg, 'error'); return; }
+
         var canvas = document.createElement('canvas');
         canvas.width = Math.max(1, w);
         canvas.height = Math.max(1, h);
@@ -1049,11 +1063,14 @@ s.parentNode.insertBefore(el, s);
   function onConverted(idx, item, blob, format) {
     var url = URL.createObjectURL(blob);
     var baseName = item.name.replace(/\.[^.]+$/, '');
+    // 与实际 MIME 对齐：浏览器不支持 WebP 时会静默回落 PNG，扩展名不能沿用选择器
+    var actualFormat = mimeToFormat(blob.type) || format;
     state.results[idx] = {
       blob: blob,
       url: url,
       size: blob.size,
-      name: baseName + '.' + getExtension(format)
+      format: actualFormat,
+      name: baseName + '.' + getExtension(actualFormat)
     };
     renderFileList();
     updateUI();
@@ -1242,6 +1259,10 @@ s.parentNode.insertBefore(el, s);
   function getExtension(format) {
     var map = { png: 'png', jpeg: 'jpg', webp: 'webp', bmp: 'bmp' };
     return map[format] || format;
+  }
+
+  function mimeToFormat(mime) {
+    return { 'image/png': 'png', 'image/jpeg': 'jpeg', 'image/webp': 'webp', 'image/bmp': 'bmp' }[mime] || '';
   }
 
   function getFormatName(format) {

@@ -76,6 +76,22 @@ const CASES = [
   "ref": "真实标签生成器（非随机示例）：注入 6 项标签内容 + 脊背厚度 50mm ⇒ labelRows() 生成 6 行 ⇒ labelFont(50,6)=min(14,50/6×1.6)=13.3pt，结果区渲染「字号 13.3pt · 脊背厚度 50mm」；默认态为 30mm/5 行 ⇒ 9.6pt，故 13.3pt/50mm 均为输入驱动的派生值，非默认标签可命中。"
 },
 {
+  "slug": "library/generator-label",
+  "inputs": {
+    "fonds": "A032",
+    "year": "2024",
+    "org": "办公室",
+    "range": "0001-0150",
+    "boxNo": "001-003",
+    "unit": "",
+    "thick": "30"
+  },
+  "expect": [
+    "本次生成 3 张"
+  ],
+  "ref": "盒号范围批量分支：boxNo='001-003' ⇒ labelBoxes 展开 ['001','002','003'] 且逐张渲染（盒号行分别替换），结果区元信息「本次生成 3 张」只在批量模式出现；默认单号 012 ⇒「本次生成 1 张」，不含该串。'001'/'003' 为展开后的盒号值，默认态仅有 012。"
+},
+{
   "slug": "library/overdue-fine",
   "inputs": {
     "borrowDays": "45",
@@ -118,6 +134,60 @@ const CASES = [
     "17.50"
   ],
   "ref": "馆藏利用：藏书86000、借阅64500、读者5200、到馆91000 → 利用率64500/86000=75.00%、人均借阅64500/5200=12.40册、人均到馆91000/5200=17.50次（独立复算，非页面默认 120000/96000/8000/150000/6000）"
+},
+{
+  "slug": "library/overdue-fine",
+  "inputs": {
+    "borrowDate": "2026-01-10",
+    "dueDate": "2026-01-20",
+    "returnDate": "2026-01-05"
+  },
+  "expect": ["归还日期不能早于借阅日期"],
+  "ref": "归还 2026-01-05 早于借阅 2026-01-10 ⇒ 旧实现 daysBetween 得负天数，仍按 0 逾期出结果；现明确拦截。默认借阅为今天−40 天、归还为今天，不会命中。"
+},
+{
+  "slug": "library/overdue-fine",
+  "inputs": {
+    "borrowDate": "2026-01-10",
+    "dueDate": "2026-01-20",
+    "returnDate": "2026-01-25",
+    "bookCount": "-2"
+  },
+  "expect": ["逾期本数必须为不小于 1 的整数"],
+  "ref": "负册数会让总罚金变成负数；旧实现 `parseInt(...)||1` 只兜住 0/NaN，负数原样参与乘法。默认 1 本不命中。"
+},
+{
+  "slug": "library/overdue-fine",
+  "inputs": {
+    "borrowDate": "2026-01-10",
+    "dueDate": "",
+    "borrowDays": "abc"
+  },
+  "expect": ["借阅天数需为不小于 0 的整数"],
+  "ref": "未选应还日期时用借阅天数推算；旧实现 parseInt('abc')||0 静默按 0 天 ⇒ 应还=借阅日、逾期天数翻倍。默认应还日期为借阅+30 天 ⇒ 不命中。"
+},
+{
+  "slug": "library/overdue-fine",
+  "inputs": {
+    "borrowDate": "2026-01-10",
+    "dueDate": "2026-01-20",
+    "returnDate": "2026-01-25",
+    "dailyFine": ""
+  },
+  "expect": ["日罚金需为有效数值（不能为负数，可为 0）"],
+  "ref": "日罚金清空后旧实现 parseFloat('')||0 ⇒ 逾期照样算出 ¥0.00，等于免罚；现显式提示。默认 0.2 ⇒ 不命中。"
+},
+{
+  "slug": "library/shelf-capacity",
+  "inputs": { "fillRate": "0" },
+  "expect": ["填充率需在 1–100 之间。"],
+  "ref": "填充率填 0 后旧实现 parseFloat('0')||100 ⇒ 静默按 100% 铺满计算，容量虚高；现显式拒绝。默认 75 ⇒ 不命中。"
+},
+{
+  "slug": "library/shelf-capacity",
+  "inputs": { "layers": "0" },
+  "expect": ["每架层数需为不小于 1 的整数。"],
+  "ref": "层数填 0 后旧实现 parseInt('0')||1 ⇒ 静默按 1 层计算；现显式拒绝。默认 6 ⇒ 不命中。"
 }
 ];
 async function main() {

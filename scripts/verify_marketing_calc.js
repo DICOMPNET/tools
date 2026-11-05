@@ -15,6 +15,24 @@ const { runCase } = require("./verify_it_calc.js");
 const CASES = [
   {
     slug: "marketing/marketing-ctr-calculator",
+    inputs: { impressions: "10000", clicks: "12000", cost: "2000", conversions: "50" },
+    expect: ["点击量不能超过展示量"],
+    ref: "点击 12000 > 展示 10000 时原实现产出 120% CTR 与「优秀」评级；现拦截提示。默认 500/10000 不出现该提示。",
+  },
+  {
+    slug: "marketing/marketing-ctr-calculator",
+    inputs: { impressions: "10000", clicks: "500", cost: "-2000", conversions: "50" },
+    expect: ["点击量、花费与转化数不能为负数"],
+    ref: "负花费原实现产出负 CPC/负 CPM；现拦截提示。默认 2000 不出现该提示。",
+  },
+  {
+    slug: "marketing/marketing-ctr-calculator",
+    inputs: { impressions: "10000", clicks: "500", cost: "2000", conversions: "600" },
+    expect: ["转化数不能超过点击量"],
+    ref: "转化 600 > 点击 500 时原实现产出 120% CVR；现拦截提示。默认 50 不出现该提示。",
+  },
+  {
+    slug: "marketing/marketing-ctr-calculator",
     inputs: { impressions: "10000", clicks: "500", cost: "2000", conversions: "50" },
     expect: ["10.00", "4.00"],
     ref: "ctr=500/10000×100=5.00；cvr=50/500×100=10.00；cpc=2000/500=4.00；cpm=2000/10000×1000=200.00",
@@ -33,9 +51,11 @@ const CASES = [
   },
   {
     slug: "marketing/marketing-roas-calculator",
-    inputs: { adSpend: "8000", adRevenue: "50000" },
-    expect: ["6.25x", "广告毛利润 ¥42,000.00"],
-    ref: "roas=50000/8000=6.25；profit=42000；profitMargin=42000/50000×100=84.0（原 10000/40000 与默认 5000/20000 比值相同 → 逃生项）",
+    inputs: { adSpend: "8000", adRevenue: "50000", grossMargin: "20" },
+    expect: ["6.25x", "广告费后利润 ¥42,000.00", "5.00x"],
+    ref: "roas=50000/8000=6.25；广告费后利润=42000；广告费后利润率=84.0%（旧标签「广告毛利润/毛利率」实为扣广告费后口径，非毛利率）。"
+      + "盈亏平衡 ROAS=1/毛利率：注入毛利率 20% ⇒ 5.00x（旧实现按 (收入−广告费)/收入 反推得 1.67x，与本锚不符）；"
+      + "默认毛利率 40% ⇒ 2.50x、默认 ROAS 4.00x，三条均不命中。",
   },
   {
     slug: "marketing/marketing-cac-calculator",
@@ -67,6 +87,23 @@ const CASES = [
   {
     slug: "marketing/marketing-markup-margin",
     clicks: [
+      "switchMode('convert');document.getElementById('convMarkup').value='';document.getElementById('convMargin').value='40';convSource='margin';calc();",
+    ],
+    expect: ["加价率（成本基数） 66.67%", "¥166.67"],
+    ref: "反向换算（页面标注「输入利润率算加价率」但旧实现完全忽略 convMargin）：利润率 40% ⇒ 加价率 = 40/(100−40)×100 = 66.67%，售价 = 100×(1+.6667) = ¥166.67。"
+      + "旧实现只读 convMarkup 且要求两个字段都非空 ⇒ 本例报「请输入有效数值」，两条锚均不命中；默认 50%/33.33%/¥150.00 亦不命中。",
+  },
+  {
+    slug: "marketing/marketing-markup-margin",
+    clicks: [
+      "switchMode('convert');document.getElementById('convMargin').value='-10';convSource='margin';calc();",
+    ],
+    expect: ["利润率需在 0–99% 之间"],
+    ref: "以利润率为源时负数/≥100% 无意义（分母 1−利润率 ≤ 0）；旧实现只看 convMarkup，负利润率被静默忽略。默认 33.33 不出现该提示。",
+  },
+  {
+    slug: "marketing/marketing-markup-margin",
+    clicks: [
       "switchMode('convert');document.getElementById('convMarkup').value='-50';calc();",
     ],
     expect: ["加价率不可为负"],
@@ -77,6 +114,29 @@ const CASES = [
     inputs: { origPrice: "200", discountPct: "20" },
     expect: ["160.00", "40.00"],
     ref: "salePrice=200×0.8=160.00；saveAmount=40.00（percent 模式默认）",
+  },
+  {
+    slug: "marketing/marketing-coupon-discount",
+    inputs: { originalPrice: "200", quantity: "1", couponAmount: "20", minSpend: "150", extraDiscount: "0.5" },
+    expect: ["¥80.00", "折前总额 ¥200.00 已达到满 150 元门槛，优惠券可用"],
+    ref: "先折扣后减券：实付 = 200×0.5 − 20 = 80.00。门槛按折前总额判断：折前 200 ≥ 150 可用（折后 100 < 150 也照样可用，旧文案「满足一定金额」未写明基数）。"
+      + "默认 299×1/券50/门槛199 ⇒ 实付 249.00，两条均不命中。",
+  },
+  {
+    slug: "marketing/marketing-coupon-discount",
+    inputs: { originalPrice: "100", quantity: "1", couponAmount: "20", minSpend: "150", extraDiscount: "1" },
+    expect: ["未使用（折前总额 ¥100.00 未达满 150 元门槛）"],
+    ref: "折前总额 100 < 门槛 150 ⇒ 券不可用，实付 100.00；页面须明确这是「折前」口径而非折后金额。默认 299/199 满足门槛，不命中。",
+  },
+  {
+    slug: "marketing/marketing-roi",
+    inputs: { m_cost: "50000", m_price: "200", m_impressions: "100000", m_ctr: "5", m_cvr: "3", m_repeat: "20" },
+    clicks: ["calcMarketing()"],
+    expect: ["-28.0%"],
+    ref: "点击 100000×5% = 5000；转化 5000×3% = 150；复购 150×20% = 30；总单 180；收入 180×200 = 36000；"
+      + "本页 ROI = (36000−50000)/50000 = −28.0%（只扣营销投入、未扣货品成本，故 ROI% = (ROAS−1)×100%）。"
+      + "旧文案把同一分母的 ROI 说成「ROI 为负时 ROAS 仍可能大于 1」，与本页口径矛盾（ROAS = 36000/50000 = 0.72）。"
+      + "默认 10000/299/2.5%/3%/20% ⇒ ROI 169.1%，不命中。",
   },
   {
     slug: "marketing/marketing-break-even-roas",
@@ -97,6 +157,12 @@ const CASES = [
     inputs: { ltv: "600", cac: "200" },
     expect: [ "600.00 客户获取成本CAC" ],
     ref: "ratio=600/200=3.00；profit=400；roi=(400/200)×100=200.00；paybackMonths=200/(600/36)=12.00",
+  },
+  {
+    slug: "marketing/marketing-ltv-cac-ratio",
+    inputs: { ltv: "0", cac: "200" },
+    expect: ["LTV 与 CAC 均需大于 0"],
+    ref: "LTV=0 原实现 ratio=0、ROI=-100%、回本周期 0 个月且无任何提示；现拦截。默认 3000/500 不出现该提示。",
   },
   {
     slug: "marketing/calc-price-elasticity",
@@ -164,12 +230,11 @@ const CASES = [
     slug: "marketing/ad-roi",
     inputs: { budget: "5000", cpm: "50", ctr: "2", cvr: "3", aov: "150", costRate: "100", fixedCost: "0" },
     clicks: ["setBuy('cpm');calc();"],
-    expect: ["0.00 盈亏平衡 ROAS", "-35.7%"],
+    expect: ["无平衡点", "-35.7%", "任何转化率或客单价都无法覆盖货品成本"],
     ref: "CPM：展示 = 5000/50×1000 = 100,000，点击 2000，转化 60，收入 9000，商品成本 = 9000×100% = 9000，"
      + "总成本 = 5000+9000 = 14000，利润 = −5000 ⇒ ROI = −35.7%、ROAS = 1.80。"
-     + "毛利率 = 1−100% = 0 ⇒ breakEvenRoas = 1/0 走 else 分支取 0（`grossMargin>0?1/grossMargin:0`）"
-     + " ⇒ roasOk = 1.80≥0 恒真 ⇒ 页面输出「✓ 盈利」/**「当前盈利」**，与利润为负矛盾。"
-     + "本条用例锚的是页面**当前实际产物**（修复后须同步更新）。",
+     + "毛利率 = 1−100% = 0 ⇒ 无盈亏平衡 ROAS（旧实现取 0 并输出「0.00 盈亏平衡 ROAS」，且补亏建议给出「转化率需提升至 0.00%」伪结论）；"
+     + "现渲染「—（毛利率 ≤ 0，无平衡点）」并提示先下调货品成本率。默认态毛利率 50% ⇒ 平衡点 2.00x，三条均不命中。",
   },
   {
     // S2 预设「抖音千川」：clicks 直调 applyAdRoiPreset，锚依赖预设全部字段（CPM 模式）
@@ -265,8 +330,21 @@ const CASES = [
     inputs: { currentCart: "30", freeShipThreshold: "50", shippingFee: "5", avgMargin: "60" },
     expect: ["还差 ¥20.00 包邮", "建议直接支付运费¥5更划算"],
     ref: '阈值改 ¥50：差额 = 50−30 = ¥20.00；凑单成本 = 20×40% = ¥8.00 ≥ 运费¥5 ⇒ 付运费更划算。',
-  }
-,
+  },
+  {
+    slug: "marketing/marketing-free-shipping-threshold",
+    name: "包邮门槛计算器",
+    inputs: { currentCart: "50", freeShipThreshold: "99", shippingFee: "12", avgMargin: "120" },
+    expect: ["商品平均毛利率应在 0–100% 之间"],
+    ref: '毛利率 120% 原实现照算并给出「凑单成本 = 49×(1−120%) = −¥9.80」的负成本结论；现拦截提示。默认 45% 不出现该提示。',
+  },
+  {
+    slug: "marketing/marketing-free-shipping-threshold",
+    name: "包邮门槛计算器",
+    inputs: { currentCart: "-50", freeShipThreshold: "99", shippingFee: "12", avgMargin: "40" },
+    expect: ["购物车金额、包邮门槛与运费不能为负数"],
+    ref: '负购物车原实现算出「还差 ¥149」并给出凑单建议；现拦截提示。默认 78 不出现该提示。',
+  },
   {
     slug: "marketing/marketing-engagement-rate",
     name: "社交媒体互动率计算器",
@@ -490,6 +568,18 @@ const CASES = [
     ref: 'total=120000 r1=3.2 b1=10 r2=2.8 b2=30 r3=1.8 b3=40；比例和=80（归一化）；预算 15,000/45,000/60,000；收入 48,000/126,000/108,000；总收入=¥282,000；整体ROAS=2.35x（与 total 无关）；渠道1占比=12.5%'
   },
   {
+    slug: "marketing/marketing-ad-budget-allocator",
+    inputs: { totalBudget: "120000", roas1: "3.2", budget1Pct: "10", roas2: "2.8", budget2Pct: "30", roas3: "1.8", budget3Pct: "40" },
+    expect: ["⚠ 输入比例合计 80 %", "与 100% 相差 -20.0 %"],
+    ref: "比例合计 80%：旧实现静默归一、不告知用户原始合计偏差；现在结果顶部明确提示合计与差值。默认 40/35/25=100 ⇒ 不命中。"
+  },
+  {
+    slug: "marketing/marketing-ad-budget-allocator",
+    inputs: { totalBudget: "100000", roas1: "4", budget1Pct: "-10", roas2: "2.5", budget2Pct: "35", roas3: "2", budget3Pct: "25" },
+    expect: ["总预算、分配比例与 ROAS 均须为非负数"],
+    ref: "渠道1比例为 −10%：负占比会让该渠道预算为负、收入为负，旧实现照算；现直接拦截。默认全为正 ⇒ 不命中。"
+  },
+  {
     slug: "marketing/marketing-roi",
     inputs: { m_cost: "21000", m_price: "199", m_impressions: "50000", m_ctr: "3", m_cvr: "4", m_repeat: "25" },
     expect: ["-28.9%", "¥-6,075", "¥350.00"],
@@ -504,8 +594,30 @@ const CASES = [
   {
     slug: "marketing/marketing-roi",
     inputs: { a_cost: "30000", a_revenue: "0", a_impressions: "2000", a_clicks: "20000", a_conversions: "400", a_price: "299" },
-    expect: ["3.99", "298.7%", "¥75.00"],
-    ref: 'revenue=0 ⇒ finalRevenue 走 || 回退 = conv×price=400×299=119600（覆盖回退分支）；profit=89600；ROAS=3.99；ROI=298.7%；CPA=75.00'
+    clicks: ["calcAdvertising()"],
+    expect: ["-100.0%", "¥-30,000", "¥75.00"],
+    ref: '收入显式填 0 视为「0 收入」，不再被 revenue || conv×price 回退成 119,600：profit=-30000；ROI=-100.0%；ROAS=0.00；CPA=75.00。旧实现输出 ROAS 3.99 / ROI 298.7% ⇒ 本条即守护「0 当没填」回归。清空收入（而非填 0）才回退折算（见下一条）。'
+  },
+  {
+    slug: "marketing/marketing-roi",
+    inputs: { a_cost: "50000", a_impressions: "500", a_clicks: "10000", a_conversions: "200", a_price: "100" },
+    clicks: ["document.getElementById('a_revenue').value='';calcAdvertising()"],
+    expect: ["-60.0%", "0.40"],
+    ref: '收入输入框留空 ⇒ 按 转化量×客单价 折算收入 = 200×100 = 20,000；利润 -30,000，ROI -60.0%，ROAS 0.40。默认收入 80,000 的 ROI 60.0%/ROAS 1.60 不命中。'
+  },
+  {
+    slug: "marketing/marketing-roi",
+    inputs: { i_principal: "100000", i_final: "160000", i_years: "2", i_annual: "10" },
+    clicks: ["onFinalEdit()"],
+    expect: ["60.00%", "26.49%"],
+    ref: '修改最终价值触发 onFinalEdit 清空年化输入，从「年化→终值」切回「终值→年化」：160,000/100,000 两年 ⇒ 总 ROI 60.00%、年化 = 1.6^(1/2)−1 = 26.49%。旧实现无法从已知终值反算（年化一填就永久抢占）；按年化 10% 推算会得 121,000/21.00%，两条均不命中。'
+  },
+  {
+    slug: "marketing/marketing-roi",
+    inputs: { i_principal: "-100" },
+    clicks: ["calcInvestment()"],
+    expect: ["⚠ 初始投资与投资期限须大于 0。"],
+    ref: "负本金原实现照样算出终值与负 ROI；现拦截。默认 100000 不出现该提示。"
   },
   {
     slug: "marketing/marketing-roi",
@@ -540,8 +652,10 @@ const CASES = [
     ref: "注入非默认(默认 500/450/50/45/8.5/85)：到场率 = 510/600 = 85.0%；预算执行率 = 52/60 = 86.7%；满意度 7.2/10；目标达成率 72% ⇒ 加权综合 78.2 分，落『优秀』（默认 87.3 分『卓越』）。默认态90.0%/90.0%/87.3/卓越，四条均不命中。",
   },
   {"slug": "marketing/email-subject-line-tester", "inputs": {"subject": "Your order #A4821 has shipped — track it in 3 clicks", "previewText": "Track your package"}, "expect": ["52 11 ✓ 完整 52字", "100 优秀 👍 标题质量良好，继续保持！", "✅ 标题长度适中（52字符） 🔢 包含数字，有助于吸引注意力 ✅ 未检测到明显垃圾邮件关键词"], "ref": "独立复算：标题 52 字符（Python len 验证）、按空白切分 11 词；10 ≤ 52 ≤ 70 ⇒ 不扣长度分（不奖不罚）、11 词 ≤ 15 不扣词数分、含数字只加分不扣、无中文垃圾词、无【】括号 ⇒ 四项均不扣分，总分 = 100 ⇒ 标签「优秀」。默认态标题「【限时优惠】夏季新品上市，全场5折起，错过等一年！」= 25 字符、含【】扣 2 分、含垃圾词（限时/优惠类）扣分 ⇒ 总分远低于 100，且「52字符」「11」「52字」三锚均不命中。预览文案由 desktopPreview/mobilePreview 双处回显，同串出现两次，注入值本身不作锚。"},
-  {"slug": "marketing/email-subject-line-tester", "inputs": {"subject": "限时秒杀", "previewText": "仅今日"}, "expect": ["4 1 ✓ 完整 4字", "87 优秀 👍 标题质量良好，继续保持！", "💡 标题较短，建议提供更多信息吸引读者 ⚠️ 包含垃圾词「限时」，可能影响送达率 🚫 包含垃圾词「秒杀」，可能影响送达率"], "ref": "独立复算：标题「限时秒杀」4 字符（< 10 ⇒ 扣 5 分，并输出「标题较短」建议）、1 词；命中垃圾词表两项「限时」「秒杀」，各扣 4 分（warn 级 ⚠️ / 强拦截级 🚫 两档）；4 字无数字加分、无括号 ⇒ 总分 100 − 5 − 4 − 4 = 87。默认态 25 字符、含【】与「限时优惠」类词，总分与建议串均不同；「4 1」「4字」两锚不命中。与上一例互为对照：一条满分无扣分、一条 13 分扣分，同时覆盖「过短」与「适中」两个长度分支及两档垃圾词。"},
-  {"slug": "marketing/social-media-image-sizes", "inputs": {"searchInput": "竖版封面视频"}, "clicks": ["filterSizes();"], "expect": ["未找到匹配的尺寸"], "ref": "独立判定：关键词「竖版封面视频」在页面 12 个平台 × 各类尺寸的名称/平台名/宽高/比例数据中均无任何子串命中 ⇒ 过滤后集合为空，filterSizes() 走空分支渲染「未找到匹配的尺寸」。默认态（空关键词）全量渲染 12 个平台的全部尺寸卡，blob 无该提示串；兜底无参 filterSizes() 读空 searchInput 同样渲染全量、不会复现空提示 ⇒ 非兜底产物。过滤命中的串（如搜「头像」得 11 条头像卡连排）**不可作锚**：默认态本就全量含这些串，判别器回退 searchInput 后照样命中。搜索词在输入框 value 中回显，不作锚。"}
+  {"slug": "marketing/email-subject-line-tester", "inputs": {"subject": "限时秒杀", "previewText": "仅今日"}, "expect": ["4 1 ✓ 完整 4字", "87 优秀 👍 标题质量良好，继续保持！", "💡 标题较短，建议提供更多信息吸引读者 ⚠️ 标题包含垃圾词「限时」，可能影响送达率 🚫 标题包含垃圾词「秒杀」，可能影响送达率"], "ref": "独立复算：标题「限时秒杀」4 字符（< 10 ⇒ 扣 5 分，并输出「标题较短」建议）、1 词；命中垃圾词表两项「限时」「秒杀」，各扣 4 分（warn 级 ⚠️ / 强拦截级 🚫 两档）；4 字无数字加分、无括号 ⇒ 总分 100 − 5 − 4 − 4 = 87。默认态 25 字符、含【】与「限时优惠」类词，总分与建议串均不同；「4 1」「4字」两锚不命中。与上一例互为对照：一条满分无扣分、一条 13 分扣分，同时覆盖「过短」与「适中」两个长度分支及两档垃圾词。"},
+  {"slug": "marketing/email-subject-line-tester", "inputs": {"subject": "本周行业简报", "previewText": "限时福利"}, "expect": ["6 1 ✓ 完整 6字", "94 优秀 👍 标题质量良好，继续保持！", "💡 标题较短，建议提供更多信息吸引读者 ⚠️ 预览正文包含垃圾词「限时」，可能影响送达率"], "ref": "独立复算：标题 6 字符（<10 ⇒ 扣 5 分）、1 词、无数字无括号；垃圾词扫描覆盖标题 + 预览正文，预览「限时福利」命中垃圾词「限时」扣 4 分（标题内未命中 ⇒ 提示标注「预览正文」），同时「福利」命中积极词加 3 分 ⇒ 100 − 5 − 4 + 3 = 94。该例专测预览正文参与扫描的分支：若只看标题则总分为 98 且不出现「预览正文包含垃圾词」提示。"},
+  {"slug": "marketing/social-media-image-sizes", "inputs": {"searchInput": "竖版封面视频"}, "clicks": ["filterSizes();"], "expect": ["未找到匹配的尺寸"], "ref": "独立判定：关键词「竖版封面视频」在页面 12 个平台 × 各类尺寸的名称/平台名/宽高/比例数据中均无任何子串命中 ⇒ 过滤后集合为空，filterSizes() 走空分支渲染「未找到匹配的尺寸」。默认态（空关键词）全量渲染 12 个平台的全部尺寸卡，blob 无该提示串；兜底无参 filterSizes() 读空 searchInput 同样渲染全量、不会复现空提示 ⇒ 非兜底产物。过滤命中的串（如搜「头像」得 11 条头像卡连排）**不可作锚**：默认态本就全量含这些串，判别器回退 searchInput 后照样命中。搜索词在输入框 value 中回显，不作锚。"},
+  {"slug": "marketing/social-media-image-sizes", "inputs": {"searchInput": "Instagram"}, "clicks": ["ToolBox.downloadText=function(n,c){document.getElementById('sizesList').textContent=c;};exportSizes();"], "expect": ["Instagram,头像"], "ref": "按平台名搜索后导出（方向 5 导出/屏幕一致性）：屏幕过滤含 p.name，旧导出过滤漏掉 p.name ⇒ 只剩名称里含 Instagram 的尺寸（故事类），「头像」行缺失。本用例把导出 CSV 写回 sizesList 再锚「平台,类型」行；导出已收敛到 ToolBox.csvCell（RFC 4180 最小引号：无逗号/换行/引号时不加引号），故锚为 `Instagram,头像` 而非旧的 `\"Instagram\",\"头像\"`。默认空关键词虽含 Instagram 卡，但无 CSV 形态的「Instagram,头像」串；且无 p.name 过滤时该行也不存在 ⇒ 双向判别。"}
 ,
 {
     "slug": "marketing/marketing-cpa-calculator",
@@ -570,6 +684,12 @@ const CASES = [
       "平均每次点击费用 ¥5.00"
     ],
     "ref": "CPC = 2500 ÷ 500 = ¥5.00。页面输出 '平均每次点击费用 ¥5.00'。默认态其他输入不产生 ¥5.00。"
+  },
+  {
+    "slug": "marketing/marketing-cpc-calculator",
+    "inputs": { "spend": "2500", "clicks": "500.5", "impressions": "10000" },
+    "expect": ["点击量与曝光量须为正整数（不支持小数次）"],
+    "ref": "点击量 500.5：旧实现直接按小数除，得到 ¥4.995 并四舍五入展示，等于承认「半次点击」；现直接拒绝并提示。默认 500 次 ⇒ 不命中。"
   },
   {
     "slug": "marketing/marketing-cpm-calculator",
@@ -634,10 +754,46 @@ const CASES = [
       "quantity": "2"
     },
     "expect": [
-      "最终实付 ¥400.00",
+      "最终实付 ¥0.00",
       "未达到满500元门槛"
     ],
-    "ref": "商品原价 200 × 数量 2 = ¥400.00；优惠券门槛 minSpend=500，实付 400 < 500 → 优惠券不满足条件、不抵扣，折扣优惠 ¥0.00，最终实付 ¥400.00。页面输出与独立复算吻合。HTML 默认 (299, 券50, 门槛199, 数量1) → 满足门槛并抵扣 50 元，实付 ¥249.00，默认态不产生 ¥400.00。"
+    "ref": "商品原价 200 × 数量 2 = ¥400.00；折扣率 0 表示 0 折 ⇒ 折后 0 元，优惠券门槛 500 不满足 ⇒ 最终实付 ¥0.00。原实现 `parseFloat(...)||1` 把合法 0 折当空值，错误输出 ¥400.00（即本条旧期望）；修复后 0 折按 0 计。默认 (299, 券50, 门槛199, 数量1, 折扣1) → 实付 ¥249.00，两条均不命中。"
+  },
+  {
+    "slug": "marketing/marketing-coupon-discount",
+    "inputs": {
+      "originalPrice": "299",
+      "couponAmount": "50",
+      "minSpend": "199",
+      "extraDiscount": "0.8",
+      "quantity": "2"
+    },
+    "expect": ["¥428.40"],
+    "ref": "多件整单券口径：299×2×0.8 − 50 = 428.40；公式框原写 (原价×折扣率−券)×数量 会得 378.40。默认 299×1×1−50 = 249.00，不命中。"
+  },
+  {
+    "slug": "marketing/marketing-coupon-discount",
+    "inputs": {
+      "originalPrice": "299",
+      "couponAmount": "50",
+      "minSpend": "199",
+      "extraDiscount": "1.5",
+      "quantity": "1"
+    },
+    "expect": ["折扣率应在 0–1 之间"],
+    "ref": "折扣率 1.5 越界（原实现 output 448.50、省 −149.50、15.0 折）；现拦截并提示。默认折扣率 1 不出现该提示。"
+  },
+  {
+    "slug": "marketing/marketing-coupon-discount",
+    "inputs": {
+      "originalPrice": "299",
+      "couponAmount": "50",
+      "minSpend": "199",
+      "extraDiscount": "1",
+      "quantity": "-2"
+    },
+    "expect": ["购买数量需为正整数"],
+    "ref": "负数量原实现显示负原价/负节省（299×−2=−598）；现拦截并提示。默认数量 1 不出现该提示。"
   },
 
   // ── 零用例收敛（2026-10-09）：marketing 8 页中 4 页可收敛 ──
@@ -672,6 +828,12 @@ const CASES = [
     "ref": "注入 5 参数齐备的非默认组合（默认 baidu/cpc/summer_sale_2024）。独立复算：本页与 marketing/utm-builder 的差别是 term 的空格编码 —— 用 URLSearchParams/encodeURIComponent 把 `k1 k2` 编为 `k1+k2`（加号）⇒ 完整链接 https://shop.example.org/p?utm_source=zhihu&utm_medium=referral&utm_campaign=tb_verify_2026&utm_term=k1+k2&utm_content=c1。默认态 term/content 为空只输出 3 参数链接，不命中。⚠ term 用含空格值是刻意：能验证编码分支（默认空串走不到 encode）。"
   },
   {
+    "slug": "marketing/utm-builder",
+    "inputs": { "url": "https://shop.example.org/p?UTM_Source=old&color=red#top", "source": "weibo", "medium": "social", "campaign": "v_dedupe", "term": "", "content": "" },
+    "expect": ["https://shop.example.org/p?color=red&utm_source=weibo&utm_medium=social&utm_campaign=v_dedupe#top"],
+    "ref": "回归用例（旧 utm_* 去重 + fragment 顺序）：输入已带 `UTM_Source=old` 与 `color=red` 并含 `#top`。页面须大小写不敏感地剔除原 utm_* 参数、保留非 utm 参数、把新参数拼在 fragment 之前 ⇒ https://shop.example.org/p?color=red&utm_source=weibo&utm_medium=social&utm_campaign=v_dedupe#top。旧版不去重会得到 `?UTM_Source=old&color=red&utm_source=weibo…`，且 fragment 位置错误，本串即不命中（0 逃生）。"
+  },
+  {
     "slug": "marketing/marketing-chinese-hashtag-generator",
     "inputs": { "keyword": "手机", "industry": "数码", "platform": "抖音" },
     "expect": ["#手机", "#抖音爆款", "#短视频"],
@@ -682,6 +844,18 @@ const CASES = [
     "inputs": { "metric": "销量" },
     "expect": ["销量（万元）", "排名 企业 销量(万元)"],
     "ref": "注入 metric=销量（默认 select 首选项『销售额』）。页面把所选口径名拼进输入表头与排名表头 ⇒ 注入态为『销量（万元）』（全角括号，输入区）与『排名 企业 销量(万元)』（半角括号，排名区）；默认态两处均为『销售额』⇒ 两串都不出现。⚠ 数值列（4,000/40.00%/HHI 3,000）与口径无关、默认态同样出现 ⇒ 不可作锚；该页 HHI/CR4 结论也不随口径变，只能锚口径名。"
+  },
+  {
+    "slug": "marketing/market-share",
+    "clicks": ["comps[0].value=-1000;calc();"],
+    "expect": ["份额不能为负数"],
+    "ref": "把第一家企业销售额改为 −1000：负份额会让占比为负、饼图反转，旧实现照算；现拦截并清空 HHI/占比条/排名表。默认全为正 ⇒ 不命中。"
+  },
+  {
+    "slug": "marketing/market-share",
+    "clicks": ["comps.forEach(function(c){c.value=0;});calc();"],
+    "expect": ["合计须大于 0"],
+    "ref": "所有企业销售额置 0：合计为 0 时旧实现直接 return，页面残留上一次的占比与 HHI（看起来仍然有效）；现提示合计须大于 0 并清空旧结果。默认合计 10,000 ⇒ 不命中。"
   },
   {
     "slug": "marketing/marketing-qr-campaign-tracker",
@@ -790,7 +964,7 @@ const CASES = [
       "budget3Pct": "42"
     },
     "expect": [
-      "42\n42\n42\n42\n42\n42\n42\n¥42 总预算 ¥1,764 预估总收入 42.00"
+      "42\n42\n42\n42\n42\n42\n42\n⚠ 输入比例合计 126 %，与 100% 相差 26.0 %，已按比例归一；下表「分配占比」为归一后的实际占比。 ¥42 总预算 ¥1,764 预估总收入 42.00"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"totalBudget\":\"42\",\"roas1\":\"42\",\"budget1Pct\":\"42\",\"roas2\":\"42\",\"budget2Pct\":\"42\",\"roas3\":\"42\",\"budget3Pct\":\"42\"}，输出区含「42\n42\n42\n42\n42\n42\n42\n¥42 总预算 ¥1,764 预估总收…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -854,6 +1028,18 @@ const CASES = [
       "营销端CAC ¥1 销售端CAC 21"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"marketingSpend\":\"42\",\"salesSpend\":\"42\",\"newCustomers\":\"42\",\"ltv\":\"42\"}，输出区含「营销端CAC ¥1 销售端CAC 21」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "marketing/marketing-cac-calculator",
+    "inputs": { "marketingSpend": "8000", "salesSpend": "2000", "newCustomers": "100", "ltv": "1000" },
+    "expect": ["3.6 个月"],
+    "ref": "CAC = (8000+2000)/100 = 100；回本周期 = CAC ÷ (LTV/36) = 100 ÷ (1000/36) = 3.6 个月。原实现算出 paybackMonths 却从未渲染（深解承诺回收期而结果卡缺失）；默认组 CAC 100 / LTV 500 ⇒ 7.2 个月，不命中。"
+  },
+  {
+    "slug": "marketing/marketing-cac-calculator",
+    "inputs": { "marketingSpend": "8000", "salesSpend": "2000", "newCustomers": "100", "ltv": "-100" },
+    "expect": ["客户终身价值 LTV 需大于 0"],
+    "ref": "显式填写负 LTV 时原实现 hasLTV=false 静默隐藏整块分析；现拦截提示（留空仍视为跳过分析）。默认 LTV 500 不出现该提示。"
   },
   {
     "slug": "marketing/marketing-conversion-rate-calculator",
@@ -1053,6 +1239,75 @@ const CASES = [
       "性系数 PED 1,764 元 原收入 1,764 元 新收入 +0 元 (0"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"p1\":\"42\",\"q1\":\"42\",\"p2\":\"42\",\"q2\":\"42\"}，输出区含「性系数 PED 1,764 元 原收入 1,764 元 新收入 +0 元 (0」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  // ── 2026-11-04 口径守卫：负流失 / 超量转化 / CTR>100 / 毛利率越界 / 亏损无平衡点 / 负数折扣 / 漏斗倒挂 ──
+  {
+    slug: "marketing/marketing-churn-rate",
+    inputs: { startCustomers: "1000", endCustomers: "1200", newCustomers: "0", arpu: "50" },
+    expect: ["流失人数不能为负"],
+    ref: "期初 1000 + 新增 0 < 期末 1200 ⇒ 流失人数 −200；旧实现照算得 −20.00% 流失率与 −40000 收入损失。现拦截并提示口径不一致；默认态 1000/950/80 ⇒ 流失 130，不含该提示。",
+  },
+  {
+    slug: "marketing/marketing-conversion-rate-calculator",
+    inputs: { visitors: "100", conversions: "150", totalCost: "5000", avgOrder: "200" },
+    expect: ["转化数不能大于访问量"],
+    ref: "转化 150 > 访问 100 ⇒ 旧实现输出 150.00% 转化率；现拦截（转化率物理上限 100%）。默认 1000/50 ⇒ 不命中。",
+  },
+  {
+    slug: "marketing/marketing-cpm-calculator",
+    inputs: { spend: "3000", impressions: "12000", clicks: "20000" },
+    expect: ["点击量须在 0 与展示量之间"],
+    ref: "点击 20000 > 展示 12000 ⇒ 旧实现输出 166.7% CTR；现拦截并提示核对口径。默认 5000/200000/500 ⇒ 不命中。",
+  },
+  {
+    slug: "marketing/marketing-cpa-calculator",
+    inputs: { totalSpend: "1000", newCustomers: "50", avgOrderValue: "200", grossMargin: "150", clicks: "500", repeatRate: "20" },
+    expect: ["毛利率须在 0–100% 之间"],
+    ref: "毛利率 150% ⇒ 旧实现给出 LTV=30000、LTV/CAC=30 的伪结果；现拦截。默认毛利率 50% ⇒ 不命中。",
+  },
+  {
+    slug: "marketing/marketing-cpa-calculator",
+    inputs: { totalSpend: "1000", newCustomers: "50", avgOrderValue: "200", grossMargin: "50", clicks: "40", repeatRate: "20" },
+    expect: ["新增客户数不能大于点击量"],
+    ref: "新增客户 50 > 点击 40 ⇒ 隐含转化率 125%，旧实现照算；现拦截。默认 clicks=0 时跳过该守卫 ⇒ 不命中。",
+  },
+  {
+    slug: "marketing/marketing-roas-calculator",
+    inputs: { adSpend: "5000", adRevenue: "4500", grossMargin: "0" },
+    expect: ["盈亏平衡ROAS（毛利率≤0，无平衡点）"],
+    ref: "注入商品毛利率 0 ⇒ 无盈亏平衡点（价值显示「—」）。旧实现把「(收入−广告费)/收入」当作毛利率，收入 4500 < 花费 5000 时得 −11.1%、算出 −9.00x 伪平衡点；"
+      + "默认毛利率 40% ⇒ 2.50x，不含该串。",
+  },
+  {
+    slug: "marketing/marketing-discount-rate",
+    inputs: { origPrice: "200", discountPct: "20", origPrice2: "100", salePrice2: "120", origPrice3: "200", saveAmount: "40" },
+    clicks: ["switchMode('price');"],
+    expect: ["折后价不能高于原价"],
+    ref: "price 模式 原价 100、折后 120 ⇒ 旧实现折扣率 −20.00%；现拦截。默认 299/209.3 ⇒ 折扣 30%，不命中。",
+  },
+  {
+    slug: "marketing/marketing-sales-funnel",
+    inputs: { visitors: "1000", leads: "800", qualified: "900", opportunities: "300", customers: "120" },
+    expect: ["「合格线索」人数不能大于「线索」"],
+    ref: "合格线索 900 > 线索 800 ⇒ 旧实现输出 112.5% 环节转化率；现拦截并指出倒挂环节。默认 8000/2400/1200 逐级递减 ⇒ 不命中。",
+  },
+  {
+    slug: "marketing/marketing-churn-rate",
+    inputs: { startCustomers: "100", endCustomers: "150", newCustomers: "20" },
+    expect: ["期末客户数与新增客户数口径不一致"],
+    ref: "期末 150 > 期初 100 + 新增 20 ⇒ 流失人数为负、流失率分母（期初）失去意义；现拦截并提示核对口径。默认 1000/900/100 自洽 ⇒ 注入失败不命中。",
+  },
+  {
+    slug: "marketing/marketing-conversion-rate-calculator",
+    inputs: { visitors: "1000", conversions: "0", totalCost: "5000", avgOrder: "200" },
+    expect: ["本次无转化，CPA 不可计算"],
+    ref: "转化数 0 且有花费时旧实现输出「CPA ¥0.00」，会误导为获客免费；现显示「—」并说明不可计算。默认转化数非 0 ⇒ 注入失败不命中。",
+  },
+  {
+    slug: "marketing/marketing-engagement-rate",
+    inputs: { followers: "10000", likes: "-10", comments: "0", shares: "0", impressionsEng: "0" },
+    expect: ["点赞、评论、分享与曝光量不能为负数"],
+    ref: "点赞为负时旧实现总互动 −10、互动率 −0.10%；现拦截。默认点赞 1200 ⇒ 注入失败不命中。",
   }
 
 ];

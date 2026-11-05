@@ -49,6 +49,21 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  "slug": "welding/detector-25",
+  "inputs": {
+    "ndtMethod": "rt",
+    "weldType": "fillet",
+    "plateThick": "24",
+    "circDef": "3",
+    "stripDef": "8",
+    "evalArea": "500"
+  },
+  "expect": [
+    "角焊缝通常不宜采用射线检测"
+  ],
+  "ref": "角焊缝 + RT 应给出适用性提示（NB/T 47013 的 RT 评定针对对接接头）；默认 butt+rt 不含该串 ⇒ 可判别。原代码 weldType 仅回显、不参与条件分支（死控件）。"
+},
+{
   "slug": "welding/energy-cost-1",
   "inputs": {
     "current": "300",
@@ -67,14 +82,14 @@ const CASES = [
   "slug": "welding/flow-ratio",
   "inputs": {
     "nozzle": "18",
-    "flow": "15",
+    "flow": "20",
     "ar": "80",
     "co2": "20"
   },
   "expect": [
-    "98.2"
+    "16.0 Ar 流量 (L/min) 4.0 CO₂ 流量 (L/min)"
   ],
-  "ref": "auto-restore"
+  "ref": "按混合气配比拆分总流量：总流量 20 L/min、Ar 80% / CO₂ 20% ⇒ Ar 16.0 L/min、CO₂ 4.0 L/min（页面口径由百分比反算，非输入回显）。总流量必须偏离默认 15 L/min——否则分项串与默认态同值，会成为逃生项。旧期望 0.98 已随页面改版失效。"
 },
 {
   "slug": "welding/hancaixuanyongtuijian",
@@ -110,6 +125,19 @@ const CASES = [
   },
   "expect": [ "7500 年焊缝总长" ],
   "ref": "auto-restore"
+},
+{
+  "slug": "welding/hanjiezidonghuapinggu",
+  "inputs": {
+    "output": "5000",
+    "seamlen": "2",
+    "mansec": "600",
+    "labor": "60",
+    "robotcost": "30",
+    "workdays": "250"
+  },
+  "expect": [ "32000", "9.4" ],
+  "ref": "算例低产量支路：人工 5000×600/3600×60=50,000 元；机器人 5000×240/3600×60×0.6+6,000=18,000 元；节省 32,000 元；回收期 300,000/32,000=9.4 年 ⇒ 评级≥5 年「需谨慎评估」。expect 只锚 32000/9.4 两个派生量：默认态（10000 件）回收期 45.0 年同样含「需谨慎评估」，带上该评级串会变成逃生项。"
 },
 {
   "slug": "welding/speed-voltage-current",
@@ -162,6 +190,30 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  "slug": "welding/temp-time-6",
+  "inputs": {
+    "thickness": "30",
+    "ce": "0.45",
+    "c": "0.22",
+    "mn": "1.6",
+    "cr": "0.35",
+    "mo": "0.15"
+  },
+  "expect": ["0.587 简化式 CEV（不含 Ni/Cu）"],
+  "ref": "页面元素估算仅取 C/Mn/Cr/Mo（简化式，不含 Ni/Cu）：0.22+1.6/6+(0.35+0.15)/5=0.587。旧标签「IIW 公式计算 CEV」会让人误以为已含 Ni/Cu 项，故收紧为简化式标签；默认元素 0.18/1.4/0.1/0 得 0.433，不命中。"
+},
+{
+  "slug": "welding/calc-1",
+  "inputs": {
+    "diameter": "5",
+    "thickness": "8",
+    "voltage": "0",
+    "speed": "3"
+  },
+  "expect": ["— 热输入 E（kJ/mm）"],
+  "ref": "U=0 时线能量无法估算：旧代码直接 toFixed 输出 0.00 kJ/mm（伪值）；改为显示「—」，且推荐电流仍随直径 5 mm 输出。默认直径 3.2/U=24/v=3 得 111.84，不命中。"
+},
+{
   "slug": "welding/ventilation-protection",
   "inputs": {
     "consume": "5",
@@ -169,7 +221,7 @@ const CASES = [
     "hours": "8"
   },
   "expect": [
-    "1200"
+    "20000"
   ],
   "ref": "auto-restore"
 },
@@ -187,6 +239,13 @@ const CASES = [
     "4.2mm"
   ],
   "ref": "auto-restore"
+},
+{
+  "slug": "welding/weld-strength",
+  "inputs": { "F": "50", "hf": "6", "lw": "200", "fvw": "160" },
+  "checkIds": ["deduct"],
+  "expect": ["188.0", "63.32", "39.6%"],
+  "ref": "真机默认勾选「扣除两端弧坑」⇒ L_eff=200−2×6=188.0mm、A_e=0.7×6×188=789.6→790mm²、τ=50000/789.6=63.32MPa、利用率=63.32/160=39.6%（若未开扣除则为 200/840/59.52，用来验证开关默认态）"
 }
 ];
 async function main() {

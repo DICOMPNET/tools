@@ -88,9 +88,24 @@ const CASES = [
     "b6": "1"
   },
   "expect": [
-    "【Braden 压疮风险评估（6 维度 · 满分 23）】 结果：Braden 总分 6/23 → 分级：极高风险",
+    "【Braden 压疮风险评估（6 维度 · 满分 23）】 结果：Braden 总分 6/23 → 分级：极高风险"
       ],
-  "ref": "门诊记录：6 维度全取最低档 1 分 ⇒ 总分 6 ≤9 ⇒「极高风险」。默认态全取最高档（4/4/4/4/4/3=23）⇒「Braden 总分 23/23 → 分级：无风险」，与本用例零交集。"
+  "ref": "方向敏感（最差态）：6 维全取最低档 1 分 ⇒ 总分 6 ≤9 ⇒「极高风险」。只锚总分结论串，不锚任何单项选项文案（选项文案在静态 HTML 中恒存在，会退化成逃生项）。页面首屏默认感知 3 分、摩擦剪切 2 分（21/23 无风险），兜底回填不会得到 6/23。"
+},
+{
+  "slug": "clinical-nursing/calc-rater-risk",
+  "inputs": {
+    "b1": "4",
+    "b2": "4",
+    "b3": "4",
+    "b4": "4",
+    "b5": "4",
+    "b6": "3"
+  },
+  "expect": [
+    "【Braden 压疮风险评估（6 维度 · 满分 23）】 结果：Braden 总分 23/23 → 分级：无风险"
+      ],
+  "ref": "方向敏感（最好态）：前五项各 4 分、摩擦剪切 3 分 ⇒ 总分 4*5+3=23 ⇒「无风险」，与最差态 6 分/极高风险互斥。只锚总分结论串，不锚单项选项文案；页面首屏默认 21/23，兜底回填（首个选项值）也只得 20/23，均不会命中 23/23。"
 },
 {
   "slug": "clinical-nursing/chest-compression-depth",
@@ -101,10 +116,20 @@ const CASES = [
     "selectAge('child')"
   ],
   "expect": [
-    "【胸外按压深度与参数（按年龄）】 结果：对象：儿童（肥胖） → 按压深度 4–5 cm、频率 100-120 次/分、按压通气比 30:2、回弹要求「完全回弹」、中断 ＜10s",
+    "【胸外按压深度与参数（按年龄）】 结果：对象：儿童（肥胖） → 按压深度 5 cm、频率 100-120 次/分、按压通气比 30:2、回弹要求「完全回弹」、中断 ＜10s",
     "说明：按压深度：约5cm（胸廓前后径1/3）（肥胖患者需加大力度确保达到深度）"
   ],
-  "ref": "门诊记录：clicks 调 selectAge('child') 切到儿童（4–5 cm、约 5 cm 胸廓前后径 1/3），inputs 选肥胖体型 ⇒ 追加「肥胖患者需加大力度」。默认态 currentAge='adult'、bodyType='normal' ⇒「对象：成人 → 按压深度 5–6 cm」且描述为「按压深度：5-6cm（标准成人）」，与本用例零交集。"
+  "ref": "门诊记录：clicks 调 selectAge('child') 切到儿童（AHA 2020 至少 5 cm，页面统一为 5 cm），inputs 选肥胖体型 ⇒ 追加「肥胖患者需加大力度」。默认态 currentAge='adult'、bodyType='normal' ⇒「对象：成人 → 按压深度 5-6 cm」，与本用例零交集。旧实现输出「4–5 cm」，与同页 desc「约5cm」及 AHA 至少 5 cm 矛盾，已修正。"
+},
+{
+  "slug": "clinical-nursing/chest-compression-depth",
+  "clicks": [
+    "selectAge('infant')"
+  ],
+  "expect": [
+    "对象：婴儿 → 按压深度 4 cm"
+  ],
+  "ref": "婴儿按压深度：AHA 2020 至少 4 cm，页面统一为 4 cm（旧实现输出 3–4 cm，与同页 desc「约4cm」矛盾）。clicks 切 infant；默认态成人 5-6 cm ⇒「对象：婴儿 → 按压深度 4 cm」不命中，注入/点击失败即变红。"
 },
 {
   "slug": "clinical-nursing/cold-compress-timer",
@@ -315,7 +340,17 @@ const CASES = [
   "expect": [
     "保持病区环境安全"
   ],
-  "ref": "静态按钮量表页：selectScore 到 total=25+10=35 落「低度跌倒风险(25-50)」分支，其 desc 独有串「保持病区环境安全」。默认全 0 走「无跌倒风险」；零参兜底 total=NaN 落 else「高度跌倒风险」，两态均不含该串。"
+  "ref": "静态按钮量表页：selectScore 到 total=25+10=35 落「低度跌倒风险(25-44)」分支，其 desc 独有串「保持病区环境安全」。默认全 0 走「无跌倒风险」；零参兜底 total=NaN 落 else「高度跌倒风险」，两态均不含该串。"
+},
+{
+  "slug": "clinical-nursing/morse-score",
+  "clicks": [
+    "selectScore('history',25);selectScore('gait',20)"
+  ],
+  "expect": [
+    "45"
+  ],
+  "ref": "Morse 1989 原版切点 ≥45 为高度风险：25+20=45 必须落「高度跌倒风险」；旧实现以 >50 为高危会把 45 误判为低危。锚定 totalNum=45（注入失败时默认 0 或兜底 NaN→—，均不含 45），与高危 desc 的 NaN 兜底不可分，故不用 desc。"
 },
 {
   "slug": "clinical-nursing/ostomy-bag-timing",

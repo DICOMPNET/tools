@@ -16,6 +16,20 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  "slug": "nephrology/aki-kdigo",
+  "inputs": {
+    "baselineScr": "120",
+    "currentScr": "180",
+    "urine": "0",
+    "duration": "13",
+    "elapsed": "24"
+  },
+  "expect": [
+    "无尿≥12h"
+  ],
+  "ref": "KDIGO 2012 尿量 3 期独立判据：尿量 0 且持续 13h ⇒ 无尿≥12h 判 3 期（肌酐侧仅 1 期）。默认态尿量 0.3、持续 8h 走 1 期「6-12h」分支，不含「无尿≥12h」⇒ 强判别。"
+},
+{
   "slug": "nephrology/ca-p-product",
   "inputs": {
     "calcium": "5.2",
@@ -37,9 +51,9 @@ const CASES = [
     "sex": "female"
   },
   "expect": [
-    "eGFR： 31.0 mL/min/1.73m² CKD 分期： G3b（中-重度下降）"
+    "eGFR： 32.9 mL/min/1.73m² CKD 分期： G3b（中-重度下降）"
   ],
-  "ref": "独立复算：Scr 150 μmol/L ÷88.4 = 1.697 mg/dL，女性、66 岁，CKD-EPI 2021 ⇒ eGFR ≈ 31.0 ⇒ G3b（30–44）。⚠ 原用例只断言单位回显 'mgdl'（输入值回显、零判别力），已改为 eGFR 数值+分期串。默认态预填 88.4/58/男 ⇒ eGFR 明显高于 31，不含该串 ⇒ 无逃生。"
+  "ref": "独立复算：Scr 150 μmol/L ÷88.4 = 1.697 mg/dL，女性 66 岁，CKD-EPI 2021 ⇒ max(1.697/0.7,1)^−1.200=0.3456，142×0.3456×0.9938^66×1.012 ≈ 32.9 ⇒ G3b（30–44）。修复前公式实为 CKD-EPI 2009（141/−1.209/0.993/1.018）得 31.0，与页面自称的 2021 及引据表不符；本用例现锁定 2021 结果。默认态预填 88.4/58/男 ⇒ 不含该串 ⇒ 无逃生。"
 },
 {
   "slug": "nephrology/ckd-staging",
@@ -196,6 +210,13 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  // 0.15 g/d 边界：<0.15 为正常，恰好 0.15 应落入轻度
+  "slug": "nephrology/proteinuria-24h",
+  "inputs": { "protein24h": "0.15", "uVol": "1500" },
+  "expect": [ "轻度蛋白尿" ],
+  "ref": "代码为 prot<0.15 正常、prot<0.5 轻度，故 0.15 应判「轻度蛋白尿」。默认 2.5 → 中度，回退默认不命中。"
+},
+{
   "slug": "nephrology/renal-anemia-epo",
   "inputs": {
     "hgb": "128",
@@ -298,6 +319,18 @@ const CASES = [
   "inputs": { "albumin": "30", "ucr": "10" },
   "expect": ["26.5 UACR (mg/g)"],
   "ref": "注入非默认白蛋白30/尿肌酐10（默认35/8.8）→ UACR=30/(8.8×0.113)=30/0.994≈26.5 mg/g（默认35.2）；26.5 为转换后数值，默认态不含，0 逃生。"
+},
+{
+  "slug": "nephrology/proteinuria-24h",
+  "inputs": { "protein24h": "" },
+  "expect": ["留空不判读"],
+  "ref": "空值不得按 0 判为正常：默认 2.5 g/d，注入空串后应显示「留空不判读」；discriminator 回退默认 2.5 即不再命中。"
+},
+{
+  "slug": "nephrology/microalbuminuria",
+  "inputs": { "uacrVal": "" },
+  "expect": ["留空不判读"],
+  "ref": "空值不得按 0 判为正常：默认 UACR 非空，注入空串后应显示「留空不判读」；回退默认值即不再命中。"
 }
 ];
 async function main() {

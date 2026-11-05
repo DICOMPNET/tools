@@ -3,13 +3,13 @@
 // usedcar 覆盖说明（2026-09-27）：本分类 12 页（index 除外）已全部定论 ——
 // 已有用例 9 例覆盖 car-purchase-cost / detector-19 / recorder-maintenance / tester-12 /
 // usedcar-valuation / wear / calc-73 / estimate-38 / ershouchetanpanyijiakongjianyuce。
-// 结构性不可注入、暂不立例（判据见 §10.5 B 组，理由随后续批次复核）：
-//   checker-3 / rater-37 —— 计分项 select（ck_<key>）由 buildList() 运行期 innerHTML 拼出，
-//   且页面 init 末尾直接调 calc()；桩内这些 id 取到空串 ⇒ statusOpts.find() 返回 undefined ⇒
-//   初始化即抛 Cannot read properties of undefined (reading score) ⇒ 整页无产物。
-//   真机里 option 自带 selected、不会取空，故属桩盲区而非页面缺陷；又因 ids 动态、
-//   判别器 clearInject 无法把它们换回默认 ⇒ 即使改 clicks 也不能构造「注入 PASS / 默认 FAIL」。
-//   detector-19 同型但 init 用 v===1/v===2 比较、不读 .score，故可用 clicks 改造成功（见下）。
+// checker-3 / rater-37（2026-11-05 改造）：计分项 select（ck_<key>）由 buildList() 运行期
+//   innerHTML 拼出，页面 init 末尾直接调 calc()；桩内这些 id 若取空串 ⇒ statusOpts.find() 返回
+//   undefined ⇒ 初始化即抛 Cannot read properties of undefined (reading score)。
+//   解法：inputs 同时注入全部 ck_*（让 boot 的 calc() 拿到合法档位、不抛错），再用 clicks 把
+//   其中若干项改档后重算 —— expect 只认「click 后的分数」；判别器 clearInject 清空 clicks 后
+//   回退兜底只能复现注入态的全优分（100），与 expect 不重合 ⇒ 既不 skip 也无逃生项。
+//   （ck_* 是运行期 id、pageDefaults 取不到，故 inputs 侧这些键会被判别器保留注入值。）
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
 {
@@ -161,7 +161,67 @@ const CASES = [
   ],
   "ref": "负折旧年限回归：直线法 life=-10 时旧版 annualDep=(120000−6000)/−10=−11400、dep=−45600 ⇒ 残值 ¥165,600.00（高于新车价）、折旧率 −38.00%。修复后 calc 在方法分支前置校验 life∈[1,30]，直接输出「折旧年限需在 1–30 年之间」且不出残值。输入 price/year/life 均非页面默认（150000/3/10），默认态无该提示 ⇒ 判别有效；同时 years 校验 0–30、rate 统一由 (1−residual/price)×100 计算，保证年限越残值越低且折旧率与残值一致"
 },
-
+{
+  "slug": "usedcar/car-purchase-cost",
+  "inputs": {
+    "price": "",
+    "taxRate": "",
+    "insurance": "",
+    "plate": ""
+  },
+  "expect": [
+    "请填写 车价、购置税率、保险费、上牌费 后再计算"
+  ],
+  "ref": "空态守卫：四项留空 ⇒ 提示，不再按 0 兜底把落地价算成 0.00。默认态各字段有初值并输出总价，不含该提示 ⇒ 可判别。"
+  },
+  {
+    "slug": "usedcar/checker-3",
+    "inputs": {
+      "ck_frame": "4",
+      "ck_floorpan": "4",
+      "ck_subframe": "4",
+      "ck_shock": "4",
+      "ck_control": "4",
+      "ck_spring": "4",
+      "ck_exhaust": "4",
+      "ck_fuel": "4",
+      "ck_brakeline": "4",
+      "ck_wheelwell": "4",
+      "ck_bushing": "4"
+    },
+    "clicks": [
+      "document.getElementById('ck_frame').value='1';calc()"
+    ],
+    "expect": ["86", "严重问题(1项)"],
+    "ref": "11 项权重合计 19（frame3/floorpan2/subframe2/shock2/control2/spring1/exhaust1/fuel2/brakeline2/wheelwell1/bushing1）。"
+       + "注入全部「好(4)」⇒ boot calc 得 19×100/19 = 100 分、优秀。clicks 把大梁/车架改为「严重(1)」"
+       + "（score10×weight3）后重算：totalScore=1900−300+30=1630 ⇒ 1630/19=85.79 ⇒ 86 分、仍「优秀」；"
+       + "问题项 1 个且为 v=1 ⇒ 报告出现「严重问题(1项)」。默认态（无 clicks）仍是 100 分、0 问题项，两锚均不命中。"
+  },
+  {
+    "slug": "usedcar/rater-37",
+    "inputs": {
+      "ck_start": "5",
+      "ck_idle": "5",
+      "ck_accel": "5",
+      "ck_vibration": "5",
+      "ck_oilleak": "5",
+      "ck_coolantleak": "5",
+      "ck_transleak": "5",
+      "ck_sound": "5",
+      "ck_smoke": "5",
+      "ck_temp": "5",
+      "ck_cel": "5"
+    },
+    "clicks": [
+      "(function(){['start','oilleak','sound','cel'].forEach(function(k){document.getElementById('ck_'+k).value='1';});calc();})()"
+    ],
+    "expect": ["57", "发现 4 项问题"],
+    "ref": "11 项权重合计 27（start3/idle3/accel2/vibration2/oilleak3/coolantleak2/transleak2/sound3/smoke2/temp2/cel3）。"
+       + "注入全部「优秀(5)」⇒ boot calc = 27×100/27 = 100 分、优秀。clicks 把启动性能/机油渗漏/异响/故障灯改为"
+       + "「严重(1)」（score10×weight3）后重算：totalScore=2700−4×300+4×30=1540 ⇒ 1540/27=57.04 ⇒ 57 分「一般」；"
+       + "问题项 4 个 ⇒ 报告出现「发现 4 项问题」。默认态（无 clicks）仍为 100 分、0 问题项，两锚均不命中。"
+  }
 
 ];
 async function main() {

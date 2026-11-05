@@ -11,7 +11,15 @@
  */
 const fs = require("fs");
 const path = require("path");
-const { JSDOM } = require("jsdom");
+// jsdom 只在 DOM 宿主用例里用；缺依赖时不能让整条门禁在 require 阶段崩溃（假红）。
+// 数值用例走 verify_it_calc 的纯 Node stub，仍全部执行；DOM 宿主段显式 SKIP(no-jsdom)。
+let JSDOM = null;
+let JSDOM_ERR = "";
+try {
+  ({ JSDOM } = require("jsdom"));
+} catch (e) {
+  JSDOM_ERR = e.message.split("\n")[0];
+}
 const { runCase } = require("./verify_it_calc.js");
 
 const ROOT = path.resolve(__dirname, "..");
@@ -1235,6 +1243,49 @@ const CASES = [
       "总显存估算： 36.0"
     ],
     "ref": "70B INT4 推理预设：权重=70×0.5=35.0 GB、总=35+1=36.0 GB（>24GB 单卡，双卡可分）。默认态零交集。"
+  },
+  // ── 空态回归：全部输入清空后必须提示「请输入」，不得输出 0/伪结论 ──
+  {
+    "slug": "ai/ai-8",
+    inputs: { w: "", grad: "", lr: "", lambda: "" },
+    expect: ["请输入当前权重、梯度、学习率与 L2 正则化系数后再计算。"],
+    "ref": "空态回归：四项全空时旧实现 `+value||0` 输出「新权重 0.0000 / 权重变化 0.0000 / L2 惩罚项 0.0000」；现要求提示且不输出数值。默认态 4.7900/-0.2100/0.1000 不含该提示 ⇒ 强判别。"
+  },
+  {
+    "slug": "ai/best-epoch",
+    inputs: { l1: "", l2: "", l3: "", l4: "", l5: "" },
+    expect: ["请输入各轮 loss 后再计算。"],
+    "ref": "空态回归：旧实现空输入按 0 取最小值并给出「最小 loss 0.0000 / 最佳轮次 1 轮」伪结论；现要求提示。默认态 0.3800/4 轮不含该提示 ⇒ 强判别。"
+  },
+  {
+    "slug": "ai/dropout",
+    inputs: { rate: "", x: "", n: "" },
+    expect: ["请输入 Dropout 率、输入值与神经元数后再计算。"],
+    "ref": "空态回归：旧实现空输入输出「保留概率 1.00 / 缩放因子 1.00」等伪结论；现要求提示。默认态 0.50/1.00/50/2.00 不含该提示 ⇒ 强判别。"
+  },
+  {
+    "slug": "ai/l1-l2-regularization",
+    inputs: { w1: "", w2: "", w3: "", w4: "" },
+    expect: ["请输入各权重后再计算。"],
+    "ref": "空态回归：旧实现空输入输出「L1 范数 0.000 / L2 范数 0.000」；现要求提示。默认态 2.800/1.556 不含该提示 ⇒ 强判别。"
+  },
+  {
+    "slug": "ai/l1-l2",
+    inputs: { w1: "", w2: "", w3: "", lambda_l1: "", lambda_l2: "" },
+    expect: ["请输入各权重与 L1/L2 系数后再计算。"],
+    "ref": "空态回归：旧实现空输入输出「L1/L2/总惩罚 0.000000」；现要求提示。默认态 0.010000/0.003800/0.013800 不含该提示 ⇒ 强判别。"
+  },
+  {
+    "slug": "ai/sigmoid",
+    inputs: { z: "", threshold: "" },
+    expect: ["请输入输入 z 与分类阈值后再计算。"],
+    "ref": "空态回归：旧实现空输入输出「Sigmoid 0.500000 / 分类结果 正类 / 对数几率 0.0000」伪结论；现要求提示。默认态 0.880797 不含该提示 ⇒ 强判别。"
+  },
+  {
+    "slug": "ai/softmax",
+    inputs: { z1: "", z2: "", z3: "", z4: "" },
+    expect: ["请输入各 Logit 后再计算。"],
+    "ref": "空态回归：旧实现空输入把四项 logit 全按 0，输出均匀分布 25.00%；现要求提示。默认态 56.94/20.95/12.70/9.41 不含该提示 ⇒ 强判别。"
   }
 
 ];
@@ -1444,8 +1495,18 @@ async function main() {
 
   // DOM 宿主回归：真实 DOM 下验证首屏 / 改输入 / 页签 / 历史回填 / 导出
   const hostCases = only.length ? HOST_CASES.filter((h) => only.some((o) => h.slug.endsWith("/" + o) || h.slug === o)) : HOST_CASES;
-  let hostPass = 0; const hostFails = [];
+  let hostPass = 0; const hostFails = []; let hostSkipped = 0;
   for (const h of hostCases) {
+    if (!JSDOM) {
+      if (process.env.TB_REQUIRE_DYNAMIC === "1") {
+        hostFails.push(h.slug);
+        console.log("❌ DOM " + h.slug + "  TB_REQUIRE_DYNAMIC=1 但 jsdom 缺失 — " + JSDOM_ERR);
+        continue;
+      }
+      hostSkipped++;
+      console.log("⚠️ SKIP(no-jsdom): DOM " + h.slug + " — " + JSDOM_ERR);
+      continue;
+    }
     try {
       const r = h.kind === "codeReview" ? await runCodeReviewCase() : await runTokenHostCase(h);
       if (r.ok) hostPass++;
@@ -1455,7 +1516,7 @@ async function main() {
       console.log("❌ DOM " + h.slug + "  THROWN: " + ((e && e.message) ? e.message : String(e)));
     }
   }
-  console.log("==== ai DOM host " + hostPass + "/" + hostCases.length + " ====");
+  console.log("==== ai DOM host " + hostPass + "/" + hostCases.length + " ====" + (hostSkipped ? "（SKIP " + hostSkipped + "，无 jsdom）" : ""));
 
   if (fails.length || hostFails.length) process.exit(1);
 }

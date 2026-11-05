@@ -75,9 +75,10 @@ const CASES = [
   },
   {
     slug: "design/typography-scale",
-    inputs: { baseSize: "16", ratio: "1.2" },
-    expect: ["h5 19.2px"],
-    ref: "等比字阶 size_i = base × ratio^i：16 × 1.2¹ = 19.2（h6 为基准 16，h5 为 19.2）",
+    inputs: { baseSize: "20", ratio: "1.125" },
+    expect: ["h5 22.5px"],
+    ref: "等比字阶 size_i = base × ratio^i：20 × 1.125¹ = 22.5（h6 为基准 20，h5 为 22.5）。"
+       + "默认 baseSize=16 / ratio=1.200 ⇒ h5=19.2px；旧用例注入的正是这两个默认值，判别器回退后仍 PASS ⇒ 已改注入非默认值。",
   },
   {
     slug: "design/typography-scale",
@@ -242,16 +243,11 @@ const CASES = [
   },
   {
     slug: "design/exposure-triangle-calculator",
-    inputs: {},
-    clicks: [
-      "document.getElementById('aperture').selectedIndex=0;",
-      "document.getElementById('shutter').selectedIndex=11;",
-      "document.getElementById('iso').selectedIndex=0;",
-      "calc();"
-    ],
-    expect: ["f/1.4 1/2 ISO 100"],
-    ref: "三个 select 都按 selectedIndex 注入（`apertures[0]=1.4`、`shutters[11]=1/2`、`isos[0]=100`）⇒ 等效组合区首选卡为 `f/1.4` / `1/2` / `ISO 100` 连排。"
-       + "⚠ 该页 #equiv 内容含大量 `f/1.4 …` 卡，但只有这条 `f/1.4 1/2 ISO 100` 三字段连排同时成立；默认态 shutters 默认档与 apertures 默认档不同 ⇒ 不命中。",
+    inputs: { aperture: "1.4", shutter: "1/2", iso: "100" },
+    clicks: ["calc();"],
+    expect: ["f/2 1s ISO 100"],
+    ref: "三个 select 按 option 文本注入（`apertures[0]=1.4`、`1/2`、`ISO 100`）⇒ 等效组合区首张卡为放大一档光圈 `f/2` + 放慢一档快门 `1s` + `ISO 100` 连排。"
+       + "⚠ 默认态（f/4、1/60、ISO 200）首张卡是 `f/2.8 1/125 ISO 200` ⇒ 不命中，判别成立。",
   },
   {
     slug: "design/css-grid-generator",
@@ -414,8 +410,8 @@ const CASES = [
   {
     slug: "design/music-scale-reference",
     inputs: { root: "D", scaleType: "minor" },
-    expect: ["D - E - F - G - A - A# - C"],
-    ref: "自然小调按半音阶逐级推导（D → E F G A A# C，第 6 音升八度内的 A#）。同页 `#notesDisplay` 还输出 `调号` 与 `关系小调`，但结果串里只有音符序列随 root/scale 变化，故取其作为锚。",
+    expect: ["D - E - F - G - A - Bb - C"],
+    ref: "自然小调按半音阶逐级推导（D → E F G A Bb C，第 6 音按降号记谱写 Bb）。同页 `#notesDisplay` 还输出 `调号` 与 `关系小调`，但结果串里只有音符序列随 root/scale 变化，故取其作为锚。",
   },
   {
     slug: "design/music-scale-reference",
@@ -477,8 +473,10 @@ const CASES = [
   {
     slug: "design/photo-storage-calculator",
     inputs: { count: "250", megapixel: "45", format: "tiff", bit: "16", cardSize: "128", video: "30_4k" },
-    expect: ["171.66 MB 单张大小", "此卡可存储约 763 张照片"],
-    ref: "结果区 `#result` 开头是「单张大小 / 照片总计 / 视频大小 / 总大小 / 存储卡 / 可存储张数」六段。锚点取第 1 段与最后一段：前者锁死 megapixel×format×bit 的换算链，后者锁死 `cardSize × 0.9` 之类的可用容量折损。\n"
+    expect: ["180.00 MB 单张大小", "此卡可存储约 661 张照片"],
+    ref: "十进制容量口径：45MP×16bit×TIFF(×2) = 180,000,000 B = 180.00 MB；"
+      + "128 GB 卡 = 128×10^9 B，30 分钟 4K 视频按 300 MB/分钟 = 9×10^9 B，"
+      + "(128−9)×10^9 ÷ 180×10^6 = 661.1 ⇒ 661 张（旧实现用 1024^3 且不扣视频 ⇒ 763 张）。\n"
       + "⚠ `#result` 后半段是「各格式单张大小」参考表（RAW/JPG/PNG…共 7 行），**绝不能整段锚**——那部分是固定参考值、不随注入变，属于典型逃生项（本页第一版锚点就混进了它）。\n"
       + "⚠ megapixel / bit / cardSize / video 都必须给 option value（如 `45` / `16` / `128` / `30_4k`），给中文档位名会得到 `undefined` 或 0 值。",
   },
@@ -523,6 +521,15 @@ const CASES = [
       + "⚠ **textarea 不受 inputs 注入**：runCase 的注入只处理 `input` / `select`，写 `inputs.poem` 后页面读到的仍是默认示例诗（`床前明月光…`），用例会静默拿默认值去比对。必须在 `clicks` 里直接写 `document.getElementById('poem').value='…';check()`。\\n"
       + "⚠ clicks 代码串里的换行必须写成转义序列 `\\n`（文件里是两字符），写成真实换行会报 `Invalid or unexpected token`。\\n"
       + "⚠ 不用「第1句」做锚：默认 textarea 预填 20 字示例诗，默认态也会出现「第1句」。",
+  },
+  {
+    // 遮蔽回归：本页复制函数已改名 copySwatch(btn, text)，避免被 js/common.js 的全局 copyText(text) 覆盖。
+    // 断言锚在「传给剪贴板的文本」本身：旧实现会把按钮元素当 text 传下去，得到 [object HTMLButtonElement]。
+    slug: "design/color-picker",
+    inputs: { hexInput: "#123456" },
+    clicks: ["var __c=ToolBox.copyText;ToolBox.copyText=function(t){document.getElementById('hexInput').value='COPIED:'+t;};copySwatch({textContent:'复制'},'#123456');ToolBox.copyText=__c;"],
+    expect: ["COPIED:#123456"],
+    ref: "copySwatch(btn, text) 调用 ToolBox.copyText(text, …)：点击复制按钮时应把该色值原样交给剪贴板。用例把 ToolBox.copyText 换成采集器（两种桩模式下都成立），旧实现被全局 copyText 覆盖后第一个实参是按钮对象 ⇒ 采集到 [object HTMLButtonElement]，不命中。",
   },
   {
     slug: "design/color-picker",
@@ -1422,6 +1429,19 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"angle\":\"42\",\"cssOutput\":\"1\\n2\\n3\",\"gradientType\":\"radial\"}，输出区含「× 100% ×\nradial」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
+    "slug": "design/gradient",
+    "inputs": {
+      "cssCheck": "linear-gradient(90deg, #000000 0%, #ffffff 100%)"
+    },
+    "clicks": [
+      "checkContrast()"
+    ],
+    "expect": [
+      "#000000 ↔ #ffffff：21.00:1"
+    ],
+    "ref": "WCAG 相邻色标对比度：粘贴纯黑(#000000)→纯白(#ffffff)渐变，相对亮度 0 与 1，对比度=(1+0.05)/(0+0.05)=21.00:1。默认 667eea/764ba2 约 1.35:1，输入为空或注入失败即不命中。"
+  },
+  {
     "slug": "design/grid-pattern",
     "inputs": {
       "bgColor": "abc123测试",
@@ -1789,9 +1809,13 @@ const CASES = [
       "video": "10"
     },
     "expect": [
-      "% 此卡可存储约 2,290 张照片\n572 16 GB 1,145 32 GB 2,290 64 GB 4,581 128 GB 9,162 256 GB 18,325 512 GB 36,650 1 TB 73,300"
+      "30.00 MB 单张大小",
+      "可存储约 2,113 张照片"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"count\":\"42\",\"megapixel\":\"20\",\"format\":\"raw_uncompressed\",\"bit\":\"12\",\"cardSize\":\"64\",\"video\":\"10\"}，输出区含「% 此卡可存储约 2,290 张照片\n572 16 GB 1,145 32 GB…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）+ 本批修正：20MP×12bit 未压缩 = 30,000,000 B = 30.00 MB；"
+      + "64 GB 卡 = 64×10^9 B，10 分钟 1080p 视频按 60 MB/分钟 = 600×10^6 B，"
+      + "(64−0.6)×10^9 ÷ 30×10^6 = 2,113.3 ⇒ 2,113 张（旧实现按 1024^3 且不扣视频 ⇒ 2,290 张）。"
+      + "默认态（24MP/14bit/RAW/1000 张/64GB/无视频）不含这两个锚 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "design/png-to-svg",
@@ -1980,20 +2004,25 @@ const CASES = [
   {
     "slug": "design/tester-assessor",
     "inputs": {
-      "totalTasks": "42",
-      "successTasks": "42",
-      "avgTime": "42",
-      "expectedTime": "42",
-      "errors": "42",
-      "helpCount": "42",
-      "userCount": "42",
-      "satisfaction": "42",
-      "sus": "2"
+      "totalTasks": "10",
+      "successTasks": "7",
+      "avgTime": "160",
+      "expectedTime": "100",
+      "errors": "3",
+      "helpCount": "2",
+      "userCount": "6",
+      "satisfaction": "4",
+      "sus0": "5", "sus1": "1", "sus2": "5", "sus3": "1", "sus4": "5",
+      "sus5": "1", "sus6": "5", "sus7": "1", "sus8": "5", "sus9": "1"
     },
     "expect": [
-      " 完成时间比 1.00x (42s/42s) 100 操作错误率 1.0次/任务 (42次) 67 求助频率 1.0次/任务 (42次) 0 用户满意度 42/7 683"
+      "70% (7/10)",
+      "1.60x (160s/100s)",
+      "0.3次/任务 (3次)",
+      "4/7",
+      "86 综合可用性评分"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"totalTasks\":\"42\",\"successTasks\":\"42\",\"avgTime\":\"42\",\"expectedTime\":\"42\",\"errors\":\"42\",\"helpCount\":\"42\",\"userCount\":\"42\",\"satisfaction\":\"42\",\"sus\":\"2\"}，输出区含「 完成时间比 1.00x (42s/42s) 100 操作错误率 1.0次/任务…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "重写：原注入裸键 sus（页面只生成 sus0..sus9、calc 循环读 getElementById('sus'+i)，裸 sus 从不被读取 ⇒ 注入落空）。改为真实动态键 sus0..sus9：奇数题(索引偶数)取 5 → (5−1)=4 共 5 题，偶数题(索引奇数)取 1 → (5−1)=4 共 5 题，susSum=40 ⇒ SUS=100 分（默认全 3 ⇒ susSum=20 ⇒ 50 分；且**均匀取值恒为 50 分**——5*(v−1)+5*(5−v)=20，故只有混合取值才能证明这些键真被读取）。绩效锚：成功率 7/10=70%、时间比 160/100=1.60x、错误率 3/10=0.3次/任务、满意度 4 → 4/7；默认 5/4/120/90/3/2/5/5 ⇒ 80% (4/5)、1.33x、0.6次/任务、5/7。末锚「86 综合可用性评分」= taskScore 65.5×(40%) + susScore 100×(60%) = 86.2 → 86，同时依赖绩效注入与 SUS 注入（performance 不变而 sus 落空时得 56、sus 生效而绩效回退时得 89），是证明 sus0..sus9 真被读取的唯一可靠锚。不直接锚「SUS得分（等级A）」——sus* 由 JS 动态生成，discriminate_check 的 pageDefaults 解析不到、无法回退，该锚会恒真成为逃生项。"
   },
   {
     "slug": "design/tailwind-colors",
@@ -2143,8 +2172,347 @@ const CASES = [
     ref: "N4-D 预览动画：keyframes 必须真正进入预览样式节点（旧页面从未注入，预览只读到内联 animation 而无"
        + "对应 @keyframes ⇒ 全静止）。前缀 PREVIEWSTYLE 确保区分于 cssOutput 导出文本；默认 generate() 同样"
        + "执行但旧实现该前缀后为空，故可强判别修复前后。"
+  },
+  {
+    slug: "design/mesh-gradient",
+    inputs: { overlay: "#000000" },
+    expect: ["最低对比度 3.30:1（与 #764ba2）· AA 大文本"],
+    ref: "WCAG 改造：默认三色 #667eea/#764ba2/#f093fb，叠加文字注入 #000000 ⇒ 与最暗色 #764ba2 对比度 = (0.1187+0.05)/(0.0353+0.05)=3.30"
+       + "（独立复算 sRGB 线性化），等级按 <4.5 判「AA 大文本」。默认态 overlay=#ffffff 输出「最低对比度 2.04:1（与 #f093fb）」，不含该串。"
+  },
+  // ── 照片存储：超容量明示（不再静默夹 100%）────────────────────
+  {
+    slug: "design/photo-storage-calculator",
+    inputs: { count: "3000", megapixel: "45", format: "tiff", bit: "16", cardSize: "64", video: "0" },
+    expect: ["超出容量：", "476.00 GB"],
+    ref: "45MP×16bit×TIFF(×2) = 180,000,000 B/张；3000 张 = 540×10^9 B，64 GB 卡 = 64×10^9 B；"
+       + "超出 476×10^9 B ⇒ 必须提示「超出容量：476.00 GB」。旧实现把百分比夹到 100% 且不提示，默认 1000 张也不会超出。",
+  },
+  {
+    slug: "design/photo-storage-calculator",
+    inputs: { count: "-1", megapixel: "0", format: "tiff", bit: "16", cardSize: "0", video: "0" },
+    expect: ["请填写大于 0 的像素（MP）与存储卡容量"],
+    ref: "非法容量/像素必须明确报错，不能靠 Infinity/0 静默出结果；默认 24MP/64GB 不命中该提示。",
+  },
+  // ── 冲印尺寸：DPI/像素非正数明确报错 ──────────────────────────
+  {
+    slug: "design/photo-print-size",
+    inputs: { pw: "0", ph: "3000", dpi: "300" },
+    expect: ["像素尺寸必须为大于 0 的整数"],
+    ref: "宽 0 时旧实现 `+value||1` 回退成 1px，静默给出错误的冲印尺寸；现直接提示。默认 3000×2000/300DPI 不命中。",
+  },
+  {
+    slug: "design/photo-print-size",
+    inputs: { pw: "3000", ph: "2000", dpi: "0" },
+    expect: ["DPI 必须大于 0"],
+    ref: "DPI 为 0 时旧实现除零得 Infinity，随后把整个尺寸列表替换成「—」；现给出明确提示。",
+  },
+  // ── SVG 转 PNG：宽高为 0/负数校验 ─────────────────────────────
+  {
+    slug: "design/svg-to-png",
+    inputs: { width: "0", height: "400" },
+    clicks: ["generate()"],
+    expect: ["⚠ 宽度和高度必须为正整数"],
+    ref: "宽 0 时旧实现 parseInt||400 回退成 400，静默导出与输入不符的图；现直接提示。默认 400×400 不命中。",
+  },
+  // ── SVG 转 PNG：外部资源净化（防 canvas 被污染）─────────────────
+  {
+    slug: "design/svg-to-png",
+    inputs: {},
+    clicks: ["var r=__svgSanitize('<svg xmlns=\"http://www.w3.org/2000/svg\"><foreignObject width=\"10\" height=\"10\"><div xmlns=\"http://www.w3.org/1999/xhtml\">x</div></foreignObject><image href=\"https://evil.example/x.png\" xlink:href=\"https://evil.example/x.png\"/><style>@import url(\"https://evil.example/a.css\");</style></svg>');document.getElementById('exportMetaVal').textContent='FO:'+r.report.foreignObject+' EXT:'+r.report.externalRefs+' CSS:'+r.report.cssRefs+' GONE:'+(r.svg.indexOf('evil.example')>=0?'NO':'YES');"],
+    expect: ["FO:1 EXT:2 CSS:1 GONE:YES"],
+    ref: "净化口径：foreignObject 整块删除计 1；href 与 xlink:href 两个外链属性各计 1；<style> 内 @import 计 1；净化产物不含 evil.example ⇒ 外链确被剥离。"
+      + "门禁无 DOMParser/XMLSerializer ⇒ 走字符串兜底路径，与浏览器 DOM 路径计数口径一致（<style> 文本另计）。"
+      + "默认态（空输入）exportMetaVal 为「输出像素：」且不含 FO:/EXT: 串 ⇒ 判别明确。",
+  },
+
+  // ── 导出失败必须可见（canvas.toDataURL 抛异常时不得静默）───────
+  ...["design/avatar-generator", "design/aztec-code", "design/data-matrix", "design/favicon-from-emoji"].map(function (slug) {
+    return {
+      slug: slug,
+      inputs: {},
+      clicks: ["var _ce=document.createElement.bind(document);document.createElement=function(t){var el=_ce(t);if(t==='canvas'){el.toDataURL=function(){throw new Error('boom')};}return el;};generate();"],
+      expect: ["⚠ 导出 PNG 失败：Error"],
+      ref: "失败注入：把桩内 createElement('canvas') 产物的 toDataURL 改成必抛 Error，再跑 generate() ⇒ 必须在结果区出现可见的「⚠ 导出 PNG 失败：Error」。"
+        + "修复前裸调 toDataURL，异常直接冒成 pageerror、页面无任何提示；默认态（不注入）无该文案 ⇒ 判别明确。",
+    };
+  }),
+  // ── px→rem：全角数字/单位后缀解析 + 根字号夹取提示 ────────────
+  {
+    slug: "design/px-to-rem",
+    inputs: { px: "２４px", root: "１６px" },
+    expect: ["1.5000rem"],
+    ref: "全角数字 ２４＋单位后缀 px 归一为 24，根字号 １６px 归一为 16 ⇒ 24/16 = 1.5000rem；"
+       + "旧实现 parseFloat('２４px') = NaN ⇒ 0 ⇒ 输出 0.0000rem。默认 16px/16px ⇒ 1.0000rem，注入失败即不命中。",
+  },
+  {
+    slug: "design/px-to-rem",
+    inputs: { px: "100", root: "0" },
+    expect: ["根字号必须大于 0，已按 16px 计算"],
+    ref: "根字号为 0 时旧实现静默改成 16 且不说明；现明确提示夹取口径。默认 16 不命中。",
+  },
+  {
+    slug: "design/shutter-speed-calculator",
+    inputs: { focal: "" },
+    expect: ["Enter a valid focal length, crop factor and stabilization stops."],
+    ref: "焦距清空后旧实现 +''||50 静默按 50mm 计算安全快门；现显式拦截空值。默认 50 ⇒ 不命中。",
+  },
+  {
+    slug: "design/image-dpi-converter",
+    inputs: { w1: "" },
+    expect: ["⚠ 计算结果含无效值，请检查输入是否为有效正数。"],
+    ref: "像素宽清空后旧实现 ||0 继续算出 0 英寸等伪结果；现由既有 NaN/Infinity 守卫报错。"
+       + "默认 3000px ⇒ 不命中。",
+  },
+  {
+    slug: "design/photo-aspect-ratio-calculator",
+    inputs: { w: "" },
+    expect: ["Enter valid width and height (both positive)."],
+    ref: "宽度清空后旧实现 +''||1 静默按 1px 计算比例；现显式要求正数。默认 1920×1080 ⇒ 不命中。",
+  },
+  {
+    slug: "design/detector-28",
+    inputs: { formaldehyde: "" },
+    expect: ["Enter valid formaldehyde, VOC and benzene values (enter 0 if not detected)."],
+    ref: "甲醛清空后旧实现 +''||0 静默按 0 计 ⇒ 直接判「E0 级（优等）」；现显式要求填写（未检出请填 0）。"
+       + "默认 0.08 ⇒ 不命中。",
+  },
+  {
+    slug: "design/analysis-64",
+    inputs: { p3a: "" },
+    expect: ["Fill in both scores for all 5 dimensions (enter 0 explicitly)."],
+    ref: "某一维我方得分清空后旧实现 +''||0 静默记 0 分 ⇒ 总分差被放大、结论可能翻转；"
+       + "现要求 5 维双方得分齐全（0 分显式填 0）。默认 p3a=9 ⇒ 不命中。",
+  },
+  {
+    slug: "design/focal-length-equivalent",
+    inputs: { compareFocal: "" },
+    expect: ["Enter a valid focal length (mm)."],
+    ref: "对比焦距清空后旧实现 +''||50 静默按 50mm 参与对比 ⇒ 对比表结论变化；现显式要求正数。"
+       + "默认 50 ⇒ 不命中。",
+  },
+  {
+    slug: "design/typography-scale",
+    inputs: { ratio: "" },
+    expect: ["⚠ 比例需为大于 0 且不等于 1 的数值。"],
+    ref: "比例清空后旧实现 parseFloat('')||1.2 静默按 1.2 生成整组字阶；现显式提示并清空输出。"
+       + "默认 1.25 ⇒ 不命中。",
+  },
+  {
+    slug: "design/spacing-scale",
+    inputs: { ratio: "" },
+    expect: ["⚠ 请输入有效的基准间距（>0）、比例（>0 且 ≠1）与档位数（正整数）。"],
+    ref: "比例清空后旧实现 parseFloat('')||1.25 静默按 1.25 生成整组间距；现三处（基准/比例/档位数）"
+       + "统一显式校验。默认 4/1.25/10 ⇒ 不命中。",
+  },
+  {
+    slug: "design/tester-assessor",
+    inputs: { totalTasks: "" },
+    clicks: ["calc()"],
+    expect: ["测试任务总数需为不小于 1 的整数。"],
+    ref: "任务总数清空后旧实现 parseFloat('')||1 静默按 1 个任务继续出分（成功率 0% 也会给出总分）；"
+       + "现要求全部绩效字段有效且数值合法。默认 5 ⇒ 不命中。",
+  },
+  {
+    slug: "design/photo-print-size",
+    inputs: { pw: "", ph: "", dpi: "" },
+    clicks: ["ppExportCsv()"],
+    expect: ["导出前请先填写有效的像素尺寸与 DPI。"],
+    ref: "旧导出路径 +value||1 / ||300 会把空值静默当 1px×1px@300dpi 导出错误清单；"
+       + "现导出前显式拒绝并同步清空最大可印尺寸。默认 4032×3024@300 ⇒ 不命中。",
+  },
+  {
+    slug: "design/color-palette",
+    inputs: { hexInput: "#F5F5F5" },
+    expect: ["黑字 19.26:1 ✔ · 白字 1.09:1 ✘"],
+    ref: "黑白字改按 WCAG 对比度取较大者：L(#F5F5F5)=0.913099，黑字 (0.963099)/0.05=19.26:1 ✔、"
+       + "白字 1.05/0.963099=1.09:1 ✘。旧阈值 lum>0.5 在 L=0.2369 的 #667eea 上选白字（3.66:1，未过 AA），"
+       + "新口径选黑字（5.74:1）。默认 #667eea ⇒ 不含 19.26:1 串。",
+  },
+  {
+    slug: "design/color-picker",
+    inputs: { hexInput: "#788EED" },
+    expect: ["#000000（6.89:1）"],
+    ref: "L(#788EED)=0.294535：黑字 (0.344535)/0.05=6.89:1、白字 1.05/0.344535=3.05:1 ⇒ 应选黑字。"
+       + "旧阈值 lum>0.5 会选白字（3.05:1，未过 AA）。默认 #4151e1（L=0.1319）选白字 ⇒ 不含该串。",
+  },
+  {
+    slug: "design/material-color",
+    clicks: ["showDetail('Blue',4,'#42a5f5')"],
+    expect: ["#000000（7.93:1）"],
+    ref: "Material Blue 400 #42a5f5：L=0.346611，黑字 (0.396611)/0.05=7.93:1、白字 2.65:1 ⇒ 应选黑字；"
+       + "旧阈值 lum>0.5 选白字（2.65:1）。默认未打开详情（自动调用无参数）⇒ 不含该串。",
+  },
+  {
+    slug: "design/tailwind-colors",
+    clicks: ["showDetail('blue',4,'#60a5fa')"],
+    expect: ["#000000（8.26:1）"],
+    ref: "Tailwind blue-400 #60a5fa：L=0.362992，黑字 (0.412992)/0.05=8.26:1、白字 2.54:1 ⇒ 应选黑字；"
+       + "旧阈值 lum>0.5 选白字（2.54:1）。默认未打开详情 ⇒ 不含该串。",
+  },
+  {
+    slug: "design/initials-avatar",
+    inputs: { name: "AB" },
+    expect: ["文字对比度 10.69:1"],
+    ref: "姓名 AB 哈希取调色板 #1dd1a1（WCAG 相对亮度 L=0.4844）：与黑 (0.5344)/0.05=10.69:1、与白 1.05/0.5344=1.96:1 ⇒ 应自动选黑字。"
+       + "默认 Tool Box 哈希为 #5f27cd（白字 7.90:1），不含 10.69:1；旧页无对比度输出 ⇒ 注入后必红。",
+  },
+  {
+    slug: "design/initials-avatar",
+    inputs: { bgStyle: "custom", bg1: "#777777", textColor: "#ffffff" },
+    expect: ["文字对比度 4.48:1", "建议改用 #000000（4.69:1）"],
+    ref: "#777777 相对亮度 L=0.1845：白字 1.05/0.2345=4.48:1（<4.5），黑字 0.2345/0.05=4.69:1 ⇒ "
+       + "自定义模式应给出具体建议色与比值。默认 hash 模式为 7.90:1 且无「建议改用」，注入后旧实现不命中。",
+  },
+  {
+    slug: "design/bpm-tapper",
+    clicks: ["document.getElementById('bpm').innerHTML='SNAP='+computeBpm([0,900,1800]);"],
+    expect: ["SNAP=65"],
+    ref: "声明「round(实测 BPM ÷ 5) × 5」：三次点击间隔 900ms ⇒ 原始 BPM=60000/900=66.67，"
+       + "按 5 取整 = round(13.33)×5=65；旧实现直接 round(66.67)=67。默认 BPM 区不含 SNAP 串。",
   }
 
+,
+{
+  "slug": "design/color-palette-generator",
+  "clicks": ["var g=(typeof window!=='undefined'?window.__svgFileBlocked:null)||(typeof __svgFileBlocked==='function'?__svgFileBlocked:null);document.getElementById('__svg_probe').textContent='SVG:'+(g&&g({name:'evil.svg',type:'image/svg+xml'})?'BLOCK':'PASS')+'|PNG:'+(g&&g({name:'ok.png',type:'image/png'})?'BLOCK':'PASS');"],
+  "expect": ["SVG:BLOCK|PNG:PASS"],
+  "ref": "C1 上传口径（canvas 污染源根除）：SVG（可含 foreignObject/外链）必须被拒收，位图必须放行。由真机负向自证（21/21）配套覆盖。"
+},
+{
+  "slug": "design/image-cropper",
+  "clicks": ["var g=(typeof window!=='undefined'?window.__svgFileBlocked:null)||(typeof __svgFileBlocked==='function'?__svgFileBlocked:null);document.getElementById('__svg_probe').textContent='SVG:'+(g&&g({name:'evil.svg',type:'image/svg+xml'})?'BLOCK':'PASS')+'|PNG:'+(g&&g({name:'ok.png',type:'image/png'})?'BLOCK':'PASS');"],
+  "expect": ["SVG:BLOCK|PNG:PASS"],
+  "ref": "C1 上传口径（canvas 污染源根除）：SVG（可含 foreignObject/外链）必须被拒收，位图必须放行。由真机负向自证（21/21）配套覆盖。"
+},
+{
+  "slug": "design/image-flipper",
+  "clicks": ["var g=(typeof window!=='undefined'?window.__svgFileBlocked:null)||(typeof __svgFileBlocked==='function'?__svgFileBlocked:null);document.getElementById('__svg_probe').textContent='SVG:'+(g&&g({name:'evil.svg',type:'image/svg+xml'})?'BLOCK':'PASS')+'|PNG:'+(g&&g({name:'ok.png',type:'image/png'})?'BLOCK':'PASS');"],
+  "expect": ["SVG:BLOCK|PNG:PASS"],
+  "ref": "C1 上传口径（canvas 污染源根除）：SVG（可含 foreignObject/外链）必须被拒收，位图必须放行。由真机负向自证（21/21）配套覆盖。"
+},
+{
+  "slug": "design/image-format-converter",
+  "clicks": ["var g=(typeof window!=='undefined'?window.__svgFileBlocked:null)||(typeof __svgFileBlocked==='function'?__svgFileBlocked:null);document.getElementById('__svg_probe').textContent='SVG:'+(g&&g({name:'evil.svg',type:'image/svg+xml'})?'BLOCK':'PASS')+'|PNG:'+(g&&g({name:'ok.png',type:'image/png'})?'BLOCK':'PASS');"],
+  "expect": ["SVG:BLOCK|PNG:PASS"],
+  "ref": "C1 上传口径（canvas 污染源根除）：SVG（可含 foreignObject/外链）必须被拒收，位图必须放行。由真机负向自证（21/21）配套覆盖。"
+},
+{
+  "slug": "design/image-resizer",
+  "clicks": ["var g=(typeof window!=='undefined'?window.__svgFileBlocked:null)||(typeof __svgFileBlocked==='function'?__svgFileBlocked:null);document.getElementById('__svg_probe').textContent='SVG:'+(g&&g({name:'evil.svg',type:'image/svg+xml'})?'BLOCK':'PASS')+'|PNG:'+(g&&g({name:'ok.png',type:'image/png'})?'BLOCK':'PASS');"],
+  "expect": ["SVG:BLOCK|PNG:PASS"],
+  "ref": "C1 上传口径（canvas 污染源根除）：SVG（可含 foreignObject/外链）必须被拒收，位图必须放行。由真机负向自证（21/21）配套覆盖。"
+},
+{
+  "slug": "design/image-rotator",
+  "clicks": ["var g=(typeof window!=='undefined'?window.__svgFileBlocked:null)||(typeof __svgFileBlocked==='function'?__svgFileBlocked:null);document.getElementById('__svg_probe').textContent='SVG:'+(g&&g({name:'evil.svg',type:'image/svg+xml'})?'BLOCK':'PASS')+'|PNG:'+(g&&g({name:'ok.png',type:'image/png'})?'BLOCK':'PASS');"],
+  "expect": ["SVG:BLOCK|PNG:PASS"],
+  "ref": "C1 上传口径（canvas 污染源根除）：SVG（可含 foreignObject/外链）必须被拒收，位图必须放行。由真机负向自证（21/21）配套覆盖。"
+},
+{
+  "slug": "design/image-rounded-corners",
+  "clicks": ["var g=(typeof window!=='undefined'?window.__svgFileBlocked:null)||(typeof __svgFileBlocked==='function'?__svgFileBlocked:null);document.getElementById('__svg_probe').textContent='SVG:'+(g&&g({name:'evil.svg',type:'image/svg+xml'})?'BLOCK':'PASS')+'|PNG:'+(g&&g({name:'ok.png',type:'image/png'})?'BLOCK':'PASS');"],
+  "expect": ["SVG:BLOCK|PNG:PASS"],
+  "ref": "C1 上传口径（canvas 污染源根除）：SVG（可含 foreignObject/外链）必须被拒收，位图必须放行。由真机负向自证（21/21）配套覆盖。"
+},
+// ── B 类：导出失败必须可见（toDataURL/toBlob 抛异常或返回 null 时不得静默）──
+...[
+  {
+    slug: "design/color-palette-generator",
+    entry: "exportImage()",
+    ref: "exportImage() 内 toDataURL 裸调；注入后必须 toast「导出失败：<e.name||e.message>」。",
+  },
+  {
+    slug: "design/image-resizer",
+    entry: "origImg={width:20,height:20};generate()",
+    ref: "image-resizer generate() 内 toDataURL 裸调；注入后必须 toast。默认态（无注入）无该文案 ⇒ 判别明确。",
+  },
+  {
+    slug: "design/image-rotator",
+    entry: "origImg={width:20,height:20};generate()",
+    ref: "image-rotator generate() 内 toDataURL 裸调；注入后必须 toast。",
+  },
+  {
+    slug: "design/image-cropper",
+    entry: "origImg={width:20,height:20};generate()",
+    ref: "image-cropper generate() 内 toDataURL 裸调（toBlob 链路另有 null 分支）；注入后必须 toast。",
+  },
+  {
+    slug: "design/image-flipper",
+    entry: "origImg={width:20,height:20};flip('h')",
+    ref: "image-flipper flip() 内 toDataURL 裸调（toBlob 回调原为 if(blob) 静默）；注入后必须 toast。",
+  },
+].map(function (c) {
+  return {
+    slug: c.slug,
+    inputs: {},
+    clicks: [
+      // 页面失败提示有两条路径：优先裸 `showToast`（common.js 全局），回落 `ToolBox.showToast`。
+      // 保真模式下 common.js 提供了裸全局 ⇒ 只替换 ToolBox.showToast 会被绕过、录音器收不到；
+      // 两条都替换，覆盖默认桩与线上真实执行。
+      "window.showToast=function(m){document.getElementById('__svg_probe').textContent='TOAST:'+m;};"
+      + "ToolBox.showToast=window.showToast;"
+      + "window.canvasExportError=window.canvasExportError||function(){return null;};"
+      + "var _ce=document.createElement.bind(document);"
+      + "document.createElement=function(t){var e=_ce(t);if(t==='canvas'){e.toDataURL=function(){throw new Error('boom')};}return e;};"
+      + c.entry,
+    ],
+    expect: ["TOAST:导出失败：Error"],
+    ref: "失败注入：把桩内 canvas.toDataURL 改成必抛 Error 并把 ToolBox.showToast 换成录音器，再走真实导出入口 ⇒ 结果区必须出现「TOAST:导出失败：Error」。"
+      + "修复前异常裸冒成 pageerror、页面无提示；默认态无 TOAST: 串 ⇒ 判别明确。" + c.ref,
+  };
+}),
+// design/colorblind-simulator 的导出逻辑在外部模块 js/tools/colorblind-simulator.js（IIFE）里，
+// 门禁 harness 不加载 /js/tools/*.js ⇒ 模块内 toast() 与 renderImagePane 均不可达，
+// 无法做桩级失败注入；改为真机注入（toDataURL 抛 Error / toBlob 回调 null）验证，结果记录在本批回报。
+// ── D1 批：B 类余页导出失败可见（新建 canvas 的页面）──
+...[
+  { slug: "design/favicon-from-text", entry: "generate()", ref: "generate() 的 lastURL 赋值裸调 toDataURL。" },
+  { slug: "design/identicon-generator", entry: "generate()", ref: "generate() 的 lastURL 赋值裸调 toDataURL。" },
+  { slug: "design/initials-avatar", entry: "generate()", ref: "generate() 的 lastURL 赋值裸调 toDataURL。" },
+
+  { slug: "design/pixel-art", entry: "exportPNG()", ref: "exportPNG() 的 tmp.toDataURL 裸调。" },
+  { slug: "design/signature-pad", entry: "strokes.push({});exportPNG();", ref: "exportPNG() 的 tmp.toDataURL 裸调；先塞一条空笔画绕过「请先签名」前置判断。" },
+].map(function (c) {
+  return {
+    slug: c.slug,
+    inputs: {},
+    clicks: [
+      "ToolBox.showToast=function(m){document.getElementById('__svg_probe').textContent='TOAST:'+m;};"
+      + "var _ce=document.createElement.bind(document);"
+      + "document.createElement=function(t){var e=_ce(t);if(t==='canvas'){e.toDataURL=function(){throw new Error('boom')};}return e;};"
+      + c.entry,
+    ],
+    expect: ["TOAST:导出失败：Error"],
+    ref: "失败注入：canvas.toDataURL 必抛 Error + 录制 ToolBox.showToast ⇒ 必须出现「TOAST:导出失败：Error」。默认态无 TOAST: 串 ⇒ 判别明确。" + c.ref,
+  };
+}),
+{
+  "slug": "design/spectrum-visualizer",
+  "clicks": ["ToolBox.showToast=function(m){document.getElementById('__svg_probe').textContent='TOAST:'+m;};var cv=document.getElementById('canvas');cv.toDataURL=function(){throw new Error('boom')};copyResult();"],
+  "expect": ["TOAST:导出失败：Error"],
+  "ref": "copyResult() 直接对页面 canvas 调 toDataURL（不经 createElement）⇒ 注入该元素 toDataURL 抛 Error + 录制 ToolBox.showToast，必须出现「TOAST:导出失败：Error」；且不得再走 clipboard。",
+},
+{
+  "slug": "design/waveform-visualizer",
+  "clicks": ["ToolBox.showToast=function(m){document.getElementById('__svg_probe').textContent='TOAST:'+m;};var cv=document.getElementById('canvas');cv.toDataURL=function(){throw new Error('boom')};copyResult();"],
+  "expect": ["TOAST:导出失败：Error"],
+  "ref": "copyResult() 直接对页面 canvas 调 toDataURL ⇒ 注入后必须「TOAST:导出失败：Error」，且不得再走 clipboard。",
+},
+{
+  "slug": "design/favicon-generator",
+  "clicks": ["var __ce=document.createElement.bind(document);document.createElement=function(t){var e=__ce(t);if(t==='canvas'){e.toBlob=function(){throw new Error('boom')}};return e;};downloadSingle(16);"],
+  "expect": ["导出失败：Error"],
+  "ref": "失败注入：新建画布的 toBlob 必抛 Error ⇒ downloadSingle 必须 toast「导出失败：Error」。"
+     + "修复前异常裸冒成 pageerror、且紧随其后仍弹「已下载 favicon-16x16.png」（失败被成功消息盖掉）；默认态无该串 ⇒ 判别明确。",
+},
+{
+  "slug": "design/favicon-generator",
+  "clicks": ["var __ce=document.createElement.bind(document);document.createElement=function(t){var e=__ce(t);if(t==='canvas'){e.toDataURL=function(){throw new Error('boom')}};return e;};copyDataURL();"],
+  "expect": ["复制失败：Error"],
+  "ref": "失败注入：新建画布的 toDataURL 必抛 Error ⇒ copyDataURL 必须 toast「复制失败：Error」并终止。"
+     + "修复前异常裸冒成 pageerror、剪贴板复制提示不执行；默认态无该串 ⇒ 判别明确。",
+}
 ];
 
 // ---------------------------------------------------------------- main

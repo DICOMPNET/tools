@@ -99,14 +99,38 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
-  "slug": "fire-rescue/fire-extinguisher-selection",
+  "slug": "fire-rescue/fire-alarm-zone",
   "inputs": {
-    "area": "300"
+    "btype": "3",
+    "floors": "3",
+    "floorArea": "2000",
+    "fireZones": "2",
+    "height": "3.5"
   },
   "expect": [
-    "建议配置数量：4 具"
+    "单层大空间按单层计"
   ],
-  "ref": "独立复算：300 m² ÷ 75 m²/具 = 4 具（最少 2 具规则不触发）。⚠ 原 expect '150' 为保护面积输入回显（零判别力）；面积改 300 才能让配置数量与默认 100 m²（2 具）区分。默认 100 m² ⇒ 2 具，不命中 ⇒ 无逃生（已双态实测）。"
+  "ref": "单层大空间（btype=3）应把楼层数按 1 计：报警区域 2 个、建筑总面积 2000 m²；预期醒目提示文案，默认多层态不含该串 ⇒ 可判别。原代码 if(btype===1) 与 else 分支完全相同，楼层数对单层多算。"
+},
+{
+  "slug": "fire-rescue/fire-extinguisher-selection",
+  "inputs": {
+    "area": "800"
+  },
+  "expect": [
+    "建议配置数量：6 具（按单具 2A 折算"
+  ],
+  "ref": "独立复算：800 m² 中危险级 U=75 m²/A ⇒ Q=⌈800/75⌉=11A；4kg ABC 单具 2A ⇒ 具数=max(2, ⌈11/2⌉)=6。默认 100 m² ⇒ 2 具，不命中 ⇒ 强判别。"
+},
+{
+  "slug": "fire-rescue/fire-extinguisher-selection",
+  "inputs": {
+    "area": "0"
+  },
+  "expect": [
+    "请输入大于 0 的保护面积。"
+  ],
+  "ref": "面积=0 时旧代码 parseFloat||0 直接进入公式，输出「建议配置数量：2 具」并把保护面积显示为 0 m²（空值兜底成 0 的伪结果）；新增 >0 守卫后须提示。默认 100 m² 不命中。"
 },
 {
   "slug": "fire-rescue/fire-fighting-tactics",
@@ -139,14 +163,46 @@ const CASES = [
   "ref": "独立复算：总热值 360 MJ（木材 10 kg×18 MJ/kg ×2 行）÷ 面积 150 m² = 2.4 ⇒ 显示 2 MJ/m²。⚠ 原 expect '150' 为面积输入回显（零判别力）。默认面积下荷载密度不同，不命中 ⇒ 无逃生（已双态实测）。"
 },
 {
+  "slug": "fire-rescue/fire-load",
+  "inputs": {
+    "area": "0.1"
+  },
+  "expect": [
+    "火灾严重程度：极高"
+  ],
+  "ref": "360 MJ ÷ 0.1 m² = 3600 MJ/m² > 2000，判定应为最高档「极高」；默认 150 m² 为 2 MJ/m²「低」，不命中该串 ⇒ 可判别（覆盖页内分级口径与进度条上限一致性）。"
+},
+{
   "slug": "fire-rescue/fire-resistance-rating",
   "inputs": {
     "height": "75"
   },
   "expect": [
-    "2.00h"
+    "建筑高度：75.0m"
   ],
-  "ref": "auto-restore"
+  "ref": "独立复算：默认公共建筑 50 m ⇒ 一级，注入 75 m 后输出「建筑高度：75.0m」且仍为一级；原 expect「2.00h」在默认态已出现（梁 2.00h）属逃生项，改用高度串收紧。"
+},
+{
+  "slug": "fire-rescue/fire-resistance-rating",
+  "inputs": {
+    "btype": "industrial",
+    "height": "12"
+  },
+  "expect": [
+    "多层厂房耐火等级不应低于三级"
+  ],
+  "ref": "独立复算：单/多层厂房高度 12 m ≤ 24 m ⇒ 三级（GB 50016-2014 第 3.2.1 条，多层厂房不应低于三级）；判别器把 btype 回退到首个 option「住宅」时输出「多层住宅…」，与本串不符 ⇒ 强判别。"
+},
+{
+  "slug": "fire-rescue/fire-resistance-rating",
+  "inputs": {
+    "btype": "warehouse",
+    "height": "12"
+  },
+  "expect": [
+    "仓库耐火等级不应低于二级"
+  ],
+  "ref": "独立复算：仓库高度 12 m ≤ 24 m ⇒ 二级（GB 50016-2014 第 3.2.1 条，仓库不应低于二级；高架仓库应为一级）；判别器把 btype 回退到首个 option「住宅」时输出「二类高层住宅」缓冲串，与本串不符 ⇒ 强判别。"
 },
 {
   "slug": "fire-rescue/fire-risk-assessment",
@@ -263,15 +319,73 @@ const CASES = [
   "inputs": {
     "qfire": "7500",
     "z": "5",
-    "zl": "0",
+    "zl": "3",
     "hc": "3",
     "nports": "2",
     "portmax": "15000"
   },
   "expect": [
-    "196160"
+    "47.47 烟羽质量流量 (kg/s) 65.4 体积流量 (m³/s) 235394 排烟量 (m³/h)"
   ],
-  "ref": "auto-restore"
+  "ref": "qfire=7500kW、z=5m、zl=3m（z>zl 走轴对称烟羽）、hc=3m、portmax=15000：Qc=5250kW，m≈47.47kg/s，V=65.4m³/s、排烟量≈235394m³/h（已含 1.2 安全系数，独立复算一致）；zl/hc 现要求 >0，原 zl=0 用例无效。"
+},
+{
+  "slug": "fire-rescue/time-evacuation",
+  "inputs": {
+    "aset": "120",
+    "tdet": "0",
+    "tpre": "0",
+    "tmove": "0"
+  },
+  "expect": [
+    "RSET 合计须大于 0，否则安全系数无意义。"
+  ],
+  "ref": "新增校验分支：三项 RSET 分项全为 0 时不再输出“安全（充裕）”，直接报错。"
+},
+{
+  "slug": "fire-rescue/smoke-management",
+  "inputs": {
+    "qfire": "7500",
+    "z": "5",
+    "zl": "0",
+    "hc": "0"
+  },
+  "expect": [
+    "请输入有效的热释放速率（&gt;0）、烟层底部高度（&gt;0）、清晰高度（&gt;0）；火焰高度限制须 ≥0（0 表示不设限）。"
+  ],
+  "ref": "新增校验分支：清晰高度 hc=0 时报错；火焰高度限制 zl=0 属合法（不设限），不再误判。"
+},
+{
+  "slug": "fire-rescue/fire-extinguisher-selection",
+  "inputs": {
+    "area": "800",
+    "fireClass": "B"
+  },
+  "expect": [
+    "15 具（按单具 55B 折算"
+  ],
+  "ref": "独立复算：B 类中危险级单位灭火级别最大保护面积按 GB 50140 表 6.2.2 取 1.0 m²/B ⇒ Q=⌈800/1.0⌉=800B；单具 4kg ABC 为 55B ⇒ 具数=max(2, ⌈800/55⌉)=15。修复前误用 A 类 75 m²/A 表得 6 具 ⇒ 本串仅修复后命中。"
+},
+{
+  "slug": "fire-rescue/fire-extinguisher-selection",
+  "inputs": {
+    "area": "100",
+    "fireClass": "D"
+  },
+  "expect": [
+    "按专项规范确定（GB 50140 未给出 D/F 类统一"
+  ],
+  "ref": "D 类金属火灾在 GB 50140 中无统一 m²/级别 基准，修复后不再套用 A 类 75 m²/A 计算并输出伪 Q 值，改为明确提示按专项规范确定；默认 A 类不命中。"
+},
+{
+  "slug": "fire-rescue/sprinkler-design",
+  "inputs": {
+    "kfactor": "115"
+  },
+  "expect": [
+    "89.7 m³（1小时）"
+  ],
+  "ref": "独立复算：默认中危险级作用面积 160 m²、喷头 12.5 m²/只 ⇒ 13 只；K=115、P=0.10 MPa ⇒ 单头 115 L/min=1.917 L/s，Qsys=24.92 L/s；1 小时水量=24.92×3.6=89.7 m³。修复前误将 L/s 直接乘 60 显示为 1495 L，本串仅修复后命中。"
 },
 {
   "slug": "fire-rescue/speed-3",
@@ -426,6 +540,35 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"pressure\":\"42\",\"coeff\":\"42\",\"angle\":\"42\",\"XYI3r59hvePgE6yBtmYxc7\":\"16\"}，输出区含「42\n42\n42\n请输入有效参数。\n16」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
+    "slug": "fire-rescue/calc-1",
+    "inputs": {
+      "pressure": "0.35",
+      "coeff": "0.8",
+      "angle": "60",
+      "nozzle": "19"
+    },
+    "expect": [
+      "20.90",
+      "10.45",
+      "26.20"
+    ],
+    "ref": "非默认态（0.35 MPa、折减 0.8、仰角 60°、19mm）：Hq=35 m，φ=0.0097 ⇒ Sk=35/(1+0.0097×35)×0.8=20.90 m；水平射程=20.90×cos60°=10.45 m；出口流速=√(2×9.81×35)=26.20 m/s。默认 0.30/0.9/45/19 输出 20.91，不命中 ⇒ 强判别。"
+  },
+  {
+    "slug": "fire-rescue/calc-1",
+    "inputs": {
+      "pressure": "0.3",
+      "coeff": "0.9",
+      "angle": "45",
+      "nozzle": "16"
+    },
+    "expect": [
+      "19.68",
+      "13.92"
+    ],
+    "ref": "同一 0.30 MPa 换 16 mm 水枪（默认口径 19 mm）：φ=0.0124 ⇒ Sk=30/(1+0.0124×30)×0.9=19.68 m；水平射程=19.68×cos45°=13.92 m。默认 19 mm 输出 Sk=20.91 m、水平射程 14.79 m ⇒ 两个锚点均不命中。⚠ 原第三个锚点「24.26」（出口流速 √(2×9.81×30)）只由压力决定、与枪口径无关，回退默认后仍为 24.26 ⇒ 逃生，已剔除。"
+  },
+  {
     "slug": "fire-rescue/calc-4",
     "inputs": {
       "area": "42",
@@ -433,9 +576,9 @@ const CASES = [
       "level": "medium"
     },
     "expect": [
-      "42\nB\nmedium\n单具保护面积： 1 m²/具 估算灭火器总数： 42 具 按每处 2 具布置，约需 21 个设置点"
+      "42\nB\nmedium\n单位灭火级别最大保护面积： 1 m²/B（GB 50140-2005 表 6.2.2） 所需灭火级别： 42 B（Q=K·S/U，K 取 1.0） 按 4kg ABC 干粉（55B）估算： 2 具（每个计算单元不少于 2 具） 按每处 2 具布置，约需 1 个设置点（每点不宜多于 5 具）"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"area\":\"42\",\"fireClass\":\"B\",\"level\":\"medium\"}，输出区含「42\nB\nmedium\n单具保护面积： 1 m²/具 估算灭火器总数： 42 具…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "独立复算：B 类中危险级 U=1.0 m²/B ⇒ Q=⌈42/1⌉=42B；4kg ABC 干粉 55B ⇒ 具数=max(2, ⌈42/55⌉)=2；设置点=max(1, ⌊2/2⌋)=1。默认 A 类轻危险级 300 m² ⇒ 3A/2 具，输出串不同 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "fire-rescue/calc-3",

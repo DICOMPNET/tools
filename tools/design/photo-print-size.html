@@ -262,9 +262,20 @@ const printSizes=[
   {name:'A3',cm:'A3',inch:'A3',w:29.7,h:42},
 ];
 function calc(){
-  const pw=+document.getElementById('pw').value||1;
-  const ph=+document.getElementById('ph').value||1;
+  const rawW=+document.getElementById('pw').value;
+  const rawH=+document.getElementById('ph').value;
   const dpi=+document.getElementById('dpi').value;
+  if(!(rawW>0) || !(rawH>0)){
+    document.getElementById('maxSize').textContent='—';
+    document.getElementById('sizes').innerHTML='<p style="color:var(--danger);">像素尺寸必须为大于 0 的整数</p>';
+    return;
+  }
+  if(!(dpi>0)){
+    document.getElementById('maxSize').textContent='—';
+    document.getElementById('sizes').innerHTML='<p style="color:var(--danger);">DPI 必须大于 0</p>';
+    return;
+  }
+  const pw=rawW, ph=rawH;
   const wCm=(pw/dpi*2.54);
   const hCm=(ph/dpi*2.54);
   const __g1=`${wCm.toFixed(1)} × ${hCm.toFixed(1)} cm`;document.getElementById('maxSize').textContent=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
@@ -294,11 +305,20 @@ function applyPrintPreset(kind){
   calc();
 }
 function ppExportCsv(){
+  function reqNum(id){
+    var raw = String(document.getElementById(id).value == null ? '' : document.getElementById(id).value).trim();
+    if(raw === '') return NaN;
+    var v = Number(raw);
+    return isFinite(v) ? v : NaN;
+  }
+  var pw=reqNum('pw'), ph=reqNum('ph'), dpi=reqNum('dpi');
+  if(!(pw > 0 && ph > 0 && dpi > 0)){
+    document.getElementById('sizes').innerHTML='<p style="color:var(--danger);">⚠ 导出前请先填写有效的像素尺寸与 DPI。</p>';
+    document.getElementById('maxSize').textContent='—';
+    return;
+  }
   if(typeof TBKit==='undefined'){return;}
   var en=TBKit.util.isEn();
-  var pw=+document.getElementById('pw').value||1;
-  var ph=+document.getElementById('ph').value||1;
-  var dpi=+document.getElementById('dpi').value||300;
   var wCm=pw/dpi*2.54, hCm=ph/dpi*2.54;
   var tbody=document.querySelector('#ppHidden tbody'); if(!tbody){return;}
   tbody.innerHTML='';
