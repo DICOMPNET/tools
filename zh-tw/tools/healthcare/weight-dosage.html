@@ -138,7 +138,7 @@ s.parentNode.insertBefore(el, s);
   </div>
   <div class="card formula-box">
     <h3>📐 計算公式與說明</h3>
-    <div class="formula-eq">按體重給藥劑量（本頁程式碼口徑）：日劑量=體重×劑量率（mg/天，體重 kg、劑量率 mg/kg）；單次劑量=日劑量÷每日次數（mg/次），兩項均保留 1 位小數。校驗：體重、劑量率、每日次數空值即提示並中止。判據：無固定分級，單次劑量與每日次數成反比，日總量恆等於體重×劑量率。</div>
+    <div class="formula-eq">按體重給藥劑量（本頁程式碼口徑）：日劑量=體重×劑量率（mg/天，體重 kg、劑量率 mg/kg）；單次劑量=日劑量÷每日次數（mg/次），兩項均保留 1 位小數。校驗：體重、劑量率、每日次數須 >0，缺失或非正即提示並中止；體重>300 kg 或劑量率>100 mg/kg 追加核對提示。判據：無固定分級，單次劑量與每日次數成反比，日總量恆等於體重×劑量率。</div>
     <p style="font-size:13px;color:var(--text-muted);margin-top:12px;">具體用藥務必遵醫囑，本工具僅作計算。</p>
   </div>
 </div>
@@ -292,11 +292,21 @@ function calc(){
 const weight = +document.getElementById('weight').value || 0;
   const mgkg = +document.getElementById('mgkg').value || 0;
   const freq = +document.getElementById('freq').value || 0;
+  if(!(weight>0)){
+    document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 体重须大于 0 kg，请检查输入（不支持 0 或负值）。</p>';
+    return;
+  }
+  if(!(mgkg>0)){
+    document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 剂量率须大于 0 mg/kg，请检查输入（不支持 0 或负值）。</p>';
+    return;
+  }
   let html = '';
   const __v0 = (weight*mgkg);
   html += `<p>日剂量：<strong style="font-size:18px;color:var(--primary);">${__v0.toFixed(1)}</strong> mg/天</p>`;
   const __v1 = (weight*mgkg/freq);
   html += `<p>单次剂量：<strong style="font-size:18px;color:var(--primary);">${__v1.toFixed(1)}</strong> mg/次</p>`;
+  if(weight>300) html += '<p style="font-size:12px;color:#d97706;">⚠ 体重超过 300 kg，超出常见成人范围，请核对单位（kg/斤）与数值。</p>';
+  if(mgkg>100) html += '<p style="font-size:12px;color:#d97706;">⚠ 剂量率超过 100 mg/kg，属极高剂量，请核对说明书极量与适应症。</p>';
   if(typeof refWeightOf==='function'){
     var __age=parseFloat(document.getElementById('age').value);
     var __rw=(__age>=0&&__age<=18)?refWeightOf(__age):null;
@@ -477,7 +487,7 @@ else document.addEventListener('DOMContentLoaded', __weight_dosageBoot);
 <li>分次：按每日次數拆分單次量</li>
 <li>用藥教育：強調遵醫囑、本工具僅算</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">方法</div><div class="dd-ex-body">演算法：日劑量 = 體重(kg) × 給藥強度(mg/kg)；單次劑量 = 日劑量 ÷ 每日次數。要求體重、強度、次數&gt;0。具體用藥須遵醫囑。</div></div>
+<div class="dd-example"><div class="dd-ex-title">方法</div><div class="dd-ex-body">演算法：日劑量 = 體重(kg) × 給藥強度(mg/kg)；單次劑量 = 日劑量 ÷ 每日次數。要求體重、強度、次數&gt;0；體重&gt;300 kg 或強度&gt;100 mg/kg 時給出核對提示。具體用藥須遵醫囑。</div></div>
 <div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">例1（體重 20kg、10mg/kg、每日 2 次）：日劑量 200mg/天，單次 100mg/次。例2（15kg、12mg/kg、每日 3 次）：日 180mg/天，單次 60mg/次。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">

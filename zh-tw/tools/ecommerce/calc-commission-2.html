@@ -121,7 +121,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="按成交額與平臺/服務費率計算佣金與淨到手金額。">Calc Commission 2</p>
     <div class="formula-box">
       <div class="formula-title">📐 計算公式</div>
-      <div class="formula-eq">佣金 = 成交額 A × 費率 B ÷ 100；淨到手 = A − 佣金；每萬元佣金 = B×100（元/萬元成交額）。校驗：A、B 任一非有限數值提示「請輸入兩個有效數值後再計算」。判據：費率 B &gt;10% 判偏高區間、否則正常，三卡聯動展示。</div>
+      <div class="formula-eq">佣金 = 成交額 A × 費率 B ÷ 100；淨到手 = A − 佣金；每萬元佣金 = B×100（元/萬元成交額）。校驗：A 需 ≥ 0、B 需在 0–100% 之間，非有限數值或越界時標紅並停止計算。判據：費率 B &gt;10% 判偏高區間、否則正常，三卡聯動展示。</div>
       <p class="formula-desc">本工具按成交金額與佣金比例（含階梯與封頂）計算平臺佣金、服務費與到賬金額，支援多檔費率試算。</p>
     </div>
     <div class="input-row">
@@ -553,6 +553,13 @@ function calc(){
   var box=document.getElementById('res');
   if(!box)return;
   if(!isFinite(A)||!isFinite(B)){box.innerHTML='<div class="info-box">请输入两个有效数值后再计算。</div>';return;}
+  if(A<0||B<0||B>100){
+    setInvalid(e0,A<0);
+    setInvalid(e1,B<0||B>100);
+    box.innerHTML='<div class="info-box" style="color:var(--danger)">⚠ 成交额需 ≥ 0，费率需在 0–100% 之间（当前输入：成交额 '+A+'、费率 '+B+'%），请修正后重算。</div>';
+    return;
+  }
+  setInvalid(e0,false);setInvalid(e1,false);
   var items=[];
   var fee=A*B/100;
   items.push([fee.toFixed(2), "应付佣金（元）"]);
@@ -669,7 +676,7 @@ function __calc_commission_2Export(){
 }
 function __calc_commission_2Presets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#calc_commission_2Presets',[{label:'默认参数',labelEn:'Default',values:{'v0':'25000', 'v1':'5'}}],function(){ calc(); });
+    TBKit.preset.bar('#calc_commission_2Presets',[{label:'默认参数',labelEn:'Default',values:{'v0':'25000', 'v1':'5'}},{"label":"达人带货 18%","labelEn":"Influencer 18%","values":{"v0":"68000","v1":"18"}},{"label":"平台扣点 3.5%","labelEn":"Platform fee 3.5%","values":{"v0":"12500","v1":"3.5"}},{"label":"社区团购 8%","labelEn":"Group buying 8%","values":{"v0":"9600","v1":"8"}}],function(){ calc(); });
 }
 var __calc_commission_2_f0=(typeof calc==='function')?calc:null;
 if(__calc_commission_2_f0){

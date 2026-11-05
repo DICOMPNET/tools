@@ -160,7 +160,8 @@ s.parentNode.insertBefore(el, s);
       • 急性呼酸：HCO3 升高 = 0.1×ΔPaCO2<br>
       • 慢性呼酸：HCO3 升高 = 0.35×ΔPaCO2<br>
       • 急性呼鹼：HCO3 降低 = 0.2×ΔPaCO2<br>
-      • 慢性呼鹼：HCO3 降低 = 0.5×ΔPaCO2
+      • 慢性呼鹼：HCO3 降低 = 0.5×ΔPaCO2<br>
+      <strong>呼衰判據：</strong>I 型 = PaO2&lt;60 且 PaCO2&lt;50；II 型 = PaO2&lt;60 且 PaCO2≥50；PaCO2≥50 而 PaO2≥60 僅判高碳酸血症
     </div>
   </div>
 
@@ -190,7 +191,7 @@ s.parentNode.insertBefore(el, s);
 <li>教學演示急性 vs 慢性呼吸性異常的 HCO3- 代償範圍差異。</li>
 <li>術前評估電解質與酸鹼狀態。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">慢性呼酸代償示例</div><div class="dd-ex-body">pH 7.33、PaCO2 60、HCO3- 34：pH 偏酸+PaCO2 高提示呼吸性酸中毒，HCO3- 升高符合慢性代償（ΔHCO3≈0.35×ΔPaCO2），判為慢性呼酸。</div></div>
+<div class="dd-example"><div class="dd-ex-title">慢性呼酸代償示例</div><div class="dd-ex-body">pH 7.33、PaCO2 60、HCO3- 34：pH 偏酸+PaCO2 高提示呼吸性酸中毒；ΔPaCO2=20，慢性預期 HCO3-=24+0.35×20=31.0，實測 34 在 31±3 容許區間內，判為慢性呼酸代償，不合並代謝性鹼中毒。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
 <dt>代償公式能直接診斷混合失衡嗎？</dt><dd>可提示。若實測 HCO3-/PaCO2 超出單純代償預期範圍，應懷疑混合性失衡，需結合臨床。</dd>
@@ -239,6 +240,9 @@ s.parentNode.insertBefore(el, s);
 <script>
 function num(id){var v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 
+var BGA_INVALID_MSG='请填写 pH、PaCO2、HCO3（均需大于 0）';
+var __bgaValid=true;
+
 function loadExample(type){
   if(type==='resp_acid'){ document.getElementById('ph').value='7.32';document.getElementById('paco2').value='60';document.getElementById('hco3').value='30';document.getElementById('pao2').value='65'; }
   if(type==='met_acid'){ document.getElementById('ph').value='7.25';document.getElementById('paco2').value='28';document.getElementById('hco3').value='12';document.getElementById('pao2').value='95'; }
@@ -248,7 +252,15 @@ function loadExample(type){
 
 function analyze(){
   var ph=num('ph'), paco2=num('paco2'), hco3=num('hco3'), pao2=num('pao2'), na=num('na'), cl=num('cl');
-  if(!ph||!paco2||!hco3) return;
+  if(!(ph>0)||!(paco2>0)||!(hco3>0)){
+    __bgaValid=false;
+    var __r=document.getElementById('result');
+    if(__r) __r.innerHTML='<p style="color:var(--danger)">'+BGA_INVALID_MSG+'</p>';
+    var __ref=document.getElementById('blood_gas_analysisRefBar'); if(__ref) __ref.innerHTML='';
+    var __chart=document.getElementById('blood_gas_analysisChart'); if(__chart) __chart.innerHTML='';
+    return;
+  }
+  __bgaValid=true;
   var html = '<h3 style="margin-bottom:8px;">酸碱平衡分析</h3>';
 
   // Step 1: pH status
@@ -312,9 +324,9 @@ function analyze(){
     compHtml += '<p>急性预期HCO3 = 24 + 0.1×'+dpaco2.toFixed(1)+' = <strong>'+acuteHco3.toFixed(1)+'</strong></p>';
     compHtml += '<p>慢性预期HCO3 = 24 + 0.35×'+dpaco2.toFixed(1)+' = <strong>'+chronicHco3.toFixed(1)+'</strong></p>';
     if(Math.abs(hco3-acuteHco3)<2) compHtml += '<p style="color:var(--success);">实测HCO3('+hco3+')符合急性呼酸代偿。</p>';
-    else if(Math.abs(hco3-chronicHco3)<3) compHtml += '<p style="color:var(--success);">实测HCO3('+hco3+')符合慢性呼酸代偿。</p>';
     else if(hco3>chronicHco3+3) compHtml += '<p style="color:var(--danger);">HCO3高于预期，合并代谢性碱中毒。</p>';
-    else compHtml += '<p style="color:#3b82f6;">HCO3低于预期，合并代谢性酸中毒。</p>';
+    else if(hco3<chronicHco3-3) compHtml += '<p style="color:#3b82f6;">HCO3低于预期，合并代谢性酸中毒。</p>';
+    else compHtml += '<p style="color:var(--success);">实测HCO3('+hco3+')符合慢性呼酸代偿（预期 '+chronicHco3.toFixed(1)+' ±3）。</p>';
     compHtml += '</div>';
   }
   if(primary.indexOf('呼吸性碱中毒')>=0){
@@ -325,19 +337,23 @@ function analyze(){
     compHtml += '<p>急性预期HCO3 = 24 - 0.2×'+dpaco2b.toFixed(1)+' = <strong>'+acuteHco3b.toFixed(1)+'</strong></p>';
     compHtml += '<p>慢性预期HCO3 = 24 - 0.5×'+dpaco2b.toFixed(1)+' = <strong>'+chronicHco3b.toFixed(1)+'</strong></p>';
     if(Math.abs(hco3-acuteHco3b)<2) compHtml += '<p style="color:var(--success);">实测HCO3符合急性呼碱代偿。</p>';
-    else if(Math.abs(hco3-chronicHco3b)<3) compHtml += '<p style="color:var(--success);">实测HCO3符合慢性呼碱代偿。</p>';
     else if(hco3>acuteHco3b+2) compHtml += '<p style="color:var(--danger);">HCO3高于预期，合并代谢性碱中毒。</p>';
-    else compHtml += '<p style="color:#3b82f6;">HCO3低于预期，合并代谢性酸中毒。</p>';
+    else if(hco3<chronicHco3b-3) compHtml += '<p style="color:#3b82f6;">HCO3低于预期，合并代谢性酸中毒。</p>';
+    else compHtml += '<p style="color:var(--success);">实测HCO3符合慢性呼碱代偿（预期 '+chronicHco3b.toFixed(1)+' ±3）。</p>';
     compHtml += '</div>';
   }
   html += compHtml;
 
   // Oxygenation
   if(pao2>0){
-    var o2Status = pao2<60?'I型呼吸衰竭':(paco2>=50?'II型呼吸衰竭':pao2<80?'低氧血症':'氧合正常');
-    var o2Color = pao2<60?'#dc2626':pao2<80?'#f59e0b':'#059669';
+    var o2Status,o2Color,o2Detail;
+    if(pao2<60 && paco2>=50){ o2Status='II型呼吸衰竭'; o2Color='#dc2626'; o2Detail='PaO2<60 且 PaCO2≥50 mmHg，符合 II 型（高碳酸型）呼吸衰竭。'; }
+    else if(pao2<60){ o2Status='I型呼吸衰竭'; o2Color='#dc2626'; o2Detail='PaO2<60 mmHg 且 PaCO2<50 mmHg，符合 I 型（低氧型）呼吸衰竭。'; }
+    else if(paco2>=50){ o2Status='高碳酸血症'; o2Color='#f59e0b'; o2Detail='PaCO2≥50 mmHg 但 PaO2≥60 mmHg，氧合未达呼衰阈值，单列高碳酸血症。'; }
+    else if(pao2<80){ o2Status='低氧血症'; o2Color='#f59e0b'; o2Detail='PaO2 60–79 mmHg，低于正常但未达呼吸衰竭诊断阈值。'; }
+    else { o2Status='氧合正常'; o2Color='#059669'; o2Detail='PaO2≥80 mmHg 且 PaCO2<50 mmHg，氧合正常。'; }
     html += '<h3 style="font-size:14px;margin:16px 0 8px;">氧合评估</h3>';
-    html += '<div class="diag-box" style="background:var(--result-bg);border-color:'+o2Color+';"><div class="diag-title" style="color:'+o2Color+';font-size:14px;">'+o2Status+'</div><div class="diag-detail">PaO2 = '+pao2+' mmHg，PaCO2 = '+paco2+' mmHg</div></div>';
+    html += '<div class="diag-box" style="background:var(--result-bg);border-color:'+o2Color+';"><div class="diag-title" style="color:'+o2Color+';font-size:14px;">'+o2Status+'</div><div class="diag-detail">PaO2 = '+pao2+' mmHg，PaCO2 = '+paco2+' mmHg。'+o2Detail+'</div></div>';
   }
 
   // —— 参考区间定位（S3 标尺）：pH / PaCO2 / HCO3 ——
@@ -411,7 +427,7 @@ analyze();
       <span class="rt-icon">🧮</span>
       <span class="rt-info"><span class="rt-name">生化比值計算器</span><span class="rt-desc">計算 AST/ALT(De Ritis)、BUN/Cr 等肝腎功能比值，輔助病因鑑別</span></span>
     </a>
-    <a href="/zh-tw/tools/clinical-lab/analysis-8.html" class="related-tool-card">
+    <a href="/zh-tw/tools/clinical-lab/blood-gas-analysis.html" class="related-tool-card">
       <span class="rt-icon">🧪</span>
       <span class="rt-info"><span class="rt-name">血氣分析（pH/PaO2/PaCO2）代償判斷</span><span class="rt-desc">血氣分析（pH/PaO2/PaCO2）代償判斷</span></span>
     </a>
@@ -462,7 +478,7 @@ function __blood_gas_analysisResText(){
     if(!r) return '';
     var t=(r.textContent||'').replace(/\s+/g,' ').trim();
     if(!t||t==='--'||t==='—'||t==='-') return '';
-    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    if(/请输入|请填写|无效|不正确|错误|Error|NaN/.test(t)) return '';
     return t.slice(0,80);
 }
 function __blood_gas_analysisTime(t){
@@ -538,11 +554,12 @@ function __blood_gas_analysisExtras(){
 }
 function __blood_gas_analysisExport(){
     if (typeof TBKit === 'undefined') return;
+    if(!__bgaValid){ try{ ToolBox.toast(BGA_INVALID_MSG); }catch(e){} return; }
     try { TBKit.util.exportTable('#blood_gas_analysisTable','blood-gas-analysis.csv'); } catch(e){}
 }
 function __blood_gas_analysisPresets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#blood_gas_analysisPresets',[{label:'默认参数',labelEn:'Default',values:{'ph':'7.40', 'paco2':'40', 'hco3':'24', 'pao2':'90', 'na':'140', 'cl':'100'}}],function(){ analyze(); });
+    TBKit.preset.bar('#blood_gas_analysisPresets',[{label:'默认参数',labelEn:'Default',values:{'ph':'7.40', 'paco2':'40', 'hco3':'24', 'pao2':'90', 'na':'140', 'cl':'100'}},{"label":"正常血气","labelEn":"Normal blood gas","values":{"ph":"7.38","paco2":"41","hco3":"24","pao2":"85","na":"139","cl":"102"}},{"label":"代谢性酸中毒","labelEn":"Metabolic acidosis","values":{"ph":"7.25","paco2":"30","hco3":"15","pao2":"88","na":"136","cl":"100"}},{"label":"代谢性碱中毒","labelEn":"Metabolic alkalosis","values":{"ph":"7.50","paco2":"46","hco3":"32","pao2":"80","na":"138","cl":"96"}}],function(){ analyze(); });
 }
 var __blood_gas_analysis_f0=(typeof analyze==='function')?analyze:null;
 if(__blood_gas_analysis_f0){

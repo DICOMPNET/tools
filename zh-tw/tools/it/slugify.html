@@ -140,7 +140,7 @@ s.parentNode.insertBefore(el, s);
 <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
     <h2 data-zh="🔗 URL Slug 生成器">🔗 URL Slug Generator</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">生成流程：Unicode 規範化 → 可選轉小寫 → 可選剔除停用詞 → 可選剝離符號 → 空白與分隔符歸一為所選分隔符（預設 -）→ 壓縮重複分隔符並去首尾；四種預覽：標準 slug、全小寫、連字元換下劃線、按 -_ 切分後首字母大寫拼接的駝峰式</div>
+  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">生成流程：可選移除中文或中文轉拼音 → 可選剝離符號（先於 Unicode 轉義執行，避免轉義後的 % 被符號過濾剔除）→ Unicode 模式按碼點轉義 → 可選轉小寫 → 可選剔除停用詞 → 空白與分隔符歸一為所選分隔符（預設 -）→ 壓縮重複分隔符並去首尾；四種預覽：標準 slug、全小寫、按所選分隔符轉下劃線、按分隔符切分後首字母大寫拼接的駝峰式</div>
   <div class="formula-desc">把標題或文本轉換為 URL Slug。</div>
   <ul class="formula-list">
     <li><b>步驟</b>：小寫化 → 去除重音符號 → 空格與標點統一替換為連字元 → 去除首尾連字元。</li>
@@ -324,11 +324,11 @@ const STOP_WORDS = new Set(['the','a','an','of','to','in','on','at','for','and',
 
 function slugify(text, opts){
   let s = text;
-  if(opts.mode === 'pinyin') s = toPinyin(s);
-  else if(opts.mode === 'remove') s = s.replace(/[\u4e00-\u9fa5]+/g, ' ');
-  else if(opts.mode === 'unicode') s = s.replace(/[\u4e00-\u9fa5]+/g, m => encodeURIComponent(m));
-
+  if(opts.mode === 'remove') s = s.replace(/[\u4e00-\u9fa5]+/g, ' ');
+  // 先剥离符号再编码：否则 Unicode 转义产生的 % 会被符号过滤当作分隔符剔掉
   if(opts.stripSymbols) s = s.replace(/[^\w\s\u4e00-\u9fa5-]/g, ' ');
+  if(opts.mode === 'pinyin') s = toPinyin(s);
+  else if(opts.mode === 'unicode') s = s.replace(/[\u4e00-\u9fa5]+/g, m => encodeURIComponent(m));
   if(opts.lowercase) s = s.toLowerCase();
 
   let words = s.split(/[\s_\-\.]+/).filter(Boolean);
@@ -355,8 +355,8 @@ function generate(){
   const formats = [
     {label: '标准', val: slug},
     {label: '全小写', val: slug.toLowerCase()},
-    {label: '下划线', val: slug.replace(/-/g, '_')},
-    {label: '驼峰', val: slug.split(/[-_]/).map((w,i) => i === 0 ? w.toLowerCase() : w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join('')},
+    {label: '下划线', val: slug.split(opts.separator).join('_')},
+    {label: '驼峰', val: slug.split(/[-_.]/).map((w,i) => i === 0 ? w.toLowerCase() : w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join('')},
   ];
   const __h1=formats.map(f => `
     <div class="preview-item">

@@ -198,8 +198,19 @@ s.parentNode.insertBefore(el, s);
 <!-- /注意事項區塊 -->
 </div>
 <script>
-function calc(){const a1c=+document.getElementById("a1c").value||0;const mg=28.7*a1c-46.7;const out="平均血糖 eAG = "+mg.toFixed(1)+" mg/dL (≈ "+(mg/18).toFixed(2)+" mmol/L)";var _d="\n换算灵敏度 = 28.7 mg/dL 每 1% HbA1c\n与控制目标（154 mg/dL）差距 = "+(mg-154).toFixed(1)+" mg/dL\n判读："+(mg<140?"eAG 低于 140 mg/dL，一般属正常糖耐量范围":mg<200?"eAG 140–199 mg/dL，提示糖尿病前期，建议 OGTT 复查":"eAG 达到 200 mg/dL 及以上，提示糖尿病范围，建议内分泌科随诊")+"\n随诊建议："+(mg<140?"年度体检常规复查":mg<200?"每 3–6 个月复查 HbA1c":"按医嘱密集监测并随诊")+"\nHbA1c 切点：低于 5.7% 正常，5.7–6.4% 糖尿病前期，6.5% 及以上考虑糖尿病\n控制目标参考：一般成人 HbA1c 低于 7.0%（对应 eAG 约 154 mg/dL）";
-const el=document.getElementById("res");el.innerHTML='<p style="font-size:18px;color:var(--primary);white-space:pre-line;">'+(out+_d).replace(/&/g,'&amp;').replace(/</g,'&lt;')+'</p>';}calc();function copyRes(){ToolBox.copyText(document.getElementById("res").innerText);}
+function calc(){
+  const raw=document.getElementById("a1c").value;
+  const a1c=parseFloat(raw);
+  const el=document.getElementById("res");
+  if(!(a1c>=3&&a1c<=20)){
+    const safe=String(raw).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    el.innerHTML='<p style="font-size:15px;color:var(--danger,#dc2626);white-space:pre-line;">⚠️ 请输入有效 HbA1c（3–20%）；当前输入「'+safe+'」未参与换算，结果已清空。</p>';
+    return;
+  }
+  const mg=28.7*a1c-46.7;const out="平均血糖 eAG = "+mg.toFixed(1)+" mg/dL (≈ "+(mg/18).toFixed(2)+" mmol/L)";var _d="\n换算灵敏度 = 28.7 mg/dL 每 1% HbA1c\n与控制目标（154 mg/dL）差距 = "+(mg-154).toFixed(1)+" mg/dL\n判读："+(mg<140?"eAG 低于 140 mg/dL，一般属正常糖耐量范围":mg<200?"eAG 140–199 mg/dL，提示糖尿病前期，建议 OGTT 复查":"eAG 达到 200 mg/dL 及以上，提示糖尿病范围，建议内分泌科随诊")+"\n随诊建议："+(mg<140?"年度体检常规复查":mg<200?"每 3–6 个月复查 HbA1c":"按医嘱密集监测并随诊")+"\nHbA1c 切点：低于 5.7% 正常，5.7–6.4% 糖尿病前期，6.5% 及以上考虑糖尿病\n控制目标参考：一般成人 HbA1c 低于 7.0%（对应 eAG 约 154 mg/dL）";
+  el.innerHTML='<p style="font-size:18px;color:var(--primary);white-space:pre-line;">'+(out+_d).replace(/&/g,'&amp;').replace(/</g,'&lt;')+'</p>';
+}
+calc();function copyRes(){ToolBox.copyText(document.getElementById("res").innerText);}
 </script>
 
 <!-- SEO 介紹區塊 -->
@@ -232,7 +243,7 @@ const el=document.getElementById("res");el.innerHTML='<p style="font-size:18px;c
       <span class="rt-icon">📊</span>
       <span class="rt-info"><span class="rt-name">血氣分析代償判斷器</span><span class="rt-desc">輸入 pH、PaCO2、HCO3- 判斷酸鹼失衡型別(代酸/呼鹼等)及代償是否充分，按 Winte…</span></span>
     </a>
-    <a href="/zh-tw/tools/clinical-lab/analysis-8.html" class="related-tool-card">
+    <a href="/zh-tw/tools/clinical-lab/blood-gas-analysis.html" class="related-tool-card">
       <span class="rt-icon">🧪</span>
       <span class="rt-info"><span class="rt-name">血氣分析（pH/PaO2/PaCO2）代償判斷</span><span class="rt-desc">血氣分析（pH/PaO2/PaCO2）代償判斷</span></span>
     </a>
@@ -363,7 +374,7 @@ function __convert_glucose_1Export(){
 }
 function __convert_glucose_1Presets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#convert_glucose_1Presets',[{label:'默认参数',labelEn:'Default',values:{'a1c':'6.5'}}],function(){ calc(); });
+    TBKit.preset.bar('#convert_glucose_1Presets',[{label:'默认参数',labelEn:'Default',values:{'a1c':'6.5'}},{"label":"HbA1c 5.5%","labelEn":"HbA1c 5.5%","values":{"a1c":"5.5"}},{"label":"HbA1c 7.0%","labelEn":"HbA1c 7.0%","values":{"a1c":"7.0"}},{"label":"HbA1c 9.0%","labelEn":"HbA1c 9.0%","values":{"a1c":"9.0"}}],function(){ calc(); });
 }
 var __convert_glucose_1_f0=(typeof calc==='function')?calc:null;
 if(__convert_glucose_1_f0){

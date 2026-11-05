@@ -116,7 +116,7 @@ s.parentNode.insertBefore(el, s);
 </div>
 <div class="card">
     <h2 data-zh="👶 兒童劑量換算">👶 Paediatric Dose Conversion Calculator</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="根據成人劑量按體重換算兒童劑量。">Convert an adult dose to a child dose by weight or by body surface area, with Clark's rule, Young's rule and the BSA method compared side by side.</p>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="根據成人劑量按體重換算兒童劑量。">Convert an adult dose to a child dose by weight, with an adult-dose ceiling controlled by the maximum factor.</p>
     <div class="input-row"><label>成人劑量 mg</label><input type="number" id="adult_dose" value="500" step="any" oninput="calc()" placeholder="如 500"></div>
     <div class="input-row"><label>兒童體重 kg</label><input type="number" id="child_weight" value="20" step="any" oninput="calc()" placeholder="如 20"></div>
     <div class="input-row"><label>參考成人體重 kg</label><input type="number" id="adult_weight" value="70" step="any" oninput="calc()" placeholder="如 70"></div>
@@ -135,7 +135,7 @@ s.parentNode.insertBefore(el, s);
   </div>
   <div class="card formula-box">
     <h3>📐 計算公式與說明</h3>
-    <div class="formula-eq">兒童劑量按體重換算（克拉克法口徑 + 倍數封頂，本頁程式碼口徑）：按體重劑量 = 成人劑量 × (兒童體重 ÷ 參考成人體重)（mg）；受限劑量 = min(按體重劑量, 成人劑量 × 最大倍數限制)（mg，封頂防止換算值超量）；劑量比例 = 兒童體重 ÷ 成人體重 × 100（%）。校驗：成人劑量、兒童體重、成人體重、最大倍數四項必填守衛，其餘空值按 0 兜底。判據：無固定分級，實際用藥須遵醫囑，本結果僅作兒科給藥劑量參考。</div>
+    <div class="formula-eq">兒童劑量按體重換算（按體重比例 + 成人劑量倍數封頂，本頁程式碼口徑）：按體重劑量 = 成人劑量 × (兒童體重 ÷ 參考成人體重)（mg）；受限劑量 = min(按體重劑量, 成人劑量 × 最大倍數限制)（mg，最大倍數須 ≥1，小於 1 時拒絕計算以防劑量被壓縮至 0）；劑量比例 = 兒童體重 ÷ 成人體重 × 100（%）。校驗：成人劑量、兒童體重、成人體重、最大倍數四項必填守衛，成人劑量須 >0、最大倍數須 ≥1，否則拒絕計算。判據：無固定分級，實際用藥須遵醫囑，本結果僅作兒科給藥劑量參考。</div>
     <p style="font-size:13px;color:var(--text-muted);margin-top:12px;">實際用藥需遵醫囑，不可自行決定。</p>
   </div>
 </div>
@@ -164,8 +164,8 @@ s.parentNode.insertBefore(el, s);
         </tr>
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="劑量上限">Dose ceiling</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="折算結果超過成人單次劑量時按成人劑量封頂">the scaled dose is capped at the adult dose when it exceeds it</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="Chinese Pharmacopoeia 2020">Chinese Pharmacopoeia 2020</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="折算結果超過「成人劑量 × 最大倍數」時按該上限封頂">the scaled dose is capped at adult dose × maximum factor when it exceeds that ceiling</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="本工具自定的倍數上限引數">user-set maximum factor in this tool</td>
         </tr>
       </tbody>
     </table>
@@ -290,6 +290,14 @@ const adult_dose = +document.getElementById('adult_dose').value || 0;
   const child_weight = +document.getElementById('child_weight').value || 0;
   const adult_weight = +document.getElementById('adult_weight').value || 0;
   const max_factor = +document.getElementById('max_factor').value || 0;
+  if (!(adult_dose > 0)) {
+    document.getElementById('result').innerHTML = '<p style="color:var(--danger)">⚠ 成人剂量须大于 0 mg，否则换算结果无意义。</p>';
+    return;
+  }
+  if (!(max_factor >= 1)) {
+    document.getElementById('result').innerHTML = '<p style="color:var(--danger)">⚠ 最大倍数限制须 ≥ 1：倍数小于 1 会把儿童剂量压缩、甚至算出 0 mg，本工具拒绝计算。请填写 ≥1 的倍数（常用 2）。</p>';
+    return;
+  }
   let html = '';
   const __v0 = (adult_dose*(child_weight/adult_weight));
   html += `<p>按体重剂量：<strong style="font-size:18px;color:var(--primary);">${__v0.toFixed(2)}</strong> mg</p>`;
@@ -297,6 +305,7 @@ const adult_dose = +document.getElementById('adult_dose').value || 0;
   html += `<p>受限剂量：<strong style="font-size:18px;color:var(--primary);">${__v1.toFixed(2)}</strong> mg</p>`;
   const __v2 = ((child_weight/adult_weight)*100);
   html += `<p>剂量比例：<strong style="font-size:18px;color:var(--primary);">${__v2.toFixed(2)}</strong> %</p>`;
+  html += '<p style="font-size:12px;color:var(--text-muted);">说明：封顶上限 = 成人剂量 × 最大倍数；按体重剂量低于该值时结果等于按体重剂量，高于时才被截断。</p>';
   const __g2=html;document.getElementById('result').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 }
 function copyResult() {

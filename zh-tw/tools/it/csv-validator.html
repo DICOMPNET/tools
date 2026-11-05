@@ -100,7 +100,7 @@ s.parentNode.insertBefore(el, s);
     <h2 data-zh="📊 CSV 校驗器">📊 CSV Validator</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="CSV 用逗號分隔、引號包裹含逗號的欄位。列數不一致或引號未閉合會導致匯入失敗。本工具逐行解析並報告異常行號，便於清洗資料。">CSV Validator - Verify column counts are consistent, quotes are balanced and fields are non-empty, flagging bad rows. Free, browser-only.</p>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">先去掉回車符再按換行切分，過濾掉末尾之後產生的空行；無有效行時提示請貼上 CSV。逐行做引號感知的切分：處於引號內時，連續兩個引號轉為一個引號字元，遇到單個引號退出引號態；否則遇到引號進入引號態、遇到分隔符切分欄位，其餘字元累加到當前欄位。切分完成後若仍處於引號態則記為「引號未閉合」；否則若欄位數與標準列數不同則記為「列數不符」。標準列數取首行切分出的欄位數。輸出行數、標準列數與問題數（有問題時標紅、無問題時標綠），並逐條列出問題行號與描述</div>
+  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">按字元流掃描整份文本：引號內的換行屬於欄位內容、不切分記錄，CRLF 與 LF 均識別為記錄分隔；無有效記錄時提示請貼上 CSV。逐記錄做引號感知的切分：處於引號內時，連續兩個引號轉為一個引號字元，遇到單個引號退出引號態；否則遇到引號進入引號態、遇到分隔符切分欄位，其餘字元累加到當前欄位。切分完成後若仍處於引號態則記為「引號未閉合」；否則若欄位數與標準列數不同則記為「列數不符」。標準列數取首條記錄切分出的欄位數，問題行號取該記錄起始的物理行號。輸出行數、標準列數與問題數（有問題時標紅、無問題時標綠），並逐條列出問題行號與描述</div>
   <div class="formula-desc">校驗 CSV 檔案的格式合法性。</div>
   <ul class="formula-list">
     <li><b>檢查項</b>：列數是否一致、引號是否閉合、分隔符是否統一、編碼（UTF-8/BOM）與必填列缺失。</li>
@@ -211,33 +211,40 @@ s.parentNode.insertBefore(el, s);
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function escH(s){var d=document.createElement('div');const __g1=s==null?'':String(s);d.textContent=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));return d.innerHTML;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
-function calcTool(){function parseLine(line,sep){
-  var out=[],cur='',q=false;
-  for(var i=0;i<line.length;i++){
-    var c=line[i];
+function calcTool(){function parseCSV(text,sep){
+  var records=[],fields=[],cur='',q=false,physLine=1,recLine=1,pending=false;
+  function endField(){fields.push(cur);cur='';}
+  for(var i=0;i<text.length;i++){
+    var c=text.charAt(i);
     if(q){
-      if(c==='"'&&line[i+1]==='"'){cur+='"';i++;}
+      if(c==='"'&&text.charAt(i+1)==='"'){cur+='"';i++;}
       else if(c==='"'){q=false;}
-      else cur+=c;
-    }else{
-      if(c==='"'){q=true;}
-      else if(c===sep){out.push(cur);cur='';}
-      else cur+=c;
+      else{if(c==='\n')physLine++;cur+=c;}
+      continue;
     }
+    if(c==='"'){q=true;pending=true;}
+    else if(c===sep){endField();pending=true;}
+    else if(c==='\n'||c==='\r'){
+      if(c==='\r'&&text.charAt(i+1)==='\n'){i++;}
+      physLine++;
+      endField();
+      records.push({fields:fields,line:recLine,open:false});
+      fields=[];cur='';recLine=physLine;pending=false;
+    }else{cur+=c;pending=true;}
   }
-  out.push(cur);
-  return {fields:out,open:q};
+  if(pending||q){endField();records.push({fields:fields,line:recLine,open:q});}
+  return records;
 }
-var src=document.getElementById('src').value.replace(/\r/g,'');
+var src=document.getElementById('src').value;
 var sep=document.getElementById('sep').value||',';
-var lines=src.split(/\n/).filter(function(l,i,a){return l.length>0||i<a.length-1;});
+var lines=parseCSV(src,sep);
 if(!lines.length){document.getElementById('result').innerHTML='<div class="result-title">提示</div><p class="muted">请粘贴 CSV。</p>';return;}
-var expect=parseLine(lines[0],sep).fields.length;
+var expect=lines[0].fields.length;
 var issues=[];
 for(var i=0;i<lines.length;i++){
-  var r=parseLine(lines[i],sep);
-  if(r.open)issues.push('第 '+(i+1)+' 行：引号未闭合');
-  else if(r.fields.length!==expect)issues.push('第 '+(i+1)+' 行：列数 '+r.fields.length+'（应为 '+expect+'）');
+  var r=lines[i];
+  if(r.open)issues.push('第 '+r.line+' 行：引号未闭合');
+  else if(r.fields.length!==expect)issues.push('第 '+r.line+' 行：列数 '+r.fields.length+'（应为 '+expect+'）');
 }
 var html='<div class="result-title">校验结果</div><div class="data-grid">';
 html+='<div class="data-card"><div class="num">'+lines.length+'</div><div class="label">行数</div></div>';

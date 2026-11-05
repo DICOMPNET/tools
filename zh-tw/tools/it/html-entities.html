@@ -159,6 +159,7 @@ s.parentNode.insertBefore(el, s);
     <div class="toolbar">
       <input type="text" id="searchInput" placeholder="搜尋實體名、符號或描述，如 copy、©、版權" style="flex:1;min-width:200px;">
     </div>
+    <div data-tb="preset" data-tb-presets='[{"label":"版权符号","labelEn":"Copyright symbol","values":{"searchInput":"copy"}},{"label":"箭头符号","labelEn":"Arrow symbols","values":{"searchInput":"箭头"}},{"label":"引号符号","labelEn":"Quotation marks","values":{"searchInput":"引号"}},{"label":"比较符号","labelEn":"Comparison signs","values":{"searchInput":"≤"}}]'></div>
 
     <div class="category-tabs" id="categoryTabs"></div>
 
@@ -552,16 +553,25 @@ function encodeAll(){
   const input = document.getElementById('encoderInput').value;
   let output = '';
   for(const ch of input){
-    output += `&#${ch.charCodeAt(0)};`;
+    output += `&#${ch.codePointAt(0)};`;
   }
   document.getElementById('encoderOutput').textContent = output;
 }
 
 function decodeText(){
   const input = document.getElementById('encoderInput').value;
-  const div = document.createElement('div');
-  const __h2=input;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){div.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}div.innerHTML=__h2;
-  document.getElementById('encoderOutput').textContent = div.textContent;
+  const named = {amp:'&', lt:'<', gt:'>', quot:'"', apos:"'", nbsp:'\u00a0'};
+  const output = input.replace(/&(#(?:[xX][0-9a-fA-F]+|[0-9]+)|amp|lt|gt|quot|apos|nbsp);/g, function(m, body){
+    if(body.charAt(0) === '#'){
+      const cp = body.charAt(1) === 'x' || body.charAt(1) === 'X'
+        ? parseInt(body.slice(2), 16)
+        : parseInt(body.slice(1), 10);
+      if(!isFinite(cp) || cp < 0 || cp > 0x10ffff || (cp >= 0xd800 && cp <= 0xdfff)) return m;
+      return String.fromCodePoint(cp);
+    }
+    return named[body];
+  });
+  document.getElementById('encoderOutput').textContent = output;
 }
 
 function clearEncoder(){

@@ -110,7 +110,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="通過抽樣測試或已知的認識比例，估算您的英語詞彙量範圍。">Estimate your English vocabulary size.</p>
     <div class="formula-box">
       <div class="formula-title">📐 計算公式</div>
-      <div class="formula-eq">樣例模式：每詞權重 = 該級詞表容量 ÷ 樣例詞數（1 級 2000、2 級 6000、3 級 12000、4 級 25000，未標級預設 20000），認識比例 = 認識權重 ÷ 總權重，估算詞彙量 = round(認識比例 × 20000)；比例模式：估算值 = round(認識比例% ÷ 100 × 基準詞彙量)。校驗：樣例模式至少勾選 1 個詞；比例模式認識比例須在 0–100 且基準詞彙量有效。判據：按估算詞彙量查表輸出對應英語水平參考。</div>
+      <div class="formula-eq">樣例模式：每詞權重 = 該級詞表容量 ÷ 樣例詞數（1 級 2000、2 級 6000、3 級 12000、4 級 25000，未標級預設 20000），認識比例 p = 認識權重 ÷ 總權重，點估計 = round(p × 20000)；95% 區間 = round((p ± 1.96 × √(p(1−p)/20)) × 20000)，n=20 為抽樣詞數，區間截斷在 0–20000。比例模式：估算值 = round(認識比例% ÷ 100 × 基準詞彙量)，按您給定的比例推算，不含抽樣誤差。校驗：樣例模式至少勾選 1 個詞；比例模式認識比例須在 0–100 且基準詞彙量有效。判據：按估算詞彙量查表輸出對應英語水平參考。</div>
       <p class="formula-desc">通過抽樣測試或已知的認識比例，估算您的英語詞彙量範圍。</p>
     </div>
 
@@ -242,8 +242,8 @@ s.parentNode.insertBefore(el, s);
 <li>自測水平後製定背詞計劃（如目標 5000/8000）</li>
 <li>對比不同詞表（通用/雅思/託福）看覆蓋差距</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">比例推總量</div><div class="dd-ex-body">抽樣 20 詞認得 14 個（70%），若參考詞表 2 萬詞 → 估認識 ≈ 14000；常用簡明詞典約 3000 核心詞覆蓋 80% 文本，認 70% 抽樣說明已超基礎門檻。</div></div>
-<div class="dd-example"><div class="dd-ex-title">區間理解</div><div class="dd-ex-body">抽樣有隨機誤差，結果給區間而非定值；認 16/20(80%) 與 14/20(70%) 雖差 10 個百分點，總量可能差 2000 詞，屬正常波動。</div></div>
+<div class="dd-example"><div class="dd-ex-title">分層加權推總量</div><div class="dd-ex-body">勾選前 14 個詞（5 個 1 級 + 5 個 2 級 + 4 個 3 級）：認識權重 4400、總權重 11250 → 點估計 7,822 詞，95% 區間約 3,545–12,100；同樣是 14/20，若勾選 5 個 4 級 + 5 個 3 級 + 4 個 2 級，則點估計 18,578 詞（區間約 16,325–20,000）。</div></div>
+<div class="dd-example"><div class="dd-ex-title">區間理解</div><div class="dd-ex-body">抽樣有隨機誤差，結果給 95% 區間而非定值；同為 14/20 個詞（按個數 70%），因勾選詞的難度不同，點估計可落在 7,822–18,578 詞，不能把 70% 直接換算成 14,000。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
 <dt>抽樣為什麼用 20 詞？</dt><dd>太少誤差大、太多費時；20 詞在可信度與效率間平衡，按難度分層（高頻→低頻）取樣更準。</dd>
@@ -382,13 +382,19 @@ function calc() {
 
     const ratio = knownWeight / totalWeight;
     const estimated = Math.round(ratio * 20000);
+    const se = Math.sqrt(ratio * (1 - ratio) / sampleWordList.length);
+    const lowRatio = Math.max(0, ratio - 1.96 * se);
+    const highRatio = Math.min(1, ratio + 1.96 * se);
+    const low = Math.round(lowRatio * 20000);
+    const high = Math.round(highRatio * 20000);
     const levelDesc = getLevelDesc(estimated);
 
     const __g3=`
       <p>认识单词数：<strong>${checked.length}</strong> / ${sampleWordList.length}</p>
       <p>估算词汇量：<strong>${estimated.toLocaleString('zh-CN')}</strong> 词</p>
+      <p>估算区间（95%）：<strong>${low.toLocaleString('zh-CN')} – ${high.toLocaleString('zh-CN')}</strong> 词</p>
       <p>水平参考：<span class="grade-tag ${levelDesc.class}">${levelDesc.text}</span></p>
-      <p style="font-size:12px;color:var(--text-muted);margin-top:8px;">此结果为粗略估算，仅供参考。</p>
+      <p style="font-size:12px;color:var(--text-muted);margin-top:8px;">区间按 20 个抽样词的二项标准误估算，结果为粗略参考。</p>
     `;resEl.innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
   } else {
     const ratio = parseFloat(document.getElementById('knownRatio').value);
@@ -403,6 +409,7 @@ function calc() {
       <p>认识比例：<strong>${ratio}%</strong></p>
       <p>估算词汇量：<strong>${estimated.toLocaleString('zh-CN')}</strong> 词</p>
       <p>水平参考：<span class="grade-tag ${levelDesc.class}">${levelDesc.text}</span></p>
+      <p style="font-size:12px;color:var(--text-muted);margin-top:8px;">按您给定的认识比例推算，不含抽样误差。</p>
     `;resEl.innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
   }
 }

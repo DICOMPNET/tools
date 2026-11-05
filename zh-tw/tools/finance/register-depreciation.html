@@ -261,7 +261,7 @@ s.parentNode.insertBefore(el, s);
   <ul>
     <li>本工具純前端執行，資料不會上傳到伺服器</li>
     <li>雙倍餘額遞減法最後兩年自動改為直線法（按中國會計準則慣例）</li>
-    <li>折舊計算以"年"為單位，購入當年按完整年度計算</li>
+    <li>折舊按已滿完整年度計提；購入未滿一年時累計折舊為 0，滿一年後按第 1 年末數</li>
     <li>計算結果僅供參考，實際折舊請遵循企業會計政策</li>
   </ul>
 </div>
@@ -326,17 +326,30 @@ function methodLabel(m) {
   return m === 'straight' ? '直线法' : m === 'ddb' ? '双倍余额递减法' : m === 'syd' ? '年数总和法' : m;
 }
 
+function parseLocalDate(s) {
+  var p = String(s).split('-');
+  return new Date(+p[0], (+p[1] || 1) - 1, +p[2] || 1);
+}
+
 function getCurrentBookValue(asset) {
   var schedule = calcDepreciation(asset.cost, asset.salvage, asset.life, asset.method);
-  var now = new Date();
-  var purchaseDate = new Date(asset.date);
-  var yearsElapsed = Math.floor((now - purchaseDate) / (365.25 * 24 * 3600 * 1000));
-  if (yearsElapsed < 0) yearsElapsed = 0;
-  if (yearsElapsed >= schedule.length) yearsElapsed = schedule.length - 1;
+  var today = new Date();
+  today.setHours(0, 0, 0, 0);
+  var purchaseDate = parseLocalDate(asset.date);
+  if (purchaseDate > today) {
+    return { bookVal: asset.cost, accDep: 0, yearIdx: -1, completedYears: 0, schedule: schedule };
+  }
+  var completedYears = today.getFullYear() - purchaseDate.getFullYear();
+  var anniversary = new Date(today.getFullYear(), purchaseDate.getMonth(), purchaseDate.getDate());
+  if (anniversary > today) completedYears--;
+  if (completedYears < 0) completedYears = 0;
+  if (completedYears > schedule.length) completedYears = schedule.length;
+  var yearIdx = completedYears - 1;
   return {
-    bookVal: schedule[yearsElapsed].bookVal,
-    accDep: schedule[yearsElapsed].accDep,
-    yearIdx: yearsElapsed,
+    bookVal: yearIdx < 0 ? asset.cost : schedule[yearIdx].bookVal,
+    accDep: yearIdx < 0 ? 0 : schedule[yearIdx].accDep,
+    yearIdx: yearIdx,
+    completedYears: completedYears,
     schedule: schedule
   };
 }
@@ -416,7 +429,7 @@ function showDetail(id) {
   html += '<div class="data-grid">';
   html += '<div class="data-card"><div class="num">¥' + fmt(bv.bookVal) + '</div><div class="label">当前账面价值</div></div>';
   html += '<div class="data-card"><div class="num">¥' + fmt(bv.accDep) + '</div><div class="label">累计折旧</div></div>';
-  html += '<div class="data-card"><div class="num">' + (bv.yearIdx + 1) + '/' + asset.life + '</div><div class="label">当前年度</div></div>';
+  html += '<div class="data-card"><div class="num">' + bv.completedYears + '/' + asset.life + '</div><div class="label">当前年度</div></div>';
   html += '<div class="data-card"><div class="num">' + ((bv.accDep / asset.cost) * 100).toFixed(1) + '%</div><div class="label">折旧进度</div></div>';
   html += '</div>';
 
@@ -496,7 +509,7 @@ function renderList() {
 }
 
 // 初始化默认日期
-document.getElementById('aDate').value = new Date().toISOString().slice(0, 10);
+(function(){var d=new Date();var p=function(n){return (n<10?'0':'')+n;};document.getElementById('aDate').value=d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate());})();
 renderList();
 renderSummary();
 </script>

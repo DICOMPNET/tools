@@ -125,8 +125,8 @@ s.parentNode.insertBefore(el, s);
     <h2 data-zh="🔮 銷售趨勢預測">Moving Average</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="移動平均法預測，支援簡單移動平均(SMA)、加權移動平均(WMA)與指數平滑(EMA)">Moving Average</p>
     <div class="formula-box">
-      <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">移動平均預測（SMA/WMA/EMA）<br>SMA：MA(t) = 最近 N 期和 ÷ N<br>WMA：權重 w = N−j（近期權重大）<br>　WMA = Σ(x×w) ÷ [N(N+1)/2]<br>EMA：α = 2 ÷ (N+1)<br>　EMA(t) = x(t)×α + EMA(t−1)×(1−α)<br>　以首期為初值遞推<br>預測期滾動：SMA/WMA 用最新 N 期，EMA 全序列遞推<br>SMA/WMA 從第 N 期起有值，EMA 從第 1 期起<br>輸入校驗：至少 2 期資料</div>
-      <p class="formula-desc" data-zh="核心計算公式（按輸入變數）：2÷(n+1)；n×(n+1)÷2；n-1">Key formulas: 2÷(n+1); n×(n+1)÷2; n-1</p>
+      <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">移動平均預測（SMA/WMA/EMA）<br>SMA：MA(t) = 最近 N 期和 ÷ N<br>WMA：按時間從舊到新賦權 1,2,…,N（最新權重最大）<br>　WMA = Σ(x×w) ÷ [N(N+1)/2]<br>EMA：α = 2 ÷ (N+1)<br>　EMA(t) = x(t)×α + EMA(t−1)×(1−α)<br>　以首期為初值遞推<br>預測期滾動：SMA/WMA 用最新 N 期，WMA 權重方向與歷史同口徑；EMA 全序列遞推<br>SMA/WMA 從第 N 期起有值，EMA 從第 1 期起<br>輸入校驗：至少 2 期資料</div>
+      <p class="formula-desc" data-zh="核心公式：SMA 取最近 N 期算術平均；WMA 權重 1,2,…,N（最新權重最大），分母 N×(N+1)÷2；EMA 係數 α = 2÷(N+1)">SMA: mean of last N; WMA: weights 1,2,…,N with the newest weighted highest, denominator N×(N+1)÷2; EMA coefficient α = 2÷(N+1)</p>
     </div>
 
     <div class="data-area">
@@ -303,7 +303,7 @@ function calc(){
     } else if(method==='wma'){
       var seg2 = lastData.slice(-n);
       var ws=0, wt=0;
-      for(var w=0;w<seg2.length;w++){ ws+=seg2[w]*(seg2.length-w); wt+=(seg2.length-w); }
+      for(var w=0;w<seg2.length;w++){ ws+=seg2[w]*(w+1); wt+=(w+1); }
       f = ws/wt;
     } else {
       var e = lastData[0];
@@ -417,7 +417,7 @@ function maExportCsv(){
   for(var p=0;p<periods;p++){
     var f;
     if(method==='sma'){var seg=lastData.slice(-n);f=seg.reduce(function(a,b){return a+b;},0)/seg.length;}
-    else if(method==='wma'){var sg=lastData.slice(-n);var ws=0,wt=0;for(var w=0;w<sg.length;w++){ws+=sg[w]*(sg.length-w);wt+=(sg.length-w);}f=ws/wt;}
+    else if(method==='wma'){var sg=lastData.slice(-n);var ws=0,wt=0;for(var w=0;w<sg.length;w++){ws+=sg[w]*(w+1);wt+=(w+1);}f=ws/wt;}
     else{var e=lastData[0];for(var q=1;q<lastData.length;q++)e=lastData[q]*alpha+e*(1-alpha);f=e;}
     forecasts.push(f);lastData.push(f);
   }

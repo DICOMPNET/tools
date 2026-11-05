@@ -121,7 +121,7 @@ s.parentNode.insertBefore(el, s);
     <h2 data-zh="🫀 心臟彩色超音波(LVEF/室壁運動)報告解讀器">Echo Report</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="輸入超聲心動圖關鍵引數，自動評估收縮功能、室壁運動、心腔大小及舒張功能">Echo Report</p>
     <div class="formula-box">
-      <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">LVEF分級：≥50% 正常；40–49% HFmrEF(中間值)；30–39% HFrEF(降低)；&lt; 30% 重度降低WMSI：≤1.0 正常、≤1.5 輕度、≤2.0 中度、&gt; 2.0 重度心腔：LVIDd ≥ 55mm 左室擴大、左房 ≥ 40mm 擴大、主動脈 ≥ 37mm 增寬、右室 ≥ 30mm 擴大舒張功能：E/A &lt; 0.8 → 1級(鬆弛受損)；0.8–2.0 且間隔 e′&lt;7 cm/s → 2級(假性正常可能，充盈壓評估需結合絕對 E/e′&gt;14 綜合判斷)；&gt; 2.0 → 3級(限制型)；間隔 e′ 正常參考 ≥7 cm/sICD一級預防指徵：LVEF ≤ 35% 且 LVESV ≥ 40mL</div>
+      <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">LVEF分級：≥50% 正常；40–49% HFmrEF(中間值)；30–39% HFrEF(降低)；&lt; 30% 重度降低WMSI：≤1.0 正常、≤1.5 輕度、≤2.0 中度、&gt; 2.0 重度心腔：LVIDd ≥ 55mm 左室擴大、左房 ≥ 40mm 擴大、主動脈 ≥ 37mm 增寬、右室 ≥ 30mm 擴大舒張功能：E/A &lt; 0.8 → 1級(鬆弛受損)；0.8–2.0 且間隔 e′&lt;7 cm/s → 2級(假性正常可能，充盈壓評估需結合絕對 E/e′&gt;14 綜合判斷)；&gt; 2.0 → 3級(限制型)；間隔 e′ 正常參考 ≥7 cm/sICD 一級預防評估指徵：LVEF ≤35%，需結合 NYHA II–III 級與最佳化 GDMT≥3 個月；LVESV 單獨不構成指徵。</div>
       <p class="formula-desc" data-zh="「輸入超聲心動圖關鍵引數，自動評估收縮功能、室壁運動、心腔大小及舒張功能」按輸入引數進行專業計算並輸出結果。">Echo Report: computes and outputs results from the input parameters.</p>
     </div>
 
@@ -329,8 +329,9 @@ function calc(){
     else{diastGrade='舒张功能正常';diastColor='#10B981';}
   }else{diastGrade='舒张功能减低(3级/限制型)';diastColor='#EF4444';}
 
-  // ICD指征
-  var icdFlag=lvef<=35&&lvesv>=40;
+  // ICD 一级预防评估指征（LVEF≤35% 为基础，需结合 NYHA II–III 级与优化 GDMT≥3 个月）
+  var icdFlag=lvef<=35;
+  var icdSevere=lvef<=30;
 
   var html='<div class="stat-grid">';
   html+='<div class="stat-card"><div class="val" style="color:'+efColor+';">'+lvef+'%</div><div class="lbl">LVEF</div></div>';
@@ -341,7 +342,7 @@ function calc(){
 
   html+='<div class="ref-card"><h4>收缩功能</h4><ul>';
   html+='<li>LVEF = '+lvef+'% → <strong style="color:'+efColor+';">'+efLevel+'</strong></li>';
-  html+='<li>LVESV = '+lvesv+'mL'+(icdFlag?' → <strong style="color:#EF4444;">ICD一级预防指征(LVEF≤35%且LVESV≥40mL)</strong>':'')+'</li>';
+  html+='<li>LVESV = '+lvesv+'mL'+(icdFlag?' → <strong style="color:#EF4444;">LVEF≤35%，需评估 ICD 一级预防（结合 NYHA II–III 级与优化 GDMT≥3 个月）</strong>':'')+'</li>';
   html+='</ul></div>';
 
   html+='<div class="ref-card"><h4>室壁运动</h4><ul>';
@@ -365,7 +366,7 @@ function calc(){
   html+='</ul></div>';
 
   html+='<div class="tip-box" style="border-color:'+efColor+';color:'+efColor+';background:'+efColor+'1a;"><strong>收缩功能：'+efLevel+'</strong><br>'+efAdvice+'</div>';
-  if(icdFlag)html+='<div class="tip-box tip-error"><strong>ICD一级预防指征</strong><br>LVEF≤35%且LVESV≥40mL，建议评估ICD植入。';
+  if(icdFlag)html+='<div class="tip-box tip-error"><strong>ICD 一级预防评估指征</strong><br>'+(icdSevere?'LVEF≤30%，属高危；若 NYHA II–III 级且已优化 GDMT≥3 个月，建议评估 ICD。':'LVEF≤35%，需同时满足 NYHA II–III 级与优化 GDMT≥3 个月才考虑 ICD；LVESV 单独不构成指征。')+'</div>';
 
   const __g1=html;document.getElementById('result').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 }
@@ -389,7 +390,7 @@ calc();
   <h3 class="related-tools-title">🔗 相關工具</h3>
   <div class="related-tools-grid">
 
-    <a href="/zh-tw/tools/cardiology/convert-rehab.html" class="related-tool-card">
+    <a href="/zh-tw/tools/cardiology/cardiac-rehab-mets.html" class="related-tool-card">
       <span class="rt-icon">❤️</span>
       <span class="rt-info"><span class="rt-name">心臟康復（METs）等價換算</span><span class="rt-desc">心臟康復（METs）等價換算</span></span>
     </a>

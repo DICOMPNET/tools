@@ -233,7 +233,7 @@ s.parentNode.insertBefore(el, s);
     <h2 data-zh="🖼️ 圖片縮放工具">Image Scaling</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="線上圖片縮放 / 調整尺寸，支援按比例或指定尺寸，平滑與快速兩種演算法，PNG/JPEG 輸出。純前端 Canvas 處理，圖片不上傳。">Image Scaling</p>
     <div class="formula-box">
-      <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">圖片縮放與輸出引數計算<br>目標尺寸由模式決定：按寬/按高/按長邊/按百分比/自由<br>等比縮放：新邊 = 基準邊 × 原對邊 ÷ 原基準邊（向下取整）<br>canvas 重繪：drawImage(原圖, 0, 0, 新寬, 高)<br>插值：高質量雙線性平滑 或 鄰近（銳化畫素風）<br>JPEG/WebP 無透明通道，先鋪白底再繪製<br>預覽顯示縮放 displayScale = min(1, 容器寬/圖寬, 440/圖高)<br>面積縮放比例 = (新寬×新高) ÷ (原寬×原高) × 100%<br>體積變化 = (新檔案大小 − 原大小) ÷ 原大小 × 100%<br>質量引數：JPEG/WebP 0~100 滑桿，PNG 固定無損</div>
+      <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">圖片縮放與輸出引數計算<br>目標尺寸由模式決定：按寬/按高/按長邊/按百分比/自由<br>等比縮放：新邊 = 基準邊 × 原對邊 ÷ 原基準邊（向下取整）<br>canvas 重繪：drawImage(原圖, 0, 0, 新寬, 高)<br>插值：高質量雙線性平滑 或 鄰近（銳化畫素風）<br>僅 JPEG 無透明通道，先鋪白底再繪製；PNG/WebP 保留 alpha<br>預覽顯示縮放 displayScale = min(1, 容器寬/圖寬, 440/圖高)<br>面積縮放比例 = (新寬×新高) ÷ (原寬×原高) × 100%<br>體積變化 = (新檔案大小 − 原大小) ÷ 原大小 × 100%<br>質量引數：JPEG/WebP 0~100 滑桿，PNG 固定無損</div>
       <p class="formula-desc" data-zh="「線上圖片縮放 / 調整尺寸，支援按比例或指定尺寸，平滑與快速兩種演算法，PNG/JPEG 輸出。純前端 Canvas 處理，圖片不上傳。」按輸入引數進行專業計算並輸出結果。">Image Scaling: computes and outputs results from the input parameters.</p>
     </div>
 
@@ -244,6 +244,9 @@ s.parentNode.insertBefore(el, s);
       <div class="dz-hint">支援 PNG / JPEG / WebP / GIF / BMP，圖片僅在本地處理</div>
       <input type="file" id="fileInput" accept="image/*" style="display:none;" onchange="handleFile(this.files[0])">
     </div>
+
+    <!-- 源圖格式提示（GIF 首幀 / SVG 柵格化） -->
+    <div id="sourceNotice" class="info-box" style="display:none;margin-top:12px;"></div>
 
     <!-- 主操作區 -->
     <div id="mainArea" style="display:none;">
@@ -288,6 +291,7 @@ s.parentNode.insertBefore(el, s);
             <input type="number" id="targetH" min="1" max="10000" placeholder="高度" oninput="onSizeInput('h')">
           </div>
         </div>
+        <div id="sizeError" role="alert" style="display:none;color:var(--danger);font-size:13px;margin-top:8px;"></div>
       </div>
 
       <!-- 公共設定 -->
@@ -383,7 +387,7 @@ s.parentNode.insertBefore(el, s);
     <ul>
       <li>本工具純前端執行，圖片資料不會離開您的裝置</li>
       <li>放大圖片不會增加真實細節，可能出現模糊或鋸齒</li>
-      <li>JPEG/WebP 格式不支援透明背景，輸出時會以白色填充</li>
+      <li>JPEG 格式不支援透明背景，輸出時會以白色填充；PNG/WebP 保留透明通道</li>
       <li>建議在主流瀏覽器（Chrome / Safari / Firefox / Edge）中使用</li>
       <li>超大圖片（如 10000px 以上）可能因記憶體限制處理緩慢</li>
     </ul>
@@ -500,6 +504,10 @@ var lockAspect = true;
 var aspectRatio = 1; // w/h
 var resultBlob = null;
 var resultCanvas = null;
+var resultW = 0, resultH = 0, resultFmt = '';
+var originalImgUrl = null;
+var loadToken = 0, blobToken = 0;
+var MAX_SIDE = 10000;
 
 var $ = function(id){ return document.getElementById(id); };
 
@@ -509,14 +517,71 @@ function formatSize(b){
   return (b / 1048576).toFixed(2) + ' MB';
 }
 
+function fmtLabel(f){
+  return f === 'image/jpeg' ? 'JPEG' : (f === 'image/webp' ? 'WebP' : 'PNG');
+}
+
+function showSourceNotice(type){
+  var el = $('sourceNotice');
+  if(!el) return;
+  var msg = '';
+  if(type === 'image/gif'){
+    msg = '⚠️ 检测到 GIF 动图：本工具只读取第一帧，输出为静态 PNG/JPEG/WebP，不保留动画。需要逐帧提取请使用「GIF 分解工具」。';
+  } else if(type === 'image/svg+xml'){
+    msg = '⚠️ 检测到 SVG 矢量图：本工具会按当前尺寸栅格化为位图输出。';
+  }
+  el.textContent = msg;
+  el.style.display = msg ? '' : 'none';
+}
+
+function setSizeError(msg){
+  var el = $('sizeError');
+  if(el){
+    el.textContent = msg || '';
+    el.style.display = msg ? '' : 'none';
+  }
+  var invalid = msg ? 'true' : 'false';
+  if($('targetW')) $('targetW').setAttribute('aria-invalid', invalid);
+  if($('targetH')) $('targetH').setAttribute('aria-invalid', invalid);
+}
+
+// 纯校验：宽高必须是 1–10000 之间的有限数值（宽高比联动后同样走这里）
+function validateTargetSize(w, h){
+  if(!isFinite(w) || !isFinite(h) || w < 1 || h < 1 || w > MAX_SIDE || h > MAX_SIDE){
+    return {valid:false, w:0, h:0, error:'请输入 1–' + MAX_SIDE + ' 之间的整数宽高。'};
+  }
+  return {valid:true, w:Math.round(w), h:Math.round(h), error:''};
+}
+
+function clearResult(){
+  resultBlob = null;
+  resultCanvas = null;
+  resultW = 0;
+  resultH = 0;
+  resultFmt = '';
+}
+
 function handleFile(file){
   if(!file || !file.type.startsWith('image/')){
     ToolBox.showToast(i18nText('toast.msg942'), 'error');
     return;
   }
-  originalFile = file;
-  originalImg = new Image();
-  originalImg.onload = function(){
+  // 每次换图都作废旧加载/旧导出，避免解码失败或异步竞态时把上一张图当新图下载
+  var myToken = ++loadToken;
+  blobToken++;
+  clearResult();
+  setSizeError('');
+  showSourceNotice(file.type);
+  // 立刻把预览切到加载态，避免解码期间仍显示上一张图
+  $('newSize').textContent = '— × —';
+  $('previewWrap').innerHTML = '<span class="empty-preview">正在加载新图片…</span>';
+  if(originalImgUrl){ URL.revokeObjectURL(originalImgUrl); originalImgUrl = null; }
+  var img = new Image();
+  img.onload = function(){
+    if(myToken !== loadToken) return;
+    originalImg = img;
+    originalFile = file;
+    originalImgUrl = img.src;
     $('mainArea').style.display = '';
     aspectRatio = originalImg.naturalWidth / originalImg.naturalHeight;
     // 原始信息
@@ -532,10 +597,16 @@ function handleFile(file){
     setPercent(50);
     ToolBox.showToast(i18nText('tool.image_load_ok'), 'success');
   };
-  originalImg.onerror = function(){
+  img.onerror = function(){
+    if(myToken !== loadToken) return;
+    originalImg = null;
+    originalFile = null;
+    clearResult();
+    $('mainArea').style.display = 'none';
+    showSourceNotice('');
     ToolBox.showToast(i18nText('toast.msg117'), 'error');
   };
-  originalImg.src = URL.createObjectURL(file);
+  img.src = URL.createObjectURL(file);
 }
 
 function switchMode(mode){
@@ -602,17 +673,21 @@ function onQualityChange(val){
 }
 
 function getTargetSize(){
-  if(!originalImg) return {w:0,h:0};
+  if(!originalImg) return {w:0,h:0,valid:false,error:''};
   var w, h;
   if(currentMode === 'percent'){
     var pct = parseInt($('percentSlider').value, 10);
-    w = Math.max(1, Math.round(originalImg.naturalWidth * pct / 100));
-    h = Math.max(1, Math.round(originalImg.naturalHeight * pct / 100));
-  } else {
-    w = Math.max(1, parseInt($('targetW').value, 10) || 1);
-    h = Math.max(1, parseInt($('targetH').value, 10) || 1);
+    w = Math.round(originalImg.naturalWidth * pct / 100);
+    h = Math.round(originalImg.naturalHeight * pct / 100);
+    if(!isFinite(w) || !isFinite(h) || w < 1 || h < 1 || w > MAX_SIDE || h > MAX_SIDE){
+      return {w:0,h:0,valid:false,error:'缩放后尺寸超出 1–' + MAX_SIDE + 'px 范围，请降低缩放比例。'};
+    }
+    return {w:w, h:h, valid:true, error:''};
   }
-  return {w:w, h:h};
+  var rawW = String($('targetW').value).trim();
+  var rawH = String($('targetH').value).trim();
+  if(rawW === '' || rawH === '') return {w:0,h:0,valid:false,error:'请输入 1–' + MAX_SIDE + ' 之间的整数宽高。'};
+  return validateTargetSize(Number(rawW), Number(rawH));
 }
 
 function render(){
@@ -620,6 +695,18 @@ function render(){
   var size = getTargetSize();
   var fmt = $('outFormat').value;
   var algo = $('algorithm').value;
+  var wrap = $('previewWrap');
+
+  // 宽高为空 / 0 / 超上限时给出字段级提示并停止渲染，绝不退化成 1 像素图
+  if(!size.valid){
+    setSizeError(size.error);
+    blobToken++;
+    clearResult();
+    $('newSize').textContent = '— × —';
+    wrap.innerHTML = '<span class="empty-preview">' + size.error + '</span>';
+    return;
+  }
+  setSizeError('');
 
   var canvas = document.createElement('canvas');
   canvas.width = size.w;
@@ -634,17 +721,15 @@ function render(){
     ctx.imageSmoothingEnabled = false;
   }
 
-  // JPEG / WebP 无透明，填白底
+  // 仅 JPEG 无透明通道，填白底；PNG/WebP 保留透明
   if(fmt === 'image/jpeg'){
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, size.w, size.h);
   }
 
   ctx.drawImage(originalImg, 0, 0, size.w, size.h);
-  resultCanvas = canvas;
 
   // 预览：用 canvas 直接展示（避免大图 dataURL 卡顿）
-  var wrap = $('previewWrap');
   const __h1='';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){wrap.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}wrap.innerHTML=__h1;
   var previewCanvas = canvas.cloneNode(false);
   var previewCtx = previewCanvas.getContext('2d');
@@ -663,20 +748,32 @@ function render(){
   // 更新对比信息
   $('newSize').textContent = size.w + ' × ' + size.h;
 
-  // 生成 blob 用于下载（质量参数）
+  // 生成 blob 用于下载（质量参数）；用 token 丢弃换图/改参数后到达的过期回调
   var quality = parseInt($('qualitySlider').value, 10) / 100;
+  var myToken = ++blobToken;
   canvas.toBlob(function(blob){
+    if(myToken !== blobToken) return;
+    if(!blob){
+      clearResult();
+      ToolBox.showToast('当前尺寸过大或浏览器不支持该输出格式，请降低目标尺寸或改用 PNG。', 'error');
+      return;
+    }
     resultBlob = blob;
+    resultCanvas = canvas;
+    resultW = size.w;
+    resultH = size.h;
+    resultFmt = fmt;
     var scalePct = ((size.w * size.h) / (originalImg.naturalWidth * originalImg.naturalHeight) * 100).toFixed(1);
     var origSizeStr = originalFile ? formatSize(originalFile.size) : '—';
-    var newSizeStr = blob ? formatSize(blob.size) : '—';
-    var sizeChange = originalFile && blob ? ((blob.size - originalFile.size) / originalFile.size * 100).toFixed(1) : 0;
+    var newSizeStr = formatSize(blob.size);
+    var sizeChange = originalFile ? ((blob.size - originalFile.size) / originalFile.size * 100).toFixed(1) : 0;
     var sizeChangeStr = parseFloat(sizeChange) >= 0 ? ('+' + sizeChange + '%') : (sizeChange + '%');
     var sizeColor = parseFloat(sizeChange) > 0 ? 'var(--danger)' : 'var(--success)';
-    const __h2='<p>缩放比例：<strong>' + scalePct + '%</strong>（面积）</p>' +
+    var __h2='<p>缩放比例：<strong>' + scalePct + '%</strong>（面积）</p>' +
       '<p>原始大小：<strong>' + origSizeStr + '</strong> → 缩放后：<strong>' + newSizeStr + '</strong></p>' +
       '<p>体积变化：<strong style="color:' + sizeColor + ';">' + sizeChangeStr + '</strong></p>' +
-      '<p>输出格式：<strong>' + fmt + '</strong>' + ((fmt === 'image/jpeg' || fmt === 'image/webp') ? '（质量 ' + (quality*100).toFixed(0) + '%）' : '（无损）') + '</p>';if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){$('resizeInfo').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}$('resizeInfo').innerHTML=__h2;
+      '<p>输出格式：<strong>' + fmtLabel(fmt) + '</strong>' + ((fmt === 'image/jpeg' || fmt === 'image/webp') ? '（质量 ' + (quality*100).toFixed(0) + '%）' : '（无损）') + '</p>' +
+      ((originalFile && originalFile.type === 'image/gif') ? '<p>源图为 GIF 动图，本次输出为<strong>静态首帧</strong>。</p>' : '');if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){$('resizeInfo').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}$('resizeInfo').innerHTML=__h2;
   }, fmt, (fmt === 'image/png') ? undefined : quality);
 }
 
@@ -685,13 +782,13 @@ function downloadImage(){
     ToolBox.showToast(i18nText('tool.file_upload_hint'), 'warning');
     return;
   }
-  var fmt = $('outFormat').value;
+  // 扩展名必须跟随实际生成的 blob 格式，避免改格式后立即下载得到「旧内容 + 新扩展名」
+  var fmt = resultFmt;
   var ext = 'png';
   if(fmt === 'image/jpeg') ext = 'jpg';
   else if(fmt === 'image/webp') ext = 'webp';
   var baseName = (originalFile.name || 'image').replace(/\.[^.]+$/, '');
-  var size = getTargetSize();
-  var filename = baseName + '_' + size.w + 'x' + size.h + '.' + ext;
+  var filename = baseName + '_' + resultW + 'x' + resultH + '.' + ext;
   var url = URL.createObjectURL(resultBlob);
   var a = document.createElement('a');
   a.href = url;
@@ -707,7 +804,7 @@ function copyPreviewData(){
     ToolBox.showToast(i18nText('tool.file_upload_hint'), 'warning');
     return;
   }
-  var fmt = $('outFormat').value;
+  var fmt = resultFmt || $('outFormat').value;
   var quality = parseInt($('qualitySlider').value, 10) / 100;
   try{
     var dataUrl = resultCanvas.toDataURL(fmt, (fmt === 'image/png') ? undefined : quality);
@@ -721,12 +818,16 @@ function copyPreviewData(){
 }
 
 function resetAll(){
+  loadToken++;
+  blobToken++;
   originalImg = null;
   originalFile = null;
-  resultBlob = null;
-  resultCanvas = null;
+  clearResult();
+  if(originalImgUrl){ URL.revokeObjectURL(originalImgUrl); originalImgUrl = null; }
   $('mainArea').style.display = 'none';
   $('fileInput').value = '';
+  showSourceNotice('');
+  setSizeError('');
   const __h3='<span class="empty-preview">正在生成预览…</span>';if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){$('previewWrap').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}$('previewWrap').innerHTML=__h3;
   ToolBox.showToast(i18nText('toast.msg333'), 'info');
 }
@@ -766,6 +867,8 @@ window.render = render;
 window.downloadImage = downloadImage;
 window.copyPreviewData = copyPreviewData;
 window.resetAll = resetAll;
+window.showSourceNotice = showSourceNotice;
+window.__resizeValidate = validateTargetSize;
 
 ToolBox.initToolTheme();
 })();
@@ -868,7 +971,7 @@ function __image_resizeExport(){
 }
 function __image_resizePresets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#image_resizePresets',[{label:'默认参数',labelEn:'Default',values:{'percentSlider':'50', 'algorithm':'smooth', 'outFormat':'image/png', 'qualitySlider':'85'}}],function(){ downloadImage(); });
+    TBKit.preset.bar('#image_resizePresets',[{label:'默认参数',labelEn:'Default',values:{'percentSlider':'50', 'algorithm':'smooth', 'outFormat':'image/png', 'qualitySlider':'85'}},{"label":"小规模","labelEn":"Small scale","values":{"percentSlider":"25"}},{"label":"大规模","labelEn":"Large scale","values":{"percentSlider":"75"}},{"label":"极端工况","labelEn":"Extreme case","values":{"percentSlider":"100"}}],function(){ downloadImage(); });
 }
 var __image_resize_f0=(typeof downloadImage==='function')?downloadImage:null;
 if(__image_resize_f0){

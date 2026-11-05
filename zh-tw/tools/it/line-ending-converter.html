@@ -147,7 +147,7 @@ s.parentNode.insertBefore(el, s);
   </div>
 </div>
 <div style="display:flex;gap:8px;flex-wrap:wrap;margin:12px 0;">
-  <div id="line_ending_converterPresets"></div><button type="button" class="btn" onclick="calcTool()">轉換</button><button class="btn" type="button" onclick="__line_ending_converterExport()">匯出明細 CSV</button>
+  <div id="line_ending_converterPresets"></div><button type="button" class="btn" onclick="calcTool()">轉換</button><button type="button" class="btn" onclick="loadSampleLE()">示例</button><button class="btn" type="button" onclick="__line_ending_converterExport()">匯出明細 CSV</button>
   <button type="button" class="btn primary" onclick="copyLe()">複製結果</button>
   <button type="button" class="btn" onclick="copyRaw()">複製原始文本</button>
   <button type="button" class="btn" onclick="clearLe()">清空</button>
@@ -317,7 +317,15 @@ function leViz(s){
 }
 function calcTool(){
   var raw=document.getElementById('leInput').value||'';
-  if(!raw){raw='line1\nline2\nline3';}
+  if(!raw){
+    // 空输入：清空输出与统计，只给提示；示例文本仅由「示例」按钮显式注入
+    document.getElementById('leOutput').value='';
+    const __e1='<p class="tip-mini" style="color:var(--text-muted);">输入为空，请粘贴文本或点击“示例”加载示例文本。</p>';
+    document.getElementById('result').innerHTML=__e1;
+    document.getElementById('leDetail').innerHTML='';
+    document.getElementById('leViz').innerHTML='<span style="color:var(--text-muted);">（等待输入）</span>';
+    return;
+  }
   var target=document.getElementById('targetSel').value;
   var c=countLE(raw);
   var total=c.crlf+c.cr+c.lf;
@@ -335,6 +343,10 @@ function calcTool(){
   const __g2=det;document.getElementById('leDetail').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
   const __g3=leViz(raw);document.getElementById('leViz').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
 }
+function loadSampleLE(){
+  document.getElementById('leInput').value='第一行\r\n第二行\r\n第三行';
+  calcTool();
+}
 function copyLe(){
   var v=document.getElementById('leOutput').value;
   if(!v){ToolBox.showToast('请先输入文本');return;}
@@ -350,6 +362,7 @@ function clearLe(){
   document.getElementById('leOutput').value='';
   document.getElementById('result').innerHTML='';
   document.getElementById('leDetail').innerHTML='';
+  document.getElementById('leViz').innerHTML='<span style="color:var(--text-muted);">（等待输入）</span>';
 }
 document.getElementById('leFile').addEventListener('change',function(){
   var f=this.files&&this.files[0];if(!f)return;

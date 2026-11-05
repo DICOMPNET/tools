@@ -130,13 +130,13 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="根據造口型別、排洩物性狀和底盤貼上狀態，計算造口袋更換間隔和滲漏預警時間。">Ostomy Bag Timing</p>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理與說明</div>
-      <div class="formula-eq">更換間隔 = 底板基準天數 × 底盤狀態係數；迴腸造口稀便 1 至 2 天、結腸造口成形便 3 至 5 天；底盤發白滲漏時係數下調；滲漏預警時間 = 更換間隔 × 0.7，自上次更換時刻起算提前提醒。</div>
+      <div class="formula-eq">更換間隔 = 底板基準天數 × 底盤狀態係數（完好 1.0、邊緣翹起 0.5、侵蝕 0.3、已滲漏 0）；基準天數：結腸造口成形便 7 天、半成形 5 天、稀便 4 天，迴腸造口成形便 5 天、半成形 4 天、稀便 3 天，尿路造口尿液 7 天；滲漏預警時間 = 更換間隔 × 0.7，自上次更換時刻起算提前提醒。</div>
 
 </div>
 
     <div class="input-row">
       <div>
-        <div data-tb="preset" data-tb-presets='[{"label": "结肠造口示例", "labelEn": "Colostomy", "values": {"stomaType": "colostomy", "outputType": "formed", "baseStatus": "intact"}}]'></div>
+        <div data-tb="preset" data-tb-presets='[{"label":"结肠造口·边缘翘起","labelEn":"Colostomy, base edges lifting","values":{"stomaType":"colostomy","outputType":"formed","baseStatus":"slight"}},{"label":"回肠造口·水样渗漏","labelEn":"Ileostomy, liquid leakage","values":{"stomaType":"ileostomy","outputType":"liquid","baseStatus":"leak"}},{"label":"尿路造口·底盘侵蚀","labelEn":"Urostomy, eroded base","values":{"stomaType":"urostomy","outputType":"urine","baseStatus":"erosion"}}]'></div>
 <label>造口型別</label>
         <select id="stomaType" onchange="calc()">
           <option value="colostomy">結腸造口</option>
@@ -182,6 +182,7 @@ s.parentNode.insertBefore(el, s);
       <div class="countdown-box" id="countdownBox" style="display:none;">
         <div style="font-size:13px;color:var(--text-light);">距離建議更換時間還有</div>
         <div class="cd-time" id="countdown">--</div>
+        <div id="warnInfo" style="font-size:12.5px;color:var(--text-light);margin-top:4px;"></div>
       </div>
     </div>
     <div id="ostomy_bag_timingTable"></div>
@@ -193,9 +194,10 @@ s.parentNode.insertBefore(el, s);
     </div>
     <div class="info-box">
       <strong>造口袋更換參考標準：</strong><br>
-      結腸造口（成形便）：3-7天更換一次<br>
-      迴腸造口（水樣便）：3-5天更換一次<br>
-      尿路造口：3-7天更換一次<br>
+      結腸造口（成形便）：7天更換一次（半成形 5 天、稀便 4 天）<br>
+      迴腸造口（水樣便）：3天更換一次（半成形 4 天、成形便 5 天）<br>
+      尿路造口（尿液）：7天更換一次<br>
+      底盤邊緣翹起 ×0.5、被侵蝕 ×0.3、已滲漏立即更換<br>
       出現滲漏應立即更換<br><br>
       <strong>滲漏預警訊號：</strong><br>
       1. 底盤邊緣翹起、變色<br>
@@ -230,11 +232,11 @@ s.parentNode.insertBefore(el, s);
 <h2>📚 深度解析：造口袋更換時間(滲漏預警)計算器</h2>
 <h3>💡 常見使用場景</h3>
 <ul class="dd-list">
-<li>結腸造口底盤常規 3–7 天更換，滲漏或異味即刻換。</li>
-<li>迴腸造口排洩稀、刺激強，縮短至 2–4 天並加強皮膚保護。</li>
+<li>結腸造口底盤常規 4–7 天更換，滲漏或異味即刻換。</li>
+<li>迴腸造口排洩稀、刺激強，縮短至 3–5 天並加強皮膚保護。</li>
 <li>術後初期觀察造口血運與黏膜，按分泌物調整頻次。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">複核一例迴腸造口更換週期</div><div class="dd-ex-body">輸入型別=迴腸、分泌物多，工具給 2–4 天更換並提示防漏膏，與造口護理一致。</div></div>
+<div class="dd-example"><div class="dd-ex-title">複核一例迴腸造口更換週期</div><div class="dd-ex-body">輸入型別=迴腸、水樣便、底盤完好，工具給 3 天更換；若底盤邊緣翹起則按 0.5 係數縮短為 2 天（四捨五入），並提示防漏膏，與造口護理一致。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
 <dt>本工具能替代造口師指導嗎？</dt><dd>不能，僅作週期提醒，複雜併發症請造口門診。</dd>
@@ -259,7 +261,7 @@ s.parentNode.insertBefore(el, s);
       <tbody>
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="更換週期">Change interval</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="底盤更換週期一般為 3~5 天，需根據注出物性狀調整。">The wafer is generally changed every 3 to 5 days, adjusted according to output consistency.</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="底盤更換週期一般為 4~7 天，需根據排洩物性狀調整。">The wafer is generally changed every 4 to 7 days, adjusted according to output consistency.</td>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);">WOCN Society 2018 guideline for management of patients with an ostomy</td>
         </tr>
         <tr>
@@ -299,7 +301,36 @@ var baseStatusAdjust = {
   leak: { mult:0, msg:'必须立即更换（已渗漏）' }
 };
 
+var allowedOutputs = {
+  colostomy: ['formed','semi','liquid'],
+  ileostomy: ['formed','semi','liquid'],
+  urostomy: ['urine']
+};
+
+function syncOutputOptions(){
+  var stoma = document.getElementById('stomaType').value;
+  var allow = allowedOutputs[stoma] || [];
+  var sel = document.getElementById('outputType');
+  var current = sel.value;
+  Array.prototype.forEach.call(sel.options || [], function(op){
+    if(!op) return;
+    var ov = (op.value != null) ? String(op.value) : String(op);
+    var ok = allow.indexOf(ov) >= 0;
+    if(op.style){
+      op.disabled = !ok;
+      op.style.display = ok ? '' : 'none';
+    }
+  });
+  if(allow.indexOf(current) < 0) sel.value = allow[0];
+}
+
+function fmtDT(d){
+  function p(n){ return (n < 10 ? '0' : '') + n; }
+  return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+}
+
 function calc(){
+  syncOutputOptions();
   var stomaType = document.getElementById('stomaType').value;
   var outputType = document.getElementById('outputType').value;
   var baseStatus = document.getElementById('baseStatus').value;
@@ -328,20 +359,41 @@ function calc(){
   }
 
   var cdBox = document.getElementById('countdownBox');
+  var cdText = document.getElementById('countdown');
+  var warnInfo = document.getElementById('warnInfo');
+  if(!cdBox || !cdText || !warnInfo) return;
+  cdText.style.color = '';
+  warnInfo.textContent = '';
+  warnInfo.style.color = 'var(--text-light)';
   if(lastChangeStr && interval > 0){
     var last = new Date(lastChangeStr);
-    var next = new Date(last.getTime() + interval * 86400000);
-    var now = new Date();
-    var diff = next - now;
-    if(diff > 0){
-      var days = Math.floor(diff / 86400000);
-      var hours = Math.floor((diff % 86400000) / 3600000);
+    if(isNaN(last.getTime())){
       cdBox.style.display = 'block';
-      const __g7=days + '天 ' + hours + '小时';document.getElementById('countdown').textContent=(typeof __g7==='number'?(isFinite(__g7)?__g7:'—'):String(__g7).replace(/Infinity|NaN/g,'—'));
+      cdText.textContent = '—';
+      warnInfo.textContent = '⚠ 上次更换时间无效，请重新选择';
+      warnInfo.style.color = 'var(--danger)';
     } else {
+      var next = new Date(last.getTime() + interval * 86400000);
+      var warnAt = new Date(last.getTime() + interval * 0.7 * 86400000);
+      var now = new Date();
+      var diff = next - now;
+      var warnDiff = warnAt - now;
       cdBox.style.display = 'block';
-      document.getElementById('countdown').textContent = '已超期，请立即更换';
-      document.getElementById('countdown').style.color = 'var(--danger)';
+      if(diff > 0){
+        var days = Math.floor(diff / 86400000);
+        var hours = Math.floor((diff % 86400000) / 3600000);
+        const __g7=days + '天 ' + hours + '小时';cdText.textContent=(typeof __g7==='number'?(isFinite(__g7)?__g7:'—'):String(__g7).replace(/Infinity|NaN/g,'—'));
+      } else {
+        cdText.textContent = '已超期，请立即更换';
+        cdText.style.color = 'var(--danger)';
+      }
+      if(warnDiff > 0){
+        var wHours = Math.max(1, Math.floor(warnDiff / 3600000));
+        warnInfo.textContent = '预计渗漏预警：' + fmtDT(warnAt) + '（间隔的 70%，距预警约 ' + wHours + ' 小时）';
+      } else {
+        warnInfo.textContent = '⚠ 已进入渗漏预警期（预警点 ' + fmtDT(warnAt) + '），请检查底盘边缘与周围皮肤';
+        warnInfo.style.color = 'var(--danger)';
+      }
     }
   } else {
     cdBox.style.display = 'none';
@@ -467,7 +519,7 @@ calc();
     <h4><span class="h4-icon">✨</span>功能特點</h4>
     <ul class="intro-features"><li>結腸/迴腸週期差異</li><li>滲漏即刻換</li><li>皮膚保護提示</li></ul>
     <h4><span class="h4-icon">🎯</span>使用場景</h4>
-    <ul class="intro-scenes"><li>結腸造口 3–7 天</li><li>迴腸造口 2–4 天</li><li>術後觀察造口血運</li></ul>
+    <ul class="intro-scenes"><li>結腸造口 4–7 天</li><li>迴腸造口 3–5 天</li><li>術後觀察造口血運</li></ul>
     </div>
 </div>
 <!-- /SEO 介紹區塊 -->

@@ -164,7 +164,7 @@ s.parentNode.insertBefore(el, s);
   <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
     <h2 data-zh="🔀 文本去重排序工具">🔀 Text Deduplicate Sort</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">分隔符取值：換行時按 \r\n / \r / \n 拆行，其餘按字面分隔符（逗號、分號、製表符或自定義串）拆分且不保留換行。變換管線按順序為：去重（保留首次出現，累計去重條數）、去空行（過濾 trim 後為空的行）、去首尾空白（^\s+|\s+$ 替換為空）、排序（升序/降序直接比較字串；自然排序用 Intl.Collator 的 numeric + base 靈敏度比較，不可用時按「數字塊與文本塊」交替拆分後逐段比較，數字段按數值比、文本段按字串比，最後比段數；按長度排序先比 length 再比字典序）、反轉、加序號（padStart 補零到指定位數後接 ". "）與去序號（^\s*\d+[.)、\]:\s]+ 替換為空）。統計：原始條數、當前條數、累計去重數</div>
+  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">分隔符取值：換行時按 \r\n / \r / \n 拆行，其餘按字面分隔符（逗號、分號、製表符或自定義串）拆分且不保留換行。變換管線按順序為：去重（保留首次出現，累計去重條數）、去空行（過濾 trim 後為空的行）、去首尾空白（^\s+|\s+$ 替換為空）、排序（升序/降序直接比較字串；自然排序用 Intl.Collator 的 numeric + base 靈敏度比較，不可用時按「數字塊與文本塊」交替拆分後逐段比較，數字段按數值比、文本段按字串比，最後比段數；按長度排序先比 length 再比字典序）、反轉、加序號（padStart 補零到指定位數後接 ". "）與去序號（^\s*\d+[.)、\]:\s]+ 替換為空）。統計：原始條數（與實際參與處理的資料同源）、當前條數、累計去重數</div>
   <div class="formula-desc">對文本行去重並排序。</div>
   <ul class="formula-list">
     <li><b>去重</b>：移除重複行，保留首次出現項，可選擇忽略大小寫與首尾空白。</li>
@@ -341,6 +341,7 @@ b`。</div></div>
   var originalLines = [];      // 原始行（首次输入时快照）
   var currentLines = [];       // 当前处理后的行
   var hasOriginal = false;     // 是否已建立原始快照
+  var lastInputText = null;    // 建立快照时的输入原文（用于判断输入是否被改动）
   var dedupeCount = 0;         // 累计去重数量
 
   function getSep(){
@@ -372,12 +373,14 @@ b`。</div></div>
 
   function snapshotOriginal(){
     originalLines = parseInput().slice();
+    lastInputText = document.getElementById('input').value;
     hasOriginal = true;
   }
 
   function updateStats(){
-    var inputLines = parseInput();
-    document.getElementById('statOriginal').textContent = inputLines.length;
+    // 原始项数与结果同源：已建立快照时取快照行数（即实际参与处理的数据），否则取当前输入
+    var original = hasOriginal ? originalLines.length : parseInput().length;
+    document.getElementById('statOriginal').textContent = original;
     document.getElementById('statCurrent').textContent = currentLines.length;
     document.getElementById('statRemoved').textContent = dedupeCount;
   }
@@ -400,6 +403,7 @@ b`。</div></div>
     originalLines = [];
     currentLines = [];
     hasOriginal = false;
+    lastInputText = null;
     dedupeCount = 0;
     renderOutput();
     updateStats();
@@ -516,10 +520,11 @@ b`。</div></div>
       ToolBox.showToast(i18nText('toast.empty_source'), 'warning');
       return;
     }
-    // 首次操作时建立原始快照
-    if(!hasOriginal){
+    // 输入自上次快照后发生变化 ⇒ 重建快照，避免继续处理旧数据
+    if(!hasOriginal || inputText !== lastInputText){
       snapshotOriginal();
       currentLines = originalLines.slice();
+      dedupeCount = 0;
     }
 
     var before = currentLines.length;

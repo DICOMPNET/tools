@@ -124,13 +124,13 @@ s.parentNode.insertBefore(el, s);
     <h3 style="margin:12px 0 8px;">夾層累及範圍（選擇最遠端累及部位）</h3>
     <div class="ref-card">
       <div class="checkbox-row">
-        <label><input type="radio" name="extent" value="ascOnly" onchange="calc()"> 僅升主動脈</label>
-        <label><input type="radio" name="extent" value="ascArch" onchange="calc()"> 升主動脈+弓部</label>
-        <label><input type="radio" name="extent" value="ascDesc" checked onchange="calc()"> 升主動脈+降主動脈(全程)</label>
+        <label><input type="radio" id="extAscOnly" name="extent" value="ascOnly" onchange="calc()"> 僅升主動脈</label>
+        <label><input type="radio" id="extAscArch" name="extent" value="ascArch" onchange="calc()"> 升主動脈+弓部</label>
+        <label><input type="radio" id="extAscDesc" name="extent" value="ascDesc" checked onchange="calc()"> 升主動脈+降主動脈(全程)</label>
       </div>
       <div class="checkbox-row">
-        <label><input type="radio" name="extent" value="descOnly" onchange="calc()"> 僅降主動脈(左鎖骨下以遠)</label>
-        <label><input type="radio" name="extent" value="descAbd" onchange="calc()"> 降主動脈+腹主動脈</label>
+        <label><input type="radio" id="extDescOnly" name="extent" value="descOnly" onchange="calc()"> 僅降主動脈(左鎖骨下以遠)</label>
+        <label><input type="radio" id="extDescAbd" name="extent" value="descAbd" onchange="calc()"> 降主動脈+腹主動脈</label>
       </div>
     </div>
 
@@ -214,10 +214,10 @@ s.parentNode.insertBefore(el, s);
 <h3>💡 常見使用場景</h3>
 <ul class="dd-list">
 <li>Stanford 分型判定：破口/夾層累及升主動脈為 A 型（無論起始部位），僅累及胸降主動脈以遠為 B 型；A 型病情兇險、需緊急外科，B 型多以內科（降壓控率）為主。</li>
-<li>DeBakey 分型：I 型起於升主動脈累及主動脈弓及降部，II 型僅限升主動脈，III 型起於弓降部向遠段；DeBakey I/II 對應 Stanford A，III 對應 B。</li>
-<li>急診分診與預警：突發撕裂樣胸背痛、血壓差（雙臂收縮壓差 &gt;20 mmHg）、脈搏不對稱提示夾層，結合 D-二聚體與增強 CT 主動脈成像快速分層，A 型立即啟動綠色通道。</li>
+<li>DeBakey 分型：I 型起於升主動脈並同時累及弓部與降主動脈，II 型僅限升主動脈（含僅累及弓部），III 型起於弓降部向遠段；DeBakey I/II 對應 Stanford A，III 對應 B。</li>
+<li>急診分診與預警：突發撕裂樣胸背痛、脈搏不對稱、低血壓或休克提示夾層，結合 D-二聚體與增強 CT 主動脈成像快速分層，A 型立即啟動綠色通道。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">預設資料演練（Stanford 分型判定）</div><div class="dd-ex-body">輸入：破口位於升主動脈、累及主動脈弓、伴右臂血壓高於左臂 25 mmHg。工具輸出：Stanford A 型（DeBakey I 型）、危險度 高危、處理原則 緊急外科手術置換/再行支架、緊急措施 控制收縮壓 100–120 mmHg 與心率 &lt;60 次/分。提示：A 型每延誤 1 小時死亡風險顯著上升，須立即轉診。</div></div>
+<div class="dd-example"><div class="dd-ex-title">預設資料演練（Stanford 分型判定）</div><div class="dd-ex-body">輸入（頁面預設值）：累及範圍選「升主動脈+降主動脈(全程)」，僅勾選「高血壓」。工具輸出：Stanford A 型（累及升主動脈）、DeBakey I 型、臨床型別 急診。提示：A 型每延誤 1 小時死亡風險顯著上升，須立即轉診。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
 <dt>Stanford A 與 B 型處理有何不同？</dt><dd>A 型破口在升主動脈，易致主動脈破裂或心包填塞，需緊急外科手術；B 型破口在降主動脈，若無症狀或併發症可藥物控制血壓心率，出現擴張/破裂/臟器缺血才考慮腔內修復。分型由影像（CT/MRI）確定。</dd>
@@ -291,7 +291,7 @@ function calc(){
   if(involvesAsc){
     stanford='A型';stanfordColor='#EF4444';
     if(extent==='ascOnly'){debakey='II型';debakeyColor='#EF4444';}
-    else if(extent==='ascArch'){debakey='I型(累及弓部)';debakeyColor='#EF4444';}
+    else if(extent==='ascArch'){debakey='II型';debakeyColor='#EF4444';}
     else{debakey='I型';debakeyColor='#EF4444';}
   }else{
     stanford='B型';stanfordColor='#3B82F6';
@@ -337,8 +337,8 @@ function calc(){
   html+='</div>';
 
   html+='<div class="ref-card"><h4>分型结果</h4><ul>';
-  html+='<li>Stanford分型：<strong style="color:'+stanfordColor+';">'+stanford+'型</strong> '+(involvesAsc?'(累及升主动脉)':'(不累及升主动脉)')+'</li>';
-  html+='<li>DeBakey分型：<strong style="color:'+debakeyColor+';">'+debakey+'</strong></li>';
+  html+='<li>Stanford分型：<strong style="color:'+stanfordColor+';">'+stanford+'</strong> '+(involvesAsc?'(累及升主动脉)':'(不累及升主动脉)')+'</li>';
+  html+='<li>DeBakey分型：<strong style="color:'+debakeyColor+';">'+debakey+'</strong>'+(extent==='ascArch'?'（弓部受累，DeBakey 仍属 II 型；I 型需同时累及降主动脉）':'')+'</li>';
   html+='<li>累及范围：'+{ascOnly:'仅升主动脉',ascArch:'升主动脉+弓部',ascDesc:'升主动脉+降主动脉(全程)',descOnly:'仅降主动脉',descAbd:'降主动脉+腹主动脉'}[extent]+'</li>';
   html+='<li>临床类型：'+(stanford==='A型'?'急诊':(complicated?'复杂型B型':'非复杂型B型'))+'</li>';
   html+='</ul></div>';
@@ -383,7 +383,7 @@ calc();
   <h3 class="related-tools-title">🔗 相關工具</h3>
   <div class="related-tools-grid">
 
-    <a href="/zh-tw/tools/cardiology/convert-rehab.html" class="related-tool-card">
+    <a href="/zh-tw/tools/cardiology/cardiac-rehab-mets.html" class="related-tool-card">
       <span class="rt-icon">❤️</span>
       <span class="rt-info"><span class="rt-name">心臟康復（METs）等價換算</span><span class="rt-desc">心臟康復（METs）等價換算</span></span>
     </a>

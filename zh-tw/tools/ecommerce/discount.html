@@ -121,7 +121,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="按標價與折扣率計算實付金額、優惠額與折數。">Discount - online utility on ToolBox.</p>
     <div class="formula-box">
       <div class="formula-title">📐 計算公式</div>
-      <div class="formula-eq">促銷折扣計算：實付金額 = 標價 × (1 − 折扣率 ÷ 100)（元）；聯動卡：優惠金額 = 標價 − 實付、等效折數 = (1 − 折扣率÷100) × 10（折，保留 1 位小數）。校驗：標價或折扣率非有限數值時提示「請輸入兩個有效數值後再計算」。判據：折扣率 &gt;50% 判「力度偏大」並提示覆核毛利，否則「力度適中」。</div>
+      <div class="formula-eq">促銷折扣計算：實付金額 = 標價 × (1 − 折扣率 ÷ 100)（元）；聯動卡：優惠金額 = 標價 − 實付、等效折數 = (1 − 折扣率÷100) × 10（折，保留 1 位小數）。校驗：標價需 ≥ 0、折扣率需在 0–100% 之間，非有限數值或越界時標紅並停止計算。判據：折扣率 &gt;50% 判「力度偏大」並提示覆核毛利，否則「力度適中」。</div>
       <p class="formula-desc">本工具按折扣率、滿減門檻與優惠券疊加規則計算到手價與優惠力度，支援多方案對比。</p>
     </div>
     <div class="input-row">
@@ -553,6 +553,13 @@ function calc(){
   var box=document.getElementById('res');
   if(!box)return;
   if(!isFinite(A)||!isFinite(B)){box.innerHTML='<div class="info-box">请输入两个有效数值后再计算。</div>';return;}
+  if(A<0||B<0||B>100){
+    setInvalid(e0,A<0);
+    setInvalid(e1,B<0||B>100);
+    box.innerHTML='<div class="info-box" style="color:var(--danger)">⚠ 标价需 ≥ 0，折扣率需在 0–100% 之间（当前输入：标价 '+A+'、折扣率 '+B+'%），请修正后重算。</div>';
+    return;
+  }
+  setInvalid(e0,false);setInvalid(e1,false);
   var items=[];
   var pay=A*(1-B/100);
   items.push([pay.toFixed(2), "实付金额（元）"]);
@@ -669,7 +676,7 @@ function __discountExport(){
 }
 function __discountPresets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#discountPresets',[{label:'默认参数',labelEn:'Default',values:{'v0':'880', 'v1':'15'}}],function(){ calc(); });
+    TBKit.preset.bar('#discountPresets',[{label:'默认参数',labelEn:'Default',values:{'v0':'880', 'v1':'15'}},{"label":"6 折清仓","labelEn":"40% off clearance","values":{"v0":"1299","v1":"40"}},{"label":"会员 8 折","labelEn":"Member 20% off","values":{"v0":"699","v1":"20"}},{"label":"季末 5 折","labelEn":"50% off season end","values":{"v0":"459","v1":"50"}}],function(){ calc(); });
 }
 var __discount_f0=(typeof calc==='function')?calc:null;
 if(__discount_f0){

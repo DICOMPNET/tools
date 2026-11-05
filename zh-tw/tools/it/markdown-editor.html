@@ -577,7 +577,7 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="fb-btn primary-fb" onclick="exportMd()">匯出 .md</button>
       <button type="button" class="fb-btn" onclick="exportHtml()">匯出 .html</button>
       <button type="button" class="fb-btn" onclick="importFile()">匯入檔案</button>
-      <div data-tb="preset" data-tb-presets='[{"label":"mdInput:# 标题\n这是一段 **Markdown*…","labelEn":"mdInput=# 标题\n这是一段 **Markdown** 示例文本。","values":{"mdInput":"# 标题\n这是一段 **Markdown** 示例文本。"}}]'></div>
+      <div data-tb="preset" data-tb-presets='[{"label": "标题与列表", "labelEn": "Headings and lists", "values": {"mdInput": "# 项目说明\n\n- 支持 Markdown 实时预览\n- 支持导出 HTML\n- 支持草稿自动保存"}}, {"label": "代码块与链接", "labelEn": "Code block and link", "values": {"mdInput": "## 代码示例\n\n```js\nconst sum = (a, b) => a + b;\nconsole.log(sum(1, 2));\n```\n\n[檢視文件](https://example.com)"}}, {"label": "表格與引用", "labelEn": "Table and quote", "values": {"mdInput": "### 對比表\n\n| 功能 | 狀態 |\n| --- | --- |\n| 預覽 | 已支援 |\n| 匯出 | 已支援 |\n\n> 所有內容僅在本地處理。"}}, {"label": "任務清單", "labelEn": "Task list", "values": {"mdInput": "- [x] 編寫文件\n- [ ] 校對文案\n- [ ] 釋出上線"}}]'></div>
 <input type="file" id="fileInput" accept=".md,.markdown,.txt" style="display:none;">
       <div class="fb-right">
         <button type="button" class="fb-btn" onclick="clearEditor()">清空</button>
@@ -701,6 +701,17 @@ s.parentNode.insertBefore(el, s);
   var saveTimer = null;
 
   // --- Markdown 解析器 ---
+  function escAttr(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+  // 只放行 http(s)/mailto/站内相对链接；图片额外允许 data:image，阻断 javascript: 与属性注入
+  function safeUrl(u, allowDataImage) {
+    u = String(u).trim().replace(/&amp;/g, '&');
+    if (/^(javascript|vbscript|data:text\/html)/i.test(u)) return '';
+    if (allowDataImage && /^data:image\/(png|jpe?g|gif|webp|svg\+xml);base64,/i.test(u)) return u;
+    if (/^(https?:\/\/|\/|\.{1,2}\/|#|mailto:)/i.test(u)) return u;
+    return '';
+  }
   function parseMarkdown(md) {
     var html = md;
 
@@ -754,10 +765,18 @@ s.parentNode.insertBefore(el, s);
     html = html.replace(/~~(.+?)~~/g, '<del>$1</del>');
 
     // 图片 ![alt](url)
-    html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="/zh-tw/tools/it/$2" alt="$1">');
+    html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, function(m, alt, url) {
+      var u = safeUrl(url, true);
+      if (!u) return escAttr(alt);
+      return '<img src="/zh-tw/tools/it/' + escAttr(u) + '" alt="' + escAttr(alt) + '">';
+    });
 
     // 链接 [text](url)
-    html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="/zh-tw/tools/it/$2" target="_blank" rel="noopener">$1</a>');
+    html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, function(m, text, url) {
+      var u = safeUrl(url, false);
+      if (!u) return text;
+      return '<a href="/zh-tw/tools/it/' + escAttr(u) + '" target="_blank" rel="noopener">' + text + '</a>';
+    });
 
     // 表格
     html = parseTable(html);

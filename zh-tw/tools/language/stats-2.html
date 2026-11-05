@@ -117,8 +117,8 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="含漢字/英文/標點">Stats 2 - online utility on ToolBox.</p>
     <div class="formula-box">
       <div class="formula-title">📐 計算公式</div>
-      <div class="formula-eq">總字元數 = 文本長度；不含空格數 = 剔除全部空白後的長度，空白符數 = 兩者之差；漢字數按中日韓統一表意區間逐字匹配；英文單詞數按連續字母段計數（單詞口徑而非字元數）；數字字元逐個計數；中文標點與西文標點各按獨立字元類分別計數；行數 = 文本按換行（相容回車）拆分後的段數，空文本記 0。校驗：無強校驗，空文本各計數自然為 0。判據：總字元 = 不含空格數 + 空白符數，各分項口徑互不重疊、總和不重複計入。</div>
-      <p class="formula-desc">分別統計文本中的漢字、英文單詞、數字、標點與空白符數量，用於字數核算、排版估算與字元編碼核對；文本僅在瀏覽器本地處理，不上傳。</p>
+      <div class="formula-eq">總字元數 = 文本長度；不含空格數 = 剔除全部空白後的長度，空白符數 = 兩者之差；漢字數按中日韓統一表意區間逐字匹配；英文單詞數按字母串計數（允許撇號 / 連字元連線，如 don't、state-of-the-art 各計 1 詞），英文字母數逐字母計數（兩者口徑不同，不可混用）；數字字元逐個計數；中文標點與西文標點各按獨立字元類分別計數；行數 = 文本按換行（相容回車）拆分後的段數，空文本記 0。校驗：無強校驗，空文本各計數自然為 0。判據：總字元 = 不含空格數 + 空白符數，各分項口徑互不重疊、總和不重複計入。</div>
+      <p class="formula-desc">分別統計文本中的漢字、英文字母、英文單詞、數字、標點與空白符數量，用於字數核算、排版估算與字元編碼核對；文本僅在瀏覽器本地處理，不上傳。</p>
     </div>
 
 <label>待統計文本</label>
@@ -159,7 +159,7 @@ s.parentNode.insertBefore(el, s);
 <li>中英混排時分別計漢字、字母、數字、標點</li>
 <li>寫作長度把控與平臺字數上限檢查</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">分類計數</div><div class="dd-ex-body">文本「你好Hello2024！」→ 漢字 2、英文字母 5、數字 4、標點 1，總字元 12；可見字元不含換行/空格則為 12。</div></div>
+<div class="dd-example"><div class="dd-ex-title">分類計數</div><div class="dd-ex-body">文本「你好Hello2024！」→ 漢字 2、英文字母 5、英文單詞 1、數字 4、標點 1，總字元 12；可見字元不含換行/空格則為 12。</div></div>
 <div class="dd-example"><div class="dd-ex-title">中英差異</div><div class="dd-ex-body">同一段中文 500 字約 500 字元；譯成英文可能 350 詞但約 2100 字母+空格，按「字元」還是「詞」統計結論不同，口徑需事先約定一致。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
@@ -212,7 +212,8 @@ function calc(){
   const total=t.length;
   const noSpace=t.replace(/\s/g,'').length;
   const han=(t.match(/[\u4e00-\u9fa5]/g)||[]).length;
-  const en=(t.match(/[A-Za-z]+/g)||[]).length;
+  const enLetters=(t.match(/[A-Za-z]/g)||[]).length;
+  const en=(t.match(/[A-Za-z]+(?:['’-][A-Za-z]+)*/g)||[]).length;
   const digit=(t.match(/[0-9]/g)||[]).length;
   const punctCn=(t.match(/[\u3001\u3002\u3008-\u3011\u3014-\u301F\uFF01-\uFF0F\uFF1A-\uFF20\uFF3B-\uFF40\uFF5B-\uFF65]/g)||[]).length;
   const punctEn=(t.match(/[.,!?;:'"()\[\]{}\-_/\\@#$%^&*+=<>~`|]/g)||[]).length;
@@ -221,6 +222,7 @@ function calc(){
   const __g1=`<p>总字符数（含空格）：<strong style="color:var(--primary);">${fmt(total)}</strong></p>`+
     `<p>不含空格字符数：<strong>${fmt(noSpace)}</strong></p>`+
     `<p>汉字数：<strong>${fmt(han)}</strong></p>`+
+    `<p>英文字母数：<strong>${fmt(enLetters)}</strong></p>`+
     `<p>英文单词数：<strong>${fmt(en)}</strong></p>`+
     `<p>数字字符数：<strong>${fmt(digit)}</strong></p>`+
     `<p>标点数：<strong>${fmt(punctCn+punctEn)}</strong>（中文 ${fmt(punctCn)} / 西文 ${fmt(punctEn)}）</p>`+

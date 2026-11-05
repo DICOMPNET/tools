@@ -136,7 +136,7 @@ s.parentNode.insertBefore(el, s);
 <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
     <h2 data-zh="📝 INI 解析器">📝 INI Parser</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">解析：跳過空行與以 ; 或 # 開頭的註釋行；以 [ 開頭且以 ] 結尾的行視為節名並新建該節的空物件；其餘行取第一個 = 作為鍵值分隔符，左側為鍵、右側為值，均去首尾空白；有當前節時寫入該節，否則寫入根級。反向輸出：值為普通物件時先寫 [節名]，再逐行寫「子鍵 = 值」，節末補一個空行；非物件直接寫「鍵 = 值」，最後整體去首尾空白</div>
+  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">解析：跳過空行與以 ; 或 # 開頭的註釋行；以 [ 開頭且以 ] 結尾的行視為節名並新建該節的空物件（同名節已存在時合併到該物件，同鍵由後出現的值覆蓋）；其餘行取第一個 = 作為鍵值分隔符，左側為鍵、右側為值，均去首尾空白；有當前節時寫入該節，否則寫入根級。反向輸出：值為普通物件時先寫 [節名]，再逐行寫「子鍵 = 值」，節末補一個空行；非物件直接寫「鍵 = 值」，最後整體去首尾空白</div>
   <div class="formula-desc">本開發工具在前端本地完成解析、轉換與處理，程式碼不離開瀏覽器，遵循對應語法與格式規範。 工具名稱：INI 解析器 - 免費開發工具，線上INI 解析器，免費使用。</div>
 </div>
 
@@ -238,12 +238,18 @@ const SAMPLE = '; App config\n[server]\nhost = localhost\nport = 8080\nworkers =
 function parseIni(text){
   const result = {};
   let section = null;
+  let merged = 0;
   for(const line of text.split('\n')){
     const t = line.trim();
     if(!t || t.startsWith(';') || t.startsWith('#')) continue;
     if(t.startsWith('[') && t.endsWith(']')){
       section = t.slice(1, -1);
-      result[section] = {};
+      const prev = result[section];
+      if(prev && typeof prev === 'object' && !Array.isArray(prev)){
+        merged++;                 // 同名节：合并进已有对象，后出现的同键覆盖
+      } else {
+        result[section] = {};
+      }
     } else {
       const eq = t.indexOf('=');
       if(eq < 0) continue;
@@ -253,7 +259,15 @@ function parseIni(text){
       else result[k] = v;
     }
   }
+  parseIni.merged = merged;
   return result;
+}
+function iniMsg(zhPrefix, enPrefix){
+  const m = parseIni.merged || 0;
+  const en = /^en/i.test(document.documentElement.lang || '');
+  let msg = '✅ ' + (en ? enPrefix : zhPrefix);
+  if(m){ msg += en ? ' (duplicate sections merged)' : '（已合并重复节）'; }
+  return msg;
 }
 function toIni(obj){
   const lines = [];
@@ -272,7 +286,7 @@ function iniToJson(){
   setErr('');
   try{
     setOut(JSON.stringify(parseIni(document.getElementById('input').value), null, 2));
-    setErr('✅ 解析成功');
+    setErr(iniMsg('解析成功', 'Parsed successfully'));
   }catch(e){ setErr('❌ ' + e.message); }
 }
 function jsonToIni(){
@@ -287,21 +301,43 @@ function doBeautify(){
   setErr('');
   try{
     const text = document.getElementById('input').value;
-    if(text.trim().startsWith('{')) setOut(toIni(JSON.parse(text)));
-    else setOut(toIni(parseIni(text)));
-    setErr('✅ 美化成功');
+    if(text.trim().startsWith('{')){
+      setOut(toIni(JSON.parse(text)));
+      setErr('✅ 美化成功');
+    } else {
+      setOut(toIni(parseIni(text)));
+      setErr(iniMsg('美化成功', 'Beautified successfully'));
+    }
   }catch(e){ setErr('❌ ' + e.message); }
 }
-function doMinify(){ doBeautify(); }
+function doMinify(){
+  setErr('');
+  try{
+    const text = document.getElementById('input').value;
+    if(text.trim().startsWith('{')){
+      setOut(JSON.stringify(JSON.parse(text)));
+      setErr('✅ 压缩成功');
+    } else {
+      const obj = parseIni(text);
+      const lines = [];
+      for(const k in obj){
+        if(obj[k] && typeof obj[k] === 'object' && !Array.isArray(obj[k])){
+          lines.push('[' + k + ']');
+          for(const sk in obj[k]) lines.push(sk + '=' + obj[k][sk]);
+        } else {
+          lines.push(k + '=' + obj[k]);
+        }
+      }
+      setOut(lines.join('\n'));
+      setErr(iniMsg('压缩成功', 'Minified successfully'));
+    }
+  }catch(e){ setErr('❌ ' + e.message); }
+}
 function loadSample(){document.getElementById('input').value = SAMPLE; iniToJson();}
 function setOut(s){document.getElementById('output').textContent = s;}
 function setErr(s){const e = document.getElementById('err'); e.textContent = s || ''; e.className = 'err' + (s && s.startsWith('✅') ? ' ok' : '');}
 function clearAll(){document.getElementById('input').value = ''; setOut('等待转换...'); setErr('');}
 function getIndent(){const v=document.getElementById('indent').value;return v==='tab'?'\t':' '.repeat(parseInt(v));}
-function setOut(s){document.getElementById('output').textContent=s;}
-function setErr(s){const e=document.getElementById('err');e.textContent=s||'';e.className='err'+(s?'':' ok');}
-function clearAll(){document.getElementById('input').value='';setOut('等待输入...');setErr('');}
-function loadSample(){document.getElementById('input').value=SAMPLE;doBeautify();}
 
 </script><script>
 // tool-intro折叠交互

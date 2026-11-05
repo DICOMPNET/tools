@@ -114,13 +114,13 @@ s.parentNode.insertBefore(el, s);
     <h2 data-zh="🏋️ 時間格式轉換">🏋️ Time Format Convert</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="支援 ISO8601 / Unix / 自定義（YYYY-MM-DD HH:mm:ss）。">Time Format Convert</p>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">輸入為 10 到 13 位純數字時按時間戳處理：10 位視為秒，需乘以 1000 得到毫秒；13 位直接作為毫秒。否則交給日期解析，解析結果無效時提示無法解析時間。換算輸出：本地格式化時間、ISO 8601 字串、Unix 秒（毫秒時間戳除以 1000 後向下取整）、Unix 毫秒，以及把毫秒時間戳加上 8 × 3600 × 1000 後按 ISO 格式輸出、並把日期與時間之間的分隔符和結尾標記替換掉，得到相對北京時間</div>
+  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">輸入為純數字時按位數識別時間戳：10 位視為秒（乘以 1000 得毫秒）、13 位視為毫秒、16 位視為微秒（除以 1000 得毫秒）、19 位視為納秒（除以 1e6 得毫秒）；其餘位數提示不支援。YYYY-MM-DD 純日期按瀏覽器本地時區 00:00:00 解析，不按 UTC 解釋。其他寫法交給日期解析，解析結果無效時提示支援的格式。換算輸出：本地格式化時間、ISO 8601 字串、Unix 秒（毫秒時間戳除以 1000 後向下取整）、Unix 毫秒，以及把毫秒時間戳加上 8 × 3600 × 1000 後按 ISO 格式輸出、並把日期與時間之間的分隔符和結尾標記替換掉，得到相對北京時間</div>
   <div class="formula-desc">在多種時間表示格式之間轉換。</div>
   <ul class="formula-list">
     <li><b>格式</b>：12/24 小時制、ISO 8601、RFC 2822 與自定義模板。</li>
     <li><b>ISO 8601</b>：<code>YYYY-MM-DDTHH:mm:ssZ</code>，末尾 Z 表示 UTC 零時區。</li>
     <li><b>令牌</b>：YYYY 年、MM 月、DD 日、HH 時、mm 分、ss 秒、SSS 毫秒。</li>
-    <li><b>時區</b>：同一時刻在不同時區顯示不同，轉換時必須明確目標時區。</li>
+    <li><b>時區</b>：本工具按瀏覽器本地時區解析與展示；同一時刻在不同時區顯示不同。</li>
   </ul>
 </div>
 
@@ -230,10 +230,16 @@ s.parentNode.insertBefore(el, s);
 </div>
 <script>
 function parseInput(v) {
-  if (/^\d{10,13}$/.test(v)) {
-    const ms = v.length === 10 ? Number(v) * 1000 : Number(v);
-    return new Date(ms);
+  if (/^\d+$/.test(v)) {
+    const n = Number(v);
+    if (v.length === 10) return new Date(n * 1000);        // 秒
+    if (v.length === 13) return new Date(n);                // 毫秒
+    if (v.length === 16) return new Date(n / 1000);         // 微秒
+    if (v.length === 19) return new Date(n / 1e6);          // 纳秒
+    if (v.length > 13) return null;                         // 14/15/17/18 位：不支持，明确报错
   }
+  const dm = v.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (dm) return new Date(Number(dm[1]), Number(dm[2]) - 1, Number(dm[3])); // 纯日期按本地零点解析
   const d = new Date(v);
   return isNaN(d.getTime()) ? null : d;
 }
@@ -247,13 +253,14 @@ function convertTime() {
   const v = (document.getElementById('inTime').value || '').trim();
   const d = parseInput(v);
   if (!d) {
-    const __h0='<p>无法解析时间，请输入合法值</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('out').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('out').innerHTML=__h0;
+    const __h0='<p>无法解析时间，请输入合法值：支持 10 位秒 / 13 位毫秒 / 16 位微秒 / 19 位纳秒时间戳，以及 ISO 8601 或 YYYY-MM-DD 日期。</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('out').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('out').innerHTML=__h0;
     return;
   }
 
   const ts = Math.floor(d.getTime() / 1000);
   const ms = d.getTime();
   const out = [];
+  if (/^\d{4}-\d{2}-\d{2}$/.test(v)) out.push('<p>解析口径：纯日期按浏览器本地时区 00:00:00 解析，不按 UTC 解释。</p>');
   out.push(`<p>本地时间：<strong>${fmt(d)}</strong></p>`);
   out.push(`<p>ISO8601：<strong>${d.toISOString()}</strong></p>`);
   out.push(`<p>Unix 秒：<strong>${ts}</strong></p>`);
@@ -409,13 +416,13 @@ else document.addEventListener('DOMContentLoaded', __time_format_converterBoot);
 <li>日誌 / 介面對齊：把 Unix <a class="term-link" href="/zh-tw/tools/life/timestamp.html">時間戳</a>、ISO 8601、本地日期字串互相轉換，統一多系統的時間表示。</li>
 <li>排查問題：把一條日誌裡的時間戳還原成年月日時分秒，定位事件發生的真即時刻。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">示例：時間戳 ↔ 日期</div><div class="dd-ex-body">輸入 Unix 秒級時間戳 `1690000000` → 輸出 `2023-07-22 08:53:20 UTC`（按所選時區換算）。
-反向：輸入 `2023-07-22 08:53:20` + 時區 UTC → 輸出 `1690000000`。</div></div>
+<div class="dd-example"><div class="dd-ex-title">示例：時間戳 ↔ 日期</div><div class="dd-ex-body">輸入 Unix 秒級時間戳 `1690000000` → 本地時間 `2023-07-22 16:53:20`（按瀏覽器本地時區展示），ISO 8601 行 `2023-07-22T08:53:20.000Z`（始終為 UTC）。
+反向：輸入 `2023-07-22 08:53:20` → Unix 秒 `1690000000`（按本地時區解析）；純日期 `2023-07-22` 按瀏覽器本地時區 00:00:00 解析。</div></div>
 <div class="dd-example"><div class="dd-ex-title">示例：ISO 與自定義格式互轉</div><div class="dd-ex-body">`2023-07-22T08:53:20Z` 可轉成 `2023/07/22 08:53:20`、`07-22 08:53` 等自定義格式。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
-<dt>時間戳是秒還是毫秒？</dt><dd>常見有 10 位（秒）和 13 位（毫秒）兩種。工具一般可切換單位；如果看到 1970 年附近的奇怪日期，多半是把毫秒當秒解析了，切到毫秒即可。</dd>
-<dt>時區怎麼影響結果？</dt><dd>同一時刻在不同時區顯示的&quot;牆鍾時間&quot;不同。請確認所選時區與你的日誌來源一致，否則轉換出的日期會差幾小時。</dd>
+<dt>時間戳是秒還是毫秒？</dt><dd>本工具按位數識別時間戳：10 位視為秒、13 位視為毫秒、16 位視為微秒、19 位視為納秒；其餘位數提示不支援。如果看到 1970 年附近的奇怪日期，多半是時間戳位數與單位不匹配。</dd>
+<dt>時區怎麼影響結果？</dt><dd>同一時刻在不同時區顯示的「牆鍾時間」不同。本工具按瀏覽器本地時區解析與展示；純日期按瀏覽器本地時區 00:00:00 解析，不按 UTC 解釋；ISO 8601 一行始終以 UTC 表示。</dd>
 </dl>
 </div>
 </section>

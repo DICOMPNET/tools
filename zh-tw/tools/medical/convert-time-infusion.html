@@ -115,7 +115,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="已有但加強">Convert Time Infusion - convert values in-browser instantly with local processing.</p>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理與說明</div>
-  <div class="formula-eq">滴速 = 液體量(mL) × 滴係數(滴/mL) ÷ 時間(min)（滴/分）；總滴數 = 液體量 × 滴係數 四捨五入；每小時入量 = 液體量 ÷ 時間 × 60 (mL/h)；另按 500mL/袋折算袋數。校驗：數值非法按 0 處理，衍生指標僅時間 &gt;0 時輸出。判據：滴速 &gt;100 滴/分提示改用輸液泵（泵速範圍 1–999 mL/h）。</div>
+  <div class="formula-eq">滴速 = 液體量(mL) × 滴係數(滴/mL) ÷ 時間(min)（滴/分）；總滴數 = 液體量 × 滴係數 四捨五入；每小時入量 = 液體量 ÷ 時間 × 60 (mL/h)；另按 500mL/袋折算袋數。校驗：液體量、滴係數與輸注時間均須 &gt;0，任一無效時清空主結果並提示原因，不輸出 Infinity/NaN。判據：滴速 &gt;100 滴/分提示改用輸液泵（泵速範圍 1–999 mL/h）。</div>
   <p class="formula-desc">按液體量、滴係數與輸注時間計算滴速；純前端計算，非醫囑，僅供護理配液核對參考。</p>
 </div>
 <div class="input-row"><div><label>液體量（mL）</label><input type="number" id="vol" value="500" step="any" oninput="calc()" placeholder="如 500（100–1000）"></div>
@@ -200,10 +200,16 @@ s.parentNode.insertBefore(el, s);
 </div>
 <script>
 function calc(){const vol=+document.getElementById("vol").value||0;const df=+document.getElementById("df").value||0;const time=+document.getElementById("time").value||0;
+const el=document.getElementById("res");
+var _bad=[];
+if(!(vol>0))_bad.push("⚠ 参数无效：液体量须大于 0。请修正输入后重新计算（不输出 Infinity/NaN）。");
+if(!(df>0))_bad.push("⚠ 参数无效：滴系数须大于 0。请修正输入后重新计算（不输出 Infinity/NaN）。");
+if(!(time>0))_bad.push("⚠ 参数无效：输注时间须大于 0。请修正输入后重新计算（不输出 Infinity/NaN）。");
+if(_bad.length){el.innerHTML='<p style="color:var(--danger);white-space:pre-line;">'+_bad.join("\n")+'</p>';return;}
 const drip=vol*df/time;
 const out="滴速 = "+drip.toFixed(2)+" 滴/分";
 var _d="";if(time>0){_d+="\n总滴数 = "+Math.round(vol*df)+" 滴\n约合 "+(vol/500).toFixed(2)+" 袋（按 500 mL/袋计）";_d+="\n每小时入液量 = "+(vol/time*60).toFixed(1)+" mL/h";_d+="\n改用 60 滴/mL 微量输液器时约 "+(vol*60/time).toFixed(2)+" 滴/分";if(drip>100){_d+="\n提示：滴速较快，建议改用输液泵精确控制，并复核管路与穿刺部位";}_d+="\n输液泵常用流速范围 1–999 mL/h，滴数结果供重力滴注核对参考";}
-const el=document.getElementById("res");el.innerHTML='<p style="font-size:18px;color:var(--primary);white-space:pre-line;">'+(out+_d).replace(/&/g,'&amp;').replace(/</g,'&lt;')+'</p>';}calc();function copyRes(){ToolBox.copyText(document.getElementById("res").innerText);}
+el.innerHTML='<p style="font-size:18px;color:var(--primary);white-space:pre-line;">'+(out+_d).replace(/&/g,'&amp;').replace(/</g,'&lt;')+'</p>';}calc();function copyRes(){ToolBox.copyText(document.getElementById("res").innerText);}
 </script>
 
 <!-- SEO 介紹區塊 -->

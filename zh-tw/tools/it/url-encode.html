@@ -190,7 +190,7 @@ s.parentNode.insertBefore(el, s);
         <button type="button" class="mode-btn" onclick="setEncodeMode('uri')">encodeURI</button>
       </div>
       <div class="checkbox-row">
-        <div data-tb="preset" data-tb-presets='[{"label": "编码示例文本", "labelEn": "Encode text", "values": {"input": "Hello World! 你好，世界？"}}, {"label": "解码示例URL", "labelEn": "Decode URL", "values": {"input": "https%3A%2F%2Fexample.com%2Fsearch%3Fq%3Dhello%20world"}}]'></div>
+        <div data-tb="preset" data-tb-presets='[{"label": "编码示例文本", "labelEn": "Encode text", "values": {"input": "Hello World! 你好，世界？"}}, {"label": "解码示例URL", "labelEn": "Decode URL", "values": {"input": "https%3A%2F%2Fexample.com%2Fsearch%3Fq%3Dhello%20world"}}, {"label": "中文查询参数", "labelEn": "Chinese query params", "values": {"input": "搜索关键词=在线工具&城市=上海"}}, {"label": "特殊符号转义", "labelEn": "Special chars", "values": {"input": "订单号 SO-2026-1103，备注：A&B=C 加急"}}]'></div>
 <label><input type="checkbox" id="fullUrl"> 完整 URL 模式（保留協議域名）</label>
         <label><input type="checkbox" id="plusSpace"> 空格編碼為 +</label>
       </div>
@@ -520,7 +520,7 @@ s.parentNode.insertBefore(el, s);
     var text = document.getElementById('input').value.trim();
     if(!text) return ToolBox.showToast(i18nText('toast.msg906'), 'warning');
     try{
-      var decoded = text.replace(/\+/g, '%20');
+      var decoded = document.getElementById('plusSpace').checked ? text.replace(/\+/g, '%20') : text;
       decoded = decodeURIComponent(decoded);
       document.getElementById('output').value = decoded;
       onInputChange();
@@ -601,29 +601,38 @@ s.parentNode.insertBefore(el, s);
   }
 
   function updateParam(idx, val, field){
+    if(!params[idx]) return;
     params[idx][field] = val;
     buildUrl();
   }
 
   function buildUrl(){
     var base = document.getElementById('baseUrl').value.trim();
-    var result = base || '';
+    var hash = '';
+    var hashIdx = base.indexOf('#');
+    if(hashIdx !== -1){
+      hash = base.slice(hashIdx);
+      base = base.slice(0, hashIdx);
+    }
     var queryParts = [];
     params.forEach(function(p){
       if(p.key.trim()){
         queryParts.push(encodeURIComponent(p.key) + '=' + encodeURIComponent(p.value));
       }
     });
+    var result = base;
     if(queryParts.length > 0){
-      if(result && result.indexOf('?') === -1){
-        result += '?' + queryParts.join('&');
-      } else if(result && result.indexOf('?') !== -1){
-        result += '&' + queryParts.join('&');
+      var qs = queryParts.join('&');
+      var trimmed = base.replace(/[?&]+$/, '');
+      if(!trimmed){
+        result = '?' + qs;
+      } else if(trimmed.indexOf('?') === -1){
+        result = trimmed + '?' + qs;
       } else {
-        result = '?' + queryParts.join('&');
+        result = trimmed + '&' + qs;
       }
     }
-    document.getElementById('builtUrl').value = result;
+    document.getElementById('builtUrl').value = result + hash;
   }
 
   function copyBuiltUrl(){

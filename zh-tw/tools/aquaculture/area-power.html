@@ -120,8 +120,8 @@ s.parentNode.insertBefore(el, s);
     <h2 data-zh="📐 增氧機（功率/面積）配備">Area Power</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="根據池塘面積、水深、品種和目標溶氧提升量，估算所需增氧機功率與臺數。">Area Power</p>
     <div class="formula-box">
-      <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">水產增氧機配置計算<br>需氧量(kg) = 面積(畝) × 水深(m) × 666.67 × 溶氧提升量(mg/L) × 0.001 × 養殖品種係數（四大家魚1.0｜蝦蟹1.2｜高密度1.5）<br>所需功率(kW) = 需氧量 ÷ 1.5（氧動力效率 1.5 kg O₂/kWh，作除數）<br>建議臺數 = ⌈所需功率 / 單臺功率⌉；每畝功率 = 所需功率 / 面積</div>
-      <p class="formula-desc" data-zh="核心計算公式（按輸入變數）：iv.area×iv.depth×666.67×iv.delta×0.001×iv.coef；Math.ceil(power÷iv.unitpw)">Key formulas: iv.area×iv.depth×666.67×iv.delta×0.001×iv.coef; Math.ceil(power÷iv.unitpw)</p>
+      <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">水產增氧機配置計算<br>需氧量(kg) = 面積(畝) × 水深(m) × 666.67 × 溶氧提升量(mg/L) × 0.001 × 養殖品種係數（四大家魚1.0｜蝦蟹1.2｜高密度1.5）<br>理論曝氣能耗(kW·h/次) = 需氧量 ÷ 1.5（氧動力效率 1.5 kg O₂/kW·h）<br>折算功率(kW) = 能耗 ÷ 曝氣時長(h)；建議臺數 = ⌈折算功率 / 單臺功率⌉；每畝功率 = 折算功率 / 面積</div>
+      <p class="formula-desc" data-zh="核心計算公式（按輸入變數）：iv.area×iv.depth×666.67×iv.delta×0.001×iv.coef；power=energy÷iv.duration；Math.ceil(power÷iv.unitpw)">Key formulas: iv.area×iv.depth×666.67×iv.delta×0.001×iv.coef; power=energy÷iv.duration; Math.ceil(power÷iv.unitpw)</p>
     </div>
     <div class="input-row" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;align-items:end;">
       <div><label>池塘面積（畝）</label><input type="number" id="area" value="10" min="0" step="any" enterkeyhint="done" aria-label="池塘面積（畝）" placeholder="如 10"></div>
@@ -136,6 +136,7 @@ s.parentNode.insertBefore(el, s);
       </div>
       <div><label>目標溶氧提升量（mg/L）</label><input type="number" id="delta" value="3" min="0" step="any" enterkeyhint="done" aria-label="目標溶氧提升量" placeholder="如 3"></div>
       <div><label>單臺功率（kW）</label><input type="number" id="unitpw" value="3" min="0.1" step="any" enterkeyhint="done" aria-label="單臺增氧機功率" placeholder="如 3"></div>
+      <div><label>計劃曝氣時長（h/次）</label><input type="number" id="duration" value="4" min="0.1" max="24" step="any" enterkeyhint="done" aria-label="計劃曝氣時長（小時）" placeholder="如 4"></div>
     </div>
     <div class="toolbar">
       <div id="area_powerPresets"></div><button class="btn primary" type="button" onclick="calc()">🧮 計算</button><button class="btn" type="button" onclick="__area_powerExport()">匯出明細 CSV</button>
@@ -143,7 +144,7 @@ s.parentNode.insertBefore(el, s);
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
     <div class="result-box" id="res"></div> <div id="area_powerTable"></div> <div id="area_powerDiff"></div> <div id="area_powerChart"></div> <div id="area_powerHist"></div>
-    <div class="info-box">💡 公式：需氧量(kg) = 面積 × 水深 × 666.67 × 溶氧提升量 × 0.001 × 品種係數；所需功率(kW) = 需氧量 ÷ 氧動力效率(1.5 kgO₂/kW·h)；臺數 = 功率 ÷ 單臺功率（向上取整）。</div>
+    <div class="info-box">💡 公式：需氧量(kg) = 面積 × 水深 × 666.67 × 溶氧提升量 × 0.001 × 品種係數；理論曝氣能耗(kW·h/次) = 需氧量 ÷ 氧動力效率(1.5 kgO₂/kW·h)；折算功率(kW) = 能耗 ÷ 曝氣時長(h)；臺數 = 折算功率 ÷ 單臺功率（向上取整）。</div>
     <div class="tool-notes" style="--tool-accent:#0288D1;">
 <div class="card" id="constRefBox">
   <h3 data-zh="📐 公式與標準引據">Formula &amp; Standard References</h3>
@@ -198,33 +199,36 @@ function setInvalid(el,invalid){
   else{el.classList.remove('input-error');el.removeAttribute('aria-invalid');}
 }
 function readInputs(){
-  var area=getNum('area'),depth=getNum('depth'),delta=getNum('delta'),unitpw=getNum('unitpw');
+  var area=getNum('area'),depth=getNum('depth'),delta=getNum('delta'),unitpw=getNum('unitpw'),duration=getNum('duration');
   var coef=parseFloat(document.getElementById('species').value)||1.0;
   setInvalid(document.getElementById('area'),!(area>0));
   setInvalid(document.getElementById('depth'),!(depth>0));
   setInvalid(document.getElementById('delta'),!(delta>0));
   setInvalid(document.getElementById('unitpw'),!(unitpw>0));
-  var valid=area>0&&depth>0&&delta>0&&unitpw>0;
-  return {area:area,depth:depth,delta:delta,unitpw:unitpw,coef:coef,valid:valid};
+  setInvalid(document.getElementById('duration'),!(duration>0&&duration<=24));
+  var valid=area>0&&depth>0&&delta>0&&unitpw>0&&duration>0&&duration<=24;
+  return {area:area,depth:depth,delta:delta,unitpw:unitpw,duration:duration,coef:coef,valid:valid};
 }
 function calc(){
   var iv=readInputs();
   if(!iv.valid){
-    document.getElementById('res').innerHTML='<p style="color:var(--danger,#EF4444);">请检查输入，面积、水深、溶氧提升量、单台功率均需大于 0。</p>';
+    document.getElementById('res').innerHTML='<p style="color:var(--danger,#EF4444);">请输入有效参数：面积、水深、溶氧提升量、单台功率需大于 0，曝气时长需在 0–24 小时。</p>';
     return;
   }
   var o2need=iv.area*iv.depth*666.67*iv.delta*0.001*iv.coef;
-  var oxyEff=1.5; // kg O₂/kW·h 氧动力效率，作除数
-  var power=o2need/oxyEff;
+  var oxyEff=1.5; // kg O₂/kW·h 氧动力效率
+  var energy=o2need/oxyEff; // 理论曝气能耗 kW·h/次
+  var power=energy/iv.duration; // 按计划曝气时长折算功率 kW
   var units=Math.ceil(power/iv.unitpw);
   var perMu=iv.area>0?power/iv.area:0;
   const __g2='<div class="data-grid">'+
     '<div class="data-card"><div class="num">'+o2need.toFixed(2)+'</div><div class="label">需氧量（kg）</div></div>'+
-    '<div class="data-card"><div class="num">'+power.toFixed(2)+'</div><div class="label">所需功率（kW）</div></div>'+
+    '<div class="data-card"><div class="num">'+energy.toFixed(2)+'</div><div class="label">理论曝气能耗（kW·h/次）</div></div>'+
+    '<div class="data-card"><div class="num">'+power.toFixed(2)+'</div><div class="label">折算功率（kW）</div></div>'+
     '<div class="data-card"><div class="num">'+units+'</div><div class="label">建议台数（台）</div></div>'+
     '<div class="data-card"><div class="num">'+perMu.toFixed(2)+'</div><div class="label">每亩功率（kW/亩）</div></div>'+
     '</div>'+
-    '<p style="margin-top:10px;font-size:13px;color:var(--text-muted);">按单台 '+iv.unitpw+' kW 配置，建议配备 <strong style="color:var(--primary);">'+units+' 台</strong>增氧机，并合理分布于池塘四周与中央。</p>';document.getElementById('res').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
+    '<p style="margin-top:10px;font-size:13px;color:var(--text-muted);">台数按单台功率向上取整，增氧机应合理分布于池塘四周与中央。</p>';document.getElementById('res').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
   saveHistory();
 }
 function copyRes(){
@@ -238,7 +242,8 @@ function resetAll(){
   document.getElementById('species').value='1.0';
   document.getElementById('delta').value=3;
   document.getElementById('unitpw').value=3;
-  ['area','depth','delta','unitpw'].forEach(function(id){setInvalid(document.getElementById(id),false);});
+  document.getElementById('duration').value=4;
+  ['area','depth','delta','unitpw','duration'].forEach(function(id){setInvalid(document.getElementById(id),false);});
   calc();
   ToolBox.showToast(i18nText('toast.reset'),'info');
 }
@@ -248,7 +253,7 @@ function saveHistory(){
     var key=historyKey();
     var list=JSON.parse(localStorage.getItem(key)||'[]');
     var now=new Date();
-    var item={area:getNum('area'),depth:getNum('depth'),species:document.getElementById('species').value,delta:getNum('delta'),unitpw:getNum('unitpw'),time:now.toLocaleString('zh-CN',{hour:'2-digit',minute:'2-digit',second:'2-digit'})};
+    var item={area:getNum('area'),depth:getNum('depth'),species:document.getElementById('species').value,delta:getNum('delta'),unitpw:getNum('unitpw'),duration:getNum('duration'),time:now.toLocaleString('zh-CN',{hour:'2-digit',minute:'2-digit',second:'2-digit'})};
     list.unshift(item);
     if(list.length>5)list=list.slice(0,5);
     localStorage.setItem(key,JSON.stringify(list));
@@ -265,7 +270,7 @@ function renderHistory(){
     var html='<div class="history-list">';
     list.forEach(function(h,idx){
       html+='<div class="history-item" data-idx="'+idx+'">'+
-        '<div><div class="time">'+ToolBox.escHtml(h.time)+'</div><div class="summary">'+h.area+'亩 / '+h.depth+'m / '+(speciesText[h.species]||'四大家鱼')+' / +'+h.delta+'mg/L</div></div>'+
+        '<div><div class="time">'+ToolBox.escHtml(h.time)+'</div><div class="summary">'+h.area+'亩 / '+h.depth+'m / '+(speciesText[h.species]||'四大家鱼')+' / +'+h.delta+'mg/L / '+h.duration+'h/次</div></div>'+
         '<span style="font-size:12px;color:var(--primary);">恢复</span></div>';
     });
     html+='</div>';
@@ -281,6 +286,7 @@ function restoreHistory(idx){
     document.getElementById('species').value=h.species;
     document.getElementById('delta').value=h.delta;
     document.getElementById('unitpw').value=h.unitpw;
+    if(h.duration!=null)document.getElementById('duration').value=h.duration;
     calc();
     ToolBox.showToast(i18nText('toast.history_restored'),'info');
   }catch(e){}
@@ -394,7 +400,7 @@ function __area_powerExport(){
 }
 function __area_powerPresets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#area_powerPresets',[{label:'默认参数',labelEn:'Default',values:{'area':'10', 'depth':'1.5', 'species':'1.0', 'delta':'3', 'unitpw':'3'}}],function(){ calc(); });
+    TBKit.preset.bar('#area_powerPresets',[{label:'默认参数',labelEn:'Default',values:{'area':'10', 'depth':'1.5', 'species':'1.0', 'delta':'3', 'unitpw':'3'}},{"label":"小规模","labelEn":"Small scale","values":{"area":"5"}},{"label":"大规模","labelEn":"Large scale","values":{"area":"15"}},{"label":"极端工况","labelEn":"Extreme case","values":{"area":"20"}}],function(){ calc(); });
 }
 var __area_power_f0=(typeof calc==='function')?calc:null;
 if(__area_power_f0){

@@ -343,7 +343,7 @@ s.parentNode.insertBefore(el, s);
       <p style="color:var(--text-muted);font-size:13px;padding:12px 0;" data-zh="暫無歷史記錄">Estimate calories from ingredients and portion weights for a full-day meal plan.</p>    <div class="formula-box">
       <div class="formula-title">📐 計算公式 / 原理</div>
       <div class="formula-eq">BMR(Mifflin) = 10×體重 + 6.25×身高 − 5×年齡 + (男 5 / 女 −161)；TDEE = BMR × 活動係數</div>
-      <div class="formula-desc">預設 Mifflin-St Jeor 公式，另可選 Harris-Benedict（男 66.5+13.75W+5.003H−6.755A）與 Katch-McArdle（370+21.6×去脂體重，先用 BMI 估算體脂率）。每日目標攝入 = TDEE + 目標差額（減脂/維持/增肌），數值為估算參考。</div>
+      <div class="formula-desc">預設 Mifflin-St Jeor 公式，另可選 Harris-Benedict（男 66.5+13.75W+5.003H−6.755A）與 Katch-McArdle（370+21.6×去脂體重，體脂率用 Deurenberg 公式：男 1.20×BMI+0.23×年齡−16.2、女 1.20×BMI+0.23×年齡−5.4，限 2%–60%）。每日目標攝入 = TDEE + 目標差額（減脂/維持/增肌），數值為估算參考。</div>
     </div>
 
     </div>
@@ -516,6 +516,14 @@ let selectedActivity = 'moderate';
 let selectedGoal = 'maintain';
 let history = [];
 
+const RANGE_MSG = '请输入有效数据：年龄 1–120、身高 50–250、体重 10–300';
+function fieldInRange(id, min, max){
+  const val = parseFloat(document.getElementById(id).value);
+  const ok = isFinite(val) && val >= min && val <= max;
+  document.getElementById(id).classList.toggle('input-error', !ok);
+  return { ok, val };
+}
+
 function switchTab(tab){
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('tab-' + tab).classList.add('active');
@@ -527,10 +535,15 @@ function switchTab(tab){
 function calcBMI(){
   const height = parseFloat(document.getElementById('bmiHeight').value);
   const weight = parseFloat(document.getElementById('bmiWeight').value);
+  const hOk = isFinite(height) && height >= 50 && height <= 250;
+  const wOk = isFinite(weight) && weight >= 10 && weight <= 300;
+  document.getElementById('bmiHeight').classList.toggle('input-error', !hOk);
+  document.getElementById('bmiWeight').classList.toggle('input-error', !wOk);
 
-  if(!height || !weight || height <= 0 || weight <= 0){
+  if(!hOk || !wOk){
     document.getElementById('bmiValue').textContent = '--';
     document.getElementById('bmiStatus').textContent = '请输入有效数据';
+    document.getElementById('bmiStats').innerHTML = '';
     return;
   }
 
@@ -556,11 +569,24 @@ function calcBMI(){
   const idealMin = 18.5 * ((height / 100) ** 2);
   const idealMax = 23.9 * ((height / 100) ** 2);
 
+  // 体脂率改用 Deurenberg 公式（与 BMR 面板 Katch-McArdle 同源），并限定 2%–60%
+  const age = parseFloat(document.getElementById('bmiAge').value);
+  const gender = document.getElementById('bmiGender').value;
+  const ageOk = isFinite(age) && age >= 1 && age <= 120;
+  document.getElementById('bmiAge').classList.toggle('input-error', !ageOk);
+  let bodyFatText = '--';
+  if(ageOk){
+    const bodyFat = gender === 'male'
+      ? 1.20 * bmi + 0.23 * age - 16.2
+      : 1.20 * bmi + 0.23 * age - 5.4;
+    bodyFatText = (bodyFat >= 2 && bodyFat <= 60) ? bodyFat.toFixed(1) + '%' : '超出估算范围';
+  }
+
   const __h0=`
     <div class="stat-card"><div class="v">${idealMin.toFixed(1)}-${idealMax.toFixed(1)}</div><div class="l">理想体重(kg)</div></div>
     <div class="stat-card"><div class="v">${(weight - idealMax > 0 ? '+' : '')}${(weight - idealMax).toFixed(1)}</div><div class="l">与理想体重差(kg)</div></div>
     <div class="stat-card"><div class="v">${(height - 105).toFixed(1)}</div><div class="l">简单标准体重(kg)</div></div>
-    <div class="stat-card"><div class="v">${((weight / (height * height / 10000)) * 100 / 22).toFixed(0)}%</div><div class="l">体脂率估计</div></div>
+    <div class="stat-card"><div class="v">${bodyFatText}</div><div class="l">体脂率估算</div></div>
   `;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('bmiStats').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('bmiStats').innerHTML=__h0;
 }
 
@@ -574,15 +600,19 @@ function setBmrFormula(formula){
 
 function calcBMR(){
   const gender = document.getElementById('bmrGender').value;
-  const age = parseFloat(document.getElementById('bmrAge').value);
-  const height = parseFloat(document.getElementById('bmrHeight').value);
-  const weight = parseFloat(document.getElementById('bmrWeight').value);
+  const ageChk = fieldInRange('bmrAge', 1, 120);
+  const heightChk = fieldInRange('bmrHeight', 50, 250);
+  const weightChk = fieldInRange('bmrWeight', 10, 300);
 
-  if(!age || !height || !weight){
+  if(!ageChk.ok || !heightChk.ok || !weightChk.ok){
     document.getElementById('bmrValue').textContent = '--';
+    document.getElementById('bmrDesc').textContent = RANGE_MSG;
     const __h1='';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('bmrStats').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('bmrStats').innerHTML=__h1;
     return;
   }
+  const age = ageChk.val;
+  const height = heightChk.val;
+  const weight = weightChk.val;
 
   let bmr;
   if(bmrFormula === 'mifflin'){
@@ -605,6 +635,7 @@ function calcBMR(){
   }
 
   document.getElementById('bmrValue').textContent = Math.round(bmr) + ' 千卡';
+  document.getElementById('bmrDesc').textContent = '基础代谢率（千卡/天）';
 
   const __h2=`
     <div class="stat-card"><div class="v">${Math.round(bmr / 24)}</div><div class="l">每小时消耗(千卡)</div></div>
@@ -630,7 +661,8 @@ function initActivityList(){
 function selectActivity(id){
   selectedActivity = id;
   document.querySelectorAll('.activity-item').forEach(el => el.classList.remove('active'));
-  event.currentTarget.classList.add('active');
+  const active = document.querySelector('.activity-item[onclick="selectActivity(\'' + id + '\')"]');
+  if(active) active.classList.add('active');
   calcTDEE();
 }
 
@@ -647,21 +679,26 @@ function initGoalList(){
 function selectGoal(id){
   selectedGoal = id;
   document.querySelectorAll('.goal-item').forEach(el => el.classList.remove('active'));
-  event.currentTarget.classList.add('active');
+  const active = document.querySelector('.goal-item[onclick="selectGoal(\'' + id + '\')"]');
+  if(active) active.classList.add('active');
   calcTDEE();
 }
 
 function calcTDEE(){
   const gender = document.getElementById('tdeeGender').value;
-  const age = parseFloat(document.getElementById('tdeeAge').value);
-  const height = parseFloat(document.getElementById('tdeeHeight').value);
-  const weight = parseFloat(document.getElementById('tdeeWeight').value);
+  const ageChk = fieldInRange('tdeeAge', 1, 120);
+  const heightChk = fieldInRange('tdeeHeight', 50, 250);
+  const weightChk = fieldInRange('tdeeWeight', 10, 300);
 
-  if(!age || !height || !weight){
+  if(!ageChk.ok || !heightChk.ok || !weightChk.ok){
     document.getElementById('tdeeValue').textContent = '--';
+    document.getElementById('tdeeDesc').textContent = RANGE_MSG;
     const __h5='';if((typeof __h5==='number'&&!isFinite(__h5))||/Infinity/.test(String(__h5))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h5)){document.getElementById('tdeeStats').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('tdeeStats').innerHTML=__h5;
     return;
   }
+  const age = ageChk.val;
+  const height = heightChk.val;
+  const weight = weightChk.val;
 
   let bmr;
   if(gender === 'male'){
@@ -672,6 +709,7 @@ function calcTDEE(){
 
   const activity = ACTIVITY_LEVELS.find(a => a.id === selectedActivity);
   const goal = GOALS.find(g => g.id === selectedGoal);
+  if(!activity || !goal) return;
   const tdee = bmr * activity.factor;
   const target = tdee + goal.cal;
 

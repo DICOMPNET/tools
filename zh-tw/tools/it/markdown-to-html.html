@@ -114,7 +114,7 @@ s.parentNode.insertBefore(el, s);
 <!-- TOOLBOX-POLISH -->
 
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">先把圍欄程式碼塊（```lang 起、``` 止）整體取出，轉義後包成 &lt;pre&gt;&lt;code&gt;，原位置換成佔位標記，避免塊內內容被行內規則誤處理。隨後逐行匹配：佔位行直接回填程式碼塊；空行收尾當前列表與表格；^(#{1,6})\s+(.*)$ 按井號個數輸出 h1–h6；^---+$ 輸出 &lt;hr&gt;；^&gt;\s?(.*)$ 輸出引用塊；^[-*+]\s+(.*)$ 歸入同一 &lt;ul&gt; 列表；以 | 開頭且下一行是分隔行時進入表格，表頭與各行都按 | 切分並去掉首尾豎線。行內規則在 &amp; &lt; &gt; 轉義之後依次處理反引號程式碼、**粗體**、*斜體* 與 [文本](連結)。文本為空時提示輸入 Markdown</div>
+  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">先把圍欄程式碼塊（```lang 起、``` 止）整體取出，轉義後包成 &lt;pre&gt;&lt;code&gt;，原位置換成佔位標記，避免塊內內容被行內規則誤處理。隨後逐行匹配：佔位行直接回填程式碼塊；空行收尾當前列表與表格；^(#{1,6})\s+(.*)$ 按井號個數輸出 h1–h6；^---+$ 輸出 &lt;hr&gt;；^&gt;\s?(.*)$ 輸出引用塊；^[-*+]\s+(.*)$ 歸入同一 &lt;ul&gt; 列表；以 | 開頭且下一行是分隔行時進入表格，表頭與各行都按 | 切分並去掉首尾豎線。行內規則在 &amp; &lt; &gt; 轉義之後依次處理反引號程式碼、**粗體**、*斜體*、[文本](連結) 與 ![圖片說明](圖片地址)，連結與圖片地址只允許 http/https/mailto 或相對路徑，並做屬性轉義。文本為空時提示輸入 Markdown</div>
   <div class="formula-desc">按 CommonMark 規則將 Markdown 解析為 HTML：<b>#</b> 標題、<b>**</b> 粗體、<b>*</b> 斜體、<b>[]()</b> 連結、<b>-</b> 列表、<b>`</b> 行內程式碼、<b>|</b> 表格等。前端解析器（如 marked）生成帶語義標籤的 HTML，可即時預覽。</div>
   <ul class="formula-list">
     <li>直接插入 DOM 需防 XSS（對不可信輸入做消毒/沙箱）。</li>
@@ -131,11 +131,17 @@ s.parentNode.insertBefore(el, s);
       </div>
       <div>
         <label for="showcode">顯示 HTML 程式碼</label>
-        <select id="showcode" style="width:100%;"></select>
+        <select id="showcode" style="width:100%;">
+          <option value="0" selected>隱藏</option>
+          <option value="1">顯示</option>
+        </select>
       </div>
       <div>
         <label for="compact">輸出模式</label>
-        <select id="compact" style="width:100%;"></select>
+        <select id="compact" style="width:100%;">
+          <option value="pretty" selected>美化（帶換行）</option>
+          <option value="compact">壓縮（單行）</option>
+        </select>
       </div>
     </div>
 
@@ -272,7 +278,7 @@ function calcTool(){const md=document.getElementById('md').value||'';
    if(!md.trim()){ToolBox.setResult('result','<p class="tip-error">请输入 Markdown 文本。</p>');return;}
    // 轻量 Markdown 解析（标题/粗斜/链接/行内代码/列表/代码块/表格/引用/分割线）
    let s=md.replace(/\r\n/g,'\n');
-   const esc=function(x){return String(x==null?'':x).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');};
+   const esc=function(x){return String(x==null?'':x).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');};
    // 代码块（```lang ... ```）先保护
    const blocks=[];
    s=s.replace(/```[a-zA-Z]*\n([\s\S]*?)```/g,function(m,code){
@@ -284,12 +290,31 @@ function calcTool(){const md=document.getElementById('md').value||'';
    let inList=false, inTable=false, tableRows=[];
    const closeList=function(){ if(inList){ html+='</ul>'; inList=false; } };
    const closeTable=function(){ if(inTable){ html+='</table>'; inTable=false; } };
+   // 属性转义（与 esc 同口径，双引号/单引号一并转义，防止闭合属性后注入事件属性）
+   const attrEsc=function(x){return String(x==null?'':x).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');};
+   const unesc=function(x){return String(x==null?'':x).replace(/&quot;/g,'"').replace(/&#39;/g,"'").replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&amp;/g,'&');};
+   // URL 白名单：仅 http/https/mailto 与相对路径；其余协议（javascript/data/vbscript 等）退回 #。
+   // 先把引号/尖括号/空白/控制字符百分号编码，杜绝属性逃逸。
+   const safeUrl=function(u){
+     var s=unesc(u).trim();
+     if(!s) return '#';
+     s=s.replace(/[\u0000-\u0020\u007f"'<>`]/g,function(c){return '%'+('0'+c.charCodeAt(0).toString(16)).slice(-2).toUpperCase();});
+     if(/^(?:https?:|mailto:)/i.test(s)) return s;
+     if(/^[a-zA-Z][a-zA-Z0-9+.\-]*:/.test(s)) return '#';
+     return s;
+   };
    const inline=function(t){
      t=esc(t);
      t=t.replace(/`([^`]+)`/g,'<code>$1</code>');
      t=t.replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>');
      t=t.replace(/\*([^*]+)\*/g,'<em>$1</em>');
-     t=t.replace(/\[([^\]]+)\]\(([^)]+)\)/g,'<a href="/zh-tw/tools/it/$2" target="_blank" rel="noopener">$1</a>');
+     // 图片规则必须在链接规则之前，否则 ![alt](url) 的 [alt](url) 会被链接规则先吃掉
+     t=t.replace(/!\[([^\]]*)\]\(([^)]*)\)/g,function(_,alt,url){
+       return '<img src="/zh-tw/tools/it/'+attrEsc(safeUrl(url))+'" alt="'+attrEsc(unesc(alt))+'" loading="lazy">';
+     });
+     t=t.replace(/\[([^\]]+)\]\(([^)]+)\)/g,function(_,txt,url){
+       return '<a href="/zh-tw/tools/it/'+attrEsc(safeUrl(url))+'" target="_blank" rel="noopener noreferrer">'+txt+'</a>';
+     });
      return t;
    };
    for(let i=0;i<lines.length;i++){
@@ -330,8 +355,10 @@ function calcTool(){const md=document.getElementById('md').value||'';
    let outHtml=html;
    if(compact){ outHtml=outHtml.replace(/>\s+</g,'><'); }
    if(showCode){
+     // 美化模式：代码面板按顶层标签换行；压缩模式：保持单行。两者在代码面板上可见差异。
+     const codeText=compact?outHtml:outHtml.replace(/></g,'>\n<');
      html += '<div style="margin-top:12px;font-size:13px;"><b>HTML 代码</b></div>'+
-       '<pre style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:10px;font-size:12px;overflow-x:auto;max-height:260px;white-space:pre-wrap;word-break:break-all;">'+esc(outHtml)+'</pre>';
+       '<pre style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:10px;font-size:12px;overflow-x:auto;max-height:260px;white-space:pre-wrap;word-break:break-all;">'+esc(codeText)+'</pre>';
    }
    html += '<div class="tip-mini" style="margin-top:10px;font-size:13px;color:var(--text-muted);">'+
      '支持标题/粗斜体/链接/行内代码/列表/代码块/引用/表格/分割线。生成结果可复制到任意 HTML 页面。</div>';

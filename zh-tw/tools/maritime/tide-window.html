@@ -323,7 +323,7 @@ s.parentNode.insertBefore(el, s);
     return __msg;
   }
   // 分母项：__D 由真浏览器逐项置零探测得出，命中即说明该输入在此页作分母
-  var __D={"highTideTime": "highTideTime", "lowTideTime": "lowTideTime"};
+  var __D={};
   for(var _d=0;_d<_ids.length;_d++){
     if(!(_ids[_d] in __D)) continue;
     var _de=document.getElementById(_ids[_d]);
@@ -390,10 +390,22 @@ var highT = timeToMin(document.getElementById('highTideTime').value);
   var ukc = parseFloat(document.getElementById('ukc').value) || 0;
   var transitMin = parseFloat(document.getElementById('transitTime').value) || 0;
 
+  var negBad = highH < 0 || lowH < 0 || nextLowH < 0 || chartDepth < 0 || draft < 0 || ukc < 0;
+  var transitBad = !(isFinite(transitMin) && transitMin > 0);
+  [['highTideHeight',highH<0],['lowTideHeight',lowH<0],['nextLowTideHeight',nextLowH<0],['chartDepth',chartDepth<0],['draft',draft<0],['ukc',ukc<0],['transitTime',transitBad]].forEach(function(p){var e=document.getElementById(p[0]);if(e&&e.classList)e.classList.toggle('input-error',p[1]);});
+  if(negBad || transitBad){
+    ToolBox.setResult('result','<p style="color:var(--danger)">⚠ 输入无效：潮高、水深、吃水与 UKC 不得为负，通航所需时间须大于 0。</p>');
+    return;
+  }
+
   if(highT === null || lowT === null){
     ToolBox.setResult('result', '<p style="color:var(--warning);">请填写高潮与低潮时刻</p>');
     return;
   }
+
+  // 展开为跨日绝对分钟：低潮时刻若晚于高潮，视为前一日低潮；下次低潮若早于高潮，视为次日低潮
+  if(highT < lowT) highT += 1440;
+  if(nextLowT !== null && nextLowT <= highT) nextLowT += 1440;
 
   // 所需潮高
   var requiredTide = draft + ukc - chartDepth;
@@ -595,16 +607,16 @@ function drawTideChart(highT, highH, lowT, lowH, nextLowT, nextLowH, requiredTid
   ctx.lineWidth = 1;
   ctx.fillStyle = textColor;
   ctx.font = '10px sans-serif';
-  for(var hh = 0; hh < 24; hh += 3){
-    var tm = hh * 60;
-    if(tm < startMin || tm > endMin) continue;
+  var labelStart = Math.floor(startMin / 60) * 60;
+  for(var tm = labelStart; tm <= endMin; tm += 180){
     var x = xScale(tm);
     ctx.beginPath();
     ctx.moveTo(x, padT);
     ctx.lineTo(x, h - padB);
     ctx.stroke();
     ctx.textAlign = 'center';
-    ctx.fillText(String(hh).padStart(2, '0') + ':00', x, h - padB + 14);
+    var hhLabel = Math.floor((((tm % 1440) + 1440) % 1440) / 60);
+    ctx.fillText(String(hhLabel).padStart(2, '0') + ':00', x, h - padB + 14);
   }
   // Y轴标签
   ctx.textAlign = 'right';
@@ -706,10 +718,7 @@ calc();
 
 
 
-    <a href="/zh-tw/tools/misc/truth-table.html" class="related-tool-card">
-      <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">邏輯真值表生成器 - 科學研究線上工具 | ToolBox免費線上工具箱</span><span class="rt-desc">邏輯真值表生成器</span></span>
-    </a>
+
     <a href="/zh-tw/tools/maritime/speed-distance.html" class="related-tool-card">
       <span class="rt-icon">🏎️</span>
       <span class="rt-info"><span class="rt-name">航速航程換算</span><span class="rt-desc">航海航速、航程、時間三量換算，支援節(knot)、km/h、m/s 多單位互轉</span></span>
@@ -717,6 +726,10 @@ calc();
     <a href="/zh-tw/tools/maritime/stowage-factor.html" class="related-tool-card">
       <span class="rt-icon">🧮</span>
       <span class="rt-info"><span class="rt-name">積載因數計算</span><span class="rt-desc">貨物積載因數（SF）計算與艙容核算：判斷貨物是重貨還是輕貨，核算所需艙容</span></span>
+    </a>
+    <a href="/zh-tw/tools/maritime/compass-correction.html" class="related-tool-card">
+      <span class="rt-icon">⚓</span>
+      <span class="rt-info"><span class="rt-name">磁羅經校正</span><span class="rt-desc">基於五係數自差模型，在真航向、磁航向、羅航向間相互換算，並生成各羅經航向的自差值表，用於船舶磁羅經校</span></span>
     </a>
   </div>
 </div>
@@ -855,7 +868,7 @@ function __tide_windowExport(){
 }
 function __tide_windowPresets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#tide_windowPresets',[{label:'默认参数',labelEn:'Default',values:{'highTideTime':'14:20', 'highTideHeight':'4.5', 'lowTideTime':'08:05', 'lowTideHeight':'0.8', 'nextLowTideTime':'20:15', 'nextLowTideHeight':'1.0', 'chartDepth':'3.0', 'draft':'5.0', 'ukc':'0.5', 'transitTime':'60'}}],function(){ calc(); });
+    TBKit.preset.bar('#tide_windowPresets',[{label:'默认参数',labelEn:'Default',values:{'highTideTime':'14:20', 'highTideHeight':'4.5', 'lowTideTime':'08:05', 'lowTideHeight':'0.8', 'nextLowTideTime':'20:15', 'nextLowTideHeight':'1.0', 'chartDepth':'3.0', 'draft':'5.0', 'ukc':'0.5', 'transitTime':'60'}},{"label":"低值","labelEn":"Low","values":{"transitTime":"30"}},{"label":"高值","labelEn":"High","values":{"transitTime":"120"}},{"label":"极端值","labelEn":"Extreme","values":{"transitTime":"180"}}],function(){ calc(); });
 }
 var __tide_window_f0=(typeof calc==='function')?calc:null;
 if(__tide_window_f0){

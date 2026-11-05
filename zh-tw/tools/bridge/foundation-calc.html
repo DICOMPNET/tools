@@ -187,8 +187,9 @@ s.parentNode.insertBefore(el, s);
 
 <div class="formula-box">
   <strong>📐 計算公式</strong>
-  <div class="formula">Ra = up·Σ(qsi·li) + qp·Ap</div>
+  <div class="formula">Ra = up·Σ(qsi·li,eff) + qp·Ap</div>
   <p>單樁豎向承載力特徵值 Ra = 樁周總側阻 + 樁端阻力<br>
+  側阻有效長度逐層截斷：l1,eff = min(l1, L)、l2,eff = min(l2, L − l1,eff)、l3,eff = L − l1,eff − l2,eff（不小於 0），超出樁長的土層厚度不計入側阻<br>
   up = π·d（樁周長），Ap = π·d²/4（樁端面積）<br>
   需要樁數 n = N / Ra（取整，並適當富餘）</p>
 </div>
@@ -221,19 +222,19 @@ s.parentNode.insertBefore(el, s);
 </style>
 <section class="deep-dive" data-deep-dive="1">
 <div class="card">
-<h2>📚 深度解析：基礎計算（地基承載力）</h2>
+<h2>📚 深度解析：樁基礎承載力計算</h2>
 <h3>💡 常見使用場景</h3>
 <ul class="dd-list">
-<li>獨立基礎尺寸試算：輸入上部軸力與<a class="term-link" href="/zh-tw/tools/civil/dijichengzailijisuan.html">地基承載力</a>特徵值，估算所需基底面積，再按偏心複核底面壓力是否不超過 1.2 倍特徵值。</li>
-<li>軟弱地基處理比選：當原狀土承載力不足時，比較換填、樁基與複合地基的方案工程量，結合造價選擇經濟處理深度。</li>
-<li>既有建築增層核算：改造專案用現有基底面積反算可承受軸力，判斷能否直接增層或需加固地基。</li>
+<li>摩擦樁單樁承載力估算：按樁徑、樁長與各土層側阻/端阻算出 Ra，再由上部荷載確定樁數。</li>
+<li>樁型方案比選：比較不同樁徑、樁長下側阻與端阻的佔比，判斷以側阻為主還是端阻為主。</li>
+<li>樁數初估與布樁：按 Ra 取整並結合承臺尺寸、群樁效應與上部荷載留富餘，供方案階段估算。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">演練示例（軸心受壓）</div><div class="dd-ex-body">上部軸力 2000 kN、地基承載力特徵值 180 kPa、基礎埋深 1.5 m、土重度 18 kN/m³：所需基底面積 A ≈ 2000/(180-1.5×18) ≈ 12.8 m²（約 3.6 m×3.6 m）。增大承載力可看面積縮小。</div></div>
+<div class="dd-example"><div class="dd-ex-title">演練示例（預設引數）</div><div class="dd-ex-body">樁徑 d=1.2 m、樁長 L=25 m、qp=1200 kPa，土層側阻 45/60/80 kPa、厚度 10/10 m（第三層取剩餘 5 m），上部荷載 12000 kN：up=π×1.2≈3.77 m、Ap=π×1.2²/4≈1.131 m²；總側阻=3.77×(45×10+60×10+80×5)=3.77×1450≈5466.4 kN，總端阻=1200×1.131≈1357.2 kN，Ra≈6823.5 kN（側阻約佔 80.1%、端阻 19.9%）；樁數 n=ceil(12000/6823.5)=2 根，單樁承擔 6000 kN。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
-<dt>地基承載力特徵值從哪裡來？</dt><dd>由岩土工程勘察報告通過載荷試驗或經驗公式給出，需考慮深度與寬度修正；本工具輸入的應是修正後的設計值，嚴禁直接套用原始資料。</dd>
-<dt>偏心荷載下如何驗算？</dt><dd>偏心時基底出現梯形/<a class="term-link" href="/zh-tw/tools/it/triangle-calculator.html">三角形</a>壓力分佈，最大壓力 pmax 應 ≤1.2fa 且平均壓力 ≤fa；本工具軸心公式僅為初估，偏心工況須用彎矩參與的組合式。</dd>
-<dt>結果能直接用於基礎施工圖嗎？</dt><dd>基礎設計還涉及沉降、抗震與構造配筋，須按 GB 50007 與勘察報告由註冊工程師完成，本工具結果用於方案比選與初步尺寸。</dd>
+<dt>側阻與端阻特徵值從哪裡取？</dt><dd>由岩土勘察報告或 JGJ 94-2008 經驗表給出，應取特徵值（標準值需按規範折減）；施工工藝（鑽孔、打入、後注漿）會顯著改變側阻取值。</dd>
+<dt>為什麼第三層側阻不用輸入厚度？</dt><dd>本工具按樁長逐層截斷：前兩層厚度先扣減，剩餘樁長自動歸入第三層，超出樁長的土層不參與側阻，避免把無效土層計入。</dd>
+<dt>樁數算出來能直接布樁嗎？</dt><dd>n 僅按上部荷載與單樁 Ra 取整；實際布樁還需考慮承臺尺寸、群樁效應、偏心彎矩、沉降與構造要求，並留適當富餘。</dd>
 </dl>
 </div>
 </section>
@@ -283,7 +284,11 @@ function calc(){
   if(!d||d<=0)return;
   var up=Math.PI*d;
   var Ap=Math.PI*d*d/4;
-  var sideSum=qs1*l1+qs2*l2+qs3*(Math.max(0,L-l1-l2));
+  var rem=Math.max(0,L);
+  var e1=Math.min(Math.max(l1,0),rem); rem-=e1;
+  var e2=Math.min(Math.max(l2,0),rem); rem-=e2;
+  var e3=Math.max(0,rem);
+  var sideSum=qs1*e1+qs2*e2+qs3*e3;
   var totalSide=up*sideSum;
   var totalTip=qp*Ap;
   var Ra=totalSide+totalTip;
@@ -341,10 +346,7 @@ calc();
 
 
 
-    <a href="/zh-tw/tools/misc/truth-table.html" class="related-tool-card">
-      <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">邏輯真值表生成器 - 科學研究線上工具 | ToolBox免費線上工具箱</span><span class="rt-desc">邏輯真值表生成器</span></span>
-    </a>
+
     <a href="/zh-tw/tools/bridge/span-calc.html" class="related-tool-card">
       <span class="rt-icon">🧮</span>
       <span class="rt-info"><span class="rt-name">跨度計算</span><span class="rt-desc">橋跨佈置計算器，根據橋樑總長與跨數求單孔跨徑、墩臺數量及連續梁彎矩估算，輔助橋型方案比選。</span></span>
@@ -352,6 +354,10 @@ calc();
     <a href="/zh-tw/tools/bridge/deflection-calc.html" class="related-tool-card">
       <span class="rt-icon">🌉</span>
       <span class="rt-info"><span class="rt-name">撓度計算</span><span class="rt-desc">橋樑撓度計算器，求簡支梁在均布或集中荷載下的撓度並校核允許撓度，輸入彈性模量、慣性矩與跨徑，保障剛度</span></span>
+    </a>
+    <a href="/zh-tw/tools/bridge/material-qty.html" class="related-tool-card">
+      <span class="rt-icon">📐</span>
+      <span class="rt-info"><span class="rt-name">材料用量估算</span><span class="rt-desc">橋樑材料用量估算器，按單孔或全橋估算主樑混凝土、橋面鋪裝與鋼筋用量，輔助概預算與備料。</span></span>
     </a>
   </div>
 </div>
@@ -371,7 +377,7 @@ calc();
     </ul>
     <h4><span class="h4-icon">🎯</span>使用場景</h4>
     <ul class="intro-scenes">
-      <li>獨立基礎尺寸試算：輸入上部軸力與地基承載力特徵值，估算所需基底面積，再按偏心複核底面壓力是否不超過 1.2 倍特徵值。</li><li>軟弱地基處理比選：當原狀土承載力不足時，比較換填、樁基與複合地基的方案工程量，結合造價選擇經濟處理深度。</li><li>既有建築增層核算：改造專案用現有基底面積反算可承受軸力，判斷能否直接增層或需加固地基。</li>
+      <li>摩擦樁單樁承載力估算：按樁徑、樁長與各土層側阻/端阻算出 Ra，再由上部荷載確定樁數。</li><li>樁型方案比選：比較不同樁徑、樁長下側阻與端阻的佔比，判斷以側阻為主還是端阻為主。</li><li>樁數初估與布樁：按 Ra 取整並結合承臺尺寸、群樁效應與上部荷載留富餘，供方案階段估算。</li>
     </ul>
     </div>
 </div>
@@ -486,7 +492,7 @@ function __foundation_calcExport(){
 }
 function __foundation_calcPresets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#foundation_calcPresets',[{label:'默认参数',labelEn:'Default',values:{'inD':'1.2', 'inL':'25', 'inQp':'1200', 'inQs1':'45', 'inL1':'10', 'inQs2':'60', 'inL2':'10', 'inQs3':'80', 'inN':'12000'}}],function(){ calc(); });
+    TBKit.preset.bar('#foundation_calcPresets',[{label:'默认参数',labelEn:'Default',values:{'inD':'1.2', 'inL':'25', 'inQp':'1200', 'inQs1':'45', 'inL1':'10', 'inQs2':'60', 'inL2':'10', 'inQs3':'80', 'inN':'12000'}},{"label":"小规模","labelEn":"Small scale","values":{"inD":"0.6"}},{"label":"大规模","labelEn":"Large scale","values":{"inD":"1.8"}},{"label":"极端工况","labelEn":"Extreme case","values":{"inD":"2.4"}}],function(){ calc(); });
 }
 var __foundation_calc_f0=(typeof calc==='function')?calc:null;
 if(__foundation_calc_f0){

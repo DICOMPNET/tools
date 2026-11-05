@@ -137,7 +137,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="根據蠟燭重量和蠟材型別估算燃燒時間">Candle Burn Time</p>
     <div class="formula-box">
       <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">蠟燭燃燒時間估算<br>有效燃燒蠟量 = 總重 × 0.85（15% 殘留）<br>燭芯因子：1 根 1.0｜2 根 1.7｜3 根 2.3（非線性）<br>綜合燃速 = 蠟型基準燃速 × 燭芯因子 × 溫度因子（g/h）<br>燃燒小時 = 有效蠟量 ÷ 綜合燃速<br>可用天數 = 小時 ÷ 4（每天 4 小時）<br>直徑影響：&lt;50mm 效率高｜&gt;100mm 防隧道效應<br>進度條以 100 小時為滿標<br>輸出：總燃燒小時、可用天數、燃速、有效蠟量</div>
-      <p class="formula-desc" data-zh="核心計算公式（按輸入變數）：min(100, (burnHours ÷ maxBurn) × 100)；Math.round((burnHours - hours) × 60)；Math.floor(burnHours ÷ 4)">Key formulas: min(100, (burnHours ÷ maxBurn) × 100); Math.round((burnHours - hours) × 60); Math.floor(burnHours ÷ 4)</p>
+      <p class="formula-desc" data-zh="核心計算公式（按輸入變數）：min(100, (burnHours ÷ maxBurn) × 100)；總分鐘 = Math.round(burnHours × 60)；小時 = Math.floor(總分鐘 ÷ 60)；分鐘 = 總分鐘 mod 60；Math.floor(burnHours ÷ 4)">Key formulas: min(100, (burnHours ÷ maxBurn) × 100); total minutes = Math.round(burnHours × 60); hours = Math.floor(total minutes ÷ 60); minutes = total minutes mod 60; Math.floor(burnHours ÷ 4)</p>
     </div>
 
     <h3 style="font-size:14px;margin-bottom:8px;">蠟材型別</h3>
@@ -174,7 +174,7 @@ s.parentNode.insertBefore(el, s);
 
     <div class="toolbar">
       <div id="candle_burn_timePresets"></div><button type="button" class="btn primary" onclick="calc()">估算燃燒時間</button><button class="btn" type="button" onclick="__candle_burn_timeExport()">匯出明細 CSV</button>
-      <button type="button" class="btn" onclick="copyResult()">複製結果</button>
+      <button type="button" class="btn" id="copyBurnBtn" onclick="copyResult()">複製結果</button>
     </div>
 
     <div class="result-display">
@@ -339,17 +339,22 @@ function selectType(id){
 }
 
 function calc(){
-  const weight = parseFloat(document.getElementById('weight').value) || 0;
+  const weightRaw = document.getElementById('weight').value.trim();
+  const weight = parseFloat(weightRaw);
   const diameter = parseFloat(document.getElementById('diameter').value) || 0;
   const wicks = parseInt(document.getElementById('wicks').value);
   const tempFactor = parseFloat(document.getElementById('temp').value);
   const wax = WAX_TYPES.find(t => t.id === selectedType);
+  const copyBtn = document.getElementById('copyBurnBtn');
 
-  if(weight <= 0){
+  if(!isFinite(weight) || weight <= 0){
     document.getElementById('burnResult').textContent = '--';
+    document.getElementById('burnDesc').textContent = '请输入蜡烛重量（g）';
     document.getElementById('burnStats').innerHTML='';
+    if(copyBtn) copyBtn.disabled = true;
     return;
   }
+  if(copyBtn) copyBtn.disabled = false;
 
   // 有效燃烧蜡量（约85%可燃，15%残留）
   const usableWeight = weight * 0.85;
@@ -368,8 +373,10 @@ function calc(){
     else diameterNote = '标准直径，燃烧均匀';
   }
 
-  const hours = Math.floor(burnHours);
-  const mins = Math.round((burnHours - hours) * 60);
+  // 统一按分钟取整后再拆分，避免四舍五入出「N小时60分钟」
+  const totalMinutes = Math.round(burnHours * 60);
+  const hours = Math.floor(totalMinutes / 60);
+  const mins = totalMinutes % 60;
   const days = Math.floor(burnHours / 4); // 假设每天燃烧4小时
 
   const __g5=burnHours.toFixed(1) + ' 小时';document.getElementById('burnResult').textContent=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));

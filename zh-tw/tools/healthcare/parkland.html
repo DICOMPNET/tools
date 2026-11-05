@@ -119,7 +119,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="估算成人燒傷後 24 小時 Parkland 補液量。">Compute the Parkland formula fluid volume for the first 24 hours from body weight and burn percentage, and split it into the first 8 hours and the remaining 16.</p>
     <div class="input-row"><label>體重 kg</label><input type="number" id="weight" value="70" step="any" oninput="calc()" placeholder="如 70"></div>
     <div class="input-row"><label>燒傷面積 %</label><input type="number" id="tbsa" value="30" step="any" oninput="calc()" placeholder="如 30"></div>
-    <div class="input-row"><label>已輸注時間 h</label><input type="number" id="hours" value="0" step="any" oninput="calc()" placeholder="如 0"></div>
+    <div class="input-row"><label>已輸注時間 h</label><input type="number" id="hours" value="0" min="0" max="24" step="any" oninput="calc()" placeholder="如 0（自受傷時刻起算）"></div>
     <div class="toolbar">
       <div id="parklandPresets"></div>
       <button class="btn primary" onclick="calc()">計算</button>
@@ -134,7 +134,7 @@ s.parentNode.insertBefore(el, s);
   </div>
   <div class="card formula-box">
     <h3>📐 計算公式與說明</h3>
-    <div class="formula-eq">24h 乳酸林格 = 4 mL × 體重(kg) × 燒傷面積(%)<br>一半在前 8h，一半在後 16h</div>
+    <div class="formula-eq">24h 乳酸林格 = 4 mL × 體重(kg) × 燒傷面積(%)<br>前 8 小時輸半量：t ≤ 8h 時累計應輸 = 半量 × t ÷ 8<br>後 16 小時輸另半量：t &gt; 8h 時累計應輸 = 半量 + 半量 × (t − 8) ÷ 16<br>總量 = 前 8h 半量 + 後 16h 半量（各佔 1/2，不是 24h 平均分配）<br>計時自受傷時刻起算，已輸注時間限制 0–24h</div>
     <p style="font-size:13px;color:var(--text-muted);margin-top:12px;">為估算公式，實際需根據尿量等調整。</p>
   </div>
 </div>
@@ -233,16 +233,24 @@ s.parentNode.insertBefore(el, s);
 function calc(){
   const weight = +document.getElementById('weight').value || 0;
   const tbsa = +document.getElementById('tbsa').value || 0;
-  const hours = +document.getElementById('hours').value || 0;
+  const rawHours = +document.getElementById('hours').value || 0;
+  const hours = Math.min(Math.max(rawHours, 0), 24);
   let html = '';
   const __v0 = (4*weight*tbsa);
-  html += `<p>24h 总量：<strong style="font-size:18px;color:var(--primary);">${__v0.toFixed(0)}</strong> mL</p>`;
   const __v1 = (4*weight*tbsa*0.5);
-  html += `<p>前8小时：<strong style="font-size:18px;color:var(--primary);">${__v1.toFixed(0)}</strong> mL</p>`;
   const __v2 = (4*weight*tbsa*0.5);
-  html += `<p>后16小时：<strong style="font-size:18px;color:var(--primary);">${__v2.toFixed(0)}</strong> mL</p>`;
-  const __v3 = (4*weight*tbsa*hours/24);
-  html += `<p>当前应输：<strong style="font-size:18px;color:var(--primary);">${__v3.toFixed(0)}</strong> mL</p>`;
+  // 分段累计：前 8h 输半量（t≤8 按 t/8 线性累计），后 16h 输另半量（t>8 按 (t−8)/16 累计）
+  const __v3 = (hours <= 8 ? __v1*hours/8 : __v1 + __v1*(hours-8)/16);
+  const __v4 = (__v0 - __v3);
+  html += `<p>24h 总量：<strong style="font-size:18px;color:var(--primary);">${__v0.toFixed(0)}</strong> mL</p>`;
+  html += `<p>前 8 小时（半量，按 t/8 累计）：<strong style="font-size:18px;color:var(--primary);">${__v1.toFixed(0)}</strong> mL</p>`;
+  html += `<p>后 16 小时（半量，按 (t−8)/16 累计）：<strong style="font-size:18px;color:var(--primary);">${__v2.toFixed(0)}</strong> mL</p>`;
+  html += `<p>当前累计应输（按 8h/16h 分段）：<strong style="font-size:18px;color:var(--primary);">${__v3.toFixed(0)}</strong> mL</p>`;
+  html += `<p>至 24h 尚需输：<strong style="font-size:18px;color:var(--primary);">${__v4.toFixed(0)}</strong> mL</p>`;
+  if (rawHours > 24) {
+    html += `<p style="font-size:12px;color:var(--text-muted);">⚠ 已输注时间超过 24 小时，累计量按 24h 总量封顶。</p>`;
+  }
+  html += `<p style="font-size:12px;color:var(--text-muted);">⏱ 已输注 ${hours} h（计时自受伤时刻起算，非入院时刻；上限 24 h）。</p>`;
   const __g1=html;document.getElementById('result').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 }
 function copyResult() {
@@ -392,8 +400,8 @@ else document.addEventListener('DOMContentLoaded', __parklandBoot);
 <li>急救參考：現場/轉運估補液量</li>
 <li>監測調整：按尿量等即時調速度</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">方法</div><div class="dd-ex-body">演算法（Parkland）：24h 總量 = 4 × 體重(kg) × 燒傷面積 TBSA(%) mL；前 8h 輸半量，後 16h 輸另半量；某時刻應輸 = 總量 × 已過去小時/24。要求體重、面積&gt;0。</div></div>
-<div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">例1（70kg、TBSA 30%）：24h=4×70×30=8400mL，前 8h=4200mL，後 16h=4200mL；若受傷已 8 小時，當前應輸=8400×8/24=2800mL。例2（60kg、40%）：24h=9600mL。</div></div>
+<div class="dd-example"><div class="dd-ex-title">方法</div><div class="dd-ex-body">演算法（Parkland）：24h 總量 = 4 × 體重(kg) × 燒傷面積 TBSA(%) mL；前 8h 輸半量，後 16h 輸另半量。分段累計：t ≤ 8h 時累計應輸 = 半量 × t ÷ 8；t &gt; 8h 時累計應輸 = 半量 + 半量 × (t − 8) ÷ 16；t 自受傷時刻起算並限制 0–24h。要求體重、面積&gt;0。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">例1（70kg、TBSA 30%）：24h=4×70×30=8400mL，前 8h=4200mL，後 16h=4200mL；若受傷已 8 小時，當前累計應輸=4200×8÷8=4200mL（半量），而非按 24h 均攤的 2800mL；若已 12 小時，=4200+4200×4÷16=5250mL。例2（60kg、40%）：24h=9600mL。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
 <dt>兒童/吸入傷怎麼算？</dt><dd>兒童用改良 Brooke 或按體重更精細公式，吸入性損傷常需更多；Parkland 僅成人初步，須按燒傷科方案與尿量(成人≥0.5mL/kg/h)調整。</dd>

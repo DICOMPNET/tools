@@ -131,7 +131,7 @@ s.parentNode.insertBefore(el, s);
      <h2 data-zh="🎚️ 頻譜視覺化">🎚️ Audio Spectrum Visualizer</h2>
         <div class="formula-box">
       <div class="formula-title">📐 計算公式 / 原理</div> <div class="formula-eq">柱高 val = (sin(animT×0.05 + i×0.3)×0.3 + sin(animT×0.08 + i×0.15)×0.2 + 0.5) × 畫布高 × 0.8；wave 模式 val = (sin(animT×0.05 + i×0.2)×0.4 + 0.5) × 畫布高 × 0.8；圓形模式極角 = (i ÷ 柱數) × 2π，內半徑 = min(寬, 高) ÷ 4，條長 = (sin(animT×0.05 + i×0.3)×0.5 + 0.5) × 內半徑 × 0.8 + 10；配色按 t = i ÷ 柱數 在起止色間線性插值</div>
-      <div class="formula-desc">基於 Web Audio 的 AnalyserNode 做 FFT，把音訊各頻段能量繪製為頻域柱狀譜並支援峰值檢視；用於音訊除錯與教學演示。</div>
+      <div class="formula-desc">按正弦疊加公式生成模擬頻譜柱形動畫（合成數據），不接入麥克風或音訊檔案，也不執行真實 FFT；用於視覺演示與版式參考，如需真實頻譜分析請使用專業音訊軟體。</div>
     </div>
 <div class="input-row">
       <div><label>條數</label><input type="number" id="bars" value="48" min="8" max="120" onchange="generate()" placeholder="如 48（8–120）"></div>
@@ -177,15 +177,15 @@ s.parentNode.insertBefore(el, s);
 <h2>📚 深度解析：頻譜視覺化</h2>
 <h3>💡 常見使用場景</h3>
 <ul class="dd-list">
-<li>音樂視覺化。</li>
-<li>教學 FFT。</li>
-<li>播放器特效。</li>
+<li><a class="term-link" href="/zh-tw/tools/music/music-player.html">音樂播放器</a>的頻譜樣式參考。</li>
+<li>頻譜外觀的視覺演示。</li>
+<li>頁面動效與配色試驗。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">即時頻譜</div><div class="dd-ex-body">&lt;p&gt;&lt;strong&gt;輸入：&lt;/strong&gt;播放/麥克風音訊。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;處理：&lt;/strong&gt;FFT 分析頻段。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;輸出：&lt;/strong&gt;頻譜條動畫，本地完成。&lt;/p&gt;</div></div>
+<div class="dd-example"><div class="dd-ex-title">模擬頻譜</div><div class="dd-ex-body">&lt;p&gt;&lt;strong&gt;輸入：&lt;/strong&gt;條數 48、柱狀樣式、起止配色。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;處理：&lt;/strong&gt;按正弦疊加公式生成合成幅值。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;輸出：&lt;/strong&gt;頻譜柱形動畫；不讀取麥克風或音訊檔案，本地繪製。&lt;/p&gt;</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
-<dt>需要檔案嗎？</dt><dd>可用麥克風或音訊輸入，均本地分析不上傳。</dd>
-<dt>頻段數怎麼定？</dt><dd>FFT 大小決定頻段數；越大越細但更耗算力，按裝置取捨。</dd>
+<dt>需要檔案嗎？</dt><dd>不需要，也不支援。本工具不接入麥克風或音訊檔案，柱形由合成公式生成，純前端本地繪製。</dd>
+<dt>條數怎麼定？</dt><dd>條數即畫面中的柱形數量（8–120），越多越密；它不代表真實頻段劃分。</dd>
 <dt>會儲存或上傳我的內容嗎？</dt><dd>結果以瀏覽器即時計算為準，純前端本地處理、資料不上傳；生成的樣式與程式碼僅作快速產出參考，正式專案請以設計系統、規範與瀏覽器實測為準。</dd>
 </dl>
 </div>
@@ -205,7 +205,7 @@ s.parentNode.insertBefore(el, s);
       <tbody>
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="快速傅立葉變換">Fast Fourier transform</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="把時域取樣轉為頻域幅度，點數須為 2 的冪以提速">converts time samples to magnitude, powers of two speed it up</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="把時域取樣轉為頻域幅度（概念參考；本工具不執行真實 FFT）">converts time samples to magnitude (reference only; this tool does not run a real FFT)</td>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="Cooley and Tukey FFT">Cooley and Tukey FFT</td>
         </tr>
         <tr>
@@ -502,7 +502,7 @@ else document.addEventListener('DOMContentLoaded', __spectrum_visualizerBoot);
   </div>
   <div class="tool-intro-body">
     <h4><span class="h4-icon">📝</span>工具簡介</h4>
-    <p data-zh="頻譜視覺化是一款設計創意領域的線上工具。設計創意工具，視覺化操作，一鍵生成 CSS 程式碼。">Plot live audio as a frequency-domain spectrum using the Web Audio API, with FFT analysis and peak inspection.</p>
+    <p data-zh="頻譜視覺化是一款設計創意領域的線上工具。用合成公式生成頻譜柱形動畫，不接入麥克風或音訊檔案，也不執行真實 FFT。">Render a synthetic spectrum bar animation with sine formulas; no microphone input, audio file, or real FFT is involved.</p>
     <h4><span class="h4-icon">✨</span>功能特點</h4>
     <ul class="intro-features">
       <li>視覺化操作，所見即所得</li>

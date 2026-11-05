@@ -147,18 +147,18 @@ s.parentNode.insertBefore(el, s);
 </style>
 <section class="deep-dive" data-deep-dive="1">
 <div class="card">
-<h2>📚 深度解析：復盤資料的描述統計</h2>
+<h2>📚 深度解析：多期經營指標復盤</h2>
 <h3>💡 常見使用場景</h3>
 <ul class="dd-list">
-<li>把一組復盤所需的日/周指標直接粘進來，先看<a class="term-link" href="/zh-tw/tools/stats/sample-size.html">樣本量</a>與總和確認沒有漏錄，再看均值與<a class="term-link" href="/zh-tw/tools/science/median-calculator.html">中位數</a>判斷集中趨勢。</li>
-<li>用極差與<a class="term-link" href="/zh-tw/tools/it/standard-deviation.html">標準差</a>判斷復盤所需的日/周指標的離散程度，標準差大說明口徑不一致或存在異常點。</li>
-<li>兩批資料各跑一次，對比均值與標準差做初步差異判斷。</li>
+<li>按時間順序貼上多期資料（期次,GMV,訂單數,退款率%,獲客成本），逐期看 GMV 環比增長，判斷增長是否持續。</li>
+<li>對比退款率與獲客成本的逐期變化，退款率上升或獲客成本上升超過 0.3（0.3 個百分點 / 0.3 元）即被標記為風險期次。</li>
+<li>用末期與首期的 GMV、退款率、獲客成本做整體判定：三項都不惡化才輸出「改善」，否則輸出「需關注」。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">復盤所需的日/周指標示例</div><div class="dd-ex-body">輸入 復盤所需的日/周指標：128,142,135,160,151,129,147。樣本量 7、總和 992、均值 141.71、中位數 142、極差 32、標準差 11.71。均值 141.7 與中位數 142 幾乎一致，說明這批<a class="term-link" href="/zh-tw/guides/data-distribution-guide.html">資料分佈</a>均勻；第 4 天 160 為峰值，應回看當天做了什麼動作。</div></div>
+<div class="dd-example"><div class="dd-ex-title">預設三期資料的復盤結果</div><div class="dd-ex-body">第 1 期 GMV 120,000、退款率 3.5%、獲客成本 28；第 2 期 138,000、3.1%、26；第 3 期 152,000、2.8%、25。GMV 環比依次為 +15.0%、+10.1%；退款率逐期變化 −0.4、−0.3 個百分點，獲客成本 −2、−1，均未觸發上升預警。末期 GMV 高於首期，且退款率、獲客成本都低於首期 ⇒ 整體結論「改善」；平均退款率 3.13%、平均獲客成本 26.33。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
-<dt>能自動生成復盤結論或改進項嗎？</dt><dd>不能。工具只做數值的描述性統計，不含歸因分析、漏斗拆解或改進建議生成。輸出可作為復盤會上的輸入。</dd>
-<dt>輸入支援什麼格式？</dt><dd>逗號、空格或換行分隔的數值均可，非數字內容會被自動忽略。建議按時間順序一行一個，便於對照日期回看。</dd>
+<dt>能自動生成歸因分析或改進項嗎？</dt><dd>不能。工具只做環比計算、閾值標記和「改善 / 需關注」的機械判定，不含歸因拆解、<a class="term-link" href="/zh-tw/tools/marketing/funnel-calculator.html">漏斗分析</a>或改進建議生成。結論可作為復盤會的輸入，具體原因仍需人工排查。</dd>
+<dt>輸入支援什麼格式？</dt><dd>一行一期、共 5 列，用逗號或製表符分隔：期次,GMV,訂單數,退款率%,獲客成本。退款率按 0–100 的百分數填寫（如 3.5 表示 3.5%），超出範圍會按邊界值處理並提示核對。</dd>
 </dl>
 </div>
 </section>
@@ -203,6 +203,7 @@ s.parentNode.insertBefore(el, s);
 function calc(){
   var raw=document.getElementById('data').value.split(String.fromCharCode(10)).map(function(s){return s.replace(String.fromCharCode(13),'');}).map(function(s){return s.trim();}).filter(Boolean);
   var rows=[];
+  var refOutOfRange=false;
   raw.forEach(function(line){
     var p=line.split(/[,，\t]/).map(function(x){return x.trim();});
     if(p.length>=5){
@@ -210,6 +211,7 @@ function calc(){
       var ord=parseFloat(p[2].replace(/[^0-9.\-]/g,''));
       var ref=parseFloat(p[3].replace(/[^0-9.\-]/g,''));
       var cac=parseFloat(p[4].replace(/[^0-9.\-]/g,''));
+      if(ref<0||ref>100){refOutOfRange=true;ref=Math.min(100,Math.max(0,ref));}
       if(![gmv,ord,ref,cac].some(isNaN)) rows.push({name:p[0]||('第'+(rows.length+1)+'期'),gmv:gmv,ord:ord,ref:ref,cac:cac});
     }
   });
@@ -230,7 +232,8 @@ function calc(){
   var last=rows[rows.length-1],first=rows[0];
   var health=(last.gmv>=first.gmv&&last.ref<=first.ref&&last.cac<=first.cac)?'改善':'需关注';
   var riskHtml=risks.length?('<p>风险预警：</p><ul style="margin:4px 0 0 18px;font-size:13px;line-height:1.8;color:var(--text-muted">'+risks.map(function(x){return '<li>'+ToolBox.escHtml(x)+'</li>';}).join('')+'</ul>'):'<p>风险预警：本期各项指标未见明显异常。</p>';
-  const __g2='<p>复盘期数：<strong>'+rows.length+'</strong>　整体结论：<strong style="color:var(--primary)">'+health+'</strong></p><div style="overflow-x:auto"><table><thead><tr><th>期次</th><th>期名</th><th>GMV</th><th>GMV 环比</th><th>退款率</th><th>获客成本</th></tr></thead><tbody>'+h+'</tbody></table></div><p>平均退款率：<strong>'+avgRef.toFixed(2)+'%</strong>　平均获客成本：<strong>'+avgCac.toFixed(2)+'</strong></p>'+riskHtml;res.innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
+  var refWarnHtml=refOutOfRange?'<p style="color:var(--danger,#dc2626)">⚠️ 退款率应在 0–100% 之间，已按边界值处理，请核对原始数据。</p>':'';
+  const __g2='<p>复盘期数：<strong>'+rows.length+'</strong>　整体结论：<strong style="color:var(--primary)">'+health+'</strong></p><div style="overflow-x:auto"><table><thead><tr><th>期次</th><th>期名</th><th>GMV</th><th>GMV 环比</th><th>退款率</th><th>获客成本</th></tr></thead><tbody>'+h+'</tbody></table></div><p>平均退款率：<strong>'+avgRef.toFixed(2)+'%</strong>　平均获客成本：<strong>'+avgCac.toFixed(2)+'</strong></p>'+refWarnHtml+riskHtml;res.innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 }
 function fmtMoney(n){return '¥'+n.toLocaleString('zh-CN');}
 function copyRes(){ToolBox.copyText(document.getElementById('res').innerText);}

@@ -128,7 +128,7 @@ s.parentNode.insertBefore(el, s);
     <h2 data-zh="🎞️ 焦距視場角">Focal Length</h2>
     <div class="formula-box">
       <div class="formula-title">📐 計算公式</div>
-      <div class="formula-eq">視場角 FOV = 2 × arctan(感測器對應邊長 ÷ (2×焦距)) × 180÷π（水平取寬、垂直取高、對角取對角線）；等效焦距 = 焦距 × (參考畫幅對角線 ÷ 當前畫幅對角線)，焦距轉換系數 = 當前畫幅對角線 ÷ 參考畫幅對角線。校驗：無強校驗，焦距預設按 1mm，畫幅按感測器表（全畫幅 36×24/43.27、APS-C、M4/3、1 英寸等）。判據：f &lt;24 超廣角、&lt;50 廣角/標準、&lt;85 標準/中焦、&lt;200 中長焦、否則長焦/超長焦。</div>
+      <div class="formula-eq">視場角 FOV = 2 × arctan(感測器對應邊長 ÷ (2×焦距)) × 180÷π（水平取寬、垂直取高、對角取對角線）；等效焦距 = 焦距 × (參考畫幅對角線 ÷ 當前畫幅對角線)，焦距轉換系數 = 當前畫幅對角線 ÷ 參考畫幅對角線。校驗：焦距必須為大於 0 的有限數值，空值/0/負數拒絕計算並提示；畫幅按感測器表（全畫幅 36×24/43.27、APS-C 23.6×15.6/28.2、M4/3、1 英寸等），APS-C 參考對角線同為 28.2mm。判據：f &lt;24 超廣角、&lt;50 廣角/標準、&lt;85 標準/中焦、&lt;200 中長焦、否則長焦/超長焦。</div>
     </div>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="鏡頭焦距與視場角(FOV)換算，支援多種畫幅">Focal Length</p>
 
@@ -144,7 +144,7 @@ s.parentNode.insertBefore(el, s);
         <label>對角線焦距轉換</label>
         <select id="refSensor" onchange="calc()">
           <option value="43.27">全畫幅 (43.3mm)</option>
-          <option value="28.8">APS-C (28.8mm)</option>
+          <option value="28.2">APS-C (28.2mm)</option>
           <option value="21.64">M4/3 (21.6mm)</option>
         </select>
       </div>
@@ -261,7 +261,12 @@ function selectSensor(i){
 }
 
 function calc(){
-  var f=+document.getElementById('focal').value||1;
+  var f=parseFloat(document.getElementById('focal').value);
+  if(!isFinite(f)||f<=0){
+    document.getElementById('fovViz').innerHTML='';
+    document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 请输入大于 0 的有效焦距（mm）。</p>';
+    return;
+  }
   var s=SENSORS[curSensor];
   var hFOV=2*Math.atan(s.w/(2*f))*180/Math.PI;
   var vFOV=2*Math.atan(s.h/(2*f))*180/Math.PI;
@@ -298,7 +303,8 @@ function calc(){
 }
 
 function copyResult(){
-  var f=+document.getElementById('focal').value||1;
+  var f=parseFloat(document.getElementById('focal').value);
+  if(!isFinite(f)||f<=0){ToolBox.showToast('请输入大于 0 的有效焦距','warning');return;}
   var s=SENSORS[curSensor];
   var hFOV=2*Math.atan(s.w/(2*f))*180/Math.PI;
   var dFOV=2*Math.atan(s.diag/(2*f))*180/Math.PI;
@@ -481,7 +487,7 @@ function __focal_lengthExport(){
 }
 function __focal_lengthPresets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#focal_lengthPresets',[{label:'默认参数',labelEn:'Default',values:{'focal':'50', 'refSensor':'43.27'}}],function(){ calc(); });
+    TBKit.preset.bar('#focal_lengthPresets',[{label:'默认参数',labelEn:'Default',values:{'focal':'50', 'refSensor':'43.27'}},{"label":"小规模","labelEn":"Small scale","values":{"focal":"25"}},{"label":"大规模","labelEn":"Large scale","values":{"focal":"75"}},{"label":"极端工况","labelEn":"Extreme case","values":{"focal":"100"}}],function(){ calc(); });
 }
 var __focal_length_f0=(typeof calc==='function')?calc:null;
 if(__focal_length_f0){

@@ -117,9 +117,9 @@ s.parentNode.insertBefore(el, s);
 <div class="card">
     <h2 data-zh="📋 紐約心功能分級">📋 NYHA Heart Function Classifier</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="根據活動受限程度評估心功能分級。">Grade cardiac function from I to IV by the degree of activity limitation and symptom pattern, following the New York Heart Association functional classification.</p>
-    <div class="input-row"><label>日常活動氣短 0-3</label><input type="number" id="dyspnea" value="1" step="1" oninput="calc()" placeholder="如 1"></div>
-    <div class="input-row"><label>靜息症狀 0=無 1=有</label><input type="number" id="rest" value="0" step="1" oninput="calc()" placeholder="如 0"></div>
-    <div class="input-row"><label>活動明顯受限 0=無 1=有</label><input type="number" id="limits" value="0" step="1" oninput="calc()" placeholder="如 0"></div>
+    <div class="input-row"><label>日常活動氣短 0=無 1=輕度 2=明顯</label><input type="number" id="dyspnea" value="1" min="0" max="2" step="1" oninput="calc()" placeholder="如 1"></div>
+    <div class="input-row"><label>靜息症狀 0=無 1=有</label><input type="number" id="rest" value="0" min="0" max="1" step="1" oninput="calc()" placeholder="如 0"></div>
+    <div class="input-row"><label>活動明顯受限 0=無 1=有</label><input type="number" id="limits" value="0" min="0" max="1" step="1" oninput="calc()" placeholder="如 0"></div>
     <div class="toolbar">
       <div id="healthcare_4Presets"></div>
       <button class="btn primary" onclick="calc()">計算</button>
@@ -134,7 +134,7 @@ s.parentNode.insertBefore(el, s);
   </div>
   <div class="card formula-box">
     <h3>📐 計算公式與說明</h3>
-    <div class="formula-eq">NYHA 心功能分級（三問決策樹，非公式）：有靜息症狀 → IV 級；無活動後呼吸困難 → I 級；有呼吸困難且活動明顯受限 → III 級；僅有呼吸困難無受限 → II 級（程式碼靜息優先判 IV，再按呼吸困難與受限遞推）。校驗：無強校驗，三輸入 0/1 空/非法按 0 處理。判據：IV 靜息症狀、III 明顯受限、II 輕度受限、I 無症狀。</div>
+    <div class="formula-eq">NYHA 心功能分級（三問決策樹，非公式）：有靜息症狀 → IV 級；活動明顯受限或日常活動氣短明顯 → III 級；僅有輕度氣短、無明顯受限 → II 級；無氣短且無受限 → I 級。三項輸入均必填：氣短 0–2（無/輕度/明顯）、靜息症狀與活動明顯受限各 0/1；空值、越界或小數一律清空結果並提示。若“活動明顯受限=1”而“氣短=0”屬自相矛盾，仍按 III 級給出並紅字要求複核。NYHA 為症狀分級，需結合 EF、BNP 與醫師評估。</div>
     <p style="font-size:13px;color:var(--text-muted);margin-top:12px;">用於心衰嚴重程度評估。</p>
   </div>
 </div>
@@ -231,15 +231,31 @@ s.parentNode.insertBefore(el, s);
 </div>
 <script>
 function calc(){
-  const dyspnea = +document.getElementById('dyspnea').value || 0;
-  const rest = +document.getElementById('rest').value || 0;
-  const limits = +document.getElementById('limits').value || 0;
-  let html = '';
-  const __v0 = (rest?4:(dyspnea===0?1:(limits?3:2)));
-  html += `<p>NYHA 分级：<strong style="font-size:18px;color:var(--primary);">${__v0.toFixed(0)}</strong> 级</p>`;
-  const __v1 = ((()=>{const g=rest?4:(dyspnea===0?1:(limits?3:2));return ["I 无症状","II 轻度受限","III 明显受限","IV 静息症状"][g-1];})());
-  html += `<p>解释：<strong style="font-size:18px;color:var(--primary);">${__v1}</strong> </p>`;
-  const __g1=html;document.getElementById('result').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
+  var result = document.getElementById('result');
+  var dRaw = document.getElementById('dyspnea').value.trim();
+  var rRaw = document.getElementById('rest').value.trim();
+  var lRaw = document.getElementById('limits').value.trim();
+  var dyspnea = +dRaw, rest = +rRaw, limits = +lRaw;
+  var invalid = dRaw === '' || rRaw === '' || lRaw === ''
+    || !isFinite(dyspnea) || !isFinite(rest) || !isFinite(limits)
+    || Math.round(dyspnea) !== dyspnea || Math.round(rest) !== rest || Math.round(limits) !== limits
+    || dyspnea < 0 || dyspnea > 2 || rest < 0 || rest > 1 || limits < 0 || limits > 1;
+  if(invalid){
+    result.innerHTML = '<p style="color:var(--danger)">⚠ 请完整填写三项：气短 0–2（无/轻度/明显），静息症状与活动明显受限各填 0 或 1</p>';
+    return;
+  }
+  var grade, label;
+  if(rest === 1){ grade = 4; label = 'IV 静息症状'; }
+  else if(limits === 1 || dyspnea === 2){ grade = 3; label = 'III 明显受限'; }
+  else if(dyspnea === 1){ grade = 2; label = 'II 轻度受限'; }
+  else { grade = 1; label = 'I 无症状'; }
+  var html = '';
+  html += `<p>NYHA 分级：<strong style="font-size:18px;color:var(--primary);">${grade}</strong> 级</p>`;
+  html += `<p>解释：<strong style="font-size:18px;color:var(--primary);">${label}</strong> </p>`;
+  if(limits === 1 && dyspnea === 0){
+    html += '<p style="color:var(--danger)">⚠ 答案存在矛盾：已选「活动明显受限」但气短为无，请复核后再记录</p>';
+  }
+  const __g1=html;result.innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 }
 function copyResult() {
   const txt = document.getElementById('result').innerText;
@@ -350,9 +366,9 @@ function __healthcare_4Export(){
 function __healthcare_4Presets(){
     if (typeof TBKit === 'undefined') return;
     TBKit.preset.bar('#healthcare_4Presets',[{label:'默认参数',labelEn:'Default',values:{dyspnea:'1', rest:'0', limits:'0'}},
-  {'label':'重度','labelEn':'Severe','values':{'dyspnea':'3','rest':'1','limits':'1'}},
-  {'label':'中度','labelEn':'Moderate','values':{'dyspnea':'2','rest':'0','limits':'1'}},
-  {'label':'轻度受限','labelEn':'Mild limit','values':{'dyspnea':'1','rest':'0','limits':'1'}}],function(){ calc(); });
+  {'label':'重度','labelEn':'Severe','values':{'dyspnea':'2','rest':'1','limits':'1'}},
+  {'label':'中度受限','labelEn':'Moderate limit','values':{'dyspnea':'2','rest':'0','limits':'1'}},
+  {'label':'轻度','labelEn':'Mild','values':{'dyspnea':'1','rest':'0','limits':'0'}}],function(){ calc(); });
 }
 var __healthcare_4_f0=(typeof calc==='function')?calc:null;
 if(__healthcare_4_f0){
@@ -388,8 +404,8 @@ else document.addEventListener('DOMContentLoaded', __healthcare_4Boot);
 <li>運動指導：級別越高越需限制強度</li>
 <li>隨訪記錄：級別變化反映病情轉歸</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">方法</div><div class="dd-ex-body">演算法（簡化）：靜息即有症狀→Ⅳ級；日常活動輕度受限→Ⅱ級；明顯受限→Ⅲ級；無症狀→Ⅰ級。依據活動後氣促、是否靜息症狀與受限程度判定。</div></div>
-<div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">例1（活動後氣促、非靜息、無明確受限）：判 Ⅱ級（輕度受限，日常活動稍喘）。例2（靜息即有症狀）：判 Ⅳ級（靜息也喘，最重）。</div></div>
+<div class="dd-example"><div class="dd-ex-title">方法</div><div class="dd-ex-body">決策樹：靜息即有症狀→Ⅳ級；活動明顯受限或日常活動氣短明顯→Ⅲ級；僅有輕度氣短、無明顯受限→Ⅱ級；無氣短且無受限→Ⅰ級。三項均需填寫，空值或越界不出結果；若“明顯受限=1”而“氣短=0”提示答案矛盾並要求複核。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">例1（氣短 1、靜息 0、受限 0）：Ⅱ級（輕度受限，日常活動稍喘）。例2（靜息症狀 1）：Ⅳ級（靜息也喘，最重）。例3（氣短 2、靜息 0、受限 1）：Ⅲ級（明顯受限）。例4（氣短 0、靜息 0、受限 1）：仍判Ⅲ級，但紅字提示“明顯受限但無氣短”需複核。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
 <dt>NYHA 和心衰分期一樣嗎？</dt><dd>不同：NYHA 是症狀分級（Ⅰ–Ⅳ），ACC/AHA 分期是病程（A–D）；NYHA 反映當前功能狀態，可隨治療變動。</dd>

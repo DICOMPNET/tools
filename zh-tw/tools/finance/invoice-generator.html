@@ -180,7 +180,7 @@ s.parentNode.insertBefore(el, s);
         </div>
             <div class="formula-box">
       <div class="formula-title">📐 計算公式 / 說明</div>
-      <div class="formula-eq">價稅計算（本頁四分支實算口徑）：單票 不含稅 = 價稅合計 ÷ (1+稅率%)、稅額 = 價稅合計 − 不含稅；拆票張數 = ⌈價稅合計 ÷ 單張限額⌉，均分法每張 = 合計 ÷ 張數、滿額法逐張開至限額餘額作尾票（其他法切分閾值取限額×1.1），每張再按含稅/不含稅型拆稅；湊額組合回溯列舉面額取最接近目標者；反推 不含稅 = 合計 − 稅額、稅率 = 稅額 ÷ 不含稅 ×100（%）。校驗：空/非數按 0 兜底，反推稅額 ≤0 時直接返回。判據：湊額偏差 ≤ 容差顯示「在允許範圍內」，否則「超出允許範圍」。</div>
+      <div class="formula-eq">價稅計算（本頁四分支實算口徑）：單票 不含稅 = 價稅合計 ÷ (1+稅率%)、稅額 = 價稅合計 − 不含稅；拆票張數 = ⌈價稅合計 ÷ 單張限額⌉，均分法每張 = 合計 ÷ 張數、滿額法逐張開至限額餘額作尾票（其他法切分閾值取限額×1.1），每張再按含稅/不含稅型拆稅；湊額組合回溯列舉面額取最接近目標者；反推 不含稅 = 合計 − 稅額、稅率 = 稅額 ÷ 不含稅 ×100（%）。校驗：單張限額必須大於 0 且拆分張數不超過 1000，否則停止計算並提示；反推稅額 ≤0 時直接返回。判據：湊額偏差 ≤ 容差顯示「在允許範圍內」，否則「超出允許範圍」。</div>
       <div class="formula-desc">基於價稅分離公式：由價稅合計與稅率求不含稅金額與稅額，支援多張發票拆分與湊整，用於開票金額分配與稅額計算。</div>
     </div>
 <div class="input-row">
@@ -493,6 +493,16 @@ function getVal(id){
   return el ? (+el.value || 0) : 0;
 }
 
+function __invError(msg){
+  currentResult = null;
+  var grid = document.getElementById('statGrid');
+  if(grid) grid.innerHTML = '';
+  var res = document.getElementById('res');
+  if(res) res.innerHTML = '<p class="tip-error">' + msg + '</p>';
+  var detail = document.getElementById('detailTable');
+  if(detail) detail.innerHTML = '';
+}
+
 function calcFromExcl(){
   if(!document.activeElement || document.activeElement.id !== 's-excl') return;
   var excl = getVal('s-excl');
@@ -538,8 +548,17 @@ function calc(){
     var type = document.getElementById('sp-type').value;
     var taxRate = splitTax / 100;
 
-    var invoices = [];
+    if(!isFinite(limit) || limit <= 0){
+      __invError('单张限额必须大于 0');
+      return;
+    }
     var count = Math.ceil(total / limit);
+    if(!isFinite(count) || count > 1000){
+      __invError('拆分数量超过 1000 张上限，请提高单张限额');
+      return;
+    }
+
+    var invoices = [];
 
     if(count <= 1){
       invoices.push({index:1, amount: total});
@@ -553,7 +572,7 @@ function calc(){
     else if(method === 'max'){
       var remaining = total;
       var idx = 1;
-      while(remaining > limit){
+      while(remaining > limit && invoices.length < 1000){
         invoices.push({index: idx, amount: limit});
         remaining -= limit;
         idx++;
@@ -565,7 +584,7 @@ function calc(){
     else {
       var remaining = total;
       var idx = 1;
-      while(remaining > limit * 1.1){
+      while(remaining > limit * 1.1 && invoices.length < 1000){
         invoices.push({index: idx, amount: limit});
         remaining -= limit;
         idx++;

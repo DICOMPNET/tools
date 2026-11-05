@@ -117,11 +117,11 @@ s.parentNode.insertBefore(el, s);
 <div class="card">
     <h2 data-zh="🥗 營養風險 NRS2002">🥗 NRS 2002 Nutritional Risk Screening</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="NRS-2002 營養風險篩查評分。">Screen nutritional risk with the NRS 2002 tool by combining the impaired nutritional status score, disease severity score and the age adjustment.</p>
-    <div class="input-row"><label>BMI <20.5</label><input type="number" id="bmi" value="1" step="1" oninput="calc()" placeholder="如 1"></div>
-    <div class="input-row"><label>近3月體重下降</label><input type="number" id="weight_loss" value="1" step="1" oninput="calc()" placeholder="如 1"></div>
-    <div class="input-row"><label>攝食減少</label><input type="number" id="intake" value="1" step="1" oninput="calc()" placeholder="如 1"></div>
-    <div class="input-row"><label>疾病嚴重程度 0-3</label><input type="number" id="severity" value="2" step="1" oninput="calc()" placeholder="如 2"></div>
-    <div class="input-row"><label>年齡≥70</label><input type="number" id="age70" value="1" step="1" oninput="calc()" placeholder="如 1"></div>
+    <div class="input-row"><label>BMI <20.5（0-3 分）</label><input type="number" id="bmi" value="1" min="0" max="3" step="1" oninput="calc()" placeholder="如 1"></div>
+    <div class="input-row"><label>近3月體重下降（0-3 分）</label><input type="number" id="weight_loss" value="1" min="0" max="3" step="1" oninput="calc()" placeholder="如 1"></div>
+    <div class="input-row"><label>攝食減少（0-3 分）</label><input type="number" id="intake" value="1" min="0" max="3" step="1" oninput="calc()" placeholder="如 1"></div>
+    <div class="input-row"><label>疾病嚴重程度 0-3</label><input type="number" id="severity" value="2" min="0" max="3" step="1" oninput="calc()" placeholder="如 2"></div>
+    <div class="input-row"><label>年齡≥70（0/1 分）</label><input type="number" id="age70" value="1" min="0" max="1" step="1" oninput="calc()" placeholder="如 1"></div>
     <div class="toolbar">
       <div id="nrs2002Presets"></div>
       <button class="btn primary" onclick="calc()">計算</button>
@@ -136,8 +136,8 @@ s.parentNode.insertBefore(el, s);
   </div>
   <div class="card formula-box">
     <h3>📐 計算公式與說明</h3>
-    <div class="formula-eq">總分 = 營養受損(0-3) + 疾病嚴重程度(0-3) + 年齡≥70(1)<br>≥3 認為有營養風險</div>
-    <p style="font-size:13px;color:var(--text-muted);margin-top:12px;">需結合臨床營養評估。</p>
+    <div class="formula-eq">營養受損 = max(BMI項, 體重下降項, 攝食減少項)，各 0-3 分<br>總分 = 營養受損(0-3) + 疾病嚴重程度(0-3) + 年齡≥70(1)<br>≥3 認為有營養風險</div>
+    <p style="font-size:13px;color:var(--text-muted);margin-top:12px;">三項營養指標取最高分而非相加；需結合臨床營養評估。</p>
   </div>
 </div>
 
@@ -233,17 +233,30 @@ s.parentNode.insertBefore(el, s);
 </div>
 <script>
 function calc(){
-  const bmi = +document.getElementById('bmi').value || 0;
-  const weight_loss = +document.getElementById('weight_loss').value || 0;
-  const intake = +document.getElementById('intake').value || 0;
-  const severity = +document.getElementById('severity').value || 0;
-  const age70 = +document.getElementById('age70').value || 0;
+  const fields = [['bmi',3],['weight_loss',3],['intake',3],['severity',3],['age70',1]];
+  for (const [id, max] of fields) {
+    const raw = document.getElementById(id).value.trim();
+    const v = +raw;
+    if (raw === '' || !isFinite(v) || v < 0 || v > max || Math.round(v) !== v) {
+      document.getElementById('result').innerHTML = '<p style="color:var(--danger)">⚠ 请为每项输入 0–' + max + ' 的整数分值，不能留空或超出范围</p>';
+      return;
+    }
+  }
+  const score = (id, max) => {
+    const v = +document.getElementById(id).value;
+    return Math.max(0, Math.min(max, isFinite(v) ? Math.round(v) : 0));
+  };
+  const bmi = score('bmi', 3);
+  const weight_loss = score('weight_loss', 3);
+  const intake = score('intake', 3);
+  const severity = score('severity', 3);
+  const age70 = score('age70', 1);
   let html = '';
-  const __v0 = (bmi+weight_loss+intake);
+  const __v0 = (Math.max(bmi,weight_loss,intake));
   html += `<p>营养受损评分：<strong style="font-size:18px;color:var(--primary);">${__v0.toFixed(0)}</strong> 分</p>`;
-  const __v1 = (bmi+weight_loss+intake+severity+age70);
+  const __v1 = (__v0+severity+age70);
   html += `<p>总分：<strong style="font-size:18px;color:var(--primary);">${__v1.toFixed(0)}</strong> 分</p>`;
-  const __v2 = (bmi+weight_loss+intake+severity+age70>=3?"是":"否");
+  const __v2 = (__v0+severity+age70>=3?"是":"否");
   html += `<p>存在营养风险：<strong style="font-size:18px;color:var(--primary);">${__v2}</strong> </p>`;
   const __g1=html;document.getElementById('result').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 }
@@ -394,8 +407,8 @@ else document.addEventListener('DOMContentLoaded', __nrs2002Boot);
 <li>干預決策：評分≥3 建議營養干預</li>
 <li>隨訪：病情變化複評</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">方法</div><div class="dd-ex-body">演算法（NRS2002）：營養受損評分 = <a class="term-link" href="/zh-tw/tools/fitness/calculator-calc-constitution.html">BMI</a> 項+體重下降項+進食量項；總分 = 營養受損+疾病嚴重程度+年齡(≥70 加 1)；總分≥3 存在營養風險。各項按量表 0–3 分。</div></div>
-<div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">例1（營養受損 1+1+1、疾病 2、年齡 1）：總分 6 分，存在營養風險。例2（全部 0）：0 分，無營養風險。</div></div>
+<div class="dd-example"><div class="dd-ex-title">方法</div><div class="dd-ex-body">演算法（NRS2002）：營養受損評分 = max(<a class="term-link" href="/zh-tw/tools/fitness/calculator-calc-constitution.html">BMI</a> 項, 體重下降項, 進食量項)（取最高項，0–3 分）；總分 = 營養受損 + 疾病嚴重程度 + 年齡(≥70 加 1)；總分 ≥3 存在營養風險。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">例1（營養三項各 1、疾病 2、年齡 1）：營養受損按最高項取 1，總分 1+2+1 = 4 分，存在營養風險。例2（全部 0）：0 分，無營養風險。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
 <dt>NRS2002 和 MUST 區別？</dt><dd>NRS2002 歐洲通用、含疾病嚴重度與年齡，適合住院；MUST 英國、偏社群/篩查。我國住院多推 NRS2002。</dd>

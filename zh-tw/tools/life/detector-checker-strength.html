@@ -115,7 +115,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="輸入密碼即時檢測強度，分析字元組合與安全等級">Check a password against length, character variety, common patterns and repetition to estimate its strength and fix weak points.</p>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理與說明</div>
-      <div class="formula-eq">密碼強度評分 = 長度分（不足 8 位 0 分、8 至 11 位 10 分、12 至 15 位 20 分、16 位及以上 30 分）+ 字元集分（大寫 15 分、小寫 15 分、數字 15 分、符號 25 分）− 懲罰項（連續或重複字元、弱口令字典命中）；總分 0 至 100 對應很弱至很強五級。</div>
+      <div class="formula-eq">密碼強度採用統一熵模型：按實際使用的字元池（小寫 26、大寫 26、數字 10、符號 32）計算單字元熵，再乘以去重後的字元個數得到有效熵（重複字元不增加資訊量）；命中常見弱口令整詞時把熵壓到 10 bits，僅命中字典子串時扣減 15 bits。安全等級、進度條顏色、改進建議與「預估破解時間」全部由同一熵值推導（按每秒 10^10 次猜測折算），因此等級與破解時長不會互相矛盾。</div>
 
 </div>
 
@@ -182,7 +182,7 @@ s.parentNode.insertBefore(el, s);
 <li>評估口令熵與弱點。</li>
 <li>註冊或改密前自檢口令，避免「四類字元但含常見詞」的偽強密碼。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">檢測</div><div class="dd-ex-body">`Password1!` 含四類但常見詞 → 中；`Tq7!mK9@pL2#` → 強（高熵）。</div></div>
+<div class="dd-example"><div class="dd-ex-title">檢測</div><div class="dd-ex-body">`Password1!` 含常見詞「password」，命中字典扣分（整詞 −10 bits、子串 −15 bits）後等級下調；`Tq7!mK9@pL2#` 字元池大且無常見詞 → 強（高熵）。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
 <dt>強度看什麼？</dt><dd>長度、字元集、是否詞典詞。</dd>
@@ -265,29 +265,37 @@ function checkStrength(){
   if(hasUpper)poolSize+=26;
   if(hasDigit)poolSize+=10;
   if(hasSymbol)poolSize+=32;
-  var entropy=len*Math.log2(poolSize||1);
-  // 检查常见密码
-  var isCommon=commonPasswords.indexOf(pwd.toLowerCase())>=0;
-  // 计算分数 (0-100)
-  var score=0;
-  score+=Math.min(len*4,40); // 长度分
-  score+=charTypes*10; // 字符种类分
-  score+=Math.min(entropy*0.8,40); // 熵值分
-  if(isCommon)score=Math.min(score,10);
-  if(len<6)score=Math.min(score,15);
-  score=Math.min(score,100);
+  // 有效熵：去重字符数 × 单字符熵（重复字符不再贡献新信息）
+  var unique={};
+  for(var ui=0;ui<len;ui++)unique[pwd.charAt(ui)]=1;
+  var uniqueCount=Object.keys(unique).length;
+  var entropy=uniqueCount*Math.log2(poolSize||1);
+  // 弱口令字典：整词命中压到 10 bits；仅含字典子串扣 15 bits
+  var lowerPwd=pwd.toLowerCase();
+  var isCommon=commonPasswords.indexOf(lowerPwd)>=0;
+  if(isCommon){
+    entropy=Math.min(entropy,10);
+  }else{
+    for(var ci=0;ci<commonPasswords.length;ci++){
+      var word=commonPasswords[ci].replace(/[^a-z]/g,'');
+      if(word.length>=4&&lowerPwd.indexOf(word)>=0){entropy=Math.max(0,entropy-15);break;}
+    }
+  }
+  entropy=Math.min(entropy,100);
+  // 分数 / 等级 / 破解时间全部由同一熵值推导（0-100 分 ≈ 有效熵 bits）
+  var score=Math.round(entropy);
   // 等级
   var level,color,advice;
   if(isCommon){
     level='极弱（常见密码）';color='#EF4444';
     advice='该密码属于常见密码字典中的密码，极易被破解。请立即更换为更复杂的密码。';
-  }else if(score<40){
+  }else if(entropy<40){
     level='弱';color='#EF4444';
     advice='密码强度较低。建议增加密码长度至 12 位以上，并加入大小写字母、数字和特殊符号。';
-  }else if(score<60){
+  }else if(entropy<60){
     level='一般';color='#F59E0B';
     advice='密码强度一般。可以进一步提高密码长度或增加字符种类来增强安全性。';
-  }else if(score<80){
+  }else if(entropy<80){
     level='强';color='#3B82F6';
     advice='密码强度良好，满足大多数场景的安全要求。如需更高安全性，可进一步增加长度。';
   }else{
@@ -330,7 +338,9 @@ function estimateCrackTime(entropy){
   if(seconds<31536000)return Math.round(seconds/86400)+' 天';
   if(seconds<31536000*100)return Math.round(seconds/31536000)+' 年';
   if(seconds<31536000*1e6)return Math.round(seconds/31536000/1000)+' 千年';
-  return Math.round(seconds/31536000/1e9)+' 亿年';
+  var years=seconds/31536000;
+  if(years<1e8)return Math.round(years/1e4)+' 万年';
+  return Math.round(years/1e8)+' 亿年';
 }
 function toggleVisibility(){
   var input=document.getElementById('pwdInput');
@@ -343,7 +353,20 @@ function toggleVisibility(){
     btn.textContent='显示';
   }
 }
+// 密码学安全随机整数（拒绝采样消除模偏差）
+function secureRandomInt(max){
+  if(max<=0)return 0;
+  var limit=Math.floor(4294967296/max)*max;
+  var buf=new Uint32Array(1);
+  do{crypto.getRandomValues(buf);}while(buf[0]>=limit);
+  return buf[0]%max;
+}
+function randomChar(str){return str.charAt(secureRandomInt(str.length));}
 function generatePassword(){
+  if(!(window.crypto&&typeof crypto.getRandomValues==='function')){
+    ToolBox.showToast('当前浏览器不支持安全随机数，无法生成密码，请更换浏览器。','warning');
+    return;
+  }
   var lower='abcdefghijklmnopqrstuvwxyz';
   var upper='ABCDEFGHIJKLMNOPQRSTUVWXYZ';
   var digits='0123456789';
@@ -351,15 +374,20 @@ function generatePassword(){
   var all=lower+upper+digits+symbols;
   var pwd='';
   // 确保每种至少一个
-  pwd+=lower[Math.floor(Math.random()*lower.length)];
-  pwd+=upper[Math.floor(Math.random()*upper.length)];
-  pwd+=digits[Math.floor(Math.random()*digits.length)];
-  pwd+=symbols[Math.floor(Math.random()*symbols.length)];
+  pwd+=randomChar(lower);
+  pwd+=randomChar(upper);
+  pwd+=randomChar(digits);
+  pwd+=randomChar(symbols);
   for(var i=0;i<12;i++){
-    pwd+=all[Math.floor(Math.random()*all.length)];
+    pwd+=randomChar(all);
   }
-  // 打乱
-  pwd=pwd.split('').sort(function(){return Math.random()-0.5;}).join('');
+  // Fisher-Yates 洗牌（无偏）
+  var chars=pwd.split('');
+  for(var si=chars.length-1;si>0;si--){
+    var sj=secureRandomInt(si+1);
+    var tmp=chars[si];chars[si]=chars[sj];chars[sj]=tmp;
+  }
+  pwd=chars.join('');
   document.getElementById('pwdInput').value=pwd;
   document.getElementById('pwdInput').type='text';
   document.getElementById('visBtn').textContent='隐藏';

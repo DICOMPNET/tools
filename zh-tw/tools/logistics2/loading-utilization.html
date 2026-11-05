@@ -123,7 +123,7 @@ s.parentNode.insertBefore(el, s);
     <h2 data-zh="📦 裝載利用率">Loading Utilization</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="計算車輛裝載的體積利用率與重量利用率，判斷是體積受限還是重量受限，並估算可裝載件數。">Loading Utilization</p>
     <div class="formula-box">
-      <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">貨車裝載利用率計算<br>車廂容積 = 車長×車寬×車高；單件體積 = 箱長×箱寬×箱高<br>方向列舉：3 種擺放 n = ⌊車長/箱長⌋×⌊車寬/箱寬⌋×⌊車高/箱高⌋ 取最大<br>重量上限 = ⌊額定載重 ÷ 單件重量⌋<br>最大可裝件數 = min(體積方向最優, 重量上限)<br>體積利用率 = 計劃件數×單件體積 ÷ 車廂容積 × 100%<br>重量利用率 = 計劃件數×單件重量 ÷ 額定載重 × 100%<br>超裝判定：分別對比體積/重量上限並預警；利用率 >90% 為接近滿載</div>
+      <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">貨車裝載利用率計算<br>車廂容積 = 車長×車寬×車高；單件體積 = 箱長×箱寬×箱高<br>方向列舉：6 種朝向全排列 n = ⌊車長/箱長⌋×⌊車寬/箱寬⌋×⌊車高/箱高⌋ 取最大<br>單件尺寸大於車廂任一邊時無法裝載，直接提示<br>重量上限 = ⌊額定載重 ÷ 單件重量⌋<br>最大可裝件數 = min(體積方向最優, 重量上限)<br>體積利用率 = 計劃件數×單件體積 ÷ 車廂容積 × 100%<br>重量利用率 = 計劃件數×單件重量 ÷ 額定載重 × 100%<br>超裝判定：分別對比體積/重量上限並預警；利用率 >90% 為接近滿載</div>
       <p class="formula-desc" data-zh="核心計算公式（按輸入變數）：max(planVolUtil, planWeightUtil, 100)；bWeight × min(planQty, maxQty)；boxVol × min(planQty, maxQty)">Key formulas: max(planVolUtil, planWeightUtil, 100); bWeight × min(planQty, maxQty); boxVol × min(planQty, maxQty)</p>
     </div>
 
@@ -285,8 +285,8 @@ function calc(){
   var truckVol = tL * tW * tH;
   var boxVol = bL * bW * bH;
 
-  // 计算每方向可放件数（尝试3种摆放，取最大）
-  var dims = [[bL,bW,bH],[bL,bH,bW],[bW,bH,bL]];
+  // 计算每方向可放件数（枚举 6 种朝向全排列，取最大）
+  var dims = [[bL,bW,bH],[bL,bH,bW],[bW,bL,bH],[bW,bH,bL],[bH,bL,bW],[bH,bW,bL]];
   var bestFit = 0;
   var bestOrient = null;
   dims.forEach(function(d){
@@ -299,6 +299,13 @@ function calc(){
       bestOrient = {nx:nx, ny:ny, nz:nz, d:d};
     }
   });
+
+  if(bestFit === 0 || !bestOrient){
+    document.getElementById('result').innerHTML = '<div class="tip-box tip-error">单件尺寸大于车厢，无法装载：单件 '+ToolBox.formatNumber(bL,2)+'×'+ToolBox.formatNumber(bW,2)+'×'+ToolBox.formatNumber(bH,2)+' m，车厢 '+ToolBox.formatNumber(tL,2)+'×'+ToolBox.formatNumber(tW,2)+'×'+ToolBox.formatNumber(tH,2)+' m。请核对尺寸或更换更大车型。</div>';
+    document.getElementById('result').style.display = 'block';
+    ToolBox.showToast('单件尺寸大于车厢，无法装载', 'error');
+    return;
+  }
 
   // 受重量限制的最大件数
   var maxByWeight = Math.floor(tLoad / bWeight);
@@ -537,7 +544,7 @@ function __loading_utilizationExport(){
 }
 function __loading_utilizationPresets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#loading_utilizationPresets',[{label:'默认参数',labelEn:'Default',values:{'truckL':'6.8', 'truckW':'2.3', 'truckH':'2.4', 'truckLoad':'5000', 'boxL':'0.6', 'boxW':'0.4', 'boxH':'0.5', 'boxWeight':'15', 'planQty':'500'}}],function(){ calc(); });
+    TBKit.preset.bar('#loading_utilizationPresets',[{label:'默认参数',labelEn:'Default',values:{'truckL':'6.8', 'truckW':'2.3', 'truckH':'2.4', 'truckLoad':'5000', 'boxL':'0.6', 'boxW':'0.4', 'boxH':'0.5', 'boxWeight':'15', 'planQty':'500'}},{"label":"小规模","labelEn":"Small scale","values":{"truckL":"3.4"}},{"label":"大规模","labelEn":"Large scale","values":{"truckL":"10.2"}},{"label":"极端工况","labelEn":"Extreme case","values":{"truckL":"13.6"}}],function(){ calc(); });
 }
 var __loading_utilization_f0=(typeof calc==='function')?calc:null;
 if(__loading_utilization_f0){

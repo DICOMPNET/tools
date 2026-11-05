@@ -119,7 +119,6 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="根據收縮壓/舒張壓判定血壓分級。">Classify a systolic and diastolic reading into the normal, elevated or hypertension grade bands, and show pulse pressure and mean arterial pressure for context.</p>
     <div class="input-row"><label>收縮壓 mmHg</label><input type="number" id="sys" value="120" step="any" oninput="calc()" placeholder="如 120"></div>
     <div class="input-row"><label>舒張壓 mmHg</label><input type="number" id="dia" value="80" step="any" oninput="calc()" placeholder="如 80"></div>
-    <div class="input-row"><label>年齡</label><input type="number" id="age" value="40" step="any" oninput="calc()" placeholder="如 40"></div>
     <div class="toolbar">
       <div id="blood_pressure_gradePresets"></div>
       <button class="btn primary" onclick="calc()">計算</button>
@@ -134,8 +133,8 @@ s.parentNode.insertBefore(el, s);
   </div>
   <div class="card formula-box">
     <h3>📐 計算公式與說明</h3>
-    <div class="formula-eq">脈壓 = 收縮壓 − 舒張壓（mmHg）；血壓分級取先命中的高檔：收縮壓≥180 或舒張壓≥120 → 5 級、收縮壓≥140 或舒張壓≥90 → 4 級、收縮壓≥130 或舒張壓≥80 → 3 級、收縮壓≥120 → 2 級、否則 1 級。校驗：無強校驗，數值預設按 0；年齡輸入僅作登記展示，未參與任何計算。判據：輸出 1–5 數字等級，兩指標任一達到閾值即按該檔計，級數越大血壓水平越高。</div>
-    <p style="font-size:13px;color:var(--text-muted);margin-top:12px;">分級：正常&lt;120/80，升高 120–139/80–89，1 級 140–159/90–99，2 級≥160/100。僅供參考，以醫生診斷為準。</p>
+    <div class="formula-eq">脈壓 = 收縮壓 − 舒張壓（mmHg）；平均動脈壓 =（收縮壓 + 2×舒張壓）/ 3；分級取較高檔：≥180/≥110 → 3 級高血壓，160–179/100–109 → 2 級高血壓，140–159/90–99 → 1 級高血壓，120–139/80–89 → 正常高值，&lt;120/&lt;80 → 正常；收縮壓≥140 且舒張壓&lt;90 → 單純收縮期高血壓。校驗：0&lt;收縮壓≤300、0&lt;舒張壓≤200 且收縮壓&gt;舒張壓，空值或越界拒絕計算。</div>
+    <p style="font-size:13px;color:var(--text-muted);margin-top:12px;">分級採用中國高血壓防治指南的五檔文字分級（正常、正常高值、1–3 級高血壓、單純收縮期高血壓）。僅供參考，以醫生診斷為準。</p>
   </div>
 </div>
 
@@ -231,14 +230,22 @@ s.parentNode.insertBefore(el, s);
 </div>
 <script>
 function calc(){
-  const sys = +document.getElementById('sys').value || 0;
-  const dia = +document.getElementById('dia').value || 0;
-  const age = +document.getElementById('age').value || 0;
+  const sysRaw = document.getElementById('sys').value.trim();
+  const diaRaw = document.getElementById('dia').value.trim();
+  const sys = Number(sysRaw);
+  const dia = Number(diaRaw);
   let html = '';
+  if (!sysRaw || !diaRaw || !isFinite(sys) || !isFinite(dia) || !(sys > 0) || !(dia > 0) || sys > 300 || dia > 200 || !(sys > dia)) {
+    html = '<p style="color:var(--danger)">请输入有效血压：0&lt;收缩压≤300 mmHg、0&lt;舒张压≤200 mmHg，且收缩压须大于舒张压；空值或越界拒绝计算。</p>';
+    document.getElementById('result').innerHTML = html;
+    return;
+  }
   const __v0 = (sys-dia);
   html += `<p>脉压：<strong style="font-size:18px;color:var(--primary);">${__v0.toFixed(0)}</strong> mmHg</p>`;
-  const __v1 = ((()=>{if(sys>=180||dia>=120)return 5;if(sys>=140||dia>=90)return 4;if(sys>=130||dia>=80)return 3;if(sys>=120)return 2;return 1;})());
-  html += `<p>分级：<strong style="font-size:18px;color:var(--primary);">${__v1.toFixed(0)}</strong> 等级</p>`;
+  const __v2 = ((sys + 2 * dia) / 3).toFixed(0);
+  html += `<p>平均动脉压：<strong style="font-size:18px;color:var(--primary);">${__v2}</strong> mmHg</p>`;
+  const __v1 = ((()=>{if(sys>=180||dia>=110)return '3 级高血压';if(sys>=160||dia>=100)return '2 级高血压';if(sys>=140||dia>=90)return dia<90?'单纯收缩期高血压':'1 级高血压';if(sys>=120||dia>=80)return '正常高值';return '正常';})());
+  html += `<p>分级：<strong style="font-size:18px;color:var(--primary);">${__v1}</strong></p>`;
   const __g1=html;document.getElementById('result').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 }
 function copyResult() {
@@ -349,10 +356,10 @@ function __blood_pressure_gradeExport(){
 }
 function __blood_pressure_gradePresets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#blood_pressure_gradePresets',[{label:'默认参数',labelEn:'Default',values:{sys:'120', dia:'80', age:'40'}},
-  {'label':'理想血压','labelEn':'Optimal','values':{'sys':'118','dia':'76','age':'35'}},
-  {'label':'高血压2级','labelEn':'HTN Grade 2','values':{'sys':'165','dia':'105','age':'55'}},
-  {'label':'单纯收缩期','labelEn':'Isolated Systolic','values':{'sys':'150','dia':'85','age':'72'}}],function(){ calc(); });
+    TBKit.preset.bar('#blood_pressure_gradePresets',[{label:'默认参数',labelEn:'Default',values:{sys:'120', dia:'80'}},
+  {'label':'理想血压','labelEn':'Optimal','values':{'sys':'118','dia':'76'}},
+  {'label':'高血压2级','labelEn':'HTN Grade 2','values':{'sys':'165','dia':'105'}},
+  {'label':'单纯收缩期','labelEn':'Isolated Systolic','values':{'sys':'150','dia':'85'}}],function(){ calc(); });
 }
 var __blood_pressure_grade_f0=(typeof calc==='function')?calc:null;
 if(__blood_pressure_grade_f0){
@@ -388,8 +395,8 @@ else document.addEventListener('DOMContentLoaded', __blood_pressure_gradeBoot);
 <li>脈壓觀察：脈壓過大提示動脈硬化等，供就診時參考</li>
 <li>風險分層：結合分級決定生活方式或就醫</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">方法</div><div class="dd-ex-body">演算法：脈壓 = 收縮壓 − 舒張壓；分級按中國指南：&lt;120/80 正常、120–129/&lt;80 正常高值、130–139/80–89 為 1 級、140–159/90–99 為 2 級、≥180/≥120 為 3 級。本工具閾值：舒張壓≥80 歸 1 級、收縮壓≥140 歸 2 級、收縮壓≥180 歸 3 級。</div></div>
-<div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">例1（120/80）：脈壓 40mmHg，按本工具規則判等級 3（注：依中國指南 120/80 屬正常高值，工具閾值偏嚴，僅供參考）。例2（158/96）：脈壓 62mmHg → 等級 4（2 級高血壓），建議就醫。</div></div>
+<div class="dd-example"><div class="dd-ex-title">方法</div><div class="dd-ex-body">演算法：按中國高血壓指南分級——正常 &lt;120/80；正常高值 120–139/80–89；1 級 140–159/90–99；2 級 160–179/100–109；3 級 ≥180/110；收縮壓 ≥140 且舒張壓 &lt;90 為單純收縮期高血壓。收縮壓與舒張壓分屬不同級別時取較高級別。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">例1（120/80）：脈壓 40 mmHg，判正常高值（不是高血壓）。例2（158/96）：脈壓 62 mmHg，判 1 級高血壓，建議就醫。例3（150/85）：收縮壓達 1 級、舒張壓正常 → 單純收縮期高血壓。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
 <dt>脈壓大說明什麼？</dt><dd>脈壓&gt;60mmHg 常見於動脈硬化、主動脈瓣關閉不全等；老年人脈壓增大多與血管彈性下降有關，應結合總體評估。</dd>

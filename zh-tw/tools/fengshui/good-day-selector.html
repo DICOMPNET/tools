@@ -147,7 +147,7 @@ s.parentNode.insertBefore(el, s);
 <div class="disclaimer-banner" role="note" style="font-size:13px;line-height:1.6;color:#92400e;background:rgba(245,158,11,0.10);border:1px solid rgba(245,158,11,0.35);border-radius:10px;padding:10px 14px;margin:10px 0 16px;">⚠️ 本工具僅供傳統文化學習與娛樂參考，所有結果由固定規則或隨機模擬得出，不含任何科學斷言，不構成風水、命理、算命或決策建議。請理性看待。</div>
         <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="選擇活動型別,查詢未來30天內的適宜日期">Pick an activity and start date to see auspicious days from the Jian-Chu almanac.</p>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">日干支：以 1900-01-31 為基準，天數差 = ⌊(日期 − 基準) ÷ 86400000⌋，甲子偏移 = (天數差 % 60 + 60) % 60，天干取偏移 % 10、地支取偏移 % 12；日評分基準 3 分——命中 1 項宜且 0 項忌記 4 分，命中 ≥2 項宜且 0 忌記 5 分，命中 1 項忌記 2 分，≥2 項忌記 1 分；掃描起始日起 30 天按評分降序，≥4 為較佳、=3 為平穩、≤2 為慎選</div>
+  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">日干支：以 1900-01-31（甲辰日，日序 40）為基準，天數差 = ⌊(日期 − 基準) ÷ 86400000⌋，甲子偏移 = ((天數差 + 40) % 60 + 60) % 60，天干取偏移 % 10、地支取偏移 % 12；日評分基準 3 分——命中 1 項宜且 0 項忌記 4 分，命中 ≥2 項宜且 0 忌記 5 分，命中 1 項忌記 2 分，≥2 項忌記 1 分；掃描起始日起 30 天按評分降序，≥4 為較佳、=3 為平穩、≤2 為慎選</div>
   <p class="formula-desc">按節氣月支與每日干支推算建除十二神，再據十二神傳統宜忌評定活動適配度；演算法確定、可復現，結果僅供民俗參考。</p>
 </div>
 
@@ -194,7 +194,7 @@ s.parentNode.insertBefore(el, s);
 <li>按傳統「建除十二神」推算未來 30 天每日宜忌，並給出該活動的適配評分。</li>
 <li>檢視每日衝煞生肖提示，輔助避開與自己屬相相沖的日期。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">以 2026 年 9 月婚嫁擇日為例</div><div class="dd-ex-body">工具按節氣月支與日干支排出每日建除十二神，並據十二神傳統宜忌評定婚嫁適配度。如 2026-09-15 為壬子日、定日，傳統上宜嫁娶、祈福，婚嫁評分較高（5 分）；2026-09-10 為丁未日、閉日，宜忌均不突出，評分中等（3 分）。演算法確定、可復現，結果僅供民俗參考。</div></div>
+<div class="dd-example"><div class="dd-ex-title">以 2026 年 9 月婚嫁擇日為例</div><div class="dd-ex-body">工具按節氣月支與日干支排出每日建除十二神，並據十二神傳統宜忌評定婚嫁適配度。如 2026-09-15 為壬辰日、危日，宜祈福但忌嫁娶，婚嫁評分較低（2 分）；2026-09-10 為丁亥日、滿日，宜嫁娶、祈福，婚嫁評分較高（5 分）。演算法確定、可復現，結果僅供民俗參考。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
 <dt>黃道吉日是怎麼算出來的？</dt><dd>本工具按節氣月支與每日干支推算「建除十二神」（建、除、滿、平、定、執、破、危、成、收、開、閉），再據十二神的傳統宜忌表評定所選活動的適配度並給出評分。</dd>
@@ -273,10 +273,13 @@ const ZODIAC_NAMES = ['鼠', '牛', '虎', '兔', '龙', '蛇', '马', '羊', '�
 // 日支序 -> 所冲生肖序（子午冲、丑未冲……）
 const CLASH = [6, 7, 8, 9, 10, 11, 0, 1, 2, 3, 4, 5];
 
+// 日柱基准：1900-01-31 为甲辰日（日序 40），故在「距基准天数」上再加 40 天校正。
+const DAY_PILLAR_BASE_OFFSET = 40;
+
 function getDayGanZhi(date) {
-  const base = new Date(1900, 0, 31);
-  const days = Math.floor((date - base) / 86400000);
-  const off = (days % 60 + 60) % 60;
+  const y = date.getFullYear(), m = date.getMonth() + 1, d = date.getDate();
+  const days = Math.round((Date.UTC(y, m - 1, d) - Date.UTC(1900, 0, 31)) / 86400000);
+  const off = ((days + DAY_PILLAR_BASE_OFFSET) % 60 + 60) % 60;
   return { gan: HEAVENLY_STEMS[off % 10], zhi: EARTHLY_BRANCHES[off % 12] };
 }
 
@@ -333,7 +336,12 @@ function scoreDay(god, act) {
 function findGoodDays() {
   const startStr = document.getElementById('startDate').value;
   if (!startStr) { ToolBox.showToast(i18nText('toast.msg952'), 'error'); return; }
-  const start = new Date(startStr);
+  const parts = String(startStr).split('-').map(Number);
+  if (parts.length !== 3 || parts.some(n => !isFinite(n))) { ToolBox.showToast(i18nText('toast.msg952'), 'error'); return; }
+  const start = new Date(parts[0], parts[1] - 1, parts[2]);
+  if (isNaN(start.getTime()) || start.getFullYear() !== parts[0] || start.getMonth() !== parts[1] - 1 || start.getDate() !== parts[2]) {
+    ToolBox.showToast(i18nText('toast.msg952'), 'error'); return;
+  }
   const act = ACTIVITIES.find(a => a.id === currentActivity);
   const weekday = ['日', '一', '二', '三', '四', '五', '六'];
   const fmt = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} 周${weekday[d.getDay()]}`;

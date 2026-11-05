@@ -213,13 +213,14 @@ function num(id){const v=parseFloat(document.getElementById(id).value);return is
 function escH(s){var d=document.createElement('div');const __g1=s==null?'':String(s);d.textContent=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));return d.innerHTML;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){var s=document.getElementById('src').value;
-var cjkwpm=Math.max(1,num('cjkwpm'));
-var enwpm=Math.max(1,num('enwpm'));
+var cjkwpm=num('cjkwpm'),enwpm=num('enwpm');
+if(!(cjkwpm>0)||!(enwpm>0)){document.getElementById('result').innerHTML='<div class="result-title">提示</div><p class="muted">请输入大于 0 的阅读速度（中文按字/分、英文按词/分）。</p>';return;}
 var cjk=(s.match(/[\u4e00-\u9fff\u3040-\u30ff\uac00-\ud7af]/g)||[]).length;
 var enWords=s.replace(/[\u4e00-\u9fff]/g,' ').match(/[A-Za-z0-9]+/g)||[];
 var enN=enWords.length;
+if(cjk===0&&enN===0){document.getElementById('result').innerHTML='<div class="result-title">提示</div><p class="muted">请输入要估算的文本。</p>';return;}
 var total=cjk/cjkwpm+enN/enwpm;
-var mins=Math.max(1,Math.round(total));
+var mins=Math.ceil(total);
 var html='<div class="result-title">估算结果</div><div class="data-grid">';
 html+='<div class="data-card"><div class="num">'+cjk+'</div><div class="label">中文字符</div></div>';
 html+='<div class="data-card"><div class="num">'+enN+'</div><div class="label">英文单词</div></div>';
@@ -370,11 +371,11 @@ else document.addEventListener('DOMContentLoaded', __reading_time_estimatorBoot)
 <li>課程或培訓材料排版時，按中文與英文的不同<a class="term-link" href="/zh-tw/tools/edu/reading-speed-calculator.html">閱讀速度</a>分別計算，給出更貼近真實的總耗時。</li>
 <li>內容平臺做推薦/排序時，用閱讀時長作為權重因子，避免長文被誤判為低完成度。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">示例：中英混排文章</div><div class="dd-ex-body">一篇含 1200 個漢字、80 個英文單詞的文章，取中文 300 字/分鐘、英文 200 詞/分鐘：中文耗時 1200÷300=4.0 分鐘，英文 80÷200=0.4 分鐘，合計 4.4 分鐘，向上取整約 4–5 分鐘（工具按 Math.round 顯示整數分鐘）。</div></div>
+<div class="dd-example"><div class="dd-ex-title">示例：中英混排文章</div><div class="dd-ex-body">一篇含 1200 個漢字、80 個英文單詞的文章，取中文 300 字/分鐘、英文 200 詞/分鐘：中文耗時 1200÷300=4.0 分鐘，英文 80÷200=0.4 分鐘，合計 4.4 分鐘，向上取整為 5 分鐘（工具按 Math.ceil 顯示整數分鐘）。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
 <dt>中文和英文為什麼分開算？</dt><dd>兩者閱讀速度不同：中文按字元數、英文按單詞數計速更準。工具用正則分別統計中文字元數與英文單詞數，再除以各自速度後相加。</dd>
-<dt>標點、空格、數字怎麼算？</dt><dd>中文統計只看 CJK 漢字（\u4e00–\u9fff），英文單詞按 [A-Za-z0-9]+ 切分；標點與純空格不單獨計入，結果取不小於 1 的整數分鐘。</dd>
+<dt>標點、空格、數字怎麼算？</dt><dd>中文統計只看 CJK 漢字（\u4e00–\u9fff），英文單詞按 [A-Za-z0-9]+ 切分；標點與純空格不單獨計入；文本為空時提示，非空文本結果按向上取整（Math.ceil）輸出整數分鐘。</dd>
 </dl>
 </div>
 </section>

@@ -132,7 +132,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="各地律師服務收費指導標準參考（以北京/上海/廣東為例）">Reference typical lawyer fee ranges by case type and claimed amount using local bar guidance; estimate only.</p>
     <div class="formula-box">
       <div class="formula-title">📐 計算公式</div>
-      <div class="formula-eq">律師費參考（本頁程式碼口徑，民事為分段累進而非單一費率）：標的額 A≤10萬 收 5000 元；≤50萬 = 5000+(A−10萬)×5%；≤100萬 = 25000+(A−50萬)×4%；≤500萬 = 45000+(A−100萬)×3%；≤1000萬 = 165000+(A−500萬)×2%；&gt;1000萬 = 265000+(A−1000萬)×1%（元）；刑事按階段固定——偵查 6000、起訴 8000、一審 15000、二審 20000；行政 8000；計時 = 時薪（初級 500/中級 1500/高階 3000）×小時數；風險代理按基礎費用計（風險比例已讀入但未參與計算）。校驗：無強校驗，標的額/小時/基礎費空值按 0 兜底。判據：其他地區按 0.7 係數（下浮 30%）；參考區間 = 參考收費 × 0.8 ~ × 1.2。</div>
+      <div class="formula-eq">律師費參考（本頁程式碼口徑，民事為分段累進而非單一費率）：標的額 A≤10萬 收 5000 元；≤50萬 = 5000+(A−10萬)×5%；≤100萬 = 25000+(A−50萬)×4%；≤500萬 = 45000+(A−100萬)×3%；≤1000萬 = 165000+(A−500萬)×2%；&gt;1000萬 = 265000+(A−1000萬)×1%（元）；刑事按階段固定——偵查 6000、起訴 8000、一審 15000、二審 20000；行政 8000；計時 = 時薪（初級 500/中級 1500/高階 3000）×小時數；風險代理總費用 = 基礎費 + 爭議標的額×風險比例（0–30%），合計不得超過標的額 30%（超出按上限截斷），示例：基礎費 1 萬 + 50 萬×15% = 8.5 萬。校驗：標的額/小時/基礎費空值按 0 兜底；判據：其他地區按 0.7 係數（下浮 30%，風險代理為協商收費不適用）；參考區間 = 參考收費 × 0.8 ~ × 1.2。</div>
       <p class="formula-desc">各地律師服務收費指導標準參考（以北京/上海/廣東為例）</p>
     </div>
 
@@ -243,7 +243,7 @@ s.parentNode.insertBefore(el, s);
     <h3>📋 收費說明</h3>
     <div class="result-box">
       <p><strong>政府指導價：</strong>律師服務收費實行政府指導價和市場調節價，刑事、行政、國家賠償、勞動/工傷/社保/撫卹金等案件實行政府指導價</p>
-      <p><strong>風險代理：</strong>禁止刑事訴訟案件、行政訴訟案件、國家賠償案件以及群體性訴訟案件實行風險代理；民商案件風險代理收費最高不超過合同約定標的額的30%</p>
+      <p><strong>風險代理：</strong>禁止刑事訴訟案件、行政訴訟案件、國家賠償案件以及群體性訴訟案件實行風險代理；民商案件風險代理收費最高不超過合同約定標的額的30%。本頁風險代理總費用 = 基礎費 + 爭議標的額×風險比例，合計超過標的額 30% 時按 30% 上限截斷（如基礎費 1 萬 + 50 萬×15% = 8.5 萬）</p>
       <p><strong>差旅費：</strong>辦案差旅費實報實銷或包乾，一般不包含在律師費內</p>
       <p><strong>注意：</strong>本工具僅供參考，實際收費由雙方協商確定，可上下浮動</p>
     </div>
@@ -373,13 +373,25 @@ function calculate(){
     fee = hourlyRates[level] * hours * regionFactor;
   }else if(type === 'risk'){
     const baseFee = parseFloat(document.getElementById('baseFee').value) || 0;
-    const ratio = parseFloat(document.getElementById('riskRatio').value) || 15;
-    fee = baseFee;
+    const ratioVal = parseFloat(document.getElementById('riskRatio').value);
+    const ratio = isFinite(ratioVal) ? Math.max(0, Math.min(30, ratioVal)) : 15;
+    const contingency = amount * ratio / 100;
+    const cap = amount * 0.3;
+    const rawFee = baseFee + contingency;
+    // 风险代理总费用 = 基础费 + 争议标的×比例，且不超过标的额 30%（司法部/地方上限）
+    fee = amount > 0 ? Math.min(rawFee, cap) : baseFee;
+    window.__lfRisk = {baseFee: baseFee, ratio: ratio, contingency: contingency, cap: cap, rawFee: rawFee, capped: amount > 0 && rawFee > cap};
   }
 
   const lfTypeName = {civil:['民事案件','Civil case'], criminal:['刑事案件','Criminal case'], admin:['行政案件','Administrative case'], hourly:['计时收费','Hourly billing'], risk:['风险代理','Contingency']};
   let html = `<p>${lfL('案件类型：','Case type:')}<strong>${lfL(lfTypeName[type][0], lfTypeName[type][1])}</strong></p>`;
   html += `<p>${lfL('参考收费：','Reference fee:')}<strong>${ToolBox.formatNumber(fee)}</strong> ${lfL('元','yuan')}</p>`;
+  if(type === 'risk' && window.__lfRisk){
+    const r = window.__lfRisk;
+    const zh = `费用构成：基础费 ${ToolBox.formatNumber(r.baseFee)} 元 + 标的额 ${ToolBox.formatNumber(amount)} 元 × ${r.ratio}% = ${ToolBox.formatNumber(r.contingency)} 元提成，合计 ${ToolBox.formatNumber(r.rawFee)} 元` + (r.capped ? `；已触及标的额 30% 上限（${ToolBox.formatNumber(r.cap)} 元），按上限计收` : `（未超标的额 30% 上限 ${ToolBox.formatNumber(r.cap)} 元）`) + '。';
+    const en = `Composition: base ${ToolBox.formatNumber(r.baseFee)} + ${ToolBox.formatNumber(amount)} × ${r.ratio}% = ${ToolBox.formatNumber(r.contingency)} contingency; total ${ToolBox.formatNumber(r.rawFee)}` + (r.capped ? `; capped at 30% of the claim (${ToolBox.formatNumber(r.cap)})` : ` (within the 30% cap of ${ToolBox.formatNumber(r.cap)})`) + '.';
+    html += `<p style="font-size:13px;color:var(--text-muted);">${lfL(zh, en)}</p>`;
+  }
   html += `<p>${lfL('参考区间：','Reference range:')}${ToolBox.formatNumber(fee*0.8,0)} - ${ToolBox.formatNumber(fee*1.2,0)} ${lfL('元','yuan')}</p>`;
   html += `<p style="font-size:12px;color:var(--text-muted);margin-top:8px;">${lfL('注：以上仅供参考，律师费受案件复杂程度、律师经验、地区差异等因素影响，具体由双方协商确定。曾代理一审又代理二审的通常减半收费。','Note: for reference only; lawyer fees vary by case complexity, lawyer experience and region; determined by mutual agreement. Representing both first and second instance is usually charged at half.')}</p>`;
 

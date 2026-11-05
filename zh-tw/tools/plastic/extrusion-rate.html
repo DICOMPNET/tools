@@ -196,7 +196,7 @@ s.parentNode.insertBefore(el, s);
 <li>裝置校核時，用產量估算核對擠出機能力是否匹配訂單節拍，避免產能不足或長時間低負荷執行。</li>
 <li>工藝除錯時，觀察產量隨轉速、螺槽深度的線性/非線性變化，定位加料或漏流短板。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title"><a class="term-link" href="/zh-tw/guides/extrusion-rate-guide.html">擠出產量</a>估算示例</div><div class="dd-ex-body">螺桿直徑 10 mm、螺槽深 1 mm、螺距 5 mm、轉速 10 rpm、密度 0.92、效率 90%。流道截面積 = π/4×(10²−(10−2)²) = π/4×36 ≈ 28.27 mm²；每轉排量 28.27×5 ≈ 141.4 mm³；每分鐘 1414 mm³、每秒 23.6 mm³；質量產量 = 23.6×0.92×0.90 ≈ 19.5 g/s ≈ 70.2 kg/h（實驗室微型機組示例）。實際產線按同公式代入大螺桿引數即可。</div></div>
+<div class="dd-example"><div class="dd-ex-title"><a class="term-link" href="/zh-tw/guides/extrusion-rate-guide.html">擠出產量</a>估算示例</div><div class="dd-ex-body">螺桿直徑 10 mm、螺槽深 1 mm、螺距 5 mm、轉速 10 rpm、密度 0.92、效率 90%。流道截面積 = π/4×(10²−(10−2)²) = π/4×36 ≈ 28.27 mm²；每轉排量 28.27×5 ≈ 141.4 mm³ = 0.1414 cm³；每分鐘 1.414 cm³、每秒 0.0236 cm³；質量產量 = 0.0236×0.92×0.90 ≈ 0.0195 g/s ≈ 0.0702 kg/h（實驗室微型機組示例）。實際產線按同公式代入大螺桿引數即可。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
 <dt>產量為什麼隨轉速近似線性？</dt><dd>螺槽體積流量 ∝ 轉速（每轉排量固定），質量產量 = 體積流量×密度×效率，故在效率穩定時與轉速近似線性。高轉速下漏流與剪下發熱會拉低實際效率。</dd>
@@ -243,27 +243,48 @@ s.parentNode.insertBefore(el, s);
 </div>
 
 <script>
+function setInvalid(el,invalid){
+  if(!el)return;
+  if(invalid){el.classList.add('input-error');el.setAttribute('aria-invalid','true');}
+  else{el.classList.remove('input-error');el.removeAttribute('aria-invalid');}
+}
+function strictNum(id){
+  var raw=document.getElementById(id).value.trim();
+  return raw===''?NaN:parseFloat(raw);
+}
 function calc() {
-  var D = parseFloat(document.getElementById('screwDia').value) || 0;
-  var rpm = parseFloat(document.getElementById('screwRpm').value) || 0;
-  var rho = parseFloat(document.getElementById('density').value) || 0;
-  var p = parseFloat(document.getElementById('pitch').value) || 0;
-  var h = parseFloat(document.getElementById('channelDepth').value) || 0;
-  var eff = parseFloat(document.getElementById('efficiency').value) || 0;
+  var dEl=document.getElementById('screwDia');
+  var rpmEl=document.getElementById('screwRpm');
+  var rhoEl=document.getElementById('density');
+  var pEl=document.getElementById('pitch');
+  var hEl=document.getElementById('channelDepth');
+  var effEl=document.getElementById('efficiency');
+  var D = strictNum('screwDia');
+  var rpm = strictNum('screwRpm');
+  var rho = strictNum('density');
+  var p = strictNum('pitch');
+  var h = strictNum('channelDepth');
+  var eff = strictNum('efficiency');
 
-  if (D <= 0 || rpm <= 0 || rho <= 0 || p <= 0 || h <= 0) {
-    ToolBox.setResult('result', '<p style="color:var(--danger);">所有参数需大于 0</p>');
+  var dOk=isFinite(D)&&D>0, rpmOk=isFinite(rpm)&&rpm>0, rhoOk=isFinite(rho)&&rho>0;
+  var pOk=isFinite(p)&&p>0, hOk=isFinite(h)&&h>0, effOk=isFinite(eff)&&eff>0&&eff<=100;
+  setInvalid(dEl,!dOk); setInvalid(rpmEl,!rpmOk); setInvalid(rhoEl,!rhoOk);
+  setInvalid(pEl,!pOk); setInvalid(hEl,!hOk); setInvalid(effEl,!effOk);
+
+  if (!dOk || !rpmOk || !rhoOk || !pOk || !hOk || !effOk) {
+    ToolBox.setResult('result', '<p style="color:var(--danger);">请输入有效参数：所有参数需大于 0，输送效率需在 0–100% 之间</p>');
     return;
   }
   if (h * 2 >= D) {
-    ToolBox.setResult('result', '<p style="color:var(--danger);">螺槽深度过大，请检查</p>');
+    setInvalid(dEl,true); setInvalid(hEl,true);
+    ToolBox.setResult('result', '<p style="color:var(--danger);">请输入有效参数：螺槽深度过大，请检查</p>');
     return;
   }
 
-  var flowArea = Math.PI / 4 * (D * D - Math.pow(D - 2 * h, 2));
-  var volumePerRev = flowArea * p;
-  var volumePerMin = volumePerRev * rpm;
-  var volumePerSec = volumePerMin / 60;
+  var flowArea = Math.PI / 4 * (D * D - Math.pow(D - 2 * h, 2)); // mm²
+  var volumePerRev = flowArea * p / 1000; // mm³ → cm³
+  var volumePerMin = volumePerRev * rpm; // cm³/min
+  var volumePerSec = volumePerMin / 60; // cm³/s
   var effDec = eff / 100;
 
   var outputGps = volumePerSec * rho * effDec;
@@ -287,7 +308,7 @@ function copyResult() {
   var h = parseFloat(document.getElementById('channelDepth').value) || 0;
   var eff = parseFloat(document.getElementById('efficiency').value) || 0;
   var flowArea = Math.PI/4*(D*D-Math.pow(D-2*h,2));
-  var outputKgh = (flowArea * p * rpm / 60) * rho * (eff/100) * 3.6;
+  var outputKgh = (flowArea * p / 1000 * rpm / 60) * rho * (eff/100) * 3.6;
   var text = '挤出产量: ' + outputKgh.toFixed(1) + ' kg/h (螺杆' + D + 'mm, 转速' + rpm + 'rpm)';
   ToolBox.copyText(text, i18nText('msg409'));
 }
@@ -482,7 +503,7 @@ function __extrusion_rateExport(){
 }
 function __extrusion_ratePresets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#extrusion_ratePresets',[{label:'默认参数',labelEn:'Default',values:{'screwDia':'65', 'screwRpm':'80', 'density':'0.95', 'pitch':'65', 'channelDepth':'6', 'efficiency':'40'}}],function(){ calc(); });
+    TBKit.preset.bar('#extrusion_ratePresets',[{label:'默认参数',labelEn:'Default',values:{'screwDia':'65', 'screwRpm':'80', 'density':'0.95', 'pitch':'65', 'channelDepth':'6', 'efficiency':'40'}},{"label":"小规模","labelEn":"Small scale","values":{"screwDia":"32.5"}},{"label":"大规模","labelEn":"Large scale","values":{"screwDia":"97.5"}},{"label":"极端工况","labelEn":"Extreme case","values":{"screwDia":"130"}}],function(){ calc(); });
 }
 var __extrusion_rate_f0=(typeof calc==='function')?calc:null;
 if(__extrusion_rate_f0){

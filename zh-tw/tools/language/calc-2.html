@@ -117,7 +117,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="輸入閱讀字數和用時，計算您的閱讀速度，並提供水平參考。">Measure your reading speed.</p>
     <div class="formula-box">
       <div class="formula-title">📐 計算公式</div>
-      <div class="formula-eq">閱讀速度(字/分) = 字數 ÷ 總用時，總用時(分) = 分 + 秒÷60；有效速度 = 閱讀速度 × 理解度(%) ÷ 100。校驗：字數 ≤0、總用時 ≤0 或理解度非數提示「請輸入有效的字數、用時和理解度」。判據：wpm &lt;100 基礎、&lt;200 普通、&lt;300 良好、&lt;500 較快、&lt;800 快速、≥800 超速/掃描式，理解度越低有效速度折損越大。</div>
+      <div class="formula-eq">閱讀速度(字/分) = 字數 ÷ 總用時，總用時(分) = 分 + 秒÷60；有效速度 = 閱讀速度 × 理解度(%) ÷ 100。校驗：字數 ≤0、總用時 ≤0 或理解度不在 0–100 提示「請輸入有效的字數、用時和理解度（理解度須為 0–100）」。判據：wpm &lt;100 基礎、&lt;200 普通、&lt;300 良好、&lt;500 較快、&lt;800 快速、≥800 超速/掃描式，理解度越低有效速度折損越大。</div>
       <p class="formula-desc">輸入閱讀字數和用時，計算您的閱讀速度，並提供水平參考。</p>
     </div>
 
@@ -346,13 +346,13 @@ function calc() {
   const resEl = document.getElementById('res');
 
   const totalMinutes = minutes + seconds / 60;
-  if (isNaN(wordCount) || wordCount <= 0 || totalMinutes <= 0 || isNaN(comprehension)) {
-    resEl.innerHTML='<p style="color:var(--text-muted);">请输入有效的字数、用时和理解度。</p>';
+  if (isNaN(wordCount) || wordCount <= 0 || totalMinutes <= 0 || isNaN(comprehension) || comprehension < 0 || comprehension > 100) {
+    resEl.innerHTML='<p style="color:var(--text-muted);">请输入有效的字数、用时和理解度（理解度须为 0–100）。</p>';
     return;
   }
 
   const wpm = wordCount / totalMinutes;
-  const effectiveWpm = wpm * (comprehension / 100);
+  const effectiveWpm = Math.min(wpm, wpm * (comprehension / 100));
   const level = getLevel(wpm);
 
   const __g6=`
@@ -502,7 +502,7 @@ function __calc_2Export(){
 }
 function __calc_2Presets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#calc_2Presets',[{label:'默认参数',labelEn:'Default',values:{'wordCount':'800', 'comprehension':'80', 'minutes':'3', 'seconds':'30'}}],function(){ calc(); });
+    TBKit.preset.bar('#calc_2Presets',[{label:'默认参数',labelEn:'Default',values:{'wordCount':'800', 'comprehension':'80', 'minutes':'3', 'seconds':'30'}},{"label":"小规模","labelEn":"Small scale","values":{"wordCount":"400"}},{"label":"大规模","labelEn":"Large scale","values":{"wordCount":"1200"}},{"label":"极端工况","labelEn":"Extreme case","values":{"wordCount":"1600"}}],function(){ calc(); });
 }
 var __calc_2_f0=(typeof calc==='function')?calc:null;
 if(__calc_2_f0){
