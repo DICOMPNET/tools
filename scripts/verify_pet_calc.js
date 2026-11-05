@@ -151,13 +151,12 @@ const CASES = [
 {
   "slug": "pet/training-planner",
   "inputs": {
-    "age": "junior"
+    "age": "senior"
   },
   "expect": [
-    "junior"
+    "狗狗 · 老年期"
   ],
-    ref: "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
-  "ref": "auto-restore"
+    ref: "age=senior（老年期 7 岁+）⇒ 计划概要渲染「狗狗 · 老年期 · 每日20分钟 · 1个训练目标」。⚠ 原注入 junior 恰为页面 select 默认选中项、原 expect「junior」只是 select 值回显 ⇒ 默认态同样命中（真逃生），故改注入非默认年龄段并锚结果区派生串。默认态为「狗狗 · 青少年」，不含老年期。",
 },
 {
   "slug": "pet/fish-tank-volume",
@@ -175,6 +174,21 @@ const CASES = [
     "19.26"
   ],
   "ref": "auto-restore"
+},
+
+{
+  "slug": "pet/training-planner",
+  "inputs": { "age": "junior", "dailyTime": "20" },
+  "clicks": ["toggleGoal('house');var v=[].map.call(document.querySelectorAll('.overview-card .v'),function(e){return e.textContent.trim();}).join(',');document.getElementById('planOverview').textContent='V:'+v+'|T:'+document.querySelectorAll('#weeklyPlan .task-item').length;"],
+  "expect": ["V:7,20,3,9|T:28"],
+  "ref": "深度解析算例复算：基础服从 5 项 + 如厕训练 4 项 = 9 项，20 分钟时段数 3，每日 min(3+1,9)=4 条，一周 7×4=28 条。默认只选基础服从 ⇒ 末位为 5 ⇒ 不命中。"
+},
+{
+  "slug": "pet/training-planner",
+  "inputs": { "age": "junior", "dailyTime": "45" },
+  "clicks": ["var v=[].map.call(document.querySelectorAll('.overview-card .v'),function(e){return e.textContent.trim();}).join(',');document.getElementById('planOverview').textContent='V:'+v+'|T:'+document.querySelectorAll('#weeklyPlan .task-item').length;"],
+  "expect": ["V:7,45,4,5|T:35"],
+  "ref": "深度解析算例二复算：只选基础服从 5 项、45 分钟时段数 4，每日 min(4+1,5)=5 条，一周 35 条。默认 20 分钟 ⇒ V:7,20,3,5|T:28 ⇒ 不命中。"
 },
 
 {

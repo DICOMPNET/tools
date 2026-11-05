@@ -13,6 +13,17 @@ const { runCase } = require("./verify_it_calc.js");
 
 const CASES = [
 
+  // ── 绕口令随机抽题 ──────────────────────────────────────────
+  {
+    slug: "fun/tongue-twister",
+    clicks: ["var __r=Math.random;Math.random=function(){return 0;};next();Math.random=__r;"],
+    expect: ["第 1 条 / 难度：简单"],
+    ref: "题库 20 条，clicks 把 Math.random 钉为 0（用完即恢复，避免污染同进程后续用例）⇒ "
+       + "idx=floor(0×20)=0 ⇒ 第 1 条「四是四…」、难度「简单」。默认态输出为「挑战快速念出声」、"
+       + "文本为「点击\"开始\"获取一条绕口令」⇒ 不含「第 1 条 / 难度：简单」，与本用例零交集。"
+       + "本页只做随机展示与难度标注，不录音、不计时、不评分。",
+  },
+
 
   // ── 冥想计时器 ──────────────────────────────────────────────
   {
@@ -240,6 +251,13 @@ const CASES = [
     ref: "cnt=10 ⇒ 笑声列表渲染到第 10 条（`10. 「哈哈哈…」 基频…/持续…秒`）；编号与条数确定，音色参数随机。"
        + "默认 cnt=5 ⇒ 列表最多到「5. 」，锚串「10. 」不出现。",
   },
+{
+  "slug": "fun/tic-tac-toe",
+  "clicks": ["newGame()", "makeMove(0)", "makeMove(1)", "makeMove(2)", "makeMove(4)", "makeMove(3)", "makeMove(5)", "makeMove(7)", "makeMove(6)", "makeMove(8)"],
+  "expect": ["🤝 平局！"],
+  "ref": "PvP 固定落子（X:0,2,3,7,8 / O:1,4,5,6）填满九格且横竖斜均无三连 ⇒ 走平局分支，输出「🤝 平局！」。"
+       + "胜负分支的 highlightWin 依赖运行时 querySelectorAll('.cell')（桩不登记 createElement 追加的节点）会抛错，故取同一判定链路的平局分支。默认空盘只显示「点击格子开始游戏」，零交集。"
+}
 
 ];
 async function main() {

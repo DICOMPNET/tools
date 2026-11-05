@@ -82,9 +82,9 @@ const CASES = [
   },
   {
     slug: "edu/convert-area-volume",
-    inputs: { val: "100", cat: "length", from: "cm", to: "m" },
-    expect: ["结果 = 1.0000"],
-    ref: "去默认化：100 cm = 1 m ⇒ 100×0.01/1 = 1.0000。默认态不命中。"
+    inputs: { val: "250", cat: "length", from: "cm", to: "m" },
+    expect: ["结果 = 2.5000"],
+    ref: "去默认化：250 cm = 2.5 m ⇒ 250×0.01/1 = 2.5000。⚠ 原注入 val=100/from=cm/to=m 与页面默认（fillSel 使 from=m、to=m、val=1）恰好同得 1.0000，注入态与默认态逐字节相同（真逃生），故改注入非默认数值。默认态为「结果 = 1.0000」不命中。"
   },
   {
     slug: "edu/convert-area-volume",
@@ -826,8 +826,28 @@ const CASES = [
       "QSTRICT:0:wrong,1:correct|wrong=1"
     ],
     "ref": "EL-J5 回归：选项 0「容纳；适应」以「适应」结尾但并非答案，选它必须只标红 0、且仅把真正答案（索引 1）标绿 ⇒ 标记序列 0:wrong,1:correct。旧实现用 endsWith 找正确项，会把 0、1 同时标绿 ⇒ 0:wrong,0:correct,1:correct。"
-  }
+  },
 
+{
+  "slug": "edu/flashcards",
+  "clicks": ["nextCard()", "nextCard()", "nextCard()"],
+  "expect": ["sì", "数字四；第四"],
+  "ref": "卡片顺序固定：一→二→三→四；第三次翻卡显示 四/sì/数字四；第四。默认首卡一，零交集。"
+},
+{
+  "slug": "edu/capital-quiz",
+  "clicks": ["start();for(var k=0;k<10;k++){choose({cap:cur.cap},{classList:{add:function(){}}});}"],
+  "expect": ["得分：10/10（100%）"],
+  "ref": "start() 随机抽 10 题后，逐题以「cap 与 cur.cap 相同的选项对象」调用 choose()（等价于点中正确项）⇒ score=10 ⇒ finish 输出「得分：10/10（100%）」。题序随机但满分结果确定。"
+       + "选项按钮由 next() 用 createElement 生成，桩内 querySelectorAll('.opt') 看不到运行时节点，故直接传入等价的选项对象（仅含比较字段 cap 与最小 classList 桩）；choose 的计分/推进/收尾逻辑照常执行。默认未开始时输出「选择正确的首都 / 得分：0」，零交集。"
+},
+{
+  "slug": "edu/country-quiz",
+  "clicks": ["start();for(var k=0;k<10;k++){choose({name:cur.name},{classList:{add:function(){}}});}"],
+  "expect": ["得分：10/10（100%）"],
+  "ref": "同 capital-quiz：country-quiz 的 choose(o,el) 比较 o.name === cur.name，逐题传等价选项对象 ⇒ score=10 ⇒ finish 输出「得分：10/10（100%）」。"
+       + "默认未开始时输出「根据国旗选择对应的国家 / 得分：0」，零交集。"
+}
 ];
 
 async function main() {

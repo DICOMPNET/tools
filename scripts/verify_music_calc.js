@@ -75,14 +75,10 @@ const CASES = [
   ],
   "ref": "auto-restore"
 },
-{
-  "slug": "music/ear-trainer",
-  "inputs": {},
-  "expect": [
-    "全部12种"
-  ],
-  "ref": "auto-restore(default)；**2026-09-26 复核判死（勿重复评估）**：① 当前 expect「全部12种」是难度按钮（困难）的常驻文本，默认态必命中 ⇒ 判别力 0；② `window.setMode('chord')` 实测抛错（EarTrainer.setMode 里 `document.querySelectorAll('.mode-tab')[1].classList.add('active')`，harness DOM 中 `.mode-tab` 不足 2 个）⇒ 抛错点之后的 renderRefTable() 根本没执行；③ 可达的 `window.setDifficulty('hard')` 只写 state + renderDifficulty()（纯 class 切换）+ generateQuestion()，**不产生任何新文本**。 ⇒ 无可用注入通道。"
-},
+// 已移除 music/ear-trainer（inputs:{}，expect ["全部12种"]）。
+// 原因：该锚是难度按钮（困难）常驻文本，默认态必命中 ⇒ 判别力 0；且复核确认无可用注入通道
+// （setMode('chord') 在 harness DOM 抛错、可达的 setDifficulty('hard') 不产生新文本），
+// 无法改出可判别锚 ⇒ 按纪律删除而非保留 skip。
 {
   "slug": "music/freq-note-converter",
   "inputs": {
@@ -407,6 +403,20 @@ const CASES = [
     clicks: ["calculate()"],
     expect: ["拍号 3/4 | 小节时长 1.80s"],
     ref: '100BPM/3/4 小节时长1.80s'
+  },
+  {
+    slug: "music/web-tuner",
+    inputs: { refFreq: "432" },
+    clicks: ["window.__wtSetRefA4(+document.getElementById('refFreq').value);var n=window.__wtFreqToNote(440);document.getElementById('centsText').textContent='C:'+n.cents.toFixed(2)+'|N:'+n.full;"],
+    expect: ["C:31.77|N:A4"],
+    ref: '深度解析算例复算：A4=432 时 440 Hz → midiFloat=69+12·log2(440/432)=69.3177，音分 +31.77，仍判 A4。默认基准 440 下同一频率为 0.00 ⇒ 不命中。'
+  },
+  {
+    slug: "music/web-tuner",
+    inputs: { refFreq: "440" },
+    clicks: ["window.__wtSetRefA4(+document.getElementById('refFreq').value);var n=window.__wtFreqToNote(446);document.getElementById('centsText').textContent='C:'+n.cents.toFixed(2)+'|N:'+n.full;"],
+    expect: ["C:23.45|N:A4"],
+    ref: '深度解析算例一复算：A4=440 时 446 Hz → midiFloat=69.2345，音分 +23.45，仍判 A4。默认态 centsText 为空、不含该串 ⇒ 不命中。'
   }
 ];
 async function main() {

@@ -17,7 +17,7 @@ const CASES = [
 
   { slug: "electromagnetism/capacitance-parallel-plate",
     inputs: { A: "0.02", d: "0.002", er: "2" },
-    expect: ["177.084"],
+    expect: ["177.084 电容"],
     ref: "C=ε₀εr·A/d=8.854e-12·2·0.02/0.002=1.7708e-10 F=177.084 pF" },
 
   { slug: "electromagnetism/capacitive-reactance",
@@ -52,7 +52,7 @@ const CASES = [
 
   { slug: "electromagnetism/electric-potential-point",
     inputs: { q: "2e-6", r: "4" },
-    expect: ["4493.776"],
+    expect: ["4493.776 电势"],
     ref: "V=k·q/r=8.98755e9·2e-6/4=4493.776 V" },
 
   { slug: "electromagnetism/electric-power",
@@ -80,10 +80,9 @@ const CASES = [
     expect: ["0.6000"],
     ref: "F=B·I·L·sinθ=0.8·5·0.3·sin30°=0.6000 N" },
 
-  { slug: "electromagnetism/free-space-impedance",
-    inputs: { x: "0" },
-    expect: ["376.73"],
-    ref: "Z₀=√(μ₀/ε₀)=376.73 Ω（常数页，页面无有效输入字段，默认态命中属固有；已用 selfcheck_false_pass.js 标注为例外）" },
+  // 已移除 electromagnetism/free-space-impedance（x=0，expect ["376.73"]）。
+  // 原因：该页为纯常量页（页面自述「输入框未参与计算」），Z₀=376.73 Ω 在任何输入下恒定，
+  // 默认态即命中 ⇒ 无任何可注入变量可造出判别力，按纪律删除而非保留 skip。
 
   { slug: "electromagnetism/inductance-solenoid",
     inputs: { N: "250", A: "0.02", l: "0.5" },
@@ -273,7 +272,7 @@ const CASES = [
       "dt": "42"
     },
     "expect": [
-      "动势 ε (V) 1.00"
+      "感应电动势 ε (V) 1.000000 每匝"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"N\":\"42\",\"dPhi\":\"42\",\"dt\":\"42\"}，输出区含「动势 ε (V) 1.00」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },

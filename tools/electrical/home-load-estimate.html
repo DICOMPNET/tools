@@ -266,7 +266,11 @@ function num(id){const v=parseFloat(document.getElementById(id).value);return is
 function escH(s){var d=document.createElement('div');const __g0=s==null?'':String(s);d.textContent=(typeof __g0==='number'?(isFinite(__g0)?__g0:'—'):String(__g0).replace(/Infinity|NaN/g,'—'));return d.innerHTML;}
 function fmtMoney(n){return n.toLocaleString('zh-CN',{minimumFractionDigits:2,maximumFractionDigits:2});}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
-function calcTool(){const fridge=num('fridge'), ac=num('ac'), washer=num('washer'), wh=num('waterheater'), kitchen=num('kitchen'), light=num('light');
+function calcTool(){
+   // 六项全空 ≠ 显式填 0：全空是未输入，不能当作「无负荷」下结论
+   const __allEmpty=['fridge','ac','washer','waterheater','kitchen','light'].every(function(id){var e=document.getElementById(id);return !e||String(e.value).trim()==='';});
+   if(__allEmpty){ToolBox.setResult('result','<p class="tip-error">请填写用电负荷后再给出进线与开关建议。</p>');return;}
+   const fridge=num('fridge'), ac=num('ac'), washer=num('washer'), wh=num('waterheater'), kitchen=num('kitchen'), light=num('light');
    const totalInstalled=fridge*200+ac*1200+washer*500+wh*2000+kitchen+light;
    // 需用系数：同时开启的比例估算
    const coeff=0.6;
@@ -274,7 +278,8 @@ function calcTool(){const fridge=num('fridge'), ac=num('ac'), washer=num('washer
    const current=load/220;
    // 进线建议
    let wire, breaker;
-   if(current<=25){wire='2.5 mm²';breaker='32 A';}
+   if(totalInstalled<=0){wire='—';breaker='—';}
+   else if(current<=25){wire='2.5 mm²';breaker='32 A';}
    else if(current<=35){wire='4 mm²';breaker='40 A';}
    else if(current<=50){wire='6 mm²';breaker='50 A';}
    else if(current<=70){wire='10 mm²';breaker='63 A';}
@@ -286,7 +291,7 @@ function calcTool(){const fridge=num('fridge'), ac=num('ac'), washer=num('washer
      [wire,'建议进线'],
      [breaker,'建议总开关']
    ]);
-   html += '<p style="font-size:13px;color:var(--text-muted);margin-top:8px;">按需用系数 0.6 估算（不同时全开）。若空调为多台大功率或含电地暖，请按实际同时使用提高系数。结论供参考，正式设计按 GB 51348 执行。</p>';
+   html += '<p style="font-size:13px;color:var(--text-muted);margin-top:8px;">'+(totalInstalled<=0?'当前装机总功率为 0（无负荷），无需给出进线与总开关建议。':'按需用系数 0.6 估算（不同时全开）。若空调为多台大功率或含电地暖，请按实际同时使用提高系数。结论供参考，正式设计按 GB 51348 执行。')+'</p>';
 
    // 常见家电功率参考表
    html += '<div style="margin-top:12px;font-size:13px;"><b>常见家电功率参考</b></div>'+
@@ -315,13 +320,15 @@ function __home_load_estimateNum(id){var e=document.getElementById(id);var v=e?p
 function __home_load_estimateExtras(){
     function __home_load_estimateRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
+    if (['fridge','ac','washer','waterheater','kitchen','light'].every(function(id){var e=document.getElementById(id);return !e||String(e.value).trim()==='';})) return;
     var fridge=num('fridge'), ac=num('ac'), washer=num('washer'), wh=num('waterheater'), kitchen=num('kitchen'), light=num('light');
     var totalInstalled=fridge*200+ac*1200+washer*500+wh*2000+kitchen+light; // 需用系数：同时开启的比例估算
     var coeff=0.6;
     var load=totalInstalled*coeff;
     var current=load/220; // 进线建议
     var wire, breaker;
-    if(current<=25){wire='2.5 mm²';breaker='32 A';}
+    if(totalInstalled<=0){wire='—';breaker='—';}
+    else if(current<=25){wire='2.5 mm²';breaker='32 A';}
     else if(current<=35){wire='4 mm²';breaker='40 A';}
     else if(current<=50){wire='6 mm²';breaker='50 A';}
     else if(current<=70){wire='10 mm²';breaker='63 A';}

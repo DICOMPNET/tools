@@ -4,13 +4,10 @@ const { runCase } = require("./verify_it_calc.js");
 const CASES = [
 {
   "slug": "psychology/attachment-style-test",
-  "inputs": {
-    "at' + i + '_' + l.v + '": "' + l.v + '_X"
-  },
-  "expect": [
-    "_X"
-  ],
-  "ref": "auto-restore"
+  "clicks": ["applyAttachPreset('secure')"],
+  "expect": ["焦虑 2.00 · 回避 2.00"],
+  "ref": "页面自带预设入口 applyAttachPreset('secure')：36 题按维度填 2 分（反向题填 6 分）⇒ computeScores 焦虑/回避两维均值均为 2.00 ⇒ classify=安全型，结果区渲染「焦虑 2.00 · 回避 2.00」及安全型解读。"
+       + "默认态 state 全 0、结果区为空，零交集。原用例把模板串 at' + i + '_' + l.v 当 input id（题干与选项由 renderQuiz 的 innerHTML 生成，桩不登记），属桩盲区；现改为页面真实预设按钮入口。"
 },
 {
   "slug": "psychology/calc-12",
@@ -42,16 +39,6 @@ const CASES = [
   },
   "expect": [
     "6."
-  ],
-  "ref": "auto-restore"
-},
-{
-  "slug": "psychology/holland-career-test",
-  "inputs": {
-    "hl' + i + '_' + val + '": "' + val + '_X"
-  },
-  "expect": [
-    "_X"
   ],
   "ref": "auto-restore"
 },
@@ -177,6 +164,24 @@ const CASES = [
   "clicks": ["document.getElementById('enCardCanvas').toBlob=function(){throw new Error('boom')};document.getElementById('enPngBtn').fire('click');"],
   "expect": ["导出失败：Error"],
   "ref": "失败注入：结果卡 toBlob 必抛 Error ⇒ 导出入口必须 toast「导出失败：Error」并终止。修复前异常裸冒成 pageerror、且成功提示「已导出结果卡 PNG」仍会执行；默认态无该串 ⇒ 判别明确。"
+},
+{
+  "slug": "psychology/tester-3",
+  "clicks": [
+    "pJump(0)", "pPick(0)", "pJump(1)", "pPick(0)", "pJump(2)", "pPick(0)",
+    "pJump(3)", "pPick(0)", "pJump(4)", "pPick(0)", "pJump(5)", "pPick(0)",
+    "pJump(6)", "pPick(0)", "pJump(7)", "pPick(0)", "pJump(8)", "pPick(0)",
+    "pJump(9)", "pPick(0)", "pJump(10)", "pPick(0)", "pJump(11)", "pPick(0)"
+  ],
+  "expect": ["你的主导学习风格：V", "12 / 12（100%）"],
+  "ref": "VARK 12 题全选第 1 项（视觉）⇒ V=12、总分 12/12=100%，主导 V。默认仅未答提示（0/12），零交集。"
+},
+{
+  "slug": "psychology/analysis-2",
+  "clicks": ["for(var i=0;i<24;i++){pPick(0);}"],
+  "expect": ["红色 · 活泼热情", "24 / 24（100%）"],
+  "ref": "FPA 四色人格 24 题，每题第 1 项对应红色。全选第 1 项 ⇒ 红 24、总分 24 ⇒ 占比渲染「24 / 24（100%）」，主导色「红色 · 活泼热情」。"
+       + "pPick 内 setTimeout 由桩立即执行，逐题推进到第 24 题后 calc()。默认态未作答、结果区为空，零交集。"
 }
 ];
 async function main() {

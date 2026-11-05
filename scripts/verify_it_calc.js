@@ -17,6 +17,9 @@
  */
 const fs = require("fs");
 const path = require("path");
+// 运行期生成 id 判定（与 audit_verify_input_ids.js 共用同一套模板解析，避免两处正则漂移）。
+// 仅用于注入参数合法性校验：动态 id 无法静态判存在，必须放行，否则会误伤 JS 拼控件的页。
+const { isDynamicId } = require(path.join(__dirname, "lib_dynamic_defaults.js"));
 
 // §7.4 harness 缺口补丁：浏览器标准 API `btoa`/`atob` 二进制串语义（btoa 入参为 latin1 二进制串、
 // atob 出参亦为 latin1 二进制串），与页面惯用法 `btoa(unescape(encodeURIComponent(s)))`
@@ -8500,12 +8503,48 @@ function dynRecord(el, html) {
   if (el.__dynNode) return;                     // 登记表自身生成的桩，避免自我递归
   const key = el.id ? "#" + el.id : (el.__dynKey || (el.__dynKey = "anon#" + DYN.serial++));
   const nodes = [];
-  for (const m of String(html).matchAll(/<([a-zA-Z][\w:-]*)((?:"[^"]*"|'[^']*'|[^>"'])*)>/g)) {
+  const src = String(html);
+  // 分段定位（2026-11-05）：真机 `querySelectorAll('.tbl tbody tr')` 只命中 tbody 内的行，
+  // 不命中 thead 的表头行；登记表若只按 tag 返回，表头行会被当成数据行（logic-gate 的
+  // highlightTruthTable 读 `tr.dataset.row.split()` 时表头无 data-row ⇒ 抛错、初始化中止）。
+  // 这里记录每个节点是否落在 tbody / thead 段内，供 dynQuery 按选择器里的段名过滤。
+  const segRanges = (name) => [...src.matchAll(new RegExp("<" + name + "[^>]*>([\\s\\S]*?)</" + name + ">", "gi"))]
+    .map((x) => [x.index, x.index + x[0].length]);
+  const bodyRanges = segRanges("tbody");
+  const headRanges = segRanges("thead");
+  const inRanges = (pos, ranges) => ranges.some(([a, b]) => pos >= a && pos < b);
+  for (const m of src.matchAll(/<([a-zA-Z][\w:-]*)((?:"[^"]*"|'[^']*'|[^>"'])*)>/g)) {
     const attrs = m[2] || "";
     const id = (attrs.match(/\bid\s*=\s*["']([^"']*)["']/i) || [, ""])[1];
     const cr = (attrs.match(/\bclass\s*=\s*["']([^"']*)["']/i) || [, ""])[1];
     const node = { tag: m[1].toLowerCase(), id, cls: cr.split(/\s+/).filter(Boolean), el: makeEl("") };
+    node.inBody = inRanges(m.index, bodyRanges);
+    node.inHead = inRanges(m.index, headRanges);
     node.el.__dynNode = true;
+    // 动态 <select> 的选项登记（2026-11-05）：usedcar/checker-3 的 buildList() 把
+    // `<select id="ck_*"><option value="4" selected>…</option></select>` 拼进 #checkItems
+    // 的 innerHTML，随后 boot 的 calc() 用 document.getElementById('ck_*').value 取档位。
+    // 旧桩只登记标签本身、不给选项 ⇒ .value 恒 "" ⇒ statusOpts.find(o => o.v === 0)
+    // 不命中 ⇒ opt.score 抛 "Cannot read properties of undefined (reading 'score')"。
+    // 此处截取该 <select> 到 </select> 之间的内容，登记 value/text/selected（浏览器语义：
+    // 无 value 属性 ⇒ option.value = 选项文本）。
+    if (node.tag === "select") {
+      const cs = src.indexOf("</select>", m.index + m[0].length);
+      if (cs > -1) {
+        node.opts = [...src.slice(m.index + m[0].length, cs).matchAll(/<option([^>]*?)>([\s\S]*?)<\/option>/gi)]
+          .map((o) => {
+            const tx = o[2].replace(/<[^>]+>/g, "").trim();
+            const vm = (o[1] || "").match(/\bvalue\s*=\s*["']([^"']*)["']/i);
+            return { value: vm ? vm[1] : tx, text: tx, attrs: o[1] || "" };
+          });
+      }
+    }
+    // 关键保真（2026-11-05）：把标签与整段属性落到桩元素上 —— 页面初始化常读
+    // `tr.dataset.row` / `card.dataset.gate` / `getAttribute('data-…')`，缺 dataset
+    // 直接抛 "Cannot read properties of undefined (reading 'split')"，整页初始化中止。
+    node.el.tagName = m[1].toUpperCase();
+    node.el.__applyAttrs(attrs);
+    node.el.parentElement = el;
     if (id) node.el.id = id;
     nodes.push(node);
   }
@@ -8521,16 +8560,34 @@ function dynQuery(sel) {
   const mCls = [...last.matchAll(/\.([\w-]+)/g)].map((x) => x[1]);
   const mTag = last.match(/^([a-zA-Z][\w-]*)/);
   if (!mId && !mCls.length && !mTag) return [];
+  // 段名作用域：选择器带 tbody / thead 时只返回对应段内的节点（等价真机的后代限制）。
+  const ss = String(sel);
+  const wantBody = /\btbody\b/.test(ss) && !/\bthead\b/.test(ss);
+  const wantHead = /\bthead\b/.test(ss) && !/\btbody\b/.test(ss);
   const out = [];
   for (const k of DYN.order) {
     for (const n of DYN.map.get(k) || []) {
       if (mId && n.id !== mId[1]) continue;
       if (mTag && n.tag !== mTag[1].toLowerCase()) continue;
+      if (wantBody && !n.inBody) continue;
+      if (wantHead && !n.inHead) continue;
       if (mCls.length && !mCls.every((c) => n.cls.indexOf(c) !== -1)) continue;
       out.push(n.el);
     }
   }
   return out;
+}
+
+// 运行期 innerHTML 生成的 <select>（容器渲染，非 select.innerHTML）按 id 取选项。
+// 供 getElementById 回落：真机 boot 时这类 select 已有首项选中，.value 即首项值。
+function dynSelectOf(id) {
+  if (!DYN.on || !id) return null;
+  for (const k of DYN.order) {
+    for (const n of DYN.map.get(k) || []) {
+      if (n.tag === "select" && n.id === id && n.opts && n.opts.length) return n.opts;
+    }
+  }
+  return null;
 }
 
 // 构造 <option> 桩：除 value/text/label 外，还要带 dataset（data-* 属性）与 getAttribute。
@@ -8582,6 +8639,54 @@ function makeEl(val, opts) {
   // aperture/shutter/iso 三档）。这些页的 <option> 没有 value 属性，靠索引定位 ⇒
   // 必须原样记住写入的索引，不能退化成按 value 反查（会恒回 0）。
   let _selIdx = null;
+  // 属性/类名/data-* 的真实化（2026-11-05）：
+  // 真机上 el.dataset 恒存在且与 data-* 属性双向同步、classList 反映 className；
+  // 旧桩把 dataset 固定成 {}、classList 全为 no-op ⇒ 页面初始化读 `tr.dataset.row`
+  // 直接抛 "Cannot read properties of undefined (reading 'split')"，只能记「桩盲区」。
+  // 这里一次性补齐：dataset 用 Proxy 双向同步属性表，classList 读写 className，
+  // setAttribute/getAttribute/removeAttribute 覆盖 value/id/class/data-*。
+  const _attrs = new Map();                 // 非 data-*/value/id/class 的原始属性
+  const _ds = {};                           // dataset 真实存储（camelCase）
+  const _dataAttr = (p) => "data-" + String(p).replace(/[A-Z]/g, (c) => "-" + c.toLowerCase());
+  const _camel = (n) => String(n).replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+  const dataset = new Proxy(_ds, {
+    get(t, k) { return t[k]; },
+    set(t, k, v) { t[k] = String(v); _attrs.set(_dataAttr(k), String(v)); return true; },
+    deleteProperty(t, k) { delete t[k]; _attrs.delete(_dataAttr(k)); return true; },
+    has(t, k) { return k in t; },
+    ownKeys(t) { return Reflect.ownKeys(t); },
+    getOwnPropertyDescriptor(t, k) { return Reflect.getOwnPropertyDescriptor(t, k); },
+  });
+  let _cls = "";
+  const classList = {
+    add(...cs) { for (const c of cs) if (c && !_cls.split(/\s+/).includes(c)) _cls = (_cls ? _cls + " " : "") + c; },
+    remove(...cs) { const set = new Set(cs); _cls = _cls.split(/\s+/).filter((c) => c && !set.has(c)).join(" "); },
+    toggle(c, force) {
+      const has = _cls.split(/\s+/).includes(c);
+      const on = force === undefined ? !has : !!force;
+      if (on) classList.add(c); else classList.remove(c);
+      return on;
+    },
+    contains(c) { return _cls.split(/\s+/).includes(c); },
+    item(i) { return _cls.split(/\s+/).filter(Boolean)[i] || null; },
+    get length() { return _cls.split(/\s+/).filter(Boolean).length; },
+    toString() { return _cls; },
+  };
+  // 简易选择器匹配（tag / #id / .class / [attr=value]，支持逗号并集），供 matches/closest 使用
+  const _matches = (node, sel) => String(sel || "").split(",").some((part) => {
+    part = part.trim();
+    if (!part) return false;
+    const tag = part.match(/^([a-zA-Z][\w-]*)/);
+    if (tag && node.tagName && tag[1].toLowerCase() !== String(node.tagName).toLowerCase()) return false;
+    for (const m of part.matchAll(/#([\w-]+)/g)) if (String(node.id || "") !== m[1]) return false;
+    for (const m of part.matchAll(/\.([\w-]+)/g)) if (!classList.contains(m[1])) return false;
+    for (const m of part.matchAll(/\[([\w-]+)(?:\s*=\s*["']?([^"'\]\s]*)["']?)?\]/g)) {
+      const got = node.getAttribute(m[1]);
+      if (got == null) return false;
+      if (m[2] !== undefined && String(got) !== m[2]) return false;
+    }
+    return true;
+  });
   const el = {
     value: val === undefined ? "" : val,
     textContent: "",
@@ -8596,10 +8701,13 @@ function makeEl(val, opts) {
     },
     checked: false,
     style: {},
-    dataset: {},
+    // dataset 与 data-* 属性双向同步（Proxy 写入时同步 _attrs），classList 读写 className。
+    dataset,
     children: [],
     _handlers: handlers,
-    classList: { add() {}, remove() {}, toggle() {}, contains() { return false; } },
+    classList,
+    get className() { return _cls; },
+    set className(v) { _cls = String(v == null ? "" : v).trim(); },
     addEventListener(ev, cb) { (handlers[ev] = handlers[ev] || []).push(cb); },
     removeEventListener() {},
     fire(ev) { for (const cb of handlers[ev] || []) cb({ target: el, preventDefault() {}, stopPropagation() {} }); },
@@ -8636,9 +8744,39 @@ function makeEl(val, opts) {
     // 缺此 API 整页初始化抛 "cloneNode is not a function" ⇒ 恒不可验证。
     // 返回同构空节点即可：页面的后续赋值（value/textContent）会落在这个副本上。
     cloneNode() { return makeEl(""); },
-    setAttribute() {},
-    getAttribute() { return null; },
-    removeAttribute() {},
+    // 属性读写：value/id/class/data-* 落到真实字段，其余进 _attrs；与 dataset 双向一致。
+    setAttribute(n, v) {
+      n = String(n).toLowerCase();
+      v = String(v == null ? "" : v);
+      if (n === "value") { el.value = v; return; }
+      if (n === "id") { el.id = v; return; }
+      if (n === "class") { el.className = v; return; }
+      if (/^data-/.test(n)) { dataset[_camel(n.slice(5))] = v; return; }
+      _attrs.set(n, v);
+    },
+    getAttribute(n) {
+      n = String(n).toLowerCase();
+      if (n === "value") return String(el.value);
+      if (n === "id") return el.id == null ? null : String(el.id);
+      if (n === "class") return el.className;
+      if (/^data-/.test(n)) { const k = _camel(n.slice(5)); return dataset[k] !== undefined ? String(dataset[k]) : null; }
+      return _attrs.has(n) ? _attrs.get(n) : null;
+    },
+    removeAttribute(n) {
+      n = String(n).toLowerCase();
+      if (n === "value") { el.value = ""; return; }
+      if (n === "id") { el.id = ""; return; }
+      if (n === "class") { el.className = ""; return; }
+      if (/^data-/.test(n)) { delete dataset[_camel(n.slice(5))]; return; }
+      _attrs.delete(n);
+    },
+    // 把一段属性串（innerHTML 解析结果）原样落到本元素：data-* → dataset，class → className。
+    __applyAttrs(attrs) {
+      for (const m of String(attrs || "").matchAll(/([\w:-]+)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'>]+))/g)) {
+        el.setAttribute(m[1], m[2] !== undefined ? m[2] : m[3] !== undefined ? m[3] : m[4]);
+      }
+      return el;
+    },
     // 复制路径：页面普遍 `ta.select(); document.execCommand('copy')`（common.js 的 copyText
     // 与各工具页的本地复制实现都走这条），缺 .select/.setSelectionRange 会直接抛
     // "select is not a function" ⇒ 复制用例整段中断、判别器子进程无统计行。
@@ -8649,7 +8787,15 @@ function makeEl(val, opts) {
     // 否则 `[].forEach.call(undefined, …)` 抛错、紧随其后的 calc() 被整段跳过。
     querySelector(sel) { const r = dynQuery(sel); return r.length ? r[0] : makeEl(""); },
     querySelectorAll(sel) { return dynQuery(sel); },
-    closest() { return null; },
+    matches(sel) { return _matches(el, sel); },
+    closest(sel) {
+      let cur = el;
+      for (let i = 0; i < 12 && cur; i++) {
+        if (_matches(cur, sel)) return cur;
+        cur = cur.parentElement || null;
+      }
+      return null;
+    },
     focus() {},
     // 元素滚动定位：查表/详情类页（science/periodic-table 点击元素后滚动到详情卡）
     // 会调用，缺此 API 整页初始化即抛 "scrollIntoView is not a function" ⇒ 恒不可验证。
@@ -8662,6 +8808,8 @@ function makeEl(val, opts) {
     offsetWidth: 300,
     offsetHeight: 300,
     get parentElement() { if (!_parent) _parent = makeEl(""); return _parent; },
+    // 允许 innerHTML 解析路径回填真实父节点（closest 才能沿树向上匹配）。
+    set parentElement(p) { _parent = p || null; },
     get parentNode() { return el.parentElement; },
     get firstElementChild() { return null; },
     // canvas 2D 上下文桩：含图表的页面（如 healthcare/tdee-calculator 的热量环形图）
@@ -8714,7 +8862,13 @@ function makeEl(val, opts) {
       // <option> 时解析，对非 select 元素无副作用。
       if (/<option/i.test(_h)) {
         const opts = [..._h.matchAll(/<option([^>]*?)>([\s\S]*?)<\/option>/gi)]
-          .map((m) => mkOpt((m[1] || "").match(/value\s*=\s*["']([^"']*)["']/)?.[1] ?? "", m[2].replace(/<[^>]+>/g, "").trim(), m[1]));
+          .map((m) => {
+            const tx = m[2].replace(/<[^>]+>/g, "").trim();
+            const vm = (m[1] || "").match(/value\s*=\s*["']([^"']*)["']/);
+            // 浏览器语义：无 value 属性 ⇒ option.value = 选项文本（旧桩给 "" 会让
+            // 依赖文本取值的页读到空串，例如 design/music-scale-reference 的 #root）
+            return mkOpt(vm ? vm[1] : tx, tx, m[1]);
+          });
         if (opts.length) {
           el.options = opts;
           if (!("selectedIndex" in el)) {
@@ -8742,6 +8896,10 @@ function makeEl(val, opts) {
       if (__browserInit) {
         el.children = [..._h.matchAll(/<([a-zA-Z][\w-]*)([^>]*)>([\s\S]*?)<\/\1>/g)].map((m2) => {
           const child = makeEl("");
+          child.tagName = m2[1].toUpperCase();
+          // 与 dynRecord 同口径：data-* / class / 其它属性落到桩元素，children[i].dataset 可读。
+          child.__applyAttrs(m2[2]);
+          child.parentElement = el;
           child.textContent = m2[3].replace(/<[^>]+>/g, "").trim();
           return child;
         });
@@ -9036,11 +9194,15 @@ async function runCaseInner(c) {
     // 页面常从选中项的 data-* 上取业务数值（forex 的 data-pip、allergen-cross-risk 的
     // data-score），只解析 value/text 会让这些页读不到数而恒输出占位符（「—」）。
     sel[m[1]] = [...block.matchAll(/<option([^>]*)>([\s\S]*?)<\/option>/g)]
-      .map((x) => ({
-        value: ((x[1] || "").match(/value\s*=\s*["']([^"']*)["']/i) || [, ""])[1],
-        text: x[2].replace(/<[^>]+>/g, "").trim(),
-        attrs: x[1] || "",
-      }));
+      .map((x) => {
+        const tx = x[2].replace(/<[^>]+>/g, "").trim();
+        // 浏览器语义（2026-11-05）：<option> 无 value 属性时，其 .value 等于选项文本
+        // （music-scale-reference 的 #root 12 个音名选项即此形态；旧桩恒给 "" ⇒
+        // notes.indexOf("") = -1 ⇒ note undefined ⇒ render() 抛
+        // "Cannot read properties of undefined (reading 'includes')"）。
+        const vm = (x[1] || "").match(/value\s*=\s*["']([^"']*)["']/i);
+        return { value: vm ? vm[1] : tx, text: tx, attrs: x[1] || "" };
+      });
   }
 
   // 预解析 radio / checkbox 的 HTML 默认选中态（2026-09-24）：
@@ -9087,15 +9249,77 @@ async function runCaseInner(c) {
     const opts = [...m[0].matchAll(/<option([^>]*)>([\s\S]*?)<\/option>/g)];
     if (!opts.length) continue;
     const hit = opts.find((o) => /\bselected\b/i.test(o[1])) || opts[0];
-    const vl = (hit[1].match(/\bvalue\s*=\s*["']([^"']*)["']/i) || [, ""])[1];
+    const htx = hit[2].replace(/<[^>]+>/g, "").trim();
+    const hvm = hit[1].match(/\bvalue\s*=\s*["']([^"']*)["']/i);
+    // 同 static sel：无 value 属性 ⇒ value 取选项文本（浏览器语义）
+    const vl = hvm ? hvm[1] : htx;
     (checkedByName[key] = checkedByName[key] || []).push(vl);
     selectedText[key] = stripTags(hit[2]);
+  }
+
+  // 注入参数合法性（2026-11-05 显式报错）：以下形态过去被**静默忽略** —— 空 clicks 直接跳过
+  // 点击阶段、非数组/非字符串的 checkIds / checks / radios 取值被丢弃，用例照样「变红」，
+  // 等于给判别力造假证据。这里一律返回失败并点名「哪个用例的哪个字段」。
+  const badFields = [];
+  const isPlainObj = (v) => v && typeof v === "object" && !Array.isArray(v);
+  if (c.clicks !== undefined) {
+    if (!Array.isArray(c.clicks)) badFields.push("clicks 必须是字符串数组");
+    else if (!c.clicks.length) badFields.push("clicks 为空数组（点击阶段会被静默跳过）");
+    else c.clicks.forEach((code, i) => {
+      if (typeof code !== "string" || !code.trim()) badFields.push(`clicks[${i}] 必须是非空字符串: ${JSON.stringify(code)}`);
+    });
+  }
+  for (const fld of ["checkIds", "checks"]) {
+    const v = c[fld];
+    if (v === undefined) continue;
+    if (!Array.isArray(v)) { badFields.push(`${fld} 必须是数组`); continue; }
+    if (!v.length) { badFields.push(`${fld} 为空数组（注入阶段会被静默跳过）`); continue; }
+    v.forEach((x, i) => {
+      if (typeof x !== "string" || !x) badFields.push(`${fld}[${i}] 必须是非空字符串: ${JSON.stringify(x)}`);
+    });
+  }
+  if (c.radios !== undefined) {
+    if (!isPlainObj(c.radios)) badFields.push("radios 必须是 name → value 的对象");
+    else for (const [nm, v] of Object.entries(c.radios)) {
+      if (typeof nm !== "string" || !nm) badFields.push(`radios 含空 name: ${JSON.stringify(nm)}`);
+      if (!(typeof v === "string" || typeof v === "number")) badFields.push(`radios.${nm} 取值必须是字符串/数字: ${JSON.stringify(v)}`);
+    }
+  }
+  // 存在性：非运行期生成的 id / name 若在页面里找不到，getEl / getElementsByName 会造游离桩
+  // ⇒ 注入落空但无任何报错。运行期生成（`id="'+i+'"` / `name="q'+i+'"`）无法静态判定，放行。
+  const escRe = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const dynNamePrefixes = [];
+  for (const m of script.matchAll(/\bname\s*=\s*(["'`])([\s\S]*?)\1/g)) {
+    const inner = m[2];
+    if (!/\$\{/.test(inner) && !/\s*\+\s*/.test(inner)) continue;
+    dynNamePrefixes.push((inner.match(/^([A-Za-z_][A-Za-z0-9_-]*)/) || ["", ""])[1]);
+  }
+  const isDynName = (nm) => dynNamePrefixes.some((p) => p === "" || (nm.startsWith(p) && nm.length > p.length));
+  if (Array.isArray(c.checkIds)) {
+    for (const id of c.checkIds) {
+      if (typeof id !== "string" || !id) continue;
+      if (!new RegExp(`id\\s*=\\s*["']${escRe(id)}["']`).test(html) && !isDynamicId(html, id)) {
+        badFields.push(`checkIds 指向页面不存在的 id: ${id}`);
+      }
+    }
+  }
+  if (isPlainObj(c.radios)) {
+    for (const nm of Object.keys(c.radios)) {
+      if (!new RegExp(`name\\s*=\\s*["']${escRe(nm)}["']`).test(html) && !isDynName(nm) && !isDynamicId(html, nm)) {
+        badFields.push(`radios 的 name 在页面不存在: ${nm}`);
+      }
+    }
+  }
+  if (badFields.length) {
+    return { ok: false, why: `注入参数非法（${c.slug}）: ` + badFields.join("; ") };
   }
 
   const inline = inlineHandlers(html);
   const elements = {};
   const getEl = (id) => {
     if (!(id in elements)) {
+      // 选项来源：静态 <select>（sel）优先，其次运行期容器 innerHTML 生成的 <select>（dynSelectOf）。
+      const optList = sel[id] && sel[id].length ? sel[id] : dynSelectOf(id);
       const v =
         __dynInputs && __dynInputReg.has(id)
           ? __dynInputReg.get(id)
@@ -9103,10 +9327,10 @@ async function runCaseInner(c) {
           ? c.inputs[id]
           : defaults[id] !== undefined
           ? defaults[id]
-          : sel[id] && sel[id].length
-          ? ((sel[id].find((o) => /\bselected\b/i.test(o.attrs || "")) || sel[id][0]).value)
+          : optList && optList.length
+          ? ((optList.find((o) => /\bselected\b/i.test(o.attrs || "")) || optList[0]).value)
           : "";
-      elements[id] = makeEl(v, sel[id]);
+      elements[id] = makeEl(v, optList || undefined);
       elements[id].id = id;   // 动态 DOM 登记按容器 id 分桶（同容器重渲染时覆盖，避免计数翻倍）
       // readonly 输出域标记（G06-S1 快照判据用）：真机中该属性只读不改，
       // 页面脚本不会写它 ⇒ 不会干扰任何既有用例的取值路径。
@@ -9234,6 +9458,11 @@ async function runCaseInner(c) {
     },
     documentElement: { setAttribute() {}, getAttribute() { return null; }, style: {}, classList: { add() {}, remove() {}, toggle() {} } },
     body: makeEl(""),
+    // <head> 元素桩：design/font-pairing 顶层 loadFonts() 用 `document.head.appendChild(link)`
+    // 注入 Google Fonts <link>，缺此属性整页初始化即抛 "Cannot read properties of undefined
+    // (reading 'appendChild')" ⇒ 恒不可验证。与 body 同构（appendChild 收集子节点即可，
+    // 无渲染语义），对其它页面无影响（仅 font-pairing 读取 document.head）。
+    head: makeEl(""),
   };
   // 真实存储语义：setItem 写入 Map、getItem 回读已写值。页面改成「写后回读才宣告成功」后，
   // 空桩（getItem 恒 null）会让回读永远失败、页面走进失败分支，用例只拿到中间态。

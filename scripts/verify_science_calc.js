@@ -617,9 +617,21 @@ const CASES = [
   // 本批弃页：`tide-height-estimator`（注入 lat 后默认态仍命中 ⇒ 逃生，且注入态本身也不过）、
   // `gcd-calculator` / `lcm-calculator`（**两页共用 `nums` 单输入框 + 递归实现**，喂 2 个数也会死循环吃光 4 GB
   // 内存，且报错里**不带页面名** ⇒ 与 BATCH251 的 OOM 是同一形态，直接弃）、`passphrase-generator`
-  // （`wordCount` 注入不生效，熵值与词数行恒为默认值 ⇒ 锚不上）、`text-extract-phones` / `logic-gate-simulator`
-  // / `calculator`（运行时建 DOM，harness 内产物为空）、`resistor-color-code`（`formatResistance` 在桩内抛错 ⇒
+  // （`wordCount` 注入不生效，熵值与词数行恒为默认值 ⇒ 锚不上）、`text-extract-phones` /
+  // `calculator`（运行时建 DOM，harness 内产物为空）、`resistor-color-code`（`formatResistance` 在桩内抛错 ⇒
   // 反向模式产物不可达）、`barcode-pharmacode`（编码库未加载）、`pcb-trace-width`（IPC 线宽公式无法手算复算）。
+  // 注：`logic-gate-simulator` 已于 2026-11-05 解锁（共享桩补齐 dataset 与 tbody 段作用域后立例，见下条）。
+  {
+    // 2026-11-05：共享桩补 dataset / tbody 段作用域后本页解锁（原判「运行时建 DOM，产物为空」）。
+    // 页面末尾直接 init() → selectGate('AND')；真值表行由 innerHTML 生成，高亮时读 tr.dataset.row。
+    slug: "science/logic-gate-simulator",
+    // 默认态：AND，inputA/inputB 均为 0。clicks 改为 XOR 并把 A 置 1（B 保持 0）。
+    clicks: ["selectGate('XOR');toggleInput('A');"],
+    expect: ["1 XOR 0 =", "XOR（异或门）：输入不同输出1"],
+    ref: "默认态 AND(0,0) ⇒ 输出 0、表达式 0 AND 0 = 0、提示 AND（与门）：两输入全1输出1；注入"
+      + "selectGate('XOR') + toggleInput('A') ⇒ inputA=1/inputB=0，XOR(1,0) = 1 ⇒ 输出 1、表达式 1 XOR 0 = 1、"
+      + "提示改为 XOR（异或门）：输入不同输出1。两态输出 0 vs 1、提示文本互斥 ⇒ 判别明确、非逃生。",
+  },
   {
     slug: "science/latlon-utm-converter",
     inputs: { lat: "31", lon: "121" },
@@ -721,36 +733,42 @@ const CASES = [
     ref: '独立复算：9 千米(km,×1e3) → 毫米(mm,×1e-3)，result=9×1e3/1e-3=9e6=9000000 ⇒ \'9,000,000\'。fromUnit=7(km),toUnit=13(mm)。'
   },
   {
+    afterLoad: true,
     slug: "science/torque-converter",
     inputs: { val: "20", from: "lbft" },
     expect: ["2.711636e+1 牛·米 (N·m)"],
     ref: '扭矩换算（val=20，源单位 lb·ft）：baseNm = 20 × 1.35581795 = 27.116359 N·m；目标 N·m 列 = baseNm / 1 = 27.116359 → toExponential(6) 得 2.711636e+1。Python 独立复算 20×1.35581795=27.116359 与页面一致。锚取跨单位（N·m）派生量而非 lb·ft 同单位回显（同单位列恒等于输入 20→2e+1 属输入回显，不锚）。默认态（无注入：from 为空串导致 init 阶段 convert() 抛错、blob 为空）不命中该串。'
   },
   {
+    afterLoad: true,
     slug: "science/torque-converter",
     inputs: { val: "5", from: "kgfm" },
     expect: ["4.903325e+1 牛·米 (N·m)"],
     ref: 'val=5，源单位 kgf·m：baseNm = 5 × 9.80665 = 49.03325 N·m；N·m 列 = 49.03325 → 4.903325e+1。Python 独立复算 5×9.80665=49.03325 一致。锚跨单位（N·m）派生量。默认态 blob 为空不命中。'
   },
   {
+    afterLoad: true,
     slug: "science/torque-converter",
     inputs: { val: "3", from: "kNm" },
     expect: ["3.059149e+2 千克力·米 (kgf·m)"],
     ref: 'val=3，源单位 kN·m：baseNm = 3 × 1000 = 3000 N·m；kgf·m 列 = 3000 / 9.80665 = 305.9149 → 3.059149e+2。Python 独立复算 3000/9.80665≈305.9149 一致。锚取 kgf·m 跨单位量（kN·m 同单位列恒为输入 3→3e+3 属回显，不锚）。默认态不命中。'
   },
   {
+    afterLoad: true,
     slug: "science/torque-converter",
     inputs: { val: "100", from: "lbin" },
     expect: ["1.129848e+1 牛·米 (N·m)"],
     ref: 'val=100，源单位 lb·in：baseNm = 100 × 0.11298483 = 11.298483 N·m；N·m 列 = 11.298483 → 1.129848e+1。Python 独立复算 100×0.11298483=11.298483 一致。锚跨单位（N·m）派生量（lb·in 同单位列恒为输入 100→1e+2 属回显，不锚）。默认态不命中。'
   },
   {
+    afterLoad: true,
     slug: "science/torque-converter",
     inputs: { val: "50000", from: "gfcm" },
     expect: ["4.903325e+0 牛·米 (N·m)"],
     ref: 'val=50000，源单位 gf·cm：baseNm = 50000 × 9.80665e-5 = 4.903325 N·m；N·m 列 = 4.903325 → 4.903325e+0。Python 独立复算 50000×0.0000980665=4.903325 一致。锚跨单位（N·m）派生量。默认态不命中。'
   },
   {
+    afterLoad: true,
     slug: "science/torque-converter",
     inputs: { val: "1000", from: "ozfin" },
     expect: ["7.061552e+0 牛·米 (N·m)"],
@@ -1910,6 +1928,87 @@ const CASES = [
     "ref": "元素详情独立核对：原子序数 26 即 Fe（铁，Iron）——第 4 周期第 8 族，原子量 55.845、电子排布 [Ar]3d6 4s2（数据取自页内 ELEMENTS 元素表）。"
        + "boot 默认调 showDetail(1) ⇒ 详情区为「氢 / 原子序数 1」；clicks 改为 showDetail(26) 后详情区出现「原子序数 26」。"
        + "判别器清空 clicks 后兜底调 showDetail()（无参 ⇒ ELEMENTS.find 返回 undefined ⇒ 直接 return），详情仍是氢，不命中。"
+  },
+
+  // ---- 2026-11-05：8 页 science 工具「深度解析算例」与页面输出对齐（算例数字均 node 实跑取回）----
+  {
+    "slug": "science/power-calculator",
+    "inputs": { "base": "2", "exp": "-10" },
+    "expect": ["2^-10 = 0.001", "1 / 1,024"],
+    "ref": "负指数：2^-10 = 1/2^10 = 1/1,024 = 0.0009765625，fmt 后显示 0.001；步骤行给出「1 / 2^10 = 1 / 1,024」。默认 2^10 = 1,024 ⇒ 两条锚均不命中。"
+  },
+  {
+    "slug": "science/log-calculator",
+    "inputs": { "x": "1024", "base": "2" },
+    "clicks": ["calculate()"],
+    "expect": ["log 2 (1,024) = 10", "验证：2^10 = 1,024"],
+    "ref": "换底：log₂1,024 = ln1,024/ln2 = 6.931/0.693 = 10，验证行 2^10 = 1,024。默认 x=100、base=2 ⇒ log₂100=6.644，不命中。"
+  },
+  {
+    "slug": "science/lcm-calculator",
+    "inputs": { "nums": "8,9,15" },
+    "clicks": ["calculate()"],
+    "expect": ["LCM = 360", "LCM = (1,080) / 3 = 360"],
+    "ref": "递推：lcm(8,9)=72（gcd=1），lcm(72,15)=1,080/3=360；质因数 2³×3²×5=360。默认 12,18,24 ⇒ 72，不命中。"
+  },
+  {
+    "slug": "science/gcd-calculator",
+    "inputs": { "nums": "1071,462" },
+    "clicks": ["calculate()"],
+    "expect": ["GCD = 21", "147 = 7 × 21 + 0"],
+    "ref": "欧几里得：1,071=2×462+147 → 462=3×147+21 → 147=7×21+0 ⇒ gcd=21；质因数公共部分 3×7=21。默认 48,36,24 ⇒ 12，不命中。"
+  },
+  {
+    "slug": "science/quartile-calculator",
+    "inputs": { "data": "1, 2, 3, 4, 100" },
+    "clicks": ["calculate()"],
+    "expect": ["Q1 = 2，Q2 = 3，Q3 = 4", "检测到 1 个异常值：100"],
+    "ref": "n=5 时 pos=(n−1)p 为 1/2/3 ⇒ Q1=2、Q2=3、Q3=4；IQR=2，上界 4+1.5×2=7 ⇒ 100 判离群。默认 10 个数据 ⇒ 5.25/8/14.25，不命中。"
+  },
+  {
+    "slug": "science/root-calculator",
+    "inputs": { "x": "72" },
+    "expect": ["√72 = 6√2 ≈ 8.485", "验证：8.485 × 8.485 = 72 ≈ 72"],
+    "ref": "根式化简：72=36×2=6²×2 ⇒ √72=6√2≈8.485，自验行 8.485²≈72。默认 x=16 ⇒ √16=4，不命中。"
+  },
+  {
+    "slug": "science/permutation-calculator",
+    "inputs": { "n": "10", "r": "3" },
+    "expect": ["P(10, 3) = 720", "= 10 × 9 × 8 = 720"],
+    "ref": "排列：P(10,3)=10×9×8=720，约分行 10!/7! 同值。默认 n=5、r=3 ⇒ P(5,3)=60，不命中。"
+  },
+  {
+    "slug": "science/mode-calculator",
+    "inputs": { "data": "1, 1, 2, 2, 3" },
+    "expect": ["众数 = 1, 2（出现 2 次）", "双峰分布（bimodal）"],
+    "ref": "频数：1 与 2 各 2 次、3 一次 ⇒ 双众数 1、2（各 40.00%），页面判双峰。默认单峰众数=3 ⇒ 不命中。"
+  },
+
+  // ---- 2026-11-05 第二批：fibonacci / factorial / median / nato 算例对齐 ----
+  {
+    "slug": "science/fibonacci",
+    "inputs": { "n": "10" },
+    "expect": ["55 F(10)", "2 末项位数"],
+    "ref": "数列模式：F(1)…F(10) = 1,1,2,3,5,8,13,21,34,55，末项 F(10)=55、2 位。默认 n=20 ⇒ 6,765，不命中。"
+  },
+  {
+    "slug": "science/factorial-calculator",
+    "inputs": { "n": "20" },
+    "expect": ["2,432,902,008,176,640,000", "18 数量级"],
+    "ref": "BigInt 连乘：20! = 2,432,902,008,176,640,000（19 位），数量级 = 位数−1 = 18。默认 n=10 ⇒ 3,628,800，不命中。"
+  },
+  {
+    "slug": "science/median-calculator",
+    "inputs": { "data": "1, 2, 3, 4" },
+    "clicks": ["calculate()"],
+    "expect": ["中位数 = 2.5", "= 5 / 2 = 2.5"],
+    "ref": "偶数个取中间两数均值：(2+3)/2 = 5/2 = 2.5。默认 10 个数据 ⇒ 中位数非 2.5，不命中。"
+  },
+  {
+    "slug": "science/nato-phonetic",
+    "inputs": { "input": "HELLO WORLD" },
+    "expect": ["H Hotel E Echo L Lima", "W Whiskey O Oscar R Romeo"],
+    "ref": "逐字符映射：HELLO → Hotel/Echo/Lima/Lima/Oscar，WORLD → Whiskey/Oscar/Romeo/Lima/Delta。默认输入 SOS 123 ⇒ 不命中。"
   }
 
 ];

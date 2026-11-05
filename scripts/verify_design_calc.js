@@ -576,7 +576,14 @@ const CASES = [
     slug: "design/pixel-art-generator",
     inputs: { gs: "12" },
     expect: ["12×12 网格尺寸"],
-    ref: "状态行 `#gridInfo` 是纯文本（网格尺寸 / 当前颜色），只依赖 gs 滑杆；画布与字符画预览属 canvas 产物，不进断言。默认态是另一档网格尺寸 ⇒ 双态判别明确。",
+    ref: "结果区信息卡渲染「12×12」+「网格尺寸」两段文本（`dataGrid` 输出，非 canvas 产物），只依赖 gs 输入；默认态 8×8 ⇒ 双态判别明确。",
+  },
+  {
+    slug: "design/pixel-art-generator",
+    inputs: { gs: "4", color: "#3B82F6", mode: "draw" },
+    clicks: ["window._px&&window._px(0,0);window._px&&window._px(1,1);calcTool();"],
+    expect: ["■··· ·■·· ···· ····"],
+    ref: "注入 4×4、蓝色绘制后点两格再重算：字符画预览 `#artPreview` 应为第 1 行「■···」、第 2 行「·■··」、其余空。该串同时验证「重算不清空画布」（旧实现每次 calcTool 都重建空网格，点过的格会丢）与「绘制即刷新预览」（旧实现只在计算时生成一次）。默认态 8×8 预置笑脸 ⇒ 零交集。",
   },
   {
     slug: "design/color-palette",
@@ -1758,7 +1765,7 @@ const CASES = [
     "expect": [
       "网格尺寸需在 4-24 之间。"
     ],
-    "ref": "自动补强（B类零用例）：注入越界输入{\"gs\":\"42\"}，页面走尺寸校验分支输出「网格尺寸需在 4-24 之间。」；默认态（gs=8 合法）不产生该提示 ⇒ 双态判别明确、零逃生。注：expect 不再锚定「42\\n」（输入回显）到提示语的相邻关系——页面补齐颜色/模式下拉后，采集串在两者之间插入了下拉当前值（#EF4444 / draw），旧邻接串失效；改为锚定仅由越界输入触发的提示语本体。"
+    "ref": "注入越界输入{\"gs\":\"42\"}，页面走尺寸校验分支输出「网格尺寸需在 4-24 之间。」；默认态（gs=8 合法）走正常绘制分支、不产生该提示 ⇒ 双态判别明确、零逃生。"
   },
   {
     "slug": "design/pixel-art",
@@ -2512,6 +2519,24 @@ const CASES = [
   "expect": ["复制失败：Error"],
   "ref": "失败注入：新建画布的 toDataURL 必抛 Error ⇒ copyDataURL 必须 toast「复制失败：Error」并终止。"
      + "修复前异常裸冒成 pageerror、剪贴板复制提示不执行；默认态无该串 ⇒ 判别明确。",
+},
+// ── 零覆盖攻坚：font-pairing（成品 CSS 由 FONT_PAIRS 数据驱动，确定性可复算）──
+{
+  "slug": "design/font-pairing",
+  "inputs": {},
+  "clicks": ["selectPair(2);"],
+  "expect": ["font-family: 'Manrope', sans-serif;", "family=Manrope:wght@700&family=Inter:wght@400"],
+  "ref": "selectPair(i) 取 FONT_PAIRS[currentCategory='modern'][2] = {title:'Manrope', body:'Inter', titleWeight:700, bodyWeight:400}，"
+     + "把 @import 与 h1..h6/body 两组规则整体写进 #cssOutput.value。故可锚 `family=Manrope:wght@700&family=Inter:wght@400` 与 "
+     + "`font-family: 'Manrope', sans-serif;`（标题字体取自数据 title 字段）。默认态未调用 selectPair ⇒ cssOutput 为空，两条均失配。"
+},
+{
+  "slug": "design/font-pairing",
+  "inputs": {},
+  "clicks": ["setCategory('classic');selectPair(3);"],
+  "expect": ["font-family: 'Cormorant Garamond', sans-serif;", "font-weight: 500;"],
+  "ref": "setCategory('classic') 切分类后 selectPair(3) 取 FONT_PAIRS.classic[3] = {title:'Cormorant Garamond', body:'Inter', titleWeight:500}，"
+     + "标题规则字体名与字重（500，非默认 400/600/700）同时落进 cssOutput。默认态（modern、未选）cssOutput 为空 ⇒ 零交集。"
 }
 ];
 

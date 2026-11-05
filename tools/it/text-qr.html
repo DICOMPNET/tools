@@ -159,8 +159,16 @@ s.parentNode.insertBefore(el, s);
 
     <label>文本内容</label>
     <textarea id="text" style="margin-bottom:12px;">Hello, World! 你好，世界！</textarea>
+    <div class="input-row">
+      <div><label>纠错等级</label><select id="ec" onchange="generate()"><option value="L">L（约 7%）</option><option value="M" selected>M（约 15%）</option><option value="Q">Q（约 25%）</option><option value="H">H（约 30%）</option></select></div>
+      <div><label>模块尺寸 (px)</label><select id="cell" onchange="generate()"><option value="4">4</option><option value="8" selected>8</option><option value="12">12</option><option value="16">16</option></select></div>
+    </div>
+    <div class="input-row">
+      <div><label>前景色</label><input type="color" id="fg" value="#000000" onchange="generate()"></div>
+      <div><label>背景色</label><input type="color" id="bg" value="#ffffff" onchange="generate()"></div>
+    </div>
     <div class="toolbar">
-      <div id="text_qrPresets"></div><button type="button" class="btn primary" onclick="generate()">生成</button><button class="btn" type="button" onclick="__text_qrExport()">导出明细 CSV</button>
+      <div id="text_qrPresets"></div><button type="button" class="btn primary" onclick="generate()">生成</button><button type="button" class="btn" onclick="downloadPNG()">⬇️ 下载 PNG</button><button class="btn" type="button" onclick="__text_qrExport()">导出明细 CSV</button>
       <button type="button" class="btn success" onclick="copyResult()">复制</button>
     </div>
     <div class="result-box" id="output"></div> <div id="text_qrTable"></div> <div id="text_qrDiff"></div> <div id="text_qrChart"></div> <div id="text_qrHist"></div>
@@ -245,12 +253,22 @@ s.parentNode.insertBefore(el, s);
 <script>
 function drawQR(text){
   if(qrcode.stringToBytesFuncs && qrcode.stringToBytesFuncs['UTF-8']) qrcode.stringToBytes=qrcode.stringToBytesFuncs['UTF-8'];
-  const qr=qrcode(0,'M');qr.addData(text);qr.make();
-  const n=qr.getModuleCount(),margin=4,cell=8,size=(n+margin*2)*cell;
+  const ec=(document.getElementById('ec')||{}).value||'M';
+  const cell=+((document.getElementById('cell')||{}).value||8);
+  const fg=(document.getElementById('fg')||{}).value||'#000000';
+  const bg=(document.getElementById('bg')||{}).value||'#ffffff';
+  const qr=qrcode(0,ec);qr.addData(text);qr.make();
+  const n=qr.getModuleCount(),margin=4,size=(n+margin*2)*cell;
   const canvas=document.createElement('canvas');canvas.width=size;canvas.height=size;
-  const ctx=canvas.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,size,size);ctx.fillStyle='#000';
+  const ctx=canvas.getContext('2d');ctx.fillStyle=bg;ctx.fillRect(0,0,size,size);ctx.fillStyle=fg;
   for(let r=0;r<n;r++)for(let c=0;c<n;c++)if(qr.isDark(r,c))ctx.fillRect((c+margin)*cell,(r+margin)*cell,cell,cell);
   return canvas;
+}
+function downloadPNG(){
+  const c=window.__qrCanvas;
+  if(!c){alert('请先生成二维码');return;}
+  const a=document.createElement('a');
+  a.href=c.toDataURL('image/png');a.download='qrcode.png';a.click();
 }
 function generate(){
   const text=document.getElementById('text').value;
@@ -258,6 +276,7 @@ function generate(){
   if(!text){out.innerHTML='<p style="color:#999;">请输入要编码的文本</p>';return;}
   try{
     const canvas=drawQR(text);
+    window.__qrCanvas=canvas;
     const __h0='<div class="qr-wrap"></div><div class="qr-text">'+escapeHtml(text)+'</div>';
     out.innerHTML=__h0;
     out.querySelector('.qr-wrap').appendChild(canvas);
