@@ -111,7 +111,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="按基本錨固長度公式由鋼筋與混凝土強度計算錨固長度。">Rebar Anchorage</p>
     <div class="formula-box">
       <div class="formula-title">📐 計算公式</div>
-      <div class="formula-eq">基本錨固長度（本頁僅算 l_ab，未做後續修正）：l_ab = 0.14 × ζ_a × (f_y ÷ f_t) × d（mm，α=0.14 為帶肋鋼筋外形係數）；米口徑 = l_ab ÷ 1000（m）。校驗：f_y、f_t、d、ζ_a 任一 ≤0 報「請輸入有效引數。」。判據：無固定分級；錨固長度隨鋼筋強度提高、混凝土抗拉強度降低而增大。</div>
+      <div class="formula-eq">基本錨固長度 l_ab = α × (f_y ÷ f_t) × d（mm，α=0.14 為帶肋鋼筋外形係數）；受拉錨固長度 l_a = max(ζ_a × l_ab, 200 mm)（GB 50010-2010 8.3.1）。ζ_a 按 8.3.2 分檔取值：① 帶肋鋼筋公稱直徑 d&gt;25mm 取 1.10；② 環氧樹脂塗層帶肋鋼筋取 1.25；③ 施工過程中易受擾動的鋼筋取 1.10；④ 保護層厚度為 3d 時取 0.80、為 5d 時取 0.70，中間按線性內插（c&lt;3d 取 0.80）；上述各項可連乘，且不宜小於 0.6。第 4 款「實配面積大於計算面積」需按設計/實配面積比手改，本頁不自動判斷。米口徑 = l_a ÷ 1000（m）。校驗：f_y、f_t、d、ζ_a 任一 ≤0 報「請輸入有效引數。」。</div>
       <p class="formula-desc">按基本錨固長度公式由鋼筋與混凝土強度計算錨固長度。</p>
     </div>
 
@@ -126,13 +126,25 @@ s.parentNode.insertBefore(el, s);
       </div>
       <div>
         <label for="d">鋼筋直徑 d (mm)</label>
-        <input type="number" id="d" value="20" step="1" min="1" placeholder="如 20">
+        <input type="number" id="d" value="20" step="1" min="1" placeholder="如 20" oninput="__rebarZetaAuto()">
       </div>
     </div>
     <div class="input-row">
       <div>
-        <label for="za">錨固長度修正係數 ζ_a</label>
-        <input type="number" id="za" value="1.0" step="0.05" min="0.5" max="2" placeholder="如 1.0（0.5–2）">
+        <label for="za">錨固長度修正係數 ζ_a（按 8.3.2 自動計算，可手改）</label>
+        <input type="number" id="za" value="1.000" step="0.01" min="0.6" max="2" placeholder="如 1.000" oninput="calcTool()">
+      </div>
+      <div>
+        <label for="cover">保護層厚度 c (mm，0=不計該項；c=3d→0.80、c≥5d→0.70 內插)</label>
+        <input type="number" id="cover" value="0" step="5" min="0" placeholder="如 0（不計）" oninput="__rebarZetaAuto()">
+      </div>
+      <div>
+        <label for="epoxy"><input type="checkbox" id="epoxy" onchange="__rebarZetaAuto()"> 環氧樹脂塗層帶肋鋼筋（×1.25）</label>
+      </div>
+    </div>
+    <div class="input-row">
+      <div>
+        <label for="disturb"><input type="checkbox" id="disturb" onchange="__rebarZetaAuto()"> 施工過程中易受擾動（×1.10）</label>
       </div>
     </div>
 
@@ -160,7 +172,9 @@ s.parentNode.insertBefore(el, s);
         <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="要點">Key Point</th>
       </tr></thead>
       <tbody>
-        <tr><td data-zh="錨固長度">Anchorage length</td><td>GB 50010 (Code for design of concrete structures), anchorage clauses</td><td data-zh="la 由基本錨固長度 lab 乘修正係數;按鋼筋/混凝土等級取值">la from lab times correction factors by bar and concrete grade</td></tr>
+        <tr><td data-zh="基本錨固長度">Basic anchorage length</td><td>GB 50010-2010 第 8.3.1 條 式(8.3.1)</td><td data-zh="l_ab = α·(f_y/f_t)·d，α=0.14（帶肋鋼筋外形係數）">l_ab = α·(f_y/f_t)·d, α=0.14 for ribbed bars</td></tr>
+        <tr><td data-zh="錨固長度修正係數">Anchorage modification factor ζ_a</td><td>GB 50010-2010 第 8.3.2 條</td><td data-zh="d>25mm→1.10；環氧塗層→1.25；易擾動→1.10；保護層 3d→0.80、5d→0.70（線性內插）；可連乘且不宜小於 0.6">d&gt;25mm→1.10; epoxy coated→1.25; disturbed→1.10; cover 3d→0.80, 5d→0.70 (linear interpolation); factors multiply and should not be less than 0.6</td></tr>
+        <tr><td data-zh="受拉錨固長度">Tension anchorage length</td><td>GB 50010-2010 第 8.3.1 條</td><td data-zh="l_a = ζ_a·l_ab，且不應小於 200mm">l_a = ζ_a·l_ab, and not less than 200 mm</td></tr>
       </tbody>
     </table>
   </div>
@@ -169,9 +183,11 @@ s.parentNode.insertBefore(el, s);
 <div class="tool-notes">
       <div class="tool-notes-title">📌 計算說明</div>
       <ul>
-        <li>l_ab = α·ζ_a·(f_y/f_t)·d，α=0.14（帶肋鋼筋外形係數）</li>
-        <li>d>25mm 時 ζ_a 取 1.1，環氧塗層鋼筋取 1.25 等</li>
-        <li>受拉錨固長度 l_a = ζ·l_ab，按錨固區保護層等修正</li>
+        <li>l_ab = α·(f_y/f_t)·d，α=0.14 為帶肋鋼筋外形係數（GB 50010-2010 式 8.3.1）。</li>
+        <li>ζ_a 按 GB 50010-2010 第 8.3.2 條分檔，本頁對可自動判斷的四款給具體值：帶肋鋼筋公稱直徑 d&gt;25mm 取 <b>1.10</b>（大直徑鋼筋的粘結應力沿錨固長度分佈更長，需加長錨固）；環氧樹脂塗層帶肋鋼筋取 <b>1.25</b>（塗層削弱鋼筋與混凝土的化學膠著力與摩阻力）；施工過程中易受擾動的鋼筋取 <b>1.10</b>（擾動使新澆混凝土與鋼筋介面產生微裂縫）；保護層厚度為 3d 時取 <b>0.80</b>、為 5d 時取 <b>0.70</b>，中間按線性內插（保護層越厚，混凝土對鋼筋的劈裂約束越強、錨固效率越高；c&lt;3d 時按 0.80 取值偏安全）。</li>
+        <li>上述各項可連乘，且不宜小於 <b>0.6</b>（8.3.2 條文說明）。第 4 款「實配面積大於計算面積」需按設計面積/實配面積之比手改 ζ_a；對地震作用組合及直接承受動力荷載的結構構件，不考慮該款修正。</li>
+        <li>受拉錨固長度 l_a = max(ζ_a·l_ab, 200 mm)，200mm 為構造下限（8.3.1）。</li>
+        <li>ζ_a 預設隨直徑/保護層/塗層/擾動自動計算並回填；手改後會顯示「採用值 / 自動值」對照，便於核對。</li>
       </ul>
     </div>
   </div>
@@ -214,16 +230,49 @@ function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+=
 function calcTool(){
             const fy=num('fy'), ft=num('ft'), d=num('d'), za=num('za');
             if(fy<=0||ft<=0||d<=0||za<=0){ToolBox.setResult('result','<p class="tip-error">请输入有效参数。</p>');return;}
-            const lab = 0.14*za*(fy/ft)*d; // mm (α=0.14 带肋钢筋锚固外形系数)
-            const __g1=dataGrid([
+            const lab = 0.14*(fy/ft)*d; // mm 基本锚固长度（GB 50010-2010 式 8.3.1）
+            const la = Math.max(200, za*lab); // mm 受拉锚固长度 la = ζa·lab，且不小于 200mm（GB 50010-2010 8.3.1）
+            const auto = __rebarZetaAutoCalc();
+            const rows = [
                 [lab.toFixed(0),'基本锚固长度 l_ab (mm)'],
-                [(lab/1000).toFixed(2),'l_ab (m)']
-            ]);ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
+                [za.toFixed(3),'ζ_a 采用值'],
+                [auto.z.toFixed(3),'ζ_a 自动值（按 8.3.2）'],
+                [la.toFixed(0),'受拉锚固长度 l_a (mm)'],
+                [(la/1000).toFixed(2),'l_a (m)']
+            ];
+            if(Math.abs(za-auto.z)>0.01) rows.push([za.toFixed(3)+' / '+auto.z.toFixed(3),'ζ_a 采用值 / 自动值（手改）']);
+            if(auto.parts.length) rows.push([auto.parts.join('；'),'ζ_a 自动值取值档位']);
+            const __g1=dataGrid(rows);ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
+        }
+function __rebarZetaAutoCalc(){
+            var d=num('d'), c=num('cover'), z=1.0, parts=[];
+            if(d>25){z*=1.10; parts.push('d='+d+'mm>25mm →1.10');}
+            var ep=document.getElementById('epoxy'), di=document.getElementById('disturb');
+            if(ep&&ep.checked){z*=1.25; parts.push('环氧涂层→1.25');}
+            if(di&&di.checked){z*=1.10; parts.push('易受扰动→1.10');}
+            if(c>0&&d>0){
+                var r=c/d, k;
+                if(r<=3) k=0.80;
+                else if(r>=5) k=0.70;
+                else k=0.80-(r-3)/2*0.10; // 3d→0.80、5d→0.70 线性内插
+                z*=k; parts.push('保护层'+r.toFixed(2)+'d→'+k.toFixed(3));
+            }
+            if(z<0.6){z=0.6; parts.push('连乘下限→0.60');}
+            return {z:z, parts:parts};
+        }
+function __rebarZetaAuto(){
+            var a=__rebarZetaAutoCalc();
+            var t=document.getElementById('za');
+            if(t) t.value=a.z.toFixed(3);
+            calcTool();
         }
 function resetForm(){document.getElementById('fy').value = '360';
       document.getElementById('ft').value = '1.43';
       document.getElementById('d').value = '20';
-      document.getElementById('za').value = '1.0';
+      document.getElementById('za').value = '1.000';
+      document.getElementById('cover').value = '0';
+      document.getElementById('epoxy').checked = false;
+      document.getElementById('disturb').checked = false;
       calcTool();}
 calcTool();
 
@@ -232,20 +281,23 @@ function __rebar_anchorageExtras(){
     function __rebar_anchorageRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
     var fy=num('fy'), ft=num('ft'), d=num('d'), za=num('za');
-    var lab = 0.14*za*(fy/ft)*d; // mm (α=0.14 带肋钢筋锚固外形系数)
+    var lab = 0.14*(fy/ft)*d; // mm 基本锚固长度
+    var la = Math.max(200, za*lab); // mm 受拉锚固长度（与 calcTool 口径一致：不小于 200mm）
     if (!isFinite(__rebar_anchorageNum('fy')) || !isFinite(__rebar_anchorageNum('ft')) || !isFinite(__rebar_anchorageNum('d')) || !isFinite(__rebar_anchorageNum('za'))) return;
     var en=TBKit.util.isEn();
     TBKit.matrix.table('#rebar_anchorageTable',{
         head: en?['Item','Value']:['项目','数值'],
         rows: [
             ['基本锚固长度 l_ab (mm)', lab.toFixed(0)],
-            ['l_ab (m)', (lab/1000).toFixed(2)],
+            ['ζ_a 采用值', za.toFixed(3)],
+            ['受拉锚固长度 l_a (mm)', la.toFixed(0)],
+            ['l_a (m)', (la/1000).toFixed(2)],
         ]
     });
-    TBKit.history.record({fy:__rebar_anchorageRaw('fy'), ft:__rebar_anchorageRaw('ft'), d:__rebar_anchorageRaw('d'), za:__rebar_anchorageRaw('za'), lab:lab});
+    TBKit.history.record({fy:__rebar_anchorageRaw('fy'), ft:__rebar_anchorageRaw('ft'), d:__rebar_anchorageRaw('d'), za:__rebar_anchorageRaw('za'), cover:__rebar_anchorageRaw('cover'), lab:lab, la:la});
     function __rebar_anchorageRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
     TBKit.history.mount('#rebar_anchorageHist',function(rec){ __rebar_anchorageRestore(rec); calcTool(); });
-    TBKit.util.diffBox('#rebar_anchorageDiff',['lab']);
+    TBKit.util.diffBox('#rebar_anchorageDiff',['la']);
 }
 function __rebar_anchorageExport(){
     if (typeof TBKit === 'undefined') return;
@@ -254,9 +306,10 @@ function __rebar_anchorageExport(){
 function __rebar_anchoragePresets(){
     if (typeof TBKit === 'undefined') return;
     TBKit.preset.bar('#rebar_anchoragePresets',[
-        {label:'默认',labelEn:'Default',values:{fy:'360', ft:'1.43', d:'20', za:'1.0'}},
-        {label:'示例 2×',labelEn:'Example 2×',values:{fy:'720', ft:'2.86', d:'40', za:'2'}},
-        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{fy:'180', ft:'0.715', d:'10', za:'0.5'}},
+        {label:'默认',labelEn:'Default',values:{fy:'360', ft:'1.43', d:'20', cover:'0', za:'1.000'}},
+        {label:'d>25（ζ_a=1.10）',labelEn:'d>25 (ζ_a=1.10)',values:{fy:'360', ft:'1.43', d:'32', cover:'0', za:'1.100'}},
+        {label:'环氧涂层（ζ_a=1.25）',labelEn:'Epoxy coated (ζ_a=1.25)',values:{fy:'360', ft:'1.43', d:'20', cover:'0', za:'1.250'}},
+        {label:'保护层 5d（ζ_a=0.70）',labelEn:'Cover 5d (ζ_a=0.70)',values:{fy:'360', ft:'1.43', d:'20', cover:'100', za:'0.700'}},
     ],function(){ calcTool(); });
 }
 var __tb_fn0 = calcTool;
@@ -296,7 +349,7 @@ else document.addEventListener('DOMContentLoaded', __rebar_anchorageBoot);
 <li>修訂正係數：帶肋鋼筋、保護層厚、橫向鋼筋多時可折減 la。</li>
 <li>機械/焊接錨固：替代彎鉤減小節點擁擠，按等效錨固長度校核。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">HRB400 基本錨固</div><div class="dd-ex-body">d=20mm、C30（ft=1.43）、HRB400（fy=360）、帶肋 α=0.14：la=α·(fy/ft)·d=0.14×(360/1.43)×20≈705mm；抗震 laE=ζaE·la（一二級 ζaE=1.15）≈811mm。</div></div>
+<div class="dd-example"><div class="dd-ex-title">HRB400 基本錨固</div><div class="dd-ex-body">d=20mm、C30（ft=1.43）、HRB400（fy=360）、帶肋 α=0.14：l_ab=α·(fy/ft)·d=0.14×(360/1.43)×20≈705mm；la=ζa·l_ab（ζa=1.0 時取 705mm）；抗震 laE=ζaE·la（一二級 ζaE=1.15）≈811mm。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
 <dt>抗震錨固 laE 為何更長？</dt><dd>抗震要求塑性鉸區鋼筋在反覆荷載下不滑移，乘 ζaE（一二級 1.15、三級 1.05）提高錨固可靠性。</dd>

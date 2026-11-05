@@ -116,8 +116,8 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="LCOE = (CAPEX·CRF + O&amp;M) / 年發電量。">Compute the levelised cost of electricity from capital cost, lifetime, discount rate, operation and maintenance, and annual generation.</p>
     <div class="formula-box">
       <div class="formula-title">📐 計算公式</div>
-      <div class="formula-eq">平準化度電成本（本頁程式碼口徑）：資本回收因子 CRF=r×(1+r)ⁿ÷((1+r)ⁿ−1)；LCOE=(初投資 CAPEX×CRF+年運維 O&M)÷年發電量 E（元/kWh），LCOE 保留 3 位、CRF 保留 4 位小數。校驗：五欄位經輸入守衛必填且須為合法數值，否則提示並中止。判據：無固定分級，CRF 隨折現率升高、年限縮短而增大，LCOE 與 CAPEX、O&M 成正比、與 E 成反比。</div>
-      <p class="formula-desc">LCOE = (CAPEX·CRF + O&amp;M) / 年發電量。</p>
+      <div class="formula-eq">平準化度電成本（本頁程式碼口徑）：資本回收因子 CRF=r×(1+r)ⁿ÷((1+r)ⁿ−1)（r=0 時取極限 1/n）；LCOE=(初投資 CAPEX×CRF+年運維 O&M)÷年發電量 E（元/kWh），LCOE 保留 3 位、CRF 保留 4 位小數。校驗：五欄位經輸入守衛必填且須為合法數值，否則提示並中止。判據：無固定分級，CRF 隨折現率升高、年限縮短而增大，LCOE 與 CAPEX、O&M 成正比、與 E 成反比。</div>
+      <p class="formula-desc">LCOE = (CAPEX·CRF + O&amp;M) / 年發電量；折現率 r=0 時 CRF=1/n（不計折現）。</p>
     </div>
 
     <div class="input-row">
@@ -244,7 +244,7 @@ s.parentNode.insertBefore(el, s);
     return __msg;
   }
   // 分母项：__D 由真浏览器逐项置零探测得出，命中即说明该输入在此页作分母
-  var __D={"n": "年限 (年)", "r": "折现率 r", "e": "年发电量 (kWh)"};
+  var __D={"n": "年限 (年)", "e": "年发电量 (kWh)"};
   for(var _d=0;_d<_ids.length;_d++){
     if(!(_ids[_d] in __D)) continue;
     var _de=document.getElementById(_ids[_d]);
@@ -289,7 +289,12 @@ function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+=
 function calcTool(){
               var __ig=__tbInputGuard(['capex', 'n', 'r', 'om', 'e'],["初投资 (元)", "年限 (年)", "折现率 r", "年运维 (元)", "年发电量 (kWh)"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
 const C=num('capex'),n=num('n'),r=num('r'),om=num('om'),E=num('e');
-            const crf=r*Math.pow(1+r,n)/(Math.pow(1+r,n)-1);
+            if(n<=0||E<=0){
+                ToolBox.setResult('result','<p style="color:var(--danger)">⚠ 年限与年发电量须大于 0。</p>');
+                return;
+            }
+            // r→0 时 CRF 的极限为 1/n（不计折现）
+            const crf = r===0 ? 1/n : r*Math.pow(1+r,n)/(Math.pow(1+r,n)-1);
             const lcoe=(C*crf+om)/E;
             const __g2=dataGrid([
                 [lcoe.toFixed(3),'LCOE (元/kWh)'],

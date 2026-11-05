@@ -147,8 +147,16 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="input-row">
-      <label>有效降雨量(mm/天)</label>
+      <label>有效降雨量(mm)</label>
       <input type="number" id="rain" value="1" min="0" step="0.1" oninput="calc()" placeholder="如 1">
+    </div>
+
+    <div class="input-row">
+      <label>降雨口徑</label>
+      <select id="rainMode" onchange="calc()">
+        <option value="daily" selected>日均(mm/天)</option>
+        <option value="total">時段合計(mm)</option>
+      </select>
     </div>
 
     <div class="input-row">
@@ -275,14 +283,18 @@ function calc(){
   var kc = +document.getElementById('kc').value || 0;
   var et0 = +document.getElementById('et0').value || 0;
   var rain = +document.getElementById('rain').value || 0;
-  var days = +document.getElementById('days').value || 1;
+  var rainMode = document.getElementById('rainMode') ? document.getElementById('rainMode').value : 'daily';
+  var days = parseFloat(document.getElementById('days').value);
   var area = +document.getElementById('area').value || 0;
   var irrEff = +document.getElementById('irrEff').value || 70;
 
   if(kc<=0||et0<=0){ ToolBox.setResult('result','<p style="color:var(--danger);">Kc和ET₀必须大于0</p>'); return; }
+  if(!(days > 0)){ ToolBox.setResult('result','<p style="color:var(--danger);">计算天数必须大于0</p>'); return; }
 
   var etc = kc * et0; // 日蒸散量 mm/天
-  var netWater = etc - rain; // 日净需水量
+  // 时段合计雨量需先折算日均，避免把 40 mm 合计误当 40 mm/天而得到 0 净需水
+  var rainDaily = rainMode==='total' ? rain/days : rain;
+  var netWater = etc - rainDaily; // 日净需水量
   if(netWater<0) netWater=0;
   var totalETc = etc * days; // 总蒸散量 mm
   var totalNet = netWater * days; // 总净需水量 mm
@@ -307,8 +319,9 @@ function calc(){
   html += '<div class="tip-box tip-info" style="margin-top:10px;">';
   html += '<strong>计算说明：</strong><br>';
   html += 'ETc = Kc × ET₀（作物系数 × 参考蒸散量）<br>';
-  html += '净需水量 = ETc − 有效降雨<br>';
-  html += '总灌水量(m³) = 净需水量(mm) ÷ 灌溉效率 × 面积(亩) × 0.667';
+  html += '有效降雨（折日均）= '+(rainMode==='total' ? rain+' mm 合计 ÷ '+days+' 天 = '+rainDaily.toFixed(2)+' mm/天' : rain+' mm/天（日均口径）')+'<br>';
+  html += '净需水量 = ETc − 有效降雨（折日均）<br>';
+  html += '总灌水量(m³) = 日净灌溉量(mm/天) × 计算天数 ÷ 灌溉效率 × 面积(亩) × 0.667';
   html += '</div>';
   const __g0=html;ToolBox.setResult('result',(typeof __g0==='number'?(isFinite(__g0)?__g0:'—'):String(__g0).replace(/Infinity|NaN/g,'—')));
 }
@@ -318,9 +331,12 @@ function copyResult(){
   var days=+document.getElementById('days').value||1;
   var area=+document.getElementById('area').value||0;
   var rain=+document.getElementById('rain').value||0;
+  var rainMode=document.getElementById('rainMode')?document.getElementById('rainMode').value:'daily';
   var irrEff=+document.getElementById('irrEff').value||70;
+  if(kc<=0||et0<=0||days<=0||area<=0){ ToolBox.showToast('请先输入有效的 Kc、ET₀、天数与面积','warning'); return; }
   var etc=kc*et0;
-  var netWater=Math.max(etc-rain,0);
+  var rainDaily=rainMode==='total'?rain/days:rain;
+  var netWater=Math.max(etc-rainDaily,0);
   var grossWater=(netWater*days)/(irrEff/100);
   var vol=grossWater*area*0.667;
   ToolBox.copyText('作物需水量：\n日需水量ETc：'+etc.toFixed(2)+'mm/天\n净灌溉量：'+netWater.toFixed(2)+'mm/天\n总灌水量：'+vol.toFixed(1)+'m³', i18nText('toast.msg544'));

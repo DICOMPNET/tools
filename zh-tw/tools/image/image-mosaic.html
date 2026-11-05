@@ -222,7 +222,7 @@ s.parentNode.insertBefore(el, s);
       <span class="dz-icon">📁</span>
       點選或拖拽圖片到這裡
       <div class="dz-hint">支援 JPG / PNG / WebP / GIF 等格式，圖片僅在瀏覽器本地處理</div>
-      <input type="file" id="file-input" accept="image/*" style="display:none;" onchange="handleFile(this.files[0])">
+      <input type="file" id="file-input" accept="image/png,image/jpeg,image/webp,image/gif" style="display:none;" onchange="handleFile(this.files[0])">
     </div>
 
     <!-- 控制區 -->
@@ -315,6 +315,7 @@ s.parentNode.insertBefore(el, s);
   'use strict';
 
   var sourceImg = null;      // 原始 Image 对象
+  var sourceUrl = null;      // 原图 Object URL（换图 / 重置时释放）
   var srcDispCanvas = null;  // 显示尺寸的原始像素画布（用于采样与底图）
   var dispW = 0, dispH = 0;  // 显示画布尺寸
   var dispScale = 1;         // 显示画布 / 原图 的缩放比（预览块大小按此换算）
@@ -333,24 +334,40 @@ s.parentNode.insertBefore(el, s);
   var MAXW = 760, MAXH = 540;
 
   /* ============ 文件上传 ============ */
+  function __svgFileBlocked(file){
+    var t = String(file.type || '').toLowerCase(), n = String(file.name || '').toLowerCase();
+    if (t.indexOf('image/svg') === 0 || /\.svg$/i.test(n)) {
+      ToolBox.showToast('仅支持位图（PNG/JPG/WebP），不支持 SVG', 'error');
+      return true;
+    }
+    return false;
+  }
+/* 仅测试钩子：供 verify 用例调用，不参与任何运行时分支 */
+window.__svgFileBlocked=__svgFileBlocked;
   window.handleFile = function(file){
     if(!file){ return; }
+    if(__svgFileBlocked(file)){ return; }
     if(!file.type.startsWith('image/')){
       ToolBox.showToast(i18nText('toast.msg933'), 'error');
       return;
     }
     var img = new Image();
+    var url = URL.createObjectURL(file);
+    var prevUrl = sourceUrl;
     img.onload = function(){
       sourceImg = img;
+      sourceUrl = url;
+      if(prevUrl){ URL.revokeObjectURL(prevUrl); }
       initDisplay();
       document.getElementById('drop-zone').style.display = 'none';
       document.getElementById('controls').style.display = '';
       ToolBox.showToast(i18nText('tool.image_load_ok'), 'success');
     };
     img.onerror = function(){
+      URL.revokeObjectURL(url);
       ToolBox.showToast(i18nText('toast.msg118'), 'error');
     };
-    img.src = URL.createObjectURL(file);
+    img.src = url;
   };
 
   /* ============ 初始化显示画布 ============ */
@@ -420,11 +437,12 @@ s.parentNode.insertBefore(el, s);
     currentRegion = null;
     setMode('full');
     scheduleRender();
-    ToolBox.showToast(i18nText(), 'info');
+    ToolBox.showToast('已恢复默认设置', 'info');
   };
 
   window.reloadImage = function(){
     sourceImg = null;
+    if(sourceUrl){ URL.revokeObjectURL(sourceUrl); sourceUrl = null; }
     srcDispCanvas = null;
     currentRegion = null;
     document.getElementById('controls').style.display = 'none';
@@ -621,6 +639,10 @@ s.parentNode.insertBefore(el, s);
     }
     var W = sourceImg.naturalWidth, H = sourceImg.naturalHeight;
 
+    // 前置拦截：超过浏览器画布上限时不必等 toBlob 返回 null 才报错
+    var limitMsg = canvasExportError(W, H);
+    if(limitMsg){ ToolBox.showToast(limitMsg, 'error'); return; }
+
     var srcFull = document.createElement('canvas');
     srcFull.width = W;
     srcFull.height = H;
@@ -656,7 +678,7 @@ s.parentNode.insertBefore(el, s);
 
     var type = format === 'jpeg' ? 'image/jpeg' : 'image/png';
     var ext = format === 'jpeg' ? 'jpg' : 'png';
-    out.toBlob(function(blob){
+    try { out.toBlob(function(blob){
       if(!blob){
         ToolBox.showToast(i18nText('toast.msg508'), 'error');
         return;
@@ -668,7 +690,7 @@ s.parentNode.insertBefore(el, s);
       a.click();
       setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 800);
       ToolBox.showToast(i18nText('toast.msg141'), 'success');
-    }, type, 0.92);
+    }, type, 0.92); } catch (e) { ToolBox.showToast('导出失败：' + ((e && (e.name || e.message)) || '未知错误'), 'error'); }
   };
 
   /* ============ 拖拽上传 ============ */

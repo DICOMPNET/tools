@@ -163,7 +163,7 @@ s.parentNode.insertBefore(el, s);
 
   <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
     <h2 data-zh="📧 郵件標題測試">📧 Email Subject Line Tester</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="檢測郵件標題質量，分析垃圾詞、情感傾向與顯示效果">Score email subject lines for length, clarity and likely open rate.</p>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="檢測郵件標題質量，分析垃圾詞、情感傾向與顯示效果">Score email subject lines for length, clarity and spam risk.</p>
 
     <div data-tb="preset" data-tb-presets='[{"label": "示例邮件", "labelEn": "Sample email", "values": {"previewText": "【限时】年终大促最后一天", "subject": "年终大促 限时优惠 立减50%"}}]'></div>
 <label>郵件標題</label>
@@ -189,6 +189,7 @@ s.parentNode.insertBefore(el, s);
         <div class="score-desc" id="scoreDesc">在上方輸入郵件標題獲取評分</div>
       </div>
     </div>
+    <p style="font-size:12px;color:var(--text-muted);margin:0 0 12px;">評分為關鍵詞啟發式打分，不是開啟率或送達率的真實預測；最終效果請用小流量 A/B 實測。</p>
     <div class="stat-grid">
       <div class="stat-card"><div class="val" id="charCount">0</div><div class="lbl">字元數</div></div>
       <div class="stat-card"><div class="val" id="wordCount">0</div><div class="lbl">詞數</div></div>
@@ -372,7 +373,7 @@ const spamWords = [
   {word:'赌场', score:-10, type:'spam'}
 ];
 
-const positiveWords = ['优惠','折扣','福利','惊喜','好消息','新品','上市','升级','优化','感谢','欢迎','恭喜','成功','进步','优秀','卓越','领先','创新','品质','超值','划算','实惠','好礼','礼物','奖励','荣誉','认可','赞赏','喜欢','满意'];
+const positiveWords = ['福利','惊喜','好消息','新品','上市','升级','优化','感谢','欢迎','成功','进步','优秀','卓越','领先','创新','品质','超值','划算','实惠','好礼','礼物','奖励','荣誉','认可','赞赏','喜欢','满意'];
 const negativeWords = ['遗憾','抱歉','失败','错误','问题','困难','麻烦','担心','忧虑','不满','投诉','退款','退货','取消','过期','失效','丢失','损坏','延迟','等待','失望','后悔','糟糕','难过','痛苦'];
 
 const templates = {
@@ -392,6 +393,7 @@ function applyTemplate(name){
 
 // 情感倾向构成（独立重算，不改 analyze 原有计分逻辑）
 function __esltTone(text){
+  text = String(text == null ? '' : text);
   var posCount = 0, negCount = 0;
   positiveWords.forEach(function(w){ if(text.indexOf(w) !== -1) posCount++; });
   negativeWords.forEach(function(w){ if(text.indexOf(w) !== -1) negCount++; });
@@ -513,10 +515,11 @@ function analyze(){
 
   let spamScore = 0;
   let foundSpam = [];
+  const scanText = subject + ' ' + preview;
   spamWords.forEach(sw=>{
-    if(subject.toLowerCase().includes(sw.word.toLowerCase())){
+    if(scanText.toLowerCase().includes(sw.word.toLowerCase())){
       spamScore += sw.score;
-      foundSpam.push(sw);
+      foundSpam.push(Object.assign({}, sw, { inPreview: !subject.toLowerCase().includes(sw.word.toLowerCase()) }));
     }
   });
 
@@ -526,14 +529,15 @@ function analyze(){
       issues.push({
         type: sw.type==='spam'?'error':'warn',
         icon: sw.type==='spam'?'🚫':'⚠️',
-        text:`包含垃圾词「${sw.word}」，可能影响送达率`
+        text:`${sw.inPreview?'预览正文':'标题'}包含垃圾词「${sw.word}」，可能影响送达率`
       });
     });
   } else {
     issues.push({type:'good', icon:'✅', text:'未检测到明显垃圾邮件关键词'});
   }
 
-  if(subject.includes('!') && (subject.match(/!/g)||[]).length > 2){
+  const bangCount = (subject.match(/[!！]/g)||[]).length;
+  if(bangCount > 2){
     totalScore -= 5;
     issues.push({type:'warn', icon:'❗', text:'感叹号过多，可能触发垃圾过滤'});
   }
@@ -717,12 +721,13 @@ document.addEventListener('DOMContentLoaded',function(){
       var cells=[].slice.call(tr.querySelectorAll('th,td'));
       var line=cells.map(function(c){
         var t=(c.textContent||'').replace(/\s+/g,' ').trim();
-        if(/[",\n]/.test(t)) t='"'+t.replace(/"/g,'""')+'"';
+        if(/^[=+\-@\t\r]/.test(t)) t="'"+t;
+        if(/[",\n\r]/.test(t)) t='"'+t.replace(/"/g,'""')+'"';
         return t;
       }).join(',');
       csv.push(line);
     });
-    var blob=new Blob([csv.join('\n')],{type:'text/csv;charset=utf-8'});
+    var blob=new Blob(['\ufeff'+csv.join('\n')],{type:'text/csv;charset=utf-8'});
     var url=URL.createObjectURL(blob);
     var a=document.createElement('a');
     a.href=url; a.download=(tid||'table')+'.csv';

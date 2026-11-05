@@ -241,7 +241,7 @@ function renderTrees(){const __g1=TREES.map(function(tr,i){return '<div class="t
 function selectTree(i){curTree=i;var tr=TREES[i];var d=tr.density;var sp=Math.sqrt(666.67/d);$('spacing').value=(sp*0.8).toFixed(1);$('rowSpacing').value=(sp*1.2).toFixed(1);renderTrees();calc();}
 function calc(){
 var sp=parseFloat($('spacing').value)||0;var rsp=parseFloat($('rowSpacing').value)||0;var area=parseFloat($('area').value)||0;var site=$('site').value;var includeLoss=$('includeLoss').checked;
-if(sp<=0||rsp<=0){$('result').innerHTML='<div class="error">请输入有效的株距和行距</div>';$('chartWrap').style.display='none';return;}
+if(sp<=0||rsp<=0||area<=0){$('result').innerHTML='<div class="error">请输入有效的株距、行距和造林面积</div>';$('chartWrap').style.display='none';return;}
 var density=666.67/(sp*rsp);var total=density*area;var loss=includeLoss?Math.ceil(total*0.1):0;var totalWithLoss=total+loss;
 var siteAdj=site==='good'?0.85:site==='poor'?1.2:1.0;var recommendedDensity=TREES[curTree].density*siteAdj;
 const __g3='<h3 style="text-align:center;margin-bottom:12px;">🧮 造林密度计算结果</h3>'+
@@ -265,17 +265,18 @@ $('chartWrap').style.display='block';drawChart(density,recommendedDensity,sp,rsp
 }
 function drawChart(density,rec,sp,rsp){
 var cv=$('chart'),ctx=cv.getContext('2d'),ct=cv.parentElement;cv.width=ct.clientWidth;cv.height=ct.clientHeight;
-var W=cv.width,H=cv.height;ctx.clearRect(0,0,W,H);var pad={top:30,right:20,bottom:50,left:50},cw=W-pad.left-pad.right,ch=H-pad.top-pad.bottom;
+var W=cv.width,H=cv.height;var en=/^en/i.test(document.documentElement.lang||'');ctx.clearRect(0,0,W,H);var pad={top:30,right:20,bottom:50,left:50},cw=W-pad.left-pad.right,ch=H-pad.top-pad.bottom;
 ctx.strokeStyle=resolveCanvasColor('var(--border)','#E5E7EB');ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(pad.left,pad.top);ctx.lineTo(pad.left,pad.top+ch);ctx.lineTo(pad.left+cw,pad.top+ch);ctx.stroke();
 var maxD=Math.max(density,rec)*1.5;var barW=40;
 function bar(x,v,color,label){var h=v/maxD*ch;ctx.fillStyle=color;ctx.fillRect(x,pad.top+ch-h,barW,h);ctx.fillStyle=resolveCanvasColor('var(--text)','#1F2937');ctx.font='11px sans-serif';ctx.textAlign='center';ctx.fillText(Math.round(v),x+barW/2,pad.top+ch-h-5);ctx.fillText(label,x+barW/2,pad.top+ch+15);}
-bar(pad.left+30,density,'var(--primary)','当前密度');bar(pad.left+100,rec,'#4caf50','推荐密度');
-ctx.fillStyle=resolveCanvasColor('var(--text-light)','#9CA3AF');ctx.font='12px sans-serif';ctx.textAlign='center';ctx.fillText('单位：株/亩',pad.left+cw/2,H-10);
+bar(pad.left+30,density,'var(--primary)',en?'Current':'当前密度');bar(pad.left+100,rec,'#4caf50',en?'Recommended':'推荐密度');
+ctx.fillStyle=resolveCanvasColor('var(--text-light)','#9CA3AF');ctx.font='12px sans-serif';ctx.textAlign='center';ctx.fillText(en?'Unit: trees/mu':'单位：株/亩',pad.left+cw/2,H-10);
+window.__tbRedraw=function(){drawChart(density,rec,sp,rsp);};if(!window.__tbLangBound){window.__tbLangBound=1;window.addEventListener('toolbox:langchange',function(){if(window.__tbRedraw)window.__tbRedraw();});}
 }
-function saveHistory(){var r={time:new Date().toLocaleString('zh-CN'),tree:TREES[curTree].name,sp:$('spacing').value,rsp:$('rowSpacing').value,area:$('area').value};var h=getHistory();h.unshift(r);if(h.length>20)h=h.slice(0,20);localStorage.setItem(HK,JSON.stringify(h));}
+function saveHistory(){var r={time:new Date().toLocaleString('zh-CN'),tree:TREES[curTree].name,ti:curTree,sp:$('spacing').value,rsp:$('rowSpacing').value,area:$('area').value,site:$('site').value,loss:$('includeLoss').checked};var h=getHistory();h.unshift(r);if(h.length>20)h=h.slice(0,20);localStorage.setItem(HK,JSON.stringify(h));}
 function getHistory(){try{return JSON.parse(localStorage.getItem(HK)||'[]');}catch(e){return[];}}
 function renderHistory(){var h=getHistory();if(!h.length){$('historyList').innerHTML='<div class="history-empty">暂无历史</div>';return;}const __g5=h.map(function(r,i){return '<div class="history-item" onclick="loadHistory('+i+')"><div class="time">'+r.time+'</div><div class="summary">'+r.tree+' '+r.sp+'×'+r.rsp+'m</div><div class="detail">'+r.area+'亩</div></div>';}).join('');$('historyList').innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));}
-function loadHistory(i){switchTab('calc');calc();}
+function loadHistory(i){var r=getHistory()[i];if(!r)return;switchTab('calc');if(typeof r.ti==='number'&&TREES[r.ti]){curTree=r.ti;renderTrees();}if(r.sp!==undefined)$('spacing').value=r.sp;if(r.rsp!==undefined)$('rowSpacing').value=r.rsp;if(r.area!==undefined)$('area').value=r.area;if(r.site!==undefined)$('site').value=r.site;if(r.loss!==undefined)$('includeLoss').checked=!!r.loss;calc();}
 function clearHistory(){if(confirm('清空?')){localStorage.removeItem(HK);renderHistory();}}
 function resetForm(){curTree=0;renderTrees();$('spacing').value=2;$('rowSpacing').value=3;$('area').value=100;$('site').value='medium';$('includeLoss').checked=true;calc();}
 window.addEventListener('resize',function(){if($('chartWrap').style.display!=='none')calc();});

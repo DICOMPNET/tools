@@ -208,7 +208,7 @@ s.parentNode.insertBefore(el, s);
 <li>病因縮小：門脈高壓者結合腹水總蛋白定肝源/心源/布加</li>
 <li>取樣規範：同一日內取樣、輸注白蛋白後間隔再測</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">方法</div><div class="dd-ex-body">演算法：SAAG = 血清白蛋白 − 腹水白蛋白（g/L）。≥11 g/L 提示門脈高壓性腹水（肝硬化約 80%、布-加、右心衰、門脈血栓、暴發性肝衰）；&lt;11 g/L 提示非門脈高壓性（腹膜轉移癌、結核性腹膜炎、腎病症候群、胰源、膽源）。門脈高壓且腹水總蛋白 &lt;25 多肝硬化、≥25 需排查心源/布加。取樣要求血清與腹水同次採集、未輸白蛋白時測。</div></div>
+<div class="dd-example"><div class="dd-ex-title">方法</div><div class="dd-ex-body">演算法：SAAG = 血清白蛋白 − 腹水白蛋白（g/L）。≥11 g/L 提示門脈高壓性腹水（肝硬化約 80%、布-加、右心衰、門脈血栓、暴發性肝衰）；&lt;11 g/L 提示非門脈高壓性（腹膜轉移癌、結核性腹膜炎、腎病症候群、胰源、膽源）。門脈高壓且腹水總蛋白 &lt;25 多肝硬化、≥25 需排查心源/布加。兩值均必填，缺項不出結論；SAAG &lt;0（腹水白蛋白高於血清）或超出 0–60 g/L 報輸入有誤（閾值需臨床複核）。取樣要求血清與腹水同次採集、未輸白蛋白時測。</div></div>
 <div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">例：血清白蛋白 28 g/L、腹水白蛋白 12 g/L → SAAG = 16.0 g/L（≥11），門脈高壓性腹水，結合低腹水總蛋白傾向肝硬化，建議肝功能+腹部超聲。若血清 30 g/L、腹水 25 g/L → SAAG = 5.0 g/L（&lt;11），非門脈高壓性，建議查腹水細胞學/ADA/澱粉酶排除惡性、結核或胰源。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
@@ -257,8 +257,24 @@ s.parentNode.insertBefore(el, s);
 
 <script>
 function calc(){
-  var serumAlb=parseFloat(document.getElementById('serumAlb').value)||0;
-  var ascitesAlb=parseFloat(document.getElementById('ascitesAlb').value)||0;
+  var val=function(id){
+    var raw=document.getElementById(id).value.trim();
+    if(raw==='') return null;
+    var n=parseFloat(raw);
+    return isFinite(n)?n:null;
+  };
+  var serumAlb=val('serumAlb');
+  var ascitesAlb=val('ascitesAlb');
+
+  // 空值不按 0 计算：缺项直接提示，避免被判为「非门脉高压性腹水」
+  if(serumAlb===null||ascitesAlb===null){
+    document.getElementById('result').innerHTML='<div class="tip-box tip-warn">请填写血清白蛋白与腹水白蛋白（单位 g/L）。缺项时 SAAG 无法计算，不能据此判断腹水类型（需临床复核）。</div>';
+    return;
+  }
+  if(serumAlb<=0||serumAlb>60||ascitesAlb<0||ascitesAlb>60||ascitesAlb>serumAlb){
+    document.getElementById('result').innerHTML='<div class="tip-box tip-warn">数值异常：血清白蛋白与腹水白蛋白均应在 0–60 g/L，且腹水白蛋白不应高于血清白蛋白。请核对单位（g/L 与 g/dL 相差 10 倍）后重算（需临床复核）。</div>';
+    return;
+  }
 
   var saag=serumAlb-ascitesAlb;
 

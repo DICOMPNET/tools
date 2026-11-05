@@ -397,9 +397,9 @@ s.parentNode.insertBefore(el, s);
 
       <div style="margin-top:16px;">
         <div class="checkbox-row">
-          <label><input type="checkbox" id="chkDST" onchange="doConvert()"> 考慮夏令時（使用DST偏移）</label>
           <label><input type="checkbox" id="chkNow" checked onchange="useNowTime()"> 使用當前時間</label>
         </div>
+        <p style="font-size:12px;color:var(--text-muted);margin-top:6px;">UTC 偏移按所選日期即時取自 IANA 時區資料庫，夏令時自動生效，無需手動勾選。</p>
       </div>
 
       <div class="toolbar" style="margin-top:12px;">
@@ -418,15 +418,15 @@ s.parentNode.insertBefore(el, s);
       <h2>&#127758; 世界時鐘</h2>
       <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">同時檢視世界主要城市當前時間</p>
       <div class="card formula-box">
-  <div class="formula-title">📐 計算方式</div> <div class="formula-eq">時區換算<br>時差(分鐘) = 時區B 的 UTC 偏移 − 時區A 的 UTC 偏移<br>目標時間 = 源時間 + 時差（對 1440 分鐘取模，保持 0:00~23:59）<br>夏令時：勾選 DST 後，僅當所選日期落在該地區夏令時月份內時才使用夏令時偏移，否則使用標準偏移<br>時差為正 → B 比 A 快；為負 → 慢；為 0 → 同時區</div>
+  <div class="formula-title">📐 計算方式</div> <div class="formula-eq">時區換算<br>時差(分鐘) = 目標時區 UTC 偏移 − 源時區 UTC 偏移<br>目標時間 = 源時間 + 時差（跨日自動進位）<br>UTC 偏移由瀏覽器 Intl.DateTimeFormat 按所選日期查 IANA 時區資料庫即時得到，自動包含夏令時<br>時差為正 → B 比 A 快；為負 → 慢；為 0 → 同時區</div>
   <p>目標地當地時刻 = 本地時刻 + (目標地 UTC 偏移 − 本地 UTC 偏移)；UTC 偏移含半小時制與夏令時調整，跨日時自動進位。</p>
 </div>
 <div class="card formula-box">
-  <div class="formula-title">📐 計算方式</div>
-  <p>目標地當地時刻 = 本地時刻 + (目標地 UTC 偏移 − 本地 UTC 偏移)；UTC 偏移含半小時制與夏令時調整，跨日時自動進位。</p>
+  <div class="formula-title">🌐 取值口徑</div>
+  <p>每個城市繫結一個 IANA 時區標識（如 America/New_York、Asia/Kolkata），偏移支援半小時與 45 分鐘制地區；夏令時期間的具體偏移由資料庫按日期給出，而非按月份粗判。</p>
 </div>
 <div class="tip-box tip-info" style="margin-bottom:16px;">
-        &#9888;&#65039; 夏令時標註說明：標有"可能夏令時"的城市表示該城市在特定月份可能使用夏令時偏移（DST列）。本工具以標準偏移為預設值，勾選"考慮夏令時"後使用DST偏移。
+        &#9888;&#65039; 夏令時說明：本工具不再使用靜態月份表，而是按所選日期與 IANA 時區資料庫即時取偏移；3 月/10 月/11 月等夏令時切換日附近的換算同樣準確。
       </div>
       <div class="world-clock-grid" id="worldClockGrid"></div>
     </div>
@@ -449,9 +449,7 @@ s.parentNode.insertBefore(el, s);
         </div>
       </div>
 
-      <div class="checkbox-row">
-        <label><input type="checkbox" id="chkDiffDST" onchange="calcDiff()"> 考慮夏令時</label>
-      </div>
+      <p style="font-size:12px;color:var(--text-muted);">時差按當前日期的實際 UTC 偏移計算，夏令時由 IANA 時區資料庫自動處理。</p>
 
       <div class="toolbar">
         <div id="timezone_converterPresets"></div><button type="button" class="btn primary" onclick="calcDiff()">&#128279; 計算時差</button><button class="btn" type="button" onclick="__timezone_converterExport()">匯出明細 CSV</button>
@@ -514,11 +512,11 @@ s.parentNode.insertBefore(el, s);
       <p>時區轉換器是一款純前端線上工具，可幫助使用者在世界主要城市時區之間快速轉換時間，檢視世界時鐘，計算不同時區之間的時差。所有計算均在瀏覽器本地完成，無需後端服務。</p>
        <ul class="intro-features">
         <li>支援 15+ 世界主要城市時區</li>
-        <li>UTC 偏移量直接計算，簡單準確</li>
+        <li>按 IANA 時區資料庫即時取偏移，自動含夏令時</li>
         <li>24/12 小時制自由切換</li>
         <li>世界時鐘即時重新整理</li>
         <li>時差視覺化展示</li>
-        <li>夏令時偏移標註</li>
+        <li>夏令時切換日附近換算仍準確</li>
 
       </ul>
        <ul class="intro-scenes">
@@ -612,25 +610,24 @@ s.parentNode.insertBefore(el, s);
   'use strict';
 
   // ====== 世界主要城市时区数据 ======
-  // stdOffset: 标准时间 UTC 偏移（分钟）
-  // dstOffset: 夏令时 UTC 偏移（分钟），null 表示无夏令时
-  // dstMonths: 可能处于夏令时的月份（北半球通常 3-10，南半球 10-3）
+  // tz: IANA 时区标识；UTC 偏移（含夏令时）全部由浏览器 Intl.DateTimeFormat
+  //     按「所选日期 + IANA 时区数据库」实时计算，不再使用静态月份表粗判。
   var TIMEZONES = [
-    { city: '北京', country: '中国', stdOffset: 480, dstOffset: null, dstMonths: [], emoji: '&#127464;&#127475;' },
-    { city: '东京', country: '日本', stdOffset: 540, dstOffset: null, dstMonths: [], emoji: '&#127471;&#127477;' },
-    { city: '首尔', country: '韩国', stdOffset: 540, dstOffset: null, dstMonths: [], emoji: '&#127472;&#127479;' },
-    { city: '新加坡', country: '新加坡', stdOffset: 480, dstOffset: null, dstMonths: [], emoji: '&#127480;&#127468;' },
-    { city: '孟买', country: '印度', stdOffset: 330, dstOffset: null, dstMonths: [], emoji: '&#127470;&#127475;' },
-    { city: '迪拜', country: '阿联酋', stdOffset: 240, dstOffset: null, dstMonths: [], emoji: '&#127462;&#127466;' },
-    { city: '莫斯科', country: '俄罗斯', stdOffset: 180, dstOffset: null, dstMonths: [], emoji: '&#127477;&#127473;' },
-    { city: '伦敦', country: '英国', stdOffset: 0, dstOffset: 60, dstMonths: [3,4,5,6,7,8,9,10], emoji: '&#127468;&#127463;' },
-    { city: '巴黎', country: '法国', stdOffset: 60, dstOffset: 120, dstMonths: [3,4,5,6,7,8,9,10], emoji: '&#127467;&#127479;' },
-    { city: '柏林', country: '德国', stdOffset: 60, dstOffset: 120, dstMonths: [3,4,5,6,7,8,9,10], emoji: '&#127465;&#127466;' },
-    { city: '圣保罗', country: '巴西', stdOffset: -180, dstOffset: null, dstMonths: [], emoji: '&#127463;&#127479;' },
-    { city: '纽约', country: '美国', stdOffset: -300, dstOffset: -240, dstMonths: [3,4,5,6,7,8,9,10], emoji: '&#127482;&#127480;' },
-    { city: '芝加哥', country: '美国', stdOffset: -360, dstOffset: -300, dstMonths: [3,4,5,6,7,8,9,10], emoji: '&#127482;&#127480;' },
-    { city: '洛杉矶', country: '美国', stdOffset: -480, dstOffset: -420, dstMonths: [3,4,5,6,7,8,9,10], emoji: '&#127482;&#127480;' },
-    { city: '悉尼', country: '澳大利亚', stdOffset: 660, dstOffset: 720, dstMonths: [10,11,12,1,2,3], emoji: '&#127462;&#127482;' }
+    { city: '北京', country: '中国', tz: 'Asia/Shanghai', emoji: '&#127464;&#127475;' },
+    { city: '东京', country: '日本', tz: 'Asia/Tokyo', emoji: '&#127471;&#127477;' },
+    { city: '首尔', country: '韩国', tz: 'Asia/Seoul', emoji: '&#127472;&#127479;' },
+    { city: '新加坡', country: '新加坡', tz: 'Asia/Singapore', emoji: '&#127480;&#127468;' },
+    { city: '孟买', country: '印度', tz: 'Asia/Kolkata', emoji: '&#127470;&#127475;' },
+    { city: '迪拜', country: '阿联酋', tz: 'Asia/Dubai', emoji: '&#127462;&#127466;' },
+    { city: '莫斯科', country: '俄罗斯', tz: 'Europe/Moscow', emoji: '&#127477;&#127473;' },
+    { city: '伦敦', country: '英国', tz: 'Europe/London', emoji: '&#127468;&#127463;' },
+    { city: '巴黎', country: '法国', tz: 'Europe/Paris', emoji: '&#127467;&#127479;' },
+    { city: '柏林', country: '德国', tz: 'Europe/Berlin', emoji: '&#127465;&#127466;' },
+    { city: '圣保罗', country: '巴西', tz: 'America/Sao_Paulo', emoji: '&#127463;&#127479;' },
+    { city: '纽约', country: '美国', tz: 'America/New_York', emoji: '&#127482;&#127480;' },
+    { city: '芝加哥', country: '美国', tz: 'America/Chicago', emoji: '&#127482;&#127480;' },
+    { city: '洛杉矶', country: '美国', tz: 'America/Los_Angeles', emoji: '&#127482;&#127480;' },
+    { city: '悉尼', country: '澳大利亚', tz: 'Australia/Sydney', emoji: '&#127462;&#127482;' }
   ];
 
   var timeFormat = 24; // 24 or 12
@@ -645,24 +642,43 @@ s.parentNode.insertBefore(el, s);
     return 'UTC' + sign + h + (m > 0 ? ':' + String(m).padStart(2, '0') : '');
   }
 
-  function formatOffsetForSelect(tz, useDST) {
-    var offset = useDST && tz.dstOffset !== null ? tz.dstOffset : tz.stdOffset;
-    return offsetToStr(offset);
+  // 按 IANA 时区数据库取某一时刻的 UTC 偏移（分钟），自动包含夏令时
+  function zoneOffsetMinutes(iana, dateMs) {
+    if (!isFinite(dateMs)) return NaN;
+    var baseMs = Math.floor(dateMs / 1000) * 1000;
+    var dtf = new Intl.DateTimeFormat('en-US', {
+      timeZone: iana,
+      hour12: false,
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', second: '2-digit'
+    });
+    var map = {};
+    dtf.formatToParts(new Date(baseMs)).forEach(function (p) { map[p.type] = p.value; });
+    var h = parseInt(map.hour, 10);
+    if (h === 24) h = 0; // 部分引擎午夜返回 24
+    var wallUTC = Date.UTC(
+      parseInt(map.year, 10), parseInt(map.month, 10) - 1, parseInt(map.day, 10),
+      h, parseInt(map.minute, 10), parseInt(map.second, 10)
+    );
+    return Math.round((wallUTC - baseMs) / 60000);
   }
 
-  function isLikelyDST(tz) {
-    if (tz.dstOffset === null || tz.dstMonths.length === 0) return false;
-    var now = new Date();
-    var month = now.getMonth() + 1;
-    return tz.dstMonths.indexOf(month) !== -1;
+  // 标准偏移：取 1 月与 7 月偏移中较小者（夏令时总是把时钟拨快）
+  function stdOffsetMinutes(iana, year) {
+    return Math.min(
+      zoneOffsetMinutes(iana, Date.UTC(year, 0, 1)),
+      zoneOffsetMinutes(iana, Date.UTC(year, 6, 1))
+    );
   }
 
-  function getOffset(tz, useDST, month) {
-    if (useDST && tz.dstOffset !== null) {
-      var m = month || (new Date().getMonth() + 1);
-      if (tz.dstMonths.indexOf(m) !== -1) return tz.dstOffset;
-    }
-    return tz.stdOffset;
+  // 把某时区的「墙上时间」换算成真实 UTC 时刻；跨夏令时边界时二次校正
+  function wallToInstant(iana, year, month, day, hours, minutes, seconds) {
+    var wall = Date.UTC(year, month - 1, day, hours, minutes, seconds);
+    var off = zoneOffsetMinutes(iana, wall);
+    var inst = wall - off * 60000;
+    var off2 = zoneOffsetMinutes(iana, inst);
+    if (off2 !== off) inst = wall - off2 * 60000;
+    return inst;
   }
 
   function pad(n) { return String(n).padStart(2, '0'); }
@@ -682,17 +698,13 @@ s.parentNode.insertBefore(el, s);
     return year + '年' + pad(month) + '月' + pad(day) + '日 星期' + weekdays[weekdayIndex];
   }
 
-  function convertTime(srcOffsetMin, dstOffsetMin, hours, minutes, seconds, year, month, day) {
-    // 策略：把源时区的"墙上时间"当作 UTC 来构造一个基准时间戳，
-    // 然后用偏移量差值平移到目标时区的"墙上时间"。
-    // 这样完全脱离浏览器本地时区，保证计算只依赖用户选择的偏移量。
-    // baseUTC = Date.UTC(year, month-1, day, hours, minutes, seconds)
-    // realUTC = baseUTC - srcOffsetMin * 60000
-    // targetWallUTC = realUTC + dstOffsetMin * 60000
-    //                = baseUTC + (dstOffsetMin - srcOffsetMin) * 60000
-    var baseUTC = Date.UTC(year, month - 1, day, hours, minutes, seconds);
-    var targetWallUTC = baseUTC + (dstOffsetMin - srcOffsetMin) * 60000;
-    var d = new Date(targetWallUTC);
+  function convertWallTime(srcIana, dstIana, year, month, day, hours, minutes, seconds) {
+    // 源时区墙上时间 → 真实 UTC 时刻 → 目标时区墙上时间；
+    // 两端偏移均由 IANA 时区数据库按真实时刻即时取得，夏令时自然生效。
+    var realUTC = wallToInstant(srcIana, year, month, day, hours, minutes, seconds);
+    var srcOffset = zoneOffsetMinutes(srcIana, realUTC);
+    var dstOffset = zoneOffsetMinutes(dstIana, realUTC);
+    var d = new Date(realUTC + dstOffset * 60000);
     return {
       year: d.getUTCFullYear(),
       month: d.getUTCMonth() + 1,
@@ -701,6 +713,8 @@ s.parentNode.insertBefore(el, s);
       hours: d.getUTCHours(),
       minutes: d.getUTCMinutes(),
       seconds: d.getUTCSeconds(),
+      srcOffset: srcOffset,
+      dstOffset: dstOffset,
       dayDiff: Math.round((Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()) - Date.UTC(year, month - 1, day)) / 86400000)
     };
   }
@@ -726,7 +740,7 @@ s.parentNode.insertBefore(el, s);
       TIMEZONES.forEach(function(tz, i) {
         var opt = document.createElement('option');
         opt.value = i;
-        opt.textContent = tz.city + '（' + tz.country + '）' + offsetToStr(tz.stdOffset);
+        opt.textContent = tz.city + '（' + tz.country + '）' + offsetToStr(zoneOffsetMinutes(tz.tz, Date.now()));
         sel.appendChild(opt);
       });
     });
@@ -768,7 +782,7 @@ s.parentNode.insertBefore(el, s);
       var idx = parseInt(item.dataset.tzIndex);
       var tz = TIMEZONES[idx];
       if (!tz) return;
-      var offset = getOffset(tz, false);
+      var offset = zoneOffsetMinutes(tz.tz, utcNow);
       // 目标城市墙上时间 = UTC + offset
       var tzTime = new Date(utcNow + offset * 60000);
       // 使用 UTC 访问器，避免浏览器本地时区干扰
@@ -781,14 +795,15 @@ s.parentNode.insertBefore(el, s);
   function renderWorldClock() {
     var grid = document.getElementById('worldClockGrid');
     var html = '';
+    var nowMs = Date.now();
+    var nowYear = new Date(nowMs).getUTCFullYear();
     TIMEZONES.forEach(function(tz, i) {
-      var dstNote = '';
-      if (tz.dstOffset !== null) {
-        dstNote = '<div class="dst-badge">&#9728;&#65039; 夏令时 ' + offsetToStr(tz.dstOffset) + '</div>';
-      }
+      var offset = zoneOffsetMinutes(tz.tz, nowMs);
+      var dstNote = offset > stdOffsetMinutes(tz.tz, nowYear)
+        ? '<div class="dst-badge">&#9728;&#65039; 夏令时生效</div>' : '';
       html += '<div class="world-clock-item" data-tz-index="' + i + '">'
         + '<div class="city">' + tz.emoji + ' ' + tz.city + '</div>'
-        + '<div class="offset">' + offsetToStr(tz.stdOffset) + (tz.dstOffset !== null ? ' / ' + offsetToStr(tz.dstOffset) : '') + '</div>'
+        + '<div class="offset">' + offsetToStr(offset) + '</div>'
         + '<div class="clock-time">--:--</div>'
         + '<div class="clock-date">--/--</div>'
         + dstNote
@@ -803,7 +818,6 @@ s.parentNode.insertBefore(el, s);
     var dstIdx = parseInt(document.getElementById('dstTz').value);
     var srcTz = TIMEZONES[srcIdx];
     var dstTz = TIMEZONES[dstIdx];
-    var useDST = document.getElementById('chkDST').checked;
 
     var h = parseInt(document.getElementById('inpHour').value) || 0;
     var m = parseInt(document.getElementById('inpMin').value) || 0;
@@ -819,10 +833,9 @@ s.parentNode.insertBefore(el, s);
       day = parseInt(parts[2]);
     }
 
-    var srcOffset = getOffset(srcTz, useDST, month);
-    var dstOffset = getOffset(dstTz, useDST, month);
-
-    var result = convertTime(srcOffset, dstOffset, h, m, s, year, month, day);
+    var result = convertWallTime(srcTz.tz, dstTz.tz, year, month, day, h, m, s);
+    var srcOffset = result.srcOffset;
+    var dstOffset = result.dstOffset;
     var diffMinutes = dstOffset - srcOffset;
 
     var dayDiffText = '';
@@ -830,11 +843,11 @@ s.parentNode.insertBefore(el, s);
     else if (result.dayDiff < 0) dayDiffText = ' ' + result.dayDiff + ' 天';
 
     var dstNote = '';
-    if (useDST && getOffset(dstTz, true, month) === dstTz.dstOffset) {
-      dstNote = '<div class="dst-note">&#9728;&#65039; 使用夏令时偏移：' + offsetToStr(dstTz.dstOffset) + '</div>';
+    if (dstOffset > stdOffsetMinutes(dstTz.tz, result.year)) {
+      dstNote = '<div class="dst-note">&#9728;&#65039; 目标时区夏令时生效：' + offsetToStr(dstOffset) + '</div>';
     }
-    if (useDST && getOffset(srcTz, true, month) === srcTz.dstOffset) {
-      dstNote += '<div class="dst-note" style="margin-top:2px;">&#9728;&#65039; 源时区使用夏令时偏移：' + offsetToStr(srcTz.dstOffset) + '</div>';
+    if (srcOffset > stdOffsetMinutes(srcTz.tz, result.year)) {
+      dstNote += '<div class="dst-note" style="margin-top:2px;">&#9728;&#65039; 源时区夏令时生效：' + offsetToStr(srcOffset) + '</div>';
     }
 
     var el = document.getElementById('convertResult');
@@ -909,11 +922,11 @@ s.parentNode.insertBefore(el, s);
     var idxB = parseInt(document.getElementById('diffTzB').value);
     var tzA = TIMEZONES[idxA];
     var tzB = TIMEZONES[idxB];
-    var useDST = document.getElementById('chkDiffDST').checked;
 
-    var curMonth = new Date().getMonth() + 1;
-    var offsetA = getOffset(tzA, useDST, curMonth);
-    var offsetB = getOffset(tzB, useDST, curMonth);
+    var nowMs = Date.now();
+    var nowYear = new Date(nowMs).getUTCFullYear();
+    var offsetA = zoneOffsetMinutes(tzA.tz, nowMs);
+    var offsetB = zoneOffsetMinutes(tzB.tz, nowMs);
     var diff = offsetB - offsetA;
 
     var direction = '';
@@ -932,8 +945,8 @@ s.parentNode.insertBefore(el, s);
     var sampleTimeStr = pad(sampleH) + ':' + pad(sampleM);
 
     var dstNote = '';
-    if (useDST && (tzA.dstOffset !== null || tzB.dstOffset !== null)) {
-      dstNote = '<div class="dst-note" style="margin-top:8px;font-size:12px;color:#D97706;">&#9728;&#65039; 已考虑夏令时偏移</div>';
+    if (offsetA > stdOffsetMinutes(tzA.tz, nowYear) || offsetB > stdOffsetMinutes(tzB.tz, nowYear)) {
+      dstNote = '<div class="dst-note" style="margin-top:8px;font-size:12px;color:#D97706;">&#9728;&#65039; 已按当前日期自动应用夏令时</div>';
     }
 
     var el = document.getElementById('diffResult');
@@ -963,14 +976,19 @@ s.parentNode.insertBefore(el, s);
 
   // ====== 偏移对照表 ======
   function renderOffsetTable() {
-    var headers = ['城市', '国家', '标准偏移', '夏令时偏移', '夏令时月份'];
+    var headers = ['城市', '国家', 'IANA 时区', '当前偏移', '标准偏移', '当前夏令时'];
+    var nowMs = Date.now();
+    var nowYear = new Date(nowMs).getUTCFullYear();
     var rows = TIMEZONES.map(function(tz) {
+      var off = zoneOffsetMinutes(tz.tz, nowMs);
+      var std = stdOffsetMinutes(tz.tz, nowYear);
       return [
         tz.city,
         tz.country,
-        offsetToStr(tz.stdOffset),
-        tz.dstOffset !== null ? offsetToStr(tz.dstOffset) : '无夏令时',
-        tz.dstMonths.length > 0 ? tz.dstMonths.join('/') + '月' : '-'
+        tz.tz,
+        offsetToStr(off),
+        offsetToStr(std),
+        off > std ? '是' : '否'
       ];
     });
     const __h4=ToolBox.createTable(headers, rows);if((typeof __h4==='number'&&!isFinite(__h4))||/Infinity/.test(String(__h4))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h4)){document.getElementById('offsetTable').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('offsetTable').innerHTML=__h4;

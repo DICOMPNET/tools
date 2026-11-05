@@ -110,11 +110,11 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="計算數值的百分比、佔比、增長率等">Enter vertical drop and horizontal distance to convert a slope percentage into the slope angle, for ski-run difficulty grading and safety notes.</p>
     <div class="formula-box">
       <div class="formula-title">📐 計算公式</div>
-      <div class="formula-eq">百分比三模式計算（按模式切換的實際口徑）：求部分 = a×b÷100；求百分比 = b≠0 時 a÷b×100、b=0 記 0（%）；求變化輸出 變化量 = b−a 與 增長率 = a≠0 時 (b−a)÷a×100、否則 0。校驗：無強校驗，非數輸入按 0 兜底。判據：無固定分級，分母為 0 時結果記 0 不報錯。</div>
+      <div class="formula-eq">百分比三模式計算（按模式切換的實際口徑）：求部分 = a×b÷100；求百分比 = a÷b×100；求變化輸出 變化量 = b−a 與 增長率 = (b−a)÷a×100。校驗：任一項留空則提示「請填寫 … 後再計算」且不輸出數值；分母或原值為 0 時該項顯示「—」，不偽造 0%。判據：無固定分級，除法無意義時以「—」標記。</div>
       <p class="formula-desc">計算數值的百分比、佔比、增長率等</p>
     </div>
 <div class="tabs"><div class="tab active" onclick="switchMode('part',this)">求部分值</div><div class="tab" onclick="switchMode('percent',this)">求百分比</div><div class="tab" onclick="switchMode('change',this)">增長率</div></div>
-<div class="input-row" id="row1"><div><label id="l1">整體</label><input type="number" id="v1" value="100" step="any" oninput="calc()" placeholder="如 100"></div><div><label id="l2">百分比 (%)</label><input type="number" id="v2" value="20" step="any" oninput="calc()" placeholder="如 20"></div></div>
+<div class="input-row" id="row1"><div><label id="l1">整體</label><input type="number" id="v1" value="100" step="any" oninput="calc()" placeholder="e.g. 100"></div><div><label id="l2">百分比 (%)</label><input type="number" id="v2" value="20" step="any" oninput="calc()" placeholder="e.g. 20"></div></div>
 <div class="toolbar"><div id="calc_angle_slopePresets"></div>
       <button type="button" class="btn primary" onclick="calc()">🗺️ 計算</button>
       <button class="btn" type="button" onclick="__calc_angle_slopeExport()">匯出明細 CSV</button></div>
@@ -246,7 +246,7 @@ s.parentNode.insertBefore(el, s);
 <script>
 let m='part';
 function switchMode(mode,el){m=mode;document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));el.classList.add('active');const labels={part:['整体','百分比 (%)'],percent:['部分','整体'],change:['原值','新值']};const __g1=labels[mode][0];document.getElementById('l1').textContent=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));const __g2=labels[mode][1];document.getElementById('l2').textContent=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));calc();}
-function calc(){const a=+document.getElementById('v1').value||0;const b=+document.getElementById('v2').value||0;let html='';if(m==='part'){html='<p>'+b+'% of '+a+' = <strong>'+(a*b/100).toFixed(2)+'</strong></p>';}else if(m==='percent'){html='<p>'+a+' / '+b+' = <strong>'+(b?a/b*100:0).toFixed(2)+'%</strong></p>';}else{html='<p>变化量：'+(b-a).toFixed(2)+'</p><p>增长率：<strong>'+(a?((b-a)/a*100).toFixed(2):0)+'%</strong></p>';}const __g3=html;document.getElementById('res').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));}
+function calc(){const en=/^en/i.test(document.documentElement.lang||'');const labels={part:['整体','百分比 (%)'],percent:['部分','整体'],change:['原值','新值']}[m]||['数值 1','数值 2'];const e1=document.getElementById('v1'),e2=document.getElementById('v2');const miss=[];if(!e1||String(e1.value).trim()===''){miss.push(labels[0]);}if(!e2||String(e2.value).trim()===''){miss.push(labels[1]);}const res=document.getElementById('res');if(miss.length){res.innerHTML='<p style="color:var(--danger,#c0392b);font-weight:600;">'+(en?'Please fill in '+miss.join(' and ')+' before calculating.':'请填写'+miss.join('、')+'后再计算')+'</p>';return;}const a=+e1.value,b=+e2.value;let html='';if(m==='part'){html='<p>'+b+'% of '+a+' = <strong>'+(a*b/100).toFixed(2)+'</strong></p>';}else if(m==='percent'){html='<p>'+a+' / '+b+' = <strong>'+(b?(a/b*100).toFixed(2)+'%':'—')+'</strong></p>';}else{html='<p>变化量：'+(b-a).toFixed(2)+'</p><p>增长率：<strong>'+(a?((b-a)/a*100).toFixed(2)+'%':'—')+'</strong></p>';}const __g3=html;res.innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));}
 calc();
 
 var __calc_angle_slope_last=0,__calc_angle_slope_skip=false;

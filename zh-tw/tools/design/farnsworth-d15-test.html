@@ -17,6 +17,9 @@
 <script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="/js/common.js" defer></script>
 <!-- TOOLBOX-WEBAPP-LD -->
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
 <!-- TOOLBOX-SECURITY -->
 <style>
 .fd-wrap{max-width:1080px}
@@ -168,7 +171,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="經典 Farnsworth Panel D-15 色相排列測試的瀏覽器實現。15 個色帽由標準 D-15 的 CIE 1931 xy 色度座標在等亮度（Munsell 明度 5，Y≈19.8%）下即時換算成可顯示的 sRGB 色值，兩端基準帽固定，中間 13 個色帽需要按色相的連續漸變順序排好。提交後程序把 15 個色帽投影到 CIE 1976 u′v′ 極座標系，按你的排列順序連線畫出色相軌跡圖，再對「錯位跳躍向量」做矩量（moment of inertia）軸向分析，把主軸方向與紅/綠/藍三條二色視混淆線做比對，給出色覺分型與嚴重度判讀。所有計算在本地完成，不上傳任何資料。">A browser implementation of the classic Farnsworth Panel D-15: arrange 15 equal-lightness caps into a smooth hue sequence, then get a CIE u′v′ polar hue-trace plot, Total Error Score, confusion index and protan/deutan/tritan classification. Runs entirely locally.</p>
 
     <div class="formula-box">
-      <div class="formula-title">📐 判定原理</div> <div class="formula-eq">Farnsworth D-15 色覺排列評分<br>TES = Σ相鄰色帽編號差（總誤差分）；混淆指數 C = TES / 理想TES<br>誤差向量矩求主軸方向 θ 與選擇性指數 S（S ≥1.5 表示錯誤沿單一方向集中，為二色視典型特徵）<br>軸向歸類：主軸 θ 與紅綠/藍黃混淆軸角度差 ≤26° 即歸入該型<br>分級：C &lt;1.25 且錯位 ≤2 正常｜C &lt;1.8 輕度｜C &lt;2.8 中度｜≥2.8 重度</div>
+      <div class="formula-title">📐 判定原理</div> <div class="formula-eq">Farnsworth D-15 色覺排列評分：TES = Σ14 步相鄰色帽在 CIE 1976 u′v′ 上的色度距離 ×100（總誤差分）；混淆指數 C = TES / 理想TES；誤差向量矩求主軸方向 θ 與選擇性指數 S（S ≥1.5 表示錯誤沿單一方向集中，為二色視典型特徵）；軸向歸類：主軸 θ 與紅綠/藍黃混淆軸角度差 ≤26° 即歸入該型；分級：C &lt;1.25 且錯位 ≤2 正常｜C &lt;1.8 輕度｜C &lt;2.8 中度｜≥2.8 重度。</div>
       <p class="formula-desc">
         <b>① 色帽生成：</b><span>取 D-15 的 15 個色度點 (x, y)，在固定亮度 Y 下換算 XYZ = (Y/y·x, Y, Y/y·(1−x−y))，再經 sRGB 逆矩陣得線性 RGB；越界的點沿「向同亮度中性灰收斂」的方向做二分法壓縮到色域內，因此 15 個色帽</span><b>明度一致、只有色相與飽和度差異</b><span>——這正是排列測試能遮蔽明暗線索的關鍵（可勾選「灰度預覽」自行驗證）。</span><br>
         <b>② 色差度量：</b><span>把每個色帽轉到 CIE 1976 u′v′ 均勻色度圖，u′ = 4x/(−2x+12y+3)、v′ = 9y/(−2x+12y+3)。相鄰兩帽的色度距離 √(Δu′²+Δv′²)×100 即一步色差；把 14 步累加得</span><b>總誤差分 TES</b><span>。理想順序的 TES 記為基準，</span><b>混淆指數 C = TES(你的排列) / TES(理想排列)</b><span>，完美排列 C = 1.00。</span><br>
@@ -273,7 +276,7 @@ s.parentNode.insertBefore(el, s);
         </tr>
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="計分方式">Scoring</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="總錯誤分 = 相鄰錯位棋子沿色相環的步數之和">total error score sums hue steps between placed and correct neighbours</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="總錯誤分 = 14 步相鄰色帽在 CIE 1976 u′v′ 上的色度距離之和 ×100">total error score = sum of CIE 1976 u′v′ colour distances across the 14 neighbouring steps ×100</td>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="Farnsworth D-15 scoring">Farnsworth D-15 scoring</td>
         </tr>
         <tr>

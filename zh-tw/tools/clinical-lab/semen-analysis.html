@@ -134,7 +134,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="依據 WHO 第5版標準評估精液引數，計算總活動精子數(TMSC)">Semen Analysis</p>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">總精子數 = 精液量 × 精子濃度（×10⁶）總活力(PR+NP) = 前向運動 + 非前向運動TMSC(總活動精子數) = 精液量 × 濃度 × (PR+NP)% = 總精子數 × 總活力%TMSC判讀：≥ 20×10⁶ 生育力良好；5–20×10⁶ 臨界；&lt; 5×10⁶ 生育力受損診斷：濃度&lt;參考或總精子數&lt;參考→少精子症；PR&lt;參考→弱精子症；形態&lt;參考→畸精症；濃度=0→無精子症</div>
-  <p class="formula-desc">按 WHO 參考下限對精液量、濃度、活力、形態逐項對照，輔助男科報告初讀；結果僅供參考。</p>
+  <p class="formula-desc">按 WHO 第5版（2010）參考下限對精液量、濃度、活力、形態逐項對照（第6版 2021 數值略有調整，以報告所用版本為準）；TMSC 分界為本頁估算，結果需男科/生殖醫學複核。</p>
 </div>
 
 
@@ -169,7 +169,7 @@ s.parentNode.insertBefore(el, s);
     </table>
 
     <div class="info-box" style="margin-top:16px;">
-      <strong>總活動精子數(TMSC)</strong> = 精液量 × 濃度 × (PR+NP)%，是評估男性生育力的重要綜合指標。TMSC&gt;20×10⁶提示生育力良好，&lt;5×10⁶提示生育力受損。需禁慾2-7天后檢測，異常需複查2-3次確診。
+      <strong>總活動精子數(TMSC)</strong> = 精液量 × 濃度 × (PR+NP)%，是評估男性生育力的綜合指標。TMSC ≥20×10⁶ 提示生育力較好、<5×10⁶ 提示受損——該分界為本頁估算/研究性閾值，並非 WHO 診斷標準，需生殖醫學複核。需禁慾2-7天后檢測，異常需複查2-3次確診。
     </div>
   </div>
 
@@ -218,13 +218,13 @@ s.parentNode.insertBefore(el, s);
       <tbody>
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="總活動精子數">Total motile sperm</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="體積乘濃度乘活力">TMSC = V × C × PR%</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);">WHO 6th ed. (2010) semen ref</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="體積乘濃度乘總活力">TMSC = V × C × (PR+NP)%</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);">WHO 5th ed. (2010) semen reference</td>
         </tr>
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="參考下限">Reference cutoff</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="TMSC≥15×10⁶為達標">pass if TMSC ≥ 15×10⁶</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);">WHO semen reference</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="TMSC參考分界（本頁估算）">TMSC ≥20×10⁶ (page estimate)</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);">本頁估算/研究性閾值（非 WHO 診斷標準）</td>
         </tr>
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="活力分級">Motility grading</td>
@@ -257,19 +257,22 @@ function setInterp(id,ok,lowText,highText){
 
 function analyze(){
   var vol=num('volume'), conc=num('conc'), pr=num('pr'), np=num('np'), im=num('im'), morph=num('morph'), vital=num('vital'), ph=num('ph');
-  if([vol,conc,pr,np,morph,vital,ph].some(function(v){return isNaN(v);})){
-    document.getElementById('result').innerHTML='<p style="color:var(--text-muted);">请填写精液量、精子浓度、PR/NP 活力、形态、存活率与 pH（不可留空）。</p>';
+  // 空值/越界一律拒绝判读，避免把未填写的 IM 当成正常
+  var bad=[vol,conc,pr,np,im,morph,vital,ph].some(function(v){return isNaN(v)||v<0;})||pr>100||np>100||im>100||pr+np+im>100.5;
+  if(bad){
+    document.getElementById('result').innerHTML='<p style="color:var(--danger)">请填写全部参数（精液量、浓度、PR/NP/IM 活力、形态、存活率与 pH），且 PR、NP、IM 均为 0–100%，三者之和不超过 100%。</p>';
     return;
   }
   var total = vol*conc;
   var totalMot = pr+np;
+  var motilitySum = pr+np+im;
   var tmsc = total * totalMot/100;
 
   setInterp('volume', vol>=REF.volume, '↓ 少精液症');
   setInterp('conc', conc>=REF.conc, '↓ 少精子症');
   setInterp('pr', pr>=REF.pr, '↓ 弱精子症');
   setInterp('np', true, '', '');
-  setInterp('im', true, '', '');
+  setInterp('im', totalMot>=REF.totalmot, '', '↑ 不动精子比例偏高(总活力不足40%)');
   setInterp('morph', morph>=REF.morph, '↓ 畸精症');
   setInterp('vital', vital>=REF.vital, '↓ 死精症');
   setInterp('ph', ph>=REF.ph, '↓ 偏低(梗阻?)');
@@ -281,7 +284,7 @@ function analyze(){
   if(pr<REF.pr || totalMot<REF.totalmot) dx.push('弱精子症');
   if(morph<REF.morph) dx.push('畸精症');
   if(vital<REF.vital) dx.push('死精症(存活率低)');
-  if(conc===0) dx.push('无精子症');
+  if(conc===0) dx.push('无精子症（需离心沉淀复检确认）');
   if(ph<REF.ph) dx.push('pH偏低(警惕射精管梗阻/先天性双侧输精管缺如)');
 
   var html = '<h3 style="margin-bottom:8px;">综合分析</h3>';
@@ -291,15 +294,20 @@ function analyze(){
   html += '<div class="stat-card"><div class="val">'+tmsc.toFixed(1)+'</div><div class="lbl">TMSC(×10⁶)</div></div>';
   html += '</div>';
 
+  // 活力三分类一致性校验（PR+NP+IM 应为 100%，允许计数取整误差 ±5%）
+  if(Math.abs(motilitySum-100)>5){
+    html += '<div class="tip-box tip-warn"><strong>请核对活力计数</strong><br>PR+NP+IM = '+motilitySum.toFixed(1)+'%，与 100% 相差超过 5%，建议复核活力分类计数。</div>';
+  }
+
   // TMSC interpretation
   var tmscStatus, tmscColor;
-  if(tmsc>=20){tmscStatus='生育力良好';tmscColor='#059669';}
-  else if(tmsc>=5){tmscStatus='生育力临界';tmscColor='#f59e0b';}
-  else {tmscStatus='生育力受损';tmscColor='#dc2626';}
+  if(tmsc>=20){tmscStatus='生育力良好（TMSC ≥20×10⁶，本页参考阈值，非 WHO 诊断标准）';tmscColor='#059669';}
+  else if(tmsc>=5){tmscStatus='生育力临界（TMSC 5–20×10⁶，本页参考阈值）';tmscColor='#f59e0b';}
+  else {tmscStatus='生育力受损（TMSC <5×10⁶，本页参考阈值）';tmscColor='#dc2626';}
   html += '<div class="result-box" style="border-left:4px solid '+tmscColor+';"><p>总活动精子数(TMSC) = '+vol+' × '+conc+' × '+totalMot+'% = <strong style="color:'+tmscColor+';">'+tmsc.toFixed(1)+'×10⁶</strong></p><p style="color:'+tmscColor+';">'+tmscStatus+'</p></div>';
 
   if(dx.length===0){
-    html += '<div class="result-box" style="border-left:4px solid var(--success);color:var(--success);"><strong>各项参数均在WHO参考范围内</strong>，精液分析结果正常。</div>';
+    html += '<div class="result-box" style="border-left:4px solid var(--success);color:var(--success);"><strong>各项参数均达到 WHO 第5版参考下限</strong>；这不等同于「生育力正常」，仍需结合临床与复查评估。</div>';
   } else {
     html += '<div class="result-box" style="border-left:4px solid var(--danger);"><strong style="color:var(--danger);">诊断提示：'+dx.join('、')+'</strong><p style="font-size:12px;color:var(--text-muted);margin-top:6px;">建议复查2-3次确诊，必要时查生殖激素、阴囊超声、精子DNA碎片率等进一步评估。</p></div>';
   }

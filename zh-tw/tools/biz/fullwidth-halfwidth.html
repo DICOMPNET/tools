@@ -132,7 +132,7 @@ s.parentNode.insertBefore(el, s);
   <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
     <h2 data-zh="🔄 全形半形互轉">🔄 Full-width &amp; Half-width Converter</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">逐字元取碼位判定：全形轉半形時，碼位在 0xFF01–0xFF5E 區間則減 0xFEE0；碼位為 0x3000（全形空格）則轉普通空格；半形轉全形時，碼位在 0x21–0x7E 區間則加 0xFEE0；碼位為 0x20 則轉 U+3000；ASCII 與空格兩項可分別開關，未開啟的轉換項保持原字元</div>
+  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">逐字元取碼位判定：全形轉半形時，碼位在 0xFF01–0xFF5E 區間則減 0xFEE0；碼位為 0x3000（全形空格）則轉普通空格；半形轉全形時，碼位在 0x21–0x7E 區間則加 0xFEE0；碼位為 0x20 則轉 U+3000。假名項啟用後，按 Unicode 半形片假名區（U+FF66–U+FF9D）與全形片假名（U+30A2–U+30F4）雙向對映，ｶﾞ/ﾊﾟ 這類「半形字 + ﾞ/ﾟ」先合成濁音/半濁音再對映；平假名無半形形態，保持原樣。ASCII、空格與假名三項可分別開關，未開啟的轉換項保持原字元</div>
   <p class="formula-desc" data-zh="本文本工具基於標準字元編碼與文本處理規則，純前端執行，程式碼不離開瀏覽器。 工具名稱：全形半形互轉 - 免費文本處理工具，線上全形半形互轉，免費使用。">Convert bidirectionally between Chinese full-width and English half-width characters, handling punctuation and spaces for mixed-language typesetting and data cleaning.</p>
 </div>
 
@@ -144,12 +144,12 @@ s.parentNode.insertBefore(el, s);
     <div class="checkbox-row">
       <label><input type="checkbox" id="ascii" checked> ASCII 字元（字母數字符號）</label>
       <label><input type="checkbox" id="space" checked> 空格</label>
-      <label><input type="checkbox" id="kana"> 假名（僅日文）</label>
+      <label><input type="checkbox" id="kana"> 假名（日文片假名）</label>
     </div>
     <div class="toolbar">
       <button type="button" class="btn primary" onclick="convertTo('half')">轉半形</button>
       <button type="button" class="btn primary" onclick="convertTo('full')">轉全形</button>
-      <button type="button" class="btn success" onclick="copyResult()">複製結果</button>
+      <button type="button" class="btn success" onclick="copyResult(event)">複製結果</button>
       <button type="button" class="btn" onclick="clearAll()">清空</button>
     </div>
   </div>
@@ -231,6 +231,11 @@ s.parentNode.insertBefore(el, s);
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="全形與半形在相容分解下可互轉，轉換後需重新校驗長度">compatibility decomposition maps between widths and changes the length</td>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="Unicode UAX #15, normalisation forms">Unicode UAX #15, normalisation forms</td>
         </tr>
+        <tr>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="假名對映">Kana mapping</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="半形片假名 U+FF66–FF9D 與全形片假名 U+30A2–30F4 雙向對映；ｶﾞ/ﾊﾟ 先由半形字 + ﾞ/ﾟ 合成濁音（ガ/パ）再轉換">halfwidth katakana U+FF66–FF9D maps to fullwidth katakana U+30A2–30F4; ｶﾞ/ﾊﾟ are combined from base + ﾞ/ﾟ before mapping</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="Unicode Halfwidth and Fullwidth Forms block">Unicode Halfwidth and Fullwidth Forms block</td>
+        </tr>
       </tbody>
     </table>
   </div>
@@ -270,6 +275,18 @@ function toggleToolTheme(){
 
 let currentMode = 'half';
 
+const KANA_HALF = 'ｦｧｨｩｪｫｬｭｮｯｰｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓﾔﾕﾖﾗﾘﾙﾚﾛﾜﾝ';
+const KANA_FULL = 'ヲァィゥェォャュョッーアイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワン';
+const KANA_VOICED = {
+  'ガ':'ｶﾞ','ギ':'ｷﾞ','グ':'ｸﾞ','ゲ':'ｹﾞ','ゴ':'ｺﾞ',
+  'ザ':'ｻﾞ','ジ':'ｼﾞ','ズ':'ｽﾞ','ゼ':'ｾﾞ','ゾ':'ｿﾞ',
+  'ダ':'ﾀﾞ','ヂ':'ﾁﾞ','ヅ':'ﾂﾞ','デ':'ﾃﾞ','ド':'ﾄﾞ',
+  'バ':'ﾊﾞ','ビ':'ﾋﾞ','ブ':'ﾌﾞ','ベ':'ﾍﾞ','ボ':'ﾎﾞ',
+  'パ':'ﾊﾟ','ピ':'ﾋﾟ','プ':'ﾌﾟ','ペ':'ﾍﾟ','ポ':'ﾎﾟ','ヴ':'ｳﾞ'
+};
+const KANA_VOICED_HALF = {};
+for(const k in KANA_VOICED) KANA_VOICED_HALF[KANA_VOICED[k]] = k;
+
 function convertTo(mode){
   currentMode = mode;
   convert();
@@ -282,8 +299,11 @@ function convert(){
 
   const ascii = document.getElementById('ascii').checked;
   const space = document.getElementById('space').checked;
+  const kana = document.getElementById('kana').checked;
   let out = '';
-  for(const ch of text){
+  for(let i = 0; i < text.length; i++){
+    const ch = text[i];
+    const next = text[i + 1] || '';
     const code = ch.charCodeAt(0);
     if(currentMode === 'half'){
       // 全角转半角
@@ -291,6 +311,10 @@ function convert(){
         out += String.fromCharCode(code - 0xFEE0);
       }else if(space && code === 0x3000){
         out += ' ';
+      }else if(kana && KANA_VOICED[ch]){
+        out += KANA_VOICED[ch];
+      }else if(kana && KANA_FULL.indexOf(ch) >= 0){
+        out += KANA_HALF[KANA_FULL.indexOf(ch)];
       }else{
         out += ch;
       }
@@ -300,6 +324,11 @@ function convert(){
         out += String.fromCharCode(code + 0xFEE0);
       }else if(space && code === 0x20){
         out += String.fromCharCode(0x3000);
+      }else if(kana && KANA_VOICED_HALF[ch + next]){
+        out += KANA_VOICED_HALF[ch + next];
+        i++;
+      }else if(kana && KANA_HALF.indexOf(ch) >= 0){
+        out += KANA_FULL[KANA_HALF.indexOf(ch)];
       }else{
         out += ch;
       }
@@ -308,11 +337,11 @@ function convert(){
   result.textContent = out;
 }
 
-function copyResult(){
+function copyResult(ev){
   const text = document.getElementById('result').textContent;
   if(!text || text === '请输入文本...'){ alert('请先转换'); return; }
+  const btn = (ev && ev.target) ? ev.target.closest('.btn') : null;
   navigator.clipboard.writeText(text).then(() => {
-    const btn = event.target.closest('.btn');
     if(btn){ const old = btn.textContent; btn.textContent = '✅ 已复制'; setTimeout(() => btn.textContent = old, 1500); }
   });
 }

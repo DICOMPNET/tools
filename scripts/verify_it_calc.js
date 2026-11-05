@@ -7326,7 +7326,7 @@ const CASES = [
   {
     "slug": "it/url-qr",
     "inputs": {
-      "url": "https://tools.dicomp.net/tools/it/url-qr.html",
+      "url": "https://example.com/tools/it/url-qr.html?x=1234567",
       "ecl": "H"
     },
     "expect": [

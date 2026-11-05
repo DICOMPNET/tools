@@ -144,7 +144,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="以麵粉重量為100%，按比例換算各配料實際用量，支援縮放配方">Baker Percentage</p>
     <div class="formula-box">
       <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">烘焙百分比以麵粉重量為 100% 基準：每種原料重量 = 麵粉重量 × 該原料百分比 ÷ 100；總百分比 = 各原料百分比之和；麵糰總重 = 各原料重量之和；麵糰產出率 = 麵糰總重 ÷ 麵粉重量 × 100%。麵粉行鎖定為基準不可刪除，其餘行的百分比可修改、可刪除</div>
-      <p class="formula-desc" data-zh="「以麵粉重量為100%，按比例換算各配料實際用量，支援縮放配方」按輸入引數進行專業計算並輸出結果。">Baker Percentage: computes and outputs results from the input parameters.</p>
+      <p class="formula-desc" data-zh="以麵粉重量為 100% 基準，各原料按烘焙百分比換算實際克重；可增刪配料行、修改百分比，並按目標麵糰總重反推麵粉用量。">Using flour weight as the 100% basis, convert each ingredient's baker's percentage into actual grams; add or remove ingredient rows, edit percentages, and back-calculate flour weight from a target total dough weight.</p>
     </div>
 
     <div class="input-row">
@@ -279,7 +279,7 @@ var ingredients=[
   {name:'酵母',pct:1.5,locked:false}
 ];
 
-function fmtNum(n){
+function fmtLocal(n){
   if(!isFinite(n))return '--';
   if(n>=100)return parseFloat(n.toFixed(1)).toString();
   if(n>=1)return parseFloat(n.toFixed(2)).toString();
@@ -295,7 +295,7 @@ function renderTable(){
     html+='<tr'+(ing.locked?' class="flour-row"':'')+'>';
     html+='<td>'+(ing.locked?'🌾 ':'')+ToolBox.escHtml(ing.name)+(ing.locked?' (基准)':'')+'</td>';
     html+='<td><input type="number" id="pct-'+idx+'" value="'+ing.pct+'" step="any" '+(ing.locked?'disabled':'')+' oninput="updatePct('+idx+',this.value)" placeholder="如 '+ing.pct+'"></td>';
-    html+='<td class="pct" id="w-'+idx+'">'+fmtNum(w)+' g</td>';
+    html+='<td class="pct" id="w-'+idx+'">'+fmtLocal(w)+' g</td>';
     html+='<td>'+(ing.locked?'—':'<button type="button" class="del-btn" onclick="delIngredient('+idx+')">删除</button>')+'</td>';
     html+='</tr>';
   });
@@ -312,11 +312,11 @@ function updateRowValues(){
     totalPct+=ing.pct;
     totalW+=w;
     var cell=document.getElementById('w-'+idx);
-    if(cell)cell.textContent=fmtNum(w)+' g';
+    if(cell)cell.textContent=fmtLocal(w)+' g';
   });
-  const __h1='<div class="item"><div class="v">'+fmtNum(totalPct)+'%</div><div class="l">总百分比</div></div>'+
-    '<div class="item"><div class="v">'+fmtNum(totalW)+' g</div><div class="l">面团总重</div></div>'+
-    '<div class="item"><div class="v">'+fmtNum(totalW/flour*100)+'%</div><div class="l">面团产出率</div></div>';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('totalStat').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('totalStat').innerHTML=__h1;
+  const __h1='<div class="item"><div class="v">'+fmtLocal(totalPct)+'%</div><div class="l">总百分比</div></div>'+
+    '<div class="item"><div class="v">'+fmtLocal(totalW)+' g</div><div class="l">面团总重</div></div>'+
+    '<div class="item"><div class="v">'+fmtLocal(totalW/flour*100)+'%</div><div class="l">面团产出率</div></div>';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('totalStat').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('totalStat').innerHTML=__h1;
 }
 
 function updatePct(idx,val){
@@ -363,12 +363,12 @@ function scaleTo(){
   }
   var newFlour=target/totalPct*100;
   var ratio=newFlour/flour;
-  var html='<p><strong>缩放比例：</strong>×'+fmtNum(ratio)+'</p>';
-  html+='<p><strong>新面粉重量：</strong>'+fmtNum(newFlour)+' g</p>';
+  var html='<p><strong>缩放比例：</strong>×'+fmtLocal(ratio)+'</p>';
+  html+='<p><strong>新面粉重量：</strong>'+fmtLocal(newFlour)+' g</p>';
   html+='<table class="bp-table"><thead><tr><th>配料</th><th>百分比</th><th>缩放后重量</th></tr></thead><tbody>';
   ingredients.forEach(function(ing){
     var w=newFlour*ing.pct/100;
-    html+='<tr><td>'+ToolBox.escHtml(ing.name)+'</td><td>'+ing.pct+'%</td><td class="pct">'+fmtNum(w)+' g</td></tr>';
+    html+='<tr><td>'+ToolBox.escHtml(ing.name)+'</td><td>'+ing.pct+'%</td><td class="pct">'+fmtLocal(w)+' g</td></tr>';
   });
   html+='</tbody></table>';
   html+='<div class="toolbar" style="margin-top:10px;"><button type="button" class="btn" onclick="copyScaled('+newFlour+')">复制配方</button></div>';
@@ -376,11 +376,11 @@ function scaleTo(){
 }
 
 function copyScaled(newFlour){
-  var text='面粉 '+fmtNum(newFlour)+'g\n';
+  var text='面粉 '+fmtLocal(newFlour)+'g\n';
   ingredients.forEach(function(ing){
     if(ing.locked)return;
     var w=newFlour*ing.pct/100;
-    text+=ing.name+' '+fmtNum(w)+'g ('+ing.pct+'%)\n';
+    text+=ing.name+' '+fmtLocal(w)+'g ('+ing.pct+'%)\n';
   });
   ToolBox.copyText(text,i18nText('toast.copy_success'));
 }

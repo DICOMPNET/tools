@@ -279,13 +279,13 @@ function copyRes(){ToolBox.copyText(document.getElementById("res").innerText);}
     <p>BI（報表/視覺化）儀表。</p>
     <h4><span class="h4-icon">✨</span>功能特點</h4>
     <ul class="intro-features">
-      <li>純前端處理，資料不上傳伺服器</li>
-      <li>多維度經營指標卡視覺化</li>
+      <li>支援貼上或拖入 CSV/TXT 指標資料，本地讀取</li>
+      <li>逐項環比、上升/下降項數與平均環比統計</li>
       <li>即時顯示結果，所見即所得</li>
       <li>支援複製和下載結果</li>
     </ul>
     <h4><span class="h4-icon">🎯</span>使用場景</h4>
-    <ul class="intro-scenes"><li>經營日報/週報看板搭建</li><li>關鍵指標異常標紅</li><li>同環比與佔比呈現</li><li>核心指標快照彙總</li></ul>
+    <ul class="intro-scenes"><li>經營日報/週報環比看板</li><li>定位增幅最大與下滑最明顯的指標</li><li>多店鋪整體走勢判斷</li><li>復盤會議前的指標快照</li></ul>
     </div>
 </div>
 <!-- /SEO 介紹區塊 -->
@@ -407,6 +407,20 @@ if(__report_f0){
 function __reportBoot(){ try{ __reportPresets(); }catch(e){} try{ if(typeof calc==='function') calc(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __reportBoot();
 else document.addEventListener('DOMContentLoaded', __reportBoot);
+// 支持把 CSV/TXT 指标文件直接拖入文本框（纯前端本地读取，不上传）
+(function(){
+  var ta=document.getElementById('data');
+  if(!ta||!ta.addEventListener) return;
+  function loadFile(file){
+    if(!file) return;
+    var reader=new FileReader();
+    reader.onload=function(ev){ ta.value=String(ev.target.result||'').replace(/\r/g,''); if(typeof calc==='function') calc(); };
+    reader.readAsText(file);
+  }
+  ta.addEventListener('dragover', function(e){ e.preventDefault(); ta.style.borderColor='var(--primary)'; });
+  ta.addEventListener('dragleave', function(){ ta.style.borderColor=''; });
+  ta.addEventListener('drop', function(e){ e.preventDefault(); ta.style.borderColor=''; if(e.dataTransfer&&e.dataTransfer.files&&e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]); });
+})();
 </script>
 
 

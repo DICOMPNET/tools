@@ -241,7 +241,7 @@ s.parentNode.insertBefore(el, s);
       <span class="drop-icon">🖼️</span>
       <span>點選或拖拽圖片到此處</span>
       <br><small>支援 PNG / JPG / WEBP / GIF / BMP 等瀏覽器可解碼格式</small>
-      <input type="file" id="imgFileInput" accept="image/*" onchange="handleImgSelect(event)">
+      <input type="file" id="imgFileInput" accept="image/png,image/jpeg,image/webp,image/gif" onchange="handleImgSelect(event)">
     </div>
 
     <div class="file-info" id="fileInfo">
@@ -316,7 +316,7 @@ s.parentNode.insertBefore(el, s);
           <div class="sub-title">🖼️ 水印圖片</div>
           <div class="wm-upload" id="wmUpload" onclick="document.getElementById('wmFileInput').click()">
             <span>點選上傳水印圖片（建議 PNG 透明底）</span>
-            <input type="file" id="wmFileInput" accept="image/*" onchange="handleWmSelect(event)">
+            <input type="file" id="wmFileInput" accept="image/png,image/jpeg,image/webp,image/gif" onchange="handleWmSelect(event)">
             <img class="wm-thumb" id="wmThumb" alt="水印預覽">
           </div>
           <div class="range-row" style="margin-top:12px;">
@@ -679,7 +679,18 @@ function handleWmSelect(e) {
   e.target.value = '';
 }
 
+function __svgFileBlocked(file) {
+  var t = String(file.type || '').toLowerCase(), n = String(file.name || '').toLowerCase();
+  if (t.indexOf('image/svg') === 0 || /\.svg$/i.test(n)) {
+    ToolBox.showToast('仅支持位图（PNG/JPG/WebP），不支持 SVG', 'error');
+    return true;
+  }
+  return false;
+}
+/* 仅测试钩子：供 verify 用例调用，不参与任何运行时分支 */
+window.__svgFileBlocked=__svgFileBlocked;
 function loadSourceImage(file) {
+  if (__svgFileBlocked(file)) { return; }
   sourceName = file.name;
   sourceType = file.type || 'image/png';
   sourceFile = file.size;
@@ -702,6 +713,7 @@ function loadSourceImage(file) {
 }
 
 function loadWmImage(file) {
+  if (__svgFileBlocked(file)) { return; }
   var reader = new FileReader();
   reader.onload = function(e) {
     var img = new Image();
@@ -969,7 +981,9 @@ function downloadImg(format) {
   }
 
   var quality = format === 'png' ? undefined : 0.92;
-  exportCanvas.toBlob(function(blob) {
+  var limitMsg = canvasExportError(exportCanvas.width, exportCanvas.height);
+  if (limitMsg) { ToolBox.showToast(limitMsg, 'error'); return; }
+  try { exportCanvas.toBlob(function(blob) {
     if (!blob) { ToolBox.showToast(i18nText('toast.msg138'), 'error'); return; }
     var url = URL.createObjectURL(blob);
     var a = document.createElement('a');
@@ -980,7 +994,7 @@ function downloadImg(format) {
     a.remove();
     setTimeout(function() { URL.revokeObjectURL(url); }, 0);
     ToolBox.showToast(ext.toUpperCase() + ' 导出成功（' + formatSize(blob.size) + '）', 'success');
-  }, mime, quality);
+  }, mime, quality); } catch (e) { ToolBox.showToast('导出失败：' + ((e && (e.name || e.message)) || '未知错误'), 'error'); }
 }
 
 // ===== 重置 =====

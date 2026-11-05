@@ -133,7 +133,7 @@ s.parentNode.insertBefore(el, s);
     <input type="text" id="text" value="Hello Aztec">
         <div class="formula-box">
       <div class="formula-title">📐 計算公式 / 原理</div> <div class="formula-eq">矩陣尺寸取奇數並鉗制 11–25；LCG 種子 = |文本雜湊| + 1，遞推 s = (s×9301 + 49297) % 233280，s ÷ 233280 ＞ 0.5 填充；中心 3×3 定點陣圖案按 (dx+dy) 奇偶、外圍環按 (x+y) 奇偶繪製，四角設定位點；單元格 16px 畫布 = 尺寸 × 16</div>
-      <div class="formula-desc">按 Aztec 碼編碼規則生成：文本經高等級糾錯編碼與位填充後排布為方陣，並帶中央定點陣圖案（簡化版採用固定模式）；純前端生成，用於票據與物流資訊的移動端識讀。</div>
+      <div class="formula-desc">生成「Aztec 風格」的裝飾圖案：花紋由文本雜湊的偽隨機序列決定，並按 Aztec 外觀繪製中央定位靶心與外圍環，不含真實資料編碼與 Reed-Solomon 糾錯，不可被掃碼裝置識別，僅用於視覺示意與排版佔位；如需可掃描的 Aztec 碼，請使用專業編碼庫生成。</div>
     </div>
 <div class="input-row">
       <div><label>前景色</label><input type="color" id="fgColor" value="#000000"></div>
@@ -228,6 +228,13 @@ s.parentNode.insertBefore(el, s);
 </div>
 <script>
 let lastURL = '';
+function __exportFail(msg){
+  var box=document.getElementById('preview');
+  if(box){
+    var p=document.createElement('p');p.className='export-error';p.style.color='#dc2626';p.textContent='⚠ '+msg;box.appendChild(p);
+  } else if(window.alert){ alert(msg); }
+  if(window.ToolBox&&ToolBox.showToast)ToolBox.showToast(msg,'error');
+}
 function generate(){
   const text = document.getElementById('text').value || ' ';
   const fg = document.getElementById('fgColor').value;
@@ -281,7 +288,7 @@ function generate(){
       if(grid[y][x]) ctx.fillRect(x*cellSize, y*cellSize, cellSize, cellSize);
     }
   }
-  lastURL = canvas.toDataURL('image/png');
+  try{ lastURL = canvas.toDataURL('image/png'); }catch(e){ lastURL=''; __exportFail('导出 PNG 失败：'+((e&&(e.name||e.message))||'未知错误')+'（画布可能含外部资源或被污染）'); return; }
   const __h0='';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('preview').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('preview').innerHTML=__h0;
   document.getElementById('preview').appendChild(canvas);
 }

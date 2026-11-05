@@ -128,8 +128,8 @@ s.parentNode.insertBefore(el, s);
   <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
     <h2 data-zh="🎉 文字轉橫幅">🎉 Text to Banner</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">字元寬度 = 文本碼點數；內容寬 = 字元寬度 + 左右填充 × 2；邊框行 = 左上角字元 + 橫線條重複內容寬次 + 右上角字元；上下各插 縱向填充 行（豎線 + 填充符 × 內容寬 + 豎線）；文本行 = 豎線 + 填充符 × 左填充 + 文本 + 填充符 × 右填充 + 豎線；底邊同頂邊，用左下 / 右下角字元</div>
-  <p class="formula-desc" data-zh="本文本工具基於標準字元編碼與文本處理規則，純前端執行，程式碼不離開瀏覽器。 工具名稱：文字轉橫幅 - 商業辦公領域的線上工具。">Turn text into a horizontal banner preview with adjustable colours and fonts, exportable as an image for headline graphics, covers and social posts.</p>
+  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">文本列寬 = Σ（半形字元 1 列 / 中文、全形標點、emoji 2 列）；內容寬 = 文本列寬 + 左右填充 × 2；邊框行 = 左上角字元 + 橫線條重複內容寬次 + 右上角字元；上下各插 縱向填充 行（豎線 + 填充符 × 內容寬 + 豎線）；文本行 = 豎線 + 填充符 × 左填充 + 文本 + 填充符 × 右填充 + 豎線；底邊同頂邊，用左下 / 右下角字元</div>
+  <p class="formula-desc" data-zh="生成固定寬度的 ASCII/Unicode 字元邊框橫幅：按顯示列寬（中文與 emoji 計 2 列）對齊邊框，可切換 8 種邊框樣式與內邊距，結果可複製或下載為 .txt；不生成圖片、不提供顏色與字型設定。">Wrap text in a configurable ASCII/Unicode character frame, preview the column-aligned banner, then copy it or download it as a .txt file (no image or colour output).</p>
 </div>
 
     <label>輸入文本</label>
@@ -161,7 +161,8 @@ s.parentNode.insertBefore(el, s);
       <div id="text_to_bannerPresets"></div>
       <button type="button" class="btn primary" onclick="generate()">生成</button>
       <button class="btn" type="button" onclick="__text_to_bannerExport()">匯出明細 CSV</button>
-      <button type="button" class="btn success" onclick="copyResult()">複製結果</button>
+      <button type="button" class="btn success" onclick="copyResult(event)">複製結果</button>
+      <button type="button" class="btn" onclick="downloadTxt()">下載 .txt</button>
       <button type="button" class="btn" onclick="clearAll()">清空</button>
     </div>
   </div>
@@ -229,14 +230,19 @@ s.parentNode.insertBefore(el, s);
       </tr></thead>
       <tbody>
         <tr>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="影像渲染">Image rendering</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="橫幅由畫布繪製文本與背景並匯出為點陣圖">the banner draws text and background onto a canvas then exports a bitmap</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="W3C HTML Canvas 2D Context">W3C HTML Canvas 2D Context</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="字元顯示寬度">Character display width</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="半形字元計 1 列；中文、全形標點、emoji 計 2 列，據此計算邊框長度">half-width characters count as 1 column; Chinese, full-width punctuation and emoji count as 2, which determines the border length</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="Unicode UAX #11 East Asian Width">Unicode UAX #11 East Asian Width</td>
         </tr>
         <tr>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="點陣圖格式">Bitmap format</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="匯出為無失真壓縮點陣圖，尺寸由畫素決定而解析度受限於裝置畫素比">export uses a lossless bitmap whose pixel size depends on device pixel ratio</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="ISO/IEC 15948:2004, PNG">ISO/IEC 15948:2004, PNG</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="邊框拼接">Frame assembly</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="頂邊/底邊 = 角字元 + 橫線字元重複內容寬次 + 角字元；文本行左右各補內邊距">top/bottom edge = corner + horizontal character repeated to the content width + corner; each text line is padded on both sides</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="Unicode Box Drawing 區塊 (U+2500–U+257F)">Unicode Box Drawing block (U+2500–U+257F)</td>
+        </tr>
+        <tr>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="等寬顯示">Monospace display</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="字元橫幅需在等寬字型下檢視才能對齊，非等寬字型可能錯位">a character banner aligns only in a monospace font; proportional fonts may shift the frame</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="W3C CSS Fonts Level 4, font matching">W3C CSS Fonts Level 4, font matching</td>
         </tr>
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="字型回退">Font fallback</td>
@@ -291,6 +297,16 @@ const STYLES = {
   'diamond': {top:'◆', h:'◆', topR:'◆', v:'◆', botL:'◆', botR:'◆', fill:' '},
 };
 
+function charWidth(ch){
+  const c=ch.codePointAt(0);
+  if((c>=0x1100&&c<=0x115F)||(c>=0x2E80&&c<=0xA4CF)||(c>=0xAC00&&c<=0xD7A3)||(c>=0xF900&&c<=0xFAFF)||(c>=0xFE30&&c<=0xFE4F)||(c>=0xFF00&&c<=0xFF60)||(c>=0xFFE0&&c<=0xFFE6)||(c>=0x1F300&&c<=0x1FAFF)||(c>=0x20000&&c<=0x3FFFD)) return 2;
+  return 1;
+}
+function textWidth(str){
+  let w=0;
+  for(const ch of str) w+=charWidth(ch);
+  return w;
+}
 function generate(){
   const text = document.getElementById('input').value;
   const result = document.getElementById('result');
@@ -301,8 +317,8 @@ function generate(){
   const padX = parseInt(document.getElementById('paddingX').value) || 0;
   const padY = parseInt(document.getElementById('paddingY').value) || 0;
 
-  const textWidth = [...text].length; // 字符宽度
-  const innerWidth = textWidth + padX * 2;
+  const textW = textWidth(text); // 全角/emoji 按 2 列计
+  const innerWidth = textW + padX * 2;
 
   const lines = [];
   // 顶边
@@ -323,13 +339,30 @@ function generate(){
   result.textContent = lines.join('\n');
 }
 
-function copyResult(){
+function copyResult(ev){
   const text = document.getElementById('result').textContent;
   if(!text || text === '请输入文本...'){ alert('请先生成'); return; }
-  navigator.clipboard.writeText(text).then(() => {
-    const btn = event.target.closest('.btn');
+  const done=function(){
+    const btn = ev && ev.target && ev.target.closest ? ev.target.closest('.btn') : null;
     if(btn){ const old = btn.textContent; btn.textContent = '✅ 已复制'; setTimeout(() => btn.textContent = old, 1500); }
-  });
+  };
+  if(navigator.clipboard&&typeof navigator.clipboard.writeText==='function'){
+    let p=null;
+    try{ p=navigator.clipboard.writeText(text); }catch(e){ p=null; }
+    if(p&&typeof p.then==='function'){ p.then(done,()=>alert('复制失败，请手动选择文本')); return; }
+    done(); return;
+  }
+  alert('复制失败，请手动选择文本');
+}
+function downloadTxt(){
+  const text = document.getElementById('result').textContent;
+  if(!text || text === '请输入文本...'){ alert('请先生成'); return; }
+  const blob=new Blob([text],{type:'text/plain;charset=utf-8'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='banner.txt';
+  a.click();
+  setTimeout(function(){URL.revokeObjectURL(a.href);},1000);
 }
 
 function clearAll(){

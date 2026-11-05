@@ -121,7 +121,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="依據 GB/T 1184 附錄B，選擇公差型別、公稱尺寸與公差等級，查詢幾何公差數值">Look up geometric dimensioning and tolerancing symbols, datums and callouts.</p>
     <div class="formula-box">
       <div class="formula-title">📐 計算公式</div>
-      <div class="formula-eq">t = f(公稱尺寸, 公差等級)（GB/T 1184）；位置度 = 2t圓度，跳動 = 1.4t圓度</div>
+      <div class="formula-eq">圓度/直線度按 GB/T 1184 附錄B 表值；平行度、位置度、跳動按經驗係數估算（非標準表值）</div>
       <p class="formula-desc">依據 GB/T 1184 附錄B，選擇公差型別、公稱尺寸與公差等級，查詢幾何公差數值</p>
     </div>
     <div class="input-row">
@@ -218,15 +218,17 @@ var straightTable=[
 ];
 function findIndex(breaks,val){
   for(var i=0;i<breaks.length;i++){if(val<=breaks[i])return i;}
-  return breaks.length-1;
+  return -1; // 超出表范围
 }
 function lookupRound(D,grade){
   var idx=findIndex(D_breaks,D);
+  if(idx<0)return null;
   if(grade<0)grade=0;if(grade>12)grade=12;
   return roundTable[grade][idx];
 }
 function lookupStraight(L,grade){
   var idx=findIndex(L_breaks,L);
+  if(idx<0)return null;
   if(grade<1)grade=1;if(grade>12)grade=12;
   return straightTable[grade-1][idx];
 }
@@ -269,9 +271,15 @@ function calc(){
   else if(type==='parallel'){tUm=lookupStraight(D,g)*1.25;}  // 方向公差参照
   else if(type==='position'){tUm=lookupRound(D,g-1<0?0:g-1)*2;} // 位置度取直径φ值
   else if(type==='runout'){tUm=lookupRound(D,g-1<0?0:g-1)*1.4;}
+  if(tUm==null){
+    document.getElementById('res').innerHTML='<p style="color:var(--danger);">超出 GB/T 1184 表范围：直径须 ≤500 mm、长度须 ≤10000 mm，请分段或查专用标准。</p>';
+    lastResult='';return;
+  }
   var tMm=tUm/1000;
   var diaSym=type==='position'?'φ':'';
-  var rangeLabel=isDiameter?D_breaks[findIndex(D_breaks,D)]:L_breaks[findIndex(L_breaks,D)];
+  var breaks=isDiameter?D_breaks:L_breaks;
+  var ri=findIndex(breaks,D);
+  var rangeLabel=breaks[ri];
   var gradeDesc='';
   if(g<=3)gradeDesc='高精度（量仪/精密机械）';
   else if(g<=5)gradeDesc='精密级（精密机床主轴）';
@@ -287,7 +295,8 @@ function calc(){
     '<p style="font-size:13px;">主参数：'+typeParam[type]+' = '+D+'mm（查表范围 ≤'+rangeLabel+'mm）</p>'+
     '<p style="font-size:13px;">公差等级：'+g+'级 — '+gradeDesc+'</p>'+
     (type==='position'?'<p style="font-size:13px;color:var(--info);">ℹ 位置度/同轴度公差值为直径φ值</p>':'')+
-    '<p style="font-size:13px;color:var(--text-muted);">标注示例：'+diaSym+(tUm<1?tUm.toFixed(2):tMm.toFixed(3))+'</p>';document.getElementById('res').innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
+    '<p style="font-size:13px;color:var(--text-muted);">标注示例：'+diaSym+(tUm<1?tUm.toFixed(2):tMm.toFixed(3))+'</p>'+
+    ((type==='parallel'||type==='position'||type==='runout')?'<p style="font-size:13px;color:var(--warning);">⚠ 该类型数值由圆度/直线度表按经验系数估算，正式标注请查 GB/T 1184 附录B 的 B3–B5 表。</p>':'');document.getElementById('res').innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
   lastResult='公差类型:'+typeNames[type]+', 公称尺寸:'+D+'mm, 等级:'+g+'级\n公差值:'+diaSym+tMm.toFixed(4)+'mm ('+tUm.toFixed(2)+'μm)\n精度评价:'+gradeDesc;
 }
 function copyRes(){

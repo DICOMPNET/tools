@@ -140,7 +140,7 @@ s.parentNode.insertBefore(el, s);
 </ul>
 <p>鹽度變化直接影響溶氧、滲透壓與存活,換水/補水時需監控。</p>
 </div>
-      <div class="formula-eq">鹽度混合配水（本頁程式碼口徑，非鹽質量÷體積定義式）：需加入水體積 V2=現有體積 V1×(目標鹽度 St−現有鹽度 S1)÷(加入水鹽度 S2−目標鹽度 St)（L）；混合後總體積=V1+V2；實際最終鹽度=(V1×S1+V2×S2)÷總體積（‰）；混合模式按目標與現有鹽度比較分為加鹽/稀釋/維持。校驗：V1≤0 或任一鹽度為負即提示中止；|S2−St|&lt;10⁻⁶ 時已達目標提示無需混合、否則提示無法混合；V2 為負提示方向檢查——目標高於現有需 S2&gt;St、低於現有需 S2&lt;St。判據：無固定分級，各鹽度均按 ‰ 輸入。</div>
+      <div class="formula-eq">鹽度混合配水（本頁程式碼口徑，非鹽質量÷體積定義式）：需加入水體積 V2=現有體積 V1×(目標鹽度 St−現有鹽度 S1)÷(加入水鹽度 S2−目標鹽度 St)（L）；混合後總體積=V1+V2；實際最終鹽度=(V1×S1+V2×S2)÷總體積（‰）；混合模式按目標與現有鹽度比較分為加鹽/稀釋/維持。校驗：V1 須&gt;0，S1/S2/St 須≥0；四項均須顯式填寫，留空即中止並清空上次結果（空值不等於 0‰，淡水需明確輸入 0）；|S2−St|&lt;10⁻⁶ 時已達目標提示無需混合、否則提示無法混合；V2 為負提示方向檢查——目標高於現有需 S2&gt;St、低於現有需 S2&lt;St。判據：無固定分級，各鹽度均按 ‰ 輸入。</div>
       <p class="formula-desc">海水/淡水混合達到目標鹽度，支援雙向混合計算</p>
     </div>
 
@@ -259,12 +259,20 @@ s.parentNode.insertBefore(el, s);
 <script>
 let lastResult = '';
 
-function num(id){ return +document.getElementById(id).value || 0; }
+function num(id){
+  const raw=document.getElementById(id).value.trim();
+  if(raw==='') return NaN; // 留空≠0，避免把未测盐度当作淡水
+  return +raw;
+}
 
 function calc(){
   const v1 = num('v1'), s1 = num('s1'), s2 = num('s2'), st = num('st');
-  if (v1 <= 0) { ToolBox.showToast(i18nText('toast.msg020'), 'error'); return; }
-  if (s1 < 0 || s2 < 0 || st < 0) { ToolBox.showToast(i18nText('toast.msg517'), 'error'); return; }
+  if ([v1,s1,s2,st].some(isNaN) || v1 <= 0 || s1 < 0 || s2 < 0 || st < 0) {
+    lastResult = '';
+    document.getElementById('result').innerHTML='<p style="text-align:center;color:var(--danger);">⚠️ 四项均需填写有效数值：现有水量须 &gt;0，三个盐度须 ≥0。未测盐度请勿留空（淡水请明确输入 0）</p>';
+    ToolBox.showToast(i18nText('toast.msg517'), 'error');
+    return;
+  }
 
   // V2 = V1 * (St - S1) / (S2 - St)
   if (Math.abs(s2 - st) < 1e-6) {

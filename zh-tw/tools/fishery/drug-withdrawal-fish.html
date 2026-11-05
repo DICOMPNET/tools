@@ -115,7 +115,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="按實際水溫校正魚藥休藥期（度日模型），保障水產品食用安全">Compute the drug withdrawal period with temperature correction for fish.</p>
     <div class="formula-box">
       <div class="formula-title">📐 計算公式</div>
-      <div class="formula-eq">水產休藥期（度日模型）：度日需求 K = 標準休藥期 × (參考水溫 − 代謝溫度下限)（℃·天）；校正休藥期天數 = K ÷ (實際水溫 T − 溫度下限)，有效水溫 ≤0 時提示「水溫過低代謝極慢」並返回；校正係數 = 校正天數 ÷ 標準天數。校驗：水溫、標準天數、參考水溫、溫度下限任一非數或標準天數 ≤0 時報錯返回。判據：校正天數 ≤ 標準天數判水溫較高休藥期縮短、&gt; 標準天數判休藥期延長。</div>
+      <div class="formula-eq">水產休藥期（度日模型）：度日需求 K = 標準休藥期 × (參考水溫 − 代謝溫度下限)（℃·天）；校正休藥期 = K ÷ (實際水溫 T − 溫度下限)，建議上市間隔按結果向上取整；有效水溫 ≤0 時提示「水溫過低代謝極慢」並返回；校正係數 = 校正天數 ÷ 標準天數。校驗：四項輸入均須為有效數值，標準天數 &gt;0、溫度下限 ≥0、參考水溫 &gt; 溫度下限、實際水溫 &gt; 溫度下限且 ≤40℃，任一不滿足即清空結果並提示。判據：向上取整後的天數 ≤ 標準天數判「水溫較高、休藥期縮短」，否則判「休藥期延長」。內建標準天數僅為示例值，須以藥品說明書與當地法規為準。</div>
       <p class="formula-desc">按實際水溫校正魚藥休藥期（度日模型），保障水產品食用安全</p>
     </div>
 
@@ -145,7 +145,7 @@ s.parentNode.insertBefore(el, s);
     <div class="result-box" id="result"></div> <div id="drug_withdrawal_fishTable"></div> <div id="drug_withdrawal_fishDiff"></div> <div id="drug_withdrawal_fishChart"></div> <div id="drug_withdrawal_fishHist"></div>
 
     <div class="tip-box tip-info">
-      <strong>計算依據：</strong>採用度日(degree-day)模型：消除所需度日 K=標準天數×(參考溫度-溫度下限)；校正天數=K÷(實際水溫-溫度下限)。水溫越高代謝越快、休藥期越短；低於下限時藥物代謝極慢，建議延長並加強檢測。
+      <strong>計算依據：</strong>採用度日(degree-day)模型：消除所需度日 K=標準天數×(參考溫度-溫度下限)；校正天數=K÷(實際水溫-溫度下限)，建議上市間隔按校正天數向上取整。水溫越高代謝越快、休藥期越短；低於下限時藥物代謝極慢，建議延長並加強檢測。<br><strong>重要提示：</strong>內建的五種藥物標準天數（14/21/14/30/5 天 @15℃、下限 5℃）只是常見說明書的示例值，並非權威上限；部分藥品與地區採用更高的度日口徑（如恩諾沙星常按 500 度日），結果可能顯著短於當地要求。實際上市前必須以下列三項為準：① 藥品說明書標註的休藥期；② 當地監管部門規定；③ 抽樣殘留檢測結果。
     </div>
   </div>
 
@@ -231,25 +231,28 @@ function applyDrug(){
   calc();
 }
 let lastResult='';
+function readNum(id){
+  const el=document.getElementById(id);
+  const raw=el&&el.value!=null?String(el.value).trim():'';
+  return raw===''?NaN:+raw;
+}
 function calc(){
-  const T=+document.getElementById('temp').value;
-  const std=+document.getElementById('stdDays').value;
-  const ref=+document.getElementById('refTemp').value;
-  const tbase=+document.getElementById('tbase').value;
-  if([T,std,ref,tbase].some(isNaN)||std<=0){ToolBox.showToast(i18nText('toast.msg721'),'error');return;}
-  const K=std*(ref-tbase); // 度日
-  const effT=T-tbase;
-  let days,note,cls;
-  if(effT<=0){
-    days='—';note='水温过低，药物代谢极慢，休药期需大幅延长并检测残留';cls='error';
-    lastResult=`鱼药休药期校正
-水温 ${T}℃ 低于温度下限 ${tbase}℃，代谢极慢，建议延长休药期并检测残留。`;
-    const __g1=`<div class="tip-box tip-error">${note}</div><div class="step-line">度日需求 K=${K.toFixed(0)}℃，当前有效温度为 0。</div>`;document.getElementById('result').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
+  const T=readNum('temp');
+  const std=readNum('stdDays');
+  const ref=readNum('refTemp');
+  const tbase=readNum('tbase');
+  if([T,std,ref,tbase].some(isNaN)||std<=0||tbase<0||ref<=tbase||T<=tbase||T>40||ref>40){
+    lastResult='';
+    document.getElementById('result').innerHTML='<div class="tip-box tip-error">请检查输入：标准休药期须 &gt;0；温度下限须 ≥0 且低于参考水温；实际水温须高于温度下限且不超过 40℃。</div>';
     return;
   }
-  days=K/effT;
+  const K=std*(ref-tbase); // 度日
+  const effT=T-tbase;
+  const days=K/effT;
+  const daysCeil=Math.ceil(days);
   const ratio=days/std;
-  let txt=days<=std?'🟢 水温较高，休药期缩短':'🟠 水温较低，休药期延长';
+  const txt=daysCeil<=std?'🟢 水温较高，休药期缩短':'🟠 水温较低，休药期延长';
+  const cls=daysCeil<=std?'success':'warn';
   lastResult=`鱼药休药期校正
 ====================
 鱼药：${DRUG[document.getElementById('drug').value].name}
@@ -257,12 +260,13 @@ function calc(){
 实际水温：${T}℃  温度下限：${tbase}℃
 度日需求：${K.toFixed(0)} ℃·天
 校正后休药期：${days.toFixed(1)} 天
-${txt}`;
-  cls=days<=std?'success':'warn';
+建议上市间隔：${daysCeil} 天（向上取整）
+${txt}
+注意：内置标准值仅为示例，须以药品说明书与当地法规为准。`;
   const __g2=`
     <div class="tip-box tip-${cls}" style="text-align:center;">
-      <div style="font-size:28px;font-weight:700;">${days.toFixed(1)} 天</div>
-      <div>校正后休药期 · ${txt}</div>
+      <div style="font-size:28px;font-weight:700;">${daysCeil} 天</div>
+      <div>建议上市间隔（按 ${days.toFixed(1)} 天向上取整）· ${txt}</div>
     </div>
     <div class="stat-grid">
       <div class="stat-card"><div class="val">${std}</div><div class="lbl">标准天数</div></div>
@@ -271,7 +275,8 @@ ${txt}`;
       <div class="stat-card"><div class="val">${ratio.toFixed(2)}</div><div class="lbl">校正系数</div></div>
     </div>
     <div class="step-line">标准 ${std} 天 @ ${ref}℃，度日需求 K=${K.toFixed(0)}℃·天</div>
-    <div class="step-line">实际水温 ${T}℃，有效温度 ${effT.toFixed(1)}℃，校正休药期 <strong>${days.toFixed(1)} 天</strong></div>`;document.getElementById('result').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
+    <div class="step-line">实际水温 ${T}℃，有效温度 ${effT.toFixed(1)}℃，校正 ${days.toFixed(1)} 天 → 建议 <strong>${daysCeil} 天</strong></div>
+    <div class="step-line">内置标准天数仅为示例值，上市前请以药品说明书、当地法规与残留检测为准。</div>`;document.getElementById('result').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 }
 function copyResult(){if(!lastResult){ToolBox.showToast(i18nText(),'warning');return;}ToolBox.copyText(lastResult);}
 document.getElementById('drug').addEventListener('change',applyDrug);

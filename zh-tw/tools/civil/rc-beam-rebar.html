@@ -111,7 +111,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="按單筋矩形截面受彎構件，由彎矩設計值計算所需受拉鋼筋面積。">Rc Beam Rebar</p>
     <div class="formula-box">
       <div class="formula-title">📐 計算公式</div>
-      <div class="formula-eq">單筋矩形梁正截面：h₀ = h − a_s（mm，彎矩 M ×10⁶ 化 N·mm、α₁=1.0）；α_s = M ÷ (α₁·f_c·b·h₀²)；ξ = 1 − √(1−2α_s)；受拉鋼筋面積 A_s = ξ·α₁·f_c·b·h₀ ÷ f_y（mm²）；配筋率 ρ = A_s ÷ (b·h₀) × 100（%）。校驗：M、b、h₀、f_c、f_y 須 &gt;0，否則報「請輸入有效的截面與內力引數」。判據：α_s &gt;0.44 判超限，報「需增大截面或改為雙筋截面」。</div>
+      <div class="formula-eq">單筋矩形梁正截面：h₀ = h − a_s（mm，彎矩 M ×10⁶ 化 N·mm、α₁=1.0）；α_s = M ÷ (α₁·f_c·b·h₀²)；ξ = 1 − √(1−2α_s)；受拉鋼筋面積 A_s = ξ·α₁·f_c·b·h₀ ÷ f_y（mm²）；配筋率 ρ = A_s ÷ (b·h₀) × 100（%）。校驗：M、b、h₀、f_c、f_y 須 &gt;0，否則報「請輸入有效的截面與內力引數」。判據：α_s &gt; ξ_b(1−0.5ξ_b) 判超限（ξ_b = 0.8/[1+f_y/(2×10⁵×0.0033)]，GB 50010-2010 式 6.2.7/6.2.10；HRB400 時約 0.384），報「需增大截面或改為雙筋截面」。正常使用極限狀態裂縫寬度（GB 50010-2010 式 7.1.2）：σ_s = M_k ÷ (0.87·h₀·A_s)；ψ = 1.1 − 0.65·f_tk ÷ (ρ_te·σ_s)（夾取 0.2 ≤ ψ ≤ 1.0）；ρ_te = A_s ÷ A_te（矩形受彎 A_te=0.5·b·h，ρ_te&lt;0.01 時取 0.01）；d_eq = Σ(n_i·d_i²) ÷ Σ(n_i·ν_i·d_i)（帶肋 ν=1.0、光面 ν=0.7）；w_max = α_cr·ψ·σ_s/E_s·(1.9c + 0.08·d_eq/ρ_te)，受彎 α_cr=1.9、E_s=2×10⁵ MPa；對照 GB 50010-2010 表 3.3.1 三級裂縫 0.3mm（二級 0.2mm、一級 0.1mm/預應力）判滿足與否。開裂判定：先按 7.1.1 算 M_cr = f_tk·W_0（W_0 = b·h²/6，未計塑性影響係數 γ，偏安全），M_k ≤ M_cr 時構件未開裂，ψ 不適用、w_max = 0；M_k > M_cr 才按式 7.1.2 計算。</div>
       <p class="formula-desc">按單筋矩形截面受彎構件，由彎矩設計值計算所需受拉鋼筋面積。</p>
     </div>
 
@@ -139,8 +139,41 @@ s.parentNode.insertBefore(el, s);
         <input type="number" id="fy" value="360" step="5" min="1" placeholder="如 360">
       </div>
       <div>
-        <label for="as">保護層 a_s (mm)</label>
+        <label for="as">a_s 受拉鋼筋合力點至受拉邊緣距離 (mm)</label>
         <input type="number" id="as" value="40" step="5" min="10" placeholder="如 40">
+      </div>
+    </div>
+
+    <div class="formula-title" style="margin-top:14px;">🧮 正常使用極限狀態（裂縫寬度）</div>
+    <div class="input-row">
+      <div>
+        <label for="Mk">標準組合彎矩 M_k (kN·m)</label>
+        <input type="number" id="Mk" value="80" step="1" min="0" placeholder="如 80">
+      </div>
+      <div>
+        <label for="AsA">實配受拉鋼筋面積 A_s (mm²)</label>
+        <input type="number" id="AsA" value="942" step="1" min="1" placeholder="如 942（3Φ20）">
+      </div>
+      <div>
+        <label for="d">鋼筋直徑 d (mm)</label>
+        <input type="number" id="d" value="20" step="1" min="1" placeholder="如 20">
+      </div>
+    </div>
+    <div class="input-row">
+      <div>
+        <label for="c">保護層厚度 c (mm)</label>
+        <input type="number" id="c" value="25" step="5" min="5" placeholder="如 25">
+      </div>
+      <div>
+        <label for="ftk">f_tk 混凝土抗拉強度標準值 (MPa)</label>
+        <input type="number" id="ftk" value="2.01" step="0.01" min="0.1" placeholder="如 C30 取 2.01">
+      </div>
+      <div>
+        <label for="nu">鋼筋型別 ν（d_eq 計算）</label>
+        <select id="nu" style="font-size:16px;">
+          <option value="1.0">帶肋鋼筋 (ν=1.0)</option>
+          <option value="0.7">光面鋼筋 (ν=0.7)</option>
+        </select>
       </div>
     </div>
 
@@ -169,6 +202,7 @@ s.parentNode.insertBefore(el, s);
       </tr></thead>
       <tbody>
         <tr><td data-zh="受彎正截面配筋">Flexural reinforcement</td><td>GB 50010 (Code for design of concrete structures), flexural members</td><td data-zh="矩形截面單筋:αs 驗算界限相對受壓區高度">Singly-reinforced rectangular section; check alpha_s vs limit</td></tr>
+        <tr><td data-zh="裂縫寬度驗算">Crack width (SLS)</td><td>GB 50010-2010 式 7.1.2 / 表 3.3.1</td><td data-zh="三級裂縫 0.3mm；c 為保護層厚度，a_s 為受拉鋼筋合力點至受拉邊緣距離，兩者不同量">Grade-3 limit 0.3 mm; c is the cover thickness, a_s is the distance from the tension edge to the rebar centroid — different quantities</td></tr>
       </tbody>
     </table>
   </div>
@@ -178,8 +212,10 @@ s.parentNode.insertBefore(el, s);
       <div class="tool-notes-title">📌 計算說明</div>
       <ul>
         <li>α_s = M / (α₁·f_c·b·h₀²)，h₀ = h − a_s</li>
-        <li>ξ = 1 − √(1 − 2α_s)，單筋適筋上限 ξ_b ≈ 0.44（HRB400）</li>
+        <li>ξ = 1 − √(1 − 2α_s)，單筋適筋上限 α_s,max = ξ_b(1−0.5ξ_b)，HRB400 時 ξ_b=0.518、α_s,max≈0.384（GB 50010-2010 式 6.2.7）</li>
         <li>A_s = ξ·α₁·f_c·b·h₀ / f_y</li>
+        <li>c 為保護層厚度（鋼筋外邊緣至混凝土表面），a_s 為受拉鋼筋合力點至受拉邊緣距離，兩者是不同量；h₀ = h − a_s，不能用 c 直接代替 a_s（單排 a_s 常取 35~40mm、雙排 60~70mm）</li>
+        <li>裂縫寬度：先按 M_cr = f_tk·W_0（W_0 = b·h²/6，GB 50010-2010 7.1.1）判 M_k ≤ M_cr，未開裂時 ψ 不適用、w_max = 0；開裂後 σ_s = M_k/(0.87·h₀·A_s)，ψ 夾取 0.2~1.0，ρ_te = A_s/(0.5·b·h) 且不小於 0.01，w_max 對照三級裂縫 0.3mm（GB 50010-2010 式 7.1.2、表 3.3.1）</li>
         <li>結果僅供初步估算，實際設計按規範並考慮構造要求</li>
       </ul>
     </div>
@@ -220,20 +256,47 @@ s.parentNode.insertBefore(el, s);
 <script>
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
+function rcBeamSls(b,h,h0){
+  const Mk=num('Mk')*1e6, AsA=num('AsA'), d=num('d'), c=num('c'), ftk=num('ftk'), nu=num('nu')||1.0;
+  if(Mk<=0||AsA<=0||d<=0||c<=0||ftk<=0||nu<=0) return null;
+  const Ate=0.5*b*h;                       // 矩形受弯构件 A_te = 0.5bh
+  const rhoTe=Math.max(AsA/Ate,0.01);      // GB 50010-2010 式 7.1.2：ρ_te<0.01 取 0.01
+  const dEq=d/nu;                          // 单一钢筋 d_eq = d/ν（带肋 1.0、光面 0.7）
+  const Mcr=ftk*b*h*h/6;                   // 未开裂弯矩 M_cr=f_tk·W_0（GB 50010-2010 7.1.1；W_0=bh²/6，未计塑性影响系数 γ，偏安全；N·mm）
+  const cracked=Mk>Mcr;                    // 7.1.2 裂缝宽度公式仅适用于已开裂截面
+  const sigma=Mk/(0.87*h0*AsA);
+  let psi=cracked?Math.min(1.0,Math.max(0.2,1.1-0.65*ftk/(rhoTe*sigma))):null;
+  const wmax=cracked?1.9*psi*(sigma/2e5)*(1.9*c+0.08*dEq/rhoTe):0;   // α_cr=1.9（受弯）
+  return {rhoTe:rhoTe,dEq:dEq,Mcr:Mcr,cracked:cracked,sigma:cracked?sigma:null,psi:psi,wmax:wmax,ok:cracked?wmax<=0.3:true};
+}
 function calcTool(){
             const M=num('M')*1e6, b=num('b'), h=num('h'), fc=num('fc'), fy=num('fy'), as_=num('as');
             const a1=1.0; const h0=h-as_;
             if(M<=0||b<=0||h0<=0||fc<=0||fy<=0){ToolBox.setResult('result','<p class="tip-error">请输入有效的截面与内力参数。</p>');return;}
             const alphaS = M/(a1*fc*b*h0*h0);
-            if(alphaS>0.44){ToolBox.setResult('result','<p class="tip-error">α_s 超限，需增大截面或改为双筋截面。</p>');return;}
+            const xiB = 0.8/(1+fy/(2e5*0.0033)); // GB 50010-2010 式 6.2.7：ξ_b = β1/[1+f_y/(E_s·ε_cu)]
+            const asMax = xiB*(1-0.5*xiB);
+            if(alphaS>asMax){ToolBox.setResult('result','<p class="tip-error">α_s 超限（限值 '+asMax.toFixed(3)+'，GB 50010-2010 式 6.2.7/6.2.10），需增大截面或改为双筋截面。</p>');return;}
             const xi = 1-Math.sqrt(1-2*alphaS);
             const As = xi*a1*fc*b*h0/fy;
-            const html = dataGrid([
+            const rows = [
                 [alphaS.toFixed(4),'α_s'],
                 [xi.toFixed(4),'相对受压区高度 ξ'],
                 [As.toFixed(0),'受拉钢筋面积 A_s (mm²)'],
                 [(As/(b*h0)*100).toFixed(2),'配筋率 ρ (%)']
-            ]);
+            ];
+            const sls=rcBeamSls(b,h,h0);
+            if(sls){
+                rows.push([(sls.Mcr/1e6).toFixed(2),'未开裂弯矩 M_cr (kN·m)']);
+                rows.push([sls.cracked?'已开裂（M_k > M_cr）':'未开裂（M_k ≤ M_cr）','开裂判定']);
+                rows.push([sls.cracked?sls.sigma.toFixed(1):'不适用（未开裂）','钢筋应力 σ_s (MPa)']);
+                rows.push([sls.cracked?sls.psi.toFixed(3):'不适用（未开裂）','裂缝间应变不均匀系数 ψ']);
+                rows.push([sls.rhoTe.toFixed(4),'有效配筋率 ρ_te']);
+                rows.push([sls.dEq.toFixed(1),'等效直径 d_eq (mm)']);
+                rows.push([sls.cracked?sls.wmax.toFixed(3):'0.000（未开裂）','最大裂缝宽度 w_max (mm)']);
+                rows.push([sls.cracked?(sls.ok?'满足':'不满足'):'满足（未开裂）','裂缝控制（三级 0.3mm）']);
+            }
+            const html = dataGrid(rows);
             const __g1=html;ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
         }
 function resetForm(){document.getElementById('M').value = '150';
@@ -242,6 +305,12 @@ function resetForm(){document.getElementById('M').value = '150';
       document.getElementById('fc').value = '14.3';
       document.getElementById('fy').value = '360';
       document.getElementById('as').value = '40';
+      document.getElementById('Mk').value = '80';
+      document.getElementById('AsA').value = '942';
+      document.getElementById('d').value = '20';
+      document.getElementById('c').value = '25';
+      document.getElementById('ftk').value = '2.01';
+      document.getElementById('nu').value = '1.0';
       calcTool();}
 calcTool();
 
@@ -255,17 +324,30 @@ function __rc_beam_rebarExtras(){
     var xi = 1-Math.sqrt(1-2*alphaS);
     var As = xi*a1*fc*b*h0/fy;
     if (!isFinite(__rc_beam_rebarNum('M')) || !isFinite(__rc_beam_rebarNum('b')) || !isFinite(__rc_beam_rebarNum('h')) || !isFinite(__rc_beam_rebarNum('fc')) || !isFinite(__rc_beam_rebarNum('fy')) || !isFinite(__rc_beam_rebarNum('as'))) return;
+    var xiB = 0.8/(1+fy/(2e5*0.0033)); if (alphaS > xiB*(1-0.5*xiB)) return;
+    var sls = rcBeamSls(b,h,h0);
     var en=TBKit.util.isEn();
-    TBKit.matrix.table('#rc_beam_rebarTable',{
-        head: en?['Item','Value']:['项目','数值'],
-        rows: [
+    var rows = [
             ['α_s', alphaS.toFixed(4)],
             ['相对受压区高度 ξ', xi.toFixed(4)],
             ['受拉钢筋面积 A_s (mm²)', As.toFixed(0)],
             ['配筋率 ρ (%)', (As/(b*h0)*100).toFixed(2)],
-        ]
+        ];
+    if (sls) {
+        rows.push(['未开裂弯矩 M_cr (kN·m)', (sls.Mcr/1e6).toFixed(2)]);
+        rows.push(['开裂判定', sls.cracked?'已开裂（M_k > M_cr）':'未开裂（M_k ≤ M_cr）']);
+        rows.push(['钢筋应力 σ_s (MPa)', sls.cracked?sls.sigma.toFixed(1):'不适用（未开裂）']);
+        rows.push(['裂缝间应变不均匀系数 ψ', sls.cracked?sls.psi.toFixed(3):'不适用（未开裂）']);
+        rows.push(['有效配筋率 ρ_te', sls.rhoTe.toFixed(4)]);
+        rows.push(['等效直径 d_eq (mm)', sls.dEq.toFixed(1)]);
+        rows.push(['最大裂缝宽度 w_max (mm)', sls.cracked?sls.wmax.toFixed(3):'0.000（未开裂）']);
+        rows.push(['裂缝控制（三级 0.3mm）', sls.cracked?(sls.ok?'满足':'不满足'):'满足（未开裂）']);
+    }
+    TBKit.matrix.table('#rc_beam_rebarTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: rows
     });
-    TBKit.history.record({M:__rc_beam_rebarRaw('M'), b:__rc_beam_rebarRaw('b'), h:__rc_beam_rebarRaw('h'), fc:__rc_beam_rebarRaw('fc'), fy:__rc_beam_rebarRaw('fy'), as:__rc_beam_rebarRaw('as'), a1:a1});
+    TBKit.history.record({M:__rc_beam_rebarRaw('M'), b:__rc_beam_rebarRaw('b'), h:__rc_beam_rebarRaw('h'), fc:__rc_beam_rebarRaw('fc'), fy:__rc_beam_rebarRaw('fy'), as:__rc_beam_rebarRaw('as'), Mk:__rc_beam_rebarRaw('Mk'), AsA:__rc_beam_rebarRaw('AsA'), d:__rc_beam_rebarRaw('d'), c:__rc_beam_rebarRaw('c'), ftk:__rc_beam_rebarRaw('ftk'), nu:__rc_beam_rebarRaw('nu'), a1:a1});
     function __rc_beam_rebarRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
     TBKit.history.mount('#rc_beam_rebarHist',function(rec){ __rc_beam_rebarRestore(rec); calcTool(); });
     TBKit.util.diffBox('#rc_beam_rebarDiff',['a1']);
@@ -277,9 +359,9 @@ function __rc_beam_rebarExport(){
 function __rc_beam_rebarPresets(){
     if (typeof TBKit === 'undefined') return;
     TBKit.preset.bar('#rc_beam_rebarPresets',[
-        {label:'默认',labelEn:'Default',values:{M:'150', b:'250', h:'500', fc:'14.3', fy:'360', as:'40'}},
-        {label:'示例 2×',labelEn:'Example 2×',values:{M:'300', b:'500', h:'1000', fc:'28.6', fy:'720', as:'80'}},
-        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{M:'75', b:'125', h:'250', fc:'7.15', fy:'180', as:'20'}},
+        {label:'默认',labelEn:'Default',values:{M:'150', b:'250', h:'500', fc:'14.3', fy:'360', as:'40', Mk:'80', AsA:'942', d:'20', c:'25', ftk:'2.01', nu:'1.0'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{M:'300', b:'500', h:'1000', fc:'28.6', fy:'720', as:'80', Mk:'160', AsA:'1884', d:'25', c:'30', ftk:'3.11', nu:'1.0'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{M:'75', b:'125', h:'250', fc:'7.15', fy:'180', as:'20', Mk:'40', AsA:'471', d:'16', c:'20', ftk:'1.27', nu:'1.0'}},
     ],function(){ calcTool(); });
 }
 var __tb_fn0 = calcTool;
@@ -317,14 +399,16 @@ else document.addEventListener('DOMContentLoaded', __rc_beam_rebarBoot);
 <ul class="dd-list">
 <li>矩形梁正截面受彎：已知彎矩 M 求底筋 As，並校核 ξ≤ξb 防超筋脆性。</li>
 <li>雙筋截面：ξ&gt;ξb 時加受壓鋼筋，或加大截面/提高<a class="term-link" href="/zh-tw/tools/construction/concrete-calculator.html">混凝土</a>等級。</li>
-<li>裂縫與撓度：配筋滿足強度後還需按使用階段驗算。</li>
+<li>裂縫寬度：按 GB 50010-2010 式 7.1.2 由 M_k、A_s、f_tk、d_eq、c 算 w_max，對照表 3.3.1 三級 0.3mm；計算前先按 7.1.1 的 M_cr = f_tk·W_0 判是否開裂，M_k ≤ M_cr 時 ψ 不適用、w_max 記 0。c（保護層厚度）與 a_s（合力點距離）是兩個不同量，不可混用。</li>
 </ul>
 <div class="dd-example"><div class="dd-ex-title">矩形梁受彎配筋</div><div class="dd-ex-body">b=200、h=500、h0=465、C30/HRB400、M=120kN·m：αs=M/(α1fc b h0²)=120e6/(1.0×14.3×200×465²)≈0.195，ξ=1-√(1-2×0.195)=0.219&lt;ξb=0.518；As=ξbh0α1fc/fy=0.219×200×465×14.3/360≈808mm²，取 3Φ20(942)。</div></div>
+<div class="dd-example"><div class="dd-ex-title">裂縫寬度驗算（三級 0.3mm）</div><div class="dd-ex-body">b=250、h=500、h0=460、A_s=942mm²（3Φ20）、M_k=80kN·m、f_tk=2.01MPa（C30）、c=25mm、d=20mm：A_te=0.5bh=62500mm²，ρ_te=942/62500=0.0151≥0.01；σ_s=M_k/(0.87h0A_s)=80e6/(0.87×460×942)≈212.2MPa；ψ=1.1-0.65×2.01/(0.0151×212.2)≈0.692（在 0.2~1.0 內）；d_eq=d/ν=20/1.0=20mm；w_max=1.9×0.692×(212.2/2×10⁵)×(1.9×25+0.08×20/0.0151)≈0.214mm≤0.3mm，滿足三級裂縫限值。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
 <dt>ξ&gt;ξb 怎麼辦？</dt><dd>屬超筋，破壞呈脆性不安全；應加大截面、提高混凝土等級或改雙筋（加受壓筋）受壓區高度，不能只加底筋。</dd>
 <dt>最小配筋率為什麼有？</dt><dd>防止少筋梁一裂即斷（脆性），ρ≥ρmin（約 0.2%）；配筋率過低按素混凝土梁設計反而更經濟。</dd>
 <dt>強度夠了還驗算什麼？</dt><dd>使用階段裂縫寬度與撓度，過大會影響耐久與觀感；大跨<a class="term-link" href="/zh-tw/tools/engineering/beam-calculator.html">梁撓度</a>常控制配筋而非強度。</dd>
+<dt>c 和 a_s 是一回事嗎？</dt><dd>不是。c 是保護層厚度（鋼筋外邊緣至混凝土表面），a_s 是受拉鋼筋合力點至受拉邊緣的距離；h₀=h-a_s，若把 c 當 a_s 會高估 h₀、低估配筋。單排梁 a_s 常取 35~40mm，雙排 60~70mm。</dd>
 </dl>
 </div>
 </section>
@@ -339,7 +423,7 @@ function __rbrSweep(){
     var hv=hs[k], h0=hv-as_;
     if(h0<=0)continue;
     var aS=Mn/(1.0*fc*b*h0*h0);
-    if(aS>0.44)continue;
+    var xiB=0.8/(1+fy/(2e5*0.0033)); if(aS>xiB*(1-0.5*xiB))continue;
     var xi=1-Math.sqrt(1-2*aS);
     var As=xi*b*h0*fc/fy;
     labels.push(hv.toFixed(0));

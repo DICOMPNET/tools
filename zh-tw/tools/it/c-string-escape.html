@@ -142,7 +142,7 @@ s.parentNode.insertBefore(el, s);
     <div class="toolbar">
       <div id="c_string_escapePresets"></div><button type="button" class="btn primary" onclick="esc()">轉義 ↑</button><button class="btn" type="button" onclick="__c_string_escapeExport()">匯出明細 CSV</button>
       <button type="button" class="btn primary" onclick="unesc()">反轉義 ↓</button>
-      <button type="button" class="btn success" onclick="copyResult()">複製結果</button>
+      <button type="button" class="btn success" onclick="copyResult(event)">複製結果</button>
       <button type="button" class="btn" onclick="clearAll()">清空</button>
       <div style="flex:1;"></div>
       <label style="margin:0;display:flex;align-items:center;gap:6px;font-size:13px;">
@@ -248,7 +248,9 @@ function esc(){
   const quote = qtype === 'single' ? "'" : '"';
   const wrap = document.getElementById('quote').checked;
   let out = '';
-  for(const ch of text){
+  const chars = [...text];
+  for(let idx = 0; idx < chars.length; idx++){
+    const ch = chars[idx];
     const cp = ch.codePointAt(0);
     switch(ch){
       case '\\': out += '\\\\'; break;
@@ -260,11 +262,20 @@ function esc(){
       case '\b': out += '\\b'; break;
       case '\f': out += '\\f'; break;
       case '\v': out += '\\v'; break;
-      case '\0': out += '\\0'; break;
       case '\x07': out += '\\a'; break;
       default:
-        if(cp < 0x20 || cp > 0x7E){
-          out += '\\x' + cp.toString(16).padStart(2,'0');
+        // 0xA0–0xFF 改走 \u 通用字符名（C 编译器按执行字符集还原成正确字符）；
+        // 只有控制字符（含 C1 0x80–0x9F）才用字节转义，因为 \u0080 这类 UCN 在 C 里非法。
+        if(cp < 0x20 || cp === 0x7F || (cp >= 0x80 && cp < 0xA0)){
+          // C 的 \x 转义会贪婪吞掉后续所有十六进制字符（"\x01A" 被解析成 0x1A）。
+          // 下一个字符是十六进制数字时改用最多 3 位的八进制转义，边界才明确。
+          const next = chars[idx + 1] || '';
+          if(/[0-9A-Fa-f]/.test(next)) out += '\\' + cp.toString(8).padStart(3,'0');
+          else out += '\\x' + cp.toString(16).padStart(2,'0');
+        } else if(cp > 0xFFFF){
+          out += '\\U' + cp.toString(16).padStart(8,'0');  // C99 通用字符名，避免 \x 超范围
+        } else if(cp > 0x7E){
+          out += '\\u' + cp.toString(16).padStart(4,'0');
         } else {
           out += ch;
         }
@@ -286,6 +297,15 @@ function unesc(){
     const c = text[i];
     if(c === '\\' && i + 1 < text.length){
       const n = text[i+1];
+      if(/[0-7]/.test(n)){
+        // C 八进制转义：从反斜杠后最多读 3 位（\0 单独即 NUL）
+        let o = '';
+        let m = i + 1;
+        while(m < text.length && /[0-7]/.test(text[m]) && o.length < 3){ o += text[m]; m++; }
+        out += String.fromCodePoint(parseInt(o,8));
+        i = m;
+        continue;
+      }
       switch(n){
         case 'n': out += '\n'; i += 2; break;
         case 'r': out += '\r'; i += 2; break;
@@ -299,19 +319,29 @@ function unesc(){
         case '\'': out += "'"; i += 2; break;
         case '"': out += '"'; i += 2; break;
         case '?': out += '?'; i += 2; break;
+        case 'u': {
+          let h = '';
+          let k = i + 2;
+          while(k < text.length && /[0-9a-fA-F]/.test(text[k]) && h.length < 4){ h += text[k]; k++; }
+          if(h.length === 4){ out += String.fromCodePoint(parseInt(h,16)); i = k; }
+          else { out += 'u'; i += 2; }
+          break;
+        }
+        case 'U': {
+          let h = '';
+          let k = i + 2;
+          while(k < text.length && /[0-9a-fA-F]/.test(text[k]) && h.length < 8){ h += text[k]; k++; }
+          const cpU = parseInt(h,16);
+          if(h.length === 8 && cpU <= 0x10FFFF){ out += String.fromCodePoint(cpU); i = k; }
+          else { out += 'U'; i += 2; }
+          break;
+        }
         case 'x':
           let h = '';
           let k = i + 2;
           while(k < text.length && /[0-9a-fA-F]/.test(text[k]) && h.length < 2){ h += text[k]; k++; }
           out += String.fromCodePoint(parseInt(h,16));
           i = k;
-          break;
-        case /[0-7]/:
-          let o = '';
-          let m = i + 1;
-          while(m < text.length && /[0-7]/.test(text[m]) && o.length < 3){ o += text[m]; m++; }
-          out += String.fromCodePoint(parseInt(o,8));
-          i = m;
           break;
         default: out += n; i += 2;
       }
@@ -323,11 +353,11 @@ function unesc(){
   document.getElementById('output').value = out;
 }
 
-function copyResult(){
+function copyResult(ev){
   const v = document.getElementById('output').value;
   if(!v) return;
+  const btn = (ev && ev.target) ? ev.target.closest('.btn') : null;
   navigator.clipboard.writeText(v).then(() => {
-    const btn = event.target.closest('.btn');
     if(btn){ btn.textContent = '✅ 已复制'; setTimeout(() => btn.textContent = '复制结果', 1500); }
   });
 }
@@ -363,7 +393,8 @@ function __c_string_escapeSnap(){
 function __c_string_escapeResText(){
     var r=document.getElementById('output');
     if(!r) return '';
-    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    var isField=r.tagName==='INPUT'||r.tagName==='TEXTAREA'||r.tagName==='SELECT';
+    var t=((isField?r.value:r.textContent)||'').replace(/\s+/g,' ').trim();
     if(!t||t==='--'||t==='—'||t==='-') return '';
     if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
     return t.slice(0,80);

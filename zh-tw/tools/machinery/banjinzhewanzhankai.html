@@ -120,7 +120,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="輸入板厚、折彎角度、內圓角半徑與K因子，計算折彎允許量、折彎扣除與展開長度">Compute sheet-metal bend flat pattern from thickness, angle, radius and K-factor.</p>
     <div class="formula-box">
       <div class="formula-title">📐 計算公式</div>
-      <div class="formula-eq">折彎允許量 BA = (R + K×t) × π×折彎角÷180（R 內圓角、t 板厚、K 中性層因子）；外截退量 OSSB = (R+t) × tan(折彎角÷2)；折彎扣除 BD = 2×OSSB − BA；展開總長 L = 翼緣a + 翼緣b − BD；中性層弧長 = (R+K×t) × 弧度角。校驗：板厚 &gt;0、折彎角 0~180°、R ≥0、K 因子 0~1、兩翼緣 ≥0，任一不滿足提示返回。判據：相對彎曲半徑 R/t &lt;0.5 偏小易裂紋（警告）、&gt;5 偏大回彈明顯、其餘合理。</div>
+      <div class="formula-eq">折彎允許量 BA = (R + K×t) × π×折彎角÷180（R 內圓角、t 板厚、K 中性層因子）；外截退量 OSSB = (R+t) × tan(折彎角÷2)；折彎扣除 BD = 2×OSSB − BA；展開總長 L = 翼緣a + 翼緣b − BD；中性層弧長 = (R+K×t) × 弧度角。校驗：板厚 &gt;0、折彎角 0~180°（不含端點，180° 時 tan(θ/2) 發散）、R ≥0、K 因子 0~1、兩翼緣 ≥0，任一不滿足提示返回。判據：相對彎曲半徑 R/t &lt;0.5 偏小易裂紋（警告）、&gt;5 偏大回彈明顯、其餘合理。</div>
       <p class="formula-desc">輸入板厚、折彎角度、內圓角半徑與K因子，計算折彎允許量、折彎扣除與展開長度</p>
     </div>
     <div class="input-row">
@@ -175,7 +175,7 @@ s.parentNode.insertBefore(el, s);
         <li>K 因子通常取 0.3~0.5，與材料和相對彎曲半徑 R/t 有關</li>
         <li>當 R/t < 0.5 時可能產生裂紋，應增大內圓角半徑</li>
         <li>折彎角度 θ 為折彎補角（材料實際彎曲角度），90° 為最常見</li>
-        <li>翼緣長度 A、B 為從外邊到切點的距離，留 0 可僅計算彎角引數</li>
+        <li>翼緣長度 A、B 為從外邊到兩翼緣虛擬尖角交叉點的距離；留 0 可僅計算彎角引數</li>
         <li>實際展開應考慮回彈，通常折彎角度需過彎 1°~3°</li>
       </ul>
     </div>
@@ -202,18 +202,18 @@ function onMat(){
 function readInputs(){
   var t=num('v_t'),ang=num('v_ang'),R=num('v_r'),K=num('v_k'),a=num('v_a'),b=num('v_b');
   setInvalid(document.getElementById('v_t'),t<=0);
-  setInvalid(document.getElementById('v_ang'),ang<0||ang>180);
+  setInvalid(document.getElementById('v_ang'),ang<=0||ang>=180);
   setInvalid(document.getElementById('v_r'),R<0);
   setInvalid(document.getElementById('v_k'),K<0||K>1);
   setInvalid(document.getElementById('v_a'),a<0);
   setInvalid(document.getElementById('v_b'),b<0);
-  var valid=t>0&&ang>=0&&ang<=180&&R>=0&&K>=0&&K<=1&&a>=0&&b>=0;
+  var valid=t>0&&ang>0&&ang<180&&R>=0&&K>=0&&K<=1&&a>=0&&b>=0;
   return {t:t,ang:ang,R:R,K:K,a:a,b:b,valid:valid};
 }
 function calc(){
   var iv=readInputs();
   if(!iv.valid){
-    document.getElementById('res').innerHTML='<p style="color:var(--danger);">请输入有效参数（板厚须大于0，角度0~180°，K因子0~1）</p>';
+    document.getElementById('res').innerHTML='<p style="color:var(--danger);">请输入有效参数（板厚须大于 0，角度须在 0°–180° 之间且不含端点，K 因子 0~1）</p>';
     lastResult='';return;
   }
   var t=iv.t,ang=iv.ang,R=iv.R,K=iv.K,a=iv.a,b=iv.b;
@@ -222,6 +222,7 @@ function calc(){
   var BA=(R+K*t)*(Math.PI*ang/180);            // 折弯允许量 mm
   var BD=2*OSSB-BA;                              // 折弯扣除 mm
   var L=a+b-BD;                                  // 展开总长 mm
+  var geomOk=(a>=OSSB)&&(b>=OSSB)&&(a+b>=BD);    // 翼缘须不小于外截退量
   // 中性层弧长
   var neutralArc=(R+K*t)*rad;
   var Rt=R/t;                                    // 相对弯曲半径
@@ -229,7 +230,7 @@ function calc(){
   var RtText=Rt<0.5?'偏小，易裂纹':(Rt>5?'偏大，回弹明显':'合理');
   var RtColor=Rt<0.5?'#D97706':(Rt>5?'#2563EB':'#059669');
   const __g2='<div class="data-grid">'+
-    '<div class="data-card"><div class="num">'+L.toFixed(3)+'</div><div class="label">展开总长 (mm)</div></div>'+
+    '<div class="data-card"><div class="num">'+(geomOk?L.toFixed(3):'—')+'</div><div class="label">展开总长 (mm)</div></div>'+
     '<div class="data-card"><div class="num">'+BA.toFixed(3)+'</div><div class="label">折弯允许量 BA (mm)</div></div>'+
     '<div class="data-card"><div class="num">'+BD.toFixed(3)+'</div><div class="label">折弯扣除 BD (mm)</div></div>'+
     '</div>'+
@@ -238,10 +239,11 @@ function calc(){
     '<div class="data-card"><div class="num">'+neutralArc.toFixed(3)+'</div><div class="label">中性层弧长 (mm)</div></div>'+
     '<div class="data-card"><div class="num" style="color:'+RtColor+';">'+Rt.toFixed(2)+'</div><div class="label">相对半径 R/t ('+RtText+')</div></div>'+
     '</div>'+
+    (geomOk?'':'<div class="tip-box tip-warn" style="margin-top:8px;">⚠ 翼缘 A/B 小于外截退量 OSSB，几何上无法按该公式展开，展开总长暂不显示；请核对测量口径（应为外边到虚拟尖角交叉点）。</div>')+
     '<p style="margin-top:10px;font-size:13px;">翼缘 A='+a+'mm + 翼缘 B='+b+'mm - 折弯扣除 BD='+BD.toFixed(3)+'mm</p>'+
     (crackWarn?'<p style="font-size:13px;color:var(--warning);">⚠ R/t='+Rt.toFixed(2)+' < 0.5，内圆角偏小可能产生裂纹，建议增大 R 或减小板厚</p>':'<p style="font-size:13px;color:var(--success);">✓ 相对弯曲半径 R/t 合理，弯曲成形性良好</p>')+
     '<p style="font-size:13px;color:var(--text-muted);">材料 K='+K+'，板厚 '+t+'mm，角度 '+ang+'°，内圆角 '+R+'mm</p>';document.getElementById('res').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
-  lastResult='板厚:'+t+'mm, 角度:'+ang+'°, 内圆角:'+R+'mm, K因子:'+K+'\n折弯允许量BA:'+BA.toFixed(3)+'mm, 折弯扣除BD:'+BD.toFixed(3)+'mm, 外截退量OSSB:'+OSSB.toFixed(3)+'mm\n展开总长:'+L.toFixed(3)+'mm (A='+a+'mm, B='+b+'mm)\n相对半径R/t='+Rt.toFixed(2)+' ('+RtText+')';
+  lastResult='板厚:'+t+'mm, 角度:'+ang+'°, 内圆角:'+R+'mm, K因子:'+K+'\n折弯允许量BA:'+BA.toFixed(3)+'mm, 折弯扣除BD:'+BD.toFixed(3)+'mm, 外截退量OSSB:'+OSSB.toFixed(3)+'mm\n展开总长:'+(geomOk?L.toFixed(3)+'mm':'无法展开（翼缘小于外截退量）')+' (A='+a+'mm, B='+b+'mm)\n相对半径R/t='+Rt.toFixed(2)+' ('+RtText+')';
 }
 function copyRes(){
   if(!lastResult){ToolBox.showToast(i18nText(),'warning');return;}

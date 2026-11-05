@@ -136,7 +136,7 @@ s.parentNode.insertBefore(el, s);
 <div class="card tool-card-accent" style="--tool-accent:#EC4899;">
     <h2 data-zh="🎲 隨機選擇器">🎲 Random Picker</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">選項按換行分割並去首尾空白、濾空行；不放回模式維護候選池，抽中即從池中移除；15 輪 × 80ms 快速滾動後定格輸出；歷史記錄保留最近 20 條</div>
+  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">選項按換行分割並去首尾空白、濾空行；不放回模式維護候選池，抽中即從池中移除；15 輪 × 80ms 快速滾動後定格輸出；抽取由隨機種子驅動，同種子 + 同列表可復算同一結果；歷史記錄保留最近 20 條</div>
   <p class="formula-desc" data-zh="本工具為純前端線上工具，資料在瀏覽器本地處理、不上傳伺服器，依據對應領域標準與規範進行計算或處理，結果僅供參考。 工具名稱：隨機選擇器 - 娛樂遊戲領域的線上工具。">Pick one item at random from your options, with multiple draws and a no-repeat mode — for deciding where to eat or who speaks first.</p>
 </div>
 
@@ -150,6 +150,10 @@ s.parentNode.insertBefore(el, s);
 吃沙拉
 不吃</textarea>
     <label style="margin-top:8px;"><input type="checkbox" id="unique" style="width:auto;display:inline-block;vertical-align:middle;"> 不重複抽取</label>
+    <div class="input-row" style="max-width:260px;margin-top:6px;">
+      <label>隨機種子（可選）：</label>
+      <input type="text" id="seed" placeholder="留空自動生成；填同一種子可復算">
+    </div>
     <div class="result-big" id="result">—</div>
     <div id="random_pickerTable"></div>
     <div id="random_pickerDiff"></div>
@@ -192,7 +196,7 @@ s.parentNode.insertBefore(el, s);
 <li>輕量隨機：純前端即時抽取，可重複。</li>
 </ul>
 <div class="dd-example"><div class="dd-ex-title">方法（抽取規則）</div><div class="dd-ex-body">在選項列表輸入若干項，隨機抽 1 項或多項；勾選「不放回」則已抽項不再出現，直到抽完。</div></div>
-<div class="dd-example"><div class="dd-ex-title">算例（演示）</div><div class="dd-ex-body">選項 [火鍋, 炒菜, 日料, 外賣] 抽 1 → 如「日料」；抽 3 不放回 → 3 個不同項（剩 1 項）。每個選項等機率 1/N。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例（演示）</div><div class="dd-ex-body">選項 [火鍋, 炒菜, 日料, 外賣] 抽 1 → 如「日料」；抽 3 不放回 → 3 個不同項（剩 1 項）。每次抽取時剩餘項等機率；抽 3 個時任一選項的入選機率為 3/N，不是 1/N。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
 <dt>和 raffle-picker 區別？</dt><dd>本工具是輕量「選項級」抽取；raffle 支援名單檔案、權重與滾動動畫，適合正式活動。</dd>
@@ -225,7 +229,7 @@ s.parentNode.insertBefore(el, s);
         </tr>
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="可復現性">Reproducibility</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="公開種子與演算法即可讓第三方復算同一結果">a published seed and algorithm let others recompute the draw</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="工具提供隨機種子輸入框：同種子 + 同列表即可讓第三方復算同一結果">the tool exposes a seed field: same seed and list let others recompute the same pick</td>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="Fair draw practice">Fair draw practice</td>
         </tr>
       </tbody>
@@ -243,14 +247,47 @@ s.parentNode.insertBefore(el, s);
 <!-- /注意事項區塊 -->
 </div>
 <script>
-let pool,history;
+let pool,history,poolSig;
 
+function secureCrypto(){return (typeof crypto!=='undefined'&&crypto&&crypto.getRandomValues)?crypto:((typeof window!=='undefined'&&window.crypto&&window.crypto.getRandomValues)?window.crypto:null);}
+function hashSeed(s){
+  let h=2166136261>>>0;
+  for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619);}
+  return h>>>0;
+}
+function makeRng(seedStr){
+  let s=hashSeed(String(seedStr))||1;
+  return function(){
+    s^=s<<13;s>>>=0;s^=s>>17;s^=s<<5;s>>>=0;
+    return (s>>>0)/4294967296;
+  };
+}
+// 纯函数：给定候选列表与种子，返回抽中项；同种子 + 同列表结果一致。
+function randomPickOne(list,seed){
+  const rng=makeRng(seed);
+  return list[Math.floor(rng()*list.length)];
+}
 function start(){
   const list=document.getElementById('items').value.split('\n').map(s=>s.trim()).filter(Boolean);
   if(list.length<1){alert('请至少输入 1 个选项');return;}
+  const seedEl=document.getElementById('seed');
+  let seed=(seedEl&&seedEl.value.trim())?seedEl.value.trim():'';
+  if(!seed){
+    const c=secureCrypto();
+    if(!c){
+      document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 当前浏览器不支持 Web Crypto 安全随机数，无法生成不可预测的抽取种子（也不会静默回落 Math.random）；请升级浏览器后重试。</p>';
+      return;
+    }
+    const a=new Uint32Array(1);
+    c.getRandomValues(a);
+    seed=(a[0].toString(36)+Date.now().toString(36)).slice(-10);
+  }
   const unique=document.getElementById('unique').checked;
   if(unique){
-    if(!pool||pool.length===0)pool=[...list];
+    // 仅在首次抽取或选项列表变更时重建池；抽空后不再静默重置，
+    // 否则「不重复抽取」会在用户无感知的情况下重新从第 1 项开始。
+    const sig=list.join('\n');
+    if(!pool||poolSig!==sig){pool=[...list];poolSig=sig;}
     if(pool.length===0){
       const __h0='<p style="color:var(--danger);">所有选项已抽完！</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h0;
       return;
@@ -267,7 +304,7 @@ function start(){
     cycles++;
     if(cycles>=15){
       clearInterval(interval);
-      const picked=pool[Math.floor(Math.random()*pool.length)];
+      const picked=randomPickOne(pool,seed);
       r.textContent=picked;
       if(unique){
         pool=pool.filter(x=>x!==picked);
@@ -275,13 +312,33 @@ function start(){
       history=history||[];
       history.unshift(picked);
       if(history.length>20)history.pop();
-      const __h1=`<p>本次结果：<strong>${picked}</strong></p>${unique?`<p>剩余：${pool.length} 项</p>`:''}`;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h1;
-      const __h2='历史：'+history.map(s=>`<span>${s}</span>`).join('');if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('past').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('past').innerHTML=__h2;
+      var outEl=document.getElementById('output');
+      outEl.textContent='';
+      var p1=document.createElement('p');
+      p1.appendChild(document.createTextNode('本次结果：'));
+      var st=document.createElement('strong');
+      st.textContent=picked;
+      p1.appendChild(st);
+      outEl.appendChild(p1);
+      var ps=document.createElement('p');
+      ps.style.fontSize='12px';
+      ps.style.color='var(--text-muted)';
+      ps.textContent='随机种子：'+seed+'（同列表 + 同种子可复算同一结果）';
+      outEl.appendChild(ps);
+      if(unique){
+        var p2=document.createElement('p');
+        p2.appendChild(document.createTextNode('剩余：'+pool.length+' 项'));
+        outEl.appendChild(p2);
+      }
+      var past=document.getElementById('past');
+      past.textContent='历史：';
+      history.forEach(function(s){var sp=document.createElement('span');sp.textContent=s;past.appendChild(sp);});
     }
   },80);
 }
 function reset(){
   pool=null;
+  poolSig=null;
   history=[];
   document.getElementById('result').textContent='—';
   document.getElementById('output').textContent='点击"开始"随机选择一项';

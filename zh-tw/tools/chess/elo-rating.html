@@ -132,7 +132,7 @@ s.parentNode.insertBefore(el, s);
     <h2 data-zh="🔮 Elo等級分估算">Elo Rating</h2>
     <div class="formula-box">
       <div class="formula-title">📐 計算公式</div>
-      <div class="formula-eq">預期勝率 Ea = 1 ÷ (1 + 10^((Rb−Ra)/400))；等級分變化 = K × (實際得分 − Ea) × 局數；新等級分 = Ra + 總變化。校驗：K、局數為有效數。判據：分差越大，弱勢方贏一局加分越多。</div>
+      <div class="formula-eq">預期得分率 Ea = 1 ÷ (1 + 10^((Rb−Ra)/400))（勝=1、和=0.5、負=0）；等級分變化 = K × (實際得分 − Ea) × 局數；新等級分 = Ra + 總變化。校驗：K、局數為有效數。判據：分差越大，弱勢方贏一局加分越多。</div>
     </div>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="根據對局結果計算Elo等級分變化與預期勝率">Elo Rating</p>
 
@@ -162,6 +162,7 @@ s.parentNode.insertBefore(el, s);
           <option value="40">K=40（新註冊/30局以下）</option>
           <option value="20" selected>K=20（30局以上，2300以下）</option>
           <option value="10">K=10（2300以上）</option>
+          <option value="32">K=32（示例/部分平臺預設）</option>
         </select>
       </div>
       <div>
@@ -222,14 +223,14 @@ s.parentNode.insertBefore(el, s);
 <h3>💡 常見使用場景</h3>
 <ul class="dd-list">
 <li>單局分數變化：由 R_A、R_B 與勝負（勝/負/和）算 ΔE 與更新後分數。</li>
-<li>預期勝率：由分差算 P_A=1/(1+10^((R_B−R_A)/400))，預判對局傾向。</li>
+<li>預期得分率：由分差算 P_A=1/(1+10^((R_B−R_A)/400))（含和棋按 0.5 計），預判對局傾向。</li>
 <li>多局連算：連續多局累計分數變化，模擬一段賽程的升降軌跡。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">1500 vs 1600 勝、K=32 演練</div><div class="dd-ex-body">輸入 R_A=1500、R_B=1600、結果勝、K=32，工具輸出預期勝率約 36.4%、ΔE≈+22.7、新分≈1522.7，並提示弱方爆冷得分更高。</div></div>
+<div class="dd-example"><div class="dd-ex-title">1500 vs 1600 勝、K=32 演練</div><div class="dd-ex-body">輸入 R_A=1500、R_B=1600、結果勝、K=32，工具輸出預期得分率約 36.0%、ΔE≈+20.48、新分≈1520.5，並提示弱方爆冷得分更高。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
 <dt>K 值怎麼選？</dt><dd>新選手取大 K（如 40）快速收斂，成熟選手取小 K（10/20）；許多平臺預設 32。K 越大單局波動越大。</dd>
-<dt>預期勝率公式？</dt><dd>P=1/(1+10^(−ΔR/400))，分差 400 約對應勝率 0.91，0 分差雙方各 0.5。</dd>
+<dt>預期得分率公式？</dt><dd>P=1/(1+10^(−ΔR/400))，分差 400 約對應得分率 0.91，0 分差雙方各 0.5；Ea 含和棋，不等於純勝率。</dd>
 <dt>分數會無限漲嗎？</dt><dd>長期趨近真實水平；勝負平衡時分穩定，連勝/連敗會隨分差自動減速。</dd>
 </dl>
 </div>
@@ -294,7 +295,7 @@ function calc(){
     '<span class="rating-new">'+newRating.toFixed(0)+'</span>';$('ratingChange').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
   const __g2='<div class="data-card"><div class="num">'+(totalChange>=0?'+':'')+totalChange.toFixed(1)+'</div><div class="label">总分变化</div></div>'+
     '<div class="data-card"><div class="num">'+changePerGame.toFixed(2)+'</div><div class="label">每局变化</div></div>'+
-    '<div class="data-card"><div class="num">'+(winProb).toFixed(1)+'%</div><div class="label">预期胜率</div></div>'+
+    '<div class="data-card"><div class="num">'+(winProb).toFixed(1)+'%</div><div class="label">预期得分率</div></div>'+
     '<div class="data-card"><div class="num">'+newRating.toFixed(0)+'</div><div class="label">新等级分</div></div>';$('dataGrid').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
   var resultText=score===1?'胜利':score===0.5?'和棋':'失败';
   var html='<p>对局结果：<strong>'+resultText+'</strong>（得分 '+score+'）</p>'+
@@ -303,18 +304,19 @@ function calc(){
     '<p>每局变化：<strong style="color:'+(changePerGame>=0?'#10B981':'#EF4444')+';">'+(changePerGame>=0?'+':'')+changePerGame.toFixed(2)+'</strong> 分</p>'+
     '<p>'+games+'局后总变化：<strong style="color:'+(totalChange>=0?'#10B981':'#EF4444')+';">'+(totalChange>=0?'+':'')+totalChange.toFixed(1)+'</strong> 分</p>'+
     '<p>新等级分：<strong>'+newRating.toFixed(0)+'</strong></p>'+
-    '<h3 style="margin-top:14px;">预期胜率分析</h3>'+
-    '<p>胜率：<strong>'+winProb.toFixed(1)+'%</strong></p>'+
+    '<h3 style="margin-top:14px;">预期得分率分析（含和棋）</h3>'+
+    '<p>你方预期得分率：<strong>'+winProb.toFixed(1)+'%</strong></p>'+
     '<div class="expect-bar"><div class="expect-fill" style="width:'+winProb+'%;"></div></div>'+
-    '<p>败率：<strong>'+lossProb.toFixed(1)+'%</strong></p>'+
-    '<div class="expect-bar"><div class="expect-fill" style="width:'+lossProb+'%;background:#EF4444;"></div></div>';
+    '<p>对手预期得分率：<strong>'+lossProb.toFixed(1)+'%</strong></p>'+
+    '<div class="expect-bar"><div class="expect-fill" style="width:'+lossProb+'%;background:#EF4444;"></div></div>'+
+    '<p style="font-size:12px;color:var(--text-muted);">Elo 的 Ea 是「胜=1、和=0.5、负=0」的期望得分，并非纯胜率；两项之和恒为 100%。</p>';
   if(diff>100){html+='<div class="tip-box tip-info"><strong>💡 对手更强</strong>：对手等级分高出'+diff.toFixed(0)+'分，胜算较低但赢一局加分多。</div>';}
   else if(diff<-100){html+='<div class="tip-box tip-warn"><strong>⚠️ 对手较弱</strong>：你高出'+Math.abs(diff).toFixed(0)+'分，应稳扎稳打，输一局扣分多。</div>';}
   else{html+='<div class="tip-box tip-success"><strong>✓ 实力相当</strong>：双方等级分接近，胜负各半。</div>';}
   const __g3=html;$('resultBox').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
 }
 function copyResult(){
-  ToolBox.copyText($('result').innerText, i18nText('msg349'));
+  ToolBox.copyText($('resultBox').innerText, i18nText('msg349'));
 }
 calc();
 </script>
@@ -402,7 +404,7 @@ function __elo_ratingSnap(){
     return out;
 }
 function __elo_ratingResText(){
-    var r=document.getElementById('result');
+    var r=document.getElementById('resultBox');
     if(!r) return '';
     var t=(r.textContent||'').replace(/\s+/g,' ').trim();
     if(!t||t==='--'||t==='—'||t==='-') return '';

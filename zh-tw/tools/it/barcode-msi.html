@@ -132,17 +132,23 @@ s.parentNode.insertBefore(el, s);
     <h2 data-zh="📊 MSI 條形碼">📊 MSI Barcode</h2>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理與說明</div>
-  <div class="formula-eq">每位數字 = 8 個單元（0→窄空寬條，1→寬條窄空，其餘按二進位制展開）<br>校驗：Mod 10（Luhn）/ Mod 11 / Mod 1010 可選</div>
-  <div class="formula-desc">MSI（Modified Plessey）是脈衝調變型條碼，每位數字用 8 個單元表示：0 編碼為「窄空寬條」，1 編碼為「寬條窄空」，其餘數字按二進位制位展開為 8 個寬窄交替的單元。它只含數字、無字母，密度中等，主要用在零售貨架標籤與倉庫庫位標識。MSI 本身不校驗，實踐中常追加 Mod 10（即 Luhn 演算法）、Mod 11 或雙重 Mod 1010 校驗位，以防止掃描誤讀。</div>
+  <div class="formula-eq">每位數字 = 8 個「條+空」單元（0→窄條+寬空，1→寬條+窄空，其餘按二進位制位展開）<br>校驗：Mod 10 / Mod 11 可選</div>
+  <div class="formula-desc">MSI（Modified Plessey）是脈衝調變型條碼，每位數字按 4 位二進位制展開為 8 個「條+空」單元：位 0 為「窄條 + 寬空」，位 1 為「寬條 + 窄空」，寬窄比 2:1。它只含數字、無字母，密度中等，主要用在零售貨架標籤與倉庫庫位標識。MSI 本身不校驗，實踐中常追加 Mod 10（Luhn 類演算法）、Mod 11 校驗位，以防止掃描誤讀。</div>
 </div>
 
     <label>數字</label>
     <input type="text" id="data" value="1234567" style="margin-bottom:12px;">
+    <label>校驗位</label>
+    <select id="checkMode" style="margin-bottom:12px;">
+      <option value="none">不加校驗位</option>
+      <option value="mod10">Mod 10 校驗</option>
+      <option value="mod11">Mod 11 校驗</option>
+    </select>
     <div class="toolbar">
       <div id="barcode_msiPresets"></div><button type="button" class="btn primary" onclick="generate()">生成</button><button class="btn" type="button" onclick="downloadBarcodePNG()">下載 PNG</button><button class="btn" type="button" onclick="__barcode_msiExport()">匯出明細 CSV</button>
       <button type="button" class="btn success" onclick="copyResult()">複製</button>
     </div>
-    <div class="result-box" id="output"></div> <div id="barcode_msiTable"></div> <div id="barcode_msiDiff"></div> <div id="barcode_msiChart"></div> <div id="barcode_msiHist"></div>
+    <div class="result-box" id="output">點選生成按鈕</div> <div id="barcode_msiTable"></div> <div id="barcode_msiDiff"></div> <div id="barcode_msiChart"></div> <div id="barcode_msiHist"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -221,19 +227,39 @@ s.parentNode.insertBefore(el, s);
 <!-- /注意事項區塊 -->
 </div>
 <script>
-// MSI (Modified Plessey): each digit = 4 bits, bar/space pattern where 1=wide, 0=narrow
+// MSI (Modified Plessey): each digit = 4 bits, bit 1 = wide bar + narrow space, bit 0 = narrow bar + wide space
 const MSI={'0':'0000','1':'0001','2':'0010','3':'0011','4':'0100','5':'0101','6':'0110','7':'0111','8':'1000','9':'1001'};
-function buildMSI(text){
+function msiMod10(d){
+  let odd='', even=0;
+  for(let i=0;i<d.length;i++){
+    if((d.length-1-i)%2===0) odd+=d[i]; else even+=parseInt(d[i],10);
+  }
+  let twice=parseInt(odd||'0',10)*2;
+  let sum=even;
+  while(twice>0){ sum+=twice%10; twice=Math.floor(twice/10); }
+  return String((10-sum%10)%10);
+}
+function msiMod11(d){
+  let sum=0, w=2;
+  for(let i=d.length-1;i>=0;i--){
+    sum+=parseInt(d[i],10)*w;
+    w=w===7?2:w+1;
+  }
+  let c=(11-sum%11)%11;
+  return String(c===10?0:c);
+}
+function buildMSI(text,mode){
   text=text.replace(/\D/g,'');
-  let bits='110'; // start guard
+  if(!text) return {error:'empty'};
+  if(mode==='mod10') text+=msiMod10(text);
+  else if(mode==='mod11') text+=msiMod11(text);
+  let bits='110'; // start guard: 2-module bar + 1-module space
   for(const c of text){
     const p=MSI[c];if(!p)continue;
-    for(const b of p){
-      bits+= b==='1'?'1110':'10';
-    }
+    for(const b of p) bits+= b==='1'?'110':'100';
   }
-  bits+='1001'; // end guard
-  return bits;
+  bits+='1001'; // stop guard
+  return {bits,text};
 }
 function drawBarcode(bits,text){
   const N=bits.length;const modW=2;const barH=120;const textH=22;
@@ -253,16 +279,23 @@ function downloadBarcodePNG(){
   if(!cv){ if(window.ToolBox&&ToolBox.showToast)ToolBox.showToast('请先生成条形码','error'); else alert('请先生成条形码'); return; }
   var a=document.createElement('a');
   a.download='barcodemsi-'+Date.now()+'.png';
-  a.href=cv.toDataURL('image/png');
+  try { a.href=cv.toDataURL('image/png'); }
+  catch (e) { if(window.ToolBox&&ToolBox.showToast)ToolBox.showToast('导出失败：' + ((e && (e.name || e.message)) || '未知错误'),'error'); else alert('导出失败：' + ((e && (e.name || e.message)) || '未知错误')); return; }
   a.click();
   if(window.ToolBox&&ToolBox.showToast)ToolBox.showToast('PNG 已下载','success');
 }
 function generate(){
   const text=document.getElementById('data').value;
-  const bits=buildMSI(text);
-  const canvas=drawBarcode(bits,text.replace(/\D/g,''));
+  const mode=document.getElementById('checkMode').value;
+  const built=buildMSI(text,mode);
   const out=document.getElementById('output');
-  const __h0='<div class="bar-wrap"></div><div class="bar-text">'+escapeHtml(text)+'</div>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h0;
+  if(built.error){
+    out.innerHTML='<p style="color:var(--danger)">⚠ 请输入至少一位数字；MSI 仅支持 0–9。</p>';
+    return;
+  }
+  const canvas=drawBarcode(built.bits,built.text);
+  const __h0='<div class="bar-wrap"></div><div class="bar-text">'+escapeHtml(built.text)+'</div>';
+  out.innerHTML=__h0;
   out.querySelector('.bar-wrap').appendChild(canvas);
 }
 function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}

@@ -196,8 +196,8 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div class="toolbar" style="margin-top:12px;">
-      <button type="button" class="btn success" onclick="copyResult('chineseResult')">複製中文</button>
-      <button type="button" class="btn success" onclick="copyResult('moneyUpper')">複製大寫金額</button>
+      <button type="button" class="btn success" onclick="copyResult('chineseResult', this)">複製中文</button>
+      <button type="button" class="btn success" onclick="copyResult('moneyUpper', this)">複製大寫金額</button>
       <button type="button" class="btn" onclick="loadExample()">示例</button>
     </div>
   </div>
@@ -206,7 +206,7 @@ s.parentNode.insertBefore(el, s);
     <h2>📖 轉換示例</h2>
     <ul class="example-list">
       <li><span class="num">0</span> <span class="cn">→ 零</span></li>
-      <li><span class="num">10</span> <span class="cn">→ 一十</span></li>
+      <li><span class="num">10</span> <span class="cn">→ 十</span></li>
       <li><span class="num">100</span> <span class="cn">→ 一百</span></li>
       <li><span class="num">1000</span> <span class="cn">→ 一千</span></li>
       <li><span class="num">10000</span> <span class="cn">→ 一萬</span></li>
@@ -339,6 +339,15 @@ function convert(){
   const numStr = isNeg ? input.slice(1) : input;
   const [intPart, decPart] = numStr.split('.');
 
+  if(intPart.replace(/^0+(?=\d)/,'').length > 16){
+    document.getElementById('chineseResult').textContent = '整数部分最多支持 16 位';
+    document.getElementById('digitByDigit').textContent = '--';
+    document.getElementById('moneyUpper').textContent = '--';
+    document.getElementById('binResult').textContent = '--';
+    document.getElementById('hexResult').textContent = '--';
+    return;
+  }
+
   const digits = mode === 'lower' ? DIGITS_LOWER : mode === 'upper' ? DIGITS_UPPER : DIGITS_TRAD;
   const units = mode === 'lower' ? UNITS_LOWER : UNITS_UPPER;
   const bigUnits = mode === 'lower' ? BIG_UNITS_LOWER : BIG_UNITS_UPPER;
@@ -374,9 +383,13 @@ function convert(){
 
   // 进制
   const num = parseFloat(input);
-  if(Number.isInteger(num) && Math.abs(num) < 1e15){
-    document.getElementById('binResult').textContent = (num >>> 0).toString(2).replace(/(?=(?:\d{4})+$)(?!\d)/g, ' ');
-    document.getElementById('hexResult').textContent = '0x' + (num >>> 0).toString(16).toUpperCase();
+  if(Number.isInteger(num) && numStr.split('.')[0].replace(/^0+(?=\d)/,'').length <= 16){
+    // 用 BigInt 而非 >>> 0：位运算只保留 32 位，超过 2^31 的整数会被截断成错误结果
+    const bigStr = numStr.split('.')[0].replace(/^0+(?=\d)/,'') || '0';
+    const big = isNeg ? -BigInt(bigStr) : BigInt(bigStr);
+    const abs = big < 0n ? -big : big;
+    document.getElementById('binResult').textContent = (big < 0n ? '-' : '') + abs.toString(2).replace(/(?=(?:\d{4})+$)(?!\d)/g, ' ');
+    document.getElementById('hexResult').textContent = (big < 0n ? '-' : '') + '0x' + abs.toString(16).toUpperCase();
   } else {
     document.getElementById('binResult').textContent = '(仅整数支持)';
     document.getElementById('hexResult').textContent = '(仅整数支持)';
@@ -477,10 +490,11 @@ function convertMoney(numStr, digits, units, bigUnits, isNeg, mode){
   return result;
 }
 
-function copyResult(id){
+function copyResult(id, btn){
   const text = document.getElementById(id).textContent;
   navigator.clipboard.writeText(text).then(() => {
-    const btn = event.target; const old = btn.textContent;
+    if(!btn) return;
+    const old = btn.textContent;
     btn.textContent = '✅ 已复制'; setTimeout(() => btn.textContent = old, 1200);
   });
 }

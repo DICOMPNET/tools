@@ -165,7 +165,7 @@ s.parentNode.insertBefore(el, s);
     <h2 data-zh="🍳 食品烹飪計算器">Food Calculator</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="烘焙縮放 / 熱量計算 / 咖啡萃取 / 鹽度計算 / 辣度換算 / 保質期推算">Food Calculator</p>
     <div class="formula-box">
-      <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">保質期天數按儲藏條件取值：常溫取 room、冷藏取 cold、冷凍取 freeze；到期日 = 起始日期 + 天數 × 24 × 60 × 60 × 1000 毫秒（蜂蜜且天數為 0 時判為永不過期）。剩餘天數 = ⌈(到期時間 − 當前時間) ÷ 86400000⌉；狀態判定：剩餘 &gt; 3 天為新鮮、&gt; 0 天為即將到期、否則為已過期（取絕對值顯示天數）。天數 ≥ 30 時按「天 ÷ 30」保留一位小數以月為單位展示</div>
+      <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">保質期天數按儲藏條件取值：常溫取 room、冷藏取 cold、冷凍取 freeze；到期日 = 起始日期 + 天數 × 24 × 60 × 60 × 1000 毫秒（蜂蜜且天數為 0 時判為永不過期）。剩餘天數 = ⌈(到期時間 − 當前時間) ÷ 86400000⌉；狀態判定：剩餘 &gt; 3 天為新鮮、&gt; 0 天為即將到期、否則為已過期（取絕對值顯示天數）。天數 ≥ 30 時按「天 ÷ 30」保留一位小數以月為單位展示；冷凍天數為 0 的食物（雞蛋、醬油/醋等）提示「不建議冷凍」，不按「到期當天」計算</div>
       <p class="formula-desc" data-zh="「烘焙縮放 / 熱量計算 / 咖啡萃取 / 鹽度計算 / 辣度換算 / 保質期推算」按輸入引數進行專業計算並輸出結果。">Food Calculator: computes and outputs results from the input parameters.</p>
     </div>
 
@@ -815,7 +815,7 @@ function calcCoffee() {
       break;
     case 'cold':
       yieldRatio = 0.75; // 冷萃损耗略多
-      brewTime = 900; // 15小时
+      brewTime = 54000; // 15小时
       kcal = 5;
       break;
     default: // pour
@@ -826,17 +826,18 @@ function calcCoffee() {
 
   var coffeeYield;
   if (method === 'espresso') {
+    water = powder * 2; // 意式浓缩按粉液比 1:2 计注水量
     coffeeYield = powder * yieldRatio;
   } else {
     coffeeYield = water * yieldRatio;
   }
 
-  var minutes = Math.floor(brewTime / 60);
-  var seconds = brewTime % 60;
-  var timeStr = (minutes > 0 ? minutes + ':' : '') + (seconds < 10 && minutes > 0 ? '0' : '') + seconds;
-
-  if (method === 'cold' || method === 'french') {
-    timeStr = brewTime + '分钟';
+  var timeStr;
+  if (brewTime >= 3600) {
+    timeStr = (brewTime / 3600) + ' h';
+  } else {
+    var mins = Math.floor(brewTime / 60), secs = brewTime % 60;
+    timeStr = mins > 0 ? mins + ' min' + (secs > 0 ? ' ' + secs + ' s' : '') : secs + ' s';
   }
 
   document.getElementById('coffeeWaterVal').textContent = water.toFixed(0);
@@ -1040,6 +1041,14 @@ function calcShelf() {
     case 'room': days = data.room; break;
     case 'cold': days = data.cold; break;
     case 'freeze': days = data.freeze; break;
+  }
+
+  if (condition === 'freeze' && days === 0 && foodType !== 'honey') {
+    document.getElementById('shelfDays').textContent = '不建议冷冻';
+    document.getElementById('shelfExpiry').textContent = '—';
+    document.getElementById('shelfStatus').textContent = '该食物不建议冷冻保存，请选择常温或冷藏';
+    document.getElementById('shelfStatus').className = 'value shelf-status-warning';
+    return;
   }
 
   var parts = dateInput.value.split('-');

@@ -108,14 +108,22 @@ s.parentNode.insertBefore(el, s);
 </div>
 <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
     <h2 data-zh="🥗 營養（表標籤）一鍵生成">Nutrition</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="表標籤">Nutrition - generate results in-browser quickly and keep all data local.</p>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="輸入每 100g 的蛋白質、脂肪、碳水、膳食纖維與鈉，自動核算能量並按 GB 28050 欄目生成每 100g／每份雙列營養成分表與 NRV%。">Enter protein, fat, carbs, fiber and sodium per 100g; energy is computed and a per-100g/per-serving nutrition table with NRV% is generated.</p>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理與說明</div>
-      <div class="formula-eq">營養標籤按每 100 g 或每份標示：能量(kJ) = 蛋白質 × 17 + 脂肪 × 37 + 碳水 × 17 + 膳食纖維 × 8；NRV% = 營養素含量 ÷ 該營養素 NRV 參考值 × 100%（能量 NRV 為 8400 kJ、蛋白質 60 g、脂肪 60 g、碳水 300 g、鈉 2000 mg）；按 GB 28050 規定格式排版。</div>
+      <div class="formula-eq">營養標籤按每 100 g 與每份雙列標示：能量(kJ) = 蛋白質 × 17 + 脂肪 × 37 + 碳水 × 17 + 膳食纖維 × 8；每份值 = 每 100 g 值 × 份重 ÷ 100；NRV% = 營養素含量 ÷ 該營養素 NRV 參考值 × 100%（能量 8400 kJ、蛋白質 60 g、脂肪 60 g、碳水 300 g、膳食纖維 25 g、鈉 2000 mg）；表格參照 GB 28050 的欄目順序排版。</div>
 
 </div>
 
-<div class="input-row"><div><label>生成數量</label><input type="number" id="cnt" value="5" min="1" max="50" oninput="gen()" placeholder="如 5（1–50）"></div></div>
+<div class="input-row">
+  <div><label>產品名稱</label><input type="text" id="pname" value="原味酸奶" oninput="gen()"></div>
+  <div><label>蛋白質 (g/100g)</label><input type="number" id="protein" value="3.0" step="0.1" min="0" oninput="gen()"></div>
+  <div><label>脂肪 (g/100g)</label><input type="number" id="fat" value="3.2" step="0.1" min="0" oninput="gen()"></div>
+  <div><label>碳水化合物 (g/100g)</label><input type="number" id="carbs" value="12.0" step="0.1" min="0" oninput="gen()"></div>
+  <div><label>膳食纖維 (g/100g)</label><input type="number" id="fiber" value="0" step="0.1" min="0" oninput="gen()"></div>
+  <div><label>鈉 (mg/100g)</label><input type="number" id="sodium" value="60" step="1" min="0" oninput="gen()"></div>
+  <div><label>份重 (g)</label><input type="number" id="serving" value="100" step="1" min="1" oninput="gen()"></div>
+</div>
 <div class="toolbar"><div id="generator_nutrition_labelPresets"></div><button type="button" class="btn primary" onclick="gen()">生成</button><button class="btn" type="button" onclick="__generator_nutrition_labelExport()">匯出明細 CSV</button><button type="button" class="btn" onclick="copyRes()">複製</button></div>
 <div class="result-box" id="res"></div> <div id="generator_nutrition_labelTable"></div> <div id="generator_nutrition_labelDiff"></div> <div id="generator_nutrition_labelChart"></div> <div id="generator_nutrition_labelHist"></div>
   </div>
@@ -193,23 +201,51 @@ s.parentNode.insertBefore(el, s);
 <!-- /注意事項區塊 -->
 </div>
 <script>
-const FOODS = ['原味酸奶','燕麦棒','混合坚果','鸡胸肉','黑巧克力','全麦饼干','蛋白粉','果蔬汁'];
+const NRV = {energy:8400, protein:60, fat:60, carbs:300, fiber:25, sodium:2000};
+function numVal(id){const e=document.getElementById(id);const v=e?parseFloat(e.value):NaN;return isFinite(v)&&v>=0?v:0;}
+function fmt1(n){return (Math.round(n*10)/10).toFixed(1);}
+function pct(n,v){return v>0?Math.round(n/v*1000)/10:0;}
 function gen(){
-  const n=Math.min(+document.getElementById("cnt").value||5,50);
-  let h='<p style="margin-bottom:8px;">生成结果：</p>';
-  for(let i=1;i<=n;i++){
-    const name=FOODS[Math.floor(Math.random()*FOODS.length)];
-    const energy=Math.floor(Math.random()*300+80);
-    const protein=(Math.random()*20+1).toFixed(1);
-    const fat=(Math.random()*15+0.5).toFixed(1);
-    const carbs=(Math.random()*40+5).toFixed(1);
-    const sodium=Math.floor(Math.random()*400+50);
-    h+=`<p style="padding:4px 0;">${i}. <strong>${name}</strong>（每100g）：能量 ${energy}kcal，蛋白质 ${protein}g，脂肪 ${fat}g，碳水 ${carbs}g，钠 ${sodium}mg。</p>`;
+  const name=(document.getElementById('pname').value||'未命名食品').trim();
+  const p=numVal('protein'), f=numVal('fat'), c=numVal('carbs'), fib=numVal('fiber'), na=numVal('sodium');
+  const serving=Math.max(1,numVal('serving')||100);
+  if(p+f+c+fib===0){document.getElementById('res').innerHTML='<p style="color:var(--danger)">请至少填写一项营养素含量（g/100g）。</p>';return;}
+  const kj=p*17+f*37+c*17+fib*8;
+  const kcal=kj/4.184;
+  const per=serving/100;
+  const rows=[
+    ['能量', fmt1(kj)+' kJ / '+fmt1(kcal)+' kcal', fmt1(kj*per)+' kJ / '+fmt1(kcal*per)+' kcal', pct(kj,NRV.energy)],
+    ['蛋白质', fmt1(p)+' g', fmt1(p*per)+' g', pct(p,NRV.protein)],
+    ['脂肪', fmt1(f)+' g', fmt1(f*per)+' g', pct(f,NRV.fat)],
+    ['碳水化合物', fmt1(c)+' g', fmt1(c*per)+' g', pct(c,NRV.carbs)],
+    ['膳食纤维', fmt1(fib)+' g', fmt1(fib*per)+' g', pct(fib,NRV.fiber)],
+    ['钠', Math.round(na)+' mg', Math.round(na*per)+' mg', pct(na,NRV.sodium)]
+  ];
+  let h='<div class="nutri-label"><h3>'+escapeH(name)+' 营养成分表</h3>'+
+    '<table style="width:100%;border-collapse:collapse;font-size:13px;">'+
+    '<thead><tr><th style="border:1px solid #d1d5db;padding:5px 8px;text-align:left;">项目</th><th style="border:1px solid #d1d5db;padding:5px 8px;">每 100 g</th><th style="border:1px solid #d1d5db;padding:5px 8px;">每份（'+serving+' g）</th><th style="border:1px solid #d1d5db;padding:5px 8px;">NRV%</th></tr></thead><tbody>';
+  rows.forEach(function(r){
+    h+='<tr><td style="border:1px solid #d1d5db;padding:5px 8px;text-align:left;">'+r[0]+'</td><td style="border:1px solid #d1d5db;padding:5px 8px;">'+r[1]+'</td><td style="border:1px solid #d1d5db;padding:5px 8px;">'+r[2]+'</td><td style="border:1px solid #d1d5db;padding:5px 8px;">'+r[3]+'%</td></tr>';
+  });
+  h+='</tbody></table>';
+  h+='<div style="margin-top:8px;font-size:12.5px;color:var(--text-muted);">能量按蛋白质 17 kJ/g、脂肪 37 kJ/g、碳水 17 kJ/g、膳食纤维 8 kJ/g 核算；NRV 参照 GB 28050（能量 8400 kJ、蛋白质 60 g、脂肪 60 g、碳水 300 g、膳食纤维 25 g、钠 2000 mg）。本表为排版与核算参考，正式标签须经检测与合规审核。</div></div>';
+  document.getElementById('res').innerHTML=h;
+}
+function escapeH(s){return String(s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function copyRes(){
+  const el=document.getElementById('res');
+  const text=(el&&el.innerText)||el&&el.textContent||'';
+  if(!text){alert('无内容可复制');return;}
+  if(navigator.clipboard&&typeof navigator.clipboard.writeText==='function'){
+    let p=null;
+    try{ p=navigator.clipboard.writeText(text); }catch(e){ p=null; }
+    if(p&&typeof p.then==='function'){ p.then(()=>alert('已复制'),()=>alert('复制失败，请手动选择文本')); return; }
+    alert('已复制'); return;
   }
-  const __h0=h;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById("res").innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById("res").innerHTML=__h0;
+  if(typeof ToolBox!=='undefined'&&ToolBox.copyText){ToolBox.copyText(text);return;}
+  alert('复制失败，请手动选择文本');
 }
 gen();
-function copyRes(){ToolBox.copyText(document.getElementById("res").innerText);}
 </script>
 
 <!-- SEO 介紹區塊 -->
@@ -255,7 +291,7 @@ function copyRes(){ToolBox.copyText(document.getElementById("res").innerText);}
   </div>
   <div class="tool-intro-body">
     <h4><span class="h4-icon">📝</span>工具簡介</h4>
-    <p>營養（表標籤）一鍵生成。免費線上工具，純前端處理，資料不上傳，保護隱私安全。</p>
+    <p>按每 100g 的營養素含量核算能量並生成營養成分表：輸出每 100g 與每份雙列數值、NRV%，可複製排版；能量由 Atwater 係數計算，不再隨機生成。</p>
     <h4><span class="h4-icon">✨</span>功能特點</h4>
     <ul class="intro-features">
       <li>純前端處理，資料不上傳伺服器</li>

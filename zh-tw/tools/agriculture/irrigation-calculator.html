@@ -257,8 +257,10 @@ function applyCrop(){var i=$('crop').value;if(i==='')return;var c=CROPS[i];$('de
 function calc(){
 var area=parseFloat($('area').value)||0,m=$('method').value,s=$('soil').value;
 var depth=parseFloat($('depth').value)||0,moisture=parseFloat($('moisture').value)||0;
-var price=parseFloat($('price').value)||0,cycle=parseFloat($('cycle').value)||7;
+var price=parseFloat($('price').value)||0,cycle=parseFloat($('cycle').value);
 if(area<=0||depth<=0){$('result').innerHTML='<p style="text-align:center;color:var(--text-muted);">请输入有效参数</p>';$('chartWrap').style.display='none';return;}
+if(!(cycle>=1)){$('result').innerHTML='<p style="text-align:center;color:var(--danger);">灌水周期须为不小于 1 的天数</p>';$('chartWrap').style.display='none';return;}
+if(moisture<30||moisture>100){$('result').innerHTML='<p style="text-align:center;color:var(--danger);">土壤适宜含水量下限须在 30–100% 之间</p>';$('chartWrap').style.display='none';return;}
 var soil=SOILS[s],method=METHODS[m];
 var betaMax=soil.fc,betaMin=betaMax*moisture/100;
 var netPerMu=667*(depth/100)*(betaMax-betaMin)/100*soil.gamma;
@@ -267,6 +269,10 @@ var totalNet=netPerMu*area,totalGross=grossPerMu*area;
 var cost=totalGross*price;
 var monthlyWater=grossPerMu*area*(30/cycle);
 var monthlyCost=monthlyWater*price;
+var cropIdx=$('crop').value,crop=cropIdx!==''?CROPS[cropIdx]:null;
+var dailyMm=grossPerMu/cycle*1.5; // 1 m³/亩 = 1.5 mm 水深
+var cropTip='';
+if(crop){var seasonM3=crop.water*0.667,times=Math.max(1,Math.round(seasonM3/netPerMu));var isEN=String(document.documentElement.lang||'').toLowerCase().indexOf('en')===0;cropTip='<div class="tip-box tip-info" style="margin-top:8px;">'+(isEN?'🌱 '+crop.name+' ('+crop.period+'): seasonal water need ≈ '+crop.water+' mm ≈ '+seasonM3.toFixed(0)+' m³/mu; at '+netPerMu.toFixed(1)+' m³/mu net per irrigation, about '+times+' applications across the season (a larger single dose means fewer applications).':'🌱 '+crop.name+'（'+crop.period+'）全生育期需水约'+crop.water+' mm ≈ '+seasonM3.toFixed(0)+' m³/亩；按本次净定额 '+netPerMu.toFixed(1)+' m³/亩，全期约需灌 '+times+' 次（单次定额越大、次数越少）')+'</div>';}
 const __g4='<h3 style="text-align:center;margin-bottom:12px;">🏦 '+method.name+' 灌溉方案</h3>'+
 '<div class="data-grid">'+
 '<div class="data-card"><div class="num">'+grossPerMu.toFixed(1)+'</div><div class="label">亩灌水量(m³)</div></div>'+
@@ -276,22 +282,38 @@ const __g4='<h3 style="text-align:center;margin-bottom:12px;">🏦 '+method.name
 '</div>'+
 '<div style="margin-top:12px;"><div class="bar-row"><div class="bar-lbl">净水量</div><div class="bar-bg"><div class="bar-fill" style="width:'+(netPerMu/grossPerMu*100)+'%">'+netPerMu.toFixed(1)+'m³/亩</div></div></div>'+
 '<div class="bar-row"><div class="bar-lbl">损失量</div><div class="bar-bg"><div class="bar-fill" style="width:'+(grossPerMu-netPerMu)/grossPerMu*100+'%;background:#ff9800;">'+(grossPerMu-netPerMu).toFixed(1)+'m³/亩</div></div></div></div>'+
-'<div class="tip-box tip-info" style="margin-top:12px;"><strong>📅 周期估算</strong>: 每'+cycle+'天灌溉一次，月用水量约'+monthlyWater.toFixed(1)+'m³，月水费约'+monthlyCost.toFixed(2)+'元</div>';$('result').innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
-$('chartWrap').style.display='block';drawChart(netPerMu,grossPerMu-netPerMu,monthlyWater/area,monthlyCost/area);
+'<div class="tip-box tip-info" style="margin-top:12px;"><strong>📅 周期估算</strong>: 每'+cycle+'天灌溉一次（月灌 '+(30/cycle).toFixed(1)+' 次，折合日均 '+dailyMm.toFixed(1)+' mm），月用水量约'+monthlyWater.toFixed(1)+'m³，月水费约'+monthlyCost.toFixed(2)+'元</div>'+cropTip;$('result').innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
+$('chartWrap').style.display='block';drawChart(netPerMu,grossPerMu-netPerMu,monthlyWater/area);
 }
-function drawChart(net,loss,monthly,monthCost){
+function drawChart(net,loss,monthly){
 var c=$('chart'),ctx=c.getContext('2d'),ct=c.parentElement;c.width=ct.clientWidth;c.height=ct.clientHeight;
-var w=c.width,h=c.height;ctx.clearRect(0,0,w,h);var pad={top:20,right:20,bottom:40,left:50},cw=w-pad.left-pad.right,ch=h-pad.top-pad.bottom;
-var max=Math.max(net+loss,monthly)*1.2;ctx.strokeStyle='rgba(128,128,128,0.15)';ctx.font='11px sans-serif';ctx.fillStyle=resolveCanvasColor('var(--text-muted)','#6B7280');
-for(var i=0;i<=5;i++){var y=pad.top+ch-ch*i/5,v=max*i/5;ctx.textAlign='right';ctx.fillText(v.toFixed(0),pad.left-8,y+4);ctx.beginPath();ctx.moveTo(pad.left,y);ctx.lineTo(w-pad.right,y);ctx.stroke();}
-var bw=cw/5;
-var bars=[{l:'净灌溉',v:net,c:'#4caf50'},{l:'输水损失',v:loss,c:'#ff9800'},{l:'月均水量',v:monthly,c:'#2196f3'}];
-bars.forEach(function(b,i){var x=pad.left+bw*i+bw*0.2;var bh=(b.v/max)*ch;var by=pad.top+ch-bh;ctx.fillStyle=b.c;ctx.fillRect(x,by,bw*0.6,bh);ctx.fillStyle=resolveCanvasColor('var(--text)','#1F2937');ctx.textAlign='center';ctx.font='10px sans-serif';ctx.fillText(b.v.toFixed(1),x+bw*0.3,by-6);ctx.fillStyle=resolveCanvasColor('var(--text-muted)','#6B7280');ctx.fillText(b.l,x+bw*0.3,h-12);});
+var w=c.width,h=c.height;ctx.clearRect(0,0,w,h);
+var pad={top:22,right:20,bottom:30,left:50},cw=w-pad.left-pad.right,ch=h-pad.top-pad.bottom,panelGap=40,ph=(ch-panelGap)/2;
+// 单次灌水与月累计是不同时间口径，拆成两个独立面板、各自归一，避免同轴混画
+function panel(y,title,bars,unit){
+  ctx.fillStyle=resolveCanvasColor('var(--text)','#1F2937');ctx.font='11px sans-serif';ctx.textAlign='left';
+  ctx.fillText(title,pad.left,y-7);
+  var max=Math.max.apply(null,bars.map(function(b){return b.v;}))*1.2||1;
+  ctx.strokeStyle='rgba(128,128,128,0.15)';ctx.font='10px sans-serif';
+  for(var i=0;i<=3;i++){var gy=y+ph-ph*i/3;ctx.fillStyle=resolveCanvasColor('var(--text-muted)','#6B7280');ctx.textAlign='right';ctx.fillText((max*i/3).toFixed(1),pad.left-8,gy+4);ctx.beginPath();ctx.moveTo(pad.left,gy);ctx.lineTo(w-pad.right,gy);ctx.stroke();}
+  ctx.strokeStyle=resolveCanvasColor('var(--border)','#E5E7EB');ctx.beginPath();ctx.moveTo(pad.left,y);ctx.lineTo(pad.left,y+ph);ctx.lineTo(w-pad.right,y+ph);ctx.stroke();
+  var bw=cw/bars.length;
+  bars.forEach(function(b,idx){
+    var x=pad.left+bw*idx+bw*0.25,bh=(b.v/max)*ph,by=y+ph-bh;
+    ctx.fillStyle=b.c;ctx.fillRect(x,by,bw*0.5,bh);
+    ctx.fillStyle=resolveCanvasColor('var(--text)','#1F2937');ctx.textAlign='center';ctx.font='10px sans-serif';
+    ctx.fillText(b.v.toFixed(1),x+bw*0.25,by-5);
+    ctx.fillStyle=resolveCanvasColor('var(--text-muted)','#6B7280');ctx.fillText(b.l,x+bw*0.25,y+ph+13);
+  });
+  ctx.fillStyle=resolveCanvasColor('var(--text-muted)','#6B7280');ctx.textAlign='right';ctx.fillText(unit,pad.left-8,y+ph+13);
 }
-function saveHistory(){var r={time:new Date().toLocaleString('zh-CN'),method:METHODS[$('method').value].name,area:$('area').value,crop:$('crop').options[$('crop').selectedIndex].text};var h=getHistory();h.unshift(r);if(h.length>20)h=h.slice(0,20);localStorage.setItem(HK,JSON.stringify(h));}
+panel(pad.top,'单次灌水（m³/亩）',[{l:'净灌溉',v:net,c:'#4caf50'},{l:'输水损失',v:loss,c:'#ff9800'}],'m³/亩');
+panel(pad.top+ph+panelGap,'月累计用水（m³/亩·月）',[{l:'月均水量',v:monthly,c:'#2196f3'}],'m³/亩');
+}
+function saveHistory(){var r={time:new Date().toLocaleString('zh-CN'),method:METHODS[$('method').value].name,mk:$('method').value,area:$('area').value,crop:$('crop').options[$('crop').selectedIndex].text,cropIdx:$('crop').value,soil:$('soil').value,depth:$('depth').value,moisture:$('moisture').value,price:$('price').value,cycle:$('cycle').value};var h=getHistory();h.unshift(r);if(h.length>20)h=h.slice(0,20);localStorage.setItem(HK,JSON.stringify(h));}
 function getHistory(){try{return JSON.parse(localStorage.getItem(HK)||'[]');}catch(e){return[];}}
 function renderHistory(){var h=getHistory();if(!h.length){$('historyList').innerHTML='<div class="history-empty">暂无历史</div>';return;}const __g6=h.map(function(r,i){return '<div class="history-item" onclick="loadHistory('+i+')"><div class="time">'+r.time+'</div><div class="summary">'+r.method+' - '+r.area+'亩</div><div class="detail">'+r.crop+'</div></div>';}).join('');$('historyList').innerHTML=(typeof __g6==='number'?(isFinite(__g6)?__g6:'—'):String(__g6).replace(/Infinity|NaN/g,'—'));}
-function loadHistory(i){var r=getHistory()[i];switchTab('calc');calc();ToolBox.showToast(i18nText('toast.loaded'));}
+function loadHistory(i){var r=getHistory()[i];if(!r)return;switchTab('calc');if(r.mk!==undefined)$('method').value=r.mk;if(r.cropIdx!==undefined)$('crop').value=r.cropIdx;if(r.area!==undefined)$('area').value=r.area;if(r.soil!==undefined)$('soil').value=r.soil;if(r.depth!==undefined)$('depth').value=r.depth;if(r.moisture!==undefined)$('moisture').value=r.moisture;if(r.price!==undefined)$('price').value=r.price;if(r.cycle!==undefined)$('cycle').value=r.cycle;calc();ToolBox.showToast(i18nText('toast.loaded'));}
 function clearHistory(){if(confirm('清空?')){localStorage.removeItem(HK);renderHistory();}}
 function resetForm(){$('method').value='drip';$('crop').value='';$('area').value=10;$('soil').value='loam';$('depth').value=30;$('moisture').value=60;$('price').value=0.5;$('cycle').value=7;calc();}
 window.addEventListener('resize',function(){if($('chartWrap').style.display!=='none')calc();});
@@ -366,7 +388,6 @@ document.addEventListener('DOMContentLoaded',function(){
     </div>
 </div>
 <!-- /SEO 介紹區塊 -->
-<section class="opt-guide"><h2>如何使用灌溉用水計算器</h2><ol><li>按頁面提示逐項填寫或選擇所需引數。</li><li>點選「計算」或「生成」按鈕執行。</li><li>在結果區檢視輸出，可複製結果或匯出使用。</li></ol><h2>引數說明</h2><ul class="param-list"><li>灌溉方式</li><li>作物型別</li><li>灌溉面積(畝)</li><li>土壤型別</li><li>計劃溼潤層深度(cm)</li><li>土壤適宜含水量下限(%)</li><li>水費單價(元/噸)</li><li>灌溉週期(天)</li></ul><h2>適用場景</h2><p>一次灌水量 = 面積 × 灌水定額（m³/畝）。</p></section><section class="opt-faq"><h2>常見問題</h2><dl class="faq-list"><dt>不同灌水方式定額差多少？</dt><dd>漫灌最高（50+ m³/畝）、畦灌中等、噴滴灌最低（15~25）。節水性滴灌&gt;噴灌&gt;地面灌，但投資與維護成本遞增。</dd><dt>灌水定額越大越好嗎？</dt><dd>不是。超過田間持水量會深層滲漏流失、浪費水且可能漬根。以『補足到適宜含水量』為度，少量多次優於一次大水。</dd></dl></section>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"不同灌水方式定額差多少？","acceptedAnswer":{"@type":"Answer","text":"漫灌最高（50+ m³/畝）、畦灌中等、噴滴灌最低（15~25）。節水性滴灌>噴灌>地面灌，但投資與維護成本遞增。"}},{"@type":"Question","name":"灌水定額越大越好嗎？","acceptedAnswer":{"@type":"Answer","text":"不是。超過田間持水量會深層滲漏流失、浪費水且可能漬根。以『補足到適宜含水量』為度，少量多次優於一次大水。"}}]}</script>
 <script>
 var __irrigation_calculator_last=0,__irrigation_calculator_skip=false;

@@ -107,6 +107,7 @@ s.parentNode.insertBefore(el, s);
     <li><b>RFC 4180</b>：欄位含分隔符、雙引號或換行時必須用雙引號包裹，內部雙引號寫成兩個。</li>
     <li><b>常見坑</b>：Excel 匯出的 BOM 頭、中英文逗號混用、行尾多餘分隔符、CRLF 與 LF 混排。</li>
     <li><b>輸出</b>：逐行給出錯誤位置與原因，便於定位修復。</li>
+    <li>行列號從 1 開始（本頁行號為記錄起始的物理行號，含表頭）；本頁深度上限 不設上限；輸入上限 不設上限。</li>
   </ul>
 </div>
 
@@ -222,11 +223,14 @@ function calcTool(){function parseCSV(text,sep){
       else{if(c==='\n')physLine++;cur+=c;}
       continue;
     }
-    if(c==='"'){q=true;pending=true;}
+    // RFC 4180：双引号仅在字段起始位置开启引用段，字段中间的 `"` 是普通字符。
+    if(c==='"'){ if(cur===''){q=true;} else {cur+='"';} pending=true; }
     else if(c===sep){endField();pending=true;}
     else if(c==='\n'||c==='\r'){
       if(c==='\r'&&text.charAt(i+1)==='\n'){i++;}
       physLine++;
+      // 空行不是一条记录（否则会误报「列数 1（应为 N）」）。
+      if(fields.length===0&&cur===''&&!pending){recLine=physLine;continue;}
       endField();
       records.push({fields:fields,line:recLine,open:false});
       fields=[];cur='';recLine=physLine;pending=false;

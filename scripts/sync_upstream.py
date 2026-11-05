@@ -91,6 +91,10 @@ FILE_PATCHES = {
     "scripts/verify_it_calc.js": [
         ('" U V X Y\\nabc123测试\\n1 2 3\\nG A V A F D X X"',
          '"abc123测试\\n1 2 3\\nG A V A F D X X"'),
+        # url-qr 用例原以站点主页为输入并断言「50 字节 ⇒ V6」，但本站域名（16 字符）比上游短 5 字节
+        # ⇒ 全局域名补丁改后只剩 45 字节、断言落空。改为与域名无关的固定 50 字节 URL（8+11+21+10=50）。
+        ('"url": "https://chenguangwu.github.io/tools/it/url-qr.html",',
+         '"url": "https://example.com/tools/it/url-qr.html?x=1234567",'),
     ],
 }
 DRY_RUN = "--dry-run" in sys.argv

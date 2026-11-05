@@ -92,7 +92,7 @@ s.parentNode.insertBefore(el, s);
 <meta property="og:locale:alternate" content="zh_CN">
 <meta property="og:locale:alternate" content="en_US">
 </head>
-<body>
+<body data-no-persist>
 <h1 class="sr-only">生肖年份轉換器</h1>
 
 <div class="nav">
@@ -115,7 +115,7 @@ s.parentNode.insertBefore(el, s);
 
 <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
 <h2 data-zh="🔄 生肖年份轉換器">🔄 Chinese Zodiac Converter</h2>
-<p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="查詢生肖、干支、年齡，瞭解生肖文化">Convert a Gregorian year to its Chinese zodiac sign and related lunar-calendar information.</p>
+<p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="查詢生肖、干支、年齡；填寫生日可按春節分界準確換算">Convert a Gregorian year or birthday to the Chinese zodiac, sexagenary cycle and age, accounting for the Spring Festival boundary.</p>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理與說明</div>
       <div class="formula-eq">生肖按（年份 − 4）÷ 12 的餘數取序（餘 0 為鼠，依次至 11 為豬），春節前出生按上一年計；天干按（年份 − 4）÷ 10 的餘數（餘 0 為甲，依次至 9 為癸），地支按除以 12 的餘數（餘 0 為子）；年齡 = 當前年份 − 出生年份，同生肖年份間隔 12 年。</div>
@@ -132,6 +132,7 @@ s.parentNode.insertBefore(el, s);
 <div id="tab-calc" class="tab-content active">
   <div class="input-row">
     <div><label>輸入年份</label><input type="number" id="year" value="2000" min="1900" max="2100" oninput="calc()" placeholder="如 2000（1900–2100）"></div>
+    <div><label>出生日期（可選，精確到日）</label><input type="date" id="birthDate" min="1980-01-01" max="2040-12-31" onchange="calc()" aria-label="出生日期"></div>
     <div><label>或選擇生肖</label><select id="zodiac" onchange="fromZodiac()"></select></div>
   </div>
   <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__chinese_zodiacExport()">匯出明細 CSV</button></div>
@@ -148,8 +149,9 @@ s.parentNode.insertBefore(el, s);
     <h4>📋 使用說明</h4>
     <ul>
       <li>輸入任意公曆年份，查詢對應的生肖、干支和年齡</li>
+      <li>填寫出生日期（1980–2040）可按春節分界精確判定，年初出生不會差一年</li>
       <li>也可以直接選擇生肖，快速查詢對應年份</li>
-      <li>支援1900-2100年共200年的範圍</li>
+      <li>年份支援 1900–2100，春節日期表覆蓋 1980–2040</li>
       <li>歷史記錄自動儲存最近20次查詢</li>
       <li>點選十二生肖一覽中的生肖可快速跳轉</li>
     </ul>
@@ -242,19 +244,20 @@ s.parentNode.insertBefore(el, s);
 </style>
 <section class="deep-dive" data-deep-dive="1">
 <div class="card">
-<h2>📚 深度解析：按農曆干支紀年規則，將公曆年份換算為對應生肖與農曆資訊，輔助民俗查詢。</h2>
+<h2>📚 深度解析：年份查生肖、生日按春節分界精確換算</h2>
 <h3>💡 常見使用場景</h3>
 <ul class="dd-list">
-<li>年份查生肖：輸入公曆年份得生肖。</li>
-<li>生肖查年：反查近年對應年份。</li>
-<li>年齡推算：結合生肖估屬相。</li>
+<li>年份查生肖：輸入公曆年份，得到生肖、天干地支與五行。</li>
+<li>生日精確換算：填寫 1980–2040 年間的出生日期，按當年春節日期判斷屬上一年還是當年，解決「年初出生差一年」。</li>
+<li>反查年份：選擇生肖，列出前後 60 年內同生肖的年份並計算年齡。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">示例</div><div class="dd-ex-body">示例：2024 年為甲辰龍年，屬龍。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例 1（春節前出生）</div><div class="dd-ex-body">出生日期 2024-02-05，2024 年春節為 02-10，生日早於春節 → 生肖按 2023 年計：(2023−4)%12 = 3 → 卯兔，(2023−4)%10 = 9 → 癸，故為癸卯兔年。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例 2（春節後出生）</div><div class="dd-ex-body">出生日期 2024-02-14，晚於春節 02-10 → 生肖按 2024 年計：(2024−4)%12 = 4 → 辰龍，(2024−4)%10 = 0 → 甲，故為甲辰龍年。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
-<dt>邊界怎麼算？</dt><dd>以農曆正月初一為界，年初出生可能屬上一年生肖。</dd>
-<dt>準確嗎？</dt><dd>依據干支迴圈規則，具體以<a class="term-link" href="/zh-tw/tools/legal/calendar.html">萬年曆</a>為準。</dd>
-<dt>用途？</dt><dd>民俗查詢與年齡屬相對照，非正式依據。</dd>
+<dt>生肖邊界按什麼算？</dt><dd>按農曆春節（正月初一）為界，不是公曆元旦。工具內建 1980–2040 年春節日期表，生日早於春節按上一年計。</dd>
+<dt>超出 1980–2040 怎麼辦？</dt><dd>輸入年份仍按公曆直接換算，並提示「春節日期表僅覆蓋 1980–2040 年」；結果可能因年初出生差一年，需以<a class="term-link" href="/zh-tw/tools/legal/calendar.html">萬年曆</a>核對。</dd>
+<dt>年齡是週歲還是虛歲？</dt><dd>填寫出生日期時按週歲計算（未過生日減 1）；只填年份時按「當前年份 − 出生年份」估算，不區分生日。</dd>
 </dl>
 </div>
 </section>
@@ -329,15 +332,40 @@ function switchTab(name){
 function getZodiac(y){return zodiacs[(y-4)%12];}
 function getGanZhi(y){return tianGan[(y-4)%10]+diZhi[(y-4)%12];}
 
+var SPRING={1980:'02-16',1981:'02-05',1982:'01-25',1983:'02-13',1984:'02-02',1985:'02-20',1986:'02-09',1987:'01-29',1988:'02-17',1989:'02-06',1990:'01-27',1991:'02-15',1992:'02-04',1993:'01-23',1994:'02-10',1995:'01-31',1996:'02-19',1997:'02-07',1998:'01-28',1999:'02-16',2000:'02-05',2001:'01-24',2002:'02-12',2003:'02-01',2004:'01-22',2005:'02-09',2006:'01-29',2007:'02-18',2008:'02-07',2009:'01-26',2010:'02-14',2011:'02-03',2012:'01-23',2013:'02-10',2014:'01-31',2015:'02-19',2016:'02-08',2017:'01-28',2018:'02-16',2019:'02-05',2020:'01-25',2021:'02-12',2022:'02-01',2023:'01-22',2024:'02-10',2025:'01-29',2026:'02-17',2027:'02-06',2028:'01-26',2029:'02-13',2030:'02-03',2031:'01-23',2032:'02-11',2033:'01-31',2034:'02-19',2035:'02-08',2036:'01-28',2037:'02-15',2038:'02-04',2039:'01-24',2040:'02-12'};
+
 function calc(){
   const y=parseInt(document.getElementById('year').value)||new Date().getFullYear();
-  const z=getZodiac(y);
-  const gz=getGanZhi(y);
-  const curYear=new Date().getFullYear();
-  const age=curYear-y;
+  const dateEl=document.getElementById('birthDate');
+  const dateStr=dateEl?dateEl.value:'';
+  let birthYear=y, effYear=y, boundary='', hasDate=false;
+  if(/^\d{4}-\d{2}-\d{2}$/.test(dateStr)){
+    hasDate=true;
+    const p=dateStr.split('-').map(Number);
+    birthYear=p[0];
+    if(SPRING[birthYear]){
+      const sf=birthYear+'-'+SPRING[birthYear];
+      const sm=+SPRING[birthYear].slice(0,2), sd=+SPRING[birthYear].slice(3,5);
+      const before=(p[1]<sm)||(p[1]===sm&&p[2]<sd);
+      effYear=before?birthYear-1:birthYear;
+      boundary=(before?'生日早于春节（'+sf+'），生肖按 '+effYear+' 年计':'生日晚于或等于春节（'+sf+'），生肖按 '+birthYear+' 年计');
+    } else {
+      boundary='春节日期表仅覆盖 1980–2040 年，已按公历年生肖估算';
+    }
+  }
+  const z=getZodiac(effYear);
+  const gz=getGanZhi(effYear);
+  let age;
+  if(hasDate){
+    const now=new Date();
+    const bm=+dateStr.slice(5,7), bd=+dateStr.slice(8,10);
+    age=now.getFullYear()-birthYear-(((now.getMonth()+1)<bm||((now.getMonth()+1)===bm&&now.getDate()<bd))?1:0);
+  } else {
+    age=new Date().getFullYear()-y;
+  }
 
   let years=[];
-  for(let i=y-60;i<=y+60;i+=12){
+  for(let i=effYear-60;i<=effYear+60;i+=12){
     if(i>=1900&&i<=2100)years.push(i);
   }
 
@@ -346,19 +374,20 @@ function calc(){
       <div style="font-size:80px;">${z.a}</div>
       <div style="font-size:28px;font-weight:bold;margin-top:8px;">${z.n}年</div>
       <div style="font-size:16px;color:var(--primary);margin-top:4px;">${gz}年 · ${z.element}命</div>
-      <div style="margin-top:8px;color:var(--text-light);">${y}年出生 | ${age>=0?'约'+age+'岁':'未出生'}</div>
+      <div style="margin-top:8px;color:var(--text-light);">${effYear}年出生 | ${age>=0?'约'+age+'岁':'未出生'}</div>
+      ${boundary?'<div style="margin-top:6px;font-size:13px;color:var(--text-muted);">'+boundary+'</div>':''}
       <div style="margin-top:6px;font-size:13px;color:var(--text-muted);">性格特点：${z.char}</div>
     </div>
     <h4>同生肖年份（60年一甲子）</h4>
     <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;">
       ${years.map(yr=>{
-        const isCur=yr===y;
+        const isCur=yr===effYear;
         return `<span style="padding:6px 12px;border-radius:6px;background:${isCur?'var(--primary)':'var(--result-bg)'};color:${isCur?'#fff':'inherit'};font-size:13px;cursor:pointer;border:1px solid var(--border);" onclick="setYear(${yr})">${yr}</span>`;
       }).join('')}
     </div>
   `;document.getElementById('result').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 
-  saveHistory(y);
+  saveHistory(effYear);
 }
 
 function setYear(y){

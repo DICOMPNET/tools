@@ -131,7 +131,7 @@ s.parentNode.insertBefore(el, s);
     <div class="input-row">
       <div>
         <label>兒童年齡</label>
-        <input type="number" id="age" value="8" oninput="renderQuiz()" placeholder="如 8">
+        <input type="number" id="age" value="8" min="0" max="18" oninput="renderQuiz()" placeholder="如 8（0–18）">
       </div>
       <div>
         <label>評估人</label>
@@ -165,7 +165,7 @@ s.parentNode.insertBefore(el, s);
         <tr><td>焦慮/抑鬱</td><td>7條</td><td>≥3條評分≥3</td><td>情緒共病</td></tr>
       </tbody>
     </table>
-    <div class="info-box">提示：評分0=從不,1=偶爾,2=常如此,3=很常如此,4=非常頻繁。ADHD診斷需滿足：注意缺陷或多動衝動≥6條評分≥2，且症狀在12歲前起病，持續≥6月，跨場景(家+學校)表現，影響功能。需家長和教師量表均陽性。排除甲亢、睡眠障礙、視聽障礙等。治療：行為治療+藥物(哌甲酯/托莫西汀)。本工具為篩查工具，確診需專科醫生評估。</div>
+    <div class="info-box">提示：症狀題評分0=從不,1=偶爾,2=常如此,3=很常如此；功能題0=有問題~4=優秀。ADHD診斷需滿足：注意缺陷或多動衝動≥6條評分≥2，且症狀在12歲前起病，持續≥6月，跨場景(家+學校)表現，影響功能。需家長和教師量表均陽性。排除甲亢、睡眠障礙、視聽障礙等。治療：行為治療+藥物(哌甲酯/托莫西汀)。本工具為篩查工具，確診需專科醫生評估。</div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -292,12 +292,22 @@ var anxiety=[
   '过度担忧未来'
 ];
 
+function readAge(){
+  var raw=document.getElementById('age').value.trim();
+  return raw===''?NaN:parseFloat(raw);
+}
+
 function renderQuiz(){
-  var age=parseFloat(document.getElementById('age').value)||8;
+  var age=readAge();
   var rater=document.getElementById('rater').value;
   answers={};
   var html='';
-  html+='<p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">请根据儿童<strong>近6个月</strong>的表现评分：0=从不, 1=偶尔, 2=常如此, 3=很常如此, 4=非常频繁</p>';
+  if(!isFinite(age)||age<0||age>18){
+    html='<div class="tip-box tip-error">请输入 0–18 岁（儿科范围）的年龄后再评估。</div>';
+    document.getElementById('quizArea').innerHTML=html;
+    return;
+  }
+  html+='<p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">请根据儿童<strong>近6个月</strong>的表现评分：0=从不, 1=偶尔, 2=常如此, 3=很常如此（功能题 0=有问题 ~ 4=优秀）</p>';
 
   html+='<div class="section-header">📋 注意缺陷症状 (9条)</div>';
   inattention.forEach(function(q,idx){
@@ -330,8 +340,8 @@ function renderQuiz(){
 }
 
 function renderQ(id,q){
-  var max=4;
-  var labels=['从不','偶尔','常如此','很常如此','非常频繁'];
+  var max=3;
+  var labels=['从不','偶尔','常如此','很常如此'];
   if(id.indexOf('func')>=0){labels=['有问题','略有问题','一般','良好','优秀'];max=4;}
   var html='<div class="q-item" id="item_'+id+'"><div class="q-title">'+q+'</div><div class="q-options">';
   for(var i=0;i<=max;i++){
@@ -354,7 +364,11 @@ function selectAns(qid,idx,total){
 }
 
 function calc(){
-  var age=parseFloat(document.getElementById('age').value)||8;
+  var age=readAge();
+  if(!isFinite(age)||age<0||age>18){
+    document.getElementById('result').innerHTML='<div class="tip-box tip-error">请输入 0–18 岁（儿科范围）的年龄后再评估。</div>';
+    return;
+  }
   var rater=document.getElementById('rater').value;
 
   // 注意缺陷：评分≥2的条目数
@@ -420,8 +434,8 @@ function calc(){
 
   __EMR_S={ag:age,rt:rater,ip:inattPos,is:inattScore,hp:hyperPos,hs:hyperScore,bp:behavPos,ap:anxPos,ty:adhdType,ov:overall,ps:adhdPositive,bps:behavPositive,aps:anxPositive};
   html+='<div class="ref-card"><h4>症状评估详情</h4><ul>';
-  html+='<li>注意缺陷：'+inattPos+'/9条阳性 (评分≥2)，总分'+inattScore+'/36</li>';
-  html+='<li>多动冲动：'+hyperPos+'/9条阳性 (评分≥2)，总分'+hyperScore+'/36</li>';
+  html+='<li>注意缺陷：'+inattPos+'/9条阳性 (评分≥2)，总分'+inattScore+'/27</li>';
+  html+='<li>多动冲动：'+hyperPos+'/9条阳性 (评分≥2)，总分'+hyperScore+'/27</li>';
   html+='<li>行为/对立违抗：'+behavPos+'/8条阳性 (评分≥3)</li>';
   html+='<li>焦虑/抑郁：'+anxPos+'/7条阳性 (评分≥3)</li>';
   html+='</ul></div>';
@@ -523,8 +537,8 @@ function __emrData(){
   var tyEn={'混合型':'combined presentation','注意力不集中型':'predominantly inattentive presentation','多动冲动型':'predominantly hyperactive-impulsive presentation'}[s.ty]||s.ty;
   var ovEn={'ADHD筛查阳性':'ADHD screen positive','ADHD阳性(伴共病)':'ADHD screen positive with comorbidity','ADHD筛查阴性':'ADHD screen negative'}[s.ov]||s.ov;
   var list=[];
-  if(s.ip>=6) list.push({i:list.length+1,t:en?('Inattention '+s.ip+'/9 positive'):('注意缺陷 '+s.ip+'/9 条阳性'),o:en?('total '+s.is+'/36'):('总分 '+s.is+'/36')});
-  if(s.hp>=6) list.push({i:list.length+1,t:en?('Hyperactivity-impulsivity '+s.hp+'/9 positive'):('多动冲动 '+s.hp+'/9 条阳性'),o:en?('total '+s.hs+'/36'):('总分 '+s.hs+'/36')});
+  if(s.ip>=6) list.push({i:list.length+1,t:en?('Inattention '+s.ip+'/9 positive'):('注意缺陷 '+s.ip+'/9 条阳性'),o:en?('total '+s.is+'/27'):('总分 '+s.is+'/27')});
+  if(s.hp>=6) list.push({i:list.length+1,t:en?('Hyperactivity-impulsivity '+s.hp+'/9 positive'):('多动冲动 '+s.hp+'/9 条阳性'),o:en?('total '+s.hs+'/27'):('总分 '+s.hs+'/27')});
   if(s.bps) list.push({i:list.length+1,t:en?('Behaviour/oppositional '+s.bp+'/8 positive'):('行为/对立违抗 '+s.bp+'/8 条阳性'),o:en?'comorbidity screen positive':'共病筛查阳性'});
   if(s.aps) list.push({i:list.length+1,t:en?('Anxiety/depression '+s.ap+'/7 positive'):('焦虑/抑郁 '+s.ap+'/7 条阳性'),o:en?'comorbidity screen positive':'共病筛查阳性'});
   var hz,he;
@@ -535,8 +549,8 @@ function __emrData(){
   else { hz='筛查阴性：若临床仍怀疑注意缺陷或多动冲动，应补充教师版量表与其他场景信息后复评，并排查睡眠不足、焦虑、学习障碍等替代解释。';
     he='Screen negative: if clinical concern persists, add a teacher-rated scale and other informant information and re-screen, excluding insufficient sleep, anxiety and learning disorders as alternative explanations.'; }
   __emrNote({boxId:'result', name:'Vanderbilt ADHD 诊断量表（'+(en?rtEn:rtZh)+'版）', nameEn:'Vanderbilt ADHD Diagnostic Rating Scale ('+(en?rtEn:rtZh)+' version)',
-    result:'年龄 '+s.ag+' 岁 · '+s.ov+(s.ty?('（'+s.ty+'）'):'')+' · 注意缺陷 '+s.ip+'/9（总分 '+s.is+'/36）、多动冲动 '+s.hp+'/9（总分 '+s.hs+'/36）、行为问题 '+s.bp+'/8、焦虑抑郁 '+s.ap+'/7',
-    resultEn:'age '+s.ag+' years; '+ovEn+(s.ty?(' ('+tyEn+')'):'')+'; inattention '+s.ip+'/9 (total '+s.is+'/36), hyperactivity-impulsivity '+s.hp+'/9 (total '+s.hs+'/36), behaviour '+s.bp+'/8, anxiety-depression '+s.ap+'/7',
+    result:'年龄 '+s.ag+' 岁 · '+s.ov+(s.ty?('（'+s.ty+'）'):'')+' · 注意缺陷 '+s.ip+'/9（总分 '+s.is+'/27）、多动冲动 '+s.hp+'/9（总分 '+s.hs+'/27）、行为问题 '+s.bp+'/8、焦虑抑郁 '+s.ap+'/7',
+    resultEn:'age '+s.ag+' years; '+ovEn+(s.ty?(' ('+tyEn+')'):'')+'; inattention '+s.ip+'/9 (total '+s.is+'/27), hyperactivity-impulsivity '+s.hp+'/9 (total '+s.hs+'/27), behaviour '+s.bp+'/8, anxiety-depression '+s.ap+'/7',
     pos:list,
     hintZh:hz, hintEn:he,
     extra:'阳性界值：注意缺陷或多动冲动 ≥6 条（评分≥2 计为阳性）、行为问题 ≥3/8、焦虑抑郁 ≥3/7；量表仅作筛查，诊断需结合跨场景信息、病程与功能损害',

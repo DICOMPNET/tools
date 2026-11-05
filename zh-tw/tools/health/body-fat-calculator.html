@@ -207,17 +207,11 @@ s.parentNode.insertBefore(el, s);
         <div><label>腹部皮褶 (mm)</label><input type="number" id="abdominal" oninput="calc()"></div>
         <div><label>大腿皮褶 (mm)</label><input type="number" id="thigh" oninput="calc()"></div>
       </div>
-      <div class="input-row" id="maleSkinfold">
-        <div><label>肱三頭肌皮褶 (mm)</label><input type="number" id="tricepM" placeholder="男性可選" oninput="calc()"></div>
-        <div><label>肩胛下皮褶 (mm)</label><input type="number" id="subscapM" placeholder="男性可選" oninput="calc()"></div>
-        <div><label>髂脊皮褶 (mm)</label><input type="number" id="suprailiacM" placeholder="男性可選" oninput="calc()"></div>
-      </div>
       <div class="input-row" id="femaleSkinfold" style="display:none;">
         <div><label>肱三頭肌皮褶 (mm)</label><input type="number" id="tricepF" oninput="calc()"></div>
-        <div><label>肩胛下皮褶 (mm)</label><input type="number" id="subscapF" oninput="calc()"></div>
         <div><label>髂脊皮褶 (mm)</label><input type="number" id="suprailiacF" oninput="calc()"></div>
       </div>
-      <p style="font-size:11px;color:var(--text-muted);margin-top:4px;">* 皮褶厚度法需要專業皮褶卡尺，3點法或7點法</p>
+      <p style="font-size:11px;color:var(--text-muted);margin-top:4px;">* 採用 Jackson-Pollock 3 點法：男性胸部、腹部、大腿；女性肱三頭肌、髂脊、大腿（大腿與上方共用）。需專業皮褶卡尺。</p>
     </div>
 
     <div id="biaInputs" style="display:none;">
@@ -347,11 +341,14 @@ let gender='male';
 let currentMethod='navy';
 let currentTab='bodyComp';
 
+function localTodayStr(){
+  var d=new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
 function setGender(g){
   gender=g;
   document.querySelectorAll('.gender-tabs button').forEach(b=>b.classList.toggle('active',b.dataset.gender===g));
   document.getElementById('hipField').style.display=g==='female'?'block':'none';
-  document.getElementById('maleSkinfold').style.display=g==='male'?'flex':'none';
   document.getElementById('femaleSkinfold').style.display=g==='female'?'flex':'none';
   calc();
 }
@@ -442,7 +439,8 @@ function calcSkinfoldMethod(){
     }
   }
   if(count<3) return null;
-  const age=30;
+  const ageRaw=parseInt(document.getElementById('age2').value);
+  const age=(isFinite(ageRaw)&&ageRaw>0)?ageRaw:30;
   let bd;
   if(gender==='male'){
     bd=1.10938-0.0008267*sum3+0.0000016*sum3*sum3-0.0002574*age;
@@ -668,7 +666,7 @@ function saveRecord(){
     return;
   }
   const record={
-    date:new Date().toISOString().split('T')[0],
+    date:localTodayStr(),
     time:new Date().toTimeString().slice(0,5),
     bodyFat:Math.round(bf*10)/10,
     weight:w,

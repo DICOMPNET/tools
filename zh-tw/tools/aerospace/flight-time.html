@@ -222,7 +222,7 @@ s.parentNode.insertBefore(el, s);
       <ul>
         <li>將出發與到達時間統一換算為 UTC（協調世界時）</li>
         <li>飛行時長 = 到達UTC時刻 - 出發UTC時刻</li>
-        <li>時差 = 到達時區 - 出發時區（向東為正，向西為負）</li>
+        <li>時差 = 到達時區 − 出發時區（向東為正，向西為負）；實際飛行時長 = 當地時間差 − 該時差</li>
         <li>日界線跨越：時差超過 ±12 小時需調整日期</li>
       </ul>
     </div>
@@ -238,7 +238,7 @@ s.parentNode.insertBefore(el, s);
     </div>
     <div class="card formula-box">
   <h3>📐 計算公式</h3>
-  <div class="formula-eq">實際飛行時長 = (到達當地時刻 − 出發當地時刻) + (到達時區 − 出發時區)</div>
+  <div class="formula-eq">實際飛行時長 = (到達當地時刻 − 出發當地時刻) − (到達時區 − 出發時區)</div>
   <p class="formula-desc">先按各自時區換算為同一基準（UTC）再相減，避免跨日與時差誤差；結果為空中實際飛行時間，不含地面停場。</p>
 </div>
 <div class="tip-box tip-info">注意：此處使用標準時區偏移，未考慮夏令時（DST）。夏令時期間部分時區會偏移 +1 小時。</div>
@@ -396,7 +396,8 @@ function calc(){
     var flightMin = (arrUtcMs - depUtcMs) / 60000;
 
     if(flightMin < 0){
-      html += '<p style="color:var(--danger);">⚠ 到达时间早于出发时间（UTC），请检查日期/时区</p>';
+      ToolBox.setResult('result', '<p style="color:var(--danger);">⚠ 到达 UTC 时刻早于出发 UTC 时刻，请检查日期或时区输入。</p>');
+      return;
     }
 
     var fmt = function(n){ return ToolBox.formatNumber(n, 1); };

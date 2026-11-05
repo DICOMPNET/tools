@@ -261,7 +261,74 @@ s.parentNode.insertBefore(el, s);
 <!-- /注意事項區塊 -->
 </div>
 
-<script>
+<script>function __tbInputGuard(_ids,_labels){
+  if(!Array.isArray(_ids)||!_ids.length) return 0;
+  var __TPL='请填写「%s」后再计算。';
+  var __TPL2="<p style=\"color:var(--danger)\">⚠ 「%s」是本计算的分母，不能为 0。</p>";
+  var __TPL3="<p style=\"color:var(--danger)\">⚠ 「%s」不能为负值。</p>";
+  var _vals=[],_firstBad=-1;
+  var _REQ=['budget', 'cpc', 'cpm', 'ctr', 'cvr', 'aov', 'costRate', 'fixedCost'];
+  for(var _i=0;_i<_ids.length;_i++){
+    var _e=document.getElementById(_ids[_i]);
+    if(!_e) continue;
+    var _raw=String(_e.value==null?'':_e.value).trim();
+    var _num=parseFloat(_raw);
+    var _need=(_REQ.indexOf(_ids[_i])>=0);
+    if(_raw===''){ if(_need&&_firstBad<0)_firstBad=_i; _vals.push(NaN); continue; }
+    if(_e.type==='number'||_e.tagName==='TEXTAREA'){
+      if(_need&&isNaN(_num)){ if(_firstBad<0)_firstBad=_i; _vals.push(NaN); continue; }
+      _vals.push(_num);
+    } else _vals.push(_raw);
+  }
+  if(_firstBad>=0){
+    var _bad=_firstBad;
+    var _lbl=(_labels&&_labels[_bad])||_ids[_bad];
+    var __msg=__TPL.replace('%s',_lbl);
+    var _fe=document.getElementById(_ids[_bad]);
+    if(_fe&&_fe.classList&&_fe.classList.add)_fe.classList.add('input-error');
+    return __msg;
+  }
+  // 分母项：__D 由真浏览器逐项置零探测得出，命中即说明该输入在此页作分母
+  var __D={};
+  for(var _d=0;_d<_ids.length;_d++){
+    if(!(_ids[_d] in __D)) continue;
+    var _de=document.getElementById(_ids[_d]);
+    if(!_de) continue;
+    if(_de.classList&&_de.classList.remove)_de.classList.remove('input-error');
+    if(parseFloat(String(_de.value==null?'':_de.value).trim())===0){
+      if(_de.classList&&_de.classList.add)_de.classList.add('input-error');
+      return __TPL2.replace('%s',__D[_ids[_d]]);
+    }
+  }
+  // 负值受限项：__N 由真浏览器逐项置 -1 探测得出（质量/体积/年限/样本量等物理量）
+  var __N={};
+  for(var _n=0;_n<_ids.length;_n++){
+    if(!(_ids[_n] in __N)) continue;
+    var _ne=document.getElementById(_ids[_n]);
+    if(!_ne) continue;
+    var _nv=parseFloat(String(_ne.value==null?'':_ne.value).trim());
+    if(!isNaN(_nv)&&_nv<0){
+      if(_ne.classList&&_ne.classList.add)_ne.classList.add('input-error');
+      return __TPL3.replace('%s',__N[_ids[_n]]);
+    }
+  }
+  // 全零：任何一项作分母都会得到 Infinity/NaN。页面公式本身没错，是输入无意义
+  var _nums=[];
+  for(var _z=0;_z<_vals.length;_z++){ if(typeof _vals[_z]==='number'&&!isNaN(_vals[_z])) _nums.push(_vals[_z]); }
+  if(!_nums.length) return '';
+  if(_nums.length>0){
+    var _allZero=true;
+    for(var _z2=0;_z2<_nums.length;_z2++){ if(_nums[_z2]!==0){ _allZero=false; break; } }
+    if(_allZero) return "<p style=\"color:var(--danger)\">⚠ 输入不能全为 0：至少需要一项非零数值，否则计算无意义。</p>";
+  }
+  for(var _k=0;_k<_ids.length;_k++){
+    var _e2=document.getElementById(_ids[_k]);
+    if(_e2&&_e2.classList&&_e2.classList.remove)_e2.classList.remove('input-error');
+  }
+  return '';
+}
+
+
 var buyMode = 'cpc';
 function setBuy(m){
   buyMode = m;
@@ -273,7 +340,8 @@ function setBuy(m){
 }
 
 function calc(){
-  var budget = +document.getElementById('budget').value || 0;
+    var __ig=__tbInputGuard(['budget', 'cpc', 'cpm', 'ctr', 'cvr', 'aov', 'costRate', 'fixedCost'],["广告预算（元）", "CPC 单价（元）", "CPM 单价（元）", "点击率 CTR (%)", "转化率 CVR (%)", "客单价（元）", "商品成本率 (%)", "其他固定成本（元）"]);if(__ig){ToolBox.setResult("resultBox",__ig);return;}
+var budget = +document.getElementById('budget').value || 0;
   var ctr = (+document.getElementById('ctr').value||0)/100;
   var cvr = (+document.getElementById('cvr').value||0)/100;
   var aov = +document.getElementById('aov').value || 0;
@@ -300,7 +368,8 @@ function calc(){
   var roas = budget>0?revenue/budget:0;
   var roi = totalCost>0?(profit/totalCost*100):0;
   var grossMargin = 1-costRate;
-  var breakEvenRoas = grossMargin>0?1/grossMargin:0;
+  var hasBreakEven = grossMargin > 0;
+  var breakEvenRoas = hasBreakEven ? 1/grossMargin : null;
   var cpa = conversions>0?budget/conversions:0;
 
   var color = profit>0?'#10B981':'#EF4444';
@@ -316,20 +385,24 @@ function calc(){
     card('CPA 单转化成本', fmt(cpa)+' 元');document.getElementById('dataGrid').innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
 
   var beBox = document.getElementById('breakEven');
-  var beakEvenNote = breakEvenRoas.toFixed(2);
+  var beakEvenNote = hasBreakEven ? breakEvenRoas.toFixed(2) : '—（毛利率 ≤ 0，无平衡点）';
   var profitable = profit > 0;
   const __g5='<div class="tip-box '+(profitable?'tip-success':'tip-error')+'">'+
-    '盈亏平衡 ROAS = <strong>'+beakEvenNote+'</strong>（毛利率 '+(grossMargin*100).toFixed(0)+'%，未计固定成本）　·　实际利润 '+fmt(profit)+' 元 '+
+    '盈亏平衡 ROAS = <strong>'+beakEvenNote+'</strong>（'+(hasBreakEven?'毛利率 '+(grossMargin*100).toFixed(0)+'%，未计固定成本':'货品成本率 ≥ 100%，广告投多少都覆盖不了货品成本')+'）　·　实际利润 '+fmt(profit)+' 元 '+
     (profitable?' ✓ 盈利':' ✗ 亏损')+
     '</div>';beBox.innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
 
   var tipBox = document.getElementById('tipBox');
   var advice = '';
   if(!profitable){
+    if(!hasBreakEven){
+      advice = '当前货品成本率 ≥ 100%（毛利率 ≤ 0），任何转化率或客单价都无法覆盖货品成本，请先下调货品成本率。';
+    } else {
     var requiredConversions = aov>0 && grossMargin>0 ? totalCost/(aov*grossMargin) : 0;
     var neededCvr = clicks>0 ? requiredConversions/clicks : 0;
     var aovNeeded = (clicks*cvr>0 && grossMargin>0) ? fmt(totalCost/(clicks*cvr*grossMargin))+' 元' : '—（转化率为 0，无法测算）';
     advice = '当前利润为负。按总成本 '+fmt(totalCost)+' 元计，转化率需提升至 '+(neededCvr*100).toFixed(2)+'% 或客单价提升至 '+aovNeeded+'。';
+    }
   } else {
     advice = '当前盈利（已扣除广告预算、货品成本与固定成本）。可通过优化 CTR、CVR 或提升客单价进一步提高 ROI。';
   }
@@ -394,7 +467,7 @@ function __adRoiExport(){
   var conversions=clicks*cvr, revenue=conversions*aov, goodsCost=revenue*costRate;
   var totalCost=budget+goodsCost+fixed, profit=revenue-totalCost;
   var roas=budget>0?revenue/budget:0, roi=totalCost>0?profit/totalCost*100:0;
-  var grossMargin=1-costRate, breakEvenRoas=grossMargin>0?1/grossMargin:0;
+  var grossMargin=1-costRate, hasBreakEven=grossMargin>0, breakEvenRoas=hasBreakEven?1/grossMargin:null;
   var cpa=conversions>0?budget/conversions:0;
   var en=TBKit.util.isEn();
   var t=document.getElementById('adRoiHidden'); if(!t) return;
@@ -409,7 +482,7 @@ function __adRoiExport(){
     [en?'ROAS':'ROAS', roas.toFixed(2)],
     [en?'ROI':'ROI', roi.toFixed(1)+'%'],
     [en?'Gross Margin':'毛利率', (grossMargin*100).toFixed(0)+'%'],
-    [en?'Break-even ROAS':'盈亏平衡ROAS', breakEvenRoas.toFixed(2)],
+    [en?'Break-even ROAS':'盈亏平衡ROAS', hasBreakEven?breakEvenRoas.toFixed(2):'—'],
     [en?'CPA':'CPA单转化成本', Math.round(cpa)+' 元']
   ];
   t.querySelector('thead').innerHTML='<tr><th>'+(en?'Metric':'指标')+'</th><th>'+(en?'Value':'数值')+'</th></tr>';

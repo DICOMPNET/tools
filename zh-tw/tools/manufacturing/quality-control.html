@@ -141,7 +141,7 @@ s.parentNode.insertBefore(el, s);
     <h2 data-zh="⚖️ CPK 過程能力指數">Quality Control</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="評估製程能力,CPK≥1.33 為合格">Quality Control</p>
     <div class="formula-box">
-      <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">過程能力指數 CP/CPK/PPK 與良率<br>公差 T = USL − LSL<br>CP（潛在能力）= T ÷ (6 × 組內標準差 σ)<br>CPU = (USL − μ) ÷ (3σ)；CPL = (μ − LSL) ÷ (3σ)<br>CPK（綜合能力）= min(CPU, CPL)<br>CA 偏移係數 = |μ − M| ÷ (T/2)，M = (USL + LSL) ÷ 2<br>長短期 σ 換算：σ_LT = σ × ∛[1 + 1 ÷ (4(n−1))]（n > 25 時啟用）<br>PPK（長期能力）= T ÷ (6 × σ_LT)<br>理論良率 = 1 − Φ((USL−μ)/σ) − Φ((LSL−μ)/σ)<br>CPK 判定：≥1.67 過剩｜≥1.33 合格｜≥1.00 臨界｜≥0.67 不足｜其他 嚴重不足<br>約束：σ > 0 且 USL > LSL</div>
+      <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">過程能力指數 CP/CPK/PPK 與良率<br>公差 T = USL − LSL<br>CP（潛在能力）= T ÷ (6 × 組內標準差 σ)<br>CPU = (USL − μ) ÷ (3σ)；CPL = (μ − LSL) ÷ (3σ)<br>CPK（綜合能力）= min(CPU, CPL)<br>CA 偏移係數 = |μ − M| ÷ (T/2)，M = (USL + LSL) ÷ 2<br>PPK（長期能力）= T ÷ (6 × σ_總體)，σ_總體 為選填的長期/總體標準差；未填時 PPK 顯示「未計算」，不以短期 σ 近似代替<br>理論良率 = 1 − Φ((USL−μ)/σ) − Φ((LSL−μ)/σ)<br>CPK 判定：≥1.67 過剩｜≥1.33 合格｜≥1.00 臨界｜≥0.67 不足｜其他 嚴重不足<br>約束：σ > 0、USL > LSL，長期 σ 若填寫須 > 0</div>
       <p class="formula-desc" data-zh="核心計算公式（按輸入變數）：|(mean - M)| ÷ (T ÷ 2)；min(CPU, CPL)；(USL + LSL) ÷ 2">Key formulas: |(mean - M)| ÷ (T ÷ 2); min(CPU, CPL); (USL + LSL) ÷ 2</p>
     </div>
 
@@ -167,6 +167,10 @@ s.parentNode.insertBefore(el, s);
     <div class="input-row">
       <label>樣本數</label>
       <input type="number" id="n" value="30" min="2" placeholder="如 30">
+    </div>
+    <div class="input-row">
+      <label>長期/總體標準差 σ_總體（選填）</label>
+      <input type="number" id="sigmaOverall" step="0.01" min="0.0001" placeholder="如 0.18（留空則 PPK 不計算）">
     </div>
 
     <div class="toolbar">
@@ -204,7 +208,7 @@ s.parentNode.insertBefore(el, s);
 <li>過程居中性核查時，用 CA 偏移係數判斷均值是否偏離公差中心，指導裝置/引數調校。</li>
 <li>長期穩定性監控時，用 PPK（長期）與 CPK（短期）對比，識別隨時間漂移的特殊原因。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">軸徑過程能力示例</div><div class="dd-ex-body">某軸徑規格 9.5–10.5mm、實測均值 10.0mm、<a class="term-link" href="/zh-tw/tools/it/standard-deviation.html">標準差</a> 0.1mm、樣本 30 件。公差 T = 10.5−9.5 = 1.0mm；CP = 1.0÷(6×0.1) = 1.67；CPU = (10.5−10.0)÷(3×0.1) = 1.67，CPL = (10.0−9.5)÷0.3 = 1.67，CPK = min = 1.67；公差中心 10.0mm，CA = |10.0−10.0|÷(1.0÷2) = 0%（居中無偏移）；考慮<a class="term-link" href="/zh-tw/tools/stats/sample-size.html">樣本量</a>修正的長期 PPK ≈ 1.66。結論：CPK≥1.33 能力合格且居中良好。</div></div>
+<div class="dd-example"><div class="dd-ex-title">軸徑過程能力示例</div><div class="dd-ex-body">某軸徑規格 9.5–10.5mm、實測均值 10.0mm、<a class="term-link" href="/zh-tw/tools/it/standard-deviation.html">標準差</a> 0.1mm、樣本 30 件。公差 T = 10.5−9.5 = 1.0mm；CP = 1.0÷(6×0.1) = 1.67；CPU = (10.5−10.0)÷(3×0.1) = 1.67，CPL = (10.0−9.5)÷0.3 = 1.67，CPK = min = 1.67；公差中心 10.0mm，CA = |10.0−10.0|÷(1.0÷2) = 0%（居中無偏移）；若另填長期/總體標準差 0.12mm（比短期 σ 大 20%），PPK = 1.0÷(6×0.12) = 1.389；未填長期 σ 時頁面不計算 PPK（不以短期 σ 近似代替）。結論：CPK≥1.33 能力合格且居中良好。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
 <dt>CPK 和 CP 有什麼不同？</dt><dd>CP 只看公差寬度與過程離散度（潛力），不考慮均值偏移；CPK = min(CPU,CPL) 同時考慮偏移，更能反映實際能力。均值居中時 CPK=CP，偏移越大 CPK 越小。</dd>
@@ -268,8 +272,12 @@ function calc() {
   const mean = +document.getElementById('mean').value || 0;
   const sigma = +document.getElementById('stddev').value || 0;
   const n = +document.getElementById('n').value || 0;
+  const sOverall = parseFloat(document.getElementById('sigmaOverall').value);
   if (sigma <= 0) { ToolBox.showToast(i18nText('toast.msg450'),'error'); return; }
   if (USL <= LSL) { ToolBox.showToast(i18nText('toast.msg019'),'error'); return; }
+  if (document.getElementById('sigmaOverall').value !== '' && !(sOverall > 0)) {
+    ToolBox.showToast('长期标准差须大于 0（留空则不计算 PPK）','error'); return;
+  }
 
   const T = USL - LSL; // 公差
   // CP 潜在能力
@@ -281,9 +289,10 @@ function calc() {
   // CA 偏移
   const M = (USL + LSL) / 2;
   const CA = Math.abs(mean - M) / (T / 2);
-  // 短期 vs 长期 sigma 差异
-  const sigmaLT = sigma * Math.cbrt(n > 25 ? 1 + 1/(4*(n-1)) : 1);
-  const PPK = T / (6 * sigmaLT);
+  // 长期能力：须用总体/长期标准差；PP 仅看分散，PPK 还须计入均值偏移
+  const hasPPK = isFinite(sOverall) && sOverall > 0;
+  const PP = hasPPK ? T / (6 * sOverall) : null;
+  const PPK = hasPPK ? Math.min((USL - mean) / (3 * sOverall), (mean - LSL) / (3 * sOverall)) : null;
 
   let level = '⚠️ 不足';
   let color = '#ef4444';
@@ -318,7 +327,9 @@ function calc() {
     </div>
     <div class="result-block">
       <div class="result-label">PPK (长期能力)</div>
-      <div class="result-value">${PPK.toFixed(3)}</div>
+      <div class="result-value">${hasPPK ? PPK.toFixed(3) : '<span style="font-size:14px;color:var(--text-muted);">未计算（未填长期标准差）</span>'}</div>
+      ${hasPPK ? '<p style="font-size:11px;color:var(--text-muted);margin-top:4px;">PP='+PP.toFixed(2)+' / PPU='+(((USL-mean)/(3*sOverall)).toFixed(2))+' / PPL='+(((mean-LSL)/(3*sOverall)).toFixed(2))+'</p>' : ''}
+      ${hasPPK && n > 0 && n < 30 ? '<p style="font-size:11px;color:var(--text-muted);margin-top:4px;">样本数 n&lt;30，长期能力估计参考性有限</p>' : ''}
     </div>
     <div class="result-block">
       <div class="result-label">理论良率</div>

@@ -117,7 +117,8 @@ s.parentNode.insertBefore(el, s);
 <div class="container">
   <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
     <h2 data-zh="🔮 代謝產物(體內轉化)預測器">Metabolite Prediction</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="預測中藥有效成分體內代謝途徑和產物，含I相/II相反應">Metabolite Prediction</p>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="按化合物類別與給藥途徑給出 I/II 相代謝途徑參考，不做結構級預測">Metabolite Prediction</p>
+    <div class="formula-box"><div class="formula-title">📐 說明與邊界</div><div class="formula-desc">本工具是「類別模板」：按黃酮、生物鹼、皂苷等類別的共性代謝規律列出常見 I/II 相反應與代表產物，並按輸入分子量做加合/丟失估算。它不解析結構式、不模擬酶動力學，也不能區分取代基與種屬差異；具體化合物的真實代謝產物需 LC-MS/MS 等實驗確認。</div></div>
 
     <div class="input-row">
       <div>
@@ -331,18 +332,56 @@ const METABOLISM_DATA = {
   },
 };
 
+const COMPOUND_HINTS = {
+  '黄芩苷':'肠道菌群 β-葡萄糖苷酶水解为黄芩素后吸收入血，肝内 UGT 再结合生成黄芩苷-6-O-葡萄糖醛酸苷。',
+  '黄芩素':'主要在 6/7 位发生葡萄糖醛酸化与硫酸化，可与黄芩苷互变，血中以结合物为主。',
+  '槲皮素':'经 COMT O-甲基化为异鼠李素，并大量葡萄糖醛酸化、硫酸化后经肾/胆汁排泄。',
+  '芦丁':'先脱去芸香糖生成槲皮素，再进入黄酮共性代谢途径。',
+  '葛根素':'C-糖苷不易被肠道菌群水解，主要以原形及葡萄糖醛酸化产物排泄。',
+  '小檗碱':'CYP3A4/2D6 介导 O-去甲基与羟基化；口服吸收差，大量经粪便排出。',
+  '麻黄碱':'CYP3A4 N-脱甲基生成去甲麻黄碱，部分以原形经尿排泄。',
+  '苦参碱':'CYP 介导羟基化，并可 N-氧化为苦参碱 N-氧化物。',
+  '乌头碱':'酯键水解为苯甲酰乌头原碱、乌头原碱，是主要的减毒途径。',
+  '延胡索乙素':'以 O-去甲基与葡萄糖醛酸化为主，主要经肝脏代谢。',
+  '人参皂苷Rb1':'肠道菌群逐级脱糖 → 人参皂苷 Rd/F2 → 化合物 K → 原人参二醇。',
+  '人参皂苷Rg1':'脱糖生成人参皂苷 Rh1/F1 等，进一步代谢为原人参三醇。',
+  '甘草酸':'肠道菌群水解为甘草次酸，后者再经 UGT/SULT 结合。',
+  '柴胡皂苷a':'在肠道菌群与酸催化下转化为柴胡皂苷 d 及前柴胡皂苷。',
+  '大黄素':'UGT1A 介导葡萄糖醛酸化与硫酸化，部分经 CYP 去甲基。',
+  '大黄酸':'肠道菌群还原生成的大黄酸蒽酮是泻下活性形式。',
+  '芦荟大黄素':'侧链 CH₂OH 氧化为 COOH，生成大黄酸。',
+  '番泻苷':'本身无活性，经肠道菌群水解并还原为大黄酸蒽酮后起效。',
+  '青蒿素':'铁/血红素催化过氧桥断裂，生成脱氧青蒿素等失活产物。',
+  '穿心莲内酯':'内酯环水解为穿心莲酸，活性随之下降。',
+  '丹参酮IIA':'CYP2C9/3A4 介导羟基化，并进一步葡萄糖醛酸化。',
+  '薄荷脑':'CYP2A6 氧化为薄荷酮，再经葡萄糖醛酸化排泄。',
+  '秦皮甲素':'内酯开环水解为秦皮素/秦皮酸，部分经 UGT 结合。',
+  '蛇床子素':'O-去甲基生成花椒毒素类，并可能发生呋喃环环氧化。',
+  '补骨脂素':'CYP 介导呋喃环环氧化，生成有肝毒性的环氧中间体，经 GSH 解毒。',
+  '白花前胡甲素':'以 CYP3A4 氧化与酯解为主，产物经葡萄糖醛酸化。',
+};
+
 function predict(){
   const type = document.getElementById('compoundType').value;
   const route = document.getElementById('route').value;
   const mw = +document.getElementById('mw').value || 0;
   const data = METABOLISM_DATA[type];
 
-  // 更新化合物下拉
+  // 仅在化合物类型变化时重建下拉，避免选择化合物时把自身 value 重置为「自动匹配」
   const compSelect = document.getElementById('compound');
-  const __h0='<option value="">自动匹配</option>' + data.compounds.map(c => `<option value="${c}">${c}</option>`).join('');if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){compSelect.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}compSelect.innerHTML=__h0;
+  let compound = compSelect.value;
+  if(compSelect.getAttribute('data-type') !== type){
+    compSelect.innerHTML = '<option value="">自动匹配</option>' + data.compounds.map(c => `<option value="${c}">${c}</option>`).join('');
+    compSelect.setAttribute('data-type', type);
+    compound = '';
+  }
 
   let html = '<h3 style="text-align:center;margin-bottom:12px;">代谢途径预测</h3>';
-  html += `<p style="font-size:14px;margin-bottom:8px;"><strong>化合物类型：</strong>${data.name} | <strong>给药途径：</strong>${{oral:'口服',iv:'静脉注射',topical:'外用'}[route]}</p>`;
+  html += `<p style="font-size:14px;margin-bottom:8px;"><strong>化合物类型：</strong>${data.name}${compound?'（'+compound+'）':''} | <strong>给药途径：</strong>${{oral:'口服',iv:'静脉注射',topical:'外用'}[route]}</p>`;
+  if(compound){
+    const hint = COMPOUND_HINTS[compound] || '';
+    html += `<div class="tip-box tip-info"><strong>已选择：${compound}</strong>。${hint ? hint + ' ' : ''}以上要点来自该化合物的常见文献代谢途径；本页其余步骤仍是「${data.name}」的类别模板，实际代谢受取代基、共代谢与种属差异影响，需体外/体内实验验证。</div>`;
+  }
 
   if(route === 'oral'){
     html += `<div class="tip-box tip-warn"><strong>口服给药代谢特点：</strong>首过效应显著，肠道菌群代谢参与度高，生物利用度通常较低。</div>`;
@@ -376,13 +415,14 @@ function predict(){
   if(mw > 0){
     html += '<h3 style="margin:16px 0 8px;">主要代谢产物分子量估算</h3>';
     html += '<div class="data-grid">';
-    html += `<div class="data-card"><div class="num">${(mw-176).toFixed(0)}</div><div class="label">脱糖基(-葡萄糖)</div></div>`;
+    html += `<div class="data-card"><div class="num">${mw-162>0?(mw-162).toFixed(0):'—'}</div><div class="label">脱糖基(-C₆H₁₀O₅)</div></div>`;
     html += `<div class="data-card"><div class="num">${(mw+16).toFixed(0)}</div><div class="label">羟基化(+O)</div></div>`;
     html += `<div class="data-card"><div class="num">${(mw-14).toFixed(0)}</div><div class="label">去甲基(-CH₂)</div></div>`;
     html += `<div class="data-card"><div class="num">${(mw+176).toFixed(0)}</div><div class="label">葡萄糖醛酸化(+C₆H₈O₆)</div></div>`;
     html += `<div class="data-card"><div class="num">${(mw+80).toFixed(0)}</div><div class="label">硫酸化(+SO₃)</div></div>`;
-    html += `<div class="data-card"><div class="num">${(mw-18).toFixed(0)}</div><div class="label">脱水(-H₂O)</div></div>`;
+    html += `<div class="data-card"><div class="num">${mw-18>0?(mw-18).toFixed(0):'—'}</div><div class="label">脱水(-H₂O)</div></div>`;
     html += '</div>';
+    html += '<p style="font-size:12px;color:var(--text-muted);margin-top:6px;">* 上表按官能团加合/丢失的固定质量差估算（脱糖基 −162、羟基化 +16、去甲基 −14、葡萄糖醛酸化 +176、硫酸化 +80、脱水 −18），不是该化合物实测分子量；数值 ≤ 0 时以「—」显示。</p>';
   }
 
   html += `<div class="tip-box tip-success" style="margin-top:12px;"><strong>代谢特点总结：</strong>${data.note}</div>`;
@@ -441,20 +481,20 @@ ToolBox.initToolTheme();
   </div>
   <div class="tool-intro-body">
     <h4><span class="h4-icon">📝</span>工具簡介</h4>
-    <p>代謝產物預測器 - 預測中藥有效成分體內代謝轉化途徑，含I相/II相代謝反應。。醫療專業工具，基於權威醫學標準，僅供參考。</p>
+    <p>按中藥化合物類別與給藥途徑，列出常見 I 相、II 相代謝反應與代表產物，並按分子量做代謝產物質量差估算；選中具體化合物時補充該化合物的常見代謝要點。</p>
     <h4><span class="h4-icon">✨</span>功能特點</h4>
     <ul class="intro-features">
-      <li>基於權威醫學標準</li>
-      <li>支援多種臨床引數</li>
-      <li>即時計算，結果即時顯示</li>
-      <li>醫療資料不上傳，保護隱私</li>
+      <li>6 大類中藥成分的 I/II 相代謝途徑模板</li>
+      <li>26 個常用化合物的代謝要點</li>
+      <li>按分子量估算 6 類產物的質量變化</li>
+      <li>口服 / 靜脈 / 外用三種給藥路徑提示</li>
     </ul>
     <h4><span class="h4-icon">🎯</span>使用場景</h4>
     <ul class="intro-scenes">
-      <li>臨床計算與評估輔助</li>
-      <li>醫學學習與考試備考</li>
-      <li>科研資料分析</li>
-      <li>健康監測參考</li>
+      <li>中藥藥代動力學學習與備課</li>
+      <li>LC-MS 代謝產物質量差對照</li>
+      <li>複方成分代謝途徑梳理</li>
+      <li>實驗方案設計前的途徑預判</li>
     </ul>
     </div>
 </div>

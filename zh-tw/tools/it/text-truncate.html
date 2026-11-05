@@ -168,7 +168,7 @@ s.parentNode.insertBefore(el, s);
     </div>
     <div class="toolbar">
       <div id="text_truncatePresets"></div><button type="button" class="btn primary" onclick="truncate()">截斷</button><button class="btn" type="button" onclick="__text_truncateExport()">匯出明細 CSV</button>
-      <button type="button" class="btn success" onclick="copyResult()">複製結果</button>
+      <button type="button" class="btn success" onclick="copyResult(event)">複製結果</button>
       <button type="button" class="btn" onclick="clearAll()">清空</button>
     </div>
   </div>
@@ -301,18 +301,18 @@ function truncate(){
   const wordBoundary = document.getElementById('wordBoundary').checked;
   const fromEnd = document.getElementById('fromEnd').checked;
 
-  function utf8Bytes(cp){
-    if(cp <= 0x7f) return 1;
-    if(cp <= 0x7ff) return 2;
-    if(cp <= 0xffff) return 3;
-    return 4;
+  // 按「字素簇」而非码点切分：组合字符（e+́）与 ZWJ emoji（👨‍👩‍👧‍👦）不能被拆开
+  function graphemes(s){
+    try{ return Array.from(new Intl.Segmenter(undefined, {granularity:'grapheme'}).segment(s), function(x){ return x.segment; }); }
+    catch(e){ return Array.from(s); }
   }
-  const ellipsisCp = Array.from(ellipsis).length;
-  const ellipsisBytes = Array.from(ellipsis).reduce(function(n, ch){ return n + utf8Bytes(ch.codePointAt(0)); }, 0);
+  function utf8Len(str){ return new TextEncoder().encode(str).length; }
+  const ellipsisCp = graphemes(ellipsis).length;
+  const ellipsisBytes = utf8Len(ellipsis);
 
   function truncOne(s){
     if(mode === 'chars'){
-      const cps = Array.from(s);
+      const cps = graphemes(s);
       if(cps.length <= limit) return s;
       const budget = Math.max(0, limit - ellipsisCp);
       let keep = budget;
@@ -335,11 +335,11 @@ function truncate(){
         return fromEnd ? ellipsis + out : out + ellipsis;
       }
     }else if(mode === 'bytes'){
-      const cps = Array.from(s);
+      const cps = graphemes(s);
       const budget = Math.max(0, limit - ellipsisBytes);
       let total = 0, cut = 0;
       while(cut < cps.length){
-        const b = utf8Bytes(cps[cut].codePointAt(0));
+        const b = utf8Len(cps[cut]);
         if(total + b > limit) break;
         total += b; cut++;
       }
@@ -347,7 +347,7 @@ function truncate(){
       if(fromEnd){
         let acc = 0, start = cps.length;
         while(start > 0){
-          const b = utf8Bytes(cps[start - 1].codePointAt(0));
+          const b = utf8Len(cps[start - 1]);
           if(acc + b > budget) break;
           acc += b; start--;
         }
@@ -355,7 +355,7 @@ function truncate(){
       }
       let acc = 0, keep = 0;
       while(keep < cps.length){
-        const b = utf8Bytes(cps[keep].codePointAt(0));
+        const b = utf8Len(cps[keep]);
         if(acc + b > budget) break;
         acc += b; keep++;
       }
@@ -372,11 +372,11 @@ function truncate(){
   }
 }
 
-function copyResult(){
+function copyResult(ev){
   const text = document.getElementById('result').textContent;
   if(!text || text === '请输入文本...'){ alert('请先截断文本'); return; }
+  const btn = (ev && ev.target) ? ev.target.closest('.btn') : null;
   navigator.clipboard.writeText(text).then(() => {
-    const btn = event.target.closest('.btn');
     if(btn){ const old = btn.textContent; btn.textContent = '✅ 已复制'; setTimeout(() => btn.textContent = old, 1500); }
   });
 }

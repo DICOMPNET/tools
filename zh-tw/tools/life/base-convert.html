@@ -155,28 +155,28 @@ s.parentNode.insertBefore(el, s);
     <div class="base-row">
       <label>二進位制</label>
       <input type="text" id="bin" readonly>
-      <button type="button" class="btn success copy-btn" onclick="copyVal('bin')">複製</button>
+      <button type="button" class="btn success copy-btn" onclick="copyVal('bin', this)">複製</button>
     </div>
     <div class="base-row">
       <label>八進位制</label>
       <input type="text" id="oct" readonly>
-      <button type="button" class="btn success copy-btn" onclick="copyVal('oct')">複製</button>
+      <button type="button" class="btn success copy-btn" onclick="copyVal('oct', this)">複製</button>
     </div>
     <div class="base-row">
       <label>十進位制</label>
       <input type="text" id="dec" readonly>
-      <button type="button" class="btn success copy-btn" onclick="copyVal('dec')">複製</button>
+      <button type="button" class="btn success copy-btn" onclick="copyVal('dec', this)">複製</button>
     </div>
     <div class="base-row">
       <label>十六進位制</label>
       <input type="text" id="hex" readonly>
-      <button type="button" class="btn success copy-btn" onclick="copyVal('hex')">複製</button>
+      <button type="button" class="btn success copy-btn" onclick="copyVal('hex', this)">複製</button>
     </div>
     <div class="base-row">
       <label>自定義進位制</label>
       <input type="number" id="customBase" value="36" min="2" max="62" style="max-width:80px;" onchange="convert()" placeholder="如 36（2–62）">
       <input type="text" id="custom" readonly style="flex:1;">
-      <button type="button" class="btn success copy-btn" onclick="copyVal('custom')">複製</button>
+      <button type="button" class="btn success copy-btn" onclick="copyVal('custom', this)">複製</button>
     </div>
     <div style="margin-top:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
       <button type="button" class="btn" data-zh="⬇️ 匯出進位制對照表 CSV" onclick="__bcExport()">⬇️ Export Base Table CSV</button>
@@ -277,6 +277,18 @@ function loadBaseSample(v){
   convert();
 }
 
+// Number.toString 仅支持 2–36 进制；自定义进制上限 62，需自行实现
+function toBase(n, base){
+  if(!Number.isInteger(base) || base < 2 || base > 62) return '错误';
+  const digits = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+  const neg = n < 0;
+  n = Math.abs(Math.trunc(n));
+  if(n === 0) return '0';
+  let s = '';
+  while(n > 0){ s = digits[n % base] + s; n = Math.floor(n / base); }
+  return (neg ? '-' : '') + s;
+}
+
 function convert(){
   const input = document.getElementById('input').value.trim();
   if(!input){
@@ -306,7 +318,7 @@ function convert(){
   document.getElementById('hex').value = num.toString(16).toUpperCase();
 
   const customBase = parseInt(document.getElementById('customBase').value) || 36;
-  document.getElementById('custom').value = num.toString(customBase).toUpperCase();
+  document.getElementById('custom').value = toBase(num, customBase);
 }
 
 function convertText(){
@@ -328,11 +340,11 @@ function convertText(){
   document.getElementById('unicode').value = unicode.join(' ');
 }
 
-function copyVal(id){
+function copyVal(id, btn){
   const val = document.getElementById(id).value;
   if(!val) return;
   navigator.clipboard.writeText(val).then(() => {
-    const btn = event.target;
+    if(!btn) return;
     btn.textContent='✅';setTimeout(()=>btn.textContent='复制',1500);
   });
 }
@@ -360,7 +372,7 @@ function __bcExport(){
     else num=parseInt(inp,10);
     if(isNaN(num)) return;
     var cb=parseInt(document.getElementById('customBase').value)||36;
-    var rows=[['二进制',num.toString(2)],['八进制',num.toString(8)],['十进制',num.toString(10)],['十六进制',num.toString(16).toUpperCase()],['自定义进制('+cb+')',num.toString(cb).toUpperCase()]];
+    var rows=[['二进制',num.toString(2)],['八进制',num.toString(8)],['十进制',num.toString(10)],['十六进制',num.toString(16).toUpperCase()],['自定义进制('+cb+')',toBase(num, cb)]];
     var tb=document.getElementById('bcTable'); if(!tb)return;
     var html='<thead><tr><th>进制</th><th>数值</th></tr></thead><tbody>';
     for(var i=0;i<rows.length;i++){ html+='<tr><td>'+rows[i][0]+'</td><td>'+rows[i][1]+'</td></tr>'; }

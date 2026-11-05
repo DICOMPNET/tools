@@ -131,22 +131,22 @@ s.parentNode.insertBefore(el, s);
 </div>
 <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
     <h2 data-zh="📚 尿沉渣鏡檢(管型/結晶)圖譜查詢器">Urine Sediment Atlas</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="查詢尿沉渣中管型、結晶、細胞等有形成分的形態與臨床意義">Urine Sediment Atlas</p>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="查詢尿沉渣中管型、結晶、細胞等有形成分的形態與臨床意義（文字版要點，不含鏡檢圖片）">Urine Sediment Atlas — text-only morphology reference (no microscopy images)</p>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">過濾規則：分類非「全部」時要求條目分類精確匹配；關鍵詞非空時，名稱、臨床意義、形態三欄位任一轉小寫後包含該關鍵詞即保留；結果為空顯示未找到匹配專案</div>
-  <p class="formula-desc">對尿沉渣有形成分（紅血球/白血球/管型/結晶）的形態與提示做圖譜式對照，輔助鏡檢覆習。</p>
+  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">過濾規則：分類非「全部」時要求條目分類精確匹配；關鍵詞非空時依次匹配名稱、臨床意義、形態、大小、外觀、參考範圍（轉小寫包含即命中）；圖表按當前篩選結果重算；結果為空顯示未找到匹配專案</div>
+  <p class="formula-desc">對尿沉渣有形成分（紅血球/白血球/管型/結晶）的形態與提示做文字要點對照，輔助鏡檢覆習；本頁不含真實鏡檢圖片。</p>
 </div>
 
 
     <div class="input-row">
-      <div><label>搜尋關鍵詞</label><input type="search" id="search" placeholder="如：管型、結晶、紅血球" oninput="filterItems()"></div>
+      <div><label>搜尋名稱或形態特徵</label><input type="search" id="search" placeholder="如：管型、結晶、紅血球、7-8" oninput="filterItems()"></div>
     </div>
     <div class="filter-bar" id="filterBar"></div>
 
     <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__urine_sediment_atlasExport()">匯出明細 CSV</button></div><div id="itemList"></div> <div id="urine_sediment_atlasTable"></div> <div id="urine_sediment_atlasDiff"></div> <div id="urine_sediment_atlasChart"></div> <div id="urine_sediment_atlasHist"></div>
 
     <div class="info-box" style="margin-top:16px;">
-      <strong>尿沉渣檢查要點：</strong>取新鮮尿10mL離心(1500rpm/5min)，留0.2mL沉渣鏡檢。管型在低倍鏡(×10)觀察20個視野計數，細胞在高倍鏡(×40)觀察10個視野計數。管型以透明管型為基質，含細胞/顆粒則意義不同。
+      <strong>尿沉渣檢查要點：</strong>取新鮮尿10mL離心(1500rpm/5min)，留0.2mL沉渣鏡檢。管型在低倍鏡(×10)觀察20個視野計數，細胞在高倍鏡(×40)觀察10個視野計數。管型以透明管型為基質，含細胞/顆粒則意義不同。<br><strong>說明：</strong>本頁為文字形態要點速查，不含真實鏡檢圖片；結果須由檢驗師鏡檢確認，疑難時結合標準圖譜複核（需臨床複核）。
     </div>
   </div>
 
@@ -271,14 +271,20 @@ function buildFilter(){
 
 function setCat(c){currentCat=c;filterItems();}
 
+var __urineList = ITEMS.slice();
+
 function filterItems(){
-  var q=document.getElementById('search').value.toLowerCase();
+  var q=document.getElementById('search').value.trim().toLowerCase();
   var list=ITEMS.filter(function(it){
     if(currentCat!=='all' && it.cat!==currentCat) return false;
-    if(q && it.name.toLowerCase().indexOf(q)<0 && it.sig.toLowerCase().indexOf(q)<0 && it.morph.toLowerCase().indexOf(q)<0) return false;
-    return true;
+    if(!q) return true;
+    return ['name','sig','morph','size','bg','mean'].some(function(k){
+      return String(it[k]||'').toLowerCase().indexOf(q)>=0;
+    });
   });
+  __urineList = list;
   var html='';
+  html+='<p style="font-size:12px;color:var(--text-muted);margin:4px 0 8px;">共 '+list.length+' 项 · 按类别与关键词过滤</p>';
   if(list.length===0){html='<div class="result-box" style="text-align:center;">未找到匹配项目</div>';}
   list.forEach(function(it,i){
     html+='<div class="sed-card" id="sed-'+i+'">';
@@ -292,6 +298,29 @@ function filterItems(){
     html+='</div></div>';
   });
   const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('itemList').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('itemList').innerHTML=__h1;
+  __urineDrawChart();
+}
+
+function __urineDrawChart(){
+  if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.pie) return;
+  var host=document.getElementById('urine_sediment_atlasChart');
+  if(!host || host.style.display==='none') return;
+  var en=TBKit.util.isEn();
+  if(!__urineList.length){
+    host.innerHTML='<div style="padding:24px;text-align:center;color:var(--text-muted)">'+(en?'No items match the current filter.':'当前筛选无匹配项目，图表为空。')+'</div>';
+    return;
+  }
+  var order=['cast','crystal','cell','other'];
+  var labelsZh=cats, labelsEn={cast:'Casts',crystal:'Crystals',cell:'Cells',other:'Others'};
+  var data=order.map(function(c){
+    return __urineList.filter(function(it){return it.cat===c;}).length;
+  });
+  host.innerHTML='';
+  TBKit.chart.pie('#urine_sediment_atlasChart',{
+    labels:order.map(function(c){return en?(labelsEn[c]||c):labelsZh[c];}),
+    data:data,
+    title:en?'Items by category (current filter)':'当前筛选的类别分布'
+  });
 }
 
 function toggleItem(i){
@@ -493,6 +522,7 @@ else document.addEventListener('DOMContentLoaded', __urine_sediment_atlasBoot);
     function show(pane){
       for(var k in P){var ids=P[k];for(var i=0;i<ids.length;i++){var el=document.getElementById(ids[i]);if(el&&el.style)el.style.display=(k===pane?'':'none');}}
       for(var j=0;j<btns.length;j++){btns[j].className='tbk-tab'+(btns[j].getAttribute('data-pane')===pane?' active':'');}
+      if(pane==='chart'&&typeof window.__urineDrawChart==='function'){try{window.__urineDrawChart();}catch(e){}}
     }
     for(var i=0;i<btns.length;i++){(function(b){b.addEventListener('click',function(){show(b.getAttribute('data-pane'));});})(btns[i]);}
     show(btns[0].getAttribute('data-pane'));

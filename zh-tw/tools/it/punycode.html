@@ -135,6 +135,7 @@ s.parentNode.insertBefore(el, s);
     <li><b>編碼</b>：保留原有 ASCII 部分，非 ASCII 部分按演算法壓縮為字母數字串。</li>
     <li><b>字首</b>：轉換結果以 <code>xn--</code> 開頭，如「中國」→ <code>xn--fiqs8s</code>。</li>
     <li><b>IDNA</b>：實際域名系統使用 IDNA 規則，先做名稱預處理再做 Punycode 編碼。</li>
+    <li>解碼口徑：只識別 xn-- 字首標籤做解碼，其餘標籤按普通文本原樣保留。勾選 ACE 字首時編碼→解碼逐字互逆；取消勾選得到裸 Punycode，因與英文域名無法區分，解碼不會還原，裸串僅供編碼輸出使用。</li>
   </ul>
 </div>
 
@@ -161,7 +162,7 @@ s.parentNode.insertBefore(el, s);
     <h2>📖 演算法說明</h2>
     <div class="result-box">
       <p><strong>Punycode</strong> 用於 IDN 域名轉換，將非 ASCII 域名轉為 ASCII。</p>
-      <p>例如: <code>中文.com</code> → <code>xn--fiqs8s.com</code></p>
+      <p>例如: <code>中文.com</code> → <code>xn--fiq228c.com</code></p>
     </div>
   </div>
 
@@ -273,6 +274,7 @@ function encode(str){
   }
   const b = basic.length;
   let out = basic.join('');
+  // RFC 3492：存在基本码点时输出分隔符；纯 ASCII 的用户输入由 enc() 原样返回
   if(b > 0) out += '-';
   let n = INITIAL_N, delta = 0, bias = INITIAL_BIAS;
   const total = cps.length;
@@ -360,7 +362,9 @@ function enc(){
       return (ace ? 'xn--' : '') + encode(label);
     }).join('.');
   } else {
-    result = (ace && /[^\x00-\x7f]/.test(text) ? 'xn--' : '') + encode(text);
+    // 纯 ASCII 直接原样返回，避免低层编码器补出的尾随 '-' 改变标签名
+    if(/^[\x00-\x7f]*$/.test(text)) result = text;
+    else result = (ace ? 'xn--' : '') + encode(text);
   }
   document.getElementById('output').value = result;
 }
@@ -370,14 +374,13 @@ function dec(){
   if(!text) return alert('请输入要解码的 Punycode 字符串');
   try{
     let result;
+    const decodeLabel = (label) => label.startsWith('xn--') ? decode(label.substr(4)) : label;
+    // 无 xn-- 前缀的 ASCII 串与普通英文域名/文本无法区分（如 'a' 本身就是 U+0080 的合法裸
+    // Punycode），因此解码只认 xn-- 前缀标签，其余标签原样保留；这样「编码→解码」才逐字互逆。
     if(text.includes('.')){
-      result = text.split('.').map(label => {
-        if(label.startsWith('xn--')) return decode(label.substr(4));
-        return label;
-      }).join('.');
+      result = text.split('.').map(decodeLabel).join('.');
     } else {
-      const t = text.startsWith('xn--') ? text.substr(4) : text;
-      result = decode(t);
+      result = decodeLabel(text);
     }
     document.getElementById('output').value = result;
   }catch(e){ alert('解码失败：' + e.message); }
@@ -422,7 +425,8 @@ function __punycodeSnap(){
 function __punycodeResText(){
     var r=document.getElementById('output');
     if(!r) return '';
-    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    var isField=r.tagName==='INPUT'||r.tagName==='TEXTAREA'||r.tagName==='SELECT';
+    var t=((isField?r.value:r.textContent)||'').replace(/\s+/g,' ').trim();
     if(!t||t==='--'||t==='—'||t==='-') return '';
     if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
     return t.slice(0,80);

@@ -122,7 +122,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="輸入養殖面積、存欄密度與平均體重，快速估算總存欄數量、總生物量及單位面積產量。">Enter stocking area, density and average body weight to quickly estimate total stock, total biomass and yield per unit area.</p>    <div class="formula-box">
       <div class="formula-title">📐 計算公式 / 原理</div>
       <div class="formula-eq">存欄數 = 面積 × 存欄密度 × 單位換算 × 成活率%；總生物量 = 存欄數 × 平均體重；折算密度 = 存欄數 ÷ 面積</div>
-      <div class="formula-desc">面積先按所選單位歸一到平方米（畝 ÷ 666.67、ha ÷ 10 000、㎡ 直用），乘存欄密度得理論存欄，再乘成活率得實際存欄數。總生物量為存欄數 × 平均體重；並把存欄數折算為「只/㎡」與「只/畝」兩種密度便於橫向比較，輔助養殖場產能與飼料配套規劃。</div>
+      <div class="formula-desc">養殖面積一律按平方米（㎡）輸入。密度單位選「只/畝」或「只/公頃」時，工具把面積換算成對應單位（1 畝 ≈ 666.67 ㎡、1 公頃 = 10 000 ㎡）後再乘密度，得理論存欄，再乘成活率得實際存欄數。總生物量為存欄數 × 平均體重（平均體重留空時只輸出存欄數）；並把存欄數折算為「只/㎡」與「只/畝」兩種密度便於橫向比較，輔助養殖場產能與飼料配套規劃。</div>
     </div>
 
 
@@ -172,12 +172,15 @@ function setInvalid(el,invalid){
   else{el.classList.remove('input-error');el.removeAttribute('aria-invalid');}
 }
 function calc(){
-  var area=getNum('area'), density=getNum('density'), weight=getNum('weight'), survival=getNum('survival');
+  var area=getNum('area'), density=getNum('density'), survival=getNum('survival');
+  var weightRaw=document.getElementById('weight').value.trim();
+  var hasWeight=weightRaw!=='';
+  var weight=hasWeight?getNum('weight'):0;
   var unit=document.getElementById('unit').value;
-  var valid=[area,density,weight,survival].every(function(v){return !isNaN(v)&&v>=0;}) && survival>=0 && survival<=100 && area>0;
+  var valid=[area,density,survival].every(function(v){return !isNaN(v)&&v>=0;}) && survival>=0 && survival<=100 && area>0 && (!hasWeight||(!isNaN(weight)&&weight>=0));
   setInvalid(document.getElementById('area'),isNaN(area)||area<=0);
   setInvalid(document.getElementById('density'),isNaN(density)||density<0);
-  setInvalid(document.getElementById('weight'),isNaN(weight)||weight<0);
+  setInvalid(document.getElementById('weight'),hasWeight&&(isNaN(weight)||weight<0));
   setInvalid(document.getElementById('survival'),isNaN(survival)||survival<0||survival>100);
   if(!valid){document.getElementById('res').innerHTML='<p style="color:var(--error);">请填写有效的参数。</p>';return;}
   var areaFactor={m2:1,mu:1/666.67,ha:1/10000}[unit];
@@ -185,16 +188,21 @@ function calc(){
   var biomass=totalHead*weight;
   var densityM2=totalHead/area;
   var densityMu=densityM2*666.67;
-  const __g2='<div class="data-grid">'+
+  var html='<div class="data-grid">'+
     '<div class="data-card"><div class="num">'+totalHead.toFixed(0)+'</div><div class="label">估算存栏数量（只）</div></div>'+
-    '<div class="data-card"><div class="num">'+biomass.toFixed(2)+'</div><div class="label">总生物量（kg）</div></div>'+
+    (hasWeight?'<div class="data-card"><div class="num">'+biomass.toFixed(2)+'</div><div class="label">总生物量（kg）</div></div>':'')+
     '<div class="data-card"><div class="num">'+densityM2.toFixed(2)+'</div><div class="label">折算密度（只/㎡）</div></div>'+
     '<div class="data-card"><div class="num">'+densityMu.toFixed(2)+'</div><div class="label">折算密度（只/亩）</div></div>'+
-    '</div>'+
-    '<div class="data-grid" style="margin-top:8px;">'+
-    '<div class="data-card"><div class="num">'+(biomass/area).toFixed(3)+'</div><div class="label">单位面积生物量（kg/㎡）</div></div>'+
-    '<div class="data-card"><div class="num">'+((biomass/area)*666.67).toFixed(2)+'</div><div class="label">单位面积生物量（kg/亩）</div></div>'+
-    '</div>';document.getElementById('res').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
+    '</div>';
+  if(hasWeight){
+    html+='<div class="data-grid" style="margin-top:8px;">'+
+      '<div class="data-card"><div class="num">'+(biomass/area).toFixed(3)+'</div><div class="label">单位面积生物量（kg/㎡）</div></div>'+
+      '<div class="data-card"><div class="num">'+((biomass/area)*666.67).toFixed(2)+'</div><div class="label">单位面积生物量（kg/亩）</div></div>'+
+      '</div>';
+  }else{
+    html+='<div class="tip-box tip-info" style="margin-top:8px;">未填写平均体重，仅输出存栏数量与折算密度；填写体重后可同时估算总生物量。</div>';
+  }
+  document.getElementById('res').innerHTML=(typeof html==='number'?(isFinite(html)?html:'—'):String(html).replace(/Infinity|NaN/g,'—'));
   saveHistory();
 }
 function copyRes(){
@@ -368,8 +376,8 @@ function __estimate_area_densityPresets(){
     if (typeof TBKit === 'undefined') return;
     TBKit.preset.bar('#estimate_area_densityPresets',[{label:'默认参数',labelEn:'Default',values:{'area':'2000', 'unit':'m2', 'density':'8', 'weight':'2.5', 'survival':'95'}},
   {"label":"蛋鸡 1000㎡ 6 只/㎡","labelEn":"Layers 1000m2 at 6/m2","values":{"area":1000,"unit":"m2","density":6,"weight":1.8,"survival":92}},
-  {"label":"育肥猪 50 亩 100 头/亩","labelEn":"Fattening pigs 50mu","values":{"area":50,"unit":"mu","density":100,"weight":90,"survival":96}},
-  {"label":"鱼塘 2 公顷 8000 尾/公顷","labelEn":"Fish pond 2ha","values":{"area":2,"unit":"ha","density":8000,"weight":0.8,"survival":88}}],function(){ calc(); });
+  {"label":"育肥猪 50 亩 100 头/亩","labelEn":"Fattening pigs 50mu","values":{"area":33333.5,"unit":"mu","density":100,"weight":90,"survival":96}},
+  {"label":"鱼塘 2 公顷 8000 尾/公顷","labelEn":"Fish pond 2ha","values":{"area":20000,"unit":"ha","density":8000,"weight":0.8,"survival":88}}],function(){ calc(); });
 }
 var __estimate_area_density_f0=(typeof calc==='function')?calc:null;
 if(__estimate_area_density_f0){
@@ -492,7 +500,6 @@ else document.addEventListener('DOMContentLoaded', __estimate_area_densityBoot);
     </div>
 </div>
 <!-- /SEO 介紹區塊 -->
-<section class="opt-guide"><h2>如何使用養殖存欄量估算（面積×密度）</h2><ol><li>按頁面提示逐項填寫或選擇所需引數。</li><li>點選「計算」或「生成」按鈕執行。</li><li>在結果區檢視輸出，可複製結果或匯出使用。</li></ol><h2>引數說明</h2><ul class="param-list"><li>養殖面積（㎡）</li><li>密度單位</li><li>存欄密度</li><li>平均體重（kg/只，可選）</li><li>成活率 / 出欄率（%）</li></ul><h2>適用場景</h2><p>存欄 = 圈舍面積 × 設計密度（頭/㎡）。</p></section><section class="opt-faq"><h2>常見問題</h2><dl class="faq-list"><dt>密度提高能增加利潤嗎？</dt><dd>短期增存欄，但過密增病死、降日增重與飼料轉化率，綜合效益可能反降。應算『單位面積利潤』而非『頭數』。</dd><dt>糞汙處理怎麼匹配？</dt><dd>存欄決定糞汙產生量（頭·日），據此定沼氣池/儲糞池容積與消納地面積，密度翻倍則處理規模同步翻倍。</dd></dl></section>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"密度提高能增加利潤嗎？","acceptedAnswer":{"@type":"Answer","text":"短期增存欄，但過密增病死、降日增重與飼料轉化率，綜合效益可能反降。應算『單位面積利潤』而非『頭數』。"}},{"@type":"Question","name":"糞汙處理怎麼匹配？","acceptedAnswer":{"@type":"Answer","text":"存欄決定糞汙產生量（頭·日），據此定沼氣池/儲糞池容積與消納地面積，密度翻倍則處理規模同步翻倍。"}}]}</script>
 
 

@@ -231,7 +231,7 @@ s.parentNode.insertBefore(el, s);
 <li>治療分層：緩解/輕/中/重度對應 5-ASA/激素/生物製劑/住院</li>
 <li>緩解界定：內鏡緩解與深度緩解是近期治療目標</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">方法</div><div class="dd-ex-body">演算法：排便次數(正常/+/1~2/+/3~4/+/≥5 計 0~3)、便血(無/少許/明顯/以血為主 0~3)、內鏡(正常/輕度/中度/重度 0~3)、醫師評估(正常/輕/中/重 0~3) 四項求和得 Mayo 總分 0~12；部分 Mayo = 排便+便血+醫師評估。≤2 緩解、3~5 輕度、6~10 中度、&gt;10 重度。</div></div>
+<div class="dd-example"><div class="dd-ex-title">方法</div><div class="dd-ex-body">演算法：排便次數(正常/+/1~2/+/3~4/+/≥5 計 0~3)、便血(無/少許/明顯/以血為主 0~3)、內鏡(正常/輕度/中度/重度 0~3)、醫師評估(正常/輕/中/重 0~3) 四項求和得 Mayo 總分 0~12；部分 Mayo = 排便+便血+醫師評估。臨床緩解需「總分 ≤2 且便次 ≤1 且無便血」，僅總分 ≤2 但單項活動判「未達臨床緩解」；3~5 輕度、6~10 中度、&gt;10 重度（閾值需臨床複核）。</div></div>
 <div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">例：排便 2 分、便血 2 分、內鏡 2 分、醫師 2 分 → 總分 8 分，中度活動（≤10），建議全身激素或評估生物製劑。若各項均 1 分 → 總分 4 分，輕度活動（≤5），5-ASA 口服+區域性即可。若均 3 分 → 總分 12 分，重度活動（&gt;10），建議住院、靜脈激素，48~72h 無效應轉環孢素/英夫利昔。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
@@ -300,10 +300,16 @@ function calc(){
   details.push('医师总体评估：'+physNames[physician]+' → '+physician+'分');
 
   var severity,color,advice;
-  if(score<=2){
+  // 临床缓解需「总分 ≤2 且便次 ≤1 且无便血」，不能只看总分
+  var inRemission=(score<=2&&stool<=1&&bleeding===0);
+  if(inRemission){
     severity='缓解期';
     color='#10B981';
-    advice='疾病处于缓解期。继续维持治疗（5-ASA或免疫抑制剂），定期复查肠镜监测内镜缓解及不典型增生。';
+    advice='疾病处于缓解期（总分 ≤2 且便次 ≤1、无便血）。继续维持治疗（5-ASA或免疫抑制剂），定期复查肠镜监测内镜缓解及不典型增生。';
+  }else if(score<=2){
+    severity='未达临床缓解（单项活动）';
+    color='#3B82F6';
+    advice='总分 ≤2 但便次或便血单项仍未达标，不满足临床缓解（便次 ≤1 且无便血）。建议维持/优化治疗并复查，勿直接按缓解期降阶（需临床复核）。';
   }else if(score<=5){
     severity='轻度活动';
     color='#3B82F6';

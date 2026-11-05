@@ -364,7 +364,7 @@ function autoValidate() {
   try {
     const obj = JSON.parse(val);
     lastValidJSON = obj;
-    inputTag.textContent = '✅ JSON 有效';
+    inputTag.textContent = ((typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn())) ? '✅ Valid JSON' : '✅ JSON 有效';
     inputTag.className = 'tag';
     inputTag.style.background = 'rgba(16,185,129,0.10)';
     inputTag.style.color = 'var(--success)';
@@ -520,7 +520,8 @@ function renderOutput() {
 
   const size = JSON.stringify(lastValidJSON).length;
   const lines = JSON.stringify(lastValidJSON, null, ind).split('\n').length;
-  document.getElementById('resultStat').textContent = `${size.toLocaleString()} 字符 · ${lines} 行`;
+  const __en = (typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn());
+  document.getElementById('resultStat').textContent = `${size.toLocaleString()} ${__en ? 'chars' : '字符'} · ${lines} ${__en ? 'lines' : '行'}`;
   if(typeof __jsonExtras==='function'){try{__jsonExtras();}catch(e){}}
 }
 
@@ -666,11 +667,13 @@ function downloadResult() {
   let text = '';
   if (lastValidJSON) text = JSON.stringify(lastValidJSON, null, getIndent());
   if (!text) { ToolBox.showToast(i18nText('toast.msg473')); return; }
-  ToolBox.downloadText(text, 'formatted.json');
+  ToolBox.downloadText('formatted.json', text, 'application/json');
 }
 
 function clearAll() {
   input.value = '';
+  // 同步清除本页自动保存的输入，避免明文 JSON 残留在 localStorage
+  try { localStorage.removeItem('tb_uxp_tools/it/json-formatter.html#input'); } catch(e) {}
   lastValidJSON = null;
   renderEmpty();
   autoValidate();

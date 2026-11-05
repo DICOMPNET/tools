@@ -86,7 +86,7 @@ s.parentNode.insertBefore(el, s);
 <meta property="og:locale:alternate" content="zh_CN">
 <meta property="og:locale:alternate" content="en_US">
 </head>
-<body>
+<body data-no-persist>
 <h1 class="sr-only">考試成績分析</h1>
 
 
@@ -123,7 +123,7 @@ s.parentNode.insertBefore(el, s);
     <h2 data-zh="📖 考試成績分析">Exam Score Analysis</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="輸入學生成績，自動計算均分、最高/最低分、標準差、及格率、優秀率，生成分數段分佈與排名。">Exam Score Analysis</p>
     <div class="formula-box">
-      <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">成績統計分析<br>及格線 = 滿分 × 及格率%；優秀線 = 滿分 × 優秀率%<br>平均分 = Σ分數 ÷ 人數；標準差 = √(Σ(x−μ)² ÷ n)（總體標準差）<br>及格率 = ≥及格線人數 ÷ 總人數 × 100%；優秀率同理<br>分數段分佈：90–100%｜80–89%｜70–79%｜60–69%｜<60%（按滿分比例）<br>排名按分數降序；等級：≥優秀線 優秀｜≥滿分75% 良好｜≥及格線 及格｜其餘不及格<br>整體水平：均分 ≥優秀線 優秀｜≥及格線 良好｜否則不及格</div>
+      <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">成績統計分析<br>及格線 = 滿分 × 及格率%；優秀線 = 滿分 × 優秀率%<br>平均分 = Σ分數 ÷ 人數；標準差 = √(Σ(x−μ)² ÷ n)（總體標準差）<br>及格率 = ≥及格線人數 ÷ 總人數 × 100%；優秀率同理<br>分數段分佈：90–100%｜80–89%｜70–79%｜60–69%｜<60%（按滿分比例）<br>排名按分數降序；等級：≥優秀線 優秀｜≥max(滿分75%, 及格線) 良好｜≥及格線 及格｜其餘不及格<br>整體水平採用與單人相同的等級閾值（均分 ≥優秀線 優秀｜≥良好線 良好｜≥及格線 及格｜否則不及格）</div>
       <p class="formula-desc" data-zh="核心計算公式（按輸入變數）：b.count ÷ maxBand × 100；full × excelPct ÷ 100；full × passPct ÷ 100">Key formulas: b.count ÷ maxBand × 100; full × excelPct ÷ 100; full × passPct ÷ 100</p>
     </div>
 
@@ -352,7 +352,8 @@ function calc(){
   var ranked = list.slice().sort(function(a,b){ return b.score - a.score; });
   ranked.forEach(function(s, idx){ s.rank = idx+1; });
 
-  var meanGrade = mean >= excelScore ? {tag:'grade-excellent',text:'优秀'} : mean >= passScore ? {tag:'grade-good',text:'良好'} : {tag:'grade-fail',text:'不及格'};
+  var goodScore = Math.max(full*0.75, passScore);
+  var meanGrade = mean >= excelScore ? {tag:'grade-excellent',text:'优秀'} : mean >= goodScore ? {tag:'grade-good',text:'良好'} : mean >= passScore ? {tag:'grade-pass',text:'及格'} : {tag:'grade-fail',text:'不及格'};
 
   var html = '';
   html += '<div class="stat-grid">';

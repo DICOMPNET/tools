@@ -213,6 +213,7 @@ s.parentNode.insertBefore(el, s);
           <div class="temp-formula">°Ré = °C × 0.8</div>
         </div>
       </div>
+      <p id="tempError" style="display:none;color:var(--danger);font-size:13px;margin-top:8px;"></p>
 
       <div id="tempChart" style="margin-top:12px;"></div>
 
@@ -368,6 +369,7 @@ s.parentNode.insertBefore(el, s);
   <ul>
       <li>本工具純前端執行，資料不會上傳到伺服器</li>
       <li>建議在主流瀏覽器（Chrome/Safari/Firefox/Edge）中使用</li>
+      <li>溫度不可低於絕對零度（−273.15 ℃ / 0 K / −459.67 ℉），低於時拒絕換算</li>
       <li>計算結果僅供參考，請以實際應用場景為準</li>
   </ul>
 </div>
@@ -417,30 +419,61 @@ function updateAll(c){
   updateFeel(c);
   _lastVal={c:parseFloat(c.toFixed(2)),f:parseFloat(f.toFixed(2)),k:parseFloat(k.toFixed(2)),r:parseFloat(r.toFixed(2)),re:parseFloat(re.toFixed(2))};
 }
+function tempVal(id){
+  const raw=String(document.getElementById(id).value).trim();
+  if(raw==='') return null;
+  const v=parseFloat(raw);
+  return isFinite(v)?v:null;
+}
+const ABS_ZERO_C = -273.15;
+function belowAbsoluteZero(c){ return c < ABS_ZERO_C - 1e-9; }
+function tempIsEn(){
+  try{ if(typeof TBKit!=='undefined' && TBKit.util && TBKit.util.isEn) return TBKit.util.isEn(); }catch(e){}
+  return /^en/i.test(document.documentElement.lang||'');
+}
+function showTempError(on, belowAbs){
+  const el=document.getElementById('tempError');
+  if(!el) return;
+  el.style.display=on?'block':'none';
+  if(!on){el.textContent='';return;}
+  const en=tempIsEn();
+  el.textContent=belowAbs
+    ?(en?'Temperature cannot be below absolute zero (−273.15 °C / 0 K / −459.67 °F).':'温度不能低于绝对零度（−273.15 ℃ / 0 K / −459.67 ℉）')
+    :(en?'Please enter a valid temperature.':'请输入有效的温度数值');
+}
 function fromCelsius(){
-  const c=parseFloat(document.getElementById('celsius').value)||0;
-  updateAll(c);
+  const c=tempVal('celsius');
+  if(c===null){showTempError(true,false);return;}
+  if(belowAbsoluteZero(c)){showTempError(true,true);return;}
+  showTempError(false);updateAll(c);
 }
 function fromFahrenheit(){
-  const f=parseFloat(document.getElementById('fahrenheit').value)||32;
+  const f=tempVal('fahrenheit');
+  if(f===null){showTempError(true,false);return;}
   const c=(f-32)*5/9;
-  updateAll(c);
+  if(belowAbsoluteZero(c)){showTempError(true,true);return;}
+  showTempError(false);updateAll(c);
 }
 function fromKelvin(){
-  const k=parseFloat(document.getElementById('kelvin').value)||273.15;
+  const k=tempVal('kelvin');
+  if(k===null){showTempError(true,false);return;}
   const c=k-273.15;
-  updateAll(c);
+  if(belowAbsoluteZero(c)){showTempError(true,true);return;}
+  showTempError(false);updateAll(c);
 }
 function fromRankine(){
-  const r=parseFloat(document.getElementById('rankine').value)||491.67;
-  const f=r-459.67;
-  const c=(f-32)*5/9;
-  updateAll(c);
+  const r=tempVal('rankine');
+  if(r===null){showTempError(true,false);return;}
+  const c=(r-459.67-32)*5/9;
+  if(belowAbsoluteZero(c)){showTempError(true,true);return;}
+  showTempError(false);updateAll(c);
 }
 function fromReaumur(){
-  const re=parseFloat(document.getElementById('reaumur').value)||0;
+  const re=tempVal('reaumur');
+  if(re===null){showTempError(true,false);return;}
   const c=re/0.8;
-  updateAll(c);
+  if(belowAbsoluteZero(c)){showTempError(true,true);return;}
+  showTempError(false);updateAll(c);
 }
 function setTemp(c){updateAll(c);}
 function resetForm(){updateAll(25);}
@@ -474,6 +507,7 @@ function __tempExport(){
   var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
   var c=parseFloat(document.getElementById('celsius').value);
   if(!isFinite(c)){ToolBox.showToast(en?'Invalid input':'请输入有效温度');return;}
+  if(belowAbsoluteZero(c)){ToolBox.showToast(en?'Temperature cannot be below absolute zero':'温度不能低于绝对零度');return;}
   var f=c*9/5+32,k=c+273.15,r=f+459.67,re=c*0.8;
   var rows=[
     ['Celsius','C',c.toFixed(2),en?'Base scale (water freezes at 0)':'基准温标（水冰点 0）'],

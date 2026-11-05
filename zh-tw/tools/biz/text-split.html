@@ -161,7 +161,7 @@ Hello World ToolBox</textarea>
       <div id="text_splitPresets"></div>
       <button type="button" class="btn primary" onclick="split()">分割</button>
       <button class="btn" type="button" onclick="__text_splitExport()">匯出明細 CSV</button>
-      <button type="button" class="btn success" onclick="copyResult()">複製結果</button>
+      <button type="button" class="btn success" onclick="copyResult(event)">複製結果</button>
       <button type="button" class="btn" onclick="clearAll()">清空</button>
     </div>
   </div>
@@ -303,11 +303,13 @@ function split(){
   }else if(mode === 'paragraph'){
     parts = text.split(/\n\s*\n/);
   }else if(mode === 'chars'){
-    const size = parseInt(document.getElementById('size').value) || 1;
+    const size = parseInt(document.getElementById('size').value, 10);
+    if(!isFinite(size) || size < 1){ result.textContent = '每段字符数必须是大于 0 的整数'; document.getElementById('countLabel').textContent = ''; return; }
     parts = [];
     for(let i = 0; i < text.length; i += size) parts.push(text.substr(i, size));
   }else if(mode === 'words'){
-    const size = parseInt(document.getElementById('size').value) || 1;
+    const size = parseInt(document.getElementById('size').value, 10);
+    if(!isFinite(size) || size < 1){ result.textContent = '每段词数必须是大于 0 的整数'; document.getElementById('countLabel').textContent = ''; return; }
     const words = text.split(/\s+/);
     for(let i = 0; i < words.length; i += size) parts.push(words.slice(i, i + size).join(' '));
   }
@@ -326,11 +328,11 @@ function escapeHtml(s){
   return String(s).replace(/[<>&"]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));
 }
 
-function copyResult(){
+function copyResult(ev){
   const text = document.getElementById('result').innerText;
   if(!text || text === '请输入文本...'){ alert('请先分割文本'); return; }
+  const btn = (ev && ev.target) ? ev.target.closest('.btn') : null;
   navigator.clipboard.writeText(text).then(() => {
-    const btn = event.target.closest('.btn');
     if(btn){ const old = btn.textContent; btn.textContent = '✅ 已复制'; setTimeout(() => btn.textContent = old, 1500); }
   });
 }

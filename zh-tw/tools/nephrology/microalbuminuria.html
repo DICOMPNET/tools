@@ -117,7 +117,7 @@ s.parentNode.insertBefore(el, s);
     <h2 data-zh="📋 微量白蛋白（晨尿）意義評估器">Microalbuminuria</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="根據晨尿白蛋白排洩評估早期腎損傷，支援多種檢測方式">Microalbuminuria</p>
     <div class="formula-box">
-      <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">白蛋白尿分級：尿白蛋白/肌酐比(UACR) 正常&lt;30、微量30–300、大量&gt;300 mg/g；濃度法 正常&lt;20、微量20–200 mg/L；24h 定量 正常&lt;30、微量30–300 mg/d。微量白蛋白尿提示早期腎損傷，需3–6月內重複2–3次確診。</div>
+      <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">白蛋白尿分級（KDIGO 2012 CKD 指南 A1/A2/A3）：尿白蛋白/肌酐比(UACR) A1 &lt;30、A2 30–300、A3 &gt;300 mg/g；濃度法 A1 &lt;20、A2 20–200、A3 &gt;200 mg/L；24h 定量 A1 &lt;30、A2 30–300、A3 &gt;300 mg/d。單次結果不能確診，需在 3–6 個月內重複 2–3 次並排除感染/運動/發熱等干擾；不同檢測方式的閾值不可混用，結果為提示，需臨床複核。</div>
       <p class="formula-desc" data-zh="「根據晨尿白蛋白排洩評估早期腎損傷，支援多種檢測方式」按輸入引數進行專業計算並輸出結果。">Microalbuminuria: computes and outputs results from the input parameters.</p>
     </div>
 
@@ -245,7 +245,7 @@ s.parentNode.insertBefore(el, s);
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="白蛋尿分級">Albuminuria category</td>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="A1 <30，A2 30–300，A3 >300 mg/g">A1 below 30, A2 30 to 300, A3 above 300 mg per g</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);">KDIGO CKD classification</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);">KDIGO 2012 CKD classification (A1/A2/A3)</td>
         </tr>
       </tbody>
     </table>
@@ -275,21 +275,23 @@ function onModeChange(){
 
 function calc(){
   var disease=document.getElementById('disease').value;
-  var val=0,unit='';
-
+  var unit='';
+  var raw='';
   if(mode==='uacr'){
-    val=parseFloat(document.getElementById('uacrVal').value)||0;
+    raw=String(document.getElementById('uacrVal').value||'').trim();
     unit='mg/g';
   }else if(mode==='concentration'){
-    val=parseFloat(document.getElementById('concVal').value)||0;
+    raw=String(document.getElementById('concVal').value||'').trim();
     unit='mg/L';
   }else{
-    val=parseFloat(document.getElementById('h24Val').value)||0;
+    raw=String(document.getElementById('h24Val').value||'').trim();
     unit='mg/d';
   }
+  var val=parseFloat(raw);
 
-  if(val<0){
-    document.getElementById('result').innerHTML='<p style="color:var(--text-muted);">请输入有效数值</p>';
+  // 空值不得按 0 处理：留空曾被判为「正常」
+  if(raw===''||!isFinite(val)||val<0||val>10000){
+    document.getElementById('result').innerHTML='<p style="color:var(--text-muted);">请输入有效的白蛋白尿数值（0–10000，按所选单位）；留空不判读，也不按 0 计为正常。</p>';
     return;
   }
 

@@ -115,7 +115,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="根據水體量、溶氧缺口與增氧機增氧能力，計算需開啟時長">Compute the daily runtime of pond aerators from oxygen demand and aerator capacity.</p>
     <div class="formula-box">
       <div class="formula-title">📐 計算公式</div>
-      <div class="formula-eq">需開啟時長 = 溶氧缺口 ÷ 淨增氧速率；缺口 = 目標溶氧 − 當前溶氧（mg/L）；淨增氧 = 功率×增氧效率×1000÷水體體積 − 自然耗氧率（mg/L·h）；水體 = 面積×666.67×水深（m³）。校驗：7 項輸入必填且面積 &gt;0，任一非法提示。判據：缺口 ≤0 無需增氧；淨增氧 ≤0 提示增氧能力不足建議加功率；時長 &gt;6h 提示偏長建議加大功率或提前開機。</div>
+      <div class="formula-eq">需開啟時長 = 溶氧缺口 ÷ 淨增氧速率；缺口 = 目標溶氧 − 當前溶氧（mg/L）；淨增氧 = 功率×增氧效率×1000÷水體體積 − 自然耗氧率（mg/L·h）；水體 = 面積×666.67×水深（m³）。校驗：面積、水深、目標溶氧、功率、增氧效率須 &gt;0，當前溶氧與耗氧率須 ≥0，任一非法清空結果並提示；曝氣無法超過飽和溶氧，本頁未採集水溫，按暖水（約 30℃）飽和 7.6 mg/L 取 7.5 mg/L 為保守上限，目標超過即提示換水/降溫/化學增氧。判據：缺口 ≤0 無需增氧；淨增氧 ≤0 提示增氧能力不足建議加功率；時長 &gt;6h 提示偏長建議加大功率或提前開機。</div>
       <p class="formula-desc">根據水體量、溶氧缺口與增氧機增氧能力，計算需開啟時長</p>
     </div>
 
@@ -267,7 +267,7 @@ s.parentNode.insertBefore(el, s);
 
 let lastResult='';
 function calc(){
-    var __ig=__tbInputGuard(['area', 'depth', 'cur', 'target', 'power', 'sae', 'cons'],["池塘面积 (亩)", "水深 (m)", "当前溶氧 (mg/L)", "目标溶氧 (mg/L)", "增氧机功率 (kW)", "增氧效率 (kgO₂/kW·h)", "水体自然耗氧率 (mg/L·h)"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
+    var __ig=__tbInputGuard(['area', 'depth', 'cur', 'target', 'power', 'sae', 'cons'],["池塘面积 (亩)", "水深 (m)", "当前溶氧 (mg/L)", "目标溶氧 (mg/L)", "增氧机功率 (kW)", "增氧效率 (kgO₂/kW·h)", "水体自然耗氧率 (mg/L·h)"]);if(__ig){lastResult='';const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
 const area=+document.getElementById('area').value;
   const depth=+document.getElementById('depth').value;
   const cur=+document.getElementById('cur').value;
@@ -275,7 +275,20 @@ const area=+document.getElementById('area').value;
   const power=+document.getElementById('power').value;
   const sae=+document.getElementById('sae').value;
   const cons=+document.getElementById('cons').value;
-  if([area,depth,cur,target,power,sae,cons].some(isNaN)||area<=0){ToolBox.showToast(i18nText('toast.msg721'),'error');return;}
+  if([area,depth,cur,target,power,sae,cons].some(isNaN)||area<=0||depth<=0||cur<0||target<=0||power<=0||sae<=0||cons<0){
+    lastResult='';
+    document.getElementById('result').innerHTML='<p style="color:var(--danger,#EF4444);">请检查输入：面积、水深、目标溶氧、功率、增氧效率须 &gt;0；当前溶氧、耗氧率须 ≥0。</p>';
+    ToolBox.showToast(i18nText('toast.msg721'),'error');
+    return;
+  }
+  // 曝气无法把溶氧推过饱和值：本页未采集水温，按暖水（约 30℃）饱和溶氧 7.6 mg/L 取 7.5 作保守上限
+  const SAT_MAX=7.5;
+  if(target>SAT_MAX){
+    lastResult='';
+    document.getElementById('result').innerHTML='<div class="tip-box tip-error">目标溶氧 '+target+' mg/L 超过曝气可达的饱和上限（本页按暖水 7.5 mg/L 保守估算）。曝气只能接近饱和值，无法超过；需换水、降温或使用化学增氧。若要按具体水温核算饱和值，请先查该水温下的溶解氧饱和表。</div>';
+    ToolBox.showToast(i18nText('toast.msg721'),'error');
+    return;
+  }
   const vol=area*666.67*depth; // m³ = 1000L
   const addRate=power*sae*1000/vol; // mg/L/h  (kg/h*1000g*1000mg / (m³*1000L))=power*sae*1000/vol
   const net=addRate-cons;

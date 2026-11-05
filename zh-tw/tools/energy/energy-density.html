@@ -115,7 +115,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-i18n="energy.energy-density.intro" data-i18n-fb="能量密度線上計算器，輸入總能量與質量求得單位質量儲能（Wh/kg 或 J/kg），用於電池與燃料對比，純前端執行。">Compute energy density as energy divided by mass, so batteries and fuels can be compared on a like-for-like basis.</p>
     <div class="formula-box">
       <div class="formula-title">📐 計算公式</div>
-      <div class="formula-eq">能量密度（本頁程式碼口徑）：kJ/kg=能量÷質量÷1000；kWh/kg=能量÷質量÷(3.6×10⁶)；比能量(J/kg)=能量÷(質量||1)（質量為 0 時分母按 1 兜底）；MJ/kg=比能量÷10⁶。校驗：兩項輸入空值/非法值即提示並中止。判據：無固定分級，汽油約 46 MJ/kg、鋰離子電池約 0.9 MJ/kg 量級可作對照，能量密度越高單位質量攜帶能量越多。</div>
+      <div class="formula-eq">能量密度（本頁程式碼口徑）：kJ/kg=能量÷質量÷1000；kWh/kg=能量÷質量÷(3.6×10⁶)；比能量(J/kg)=能量÷質量；MJ/kg=比能量÷10⁶。校驗：兩項輸入空值/非法值即提示並中止；質量須 &gt;0、能量不得為負。判據：無固定分級，汽油約 46 MJ/kg、鋰離子電池約 0.9 MJ/kg 量級可作對照，能量密度越高單位質量攜帶能量越多。</div>
       <p class="formula-desc">ρ_E = E / m。</p>
     </div>
 
@@ -275,11 +275,12 @@ function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+=
 function calcTool(){
               var __ig=__tbInputGuard(['e', 'm'],["能量 E (J)", "质量 m (kg)"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
 const e=num('e'),m=num('m');
+            if(!(m>0)||e<0){var __en=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)?TBKit.util.isEn():false;ToolBox.setResult("result",'<p style="color:var(--danger);">'+(__en?'Mass must be greater than 0 and energy cannot be negative.':'质量须大于 0，能量不能为负。')+'</p>');return;}
             const __g2=dataGrid([
                 [(e/m/1000).toFixed(1),'能量密度 (kJ/kg)'],
                 [(e/m/3.6e6).toFixed(4),'能量密度 (kWh/kg)'],
-                [(e/(m||1)).toFixed(1), '比能量 (J/kg)'],
-                [(e/(m||1)/1e6).toFixed(4), '比能量 (MJ/kg)']
+                [(e/m).toFixed(1), '比能量 (J/kg)'],
+                [(e/m/1e6).toFixed(4), '比能量 (MJ/kg)']
             ]);ToolBox.setResult('result',(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));
         }
 function resetForm(){document.getElementById('e').value = '3600000';
@@ -299,8 +300,8 @@ function __energy_densityExtras(){
         rows: [
             ['能量密度 (kJ/kg)', (e/m/1000).toFixed(1)],
             ['能量密度 (kWh/kg)', (e/m/3.6e6).toFixed(4)],
-            ['比能量 (J/kg)', (e/(m||1)).toFixed(1)],
-            ['比能量 (MJ/kg)', (e/(m||1)/1e6).toFixed(4)],
+            ['比能量 (J/kg)', (e/m).toFixed(1)],
+            ['比能量 (MJ/kg)', (e/m/1e6).toFixed(4)],
         ]
     });
     TBKit.history.record({e:__energy_densityRaw('e'), m:__energy_densityRaw('m'), result: Number((e/m).toFixed(6))});

@@ -271,6 +271,9 @@ s.parentNode.insertBefore(el, s);
             <button type="button" class="btn success" onclick="copyCsv()">複製</button>
             <button type="button" class="btn" onclick="downloadCsv()">下載</button>
           </div>
+          <div style="font-size:12px;color:var(--text-muted);margin-top:8px;line-height:1.5;">
+            複製 / 下載的 CSV 會給以 <code>= + - @</code> 開頭的單元格自動加單引號字首，防止 Excel / WPS 將其當作公式執行；頁面預覽保持原始資料。
+          </div>
         </div>
       </div>
     </div>
@@ -394,6 +397,7 @@ const HISTORY_KEY = 'csv_json_history';
 const MAX_HISTORY = 20;
 
 let currentData = { headers: [], rows: [] };
+let csvExportSafe = '';
 
 document.getElementById('csvDelimiter').addEventListener('change', function() {
   document.getElementById('customDelimWrap').style.display = this.value === 'custom' ? 'block' : 'none';
@@ -497,7 +501,7 @@ function parseCSV(text, delimiter, quoteChar, hasHeader, trim) {
 function toJSON(parsed, pretty) {
   const { headers, rows } = parsed;
   const objects = rows.map(row => {
-    const obj = {};
+    const obj = Object.create(null);
     headers.forEach((h, i) => {
       obj[h] = row[i] !== undefined ? row[i] : '';
     });
@@ -581,12 +585,22 @@ function jsonToCsv() {
       }
       return field;
     }
-
-    let csv = '';
-    if (outHeader) {
-      csv += headers.map(escapeField).join(delimiter) + '\n';
+    // 防 CSV 公式注入：Excel/WPS 会把以 = + - @ 、制表符或回车开头的单元格当公式执行
+    function guardField(field) {
+      return /^[=+\-@\t\r]/.test(field) ? "'" + field : field;
     }
-    csv += rows.map(row => row.map(escapeField).join(delimiter)).join('\n');
+    function buildCsv(guard) {
+      const prep = guard ? guardField : (f => f);
+      let out = '';
+      if (outHeader) {
+        out += headers.map(h => escapeField(prep(h))).join(delimiter) + '\n';
+      }
+      out += rows.map(row => row.map(c => escapeField(prep(c))).join(delimiter)).join('\n');
+      return out;
+    }
+
+    let csv = buildCsv(false);
+    csvExportSafe = buildCsv(true);
 
     document.getElementById('csvOutput').value = csv;
     addToHistory('json2csv', jsonText.substring(0, 100), rows.length);
@@ -639,7 +653,7 @@ function copyJson() {
 }
 
 function copyCsv() {
-  const text = document.getElementById('csvOutput').value;
+  const text = csvExportSafe || document.getElementById('csvOutput').value;
   if (text) ToolBox.copyText(text);
   else ToolBox.showToast(i18nText(), 'warning');
 }
@@ -651,7 +665,7 @@ function downloadJson() {
 }
 
 function downloadCsv() {
-  const text = document.getElementById('csvOutput').value;
+  const text = csvExportSafe || document.getElementById('csvOutput').value;
   if (text) ToolBox.downloadText('data.csv', text, 'text/csv');
   else ToolBox.showToast(i18nText('toast.msg476'), 'warning');
 }
@@ -664,6 +678,7 @@ function clearCsv() {
 function clearJson() {
   document.getElementById('jsonInput').value = '';
   document.getElementById('csvOutput').value = '';
+  csvExportSafe = '';
 }
 
 function loadSampleCsv() {

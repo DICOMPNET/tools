@@ -31,7 +31,7 @@
     <meta name="twitter:title" content="地震震害綜合評估 - 免費線上地震學工具">
     <meta name="twitter:description" content="地震震害綜合評估是一款免費的線上地震學工具，評估地震對建築、生命線工程和地質環境的破壞程度，計算震害指數並給出損失等級與應急建議。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
 <!-- TOOLBOX-WEBAPP-LD -->
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"綜合震害指數怎麼加權？","acceptedAnswer":{"@type":"Answer","text":"綜合指數 = 建築得分×0.40 + 生命線得分×0.35 + 地質災害得分×0.25（各得分均歸一到 0-100）。權重體現「建築破壞為主、生命線與地質並重」的災後評估思路。"}},{"@type":"Question","name":"等級劃分的閾值是什麼？","acceptedAnswer":{"@type":"Answer","text":"綜合指數 ≥0.7 毀滅性、≥0.5 特大、≥0.3 嚴重、≥0.1 中等、其餘為輕微；對應啟動 I 級（毀滅性/特大）或 II~IV 級應急響應，閾值可在工具內按地方標準微調。"}}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"綜合震害指數怎麼加權？","acceptedAnswer":{"@type":"Answer","text":"綜合指數 = 建築得分×0.40 + 生命線得分×0.35 + 地質災害得分×0.25（各得分均歸一到 0-100）。權重體現「建築破壞為主、生命線與地質並重」的災後評估思路。"}},{"@type":"Question","name":"等級劃分的閾值是什麼？","acceptedAnswer":{"@type":"Answer","text":"綜合指數 ≥0.7 毀滅性、≥0.5 特大、≥0.3 嚴重、≥0.1 中等、其餘為輕微；對應啟動 I 級（毀滅性/特大）或 II~IV 級應急響應。閾值按固定五級劃分，工具內不支援自定義；地方標準不同時以當地預案為準。"}}]}</script>
 
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首頁","item":"https://tools.dicomp.net/zh-tw/"},{"@type":"ListItem","position":2,"name":"地震學","item":"https://tools.dicomp.net/zh-tw/tools/seismology/index.html"},{"@type":"ListItem","position":3,"name":"地震震害綜合評估","item":"https://tools.dicomp.net/zh-tw/tools/seismology/assessor-31.html"}]}</script>
 <!-- TOOLBOX-WEBAPP-LD -->
@@ -209,7 +209,7 @@ s.parentNode.insertBefore(el, s);
 </div>
 <script>
 function calc(){
-  var totalBldg=parseFloat(document.getElementById('totalBldg').value)||1;
+  var totalBldg=parseFloat(document.getElementById('totalBldg').value);
   var minor=parseFloat(document.getElementById('minorDmg').value)||0;
   var moderate=parseFloat(document.getElementById('moderateDmg').value)||0;
   var severe=parseFloat(document.getElementById('severeDmg').value)||0;
@@ -224,6 +224,15 @@ function calc(){
   var rockfall=parseFloat(document.getElementById('rockfall').value)||0;
   var cracks=parseFloat(document.getElementById('cracks').value)||0;
   var liquefaction=parseFloat(document.getElementById('liquefaction').value)||0;
+
+  var tbEl=document.getElementById('totalBldg');
+  var tbBad=!isFinite(totalBldg)||totalBldg<=0;
+  if(tbEl)tbEl.classList.toggle('input-error',tbBad);
+  if(tbBad){document.getElementById('res').innerHTML='<p style="color:var(--danger);">⚠ 请输入大于 0 的建筑总数（栋）</p>';return;}
+  var countList=[['minorDmg',minor],['moderateDmg',moderate],['severeDmg',severe],['partialCol',partial],['totalCol',total],['water',water],['power',power],['gas',gas],['road',road],['comm',comm],['landslide',landslide],['rockfall',rockfall],['cracks',cracks],['liquefaction',liquefaction]];
+  var negBad=false;
+  countList.forEach(function(p){var bad=p[1]<0;if(bad)negBad=true;var el=document.getElementById(p[0]);if(el)el.classList.toggle('input-error',bad);});
+  if(negBad){document.getElementById('res').innerHTML='<p style="color:var(--danger);">⚠ 各项破坏数量不得为负数</p>';return;}
 
   /* 建筑震害指数 */
   var bldgDI=(minor*0.1+moderate*0.3+severe*0.5+partial*0.7+total*1.0)/totalBldg;
@@ -283,6 +292,7 @@ function calc(){
   html+='<tr><td>严重破坏以上</td><td>'+((severe+partial+total)/totalBldg*100).toFixed(1)+'%</td><td>需大修或重建比例</td></tr>';
   html+='<tr><td>生命线瘫痪程度</td><td>'+lifelineScore.toFixed(0)+'%</td><td>'+(lifelineScore>=60?'大面积瘫痪':lifelineScore>=30?'较大损坏':'局部受损')+'</td></tr>';
   html+='<tr><td>地质灾害风险</td><td>'+geoScore.toFixed(0)+'</td><td>'+(geoScore>=50?'高风险，需转移':geoScore>=25?'中等风险':'低风险')+'</td></tr>';
+  html+='<tr><td>需安置人口比例(粗估)</td><td>'+Math.min(displacedPop,100)+'%</td><td>按倒塌率×5 + 严重破坏占比×2 粗略估算，仅供参考</td></tr>';
   html+='</tbody></table>';
   html+='<div class="tip-box '+(overallDI>=0.5?'tip-error':overallDI>=0.3?'tip-warn':'tip-info')+'" style="margin-top:10px;"><strong>评估结论：</strong>'+advice+'</div>';
   const __g1=html;try{ if(typeof overallDI==='number'&&isFinite(overallDI)&&typeof TBKit!=='undefined'&&TBKit.chart&&TBKit.chart.refBar){ TBKit.chart.refBar('#resRefBar',{value:overallDI,unit:'',bands:[{"lo":0.7,"hi":null,"label":{"zh":"毁灭性震害","en":"Devastating damage"},"color":"#7B181C"},{"lo":0.5,"hi":0.7,"label":{"zh":"特大震害","en":"Very heavy damage"},"color":"#B71C1C"},{"lo":0.3,"hi":0.5,"label":{"zh":"严重震害","en":"Heavy damage"},"color":"#EF4444"},{"lo":0.1,"hi":0.3,"label":{"zh":"中等震害","en":"Moderate damage"},"color":"var(--warning)"},{"lo":null,"hi":0.1,"label":{"zh":"轻微震害","en":"Slight damage"},"color":"var(--success)"}],title:((TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())?'Reference range':'参考区间标尺')}); } }catch(e){}

@@ -111,7 +111,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="計算受均布荷載簡支梁的最大彎矩、剪力、跨中撓度與跨中彎曲應力。">Beam Udl - online utility on ToolBox.</p>
     <div class="formula-box">
       <div class="formula-title">📐 計算公式</div>
-      <div class="formula-eq">簡支梁均布荷載：最大彎矩 M = qL² ÷ 8（kN·m）、最大剪力 V = qL ÷ 2（kN）、跨中撓度 δ = 5qL⁴ ÷ 384EI（q 先由 kN/m 化 N/m，E 按 GPa×1e9 化 Pa、I 按 cm⁴×1e−8 化 m⁴，結果 ×1000 折 mm）；截面模量 W = bh² ÷ 6（mm³），彎曲應力 σ = M×1e6 ÷ W（MPa，M 由 kN·m 化 N·mm）。校驗：L、E、I、b、h 須 &gt;0 且 q ≥0，否則提示「請輸入有效的梁引數」。</div>
+      <div class="formula-eq">簡支梁均布荷載：最大彎矩 M = qL² ÷ 8（kN·m）、最大剪力 V = qL ÷ 2（kN）、跨中撓度 δ = 5qL⁴ ÷ 384EI（彈性；q 先由 kN/m 化 N/m，E 按 GPa×1e9 化 Pa；I 由 b×h 自動取 I = bh³ ÷ 12，cm⁴ 經 ×1e−8 化 m⁴，結果 ×1000 折 mm）；截面模量 W = bh² ÷ 6（mm³），彎曲應力 σ = M×1e6 ÷ W（MPa，M 由 kN·m 化 N·mm）。校驗：L、E、b、h 須 &gt;0 且 q ≥0，否則提示「請輸入有效的梁引數」。說明：I 只讀，與應力所用同一截面，避免兩套截面口徑矛盾。荷載組合：q_k 為標準組合均布荷載（標準值，僅用於 M_k 對照，不參與撓度計算），q_q 為準永久組合均布荷載（準永久值，不是荷載分項係數後的設計值）；M_k = q_k·L² ÷ 8、M_q = q_q·L² ÷ 8。正常使用極限狀態（GB 50010-2010 3.4.3 / 7.2.1 / 7.2.2 / 7.2.3）：鋼筋混凝土受彎構件的最大撓度按準永久組合計算並考慮長期作用，σ_s、ψ、B_s 同按準永久組合（7.1.1-3 / 7.1.4 / 7.2.3）。h₀ = h − a_s（a_s 為受拉鋼筋合力點至受拉邊緣距離，不是保護層 c）；ρ = A_s ÷ (b·h₀)、ρ_te = A_s ÷ (0.5·b·h)（&lt;0.01 取 0.01）、α_E = E_s ÷ E_c（E_s=2×10⁵MPa）；σ_s = M_q ÷ (0.87·h₀·A_s)；ψ = 1.1 − 0.65·f_tk ÷ (ρ_te·σ_s)（夾取 0.2~1.0）；B_s = E_s·A_s·h₀² ÷ [1.15ψ + 0.2 + 6α_Eρ ÷ (1+3.5γ_f')]；準永久組合的長期剛度 B = B_s ÷ θ（式 7.2.2-2）；θ 按 7.2.5-1 由 ρ′/ρ 自動計算（ρ′=0 取 2.0、ρ′=ρ 取 1.6、中間線性內插；受拉區翼緣的倒 T 形 ×1.2），可手改，手改值與自動值不符時提示；δ_lt = 5·M_q·L² ÷ (48·B)（7.2.1 結構力學方法）；限值按計算跨度 l₀ 分檔（l₀&lt;7m 取 l₀/200、7m≤l₀≤9m 取 l₀/250、l₀&gt;9m 取 l₀/300，表 3.4.3），δ_lt ≤ 限值判滿足（等號算滿足）。標準組合的長期剛度 B = M_k ÷ [M_q(θ−1)+M_k]·B_s（式 7.2.2-1）僅適用於預應力混凝土構件（3.4.3 規定其撓度按標準組合）；本頁為鋼筋混凝土，不採用該路徑，M_k 僅作參考顯示。開裂判定：先按 GB 50010-2010 7.1.1 算 M_cr = f_tk·W_0（W_0 = b·h²/6，未計塑性影響係數 γ，偏安全），M_q ≤ M_cr 時構件未開裂，取 B_s = E_c·I_0、ψ 與 σ_s 不適用（長期剛度仍按 B = B_s/θ 折減）；M_q > M_cr 才走上式的裂後 ψ → B_s → B。</div>
       <p class="formula-desc">計算受均布荷載簡支梁的最大彎矩、剪力、跨中撓度與跨中彎曲應力。</p>
     </div>
 
@@ -131,8 +131,8 @@ s.parentNode.insertBefore(el, s);
     </div>
     <div class="input-row">
       <div>
-        <label for="I">截面慣性矩 I (cm⁴)</label>
-        <input type="number" id="I" value="8000" step="100" min="1" placeholder="如 8000">
+        <label for="I">截面慣性矩 I (cm⁴，按 b×h 自動計算)</label>
+        <input type="number" id="I" value="106667" step="100" min="1" readonly title="I = b·h³/12">
       </div>
       <div>
         <label for="b">截面寬 b (mm)</label>
@@ -145,6 +145,74 @@ s.parentNode.insertBefore(el, s);
     </div>
 
     <div id="beam_udlPresets"></div>
+
+    <div class="formula-title" style="margin-top:14px;">🧮 正常使用極限狀態（剛度與撓度）</div>
+    <div class="input-row">
+      <div>
+        <label for="grade">混凝土強度等級（聯動 f_tk / E_c）</label>
+        <select id="grade" onchange="__beam_udlGrade()">
+          <option value="C25">C25</option>
+          <option value="C30" selected>C30</option>
+          <option value="C35">C35</option>
+          <option value="C40">C40</option>
+        </select>
+      </div>
+      <div>
+        <label for="as">a_s 受拉鋼筋合力點至受拉邊緣距離 (mm)</label>
+        <input type="number" id="as" value="35" step="5" min="10" placeholder="單排 35、雙排 60">
+      </div>
+      <div>
+        <label for="As">實配受拉鋼筋面積 A_s (mm²)</label>
+        <input type="number" id="As" value="1884" step="1" min="1" placeholder="如 1884（6Φ20）">
+      </div>
+    </div>
+    <div class="input-row">
+      <div>
+        <label for="ftk">f_tk 混凝土抗拉強度標準值 (MPa，可覆蓋)</label>
+        <input type="number" id="ftk" value="2.01" step="0.01" min="0.1">
+      </div>
+      <div>
+        <label for="Ec">E_c 混凝土彈性模量 (GPa，可覆蓋)</label>
+        <input type="number" id="Ec" value="30.0" step="0.5" min="1">
+      </div>
+      <div>
+        <label for="gamma">受壓翼緣係數 γ_f'（矩形取 0）</label>
+        <input type="number" id="gamma" value="0" step="0.1" min="0" placeholder="T 形梁按規範取">
+      </div>
+    </div>
+    <div class="input-row">
+      <div>
+        <label for="rhoP">受壓鋼筋配筋率 ρ′ (%)</label>
+        <input type="number" id="rhoP" value="0" step="0.01" min="0" placeholder="無受壓鋼筋取 0" oninput="__beam_udlTheta()">
+      </div>
+      <div>
+        <label for="thetaFlange">截面型別（θ 取值）</label>
+        <select id="thetaFlange" onchange="__beam_udlTheta()">
+          <option value="0" selected>矩形 / 翼緣位於受壓區</option>
+          <option value="1">倒 T 形（翼緣位於受拉區，θ +20%）</option>
+        </select>
+      </div>
+    </div>
+    <div class="input-row">
+      <div>
+        <label for="qk">標準組合均布荷載 q_k (kN/m，僅供參考，不參與撓度計算)</label>
+        <input type="number" id="qk" value="20" step="0.5" min="0" placeholder="如 20">
+      </div>
+      <div>
+        <label for="qq">準永久組合均布荷載 q_q (kN/m，準永久值，非設計值)</label>
+        <input type="number" id="qq" value="16" step="0.5" min="0" placeholder="如 16">
+      </div>
+      <div>
+        <label for="theta">長期荷載效應係數 θ（預設 2.0，可手改）</label>
+        <input type="number" id="theta" value="2.0" step="0.05" min="1">
+      </div>
+    </div>
+    <div class="input-row">
+      <div>
+        <label for="l0">計算跨度 l₀ (m，用於撓度限值)</label>
+        <input type="number" id="l0" value="6" step="0.1" min="0.1" placeholder="如 6">
+      </div>
+    </div>
 
     <div class="toolbar">
       <button class="btn primary" onclick="calcTool()">計算</button>
@@ -169,6 +237,11 @@ s.parentNode.insertBefore(el, s);
       </tr></thead>
       <tbody>
         <tr><td data-zh="簡支梁均布荷載">Simply supported beam, UDL</td><td>Structural mechanics (classic formulas)</td><td data-zh="M_max = w*L^2/8 於跨中;V = w*L/2 於支座">M_max = w*L^2/8 at midspan; V = w*L/2 at supports</td></tr>
+        <tr><td data-zh="短期剛度 B_s">Short-term stiffness B_s</td><td>GB 50010-2010 式 7.2.3-1</td><td data-zh="B_s = E_s·A_s·h₀²/[1.15ψ + 0.2 + 6α_Eρ/(1+3.5γ_f')]，按準永久組合">B_s = E_s·A_s·h₀²/[1.15ψ + 0.2 + 6α_Eρ/(1+3.5γ_f')], under the quasi-permanent combination</td></tr>
+        <tr><td data-zh="長期剛度 B">Long-term stiffness B</td><td>GB 50010-2010 式 7.2.2-2</td><td data-zh="準永久組合：B = B_s ÷ θ；標準組合式 7.2.2-1 僅用於預應力構件">Quasi-permanent combination: B = B_s ÷ θ; the standard-combination Eq. 7.2.2-1 applies only to prestressed members</td></tr>
+        <tr><td data-zh="長期荷載效應係數 θ">Long-term load effect factor θ</td><td>GB 50010-2010 式 7.2.5-1</td><td data-zh="ρ′=0 取 2.0、ρ′=ρ 取 1.6、中間線性內插；受拉區翼緣的倒 T 形 θ 增加 20%；頁面自動計算並可手改">2.0 when ρ′=0, 1.6 when ρ′=ρ, linear interpolation in between; θ increases by 20% for inverted T-sections with the flange in the tension zone; computed automatically and editable</td></tr>
+        <tr><td data-zh="撓度組合">Deflection combination</td><td>GB 50010-2010 3.4.3</td><td data-zh="鋼筋混凝土受彎構件的最大撓度按準永久組合並考慮長期作用；δ = 5M_qL²/(48B)">RC flexural members: maximum deflection under the quasi-permanent combination including long-term effects; δ = 5M_qL²/(48B)</td></tr>
+        <tr><td data-zh="撓度限值">Deflection limit</td><td>GB 50010-2010 表 3.4.3</td><td data-zh="按計算跨度 l₀ 分檔：l₀&lt;7m 取 l₀/200；7m≤l₀≤9m 取 l₀/250；l₀&gt;9m 取 l₀/300；按準永久組合驗算">By effective span l₀: l₀/200 for l₀&lt;7m, l₀/250 for 7–9m, l₀/300 for l₀&gt;9m; checked under the quasi-permanent combination</td></tr>
       </tbody>
     </table>
   </div>
@@ -181,6 +254,13 @@ s.parentNode.insertBefore(el, s);
         <li>最大剪力 V<sub>max</sub> = qL/2（支座處）</li>
         <li>跨中撓度 δ = 5qL⁴/(384EI)（單位統一為 N、m）</li>
         <li>彎曲應力 σ = M/W，W = bh²/6 為截面模量</li>
+        <li>h₀ = h − a_s；a_s 為受拉鋼筋合力點至受拉邊緣距離（單排常取 35、雙排 60），不是保護層厚度 c</li>
+        <li>強度等級 C25–C40 聯動 f_tk 與 E_c，可手動覆蓋；手動值與等級不匹配時頁面給出提示，避免「C25 強度、C40 剛度」混配</li>
+        <li>q_k 為標準組合均布荷載（標準值），q_q 為準永久組合均布荷載（可變荷載準永久值係數 ψ_q 與標準值組合後再計入永久荷載標準值）；q_q 不是荷載分項係數後的設計值，也不是標準值簡單打折；頁內 M_k = q_kL²/8、M_q = q_qL²/8；q_k 僅用於 M_k 對照與「q_q 不應大於 q_k」合理性提示，不進入 σ_s、ψ、B_s、B 與 δ 的任何計算（改 q_k 只改 M_k 顯示，δ 不變）</li>
+        <li>撓度按準永久組合：GB 50010-2010 3.4.3 規定鋼筋混凝土受彎構件的最大撓度按荷載準永久組合並考慮長期作用，故 σ_s、ψ、B_s 均用 M_q（7.1.1-3 / 7.1.4 / 7.2.3），長期剛度 B = B_s/θ（7.2.2-2），δ_lt = 5M_qL²/(48B)；標準組合的 B 公式（7.2.2-1）僅用於預應力構件，本頁不採用</li>
+        <li>開裂判定：先按 GB 50010-2010 7.1.1 算 M_cr = f_tk·W_0（W_0 = b·h²/6，未計塑性影響係數 γ，偏安全）；M_q ≤ M_cr 時構件未開裂，取 B_s = E_c·I_0（長期折減 B = B_s/θ 保留），σ_s 與 ψ 不適用；M_q > M_cr 才按上式走裂後 ψ → B_s → B</li>
+        <li>θ 按 7.2.5-1 取用：ρ′ = 0 取 2.0、ρ′ = ρ 取 1.6、中間線性內插；翼緣位於受拉區的倒 T 形截面 θ 增加 20%。頁面由輸入的 ρ′ 與 A_s、b、h₀ 自動算出 θ 並回填輸入框（改 ρ′ 或截面型別即重算），仍可手改；手改值與自動值相差 &gt;0.01 時給出提示，按手改值計算。ρ′ 單位為 %，ρ = A_s/(b·h₀) 為無量綱比值，程式內先統一量綱再內插</li>
+        <li>撓度限值按計算跨度 l₀ 分檔（表 3.4.3）：l₀&lt;7m → l₀/200、7m≤l₀≤9m → l₀/250、l₀&gt;9m → l₀/300；δ_lt ≤ 限值判滿足，等號算滿足</li>
       </ul>
     </div>
   </div>
@@ -220,28 +300,117 @@ s.parentNode.insertBefore(el, s);
 <script>
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
+var beamUdlGrades={C25:{ftk:1.78,ec:28.0},C30:{ftk:2.01,ec:30.0},C35:{ftk:2.20,ec:31.5},C40:{ftk:2.39,ec:32.5}};
+function __beam_udlGrade(){var g=document.getElementById('grade');var t=beamUdlGrades[g?g.value:'C30'];if(t){document.getElementById('ftk').value=t.ftk.toFixed(2);document.getElementById('Ec').value=t.ec.toFixed(1);}calcTool();}
+function beamUdlThetaAuto(){
+  var b=num('b'), h=num('h'), as_=num('as'), As=num('As'), rhoP=num('rhoP');
+  var h0=h-as_; if(b<=0||h<=0||h0<=0||As<=0) return null;
+  var rho=As/(b*h0), rp=rhoP/100;
+  var ratio=rho>0?Math.min(1,Math.max(0,rp/rho)):0;   // ρ′ > ρ 时取下限（θ=1.6）
+  var th=(2.0-0.4*ratio);                            // 7.2.5-1：ρ′=0→2.0，ρ′=ρ→1.6，中间线性内插
+  var fl=document.getElementById('thetaFlange');
+  if(fl&&fl.value==='1') th*=1.2;                    // 受拉区翼缘的倒 T 形 θ 增加 20%
+  return {th:th,rho:rho,rp:rp,ratio:ratio};
+}
+function __beam_udlTheta(){
+  var a=beamUdlThetaAuto();
+  var t=document.getElementById('theta');
+  if(a&&t) t.value=a.th.toFixed(3);
+  calcTool();
+}
+function beamUdlSls(L,b,h){
+  var ftk=num('ftk'), Ec=num('Ec'), As=num('As'), as_=num('as'), qk=num('qk'), qq=num('qq'), th=num('theta'), gf=num('gamma'), l0=num('l0');
+  // q_k 仅用于 M_k 对照，不参与 σ_s / ψ / B_s / B / δ 计算，故不作计算前置条件
+  if(ftk<=0||Ec<=0||As<=0||qq<=0||th<=0||gf<0||l0<=0) return null;
+  var h0=h-as_; if(h0<=0) return null;
+  var Mk=qk>0?qk*L*L/8:0, Mq=qq*L*L/8;   // kN·m，页内由荷载推弯矩（M_k 仅对照）
+  var Ate=0.5*b*h, rhoTe=Math.max(As/Ate,0.01), rho=As/(b*h0), alphaE=2e5/(Ec*1000);
+  var I0=b*Math.pow(h,3)/12, W0=b*h*h/6, Mcr=ftk*W0/1e6;   // 未开裂弯矩 M_cr=f_tk·W_0（GB 50010-2010 7.1.1；W_0=bh²/6，未计塑性影响系数 γ，偏安全）
+  var cracked=Mq>Mcr;
+  // GB 50010-2010 3.4.3：钢筋混凝土受弯构件按准永久组合验算挠度；
+  // 7.1.1-3 / 7.1.4：σ_s 亦按准永久组合；7.2.3 的 B_s 随之为准永久组合下刚度。
+  var sigma=Mq*1e6/(0.87*h0*As);          // MPa，σ_s（准永久组合）
+  var psi=cracked?Math.min(1.0,Math.max(0.2,1.1-0.65*ftk/(rhoTe*sigma))):null;   // 未开裂不进入裂后公式
+  var Bs=cracked
+    ? 2e5*As*h0*h0/(1.15*psi+0.2+6*alphaE*rho/(1+3.5*gf))   // N·mm²，式 7.2.3-1（裂后）
+    : Ec*1000*I0;                                           // 未开裂：B_s = E_c·I_0
+  var B=Bs/th;                            // N·mm²，式 7.2.2-2（准永久组合 B = B_s/θ）
+  var deltaLt=5*Mq*1e6*Math.pow(L*1000,2)/(48*B);   // mm，7.2.1 结构力学 + 准永久组合 M_q
+  var limit=(l0<7?l0/200:(l0<=9?l0/250:l0/300))*1000; // mm，表 3.4.3 按 l₀ 分档
+  var ok=deltaLt<=limit;
+  var auto=beamUdlThetaAuto();
+  var g=document.getElementById('grade');
+  var warn='';
+  if(g&&beamUdlGrades[g.value]){
+    var t=beamUdlGrades[g.value];
+    if(Math.abs(ftk-t.ftk)>0.005||Math.abs(Ec-t.ec)>0.05) warn='⚠ f_tk / E_c 与强度等级 '+g.value+' 不一致，请核对（当前按手动值计算）';
+  }
+  if(auto&&Math.abs(th-auto.th)>0.01) warn=(warn?warn+'；':'')+'⚠ θ 输入值 '+th.toFixed(3)+' 与按 7.2.5-1 自动值 '+auto.th.toFixed(3)+' 不一致，请核对（当前按手动值计算）';
+  if(qk>0&&qq>qk) warn=(warn?warn+'；':'')+'q_q 不应大于 q_k（准永久值不应大于标准值），请核对组合';
+  return {h0:h0,Mk:Mk,Mq:Mq,Mcr:Mcr,cracked:cracked,sigma:cracked?sigma:null,psi:psi,rhoTe:rhoTe,rho:rho,Bs:Bs,B:B,deltaLt:deltaLt,limit:limit,ok:ok,warn:warn,
+          hasMk:qk>0,thetaUsed:th,thetaAuto:auto?auto.th:th};
+}
 function calcTool(){
-            const L=num('L'), q=num('q'), E=num('E')*1e9, I=num('I')*1e-8, b=num('b'), h=num('h');
-            if(L<=0||q<0||E<=0||I<=0||b<=0||h<=0){ToolBox.setResult('result','<p class="tip-error">请输入有效的梁参数。</p>');return;}
+            const L=parseFloat(document.getElementById('L').value), q=parseFloat(document.getElementById('q').value), E=parseFloat(document.getElementById('E').value)*1e9, b=parseFloat(document.getElementById('b').value), h=parseFloat(document.getElementById('h').value);
+            if(!isFinite(L)||!isFinite(q)||!isFinite(E)||!isFinite(b)||!isFinite(h)||L<=0||q<0||E<=0||b<=0||h<=0){ToolBox.setResult('result','<p class="tip-error">请输入有效的梁参数。</p>');return;}
+            const Icm4 = b*Math.pow(h,3)/120000; // I = bh³/12（mm⁴→cm⁴）
+            document.getElementById('I').value = Math.round(Icm4);
+            const I=Icm4*1e-8;
             const Mmax = q*L*L/8;               // kN·m
             const Vmax = q*L/2;                 // kN
             const delta = 5*q*1000*Math.pow(L,4)/(384*E*I)*1000; // m -> mm (q 转 N/m)
             const W = b*Math.pow(h,2)/6;        // mm^3 截面模量 W = bh²/6
             const sigma = Mmax*1e6/W;           // MPa (M:kN·m -> N·mm = ×1e6)
-            const html = dataGrid([
+            const rows = [
                 [Mmax.toFixed(2),'最大弯矩 (kN·m)'],
                 [Vmax.toFixed(2),'最大剪力 (kN)'],
                 [delta.toFixed(2),'跨中挠度 (mm)'],
                 [sigma.toFixed(2),'跨中弯曲应力 (MPa)']
-            ]);
+            ];
+            const sls = beamUdlSls(L,b,h);
+            if(sls){
+                rows.push([sls.h0.toFixed(0),'有效高度 h₀ = h − a_s (mm)']);
+                if(sls.hasMk) rows.push([sls.Mk.toFixed(2),'标准组合 M_k (kN·m，仅对照，不参与挠度)']);
+                rows.push([sls.Mq.toFixed(2),'准永久组合 M_q (kN·m，用于刚度与挠度)']);
+                rows.push([sls.Mcr.toFixed(2),'未开裂弯矩 M_cr (kN·m)']);
+                rows.push([sls.cracked?'已开裂（M_q > M_cr）':'未开裂（M_q ≤ M_cr）','开裂判定']);
+                rows.push([sls.thetaAuto.toFixed(3),'θ 自动值（按 7.2.5-1）']);
+                rows.push([sls.thetaUsed.toFixed(3),'θ 采用值']);
+                if(Math.abs(sls.thetaUsed-sls.thetaAuto)>0.01) rows.push([sls.thetaUsed.toFixed(3)+' / '+sls.thetaAuto.toFixed(3),'θ 采用值 / 自动值（手改）']);
+                rows.push([sls.cracked?sls.sigma.toFixed(1):'不适用（未开裂）','钢筋应力 σ_s (MPa，准永久组合)']);
+                rows.push([sls.cracked?sls.psi.toFixed(3):'不适用（未开裂）','裂缝间应变不均匀系数 ψ']);
+                rows.push([sls.cracked?'式 7.2.3-1（裂后）':'未开裂：B_s = E_c·I_0','短期刚度取值口径']);
+                rows.push([sls.rhoTe.toFixed(4),'有效配筋率 ρ_te']);
+                rows.push([(sls.Bs/1e9).toFixed(0),'短期刚度 B_s (kN·m²)']);
+                rows.push([(sls.B/1e9).toFixed(0),'长期刚度 B = B_s/θ (kN·m²)']);
+                rows.push([(sls.B/sls.Bs).toFixed(3),'刚度折减比 B/B_s']);
+                rows.push([sls.deltaLt.toFixed(2),'长期挠度 δ_lt (mm)']);
+                rows.push([sls.limit.toFixed(2),'挠度限值 (mm，表 3.4.3)']);
+                rows.push([sls.deltaLt.toFixed(2)+(sls.ok?' ≤ ':' > ')+sls.limit.toFixed(2),'挠度验算 δ_lt / 限值 (mm，l₀ 分档)']);
+                rows.push([sls.ok?'满足':'不满足','挠度验算结论']);
+            }
+            let html = dataGrid(rows);
+            if(sls && sls.warn) html += '<p class="tip-error" style="margin-top:10px;">'+sls.warn+'</p>';
             const __g0=html;ToolBox.setResult('result',(typeof __g0==='number'?(isFinite(__g0)?__g0:'—'):String(__g0).replace(/Infinity|NaN/g,'—')));
         }
 function resetForm(){document.getElementById('L').value = '6';
       document.getElementById('q').value = '20';
       document.getElementById('E').value = '30';
-      document.getElementById('I').value = '8000';
+      document.getElementById('I').value = '106667';
       document.getElementById('b').value = '200';
       document.getElementById('h').value = '400';
+      document.getElementById('grade').value = 'C30';
+      document.getElementById('as').value = '35';
+      document.getElementById('As').value = '1884';
+      document.getElementById('ftk').value = '2.01';
+      document.getElementById('Ec').value = '30.0';
+      document.getElementById('gamma').value = '0';
+      document.getElementById('rhoP').value = '0';
+      document.getElementById('thetaFlange').value = '0';
+      document.getElementById('qk').value = '20';
+      document.getElementById('qq').value = '16';
+      document.getElementById('theta').value = '2.0';
+      document.getElementById('l0').value = '6';
       calcTool();}
 calcTool();
 
@@ -249,24 +418,50 @@ function __beam_udlNum(id){var e=document.getElementById(id);var v=e?parseFloat(
 function __beam_udlExtras(){
     function __beam_udlRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
-    var L=num('L'), q=num('q'), E=num('E')*1e9, I=num('I')*1e-8, b=num('b'), h=num('h');
+    var L=num('L'), q=num('q'), E=num('E')*1e9, b=num('b'), h=num('h');
+    var Icm4 = b*Math.pow(h,3)/120000;
+    var I=Icm4*1e-8;
+    if(!isFinite(b)||!isFinite(h)||b<=0||h<=0||!isFinite(L)||!isFinite(q)||L<=0||q<0) return;
     var Mmax = q*L*L/8;               // kN·m
     var Vmax = q*L/2;                 // kN
     var delta = 5*q*1000*Math.pow(L,4)/(384*E*I)*1000; // m -> mm (q 转 N/m)
     var W = b*Math.pow(h,2)/6;        // mm^3 截面模量 W = bh²/6
-    var sigma = Mmax*1e6/W;           // MPa (M:kN·m -> N·mm = ×1e6)
+    var sigma = Mmax*1e6/W;            // MPa (M:kN·m -> N·mm = ×1e6)
+    var sls = beamUdlSls(L,b,h);
     if (!isFinite(__beam_udlNum('L')) || !isFinite(__beam_udlNum('q')) || !isFinite(__beam_udlNum('E')) || !isFinite(__beam_udlNum('I')) || !isFinite(__beam_udlNum('b')) || !isFinite(__beam_udlNum('h'))) return;
     var en=TBKit.util.isEn();
-    TBKit.matrix.table('#beam_udlTable',{
-        head: en?['Item','Value']:['项目','数值'],
-        rows: [
+    var rows = [
             ['最大弯矩 (kN·m)', Mmax.toFixed(2)],
             ['最大剪力 (kN)', Vmax.toFixed(2)],
             ['跨中挠度 (mm)', delta.toFixed(2)],
             ['跨中弯曲应力 (MPa)', sigma.toFixed(2)],
-        ]
+        ];
+    if (sls) {
+        rows.push(['有效高度 h₀ = h − a_s (mm)', sls.h0.toFixed(0)]);
+        if (sls.hasMk) rows.push(['标准组合 M_k (kN·m，仅对照，不参与挠度)', sls.Mk.toFixed(2)]);
+        rows.push(['准永久组合 M_q (kN·m，用于刚度与挠度)', sls.Mq.toFixed(2)]);
+        rows.push(['未开裂弯矩 M_cr (kN·m)', sls.Mcr.toFixed(2)]);
+        rows.push(['开裂判定', sls.cracked?'已开裂（M_q > M_cr）':'未开裂（M_q ≤ M_cr）']);
+        rows.push(['θ 自动值（按 7.2.5-1）', sls.thetaAuto.toFixed(3)]);
+        rows.push(['θ 采用值', sls.thetaUsed.toFixed(3)]);
+        if (Math.abs(sls.thetaUsed - sls.thetaAuto) > 0.01) rows.push(['θ 采用值 / 自动值（手改）', sls.thetaUsed.toFixed(3) + ' / ' + sls.thetaAuto.toFixed(3)]);
+        rows.push(['钢筋应力 σ_s (MPa，准永久组合)', sls.cracked?sls.sigma.toFixed(1):'不适用（未开裂）']);
+        rows.push(['裂缝间应变不均匀系数 ψ', sls.cracked?sls.psi.toFixed(3):'不适用（未开裂）']);
+        rows.push(['短期刚度取值口径', sls.cracked?'式 7.2.3-1（裂后）':'未开裂：B_s = E_c·I_0']);
+        rows.push(['有效配筋率 ρ_te', sls.rhoTe.toFixed(4)]);
+        rows.push(['短期刚度 B_s (kN·m²)', (sls.Bs/1e9).toFixed(0)]);
+        rows.push(['长期刚度 B = B_s/θ (kN·m²)', (sls.B/1e9).toFixed(0)]);
+        rows.push(['刚度折减比 B/B_s', (sls.B/sls.Bs).toFixed(3)]);
+        rows.push(['长期挠度 δ_lt (mm)', sls.deltaLt.toFixed(2)]);
+        rows.push(['挠度限值 (mm，表 3.4.3)', sls.limit.toFixed(2)]);
+        rows.push(['挠度验算 δ_lt / 限值 (mm，l₀ 分档)', sls.deltaLt.toFixed(2)+(sls.ok?' ≤ ':' > ')+sls.limit.toFixed(2)]);
+        rows.push(['挠度验算结论', sls.ok?'满足':'不满足']);
+    }
+    TBKit.matrix.table('#beam_udlTable',{
+        head: en?['Item','Value']:['项目','数值'],
+        rows: rows
     });
-    TBKit.history.record({L:__beam_udlRaw('L'), q:__beam_udlRaw('q'), E:__beam_udlRaw('E'), I:__beam_udlRaw('I'), b:__beam_udlRaw('b'), h:__beam_udlRaw('h'), Mmax:Mmax});
+    TBKit.history.record({L:__beam_udlRaw('L'), q:__beam_udlRaw('q'), E:__beam_udlRaw('E'), I:__beam_udlRaw('I'), b:__beam_udlRaw('b'), h:__beam_udlRaw('h'), grade:__beam_udlRaw('grade'), as:__beam_udlRaw('as'), As:__beam_udlRaw('As'), ftk:__beam_udlRaw('ftk'), Ec:__beam_udlRaw('Ec'), gamma:__beam_udlRaw('gamma'), rhoP:__beam_udlRaw('rhoP'), thetaFlange:__beam_udlRaw('thetaFlange'), qk:__beam_udlRaw('qk'), qq:__beam_udlRaw('qq'), theta:__beam_udlRaw('theta'), l0:__beam_udlRaw('l0'), Mmax:Mmax});
     function __beam_udlRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
     TBKit.history.mount('#beam_udlHist',function(rec){ __beam_udlRestore(rec); calcTool(); });
     TBKit.util.diffBox('#beam_udlDiff',['Mmax']);
@@ -278,9 +473,9 @@ function __beam_udlExport(){
 function __beam_udlPresets(){
     if (typeof TBKit === 'undefined') return;
     TBKit.preset.bar('#beam_udlPresets',[
-        {label:'默认',labelEn:'Default',values:{L:'6', q:'20', E:'30', I:'8000', b:'200', h:'400'}},
-        {label:'示例 2×',labelEn:'Example 2×',values:{L:'12', q:'40', E:'60', I:'16000', b:'400', h:'800'}},
-        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{L:'3', q:'10', E:'15', I:'4000', b:'100', h:'200'}},
+        {label:'默认',labelEn:'Default',values:{L:'6', q:'20', E:'30', b:'200', h:'400', grade:'C30', as:'35', As:'1884', ftk:'2.01', Ec:'30.0', gamma:'0', rhoP:'0', thetaFlange:'0', qk:'20', qq:'16', theta:'2.0', l0:'6'}},
+        {label:'示例 2×',labelEn:'Example 2×',values:{L:'12', q:'40', E:'60', b:'400', h:'800', grade:'C30', as:'60', As:'3768', ftk:'2.01', Ec:'30.0', gamma:'0', rhoP:'0', thetaFlange:'0', qk:'40', qq:'32', theta:'2.0', l0:'12'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{L:'3', q:'10', E:'15', b:'100', h:'200', grade:'C30', as:'35', As:'471', ftk:'2.01', Ec:'30.0', gamma:'0', rhoP:'0', thetaFlange:'0', qk:'10', qq:'8', theta:'2.0', l0:'3'}},
     ],function(){ calcTool(); });
 }
 var __tb_fn0 = calcTool;
@@ -331,8 +526,9 @@ else document.addEventListener('DOMContentLoaded', __beam_udlBoot);
 </section>
 <script>
 function __budSweep(){
-  var q=num('q'), E=num('E'), I=num('I');
-  if(!isFinite(q)||!isFinite(E)||!isFinite(I)||q<0||E<=0||I<=0)return null;
+  var q=num('q'), E=num('E'), b=num('b'), h=num('h');
+  var I=b*Math.pow(h,3)/120000;
+  if(!isFinite(q)||!isFinite(E)||!isFinite(I)||q<0||E<=0||I<=0||b<=0||h<=0)return null;
   var labels=[], dM=[], dD=[];
   var Ls=[2,3,4,5,6,8,10,12];
   for(var k=0;k<Ls.length;k++){

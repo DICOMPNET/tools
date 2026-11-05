@@ -124,7 +124,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="根據焊接電流、電壓、焊接速度及工藝熱效率，計算熱輸入（線能量），評估焊接工藝是否合理。">Calculate welding heat input from current, voltage and travel speed to control cooling rate and properties.</p>
     <div class="formula-box">
       <div class="formula-title">📐 計算公式</div>
-      <div class="formula-eq">焊接熱輸入（本頁程式碼口徑）：E=U×I×η×60÷v（J/cm，U 電壓 V、I 電流 A、η 熱效率、v 焊速 cm/min，乘 60 換算分鐘）；聯動量：kJ/cm=E÷1000、kJ/mm=E÷10000、電弧功率 P=U×I（W）。校驗：任一引數非數字或 ≤0 提示「請輸入有效引數」並中止。判據：按 E(kJ/mm) 分檔——&lt;1.5 低熱輸入（薄板/打底焊防冷裂紋）、&lt;3.0 中等熱輸入、&lt;6.0 較高熱輸入（厚板/埋弧焊）、其餘高熱輸入（晶粒粗大）。</div>
+      <div class="formula-eq">焊接熱輸入（本頁程式碼口徑）：E=U×I×η×60÷v（J/cm，U 電壓 V、I 電流 A、η 熱效率、v 焊速 cm/min，乘 60 換算分鐘）；聯動量：kJ/cm=E÷1000、kJ/mm=E÷10000、電弧功率 P=U×I（W）。校驗：任一引數非數字、電流/電壓/焊速 ≤0 或熱效率 η 超出 0–1 時提示「請輸入有效引數」並中止。判據：按 E(kJ/mm) 分檔——&lt;1.5 低熱輸入（薄板/打底焊防冷裂紋）、&lt;3.0 中等熱輸入、&lt;6.0 較高熱輸入（厚板/埋弧焊）、其餘高熱輸入（晶粒粗大）。</div>
       <p class="formula-desc">根據焊接電流、電壓、焊接速度及工藝熱效率，計算熱輸入（線能量），評估焊接工藝是否合理。</p>
     </div>
     <div class="input-row">
@@ -190,12 +190,12 @@ s.parentNode.insertBefore(el, s);
 <li>按材質控制熱輸入防淬硬/變形。</li>
 <li>對比不同焊接方法熱影響區。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">熱輸入</div><div class="dd-ex-body">U=24V、I=180A、η=0.5、v=30cm/min：E = (24×180×0.5×60)/30 = 4320 J/cm = 43.2 kJ/m（即 0.432 kJ/mm），屬中低熱輸入。</div></div>
+<div class="dd-example"><div class="dd-ex-title">熱輸入</div><div class="dd-ex-body">U=24V、I=180A、η=0.5、v=30cm/min：E = (24×180×0.5×60)/30 = 4320 J/cm = 432 kJ/m = 4.32 kJ/cm（即 0.432 kJ/mm），屬低熱輸入。</div></div>
 <div class="dd-example"><div class="dd-ex-title">降熱防裂</div><div class="dd-ex-body">若提速到 45cm/min：E = (24×180×0.5×60)/45 = 2880 J/cm，熱輸入降 1/3，利於高強鋼防冷裂但需保熔深。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
 <dt>熱輸入越大越好嗎？</dt><dd>不一定；過大熱影響區寬、變形大、易過熱，過小則可能未熔合；高強鋼、不鏽鋼需控在中下限。</dd>
-<dt>效率 η 怎麼取？</dt><dd>埋弧焊 η≈0.95、MIG≈0.7–0.8、手工電弧≈0.7、TIG≈0.5；反映電弧功率轉化為工件熱的比例。</dd>
+<dt>效率 η 怎麼取？</dt><dd>本頁下拉取值為：埋弧焊 0.90、手工電弧焊 0.85、熔化極氣保 0.80、藥芯焊絲 0.75、鎢極氬弧 0.70；η 反映電弧功率轉化為工件熱的比例，可在 0–1 內按工藝實測調整。</dd>
 </dl>
 </div>
 </section>
@@ -246,8 +246,8 @@ function calc(){
   var v=parseFloat(document.getElementById('speed').value);
   var eta=parseFloat(document.getElementById('eff').value);
   var out=document.getElementById('result');
-  if([I,U,v,eta].some(function(x){return isNaN(x);})||I<=0||U<=0||v<=0||eta<=0){
-    out.innerHTML='<p style="color:var(--danger)">请输入有效参数</p>';return;
+  if([I,U,v,eta].some(function(x){return isNaN(x);})||I<=0||U<=0||v<=0||eta<=0||eta>1){
+    out.innerHTML='<p style="color:var(--danger)">请输入有效参数：电流、电压、焊速 &gt; 0，热效率 η 在 0–1 之间</p>';return;
   }
   var E_Jcm=(U*I*eta*60)/v;          // J/cm
   var E_kJcm=E_Jcm/1000;             // kJ/cm

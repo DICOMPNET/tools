@@ -122,8 +122,8 @@ s.parentNode.insertBefore(el, s);
 
         <div class="formula-box">
       <div class="formula-title">📐 計算公式 / 原理</div>
-      <div class="formula-eq">最晚播種日 = 無霜期初日 + 安全餘量；預計收穫日 = 最晚播種日 + 生育期；安全餘量天數 = 無霜期終日 − 預計收穫日</div>
-      <div class="formula-desc">以當地無霜期初日與終日構成安全視窗：先加安全餘量得最晚播種日，再加作物生育期得預計收穫日。安全餘量天數 = 無霜期終日 − 預計收穫日，≥0 表示收穫早於霜期、視窗充足；為負則提示霜凍風險，建議提前播種或改用早熟品種。無霜期總天數取兩日期差。</div>
+      <div class="formula-eq">最晚播種日 = 無霜期終日 − 生育期 − 安全餘量；預計收穫日 = 最晚播種日 + 生育期；收穫距終日餘量 = 安全餘量</div>
+      <div class="formula-desc">以無霜期初日與終日構成安全視窗，從終日向前倒推：先扣生育期，再扣安全餘量，得最晚播種日；最晚播種日早於無霜期初日時說明視窗放不下該作物，提示無可行播期（改用早熟品種或育苗移栽）。安全餘量取 7–15 天，用於應對收穫前的初霜風險。</div>
     </div>
 <div class="input-row">
       <div><label>無霜期初日</label><input type="date" id="frostStart" value="2026-04-15" oninput="calc()" aria-label="無霜期初日"></div>
@@ -140,7 +140,7 @@ s.parentNode.insertBefore(el, s);
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
     <div class="result-box" id="res"></div> <div id="calculator_calc_1Table"></div> <div id="calculator_calc_1Diff"></div> <div id="calculator_calc_1Chart"></div> <div id="calculator_calc_1Hist"></div>
-    <div class="info-box">💡 公式：最晚播種日 = 無霜期初日 + 安全餘量；安全收穫日 = 最晚播種日 + 生育期</div>
+    <div class="info-box">💡 公式：最晚播種日 = 無霜期終日 − 生育期 − 安全餘量；預計收穫日 = 最晚播種日 + 生育期</div>
     <div class="tool-notes" style="--tool-accent:#65A30D;">
 <div class="card" id="constRefBox">
   <h3 data-zh="📐 公式與標準引據">Formula &amp; Standard References</h3>
@@ -153,8 +153,8 @@ s.parentNode.insertBefore(el, s);
       </tr></thead>
       <tbody>
         <tr>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="搭種日期">Sowing date</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="搭種日 = 初霜日 - 生育期天數">sow date = first-frost - growth-days</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="播種日期">Sowing date</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="最晚播種日 = 無霜期終日 − 生育期 − 安全餘量">latest sow = frost-free end − growth days − safety margin</td>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);">Agrometeorology (Frost-free)</td>
         </tr>
         <tr>
@@ -205,11 +205,12 @@ function calc(){
     return;
   }
   var frostDays=daysBetween(start,end);
-  var latestSow=addDays(start,buffer);
+  var latestSow=addDays(end,-(growth+buffer));
   var harvest=addDays(latestSow,growth);
   var margin=daysBetween(harvest,end);
-  var ok=margin>=0;
-  var msg=ok?('收获日早于无霜期终日 '+margin+' 天，安全窗口充足。'):('收获日晚于无霜期终日 '+Math.abs(margin)+' 天，存在霜冻风险，建议提前播种或选择早熟品种。');
+  var gap=daysBetween(start,latestSow);
+  var ok=gap>=0;
+  var msg=ok?('最晚播种日为 '+formatDate(latestSow)+'，预计收获日距无霜期终日余 '+margin+' 天，安全窗口充足。'):('生育期 '+growth+' 天 + 安全余量 '+buffer+' 天超过无霜期 '+frostDays+' 天（差 '+Math.abs(gap)+' 天），无可行播期，建议改用早熟品种或育苗移栽。');
   const __g2='<div class="data-grid">'+
     '<div class="data-card"><div class="num">'+formatDate(latestSow)+'</div><div class="label">最晚播种日期</div></div>'+
     '<div class="data-card"><div class="num">'+formatDate(harvest)+'</div><div class="label">预计收获日期</div></div>'+

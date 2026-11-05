@@ -117,7 +117,7 @@ s.parentNode.insertBefore(el, s);
     <h2 data-zh="🧮 膽紅素（直接/間接）比值計算器">Bilirubin Ratio</h2>
     <div class="formula-box">
       <div class="formula-title">📐 計算公式</div>
-      <div class="formula-eq">直接膽紅素比值 = DBIL ÷ TBIL × 100%（TBIL 為 0 時記 0）；間接膽紅素 = TBIL − DBIL。校驗：DBIL 大於 TBIL 時靜默按 TBIL 封頂折算。判據：TBIL ≤ 參考上限判正常；比值 &lt;20% 間接升高為主（溶血/Gilbert）、&lt;35% 混合性、≤60% 肝細胞性、&gt;60% 梗阻性，並附鑑別診斷要點。</div>
+      <div class="formula-eq">直接膽紅素比值 = DBIL ÷ TBIL × 100%；間接膽紅素 = TBIL − DBIL。校驗：TBIL、DBIL 均必填（缺項不出結論），DBIL 大於 TBIL 時顯式報錯並停止計算（不做靜默封頂）。判據：TBIL、DBIL 均在參考上限內判正常；TBIL 正常而 DBIL 超上限判孤立性直接膽紅素升高；比值 &lt;20% 間接升高為主（溶血/Gilbert）、&lt;35% 混合性、≤60% 肝細胞性、&gt;60% 梗阻性，並附鑑別診斷要點（閾值需臨床複核）。</div>
     </div>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="計算間接膽紅素及直接膽紅素比值，輔助鑑別黃疸型別">Bilirubin Ratio</p>
 
@@ -208,7 +208,7 @@ s.parentNode.insertBefore(el, s);
 <li>隨訪監測：肝膽疾病治療中觀察 DBIL/TBIL 比值變化判斷病程走向</li>
 <li>體檢解讀：單項膽紅素輕度升高時快速區分 Gilbert 綜合徵與膽汁淤積</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">方法</div><div class="dd-ex-body">演算法：間接膽紅素 IBIL = TBIL − DBIL；直接膽紅素比值 = DBIL/TBIL×100%（DBIL&gt;TBIL 時按 TBIL 封頂）。判定：TBIL≤參考值(預設21μmol/L)為正常；比值&lt;20% 提示間接膽紅素升高為主（溶血/Gilbert）；20%~35% 混合性（傾向溶血）；35%~60% 肝細胞性黃疸；&gt;60% 梗阻性黃疸（直接膽紅素為主）。同時列出常見鑒別方向與建議檢查（LDH、網織紅血球、Coombs、肝炎標誌物、ALP/GGT、CA19-9、MRCP 等）。</div></div>
+<div class="dd-example"><div class="dd-ex-title">方法</div><div class="dd-ex-body">演算法：間接膽紅素 IBIL = TBIL − DBIL；直接膽紅素比值 = DBIL/TBIL×100%。TBIL、DBIL 均必填（缺項不出結論）；DBIL&gt;TBIL 時顯式報錯並停止計算（不做靜默封頂）。判定：TBIL、DBIL 均在參考上限內為正常；TBIL 正常而 DBIL 超上限提示孤立性直接膽紅素升高（Dubin-Johnson/Rotor 等）；比值&lt;20% 提示間接膽紅素升高為主（溶血/Gilbert）；20%~35% 混合性（傾向溶血）；35%~60% 肝細胞性黃疸；&gt;60% 梗阻性黃疸（直接膽紅素為主）。同時列出常見鑒別方向與建議檢查（LDH、網織紅血球、Coombs、肝炎標誌物、ALP/GGT、CA19-9、MRCP 等，分界需臨床複核）。</div></div>
 <div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">例：TBIL 85μmol/L、DBIL 55μmol/L、參考值 21μmol/L → IBIL 30μmol/L、直接膽紅素比值 64.7%，判為「梗阻性黃疸（直接膽紅素為主）」，建議儘快超聲/MRCP 明確梗阻部位。若 TBIL 120μmol/L、DBIL 18μmol/L → 比值 15.0%，判為「間接膽紅素升高為主（溶血性/Gilbert）」，建議查 LDH、網織紅血球、Coombs 試驗及 UGT1A1 基因排除 Gilbert 綜合徵。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
@@ -257,27 +257,55 @@ s.parentNode.insertBefore(el, s);
 
 <script>
 function calc(){
-  var tbil=parseFloat(document.getElementById('tbil').value)||0;
-  var dbil=parseFloat(document.getElementById('dbil').value)||0;
-  var refVal=parseFloat(document.getElementById('ref').value);
+  var rawT=document.getElementById('tbil').value.trim();
+  var rawD=document.getElementById('dbil').value.trim();
 
-  if(dbil>tbil){dbil=tbil;}
+  // 两项均必填：缺项不出结论（空值按 0 会误判「正常」或「溶血/Gilbert」）
+  if(rawT===''||rawD===''){
+    document.getElementById('result').innerHTML='<div class="tip-box tip-warn">请填写总胆红素 TBIL 与直接胆红素 DBIL（单位 μmol/L）。仅填一项无法计算直接胆红素比值，不能判断黄疸类型（需临床复核）。</div>';
+    var rb0=document.getElementById('resultRefBar'); if(rb0) rb0.innerHTML='';
+    return;
+  }
+  var tbil=parseFloat(rawT);
+  var dbil=parseFloat(rawD);
+  if(!isFinite(tbil)||!isFinite(dbil)||tbil<0||dbil<0||tbil>1000||dbil>1000){
+    document.getElementById('result').innerHTML='<div class="tip-box tip-warn">数值异常：TBIL 与 DBIL 应为 0–1000 μmol/L 的有效数值，请核对单位（μmol/L 与 mg/dL 相差约 17 倍）。</div>';
+    var rb1=document.getElementById('resultRefBar'); if(rb1) rb1.innerHTML='';
+    return;
+  }
+  // DBIL 不可能大于 TBIL：显式报错，不做静默封顶
+  if(dbil>tbil){
+    document.getElementById('result').innerHTML='<div class="tip-box tip-warn">直接胆红素（'+dbil+' μmol/L）大于总胆红素（'+tbil+' μmol/L），录入有误，已停止计算。请核对数值后重算（需临床复核）。</div>';
+    var rb2=document.getElementById('resultRefBar'); if(rb2) rb2.innerHTML='';
+    return;
+  }
+
+  var refSel=parseFloat(document.getElementById('ref').value);
+  var tbilMax=refSel;
+  var dbilMax=(refSel===25)?8.0:6.8;
 
   var ibil=tbil-dbil;
   var ratio=tbil>0?(dbil/tbil*100):0;
 
   var details=[];
-  details.push('总胆红素 TBIL：'+tbil.toFixed(1)+' μmol/L');
-  details.push('直接胆红素 DBIL：'+dbil.toFixed(1)+' μmol/L');
+  details.push('总胆红素 TBIL：'+tbil.toFixed(1)+' μmol/L（参考上限 '+tbilMax+'）');
+  details.push('直接胆红素 DBIL：'+dbil.toFixed(1)+' μmol/L（参考上限 '+dbilMax+'）');
   details.push('间接胆红素 IBIL：'+ibil.toFixed(1)+' μmol/L');
   details.push('直接胆红素比值：'+ratio.toFixed(1)+'%');
 
   var jaundiceType,color,advice,differential=[];
 
-  if(tbil<=refVal){
+  if(tbil<=tbilMax&&dbil<=dbilMax){
     jaundiceType='正常范围';
     color='#10B981';
-    advice='胆红素在正常范围内，无明显黄疸。';
+    advice='总胆红素与直接胆红素均在参考上限内，无明显黄疸。';
+  }else if(tbil<=tbilMax&&dbil>dbilMax){
+    jaundiceType='孤立性直接胆红素升高';
+    color='#F59E0B';
+    differential.push('Dubin-Johnson 综合征：结合胆红素升高、总胆红素正常或轻度升高，肝功能其余正常');
+    differential.push('Rotor 综合征：类似 Dubin-Johnson，但肝脏无明显色素沉着');
+    differential.push('早期胆汁淤积/药物影响：查 ALP、GGT 及用药史');
+    advice='总胆红素未超上限而直接胆红素超过 '+dbilMax+' μmol/L，提示孤立性结合胆红素升高。建议查 ALP、GGT、尿胆红素及用药史，必要时评估 Dubin-Johnson/Rotor 综合征（需临床复核）。';
   }else if(ratio<20){
     jaundiceType='间接胆红素升高为主（溶血性/ Gilbert）';
     color='#3B82F6';

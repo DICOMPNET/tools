@@ -121,8 +121,8 @@ s.parentNode.insertBefore(el, s);
 
         <div class="formula-box">
       <div class="formula-title">📐 計算公式 / 說明</div>
-      <div class="formula-eq">應納稅所得額 = 應發工資 − 五險一金 − 起徵點 − 專項附加扣除；個稅 = 應納稅所得額 × 稅率 − 速算扣除數</div>
-      <div class="formula-desc">基於個人所得稅累計預扣法：逐項扣除五險一金與專項附加扣除後按累進稅率計稅，得出手工資，用於薪酬測算與到手工資預估。</div>
+      <div class="formula-eq">應納稅所得額 = 應發工資 − 五險一金 − 基本減除費用（免徵額，5000 元/月）− 專項附加扣除；個稅 = 應納稅所得額 × 稅率 − 速算扣除數</div>
+      <div class="formula-desc">基於個人所得稅累計預扣法：先扣五險一金，再扣基本減除費用（免徵額）與專項附加扣除，最後按累進稅率計稅。基本減除費用與專項附加扣除是兩項獨立扣除，本工具分別扣減、不合並計算。</div>
     </div>
 <div class="input-row">
       <div>
@@ -203,8 +203,8 @@ s.parentNode.insertBefore(el, s);
       <tbody>
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="應納稅所得額">Taxable income</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="所得額 = 應發 − 五險一金 − 起徵點 − 專項附加扣除">taxable = gross − ins − threshold − addl deduct</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="個人所得稅法（基本減除 5000/月）">IIT Law (¥5000/mo threshold)</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="所得額 = 應發 − 五險一金 − 基本減除費用（免徵額） − 專項附加扣除">taxable = gross − ins − basic deduction (tax exemption) − addl deduct</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="個人所得稅法（基本減除費用 5000/月）">IIT Law (¥5000/mo basic deduction)</td>
         </tr>
       </tbody>
     </table>
@@ -213,7 +213,7 @@ s.parentNode.insertBefore(el, s);
 
   <div class="tool-notes-title">⚠️ 使用說明與注意事項</div>
   <ul>
-        <li>起徵點 5000 元/月，五險一金與專項附加可稅前扣除</li>
+        <li>基本減除費用（免徵額）5000 元/月，五險一金與專項附加扣除可稅前扣除；基本減除費用與專項附加扣除是獨立兩項，不合並計算</li>
         <li>專項附加：子女教育 2000/月、房貸利息 1000/月、房租 800-1500/月等</li>
         <li>實際個稅按全年累計預扣，本結果按月估算</li>
         <li>結果僅供參考，正式計算以稅務部門核定為準</li>
@@ -258,7 +258,7 @@ function fmtMoney(n){return n.toLocaleString('zh-CN',{minimumFractionDigits:2,ma
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){const gross=num('gross'), ins=num('ins'), ded=num('ded'), months=Math.floor(num('months'));
    if(gross<0||months<1){ToolBox.setResult('result','<p class="tip-error">请输入有效的工资与月数。</p>');return;}
-   const TH=5000; // 起征点
+   const TH=5000; // 基本减除费用（免征额）
    const base=gross-TH-ins-ded; // 月应纳税所得额
    // 月度税率表（综合所得）
    const brackets=[[0,0.03,0],[3000,0.10,210],[12000,0.20,1410],[25000,0.25,2660],[35000,0.30,4410],[55000,0.35,7160],[80000,0.45,15160]];
@@ -268,8 +268,6 @@ function calcTool(){const gross=num('gross'), ins=num('ins'), ded=num('ded'), mo
    }
    if(base<=0){ tax=0; rate=0; }
    const taxMonthly=Math.max(0,tax);
-   const net=gross-ins-ded>TH ? gross-ins-taxMonthly : gross-ins;
-   // 简化：不含专项扣除时（ded=0 且 net 口径），统一按 gross - ins - tax
    const netFinal=gross-ins-taxMonthly;
    const ratePct=(rate*100).toFixed(1);
    const actualRate=(taxMonthly/Math.max(gross,1)*100).toFixed(2);

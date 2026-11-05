@@ -129,7 +129,7 @@ s.parentNode.insertBefore(el, s);
     <div class="input-row">
       <div>
         <label>兒童年齡</label>
-        <input type="number" id="age" value="8" oninput="renderQuestions()" placeholder="如 8">
+        <input type="number" id="age" value="8" min="0" max="18" oninput="renderQuestions()" placeholder="如 8（0–18）">
       </div>
     </div>
 
@@ -151,9 +151,9 @@ s.parentNode.insertBefore(el, s);
     <table>
       <thead><tr><th>評分</th><th>控制水平</th><th>治療建議</th></tr></thead>
       <tbody>
-        <tr><td style="color:#10B981;font-weight:600;">20-25 (C-ACT ≥20)</td><td>控制良好</td><td>維持當前方案，定期隨訪</td></tr>
-        <tr><td style="color:#F59E0B;font-weight:600;">16-19</td><td>部分控制</td><td>升級治療，加強管理</td></tr>
-        <tr><td style="color:#EF4444;font-weight:600;">5-15 (C-ACT &lt;20)</td><td>未控制</td><td>緊急調整方案/就醫</td></tr>
+        <tr><td style="color:#10B981;font-weight:600;">C-ACT 23-27 / ACT 20-25</td><td>控制良好</td><td>維持當前方案，定期隨訪</td></tr>
+        <tr><td style="color:#F59E0B;font-weight:600;">C-ACT 20-22 / ACT 16-19</td><td>部分控制</td><td>升級治療，加強管理</td></tr>
+        <tr><td style="color:#EF4444;font-weight:600;">C-ACT ≤19 / ACT ≤15</td><td>未控制</td><td>緊急調整方案/就醫</td></tr>
       </tbody>
     </table>
     <div class="info-box">提示：C-ACT適用於4-11歲兒童(7道題由兒童自答+家長答)，ACT適用於≥12歲。評估近4周情況。哮喘長期管理目標：達到並維持控制，預防急性發作，維持正常肺功能。ICS(吸入糖皮質激素)是長期控制首選。急性發作PEF<60%預計值需就醫。本工具僅供臨床參考，不替代專業醫療評估。</div>
@@ -262,10 +262,21 @@ var actQs=[
   {id:'a5',q:'你如何评价近4周哮喘控制情况？',opts:['未控制(1)','控制很差(2)','有所控制(3)','控制好(4)','完全控制(5)']}
 ];
 
+function readAge(){
+  var raw=document.getElementById('age').value.trim();
+  return raw===''?NaN:parseFloat(raw);
+}
+
 function renderQuestions(){
-  var age=parseFloat(document.getElementById('age').value)||8;
+  var age=readAge();
   var html='';
   answers={};
+
+  if(!isFinite(age)||age<0||age>18){
+    html='<div class="tip-box tip-error">请输入 0–18 岁（儿科范围）的年龄后再评估。</div>';
+    const __g1=html;document.getElementById('questionList').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
+    return;
+  }
 
   if(age<4){
     html='<div class="tip-box tip-warn">C-ACT适用于4-11岁，ACT适用于≥12岁。当前年龄不足，请咨询医生使用其他评估方法。</div>';
@@ -312,7 +323,8 @@ function selectAns(qid,idx,total){
 }
 
 function calc(){
-  var age=parseFloat(document.getElementById('age').value)||8;
+  var age=readAge();
+  if(!isFinite(age)||age<0||age>18){ToolBox.showToast('请输入 0–18 岁（儿科范围）的年龄','warning');return;}
   if(age<4){return;}
 
   var total=0,answered=0,maxScore;
@@ -328,7 +340,9 @@ function calc(){
 
   questionList.forEach(function(item){
     if(answers[item.id]!==undefined){
-      total+=answers[item.id];
+      // 选项下标不等于分值：ACT 选项为 1–5、C-ACT 儿童项为 0–3、家长项为 0–5，统一从选项文本的「(n)」取值
+      var m=String(item.opts[answers[item.id]]).match(/\((\d+)\)/);
+      total+=(m?Number(m[1]):answers[item.id]);
       answered++;
     }
   });

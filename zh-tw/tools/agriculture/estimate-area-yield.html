@@ -121,7 +121,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="輸入畝產鮮草量、種植面積與幹物質率，自動估算鮮草、乾草總產量及乾草捆數。">Enter fresh forage yield per unit area, area and dry-matter rate to estimate total fresh and dry forage and the number of hay bales.</p>    <div class="formula-box">
       <div class="formula-title">📐 計算公式 / 原理</div>
       <div class="formula-eq">鮮草總量 = 畝產 × 面積 × 單位係數；乾草產量 = 鮮草總量 × 幹物質率%；乾草捆數 = 乾草產量 ÷ 單捆重</div>
-      <div class="formula-desc">單位係數把畝產換算為總量（kg/畝 直乘、t/ha × 0.0001、kg/㎡ 直乘對應面積口徑）。鮮草總量乘幹物質率得風乾草產量，除以單捆重得乾草捆數，並給出折算畝數與公頃數，用於飼草產量估算與打捆計劃。</div>
+      <div class="formula-desc">單位係數把畝產換算為總量（kg/畝 直乘、t/ha 先折 0.1 kg/㎡、kg/㎡ 直乘對應面積口徑）。鮮草總量乘幹物質率得風乾草產量，除以單捆重得乾草捆數，並給出折算畝數與公頃數，用於飼草產量估算與打捆計劃。</div>
     </div>
 
 
@@ -150,7 +150,7 @@ s.parentNode.insertBefore(el, s);
     <div class="tool-notes" style="--tool-accent:#65A30D;">
       <div class="tool-notes-title">⚠️ 使用說明與注意事項</div>
       <ul>
-        <li>畝產單位選擇“噸/公頃”或“kg/㎡”時，面積仍按平方米輸入，工具會自動換算。</li>
+        <li>畝產單位選擇“噸/公頃”或“kg/㎡”時，面積仍按平方米輸入，工具會自動換算（1 公頃 = 10000 ㎡ = 15 畝）。</li>
         <li>幹物質率因牧草種類、刈割時期與晾曬程度差異較大，預設值 30% 僅供參考。</li>
         <li>乾草捆數按小方捆 25 kg 估算，大型圓捆或青貯包請自行調整單捆重量。</li>
         <li>本工具純前端執行，資料不會上傳到伺服器。</li>
@@ -179,7 +179,7 @@ function calc(){
   setInvalid(document.getElementById('dmRate'),isNaN(dm)||dm<0||dm>100);
   setInvalid(document.getElementById('baleWeight'),isNaN(bale)||bale<0);
   if(!valid){document.getElementById('res').innerHTML='<p style="color:var(--error);">请填写有效的参数。</p>';return;}
-  var factor={kg_mu:1/666.67,t_ha:0.0001,kg_m2:1}[unit];
+  var factor={kg_mu:1/666.67,t_ha:0.1,kg_m2:1}[unit];
   var freshKg=y*area*factor;
   var hayKg=freshKg*(dm/100);
   var mu=area/666.67;
@@ -370,7 +370,7 @@ function __estimate_area_yieldPresets(){
     if (typeof TBKit === 'undefined') return;
     TBKit.preset.bar('#estimate_area_yieldPresets',[{label:'默认参数',labelEn:'Default',values:{'unit':'kg_mu', 'yieldInput':'3000', 'area':'10000', 'dmRate':'30', 'baleWeight':'25'}},
   {'label':'亩产 3 吨','labelEn':'3t/mu','values':{'yieldInput':'3000','area':'10000','dmRate':'30','baleWeight':'25','unit':'kg_mu'}},
-  {'label':'公顷 8 吨','labelEn':'8t/ha','values':{'yieldInput':'8','area':'1','dmRate':'30','baleWeight':'25','unit':'t_ha'}},
+  {'label':'公顷 8 吨','labelEn':'8t/ha','values':{'yieldInput':'8','area':'10000','dmRate':'30','baleWeight':'25','unit':'t_ha'}},
   {'label':'高干物质','labelEn':'High DM','values':{'yieldInput':'5000','area':'10000','dmRate':'40','baleWeight':'30','unit':'kg_mu'}}],function(){ calc(); });
 }
 var __estimate_area_yield_f0=(typeof calc==='function')?calc:null;

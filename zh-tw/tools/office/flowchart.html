@@ -27,7 +27,25 @@
 <link rel="stylesheet" href="/css/common.css">
 <script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="/js/common.js" defer></script>
-<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.8/dist/mermaid.min.js" integrity="sha384-N3QqR/7q+xm3BGX+CBbNI8AUmRRqcsDzToy+0z1NLDI0QmTKW8zvwLvqulJgk3dP" crossorigin="anonymous"></script>
+<script>
+/* 依赖兜底：Mermaid 加载失败时给出可见提示，避免页面静默失效 */
+(function(){
+  function showDepTip(){
+    var en = /en-US/i.test(document.documentElement.lang || '') || /lang=en-US/i.test(location.search);
+    var tip = document.createElement('div');
+    tip.style.cssText = 'background:#ffebee;color:#c62828;border:1px solid #ffcdd2;padding:12px 14px;border-radius:8px;margin:0 0 14px;font-size:13px;line-height:1.6;';
+    tip.textContent = en
+      ? 'The Mermaid library failed to load, so diagram rendering is unavailable. Check your network or ad blocker, then reload.'
+      : '流程图库（Mermaid）加载失败，图表渲染暂不可用。请检查网络或关闭广告拦截后刷新重试。';
+    var host = document.querySelector('.container') || document.body;
+    if (host) host.insertBefore(tip, host.firstChild);
+  }
+  window.addEventListener('DOMContentLoaded', function(){
+    if (typeof mermaid === 'undefined') showDepTip();
+  });
+})();
+</script>
 <style>
 /* 流程图工具局部样式：优先使用公共变量 */
 .flowchart-container{max-width:1200px;}
@@ -372,7 +390,7 @@ graph TD
 
 <script>
 /* ===== 初始化 Mermaid ===== */
-mermaid.initialize({ startOnLoad: false, theme: 'default' });
+mermaid.initialize({ startOnLoad: false, theme: 'default', htmlLabels: false, flowchart: { htmlLabels: false, useMaxWidth: false } });
 
 /* ===== DOM 引用 ===== */
 const editor = document.getElementById('editor');
@@ -495,7 +513,7 @@ function currentMermaidTheme() {
 }
 
 function applyMermaidTheme() {
-  mermaid.initialize({ startOnLoad: false, theme: currentMermaidTheme() });
+  mermaid.initialize({ startOnLoad: false, theme: currentMermaidTheme(), htmlLabels: false, flowchart: { htmlLabels: false, useMaxWidth: false } });
   renderChart();
 }
 
@@ -527,13 +545,21 @@ const renderDebounced = ToolBox.debounce(renderChart, 500);
 
 /* ===== 本地存储 ===== */
 function saveCode() {
+  let ok = false;
   try {
     localStorage.setItem(STORAGE_KEY, editor.value);
     localStorage.setItem(STORAGE_TYPE_KEY, currentType);
+    // 共享层会吞掉配额异常，只有回读一致才算真的写入成功
+    ok = localStorage.getItem(STORAGE_KEY) === editor.value;
+  } catch (e) {
+    ok = false;
+  }
+  if (ok) {
     saveState.textContent = '已保存';
     saveState.classList.add('saved');
-  } catch (e) {
-    saveState.textContent = '';
+  } else {
+    saveState.textContent = '未保存（本次计算不受影响）';
+    saveState.classList.remove('saved');
   }
 }
 function loadSaved() {
@@ -630,6 +656,8 @@ function downloadPNG() {
   const img = new Image();
   img.onload = function () {
     const scale = 2; // 2 倍清晰度
+    const limitMsg = canvasExportError(Math.round(w * scale), Math.round(h * scale));
+    if (limitMsg) { URL.revokeObjectURL(url); ToolBox.showToast(limitMsg, 'error'); return; }
     const canvas = document.createElement('canvas');
     canvas.width = Math.round(w * scale);
     canvas.height = Math.round(h * scale);
@@ -639,20 +667,29 @@ function downloadPNG() {
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
     URL.revokeObjectURL(url);
+    try {
     canvas.toBlob(function (blob) {
+      if (!blob) {
+        ToolBox.showToast('导出失败：画布可能超出浏览器上限，请缩小画布后重试。', 'error');
+        return;
+      }
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
       a.download = 'flowchart.png';
       document.body.appendChild(a);
       a.click();
       a.remove();
-      setTimeout(function () { URL.revokeObjectURL(a.href); }, 0);
+      // 延迟释放：部分浏览器在 click 后立即 revoke 会取消下载
+      setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
+      ToolBox.showToast('已导出 PNG', 'success');
     }, 'image/png');
-    ToolBox.showToast(i18nText(), 'success');
+    } catch (e) {
+      ToolBox.showToast('导出失败：' + (e.name || e.message || e), 'error');
+    }
   };
   img.onerror = function () {
     URL.revokeObjectURL(url);
-    ToolBox.showToast(i18nText(), 'error');
+    ToolBox.showToast('导出失败：画布渲染出错，请重试', 'error');
   };
   img.src = url;
 }
@@ -690,7 +727,7 @@ editor.addEventListener('input', function () {
 
 /* ===== 主题变化监听：Mermaid 跟随切换 ===== */
 const themeObserver = new MutationObserver(ToolBox.debounce(function () {
-  mermaid.initialize({ startOnLoad: false, theme: currentMermaidTheme() });
+  mermaid.initialize({ startOnLoad: false, theme: currentMermaidTheme(), htmlLabels: false, flowchart: { htmlLabels: false, useMaxWidth: false } });
   renderChart();
 }, 200));
 themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });

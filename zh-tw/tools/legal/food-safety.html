@@ -132,7 +132,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="《食品安全法》第148條：不符合食品安全標準可主張價款十倍賠償">Compute the refund plus tenfold price compensation (minimum 1000 yuan) for non-compliant food under Food Safety Law Article 148.</p>
     <div class="formula-box">
       <div class="formula-title">📐 計算公式</div>
-      <div class="formula-eq">食品安全懲罰性賠償：退還貨款 = 價款；十倍賠償 = max(價款×10, 1000)（不足 1000 元按 1000 元保底）；損失三倍賠償 = 勾選造成損失時 損失×3 否則 0；懲罰性賠償金 = max(十倍, 三倍)；可主張總額 = 價款 + (勾選時)損失 + 賠償金。校驗：非數按 0 兜底，結果含 NaN/Infinity 時提示「請檢查輸入」。判據：十倍賠償按保底計（≤1000 元）時顯示保底角標；未勾選銷售者明知且價款 &gt;0 時給出舉證提示。</div>
+      <div class="formula-eq">食品安全懲罰性賠償：退還貨款 = 價款；十倍賠償 = max(價款×10, 1000)（不足 1000 元按 1000 元保底）；損失三倍賠償 = 勾選造成損失時 損失×3 否則 0；懲罰性賠償金 = max(十倍, 三倍)；可主張總額 = 價款 + (勾選時)損失 + 賠償金。第148條例外：問題型別為「標籤/說明書問題」且勾選「僅屬標籤瑕疵（不影響食品安全且不誤導）」時，十倍賠償歸零，僅退還貨款。校驗：非數按 0 兜底，結果含 NaN/Infinity 時提示「請檢查輸入」。判據：十倍賠償按保底計（≤1000 元）時顯示保底角標；未勾選銷售者明知且價款 &gt;0 時給出舉證提示。</div>
       <p class="formula-desc">《食品安全法》第148條：不符合食品安全標準可主張價款十倍賠償</p>
     </div>
 
@@ -155,6 +155,12 @@ s.parentNode.insertBefore(el, s);
     <div class="checkbox-row">
       <label><input type="checkbox" id="causedDamage" onchange="toggleDamage()"> 造成人身損害</label>
       <label><input type="checkbox" id="knowinglySeller" onchange="calculate()"> 經營者明知（銷售者）</label>
+    </div>
+
+    <div id="labelSection" style="display:none;margin-top:12px;">
+      <div class="checkbox-row">
+        <label><input type="checkbox" id="labelMinor" onchange="calculate()"> 僅屬標籤瑕疵：不影響食品安全且不誤導消費者（第148條例外，不適用十倍賠償）</label>
+      </div>
     </div>
 
     <div id="damageSection" style="display:none;margin-top:12px;">
@@ -279,10 +285,15 @@ function calculate(){
   const damage = parseFloat(document.getElementById('damageAmount').value) || 0;
   const hasDamage = document.getElementById('causedDamage').checked;
   const knowingly = document.getElementById('knowinglySeller').checked;
+  const problemType = document.getElementById('problemType').value;
+  const isLabel = problemType === 'labels';
+  document.getElementById('labelSection').style.display = isLabel ? '' : 'none';
+  const labelMinor = isLabel && document.getElementById('labelMinor').checked;
 
   const refund = price;
   let pricePenalty = price * 10;
   pricePenalty = Math.max(pricePenalty, 1000);
+  if(labelMinor) pricePenalty = 0;
   let lossPenalty = hasDamage ? damage * 3 : 0;
 
   const penalty = Math.max(pricePenalty, lossPenalty);
@@ -290,7 +301,7 @@ function calculate(){
 
   let html = `<p>${fsL('食品价款：','Food price: ')}<strong>${ToolBox.formatNumber(price)}</strong> ${fsL('元','CNY')}</p>`;
   html += `<p>${fsL('退还货款：','Refund: ')}<strong>${ToolBox.formatNumber(refund)}</strong> ${fsL('元','CNY')}</p>`;
-  html += `<p>${fsL('价款十倍赔偿：','Tenfold the price: ')}<strong>${ToolBox.formatNumber(pricePenalty)}</strong> ${fsL('元','CNY')} ${pricePenalty <= 1000 ? '<span style="font-size:12px;color:#ff9800;">'+fsL('（保底1000元）','(floor CNY 1,000)')+'</span>' : ''}</p>`;
+  html += `<p>${fsL('价款十倍赔偿：','Tenfold the price: ')}<strong>${ToolBox.formatNumber(pricePenalty)}</strong> ${fsL('元','CNY')} ${pricePenalty > 0 && pricePenalty <= 1000 ? '<span style="font-size:12px;color:#ff9800;">'+fsL('（保底1000元）','(floor CNY 1,000)')+'</span>' : ''}</p>`;
   if(hasDamage){
     html += `<p>${fsL('实际损失：','Actual loss: ')}<strong>${ToolBox.formatNumber(damage)}</strong> ${fsL('元','CNY')}</p>`;
     html += `<p>${fsL('损失三倍赔偿：','Triple the loss: ')}<strong>${ToolBox.formatNumber(lossPenalty)}</strong> ${fsL('元','CNY')}</p>`;
@@ -300,6 +311,9 @@ function calculate(){
 
   if(!knowingly && price > 0){
     html += `<p style="font-size:13px;color:var(--text-muted);margin-top:8px;">${fsL('注：向销售者索赔需证明其','Note: claiming against the seller requires proving the seller ')}"${fsL('明知','knew')}"${fsL('不符合标准；向生产者索赔无需证明明知',' the food was non-compliant; no such proof is needed against the producer')}</p>`;
+  }
+  if(isLabel){
+    html += `<p style="font-size:13px;color:${labelMinor ? 'var(--danger)' : 'var(--text-muted)'};margin-top:8px;">${labelMinor ? fsL('已按第148条例外处理：标签/说明书瑕疵不影响食品安全且不误导消费者的，不支持十倍赔偿，仅退还货款。','Treated as the Article 148 exception: a label or instruction defect that does not affect food safety and does not mislead consumers does not support tenfold damages; only the refund applies.') : fsL('提示：标签/说明书问题是否适用十倍赔偿，取决于该瑕疵是否影响食品安全或误导消费者；属前者时请勾选上方「仅属标签瑕疵」。','Note: whether a label or instruction defect supports tenfold damages depends on whether it affects food safety or misleads consumers; if not, tick the exception box above.')}</p>`;
   }
 
   html += `<hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">`;

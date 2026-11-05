@@ -280,7 +280,7 @@ s.parentNode.insertBefore(el, s);
 
 <script>
 var _decMode = true;
-function esc(s){var d=document.createElement('div');const __g1=s==null?'':String(s);d.textContent=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));return d.innerHTML;}
+function esc(s){var d=document.createElement('div');const __g1=s==null?'':String(s);d.textContent=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));return d.innerHTML.replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
 function calcTool(){
   var raw=(document.getElementById('urlInput').value||'').trim();
   if(!raw){raw='https://example.com/search?q=toolbox&lang=zh-CN&page=2';}
@@ -288,7 +288,8 @@ function calcTool(){
   var base=qm>=0?raw.slice(0,qm):raw;
   var qs=qm>=0?raw.slice(qm+1):'';
   var pairs=[];
-  if(qs){qs.split('&').forEach(function(p){if(!p)return;var i=p.indexOf('=');var k=i>=0?p.slice(0,i):p;var v=i>=0?p.slice(i+1):'';pairs.push({k:decodeURIComponent(k.replace(/\+/g,' ')),v:decodeURIComponent(v.replace(/\+/g,' '))});});}
+  function decPart(s){var t=s.replace(/\+/g,' ');try{return decodeURIComponent(t);}catch(e){return t;}}
+  if(qs){qs.split('&').forEach(function(p){if(!p)return;var i=p.indexOf('=');var k=i>=0?p.slice(0,i):p;var v=i>=0?p.slice(i+1):'';pairs.push({k:decPart(k),v:decPart(v)});});}
   var box=document.getElementById('paramsBox');
   var tpl=document.getElementById('paramRowTpl').innerHTML;
   var out='';
@@ -313,7 +314,7 @@ function renderUrl(){
 }
 function collectPairs(){
   var rows=document.querySelectorAll('#paramsBox .param-row');
-  var out={};
+  var out=Object.create(null);
   rows.forEach(function(r){
     var k=r.querySelector('.p-key').value.trim();
     if(!k)return;
@@ -354,10 +355,11 @@ function addParam(){
   document.getElementById('paramsBox').insertAdjacentHTML('beforeend',tpl.replace('{k}','').replace('{v}',''));
 }
 function delParam(btn){btn.parentElement.remove();renderUrl();}
+var UP_EN=/(?:^|[?&])lang=en/i.test(location.search);
 function copyUrl(){
   var url=renderUrl();
-  var ok=ToolBox.copyText(url,'复制成功','复制失败');
-  if(ok){ToolBox.showToast('新 URL 已复制');}
+  var ok=ToolBox.copyText(url,UP_EN?'Copied successfully':'复制成功',UP_EN?'Copy failed':'复制失败');
+  if(ok){ToolBox.showToast(UP_EN?'New URL copied':'新 URL 已复制');}
 }
 calcTool();
 

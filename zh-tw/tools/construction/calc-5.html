@@ -125,8 +125,8 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="選擇木材型別並輸入尺寸，按國標公式計算材積（m³）。">Compute volume of logs and lumber (GB 4814).</p>
     <div class="formula-box">
       <div class="formula-title">📐 工作原理與說明</div>
-  <div class="formula-eq">原木材積 V = 0.7854 × L × (D + 0.45L + 0.2)² ÷ 10000（D 以 cm、L 以 m 計）；板方材 V = 長 × 寬 × 厚；總材積 = V × 數量</div>
-      <p class="formula-desc" data-zh="核心計算公式（按輸入變數）：0.7854×L×(D+0.45×L+0.2)^2÷10000">Key formulas: 0.7854×L×(D+0.45×L+0.2)^2÷10000</p>
+  <div class="formula-eq">原木材積（GB 4814，D 以 cm、L 以 m）：小徑 D≤12cm 時 V = 0.00007854 × L × (D + 0.45L + 0.2)²；大徑 D≥14cm 時 V = 0.00007854 × L × (D + 0.5L + 0.005L² + 0.000125L(14−L)²(D−10))²。板方材 V = 長 × 寬 × 厚；總材積 = V × 數量；1 m³ ≈ 0.423776 千板英尺(MBF)</div>
+      <p class="formula-desc" data-zh="核心計算公式（按檢尺徑分支）：D≤12cm 用 (D+0.45L+0.2)²；D≥14cm 用 (D+0.5L+0.005L²+0.000125L(14−L)²(D−10))²">Key formulas: D≤12cm uses (D+0.45L+0.2)²; D≥14cm uses (D+0.5L+0.005L²+0.000125L(14−L)²(D−10))²</p>
     </div>
     <div class="input-row">
       <div><div data-tb="preset" data-tb-presets='[{"label":"小头直径(cm)20·长度(m)4·根数10·长度(m)2…","labelEn":"dia=20 · logLen=4 · logQty=10 · bLen=2.…","values":{"dia":"20","logLen":"4","logQty":"10","bLen":"2.4","bWid":"120","bThk":"40","bQty":"50","woodType":"log"}}]'></div>
@@ -154,11 +154,11 @@ s.parentNode.insertBefore(el, s);
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
     <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__calc_5Export()">匯出明細 CSV</button></div><div class="result-box" id="res"></div> <div id="calc_5Table"></div> <div id="calc_5Diff"></div> <div id="calc_5Chart"></div> <div id="calc_5Hist"></div>
-    <div class="info-box">💡 原木：V = 0.7854 × L × (D + 0.45L + 0.2)² ÷ 10000（GB 4814，D 為小頭直徑 cm、L 為長 m）。板方材：V = 長 × 寬 × 厚（單位 m）。</div>
+    <div class="info-box">💡 原木（GB 4814，D 為小頭直徑 cm、L 為檢尺長 m）：D≤12cm 用 V = 0.00007854 × L × (D + 0.45L + 0.2)²；D≥14cm 用 V = 0.00007854 × L × (D + 0.5L + 0.005L² + 0.000125L(14−L)²(D−10))²。板方材：V = 長 × 寬 × 厚（單位 m）。</div>
     <div class="tool-notes" style="--tool-accent:#FF6B35;">
       <div class="tool-notes-title">⚠️ 注意事項</div>
       <ul>
-        <li>原木公式為 GB 4814 檢尺材積簡化式，大徑級原木請以檢尺表為準</li>
+        <li>原木材積按 GB 4814 分檢尺逕取值：≤12cm 用簡化式，≥14cm 用含 0.005L² 與徑級修正項的完整式</li>
         <li>板方材寬度/厚度單位為 mm，長度單位為 m，工具會自動換算</li>
         <li>實際出材率受木材彎曲、缺陷影響，建議預留損耗</li>
         <li>本工具純前端執行，資料不會上傳到伺服器</li>
@@ -207,7 +207,8 @@ function calc(){
   var unitV,totalV,desc;
   if(p.type==='log'){
     var D=p.dia,L=p.len;
-    unitV=0.7854*L*Math.pow(D+0.45*L+0.2,2)/10000;
+    var base=D<14?(D+0.45*L+0.2):(D+0.5*L+0.005*L*L+0.000125*L*Math.pow(14-L,2)*(D-10));
+    unitV=0.00007854*L*Math.pow(base,2);
     totalV=unitV*p.qty;
     desc='原木：小头直径 '+D+'cm，长 '+L+'m，'+p.qty+' 根';
   }else{
@@ -225,11 +226,12 @@ function calc(){
   html+='<p style="margin-top:8px;">'+desc+'</p>';
   if(p.type==='log'){
     var D=p.dia,L=p.len;
-    html+='<p>公式：V = 0.7854 × '+L+' × ('+D+' + 0.45×'+L+' + 0.2)² ÷ 10000 = <strong style="color:var(--primary);">'+unitV.toFixed(4)+' m³</strong></p>';
+    var base = D<14 ? (D+0.45*L+0.2) : (D+0.5*L+0.005*L*L+0.000125*L*Math.pow(14-L,2)*(D-10));
+    html+='<p>公式（GB 4814 '+(D<14?'小径':'大径')+'）：V = 0.00007854 × '+L+' × ('+base.toFixed(3)+')² = <strong style="color:var(--primary);">'+unitV.toFixed(4)+' m³</strong></p>';
   }else{
     html+='<p>体积 = '+p.len+' × '+(p.wid/1000)+' × '+(p.thk/1000)+' = <strong style="color:var(--primary);">'+unitV.toFixed(4)+' m³</strong></p>';
   }
-  html+='<p>总材积 = <strong style="color:var(--primary);">'+totalV.toFixed(4)+' m³</strong>（'+(totalV*1000).toFixed(2)+' 千板英尺约当）</p>';
+  html+='<p>总材积 = <strong style="color:var(--primary);">'+totalV.toFixed(4)+' m³</strong>（'+(totalV*0.423776).toFixed(3)+' 千板英尺 MBF）</p>';
   const __g2=html;document.getElementById('res').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 }
 function copyRes(){
@@ -460,8 +462,9 @@ else document.addEventListener('DOMContentLoaded', __calc_5Boot);
 <li>木工下料時按板方材（長×寬×厚）求淨體積，再除出材率估算原木需求量。</li>
 <li>盤點庫存木料，用本工具批次換算不同規格材積，便於臺賬與成本核算。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">原木材積</div><div class="dd-ex-body">小頭直徑 200mm，材長 4m
-按原木材積公式 V≈0.7854×0.2²×(4+0.5)≈0.113 m³</div></div>
+<div class="dd-example"><div class="dd-ex-title">原木材積</div><div class="dd-ex-body">小頭直徑 20cm（檢尺徑 20cm，屬大徑級），材長 4m
+按 GB 4814 大徑式：V = 0.00007854×4×(20+0.5×4+0.005×4²+0.000125×4×(14−4)²×(20−10))² ≈ 0.160 m³
+若按等直徑圓柱 π/4×0.2²×4 ≈ 0.126 m³，未計徑級漸變與檢尺規則，故低於材積表值</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
 <dt>為什麼按小頭直徑？</dt><dd>原木 taper（梢徑）從大頭到小頭遞減，國標以檢尺小頭直徑為基準查材積表，結果穩定可比對。</dd>

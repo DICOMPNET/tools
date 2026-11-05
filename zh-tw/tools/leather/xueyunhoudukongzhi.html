@@ -123,10 +123,10 @@ s.parentNode.insertBefore(el, s);
     <h2 data-zh="📏 削勻厚度控制">Splitting Thickness Control</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="輸入目標厚度、刀片轉速與進給速度，評估削勻均勻度與厚度偏差">Control leather splitting thickness by target, blade speed and feed.</p>
     <div class="formula-box">
-      <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">均勻度評分 = min(100, 轉速 ÷ 進給 × 10)；厚度偏差 = (100 − 評分) × 0.05 (mm)；轉速 ＜800rpm 或進給 ＞12m/min 觸發調整建議，評分 ≥80 為引數匹配良好</div>
-      <p class="formula-desc" data-zh="核心計算公式（按輸入變數）：(100-score)×0.05">Key formulas: (100-score)×0.05</p>
+      <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">刀痕間距 (mm/rev) = 1000 × 進給速度(m/min) ÷ 轉速(rpm)；切除量 (mm) = 來料厚度 − 目標厚度；匹配評分按間距分檔：≤0.5 → 100、≤1 → 85、≤2 → 70、≤4 → 50、&gt;4 → 30</div>
+      <div class="formula-desc">刀痕間距是刀刃每轉一圈、皮張前進的距離：間距越小，單位長度內切削次數越多，表面越細密；間距過大則出現波紋與厚度波動。本頁用運動學關係算出間距與理論切除量，並按經驗區間給出匹配評分——它反映引數組合的粗細程度，不等同於實測厚度均勻度，正式判定須用測厚儀多點檢測。切除量過大時建議分兩次削勻，避免單次受力與厚度波動。</div>
     </div>
-<div class="input-row"><div><label>目標厚度 (mm)</label><input type="number" class="calc-input" id="target" value="1.5" step="any" oninput="calc()" enterkeyhint="done" aria-label="目標厚度 (mm)" placeholder="如 1.5"></div><div><label>刀片轉速 (rpm)</label><input type="number" class="calc-input" id="rpm" value="1200" step="any" oninput="calc()" enterkeyhint="done" aria-label="刀片轉速 (rpm)" placeholder="如 1200"></div><div><label>進給速度 (m/min)</label><input type="number" class="calc-input" id="feed" value="8" step="any" oninput="calc()" enterkeyhint="done" aria-label="進給速度 (m/min)" placeholder="如 8"></div></div>
+<div class="input-row"><div><label>來料厚度 (mm)</label><input type="number" class="calc-input" id="before" value="2.0" step="any" min="0" oninput="calc()" aria-label="來料厚度 (mm)" placeholder="如 2.0"></div><div><label>目標厚度 (mm)</label><input type="number" class="calc-input" id="target" value="1.5" step="any" min="0" oninput="calc()" aria-label="目標厚度 (mm)" placeholder="如 1.5"></div><div><label>刀片轉速 (rpm)</label><input type="number" class="calc-input" id="rpm" value="1200" step="any" min="0" oninput="calc()" aria-label="刀片轉速 (rpm)" placeholder="如 1200"></div><div><label>進給速度 (m/min)</label><input type="number" class="calc-input" id="feed" value="8" step="any" min="0" oninput="calc()" aria-label="進給速度 (m/min)" placeholder="如 8"></div></div>
     <div class="toolbar">
       <div id="xueyunhoudukongzhiPresets"></div>
       <button class="btn primary" type="button" onclick="calc()">🧮 計算</button>
@@ -139,7 +139,7 @@ s.parentNode.insertBefore(el, s);
     <div id="xueyunhoudukongzhiDiff"></div>
     <div id="xueyunhoudukongzhiChart"></div>
     <div id="xueyunhoudukongzhiHist"></div>
-    <div class="info-box">💡 均勻度評分 = min(100, 轉速÷進給速度×10)；厚度偏差 ≈ (100−評分)×0.05 mm</div>
+    <div class="info-box">💡 刀痕間距 = 1000×進給速度÷轉速；間距 ≤2 mm/rev 視為可用，越小越細密</div>
     <div class="tool-notes">
 <div class="card" id="constRefBox">
   <h3 data-zh="📐 公式與標準引據">Formula &amp; Standard References</h3>
@@ -148,19 +148,19 @@ s.parentNode.insertBefore(el, s);
       <thead><tr><th style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;" data-zh="專案">Item</th><th style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;" data-zh="公式">Formula</th><th style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;" data-zh="來源 / 標準">Source / Standard</th></tr></thead>
       <tbody>
         <tr>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="削勻厚度">Shaved thickness</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="以 mm 設定目標值">Target value set in mm</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);">shaving thickness</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="刀痕間距">Blade-mark pitch</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="1000 × 進給速度 ÷ 轉速，單位 mm/rev">1000 × feed rate ÷ spindle speed, in mm/rev</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="帶刀削勻機運動學關係（進給與轉速換算）">kinematics of a band-knife splitting machine (feed/speed conversion)</td>
         </tr>
         <tr>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="厚度公差">Thickness tolerance</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="按正負 mm 控制">Controlled within plus or minus mm</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);">thickness tolerance</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="切除量">Material removal</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="來料厚度 − 目標厚度，單位 mm">incoming thickness − target thickness, in mm</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="削勻工序基本厚度關係">basic thickness relation in splitting</td>
         </tr>
         <tr>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="均勻度">Uniformity</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="按厚度標準差評估">Assessed by the standard deviation of thickness</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);">thickness uniformity</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="匹配評分">Match score</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="按刀痕間距分檔（≤0.5/≤1/≤2/≤4 mm/rev）">banded by blade-mark pitch (≤0.5/≤1/≤2/≤4 mm/rev)</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="經驗分檔，非實測均勻度標準">empirical bands, not a measured uniformity standard</td>
         </tr>
       </tbody>
     </table>
@@ -169,9 +169,9 @@ s.parentNode.insertBefore(el, s);
 
       <div class="tool-notes-title">⚠️ 使用說明與注意事項</div>
       <ul>
-<li>高轉速、低進給有利於均勻度</li>
-        <li>刀片鋒利度與刀距同樣影響削勻質量</li>
-        <li>實際偏差須用測厚儀多點測量</li>
+<li>高轉速、低進給可減小刀痕間距，有利於表面細密</li>
+        <li>刀片鋒利度、皮張含水率與張力同樣影響削勻質量</li>
+        <li>本頁評分為引數粗判，實際厚度偏差須用測厚儀多點測量</li>
       </ul>
     </div>
     <div style="margin-top:16px;">
@@ -195,23 +195,34 @@ function clearHistory(){try{localStorage.removeItem(historyKey());renderHistory(
 function copyRes(){if(!lastResult){ToolBox.showToast(i18nText(),'warning');return;}ToolBox.copyText(lastResult);}
 document.addEventListener('DOMContentLoaded',function(){renderHistory();});
 function calc(){
-  var tg=num('target'),r=num('rpm'),f=num('feed');
+  var bf=num('before'),tg=num('target'),r=num('rpm'),f=num('feed');
+  setInvalid(document.getElementById('before'),bf<=0);
   setInvalid(document.getElementById('target'),tg<=0);
   setInvalid(document.getElementById('rpm'),r<=0);
   setInvalid(document.getElementById('feed'),f<=0);
-  var score=f>0?Math.min(100,r/f*10):0;
-  var dev=(100-score)*0.05;
+  var res=document.getElementById('res');
+  if(bf<=0||tg<=0||r<=0||f<=0){res.innerHTML='<p style="color:var(--danger)">请填入了料厚度、目标厚度、转速与进给速度的正数。</p>';return;}
+  if(bf<=tg){res.innerHTML='<p style="color:var(--danger)">来料厚度须大于目标厚度，否则没有可削匀的余量。</p>';lastResult='';return;}
+  var cut=bf-tg;                       // 理论切除量 mm
+  var pitch=1000*f/r;                  // 刀痕间距 mm/rev
+  var score,grade;
+  if(pitch<=0.5){score=100;grade='优秀';}
+  else if(pitch<=1){score=85;grade='良好';}
+  else if(pitch<=2){score=70;grade='一般';}
+  else if(pitch<=4){score=50;grade='偏粗';}
+  else{score=30;grade='不合格';}
   var advice;
-  if(r<800){advice='刀片转速偏低，建议提高至1000rpm以上';}
-  else if(f>12){advice='进给速度偏快，建议降至8~10m/min';}
-  else if(score>=80){advice='参数匹配良好，均匀度优秀';}
-  else{advice='可适当提高转速或降低进给以改善均匀度';}
-  lastResult='均匀度评分:'+score.toFixed(1)+'  厚度偏差:±'+dev.toFixed(3)+'mm\n目标厚度:'+tg+'mm';
-  const __g4=grid([dc(score.toFixed(1),'均匀度评分'),dc('±'+dev.toFixed(3),'厚度偏差 (mm)'),dc(tg.toFixed(2),'目标厚度 (mm)')])+
-    para('调整建议：'+advice+'。');document.getElementById('res').innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
-  if(tg>0) saveHistory('均匀度'+score.toFixed(0)+' 偏差±'+dev.toFixed(3)+'mm');
+  if(pitch>2){advice='刀痕间距偏大：提高转速或降低进给，使 1000×进给÷转速 ≤ 2 mm/rev';}
+  else if(cut>bf*0.6){advice='单次切除量偏大，建议分两次削匀以减小厚度波动';}
+  else if(score>=85){advice='参数匹配良好，刀痕细密，可抽检厚度一致性';}
+  else{advice='参数可用，建议抽检厚度并用测厚仪多点复核';;}
+  lastResult='刀痕间距:'+pitch.toFixed(2)+'mm/rev  匹配评分:'+score+'('+grade+')\n切除量:'+cut.toFixed(2)+'mm  目标厚度:'+tg.toFixed(2)+'mm';
+  const __g4=grid([dc(pitch.toFixed(2),'刀痕间距 (mm/rev)'),dc(cut.toFixed(2),'切除量 (mm)'),dc(score,grade+' · 匹配评分')])+
+    para('调整建议：'+advice+'。');
+  res.innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
+  saveHistory('间距'+pitch.toFixed(2)+' 评分'+score);
 }
-function resetAll(){document.getElementById('target').value=1.5;document.getElementById('rpm').value=1200;document.getElementById('feed').value=8;['target','rpm','feed'].forEach(function(id){setInvalid(document.getElementById(id),false);});calc();ToolBox.showToast(i18nText(),'info');}
+function resetAll(){document.getElementById('before').value=2.0;document.getElementById('target').value=1.5;document.getElementById('rpm').value=1200;document.getElementById('feed').value=8;['before','target','rpm','feed'].forEach(function(id){setInvalid(document.getElementById(id),false);});calc();ToolBox.showToast(i18nText(),'info');}
 calc();
 
 var __xueyunhoudukongzhi_last=0,__xueyunhoudukongzhi_skip=false;
@@ -312,7 +323,7 @@ function __xueyunhoudukongzhiExport(){
 }
 function __xueyunhoudukongzhiPresets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#xueyunhoudukongzhiPresets',[{label:'默认参数',labelEn:'Default',values:{'target':'1.5', 'rpm':'1200', 'feed':'8'}},{"label":"小规模","labelEn":"Small scale","values":{"target":"0.75"}},{"label":"大规模","labelEn":"Large scale","values":{"target":"2.25"}},{"label":"极端工况","labelEn":"Extreme case","values":{"target":"3"}}],function(){ calc(); });
+    TBKit.preset.bar('#xueyunhoudukongzhiPresets',[{label:'默认参数',labelEn:'Default',values:{'before':'2.0','target':'1.5','rpm':'1200','feed':'8'}},{"label":"小规模","labelEn":"Small scale","values":{"before":"1.2","target":"0.75","rpm":"2400","feed":"6"}},{"label":"大规模","labelEn":"Large scale","values":{"before":"2.6","target":"2.25","rpm":"3000","feed":"8"}},{"label":"极端工况","labelEn":"Extreme case","values":{"before":"3.2","target":"3","rpm":"1500","feed":"9"}}],function(){ calc(); });
 }
 var __xueyunhoudukongzhi_f0=(typeof calc==='function')?calc:null;
 if(__xueyunhoudukongzhi_f0){

@@ -135,7 +135,7 @@ s.parentNode.insertBefore(el, s);
 
     <div class="input-row">
       <label>安全間隔期(天)</label>
-      <input type="number" id="phiDays" value="7" min="1" oninput="calc()" placeholder="如 7">
+      <input type="number" id="phiDays" value="7" min="0" oninput="calc()" placeholder="如 7">
     </div>
 
     <div class="toolbar" style="margin-top:16px;">
@@ -152,7 +152,7 @@ s.parentNode.insertBefore(el, s);
     <div id="pesticide_intervalHist"></div>
 
     <div class="tip-box tip-warn" style="margin-top:12px;">
-      <strong>安全提示：</strong>安全間隔期(PHI)指最後一次施藥至收穫之間必須間隔的最短天數。實際請以農藥標籤說明為準，本工具資料僅供參考。
+      <strong>安全提示：</strong>安全間隔期(PHI)指最後一次施藥至收穫之間必須間隔的最短天數，按農藥標籤標註的天數填寫。部分登記農藥標籤標註為 0 天（即施藥當日即可採收），0 天是合法標籤值，不是漏填。實際請以農藥標籤說明為準，本工具資料僅供參考。
     </div>
   </div>
 
@@ -167,7 +167,7 @@ s.parentNode.insertBefore(el, s);
         <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="出處 / 標準">Source / Standard</th>
       </tr></thead>
       <tbody>
-        <tr><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="安全間隔期">Pre-harvest interval (PHI)</span></td><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="採收距最後一次施藥 ≥ 標籤標註 PHI 天數">PHI from pesticide label</span></td><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="GB/T 8321 / 農業農村部農藥標籤管理規定">GB/T 8321</span></td></tr>
+        <tr><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="安全間隔期">Pre-harvest interval (PHI)</span></td><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="採收距最後一次施藥 ≥ 標籤標註 PHI 天數（0 天為合法標籤值）">PHI from pesticide label (0 is a valid label value)</span></td><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="GB/T 8321 / 農業農村部農藥標籤管理規定">GB/T 8321</span></td></tr>
         <tr><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="殘留半衰期">Dissipation half-life (DT50)</span></td><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="C(t) = C₀·e^(−kt)，t½ = ln2/k">C = C0·e^(−kt); t1/2 = ln2/k</span></td><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="GB 2763 食品安全國家標準 食品中農藥最大殘留限量">GB 2763-2021</span></td></tr>
         <tr><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="最大殘留限量">Maximum residue limit (MRL)</span></td><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="採收時殘留 ≤ GB 2763 對應 MRL">Residue must ≤ MRL</span></td><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="GB 2763-2021">GB 2763-2021</span></td></tr>
 
@@ -250,31 +250,46 @@ function initSelect(){
     sel.appendChild(opt);
   });
   var today = new Date();
-  document.getElementById('sprayDate').value = today.toISOString().slice(0,10);
+  var yyyy=today.getFullYear(), mm=String(today.getMonth()+1).padStart(2,'0'), dd=String(today.getDate()).padStart(2,'0');
+  document.getElementById('sprayDate').value = yyyy+'-'+mm+'-'+dd;
+}
+function parseLocalDate(s){
+  var p=s.split('-');
+  if(p.length!==3)return new Date(NaN);
+  return new Date(+p[0], +p[1]-1, +p[2]);
+}
+function getSelectedPesticide(){
+  var v=document.getElementById('pesticideSel').value;
+  return v===''?null:(PESTICIDES[+v]||null);
 }
 function onPesticideChange(){
-  var idx = +document.getElementById('pesticideSel').value;
-  if(!isNaN(idx) && PESTICIDES[idx]){
-    document.getElementById('phiDays').value = PESTICIDES[idx].phi;
+  var p=getSelectedPesticide();
+  if(p){
+    document.getElementById('phiDays').value = p.phi;
   }
   calc();
 }
 function calc(){
-  var idx = +document.getElementById('pesticideSel').value;
   var sprayDateStr = document.getElementById('sprayDate').value;
-  var phiDays = +document.getElementById('phiDays').value || 7;
+  var phiRaw = document.getElementById('phiDays').value;
+  var phiDays = parseInt(phiRaw, 10);
 
+  if(phiRaw === '' || isNaN(phiDays) || phiDays < 0){
+    ToolBox.setResult('result','<p style="color:var(--danger);">安全间隔期应为农药标签标注的天数（不小于 0 的整数）</p>'); return;
+  }
   if(!sprayDateStr){ ToolBox.setResult('result','<p style="color:var(--danger);">请选择施药日期</p>'); return; }
 
-  var sprayDate = new Date(sprayDateStr);
+  // 按本地日期解析，避免 new Date('YYYY-MM-DD') 按 UTC 解析造成 +1 天
+  var sprayDate = parseLocalDate(sprayDateStr);
+  if(isNaN(sprayDate.getTime())){ ToolBox.setResult('result','<p style="color:var(--danger);">施药日期无效</p>'); return; }
   var safeDate = new Date(sprayDate);
   safeDate.setDate(safeDate.getDate() + phiDays);
 
   var now = new Date();
   now.setHours(0,0,0,0);
-  var diffDays = Math.ceil((safeDate - now) / (1000*60*60*24));
+  var diffDays = Math.round((safeDate - now) / (1000*60*60*24));
 
-  var sel = idx>=0 && PESTICIDES[idx] ? PESTICIDES[idx] : null;
+  var sel = getSelectedPesticide();
 
   var html = '';
   if(diffDays > 0){
@@ -315,11 +330,15 @@ function formatDate(d){
   return d.getFullYear()+'年'+(d.getMonth()+1)+'月'+d.getDate()+'日';
 }
 function copyResult(){
-  var idx=+document.getElementById('pesticideSel').value;
-  var sel=idx>=0&&PESTICIDES[idx]?PESTICIDES[idx]:null;
+  var sel=getSelectedPesticide();
   var sprayDateStr=document.getElementById('sprayDate').value;
-  var phiDays=+document.getElementById('phiDays').value||7;
-  var txt='农药安全间隔期记录\n农药：'+(sel?sel.name:'自定义')+'\n施药日期：'+sprayDateStr+'\n安全间隔期：'+phiDays+'天\n最早采收日期：'+formatDate(new Date(new Date(sprayDateStr).getTime()+phiDays*86400000));
+  var phiRaw=document.getElementById('phiDays').value;
+  var phiDays=parseInt(phiRaw,10);
+  if(phiRaw===''||isNaN(phiDays)||phiDays<0){ ToolBox.showToast('安全间隔期应为农药标签标注的天数（不小于 0 的整数）','warning'); return; }
+  var sprayDate=parseLocalDate(sprayDateStr);
+  if(isNaN(sprayDate.getTime())){ ToolBox.showToast('施药日期无效','warning'); return; }
+  var safeDate=new Date(sprayDate);safeDate.setDate(safeDate.getDate()+phiDays);
+  var txt='农药安全间隔期记录\n农药：'+(sel?sel.name:'自定义')+'\n施药日期：'+sprayDateStr+'\n安全间隔期：'+phiDays+'天\n最早采收日期：'+formatDate(safeDate);
   ToolBox.copyText(txt, i18nText('msg602'));
 }
 initSelect();

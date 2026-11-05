@@ -122,7 +122,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="輸入原標距長度、斷後標距長度、原始截面積、斷後截面積，計算延伸率與斷面收縮率">Calculate metal elongation percentage from original and stretched length to assess forming and ductility.</p>
     <div class="formula-box">
       <div class="formula-title">📐 計算公式</div>
-      <div class="formula-eq">拉伸試驗：延伸率 δ = (l₁−l₀) ÷ l₀ × 100%、斷面收縮率 ψ = (a₀−a₁) ÷ a₀ × 100%，絕對伸長 = l₁−l₀、絕對收縮 = a₀−a₁。校驗：四項任一非數或 ≤0 提示對應錯誤，l₁ &lt; l₀ 提示斷後長度應大於原標距長度、a₁ &gt; a₀ 提示斷後截面積應小於原始截面積。分級：δ ≥25% 高塑性、10% ≤δ &lt;25% 中塑性、5% ≤δ &lt;10% 低塑性、δ &lt;5% 脆性材料。</div>
+      <div class="formula-eq">拉伸試驗：延伸率 δ = (l₁−l₀) ÷ l₀ × 100%、斷面收縮率 ψ = (a₀−a₁) ÷ a₀ × 100%，絕對伸長 = l₁−l₀、絕對收縮 = a₀−a₁。校驗：四項任一非數或 ≤0 提示對應錯誤並清空上次結果，l₁ &lt; l₀ 提示斷後長度應大於原標距長度、a₁ &gt; a₀ 提示斷後截面積應小於原始截面積。分級：δ ≥25% 高塑性、10% ≤δ &lt;25% 中塑性、5% ≤δ &lt;10% 低塑性、δ &lt;5% 脆性材料。</div>
       <p class="formula-desc">輸入原標距長度、斷後標距長度、原始截面積、斷後截面積，計算延伸率與斷面收縮率</p>
     </div>
     <div class="input-row">
@@ -144,7 +144,7 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
     <div class="toolbar">
-      <div id="calc_stretchPresets"></div><button class="btn primary" type="button" onclick="calc()">🧮 計算</button><button class="btn" type="button" onclick="__calc_stretchExport()">匯出明細 CSV</button>
+      <div id="calc_stretchPresets"></div><button class="btn primary" type="button" onclick="calc(true)">🧮 計算</button><button class="btn" type="button" onclick="__calc_stretchExport()">匯出明細 CSV</button>
       <button class="btn" type="button" onclick="copyRes()">📋 複製結果</button>
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
@@ -184,17 +184,21 @@ s.parentNode.insertBefore(el, s);
 
 <script>
 var lastResult = '';
-function calc() {
+function __calc_stretchErr(msg) {
+  lastResult = '';
+  document.getElementById('res').innerHTML='<p style="color:var(--danger);">'+msg+'</p>';
+}
+function calc(persist) {
   var l0 = parseFloat(document.getElementById('l0').value);
   var l1 = parseFloat(document.getElementById('l1').value);
   var a0 = parseFloat(document.getElementById('a0').value);
   var a1 = parseFloat(document.getElementById('a1').value);
-  if (isNaN(l0) || l0 <= 0) { document.getElementById('res').innerHTML='<p style="color:var(--danger);">请输入有效原标距长度</p>'; return; }
-  if (isNaN(l1) || l1 <= 0) { document.getElementById('res').innerHTML='<p style="color:var(--danger);">请输入有效断后标距长度</p>'; return; }
-  if (isNaN(a0) || a0 <= 0) { document.getElementById('res').innerHTML='<p style="color:var(--danger);">请输入有效原始截面积</p>'; return; }
-  if (isNaN(a1) || a1 <= 0) { document.getElementById('res').innerHTML='<p style="color:var(--danger);">请输入有效断后截面积</p>'; return; }
-  if (l1 < l0) { document.getElementById('res').innerHTML='<p style="color:var(--danger);">断后长度应大于原标距长度</p>'; return; }
-  if (a1 > a0) { document.getElementById('res').innerHTML='<p style="color:var(--danger);">断后截面积应小于原始截面积</p>'; return; }
+  if (isNaN(l0) || l0 <= 0) { return __calc_stretchErr('请输入有效原标距长度'); }
+  if (isNaN(l1) || l1 <= 0) { return __calc_stretchErr('请输入有效断后标距长度'); }
+  if (isNaN(a0) || a0 <= 0) { return __calc_stretchErr('请输入有效原始截面积'); }
+  if (isNaN(a1) || a1 <= 0) { return __calc_stretchErr('请输入有效断后截面积'); }
+  if (l1 < l0) { return __calc_stretchErr('断后长度应大于原标距长度'); }
+  if (a1 > a0) { return __calc_stretchErr('断后截面积应小于原始截面积'); }
   var delta = (l1 - l0) / l0 * 100; // 延伸率
   var psi = (a0 - a1) / a0 * 100; // 断面收缩率
   var absElong = l1 - l0; // 绝对伸长
@@ -222,7 +226,7 @@ function calc() {
   html += '</div>';
   const __g7=html;document.getElementById('res').innerHTML=(typeof __g7==='number'?(isFinite(__g7)?__g7:'—'):String(__g7).replace(/Infinity|NaN/g,'—'));
   lastResult = document.getElementById('res').innerText;
-  saveHistory('δ=' + delta.toFixed(1) + '% | ψ=' + psi.toFixed(1) + '% | ' + gradeText, { l0: String(l0), l1: String(l1), a0: String(a0), a1: String(a1) });
+  if (persist) saveHistory('δ=' + delta.toFixed(1) + '% | ψ=' + psi.toFixed(1) + '% | ' + gradeText, { l0: String(l0), l1: String(l1), a0: String(a0), a1: String(a1) });
 }
 function copyRes() {
   if (!lastResult || !lastResult.trim()) { ToolBox.showToast(i18nText(), 'warning'); return; }

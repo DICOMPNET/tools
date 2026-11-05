@@ -230,8 +230,8 @@ s.parentNode.insertBefore(el, s);
 <li>初次治療：優先含鉍劑四聯 14 天，避開耐藥藥</li>
 <li>難治病例：多次失敗者行藥敏試驗指導個體化治療</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">方法</div><div class="dd-ex-body">演算法：青黴素過敏且有鉍劑 → 鉍劑四聯（PPI+鉍劑+四環素+甲硝唑，或克拉黴素+甲硝唑替代）；初次治療克拉黴素耐藥 → 避開克拉黴素的鉍劑四聯/大劑量二聯；甲硝唑耐藥可由鉍劑四聯克服；既往失敗 1 次且左氧氟沙星敏感 → 含左氧四聯；失敗 ≥2 次 → 含四環素/呋喃唑酮方案或藥敏指導。療程均 14 天。</div></div>
-<div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">例：青黴素過敏、鉍劑可用、克拉黴素敏感 → 鉍劑四聯（PPI+鉍劑+四環素 500mg qid+甲硝唑 0.4g tid）14 天。若初次治療、克拉黴素耐藥、甲硝唑敏感、無鉍劑 → 避開克拉黴素，選伴同療法（PPI+阿莫西林+甲硝唑+...）或大劑量二聯（艾司奧美拉唑 40mg qid+阿莫西林 1g tid）14 天。</div></div>
+<div class="dd-example"><div class="dd-ex-title">方法</div><div class="dd-ex-body">演算法：先按藥敏/過敏結果建立禁用藥物集合（青黴素過敏→阿莫西林；克拉黴素/甲硝唑/左氧氟沙星耐藥→對應藥物），再從候選方案池中剔除所有含禁用藥物的組合，按治療史優先順序取前 2~3 個：初次治療優先含鉍劑四聯（阿莫西林+克拉黴素、阿莫西林+甲硝唑或四環素+甲硝唑）；既往失敗 1 次優先含左氧四聯或呋喃唑酮四聯；失敗 ≥2 次優先四環素+甲硝唑、呋喃唑酮四聯並建議藥敏。若過濾後無可用方案 → 提示藥敏指導/專科會診，不強行推薦。療程均 14 天（需臨床複核）。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">例：青黴素過敏、鉍劑可用、克拉黴素敏感、甲硝唑敏感 → 輸出鉍劑四聯（PPI+鉍劑+四環素 500mg qid+甲硝唑 0.4g tid）14 天。若初次治療、克拉黴素耐藥、甲硝唑敏感、鉍劑不可用 → 剔除含克拉黴素及需鉍劑的方案，僅保留大劑量二聯（艾司奧美拉唑 40mg qid+阿莫西林 1g tid）14 天，並建議補做藥敏。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
 <dt>大劑量二聯為什麼現在受重視？</dt><dd>大劑量二聯（雙倍 PPI + 高劑量阿莫西林，常 qid/tid）通過持續抑酸提升胃內阿莫西林濃度，根除率可達 90% 左右，且抗生素種類少、副作用小，適合不能使用鉍劑或耐藥複雜者。</dd>
@@ -260,7 +260,7 @@ s.parentNode.insertBefore(el, s);
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="方案選擇">Regimen choice</td>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="按耐藥結果調整方案">Adjust the regimen by the resistance result</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);">Maastricht consensus</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);">Maastricht VI (2022) / 中國幽門螺桿菌感染處理共識（2022）</td>
         </tr>
       </tbody>
     </table>
@@ -298,56 +298,80 @@ function calc(){
   var color;
   var advice='';
 
-  if(penicillin){
-    // 青霉素过敏，不能用阿莫西林
-    color='#EF4444';
-    if(bismuthAvailable){
-      regimens.push('铋剂四联：PPI bid + 铋剂 bid + 四环素 500mg qid + 甲硝唑 0.4g tid/qid，14天');
-      regimens.push('铋剂四联（替代）：PPI bid + 铋剂 bid + 克拉霉素 0.5g bid + 甲硝唑 0.4g bid，14天');
-    }else{
-      regimens.push('PPI bid + 克拉霉素 0.5g bid + 甲硝唑 0.4g bid，14天（三联，根除率较低）');
-      regimens.push('PPI bid + 克拉霉素 0.5g bid + 左氧氟沙星 0.5g qd，14天');
-    }
-    advice='青霉素过敏患者方案受限。推荐含铋剂四联方案（四环素+甲硝唑）。如四环素不可用，可用克拉霉素+甲硝唑替代。根除率可能低于含阿莫西林方案。';
-  }else if(history==='none'){
-    // 初次治疗
-    color='#3B82F6';
-    if(clarithro==='resistant'){
-      regimens.push('铋剂四联：PPI bid + 铋剂 bid + 阿莫西林 1g bid + 甲硝唑 0.4g bid/tid，14天（避开克拉霉素）');
-      regimens.push('大剂量二联：艾司奥美拉唑 40mg qid + 阿莫西林 1g tid，14天');
-    }else if(bismuthAvailable){
-      regimens.push('铋剂四联：PPI bid + 铋剂 bid + 阿莫西林 1g bid + 克拉霉素 0.5g bid，14天（首选）');
-      if(metronidazole==='resistant'){
-        advice='甲硝唑耐药可被铋剂四联克服，仍可使用含甲硝唑方案或选择大剂量二联。';
-      }
-    }else{
-      regimens.push('伴同疗法：PPI bid + 阿莫西林 1g bid + 克拉霉素 0.5g bid + 甲硝唑 0.4g bid，14天');
-      regimens.push('大剂量二联：艾司奥美拉唑 40mg qid + 阿莫西林 1g tid，14天');
-    }
-    advice='初次治疗推荐铋剂四联方案（14天）。如克拉霉素耐药，调整为避开克拉霉素的方案。大剂量二联方案简便且根除率高，适合不能使用铋剂者。';
-  }else if(history==='one'){
-    // 二线治疗
-    color='#F59E0B';
-    if(levo==='sensitive'){
-      regimens.push('含左氧氟沙星四联：PPI bid + 铋剂 bid + 阿莫西林 1g bid + 左氧氟沙星 0.5g qd，14天（首选）');
-    }else if(clarithro==='sensitive' && history==='one'){
-      regimens.push('铋剂四联：PPI bid + 铋剂 bid + 阿莫西林 1g bid + 克拉霉素 0.5g bid，14天（之前未用过克拉霉素）');
-    }
-    regimens.push('含呋喃唑酮四联：PPI bid + 铋剂 bid + 阿莫西林 1g bid + 呋喃唑酮 0.1g bid，14天');
-    regimens.push('大剂量二联：艾司奥美拉唑 40mg qid + 阿莫西林 1g tid，14天');
-    advice='初次失败后二线治疗。如药敏显示左氧氟沙星敏感，首选含左氧方案。否则选择含呋喃唑酮或大剂量二联。避免重复使用初次失败的抗生素。';
+  var unknownDrugs=[];
+  if(clarithro==='unknown') unknownDrugs.push('克拉霉素');
+  if(metronidazole==='unknown') unknownDrugs.push('甲硝唑');
+  if(levo==='unknown') unknownDrugs.push('左氧氟沙星');
+
+  // 药敏过滤：耐药药物直接从方案池剔除；未检测药物不视为敏感，仅保留方案并标注可信度下降
+  var blocked={amox:penicillin, clar:clarithro==='resistant', levo:levo==='resistant', metro:metronidazole==='resistant', tetra:false};
+  var pool=[
+    {key:'bi_amox_clar', needs:['bismuth','amox','clar'], text:'铋剂四联：PPI bid + 铋剂 bid + 阿莫西林 1g bid + 克拉霉素 0.5g bid，14天'},
+    {key:'bi_amox_metro', needs:['bismuth','amox','metro'], text:'铋剂四联：PPI bid + 铋剂 bid + 阿莫西林 1g bid + 甲硝唑 0.4g bid/tid，14天'},
+    {key:'bi_tetra_metro', needs:['bismuth','metro'], text:'铋剂四联：PPI bid + 铋剂 bid + 四环素 500mg qid + 甲硝唑 0.4g tid/qid，14天'},
+    {key:'bi_clar_metro', needs:['bismuth','clar','metro'], text:'铋剂四联：PPI bid + 铋剂 bid + 克拉霉素 0.5g bid + 甲硝唑 0.4g bid，14天（克拉霉素敏感者）'},
+    {key:'dual', needs:['amox'], text:'大剂量二联：艾司奥美拉唑 40mg qid + 阿莫西林 1g tid，14天'},
+    {key:'concomitant', needs:['amox','clar','metro'], text:'伴同疗法：PPI bid + 阿莫西林 1g bid + 克拉霉素 0.5g bid + 甲硝唑 0.4g bid，14天'},
+    {key:'bi_amox_levo', needs:['bismuth','amox','levo'], text:'含左氧氟沙星四联：PPI bid + 铋剂 bid + 阿莫西林 1g bid + 左氧氟沙星 0.5g qd，14天'},
+    {key:'bi_amox_fura', needs:['bismuth','amox'], text:'含呋喃唑酮四联：PPI bid + 铋剂 bid + 阿莫西林 1g bid + 呋喃唑酮 0.1g bid，14天'}
+  ];
+  var orderByHistory={
+    none:['bi_amox_clar','bi_amox_metro','bi_tetra_metro','dual','concomitant','bi_clar_metro'],
+    one:['bi_amox_levo','bi_amox_fura','bi_amox_clar','bi_amox_metro','bi_tetra_metro','dual','concomitant','bi_clar_metro'],
+    two:['bi_tetra_metro','bi_amox_fura','bi_amox_levo','bi_amox_metro','dual','bi_clar_metro','concomitant']
+  }[history];
+  var okReg=function(r){
+    if(!bismuthAvailable && r.needs.indexOf('bismuth')>=0) return false;
+    return r.needs.every(function(d){ return !blocked[d]; });
+  };
+  var byKey={};
+  pool.forEach(function(r){ byKey[r.key]=r; });
+  var chosen=[];
+  orderByHistory.forEach(function(k){
+    var r=byKey[k];
+    if(r && okReg(r) && chosen.indexOf(r)<0) chosen.push(r);
+  });
+  var limit=(history==='two')?3:2;
+  var drugLabel={clar:'克拉霉素',metro:'甲硝唑',levo:'左氧氟沙星',amox:'阿莫西林',bismuth:'铋剂',tetra:'四环素'};
+  chosen.slice(0,limit).forEach(function(r){
+    var miss=[];
+    r.needs.forEach(function(d){ if(unknownDrugs.indexOf(drugLabel[d])>=0 && miss.indexOf(drugLabel[d])<0) miss.push(drugLabel[d]); });
+    regimens.push(r.text+(miss.length?'　⚠️ 含未检测药物（'+miss.join('、')+'），方案可信度下降，根除失败风险较高':''));
+  });
+
+  var resistantNames=[];
+  if(penicillin) resistantNames.push('阿莫西林（青霉素过敏）');
+  if(clarithro==='resistant') resistantNames.push('克拉霉素');
+  if(metronidazole==='resistant') resistantNames.push('甲硝唑');
+  if(levo==='resistant') resistantNames.push('左氧氟沙星');
+
+  if(history==='two') color='#EF4444';
+  else if(history==='one') color='#F59E0B';
+  else color=penicillin?'#EF4444':'#3B82F6';
+
+  if(chosen.length===0){
+    regimens.push('当前药敏/过敏组合下无安全的经验性方案，建议行胃镜活检培养+药敏，或转诊消化专科制定个体化方案。');
+    advice='已按耐药与过敏结果剔除含禁用药物的方案，可用组合为空。请勿强行使用耐药或过敏药物，建议药敏指导治疗（需临床复核）。';
   }else{
-    // 多次失败
-    color='#EF4444';
-    regimens.push('含四环素四联：PPI bid + 铋剂 bid + 四环素 500mg qid + 甲硝唑 0.4g tid/qid，14天');
-    regimens.push('含呋喃唑酮四联：PPI bid + 铋剂 bid + 阿莫西林 1g bid + 呋喃唑酮 0.1g bid，14天');
-    regimens.push('大剂量二联：艾司奥美拉唑 40mg qid + 阿莫西林 1g tid，14天');
-    advice='多次根除失败，建议行药敏试验指导治疗。可选择含四环素或呋喃唑酮方案。注意药物副作用（呋喃唑酮：双硫仑样反应；四环素：消化道反应）。必要时转诊至专科中心。';
+    advice=penicillin?'青霉素过敏：禁用阿莫西林，已优先给出不含青霉素的铋剂四联（四环素/甲硝唑、克拉霉素/甲硝唑）等方案；方案已按药敏结果过滤。':'';
+    if(history==='none'){
+      advice+='初次治疗推荐含铋剂四联（14天）；如克拉霉素耐药则避开克拉霉素。大剂量二联简便、根除率高，适合不能用铋剂者。';
+    }else if(history==='one'){
+      advice+='首次失败后二线治疗：左氧氟沙星敏感者可选含左氧四联，否则选含呋喃唑酮方案或大剂量二联；避免重复使用已失败的抗生素。';
+    }else{
+      advice+='多次失败建议行药敏试验指导；可选含四环素或呋喃唑酮方案，注意呋喃唑酮双硫仑样反应、四环素消化道反应，必要时转诊专科。';
+    }
   }
+  if(resistantNames.length) advice+=' 已剔除含耐药/禁用药物（'+resistantNames.join('、')+'）的方案；铋剂可在一定程度上克服甲硝唑耐药，但本工具仍按耐药结果避用，需临床复核。';
+  if(unknownDrugs.length) advice+=' 未检测药物：'+unknownDrugs.join('、')+'（未检测，不作为敏感依据；含该药的方案可信度下降，条件允许时建议补做药敏）。';
+  var confidence=unknownDrugs.length?'中（存在未检测药物）':(history==='two'||resistantNames.length?'中':'高');
+  var confidenceColor=confidence.charAt(0)==='高'?'#10B981':'#F59E0B';
+  if(history==='two'&&resistantNames.length) confidence='低（多次失败且存在耐药）';
 
   var html='<div class="stat-grid">';
   html+='<div class="stat-card"><div class="val" style="color:'+color+';font-size:16px;">'+{none:'初次',one:'二线',two:'难治性'}[history]+'</div><div class="lbl">治疗阶段</div></div>';
   html+='<div class="stat-card"><div class="val" style="color:'+color+';">'+regimens.length+'</div><div class="lbl">推荐方案数</div></div>';
+  html+='<div class="stat-card"><div class="val" style="color:'+confidenceColor+';font-size:16px;">'+confidence+'</div><div class="lbl">方案可信度</div></div>';
   html+='</div>';
 
   html+='<div class="ref-card"><h4>药敏与治疗信息</h4><ul>';

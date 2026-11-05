@@ -120,23 +120,23 @@ s.parentNode.insertBefore(el, s);
 
     <div class="input-row">
       <label>首重（kg）</label>
-      <input type="number" id="firstWeight" value="1" min="0" step="0.1" oninput="calc()" placeholder="如 1">
+      <input type="number" id="firstWeight" value="1" min="0" step="0.1" oninput="calc()" placeholder="e.g. 1">
     </div>
     <div class="input-row">
       <label>首重運費（元）</label>
-      <input type="number" id="firstFee" value="8" min="0" step="0.1" oninput="calc()" placeholder="如 8">
+      <input type="number" id="firstFee" value="8" min="0" step="0.1" oninput="calc()" placeholder="e.g. 8">
     </div>
     <div class="input-row">
       <label>續重單價（元/kg）</label>
-      <input type="number" id="stepFee" value="4" min="0" step="0.1" oninput="calc()" placeholder="如 4">
+      <input type="number" id="stepFee" value="4" min="0" step="0.1" oninput="calc()" placeholder="e.g. 4">
     </div>
     <div class="input-row">
       <label>實重（kg）</label>
-      <input type="number" id="actualWeight" value="3" min="0" step="0.1" oninput="calc()" placeholder="如 3">
+      <input type="number" id="actualWeight" value="3" min="0" step="0.1" oninput="calc()" placeholder="e.g. 3">
     </div>
     <div class="input-row">
       <label>體積重（kg）</label>
-      <input type="number" id="volumeWeight" value="2" min="0" step="0.1" oninput="calc()" placeholder="如 2">
+      <input type="number" id="volumeWeight" value="2" min="0" step="0.1" oninput="calc()" placeholder="e.g. 2">
     </div>
 
     <div class="toolbar">
@@ -241,12 +241,22 @@ s.parentNode.insertBefore(el, s);
   </div>
 </div>
 <script>
+function __need(){
+  var R=[['firstWeight','首重(kg)'],['firstFee','首重费用'],['stepFee','续重单价'],['actualWeight','实际重量'],['volumeWeight','体积重量']];
+  return R.filter(function(p){var el=document.getElementById(p[0]);return !el||String(el.value).trim()==='';}).map(function(p){return p[1];});
+}
 function calc() {
-  const firstWeight = parseFloat(document.getElementById('firstWeight').value) || 0;
-  const firstFee = parseFloat(document.getElementById('firstFee').value) || 0;
-  const stepFee = parseFloat(document.getElementById('stepFee').value) || 0;
-  const actualWeight = parseFloat(document.getElementById('actualWeight').value) || 0;
-  const volumeWeight = parseFloat(document.getElementById('volumeWeight').value) || 0;
+  var miss=__need();
+  if(miss.length){
+    var en=/^en/i.test(document.documentElement.lang||'');
+    document.getElementById('result').innerHTML='<p style="color:var(--danger,#c0392b);font-weight:600;">'+(en?'Please fill in ':'请填写 ')+miss.join(en?', ':'、')+(en?' before calculating.':' 后再计算')+'</p>';
+    return;
+  }
+  const firstWeight = parseFloat(document.getElementById('firstWeight').value);
+  const firstFee = parseFloat(document.getElementById('firstFee').value);
+  const stepFee = parseFloat(document.getElementById('stepFee').value);
+  const actualWeight = parseFloat(document.getElementById('actualWeight').value);
+  const volumeWeight = parseFloat(document.getElementById('volumeWeight').value);
 
   const chargeable = Math.max(actualWeight, volumeWeight);
   const extra = Math.max(0, chargeable - firstWeight);

@@ -205,8 +205,8 @@ s.parentNode.insertBefore(el, s);
   <div class="tool-notes-title">⚠️ 使用說明與注意事項</div>
   <ul>
         <li>工齡 1–9 年 5 天、10–19 年 10 天、≥20 年 15 天</li>
-        <li>當年入職/離職按剩餘日曆天數比例折算，不足 0.5 天不計</li>
-        <li>折算 = 基數 × 當年在職天數 ÷ 365</li>
+        <li>當年入職/離職按剩餘日曆天數比例折算；本頁按 0.5 天最小單位取整，法定口徑為不足 1 整天不享受，單位制度可更優</li>
+        <li>折算 = 基數 × 當年在職天數 ÷ 365（法規固定 365 天，閏年不按 366 折算）</li>
         <li>結果僅供參考，以《職工帶薪年休假條例》與單位制度為準</li>
   </ul>
 </div>
@@ -260,18 +260,18 @@ function calcTool(){const sRaw=document.getElementById('start').value;
    if(annual===0){ToolBox.setResult('result','<p class="tip-error">累计工龄不足 1 年，不享受带薪年假（按法规）。</p>');return;}
    const yearStart=new Date(e.getFullYear(),0,1);
    const startEff= s>yearStart ? s : yearStart;   // 当年实际在职起点
-   const totalDays=(new Date(e.getFullYear(),11,31)-yearStart)/86400000+1;
+   const totalDays=365;   // 《企业职工带薪年休假实施办法》第5/12条固定按 365 天折算，闰年不按 366
    const worked=(e-startEff)/86400000+1;
    const days=annual*worked/totalDays;
    const rounded=Math.floor(days*2)/2;
    let html=dataGrid([
      [annual+' 天','应享年假基数'],
      [Math.round(worked)+' 天','当年在职天数'],
-     [totalDays+' 天','当年总天数'],
+     [totalDays+' 天','法定折算分母（固定 365 天）'],
      [rounded+' 天','折算应休年假'],
      [days.toFixed(2)+' 天','折算精确值']
    ]);
-   html += '<p style="font-size:13px;color:var(--text-muted);margin-top:8px;">按《职工带薪年休假条例》：累计工龄 1–9 年 5 天、10–19 年 10 天、≥20 年 15 天。当年折算 = 基数 × 当年在职天数 ÷ 365，不足 0.5 天不计。具体以单位制度为准。</p>';
+   html += '<p style="font-size:13px;color:var(--text-muted);margin-top:8px;">按《职工带薪年休假条例》：累计工龄 1–9 年 5 天、10–19 年 10 天、≥20 年 15 天。当年折算 = 基数 × 当年在职天数 ÷ 365（法规固定 365 天，闰年不按 366）；本页按 0.5 天最小单位取整（法定为不足 1 整天不享受，单位制度可更优）。具体以单位制度为准。</p>';
 
    // 工龄-年假天数对照表
    html += '<div style="margin-top:12px;font-size:13px;"><b>累计工龄与年假天数对照</b></div>'+
@@ -302,7 +302,7 @@ function __annual_leave_prorateExtras(){
     var annual = years<1?0 : years<10?5 : years<20?10 : 15;
     var yearStart=new Date(e.getFullYear(),0,1);
     var startEff= s>yearStart ? s : yearStart;   // 当年实际在职起点
-    var totalDays=(new Date(e.getFullYear(),11,31)-yearStart)/86400000+1;
+    var totalDays=365;   // 法规固定 365 天，闰年不按 366
     var worked=(e-startEff)/86400000+1;
     var days=annual*worked/totalDays;
     var rounded=Math.floor(days*2)/2;
@@ -313,7 +313,7 @@ function __annual_leave_prorateExtras(){
         rows: [
             ['应享年假基数', annual+' 天'],
             ['当年在职天数', Math.round(worked)+' 天'],
-            ['当年总天数', totalDays+' 天'],
+            ['法定折算分母（固定 365 天）', totalDays+' 天'],
             ['折算应休年假', rounded+' 天'],
             ['折算精确值', days.toFixed(2)+' 天'],
         ]

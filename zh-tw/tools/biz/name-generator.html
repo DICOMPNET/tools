@@ -89,7 +89,7 @@
 
 <script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"隨機名字生成器是做什麼的？","acceptedAnswer":{"@type":"Answer","text":"隨機名字生成器，一鍵生成中文名、英文名、網名暱稱或遊戲 ID，純前端執行、資料不上傳。"}},{"@type":"Question","name":"如何使用隨機名字生成器？","acceptedAnswer":{"@type":"Answer","text":"在對應的輸入框或選項中填寫、選擇所需引數，點選「計算」或「生成」按鈕即可執行，結果會在結果區即時顯示，支援複製與匯出。"}},{"@type":"Question","name":"計算結果準確嗎？","acceptedAnswer":{"@type":"Answer","text":"本工具在你的本地瀏覽器中即時計算，不依賴伺服器；只要輸入的引數正確，結果即按對應的規則得出。涉及經驗估算的部分僅供參考，不作為正式依據。"}},{"@type":"Question","name":"隨機名字生成器適合哪些場景？","acceptedAnswer":{"@type":"Answer","text":"工作與生活中的相關計算與查詢。"}},{"@type":"Question","name":"使用本工具需要聯網或上傳資料嗎？","acceptedAnswer":{"@type":"Answer","text":"不需要。所有計算均在你的裝置本地完成，資料不會上傳到任何伺服器，可放心使用。"}}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"隨機名字生成器是做什麼的？","acceptedAnswer":{"@type":"Answer","text":"提供中文名、英文名、暱稱、遊戲 ID 四個標籤頁：中文名按姓氏庫加風格字型檔隨機組合，英文名從常見名與姓氏庫抽取，暱稱與遊戲 ID 按詞根加符號或數字拼裝，一次可生成 1–50 個候選，並支援複製與匯出 CSV。"}},{"@type":"Question","name":"如何使用隨機名字生成器？","acceptedAnswer":{"@type":"Answer","text":"先切換到目標標籤頁，選擇性別或風格標籤、填寫生成數量（1–50），點選對應的生成按鈕；結果以卡片網格展示，可複製全部或匯出 CSV。"}},{"@type":"Question","name":"生成的名字會重複嗎？","acceptedAnswer":{"@type":"Answer","text":"每個候選都是獨立隨機抽樣且允許重複，單次生成 10–50 個時重複機率較低但仍可能出現；本工具不保證全域性唯一，需要唯一性請匯出後自行查重。"}},{"@type":"Question","name":"能控制名字長度嗎？","acceptedAnswer":{"@type":"Answer","text":"中文名長度由風格字型檔決定（多為 1–2 字），頁面不提供中文名字數設定；遊戲 ID 標籤頁可設定字元長度；英文名與暱稱按各自的組合規則生成。"}},{"@type":"Question","name":"生成結果能直接用於註冊或商用嗎？","acceptedAnswer":{"@type":"Answer","text":"僅作取名靈感參考：正式用於產品、賬號或商標前，需自行核查重名、諧音、域名與平臺佔用，並遵循企業核名與商標檢索規則。"}}]}</script>
 <!-- TOOLBOX-TTZZ -->
 <script>
 (function(){try{
@@ -100,6 +100,9 @@ var s = document.getElementsByTagName("script")[0];
 s.parentNode.insertBefore(el, s);
 }catch(e){}
 })(window);
+</script>
+<script>
+(function(){try{var o=Storage.prototype.setItem;if(o&&!o.__tbSafe){var w=function(){try{if(window.__tbSyncWarned)return;window.__tbSyncWarned=true;if(window.ToolBox&&typeof window.ToolBox.showToast==='function')window.ToolBox.showToast('本次无法保存到本地存储，不影响本次计算','warning');}catch(_){}};var s=function(k,v){try{return o.call(this,k,v)}catch(e){var n=e&&e.name;if(n!=='QuotaExceededError'&&n!=='SecurityError'&&n!=='QUOTA_EXCEEDED_ERR'&&n!=='NS_ERROR_DOM_QUOTA_REACHED')throw e;try{window.__tbStorageWriteFailed=true}catch(_){}w();return undefined;}};s.__tbSafe=true;Storage.prototype.setItem=s;}}catch(e){}})();
 </script>
 
 <script src="/js/tool-kit.js" defer></script>
@@ -592,13 +595,13 @@ function copyAll(type) {
 }
 
 function saveHistory(type, names) {
-  const hist = JSON.parse(localStorage.getItem('name-history') || '[]');
+  const hist = (function(){try{return JSON.parse(localStorage.getItem('name-history') || '[]')}catch(e){try{localStorage.removeItem('name-history')}catch(_){}return []}})();
   hist.unshift({ type, names, date: new Date().toLocaleString('zh-CN') });
   localStorage.setItem('name-history', JSON.stringify(hist.slice(0, 30)));
 }
 
 function renderHistory() {
-  const hist = JSON.parse(localStorage.getItem('name-history') || '[]');
+  const hist = (function(){try{return JSON.parse(localStorage.getItem('name-history') || '[]')}catch(e){try{localStorage.removeItem('name-history')}catch(_){}return []}})();
   const el = document.getElementById('historyList');
   if (hist.length === 0) {
     const __h1='<p style="color:var(--text-muted);text-align:center;padding:20px;">暂无历史记录</p>';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){el.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}el.innerHTML=__h1;
@@ -723,6 +726,5 @@ document.addEventListener('DOMContentLoaded',function(){
     </div>
 </div>
 <!-- /SEO 介紹區塊 -->
-<section class="opt-guide"><h2>如何使用隨機名字生成器</h2><ol><li>在對應的輸入框或選項中填寫、選擇所需引數。</li><li>點選「計算」或「生成」按鈕執行。</li><li>在結果區檢視輸出，可複製結果或匯出使用。</li></ol><h2>引數說明</h2><ul class="param-list"><li>生成數量</li><li>名字風格</li><li>暱稱風格</li><li>ID風格</li><li>字數長度（中文）</li></ul><h2>適用場景</h2><p>工作與生活中的相關計算與查詢。</p></section><section class="opt-faq"><h2>常見問題</h2><dl class="faq-list"><dt>隨機名字生成器是做什麼的？</dt><dd>隨機名字生成器，一鍵生成中文名、英文名、網名暱稱或遊戲 ID，純前端執行、資料不上傳。</dd><dt>如何使用隨機名字生成器？</dt><dd>在對應的輸入框或選項中填寫、選擇所需引數，點選「計算」或「生成」按鈕即可執行，結果會在結果區即時顯示，支援複製與匯出。</dd><dt>計算結果準確嗎？</dt><dd>本工具在你的本地瀏覽器中即時計算，不依賴伺服器；只要輸入的引數正確，結果即按對應的規則得出。涉及經驗估算的部分僅供參考，不作為正式依據。</dd><dt>隨機名字生成器適合哪些場景？</dt><dd>工作與生活中的相關計算與查詢。</dd><dt>使用本工具需要聯網或上傳資料嗎？</dt><dd>不需要。所有計算均在你的裝置本地完成，資料不會上傳到任何伺服器，可放心使用。</dd></dl></section>
 </body>
 </html>

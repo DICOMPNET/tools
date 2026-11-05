@@ -118,7 +118,7 @@ s.parentNode.insertBefore(el, s);
     <h2 data-zh="⚡ 焊接電流選擇">Welding Current Selector</h2>
     <div class="formula-box">
       <div class="formula-title">📐 計算公式</div>
-      <div class="formula-eq">手工電弧焊電流經驗式：I = k × d（k 為經驗係數，一般取 30 至 50，d 為焊條直徑 mm）；焊接線能量 E = 60 × U × I ÷ v，U 為電弧電壓（V）、I 為電流（A）、v 為焊接速度（mm/min）；據焊條直徑與材質推薦電流區間。</div>
+      <div class="formula-eq">手工電弧焊電流經驗式：I = k × d（k 為經驗係數，一般取 30 至 50，d 為焊條直徑 mm）；焊接線能量 E = 60 × U × I ÷ v ÷ 1000（kJ/mm，U 為電弧電壓 V、I 為電流 A、v 為焊接速度 mm/min；電壓或速度未填時不估算、顯示 —）；據焊條直徑與材質推薦電流區間。</div>
     </div>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="根據焊條直徑、板厚、焊接位置及焊條型別，推薦手工電弧焊電流範圍並估算熱輸入。">Select welding current by electrode, thickness and position.</p>
 
@@ -273,13 +273,13 @@ function calcWeldingCurrent() {
   if (t > 20) { low *= 1.05; high *= 1.1; }
 
   const rec = Math.round((low + high) / 2);
-  const heatInput = v > 0 && U > 0 ? 60 * U * rec / v / 1000 : 0;
+  const heatInput = v > 0 && U > 0 ? 60 * U * rec / v / 1000 : null;
 
   const html = `
     <div class="data-grid">
       <div class="data-card"><div class="num">${Math.round(low)} ~ ${Math.round(high)}</div><div class="label">推荐电流范围（A）</div></div>
       <div class="data-card"><div class="num">${rec}</div><div class="label">推荐电流（A）</div></div>
-      <div class="data-card"><div class="num">${heatInput.toFixed(2)}</div><div class="label">热输入 E（kJ/mm）</div></div>
+      <div class="data-card"><div class="num">${heatInput == null ? '—' : heatInput.toFixed(2)}</div><div class="label">热输入 E（kJ/mm）</div></div>
       <div class="data-card"><div class="num">${d} mm / ${t} mm</div><div class="label">焊条/板厚</div></div>
     </div>
     <p style="margin-top:10px;font-size:13px;color:var(--text-muted);">

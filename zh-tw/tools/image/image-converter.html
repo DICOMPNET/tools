@@ -138,7 +138,7 @@ s.parentNode.insertBefore(el, s);
 
     <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()">
       📁 點選或拖拽圖片到這裡
-      <input type="file" id="file-input" accept="image/*" style="display:none;" onchange="handleFile(this.files[0])">
+      <input type="file" id="file-input" accept="image/png,image/jpeg,image/webp,image/gif" style="display:none;" onchange="handleFile(this.files[0])">
     </div>
 
     <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__image_converterExport()">匯出明細 CSV</button></div>
@@ -229,6 +229,7 @@ s.parentNode.insertBefore(el, s);
   <ul>
       <li>本工具純前端執行，資料不會上傳到伺服器</li>
       <li>建議在主流瀏覽器（Chrome/Safari/Firefox/Edge）中使用</li>
+      <li>動圖（GIF/動態 WebP）轉為 JPEG/PNG/WebP 時僅保留首幀，需要完整動畫請保留原檔案</li>
       <li>計算結果僅供參考，請以實際應用場景為準</li>
   </ul>
 </div>
@@ -238,30 +239,52 @@ s.parentNode.insertBefore(el, s);
 <script>
 let originalImg = null;
 let originalFile = null;
+let originalUrl = '';
+let cardUrls = [];
 
+function __svgFileBlocked(file) {
+  var t = String(file.type || '').toLowerCase(), n = String(file.name || '').toLowerCase();
+  if (t.indexOf('image/svg') === 0 || /\.svg$/i.test(n)) {
+    ToolBox.showToast('仅支持位图（PNG/JPG/WebP），不支持 SVG', 'error');
+    return true;
+  }
+  return false;
+}
 function handleFile(file) {
-  if (!file || !file.type.startsWith('image/')) {
+  if (!file) {
+    ToolBox.showToast(i18nText('toast.msg933'), 'warn');
+    return;
+  }
+  if (__svgFileBlocked(file)) { return; }
+  if (!file.type.startsWith('image/')) {
     ToolBox.showToast(i18nText('toast.msg933'), 'warn');
     return;
   }
   originalFile = file;
   originalImg = new Image();
+  const prevUrl = originalUrl;
+  originalUrl = URL.createObjectURL(file);
   originalImg.onload = () => {
+    if (prevUrl) URL.revokeObjectURL(prevUrl);
     document.getElementById('result').style.display = '';
     const __h0=`
-      <p>文件名: <strong>${file.name}</strong></p>
-      <p>原始格式: <strong>${file.type}</strong></p>
+      <p>文件名: <strong>${ToolBox.escHtml(file.name)}</strong></p>
+      <p>原始格式: <strong>${ToolBox.escHtml(file.type)}</strong></p>
       <p>尺寸: <strong>${originalImg.naturalWidth} × ${originalImg.naturalHeight}px</strong></p>
       <p>大小: <strong>${formatSize(file.size)}</strong></p>
     `;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('info').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('info').innerHTML=__h0;
     convertAll();
   };
-  originalImg.src = URL.createObjectURL(file);
+  originalImg.src = originalUrl;
 }
 
 function convertAll() {
   const w = originalImg.naturalWidth;
   const h = originalImg.naturalHeight;
+
+  // 每次重转前释放上一批预览/下载用的 blob URL，避免反复转换累积内存
+  cardUrls.forEach(u => URL.revokeObjectURL(u));
+  cardUrls = [];
 
   const formats = [
     { type: 'image/jpeg', ext: 'jpg', label: 'JPEG', lossy: true },
@@ -282,21 +305,27 @@ function convertAll() {
       ctx.fillRect(0, 0, w, h);
     }
     ctx.drawImage(originalImg, 0, 0, w, h);
-    canvas.toBlob(blob => {
+    try { canvas.toBlob(blob => {
       if (!blob) {
         grid.innerHTML += `<div class="preview-card"><div>不支持 ${f.label}</div></div>`;
         return;
       }
       const url = URL.createObjectURL(blob);
+      cardUrls.push(url);
+      // 浏览器不支持所选格式时会静默回落为 PNG（如老版 Safari 的 WebP）：
+      // 扩展名与展示一律跟随 blob 实际 MIME，避免 .webp 文件里装的是 PNG。
+      const actualType = blob.type || f.type;
+      const actualExt = actualType === 'image/webp' ? 'webp' : actualType === 'image/jpeg' ? 'jpg' : 'png';
+      const fallback = actualType !== f.type;
       const card = document.createElement('div');
       card.className = 'preview-card';
       const __h2=`
         <img alt=""  src="/zh-tw/tools/image/${url}">
-        <div class="info"><strong>${f.label}</strong><br>${formatSize(blob.size)}<br><span class="alpha-note">${flatten ? '已铺白底' : '已保留透明'}</span></div>
-        <a href="/zh-tw/tools/image/${url}" download="converted-${Date.now()}.${f.ext}" class="download">⬇ 下载</a>
+        <div class="info"><strong>${f.label}${fallback ? `（已回落为 ${actualExt.toUpperCase()}）` : ''}</strong><br>${formatSize(blob.size)}<br><span class="alpha-note">${flatten ? '已铺白底' : '已保留透明'}</span></div>
+        <a href="/zh-tw/tools/image/${url}" download="converted-${Date.now()}.${actualExt}" class="download">⬇ 下载</a>
       `;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){card.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}card.innerHTML=__h2;
       grid.appendChild(card);
-    }, f.type, f.lossy ? 0.85 : undefined);
+    }, f.type, f.lossy ? 0.85 : undefined); } catch (e) { ToolBox.showToast('导出失败：' + ((e && (e.name || e.message)) || '未知错误'), 'error'); }
   });
 }
 

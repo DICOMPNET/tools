@@ -369,8 +369,16 @@ function calc() {
     r.innerHTML='<div class="metric-card"><p style="color:var(--text-muted);">请输入有效数值</p></div>';
     return;
   }
+  if (newC < 0 || end < 0) {
+    r.innerHTML='<div class="metric-card"><p style="color:var(--danger);">客户数不能为负数，请核对输入。</p></div>';
+    return;
+  }
 
   const lost = start + newC - end;
+  if (lost < 0) {
+    r.innerHTML='<div class="metric-card"><p style="color:var(--danger);">期末客户数与新增客户数口径不一致：期初 + 新增 小于 期末，流失人数不能为负。请核对期末客户数或本期新增。</p></div>';
+    return;
+  }
   const churnRate = (lost / start) * 100;
   const retentionRate = 100 - churnRate;
   const lifespanMonths = churnRate > 0 ? 1 / (churnRate / 100) : Infinity;
@@ -393,7 +401,7 @@ function calc() {
 
   const __g2=`
     <div class="metric-card">
-      <div class="label">客户流失率</div>
+      <div class="label">客户流失率（分母：期初客户数）</div>
       <div class="value" style="color:${color};">${churnRate.toFixed(2)}%</div>
       <div class="sub">等级：${level} · 流失 ${lost.toLocaleString()} 人 / 期初 ${start.toLocaleString()} 人</div>
     </div>
@@ -408,6 +416,7 @@ function calc() {
         <tr><td style="padding:4px 0;color:var(--text-light);">流失率</td><td style="text-align:right;font-weight:600;color:${color};">${churnRate.toFixed(2)}%</td></tr>
         <tr><td style="padding:4px 0;color:var(--text-light);">留存率</td><td style="text-align:right;font-weight:600;">${retentionRate.toFixed(2)}%</td></tr>
       </table>
+      <p style="margin-top:8px;font-size:12px;color:var(--text-muted);">口径：流失率 = 流失客户数 ÷ 期初客户数；留存率 = 1 − 流失率（分母同为统计周期期初客户数）。</p>
     </div>
 
     <div class="metric-card">

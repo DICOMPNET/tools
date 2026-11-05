@@ -132,7 +132,7 @@ s.parentNode.insertBefore(el, s);
   <div class="card tool-card-accent" style="--tool-accent:#EC4899;">
     <h2 data-zh="🔨 打地鼠">🔨 Whack-a-Mole</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">命中判定：地鼠處於冒出狀態且未被擊中時得分 +1 並標記為已擊中；重新整理時先把仍冒出且未被擊中的洞計為錯過 +1，再從 0–8 號洞中隨機取一個重新冒出；剩餘時間 = max(0, 時長 − (當前時間戳 − 開始時間戳) ÷ 1000)，歸零時結束並彙總得分與錯過數</div>
+  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">計分口徑：命中冒出且未擊中的地鼠 +10 分；重新整理時仍冒出未被擊中的洞計為錯過並 −5 分；點選空洞 −5 分；剩餘時間 = max(0, 時長 − (當前時間戳 − 開始時間戳) ÷ 1000)，歸零時按淨分結算（可為負）並更新本地最高分</div>
   <p class="formula-desc" data-zh="本工具為純前端線上工具，資料在瀏覽器本地處理、不上傳伺服器，依據對應領域標準與規範進行計算或處理，結果僅供參考。 工具名稱：打地鼠 - 娛樂遊戲領域的線上工具。">Classic Whack-a-Mole: click the moles as they pop up within the time limit to score. Trains reaction and hand-eye coordination, with a high-score record.</p>
 </div>
 
@@ -140,6 +140,7 @@ s.parentNode.insertBefore(el, s);
       <div>得分：<strong id="score">0</strong></div>
       <div>錯過：<strong id="miss">0</strong></div>
       <div>時間：<strong id="time">30s</strong></div>
+      <div>最高分：<strong id="best">0</strong></div>
     </div>
     <div class="grid" id="grid"></div>
     <div class="result-box" id="output">點選冒出的地鼠</div>
@@ -229,8 +230,9 @@ s.parentNode.insertBefore(el, s);
 <!-- /注意事項區塊 -->
 </div>
 <script>
-const DURATION=30;
-let holes,score,miss,state,startTime,timer,spawnTimer;
+const DURATION=30,HIT=10,PENALTY=5,BEST_KEY='toolbox_whack_best';
+let holes,score,miss,state,startTime,timer,spawnTimer,best=0,hits=0,blanks=0;
+function calcWhackScore(hits,misses,blanks){return hits*HIT-misses*PENALTY-blanks*PENALTY;}
 
 function buildGrid(){
   const g=document.getElementById('grid');
@@ -248,7 +250,7 @@ function buildGrid(){
 }
 function start(){
   reset();
-  score=0;miss=0;
+  score=0;miss=0;hits=0;blanks=0;
   state='go';
   startTime=Date.now();
   timer=setInterval(tick,100);
@@ -258,7 +260,7 @@ function reset(){
   if(timer)clearInterval(timer);
   if(spawnTimer)clearInterval(spawnTimer);
   state='idle';
-  score=0;miss=0;
+  score=0;miss=0;hits=0;blanks=0;
   document.getElementById('score').textContent='0';
   document.getElementById('miss').textContent='0';
   document.getElementById('time').textContent=DURATION+'s';
@@ -273,7 +275,8 @@ function tick(){
     clearInterval(spawnTimer);
     state='done';
     holes.forEach(h=>h.classList.remove('up'));
-    const __h2=`<p>时间到！得分 ${score} / 错过 ${miss}</p>`;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h2;
+    if(score>best){best=score;try{localStorage.setItem(BEST_KEY,String(best));}catch(e){}document.getElementById('best').textContent=best;}
+    const __h2=`<p>时间到！得分 ${score} / 错过 ${miss} / 最高分 ${best}</p>`;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h2;
   }
 }
 function spawn(){
@@ -281,7 +284,9 @@ function spawn(){
   holes.forEach(h=>{if(h.classList.contains('up')&&!h.classList.contains('hit')){
     h.classList.remove('up');
     miss++;
+    score=calcWhackScore(hits,miss,blanks);
     document.getElementById('miss').textContent=miss;
+    document.getElementById('score').textContent=score;
   }});
   const i=Math.floor(Math.random()*9);
   holes[i].classList.remove('hit');
@@ -293,9 +298,14 @@ function hit(i){
   if(h.classList.contains('up')&&!h.classList.contains('hit')){
     h.classList.add('hit');
     h.classList.remove('up');
-    score++;
-    document.getElementById('score').textContent=score;
+    hits++;
+  }else if(!h.classList.contains('up')){
+    blanks++;
+  }else{
+    return;
   }
+  score=calcWhackScore(hits,miss,blanks);
+  document.getElementById('score').textContent=score;
 }
 function toggleToolTheme(){
   const cur=document.documentElement.getAttribute('data-theme');
@@ -319,6 +329,8 @@ function toggleToolTheme(){
   }
 })();
 buildGrid();
+try{best=parseInt(localStorage.getItem(BEST_KEY)||'0',10)||0;}catch(e){best=0;}
+document.getElementById('best').textContent=String(best);
 </script><script>
 // tool-intro折叠交互
 document.addEventListener('DOMContentLoaded',function(){

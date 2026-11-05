@@ -141,6 +141,7 @@ s.parentNode.insertBefore(el, s);
       <div class="formula-title">📐 計算公式 / 原理</div>
       <div class="formula-eq">描述統計（本頁程式碼口徑，資料按逗號/空格/換行/分號解析）：x̄=Σx÷n；方差=Σ(x−x̄)²÷(n−1)（樣本）或 ÷n（總體）；s=√方差；SE=s÷√n；Q1/Q3 按 (n−1)p 線性插值、IQR=Q3−Q1；偏度、峰度按樣本/總體兩套公式給出（峰度為超額峰度）。校驗：無有效資料提示「請輸入資料」，樣本型別 n&lt;2 提示「樣本方差需要至少 2 個數據」。判據：偏度&gt;0 正偏（右偏）、&lt;0 負偏（左偏）；峰度&gt;0 尖峰、&lt;0 扁峰；直方圖自動組數按 Sturges ⌈log₂n+1⌉ 並夾取 [1,50]。</div>
       <div class="formula-desc">描述統計：均值、樣本方差與標準差、極差、中位數與四分位數；樣本方差用 n−1（貝塞爾校正）以保證無偏估計，總體方差用 N。</div>
+      <div class="formula-desc">統計量按 1e-10 精度顯示；絕對值小於 1e-12 的浮點殘差按 0 顯示（該殘差屬數值噪聲，不代表真實小量）。</div>
     </div>
 
     <label>輸入資料（逗號/空格/換行分隔）</label>
@@ -481,7 +482,7 @@ function showFormulas(){
   const __h7=html;if((typeof __h7==='number'&&!isFinite(__h7))||/Infinity/.test(String(__h7))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h7)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h7;
 }
 function saveHistory(data, type, stats){
-  const history = JSON.parse(localStorage.getItem('stats_history')||'[]');
+  const history = (function(){try{return JSON.parse(localStorage.getItem('stats_history')||'[]')}catch(e){try{localStorage.removeItem('stats_history')}catch(_){}return []}})();
   const item = {
     data: data.slice(0,10).join(','),
     dataLen: data.length,
@@ -500,7 +501,7 @@ function saveHistory(data, type, stats){
   localStorage.setItem('stats_history', JSON.stringify(history));
 }
 function showHistory(){
-  const history = JSON.parse(localStorage.getItem('stats_history')||'[]');
+  const history = (function(){try{return JSON.parse(localStorage.getItem('stats_history')||'[]')}catch(e){try{localStorage.removeItem('stats_history')}catch(_){}return []}})();
   if(history.length===0){
     const __h8='<p>暂无历史记录</p>';if((typeof __h8==='number'&&!isFinite(__h8))||/Infinity/.test(String(__h8))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h8)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h8;
     return;

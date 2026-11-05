@@ -123,8 +123,8 @@ s.parentNode.insertBefore(el, s);
 
         <div class="formula-box">
       <div class="formula-title">📐 計算公式 / 原理</div>
-      <div class="formula-eq">淨 EC = 目標EC − 水源EC；母液濃度 = 淨EC ÷ 肥料EC係數；灌溉水量 = 滴頭流量 × 滴頭數 × (時長 ÷ 60)；總肥料量 = 母液濃度 × 灌溉水量 ÷ 1000</div>
-      <div class="formula-desc">按 EC 差值確定需由肥料貢獻的鹽分濃度：淨 EC 除以所選肥料的 EC 係數（每單位濃度貢獻的 EC）得母液濃度（g/L）。灌溉水量由滴頭流量 × 數量 × 時長換算；兩者相乘得總肥料量，再按肥料 N/P/K 含量拆分各養分用量。母液配製按設定的吸肥比例（1:X）反算母液濃度與體積。</div>
+      <div class="formula-eq">淨 EC = 目標EC − 水源EC；肥料濃度(g/L) = 淨EC × 0.64（1 mS/cm ≈ 640 mg/L）；灌溉水量 = 滴頭流量 × 滴頭數 × (時長 ÷ 60)；總肥料量 = 肥料濃度 × 灌溉水量 ÷ 1000</div>
+      <div class="formula-desc">按 EC 差值確定需由肥料貢獻的鹽分濃度：通用換算為 1 mS/cm ≈ 640 mg/L，故肥料濃度(g/L) = 淨 EC × 0.64（不同肥料鹽分組成略有差異，應按產品標籤校準）。灌溉水量由滴頭流量 × 數量 × 時長換算；兩者相乘得總肥料量，再按肥料 N-P₂O₅-K₂O 標註含量拆分各養分用量（復混肥配方中的 P、K 均以氧化物計）。母液配製按設定的吸肥比例（1:X）反算母液濃度與體積。</div>
     </div>
 <div class="input-row">
       <label>目標EC值(mS/cm)</label>
@@ -164,8 +164,8 @@ s.parentNode.insertBefore(el, s);
     <div class="input-row">
       <label>母液濃度倍數</label>
       <select id="stockRatio" onchange="calc()">
-        <option value="100">100倍濃縮</option>
-        <option value="200" selected>200倍濃縮</option>
+        <option value="100" selected>100倍濃縮</option>
+        <option value="200">200倍濃縮</option>
         <option value="500">500倍濃縮</option>
       </select>
     </div>
@@ -198,6 +198,7 @@ s.parentNode.insertBefore(el, s);
         <tr><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="灌溉水 EC 調節">EC adjustment</span></td><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="目標 EC ≤ 2.0 mS/cm（多數大田/蔬菜），果樹 1.0–1.5">Target EC limits</span></td><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="FAO 水質灌溉指南（Ayers &amp; Westcot 1985）">Ayers &amp; Westcot 1985</span></td></tr>
         <tr><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="施肥濃度">Fertigation concentration</span></td><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="施肥量 = 灌水量 × 目標濃度 / 肥料養分含量">dose = V × C / content</span></td><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="GB/T 50485 微灌工程技術規範">GB/T 50485-2020</span></td></tr>
         <tr><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="注入比">Injector ratio</span></td><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="注入比 = 注入流量 / 主管流量（常用 1:100–1:200）">ratio = Q_inj / Q_main</span></td><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="NY/T 2624 水肥一體化技術規範">NY/T 2624-2014</span></td></tr>
+        <tr><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="復混肥養分標註">N-P₂O₅-K₂O basis</span></td><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="20-20-20 指 N 20%、P₂O₅ 20%、K₂O 20%；P = P₂O₅ × 0.436，K = K₂O × 0.830">20-20-20 means N 20%, P₂O₅ 20%, K₂O 20%; P = P₂O₅ × 0.436, K = K₂O × 0.830</span></td><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="GB/T 15063 複合肥料">GB/T 15063-2020</span></td></tr>
 
       </tbody>
     </table>
@@ -305,10 +306,10 @@ s.parentNode.insertBefore(el, s);
 
 
 var FERTS = {
-  '1': {name:'20-20-20平衡肥', N:20, P:20, K:20, ecPer:0.5},
-  '2': {name:'19-6-25高钾肥', N:19, P:6, K:25, ecPer:0.5},
-  '3': {name:'30-10-10高氮肥', N:30, P:10, K:10, ecPer:0.5},
-  '4': {name:'12-61-61高磷钾肥', N:12, P:61, K:61, ecPer:0.5}
+  '1': {name:'20-20-20平衡肥', N:20, P:20, K:20},
+  '2': {name:'19-6-25高钾肥', N:19, P:6, K:25},
+  '3': {name:'30-10-10高氮肥', N:30, P:10, K:10},
+  '4': {name:'12-61-61高磷钾肥', N:12, P:61, K:61}
 };
 function onFertChange(){ calc(); }
 function calc(){
@@ -328,9 +329,8 @@ var targetEC = +document.getElementById('targetEC').value || 0;
   var netEC = targetEC - waterEC;
   if(netEC<=0){ ToolBox.setResult('result','<p style="color:var(--warning);">水源EC已达到或超过目标EC，无需注肥</p>'); return; }
 
-  // 肥料浓度估算：EC与浓度近似关系 1 mS/cm ≈ 640 mg/L (通用盐分)
-  // 肥料贡献EC = 肥料浓度(mg/L) × EC系数
-  var fertConc = netEC / fert.ecPer; // g/L 肥料浓度
+  // EC 与肥料浓度近似关系：1 mS/cm ≈ 640 mg/L（0.64 g/L）
+  var fertConc = netEC * 0.640; // g/L 肥料浓度
   var fertConcMg = fertConc * 1000; // mg/L
 
   // 总灌溉水量
@@ -362,9 +362,9 @@ var targetEC = +document.getElementById('targetEC').value || 0;
   html += '</div>';
 
   html += '<div class="data-grid" style="margin-top:4px;">';
-  html += '<div class="data-card"><div class="num" style="color:var(--success);">'+N_amount.toFixed(2)+'</div><div class="label">氮N(kg)</div></div>';
-  html += '<div class="data-card"><div class="num" style="color:var(--info);">'+P_amount.toFixed(2)+'</div><div class="label">磷P(kg)</div></div>';
-  html += '<div class="data-card"><div class="num" style="color:var(--warning);">'+K_amount.toFixed(2)+'</div><div class="label">钾K(kg)</div></div>';
+  html += '<div class="data-card"><div class="num" style="color:var(--success);">'+N_amount.toFixed(2)+'</div><div class="label">氮(N, kg)</div></div>';
+  html += '<div class="data-card"><div class="num" style="color:var(--info);">'+P_amount.toFixed(2)+'</div><div class="label">磷(P₂O₅, kg)</div></div>';
+  html += '<div class="data-card"><div class="num" style="color:var(--warning);">'+K_amount.toFixed(2)+'</div><div class="label">钾(K₂O, kg)</div></div>';
   html += '<div class="data-card"><div class="num">'+netEC.toFixed(2)+'</div><div class="label">净增EC</div></div>';
   html += '</div>';
 
@@ -402,7 +402,15 @@ function copyResult(){
   var fertKey=document.getElementById('fertType').value;
   var fert=FERTS[fertKey];
   var netEC=targetEC-waterEC;
-  var fertConc=netEC/fert.ecPer;
+  if(targetEC<=0||dripFlow<=0||dripperCount<=0||duration<=0){
+    ToolBox.showToast('请输入有效参数后再复制','warning');
+    return;
+  }
+  if(netEC<=0){
+    ToolBox.showToast('水源EC已达到或超过目标EC，无需注肥','warning');
+    return;
+  }
+  var fertConc=netEC*0.640;
   var totalFlow=dripFlow*dripperCount;
   var irrigationVolume=totalFlow*(duration/60);
   var totalFert=fertConc*irrigationVolume/1000;
@@ -585,8 +593,8 @@ function __fertigation_ratioPresets(){
     if (typeof TBKit === 'undefined') return;
     TBKit.preset.bar('#fertigation_ratioPresets',[{label:'默认参数',labelEn:'Default',values:{targetEC:'1.5', waterEC:'0.3', dripFlow:'2', dripperCount:'500', duration:'30', fertType:'1', solubility:'150', stockRatio:'100'}},
   {"label":"番茄 20-20-20 EC1.5","labelEn":"Tomato 20-20-20 EC1.5","values":{"targetEC":1.5,"waterEC":0.3,"dripFlow":2,"dripperCount":500,"duration":30,"fertType":"1","solubility":150,"stockRatio":"100"}},
-  {"label":"高钾 19-6-25 EC2.0","labelEn":"High-K 19-6-25 EC2.0","values":{"targetEC":2,"waterEC":0.5,"dripFlow":3,"dripperCount":300,"duration":45,"fertType":"2","solubility":180,"stockRatio":"200"}},
-  {"label":"苗期高氮 30-10-10","labelEn":"Seedling high-N 30-10-10","values":{"targetEC":1.2,"waterEC":0.2,"dripFlow":1.6,"dripperCount":800,"duration":20,"fertType":"3","solubility":120,"stockRatio":"500"}}],function(){ calc(); });
+  {"label":"高钾 19-6-25 EC2.0","labelEn":"High-K 19-6-25 EC2.0","values":{"targetEC":2,"waterEC":0.5,"dripFlow":3,"dripperCount":300,"duration":45,"fertType":"2","solubility":180,"stockRatio":"100"}},
+  {"label":"苗期高氮 30-10-10","labelEn":"Seedling high-N 30-10-10","values":{"targetEC":1.2,"waterEC":0.2,"dripFlow":1.6,"dripperCount":800,"duration":20,"fertType":"3","solubility":120,"stockRatio":"100"}}],function(){ calc(); });
 }
 var __fertigation_ratio_f0=(typeof calc==='function')?calc:null;
 if(__fertigation_ratio_f0){

@@ -142,17 +142,22 @@ s.parentNode.insertBefore(el, s);
 
     <h3 style="margin-top:14px;">提取選項</h3>
     <div class="checkbox-row">
-      <label><input type="checkbox" id="fullTag" checked> 完整標籤</label>
-      <label><input type="checkbox" id="onlyName"> 僅標籤名</label>
-      <label><input type="checkbox" id="includeAttr"> 含屬性</label>
-      <label><input type="checkbox" id="dedup" checked> 標籤名去重</label>
+      <label><input type="checkbox" id="includeAttr"> 保留屬性（輸出完整標籤）</label>
+      <label><input type="checkbox" id="dedup" checked> 結果去重</label>
       <label><input type="checkbox" id="selfClosing"> 僅自閉合標籤</label>
+      <label><input type="checkbox" id="stripScript"> 排除 script/style/註釋</label>
+    </div>
+    <div class="input-row">
+      <div>
+        <label>僅提取指定標籤（逗號分隔，留空=全部）</label>
+        <input type="text" id="tagFilter" placeholder="如 a, img, div" oninput="extract()">
+      </div>
     </div>
     <div class="toolbar">
       <div id="text_extract_html_tagsPresets"></div>
       <button type="button" class="btn primary" onclick="extract()">提取</button>
       <button class="btn" type="button" onclick="__text_extract_html_tagsExport()">匯出明細 CSV</button>
-      <button type="button" class="btn success" onclick="copyResult()">複製結果</button>
+      <button type="button" class="btn success" onclick="copyResult(event)">複製結果</button>
       <button type="button" class="btn" onclick="clearAll()">清空</button>
     </div>
     <div class="stats-row">
@@ -200,15 +205,15 @@ s.parentNode.insertBefore(el, s);
 <h2>📚 深度解析：提取 HTML 標籤</h2>
 <h3>💡 常見使用場景</h3>
 <ul class="dd-list">
-<li>分析頁面結構：列出文件中所有標籤名及出現次數，快速瞭解骨架。</li>
-<li>抽取特定標籤：如把所有 &lt;a href&gt;、&lt;img src&gt; 摘出做資源盤點。</li>
-<li>模板審查：檢查是否有未閉合或濫用標籤。</li>
+<li>分析頁面結構：列出文件中所有標籤與不同標籤數，快速瞭解骨架。</li>
+<li>抽取特定標籤：在“指定標籤”填 a,img 等，勾選保留屬性，篩出對應標籤做資源盤點。</li>
+<li>模板審查：匯出開/閉標籤清單後人工比對，發現缺失的閉合標籤。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">統計 div 與 a</div><div class="dd-ex-body">貼上一段 HTML，工具列出「div×12、a×5、img×3」並匯出所有 &lt;a&gt; 的 href 列表，便於檢查死鏈或外鏈。</div></div>
+<div class="dd-example"><div class="dd-ex-title">抽取並核對 a 標籤</div><div class="dd-ex-body">貼上一段 HTML，在“指定標籤”填 a 並勾選“保留屬性”，結果逐條列出全部 &lt;a ...&gt; 開標籤，可檢查 href 是否為空或指向站外；取消保留屬性則只輸出 &lt;a&gt; 形式，便於計數。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
 <dt>會處理巢狀嗎？</dt><dd>按文件順序列出標籤，巢狀關係需結合縮排/層級檢視；本工具偏「標籤清單」，結構性分析建議配合 DOM 工具。</dd>
-<dt>腳本里的標籤也算嗎？</dt><dd>預設統計所有 &lt;...&gt; 形態；如需排除 &lt;script&gt;/&lt;style&gt; 內示例，可開啟「僅正文標籤」過濾。</dd>
+<dt>腳本里的標籤也算嗎？</dt><dd>預設統計所有 &lt;...&gt; 形態；勾選“排除 script/style/註釋”後，會先剔除 &lt;script&gt;、&lt;style&gt; 與 &lt;!-- --&gt; 註釋塊，再統計正文標籤。</dd>
 </dl>
 </div>
 </section>
@@ -283,51 +288,80 @@ function escapeHtml(s){
 function extract(){
   const text = document.getElementById('input').value;
   const result = document.getElementById('result');
-  if(!text){ result.textContent = '请输入 HTML...'; document.getElementById('count').textContent = 0; return; }
-
-  // 匹配所有标签
-  const tagRe = /<\/?[a-zA-Z][a-zA-Z0-9]*\b[^>]*?\/?>/g;
-  let matches = text.match(tagRe) || [];
-
-  const onlyName = document.getElementById('onlyName').checked;
-  const includeAttr = document.getElementById('includeAttr').checked;
-  const selfClosing = document.getElementById('selfClosing').checked;
-
-  if(selfClosing){
-    matches = matches.filter(t => /\/>$/.test(t) || /^(<br|<img alt="" |<input|<hr|<meta|<link|<area|<base|<col|<embed|<source|<track|<wbr)\b/i.test(t));
-  }
-
-  if(onlyName){
-    matches = matches.map(t => {
-      const m = t.match(/^<\/?([a-zA-Z][a-zA-Z0-9]*)/);
-      return m ? m[1].toLowerCase() : t;
-    });
-  }else if(!includeAttr){
-    matches = matches.map(t => {
-      const m = t.match(/^(<\/?[a-zA-Z][a-zA-Z0-9]*)\b/);
-      const end = /\/>$/.test(t) ? '/>' : (/^<\//.test(t) ? '>' : '>');
-      return m ? m[1] + end : t;
-    });
-  }
-
-  document.getElementById('count').textContent = matches.length;
-  const unique = new Set(matches.map(m => onlyName ? m : m.replace(/[<\/>]/g,'').split(' ')[0].replace('/','')));
-  document.getElementById('uniqueCount').textContent = unique.size;
-  result.textContent = matches.join('\n');
-
-  // 标签列表
+  const countEl = document.getElementById('count');
+  const uniqueEl = document.getElementById('uniqueCount');
   const tagList = document.getElementById('tagList');
-  const __h0='<p style="font-size:13px;color:var(--text-light);margin-bottom:6px;">标签列表：</p>' +
-    Array.from(unique).map(t => `<span class="tag-item">${escapeHtml(t)}</span>`).join('');if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){tagList.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}tagList.innerHTML=__h0;
+  if(!text.trim()){
+    result.textContent = '请输入 HTML...';
+    countEl.textContent = 0;
+    uniqueEl.textContent = 0;
+    tagList.innerHTML = '';
+    return;
+  }
+
+  const includeAttr = document.getElementById('includeAttr').checked;
+  const dedup = document.getElementById('dedup').checked;
+  const selfClosing = document.getElementById('selfClosing').checked;
+  const stripScript = document.getElementById('stripScript').checked;
+  const filterRaw = document.getElementById('tagFilter').value;
+
+  let src = text;
+  if(stripScript){
+    src = src.replace(/<!--[\s\S]*?-->/g, '')
+             .replace(/<script\b[\s\S]*?<\/script>/gi, '')
+             .replace(/<style\b[\s\S]*?<\/style>/gi, '');
+  }
+
+  const tagRe = /<\/?[a-zA-Z][a-zA-Z0-9-]*\b[^>]*?\/?>/g;
+  const rawMatches = src.match(tagRe) || [];
+  const names = rawMatches.map(t => {
+    const m = t.match(/^<\/?([a-zA-Z][a-zA-Z0-9-]*)/);
+    return m ? m[1].toLowerCase() : '';
+  });
+
+  const wanted = filterRaw.split(',').map(s => s.trim().toLowerCase().replace(/[<>/]/g, '')).filter(Boolean);
+  let pairs = rawMatches.map((t, i) => ({ tag: t, name: names[i] }));
+  if(wanted.length) pairs = pairs.filter(p => wanted.indexOf(p.name) !== -1);
+
+  const VOID = ['area','base','br','col','embed','hr','img','input','link','meta','source','track','wbr'];
+  if(selfClosing){
+    pairs = pairs.filter(p => /\/>\s*$/.test(p.tag) || VOID.indexOf(p.name) !== -1);
+  }
+
+  let out = pairs.map(p => {
+    if(includeAttr) return p.tag;
+    let end = '>';
+    if(/\/>\s*$/.test(p.tag)) end = '/>';
+    else if(/^<\/ /.test(p.tag) || p.tag.indexOf('</') === 0) end = '>';
+    return '<' + (p.tag.indexOf('</') === 0 ? '/' : '') + p.name + end;
+  });
+  if(dedup) out = out.filter((v, i) => out.indexOf(v) === i);
+
+  const uniqueNames = Array.from(new Set(pairs.map(p => p.name)));
+
+  countEl.textContent = out.length;
+  uniqueEl.textContent = uniqueNames.length;
+  result.textContent = out.length ? out.join('\n') : '未检测到标签：请检查输入，或放宽“指定标签/仅自闭合”筛选条件。';
+
+  tagList.innerHTML = uniqueNames.length
+    ? '<p style="font-size:13px;color:var(--text-light);margin-bottom:6px;">标签列表：</p>' +
+      uniqueNames.map(t => `<span class="tag-item">${escapeHtml(t)}</span>`).join('')
+    : '';
 }
 
-function copyResult(){
+function copyResult(ev){
   const text = document.getElementById('result').textContent;
   if(!text || text === '请输入 HTML...'){ alert('请先提取'); return; }
-  navigator.clipboard.writeText(text).then(() => {
-    const btn = event.target.closest('.btn');
+  function done(){
+    const btn = ev && ev.target ? ev.target.closest('.btn') : document.querySelector('button[onclick^="copyResult"]');
     if(btn){ const old = btn.textContent; btn.textContent = '✅ 已复制'; setTimeout(() => btn.textContent = old, 1500); }
-  });
+  }
+  let p = null;
+  try{
+    if(navigator.clipboard && typeof navigator.clipboard.writeText === 'function') p = navigator.clipboard.writeText(text);
+  }catch(e){ p = null; }
+  if(p && typeof p.then === 'function'){ p.then(done, () => alert(text)); }
+  else { done(); }
 }
 
 function clearAll(){

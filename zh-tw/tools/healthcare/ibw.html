@@ -116,9 +116,10 @@ s.parentNode.insertBefore(el, s);
 </div>
 <div class="card">
     <h2 data-zh="⚖️ 理想體重 IBW">⚖️ Ideal Body Weight Calculator</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="用 Devine 公式計算成人理想體重。">Estimate ideal body weight from height and sex with the Devine and Robinson formulas, and display the healthy weight range and adjusted body weight for dosing.</p>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="用 Devine 公式計算成人理想體重。">Estimate adult ideal body weight from height and sex with the Devine formula, display a ±10% reference range, and derive adjusted body weight (ABW = IBW + 0.4 × (TBW − IBW)) when an actual weight is entered.</p>
     <div class="input-row"><label>身高 cm</label><input type="number" id="height" value="170" step="any" oninput="calc()" placeholder="如 170"></div>
     <div class="input-row"><label>性別 1=男 0=女</label><input type="number" id="sex" value="1" step="1" oninput="calc()" placeholder="如 1"></div>
+    <div class="input-row"><label>實際體重 kg（選填，用於校正體重 ABW）</label><input type="number" id="tbw" value="" step="any" oninput="calc()" placeholder="如 100（留空則不計算 ABW）"></div>
     <div class="toolbar">
       <div id="ibwPresets"></div>
       <button class="btn primary" onclick="calc()">計算</button>
@@ -133,7 +134,7 @@ s.parentNode.insertBefore(el, s);
   </div>
   <div class="card formula-box">
     <h3>📐 計算公式與說明</h3>
-    <div class="formula-eq">男性 IBW = 50 + 0.91×(身高cm − 152.4)<br>女性 IBW = 45.5 + 0.91×(身高cm − 152.4)<br>校驗：身高須為 100–250 cm 的正數，越界時提示換算單位並中止計算</div>
+    <div class="formula-eq">男性 IBW = 50 + 0.91×(身高cm − 152.4)<br>女性 IBW = 45.5 + 0.91×(身高cm − 152.4)<br>校正體重 ABW = IBW + 0.4×(實際體重 − IBW)（僅當實際體重 &gt; IBW，用於肥胖患者藥物劑量參考）<br>校驗：身高須為 100–250 cm 的正數，越界時提示換算單位並中止計算</div>
     <p style="font-size:13px;color:var(--text-muted);margin-top:12px;">常用於藥物劑量調整參考。</p>
   </div>
 </div>
@@ -248,6 +249,15 @@ function calc(){
   html += `<p>上限：<strong style="font-size:18px;color:var(--primary);">${__v1.toFixed(1)}</strong> kg</p>`;
   const __v2 = ((sex?50+0.91*(height-152.4):45.5+0.91*(height-152.4))*0.9);
   html += `<p>下限：<strong style="font-size:18px;color:var(--primary);">${__v2.toFixed(1)}</strong> kg</p>`;
+  const tbw = +document.getElementById('tbw').value;
+  if (isFinite(tbw) && tbw > 0) {
+    if (tbw > __v0) {
+      const __abw = __v0 + 0.4 * (tbw - __v0);
+      html += `<p>校正体重 ABW：<strong style="font-size:18px;color:var(--primary);">${__abw.toFixed(1)}</strong> kg（IBW + 0.4 × (实际体重 − IBW)）</p>`;
+    } else {
+      html += `<p style="font-size:12px;color:var(--text-muted);">实际体重 ${tbw.toFixed(1)} kg 未超过 IBW，按 IBW 使用，不另算 ABW。</p>`;
+    }
+  }
   const __g1=html;document.getElementById('result').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 }
 function copyResult() {

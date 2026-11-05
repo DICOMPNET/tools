@@ -184,6 +184,11 @@ s.parentNode.insertBefore(el, s);
           <input type="number" id="adRevenue" value="20000" min="0" oninput="calc()" placeholder="如 20000">
           <div class="input-hint">廣告直接或間接帶來的收入</div>
         </div>
+        <div class="input-group">
+          <label>商品毛利率（%）</label>
+          <input type="number" id="grossMargin" value="40" min="0" max="100" oninput="calc()" placeholder="如 40">
+          <div class="input-hint">扣貨品成本後的毛利率，用於盈虧平衡 ROAS = 1/毛利率</div>
+        </div>
       </div>
 
       <div class="toolbar">
@@ -208,6 +213,8 @@ s.parentNode.insertBefore(el, s);
         <h4>計算公式</h4>
         <div class="formula-box">ROAS = 廣告收入 / 廣告花費</div>
         <p>例如：花費5000元廣告費，帶來20000元收入，則 ROAS = 20000 / 5000 = 4x（或400%）。</p>
+        <div class="formula-box">盈虧平衡 ROAS = 1 / 毛利率（毛利率須扣貨品成本，不含廣告費）</div>
+        <p>「廣告費後利潤率」= (廣告收入 − 廣告花費)/廣告收入，只扣廣告費、未扣貨品成本，<strong>不是毛利率也不是淨利率</strong>；真正的盈虧平衡判斷要用輸入的商品毛利率。</p>
       </div>
       <div class="explain-section">
         <h4>ROAS等級標準</h4>
@@ -420,12 +427,17 @@ function calc() {
   const revenue = parseFloat(document.getElementById('adRevenue').value);
   const r = document.getElementById('result');
 
-  if (isNaN(spend) || isNaN(revenue) || spend <= 0) {
+  if (isNaN(spend) || isNaN(revenue) || spend <= 0 || revenue < 0) {
     r.innerHTML='<div class="metric-card"><p style="color:var(--text-muted);">请输入有效的广告花费和收入</p></div>';
     return;
   }
 
   const roas = revenue / spend;
+  // 盈亏平衡 ROAS = 1/毛利率（毛利率=扣货品成本后的口径，不含广告费）；毛利率≤0 时无平衡点
+  const gmEl = document.getElementById('grossMargin');
+  const gmRaw = gmEl ? parseFloat(gmEl.value) : NaN;
+  const gm = isNaN(gmRaw) ? 0 : gmRaw;
+  const breakEvenRoas = (gm > 0 && gm < 100) ? 100 / gm : null;
   const roasPercent = roas * 100;
   const profit = revenue - spend;
   const profitMargin = (profit / revenue) * 100;
@@ -460,8 +472,8 @@ function calc() {
       <table style="margin-top:8px;font-size:13px;width:100%;">
         <tr><td style="padding:4px 0;color:var(--text-light);">广告花费</td><td style="text-align:right;font-weight:600;">¥${ToolBox.formatNumber(spend, 2)}</td></tr>
         <tr><td style="padding:4px 0;color:var(--text-light);">广告收入</td><td style="text-align:right;font-weight:600;">¥${ToolBox.formatNumber(revenue, 2)}</td></tr>
-        <tr><td style="padding:4px 0;color:var(--text-light);">广告毛利润</td><td style="text-align:right;font-weight:600;color:${profit >= 0 ? '#4caf50' : '#f44336'};">¥${ToolBox.formatNumber(profit, 2)}</td></tr>
-        <tr><td style="padding:4px 0;color:var(--text-light);">毛利率</td><td style="text-align:right;font-weight:600;">${profitMargin.toFixed(1)}%</td></tr>
+        <tr><td style="padding:4px 0;color:var(--text-light);">广告费后利润</td><td style="text-align:right;font-weight:600;color:${profit >= 0 ? '#4caf50' : '#f44336'};">¥${ToolBox.formatNumber(profit, 2)}</td></tr>
+        <tr><td style="padding:4px 0;color:var(--text-light);">广告费后利润率（非毛利率）</td><td style="text-align:right;font-weight:600;">${profitMargin.toFixed(1)}%</td></tr>
         <tr><td style="padding:4px 0;color:var(--text-light);">每1元广告回报</td><td style="text-align:right;font-weight:600;">¥${roas.toFixed(2)}</td></tr>
       </table>
     </div>
@@ -471,11 +483,11 @@ function calc() {
       <div class="related-metrics">
         <div class="related-metric">
           <div class="val">${profitMargin.toFixed(1)}%</div>
-          <div class="lbl">广告毛利率</div>
+          <div class="lbl">广告费后利润率</div>
         </div>
         <div class="related-metric">
-          <div class="val">${(100 / (profitMargin || 1)).toFixed(2)}x</div>
-          <div class="lbl">盈亏平衡ROAS</div>
+          <div class="val">${breakEvenRoas === null ? '—' : breakEvenRoas.toFixed(2) + 'x'}</div>
+          <div class="lbl">${breakEvenRoas === null ? '盈亏平衡ROAS（毛利率≤0，无平衡点）' : '盈亏平衡ROAS（=1/输入毛利率）'}</div>
         </div>
         <div class="related-metric">
           <div class="val">${(roas / 3 * 100).toFixed(0)}%</div>
@@ -584,6 +596,7 @@ function clearHistory() {
 function resetForm() {
   document.getElementById('adSpend').value = 5000;
   document.getElementById('adRevenue').value = 20000;
+  document.getElementById('grossMargin').value = 40;
   calc();
 }
 

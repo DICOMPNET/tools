@@ -214,8 +214,8 @@ s.parentNode.insertBefore(el, s);
 <li>密閉禽舍、豬舍氨氣控制設計。</li>
 <li>評估現有通風是否達標。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">雞舍 40→15 ppm</div><div class="dd-ex-body">舍容 1800 m³（50×12×3），η=0.6：Q=V·ln(c1/c2)/(t·η)=1800×ln(40/15)/0.6≈2943 m³/s，換氣約 98 次/分。</div></div>
-<div class="dd-example"><div class="dd-ex-title">目標更嚴</div><div class="dd-ex-body">c2 由 15 降至 10 ppm：Q 增到約 110 次/分。</div></div>
+<div class="dd-example"><div class="dd-ex-title">雞舍 40→15 ppm</div><div class="dd-ex-body">舍容 1800 m³（50×12×3），η=0.6：Q=V·ln(c1/c2)/(t·η)=1800×ln(40/15)/0.6≈2943 m³/h（t=1 h），換氣約 1.6 次/h。</div></div>
+<div class="dd-example"><div class="dd-ex-title">目標更嚴</div><div class="dd-ex-body">c2 由 15 降至 10 ppm：Q 增到約 4159 m³/h（同一舍容下約 2.3 次/h）。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
 <dt>η 是什麼？</dt><dd>通風稀釋效率（0~1），實際舍內混合不均，取 0.5~0.7。</dd>
@@ -293,12 +293,20 @@ function calc(){
   else grade = {tag:'grade-fail', text:'危险'};
 
   if(c1 <= c2){
+    var maintainQ0 = gen > 0 ? (gen * 1000) / (c2 * 0.7) / eta : 0;
     var html = '<div class="stat-grid">';
     html += '<div class="stat-card"><div class="val">'+c1.toFixed(1)+'</div><div class="lbl">当前浓度(ppm)</div></div>';
     html += '<div class="stat-card"><div class="val">'+volume.toFixed(0)+'</div><div class="lbl">舍内体积(m³)</div></div>';
     html += '<div class="stat-card"><div class="val"><span class="grade-tag '+grade.tag+'">'+grade.text+'</span></div><div class="lbl">浓度等级</div></div>';
+    if(maintainQ0 > 0){
+      html += '<div class="stat-card"><div class="val">'+maintainQ0.toFixed(0)+'</div><div class="lbl">维持通风量(m³/h)</div></div>';
+    }
     html += '</div>';
-    html += '<div class="tip-box tip-success">当前氨气浓度 '+c1.toFixed(1)+' ppm 已在目标浓度 '+c2.toFixed(1)+' ppm 以内，维持正常通风即可。</div>';
+    if(maintainQ0 > 0){
+      html += '<div class="tip-box tip-warn">当前浓度已在目标 '+c2.toFixed(1)+' ppm 以内，但舍内仍有持续产氨 '+gen.toFixed(0)+' g/h，需维持至少 '+maintainQ0.toFixed(0)+' m³/h（约 '+(maintainQ0/volume).toFixed(1)+' 次/h）才能把浓度稳定在目标值；若产氨降为 0 再按正常通风即可。</div>';
+    }else{
+      html += '<div class="tip-box tip-success">当前氨气浓度 '+c1.toFixed(1)+' ppm 已在目标浓度 '+c2.toFixed(1)+' ppm 以内，且未填写持续产氨量，维持正常通风即可。</div>';
+    }
     const __g2=html;document.getElementById('result').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
     return;
   }

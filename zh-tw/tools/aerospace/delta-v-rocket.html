@@ -266,6 +266,10 @@ function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+=
 function calcTool(){
               var __ig=__tbInputGuard(['isp', 'm0', 'mf'],["比冲 Isp (s)", "初始质量 (kg)", "最终质量 (kg)"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
 const isp=num('isp'),m0=num('m0'),mf=num('mf');
+            if(!isFinite(isp)||isp<=0){ToolBox.setResult('result','<p style="color:var(--danger)">⚠ 比冲 Isp 必须大于 0。</p>');return;}
+            if(!isFinite(m0)||m0<=0){ToolBox.setResult('result','<p style="color:var(--danger)">⚠ 初始质量 m₀ 必须大于 0。</p>');return;}
+            if(!isFinite(mf)||mf<=0){ToolBox.setResult('result','<p style="color:var(--danger)">⚠ 最终质量 m_f 必须大于 0（质量为 0 时对数发散）。</p>');return;}
+            if(mf>m0){ToolBox.setResult('result','<p style="color:var(--danger)">⚠ 最终质量 m_f 不能大于初始质量 m₀：推进剂消耗后质量只会减少。</p>');return;}
             const dv=isp*9.81*Math.log(m0/mf);
             const __g2=dataGrid([
                 [(dv/1000).toFixed(2),'速度增量 Δv (km/s)'],
@@ -310,23 +314,26 @@ calcTool();
 <li>給定目標 Δv（如入軌需約 9.4 km/s），反推所需質量比或比衝。</li>
 <li>評估上面級能否把載荷送入目標軌道。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">單級入軌速度增量</div><div class="dd-ex-body"><a class="term-link" href="/zh-tw/tools/aerospace/specific-impulse.html">比衝 Isp</a>=300 s、初始質量 m₀=500 t、最終質量 m_f=100 t。Δv = 300×9.81×ln(500/100) = 2943×ln(5) = 2943×1.609 ≈ 4733 m/s ≈ 4.73 km/s。單級遠不足入軌，需多級接力。</div></div>
+<div class="dd-example"><div class="dd-ex-title">單級入軌速度增量</div><div class="dd-ex-body"><a class="term-link" href="/zh-tw/tools/aerospace/specific-impulse.html">比衝 Isp</a>=300 s、初始質量 m₀=500 t、最終質量 m_f=100 t。Δv = 300×9.81×ln(500/100) = 2943×ln(5) ≈ 4737 m/s ≈ 4.74 km/s。單級遠不足入軌，需多級接力。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
 <dt>為什麼單級火箭很難入軌？</dt><dd>入軌需 Δv≈9.4 km/s（含重力/阻力損失更多）。由公式，Δv 隨質量比對數增長，要把 4.7 提到 9.4 需質量比從 5 升到 25，結構難以承受，故用多級逐級拋殼。</dd>
-<dt>g₀ 是哪個重力？</dt><dd>標準重力加速度 9.80665 m/s²，僅作 Isp（秒）轉排氣速度的<a class="term-link" href="/zh-tw/tools/life/unit-converter.html">單位換算</a>常數，與發射點實際 g 無關。</dd>
+<dt>g₀ 是哪個重力？</dt><dd>本頁統一取 g₀=9.81 m/s²（定義值 9.80665，差約 0.04%），僅作 Isp（秒）轉排氣速度的<a class="term-link" href="/zh-tw/tools/life/unit-converter.html">單位換算</a>常數，與發射點實際 g 無關。</dd>
 </dl>
 </div>
 </section>
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"為什麼單級火箭很難入軌？","acceptedAnswer":{"@type":"Answer","text":"入軌需 Δv≈9.4 km/s（含重力/阻力損失更多）。由公式，Δv 隨質量比對數增長，要把 4.7 提到 9.4 需質量比從 5 升到 25，結構難以承受，故用多級逐級拋殼。"}},{"@type":"Question","name":"g₀ 是哪個重力？","acceptedAnswer":{"@type":"Answer","text":"標準重力加速度 9.80665 m/s²，僅作 Isp（秒）轉排氣速度的單位換算常數，與發射點實際 g 無關。"}}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"為什麼單級火箭很難入軌？","acceptedAnswer":{"@type":"Answer","text":"入軌需 Δv≈9.4 km/s（含重力/阻力損失更多）。由公式，Δv 隨質量比對數增長，要把 4.7 提到 9.4 需質量比從 5 升到 25，結構難以承受，故用多級逐級拋殼。"}},{"@type":"Question","name":"g₀ 是哪個重力？","acceptedAnswer":{"@type":"Answer","text":"本頁統一取 g₀=9.81 m/s²（定義值 9.80665，差約 0.04%），僅作 Isp（秒）轉排氣速度的單位換算常數，與發射點實際 g 無關。"}}]}</script>
 <script>
 function __delta_v_rocketNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
 function __delta_v_rocketExtras(){
     function __delta_v_rocketRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
     var isp=num('isp'),m0=num('m0'),mf=num('mf');
+    if (!(isFinite(isp)&&isFinite(m0)&&isFinite(mf)&&isp>0&&m0>0&&mf>0&&mf<=m0)) {
+        TBKit.matrix.table('#delta_v_rocketTable',{head:TBKit.util.isEn()?['Item','Value']:['项目','数值'],rows:[]});
+        return;
+    }
     var dv=isp*9.81*Math.log(m0/mf);
-    if (!isFinite(__delta_v_rocketNum('isp')) || !isFinite(__delta_v_rocketNum('m0')) || !isFinite(__delta_v_rocketNum('mf'))) return;
     var en=TBKit.util.isEn();
     TBKit.matrix.table('#delta_v_rocketTable',{
         head: en?['Item','Value']:['项目','数值'],

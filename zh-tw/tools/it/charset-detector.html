@@ -116,20 +116,20 @@ s.parentNode.insertBefore(el, s);
 </div>
 <div class="card">
     <h2 data-zh="🔤 編碼識別器">🔤 Charset Detector</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="本地靜態識別常見亂碼特徵，提供可讀性修復建議。">Detect text character encoding and guess the most likely charset.</p>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="本地靜態識別常見亂碼特徵，提供可讀性修復建議。">Restore text from common double-encoding mojibake and report its character composition.</p>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">用內建亂碼特徵規則表逐條對文本做正則匹配，收集全部命中的規則名。有命中時提示檢測到哪些特徵並建議核對編碼為 UTF-8 或 GBK 後按實際場景重新轉碼；無命中時提示未檢測到明顯亂碼特徵。同時對已知的典型亂碼序列做替換修復（把常見雙位元組誤碼序列還原為對應的重音字元與彎引號等），並輸出修復後的文本</div>
-  <div class="formula-desc">依據位元組序列特徵推測文本的字元編碼。</div>
+  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">雙重編碼判定：把文本中的每個字元還原為其在 cp1252 中的位元組值（≤0xFF 直接用碼位，€ “ ” 等特殊符號按對映表折算），得到位元組序列後按 UTF-8 嚴格解碼（fatal 模式）；解碼成功且結果與原文不同 ⇒ 判定為「UTF-8 位元組被按 Latin-1/Windows-1252 解讀」並輸出還原文本；出現非法序列則不做修復。另統計字元構成：中日韓字元、拉丁字母、U+FFFD 替換符、控制字元各自的數量。</div>
+  <div class="formula-desc">兩檔入口，按輸入形態自動選擇：① 貼上<b>十六進位制位元組串</b>（如 <code>C4 E3 BA C3</code> 或 <code>C4E3BAC3</code>）時，用瀏覽器原生 TextDecoder 分別按 UTF-8 / GB18030 / Big5 / UTF-16LE / UTF-16BE 嚴格解碼（fatal 模式），只有不出現非法序列的編碼才列入候選，再按可讀性打分排序，並識別 UTF-8 / UTF-16 BOM。② 貼上<b>已解碼的文本</b>時，只做可驗證的雙重編碼還原（UTF-8 位元組被當作 Latin-1/Windows-1252 顯示）。單憑位元組無法區分 GBK 與 GB18030（GBK 是 GB18030 的子集，瀏覽器 gbk 標籤即按 GB18030 解碼），故候選統一標註 GB18030；GB18030 與 Big5 的位元組區間大面積重疊，短文本只能給機率結論。若原文已含 U+FFFD 替換符，說明解碼時資訊已丟失，任何工具都無法還原，只能回到原始位元組重新解碼。</div>
   <ul class="formula-list">
-    <li><b>BOM</b>：UTF-8 為 <code>EF BB BF</code>，UTF-16LE 為 <code>FF FE</code>，UTF-16BE 為 <code>FE FF</code>。</li>
-    <li><b>合法性</b>：UTF-8 的多位元組序列有嚴格規則，出現非法序列即可排除 UTF-8。</li>
-    <li><b>統計</b>：對雙位元組編碼（GBK/Big5/Shift-JIS）用字頻與雙位元組分佈做機率判斷。</li>
-    <li><b>侷限</b>：推測並非確定結論，短文本極易誤判，需結合語言上下文人工確認。</li>
+    <li><b>位元組模式</b>：輸入為偶數位十六進位制（可含空格）；含 >=0x80 位元組或帶空格分隔才按位元組處理，避免把 2024 這類純數字文本誤判。</li>
+    <li><b>可修復</b>：UTF-8 → Latin-1/cp1252 雙重編碼（整串字元均可折算為位元組且 UTF-8 解碼合法）。</li>
+    <li><b>不可修復</b>：含 U+FFFD（資料已丟失）、含超出 cp1252 的字元、或 UTF-8 解碼非法（多為單向 GBK 亂碼或純 Latin-1 文本）。</li>
+    <li><b>侷限</b>：GBK / GB18030 / Big5 無法僅憑位元組嚴格互斥判定；判定須結合語種與來源人工確認。</li>
   </ul>
 </div>
 
     <div class="input-row">
-      <label>貼上異常文本</label>
+      <label>貼上異常文本或十六進位制位元組串</label>
       <textarea id="txt">Ã©Ã¤Ã¢Ã¢Ã«Ã¥Ã¨</textarea>
     </div>
     <div class="toolbar">
@@ -154,19 +154,19 @@ s.parentNode.insertBefore(el, s);
       </tr></thead>
       <tbody>
         <tr>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="BOM 標記">BOM markers</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="EF BB BF 為 UTF-8，FF FE 與 FE FF 為 UTF-16 位元組序">EF BB BF marks UTF-8; FF FE and FE FF mark UTF-16 orders</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="RFC 3629 / Unicode">RFC 3629 / Unicode</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="雙重編碼">Double encoding</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="UTF-8 位元組被按 Windows-1252 解讀後，每個字元可再折算回原位元組">UTF-8 bytes read as Windows-1252 can be mapped back to the original bytes</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="WHATWG Encoding Standard（windows-1252 索引）">WHATWG Encoding Standard (windows-1252 index)</td>
         </tr>
         <tr>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="位元組序列校驗">Byte validation</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="按 UTF-8 首位元組判定後續位元組數並驗證續位元組">lead byte determines length; continuation bytes validated</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="RFC 3629">RFC 3629</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="UTF-8 嚴格解碼">Strict UTF-8 decode</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="首位元組決定後續位元組數，續位元組須落在 0x80–0xBF；非法即解碼失敗">lead byte determines length; continuation bytes must be 0x80–0xBF; illegal sequences fail</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="RFC 3629 / TextDecoder fatal 模式">RFC 3629 / TextDecoder fatal mode</td>
         </tr>
         <tr>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="宣告優先順序">Declaration precedence</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="BOM 優先於 HTTP 頭，頭再優先於文件內宣告">BOM overrides headers, which override in-document declarations</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="WHATWG Encoding Standard">WHATWG Encoding Standard</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="替換符">Replacement character</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="U+FFFD 表示解碼已失敗，原始資訊無法從文本還原">U+FFFD indicates decoding already failed; the original information cannot be recovered from the text</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="Unicode U+FFFD">Unicode U+FFFD</td>
         </tr>
       </tbody>
     </table>
@@ -233,28 +233,163 @@ s.parentNode.insertBefore(el, s);
   </div>
 </div>
 <script>
-const RULES = [
-  {name:'UTF-8->GBK 误读', pattern: /Ã|â|�|Â/, replace: 'common'},
-  {name:'Latin1 误读', pattern: /�|�/, replace: 'latin1'}
+// Windows-1252 中 0x80–0x9F 区间的特殊符号 → 原字节
+const CP1252_TO_BYTE = {
+  0x20AC:0x80, 0x201A:0x82, 0x0192:0x83, 0x201E:0x84, 0x2026:0x85,
+  0x2020:0x86, 0x2021:0x87, 0x02C6:0x88, 0x2030:0x89, 0x0160:0x8A,
+  0x2039:0x8B, 0x0152:0x8C, 0x017D:0x8E, 0x2018:0x91, 0x2019:0x92,
+  0x201C:0x93, 0x201D:0x94, 0x2022:0x95, 0x2013:0x96, 0x2014:0x97,
+  0x02DC:0x98, 0x2122:0x99, 0x0161:0x9A, 0x203A:0x9B, 0x0153:0x9C,
+  0x017E:0x9E, 0x0178:0x9F
+};
+
+function toBytes(s){
+  const bytes = [];
+  for (let i = 0; i < s.length; i++){
+    const c = s.codePointAt(i);
+    if (c > 0xFFFF) return null;          // 含增补平面字符，不可能是纯 cp1252 误读
+    if (s.charCodeAt(i) <= 0xFF) bytes.push(s.charCodeAt(i));
+    else if (CP1252_TO_BYTE[c] !== undefined) bytes.push(CP1252_TO_BYTE[c]);
+    else return null;
+  }
+  return bytes;
+}
+
+// UTF-8 字节被按 Latin-1/cp1252 解读的双重编码还原；不可还原返回 null
+function fixMojibake(s){
+  const bytes = toBytes(s);
+  if (!bytes || !bytes.length) return null;
+  try {
+    const out = new TextDecoder('utf-8', { fatal: true }).decode(new Uint8Array(bytes));
+    return out === s ? null : out;
+  } catch (e) {
+    return null;
+  }
+}
+
+function charProfile(s){
+  let cjk = 0, latin = 0, repl = 0, ctrl = 0;
+  for (let i = 0; i < s.length; i++){
+    const c = s.codePointAt(i);
+    if (c > 0xFFFF) i++;
+    if (c === 0xFFFD) repl++;
+    else if ((c < 32 && c !== 9 && c !== 10 && c !== 13) || (c >= 0x7F && c < 0xA0)) ctrl++;
+    else if ((c >= 0x4E00 && c <= 0x9FFF) || (c >= 0x3400 && c <= 0x4DBF) || (c >= 0xF900 && c <= 0xFAFF)) cjk++;
+    else if ((c >= 0x41 && c <= 0x5A) || (c >= 0x61 && c <= 0x7A)) latin++;
+  }
+  return { cjk: cjk, latin: latin, repl: repl, ctrl: ctrl };
+}
+
+function escOut(s){
+  return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+// —— 字节串识别：输入形如 "C4 E3 BA C3" / "C4E3BAC3" 时按字节交给标准解码器 ——
+// 单凭字节无法区分 GBK 与 GB18030（前者是后者的子集，WHATWG 规范里 gbk 标签即按 gb18030 解码），
+// 故输出统一标注 GB18030，并在结论中说明这一不可判定性。
+const BYTE_DECODERS = [
+  { label: 'UTF-8', enc: 'utf-8' },
+  { label: 'GB18030（含 GBK）', enc: 'gb18030' },
+  { label: 'Big5', enc: 'big5' },
+  { label: 'UTF-16LE', enc: 'utf-16le' },
+  { label: 'UTF-16BE', enc: 'utf-16be' }
 ];
+
+function hexToBytes(s){
+  const t = s.replace(/[ \t\r\n]+/g, '');
+  if (!/^[0-9A-Fa-f]+$/.test(t) || t.length % 2) return null;
+  const bytes = [];
+  for (let i = 0; i < t.length; i += 2) bytes.push(parseInt(t.substr(i, 2), 16));
+  return bytes;
+}
+
+function looksLikeBytes(s){
+  const raw = s.trim();
+  if (!raw) return null;
+  const bytes = hexToBytes(raw);
+  if (!bytes) return null;
+  // 仅在「带空白分隔」或「含 >=0x80 字节」时按字节处理，
+  // 避免把 2024、123456 这类纯文本数字误判成十六进制字节串。
+  const spaced = /[ \t\r\n]/.test(raw);
+  return (spaced || bytes.some(b => b >= 0x80)) ? bytes : null;
+}
+
+function scoreText(s){
+  // 可读性打分：中日韩/假名/谚文 +3，可打印 ASCII +1，控制字符 -10
+  let score = 0;
+  for (const ch of s){
+    const c = ch.codePointAt(0);
+    if (c === 0xFFFD) score -= 10;
+    else if ((c >= 0x4E00 && c <= 0x9FFF) || (c >= 0x3400 && c <= 0x4DBF) ||
+             (c >= 0x3040 && c <= 0x30FF) || (c >= 0xAC00 && c <= 0xD7AF)) score += 3;
+    else if (c >= 0x20 && c < 0x7F) score += 1;
+    else if (c >= 0xE000 && c <= 0xF8FF) score -= 3;   // 私用区字符通常意味着解错了编码
+    else if (c < 0x20 || (c >= 0x7F && c < 0xA0)) score -= 10;
+  }
+  return score;
+}
+
+function detectBytes(bytes){
+  let bom = '', data = bytes;
+  if (bytes[0] === 0xEF && bytes[1] === 0xBB && bytes[2] === 0xBF){ bom = 'UTF-8 BOM'; data = bytes.slice(3); }
+  else if (bytes[0] === 0xFF && bytes[1] === 0xFE){ bom = 'UTF-16LE BOM'; data = bytes.slice(2); }
+  else if (bytes[0] === 0xFE && bytes[1] === 0xFF){ bom = 'UTF-16BE BOM'; data = bytes.slice(2); }
+
+  const results = [];
+  for (const c of BYTE_DECODERS){
+    let text = null;
+    try{
+      text = new TextDecoder(c.enc, { fatal: true }).decode(new Uint8Array(data));
+    }catch(e){ text = null; }
+    if (text === null) results.push({ label: c.label, text: null, score: -Infinity });
+    else results.push({ label: c.label, text: text, score: scoreText(text) });
+  }
+
+  const ok = results.filter(r => r.text !== null).sort((a, b) => b.score - a.score);
+  let html = '<p>输入按十六进制字节串处理：共 ' + data.length + ' 字节' + (bom ? '（识别到 ' + bom + '）' : '') + '。</p>';
+  if (!ok.length){
+    return html + '<p style="color:var(--danger)">❌ 所有候选编码都无法严格解码，字节序列可能已损坏或不是完整文本。</p>';
+  }
+  html += '<table style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr>' +
+    '<th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);">编码</th>' +
+    '<th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);">可严格解码</th>' +
+    '<th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);">解码结果</th></tr></thead><tbody>';
+  for (const r of results){
+    const body = r.text === null ? '否' : (r.score >= 0 ? '是（可读性分 ' + r.score + '）' : '是（可读性分 ' + r.score + '，疑似误判）');
+    html += '<tr><td style="padding:6px 8px;border-bottom:1px solid var(--border);">' + escOut(r.label) + '</td>' +
+      '<td style="padding:6px 8px;border-bottom:1px solid var(--border);">' + escOut(body) + '</td>' +
+      '<td style="padding:6px 8px;border-bottom:1px solid var(--border);">' + escOut(r.text === null ? '—' : r.text.slice(0, 60)) + '</td></tr>';
+  }
+  html += '</tbody></table>';
+  const top = ok[0], tie = ok.filter(r => r.score === top.score);
+  if (tie.length > 1){
+    html += '<p>结论：' + escOut(tie.map(r => r.label).join(' / ')) + ' 均可严格解码且可读性并列，字节区间重叠，<b>无法仅凭字节区分</b>，请结合语种与数据来源确认。</p>';
+  } else {
+    html += '<p>结论：最可能为 <b>' + escOut(top.label) + '</b>（可读性分 ' + top.score + '）；仍属概率判断，请结合来源确认。</p>';
+  }
+  return html;
+}
 
 function detect() {
   const t = document.getElementById('txt').value || '';
-  const hits = RULES.filter(r => r.pattern.test(t)).map(r => r.name);
+  const bytes = looksLikeBytes(t);
+  if (bytes){
+    document.getElementById('out').innerHTML = detectBytes(bytes);
+    return;
+  }
+  const fixed = fixMojibake(t);
+  let extra;
+  if (fixed !== null) extra = '疑似 UTF-8 字节被按 Latin-1/Windows-1252 解读，已按字节还原。';
+  else if (t.indexOf('\uFFFD') >= 0) extra = '文本含 U+FFFD 替换符：原始解码已失败，信息不可还原，请回到原始字节重新解码。';
+  else if (!t) extra = '请输入待检测文本。';
+  else extra = '未检测到明显乱码特征。';
 
-  let fixed = t;
-  fixed = fixed.replace(/Ã©/g, 'é');
-  fixed = fixed.replace(/Ã¨/g, 'è');
-  fixed = fixed.replace(/Ã¯/g, 'ï');
-  fixed = fixed.replace(/Ã†/g, 'Æ');
-  fixed = fixed.replace(/â\x80\x98/g, '‘');
-  fixed = fixed.replace(/â\x80\x99/g, '’');
+  const p = charProfile(t);
+  const profile = '字符构成：中日韩字符 ' + p.cjk + ' · 拉丁字母 ' + p.latin + ' · 替换符 ' + p.repl + ' · 控制字符 ' + p.ctrl;
 
-  let extra = '未检测到明显乱码特征。';
-  if (hits.length) extra = '检测到：' + hits.join('，') + '，建议核对编码为 UTF-8/GBK 或按实际场景重新转码。';
-
-  const __h0=`<p>${extra}</p>` +
-    `<p>修复输出：</p><p>${fixed}</p>`;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('out').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('out').innerHTML=__h0;
+  const __h0=`<p>${escOut(extra)}</p>` +
+    `<p>修复输出：</p><p>${escOut(fixed === null ? t : fixed)}</p>` +
+    `<p style="font-size:12px;color:var(--text-muted);">${escOut(profile)}</p>`;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('out').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('out').innerHTML=__h0;
 }
 
 function copyResult() {

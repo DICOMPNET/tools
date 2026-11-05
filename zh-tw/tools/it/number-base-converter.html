@@ -322,7 +322,7 @@ s.parentNode.insertBefore(el, s);
       <li><strong>十六進位制 (Hexadecimal):</strong> 基數為16，使用0-9和A-F，常用於顏色編碼、記憶體地址</li>
       <li><strong>位(bit):</strong> 二進位制的一位，是計算機中最小的資料單位</li>
       <li><strong>位元組(Byte):</strong> 8個二進位制位，是計算機基本儲存單位</li>
-      <li><strong>BigInt:</strong> 支援任意精度的大整數運算，不受普通數字精度限制</li>
+      <li><strong>BigInt:</strong> 支援任意精度的大整數運算，不受普通數字位數限制；字母位一律按小寫 a–z 解析與輸出（大寫輸入會自動轉小寫）。</li>
     </ul>
   </div>
 
@@ -439,11 +439,10 @@ function parseNumber(str, base) {
   }
 
   if (base === 10) {
-    try {
-      return BigInt(str) * sign;
-    } catch(e) {
-      return null;
-    }
+    // 必须限定为纯十进制数字：BigInt('0x10') 会按 JS 字面量规则悄悄算成 16，
+    // 而 16 进制分支里 '0x10' 又是非法输入，两条路径口径就会互相矛盾。
+    if (!/^[0-9]+$/.test(str)) return null;
+    return BigInt(str) * sign;
   }
 
   const chars = '0123456789abcdefghijklmnopqrstuvwxyz';
@@ -715,7 +714,8 @@ function __number_base_converterSnap(){
 function __number_base_converterResText(){
     var r=document.getElementById('batchOutput');
     if(!r) return '';
-    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    var isField=r.tagName==='INPUT'||r.tagName==='TEXTAREA'||r.tagName==='SELECT';
+    var t=((isField?r.value:r.textContent)||'').replace(/\s+/g,' ').trim();
     if(!t||t==='--'||t==='—'||t==='-') return '';
     if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
     return t.slice(0,80);
@@ -805,6 +805,10 @@ function __number_base_converterPresets(){
 var __number_base_converter_f0=(typeof convertFromInput==='function')?convertFromInput:null;
 if(__number_base_converter_f0){
     convertFromInput=function(){ var __r=__number_base_converter_f0.apply(null,arguments); try{ __number_base_converterExtras(); }catch(e){} return __r; };
+}
+var __number_base_converter_m0=(typeof doBatchConvert==='function')?doBatchConvert:null;
+if(__number_base_converter_m0){
+    doBatchConvert=function(){ var __r=__number_base_converter_m0.apply(null,arguments); var __x=function(){ try{ __number_base_converterExtras(); }catch(e){} }; if(__r&&typeof __r.then==='function'){ __r.then(__x,__x); } else { __x(); } return __r; };
 }
 function __number_base_converterBoot(){ try{ __number_base_converterPresets(); }catch(e){} try{ convertFromInput(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __number_base_converterBoot();

@@ -180,7 +180,8 @@ function num(id){
 }
 function getParams(){
   var area=num('area'),thk=num('thk'),density=num('density'),perBucket=num('perBucket'),waste=num('waste');
-  var coats=parseInt(document.getElementById('coats').value)||1;
+  var coatsRaw=parseInt(document.getElementById('coats').value);
+  var coats=isNaN(coatsRaw)?1:coatsRaw; /* 0 遍为合法工况（用料 0） */
   return {area:area,thk:thk,coats:coats,density:density,perBucket:perBucket,waste:waste,valid:area>0&&thk>0&&density>0&&perBucket>0};
 }
 function calc(){
@@ -357,7 +358,7 @@ function __estimate_area_dosageExport(){
 }
 function __estimate_area_dosagePresets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#estimate_area_dosagePresets',[{label:'默认参数',labelEn:'Default',values:{'area':'50', 'thk':'0.15', 'coats':'1', 'density':'1400', 'perBucket':'25', 'waste':'5'}},
+    TBKit.preset.bar('#estimate_area_dosagePresets',[{label:'默认参数',labelEn:'Default',values:{'area':'50', 'thk':'0.15', 'coats':'2', 'density':'1400', 'perBucket':'25', 'waste':'5'}},
   {"label":"200m² 厚层 3 遍","labelEn":"200m2 thick 3 coats","values":{"area":200,"thk":0.2,"coats":"3","density":1500,"perBucket":20,"waste":8}},
   {"label":"20m² 薄层 1 遍","labelEn":"20m2 thin 1 coat","values":{"area":20,"thk":0.1,"coats":"1","density":1200,"perBucket":30,"waste":3}},
   {"label":"50m² 常规 2 遍","labelEn":"50m2 routine 2 coats","values":{"area":50,"thk":0.15,"coats":"2","density":1400,"perBucket":25,"waste":5}}],function(){ calc(); });
@@ -418,12 +419,13 @@ else document.addEventListener('DOMContentLoaded', __estimate_area_dosageBoot);
 <h2>📚 深度解析：牆面粉刷用料</h2>
 <h3>💡 常見使用場景</h3>
 <ul class="dd-list">
-<li>翻新刷牆，量房間周長×層高減門窗得塗刷面積，按『面積÷單桶塗布率』算桶數。</li>
+<li>翻新刷牆，量房間周長×層高減門窗得塗刷面積，再按單遍厚度×遍數與材料密度估算體積重量。</li>
 <li>兩遍膩子+一遍底漆+兩遍面漆時，分遍累加用量，避免只算面漆漏底。</li>
 <li>對比滾塗與噴塗的損耗，噴塗省料但裝置貴，小面積滾塗更划算。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">面漆桶數</div><div class="dd-ex-body">塗刷面積 60㎡，面漆 2 遍，單桶塗布 10㎡/遍
-需 = 60 × 2 ÷ 10 = 12㎡·遍 ÷ 10 = 1.2 桶 → 買 2 桶</div></div>
+<div class="dd-example"><div class="dd-ex-title">粉刷用料與桶數</div><div class="dd-ex-body">粉刷面積 50㎡，單遍厚度 0.15mm，塗刷 2 遍，材料密度 1400 kg/m³，每桶 25kg，損耗 5%
+總厚 = 0.15×2 = 0.30mm；體積 = 50×0.30÷1000 = 0.015 m³（15 L）
+淨重 = 15×1.4 = 21.00 kg；含損耗 = 21.00×1.05 = 22.05 kg；桶數 = ⌈22.05÷25⌉ = 1 桶</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
 <dt>塗布率怎麼定？</dt><dd>看產品標註（㎡/L 或㎡/桶），並乘損耗係數；多孔、深色基層吃漆多，塗布率下降。</dd>

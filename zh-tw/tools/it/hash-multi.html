@@ -113,7 +113,7 @@ s.parentNode.insertBefore(el, s);
 <h3>📐 工作原理與說明</h3>
 <p data-zh="雜湊函式把任意長度輸入對映為定長摘要,具備確定性、雪崩效應(改 1 bit 約半數輸出變)、單向不可逆。">Compute many hash algorithms (MD5, SHA, CRC…) at once in your browser — compare digests side by side.</p>
 <ul>
-<li>支援 MD5(128b)/ SHA-1(160b)/ SHA-256 / SHA-512 / SHA-3,經 Web Crypto <code>SubtleCrypto.digest</code> 計算。</li>
+<li>支援 MD5(128b)/ SHA-1(160b)/ SHA-256 / SHA-512 / CRC32；SHA 系列經 Web Crypto <code>SubtleCrypto.digest</code> 計算（本頁不含 SHA-3）。</li>
 <li>用途:檔案完整性校驗、去重、內容指紋。</li>
 </ul>
 <p>⚠️ <strong>安全提示</strong>:MD5、SHA-1 已被證明可碰撞,勿用於數字簽名或口令儲存;口令應使用 bcrypt / Argon2 等慢雜湊。本工具純前端,資料不上傳。</p>
@@ -124,12 +124,12 @@ s.parentNode.insertBefore(el, s);
     </div>
     <div class="input-row" style="align-items:center;">
       <span style="white-space:nowrap;font-size:13px;">演算法：</span>
-      <label style="flex:0 0 auto;"><input type="checkbox" id="al_md5" checked> MD5</label>
-      <label style="flex:0 0 auto;"><input type="checkbox" id="al_sha1" checked> SHA-1</label>
-      <label style="flex:0 0 auto;"><input type="checkbox" id="al_sha256" checked> SHA-256</label>
-      <label style="flex:0 0 auto;"><input type="checkbox" id="al_sha512"> SHA-512</label>
-      <label style="flex:0 0 auto;"><input type="checkbox" id="al_crc32"> CRC32</label>
-      <label style="flex:0 0 auto;"><input type="checkbox" id="opt_upper"> 大寫</label>
+      <label style="flex:0 0 auto;"><input type="checkbox" id="al_md5" onchange="calc()" checked> MD5</label>
+      <label style="flex:0 0 auto;"><input type="checkbox" id="al_sha1" onchange="calc()" checked> SHA-1</label>
+      <label style="flex:0 0 auto;"><input type="checkbox" id="al_sha256" onchange="calc()" checked> SHA-256</label>
+      <label style="flex:0 0 auto;"><input type="checkbox" id="al_sha512" onchange="calc()"> SHA-512</label>
+      <label style="flex:0 0 auto;"><input type="checkbox" id="al_crc32" onchange="calc()"> CRC32</label>
+      <label style="flex:0 0 auto;"><input type="checkbox" id="opt_upper" onchange="calc()"> 大寫</label>
     </div>
     <div class="result-box" id="result"></div> <div id="hash_multiTable"></div> <div id="hash_multiDiff"></div> <div id="hash_multiChart"></div> <div id="hash_multiHist"></div>
     <div id="outBox" style="display:flex;flex-direction:column;gap:10px;"></div>
@@ -324,21 +324,26 @@ function calc(){
   var box=document.getElementById('outBox');
   var out=document.getElementById('result');
   lastHashPairs=[];
-  if(!text){const __h0='';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){box.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}box.innerHTML=__h0;const __h1='';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h1;return;}
+  if(!text){
+    var en = !!(window.I18n && window.I18n.get && window.I18n.get() === 'en-US');
+    box.innerHTML='<p style="color:var(--text-muted);padding:12px 14px;">' + (en ? 'Enter text to hash' : '请输入要计算哈希的文本') + '</p>';
+    out.innerHTML='';
+    return;
+  }
   var items=[];
   function push(label,hash){
     if(upper)hash=String(hash).toUpperCase();
     lastHashPairs.push({label:String(label),value:String(hash)});
     items.push('<div style="background:var(--bg,#FFFAF7);border:1px solid var(--border,#E5E7EB);border-radius:12px;padding:12px 14px;">'+
       '<div style="font-size:12px;color:var(--muted,#6B7280);margin-bottom:4px;">'+label+'</div>'+
-      '<div style="font-family:monospace;font-size:13.5px;word-break:break-all;">'+hash+' <button class="btn" style="padding:1px 10px;font-size:12px;float:right;margin-left:6px;" onclick="copyItem(this)">复制</button></div></div>');
+      '<div data-hash-label="'+label+'" style="font-family:monospace;font-size:13.5px;word-break:break-all;">'+hash+' <button class="btn" style="padding:1px 10px;font-size:12px;float:right;margin-left:6px;" onclick="copyItem(this)">复制</button></div></div>');
   }
   var selected=0;
   if(document.getElementById('al_md5').checked){push('MD5',md5(text));selected++;}
   if(document.getElementById('al_sha1').checked){push('SHA-1','—');selected++;}
   if(document.getElementById('al_sha256').checked){push('SHA-256','—');selected++;}
   if(document.getElementById('al_sha512').checked){push('SHA-512','—');selected++;}
-  if(document.getElementById('al_crc32').checked){push('CRC32',crc32(text).toString(16));selected++;}
+  if(document.getElementById('al_crc32').checked){push('CRC32',('00000000'+crc32(text).toString(16)).slice(-8));selected++;}
   const __h2=items.join('');if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){box.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}box.innerHTML=__h2;
   // SHA 系列走异步 crypto.subtle
   var jobs=[];
@@ -353,14 +358,8 @@ function calc(){
         for(var p=0;p<lastHashPairs.length;p++){
           if(lastHashPairs[p].label===r[0]){lastHashPairs[p].value=v;break;}
         }
-        var boxes=box.querySelectorAll('div');
-        for(var i=0;i<boxes.length;i++){
-          if(boxes[i].textContent.indexOf(r[0]+'复制')>-1&&boxes[i].querySelector('div:last-child')){
-            var target=boxes[i].querySelector('div:nth-child(2)');
-            if(target){target.firstChild.textContent=v;}
-            break;
-          }
-        }
+        var target=box.querySelector('[data-hash-label="'+r[0]+'"]');
+        if(target){target.firstChild.textContent=v;}
       });
     }).catch(function(){});
   }

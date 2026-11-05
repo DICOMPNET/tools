@@ -142,7 +142,7 @@ s.parentNode.insertBefore(el, s);
       <div id="barcode_eanPresets"></div><button type="button" class="btn primary" onclick="generate()">生成</button><button class="btn" type="button" onclick="downloadBarcodePNG()">下載 PNG</button><button class="btn" type="button" onclick="__barcode_eanExport()">匯出明細 CSV</button>
       <button type="button" class="btn success" onclick="copyResult()">複製</button>
     </div>
-    <div class="result-box" id="output"></div> <div id="barcode_eanTable"></div> <div id="barcode_eanDiff"></div> <div id="barcode_eanChart"></div> <div id="barcode_eanHist"></div>
+    <div class="result-box" id="output">點選生成按鈕</div> <div id="barcode_eanTable"></div> <div id="barcode_eanDiff"></div> <div id="barcode_eanChart"></div> <div id="barcode_eanHist"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -222,8 +222,8 @@ s.parentNode.insertBefore(el, s);
 </div>
 <script>
 const L_CODES=['0001101','0011001','0010011','0111101','0100011','0110001','0101111','0111011','0110111','0001011'];
-const G_CODES=L_CODES.map(s=>s.split('').reverse().join(''));
 const R_CODES=L_CODES.map(s=>s.split('').map(b=>b==='0'?'1':'0').join(''));
+const G_CODES=R_CODES.map(s=>s.split('').reverse().join(''));
 // parity patterns for first 6 digits based on first digit
 const PARITY=['LLLLLL','LLGLGG','LLGGLG','LLGGGL','LGLLGG','LGGLLG','LGGGLL','LGLGLG','LGLGGL','LGGLGL'];
 function eanCheck(d12){
@@ -277,7 +277,8 @@ function downloadBarcodePNG(){
   if(!cv){ if(window.ToolBox&&ToolBox.showToast)ToolBox.showToast('请先生成条形码','error'); else alert('请先生成条形码'); return; }
   var a=document.createElement('a');
   a.download='barcodeean-'+Date.now()+'.png';
-  a.href=cv.toDataURL('image/png');
+  try { a.href=cv.toDataURL('image/png'); }
+  catch (e) { if(window.ToolBox&&ToolBox.showToast)ToolBox.showToast('导出失败：' + ((e && (e.name || e.message)) || '未知错误'),'error'); else alert('导出失败：' + ((e && (e.name || e.message)) || '未知错误')); return; }
   a.click();
   if(window.ToolBox&&ToolBox.showToast)ToolBox.showToast('PNG 已下载','success');
 }

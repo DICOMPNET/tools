@@ -137,7 +137,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="在瀏覽器內框選區域裁剪圖片，支援自由與固定比例並即時預覽，純前端處理圖片不上傳，適合頭像、證件照與配圖裁減。">Crop an image by dragging a free or fixed-ratio selection with live preview, ideal for avatars, ID photos and thumbnails.</p>
 
     <label>上傳圖片</label>
-    <input type="file" id="fileInput" accept="image/*">
+    <input type="file" id="fileInput" accept="image/png,image/jpeg,image/webp,image/gif">
     <div class="input-row">
       <div><label>X 偏移</label><input type="number" id="cx" value="0" min="0" placeholder="如 0"></div>
       <div><label>Y 偏移</label><input type="number" id="cy" value="0" min="0" placeholder="如 0"></div>
@@ -248,9 +248,19 @@ function updateDownload(name){
   if(n) n.textContent = name;
 }
 window.addEventListener('pagehide', revokeCropURL);
+function __svgFileBlocked(file){
+  if(!file) return false;
+  var t=String(file.type||'').toLowerCase(), n=String(file.name||'').toLowerCase();
+  if(t.indexOf('image/svg')===0||/\.svg$/i.test(n)){
+    var m='仅支持位图（PNG/JPG/WebP），不支持 SVG';
+    try{ if(typeof showToast==='function') showToast(m,'error'); else if(window.ToolBox&&ToolBox.showToast) ToolBox.showToast(m,'error'); }catch(e){}
+    return true;
+  }
+  return false;
+}
 document.getElementById('fileInput').addEventListener('change', (e) => {
   const file = e.target.files[0];
-  if(!file) return;
+  if(!file || __svgFileBlocked(file)) return;
   const reader = new FileReader();
   reader.onload = (ev) => {
     const img = new Image();
@@ -262,10 +272,23 @@ document.getElementById('fileInput').addEventListener('change', (e) => {
       const __h0='<img src="/zh-tw/tools/design/'+ev.target.result+'" alt="原图">';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('preview').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('preview').innerHTML=__h0;
       generate();
     };
+    img.onerror = () => {
+      origImg = null;
+      lastURL = '';
+      document.getElementById('preview').innerHTML = '<p style="color:var(--danger)">⚠️ 图片解码失败：文件内容不是有效的位图（可能只是改了扩展名）。</p>';
+      const msg = '图片解码失败，请改用真实的 PNG/JPG/WebP 图片';
+      if (typeof showToast === 'function') showToast(msg, 'error');
+      else if (window.ToolBox && ToolBox.showToast) ToolBox.showToast(msg, 'error');
+    };
     img.src = ev.target.result;
   };
   reader.readAsDataURL(file);
 });
+function __icExportFail(msg){
+  if(typeof showToast==='function')showToast(msg,'error');
+  else if(window.ToolBox&&ToolBox.showToast)ToolBox.showToast(msg,'error');
+  else alert(msg);
+}
 function generate(){
   if(!origImg){ alert('请先上传图片'); return; }
   let x = parseInt(document.getElementById('cx').value) || 0;
@@ -280,17 +303,21 @@ function generate(){
   canvas.width = w; canvas.height = h;
   const ctx = canvas.getContext('2d');
   ctx.drawImage(origImg, x, y, w, h, 0, 0, w, h);
-  lastURL = canvas.toDataURL('image/png');
+  try { lastURL = canvas.toDataURL('image/png'); }
+  catch (e) { lastURL=''; __icExportFail('导出失败：' + ((e && (e.name || e.message)) || '未知错误')); return; }
   const name = cropName(x, y, w, h);
   revokeCropURL();
   updateDownload(name);
   const token = ++cropSeq;
   if(typeof canvas.toBlob === 'function' && typeof URL !== 'undefined' && typeof URL.createObjectURL === 'function'){
-    canvas.toBlob(function(blob){
-      if(token !== cropSeq || !blob) return;
-      lastBlobURL = URL.createObjectURL(blob);
-      updateDownload(name);
-    }, 'image/png');
+    try {
+      canvas.toBlob(function(blob){
+        if(token !== cropSeq) return;
+        if(!blob){ __icExportFail('导出失败：浏览器未能生成 PNG（画布可能被污染）'); return; }
+        lastBlobURL = URL.createObjectURL(blob);
+        updateDownload(name);
+      }, 'image/png');
+    } catch (e) { __icExportFail('导出失败：' + ((e && (e.name || e.message)) || '未知错误')); }
   }
   const __h1='<img src="/zh-tw/tools/design/'+lastURL+'" alt="裁剪后">';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('preview').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('preview').innerHTML=__h1;
 }

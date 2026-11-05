@@ -497,7 +497,7 @@ function finish() {
   clearInterval(timerInterval);
   isRunning = false;
 
-  const history = JSON.parse(localStorage.getItem('pres-history') || '[]');
+  const history = (function(){try{return JSON.parse(localStorage.getItem('pres-history') || '[]')}catch(e){try{localStorage.removeItem('pres-history')}catch(_){}return []}})();
   history.unshift({
     topic: document.getElementById('topic').value,
     slides: slides.length,
@@ -525,8 +525,14 @@ function exitFullscreen() {
   isFullscreen = false;
 }
 
+function escHtml(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
 function renderHistory() {
-  const history = JSON.parse(localStorage.getItem('pres-history') || '[]');
+  const history = (function(){try{return JSON.parse(localStorage.getItem('pres-history') || '[]')}catch(e){try{localStorage.removeItem('pres-history')}catch(_){}return []}})();
   const list = document.getElementById('historyList');
   if (history.length === 0) {
     const __h6='<p style="color:var(--text-muted);text-align:center;padding:20px;">暂无历史记录</p>';if((typeof __h6==='number'&&!isFinite(__h6))||/Infinity/.test(String(__h6))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h6)){list.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}list.innerHTML=__h6;
@@ -535,11 +541,11 @@ function renderHistory() {
   const __h7=history.map(h => `
     <div class="history-item">
       <div style="display:flex;justify-content:space-between;align-items:center;">
-        <strong>${h.topic}</strong>
-        <span style="color:var(--text-muted);font-size:12px;">${h.date}</span>
+        <strong>${escHtml(h.topic)}</strong>
+        <span style="color:var(--text-muted);font-size:12px;">${escHtml(h.date)}</span>
       </div>
       <div style="font-size:13px;color:var(--text-secondary);margin-top:4px;">
-        ${h.slides} 页 · 计划 ${fmtTime(h.plannedTotal)} · 实际 ${fmtTime(h.actualTotal)}
+        ${escHtml(h.slides)} 页 · 计划 ${fmtTime(h.plannedTotal)} · 实际 ${fmtTime(h.actualTotal)}
       </div>
     </div>
   `).join('');if((typeof __h7==='number'&&!isFinite(__h7))||/Infinity/.test(String(__h7))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h7)){list.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}list.innerHTML=__h7;

@@ -142,7 +142,7 @@ s.parentNode.insertBefore(el, s);
     <div class="toolbar">
       <div id="php_escapePresets"></div><button type="button" class="btn primary" onclick="esc()">轉義 ↑</button><button class="btn" type="button" onclick="__php_escapeExport()">匯出明細 CSV</button>
       <button type="button" class="btn primary" onclick="unesc()">反轉義 ↓</button>
-      <button type="button" class="btn success" onclick="copyResult()">複製結果</button>
+      <button type="button" class="btn success" onclick="copyResult(event)">複製結果</button>
       <button type="button" class="btn" onclick="clearAll()">清空</button>
       <div style="flex:1;"></div>
       <label style="margin:0;font-size:13px;">
@@ -262,7 +262,7 @@ function esc(){
         case '\t': out += '\\t'; break;
         case '\v': out += '\\v'; break;
         case '\f': out += '\\f'; break;
-        case '\e': out += '\\e'; break;
+        case '\x1b': out += '\\e'; break;
         default:
           if(cp < 0x20){
             out += '\\x' + cp.toString(16).padStart(2,'0');
@@ -321,7 +321,7 @@ function unesc(){
             i += 6;
           }
           break;
-        case /[0-7]/:
+        case '0': case '1': case '2': case '3': case '4': case '5': case '6': case '7':
           let o = '';
           let k = i + 1;
           while(k < text.length && /[0-7]/.test(text[k]) && o.length < 3){ o += text[k]; k++; }
@@ -338,11 +338,11 @@ function unesc(){
   document.getElementById('output').value = out;
 }
 
-function copyResult(){
+function copyResult(ev){
   const v = document.getElementById('output').value;
   if(!v) return;
+  const btn = (ev && ev.target) ? ev.target.closest('.btn') : null;
   navigator.clipboard.writeText(v).then(() => {
-    const btn = event.target.closest('.btn');
     if(btn){ btn.textContent = '✅ 已复制'; setTimeout(() => btn.textContent = '复制结果', 1500); }
   });
 }
@@ -378,7 +378,8 @@ function __php_escapeSnap(){
 function __php_escapeResText(){
     var r=document.getElementById('output');
     if(!r) return '';
-    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    var isField=r.tagName==='INPUT'||r.tagName==='TEXTAREA'||r.tagName==='SELECT';
+    var t=((isField?r.value:r.textContent)||'').replace(/\s+/g,' ').trim();
     if(!t||t==='--'||t==='—'||t==='-') return '';
     if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
     return t.slice(0,80);

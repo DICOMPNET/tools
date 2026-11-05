@@ -123,7 +123,7 @@
 
 <script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"音訊錄製處理器是做什麼的？","acceptedAnswer":{"@type":"Answer","text":"音訊錄製處理器，在瀏覽器本地錄製音訊、調節音量與速度並可視化波形，純前端執行、資料不上傳，適合語音與素材處理。"}},{"@type":"Question","name":"如何使用音訊錄製處理器？","acceptedAnswer":{"@type":"Answer","text":"在對應的輸入框或選項中填寫、選擇所需引數，點選「計算」或「生成」按鈕即可執行，結果會在結果區即時顯示，支援複製與匯出。"}},{"@type":"Question","name":"計算結果準確嗎？","acceptedAnswer":{"@type":"Answer","text":"本工具在你的本地瀏覽器中即時計算，不依賴伺服器；只要輸入的引數正確，結果即按對應的規則得出。涉及經驗估算的部分僅供參考，不作為正式依據。"}},{"@type":"Question","name":"音訊錄製處理器適合哪些場景？","acceptedAnswer":{"@type":"Answer","text":"設計稿標註、配色與排版相關的快速參考。"}},{"@type":"Question","name":"使用本工具需要聯網或上傳資料嗎？","acceptedAnswer":{"@type":"Answer","text":"不需要。所有計算均在你的裝置本地完成，資料不會上傳到任何伺服器，可放心使用。"}}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"線上錄音工具是做什麼的？","acceptedAnswer":{"@type":"Answer","text":"呼叫瀏覽器麥克風在本地錄製音訊，即時顯示波形與音量，支援開始與停止、多段錄音管理，並可匯出 WebM/Opus 或 WAV 檔案，全程不上傳伺服器。"}},{"@type":"Question","name":"如何使用線上錄音工具？","acceptedAnswer":{"@type":"Answer","text":"先允許瀏覽器麥克風許可權，點選「開始錄音」，錄製中可檢視計時與波形，點選「停止錄音」後文件進入錄音列表，可試聽、下載或刪除。"}},{"@type":"Question","name":"錄音會上傳到伺服器嗎？","acceptedAnswer":{"@type":"Answer","text":"不會。麥克風資料通過 Web Audio 與 MediaRecorder 在瀏覽器內處理，錄音檔案僅存在於當前頁面，重新整理或關閉頁面即丟失，匯出前請先下載。"}},{"@type":"Question","name":"WebM/Opus 和 WAV 怎麼選？","acceptedAnswer":{"@type":"Answer","text":"WebM/Opus 體積小，適合分享與網路傳輸；WAV 為無損未壓縮，適合進入剪輯軟體或 DAW 二次處理。需要後期精修時優先匯出 WAV。"}},{"@type":"Question","name":"為什麼錄出來有雜音或爆音？","acceptedAnswer":{"@type":"Answer","text":"多為輸入增益過高導致削波，或揚聲器外放造成回授嘯叫。可降低麥克風增益、讓聲源距麥克風 15–30 釐米，並儘量在安靜環境錄製。"}}]}</script>
 <!-- TOOLBOX-TTZZ -->
 <script>
 (function(){try{
@@ -886,6 +886,7 @@ function getThemeColors() {
 }
 
 function drawIdleWave() {
+  if (!canvas || !ctx) return; // canvas 由 DOMContentLoaded 赋值，主题监听可能先于其触发
   if (isRecording && micAnalyser) return; // 录音中不画空闲波形
   var w = canvas.width / (window.devicePixelRatio || 1);
   var h = canvas.height / (window.devicePixelRatio || 1);
@@ -978,6 +979,7 @@ function startLiveWaveform(analyserNode) {
 
 // ===== 深色模式波形颜色更新 =====
 var observer = new MutationObserver(function() {
+  if (!canvas || !ctx) return; // 画布尚未就绪时不启动绘制
   if (!isPlaying && !isRecording) drawIdleWave();
 });
 observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
@@ -1024,7 +1026,6 @@ document.addEventListener('DOMContentLoaded',function(){
 });
 </script>
 
-<section class="opt-guide"><h2>如何使用音訊錄製處理器</h2><ol><li>在對應的輸入框或選項中填寫、選擇所需引數。</li><li>點選「計算」或「生成」按鈕執行。</li><li>在結果區檢視輸出，可複製結果或匯出使用。</li></ol><h2>引數說明</h2><ul class="param-list"><li>音量</li><li>播放速度</li></ul><h2>適用場景</h2><p>設計稿標註、配色與排版相關的快速參考。</p></section><section class="opt-faq"><h2>常見問題</h2><dl class="faq-list"><dt>音訊錄製處理器是做什麼的？</dt><dd>音訊錄製處理器，在瀏覽器本地錄製音訊、調節音量與速度並可視化波形，純前端執行、資料不上傳，適合語音與素材處理。</dd><dt>如何使用音訊錄製處理器？</dt><dd>在對應的輸入框或選項中填寫、選擇所需引數，點選「計算」或「生成」按鈕即可執行，結果會在結果區即時顯示，支援複製與匯出。</dd><dt>計算結果準確嗎？</dt><dd>本工具在你的本地瀏覽器中即時計算，不依賴伺服器；只要輸入的引數正確，結果即按對應的規則得出。涉及經驗估算的部分僅供參考，不作為正式依據。</dd><dt>音訊錄製處理器適合哪些場景？</dt><dd>設計稿標註、配色與排版相關的快速參考。</dd><dt>使用本工具需要聯網或上傳資料嗎？</dt><dd>不需要。所有計算均在你的裝置本地完成，資料不會上傳到任何伺服器，可放心使用。</dd></dl></section>
 <script>
 (function(){try{
   var NS="tools/audio/audio-recorder.html";

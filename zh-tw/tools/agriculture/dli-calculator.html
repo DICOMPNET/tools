@@ -248,7 +248,7 @@ function calc(){
   var cropKey = document.getElementById('cropType').value;
   var crop = CROP_DLI[cropKey];
 
-  if(ppfd<0||hours<0){ ToolBox.setResult('result','<p style="color:var(--danger);">请输入有效数值</p>'); return; }
+  if(ppfd<0||hours<0||hours>24||lightPPFD<0||lightHours<0||lightHours>24){ ToolBox.setResult('result','<p style="color:var(--danger);">请输入有效光照参数（PPFD ≥0，自然光与补光时长均应在 0–24 小时）</p>'); return; }
 
   // DLI = PPFD(μmol/m²/s) × 时间(秒) / 1000000 → mol/m²/d
   var naturalDLI = ppfd * hours * 3600 / 1000000;
@@ -267,7 +267,7 @@ function calc(){
   if(deficit>0){
     tipContent += ' 当前缺口'+deficit.toFixed(1)+' mol/m²/d。';
     if(lightPPFD>0) tipContent += '建议补光灯再开'+needLightHours.toFixed(1)+'小时。';
-    else if(needPPFD>0) tipContent += '或增加自然PPFD至'+needPPFD.toFixed(0)+' μmol/m²/s。';
+    else if(needPPFD>0) tipContent += '或把自然PPFD再提高'+needPPFD.toFixed(0)+' μmol/m²/s（达到'+(ppfd+needPPFD).toFixed(0)+' μmol/m²/s）。';
   }
 
   var html = '<div class="data-grid">';
@@ -373,7 +373,6 @@ document.addEventListener('DOMContentLoaded',function(){
 });
 </script>
 
-<section class="opt-guide"><h2>如何使用光照累積量(DLI)計算器</h2><ol><li>按頁面提示逐項填寫或選擇所需引數。</li><li>點選「計算」或「生成」按鈕執行。</li><li>在結果區檢視輸出，可複製結果或匯出使用。</li></ol><h2>引數說明</h2><ul class="param-list"><li>PPFD光量子通量密度(μmol/m²/s)</li><li>有效光照時長(小時/天)</li><li>補光燈PPFD(μmol/m²/s)</li><li>補光燈時長(小時/天)</li><li>作物型別</li></ul><h2>適用場景</h2><p>DLI = PPFD × 光照時長(h) × 3600 / 1e6 (mol/m²/d)。</p></section><section class="opt-faq"><h2>常見問題</h2><dl class="faq-list"><dt>DLI 不夠一定要補光嗎？</dt><dd>看作物與季節。耐弱光葉菜影響小，果菜類徒長、花芽分化差則必須補。先算自然 DLI 再決定，避免無謂耗電。</dd><dt>24 小時補光更好嗎？</dt><dd>多數植物需要暗期完成生理節律，連續光照未必增產反而耗能。按作物光週期（長日/短日）設計明暗比更科學。</dd></dl></section>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"DLI 不夠一定要補光嗎？","acceptedAnswer":{"@type":"Answer","text":"看作物與季節。耐弱光葉菜影響小，果菜類徒長、花芽分化差則必須補。先算自然 DLI 再決定，避免無謂耗電。"}},{"@type":"Question","name":"24 小時補光更好嗎？","acceptedAnswer":{"@type":"Answer","text":"多數植物需要暗期完成生理節律，連續光照未必增產反而耗能。按作物光週期（長日/短日）設計明暗比更科學。"}}]}</script>
 <script>
 var __dli_calculator_last=0,__dli_calculator_skip=false;

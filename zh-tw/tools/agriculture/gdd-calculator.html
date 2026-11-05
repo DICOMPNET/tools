@@ -124,7 +124,7 @@ s.parentNode.insertBefore(el, s);
         <div class="formula-box">
       <div class="formula-title">📐 計算公式 / 原理</div>
       <div class="formula-eq">日均溫 Tavg = (Tmax + Tmin) ÷ 2；簡單平均法 GDD = max(0, Tavg − Tbase)，Tavg 超上限時取 Tupper − Tbase；單正弦法按日溫正弦曲線在上下限間積分</div>
-      <div class="formula-desc">生長度日（GDD）累積有效溫度，用於預測作物發育階段。簡單平均法以「日均溫 − 基礎溫度」計，超上限按上限截斷、低於下限計 0。單正弦法取 α = (Tmax − Tmin) ÷ 2，由反正弦求溫度曲線與上下限的交角 θ₁、θ₂，按 ((Tavg − Tbase)(θ₂ − θ₁) + α(cosθ₁ − cosθ₂) ÷ 2) × 2 ÷ π 解析積分，對晝夜溫差大的場景更精確。逐日累加並與目標 GDD 比較即得物候進度。</div>
+      <div class="formula-desc">生長度日（GDD）累積有效溫度，用於預測作物發育階段。簡單平均法以「日均溫 − 基礎溫度」計，超上限按上限截斷、低於下限計 0。單正弦法取 α = (Tmax − Tmin) ÷ 2，由反正弦求溫度曲線與上下限的交角 θ₁、θ₂，按 [(Tavg − Tbase)(θ₂ − θ₁) + α(cosθ₁ − cosθ₂)] ÷ π 解析積分，對晝夜溫差大的場景更精確。逐日累加並與目標 GDD 比較即得物候進度。</div>
     </div>
 <div class="input-row">
       <label>計算方法</label>
@@ -242,9 +242,16 @@ var DEFAULT_DAYS = [
 ];
 function renderDayRows(){
   var box = document.getElementById('dayRows');
+  var prev = {};
+  // 先读取当前已录入温度，增删行时保留原值
+  for(var i=0;i<dayCount;i++){
+    var maxEl = document.getElementById('tmax'+i);
+    var minEl = document.getElementById('tmin'+i);
+    if(maxEl && minEl) prev[i] = {tmax:maxEl.value, tmin:minEl.value};
+  }
   var html = '';
   for(var i=0;i<dayCount;i++){
-    var d = DEFAULT_DAYS[i] || {tmax:25,tmin:15};
+    var d = prev[i] || DEFAULT_DAYS[i] || {tmax:25,tmin:15};
     html += '<div class="input-row"><label>第'+(i+1)+'天</label>';
     html += '<div style="display:flex;gap:8px;flex:1;">';
     html += '<input type="number" id="tmax'+i+'" value="'+d.tmax+'" min="-50" max="60" step="0.5" oninput="calc()" placeholder="最高温" style="flex:1;">';
@@ -267,7 +274,8 @@ function calcGDD(tmax, tmin, tbase, tupper, method){
     var theta2 = Math.asin((tupper - (tmax+tmin)/2) / alpha);
     if(isNaN(theta1)) theta1 = -Math.PI/2;
     if(isNaN(theta2)) theta2 = Math.PI/2;
-    var gdd = ((tmax+tmin)/2 - tbase) * (theta2 - theta1) + 2 * alpha * (Math.cos(theta1) - Math.cos(theta2));
+    // 单正弦法：对高于基温的半个正弦周期积分（标准式系数为 α，非 2α）
+    var gdd = ((tmax+tmin)/2 - tbase) * (theta2 - theta1) + alpha * (Math.cos(theta1) - Math.cos(theta2));
     gdd = gdd / Math.PI;
     return Math.max(0, gdd);
   } else {
@@ -283,6 +291,28 @@ function calc(){
   var tbase = +document.getElementById('tbase').value || 0;
   var tupper = +document.getElementById('tupper').value || 30;
   var targetGDD = +document.getElementById('targetGDD').value || 0;
+  if(!(targetGDD>0)){
+    document.getElementById('result').innerHTML='<div class="tip-box tip-error">目标积温必须大于0</div>';
+    return;
+  }
+
+  var partial = false, validDays = 0;
+  for(var i=0;i<dayCount;i++){
+    var tm=document.getElementById('tmax'+i), tn=document.getElementById('tmin'+i);
+    if(!tm||!tn) continue;
+    var maxEmpty = tm.value.trim()==='', minEmpty = tn.value.trim()==='';
+    if(maxEmpty && minEmpty) continue; // 整行未填写视为未使用，不按 0℃ 计入
+    if(maxEmpty || minEmpty){ partial = true; break; }
+    validDays++;
+  }
+  if(partial){
+    document.getElementById('result').innerHTML='<div class="tip-box tip-error">请补全已填写日期的最高/最低气温</div>';
+    return;
+  }
+  if(validDays===0){
+    document.getElementById('result').innerHTML='<div class="tip-box tip-error">请至少完整填写一天的最高/最低气温</div>';
+    return;
+  }
 
   var totalGDD = 0;
   var dailyGDDs = [];
@@ -290,6 +320,7 @@ function calc(){
     var tmaxEl = document.getElementById('tmax'+i);
     var tminEl = document.getElementById('tmin'+i);
     if(!tmaxEl||!tminEl) continue;
+    if(tmaxEl.value.trim()===''||tminEl.value.trim()==='') continue; // 整行留空不计入
     var tmax = +tmaxEl.value || 0;
     var tmin = +tminEl.value || 0;
     var gdd = calcGDD(tmax, tmin, tbase, tupper, method);
@@ -299,7 +330,7 @@ function calc(){
 
   var progress = targetGDD>0 ? (totalGDD / targetGDD) * 100 : 0;
   var remainGDD = Math.max(0, targetGDD - totalGDD);
-  var avgGDD = dayCount>0 ? totalGDD / dayCount : 0;
+  var avgGDD = dailyGDDs.length>0 ? totalGDD / dailyGDDs.length : 0;
   var estDays = avgGDD>0 ? Math.ceil(remainGDD / avgGDD) : 0;
 
   var grade = progress>=100?'grade-excellent':progress>=75?'grade-good':progress>=50?'grade-pass':'grade-fail';

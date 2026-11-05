@@ -146,12 +146,12 @@ s.parentNode.insertBefore(el, s);
 </div>
 <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
     <h2 data-zh="✨ 個性化訓練計劃">✨ Personalized Training Plan Generator</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="基於你的目標和水平生成專屬訓練計劃">A personalized training-plan generator: build a tailored plan from goal, level and available time, with exercises, sets/reps and progressive loading.</p>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="基於你的目標、水平和單次可用時間生成單週訓練計劃">A training-plan generator: build a single-week plan from goal, level and available session time, with exercises and sets/reps. No weight or multi-week periodization is calculated.</p>
 
         <div class="formula-box">
       <div class="formula-title">📐 計算公式 / 原理</div>
-      <div class="formula-eq">訓練計劃生成（本頁程式碼口徑，純查表生成器、無數值計算）：按訓練部位取分化表前 N 天（N=每週天數 3–6，分化表每部位含 4 個日模板，超出按表長截斷），每日按部位從動作庫各取前 3 個動作，組次=動作×經驗等級查組次表（如臥推 beginner 3×8、advanced 5×5-8），再按訓練目標附加建議（力量大重量低次數/增肌 8-12 次/塑形 12-15 次/耐力 15-20 次）。校驗：無輸入校驗（下拉均為列舉值）。判據：無數值分級，本頁不做漸進負荷與訓練容量的數值計算。</div>
-      <div class="formula-desc">個性化訓練計劃按目標、水平與可用時間生成：以容量(次數×組數×重量)為基線，每週漸進增量控制在 10% 以內，動作、組次與進階節奏自動編排。</div>
+      <div class="formula-eq">訓練計劃生成（純查表生成器）：按訓練部位取分化表前 N 天（N=每週天數 3–6，分化表每部位含 6 個日模板）；單次可用時間決定每部位取幾個動作（45 分鐘→2 個、60→3 個、90→4 個）；組次按動作×經驗等級查組次表（如臥推 beginner 3×8、advanced 5×5-8）；同日多部位重複出現的同名動作自動去重；結果彙總每日動作數與總組數。本頁不計算訓練重量、不做多週週期化與減量周。</div>
+      <div class="formula-desc">按目標、水平與單次可用時間生成單週動作與組次安排：從固定動作庫按經驗等級查表取組次，同名動作去重並彙總總組數。本工具不計算重量百分比、不生成多週週期化與減量周。</div>
     </div>
 <div class="input-row">
       <div>
@@ -196,6 +196,17 @@ s.parentNode.insertBefore(el, s);
       </div>
     </div>
 
+    <div class="input-row">
+      <div>
+        <label style="font-size:13px;">單次可用時間</label>
+        <select id="sessionTime">
+          <option value="45">45 分鐘（每部位 2 個動作）</option>
+          <option value="60" selected>60 分鐘（每部位 3 個動作）</option>
+          <option value="90">90 分鐘（每部位 4 個動作）</option>
+        </select>
+      </div>
+    </div>
+
     <div id="training_plannerPresets"></div><button type="button" class="btn primary" style="width:100%;margin:12px 0;" onclick="generate()">生成訓練計劃</button><button class="btn" type="button" onclick="__training_plannerExport()">匯出明細 CSV</button>
 
     <div id="planOutput"></div> <div id="training_plannerTable"></div> <div id="training_plannerDiff"></div> <div id="training_plannerChart"></div> <div id="training_plannerHist"></div>
@@ -223,14 +234,14 @@ s.parentNode.insertBefore(el, s);
 <h2>📚 深度解析：個性化訓練計劃</h2>
 <h3>💡 常見使用場景</h3>
 <ul class="dd-list">
-<li>按目標/水平排計劃。</li>
-<li>備賽期按周量與強度分佈自動生成周期化計劃，保證漸進超負荷且有減量周。</li>
+<li>按目標/水平/單次可用時間排單週計劃。</li>
+<li>單週排期：按部位與每週天數生成 3–6 天分化安排；多週週期化與減量周不在本工具範圍內。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">排</div><div class="dd-ex-body">減脂：每週 4 次有氧+2 次力量+1 柔韌；增肌：分化訓練 5 次。</div></div>
+<div class="dd-example"><div class="dd-ex-title">排期</div><div class="dd-ex-body">目標=增肌、水平=中級、每週 4 天、單次 60 分鐘 → 生成 4 天分化，每部位取 3 個動作，按等級查組次，結果區彙總全周總組數。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
-<dt>計劃多久調？</dt><dd>4–6 周按反饋微調。</dd>
-<dt>計劃裡的強度區間怎麼定？</dt><dd>一般基於儲備心率或乳酸閾劃分，再按週期目標分配各區間周佔比。</dd>
+<dt>計劃多久調？</dt><dd>4–6 周按反饋微調；本工具不自動生成多週週期化或減量周。</dd>
+<dt>計劃裡的重量和強度怎麼定？</dt><dd>本工具只給動作與組次，不計算重量<a class="term-link" href="/zh-tw/tools/math/calc-1.html">百分比</a>或<a class="term-link" href="/zh-tw/tools/healthcare/heart-rate-zones.html">心率區間</a>；重量按 %<a class="term-link" href="/zh-tw/tools/health/one-rep-max.html">1RM</a> 或 RPE 自行設定。</dd>
 </dl>
 </div>
 </section>
@@ -328,36 +339,48 @@ const splitPlans = {
     { day: 'Day 2', focus: '背 + 二头', parts: ['back', 'arms'] },
     { day: 'Day 3', focus: '腿 + 核心', parts: ['legs', 'core'] },
     { day: 'Day 4', focus: '肩 + 核心', parts: ['shoulders', 'core'] },
+    { day: 'Day 5', focus: '全身循环', parts: ['chest', 'back', 'legs'] },
+    { day: 'Day 6', focus: '肩臂 + 核心', parts: ['shoulders', 'arms', 'core'] },
   ],
   upper: [
     { day: 'Day 1', focus: '胸 + 三头', parts: ['chest', 'arms'] },
     { day: 'Day 2', focus: '背 + 二头', parts: ['back', 'arms'] },
     { day: 'Day 3', focus: '肩 + 手臂', parts: ['shoulders', 'arms'] },
     { day: 'Day 4', focus: '上肢 + 核心', parts: ['chest', 'back', 'core'] },
+    { day: 'Day 5', focus: '胸背超级组', parts: ['chest', 'back'] },
+    { day: 'Day 6', focus: '肩臂泵感', parts: ['shoulders', 'arms'] },
   ],
   lower: [
     { day: 'Day 1', focus: '股四头肌', parts: ['legs', 'core'] },
     { day: 'Day 2', focus: '腘绳 + 臀', parts: ['legs', 'core'] },
     { day: 'Day 3', focus: '全身 + 核心', parts: ['legs', 'core', 'chest'] },
     { day: 'Day 4', focus: '腿 + 全身', parts: ['legs', 'core', 'back'] },
+    { day: 'Day 5', focus: '腿臀分离', parts: ['legs', 'core'] },
+    { day: 'Day 6', focus: '单侧稳定', parts: ['legs', 'core'] },
   ],
   core: [
     { day: 'Day 1', focus: '核心 + 腹直', parts: ['core', 'core'] },
     { day: 'Day 2', focus: '核心 + 斜腹', parts: ['core', 'core'] },
     { day: 'Day 3', focus: '核心 + 下背', parts: ['core', 'back'] },
     { day: 'Day 4', focus: '核心 + 全身', parts: ['core', 'chest', 'legs'] },
+    { day: 'Day 5', focus: '抗旋转核心', parts: ['core', 'back'] },
+    { day: 'Day 6', focus: '核心耐力', parts: ['core', 'chest'] },
   ],
   push: [
     { day: 'Day 1', focus: '胸 + 三头', parts: ['chest', 'arms'] },
     { day: 'Day 2', focus: '肩 + 核心', parts: ['shoulders', 'core'] },
     { day: 'Day 3', focus: '胸 + 肩', parts: ['chest', 'shoulders'] },
     { day: 'Day 4', focus: '三头 + 胸', parts: ['arms', 'chest'] },
+    { day: 'Day 5', focus: '肩 + 胸', parts: ['shoulders', 'chest'] },
+    { day: 'Day 6', focus: '三头 + 肩', parts: ['arms', 'shoulders'] },
   ],
   pull: [
     { day: 'Day 1', focus: '背 + 二头', parts: ['back', 'arms'] },
     { day: 'Day 2', focus: '背 + 后链', parts: ['back', 'core'] },
     { day: 'Day 3', focus: '二头 + 背', parts: ['arms', 'back'] },
     { day: 'Day 4', focus: '拉 + 核心', parts: ['back', 'arms', 'core'] },
+    { day: 'Day 5', focus: '背 + 后链', parts: ['back', 'core'] },
+    { day: 'Day 6', focus: '二头 + 背', parts: ['arms', 'back'] },
   ],
 };
 
@@ -374,34 +397,45 @@ function generate() {
   const days = +document.getElementById('days').value;
   const goal = document.getElementById('goal').value;
 
+  const sessionTime = +document.getElementById('sessionTime').value;
+  const perPart = sessionTime === 45 ? 2 : sessionTime === 90 ? 4 : 3;
   const plan = splitPlans[bodyPart].slice(0, days);
   const out = document.getElementById('planOutput');
+
+  // 先为每天排动作（同日重复的同名动作去重），再汇总总组数
+  const dayPlans = plan.map(p => {
+    const used = new Set();
+    const exList = [];
+    p.parts.forEach(part => {
+      (exercises[part] || []).slice(0, perPart).forEach(ex => {
+        if (used.has(ex.name)) return;
+        used.add(ex.name);
+        exList.push({ name: ex.name, spec: ex.sets[level] });
+      });
+    });
+    return { day: p.day, focus: p.focus, exList };
+  });
+  const totalSets = dayPlans.reduce((sum, d) =>
+    sum + d.exList.reduce((s, ex) => s + (parseInt(ex.spec, 10) || 0), 0), 0);
 
   let html = `<div class="plan-section">
     <h3>📋 你的训练计划</h3>
     <div class="desc">每周 ${days} 天 · ${bodyPart} 训练 · ${level === 'beginner' ? '初学者' : level === 'intermediate' ? '中级' : '高级'}</div>
     <div class="stat-pills">
       <span class="pill">🎯 ${goal === 'strength' ? '最大力量' : goal === 'muscle' ? '增肌' : goal === 'tone' ? '塑形' : '耐力'}</span>
-      <span class="pill">⏱ 60-90 分钟/次</span>
+      <span class="pill">⏱ 单次约 ${sessionTime} 分钟</span>
+      <span class="pill">📦 全周 ${totalSets} 组</span>
     </div>
   </div>`;
 
-  plan.forEach(p => {
-    const exList = [];
-    p.parts.forEach(part => {
-      const partExercises = exercises[part] || [];
-      partExercises.slice(0, 3).forEach(ex => {
-        exList.push({ name: ex.name, spec: ex.sets[level] });
-      });
-    });
-
+  dayPlans.forEach(p => {
     html += `<div class="day-card">
       <div class="day-title">
         <strong>${p.day}</strong>
         <span class="day-focus">${p.focus}</span>
       </div>
       <ul class="exercise-list">
-        ${exList.map(ex => `<li>
+        ${p.exList.map(ex => `<li>
           <span class="name">${ex.name}</span>
           <span class="spec">${ex.spec}</span>
         </li>`).join('')}

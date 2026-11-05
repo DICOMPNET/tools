@@ -458,8 +458,8 @@ let currentQuantity = 'length';
 
 function fmt(x){
   if(!isFinite(x)) return '未定义';
-  if(Math.abs(x)<1e-12) return '0';
-  if(Math.abs(x)>=1e15||Math.abs(x)<1e-6) return x.toExponential(6);
+  if(x!==0&&Math.abs(x)<1e-6) return x.toExponential(6);
+  if(Math.abs(x)>=1e15) return x.toExponential(6);
   return (Math.round(x*1e10)/1e10).toLocaleString();
 }
 
@@ -582,7 +582,7 @@ function showDerivedUnits(){
 }
 
 function saveHistory(quantity, fromVal, fromUnit, toVal, toUnit){
-  const history = JSON.parse(localStorage.getItem('si_history')||'[]');
+  const history = (function(){try{return JSON.parse(localStorage.getItem('si_history')||'[]')}catch(e){try{localStorage.removeItem('si_history')}catch(_){}return []}})();
   const item = {
     quantity: quantity,
     fromVal: fromVal,
@@ -597,7 +597,7 @@ function saveHistory(quantity, fromVal, fromUnit, toVal, toUnit){
 }
 
 function showHistory(){
-  const history = JSON.parse(localStorage.getItem('si_history')||'[]');
+  const history = (function(){try{return JSON.parse(localStorage.getItem('si_history')||'[]')}catch(e){try{localStorage.removeItem('si_history')}catch(_){}return []}})();
   if(history.length===0){
     const __h7='<p>暂无历史记录</p>';if((typeof __h7==='number'&&!isFinite(__h7))||/Infinity/.test(String(__h7))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h7)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h7;
     return;

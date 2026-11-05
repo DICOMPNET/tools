@@ -372,8 +372,8 @@ function initSelects(){
   var nOpts='<option value="">-- 选择氮肥 --</option>',pOpts='<option value="">-- 选择磷肥 --</option>',kOpts='<option value="">-- 选择钾肥 --</option>';
   FERTILIZERS.forEach(function(f,i){
     if(f.type.indexOf('n')>=0)nOpts+='<option value="'+i+'">'+f.name+' ('+f.n+'%N)</option>';
-    if(f.type.indexOf('p')>=0)pOpts+='<option value="'+i+'">'+f.name+' ('+f.p+'%P)</option>';
-    if(f.type.indexOf('k')>=0)kOpts+='<option value="'+i+'">'+f.name+' ('+f.k+'%K)</option>';
+    if(f.type.indexOf('p')>=0)pOpts+='<option value="'+i+'">'+f.name+' ('+f.p+'%P₂O₅)</option>';
+    if(f.type.indexOf('k')>=0)kOpts+='<option value="'+i+'">'+f.name+' ('+f.k+'%K₂O)</option>';
   });
   const __g1=nOpts;$('fertN').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));const __g2=pOpts;$('fertP').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));const __g3=kOpts;$('fertK').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
   $('fertN').value=0;$('fertP').value=4;$('fertK').value=8;
@@ -429,22 +429,22 @@ var area=parseFloat($('area').value)||1;
   var fiN=$('fertN').value,fiP=$('fertP').value,fiK=$('fertK').value;
   var fN=fiN?FERTILIZERS[fiN]:null,fP=fiP?FERTILIZERS[fiP]:null,fK=fiK?FERTILIZERS[fiK]:null;
   var totalN=needN*area,totalP=needP*area,totalK=needK*area;
-  var amtN=fN?(totalN/(fN.n/100)):0,amtP=fP?(totalP/(fP.p/100)):0,amtK=fK?(totalK/(fK.k/100)):0;
-  var nFromP=0,kFromN=0,nFromK=0;
-  if(fN&&fN.p){var np=amtN*fN.p/100;nFromP=np;}
-  if(fN&&fN.k){var nk=amtN*fN.k/100;kFromN=nk;}
-  if(fP&&fP.n){var pn=amtP*fP.n/100;nFromP+=pn;}
-  if(fK&&fK.n){var kn=amtK*fK.n/100;nFromK=kn;}
+  var amtP=fP?(totalP/(fP.p/100)):0,amtK=fK?(totalK/(fK.k/100)):0;
+  // 磷/钾肥可能携入氮（磷酸二铵 18%N、磷酸一铵 11%N、硝酸钾 13%N），须先从氮需求中扣除再算氮肥实物量
+  var nCarry=((fP?amtP*(fP.n||0):0)+(fK?amtK*(fK.n||0):0))/100;
+  var nRemain=Math.max(0,totalN-nCarry);
+  var amtN=fN?(nRemain/(fN.n/100)):0;
   const __g8='<h3 style="text-align:center;margin-bottom:12px;">🌾 施肥配方方案</h3>'+
     '<div class="data-grid">'+
       '<div class="data-card"><div class="num">'+area+'</div><div class="label">施肥面积(亩)</div></div>'+
-      '<div class="data-card"><div class="num">'+(needN+needP+needK).toFixed(1)+'</div><div class="label">亩养分总量(kg)</div></div>'+
+      '<div class="data-card"><div class="num">'+(needN+needP+needK).toFixed(1)+'</div><div class="label">亩养分总量(kg/亩)</div></div>'+
       '<div class="data-card"><div class="num">'+(amtN+amtP+amtK).toFixed(1)+'</div><div class="label">总施肥量(kg)</div></div>'+
     '</div>'+
     '<div class="fertilizer-card"><h4>📦 各肥料施用量</h4>'+
       (fN?'<p>• <strong>'+fN.name+'</strong>: <span style="color:var(--primary);font-weight:700;font-size:18px;">'+amtN.toFixed(1)+'</span> kg ('+(amtN/area).toFixed(1)+' kg/亩)</p>':'')+
       (fP?'<p>• <strong>'+fP.name+'</strong>: <span style="color:var(--primary);font-weight:700;font-size:18px;">'+amtP.toFixed(1)+'</span> kg ('+(amtP/area).toFixed(1)+' kg/亩)</p>':'')+
       (fK?'<p>• <strong>'+fK.name+'</strong>: <span style="color:var(--primary);font-weight:700;font-size:18px;">'+amtK.toFixed(1)+'</span> kg ('+(amtK/area).toFixed(1)+' kg/亩)</p>':'')+
+      (nCarry>0?'<p>• <span data-zh="磷/钾肥携入氮：">磷/钾肥携入氮：</span>'+nCarry.toFixed(1)+' kg（'+(nCarry/area).toFixed(1)+' kg/亩），<span data-zh="'+(nCarry>=totalN?'已满足全部氮需求，无需再施氮肥':'已从氮肥用量中扣除')+'">'+(nCarry>=totalN?'已满足全部氮需求，无需再施氮肥':'已从氮肥用量中扣除')+'</span></p>':'')+
     '</div>'+
     '<div class="tip-box tip-success"><strong>✅ NPK比例</strong>: N:'+needN.toFixed(1)+'  P₂O₅:'+needP.toFixed(1)+'  K₂O:'+needK.toFixed(1)+'  比例 = 1 : '+(needP/needN).toFixed(2)+' : '+(needK/needN).toFixed(2)+'</div>';$('result').innerHTML=(typeof __g8==='number'?(isFinite(__g8)?__g8:'—'):String(__g8).replace(/Infinity|NaN/g,'—'));
   $('chartWrap').style.display='block';
@@ -454,21 +454,23 @@ function drawChart(n,p,k,aN,aP,aK){
   var c=$('chart'),ctx=c.getContext('2d'),ct=c.parentElement;
   c.width=ct.clientWidth;c.height=ct.clientHeight;
   var w=c.width,h=c.height;ctx.clearRect(0,0,w,h);
-  var pad={top:20,right:20,bottom:50,left:50},cw=w-pad.left-pad.right,ch=h-pad.top-pad.bottom;
-  var max=Math.max(n,p,k,aN,aP,aK)*1.2;
-  ctx.strokeStyle='rgba(128,128,128,0.15)';ctx.font='11px sans-serif';ctx.fillStyle=resolveCanvasColor('var(--text-muted)','#6B7280');
-  for(var i=0;i<=5;i++){var y=pad.top+ch-ch*i/5,v=max*i/5;ctx.textAlign='right';ctx.fillText(v.toFixed(0),pad.left-8,y+4);ctx.beginPath();ctx.moveTo(pad.left,y);ctx.lineTo(w-pad.right,y);ctx.stroke();}
-  var bw=cw/8;
-  var bars=[
-    {l:'N需求',v:n,c:'#2196f3'},{l:'P需求',v:p,c:'#ff9800'},{l:'K需求',v:k,c:'#f44336'},
-    {l:'N肥用量',v:aN,c:'#64b5f6'},{l:'P肥用量',v:aP,c:'#ffb74d'},{l:'K肥用量',v:aK,c:'#ef9a9a'}
-  ];
-  bars.forEach(function(b,i){var x=pad.left+bw*i+bw*0.2;var bh=(b.v/max)*ch;var by=pad.top+ch-bh;ctx.fillStyle=b.c;ctx.fillRect(x,by,bw*0.6,bh);ctx.fillStyle=resolveCanvasColor('var(--text)','#1F2937');ctx.textAlign='center';ctx.font='10px sans-serif';ctx.fillText(b.v.toFixed(1),x+bw*0.3,by-6);ctx.fillStyle=resolveCanvasColor('var(--text-muted)','#6B7280');ctx.fillText(b.l,x+bw*0.3,h-12);});
+  var pad={top:26,right:20,bottom:34,left:50},cw=w-pad.left-pad.right,ch=h-pad.top-pad.bottom;
+  var gap=44,ph=(ch-gap)/2;
+  function panel(top,title,bars){
+    var max=Math.max.apply(null,bars.map(function(b){return b.v;}))*1.2||1;
+    ctx.fillStyle=resolveCanvasColor('var(--text-muted)','#6B7280');ctx.font='11px sans-serif';ctx.textAlign='left';ctx.fillText(title,pad.left,top-6);
+    ctx.strokeStyle='rgba(128,128,128,0.15)';
+    for(var i=0;i<=4;i++){var y=top+ph-ph*i/4,v=max*i/4;ctx.textAlign='right';ctx.fillText(v.toFixed(1),pad.left-8,y+4);ctx.beginPath();ctx.moveTo(pad.left,y);ctx.lineTo(pad.left+cw,y);ctx.stroke();}
+    var bw=cw/3;
+    bars.forEach(function(b,i){var x=pad.left+bw*i+bw*0.25;var bh=(b.v/max)*ph;var by=top+ph-bh;ctx.fillStyle=b.c;ctx.fillRect(x,by,bw*0.5,bh);ctx.fillStyle=resolveCanvasColor('var(--text)','#1F2937');ctx.textAlign='center';ctx.font='10px sans-serif';ctx.fillText(b.v.toFixed(1),x+bw*0.25,by-5);ctx.fillStyle=resolveCanvasColor('var(--text-muted)','#6B7280');ctx.fillText(b.l,x+bw*0.25,top+ph+14);});
+  }
+  panel(pad.top,'亩纯养分需求 (kg/亩)',[{l:'N',v:n,c:'#2196f3'},{l:'P₂O₅',v:p,c:'#ff9800'},{l:'K₂O',v:k,c:'#f44336'}]);
+  panel(pad.top+ph+gap,'亩商品肥用量 (kg/亩)',[{l:'N肥',v:aN,c:'#64b5f6'},{l:'P肥',v:aP,c:'#ffb74d'},{l:'K肥',v:aK,c:'#ef9a9a'}]);
 }
-function saveHistory(){var r={time:new Date().toLocaleString('zh-CN'),crop:$('crop').options[$('crop').selectedIndex].text,area:$('area').value,needN:$('needN').value,needP:$('needP').value,needK:$('needK').value};var h=getHistory();h.unshift(r);if(h.length>20)h=h.slice(0,20);localStorage.setItem(HK,JSON.stringify(h));}
+function saveHistory(){var r={time:new Date().toLocaleString('zh-CN'),crop:$('crop').options[$('crop').selectedIndex].text,cropIdx:$('crop').value,area:$('area').value,yield:$('yield').value,needN:$('needN').value,needP:$('needP').value,needK:$('needK').value,fertN:$('fertN').value,fertP:$('fertP').value,fertK:$('fertK').value};var h=getHistory();h.unshift(r);if(h.length>20)h=h.slice(0,20);localStorage.setItem(HK,JSON.stringify(h));}
 function getHistory(){try{return JSON.parse(localStorage.getItem(HK)||'[]');}catch(e){return[];}}
 function renderHistory(){var h=getHistory();if(!h.length){$('historyList').innerHTML='<div class="history-empty">暂无计算历史</div>';return;}const __g10=h.map(function(r,i){return '<div class="history-item" onclick="loadHistory('+i+')"><div class="time">'+r.time+'</div><div class="summary">'+r.crop+' - '+r.area+'亩</div><div class="detail">N:'+r.needN+' P:'+r.needP+' K:'+r.needK+' kg/亩</div></div>';}).join('');$('historyList').innerHTML=(typeof __g10==='number'?(isFinite(__g10)?__g10:'—'):String(__g10).replace(/Infinity|NaN/g,'—'));}
-function loadHistory(i){var r=getHistory()[i];if(!r)return;$('area').value=r.area;$('needN').value=r.needN;$('needP').value=r.needP;$('needK').value=r.needK;switchTab('calc');calc();ToolBox.showToast(i18nText('toast.loaded'));}
+function loadHistory(i){var r=getHistory()[i];if(!r)return;if(r.cropIdx!==undefined)$('crop').value=r.cropIdx;if(r.area!==undefined)$('area').value=r.area;if(r.yield!==undefined)$('yield').value=r.yield;if(r.needN!==undefined)$('needN').value=r.needN;if(r.needP!==undefined)$('needP').value=r.needP;if(r.needK!==undefined)$('needK').value=r.needK;if(r.fertN!==undefined)$('fertN').value=r.fertN;if(r.fertP!==undefined)$('fertP').value=r.fertP;if(r.fertK!==undefined)$('fertK').value=r.fertK;switchTab('calc');calc();ToolBox.showToast(i18nText('toast.loaded'));}
 function clearHistory(){if(confirm('清空历史?')){localStorage.removeItem(HK);renderHistory();ToolBox.showToast(i18nText('toast.cleared'));}}
 function resetForm(){$('crop').value='';$('area').value=10;$('yield').value=500;$('needN').value=12;$('needP').value=6;$('needK').value=10;$('fertN').value=0;$('fertP').value=4;$('fertK').value=8;calc();}
 window.addEventListener('resize',function(){if($('chartWrap').style.display!=='none')calc();});
@@ -579,7 +581,6 @@ document.addEventListener('DOMContentLoaded',function(){
     </div>
 </div>
 <!-- /SEO 介紹區塊 -->
-<section class="opt-guide"><h2>如何使用化肥配比計算器</h2><ol><li>按頁面提示逐項填寫或選擇所需引數。</li><li>點選「計算」或「生成」按鈕執行。</li><li>在結果區檢視輸出，可複製結果或匯出使用。</li></ol><h2>引數說明</h2><ul class="param-list"><li>作物型別</li><li>施肥時期</li><li>種植面積(畝)</li><li>目標產量(kg/畝)</li><li>氮肥品種</li><li>磷肥品種</li><li>鉀肥品種</li></ul><h2>適用場景</h2><p>按目標養分反推各肥料用量：用量 = 目標養分 / 肥料養分含量。</p></section><section class="opt-faq"><h2>常見問題</h2><dl class="faq-list"><dt>為什麼分底肥和追肥？</dt><dd>作物不同生育期需肥不同，底肥重磷鉀打基礎、追肥重氮促生長。一次性施易燒苗或後期脫肥，分期更穩。</dd><dt>養分含量怎麼看標籤？</dt><dd>國產復混肥標註 N-P₂O₅-K₂O 百分比，單質肥標主元素含量（尿素 46%N、過磷酸鈣 12%P₂O₅、氯化鉀 60%K₂O）。按此折算純量。</dd></dl></section>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"為什麼分底肥和追肥？","acceptedAnswer":{"@type":"Answer","text":"作物不同生育期需肥不同，底肥重磷鉀打基礎、追肥重氮促生長。一次性施易燒苗或後期脫肥，分期更穩。"}},{"@type":"Question","name":"養分含量怎麼看標籤？","acceptedAnswer":{"@type":"Answer","text":"國產復混肥標註 N-P₂O₅-K₂O 百分比，單質肥標主元素含量（尿素 46%N、過磷酸鈣 12%P₂O₅、氯化鉀 60%K₂O）。按此折算純量。"}}]}</script>
 <script>
 var __fertilizer_calculator_last=0,__fertilizer_calculator_skip=false;

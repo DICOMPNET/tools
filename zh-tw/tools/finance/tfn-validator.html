@@ -129,7 +129,7 @@ s.parentNode.insertBefore(el, s);
      <h2 data-zh="🇦🇺 澳大利亞 TFN 驗證">🇦🇺 Australia TFN Validator</h2>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理與說明</div>
-      <div class="formula-eq">TFN 校驗：8 位按權重 [1,4,3,7,5,8,6,9,10] 求和 mod 11 = 0</div>
+      <div class="formula-eq">TFN 校驗：9 位按權重 [1,4,3,7,5,8,6,9,10] 求和 mod 11 = 0（8 位前補 0 後同式）</div>
   <div class="formula-desc">依據澳大利亞 ATO 官方演算法校驗 8 或 9 位稅號(TFN)的校驗位；用於稅務與僱主場景的號碼格式檢查（不驗證真實性）。</div>
 </div>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="澳大利亞 TFN 驗證器。輸入 8 或 9 位稅號，按官方權重演算法校驗校驗位，用於澳大利亞稅務與僱主場景的號碼格式檢查（不驗證真實性）。">Validate an 8- or 9-digit Australian Tax File Number with the official weighted checksum. Format check only.</p>
@@ -165,7 +165,7 @@ s.parentNode.insertBefore(el, s);
 <li>澳洲僱傭、報稅前核對稅號</li>
 <li>識別 8 位（前補 0）與 9 位寫法</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">示例：TFN 加權校驗（含反例）</div><div class="dd-ex-body">輸入 123456782 會被判失敗（加權和 255 不能被 11 整除）；換成能被 11 整除的號碼則顯示通過。</div></div>
+<div class="dd-example"><div class="dd-ex-title">示例：TFN 加權校驗（含反例）</div><div class="dd-ex-body">876543210 加權和為 154，能被 11 整除，判為通過；123456789 加權和為 323，餘 4，判為失敗。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
 <dt>TFN 校驗演算法是什麼？</dt><dd>9 位（8 位前補 0）按權重 1、4、3、7、5、8、6、9、11 加權，總和須被 11 整除。</dd>
@@ -189,8 +189,7 @@ s.parentNode.insertBefore(el, s);
       <tbody>
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="TFN 校驗">TFN check</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="9 位；加權(權重271...簽到)模 11 校驗">9 digits; weighted mod 11</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="澳大利亞 ATO 稅號">AU ATO TFN</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="9 位；按權重 1,4,3,7,5,8,6,9,10 加權求和模 11 校驗">9 digits; weighted mod 11</td>
         </tr>
       </tbody>
     </table>
@@ -207,8 +206,13 @@ s.parentNode.insertBefore(el, s);
 <!-- /注意事項區塊 -->
 </div>
 <script>
-const TFN_WEIGHTS = [1,4,3,7,5,8,6,9,11];
+const TFN_WEIGHTS = [1,4,3,7,5,8,6,9,10];
 function tfnCheck(digits){
+  // 无参调用（门禁桩/控制台调试）时回退到输入框当前值，避免 digits.length 抛空值异常
+  if(digits == null || typeof digits !== 'string'){
+    digits = (document.getElementById('input') || {}).value || '';
+  }
+  digits = String(digits).replace(/\D/g,'');
   // Accept 8 or 9 digits; pad with leading zero for 8-digit
   let d = digits;
   if(d.length === 8) d = '0' + d;
@@ -236,7 +240,7 @@ function validate(){
   const valid = tfnCheck(digits);
   html += `<p><strong>格式化：</strong>${formatted}</p>`;
   html += `<p><strong>长度：</strong>${digits.length} 位</p>`;
-  html += `<p><strong>校验算法：</strong>加权模 11（权重 1,4,3,7,5,8,6,9,11）</p>`;
+  html += `<p><strong>校验算法：</strong>加权模 11（权重 1,4,3,7,5,8,6,9,10）</p>`;
   html += `<p><strong>校验和：</strong> ${valid?'✅ 通过':'❌ 未通过'}</p>`;
   if(valid){
     html += `<p style="color:var(--success);">✅ TFN 号码有效</p>`;

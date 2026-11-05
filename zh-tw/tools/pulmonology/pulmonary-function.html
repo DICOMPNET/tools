@@ -121,7 +121,7 @@ s.parentNode.insertBefore(el, s);
     <h2 data-zh="🫁 肺功能 FEV1/FVC 分級器">Pulmonary Function</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="根據肺量計測定資料計算 FEV1/FVC 比值，判讀通氣功能障礙型別及 GOLD 嚴重度分級">Pulmonary Function</p>
     <div class="formula-box">
-      <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">肺功能判讀（阻塞/限制/GOLD 分級）<br>一秒率 = FEV1 ÷ FVC × 100%<br>阻塞性：一秒率 &lt; 閾值（預設 0.70，LLN 法可自定義）<br>限制性：FVC 佔預計值 &lt; 80%<br>混合性：兩者同時成立<br>GOLD 分級（按 FEV1 佔預計值）：≥80% GOLD 1 輕度<br>　≥50% GOLD 2 中度｜≥30% GOLD 3 重度｜&lt;30% GOLD 4 極重度<br>阻塞+限制組合時按 FEV1 分級並提示查 TLC/DLCO<br>臨床建議隨分級輸出（戒菸/支擴劑/聯合吸入/氧療評估）</div>
+      <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">肺功能判讀（阻塞/限制/GOLD 分級）<br>一秒率 = FEV1 ÷ FVC × 100%<br>阻塞性：一秒率 &lt; 閾值（預設 0.70；可留空用下拉，或填 0.50–0.90 的 LLN 值如 GLI 表）<br>限制性：FVC 佔預計值 &lt; 80%<br>混合性：兩者同時成立<br>正常：三者均不成立且 FEV1 佔預計值 ≥80%（ATS/ERS 2019 口徑，三引數均不低於正常下限）<br>GOLD 分級（按 FEV1 佔預計值）：≥80% GOLD 1 輕度<br>　≥50% GOLD 2 中度｜≥30% GOLD 3 重度｜&lt;30% GOLD 4 極重度<br>阻塞+限制組合時按 FEV1 分級並提示查 TLC/DLCO<br>臨床建議隨分級輸出（戒菸/支擴劑/聯合吸入/氧療評估）</div>
       <p class="formula-desc" data-zh="核心計算公式（按輸入變數）：ratio×100">Key formulas: ratio×100</p>
     </div>
 
@@ -139,6 +139,7 @@ s.parentNode.insertBefore(el, s);
           <option value="0.75">FEV1/FVC &lt; 0.75 (≥50歲常用)</option>
         </select>
       </div>
+      <div><label>自定義閾值 / LLN（留空則用左側下拉）</label><input type="number" id="cutoffCustom" step="0.01" min="0.5" max="0.9" placeholder="如 0.68（GLI 表 LLN）" oninput="calc()"></div>
     </div>
 
     <div class="toolbar">
@@ -155,7 +156,7 @@ s.parentNode.insertBefore(el, s);
     <table>
       <thead><tr><th>型別</th><th>條件</th><th>說明</th></tr></thead>
       <tbody>
-        <tr><td>正常</td><td>FEV1/FVC ≥ 閾值 且 FVC ≥ 80%預計</td><td>通氣功能正常</td></tr>
+        <tr><td>正常</td><td>FEV1/FVC ≥ 閾值 且 FVC ≥ 80%預計 且 FEV1 ≥ 80%預計</td><td>通氣功能正常</td></tr>
         <tr><td>阻塞性</td><td>FEV1/FVC &lt; 閾值</td><td>氣流受限，常見於COPD/哮喘</td></tr>
         <tr><td>限制性</td><td>FEV1/FVC ≥ 閾值 且 FVC &lt; 80%預計</td><td>需TLC確認，見於肺纖維化/胸壁疾病</td></tr>
         <tr><td>混合性</td><td>FEV1/FVC &lt; 閾值 且 FVC &lt; 80%預計</td><td>同時存在阻塞與限制</td></tr>
@@ -206,7 +207,7 @@ s.parentNode.insertBefore(el, s);
 <div class="dd-example"><div class="dd-ex-title">限制性</div><div class="dd-ex-body">比值正常但 FVC%pred&lt;80→限制性通氣障礙，查 TLC。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
-<dt>切點可調？</dt><dd>本工具 cutoff 可設(預設 0.7)，老年建議按 LLN。</dd>
+<dt>切點可調？</dt><dd>預設 0.70/0.75 固定閾值，也可在「自定義閾值 / LLN」填 0.50–0.90 的 LLN 值（如 GLI 表）後優先使用；老年建議按 LLN。</dd>
 <dt>阻塞性+限制？</dt><dd>比值低且 FVC 低為混合性，需 TLC/DLCO 確認。</dd>
 </dl>
 </div>
@@ -258,7 +259,9 @@ function calc(){
   var fvc=parseFloat(document.getElementById('fvc').value);
   var fev1pp=parseFloat(document.getElementById('fev1pp').value);
   var fvcpp=parseFloat(document.getElementById('fvcpp').value);
-  var cutoff=parseFloat(document.getElementById('cutoff').value);
+  var customRaw=document.getElementById('cutoffCustom').value.trim();
+  var custom=parseFloat(customRaw);
+  var useCustom=customRaw!=='';
 
   if(!isFinite(fev1)||!isFinite(fvc)||fev1<=0||fvc<=0||fev1>=fvc){
     document.getElementById('result').innerHTML='<p style="color:var(--text-muted);">请输入有效的 FEV1 与 FVC（FEV1 须大于 0 且小于 FVC）。</p>';
@@ -268,16 +271,25 @@ function calc(){
     document.getElementById('result').innerHTML='<p style="color:var(--text-muted);">请输入有效的 FEV1%pred 与 FVC%pred（须大于 0）。</p>';
     return;
   }
+  if(useCustom && (!isFinite(custom)||custom<0.5||custom>0.9)){
+    document.getElementById('result').innerHTML='<p style="color:var(--text-muted);">自定义阈值须为 0.50–0.90 之间的数字；LLN 请按 GLI/ATS-ERS 参考表取值后填入，留空则使用下拉固定阈值。</p>';
+    return;
+  }
+  var cutoff=useCustom?custom:parseFloat(document.getElementById('cutoff').value);
 
   var ratio = fvc>0 ? fev1/fvc : 0;
   var ratioPct = ratio*100;
   var isObstructive = ratio < cutoff;
   var isRestricted = fvcpp < 80;
+  var isLowFev1 = fev1pp < 80;
 
   var type, typeColor, goldStr, goldColor, advice;
-  if(!isObstructive && !isRestricted){
+  if(!isObstructive && !isRestricted && !isLowFev1){
     type='正常'; typeColor='#10B981'; goldStr='—'; goldColor='#10B981';
     advice='通气功能正常，未见阻塞性或限制性通气障碍。';
+  } else if(!isObstructive && !isRestricted){
+    type='FEV1 占预计值降低（未达阻塞/限制判据）'; typeColor='#F59E0B'; goldStr='—'; goldColor='#F59E0B';
+    advice='一秒率与 FVC 均不低于阈值，但 FEV1 占预计值 <80%，不符合「通气功能正常」的三参数口径。建议结合症状、DLCO 与随访复查评估，本页不给出阻塞/限制结论（本页估算，需临床复核）。';
   } else if(isObstructive && !isRestricted){
     type='阻塞性通气功能障碍'; typeColor='#EF4444';
     if(fev1pp>=80){goldStr='GOLD 1';goldColor='#10B981';advice='轻度气流受限，建议戒烟、避免危险因素，必要时支气管舒张剂。';}
@@ -312,7 +324,7 @@ function calc(){
 
   html+='<div class="tip-box" style="border-color:'+typeColor+';color:'+typeColor+';background:'+typeColor+'1a;"><strong>'+type+'</strong><br>'+advice+'</div>';
 
-  const __g1=html;try{ if(typeof fev1pp==='number'&&isFinite(fev1pp)&&typeof TBKit!=='undefined'&&TBKit.chart&&TBKit.chart.refBar){ TBKit.chart.refBar('#resultRefBar',{value:fev1pp,unit:'',bands:[{"lo":null,"hi":30,"label":{"zh":"极重度气流受限","en":"Very severe"},"color":"#EF4444"},{"lo":30,"hi":50,"label":{"zh":"重度气流受限","en":"Severe"},"color":"#F59E0B"},{"lo":50,"hi":80,"label":{"zh":"中度气流受限","en":"Moderate"},"color":"#3B82F6"},{"lo":80,"hi":null,"label":{"zh":"轻度气流受限","en":"Mild"},"color":"#10B981"}],title:((TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())?'Reference range':'参考区间标尺')}); } }catch(e){}
+  const __g1=html;try{ if(typeof TBKit!=='undefined'&&TBKit.chart&&TBKit.chart.refBar){ var en=!!(TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn()); var bar=document.getElementById('resultRefBar'); if(isObstructive){ TBKit.chart.refBar('#resultRefBar',{value:fev1pp,unit:'',bands:[{"lo":null,"hi":30,"label":{"zh":"极重度气流受限","en":"Very severe"},"color":"#EF4444"},{"lo":30,"hi":50,"label":{"zh":"重度气流受限","en":"Severe"},"color":"#F59E0B"},{"lo":50,"hi":80,"label":{"zh":"中度气流受限","en":"Moderate"},"color":"#3B82F6"},{"lo":80,"hi":null,"label":{"zh":"轻度气流受限","en":"Mild"},"color":"#10B981"}],title:(en?'FEV1 %pred reference':'FEV1 占预计值参考区间')}); } else if(isRestricted){ TBKit.chart.refBar('#resultRefBar',{value:fvcpp,unit:'',bands:[{"lo":null,"hi":60,"label":{"zh":"FVC 显著降低","en":"Markedly low"},"color":"#EF4444"},{"lo":60,"hi":80,"label":{"zh":"FVC 轻中度降低","en":"Mild-moderate"},"color":"#F59E0B"},{"lo":80,"hi":null,"label":{"zh":"FVC 正常范围","en":"Normal"},"color":"#10B981"}],title:(en?'FVC %pred reference':'FVC 占预计值参考区间')}); } else if(bar){ bar.innerHTML=''; } } }catch(e){}
   document.getElementById('result').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 }
 
@@ -495,7 +507,7 @@ function __pulmonary_functionExport(){
 }
 function __pulmonary_functionPresets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#pulmonary_functionPresets',[{label:'默认参数',labelEn:'Default',values:{'fev1':'2.10', 'fvc':'3.50', 'fev1pp':'68', 'fvcpp':'88', 'cutoff':'0.70'}},{"label":"正常通气","labelEn":"Normal ventilation","values":{"fev1":"3.2","fvc":"4.0","fev1pp":"95","fvcpp":"100","cutoff":"0.70"}},{"label":"COPD GOLD 2","labelEn":"COPD GOLD 2","values":{"fev1":"1.8","fvc":"3.4","fev1pp":"60","fvcpp":"85","cutoff":"0.70"}},{"label":"限制性障碍","labelEn":"Restrictive disorder","values":{"fev1":"2.2","fvc":"2.9","fev1pp":"70","fvcpp":"65","cutoff":"0.70"}}],function(){ calc(); });
+    TBKit.preset.bar('#pulmonary_functionPresets',[{label:'默认参数',labelEn:'Default',values:{'fev1':'2.10', 'fvc':'3.50', 'fev1pp':'68', 'fvcpp':'88', 'cutoff':'0.70','cutoffCustom':''}},{"label":"正常通气","labelEn":"Normal ventilation","values":{"fev1":"3.2","fvc":"4.0","fev1pp":"95","fvcpp":"100","cutoff":"0.70","cutoffCustom":""}},{"label":"COPD GOLD 2","labelEn":"COPD GOLD 2","values":{"fev1":"1.8","fvc":"3.4","fev1pp":"60","fvcpp":"85","cutoff":"0.70","cutoffCustom":""}},{"label":"限制性障碍","labelEn":"Restrictive disorder","values":{"fev1":"2.2","fvc":"2.9","fev1pp":"70","fvcpp":"65","cutoff":"0.70","cutoffCustom":""}}],function(){ calc(); });
 }
 var __pulmonary_function_f0=(typeof calc==='function')?calc:null;
 if(__pulmonary_function_f0){
