@@ -94,6 +94,27 @@ FILE_PATCHES = {
         # ⇒ 全局域名补丁改后只剩 45 字节、断言落空。改为与域名无关的固定 50 字节 URL（8+11+21+10=50）。
         ('"url": "https://chenguangwu.github.io/tools/it/url-qr.html",',
          '"url": "https://example.com/tools/it/url-qr.html?x=1234567",'),
+        # radios 注入必须同步到 checkedByName：页面用 querySelector('[name=x]:checked') 时
+        # 桩只看 checkedByName，不同步会让 cardiology/has-bled 这类 radio 守卫误判"未选中"
+        # （2026-11-05 第15轮同步实测：has-bled 注入 4 个 radio 仍提示逐项选择）。
+        ("  const inline = inlineHandlers(html);",
+         "  // radios 注入同步到 checkedByName（querySelector(':checked') 只看 checkedByName）\n"
+         "  if (c.radios) {\n"
+         "    for (const [nm, v] of Object.entries(c.radios)) {\n"
+         "      if (!checkedByName[nm]) checkedByName[nm] = [];\n"
+         "      if (!checkedByName[nm].includes(String(v))) checkedByName[nm].push(String(v));\n"
+         "    }\n"
+         "  }\n\n"
+         "  const inline = inlineHandlers(html);"),
+        # 可选回传注入态全文（c.returnBlob），供锚点收缩/诊断脚本使用；默认不返回，不影响用例判定。
+        ('      if (blobHasWant(blob1, want)) return { ok: true, via: "input event" };',
+         '      if (blobHasWant(blob1, want)) return { ok: true, via: "input event", fullBlob: c.returnBlob ? blob1 : undefined };'),
+        ('      if (blobHasWant(blobC, want)) return { ok: true, via: "click" };',
+         '      if (blobHasWant(blobC, want)) return { ok: true, via: "click", fullBlob: c.returnBlob ? blobC : undefined };'),
+        ('      if (blobHasWant(blob, want)) return { ok: true, via: n };',
+         '      if (blobHasWant(blob, want)) return { ok: true, via: n, fullBlob: c.returnBlob ? blob : undefined };'),
+        ('    return { ok: true, via: "copyCheck" };',
+         '    return { ok: true, via: "copyCheck", fullBlob: c.returnBlob ? written : undefined };'),
     ],
     # _build.py 是「只打域名补丁、不保留本地代码」的文件：上游每次改构建脚本都会整文件覆盖，
     # 本地 4 处定制（disclaimer 进两份 sitemap、数量公式计入 disclaimer、根页面 hreflang、all_urls 计入）

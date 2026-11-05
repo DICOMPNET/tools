@@ -63,15 +63,15 @@ const CASES = [
   },
   {
     slug: "design/photo-print-size",
-    inputs: { pw: "4000", ph: "3000", dpi: "300" },
-    expect: ["33.9 × 25.4 cm"],
-    ref: "冲印尺寸 = 像素 ÷ DPI × 2.54cm：4000/300×2.54 = 33.87 → 33.9；3000/300×2.54 = 25.4",
+    inputs: { pw: "4000", ph: "3000", dpi: "200" },
+    expect: ["50.8 × 38.1 cm"],
+    ref: "冲印尺寸 = 像素 ÷ DPI × 2.54cm：4000/200×2.54 = 50.80 → 50.8；3000/200×2.54 = 38.1。页面默认 4000×3000/300DPI 得 33.9×25.4 ⇒ 注入 200DPI 后判别明确。",
   },
   {
     slug: "design/spacing-scale",
-    inputs: { baseSize: "4", ratio: "1.25", levels: "10" },
-    expect: ["space-4 9.8px", "29.8px"],
-    ref: "等比数列 size_i = round(base × ratio^i × 10)/10：4×1.25⁴ = 9.7656 → 9.8；4×1.25⁹ = 29.80 → 29.8",
+    inputs: { baseSize: "8", ratio: "1.25", levels: "10" },
+    expect: ["space-4 19.5px", "59.6px"],
+    ref: "等比数列 size_i = round(base × ratio^i × 10)/10：8×1.25⁴ = 19.531 → 19.5；8×1.25⁹ = 59.60 → 59.6。页面默认 baseSize=4 得 9.8/29.8 ⇒ 注入 8 后判别明确。",
   },
   {
     slug: "design/typography-scale",

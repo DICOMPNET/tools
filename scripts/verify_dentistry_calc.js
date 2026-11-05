@@ -6,7 +6,9 @@ const CASES = [
   "slug": "dentistry/alveolar-bone-loss",
   "inputs": {
     "remaining": "12",
-    "rootLen": "14"
+    "rootLen": "14",
+    "type": "horizontal",
+    "method": "ratio"
   },
   "expect": [
     "85.7%"
@@ -182,7 +184,9 @@ const CASES = [
   "slug": "dentistry/implant-dimensions",
   "inputs": {
     "boneWidth": "11.5",
-    "boneHeight": "12"
+    "boneHeight": "12",
+    "position": "anterior",
+    "boneType": "2"
   },
   "expect": [ "9.5 最大可用直径" ],
   "ref": "auto-restore"
@@ -200,7 +204,10 @@ const CASES = [
 {
   "slug": "dentistry/oral-ulcer",
   "inputs": {
-    "size": "8"
+    "size": "8",
+    "count": "1-5",
+    "duration": "active",
+    "healtime": "7-14"
   },
   "expect": [
     "中间型/需进一步评估"

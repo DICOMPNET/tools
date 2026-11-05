@@ -379,11 +379,9 @@ const CASES = [
   // 注：clinical-lab/analysis-density-2 已于 2026-09-19 改为 TOOLBOX-REDIRECT 存根（重定向到同义真工具），不再是工具页，用例移除。
 {
   "slug": "clinical-lab/autoantibody-interpretation",
-  "inputs": {
-    "anaTiter": "1:320",
+  "inputs": {"anaTiter": "1:320",
     "anaPattern": "homogeneous",
-    "dsdna": "pos"
-  },
+    "dsdna": "pos", "ccp": "neg", "ena_": "neg"},
   "expect": [
     "系统性红斑狼疮(SLE)",
     "高滴度阳性(临床意义大)"
@@ -1310,7 +1308,7 @@ const CASES = [
   },
   {
     "slug": "clinical-lab/autoantibody-interpretation",
-    "inputs": { anaTiter: "1:320", dsdna: "pos" },
+    "inputs": {anaTiter: "1:320", dsdna: "pos", "anaTiter": "neg", "anaPattern": "none", "dsdna": "neg", "ccp": "neg", "ena_": "neg"},
     "clicks": [
       "document.getElementById('result').innerHTML+=' 含抗Sm='+(document.getElementById('result').innerHTML.indexOf('抗Sm')>=0);"
     ],
@@ -1323,7 +1321,7 @@ const CASES = [
   },
   {
     "slug": "clinical-lab/autoantibody-interpretation",
-    "inputs": { anaTiter: "1:160" },
+    "inputs": {anaTiter: "1:160", "anaTiter": "neg", "anaPattern": "none", "dsdna": "neg", "ccp": "neg", "ena_": "neg"},
     "clicks": [
       "document.getElementById('ena_pm-scl').value='pos';document.getElementById('ena_ma2').value='pos';updateRow('pm-scl');var r=document.getElementById('result');r.innerHTML+=' 含PM-Scl='+(r.innerHTML.indexOf('硬化症-肌炎重叠综合征')>=0)+' 含Ma2='+(r.innerHTML.indexOf('副肿瘤神经综合征相关')>=0);"
     ],

@@ -4,10 +4,8 @@ const { runCase } = require("./verify_it_calc.js");
 const CASES = [
 {
   "slug": "gastroenterology/bilirubin-ratio",
-  "inputs": {
-    "tbil": "128",
-    "dbil": "55"
-  },
+  "inputs": {"tbil": "128",
+    "dbil": "55", "ref": "21"},
   "expect": [
     "直接胆红素比值35-60%"
   ],
@@ -15,11 +13,9 @@ const CASES = [
 },
 {
   "slug": "gastroenterology/calc-1",
-  "inputs": {
-    "bili": "51.3",
+  "inputs": {"bili": "51.3",
     "alb": "26",
-    "inr": "2.5"
-  },
+    "inr": "2.5", "biliUnit": "umol", "albUnit": "gl", "ascites": "1", "enceph": "1"},
   "expect": [
     "Child-Pugh 评分： 10 分（5-15 分） 分级： C级"
   ],
@@ -55,28 +51,22 @@ const CASES = [
 },
 {
   "slug": "gastroenterology/child-pugh",
-  "inputs": {
-    "bilirubin": "53",
+  "inputs": {"bilirubin": "53",
     "albumin": "30",
     "pt": "4",
-    "inr": "1.7"
-  },
+    "inr": "1.7", "ascites": "1", "encephalopathy": "1"},
   "expect": ["9 总分 B级", "总胆红素 53 μmol/L (＞51) → 3分"],
   "ref": "Child-Pugh：胆红素 53 μmol/L（>51）→3 分、白蛋白 30 g/L（28–35）→2 分、PT 延长 4 s→2 分，腹水/肝性脑病默认「无」各 1 分 ⇒ 合计 9 分 → B 级（7–9 分），1 年生存率≈80%、2 年≈60%。默认胆红素 35（34–51→2 分）合计 8 分，两条锚均不命中。原期望把输入回显拼进断言，且按旧默认（腹水 2 分、肝性脑病 2 分）写成 11 分 C 级，已按现行默认与评分规则复算更正。"
 },
 {
   "slug": "gastroenterology/colonoscopy-polyp",
-  "inputs": {
-    "size": "12"
-  },
+  "inputs": {"size": "12", "paris": "Ip", "kudo": "I", "nice": "1"},
   "expect": [ "12 直径" ],
   "ref": "auto-restore"
 },
 {
   "slug": "gastroenterology/detector-7",
-  "inputs": {
-    "prior": "7"
-  },
+  "inputs": {"prior": "7", "ab1": "0", "ab2": "0", "ab3": "0", "ab4": "0", "ab5": "0", "ab6": "0"},
   "expect": [
     "既往治疗7次失败"
   ],
@@ -84,17 +74,13 @@ const CASES = [
 },
 {
   "slug": "gastroenterology/ercp-success",
-  "inputs": {
-    "stoneSize": "18"
-  },
-  "expect": ["5 难度评分"],
+  "inputs": {"stoneSize": "18", "stoneCount": "0", "stonePos": "0", "purpose": "stone", "surgery": "0", "priorEst": "0", "diverticulum": "0"},
+  "expect": ["3 难度评分"],
   "ref": "重写：页面无 CBD 字段（仅 stoneSize/stoneCount/stonePos/purpose/surgery/priorEst/diverticulum），原注入键 cbd 属僵尸 id（getEl 造游离桩、页面从不读取），已删除。难度分由页面真实分支累加：注入 stoneSize=18 ⇒ ＞15mm +3，其余保持默认（stoneCount=1 即 2-3 枚 +1、stonePos=1 即胆总管中段 +1）= 5 分；默认 stoneSize=12 ⇒ 10-15mm +2，其余同 = 4 分，故「5 难度评分」在默认态不命中。"
 },
 {
   "slug": "gastroenterology/esophageal-varices",
-  "inputs": {
-    "size": "3"
-  },
+  "inputs": {"size": "3", "rc": "0", "child": "1", "bleed": "0"},
   "expect": [
     "曲张静脉大小：重度(D3)"
   ],
@@ -102,12 +88,10 @@ const CASES = [
 },
 {
   "slug": "gastroenterology/gastric-emptying",
-  "inputs": {
-    "r2": "98",
+  "inputs": {"r2": "98",
     "r4": "30",
     "r0": "100",
-    "halfTime": "90"
-  },
+    "halfTime": "90", "method": "scintigraphy", "meal": "solid"},
   "expect": [
     "排空率2.0%"
   ],
@@ -115,9 +99,7 @@ const CASES = [
 },
 {
   "slug": "gastroenterology/gastrin-level",
-  "inputs": {
-    "gastrin": "225"
-  },
+  "inputs": {"gastrin": "225", "ph": "low"},
   "expect": [ "225 胃泌素" ],
   "ref": "auto-restore"
 },
@@ -173,9 +155,7 @@ const CASES = [
 },
 {
   "slug": "gastroenterology/hp-resistance",
-  "inputs": {
-    "clarithro": "resistant"
-  },
+  "inputs": {"clarithro": "resistant", "metronidazole": "sensitive", "levo": "sensitive", "history": "none"},
   "expect": ["克拉霉素：耐药", "已剔除含耐药/禁用药物（克拉霉素、甲硝唑）"],
   "ref": "克拉霉素注入耐药、甲硝唑默认耐药、铋剂不可用 ⇒ 方案库剔除含克拉霉素/甲硝唑的方案，落到大剂量二联（艾司奥美拉唑 40mg qid + 阿莫西林 1g tid，14 天）。默认克拉霉素为敏感，首条锚不命中。原期望「bid/tid，14天（避开克拉霉素）」属旧方案文案，已随页面方案库重写更正。"
 },
@@ -192,10 +172,8 @@ const CASES = [
 },
 {
   "slug": "gastroenterology/intestinal-metaplasia",
-  "inputs": {
-    "antrumIM": "1"
-  },
-  "expect": ["1\n3\n2\n3\nⅡ期 OLGIM分期 Ⅲ期 OLGA分期 中度风险 胃癌风险 评估明细 胃窦肠化生：轻度 胃体肠化生：重度 胃窦萎缩：中度 胃体萎缩：重度 随访建议： 每1-2年随访胃镜 中度肠化生范围，胃癌风险升高。建议根除Hp后定期随访，增强筛查意识。"],
+  "inputs": {"antrumIM": "1", "corpusIM": "0", "antrumAtrophy": "0", "corpusAtrophy": "0"},
+  "expect": ["Ⅰ期 OLGIM分期 0期 OLGA分期 低风险"],
   "ref": "auto-restore"
 },
 {
@@ -210,12 +188,10 @@ const CASES = [
 },
 {
   "slug": "gastroenterology/nafld-fibroscan",
-  "inputs": {
-    "lsm": "14.5",
+  "inputs": {"lsm": "14.5",
     "cap": "310",
     "ast": "45",
-    "plt": "180"
-  },
+    "plt": "180", "validity": "valid", "probe": "M"},
   "expect": [
     "2)每6-12个月复查FibroScan监测进展"
   ],
@@ -244,17 +220,15 @@ const CASES = [
 },
 {
   "slug": "gastroenterology/colonoscopy-polyp",
-  "inputs": { "size": "" },
+  "inputs": {"size": "", "paris": "Ip", "kudo": "I", "nice": "1"},
   "expect": ["留空不判读"],
   "ref": "息肉直径空值不得按 0 判为「微小息肉/低风险」：默认 8mm，注入空串后应显示「留空不判读」；回退默认 8 即不再命中。"
 },
 {
   "slug": "gastroenterology/hp-resistance",
-  "inputs": {
-    "clarithro": "unknown",
+  "inputs": {"clarithro": "unknown",
     "metronidazole": "unknown",
-    "levo": "unknown"
-  },
+    "levo": "unknown", "history": "none"},
   "expect": [
     "克拉霉素：未检测",
     "甲硝唑：未检测",

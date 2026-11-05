@@ -15,7 +15,7 @@ const CASES = [
 
   { slug: "economics/balance-of-trade",
     inputs: { X: "300", M: "250" },
-    expect: ["50"],
+    expect: ["300\n250\n50 贸易差额 BoT 16.67 差"],
     ref: "BoT=X−M=300−250=50" },
 
   { slug: "economics/cobb-douglas",
@@ -135,7 +135,7 @@ const CASES = [
 
   { slug: "economics/unemployment-rate",
     inputs: { unemp: "500", lf: "8000" },
-    expect: ["6.25", "7500"],
+    expect: ["6.25", "0\n8000\n6.25 失业率 (%) 7500 就业人数 93.75 就业率 (%) "],
     ref: "u=500/8000·100=6.25%；就业=8000−500=7500" },
 
   { slug: "economics/velocity-of-money",

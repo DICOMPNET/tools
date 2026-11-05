@@ -76,7 +76,7 @@ const CASES = [
   {
     slug: "surveying/earthwork-pyramid-volume",
     inputs: { A: "150", h: "6" },
-    expect: ["300.00"],
+    expect: ["150\n6\n300.00 锥体体积 V (米³) 0.30000"],
     ref: "V=A·h/3=150×6/3=300.00 m³（默认 100/3 避开）",
   },
   {
@@ -195,7 +195,7 @@ const CASES = [
   {
     "slug": "surveying/horizontal-from-slope",
     "inputs": { "S": "200", "v": "30" },
-    "expect": [["100.000"]],
+    "expect": [["\n173.205 水平距离 H (米) 100.000 高差 Δh (米) 26.795 斜距"]],
     "ref": "高差 Δh = S·sin v = 200 × sin30° = **100.000** m；与 H 173.205 合起来满足 sin²+cos²=1（173.205²+100² = 40,000 = S²）"
   },
   {
@@ -213,13 +213,13 @@ const CASES = [
   {
     "slug": "surveying/circular-curve",
     "inputs": { "R": "400", "d": "45" },
-    "expect": [["314.159"]],
+    "expect": [["5\n165.685 切线长 T (m) 314.159 曲线长 L (m) 32.957 外距"]],
     "ref": "曲线长 L = R·d(rad) = 400 × 0.785398 = **314.159** m；与 T 165.685 一条走 tan、一条走弧长，公式不同、可互判"
   },
   {
     "slug": "surveying/convert-angle-slope-1",
     "inputs": { "val": "25", "from": "pct", "to": "deg" },
-    "expect": [["14.04"]],
+    "expect": [["25\npct\ndeg\n14.04 ° 百分比 25.0000 % ｜ 角"]],
     "ref": "25% ⇒ 角度 = arctan(25/100) = arctan0.25 = **14.04**°（默认 10% 得 5.71°）；同组还输出比值 1:4.000，恰为 100÷25"
   },
   {
@@ -340,7 +340,7 @@ const CASES = [
   {
     slug: "surveying/elevation-diff",
     inputs: { bs: "1.6,1.4,1.1", fs: "1.2,1.5,0.8" },
-    expect: ["0.600", "0.2000"],
+    expect: ["0.600", "5,0.8\n0.600 总高差 (m) 0.2000 平均站差 (m)"],
     ref: "注入非默认(默认 bs=1.5,1.2,1.0 / fs=1.3,1.4,0.9)：Σ后视 = 4.100、Σ前视 = 3.500 ⇒ 总高差 = 0.600 m，三站 ⇒ 平均站差 = 0.2000 m。默认态 0.100/0.0333 不命中。"
   },
   {
@@ -820,7 +820,7 @@ const CASES = [
       "clearSections();addSection();calcLeveling()"
     ],
     "expect": [
-      "请填写：测段 1 高差 h、测段 1 测站数/距离"
+      "100\n105.632\nstation\n请填写：测段 1 高差 h、测段 1 测站数/距离。"
     ],
     "ref": "空态守卫（A 类）：新增 1 个测段后两项均留空，旧实现 parseFloat('')||0 按 0 参与平差（fh=0、容许闭合差 4√0=0 ⇒ 误判「合格」）；现逐字段点名缺失项且不输出任何判定。默认 4 测段完整 ⇒ 不命中。"
   },

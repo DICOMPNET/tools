@@ -415,6 +415,18 @@ s.parentNode.insertBefore(el, s);
     }
   }
 
+  /* 仅测试钩子：供 verify 用例调用，不参与任何运行时分支 */
+  window.__mmTreeStats = function(md){
+    var root = transformMd(md);
+    if(!root) return null;
+    var n = 0, e = 0, d = 0;
+    (function walk(node, depth){
+      n++; if(depth > d) d = depth;
+      (node.children || []).forEach(function(c){ e++; walk(c, depth + 1); });
+    })(root, 1);
+    return { n: n, e: e, d: d };
+  };
+
   function syncDark(){
     var dark = document.body.classList.contains("dark") ||
       document.documentElement.getAttribute("data-theme") === "dark";

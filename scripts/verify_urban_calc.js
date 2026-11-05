@@ -64,7 +64,7 @@ const CASES = [
     "inType": "office"
   },
   "expect": [
-    "100m2"
+    "office\nmega\n50000\n100m2\n1\n20\n35\n2\n500 个\n400"
   ],
   "ref": "auto-restore"
 },

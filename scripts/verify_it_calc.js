@@ -9314,6 +9314,16 @@ async function runCaseInner(c) {
     return { ok: false, why: `注入参数非法（${c.slug}）: ` + badFields.join("; ") };
   }
 
+  // radios 注入同步到 checkedByName：querySelector(':checked') 查的是 checkedByName
+  // 而不是 getElementsByName 的注入逻辑；不同步会让 cardiology/has-bled 等
+  // 用 querySelector 检查 radio 选中态的守卫误判"未选中"（2026-11-05 第15轮同步暴露）。
+  if (c.radios) {
+    for (const [nm, v] of Object.entries(c.radios)) {
+      if (!checkedByName[nm]) checkedByName[nm] = [];
+      if (!checkedByName[nm].includes(String(v))) checkedByName[nm].push(String(v));
+    }
+  }
+
   const inline = inlineHandlers(html);
   const elements = {};
   const getEl = (id) => {
@@ -9802,7 +9812,7 @@ async function runCaseInner(c) {
     await Promise.allSettled(pending);   // async 处理函数（如 crypto.subtle）需等其落盘
     const blob1 = collectStrings(elements);
     for (const want of (c.expect || [])) {
-      if (blobHasWant(blob1, want)) return { ok: true, via: "input event" };
+      if (blobHasWant(blob1, want)) return { ok: true, via: "input event", fullBlob: c.returnBlob ? blob1 : undefined };
     }
   }
   // 2.5) 模拟用户点击：click 驱动型页面（选项是 span/div + onclick，页面里根本没有表单控件）。
@@ -9820,7 +9830,7 @@ async function runCaseInner(c) {
     await Promise.allSettled(pending);
     const blobC = collectStrings(elements);
     for (const want of (c.expect || [])) {
-      if (blobHasWant(blobC, want)) return { ok: true, via: "click" };
+      if (blobHasWant(blobC, want)) return { ok: true, via: "click", fullBlob: c.returnBlob ? blobC : undefined };
     }
   }
   // 2.6) 复制回调验证（copyCheck，opt-in）：断言复制函数同步不抛、writeText 的 then 回调不抛，
@@ -9853,7 +9863,7 @@ async function runCaseInner(c) {
     if (cc.expect && !written.includes(cc.expect)) {
       return { ok: false, why: "copyCheck 内容不匹配", sample: written.slice(0, 120) };
     }
-    return { ok: true, via: "copyCheck" };
+    return { ok: true, via: "copyCheck", fullBlob: c.returnBlob ? written : undefined };
   }
   // 3) 兜底：直接调用候选函数
   // 跳过「状态破坏性 / 辅助」类函数：resetAll / clearHistory / restoreHistory / saveHistory /
@@ -9877,7 +9887,7 @@ async function runCaseInner(c) {
     }
     const blob = collectStrings(elements);
     for (const want of c.expect) {
-      if (blobHasWant(blob, want)) return { ok: true, via: n };
+      if (blobHasWant(blob, want)) return { ok: true, via: n, fullBlob: c.returnBlob ? blob : undefined };
     }
   }
   const blob = collectStrings(elements);

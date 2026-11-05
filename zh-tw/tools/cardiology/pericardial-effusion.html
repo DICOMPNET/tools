@@ -125,11 +125,12 @@ s.parentNode.insertBefore(el, s);
       <div>
         <label>積液分佈</label>
         <select id="distribution" onchange="calc()">
-          <option value="circum" selected>環形(環繞心臟)</option>
+          <option value="">請選擇…</option>
+          <option value="circum">環形(環繞心臟)</option>
           <option value="local">侷限性(僅後方/前方)</option>
         </select>
       </div>
-      <div><label>最大積液深度 (mm)</label><input type="number" id="depth" value="22" oninput="calc()" placeholder="如 22"></div>
+      <div><label>最大積液深度 (mm)</label><input type="number" id="depth" oninput="calc()" placeholder="如 22"></div>
     </div>
 
     <h3 style="margin:12px 0 8px;">心包填塞徵象(勾選存在項)</h3>
@@ -260,6 +261,10 @@ s.parentNode.insertBefore(el, s);
 
 <script>
 function calc(){
+  if(document.getElementById('distribution').value==='' || String(document.getElementById('depth').value||'').trim()===''){
+    document.getElementById('result').innerHTML='<div class="tip-box tip-info tb-guard">请选择积液分布，并填写最大积液深度。</div>';
+    return;
+  }
   var dist=document.getElementById('distribution').value;
   var depth=parseFloat(document.getElementById('depth').value)||0;
 
@@ -352,7 +357,9 @@ function calc(){
 }
 
 function copyResult(){
-  ToolBox.copyText(document.getElementById('result').innerText, i18nText('msg389'));
+  var __r=document.getElementById('result');
+  if(__r&&__r.querySelector('.tb-guard')) return;
+  ToolBox.copyText(__r.innerText, i18nText('msg389'));
 }
 
 calc();

@@ -75,7 +75,7 @@ window.INDUSTRY_INFO = {
   'accounting'           : { name: '会计审计', icon: '🧾', hot: 242204 },
   'process'              : { name: '过程控制', icon: '🏭', hot: 238702 },
   'insurance'            : { name: '保险计算', icon: '🛡️', hot: 235115 },
-  'civil'                : { name: '土木工程', icon: '🏗️', hot: 235112 },
+  'civil'                : { name: '土木工程', icon: '🏗️', hot: 229101 },
   'food-processing'      : { name: '食品加工', icon: '🏭', hot: 226754 },
   'rehabilitation'       : { name: '康复医学', icon: '🦾', hot: 224081 },
   'tcm-chemistry'        : { name: '中药化学', icon: '🌿', hot: 220735 },

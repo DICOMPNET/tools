@@ -23,12 +23,12 @@ const CASES = [
 
   { slug: "acoustics/beat-frequency",
     inputs: { f1: "500", f2: "506" },
-    expect: ["6.00", "503.00"],
+    expect: ["500\n506\n6.00 拍频 f_beat (Hz) 503.", "503.00"],
     ref: "拍频=|500−506|=6.00；平均=(500+506)/2=503.00（默认 440/444→4.00，避开）" },
 
   { slug: "acoustics/combine-two-spl",
     inputs: { l1: "90", l2: "84" },
-    expect: ["90.97", "0.97"],
+    expect: ["90.97", "90\n84\n90.97 总声压级 (dB) 0.97 比响者高"],
     ref: "L=10·log₁₀(10⁹+10^8.4)=90.97；比响者高出=90.97−90=0.97（默认 80/80→83.01，避开）" },
 
   { slug: "acoustics/critical-distance",
@@ -58,7 +58,7 @@ const CASES = [
 
   { slug: "acoustics/doppler-acoustic",
     inputs: { f: "500", v: "340", vs: "40" },
-    expect: ["566.67", "66.67"],
+    expect: ["566.67", "500\n340\n40\n566.67 观测频率 f′ (Hz) 66.67 "],
     ref: "f′=500×340/(340−40)=170000/300=566.67；偏移=66.67（默认 440/343/34.3→488.89，避开）" },
 
   { slug: "acoustics/freq-to-note",
@@ -128,12 +128,12 @@ const CASES = [
 
   { slug: "acoustics/sound-speed-air",
     inputs: { T: "30" },
-    expect: ["349.40", "97.06"],
+    expect: ["30\n349.40 声速 v (m/s) 97.06 约 ", "97.06"],
     ref: "v=331.4+0.6×30=349.40；km/h=349.40/3.6=97.06（默认 T=20→343.40，避开）" },
 
   { slug: "acoustics/spl-add",
     inputs: { L1: "90", L2: "84" },
-    expect: ["90.97", "0.97"],
+    expect: ["90.97", "90\n84\n90.97 总声压级 L (dB) 0.97 增量"],
     ref: "L=10·log₁₀(10⁹+10^8.4)=90.97；增量=90.97−90=0.97（默认 80/80→83.01，避开）" },
 
   { slug: "acoustics/spring-natural-freq",

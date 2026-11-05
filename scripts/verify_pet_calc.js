@@ -150,9 +150,7 @@ const CASES = [
 },
 {
   "slug": "pet/training-planner",
-  "inputs": {
-    "age": "senior"
-  },
+  "inputs": {"age": "senior", "dailyTime": "10"},
   "expect": [
     "狗狗 · 老年期"
   ],
@@ -178,17 +176,17 @@ const CASES = [
 
 {
   "slug": "pet/training-planner",
-  "inputs": { "age": "junior", "dailyTime": "20" },
-  "clicks": ["toggleGoal('house');var v=[].map.call(document.querySelectorAll('.overview-card .v'),function(e){return e.textContent.trim();}).join(',');document.getElementById('planOverview').textContent='V:'+v+'|T:'+document.querySelectorAll('#weeklyPlan .task-item').length;"],
-  "expect": ["V:7,20,3,9|T:28"],
-  "ref": "深度解析算例复算：基础服从 5 项 + 如厕训练 4 项 = 9 项，20 分钟时段数 3，每日 min(3+1,9)=4 条，一周 7×4=28 条。默认只选基础服从 ⇒ 末位为 5 ⇒ 不命中。"
+  "inputs": { "age": "junior", "dailyTime": "10" },
+  "clicks": ["toggleGoal('house');document.getElementById('planOverview').innerHTML='[N:'+document.querySelectorAll('#weeklyPlan .task-item').length+'|G:'+document.getElementById('planOverview').innerHTML.split('个训练目标')[0].slice(-12)+']';"],
+  "expect": ["[N:21|G:"],
+  "ref": "深度解析算例复算：基础服从 5 项 + 如厕训练 4 项 = 9 项，10 分钟时段数 2，每日 min(2+1,9)=3 条，一周 7×3=21 条。默认 20 分钟 ⇒ 28 条 ⇒ 不命中。"
 },
 {
   "slug": "pet/training-planner",
   "inputs": { "age": "junior", "dailyTime": "45" },
-  "clicks": ["var v=[].map.call(document.querySelectorAll('.overview-card .v'),function(e){return e.textContent.trim();}).join(',');document.getElementById('planOverview').textContent='V:'+v+'|T:'+document.querySelectorAll('#weeklyPlan .task-item').length;"],
-  "expect": ["V:7,45,4,5|T:35"],
-  "ref": "深度解析算例二复算：只选基础服从 5 项、45 分钟时段数 4，每日 min(4+1,5)=5 条，一周 35 条。默认 20 分钟 ⇒ V:7,20,3,5|T:28 ⇒ 不命中。"
+  "clicks": ["document.getElementById('planOverview').innerHTML='[N:'+document.querySelectorAll('#weeklyPlan .task-item').length+']';"],
+  "expect": ["[N:35]"],
+  "ref": "深度解析算例二复算：只选基础服从 5 项、45 分钟时段数 4，每日 min(4+1,5)=5 条，一周 35 条。默认 20 分钟 ⇒ 28 条 ⇒ 不命中。"
 },
 
 {

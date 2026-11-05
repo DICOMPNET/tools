@@ -261,9 +261,9 @@ const CASES = [
 },
 {
   "slug": "image/wechat-cover-maker",
-  "clicks": ["document.getElementById('c1').value='#ffffff';document.getElementById('c2').value='#ffffff';render();var g=document.getElementById('cover').getContext('2d');var a=g.getImageData(10,222,1,1).data;var b=g.getImageData(10,223,1,1).data;document.getElementById('wcSizeTbl').textContent='P:'+a[0]+','+a[1]+','+a[2]+'|B:'+b[0]+','+b[1]+','+b[2];"],
-  "expect": ["P:255,255,255|B:166,166,166"],
-  "ref": "深度解析算例复算：画布 900×383、底部压暗条起点 y=383−160=223；白色渐变在 y=222 仍是 255，进入 y=223 被 rgba(0,0,0,0.35) 压到 round(255×0.65)=166。默认配色在 y=222 不是纯白 ⇒ 不命中。"
+  "clicks": ["var rec=[];var fake={measureText:function(){return {width:0};},createLinearGradient:function(){return {addColorStop:function(){}};},fillRect:function(x,y,w,h){rec.push([y,h]);},fillText:function(){},beginPath:function(){},save:function(){},restore:function(){},clip:function(){},set fillStyle(v){rec.push(['s',v]);},set font(v){},set textAlign(v){},set textBaseline(v){},set globalAlpha(v){}};document.getElementById('cover').getContext=function(){return fake;};render();var hit=rec.filter(function(r){return r[0]==='s'&&String(r[1]).replace(/\\s+/g,'')==='rgba(0,0,0,0.35)';});var band=rec.filter(function(r){return typeof r[0]==='number';});document.getElementById('wcSizeTbl').textContent='DARK:'+(hit.length?('H'+band[band.length-1][1]):'N');"],
+  "expect": ["DARK:H170"],
+  "ref": "底部压暗条 `ctx.fillStyle='rgba(0,0,0,0.35)'; ctx.fillRect(0, c.height-160, c.width, 170)`；桩不做真实像素（AGENTS 明确 canvas 桩无光栅化），故把 ctx 换成录制桩，断言压暗条的 fillStyle 恰为 rgba(0,0,0,0.35) 且其 fillRect 高度为 170。默认态未调用 render 时 wcSizeTbl 无 DARK: 串 ⇒ 判别力来自本次点击。"
 },
 {
   "slug": "design/image-flipper",

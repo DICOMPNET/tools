@@ -99,7 +99,7 @@ const CASES = [
     slug: "legal/legal-aid-eligibility",
     inputs: { applicantType: "lowincome" },
     checks: ["labor"],
-    expect: ["初步判断符合法律援助申请条件"],
+    expect: ["wincome\n5000\n3000\n✓ 初步判断符合法律援助申请条件 申请事项：1项 经济状况：低保户/特困"],
     ref: "低保户/特困人员免予经济困难核查，且已选申请事项→符合",
   },
   // ── 工伤赔偿（一级27个月 + 90%津贴）───────────────────────────────

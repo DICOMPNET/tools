@@ -22,7 +22,7 @@ const CASES = [
     ref: "ΔTb=0.512*0.5*3=0.7680；沸点=100.7680（原 i=2 与默认 i=1,m=1 乘积相同 → 巧合命中）" },
 { slug: "chemistry/buffer-ph",
     inputs: { pKa: "4.76", Abase: "0.1", HA: "0.2" },
-    expect: ["4.459", "0.500"],
+    expect: ["4.76\n0.1\n0.2\n4.459 pH 0.500 [A⁻]/[HA] ", "0.500"],
     ref: "pH=4.76+log10(0.1/0.2)=4.459；比值=0.500" },
 { slug: "chemistry/dilution-c1v1",
     inputs: { c1: "0.5", v1: "100", c2: "0.1", v2: "0" },

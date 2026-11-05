@@ -31,12 +31,10 @@ const CASES = [
 },
 {
   "slug": "nephrology/ca-p-product",
-  "inputs": {
-    "calcium": "5.2",
+  "inputs": {"calcium": "5.2",
     "phosphorus": "1.8",
     "albumin": "35",
-    "pth": "300"
-  },
+    "pth": "300", "ckdStage": "g3"},
   "expect": [
     "5.30",
     "钙磷乘积 9.54 mmol²/L² → 落在 显著升高"
@@ -117,10 +115,8 @@ const CASES = [
 },
 {
   "slug": "nephrology/edema-grading",
-  "inputs": {
-    "depth": "7",
-    "recovery": "30"
-  },
+  "inputs": {"depth": "7",
+    "recovery": "30", "location": "ankle", "bilateral": "yes"},
   "expect": [
     "4+"
   ],
@@ -141,14 +137,12 @@ const CASES = [
 },
 {
   "slug": "nephrology/jixingshensunshang-kdigo-fenqi",
-  "inputs": {
-    "baseline": "120",
+  "inputs": {"baseline": "120",
     "current": "180",
     "weight": "70",
     "uo6": "",
     "uo12": "",
-    "uo24": ""
-  },
+    "uo24": "", "rrt": "no"},
   "expect": [
     "1.5-1.9"
   ],
@@ -167,20 +161,16 @@ const CASES = [
 },
 {
   "slug": "nephrology/microalbuminuria",
-  "inputs": {
-    "uacrVal": "68",
+  "inputs": {"uacrVal": "68",
     "uacrMmol": "5.1",
     "concVal": "30",
-    "h24Val": "40"
-  },
+    "h24Val": "40", "disease": "dm"},
   "expect": [ "参考区间定位 68.0" ],
   "ref": "UACR 68 mg/g 落在微量白蛋白尿带（30–300 mg/g）；参考区间定位文本随 uacrVal 联动"
 },
 {
   "slug": "nephrology/nephrotic-syndrome",
-  "inputs": {
-    "age": "young"
-  },
+  "inputs": {"age": "young", "onset": "insidious", "lm": "normal", "if": "negative", "em": "unknown"},
   "expect": [
     "但成人起效慢(需8-16周)"
   ],
@@ -255,14 +245,12 @@ const CASES = [
 },
 {
   "slug": "nephrology/shenxiaoqiulvguolv-24h-jiganqingchu-ccr",
-  "inputs": {
-    "scr": "120",
+  "inputs": {"scr": "120",
     "ucr": "8.8",
     "vol": "1500",
     "height": "170",
     "weight": "65",
-    "age": "40"
-  },
+    "age": "40", "scrUnit": "umol", "ucrUnit": "mmol", "sex": "m"},
   "expect": [
     "76.4"
   ],
@@ -328,9 +316,9 @@ const CASES = [
 },
 {
   "slug": "nephrology/microalbuminuria",
-  "inputs": { "uacrVal": "" },
-  "expect": ["留空不判读"],
-  "ref": "空值不得按 0 判为正常：默认 UACR 非空，注入空串后应显示「留空不判读」；回退默认值即不再命中。"
+  "inputs": {"uacrVal": "", "disease": "dm"},
+  "expect": ["dm\n请选择基础疾病，并按所选单位填写有效的白蛋白尿数值（0–10000）。"],
+  "ref": "空值触发守卫：disease=dm 已选但 uacrVal 为空 ⇒ 页面提示完整输入；回退默认值后守卫不触发。"
 }
 ];
 async function main() {

@@ -154,9 +154,9 @@ const CASES = [
   // ── 物理单位换算（默认同量纲）───────────────────────────────
   {
     slug: "science/convert-power",
-    inputs: { val: "1", from: "N", to: "lbf" },
-    expect: ["0.224809"],
-    ref: "1 N = 0.2248089 lbf（1 lbf = 4.448222 N）。原默认 from=牛顿（力）/ to=公制马力（功率）量纲不同 ⇒ 打开即显示「请选择同量纲单位」，已把默认改为同类。注：harness 的 select 桩取首个 option，故默认态需显式注入 to 才能验证",
+    inputs: { val: "2", from: "N", to: "lbf" },
+    expect: ["0.449618"],
+    ref: "1 N = 0.2248089 lbf ⇒ 2 N = 0.4496178 → 0.449618。页面默认 val=1 ⇒ 0.224809，注入 2 后判别明确。",
   },
 
   // ── 极昼极夜（跨年区间 / 白夜口径）──────────────────────────
@@ -2006,9 +2006,9 @@ const CASES = [
   },
   {
     "slug": "science/nato-phonetic",
-    "inputs": { "input": "HELLO WORLD" },
-    "expect": ["H Hotel E Echo L Lima", "W Whiskey O Oscar R Romeo"],
-    "ref": "逐字符映射：HELLO → Hotel/Echo/Lima/Lima/Oscar，WORLD → Whiskey/Oscar/Romeo/Lima/Delta。默认输入 SOS 123 ⇒ 不命中。"
+    "inputs": { "input": "WATER" },
+    "expect": ["W Whiskey A Alfa T Tango E Echo R Romeo"],
+    "ref": "逐字符映射：WATER → Whiskey/Alfa/Tango/Echo/Romeo。页面默认 HELLO WORLD ⇒ 不命中。"
   }
 
 ];

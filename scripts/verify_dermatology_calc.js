@@ -162,10 +162,13 @@ const CASES = [
   "inputs": {
     "leprosyType": "BT"
   },
+  "clicks": [
+    "handGrade=0;eyeGrade=0;calc();"
+  ],
   "expect": [
     "界限类偏结核样型(BT)"
   ],
-  "ref": "auto-restore"
+  "ref": "auto-restore 用 clicks 直接设 handGrade=eyeGrade=0 绕过 click-to-select 的 DOM 依赖，再显式调 calc()。",
 },
 {
   "slug": "dermatology/miliaria-classification",
@@ -354,8 +357,8 @@ const CASES = [
   "clicks": ["selectFluor({classList:{add:function(){},remove:function(){}}},1)"],
   "expect": [
     "「亮绿色」荧光对应的疾病",
-    "头癣（小孢子菌属）",
-    "铜绿假单胞菌感染"
+    "红色（体液）\n「亮绿色」荧光对应的疾病 头癣（小孢子菌属） 病发呈亮绿色荧光，见于白癣/黑癣。犬小",
+    "子菌感染为典型。可快速筛查患儿传染源。 铜绿假单胞菌感染 创面/甲呈黄绿色荧光，提示绿脓杆菌定植"
   ],
   "ref": "原判「结构性不可注入」有误：selectFluor(btn,i) 的 btn 只用于 classList 增删，传哑对象"
      + " {classList:{add,remove}} 即可（querySelectorAll('.fluor-btn') 返回空数组，forEach 安全）。"

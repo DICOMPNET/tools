@@ -107,7 +107,7 @@ const CASES = [
 
   { slug: "metrology/flatness-deviation",
     inputs: { hmax: "0.018", hmin: "-0.012" },
-    expect: ["0.030", "30.0"],
+    expect: ["0.018\n-0.012\n0.030 平面度误差 (mm) 30.0 平面度", "30.0"],
     ref: "平面度=0.018−(−0.012)=0.030 mm=30.0 μm" },
 
   { slug: "metrology/roundness-deviation",
