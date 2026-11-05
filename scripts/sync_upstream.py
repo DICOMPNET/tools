@@ -43,6 +43,7 @@ FREEZE_PATHS = [                   # 冻结路径：永远保持本仓库自己�
 EXCLUDE_PATHS = [                  # 排除路径：上游仍有、但本地已永久删除的文件（read-tree 后强制删除，防每轮复活）
     "js/ad_metrics.js",            # 广告埋点（推广信息，已清理）
     "json/analytics_51la_overview.json",  # 51.la 统计数据缓存（非百度统计，已清理）
+    "_fix_formula_titles_log.txt", # 上游本地批量脚本的运行日志（含其本机绝对路径与上游域名，属运维残留，非站点内容）
 ]
 # 本地补丁：同步覆盖上游文件后自动重打的字符串替换（防站点域名等本地化改动被上游版本冲掉；幂等）
 LOCAL_PATCH_FILES = [
@@ -95,6 +96,66 @@ FILE_PATCHES = {
         # ⇒ 全局域名补丁改后只剩 45 字节、断言落空。改为与域名无关的固定 50 字节 URL（8+11+21+10=50）。
         ('"url": "https://chenguangwu.github.io/tools/it/url-qr.html",',
          '"url": "https://example.com/tools/it/url-qr.html?x=1234567",'),
+    ],
+    # _build.py 是「只打域名补丁、不保留本地代码」的文件：上游每次改构建脚本都会整文件覆盖，
+    # 本地 4 处定制（disclaimer 进两份 sitemap、数量公式计入 disclaimer、根页面 hreflang、all_urls 计入）
+    # 必须在此重打，否则会静默丢失（2026-11-05 实测：sitemap 里 disclaimer 消失、search/chains/embed/404 无 hreflang）。
+    "_build.py": [
+        # ① generate_sitemap 内的 about 块之后补 disclaimer（锚定紧随的 for t in tools 行以区分两处同名块）
+        ("        lines.extend(_localized_url_blocks('https://tools.dicomp.net/about.html', today, 'monthly', '0.7'))\n"
+         "    for t in tools:",
+         "        lines.extend(_localized_url_blocks('https://tools.dicomp.net/about.html', today, 'monthly', '0.7'))\n"
+         "    # disclaimer.html 免责声明（本地新增页，需持续进 sitemap）\n"
+         "    if os.path.isfile(os.path.join(ROOT, 'disclaimer.html')):\n"
+         "        lines.extend(_localized_url_blocks('https://tools.dicomp.net/disclaimer.html', today, 'monthly', '0.5'))\n"
+         "    for t in tools:"),
+        # ② generate_core_sitemap 内的 about 块之后补 disclaimer
+        ("        lines.extend(_localized_url_blocks('https://tools.dicomp.net/about.html', today, 'monthly', '0.7'))\n"
+         "    # guides/ 目录下的指南页",
+         "        lines.extend(_localized_url_blocks('https://tools.dicomp.net/about.html', today, 'monthly', '0.7'))\n"
+         "    # disclaimer.html 免责声明（本地新增页，需持续进 sitemap）\n"
+         "    if os.path.isfile(os.path.join(ROOT, 'disclaimer.html')):\n"
+         "        lines.extend(_localized_url_blocks('https://tools.dicomp.net/disclaimer.html', today, 'monthly', '0.5'))\n"
+         "    # guides/ 目录下的指南页"),
+        # ③ sitemap 一致性公式计入 disclaimer
+        ("    has_about = 1 if os.path.isfile(os.path.join(ROOT, 'about.html')) else 0\n    # 孤儿化",
+         "    has_about = 1 if os.path.isfile(os.path.join(ROOT, 'about.html')) else 0\n"
+         "    has_disclaimer = 1 if os.path.isfile(os.path.join(ROOT, 'disclaimer.html')) else 0\n"
+         "    # 孤儿化"),
+        ("(expected_tools + 3 + len(category_inds) + guides_count + has_chains + has_about)",
+         "(expected_tools + 3 + len(category_inds) + guides_count + has_chains + has_about + has_disclaimer)"),
+        # ④ 其他根页面注入 hreflang（简繁双向一致）
+        ("        print('Updated hreflang in index.html')\n\n    # Generate one root sitemap.",
+         "        print('Updated hreflang in index.html')\n\n"
+         "    # 其他根页面也注入 hreflang（zh-tw 版本有简中必须有，双向一致）\n"
+         "    _ROOT_PAGES_FOR_HREFLANG = [\n"
+         "        ('about.html',    'https://tools.dicomp.net/about.html'),\n"
+         "        ('disclaimer.html', 'https://tools.dicomp.net/disclaimer.html'),\n"
+         "        ('search.html',   'https://tools.dicomp.net/search.html'),\n"
+         "        ('chains.html',   'https://tools.dicomp.net/chains.html'),\n"
+         "        ('embed.html',    'https://tools.dicomp.net/embed.html'),\n"
+         "        ('404.html',      'https://tools.dicomp.net/404.html'),\n"
+         "    ]\n"
+         "    for _fn, _abs in _ROOT_PAGES_FOR_HREFLANG:\n"
+         "        _fp = os.path.join(ROOT, _fn)\n"
+         "        if not os.path.isfile(_fp):\n"
+         "            continue\n"
+         "        with open(_fp, 'r', encoding='utf-8') as _f:\n"
+         "            _content = _f.read()\n"
+         "        _new = inject_hreflang(_content, _abs)\n"
+         "        if _new != _content:\n"
+         "            with open(_fp, 'w', encoding='utf-8') as _f:\n"
+         "                _f.write(_new)\n"
+         "            print('Updated hreflang in %s' % _fn)\n"
+         "\n"
+         "    # Generate one root sitemap."),
+        # ⑤ all_urls 计入 disclaimer（lastmod 键域与 sitemap 保持一致）
+        ("    if os.path.isfile(os.path.join(ROOT, 'about.html')):\n"
+         "        all_urls.append('https://tools.dicomp.net/about.html')\n",
+         "    if os.path.isfile(os.path.join(ROOT, 'about.html')):\n"
+         "        all_urls.append('https://tools.dicomp.net/about.html')\n"
+         "    if os.path.isfile(os.path.join(ROOT, 'disclaimer.html')):\n"
+         "        all_urls.append('https://tools.dicomp.net/disclaimer.html')\n"),
     ],
 }
 DRY_RUN = "--dry-run" in sys.argv
@@ -217,11 +278,16 @@ if patched:
 # 5.7 单文件定向替换
 for fp, pairs in FILE_PATCHES.items():
     if not os.path.isfile(fp):
+        print("⚠️ 定向替换目标不存在: %s" % fp)
         continue
     with open(fp, "rb") as f:
         src = f.read()
     out = src
     for old, new in pairs:
+        if old.encode("utf-8") not in out:
+            # 上游改写了锚点 ⇒ 补丁静默失效（本地修复会丢失），必须显式报警由人工确认
+            print("⚠️ 定向替换未命中（上游锚点已变，请人工核对）: %s <- %s" % (fp, old.splitlines()[0][:60]))
+            continue
         out = out.replace(old.encode("utf-8"), new.encode("utf-8"))
     if out != src:
         with open(fp, "wb") as f:
