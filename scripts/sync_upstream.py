@@ -276,19 +276,27 @@ if patched:
     print("已重打本地补丁: %s" % ", ".join(patched))
 
 # 5.7 单文件定向替换
+# 注意：上游许多文件是 CRLF 行尾（_build.py 实测 4917 行全 CRLF），而补丁串用 \n 书写，
+# 直接字节匹配会全部失配（2026-11-05 实测 5 条 _build.py 补丁全未命中）。这里统一先归一化到 LF 再匹配，
+# 写完再按原文件行尾风格还原，既保证锚点命中，也不制造全文件 EOL 变更的噪音 diff。
 for fp, pairs in FILE_PATCHES.items():
     if not os.path.isfile(fp):
         print("⚠️ 定向替换目标不存在: %s" % fp)
         continue
     with open(fp, "rb") as f:
         src = f.read()
-    out = src
+    use_crlf = b"\r\n" in src
+    out = src.replace(b"\r\n", b"\n") if use_crlf else src
     for old, new in pairs:
-        if old.encode("utf-8") not in out:
+        o = old.encode("utf-8").replace(b"\r\n", b"\n")
+        n = new.encode("utf-8").replace(b"\r\n", b"\n")
+        if o not in out:
             # 上游改写了锚点 ⇒ 补丁静默失效（本地修复会丢失），必须显式报警由人工确认
             print("⚠️ 定向替换未命中（上游锚点已变，请人工核对）: %s <- %s" % (fp, old.splitlines()[0][:60]))
             continue
-        out = out.replace(old.encode("utf-8"), new.encode("utf-8"))
+        out = out.replace(o, n)
+    if use_crlf:
+        out = out.replace(b"\n", b"\r\n")
     if out != src:
         with open(fp, "wb") as f:
             f.write(out)
