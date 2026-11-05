@@ -80,11 +80,9 @@ FILE_PATCHES = {
     "tools/it/short-link-generator.html": [
         ("https://github.com/chenguangwu/chenguangwu.github.io", "https://tools.dicomp.net/"),
     ],
-    # ADFGVX 密码页两处缺陷（上游版本 localeCompare 依赖浏览器语言、默认方阵串 37 字符含重复 M 且 Z 落在
-    # 第 37 位 ⇒ 加密 Z 输出 "undefined"）。修好后门禁 it/adfgvx-cipher 不再受 ICU 排序影响。
+    # ADFGVX 密码页缺陷（上游默认方阵串 37 字符含重复 M、Z 落在第 37 位 ⇒ 加密 Z 输出 "undefined"）。
+    # 排序问题上游已在 2026-11 自行按码点比较修复（原为 localeCompare，随浏览器语言漂移），此处不再重打。
     "tools/it/adfgvx-cipher.html": [
-        ("pairs.sort((a, b) => a.ch.localeCompare(b.ch));",
-         "pairs.sort((a, b) => (a.ch < b.ch ? -1 : a.ch > b.ch ? 1 : 0));"),
         ("const DEFAULT_KEY = 'NA1C3H8TB2OME5WRPD4F6G7I9J0KLMQSUVXYZ';",
          "const DEFAULT_KEY = 'NA1C3H8TB2OME5WRPD4F6G7I9J0KLQSUVXYZ';"),
     ],
