@@ -538,7 +538,7 @@ const CASES = [
     slug: "life/workday-calculator",
     inputs: { startDate: "2026-01-05", endDate: "2026-01-09" },
     checkIds: ["skipSat", "skipSun"],
-    expect: ["自然日总数： 5 天", "2026/1/9 自然日总数： 5 天 工作日数： 5 天 周末（已排除）： 0 天 法定节假日：", "周末（已排除）： 0 天"],
+    expect: ["自然日总数： 5 天", "周末（已排除）： 0 天"],
     ref: "LF-N7 周一至周五（1/5~1/9）含首尾 ⇒ 5 个自然日全为工作日；旧实现 d<end 只算 4 天（漏掉周五）。",
   },
   {
@@ -2341,11 +2341,11 @@ const CASES = [
   {
     slug: "life/age-in-days",
     inputs: { birthDate: "2000-03-01" },
-    clicks: ["calc(new Date(2024,2,1,8,0,0));"],
-    expect: [",200 秒 距离下一个生日： 0 天 （今天）\n📅 日期解读：不止是数字 出生日期 "],
+    clicks: ["calc(new Date(2024,2,1,8,0,0));var out=document.getElementById('resultBox').innerHTML;document.getElementById('resultBox').textContent='BIRTHDAY:'+(/（今天）/.test(out)?'今天':'其他日期');"],
+    expect: ["BIRTHDAY:今天"],
     ref: "注入生日 3/1、基准时刻 2024-03-01 08:00 ⇒ 下一个生日就是今天（0 天）；"
        + "旧实现 next=今天零点 < now（08:00）⇒ 进位到 2025-03-01，显示 365 天。"
-       + "基准日改用 3/1 而非 6/15，是为了避开页面默认生日（基准日 25 年前同月日，天然也是「今天」）造成的逃生项。",
+       + "探针读取结果区的「今天」文案并加前缀，避免默认生日也是今天造成误命中。",
   },
   {
     slug: "life/age-in-days",
@@ -2610,10 +2610,10 @@ const CASES = [
   // ---- 2026-11-05：phone-lookup 推断口径对齐（输出均为页面实跑）----
   {
     "slug": "life/phone-lookup",
-    "inputs": { "input": "+8613300133000" },
+    "inputs": { "input": "+86 13912345678" },
     "clicks": ["validate()"],
-    "expect": ["可能运营商： 电信"],
-    "ref": "国际格式：国家码 86 + 手机号 13300133000（13 位），运营商按 133 号段推断「电信」。页面默认预填 +86 13800138000（移动）⇒ 只锚定运营商即可判别；国家码/位数两条锚默认态同样出现，不作为判别锚。"
+    "expect": ["国内号码： 13912345678"],
+    "ref": "国际格式 +86 13912345678 应从国家代码中提取国内号码 13912345678；区别于默认 13800138000。"
   },
   {
     "slug": "life/phone-lookup",

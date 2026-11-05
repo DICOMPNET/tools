@@ -261,9 +261,9 @@ const CASES = [
 },
 {
   "slug": "image/wechat-cover-maker",
-  "clicks": ["var rec=[];var fake={measureText:function(){return {width:0};},createLinearGradient:function(){return {addColorStop:function(){}};},fillRect:function(x,y,w,h){rec.push([y,h]);},fillText:function(){},beginPath:function(){},save:function(){},restore:function(){},clip:function(){},set fillStyle(v){rec.push(['s',v]);},set font(v){},set textAlign(v){},set textBaseline(v){},set globalAlpha(v){}};document.getElementById('cover').getContext=function(){return fake;};render();var hit=rec.filter(function(r){return r[0]==='s'&&String(r[1]).replace(/\\s+/g,'')==='rgba(0,0,0,0.35)';});var band=rec.filter(function(r){return typeof r[0]==='number';});document.getElementById('wcSizeTbl').textContent='DARK:'+(hit.length?('H'+band[band.length-1][1]):'N');"],
-  "expect": ["DARK:H170"],
-  "ref": "底部压暗条 `ctx.fillStyle='rgba(0,0,0,0.35)'; ctx.fillRect(0, c.height-160, c.width, 170)`；桩不做真实像素（AGENTS 明确 canvas 桩无光栅化），故把 ctx 换成录制桩，断言压暗条的 fillStyle 恰为 rgba(0,0,0,0.35) 且其 fillRect 高度为 170。默认态未调用 render 时 wcSizeTbl 无 DARK: 串 ⇒ 判别力来自本次点击。"
+  "clicks": ["var cv=document.getElementById('cover');cv.width=900;cv.height=383;var ops=[];var ctx={createLinearGradient:function(){return {addColorStop:function(){}}},fillRect:function(x,y,w,h){ops.push([this.fillStyle,x,y,w,h].join(','))},fillText:function(){},measureText:function(s){return {width:s.length*10}}};cv.getContext=function(){return ctx};render();document.getElementById('wcSizeTbl').textContent=ops.join('|');"],
+  "expect": ["rgba(0,0,0,0.35),0,223,900,170"],
+  "ref": "绘图指令验证：900×383 画布的底部遮罩从 y=383−160=223 起，宽 900、高 170，透明度 0.35；记录实际 fillRect 指令，不声称测试了像素。"
 },
 {
   "slug": "design/image-flipper",

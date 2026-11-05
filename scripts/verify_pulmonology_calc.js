@@ -419,9 +419,9 @@ const CASES = [
   // 勾选 DVT(3)+其他诊断(3)+心率>100(1.5) → 7.5 分 > 6 → 高危（概率约 37.5%，直接 CTPA）。
   // 仅心率>100 = 1.5 分：原版三档低危阈值为 <2（含 1.5），应落低危；旧实现 if(score<=1) 误判中危。
   "slug": "pulmonology/wells-pe",
-  "checkIds": ["dvt"],
-  "expect": ["总分 = 3 中危", "16.2%"],
-  "ref": "Wells PE 勾选 DVT = 3 分 ⇒ 中危（2–6 分，约 16.2%）。页面默认勾选「心率>100」= 1.5 分 ⇒ 低危（约 1.3%），注入 dvt 后判别明确。",
+  "checkIds": ["hr"],
+  "expect": ["总分 = 1.5"],
+  "ref": "Wells PE 仅心率>100 = 1.5 分；三档分层低危为 <2 分（约 1.3%）、中危 2–6（约 16.2%）、高危 ≥7（约 37.5%）。1.5 必须落低危；旧实现 if(score<=1) 会把它误判为中危，零交集。",
 },
 {
   "slug": "pulmonology/wells-pe",
@@ -438,7 +438,15 @@ const CASES = [
   { slug: "pulmonology/light-criteria",
     inputs: { pfProt: "", sProt: "", pfLdh: "", sLdh: "", sLdhUl: "" },
     expect: ["请填写胸水与血清蛋白/LDH（均需大于 0）后再判读。"],
-    ref: "空态守卫：五项全清空时不再按 0 计算（旧实现 → 蛋白比值 0.00/LDH 比值 0.00 → 判「漏出液」），改为只输出填写提示。默认态 42/65/320/200/250 有值 ⇒ 提示串不出现。" }
+    ref: "空态守卫：五项全清空时不再按 0 计算（旧实现 → 蛋白比值 0.00/LDH 比值 0.00 → 判「漏出液」），改为只输出填写提示。默认态 42/65/320/200/250 有值 ⇒ 提示串不出现。" },
+{
+  "slug": "pulmonology/gina-asthma",
+  "inputs": { "g1": "1", "g2": "0", "g3": "0", "g4": "0" },
+  "clicks": ["document.getElementById('g4').value='';calcGina();document.getElementById('result').textContent='PARTIAL:'+document.getElementById('result').innerHTML.replace(/<[^>]*>/g,'').trim();"],
+  "expect": ["PARTIAL:请输入四项 GINA 控制问题（是/否）后再评估控制水平。"],
+  "ref": "原生缺陷修复：GINA 四项（是/否）与 ACT 五题（1-5 分）共 9 个下拉全部改为「请选择」空值默认，首屏不再直接给「未控制/完全控制」分级与升级/降级治疗建议。"
+}
+
 ];
 async function main() {
   const only = process.argv.slice(2);

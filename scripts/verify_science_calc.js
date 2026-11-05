@@ -156,7 +156,7 @@ const CASES = [
     slug: "science/convert-power",
     inputs: { val: "2", from: "N", to: "lbf" },
     expect: ["0.449618"],
-    ref: "1 N = 0.2248089 lbf ⇒ 2 N = 0.4496178 → 0.449618。页面默认 val=1 ⇒ 0.224809，注入 2 后判别明确。",
+    ref: "2 N = 0.449618 lbf（1 lbf = 4.448222 N）；区别于默认 1 N。",
   },
 
   // ── 极昼极夜（跨年区间 / 白夜口径）──────────────────────────
@@ -2006,9 +2006,15 @@ const CASES = [
   },
   {
     "slug": "science/nato-phonetic",
-    "inputs": { "input": "WATER" },
-    "expect": ["W Whiskey A Alfa T Tango E Echo R Romeo"],
-    "ref": "逐字符映射：WATER → Whiskey/Alfa/Tango/Echo/Romeo。页面默认 HELLO WORLD ⇒ 不命中。"
+    "inputs": { "input": "HELLO NASA" },
+    "expect": ["N November A Alfa S Sierra A Alfa"],
+    "ref": "逐字符映射 NASA → November/Alfa/Sierra/Alfa；默认 HELLO WORLD 不含该串。"
+  },
+  {
+    slug: "science/convert-power",
+    inputs: { val: "", from: "N", to: "lbf" },
+    expect: ["请输入要转换的数值"],
+    ref: "空态守卫（2026-11-05）：清空数值后 `+''` 得 0（不是 NaN）⇒ 旧输出「0 N = 0 lbf」凭空给零值结论；改为先判原始空串再判 NaN。⚠ 数值 0 本身合法（0 N = 0 lbf 照常计算），只判空串。默认 val=1 ⇒ 提示串不出现；注入 1 N 用例断「0.224809」⇒ 两态互斥。",
   }
 
 ];

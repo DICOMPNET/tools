@@ -5,10 +5,12 @@ const CASES = [
 {
   // 原为 all_default 弱用例：4 个输入全等于页面 value，expect「12.0」是兜底预设 loadNormal() 写入的醛固酮值。
   "slug": "endocrinology/aldosterone-renin",
-  "inputs": {"aldo": "7.5",
+  "inputs": {
+    "aldo": "7.5",
     "renin": "2.4",
     "k": "3.0",
-    "bp": "140", "reninUnit": "ngdl", "posture": "upright"},
+    "bp": "140", "posture": "upright"
+  },
   "expect": [
     "3.1 ng/dL : ",
     "7.5 醛固酮(ng/dL)"
@@ -167,12 +169,14 @@ const CASES = [
 {
   // 原 expect「140/90mmHg」出自每条标准的静态阈值说明文字 → 逃生项。
   "slug": "endocrinology/metabolic-syndrome",
-  "inputs": {"waist": "99",
+  "inputs": {
+    "waist": "99",
     "sbp": "150",
     "dbp": "95",
     "fpg": "7.2",
     "tg": "3.2",
-    "hdl": "0.8", "gender": "male", "meds": "0"},
+    "hdl": "0.8", "gender": "male", "meds": "0"
+  },
   "expect": [
     "腰围 99cm",
     "血压 150/95"
@@ -182,13 +186,15 @@ const CASES = [
 {
   // 随访计划生成器（03-54）：checkDate 选填，默认态不渲染 ⇒ 零交集
   "slug": "endocrinology/metabolic-syndrome",
-  "inputs": {"waist": "99",
+  "inputs": {
+    "waist": "99",
     "sbp": "150",
     "dbp": "95",
     "fpg": "7.2",
     "tg": "3.2",
-    "hdl": "0.8",
-    "checkDate": "2024-01-15", "gender": "male", "meds": "0"},
+    "hdl": "0.8", "gender": "male", "meds": "0",
+    "checkDate": "2024-01-15"
+  },
   "expect": [
     "随访计划（基线 2024-01-15，代谢综合征已成立 → 每 3 个月复查）",
     "第1次复查：2024-04-15"
@@ -228,7 +234,9 @@ const CASES = [
 },
 {
   "slug": "endocrinology/pituitary-tumor",
-  "inputs": {"diameter": "12", "invasive": "0"},
+  "inputs": {
+    "diameter": "12", "invasive": "0"
+  },
   "expect": [
     "之后每6-12月"
   ],
@@ -275,8 +283,10 @@ const CASES = [
 {
   // 原为 all_default 弱用例：仅 tumorSize/tg 取页面默认，expect 是低危随访文案。
   "slug": "endocrinology/thyroid-cancer-risk",
-  "inputs": {"tumorSize": "5.5",
-    "tg": "9.9", "pathology": "papillary", "tgAb": "0", "imaging": "negative", "dscan": "negative"},
+  "inputs": {
+    "tumorSize": "5.5",
+    "tg": "9.9", "pathology": "papillary", "tgAb": "0", "imaging": "negative", "dscan": "negative"
+  },
   "checkIds": [
     "distant",
     "rair"

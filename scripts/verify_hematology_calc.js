@@ -413,7 +413,7 @@ const CASES = [
     slug: "hematology/dic-scoring",
     inputs: { plt: "68", ddimer: "12", pt: "4", fib: "1.2" },
     checkIds: ["hasDisease"],
-    expect: ["8\n12\n4\n1.2\n4 ISTH评分 非显性DIC（可能） 诊断倾向 评分明细 血小板 50-10", "D-二聚体 显著升高 (12mg/L) → +2"],
+    expect: ["非显性DIC（可能）", "D-二聚体 显著升高 (12mg/L) → +2"],
     ref: "血小板 68(+1) + D-二聚体 12→显著升高(+2) + PT 4s(+1) + 纤维蛋白原 1.2(+0) = 4 分 ⇒ 非显性 DIC（3–4 分）。旧实现显著升高 +3 ⇒ 5 分误判「显性DIC」，故两串均为强判别。默认 inputs 45/8.5/6/1.2 得 4 分且明细为「中度升高 → +1」，不出现这两串。"
   },
   {

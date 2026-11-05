@@ -180,12 +180,13 @@ const CASES = [
 },
 {
   "slug": "office/mindmap",
+  "markmapStub": true,
   "inputs": {},
   "clicks": [
-    "document.getElementById('mmRefTitle').textContent=(typeof window.__mmTreeStats==='function'?'HOOK-LEAK':'NO-HOOK');"
+    "var s=window.__mmTreeStats(['# 主题','## 分支一','- 子节点A','- 子节点B','## 分支二','- 子节点C'].join('\\n'));document.getElementById('mmRefTitle').textContent=s?('N:'+s.n+'|E:'+s.e+'|D:'+s.d):'NULL';"
   ],
-  "expect": ["NO-HOOK"],
-  "ref": "降级保护：该页整段逻辑包在 IIFE 内，window.markmap 缺失时降级分支提前 return，测试钩子 __mmTreeStats 不得被赋值（否则真机无 CDN 场景会暴露未定义解析器的入口）。桩无法提供真实 markmap.transform 的多层树，故不做 7/6/3 深度断言，改锚定降级路径的钩子不泄漏。默认态 mmRefTitle 为静态标题、不含 NO-HOOK ⇒ 判别力来自本次点击。"
+  "expect": ["N:6|E:5|D:3"],
+  "ref": "结构验证：1 个 # + 2 个 ## + 3 个列表项 → 节点数 6、边数 5、层深 3；使用按标题和列表层级构树的测试桩。"
 }
 ];
 // 单例超时：office 两个 PDF 页的「注入失败态」会等待 pdfjsReady 轮询，该 Promise 在

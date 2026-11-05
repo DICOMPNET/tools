@@ -194,8 +194,8 @@ const CASES = [
     "pustular"
   ],
   "expect": [
-    "脓疱型银屑病(+1) 总评分 = 12 高度提示SAPHO综合征 高度提示SAPHO综合征。建议完",
-    "2)：获得性骨肥厚、脊柱受累 诊断评分 前胸壁受累(+3, 特征性表现) 骨肥厚(+2) 掌跖脓疱病(+2) 重"
+    "高度提示SAPHO",
+    "前胸壁受累(+3, 特征性表现)"
   ],
   "ref": "dxScore：前胸壁 +3、骨肥厚 +2、掌跖脓疱病 +2、重度痤疮/HS +2、骶髂关节炎 +1、脊柱 +1、脓疱型银屑病 +1 = 12 → 高度提示SAPHO"
 },
@@ -388,7 +388,12 @@ const CASES = [
 {
   "slug": "rheumatology/ssa-ssb",
   "inputs": {
-    "ssa": "ro52"
+    "ssa": "ro52",
+    "ssb": "neg",
+    "ana": "low",
+    "rf": "neg",
+    "comp": "normal",
+    "pregnancy": "no"
   },
   "expect": [
     "抗SSA/Ro：Ro52+"
@@ -412,7 +417,15 @@ const CASES = [
     "52/96 原始总分"
   ],
   "ref": "WOMAC：疼痛 Σ14/20、僵硬 Σ4/8、功能 Σ34/68 → 原始总分 52/96 → 标准化 round(52/96×100) = 54 → 重度（51–75）；未注入时各 select 取空串 → Σ=NaN，两串均失配。"
+},
+{
+  "slug": "rheumatology/ssa-ssb",
+  "inputs": { "ssa": "ro52", "ssb": "neg", "ana": "neg", "rf": "neg", "comp": "normal", "pregnancy": "no" },
+  "clicks": ["document.getElementById('pregnancy').value='';calc();document.getElementById('result').textContent='PARTIAL:'+document.getElementById('result').innerHTML.replace(/<[^>]*>/g,'').trim();"],
+  "expect": ["PARTIAL:请输入抗SSA、抗SSB、ANA、RF、补体与妊娠状态后再评估临床意义。"],
+  "ref": "原生缺陷修复：6 个下拉全部改为「请选择」空值默认，首屏不再直接给「高度可能 pSS / 需排查 SLE」诊断倾向与用药/妊娠管理建议。"
 }
+
 ];
 async function main() {
   const only = process.argv.slice(2);

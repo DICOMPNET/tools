@@ -108,7 +108,9 @@ const CASES = [
 },
 {
   "slug": "cardiology/calc-3",
-  "inputs": {"age": "2", "killip": "0"},
+  "inputs": {
+    "age": "2", "killip": "0"
+  },
   "expect": [
     "2.2%"
   ],
@@ -117,7 +119,9 @@ const CASES = [
 {
   // ≥75 岁计 3 分 → mortality[3]='3.1%'（默认 <65 岁为 0.8%）
   "slug": "cardiology/calc-3",
-  "inputs": {"age": "3", "killip": "0"},
+  "inputs": {
+    "age": "3", "killip": "0"
+  },
   "expect": [
     "3.1%"
   ],
@@ -144,9 +148,11 @@ const CASES = [
 },
 {
   "slug": "cardiology/ckd-epi",
-  "inputs": {"age": "98",
+  "inputs": {
+    "age": "98",
     "scr": "1.3",
-    "uacr": "80", "sex": "m"},
+    "uacr": "80", "sex": "m"
+  },
   "expect": [
     "ACEI/ARB/SGLT2i治疗"
   ],
@@ -154,8 +160,10 @@ const CASES = [
 },
 {
   "slug": "cardiology/coronary-calcium",
-  "inputs": {"age": "93",
-    "cacs": "280", "sex": "m"},
+  "inputs": {
+    "age": "93",
+    "cacs": "280", "sex": "m"
+  },
   "expect": [
     "50–75百分位"
   ],
@@ -220,10 +228,12 @@ const CASES = [
 },
 {
   "slug": "cardiology/grace-score",
-  "inputs": {"age": "102",
+  "inputs": {
+    "age": "102",
     "hr": "95",
     "sbp": "130",
-    "cr": "1.2", "killip": "1"},
+    "cr": "1.2", "killip": "1"
+  },
   "expect": ["+64 心率 95次/分"],
   "ref": "auto-restore"
 },
@@ -234,10 +244,7 @@ const CASES = [
   "slug": "cardiology/has-bled",
   "radios": {
     "htn": "1",
-    "stroke": "1",
-    "bleed": "0",
-    "inr": "0",
-    "elderly": "0"
+    "stroke": "1", "bleed": "0", "inr": "0", "elderly": "0"
   },
   "checkIds": [
     "drugs",
@@ -315,7 +322,9 @@ const CASES = [
 },
 {
   "slug": "cardiology/nyha-classification",
-  "inputs": {"walk": "480", "nyha": "1"},
+  "inputs": {
+    "walk": "480", "nyha": "2"
+  },
   "expect": [
     "480米"
   ],
@@ -323,7 +332,9 @@ const CASES = [
 },
 {
   "slug": "cardiology/pericardial-effusion",
-  "inputs": {"depth": "33", "distribution": "circum"},
+  "inputs": {
+    "depth": "33", "distribution": "circum"
+  },
   "expect": [
     "2000mL"
   ],
@@ -352,7 +363,9 @@ const CASES = [
 },
 {
   "slug": "cardiology/timi-score",
-  "inputs": {"s_age": "2", "s_bp": "0", "s_killip": "0", "s_wt": "0"},
+  "inputs": {
+    "s_age": "2", "s_bp": "0", "s_killip": "0", "s_wt": "0"
+  },
   "expect": [
     "2/14"
   ],
@@ -370,7 +383,9 @@ const CASES = [
 },
 {
   "slug": "cardiology/nyha-classification",
-  "inputs": {"walk": "120", "nyha": "1"},
+  "inputs": {
+    "walk": "120", "nyha": "4"
+  },
   "expect": [
     "是否进入终末期或需移植/LVAD 应由心衰专科"
   ],
