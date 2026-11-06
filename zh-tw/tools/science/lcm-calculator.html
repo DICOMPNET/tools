@@ -168,10 +168,21 @@ s.parentNode.insertBefore(el, s);
 <li>齒輪齧合週期同步或分數通分時求最小公倍數。</li>
 </ul>
 <div class="dd-example"><div class="dd-ex-title">計算</div><div class="dd-ex-body">lcm(4,6)=12；lcm(4,6,8)=24。</div></div>
+<div class="dd-example"><div class="dd-ex-title">📖 定義與公式</div><div class="dd-ex-body">最小公倍數 lcm(a,b) 是同時能被 a 和 b 整除的最小正整數。計算口徑：lcm(a,b)=|a·b| / gcd(a,b)；三個及以上數值用遞推 lcm(a,b,c)=lcm(lcm(a,b),c)。等價做法是質因數分解後取每個質因數的最高次冪。本頁按遞推式逐步展示，並對輸入做 parseInt 取整、拒絕 0。</div></div>
+<div class="dd-example"><div class="dd-ex-title">⚠️ 適用條件與常見誤用</div><div class="dd-ex-body">0 沒有最小公倍數（任何正整數都不是 0 的倍數意義上的最小正公倍數），頁面直接拒絕含 0 的輸入。 負數按絕對值處理；小數會被 parseInt 截斷（1.5 變 1），應輸入整數。 誤用一：直接把 a×b 當 lcm——只有兩數互質（gcd=1）時才成立，否則結果偏大。 誤用二：把 lcm 與 gcd 弄反：lcm 求「同時被整除的最小正數」，gcd 求「同時整除它們的最大數」。 數值很大時乘積可能超出安全整數範圍，頁面按 JS number 顯示，工程上應改用 BigInt。</div></div>
+<div class="dd-example"><div class="dd-ex-title">📊 多組輸入對照（實跑）</div><div class="dd-ex-body">4, 6：gcd = 2 ⇒ lcm = (4×6)/2 = 12，步驟行完整可復算。 8, 9：互質（gcd = 1）⇒ lcm = 72 = 8×9，驗證「互質時乘積即 lcm」。 8, 9, 15：先 lcm(8,9) = 72，再 lcm(72,15) = (1,080)/3 = 360；質因數口徑 2³×3²×5 同為 360。 12, 18, 24：先 lcm(12,18) = 216/6 = 36，再 lcm(36,24) = 864/12 = 72；質因數 2³×3² 同為 72。 21, 6：gcd = 3 ⇒ lcm = 126/3 = 42，用來說明「乘積不等於 lcm」。 0, 5：頁面直接拒絕「不能包含 0」——0 沒有正的最小公倍數。</div></div>
+<div class="dd-example"><div class="dd-ex-title">🧭 使用場景與取值建議</div><div class="dd-ex-body">lcm 的典型用法是「讓若干週期第一次重新對齊」：分數 1/4 與 1/6 通分，分母取 lcm(4,6) = 12；兩個齒輪 24 齒與 36 齒齧合，轉過 lcm(24,36) = 72 齒後回到初始齧合位置；A 每 8 天、B 每 9 天、C 每 15 天巡檢一次，三者同日巡檢要等 360 天。取多值輸入時直接逗號分隔即可，頁面對順序不敏感，因為遞推式滿足結合律。</div></div>
+<div class="dd-example"><div class="dd-ex-title">lcm(12, 18, 24)</div><div class="dd-ex-body">頁面先算 lcm(12,18)：gcd=6 ⇒ (12×18)/6=36；再算 lcm(36,24)：gcd=12 ⇒ (36×24)/12=72。質因數口徑：12=2²×3、18=2×3²、24=2³×3 ⇒ 取最高次冪 2³×3²=72。</div></div>
+<div class="dd-example"><div class="dd-ex-title">lcm(8, 9, 15)</div><div class="dd-ex-body">8=2³、9=3²、15=3×5 ⇒ 2³×3²×5=360。頁面遞推：lcm(8,9)=72（互質，gcd=1）⇒ lcm(72,15)=(72×15)/3=360。</div></div>
+<div class="dd-example"><div class="dd-ex-title">兩個數的快速核對</div><div class="dd-ex-body">lcm(4,6)=12（gcd=2，24/2=12）；lcm(7,9)=63（互質）；lcm(21,6)=42（gcd=3，126/3=42）。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
 <dt>與 GCD 關係？</dt><dd>lcm(a,b)=a·b/gcd(a,b)。</dd>
 <dt>多個數怎麼求？</dt><dd>兩兩求 lcm 再與下一個數繼續求即可。</dd>
+<dt>lcm 與 gcd 有什麼恆等關係？</dt><dd>對正整數 a、b：lcm(a,b)·gcd(a,b)=a·b，因此已知 gcd 時可反解 lcm。</dd>
+<dt>多值輸入怎麼算？</dt><dd>兩兩遞推即可：先求 lcm(a,b)，再用結果與 c 求 lcm，順序不影響最終結果。</dd>
+<dt>為什麼多值輸入的順序不影響結果？</dt><dd>lcm 滿足結合律：lcm(a,b,c) = lcm(lcm(a,b),c) = lcm(a,lcm(b,c))，頁面按從左到右遞推，換成別的分組順序結果相同。</dd>
+<dt>輸入一個數會怎樣？</dt><dd>單值時沒有「公倍數」的比較物件，頁面直接返回該數本身（與 gcd 的單值處理一致），可用於批次校驗輸入是否被正確解析。</dd>
 </dl>
 </div>
 </section>

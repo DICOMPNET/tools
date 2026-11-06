@@ -355,10 +355,20 @@ else document.addEventListener('DOMContentLoaded', __mod_index_fmBoot);
 </ul>
 <div class="dd-example"><div class="dd-ex-title">Δf=75kHz、fm=15kHz</div><div class="dd-ex-body">調變指數 β = 75 / 15 = 5，屬寬頻 FM，邊帶較多。</div></div>
 <div class="dd-example"><div class="dd-ex-title">窄帶情形</div><div class="dd-ex-body">若 Δf=5kHz、fm=15kHz，則 β≈0.33，接近窄帶 FM（β≪1）。</div></div>
+<div class="dd-example"><div class="dd-ex-title">📖 定義與公式</div><div class="dd-ex-body">調頻指數 β = 最大頻偏 Δf ÷ 調變頻率 f_m，是一個無量綱比值。β≪1 稱窄帶 FM（邊帶少、頻寬接近 2f_m），β≳1 稱寬頻 FM（邊帶多、佔用頻寬顯著增加）。工程上常用卡森規則估算頻寬：B ≈ 2(Δf + f_m) = 2f_m(β+1)。注意本頁只計算 β 及其輔助係數，不直接輸出頻寬。</div></div>
+<div class="dd-example"><div class="dd-ex-title">🧮 算例（按本頁程式碼口徑實跑）</div><div class="dd-ex-body">Δf=75 kHz、f_m=15 kHz：β = 75/15 = 5.000，百分數 500.00%，倒數 1/β = 0.2000，輔助係數 β/(1+β) = 0.8333；按卡森規則頻寬約 2×(75+15) = 180 kHz。 Δf=200 kHz、f_m=10 kHz：β = 20.000，百分數 2000.00%，倒數 0.0500，β/(1+β) = 0.9524；頻寬約 420 kHz。 Δf=5 kHz、f_m=15 kHz：β = 0.333，屬於窄帶 FM（β≪1），頻寬約 40 kHz。 f_m=0：頁面提示「調變頻率 f_m 是本計算的分母，不能為 0」，不做除法。</div></div>
+<div class="dd-example"><div class="dd-ex-title">🧭 取值依據</div><div class="dd-ex-body">β 只由 Δf 與 f_m 的比值決定，與<a class="term-link" href="/zh-tw/tools/signal/carrier-freq.html">載波頻率</a>無關。廣播 FM 的 Δf 通常固定（如 ±75 kHz），f_m 隨節目內容在 15 kHz 以內變化，因此 β 在語音/音樂不同段落並不恆定；做系統設計時按最大 f_m 與最大 Δf 取最壞值。<a class="term-link" href="/zh-tw/tools/math/calc-1.html">百分比</a>一列只是 β×100，便於與「調變深度」類指標對照，不是獨立物理量。</div></div>
+<div class="dd-example"><div class="dd-ex-title">⚠ 常見誤用</div><div class="dd-ex-body">單位混用：Δf 用 kHz、f_m 用 Hz 直接相除會得到 1000 倍的錯誤 β，兩者必須先統一。 把 β 當頻寬：β 是無量綱比值，頻寬要按卡森規則另算。 輸入負值：頁面按公式直算會得到負 β（如 Δf=−75 時 β=−5.000），物理上無意義，頻偏與調變頻率都應取非負值。</div></div>
+<div class="dd-example"><div class="dd-ex-title">📐 補充對照（同一公式直算）</div><div class="dd-ex-body">Δf=1 kHz、f_m=1 kHz：β = 1.000，百分數 100.00%，倒數 1.0000，β/(1+β) = 0.5000 —— 恰好落在窄帶與寬頻的交界。 Δf=15 kHz、f_m=75 kHz：β = 0.200，百分數 20.00%，倒數 5.0000，β/(1+β) = 0.1667；此時頻偏小於調變頻率，屬於窄帶 FM。 <a class="term-link" href="/zh-tw/tools/life/unit-converter.html">單位換算</a>：1 kHz = 1000 Hz，若一邊用 kHz、一邊用 Hz，先統一到 Hz 再除，否則 β 會相差 1000 倍。</div></div>
+<div class="dd-example"><div class="dd-ex-title">🧭 設計取值參考</div><div class="dd-ex-body">調變靈敏度 k_f（Hz/V）把輸入幅度換成頻偏：Δf = k_f·A_m，於是 β = k_f·A_m/f_m。以廣播 FM 為例，Δf=75 kHz、f_m≤15 kHz、A_m=1 V 時 k_f=75 kHz/V，β 最大 5.000，卡森頻寬 2×(75+15)=180 kHz；窄帶對講 Δf=5 kHz、f_m=3 kHz 時 β=1.667（166.67%），倒數 0.6000，β/(1+β)=0.6250，卡森頻寬 2×(5+3)=16 kHz。卡森規則是工程估算，β 較大時實際佔用頻寬通常略大於估計值，濾波器設計應預留 10%–20% 餘量。</div></div>
+<div class="dd-example"><div class="dd-ex-title">📶 邊帶與頻寬估算</div><div class="dd-ex-body">寬頻 FM 的頻譜以載波為中心、邊帶間隔為 f_m。按卡森規則，需要保留的邊帶對數約為 β+1：β=5 時約 6 對（±6 階），總頻寬 2(β+1)f_m = 2×6×15 = 180 kHz；β=20 時約 21 對，2×21×10 = 420 kHz。β 越大，能量越向高階邊帶擴散，所以「提高 β 換抗噪」的代價是頻寬按線性增長。若中頻濾波器只按 2f_m 設計，高階邊帶會被削掉，解調波形出現明顯失真。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
 <dt>β 與頻寬關係？</dt><dd>卡森頻寬 ≈ 2(Δf + fm) = 2fm(β+1)，β 越大佔用頻帶越寬。</dd>
 <dt>寬頻與窄帶如何界定？</dt><dd>通常 β≪1 為窄帶 FM，β 較大為寬頻 FM，無絕對硬界。</dd>
+<dt>β 越大越好嗎？</dt><dd>不是。β 增大提升抗噪效能，但佔用頻寬同步增加（卡森規則下近似線性），頻譜效率下降；需要在抗擾度與頻寬之間折中。</dd>
+<dt>β/(1+β) 是什麼指標？</dt><dd>本頁給出的輔助係數，等於 β 佔 (1+β) 的比例，取值隨 β 單調遞增、上限趨近 1：β=1 時為 0.5000、β=5 時為 0.8333、β=20 時為 0.9524；它不是標準定義的效率或頻寬，只用於快速比較不同 β 的相對大小。</dd>
+<dt>β 與「調變深度」是同一個量嗎？</dt><dd>不是。AM 的調變深度是幅度比 m=A_m/A_c，工程上通常限制在 0–1；FM 的 β 是頻偏與調變頻率之比，沒有 0–1 的實用上限，只受頻寬約束，兩者量綱與物理含義都不同，不能直接比較或換算。</dd>
 </dl>
 </div>
 </section>

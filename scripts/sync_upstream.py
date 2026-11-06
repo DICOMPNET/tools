@@ -113,6 +113,10 @@ FILE_PATCHES = {
          '      if (blobHasWant(blobC, want)) return { ok: true, via: "click", fullBlob: c.returnBlob ? blobC : undefined };'),
         ('      if (blobHasWant(blob, want)) return { ok: true, via: n };',
          '      if (blobHasWant(blob, want)) return { ok: true, via: n, fullBlob: c.returnBlob ? blob : undefined };'),
+        ('    defaults[m[1]] = m[2].replace(/&#10;/g, "\\n").replace(/&quot;/g, \'"\').replace(/&amp;/g, "&");',
+         # HTML 规范规定 textarea 默认文本在解析时 CRLF 归一为 LF；Windows 检出（core.autocrlf）会给源码塞 CRLF，
+         # 不归一会让「按行比对」类用例（biz/text-compare）把右侧每行尾部多一个 \r 判成不同行。
+         '    defaults[m[1]] = m[2].replace(/\\r\\n?/g, "\\n").replace(/&#10;/g, "\\n").replace(/&quot;/g, \'"\').replace(/&amp;/g, "&");'),
         ('    return { ok: true, via: "copyCheck" };',
          '    return { ok: true, via: "copyCheck", fullBlob: c.returnBlob ? written : undefined };'),
     ],

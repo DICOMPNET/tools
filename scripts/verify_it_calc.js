@@ -9188,7 +9188,7 @@ async function runCaseInner(c) {
   }
   for (const m of html.matchAll(/<input[^>]*id="([^"]+)"[^>]*value="([^"]*)"/g)) defaults[m[1]] = m[2];
   for (const m of html.matchAll(/<textarea[^>]*id="([^"]+)"[^>]*>([\s\S]*?)<\/textarea>/g))
-    defaults[m[1]] = m[2].replace(/&#10;/g, "\n").replace(/&quot;/g, '"').replace(/&amp;/g, "&");
+    defaults[m[1]] = m[2].replace(/\r\n?/g, "\n").replace(/&#10;/g, "\n").replace(/&quot;/g, '"').replace(/&amp;/g, "&");
   // G06-S1：readonly 输出域（<textarea readonly>/<input readonly>）的 .value 就是用户首屏
   // 可见答案，但 textarea 设 .value 不反映到 innerHTML ⇒ 快照只带 ih 会漏判整类页面
   // （it/* 编码/密码族全族输出皆是 readonly textarea）。预解析哪些 id 带 readonly，

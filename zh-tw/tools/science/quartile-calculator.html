@@ -169,10 +169,21 @@ s.parentNode.insertBefore(el, s);
 <li>繪製箱線圖或分析<a class="term-link" href="/zh-tw/guides/data-distribution-guide.html">資料分佈</a>形態。</li>
 </ul>
 <div class="dd-example"><div class="dd-ex-title">計算</div><div class="dd-ex-body">[1..100] 共 100 數：Q1≈25.75、Q2=50.5、Q3≈75.25（線性插值法）。</div></div>
+<div class="dd-example"><div class="dd-ex-title">📖 定義與公式</div><div class="dd-ex-body">把資料升序排列後，Q₁、Q₂、Q₃ 分別位於 25%、50%、75% 位置；Q₂ 即<a class="term-link" href="/zh-tw/tools/science/median-calculator.html">中位數</a>。本頁採用線性插值：位置 pos=(n−1)×p，若 pos 非整數，則取相鄰兩值的加權平均。<a class="term-link" href="/zh-tw/tools/statistics/iqr.html">四分位距 IQR</a>=Q₃−Q₁；Tukey 箱線圖以 [Q₁−1.5×IQR, Q₃+1.5×IQR] 為正常範圍，越界即判為離群值。不同軟體的分位法（Tukey hinges、Excel QUARTILE.EXC）結果會略有差異，本頁統一用上述線性插值口徑。</div></div>
+<div class="dd-example"><div class="dd-ex-title">⚠️ 適用條件與常見誤用</div><div class="dd-ex-body">至少 3 個有效資料（頁面強制）；少於 3 個無法合理刻畫 Q₁/Q₃。 輸入順序無關，頁面會自動排序；非數值項被過濾，不計入 n。 誤用一：把位置寫成 (n+1)×p——這是另一種分位法，會得到不同結果，不能與本頁混用。 誤用二：把 1.5×IQR 界當作<a class="term-link" href="/zh-tw/tools/it/normal-distribution.html">正態分佈</a>的 3σ 判據；兩者閾值與假設不同。 離群值不等於錯誤值，是否剔除要看業務含義，頁面只做標註。</div></div>
+<div class="dd-example"><div class="dd-ex-title">📊 多組輸入對照（實跑）</div><div class="dd-ex-body">1, 2, 3, 4, 5（n=5）：位置 1、2、3 恰為整數 ⇒ Q1 = 2、Q2 = 3、Q3 = 4，IQR = 2，界為 -1 與 7，結論「無異常值」。 1, 2, 3, 4, 100：前四值不變，Q1 = 2、Q2 = 3、Q3 = 4，上界 = 4 + 3 = 7 ⇒ 100 被判離群，說明單個極端值不會拉動 Q1/Q3。 預設 [1,2,5,6,7,9,12,15,18,21]：Q1 位置 2.25 ⇒ 5.25、Q2 位置 4.5 ⇒ 8、Q3 位置 6.75 ⇒ 14.25，IQR = 9。 1, 2（n=2）：頁面提示「至少需要 3 個數據」，不輸出分位數。</div></div>
+<div class="dd-example"><div class="dd-ex-title">🧭 使用場景與取值建議</div><div class="dd-ex-body">四分位數最適合「帶極端值的分佈描述」：收入、房價、響應時間這類長尾資料，均值容易被少數極大值拉高，而 Q1–Q3 覆蓋中間 50%，更接近多數人的真實體驗。做箱線圖時直接取本頁的 Q1/Q2/Q3 畫箱體，須線延伸到 1.5×IQR 界內的最遠資料點，界外點單獨標出。判離群值前先確認資料是否同一總體：把男女身高混在一起，Q3 界會把正常的高個子誤判為異常。</div></div>
+<div class="dd-example"><div class="dd-ex-title">預設資料（n=10）</div><div class="dd-ex-body">[1, 2, 5, 6, 7, 9, 12, 15, 18, 21]：Q₁ 位置 = 9×0.25 = 2.25 ⇒ 5+0.25×(6−5)=5.25；Q₂ 位置 = 4.5 ⇒ (7+9)/2=8；Q₃ 位置 = 6.75 ⇒ 12+0.75×(15−12)=14.25。IQR=9，界為 −8.25 與 27.75，無離群值。</div></div>
+<div class="dd-example"><div class="dd-ex-title">n=5（位置恰為整數）</div><div class="dd-ex-body">[1, 2, 3, 4, 5]：pos 分別為 1、2、3 ⇒ Q₁=2、Q₂=3、Q₃=4；IQR=2，界為 −1 與 7。</div></div>
+<div class="dd-example"><div class="dd-ex-title">含離群值</div><div class="dd-ex-body">[1, 2, 3, 4, 100]：Q₁=2、Q₂=3、Q₃=4（前四值不受 100 影響）；IQR=2，上界=4+1.5×2=7，100 &gt; 7 被判為離群值。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
-<dt>演算法有幾種？</dt><dd>有包含/排除<a class="term-link" href="/zh-tw/tools/science/median-calculator.html">中位數</a>等不同約定，結果略異。</dd>
+<dt>演算法有幾種？</dt><dd>有包含/排除中位數等不同約定，結果略異。</dd>
 <dt>四分位距有什麼用？</dt><dd>IQR=Q3−Q1，常以超出 1.5×IQR 作為離群值判據。</dd>
+<dt>為什麼不同軟體算出的 Q₁ 不一樣？</dt><dd>分位位置定義不同：本頁 pos=(n−1)p（type 7/INC），Tukey hinges 取中位數兩半的中位數，EXC 用 (n+1)p。</dd>
+<dt>IQR 能說明什麼？</dt><dd>IQR 覆蓋中間 50% 的資料，越大說明中間段越分散；它不像極差那樣被單個極端值放大。</dd>
+<dt>資料裡有重複值會影響分位數嗎？</dt><dd>不會。位置由 n 與百分位決定，插值取的是排序後的相鄰值，重複值只是讓相鄰位置上的數相同，結果仍然自洽。</dd>
+<dt>為什麼 n=3 也能算？</dt><dd>n=3 時位置為 0.5、1、1.5，Q1 與 Q3 通過插值得到，仍能刻畫中間 50%；但樣本越小分位數越不穩定，頁面只保證公式口徑正確。</dd>
 </dl>
 </div>
 </section>

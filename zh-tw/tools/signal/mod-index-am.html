@@ -355,10 +355,19 @@ else document.addEventListener('DOMContentLoaded', __mod_index_amBoot);
 </ul>
 <div class="dd-example"><div class="dd-ex-title">調幅 2、載波 5</div><div class="dd-ex-body">調變指數 m = 2 / 5 = 0.40，屬於正常調幅（m&lt;1 不失真）。</div></div>
 <div class="dd-example"><div class="dd-ex-title">過調幅</div><div class="dd-ex-body">若 m=1.2（&gt;1），則包絡過零反轉產生嚴重失真，應避免。</div></div>
+<div class="dd-example"><div class="dd-ex-title">📖 定義與公式</div><div class="dd-ex-body">調幅指數 m = 調變波幅度 A_m ÷ 載波幅度 A_c，無量綱。0 1 為過調變：包絡在調變訊號負峰處過零反轉，包絡不再與調變訊號成正比，普通包絡檢波會產生嚴重失真。總功率與邊帶功率佔比分別為 P = P_c(1 + m²/2)、邊帶佔比 = m²/(2 + m²)。</div></div>
+<div class="dd-example"><div class="dd-ex-title">🧮 算例（按本頁程式碼口徑實跑）</div><div class="dd-ex-body">A_m=2 V、A_c=5 V：m = 2/5 = 0.400，百分數 40.00%，倒數 2.5000，輔助係數 m/(1+m) = 0.2857；邊帶功率佔比 = 0.16/2.16 = 7.41%。 A_m=5 V、A_c=5 V：m = 1.000（100% 調變），邊帶佔比 = 1/3 = 33.33%，總功率為載波的 1.5 倍。 A_m=6 V、A_c=5 V：m = 1.200 &gt; 1，屬過調變；輔助係數 0.5455，邊帶佔比 1.44/3.44 = 41.86%。 A_c=0：頁面提示「載波幅度 A_c 是本計算的分母，不能為 0」。</div></div>
+<div class="dd-example"><div class="dd-ex-title">🧭 取值依據</div><div class="dd-ex-body">m 是幅度比而不是功率比：功率按 m² 進入邊帶，所以 m 從 0.4 提到 1.0，邊帶佔比從 7.41% 升到 33.33%，約 4.5 倍。發射機通常把 m 控制在 0.8–1.0 之間，既提高資訊功率佔比，又留出包絡過沖餘量；語音峰值瞬時超過 1 也會造成削波，需要限幅或 ALC。</div></div>
+<div class="dd-example"><div class="dd-ex-title">⚠ 常見誤用</div><div class="dd-ex-body">把<a class="term-link" href="/zh-tw/tools/math/calc-1.html">百分比</a>當 m：40.00% 對應 m=0.400，不是 40；代入公式前先統一成小數。 A_c=0 或負幅度：前者除零（頁面已攔截），後者得到負 m，物理上應取幅度絕對值。 只看 m 不看峰值：平均 m&lt;1 仍可能瞬時過調變，評估失真要用峰值調變指數。</div></div>
+<div class="dd-example"><div class="dd-ex-title">📐 補充對照（同一公式直算）</div><div class="dd-ex-body">A_m=1 V、A_c=2 V：m = 0.500，百分數 50.00%，倒數 2.0000，m/(1+m) = 0.3333；邊帶功率佔比 = 0.25/2.25 = 11.11%。 A_m=3 V、A_c=4 V：m = 0.750，百分數 75.00%，倒數 1.3333，m/(1+m) = 0.4286；邊帶功率佔比 = 0.5625/2.5625 = 21.95%。 這三個量與 m 的關係不是線性的：m 翻倍時邊帶功率按 m² 增長，所以調變深度從 50% 到 100% 只多一倍幅度，邊帶功率卻從 11.11% 升到 33.33%。</div></div>
+<div class="dd-example"><div class="dd-ex-title">🧭 設計取值參考</div><div class="dd-ex-body">包絡峰值為 (1+m)A_c、谷值為 (1−m)A_c：m=0.4、A_c=5 V 時分別是 7 V 與 3 V；m=1.2 時谷值為 −1 V，負值正是過調變包絡反轉的直接證據。語音通訊通常把峰值 m 控制在 0.8–1.0，但語音平均 m 只有約 0.3，此時邊帶功率佔比僅 0.09/2.09=4.31%，大部分功率仍在載波上——這也是為什麼需要 ALC/壓縮來抬高平均調變深度。總功率隨 m 變化為 P_c(1+m²/2)：m=0.4 時為 1.08 P_c，m=1 時為 1.5 P_c。</div></div>
+<div class="dd-example"><div class="dd-ex-title">📏 從包絡讀 m</div><div class="dd-ex-body">用示波器讀包絡峰谷可以直接反算 m：m = (V_max − V_min)/(V_max + V_min)。以本文首個算例的 7 V 與 3 V 為例，(7−3)/(7+3) = 4/10 = 0.400，與 A_m/A_c=2/5 完全一致；若谷值為負（如 m=1.2 時的 −1 V），說明已過調變，該公式不再適用。用有效值測量時，只要 A_m 與 A_c 同口徑（都用峰值或都用 RMS），比值不變；混用峰值與 RMS 會把 m 放大 √2 倍。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
-<dt>m 超過 1 會怎樣？</dt><dd>過調幅使包絡不再與調變訊號成正比，解調後出現截斷失真。</dd>
+<dt>m 超過 1 會怎樣？</dt><dd>包絡在負峰處反相，過零點附近出現「反向」段；簡單包絡檢波會把它解成嚴重失真，表現為聲音發悶、破音，同時邊帶功率繼續上升但已不能無失真恢復。</dd>
 <dt>調變指數與功率效率？</dt><dd>邊帶功率佔比隨 m² 增長，m 越大資訊功率佔比越高但越易過調。</dd>
+<dt>m 與功率效率的關係？</dt><dd>邊帶佔比 = m²/(2+m²)，m 越大資訊功率佔比越高：m=0.4 為 7.41%、m=1 為 33.33%，上限趨近 50%（m→∞ 時）。</dd>
+<dt>m 正好等於 1 時包絡谷值為 0 意味著什麼？</dt><dd>谷值 (1−m)A_c = 0，包絡剛好觸零但不反轉，這是 100% 調變的臨界點；一旦超過 1，谷值變負、包絡出現反相段，普通包絡檢波開始嚴重失真。工程上 m 沒有「越大越好」的上限，只有不失真的上限 1。</dd>
 </dl>
 </div>
 </section>
