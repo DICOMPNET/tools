@@ -1,7 +1,7 @@
 /* 全站行业字典（中文名 + emoji 图标）—— 由 scripts/gen_industry_info.py 生成，勿手改 */
 /* 数据来源：_build.py INDUSTRY_DEFS 短名（权威，268/268）+ 语义 emoji 映射；仅显示用短名，描述走页面 meta */
 window.INDUSTRY_INFO = {
-  'it'                   : { name: 'IT 开发', icon: '💻', hot: 30347071 },
+  'it'                   : { name: 'IT 开发', icon: '💻', hot: 30347069 },
   'life'                 : { name: '日常生活', icon: '🏠', hot: 11719587 },
   'finance'              : { name: '金融财务', icon: '💰', hot: 10224563 },
   'design'               : { name: '设计创意', icon: '🎨', hot: 8175870 },
@@ -112,7 +112,7 @@ window.INDUSTRY_INFO = {
   'dermatology'          : { name: '皮肤性病', icon: '🧴', hot: 146962 },
   'cardiology'           : { name: '心血管科', icon: '🫀', hot: 146115 },
   'pediatrics'           : { name: '儿科医学', icon: '🧒', hot: 143484 },
-  'property'             : { name: '物业管理', icon: '🏢', hot: 142262 },
+  'property'             : { name: '物业管理', icon: '🏢', hot: 141462 },
   'beauty'               : { name: '美容护肤', icon: '💄', hot: 141384 },
   'pet'                  : { name: '宠物养护', icon: '🐾', hot: 138196 },
   'logistics'            : { name: '物流运输', icon: '🚚', hot: 136621 },
@@ -178,9 +178,9 @@ window.INDUSTRY_INFO = {
   'maritime'             : { name: '海事航运', icon: '⚓', hot: 48196 },
   'legal2'               : { name: '劳动法律', icon: '⚖️', hot: 47010 },
   'cognition'            : { name: '认知与脑力训练', icon: '🧠', hot: 46929 },
-  'exhibition'           : { name: '会展服务', icon: '🎫', hot: 45338 },
   'chinese-cook'         : { name: '中式烹饪', icon: '🥘', hot: 44835 },
   'martial'              : { name: '武术运动', icon: '🥋', hot: 44699 },
+  'exhibition'           : { name: '会展服务', icon: '🎫', hot: 44538 },
   'archaeology'          : { name: '考古文博', icon: '🏺', hot: 44436 },
   'media'                : { name: '媒体传播', icon: '📰', hot: 43329 },
   'chess'                : { name: '棋类游戏', icon: '♟️', hot: 41689 },

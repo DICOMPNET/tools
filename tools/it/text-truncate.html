@@ -86,7 +86,7 @@
 
 
 <meta name="title-en" content="Text Truncate">
-<meta name="desc-en" content="Text Truncate - online utility on ToolBox.">
+<meta name="desc-en" content="Text Truncate">
 <!-- TOOLBOX-HREFLANG -->
 <link rel="alternate" hreflang="zh-CN" href="https://tools.dicomp.net/tools/it/text-truncate.html">
 <link rel="alternate" hreflang="zh-TW" href="https://tools.dicomp.net/zh-tw/tools/it/text-truncate.html">
@@ -335,6 +335,8 @@ function truncate(){
     if(mode === 'chars'){
       const cps = graphemes(s);
       if(cps.length <= limit) return s;
+      // N15 修复：省略符自身已超出字符上限时，按上限截断省略符，保证结果不超过 limit
+      if(ellipsisCp > limit) return graphemes(ellipsis).slice(0, limit).join('');
       const budget = Math.max(0, limit - ellipsisCp);
       let keep = budget;
       if(wordBoundary && !fromEnd){
@@ -365,6 +367,13 @@ function truncate(){
         total += b; cut++;
       }
       if(cut >= cps.length) return s;
+      // N15 修复：仅在确需截断、且省略符自身已超出字节上限时，按字节截断省略符保证结果不超 limit
+      if(ellipsisBytes > limit){
+        const parts = graphemes(ellipsis);
+        let acc = 0; const out = [];
+        for(const g of parts){ const b = utf8Len(g); if(acc + b > limit) break; acc += b; out.push(g); }
+        return out.join('');
+      }
       if(fromEnd){
         let acc = 0, start = cps.length;
         while(start > 0){

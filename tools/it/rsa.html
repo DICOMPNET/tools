@@ -97,7 +97,7 @@ select,input[type="number"]{padding:8px 10px;border:1px solid var(--border);bord
 
 
 <meta name="title-en" content="RSA Encrypt Decrypt / Signature Verify">
-<meta name="desc-en" content="RSA Encrypt Decrypt / Signature Verify - online utility on ToolBox.">
+<meta name="desc-en" content="RSA Encrypt Decrypt / Signature Verify">
 <!-- TOOLBOX-HREFLANG -->
 <link rel="alternate" hreflang="zh-CN" href="https://tools.dicomp.net/tools/it/rsa.html">
 <link rel="alternate" hreflang="zh-TW" href="https://tools.dicomp.net/zh-tw/tools/it/rsa.html">
@@ -454,14 +454,18 @@ async function doEncrypt() {
   const pubPem = document.getElementById('encPubKey').value.trim();
   const text = document.getElementById('encInput').value;
   const algo = document.getElementById('encAlgo').value;
+  const hash = algo === 'RSA-OAEP-SHA512' ? 'SHA-512' : 'SHA-256';
   const fmt = document.getElementById('encOutput').value;
   if (!pubPem) { ToolBox.showToast(i18nText('toast.msg767'), 'error'); return; }
   if (!text) { ToolBox.showToast(i18nText('toast.msg808'), 'error'); return; }
   try {
-    const pubKey = await crypto.subtle.importKey('spki', pem2ab(pubPem), { name: 'RSA-OAEP', hash: 'SHA-256' }, false, ['encrypt']);
+    const pubKey = await crypto.subtle.importKey('spki', pem2ab(pubPem), { name: 'RSA-OAEP', hash }, false, ['encrypt']);
     const data = new TextEncoder().encode(text);
     const enc = await crypto.subtle.encrypt({ name: 'RSA-OAEP' }, pubKey, data);
     document.getElementById('encResult').textContent = fmt === 'hex' ? ab2hex(enc) : ab2b64(enc);
+    // N96：显式操作后写入历史（原来只有 downloadKeys 的包装会记录，加解密/签名从不入历史）
+    __rsaLastBytes = enc.byteLength;
+    try{ __rsaExtras(true); }catch(e3){}
     ToolBox.showToast(i18nText('toast.msg087'));
   } catch(e) { ToolBox.showToast('加密失败: ' + e.message, 'error'); }
 }
@@ -469,13 +473,16 @@ async function doEncrypt() {
 async function doDecrypt() {
   const privPem = document.getElementById('encPrivKey').value.trim();
   const ct = document.getElementById('encInput').value.trim();
+  const hash = document.getElementById('encAlgo').value === 'RSA-OAEP-SHA512' ? 'SHA-512' : 'SHA-256';
   if (!privPem) { ToolBox.showToast(i18nText('toast.msg893'), 'error'); return; }
   if (!ct) { ToolBox.showToast(i18nText('toast.msg788'), 'error'); return; }
   try {
-    const privKey = await crypto.subtle.importKey('pkcs8', pem2ab(privPem), { name: 'RSA-OAEP', hash: 'SHA-256' }, false, ['decrypt']);
+    const privKey = await crypto.subtle.importKey('pkcs8', pem2ab(privPem), { name: 'RSA-OAEP', hash }, false, ['decrypt']);
     const ctBuf = ct.replace(/\s/g, '').length % 2 === 0 && /^[0-9a-fA-F]+$/.test(ct.trim()) ? hex2ab(ct) : b642ab(ct);
     const pt = await crypto.subtle.decrypt({ name: 'RSA-OAEP' }, privKey, ctBuf);
     document.getElementById('encResult').textContent = new TextDecoder().decode(pt);
+    __rsaLastBytes = pt.byteLength;
+    try{ __rsaExtras(true); }catch(e3){}
     ToolBox.showToast(i18nText('toast.msg586'));
   } catch(e) { ToolBox.showToast('解密失败: ' + e.message, 'error'); }
 }
@@ -496,6 +503,9 @@ async function doSign() {
     const sigStr = fmt === 'hex' ? ab2hex(sig) : ab2b64(sig);
     document.getElementById('signature').value = sigStr;
     document.getElementById('signResult').textContent = '签名已生成：\n' + sigStr;
+    // N96：签名结果此前不进历史/导出，用户签完就丢
+    __rsaLastBytes = sig.byteLength;
+    try{ __rsaExtras(true); }catch(e3){}
     ToolBox.showToast(i18nText('toast.msg535'));
   } catch(e) { ToolBox.showToast('签名失败: ' + e.message, 'error'); }
 }
@@ -516,6 +526,9 @@ async function doVerify() {
     const valid = await crypto.subtle.verify(params, pubKey, sigBuf, data);
     document.getElementById('signResult').textContent = valid ? '✅ 签名验证通过！数据完整且来自私钥持有者。' : '❌ 签名验证失败！数据被篡改或密钥不匹配。';
     document.getElementById('signResult').style.color = valid ? '#4caf50' : '#f44336';
+    // N96：验签结论同样入历史（__rsaResText 已按激活页签读 #signResult）
+    __rsaLastBytes = 0;
+    try{ __rsaExtras(true); }catch(e3){}
     ToolBox.showToast(valid ? '验证通过' : '验证失败', valid ? 'success' : 'error');
   } catch(e) { ToolBox.showToast('验证失败: ' + e.message, 'error'); }
 }
@@ -554,7 +567,10 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 
-var __rsa_last=0,__rsa_skip=false;
+var __rsa_last=0,__rsa_skip=false,__rsaLastBytes=0;
+// N96：私钥/公钥 PEM 不进历史快照——历史会导出成 CSV，私钥一旦落盘即泄漏；
+// 且历史点击回填会把快照值写回输入框，密钥字段参与快照就必然出错。
+var __rsaKeyFields={privKeyOut:1,pubKeyOut:1,encPrivKey:1,encPubKey:1,signPrivKey:1,signPubKey:1};
 function __rsaSnap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
@@ -562,17 +578,20 @@ function __rsaSnap(){
         var e=els[i];
         var t=(e.type||'').toLowerCase();
         if(t==='button'||t==='submit'||t==='hidden') continue;
+        if(__rsaKeyFields[e.id]) continue;
         var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
         if(v!==''&&v!=null) out[e.id]=v;
     }
     return out;
 }
 function __rsaResText(){
-    var r=document.querySelector('.result-box');
+    var signTab=document.getElementById('tab-sign');
+    var onSign=!!(signTab&&signTab.classList&&signTab.classList.contains('active'));
+    var r=document.getElementById(onSign?'signResult':'encResult');
     if(!r) return '';
     var t=(r.textContent||'').replace(/\s+/g,' ').trim();
     if(!t||t==='--'||t==='—'||t==='-') return '';
-    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    if(/结果将显示在这里|请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
     return t.slice(0,80);
 }
 function __rsaTime(t){
@@ -603,21 +622,22 @@ function __rsaRender(keys,rk,en){
                     if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
                     else{e.value=rec[k];}
                 }
-                downloadKeys();
             }catch(e2){}
             __rsa_skip=false;
         });
+        // N96：签名/密文都是 Base64 或 Hex 串，parseFloat 只会把「1234ab…」读成 1234，画出假趋势。
+        // 改画真实可比的指标：输出字节数（密文/签名长度，RSA 下与密钥位数直接相关）。
         var nums=[],labels=[];
         for(var j=arr.length-1;j>=0;j--){
-            var v=parseFloat(arr[j].d[rk]);
-            if(isFinite(v)){nums.push(v);labels.push(__rsaTime(arr[j].t));}
+            var b=arr[j].d['__bytes'];
+            if(typeof b==='number'&&isFinite(b)&&b>0){nums.push(b);labels.push(__rsaTime(arr[j].t));}
         }
         if(nums.length>=2){
-            TBKit.chart.line('#rsaChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+            TBKit.chart.line('#rsaChart',{labels:labels,series:[{name:en?'Output bytes':'输出字节数',data:nums}]});
         }
     }catch(e3){}
 }
-function __rsaExtras(){
+function __rsaExtras(force){
     if (typeof TBKit === 'undefined') return;
     if (__rsa_skip) return;
     var snap=__rsaSnap();
@@ -629,7 +649,7 @@ function __rsaExtras(){
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
     var now=Date.now();
-    if(now-__rsa_last<1000) return;
+    if(now-__rsa_last<1000 && !force) return;   // 显式操作（签名/验签/加解密）不受 1s 节流限制
     var last=null;
     try{ last=TBKit.history.last(); }catch(e){}
     if(last){
@@ -643,6 +663,7 @@ function __rsaExtras(){
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
+    if(typeof __rsaLastBytes==='number'&&__rsaLastBytes>0) rec['__bytes']=__rsaLastBytes;
     TBKit.history.record(rec);
     __rsaRender(keys,rk,en);
 }
@@ -655,7 +676,7 @@ function __rsaPresets(){
     TBKit.preset.bar('#rsaPresets',[{label:'默认参数',labelEn:'Default',values:{'keySize':'2048', 'keyFormat':'pkcs8', 'encAlgo':'RSA-OAEP', 'encOutput':'base64', 'signAlgo':'RSASSA-PKCS1-v1_5'}},
   {"label":"3072 OAEP-SHA512 Hex","labelEn":"3072 OAEP512 hex","values":{"keySize":"3072","encAlgo":"RSA-OAEP-SHA512","encOutput":"hex"}},
   {"label":"4096 PSS Base64","labelEn":"4096 PSS b64","values":{"keySize":"4096","signAlgo":"RSA-PSS","signOutput":"base64"}},
-  {"label":"2048 全默认外 Hex签名","labelEn":"2048 hex sign","values":{"keySize":"2048","encAlgo":"RSA-OAEP","encOutput":"base64","signAlgo":"RSASSA-PKCS1-v1_5","signOutput":"hex"}}],function(){ downloadKeys(); });
+  {"label":"2048 全默认外 Hex签名","labelEn":"2048 hex sign","values":{"keySize":"2048","encAlgo":"RSA-OAEP","encOutput":"base64","signAlgo":"RSASSA-PKCS1-v1_5","signOutput":"hex"}}],function(){ });
 }
 var __rsa_f0=(typeof downloadKeys==='function')?downloadKeys:null;
 if(__rsa_f0){
