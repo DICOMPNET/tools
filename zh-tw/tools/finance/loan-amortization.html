@@ -60,7 +60,7 @@
 
 
 <meta name="title-en" content="Loan Amortization">
-<meta name="desc-en" content="Loan Amortization - online utility on ToolBox.">
+<meta name="desc-en" content="Loan Amortization">
 
 
 <link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
@@ -292,11 +292,22 @@ s.parentNode.insertBefore(el, s);
 <!-- /注意事項區塊 -->
 </div>
 
-<script>function __tbInputGuard(_ids,_labels){
+<script>
+function __laTx(zh,txt){
+  var e=false;
+  try{ if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn) e=TBKit.util.isEn(); }catch(x){}
+  try{ if(!e && new URLSearchParams(location.search).get('lang')==='en-US') e=true; }catch(x){}
+  return e?txt:zh;
+}
+function __tbInputGuard(_ids,_labels){
   var __TPL='请填写「%s」后再计算。';
   var __TPL2="<p style=\"color:var(--danger)\">⚠ 「%s」是本计算的分母，不能为 0。</p>";
   var _vals=[],_firstBad=-1;
-  var _REQ=['loanAmount', 'annualRate', 'loanYears', 'balloonMonths', 'balloonRatio', 'prepayMonth', 'prepayAmount'];
+  // F-N226：隐藏的尾款/提前还款字段不参与 calc()，不应强制非空
+  var _modeEl=document.getElementById('repayMethod');
+  var _mode=(_modeEl && _modeEl.value) ? _modeEl.value : 'equal';
+  var _REQ=['loanAmount', 'annualRate', 'loanYears'];
+  if(_mode==='balloon') _REQ=_REQ.concat(['balloonMonths','balloonRatio']);
   for(var _i=0;_i<_ids.length;_i++){
     var _e=document.getElementById(_ids[_i]);
     if(!_e) continue;
@@ -458,6 +469,12 @@ var amount = +loanAmountEl.value || 0;
       document.getElementById('resultBox').innerHTML='<p style="color:var(--danger);">气球贷还款期数须大于 0，期末尾款比例须为 0–100</p>';
       return;
     }
+    // F-N228：气球贷期数不能超出贷款年限对应的总月数，否则「年限」输入形同虚设
+    var bmMax = Math.floor(years) * 12;
+    if (balloonMonths > bmMax) {
+      document.getElementById('resultBox').innerHTML='<p style="color:var(--danger);">' + __laTx('气球贷还款期数（' + balloonMonths + ' 月）不能超过贷款年限 × 12（' + bmMax + ' 月），请调整后再计算', 'Balloon term (' + balloonMonths + ' months) cannot exceed loan years × 12 (' + bmMax + ' months)') + '</p>';
+      return;
+    }
   }
 
   var result = generateSchedule(amount, annualRate, years, method, balloonMonths, balloonRatio);
@@ -484,6 +501,9 @@ var amount = +loanAmountEl.value || 0;
   html += '<div class="stat-card"><div class="val">' + ((Math.pow(1 + annualRate / 100 / 12, 12) - 1) * 100).toFixed(2) + '%</div><div class="lbl">有效年化（按月复利）</div></div>';
   html += '</div>';
 
+  if (method === 'balloon') {
+    html += '<p style="font-size:13px;color:var(--text-muted);margin:8px 0;">' + __laTx('气球贷按「气球贷还款期数（' + balloonMonths + ' 月）」生成明细，贷款年限 ' + years + ' 年仅用于校验期数上限；期末尾款在最后一期一次归还。', 'The balloon schedule follows the balloon term (' + balloonMonths + ' months); the ' + years + '-year loan term only caps that term. The balloon balance is due in the final period.') + '</p>';
+  }
   html += '<div class="bar-row"><span class="bar-lbl">本金</span><div class="bar-bg"><div class="bar-fill" style="width:' + (amount / totalPayment * 100) + '%;background:var(--primary);">' + (amount / totalPayment * 100).toFixed(1) + '%</div></div></div>';
   html += '<div class="bar-row"><span class="bar-lbl">利息</span><div class="bar-bg"><div class="bar-fill" style="width:' + (result.totalInterest / totalPayment * 100) + '%;background:var(--danger);">' + (result.totalInterest / totalPayment * 100).toFixed(1) + '%</div></div></div>';
 
@@ -686,6 +706,11 @@ function calcPrepay() {
     document.getElementById('prepayResult').innerHTML='<p style="color:var(--danger);">提前还款期数无效</p>';
     return;
   }
+  // F-N227：负数或 0 会让「还款后剩余本金」反增 / 产出伪结论
+  if (!(prepayAmount > 0)) {
+    document.getElementById('prepayResult').innerHTML='<p style="color:var(--danger);">' + __laTx('提前还款金额须大于 0', 'Prepayment amount must be greater than 0') + '</p>';
+    return;
+  }
 
   var balanceBefore = scheduleData[prepayMonth - 1].balance;
   if (prepayAmount >= balanceBefore) {
@@ -769,6 +794,11 @@ function calcPrepay() {
       newPayment = newBalance * monthlyRate * Math.pow(1 + monthlyRate, remainingMonths) / (Math.pow(1 + monthlyRate, remainingMonths) - 1);
     } else if (method === 'principal') {
       newPayment = newBalance / remainingMonths + newBalance * monthlyRate;
+    } else {
+      // F-N227：先息后本月供即当期利息；气球贷提前还款冲减期末尾款、月供不变
+      newPayment = (method === 'interest')
+        ? newBalance * monthlyRate
+        : (scheduleData[prepayMonth - 1] ? scheduleData[prepayMonth - 1].payment : 0);
     }
     for (var i = prepayMonth; i < scheduleData.length; i++) {
       savedInterest += scheduleData[i].interest;
@@ -795,15 +825,28 @@ function calcPrepay() {
     }
   }
 
+  // F-N227：先息后本/气球贷按剩余本金逐期线性计息，旧实现只累加原计划剩余利息、
+  // 从不减新计划利息 ⇒ 把「剩余全部利息」当节省额（100 万/4.9%/336 期虚报 1,372,000，
+  // 真实 = 100000 × 0.049/12 × 336 = 137,200）。等额本息/等额本金分支逐字不动。
+  var isBalMode = (method === 'interest' || method === 'balloon');
+  if (isBalMode) {
+    savedInterest = prepayAmount * monthlyRate * remainingMonths;
+  }
+
   var html = '';
   html += '<p>第 ' + prepayMonth + ' 期后剩余本金：<strong>' + fmt(balanceBefore) + '</strong> 元</p>';
   html += '<p>提前还款金额：<strong style="color:var(--primary);">' + fmt(prepayAmount) + '</strong> 元</p>';
   html += '<p>还款后剩余本金：<strong>' + fmt(newBalance) + '</strong> 元</p>';
   html += '<hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">';
   html += '<p>节省利息：<strong style="color:var(--success);">' + fmt(savedInterest) + '</strong> 元</p>';
+  if (isBalMode) {
+    html += '<p style="font-size:13px;color:var(--text-muted);">' + __laTx('先息后本 / 气球贷按剩余本金逐期计息：本次提前还款冲减本金（气球贷冲减期末尾款），剩余每期利息减少「提前还款额 × 月利率 × 剩余期数」；本金到期一次归还，不重摊期数。', 'Interest-only / balloon loans accrue interest on the outstanding principal: this prepayment reduces that principal (the final balloon balance for balloon loans), so each remaining period saves prepayment × monthly rate; principal is repaid at maturity and the term is not re-amortized.') + '</p>';
+  }
   if (prepayType === 'reduceTerm') {
-    html += '<p>缩短期限：<strong style="color:var(--success);">' + (remainingMonths - newMonths) + ' 期</strong></p>';
-    html += '<p>新月供：不变（仍为 ' + fmt(scheduleData[prepayMonth] ? scheduleData[prepayMonth].payment : 0) + ' 元）</p>';
+    html += '<p>缩短期限：<strong style="color:var(--success);">' + (isBalMode ? 0 : (remainingMonths - newMonths)) + ' 期</strong></p>';
+    if (!isBalMode) {
+      html += '<p>新月供：不变（仍为 ' + fmt(scheduleData[prepayMonth] ? scheduleData[prepayMonth].payment : 0) + ' 元）</p>';
+    }
   } else {
     html += '<p>减少月供：<strong style="color:var(--success);">' + fmt((scheduleData[prepayMonth] ? scheduleData[prepayMonth].payment : 0) - newPayment) + '</strong> 元</p>';
     html += '<p>新月供：' + fmt(newPayment) + ' 元</p>';

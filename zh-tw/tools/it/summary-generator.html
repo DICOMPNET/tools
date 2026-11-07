@@ -128,7 +128,7 @@
 
 
 <meta name="title-en" content="Summary Generator">
-<meta name="desc-en" content="Summary Generator - produce results instantly in your browser.">
+<meta name="desc-en" content="Summary Generator">
 
 
 <link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
@@ -191,7 +191,7 @@ s.parentNode.insertBefore(el, s);
   <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
     <h2 data-zh="#️⃣ 摘要生成器">#️⃣ Summary Generator</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">分句：遇 . ! ? 切分；句點後緊跟字母時視為縮寫不切分。統計詞頻時剔除中文停用詞。每句三項子權重——長度權重 lenW：&lt; 5 字取 0.1、&lt; 10 取 0.4、10–50 取 1.0、≤ 80 取 0.8、≤ 120 取 0.6、更長取 0.4；位置權重 posW：總句數 ≤ 2 取 1.2、首句 1.5、末句 1.2、其餘 1.0；關鍵詞權重 kwW = (該句各詞「詞頻 ÷ 最高詞頻」之和 ÷ 詞數) × 2，上限 1.5。句子權重 = lenW × kwW × posW，按權重降序取前 N 句（N 不超過總句數，自定義時鉗制在 1–50），再按原文順序拼成摘要。壓縮率 = (1 − 摘要字數 ÷ 正文字數) × 100%，字數均按去掉空白後統計</div>
+  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">分句：遇 . ! ? 及中文 。！？… 切分；句點後緊跟字母（e.g.）或數字（3.14）時視為縮寫/小數不切分，換行與頓號只作空白、不作分句點。詞頻：剔除中文停用詞後，保留出現 ≥2 次或「詞頻 ÷ 句數 > 5%」的詞；過濾後為空時取詞頻最高的前 20 詞兜底，避免長文句子權重全為 0。每句三項子權重——長度權重 lenW：&lt; 5 字取 0.1、&lt; 10 取 0.4、10–50 取 1.0、≤ 80 取 0.8、≤ 120 取 0.6、更長取 0.4；位置權重 posW：總句數 ≤ 2 取 1.2、首句 1.5、末句 1.2、其餘 1.0；關鍵詞權重 kwW = (該句各詞「詞頻 ÷ 最高詞頻」之和 ÷ 詞數) × 2，上限 1.5。句子權重 = lenW × kwW × posW，按權重降序取前 N 句（N 不超過總句數，自定義時鉗制在 1–50），再按原文順序拼成摘要。壓縮率 = (1 − 摘要字數 ÷ 正文字數) × 100%，字數均按去掉空白後統計</div>
   <div class="formula-desc">自動提取文本要點生成摘要。</div>
   <ul class="formula-list">
     <li><b>抽取式</b>：按句子權重打分後挑選最重要的若干句，權重常由詞頻、位置與線索詞決定。</li>
@@ -451,6 +451,8 @@ s.parentNode.insertBefore(el, s);
     generateSummary();
   }
   window.loadExample = loadExample;
+  // 运行期回归探针：分句器与词频过滤器在 IIFE 内，门禁需经此只读入口做单元级断言。
+  window.__sgDiag = { splitSentences: splitSentences, computeWordFrequency: computeWordFrequency };
 
   /* ===== 分句 ===== */
   function splitSentences(text) {
@@ -461,8 +463,9 @@ s.parentNode.insertBefore(el, s);
       const ch = raw[i];
       current += ch;
       if (ch === '.' || ch === '!' || ch === '?') {
-        // check for abbreviations like "e.g." "i.e."
-        if (ch === '.' && i + 1 < raw.length && /[a-zA-Z]/.test(raw[i + 1])) {
+        // IT-N547：句点后跟字母（e.g. / i.e.）或数字（价格 3.14 元）都不是句末，
+        // 旧实现只判字母，小数点会被当成句号把句子从中间劈开。
+        if (ch === '.' && i + 1 < raw.length && /[a-zA-Z0-9]/.test(raw[i + 1])) {
           continue;
         }
         const trimmed = current.trim();
@@ -477,13 +480,10 @@ s.parentNode.insertBefore(el, s);
           result.push({ text: trimmed, index: result.length });
         }
         current = '';
-      } else if (ch === '\n' || ch === '\u3001') {
-        // newline or 、 as soft break only if we have enough text
-        const trimmed = current.trim();
-        if (trimmed.length >= 20) {
-          result.push({ text: trimmed, index: result.length });
-          current = '';
-        }
+      } else if (ch === '\n') {
+        // IT-N547：换行与顿号「、」不再作为分句点（顿号是并列列举，不是句末）。
+        // 换行只作为普通空白保留在句中，避免把长句按排版硬切。
+        current = current.slice(0, -1) + ' ';
       }
     }
     // remaining text
@@ -530,14 +530,23 @@ s.parentNode.insertBefore(el, s);
         }
       });
     });
-    // filter out low frequency
+    // IT-N546：旧口径 `freq / total > 0.05` 在长文（句数 > 20）里会把「只出现 1 次」的
+    // 词全部滤掉（1/60 = 1.7% < 5%）⇒ freq 为空、每句 kwW = 0、句子权重全 0，
+    // 排序退化成按原序取前 N 句，摘要质量无声崩塌。且该阈值从未在公式/说明里披露。
+    // 新口径：出现 ≥2 次，或「词频 ÷ 句数 > 5%」；过滤后仍为空时取词频最高的前 20 词兜底。
     const filtered = {};
     const total = sentences.length;
     Object.keys(freq).forEach(function(w) {
-      if (freq[w] >= 1 && freq[w] / total > 0.05) {
+      if (freq[w] >= 2 || freq[w] / total > 0.05) {
         filtered[w] = freq[w];
       }
     });
+    if (Object.keys(filtered).length === 0) {
+      Object.keys(freq)
+        .sort(function(a, b) { return freq[b] - freq[a]; })
+        .slice(0, 20)
+        .forEach(function(w) { filtered[w] = freq[w]; });
+    }
     return { freq: filtered, allWords: allWords };
   }
 
