@@ -118,7 +118,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="輸入多支箭的落點座標(相對靶心，單位 cm)，計算平均彈著點、散佈半徑(CEP)、極端散佈與徑向標準差，評估射擊精度與一致性。">Enter the landing coordinates of several arrows relative to the target center (cm) to compute the mean point of impact, group radius (CEP), extreme spread and radial standard deviation for shooting precision.</p>
     <div class="formula-box">
       <div class="formula-title">📐 計算公式</div>
-      <div class="formula-eq">射箭散佈半徑（本頁程式碼口徑，主指標 CEP 為各箭到質心距離的中位數而非 √(Σd²/n)）：質心=(Σx÷n, Σy÷n)；各箭到質心距離 d=√((x−質心x)²+(y−質心y)²)（cm）；CEP 散佈半徑=median(d)（即 R50）；徑向標準差 σ=√(Σd²÷n)；R95=距離升序排序後第 ⌈0.95n⌉ 個；極端散佈=任意兩點最大距離；平均半徑=Σd÷n。校驗：每行須為 x,y 兩個有效數且至少 3 支箭，否則提示並中止。判據（按 CEP，cm）：&lt;1 精度極高、&lt;3 精度優秀、&lt;6 精度良好、&lt;12 精度一般、≥12 精度待提升，各檔附對應訓練建議。</div>
+      <div class="formula-eq">射箭散佈半徑（本頁程式碼口徑，主指標 CEP 為各箭到質心距離的中位數而非 √(Σd²/n)）：質心=(Σx÷n, Σy÷n)；各箭到質心距離 d=√((x−質心x)²+(y−質心y)²)（cm）；CEP 散佈半徑=median(d)（即 R50）；徑向標準差 σ=√(Σ(平均半徑−d)²÷n)；R95=距離升序排序後第 ⌈0.95n⌉ 個；極端散佈=任意兩點最大距離；平均半徑=Σd÷n。校驗：每行須為 x,y 兩個有效數且至少 3 支箭，否則提示並中止。判據（按 CEP，cm）：&lt;1 精度極高、&lt;3 精度優秀、&lt;6 精度良好、&lt;12 精度一般、≥12 精度待提升，各檔附對應訓練建議。</div>
       <p class="formula-desc">輸入多支箭的落點座標(相對靶心，單位 cm)，計算平均彈著點、散佈半徑(CEP)、極端散佈與徑向標準差，評估射擊精度與一致性。</p>
     </div>
     <div class="input-row" style="display:block;">
@@ -143,7 +143,7 @@ s.parentNode.insertBefore(el, s);
     <div id="shejiansanbubanjingDiff"></div>
     <div id="shejiansanbubanjingChart"></div>
     <div id="shejiansanbubanjingHist"></div>
-    <div class="info-box">💡 平均彈著點=(x̄,ȳ)；各點到彈著點距離取中位數即 CEP(50%散佈半徑)；R95 為容納95%落點的半徑；極端散佈為任意兩點的最大距離；徑向標準差 σ=√(Σr²/n)。</div>
+    <div class="info-box">💡 平均彈著點=(x̄,ȳ)；各點到彈著點距離取中位數即 CEP(50%散佈半徑)；R95 為容納95%落點的半徑；極端散佈為任意兩點的最大距離；徑向標準差 σ=√(Σ(r−平均半徑)²/n)。</div>
     <div class="tool-notes" style="--tool-accent:#DC2626;">
 <!-- Formula & Standard References -->
 <div class="card" id="constRefBox">
@@ -240,9 +240,11 @@ function calc(){
   var cep=median(dists);          // R50
   var r95=percentile(dists,0.95); // R95
   var maxDist=Math.max.apply(null,dists);
-  // 径向标准差
-  var sumSq=dists.reduce(function(a,r){return a+r*r;},0);
-  var sigma=Math.sqrt(sumSq/n);
+  // SF-N54：原用 √(Σd²/n)（各箭到质心的均方根半径 RMS）却命名为「径向标准差 σ」——
+  // 6 支箭均匀落在半径 6 cm 的圆周上会显示 σ=6.00，与「σ 越小一致性越高」直接矛盾（真实 σ=0）。
+  // 真正的径向标准差 = √(Σ(d−平均半径)²/n)。
+  var sumDevSq=dists.reduce(function(a,r){return a+(r-meanDist)*(r-meanDist);},0);
+  var sigma=Math.sqrt(sumDevSq/n);
   // 极端散布(最大两点距离)
   var extreme=0;
   for(var i=0;i<n;i++){
@@ -343,8 +345,13 @@ function __shejiansanbubanjingResText(){
     if(!r) return '';
     var t=(r.textContent||'').replace(/\s+/g,' ').trim();
     if(!t||t==='--'||t==='—'||t==='-') return '';
-    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
+}
+function __shejiansanbubanjingScore(t){
+    var s=String(t||'');
+    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    return 1;
 }
 function __shejiansanbubanjingTime(t){
     var d=new Date(t);
@@ -354,10 +361,12 @@ function __shejiansanbubanjingTime(t){
 function __shejiansanbubanjingRender(keys,rk,en){
     try{
         var arr=TBKit.history.list().slice(0,10);
-        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var head=[en?'Time':'时间'].concat(keys).concat([en?'Verdict':'结论',rk]);
         var rows=arr.map(function(it){
             var row=[__shejiansanbubanjingTime(it.t)];
             for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var sc=parseFloat(it.d.__tbScore);
+            row.push(isFinite(sc)?(sc>=1?(en?'Pass':'通过'):(en?'Fail':'未通过')):'-');
             var r=it.d[rk];row.push(r==null?'':r);
             return row;
         });
@@ -367,7 +376,7 @@ function __shejiansanbubanjingRender(keys,rk,en){
             __shejiansanbubanjing_skip=true;
             try{
                 for(var k in rec){
-                    if(k===rk) continue;
+                    if(k===rk||k==='__tbScore') continue;
                     var e=document.getElementById(k);
                     if(!e) continue;
                     var t=(e.type||'').toLowerCase();
@@ -380,11 +389,11 @@ function __shejiansanbubanjingRender(keys,rk,en){
         });
         var nums=[],labels=[];
         for(var j=arr.length-1;j>=0;j--){
-            var v=parseFloat(arr[j].d[rk]);
+            var v=parseFloat(arr[j].d.__tbScore);
             if(isFinite(v)){nums.push(v);labels.push(__shejiansanbubanjingTime(arr[j].t));}
         }
         if(nums.length>=2){
-            TBKit.chart.line('#shejiansanbubanjingChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+            TBKit.chart.line('#shejiansanbubanjingChart',{labels:labels,series:[{name:en?'Validity trend':'有效性趋势',data:nums}]});
         }
     }catch(e3){}
 }
@@ -414,11 +423,21 @@ function __shejiansanbubanjingExtras(){
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
+    rec.__tbScore=__shejiansanbubanjingScore(res);
     TBKit.history.record(rec);
     __shejiansanbubanjingRender(keys,rk,en);
 }
 function __shejiansanbubanjingExport(){
     if (typeof TBKit === 'undefined') return;
+    try{
+        var box=document.querySelector('#shejiansanbubanjingTable');
+        if(!box||!box.querySelector('tr')){
+            var snap=__shejiansanbubanjingSnap(); var keys=Object.keys(snap);
+            if(keys.length>12) keys=keys.slice(0,12);
+            var en=(TBKit.util&&TBKit.util.isEn())?true:false;
+            __shejiansanbubanjingRender(keys,en?'Result':'结果',en);
+        }
+    }catch(e){}
     try { TBKit.util.exportTable('#shejiansanbubanjingTable','shejiansanbubanjing.csv'); } catch(e){}
 }
 function __shejiansanbubanjingPresets(){

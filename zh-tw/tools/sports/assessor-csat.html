@@ -117,11 +117,12 @@ s.parentNode.insertBefore(el, s);
 
 <div class="formula-box">
   <div class="formula-title">📐 計算公式</div>
-  <div class="formula-eq">到場率(%) = 實際到場人數 ÷ 總參與人數 × 100（總人數按 1 兜底防除零）。校驗：人數輸入無強校驗，預設按 0。判據：到場率 ≥80% 顯示綠色（達標），低於 80% 顯示紅色（低於預期）。</div>
+  <div class="formula-eq">到場率(%) = 實際到場人數 ÷ 總參與人數 × 100。校驗：總參與人數需 ≥1，且實際到場人數不得大於總參與人數，否則整塊提示並停算（不再按 1 兜底，避免出現 420000% 的到場率）。判據：到場率 ≥80% 顯示綠色（達標），低於 80% 顯示紅色（低於預期）。</div>
   <div class="formula-eq">CSAT 滿意度(%) = 滿意人數 ÷ (滿意 + 一般 + 不滿意) × 100；有效問卷數為 0 時該指標記 0 並顯示「無有效問卷」。校驗：三項計數無強校驗，預設按 0。判據：CSAT ≥85 優秀、≥70 良好、≥50 一般、&lt;50 較差。</div>
   <div class="formula-eq">NPS 淨推薦值 = 推薦者數 ÷ NPS樣本數 × 100 − 貶損者數 ÷ NPS樣本數 × 100（即推薦者佔比 − 貶損者佔比，樣本 = 推薦 + 中立 + 貶損）；NPS 樣本數為 0 時記 0 並顯示「無有效樣本」。校驗：三項計數無強校驗，預設按 0。判據：NPS ≥50 卓越、≥20 良好、≥0 一般、&lt;0 需改進。</div>
   <div class="formula-eq">綜合效果分 = (組織執行 + 場館設施 + 宣傳推廣 + 安全保障) ÷ 4（四項各按 10 分制評分）。校驗：四項評分無強校驗，預設按 0。判據：效果分 ≥8 綠色（優秀）、≥6 黃色（一般）、否則紅色（需改進）。</div>
-  <div class="formula-desc">採用 CSAT 滿意度調查 + NPS 淨推薦值 + 效果四維評分，綜合評估賽事運營質量並給出改進建議。</div>
+  <div class="formula-eq">Kirkpatrick 四級評估：L1 反應 = CSAT 滿意度（現場問卷）；L2 學習 = 知識/技能測評均分（0–100）；L3 行為 = 賽後行為改變率（0–100）；L4 結果 = 賽事效果四維評分 × 10。單級 ≥70 分記為達標，四級貫通 = 達標級數 ÷ 4（缺測不計入達標數，L2/L3 清空即視為缺測）。</div>
+  <div class="formula-desc">採用 CSAT 滿意度調查 + NPS 淨推薦值 + 效果四維評分，並按 Kirkpatrick 反應/學習/行為/結果四級逐層評估，綜合給出賽事運營質量、四級貫通級數與改進建議。</div>
 </div>
 
 <div class="input-row"><div><label>總參與/觀賽人數</label><input type="number" id="total" value="5000" step="100" style="font-size:16px;" oninput="calc()" placeholder="e.g. 5000"></div>
@@ -141,6 +142,9 @@ s.parentNode.insertBefore(el, s);
 
 <div class="input-row"><div><label>賽事宣傳推廣（1-10分）</label><input type="number" id="promo" value="7" min="1" max="10" step="0.5" style="font-size:16px;" oninput="calc()" placeholder="e.g. 7 (1–10)"></div>
 <div><label>安全保障措施（1-10分）</label><input type="number" id="safety" value="9" min="1" max="10" step="0.5" style="font-size:16px;" oninput="calc()" placeholder="e.g. 9 (1–10)"></div></div>
+
+<div class="input-row"><div><label>Kirkpatrick L2 學習層：知識/技能測評均分（0-100）</label><input type="number" id="learn" value="75" min="0" max="100" step="1" style="font-size:16px;" oninput="calc()" placeholder="e.g. 75 (0–100)"></div>
+<div><label>Kirkpatrick L3 行為層：賽後行為改變率（%，0-100）</label><input type="number" id="behavior" value="70" min="0" max="100" step="1" style="font-size:16px;" oninput="calc()" placeholder="e.g. 70 (0–100)"></div></div>
 
 <div class="toolbar"><div id="assessor_csatPresets"></div>
       <button type="button" class="btn primary" onclick="calc()">執行賽事評估</button>
@@ -334,7 +338,7 @@ document.addEventListener('DOMContentLoaded',function(){
 
 <script>
 function calc(){
-  var total=+document.getElementById('total').value||1;
+  var total=+document.getElementById('total').value||0;
   var attend=+document.getElementById('attend').value||0;
   var satisfied=+document.getElementById('satisfied').value||0;
   var neutral=+document.getElementById('neutral').value||0;
@@ -348,6 +352,14 @@ function calc(){
   var safety=+document.getElementById('safety').value||0;
   var respTotal=satisfied+neutral+dissatisfied;
   var npsTotal=promoters+passives+detractors;
+  if(!(total>=1)){
+    document.getElementById('res').innerHTML='<div class="tip-box tip-warn"><strong>⚠ 总参与/观赛人数需 ≥1</strong>（当前「'+(String(document.getElementById('total').value).trim()||'空')+'」），否则到场率无意义。</div>';
+    return;
+  }
+  if(attend>total){
+    document.getElementById('res').innerHTML='<div class="tip-box tip-warn"><strong>⚠ 实际到场 '+attend+' 人不能大于总参与人数 '+total+' 人</strong>，请核对后重算（到场率不会超过 100%）。</div>';
+    return;
+  }
   var attendanceRate=attend/total*100;
   // 问卷/推荐者样本为 0 时 0/0 会输出 NaN，需先判空（原代码直接除，清空输入框即得 NaN%）
   var hasCsat=respTotal>0, hasNps=npsTotal>0;
@@ -356,6 +368,20 @@ function calc(){
   var detractorPct=hasNps?detractors/npsTotal*100:0;
   var nps=hasNps?promoterPct-detractorPct:0;
   var effectScore=(org+venue+promo+safety)/4;
+  // Kirkpatrick 四级评估：L1 反应=CSAT，L2 学习=知识/技能测评均分，L3 行为=行为改变率，L4 结果=四维效果分×10
+  var learnRaw=String(document.getElementById('learn').value).trim();
+  var behRaw=String(document.getElementById('behavior').value).trim();
+  var learnV=learnRaw===''?null:parseFloat(learnRaw);
+  var behV=behRaw===''?null:parseFloat(behRaw);
+  var learnOk=learnV!==null&&isFinite(learnV)&&learnV>=0&&learnV<=100;
+  var behOk=behV!==null&&isFinite(behV)&&behV>=0&&behV<=100;
+  var k1=hasCsat?csat:null, k2=learnOk?learnV:null, k3=behOk?behV:null, k4=effectScore*10;
+  var kLevels=[['L1 反应','CSAT 满意度（占比派生）',k1],['L2 学习','知识/技能测评均分',k2],['L3 行为','赛后行为改变率',k3],['L4 结果','赛事效果四维×10',k4]];
+  var kPass=0,kMiss=[];
+  kLevels.forEach(function(l){
+    if(l[2]===null){kMiss.push(l[0]+'（缺测）');return;}
+    if(l[2]>=70)kPass++;else kMiss.push(l[0]+'（'+l[2].toFixed(1)+' 分，低于 70）');
+  });
   var csatGrade,csatColor;
   if(!hasCsat){csatGrade='无有效问卷';csatColor='var(--text-muted)';}
   else if(csat>=85){csatGrade='优秀';csatColor='var(--success)';}
@@ -395,6 +421,18 @@ function calc(){
     if(promo<8)issues.push('宣传推广待加强');
     h+='<div class="tip-box tip-warn" style="margin-top:8px;"><strong>⚠ 存在待改进项：</strong> '+issues.join('、')+'。建议针对性优化并跟踪改进效果。</div>';
   }
+  h+='<p style="font-size:13px;font-weight:600;margin:16px 0 8px;">Kirkpatrick 四级评估</p>';
+  h+='<table style="width:100%;border-collapse:collapse;margin:8px 0;font-size:13px;">';
+  h+='<tr style="background:var(--result-bg);"><th style="border:1px solid var(--border);padding:8px;text-align:left;">层级</th><th style="border:1px solid var(--border);padding:8px;text-align:left;">口径</th><th style="border:1px solid var(--border);padding:8px;">得分</th><th style="border:1px solid var(--border);padding:8px;">判定</th></tr>';
+  kLevels.forEach(function(l){
+    var val=l[2]===null?'—':l[2].toFixed(1)+'/100';
+    var okk=l[2]!==null&&l[2]>=70;
+    var txt=l[2]===null?'缺测':(l[2]>=85?'优秀':okk?'达标':'未达标');
+    var col=l[2]===null?'var(--text-muted)':(l[2]>=85?'var(--success)':okk?'var(--info)':'var(--warning)');
+    h+='<tr><td style="border:1px solid var(--border);padding:8px;">'+l[0]+'</td><td style="border:1px solid var(--border);padding:8px;">'+l[1]+'</td><td style="border:1px solid var(--border);padding:8px;text-align:center;font-weight:600;color:'+col+';">'+val+'</td><td style="border:1px solid var(--border);padding:8px;text-align:center;color:'+col+';">'+txt+'</td></tr>';
+  });
+  h+='</table>';
+  h+='<p>四级贯通：<strong style="font-size:16px;">'+kPass+'/4 级达标</strong>（单级 ≥70 分记为达标；缺测不计入达标数）。'+(kMiss.length?'待改进：'+kMiss.join('、')+'。':'四级全部达标，可用于赛事培训效果归档。')+'</p>';
   h+='<div class="tip-box tip-info" style="margin-top:8px;">评估方法：CSAT满意度调查 + NPS净推荐值 + Kirkpatrick四级评估模型</div>';
   const __g1=h;document.getElementById('res').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 }
@@ -419,8 +457,13 @@ function __assessor_csatResText(){
     if(!r) return '';
     var t=(r.textContent||'').replace(/\s+/g,' ').trim();
     if(!t||t==='--'||t==='—'||t==='-') return '';
-    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
+}
+function __assessor_csatScore(t){
+    var s=String(t||'');
+    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    return 1;
 }
 function __assessor_csatTime(t){
     var d=new Date(t);
@@ -430,10 +473,12 @@ function __assessor_csatTime(t){
 function __assessor_csatRender(keys,rk,en){
     try{
         var arr=TBKit.history.list().slice(0,10);
-        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var head=[en?'Time':'时间'].concat(keys).concat([en?'Verdict':'结论',rk]);
         var rows=arr.map(function(it){
             var row=[__assessor_csatTime(it.t)];
             for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var sc=parseFloat(it.d.__tbScore);
+            row.push(isFinite(sc)?(sc>=1?(en?'Pass':'通过'):(en?'Fail':'未通过')):'-');
             var r=it.d[rk];row.push(r==null?'':r);
             return row;
         });
@@ -443,7 +488,7 @@ function __assessor_csatRender(keys,rk,en){
             __assessor_csat_skip=true;
             try{
                 for(var k in rec){
-                    if(k===rk) continue;
+                    if(k===rk||k==='__tbScore') continue;
                     var e=document.getElementById(k);
                     if(!e) continue;
                     var t=(e.type||'').toLowerCase();
@@ -456,11 +501,11 @@ function __assessor_csatRender(keys,rk,en){
         });
         var nums=[],labels=[];
         for(var j=arr.length-1;j>=0;j--){
-            var v=parseFloat(arr[j].d[rk]);
+            var v=parseFloat(arr[j].d.__tbScore);
             if(isFinite(v)){nums.push(v);labels.push(__assessor_csatTime(arr[j].t));}
         }
         if(nums.length>=2){
-            TBKit.chart.line('#assessor_csatChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+            TBKit.chart.line('#assessor_csatChart',{labels:labels,series:[{name:en?'Validity trend':'有效性趋势',data:nums}]});
         }
     }catch(e3){}
 }
@@ -490,11 +535,21 @@ function __assessor_csatExtras(){
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
+    rec.__tbScore=__assessor_csatScore(res);
     TBKit.history.record(rec);
     __assessor_csatRender(keys,rk,en);
 }
 function __assessor_csatExport(){
     if (typeof TBKit === 'undefined') return;
+    try{
+        var box=document.querySelector('#assessor_csatTable');
+        if(!box||!box.querySelector('tr')){
+            var snap=__assessor_csatSnap(); var keys=Object.keys(snap);
+            if(keys.length>12) keys=keys.slice(0,12);
+            var en=(TBKit.util&&TBKit.util.isEn())?true:false;
+            __assessor_csatRender(keys,en?'Result':'结果',en);
+        }
+    }catch(e){}
     try { TBKit.util.exportTable('#assessor_csatTable','assessor-csat.csv'); } catch(e){}
 }
 function __assessor_csatPresets(){

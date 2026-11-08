@@ -115,7 +115,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="輸入年給付額與年金現值因子 a_x，求淨單保費。">Derive the net single premium from the annual benefit and the annuity-due factor.</p>
     <div class="formula-box">
       <div class="formula-title">📐 計算公式</div>
-      <div class="formula-eq">淨單保費 NSP(元) = 年給付額 × 年金現值係數 äₙ；衍生：年金現值係數倒數 = 1 ÷ max(äₙ, 1e−12)（防除零）、每單位給付保費 = NSP ÷ max(年給付額, 1e−12)、月均攤保費 = NSP ÷ 12。校驗：無強校驗，數值預設按 0（年給付步進 50 元、係數步進 0.5）。判據：現值係數 äₙ 越大躉繳淨單保費越高，月均攤值用於繳費節奏參考。</div>
+      <div class="formula-eq">淨單保費 NSP(元) = 年給付額 × 年金現值係數 äₙ；衍生：年金現值係數倒數 = 1 ÷ max(äₙ, 1e−12)（防除零）、每單位給付保費 = NSP ÷ max(年給付額, 1e−12)、12 期無息均攤參考值 = NSP ÷ 12（僅把躉繳淨保費按 12 等分，不含利息、費用、繳費期限與生存機率，不等於實際月繳保費）。校驗：無強校驗，數值預設按 0（年給付步進 50 元、係數步進 0.5）。判據：現值係數 äₙ 越大躉繳淨單保費越高；12 期均攤僅作簡單等分參考，不能當作實際月繳保費。</div>
       <p class="formula-desc">輸入年給付額與年金現值因子 a_x，求淨單保費。</p>
     </div>
 
@@ -179,6 +179,7 @@ s.parentNode.insertBefore(el, s);
       <ul>
         <li>a_x 由生命表貼現求得。</li>
         <li>1000×15 → 15000 元。</li>
+        <li>「12 期無息均攤」只是把 NSP 按 12 等分，未計利息、費用、繳費期限與生存機率，不等於實際月繳保費。</li>
       </ul>
     </div>
   </div>
@@ -225,7 +226,7 @@ function calcTool(){
                 [NSP.toFixed(2),'净单保费 NSP (元)'],
                 [(1/Math.max(ax,1e-12)).toFixed(4), '年金现值系数倒数'],
                 [(NSP/Math.max(b,1e-12)).toFixed(4), '每单位给付的保费'],
-                [(NSP/12).toFixed(2), '月均摊保费']
+                [(NSP/12).toFixed(2), '12 期无息均摊 (元)']
             ]);ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
         }
 function resetForm(){document.getElementById('b').value = '1000';
@@ -247,7 +248,7 @@ function __annuity_nspExtras(){
             ['净单保费 NSP (元)', NSP.toFixed(2)],
             ['年金现值系数倒数', (1/Math.max(ax,1e-12)).toFixed(4)],
             ['每单位给付的保费', (NSP/Math.max(b,1e-12)).toFixed(4)],
-            ['月均摊保费', (NSP/12).toFixed(2)],
+            ['12 期无息均摊 (元)', (NSP/12).toFixed(2)],
         ]
     });
     TBKit.history.record({b:__annuity_nspRaw('b'), ax:__annuity_nspRaw('ax'), NSP:NSP});
@@ -329,7 +330,7 @@ function __anpChart(){
   if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
   var s=__anpSweep(); if(!s)return;
   var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
-  TBKit.chart.line('#anpChart',{title:en?'Net Single Premium vs Annuity Factor (linear)':'净单保费随年金系数线性增长',labels:s.labels,series:[{name:en?'Net single premium (¥)':'净单保费 NSP (元)',data:s.dN},{name:en?'Monthly equivalent (¥)':'月均摊保费 (元)',data:s.dM}]});
+  TBKit.chart.line('#anpChart',{title:en?'Net Single Premium vs Annuity Factor (linear)':'净单保费随年金系数线性增长',labels:s.labels,series:[{name:en?'Net single premium (¥)':'净单保费 NSP (元)',data:s.dN},{name:en?'12-period interest-free split (¥)':'12 期无息均摊 (元)',data:s.dM}]});
 }
 
 function __anpShow(which){

@@ -280,10 +280,11 @@ s.parentNode.insertBefore(el, s);
 </div>
 
 <script>
-var blinks=0,timer=null,remain=60,total=60,running=false;
+var blinks=0,timer=null,remain=60,total=60,running=false,startTime=null;
 var HKEY='blink_history';
 
 function updateRing(){
+  if(running)return;
   total=parseInt(document.getElementById('duration').value);
   remain=total;
   document.getElementById('tNum').textContent=remain;
@@ -315,6 +316,8 @@ function startTest(){
   document.getElementById('startBtn').disabled=true;
   const __h0='<p style="color:var(--info);">测试进行中… 每次眨眼就点一下按钮 👆</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h0;
   running=true;
+  startTime=Date.now();
+  document.getElementById('duration').disabled=true;
   setRing(remain/total);
   timer=setInterval(function(){
     remain--;
@@ -326,6 +329,7 @@ function startTest(){
 function stopTest(auto){
   if(!running&&!auto)return;
   clearInterval(timer);running=false;
+  document.getElementById('duration').disabled=false;
   document.getElementById('tapBtn').disabled=true;
   document.getElementById('startBtn').disabled=false;
   finishTest();
@@ -339,8 +343,8 @@ function recordBlink(){
   setTimeout(function(){ea.classList.remove('blink');},140);
 }
 function finishTest(){
-  var elapsed=total-remain;
-  if(elapsed<=0)elapsed=total;
+  var elapsed=(Date.now()-startTime)/1000;
+  if(!(elapsed>0))elapsed=0.001;
   var perMin=(blinks/elapsed*60);
   var perMinStr=perMin.toFixed(1);
   var status,cls;
@@ -357,6 +361,7 @@ function finishTest(){
 }
 function resetTest(){
   clearInterval(timer);running=false;
+  document.getElementById('duration').disabled=false;
   blinks=0;remain=total;
   document.getElementById('countBig').textContent='0';
   document.getElementById('tNum').textContent=remain;
@@ -477,8 +482,13 @@ function __blink_counterResText(){
     if(!r) return '';
     var t=(r.textContent||'').replace(/\s+/g,' ').trim();
     if(!t||t==='--'||t==='—'||t==='-') return '';
-    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
+}
+function __blink_counterScore(t){
+    var s=String(t||'');
+    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    return 1;
 }
 function __blink_counterTime(t){
     var d=new Date(t);
@@ -488,10 +498,12 @@ function __blink_counterTime(t){
 function __blink_counterRender(keys,rk,en){
     try{
         var arr=TBKit.history.list().slice(0,10);
-        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var head=[en?'Time':'时间'].concat(keys).concat([en?'Verdict':'结论',rk]);
         var rows=arr.map(function(it){
             var row=[__blink_counterTime(it.t)];
             for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var sc=parseFloat(it.d.__tbScore);
+            row.push(isFinite(sc)?(sc>=1?(en?'Pass':'通过'):(en?'Fail':'未通过')):'-');
             var r=it.d[rk];row.push(r==null?'':r);
             return row;
         });
@@ -501,7 +513,7 @@ function __blink_counterRender(keys,rk,en){
             __blink_counter_skip=true;
             try{
                 for(var k in rec){
-                    if(k===rk) continue;
+                    if(k===rk||k==='__tbScore') continue;
                     var e=document.getElementById(k);
                     if(!e) continue;
                     var t=(e.type||'').toLowerCase();
@@ -514,11 +526,11 @@ function __blink_counterRender(keys,rk,en){
         });
         var nums=[],labels=[];
         for(var j=arr.length-1;j>=0;j--){
-            var v=parseFloat(arr[j].d[rk]);
+            var v=parseFloat(arr[j].d.__tbScore);
             if(isFinite(v)){nums.push(v);labels.push(__blink_counterTime(arr[j].t));}
         }
         if(nums.length>=2){
-            TBKit.chart.line('#blink_counterChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+            TBKit.chart.line('#blink_counterChart',{labels:labels,series:[{name:en?'Validity trend':'有效性趋势',data:nums}]});
         }
     }catch(e3){}
 }
@@ -548,11 +560,21 @@ function __blink_counterExtras(){
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
+    rec.__tbScore=__blink_counterScore(res);
     TBKit.history.record(rec);
     __blink_counterRender(keys,rk,en);
 }
 function __blink_counterExport(){
     if (typeof TBKit === 'undefined') return;
+    try{
+        var box=document.querySelector('#blink_counterTable');
+        if(!box||!box.querySelector('tr')){
+            var snap=__blink_counterSnap(); var keys=Object.keys(snap);
+            if(keys.length>12) keys=keys.slice(0,12);
+            var en=(TBKit.util&&TBKit.util.isEn())?true:false;
+            __blink_counterRender(keys,en?'Result':'结果',en);
+        }
+    }catch(e){}
     try { TBKit.util.exportTable('#blink_counterTable','blink-counter.csv'); } catch(e){}
 }
 function __blink_counterPresets(){

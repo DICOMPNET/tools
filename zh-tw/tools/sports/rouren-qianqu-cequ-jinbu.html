@@ -117,8 +117,8 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="按訓練前後坐位體前屈成績計算柔韌進步量與相對提升率，用於訓練效果追蹤。">A flexibility (forward/side bend) progress tracker: log sit-and-reach and similar tests, convert to improvement margin and rating for flexibility training tracking.</p>
     <div class="formula-box">
       <div class="formula-title">📐 計算公式</div>
-      <div class="formula-eq">柔韌前屈進步評估（本頁程式碼口徑，生效為後段覆蓋版）：柔韌進步=後測 B−前測 A（cm）；相對提升=(B−A)÷A×100（%，A≤0 時按 0）；平均前屈=(A+B)÷2（cm）。校驗：兩輸入須為有限數值，否則提示請輸入兩個有效數值後再計算。判據：無固定分級，進步為正表示柔韌改善、為負表示退步，相對提升以前測值為基準。</div>
-      <p class="formula-desc">柔韌素質以坐位體前屈(cm)衡量：進步=後測−前測，相對提升=進步÷前測。正值表示柔韌改善，用於訓練前後效果對比。</p>
+      <div class="formula-eq">柔韌前屈進步評估（本頁程式碼口徑，生效為後段覆蓋版）：柔韌進步=後測 B−前測 A（cm）；相對提升=(B−A)÷|A|×100（%，以 |前測| 為基準，A=0 時顯示「—」）；平均前屈=(A+B)÷2（cm）。校驗：兩輸入須為有限數值，否則提示請輸入兩個有效數值後再計算。判據：無固定分級，進步為正表示柔韌改善、為負表示退步，相對提升以前測值為基準。</div>
+      <p class="formula-desc">柔韌素質以坐位體前屈(cm)衡量：進步=後測−前測，相對提升=進步÷|前測|。正值表示柔韌改善，用於訓練前後效果對比。</p>
     </div>
     <div class="input-row">
       <div><label>前測前屈 (cm)</label><input type="number" id="v0" value="5" step="any" oninput="calc()" enterkeyhint="done" aria-label="前屈" placeholder="e.g. 5"></div>
@@ -137,7 +137,7 @@ s.parentNode.insertBefore(el, s);
     <div id="rouren_qianqu_cequ_jinbuDiff"></div>
     <div id="rouren_qianqu_cequ_jinbuChart"></div>
     <div id="rouren_qianqu_cequ_jinbuHist"></div>
-    <div class="info-box">💡 進步 = 後測 − 前測；相對提升 = 進步 ÷ 前測 × 100%。</div>
+    <div class="info-box">💡 進步 = 後測 − 前測；相對提升 = 進步 ÷ |前測| × 100%（前測為負時取絕對值作基準）。</div>
 <div class="tool-notes" style="--tool-accent:#E11D48;">
 <!-- Formula & Standard References -->
 <div class="card" id="constRefBox">
@@ -282,11 +282,18 @@ function calc(){
   if(!isFinite(A)||!isFinite(B)){box.innerHTML='<div class="info-box">请输入两个有效数值后再计算。</div>';return;}
   var items=[];
   items.push([(B-A).toFixed(2), "柔韧进步（cm）"]);
-  items.push([(A>0?(B-A)/A*100:0).toFixed(2)+"%", "相对提升"]);
+  // SF-N49：原 A<=0 时相对提升恒 0%（前测 −5 → 后测 3 的 8 cm 大进步被显示成 0.00%）。
+  // 改为以 |前测| 为基准（负值说明够不到脚尖，绝对值即基准幅度）；A=0 无法定义、显示「—」。
+  var pctRel=(A!==0)?((B-A)/Math.abs(A)*100):null;
+  items.push([pctRel===null?'—':pctRel.toFixed(2)+"%", "相对提升"]);
   items.push([((A+B)/2).toFixed(2), "平均前屈（cm）"]);
+  // SF-N49 附带：meta/英文正文承诺「换算进步幅度与评级」，实际只有三张数值卡、无评级 ⇒ 补进步幅度分级。
+  var gain=B-A;
+  var lvl=(gain>=5?'显著改善':(gain>=2?'有改善':(gain>0?'轻微改善':(gain===0?'无变化':'退步'))));
+  items.push([lvl, "进步评级"]);
 
   var html='<div class="data-grid">'+items.map(function(it){return '<div class="data-card"><div class="num">'+it[0]+'</div><div class="label">'+it[1]+'</div></div>';}).join('')+'</div>';
-  html+='💡 进步 = 后测 − 前测；相对提升 = 进步 ÷ 前测 × 100%。';
+  html+='💡 进步 = 后测 − 前测；相对提升 = 进步 ÷ |前测| × 100%（前测为负时取绝对值作基准）。';
   const __g6=html;box.innerHTML=(typeof __g6==='number'?(isFinite(__g6)?__g6:'—'):String(__g6).replace(/Infinity|NaN/g,'—'));
   if(typeof saveHistory==='function'){try{saveHistory(A,B);}catch(e){}}
 }
@@ -314,8 +321,13 @@ function __rouren_qianqu_cequ_jinbuResText(){
     if(!r) return '';
     var t=(r.textContent||'').replace(/\s+/g,' ').trim();
     if(!t||t==='--'||t==='—'||t==='-') return '';
-    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
+}
+function __rouren_qianqu_cequ_jinbuScore(t){
+    var s=String(t||'');
+    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    return 1;
 }
 function __rouren_qianqu_cequ_jinbuTime(t){
     var d=new Date(t);
@@ -325,10 +337,12 @@ function __rouren_qianqu_cequ_jinbuTime(t){
 function __rouren_qianqu_cequ_jinbuRender(keys,rk,en){
     try{
         var arr=TBKit.history.list().slice(0,10);
-        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var head=[en?'Time':'时间'].concat(keys).concat([en?'Verdict':'结论',rk]);
         var rows=arr.map(function(it){
             var row=[__rouren_qianqu_cequ_jinbuTime(it.t)];
             for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var sc=parseFloat(it.d.__tbScore);
+            row.push(isFinite(sc)?(sc>=1?(en?'Pass':'通过'):(en?'Fail':'未通过')):'-');
             var r=it.d[rk];row.push(r==null?'':r);
             return row;
         });
@@ -338,7 +352,7 @@ function __rouren_qianqu_cequ_jinbuRender(keys,rk,en){
             __rouren_qianqu_cequ_jinbu_skip=true;
             try{
                 for(var k in rec){
-                    if(k===rk) continue;
+                    if(k===rk||k==='__tbScore') continue;
                     var e=document.getElementById(k);
                     if(!e) continue;
                     var t=(e.type||'').toLowerCase();
@@ -351,11 +365,11 @@ function __rouren_qianqu_cequ_jinbuRender(keys,rk,en){
         });
         var nums=[],labels=[];
         for(var j=arr.length-1;j>=0;j--){
-            var v=parseFloat(arr[j].d[rk]);
+            var v=parseFloat(arr[j].d.__tbScore);
             if(isFinite(v)){nums.push(v);labels.push(__rouren_qianqu_cequ_jinbuTime(arr[j].t));}
         }
         if(nums.length>=2){
-            TBKit.chart.line('#rouren_qianqu_cequ_jinbuChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+            TBKit.chart.line('#rouren_qianqu_cequ_jinbuChart',{labels:labels,series:[{name:en?'Validity trend':'有效性趋势',data:nums}]});
         }
     }catch(e3){}
 }
@@ -385,11 +399,21 @@ function __rouren_qianqu_cequ_jinbuExtras(){
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
+    rec.__tbScore=__rouren_qianqu_cequ_jinbuScore(res);
     TBKit.history.record(rec);
     __rouren_qianqu_cequ_jinbuRender(keys,rk,en);
 }
 function __rouren_qianqu_cequ_jinbuExport(){
     if (typeof TBKit === 'undefined') return;
+    try{
+        var box=document.querySelector('#rouren_qianqu_cequ_jinbuTable');
+        if(!box||!box.querySelector('tr')){
+            var snap=__rouren_qianqu_cequ_jinbuSnap(); var keys=Object.keys(snap);
+            if(keys.length>12) keys=keys.slice(0,12);
+            var en=(TBKit.util&&TBKit.util.isEn())?true:false;
+            __rouren_qianqu_cequ_jinbuRender(keys,en?'Result':'结果',en);
+        }
+    }catch(e){}
     try { TBKit.util.exportTable('#rouren_qianqu_cequ_jinbuTable','rouren-qianqu-cequ-jinbu.csv'); } catch(e){}
 }
 function __rouren_qianqu_cequ_jinbuPresets(){

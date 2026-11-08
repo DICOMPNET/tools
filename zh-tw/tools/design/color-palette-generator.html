@@ -545,19 +545,23 @@ function renderPalette(){
   const __h0=colors.map((c, i) => {
     const rgb = hexToRgb(c) || {r:0,g:0,b:0};
     const lum = relativeLuminance(rgb);
-    const whiteRatio = contrastRatio(lum, 1);
-    const blackRatio = contrastRatio(lum, 0);
-    const useDark = blackRatio >= whiteRatio;
-    const textColor = useDark ? '#111' : '#fff';
+    const TEXT_DARK = '#111';
+    const darkTextLum = relativeLuminance(hexToRgb(TEXT_DARK) || {r:0,g:0,b:0});
+    const cWhite = contrastRatio(lum, 1);          // 白字 #fff 相对亮度 1
+    const cDark = contrastRatio(lum, darkTextLum); // 黑字 #111 实际选用色
+    const useDark = cDark >= cWhite;
+    const textColor = useDark ? TEXT_DARK : '#fff';
     const textShadow = useDark ? 'none' : '0 1px 3px rgba(0,0,0,0.3)';
-    const whiteGrade = whiteRatio >= 7 ? 'AAA' : whiteRatio >= 4.5 ? 'AA' : '✗';
-    const blackGrade = blackRatio >= 7 ? 'AAA' : blackRatio >= 4.5 ? 'AA' : '✗';
+    const wGrade = cWhite >= 7 ? 'AAA' : cWhite >= 4.5 ? 'AA' : '✗';
+    const dGrade = cDark >= 7 ? 'AAA' : cDark >= 4.5 ? 'AA' : '✗';
+    const cText = useDark ? cDark : cWhite;
+    const grade = useDark ? dGrade : wGrade;
     return `
       <div class="color-swatch" style="background:${c};color:${textColor};" onclick="copyColor('${c}')">
         <button type="button" class="copy-btn" onclick="event.stopPropagation();copyColor('${c}')">复制</button>
         <div class="color-info" style="color:${textColor};text-shadow:${textShadow};">
           <div class="hex">${colorToFormat(c, currentFormat)}</div>
-          <div class="contrast" style="font-size:10px;opacity:0.85;margin-top:2px;">WCAG <span>白底</span> ${whiteRatio.toFixed(2)}:1 ${whiteGrade} · <span>黑底</span> ${blackRatio.toFixed(2)}:1 ${blackGrade}</div>
+          <div class="contrast" style="font-size:10px;margin-top:2px;">字色对比 ${cText.toFixed(2)}:1 ${grade}（白字 ${cWhite.toFixed(2)} / 黑字 ${cDark.toFixed(2)}）</div>
         </div>
       </div>
     `;
@@ -793,19 +797,21 @@ function exportImage(){
 
     const rgb = hexToRgb(c) || {r:0,g:0,b:0};
     const lum = relativeLuminance(rgb);
-    const whiteRatio = contrastRatio(lum, 1);
-    const blackRatio = contrastRatio(lum, 0);
-    const useDark = blackRatio >= whiteRatio;
-    const ratio = useDark ? blackRatio : whiteRatio;
-    const grade = ratio >= 7 ? 'AAA' : ratio >= 4.5 ? 'AA' : 'AA ✗';
-    ctx.fillStyle = useDark ? '#111' : '#fff';
+    const TEXT_DARK = '#111';
+    const darkTextLum = relativeLuminance(hexToRgb(TEXT_DARK) || {r:0,g:0,b:0});
+    const cWhite = contrastRatio(lum, 1);
+    const cDark = contrastRatio(lum, darkTextLum);
+    const useDark = cDark >= cWhite;
+    const cText = useDark ? cDark : cWhite;
+    const grade = cText >= 7 ? 'AAA' : cText >= 4.5 ? 'AA' : 'AA ✗';
+    ctx.fillStyle = useDark ? TEXT_DARK : '#fff';
     ctx.font = 'bold 16px monospace';
     ctx.textAlign = 'center';
     ctx.shadowColor = useDark ? 'transparent' : 'rgba(0,0,0,0.5)';
     ctx.shadowBlur = useDark ? 0 : 4;
     ctx.fillText(c.toUpperCase(), i*swatchW + swatchW/2, h - 44);
     ctx.font = '12px monospace';
-    ctx.fillText(`WCAG ${ratio.toFixed(2)}:1 ${grade}`, i*swatchW + swatchW/2, h - 22);
+    ctx.fillText(`WCAG ${cText.toFixed(2)}:1 ${grade}`, i*swatchW + swatchW/2, h - 22);
     ctx.shadowBlur = 0;
   });
 
@@ -849,8 +855,13 @@ function __color_palette_generatorResText(){
     var isField=r.tagName==='INPUT'||r.tagName==='TEXTAREA'||r.tagName==='SELECT';
     var t=((isField?r.value:r.textContent)||'').replace(/\s+/g,' ').trim();
     if(!t||t==='--'||t==='—'||t==='-') return '';
-    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
+}
+function __color_palette_generatorScore(t){
+    var s=String(t||'');
+    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    return 1;
 }
 function __color_palette_generatorTime(t){
     var d=new Date(t);
@@ -860,10 +871,12 @@ function __color_palette_generatorTime(t){
 function __color_palette_generatorRender(keys,rk,en){
     try{
         var arr=TBKit.history.list().slice(0,10);
-        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var head=[en?'Time':'时间'].concat(keys).concat([en?'Verdict':'结论',rk]);
         var rows=arr.map(function(it){
             var row=[__color_palette_generatorTime(it.t)];
             for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var sc=parseFloat(it.d.__tbScore);
+            row.push(isFinite(sc)?(sc>=1?(en?'Pass':'通过'):(en?'Fail':'未通过')):'-');
             var r=it.d[rk];row.push(r==null?'':r);
             return row;
         });
@@ -873,7 +886,7 @@ function __color_palette_generatorRender(keys,rk,en){
             __color_palette_generator_skip=true;
             try{
                 for(var k in rec){
-                    if(k===rk) continue;
+                    if(k===rk||k==='__tbScore') continue;
                     var e=document.getElementById(k);
                     if(!e) continue;
                     var t=(e.type||'').toLowerCase();
@@ -886,11 +899,11 @@ function __color_palette_generatorRender(keys,rk,en){
         });
         var nums=[],labels=[];
         for(var j=arr.length-1;j>=0;j--){
-            var v=parseFloat(arr[j].d[rk]);
+            var v=parseFloat(arr[j].d.__tbScore);
             if(isFinite(v)){nums.push(v);labels.push(__color_palette_generatorTime(arr[j].t));}
         }
         if(nums.length>=2){
-            TBKit.chart.line('#color_palette_generatorChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+            TBKit.chart.line('#color_palette_generatorChart',{labels:labels,series:[{name:en?'Validity trend':'有效性趋势',data:nums}]});
         }
     }catch(e3){}
 }
@@ -920,11 +933,21 @@ function __color_palette_generatorExtras(){
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
+    rec.__tbScore=__color_palette_generatorScore(res);
     TBKit.history.record(rec);
     __color_palette_generatorRender(keys,rk,en);
 }
 function __color_palette_generatorExport(){
     if (typeof TBKit === 'undefined') return;
+    try{
+        var box=document.querySelector('#color_palette_generatorTable');
+        if(!box||!box.querySelector('tr')){
+            var snap=__color_palette_generatorSnap(); var keys=Object.keys(snap);
+            if(keys.length>12) keys=keys.slice(0,12);
+            var en=(TBKit.util&&TBKit.util.isEn())?true:false;
+            __color_palette_generatorRender(keys,en?'Result':'结果',en);
+        }
+    }catch(e){}
     try { TBKit.util.exportTable('#color_palette_generatorTable','color-palette-generator.csv'); } catch(e){}
 }
 function __color_palette_generatorPresets(){

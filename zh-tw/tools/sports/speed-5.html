@@ -117,7 +117,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="輸入初速度、末速度、時間與質量，計算加速度、合力、位移、動能變化與功率輸出，適用於短跑、騎行、投擲等運動力學分析。">Enter initial velocity, final velocity, time and mass to compute acceleration, resultant force, displacement, kinetic-energy change and power output for sprint, cycling and throwing mechanics.</p>
     <div class="formula-box">
       <div class="formula-title">📐 計算公式</div>
-      <div class="formula-eq">運動學功率分析（本頁程式碼口徑，勻加速模型）：加速度 a=(末速 v1−初速 v0)÷時間 t（m/s²）；合力 F=質量 m×a（N）；位移 s=(v0+v1)÷2×t（m）；動能變化 ΔKE=½×m×(v1²−v0²)（J）；平均功率=ΔKE÷t（W）、馬力換算=平均功率÷735.5（PS）、峰值功率=F×v1（末速處）、起始功率=F×v0（初速處）。校驗：初速與末速須為有效數值且不小於 0、時間與質量須大於 0，否則提示並中止。判據：a≥0 判加速過程否則減速（制動）過程；|a|≥6 提示爆發力要求高防肌肉拉傷、≥3 中等加速度常見於起跑加速、其餘趨於勻速或緩慢加減速。</div>
+      <div class="formula-eq">運動學功率分析（本頁程式碼口徑，勻加速模型）：加速度 a=(末速 v1−初速 v0)÷時間 t（m/s²）；合力 F=質量 m×a（N）；位移 s=(v0+v1)÷2×t（m）；動能變化 ΔKE=½×m×(v1²−v0²)（J）；平均功率=ΔKE÷t（W）、馬力換算=平均功率÷735.5（PS）、峰值功率=F×高速端速度（v0 與 v1 中較大者，|P| 極值所在端）、起始功率=F×v0（初速處）。校驗：初速與末速須為有效數值且不小於 0、時間與質量須大於 0，否則提示並中止。判據：a≥0 判加速過程否則減速（制動）過程；|a|≥6 提示爆發力要求高防肌肉拉傷、≥3 中等加速度常見於起跑加速、其餘趨於勻速或緩慢加減速。</div>
       <p class="formula-desc">輸入初速度、末速度、時間與質量，計算加速度、合力、位移、動能變化與功率輸出，適用於短跑、騎行、投擲等運動力學分析。</p>
     </div>
     <div class="input-row" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;align-items:end;">
@@ -210,7 +210,10 @@ function calc(){
   var s=(iv.v0+iv.v1)/2*iv.t;
   var dKE=0.5*iv.m*(iv.v1*iv.v1-iv.v0*iv.v0);
   var avgP=dKE/iv.t;
-  var peakP=F*iv.v1;
+  /* |P|=|F|·v 在匀变速区间内的极值端点必在高速端；原式 F×末速 在减速段给出的是低速端功率，
+     减速时 F<0、v1<v0 ⇒ 「峰值功率」比初速处更小（数值更小的负数），峰值判读反了（SF-N104）。 */
+  var vHi=Math.max(iv.v0,iv.v1);
+  var peakP=F*vHi;
   var startP=F*iv.v0;
   var mode=a>=0?'加速过程':'减速（制动）过程';
   var aAbs=Math.abs(a);
@@ -227,10 +230,11 @@ function calc(){
     '<div class="data-grid" style="margin-top:8px;">'+
     '<div class="data-card"><div class="num">'+avgP.toFixed(1)+'</div><div class="label">平均功率 (W)</div></div>'+
     '<div class="data-card"><div class="num">'+(avgP/735.5).toFixed(2)+'</div><div class="label">平均功率 (PS/马力)</div></div>'+
-    '<div class="data-card"><div class="num">'+peakP.toFixed(1)+'</div><div class="label">峰值功率 (W, 末速处)</div></div>'+
+    '<div class="data-card"><div class="num">'+peakP.toFixed(1)+'</div><div class="label">峰值功率 (W, 高速端)</div></div>'+
     '<div class="data-card"><div class="num">'+startP.toFixed(1)+'</div><div class="label">起始功率 (W, 初速处)</div></div>'+
     '</div>'+
     '<div style="margin-top:10px;"><span class="grade-tag '+(a>=0?'grade-good':'grade-pass')+'">'+mode+'</span></div>'+
+    (a<0?'<div class="info-box" style="margin-top:10px;">⚠ 减速（制动）段合力与速度反向，功率为负值表示机体在吸收能量；|P| 最大值出现在高速端（本段初速处），故此时「峰值功率」与「起始功率」同值。</div>':'')+
     '<div class="info-box" style="margin-top:10px;">📌 '+advise+'</div>';document.getElementById('res').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
   saveHistory(iv,a,F,avgP);
 }
@@ -315,8 +319,13 @@ function __speed_5ResText(){
     if(!r) return '';
     var t=(r.textContent||'').replace(/\s+/g,' ').trim();
     if(!t||t==='--'||t==='—'||t==='-') return '';
-    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
+}
+function __speed_5Score(t){
+    var s=String(t||'');
+    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    return 1;
 }
 function __speed_5Time(t){
     var d=new Date(t);
@@ -326,10 +335,12 @@ function __speed_5Time(t){
 function __speed_5Render(keys,rk,en){
     try{
         var arr=TBKit.history.list().slice(0,10);
-        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var head=[en?'Time':'时间'].concat(keys).concat([en?'Verdict':'结论',rk]);
         var rows=arr.map(function(it){
             var row=[__speed_5Time(it.t)];
             for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var sc=parseFloat(it.d.__tbScore);
+            row.push(isFinite(sc)?(sc>=1?(en?'Pass':'通过'):(en?'Fail':'未通过')):'-');
             var r=it.d[rk];row.push(r==null?'':r);
             return row;
         });
@@ -339,7 +350,7 @@ function __speed_5Render(keys,rk,en){
             __speed_5_skip=true;
             try{
                 for(var k in rec){
-                    if(k===rk) continue;
+                    if(k===rk||k==='__tbScore') continue;
                     var e=document.getElementById(k);
                     if(!e) continue;
                     var t=(e.type||'').toLowerCase();
@@ -352,11 +363,11 @@ function __speed_5Render(keys,rk,en){
         });
         var nums=[],labels=[];
         for(var j=arr.length-1;j>=0;j--){
-            var v=parseFloat(arr[j].d[rk]);
+            var v=parseFloat(arr[j].d.__tbScore);
             if(isFinite(v)){nums.push(v);labels.push(__speed_5Time(arr[j].t));}
         }
         if(nums.length>=2){
-            TBKit.chart.line('#speed_5Chart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+            TBKit.chart.line('#speed_5Chart',{labels:labels,series:[{name:en?'Validity trend':'有效性趋势',data:nums}]});
         }
     }catch(e3){}
 }
@@ -386,11 +397,21 @@ function __speed_5Extras(){
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
+    rec.__tbScore=__speed_5Score(res);
     TBKit.history.record(rec);
     __speed_5Render(keys,rk,en);
 }
 function __speed_5Export(){
     if (typeof TBKit === 'undefined') return;
+    try{
+        var box=document.querySelector('#speed_5Table');
+        if(!box||!box.querySelector('tr')){
+            var snap=__speed_5Snap(); var keys=Object.keys(snap);
+            if(keys.length>12) keys=keys.slice(0,12);
+            var en=(TBKit.util&&TBKit.util.isEn())?true:false;
+            __speed_5Render(keys,en?'Result':'结果',en);
+        }
+    }catch(e){}
     try { TBKit.util.exportTable('#speed_5Table','speed-5.csv'); } catch(e){}
 }
 function __speed_5Presets(){

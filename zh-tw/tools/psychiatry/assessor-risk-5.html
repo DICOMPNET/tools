@@ -251,7 +251,7 @@ function buildList(containerId,items,prefix){
   var html='';
   items.forEach(function(q,i){
     var id=prefix+i;
-    html+='<div class="input-row" style="align-items:center;margin-bottom:8px;"><div style="flex:1;"><label>'+q+'</label></div><select id="'+id+'" style="font-size:16px;flex:0 0 80px;" onchange="calc()"><option value="0">否</option><option value="1">是</option></select></div>';
+    html+='<div class="input-row" style="align-items:center;margin-bottom:8px;"><div style="flex:1;"><label>'+q+'</label></div><select id="'+id+'" style="font-size:16px;flex:0 0 80px;" onchange="calc()"><option value="-1">请选择</option><option value="0">否</option><option value="1">是</option></select></div>';
   });
   const __g1=html;document.getElementById(containerId).innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 }
@@ -274,8 +274,8 @@ function __cssrsExport(){
   if(typeof ideationItems==='undefined'||typeof behaviorItems==='undefined') return;
   try{
     var en=TBKit.util.isEn();
-    var ideationScores=ideationItems.map(function(q,i){var sel=document.getElementById('ide'+i);var v=sel?parseInt(sel.value):0;return isFinite(v)?v:0;});
-    var behaviorScores=behaviorItems.map(function(q,i){var sel=document.getElementById('beh'+i);var v=sel?parseInt(sel.value):0;return isFinite(v)?v:0;});
+    var ideationScores=ideationItems.map(function(q,i){var sel=document.getElementById('ide'+i);var v=sel?parseInt(sel.value):0;return (isFinite(v)&&v>=0)?v:0;});
+    var behaviorScores=behaviorItems.map(function(q,i){var sel=document.getElementById('beh'+i);var v=sel?parseInt(sel.value):0;return (isFinite(v)&&v>=0)?v:0;});
     var maxIdeation=-1;
     for(var i=0;i<ideationScores.length;i++){if(ideationScores[i]===1)maxIdeation=i;}
     var ideationLevelsZh=['无自杀意念','被动自杀意念（希望死去）','主动自杀意念（有想法但无方法/计划/意图）','主动自杀意念伴方法（想到方法但无意图/计划）','主动自杀意念伴部分意图（有意图但无具体计划）','主动自杀意念伴具体计划和意图'];
@@ -319,6 +319,15 @@ function __cssrsExport(){
   }catch(e){}
 }
 function calc(){
+  var answered=0;
+  ideationItems.forEach(function(q,i){var v=+document.getElementById('ide'+i).value; if(isFinite(v)&&v>=0) answered++;});
+  behaviorItems.forEach(function(q,i){var v=+document.getElementById('beh'+i).value; if(isFinite(v)&&v>=0) answered++;});
+  if(answered < ideationItems.length+behaviorItems.length){
+    const __g0='<p style="color:var(--text-muted);">已作答 '+answered+'/'+(ideationItems.length+behaviorItems.length)+' 项，请完成全部题目以获得完整评估。</p>';
+    document.getElementById('res').innerHTML=(typeof __g0==='number'?(isFinite(__g0)?__g0:'—'):String(__g0).replace(/Infinity|NaN/g,'—'));
+    setCrisisUI(false,false);
+    return;
+  }
   var ideationScores=ideationItems.map(function(q,i){return +document.getElementById('ide'+i).value;});
   var behaviorScores=behaviorItems.map(function(q,i){return +document.getElementById('beh'+i).value;});
   var maxIdeation=-1, ideationText='无自杀意念';
@@ -482,7 +491,7 @@ try{ __emrData(); }catch(e){}
 </style>
 <section class="deep-dive" data-deep-dive="1">
 <div class="card">
-<h2>📚 深度解析：心理危機風險篩查（C-SSRS）訪談版</h2>
+<h2>📚 深度解析：C-SSRS 風險評估（評分式）</h2>
 <h3>💡 常見使用場景</h3>
 <ul class="dd-list">
 <li>意念分級</li>
@@ -493,7 +502,7 @@ try{ __emrData(); }catch(e){}
 <div class="dd-example"><div class="dd-ex-title">高危</div><div class="dd-ex-body">行為第 4 項「實際嘗試=是」且近 3 月內 → 高危，立即危機干預。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
-<dt>與自評版區別？</dt><dd>本頁為專業人員評分式（assessor，半結構化提問），cssrs-suicide 為自評式；兩者風險分層邏輯一致，普通使用者請優先使用自評版。</dd>
+<dt>與 cssrs-suicide 區別？</dt><dd>本頁為評分式（assessor），cssrs-suicide 為自評式，風險分層邏輯一致。</dd>
 <dt>誰來評？</dt><dd>應由受訓者按半結構化提問完成，結果用於分診與監護決策。</dd>
 </dl>
 </div>

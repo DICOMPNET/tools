@@ -256,7 +256,17 @@ function calc(){
   intake=isNaN(intake)?0:intake;
   urine=isNaN(urine)?0:urine;
   var hr=dur/60;
-  var sweatKg=pre-post+intake/1000-urine/1000;
+  // SF-N62：运动后体重高于运动前（且扣除补液/排尿后仍为增重）时，原式给出负出汗量、
+  // 负补液建议（如「每小时约 −5000 ml」），且负脱水率永远落入「良好/注意」档，等于把增重误判成水合良好。
+  // 此时数据本身不可用于出汗率估算（多为补液/称重记录错误），直接停算提示。
+  var sweatKgRaw=pre-post+intake/1000-urine/1000;
+  if(sweatKgRaw<=0){
+    document.getElementById('summary').innerHTML='';
+    document.getElementById('detail').innerHTML='<p style="color:var(--danger)">⚠ 运动后体重（'+post+' kg）不低于运动前（'+pre+' kg），扣除补液与排尿后出汗量为 '+(sweatKgRaw*1000).toFixed(0)+' ml（≤0）。请核对补液量、排尿量与两次称重（应同一衣物、擦干身体）。本次不出出汗率与补液建议。</p>';
+    setInvalid(document.getElementById('post'),true);
+    return;
+  }
+  var sweatKg=sweatKgRaw;
   var sweatRate=sweatKg/hr;
   var netLoss=pre-post;
   var dehyPct=netLoss/pre*100;
@@ -322,8 +332,13 @@ function __estimate_35ResText(){
     if(!r) return '';
     var t=(r.textContent||'').replace(/\s+/g,' ').trim();
     if(!t||t==='--'||t==='—'||t==='-') return '';
-    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
+}
+function __estimate_35Score(t){
+    var s=String(t||'');
+    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    return 1;
 }
 function __estimate_35Time(t){
     var d=new Date(t);
@@ -333,10 +348,12 @@ function __estimate_35Time(t){
 function __estimate_35Render(keys,rk,en){
     try{
         var arr=TBKit.history.list().slice(0,10);
-        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var head=[en?'Time':'时间'].concat(keys).concat([en?'Verdict':'结论',rk]);
         var rows=arr.map(function(it){
             var row=[__estimate_35Time(it.t)];
             for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var sc=parseFloat(it.d.__tbScore);
+            row.push(isFinite(sc)?(sc>=1?(en?'Pass':'通过'):(en?'Fail':'未通过')):'-');
             var r=it.d[rk];row.push(r==null?'':r);
             return row;
         });
@@ -346,7 +363,7 @@ function __estimate_35Render(keys,rk,en){
             __estimate_35_skip=true;
             try{
                 for(var k in rec){
-                    if(k===rk) continue;
+                    if(k===rk||k==='__tbScore') continue;
                     var e=document.getElementById(k);
                     if(!e) continue;
                     var t=(e.type||'').toLowerCase();
@@ -359,11 +376,11 @@ function __estimate_35Render(keys,rk,en){
         });
         var nums=[],labels=[];
         for(var j=arr.length-1;j>=0;j--){
-            var v=parseFloat(arr[j].d[rk]);
+            var v=parseFloat(arr[j].d.__tbScore);
             if(isFinite(v)){nums.push(v);labels.push(__estimate_35Time(arr[j].t));}
         }
         if(nums.length>=2){
-            TBKit.chart.line('#estimate_35Chart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+            TBKit.chart.line('#estimate_35Chart',{labels:labels,series:[{name:en?'Validity trend':'有效性趋势',data:nums}]});
         }
     }catch(e3){}
 }
@@ -393,11 +410,21 @@ function __estimate_35Extras(){
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
+    rec.__tbScore=__estimate_35Score(res);
     TBKit.history.record(rec);
     __estimate_35Render(keys,rk,en);
 }
 function __estimate_35Export(){
     if (typeof TBKit === 'undefined') return;
+    try{
+        var box=document.querySelector('#estimate_35Table');
+        if(!box||!box.querySelector('tr')){
+            var snap=__estimate_35Snap(); var keys=Object.keys(snap);
+            if(keys.length>12) keys=keys.slice(0,12);
+            var en=(TBKit.util&&TBKit.util.isEn())?true:false;
+            __estimate_35Render(keys,en?'Result':'结果',en);
+        }
+    }catch(e){}
     try { TBKit.util.exportTable('#estimate_35Table','estimate-35.csv'); } catch(e){}
 }
 function __estimate_35Presets(){

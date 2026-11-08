@@ -243,7 +243,7 @@ s.parentNode.insertBefore(el, s);
 <li>重新整理最高分</li>
 </ul>
 <div class="dd-example"><div class="dd-ex-title">方法</div><div class="dd-ex-body">七種方塊（I/O/T/S/Z/J/L）下落，旋轉移動填滿整行即消除並得分；堆頂觸頂結束。等級越高下落越快。</div></div>
-<div class="dd-example"><div class="dd-ex-title">算例（演示）</div><div class="dd-ex-body">一次同時消 4 行（Tetris）得 800×(等級+1) 分；等級 3 時單消 4 行得 3200 分。分數本地記錄，不聯網。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例（演示）</div><div class="dd-ex-body">一次同時消 4 行（Tetris）得 800×等級 分；等級 3 時單消 4 行得 2400 分。分數本地記錄，不聯網。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
 <dt>有 Hold/預看嗎？</dt><dd>視實現而定；基礎版支援旋轉移動與硬降，進階版可加暫存與下一塊預覽。</dd>
@@ -572,12 +572,25 @@ s.parentNode.insertBefore(el, s);
   function rotate() {
     if (!currentPiece || gamePaused || gameOver) return;
     var rotated = rotateCells(currentPiece.cells);
-    // 尝试原位、左移1、右移1、左移2、右移2（wall kick）
-    var kicks = [0, -1, 1, -2, 2];
+    // 踢墙表：先原位/横向（保持原手感），再向上踢墙（贴底/贴顶旋转必需）
+    var kicks = [
+      [0, 0],   // 原位
+      [-1, 0],  // 左 1
+      [1, 0],   // 右 1
+      [-2, 0],  // 左 2
+      [2, 0],   // 右 2
+      [0, -1],  // 上踢 1
+      [0, -2],  // 上踢 2（I 块贴底横转竖必需）
+      [-1, -1], // 左上
+      [1, -1],  // 右上
+      [-1, -2], // 左上 2
+      [1, -2]   // 右上 2
+    ];
     for (var i = 0; i < kicks.length; i++) {
-      if (isValid(rotated, currentPiece.x + kicks[i], currentPiece.y)) {
+      if (isValid(rotated, currentPiece.x + kicks[i][0], currentPiece.y + kicks[i][1])) {
         currentPiece.cells = rotated;
-        currentPiece.x += kicks[i];
+        currentPiece.x += kicks[i][0];
+        currentPiece.y += kicks[i][1];
         draw();
         return;
       }
@@ -888,6 +901,27 @@ function endGame() {
       case "rotate": rotate(); break;
       case "drop": hardDrop(); break;
     }
+  };
+
+  // === 自动化回归测试钩子（仅供 verify 脚本使用，不影响正常游戏逻辑）===
+  window.__tbTetris = {
+    piece: function() {
+      if (!currentPiece) return null;
+      return {
+        name: currentPiece.name,
+        x: currentPiece.x,
+        y: currentPiece.y,
+        cells: currentPiece.cells.map(function(r) { return r.slice(); })
+      };
+    },
+    setPiece: function(name, x, y) {
+      currentPiece = createPiece(name);
+      currentPiece.x = x;
+      currentPiece.y = y;
+      draw();
+    },
+    rotate: function() { rotate(); },
+    isRunning: function() { return gameRunning && !gameOver && !gamePaused; }
   };
 
   // === 工具介绍折叠 ===

@@ -114,7 +114,7 @@ s.parentNode.insertBefore(el, s);
 
 <div class="formula-eq">瑜伽體式序列生成：從內建體式庫（站姿/前屈/後彎/扭轉/倒立/休息）按強度與時長隨機抽取並排序，生成可跟隨的居家練習序列。</div></div>
 
-<div class="input-row"><div><label>生成數量</label><input type="number" id="cnt" value="5" min="1" max="50" oninput="gen()" placeholder="e.g. 5 (1–50)"></div></div>
+<div class="input-row"><div><label>生成數量</label><input type="number" id="cnt" value="5" min="1" max="15" oninput="gen()" placeholder="e.g. 5 (1–15)"></div></div>
 <div class="toolbar"><div id="generator_random_3Presets"></div>
       <button type="button" class="btn primary" onclick="gen()">生成</button>
       <button class="btn" type="button" onclick="__generator_random_3Export()">匯出明細 CSV</button><button type="button" class="btn" onclick="copyRes()">複製</button></div>
@@ -219,10 +219,21 @@ const poses = [
   {name:'头倒立',sanskrit:'Sirsasana',difficulty:'进阶',target:'全身力量、平衡',duration:'20–60秒'}
 ];
 function gen() {
-  const n = Math.min(Math.max(parseInt(document.getElementById('cnt').value) || 5, 1), 50);
-  const pool = [...poses].sort(() => Math.random() - 0.5).slice(0, n);
+  // SF-N72：内置体式只有 poses.length 个，原按 50 截断后 slice 会静默截断（请求 50 实际给 15 且不提示）；
+  // 洗牌原用 sort(()=>Math.random()-0.5)，并非等概率。现按内置数量封顶并提示，洗牌改 Fisher–Yates。
+  const reqN = Math.min(Math.max(parseInt(document.getElementById('cnt').value) || 5, 1), 50);
+  const maxN = poses.length;
+  const n = Math.min(reqN, maxN);
+  const pool = [...poses];
+  for (let i = pool.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const tmp = pool[i]; pool[i] = pool[j]; pool[j] = tmp;
+  }
   let h = '<p style="margin-bottom:8px;">瑜伽体式随机序列：</p>';
-  pool.forEach((p, i) => {
+  if (reqN > maxN) {
+    h += '<p style="color:var(--warning);font-size:13px;">⚠ 内置体式共 ' + maxN + ' 个，已按 ' + maxN + ' 个输出（请求 ' + reqN + ' 个）。</p>';
+  }
+  pool.slice(0, n).forEach((p, i) => {
     h += `<p style="padding:6px 0;border-bottom:1px dashed var(--border-color);">${i + 1}. <strong>${p.name}</strong>（${p.sanskrit}） — ${p.difficulty}<br><span style="color:var(--text-muted);font-size:13px;">锻炼部位：${p.target}；建议时长：${p.duration}</span></p>`;
   });
   const __h0=h;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('res').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('res').innerHTML=__h0;
@@ -319,8 +330,13 @@ function __generator_random_3ResText(){
     if(!r) return '';
     var t=(r.textContent||'').replace(/\s+/g,' ').trim();
     if(!t||t==='--'||t==='—'||t==='-') return '';
-    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
+}
+function __generator_random_3Score(t){
+    var s=String(t||'');
+    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    return 1;
 }
 function __generator_random_3Time(t){
     var d=new Date(t);
@@ -330,10 +346,12 @@ function __generator_random_3Time(t){
 function __generator_random_3Render(keys,rk,en){
     try{
         var arr=TBKit.history.list().slice(0,10);
-        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var head=[en?'Time':'时间'].concat(keys).concat([en?'Verdict':'结论',rk]);
         var rows=arr.map(function(it){
             var row=[__generator_random_3Time(it.t)];
             for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var sc=parseFloat(it.d.__tbScore);
+            row.push(isFinite(sc)?(sc>=1?(en?'Pass':'通过'):(en?'Fail':'未通过')):'-');
             var r=it.d[rk];row.push(r==null?'':r);
             return row;
         });
@@ -343,7 +361,7 @@ function __generator_random_3Render(keys,rk,en){
             __generator_random_3_skip=true;
             try{
                 for(var k in rec){
-                    if(k===rk) continue;
+                    if(k===rk||k==='__tbScore') continue;
                     var e=document.getElementById(k);
                     if(!e) continue;
                     var t=(e.type||'').toLowerCase();
@@ -356,11 +374,11 @@ function __generator_random_3Render(keys,rk,en){
         });
         var nums=[],labels=[];
         for(var j=arr.length-1;j>=0;j--){
-            var v=parseFloat(arr[j].d[rk]);
+            var v=parseFloat(arr[j].d.__tbScore);
             if(isFinite(v)){nums.push(v);labels.push(__generator_random_3Time(arr[j].t));}
         }
         if(nums.length>=2){
-            TBKit.chart.line('#generator_random_3Chart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+            TBKit.chart.line('#generator_random_3Chart',{labels:labels,series:[{name:en?'Validity trend':'有效性趋势',data:nums}]});
         }
     }catch(e3){}
 }
@@ -390,11 +408,21 @@ function __generator_random_3Extras(){
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
+    rec.__tbScore=__generator_random_3Score(res);
     TBKit.history.record(rec);
     __generator_random_3Render(keys,rk,en);
 }
 function __generator_random_3Export(){
     if (typeof TBKit === 'undefined') return;
+    try{
+        var box=document.querySelector('#generator_random_3Table');
+        if(!box||!box.querySelector('tr')){
+            var snap=__generator_random_3Snap(); var keys=Object.keys(snap);
+            if(keys.length>12) keys=keys.slice(0,12);
+            var en=(TBKit.util&&TBKit.util.isEn())?true:false;
+            __generator_random_3Render(keys,en?'Result':'结果',en);
+        }
+    }catch(e){}
     try { TBKit.util.exportTable('#generator_random_3Table','generator-random-3.csv'); } catch(e){}
 }
 function __generator_random_3Presets(){

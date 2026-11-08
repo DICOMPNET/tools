@@ -459,6 +459,7 @@ let hintsUsed = 0;
 let timeLeft = 60;
 let timerInterval = null;
 let gameActive = false;
+let submitLocked = false; // 答对后到 nextWord 的 800ms 窗口内锁定提交，防重复计分（FE-N68）
 let usedWords = [];
 
 function switchTab(tab, btn){
@@ -513,6 +514,7 @@ function startGame(){
 }
 
 function endGame(){
+  if(!gameActive) return; // 未开局/已结束不可重复结算，避免写入 0 分空局战绩（FE-N69）
   gameActive = false;
   if(timerInterval){
     clearInterval(timerInterval);
@@ -547,6 +549,7 @@ function getFilteredWords(){
 }
 
 function nextWord(){
+  submitLocked = false; // 换词后解除提交锁定（FE-N68）
   const available = getFilteredWords();
   if(available.length === 0){
     usedWords = [];
@@ -589,6 +592,7 @@ function renderScrambled(word){
 
 function submitAnswer(){
   if(!gameActive || !currentWord) return;
+  if(submitLocked) return; // 答对后 800ms 内锁定，避免重复提交重复计分（FE-N68）
 
   const input = document.getElementById('answerInput').value.trim().toLowerCase();
   if(!input) return;
@@ -609,6 +613,7 @@ function submitAnswer(){
     const tiles = document.querySelectorAll('.letter-tile');
     tiles.forEach(t=>t.classList.add('correct-anim'));
 
+    submitLocked = true; // 进入换词窗口，先锁住
     setTimeout(()=>{
       nextWord();
     }, 800);
@@ -664,7 +669,8 @@ function saveScore(){
   try{
     const data = JSON.parse(localStorage.getItem('wordscramble_best') || '{}');
     let isNew = false;
-    if(!data.bestScore || score > data.bestScore){
+    // 首次记录用 typeof 判定（0 分是有效成绩，不得被当作「无记录」误判新纪录，FE-N69）
+    if(typeof data.bestScore !== 'number' || score > data.bestScore){
       data.bestScore = score;
       isNew = true;
     }
@@ -754,8 +760,13 @@ function __word_scrambleResText(){
     if(!r) return '';
     var t=(r.textContent||'').replace(/\s+/g,' ').trim();
     if(!t||t==='--'||t==='—'||t==='-') return '';
-    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
+}
+function __word_scrambleScore(t){
+    var s=String(t||'');
+    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    return 1;
 }
 function __word_scrambleTime(t){
     var d=new Date(t);
@@ -765,10 +776,12 @@ function __word_scrambleTime(t){
 function __word_scrambleRender(keys,rk,en){
     try{
         var arr=TBKit.history.list().slice(0,10);
-        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var head=[en?'Time':'时间'].concat(keys).concat([en?'Verdict':'结论',rk]);
         var rows=arr.map(function(it){
             var row=[__word_scrambleTime(it.t)];
             for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var sc=parseFloat(it.d.__tbScore);
+            row.push(isFinite(sc)?(sc>=1?(en?'Pass':'通过'):(en?'Fail':'未通过')):'-');
             var r=it.d[rk];row.push(r==null?'':r);
             return row;
         });
@@ -778,7 +791,7 @@ function __word_scrambleRender(keys,rk,en){
             __word_scramble_skip=true;
             try{
                 for(var k in rec){
-                    if(k===rk) continue;
+                    if(k===rk||k==='__tbScore') continue;
                     var e=document.getElementById(k);
                     if(!e) continue;
                     var t=(e.type||'').toLowerCase();
@@ -791,11 +804,11 @@ function __word_scrambleRender(keys,rk,en){
         });
         var nums=[],labels=[];
         for(var j=arr.length-1;j>=0;j--){
-            var v=parseFloat(arr[j].d[rk]);
+            var v=parseFloat(arr[j].d.__tbScore);
             if(isFinite(v)){nums.push(v);labels.push(__word_scrambleTime(arr[j].t));}
         }
         if(nums.length>=2){
-            TBKit.chart.line('#word_scrambleChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+            TBKit.chart.line('#word_scrambleChart',{labels:labels,series:[{name:en?'Validity trend':'有效性趋势',data:nums}]});
         }
     }catch(e3){}
 }
@@ -825,11 +838,21 @@ function __word_scrambleExtras(){
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
+    rec.__tbScore=__word_scrambleScore(res);
     TBKit.history.record(rec);
     __word_scrambleRender(keys,rk,en);
 }
 function __word_scrambleExport(){
     if (typeof TBKit === 'undefined') return;
+    try{
+        var box=document.querySelector('#word_scrambleTable');
+        if(!box||!box.querySelector('tr')){
+            var snap=__word_scrambleSnap(); var keys=Object.keys(snap);
+            if(keys.length>12) keys=keys.slice(0,12);
+            var en=(TBKit.util&&TBKit.util.isEn())?true:false;
+            __word_scrambleRender(keys,en?'Result':'结果',en);
+        }
+    }catch(e){}
     try { TBKit.util.exportTable('#word_scrambleTable','word-scramble.csv'); } catch(e){}
 }
 function __word_scramblePresets(){

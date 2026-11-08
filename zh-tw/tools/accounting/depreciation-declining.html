@@ -222,20 +222,38 @@ function calcTool(){
             if(!(n>0) || !isFinite(n) || n!==Math.floor(n)){ToolBox.setResult('result','<p style=\"color:var(--danger)\">⚠ 使用年限必须为正整数。</p>');return;}
             if(!(yr>=1) || !isFinite(yr) || yr!==Math.floor(yr) || yr>n){ToolBox.setResult('result','<p style=\"color:var(--danger)\">⚠ 计算第几年须为 1–'+n+' 之间的整数。</p>');return;}
             const rate=2/n;
-            let bv=c, accum=0, depYr=0;
             const Y=Math.floor(yr);
-            for(let k=1;k<=Y;k++){
+            // 先算满 n 年的完整计划，再取第 Y 年的值（便于展示切换点与逐年折旧）
+            const ds=[]; let bv=c;
+            for(let k=1;k<=n;k++){
                 let d=bv*rate;
+                // 对齐页面声明「最后两年改为直线调至残值」：第 n-1 年把剩余可折旧额对半分摊，
+                // 第 n 年结转余额 → 第 n-1 / n 年折旧相等（原先只有第 n 年硬调残值，两年前后不等）
+                if(n>=2 && k===n-1){ d=(bv-s)/2; }
                 if(k===n){ d=bv-s; }
                 if(bv-d < s) d=bv-s;
-                if(k===Y) depYr=d;
-                accum+=d; bv-=d;
+                ds[k]=d; bv-=d;
             }
+            let bvY=c, accum=0;
+            for(let k=1;k<=Y;k++){ accum+=ds[k]; bvY-=ds[k]; }
+            const depYr=ds[Y];
+            const lastTwo=(n>=2 && n>=3) ? ds[n-1] : null;
             const __g1=dataGrid([
                 [depYr.toFixed(2),('第'+yr+'年折旧额 (元)')],
-                [bv.toFixed(2),'期末账面值 (元)'],
+                [bvY.toFixed(2),'期末账面值 (元)'],
                 [(accum).toFixed(2),'累计折旧 (元)']
-            ]);ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
+            ]);
+            let __extra='';
+            if(lastTwo!==null){
+                __extra='<p style="margin-top:8px;font-size:13px;color:var(--text-muted);">会计政策：前 '+(n-2)+' 年按双倍余额递减（年折旧率 '+(rate*100).toFixed(2)+'%），最后两年（第 '+(n-1)+'–'+n+' 年）改为直线法平均分摊至残值 ⇒ 各 '+lastTwo.toFixed(2)+' 元。</p>';
+            }
+            if(n<=12){
+                let sp=[];
+                for(let k=1;k<=n;k++) sp.push('第'+k+'年 '+ds[k].toFixed(2));
+                __extra+='<p style="margin-top:6px;font-size:13px;color:var(--text-muted);">逐年折旧：'+sp.join(' · ')+'（合计 '+(ds.reduce((a,b)=>a+b,0)).toFixed(2)+'）</p>';
+            }
+            const __html=__g1+__extra;
+            ToolBox.setResult('result',(typeof __html==='number'?(isFinite(__html)?__html:'—'):String(__html).replace(/Infinity|NaN/g,'—')));
         }
 function resetForm(){document.getElementById('c').value = '100000';
       document.getElementById('s').value = '10000';
@@ -262,8 +280,13 @@ function __depreciation_decliningResText(){
     if(!r) return '';
     var t=(r.textContent||'').replace(/\s+/g,' ').trim();
     if(!t||t==='--'||t==='—'||t==='-') return '';
-    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
+}
+function __depreciation_decliningScore(t){
+    var s=String(t||'');
+    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    return 1;
 }
 function __depreciation_decliningTime(t){
     var d=new Date(t);
@@ -273,10 +296,12 @@ function __depreciation_decliningTime(t){
 function __depreciation_decliningRender(keys,rk,en){
     try{
         var arr=TBKit.history.list().slice(0,10);
-        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var head=[en?'Time':'时间'].concat(keys).concat([en?'Verdict':'结论',rk]);
         var rows=arr.map(function(it){
             var row=[__depreciation_decliningTime(it.t)];
             for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var sc=parseFloat(it.d.__tbScore);
+            row.push(isFinite(sc)?(sc>=1?(en?'Pass':'通过'):(en?'Fail':'未通过')):'-');
             var r=it.d[rk];row.push(r==null?'':r);
             return row;
         });
@@ -286,7 +311,7 @@ function __depreciation_decliningRender(keys,rk,en){
             __depreciation_declining_skip=true;
             try{
                 for(var k in rec){
-                    if(k===rk) continue;
+                    if(k===rk||k==='__tbScore') continue;
                     var e=document.getElementById(k);
                     if(!e) continue;
                     var t=(e.type||'').toLowerCase();
@@ -299,11 +324,11 @@ function __depreciation_decliningRender(keys,rk,en){
         });
         var nums=[],labels=[];
         for(var j=arr.length-1;j>=0;j--){
-            var v=parseFloat(arr[j].d[rk]);
+            var v=parseFloat(arr[j].d.__tbScore);
             if(isFinite(v)){nums.push(v);labels.push(__depreciation_decliningTime(arr[j].t));}
         }
         if(nums.length>=2){
-            TBKit.chart.line('#depreciation_decliningChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+            TBKit.chart.line('#depreciation_decliningChart',{labels:labels,series:[{name:en?'Validity trend':'有效性趋势',data:nums}]});
         }
     }catch(e3){}
 }
@@ -333,11 +358,21 @@ function __depreciation_decliningExtras(){
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
+    rec.__tbScore=__depreciation_decliningScore(res);
     TBKit.history.record(rec);
     __depreciation_decliningRender(keys,rk,en);
 }
 function __depreciation_decliningExport(){
     if (typeof TBKit === 'undefined') return;
+    try{
+        var box=document.getElementById('depreciation_decliningTable')||document.querySelector('#depreciation_decliningTable');
+        if(!box||!box.querySelector('tr')){
+            var snap=__depreciation_decliningSnap(); var keys=Object.keys(snap);
+            if(keys.length>12) keys=keys.slice(0,12);
+            var en=(TBKit.util&&TBKit.util.isEn())?true:false;
+            __depreciation_decliningRender(keys,en?'Result':'结果',en);
+        }
+    }catch(e){}
     try { TBKit.util.exportTable('#depreciation_decliningTable','depreciation-declining.csv'); } catch(e){}
 }
 function __depreciation_decliningPresets(){

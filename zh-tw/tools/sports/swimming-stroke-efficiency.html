@@ -325,7 +325,9 @@ function calc() {
   var detailHtml = '';
 
   // Efficiency bar
-  var barPct = Math.min(100, Math.max(0, ((swolf - 25) / 55) * 100));
+  // SF-N29：50m 池 SWOLF 按每 25m 折算（÷2），效率条与等级统一 25m 口径（原固定 −12 补偿不足且效率条用原始值）
+  var evalSwolf = (poolLength === 50) ? swolf / 2 : swolf;
+  var barPct = Math.min(100, Math.max(0, ((evalSwolf - 25) / 55) * 100));
   detailHtml += '<div style="font-weight:600;color:var(--heading);font-size:14px;margin-bottom:8px;">效率区间</div>';
   detailHtml += '<div class="efficiency-bar"><div class="efficiency-marker" style="left:' + barPct + '%;"></div></div>';
   detailHtml += '<div class="efficiency-labels"><span>精英 (25)</span><span>优秀 (40)</span><span>中等 (55)</span><span>入门 (70)</span></div>';
@@ -380,8 +382,8 @@ function calc() {
 }
 
 function getEfficiencyLevel(swolf, poolLength) {
-  // Adjust for 50m pool (SWOLF naturally higher)
-  if (poolLength === 50) swolf = swolf - 12;
+  // SF-N29：50m 池一趟的划次与秒数约为 25m 的两倍，按每 25m 折算（÷2）再套阈值；原固定 −12 补偿不足致判低 2–3 档
+  if (poolLength === 50) swolf = swolf / 2;
 
   if (swolf < 35) return { label: '精英水平', tipClass: 'tip-success', desc: '划水效率极高，技术动作达到专业水准，继续保持！' };
   if (swolf < 43) return { label: '优秀', tipClass: 'tip-success', desc: '划水效率优秀，技术动作流畅，处于较高水平。' };
@@ -495,8 +497,13 @@ function __swimming_stroke_efficiencyResText(){
     if(!r) return '';
     var t=(r.textContent||'').replace(/\s+/g,' ').trim();
     if(!t||t==='--'||t==='—'||t==='-') return '';
-    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
+}
+function __swimming_stroke_efficiencyScore(t){
+    var s=String(t||'');
+    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    return 1;
 }
 function __swimming_stroke_efficiencyTime(t){
     var d=new Date(t);
@@ -506,10 +513,12 @@ function __swimming_stroke_efficiencyTime(t){
 function __swimming_stroke_efficiencyRender(keys,rk,en){
     try{
         var arr=TBKit.history.list().slice(0,10);
-        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var head=[en?'Time':'时间'].concat(keys).concat([en?'Verdict':'结论',rk]);
         var rows=arr.map(function(it){
             var row=[__swimming_stroke_efficiencyTime(it.t)];
             for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var sc=parseFloat(it.d.__tbScore);
+            row.push(isFinite(sc)?(sc>=1?(en?'Pass':'通过'):(en?'Fail':'未通过')):'-');
             var r=it.d[rk];row.push(r==null?'':r);
             return row;
         });
@@ -519,7 +528,7 @@ function __swimming_stroke_efficiencyRender(keys,rk,en){
             __swimming_stroke_efficiency_skip=true;
             try{
                 for(var k in rec){
-                    if(k===rk) continue;
+                    if(k===rk||k==='__tbScore') continue;
                     var e=document.getElementById(k);
                     if(!e) continue;
                     var t=(e.type||'').toLowerCase();
@@ -532,11 +541,11 @@ function __swimming_stroke_efficiencyRender(keys,rk,en){
         });
         var nums=[],labels=[];
         for(var j=arr.length-1;j>=0;j--){
-            var v=parseFloat(arr[j].d[rk]);
+            var v=parseFloat(arr[j].d.__tbScore);
             if(isFinite(v)){nums.push(v);labels.push(__swimming_stroke_efficiencyTime(arr[j].t));}
         }
         if(nums.length>=2){
-            TBKit.chart.line('#swimming_stroke_efficiencyChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+            TBKit.chart.line('#swimming_stroke_efficiencyChart',{labels:labels,series:[{name:en?'Validity trend':'有效性趋势',data:nums}]});
         }
     }catch(e3){}
 }
@@ -566,11 +575,21 @@ function __swimming_stroke_efficiencyExtras(){
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
+    rec.__tbScore=__swimming_stroke_efficiencyScore(res);
     TBKit.history.record(rec);
     __swimming_stroke_efficiencyRender(keys,rk,en);
 }
 function __swimming_stroke_efficiencyExport(){
     if (typeof TBKit === 'undefined') return;
+    try{
+        var box=document.querySelector('#swimming_stroke_efficiencyTable');
+        if(!box||!box.querySelector('tr')){
+            var snap=__swimming_stroke_efficiencySnap(); var keys=Object.keys(snap);
+            if(keys.length>12) keys=keys.slice(0,12);
+            var en=(TBKit.util&&TBKit.util.isEn())?true:false;
+            __swimming_stroke_efficiencyRender(keys,en?'Result':'结果',en);
+        }
+    }catch(e){}
     try { TBKit.util.exportTable('#swimming_stroke_efficiencyTable','swimming-stroke-efficiency.csv'); } catch(e){}
 }
 function __swimming_stroke_efficiencyPresets(){

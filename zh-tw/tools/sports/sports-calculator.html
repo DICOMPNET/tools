@@ -304,7 +304,7 @@ s.parentNode.insertBefore(el, s);
         </div>
         <div>
           <label>坡度角度 (°)</label>
-          <input type="number" id="slope-deg" value="" placeholder="e.g. 21.8" min="0" max="90" step="0.1" oninput="slopeFromDeg()">
+          <input type="number" id="slope-deg" value="" placeholder="e.g. 21.8" min="0" max="89" step="0.1" oninput="slopeFromDeg()">
         </div>
       </div>
 
@@ -513,8 +513,12 @@ function calcHRR() {
   var age = parseInt(document.getElementById('hrr-age').value) || 0;
   var restHR = parseInt(document.getElementById('hrr-rest').value) || 0;
 
-  if (age < 1 || age > 120 || restHR < 30 || restHR >= age + 100) {
-    const __h2='<div class="result-box"><p style="color:var(--danger);">请输入有效的年龄和静息心率</p></div>';if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('hrr-result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('hrr-result').innerHTML=__h2;
+  // SF-N58：原校验 `restHR >= age + 100` 只在年龄 60 岁时等价于「静息 < 最大」：
+  // 年龄 <60 时过严（拒绝合法静息心率），>60 时过松，允许静息心率高于最大心率，
+  // 于是 hrr 为负、靶心率区间倒挂（80 岁/静息 170 会给出 155–152 bpm）。现直接比 maxHR。
+  var maxHRLimit = 220 - age;
+  if (age < 1 || age > 120 || restHR < 30 || restHR >= maxHRLimit) {
+    const __h2='<div class="result-box"><p style="color:var(--danger);">请输入有效的年龄和静息心率（静息心率须 ≥30 且低于最大心率 220−年龄）</p></div>';if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('hrr-result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('hrr-result').innerHTML=__h2;
     return;
   }
 
@@ -587,14 +591,16 @@ function calcCycling() {
   // 简化: speed = ratio * wheel * cadence * 60 / 1000000 (km/h)
   var speedKmh = (ratio * wheel * cadence * 60) / 1000000;
 
-  var gearInch = ratio * (wheel / 25.4); // 齿比英寸
+  // SF-N56：齿轮英寸 = 齿比 × 车轮直径(inch)，而输入 wheel 是「轮周长(mm)」，
+  // 原式 ratio*(wheel/25.4) 把周长当直径，结果固定放大 π 倍（50/11、2096mm 会给出 375.1" 而非 119.4"）。
+  var gearInch = ratio * (wheel / Math.PI / 25.4); // 齿比 × 由轮周长换算的车轮直径(inch)
   var development = ratio * wheel / 1000; // 速度表上的"齿轮比"(m/转)
 
   var html = '<div class="result-grid">';
   html += '<div class="result-item"><div class="val">' + ratio.toFixed(2) + '</div><div class="lbl">齿比</div></div>';
   html += '<div class="result-item"><div class="val">' + distPerCrankM + ' m</div><div class="lbl">每踏一圈距离</div></div>';
   html += '<div class="result-item"><div class="val">' + speedKmh.toFixed(2) + '</div><div class="lbl">骑行速度 (km/h)</div></div>';
-  html += '<div class="result-item"><div class="val">' + gearInch.toFixed(1) + '"</div><div class="lbl">齿轮英寸</div></div>';
+  html += '<div class="result-item"><div class="val">' + gearInch.toFixed(1) + '"</div><div class="lbl">齿轮英寸（轮周长换算直径）</div></div>';
   html += '</div>';
 
   html += '<div class="formula-box" style="margin-top:12px;">';
@@ -624,10 +630,17 @@ function calcORM() {
     return;
   }
 
+  // SF-N57：Epley（建议 1–10 次）与 Brzycki（建议 1–10 次、上限 12 次）都有适用次数区间。
+  // 原 Brzycki 放行到 36 次，分母 37−reps 趋 1 ⇒ 80kg×36 次给出 2880kg；37 次时两条公式皆 null，
+  // 百分比表按 null 相乘全部输出 0.0 kg 且无报错。现超出适用区间直接停算提示，不生成负荷表。
+  if (reps > 12) {
+    document.getElementById('orm-result').innerHTML = '<p style="color:var(--danger)">⚠ 次数超出公式适用范围（1RM 估算建议 1–10 次，最多 12 次）。' + reps + ' 次的外推误差极大，请改用更低次数（如 3–6 次）的实测重量。</p>';
+    return;
+  }
   // Epley 公式: 1RM = w * (1 + r/30)
   var epley = reps <= 10 ? weight * (1 + reps / 30) : null;
   // Brzycki 公式: 1RM = w * 36 / (37 - r)
-  var brzycki = reps <= 36 ? weight * 36 / (37 - reps) : null;
+  var brzycki = reps <= 12 ? weight * 36 / (37 - reps) : null;
 
   var html = '<div class="result-grid">';
   if (epley !== null) {
@@ -692,6 +705,12 @@ function slopeFromPct() {
 function slopeFromDeg() {
   var deg = parseFloat(document.getElementById('slope-deg').value);
   if (!isNaN(deg)) {
+    // SF-N59：tan(90°) 是奇点，原式直接输出 1.63e18%（黑道专家）。垂直坡面没有有限百分比，停算提示。
+    if (deg < 0 || deg >= 89.9) {
+      document.getElementById('slope-pct').value = '';
+      document.getElementById('slope-result').innerHTML = '<p style="color:var(--danger)">⚠ 角度接近或等于 90° 时坡度百分比趋于无穷（垂直坡面无有限百分比），请输入 0–89.9° 之间的角度。</p>';
+      return;
+    }
     var pct = Math.tan(deg * Math.PI / 180) * 100;
     document.getElementById('slope-pct').value = pct.toFixed(1);
     updateSlopeResult(pct, deg);
@@ -705,6 +724,7 @@ function calcSlope() {
 }
 
 function updateSlopeResult(pct, deg) {
+  if (!isFinite(pct) || !isFinite(deg)) return;
   var difficulty = '';
   var tagClass = '';
   if (pct < 25) { difficulty = '绿道（初级）'; tagClass = 'diff-green'; }
@@ -906,8 +926,13 @@ function __sports_calculatorResText(){
     if(!r) return '';
     var t=(r.textContent||'').replace(/\s+/g,' ').trim();
     if(!t||t==='--'||t==='—'||t==='-') return '';
-    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
+}
+function __sports_calculatorScore(t){
+    var s=String(t||'');
+    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    return 1;
 }
 function __sports_calculatorTime(t){
     var d=new Date(t);
@@ -917,10 +942,12 @@ function __sports_calculatorTime(t){
 function __sports_calculatorRender(keys,rk,en){
     try{
         var arr=TBKit.history.list().slice(0,10);
-        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var head=[en?'Time':'时间'].concat(keys).concat([en?'Verdict':'结论',rk]);
         var rows=arr.map(function(it){
             var row=[__sports_calculatorTime(it.t)];
             for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var sc=parseFloat(it.d.__tbScore);
+            row.push(isFinite(sc)?(sc>=1?(en?'Pass':'通过'):(en?'Fail':'未通过')):'-');
             var r=it.d[rk];row.push(r==null?'':r);
             return row;
         });
@@ -930,7 +957,7 @@ function __sports_calculatorRender(keys,rk,en){
             __sports_calculator_skip=true;
             try{
                 for(var k in rec){
-                    if(k===rk) continue;
+                    if(k===rk||k==='__tbScore') continue;
                     var e=document.getElementById(k);
                     if(!e) continue;
                     var t=(e.type||'').toLowerCase();
@@ -943,11 +970,11 @@ function __sports_calculatorRender(keys,rk,en){
         });
         var nums=[],labels=[];
         for(var j=arr.length-1;j>=0;j--){
-            var v=parseFloat(arr[j].d[rk]);
+            var v=parseFloat(arr[j].d.__tbScore);
             if(isFinite(v)){nums.push(v);labels.push(__sports_calculatorTime(arr[j].t));}
         }
         if(nums.length>=2){
-            TBKit.chart.line('#sports_calculatorChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+            TBKit.chart.line('#sports_calculatorChart',{labels:labels,series:[{name:en?'Validity trend':'有效性趋势',data:nums}]});
         }
     }catch(e3){}
 }
@@ -977,11 +1004,21 @@ function __sports_calculatorExtras(){
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
+    rec.__tbScore=__sports_calculatorScore(res);
     TBKit.history.record(rec);
     __sports_calculatorRender(keys,rk,en);
 }
 function __sports_calculatorExport(){
     if (typeof TBKit === 'undefined') return;
+    try{
+        var box=document.querySelector('#sports_calculatorTable');
+        if(!box||!box.querySelector('tr')){
+            var snap=__sports_calculatorSnap(); var keys=Object.keys(snap);
+            if(keys.length>12) keys=keys.slice(0,12);
+            var en=(TBKit.util&&TBKit.util.isEn())?true:false;
+            __sports_calculatorRender(keys,en?'Result':'结果',en);
+        }
+    }catch(e){}
     try { TBKit.util.exportTable('#sports_calculatorTable','sports-calculator.csv'); } catch(e){}
 }
 function __sports_calculatorPresets(){

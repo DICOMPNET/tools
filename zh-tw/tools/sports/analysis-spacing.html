@@ -111,7 +111,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="攀巖掛片間距與受力分析線上工具">Bolt spacing, fall factor and force analysis for climbing protection.</p>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理與說明</div>
-  <div class="formula-eq">攀巖掛片受力：角度因子 = 1 ÷ (2·cos(θ/2))，θ 為兩掛帶夾角；單錨載荷 = 墜落衝擊力 × 角度因子；夾角越大單錨分擔越大，據間距與路線長度估算布點數量與安全區間。</div>
+  <div class="formula-eq">攀巖掛片受力：角度因子 = 1 ÷ (2·cos(θ/2))，θ 為兩掛帶夾角；單錨載荷 = 墜落衝擊力 × 角度因子；夾角越大單錨分擔越大，據間距與路線長度估算布點數量與安全區間。校驗：θ ≥170° 時角度因子 >5.7，公式不適用，頁面直接中止並提示覆核錨點佈置（輸入框 max=170 僅約束步進按鈕，手輸越界由該校驗攔截）。</div>
   <p class="formula-desc" data-zh="按保護站幾何與墜落載荷估算單錨分擔載荷：兩條扁帶夾角為 θ 時，單錨受力 = 墜落衝擊力 ÷ (2 × cos(θ ÷ 2))，夾角越大單錨分擔越大。工具同時按所選間距與路線長度估算布點數量，並對間距與夾角是否落在常用安全區間給出提示。結果為簡化靜力模型估算，不能替代攀巖裝備認證與現場專業評估。"></p>
 </div>
 
@@ -214,6 +214,7 @@ function calc(){
   const bad=[sp,ang,F,R,L].some(v=>!isFinite(v));
   if(bad||sp<=0||F<=0||R<=0||L<=0){document.getElementById('res').innerHTML='<p>请完整填写布点与载荷参数，且均需大于 0</p>';return;}
   if(ang<0||ang>=180){document.getElementById('res').innerHTML='<p>夹角需在 0° 到 180° 之间</p>';return;}
+  if(ang>=170){document.getElementById('res').innerHTML='<p>夹角 ≥170° 时角度因子已超过 5.7（单点载荷被放大 5.7 倍以上），此静力模型不适用，请改用并联/均衡锚点布置后重算</p>';return;}
   const rad=ang*Math.PI/360;
   const cosv=Math.cos(rad);
   if(cosv<=0.0001){document.getElementById('res').innerHTML='<p>夹角接近 180°，此静力模型不适用</p>';return;}
@@ -331,8 +332,13 @@ function __analysis_spacingResText(){
     if(!r) return '';
     var t=(r.textContent||'').replace(/\s+/g,' ').trim();
     if(!t||t==='--'||t==='—'||t==='-') return '';
-    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
+}
+function __analysis_spacingScore(t){
+    var s=String(t||'');
+    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    return 1;
 }
 function __analysis_spacingTime(t){
     var d=new Date(t);
@@ -342,10 +348,12 @@ function __analysis_spacingTime(t){
 function __analysis_spacingRender(keys,rk,en){
     try{
         var arr=TBKit.history.list().slice(0,10);
-        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var head=[en?'Time':'时间'].concat(keys).concat([en?'Verdict':'结论',rk]);
         var rows=arr.map(function(it){
             var row=[__analysis_spacingTime(it.t)];
             for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var sc=parseFloat(it.d.__tbScore);
+            row.push(isFinite(sc)?(sc>=1?(en?'Pass':'通过'):(en?'Fail':'未通过')):'-');
             var r=it.d[rk];row.push(r==null?'':r);
             return row;
         });
@@ -355,7 +363,7 @@ function __analysis_spacingRender(keys,rk,en){
             __analysis_spacing_skip=true;
             try{
                 for(var k in rec){
-                    if(k===rk) continue;
+                    if(k===rk||k==='__tbScore') continue;
                     var e=document.getElementById(k);
                     if(!e) continue;
                     var t=(e.type||'').toLowerCase();
@@ -368,11 +376,11 @@ function __analysis_spacingRender(keys,rk,en){
         });
         var nums=[],labels=[];
         for(var j=arr.length-1;j>=0;j--){
-            var v=parseFloat(arr[j].d[rk]);
+            var v=parseFloat(arr[j].d.__tbScore);
             if(isFinite(v)){nums.push(v);labels.push(__analysis_spacingTime(arr[j].t));}
         }
         if(nums.length>=2){
-            TBKit.chart.line('#analysis_spacingChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+            TBKit.chart.line('#analysis_spacingChart',{labels:labels,series:[{name:en?'Validity trend':'有效性趋势',data:nums}]});
         }
     }catch(e3){}
 }
@@ -402,11 +410,21 @@ function __analysis_spacingExtras(){
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
+    rec.__tbScore=__analysis_spacingScore(res);
     TBKit.history.record(rec);
     __analysis_spacingRender(keys,rk,en);
 }
 function __analysis_spacingExport(){
     if (typeof TBKit === 'undefined') return;
+    try{
+        var box=document.querySelector('#analysis_spacingTable');
+        if(!box||!box.querySelector('tr')){
+            var snap=__analysis_spacingSnap(); var keys=Object.keys(snap);
+            if(keys.length>12) keys=keys.slice(0,12);
+            var en=(TBKit.util&&TBKit.util.isEn())?true:false;
+            __analysis_spacingRender(keys,en?'Result':'结果',en);
+        }
+    }catch(e){}
     try { TBKit.util.exportTable('#analysis_spacingTable','analysis-spacing.csv'); } catch(e){}
 }
 function __analysis_spacingPresets(){

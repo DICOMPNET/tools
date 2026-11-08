@@ -267,13 +267,28 @@ function onKeyDn(e){
   // ignore modifier keys
   var k=e.key;
   if(k==='Shift'||k==='Control'||k==='Alt'||k==='Meta'||k==='CapsLock'||k==='Tab')return;
-  if(k==='Backspace'){times.pop();drawChart();return;}
+  if(k==='Backspace'){
+    times.pop();
+    // G10：删到不足 3 次按键就不再有有效样本 ⇒ 旧评分必须作废，
+    // 否则用户删光重打时看到的还是删除前的成绩（保留已输入的文字，只清成绩）。
+    if(times.length<3){ resetScore(); return; }
+    drawChart(); return;
+  }
   times.push(performance.now());
   if(times.length>=3){analyze();}
 }
 function onInput(){
   var v=document.getElementById('typeInput').value;
   lastVal=v;
+  // G10：清空输入框 ⇒ 旧评分/旧结果一律作废
+  if(!v){ times=[]; resetScore(); }
+}
+// 只重置「成绩展示」，不动用户已输入的文字（区别于 newSample 用的 clearAll）
+function resetScore(){
+  document.getElementById('scoreV').textContent='-';
+  document.getElementById('sRing').style.strokeDashoffset=2*Math.PI*56;
+  document.getElementById('result').innerHTML='<p style="color:var(--text-muted);">开始打字后，这里会显示节奏分析结果。</p>';
+  drawChart();
 }
 function intervals(){
   var arr=[];
@@ -291,7 +306,7 @@ function calcRhythmScore(cv){return Math.max(0,Math.min(100,Math.round(100-cv*12
 function calcWpm(chars,ms){return Math.round(chars/(ms/1000)/5*60)||0;}
 function analyze(){
   var iv=intervals();
-  if(iv.length<2){return;}
+  if(iv.length<2){ resetScore(); return; }   // G10：样本不足 ⇒ 作废旧评分，不留上一次的成绩
   var m=mean(iv);
   var s=std(iv);
   var cv=m>0?s/m:1; // coefficient of variation
@@ -445,8 +460,13 @@ function __typing_rhythmResText(){
     if(!r) return '';
     var t=(r.textContent||'').replace(/\s+/g,' ').trim();
     if(!t||t==='--'||t==='—'||t==='-') return '';
-    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
+}
+function __typing_rhythmScore(t){
+    var s=String(t||'');
+    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    return 1;
 }
 function __typing_rhythmTime(t){
     var d=new Date(t);
@@ -456,10 +476,12 @@ function __typing_rhythmTime(t){
 function __typing_rhythmRender(keys,rk,en){
     try{
         var arr=TBKit.history.list().slice(0,10);
-        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var head=[en?'Time':'时间'].concat(keys).concat([en?'Verdict':'结论',rk]);
         var rows=arr.map(function(it){
             var row=[__typing_rhythmTime(it.t)];
             for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var sc=parseFloat(it.d.__tbScore);
+            row.push(isFinite(sc)?(sc>=1?(en?'Pass':'通过'):(en?'Fail':'未通过')):'-');
             var r=it.d[rk];row.push(r==null?'':r);
             return row;
         });
@@ -469,7 +491,7 @@ function __typing_rhythmRender(keys,rk,en){
             __typing_rhythm_skip=true;
             try{
                 for(var k in rec){
-                    if(k===rk) continue;
+                    if(k===rk||k==='__tbScore') continue;
                     var e=document.getElementById(k);
                     if(!e) continue;
                     var t=(e.type||'').toLowerCase();
@@ -482,11 +504,11 @@ function __typing_rhythmRender(keys,rk,en){
         });
         var nums=[],labels=[];
         for(var j=arr.length-1;j>=0;j--){
-            var v=parseFloat(arr[j].d[rk]);
+            var v=parseFloat(arr[j].d.__tbScore);
             if(isFinite(v)){nums.push(v);labels.push(__typing_rhythmTime(arr[j].t));}
         }
         if(nums.length>=2){
-            TBKit.chart.line('#typing_rhythmChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+            TBKit.chart.line('#typing_rhythmChart',{labels:labels,series:[{name:en?'Validity trend':'有效性趋势',data:nums}]});
         }
     }catch(e3){}
 }
@@ -516,11 +538,21 @@ function __typing_rhythmExtras(){
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
+    rec.__tbScore=__typing_rhythmScore(res);
     TBKit.history.record(rec);
     __typing_rhythmRender(keys,rk,en);
 }
 function __typing_rhythmExport(){
     if (typeof TBKit === 'undefined') return;
+    try{
+        var box=document.querySelector('#typing_rhythmTable');
+        if(!box||!box.querySelector('tr')){
+            var snap=__typing_rhythmSnap(); var keys=Object.keys(snap);
+            if(keys.length>12) keys=keys.slice(0,12);
+            var en=(TBKit.util&&TBKit.util.isEn())?true:false;
+            __typing_rhythmRender(keys,en?'Result':'结果',en);
+        }
+    }catch(e){}
     try { TBKit.util.exportTable('#typing_rhythmTable','typing-rhythm.csv'); } catch(e){}
 }
 function __typing_rhythmPresets(){

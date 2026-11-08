@@ -367,13 +367,18 @@ function aiMove() {
 }
 
 function undo() {
+  if (!history.length) return;
   const last = history.pop();
-  if (!last) return;
-  const [r1, c1] = last;
-  board[r1][c1] = EMPTY;
+  board[last[0]][last[1]] = EMPTY;
+  // 若撤掉的是 AI(WHITE) 的应手，则把玩家(BLACK)那一手也一并撤掉，回到「玩家重新落子」的回合，
+  // 避免玩家在 AI 应手被撤后立刻再落一枚黑子、出现连续两手黑棋破坏回合制。
+  if (last[2] === WHITE && history.length && history[history.length - 1][2] === BLACK) {
+    const prev = history.pop();
+    board[prev[0]][prev[1]] = EMPTY;
+  }
   turn = BLACK;
   renderBoard();
-  setStatus('已悔1步，当前轮到你');
+  setStatus('已悔1回合，当前轮到你');
 }
 
 initGame();
@@ -514,8 +519,15 @@ window.__tbEnTitle = "📈 Match Records & History";
 var __tbF_place = (typeof place === 'function') ? place : null;
 if (__tbF_place) {
   place = function () {
-    var __r = __tbF_place.apply(null, arguments);
-    try { __tbHistSave((function(){var win=(typeof checkWin==='function')&&checkWin(r,c,color);var full=history.length===SIZE*SIZE;if(!win&&!full)return null;return {时间:__tbTime(),结果:__tbL(win?(color===BLACK?'Win':'Lose'):'Draw',win?(color===BLACK?'胜':'负'):'和棋'),步数:history.length,__v:history.length};})()); } catch (e) {}
+    var a = arguments;
+    var __r = __tbF_place.apply(null, a);
+    try {
+      var r = a[0], c = a[1], color = a[2];
+      var win = (typeof checkWin === 'function') && checkWin(r, c, color);
+      var full = history.length === SIZE * SIZE;
+      if (!win && !full) return __r;
+      __tbHistSave({ 时间: __tbTime(), 结果: __tbL(win ? (color === BLACK ? 'Win' : 'Lose') : 'Draw', win ? (color === BLACK ? '胜' : '负') : '和棋'), 步数: history.length, __v: history.length });
+    } catch (e) {}
     return __r;
   };
 }
@@ -564,15 +576,15 @@ if (__tbF_place) {
 <h3>💡 常見使用場景</h3>
 <ul class="dd-list">
 <li>人機對戰：與內建 AI 輪流落子，先連五子勝，適合單人練棋。</li>
-<li>難度調節：AI 按搜尋深度/棋型權重評估，可調強中弱。</li>
+<li>策略觀察：觀察 AI 如何按棋型權重啟發式（進攻 1.0 / 防守 1.15）優先堵活四、搶活三，理解啟發式博弈。</li>
 <li>演算法演示：觀察 AI 如何優先堵活四、搶活三，理解啟發式博弈。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">方法（AI 策略）</div><div class="dd-ex-body">規則同<a class="term-link" href="/zh-tw/tools/fun/gomoku.html">五子棋</a>；AI 啟發式評估棋盤：優先成五 &gt; 堵對方活四 &gt; 自己做活四/活三 &gt; 堵衝四。難度越高搜尋越深、越少漏防。</div></div>
+<div class="dd-example"><div class="dd-ex-title">方法（AI 策略）</div><div class="dd-ex-body">規則同<a class="term-link" href="/zh-tw/tools/fun/gomoku.html">五子棋</a>；AI 啟發式評估棋盤：優先成五 &gt; 堵對方活四 &gt; 自己做活四/活三 &gt; 堵衝四。當前為單一難度（無搜尋深度引數），按棋型權重評估。</div></div>
 <div class="dd-example"><div class="dd-ex-title">算例（演示）</div><div class="dd-ex-body">玩家在 (3,3)(3,4)(3,5) 做成活三，AI 優先堵 (3,2) 或 (3,6) 防其成四；若玩家同時有 (5,5)(6,6) 另一活三，AI 只能堵一處，玩家趁另一方向成五獲勝。製造「雙活三」是贏 AI 的關鍵。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
-<dt>AI 水平如何？</dt><dd>啟發式 + 淺層搜尋，約業餘中級；高水平玩家可用雙活三/衝四逼其失誤。</dd>
-<dt>能調整先手嗎？</dt><dd>通常玩家執黑先手；若想挑戰，可選 AI 先手增加難度。</dd>
+<dt>AI 水平如何？</dt><dd>啟發式評估（進攻 1.0 / 防守 1.15 權重），單層棋型打分，不加深層搜尋；高水平玩家可用雙活三/衝四逼其失誤。</dd>
+<dt>能調整先手嗎？</dt><dd>玩家固定執黑先手，AI 執白後手應戰；當前不提供先手切換與難度調節，定位為單一難度人機練習。</dd>
 </dl>
 </div>
 </section>

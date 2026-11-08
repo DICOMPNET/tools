@@ -165,10 +165,10 @@ s.parentNode.insertBefore(el, s);
       <h3>🧗 攀巖難度等級轉換</h3>
       <p class="section-desc">支援 V級（抱石）、YDS（繩索）和法式三大主流攀巖難度系統的互查對照。</p>
 
-          <div class="formula-box">
-      <div class="formula-title">📐 計算公式 / 原理</div> <div class="formula-eq">VO2max 估算：12 分鐘跑（Cooper）VO2max = 35.97 × 距離(km) − 11.29；1.5 英里跑 VO2max = 483 ÷ 時間(min) + 3.5；1 英里走/跑 VO2max = 420 ÷ 時間(min) + 3.5；結果下限取 0。評級：&lt; 30 差、30–37 一般、37–44 好、44–52 很好、52–60 優秀、&gt; 60 卓越；進度條按 VO2max ÷ 70 × 100% 並鉗制在 0–100</div>
-      <div class="formula-desc">一站式體育戶外參考：攀巖難度(V/YDS/法式/英式)、睡袋溫標(EN13537)、帳篷抗風(蒲福風級)、瑜伽體式、潛水安全(NDL)、體能評估標準 —— 彙總常用對照表便於快速查閱。</div>
-    </div>
+      <div class="formula-box">
+        <div class="formula-title">📐 對照口徑</div>
+        <div class="formula-eq">V 級為抱石（bouldering）難度體系，YDS 與法式為繩索路線體系；同一行只表示「難度量級大致對應」，不等號。抱石線路因把全部難點壓縮在少數動作內，同一條路線上的同難度段落通常比 V 級低 3–4 個等級。</div>
+      </div>
 <div class="input-row">
         <div>
           <label>選擇系統</label>
@@ -332,6 +332,12 @@ s.parentNode.insertBefore(el, s);
     <div class="tab-panel" id="panel-vo2">
       <h3>🏃 最大攝氧量（VO2max）估算</h3>
       <p class="section-desc">通過田野測試估算 VO2max，選擇測試方法並輸入距離或時間即可計算。數值越大表明心肺功能越好。</p>
+
+      <div class="formula-box">
+        <div class="formula-title">📐 計算公式 / 原理</div>
+        <div class="formula-eq">VO2max 估算：12 分鐘跑（Cooper）VO2max = 35.97 × 距離(英里) − 11.29，其中 距離(英里) = 輸入米數 ÷ 1000 ÷ 1.609344（係數口徑為英里，切勿直接代公里數）；1.5 英里跑 VO2max = 483 ÷ 時間(min) + 3.5；1 英里走/跑 VO2max = 420 ÷ 時間(min) + 3.5；結果下限取 0。評級：&lt; 30 差、30–37 一般、37–44 好、44–52 很好、52–60 優秀、&gt; 60 卓越；進度條按 VO2max ÷ 70 × 100% 並鉗制在 0–100</div>
+        <div class="formula-desc">一站式體育戶外參考：攀巖難度(V/YDS/法式/英式)、睡袋溫標(EN13537)、帳篷抗風(蒲福風級)、瑜伽體式、潛水安全(NDL)、體能評估標準 —— 彙總常用對照表便於快速查閱。</div>
+      </div>
 
       <div class="input-row">
         <div>
@@ -616,9 +622,9 @@ function checkWindTent() {
   for (var i = beaufortData.length - 1; i >= 0; i--) {
     if (speed >= beaufortData[i].windKm) { bf = beaufortData[i]; break; }
   }
-  // 推荐帐篷
+  // 推荐帐篷：从最低档（抗风上限最小）升序取第一个能承受该风速的型号
   var rec = null;
-  for (var j = tentTypes.length - 1; j >= 0; j--) {
+  for (var j = 0; j < tentTypes.length; j++) {
     if (speed <= tentTypes[j].maxWind) { rec = tentTypes[j]; break; }
   }
 
@@ -815,11 +821,9 @@ function calcVo2() {
 
   var vo2 = 0;
   if (method === 'cooper') {
-    // Cooper公式: VO2max = (distance_m / 1000 - 0.383) / 0.0443 - 3.5 (不太对)
-    // 正确: VO2max = (d * 22.351 + 6.0) / 1000 (d in km, approx)
-    // 常用: VO2max = 35.97 * distance_km - 11.29 (distance in km from 12min run)
-    var distKm = val / 1000;
-    vo2 = 35.97 * distKm - 11.29;
+    // Cooper 12 分钟跑：VO2max = 35.97 × 距离(英里) − 11.29（系数口径为英里，输入为米需先换算）
+    var distMile = (val / 1000) / 1.609344;
+    vo2 = 35.97 * distMile - 11.29;
   } else if (method === '1.5mile') {
     // 1.5英里 = 2414米
     // VO2max = 483 / time_min + 3.5
@@ -1005,8 +1009,13 @@ function __sports_referenceResText(){
     if(!r) return '';
     var t=(r.textContent||'').replace(/\s+/g,' ').trim();
     if(!t||t==='--'||t==='—'||t==='-') return '';
-    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
+}
+function __sports_referenceScore(t){
+    var s=String(t||'');
+    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    return 1;
 }
 function __sports_referenceTime(t){
     var d=new Date(t);
@@ -1016,10 +1025,12 @@ function __sports_referenceTime(t){
 function __sports_referenceRender(keys,rk,en){
     try{
         var arr=TBKit.history.list().slice(0,10);
-        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var head=[en?'Time':'时间'].concat(keys).concat([en?'Verdict':'结论',rk]);
         var rows=arr.map(function(it){
             var row=[__sports_referenceTime(it.t)];
             for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var sc=parseFloat(it.d.__tbScore);
+            row.push(isFinite(sc)?(sc>=1?(en?'Pass':'通过'):(en?'Fail':'未通过')):'-');
             var r=it.d[rk];row.push(r==null?'':r);
             return row;
         });
@@ -1029,7 +1040,7 @@ function __sports_referenceRender(keys,rk,en){
             __sports_reference_skip=true;
             try{
                 for(var k in rec){
-                    if(k===rk) continue;
+                    if(k===rk||k==='__tbScore') continue;
                     var e=document.getElementById(k);
                     if(!e) continue;
                     var t=(e.type||'').toLowerCase();
@@ -1042,11 +1053,11 @@ function __sports_referenceRender(keys,rk,en){
         });
         var nums=[],labels=[];
         for(var j=arr.length-1;j>=0;j--){
-            var v=parseFloat(arr[j].d[rk]);
+            var v=parseFloat(arr[j].d.__tbScore);
             if(isFinite(v)){nums.push(v);labels.push(__sports_referenceTime(arr[j].t));}
         }
         if(nums.length>=2){
-            TBKit.chart.line('#sports_referenceChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+            TBKit.chart.line('#sports_referenceChart',{labels:labels,series:[{name:en?'Validity trend':'有效性趋势',data:nums}]});
         }
     }catch(e3){}
 }
@@ -1076,11 +1087,21 @@ function __sports_referenceExtras(){
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
+    rec.__tbScore=__sports_referenceScore(res);
     TBKit.history.record(rec);
     __sports_referenceRender(keys,rk,en);
 }
 function __sports_referenceExport(){
     if (typeof TBKit === 'undefined') return;
+    try{
+        var box=document.querySelector('#sports_referenceTable');
+        if(!box||!box.querySelector('tr')){
+            var snap=__sports_referenceSnap(); var keys=Object.keys(snap);
+            if(keys.length>12) keys=keys.slice(0,12);
+            var en=(TBKit.util&&TBKit.util.isEn())?true:false;
+            __sports_referenceRender(keys,en?'Result':'结果',en);
+        }
+    }catch(e){}
     try { TBKit.util.exportTable('#sports_referenceTable','sports-reference.csv'); } catch(e){}
 }
 function __sports_referencePresets(){

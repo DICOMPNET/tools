@@ -275,6 +275,12 @@ const COUNTRIES = {
   IQ:{cn:'伊拉克',en:'Iraq',cc:'+964',iso3:'IRQ',capital:'巴格达',currency:'IQD'}
 };
 function validate(){
+  // IT-N1xx：raw 是用户原始输入，直接拼进 innerHTML 的文本与 data-zh 属性
+  // ⇒ 含引号/标签的输入可以改写 DOM（DOM 注入点）。统一走站点 escHtml 转义。
+  const esc=(typeof ToolBox!=='undefined'&&ToolBox.escHtml)?ToolBox.escHtml:function(s){
+    return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  };
   const raw = document.getElementById('input').value.trim();
   const out = document.getElementById('output');
   if(!raw){ const __h0=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Waiting for input...":"等待输入...");if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h0; return; }
@@ -292,7 +298,7 @@ function validate(){
       }
     }
   }
-  let html = `<p data-zh="输入：${raw}"><strong>Input:</strong>${raw}</p>`;
+  let html = `<p data-zh="输入：${esc(raw)}"><strong>Input:</strong>${esc(raw)}</p>`;
   if(results.length === 0){
     html += `<p style="color:var(--danger);">❌ 未找到匹配的国家</p>`;
     html += `<p style="color:var(--text-muted);font-size:12px;">支持：ISO 3166-1 alpha-2 代码（如 CN、US、JP）或中英文国名</p>`;
@@ -364,8 +370,13 @@ function __country_code_lookupResText(){
     if(!r) return '';
     var t=(r.textContent||'').replace(/\s+/g,' ').trim();
     if(!t||t==='--'||t==='—'||t==='-') return '';
-    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
+}
+function __country_code_lookupScore(t){
+    var s=String(t||'');
+    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    return 1;
 }
 function __country_code_lookupTime(t){
     var d=new Date(t);
@@ -375,10 +386,12 @@ function __country_code_lookupTime(t){
 function __country_code_lookupRender(keys,rk,en){
     try{
         var arr=TBKit.history.list().slice(0,10);
-        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var head=[en?'Time':'时间'].concat(keys).concat([en?'Verdict':'结论',rk]);
         var rows=arr.map(function(it){
             var row=[__country_code_lookupTime(it.t)];
             for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var sc=parseFloat(it.d.__tbScore);
+            row.push(isFinite(sc)?(sc>=1?(en?'Pass':'通过'):(en?'Fail':'未通过')):'-');
             var r=it.d[rk];row.push(r==null?'':r);
             return row;
         });
@@ -388,7 +401,7 @@ function __country_code_lookupRender(keys,rk,en){
             __country_code_lookup_skip=true;
             try{
                 for(var k in rec){
-                    if(k===rk) continue;
+                    if(k===rk||k==='__tbScore') continue;
                     var e=document.getElementById(k);
                     if(!e) continue;
                     var t=(e.type||'').toLowerCase();
@@ -401,11 +414,11 @@ function __country_code_lookupRender(keys,rk,en){
         });
         var nums=[],labels=[];
         for(var j=arr.length-1;j>=0;j--){
-            var v=parseFloat(arr[j].d[rk]);
+            var v=parseFloat(arr[j].d.__tbScore);
             if(isFinite(v)){nums.push(v);labels.push(__country_code_lookupTime(arr[j].t));}
         }
         if(nums.length>=2){
-            TBKit.chart.line('#country_code_lookupChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+            TBKit.chart.line('#country_code_lookupChart',{labels:labels,series:[{name:en?'Validity trend':'有效性趋势',data:nums}]});
         }
     }catch(e3){}
 }
@@ -435,11 +448,21 @@ function __country_code_lookupExtras(){
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
+    rec.__tbScore=__country_code_lookupScore(res);
     TBKit.history.record(rec);
     __country_code_lookupRender(keys,rk,en);
 }
 function __country_code_lookupExport(){
     if (typeof TBKit === 'undefined') return;
+    try{
+        var box=document.querySelector('#country_code_lookupTable');
+        if(!box||!box.querySelector('tr')){
+            var snap=__country_code_lookupSnap(); var keys=Object.keys(snap);
+            if(keys.length>12) keys=keys.slice(0,12);
+            var en=(TBKit.util&&TBKit.util.isEn())?true:false;
+            __country_code_lookupRender(keys,en?'Result':'结果',en);
+        }
+    }catch(e){}
     try { TBKit.util.exportTable('#country_code_lookupTable','country-code-lookup.csv'); } catch(e){}
 }
 function __country_code_lookupPresets(){

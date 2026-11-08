@@ -155,6 +155,10 @@ s.parentNode.insertBefore(el, s);
       <button type="button" class="btn" onclick="backspace()">退格</button>
       <button type="button" class="btn" onclick="clearExpr()">清空</button>
       <button type="button" class="btn" onclick="newGame()">新一題</button>
+      <span class="mode-toggle" style="margin-left:6px;display:inline-flex;gap:6px;">
+        <button type="button" class="btn" id="mode13Btn" onclick="setMode(true)">1~13 模式</button>
+        <button type="button" class="btn" id="mode10Btn" onclick="setMode(false)">1~10 模式</button>
+      </span>
       <button type="button" class="btn warning" onclick="showSolution()">檢視解法</button>
     </div>
 
@@ -268,6 +272,13 @@ function updateStats(){
   document.getElementById('streak').textContent=stats.streak;
   document.getElementById('bestStreak').textContent=stats.best;
 }
+function setMode(v){
+  mode13=v;
+  const b13=document.getElementById('mode13Btn'), b10=document.getElementById('mode10Btn');
+  if(b13)b13.classList.toggle('active', v);
+  if(b10)b10.classList.toggle('active', !v);
+  newGame();
+}
 function newGame(){
   const max=mode13?13:10;
   // 生成有解的组合（重试）
@@ -364,6 +375,15 @@ function checkAnswer(){
   const rd=document.getElementById('resultDisplay');
   if(currentExpr.length===0){rd.className='result-display result-info';rd.textContent=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Compose the expression first":"请先组成表达式");return;}
   if(usedIndices.length<4){rd.className='result-display result-lose';rd.textContent='必须使用全部 4 个数字（已用 '+usedIndices.length+'/4）';return;}
+  // 文法校验：相邻两个数字记号之间必须插入运算符，否则会被拼接成多位数（如 2 4 → 24），FE-N66
+  const isNumTok=t=>(!isNaN(parseFloat(t))&&t!=='('&&t!==')');
+  for(let k=1;k<currentExpr.length;k++){
+    if(isNumTok(currentExpr[k-1])&&isNumTok(currentExpr[k])){
+      rd.className='result-display result-lose';
+      rd.textContent='相邻两个数字之间必须插入运算符，不能拼成多位数';
+      return;
+    }
+  }
   const exprStr=currentExpr.join('');
   const val=evalExpr(exprStr);
   if(!isFinite(val)){rd.className='result-display result-lose';rd.textContent=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Invalid expression; check brackets and operators":"表达式无效，请检查括号与运算符");return;}
@@ -434,7 +454,7 @@ function showSolution(){
   }
 }
 updateStats();
-newGame();
+setMode(mode13); // 初始化模式并标记当前激活态（FE-N67）
 </script>
 
 <!-- SEO 介紹區塊 -->

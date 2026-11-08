@@ -300,6 +300,11 @@ function __laTx(zh,txt){
   return e?txt:zh;
 }
 function __tbInputGuard(_ids,_labels){
+  var __r=__tbInputGuardCore(_ids,_labels);
+  if(__r){var __t=document.getElementById('loan_amortizationTable');if(__t)__t.innerHTML='';}
+  return __r;
+}
+function __tbInputGuardCore(_ids,_labels){
   var __TPL='请填写「%s」后再计算。';
   var __TPL2="<p style=\"color:var(--danger)\">⚠ 「%s」是本计算的分母，不能为 0。</p>";
   var _vals=[],_firstBad=-1;
@@ -888,7 +893,7 @@ function __loan_amortizationSnap(){
         var e=els[i];
         var t=(e.type||'').toLowerCase();
         if(t==='button'||t==='submit'||t==='hidden') continue;
-        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?'1':'0'):e.value;
         if(v!==''&&v!=null) out[e.id]=v;
     }
     return out;
@@ -898,8 +903,13 @@ function __loan_amortizationResText(){
     if(!r) return '';
     var t=(r.textContent||'').replace(/\s+/g,' ').trim();
     if(!t||t==='--'||t==='—'||t==='-') return '';
-    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
+}
+function __loan_amortizationScore(t){
+    var s=String(t||'');
+    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    return 1;
 }
 function __loan_amortizationTime(t){
     var d=new Date(t);
@@ -909,10 +919,12 @@ function __loan_amortizationTime(t){
 function __loan_amortizationRender(keys,rk,en){
     try{
         var arr=TBKit.history.list().slice(0,10);
-        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var head=[en?'Time':'时间'].concat(keys).concat([en?'Verdict':'结论',rk]);
         var rows=arr.map(function(it){
             var row=[__loan_amortizationTime(it.t)];
             for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var sc=parseFloat(it.d.__tbScore);
+            row.push(isFinite(sc)?(sc>=1?(en?'Pass':'通过'):(en?'Fail':'未通过')):'-');
             var r=it.d[rk];row.push(r==null?'':r);
             return row;
         });
@@ -921,8 +933,14 @@ function __loan_amortizationRender(keys,rk,en){
         TBKit.history.mount('#loan_amortizationHist',function(rec){
             __loan_amortization_skip=true;
             try{
+                // 恢复前先清空未记录的勾选：旧记录是稀疏的（只存勾选中的项），
+                // 不清理会把当前多勾的权限带过来（600→777→恢复 600 仍显示 777）。
+                var __cbs=document.querySelectorAll('input[type=checkbox],input[type=radio]');
+                for(var __ci=0;__ci<__cbs.length;__ci++){
+                    if(!Object.prototype.hasOwnProperty.call(rec,__cbs[__ci].id)) __cbs[__ci].checked=false;
+                }
                 for(var k in rec){
-                    if(k===rk) continue;
+                    if(k===rk||k==='__tbScore') continue;
                     var e=document.getElementById(k);
                     if(!e) continue;
                     var t=(e.type||'').toLowerCase();
@@ -935,11 +953,11 @@ function __loan_amortizationRender(keys,rk,en){
         });
         var nums=[],labels=[];
         for(var j=arr.length-1;j>=0;j--){
-            var v=parseFloat(arr[j].d[rk]);
+            var v=parseFloat(arr[j].d.__tbScore);
             if(isFinite(v)){nums.push(v);labels.push(__loan_amortizationTime(arr[j].t));}
         }
         if(nums.length>=2){
-            TBKit.chart.line('#loan_amortizationChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+            TBKit.chart.line('#loan_amortizationChart',{labels:labels,series:[{name:en?'Validity trend':'有效性趋势',data:nums}]});
         }
     }catch(e3){}
 }
@@ -969,11 +987,21 @@ function __loan_amortizationExtras(){
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
+    rec.__tbScore=__loan_amortizationScore(res);
     TBKit.history.record(rec);
     __loan_amortizationRender(keys,rk,en);
 }
 function __loan_amortizationExport(){
     if (typeof TBKit === 'undefined') return;
+    try{
+        var box=document.querySelector('#loan_amortizationTable');
+        if(!box||!box.querySelector('tr')){
+            var snap=__loan_amortizationSnap(); var keys=Object.keys(snap);
+            if(keys.length>12) keys=keys.slice(0,12);
+            var en=(TBKit.util&&TBKit.util.isEn())?true:false;
+            __loan_amortizationRender(keys,en?'Result':'结果',en);
+        }
+    }catch(e){}
     try { TBKit.util.exportTable('#loan_amortizationTable','loan-amortization.csv'); } catch(e){}
 }
 function __loan_amortizationPresets(){

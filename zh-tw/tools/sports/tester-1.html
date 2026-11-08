@@ -123,7 +123,7 @@ s.parentNode.insertBefore(el, s);
         <div class="formula-box">
       <div class="formula-title">📐 計算公式 / 原理</div>
       <div class="formula-eq">Epley：1RM = w·(1 + r/30)；Brzycki：1RM = w / (1.0278 − 0.0278·r)</div>
-      <div class="formula-desc">由自重動作(俯臥撐/引體向上)的力竭次數 r 與體重負荷 w，用 Epley 與 Brzycki 公式推算一次最大重複(1RM)；相對力量 = 1RM / 體重，越高上肢/核心力量越強。</div>
+      <div class="formula-desc">由自重動作(俯臥撐/引體向上)的力竭次數 r 與負荷 w 推算一次最大重複(1RM)：俯臥撐 w = 體重 × 姿勢係數 + 附加負重，引體向上 w = 體重 + 附加負重；兩式取均值。Brzycki 僅在 r ≤ 15 時參與（36/(37−r) 在 r 接近 37 時發散），r &gt; 15 只用 Epley，r &gt; 30 停算。相對力量 = 1RM / 體重，越高上肢/核心力量越強。</div>
     </div>
 <div class="input-row">
       <div><label>體重（kg）</label><input type="number" id="bw" value="70" min="0" step="0.1" style="font-size:16px;" oninput="calc()" placeholder="e.g. 70"></div>
@@ -139,18 +139,19 @@ s.parentNode.insertBefore(el, s);
       <div><label>俯臥撐姿勢（影響自重負荷比例）</label>
         <select id="posture" style="font-size:16px;" onchange="calc();">
           <option value="0.64">標準俯臥撐（約 64% 體重）</option>
-          <option value="0.70">上斜俯臥撐/腳墊高（約 70% 體重）</option>
+          <option value="0.41">上斜俯臥撐（手撐高臺，約 41% 體重）</option>
+          <option value="0.70">腳墊高俯臥撐（下斜，約 70% 體重）</option>
           <option value="0.49">跪姿俯臥撐（約 49% 體重）</option>
         </select>
       </div>
     </div>
 
-    <div id="pullupOpt" class="input-row" style="display:none;">
-      <div><label>附加負重（kg，無則填 0）</label><input type="number" id="added" value="0" min="0" step="0.5" style="font-size:16px;" oninput="calc()" placeholder="e.g. 0"></div>
+    <div id="pullupOpt" class="input-row">
+      <div><label>附加負重（kg，負重背心/腰帶，無則填 0）</label><input type="number" id="added" value="0" min="0" step="0.5" style="font-size:16px;" oninput="calc()" placeholder="e.g. 0"></div>
     </div>
 
     <div class="input-row">
-      <div><label>最大重複次數（力竭次數）</label><input type="number" id="reps" value="10" min="1" step="1" style="font-size:16px;" oninput="calc()" placeholder="e.g. 10"></div>
+      <div><label>最大重複次數（力竭次數）</label><input type="number" id="reps" value="10" min="1" max="30" step="1" style="font-size:16px;" oninput="calc()" placeholder="e.g. 10"></div>
     </div>
 
     <div class="toolbar">
@@ -234,10 +235,10 @@ s.parentNode.insertBefore(el, s);
 
   <div class="tool-notes-title">⚠️ 使用說明與注意事項</div>
   <ul>
-      <li>俯臥撐按姿勢取自重負荷比例（標準 64%、上斜 70%、跪姿 49%）折算為實際推起重量</li>
+      <li>俯臥撐按姿勢取自重負荷比例（標準 64%、上斜手撐高臺 41%、腳墊高下斜 70%、跪姿 49%）折算為實際推起重量，額外背心/腰帶負重直接疊加</li>
       <li>引體向上負荷 = 體重 + 附加負重，全程力竭次數代入公式</li>
       <li>Epley 公式：1RM = 負荷 × (1 + 次數/30)；Brzycki 公式：1RM = 負荷 × 36/(37 − 次數)</li>
-      <li>次數超過 15 次時推算精度下降，結果僅供參考；1RM 測試有風險，務必有人保護</li>
+      <li>Brzycki 的 36/(37 − 次數) 在次數接近 37 時發散（37 次為無窮大、超過 37 次變負值），故次數 &gt;15 時只用 Epley、次數 &gt;30 時直接停算；1RM 測試有風險，務必有人保護</li>
   </ul>
 </div>
 <!-- /注意事項區塊 -->
@@ -246,7 +247,7 @@ s.parentNode.insertBefore(el, s);
 function toggleExtra(){
   var move=document.getElementById('move').value;
   document.getElementById('pushupOpt').style.display=move==='pushup'?'':'none';
-  document.getElementById('pullupOpt').style.display=move==='pullup'?'':'none';
+  // 附加负重两种动作都适用（俯卧撑可穿负重背心/腰带），始终可见
 }
 function calc(){
   var bw=parseFloat(document.getElementById('bw').value);
@@ -255,12 +256,14 @@ function calc(){
   var res=document.getElementById('res');
   if(!bw||bw<=0){res.innerHTML='<p style="color:var(--danger);">请输入有效体重</p>';return;}
   if(!reps||reps<1){res.innerHTML='<p style="color:var(--danger);">请输入有效的力竭次数（≥1）</p>';return;}
+  if(reps>30){res.innerHTML='<p style="color:var(--danger);">力竭次数需在 1–30 次之间：1RM 公式在 30 次以上已完全失真（Brzycki 的 36/(37-次数) 在 37 次时为无穷大、超过 37 次变负值）。请降低次数，或直接测真实 1RM。</p>';return;}
 
   var load, loadDesc;
   if(move==='pushup'){
     var frac=parseFloat(document.getElementById('posture').value);
-    load=bw*frac;
-    loadDesc='自重负荷比例 '+(frac*100).toFixed(0)+'% × 体重 = '+load.toFixed(1)+' kg';
+    var addP=parseFloat(document.getElementById('added').value)||0;
+    load=bw*frac+addP;
+    loadDesc='自重负荷比例 '+(frac*100).toFixed(0)+'% × 体重 '+bw+' kg'+(addP>0?' + 附加负重 '+addP+' kg':'')+' = '+load.toFixed(1)+' kg';
   } else {
     var added=parseFloat(document.getElementById('added').value)||0;
     load=bw+added;
@@ -268,12 +271,13 @@ function calc(){
   }
 
   var epley=load*(1+reps/30);
-  var brzycki=load*36/(37-reps);
-  var avg=(epley+brzycki)/2;
+  var brzyckiOk=reps<=15;
+  var brzycki=brzyckiOk?load*36/(37-reps):NaN;
+  var avg=brzyckiOk?(epley+brzycki)/2:epley;
   var ratio=avg/bw;
   var moveName=move==='pushup'?'俯卧撑':'引体向上';
 
-  var warn=reps>15?'<p style="color:var(--warning);">⚠️ 次数较多（>15），公式推算精度下降，建议降低次数或直接测试真实 1RM。</p>':'';
+  var warn=brzyckiOk?'':'<p style="color:var(--warning);">⚠️ 次数 &gt;15：Brzycki 的 36/(37-次数) 在此区间快速发散（接近 37 次时为无穷大、超过 37 次变负值），本次只用 Epley 公式推算，未取两式均值。</p>';
 
   var ratioDesc;
   if(move==='pullup'){
@@ -297,7 +301,7 @@ function calc(){
     '</div>'+
     '<p><strong>动作：</strong>'+moveName+'　<strong>力竭次数：</strong>'+reps+' 次</p>'+
     '<p><strong>负荷计算：</strong>'+loadDesc+'</p>'+
-    '<p><strong>Epley 公式：</strong>'+epley.toFixed(1)+' kg　<strong>Brzycki 公式：</strong>'+brzycki.toFixed(1)+' kg（取均值 '+avg.toFixed(1)+' kg）</p>'+
+    '<p><strong>Epley 公式：</strong>'+epley.toFixed(1)+' kg　<strong>Brzycki 公式：</strong>'+(brzyckiOk?brzycki.toFixed(1)+' kg（取均值 '+avg.toFixed(1)+' kg）':'不参与（次数 &gt;15，公式发散）')+'</p>'+
     '<p style="margin-top:6px;"><strong>力量评级：</strong><span style="color:'+ratioDesc.c+';font-weight:600;">'+ratioDesc.l+'</span>（相对力量 '+ratio.toFixed(2)+' 倍体重）</p>'+
     warn+
     '<p style="margin-top:6px;font-size:12px;color:var(--text-muted);">提示：1RM 为该动作一次性最大负荷的推算值，可用于设定训练强度（如 70%–80% 1RM 用于增肌）。</p>';res.innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
@@ -307,10 +311,12 @@ function copyResult(){
   var move=document.getElementById('move').value;
   var reps=parseInt(document.getElementById('reps').value);
   if(!bw||!reps){ToolBox.showToast(i18nText(), 'warning');return;}
+  if(reps>30){ToolBox.showToast('力竭次数需在 1–30 次之间', 'warning');return;}
   var load;
-  if(move==='pushup'){load=bw*parseFloat(document.getElementById('posture').value);}
-  else{load=bw+(parseFloat(document.getElementById('added').value)||0);}
-  var avg=(load*(1+reps/30)+load*36/(37-reps))/2;
+  var _add=parseFloat(document.getElementById('added').value)||0;
+  if(move==='pushup'){load=bw*parseFloat(document.getElementById('posture').value)+_add;}
+  else{load=bw+_add;}
+  var avg=reps<=15?(load*(1+reps/30)+load*36/(37-reps))/2:load*(1+reps/30);
   var moveName=move==='pushup'?'俯卧撑':'引体向上';
   var txt=moveName+' 1RM 推算\n体重：'+bw+'kg  次数：'+reps+'\n单次负荷：'+load.toFixed(1)+'kg\n推算1RM：'+avg.toFixed(1)+'kg\n相对力量：'+(avg/bw).toFixed(2)+' 倍体重';
   ToolBox.copyText(txt, i18nText());
@@ -410,8 +416,13 @@ function __tester_1ResText(){
     if(!r) return '';
     var t=(r.textContent||'').replace(/\s+/g,' ').trim();
     if(!t||t==='--'||t==='—'||t==='-') return '';
-    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
+}
+function __tester_1Score(t){
+    var s=String(t||'');
+    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    return 1;
 }
 function __tester_1Time(t){
     var d=new Date(t);
@@ -421,10 +432,12 @@ function __tester_1Time(t){
 function __tester_1Render(keys,rk,en){
     try{
         var arr=TBKit.history.list().slice(0,10);
-        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var head=[en?'Time':'时间'].concat(keys).concat([en?'Verdict':'结论',rk]);
         var rows=arr.map(function(it){
             var row=[__tester_1Time(it.t)];
             for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var sc=parseFloat(it.d.__tbScore);
+            row.push(isFinite(sc)?(sc>=1?(en?'Pass':'通过'):(en?'Fail':'未通过')):'-');
             var r=it.d[rk];row.push(r==null?'':r);
             return row;
         });
@@ -434,7 +447,7 @@ function __tester_1Render(keys,rk,en){
             __tester_1_skip=true;
             try{
                 for(var k in rec){
-                    if(k===rk) continue;
+                    if(k===rk||k==='__tbScore') continue;
                     var e=document.getElementById(k);
                     if(!e) continue;
                     var t=(e.type||'').toLowerCase();
@@ -447,11 +460,11 @@ function __tester_1Render(keys,rk,en){
         });
         var nums=[],labels=[];
         for(var j=arr.length-1;j>=0;j--){
-            var v=parseFloat(arr[j].d[rk]);
+            var v=parseFloat(arr[j].d.__tbScore);
             if(isFinite(v)){nums.push(v);labels.push(__tester_1Time(arr[j].t));}
         }
         if(nums.length>=2){
-            TBKit.chart.line('#tester_1Chart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+            TBKit.chart.line('#tester_1Chart',{labels:labels,series:[{name:en?'Validity trend':'有效性趋势',data:nums}]});
         }
     }catch(e3){}
 }
@@ -481,11 +494,21 @@ function __tester_1Extras(){
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
+    rec.__tbScore=__tester_1Score(res);
     TBKit.history.record(rec);
     __tester_1Render(keys,rk,en);
 }
 function __tester_1Export(){
     if (typeof TBKit === 'undefined') return;
+    try{
+        var box=document.querySelector('#tester_1Table');
+        if(!box||!box.querySelector('tr')){
+            var snap=__tester_1Snap(); var keys=Object.keys(snap);
+            if(keys.length>12) keys=keys.slice(0,12);
+            var en=(TBKit.util&&TBKit.util.isEn())?true:false;
+            __tester_1Render(keys,en?'Result':'结果',en);
+        }
+    }catch(e){}
     try { TBKit.util.exportTable('#tester_1Table','tester-1.csv'); } catch(e){}
 }
 function __tester_1Presets(){
@@ -493,7 +516,7 @@ function __tester_1Presets(){
     TBKit.preset.bar('#tester_1Presets',[{label:'默认参数',labelEn:'Default',values:{'bw':'70', 'move':'pushup', 'posture':'0.64', 'added':'0', 'reps':'10'}},
   {"label":"标准俯卧撑 20 次","labelEn":"Standard push-up x20","values":{"bw":70,"move":"pushup","posture":"0.64","reps":20}},
   {"label":"负重引体 8 次","labelEn":"Weighted pull-up x8","values":{"bw":75,"move":"pullup","posture":"0.64","added":10,"reps":8}},
-  {"label":"上斜俯卧撑 15 次负重","labelEn":"Incline push-up x15 weighted","values":{"bw":80,"move":"pushup","posture":"0.70","added":5,"reps":15}}],function(){ calc(); });
+  {"label":"上斜俯卧撑 15 次负重","labelEn":"Incline push-up x15 weighted","values":{"bw":80,"move":"pushup","posture":"0.41","added":5,"reps":15}}],function(){ calc(); });
 }
 var __tester_1_f0=(typeof calc==='function')?calc:null;
 if(__tester_1_f0){

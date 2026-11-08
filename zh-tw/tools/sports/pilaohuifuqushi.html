@@ -117,8 +117,8 @@ s.parentNode.insertBefore(el, s);
     <h2 data-zh="🩸 疲勞恢復趨勢">🩸 Fatigue Recovery Trend Calculator (CK / BUN)</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="輸入肌酸激酶(CK)與血尿素氮(BUN)，結合性別評估肌肉損傷與代謝疲勞程度，計算綜合疲勞指數並給出恢復時間建議。">Enter creatine kinase (CK) and blood urea nitrogen (BUN) with sex to assess muscle damage and metabolic fatigue, compute a composite fatigue index and suggest recovery time.</p>    <div class="formula-box">
       <div class="formula-title">📐 計算公式 / 原理</div>
-      <div class="formula-eq">疲勞指數 FI ≈ w₁·(CK/CK<sub>上限</sub>) + w₂·(BUN/BUN<sub>上限</sub>)（男 CK≈200、女≈160 U/L；BUN≈8 mmol/L）</div>
-      <div class="formula-desc">肌酸激酶(CK)反映肌肉損傷、血尿素氮(BUN)反映代謝疲勞；按性別取參考上限歸一化後加權，FI 越高疲勞越重，恢復時間隨 FI 線性延長，建議低強度積極恢復。</div>
+      <div class="formula-eq">疲勞指數 FI = 0.6×CK 評分 + 0.4×BUN 評分；CK 評分 = min(CK ÷ 1000 × 100, 100)；BUN 評分 = clamp((BUN − 5) ÷ 8 × 100, 0, 100)</div>
+      <div class="formula-desc">肌酸激酶(CK)反映肌肉損傷、血尿素氮(BUN)反映代謝疲勞。歸一化口徑：CK 以 1000 U/L 記滿 100 分；BUN 以 5 mmol/L 記 0 分、13 mmol/L 記 100 分，兩端截斷。另按性別判「恢復正常」的 CK 上限為男 200、女 160 U/L，恢復時間隨 CK 分級給出（0~12h / 12~24h / 24~48h / 48~72h / 就醫）。FI 越高疲勞越重，建議低強度積極恢復。</div>
     </div>
 
     <div class="input-row" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;align-items:end;">
@@ -330,8 +330,13 @@ function __pilaohuifuqushiResText(){
     if(!r) return '';
     var t=(r.textContent||'').replace(/\s+/g,' ').trim();
     if(!t||t==='--'||t==='—'||t==='-') return '';
-    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
+}
+function __pilaohuifuqushiScore(t){
+    var s=String(t||'');
+    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    return 1;
 }
 function __pilaohuifuqushiTime(t){
     var d=new Date(t);
@@ -341,10 +346,12 @@ function __pilaohuifuqushiTime(t){
 function __pilaohuifuqushiRender(keys,rk,en){
     try{
         var arr=TBKit.history.list().slice(0,10);
-        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var head=[en?'Time':'时间'].concat(keys).concat([en?'Verdict':'结论',rk]);
         var rows=arr.map(function(it){
             var row=[__pilaohuifuqushiTime(it.t)];
             for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var sc=parseFloat(it.d.__tbScore);
+            row.push(isFinite(sc)?(sc>=1?(en?'Pass':'通过'):(en?'Fail':'未通过')):'-');
             var r=it.d[rk];row.push(r==null?'':r);
             return row;
         });
@@ -354,7 +361,7 @@ function __pilaohuifuqushiRender(keys,rk,en){
             __pilaohuifuqushi_skip=true;
             try{
                 for(var k in rec){
-                    if(k===rk) continue;
+                    if(k===rk||k==='__tbScore') continue;
                     var e=document.getElementById(k);
                     if(!e) continue;
                     var t=(e.type||'').toLowerCase();
@@ -367,11 +374,11 @@ function __pilaohuifuqushiRender(keys,rk,en){
         });
         var nums=[],labels=[];
         for(var j=arr.length-1;j>=0;j--){
-            var v=parseFloat(arr[j].d[rk]);
+            var v=parseFloat(arr[j].d.__tbScore);
             if(isFinite(v)){nums.push(v);labels.push(__pilaohuifuqushiTime(arr[j].t));}
         }
         if(nums.length>=2){
-            TBKit.chart.line('#pilaohuifuqushiChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+            TBKit.chart.line('#pilaohuifuqushiChart',{labels:labels,series:[{name:en?'Validity trend':'有效性趋势',data:nums}]});
         }
     }catch(e3){}
 }
@@ -401,11 +408,21 @@ function __pilaohuifuqushiExtras(){
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
+    rec.__tbScore=__pilaohuifuqushiScore(res);
     TBKit.history.record(rec);
     __pilaohuifuqushiRender(keys,rk,en);
 }
 function __pilaohuifuqushiExport(){
     if (typeof TBKit === 'undefined') return;
+    try{
+        var box=document.querySelector('#pilaohuifuqushiTable');
+        if(!box||!box.querySelector('tr')){
+            var snap=__pilaohuifuqushiSnap(); var keys=Object.keys(snap);
+            if(keys.length>12) keys=keys.slice(0,12);
+            var en=(TBKit.util&&TBKit.util.isEn())?true:false;
+            __pilaohuifuqushiRender(keys,en?'Result':'结果',en);
+        }
+    }catch(e){}
     try { TBKit.util.exportTable('#pilaohuifuqushiTable','pilaohuifuqushi.csv'); } catch(e){}
 }
 function __pilaohuifuqushiPresets(){

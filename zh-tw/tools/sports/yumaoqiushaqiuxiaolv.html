@@ -117,13 +117,13 @@ s.parentNode.insertBefore(el, s);
     <h2 data-zh="🏸 羽毛球殺球效率">🏸 Badminton Smash Efficiency Calculator</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="輸入殺球平均速度、次數、直接得分與失誤數，計算殺球得分率、失誤率、有效率與攻擊效率綜合指數，評估進攻質量。">Enter smash average speed, count, direct points and errors to compute smash scoring rate, error rate, efficiency and an attack-efficiency composite for offensive quality.</p>    <div class="formula-box">
       <div class="formula-title">📐 計算公式 / 原理</div>
-      <div class="formula-eq">殺球得分率 = 直接得分 / 殺球次數；攻擊效率 = (得分 − 失誤) / 次數</div>
+      <div class="formula-eq">殺球得分率 = 直接得分 / 殺球次數；失誤率 = 失誤 / 殺球次數；攻擊效率指數 = 0.40×得分率標準化 + 0.30×(1−失誤率) + 0.30×速度標準化（得分率 40% 記滿分、失誤率 20% 記零分線性折算、速度 150→400 km/h 對映 0→100；樣本量 &lt;5 次不評定等級）</div>
       <div class="formula-desc">羽毛球殺球效率：統計殺球平均速度、次數、直接得分與失誤，計算得分率、失誤率與有效率，綜合為攻擊效率指數，評估進攻質量與穩定性。</div>
     </div>
 
     <div class="input-row" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;align-items:end;">
       <div><label>平均殺球速度 (km/h)</label><input type="number" id="speed" value="280" min="50" max="500" step="1" oninput="calc()" enterkeyhint="done" aria-label="殺球速度" placeholder="e.g. 280 (50–500)"></div>
-      <div><label>殺球總次數</label><input type="number" id="total" value="40" min="1" max="2000" step="1" oninput="calc()" enterkeyhint="done" aria-label="殺球總次數" placeholder="e.g. 40 (1–2000)"></div>
+      <div><label>殺球總次數</label><input type="number" id="total" value="40" min="5" max="2000" step="1" oninput="calc()" enterkeyhint="done" aria-label="殺球總次數" placeholder="e.g. 40 (≥5)"></div>
       <div><label>直接得分次數</label><input type="number" id="win" value="12" min="0" max="2000" step="1" oninput="calc()" enterkeyhint="done" aria-label="殺球得分次數" placeholder="e.g. 12 (0–2000)"></div>
       <div><label>失誤次數(下網/出界)</label><input type="number" id="err" value="5" min="0" max="2000" step="1" oninput="calc()" enterkeyhint="done" aria-label="殺球失誤次數" placeholder="e.g. 5 (0–2000)"></div>
     </div>
@@ -195,9 +195,9 @@ function getNum(id){return parseFloat(document.getElementById(id).value);}
 function setInvalid(el,invalid){if(!el)return;if(invalid){el.classList.add('input-error');el.setAttribute('aria-invalid','true');}else{el.classList.remove('input-error');el.removeAttribute('aria-invalid');}}
 function readInputs(){
   var sp=getNum('speed'),t=getNum('total'),w=getNum('win'),e=getNum('err');
-  var valid=!isNaN(sp)&&sp>0&&!isNaN(t)&&t>0&&!isNaN(w)&&w>=0&&!isNaN(e)&&e>=0&&w<=t&&e<=t&&(w+e)<=t;
+  var valid=!isNaN(sp)&&sp>0&&!isNaN(t)&&t>=5&&!isNaN(w)&&w>=0&&!isNaN(e)&&e>=0&&w<=t&&e<=t&&(w+e)<=t;
   setInvalid(document.getElementById('speed'),isNaN(sp)||sp<=0);
-  setInvalid(document.getElementById('total'),isNaN(t)||t<=0);
+  setInvalid(document.getElementById('total'),isNaN(t)||t<5);
   setInvalid(document.getElementById('win'),isNaN(w)||w<0||w>t);
   setInvalid(document.getElementById('err'),isNaN(e)||e<0||e>t||(w+e)>t);
   return {sp:sp,t:t,w:w,e:e,valid:valid};
@@ -205,7 +205,7 @@ function readInputs(){
 function calc(){
   var iv=readInputs();
   if(!iv.valid){
-    document.getElementById('res').innerHTML='<div class="info-box" style="color:#EF4444;background:rgba(239,68,68,.08);border-color:rgba(239,68,68,.25);">请填写有效数据（得分、失误均不能超过总次数，且得分+失误≤总次数）</div>';
+    document.getElementById('res').innerHTML='<div class="info-box" style="color:#EF4444;background:rgba(239,68,68,.08);border-color:rgba(239,68,68,.25);">请填写有效数据（得分、失误均不能超过总次数，且得分+失误≤总次数；杀球总次数需 ≥5 才有评定意义）</div>';
     return;
   }
   var winRate=iv.w/iv.t*100;
@@ -326,8 +326,13 @@ function __yumaoqiushaqiuxiaolvResText(){
     if(!r) return '';
     var t=(r.textContent||'').replace(/\s+/g,' ').trim();
     if(!t||t==='--'||t==='—'||t==='-') return '';
-    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
+}
+function __yumaoqiushaqiuxiaolvScore(t){
+    var s=String(t||'');
+    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    return 1;
 }
 function __yumaoqiushaqiuxiaolvTime(t){
     var d=new Date(t);
@@ -337,10 +342,12 @@ function __yumaoqiushaqiuxiaolvTime(t){
 function __yumaoqiushaqiuxiaolvRender(keys,rk,en){
     try{
         var arr=TBKit.history.list().slice(0,10);
-        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var head=[en?'Time':'时间'].concat(keys).concat([en?'Verdict':'结论',rk]);
         var rows=arr.map(function(it){
             var row=[__yumaoqiushaqiuxiaolvTime(it.t)];
             for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var sc=parseFloat(it.d.__tbScore);
+            row.push(isFinite(sc)?(sc>=1?(en?'Pass':'通过'):(en?'Fail':'未通过')):'-');
             var r=it.d[rk];row.push(r==null?'':r);
             return row;
         });
@@ -350,7 +357,7 @@ function __yumaoqiushaqiuxiaolvRender(keys,rk,en){
             __yumaoqiushaqiuxiaolv_skip=true;
             try{
                 for(var k in rec){
-                    if(k===rk) continue;
+                    if(k===rk||k==='__tbScore') continue;
                     var e=document.getElementById(k);
                     if(!e) continue;
                     var t=(e.type||'').toLowerCase();
@@ -363,11 +370,11 @@ function __yumaoqiushaqiuxiaolvRender(keys,rk,en){
         });
         var nums=[],labels=[];
         for(var j=arr.length-1;j>=0;j--){
-            var v=parseFloat(arr[j].d[rk]);
+            var v=parseFloat(arr[j].d.__tbScore);
             if(isFinite(v)){nums.push(v);labels.push(__yumaoqiushaqiuxiaolvTime(arr[j].t));}
         }
         if(nums.length>=2){
-            TBKit.chart.line('#yumaoqiushaqiuxiaolvChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+            TBKit.chart.line('#yumaoqiushaqiuxiaolvChart',{labels:labels,series:[{name:en?'Validity trend':'有效性趋势',data:nums}]});
         }
     }catch(e3){}
 }
@@ -397,11 +404,21 @@ function __yumaoqiushaqiuxiaolvExtras(){
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
+    rec.__tbScore=__yumaoqiushaqiuxiaolvScore(res);
     TBKit.history.record(rec);
     __yumaoqiushaqiuxiaolvRender(keys,rk,en);
 }
 function __yumaoqiushaqiuxiaolvExport(){
     if (typeof TBKit === 'undefined') return;
+    try{
+        var box=document.querySelector('#yumaoqiushaqiuxiaolvTable');
+        if(!box||!box.querySelector('tr')){
+            var snap=__yumaoqiushaqiuxiaolvSnap(); var keys=Object.keys(snap);
+            if(keys.length>12) keys=keys.slice(0,12);
+            var en=(TBKit.util&&TBKit.util.isEn())?true:false;
+            __yumaoqiushaqiuxiaolvRender(keys,en?'Result':'结果',en);
+        }
+    }catch(e){}
     try { TBKit.util.exportTable('#yumaoqiushaqiuxiaolvTable','yumaoqiushaqiuxiaolv.csv'); } catch(e){}
 }
 function __yumaoqiushaqiuxiaolvPresets(){

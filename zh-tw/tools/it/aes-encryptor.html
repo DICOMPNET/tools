@@ -1073,7 +1073,7 @@ function __aes_encryptorSnap(){
         var e=els[i];
         var t=(e.type||'').toLowerCase();
         if(t==='button'||t==='submit'||t==='hidden') continue;
-        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?'1':'0'):e.value;
         // N90：密码框既是口令也可能是原始密钥（hex/base64），一旦进历史就会被导出成 CSV 明文；
         // 历史只保留「用了哪种密钥形态」等非敏感字段，密码本身不落盘、不导出。
         if(e.id==='password'){ out[e.id]='••••'; continue; }
@@ -1087,8 +1087,13 @@ function __aes_encryptorResText(){
     var isField=r.tagName==='INPUT'||r.tagName==='TEXTAREA'||r.tagName==='SELECT';
     var t=((isField?r.value:r.textContent)||'').replace(/\s+/g,' ').trim();
     if(!t||t==='--'||t==='—'||t==='-') return '';
-    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
+}
+function __aes_encryptorScore(t){
+    var s=String(t||'');
+    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    return 1;
 }
 function __aes_encryptorTime(t){
     var d=new Date(t);
@@ -1098,10 +1103,12 @@ function __aes_encryptorTime(t){
 function __aes_encryptorRender(keys,rk,en){
     try{
         var arr=TBKit.history.list().slice(0,10);
-        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var head=[en?'Time':'时间'].concat(keys).concat([en?'Verdict':'结论',rk]);
         var rows=arr.map(function(it){
             var row=[__aes_encryptorTime(it.t)];
             for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var sc=parseFloat(it.d.__tbScore);
+            row.push(isFinite(sc)?(sc>=1?(en?'Pass':'通过'):(en?'Fail':'未通过')):'-');
             var r=it.d[rk];row.push(r==null?'':r);
             return row;
         });
@@ -1110,8 +1117,14 @@ function __aes_encryptorRender(keys,rk,en){
         TBKit.history.mount('#aes_encryptorHist',function(rec){
             __aes_encryptor_skip=true;
             try{
+                // 恢复前先清空未记录的勾选：旧记录是稀疏的（只存勾选中的项），
+                // 不清理会把当前多勾的权限带过来（600→777→恢复 600 仍显示 777）。
+                var __cbs=document.querySelectorAll('input[type=checkbox],input[type=radio]');
+                for(var __ci=0;__ci<__cbs.length;__ci++){
+                    if(!Object.prototype.hasOwnProperty.call(rec,__cbs[__ci].id)) __cbs[__ci].checked=false;
+                }
                 for(var k in rec){
-                    if(k===rk) continue;
+                    if(k===rk||k==='__tbScore') continue;
                     var e=document.getElementById(k);
                     if(!e) continue;
                     var t=(e.type||'').toLowerCase();
@@ -1161,11 +1174,21 @@ function __aes_encryptorExtras(){
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
     if(typeof __aes_encryptorLastBytes==='number'&&__aes_encryptorLastBytes>0) rec['__bytes']=__aes_encryptorLastBytes;
+    rec.__tbScore=__aes_encryptorScore(res);
     TBKit.history.record(rec);
     __aes_encryptorRender(keys,rk,en);
 }
 function __aes_encryptorExport(){
     if (typeof TBKit === 'undefined') return;
+    try{
+        var box=document.querySelector('#aes_encryptorTable');
+        if(!box||!box.querySelector('tr')){
+            var snap=__aes_encryptorSnap(); var keys=Object.keys(snap);
+            if(keys.length>12) keys=keys.slice(0,12);
+            var en=(TBKit.util&&TBKit.util.isEn())?true:false;
+            __aes_encryptorRender(keys,en?'Result':'结果',en);
+        }
+    }catch(e){}
     try { TBKit.util.exportTable('#aes_encryptorTable','aes-encryptor.csv'); } catch(e){}
 }
 function __aes_encryptorPresets(){
