@@ -268,6 +268,11 @@ s.parentNode.insertBefore(el, s);
 </div>
 
 <script>function __tbInputGuard(_ids,_labels){
+  var __r=__tbInputGuardCore(_ids,_labels);
+  if(__r){var __t=document.getElementById('ckd_epiTable');if(__t)__t.innerHTML='';}
+  return __r;
+}
+function __tbInputGuardCore(_ids,_labels){
   var __TPL='请填写「%s」后再计算。';
   var __TPL2="<p style=\"color:var(--danger)\">⚠ 「%s」是本计算的分母，不能为 0。</p>";
   var __TPL3="<p style=\"color:var(--danger)\">⚠ 「%s」不能为负值。</p>";
@@ -335,6 +340,7 @@ s.parentNode.insertBefore(el, s);
 
 
 function calc(){
+var __tbT=document.getElementById('ckd_epiTable');if(__tbT)__tbT.innerHTML='';/*__tbClearDetailStart*/
     if(document.getElementById('sex').value===''){document.getElementById('result').innerHTML='<div class="tip-box tip-info tb-guard">请选择性别，并填写年龄、血肌酐与 UACR。</div>';return;}
     var __ig=__tbInputGuard(['age', 'scr', 'uacr'],["年龄 (岁)", "血肌酐 Scr (mg/dL)", "尿白蛋白/肌酐 UACR (mg/g)"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
 var sex=document.getElementById('sex').value;
@@ -508,8 +514,13 @@ function __ckd_epiResText(){
     if(!r) return '';
     var t=(r.textContent||'').replace(/\s+/g,' ').trim();
     if(!t||t==='--'||t==='—'||t==='-') return '';
-    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
+}
+function __ckd_epiScore(t){
+    var s=String(t||'');
+    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    return 1;
 }
 function __ckd_epiTime(t){
     var d=new Date(t);
@@ -519,10 +530,12 @@ function __ckd_epiTime(t){
 function __ckd_epiRender(keys,rk,en){
     try{
         var arr=TBKit.history.list().slice(0,10);
-        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var head=[en?'Time':'时间'].concat(keys).concat([en?'Verdict':'结论',rk]);
         var rows=arr.map(function(it){
             var row=[__ckd_epiTime(it.t)];
             for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var sc=parseFloat(it.d.__tbScore);
+            row.push(isFinite(sc)?(sc>=1?(en?'Pass':'通过'):(en?'Fail':'未通过')):'-');
             var r=it.d[rk];row.push(r==null?'':r);
             return row;
         });
@@ -532,7 +545,7 @@ function __ckd_epiRender(keys,rk,en){
             __ckd_epi_skip=true;
             try{
                 for(var k in rec){
-                    if(k===rk) continue;
+                    if(k===rk||k==='__tbScore') continue;
                     var e=document.getElementById(k);
                     if(!e) continue;
                     var t=(e.type||'').toLowerCase();
@@ -545,11 +558,11 @@ function __ckd_epiRender(keys,rk,en){
         });
         var nums=[],labels=[];
         for(var j=arr.length-1;j>=0;j--){
-            var v=parseFloat(arr[j].d[rk]);
+            var v=parseFloat(arr[j].d.__tbScore);
             if(isFinite(v)){nums.push(v);labels.push(__ckd_epiTime(arr[j].t));}
         }
         if(nums.length>=2){
-            TBKit.chart.line('#ckd_epiChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+            TBKit.chart.line('#ckd_epiChart',{labels:labels,series:[{name:en?'Validity trend':'有效性趋势',data:nums}]});
         }
     }catch(e3){}
 }
@@ -579,11 +592,21 @@ function __ckd_epiExtras(){
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
+    rec.__tbScore=__ckd_epiScore(res);
     TBKit.history.record(rec);
     __ckd_epiRender(keys,rk,en);
 }
 function __ckd_epiExport(){
     if (typeof TBKit === 'undefined') return;
+    try{
+        var box=document.querySelector('#ckd_epiTable');
+        if(!box||!box.querySelector('tr')){
+            var snap=__ckd_epiSnap(); var keys=Object.keys(snap);
+            if(keys.length>12) keys=keys.slice(0,12);
+            var en=(TBKit.util&&TBKit.util.isEn())?true:false;
+            __ckd_epiRender(keys,en?'Result':'结果',en);
+        }
+    }catch(e){}
     try { TBKit.util.exportTable('#ckd_epiTable','ckd-epi.csv'); } catch(e){}
 }
 function __ckd_epiPresets(){

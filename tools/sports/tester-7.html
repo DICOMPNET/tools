@@ -178,6 +178,11 @@ s.parentNode.insertBefore(el, s);
 </div>
 </div>
 <script>function __tbInputGuard(_ids,_labels){
+  var __r=__tbInputGuardCore(_ids,_labels);
+  if(__r){var __t=document.getElementById('tester_7Table');if(__t)__t.innerHTML='';}
+  return __r;
+}
+function __tbInputGuardCore(_ids,_labels){
   var __TPL='请填写「%s」后再计算。';
   var __TPL2="<p style=\"color:var(--danger)\">⚠ 「%s」是本计算的分母，不能为 0。</p>";
   var __TPL3="<p style=\"color:var(--danger)\">⚠ 「%s」不能为负值。</p>";
@@ -256,6 +261,7 @@ var atPctMax=Math.round(atHr/maxHr*100);
 var karvonenMax=maxHr-rhr;
 var atKarvonen=Math.round((atHr-rhr)/karvonenMax*100);
 var vo2Pct=vo2max/(gender===0?60:55)*100;
+var hrEst=220-age;
 var c;
 if(gender===0){
 if(vo2max>=52)c='var(--success)';
@@ -280,7 +286,8 @@ h+='<tr><td>VO2max</td><td>'+vo2max+' ml/kg/min</td><td>最大摄氧量</td></tr
 h+='<tr><td>无氧阈心率</td><td>'+atHr+' bpm</td><td>乳酸拐点心率</td></tr>';
 h+='<tr><td>AT占最大心率</td><td>'+atPctMax+'%</td><td>'+(atPctMax>=80?'阈值训练区间':atPctMax>=70?'有氧耐力区间':'基础有氧区间')+'</td></tr>';
 h+='<tr><td>AT储备心率</td><td>'+atKarvonen+'%</td><td>Karvonen法</td></tr>';
-h+='<tr><td>最大心率</td><td>'+maxHr+' bpm</td><td>220-年龄</td></tr>';
+h+='<tr><td>最大心率</td><td>'+maxHr+' bpm</td><td>录入/实测值</td></tr>';
+h+='<tr><td>年龄估算最大心率</td><td>'+hrEst+' bpm</td><td>220−年龄（'+age+' 岁）；与录入值相差 '+Math.abs(maxHr-hrEst)+' bpm，区间与 AT% 均按录入值计算</td></tr>';
 h+='<tr style="font-weight:600"><td>耐力等级</td><td>'+g+'</td><td>'+(gender===0?'男性':'女性')+'标准</td></tr>';
 h+='</tbody></table>';
 h+='<table><thead><tr><th>训练区间</th><th>%最大心率</th><th>心率范围</th><th>训练目的</th></tr></thead><tbody>';
@@ -396,8 +403,13 @@ function __tester_7ResText(){
     if(!r) return '';
     var t=(r.textContent||'').replace(/\s+/g,' ').trim();
     if(!t||t==='--'||t==='—'||t==='-') return '';
-    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
+}
+function __tester_7Score(t){
+    var s=String(t||'');
+    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    return 1;
 }
 function __tester_7Time(t){
     var d=new Date(t);
@@ -407,10 +419,12 @@ function __tester_7Time(t){
 function __tester_7Render(keys,rk,en){
     try{
         var arr=TBKit.history.list().slice(0,10);
-        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var head=[en?'Time':'时间'].concat(keys).concat([en?'Verdict':'结论',rk]);
         var rows=arr.map(function(it){
             var row=[__tester_7Time(it.t)];
             for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var sc=parseFloat(it.d.__tbScore);
+            row.push(isFinite(sc)?(sc>=1?(en?'Pass':'通过'):(en?'Fail':'未通过')):'-');
             var r=it.d[rk];row.push(r==null?'':r);
             return row;
         });
@@ -420,7 +434,7 @@ function __tester_7Render(keys,rk,en){
             __tester_7_skip=true;
             try{
                 for(var k in rec){
-                    if(k===rk) continue;
+                    if(k===rk||k==='__tbScore') continue;
                     var e=document.getElementById(k);
                     if(!e) continue;
                     var t=(e.type||'').toLowerCase();
@@ -433,11 +447,11 @@ function __tester_7Render(keys,rk,en){
         });
         var nums=[],labels=[];
         for(var j=arr.length-1;j>=0;j--){
-            var v=parseFloat(arr[j].d[rk]);
+            var v=parseFloat(arr[j].d.__tbScore);
             if(isFinite(v)){nums.push(v);labels.push(__tester_7Time(arr[j].t));}
         }
         if(nums.length>=2){
-            TBKit.chart.line('#tester_7Chart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+            TBKit.chart.line('#tester_7Chart',{labels:labels,series:[{name:en?'Validity trend':'有效性趋势',data:nums}]});
         }
     }catch(e3){}
 }
@@ -467,11 +481,21 @@ function __tester_7Extras(){
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
+    rec.__tbScore=__tester_7Score(res);
     TBKit.history.record(rec);
     __tester_7Render(keys,rk,en);
 }
 function __tester_7Export(){
     if (typeof TBKit === 'undefined') return;
+    try{
+        var box=document.querySelector('#tester_7Table');
+        if(!box||!box.querySelector('tr')){
+            var snap=__tester_7Snap(); var keys=Object.keys(snap);
+            if(keys.length>12) keys=keys.slice(0,12);
+            var en=(TBKit.util&&TBKit.util.isEn())?true:false;
+            __tester_7Render(keys,en?'Result':'结果',en);
+        }
+    }catch(e){}
     try { TBKit.util.exportTable('#tester_7Table','tester-7.csv'); } catch(e){}
 }
 function __tester_7Presets(){

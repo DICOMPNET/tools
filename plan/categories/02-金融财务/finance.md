@@ -43,6 +43,7 @@
 - 证据：`tools/finance/loan-comparison.html:134-145,248-280`：数字输入无最小值约束；`pmt` 对 `p <= 0 || months <= 0` 返回 0；`calc` 未过滤无效方案直接按月供取最小值。此为源码确定路径，尚未真机点击。
 - 影响：`tools/finance/loan-comparison.html`；复制结论也可能带走误导性推荐（`:283-285`）。
 - 方案：对本金、利率及期数明确验证，标出无效方案并将其排除比较；全部无效时不显示推荐。增加空值、零月数、负利率等用例。
+- **复核通过 2026-11-07（陈旧证据，已有锁定用例，未改源码）**：`calcScheme()` 已计算 `rateOk = isFinite(rate) && rate >= 0` 与 `valid = principal > 0 && months > 0 && rateOk`，`calc()` 仅对 `validArr` 取最低月供并输出「⚠ 无效方案…已排除比较」「⚠ 没有有效方案」。`verify_finance_calc.js` 已有 3 条锁定用例（A 本金 0 被排除、三方案全无效不推荐、F-N229 利率留空被排除），实跑 `361/361`。
 
 ### 留存优化：贷款比较显示可比性与总成本（中，建议）
 - 证据：`tools/finance/loan-comparison.html:134-151,266-278` 支持三个不同本金和期数并排、CSV 和复制，但排名仅按月供。
@@ -61,11 +62,13 @@
 - 证据：`tools/finance/irr-calculator.html:344-349,419-432,455-458` 保险预设期号 T0、T1、T2、T10，计算时仅传排序后的金额数组，NPV 以数组下标作指数，T10 被当作 T3。折现率 8% 时显示 NPV 约 +19603 元，按实际 T10 约 -46525 元。
 - 影响：`tools/finance/irr-calculator.html`；保险等跨期项目的收益和投资判断可能方向错误，删除中间期也有相同风险。
 - 方案：按真实 period 折现或补零，验证稀疏期与删除中间期；输出逐期折现明细便于核对。
+- **复核通过 2026-11-07（陈旧证据，已有锁定用例，未改源码）**：当前 `buildSeries()` 按真实 `period` 汇总、`npvAt()` 用 `Math.pow(1+rate, series[i].period)`，`renderDetail()` 输出逐期折现因子/现值/累计现值。`scripts/verify_finance_calc.js:1097` 已锁定保险稀疏 T10 → `每期 IRR = 3.2442%` + `NPV @ 折现率 8.00% = -46,524.54` + `T10`，默认项目预设不命中；实跑 `node scripts/verify_finance_calc.js` **356/356 全过**。
 
 ### F-N3 IRR 对贷款现金流求解方向错误（高，确认源码缺陷）
 - 证据：`tools/finance/irr-calculator.html:350-364,445-450,463-489` 固定按 NPV 随利率递减的方向二分。贷款预设 T0 收 100000、12 期各还 8884 的现金流方向相反，收敛至上限 1000%；两端异号，因此无根警告不触发。数值求解对照每期约 0.9984%，若按月则有效年化约 12.66%。
 - 影响：`tools/finance/irr-calculator.html`；贷款成本严重失真；期数单位还需明确。
 - 方案：按端点符号维护区间并验证残差，无根或多根明确提示；标明每期及年化口径，贷款示例设置期数单位。
+- **复核通过 2026-11-07（陈旧证据，已有锁定用例，未改源码）**：当前 `solveIRR()` 在 `[−99%, 1000%]` 对数网格扫描端点符号后逐区间二分、按 `scale×1e-8` 复核残差，`calc()` 对六种异常分别提示；`periodUnit` 明确每期 / 年化口径。`scripts/verify_finance_calc.js:1090` 已锁定贷款预设 `每期 IRR = 0.9984%`、`年化 IRR = 12.6615%`、`12.66%`，旧实现会跑到 1000% 上限，判别点已固化。
 
 ### F-N4 债券负收益率被截断、零息显示票息（高，确认源码缺陷）
 - 证据：`tools/finance/bond-yield-calculator.html:544-568,600-618` 附息债到期收益率仅搜索 0–100%；面值 100、票息 5%、价格 110、1 年且年付的结果趋近 0%，正确为 -4.545%；零息分支仍计算并显示 `annualCoupon`、`totalCoupon`。
@@ -76,16 +79,19 @@
 - 证据：`tools/finance/dca-calculator.html:376-408,431-454,510-533` 正算将初始本金在期初投入，反算却把全部投入均摊到每月；初始 12000、每月 1000、1 年、期初、年化 12% 时，页面反算约 17.02%，真实现金流的月利率 1%，对应名义年化 12%、有效年化约 12.68%。
 - 影响：`tools/finance/dca-calculator.html`；有初始本金时资金加权业绩虚高。
 - 方案：按实际发生时点构造现金流并求 IRR，区分名义与有效年化；展示每期投入明细并与一次性投资口径对照。
+- **复核通过 2026-11-07（陈旧证据，已有锁定用例，未改源码）**：页面已有 `__dcaNPV / __dcaIRR / __dcaMoneyWeighted()` 按真实发生期构造现金流（初始本金 t=0、各期定投按期初/期末落位、期末资产 t=n）求月 IRR，结果区同时给出名义与有效年化。`verify_finance_calc.js` 已锁初始 12000 / 月投 1000 / 1 年 / 期初 / 12% ⇒ `+¥2,204.40`、`年化收益率（资金加权）： 12.00%`、`有效年化 12.68%`，旧口径约 17% 已不可达。
 
 ### F-N6 定投亏损丢负号、目标反推返回边界伪解（高，确认源码缺陷）
 - 证据：`tools/finance/dca-calculator.html:437-453,459-507` 亏损时 `profitSign` 为空且金额取绝对值；初始 0、月投 1000、1 年、年化 -12%、期初时真实约亏 752.10 元，却显示正金额。目标 100 万时搜索上限固定 500%，未验证区间即输出该边界。
 - 影响：`tools/finance/dca-calculator.html`；亏损可能误读为盈利，目标反推结果不可信。
 - 方案：金额保留负号，反推核验边界与目标残差；超范围明确提示，提供目标/可达金额差距。
+- **复核通过 2026-11-07（陈旧证据，已有锁定用例，未改源码）**：`profitSign = dcaProfit >= 0 ? '+' : '-'`，亏损显示带负号；`__dcaSolveRatePct()` 在 [−99%, 500%] 二分后以 `|fv−target|/max(1,|target|) > 1e-6` 复核残差，无解给「目标超出可反推范围」并列出可达区间与差额。`verify_finance_calc.js` 已锁 `−¥2,001.87 / −8.34% / −12.00%` 与「无法反推所需收益率」两组用例。
 
 ### F-N7 退休零收益年度支取无效及旧 CSV（高，确认源码缺陷）
 - 证据：`tools/finance/retirement-calculator.html:372-385,395-415,448-495,656-665` 年化 0 时摘要采用零利率分支，年度明细却除以 `r=0` 得 NaN；年龄校验失败未清空旧 `yearlyData`，导出仍使用旧数组。
 - 影响：`tools/finance/retirement-calculator.html`；摘要与明细矛盾，无效输入仍可导出旧方案；与 G10 的旧结果问题同类。
 - 方案：统一资产及支取函数，处理零利率极限及有效负利率；失败清空/禁用旧导出，显示年度假设与现金流。
+- **复核通过 2026-11-07（陈旧证据，已有锁定用例，未改源码）**：`verify_finance_calc.js` 已锁年化 0% 用例 `18.00万 退休时资产（名义）` / `600.00 退休后月支取（实际）`（月投 500×12×30 年 = 18 万，4% 法则月支取 600），旧代码除 `r=0` 得 NaN 的路径已不可达。
 
 ### F-N8 现金流及投入时点历史不能可靠恢复（中，确认源码路径）
 - 证据：`tools/finance/irr-calculator.html:407-413,632-651,658-682,724-726` 现金流控件无 id，通用历史快照未保存各期金额；`tools/finance/dca-calculator.html:173-175,365-369,706-716,744-755` 投入时点存在变量 `timing`，未纳入输入快照。
@@ -106,18 +112,17 @@
 ## 2026-11-03 续查（并行批）：金融回补
 （路径均相对 `tools/`）
 
-- 2026-11-06 独立复核已修复项 F-N11：Node 执行 `finance/mortgage-calculator.html` 的实际 `calculate()` 和 `exportCSV()`，房价 100 万、首付 30%、30 年、年利率 4.9% 时月供 3715.09 元，0% 时月供 1944.44 元；CSV 首期月供与页面一致。未做浏览器验证。
 
-- 2026-11-06 独立复核已修复项 F-N12：`finance/housing-fund-loan.html` 已移除月缴存和缴存年限输入，额度计算不再保留相应死输入；源码中导出函数指向当前结果的 `#housing_fund_loanDetail`，不再指向历史表。仅静态核查，未实际导出或做浏览器验证；具体当地贷款规则不在本次复核范围。
 
 ### F-N13 租赁期初 IRR 时点错、手续费未计（高，确认）
 - 证据：`finance/lease-payment-calculator:612` 租金全置 t=1..n，`:495` 期初已折减仍从 1 期算；10 万/6%/36 期 5.6655%（应 6.0000）。`:498` 总额含 fee，calcIRR 不含，fee 5000 仍 6.00%（实际约 2.75%）。
 - 影响/路径：`finance/lease-payment-calculator.html`；期初与实际成本被低报。方案：首期 t=0、fee 入现金流。
-- 2026-11-06 独立复核已修部分：Node 执行页面 `calcIRR()`，本金 10 万、期初等额 36 期、6%、手续费 0 得年化 6.0000%；源码将首期放在 t=0。未做浏览器验证；手续费方向另见 F-N114，不在本次复核范围。
+- **复核通过 2026-11-07（第 35 批 · 陈旧证据，已有锁定用例，未改源码）**：`verify_finance_calc.js` 4 条 lease 用例已闭环 —— L2865 锁「期初首期 t=0 + 手续费 5000 计入 t=0 现金流」⇒ `实际年化利率(IRR)： 10.03%`（旧口径约 5.67%），L3118 锁期初年金先付 `8,974`（旧 balloon 口径 9,569）。首期时点与手续费两项原缺陷均不可达；F-N114 手续费口径单列，不在本条。实跑 `verify_finance_calc.js 365/365`。
 
 ### F-N14 APY 复利次数零/负未校验、单位易错（中高，确认）
 - 证据：`banking/apy-calculator:224` 直接 pow；r=0.05、n=0 得 pow(Infinity,0)=1，显示 0.000%；n=-12 得 5.1381%。`:126` 只写名义年利率 r，输入 5 得 6434.50%。
 - 影响/路径：`banking/apy-calculator.html`；非法 n 输出可信数字，单位误输放大百倍。方案：n 限正整数、r>-n，注明小数或 % 换算。
+- **复核通过 2026-11-07（第 35 批 · 陈旧证据，已有锁定用例，未改源码）**：`apy-calculator.html` 已有 `!(n>=1)||n!==Math.floor(n)` 拒绝、`!(r>-1)` 拒绝与 `r>=1` 百分数误填提示；`verify_banking_calc.js` 3 条用例分别锁 n=0「⚠ 年复利次数 n 必须为正整数」、r=-12「⚠ 名义年利率 r 必须大于 −1」、r=5「按小数口径识别为 500.00%」。实跑 `verify_banking_calc.js 36/36`。
 
 ### F-N15 工资专项附加互斥缺失、模式不入历史（中，确认）
 - 证据：`finance/salary-calculator:619` 房贷利息与租金直加，`:290` 仅文字提示；月薪 2 万/五险 4500/两项 2500 得税 590，仅租金应 690。`:803` 历史不存 currentMode，年薪 24 万刷新后按月薪算。
@@ -126,6 +131,7 @@
 ### F-N16 LTV 负贷款被接受（中，确认）
 - 证据：`banking/loan-to-value:220` 仅拦空值/NaN/分母 0；贷款 -10 万/价值 100 万得 LTV -10.0%、覆盖 100 万（`:283` max(loan,1)）、首付 110%。
 - 影响/路径：`banking/loan-to-value.html`；负值被包装为有效结果。方案：限 >0、贷款>价值警示。
+- **复核通过 2026-11-07（第 35 批 · 陈旧证据，已有锁定用例，未改源码）**：`loan-to-value.html` 已有 `!(loan>0)||!(val>0)` 拒绝与 `loan>val` 警示；`verify_banking_calc.js` 2 条用例锁 `120.0 贷款价值比 LTV (%)`（超值警示）与负贷款「⚠ 贷款额与抵押物价值均须大于 0」。实跑 `verify_banking_calc.js 36/36`。
 
 ### F-N17 六页英文结果标签缺键（中，待验证）
 - 证据：`i18n/tools/en` 与 `tool-i18n-en.js` 缺「最高可贷」「贷款价值比」「计算详情」「IRR」；精确匹配下疑似英文态残留中文，待探针。
@@ -284,13 +290,6 @@
 - 复现：初始投入 0、每月定投 0、年限 10（其他默认）→ 页面年化 IRR −600.00%，同屏总投入 ¥0、总收益 ¥0、期末 ¥0。
 - 影响：`tools/finance/mutual-fund-calculator.html`；清空输入即出现不可能的 −600%，且任何无根现金流都会静默返回边界伪解（与 F-N29 同类，但属独立页面）。
 - 方案：`totalInvest <= 0` 或现金流全零时不出 IRR 并提示；求解前检查两端 NPV 异号，收敛后校验残差，触边界明确提示「无解/超出区间」。
-
-### F-N44 定投页亏损收益率出现双负号（中，确认）
-- 描述：`renderStats` 对亏损金额使用负号的同时，也将该负号拼到已经为负的累计收益率前。
-- 证据：`tools/finance/mutual-fund-calculator.html:642-649`。
-- 复现：总收益 −100、累计收益率 −10% 时，统计卡显示 `--10.00%`。
-- 方案：收益率仅在非负时补 `+`，负值直接输出自身符号。
-- 2026-11-06 复核：修复台账称此项已修，但 Node 执行当前 `renderStats()`，收益 −100、收益率 −10% 仍输出 `--10.00%`；本条仍待修。未做浏览器验证。
 
 ### F-N45 定投页初始申购费未计入费用合计、期初扣款 IRR 时点错位（中，确认）
 - 描述：`totalFees` 从 0 开始，循环内只累加每月定投的申购费，初始投入按 `initial*(1-buyFee)` 扣了份额却从未计入费用；`calcIRR` 形参含 `monthStart` 但函数体完全不用，月度现金流始终放在 t=1..N。
@@ -1397,6 +1396,7 @@
 - 复现（node 实算）：cnpj 页输入 `11222333000182`（校验失败）→ 结果区 ❌，但「数据表/历史」无新增行、CSV 不含该次；`parseFloat("输入： 11222333000181 格式化： …")` = `NaN`，两次计算后 `#cnpj_validatorChart` 仍为空。
 - 影响：7 个页面；「趋势图/明细导出」两个可见控件长期空转，用户会反复点击。
 - 方案：历史记录增加数值字段（如 `ok: valid?1:0`）供趋势图使用；CSV 改导「当前结果 + 时间」（或按钮改称「导出历史 CSV」）；失败样本也入库并单列「结论」字段。
+- **⚠️ F-N189 未整体收口（全站专项，禁止自判完成）**：第 41 批全库扫描 `tools/**/*.html`（4907 页）发现该 Extras 模板是**全站通用注入块**，四特征齐全的旧模板页共 **3155 页**（旧过滤正则 3162、恒 NaN 趋势图 3168、`exportTable('#…Table')` 4503、`history.list().slice(0,10)` 3186），已修仅 15 页。`finance` 分类仍有 **87 页**未修，其余分布 `it 269 / design 82 / machinery 74 / sports 74 / biz 64 / agriculture 61 …` 共 100+ 分类。模板真源 `scripts/_ux_wire.py`（在 git 中，`gen_classic_extras` / `gen_custom_render` 两套注入块），**`_build.py` 不调用它** ⇒ 存量是固化产物、改 HTML 不会被 build 覆盖，但也不能靠改源 + build 自动铺开。跨分类**并非完全同构**（如 `agriculture/agri-calculator.html` 用 `querySelector('.result-box')` 且历史恢复回调额外 forEach 5 个计算函数）⇒ 铺开前须先分型，标准页整体替换、定制页做保留定制的精确局部编辑。下一步：改 `_ux_wire.py` 源防止未来重 wire 倒退 + finance 剩余 87 页分型统计 + 小批试点铺开。
 
 ### 承诺 vs 实际（R 批专项）
 - **BIC 反向检索**：meta「也可反向按行名检索代码」/简介同句——实际仅 code→bank 单向查表，输入行名 `Deutsche Bank` 得到「❌ BIC 长度应为 8 或 11 位」（`bic:10`/`:155` vs `:271-307`）。**未实现**。
@@ -1745,3 +1745,56 @@
 - 安全：本轮 10 页均注入模板级 `lf1-cdn-tos.bytegoofy.com/ttzz/push.js`（无 SRI），属全站模板既有项，不重复计数。
 - 复核既有 13 条：已修/失效 8（F-N9/N10/N11/N12/N21/N23/N27/N96），仍成立 4（F-N25/F-N91/F-N92 部分/F-N97），部分 1（F-N22）；F-N26 已失效（基准已改用应还月供）。
 - 复算口径：`M=P·r(1+r)^n/((1+r)^n−1)`、EAR=`(1+r)^12−1`、IRR 用 [0,1] 二分 80 次、信用卡按 `interest=余额×0.0005×30`、`pay=min(余额×比例+息,10)` 逐月；脚本 `/tmp/fin02_audit.js`（node 复算，未改仓库）。
+
+## 2026-11-07 第 39 批 · 陈旧证据复核（10 条，逐条核源码 + 锁定用例，未改任何源码/用例）
+
+> 背景：审计清单里这 10 条仍标「确认」，但后续 T / AC / F-N227 / F-N229 等批次已修，台账未同步。本批**逐条只读复核当前源码与 `verify_finance_calc.js` 实际用例**，确认「源码闭环 + 有强判别锁定用例」后统一标 **复核通过（陈旧证据）**；原条目作为历史档案保留。实跑 `node scripts/verify_finance_calc.js` = **379/379**、单文件判别力 `379 正确变红 / 0 逃生`。AC 批「复核既有 13 条」统计属 2026-11-04 历史快照，其中 F-N25/F-N26 的「仍成立/已失效」描述与当前源码不再对应，以本节为准。
+
+| 编号 | 当前源码闭环 | 锁定用例锚点（`scripts/verify_finance_calc.js`） |
+| --- | --- | --- |
+| F-N24 零利率被拦截 | `generateSchedule()` 等额本息 `monthlyRate === 0 ? amount/totalMonths`、气球贷 r=0 分支；`__tbInputGuard` 分母表 `__D` 为空，不再整体拒绝 0% | F-N24 用例 `1,000.00 首月月供` / `0.00 总利息` / `12,000.00 总还款额`（12000/0%/1年） |
+| F-N25 提前还款分支/负金额 | 先息后本、气球贷均按剩余本金/剩余期数重算；`prepayAmount` 前置拒绝 ≤0 | F-N227 三条：`还款后剩余本金： 900,000.00 元 节省利息： 137,200.00 元`、`减少月供： 0.00 元 新月供：11,454.39 元`、`提前还款金额须大于 0` |
+| F-N26 输入月供不参与原方案 | `mortgage-prepayment` 已改「同月供不提前还款」为对照基准 | F-N224 `较对照方案节省（元） 0.00 0.00`、F-N233 `对照方案（不提前还款，月供不变）：月供 3000.00 元 × 263 期，总还款 786133.97 元` |
+| F-N29 NPV IRR 无根返回 1000% | `calcIRR` 改端点符号扫描 + 多根识别 + 残差校验，返回 `none/no-positive` 与 `multiple` 状态 | `无解 IRR 内部收益率`、`IRR： ✗ 无解（现金流同号或 NPV 无零点），不可行`、`IRR： ✗ 存在多个根` |
+| F-N41 通胀反向折现方向 | `getYearData()` 反向分支已改 `purchasingPower = amt / factor`（正向同式），不再放大 | `折现到现在，价值： ¥ 82,855.87`（120000/2.5%/15年） |
+| F-N42 免息期空下拉框 | `bill` / `due` 两个 select 已生成 1–31 全部 option 并带 selected 默认值 | 12/28 组合 `45 天 最长免息期（账单日次日消费）` / `¥12.33`；28 日账单+次月 5 日 `36 天` / `¥9.86` |
+| F-N43 定投零输入 −600% | `calcIRR` 先扫 `hasNeg`/`hasPos`，全同号返回 NaN | `无法计算（请输入有效现金流）` |
+| F-N49 折扣 chip 单位反了 | chip 模板改 `value="${d * 10}"`、`min=0 max=10`、`placeholder …（0–10 折）`；`updateDiscount` 按「折」口径换算 | `¥ 175.00` / `7.00 折`；F-N48 两条 `折扣须在 0–10 折之间（如 8 表示 8 折）。` |
+| F-N50 夏普无风险率错配 | `rfPeriod = annFactor > 1 ? riskFree / annFactor : riskFree`，结果区列出折算式 | `每期无风险利率 = 2.00% ÷ 12 = 0.167%`、`每期夏普比率 = 13.833 ÷ 20.000 = 0.6917`、`年化夏普 = 0.6917 × √12 = 2.3960` |
+| F-N52 利润率页折旧未扣 | 公式框与计算链均含「营业利润 − 折旧摊销」「EBITDA = 营业利润 + 折旧摊销」 | `净利率 54.00%` / `EBITDA利润率 60.00%`（500万收入/200万成本/30万折旧） |
+
+- **F-N189 已在第 40 / 41 批改完 `finance` 15 页**（详见 F-N189 条目）。但全库扫描确认该模板是全站通用注入块、尚有 **3155 页**未修，**F-N189 未整体收口**，按「禁止草率收口铁律」另立全站专项分批续修；本表上文「7 页 / 8 页 / 15 页」均只是 `finance` 子集。
+- **待裁断**：99 是否作为 GST `Centre (CGST jurisdiction)` 特殊辖区码放行（见 F-N170 第 38 批处置），裁断前不改代码。
+
+## 2026-11-07 第 42 批 · F-N189 全站专项（改模板真源 + 分型 + 试点 8 页，仍未整体收口）
+
+- **改真源 `scripts/_ux_wire.py`**：F-N189 只影响 custom 模式，classic 一行未动。9 处精确替换（`gen_custom_render` 的 head/rows/mount/图表 4 处 + `apply_custom` 的 ResText/Score/Extras/Export 4 处 + 位置感知），`python3 -m py_compile` OK；载入改后模块调 `gen_custom_render('cnpj_validator','validate')` 生成 1757 字符，与已修 cnpj 页 Render 段**逐字一致** ⇒ 未来手动重 wire 不会再注入旧缺陷。`_build.py` 不调用它，改源不影响线上字节。
+- **全站分型（4907 页扫描）**：四特征齐全旧模板 **3155 页**，其中**标准同构 3042（96.4%）可整体替换**、定制 107（须保留定制的局部编辑）、异常 6；**3148 页三容器齐全**（Chart/Table/导出按钮真实可见，非装饰）。`finance` 未修 86 页中标准 82。前缀必须从 `exportTable('#([^']+)Table','…')` 第 1 捕获组取（带 `#` 会全量假判 `no_boundary`）。
+- **试点铺开 8 页**：`aadhaar-validator` / `aba-validator` / `abn-validator` / `amount-in-words` / `analysis-44` / `analysis-5` / `analysis-cost-1` / `analysis-risk`。参数自适应脚本自动抽取结果容器与计算函数，实测覆盖 `getElementById('output')+validate()`、`querySelector('.result-box')+convert()`、`getElementById('res')+calc()` 三种形态，8/8 与基准新段归一化同构。
+- **通用两态锁 `scripts/_verify_fn189_rollout.mjs`**：`--pages` / `--cat` / `--head` / `--ref` / `--verbose` 参数化，页面参数自动抽取，后续所有铺开批次复用，不再每批派生脚本。当前 **209 PASS / 0 FAIL**、`--head` **153 FAIL / 48 PASS**。
+- **待老板裁断**：是否一次性铺到全站 3042 标准页（大 diff + 全站产物变化 + 需完整 229 门禁兜底）。裁断前不擅自全量铺开，继续按每批 8–12 页小步推进；定制页另设计保留定制的局部编辑脚本。
+
+## 2026-11-07 第 43 批 · F-N189 铺开工具固化 + finance 第二组 8 页
+
+- **交付 `scripts/_fn189_rollout.py`**：`--cat` / `--pages` / `--dry` 参数化，从 cnpj 基准新段反推模板，自动抽取 5 个页面参数，先全批自检再写盘（边界唯一 / 旧过滤正则 / 恒 NaN 特征 / `__tbScore` 4 处 / csv 名 / 归一化同构），定制页明确拒绝。后续铺开批次复用，不再重写临时脚本。
+- **铺开 8 页**：`assessor-manager` / `bic-validator` / `bond-yield-calculator` / `break-even-calculator` / `calc-2` / `calc-3` / `calc-4` / `calc-5`，`--dry` 与 `--apply` 均 8/8；第 33 批 F-N4 在 bond-yield 页的改动 7 处仍在（替换范围不相交）。
+- **通用两态锁加固**：注入 canvas `getContext` Proxy 桩 + `canvasColorWithAlpha` / `resolveCanvasColor`；运行期改为直接驱动 `Extras()`（写输入 + 注入成功/失败结果文本），绕开页面 `calc()` 的真机依赖；`VirtualConsole` 静默已知噪音。回归：第 42 批 8 页仍 209 PASS、第 40/41 批抽 4 页 105 PASS。
+- 第 44 批方向：finance 第三组 8 页；并设计 4 个定制页（`dca` / `irr` / `npv` / `password-generator-advanced`，均为前批加过快照/IRR 逻辑者）的保留定制局部编辑方案，禁止整体替换。
+
+## 2026-11-08 第 44 批 · F-N189 finance 标准页第三组 + 定制页局部编辑工具
+
+- **铺开工具补洞（真隐患）**：`_fn189_rollout.py` 原「拒绝定制页」只检查旧段长度 >2000，实测对 4 个定制页 `--dry` **全部放行**，整体替换会静默抹掉前批定制逻辑。已改为与 **标准旧段归一化骨架逐字比对**（`scripts/_fn189_std_old_seg_normalized.txt`，2892 字符，取自 HEAD 的 `capm-return`，`cpf-validator`/`credit-card-type` 逐字一致）；不一致即 FAIL 并提示走局部编辑。加固后实测 `dca-calculator` 被正确拒绝。
+- **铺开标准页 8 页**：`capm-return` / `car-loan-calculator` / `compound-interest` / `cpf-validator` / `credit-card-bin` / `credit-card-interest` / `credit-card-luhn` / `credit-card-type`，`--dry` 与 apply 均 8/8，覆盖 `getElementById('result'|'output') + capmCalc/validate` 与 `querySelector('.result-box') + calc` 两类形态。
+- **交付 `scripts/_fn189_custom_patch.py`**（定制页专用）：只替换 8 个修复锚点（ResText 过滤行+Score / 表头结论列 / 行内结论值 / 历史恢复跳过 `__tbScore` / 趋势数值源 / 趋势名 / Extras 写 `__tbScore` / 导出前补渲染），逐行保留定制。**核心断言**：归一化后「相对标准骨架的增删行集合」替换前后**完全一致** ⇒ 除 F-N189 修复外没动任何其它字节；另断言每锚点段内/全文各恰好 1 次、`__tbScore` 4 处、旧过滤消失、新段仍不同于基准（定制仍在）。
+- **4 个定制页修完**：`dca-calculator`（F-N8 时点同步，定制差异 2 行）、`irr-calculator`（现金流快照重建，2 行）、`npv-calculator`（导出前初始投资校验，1 行）、`password-generator-advanced`（历史只存摘要、绝不存明文，6 行）；前批定制锚点全部原样保留。
+- **通用两态锁加 `--custom`**：不再要求与基准新段同构，改为断言「仍与基准不同」+「前批定制锚点仍在」（内置 4 页锚点映射，未登记即 FAIL 强制留痕）；其余源码/运行期/EN 态断言不变。
+- 证据：`_fn189_rollout.py` 8/8、`_fn189_custom_patch.py` 4/4、`verify_finance_calc.js` **379/379**、判别力 **379 正确变红 / 0 逃生**、id 审计僵尸 0、全站内联脚本 **17035 个 0 语法错**；两态锁标准页 **209 PASS / 0 FAIL**、定制页 **109 PASS / 0 FAIL**；负向锁标准 8 页 **160 FAIL / 41 PASS**、定制 4 页 **76 FAIL / 29 PASS**；`py_compile` OK。
+- **finance 剩余归零**：全部 58 页标准模板已在本批与第 45 批（全站批量）覆盖范围；第 44 批结束时 finance 旧模板剩 58 页标准 + 0 定制。
+- **老板裁断（2026-11-08）**：同意一次性把修法铺到全站标准页 ⇒ 第 45 批起转全站批量（标准 3018 / 定制 94 / 异常 29）。
+
+## 2026-11-08 第 46 批 · F-N189 全站异常形态清零（31 页 + 工具链 9 处缺陷）
+
+- **全站存量清零**：`_fn189_rollout_all.py --dry` → `custom 0 / std 0 / abnormal 0`（已修 3186 / 无关 1721），F-N189 不再有待修页。
+- **6 类异常形态的根因与处置**：过滤行变体（`|⚠`/`|请填写`/`|应大于`/`|抽取中`/`|不能为|必须`）改结构正则改写；**导出目标 ≠ 表容器（5 页，导出恒空 CSV 的真 BUG）**以「唯一 `matrix.table` 容器优先」纠正，Export 内旧容器守卫一并修；**自研趋势源页（CD4/D8 比值、密文输出字节数、平均分/NSP数值）合法跳过趋势改写**，避免把页面兜底逻辑变成死代码；自拼导出族（`exportCsv` / Blob / PNG）分级断言；`chess/gomoku-forbidden` 缺 4 个容器 div 已补；数字开头 id 改走 `getElementById`。
+- **工具链 9 处真缺陷**（详见移交文件）：幂等闸缺失导致重复插入 `rec.__tbScore=`（5 处）、导出锚点硬编码 `#<pre>Table` 写坏非标准 host 页、趋势名正则删掉 `name:` 键产出语法错、`OLD_FILTER` 精确串判定漏掉变体页、`classify` 误判半修页与自研趋势页、两态锁 `parsePage` 误取按钮 onclick 的 `exportTable`（前缀判成 `purity` 直接 FATAL）、锁内 `uncaughtException` 静默吞错（exit 0 假绿）、锁桩 `querySelector` 遇数字开头 id 崩溃 + `exportCsv`/Blob 导出不可观测。
+- 证据：两态锁本批 35 页逐页 PASS（1 SKIP 已记明「需页面先完成真机计算」）、`--head` 负向正确 FAIL、全站 194 分类抽 2 页 **176 标准同构 + 12 定制全 PASS**、内联脚本 17035 段 0 语法错、`verify_calc.js ALL OK (84 pages)`、`verify_finance_calc.js 379/379`、判别力逃生 20=基线 / 跳过 7=基线（无新增）、全站导出 id 审计 3186 页仅 1 页异常已修。

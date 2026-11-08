@@ -318,21 +318,28 @@ function calc() {
   document.getElementById('temp-input').value = temp;
 
   // Adjust target temperature based on sleeper type
+  // SF-N37：普通型原取 targetTemp=temp（零余量），与页内「下限温度低于环境 3-5°C」自相矛盾，
+  // 且 5°C 环境会推荐「+10°C 夏季」（下限 5=环境温度）；改为预留 3°C 余量。
+  // 怕热型应按「舒适温度 ≤ 环境」匹配（原按 limit 比较，实际比舒适标准更暖），故按类型切换匹配字段。
   var targetTemp = temp;
-  var targetLabel = '下限温度';
+  var targetLabel = '下限温度 (含3°C余量)';
+  var matchKey = 'limit';
   if (sleeperType === 'warm') {
-    targetTemp = temp - 3; // Use comfort rating (3°C higher than limit)
-    targetLabel = '舒适温度';
+    targetTemp = temp; // 以舒适温度为标准，不再额外减 3
+    targetLabel = '舒适温度上限';
+    matchKey = 'comfort';
   } else if (sleeperType === 'cold') {
     targetTemp = temp - 5; // 5°C margin
     targetLabel = '下限温度 (含5°C余量)';
+  } else {
+    targetTemp = temp - 3; // 普通型：按页内建议预留 3°C 余量
   }
 
   // Find recommended bag
   var recommended = null;
   var recommendedIdx = -1;
   for (var i = 0; i < BAG_SERIES.length; i++) {
-    if (BAG_SERIES[i].limit <= targetTemp) {
+    if (BAG_SERIES[i][matchKey] <= targetTemp) {
       recommended = BAG_SERIES[i];
       recommendedIdx = i;
       break;
@@ -354,6 +361,9 @@ function calc() {
   html += '<div class="stat-card"><div class="val">' + temp + '°C</div><div class="lbl">环境温度</div></div>';
   html += '<div class="stat-card"><div class="val">' + targetTemp + '°C</div><div class="lbl">目标' + targetLabel + '</div></div>';
   html += '<div class="stat-card"><div class="val">' + recommended.name + '</div><div class="lbl">推荐睡袋</div></div>';
+  // SF-N37：明示实际保温余量，避免「零余量推荐」被当成有备而来
+  var marginVal = temp - recommended[matchKey];
+  html += '<div class="stat-card"><div class="val">' + (marginVal > 0 ? '+' : '') + marginVal + '°C</div><div class="lbl">保温余量（环境 − ' + (matchKey === 'comfort' ? '舒适温度' : '下限温度') + '）</div></div>';
   html += '</div>';
 
   // Temperature visualization
@@ -440,8 +450,9 @@ function copyResult() {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
+  // SF-N38：原在 calc() 之后固定调用 updateRefTable(1)，覆盖 calc() 按 recommendedIdx 设的高亮，
+  // 造成首屏「结果卡推荐 +10°C 夏季、参考表却高亮 +5°C 三季」。高亮统一由 calc() 负责。
   calc();
-  updateRefTable(1);
 });
 </script>
 
@@ -537,8 +548,13 @@ function __sleeping_bag_ratingResText(){
     if(!r) return '';
     var t=(r.textContent||'').replace(/\s+/g,' ').trim();
     if(!t||t==='--'||t==='—'||t==='-') return '';
-    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
+}
+function __sleeping_bag_ratingScore(t){
+    var s=String(t||'');
+    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    return 1;
 }
 function __sleeping_bag_ratingTime(t){
     var d=new Date(t);
@@ -548,10 +564,12 @@ function __sleeping_bag_ratingTime(t){
 function __sleeping_bag_ratingRender(keys,rk,en){
     try{
         var arr=TBKit.history.list().slice(0,10);
-        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var head=[en?'Time':'时间'].concat(keys).concat([en?'Verdict':'结论',rk]);
         var rows=arr.map(function(it){
             var row=[__sleeping_bag_ratingTime(it.t)];
             for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var sc=parseFloat(it.d.__tbScore);
+            row.push(isFinite(sc)?(sc>=1?(en?'Pass':'通过'):(en?'Fail':'未通过')):'-');
             var r=it.d[rk];row.push(r==null?'':r);
             return row;
         });
@@ -561,7 +579,7 @@ function __sleeping_bag_ratingRender(keys,rk,en){
             __sleeping_bag_rating_skip=true;
             try{
                 for(var k in rec){
-                    if(k===rk) continue;
+                    if(k===rk||k==='__tbScore') continue;
                     var e=document.getElementById(k);
                     if(!e) continue;
                     var t=(e.type||'').toLowerCase();
@@ -574,11 +592,11 @@ function __sleeping_bag_ratingRender(keys,rk,en){
         });
         var nums=[],labels=[];
         for(var j=arr.length-1;j>=0;j--){
-            var v=parseFloat(arr[j].d[rk]);
+            var v=parseFloat(arr[j].d.__tbScore);
             if(isFinite(v)){nums.push(v);labels.push(__sleeping_bag_ratingTime(arr[j].t));}
         }
         if(nums.length>=2){
-            TBKit.chart.line('#sleeping_bag_ratingChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+            TBKit.chart.line('#sleeping_bag_ratingChart',{labels:labels,series:[{name:en?'Validity trend':'有效性趋势',data:nums}]});
         }
     }catch(e3){}
 }
@@ -608,11 +626,21 @@ function __sleeping_bag_ratingExtras(){
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
+    rec.__tbScore=__sleeping_bag_ratingScore(res);
     TBKit.history.record(rec);
     __sleeping_bag_ratingRender(keys,rk,en);
 }
 function __sleeping_bag_ratingExport(){
     if (typeof TBKit === 'undefined') return;
+    try{
+        var box=document.querySelector('#sleeping_bag_ratingTable');
+        if(!box||!box.querySelector('tr')){
+            var snap=__sleeping_bag_ratingSnap(); var keys=Object.keys(snap);
+            if(keys.length>12) keys=keys.slice(0,12);
+            var en=(TBKit.util&&TBKit.util.isEn())?true:false;
+            __sleeping_bag_ratingRender(keys,en?'Result':'结果',en);
+        }
+    }catch(e){}
     try { TBKit.util.exportTable('#sleeping_bag_ratingTable','sleeping-bag-rating.csv'); } catch(e){}
 }
 function __sleeping_bag_ratingPresets(){

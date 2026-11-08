@@ -178,7 +178,9 @@ s.parentNode.insertBefore(el, s);
 </div>
 <script>
 function calc(){
-var hrs=[];for(var i=1;i<=5;i++){hrs.push(+document.getElementById('hr'+i).value||0);}
+// SF-N63：原用 `+value||0` 读取，空框变 0 参与增量计算；增量全相等时 atPoint 取首级仍判「AT 拐点」，
+// 且 atHr 有 `||hrs[0]` 回退到首点。现：① 5 级必须全部为有效正数，否则停算；② 增量全相等（无斜率突增）不给 AT。
+var hrs=[];for(var i=1;i<=5;i++){var _raw=String(document.getElementById('hr'+i).value).trim();var _v=parseFloat(_raw);if(!_raw||isNaN(_v)||_v<=0){document.getElementById('res').innerHTML='<p style="color:var(--danger)">⚠ 请填写全部 5 级强度下的心率（均为正数，bpm），缺项或 0 无法定位拐点。</p>';return;}hrs.push(_v);}
 var age=+document.getElementById('age').value||30;
 var rhr=+document.getElementById('rhr').value||60;
 var maxHr=220-age;
@@ -186,7 +188,11 @@ var diffs=[];
 for(var i=1;i<5;i++){diffs.push(hrs[i]-hrs[i-1]);}
 var maxDiff=0,atPoint=0;
 for(var i=0;i<4;i++){if(diffs[i]>maxDiff){maxDiff=diffs[i];atPoint=i+1;}}
-var atHr=hrs[atPoint-1]||hrs[0];
+// 增量全相等 ⇒ 无「斜率突增」拐点，不能把首级当 AT（默认 100/120/140/160/180 即此情形）
+var _uniform=true;
+for(var i=1;i<4;i++){if(diffs[i]!==diffs[0]){_uniform=false;break;}}
+if(_uniform||atPoint===0||maxDiff<=0){document.getElementById('res').innerHTML='<p style="color:var(--danger)">⚠ 各级心率增量相同（无斜率突增点），无法判定无氧阈。请按递增负荷测试重测，使某两级之间出现明显的心率跃升。</p>';return;}
+var atHr=hrs[atPoint-1];
 var atPctMax=Math.round(atHr/maxHr*100);
 var karvonenMax=maxHr-rhr;
 var atKarvonen=Math.round((atHr-rhr)/karvonenMax*100);
@@ -307,8 +313,13 @@ function __detector_14ResText(){
     if(!r) return '';
     var t=(r.textContent||'').replace(/\s+/g,' ').trim();
     if(!t||t==='--'||t==='—'||t==='-') return '';
-    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
+}
+function __detector_14Score(t){
+    var s=String(t||'');
+    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    return 1;
 }
 function __detector_14Time(t){
     var d=new Date(t);
@@ -318,10 +329,12 @@ function __detector_14Time(t){
 function __detector_14Render(keys,rk,en){
     try{
         var arr=TBKit.history.list().slice(0,10);
-        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var head=[en?'Time':'时间'].concat(keys).concat([en?'Verdict':'结论',rk]);
         var rows=arr.map(function(it){
             var row=[__detector_14Time(it.t)];
             for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var sc=parseFloat(it.d.__tbScore);
+            row.push(isFinite(sc)?(sc>=1?(en?'Pass':'通过'):(en?'Fail':'未通过')):'-');
             var r=it.d[rk];row.push(r==null?'':r);
             return row;
         });
@@ -331,7 +344,7 @@ function __detector_14Render(keys,rk,en){
             __detector_14_skip=true;
             try{
                 for(var k in rec){
-                    if(k===rk) continue;
+                    if(k===rk||k==='__tbScore') continue;
                     var e=document.getElementById(k);
                     if(!e) continue;
                     var t=(e.type||'').toLowerCase();
@@ -344,11 +357,11 @@ function __detector_14Render(keys,rk,en){
         });
         var nums=[],labels=[];
         for(var j=arr.length-1;j>=0;j--){
-            var v=parseFloat(arr[j].d[rk]);
+            var v=parseFloat(arr[j].d.__tbScore);
             if(isFinite(v)){nums.push(v);labels.push(__detector_14Time(arr[j].t));}
         }
         if(nums.length>=2){
-            TBKit.chart.line('#detector_14Chart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+            TBKit.chart.line('#detector_14Chart',{labels:labels,series:[{name:en?'Validity trend':'有效性趋势',data:nums}]});
         }
     }catch(e3){}
 }
@@ -378,11 +391,21 @@ function __detector_14Extras(){
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
+    rec.__tbScore=__detector_14Score(res);
     TBKit.history.record(rec);
     __detector_14Render(keys,rk,en);
 }
 function __detector_14Export(){
     if (typeof TBKit === 'undefined') return;
+    try{
+        var box=document.querySelector('#detector_14Table');
+        if(!box||!box.querySelector('tr')){
+            var snap=__detector_14Snap(); var keys=Object.keys(snap);
+            if(keys.length>12) keys=keys.slice(0,12);
+            var en=(TBKit.util&&TBKit.util.isEn())?true:false;
+            __detector_14Render(keys,en?'Result':'结果',en);
+        }
+    }catch(e){}
     try { TBKit.util.exportTable('#detector_14Table','detector-14.csv'); } catch(e){}
 }
 function __detector_14Presets(){

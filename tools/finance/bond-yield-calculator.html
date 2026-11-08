@@ -455,6 +455,11 @@ s.parentNode.insertBefore(el, s);
 </div>
 
 <script>function __tbInputGuard(_ids,_labels){
+  var __r=__tbInputGuardCore(_ids,_labels);
+  if(__r){var __t=document.getElementById('bond_yield_calculatorTable');if(__t)__t.innerHTML='';}
+  return __r;
+}
+function __tbInputGuardCore(_ids,_labels){
   var __TPL='请填写「%s」后再计算。';
   var __TPL2="<p style=\"color:var(--danger)\">⚠ 「%s」是本计算的分母，不能为 0。</p>";
   var _vals=[],_firstBad=-1;
@@ -509,6 +514,10 @@ s.parentNode.insertBefore(el, s);
 
 
 var currentTab = 'calc';
+function __bondEn(){
+  try{ return (typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn())?true:false; }
+  catch(e){ try{ return /[?&]lang=en-US/.test(location.search); }catch(e2){ return false; } }
+}
 var currentMethod = 'ytm';
 var HISTORY_KEY = 'bond_calc_history';
 var currentResult = null;
@@ -702,8 +711,10 @@ function calc(){
     var price = calcBondPrice(face, couponRate, years, marketRate, freq, type);
     var premium = price - face;
     var premiumRate = premium / face * 100;
-    var annualCoupon = face * couponRate / 100;
-    var currentYield = annualCoupon / price * 100;
+    var isZeroPrice = (type === 'zero');
+    // 零息债券不付息：票面利率输入不参与定价，也不应产出年利息 / 当期收益率（F-N4 残留）
+    var annualCoupon = isZeroPrice ? 0 : face * couponRate / 100;
+    var currentYield = isZeroPrice ? 0 : annualCoupon / price * 100;
     
     result.face = face;
     result.couponRate = couponRate;
@@ -795,8 +806,18 @@ function renderResult(r){
     html += '<p>债券理论价格：<strong style="color:var(--primary);font-size:18px;">¥' + ToolBox.formatNumber(r.price, 2) + '</strong></p>';
     html += '<p>升贴水：<strong style="color:' + (r.premium >= 0 ? 'var(--success)' : 'var(--danger)') + ';">' + (r.premium >= 0 ? '溢价' : '折价') + ' ¥' + ToolBox.formatNumber(Math.abs(r.premium), 2) + '（' + (r.premiumRate > 0 ? '+' : '') + r.premiumRate.toFixed(2) + '%）</strong></p>';
     html += '<p>当期收益率：<strong>' + r.currentYield.toFixed(2) + '%</strong></p>';
-    html += '<p>年利息：<strong>¥' + ToolBox.formatNumber(r.annualCoupon, 2) + '</strong></p>';
-    html += '<p style="font-size:12px;color:var(--text-muted);margin-top:8px;">* ' + (r.premium >= 0 ? '溢价发行：票面利率 > 市场利率' : '折价发行：票面利率 < 市场利率') + '</p>';
+    html += '<p>年利息：<strong>¥' + ToolBox.formatNumber(r.annualCoupon, 2) + '</strong>' + (r.type === 'zero' ? (__bondEn() ? ' (zero-coupon bond: no coupon)' : '（零息债券：无票息）') : '') + '</p>';
+    var __bNote;
+    if(r.type === 'zero'){
+      __bNote = __bondEn()
+        ? 'Zero-coupon bonds pay no coupon; the price is the face value discounted at the market rate, and the coupon-rate input is ignored.'
+        : '零息债券不付息，价格由面值按市场利率折现得到，票面利率输入不参与计算';
+    } else {
+      __bNote = __bondEn()
+        ? (r.premium >= 0 ? 'Premium bond: coupon rate above market rate' : 'Discount bond: coupon rate below market rate')
+        : (r.premium >= 0 ? '溢价发行：票面利率 > 市场利率' : '折价发行：票面利率 < 市场利率');
+    }
+    html += '<p style="font-size:12px;color:var(--text-muted);margin-top:8px;">* ' + __bNote + '</p>';
   }
   
   const __g3=html;document.getElementById('res').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
@@ -1079,8 +1100,13 @@ function __bond_yield_calculatorResText(){
     if(!r) return '';
     var t=(r.textContent||'').replace(/\s+/g,' ').trim();
     if(!t||t==='--'||t==='—'||t==='-') return '';
-    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
+}
+function __bond_yield_calculatorScore(t){
+    var s=String(t||'');
+    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    return 1;
 }
 function __bond_yield_calculatorTime(t){
     var d=new Date(t);
@@ -1090,10 +1116,12 @@ function __bond_yield_calculatorTime(t){
 function __bond_yield_calculatorRender(keys,rk,en){
     try{
         var arr=TBKit.history.list().slice(0,10);
-        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var head=[en?'Time':'时间'].concat(keys).concat([en?'Verdict':'结论',rk]);
         var rows=arr.map(function(it){
             var row=[__bond_yield_calculatorTime(it.t)];
             for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var sc=parseFloat(it.d.__tbScore);
+            row.push(isFinite(sc)?(sc>=1?(en?'Pass':'通过'):(en?'Fail':'未通过')):'-');
             var r=it.d[rk];row.push(r==null?'':r);
             return row;
         });
@@ -1103,7 +1131,7 @@ function __bond_yield_calculatorRender(keys,rk,en){
             __bond_yield_calculator_skip=true;
             try{
                 for(var k in rec){
-                    if(k===rk) continue;
+                    if(k===rk||k==='__tbScore') continue;
                     var e=document.getElementById(k);
                     if(!e) continue;
                     var t=(e.type||'').toLowerCase();
@@ -1116,11 +1144,11 @@ function __bond_yield_calculatorRender(keys,rk,en){
         });
         var nums=[],labels=[];
         for(var j=arr.length-1;j>=0;j--){
-            var v=parseFloat(arr[j].d[rk]);
+            var v=parseFloat(arr[j].d.__tbScore);
             if(isFinite(v)){nums.push(v);labels.push(__bond_yield_calculatorTime(arr[j].t));}
         }
         if(nums.length>=2){
-            TBKit.chart.line('#bond_yield_calculatorChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+            TBKit.chart.line('#bond_yield_calculatorChart',{labels:labels,series:[{name:en?'Validity trend':'有效性趋势',data:nums}]});
         }
     }catch(e3){}
 }
@@ -1150,11 +1178,21 @@ function __bond_yield_calculatorExtras(){
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
+    rec.__tbScore=__bond_yield_calculatorScore(res);
     TBKit.history.record(rec);
     __bond_yield_calculatorRender(keys,rk,en);
 }
 function __bond_yield_calculatorExport(){
     if (typeof TBKit === 'undefined') return;
+    try{
+        var box=document.querySelector('#bond_yield_calculatorTable');
+        if(!box||!box.querySelector('tr')){
+            var snap=__bond_yield_calculatorSnap(); var keys=Object.keys(snap);
+            if(keys.length>12) keys=keys.slice(0,12);
+            var en=(TBKit.util&&TBKit.util.isEn())?true:false;
+            __bond_yield_calculatorRender(keys,en?'Result':'结果',en);
+        }
+    }catch(e){}
     try { TBKit.util.exportTable('#bond_yield_calculatorTable','bond-yield-calculator.csv'); } catch(e){}
 }
 function __bond_yield_calculatorPresets(){

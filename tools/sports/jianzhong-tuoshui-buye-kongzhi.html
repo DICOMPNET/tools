@@ -282,10 +282,15 @@ function calc(){
   var box=document.getElementById('res');
   if(!box)return;
   if(!isFinite(A)||!isFinite(B)){box.innerHTML='<div class="info-box">请输入两个有效数值后再计算。</div>';return;}
+  // SF-N34：补液系数越界（0/负数/超量）会产生 0、负或 30L 之类补液量，须限定合理范围（>0 且 ≤3，常用 1.2–1.5 L/kg）
+  if(B<=0||B>3){box.innerHTML='<div class="info-box" style="color:var(--danger)">⚠ 补液系数需在合理范围（>0 且 ≤3，运动医学常用 1.2–1.5 L/kg）。</div>';return;}
+  // SF-N34（分次卡口径）：原「2 小时分次/次」= 总量÷2，会把 1.5 L 标成「单次饮量」（低钠风险），
+  // 改为按运动医学常用单次 250 mL 折算次数，单次量固定 250 mL。
+  var totalMl=A*B*1000, perDose=250, doses=Math.max(1,Math.ceil(totalMl/perDose));
   var items=[];
   items.push([(A*B).toFixed(2)+" L", "建议补液量"]);
-  items.push([(A*B/2).toFixed(2)+" L", "2 小时分次/次"]);
-  items.push([(A*B*1000).toFixed(0)+" mL", "毫升"]);
+  items.push([perDose+" mL × "+doses+" 次", "分次安排（每次 250 mL，间隔 15–20 分钟）"]);
+  items.push([totalMl.toFixed(0)+" mL", "总毫升"]);
 
   var html='<div class="data-grid">'+items.map(function(it){return '<div class="data-card"><div class="num">'+it[0]+'</div><div class="label">'+it[1]+'</div></div>';}).join('')+'</div>';
   html+='💡 补液量 = 体重差 × 补液系数（约 1.2–1.5 L/kg 失重）。';
@@ -316,8 +321,13 @@ function __jianzhong_tuoshui_buye_kongzhiResText(){
     if(!r) return '';
     var t=(r.textContent||'').replace(/\s+/g,' ').trim();
     if(!t||t==='--'||t==='—'||t==='-') return '';
-    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
+}
+function __jianzhong_tuoshui_buye_kongzhiScore(t){
+    var s=String(t||'');
+    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    return 1;
 }
 function __jianzhong_tuoshui_buye_kongzhiTime(t){
     var d=new Date(t);
@@ -327,10 +337,12 @@ function __jianzhong_tuoshui_buye_kongzhiTime(t){
 function __jianzhong_tuoshui_buye_kongzhiRender(keys,rk,en){
     try{
         var arr=TBKit.history.list().slice(0,10);
-        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var head=[en?'Time':'时间'].concat(keys).concat([en?'Verdict':'结论',rk]);
         var rows=arr.map(function(it){
             var row=[__jianzhong_tuoshui_buye_kongzhiTime(it.t)];
             for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var sc=parseFloat(it.d.__tbScore);
+            row.push(isFinite(sc)?(sc>=1?(en?'Pass':'通过'):(en?'Fail':'未通过')):'-');
             var r=it.d[rk];row.push(r==null?'':r);
             return row;
         });
@@ -340,7 +352,7 @@ function __jianzhong_tuoshui_buye_kongzhiRender(keys,rk,en){
             __jianzhong_tuoshui_buye_kongzhi_skip=true;
             try{
                 for(var k in rec){
-                    if(k===rk) continue;
+                    if(k===rk||k==='__tbScore') continue;
                     var e=document.getElementById(k);
                     if(!e) continue;
                     var t=(e.type||'').toLowerCase();
@@ -353,11 +365,11 @@ function __jianzhong_tuoshui_buye_kongzhiRender(keys,rk,en){
         });
         var nums=[],labels=[];
         for(var j=arr.length-1;j>=0;j--){
-            var v=parseFloat(arr[j].d[rk]);
+            var v=parseFloat(arr[j].d.__tbScore);
             if(isFinite(v)){nums.push(v);labels.push(__jianzhong_tuoshui_buye_kongzhiTime(arr[j].t));}
         }
         if(nums.length>=2){
-            TBKit.chart.line('#jianzhong_tuoshui_buye_kongzhiChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+            TBKit.chart.line('#jianzhong_tuoshui_buye_kongzhiChart',{labels:labels,series:[{name:en?'Validity trend':'有效性趋势',data:nums}]});
         }
     }catch(e3){}
 }
@@ -387,11 +399,21 @@ function __jianzhong_tuoshui_buye_kongzhiExtras(){
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
+    rec.__tbScore=__jianzhong_tuoshui_buye_kongzhiScore(res);
     TBKit.history.record(rec);
     __jianzhong_tuoshui_buye_kongzhiRender(keys,rk,en);
 }
 function __jianzhong_tuoshui_buye_kongzhiExport(){
     if (typeof TBKit === 'undefined') return;
+    try{
+        var box=document.querySelector('#jianzhong_tuoshui_buye_kongzhiTable');
+        if(!box||!box.querySelector('tr')){
+            var snap=__jianzhong_tuoshui_buye_kongzhiSnap(); var keys=Object.keys(snap);
+            if(keys.length>12) keys=keys.slice(0,12);
+            var en=(TBKit.util&&TBKit.util.isEn())?true:false;
+            __jianzhong_tuoshui_buye_kongzhiRender(keys,en?'Result':'结果',en);
+        }
+    }catch(e){}
     try { TBKit.util.exportTable('#jianzhong_tuoshui_buye_kongzhiTable','jianzhong-tuoshui-buye-kongzhi.csv'); } catch(e){}
 }
 function __jianzhong_tuoshui_buye_kongzhiPresets(){

@@ -8,22 +8,22 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="toolbox" content="cat=dev,industry=it,icon=✨,bg=#eff6ff">
 <title>.gitignore 生成器 - 免费在线开发工具</title>
-<link rel="canonical" href="https://chenguangwu.github.io/tools/it/gitignore-generator.html">
+<link rel="canonical" href="https://tools.dicomp.net/tools/it/gitignore-generator.html">
 <meta property="og:title" content=".gitignore 生成器 - 免费在线开发工具">
 <meta property="og:description" content=".gitignore 生成器是一款免费的在线IT 开发工具，生成后保存为项目根目录的 .gitignore 即可。可继续手动追加项目特有忽略项。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
-<meta property="og:url" content="https://chenguangwu.github.io/tools/it/gitignore-generator.html">
+<meta property="og:url" content="https://tools.dicomp.net/tools/it/gitignore-generator.html">
 <meta name="twitter:card" content="summary">
 <meta name="description" content=".gitignore 生成器是一款免费的在线IT 开发工具，生成后保存为项目根目录的 .gitignore 即可。可继续手动追加项目特有忽略项。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
 <link rel="stylesheet" href="../../css/common.css">
 <script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://chenguangwu.github.io/"},{"@type":"ListItem","position":2,"name":"IT开发","item":"https://chenguangwu.github.io/tools/it/index.html"},{"@type":"ListItem","position":3,"name":".gitignore 生成器","item":"https://chenguangwu.github.io/tools/it/gitignore-generator.html"}]}
+{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://tools.dicomp.net/"},{"@type":"ListItem","position":2,"name":"IT开发","item":"https://tools.dicomp.net/tools/it/index.html"},{"@type":"ListItem","position":3,"name":".gitignore 生成器","item":"https://tools.dicomp.net/tools/it/gitignore-generator.html"}]}
 </script>
-<meta property="og:image" content="https://chenguangwu.github.io/og-image.png">
+<meta property="og:image" content="https://tools.dicomp.net/og-image.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta name="twitter:image" content="https://chenguangwu.github.io/og-image.png">
+<meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
 <!-- TOOLBOX-WEBAPP-LD -->
 <script type="application/ld+json">
 {"@context":"https://schema.org","@type":"WebApplication","name":".gitignore 生成器","url":"https://tools.dicomp.net/tools/it/gitignore-generator.html","applicationCategory":"DeveloperApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":".gitignore 生成器是一款免费的在线IT 开发工具，生成后保存为项目根目录的 .gitignore 即可。可继续手动追加项目特有忽略项。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
@@ -251,7 +251,7 @@ function __gitignore_generatorSnap(){
         var e=els[i];
         var t=(e.type||'').toLowerCase();
         if(t==='button'||t==='submit'||t==='hidden') continue;
-        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?'1':'0'):e.value;
         if(v!==''&&v!=null) out[e.id]=v;
     }
     return out;
@@ -261,8 +261,13 @@ function __gitignore_generatorResText(){
     if(!r) return '';
     var t=(r.textContent||'').replace(/\s+/g,' ').trim();
     if(!t||t==='--'||t==='—'||t==='-') return '';
-    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
+}
+function __gitignore_generatorScore(t){
+    var s=String(t||'');
+    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    return 1;
 }
 function __gitignore_generatorTime(t){
     var d=new Date(t);
@@ -272,10 +277,12 @@ function __gitignore_generatorTime(t){
 function __gitignore_generatorRender(keys,rk,en){
     try{
         var arr=TBKit.history.list().slice(0,10);
-        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var head=[en?'Time':'时间'].concat(keys).concat([en?'Verdict':'结论',rk]);
         var rows=arr.map(function(it){
             var row=[__gitignore_generatorTime(it.t)];
             for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var sc=parseFloat(it.d.__tbScore);
+            row.push(isFinite(sc)?(sc>=1?(en?'Pass':'通过'):(en?'Fail':'未通过')):'-');
             var r=it.d[rk];row.push(r==null?'':r);
             return row;
         });
@@ -284,8 +291,14 @@ function __gitignore_generatorRender(keys,rk,en){
         TBKit.history.mount('#gitignore_generatorHist',function(rec){
             __gitignore_generator_skip=true;
             try{
+                // 恢复前先清空未记录的勾选：旧记录是稀疏的（只存勾选中的项），
+                // 不清理会把当前多勾的权限带过来（600→777→恢复 600 仍显示 777）。
+                var __cbs=document.querySelectorAll('input[type=checkbox],input[type=radio]');
+                for(var __ci=0;__ci<__cbs.length;__ci++){
+                    if(!Object.prototype.hasOwnProperty.call(rec,__cbs[__ci].id)) __cbs[__ci].checked=false;
+                }
                 for(var k in rec){
-                    if(k===rk) continue;
+                    if(k===rk||k==='__tbScore') continue;
                     var e=document.getElementById(k);
                     if(!e) continue;
                     var t=(e.type||'').toLowerCase();
@@ -298,11 +311,11 @@ function __gitignore_generatorRender(keys,rk,en){
         });
         var nums=[],labels=[];
         for(var j=arr.length-1;j>=0;j--){
-            var v=parseFloat(arr[j].d[rk]);
+            var v=parseFloat(arr[j].d.__tbScore);
             if(isFinite(v)){nums.push(v);labels.push(__gitignore_generatorTime(arr[j].t));}
         }
         if(nums.length>=2){
-            TBKit.chart.line('#gitignore_generatorChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+            TBKit.chart.line('#gitignore_generatorChart',{labels:labels,series:[{name:en?'Validity trend':'有效性趋势',data:nums}]});
         }
     }catch(e3){}
 }
@@ -332,11 +345,21 @@ function __gitignore_generatorExtras(){
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
+    rec.__tbScore=__gitignore_generatorScore(res);
     TBKit.history.record(rec);
     __gitignore_generatorRender(keys,rk,en);
 }
 function __gitignore_generatorExport(){
     if (typeof TBKit === 'undefined') return;
+    try{
+        var box=document.querySelector('#gitignore_generatorTable');
+        if(!box||!box.querySelector('tr')){
+            var snap=__gitignore_generatorSnap(); var keys=Object.keys(snap);
+            if(keys.length>12) keys=keys.slice(0,12);
+            var en=(TBKit.util&&TBKit.util.isEn())?true:false;
+            __gitignore_generatorRender(keys,en?'Result':'结果',en);
+        }
+    }catch(e){}
     try { TBKit.util.exportTable('#gitignore_generatorTable','gitignore-generator.csv'); } catch(e){}
 }
 function __gitignore_generatorPresets(){

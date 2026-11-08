@@ -305,6 +305,11 @@ s.parentNode.insertBefore(el, s);
 </div>
 
 <script>function __tbInputGuard(_ids,_labels){
+  var __r=__tbInputGuardCore(_ids,_labels);
+  if(__r){var __t=document.getElementById('position_sizingTable');if(__t)__t.innerHTML='';}
+  return __r;
+}
+function __tbInputGuardCore(_ids,_labels){
   var __TPL='请填写「%s」后再计算。';
   var __TPL2="<p style=\"color:var(--danger)\">⚠ 「%s」是本计算的分母，不能为 0。</p>";
   var _vals=[],_firstBad=-1;
@@ -467,16 +472,32 @@ function calcFixed(){
 
   var riskAmount = capital * riskPct / 100;
   var perShareRisk = Math.abs(entry - stop);
+  // FE-N131 修复①：止损距离为 0（止损价=买入价）或止损价非正时不再输出「÷0 = 0 股」的伪结果
+  if(!(stop > 0) || perShareRisk <= 0){
+    document.getElementById('statGrid').innerHTML='';
+    document.getElementById('result').innerHTML='<p style="color:var(--danger);">止损价必须大于 0 且与买入价不同（止损距离为 0 时无法按风险预算求仓位）。</p>';
+    return;
+  }
+  // FE-N131 修复②：把「买入 + 止损卖出」的双向手续费并入每股风险，仓位才真正不超风险预算
+  var feePerShare = feeRate * (entry + stop);
+  var perShareRiskNet = perShareRisk + feePerShare;
   var perShareProfit = target - entry;
-  var shares = perShareRisk > 0 ? riskAmount / perShareRisk : 0;
+  var shares = Math.floor(riskAmount / perShareRiskNet); // 按整股向下取整
+  if(!(shares > 0)){
+    document.getElementById('statGrid').innerHTML='';
+    document.getElementById('result').innerHTML='<p style="color:var(--danger);">按当前风险预算与止损距离，可买不足 1 股，请调大资金/风险比例或收窄止损距离。</p>';
+    return;
+  }
   var positionValue = shares * entry;
   var positionPct = capital > 0 ? positionValue / capital * 100 : 0;
-  var potentialLoss = shares * perShareRisk;
+  // 最大亏损 = 股数 × 每股净风险（价差 + 双边手续费），恒 ≤ 风险预算
+  var netLoss = shares * perShareRiskNet;
   var potentialProfit = shares * perShareProfit;
   var fee = positionValue * feeRate;
+  var feeRoundTrip = fee + shares * stop * feeRate;
   var netProfit = potentialProfit - fee * 2;
-  var netLoss = potentialLoss + fee * 2;
   var rrRatio = perShareRisk > 0 ? perShareProfit / perShareRisk : 0;
+  var rrNet = perShareProfit > 0 ? potentialProfit / netLoss : 0;
 
   var statHtml = '<div class="stat-card"><div class="val">¥' + ToolBox.formatNumber(shares, 0) + '</div><div class="lbl">建议股数</div></div>'
     + '<div class="stat-card"><div class="val">¥' + ToolBox.formatNumber(positionValue, 0) + '</div><div class="lbl">仓位市值</div></div>'
@@ -491,17 +512,20 @@ function calcFixed(){
   html += '<hr style="border:none;border-top:1px solid var(--border);margin:10px 0;">';
   html += '<p>买入价：<strong>' + entry.toFixed(2) + '</strong> | 止损价：<strong>' + stop.toFixed(2) + '</strong> | 目标价：<strong>' + target.toFixed(2) + '</strong></p>';
   html += '<p>每股风险 = |' + entry.toFixed(2) + ' - ' + stop.toFixed(2) + '| = <strong>' + perShareRisk.toFixed(2) + '</strong></p>';
+  html += '<p>每股手续费（买入 + 止损卖出）= ' + (feeRate * 100).toFixed(3) + '% × (' + entry.toFixed(2) + ' + ' + stop.toFixed(2) + ') = <strong>' + feePerShare.toFixed(4) + '</strong></p>';
+  html += '<p>每股净风险 = ' + perShareRisk.toFixed(2) + ' + ' + feePerShare.toFixed(4) + ' = <strong>' + perShareRiskNet.toFixed(4) + '</strong></p>';
   html += '<p>每股盈利 = ' + target.toFixed(2) + ' - ' + entry.toFixed(2) + ' = <strong>' + perShareProfit.toFixed(2) + '</strong></p>';
   html += '<p>盈亏比 = ' + perShareProfit.toFixed(2) + ' ÷ ' + perShareRisk.toFixed(2) + ' = <strong style="color:' + (rrRatio >= 2 ? 'var(--success)' : (rrRatio >= 1 ? 'var(--warning)' : 'var(--danger)')) + ';">' + rrRatio.toFixed(2) + '</strong></p>';
   html += '<hr style="border:none;border-top:1px solid var(--border);margin:10px 0;">';
-  html += '<p style="font-size:18px;font-weight:700;color:var(--primary);">建议买入股数 = ' + ToolBox.formatNumber(riskAmount, 0) + ' ÷ ' + perShareRisk.toFixed(2) + ' = ' + ToolBox.formatNumber(shares, 0) + ' 股</p>';
+  html += '<p style="font-size:18px;font-weight:700;color:var(--primary);">建议买入股数 = ' + ToolBox.formatNumber(riskAmount, 0) + ' ÷ ' + perShareRiskNet.toFixed(4) + ' = ' + ToolBox.formatNumber(shares, 0) + ' 股（向下取整）</p>';
   html += '<p>仓位市值 = ' + ToolBox.formatNumber(shares, 0) + ' × ' + entry.toFixed(2) + ' = <strong>¥' + ToolBox.formatNumber(positionValue, 0) + '</strong></p>';
   html += '<p>仓位占比 = <strong>' + positionPct.toFixed(1) + '%</strong></p>';
   html += '<hr style="border:none;border-top:1px solid var(--border);margin:10px 0;">';
   html += '<p style="font-weight:600;">盈亏情景：</p>';
-  html += '<p>手续费（双向）= ¥' + ToolBox.formatNumber(fee * 2, 2) + '</p>';
-  html += '<p>最大亏损 = <strong style="color:var(--danger);">-¥' + ToolBox.formatNumber(netLoss, 0) + '</strong></p>';
+  html += '<p>手续费（买入 + 止损卖出）= ¥' + ToolBox.formatNumber(feeRoundTrip, 2) + '</p>';
+  html += '<p>最大亏损 = <strong style="color:var(--danger);">-¥' + ToolBox.formatNumber(netLoss, 2) + '</strong>（风险预算 ¥' + ToolBox.formatNumber(riskAmount, 0) + '，占用 ' + (riskAmount > 0 ? (netLoss / riskAmount * 100).toFixed(1) : '0.0') + '%）</p>';
   html += '<p>目标盈利 = <strong style="color:var(--success);">+¥' + ToolBox.formatNumber(netProfit, 0) + '</strong></p>';
+  html += '<p>净盈亏比（含费）= ' + (rrNet > 0 ? rrNet.toFixed(2) : '—') + '</p>';
   if(rrRatio < 1){
     html += '<div class="tip-box tip-warn">盈亏比低于1，风险收益不对称，建议盈亏比至少2:1。</div>';
   } else if(positionPct > 100){
@@ -606,21 +630,45 @@ function __position_sizingResText(){
     if(!r) return '';
     var t=(r.textContent||'').replace(/\s+/g,' ').trim();
     if(!t||t==='--'||t==='—'||t==='-') return '';
-    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
+}
+function __position_sizingScore(t){
+    var s=String(t||'');
+    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    return 1;
 }
 function __position_sizingTime(t){
     var d=new Date(t);
     function q(x){return (x<10?'0':'')+x;}
     return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
 }
+function __position_sizingSetMode(v){
+    // 只切模式与选中态，不触发 calc()：调用方随后会恢复输入再统一重算（B-N6）
+    var isKelly = !/固定|Fixed/i.test(String(v == null ? '' : v));
+    var tab = isKelly ? 'kelly' : 'fixed';
+    currentTab = tab;
+    var btns = document.querySelectorAll('.tab-btn');
+    for(var i = 0; i < btns.length; i++){
+        var oc = btns[i].getAttribute('onclick') || '';
+        if(oc.indexOf("'" + tab + "'") >= 0){ btns[i].classList.add('active'); }
+        else { btns[i].classList.remove('active'); }
+    }
+    var k = document.getElementById('tabKelly'), f = document.getElementById('tabFixed');
+    if(k) k.classList.remove('active');
+    if(f) f.classList.remove('active');
+    var t = document.getElementById(tab === 'kelly' ? 'tabKelly' : 'tabFixed');
+    if(t) t.classList.add('active');
+}
 function __position_sizingRender(keys,rk,en){
     try{
         var arr=TBKit.history.list().slice(0,10);
-        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var head=[en?'Time':'时间'].concat(keys).concat([en?'Verdict':'结论',rk]);
         var rows=arr.map(function(it){
             var row=[__position_sizingTime(it.t)];
             for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var sc=parseFloat(it.d.__tbScore);
+            row.push(isFinite(sc)?(sc>=1?(en?'Pass':'通过'):(en?'Fail':'未通过')):'-');
             var r=it.d[rk];row.push(r==null?'':r);
             return row;
         });
@@ -629,8 +677,11 @@ function __position_sizingRender(keys,rk,en){
         TBKit.history.mount('#position_sizingHist',function(rec){
             __position_sizing_skip=true;
             try{
+                // 先恢复计算模式，再恢复输入并重算：否则凯利记录会被当前固定风险模式重算成另一套结果
+                var __mv = rec ? (rec['计算模式'] || rec['Mode']) : null;
+                if(__mv) __position_sizingSetMode(__mv);
                 for(var k in rec){
-                    if(k===rk) continue;
+                    if(k===rk||k==='__tbScore'||k==='计算模式'||k==='Mode') continue;
                     var e=document.getElementById(k);
                     if(!e) continue;
                     var t=(e.type||'').toLowerCase();
@@ -643,11 +694,11 @@ function __position_sizingRender(keys,rk,en){
         });
         var nums=[],labels=[];
         for(var j=arr.length-1;j>=0;j--){
-            var v=parseFloat(arr[j].d[rk]);
+            var v=parseFloat(arr[j].d.__tbScore);
             if(isFinite(v)){nums.push(v);labels.push(__position_sizingTime(arr[j].t));}
         }
         if(nums.length>=2){
-            TBKit.chart.line('#position_sizingChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+            TBKit.chart.line('#position_sizingChart',{labels:labels,series:[{name:en?'Validity trend':'有效性趋势',data:nums}]});
         }
     }catch(e3){}
 }
@@ -662,6 +713,11 @@ function __position_sizingExtras(){
     if(!res) return;
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
+    // 计算模式必须随记录一起落库，否则历史里的凯利方案会被当前模式重算成另一套结果（B-N6）
+    var __mk=en?'Mode':'计算模式';
+    var __mv=(currentTab==='kelly')?(en?'Kelly':'凯利公式'):(en?'Fixed risk':'固定风险');
+    if(keys.indexOf(__mk)<0) keys.push(__mk);
+    snap[__mk]=__mv;
     var now=Date.now();
     if(now-__position_sizing_last<1000) return;
     var last=null;
@@ -677,12 +733,26 @@ function __position_sizingExtras(){
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
+    rec.__tbScore=__position_sizingScore(res);
     TBKit.history.record(rec);
     __position_sizingRender(keys,rk,en);
 }
 function __position_sizingExport(){
     if (typeof TBKit === 'undefined') return;
-    try { TBKit.util.exportTable('#position_sizingTable','position-sizing.csv'); } catch(e){}
+    // 导出当前完整输入 + 计算模式 + 结果，而不是被截断的历史摘要（B-N6）
+    var en=TBKit.util.isEn();
+    var LBL={winRate:'胜率（%）',winLossRatio:'盈亏比（赢/亏）',totalCapital:'总资金（元）',riskPerTrade:'每笔风险资金（元）',capital2:'总资金（元）',riskPct:'每笔风险比例（%）',entryPrice:'买入价',stopPrice:'止损价',targetPrice:'目标价',feeRate:'手续费比例（%）'};
+    var snap=__position_sizingSnap();
+    var rows=[[en?'Item':'项目', en?'Value':'数值']];
+    rows.push([en?'Mode':'计算模式', (currentTab==='kelly')?(en?'Kelly':'凯利公式'):(en?'Fixed risk':'固定风险')]);
+    for(var k in snap){ rows.push([LBL[k]||k, snap[k]]); }
+    var resEl=document.getElementById('result');
+    var txt=((resEl&&resEl.textContent)||'').replace(/\s+/g,' ').trim();
+    rows.push([en?'Result':'当前结果', txt.slice(0,240)]);
+    var st=document.getElementById('statGrid');
+    var stx=((st&&st.textContent)||'').replace(/\s+/g,' ').trim();
+    if(stx) rows.push([en?'Details':'明细', stx.slice(0,300)]);
+    try { TBKit.util.exportCsv('position-sizing.csv', rows); } catch(e){}
 }
 function __position_sizingPresets(){
     if (typeof TBKit === 'undefined') return;

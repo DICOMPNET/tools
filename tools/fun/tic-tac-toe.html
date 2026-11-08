@@ -344,6 +344,7 @@ const lines = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
 let board = [];
 let currentPlayer = 'X';
 let gameOver = false;
+let aiTimer = null;
 let gameMode = 'pvp';
 let aiDifficulty = 'easy';
 let scores = { x:0, o:0, d:0 };
@@ -377,6 +378,7 @@ function setDifficulty(diff, btn){
 }
 
 function newGame(){
+  if(aiTimer){clearTimeout(aiTimer);aiTimer=null;}
   board = Array(9).fill('');
   currentPlayer = 'X';
   gameOver = false;
@@ -388,7 +390,7 @@ function newGame(){
   document.getElementById('output').textContent = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Click a cell to start the game":"点击格子开始游戏");
   
   if(gameMode === 'ai' && !document.getElementById('playerFirstChk').checked){
-    setTimeout(aiMove, 500);
+    aiTimer = setTimeout(aiMove, 500);
   }
 }
 
@@ -437,11 +439,13 @@ function makeMove(i){
   updateTurnIndicator();
   
   if(gameMode === 'ai' && currentPlayer === 'O'){
-    setTimeout(aiMove, 400);
+    if(aiTimer){clearTimeout(aiTimer);aiTimer=null;}
+    aiTimer = setTimeout(aiMove, 400);
   }
 }
 
 function aiMove(){
+  aiTimer = null;
   if(gameOver) return;
   
   let move;
@@ -707,7 +711,7 @@ function __tic_tac_toeSnap(){
         var e=els[i];
         var t=(e.type||'').toLowerCase();
         if(t==='button'||t==='submit'||t==='hidden') continue;
-        var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
+        var v=(t==='checkbox'||t==='radio')?(e.checked?'1':'0'):e.value;
         if(v!==''&&v!=null) out[e.id]=v;
     }
     return out;
@@ -717,8 +721,13 @@ function __tic_tac_toeResText(){
     if(!r) return '';
     var t=(r.textContent||'').replace(/\s+/g,' ').trim();
     if(!t||t==='--'||t==='—'||t==='-') return '';
-    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
+}
+function __tic_tac_toeScore(t){
+    var s=String(t||'');
+    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    return 1;
 }
 function __tic_tac_toeTime(t){
     var d=new Date(t);
@@ -728,10 +737,12 @@ function __tic_tac_toeTime(t){
 function __tic_tac_toeRender(keys,rk,en){
     try{
         var arr=TBKit.history.list().slice(0,10);
-        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var head=[en?'Time':'时间'].concat(keys).concat([en?'Verdict':'结论',rk]);
         var rows=arr.map(function(it){
             var row=[__tic_tac_toeTime(it.t)];
             for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var sc=parseFloat(it.d.__tbScore);
+            row.push(isFinite(sc)?(sc>=1?(en?'Pass':'通过'):(en?'Fail':'未通过')):'-');
             var r=it.d[rk];row.push(r==null?'':r);
             return row;
         });
@@ -740,8 +751,14 @@ function __tic_tac_toeRender(keys,rk,en){
         TBKit.history.mount('#tic_tac_toeHist',function(rec){
             __tic_tac_toe_skip=true;
             try{
+                // 恢复前先清空未记录的勾选：旧记录是稀疏的（只存勾选中的项），
+                // 不清理会把当前多勾的权限带过来（600→777→恢复 600 仍显示 777）。
+                var __cbs=document.querySelectorAll('input[type=checkbox],input[type=radio]');
+                for(var __ci=0;__ci<__cbs.length;__ci++){
+                    if(!Object.prototype.hasOwnProperty.call(rec,__cbs[__ci].id)) __cbs[__ci].checked=false;
+                }
                 for(var k in rec){
-                    if(k===rk) continue;
+                    if(k===rk||k==='__tbScore') continue;
                     var e=document.getElementById(k);
                     if(!e) continue;
                     var t=(e.type||'').toLowerCase();
@@ -754,11 +771,11 @@ function __tic_tac_toeRender(keys,rk,en){
         });
         var nums=[],labels=[];
         for(var j=arr.length-1;j>=0;j--){
-            var v=parseFloat(arr[j].d[rk]);
+            var v=parseFloat(arr[j].d.__tbScore);
             if(isFinite(v)){nums.push(v);labels.push(__tic_tac_toeTime(arr[j].t));}
         }
         if(nums.length>=2){
-            TBKit.chart.line('#tic_tac_toeChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+            TBKit.chart.line('#tic_tac_toeChart',{labels:labels,series:[{name:en?'Validity trend':'有效性趋势',data:nums}]});
         }
     }catch(e3){}
 }
@@ -788,11 +805,21 @@ function __tic_tac_toeExtras(){
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
+    rec.__tbScore=__tic_tac_toeScore(res);
     TBKit.history.record(rec);
     __tic_tac_toeRender(keys,rk,en);
 }
 function __tic_tac_toeExport(){
     if (typeof TBKit === 'undefined') return;
+    try{
+        var box=document.querySelector('#tic_tac_toeTable');
+        if(!box||!box.querySelector('tr')){
+            var snap=__tic_tac_toeSnap(); var keys=Object.keys(snap);
+            if(keys.length>12) keys=keys.slice(0,12);
+            var en=(TBKit.util&&TBKit.util.isEn())?true:false;
+            __tic_tac_toeRender(keys,en?'Result':'结果',en);
+        }
+    }catch(e){}
     try { TBKit.util.exportTable('#tic_tac_toeTable','tic-tac-toe.csv'); } catch(e){}
 }
 function __tic_tac_toePresets(){

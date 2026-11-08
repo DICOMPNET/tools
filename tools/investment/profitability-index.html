@@ -124,7 +124,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="单位投资带来的现值收益。">Compute profitability index from the present value of benefits and the initial investment, used to rank mutually exclusive projects.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">盈利指数（本页代码口径）：PI=未来现金流现值÷(−期初现金流 CF₀)（CF₀ 须为负的期初投入）；现值 PV=Σ 第 i 年现金流÷(1+r)^i（i=1~3，贴现率 r 按百分数÷100）。校验：五字段经输入守卫必填且须为合法数值，否则提示并中止。判据：无固定阈值分支，通行口径 PI&gt;1 净现值为正、项目可接受，PI=1 恰好满足要求回报。</div>
+      <div class="formula-eq">盈利指数（本页代码口径）：PI=未来现金流现值÷(−期初现金流 CF₀)；现值 PV=Σ 第 i 年现金流÷(1+r)^i（i=1~3，贴现率 r 按百分数÷100）；同时给出 NPV=PV+CF₀。校验：五字段经输入守卫必填且须为合法数值；另要求 CF₀ 为负数（期初投入记负，填正数会让分母变负、PI 符号翻转）且贴现率 > −100%（否则折现因子无意义），不满足即提示并中止。判据：无固定阈值分支，通行口径 PI&gt;1 净现值为正、项目可接受，PI=1 恰好满足要求回报。</div>
       <p class="formula-desc">单位投资带来的现值收益。</p>
     </div>
 
@@ -233,6 +233,11 @@ s.parentNode.insertBefore(el, s);
   </div>
 </div>
 <script>function __tbInputGuard(_ids,_labels){
+  var __r=__tbInputGuardCore(_ids,_labels);
+  if(__r){var __t=document.getElementById('profitability_indexTable');if(__t)__t.innerHTML='';}
+  return __r;
+}
+function __tbInputGuardCore(_ids,_labels){
   var __TPL='请填写「%s」后再计算。';
   var __TPL2="<p style=\"color:var(--danger)\">⚠ 「%s」是本计算的分母，不能为 0。</p>";
   var _vals=[],_firstBad=-1;
@@ -291,12 +296,22 @@ function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+=
 function calcTool(){
               var __ig=__tbInputGuard(['cf0', 'cf1', 'cf2', 'cf3', 'r'],["期初现金流 CF₀", "第1年 CF₁", "第2年 CF₂", "第3年 CF₃", "贴现率 r (%)"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
 const cfs=[num('cf0'),num('cf1'),num('cf2'),num('cf3')];
-            const r=num('r')/100;
+            const rPct=num('r');
+            /* 期初现金流必须是流出（负数），否则 PI 的分母符号错误；贴现率下界 -100% 否则折现因子无意义 */
+            if(!(cfs[0]<0)){
+                ToolBox.setResult('result','<p class="tip-error">⚠ 期初现金流 CF₀ 应按投入记为负数（当前 '+cfs[0]+'）：PI = 未来现金流现值 ÷ 期初投入，正数会让分母变负、PI 符号翻转。</p>');return;
+            }
+            if(!(rPct>-100)){
+                ToolBox.setResult('result','<p class="tip-error">⚠ 贴现率须大于 -100%（当前输入 '+rPct+'%），否则折现因子无意义。</p>');return;
+            }
+            const r=rPct/100;
             let pv=0; for(let i=1;i<cfs.length;i++) pv+=cfs[i]/Math.pow(1+r,i);
             const pi=pv/(-cfs[0]);
+            const npv=pv+cfs[0];
             const __g2=dataGrid([
                 [pi.toFixed(3),'盈利指数 PI'],
-                [(pv).toFixed(2),'未来现金流现值']
+                [(pv).toFixed(2),'未来现金流现值'],
+                [npv.toFixed(2),'净现值 NPV = PV + CF₀']
             ]);ToolBox.setResult('result',(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));
         }
 function resetForm(){document.getElementById('cf0').value = '-1000';
@@ -325,8 +340,13 @@ function __profitability_indexResText(){
     if(!r) return '';
     var t=(r.textContent||'').replace(/\s+/g,' ').trim();
     if(!t||t==='--'||t==='—'||t==='-') return '';
-    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
+}
+function __profitability_indexScore(t){
+    var s=String(t||'');
+    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    return 1;
 }
 function __profitability_indexTime(t){
     var d=new Date(t);
@@ -336,10 +356,12 @@ function __profitability_indexTime(t){
 function __profitability_indexRender(keys,rk,en){
     try{
         var arr=TBKit.history.list().slice(0,10);
-        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var head=[en?'Time':'时间'].concat(keys).concat([en?'Verdict':'结论',rk]);
         var rows=arr.map(function(it){
             var row=[__profitability_indexTime(it.t)];
             for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var sc=parseFloat(it.d.__tbScore);
+            row.push(isFinite(sc)?(sc>=1?(en?'Pass':'通过'):(en?'Fail':'未通过')):'-');
             var r=it.d[rk];row.push(r==null?'':r);
             return row;
         });
@@ -349,7 +371,7 @@ function __profitability_indexRender(keys,rk,en){
             __profitability_index_skip=true;
             try{
                 for(var k in rec){
-                    if(k===rk) continue;
+                    if(k===rk||k==='__tbScore') continue;
                     var e=document.getElementById(k);
                     if(!e) continue;
                     var t=(e.type||'').toLowerCase();
@@ -362,11 +384,11 @@ function __profitability_indexRender(keys,rk,en){
         });
         var nums=[],labels=[];
         for(var j=arr.length-1;j>=0;j--){
-            var v=parseFloat(arr[j].d[rk]);
+            var v=parseFloat(arr[j].d.__tbScore);
             if(isFinite(v)){nums.push(v);labels.push(__profitability_indexTime(arr[j].t));}
         }
         if(nums.length>=2){
-            TBKit.chart.line('#profitability_indexChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+            TBKit.chart.line('#profitability_indexChart',{labels:labels,series:[{name:en?'Validity trend':'有效性趋势',data:nums}]});
         }
     }catch(e3){}
 }
@@ -396,11 +418,21 @@ function __profitability_indexExtras(){
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
+    rec.__tbScore=__profitability_indexScore(res);
     TBKit.history.record(rec);
     __profitability_indexRender(keys,rk,en);
 }
 function __profitability_indexExport(){
     if (typeof TBKit === 'undefined') return;
+    try{
+        var box=document.querySelector('#profitability_indexTable');
+        if(!box||!box.querySelector('tr')){
+            var snap=__profitability_indexSnap(); var keys=Object.keys(snap);
+            if(keys.length>12) keys=keys.slice(0,12);
+            var en=(TBKit.util&&TBKit.util.isEn())?true:false;
+            __profitability_indexRender(keys,en?'Result':'结果',en);
+        }
+    }catch(e){}
     try { TBKit.util.exportTable('#profitability_indexTable','profitability-index.csv'); } catch(e){}
 }
 function __profitability_indexPresets(){

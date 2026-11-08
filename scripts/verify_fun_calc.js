@@ -24,6 +24,65 @@ const CASES = [
        + "本页只做随机展示与难度标注，不录音、不计时、不评分。",
   },
 
+  // ── 和弦解析（FE-N6 回归锁：Cmaj/Cmajor 应判大三和弦，非小三）──
+  {
+    slug: "music/chord-notes",
+    inputs: { chordInput: "Cmaj" },
+    expect: ["CM · 大三和弦"],
+    ref: "FE-N6 回归锁：Cmaj 经归一化 maj→M 后命中 CHORD_TYPES['M'] → 大三和弦，类型标签渲染为「CM · 大三和弦」（rootDisplay=「C」+ type=「M」+「 · 大三和弦」）。默认 chordInput=C 渲染为「C · 大三和弦」，不命中本锚 ⇒ 零逃生，可即时暴露「maj 被前缀 m 误判为小三和弦」类回归。",
+  },
+  {
+    slug: "music/chord-notes",
+    inputs: { chordInput: "Cm" },
+    expect: ["Cm · 小三和弦"],
+    ref: "FE-N6 对照：Cm 直接命中 CHORD_TYPES['m'] → 小三和弦，类型标签「Cm · 小三和弦」。与 Cmaj 的大三形成区分，确认归一化分支正确区分大小三和弦，且默认态「C · 大三和弦」不命中本锚。",
+  },
+
+  // ── 扩展和弦九音标注（FE-N7 回归锁：9/m9 的 +14 与 add9 的 +2 应标「九音」而非「二音」）──
+  {
+    slug: "music/chord-notes",
+    inputs: { chordInput: "C9" },
+    expect: ["九音"],
+    ref: "FE-N7 回归锁：C9=属九和弦，最高扩展音 +14 半音（九音），degreeName 按原始半音数映射为『九音』（旧版 14%12=2 误标『二音』）。默认 chordInput=C（大三和弦，无九音）不命中『九音』⇒ 零逃生。",
+  },
+  {
+    slug: "music/chord-notes",
+    inputs: { chordInput: "Csus2" },
+    expect: ["二音"],
+    ref: "FE-N7 回归护栏：挂二和弦 sus2 的 +2 半音是『二音』（非九音），确认修复未误伤 sus2。默认 chordInput=C 不含『二音』⇒ 零逃生。",
+  },
+
+  // ── 降号/升号根音与未知后缀（FE-N8 回归锁：Cb/Fb/E#/B# 应可解析，未知后缀不再静默降级大三）──
+  {
+    slug: "music/chord-notes",
+    inputs: { chordInput: "Cb" },
+    expect: ["Cb · 大三和弦"],
+    ref: "FE-N8 回归锁：Cb 经 NOTE_ALIASES 映射到 B（同音异名），应正常解析为『Cb · 大三和弦』（B-D#-F#）。旧版 NOTE_ALIASES 缺 Cb/Fb/E#/B# ⇒ NOTE_NAMES.indexOf('Cb')=-1 返回 null 无结果。默认 chordInput=C 渲染『C · 大三和弦』不命中本锚 ⇒ 零逃生。",
+  },
+
+  // ── BPM 越界钳制（FE-N4 回归锁：500→钳到 300，四分音符=200.00ms，非 120.00ms）──
+  {
+    slug: "music/bpm-converter",
+    inputs: { bpmInput: "500" },
+    expect: ["200.00"],
+    ref: "FE-N4 回归锁：getBpm() 把 >300 的输入钳到 300 用于计算，四分音符时长=60000/300=200.00ms；若未钳制则按 500 算得 120.00ms。默认 bpmInput=120 → 四分音符 500.00ms、其余音符时长均不为 200.00 ⇒ 本锚零逃生。配套修复：onBpmChange 在越界时回写输入框、预设同步 bpmSlider。",
+  },
+
+  // ── 变速百分比方向（FE-N13）──────────────────────────────────
+  {
+    slug: "music/convert-speed",
+    inputs: { dur: "120", ob: "120", nb: "90" },
+    expect: ["降速 25%"],
+    ref: "FE-N13：目标 BPM(90) < 原 BPM(120) 为降速，旧实现写死「提速 -25%」方向反。修复后按 nb/ob-1 符号分支：负 →「降速 25%」。"
+       + "锚「降速」仅降速输入下出现，默认态（空/等速）输出「请输入有效正数」或「不变」，非逃生。",
+  },
+  {
+    slug: "music/convert-speed",
+    inputs: { dur: "120", ob: "120", nb: "150" },
+    expect: ["提速 25%"],
+    ref: "FE-N13：目标 BPM(150) > 原 BPM(120) 为提速，校验正方向分支输出「提速 25%」；与降速用例互为对照，覆盖 nb/ob-1 正负两侧。",
+  },
+
 
   // ── 冥想计时器 ──────────────────────────────────────────────
   {
@@ -67,6 +126,15 @@ const CASES = [
     ref: "预设栏/历史回填以无参 loadPreset() 调用时应保留当前 FEN：注入黑方 FEN 后点击，"
        + "输出仍为 黑方/无/-；旧实现把 presets[undefined]（undefined）写入输入框并 render ⇒ 抛错或无输出，"
        + "注入失败时回退默认起始局面（白方/KQkq/-）也失配。",
+  },
+
+  {
+    slug: "fun/chess-fen-viewer",
+    inputs: { fen: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR" },
+    expect: ["FEN 字段缺失或非法"],
+    ref: "FE-N10：仅棋盘段（缺后 5 段）旧实现静默显示「黑方」、FAQ 却称「缺段会解析失败」。"
+       + "修复后 validateFields 校验 6 段，缺失即报「FEN 字段缺失或非法」；锚不含「白方/黑方/轮到」等默认态串，"
+       + "仅在缺段输入下命中，非逃生。",
   },
 
   // ── 抽奖结果转义 ─────────────────────────────────────────────

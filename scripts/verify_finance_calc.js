@@ -153,6 +153,69 @@ const CASES = [
     ref: "专项附加扣除 7 项明细（2026-10-25 新增 / plan 标注「搜索需求极大」）：婴幼儿照护 2000 + 赡养老人 3000 + 大病医疗 12000/年 ÷ 12 = 1000 ⇒ 明细合计 6000 元/月，渲染在结果区首行。**同时绑定分摊口径**（大病医疗按年填入须摊到月，若误按 12000 全额计则合计变 17000，本例即变红）与金额格式化。默认态七项全 0 ⇒ 合计 ¥0.00，不含该串 ⇒ 零逃生。"
   },
   {
+    slug: "finance/tax-calculator",
+    inputs: { sd4: "100000" },
+    clicks: ["calculate()"],
+    expect: ["专项附加扣除明细合计： ¥6,666.67", "大病医疗按 80000 元/年封顶，实际计入 ¥6,666.67/月（原填 ¥100,000.00/年，未封顶将摊成 ¥8,333.33/月）。"],
+    ref: "F-N19 大病医疗年度封顶：sd4 填 100000 元/年，旧实现直接 v/12=8333.33/月 ⇒ 多扣、税额仅 156.67；现按 80000 元/年封顶后摊月 = 6666.67/月，独立复算税额 323.33。两条分别绑定封顶后的合计与「实际采用值」说明行（均在结果容器 bonusBox 内）。默认态七项全 0 ⇒ 合计 ¥0.00 且无说明行；旧代码合计 ¥8,333.33 也无说明行 ⇒ 任一回归即变红，零逃生。"
+  },
+  {
+    slug: "finance/tax-calculator",
+    inputs: { sd5: "1000", sd6: "1500" },
+    clicks: ["calculate()"],
+    expect: ["专项附加扣除明细合计： ¥1,500.00", "已按较大者 ¥1,500.00/月（住房租金）计入，另一项 ¥1,000.00/月未计入。"],
+    ref: "F-N19 房贷利息/住房租金互斥：同一纳税年度内两项不可同时扣除，同时填写时仅按较大者 1500 计入（独立复算税额 840.00），旧实现直加得 2500、税额 740。两条分别绑定互斥后的合计与「较大者/未计入」说明行。默认态 ¥0.00 且无说明行 ⇒ 零逃生。"
+  },
+  {
+    slug: "finance/tax-calculator",
+    inputs: { sd1: "2000", sd4: "12000", sd5: "1000", sd6: "1500" },
+    clicks: ["calculate()"],
+    expect: ["专项附加扣除明细合计： ¥4,500.00"],
+    ref: "F-N19 组合回归：sd4=12000/年未触顶 ⇒ 摊月 1000；sd5/sd6 互斥取 1500；sd1=2000 ⇒ 合计 4500。旧实现 1000+1000+1500+2000=5500。既验证封顶逻辑不误伤未超限的大病医疗，也验证互斥与其余四项叠加口径；默认态 ¥0.00 ⇒ 零逃生。"
+  },
+  {
+    slug: "finance/tax-calculator",
+    inputs: { sd4: "12000", sd5: "1000" },
+    clicks: ["calculate()"],
+    expect: ["专项附加扣除明细合计： ¥2,000.00"],
+    ref: "F-N19 单项回归护栏：只填房贷利息、无租金、大病医疗未触顶 ⇒ 12000/12=1000 + 房贷 1000 = 2000，且不应出现互斥说明行。确认新增互斥逻辑不得误伤合法单项场景；注入失败回落默认 ⇒ ¥0.00 不命中。"
+  },
+  {
+    slug: "finance/tax-calculator",
+    inputs: { insurance: "-2000" },
+    clicks: ["calculate()"],
+    expect: ["⚠ 社保公积金不能为负数，请填写 ≥ 0 的数值。", "20000\n-2000\n—\n—\n—\n—\n—\n—\n—"],
+    ref: "F-N18 负社保字段级拒绝：旧实现把 −2000 当作抵扣放大应税所得（台账独立复算 special=0：12000→17000、税 990→1990；页面默认 special=2000 下为 10000→15000、税 790→1590）；现 __taxCheck() 拒绝负值、__taxBlock() 把 7 个结果元素清成「—」并在结果容器给出字段名错误提示，不再参与计算。默认态社保 3000 为正 ⇒ 不命中。"
+  },
+  {
+    slug: "finance/tax-calculator",
+    inputs: { salary: "-1" },
+    clicks: ["calculate()"],
+    expect: ["⚠ 税前月薪不能为负数，请填写 ≥ 0 的数值。", "-1\n—\n—\n—\n—\n—\n—\n—"],
+    ref: "F-N18 负月薪字段级拒绝：旧实现 Math.max(0,…) 只兜住应纳税所得额，税后收入直接显示负值；现字段级拒绝并清结果。默认态 20000 ⇒ 不命中。"
+  },
+  {
+    slug: "finance/tax-calculator",
+    inputs: { special: "-5" },
+    clicks: ["calculate()"],
+    expect: ["⚠ 专项附加扣除不能为负数，请填写 ≥ 0 的数值。"],
+    ref: "F-N18 负专项附加字段级拒绝：与第 35 批 __sdAudit() 的明细负值 0 兜底分层——明细项按 0、主输入 special 为负则整页拒绝。默认态 2000 ⇒ 不命中。"
+  },
+  {
+    slug: "finance/tax-calculator",
+    inputs: { threshold: "-1" },
+    clicks: ["calculate()"],
+    expect: ["⚠ 起征点不能为负数，请填写 ≥ 0 的数值。", "20000\n3000\n0\n-1\n—"],
+    ref: "F-N18 负起征点字段级拒绝：起征点为负会凭空放大应税所得，现拒绝且清结果。默认态 5000 ⇒ 不命中。"
+  },
+  {
+    slug: "finance/tax-calculator",
+    inputs: { salary: "2000", insurance: "3000", special: "0", threshold: "5000", bonus: "0" },
+    clicks: ["calculate()"],
+    expect: ["¥0.00\n¥0.00\n¥0.00\n3%", "社保公积金已超过税前月薪，税后收入按 0 显示（原始差额为负），请核对填写。"],
+    ref: "F-N18 税后收入 0 下限与归因：月薪 2000、社保 3000（均为合法非负值）时旧实现显示「¥-1,000.00」；现 afterTax = max(0, 2000−3000−0) = ¥0.00，并在结果容器说明原始差额为负、请核对填写。默认态税后 ¥16,210.00 ⇒ 不命中。"
+  },
+  {
     slug: "finance/dca-calculator",
     inputs: { monthly: "1000", years: "10", rate: "8", initial: "0", target: "200000" },
     expect: ["达成所需年化收益率： 9.58%", "还需再提高 1.58 个百分点。"],
@@ -417,6 +480,13 @@ const CASES = [
     clicks: ["calc()"],
     expect: ["贷款年限须为正整数年"],
     ref: "贷款年限 2.5 年：旧实现按小数年限折期数（30 期）照算；现要求正整数年并提示。默认 30 年 ⇒ 不命中。",
+  },
+  {
+    slug: "investment/irr-calc",
+    inputs: { cf0: "1000", cf1: "-1100", cf2: "0", cf3: "0", cf4: "0" },
+    clicks: ["calcTool()"],
+    expect: ["10.00 内部收益率 IRR (%)"],
+    ref: "IRR 二分方向修正（investment/irr-calc）：现金流 1000,-1100,0,0,0 的真实根为 10%。修复前二分方向反置（npv(mid)>0 时误把 lo=mid）收敛到 hi=10 ⇒ 输出 1000%；修正为「扫掠找首个变号区间再标准二分」得 10.00%。默认态（cf0=-1000,300,400,500,200 ⇒ IRR≈15.32%）不含 10.00 串 ⇒ 强判别。",
   },
   {
     slug: "finance/simple-interest",
@@ -881,6 +951,20 @@ const CASES = [
     ref: "零息债券（面值 100、价格 82、剩余 3 年、年付一次，票面利率输入 5% 应被忽略）：YTM = (100/82)^(1/3) − 1 = **6.839%**（按 `face/price` 复利开方，一步可复算）。零息模式无票息 ⇒ 页面必须把年利息/总利息清零并输出「（零息债券：无票息）」；旧实现无论类型都按 `face×票面利率` 显示 ¥5.00。默认组（附息、1,000 / 5% / 950 / 5 年）三条都不命中。",
   },
   {
+    slug: "finance/bond-yield-calculator",
+    inputs: { "p-face": "100", "p-coupon": "5", "p-rate": "6", "p-years": "3", "p-freq": "1", "p-type": "zero" },
+    clicks: ["currentMethod='price'; calc()"],
+    expect: ["债券理论价格： ¥83.96", "当期收益率： 0.00%", "年利息： ¥0.00 （零息债券：无票息）", "零息债券不付息，价格由面值按市场利率折现得到，票面利率输入不参与计算"],
+    ref: "F-N4 残留分支：债券定价（price）页选零息债，面值 100、市场利率 6%、剩余 3 年、年付一次，票面利率输入框故意填 5%（应被忽略）。价格 = 100/(1.06)^3 = **¥83.96**（一步复算）；升贴水 = 83.96 − 100 = **折价 ¥16.04**。零息债券无票息 ⇒ 年利息必须 ¥0.00、当期收益率必须 0.00%，并标注「（零息债券：无票息）」与说明「票面利率输入不参与计算」。旧实现 `annualCoupon = face × couponRate / 100` 无视 type ⇒ 显示年利息 ¥5.00、当期收益率 5.96%，并给出「溢价/折价发行：票面利率 vs 市场利率」的错误归因。判别力实测：附息态（同参数 p-type=coupon）四条全部不命中，纯默认快照（ytm 分支、1,000 / 5% / 950 / 5 年）四条也全部不命中；clicks 阶段 `currentMethod='price'; calc()` 命中，因 harness 兜底阶段会以 `switchMethod(undefined)` 覆盖 #res，故必须走 click 阶段观测。",
+  },
+  {
+    slug: "finance/bond-yield-calculator",
+    inputs: { "p-face": "100", "p-coupon": "5", "p-rate": "6", "p-years": "3", "p-freq": "1", "p-type": "coupon" },
+    clicks: ["currentMethod='price'; calc()"],
+    expect: ["年利息： ¥5.00", "当期收益率： 5.14%"],
+    ref: "F-N4 回归护栏：附息债在债券定价页必须照常计息，不能被零息改动误清零。面值 100、票面利率 5%、市场利率 6%、3 年、年付一次 ⇒ 年利息 = 100×5% = **¥5.00**；价格 = 5/1.06 + 5/1.06² + 105/1.06³ = **¥97.33**；当期收益率 = 5/97.3258×100 = **5.14%**。零息态（同参数 p-type=zero）与纯默认快照都不含这两条 ⇒ 强判别。",
+  },
+  {
     slug: "finance/rental-yield-calculator",
     inputs: { price: "500", area: "100", rent: "8000", fee: "0", heat: "2000", tax: "1000" },
     clicks: ["calc()"],
@@ -1048,6 +1132,27 @@ const CASES = [
     clicks: ["calculate()"],
     expect: ["¥9,000.00", "¥4,800.00"],
     ref: "薪资五险一金（缴费基数 40,000：养老 8% / 医疗 2% / 失业 0.5% / 公积金 12%，工伤与生育默认 0）：公积金 = 40,000×12% = **¥4,800.00**（一步相乘）；五险一金合计 = 40,000×(8%+2%+0.5%+0+0+12%) = 40,000×22.5% = **¥9,000.00**（一条式）。同页个税按起征额 36,000 元与超额累进表计算，与本两项自洽。默认基数 20,000 ⇒ 2,400 / 4,500，不命中。",
+  },
+  {
+    slug: "finance/salary-calculator",
+    inputs: { salaryMode: "annual", salary: "240000" },
+    clicks: ["calculate()"],
+    expect: ["¥64.80万", "¥-408,000.00"],
+    ref: "F-N15 模式纳入持久化快照：注入 salaryMode=annual 且年薪 240000，页面按年薪口径把月薪折算为 240000÷12 = ¥20,000.00（grossSalary），五险一金年合计显示 ¥64.80万、年薪口径税后到手 ¥-408,000.00。旧实现 currentMode 是不在任何 input 里的纯 JS let 变量，localStorage 恢复后一律按 monthly 处理，240000 会被当成月薪，两条锚点都不命中。⚠️ 刻意不用 ¥20,000.00 / ¥24.00万 作 expect：前者正是默认态 grossSalary、后者是默认态年税前工资，都会在判别器 fullBlob 里命中变成逃生项。默认态不含本例两条 ⇒ 零逃生。"
+  },
+  {
+    slug: "finance/salary-calculator",
+    inputs: { housingLoan: "1000", housingRent: "1500" },
+    clicks: ["calculate()"],
+    expect: ["已按较大者 ¥1,500.00/月（住房租金）计入，另一项 ¥1,000.00/月未计入", "专项附加扣除合计 ¥3,500.00 元/月。"],
+    ref: "F-N15 房贷利息/租金互斥（租金更大）：同一纳税年度内两项不可同时扣除，同时填写时仅按较大者 1500 计入，合计 = 1500 + 赡养老人 2000 = 3500；旧实现直加 1000+1500+2000 = 4500 且无任何说明。结果容器 salaryDeductionNote 输出实际采用值与未计入项，两条都依赖注入值。默认态只填租金 1500、房贷 0 ⇒ 不触发互斥、无说明行 ⇒ 零逃生。"
+  },
+  {
+    slug: "finance/salary-calculator",
+    inputs: { housingLoan: "2000", housingRent: "1000" },
+    clicks: ["calculate()"],
+    expect: ["已按较大者 ¥2,000.00/月（房贷利息）计入，另一项 ¥1,000.00/月未计入", "专项附加扣除合计 ¥4,000.00 元/月。"],
+    ref: "F-N15 互斥方向回归护栏（房贷更大）：较大者换成房贷利息 2000，说明行须标注「房贷利息」并把租金 1000 列为未计入，合计 = 2000 + 2000 = 4000；防止实现写成固定取租金或固定保留房贷。默认态不命中。"
   },
 
   // ---- BATCH263：finance 分类「卡号 Luhn 反例 / 免息天数 / 夏普比率 / IRR」收口族（4 例） ----
@@ -1227,6 +1332,42 @@ const CASES = [
     inputs: { input: "27AAPFU0939F1ZV" },
     expect: ["校验位： V（期望 V）"],
     ref: "修复前 gstChecksum 用 const factor 却在循环里重赋值 ⇒ 所有浏览器都抛「Assignment to constant variable」整页失效；已改为 let。该号前 14 位 mod-36 校验位 = V 与末位一致 ⇒ 有效。expect 取页面回显「校验位： V（期望 V）」（含具体校验字符 ⇒ 默认预填 09AABCU9603R1ZL 输出「L（期望 L）」不命中，消除「✅ 有效」通用串导致的逃生）。",
+  },
+  {
+    slug: "finance/gst-validator",
+    inputs: { input: "00AAPFU0939F1ZB" },
+    expect: ["❌ 州码 00 不在 GST 州/属地代码列表（现行 01–24、26、27、29–38；97 为 Other Territory）。", "校验位： B（期望 B）"],
+    ref: "F-N170 未分配州码硬判：旧实现州码只用于展示，`zChar==='Z'` 且 mod-36 校验位正确即判「✅ GST 号码有效」，`00AAPFU0939F1ZB` 被判有效。现州码白名单参与结论，给出「州码 00 不在列表」并判「❌ GST 校验失败（州码不合法）」；第二条锚点验证错误态仍保留 PAN/实体/Z/校验位拆解（输入定位）。默认 09AABCU9603R1ZL 为合法 09 ⇒ 两条均不命中。",
+  },
+  {
+    slug: "finance/gst-validator",
+    inputs: { input: "99AAPFU0939F1ZK" },
+    expect: ["❌ 州码 99 不在 GST 州/属地代码列表", "校验位： K（期望 K）"],
+    ref: "F-N170 高位非法码护栏：`99AAPFU0939F1ZK` 校验位正确但 99 未分配给任何州/UT（97 才是 Other Territory）⇒ 必须拒绝，防止只按数值范围放行。默认态 09 ⇒ 不命中。99 作为 CGST 特殊辖区码的口径争议见台账待裁断说明。",
+  },
+  {
+    slug: "finance/gst-validator",
+    inputs: { input: "25AAPFU0939F1ZZ" },
+    expect: ["❌ 州码 25（Daman and Diu）已停用，现行应使用 26。"],
+    ref: "F-N171 停用码 25：达曼和第乌 2020-01-26 并入「Dadra and Nagar Haveli and Daman and Diu」统一用 26；旧表仍把 25 列为 Daman and Diu 且判有效。现 25 从现行表移除，归到停用表并指引入 26。默认态 09 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/gst-validator",
+    inputs: { input: "28AAPFU0939F1ZT" },
+    expect: ["❌ 州码 28（Andhra Pradesh (Old)）已停用，现行应使用 37。"],
+    ref: "F-N171 停用码 28：安得拉邦旧码，现行使用 37；旧表 `'28':'Andhra Pradesh (Old)'` 且判有效。现归到停用表并指引 37，同时保留 37/38 在现行表。默认态 09 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/gst-validator",
+    inputs: { input: "26AAPFU0939F1ZX" },
+    expect: ["州代码： 26 - Dadra and Nagar Haveli and Daman and Diu", "校验位： X（期望 X）"],
+    ref: "F-N171 行政区名全称回归护栏：26 由旧半名「Dadra and Nagar Haveli」改为合并后全称，且仍是合法码 ⇒ 校验位 X 正确时应判有效。防止把停用逻辑误伤到 26。默认态 09 - Uttar Pradesh ⇒ 不命中。",
+  },
+  {
+    slug: "finance/gst-validator",
+    inputs: { input: "38AAPFU0939F1ZS" },
+    expect: ["州代码： 38 - Ladakh", "校验位： S（期望 S）"],
+    ref: "F-N170 白名单覆盖新增码护栏：38 Ladakh（2019 新增）与 37 安得拉邦新码必须留在现行表并判有效，避免「删旧码」时把新码一起误删。默认态 09 ⇒ 不命中。",
   },
   {
     "slug": "finance/aadhaar-validator",
@@ -1863,9 +2004,9 @@ const CASES = [
       "periodUnit": "month"
     },
     "expect": [
-      "5 ✕ T6 ✕\n42\nmonth"
+      "T1:20000,T2:30000,T3:40000,T4:40000,T5:30000,T6:0\nmonth\n42"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"discountRate\":\"42\",\"periodUnit\":\"month\"}，输出区含「5 ✕ T6 ✕\n42\nmonth」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"discountRate\":\"42\",\"periodUnit\":\"month\"}。2026-11-07 F-N8 同批重采：页面新增只读输入 `irrCashflowSnapshot` 后，cfList 与期数单位之间多了一段现金流快照值，旧锚「5 ✕ T6 ✕\\n42\\nmonth」的跨元素拼接被截断，属**用例过期**而非页面缺陷；新锚改为「快照值 + month + 42」，同时锁住快照输入存在与注入生效。默认态（year / 8）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "finance/ird-validator",
@@ -2475,9 +2616,9 @@ const CASES = [
       "monthsPerYear": "42"
     },
     "expect": [
-      "42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n¥-4,361.28\n¥84\n¥0\n¥4,445\n¥1.00\n¥17.64\n¥17.64\n¥17.64\n¥17.64\n¥17.64\n"
+      "42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n住房贷款利息与住房租金不可同时扣除，已按较大者 ¥42.00/月（房贷利息）计入，另一项 ¥42.00/月未计入；专项附加扣除合计 ¥210.00 元/月。\n¥-4,361.28\n¥84\n¥0\n¥4,445\n¥1.00\n¥17.64\n¥17.64\n¥17.64\n¥17.64\n"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"salary\":\"42\",\"bonus\":\"42\",\"baseSalary\":\"42\",\"housingBase\":\"42\",\"pensionRate\":\"42\",\"medicalRate\":\"42\",\"unemploymentRate\":\"42\",\"injuryRate\":\"42\",\"maternityRate\":\"42\",\"housingRate\":\"42\",\"childrenEdu\":\"42\",\"continuingEdu\":\"42\",\"housingLoan\":\"42\",\"housingRent\":\"42\",\"elderly\":\"42\",\"infant\":\"42\",\"threshold\":\"42\",\"monthsPerYear\":\"42\"}，输出区含「42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n4…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "F-N15 同批重采（用例过期，非页面 bug）：新增带 id 的结果容器 salaryDeductionNote 与模式快照输入后，输出元素拼接顺序与互斥口径均变化 —— 18 项 42 注入后房贷 42 与租金 42 不再直加，改按较大者 42 计入（专项附加合计 252 → 210），结果区插入「已按较大者 ¥42.00/月（房贷利息）…合计 ¥210.00 元/月」说明行。expect 重采为新形态，仍以 18 个注入值 + 说明行 + 转换后结果为锚；默认态不含 ⇒ 零逃生。"
   },
   {
     "slug": "finance/sort-code-validator-validator",
@@ -2985,6 +3126,12 @@ const CASES = [
   {
     slug: "finance/mutual-fund-calculator",
     inputs: { initial: "10000", monthly: "1000", years: "1", rate: "-50" },
+    expect: [" -32.23% 累计收益率"],
+    ref: "F-N44 双负号修复：亏损时累计收益率 −32.23% 只应有一个负号（旧实现 profitSign 复用到已是负值的 totalReturn，卡片显示「--32.23%」）。statGrid 速率卡断言「 -32.23% 累计收益率」（前导空格保证不与「--32.23%」子串误配）。默认盈利态不含该负收益率串 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/mutual-fund-calculator",
+    inputs: { initial: "10000", monthly: "1000", years: "1", rate: "-50" },
     expect: ["-¥7,090.43"],
     ref: "F-N44：同组输入的费用/收益明细行按两位小数展示 −¥7,090.43；旧实现丢负号显示 ¥7,090.43。",
   },
@@ -3190,6 +3337,29 @@ const CASES = [
     clicks: ["calc(); calcPrepay()"],
     expect: ["提前还款金额须大于 0"],
     ref: "F-N227：提前还款金额为负时，旧实现 `newBalance = balanceBefore - (-100000)` 令剩余本金凭空增加 10 万且照常给出「节省利息」结论；现前置拒绝（须 > 0）。默认提前还款额 100000 为正 ⇒ 不命中。",
+  },
+
+  // ---- F-N8：投入时点 / 现金流序列纳入历史快照（两页各一组强判别） ----
+  {
+    slug: "finance/dca-calculator",
+    inputs: { dcaTiming: "end", monthly: "1000", years: "1", rate: "12", initial: "0", target: "0" },
+    clicks: ["__dcaSyncTiming(); calc()"],
+    expect: ["期末总资产： ¥12,682.50", "累计收益： +¥682.50"],
+    ref: "F-N8：投入时点此前只存在 JS 变量 `timing`，通用历史快照只扫 `input[id]` ⇒ 历史恢复后沿用当前时点、无法重现原结果。现新增带 id 的只读快照输入 `dcaTiming`，历史的 `mount` 回填回调显式调用 `__dcaSyncTiming()` 把时点同步回 JS 变量与按钮后再 `calc()`（不在每次 calc 里隐式覆盖，避免盖掉用户当期选择）。注入 `dcaTiming=end` 并在 clicks 里模拟该恢复回调（期末投入）、月投 1000、1 年、年化 12%、初始 0：期末资产 = Σ 1000×1.01^k (k=0..11) = **¥12,682.50**，累计收益 **+¥682.50**；期初投入同参数为 12,809.33。三态实测：注入 begin 与纯默认快照（10 年 / 8%）都不命中这两条；旧版没有 `dcaTiming` 输入 ⇒ 注入失败、只会给期初值，同样不命中。",
+  },
+  {
+    slug: "finance/dca-calculator",
+    inputs: { dcaTiming: "begin", monthly: "1000", years: "1", rate: "12", initial: "0", target: "0" },
+    clicks: ["__dcaSyncTiming(); calc()"],
+    expect: ["期末总资产： ¥12,809.33"],
+    ref: "F-N8 回归护栏：显式回填 `dcaTiming=begin` 必须仍按**期初**投入计算，期末资产 = Σ 1000×1.01^k (k=1..12) = **¥12,809.33**，与上面的期末投入 12,682.50 相差一个月利息，证明时点切换是双向可逆的（不是把整页锁死在期末）。纯默认快照（10 年 / 8% ⇒ 184,165.68）不命中。",
+  },
+  {
+    slug: "finance/irr-calculator",
+    inputs: { irrCashflowSnapshot: "T0:-100,T1:115", discountRate: "8", periodUnit: "year" },
+    clicks: ["__irrRestoreFromSnapshot(); calc()"],
+    expect: ["15.00%", "每期 IRR = 15.0000%", "NPV @ 折现率 8.00% = 6.48"],
+    ref: "F-N8：现金流控件由 `renderFlows()` 动态生成且无 id，通用历史快照漏掉全部期号与金额 ⇒ 恢复历史后仍用当前现金流。现新增只读快照输入 `irrCashflowSnapshot`（`T期号:金额` 序列），历史的 `mount` 回填回调显式调用 `__irrRestoreFromSnapshot()` 按快照重建现金流再 `calc()`；`renderFlows` / `updateAmount` 等在每次变化时写回快照并落 localStorage，保证快照不落后于内存。刻意不在 `calc()` 里隐式读回（否则会覆盖用户当期输入与 clicks 直接赋数组）。注入 `T0:-100,T1:115` 并在 clicks 里模拟该恢复回调、贴现率 8%、期数单位=年：IRR = 115/100 − 1 = **15.00%**（页面 `每期 IRR = 15.0000%`）；NPV = −100 + 115/1.08 = **+6.48**。三态实测：只注入贴现率/期数单位（不注入快照）与纯默认快照（project 预设 IRR≈16.60%）三条都不命中；旧版无该输入 ⇒ 注入失败，同样不命中。刻意避开 `-100/230/-132` 双根现金流（多根识别属另案 F-N29）。",
   },
 
 ];

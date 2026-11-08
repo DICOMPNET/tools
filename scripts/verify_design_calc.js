@@ -155,6 +155,18 @@ const CASES = [
       + "修复后近点 = H·s/(H+(s−f)) = 2400×5000/(2400+5000−24) = 1626.9mm → 1.63m，仅远点为 ∞。默认 50mm/f1.8/2m 得 1.92m ~ 2.08m ⇒ 判别明确。",
   },
   {
+    slug: "design/depth-of-field-calculator",
+    inputs: { sensor: "1", focal: "24", aperture: "8", distance: "2.41" },
+    expect: ["413.14m"],
+    ref: "D-N7 残留（远点边界）：H=24²/(8×0.03)=2400mm，H+f=2424mm；s=2.41m=2410mm < H+f ⇒ 远点应有限。旧实现用 s<h（2410<2400 否）误判远点=∞；修复后远点 = H·s/(H−(s−f)) = 2400×2410/(2400−2386) = 413142.9mm → 413.14m。断言远点卡「413.14m」（默认 50mm/f1.8/2m 得 2.08m 末尾不同 ⇒ 不命中）。",
+  },
+  {
+    slug: "design/depth-of-field-calculator",
+    inputs: { sensor: "2.7", focal: "50", aperture: "1.8", distance: "2" },
+    expect: ["126.3m"],
+    ref: "D-N6：1英寸画幅（sensor=2.7）CoC=0.011mm，超焦距 H=f²/(N·c)=50²/(1.8×0.011)=126262.6mm → 126.3m（超焦距卡显示一位小数）。旧实现 1英寸与全画幅 value 同为 1，选 1英寸仍按 c=0.03 算得 46.3m；修复后独立 value=2.7 命中 coc[2.7]=0.011。全画幅(sensor=1)仍得 46.3m、APS-C(1.5)得 84.2m，互不相同可判别。",
+  },
+  {
     slug: "design/focal-length-equivalent",
     inputs: { focal: "35", fromSensor: "fullframe", toSensor: "aps-c" },
     expect: ["56.0mm", "35.6° × 24.2°"],
@@ -222,6 +234,18 @@ const CASES = [
        + "⚠ `#contrastGrade` 的 `AAA 优秀` 是静态占位，本例改锚 `AA 良好` 才具判别力。",
   },
   {
+    slug: "design/contrast-checker",
+    inputs: { fgHex: "GGGGGG", bgHex: "#000000" },
+    expect: ["颜色需为有效的 3 或 6 位 HEX 值"],
+    ref: "D-N1 锁定：非法 HEX（GGGGGG）注入 fgHex ⇒ onFgHexInput 判非法 ⇒ contrastGrade 显示错误提示「前景色需为 3 或 6 位 HEX」；默认态 #1F2937/#FFFFFF 不触发，强判别。修复前非法值静默保留旧结果且无提示。",
+  },
+  {
+    slug: "design/contrast-checker",
+    inputs: { fgHex: "#fff", bgHex: "#000000" },
+    expect: ["21.00"],
+    ref: "D-N1 附加：3 位简写 #fff 经扩展 isValidHex 接受 ⇒ 对比度 21.00（与 #FFFFFF 一致）；旧实现 #fff 被静默丢弃。默认态 14.68 不命中。",
+  },
+  {
     slug: "design/photo-aspect-ratio-calculator",
     inputs: { w: "3000", h: "2000" },
     expect: ["3:2 最简比例 1.500:1 宽高比 6.00MP"],
@@ -276,6 +300,12 @@ const CASES = [
     expect: ["panel { /* styles */ }", "@media (min-width: 480px)"],
     ref: "同页换档位：devs='custom' ⇒ 断点表切到五段（480 / 576 / 768 / 992 / 1200），故 `@media (min-width: 480px)` 只在该档位出现（默认 basic 档的最小值是 640px）⇒ 第二项把 devs 纳入被测点；第一项 `panel { /* styles */ }` 锁 cls。mode='min' ⇒ max-width 改 min-width。默认态两串皆不命中。"
        + "⚠ 第一项单独不足以证明 devs 生效（custom 与 basic 都渲染同类选择器），必须配第二项。",
+  },
+  {
+    slug: "design/breakpoint-queries",
+    inputs: { devs: "basic", mode: "max" },
+    expect: ["/* 桌面优先 */"],
+    ref: "D-N15 锁定：修复 operator-precedence 缺陷（`'/* '+mode==='min'?…` 因 `+` 优先恒成立 false，两模式都输出「桌面优先 */」且带孤立 `*/`）。修复后 mode='max' ⇒ CSS 首行注释为 `/* 桌面优先 */`（带正确 opener）；注入 mode='max' 与默认 mode='min' 区分，默认态输出 `/* 移动优先（Mobile First） */` 不含该串 ⇒ 零逃生。",
   },
   {
     slug: "design/badge-generator",
@@ -693,10 +723,11 @@ const CASES = [
   {
     slug: "design/color-palette-generator",
     inputs: { baseColor: "#808080" },
-    expect: ["黑底 5.32:1 AA", "白底 3.95:1 ✗"],
-    ref: "色块文字对比度：WCAG 相对亮度 —— #808080 线性化后 L = 0.2159，黑字对比度 = (0.2159+0.05)/0.05 = 5.32:1、"
-      + "白字 = 1.05/0.2659 = 3.95:1 ⇒ 应按 WCAG 选黑字并标注 5.32:1 AA。修复前用亮度阈值 YIQ=128 判 `>128` 为假而选白字（3.95:1 未达 AA）。"
-      + "默认基色 #667eea 的派生色不含该串 ⇒ 判别明确。",
+    expect: ["字色对比 4.78:1 AA", "白字 3.95", "黑字 4.78"],
+    ref: "色块文字对比度（D-N2 修正）：WCAG 相对亮度 —— #808080 线性化后 L≈0.2159；"
+      + "白字 #fff 对比度 = 1.05/(0.2159+0.05)=3.95:1、黑字 #111（实际选用色，相对亮度≈0.0056）对比度 = (0.2159+0.05)/(0.0056+0.05)=4.78:1 ⇒ 选黑字并标注 4.78:1 AA。"
+      + "修复前错把黑字当成 #000 算成 5.32:1（虚标 AA，实际 #111 仅 4.78 勉强 AA），并误用「白底/黑底」语义（实为白字/黑字）。"
+      + "默认基色 #667eea 派生色对比度不含该串 ⇒ 判别明确。",
   },
   {
     slug: "design/generator-6",

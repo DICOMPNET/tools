@@ -125,22 +125,10 @@
 ## 已知问题
 ### I1. hash/编码类页深度参差
 - ⚠ 核实（2026-10-26）：pbkdf2 已完整参数化（迭代/盐/密钥长度/格式）、bcrypt 已有 rounds 成本因子——「参数化」部分条目过时。
-- ✅ 耗时实测已落地（2026-10-26）：bcrypt 生成成功消息加「实测耗时 X ms（成本因子每 +1 耗时约翻倍）」、校验加实测耗时+恒定时间比较说明；pbkdf2 派生输出加「实测耗时」行（迭代次数为主要耗时来源）。均 performance.now 本地实测（fallback Date.now）。harness 不可达路径（CDN bcrypt 库/crypto.subtle 分支），老锚零漂移：verify it 764/764、判别器 0、门禁 218/218。
 
-### I2. 正则/格式化器错误提示原始
-- ✅ 已核实并收口（2026-10-26）：json-formatter 既有行列定位、yaml-validator 既有行号+列号+上下文片段（条目过时）。真缺口在 toml 系：toml-formatter 的 parseToml 是宽松解析器（无效行静默跳过），「验证」几乎永远通过且无定位。已落地：新增 validateTomlStrict 严格逐行校验（表头格式/缺少 =/空键名/空值，带行号定位；值侧三引号多行字符串跳过内容行不误报、表头行内注释 strip），validateToml 通过时输出输入相关统计「（共 N 个键值对，M 个表）」；format/转换仍走宽松 parseToml 零漂移。verify +2 强用例（缺 = 行号锚 / 合法多行字符串统计锚——后者修复「两态同值」逃生，判别器抓到后以统计输出收敛）；verify it 766/766、判别器 0、EN 分支手写 ASCII 无 CJK。
-
-### I3. barcode/QR 系列仅静态生成
-- ✅ barcode 导出已落地（2026-10-26）：7 个 barcode 页（codabar/code128/code39/ean/itf/msi/upc）统一加「下载 PNG」按钮（downloadBarcodePNG：canvas.toDataURL、无 canvas 空态提示、文件名带 slug+时间戳）；qrcode.html 已有 downloadQR（核实既有）。verify it 764/764、判别器 0、门禁 218/218。
-- ✅ QR 中心 logo 已落地（2026-10-26）：qr-beautify logo 上传 + 按容错级别限宽嵌入（详见进度区）。纠错级别可视化对比核实：qrcode.html 既有「各纠错级别最小版本对比图 + 容量表高亮当前级别列」（__qrT 双语）——条目后半过时，销案。
-
-## 功能缺陷
-- ✅ 时间戳毫秒/秒自动识别已落地（2026-10-26）：timestamp-converter 加「智能粘贴识别」smartInput（纯数字 ≥1e12 判毫秒否则判秒、日期串走 parseDate，同步填秒/毫秒/日期三框 + 识别文案进 #smartHint 可断言；expect 锚 ISO toISOString UTC 确定串免时区漂移）+「当前时间」常驻表 #nowBar（**matchMedia 守卫**：harness 会注入 rAF/setInterval 定时器桩守不住，node/真机差分用 matchMedia；stub 不采集 ⇒ 零 blob 影响，真机 setInterval 每秒刷新）。verify it 768/768、判别器 0。
-- ✅ IP 计算器 CIDR 批量已落地（2026-10-26）：ip-calculator v4 tab 加「批量 CIDR 解析」（textarea 每行一条，支持 ip/前缀、ip 点分掩码、裸 IP=/32 三形态；错误行 ❌ 标注不中断；统计串「共 N 条：有效 X，无效 Y」+ 六列汇总表）。⚠ 锚只能用统计串——主机数/掩码值撞「掩码对照表」（harness 兜底直调 buildMaskTable 进 blob），判别器抓到 2 逃生后收紧。verify it 775/775、判别器 0。
 
 ## 优化点（G06 联动）
 - S6 输入智能化：※ cron「人类语翻译」双向（2026-10-26 落地）+ regex-common「原文高亮+命中偏移明细」（2026-10-26 落地：matchAll 逐段 <mark> + `#i [s-e] 文本` 位置表；⚠ 默认态样例也产高亮标题，标题不可单独作锚）。「正则速查输入联想」核实销案（2026-10-26）：regex-cheatsheet 既有实时搜索过滤（searchInput input → renderCommands 全量重渲染），「输入即响应」已实现，增量价值不足，不再单列。
-- S3 位运算可视化已落地（2026-10-26）：bitwise-calculator 结果位区升级 A/B/R 三行 8 位分组对齐（NOT 显示 A/R 两行、SHL/SHR 显示移位前后+移位数）+ 差异统计（AND/OR/XOR「与 A 不同 N 位」、NOT「1→0 共 X 位，0→1 共 Y 位」逐位方向计数）。曾出 bug：NOT 方向计数误用总差异数取补恒得 0/32。verify it 778/778、判别器 0。
 - S3 分步：base64/进制约 30 页加「逐步位运算」可视化。
 - 高流量页优先做 S4 分享卡（uuid/password/hash）。
 
@@ -148,9 +136,8 @@
 - tools/it/（340 页，全站第一大分类）
 
 ## 进度
-- ✅ QR 中心 logo 已落地（2026-10-26）：qr-beautify 加 logo 上传（FileReader→Image→drawLogoOverlay 白底圆角块 contain 居中嵌入），宽度按容错级别限幅 L≤10%/M≤15%/Q≤20%/H≤25%（可遮挡比例口径），状态行显示实际占比；clearLogo 可移除；Boot 挂 initLogoInput（__qrLogoBound 防重复绑定）。⚠ logo 路径 harness 不可达（FileAPI 缺口），闭环 = 默认态零漂移 778/778 + 代码审阅 + 真机验证待老板抽查。修复「简介承诺 add logos 但功能未实现」的名不副实。
 - 🟢 批次 2026-10-26：I1 耗时实测、I2 toml-formatter 严格校验、I3 barcode PNG 导出均已落地。
-- 🔴 待开发：QR 中心 logo/纠错级别对比；S6 输入智能化试点（正则速查输入联想）；S4 分享卡。
+- 🔴 待开发：S4 分享卡。（注：QR 中心 logo、纠错级别对比、S6 正则速查输入联想均已落地/销案，见上方已修复归档）
 
 ## 2026-11-03 审计补充（按工作树静态核查）
 
@@ -171,7 +158,6 @@
 ## 2026-11-03 续查：文本与配置工具
 
 ### IT-N3 大小写不敏感替换的 Unicode 偏移损坏原文（高，部分修复，待处理）
-- 2026-11-06 复核基线 `06fd7b449c`：原 `Hello WORLD hello` → `X world X` 问题已修，Node 桩执行原反例得到 `X WORLD X`。
 - 新发现：`tools/it/text-replace.html:650-663` 对整个文本 `toLowerCase()` 后在小写串中查找，再用该位置切原文；`İ` 小写后变成两个码元，偏移不再一致。输入 `İ hello WORLD`，不区分大小写、全局替换 `hello` 为 `X`，原页面函数实际输出 `İ hXWORLD`，应为 `İ X WORLD`。
 - 影响：Unicode 输入中，未匹配字符丢失或保留错误，复制/下载会传播损坏的内容；非全局分支亦用同样的索引方式，需一并验证。
 - 方案：匹配位置必须对应原文，增加大小写映射长度变化、连续命中及非全局回归；尚未做浏览器验证。
@@ -181,7 +167,6 @@
 
 ## 2026-11-03 续查（并行批 G）
 
-- 2026-11-06 复核已修复项：IT-N11 的 `loadSample()` 输出含 `app.name` 的 JSON，成功提示为 `err ok`、错误提示为 `err`；IT-N15 的字节模式输入 `a`、上限 1、省略符 `...` 保留 `a`，输入 `ab` 才截断为 `.`。均以 Node 执行页面实际函数，未做浏览器验证。
 
 ### 留存优化
 - `properties-parser.html:298` 的 `unescapeVal` 不解码 `\uXXXX`：`greet=\u4f60\u597d` 原样保留（Node 已复算），与页面 FAQ 对转义的说明不一致。
@@ -198,7 +183,6 @@
 ## 2026-11-03 续查（并行批 J）
 
 ### IT-N20 历史回填不清除原本未勾选的选项（中，部分修复）
-- 2026-11-06 复核：`tools/it/text-cleaner.html:743-855` 已给 `executeClean()` 接入历史记录，并在回填时重新执行清理，不再调用会清空选项的 `applyPreset()`；原记录中的这两处问题已修。
 - 但 `__text_cleanerSnap()` 不保存未勾选的复选框，历史回调只遍历记录中存在的字段，故不能清除当前已勾选、而历史当时未勾选的选项。Node 执行实际回填回调：历史记录无 `opt-trim`，当前 `opt-trim` 已勾选，回填后仍为 `true`，再执行清理时可能产生与历史不一致的结果。未做浏览器验证。
 - 方案：恢复历史前统一重置选项，或保存和恢复完整的勾选状态；兼顾既有历史记录格式。
 
@@ -364,7 +348,6 @@
 - 影响：把结果贴进带 `u` 标志的 `RegExp`、ESLint `no-useless-escape` 或部分严格引擎会被判非法/告警。
 - 方案：`verbose` 只额外处理 `/` 与字符类内的 `-`，删除 `,;:<>@#&~=`；或在输出旁注明「本结果适用于非 `u` 模式」。
 
-- 2026-11-06 复核：原 IT-N60 引号 URL 和 IT-N61 注释开关问题已修。Node 执行页面实际 `minify()`，单双引号 URL `a)b  c` 均保留双空格；取消勾选保留 `/*keep*/`、勾选则删除。未做浏览器验证。
 
 - 备注：`tools/it/punycode.html:404-410`、`tools/it/regex-escape.html:321-328` 的 `copyResult` 依赖全局 `event`（与 IT-N31 同模式，Firefox 可能失效），不重复计数，未单列为新条目。
 - 本轮实读 8 页：`tools/it/punycode.html`、`tools/it/regex-escape.html`、`tools/it/css-minifier.html`、`tools/it/date-duration.html`、`tools/it/ipv4-range-expander.html`、`tools/it/user-agent-parser.html`、`tools/it/hash-multi.html`、`tools/it/http-cache.html`；新增 15 条（高 3 / 中 8 / 低 4）；未覆盖：`tools/it` 其余非文本页（如 `html-minifier`、`html-nesting-checker`、`c-string-escape`、`go-escape`、`java-escape`、`js-minifier`、`js-obfuscator`、`sql-formatter`、`shell-script-formatter`、`dockerfile-generator`、`gitignore-generator`、`robots-txt-generator`、`sitemap-generator`、`ssh/证书/密钥类` 等）与全部速查表页；未做浏览器、EN、移动端、门禁或部署验证。
@@ -373,7 +356,6 @@
 
 > 范围：本轮阅读 8 页（`tools/it/ip-calculator.html`、`tools/it/html-minifier.html`、`tools/it/barcode-ean.html`、`tools/it/docker-run-converter.html`、`tools/it/cron.html`、`tools/it/qr-decoder.html`、`tools/it/url-encode.html`、`tools/it/base64-converter.html`）。仅源码 + Node 复算，未开浏览器/未做 EN/移动端/门禁验证。
 
-- 2026-11-06 复核：原 IT-N72/82 的行内空格和属性空格问题已修，Node 执行 `collapseHtmlWhitespace()` 复核原例均保留；原 IT-N73/84 的 EAN 长度、字符和校验位已修，实际 `buildEAN()` 对空、短、字母、超长、错误校验位返回错误，12 位和正确 13 位均生成 `5901234123457`；原 IT-N74/75 的示例选项、引号和镜像后命令均经 `parse()` 实测通过。仅函数级验证，未做浏览器验证。
 
 - 备注：`tools/it/ip-calculator.html:453-456` 与 `tools/it/cron.html:462-466` 的 `switchTab` 依赖全局 `event`（与 IT-N31 同模式，Firefox 可能失效），不重复计数，未单列为新条目。
 - 本轮实读 8 页：`tools/it/ip-calculator.html`、`tools/it/html-minifier.html`、`tools/it/barcode-ean.html`、`tools/it/docker-run-converter.html`、`tools/it/cron.html`、`tools/it/qr-decoder.html`、`tools/it/url-encode.html`、`tools/it/base64-converter.html`；新增 15 条（高 2 / 中 12 / 低 1）；未覆盖：`tools/it` 其余非文本页（如 `base32-encode`、`base58-encode`、`base85-encode`、`http-headers`、`http-status`、`http-methods`、`mime-type`、`gitignore-generator`、`dockerfile-generator`、`shell-script-formatter`、`ipv6-ula`、`ssl-info`、`aes/des/rsa/ecdsa` 等）与全部速查表页；未做浏览器、EN、移动端、门禁或部署验证。
@@ -2105,15 +2087,6 @@
 - 方案：接入纯前端 Python 解析器做真实语法检查，或至少检测"冒号行后必须增加缩进""return 必须在块内"等结构规则并标明能力边界。
 **留存建议（tools/it/python-formatter.html）**：`:368-402` 与 JS 页 `:449-475` 同属"假校验"，建议统一换真实解析。
 
-### IT-N303 CSV 输出被覆盖成只剩 `</tbody></table>`，HTML 代码与预览全部失效（历史记录，2026-11-06 当前基线复核不再复现）
-- 基线 `0781ef7e61`：当前第 315 行为 `h += '  </tbody>\n</table>'`；独立 Chrome 实测生成完整 table、表头和单元格。原问题为历史发现，当前版本不可再作为未修复缺陷派发。
-- 问题：`calcTool` 拼好完整表格字符串后，`:314` 又执行 `var h= header?'  </tbody>\n</table>':'  </tbody>\n</table>';`（两个分支完全相同），把 `h` 覆盖为闭合片段，`:315` 写入输出、`:316` 写入预览。
-- 证据：`tools/it/csv-to-html-table.html:305-313`（拼表头/表体）、`:314`（覆盖）、`:315-316`（写 `htmlOut`/`previewBox`）、`:327`（复制只查 `indexOf('table')`，仍能通过）。
-- 复现（node 实跑默认 CSV `name,age,city\nAlice,28,Shanghai`）：`htmlOut` = `"  </tbody>\n</table>"`；预览为 `…预览（2 行）</div>  </tbody>\n</table>`（浏览器的孤立闭合标签被丢弃 → 空白）；期望完整 `<table><thead>…<tbody>…</table>`。
-- 影响：页面唯一的产出与预览功能 100% 失效；复制/下载得到无意义片段，FAQ :201 的转义承诺也无从体现。
-- 方案：`:314` 改为 `h += '  </tbody>\n</table>';`；补回归断言"输出含 `<table>`、`<th>`、`<td>` 且行数匹配"。
-**留存建议（tools/it/csv-to-html-table.html）**：`:314` 是本页核心事故点，一行修复 + 一条回归即可。
-
 ### IT-N304 单元格文本中的 "NaN"/"Infinity" 被替换成 "—"（低，确认缺陷）
 - 2026-11-06 基线 `0781ef7e61` 独立 Chrome 复核：CSV `name,value` 换行 `NaN,Infinity Labs` 产出 `<td>—</td><td>— Labs</td>`，预览同样被改写；问题仍存在，不重复编号。
 - 当前基线另复现空输入：清空 CSV 输入后仍生成 Alice/Bob 示例表格并可复制/下载。`calcTool()` 第 300–301 行对空值强制回退样例；输入区初始示例还包含 Carol。用户可能误将虚构示例当成当前结果，建议空态清除输出并提示，示例通过显式按钮载入。
@@ -2383,15 +2356,6 @@
 - 复现：`\101` → 实际 `101`，期望 `A`（0o101=65）；`\012` → 实际 NUL + `12`（另有 `case '0'` 只吃 2 字符），期望换行 `\n`。
 - 影响：C 源码中合法的八进制转义全部解错，且无提示。
 - 方案：改 `case '0': … case '7':` 或前置 `if(/[0-7]/.test(n))`，按 C 规则最多读 3 位八进制。
-
-### IT-N337 Go/PHP/Python 三页同型八进制反转义失效（历史记录；Go 源码已变，待分别回归）
-
-> 2026-11-06 续审：`tools/it/go-escape.html:349-354` 当前显式处理 `case '0'` 至 `case '7'`，旧版 `case /[0-7]/` 已不在 Go 页；PHP/Python 本批未复核，不能据此销账。
-- 问题：三页 `unescape/unesc` 均把八进制分支写成 `case /[0-7]/:`，正则与字符串严格比较恒 false，`\101` 落入 `default` 原样输出。
-- 证据：`tools/it/go-escape.html:339`、`tools/it/php-escape.html:345`、`tools/it/python-escape.html:363`
-- 复现：三页输入 `\101` → 实际均为 `101`，期望 `A`；PHP/Python 的 `\0` 也会被拆成字面 `0`。
-- 影响：三种语言官方支持的 C 风格八进制转义（如 `\101`、`\0`）在反转义时全部失效，且无提示。
-- 方案：改为字符窗口判断（`case '0'`…`case '7'` 或 `if(/[0-7]/.test(n))`），最多 3 位；三页共用同一份实现并加固定用例。
 
 ### IT-N338 Rust 字节串模式对非 ASCII 输出非法 `\u{}`（高，确认缺陷）
 - 问题：`kind==='byte'` 且 `cp > 0xFF` 时输出 `\u{...}`，Rust 字节串字面量不支持 `\u` 转义（仅 `\xNN`），生成代码不可编译。

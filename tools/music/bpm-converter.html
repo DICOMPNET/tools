@@ -501,7 +501,14 @@ s.parentNode.insertBefore(el, s);
 
   // 同步滑块和输入框
   window.onBpmChange = function() {
-    var val = getBpm();
+    var raw = parseFloat(document.getElementById('bpmInput').value);
+    var val = raw;
+    if (isNaN(val) || val < 40) val = 40;
+    if (val > 300) val = 300;
+    // 仅当用户输入了数字但越界时才回写输入框，避免正常范围内输入（如正在键入 120）被打断
+    if (!isNaN(raw) && raw !== val) {
+      document.getElementById('bpmInput').value = val;
+    }
     document.getElementById('bpmSlider').value = val;
     updateQuickBtns(val);
     calcAll();
@@ -697,6 +704,8 @@ s.parentNode.insertBefore(el, s);
       + '</div>';
 
     const __h5=html;if((typeof __h5==='number'&&!isFinite(__h5))||/Infinity/.test(String(__h5))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h5)){document.getElementById('reverseResult').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('reverseResult').innerHTML=__h5;
+    // FE-N5 修复：反向计算也触发历史/表格/图表/CSV 记录（reverseResult 即 .result-box，被 __bpm_converterResText 采集）；用 typeof 守卫避免页面初始化时该函数尚未定义
+    if (typeof __bpm_converterExtras === 'function') __bpm_converterExtras();
   };
 
   // 综合计算
@@ -753,8 +762,13 @@ function __bpm_converterResText(){
     if(!r) return '';
     var t=(r.textContent||'').replace(/\s+/g,' ').trim();
     if(!t||t==='--'||t==='—'||t==='-') return '';
-    if(/请输入|无效|不正确|错误|Error|NaN/.test(t)) return '';
+    if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
+}
+function __bpm_converterScore(t){
+    var s=String(t||'');
+    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    return 1;
 }
 function __bpm_converterTime(t){
     var d=new Date(t);
@@ -764,10 +778,12 @@ function __bpm_converterTime(t){
 function __bpm_converterRender(keys,rk,en){
     try{
         var arr=TBKit.history.list().slice(0,10);
-        var head=[en?'Time':'时间'].concat(keys).concat([rk]);
+        var head=[en?'Time':'时间'].concat(keys).concat([en?'Verdict':'结论',rk]);
         var rows=arr.map(function(it){
             var row=[__bpm_converterTime(it.t)];
             for(var i=0;i<keys.length;i++){var v=it.d[keys[i]];row.push(v==null?'':v);}
+            var sc=parseFloat(it.d.__tbScore);
+            row.push(isFinite(sc)?(sc>=1?(en?'Pass':'通过'):(en?'Fail':'未通过')):'-');
             var r=it.d[rk];row.push(r==null?'':r);
             return row;
         });
@@ -777,7 +793,7 @@ function __bpm_converterRender(keys,rk,en){
             __bpm_converter_skip=true;
             try{
                 for(var k in rec){
-                    if(k===rk) continue;
+                    if(k===rk||k==='__tbScore') continue;
                     var e=document.getElementById(k);
                     if(!e) continue;
                     var t=(e.type||'').toLowerCase();
@@ -790,11 +806,11 @@ function __bpm_converterRender(keys,rk,en){
         });
         var nums=[],labels=[];
         for(var j=arr.length-1;j>=0;j--){
-            var v=parseFloat(arr[j].d[rk]);
+            var v=parseFloat(arr[j].d.__tbScore);
             if(isFinite(v)){nums.push(v);labels.push(__bpm_converterTime(arr[j].t));}
         }
         if(nums.length>=2){
-            TBKit.chart.line('#bpm_converterChart',{labels:labels,series:[{name:en?'Result trend':'结果趋势',data:nums}]});
+            TBKit.chart.line('#bpm_converterChart',{labels:labels,series:[{name:en?'Validity trend':'有效性趋势',data:nums}]});
         }
     }catch(e3){}
 }
@@ -824,16 +840,26 @@ function __bpm_converterExtras(){
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
+    rec.__tbScore=__bpm_converterScore(res);
     TBKit.history.record(rec);
     __bpm_converterRender(keys,rk,en);
 }
 function __bpm_converterExport(){
     if (typeof TBKit === 'undefined') return;
+    try{
+        var box=document.querySelector('#bpm_converterTable');
+        if(!box||!box.querySelector('tr')){
+            var snap=__bpm_converterSnap(); var keys=Object.keys(snap);
+            if(keys.length>12) keys=keys.slice(0,12);
+            var en=(TBKit.util&&TBKit.util.isEn())?true:false;
+            __bpm_converterRender(keys,en?'Result':'结果',en);
+        }
+    }catch(e){}
     try { TBKit.util.exportTable('#bpm_converterTable','bpm-converter.csv'); } catch(e){}
 }
 function __bpm_converterPresets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#bpm_converterPresets',[{label:'默认参数',labelEn:'Default',values:{'bpmInput':'120', 'bpmSlider':'120', 'sampleRate':'44100', 'reverseMs':'500', 'reverseNote':'quarter'}},{"label":"小规模","labelEn":"Small scale","values":{"bpmInput":"60"}},{"label":"大规模","labelEn":"Large scale","values":{"bpmInput":"180"}},{"label":"极端工况","labelEn":"Extreme case","values":{"bpmInput":"240"}}],function(){ calcAll(); });
+    TBKit.preset.bar('#bpm_converterPresets',[{label:'默认参数',labelEn:'Default',values:{'bpmInput':'120', 'bpmSlider':'120', 'sampleRate':'44100', 'reverseMs':'500', 'reverseNote':'quarter'}},{"label":"小规模","labelEn":"Small scale","values":{"bpmInput":"60", "bpmSlider":"60"}},{"label":"大规模","labelEn":"Large scale","values":{"bpmInput":"180", "bpmSlider":"180"}},{"label":"极端工况","labelEn":"Extreme case","values":{"bpmInput":"240", "bpmSlider":"240"}}],function(){ calcAll(); });
 }
 var __bpm_converter_f0=(typeof calcAll==='function')?calcAll:null;
 if(__bpm_converter_f0){
