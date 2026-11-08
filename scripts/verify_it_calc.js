@@ -684,6 +684,13 @@ const CASES = [
     ref: "独立复算：δ=d×√(n/2)=1×3.162=3.162，z*=1.96 ⇒ 功效=Φ(1.202)+Φ(−5.122)≈0.885 ⇒ 88.5%；默认 d=0.5/n=64 得 80.7%，不命中。",
   },
   {
+    slug: "it/statistical-power",
+    inputs: { d: "0.5", alpha: "0.05", tail: "two", solveFor: "size", targetPower: "0.8" },
+    clicks: ["calculate()"],
+    expect: ["所需样本量 = 63（每组），实际功效 80.13%"],
+    ref: "IT-N375：页面承诺「四要素知三求一 / 求所需样本量」，修复前只有功效一个输出、没有求解模式。「求解目标」选「求样本量」后按 n = ⌈2((z₁₋α/₂+z₁₋β)/d)²⌉ 反解：z₁₋α/₂=1.95996、z₁₋β=0.84162、d=0.5 ⇒ 2×((1.95996+0.84162)/0.5)² = 62.79 ⇒ n=63；再用 n=63 复核功效 δ=0.5×√31.5=2.8062，Φ(2.8062−1.95996)=0.8013 ⇒ 80.13%。expect 是反解出来的样本量与复核功效，输入里只有 0.5/0.05/0.8 ⇒ 非回显；修复前页面无 #solveFor，#targetPower 也无效 ⇒ 走的是求功效分支、输出「功效 = …%」而非该串 ⇒ 必红灯。",
+  },
+  {
     slug: "it/text-truncate",
     // 默认「省略号」select 值为 "..."；words 模式 limit=2 ⇒ "Alpha beta" + "..."。
     inputs: { input: "Alpha beta gamma delta", limit: "2", mode: "words" },
@@ -749,6 +756,40 @@ const CASES = [
     inputs: { source: "" },
     expect: ["请输入 TOML 文本"],
     ref: "空输入时页面写入 `请输入 TOML 文本`；默认 TOML 非空不命中。该页此前为 P0 死页（sort id 不匹配），修复后本例才有判别力。",
+  },
+  // ---- IT-N385/N386/N387：toml-to-json 解析层修复 ----
+  // 采集说明：JSON 正文走 escH()（createElement → textContent → innerHTML，桩已建模该联动），
+  // 只有 & < > 会转义，引号/大括号保留原样；#result 的 innerHTML 剥标签后空白折叠成单空格。
+  {
+    slug: "it/toml-to-json",
+    inputs: { source: 'point = { x = 1, y = 2 }' },
+    expect: ['"point": { "x": 1, "y": 2 }'],
+    ref: "IT-N385：内联表必须递归解析成对象。修复前 tVal 无 `{}` 分支 ⇒ 整串原样当字符串（`\"point\": \"{ x = 1, y = 2 }\"`）。默认样例无 point 键。",
+  },
+  {
+    slug: "it/toml-to-json",
+    inputs: { source: "a = 1_000\nh = 0xFF" },
+    expect: ['"a": 1000, "h": 255'],
+    ref: "IT-N385：数字下划线与十六进制必须按数值解析。修复前整数正则 `^-?\\d+$` 不接受 `_` ⇒ `\"a\": \"1_000\"`；`0xFF` 同样降级成字符串。默认样例无 a/h 键。",
+  },
+  {
+    slug: "it/toml-to-json",
+    inputs: { source: 'list = ["a,b", "c"]' },
+    expect: ['"list": [ "a,b", "c" ]'],
+    ref: "IT-N386：数组必须按「顶层逗号」切分。修复前 `inner.split(',')` 无视引号 ⇒ `[\"\\\"a\", \"b\\\"\", \"c\"]`（四个残片）。默认样例无 list 键。",
+  },
+  {
+    slug: "it/toml-to-json",
+    inputs: { source: "ports = [\n  8000,\n  8001\n]" },
+    expect: ['"ports": [ 8000, 8001 ]'],
+    ref: "IT-N386：多行数组必须跨行累积。修复前逐行解析 ⇒ `ports = [` 当行即得空数组、后续 8000/8001 因无 `=` 被跳过 ⇒ `\"ports\": []`。默认样例无 ports 键。",
+  },
+  {
+    slug: "it/toml-to-json",
+    inputs: { source: "zzq = 1" },
+    clicks: ["document.getElementById('indent').value='tab';calcTool();var h=document.getElementById('result').innerHTML;document.getElementById('result').textContent='N387 tab='+(h.indexOf(String.fromCharCode(9))>=0?1:0)+' key='+(h.indexOf('zzq')>=0?1:0);"],
+    expect: ["N387 tab=1 key=1"],
+    ref: "IT-N387：选 Tab 缩进必须输出真正的制表符 0x09。修复前三元写成 `'\\\\t'`（源码里是两个字面字符反斜杠+t）⇒ 输出 `\\t` 文本；blob 会把空白折叠成空格、无法断定制表符，故用 clicks 直接查 innerHTML 的 charCode 9。`key=1` 让判定串依赖入参键名。",
   },
   {
     slug: "it/sql-formatter",
@@ -839,6 +880,20 @@ const CASES = [
     inputs: { textA: "alpha beta", textB: "alpha gamma" },
     expect: ["0.6364", "编辑距离: 4"],
     ref: "独立复算：莱文斯坦距离 4、`len(A)=11` ⇒ 归一化 1−4/11=0.6364，与页面「63.64%（距离: 4）」自洽。默认态是更长示例文本，不命中。",
+  },
+  {
+    // IT-N367 回归：compareMode=full（LCS 对齐）下 "abc" vs "xabc" 只多 1 个字符。
+    slug: "it/text-similarity",
+    inputs: { textA: "abc", textB: "xabc", compareMode: "full", tokenMode: "char" },
+    expect: ["完整文本 · 差异合计 1 字符"],
+    ref: "IT-N367：full 走 LCS 对齐，x→abc 的匹配使差异只剩插入的 1 个字符（旧实现 compareMode 只读不用，两个选项输出逐字节相同，这行摘要也不存在）。默认示例文本更长，不命中。",
+  },
+  {
+    // IT-N367 回归：同一对文本切 compareMode=char（等长逐位）⇒ 差异合计 7。
+    slug: "it/text-similarity",
+    inputs: { textA: "abc", textB: "xabc", compareMode: "char", tokenMode: "char" },
+    expect: ["逐字符 · 差异合计 7 字符"],
+    ref: "IT-N367：char 走等长逐位对比 —— 3 位全部错位（A 侧 3 差异）+ B 侧多出的首/尾字符，合计 7；与 full 的 1 构成强判别，证明「比较模式」真的改变了对齐口径。默认 compareMode=full，不命中。",
   },
   {
     slug: "it/text-dedupe-sort",
@@ -1216,11 +1271,35 @@ const CASES = [
     ref: "A→11、B→12 的方格坐标拼接，随输入变化；默认示例对应其它坐标，不命中。",
   },
   {
+    // IT-N346 回归：5×5 网格外字符（数字/标点）不得静默丢弃，必须回显跳过数量。
+    slug: "it/polybius-cipher",
+    inputs: { input: "AB1" },
+    clicks: ["enc()"],
+    expect: ["已跳过 1 个无法编码的字符（5×5 网格外）：1"],
+    ref: "IT-N346：`1` 在 5×5 网格外，修复前 `findInGrid` 返回 -1 直接 continue、字符静默消失（AB1→`11 12`，往返得到 AB）；修复后结果区追加提示「已跳过 1 个…：1」。默认示例纯字母 ⇒ 无该提示，强判别。",
+  },
+  {
     slug: "it/xor-cipher",
     inputs: { input: "AB", key: "XY" },
-    clicks: ["calcTool()"],
+    clicks: ["process()"],
     expect: ["191b"],
     ref: "0x19 0x1b 两字节异或密文（A^X=19、B^Y=1b）十六进制小写拼接。默认输入/密钥组合产物不同。",
+  },
+  {
+    slug: "it/xor-cipher",
+    // IT-N345 回归：hex 输入含非法字符，修复后 parseInput 抛错、catch 把错误写入 output 而非静默产出错误字节。
+    inputs: { input: "1g", inFmt: "hex", key: "XY" },
+    clicks: ["process()"],
+    expect: ["包含非十六进制字符"],
+    ref: "hex 通道输入 '1g' 含非十六进制字符 g，修复后抛「包含非十六进制字符」，不再静默转成错误字节；合法文本用例/默认态不命中该提示。",
+  },
+  {
+    slug: "it/xor-cipher",
+    // IT-N345 回归：hex 输入奇数长度，修复后应报「长度必须为偶数」而非静默截掉末位字节。
+    inputs: { input: "1a2", inFmt: "hex", key: "XY" },
+    clicks: ["process()"],
+    expect: ["十六进制长度必须为偶数"],
+    ref: "hex 通道输入 '1a2' 长度为奇数，修复后抛「十六进制长度必须为偶数」；合法用例不命中。",
   },
   {
     slug: "it/curl-parser",
@@ -1326,6 +1405,14 @@ const CASES = [
     clicks: ["render()"],
     expect: ["3 --z--> 4"],
     ref: "默认 pattern 为 `^a[0-9]+b$`（含 a 转移、无 z 转移）⇒ 锚取注入态独有的 z 转移边；`1 --a--> 2` 在默认态同命中，不可用。",
+  },
+  {
+    // IT-N348 回归：正则内容进 innerHTML 前必须 HTML 转义，不能原样拼出可执行标签。
+    slug: "it/regex-visualizer",
+    inputs: { pattern: "a<b" },
+    clicks: ["render()"],
+    expect: ["S2: &lt; S3: b"],
+    ref: "IT-N348：注入含 `<` 的 pattern `a<b`，状态标签里的 `<` 必须经 escapeHtml 变成 `&lt;`（裸 `<` 会被当作标签起始、在结果区不可见且存在注入风险）；默认 pattern `^a[0-9]+b$` 无 `<` 字符 ⇒ 该串仅注入态可见，强判别。",
   },
   {
     slug: "it/markdown-to-html",
@@ -1493,6 +1580,14 @@ const CASES = [
     ref: "uuencode 头（begin 644 文件名）＋ 编码体 ＋ 结束行 end，随输入体变化；默认语料长度不同。",
   },
   {
+    // IT-N344 回归：RFC 未强制 begin 头，纯数据段（从邮件/工具截取）必须能解出内容。
+    slug: "it/uuencode",
+    inputs: { input: "&6F%P<&5R\n`\nend" },
+    clicks: ["dec()"],
+    expect: ["Zapper"],
+    ref: "IT-N344：`&6F%P<&5R` 是 Zapper 的 uuencode 体（长度字节 `&`=6，两组 6-bit：22/38/5/48 → `6F%P`，28/6/21/50 → `<&5R`，手算可复算）。无 begin 头时修复前整段被跳过、输出空串；修复后按数据行解析出 Zapper。默认样例是编码后的其它文本不是合法数据段 ⇒ 不命中。",
+  },
+  {
     slug: "it/css-minify",
     inputs: { src: "a{color:red}" },
     expect: ["压缩后 0% 节省"],
@@ -1560,6 +1655,13 @@ const CASES = [
     clicks: ["calculate()"],
     expect: ["P(H₁ | E) = 0.154 (15.38%)"],
     ref: "后验 = 0.9×0.01 / (0.9×0.01 + 0.05×0.99) = 0.009/0.059 ≈ 0.1538；默认示例先验不同，不命中。",
+  },
+  {
+    slug: "it/bayes-theorem",
+    inputs: { prior: "1", likelihood: "0.9", falsePositive: "0.05" },
+    clicks: ["calculate()"],
+    expect: ["先验优势 = ∞；BF = P(E|H₁)/P(E|¬H₁) = 0.9/0.05 = 18；后验优势 = ∞×18 = ∞"],
+    ref: "IT-N374：先验 P(H₁)=1 ⇒ P(¬H₁)=0 ⇒ 先验优势 1/0 发散为 ∞。修复前 `fmt` 把 Infinity 一律写成「未定义」，卡片显示「未定义 → 未定义」、步骤 5「先验优势 = 未定义」。现在发散与未定义分开：优势比走 fmtOdds（∞），并补「边界说明」解释先验为 0/1 时优势比发散。expect 只依赖 prior=1 这一注入值（默认示例 prior=0.01，优势比 0.01 → 有限值）⇒ 非回显、修复前必红灯。",
   },
   {
     slug: "it/exponential-distribution",
@@ -2056,6 +2158,22 @@ const CASES = [
     ref: "独立复算：引号内换行属于字段内容，转成 YAML 双引号后为转义的 `\\n`，表头 `first name` 含空格须加引号 ⇒ `- \"first name\": \"Tom\"` / `note: \"line1\\nline2\"`；修复前按行切分把多行字段拆成两条记录，表头也裸写。默认 CSV 为 name/age/city，不命中。",
   },
   {
+    slug: "it/csv-to-yaml",
+    // IT-N361 回归：勾选「无表头」(top_1) 必须输出数组形态——预设「无表头」正是点这个方向。
+    inputs: { csv: "Alice,30\nBob,25" },
+    clicks: ["document.getElementById('top_1').checked=true; calcTool()"],
+    expect: ['- ["Alice", "30"]', '- ["Bob", "25"]'],
+    ref: "IT-N361：勾选「无表头」时每行输出为短横线 + 方括号数组（`- [\"Alice\", \"30\"]`）；未勾时首行是键名、输出 `- Alice: \"Bob\"` 这类键值对。旧预设把「无表头」置为 top_1='' 而 setValue 用 !!val，方向与实际相反。默认 CSV 为 name/age/city 且未勾选，不命中数组形态。",
+  },
+  {
+    slug: "it/csv-to-yaml",
+    // IT-N362 护栏：含 `:` 的表头必须加引号，否则 YAML 会被解析成键 a、值 b: 1。
+    inputs: { csv: "a:b,c\n1,2" },
+    clicks: ["calcTool()"],
+    expect: ['"a:b": "1"'],
+    ref: "IT-N362：表头 `a:b` 不是合法 YAML 裸键（会被读成键 `a`、值 `b: 1`），yamlKey() 须 JSON.stringify 成 `\"a:b\"`。同一行的 `y`/`on` 这类 YAML 保留字同理需加引号。默认表头 name/age/city 无冒号，不命中。",
+  },
+  {
     slug: "it/csv-to-json",
     inputs: { csvInput: "name,age\nTom,3" },
     expect: ['[{"column1":"name","column2":"age"}'],
@@ -2478,6 +2596,13 @@ const CASES = [
     ref: "独立复算：A=[[4,7],[2,6]]，det=4×6−7×2=10 ⇒ A⁻¹=(1/10)·[[6,−7],[−2,4]]=[[0.6,−0.7],[−0.2,0.4]]，且 A×A⁻¹=I。同 matrix-determinant 的 clicks 模板。",
   },
   {
+    slug: "it/matrix-inverter",
+    inputs: { size: "2" },
+    clicks: ["document.getElementById('a0').value='1e-13';document.getElementById('a1').value=0;document.getElementById('a2').value=0;document.getElementById('a3').value='1e-13';calculate()"],
+    expect: ["逆矩阵 A⁻¹： 1e+13 0 0 1e+13"],
+    ref: "IT-N370：A=diag(1e-13,1e-13)，det=1e-26≠0，逆矩阵为 diag(1e13,1e13)。修复前主元判据是绝对值 `Math.abs(pivot)<1e-12` ⇒ 直接报「矩阵不可逆（奇异矩阵）」；现改为相对尺度（scale×1e-12）。expect 是求逆后的具体数值串，输入里只有 1e-13 ⇒ 量级相反、不可能是回显；修复前不产生该串 ⇒ 必红灯。"
+  },
+  {
     slug: "it/a1z26-cipher",
     inputs: { input: "AB" },
     clicks: ["enc()"],
@@ -2786,6 +2911,108 @@ const CASES = [
     expect: ["interface MyRoot {"],
     ref: "默认语言 TypeScript：对象数组/对象按字段类型生成 interface，类型映射 number/string/boolean。注意本页默认样例与本条入参同构 ⇒ 必须换 rootName 才破双态。",
   },
+  // ---- IT-N379/N380/N381/N382/N383/N384：json-to-code 生成器修复 ----
+  // 采集说明：`#output` 的 innerHTML 经 highlight() 上色，harness 剥标签时会在被包成
+  // <span> 的关键字/字符串两侧引入空格（`number ;`、`json: "zz" `），且 `<`/`>` 已被
+  // escapeHtml 转义成 &lt;/&gt; ⇒ 断言一律取「无分号、无尖括号」的片段。
+  {
+    slug: "it/json-to-code",
+    inputs: { input: '{"u":{"aa":1}}' },
+    clicks: ["convert()"],
+    expect: ["interface RootU { aa: number"],
+    ref: "IT-N379：嵌套对象必须递归生成子 interface（修复前只输出 `interface Root { u: RootU; }`，RootU 无定义 ⇒ tsc 报 Cannot find name 'RootU'）。桩内 optReadonly/optExport 恒未勾 ⇒ 无 readonly/export 前缀。默认样例无 u/aa 键 ⇒ 双态可判别。",
+  },
+  {
+    slug: "it/json-to-code",
+    inputs: { input: '{"items":[{"x":1}]}' },
+    clicks: ["convert()"],
+    expect: ["interface RootItems { x: number", "items: RootItems[];"],
+    ref: "IT-N380（TS 侧）：对象数组的元素类型名与子 interface 同名为 RootItems，字段声明 RootItems[]。修复前元素名固定再补 Item 后缀（ItemsItem[]）且根本不生成子 interface。默认样例无 items/x 键。",
+  },
+  {
+    slug: "it/json-to-code",
+    inputs: { input: '{"orders":[{"id":7}]}' },
+    clicks: ["setLang('go')"],
+    expect: ["type RootOrders struct { Id int"],
+    ref: "IT-N380（Go）：只断言**定义名** `type RootOrders struct`（修复前定义是 RootOrdersItem）；字段引用 `[]RootOrders` 修复前后都存在，若一并写进 expect 会因「任一命中即通过」在修复前也变绿 ⇒ 已删掉。默认样例无 RootOrders 定义（其结构体是 RootUser / RootOrdersItem）。",
+  },
+  {
+    slug: "it/json-to-code",
+    inputs: { input: '{"zz":{"k":1}}' },
+    clicks: ["setLang('go')"],
+    expect: ["} type RootZz struct { K int"],
+    ref: "IT-N381（Go）：`package main` 只能在文件头出现一次，子结构体只输出类型体。修复前根 struct 的 `}` 后面紧跟又一段 `package main type RootZz struct`，故「} type RootZz」这段在修复前不存在（负向对照实测变红）。键名 zz/k 使断言依赖入参。",
+  },
+  {
+    slug: "it/json-to-code",
+    inputs: { input: '{"zz":{"k":1}}' },
+    clicks: ["setLang('proto')"],
+    expect: ["} message RootZz { int32 k = 1"],
+    ref: "IT-N381（Proto）：同一 .proto 文件只允许一处 syntax 声明（proto3）。修复前根 message 的 `}` 后面紧跟又一段 syntax 声明 + message RootZz，故「} message RootZz」在修复前不存在。",
+  },
+  {
+    slug: "it/json-to-code",
+    inputs: { input: '[{"zz":1}]' },
+    clicks: ["setLang('go')"],
+    expect: ["type Root []RootItem", "type RootItem struct { Zz int"],
+    ref: "IT-N382（根数组）：根是数组时生成切片别名 + 元素结构体。修复前 Object.entries(数组) 把下标当键 ⇒ `type Root struct { 0 Root0 }`（字段名 0 非法）。默认样例是对象 ⇒ 双态可判别。",
+  },
+  {
+    slug: "it/json-to-code",
+    inputs: { input: "null" },
+    clicks: ["convert()"],
+    expect: ["无法推断类型"],
+    ref: "IT-N382（根 null）：合法 JSON null 必须给明确提示。修复前 Object.entries(null) 抛 TypeError，convert() 无 try 包裹 ⇒ 结果区保留上一次内容（静默失败）。默认样例是对象、不产生该提示。",
+  },
+  {
+    slug: "it/json-to-code",
+    inputs: { input: '{"qnote":null,"qlist":[]}' },
+    clicks: ["setLang('py');var t=document.getElementById('output').innerHTML.replace(/<[^>]+>/g,' ').split(' ').join('');document.getElementById('output').textContent='N383 any='+(t.indexOf('importAny,List')>=0?1:0)+' qn='+(t.indexOf('qnote')>=0?1:0);"],
+    expect: ["N383 any=1 qn=1"],
+    ref: "IT-N383：pyType 会渲染出 Any，但头部只 import 了 List, Optional ⇒ pydantic 求值注解即 NameError。判据把去标签后的 HTML 再删除全部空格（高亮剥标签会在 token 两侧留多个空格，逐字比对不可靠），再查 `importAny,List`：该串只能来自 `from typing import Any, List, Optional`。配合入参独有键 qnote，整串两条同时成立才命中 ⇒ 非静态逃生项；修复前 any=0、默认态（注入失败）qn=0 均不命中。",
+  },
+  {
+    slug: "it/json-to-code",
+    inputs: { input: '{"user_name":1,"api-key":"x"}' },
+    clicks: ["convert()"],
+    expect: ["userName: number", "apiKey: string", "原键: user_name"],
+    ref: "IT-N384：承诺「键名按目标语言惯例转换」，TS 字段转 camelCase 并注明原始键名（重命名后反序列化需映射）。修复前原样输出 user_name、api-key（后者根本不是合法 TS 字段名）。默认样例全是 camelCase 键 ⇒ 不产生「原键」注释。",
+  },
+  {
+    slug: "it/json-to-code",
+    inputs: { input: '{"zz":[{"v":1}]}' },
+    clicks: ["setLang('csharp')"],
+    expect: ["public class RootZz {"],
+    ref: "IT-N380（C#）：只断言定义 `public class RootZz {`（修复前定义是 RootZzItem）；字段引用 List<RootZz> 修复前就存在，写进 expect 会因「任一命中即通过」失去判别力。默认样例无 RootZz 定义。",
+  },
+  {
+    slug: "it/json-to-code",
+    inputs: { input: '{"zz":[{"v":1}]}' },
+    clicks: ["setLang('java')"],
+    expect: ["public class RootZz {"],
+    ref: "IT-N380（Java）：只断言类定义 `public class RootZz {`（修复前是 RootZzItem）；字段引用 List<RootZz> 修复前已存在，故不作 expect。默认样例无 RootZz 定义。",
+  },
+  {
+    slug: "it/json-to-code",
+    inputs: { input: '{"zz":[{"v":1}]}' },
+    clicks: ["setLang('kotlin')"],
+    expect: ["data class RootZz("],
+    ref: "IT-N380（Kotlin）：只断言 `data class RootZz(`（修复前是 RootZzItem）；字段引用 List<RootZz> 修复前已存在，不作 expect。默认样例无 RootZz 定义。",
+  },
+  {
+    slug: "it/json-to-code",
+    inputs: { input: '{"zz":[{"v":1}]}' },
+    clicks: ["setLang('rust')"],
+    expect: ["pub struct RootZz {"],
+    ref: "IT-N380（Rust）：只断言 `pub struct RootZz {`（修复前是 RootZzItem）；字段引用 Vec<RootZz> 修复前已存在，不作 expect。默认样例无 RootZz 定义。",
+  },
+  {
+    slug: "it/json-to-code",
+    inputs: { input: '{"zz":[{"v":1}]}' },
+    clicks: ["setLang('py')"],
+    expect: ["class RootZz(BaseModel):"],
+    ref: "IT-N380（Python）：只断言 `class RootZz(BaseModel):`（修复前类名是 RootZzItem）；字段引用 List[RootZz] 修复前已存在，不作 expect。默认样例无 RootZz 定义。",
+  },
   {
     slug: "it/js-minifier",
     inputs: { input: "var a = 1;   // keep\nfunction f(){ return   a; }" },
@@ -2956,6 +3183,14 @@ const CASES = [
     ref: "独立复算（无头模式）：2 字节 ⇒ 长度字节 `0`（值 2）+ 三段 6-bit 字符（18→`G`、6→`4`、36→`Y`）+ `+` 结束符 ⇒ `0G4Y+`。默认样例内容不同。",
   },
   {
+    // IT-N347 回归：文本里带 begin 头时，即便「包含 begin/end 头」未勾选也必须跳过该行。
+    slug: "it/xxencode",
+    inputs: { input: "begin 644 z.txt\n4Ka3kQ4Jm\n+\nend" },
+    clicks: ["dec()"],
+    expect: ["Zapper"],
+    ref: "IT-N347：`4Ka3kQ4Jm` 是 Zapper 的 xxencode 体（长度字符 `4`=6，两组索引 22/38/5/48 → `Ka3k`、28/6/21/50 → `Q4Jm`）。默认未勾选头时修复前会把 `begin 644 z.txt` 当数据行解出脏字节且正文错位；修复后无条件跳过头行、正确解出 Zapper。",
+  },
+  {
     slug: "it/rc4",
     inputs: { input: "Hi", key: "KEY" },
     clicks: ["encrypt()"],
@@ -3067,6 +3302,44 @@ const CASES = [
     clicks: ["calcTool()"],
     expect: ["248 = CCXLVIII"],
     ref: "罗马数字：248 = 100(CC) + 100(CC) + 40(XL) + 5(V) + 1(I) + 1(I) = CCXLVIII，严格按「大值优先、左减右加」拆解，可手算复算。",
+  },
+  {
+    slug: "it/roman-numeral-converter",
+    // IT-N369 回归：页面承诺「输入即可立即互转」，故不给 clicks，只靠注入产生的 input 事件。
+    inputs: { number: "2024", roman: "1" },
+    expect: ["2024 = MMXXIV"],
+    ref: "IT-N369：页面文案承诺「输入数字或罗马串即可立即互转」，修复前 #number/#roman 无 oninput、#dir 无 onchange，只在首屏跑一次 calcTool，改值必须点「计算」。本用例不给 clicks，仅依赖注入触发的 input 事件 ⇒ 结果区必须已刷新为 2024 = MMXXIV。默认示例是 1984/MCMLXXXIV，不命中。",
+  },
+  {
+    slug: "it/roman-numeral-converter",
+    // IT-N369 回归：切换方向（#dir 的 change 事件）也必须立即重算。
+    inputs: { dir: "from", roman: "MMXXIV" },
+    expect: ["MMXXIV → 2024"],
+    ref: "IT-N369：切到「罗马 → 数字」后应立刻重算。修复前 #dir 无 onchange，结果区仍停在上一次（数字→罗马）的旧值。无 clicks，只靠 change 事件；默认态 dir=to，不命中该反向结果串。",
+  },
+  {
+    slug: "it/roman-numeral-converter",
+    // N368 回归：罗马→数字方向，合法串应正确还原。
+    inputs: { dir: "from", roman: "MCMLXXXIV" },
+    clicks: ["calcTool()"],
+    expect: ["MCMLXXXIV → 1984"],
+    ref: "罗马→数字：MCMLXXXIV = 1000+900+50+40+4 = 1984，修复后 fromRoman 严格正则校验不影响合法串。默认态为数字→罗马，不命中。",
+  },
+  {
+    slug: "it/roman-numeral-converter",
+    // IT-N368 回归：非法罗马串（I 不能左减 L）修复后经严格正则拒绝，提示无效而非静默得出 49。
+    inputs: { dir: "from", roman: "IL" },
+    clicks: ["calcTool()"],
+    expect: ["不是有效的罗马数字"],
+    ref: "IT-N368 修复前 'IL' 被静默算成 49；修复后 fromRoman 用标准正则 ^(M{0,3})(CM|CD|D?C{0,3})(XC|XL|L?X{0,3})(IX|IV|V?I{0,3})$ 拒绝非法串并返回 null，页面输出「不是有效的罗马数字」。合法用例('MCMLXXXIV')不命中该提示。",
+  },
+  {
+    slug: "it/roman-numeral-converter",
+    // IT-N368 回归：四重复 M（MMMM）超出构成规则与 3999 上限，应判无效而非得 4000。
+    inputs: { dir: "from", roman: "MMMM" },
+    clicks: ["calcTool()"],
+    expect: ["不是有效的罗马数字"],
+    ref: "IT-N368 修复前 'MMMM' 被静默算成 4000；修复后正则 M{0,3} 拒绝四个 M，输出无效提示。",
   },
   {
     slug: "it/triangle-calculator",
@@ -3436,6 +3709,20 @@ const CASES = [
     ref: "超几何（第三组）：C(3,1) = 3、C(7,2) = 21、C(10,3) = 120（三项组合数均可手算复算）⇒ P = 3×21/120 = **0.525**（**行间自洽**）。",
   },
   {
+    slug: "it/hypergeometric-distribution",
+    inputs: { N: "1", K: "1", n: "1", k: "1" },
+    clicks: ["calculate()"],
+    expect: ["0 方差 0 标准差"],
+    ref: "IT-N372：N=1（总体唯一）时 X 恒等于 K，方差必须为 0。修复前有限总体校正因子 (N−n)/(N−1) = 0/0 = NaN ⇒ 方差/标准差卡片双双显示「未定义」。expect 是「值+标签」相邻形态（`0 方差 0 标准差`），输入全是 1 ⇒ 非回显；修复前该串不存在（是「未定义 方差 未定义 标准差」）⇒ 必红灯。",
+  },
+  {
+    slug: "it/hypergeometric-distribution",
+    inputs: { N: "2000", K: "1000", n: "1000", k: "500" },
+    clicks: ["calculate()"],
+    expect: ["C(2000, 1000) = ≈ e^1382.27", "exp(689.4673 + 689.4673 − 1382.2680) = 0.036"],
+    ref: "IT-N373：C(2000,1000) ≈ e^1382.27，远超双精度上限 1.8e308 ⇒ 修复前 `Math.exp(logComb)` 得 Infinity、`fmt` 显示「未定义」，步骤 4 写成「未定义 × 未定义 / 未定义 = 0.036」与主结果矛盾。现在超过 e^700 的组合数只写 e^x 形式，步骤 4 改走对数式 exp(lnC₁+lnC₂−lnC₃)。lnC(1000,500)=689.4673（两侧相同）、lnC(2000,1000)=1382.2680，均为对数伽马累加可复算；P = 0.0356691 → 0.036（与独立复算一致）。输入是四个整数，不含 e^ 形态 ⇒ 非回显；修复前不产生这两串 ⇒ 必红灯。",
+  },
+  {
     slug: "it/ascii-art",
     inputs: { input: "AB", fontGrid: "1", uppercase: "1" },
     clicks: ["generate()"],
@@ -3778,6 +4065,15 @@ const CASES = [
     dumpIds: ["jsonOutput"],
     expect: ["[{\"a\":\"1\",\"b\":\"2\"}]"],
     ref: "TSV 两列（表头 a/b，数据行 1/2）→ 紧凑输出 [{\"a\":\"1\",\"b\":\"2\"}]，存在表头行时字段值一律按字符串处理。默认态 tsvInput 为空，tsvToJson() 直接 Toast 返回，jsonOutput 不更新。",
+  },
+  {
+    // IT-N343 回归：自动识别数字不得改写长 ID / 前导零（勾选状态在桩内默认未勾，需在 clicks 里显式置真）。
+    slug: "it/json-to-tsv",
+    inputs: { tsvInput: "id\tcode\tamount\n12345678901234567890\t00123\t30", t2jFormat: "compact" },
+    clicks: ["document.getElementById('t2jNumber').checked=true; tsvToJson()"],
+    dumpIds: ["jsonOutput"],
+    expect: ["[{\"id\":\"12345678901234567890\",\"code\":\"00123\",\"amount\":30}]"],
+    ref: "IT-N343：开启「自动识别数字」后，20 位订单号 `12345678901234567890` 与带前导零的 `00123` 必须保持字符串原值（旧逻辑 parseFloat 会输出 12345678901234567000 / 123），而普通 `30` 仍应转成数值。三者同时成立才命中；默认态 jsonOutput 是示例数据，不含该串。",
   },
   {
     slug: "it/json-to-tsv",
@@ -4448,6 +4744,20 @@ const CASES = [
     ref: "独立复算 t(39,0.995)=2.709，ME=2.709×10/√40=4.2827，CI=[55−4.2827,55+4.2827]=[50.717,59.283]。默认态 95%/z 分布输出不同，本例两锚均不命中。"
   },
   {
+    slug: "it/confidence-interval",
+    inputs: { mean: "50", std: "8", n: "7", conf: "0.95", dist: "t" },
+    clicks: ["calc()"],
+    expect: ["边际误差 ME = 2.447 × 3.0237 = 7.3990", "[ 42.601 , 57.399 ]"],
+    ref: "IT-N377：n=7 ⇒ df=6，原 t 表缺 6–9 档，跨 5→10 线性内插得 2.5024（比精确 t(0.025,6)=2.447 偏大 2.3%），区间被系统性算宽成 [42.433, 57.567]。补档后取表值 2.447，SE = 8/√7 = 3.0237 ⇒ ME = 2.447×3.0237 = 7.3990，CI = [50−7.399, 50+7.399] = [42.601, 57.399]。两锚都依赖注入的 n/std（默认 mean=100/std=15 输出不同）⇒ 非回显；修复前两项数值都不同 ⇒ 必红灯。"
+  },
+  {
+    slug: "it/confidence-interval",
+    inputs: { mean: "50", std: "8", n: "0", conf: "0.95", dist: "z" },
+    clicks: ["calc()"],
+    expect: ["[ 输入无效 ]", "请填写均值、标准差与样本量（n ≥ 1、s > 0）"],
+    ref: "IT-N376：n=0 是非法样本量。修复前 `+value || 1` 把 0 兜成 1，还照常输出一份看起来正常的区间（并标注「z 分布」），校验形同虚设；现在先判空串再转数字，n<1 直接拦下并清空明细区。expect 是无效提示与说明语，输入是合法数值串 ⇒ 非回显；修复前不产生该串（输出的是区间数字）⇒ 必红灯。"
+  },
+  {
     slug: "it/statistical-power",
     inputs: { d: "0.8", n: "30", alpha: "0.01", tail: "one" },
     expect: ["78.00%"],
@@ -4458,6 +4768,20 @@ const CASES = [
     inputs: { n: "500", p: "0.3", conf: "0.99" },
     expect: ["0.247", "2.576"],
     ref: "独立复算 SE=√(0.3×0.7/500)=0.02；z*(0.99)=2.576；E=2.576×0.02=0.0515≈±0.053；CI=[0.3−0.053,0.3+0.053]=[0.247,0.353]。默认态 95%/n=1000 输出不同，本例两锚均不命中。"
+  },
+  {
+    slug: "it/margin-of-error",
+    inputs: { n: "1000", p: "0.5", conf: "0.95", N: "1000" },
+    clicks: ["calculate()"],
+    expect: ["位置度修正".replace("位置度","有限总体"), "√[(N−n)/(N−1)] = 0.031 × √[(1000−1000)/(1000−1)] = ±0"],
+    ref: "IT-N378：N = n = 1000 是全查，校正因子 √((N−n)/(N−1)) = √(0/999) = 0 ⇒ 抽样误差为 0。修复前只在 N>n 时套修正，N===n 直接跳过 ⇒ 仍报 ±0.031（3.10%），把全查算成有抽样误差。现在 N===n 也套修正、因子自然得 0。expect 是步骤 4 的完整算式串（含 1000−1000 与 ±0），输入里只有裸数字、不含该句式 ⇒ 非回显；修复前根本没有「有限总体修正」这一步 ⇒ 必红灯。"
+  },
+  {
+    slug: "it/margin-of-error",
+    inputs: { n: "1000", p: "0.5", conf: "0.95", N: "800" },
+    clicks: ["calculate()"],
+    expect: ["N 必须 ≥ n（抽样数不能超过总体）"],
+    ref: "IT-N378：抽样数 n=1000 大于总体 N=800 在逻辑上不可能。修复前 N>n 不成立 ⇒ 静默跳过修正、照常输出 ±3.10% 的伪结果；现在显式拦下并说明原因。expect 只在 N<n 时产生，输入是四个数字 ⇒ 非回显；修复前不产生该串 ⇒ 必红灯。"
   },
   {
     // 原写法 inputs:{a0,a1,b0,b1} 直接注入 —— 但 a*/b* 输入框由 build() 运行期渲染，
@@ -4575,6 +4899,30 @@ const CASES = [
     "ref": "TOML→YAML：注入布尔标量 + [db] 表。`debug = true` 在 YAML 侧写作 `debug: true`（冒号+空格，输入为等号），`[db]` 表写作 `db:` 后接缩进行 —— 两种形态均只在转换后出现。注：页面嵌套缩进 = 选择值+2（indent 默认 2 ⇒ 子层 4 空格），经 select 三档对照实验确认是页面一致的既定行为，非缺陷，故 expect 不含缩进相关的行首断。"
   },
   {
+    "slug": "it/toml-to-yaml",
+    "inputs": { "source": "dependencies = [\n  \"serde\",\n  \"tokio\",\n]" },
+    "expect": ["dependencies: - serde - tokio"],
+    "ref": "IT-N358：多行数组。修复前 tVal 用 `lastIndexOf(']')` 取内层，行内无 `]` 时得 -1 ⇒ 直接返回空数组，后续元素行又因无 `=` 被跳过 ⇒ `dependencies:` 后无内容（Cargo.toml 的依赖列表被清空）。现 parseToml 在括号未闭合时继续吞并后续行。expect 是「键名 + 两个元素」的连续形态，输入里元素带引号（`\"serde\"`）而输出无引号 ⇒ 非回显；修复前不产生该串 ⇒ 必红灯。"
+  },
+  {
+    "slug": "it/toml-to-yaml",
+    "inputs": { "source": "path = \"C:\\\\temp\"" },
+    "expect": ["path: \"C:\\\\temp\""],
+    "ref": "IT-N359：TOML 源码 `path = \"C:\\\\temp\"` 表示值 `C:\\temp`。修复前 tVal 依次把 `\\n`/`\\t` 换掉，第 2 个反斜杠紧跟 t ⇒ 值变成 `C:` + 制表符 + `emp`；输出侧 yVal 又不转义反斜杠，`\"C:\\temp\"` 回读时同样被当转义。两侧都修：单遍 tUnescape + yVal 转义反斜杠/换行/制表符。expect 是「`path: ` 冒号形态 + 双反斜杠」，输入是 `path = ` 等号形态且反斜杠数量不同 ⇒ 非回显；修复前输出 `path: \"C: emp\"` ⇒ 必红灯。"
+  },
+  {
+    "slug": "it/toml-to-yaml",
+    "inputs": { "source": "[[pkg]]\nname=\"a\"\n[pkg.meta]\nx=1" },
+    "expect": ["- name: a meta: x: 1"],
+    "ref": "IT-N360：`[pkg.meta]` 子表挂在 `[[pkg]]` 数组下。修复前把 `meta` 挂成数组的命名属性（不进 Object.keys）⇒ 整段丢成 `pkg: - name: a`；dumpYaml 的数组分支又只用 yVal 输出，子表会变成 `[object Object]`。现 tChild 下钻时命中数组取末元素、dumpYaml 递归展开。expect 依赖注入的键 `meta` 与值 `x: 1`，输入是 `[pkg.meta]` / `x=1` 形态（无 `meta:` 冒号）⇒ 非回显；修复前不产生该串 ⇒ 必红灯。"
+  },
+  {
+    "slug": "it/toml-to-yaml",
+    "inputs": { "source": "arr = [{a=1, b=\"z\"}]" },
+    "expect": ["arr: - a: 1 b: z"],
+    "ref": "IT-N360：内联表数组。修复前 tVal 不认 `{...}`，整行被当普通字符串 ⇒ 输出 `arr: - \"{a=1, b=\\\"z\\\"}\"`。现按顶层逗号切分递归建映射。expect 是「键名 + 子键」的 YAML 形态，输入全是等号 ⇒ 非回显；修复前不产生该串 ⇒ 必红灯。"
+  },
+  {
     "slug": "it/xml-to-yaml",
     "inputs": { "source": "<root><item id=\"1\">Alpha</item><item id=\"2\">Beta</item></root>" },
     "expect": ["@id: \"1\" #text: Alpha", "@id: \"2\" #text: Beta"],
@@ -4632,14 +4980,65 @@ const CASES = [
   {
     "slug": "it/json-repair",
     "inputs": { "src": "{'name': 'probe', 'n': 2,}" },
-    "expect": ["\"name\":\"probe\",\"n\": 2"],
-    "ref": "JSON 修复：注入单引号键/值 + 尾随逗号的非法 JSON，修复后应为双引号形式 `{\"name\":\"probe\",\"n\": 2}`（逗号被去掉）。expect 取带双引号的键，而输入是单引号 ⇒ 天然不是输入回显。⚠️ 不用 `✅ JSON 合法` 作锚：默认样例修复后同样合法，判别力为零。"
+    "expect": ["\"name\": \"probe\", \"n\": 2"],
+    "ref": "JSON 修复：注入单引号键/值 + 尾随逗号的非法 JSON，修复后应为双引号形式 `{\"name\": \"probe\", \"n\": 2}`（尾逗号被去掉、原有空白原样保留）。expect 取带双引号的键，而输入是单引号 ⇒ 天然不是输入回显。⚠️ 不用 `✅ JSON 合法` 作锚：默认样例修复后同样合法，判别力为零。"
+  },
+  {
+    "slug": "it/json-repair",
+    "inputs": { "src": "{'u':'https://example.com/api','p':'P/*x*/Q',}" },
+    "expect": ["\"u\":\"https://example.com/api\",\"p\":\"P/*x*/Q\""],
+    "ref": "IT-N352：字符串内的 `//` 与 `/* */` 不是注释，绝不能删。修复前 `repair()` 先做全局正则删注释，`https://...` 被截成 `https:`、`P/*x*/Q` 被掏成 `PQ` 并静默判「合法」。现在改为字符串状态机 + 合法 JSON 提前返回。expect 用双引号形态（输入是单引号），且要求 URL 与 `/*x*/` 均完整 ⇒ 修复前必红灯。"
+  },
+  {
+    "slug": "it/json-repair",
+    "inputs": { "src": "{probeKey:7,flag:true}" },
+    "expect": ["\"probeKey\":7,\"flag\":true"],
+    "ref": "IT-N353：文档表格承诺「键无引号 → 补双引号」，修复前无此规则（结果仍 `{probeKey:7}` 判不合法）。expect 为补好引号后的形态，输入无引号 ⇒ 非回显；修复前输出不含 `\"probeKey\"` ⇒ 必红灯。"
   },
   {
     "slug": "it/toml-to-xml",
     "inputs": { "source": "app = \"probe\"\n[srv]\nhost = \"127.0.0.1\"\nport = 5432" },
     "expect": ["&lt;app&gt;probe&lt;/app&gt;"],
     "ref": "TOML→XML：标量 `app = \"probe\"` 落到 `<app>probe</app>`，表 `[srv]` 落到 `<srv>` 父节点。expect 用实体形态 `&lt;app&gt;`（结果区经 escH 转义），输入是 TOML 的 `app = \"probe\"` ⇒ 不命中回显。默认样例为 name/port 组合，不出现 probe。"
+  },
+  // ---- IT-N391（toml-to-xml 部分）/IT-N392/IT-N393：元素名清洗、#text 转义、空数组、缩进与排序接线 ----
+  {
+    "slug": "it/toml-to-xml",
+    "inputs": { "source": "[cfg]\n\"user name\" = \"x\"" },
+    "expect": ["&lt;user_name&gt;x&lt;/user_name&gt;"],
+    "ref": "IT-N392：XML 元素名不能含空格。修复前 `ser` 原样拼接键名 ⇒ `<user name>x</user name>`（not well-formed）。输入是 TOML 的 `\"user name\" = \"x\"`，不含尖括号形态 ⇒ 不命中回显。"
+  },
+  {
+    "slug": "it/toml-to-xml",
+    "inputs": { "source": "\"123\" = \"y\"" },
+    "expect": ["&lt;_123&gt;y&lt;/_123&gt;"],
+    "ref": "IT-N392：XML Name 不能以数字开头，需补前导下划线。修复前输出 `<123>y</123>`（解析器直接报错）。默认样例无该键。"
+  },
+  {
+    "slug": "it/toml-to-xml",
+    "inputs": { "source": "[cfg]\n\"#text\" = \"<b>&</b>\"" },
+    "expect": ["&amp;lt;b&amp;gt;&amp;amp;&amp;lt;/b&amp;gt;"],
+    "ref": "IT-N393：`#text` 是元素文本，必须过 escXml。修复前 `inner += val[k]` 原样拼 ⇒ 生成 `<cfg><b>&</b></cfg>`（未转义，XML 非法）。结果区用 textContent 写入，故最终 blob 是「二次转义」形态：XML 里的 `&lt;b&gt;&amp;&lt;/b&gt;` 在 innerHTML 里读作 `&amp;lt;b&amp;gt;&amp;amp;...`；修复前输出里没有 `&lt;` 这层实体，故 `&amp;lt;b` 只可能来自转义路径。"
+  },
+  {
+    "slug": "it/toml-to-xml",
+    "inputs": { "source": "[cfg]\nports = []" },
+    "expect": ["&lt;ports&gt;&lt;/ports&gt;"],
+    "ref": "IT-N393：空数组不能整键丢失。修复前数组分支循环 0 次 ⇒ 只剩 `<cfg></cfg>`，`ports` 字段整键消失。expect 只写 `&lt;ports&gt;&lt;/ports&gt;` 一条：不能带上 `&lt;cfg&gt;`（它修复前也成立，OR 语义下会让整例零判别力）。"
+  },
+  {
+    "slug": "it/toml-to-xml",
+    "inputs": { "source": "[zzq]\na = \"1\"" },
+    "clicks": ["document.getElementById('indent').value='4';calcTool();var t=document.getElementById('result').innerHTML;document.getElementById('result').textContent='N391 i4='+(t.indexOf(String.fromCharCode(10)+'    &lt;')>=0?1:0)+' k='+(t.indexOf('zzq')>=0?1:0);"],
+    "expect": ["N391 i4=1 k=1"],
+    "ref": "IT-N391（toml-to-xml）：缩进下拉必须生效。修复前输出恒为单行无缩进。判据读结果区 innerHTML 里是否存在「换行 + 4 空格 + `&lt;`」：只有 pad=4 才产生该串（2 空格时为「换行 + 2 空格 + `&lt;`」），入参刻意只留一层避免嵌套层级凑出 4 空格。`k=1` 让判定串依赖入参键名。"
+  },
+  {
+    "slug": "it/toml-to-xml",
+    "inputs": { "source": "[cfg]\nb = \"1\"\na = \"2\"" },
+    "clicks": ["document.getElementById('top_1').checked=true;calcTool();"],
+    "expect": ["&lt;a&gt;2&lt;/a&gt; &lt;b&gt;1&lt;/b&gt;"],
+    "ref": "IT-N391（toml-to-xml）：按键名排序开关必须生效（修复前 calcTool 从不读 top_1）。输入顺序是 b 在前、a 在后，勾选排序后输出顺序 a→b，故该相邻串只在排序生效时出现；不勾选时是 `&lt;b&gt;1&lt;/b&gt; &lt;a&gt;2&lt;/a&gt;`，互不命中。"
   },
   {
     "slug": "it/xml-to-toml",
@@ -4653,6 +5052,37 @@ const CASES = [
     "expect": ["__proto__ = \"v\""],
     "ref": "元素名 `__proto__`：groups/obj 为普通 `{}` 时该键被原型吞掉、TOML 输出丢行；Object.create(null) 后保留为 `__proto__ = \"v\"`。输入 XML 仅含标签，不含等号形态。"
   },
+  // ---- IT-N391（xml-to-toml 侧）/ IT-N394 / IT-N395 ----
+  {
+    "slug": "it/xml-to-toml",
+    "inputs": { "source": "<name>Tom &amp; Jerry</name>" },
+    "expect": ["name = \"Tom &amp; Jerry\""],
+    "ref": "IT-N394：XML 实体必须解码成对应字符。修复前原文直取 ⇒ TOML 里留着字面 `&amp;`（双重转义，回读值不是 `Tom & Jerry`）。注意结果是 `<pre>` + escH，故修复后 blob 里的 `&` 读作 `&amp;`；修复前是 `&amp;amp;`，两者互不包含 ⇒ 判别明确。"
+  },
+  {
+    "slug": "it/xml-to-toml",
+    "inputs": { "source": "<t>&#65;&#x42;</t>" },
+    "expect": ["t = \"AB\""],
+    "ref": "IT-N394：数字字符引用（`&#65;` / `&#x42;`）也要解码。修复前整串原样进 TOML ⇒ `t = \"&#65;&#x42;\"`。输入 XML 里的实体形态与输出 `AB` 无交集。"
+  },
+  {
+    "slug": "it/xml-to-toml",
+    "inputs": { "source": "<a url=\"x&amp;y\"/>" },
+    "expect": ["\"@url\" = \"x&amp;y\""],
+    "ref": "IT-N394：属性值同样要解码（`attrs[m[1]]=m[2]` 原文直取）。修复前 TOML 属性值是 `x&amp;y` 字面量 ⇒ blob 里是 `x&amp;amp;y`；修复后是 `x&amp;y`（escH 转义一次）。"
+  },
+  {
+    "slug": "it/xml-to-toml",
+    "inputs": { "source": "<config><item><a>1</a></item><item><a>2</a></item></config>" },
+    "expect": ["[[config.item]]"],
+    "ref": "IT-N395：嵌套表内的同名兄弟元素必须生成带父前缀的表数组头。修复前表数组分支固定写 `'[['+tKey(k)+']]'`（忽略 prefix）⇒ 输出 `[config]` 空表 + 两条 `[[item]]`，回读后 `config` 下没有 `item`。默认样例无重复元素。"
+  },
+  {
+    "slug": "it/xml-to-toml",
+    "inputs": { "source": "<r><a.b><c.d><e>1</e></c.d></a.b></r>" },
+    "expect": ["[r.\"a.b\".\"c.d\"]"],
+    "ref": "IT-N395：表头路径必须**逐段**转义。修复前递归只把上一层的 `tKey(k)` 用在末段，往下传的 prefix 却是原始键名拼接 ⇒ 深层表头写成 `[r.a.b.\"c.d\"]`（TOML 会读成 r→a→b→c.d 五层，而非 r→\"a.b\"→\"c.d\" 三层）。XML 允许元素名带点号，故该输入合法。"
+  },
   {
     "slug": "it/yaml-to-toml",
     "inputs": { "source": "srv:\n  host: 127.0.0.1\n  port: 5432" },
@@ -4665,17 +5095,79 @@ const CASES = [
     "expect": ["__proto__ = \"v\""],
     "ref": "键名 `__proto__`：parseYaml 普通对象上赋值会丢键，TOML 输出为空；Object.create(null) 后输出 `__proto__ = \"v\"`。输入是冒号形态，不含等号形态。"
   },
+  // ---- IT-N388/N389/N390：yaml-to-toml 标量解析与表导出修复 ----
+  {
+    "slug": "it/yaml-to-toml",
+    "inputs": { "source": "arr: [a, b, c]" },
+    "expect": ["arr = [\"a\", \"b\", \"c\"]"],
+    "ref": "IT-N388：YAML 流式序列必须解析成数组。修复前 yScalar 无 `[` 分支 ⇒ 整串当标量 ⇒ `arr = \"[a, b, c]\"`（单个字符串，与参考表给出的示例相反）。输入是冒号+方括号形态，不含 `arr = ` 前缀。"
+  },
+  {
+    "slug": "it/yaml-to-toml",
+    "inputs": { "source": "port: 9911 # 端口" },
+    "expect": ["port = 9911"],
+    "ref": "IT-N389：行内注释必须剥离。修复前注释被算进值 ⇒ 值不是纯数字 ⇒ `port = \"9911 # 端口\"`（字符串）。端口刻意用 9911：默认样例里就有 `port: 8080`，用 8080 会让「注入失败」的默认态也命中 `port = 8080` ⇒ 变逃生项（判别器实测抓出后改为此值）。"
+  },
+  {
+    "slug": "it/yaml-to-toml",
+    "inputs": { "source": "items:\n  - name: a\n    meta:\n      x: 1" },
+    "expect": ["[items.meta]"],
+    "ref": "IT-N390：表数组元素内的子表要带父前缀。修复前 dumpTable 递归时不传 prefix ⇒ 输出 `[meta]`（根级表），回读后 meta 与 items 脱离。默认样例无 items/meta。"
+  },
+  {
+    "slug": "it/yaml-to-toml",
+    "inputs": { "source": "server:\n  host: x\nfeatures:\n  - a\n  - b" },
+    "expect": ["features = [\"a\", \"b\"] [server]"],
+    "ref": "同批顺带修（审计中发现）：根级「标量数组」原本在第二个循环里输出，若它排在某个表之后（本例 server 在前）就会被 TOML 解析器归到 server 表下。修复后先输出全部「键 = 值」再输出表头，故 features 必在 `[server]` 之前。⚠️ 入参顺序很关键：若写成 features 在前（默认样例即 server 在前），修复前的实现也恰好先输出数组 ⇒ 用例零判别力（负向对照抓出后已调换）。"
+  },
   {
     "slug": "it/yaml-to-xml",
     "inputs": { "source": "srv:\n  host: 127.0.0.1\n  port: 5432" },
-    "expect": ["&lt;srv&gt;&lt;host&gt;127.0.0.1&lt;/host&gt;&lt;port&gt;5432&lt;/port&gt;&lt;/srv&gt;"],
-    "ref": "YAML→XML：同一份嵌套映射落成 `<srv><host>…</host><port>…</port></srv>`。expect 取整块实体形态（结果区经 escH 转义），输入的 YAML 原文不含尖括号 ⇒ 排除输入回显。默认样例为 note/to/from，不出现 srv/host。"
+    "expect": ["&lt;srv&gt; &lt;host&gt;127.0.0.1&lt;/host&gt; &lt;port&gt;5432&lt;/port&gt; &lt;/srv&gt;"],
+    "ref": "YAML→XML：同一份嵌套映射落成 `<srv><host>…</host><port>…</port></srv>`。expect 取整块实体形态（结果区经 escH 转义），输入的 YAML 原文不含尖括号 ⇒ 排除输入回显。默认样例为 note/to/from，不出现 srv/host。⚠️ IT-N357 后默认按「2 空格」缩进输出，每个子元素各占一行 ⇒ 门禁 blob 内的 `\\s+` 被压成单空格，故 expect 用「实体 + 单空格」形态（缩进宽度在 blob 里不可区分，靠 it/yaml-to-xml 的排序用例 + 离线 node 复核覆盖）。"
   },
   {
     "slug": "it/yaml-to-xml",
     "inputs": { "source": "__proto__: v" },
     "expect": ["&lt;__proto__&gt;v&lt;/__proto__&gt;"],
     "ref": "键名 `__proto__`：parseYaml 普通对象上赋值丢键 ⇒ XML 为空；Object.create(null) 后产生同名元素 `<__proto__>v</__proto__>`（XML 元素名允许下划线开头）。输入 YAML 不含尖括号，排除回显。"
+  },
+  {
+    "slug": "it/yaml-to-xml",
+    "inputs": { "source": "note:\n  @id: 1\n  #text: hi" },
+    "expect": ["&lt;note id=\"1\"&gt;hi&lt;/note&gt;"],
+    "ref": "IT-N354：`#text` 是本工具约定的「元素文本」，修复前被「# 开头即注释」整行丢掉 ⇒ 输出 `<note id=\"1\"></note>`（文本静默丢失）。现只把 `#` 后不是 `text:` 的行当注释。expect 为带属性的开标签 + 文本实体形态，输入 YAML 不含尖括号 ⇒ 非回显；修复前不产生该串 ⇒ 必红灯。"
+  },
+  {
+    "slug": "it/yaml-to-xml",
+    "inputs": { "source": "- alpha\n- beta" },
+    "expect": ["&lt;root&gt; &lt;item&gt;alpha&lt;/item&gt; &lt;item&gt;beta&lt;/item&gt; &lt;/root&gt;"],
+    "ref": "IT-N355：顶层是序列时，修复前拿 `Object.keys(array)` 当元素名，产出 `<0>`/`<1>`（数字开头，非法 XML 名）且被 XML 解析器直接拒绝。现固定包一层 `root` + 子项 `item`。expect 整串依赖注入的两个值，输入不含尖括号 ⇒ 非回显；修复前输出 `<root><0>alpha</0>…` ⇒ 必红灯。"
+  },
+  {
+    "slug": "it/yaml-to-xml",
+    "inputs": { "source": "just a probe string" },
+    "expect": ["&lt;root&gt;just a probe string&lt;/root&gt;"],
+    "ref": "IT-N355：顶层是标量时，修复前 yBlock 因该行无冒号直接 `continue`，得到空对象 ⇒ 输出空的 `<root></root>`，内容丢失。现把标量根当作 root 文本。expect 带实体标签，输入是裸文本 ⇒ 非回显；修复前不产生该串 ⇒ 必红灯。"
+  },
+  {
+    "slug": "it/yaml-to-xml",
+    "inputs": { "source": "name: ProbeBob # 注释" },
+    "expect": ["&lt;name&gt;ProbeBob&lt;/name&gt;"],
+    "ref": "IT-N356：行内注释不属于值。修复前输出 `<name>ProbeBob # 注释</name>`（注释被并进值），现截断到 `#` 之前。expect 是截断后的闭合标签形态，输入含 `# 注释` ⇒ 不命中回显；修复前必红灯。"
+  },
+  {
+    "slug": "it/yaml-to-xml",
+    "inputs": { "source": "items:\n  - http://probe.example/x" },
+    "expect": ["&lt;items&gt;http://probe.example/x&lt;/items&gt;"],
+    "ref": "IT-N356：`- ` 项是否算映射，修复前用「含冒号且首字符是字母」判定，`http://probe.example/x` 被拆成键 `http`、值 `//probe.example/x` ⇒ 输出 `<items><http>//probe.example/x</http></items>`。现要求 `:` 后必须是空白或行尾，URL 归为标量。expect 是整串标量形态，与修复前的拆键形态不同 ⇒ 强判别。"
+  },
+  {
+    "slug": "it/yaml-to-xml",
+    "inputs": { "source": "zeta: 1\nalpha: 2\nmid: 3" },
+    "clicks": ["document.getElementById('top_1').checked=true; calcTool()"],
+    "expect": ["&lt;alpha&gt;2&lt;/alpha&gt; &lt;mid&gt;3&lt;/mid&gt; &lt;zeta&gt;1&lt;/zeta&gt;"],
+    "ref": "IT-N357：「按键名排序输出」原本是死控件（calcTool 从不读 #top_1）。勾选后应输出 alpha → mid → zeta 的升序。expect 是被重排后的三段元素串，输入 YAML 的顺序是 zeta→alpha→mid ⇒ 未修复时输出顺序不同、该串不存在 ⇒ 必红灯。缩进宽度（#indent）在门禁 blob 里被空白折叠吃掉，无法断言，已用离线 node 复核 2/4 空格与 tab 三档差异。"
   },
   {
     "slug": "it/xml-to-json",
@@ -4973,6 +5465,47 @@ const CASES = [
       "1 2 3\n�m\n✅ 已解码为文本（2 B）"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"b64Out\":\"1\\n2\\n3\",\"b64In\":\"1\\n2\\n3\"}，输出区含「1 2 3\n�m\n✅ 已解码为文本（2 B）」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "it/base64-file",
+    "clicks": ["document.getElementById('result').innerHTML='EXT '+['text/plain','image/svg+xml','image/jpeg','application/vnd.openxmlformats-officedocument.wordprocessingml.document','application/octet-stream','application/x-foo'].map(extFromMime).join('|');"],
+    "expect": ["EXT txt|svg|jpg|docx|bin|foo"],
+    "ref": "IT-N406：MIME → 标准扩展名的映射表必须存在且生效。六个取样分别覆盖「子类型≠扩展名」(text/plain→txt)、结构化语法后缀 (svg+xml→svg)、别名 (jpeg→jpg)、Office 长类型 (vnd.openxmlformats...→docx)、通用二进制 (octet-stream→bin)、未知类型清洗 (x-foo→foo)。修复前无 extFromMime 函数 ⇒ clicks 抛错、结果区恒空 ⇒ 必红。"
+  },
+  {
+    "slug": "it/base64-file",
+    "inputs": {"b64In": "data:text/plain;base64,SGVsbG8="},
+    "clicks": ["document.body=document.body||{appendChild:function(){},removeChild:function(){}};b64ToFile();"],
+    "expect": ["text/plain → decoded.txt"],
+    "ref": "IT-N406：走真实还原下载路径，结果区必须回显实际文件名。修复前文件名取 mime.split('/')[1] ⇒ decoded.plain，且结果区不含文件名 ⇒ 双变红。document.body 桩只为让 harness 跑完下载分支（浏览器里 body 恒存在）。"
+  },
+  {
+    "slug": "it/base64-file",
+    "inputs": {"b64In": "data:image/svg+xml;base64,PHN2Zy8+"},
+    "clicks": ["document.body=document.body||{appendChild:function(){},removeChild:function(){}};b64ToFile();"],
+    "expect": ["image/svg+xml → decoded.svg"],
+    "ref": "IT-N406：image/svg+xml 修复前会生成 decoded.svg+xml（扩展名里带 +，文件名非法且打不开）。输入是含 +xml 的 data URI，默认态不含 ⇒ 判别明确。"
+  },
+  {
+    "slug": "it/base64-file",
+    "inputs": {"b64In": "data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;base64,UEs="},
+    "clicks": ["document.body=document.body||{appendChild:function(){},removeChild:function(){}};b64ToFile();"],
+    "expect": ["wordprocessingml.document → decoded.docx"],
+    "ref": "IT-N406：OOXML 长 MIME 必须映射成 docx；修复前取子类型末段会得到 decoded.document。同时验证结果区回显的是原始 MIME + 实际文件名。"
+  },
+  {
+    "slug": "it/base64-file",
+    "inputs": {"b64In": "SGVsbG8="},
+    "clicks": ["document.body=document.body||{appendChild:function(){},removeChild:function(){}};b64ToFile();"],
+    "expect": ["application/octet-stream → decoded.bin"],
+    "ref": "IT-N406：无 data URI 前缀时回落通用二进制流，文件名应为 decoded.bin；修复前是 decoded.octet-stream。注入纯 Base64（非默认空输入）⇒ 默认态不触发该分支。"
+  },
+  {
+    "slug": "it/base64-file",
+    "inputs": {"b64Out": "data:image/jpeg;base64,/9j/"},
+    "clicks": ["document.body=document.body||{appendChild:function(){},removeChild:function(){}};var __ce=document.createElement.bind(document);document.createElement=function(t){var e=__ce(t);if(t==='a'){e.click=function(){document.getElementById('result').innerHTML='DL:'+e.download;};}return e;};downloadB64();"],
+    "expect": ["DL:file.jpg"],
+    "ref": "IT-N406：第二个调用点（b64Out 的「还原为文件」）也必须走映射，文件名应是 file.jpg 而非 file.jpeg。用 createElement 桩在 a.click() 时捕获 a.download 写进结果区 ⇒ 真下载文件名契约。修复前 extFromMime 不存在 ⇒ 该分支抛错、结果区无 DL: 串。"
   },
   {
     "slug": "it/base85-encode",
@@ -6189,15 +6722,56 @@ const CASES = [
   },
   {
     "slug": "it/json-diff",
-    "inputs": {
-      "left": "1\n2\n3",
-      "right": "1\n2\n3",
-      "diffMode": "simple"
-    },
-    "expect": [
-      "ring\" } ]\nsimple"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"left\":\"1\\n2\\n3\",\"right\":\"1\\n2\\n3\",\"diffMode\":\"simple\"}，输出区含「ring\" } ]\nsimple」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "inputs": { "left": "1\n2\n3", "right": "1\n2\n3" },
+    "clicks": ["var __t=[];var __o=ToolBox.showToast;ToolBox.showToast=function(s){__t.push(String(s));};doDiff();ToolBox.showToast=__o;document.getElementById('jsonDiff').textContent='ERR n='+__t.length+' has='+(/JSON \u89e3\u6790\u9519\u8bef/.test(__t.join('|'))?1:0);"],
+    "expect": ["ERR n=1 has=1"],
+    "ref": "非法 JSON（`1\\n2\\n3`）必须走解析失败分支：只弹一次错误 toast、且提示里点名「JSON 解析错误」。修复前该用例是自动补强的弱断言（expect 命中下拉框回显 `simple`，零判别力），本批随页面改动一并换成真实行为断言；输入含真实换行 ⇒ 与默认样例的合法 JSON 无交集。"
+  },
+  // ---- IT-N396 / IT-N397：对比模式与数组按内容匹配接线 ----
+  {
+    "slug": "it/json-diff",
+    "inputs": { "left": "{\"a\":{\"x\":1},\"b\":2}", "right": "{\"a\":{\"x\":9},\"b\":2}", "diffMode": "deep" },
+    "expect": ["\"path\": \"a.x\""],
+    "ref": "IT-N396（对照组）：深度对比必须递归展开到叶子，路径为 `a.x`。简单模式同一输入只出 `\"path\": \"a\"`（不展开），故本串仅在 deep 生效时出现。"
+  },
+  {
+    "slug": "it/json-diff",
+    "inputs": { "left": "{\"a\":{\"x\":1},\"b\":2}", "right": "{\"a\":{\"x\":9},\"b\":2}", "diffMode": "simple" },
+    "expect": ["\"path\": \"a\", \"from\": { \"x\": 1 }"],
+    "ref": "IT-N396：简单对比只看顶层键，嵌套变化合并成一处 mod。修复前 `doDiff` 从不读 `diffMode`，两种模式输出逐字节相同（都是 `\"path\": \"a.x\"`）⇒ 该串换模式后不可能出现。"
+  },
+  {
+    "slug": "it/json-diff",
+    "inputs": { "left": "{\"t\":[1,2]}", "right": "{\"t\":[1,2,3]}", "diffMode": "simple" },
+    "expect": ["\"path\": \"t\", \"from\": [ 1, 2 ], \"to\": [ 1, 2, 3 ]"],
+    "ref": "IT-N396：简单模式把数组当整体值比，只出一处 mod；深度模式同一输入是 `add t[2]`。修复前模式无效 ⇒ 恒为后者。"
+  },
+  {
+    "slug": "it/json-diff",
+    "inputs": { "left": "{\"tags\":[\"a\",\"b\"]}", "right": "{\"tags\":[\"b\",\"a\"]}", "diffMode": "deep" },
+    "clicks": ["document.getElementById('arrayMatch').checked=true;doDiff();var d=JSON.parse(document.getElementById('jsonDiff').textContent);document.getElementById('jsonDiff').textContent='ARRM n='+d.length+' q='+(document.getElementById('left').value.indexOf('tags')>=0?1:0);"],
+    "expect": ["ARRM n=0 q=1"],
+    "ref": "IT-N397：勾选「数组按内容匹配」后，元素换序不应再报成逐项修改。修复前数组只按下标对齐 ⇒ `tags[0]`、`tags[1]` 两处 mod（n=2）。`q=1` 绑注入值（注入失败时 left 回落默认样例、不含 tags ⇒ 整例 FAIL），避免与输入无关的静态断言。"
+  },
+  {
+    "slug": "it/json-diff",
+    "inputs": { "left": "{\"tags\":[\"a\",\"b\"]}", "right": "{\"tags\":[\"b\",\"a\",\"c\"]}", "diffMode": "deep" },
+    "clicks": ["document.getElementById('arrayMatch').checked=true;doDiff();var d=JSON.parse(document.getElementById('jsonDiff').textContent);document.getElementById('jsonDiff').textContent='ARRM2 n='+d.length+' mod='+d.filter(function(x){return x.op==='mod';}).length+' add='+d.filter(function(x){return x.op==='add';}).length+' p='+(d[0]?d[0].path:'-')+' q='+(document.getElementById('left').value.indexOf('tags')>=0?1:0);"],
+    "expect": ["ARRM2 n=1 mod=0 add=1 p=tags[2] q=1"],
+    "ref": "IT-N397：换序 + 追加的组合用例。按内容对齐后只应剩 `add tags[2]`（mod 必须为 0）。修复前是 2 mod + 1 add（n=3）⇒ 四元组完全不同。"
+  },
+  {
+    "slug": "it/json-diff",
+    "inputs": { "left": "{\"items\":[{\"id\":1},{\"id\":2}]}", "right": "{\"items\":[{\"id\":2},{\"id\":1}]}", "diffMode": "deep" },
+    "clicks": ["document.getElementById('arrayMatch').checked=true;doDiff();var d=JSON.parse(document.getElementById('jsonDiff').textContent);document.getElementById('jsonDiff').textContent='AM3 n='+d.length+' q='+(document.getElementById('left').value.indexOf('items')>=0?1:0);"],
+    "expect": ["AM3 n=0 q=1"],
+    "ref": "IT-N397：对象数组换序同样应判为无内容差异。比较键用排序后的规范序列化，故键序不同的 `{id:1}` 也能配对上。修复前是 `items[0].id`、`items[1].id` 两处 mod。"
+  },
+  {
+    "slug": "it/json-diff",
+    "inputs": { "left": "{\"constructor\":1}", "right": "{}" },
+    "expect": ["\"op\": \"del\", \"path\": \"constructor\""],
+    "ref": "IT-N397 同批顺带修：成员判断原来用 `k in b`（走原型链），`'constructor' in {}` 为真 ⇒ 该键被当成「两侧都有」而递归比对 function，报成 mod 甚至丢键。改用 `Object.prototype.hasOwnProperty.call` 后正确报 del。默认样例无 constructor 键。"
   },
   {
     "slug": "it/json-schema-validator",
@@ -6209,6 +6783,115 @@ const CASES = [
       "JSON Schema 解析失败"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"schema\":\"1\\n2\\n3\",\"data\":\"1\\n2\\n3\"}，输出区点名「JSON Schema 解析失败」并附 JSON.parse 的行列位置；默认示例（合法 schema/data）通过校验，不含该串 ⇒ 强判别、零逃生。"
+  },
+  // ---- IT-N398 / IT-N399 / IT-N400：根 schema 类型推断、null 合法、联合 type 与原型链 ----
+  {
+    "slug": "it/json-schema-validator",
+    "inputs": { "schema": "{\"required\":[\"a\"],\"properties\":{\"a\":{\"type\":\"string\"}}}", "data": "{\"a\":1}" },
+    "expect": ["类型不匹配 root.a: 期望 string"],
+    "ref": "IT-N398（高）：根 schema 省略 `type:\"object\"` 时，`properties`/`required` 本身即隐含对象约束，必须继续按对象校验。修复前 `walk` 只在 `schema.type==='object'` 时进对象分支 ⇒ 明显非法的数据被判「校验通过」。默认示例的 schema 带 type，不会产生该串。"
+  },
+  {
+    "slug": "it/json-schema-validator",
+    "inputs": { "schema": "{\"required\":[\"a\"],\"properties\":{\"a\":{\"type\":\"string\"}}}", "data": "{}" },
+    "expect": ["缺少必填字段: root.a"],
+    "ref": "IT-N398（高）：同一 schema（无根 type）下空对象必须报缺少必填。修复前整段 required 检查被跳过 ⇒ 「校验通过」。默认示例 required 是 name 且有值 ⇒ 不含该串。"
+  },
+  {
+    "slug": "it/json-schema-validator",
+    "inputs": { "schema": "{\"properties\":{\"a\":{\"type\":\"string\"}},\"additionalProperties\":false}", "data": "{\"a\":\"x\",\"b\":1}" },
+    "expect": ["存在未允许字段: root.b"],
+    "ref": "IT-N398（高）：根无 type 时 `additionalProperties:false` 同样必须生效。修复前额外字段检查整段不执行 ⇒ 「校验通过」。默认示例虽也有 additionalProperties:false，但其数据没有多余字段 ⇒ 不产生该串。"
+  },
+  {
+    "slug": "it/json-schema-validator",
+    "inputs": { "schema": "{\"type\":\"array\",\"items\":{\"required\":[\"id\"],\"properties\":{\"id\":{\"type\":\"number\"}}}}", "data": "[{\"id\":1},{\"name\":\"x\"}]" },
+    "expect": ["缺少必填字段: root[1].id"],
+    "ref": "IT-N398：`items` 里的子 schema 同样常省略 `type`，需按 properties/required 推断为对象并校验到具体下标。修复前第二项被整体放过。"
+  },
+  {
+    "slug": "it/json-schema-validator",
+    "inputs": { "schema": "{\"type\":[\"string\",\"number\"]}", "data": "{}" },
+    "expect": ["期望 string / number"],
+    "ref": "IT-N400：`type` 允许联合数组，任一匹配即通过、全不匹配必须报错。修复前 `typeOK` 逐字符串比较，数组与每个字面量都不相等 ⇒ 落到 `return true`，任意数据都判通过。默认示例的 type 是单个字符串 ⇒ 不产生该串。"
+  },
+  {
+    "slug": "it/json-schema-validator",
+    "inputs": { "schema": "{\"type\":\"object\",\"required\":[\"constructor\"]}", "data": "{}" },
+    "expect": ["缺少必填字段: root.constructor"],
+    "ref": "IT-N400：必填检查必须用 hasOwnProperty。修复前 `k in val` 命中 `Object.prototype` ⇒ `{}` 被当成「含有 constructor」而通过。输入数据就是空对象，不可能自带该错误串。"
+  },
+  {
+    "slug": "it/json-schema-validator",
+    "inputs": { "schema": "{\"type\":\"object\",\"properties\":{\"a\":{\"type\":\"string\"}},\"additionalProperties\":false}", "data": "{\"a\":\"x\",\"toString\":1}" },
+    "expect": ["存在未允许字段: root.toString"],
+    "ref": "IT-N400：额外字段判断同理——`!(k in props)` 会把 `toString` 当成属性表里已有 ⇒ 漏报。修复前该数据判「校验通过」。"
+  },
+  {
+    "slug": "it/json-schema-validator",
+    "inputs": { "schema": "{\"type\":\"null\"}", "data": "null" },
+    "clicks": ["var r=document.getElementById('result');var ok=r.innerHTML.indexOf('校验通过')>=0?1:0;r.textContent='N399 v='+(document.getElementById('data').value==='null'?1:0)+' ok='+ok;"],
+    "expect": ["N399 v=1 ok=1"],
+    "ref": "IT-N399：合法的 JSON null 必须能通过 `{\"type\":\"null\"}` 的校验，不能被当成「JSON 格式错误」。该页 `parseSafely` 已返回 `{ok,value}`（早期批次已修），本用例作为回归锁；`v=1` 绑注入值（注入失败时 data 回落默认对象 ⇒ v=0 ⇒ FAIL），避免退化成「与输入无关」的逃生断言。"
+  },
+  {
+    "slug": "it/json-schema-validator",
+    "inputs": { "schema": "{\"type\":[\"object\",\"null\"]}", "data": "null" },
+    "clicks": ["var r=document.getElementById('result');var ok=r.innerHTML.indexOf('校验通过')>=0?1:0;r.textContent='N400N v='+(document.getElementById('data').value==='null'?1:0)+' ok='+ok;"],
+    "expect": ["N400N v=1 ok=1"],
+    "ref": "IT-N400 边界：联合类型含 null 时 null 必须放行，不能被对象分支误报「root 不是对象」（本批实现里 `else if (explicitObj && val !== null)` 就是为此）。同上的 `v=1` 防逃生。"
+  },
+  {
+    "slug": "it/html-to-markdown",
+    "htmlDom": true,
+    "inputs": {"htmlInput": "<p>支持 <strong>HTML 转 Markdown</strong>，保留标题、列表与链接。</p>"},
+    "expect": ["支持 **HTML 转 Markdown**，保留标题、列表与链接。"],
+    "ref": "IT-N401（高）：说明区承诺 strong/b → `**`，实现里原本没有 STRONG/EM 分支、P 又用 innerText 取纯文本 ⇒ 加粗信息整段丢失（默认示例首屏即可复现）。输入是带标签的 HTML，不含 `**` ⇒ 断言串只能来自转换结果。"
+  },
+  {
+    "slug": "it/html-to-markdown",
+    "htmlDom": true,
+    "inputs": {"htmlInput": "<p><em>斜体</em> 与 <b>粗</b> 与 <i>他</i></p>"},
+    "expect": ["_斜体_ 与 **粗** 与 _他_"],
+    "ref": "IT-N401：em/i → `_`、b → `**` 两条映射都必须生效（b/i 是 strong/em 的别名标签）。修复前输出是「斜体 与 粗 与 他」，无任何标记符号。"
+  },
+  {
+    "slug": "it/html-to-markdown",
+    "htmlDom": true,
+    "inputs": {"htmlInput": "<p>2 * 3 * 4 与 a_b</p>"},
+    "expect": ["2 \\* 3 \\* 4 与 a\\_b"],
+    "ref": "IT-N402：`escapeMarkdown` 定义后从未被调用，正文里的 `*`/`_` 原样输出会被 Markdown 渲染成斜体。修复前输出与输入一致（无反斜杠）⇒ 该串只可能来自转义路径。"
+  },
+  {
+    "slug": "it/html-to-markdown",
+    "htmlDom": true,
+    "inputs": {"htmlInput": "<p>a<br>b</p>"},
+    "clicks": ["convert();var v=document.getElementById('mdOutput').value;document.getElementById('mdOutput').value='BR hard='+(v.indexOf('a  '+String.fromCharCode(10)+'b')>=0?1:0)+' flat='+(v==='a b'?1:0)+' q='+(document.getElementById('htmlInput').value.indexOf('<br>')>=0?1:0);"],
+    "expect": ["BR hard=1 flat=0 q=1"],
+    "ref": "IT-N403：`<br>` 必须转成「行尾两个空格 + 换行」的硬换行。blob 会把空白折叠（collectStrings 对 value 也做 \\s+ → 单空格），故用 clicks 在页面内判形态：修复前 BR 返回单个换行、被段落折叠成空格 ⇒ v === 'a b'。`q=1` 绑注入值防静态逃生。"
+  },
+  {
+    "slug": "it/html-to-markdown",
+    "htmlDom": true,
+    "inputs": {"htmlInput": "<ul><li>a<ul><li>b</li></ul></li></ul>"},
+    "clicks": ["convert();var v=document.getElementById('mdOutput').value;document.getElementById('mdOutput').value='UL nested='+(v.indexOf('- a'+String.fromCharCode(10)+'  - b')>=0?1:0)+' flat='+(v.indexOf('- a - b')>=0?1:0)+' q='+(document.getElementById('htmlInput').value.indexOf('<ul>')>=0?1:0);"],
+    "expect": ["UL nested=1 flat=0 q=1"],
+    "ref": "IT-N403：嵌套列表必须保留层级（父项 + 换行 + 两空格缩进的子项）。修复前列表项 body 走 `replace(/\\n+/g,' ')` 把子列表压平 ⇒ 输出 `- a - b`。blob 折叠空白，故用 clicks 在页面内判相邻形态；`q=1` 绑注入值防静态逃生。"
+  },
+  {
+    "slug": "it/html-to-markdown",
+    "htmlDom": true,
+    "inputs": {"htmlInput": "<table><thead><tr><th>名称</th></tr></thead><tbody><tr><td><strong>粗</strong></td></tr></tbody></table>"},
+    "expect": ["| **粗** |"],
+    "ref": "IT-N401：表格单元格原本用 innerText 取纯文本，行内格式同样丢失；改递归后单元格里也要保留 `**`。输入 HTML 不含 `**`。"
+  },
+  {
+    "slug": "it/html-to-markdown",
+    "htmlDom": true,
+    "inputs": {"htmlInput": "<p>正文</p><script>alert(\"zzz9\")</script><style>.zzz9{}</style>"},
+    "clicks": ["convert();var v=document.getElementById('mdOutput').value;document.getElementById('mdOutput').value='N404 js='+(v.indexOf('zzz9')>=0?1:0)+' t='+(v.indexOf('正文')>=0?1:0);"],
+    "expect": ["N404 js=0 t=1"],
+    "ref": "IT-N404：SCRIPT/STYLE 文本必须整段丢弃（注意事项承诺「脚本等表现层信息会被丢弃」）。修复前落到默认 innerMarkdown，脚本源码 `zzz9` 被写进 Markdown。`t=1` 绑注入值（注入失败时回落默认样例、不含「正文」⇒ 整例 FAIL），避免变成静态逃生项。"
   },
   {
     "slug": "it/json-formatter",
@@ -7176,9 +7859,9 @@ const CASES = [
       "dir": "from"
     },
     "expect": [
-      "from\n1 2 3\n转换结果 1 2 3 → 0\n42"
+      "不是有效的罗马数字：仅可含 I/V/X/L/C/D/M"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"number\":\"42\",\"roman\":\"1\\n2\\n3\",\"dir\":\"from\"}，输出区含「from\n1 2 3\n转换结果 1 2 3 → 0\n42」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"number\":\"42\",\"roman\":\"1\\n2\\n3\",\"dir\":\"from\"}。修复 IT-N368 后，非法罗马串（含换行/阿拉伯数字）经严格正则拒绝，输出「不是有效的罗马数字：仅可含 I/V/X/L/C/D/M…」；旧实现静默算成 0。默认态（数字→罗马）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "it/rot-cipher",
@@ -7574,6 +8257,18 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"txt\":\"1\\n2\\n3\"}，输出区含「TF-16 转义 1 U+0031 \\u0031 U+000A \\u000A 2…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
+    "slug": "it/text-to-unicode",
+    "inputs": {"txt": "A😀B"},
+    "expect": ["U+1F600 \\uD83D\\uDE00"],
+    "ref": "IT-N405：辅助平面字符的 UTF-16 转义必须是完整代理对（高+低两个 \\uXXXX），只出高代理 \\uD83D 会得到非法孤立代理、无法嵌回 JS 字符串。输入用 😀(U+1F600) 而非默认样例里的 🚀 ⇒ 默认态输出不含 U+1F600，判别力真实。"
+  },
+  {
+    "slug": "it/text-to-unicode",
+    "inputs": {"txt": "𝄞A"},
+    "expect": ["U+1D11E \\uD834\\uDD1E"],
+    "ref": "IT-N405：换一个高代理不是 D83D 的码点（U+1D11E G 谱号 → D834 DD1E），验证代理对是按公式从码点算出的，而非对 emoji 硬编码；同时覆盖 BMP 字符紧随其后的边界。"
+  },
+  {
     "slug": "it/text-truncate",
     "inputs": {
       "limit": "42",
@@ -7915,10 +8610,9 @@ const CASES = [
       "outFmt": "text"
     },
     "expect": [
-      "abc123测试\n1 2 3\ns\nhex\ntext",
-      "1 2 3\nabc123测试\nhex\ntext\ns"
+      "处理失败：十六进制长度必须为偶数（每字节两位十六进制）"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"key\":\"abc123测试\",\"input\":\"1\\n2\\n3\",\"output\":\"1\\n2\\n3\",\"inFmt\":\"hex\",\"outFmt\":\"text\"}，输出区含「abc123测试\n1 2 3\ns\nhex\ntext」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。G06-S1 首屏自跑改变了元素创建序 ⇒ blob 字段序随之改变，expect 容忍新旧两种字段序；判别力不变。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"key\":\"abc123测试\",\"input\":\"1\\n2\\n3\",\"output\":\"1\\n2\\n3\",\"inFmt\":\"hex\",\"outFmt\":\"text\"}。修复 IT-N345 后，hex 通道对奇数长度输入会抛「十六进制长度必须为偶数（每字节两位十六进制）」并写入 output，旧实现静默截断为错误字节；默认态（inFmt=text、输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   
   {
@@ -8838,6 +9532,22 @@ const CASES = [
     expect: ["未知 无法仅凭该值判定"],
     ref: "12 位十六进制 = 48 bit，不是 CRC-32（8 位）；旧表误标为「CRC32 / 短校验」。修正后归入无法判定；默认 64 位值不命中。",
   },
+  {
+    // IT-N363 回归：40 位十六进制必须判 SHA-1（正是旧「默认参数」预设被截断后误落的档位）。
+    slug: "it/hash-identifier",
+    inputs: { h: "5e884898da28047151d0e56f8dc6292773603d0d" },
+    clicks: ["calcTool()"],
+    expect: ["SHA-1 160 位（40 位十六进制）"],
+    ref: "IT-N363：40 位十六进制 = 160 bit ⇒ SHA-1。旧「默认参数」预设把 64 位 SHA-256 截成前 40 位（本用例即该截断串），点预设即误判 SHA-1；预设值已补全为 64 位并与 resetForm 一致。页面默认值是完整 64 位 ⇒ 默认态判 SHA-256，不命中本串。",
+  },
+  {
+    // IT-N364 回归：$6$ 前缀（SHA-512-crypt）此前任何输入都落到「未知」。
+    slug: "it/hash-identifier",
+    inputs: { h: "$6$rounds=5000$abc$xyz" },
+    clicks: ["calcTool()"],
+    expect: ["SHA-512-Crypt 前缀 $6$（SHA-512 crypt）"],
+    ref: "IT-N364：本页说明与引据表都写着 `$6$` = SHA-512-crypt，修复前前缀规则只有 $2a$/$2y$/$2b$/$1$/$argon2，$6$ 一律判「未知」。默认值是 64 位十六进制，不含 $ 前缀，不命中。",
+  },
 
   // —— 随机源审计（2026-11-05）：B 类密码学用途改 crypto.getRandomValues 后，
   // 随机内容本身不可断言，改为「长度 / 字符集 / 条数」结构断言。以下用例均落在
@@ -9633,6 +10343,23 @@ function makeXmlDomParserStub() {
   };
 }
 
+// HTML 版 DOMParser 桩：XML 桩只给 documentElement，够 xml-* 用，但 HTML 页需要真实 DOM 树
+// （doc.body、children、querySelectorAll(':scope > tr')、parentElement 等，html-to-markdown 全靠这些）。
+// 用 jsdom（已是 devDependency，en-CJK 探针等门禁同款）兜底，只在用例声明 `htmlDom: true` 时装配，
+// 与 XML 桩互斥使用，其它页面基线不受影响。
+function makeHtmlDomParserStub() {
+  return class {
+    parseFromString(src, type) {
+      const { JSDOM } = require("jsdom");
+      const str = String(src == null ? "" : src);
+      if (type && /xml/i.test(String(type))) {
+        try { return new JSDOM(str, { contentType: "text/xml" }).window.document; } catch (e) { /* 非法 XML 退化成 HTML */ }
+      }
+      return new JSDOM(str, { contentType: "text/html" }).window.document;
+    }
+  };
+}
+
 // 实际执行过的用例数（redirect 存根不计）：供「0 用例拒绝判绿」守卫使用。
 // 全站 200+ 个 verify_<ind>_calc.js 都复用本 harness，故此处一处收口即可覆盖。
 let __executedCases = 0;
@@ -9673,6 +10400,10 @@ async function runCaseInner(c) {
   // XML 类页面需要浏览器 DOMParser；仅对显式声明 domParser:true 的用例注入（用后清理）。
   if (c.domParser && typeof globalThis.DOMParser === "undefined") {
     globalThis.DOMParser = makeXmlDomParserStub();
+  }
+  // HTML 类页面要真实 DOM 树，XML 桩不够用 ⇒ 用 jsdom 版（见 makeHtmlDomParserStub 注释）
+  if (c.htmlDom && typeof globalThis.DOMParser === "undefined") {
+    globalThis.DOMParser = makeHtmlDomParserStub();
   }
   const file = path.join(TOOLS_DIR, c.slug + ".html");
   if (!fs.existsSync(file)) return { ok: false, why: "文件不存在" };

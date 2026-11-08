@@ -117,7 +117,7 @@ s.parentNode.insertBefore(el, s);
         <label for="h">哈希值</label>
         <input type="text" id="h" value="5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8" style="width:100%;">
       </div>
-    </div
+    </div>
     <div class="toolbar">
       <div id="hash_identifierPresets"></div><button class="btn primary" onclick="calcTool()">计算</button><button class="btn" type="button" onclick="__hash_identifierExport()">导出明细 CSV</button>
       <button class="btn" onclick="resetForm()">重置</button>
@@ -219,6 +219,10 @@ var L=v.length;
 var cands=[];
 if(v.indexOf('$2a$')===0||v.indexOf('$2y$')===0||v.indexOf('$2b$')===0)cands.push(['BCrypt','前缀 $2a$/2y$/2b$']);
 if(v.indexOf('$1$')===0)cands.push(['MD5-Crypt','前缀 $1$']);
+// IT-N364：本页文档/引据表承诺 $6$ = SHA-512-crypt，此前只识别到 $1$/$2a$/$argon2，
+// $5$（SHA-256-crypt）与 $6$（SHA-512-crypt）任何输入都落到「未知」。
+if(v.indexOf('$5$')===0)cands.push(['SHA-256-Crypt','前缀 $5$（SHA-256 crypt）']);
+if(v.indexOf('$6$')===0)cands.push(['SHA-512-Crypt','前缀 $6$（SHA-512 crypt）']);
 if(v.indexOf('$argon2')===0)cands.push(['Argon2','前缀 $argon2']);
 if(hex){
   // 长度对照：CRC-32 是 8 位十六进制（此前漏配，8 位输入只会得到「未知」）；
@@ -354,7 +358,7 @@ function __hash_identifierExport(){
 }
 function __hash_identifierPresets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#hash_identifierPresets',[{label:'默认参数',labelEn:'Default',values:{'h':'5e884898da28047151d0e56f8dc6292773603d0d'}},
+    TBKit.preset.bar('#hash_identifierPresets',[{label:'默认参数',labelEn:'Default',values:{'h':'5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8'}},
   {"label":"MD5","labelEn":"MD5","values":{"h":"5d41402abc4b2a76b9719d911017c592"}},
   {"label":"SHA-1","labelEn":"SHA-1","values":{"h":"aaf4c61ddcc5e8a2dabede0f3b482cd9aea9434d"}},
   {"label":"SHA-256","labelEn":"SHA-256","values":{"h":"9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"}}],function(){ calcTool(); });
