@@ -120,7 +120,7 @@ s.parentNode.insertBefore(el, s);
     <h2 data-zh="📄 JSON Schema 校驗">📄 JSON Schema Verifier</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="支援最小集：type/required/properties/additionalProperties。">Validate JSON against a JSON Schema in your browser — catch structural errors fast.</p>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">分別解析模式與資料兩處 JSON，模式解析失敗或資料為 null 時提示 JSON 格式錯誤。隨後從根節點遞迴校驗：先判斷值是否符合模式宣告的型別，不符合即記為「型別不匹配 + 路徑 + 期望型別」並停止下探；型別為物件時要求值確實是非陣列的物件（否則記為不是物件），逐項檢查必填欄位列表中每個鍵是否存在於資料中（缺失記為缺少必填欄位），再對屬性表中同時存在於資料中的鍵繼續遞迴校驗。收集到任何問題時逐條列出並標註未通過，全部通過則提示校驗通過</div>
+  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">分別解析模式與資料兩處 JSON，任一側解析失敗才提示格式錯誤（合法的 JSON null 是有效資料，不算格式錯誤）。隨後從根節點遞迴校驗：先判斷值是否符合模式宣告的型別（type 可寫成聯合陣列，任一匹配即通過），不符合即記為「型別不匹配 + 路徑 + 期望型別」並停止下探；模式未顯式寫 type 時按關鍵字推斷——出現 properties / required / additionalProperties 視為物件，出現 items 視為陣列。物件分支先用 hasOwnProperty 檢查必填欄位列表中每個鍵是否真屬於該物件（缺失記為缺少必填欄位，不會誤中原型鏈上的 constructor / toString），再對屬性表中同時存在的鍵繼續遞迴；additionalProperties 為 false 時把不在屬性表裡的鍵記為未允許欄位。陣列分支對每個元素按 items 繼續遞迴。收集到任何問題時逐條列出並標註未通過，全部通過則提示校驗通過</div>
   <div class="formula-desc">JSON Schema 是一種用 JSON 描述資料結構的規範：用 type 約束欄位型別、required 標記必填、properties 定義子欄位、additionalProperties 控制是否允許額外欄位。本工具在瀏覽器內解析 Schema 與待校驗 JSON，逐條比對約束並定位首個錯誤位置，資料不出本地。</div>
   <div class="formula-desc">行列號從 1 開始（首個字元 = 第 1 行第 1 列）；本頁深度上限 64 層（超出即停止校驗並報錯）；輸入上限 不設上限。</div>
 </div>
@@ -266,15 +266,19 @@ function parseSafely(id) {
 
 function typeOK(schemaType, val) {
   if (!schemaType) return true;
+  // type 允许是联合数组（["string","number"]）：任一匹配即通过
+  if (Array.isArray(schemaType)) return schemaType.some(function (t) { return typeOK(t, val); });
   if (schemaType === 'number') return typeof val === 'number';
   if (schemaType === 'integer') return Number.isInteger(val);
   if (schemaType === 'string') return typeof val === 'string';
   if (schemaType === 'boolean') return typeof val === 'boolean';
   if (schemaType === 'array') return Array.isArray(val);
-  if (schemaType === 'object') return val && typeof val === 'object' && !Array.isArray(val);
+  if (schemaType === 'object') return val !== null && typeof val === 'object' && !Array.isArray(val);
   if (schemaType === 'null') return val === null;
   return true;
 }
+
+function hasOwn(o, k) { return o != null && Object.prototype.hasOwnProperty.call(o, k); }
 
 function walk(schema, val, path, out, depth) {
   if (!schema || typeof schema !== 'object') return;
@@ -284,38 +288,52 @@ function walk(schema, val, path, out, depth) {
       : `嵌套层级超过 ${MAX_DEPTH} 层（${path}），已停止继续校验`);
     return;
   }
-  if (!typeOK(schema.type, val)) {
-    out.push(`类型不匹配 ${path}: 期望 ${schema.type}`);
+  const st = schema.type;
+  const typeList = Array.isArray(st) ? st : (st ? [st] : []);
+  if (!typeOK(st, val)) {
+    out.push(`类型不匹配 ${path}: 期望 ${Array.isArray(st) ? st.join(' / ') : st}`);
     return;
   }
 
-  if (schema.type === 'object') {
-    if (!val || typeof val !== 'object' || Array.isArray(val)) {
+  // 未显式声明 type 时按关键字推断角色：properties/required/additionalProperties 本身即隐含
+  // 对象约束，items 隐含数组约束（JSON Schema 里省略根 type 的写法非常常见）
+  const hasObjKw = schema.properties !== undefined || schema.required !== undefined || schema.additionalProperties !== undefined;
+  const hasArrKw = schema.items !== undefined;
+  const explicitObj = typeList.indexOf('object') >= 0;
+  const explicitArr = typeList.indexOf('array') >= 0;
+  const asObject = explicitObj || (!typeList.length && hasObjKw);
+  const asArray = explicitArr || (!typeList.length && !hasObjKw && hasArrKw);
+
+  if (asObject) {
+    if (val !== null && typeof val === 'object' && !Array.isArray(val)) {
+      const req = schema.required || [];
+      for (const k of req) {
+        // 成员判断必须用 hasOwnProperty：`k in val` 会命中 Object.prototype，
+        // 让 required:["constructor"] 这类 schema 对 {} 也判「通过」
+        if (!hasOwn(val, k)) out.push(`缺少必填字段: ${path}.${k}`);
+      }
+
+      const props = schema.properties || {};
+      for (const [k, s] of Object.entries(props)) {
+        if (hasOwn(val, k)) {
+          walk(s, val[k], path ? `${path}.${k}` : k, out, depth + 1);
+        }
+      }
+
+      if (schema.additionalProperties === false) {
+        for (const k of Object.keys(val)) {
+          if (!hasOwn(props, k)) out.push(`存在未允许字段: ${path ? path + '.' : ''}${k}`);
+        }
+      }
+    } else if (explicitObj && val !== null) {
       out.push(`${path} 不是对象`);
       return;
     }
-    const req = schema.required || [];
-    for (const k of req) {
-      if (!(k in val)) out.push(`缺少必填字段: ${path}.${k}`);
-    }
-
-    const props = schema.properties || {};
-    for (const [k, s] of Object.entries(props)) {
-      if (k in val) {
-        walk(s, val[k], path ? `${path}.${k}` : k, out, depth + 1);
-      }
-    }
-
-    if (schema.additionalProperties === false) {
-      for (const k of Object.keys(val)) {
-        if (!(k in props)) out.push(`存在未允许字段: ${path ? path + '.' : ''}${k}`);
-      }
-    }
   }
 
-  if (schema.type === 'array') {
+  if (asArray) {
     if (!Array.isArray(val)) {
-      out.push(`${path} 不是数组`);
+      if (explicitArr) out.push(`${path} 不是数组`);
       return;
     }
     const itemSchema = schema.items || null;

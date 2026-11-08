@@ -96,7 +96,7 @@ s.parentNode.insertBefore(el, s);
     <h2 data-zh="🔄 羅馬數字轉換器">🔄 Roman Numeral Converter</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="羅馬數字用 I/V/X/L/C/D/M 表示 1/5/10/50/100/500/1000，相同的符號並排表示相加，小的符號放在大的左邊表示相減（如 IV=4）。輸入數字或羅馬串即可立即互轉。">Roman Numeral Converter - Convert between Arabic numbers (1-3999) and Roman numerals with a live lookup table. Free, browser-only.</p>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">羅馬數字轉換<br>整數 → 羅馬：貪心法按 M1000/CM900/D500/CD400/C100/XC90/L50/XL40/X10/IX9/V5/IV4/I1 表逐位取最大可減符號<br>羅馬 → 整數：從右向左掃描，當前值 &lt; 前一個值則減（IV=4、IX=9、XL=40），否則累加<br>有效字元集 I V X L C D M；非法字元剔除<br>標準範圍：1~3999（無零、無負數）</div>
+  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">羅馬數字轉換<br>整數 → 羅馬：貪心法按 M1000/CM900/D500/CD400/C100/XC90/L50/XL40/X10/IX9/V5/IV4/I1 表逐位取最大可減符號<br>羅馬 → 整數：從右向左掃描，當前值 &lt; 前一個值則減（IV=4、IX=9、XL=40），否則累加<br>有效字元集 I V X L C D M；含非法字元時整串判為無效<br>標準範圍：1~3999（無零、無負數）</div>
   <div class="formula-desc">羅馬數字與阿拉伯數字互轉。</div>
   <ul class="formula-list">
     <li><b>符號</b>：I=1、V=5、X=10、L=50、C=100、D=500、M=1000。</li>
@@ -109,17 +109,17 @@ s.parentNode.insertBefore(el, s);
     <div class="input-row">
       <div>
         <label for="number">阿拉伯數字（1–3999）</label>
-        <input type="number" id="number" value="1984" step="1" placeholder="如 1984">
+        <input type="number" id="number" value="1984" step="1" placeholder="如 1984" oninput="calcTool()">
       </div>
       <div>
         <label for="roman">羅馬數字（反向轉換時填寫）</label>
-        <textarea id="roman" rows="2" style="width:100%;font-family:monospace;font-size:12.5px;">MCMLXXXIV</textarea>
+        <textarea id="roman" rows="2" style="width:100%;font-family:monospace;font-size:12.5px;" oninput="calcTool()">MCMLXXXIV</textarea>
       </div>
       <div>
         <label for="dir">轉換方向</label>
-        <select id="dir" style="width:100%;"><option value="to">數字 → 羅馬</option><option value="from">羅馬 → 數字</option></select>
+        <select id="dir" style="width:100%;" onchange="calcTool()"><option value="to">數字 → 羅馬</option><option value="from">羅馬 → 數字</option></select>
       </div>
-    </div
+    </div>
     <div class="toolbar">
       <div id="roman_numeral_converterPresets"></div><button class="btn primary" onclick="calcTool()">計算</button><button class="btn" type="button" onclick="__roman_numeral_converterExport()">匯出明細 CSV</button>
       <button class="btn" onclick="resetForm()">重置</button>
@@ -211,17 +211,21 @@ function calcTool(){var dir=document.getElementById('dir').value;
 var M=[['M',1000],['CM',900],['D',500],['CD',400],['C',100],['XC',90],['L',50],['XL',40],['X',10],['IX',9],['V',5],['IV',4],['I',1]];
 function toRoman(v){var s='';for(var i=0;i<M.length;i++){while(v>=M[i][1]){s+=M[i][0];v-=M[i][1];}}return s;}
 var RMAP={I:1,V:5,X:10,L:50,C:100,D:500,M:1000};
-function fromRoman(s){s=(s||'').toUpperCase().replace(/[^IVXLCDM]/g,'');var t=0,p=0;for(var i=s.length-1;i>=0;i--){var c=RMAP[s[i]]||0;if(c<p){t-=c;}else{t+=c;}p=c;}return t;}
+function fromRoman(s){s=(s||'').toUpperCase().trim();if(!/^(M{0,3})(CM|CD|D?C{0,3})(XC|XL|L?X{0,3})(IX|IV|V?I{0,3})$/.test(s))return null;var t=0,p=0;for(var i=s.length-1;i>=0;i--){var c=RMAP[s[i]]||0;if(c<p){t-=c;}else{t+=c;}p=c;}return t;}
 var html='<div class="result-title">转换结果</div>';
 if(dir==='to'){
   var n=Math.floor(num('number'));
   if(n<1||n>3999){html+='<p class="muted">请输入 1–3999 之间的整数。</p>';}
   else{html+='<div class="big-result">'+n+' = <b>'+toRoman(n)+'</b></div><p class="muted">'+n+' 的罗马数字写法为 '+toRoman(n)+'</p>';}
-}else{
-  var s=document.getElementById('roman').value.trim();
-  if(!s){html+='<p class="muted">请在上方填入罗马数字（如 MCMLXXXIV）。</p>';}
-  else{html+='<div class="big-result">'+escH(s)+' → <b>'+fromRoman(s)+'</b></div>';}
-}
+}  else{
+    var s=document.getElementById('roman').value.trim();
+    if(!s){html+='<p class="muted">请在上方填入罗马数字（如 MCMLXXXIV）。</p>';}
+    else{
+      var rv=fromRoman(s);
+      if(rv===null){html+='<p class="muted">⚠️ 不是有效的罗马数字：仅可含 I/V/X/L/C/D/M，且须符合构成规则（范围 1–3999）。</p>';}
+      else html+='<div class="big-result">'+escH(s)+' → <b>'+rv+'</b></div>';
+    }
+  }
 const __g2=html;document.getElementById('result').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));}
 function resetForm(){document.getElementById('number').value='1984';
       document.getElementById('roman').value='MCMLXXXIV';
