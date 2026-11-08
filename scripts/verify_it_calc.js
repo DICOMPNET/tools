@@ -5273,6 +5273,116 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，输出区含「abc123测试\nInput: abc123测试 区号： 123 地区： 未知/…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
+    "slug": "it/area-code-lookup",
+    "inputs": {
+      "input": "9995550100"
+    },
+    "expect": [
+      "格式化： (999) 555-0100 ❌ N99 是保留未分配区号"
+    ],
+    "ref": "IT-N418：修复前 10 位一律「✅ 标准 10 位 NANP 号码」；现按 NANP 规则拒 N99 保留区号。expect 绑定「格式化 + 具体错误」整段，默认态 021 不含格式化行 ⇒ 不逃生。"
+  },
+  {
+    "slug": "it/area-code-lookup",
+    "inputs": {
+      "input": "0005550100"
+    },
+    "expect": [
+      "格式化： (000) 555-0100 ❌ 区号 NPA 首位须为 2–9"
+    ],
+    "ref": "IT-N418：NPA 首位须 2–9。默认态 021 也含「区号 NPA 首位须为 2–9」但不含格式化行，故把 expect 扩到格式化串以避开默认态命中。"
+  },
+  {
+    "slug": "it/area-code-lookup",
+    "inputs": {
+      "input": "1115550100"
+    },
+    "expect": [
+      "格式化： (111) 555-0100 ❌ 区号 NPA 首位须为 2–9"
+    ],
+    "ref": "IT-N418：111 首位非法且属 N11，同样被拒。同上用格式化串绑定输入派生值。"
+  },
+  {
+    "slug": "it/area-code-lookup",
+    "inputs": {
+      "input": "2125550100"
+    },
+    "expect": [
+      "格式化： (212) 555-0100 ✅ 标准 10 位 NANP 号码"
+    ],
+    "ref": "回归护栏（修复前后同绿）：合法 212 号码在加入结构校验后仍须正常格式化并判标准有效，防止校验收紧误伤正常路径。默认态 021 为 3 位无格式化行 ⇒ 判别器仍判正确变红。"
+  },
+  {
+    "slug": "it/area-code-lookup",
+    "inputs": {
+      "input": "+1 212-555-0100"
+    },
+    "expect": [
+      "国家码： +1 （已剥离，按 10 位 NANP 号码解析） 区号： 212 地区： New York (Manhattan)"
+    ],
+    "ref": "IT-N419：修复前 digits=12125550100（11 位）⇒ 区号 121 + 「⚠️ 通常为 10 位」；现剥前导国家码 1 得 212 → New York。expect 绑定剥码提示与解析结果，默认态不命中。"
+  },
+  {
+    "slug": "it/area-code-lookup",
+    "inputs": {
+      "input": "1 212 555 0100"
+    },
+    "expect": [
+      "国家码： +1 （已剥离，按 10 位 NANP 号码解析） 区号： 212 地区： New York (Manhattan)"
+    ],
+    "ref": "IT-N419：不带 + 的 11 位国际写法同样剥离（判据是「11 位且首位 1」，NANP 本地号首位必为 2–9，不会误剥）。"
+  },
+  {
+    "slug": "it/area-code-lookup",
+    "inputs": {
+      "input": "456"
+    },
+    "expect": [
+      "❌ 未知区号（456 是保留 / 非地理区号，未分配为地理区号）"
+    ],
+    "ref": "IT-N420：表内 456 标 Reserved，修复前 3 位分支只查存在性 ⇒ 「✅ 区号有效」；现按 NPA_RESERVED + Reserved 值双重规则拒绝。默认态是 021 的结构错误说明，不含 456 ⇒ 强判别。"
+  },
+  {
+    "slug": "it/area-code-lookup",
+    "inputs": {
+      "input": "911"
+    },
+    "expect": [
+      "❌ 未知区号（N11 是保留服务码，不能作区号）"
+    ],
+    "ref": "IT-N418/N420：N11 服务码不可作区号。修复前只给「❌ 未知区号」无理由，本 expect 要求明确 N11 理由。"
+  },
+  {
+    "slug": "it/area-code-lookup",
+    "inputs": {
+      "input": "202"
+    },
+    "expect": [
+      "地区： Washington, DC ✅ 区号有效"
+    ],
+    "ref": "回归护栏（修复前后同绿）：已收录的合法地理区号 202 在收紧校验后仍判有效；默认态 021 不命中。"
+  },
+  {
+    "slug": "it/area-code-lookup",
+    "inputs": {
+      "input": "3455550100"
+    },
+    "expect": [
+      "⚠️ NANP 结构合法，但区号 345 未收录或为保留码，不判为标准有效号码"
+    ],
+    "ref": "IT-N418：区号不在表中但 NPA/NXX 结构合法时，只给「结构合法、归属地未收录」的谨慎结论，绝不输出「✅ 标准」。修复前无条件判标准有效 ⇒ 本串不存在。"
+  },
+  {
+    "slug": "it/area-code-lookup",
+    "inputs": {
+      "input": "800"
+    },
+    "expect": [
+      "❌ 未知区号（800 是保留 / 非地理区号，未分配为地理区号）"
+    ],
+    "ref": "IT-N420 扩展：800 免费电话属非地理 NPA，不是地理区号；与 FAQ「800/888 为非地理区号」口径对齐。"
+  },
+  {
     "slug": "it/ascii-art",
     "inputs": {
       "input": "abc123测试"
@@ -6576,6 +6686,46 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"count\":\"42\",\"len\":\"42\",\"prefixVal\":\"abc123测试\"}，输出区含「42\n42\nabc123测试」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
+    "slug": "it/invite-code-generator",
+    "inputs": {"count": "30", "len": "4"},
+    "clicks": ["document.getElementById('upper').checked=true;document.getElementById('num').checked=true;document.getElementById('noAmb').checked=true;var __r=randInt;randInt=function(){return 0;};generate();randInt=__r;var h=document.getElementById('output').innerHTML;var rows=(h.match(/class=.code-row.>/g)||[]).length;document.getElementById('output').innerHTML='DEDUP rows='+rows+' err='+(h.indexOf('组合空间不足')>=0?1:0);"],
+    "expect": ["DEDUP rows=0 err=1"],
+    "ref": "IT-N410：批量码必须互不相同。把 randInt 固定成恒 0 构造必然碰撞：修复前 30 行全是同一个码(rows=30)、且不报错；修复后 Set 去重在尝试上限内补不满 ⇒ 明确报「组合空间不足」且一行码都不输出(rows=0, err=1)。用桩固定随机源使结果完全确定，不赌碰撞概率。"
+  },
+  {
+    "slug": "it/invite-code-generator",
+    "clicks": ["document.getElementById('output').innerHTML='LUHN ab='+luhnCheckDigit('AB')+' ba='+luhnCheckDigit('BA')+' same='+(luhnCheckDigit('AB')===luhnCheckDigit('BA')?1:0);"],
+    "expect": ["LUHN ab=7 ba=8 same=0"],
+    "ref": "IT-N411：旧校验位是字符码求和取模，'AB' 与 'BA' 的校验位相同(都是 1)⇒ 相邻换位检不出。Luhn 变体按位权交替 ⇒ AB→7、BA→8，可检出换位。修复前无 luhnCheckDigit 函数 ⇒ clicks 抛错、结果区无 LUHN 串。"
+  },
+  {
+    "slug": "it/invite-code-generator",
+    "inputs": {"verifyInput": "AB7"},
+    "clicks": ["verifyCode();var h=document.getElementById('output').innerHTML;document.getElementById('output').innerHTML='VER ok='+(h.indexOf('校验通过')>=0?1:0)+' q='+(document.getElementById('verifyInput').value==='AB7'?1:0);"],
+    "expect": ["VER ok=1 q=1"],
+    "ref": "IT-N411：新增的校验入口必须对带正确校验位的码给出「校验通过」。修复前页面根本没有校验输入框与 verifyCode()，clicks 抛错 ⇒ 变红。q=1 绑注入值防静态逃生。"
+  },
+  {
+    "slug": "it/invite-code-generator",
+    "inputs": {"verifyInput": "AB8"},
+    "clicks": ["verifyCode();var h=document.getElementById('output').innerHTML;document.getElementById('output').innerHTML='VER bad='+(h.indexOf('校验失败')>=0?1:0)+' q='+(document.getElementById('verifyInput').value==='AB8'?1:0);"],
+    "expect": ["VER bad=1 q=1"],
+    "ref": "IT-N411：把 AB7 末位改成 8 必须判「校验失败」，证明校验真的在算而不只是回显。修复前无校验入口 ⇒ 变红。"
+  },
+  {
+    "slug": "it/invite-code-generator",
+    "inputs": {"verifyInput": "INV-AB7"},
+    "clicks": ["verifyCode();var h=document.getElementById('output').innerHTML;document.getElementById('output').innerHTML='PFX ok='+(h.indexOf('校验通过')>=0?1:0)+' q='+(document.getElementById('verifyInput').value.indexOf('INV-')===0?1:0);"],
+    "expect": ["PFX ok=1 q=1"],
+    "ref": "IT-N411：勾选「加前缀」生成的码形如 INV-XXXXXXX，校验入口必须能剥掉前缀后验主体，否则该功能对默认开启前缀的用户不可用。"
+  },
+  {
+    "slug": "it/invite-code-generator",
+    "clicks": ["var c='AB'+luhnCheckDigit('AB');document.getElementById('output').innerHTML='ROUND c='+c+' ok='+(verifyLuhn(c)?1:0);"],
+    "expect": ["ROUND c=AB7 ok=1"],
+    "ref": "IT-N411：生成侧 appendChecksum 与校验侧 verifyLuhn 必须同源可逆（追加校验位后整码自校验通过）。修复前两函数都不存在 ⇒ 变红。"
+  },
+  {
     "slug": "it/integer-base-converter",
     "inputs": {
       "num": "abc123测试",
@@ -7054,6 +7204,543 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，输出区含「abc123测试\nInput: abc123测试 ❌ 未找到匹配的语言 支持：I…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
+    "slug": "it/language-code-lookup",
+    "inputs": {
+      "input": "zh-CN"
+    },
+    "expect": [
+      "Input: zh-CN BCP 47 解析： 语言 zh / 地区 CN ISO 639-1： zh ISO 639-3： zho"
+    ],
+    "ref": "IT-N424：修复前 key='zh-cn' 查表失败、名称/iso3 三条件均不成立 ⇒ 「❌ 未找到匹配的语言」；现拆 BCP 47 取语言段 zh 命中，并回显解析出的地区。默认态 en 不含该串。"
+  },
+  {
+    "slug": "it/language-code-lookup",
+    "inputs": {
+      "input": "en-US"
+    },
+    "expect": [
+      "Input: en-US BCP 47 解析： 语言 en / 地区 US ISO 639-1： en ISO 639-3： eng"
+    ],
+    "ref": "IT-N424：清单点名的 en-US。expect 绑定「原始标签 + 解析段 + 639-1/639-3」，默认态仅 en 无地区段 ⇒ 不逃生。"
+  },
+  {
+    "slug": "it/language-code-lookup",
+    "inputs": {
+      "input": "pt-BR"
+    },
+    "expect": [
+      "Input: pt-BR BCP 47 解析： 语言 pt / 地区 BR ISO 639-1： pt ISO 639-3： por"
+    ],
+    "ref": "IT-N424：清单点名的 pt-BR；同时验证 ISO 639-3 映射 por 非机械补字母。"
+  },
+  {
+    "slug": "it/language-code-lookup",
+    "inputs": {
+      "input": "zh_Hans_CN"
+    },
+    "expect": [
+      "Input: zh_Hans_CN BCP 47 解析： 语言 zh / 书写脚本 Hans / 地区 CN"
+    ],
+    "ref": "IT-N424：下划线分隔 + language-Script-REGION 三段式，脚本段按 4 字母识别、地区按 2 字母识别。"
+  },
+  {
+    "slug": "it/language-code-lookup",
+    "inputs": {
+      "input": "zh-Hant-TW"
+    },
+    "expect": [
+      "Input: zh-Hant-TW BCP 47 解析： 语言 zh / 书写脚本 Hant / 地区 TW"
+    ],
+    "ref": "IT-N424：繁体脚本 Hant 与地区 TW 同时解析；与 zh_Hans_CN 形成脚本/分隔符双向对照。"
+  },
+  {
+    "slug": "it/language-code-lookup",
+    "inputs": {
+      "input": "ZH-cn"
+    },
+    "expect": [
+      "Input: ZH-cn BCP 47 解析： 语言 zh / 地区 CN ISO 639-1： zh"
+    ],
+    "ref": "IT-N424：大小写混写标签规范化（语言段小写、地区段大写），修复前原样 toLowerCase 得 'zh-cn' 仍查不到。expect 含大写原始输入，默认态不含。"
+  },
+  {
+    "slug": "it/language-code-lookup",
+    "inputs": {
+      "input": "zho"
+    },
+    "expect": [
+      "Input: zho ISO 639-1： zh ISO 639-3： zho"
+    ],
+    "ref": "回归护栏（修复前后同绿）：ISO 639-3 三字母码反查主路径未被标签拆分改造破坏。"
+  },
+  {
+    "slug": "it/language-code-lookup",
+    "inputs": {
+      "input": "中文"
+    },
+    "expect": [
+      "Input: 中文 ISO 639-1： zh ISO 639-3： zho"
+    ],
+    "ref": "回归护栏（修复前后同绿）：中文名子串匹配仍可用。"
+  },
+  {
+    "slug": "it/language-code-lookup",
+    "inputs": {
+      "input": "qq"
+    },
+    "expect": [
+      "Input: qq ❌ 未找到匹配的语言 支持：ISO 639-1 两字母代码（如 zh、en、fr）或中英文名"
+    ],
+    "ref": "回归护栏（修复前后同绿）：无匹配时的错误文案与提示语保持逐字不变（既有自动补强用例同文案）。"
+  },
+  {
+    "slug": "it/language-code-lookup",
+    "inputs": {
+      "input": "fr"
+    },
+    "expect": [
+      "Input: fr ISO 639-1： fr ISO 639-3： fra 语言名称： French（法语）"
+    ],
+    "ref": "回归护栏（修复前后同绿）：常规两字母码精确匹配与单命中详情输出保持不变。"
+  },
+  {
+    "slug": "it/keycode-info",
+    "clicks": [
+      "var __r=[];[[String.fromCharCode(9),'Tab',9,'DIV'],[' ','Space',32,'DIV'],['ArrowDown','ArrowDown',40,'DIV'],['F12','F12',123,'DIV'],['a','KeyA',65,'BUTTON']].forEach(function(t){var __n=0;__kcOnKeyDown({key:t[0],code:t[1],keyCode:t[2],which:t[2],ctrlKey:false,shiftKey:false,altKey:false,metaKey:false,target:{tagName:t[3]},preventDefault:function(){__n++;}});__r.push(__n);});document.getElementById('result').textContent='KC425 prevent='+__r.join('/');"
+    ],
+    "expect": [
+      "KC425 prevent=0/0/0/0/0"
+    ],
+    "ref": "IT-N425：五种按键（Tab/空格/方向键/F12/按钮目标）逐一统计 preventDefault 调用次数。修复前 DIV 目标为 1、BUTTON 为 0 ⇒ 1/1/1/1/0；现全部 0。修复前 handler 匿名注册且 harness 不派发 keydown，探针经顶层 __kcOnKeyDown 驱动。"
+  },
+  {
+    "slug": "it/keycode-info",
+    "clicks": [
+      "var __n=0;__kcOnKeyDown({key:String.fromCharCode(9),code:'Tab',keyCode:9,which:9,ctrlKey:false,shiftKey:false,altKey:false,metaKey:false,target:{tagName:'DIV'},preventDefault:function(){__n++;}});document.getElementById('result').textContent='KC425_TAB show='+document.getElementById('keyOut').textContent+'|'+document.getElementById('codeOut').textContent+'|'+document.getElementById('kcOut').textContent+' prevented='+__n;"
+    ],
+    "expect": [
+      "KC425_TAB show=Tab|Tab|9 prevented=0"
+    ],
+    "ref": "IT-N425：Tab 默认行为不再被吞（Tab 焦点切换保持可用），同时 keyOut/codeOut/kcOut 三项展示逻辑逐字不变。"
+  },
+  {
+    "slug": "it/keycode-info",
+    "clicks": [
+      "var __n=0;__kcOnKeyDown({key:' ',code:'Space',keyCode:32,which:32,ctrlKey:true,shiftKey:true,altKey:false,metaKey:false,target:{tagName:'DIV'},preventDefault:function(){__n++;}});document.getElementById('result').textContent='KC425_SPACE show='+document.getElementById('keyOut').textContent+' mods='+document.getElementById('modOut').textContent+' prevented='+__n;"
+    ],
+    "expect": [
+      "KC425_SPACE show=Space mods=Ctrl + Shift prevented=0"
+    ],
+    "ref": "IT-N425：空格键不再被吞（页面滚动保持可用）；Ctrl+Shift 修饰键收集顺序与连接符不变。"
+  },
+  {
+    "slug": "it/keycode-info",
+    "clicks": [
+      "var __n=0;__kcOnKeyDown({key:'F12',code:'F12',keyCode:123,which:123,ctrlKey:false,shiftKey:false,altKey:false,metaKey:false,target:{tagName:'BODY'},preventDefault:function(){__n++;}});document.getElementById('result').textContent='KC425_F12 key='+document.getElementById('keyOut').textContent+' prevented='+__n;"
+    ],
+    "expect": [
+      "KC425_F12 key=F12 prevented=0"
+    ],
+    "ref": "IT-N425：清单点名的 F12 空分支（注释写「允许默认」实则仍 preventDefault）已删除，浏览器快捷键真正放行；展示值仍为 F12。"
+  },
+  {
+    "slug": "it/keycode-info",
+    "clicks": [
+      "var __n=0;__kcOnKeyDown({key:'a',code:'KeyA',keyCode:65,which:65,ctrlKey:false,shiftKey:false,altKey:false,metaKey:false,target:{tagName:'BUTTON'},preventDefault:function(){__n++;}});document.getElementById('result').textContent='KC425_BUTTON prevented='+__n;"
+    ],
+    "expect": [
+      "KC425_BUTTON prevented=0"
+    ],
+    "ref": "IT-N425 回归护栏：事件来源为按钮时修复前后都不拦截；统一为「一律不拦截」后该分支被删除，行为保持等价。"
+  },
+  {
+    "slug": "it/keycode-info",
+    "clicks": [
+      "var __n=0;__kcOnKeyDown({key:'a',code:'KeyA',keyCode:65,which:65,ctrlKey:false,shiftKey:false,altKey:false,metaKey:false,target:{tagName:'DIV'},preventDefault:function(){__n++;}});document.getElementById('result').textContent='KC425_ZH mods='+document.getElementById('modOut').textContent+' prevented='+__n;"
+    ],
+    "expect": [
+      "KC425_ZH mods=无 prevented=0"
+    ],
+    "ref": "IT-N425 回归护栏：中文态无修饰键时 modOut 仍显示「无」（helper 接入未改中文态文案），DIV 目标从拦截改为放行。"
+  },
+  {
+    "slug": "it/keycode-info",
+    "clicks": [
+      "var __tb=window.TBKit;window.TBKit={util:{isEn:function(){return true;}}};__kcOnKeyDown({key:'a',code:'KeyA',keyCode:65,which:65,ctrlKey:false,shiftKey:false,altKey:false,metaKey:false,target:{tagName:'DIV'},preventDefault:function(){}});var __h=String(document.getElementById('result').innerHTML);document.getElementById('result').textContent='KC425_EN captured='+(__h.indexOf('Captured')>=0?1:0);window.TBKit=__tb;"
+    ],
+    "expect": [
+      "KC425_EN captured=1"
+    ],
+    "ref": "IT-N425 顺带修：动态结果串「捕获到 keydown 事件」原为硬中文，英文态残留；现经 __kcL 输出 Captured keydown event。探针临时 mock TBKit.util.isEn=true 后校验。"
+  },
+  {
+    "slug": "it/random-port-generator",
+    "clicks": [
+      "document.getElementById('skip').checked=false;document.getElementById('count').value='7';gen();"
+    ],
+    "expect": [
+      "已生成 7 个随机端口（1024-65535，不保证端口未被占用）"
+    ],
+    "ref": "IT-N426：清单要求文案统一为「1024–65535，不保证未被占用」。修复前结果串止于「（1024-65535）」；现补「，不保证端口未被占用」。expect 绑 count=7 派生数量，默认态 count=5 不含该串；显式关掉 skip 消除 checkbox 默认态歧义。blob 直接采集 #result 的 innerHTML 文本，无需探针拼接。"
+  },
+  {
+    "slug": "it/random-port-generator",
+    "clicks": [
+      "document.getElementById('count').value='20';gen();var __ok=ports.length===20&&ports.every(function(p){return p>=1024&&p<=65535;});document.getElementById('result').textContent='N426 range=ok'+__ok+' n='+ports.length;"
+    ],
+    "expect": [
+      "N426 range=oktrue n=20"
+    ],
+    "ref": "IT-N426 回归护栏：实现仍是 1024–65535（本批只统一文案、不改取值范围），20 个端口全部落在区间内且数量正确。修复前后同绿。"
+  },
+  {
+    "slug": "it/random-port-generator",
+    "clicks": [
+      "document.getElementById('count').value='20';gen();var __u={};ports.forEach(function(p){__u[p]=1;});document.getElementById('result').textContent='N426 uniq='+Object.keys(__u).length+'/'+ports.length;"
+    ],
+    "expect": [
+      "N426 uniq=20/20"
+    ],
+    "ref": "IT-N426 回归护栏：20 个端口去重逻辑仍有效（清单明确「端口取值与去重逻辑本身正确」），本批不得误伤。修复前后同绿。"
+  },
+  {
+    "slug": "it/random-port-generator",
+    "clicks": [
+      "document.getElementById('skip').checked=true;document.getElementById('count').value='10';gen();"
+    ],
+    "expect": [
+      "已生成 10 个随机端口（1024-65535，已避开常用保留端口，不保证端口未被占用）"
+    ],
+    "ref": "IT-N426：开启「避开常用保留端口」时结果串仍标注该状态，且同样带免责声明，验证 skip 分支拼接未因双语化改造错位。修复前无免责声明 ⇒ 变红。"
+  },
+  {
+    "slug": "it/slug-generator-advanced",
+    "inputs": {
+      "text": "café",
+      "sep": "-"
+    },
+    "clicks": [
+      "generate()"
+    ],
+    "expect": [
+      "cafe ← café"
+    ],
+    "ref": "IT-N473：formula-list 承诺「去除变音符号（如 é→e）」，修复前 é 被 [^a-zA-Z0-9-] 整字符删除 ⇒ 产物 caf。现先 NFD 分解再去组合标记 ⇒ cafe。expect 用「产物 ← 原文」整段绑定输入，默认样例 Hello World 不含该串。"
+  },
+  {
+    "slug": "it/slug-generator-advanced",
+    "inputs": {
+      "text": "naïve résumé",
+      "sep": "-"
+    },
+    "clicks": [
+      "generate()"
+    ],
+    "expect": [
+      "naive-resume ← naïve résumé"
+    ],
+    "ref": "IT-N473：清单点名的 naïve résumé，修复前产物 nave-rsum（ï/é 被删）；现两个重音字母均还原、空格仍按 sep 转连字符。"
+  },
+  {
+    "slug": "it/slug-generator-advanced",
+    "inputs": {
+      "text": "ÉCOLE",
+      "sep": "-"
+    },
+    "clicks": [
+      "generate()"
+    ],
+    "expect": [
+      "ECOLE ← ÉCOLE"
+    ],
+    "ref": "IT-N473：大写重音 É 同样还原为 E（NFD 在大小写转换之前执行），验证不是只对小写 é 打补丁。"
+  },
+  {
+    "slug": "it/slug-generator-advanced",
+    "inputs": {
+      "text": "Hello World 2024",
+      "sep": "_"
+    },
+    "clicks": [
+      "generate()"
+    ],
+    "expect": [
+      "Hello_World_2024 ← Hello World 2024"
+    ],
+    "ref": "IT-N473 回归护栏：不含变音符号的常规输入、下划线分隔符路径前后同绿，确认 NFD 预处理未改写到普通 ASCII / 大小写 / sep 逻辑。"
+  },
+  {
+    "slug": "it/math-evaluator",
+    "inputs": {
+      "expr": "7%3"
+    },
+    "clicks": [
+      "document.getElementById('expr').value='7%3';calc();var __h=String(document.getElementById('result').innerHTML);document.getElementById('result').textContent='N474 mod73='+(__h.indexOf('>1<')>=0?1:0);"
+    ],
+    "expect": [
+      "N474 mod73=1"
+    ],
+    "ref": "IT-N474：清单点名 7%3。修复前 replace(/(\\d+)\\s*%/g,'($1/100)') 得 (7/100)3 ⇒ SyntaxError；现 % 后跟数字判为取模，保留 JS % 求值得 1。默认表达式结果 1030 以「结果： 1」开头，故用探针读 innerHTML 判 >1< 并写独立串，避开 token 前缀逃生。"
+  },
+  {
+    "slug": "it/math-evaluator",
+    "inputs": {
+      "expr": "10 % 3"
+    },
+    "clicks": [
+      "document.getElementById('expr').value='10 % 3';calc();var __h=String(document.getElementById('result').innerHTML);document.getElementById('result').textContent='N474 mod103='+(__h.indexOf('>1<')>=0?1:0);"
+    ],
+    "expect": [
+      "N474 mod103=1"
+    ],
+    "ref": "IT-N474：带空格的 10 % 3 同样是取模（负 lookahead 允许 % 后有空白再接操作数），修复前得 (10/100) 3 语法错。"
+  },
+  {
+    "slug": "it/math-evaluator",
+    "inputs": {
+      "expr": "17%5"
+    },
+    "clicks": [
+      "calc()"
+    ],
+    "expect": [
+      "结果： 2"
+    ],
+    "ref": "IT-N474：17 mod 5 = 2，结果不以 1 开头可直接断言，验证真实数值而非仅「不报错」。修复前 (17/100)5 语法错。"
+  },
+  {
+    "slug": "it/math-evaluator",
+    "inputs": {
+      "expr": "15%"
+    },
+    "clicks": [
+      "calc()"
+    ],
+    "expect": [
+      "结果： 0.15"
+    ],
+    "ref": "IT-N474 回归护栏：% 后无操作数仍按百分比 → (15/100)=0.15，修复前后同绿，百分比路径不得被取模改造误伤。"
+  },
+  {
+    "slug": "it/math-evaluator",
+    "inputs": {
+      "expr": "50%*120"
+    },
+    "clicks": [
+      "calc()"
+    ],
+    "expect": [
+      "结果： 60"
+    ],
+    "ref": "IT-N474 回归护栏：50%*120 = 0.5×120 = 60，% 后接运算符判为百分比，修复前后同绿。"
+  },
+  {
+    "slug": "it/math-evaluator",
+    "inputs": {
+      "expr": "15.5%"
+    },
+    "clicks": [
+      "calc()"
+    ],
+    "expect": [
+      "结果： 0.155"
+    ],
+    "ref": "IT-N474 顺带修：原正则 (\\d+) 只吃整数部分，15.5% 会变 15.(5/100) 语法错；现 (\\d+(?:\\.\\d+)?) 支持小数百分比。修复前红。"
+  },
+  {
+    "slug": "it/math-evaluator",
+    "clicks": [
+      "document.getElementById('expr').value='1+1';__meReuse('2^10 + sqrt(144)');var __e=document.getElementById('expr').value;var __r=String(document.getElementById('result').innerHTML);document.getElementById('result').innerHTML='N475 reuse='+__e+'|hit='+(__r.indexOf('1036')>=0?1:0);"
+    ],
+    "expect": [
+      "N475 reuse=2^10 + sqrt(144)|hit=1"
+    ],
+    "ref": "IT-N475：历史「复用」链路契约。__meReuse 先把表达式原样回填 #expr 再 calc() 重算，2^10 + sqrt(144)=1036（默认表达式结果为 1030，不含该串）。修复前页面无 __meReuse（复用靠被双引号截断的内联 onclick），调用即抛错、探针不落 ⇒ 红。expect 绑输入派生表达式与重算命中位，非静态串。"
+  },
+  {
+    "slug": "it/math-evaluator",
+    "clicks": [
+      "__meReuse('7%3');var __r=String(document.getElementById('result').innerHTML);document.getElementById('result').innerHTML='N475 mod='+(__r.indexOf('>1<')>=0?1:0);"
+    ],
+    "expect": [
+      "N475 mod=1"
+    ],
+    "ref": "IT-N475：复用后的表达式必须完整走当前 calc 求值链（含 IT-N474 的取模判别），7%3 → 1。修复前无 __meReuse；用 >1< 精确锚避免默认态结果 1030 的 token 前缀误命中。"
+  },
+  {
+    "slug": "it/math-evaluator",
+    "clicks": [
+      "var __src=String(renderHist)+String(__meReuse);document.getElementById('result').innerHTML='N475 src='+((__src.indexOf('addEventListener')>=0&&__src.indexOf('dataset.expr')>=0&&__src.indexOf('onclick=')<0)?1:0);"
+    ],
+    "expect": [
+      "N475 src=1"
+    ],
+    "ref": "IT-N475 决定性结构契约：renderHist 必须用 DOM 节点 + addEventListener 绑定复用按钮，并把表达式存进 dataset.expr；任何把 JSON.stringify 结果拼进内联 onclick 属性的旧写法都会被 onclick= 检出。修复前是 h.map 拼 innerHTML 且含 onclick= ⇒ 0 ⇒ 红。源码契约用 String(fn) 读取，避免 harness 长 clicks 内花括号解析陷阱。"
+  },
+  {
+    "slug": "it/math-evaluator",
+    "clicks": [
+      "var __src=String(renderHist);document.getElementById('result').innerHTML='N475 i18n='+((__src.indexOf('Reuse')>=0&&__src.indexOf('__meL')>=0)?1:0);"
+    ],
+    "expect": [
+      "N475 i18n=1"
+    ],
+    "ref": "IT-N475 顺带修：历史区按钮文本「复用」原为硬编码中文，英文态 ?lang=en-US 动态创建的按钮残留 CJK（jsdom 真机实测 textContent=复用）。现 renderHist 经 __meL 输出 Reuse。修复前 renderHist 既无 __meL 也无 Reuse ⇒ 0 ⇒ 红；真机中英两态复核另见移交档。"
+  },
+  {
+    "slug": "it/vector-cross-product",
+    "inputs": {
+      "a0": "1",
+      "a1": "0",
+      "a2": "0",
+      "b0": "-1",
+      "b1": "1",
+      "b2": "0"
+    },
+    "clicks": [
+      "calculate()"
+    ],
+    "expect": [
+      "θ = 135°"
+    ],
+    "ref": "IT-N471：清单点名的钝角。A=(1,0,0)、B=(−1,1,0) ⇒ A·B=−1、|A×B|=1 ⇒ atan2(1,−1)=135°。修复前 θ=asin(0.707)=45°，被镜像成锐角。默认 (1,2,3)×(4,5,6) 是 12.933°，注入失败态不含 135° ⇒ 可判别。"
+  },
+  {
+    "slug": "it/vector-cross-product",
+    "inputs": {
+      "a0": "1",
+      "a1": "0",
+      "a2": "0",
+      "b0": "-1",
+      "b1": "0",
+      "b2": "0"
+    },
+    "clicks": [
+      "calculate()"
+    ],
+    "expect": [
+      "θ = 180°"
+    ],
+    "ref": "IT-N471：反向共线。A=(1,0,0)、B=(−1,0,0) ⇒ |A×B|=0 但 A·B=−1 ⇒ atan2(0,−1)=180°；修复前 asin(0)=0° 并提示「平行」，与 FAQ 自述的 0°/180° 矛盾。默认态 12.933° 不含 180° ⇒ 可判别。"
+  },
+  {
+    "slug": "it/vector-cross-product",
+    "inputs": {
+      "a0": "1",
+      "a1": "0",
+      "a2": "0",
+      "b0": "0",
+      "b1": "1",
+      "b2": "0"
+    },
+    "clicks": [
+      "calculate()"
+    ],
+    "expect": [
+      "θ = 90°"
+    ],
+    "ref": "IT-N471 回归护栏：正交 A=(1,0,0)、B=(0,1,0) ⇒ 90°，asin 与 atan2 同值，修复前后同绿，确保改造未误伤直角。"
+  },
+  {
+    "slug": "it/vector-cross-product",
+    "inputs": {
+      "a0": "1",
+      "a1": "1",
+      "a2": "0",
+      "b0": "1",
+      "b1": "0",
+      "b2": "0"
+    },
+    "clicks": [
+      "calculate()"
+    ],
+    "expect": [
+      "θ = 45°"
+    ],
+    "ref": "IT-N471 回归护栏：锐角 A=(1,1,0)、B=(1,0,0) ⇒ 45°，修复前后同绿。注意此串恰等于「135° 用例在修复前」的输出，但判别器按实例构造注入失败态（回到默认 12.933°），故本例自身仍具判别力。"
+  },
+  {
+    "slug": "it/vector-cross-product",
+    "inputs": {
+      "a0": "0",
+      "a1": "0",
+      "a2": "0",
+      "b0": "1",
+      "b1": "0",
+      "b2": "0"
+    },
+    "clicks": [
+      "var __h='';calculate();__h=String(document.getElementById('output').innerHTML);document.getElementById('output').innerHTML='N471 zero='+(__h.indexOf('θ = ')>=0?1:0);"
+    ],
+    "expect": [
+      "N471 zero=0"
+    ],
+    "ref": "IT-N471 回归护栏：零向量时 |A||B|=0，不得输出角度行（atan2(0,0) 会给 0° 的假结论）。探针读 #output.innerHTML 判断是否存在 θ = 并写独立串；注入失败回到默认非平行输入时会有角度行 ⇒ zero=1 ⇒ 变红，故非逃生项。"
+  },
+  {
+    "slug": "it/git-commands",
+    "clicks": [
+      "renderCommands();var __h=String(document.getElementById('cmdList').innerHTML);document.getElementById('stats').textContent='N479 noinline='+((__h.indexOf('onclick=')<0&&__h.indexOf('data-idx=')>=0)?1:0);"
+    ],
+    "expect": [
+      "N479 noinline=1"
+    ],
+    "ref": "IT-N479 决定性结构契约：renderCommands 产出的 58 个按钮不得再带内联 onclick 属性，必须改用 data-idx。修复前模板把含真实换行的示例拼进 onclick=\"copyCode(this, '…')\"，58/58 编译抛 SyntaxError；快照态不执行 clicks，#stats 保持「共 58 个命令」⇒ 不含 N479 探针串，可判别。"
+  },
+  {
+    "slug": "it/git-commands",
+    "clicks": [
+      "var __src=String(copyCodeByIdx)+String(copyCode);document.getElementById('stats').textContent='N479 src='+((__src.indexOf('c.example')>=0&&__src.indexOf('COMMANDS')>=0&&__src.indexOf('&quot;')<0)?1:0);"
+    ],
+    "expect": [
+      "N479 src=1"
+    ],
+    "ref": "IT-N479：复制链路改为按 COMMANDS 原始下标取回 c.example 原文，copyCode 不再做 HTML 实体反转义（旧链路上 &quot;/&#39; 是属性转义产物）。String(copyCodeByIdx)+String(copyCode) 必须含 c.example/COMMANDS 且不含 &quot;。修复前无 copyCodeByIdx ⇒ 抛错 ⇒ 红。"
+  },
+  {
+    "slug": "it/git-commands",
+    "inputs": {
+      "searchInput": "push"
+    },
+    "clicks": [
+      "renderCommands();var __h=String(document.getElementById('cmdList').innerHTML);var __n=__h.split('data-idx=').length-1;document.getElementById('stats').textContent='N479 btns='+__n+' inline='+(__h.indexOf('onclick=')>=0?1:0);"
+    ],
+    "expect": [
+      "N479 btns=4 inline=0"
+    ],
+    "ref": "IT-N479：注入 searchInput='push' 过滤后应恰好渲染 4 个带 data-idx 的按钮且无内联 onclick，验证事件委托按原 COMMANDS 索引取数、不因 filtered 子集错位。注入失败回到默认空搜索 ⇒ 58 个按钮 ⇒ 变红；修复前无 data-idx 且 inline=1 ⇒ 亦红。"
+  },
+  {
+    "slug": "it/git-commands",
+    "clicks": [
+      "var __e=COMMANDS.filter(c=>c.cmd==='git switch')[0].example;document.getElementById('stats').textContent='N487 fix='+((__e.indexOf('git switch -c feature origin/feature')>=0&&__e.indexOf('git switch origin/feature')<0)?1:0);"
+    ],
+    "expect": [
+      "N487 fix=1"
+    ],
+    "ref": "IT-N487：清单点名的致命用法。`git switch origin/feature` 不是合法命令（switch 只接受本地分支名，实测 fatal: a branch is expected, got remote branch）；现改为 `git switch -c feature origin/feature` 并彻底移除错误串。expect 绑示例内容而非静态标签，快照态不执行 clicks ⇒ 变红。"
+  },
+  {
+    "slug": "it/git-commands",
+    "clicks": [
+      "var __e=COMMANDS.filter(c=>c.cmd==='git switch')[0].example;document.getElementById('stats').textContent='N487 full='+((__e.indexOf('git switch feature')>=0&&__e.indexOf('--detach origin/feature')>=0)?1:0);"
+    ],
+    "expect": [
+      "N487 full=1"
+    ],
+    "ref": "IT-N487：除创建跟踪分支外，补齐清单方案提到的「本地已有跟踪分支时直接切换 git switch feature」与「只看远程提交用 --detach origin/feature」两条口径，避免用户把所有场景都写成 -c。修复前两串均无 ⇒ 红。"
+  },
+  {
+    "slug": "it/git-commands",
+    "clicks": [
+      "renderCommands();var __h=String(document.getElementById('cmdList').innerHTML);document.getElementById('stats').textContent='N487 render='+((__h.indexOf('git switch main')>=0&&__h.indexOf('data-idx=')>=0)?1:0);"
+    ],
+    "expect": [
+      "N487 render=1"
+    ],
+    "ref": "IT-N487 回归护栏：改示例文本不得破坏 renderCommands 渲染与 IT-N479 的 data-idx 结构（含换行/中文注释的多行示例仍能安全进入 innerHTML）。修复前后同绿；快照态不执行 clicks ⇒ 变红，非逃生项。"
+  },
+  {
     "slug": "it/kubernetes-cheatsheet",
     "inputs": {
       "searchInput": "abc123测试"
@@ -7096,6 +7783,116 @@ const CASES = [
       "abc123测试\nInput: abc123测试 语言（ISO 639-1）： abc123测试 ❌ 不符合 BCP 47 格式（应为 language[-script][-region][-variant]，如 zh-Hans-CN、en"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，输出区含「abc123测试\nInput: abc123测试 语言（ISO 639-1）： …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "it/locale-lookup",
+    "inputs": {
+      "input": "de-DE-1996"
+    },
+    "expect": [
+      "Input: de-DE-1996 语言（ISO 639-1）： de 国家（ISO 3166-1）： DE 完整名称： 德语（德国）"
+    ],
+    "ref": "IT-N421：RFC 5646 允许 4 位数字 variant（1996 为德语新正字法）。旧正则 variant 限 5–8 位 ⇒ 「❌ 不符合 BCP 47 格式」；现格式合法并回退命中 de-DE。expect 绑定输入派生串，默认 en-US 不命中。"
+  },
+  {
+    "slug": "it/locale-lookup",
+    "inputs": {
+      "input": "es-419"
+    },
+    "expect": [
+      "Input: es-419 语言（ISO 639-1）： es 国家（ISO 3166-1）： 419 ✅ BCP 47 格式有效（数据库中无此条目）"
+    ],
+    "ref": "IT-N421：UN M.49 三位数字地区码 419（拉美）是合法 region。旧正则 region 只允许两位字母 ⇒ 误判非法。"
+  },
+  {
+    "slug": "it/locale-lookup",
+    "inputs": {
+      "input": "en-US-u-ca-gregory"
+    },
+    "expect": [
+      "Input: en-US-u-ca-gregory 语言（ISO 639-1）： en 国家（ISO 3166-1）： US 完整名称： 英语（美国）"
+    ],
+    "ref": "IT-N421：BCP 47 扩展子标签（singleton u + ca/gregory）。旧正则完全不支持扩展 ⇒ 误判非法；现校验通过后回退命中 en-US。"
+  },
+  {
+    "slug": "it/locale-lookup",
+    "inputs": {
+      "input": "sl-rozaj-biske-1994"
+    },
+    "expect": [
+      "Input: sl-rozaj-biske-1994 语言（ISO 639-1）： sl ✅ BCP 47 格式有效（数据库中无此条目）"
+    ],
+    "ref": "IT-N421：多个 variant 连写（含 4 位数字 1994）。顺带验证解析段不再把 variant 'rozaj' 误标成「国家（ISO 3166-1）：ROZAJ」。"
+  },
+  {
+    "slug": "it/locale-lookup",
+    "inputs": {
+      "input": "EN-US"
+    },
+    "expect": [
+      "Input: EN-US 语言（ISO 639-1）： en 国家（ISO 3166-1）： US 完整名称： 英语（美国）"
+    ],
+    "ref": "IT-N422：旧查表 `LOCALES[raw]` 原样比对，大写 EN-US 只得到「✅ 格式有效（数据库中无此条目）」；现 canonical 化后命中 en-US。expect 含大写原始输入，默认态小写 en-US 不命中。"
+  },
+  {
+    "slug": "it/locale-lookup",
+    "inputs": {
+      "input": "en_us"
+    },
+    "expect": [
+      "Input: en_us 语言（ISO 639-1）： en 国家（ISO 3166-1）： US 完整名称： 英语（美国）"
+    ],
+    "ref": "IT-N422：下划线分隔（Windows/Java 常见写法）统一规范化为 - 后命中 en-US。"
+  },
+  {
+    "slug": "it/locale-lookup",
+    "inputs": {
+      "input": "zh-Hans-CN"
+    },
+    "expect": [
+      "书写脚本： Hans 国家（ISO 3166-1）： CN 完整名称： 简体中文（中国大陆） 语言： 中文 国家/地区： 中国 书写系统： Hans 排序方式： 拼音 规范化标签： zh-Hans-CN 匹配键： zh-CN"
+    ],
+    "ref": "IT-N422：deep-dive FAQ 的规范示例 zh-Hans-CN 旧版只报「无此条目」。现按「language+region 且 script 一致」回退到 zh-CN，给出完整信息；规范化标签与匹配键均回显。"
+  },
+  {
+    "slug": "it/locale-lookup",
+    "inputs": {
+      "input": "zh-Hant-CN"
+    },
+    "expect": [
+      "完整名称： 繁体中文（语言） 语言： 中文 国家/地区： - 书写系统： Hant 规范化标签： zh-Hant-CN 匹配键： zh-Hant"
+    ],
+    "ref": "IT-N422 回退正确性：script 为 Hant 时**不得**回退到简体的 zh-CN，须截尾回退到 zh-Hant。这是「script 一致性」校验的关键反例。"
+  },
+  {
+    "slug": "it/locale-lookup",
+    "inputs": {
+      "input": "en-Latn-US"
+    },
+    "expect": [
+      "书写脚本： Latn 国家（ISO 3166-1）： US 完整名称： 英语（美国）"
+    ],
+    "ref": "IT-N422：显式 script 与命中项 script 一致时允许 language+region 回退（en-Latn-US → en-US）。"
+  },
+  {
+    "slug": "it/locale-lookup",
+    "inputs": {
+      "input": "123"
+    },
+    "expect": [
+      "Input: 123 语言（ISO 639-1）： 123 ❌ 不符合 BCP 47 格式"
+    ],
+    "ref": "回归护栏（修复前后同绿）：纯数字不是合法 language，收紧后的 RFC 5646 正则仍须拒绝；同时验证「非法标签不进入查表回退」的前置校验未把乱码放行。"
+  },
+  {
+    "slug": "it/locale-lookup",
+    "inputs": {
+      "input": "pt-BR"
+    },
+    "expect": [
+      "Input: pt-BR 语言（ISO 639-1）： pt 国家（ISO 3166-1）： BR 完整名称： 葡萄牙语（巴西）"
+    ],
+    "ref": "回归护栏（修复前后同绿）：常规 language-region 精确匹配未被规范化/回退改造破坏。"
   },
   {
     "slug": "it/location-qr",
@@ -7268,6 +8065,146 @@ const CASES = [
       "abc123测试\n❌ 仅允许数字及 +、空格、连字符"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，输出区含「abc123测试\n❌ 仅允许数字及 +、空格、连字符」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "it/msisdn-lookup",
+    "inputs": {
+      "input": "+86 1"
+    },
+    "expect": [
+      "❌ 国内号码长度非法：+86 需 11 位，当前 1 位"
+    ],
+    "ref": "IT-N415：修复前 cc=86 但国内号 1 位落无条件 else 输出「✅ MSISDN 格式有效」；现按 CC_LEN['86']=[11,11] 拒绝。默认 +86 13800138000 为 11 位合法，不命中该错误串 ⇒ 强判别。"
+  },
+  {
+    "slug": "it/msisdn-lookup",
+    "inputs": {
+      "input": "+86 138001380000"
+    },
+    "expect": [
+      "❌ 国内号码长度非法：+86 需 11 位，当前 12 位"
+    ],
+    "ref": "IT-N415：国内号 12 位同样被修复前 else 判有效；现按号长规则拒绝并回显实际 12 位。错误串含输入派生的位数，默认态不命中。"
+  },
+  {
+    "slug": "it/msisdn-lookup",
+    "inputs": {
+      "input": "+86 1380013800012345"
+    },
+    "expect": [
+      "❌ 超过 E.164 上限 15 位（当前 18 位）"
+    ],
+    "ref": "IT-N415 / ITU-T E.164：normalized=2+16=18 位超 15 位上限，修复前无任何总长校验。错误串由输入总长 18 派生，默认 13 位不命中。"
+  },
+  {
+    "slug": "it/msisdn-lookup",
+    "inputs": {
+      "input": "+852 91234567"
+    },
+    "expect": [
+      "国家/地区代码： +852 - 中国香港 国内号码： 91234567"
+    ],
+    "ref": "IT-N416：旧 CC_DB 42 条不含 852，3→1 位匹配失败直接报「无法识别国家代码」；现补入 852 并按 CC_LEN 8 位通过。中国香港属中国地区码，与 86 同主权口径。"
+  },
+  {
+    "slug": "it/msisdn-lookup",
+    "inputs": {
+      "input": "+886 912345678"
+    },
+    "expect": [
+      "国家/地区代码： +886 - 中国台湾 国内号码： 912345678"
+    ],
+    "ref": "IT-N416：补 886 中国台湾（9 位国内号），与 phone-parser 的 +886 支持口径一致。默认态为 +86，不命中。"
+  },
+  {
+    "slug": "it/msisdn-lookup",
+    "inputs": {
+      "input": "+853 66123456"
+    },
+    "expect": [
+      "国家/地区代码： +853 - 中国澳门 国内号码： 66123456"
+    ],
+    "ref": "IT-N416：补 853 中国澳门（8 位）。修复前同样报「无法识别国家代码」。"
+  },
+  {
+    "slug": "it/msisdn-lookup",
+    "inputs": {
+      "input": "+880 1712345678"
+    },
+    "expect": [
+      "国家/地区代码： +880 - 孟加拉国 国内号码： 1712345678"
+    ],
+    "ref": "IT-N416：补 3 位码 880；旧库 3 位码全空，前缀匹配退化到 '8'/'88' 均失败。"
+  },
+  {
+    "slug": "it/msisdn-lookup",
+    "inputs": {
+      "input": "+966 551234567"
+    },
+    "expect": [
+      "国家/地区代码： +966 - 沙特阿拉伯 国内号码： 551234567"
+    ],
+    "ref": "IT-N416：补 3 位码 966（9 位国内号），验证降序 3→2→1 匹配优先级未被 2 位码抢先。"
+  },
+  {
+    "slug": "it/msisdn-lookup",
+    "inputs": {
+      "input": "+86 13800138001"
+    },
+    "expect": [
+      "国内号码： 13800138001 E.164 格式： +8613800138001 号码长度： 11 位（允许 11–11 位） 运营商： 移动（号段 138，携号转网后可能变化）"
+    ],
+    "ref": "IT-N417：旧查表取 prefix4='1380' 的第 4 位 '0'，而 OP_DB['8613'] 只有 1–9 ⇒ 「未知（号段 1380）」；现按国内号前 3 位 138 查得移动。⚠️ 注入 ...001 与默认 ...000 同属 138 号段 ⇒ 只断言运营商串会在默认态命中（判别器实测逃生），故按 token 对齐把 expect 扩展为「国内号码 + E.164 + 号码长度 + 运营商」整段，绑定输入派生值。"
+  },
+  {
+    "slug": "it/msisdn-lookup",
+    "inputs": {
+      "input": "+86 13312345678"
+    },
+    "expect": [
+      "运营商： 电信（号段 133，携号转网后可能变化）"
+    ],
+    "ref": "IT-N417 深挖：旧表按第 4 位查 '1331'→OP_DB['8613']['1']='移动'，把 133 电信错报移动；现按 3 位号段 133 得电信。修复前输出「运营商： 移动」不含本串 ⇒ 强判别。"
+  },
+  {
+    "slug": "it/msisdn-lookup",
+    "inputs": {
+      "input": "+1 9995550100"
+    },
+    "expect": [
+      "❌ N99 是保留未分配区号"
+    ],
+    "ref": "IT-N427：旧 NANP 分支 10 个区号未命中仍追加「✅ NANP 号码 / ✅ MSISDN 有效」；现按 NANP 结构规则拒绝 N99 保留区号，且不再输出有效结论。"
+  },
+  {
+    "slug": "it/msisdn-lookup",
+    "inputs": {
+      "input": "+1 2025550100"
+    },
+    "expect": [
+      "区号： 202 - Washington, DC 号码类型："
+    ],
+    "ref": "IT-N427：AC_DB 由 10 条扩到 80+ 条，202 华盛顿特区从「未知城市」变为可识别；expect 同时绑定区号与后续号码类型，避免静态串逃生。"
+  },
+  {
+    "slug": "it/msisdn-lookup",
+    "inputs": {
+      "input": "+1 9115550100"
+    },
+    "expect": [
+      "❌ N11 是保留服务码，不能作区号"
+    ],
+    "ref": "IT-N427 / NANP：N11（211/311/…/911）为保留服务码不可作 NPA；修复前 10 位即判有效。"
+  },
+  {
+    "slug": "it/msisdn-lookup",
+    "inputs": {
+      "input": "+65 81234567"
+    },
+    "expect": [
+      "号码长度： 8 位（允许 8–8 位） 号码类型： ✅ 国际号码（按 E.164 长度校验）"
+    ],
+    "ref": "IT-N415 通用分支回归：非 86/1 的国家不再无条件放行，先按 CC_LEN 校验并回显长度规则；修复前无「号码长度」行。默认 +86 为 11 位，不命中 8 位串。"
   },
   {
     "slug": "it/morse",
@@ -7443,6 +8380,66 @@ const CASES = [
       "果 E.164 +142"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"phone\":\"42\",\"cc\":\"1\"}，输出区含「果 E.164 +142」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "it/phone-parser",
+    "inputs": {"phone": "2025550123", "cc": "1"},
+    "expect": ["国内格式：(202) 555-0123"],
+    "ref": "IT-N413：美加 NANP 10 位必须是 (XXX) XXX-XXXX。修复前 grp() 从右每 4 位 ⇒ 20 2555 0123；输入与默认样例 13800138000 完全不同 ⇒ 默认态不命中。"
+  },
+  {
+    "slug": "it/phone-parser",
+    "inputs": {"phone": "0794609584", "cc": "44"},
+    "expect": ["国内格式：07946 09584"],
+    "ref": "IT-N413：英国手机按 5-5 分组且国内格式保留 trunk 0（E.164 里剥掉的 0 要补回来显示）。修复前剥 0 后 grp('794609584') ⇒ 7 9460 9584。"
+  },
+  {
+    "slug": "it/phone-parser",
+    "inputs": {"phone": "9876543210", "cc": "91"},
+    "expect": ["国内格式：98765 43210"],
+    "ref": "IT-N413：印度 10 位按 5-5。修复前从右每 4 位 ⇒ 98 7654 3210。"
+  },
+  {
+    "slug": "it/phone-parser",
+    "inputs": {"phone": "09012345678", "cc": "81"},
+    "expect": ["国内格式：090 1234 5678"],
+    "ref": "IT-N413：日本手机按 3-4-4（含 trunk 0）。修复前剥 0 后 grp('9012345678') ⇒ 90 1234 5678。"
+  },
+  {
+    "slug": "it/phone-parser",
+    "inputs": {"phone": "0912345678", "cc": "886"},
+    "expect": ["国内格式：0912 345 678"],
+    "ref": "IT-N413：中国台湾 9 位按 4-3-3（含 trunk 0）。修复前剥 0 后 grp('912345678') ⇒ 9 1234 5678。"
+  },
+  {
+    "slug": "it/phone-parser",
+    "inputs": {"phone": "020 7946 0958", "cc": "44"},
+    "expect": ["国内格式：020 7946 0958"],
+    "ref": "IT-N413：英国固话（剥 trunk 0 后 10 位）按 020 7946 0958 的 3-4-4 显示，不能套用手机的 5-5；同时验证粘贴带空格的写法可清洗。修复前 grp('2079460958') ⇒ 20 7946 0958。"
+  },
+  {
+    "slug": "it/phone-parser",
+    "inputs": {"phone": "139-0013-9000", "cc": "86"},
+    "expect": ["E.164 +8613900139000", "国内格式：139 0013 9000"],
+    "ref": "IT-N412 契约：输入可含连字符/空格等分隔符，清洗后仍得到标准 E.164 与分组。两条 expect 都依赖注入的 139 号段（默认样例是 13800138000 ⇒ 均不命中），无静态串。number 输入框的粘贴清空属浏览器 value sanitization，桩 DOM 不复刻，另由 jsdom 真机取证。"
+  },
+  {
+    "slug": "it/phone-parser",
+    "inputs": {"phone": "8613900139000", "cc": "86"},
+    "expect": ["E.164 +8613900139000"],
+    "ref": "IT-N414 契约：纯数字输入已含所选国家码时自动剥离，不能拼成双国家码 +868613900139000。139 号段与默认 138 不同 ⇒ 默认态不命中。"
+  },
+  {
+    "slug": "it/phone-parser",
+    "inputs": {"phone": "02079460958", "cc": "44"},
+    "expect": ["E.164 +442079460958"],
+    "ref": "IT-N414 契约：英国固话剥掉国内首位 0（trunk prefix）后再拼 E.164，得到 12 位的 +442079460958 而非 13 位带 0。默认态（中国 138 号）不含该串。"
+  },
+  {
+    "slug": "it/phone-parser",
+    "inputs": {"phone": "13800138000000000000", "cc": "86"},
+    "expect": ["E.164 超过 15 位上限"],
+    "ref": "IT-N414 契约：E.164 总长超 15 位时必须明确报错并禁止复制（页面把 __lastE164 置空）。注入 20 位数字，默认 11 位样例不会触发 ⇒ 判别明确。"
   },
   {
     "slug": "it/php-cheatsheet",
@@ -8476,6 +9473,48 @@ const CASES = [
       "begin 644 abc123测试 #,0HR \"\"C, ` end"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"fname\":\"abc123测试\",\"input\":\"1\\n2\\n3\",\"output\":\"1\\n2\\n3\"}。2026-10-26 S1 首屏即答案改造后：boot 首渲染令 input/output 先于 fname 登记 ⇒ 值回显段序变化，旧锚「abc123测试\\n1 2 3」断裂；改锚为兜底 enc() 的确定性产物 begin 644 abc123测试 头（依赖注入的 fname，默认态 file.txt ⇒ 不含该串，判别力保持且更强）。"
+  },
+  {
+    "slug": "it/uuid-generator",
+    "inputs": {"version": "v1", "count": "1"},
+    "clicks": ["var u=generateUuidV1();var p=u.replace(/-/g,'');var tl=parseInt(p.slice(0,8),16),tm=parseInt(p.slice(8,12),16),th=parseInt(p.slice(12,16),16)&4095;var t=(BigInt(th)<<48n)|(BigInt(tm)<<32n)|BigInt(tl);var now=BigInt(Date.now())*10000n+122192928000000000n;var d=t>now?t-now:now-t;document.getElementById('output').value='V1 d='+(d<100000000n?1:0)+' v='+p.charAt(12)+' q='+(document.getElementById('version').value==='v1'?1:0);"],
+    "expect": ["V1 d=1 v=1 q=1"],
+    "ref": "IT-N407（高）：按 RFC 4122 从 time_low/time_mid/time_hi 拼回 100ns 时间戳，必须等于生成时刻（差 < 1e8 个 100ns，即同一毫秒内序号）。修复前用 Number + >>>32/>>>48，解出的时间漂到 2780 年甚至 4538 年 ⇒ d 远超阈值。断言与具体日期无关（harness Date 冻结在 2024-06-15，本地与 CI 一致）。q=1 绑注入的 version。"
+  },
+  {
+    "slug": "it/uuid-generator",
+    "inputs": {"version": "v1", "count": "1"},
+    "clicks": ["var u=generateUuidV1();var p=u.replace(/-/g,'');var mid=parseInt(p.slice(8,12),16),hi=parseInt(p.slice(12,16),16)&4095;var t=BigInt(Date.now())*10000n+122192928000000000n;document.getElementById('output').value='V1F mid='+(mid===Number((t>>32n)&65535n)?1:0)+' hi='+(hi===Number((t>>48n)&4095n)?1:0);"],
+    "expect": ["V1F mid=1 hi=1"],
+    "ref": "IT-N407：直接对照 time_mid/time_hi 的真值。JS 位运算移位数按 32 取模 ⇒ 修复前 mid 取的是低 16 位、hi 取的是 >>>16 的低 12 位，两项都不可能等于 BigInt 取位的结果 ⇒ 双变红。"
+  },
+  {
+    "slug": "it/uuid-generator",
+    "inputs": {"version": "v1", "count": "2"},
+    "clicks": ["var a=generateUuidV1(),b=generateUuidV1();var la=parseInt(a.replace(/-/g,'').slice(0,8),16),lb=parseInt(b.replace(/-/g,'').slice(0,8),16);var inc=(lb===la+1)||(la>lb&&lb===0);document.getElementById('output').value='V1SEQ inc='+(inc?1:0)+' q='+(document.getElementById('count').value==='2'?1:0);"],
+    "expect": ["V1SEQ inc=1 q=1"],
+    "ref": "IT-N407：同一毫秒内连续生成两条，时间字段必须以 100ns 序号递增（修复前 time_low 完全相同 ⇒ inc=0）。q=1 绑注入的 count=2。"
+  },
+  {
+    "slug": "it/uuid-generator",
+    "inputs": {"version": "v7", "count": "1"},
+    "clicks": ["var u=generateUuidV7();var p=u.replace(/-/g,'');var hi=(BigInt(parseInt(p.slice(0,4),16))<<32n)|BigInt(parseInt(p.slice(4,12),16));document.getElementById('output').value='V7 v='+p.charAt(12)+' ms='+(hi===BigInt(Date.now())?1:0)+' q='+(document.getElementById('version').value==='v7'?1:0);"],
+    "expect": ["V7 v=7 ms=1 q=1"],
+    "ref": "IT-N408：v7 前 48 位必须是 Unix 毫秒时间戳、版本号位为 7。修复前页面根本没有 generateUuidV7（下拉也无 v7）⇒ clicks 抛错、输出区无 V7 串。"
+  },
+  {
+    "slug": "it/uuid-generator",
+    "inputs": {"version": "v7", "count": "1"},
+    "clicks": ["generateUuid();var v=document.getElementById('output').value;document.getElementById('output').value='GEN7 ver='+(v.charAt(14)==='7'?1:0)+' len='+(v.length===36?1:0)+' q='+(document.getElementById('version').value==='v7'?1:0);"],
+    "expect": ["GEN7 ver=1 len=1 q=1"],
+    "ref": "IT-N408：真入口 generateUuid() 必须把 v7 分发到 generateUuidV7，而不是落到 else 的 v4。修复前产出版本号 4 ⇒ ver=0。v7 分支无 await，async 函数体同步跑完，输出区立即可读。"
+  },
+  {
+    "slug": "it/uuid-generator",
+    "inputs": {"version": "v5", "namespace": "abc", "name": "example.com", "count": "1"},
+    "clicks": ["generateUuid();var v=document.getElementById('output').value;document.getElementById('output').value='NS5 bad='+(v.indexOf('格式非法')>=0?1:0)+' q='+(document.getElementById('namespace').value==='abc'?1:0);"],
+    "expect": ["NS5 bad=1 q=1"],
+    "ref": "IT-N409：v5 命名空间 'abc' 必须在结果区明确报「格式非法」并中止，不能静默产出看似合法的 UUID。修复前 uuidToBytes('abc') 得 [0xab,0x0c,0,0,…] 后照常哈希 ⇒ 无错误提示。q=1 绑注入的非法命名空间。"
   },
   {
     "slug": "it/uuid-v5-generator",
