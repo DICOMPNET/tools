@@ -113,7 +113,7 @@ s.parentNode.insertBefore(el, s);
     <h2 data-zh="📊 競品（監測/分析/應對）研究">競品（監測/分析/應對）研究</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="監測/分析/應對">Competitor Monitoring &amp; Analysis</p>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">競品監測與差異化分析<br>輸入：競品, 價格, 月銷, 評分, 發貨時效天<br>價格區間 = min(價格) ~ max(價格)<br>均價 = Σ價格 ÷ 競品數<br>按評分降序排名<br>識別：評分最高標杆、發貨最快、價格極值<br>策略輸出：以質量標杆對標、時效短板優先最佳化發貨<br>　高價競品需強化賣點或讓出利潤空間<br>至少輸入一行五列有效資料</div>
+  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">競品監測與差異化分析<br>輸入：競品, 價格, 月銷, 評分, 發貨時效天<br>價格區間 = min(價格) ~ max(價格)<br>均價 = Σ價格 ÷ 競品數<br>按評分降序排名<br>識別：評分最高標杆、發貨最快與最慢、價格極值<br>策略輸出：以質量與發貨最快者為標杆，比較發貨時效差距<br>　高價競品需強化賣點或讓出利潤空間<br>至少輸入一行五列有效資料</div>
   <p>彙總各競品的價格、月銷、評分與發貨時效，計算價格區間與均價，按評分排序並標註評分最高與發貨最快者，結合相對位置給出差異化競爭策略建議。</p>
 </div>
 
@@ -200,6 +200,8 @@ s.parentNode.insertBefore(el, s);
 </div>
 <script>
 function calc(){
+  var en=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn()) || (document.documentElement.lang||'').toLowerCase().indexOf('en')===0;
+  var dayUnit=en?' days':' 天';
   var raw=document.getElementById('data').value.split(String.fromCharCode(10)).map(function(s){return s.replace(String.fromCharCode(13),'');}).map(function(s){return s.trim();}).filter(Boolean);
   var items=[];
   raw.forEach(function(line){
@@ -209,22 +211,36 @@ function calc(){
       var sales=parseFloat(p[2].replace(/[^0-9.\-]/g,''));
       var score=parseFloat(p[3].replace(/[^0-9.\-]/g,''));
       var days=parseFloat(p[4].replace(/[^0-9.\-]/g,''));
-      if(![price,sales,score,days].some(isNaN)) items.push({name:p[0]||('竞品'+(items.length+1)),price:price,sales:sales,score:score,days:days});
+      if(![price,sales,score,days].some(isNaN)) items.push({name:p[0]||(en?'Competitor ':'竞品')+(items.length+1),price:price,sales:sales,score:score,days:days});
     }
   });
   var res=document.getElementById('res');
-  if(!items.length){res.innerHTML='<p>请输入至少一行有效数据（竞品,价格,月销,评分,发货时效天）</p>';return;}
+  if(!items.length){res.innerHTML=en?'<p>Enter at least one valid row (competitor, price, monthly sales, rating, shipping days).</p>':'<p>请输入至少一行有效数据（竞品,价格,月销,评分,发货时效天）</p>';return;}
   var minP=Math.min.apply(null,items.map(function(x){return x.price;}));
   var maxP=Math.max.apply(null,items.map(function(x){return x.price;}));
   var avgP=items.reduce(function(a,b){return a+b.price;},0)/items.length;
   var bestScore=items.slice().sort(function(a,b){return b.score-a.score;})[0];
   var fastest=items.slice().sort(function(a,b){return a.days-b.days;})[0];
+  var slowest=items.slice().sort(function(a,b){return b.days-a.days;})[0];
+  var leadTimeGap=slowest.days-fastest.days;
   var h='';
   items.slice().sort(function(a,b){return b.score-a.score;}).forEach(function(it,i){
-    h+='<tr><td>'+(i+1)+'</td><td>'+ToolBox.escHtml(it.name)+'</td><td>¥'+fmtN(it.price)+'</td><td>'+fmtN(it.sales)+'</td><td>'+it.score.toFixed(1)+'</td><td>'+it.days.toFixed(0)+' 天</td></tr>';
+    h+='<tr><td>'+(i+1)+'</td><td>'+ToolBox.escHtml(it.name)+'</td><td>¥'+fmtN(it.price)+'</td><td>'+fmtN(it.sales)+'</td><td>'+it.score.toFixed(1)+'</td><td>'+fmtN(it.days)+dayUnit+'</td></tr>';
   });
-  var suggestion='建议：以 '+ToolBox.escHtml(bestScore.name)+' 为质量标杆，对 '+ToolBox.escHtml(fastest.name)+' 等时效短板优先优化发货；价格高者（如 ¥'+fmtN(maxP)+'）需强化卖点或让出利润空间。';
-  const __g2='<p>监测竞品：<strong>'+items.length+'</strong> 个　价格区间：<strong>¥'+fmtN(minP)+' – ¥'+fmtN(maxP)+'</strong>　均价：<strong>¥'+fmtN(avgP)+'</strong></p><div style="overflow-x:auto"><table><thead><tr><th>排名</th><th>竞品</th><th>价格</th><th>月销</th><th>评分</th><th>发货时效</th></tr></thead><tbody>'+h+'</tbody></table></div><p>评分最高：<strong>'+ToolBox.escHtml(bestScore.name)+'</strong>　发货最快：<strong>'+ToolBox.escHtml(fastest.name)+'</strong></p><p>差异化策略：'+suggestion+'</p>';res.innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
+  var suggestion=en
+    ? 'Benchmark quality against '+ToolBox.escHtml(bestScore.name)+' and shipping speed against '+ToolBox.escHtml(fastest.name)+'; compare competitors’ shipping times. Higher prices (such as ¥'+fmtN(maxP)+') need stronger selling points or a smaller margin.'
+    : '建议：以 '+ToolBox.escHtml(bestScore.name)+' 为质量标杆，以 '+ToolBox.escHtml(fastest.name)+' 为发货时效标杆，比较各竞品的发货时间；价格高者（如 ¥'+fmtN(maxP)+'）需强化卖点或让出利润空间。';
+  var head=en?'Monitored competitors':'监测竞品';
+  var range=en?'Price range':'价格区间';
+  var avg=en?'Average price':'均价';
+  var columns=en?'<th>Rank</th><th>Competitor</th><th>Price</th><th>Monthly sales</th><th>Rating</th><th>Shipping time</th>':'<th>排名</th><th>竞品</th><th>价格</th><th>月销</th><th>评分</th><th>发货时效</th>';
+  var bestLabel=en?'Highest rating':'评分最高';
+  var fastLabel=en?'Fastest shipping':'发货最快';
+  var slowLabel=en?'Slowest shipping':'发货最慢';
+  var gapLabel=en?'Shipping time gap':'时效差距';
+  var strategyLabel=en?'Differentiation strategy':'差异化策略';
+  var colon=en?': ':'：', leftParen=en?' (':'（', rightParen=en?')':'）';
+  const __g2='<p>'+head+colon+'<strong>'+items.length+'</strong> '+(en?'':'个')+'　'+range+colon+'<strong>¥'+fmtN(minP)+' – ¥'+fmtN(maxP)+'</strong>　'+avg+colon+'<strong>¥'+fmtN(avgP)+'</strong></p><div style="overflow-x:auto"><table><thead><tr>'+columns+'</tr></thead><tbody>'+h+'</tbody></table></div><p>'+bestLabel+colon+'<strong>'+ToolBox.escHtml(bestScore.name)+'</strong>　'+fastLabel+colon+'<strong>'+ToolBox.escHtml(fastest.name)+leftParen+fmtN(fastest.days)+dayUnit+rightParen+'</strong>　'+slowLabel+colon+'<strong>'+ToolBox.escHtml(slowest.name)+leftParen+fmtN(slowest.days)+dayUnit+rightParen+'</strong>　'+gapLabel+colon+'<strong>'+fmtN(leadTimeGap)+dayUnit+'</strong></p><p>'+strategyLabel+colon+suggestion+'</p>';res.innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 }
 function fmtN(n){return (Math.round(n*100)/100).toLocaleString('zh-CN');}
 function copyRes(){ToolBox.copyText(document.getElementById('res').innerText);}

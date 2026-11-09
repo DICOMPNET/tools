@@ -182,7 +182,7 @@ s.parentNode.insertBefore(el, s);
 <li>比較分裂割據時期的並存政權：選「三國(220–280)」與「晉朝(266–420)」，工具會算出 266–280 年兩段政權重疊 14 年。</li>
 <li>製作時間軸或對比表時，直接取開國君主、都城、疆域、人口等欄位，避免逐個翻年表。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">方法</div><div class="dd-ex-body">存續時長 = 結束年 − 開始年；並存期 = 後一朝代開始年 − 前一朝代結束年（結果為正即存在重疊）。西元前年份以負數表示，例如夏朝始於 −2070（即西元前 2070 年）。</div></div>
+<div class="dd-example"><div class="dd-ex-title">方法</div><div class="dd-ex-body">存續時長 = 結束年 − 開始年；並存期 = 較早的結束年 − 較晚的開始年，結果大於 0 時存在重疊。西元前年份以負數表示，例如夏朝始於 −2070（即西元前 2070 年）。</div></div>
 <div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">唐(618–907，289 年) vs 明(1368–1644，276 年)：無時間重疊，時長差 13 年。若選周朝(−1046–−256，790 年) vs 秦朝(−221–−206，15 年)：周結束於 −256 早於秦開始於 −221，無重疊，周比秦長 775 年。若選三國(220–280) vs 晉朝(266–420)：重疊 266–280 共 14 年。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
@@ -323,8 +323,14 @@ function compare() {
   } else {
     html += `<div class="diff-item">⏰ <b>${e2.n}</b> 比 <b>${e1.n}</b> 晚 <b>${e2.s - e1.s}</b> 年建立</div>`;
   }
-  if (e1.s < e2.s && e1.e > e2.s) {
-    html += `<div class="diff-item">🔄 两个朝代存在 <b>${e1.e - e2.s}</b> 年的并存期</div>`;
+  const overlapStart = Math.max(e1.s, e2.s);
+  const overlapEnd = Math.min(e1.e, e2.e);
+  if (overlapEnd > overlapStart) {
+    const en = /(?:^|[?&])lang=en(?:-US)?(?:&|$)/i.test(location.search) || /^en/i.test(document.documentElement.lang || '');
+    const yearLabel = y => en ? (y < 0 ? `${-y} BCE` : `${y} CE`) : (y < 0 ? `公元前 ${-y} 年` : `${y} 年`);
+    html += en
+      ? `<div class="diff-item">🔄 Overlap: <b>${overlapEnd - overlapStart}</b> years (${yearLabel(overlapStart)} – ${yearLabel(overlapEnd)})</div>`
+      : `<div class="diff-item">🔄 两个朝代存在 <b>${overlapEnd - overlapStart}</b> 年的并存期（${yearLabel(overlapStart)} – ${yearLabel(overlapEnd)}）</div>`;
   }
   if (e1.pop && e2.pop) {
     const p1 = parsePopNum(e1.pop);

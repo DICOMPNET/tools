@@ -164,7 +164,7 @@ s.parentNode.insertBefore(el, s);
   <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
     <h2 data-zh="🔎 關鍵詞提取">🔎 Keyword Extract</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">中文按 2-4 字滑窗切出候選詞，英文按字母串提取並轉小寫；分別統計詞頻後按計數降序排序。過濾規則：長度小於最小長度、命中中文或英文停用詞表、純數字、純非文字字元一律剔除；權重取前 30 個高頻詞做共現加權。展示最多 20 條，條形圖寬度 = 該詞詞頻 ÷ 最高詞頻 × 100%</div>
+  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">中文優先使用瀏覽器分詞；不支援時使用 2–4 字滑窗並移除被同頻或更高頻長詞包含的片段，降級結果需人工核對。英文按字母串提取並轉小寫；過濾停用詞及短詞後按詞頻降序、同頻按詞長降序排列。結果數量由選項決定，圖表最多展示 20 條；條形圖寬度 = 該詞詞頻 ÷ 最高詞頻 × 100%。本工具不計算 TF-IDF 或共現權重。</div>
   <div class="formula-desc">從文本中自動提取代表性關鍵詞。</div>
   <ul class="formula-list">
     <li><b>常用演算法</b>：TF-IDF（詞頻 × 逆文件頻率）與 TextRank（基於圖的排序）。</li>
@@ -300,7 +300,7 @@ s.parentNode.insertBefore(el, s);
       <span class="arrow">&#9660;</span>
     </div>
     <div class="tool-intro-body">
-      <p>關鍵詞提取工具基於詞頻統計（TF）演算法，支援中文和英文文本。中文采用滑窗法提取2-4字候選詞，英文按空格分詞，內建100+常用中文停用詞自動過濾。</p>
+      <p>關鍵詞提取工具基於詞頻統計，支援中文和英文文本。中文優先使用瀏覽器分詞，不支援時退回滑窗候選詞；英文按字母串提取，內建常用停用詞過濾。結果受分詞質量影響，請人工核對。</p>
       <h4><span class="h4-icon">&#9889;</span> 功能特點</h4>
       <ul class="intro-features">
         <li>中英文混合支援</li>
@@ -343,13 +343,13 @@ s.parentNode.insertBefore(el, s);
 <h2>📚 深度解析：關鍵詞提取</h2>
 <h3>💡 常見使用場景</h3>
 <ul class="dd-list">
-<li>從文本抽取主題詞（TF/TextRank）。</li>
+<li>從文本中提取詞頻較高的候選詞，輔助人工整理主題。</li>
 <li>給批次文章自動打標籤：先提取主題詞作為候選，再由人工確認，比逐篇閱讀快得多。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">提取</div><div class="dd-ex-body">文章 → 關鍵詞 [加密, 演算法, 安全] 按權重排序。</div></div>
+<div class="dd-example"><div class="dd-ex-title">提取</div><div class="dd-ex-body">例如：apple apple banana → apple 出現 2 次，banana 出現 1 次。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
-<dt>中文需分詞嗎？</dt><dd>需，先分詞再做詞頻/圖權重。</dd>
+<dt>中文需分詞嗎？</dt><dd>需要。瀏覽器支援時使用中文分詞，否則退回滑窗候選詞；結果應人工核對。</dd>
 <dt>為什麼提取出的詞不實用？</dt><dd>兩個常見原因：一是停用詞表不匹配，把「方法」「問題」這類無區分度的詞也算進來；二是中文未正確分詞，切出無意義片段。改進辦法是擴充停用詞、加入自定義詞典（行業術語），並對結果按 TF-IDF 或 TextRank 分數排序後取前若干個。</dd>
 </dl>
 </div>
@@ -452,9 +452,19 @@ s.parentNode.insertBefore(el, s);
     return false;
   }
 
-  // 中文滑窗分词：提取2-4字候选词
+  // 优先使用浏览器词边界；旧浏览器降级为滑窗，结果仅供人工筛选。
+  var useWordSegmenter = typeof Intl !== 'undefined' && typeof Intl.Segmenter === 'function';
   function tokenizeChinese(text) {
     var tokens = [];
+    if (useWordSegmenter) {
+      try {
+        var segments = new Intl.Segmenter('zh', { granularity: 'word' }).segment(text);
+        for (var segment of segments) {
+          if (segment.isWordLike && hasChinese(segment.segment)) tokens.push(segment.segment);
+        }
+        return tokens;
+      } catch (e) { useWordSegmenter = false; }
+    }
     var segments = [];
     var buf = '';
     var i;
@@ -514,7 +524,7 @@ s.parentNode.insertBefore(el, s);
         arr.push({ word: k, count: freq[k] });
       }
     }
-    arr.sort(function(a, b) { return b.count - a.count; });
+    arr.sort(function(a, b) { return b.count - a.count || b.word.length - a.word.length; });
     return arr;
   }
 
@@ -535,33 +545,22 @@ s.parentNode.insertBefore(el, s);
     });
   }
 
-  /* ===== 中文子串去重 ===== */
-  // 如果短词完全被包含在更高频的长词中，则移除短词（避免冗余）
+  /* ===== 降级滑窗去重 ===== */
   function deduplicateSubstrings(sortedArr) {
-    if (sortedArr.length <= 1) return sortedArr;
-    var result = [];
-    var topWords = sortedArr.slice(0, Math.min(sortedArr.length, 30));
-    var topSet = new Set();
-    for (var i = 0; i < topWords.length; i++) {
-      topSet.add(topWords[i].word);
-    }
-
-    for (var j = 0; j < sortedArr.length; j++) {
-      var item = sortedArr[j];
-      var dominated = false;
-      // 只检查短词（长度 < 当前候选词长度的词）
-      if (item.word.length <= 2) {
-        for (var k = 0; k < Math.min(sortedArr.length, 30); k++) {
-          var longer = sortedArr[k].word;
-          if (longer.length > item.word.length && longer.indexOf(item.word) !== -1 && sortedArr[k].count >= item.count * 0.5) {
-            dominated = true;
-            break;
-          }
+    if (useWordSegmenter) return sortedArr;
+    var dominated = Object.create(null);
+    sortedArr.forEach(function(item) {
+      if (!hasChinese(item.word)) return;
+      for (var len = 2; len < item.word.length; len++) {
+        for (var i = 0; i <= item.word.length - len; i++) {
+          var part = item.word.slice(i, i + len);
+          dominated[part] = Math.max(dominated[part] || 0, item.count);
         }
       }
-      if (!dominated) result.push(item);
-    }
-    return result;
+    });
+    return sortedArr.filter(function(item) {
+      return !hasChinese(item.word) || !(dominated[item.word] >= item.count);
+    });
   }
 
   /* ===== 状态 ===== */
