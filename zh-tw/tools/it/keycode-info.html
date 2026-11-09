@@ -101,7 +101,7 @@ s.parentNode.insertBefore(el, s);
     <h2 data-zh="📚 按鍵碼 Keycode 查詢">📚 Key Code Keycode Query</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="按下任意鍵，即時顯示 event.key / code / keyCode / 修飾鍵等全部按鍵資訊，附常見按鍵碼速查表，前端開發除錯利器。">Look up keyboard key codes (key, code, keyCode) in your browser — handy for event handlers.</p>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">監聽全域性按鍵按下事件：按鍵名為空格時按 Space 展示，為製表符時按 Tab 展示，其餘取按鍵名本身。分別展示按鍵名、物理鍵位編碼、原始按鍵值與傳統鍵碼（已廢棄）。修飾鍵狀態按 Ctrl、Shift、Alt、Meta 的順序收集並以加號連線，一個都沒有時顯示無。若事件來源是按鈕則不攔截預設行為，其餘情況阻止預設行為</div>
+  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">監聽全域性按鍵按下事件：按鍵名為空格時按 Space 展示，為製表符時按 Tab 展示，其餘取按鍵名本身。分別展示按鍵名、物理鍵位編碼、原始按鍵值與傳統鍵碼（已廢棄）。修飾鍵狀態按 Ctrl、Shift、Alt、Meta 的順序收集並以加號連線，一個都沒有時顯示無。不攔截任何按鍵的預設行為，Tab 焦點切換、空格與方向鍵滾動、F12 等瀏覽器快捷鍵均保持原生可用；結果區文案按當前語言輸出</div>
   <div class="formula-desc">查詢鍵盤按鍵的編碼標識。</div>
   <ul class="formula-list">
     <li><b>三套標識</b>：<code>event.key</code>（字元或鍵名）、<code>event.code</code>（物理鍵位）、<code>keyCode</code>（已廢棄的數字）。</li>
@@ -268,9 +268,11 @@ s.parentNode.insertBefore(el, s);
 </div>
 <script>
 function escH(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function __kcL(zh,en){return (typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn())?en:zh;}
 var last=null;
-window.addEventListener('keydown',function(e){
-  if(e.key==='F12'){} // 允许默认
+/* IT-N425：本页无输入控件，不拦截任何按键的默认行为。
+   Tab 焦点切换、空格/方向键滚动、F12 等浏览器快捷键保持原生可用，仅展示按键信息。 */
+function __kcOnKeyDown(e){
   last=e;
   var key=e.key===' '?'Space':e.key==='\t'?'Tab':e.key;
   document.getElementById('keyOut').textContent=key;
@@ -279,11 +281,12 @@ window.addEventListener('keydown',function(e){
   document.getElementById('kcOut').textContent=(e.keyCode||e.which||'—');
   var mods=[];
   if(e.ctrlKey)mods.push('Ctrl');if(e.shiftKey)mods.push('Shift');if(e.altKey)mods.push('Alt');if(e.metaKey)mods.push('Meta');
-  document.getElementById('modOut').textContent=mods.join(' + ')||((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'None':'无');
-  const __h0='<p>捕获到 <code>keydown</code> 事件 · '+(mods.length?mods.join(' + ')+' + ':'')+escH(key)+'</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h0;
-  if(e.target&&e.target.tagName==='BUTTON')return;
-  e.preventDefault();
-});
+  document.getElementById('modOut').textContent=mods.join(' + ')||__kcL('无','None');
+  const __h0='<p>'+__kcL('捕获到 ','Captured ')+'<code>keydown</code>'+__kcL(' 事件 · ',' event · ')+(mods.length?mods.join(' + ')+' + ':'')+escH(key)+'</p>';
+  if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}
+  document.getElementById('result').innerHTML=__h0;
+}
+window.addEventListener('keydown',__kcOnKeyDown);
 document.addEventListener('DOMContentLoaded',function(){
   var b=document.getElementById('focusBtn');
   if(b)b.addEventListener('click',function(){if(ToolBox.showToast)ToolBox.showToast(i18nText('toast.msg223'));});

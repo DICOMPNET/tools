@@ -110,7 +110,7 @@ s.parentNode.insertBefore(el, s);
     <h2 data-zh="🧮 數學表示式求值器">🧮 Math Expression Evaluate Device - Online Calculate Math Expression : Support + - * / % ^ (</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="線上計算數學表示式：支援 + - * / % ^ ( ) 與 sin/cos/tan/sqrt/abs/ln/log/floor/ceil/round/min/max 等函式，自動儲存最近 20 條歷史。">Evaluate math expressions, functions and unit-aware calculations safely in your browser — no install, no upload.</p>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">數學表示式安全求值<br>字元白名單校驗：僅允許數字、+-*/%^()., 空格與函式名字母<br>識別符號白名單：僅放行 sin/cos/tan/sqrt/abs/ln/log/floor/ceil/round/min/max/pi/e，並拒絕成員訪問（如 .constructor）<br>語法轉換：^ → **（冪運算）；數字後 % → (數字/100)（百分比）<br>校驗通過後才交給 new Function 求值，非法識別符號與屬性鏈一律拒絕<br>長度限制 ≤200 字元；結果非有限數或拋錯 → 提示表示式無效</div>
+  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">數學表示式安全求值<br>字元白名單校驗：僅允許數字、+-*/%^()., 空格與函式名字母<br>識別符號白名單：僅放行 sin/cos/tan/sqrt/abs/ln/log/floor/ceil/round/min/max/pi/e，並拒絕成員訪問（如 .constructor）<br>語法轉換：^ → **（冪運算）；數字後 % 且其後無運算元（後接運算子、右括號或結尾）時視為百分比 → (數字/100)，其餘情況保留 % 作為取模運算子<br>校驗通過後才交給 new Function 求值，非法識別符號與屬性鏈一律拒絕<br>長度限制 ≤200 字元；結果非有限數或拋錯 → 提示表示式無效</div>
   <div class="formula-desc">解析並計算數學表示式的值。</div>
   <ul class="formula-list">
     <li><b>優先順序</b>：先括號，再函式與冪，其次乘除，最後加減。</li>
@@ -275,11 +275,18 @@ function insertFn(s){
   el.value=el.value.slice(0,el.selectionStart||el.value.length)+s+el.value.slice(el.selectionEnd||el.value.length);
   el.focus(); calc();
 }
+function __meL(zh,en){return (typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn())?en:zh;}
+/* IT-N475：历史「复用」统一走此函数。表达式只经 DOM 属性赋值回填，
+   不拼进内联 onclick，避免 JSON.stringify 的双引号截断属性与 HTML 注入。 */
+function __meReuse(expr){
+  document.getElementById('expr').value=String(expr==null?'':expr);
+  calc();
+}
 function renderHist(){
   var h;
   try{h=JSON.parse(localStorage.getItem('mathHist')||'[]');}catch(e){h=[];}
   const __g1=document.getElementById('hist');
-  if(!h.length){__g1.innerHTML='<span style="color:var(--muted,#9CA3AF)">暂无记录</span>';return;}
+  if(!h.length){__g1.innerHTML='<span style="color:var(--muted,#9CA3AF)">'+__meL('暂无记录','No Records Yet')+'</span>';return;}
   __g1.textContent='';
   h.forEach(function(x){
     var row=document.createElement('div');
@@ -292,8 +299,9 @@ function renderHist(){
     var btn=document.createElement('button');
     btn.className='btn';
     btn.style.cssText='margin-left:6px;padding:2px 10px;font-size:12px;';
-    btn.textContent='复用';
-    btn.addEventListener('click',function(){document.getElementById('expr').value=String(x.e);calc();});
+    btn.textContent=__meL('复用','Reuse');
+    btn.dataset.expr=String(x.e==null?'':x.e);
+    btn.addEventListener('click',function(){__meReuse(x.e);});
     row.appendChild(btn);
     __g1.appendChild(row);
   });
@@ -303,28 +311,30 @@ function calc(){
   var expr=document.getElementById('expr').value.trim();
   var out=document.getElementById('result');
   if(!expr){out.innerHTML='';return;}
-  if(expr.length>200){out.innerHTML='<p style="color:var(--danger)">表达式过长（≤200 字符）</p>';return;}
-  if(!/^[0-9+\-*\/%^().,\sA-Za-z%]+$/.test(expr)){out.innerHTML='<p style="color:var(--danger)">表达式含非法字符（仅支持数字、运算符与函数名）</p>';return;}
+  if(expr.length>200){out.innerHTML='<p style="color:var(--danger)">'+__meL('表达式过长（≤200 字符）','Expression too long (max 200 characters)')+'</p>';return;}
+  if(!/^[0-9+\-*\/%^().,\sA-Za-z%]+$/.test(expr)){out.innerHTML='<p style="color:var(--danger)">'+__meL('表达式含非法字符（仅支持数字、运算符与函数名）','Expression contains invalid characters (only digits, operators and function names are allowed)')+'</p>';return;}
   // 标识符白名单：只允许数学函数与常量名；任何其它标识符（eval/fetch/alert/constructor 等）一律拒绝
   var MATH_ALLOWED={sin:1,cos:1,tan:1,sqrt:1,abs:1,ln:1,log:1,floor:1,ceil:1,round:1,min:1,max:1,pi:1,e:1};
   var idents=expr.match(/[A-Za-z]+/g)||[];
   for(var ik=0;ik<idents.length;ik++){
-    if(!MATH_ALLOWED.hasOwnProperty(idents[ik].toLowerCase())){out.innerHTML='<p style="color:var(--danger)">表达式含非法字符（仅支持数字、运算符与函数名）</p>';return;}
+    if(!MATH_ALLOWED.hasOwnProperty(idents[ik].toLowerCase())){out.innerHTML='<p style="color:var(--danger)">'+__meL('表达式含非法字符（仅支持数字、运算符与函数名）','Expression contains invalid characters (only digits, operators and function names are allowed)')+'</p>';return;}
   }
   // 拒绝成员访问：小数点只能出现在数字字面量里，其余 "." 即属性/调用链，直接拒绝
-  if(expr.replace(/\d*\.?\d+/g,'0').indexOf('.')>=0){out.innerHTML='<p style="color:var(--danger)">表达式含非法字符（仅支持数字、运算符与函数名）</p>';return;}
+  if(expr.replace(/\d*\.?\d+/g,'0').indexOf('.')>=0){out.innerHTML='<p style="color:var(--danger)">'+__meL('表达式含非法字符（仅支持数字、运算符与函数名）','Expression contains invalid characters (only digits, operators and function names are allowed)')+'</p>';return;}
   try{
-    var js=expr.replace(/\^/g,'**').replace(/(\d+)\s*%/g,'($1/100)');
+    /* IT-N474：% 后若还有操作数（数字/字母/左括号）则是取模，保留 JS 的 % ；
+       否则视为百分比（如 15%、50%*120）转成 (n/100)。小数百分比一并支持。 */
+    var js=expr.replace(/\^/g,'**').replace(/(\d+(?:\.\d+)?)\s*%(?!\s*[0-9A-Za-z_(])/g,'($1/100)');
     var fn=new Function('Math','sin','cos','tan','sqrt','abs','ln','log','floor','ceil','round','min','max','pi','e','return ('+js+')');
     var val=fn(Math,Math.sin,Math.cos,Math.tan,Math.sqrt,Math.abs,Math.log,Math.log10,Math.floor,Math.ceil,Math.round,Math.min,Math.max,Math.PI,Math.E);
     if(typeof val!=='number'||!isFinite(val))throw new Error('结果不是有效数字');
-    const __g5='<p>结果：<strong style="font-size:22px;color:var(--primary)">'+fmt(val)+'</strong></p>';out.innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
+    const __g5='<p>'+__meL('结果：','Result: ')+'<strong style="font-size:22px;color:var(--primary)">'+fmt(val)+'</strong></p>';out.innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
     var h;
     try{h=JSON.parse(localStorage.getItem('mathHist')||'[]');}catch(e){h=[];}
     h.unshift({e:expr,v:val});if(h.length>20)h.pop();
     localStorage.setItem('mathHist',JSON.stringify(h));
     renderHist();
-  }catch(e){const __g6='<p style="color:var(--danger)">表达式无效：'+escH((e&&e.message)||e)+'</p>';out.innerHTML=(typeof __g6==='number'?(isFinite(__g6)?__g6:'—'):String(__g6).replace(/Infinity|NaN/g,'—'));}
+  }catch(e){const __g6='<p style="color:var(--danger)">'+__meL('表达式无效：','Invalid expression: ')+escH((e&&e.message)||e)+'</p>';out.innerHTML=(typeof __g6==='number'?(isFinite(__g6)?__g6:'—'):String(__g6).replace(/Infinity|NaN/g,'—'));}
 }
 renderHist();
 

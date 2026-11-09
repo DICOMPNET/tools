@@ -106,8 +106,8 @@ s.parentNode.insertBefore(el, s);
     <h2 data-zh="🎲 隨機埠生成器">🎲 Random Port Generator - Batch Generate 1024-65535 Random TCP / UDP</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="批次生成 1024-65535 隨機 TCP/UDP 埠，可自動避開常用保留埠，附常見埠速查表。">Pick a random port number in your browser — handy for local dev and containers.</p>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">生成個數取輸入值並保證在 1 到 20 之間。迴圈直到湊夠數量或嘗試次數達到 1000 次：每次用加密級隨機數填充一個無符號 32 位整數，埠號 = 1024 + 隨機數對「65535 − 1024 + 1」取餘，即落在 1024 到 65535 之間；開啟避開常用保留埠且命中保留表時跳過；與已生成的埠重複時跳過。最後逐個列出埠並標註協議，同時提示生成個數與是否避開常用保留埠</div>
-  <div class="formula-desc">生成未被佔用的隨機埠號。</div>
+  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">生成個數取輸入值並保證在 1 到 20 之間。迴圈直到湊夠數量或嘗試次數達到 1000 次：每次用加密級隨機數填充一個無符號 32 位整數，埠號 = 1024 + 隨機數對「65535 − 1024 + 1」取餘，即落在 1024 到 65535 之間；開啟避開常用保留埠且命中保留表時跳過；與已生成的埠重複時跳過。最後逐個列出埠並標註協議，同時提示生成個數與是否避開常用保留埠；本工具不檢測埠是否被實際佔用</div>
+  <div class="formula-desc">在 1024–65535 範圍內生成隨機埠號，不檢測埠是否被佔用。</div>
   <ul class="formula-list">
     <li><b>範圍</b>：埠號 0–65535，分公認埠（0–1023）、註冊埠（1024–49151）與動態埠（49152–65535）。</li>
     <li><b>建議</b>：從動態埠段選取，可最大程度避免與已知服務衝突。</li>
@@ -162,14 +162,14 @@ s.parentNode.insertBefore(el, s);
 <h2>📚 深度解析：隨機埠生成器</h2>
 <h3>💡 常見使用場景</h3>
 <ul class="dd-list">
-<li>選未佔用的臨時埠（建議 49152–65535）。</li>
+<li>為本地服務挑一個高位埠（本工具取值 1024–65535，不保證未被佔用）。</li>
 <li>本地起多個測試服務時挑一個未被佔用的動態埠，避免寫死 8080 導致並行任務互相搶佔。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">生成</div><div class="dd-ex-body">隨機 `52341`（動態/私有埠段）。</div></div>
+<div class="dd-example"><div class="dd-ex-title">生成</div><div class="dd-ex-body">隨機 `52341`（落在 1024–65535 範圍內）。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
 <dt>為什麼用高位埠？</dt><dd>1024 以下需特權，動態埠段衝突少。</dd>
-<dt>生成的埠一定沒被佔用嗎？</dt><dd>不一定。本工具只是按 IANA 規定從動態/私有埠範圍（49152–65535）中隨機取值，無法即時感知你機器上哪些埠已被佔用——瀏覽器出於安全限制也不能掃描本機埠。使用前應用 netstat/lsof 確認，或讓程式繫結埠 0 由系統自動分配。</dd>
+<dt>生成的埠一定沒被佔用嗎？</dt><dd>不一定。本工具在 1024–65535 範圍內隨機取值（含註冊埠段 1024–49151），無法即時感知你機器上哪些埠已被佔用——瀏覽器出於安全限制也不能掃描本機埠。使用前應用 netstat/lsof 確認，或讓程式繫結埠 0 由系統自動分配；若只想要動態埠段，可自行過濾 49152 以上的結果。</dd>
 </dl>
 </div>
 </section>
@@ -262,6 +262,7 @@ s.parentNode.insertBefore(el, s);
   </div>
 </div>
 <script>
+function __rpgL(zh,en){return (typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn())?en:zh;}
 var RESERVED=[20,21,22,23,25,53,80,110,123,143,443,465,587,993,995,1080,1433,1521,2375,3000,3306,3389,5432,6379,8080,8443,8888,9000,9200,27017];
 var ports=[];
 function gen(){
@@ -280,9 +281,9 @@ function gen(){
   const __h0=ports.map(function(p,i){
     return '<div>'+p+' <span style="font-size:12px;color:var(--muted,#9CA3AF);">/tcp·udp</span> <button class="btn" style="padding:1px 10px;font-size:12px;margin-left:6px;" onclick="copyOne('+i+')">复制</button></div>';
   }).join('');if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('portList').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('portList').innerHTML=__h0;
-  const __h1='<p>已生成 <strong>'+ports.length+'</strong> 个随机端口（1024-65535'+(skip?'，已避开常用保留端口':'')+'）</p>';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h1;
+  const __h1='<p>'+__rpgL('已生成 ','Generated ')+'<strong>'+ports.length+'</strong>'+__rpgL(' 个随机端口（',' random ports (')+'1024-65535'+(skip?__rpgL('，已避开常用保留端口',', avoiding common reserved ports'):'')+__rpgL('，不保证端口未被占用',', no guarantee the ports are free')+__rpgL('）',')')+'</p>';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h1;
 }
-function copyOne(i){ToolBox.copyText(String(ports[i]));if(ToolBox.showToast)ToolBox.showToast('已复制端口 '+ports[i]);}
+function copyOne(i){ToolBox.copyText(String(ports[i]));if(ToolBox.showToast)ToolBox.showToast(__rpgL('已复制端口 ','Copied port ')+ports[i]);}
 function copyAll(){if(!ports.length){if(ToolBox.showToast)ToolBox.showToast(i18nText());return;}ToolBox.copyText(ports.join(', '));if(ToolBox.showToast)ToolBox.showToast(i18nText('toast.msg204'));}
 gen();
 
