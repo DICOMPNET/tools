@@ -208,8 +208,11 @@ if upstream_head == local_head:
 
 # 2. 计算保留清单：HEAD 独有文件（HEAD 有、上游没有）→ 保留本地版本
 #    （运维脚本、本地配置等不因上游"没有"而被删；上游真删除的内容文件如需跟进删除请手动 git rm）
-head_only = [l for l in git("diff", "--name-only", "--diff-filter=D",
-                            "HEAD", UPSTREAM_REF).splitlines() if l]
+#    用 -z（NUL 分隔）取路径：默认 quotepath 会把非 ASCII 路径输出成
+#    "plan/\345..." 带引号八进制转义串，直接当 pathspec 传回 checkout 会
+#    did-not-match（2026-11-09 上游删 plan/已修复/*.md 中文文档实测踩坑）。
+head_only = [l for l in git("diff", "--name-only", "-z", "--diff-filter=D",
+                            "HEAD", UPSTREAM_REF).split("\x00") if l]
 
 # 3. 差异摘要（排除冻结路径、排除路径与本地独有文件，只看会真正更新的内容）
 #    head_only 可能数千项（如 zh-tw 入库后），拼接 pathspec 会超 Windows 命令行限制；
