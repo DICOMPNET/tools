@@ -145,6 +145,83 @@ function _rngReset() { _rngState = 0x9e3779b9 >>> 0; }
 // ---------------------------------------------------------------- 用例
 const CASES = [
   {
+    slug: "it/hex-to-text",
+    inputs: { input: "E4B8ADF09F9880" },
+    clicks: ["convert()"],
+    expect: ["中😀"],
+    ref: "IT-N313：E4 B8 AD 为 UTF-8 中，F0 9F 98 80 为 UTF-8 😀，合法序列须完整解码。",
+  },
+  {
+    slug: "it/hex-to-text",
+    inputs: { input: "80", output: "stale-result" },
+    clicks: ["convert();var out=document.getElementById('output');var message=document.getElementById('hexStatus').textContent;out.value='N313_INVALID='+(out.value===''&&message.includes('不是有效的 UTF-8'));"],
+    expect: ["N313_INVALID=true"],
+    ref: "IT-N313：孤立续字节 80 非法，清除旧结果并提示，不能悄悄替换为 U+FFFD。",
+  },
+  {
+    slug: "it/hex-to-text",
+    inputs: { input: "A", output: "stale-result" },
+    clicks: ["convert();var out=document.getElementById('output');var message=document.getElementById('hexStatus').textContent;out.value='N313_ODD='+(out.value===''&&message.includes('必须为偶数'));"],
+    expect: ["N313_ODD=true"],
+    ref: "IT-N313：奇数位 Hex 应提示错误并清空旧结果，不能继续显示可复制的陈旧输出。",
+  },
+  {
+    slug: "it/text-replace",
+    inputs: { sourceText: "aa", findInput: "aa", replaceInput: "X" },
+    clicks: ["document.getElementById('sourceText').value='aa'.repeat(600);document.getElementById('optCase').checked=false;document.getElementById('optRegex').checked=false;document.getElementById('optGlobal').checked=true;doReplace();document.getElementById('resultText').value='REPLACED='+document.getElementById('resultText').value.length+' COUNT='+document.getElementById('replaceCount').textContent;"],
+    expect: ["REPLACED=600 COUNT=600"],
+    ref: "IT-N3：600 个非重叠字面量替换实际执行 600 次，计数不能停在旧的 501 上限。",
+  },
+  {
+    slug: "it/text-replace",
+    inputs: { sourceText: "ab ac", findInput: "a(.)", replaceInput: "[$1]" },
+    clicks: ["document.getElementById('optCase').checked=false;document.getElementById('optRegex').checked=true;document.getElementById('optGlobal').checked=true;doReplace();"],
+    expect: ["[b] [c]"],
+    ref: "IT-N3 回归：正则模式仍展开捕获组；字面量模式才保持 $1 原样。",
+  },
+  {
+    slug: "it/text-replace",
+    inputs: { sourceText: "İ hello WORLD hello", findInput: "hello", replaceInput: "X" },
+    clicks: ["document.getElementById('optCase').checked=false;document.getElementById('optRegex').checked=false;document.getElementById('optGlobal').checked=true;doReplace();document.getElementById('resultText').value+=' | count='+document.getElementById('replaceCount').textContent;"],
+    expect: ["İ X WORLD X | count=2"],
+    ref: "IT-N3：İ 小写会扩为两个码元；必须按原文索引替换两处且计数为 2。",
+  },
+  {
+    slug: "it/text-replace",
+    inputs: { sourceText: "İ hello WORLD hello", findInput: "hello", replaceInput: "X" },
+    clicks: ["document.getElementById('optCase').checked=false;document.getElementById('optRegex').checked=false;document.getElementById('optGlobal').checked=false;doReplace();document.getElementById('resultText').value+=' | count='+document.getElementById('replaceCount').textContent;"],
+    expect: ["İ X WORLD hello | count=1"],
+    ref: "IT-N3：非全局模式只替换首处，并保持前后原文和计数。",
+  },
+  {
+    slug: "it/text-replace",
+    inputs: { sourceText: "İ HELLO hello", findInput: "hello", replaceInput: "X" },
+    clicks: ["document.getElementById('optCase').checked=true;document.getElementById('optRegex').checked=false;document.getElementById('optGlobal').checked=true;doReplace();document.getElementById('resultText').value+=' | count='+document.getElementById('replaceCount').textContent;"],
+    expect: ["İ HELLO X | count=1"],
+    ref: "IT-N3：区分大小写只匹配小写 hello，İ 前缀与大写词不受影响。",
+  },
+  {
+    slug: "it/text-replace",
+    inputs: { sourceText: "İ a.b aXb a.b", findInput: "a.b", replaceInput: "$&" },
+    clicks: ["document.getElementById('optCase').checked=false;document.getElementById('optRegex').checked=false;document.getElementById('optGlobal').checked=true;doReplace();document.getElementById('resultText').value+=' | count='+document.getElementById('replaceCount').textContent;"],
+    expect: ["İ $& aXb $& | count=2"],
+    ref: "IT-N3：字面量模式点号不作为通配符，替换值 $& 不展开。",
+  },
+  {
+    slug: "it/text-replace",
+    inputs: { sourceText: "İ aaaa", findInput: "aa", replaceInput: "X" },
+    clicks: ["document.getElementById('optCase').checked=false;document.getElementById('optRegex').checked=false;document.getElementById('optGlobal').checked=true;doReplace();document.getElementById('resultText').value+=' | count='+document.getElementById('replaceCount').textContent;"],
+    expect: ["İ XX | count=2"],
+    ref: "IT-N3：紧邻匹配不得重叠计数；结果和次数均为 2。",
+  },
+  {
+    slug: "it/text-replace",
+    inputs: { sourceText: "İ hello WORLD hello", findInput: "hello", replaceInput: "X" },
+    clicks: ["document.getElementById('optCase').checked=false;document.getElementById('optRegex').checked=false;document.getElementById('optGlobal').checked=true;previewMatch();var ctx=document.getElementById('contextArea').innerHTML;document.getElementById('resultText').value='PREVIEW_N3='+(ctx.includes('#1 [2]')&&ctx.includes('#2 [14]'));"],
+    expect: ["PREVIEW_N3=true"],
+    ref: "IT-N3：两处预览坐标分别为原文 UTF-16 偏移 2 和 14；旧实现小写展开后偏移为 3 和 15。",
+  },
+  {
     // 原 it/base64 已在「跨分类重复工具治理（批次六）」合并进 base64-converter，
     // 旧 slug 不再存在。用例改指现存工具，避免死用例长期拖挂门禁。
     slug: "it/base64-converter",
@@ -569,6 +646,18 @@ const CASES = [
     ref: "JSONPath 表达式 $.a.b 命中数组 [1,2,3] ⇒ 输出按页侧格式展开为 `[ 1 , 2 , 3 ]`。默认 path 与默认 JSON 不同，不命中；expr 不以 $ 开头时页面直接报错（`jsonPath: JSONPath 表达式必须以 $ 开头`），不影响本例。",
   },
   {
+    slug: "it/json-path",
+    inputs: { input: '{"a":[1,2,3,4,5]}', path: "$.a[4:0:-1]" },
+    expect: ["[ 5 , 4 , 3 , 2 ]"],
+    ref: "IT-N489 复核失败重做：负步长切片。$.a[4:0:-1] 应从索引 4 向 0（不含）迭代 ⇒ [5,4,3,2]；修复前负步长分支写成 for(i=e0-1;i>=s0;...)，把起止语义颠倒，实得 []。结果格式按页侧 join(' , ')。默认 JSON/path 不命中 ⇒ 可判别。",
+  },
+  {
+    slug: "it/json-path",
+    inputs: { input: '{"a":[1,2,3,4,5]}', path: "$.a[::-1]" },
+    expect: ["[ 5 , 4 , 3 , 2 , 1 ]"],
+    ref: "IT-N489 负步长省略边界分支：$.a[::-1] 应整体反转 ⇒ [5,4,3,2,1]；修复前省略上界配合颠倒循环得 []。验证步长方向 + 省略边界按方向收敛（负步长默认 start=len-1、end=-1）。",
+  },
+  {
     slug: "it/keyword-density",
     inputs: { inputText: "aa bb aa cc bb aa dd" },
     expect: ["排名 关键词 出现次数 占比 密度条 1 aa 3 42.86%"],
@@ -579,6 +668,18 @@ const CASES = [
     inputs: { input: "zh-CN" },
     expect: ["语言（ISO 639-1）： zh 国家（ISO 3166-1）： CN 完整名称： 简体中文（中国大陆）"],
     ref: "locale 标签解析：zh-CN ⇒ 语言 zh / 国家 CN / 完整名「简体中文（中国大陆）」/ 书写系统 Hans / 排序拼音。默认输入不同 ⇒ 不命中（双态核验：注入 PASS / 默认 FAIL）。",
+  },
+  {
+    slug: "it/locale-lookup",
+    inputs: { input: "de-1996-1996" },
+    expect: ["不符合 BCP 47 格式"],
+    ref: "IT-N421：重复 variant 必须拒绝。`de-1996-1996` 含两个相同 variant 1996，Intl.getCanonicalLocales 以 RangeError 拒绝；原正则 LC_RE 不查重误判有效。现 __lcValid 增加 variant/扩展单例去重检查。expect 命中「不符合 BCP 47 格式」提示（默认 en-US 命中「✅ 有效」串、不命中「不符合」）⇒ 强判别；回退去重检查后必红。"
+  },
+  {
+    slug: "it/locale-lookup",
+    inputs: { input: "en-u-ca-gregory-u-nu-latn" },
+    expect: ["不符合 BCP 47 格式"],
+    ref: "IT-N421：重复扩展单例 u 必须拒绝。`en-u-ca-gregory-u-nu-latn` 含两个 u 扩展单例，Intl.getCanonicalLocales 拒绝；现单例去重检查拦截。expect 命中「不符合 BCP 47 格式」（默认态不命中）⇒ 强判别。"
   },
   {
     slug: "it/ipv6-converter",
@@ -852,6 +953,12 @@ const CASES = [
     clicks: ["document.getElementById('seed').value='TB549B';document.getElementById('maxLen').value='10';document.getElementById('suffixMode').value='none';document.getElementById('count').value='8';generate();var __o=document.getElementById('output').innerHTML;var __names=__o.split('</div>').map(function(s){return s.replace(/<[^>]*>/g,'');}).filter(function(s){return s.length;});document.getElementById('output').textContent='TN549_LEN='+__names.length+'/'+(__names.every(function(s){return s.length<=10;})?1:0);"],
     expect: ["TN549_LEN=8/1"],
     ref: "IT-N549 最大长度：maxLen=10、无后缀、8 条，重试 16 次仍超长按上限截断 ⇒ 8 条全部 ≤10 字符。修复前无 maxLen 控件，候选常有 20+ 字符 ⇒ 该哨兵不出现。默认态不含该串。",
+  },
+  {
+    slug: "it/team-name-generator",
+    clicks: ["document.getElementById('seed').value='x';document.getElementById('style').value='classical';document.getElementById('domain').value='creative';document.getElementById('maxLen').value='6';document.getElementById('suffixMode').value='number';document.getElementById('count').value='5';generate();var __o=document.getElementById('output').innerHTML;var __names=__o.split('</div>').map(function(s){return s.replace(/<[^>]*>/g,'');}).filter(function(s){return s.length;});var __all=__names.length>0&&__names.every(function(s){return / [0-9][0-9]$/.test(s);});document.getElementById('output').textContent='TN549_SUFFIX='+(__all?1:0);"],
+    expect: ["TN549_SUFFIX=1"],
+    ref: "IT-N549：短 maxLen 时后缀须保留可见。种子 x、古风、创意、maxLen=6、数字后缀、5 条，修复后每条以「 两位数字」结尾（复现得 Jad 25 / Neo 19 / Moo 72 / Neo 28 / Cry 42），因截断时为后缀预留长度；修复前整串被截到 6 字符、数字后缀丢失（如 Jade W）⇒ 该哨兵为 0。默认态（无种子、maxLen=24）不命中 TN549_SUFFIX=。"
   },
   {
     slug: "it/screen-size",
@@ -1199,6 +1306,20 @@ const CASES = [
     clicks: ["calcTool()"],
     expect: ["✅ 未发现明显风格问题。"],
     ref: "IT-N527：围栏代码块内的 # 行不参与标题层级与列表检查；修复前 H3→H6 会报跳级，结论串不出现。默认示例含待整改项。",
+  },
+  {
+    slug: "it/markdown-lint",
+    inputs: { src: "*斜体* 后面是说明" },
+    clicks: ["calcTool()"],
+    expect: ["✅ 未发现明显风格问题。"],
+    ref: "IT-N527 复核失败重做：行首成对强调后接正文（*斜体* 后面是说明）是合法强调，旧实现整行须为强调才豁免、此处因后续正文被误报「列表符号后缺空格」；改为「行首以成对强调开头即豁免」。默认示例含待整改项不命中。回退 N527 源码会令此用例转红。",
+  },
+  {
+    slug: "it/markdown-lint",
+    inputs: { src: "```python\n~~~\ncode\n```" },
+    clicks: ["calcTool()"],
+    expect: ["✅ 未发现明显风格问题。"],
+    ref: "IT-N527 复核失败重做：以 ```python 开围栏、内部出现 ~~~ 不应被当作闭围栏；旧实现任意围栏行都翻转 inFence，导致 ~~~ 提前闭围栏、末尾 ``` 被当成无语言新围栏报 MD040。新增按定界符类型+长度匹配开闭，跨类型围栏内内容不参与检查。默认示例含待整改项不命中。回退 N527 源码会令此用例转红。",
   },
   {
     slug: "it/markdown-lint",
@@ -1567,6 +1688,27 @@ const CASES = [
     ref: "IT-N528：镜像引用含空白会破坏 YAML，须拒绝；修复前原样拼接。默认 nginx:latest 不含空白，不出现该提示。",
   },
   {
+    slug: "it/kubernetes-yaml-generator",
+    inputs: { name: "web", image: "nginx:latest", port: "80.9", replicas: "2" },
+    clicks: ["calcTool()"],
+    expect: ["⚠ 端口须为整数（1~65535，80.9 不被允许）"],
+    ref: "IT-N528：端口 80.9 非整数须拒绝（修复前 Math.floor 静默取整为 80 写进 containerPort，违反整数约束）。默认 80 合法不出现该提示。",
+  },
+  {
+    slug: "it/kubernetes-yaml-generator",
+    inputs: { name: "web", image: "#invalid", port: "80", replicas: "2" },
+    clicks: ["calcTool()"],
+    expect: ["⚠ 镜像名不能以 # 开头（YAML 会当作注释）"],
+    ref: "IT-N528：镜像 #invalid 以 # 开头会被 YAML 当作注释、值变 null，须拒绝。修复前原样拼成 `image: #invalid`。默认 nginx:latest 不出现该提示。",
+  },
+  {
+    slug: "it/kubernetes-yaml-generator",
+    inputs: { name: "web", image: "{}", port: "80", replicas: "2" },
+    clicks: ["calcTool()"],
+    expect: ["⚠ 镜像名不能是 YAML 关键字或空结构"],
+    ref: "IT-N528：镜像 {} 会被 YAML 解析成空映射而非字符串，须拒绝。修复前原样拼成 `image: {}`。默认 nginx:latest 不出现该提示。",
+  },
+  {
     slug: "it/emoji-cheatsheet",
     inputs: { search: "🍺" },
     expect: ["共 1 个 emoji"],
@@ -1776,6 +1918,20 @@ const CASES = [
     ref: "E.164 与国内按位分组格式随号码变化：注入 13900139000 + 国家码 86 ⇒ E.164 +8613900139000、国内格式 139 0013 9000。原注入 13800138000 恰为页面默认号码，默认态同样输出「138 0013 8000」，属逃生项。",
   },
   {
+    slug: "it/phone-parser",
+    inputs: { phone: "07946095842", cc: "44" },
+    clicks: ["calcTool()"],
+    expect: ["07946 095842"],
+    ref: "IT-N413：英国手机 07 开头须按手机分组（5-6）。输入 07946095842（含前导 0 共 11 位）⇒ 剥 trunk 后 7946095842（10 位、手机），国内格式应为 07946 095842。修复前按固话 3-4-4 显示 079 4609 5842。expect 命中手机分组串（默认 zh-CN 态不出现）⇒ 强判别；回退移动/固话分支后必红。"
+  },
+  {
+    slug: "it/phone-parser",
+    inputs: { phone: "0794609584", cc: "44" },
+    clicks: ["calcTool()"],
+    expect: ["⚠️ 国内号码应为 9–10 位"],
+    ref: "IT-N413：英国 07 手机国内须恰为 10 位（含 trunk 0 共 11 位）。0794609584 仅 10 位（含 0），剥 0 后 9 位 ⇒ 手机长度不足 ⇒ 应提示长度错误。修复前按 9 位固话判通过。expect 命中「⚠️ 国内号码应为 9–10 位」（默认态不命中）⇒ 强判别。"
+  },
+  {
     slug: "it/country-code-lookup",
     inputs: { input: "CN" },
     expect: ["ISO 3： CHN"],
@@ -1814,6 +1970,13 @@ const CASES = [
     clicks: ["generate()"],
     expect: ["⚠ 纬度需在 -90 ~ 90 之间"],
     ref: "IT-N522 锁定：纬度 999 超出范围须直接拒绝，不再静默生成 geo:999,999；默认样例 39.9/116.4 不出现该提示。与既有 NaN 补强用例互补（范围检查 vs 非数值检查）。",
+  },
+  {
+    slug: "it/location-qr",
+    inputs: { lat: "1oops", lng: "2", label: "" },
+    clicks: ["generate()"],
+    expect: ["⚠ 纬度 须为合法数字（不支持非法后缀）"],
+    ref: "IT-N522 复核失败重做：纬度 1oops 含非法后缀，parseCoord 严格正则 /^-?\\d+(\\.\\d+)?$/ 拒绝，不再 parseFloat 截断为 1 静默生成 geo:1,2。默认样例 39.9/116.4 不出现该提示 ⇒ 强判别、零逃生。",
   },
   {
     slug: "it/sitemap-generator",
@@ -2295,6 +2458,20 @@ const CASES = [
     ref: "IT-N554：按字符名 snowman 检索命中 U+2603（内置标准名称表）。HEAD 版把 7 个字母拆成 7 格 ⇒ 不命中。",
   },
   {
+    slug: "it/unicode-lookup",
+    inputs: { search: "U+AC00" },
+    clicks: ["render()"],
+    expect: ["HANGUL SYLLABLE GA"],
+    ref: "IT-N555：U+AC00 是 Hangul 音节 가，标准名 HANGUL SYLLABLE GA（按 L/V/T 组合规则推导）。修复前显示 HANGUL SYLLABLE-AC00（拼码点而非合成名）。默认列表不含该条目。",
+  },
+  {
+    slug: "it/unicode-lookup",
+    inputs: { search: "U+3FFFF" },
+    clicks: ["render()"],
+    expect: ["名称未收录"],
+    ref: "IT-N555：U+3FFFF 落在已分配 CJK 子区间（0x30000–0x3134F）之外、属未分配码位，应标「名称未收录」而非伪造 CJK UNIFIED IDEOGRAPH-3FFFF。修复前在 0x20000–0x3FFFF 宽区间里直接套用 CJK 命名。默认列表不含该码位。",
+  },
+  {
     slug: "it/username-generator",
     inputs: { style: "fun", maxLen: "20" },
     clicks: ["generate()"],
@@ -2573,6 +2750,55 @@ const CASES = [
     clicks: ["generate()"],
     expect: ["TOOLBOX-QR-2026"],
     ref: "二维码矩阵在桩内画不出来（`renderQR … leng`），但内容串先已写进结果区 ⇒ 直接锚内容串（与 `it/qrcode` 同族）。 ⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
+  },
+  {
+    slug: "it/text-qr",
+    inputs: { text: "old secret" },
+    clicks: ["document.getElementById('text').value='old secret';generate();window.__qrMeta={probe:1};document.getElementById('text').value='';generate();document.getElementById('output').textContent='N551_META='+(window.__qrMeta===null?'NULL':'STALE');"],
+    expect: ["N551_META=NULL"],
+    ref: "IT-N551：先生成 old secret（__qrMeta 置位），强制置哨兵模拟已生成二维码，清空输入再 generate()，空分支必须清空 __qrMeta（修复前仅 return 不清空，旧二维码仍可下载）。断言贴回结果区的状态标记，old secret 不出现在判定串、非回显。",
+  },
+  {
+    slug: "design/contrast-checker",
+    inputs: { fgHex: "GGGGGG", bgHex: "000000" },
+    clicks: ["updateAll()"],
+    expect: ["颜色需为有效的 3 或 6 位 HEX 值"],
+    ref: "D-N1：前景 GGGGGG 为非法 HEX，修复前 hexToRgb 把非法值回退成黑色 [0,0,0]，与背景 000000 算出 ratio 1.00 / 不达标，给出误导结论。修复后 updateAll() 先 isValidHex 双校验，任一非法即清空比率、显示错误提示且不输出评级。该提示串仅非法态出现，默认合法色对（如 #FFFFFF/#000000 给 21.00）不命中。",
+  },
+  {
+    slug: "sports/lanqiumingzhonglv-lanbanxiaolv",
+    inputs: { fgm: "10", fga: "2", tpm: "0", tpa: "0", ftm: "0", fta: "0", oreb: "0", dreb: "0", min: "1" },
+    clicks: ["calc()"],
+    expect: ["命中数不能大于对应出手数"],
+    ref: "SF-N35：投篮命中 10 > 出手 2 在修复前未被任何守卫覆盖（原 SF-N35 只校 tpm>fgm/tpa>fga/ftm>fta），FG% 算出 10/2=500% 虚高。修复后守卫补齐 fgm>fga 等「命中≤出手」判定，越界即清空结果区并提示。该提示串仅越界态出现，默认样例（fgm=8/fga=18）正常出数据、不命中。",
+  },
+  {
+    slug: "design/svg-to-png",
+    inputs: { svgInput: "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"10\" height=\"10\"><rect width=\"10\" height=\"10\"/></svg>", width: "10", height: "10" },
+    clicks: ["window.Image=function(){var im={};im._ol=null;im._oe=null;im._src='';Object.defineProperty(im,'onload',{configurable:true,get:function(){return im._ol;},set:function(f){im._ol=f;globalThis.__lastOnload=f;}});Object.defineProperty(im,'onerror',{configurable:true,get:function(){return im._oe;},set:function(f){im._oe=f;}});Object.defineProperty(im,'src',{configurable:true,get:function(){return im._src;},set:function(s){im._src=s;}});return im;};globalThis.Image=window.Image;if(typeof URL!=='undefined'){URL.createObjectURL=function(){return 'blob:x';};URL.revokeObjectURL=function(){};}var __ce=document.createElement.bind(document);document.createElement=function(t){if(t==='canvas'){return {width:0,height:0,style:{},getContext:function(){return {fillRect:function(){},drawImage:function(){},set fillStyle(v){},get fillStyle(){return '';}};},toDataURL:function(){return 'DATAURL_STALE_MARKER';},toBlob:function(cb){if(typeof cb==='function')cb(null);}};}return __ce(t);};document.getElementById('svgInput').value='<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"10\" height=\"10\"><rect width=\"10\" height=\"10\"/></svg>';document.getElementById('width').value='10';document.getElementById('height').value='10';generate();document.getElementById('svgInput').value='';generate();try{if(globalThis.__lastOnload)globalThis.__lastOnload();}catch(e){}var __p=document.getElementById('preview');var __m=document.getElementById('exportMetaVal');__m.textContent='D21_LAST='+(lastDataURL===''?'EMPTY':'STALE')+' PREV='+(__p.innerHTML.indexOf('<img')>=0?'IMG':'NONE');"],
+    expect: ["D21_LAST=EMPTY", "PREV=NONE"],
+    ref: "D-N21：先生成合法 SVG（注册异步 img.onload，token=1），随即清空输入再 generate()（token=2，lastDataURL 清空、preview 写入「请输入 SVG 代码」），最后手动触发那个本应已作废的旧 onload（模拟异步晚到）。修复后 onload 头部校验 myToken!==__genToken 直接 return，旧结果不写回 ⇒ lastDataURL 仍空、preview 无 <img。修复前旧 onload 仍把旧 PNG 写回 lastDataURL 与 preview（PREV=IMG）。该判定串仅由注入 clicks 写入 exportMetaVal，默认快照（B）无 clicks ⇒ 不命中、判别力真实。",
+  },
+  {
+    slug: "investment/irr-calc",
+    inputs: { cf0: "-100", cf1: "230", cf2: "-132", cf3: "0", cf4: "0" },
+    clicks: ["calcTool()"],
+    expect: ["可能存在多重 IRR"],
+    ref: "IRR 多根现金流：现金流 -100、230、-132、0、0 令 NPV=0 的根有两个（10% 与 20%）。修复前 noRoot 仅用两端点乘积判断，多根时两端同号误判无解却仍显示 IRR 10.00%，并配「无零点」提示，自相矛盾。修复后改以 irr() 实际求根结果（NaN=无解）为准，正确提示可能存在多重 IRR。判定串只出现在非常规多根现金流，默认 [-1000,300,400,500,200] 给 15.32% 与「解唯一」，不命中。",
+  },
+  {
+    slug: "insurance/net-single-premium",
+    inputs: {},
+    clicks: ["__nspLast={nsp:81763.70};document.getElementById('B').value='';calcTool();document.getElementById('result').textContent='R6_LAST='+(__nspLast===null?'NULL':'STALE');"],
+    expect: ["R6_LAST=NULL"],
+    ref: "R-N6：模拟一次有效计算已把 __nspLast 置为旧保费 81763.70，再清空保额 B 重算触发必填守卫。修复后 __nspLast=null 已置于守卫之前，旧明细立即清空、不可再被导出或写历史（导出入口 if(!__nspLast) 阻断）；修复前守卫 return 早于旧代码里的 __nspLast=null，旧明细仍在 ⇒ R6_LAST=STALE、导出/历史残留旧值。断言贴回结果区的状态标记，旧保费数值不出现在判定串、非回显。",
+  },
+  {
+    slug: "rehabilitation/berg-balance-scale",
+    inputs: {},
+    clicks: ["window.TBKit={util:{isEn:function(){return false;},exportTable:function(){}}};__bbsExport();var tb=document.querySelector('#bbsTable tbody');var t=tb?tb.textContent:'';document.getElementById('resultBox').textContent='M19='+(t.indexOf('低于安全界值 45 分约')>=0?'LEAK':'OK');"],
+    expect: ["M19=OK"],
+    ref: "M-N19：默认（全部未评分）调用 __bbsExport，修复后 fallGap 仅完整作答（answered===14）时计算，CSV 风险行不再外泄「低于安全界值 45 分约 X 分，每分约 7% 线性估算」后缀；修复前未完成作答仍无条件追加该后缀（total=0 ⇒ fallGap=45）。断言贴回 resultBox 的标记，输入无关、非回显。",
   },
   {
     slug: "it/barcode-upc",
@@ -3536,6 +3762,13 @@ const CASES = [
     ref: "89 是质数（√89 < 9.5，用 2/3/5/7 试除均不整除 ⇒ 可手判）。⚠️ 该页默认 `n` 就是 **97**，注入 97 会撞默认态 ⇒ 改喂 89，与已有「91 是合数」用例形成质数/合数双向覆盖。",
   },
   {
+    slug: "it/prime-checker",
+    inputs: { n: "318665857834031151167461" },
+    clicks: ["calcTool()"],
+    expect: ["318665857834031151167461 是合数"],
+    ref: "IT-N476 复核失败重做：24 位合数 318665857834031151167461 = 399165290221 × 798330580441，是「通过全部 12 个素数基（2..37）Miller–Rabin」的最小复合数；旧 12 基实现误判为质数。扩展为首 25 个素数基（至 97，确定范围 < 3.8×10^49）后正确判为合数。默认态 n=97 不出现该串 ⇒ 强判别、零逃生。回退 12 基源码会令此用例转红。",
+  },
+  {
     slug: "it/standard-deviation",
     inputs: { data: "1,2,3,4,5", dtype: "1" },
     clicks: ["calculate()"],
@@ -3625,6 +3858,13 @@ const CASES = [
     clicks: ["generate()"],
     expect: ["*HELLO*"],
     ref: "Code39 码字：`*` 为起始/终止符、字符间以 `*` 分隔，故输出为 **`*HELLO*`**（Code39 规范：每个字符前加 `*`、字符间不加，整体首尾各一个 `*`）。这族里唯一能拿到**确定性文本产物**的条码页——同族的 `barcode-codabar/-itf/-msi` 在 harness 下 `output` 只回显原始输入（编码与绘制函数均抛 `undefined` 属性错）⇒ 不可收。注：产物虽已刷新，但 `buildCode39` 依赖 canvas 绘制会抛错，本例只锚文本码字行。",
+  },
+  {
+    slug: "it/barcode-code39",
+    inputs: { data: "A*B" },
+    clicks: ["generate()"],
+    expect: ["⚠ 不支持字符「*」，Code 39 仅支持 A–Z、0–9、空格与 - . $ / + %。"],
+    ref: "IT-N509 复核失败重做：数据含起止哨兵 * 须被拒绝，不再内部编码（buildCode39 开头 if(text.includes('*')) return {error:'*'}）。默认样例 HELLO 不出现该提示 ⇒ 强判别、零逃生。",
   },
 
   // ---- BATCH248：同页第三组参数 + 概率统计族分支覆盖（18 例） ----
@@ -4650,6 +4890,47 @@ const CASES = [
     expect: ["ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"],
     ref: "SHA-256('abc') = ba7816bf…20015ad（NIST FIPS 180-4 标准向量）。走 crypto.subtle 异步路径，harness 以 await Promise.allSettled(pending) 等待落盘。与上一条的 hello 向量（SHA-256 = 2cf24dba…9824）互不命中。",
   },
+  {
+    slug: "it/calc-10",
+    inputs: { textInput: "中文" },
+    clicks: ["generateHashes();"],
+    expect: ["a7bac2239fcdcb3a067903d8077c4a07"],
+    ref: "IT-N469：MD5 填充必须先按 UTF-8 转字节。修复前 convertToWordArray 用 str.length + charCodeAt 按 UTF-16 码元填充，中文摘要为 cbf9d3b2…；标准值 a7bac2239fcdcb3a067903d8077c4a07（Node crypto / md5sum 一致）。默认输入为空只提示请输入文本，不命中。"
+  },
+  {
+    slug: "it/calc-10",
+    inputs: { textInput: "café" },
+    clicks: ["generateHashes();"],
+    expect: ["07117fe4a1ebd544965dc19573183da2"],
+    ref: "IT-N469：2 字节重音字母 café 同样受影响（旧值 961f50f6…），标准 MD5 为 07117fe4a1ebd544965dc19573183da2；验证非 ASCII 双字节序列按字节写入而非码元。"
+  },
+  {
+    slug: "it/calc-10",
+    inputs: { textInput: "😀" },
+    clicks: ["generateHashes();"],
+    expect: ["2a02eac39d716a70ecf37579185927b6"],
+    ref: "IT-N469：4 字节 emoji 在 UTF-16 下是两个代理对码元，旧实现填充长度算 2 而非 4（旧值 2843eed9…）；标准 MD5 为 2a02eac39d716a70ecf37579185927b6，验证代理对按 UTF-8 编码后的字节数计长。"
+  },
+  {
+    slug: "it/calc-10",
+    inputs: { textInput: "中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中" },
+    clicks: ["generateHashes();"],
+    expect: ["e1212ccef8bfd794e6a0caa33da4533e"],
+    ref: "IT-N469：30 个中 = 90 UTF-8 字节，跨 64 字节分组边界；旧实现只当 30 字节算成单块，长度字与分块数双错。标准 MD5 为 e1212ccef8bfd794e6a0caa33da4533e，验证 lMessageLength 与 0x80 填充按字节计。"
+  },
+  {
+    slug: "it/calc-10",
+    inputs: { textInput: "你好，世界" },
+    clicks: ["generateHashes();"],
+    expect: ["dbefd3ada018615b35588a01e216ae6e"],
+    ref: "IT-N469：混合中文与全角标点（15 字节）的摘要需与 md5sum 一致；旧值 20a4a687…。同页 SHA 本就走 utf8ToBytes，本例同时守住 MD5 与 SHA 同口径。"
+  },
+  {
+    slug: "it/calc-10",
+    clicks: ["document.getElementById('stats').textContent='N469EN='+(String(generateHashes).indexOf('Algorithm')>=0&&String(generateHashes).indexOf('Hash value')>=0?1:0);"],
+    expect: ["N469EN=1"],
+    ref: "IT-N469 顺带：#result 由 generateHashes 动态重建，英文态静态扫描覆盖不到。表头算法/哈希值与空态/错误提示须逐串过 __hL helper；用源码契约守住英文实参不被删。纯 clicks、无花括号，快照态不执行即变红。中文态输出逐字不变。"
+  },
   // ── §7.4 零用例加固 · it 行业第一批（NUM 类 22 页，2026-10-05）──
   {
     slug: "it/binomial-distribution",
@@ -4903,6 +5184,12 @@ const CASES = [
     "inputs": { "source": "dependencies = [\n  \"serde\",\n  \"tokio\",\n]" },
     "expect": ["dependencies: - serde - tokio"],
     "ref": "IT-N358：多行数组。修复前 tVal 用 `lastIndexOf(']')` 取内层，行内无 `]` 时得 -1 ⇒ 直接返回空数组，后续元素行又因无 `=` 被跳过 ⇒ `dependencies:` 后无内容（Cargo.toml 的依赖列表被清空）。现 parseToml 在括号未闭合时继续吞并后续行。expect 是「键名 + 两个元素」的连续形态，输入里元素带引号（`\"serde\"`）而输出无引号 ⇒ 非回显；修复前不产生该串 ⇒ 必红灯。"
+  },
+  {
+    "slug": "it/toml-to-yaml",
+    "inputs": { "source": "dependencies = [ # ] 备注\n  \"serde\",\n  \"tokio\",\n]" },
+    "expect": ["dependencies: - serde - tokio"],
+    "ref": "IT-N358 续：多行数组首行带行内注释（注释内恰好含 `]`）。修复前 tDepth 在剥注释前计算括号深度，把注释里的 `]` 误当成数组结束 ⇒ 不吞并后续行 ⇒ `dependencies:` 后无内容（serde/tokio 丢失）。现先 stripComment 再判深度，后续依赖被正常并入 ⇒ 输出含 serde/tokio。expect 依赖注入的两个元素（输入里带引号、注释是中文「备注」）⇒ 非回显；修复前必红灯。"
   },
   {
     "slug": "it/toml-to-yaml",
@@ -5161,6 +5448,12 @@ const CASES = [
     "inputs": { "source": "items:\n  - http://probe.example/x" },
     "expect": ["&lt;items&gt;http://probe.example/x&lt;/items&gt;"],
     "ref": "IT-N356：`- ` 项是否算映射，修复前用「含冒号且首字符是字母」判定，`http://probe.example/x` 被拆成键 `http`、值 `//probe.example/x` ⇒ 输出 `<items><http>//probe.example/x</http></items>`。现要求 `:` 后必须是空白或行尾，URL 归为标量。expect 是整串标量形态，与修复前的拆键形态不同 ⇒ 强判别。"
+  },
+  {
+    "slug": "it/yaml-to-xml",
+    "inputs": { "source": "items:\n  - a\n  - b" },
+    "expect": ["&lt;root&gt; &lt;items&gt;a&lt;/items&gt;&lt;items&gt;b&lt;/items&gt; &lt;/root&gt;"],
+    "ref": "IT-N355：单键 + 多元素数组。修复前 jsonToXml 对单键直接 `ser()` 不包 root，两个 `- ` 项并列为 `<items>a</items><items>b</items>`（两个并列根，XML 解析器拒绝）。现单键数组长度>1 时包一层 `<root>` 保证单一根。expect 含 `&lt;root&gt;` 与两个 `&lt;items&gt;`（输入 YAML 不含尖括号 ⇒ 非回显）；修复前输出无 root ⇒ 必红灯。"
   },
   {
     "slug": "it/yaml-to-xml",
@@ -5515,6 +5808,18 @@ const CASES = [
       "⚠ 输入含非数字字符：MSI 仅支持 0–9，请删除后重试，本工具不会静默丢弃字符。"
     ],
     "ref": "IT-N511 回归：混合输入 12A3 必须被拒绝。修复前 replace(/\\D/g,'') 静默剥离 A ⇒ 条码编码 123、页面文字显示 12A3（显示与编码不一致）且零提示；修复后统一报非数字错误。默认样例为纯数字不命中，注入的 A 是触发该分支的关键。"
+  },
+  {
+    "slug": "it/barcode-msi",
+    "inputs": {
+      "data": "7228588281088160612916291613220210957569",
+      "checkMode": "mod10"
+    },
+    "clicks": ["generate()"],
+    "expect": [
+      "72285882810881606129162916132202109575694"
+    ],
+    "ref": "IT-N510 复核失败重做：40 位长串 Mod 10 校验位，旧实现把加倍位拼成大整数再 ×2 超 2^53 精度 ⇒ 校验位算成 7；逐位加倍后 >9 减 9 得正确校验位 4（数据流 data+校验位 = 7228…5694）。默认样例 1234567 不出现该 40 位串 ⇒ 强判别、零逃生。回退 N510 源码会令此用例转红。"
   },
   {
     "slug": "it/barcode-itf",
@@ -6459,17 +6764,6 @@ const CASES = [
       "1 2 3\n31 0a 32 0a 33"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\",\"output\":\"1\\n2\\n3\",\"sep\":\" \"}，输出区含「1 2 3\n31 0a 32 0a 33」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
-  },
-  {
-    "slug": "it/hex-to-text",
-    "inputs": {
-      "input": "1\n2\n3",
-      "output": "1\n2\n3"
-    },
-    "expect": [
-      "1 2 3\n1 2 3"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\",\"output\":\"1\\n2\\n3\"}，输出区含「1 2 3\n1 2 3」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "it/hash-multi",
@@ -7549,6 +7843,45 @@ const CASES = [
   },
   {
     "slug": "it/math-evaluator",
+    "inputs": {
+      "expr": "7%-3"
+    },
+    "clicks": [
+      "document.getElementById('expr').value='7%-3';calc();var __h=String(document.getElementById('result').innerHTML);document.getElementById('result').textContent='N474 signed1='+(__h.indexOf('>1<')>=0?1:0);"
+    ],
+    "expect": [
+      "N474 signed1=1"
+    ],
+    "ref": "IT-N474 复核失败重做：带一元负号的右操作数。7%-3 应判取模（7 % -3 = 1）；修复前 % 后跟 - 被当作百分比得 (7/100)-3 = -2.93。现改用函数式判别：% 后紧跟数字/左括号/正负号则保留取模。注入失败态回到默认 1030（不含 >1<）⇒ 可判别。"
+  },
+  {
+    "slug": "it/math-evaluator",
+    "inputs": {
+      "expr": "7%+3"
+    },
+    "clicks": [
+      "document.getElementById('expr').value='7%+3';calc();var __h=String(document.getElementById('result').innerHTML);document.getElementById('result').textContent='N474 signed2='+(__h.indexOf('>1<')>=0?1:0);"
+    ],
+    "expect": [
+      "N474 signed2=1"
+    ],
+    "ref": "IT-N474 复核失败重做：7%+3 应判取模（7 % 3 = 1）；修复前得 (7/100)+3 = 3.07。与 signed1 共守「带符号右操作数」分支。"
+  },
+  {
+    "slug": "it/math-evaluator",
+    "inputs": {
+      "expr": ".5%"
+    },
+    "clicks": [
+      "calc()"
+    ],
+    "expect": [
+      "结果： 0.005"
+    ],
+    "ref": "IT-N474 复核失败重做：纯小数百分比 .5% 应得 0.005；修复前正则 (\\d+(?:\\.\\d+)?) 要求整数部分，.5 不匹配 ⇒ 保留 % 致语法错。现加 (\\.\\d+) 分支支持省略整数。"
+  },
+  {
+    "slug": "it/math-evaluator",
     "clicks": [
       "document.getElementById('expr').value='1+1';__meReuse('2^10 + sqrt(144)');var __e=document.getElementById('expr').value;var __r=String(document.getElementById('result').innerHTML);document.getElementById('result').innerHTML='N475 reuse='+__e+'|hit='+(__r.indexOf('1036')>=0?1:0);"
     ],
@@ -7586,6 +7919,36 @@ const CASES = [
       "N475 i18n=1"
     ],
     "ref": "IT-N475 顺带修：历史区按钮文本「复用」原为硬编码中文，英文态 ?lang=en-US 动态创建的按钮残留 CJK（jsdom 真机实测 textContent=复用）。现 renderHist 经 __meL 输出 Reuse。修复前 renderHist 既无 __meL 也无 Reuse ⇒ 0 ⇒ 红；真机中英两态复核另见移交档。"
+  },
+  {
+    "slug": "it/math-evaluator",
+    "clicks": ["document.getElementById('expr').value='eval(String.fromCharCode(50,42,51))';calc();var __h=String(document.getElementById('result').innerHTML);document.getElementById('stats').textContent='N470 eval='+(__h.indexOf('表达式含非法字符')>=0?1:0);"],
+    "expect": ["N470 eval=1"],
+    "ref": "IT-N470 安全回归（已修未删补护栏）：eval(String.fromCharCode(50,42,51)) 在旧实现会经 new Function 执行返回 6；现 MATH_ALLOWED 标识符白名单拒绝 eval/String/fromCharCode。探针显式重置 #expr（本页 inputs 注入会被初始样例覆盖）后取 #result 的 innerHTML 判定拒绝串，修复前为「结果：6」⇒ 0 ⇒ 红。"
+  },
+  {
+    "slug": "it/math-evaluator",
+    "clicks": ["document.getElementById('expr').value='fetch(String.fromCharCode(47,47,120,46,99))';calc();var __h=String(document.getElementById('result').innerHTML);document.getElementById('stats').textContent='N470 fetch='+(__h.indexOf('表达式含非法字符')>=0?1:0);"],
+    "expect": ["N470 fetch=1"],
+    "ref": "IT-N470：fetch(String.fromCharCode(47,47,120,46,99)) 旧实现会真的发起 fetch 外发数据；现白名单拒绝 fetch/fromCharCode。与 eval 用例分守两类全局能力（动态执行 / 网络）。纯 clicks、无花括号。"
+  },
+  {
+    "slug": "it/math-evaluator",
+    "clicks": ["document.getElementById('expr').value='document.title';calc();var __h=String(document.getElementById('result').innerHTML);document.getElementById('stats').textContent='N470 doc='+(__h.indexOf('表达式含非法字符')>=0?1:0);"],
+    "expect": ["N470 doc=1"],
+    "ref": "IT-N470：document.title 旧实现可读全局 DOM 属性；现标识符白名单拒绝 document/title，成员访问检查亦拦截非数字小数点。"
+  },
+  {
+    "slug": "it/math-evaluator",
+    "clicks": ["document.getElementById('expr').value='sin(0).constructor';calc();var __h=String(document.getElementById('result').innerHTML);document.getElementById('stats').textContent='N470 member='+(__h.indexOf('表达式含非法字符')>=0?1:0);"],
+    "expect": ["N470 member=1"],
+    "ref": "IT-N470：sin(0).constructor 是绕过「只放行数学函数」的典型原型链手法（sin 本身合法）；现成员访问检查把非数字字面量的 \".\" 一律拒绝。"
+  },
+  {
+    "slug": "it/math-evaluator",
+    "clicks": ["document.getElementById('expr').value='sqrt(144)+3';calc();var __h=String(document.getElementById('result').innerHTML);document.getElementById('stats').textContent='N470 ok='+(__h.indexOf('>15<')>=0?1:0);"],
+    "expect": ["N470 ok=1"],
+    "ref": "IT-N470 护栏：合法表达式 sqrt(144)+3 仍须正常算出 15（>15< 精确锚，避开默认结果 1030 的 token 前缀）。前 4 条注入用例在缺陷态变红，本条在修复前后同绿，证明拦截没有误伤正常计算。"
   },
   {
     "slug": "it/vector-cross-product",
@@ -7640,6 +8003,42 @@ const CASES = [
       "θ = 90°"
     ],
     "ref": "IT-N471 回归护栏：正交 A=(1,0,0)、B=(0,1,0) ⇒ 90°，asin 与 atan2 同值，修复前后同绿，确保改造未误伤直角。"
+  },
+  {
+    "slug": "it/vector-cross-product",
+    "inputs": {
+      "a0": "1e-7",
+      "a1": "0",
+      "a2": "0",
+      "b0": "0",
+      "b1": "1e-7",
+      "b2": "0"
+    },
+    "clicks": [
+      "calculate()"
+    ],
+    "expect": [
+      "θ = 90°"
+    ],
+    "ref": "IT-N471 复核失败重做：小尺度正交向量。A=(1e-7,0,0)、B=(0,1e-7,0) 量级 1e-7、叉积 1e-14，固定 1e-12 绝对阈值会误判为 0 且不显示角度；现改用相对阈值 sinθ=|A×B|/(|A||B|) 与 1e-9 比较，角度正常显示 90° 且不误判平行。默认 (1,2,3)×(4,5,6)=12.933° 不含 90° ⇒ 可判别。"
+  },
+  {
+    "slug": "it/vector-cross-product",
+    "inputs": {
+      "a0": "1e-7",
+      "a1": "0",
+      "a2": "0",
+      "b0": "-1e-7",
+      "b1": "0",
+      "b2": "0"
+    },
+    "clicks": [
+      "calculate()"
+    ],
+    "expect": [
+      "θ = 180°"
+    ],
+    "ref": "IT-N471 复核失败重做：小尺度反向共线。A=(1e-7,0,0)、B=(-1e-7,0,0) 叉积 0、A·B=-1e-14 ⇒ atan2(0,-1e-14)=180°；固定阈值旧实现会丢失角度。相对阈值下 180° 正常显示。"
   },
   {
     "slug": "it/vector-cross-product",
@@ -7902,9 +8301,9 @@ const CASES = [
       "label": "abc123测试"
     },
     "expect": [
-      "⚠ 纬度需在 -90 ~ 90 之间"
+      "⚠ 纬度 须为合法数字（不支持非法后缀）"
     ],
-    "ref": "真实 QR 改造后经纬度做数值校验：注入 lat/lng=abc123测试，parseFloat 得 NaN ⇒ 输出「⚠ 纬度需在 -90 ~ 90 之间」。默认样例（39.9/116.4）不出现该提示 ⇒ 强判别、零逃生。"
+    "ref": "真实 QR 改造后经纬度做数值校验：注入 lat/lng=abc123测试，parseCoord 严格数字正则不匹配 ⇒ 输出「⚠ 纬度 须为合法数字（不支持非法后缀）」。默认样例（39.9/116.4）不出现该提示 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "it/linux-cheatsheet",
@@ -7937,6 +8336,19 @@ const CASES = [
       "sectetur sed. Minim qui in duis dolore cillum non officia commodo amet nisi officia id ex duis velit nisi non elit. Amet"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"count\":\"42\",\"output\":\"1\\n2\\n3\"}，输出区含「sectetur sed. Minim qui in duis dolore c…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "it/lorem",
+    "inputs": {
+      "count": "1",
+      "minWords": "3",
+      "maxWords": "3"
+    },
+    "clicks": ["document.getElementById('startLorem').checked=true;generate()"],
+    "expect": [
+      "Lorem ipsum dolor."
+    ],
+    "ref": "IT-N525 复核失败重做：句长最小/最大均 3、勾选「以 Lorem ipsum 开头」、默认段落模式，首句须服从句长约束为 3 词「Lorem ipsum dolor.」；旧实现强行塞入固定 8 词句。默认态不出现该串 ⇒ 强判别、零逃生。回退 N525 源码会令此用例转红。"
   },
   {
     "slug": "it/markdown-editor",
@@ -8511,6 +8923,42 @@ const CASES = [
       "42\n判定结果 42 是合数 ❌ 最小质因数： 2 因数分解： 42 = 2 × 3 × 7"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"n\":\"42\"}，输出区含「42\n判定结果 42 是合数 ❌ 最小质因数： 2 因数分解： 42 = 2 ×…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "it/prime-checker",
+    "inputs": {"n": "2.5"},
+    "expect": ["请输入整数：不支持小数、科学计数法、负号或其它字符。"],
+    "ref": "IT-N476：旧实现 parseFloat + Math.floor 把 2.5 静默改成 2 并判「2 是质数 ✅」，判定对象被替换且无提示。现严格校验 /^\\d+$/ 并明确拒绝小数；默认态 97 输出质数，不含该提示 ⇒ 强判别。"
+  },
+  {
+    "slug": "it/prime-checker",
+    "inputs": {"n": "9007199254740993"},
+    "expect": ["9007199254740993 = 3 × 3002399751580331"],
+    "ref": "IT-N476：= 3 × 3002399751580331，旧实现 parseFloat 舍入成 2^53=9007199254740992 并分解成 53 个 2。现超 2^53 走 BigInt，最小质因数 3、输入原样保留；修复前不含该分解串 ⇒ 红。"
+  },
+  {
+    "slug": "it/prime-checker",
+    "inputs": {"n": "1e21"},
+    "expect": ["请输入整数：不支持小数、科学计数法、负号或其它字符。"],
+    "ref": "IT-N476：科学计数法输入旧实现显示「1e+21 是合数」并给出伪分解，现按非十进制整数拒绝。与上一条小数用例构成两类非法格式双覆盖；默认态无该提示。"
+  },
+  {
+    "slug": "it/prime-checker",
+    "inputs": {"n": "2305843009213693951"},
+    "expect": ["2305843009213693951 是质数"],
+    "ref": "IT-N476：2^61−1（梅森质数）远超 2^53，旧实现按浮点判合数；现 BigInt + 确定性 Miller-Rabin（12 个素数基）判质数，验证大数判定不是简单拒绝而是精确算对。"
+  },
+  {
+    "slug": "it/prime-checker",
+    "clicks": ["document.getElementById('n').value='2.5';calcTool();document.getElementById('stats').textContent='N476 guard='+((typeof __pcMillerRabin==='function')&&__pcMillerRabin(2305843009213693951n)===true&&__pcMillerRabin(9007199254740993n)===false&&String(document.getElementById('result').innerHTML).indexOf('2 是质数')<0?1:0);"],
+    "expect": ["N476 guard=1"],
+    "ref": "IT-N476 行为契约：直接调用页面 BigInt Miller-Rabin 判定（2^61−1 质数 / 2^53+1 合数），并确认 2.5 不再被静默判成「2 是质数」。注意本页被 harness 包装成 __prime_checker_f0，String(calcTool) 只有包装壳，源码契约在此页不可用；改行为契约。"
+  },
+  {
+    "slug": "it/prime-checker",
+    "clicks": ["document.getElementById('stats').textContent='N476EN='+((typeof __pcL==='function')&&__pcL('判定结果','Result')==='判定结果'&&__pcL('是质数','is prime')==='是质数'?1:0);"],
+    "expect": ["N476EN=1"],
+    "ref": "IT-N476 顺带：#result 动态重建，英文态静态扫描覆盖不到；行为契约守住 __pcL helper 存在且中文态逐字返回原中文，英文态 0 CJK 由 jsdom 真机探针验证。"
   },
   {
     "slug": "it/pomodoro",
@@ -10692,6 +11140,18 @@ const CASES = [
     inputs: { data: "12345" },
     expect: ["首字符必须是起止符 A/B/C/D（如 A12345B）"],
     ref: "IT-N492 起止符校验：Codabar 规定首尾必须是 A–D，`12345` 无起止符时读码器无法判读。修复前页面照样生成条形码（静默接受）；现 generate() 直接报错并说明补法。默认 data=A12345B 合法，不命中。",
+  },
+  {
+    "slug": "it/barcode-codabar",
+    "inputs": { "data": "A1B2C" },
+    "expect": ["数据位仅支持 0-9 - $ : / . +"],
+    "ref": "IT-N492/N493：起止符之间的数据位仅允许 0-9 - $ : / . +，A/B/C/D 仅为起止符不得出现在数据位。`A1B2C` 内部含 B、C（起止符）⇒ 必须报错。默认样例 A12345B 数据位全为数字不命中；修复前静默生成条码（数据位含起止符 ⇒ 扫码值与标签不一致）。"
+  },
+  {
+    "slug": "it/barcode-codabar",
+    "inputs": { "data": "AAA" },
+    "expect": ["数据位仅支持 0-9 - $ : / . +"],
+    "ref": "IT-N492/N493：`AAA` 起止符之间无合法数据字符（内部 A 不是数据字符）⇒ 必须报错。默认样例不命中；修复前静默生成条码（无有效数据）。"
   },
   ...["barcode-codabar", "barcode-code128", "barcode-code39", "barcode-ean", "barcode-itf", "barcode-msi", "barcode-upc"].map(function (slug) {
     return {
