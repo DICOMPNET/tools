@@ -270,15 +270,8 @@ function __tbInputGuardCore(_ids,_labels){
       return __TPL3.replace('%s',__N[_ids[_n]]);
     }
   }
-  // 全零：任何一项作分母都会得到 Infinity/NaN。页面公式本身没错，是输入无意义
-  var _nums=[];
-  for(var _z=0;_z<_vals.length;_z++){ if(typeof _vals[_z]==='number'&&!isNaN(_vals[_z])) _nums.push(_vals[_z]); }
-  if(!_nums.length) return '';
-  if(_nums.length>0){
-    var _allZero=true;
-    for(var _z2=0;_z2<_nums.length;_z2++){ if(_nums[_z2]!==0){ _allZero=false; break; } }
-    if(_allZero) return "<p style=\"color:var(--danger)\">⚠ 输入不能全为 0：至少需要一项非零数值，否则计算无意义。</p>";
-  }
+  // T-N5：已填写的合法零值（如应收/存货/应付天数均为 0）不再拒绝——CCC=0 是有效结果，
+  // 营业周期为 0 时占比按 formula-eq 显示「—」（见 calcTool 的 payRatio=null 分支）。仅空值/缺失仍由上方 _firstBad 拒绝。
   for(var _k=0;_k<_ids.length;_k++){
     var _e2=document.getElementById(_ids[_k]);
     if(_e2&&_e2.classList&&_e2.classList.remove)_e2.classList.remove('input-error');
@@ -347,7 +340,7 @@ calcTool();
 {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "现金周期的公式是什么？", "acceptedAnswer": {"@type": "Answer", "text": "CCC=应收账款周转天数(DSO)+存货周转天数(DIH)−应付账款周转天数(DPO)；DPO 越大周期越短，但不能无限压供应商账期。"}}, {"@type": "Question", "name": "现金周期为负说明什么？", "acceptedAnswer": {"@type": "Answer", "text": "当 DPO 大于 DSO+DIH 时周期为负，说明企业可无偿占用供应商资金覆盖经营占用，是强势供应链地位的体现（如部分零售巨头）。"}}]}</script>
 <script>
 function __cash_conversion_cycleNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
-function __cash_conversion_cycleExtras(){
+function __cash_conversion_cycleExtras(skipHistory){
     function __cash_conversion_cycleRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
     var DSO=num('DSO'),DIO=num('DIO'),DPO=num('DPO');
@@ -372,6 +365,7 @@ function __cash_conversion_cycleExtras(){
             ['应付占营业周期比 (%)', payRatio===null?'—（营业周期为 0，占比无定义）':payRatio.toFixed(2)],
         ]
     });
+    if (skipHistory) return;
     TBKit.history.record({DSO:__cash_conversion_cycleRaw('DSO'), DIO:__cash_conversion_cycleRaw('DIO'), DPO:__cash_conversion_cycleRaw('DPO'), CCC:CCC});
     function __cash_conversion_cycleRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
     TBKit.history.mount('#cash_conversion_cycleHist',function(rec){ __cash_conversion_cycleRestore(rec); calcTool(); });
@@ -379,9 +373,28 @@ function __cash_conversion_cycleExtras(){
 }
 function __cash_conversion_cycleExport(){
     if (typeof TBKit === 'undefined') return;
+    __tb_fn0(); __cash_conversion_cycleExtras(true);
     var __box=document.getElementById('cash_conversion_cycleTable');
     if (!__box || !__box.querySelector('tr')) { try{ ToolBox.showToast('请先完成一次有效计算，明细表为空时不导出。'); }catch(e){} return; }
-    try { TBKit.util.exportTable('#cash_conversion_cycleTable','cash-conversion-cycle.csv'); } catch(e){}
+    var copy=__box.cloneNode(true), tbody=copy.querySelector('tbody'), en=TBKit.util.isEn();
+    var rules=en?[
+        ['Cash conversion cycle','CCC = DSO + DIO - DPO (days)'],
+        ['Operating cycle','DSO + DIO (days)'],
+        ['Payables share','DPO / (DSO + DIO) × 100%; undefined when operating cycle is 0.'],
+        ['Input rule','Days must be non-negative; zero is allowed. CCC may be negative.']
+    ]:document.documentElement.lang.toLowerCase()==='zh-tw'?[
+        ['現金轉換週期公式','CCC = DSO + DIO - DPO（天）'],
+        ['營業週期公式','DSO + DIO（天）'],
+        ['應付占比公式','DPO / (DSO + DIO) × 100%；營業週期為 0 時占比無定義。'],
+        ['輸入口徑','天數須非負，允許為 0；現金轉換週期可為負數。']
+    ]:[
+        ['现金转换周期公式','CCC = DSO + DIO - DPO（天）'],
+        ['营业周期公式','DSO + DIO（天）'],
+        ['应付占比公式','DPO / (DSO + DIO) × 100%；营业周期为 0 时占比无定义。'],
+        ['输入口径','天数须非负，允许为 0；现金转换周期可为负数。']
+    ];
+    rules.forEach(function(row){var tr=document.createElement('tr');row.forEach(function(value){var td=document.createElement('td');td.textContent=value;tr.appendChild(td);});tbody.appendChild(tr);});
+    try { TBKit.util.exportTable(copy,'cash-conversion-cycle.csv'); } catch(e){}
 }
 function __cash_conversion_cyclePresets(){
     if (typeof TBKit === 'undefined') return;

@@ -86,7 +86,10 @@ async function loadPage(rel, onKit) {
   const zhAttrs = Array.from(doc.querySelectorAll('[data-zh]')).map((e) => e.getAttribute('data-zh')).join('\n');
   check('SF-N86 引据表不再称「加权总分 / 乘以权重后求和」', !/加权总分/.test(zhAttrs) && !/乘以权重后求和/.test(zhAttrs));
   check('SF-N86 引据表已写明「8 项等权相加、满分 40」', /安全评分 = 8 项得分直接相加/.test(zhAttrs) && /满分 40/.test(zhAttrs), 'zh 片段缺失');
+  const deepDive = JSON.parse(read('i18n/tools/content_deepdive.json'))['sports/assessor-risk-2'].examples[0].body;
+  const english = JSON.parse(read('i18n/tools/en/sports/assessor-risk-2.json')).map[deepDive];
   check('SF-N86 深度解析示例改为 8 维算例（23 分 → 43/100）', /23 分/.test(body) && /43\/100/.test(body));
+  check('SF-N86 构建源与页面算例一致并有英文译文', body.includes(deepDive) && !!english && /23 points/.test(english) && /43\/100/.test(english));
 
   const vals = { a1: '2', a2: '2', a3: '2', a4: '3', a5: '3', a6: '4', a7: '3', a8: '4' };
   for (const k of Object.keys(vals)) { const el = doc.getElementById(k); if (el) el.value = vals[k]; }
@@ -109,6 +112,27 @@ async function loadPage(rel, onKit) {
   const res = String(doc.getElementById('res').innerHTML || '');
   check('SF-N83 夹角 ≥170° 时停算并提示', /夹角 ≥170° 时角度因子已超过 5\.7/.test(res), 'res=' + res.slice(0, 120));
   check('SF-N83 不再渲染 114.59 倍角度因子', !/114\.59/.test(res), 'res=' + res.slice(0, 160));
+}
+
+// SF-N122：公式、说明和英文词典须与实际的失误率标准化计算一致。
+{
+  const rel = 'tools/sports/yumaoqiushaqiuxiaolv.html';
+  const w = await loadPage(rel);
+  const doc = w.document;
+  const formula = doc.querySelector('.formula-eq').textContent.trim();
+  const info = Array.from(doc.querySelectorAll('.info-box')).find(el => el.textContent.includes('有效率='));
+  const infoText = info.textContent.trim();
+  const dict = JSON.parse(read('i18n/tools/en/sports/yumaoqiushaqiuxiaolv.json')).map;
+  check('SF-N122 公式明确失误分归一化为 max(0, 100−失误率/20×100)', formula.includes('max(0, 100−失误率/20×100)'));
+  check('SF-N122 说明使用失误分而非原始失误率', infoText.includes('0.3×失误分') && !infoText.includes('0.3×(1−失误率)'));
+  check('SF-N122 新公式和说明均有一致的英文翻译', !!dict[formula] && !!dict[infoText] && dict[formula].includes('max(0, 100 − error rate / 20 × 100)') && dict[infoText].includes('error score'));
+  for (const [errors, expected] of [[0, '75.6'], [5, '56.9'], [8, '45.6'], [10, '45.6']]) {
+    for (const [id, value] of Object.entries({ speed: '280', total: '40', win: '12', err: String(errors) })) doc.getElementById(id).value = value;
+    w.calc();
+    const result = doc.getElementById('res').textContent;
+    check('SF-N122 失误 ' + errors + ' 次按公式得到 ' + expected, result.includes(expected), '页面=' + result.slice(0, 200));
+  }
+  w.close();
 }
 
 console.log('\n==== sports K 批运行期证据: ' + pass + '/' + (pass + fail) + ' ====');

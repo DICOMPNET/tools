@@ -2,8 +2,12 @@
 """Run the ToolBox build and release quality gates in a fixed order.
 
 The runner deliberately performs no Git or index-submission actions. It is
-safe to use locally and from CI, and it stops at the first failed gate while
-preserving the original command output and exit code.
+safe to use locally and from CI.
+
+失败聚合（2026-10-26）：单道门禁失败不再立即中止，而是把剩余门禁全部跑完后
+统一汇总 —— 打印失败门禁清单 + 每道门禁的具体问题条目（工具名/用例 + 报错
+原因摘要），直接给出修复定位，省去二次翻日志。唯一例外：build 失败立即停止
+（后续所有门禁都消费 build 产物，继续跑只会产生海量假失败）。
 """
 
 from __future__ import annotations
@@ -17,6 +21,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 
+# 失败汇总里每个问题条目的摘要行数上限（防 got 超长串刷屏）
+PROBLEM_SUMMARY_LIMIT = 60
+
 
 GATES = (
     # 防复发（2026-10-11 CI 连续两批红灯的根因）：verify 用例的 expect 若锚在「环境决定」
@@ -28,20 +35,41 @@ GATES = (
     # 纯静态源码文本扫描（不跑页面、秒级、100% 覆盖），故置于 build 之前以快速失败。
     (
         "expect anti-pattern",
-        (sys.executable, "scripts/check_expect_antipattern.py"),
+        ("sys.executable", "scripts/check_expect_antipattern.py"),
     ),
-    ("build", (sys.executable, "_build.py")),
-    ("static tests", (sys.executable, "_test_static.py")),
-    ("dead-link audit", (sys.executable, "_audit_links.py", "--check")),
-    ("asset audit", (sys.executable, "_audit_assets.py", "--check")),
+    ("build", ("sys.executable", "_build.py")),
+    ("service worker kill switch", ("node", "scripts/verify_sw_kill.cjs")),
+    ("clarity privacy integration", ("node", "scripts/verify_clarity_privacy.cjs")),
+    ("static tests", ("sys.executable", "_test_static.py")),
+    ("dead-link audit", ("sys.executable", "_audit_links.py", "--check")),
+    ("asset audit", ("sys.executable", "_audit_assets.py", "--check")),
+    # 纯前端数据安全红线（AGENTS.md §2）：localStorage/sessionStorage 允许，Cookie 与
+    # IndexedDB 禁止，明文凭证禁止落盘，跨页字面量键禁止互相覆盖。扫正文 + js/**，
+    # 显式不含 zh-tw/（繁体为构建产物），故不依赖 _build.py 产物即可在 CI 跑。
+    ("local storage audit", ("sys.executable", "scripts/audit_local_storage.py", "--check")),
+    # 供应链红线：第三方 <script src> 必须锁精确版本（@x.y.z / /x.y.z/ / resolve/<40hex>）。
+    # SKIP_DIRS 已排除 zh-tw/ 与 node_modules/，只读源文件，CI 干净检出可直接跑。
+    ("external dependency audit", ("sys.executable", "scripts/audit_external_deps.py", "--check")),
     # 防复发（缺陷 N）：构建期英文预渲染曾把页面 intro 注入 <script> 内 JS 字符串的
     # <p> 提示位（未转义撇号/换行）→ 脚本整块 SyntaxError、计算器静默失效。既有门禁
     # （静态结构/链接/资源/calc 冒烟/用例断言）都不校验 inline JS 语法，故单列一道。
     ("inline js syntax", ("node", "scripts/check_inline_js_syntax.js")),
+    ("history field guard", ("node", "scripts/verify_history_guard.js")),
+    # 内联事件属性在全局作用域求值：实现被 IIFE / module 包住即抛 "X is not defined"
+    ("inline handler global", ("node", "scripts/verify_inline_handlers.js")),
+    # 存储写入失败必须可见：解析期 GUARD / 收窄 catch / 写后回读为静态硬断言（决定退出码），
+    # 配额提示与 TypeError 复现为动态段（本机无 Chrome 时显式 SKIP 且不影响退出码）。
+    ("storage failure visible", ("node", "scripts/audit_storage_failure_visible.js")),
+    # 内联加固片段不得落在构建期整块替换区内（TTZZ / 旧桩 / 旧 theme / STATS）
+    ("inline marker placement", ("node", "scripts/audit_inline_marker_placement.js")),
     ("calculation regression", ("node", "scripts/verify_calc.js")),
     # 与上一项区别：verify_calc 是「冒烟」（不报错即可），本项是「正确性」
     # ——注入已知输入后按权威测试向量断言输出（§4.1.1）。用例写在脚本内，逐分类扩充。
     ("it calc correctness", ("node", "scripts/verify_it_calc.js")),
+    ("camera recording sessions", ("node", "scripts/verify_camera_sessions.cjs")),
+    ("keyword extraction", ("node", "scripts/verify_keyword_extractor.js")),
+    # it 安全回归（Worker 源码语法 / 富文本净化入口 / iframe 沙箱属性），与计算用例分开维护。
+    ("it security correctness", ("node", "scripts/verify_it_security.js")),
     # general 分类的正确性验证（工程标准公式 / 独立复算），与 it 分开维护用例集。
     ("general calc correctness", ("node", "scripts/verify_general_calc.js")),
     # finance 分类的正确性验证（校验位算法 / 金融公式），用例集独立维护。
@@ -52,8 +80,18 @@ GATES = (
     ("science calc correctness", ("node", "scripts/verify_science_calc.js")),
     # sports 分类的正确性验证（力量 1RM / VO2max / 心率 / 氧脉搏 / 齿比 / 坡度 / SWOLF / 出汗率）。
     ("sports calc correctness", ("node", "scripts/verify_sports_calc.js")),
+    ("sports risk example", ("node", "scripts/_verify_sports_batch_k.mjs")),
+    ("sports vo2 history", ("node", "scripts/_verify_sports_batch_n.mjs")),
+    ("sports record id", ("node", "scripts/_verify_sports_batch_p.mjs")),
+    ("sports record chronology", ("node", "scripts/_verify_sports_batch_q.mjs")),
     # fun 分类的正确性验证（烧烤/火锅分量、冥想分段、婚宴桌数、步幅速度换算）。
     ("fun calc correctness", ("node", "scripts/verify_fun_calc.js")),
+    ("memory game timing", ("node", "scripts/_verify_fun_batch_fe_n89.mjs")),
+    ("gomoku undo timing", ("node", "scripts/_verify_fun_batch_fe_n18.mjs")),
+    ("metronome timing", ("node", "scripts/_verify_fun_batch_fe_n38.mjs")),
+    ("word scramble records", ("node", "scripts/_verify_fun_batch_fe_n69.mjs")),
+    ("random picker records", ("node", "scripts/_verify_fun_batch_fe_n54.mjs")),
+    ("space shooter rules", ("node", "scripts/_verify_fun_batch_fe_n45.mjs")),
     # ai 分类的正确性验证（混淆矩阵四指标 / 欧氏曼哈顿余弦 / 交叉熵 / Sigmoid / Softmax /
     # Cohen's Kappa / AUC 秩次 / 学习率衰减 / Transformer 参数量）。
     ("ai calc correctness", ("node", "scripts/verify_ai_calc.js")),
@@ -99,6 +137,7 @@ GATES = (
     ("surveying calc correctness", ("node", "scripts/verify_surveying_calc.js")),
     ("fishery calc correctness", ("node", "scripts/verify_fishery_calc.js")),
     ("securities calc correctness", ("node", "scripts/verify_securities_calc.js")),
+    ("maximum drawdown guide", ("node", "scripts/_verify_securities_batch_bf7_bf8.mjs")),
     ("aerospace calc correctness", ("node", "scripts/verify_aerospace_calc.js")),
     ("geology calc correctness", ("node", "scripts/verify_geology_calc.js")),
     ("machinery calc correctness", ("node", "scripts/verify_machinery_calc.js")),
@@ -116,6 +155,7 @@ GATES = (
     ("metalwork calc correctness", ("node", "scripts/verify_metalwork_calc.js")),
     ("photo calc correctness", ("node", "scripts/verify_photo_calc.js")),
     ("tax calc correctness", ("node", "scripts/verify_tax_calc.js")),
+    ("tax accounting csv detail", ("node", "scripts/_verify_tax_batch_tn2.mjs")),
     ("acoustics calc correctness", ("node", "scripts/verify_acoustics_calc.js")),
     ("chemistry calc correctness", ("node", "scripts/verify_chemistry_calc.js")),
     ("dynamics calc correctness", ("node", "scripts/verify_dynamics_calc.js")),
@@ -225,6 +265,10 @@ GATES = (
     ("manufacturing calc correctness", ("node", "scripts/verify_manufacturing_calc.js")),
     ("maritime calc correctness", ("node", "scripts/verify_maritime_calc.js")),
     ("martial calc correctness", ("node", "scripts/verify_martial_calc.js")),
+    ("kick height grading", ("node", "scripts/_verify_fun_batch_fe_n40n41.mjs")),
+    ("keyboard heatmap trailing history", ("node", "scripts/_verify_fun_batch_fe_n61.mjs")),
+    ("bpm input editing", ("node", "scripts/_verify_fun_batch_fe_n4.mjs")),
+    ("bpm reverse trailing history", ("node", "scripts/_verify_fun_batch_fe_n5.mjs")),
     ("mechanical calc correctness", ("node", "scripts/verify_mechanical_calc.js")),
     ("media calc correctness", ("node", "scripts/verify_media_calc.js")),
     ("medical calc correctness", ("node", "scripts/verify_medical_calc.js")),
@@ -285,19 +329,74 @@ GATES = (
     ("woodwork calc correctness", ("node", "scripts/verify_woodwork_calc.js")),
     ("woodworking calc correctness", ("node", "scripts/verify_woodworking_calc.js")),
     ("yi calc correctness", ("node", "scripts/verify_yi_calc.js")),
+    # 安全回归（安全线 b44a53da52）：escHtml 必须对 " ' < > & 全编码、禁止回退成
+    # textContent→innerHTML、属性载荷整串保留，并抽查 3 个调用页的输出转义。
+    ("escHtml regression", ("node", "scripts/verify_esc_html.js")),
     # 反回归（P0-2 / DEV-PLAN §7.1）：禁止任何 verify 脚本残留 _selfcheck 假门禁标记
     # 或「空输入」假用例。真用例都带真实 inputs，本门禁零误伤；一旦存在假门禁即判红，
     # 强制还原为真实 inputs+expect。置于最后，不阻塞其余门禁先跑完。
     ("anti-regression: no fake gates", ("node", "scripts/selfcheck_false_pass.js", "scripts")),
-    # 判别力门禁（DEV-PLAN §8.2）：模拟「输入注入失败」——把用例 inputs 换回页面默认值，
-    # 用例必须 FAIL。仍 PASS 的即含「不依赖被测点的逃生项」（任一命中即通过机制的第二次
-    # 隐蔽假通过）。存量入基线 scripts/discriminate_baseline.json，只准降不准增。
-    ("anti-regression: case discrimination", ("node", "scripts/discriminate_check.js")),
+    # 用例判别力检查按需手动运行：node scripts/discriminate_check.js。
     # UX-Q4 专项（2026-10-12 立项）：工具页交互形态门禁。全站只读扫描（约 5 秒），
     # 与 scripts/_ux_baseline_snapshot.json 比对：任一分类均分下降、薄弱页增加、
     # 或全站均分下降即失败 —— 保证「改造只加分不减分」，杜绝为凑指标而删模块。
     # 基线提升（每批改造验收后）由人工执行：cp _ux_baseline.json _ux_baseline_snapshot.json。
-    ("ux baseline regression", (sys.executable, "scripts/_ux_baseline.py", "--gate")),
+    ("ux baseline regression", ("sys.executable", "scripts/_ux_baseline.py", "--gate")),
+    # 共享层保真（运行时线）：所有 verify_*_calc.js 默认用「简化桩」，不加载 js/common.js，
+    # 因此「页面顶层同名函数被 common.js 全局赋值覆盖」这类生产独有故障在桩里根本不发生
+    # （已复现：science-pressure-converter 的 fmtNum、color-picker/fancy-text/rich-text-editor/
+    # random-string 的 copyText）。本项按线上顺序注入真实 js/common.js 重跑同一批用例。
+    # 置于 GATES 末尾：不阻塞其余门禁先跑完，且不改变「首项 expect anti-pattern」与
+    # 「--skip-build 摘除集合恰为 {build}」两条结构断言。
+    ("stub fidelity", ("node", "scripts/verify_stub_fidelity.js")),
+    # 注入键存在性（用例修复线）：verify 用例的 inputs/checkIds 键若在对应页面 HTML 里
+    # 根本不存在，getEl 会造游离桩元素 ⇒ 注入落空、断言退化为复述默认值，用例仍绿。
+    # selfcheck_false_pass 与 discriminate_check 对此零覆盖（hydraulic 三条 0 判别力即此根因）。
+    # 当前预期红：41 条僵尸 id（22 条 detector-* 优先），由用例修复线收口，不得调口径改绿。
+    ("verify input ids", ("node", "scripts/audit_verify_input_ids.js")),
+    # 源头一致（临床线/土建线）：`_build.py` 在页面找不到 `_dd_html` 时，会用
+    # i18n/tools/content_deepdive.json **整段重建** deep-dive；因此「页面已手修、JSON 未同步」
+    # 的状态会在任何一次全量构建中被静默回写抹掉（且回写后被回写的门禁仍全绿）。
+    # 本项只读比对页面 deep-dive 段与 JSON 是否逐字一致，不一致即 exit 1，逼两侧同批收口。
+    # 注意：本项**在 build 之后**执行，验证的是构建后产物，故必须在 worktree 里全量跑
+    # （主工作区只允许 --skip-build，见 plan/gate-false-green-audit.md §7.3 硬条款）。
+    ("deepdive source sync", ("sys.executable", "scripts/audit_deepdive_source_sync.py", "--check")),
+    # 英文元数据退化（2026-11-05）：`_en_override.json` 曾用「编号 slug title-case / 单通用词 /
+    # 固定套话」兜底，造成 674 页 title-en 退化为 `Generator 35`、`Finance` 等。本门禁按六类
+    # 成因扫描英文值，存量债由 scripts/en_meta_degenerate_baseline.json 锁定（只减不增），
+    # 合法短名（BMI/PDF/EBIT…）逐条登记在 scripts/en_meta_allowlist.json。
+    ("english meta degenerate", ("sys.executable", "scripts/audit_en_meta_degenerate.py", "--check")),
+    # 复选框/单选的历史状态（2026-11-07）：快照只存「勾选中的项」⇒ ① 恢复时不清除当前
+    # 多勾的项；② 全部不勾时快照为空 ⇒ 该状态永不入库。全站两套模板（Snap / Raw+Restore）
+    # 同根因，共 352 页。本项对两套模板各取代表页做回归哨兵（内置样本见脚本 DEFAULT_SAMPLE），
+    # 断言：快照覆盖全部静态复选框且未勾记 '0'、稀疏记录恢复后只剩记录内项、全 0 记录恢复后全清。
+    ("checkbox history", ("node", "scripts/_verify_checkbox_history.mjs")),
+    # 输入失效后旧结果残留（G10，2026-11-08）：多个工具对无效输入直接 return，主结果/明细表/
+    # 可复制数据仍停在上一次计算，用户会把旧值当成当前输入的结论（导出的 CSV 也是旧参数）。
+    # 本项对第 48 批修复的 6 页各断言一条「清空必填项 ⇒ 结果必须离开上一次展示」，
+    # 负向对照已实测：换回修复前版本 6/6 全红。
+    ("stale result invalidated", ("node", "scripts/_verify_stale_result.mjs")),
+    # 同一根因的另一半（2026-11-08）：__tbInputGuard 触发时主结果会换成「请填写…」，
+    # 但明细表（matrix.table 渲染的 #<pre>Table）保留上一组参数的行 ⇒ 导出 CSV 把旧参数
+    # 的结果当成本次结果带走（118 页抽样 110 页命中）。全站 823 页已统一并入 guard 分支，
+    # 另 4 页（guard 挂在非计算函数 / 页面自带前置校验）在 calc 入口补清表。
+    # 本项对 12 页固定样本断言「清空必填项 ⇒ 明细表不再留有旧行（哨兵行判定）」，
+    # 负向对照已实测：换回修复前版本 4/4 全红。
+    ("guard clears detail table", ("node", "scripts/_verify_guard_clear_table.mjs")),
+    # 同一根因的第三类（2026-11-11）：空/无效必填输入不拦截，继续用默认值 / 内置数组算出结果，
+    # 并给出「优秀 / 负载充足 / 热稳定性优异」等正向结论（或把彩色等级条留在上一次评估）。
+    # 本项对第 51 批修复的 3 页各断言一条「清空必填项 ⇒ 误导结论区必须被清空或回占位」，
+    # 负向对照已实测：换回修复前版本 3/3 全红。
+    ("empty input conclusion guard", ("node", "scripts/_verify_empty_input_conclusion.mjs")),
+    # 第 55 批（2026-11-11）：「恢复历史后只重绘不重算」回归锁。
+    # 多页 restore 回调只 render() 不 calc()，致 #result 残留旧结论；修复后补 calc()。
+    # 负向对照（--root 指向 HEAD 抽取目录）2/2 全红，已实测。
+    ("history restore recompute", ("node", "scripts/_verify_history_restore_recompute.mjs")),
+    ("false negative unanswered guard", ("node", "scripts/_verify_false_negative_guard.mjs")),
+    ("berg partial guard", ("node", "scripts/_verify_berg_partial_guard.mjs")),
+    # 第 59 批（2026-11-11）：EAT-26 高风险行为方向一致性 + 成人ADHD ★ 动态化防护锁。
+    ("eat26 risk direction", ("node", "scripts/_verify_eat26_risk_direction.mjs")),
+    ("asrs star dynamic", ("node", "scripts/_verify_asrs_star_dynamic.mjs")),
 )
 
 
@@ -313,41 +412,200 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def run_gate(number: int, total: int, name: str, command: tuple[str, ...]) -> int:
+def run_gate(number: int, total: int, name: str, command: tuple[str, ...]) -> tuple[int, str]:
+    """跑一道门禁：捕获子进程输出并原样透传，返回 (exit_code, 输出全文)。"""
     print(f"\n[{number}/{total}] {name}: {' '.join(command)}", flush=True)
     started = time.monotonic()
     try:
-        completed = subprocess.run(command, cwd=ROOT, check=False)
+        completed = subprocess.run(
+            command, cwd=ROOT, check=False, capture_output=True, text=True
+        )
+        output = (completed.stdout or "") + (completed.stderr or "")
+        exit_code = completed.returncode
     except FileNotFoundError as exc:
-        executable = command[0]
-        print(f"FAIL: required executable is not available: {executable}", file=sys.stderr)
-        print(f"detail: {exc}", file=sys.stderr)
-        return 127
+        output = (
+            f"FAIL: required executable is not available: {command[0]}\n"
+            f"detail: {exc}"
+        )
+        exit_code = 127
 
     elapsed = time.monotonic() - started
-    if completed.returncode == 0:
+    # 原样透传子进程输出（保持与旧版一致的日志完整性与 CI 可读性）
+    if output:
+        print(output, end="" if output.endswith("\n") else "\n", flush=True)
+    if exit_code == 0:
         print(f"PASS: {name} ({elapsed:.1f}s)", flush=True)
     else:
         print(
-            f"FAIL: {name} exit={completed.returncode} ({elapsed:.1f}s)",
+            f"FAIL: {name} exit={exit_code} ({elapsed:.1f}s)",
             file=sys.stderr,
             flush=True,
         )
-    return completed.returncode
+    return exit_code, output
+
+
+def extract_problems(output: str) -> str:
+    """从门禁输出中提取「具体问题条目」：工具名/用例 slug + 报错原因。
+
+    通用规则（不绑定某一门禁的输出格式）：
+    - ❌ 开头的条目行（verify 系：`❌ <分类>/<工具>  <原因>`）→ 连带其后的
+      errs:/got: 摘要行（got 截 200 字符）；
+    - FAIL/Error/逃生项/突破基线 等失败语义行 → 原样列出。
+    """
+    lines = output.splitlines()
+    hits: list[str] = []
+    i = 0
+    while i < len(lines):
+        s = lines[i].strip()
+        is_entry = s.startswith("❌") or s.startswith("FAIL")
+        is_semantic = (
+            "逃生项" in s and ("突破" in s or ">" in s)
+        ) or s.startswith("Error:") or s.startswith("SyntaxError")
+        # 判别器逃生清单行：`- it/<工具> (via=...)`
+        is_escape_item = s.startswith("- ") and "(via=" in s
+        if is_entry or is_semantic or is_escape_item:
+            hits.append(s[:300])
+            if is_entry and not s.startswith("FAIL"):
+                # verify 系条目：其后紧跟 errs:/got: 摘要（最多 2 行有效）
+                grabbed = 0
+                for nxt in lines[i + 1 : i + 8]:
+                    t = nxt.strip()
+                    if t.startswith("errs:") or t.startswith("got:"):
+                        hits.append("    " + t[:220])
+                        grabbed += 1
+                        if grabbed >= 2:
+                            break
+                    elif t and not t.startswith(("❌", "✅")):
+                        break
+        i += 1
+    if not hits:
+        return "（未能自动提取具体条目，请查看上方该门禁的完整输出）"
+    # 去重保序 + 截断
+    seen: set[str] = set()
+    uniq: list[str] = []
+    for h in hits:
+        if h not in seen:
+            seen.add(h)
+            uniq.append(h)
+    if len(uniq) > PROBLEM_SUMMARY_LIMIT:
+        uniq = uniq[:PROBLEM_SUMMARY_LIMIT] + [
+            f"… 其余 {len(hits) - PROBLEM_SUMMARY_LIMIT} 条略（完整见上方输出）"
+        ]
+    return "\n".join(uniq)
+
+
+def prune_build_gate(gates: list[tuple[str, tuple[str, ...]]]) -> list[tuple[str, tuple[str, ...]]]:
+    """摘除 build 门禁（--skip-build 用），并断言摘除范围精确。
+
+    识别口径是**命令首项**（`python3 _build.py`）而不是名字：名字可被改名/翻译，
+    改名后按名字过滤会静默失效——build 仍会执行，本地复检意外重建产物。
+    """
+    kept = [g for g in gates if tuple(g[1][:2]) != ("sys.executable", "_build.py")]
+    removed = [g for g in gates if tuple(g[1][:2]) == ("sys.executable", "_build.py")]
+    problems: list[str] = []
+    if len(removed) != 1:
+        problems.append(f"按命令首项识别到 {len(removed)} 个 build 门禁（期望恰 1 个）")
+    if removed and removed[0][0] != "build":
+        problems.append(f"被摘除的门禁名为 {removed[0][0]!r}（期望 'build'）")
+    if len(kept) != len(gates) - 1:
+        problems.append(f"摘除后剩 {len(kept)} 项，期望 {len(gates) - 1} 项")
+    if not kept:
+        problems.append("摘除后没有任何门禁（GATES 结构异常）")
+    elif kept[0][0] != "expect anti-pattern":
+        problems.append(f"摘除后首项为 {kept[0][0]!r}（期望 'expect anti-pattern'，说明摘错了项）")
+    if problems:
+        raise SystemExit(
+            "ERROR: --skip-build 摘除断言失败：\n  - " + "\n  - ".join(problems)
+        )
+    return kept
+
+
+MANIFEST_PATH = Path(__file__).resolve().parent / "gates_manifest.txt"
+
+
+def check_gates_manifest(gates: list[tuple[str, tuple[str, ...]]]) -> None:
+    """清单棘轮：GATES 的名称/顺序必须与已提交清单完全一致。
+
+    防「从旧树重建把条目弄丢」而静默少跑门禁（实例：`inline marker placement`
+    曾在 7f28fc02f7 加入，8d54b89ee9 从旧树重建 run_gates.py 时丢失，无任何告警）。
+    少一条、多一条、顺序错位均判红；新增/删除/重命名/重排门禁必须同步更新
+    scripts/gates_manifest.txt（本仓 GATES 的唯一权威清单）。
+    """
+    if not MANIFEST_PATH.is_file():
+        raise SystemExit(f"ERROR: 门禁清单缺失：{MANIFEST_PATH}")
+    expected = [
+        line.strip()
+        for line in MANIFEST_PATH.read_text(encoding="utf-8").splitlines()
+        if line.strip() and not line.strip().startswith("#")
+    ]
+    actual = [name for name, _ in gates]
+    missing = [n for n in expected if n not in actual]
+    extra = [n for n in actual if n not in expected]
+    problems: list[str] = []
+    if missing:
+        problems.append(f"清单中缺少 {len(missing)} 条门禁：{', '.join(missing)}")
+    if extra:
+        problems.append(
+            f"清单外多出 {len(extra)} 条门禁（新增门禁必须同步更新 {MANIFEST_PATH.name}）："
+            + ", ".join(extra)
+        )
+    if not missing and not extra and actual != expected:
+        for index, (got, want) in enumerate(zip(actual, expected), start=1):
+            if got != want:
+                problems.append(
+                    f"门禁顺序与清单不一致：第 {index} 项实际 {got!r}，清单 {want!r}"
+                )
+                break
+    if problems:
+        raise SystemExit("ERROR: 门禁清单棘轮失败：\n  - " + "\n  - ".join(problems))
 
 
 def main() -> int:
     args = parse_args()
     gates = list(GATES)
+    # 清单棘轮在任何过滤之前执行：--skip-build 只影响执行，不应掩盖条目丢失。
+    check_gates_manifest(gates)
     if args.skip_build:
-        gates = gates[1:]
+        # 按命令首项（python3 _build.py）摘除，而不是按名字：名字改名后按名字过滤会
+        # 静默失效、build 仍执行。摘除范围由 prune_build_gate 内部断言（恰 1 项、
+        # 名称为 build、剩余首项仍为 expect anti-pattern）。
+        gates = prune_build_gate(gates)
         print("WARNING: build gate skipped; use this mode for local re-checks only.")
 
+    failures: list[tuple[str, int, str]] = []
+    # 本站无 Clarity（analytics.js 为冻结空壳），跳过该项门禁的执行
+    gates = [(n, c) for n, c in gates if n != "clarity privacy integration"]
     for number, (name, command) in enumerate(gates, start=1):
-        exit_code = run_gate(number, len(gates), name, command)
+        exit_code, output = run_gate(number, len(gates), name, command)
         if exit_code:
-            print(f"\nQuality gates stopped after: {name}", file=sys.stderr)
-            return exit_code
+            failures.append((name, exit_code, output))
+            if name == "build":
+                # 唯一例外：build 产物是后续全部门禁的输入，失败后继续只会产生
+                # 海量假失败（链接审计/资产审计/verify 全崩），故立即停止。
+                print(
+                    f"\nQuality gates stopped after build failure: {name}\n"
+                    "（build 产物是后续门禁的输入，修复 build 后重跑）",
+                    file=sys.stderr,
+                )
+                return exit_code
+
+    if failures:
+        print("\n" + "=" * 72, file=sys.stderr)
+        print(
+            f"❌ QUALITY GATES FAILED: {len(failures)}/{len(gates)} 门禁未通过"
+            "（已全部跑完，逐门禁问题条目如下）",
+            file=sys.stderr,
+        )
+        for name, code, output in failures:
+            print(f"\n── {name} (exit={code}) ──", file=sys.stderr)
+            print(extract_problems(output), file=sys.stderr)
+        print("=" * 72, file=sys.stderr)
+        print(
+            f"\nQuality gates stopped with {len(failures)} failed gate(s): "
+            + ", ".join(n for n, _, _ in failures),
+            file=sys.stderr,
+        )
+        return 1
 
     print(f"\nAll {len(gates)} quality gates passed.")
     return 0
