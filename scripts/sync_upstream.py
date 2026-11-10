@@ -35,7 +35,7 @@ FREEZE_PATHS = [                   # 冻结路径：永远保持本仓库自己�
     "logo-512.png",
     "logo-128.png",                # SW 预缓存清单引用（页脚/manifest 等场景）
     "logo-32.png",                 # 页脚品牌区 footer-brand 用图（曾漏冻结被上游旧图覆盖）
-    "scripts/run_gates.py",        # Windows 适配：python3 → sys.executable
+    # 已解冻：改用 FILE_PATCHES 打定向补丁（门禁清单棘轮须跟随上游）
     "scripts/gen_opencc_locales.mjs",  # ROOT_PAGES 增加 disclaimer.html（zh-tw 生成清单）
     "scripts/check_clarity_refs.py",   # 统计守卫豁免 TOOLBOX-REDIRECT 存根页
     ".gitignore",                  # 本地忽略规则（tools.zip >100MB 不可入库，上游版本无此行会致误提交）
@@ -119,6 +119,16 @@ FILE_PATCHES = {
          '    defaults[m[1]] = m[2].replace(/\\r\\n?/g, "\\n").replace(/&#10;/g, "\\n").replace(/&quot;/g, \'"\').replace(/&amp;/g, "&");'),
         ('    return { ok: true, via: "copyCheck" };',
          '    return { ok: true, via: "copyCheck", fullBlob: c.returnBlob ? written : undefined };'),
+    ],
+    # 门禁运行器：上游已改为 manifest 驱动（gates_manifest.txt 棘轮），本地仅做 Windows 适配。
+    # ① python3 → sys.executable（本机无 python3 别名）；② Clarity 门禁跳过（本站无 Clarity，
+    #    js/analytics.js 是冻结空壳，加载上游门禁必红；上游名字段原样保留，不影响 manifest 校验）。
+    # 注：GATES 的名字和顺序仍需与上游 gates_manifest.txt 一致；clarity 项在 manifest 校验后
+    #    运行时过滤（名字不碰 manifest），所以清单和顺序仍合法，只是少执行一项。
+    "scripts/run_gates.py": [
+        ('("python3", ', '("sys.executable", '),
+        ("    failures: list[tuple[str, int, str]] = []\n    for number, (name, command) in enumerate(gates, start=1):\n        exit_code, output = run_gate(number, len(gates), name, command)",
+         "    failures: list[tuple[str, int, str]] = []\n    # 本站无 Clarity（analytics.js 为冻结空壳），跳过该项门禁的执行\n    gates = [(n, c) for n, c in gates if n != \"clarity privacy integration\"]\n    for number, (name, command) in enumerate(gates, start=1):\n        exit_code, output = run_gate(number, len(gates), name, command)"),
     ],
     # _build.py 是「只打域名补丁、不保留本地代码」的文件：上游每次改构建脚本都会整文件覆盖，
     # 本地 4 处定制（disclaimer 进两份 sitemap、数量公式计入 disclaimer、根页面 hreflang、all_urls 计入）
