@@ -123,6 +123,7 @@
     <li><b>轉義序列</b>：<code>\n</code> <code>\t</code> <code>\r</code> <code>\"</code> <code>\\</code> <code>\$</code> <code>\xHH</code> <code>\OOO</code> <code>\u{XXXX}</code>。</li>
     <li><b>引號差異</b>：雙引號解析變數與轉義序列，單引號只識別 <code>\\</code> 與 <code>\'</code>。</li>
     <li><b>陷阱</b>：雙引號中的 <code>$</code> 會被當作變數起始，需寫作 <code>\$</code>。</li>
+    <li><b>非法序列</b>：十六進位制位數不足/非法、碼點超過 U+10FFFF、缺少右花括號時顯示錯誤並清空舊結果；切換模式即時重新整理輸出。</li>
     <li><b>安全</b>：輸出到 HTML 用 htmlspecialchars，寫入資料庫應使用預處理語句。</li>
   </ul>
 </div>
@@ -136,7 +137,7 @@
       <div style="flex:1;"></div>
       <label style="margin:0;font-size:13px;">
         模式
-        <select id="mode" style="padding:6px 10px;font-size:13px;">
+        <select id="mode" onchange="__escLive()" style="padding:6px 10px;font-size:13px;">
           <option value="single">單引號字串</option>
           <option value="double">雙引號字串</option>
         </select>
@@ -272,6 +273,13 @@ function esc(live){
   document.getElementById('output').value = out;
 }
 
+function __phpUnescErr(frag){
+  const raw = String(frag);
+  const zh = "⚠️ 非法转义：" + raw;
+  const en = "Invalid escape: " + raw;
+  document.getElementById('output').value = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh);
+}
+
 function unesc(){
   let text = document.getElementById('input').value;
   if(!text) return alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter PHP string to unescape":"请输入要反转义的 PHP 字符串"));
@@ -300,16 +308,31 @@ function unesc(){
         case '\\': out += '\\'; i += 2; break;
         case '"': out += '"'; i += 2; break;
         case '$': out += '$'; i += 2; break;
-        case 'x':
-          out += String.fromCodePoint(parseInt(text.substr(i+2,2),16));
+        case 'x': {
+          const hex = text.substr(i+2,2);
+          if(!/^[0-9a-fA-F]{2}$/.test(hex)){ __phpUnescErr(text.substr(i,2+hex.length)); return; }
+          out += String.fromCodePoint(parseInt(hex,16));
           i += 4; break;
+        }
         case 'u':
           if(text[i+2] === '{'){
             const end = text.indexOf('}', i+3);
-            out += String.fromCodePoint(parseInt(text.substring(i+3,end),16));
+            const hex = end < 0 ? '' : text.substring(i+3,end);
+            const cp = parseInt(hex,16);
+            if(end < 0 || !/^[0-9a-fA-F]+$/.test(hex) || cp > 0x10FFFF){
+              __phpUnescErr(end < 0 ? text.slice(i) : text.slice(i,end+1));
+              return;
+            }
+            out += String.fromCodePoint(cp);
             i = end + 1;
           } else {
-            out += String.fromCodePoint(parseInt(text.substr(i+2,4),16));
+            const hex = text.substr(i+2,4);
+            const cp = parseInt(hex,16);
+            if(!/^[0-9a-fA-F]{4}$/.test(hex) || cp > 0x10FFFF){
+              __phpUnescErr(text.substr(i,2+hex.length));
+              return;
+            }
+            out += String.fromCodePoint(cp);
             i += 6;
           }
           break;

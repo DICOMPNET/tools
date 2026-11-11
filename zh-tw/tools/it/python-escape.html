@@ -117,13 +117,14 @@
 <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
     <h2 data-zh="🔤 Python 字串轉義">🔤 Python String Escape</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">先去掉首尾空白；以 r 或 R 開頭時判為原始字串並去掉該字首。隨後去掉成對的三雙引號，或成對的外層雙引號與單引號。原始字串模式直接把「反斜槓 + 任意字元」替換為該字元本身。否則逐字元掃描：遇到反斜槓且後面還有字元時，按後隨字元轉義——n 轉換行、r 轉回車、t 轉製表符、b 轉退格、f 轉換頁、v 轉縱向製表符、a 轉響鈴、0 轉空字元、反斜槓與單雙引號轉其自身；x 取後隨 2 位十六進位制、u 取後隨 4 位、U 取後隨 8 位，按 16 進位制解析為碼點並生成字元；後隨字元是八進位制數字時，連續取最多 3 位八進位制數字按 8 進位制解析為碼點；其餘情況取後隨字元本身。不是轉義序列的字元原樣保留</div>
+  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">先去掉首尾空白；僅當 r 或 R 緊鄰有效引號（單引號、雙引號或三引號）時判為原始字串並去掉該字首。隨後去掉成對的三雙引號，或成對的外層雙引號與單引號。原始字串模式直接把「反斜槓 + 任意字元」替換為該字元本身。否則逐字元掃描：遇到反斜槓且後面還有字元時，按後隨字元轉義——n 轉換行、r 轉回車、t 轉製表符、b 轉退格、f 轉換頁、v 轉縱向製表符、a 轉響鈴、0 轉空字元、反斜槓與單雙引號轉其自身；x 取後隨 2 位十六進位制、u 取後隨 4 位、U 取後隨 8 位，按 16 進位制解析為碼點並生成字元；後隨字元是八進位制數字時，連續取最多 3 位八進位制數字按 8 進位制解析為碼點；其餘情況取後隨字元本身。不是轉義序列的字元原樣保留</div>
   <div class="formula-desc">Python 字串字面量的轉義與反轉義。</div>
   <ul class="formula-list">
     <li><b>轉義序列</b>：<code>\n</code> <code>\t</code> <code>\r</code> <code>\"</code> <code>\'</code> <code>\\</code> <code>\xHH</code> <code>\uXXXX</code> <code>\UXXXXXXXX</code> <code>\OOO</code>。</li>
     <li><b>原始字串</b>：<code>r"…"</code> 不做轉義處理，常用於正規表示式與 Windows 路徑。</li>
     <li><b>字首</b>：<code>b</code> 位元組串、<code>f</code> 格式化串、<code>r</code> 原始串，可組合為 <code>rf"…"</code>。</li>
     <li><b>多行</b>：三引號字串可直接跨行，其中的換行會被原樣保留。</li>
+    <li><b>非法序列</b>：十六進位制位數不足/非法或碼點超過 U+10FFFF 時顯示錯誤並清空舊結果；切換模式或引號型別即時重新整理輸出。</li>
   </ul>
 </div>
 
@@ -136,14 +137,14 @@
       <div style="flex:1;"></div>
       <label style="margin:0;font-size:13px;">
         模式
-        <select id="mode" style="padding:6px 10px;font-size:13px;">
+        <select id="mode" onchange="__escLive()" style="padding:6px 10px;font-size:13px;">
           <option value="normal">普通字串</option>
           <option value="raw">原始字串 r"..."</option>
         </select>
       </label>
       <label style="margin:0;font-size:13px;">
         引號
-        <select id="qtype" style="padding:6px 10px;font-size:13px;">
+        <select id="qtype" onchange="__escLive()" style="padding:6px 10px;font-size:13px;">
           <option value="double">雙引號</option>
           <option value="single">單引號</option>
           <option value="triple">三引號 """</option>
@@ -298,12 +299,20 @@ function esc(live){
   document.getElementById('output').value = out;
 }
 
+function __pyUnescErr(frag){
+  const raw = String(frag);
+  const zh = "⚠️ 非法转义：" + raw;
+  const en = "Invalid escape: " + raw;
+  document.getElementById('output').value = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh);
+}
+
 function unesc(){
   let text = document.getElementById('input').value;
   if(!text) return alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter Python string to unescape":"请输入要反转义的 Python 字符串"));
   text = text.trim();
   let isRaw = false;
-  if(/^[rR]/.test(text)){
+  // Python 的 raw 前缀必须紧邻有效引号；`red` 这类普通标识符不得被误去掉首字母。
+  if(/^[rR](?:"""|'''|["'])/.test(text)){
     isRaw = true;
     text = text.slice(1);
   }
@@ -334,15 +343,25 @@ function unesc(){
         case '\\': out += '\\'; i += 2; break;
         case '\'': out += "'"; i += 2; break;
         case '"': out += '"'; i += 2; break;
-        case 'x':
-          out += String.fromCodePoint(parseInt(text.substr(i+2,2),16));
+        case 'x': {
+          const hex = text.substr(i+2,2);
+          if(!/^[0-9a-fA-F]{2}$/.test(hex)){ __pyUnescErr(text.substr(i,2+hex.length)); return; }
+          out += String.fromCodePoint(parseInt(hex,16));
           i += 4; break;
-        case 'u':
-          out += String.fromCodePoint(parseInt(text.substr(i+2,4),16));
+        }
+        case 'u': {
+          const hex = text.substr(i+2,4);
+          if(!/^[0-9a-fA-F]{4}$/.test(hex)){ __pyUnescErr(text.substr(i,2+hex.length)); return; }
+          out += String.fromCodePoint(parseInt(hex,16));
           i += 6; break;
-        case 'U':
-          out += String.fromCodePoint(parseInt(text.substr(i+2,8),16));
+        }
+        case 'U': {
+          const hex = text.substr(i+2,8);
+          const cp = parseInt(hex,16);
+          if(!/^[0-9a-fA-F]{8}$/.test(hex) || cp > 0x10FFFF){ __pyUnescErr(text.substr(i,2+hex.length)); return; }
+          out += String.fromCodePoint(cp);
           i += 10; break;
+        }
         case '0': case '1': case '2': case '3': case '4': case '5': case '6': case '7':
           let o = '';
           let k = i + 1;
