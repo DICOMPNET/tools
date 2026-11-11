@@ -74,17 +74,6 @@
 <script type="application/ld+json">
 {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "Installment Real Rate是做什么的？", "acceptedAnswer": {"@type": "Answer", "text": "分期手续费率 ≠ 实际利率。输入分期本金、期数与每期手续费率，用 IRR（内部收益率）法还原真实年化利率，并给出对比结论。"}}, {"@type": "Question", "name": "如何使用Installment Real Rate？", "acceptedAnswer": {"@type": "Answer", "text": "在对应的输入框或选项中填写、选择所需参数，点击「计算」或「生成」按钮即可运行，结果会在结果区实时显示，支持复制与导出。"}}, {"@type": "Question", "name": "计算结果准确吗？", "acceptedAnswer": {"@type": "Answer", "text": "本工具在你的本地浏览器中实时计算，不依赖服务器；只要输入的参数正确，结果即按对应的规则得出。涉及经验估算的部分仅供参考，不作为正式依据。"}}, {"@type": "Question", "name": "Installment Real Rate适合哪些场景？", "acceptedAnswer": {"@type": "Answer", "text": "个人或家庭的理财规划、贷款与投资收益测算、日常收支与税务估算。"}}, {"@type": "Question", "name": "使用本工具需要联网或上传数据吗？", "acceptedAnswer": {"@type": "Answer", "text": "不需要。所有计算均在你的设备本地完成，数据不会上传到任何服务器，可放心使用。"}}]}
 </script>
-<!-- TOOLBOX-TTZZ -->
-<script>
-(function(){try{
-var el = document.createElement("script");
-el.src = "https://lf1-cdn-tos.bytegoofy.com/goofy/ttzz/push.js?85d6452aa9be4d693b16cd48535a8c7ae57542f6788a41682e745be8eb99b35a8a24d2f724c31ebe20c1e4e6fba6d91caf576100b02a2870c72f38fc574066fef065d152c73bf1cbb2ebad3b5b5265d8";
-el.id = "ttzz";
-var s = document.getElementsByTagName("script")[0];
-s.parentNode.insertBefore(el, s);
-}catch(e){}
-})(window);
-</script>
 
 <script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
@@ -375,7 +364,7 @@ function resetForm(){document.getElementById('P').value='12000';
       calcTool();}
 calcTool();
 
-var __installment_real_rate_last=0,__installment_real_rate_skip=false;
+var __installment_real_rate_last=0,__installment_real_rate_skip=false,__installment_real_rate_timer=null;
 function __installment_real_rateSnap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
@@ -384,7 +373,7 @@ function __installment_real_rateSnap(){
         var t=(e.type||'').toLowerCase();
         if(t==='button'||t==='submit'||t==='hidden') continue;
         var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
-        if(v!==''&&v!=null) out[e.id]=v;
+        if(v!=null) out[e.id]=v;
     }
     return out;
 }
@@ -396,9 +385,16 @@ function __installment_real_rateResText(){
     if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
 }
+function __installment_real_rateFullResText(){
+    var r=document.getElementById('result');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    return t;
+}
 function __installment_real_rateScore(t){
     var s=String(t||'');
-    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    if(/[❌]|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
     return 1;
 }
 function __installment_real_rateTime(t){
@@ -421,7 +417,7 @@ function __installment_real_rateRender(keys,rk,en){
         TBKit.matrix.table('#installment_real_rateTable',{head:head,rows:rows});
         TBKit.util.diffBox('#installment_real_rateDiff');
         TBKit.history.mount('#installment_real_rateHist',function(rec){
-            __installment_real_rate_skip=true;
+            __installment_real_rate_skip=true;clearTimeout(__installment_real_rate_timer);__installment_real_rate_timer=null;
             try{
                 for(var k in rec){
                     if(k===rk||k==='__tbScore') continue;
@@ -445,9 +441,11 @@ function __installment_real_rateRender(keys,rk,en){
         }
     }catch(e3){}
 }
-function __installment_real_rateExtras(){
+function __installment_real_rateExtras(force){
     if (typeof TBKit === 'undefined') return;
     if (__installment_real_rate_skip) return;
+    clearTimeout(__installment_real_rate_timer);
+    __installment_real_rate_timer=null;
     var snap=__installment_real_rateSnap();
     var keys=Object.keys(snap);
     if(!keys.length) return;
@@ -457,7 +455,10 @@ function __installment_real_rateExtras(){
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
     var now=Date.now();
-    if(now-__installment_real_rate_last<1000) return;
+    if(!force && now-__installment_real_rate_last<1000){
+        __installment_real_rate_timer=setTimeout(function(){__installment_real_rateExtras(true);},1000-(now-__installment_real_rate_last));
+        return;
+    }
     var last=null;
     try{ last=TBKit.history.last(); }catch(e){}
     if(last){
@@ -471,12 +472,13 @@ function __installment_real_rateExtras(){
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
-    rec.__tbScore=__installment_real_rateScore(res);
+    rec.__tbScore=__installment_real_rateScore(__installment_real_rateFullResText());
     TBKit.history.record(rec);
     __installment_real_rateRender(keys,rk,en);
 }
 function __installment_real_rateExport(){
     if (typeof TBKit === 'undefined') return;
+    __installment_real_rateExtras(true);
     try{
         var box=document.querySelector('#installment_real_rateTable');
         if(!box||!box.querySelector('tr')){

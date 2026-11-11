@@ -105,17 +105,6 @@
 <script type="application/ld+json">
 {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "信用卡利息计算器是做什么的？", "acceptedAnswer": {"@type": "Answer", "text": "输入信用卡账单金额并选择全额、最低或分期还款，工具对比各方式产生的利息与手续费，帮你选择更省钱的还款策略。"}}, {"@type": "Question", "name": "如何使用信用卡利息计算器？", "acceptedAnswer": {"@type": "Answer", "text": "在对应的输入框或选项中填写、选择所需参数，点击「计算」或「生成」按钮即可运行，结果会在结果区实时显示，支持复制与导出。"}}, {"@type": "Question", "name": "计算结果准确吗？", "acceptedAnswer": {"@type": "Answer", "text": "本工具在你的本地浏览器中实时计算，不依赖服务器；只要输入的参数正确，结果即按对应的规则得出。涉及经验估算的部分仅供参考，不作为正式依据。"}}, {"@type": "Question", "name": "信用卡利息计算器适合哪些场景？", "acceptedAnswer": {"@type": "Answer", "text": "个人或家庭的理财规划、贷款与投资收益测算、日常收支与税务估算。"}}, {"@type": "Question", "name": "使用本工具需要联网或上传数据吗？", "acceptedAnswer": {"@type": "Answer", "text": "不需要。所有计算均在你的设备本地完成，数据不会上传到任何服务器，可放心使用。"}}]}
 </script>
-<!-- TOOLBOX-TTZZ -->
-<script>
-(function(){try{
-var el = document.createElement("script");
-el.src = "https://lf1-cdn-tos.bytegoofy.com/goofy/ttzz/push.js?85d6452aa9be4d693b16cd48535a8c7ae57542f6788a41682e745be8eb99b35a8a24d2f724c31ebe20c1e4e6fba6d91caf576100b02a2870c72f38fc574066fef065d152c73bf1cbb2ebad3b5b5265d8";
-el.id = "ttzz";
-var s = document.getElementsByTagName("script")[0];
-s.parentNode.insertBefore(el, s);
-}catch(e){}
-})(window);
-</script>
 
 <script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
@@ -369,8 +358,8 @@ function calc() {
   var billEl = document.getElementById('billAmount');
   var bill = +billEl.value || 0;
   var dailyRate = +document.getElementById('dailyRate').value / 100 || 0;
-  var billDay = +document.getElementById('billDay').value || 1;
-  var dueDay = +document.getElementById('dueDay').value || 1;
+  var billDay = +document.getElementById('billDay').value;
+  var dueDay = +document.getElementById('dueDay').value;
   var minRatioEl = document.getElementById('minRatio');
   var minRatioRaw = +minRatioEl.value;
   var minRatio = minRatioRaw / 100 || 0;
@@ -400,6 +389,16 @@ function calc() {
     document.getElementById('scheduleCard').style.display = 'none';
     return;
   }
+  // F-N122：账单日 / 还款日须为 1–31 的整数（旧 +value||1 把 0 变 1、非法值被 clamp 掩盖）
+  var billDayOk = Number.isInteger(billDay) && billDay >= 1 && billDay <= 31;
+  var dueDayOk = Number.isInteger(dueDay) && dueDay >= 1 && dueDay <= 31;
+  document.getElementById('billDay').classList.toggle('input-error', !billDayOk);
+  document.getElementById('dueDay').classList.toggle('input-error', !dueDayOk);
+  if (!(billDayOk && dueDayOk)) {
+    document.getElementById('resultBox').innerHTML = '<p style="color:var(--danger);">' + __ccTx('账单日与还款日须为 1–31 的整数', 'Billing day and due day must be integers from 1 to 31') + '</p>';
+    document.getElementById('scheduleCard').style.display = 'none';
+    return;
+  }
 
   var interestFreeDays = 0;
   if (dueDay > billDay) {
@@ -411,6 +410,12 @@ function calc() {
 
   var html = '';
   var schedule = [];
+
+  // F-N122：口径透明——账单日/还款日仅用于估算免息天数，不参与循环利息与分期的计息（按 30 天/月模拟）
+  html += '<p style="color:var(--text-muted);font-size:12px;margin-bottom:10px;">📅 ' + __ccTx(
+    '账单日 ' + billDay + ' 日 / 还款日 ' + dueDay + ' 日仅用于估算免息天数，不参与循环利息与分期计息（利息按每月 30 天模拟）。',
+    'Billing day ' + billDay + ' / due day ' + dueDay + ' only estimate the interest-free period; they do not affect interest (simulated at 30 days/month).'
+  ) + '</p>';
 
   if (type === 'full') {
     html += '<div class="stat-grid">';
@@ -603,7 +608,7 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 
-var __credit_card_interest_last=0,__credit_card_interest_skip=false;
+var __credit_card_interest_last=0,__credit_card_interest_skip=false,__credit_card_interest_timer=null;
 function __credit_card_interestSnap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
@@ -612,7 +617,7 @@ function __credit_card_interestSnap(){
         var t=(e.type||'').toLowerCase();
         if(t==='button'||t==='submit'||t==='hidden') continue;
         var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
-        if(v!==''&&v!=null) out[e.id]=v;
+        if(v!=null) out[e.id]=v;
     }
     return out;
 }
@@ -624,9 +629,16 @@ function __credit_card_interestResText(){
     if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
 }
+function __credit_card_interestFullResText(){
+    var r=document.querySelector('.result-box');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    return t;
+}
 function __credit_card_interestScore(t){
     var s=String(t||'');
-    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    if(/[❌]|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
     return 1;
 }
 function __credit_card_interestTime(t){
@@ -649,7 +661,7 @@ function __credit_card_interestRender(keys,rk,en){
         TBKit.matrix.table('#credit_card_interestTable',{head:head,rows:rows});
         TBKit.util.diffBox('#credit_card_interestDiff');
         TBKit.history.mount('#credit_card_interestHist',function(rec){
-            __credit_card_interest_skip=true;
+            __credit_card_interest_skip=true;clearTimeout(__credit_card_interest_timer);__credit_card_interest_timer=null;
             try{
                 for(var k in rec){
                     if(k===rk||k==='__tbScore') continue;
@@ -673,9 +685,11 @@ function __credit_card_interestRender(keys,rk,en){
         }
     }catch(e3){}
 }
-function __credit_card_interestExtras(){
+function __credit_card_interestExtras(force){
     if (typeof TBKit === 'undefined') return;
     if (__credit_card_interest_skip) return;
+    clearTimeout(__credit_card_interest_timer);
+    __credit_card_interest_timer=null;
     var snap=__credit_card_interestSnap();
     var keys=Object.keys(snap);
     if(!keys.length) return;
@@ -685,7 +699,10 @@ function __credit_card_interestExtras(){
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
     var now=Date.now();
-    if(now-__credit_card_interest_last<1000) return;
+    if(!force && now-__credit_card_interest_last<1000){
+        __credit_card_interest_timer=setTimeout(function(){__credit_card_interestExtras(true);},1000-(now-__credit_card_interest_last));
+        return;
+    }
     var last=null;
     try{ last=TBKit.history.last(); }catch(e){}
     if(last){
@@ -699,12 +716,13 @@ function __credit_card_interestExtras(){
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
-    rec.__tbScore=__credit_card_interestScore(res);
+    rec.__tbScore=__credit_card_interestScore(__credit_card_interestFullResText());
     TBKit.history.record(rec);
     __credit_card_interestRender(keys,rk,en);
 }
 function __credit_card_interestExport(){
     if (typeof TBKit === 'undefined') return;
+    __credit_card_interestExtras(true);
     try{
         var box=document.querySelector('#credit_card_interestTable');
         if(!box||!box.querySelector('tr')){

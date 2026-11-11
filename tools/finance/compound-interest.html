@@ -127,17 +127,6 @@
 <script type="application/ld+json">
 {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "复利计算器是做什么的？", "acceptedAnswer": {"@type": "Answer", "text": "输入本金、年化利率、计息频率与定投金额，工具按复利公式 FV=P·(1+r/n)^(n×t) 计算终值，并可用 72 法则估算翻倍年限。"}}, {"@type": "Question", "name": "如何使用复利计算器？", "acceptedAnswer": {"@type": "Answer", "text": "在对应的输入框或选项中填写、选择所需参数，点击「计算」或「生成」按钮即可运行，结果会在结果区实时显示，支持复制与导出。"}}, {"@type": "Question", "name": "计算结果准确吗？", "acceptedAnswer": {"@type": "Answer", "text": "本工具在你的本地浏览器中实时计算，不依赖服务器；只要输入的参数正确，结果即按对应的规则得出。涉及经验估算的部分仅供参考，不作为正式依据。"}}, {"@type": "Question", "name": "复利计算器适合哪些场景？", "acceptedAnswer": {"@type": "Answer", "text": "个人或家庭的理财规划、贷款与投资收益测算、日常收支与税务估算。"}}, {"@type": "Question", "name": "使用本工具需要联网或上传数据吗？", "acceptedAnswer": {"@type": "Answer", "text": "不需要。所有计算均在你的设备本地完成，数据不会上传到任何服务器，可放心使用。"}}]}
 </script>
-<!-- TOOLBOX-TTZZ -->
-<script>
-(function(){try{
-var el = document.createElement("script");
-el.src = "https://lf1-cdn-tos.bytegoofy.com/goofy/ttzz/push.js?85d6452aa9be4d693b16cd48535a8c7ae57542f6788a41682e745be8eb99b35a8a24d2f724c31ebe20c1e4e6fba6d91caf576100b02a2870c72f38fc574066fef065d152c73bf1cbb2ebad3b5b5265d8";
-el.id = "ttzz";
-var s = document.getElementsByTagName("script")[0];
-s.parentNode.insertBefore(el, s);
-}catch(e){}
-})(window);
-</script>
 
 <script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
@@ -697,7 +686,7 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 
-var __compound_interest_last=0,__compound_interest_skip=false;
+var __compound_interest_last=0,__compound_interest_skip=false,__compound_interest_timer=null;
 function __compound_interestSnap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
@@ -706,21 +695,30 @@ function __compound_interestSnap(){
         var t=(e.type||'').toLowerCase();
         if(t==='button'||t==='submit'||t==='hidden') continue;
         var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
-        if(v!==''&&v!=null) out[e.id]=v;
+        if(v!=null) out[e.id]=v;
     }
     return out;
 }
 function __compound_interestResText(){
-    var r=document.querySelector('.result-box');
+    var r=document.querySelector('.summary');
     if(!r) return '';
     var t=(r.textContent||'').replace(/\s+/g,' ').trim();
     if(!t||t==='--'||t==='—'||t==='-') return '';
     if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
 }
+function __compound_interestFullResText(){
+    var r=document.querySelector('.summary');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    return t;
+}
 function __compound_interestScore(t){
+    var fv=document.getElementById('totalFV');
+    if(!fv||!/[0-9]/.test(String(fv.textContent||''))) return 0;
     var s=String(t||'');
-    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    if(/[❌]|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
     return 1;
 }
 function __compound_interestTime(t){
@@ -743,7 +741,7 @@ function __compound_interestRender(keys,rk,en){
         TBKit.matrix.table('#compound_interestTable',{head:head,rows:rows});
         TBKit.util.diffBox('#compound_interestDiff');
         TBKit.history.mount('#compound_interestHist',function(rec){
-            __compound_interest_skip=true;
+            __compound_interest_skip=true;clearTimeout(__compound_interest_timer);__compound_interest_timer=null;
             try{
                 for(var k in rec){
                     if(k===rk||k==='__tbScore') continue;
@@ -767,9 +765,11 @@ function __compound_interestRender(keys,rk,en){
         }
     }catch(e3){}
 }
-function __compound_interestExtras(){
+function __compound_interestExtras(force){
     if (typeof TBKit === 'undefined') return;
     if (__compound_interest_skip) return;
+    clearTimeout(__compound_interest_timer);
+    __compound_interest_timer=null;
     var snap=__compound_interestSnap();
     var keys=Object.keys(snap);
     if(!keys.length) return;
@@ -779,7 +779,10 @@ function __compound_interestExtras(){
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
     var now=Date.now();
-    if(now-__compound_interest_last<1000) return;
+    if(!force && now-__compound_interest_last<1000){
+        __compound_interest_timer=setTimeout(function(){__compound_interestExtras(true);},1000-(now-__compound_interest_last));
+        return;
+    }
     var last=null;
     try{ last=TBKit.history.last(); }catch(e){}
     if(last){
@@ -793,12 +796,13 @@ function __compound_interestExtras(){
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
-    rec.__tbScore=__compound_interestScore(res);
+    rec.__tbScore=__compound_interestScore(__compound_interestFullResText());
     TBKit.history.record(rec);
     __compound_interestRender(keys,rk,en);
 }
 function __compound_interestExport(){
     if (typeof TBKit === 'undefined') return;
+    __compound_interestExtras(true);
     try{
         var box=document.querySelector('#compound_interestTable');
         if(!box||!box.querySelector('tr')){

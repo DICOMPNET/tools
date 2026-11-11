@@ -105,17 +105,6 @@
 
 <script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
-<!-- TOOLBOX-TTZZ -->
-<script>
-(function(){try{
-var el = document.createElement("script");
-el.src = "https://lf1-cdn-tos.bytegoofy.com/goofy/ttzz/push.js?85d6452aa9be4d693b16cd48535a8c7ae57542f6788a41682e745be8eb99b35a8a24d2f724c31ebe20c1e4e6fba6d91caf576100b02a2870c72f38fc574066fef065d152c73bf1cbb2ebad3b5b5265d8";
-el.id = "ttzz";
-var s = document.getElementsByTagName("script")[0];
-s.parentNode.insertBefore(el, s);
-}catch(e){}
-})(window);
-</script>
 
 <script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
@@ -229,17 +218,24 @@ s.parentNode.insertBefore(el, s);
 </div>
 <script>
 const COUNTRY_CODES = ['AD','AE','AF','AG','AI','AL','AM','AO','AQ','AR','AT','AU','AW','AX','AZ','BA','BB','BD','BE','BF','BG','BH','BI','BJ','BL','BM','BN','BO','BQ','BR','BS','BT','BV','BW','BY','BZ','CA','CC','CD','CF','CG','CH','CI','CK','CL','CM','CN','CO','CR','CU','CV','CW','CX','CY','CZ','DE','DJ','DK','DM','DO','DZ','EC','EE','EG','EH','ER','ES','ET','FI','FJ','FK','FM','FO','FR','GA','GB','GD','GE','GF','GG','GH','GI','GL','GM','GN','GP','GQ','GR','GS','GT','GU','GW','GY','HK','HM','HN','HR','HT','HU','ID','IE','IL','IM','IN','IO','IQ','IR','IS','IT','JE','JM','JO','JP','KE','KG','KH','KI','KM','KN','KP','KR','KW','KY','KZ','LA','LB','LC','LI','LK','LR','LS','LT','LU','LV','LY','MA','MC','MD','ME','MF','MG','MH','MK','ML','MM','MN','MO','MP','MQ','MR','MS','MT','MU','MV','MW','MX','MY','MZ','NA','NC','NE','NF','NG','NI','NL','NO','NP','NR','NU','NZ','OM','PA','PE','PF','PG','PH','PK','PL','PM','PN','PR','PS','PT','PW','PY','QA','RE','RO','RS','RU','RW','SA','SB','SC','SD','SE','SG','SH','SI','SJ','SK','SL','SM','SN','SO','SR','SS','ST','SV','SX','SY','SZ','TC','TD','TF','TG','TH','TJ','TK','TL','TM','TN','TO','TR','TT','TV','TW','TZ','UA','UG','UM','US','UY','UZ','VA','VC','VE','VG','VI','VN','VU','WF','WS','YE','YT','ZA','ZM','ZW'];
+// F-N146：汇款单常见的 4-2-2-3 分组书写（DEUT DE FF 500）应先去掉空格/连字符再校验。
+// 顺带补齐回显转义，避免非法输入被直接插进 innerHTML。
+function esc(s){ return String(s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
 function validate(){
-  const raw = document.getElementById('input').value.trim().toUpperCase();
+  const rawInput = document.getElementById('input').value.trim().toUpperCase();
+  const raw = rawInput.replace(/[\s-]/g,'');
+  const ignored = rawInput.length - raw.length;
   const out = document.getElementById('output');
   if(!raw){ const __h0=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Waiting for input...":"等待输入...");if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h0; return; }
   // SWIFT/BIC: 8 or 11 chars, BANKCC[LL][bbb]
   // Bank 4 letters, Country 2 letters, Location 2 letters, Branch 3 alphanumeric optional
   const re = /^[A-Z]{4}[A-Z]{2}[A-Z0-9]{2}([A-Z0-9]{3})?$/;
-  let html = `<p><strong>输入：</strong>${raw}</p>`;
-  html += `<p><strong>长度：</strong>${raw.length} 字符（8 或 11）</p>`;
+  let html = `<p><strong>输入：</strong>${esc(rawInput)}</p>`;
+  html += `<p><strong>长度：</strong>${raw.length} 字符（8 或 11）${(ignored && /^[A-Z0-9\s-]*$/.test(rawInput))?'（已忽略 '+ignored+' 个空格/连字符分隔符）':''}</p>`;
   if(!re.test(raw)){
-    if(raw.length !== 8 && raw.length !== 11){
+    if(!/^[A-Z0-9]*$/.test(raw)){
+      html += `<p style="color:var(--danger);">❌ 仅允许字母、数字及空格/连字符分隔</p>`;
+    } else if(raw.length !== 8 && raw.length !== 11){
       html += `<p style="color:var(--danger);">❌ 长度必须为 8 或 11</p>`;
     } else if(!/^[A-Z]{4}/.test(raw)){
       html += `<p style="color:var(--danger);">❌ 前 4 位必须为字母（银行代码）</p>`;
@@ -298,7 +294,7 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 
-var __swift_bic_validator_last=0,__swift_bic_validator_skip=false;
+var __swift_bic_validator_last=0,__swift_bic_validator_skip=false,__swift_bic_validator_timer=null;
 function __swift_bic_validatorSnap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
@@ -307,7 +303,7 @@ function __swift_bic_validatorSnap(){
         var t=(e.type||'').toLowerCase();
         if(t==='button'||t==='submit'||t==='hidden') continue;
         var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
-        if(v!==''&&v!=null) out[e.id]=v;
+        if(v!=null) out[e.id]=v;
     }
     return out;
 }
@@ -319,9 +315,16 @@ function __swift_bic_validatorResText(){
     if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
 }
+function __swift_bic_validatorFullResText(){
+    var r=document.getElementById('output');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    return t;
+}
 function __swift_bic_validatorScore(t){
     var s=String(t||'');
-    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    if(/[❌]|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
     return 1;
 }
 function __swift_bic_validatorTime(t){
@@ -344,7 +347,7 @@ function __swift_bic_validatorRender(keys,rk,en){
         TBKit.matrix.table('#swift_bic_validatorTable',{head:head,rows:rows});
         TBKit.util.diffBox('#swift_bic_validatorDiff');
         TBKit.history.mount('#swift_bic_validatorHist',function(rec){
-            __swift_bic_validator_skip=true;
+            __swift_bic_validator_skip=true;clearTimeout(__swift_bic_validator_timer);__swift_bic_validator_timer=null;
             try{
                 for(var k in rec){
                     if(k===rk||k==='__tbScore') continue;
@@ -368,9 +371,11 @@ function __swift_bic_validatorRender(keys,rk,en){
         }
     }catch(e3){}
 }
-function __swift_bic_validatorExtras(){
+function __swift_bic_validatorExtras(force){
     if (typeof TBKit === 'undefined') return;
     if (__swift_bic_validator_skip) return;
+    clearTimeout(__swift_bic_validator_timer);
+    __swift_bic_validator_timer=null;
     var snap=__swift_bic_validatorSnap();
     var keys=Object.keys(snap);
     if(!keys.length) return;
@@ -380,7 +385,10 @@ function __swift_bic_validatorExtras(){
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
     var now=Date.now();
-    if(now-__swift_bic_validator_last<1000) return;
+    if(!force && now-__swift_bic_validator_last<1000){
+        __swift_bic_validator_timer=setTimeout(function(){__swift_bic_validatorExtras(true);},1000-(now-__swift_bic_validator_last));
+        return;
+    }
     var last=null;
     try{ last=TBKit.history.last(); }catch(e){}
     if(last){
@@ -394,12 +402,13 @@ function __swift_bic_validatorExtras(){
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
-    rec.__tbScore=__swift_bic_validatorScore(res);
+    rec.__tbScore=__swift_bic_validatorScore(__swift_bic_validatorFullResText());
     TBKit.history.record(rec);
     __swift_bic_validatorRender(keys,rk,en);
 }
 function __swift_bic_validatorExport(){
     if (typeof TBKit === 'undefined') return;
+    __swift_bic_validatorExtras(true);
     try{
         var box=document.querySelector('#swift_bic_validatorTable');
         if(!box||!box.querySelector('tr')){
