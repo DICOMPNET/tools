@@ -96,17 +96,6 @@
 <script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"租賃付款計算器是做什麼的？","acceptedAnswer":{"@type":"Answer","text":"租賃付款計算器。輸入租賃物價值、利率與期限，計算融資租賃或車貸的每期等額租金與還款明細，說明前期利息佔比高、後期本金佔比高的特徵，輔助租賃決策。"}},{"@type":"Question","name":"如何使用租賃付款計算器？","acceptedAnswer":{"@type":"Answer","text":"在對應的輸入框或選項中填寫、選擇所需引數，點選「計算」或「生成」按鈕即可執行，結果會在結果區即時顯示，支援複製與匯出。"}},{"@type":"Question","name":"計算結果準確嗎？","acceptedAnswer":{"@type":"Answer","text":"本工具在你的本地瀏覽器中即時計算，不依賴伺服器；只要輸入的引數正確，結果即按對應的規則得出。涉及經驗估算的部分僅供參考，不作為正式依據。"}},{"@type":"Question","name":"租賃付款計算器適合哪些場景？","acceptedAnswer":{"@type":"Answer","text":"個人或家庭的理財規劃、貸款與投資收益測算、日常收支與稅務估算。"}},{"@type":"Question","name":"使用本工具需要聯網或上傳資料嗎？","acceptedAnswer":{"@type":"Answer","text":"不需要。所有計算均在你的裝置本地完成，資料不會上傳到任何伺服器，可放心使用。"}}]}</script>
-<!-- TOOLBOX-TTZZ -->
-<script>
-(function(){try{
-var el = document.createElement("script");
-el.src = "https://lf1-cdn-tos.bytegoofy.com/goofy/ttzz/push.js?85d6452aa9be4d693b16cd48535a8c7ae57542f6788a41682e745be8eb99b35a8a24d2f724c31ebe20c1e4e6fba6d91caf576100b02a2870c72f38fc574066fef065d152c73bf1cbb2ebad3b5b5265d8";
-el.id = "ttzz";
-var s = document.getElementsByTagName("script")[0];
-s.parentNode.insertBefore(el, s);
-}catch(e){}
-})(window);
-</script>
 
 <script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
@@ -468,6 +457,19 @@ function calc(){
     schedule = [];
     currentResult = null;
     document.getElementById('res').innerHTML = '<p style="color:var(--danger);">⚠ ' + __err + '</p>';
+    // F-N117：越界时必须清空上一次的汇总卡片 / 逐期明细 / 图表，
+    // 否则结果区写着错误提示，旁边却还挂着上一套合法方案的月供与总还款。
+    ['statGrid','tableWrap'].forEach(function(__id){
+      var __e = document.getElementById(__id);
+      if(__e) __e.innerHTML = '';
+    });
+    try{
+      var __cv = document.getElementById('chart');
+      if(__cv && __cv.getContext){
+        var __cx = __cv.getContext('2d');
+        if(__cx && __cx.clearRect) __cx.clearRect(0, 0, __cv.width, __cv.height);
+      }
+    }catch(e){}
     return;
   }
 
@@ -923,7 +925,7 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 
-var __lease_payment_calculator_last=0,__lease_payment_calculator_skip=false;
+var __lease_payment_calculator_last=0,__lease_payment_calculator_skip=false,__lease_payment_calculator_timer=null;
 function __lease_payment_calculatorSnap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
@@ -932,7 +934,7 @@ function __lease_payment_calculatorSnap(){
         var t=(e.type||'').toLowerCase();
         if(t==='button'||t==='submit'||t==='hidden') continue;
         var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
-        if(v!==''&&v!=null) out[e.id]=v;
+        if(v!=null) out[e.id]=v;
     }
     return out;
 }
@@ -944,9 +946,22 @@ function __lease_payment_calculatorResText(){
     if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
 }
+function __lease_payment_calculatorFullResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    return t;
+}
 function __lease_payment_calculatorScore(t){
+    var pv=parseFloat(document.getElementById('pv').value);
+    if(!isFinite(pv)||pv<=0||/必须大于 0/.test(String(t||''))) return 0;
+    // F-N117：拒绝态按业务状态判定（calc() 越界分支已把 currentResult 置 null）。
+    // 不能靠关键词词表猜结论：「首付比例须在 0–100% 之间」「手续费不能为负」
+    // 等提示不含任何失败词，旧实现会把无效输入记成「通过」并允许导出。
+    try{ if(typeof currentResult !== 'undefined' && currentResult === null) return 0; }catch(e){}
     var s=String(t||'');
-    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    if(/[❌]|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
     return 1;
 }
 function __lease_payment_calculatorTime(t){
@@ -969,7 +984,7 @@ function __lease_payment_calculatorRender(keys,rk,en){
         TBKit.matrix.table('#lease_payment_calculatorTable',{head:head,rows:rows});
         TBKit.util.diffBox('#lease_payment_calculatorDiff');
         TBKit.history.mount('#lease_payment_calculatorHist',function(rec){
-            __lease_payment_calculator_skip=true;
+            __lease_payment_calculator_skip=true;clearTimeout(__lease_payment_calculator_timer);__lease_payment_calculator_timer=null;
             try{
                 for(var k in rec){
                     if(k===rk||k==='__tbScore') continue;
@@ -993,9 +1008,11 @@ function __lease_payment_calculatorRender(keys,rk,en){
         }
     }catch(e3){}
 }
-function __lease_payment_calculatorExtras(){
+function __lease_payment_calculatorExtras(force){
     if (typeof TBKit === 'undefined') return;
     if (__lease_payment_calculator_skip) return;
+    clearTimeout(__lease_payment_calculator_timer);
+    __lease_payment_calculator_timer=null;
     var snap=__lease_payment_calculatorSnap();
     var keys=Object.keys(snap);
     if(!keys.length) return;
@@ -1005,7 +1022,10 @@ function __lease_payment_calculatorExtras(){
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
     var now=Date.now();
-    if(now-__lease_payment_calculator_last<1000) return;
+    if(!force && now-__lease_payment_calculator_last<1000){
+        __lease_payment_calculator_timer=setTimeout(function(){__lease_payment_calculatorExtras(true);},1000-(now-__lease_payment_calculator_last));
+        return;
+    }
     var last=null;
     try{ last=TBKit.history.last(); }catch(e){}
     if(last){
@@ -1019,12 +1039,13 @@ function __lease_payment_calculatorExtras(){
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
-    rec.__tbScore=__lease_payment_calculatorScore(res);
+    rec.__tbScore=__lease_payment_calculatorScore(__lease_payment_calculatorFullResText());
     TBKit.history.record(rec);
     __lease_payment_calculatorRender(keys,rk,en);
 }
 function __lease_payment_calculatorExport(){
     if (typeof TBKit === 'undefined') return;
+    __lease_payment_calculatorExtras(true);
     try{
         var box=document.querySelector('#lease_payment_calculatorTable');
         if(!box||!box.querySelector('tr')){

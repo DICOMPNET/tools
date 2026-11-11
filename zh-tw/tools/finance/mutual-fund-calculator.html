@@ -96,17 +96,6 @@
 
 <script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
-<!-- TOOLBOX-TTZZ -->
-<script>
-(function(){try{
-var el = document.createElement("script");
-el.src = "https://lf1-cdn-tos.bytegoofy.com/goofy/ttzz/push.js?85d6452aa9be4d693b16cd48535a8c7ae57542f6788a41682e745be8eb99b35a8a24d2f724c31ebe20c1e4e6fba6d91caf576100b02a2870c72f38fc574066fef065d152c73bf1cbb2ebad3b5b5265d8";
-el.id = "ttzz";
-var s = document.getElementsByTagName("script")[0];
-s.parentNode.insertBefore(el, s);
-}catch(e){}
-})(window);
-</script>
 
 <script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
@@ -888,7 +877,7 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 
-var __mutual_fund_calculator_last=0,__mutual_fund_calculator_skip=false;
+var __mutual_fund_calculator_last=0,__mutual_fund_calculator_skip=false,__mutual_fund_calculator_timer=null;
 function __mutual_fund_calculatorSnap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
@@ -897,7 +886,7 @@ function __mutual_fund_calculatorSnap(){
         var t=(e.type||'').toLowerCase();
         if(t==='button'||t==='submit'||t==='hidden') continue;
         var v=(t==='checkbox'||t==='radio')?(e.checked?'1':'0'):e.value;
-        if(v!==''&&v!=null) out[e.id]=v;
+        if(v!=null) out[e.id]=v;
     }
     return out;
 }
@@ -909,9 +898,16 @@ function __mutual_fund_calculatorResText(){
     if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
 }
+function __mutual_fund_calculatorFullResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    return t;
+}
 function __mutual_fund_calculatorScore(t){
     var s=String(t||'');
-    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    if(/[❌]|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
     return 1;
 }
 function __mutual_fund_calculatorTime(t){
@@ -934,7 +930,7 @@ function __mutual_fund_calculatorRender(keys,rk,en){
         TBKit.matrix.table('#mutual_fund_calculatorTable',{head:head,rows:rows});
         TBKit.util.diffBox('#mutual_fund_calculatorDiff');
         TBKit.history.mount('#mutual_fund_calculatorHist',function(rec){
-            __mutual_fund_calculator_skip=true;
+            __mutual_fund_calculator_skip=true;clearTimeout(__mutual_fund_calculator_timer);__mutual_fund_calculator_timer=null;
             try{
                 // 恢复前先清空未记录的勾选：旧记录是稀疏的（只存勾选中的项），
                 // 不清理会把当前多勾的权限带过来（600→777→恢复 600 仍显示 777）。
@@ -964,9 +960,11 @@ function __mutual_fund_calculatorRender(keys,rk,en){
         }
     }catch(e3){}
 }
-function __mutual_fund_calculatorExtras(){
+function __mutual_fund_calculatorExtras(force){
     if (typeof TBKit === 'undefined') return;
     if (__mutual_fund_calculator_skip) return;
+    clearTimeout(__mutual_fund_calculator_timer);
+    __mutual_fund_calculator_timer=null;
     var snap=__mutual_fund_calculatorSnap();
     var keys=Object.keys(snap);
     if(!keys.length) return;
@@ -976,7 +974,10 @@ function __mutual_fund_calculatorExtras(){
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
     var now=Date.now();
-    if(now-__mutual_fund_calculator_last<1000) return;
+    if(!force && now-__mutual_fund_calculator_last<1000){
+        __mutual_fund_calculator_timer=setTimeout(function(){__mutual_fund_calculatorExtras(true);},1000-(now-__mutual_fund_calculator_last));
+        return;
+    }
     var last=null;
     try{ last=TBKit.history.last(); }catch(e){}
     if(last){
@@ -990,12 +991,13 @@ function __mutual_fund_calculatorExtras(){
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
-    rec.__tbScore=__mutual_fund_calculatorScore(res);
+    rec.__tbScore=__mutual_fund_calculatorScore(__mutual_fund_calculatorFullResText());
     TBKit.history.record(rec);
     __mutual_fund_calculatorRender(keys,rk,en);
 }
 function __mutual_fund_calculatorExport(){
     if (typeof TBKit === 'undefined') return;
+    __mutual_fund_calculatorExtras(true);
     try{
         var box=document.querySelector('#mutual_fund_calculatorTable');
         if(!box||!box.querySelector('tr')){

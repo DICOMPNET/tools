@@ -104,17 +104,6 @@
 
 <script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
-<!-- TOOLBOX-TTZZ -->
-<script>
-(function(){try{
-var el = document.createElement("script");
-el.src = "https://lf1-cdn-tos.bytegoofy.com/goofy/ttzz/push.js?85d6452aa9be4d693b16cd48535a8c7ae57542f6788a41682e745be8eb99b35a8a24d2f724c31ebe20c1e4e6fba6d91caf576100b02a2870c72f38fc574066fef065d152c73bf1cbb2ebad3b5b5265d8";
-el.id = "ttzz";
-var s = document.getElementsByTagName("script")[0];
-s.parentNode.insertBefore(el, s);
-}catch(e){}
-})(window);
-</script>
 
 <script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
@@ -791,7 +780,7 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 
-var __stock_profit_calculator_last=0,__stock_profit_calculator_skip=false;
+var __stock_profit_calculator_last=0,__stock_profit_calculator_skip=false,__stock_profit_calculator_timer=null;
 function __stock_profit_calculatorSnap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
@@ -800,21 +789,31 @@ function __stock_profit_calculatorSnap(){
         var t=(e.type||'').toLowerCase();
         if(t==='button'||t==='submit'||t==='hidden') continue;
         var v=(t==='checkbox'||t==='radio')?(e.checked?'1':'0'):e.value;
-        if(v!==''&&v!=null) out[e.id]=v;
+        if(v!=null) out[e.id]=v;
     }
     return out;
 }
 function __stock_profit_calculatorResText(){
-    var r=document.querySelector('.result-box');
+    var r=document.querySelector('.summary');
     if(!r) return '';
     var t=(r.textContent||'').replace(/\s+/g,' ').trim();
     if(!t||t==='--'||t==='—'||t==='-') return '';
     if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
 }
+function __stock_profit_calculatorFullResText(){
+    var r=document.querySelector('.summary');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    return t;
+}
 function __stock_profit_calculatorScore(t){
+    var bp=parseFloat(document.getElementById('buyPrice').value);
+    var pn=document.getElementById('sPnl');
+    if(!isFinite(bp)||bp<=0||!pn||!/[0-9]/.test(String(pn.textContent||''))) return 0;
     var s=String(t||'');
-    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    if(/[❌]|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
     return 1;
 }
 function __stock_profit_calculatorTime(t){
@@ -837,7 +836,7 @@ function __stock_profit_calculatorRender(keys,rk,en){
         TBKit.matrix.table('#stock_profit_calculatorTable',{head:head,rows:rows});
         TBKit.util.diffBox('#stock_profit_calculatorDiff');
         TBKit.history.mount('#stock_profit_calculatorHist',function(rec){
-            __stock_profit_calculator_skip=true;
+            __stock_profit_calculator_skip=true;clearTimeout(__stock_profit_calculator_timer);__stock_profit_calculator_timer=null;
             try{
                 // 恢复前先清空未记录的勾选：旧记录是稀疏的（只存勾选中的项），
                 // 不清理会把当前多勾的权限带过来（600→777→恢复 600 仍显示 777）。
@@ -867,9 +866,11 @@ function __stock_profit_calculatorRender(keys,rk,en){
         }
     }catch(e3){}
 }
-function __stock_profit_calculatorExtras(){
+function __stock_profit_calculatorExtras(force){
     if (typeof TBKit === 'undefined') return;
     if (__stock_profit_calculator_skip) return;
+    clearTimeout(__stock_profit_calculator_timer);
+    __stock_profit_calculator_timer=null;
     var snap=__stock_profit_calculatorSnap();
     var keys=Object.keys(snap);
     if(!keys.length) return;
@@ -879,7 +880,10 @@ function __stock_profit_calculatorExtras(){
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
     var now=Date.now();
-    if(now-__stock_profit_calculator_last<1000) return;
+    if(!force && now-__stock_profit_calculator_last<1000){
+        __stock_profit_calculator_timer=setTimeout(function(){__stock_profit_calculatorExtras(true);},1000-(now-__stock_profit_calculator_last));
+        return;
+    }
     var last=null;
     try{ last=TBKit.history.last(); }catch(e){}
     if(last){
@@ -893,12 +897,13 @@ function __stock_profit_calculatorExtras(){
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
-    rec.__tbScore=__stock_profit_calculatorScore(res);
+    rec.__tbScore=__stock_profit_calculatorScore(__stock_profit_calculatorFullResText());
     TBKit.history.record(rec);
     __stock_profit_calculatorRender(keys,rk,en);
 }
 function __stock_profit_calculatorExport(){
     if (typeof TBKit === 'undefined') return;
+    __stock_profit_calculatorExtras(true);
     try{
         var box=document.querySelector('#stock_profit_calculatorTable');
         if(!box||!box.querySelector('tr')){

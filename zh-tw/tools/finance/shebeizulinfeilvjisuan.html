@@ -63,17 +63,6 @@
 <script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"裝置租賃費率計算 結果可用於直接報告嗎？","acceptedAnswer":{"@type":"Answer","text":"裝置租賃費率計算 適合用於內部複核與說明，正式材料請附帶口徑、邊界條件和輸入範圍說明。"}},{"@type":"Question","name":"結果看似異常，該怎麼快速排查？","acceptedAnswer":{"@type":"Answer","text":"先核對是否有百分號/小數口徑衝突，再檢查是否觸發了數學域外定義（如對數、開方、除零）。"}}]}</script>
-<!-- TOOLBOX-TTZZ -->
-<script>
-(function(){try{
-var el = document.createElement("script");
-el.src = "https://lf1-cdn-tos.bytegoofy.com/goofy/ttzz/push.js?85d6452aa9be4d693b16cd48535a8c7ae57542f6788a41682e745be8eb99b35a8a24d2f724c31ebe20c1e4e6fba6d91caf576100b02a2870c72f38fc574066fef065d152c73bf1cbb2ebad3b5b5265d8";
-el.id = "ttzz";
-var s = document.getElementsByTagName("script")[0];
-s.parentNode.insertBefore(el, s);
-}catch(e){}
-})(window);
-</script>
 
 <script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
@@ -312,7 +301,7 @@ document.addEventListener('DOMContentLoaded',function(){
 });
 calc();
 
-var __shebeizulinfeilvjisuan_last=0,__shebeizulinfeilvjisuan_skip=false;
+var __shebeizulinfeilvjisuan_last=0,__shebeizulinfeilvjisuan_skip=false,__shebeizulinfeilvjisuan_timer=null;
 function __shebeizulinfeilvjisuanSnap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
@@ -321,7 +310,7 @@ function __shebeizulinfeilvjisuanSnap(){
         var t=(e.type||'').toLowerCase();
         if(t==='button'||t==='submit'||t==='hidden') continue;
         var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
-        if(v!==''&&v!=null) out[e.id]=v;
+        if(v!=null) out[e.id]=v;
     }
     return out;
 }
@@ -333,9 +322,16 @@ function __shebeizulinfeilvjisuanResText(){
     if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
 }
+function __shebeizulinfeilvjisuanFullResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    return t;
+}
 function __shebeizulinfeilvjisuanScore(t){
     var s=String(t||'');
-    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    if(/[❌]|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
     return 1;
 }
 function __shebeizulinfeilvjisuanTime(t){
@@ -358,7 +354,7 @@ function __shebeizulinfeilvjisuanRender(keys,rk,en){
         TBKit.matrix.table('#shebeizulinfeilvjisuanTable',{head:head,rows:rows});
         TBKit.util.diffBox('#shebeizulinfeilvjisuanDiff');
         TBKit.history.mount('#shebeizulinfeilvjisuanHist',function(rec){
-            __shebeizulinfeilvjisuan_skip=true;
+            __shebeizulinfeilvjisuan_skip=true;clearTimeout(__shebeizulinfeilvjisuan_timer);__shebeizulinfeilvjisuan_timer=null;
             try{
                 for(var k in rec){
                     if(k===rk||k==='__tbScore') continue;
@@ -382,9 +378,11 @@ function __shebeizulinfeilvjisuanRender(keys,rk,en){
         }
     }catch(e3){}
 }
-function __shebeizulinfeilvjisuanExtras(){
+function __shebeizulinfeilvjisuanExtras(force){
     if (typeof TBKit === 'undefined') return;
     if (__shebeizulinfeilvjisuan_skip) return;
+    clearTimeout(__shebeizulinfeilvjisuan_timer);
+    __shebeizulinfeilvjisuan_timer=null;
     var snap=__shebeizulinfeilvjisuanSnap();
     var keys=Object.keys(snap);
     if(!keys.length) return;
@@ -394,7 +392,10 @@ function __shebeizulinfeilvjisuanExtras(){
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
     var now=Date.now();
-    if(now-__shebeizulinfeilvjisuan_last<1000) return;
+    if(!force && now-__shebeizulinfeilvjisuan_last<1000){
+        __shebeizulinfeilvjisuan_timer=setTimeout(function(){__shebeizulinfeilvjisuanExtras(true);},1000-(now-__shebeizulinfeilvjisuan_last));
+        return;
+    }
     var last=null;
     try{ last=TBKit.history.last(); }catch(e){}
     if(last){
@@ -408,12 +409,13 @@ function __shebeizulinfeilvjisuanExtras(){
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
-    rec.__tbScore=__shebeizulinfeilvjisuanScore(res);
+    rec.__tbScore=__shebeizulinfeilvjisuanScore(__shebeizulinfeilvjisuanFullResText());
     TBKit.history.record(rec);
     __shebeizulinfeilvjisuanRender(keys,rk,en);
 }
 function __shebeizulinfeilvjisuanExport(){
     if (typeof TBKit === 'undefined') return;
+    __shebeizulinfeilvjisuanExtras(true);
     try{
         var box=document.querySelector('#shebeizulinfeilvjisuanTable');
         if(!box||!box.querySelector('tr')){

@@ -74,17 +74,6 @@
 <script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"稅率檔次速查是做什麼的？","acceptedAnswer":{"@type":"Answer","text":"輸入所得額查詢對應稅率檔次與速算扣除數，支援常見稅表，幫助快速估算應納稅額，純前端查表僅供參考非報稅依據。"}},{"@type":"Question","name":"如何使用稅率檔次速查？","acceptedAnswer":{"@type":"Answer","text":"在對應的輸入框或選項中填寫、選擇所需引數，點選「計算」或「生成」按鈕即可執行，結果會在結果區即時顯示，支援複製與匯出。"}},{"@type":"Question","name":"計算結果準確嗎？","acceptedAnswer":{"@type":"Answer","text":"本工具在你的本地瀏覽器中即時計算，不依賴伺服器；只要輸入的引數正確，結果即按對應的規則得出。涉及經驗估算的部分僅供參考，不作為正式依據。"}},{"@type":"Question","name":"稅率檔次速查適合哪些場景？","acceptedAnswer":{"@type":"Answer","text":"個人或家庭的理財規劃、貸款與投資收益測算、日常收支與稅務估算。"}},{"@type":"Question","name":"使用本工具需要聯網或上傳資料嗎？","acceptedAnswer":{"@type":"Answer","text":"不需要。所有計算均在你的裝置本地完成，資料不會上傳到任何伺服器，可放心使用。"}}]}</script>
-<!-- TOOLBOX-TTZZ -->
-<script>
-(function(){try{
-var el = document.createElement("script");
-el.src = "https://lf1-cdn-tos.bytegoofy.com/goofy/ttzz/push.js?85d6452aa9be4d693b16cd48535a8c7ae57542f6788a41682e745be8eb99b35a8a24d2f724c31ebe20c1e4e6fba6d91caf576100b02a2870c72f38fc574066fef065d152c73bf1cbb2ebad3b5b5265d8";
-el.id = "ttzz";
-var s = document.getElementsByTagName("script")[0];
-s.parentNode.insertBefore(el, s);
-}catch(e){}
-})(window);
-</script>
 
 <script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
@@ -322,7 +311,7 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 
-var __tax_bracket_last=0,__tax_bracket_skip=false;
+var __tax_bracket_last=0,__tax_bracket_skip=false,__tax_bracket_timer=null;
 function __tax_bracketSnap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
@@ -331,7 +320,7 @@ function __tax_bracketSnap(){
         var t=(e.type||'').toLowerCase();
         if(t==='button'||t==='submit'||t==='hidden') continue;
         var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
-        if(v!==''&&v!=null) out[e.id]=v;
+        if(v!=null) out[e.id]=v;
     }
     return out;
 }
@@ -343,9 +332,16 @@ function __tax_bracketResText(){
     if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
 }
+function __tax_bracketFullResText(){
+    var r=document.querySelector('.result-box');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    return t;
+}
 function __tax_bracketScore(t){
     var s=String(t||'');
-    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    if(/[❌]|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
     return 1;
 }
 function __tax_bracketTime(t){
@@ -368,7 +364,7 @@ function __tax_bracketRender(keys,rk,en){
         TBKit.matrix.table('#tax_bracketTable',{head:head,rows:rows});
         TBKit.util.diffBox('#tax_bracketDiff');
         TBKit.history.mount('#tax_bracketHist',function(rec){
-            __tax_bracket_skip=true;
+            __tax_bracket_skip=true;clearTimeout(__tax_bracket_timer);__tax_bracket_timer=null;
             try{
                 for(var k in rec){
                     if(k===rk||k==='__tbScore') continue;
@@ -392,9 +388,11 @@ function __tax_bracketRender(keys,rk,en){
         }
     }catch(e3){}
 }
-function __tax_bracketExtras(){
+function __tax_bracketExtras(force){
     if (typeof TBKit === 'undefined') return;
     if (__tax_bracket_skip) return;
+    clearTimeout(__tax_bracket_timer);
+    __tax_bracket_timer=null;
     var snap=__tax_bracketSnap();
     var keys=Object.keys(snap);
     if(!keys.length) return;
@@ -404,7 +402,10 @@ function __tax_bracketExtras(){
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
     var now=Date.now();
-    if(now-__tax_bracket_last<1000) return;
+    if(!force && now-__tax_bracket_last<1000){
+        __tax_bracket_timer=setTimeout(function(){__tax_bracketExtras(true);},1000-(now-__tax_bracket_last));
+        return;
+    }
     var last=null;
     try{ last=TBKit.history.last(); }catch(e){}
     if(last){
@@ -418,22 +419,34 @@ function __tax_bracketExtras(){
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
-    rec.__tbScore=__tax_bracketScore(res);
+    rec.__tbScore=__tax_bracketScore(__tax_bracketFullResText());
     TBKit.history.record(rec);
     __tax_bracketRender(keys,rk,en);
 }
 function __tax_bracketExport(){
     if (typeof TBKit === 'undefined') return;
+    __tax_bracketExtras(true);
+    // F-N106
+    // 旧版导出 TBKit 自动历史表（首次为空），不含结果区的逐年/分档明细。
+    // 改为导出「当前结果区」的逐行明细：p 段落 + 表格行，任何模式都拿得到本次结果。
     try{
-        var box=document.querySelector('#tax_bracketTable');
-        if(!box||!box.querySelector('tr')){
-            var snap=__tax_bracketSnap(); var keys=Object.keys(snap);
-            if(keys.length>12) keys=keys.slice(0,12);
-            var en=(TBKit.util&&TBKit.util.isEn())?true:false;
-            __tax_bracketRender(keys,en?'Result':'结果',en);
+        var box=document.getElementById('resultBox');
+        if(!box) return;
+        var rows=[['序号','结果明细']];
+        var nodes=box.querySelectorAll('p, tr');
+        for(var i=0;i<nodes.length;i++){
+            var n=nodes[i], txt='';
+            if(n.tagName==='TR'){
+                var cs=n.querySelectorAll('th,td'), parts=[];
+                for(var j=0;j<cs.length;j++) parts.push((cs[j].textContent||'').trim());
+                txt=parts.join(' | ');
+            }else{
+                txt=(n.textContent||'').trim();
+            }
+            if(txt) rows.push([String(rows.length),txt]);
         }
+        if(rows.length>1) TBKit.export.csv('tax-bracket-detail.csv',rows);
     }catch(e){}
-    try { TBKit.util.exportTable('#tax_bracketTable','tax-bracket.csv'); } catch(e){}
 }
 function __tax_bracketPresets(){
     if (typeof TBKit === 'undefined') return;

@@ -76,17 +76,6 @@
 
 <script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
-<!-- TOOLBOX-TTZZ -->
-<script>
-(function(){try{
-var el = document.createElement("script");
-el.src = "https://lf1-cdn-tos.bytegoofy.com/goofy/ttzz/push.js?85d6452aa9be4d693b16cd48535a8c7ae57542f6788a41682e745be8eb99b35a8a24d2f724c31ebe20c1e4e6fba6d91caf576100b02a2870c72f38fc574066fef065d152c73bf1cbb2ebad3b5b5265d8";
-el.id = "ttzz";
-var s = document.getElementsByTagName("script")[0];
-s.parentNode.insertBefore(el, s);
-}catch(e){}
-})(window);
-</script>
 
 <script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
@@ -129,7 +118,7 @@ s.parentNode.insertBefore(el, s);
      <h2 data-zh="🪪 印度 UAN 驗證">🪪 India UAN Validator</h2>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理與說明</div>
-      <div class="formula-eq">UAN 號碼格式校驗（本頁程式碼口徑，純格式規則、無校驗演算法）：僅允許數字及空格/連字元分隔，含字母等非數字字元即報「含非法字元」；去掉分隔符後長度須恰為 12 位，否則提示「UAN 必須為 12 位數字（當前 N 位）」；分段解析：前 2 位=地區碼、中 5 位=辦事機構程式碼、後 5 位=序列號。判據：首字元為 1 判「格式有效」，否則橙色警示「通常以 1 開頭」（軟判據，非硬性規則）；校驗不聯網核實賬戶真實性。</div>
+      <div class="formula-eq">UAN 號碼格式校驗（本頁程式碼口徑，純格式規則、無校驗演算法）：僅允許數字及空格/連字元分隔，含字母等非數字字元即報「含非法字元」；去掉分隔符後長度須恰為 12 位，否則提示「UAN 必須為 12 位數字（當前 N 位）」；展示分段：前 2 位 / 中 5 位 / 後 5 位（僅便於閱讀，不對應 EPFO 官方欄位語義）。判據：首字元為 1 判「格式有效」，否則橙色警示「通常以 1 開頭」（軟判據，非硬性規則）；校驗不聯網核實賬戶真實性。</div>
   <div class="formula-desc">依據印度 EPFO 規則校驗 12 位萬能賬號(UAN)的長度與數字格式；用於僱員公積金賬戶場景的號碼格式檢查（不驗證真實性）。</div>
 </div>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="印度 UAN 驗證器。輸入 12 位萬能賬號編號，校驗長度與數字格式，用於印度僱員公積金賬戶場景的號碼格式檢查（不驗證真實性）。">Validate a 12-digit Indian Universal Account Number for length and digits. Format check only.</p>
@@ -208,6 +197,7 @@ s.parentNode.insertBefore(el, s);
 </div>
 <script>
 function esc(s){return String(s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function __uanTx(zh,en){return (typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn())?en:zh;}
 function validate(){
   const raw = document.getElementById('input').value.trim();
   const out = document.getElementById('output');
@@ -235,9 +225,9 @@ function validate(){
   html += `<p><strong>格式化：</strong>${digits}</p>`;
   html += `<p><strong>长度：</strong>${digits.length} 位</p>`;
   html += `<p><strong>首字符：</strong>${digits[0]} ${startsOk ? '✅' : '⚠️ 通常以 1 开头'}</p>`;
-  html += `<p><strong>区域：</strong>${region}</p>`;
-  html += `<p><strong>EPFO 办公室：</strong>${office}</p>`;
-  html += `<p><strong>序号：</strong>${serial}</p>`;
+  html += `<p><strong>${__uanTx('前 2 位（展示切片，非官方语义）：','First 2 digits (display slice, no official meaning):')}</strong>${region}</p>`;
+  html += `<p><strong>${__uanTx('中 5 位（展示切片，非官方语义）：','Middle 5 digits (display slice, no official meaning):')}</strong>${office}</p>`;
+  html += `<p><strong>${__uanTx('后 5 位（展示切片，非官方语义）：','Last 5 digits (display slice, no official meaning):')}</strong>${serial}</p>`;
   html += `<p><strong>校验算法：</strong>无（UAN 为格式校验）</p>`;
   if(startsOk){
     html += `<p style="color:var(--success);">✅ UAN 格式有效</p>`;
@@ -278,7 +268,7 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 
-var __uan_validator_last=0,__uan_validator_skip=false;
+var __uan_validator_last=0,__uan_validator_skip=false,__uan_validator_timer=null;
 function __uan_validatorSnap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
@@ -287,7 +277,7 @@ function __uan_validatorSnap(){
         var t=(e.type||'').toLowerCase();
         if(t==='button'||t==='submit'||t==='hidden') continue;
         var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
-        if(v!==''&&v!=null) out[e.id]=v;
+        if(v!=null) out[e.id]=v;
     }
     return out;
 }
@@ -299,9 +289,20 @@ function __uan_validatorResText(){
     if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
 }
+function __uan_validatorFullResText(){
+    var r=document.getElementById('output');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    return t;
+}
 function __uan_validatorScore(t){
+    // 复核判据：UAN 无校验和，仅格式；12 位纯数字（允许空格/连字符分隔），首字符非 1 的警告不算失败
+    var raw=document.getElementById('input').value.trim();
+    var d=raw.replace(/[\s-]/g,'');
+    if(!raw||/[^0-9\s-]/.test(raw)||d.length!==12) return 0;
     var s=String(t||'');
-    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    if(/[❌]|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
     return 1;
 }
 function __uan_validatorTime(t){
@@ -324,7 +325,7 @@ function __uan_validatorRender(keys,rk,en){
         TBKit.matrix.table('#uan_validatorTable',{head:head,rows:rows});
         TBKit.util.diffBox('#uan_validatorDiff');
         TBKit.history.mount('#uan_validatorHist',function(rec){
-            __uan_validator_skip=true;
+            __uan_validator_skip=true;clearTimeout(__uan_validator_timer);__uan_validator_timer=null;
             try{
                 for(var k in rec){
                     if(k===rk||k==='__tbScore') continue;
@@ -348,9 +349,11 @@ function __uan_validatorRender(keys,rk,en){
         }
     }catch(e3){}
 }
-function __uan_validatorExtras(){
+function __uan_validatorExtras(force){
     if (typeof TBKit === 'undefined') return;
     if (__uan_validator_skip) return;
+    clearTimeout(__uan_validator_timer);
+    __uan_validator_timer=null;
     var snap=__uan_validatorSnap();
     var keys=Object.keys(snap);
     if(!keys.length) return;
@@ -360,7 +363,10 @@ function __uan_validatorExtras(){
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
     var now=Date.now();
-    if(now-__uan_validator_last<1000) return;
+    if(!force && now-__uan_validator_last<1000){
+        __uan_validator_timer=setTimeout(function(){__uan_validatorExtras(true);},1000-(now-__uan_validator_last));
+        return;
+    }
     var last=null;
     try{ last=TBKit.history.last(); }catch(e){}
     if(last){
@@ -374,12 +380,13 @@ function __uan_validatorExtras(){
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
-    rec.__tbScore=__uan_validatorScore(res);
+    rec.__tbScore=__uan_validatorScore(__uan_validatorFullResText());
     TBKit.history.record(rec);
     __uan_validatorRender(keys,rk,en);
 }
 function __uan_validatorExport(){
     if (typeof TBKit === 'undefined') return;
+    __uan_validatorExtras(true);
     try{
         var box=document.querySelector('#uan_validatorTable');
         if(!box||!box.querySelector('tr')){

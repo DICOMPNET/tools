@@ -76,17 +76,6 @@
 
 <script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
-<!-- TOOLBOX-TTZZ -->
-<script>
-(function(){try{
-var el = document.createElement("script");
-el.src = "https://lf1-cdn-tos.bytegoofy.com/goofy/ttzz/push.js?85d6452aa9be4d693b16cd48535a8c7ae57542f6788a41682e745be8eb99b35a8a24d2f724c31ebe20c1e4e6fba6d91caf576100b02a2870c72f38fc574066fef065d152c73bf1cbb2ebad3b5b5265d8";
-el.id = "ttzz";
-var s = document.getElementsByTagName("script")[0];
-s.parentNode.insertBefore(el, s);
-}catch(e){}
-})(window);
-</script>
 
 <script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
@@ -305,7 +294,7 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 
-var __nric_validator_last=0,__nric_validator_skip=false;
+var __nric_validator_last=0,__nric_validator_skip=false,__nric_validator_timer=null;
 function __nric_validatorSnap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
@@ -314,7 +303,7 @@ function __nric_validatorSnap(){
         var t=(e.type||'').toLowerCase();
         if(t==='button'||t==='submit'||t==='hidden') continue;
         var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
-        if(v!==''&&v!=null) out[e.id]=v;
+        if(v!=null) out[e.id]=v;
     }
     return out;
 }
@@ -326,9 +315,16 @@ function __nric_validatorResText(){
     if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
 }
+function __nric_validatorFullResText(){
+    var r=document.getElementById('output');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    return t;
+}
 function __nric_validatorScore(t){
     var s=String(t||'');
-    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    if(/[❌]|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
     return 1;
 }
 function __nric_validatorTime(t){
@@ -351,7 +347,7 @@ function __nric_validatorRender(keys,rk,en){
         TBKit.matrix.table('#nric_validatorTable',{head:head,rows:rows});
         TBKit.util.diffBox('#nric_validatorDiff');
         TBKit.history.mount('#nric_validatorHist',function(rec){
-            __nric_validator_skip=true;
+            __nric_validator_skip=true;clearTimeout(__nric_validator_timer);__nric_validator_timer=null;
             try{
                 for(var k in rec){
                     if(k===rk||k==='__tbScore') continue;
@@ -375,9 +371,11 @@ function __nric_validatorRender(keys,rk,en){
         }
     }catch(e3){}
 }
-function __nric_validatorExtras(){
+function __nric_validatorExtras(force){
     if (typeof TBKit === 'undefined') return;
     if (__nric_validator_skip) return;
+    clearTimeout(__nric_validator_timer);
+    __nric_validator_timer=null;
     var snap=__nric_validatorSnap();
     var keys=Object.keys(snap);
     if(!keys.length) return;
@@ -387,7 +385,10 @@ function __nric_validatorExtras(){
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
     var now=Date.now();
-    if(now-__nric_validator_last<1000) return;
+    if(!force && now-__nric_validator_last<1000){
+        __nric_validator_timer=setTimeout(function(){__nric_validatorExtras(true);},1000-(now-__nric_validator_last));
+        return;
+    }
     var last=null;
     try{ last=TBKit.history.last(); }catch(e){}
     if(last){
@@ -401,12 +402,13 @@ function __nric_validatorExtras(){
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
-    rec.__tbScore=__nric_validatorScore(res);
+    rec.__tbScore=__nric_validatorScore(__nric_validatorFullResText());
     TBKit.history.record(rec);
     __nric_validatorRender(keys,rk,en);
 }
 function __nric_validatorExport(){
     if (typeof TBKit === 'undefined') return;
+    __nric_validatorExtras(true);
     try{
         var box=document.querySelector('#nric_validatorTable');
         if(!box||!box.querySelector('tr')){

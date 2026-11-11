@@ -119,17 +119,6 @@ canvas{width:100%;border-radius:8px;background:var(--card-bg);}
 <script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"利潤率計算器是做什麼的？","acceptedAnswer":{"@type":"Answer","text":"毛利率、淨利率、營業利潤率、EBITDA利潤率，支援倒推計算與杜邦分析"}},{"@type":"Question","name":"如何使用利潤率計算器？","acceptedAnswer":{"@type":"Answer","text":"在對應的輸入框或選項中填寫、選擇所需引數，點選「計算」或「生成」按鈕即可執行，結果會在結果區即時顯示，支援複製與匯出。"}},{"@type":"Question","name":"計算結果準確嗎？","acceptedAnswer":{"@type":"Answer","text":"本工具在你的本地瀏覽器中即時計算，不依賴伺服器；只要輸入的引數正確，結果即按對應的規則得出。涉及經驗估算的部分僅供參考，不作為正式依據。"}},{"@type":"Question","name":"利潤率計算器適合哪些場景？","acceptedAnswer":{"@type":"Answer","text":"個人或家庭的理財規劃、貸款與投資收益測算、日常收支與稅務估算。"}},{"@type":"Question","name":"使用本工具需要聯網或上傳資料嗎？","acceptedAnswer":{"@type":"Answer","text":"不需要。所有計算均在你的裝置本地完成，資料不會上傳到任何伺服器，可放心使用。"}}]}</script>
-<!-- TOOLBOX-TTZZ -->
-<script>
-(function(){try{
-var el = document.createElement("script");
-el.src = "https://lf1-cdn-tos.bytegoofy.com/goofy/ttzz/push.js?85d6452aa9be4d693b16cd48535a8c7ae57542f6788a41682e745be8eb99b35a8a24d2f724c31ebe20c1e4e6fba6d91caf576100b02a2870c72f38fc574066fef065d152c73bf1cbb2ebad3b5b5265d8";
-el.id = "ttzz";
-var s = document.getElementsByTagName("script")[0];
-s.parentNode.insertBefore(el, s);
-}catch(e){}
-})(window);
-</script>
 
 <script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
@@ -981,7 +970,7 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 
-var __profit_margin_calculator_last=0,__profit_margin_calculator_skip=false;
+var __profit_margin_calculator_last=0,__profit_margin_calculator_skip=false,__profit_margin_calculator_timer=null;
 function __profit_margin_calculatorSnap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
@@ -990,7 +979,7 @@ function __profit_margin_calculatorSnap(){
         var t=(e.type||'').toLowerCase();
         if(t==='button'||t==='submit'||t==='hidden') continue;
         var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
-        if(v!==''&&v!=null) out[e.id]=v;
+        if(v!=null) out[e.id]=v;
     }
     return out;
 }
@@ -1002,9 +991,18 @@ function __profit_margin_calculatorResText(){
     if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
 }
+function __profit_margin_calculatorFullResText(){
+    var r=document.getElementById('res');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    return t;
+}
 function __profit_margin_calculatorScore(t){
+    var rev=parseFloat(document.getElementById('revenue').value);
+    if(!isFinite(rev)||rev<=0) return 0;
     var s=String(t||'');
-    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    if(/[❌]|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
     return 1;
 }
 function __profit_margin_calculatorTime(t){
@@ -1027,7 +1025,7 @@ function __profit_margin_calculatorRender(keys,rk,en){
         TBKit.matrix.table('#profit_margin_calculatorTable',{head:head,rows:rows});
         TBKit.util.diffBox('#profit_margin_calculatorDiff');
         TBKit.history.mount('#profit_margin_calculatorHist',function(rec){
-            __profit_margin_calculator_skip=true;
+            __profit_margin_calculator_skip=true;clearTimeout(__profit_margin_calculator_timer);__profit_margin_calculator_timer=null;
             try{
                 for(var k in rec){
                     if(k===rk||k==='__tbScore') continue;
@@ -1051,9 +1049,11 @@ function __profit_margin_calculatorRender(keys,rk,en){
         }
     }catch(e3){}
 }
-function __profit_margin_calculatorExtras(){
+function __profit_margin_calculatorExtras(force){
     if (typeof TBKit === 'undefined') return;
     if (__profit_margin_calculator_skip) return;
+    clearTimeout(__profit_margin_calculator_timer);
+    __profit_margin_calculator_timer=null;
     var snap=__profit_margin_calculatorSnap();
     var keys=Object.keys(snap);
     if(!keys.length) return;
@@ -1063,7 +1063,10 @@ function __profit_margin_calculatorExtras(){
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
     var now=Date.now();
-    if(now-__profit_margin_calculator_last<1000) return;
+    if(!force && now-__profit_margin_calculator_last<1000){
+        __profit_margin_calculator_timer=setTimeout(function(){__profit_margin_calculatorExtras(true);},1000-(now-__profit_margin_calculator_last));
+        return;
+    }
     var last=null;
     try{ last=TBKit.history.last(); }catch(e){}
     if(last){
@@ -1077,12 +1080,13 @@ function __profit_margin_calculatorExtras(){
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
-    rec.__tbScore=__profit_margin_calculatorScore(res);
+    rec.__tbScore=__profit_margin_calculatorScore(__profit_margin_calculatorFullResText());
     TBKit.history.record(rec);
     __profit_margin_calculatorRender(keys,rk,en);
 }
 function __profit_margin_calculatorExport(){
     if (typeof TBKit === 'undefined') return;
+    __profit_margin_calculatorExtras(true);
     try{
         var box=document.querySelector('#profit_margin_calculatorTable');
         if(!box||!box.querySelector('tr')){
