@@ -28,44 +28,16 @@
 ### Emoji 明细编码显示及复制错误（中，代码确认）
 - `tools/it/emoji-meaning.html:818-821,835-845` 将 HTML 实体直接写入 `innerHTML`，因此显示及 `onclick` 属性中的实体会被 HTML 解析成 Emoji，而非字面 `&#x1f600;`；JS 转义插入事件处理器后被 JS 解析成字符，CSS 转义则被解析成旧式八进制。以 😀 为例，JS 表达式复算 `copyText("\u{1f600}")` 接收 😀，`copyText("\1f600")` 接收控制字符 U+0001 和 `f600`，均不是期望的字面编码。应使用文本节点显示并在事件中传递原始字符串；未在浏览器执行复制。
 
-### HTML 标签速查导出损坏示例（中，代码确认）
-- `tools/it/html-tags.html:338,408-427` 将 `t.example` 原样拼入临时表格的 `innerHTML`，`js/tool-kit.js:221-236` 随后取单元格 `textContent` 导出。超链接示例 `<a href="https://example.com" target="_blank">链接</a>` 因被当作真实元素解析，仅剩「链接」，标签及属性丢失。应创建单元格后以 `textContent` 写入原示例；未实际下载文件。
-
-### 环境变量预览错误保留旧复制值（中，代码确认）
-- `tools/it/env-generator.html:844-865,868-882` 在高亮后的整段 HTML 中匹配 `Infinity` 或独立 `NaN` 并提前 return，此时展示无效值提示，却不会更新或清空 `preview.dataset.raw`。此前存在有效预览时，添加文本值 `Infinity` 后复制/下载仍取旧配置。应只验证真正的数值结果，失败时同步清空缓存。
-- `tools/it/env-generator.html:753-758` JSON 数字类型用 `Number(val) || 0`，空值或无效数字会静默变为 0；应校验并报错而非改变用户数据。
-
-### HTTP 状态码导出后表格与筛选状态不一致（低，代码确认）
-- `tools/it/http-status.html:365-410,413-425`：点导出会将隐藏表格设为可见并追加「合计」行；之后改变筛选，`__httpExtras()` 只更新表头和数据，不重新追加合计或隐藏表格，因此页面遗留一张筛选明细表且合计行消失。无匹配时又把空表显示出来，与 IT-N103 属相同显示状态管理缺陷；应统一图表、表格和导出渲染状态。未运行页面。
-
 ### JS 简化器默认压缩修改字符串和保留旧结果（高，代码确认）
 - `tools/it/js-minifier.html:176,383-430` 即使 tokenize 区分字符串和正则，最后仍对整段输出全局替换空白及运算符。Node 抽取页面原函数复算：`const text = "a  b";` 被压成 `const text="a b";`，字符串数据改变。应仅在 token 间压缩，生产使用仍需真正的解析器。
 - `:189,445-459,462-491` 输入变化只重置统计，不清空输出；选择示例亦仅重置统计，复制仍读取前次结果。应在输入变化时清空旧结果或明确标记过期。
 
-### JS / Java 转义非法输入缺少错误处理（中，代码确认）
-- `tools/it/js-escape.html:318-327` 输入 `\u{110000}` 时 `String.fromCodePoint` 抛 RangeError；`tools/it/java-escape.html:328-330` 输入 `\u` 会因 NaN 抛同样异常。二者无输入校验或 catch，导致不更新旧输出；应校验码点及十六进制长度并清除旧结果。
-
-### Markdown 正文命中数值守卫导致预览错误（中，代码确认）
-- `tools/it/markdown-editor.html:954-958,1120-1126,1187-1193` 对生成的整段 HTML 匹配 `Infinity` 或独立 `NaN`，合法 Markdown 正文或代码包含这些字符串时预览被替换为「计算结果含无效值」，统计也不更新；复制 HTML 复制错误提示，而导出 HTML 直接解析源内容，二者不一致。应移除对文本内容的数值守卫；未运行浏览器。
-
 ### Less 异步编译结果可能覆盖新状态（中，代码确认；竞态待运行验证）
 - `tools/it/less-compiler.html:531-581,585-589,616-625,641-648` 的 `less.render()` 回调没有版本或输入一致性检查；多个编译先后完成顺序反转时旧结果可覆盖新结果，清空后仍在途的成功回调也可重新填充输出及复制缓存。输入刚编辑而防抖未触发期间，复制/下载仍读取上次的 `lastCompiledCSS`。应使过时任务失效并标记或清除旧输出；未验证实际异步完成顺序。
-
-### PHP 不完整 Unicode 转义可造成无限循环（高，代码确认）
-- `tools/it/php-escape.html:307-362` 对 `\u{` 未找到右花括号时仍计算 `end + 1`；输入 `1\u{41` 时 `end = -1`，解析片段得到数值 1，索引重置为 0 并反复处理同一段，主线程无法结束。应先验证闭括号、十六进制及码点，再推进索引或提示错误；Node 仅复算索引与解析值，未执行无限循环或浏览器。
-- 同页 `:171,179,263-268` 转义模式选择无 change 处理，切换单/双引号后旧输出不刷新，直到输入变化或重新点击转义。
-
-### Python 反转义误认原始字符串并忽略非法码点（中，代码确认）
-- `tools/it/python-escape.html:333-350,369-377` 对任何以 `r`/`R` 开头的输入无条件去掉首字母并视为 raw，即未加引号的 `red` 返回 `ed`；只有前缀紧邻有效引号时才应视为原始字符串。无效 `\U00110000` 则调用 `String.fromCodePoint` 抛 RangeError，无错误提示且保留旧输出。未执行页面。
-- `:171-187,271-277` 的模式和引号类型下拉均无 change 处理，切换后输出保持旧值，直到输入或其他动作重新转义。
 
 ### Robots 规则重建将用户输入拼入 HTML（高，代码确认；可利用性待验证）
 - `tools/it/robots-txt-generator.html:247-268,272-287`：编辑 User-agent、Allow 或 Disallow 时先保存到 `rules`；点击「新增规则组」会将用户输入未经转义插入属性或 textarea 的 HTML，再赋给 `innerHTML`。引号或 `</textarea>` 能改变生成的 DOM；应安全设置属性和文本。未运行注入，也未确认外部诱导或脚本执行条件。
 - 同处 `:261-268` 对整个 HTML 匹配 `Infinity` 或独立 `NaN`，路径含这些合法文本时新增规则会将全部规则控件替换成数值错误提示；后续直接点击新增仍会命中相同数据。应移除文本数值守卫并保持界面与状态一致。
-
-### Rust 反转义缺失闭括号可能卡死（高，代码确认）
-- `tools/it/rust-escape.html:329-367` 的 `\u{...}` 分支未检查右括号：输入 `1\u{41` 时 `indexOf` 返回 -1，`substring` 提取到以 `1` 开头的片段、`parseInt` 得 1，随后索引重置为 0，重复同一路径。应校验闭括号、十六进制和 Unicode 标量后再推进；未执行死循环或浏览器。
-- `:171-181,265-271` 的类型下拉无 `change` 处理，切换类型后旧输出不会刷新；与其他转义工具同类，应按当前转换模式更新。
 
 ### SQL 方言切换及反转义空白丢失（中，代码确认）
 - `tools/it/sql-escape.html:162-174,269-299` 的方言选择未绑定 `change`；将含单引号的输入从 MySQL 切换到 PostgreSQL 时，输出仍为旧方言的反斜杠写法，直到输入改变或手动点转义。应在切换时更新当前转换模式。
@@ -227,26 +199,12 @@
 - 影响：粘贴被截断的时间戳会被静默当成 2000/2001 年，排查日志时误判。
 - 方案：纯数字统一走时间戳分支（按位数或阈值判定秒/毫秒），不足 10 位给出明确提示。
 
-### IT-N43 时间戳转换：12 位毫秒戳被 smartConvert 判成秒，输出 31969 年（高，确认源码缺陷）
-- 描述：智能识别只用 `n >= 1e12` 区分毫秒；2001-09-09 之前的毫秒戳（12 位）低于阈值，被当成秒再乘 1000，Date 仍可表示，于是静默给出 3 万年后的日期，并提示"识别成功"。
-- 证据：`tools/it/timestamp-converter.html:577-596`（579 阈值、580 构造日期）
-- 复现：`946684800000`（2000-01-01T00:00:00Z）→ 识别为"秒时间戳（12 位）"，日期 `31969-04-01 08:00:00`（ISO 为 `+031969-04-01T00:00:00Z`；期望 2000-01-01）；`1700000000000` 才会正确判为毫秒
-- 影响：2000–2001 年的历史数据整体算错，且提示文案让用户以为识别正确。
-- 方案：按位数（≤10 位秒、13 位毫秒、16 位微秒）或结合合理年份区间判定；毫秒数 <1e12 时仍判毫秒；无法判定时让用户显式选单位。
-
 ### IT-N44 时间戳转换：时区表写死固定偏移，忽略夏令时（中，确认源码缺陷）
 - 描述：`TIMEZONES` 为纽约 -5、伦敦 0、巴黎 +1、悉尼 +11 等固定值；这些地区夏季使用 DST（-4/+1/+2/+10），固定偏移在半年内整体差 1 小时。
 - 证据：`tools/it/timestamp-converter.html:416-427`、`546-562`（553-554 固定偏移计算）
 - 复现：`2026-07-01T12:00:00Z` → "纽约 (GMT-5)" 显示 `07:00`（期望 08:00，EDT -4）；"伦敦 (GMT+0)" 显示 `12:00`（期望 13:00，BST +1）
 - 影响：跨时区排障时纽约/伦敦/巴黎/悉尼结果偏差 1 小时；北京/东京/夏威夷不受影响。
 - 方案：改用 `Intl.DateTimeFormat` 的 IANA 时区（America/New_York 等）格式化，或明确标注"标准时（不含 DST）"。
-
-### IT-N45 时间戳转换：相差年/月按日历字段相减，1 天可显示 1 年/1 月（中，确认源码缺陷）
-- 描述：`diffYear/diffMonth` 只比较年份与月份字段，不看日/时；结果与"相差天数"自相矛盾，文案虽带"约"仍是错误结论。
-- 证据：`tools/it/timestamp-converter.html:713-714`（输出 719-720）
-- 复现：`2025-12-31` → `2026-01-01`：相差天数 1，相差年数"约 1 年"；`2026-01-31` → `2026-02-01`：相差月数"约 1 个月"
-- 影响：日期对比结论被夸大，跨年/跨月仅 1 天的场景误判。
-- 方案：改为整月/整年口径（按月历逐段推进或计算完整周期数），或移除这两项只保留天/周/时/分/秒。
 
 ### IT-N48 进制转换：非法输入只改主结果，其余进制仍显示上次值；基数静默 clamp（中，确认源码缺陷）
 - 描述：catch 分支只把 `mainOut` 设为 ❌，`r2/r8/r10/r16/r32/r36` 保持旧值；`fromBase/toBase` 超出 2–36 时静默改成 2/36 并写回输入框，无提示。
@@ -298,14 +256,6 @@
 - 复现：输入 `\xZZ` 点「反转义」→ 控制台抛 `RangeError: Invalid code point NaN`，输出框保持旧值（期望提示「非法十六进制转义」）；`\u{110000}` → `Invalid code point 1114112`；`\u{` → `Invalid code point NaN`；`\uZZZZ` → 同样抛错。
 - 影响：用户在整理日志/正则时输入不完整转义即静默失败，看不到任何界面反馈；旧结果可能被误当成本次结果复制。
 - 方案：对 `\x`/`\u` 先校验 `^[0-9a-fA-F]{2,4}$` 与码点 ≤ 0x10FFFF，`\u{...}` 要求存在闭合 `}`；失败时在输出区显示具体位置与原因，并清空旧输出。
-
-### IT-N59 正则转义：`verbose` 模式过度转义非元字符，`u`/`v` 模式下生成非法正则（低，确认源码缺陷）
-- 描述：`VERBOSE_META` 把 `, ; : < > @ # & ~ =` 也当作元字符加反斜杠，但这些字符在 ECMAScript 正则中不是元字符。非 `u` 模式把它们当 identity escape 尚可，`u`/`v` 模式会直接 `SyntaxError: Invalid escape`。
-- 证据：`tools/it/regex-escape.html:257`（`VERBOSE_META` 定义）、`tools/it/regex-escape.html:267-268`（逐字符加 `\`）
-- 复现：风格选「含 / 括号」，输入 `a=b,c` → 输出 `a\=b\,c`；`new RegExp('a\\=b\\,c','u')` → `SyntaxError: Invalid regular expression: /a\=b\,c/u: Invalid escape`（期望只转义 `. * + ? ( ) [ ] { } ^ $ | \ /`）
-- 影响：把结果贴进带 `u` 标志的 `RegExp`、ESLint `no-useless-escape` 或部分严格引擎会被判非法/告警。
-- 方案：`verbose` 只额外处理 `/` 与字符类内的 `-`，删除 `,;:<>@#&~=`；或在输出旁注明「本结果适用于非 `u` 模式」。
-
 
 - 备注：`tools/it/punycode.html:404-410`、`tools/it/regex-escape.html:321-328` 的 `copyResult` 依赖全局 `event`（与 IT-N31 同模式，Firefox 可能失效），不重复计数，未单列为新条目。
 - 本轮实读 8 页：`tools/it/punycode.html`、`tools/it/regex-escape.html`、`tools/it/css-minifier.html`、`tools/it/date-duration.html`、`tools/it/ipv4-range-expander.html`、`tools/it/user-agent-parser.html`、`tools/it/hash-multi.html`、`tools/it/http-cache.html`；新增 15 条（高 3 / 中 8 / 低 4）；未覆盖：`tools/it` 其余非文本页（如 `html-minifier`、`html-nesting-checker`、`c-string-escape`、`go-escape`、`java-escape`、`js-minifier`、`js-obfuscator`、`sql-formatter`、`shell-script-formatter`、`dockerfile-generator`、`gitignore-generator`、`robots-txt-generator`、`sitemap-generator`、`ssh/证书/密钥类` 等）与全部速查表页；未做浏览器、EN、移动端、门禁或部署验证。
@@ -1915,14 +1865,6 @@
 - 影响：粘贴不可信 Markdown（README/Issue/聊天记录）即可执行任意 JS；导出 .html 后同样带毒。
 - 方案：属性值统一走 `escAttr`（`"`→`&quot;`、`'`→`&#39;`），URL 做协议白名单（仅 http/https/mailto，禁 `javascript:`/`data:`），并本地引入 DOMPurify 做最后一道白名单净化。
 **留存建议（tools/it/markdown-editor.html）**：XSS 是本页最高优先，先补 `escAttr`+协议白名单，再谈语法扩展。
-
-### IT-N289 预设"任务清单"的 `- [x]` 不渲染复选框，原样当文本输出（中，确认缺陷）
-- 问题：列表解析只识别 `^[-*+]\s+` 并整段塞进 `<li>`，不处理 GFM task list 的 `[ ]`/`[x]`；预设却把"任务清单"当卖点，渲染结果是字面量 `[x]`。
-- 证据：`tools/it/markdown-editor.html:582`（预设内容 `- [x] 编写文档`）、`:888-905`（`parseLists` 无 task list 分支）、`:521`（解析顺序说明也未提任务列表）。
-- 复现：点"任务清单"预设 → 预览实际 `<li>[x] 编写文档</li>`（纯文本）；期望 `<li><input type="checkbox" checked disabled> 编写文档</li>`。
-- 影响：预设承诺的语法不支持，用户以为勾选状态会保留。
-- 方案：`parseLists` 对 item 前缀 `^\[([ xX])\]\s+` 生成 disabled checkbox；或在预设文案标注"任务清单仅作纯文本"。
-**留存建议（tools/it/markdown-editor.html）**：要么实现 task list，要么删该预设，别留半承诺。
 
 ### IT-N290 `#` 与 `##` 都渲染成 h2，预览与导出都没有 h1（低，确认缺陷）
 - 问题：`^#\s+` 被映射为 `<h2>`，与 `^##\s+` 相同，文档级一级标题在预览/导出 HTML 中不存在；这与 CommonMark 的 h1 语义不符，导出到别处层级整体下移。

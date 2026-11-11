@@ -1989,6 +1989,22 @@ const CASES = [
   },
   {
     slug: "it/regex-escape",
+    // IT-N59 回归：verbose 风味只转义真正则元字符，= , ; : < > @ # & ~ 非元字符须原样保留。
+    inputs: { input: "a=b,c.d", flavor: "verbose" },
+    clicks: ["esc()"],
+    expect: ["a=b,c\\.d"],
+    ref: "独立复算：verbose 风味下 `=` `,` 不是 ECMAScript 正则元字符须原样保留，仅 `.` 被转义 ⇒ `a=b,c\\.d`。修复前 VERBOSE_META 含 `=,;:<>@#&~=` ⇒ 输出 `a\\=b\\,c\\.d`，不命中；贴进带 u/v 标志的 RegExp 会 SyntaxError。默认态输入为 Hello 预设串，不命中。expect 含被转义的 `.`（非纯输入回显）。",
+  },
+  {
+    slug: "it/markdown-editor",
+    // IT-N289 回归：预设「任务清单」的 `- [x]` / `- [ ]` 必须渲染成复选框，不得原样输出字面量。
+    inputs: { mdInput: "- [x] done-item\n- [ ] todo-item" },
+    clicks: ["var h=String(document.getElementById('mdPreview').innerHTML);document.getElementById('__tbProbe').textContent='TASKCHECK '+(h.indexOf('checkbox')>=0&&h.indexOf(' checked')>=0&&h.indexOf('task-list-item')>=0&&h.indexOf('[x]')<0&&h.indexOf('done-item')>=0?'OK':'BAD');"],
+    expect: ["TASKCHECK OK"],
+    ref: "探针校验解析产物：注入任务清单后预览须含禁用复选框（checked 勾已完成项、task-list-item 类）且不再有字面 `[x]`，文本 done-item 保留。修复前 parseLists 把 `[x] done-item` 整段当文本塞进 li ⇒ 无 checkbox、含 `[x]` ⇒ TASKCHECK BAD。默认态是页面样例（非任务清单）⇒ 不命中。",
+  },
+  {
+    slug: "it/regex-escape",
     // IT-N21 回归：非法 `\\x` 转义必须原样保留，不能抛 RangeError 中断。
     inputs: { input: "\\x41\\xzz" },
     clicks: ["unesc()"],
@@ -4235,6 +4251,12 @@ const CASES = [
     clicks: ["exportMd()"],
     expect: ["hi"],
     ref: "预览区把 Markdown 标题 `# hi` 渲染成 `<h1>hi</h1>`（textContent 只留 `hi`），是解析产物而非原样回显；默认态渲染的是页面自带样例，预览文本不同 ⇒ 不命中。",
+  },
+  {
+    slug: "it/markdown-editor",
+    inputs: { mdInput: "**NaN** Infinity 正文" },
+    expect: ["NaN Infinity 正文"],
+    ref: "Markdown 正文含 NaN/Infinity 是合法文本，不是数值计算结果；`**NaN**` 经粗体解析后产物为 `NaN Infinity 正文`，与原输入字符串（含星号）不同，故不是 input 回显。旧实现的通用数值守卫把预览替换成无效值提示并 return ⇒ 不命中。默认样例不含该串。",
   },
   // ---- BATCH243：编码族 + 数学/判定族（8 例） ----
   {
@@ -10712,6 +10734,13 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"timestampSec\":\"abc123测试\",\"timestampMs\":\"abc123测试\",\"dateInput\":\"abc123测试\",\"calcStartDate\":\"abc123测试\",\"calcAmount\":\"42\",\"diffStart\":\"abc123测试\",\"diffEnd\":\"abc123测试\",\"calcOp\":\"subtract\",\"calcUnit\":\"week\"}，输出区含「 14:00:00\nabc123测试\n42\nabc123测试\nabc123测试\n…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
+    "slug": "it/timestamp-converter",
+    "inputs": { "diffStart": "2025-12-31", "diffEnd": "2026-01-01" },
+    "clicks": ["calculateDiff();document.getElementById('__tbProbe').textContent=document.getElementById('calcResult2').textContent;"],
+    "expect": ["相差整年数: 0 年", "相差整月数: 0 个月", "相差天数: 1 天"],
+    "ref": "IT-N45 相差年/月按日历字段相减的回归：2025-12-31→2026-01-01 仅 1 天，旧实现按年份/月份字段差输出「约 1 年」「约 1 个月」；整月/整年口径修复后为 0/0，天数 1。expect 三条都绑定注入日期派生的输出，旧源码「约 1 年」不命中 ⇒ 强判别。用 clicks 显式调 calculateDiff（diffStart 无 oninput）。"
+  },
+  {
     "slug": "it/toml-to-json",
     "inputs": {
       "source": "1\n2\n3",
@@ -11414,6 +11443,27 @@ const CASES = [
     ref: "IT-N337：PHP 双引号字符串八进制 \\172 = 'z'；旧实现八进制分支永不命中。默认 Hello 无 zz。",
   },
   {
+    slug: "it/php-escape",
+    inputs: { input: '"\\u{110000}"' },
+    clicks: ["unesc();"],
+    expect: ["⚠️ 非法转义：\\u{110000}"],
+    ref: "PHP 反转义码点越界：U+110000 超出 Unicode 上限 0x10FFFF，旧实现 fromCodePoint 抛 RangeError 保留旧输出，修复后显示绑定原片段的错误提示。默认 Hello 不命中。",
+  },
+  {
+    slug: "it/php-escape",
+    inputs: { input: '"\\xGG"' },
+    clicks: ["unesc();"],
+    expect: ["⚠️ 非法转义：\\xGG"],
+    ref: "PHP 反转义 \\x 需要恰好两位十六进制；GG 非法时旧实现 parseInt→NaN 抛 RangeError，修复后显示绑定原片段的错误提示。默认 Hello 不命中。",
+  },
+  {
+    slug: "it/php-escape",
+    inputs: { input: '"\\uZZZZ"' },
+    clicks: ["unesc();"],
+    expect: ["⚠️ 非法转义：\\uZZZZ"],
+    ref: "PHP 反转义 \\uXXXX 需要四位十六进制；ZZZZ 非法时旧实现 parseInt→NaN 抛 RangeError，修复后显示绑定原片段的错误提示。默认 Hello 不命中。",
+  },
+  {
     slug: "it/python-escape",
     inputs: { input: "\\172\\172" },
     clicks: ["unesc();"],
@@ -11776,6 +11826,27 @@ const CASES = [
     ref: "Rust 字节串控制字符：b\"…\" 不支持 \\u{{…}}，必须用 \\xNN；BEL 码位 7 ⇒ b\"\\x07\"。旧实现输出 b\"\\u{{7}}\"，rustc 报 unknown character escape。默认 Hello 不含 BEL。",
   },
   {
+    slug: "it/rust-escape",
+    inputs: { input: '"\\u{110000}"' },
+    clicks: ["unesc();"],
+    expect: ["⚠️ 非法转义：\\u{110000}"],
+    ref: "Rust Unicode 标量上限 0x10FFFF；旧实现 fromCodePoint(U+110000) 抛 RangeError 保留旧输出，修复后显示绑定原片段的错误提示。默认 Hello 不命中。",
+  },
+  {
+    slug: "it/rust-escape",
+    inputs: { input: '"\\u{D800}"' },
+    clicks: ["unesc();"],
+    expect: ["⚠️ 非法转义：\\u{D800}"],
+    ref: "Rust Unicode scalar value 排除代理区 D800–DFFF；旧实现 output 得到孤立代理，修复后显示绑定原片段的错误提示。默认 Hello 不命中。",
+  },
+  {
+    slug: "it/rust-escape",
+    inputs: { input: '"\\xGG"' },
+    clicks: ["unesc();"],
+    expect: ["⚠️ 非法转义：\\xGG"],
+    ref: "Rust \\x 需要恰好两位十六进制；GG 非法时旧实现 parseInt→NaN 抛 RangeError，修复后显示绑定原片段的错误提示。默认 Hello 不命中。",
+  },
+  {
     slug: "it/python-escape",
     inputs: { input: "line1\nline2" },
     clicks: ["document.getElementById('mode').value='raw';document.getElementById('qtype').value='double';esc()"],
@@ -11788,6 +11859,34 @@ const CASES = [
     clicks: ["document.getElementById('mode').value='raw';document.getElementById('qtype').value='double';esc()"],
     expect: ["\\x00"],
     ref: "Python raw 回退（NUL）：Python 词法器拒收源码中的 null 字节，raw 串里也不能直接含 NUL ⇒ 退回 \\x00。ast.literal_eval 实测等价；旧实现输出含裸 NUL 的 r\"…\"，compile 直接失败。",
+  },
+  {
+    slug: "it/python-escape",
+    inputs: { input: '"\\U00110000"' },
+    clicks: ["unesc();"],
+    expect: ["⚠️ 非法转义：\\U00110000"],
+    ref: "Python \\U 八位十六进制码点上限 U+10FFFF；旧实现 fromCodePoint 抛 RangeError 保留旧输出，修复后显示绑定原片段的错误提示。默认 Hello 不命中。",
+  },
+  {
+    slug: "it/python-escape",
+    inputs: { input: '"\\xGG"' },
+    clicks: ["unesc();"],
+    expect: ["⚠️ 非法转义：\\xGG"],
+    ref: "Python \\x 需要恰好两位十六进制；GG 非法时旧实现 parseInt→NaN 抛 RangeError，修复后显示绑定原片段的错误提示。默认 Hello 不命中。",
+  },
+  {
+    slug: "it/python-escape",
+    inputs: { input: '"\\uZZZZ"' },
+    clicks: ["unesc();"],
+    expect: ["⚠️ 非法转义：\\uZZZZ"],
+    ref: "Python \\u 需要恰好四位十六进制；ZZZZ 非法时旧实现 parseInt→NaN 抛 RangeError，修复后显示绑定原片段的错误提示。默认 Hello 不命中。",
+  },
+  {
+    slug: "it/python-escape",
+    inputs: { input: "red\\nblue" },
+    clicks: ["unesc();"],
+    expect: ["red blue"],
+    ref: "Python raw 前缀必须紧邻有效引号：`red\\nblue` 是普通标识符开头，不是 raw 串，\\n 应解析为真实换行（harness 把结果区换行折叠为空格，故 expect 取转换后形态 `red blue`，非输入回显）。旧实现无条件去掉首字母 r，输出 `ed\\nblue` ⇒ 折叠后 `ed blue`，不命中。默认 Hello 不命中。",
   },
   {
     slug: "it/c-string-escape",
@@ -11809,6 +11908,41 @@ const CASES = [
     clicks: ["esc()"],
     expect: ["\\x00"],
     ref: "JS NUL 边界：\\0 后紧跟十进制数字会变成 \\08 等遗留八进制转义（严格模式 SyntaxError）；改用定长两位 \\x00 ⇒ \"\\x008\"，vm.runInNewContext 严格模式实测可解析且值为 NUL+'8'。",
+  },
+  {
+    slug: "it/js-escape",
+    inputs: { input: '"\\u{110000}"' },
+    clicks: ["unesc();"],
+    expect: ["⚠️ 非法转义：\\u{110000}"],
+    ref: "JS \\u{...} 码点上限 U+10FFFF；旧实现 fromCodePoint 抛 RangeError 保留旧输出，修复后显示绑定原片段的错误提示。默认 Hello 不命中。",
+  },
+  {
+    slug: "it/js-escape",
+    inputs: { input: '"\\xGG"' },
+    clicks: ["unesc();"],
+    expect: ["⚠️ 非法转义：\\xGG"],
+    ref: "JS \\x 需要恰好两位十六进制；GG 非法时旧实现 parseInt→NaN 抛 RangeError，修复后显示绑定原片段的错误提示。默认 Hello 不命中。",
+  },
+  {
+    slug: "it/js-escape",
+    inputs: { input: '"\\uZZZZ"' },
+    clicks: ["unesc();"],
+    expect: ["⚠️ 非法转义：\\uZZZZ"],
+    ref: "JS \\uXXXX 需要四位十六进制；ZZZZ 非法时旧实现 parseInt→NaN 抛 RangeError，修复后显示绑定原片段的错误提示。默认 Hello 不命中。",
+  },
+  {
+    slug: "it/java-escape",
+    inputs: { input: '"\\uZZZZ"' },
+    clicks: ["unesc();"],
+    expect: ["⚠️ 非法转义：\\uZZZZ"],
+    ref: "Java \\uXXXX 必须恰好四位十六进制；ZZZZ 非法时旧实现 parseInt→NaN 抛 RangeError，修复后显示绑定原片段的错误提示。默认 Hello 不命中。",
+  },
+  {
+    slug: "it/java-escape",
+    inputs: { input: "\\u" },
+    clicks: ["unesc();"],
+    expect: ["⚠️ 非法转义：\\u"],
+    ref: "Java \\u 后缺位时旧实现 parseInt('')→NaN 抛 RangeError 保留旧输出；修复后显示绑定原片段的错误提示。默认 Hello 不命中。",
   },
   {
     slug: "it/php-escape",
