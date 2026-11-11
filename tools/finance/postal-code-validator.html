@@ -246,22 +246,23 @@ const FORMATS = [
   {country:'Finland', code:'FI', pattern:/^\d{5}$/, desc:'5 位数字'},
   {country:'Poland', code:'PL', pattern:/^\d{2}-\d{3}$/, desc:'2-3 格式'},
   {country:'Russia', code:'RU', pattern:/^\d{6}$/, desc:'6 位数字'},
-  {country:'Japan', code:'JP', pattern:/^\d{3}-\d{4}$/, desc:'3-4 格式'},
+  {country:'Japan', code:'JP', pattern:/^\d{3}-?\d{4}$/, desc:'3-4 格式（连字符可省）'},
   {country:'China', code:'CN', pattern:/^\d{6}$/, desc:'6 位数字'},
   {country:'South Korea', code:'KR', pattern:/^\d{5}$/, desc:'5 位数字'},
   {country:'Australia', code:'AU', pattern:/^\d{4}$/, desc:'4 位数字'},
   {country:'New Zealand', code:'NZ', pattern:/^\d{4}$/, desc:'4 位数字'},
-  {country:'Brazil', code:'BR', pattern:/^\d{5}-\d{3}$/, desc:'5-3 格式'},
+  {country:'Brazil', code:'BR', pattern:/^\d{5}-?\d{3}$/, desc:'5-3 格式（连字符可省）'},
   {country:'India', code:'IN', pattern:/^\d{6}$/, desc:'6 位数字'},
   {country:'Singapore', code:'SG', pattern:/^\d{6}$/, desc:'6 位数字'},
-  {country:'Hong Kong', code:'HK', pattern:/.*/, desc:'香港无邮编系统（默认通过）'},
+  {country:'Hong Kong', code:'HK', pattern:/.*/, desc:'香港无邮编系统（输入 HK: 任意内容即确认）', explicitOnly:true},
   {country:'Mexico', code:'MX', pattern:/^\d{5}$/, desc:'5 位数字'}
 ];
 function validate(){
   const raw = document.getElementById('input').value.trim().toUpperCase();
   const out = document.getElementById('output');
   if(!raw){ const __h0=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Waiting for input...":"等待输入...");if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h0; return; }
-  let html = `<p><strong>输入：</strong>${raw}</p>`;
+  const safeRaw = raw.replace(/[&<>"']/g, c => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'}[c]));
+  let html = `<p><strong>输入：</strong>${safeRaw}</p>`;
   // Detect country code prefix
   let target = raw;
   let explicitCC = '';
@@ -272,6 +273,8 @@ function validate(){
   }
   let matches = [];
   for(const f of FORMATS){
+    // 香港等「无邮编系统」条目仅在显式国家前缀时才参与匹配，避免 /.*/ 吞掉任意输入
+    if(!explicitCC && f.explicitOnly) continue;
     if(explicitCC){
       if(f.code === explicitCC && f.pattern.test(target)) matches.push(f);
     } else if(f.pattern.test(raw)){

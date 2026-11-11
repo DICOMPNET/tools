@@ -23,6 +23,15 @@
 const { runCase } = require("./verify_it_calc.js");
 
 const CASES = [
+  { slug: "energy/lcoe", inputs: { capex: "5000000", n: "1e-30", r: "1e-300", om: "100000", e: "1200000" },
+    clicks: ["document.getElementById('__tbProbe').textContent='LCOEMPTY '+(__lcoSweep()===null?'YES':'NO');"],
+    expect: ["LCOEMPTY YES"], ref: "主计算不可表示时趋势图不得继续展示结论。" },
+  { slug: "energy/lcoe", inputs: { capex: "5000000", n: "1e308", r: "10", om: "100000", e: "1200000" },
+    clicks: ["document.getElementById('__tbProbe').textContent='LCOBIG '+__lcoeCRF(10,1e308).toFixed(2);"],
+    expect: ["LCOBIG 10.00"], ref: "中间指数上溢时 CRF 极限为折现率。" },
+  { slug: "energy/lcoe", inputs: { capex: "5000000", n: "1e-30", r: "1e-300", om: "100000", e: "1200000" },
+    expect: ["资本回收因子不可表示"],
+    ref: "第六批 CE-N10：年限 1e-30、折现率 1e-300 均通过有效性校验，但 n·log1p(r) 下溢为 0 ⇒ -expm1(-0) = -0 ⇒ CRF = ±Infinity，主结果显示「—」而增强表仍含 Infinity 且可导出。现 __lcoeCRF 对中间量下溢返回 NaN，calcTool/Extras/Export 统一以 __lcoeComputable() 阻断并清空明细。默认 20 年/6% 正常出结果 ⇒ 强判别。" },
   // ── 电功率 P = U × I ────────────────────────────────────────────
   {
     slug: "energy/electrical-power",
@@ -420,6 +429,18 @@ const CASES = [
     "inputs": { "tdsInput": "-1" },
     "expect": ["TDS 值须为 0–5000 之间的非负数值"],
     "ref": "2026-11-09 复核失败重做（G10 第 51 批 TDS 无效负值）：填 -1 时修复前 evaluate() 不校验范围，落入最后一档输出「不宜饮用」「1000~99999 ppm」并把 -1 ppm 标进分级范围。修复后 tds<0（或非有限）明确提示「TDS 值须为 0–5000 之间的非负数值」并清空等级/色条/结论，保留合法 0。默认 150 → '150 ppm - 自来水级' 不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "energy/water-tds-evaluator",
+    "inputs": { "tdsInput": "5001" },
+    "expect": ["TDS 值须为 0–5000 之间的非负数值"],
+    "ref": "复核失败重做 G10-51（第七批·输入上限未生效）：输入控件 min=0/max=5000、错误提示写明 0–5000，修复前 evaluate() 只拦负值与非有限值，5001 仍落入末档输出「5001 ppm - 不宜饮用」。修复后 tds>5000 与 tds<0/NaN 一并拒绝，清空等级、色条与旧结论；同时移除 parseFloat(...)||0 兜底，非法串不再伪装成合法 0。默认 150 → '150 ppm - 自来水级' 不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "energy/water-tds-evaluator",
+    "inputs": { "tdsInput": "5000" },
+    "expect": ["5000 ppm - 不宜饮用"],
+    "ref": "G10-51 上限闭区间边界：5000 是合法端点，须正常出结论；tdsGrades 末档上限同步由 99999 收紧为 5000，静态分级表与结果卡不再显示越界数值。bar.textContent = '5000 ppm - 不宜饮用'；默认 150 不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "energy/estimate-time-current",

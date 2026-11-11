@@ -234,11 +234,14 @@ function abaCheck(digits){
   const sum = 3*(d[0]+d[3]+d[6]) + 7*(d[1]+d[4]+d[7]) + (d[2]+d[5]+d[8]);
   return sum % 10 === 0;
 }
+let __abaValid = false;
 function validate(){
+  __abaValid = false;
   const raw = document.getElementById('input').value.trim();
   const digits = raw.replace(/\D/g,'');
   const out = document.getElementById('output');
-  if(!digits){ const __h0=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Waiting for input...":"等待输入...");if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h0; return; }
+  if(!raw){ const __h0=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Waiting for input...":"等待输入...");if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h0; return; }
+  if(/[^0-9\s-]/.test(raw)){ out.textContent = '❌ 含非法字符：仅允许数字、空格或连字符'; return; }
   if(digits.length !== 9){
     const __h1=`<p>⚠️ ABA Routing Number 必须为 9 位数字（当前 ${digits.length} 位）</p>`;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h1;
     return;
@@ -254,11 +257,15 @@ function validate(){
     '30':'Massachusetts','31':'New York (Thrift)','32':'Pennsylvania (Thrift)',
     '61':'Paris (FR)','80':'Walker (US Treasury)','89':'Chicago (US Treasury)'
   };
-  const district = frDistricts[frPrefix] || '未知/特殊用途';
+  const district = frDistricts[frPrefix] || '未分配/非法前缀';
+  const prefixValid = Object.prototype.hasOwnProperty.call(frDistricts, frPrefix);
+  __abaValid = valid && prefixValid;
   let html = `<p><strong>ABA 号码：</strong>${digits}</p>`;
   html += `<p><strong>美联储分区：</strong>${frPrefix} - ${district}</p>`;
   html += `<p><strong>校验和：</strong> ${valid?'✅ 通过':'❌ 未通过'}</p>`;
-  if(valid){
+  if(!prefixValid){
+    html += `<p style="color:var(--danger);">❌ 美联储分区前缀 ${frPrefix} 未分配/非法，ABA 号码无效</p>`;
+  } else if(valid){
     html += `<p style="color:var(--success);">✅ ABA 路由号码有效</p>`;
   } else {
     html += `<p style="color:var(--danger);">❌ 校验和失败，ABA 号码无效</p>`;
@@ -297,7 +304,7 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 
-var __aba_validator_last=0,__aba_validator_skip=false;
+var __aba_validator_last=0,__aba_validator_skip=false,__aba_validator_timer=null;
 function __aba_validatorSnap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
@@ -318,11 +325,7 @@ function __aba_validatorResText(){
     if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
 }
-function __aba_validatorScore(t){
-    var s=String(t||'');
-    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
-    return 1;
-}
+function __aba_validatorScore(){ return __abaValid ? 1 : 0; }
 function __aba_validatorTime(t){
     var d=new Date(t);
     function q(x){return (x<10?'0':'')+x;}
@@ -344,6 +347,8 @@ function __aba_validatorRender(keys,rk,en){
         TBKit.util.diffBox('#aba_validatorDiff');
         TBKit.history.mount('#aba_validatorHist',function(rec){
             __aba_validator_skip=true;
+            clearTimeout(__aba_validator_timer);
+            __aba_validator_timer=null;
             try{
                 for(var k in rec){
                     if(k===rk||k==='__tbScore') continue;
@@ -367,9 +372,11 @@ function __aba_validatorRender(keys,rk,en){
         }
     }catch(e3){}
 }
-function __aba_validatorExtras(){
+function __aba_validatorExtras(force){
     if (typeof TBKit === 'undefined') return;
     if (__aba_validator_skip) return;
+    clearTimeout(__aba_validator_timer);
+    __aba_validator_timer=null;
     var snap=__aba_validatorSnap();
     var keys=Object.keys(snap);
     if(!keys.length) return;
@@ -379,7 +386,10 @@ function __aba_validatorExtras(){
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
     var now=Date.now();
-    if(now-__aba_validator_last<1000) return;
+    if(!force && now-__aba_validator_last<1000){
+        __aba_validator_timer=setTimeout(function(){__aba_validatorExtras(true);},1000-(now-__aba_validator_last));
+        return;
+    }
     var last=null;
     try{ last=TBKit.history.last(); }catch(e){}
     if(last){
@@ -399,6 +409,7 @@ function __aba_validatorExtras(){
 }
 function __aba_validatorExport(){
     if (typeof TBKit === 'undefined') return;
+    __aba_validatorExtras(true);
     try{
         var box=document.querySelector('#aba_validatorTable');
         if(!box||!box.querySelector('tr')){

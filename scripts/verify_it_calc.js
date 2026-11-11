@@ -145,6 +145,696 @@ function _rngReset() { _rngState = 0x9e3779b9 >>> 0; }
 // ---------------------------------------------------------------- 用例
 const CASES = [
   {
+    slug: "it/calc-8",
+    clicks: ["var vals=[null,false,'123',1e20,-1e20],ok=0;vals.forEach(function(v){var h=btoa(JSON.stringify({alg:'none'})).replace(/=/g,''),p=btoa(JSON.stringify({exp:v})).replace(/=/g,'');document.getElementById('jwtInput').value=h+'.'+p+'.sig';decodeJwt();var out=document.getElementById('result').innerHTML;if(out.indexOf('无效 exp 值')>=0&&out.indexOf('未过期')<0)ok++;});document.getElementById('__tbProbe').textContent='EXPTYPE '+ok;"],
+    expect: ["EXPTYPE 5"],
+    ref: "RFC 7519 NumericDate 必须为数字，null、布尔值和数字字符串无效；超出 JavaScript Date 范围不得误判未过期。"
+  },
+  {
+    "slug": "it/calc-8",
+    "clicks": ["document.getElementById('jwtInput').value='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ6ZXJvIiwiZXhwIjowfQ.sig';decodeJwt();var h=String(document.getElementById('result').innerHTML);document.getElementById('__tbProbe').textContent='EXPT0 '+(h.indexOf('已过期')>=0&&h.indexOf('1970')>=0?'OK':'BAD');"],
+    "expect": ["EXPT0 OK"],
+    "ref": "审计修复回归：exp:0（Unix 纪元，必已过期）旧实现因真值判断 `payload.exp` 为假被完全忽略，不输出过期信息；修复后 hasOwnProperty 命中，显示 1970 年并判「已过期」。默认样例 JWT 无 exp、不含 EXPT0 探针 ⇒ 零逃生。"
+  },
+  {
+    "slug": "it/calc-8",
+    "clicks": ["document.getElementById('jwtInput').value='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJiYWQiLCJleHAiOiJiYWQifQ.sig';decodeJwt();var h=String(document.getElementById('result').innerHTML);document.getElementById('__tbProbe').textContent='EXPTBAD '+(h.indexOf('无效 exp 值')>=0&&h.indexOf('未过期')<0?'OK':'BAD');"],
+    "expect": ["EXPTBAD OK"],
+    "ref": "审计修复回归：exp:\"bad\" 旧实现 new Date(NaN) 得 Invalid Date，比较恒 false 被标「未过期」；修复后 Number(exp) 非有限数时显示「无效 exp 值 / 无效」，不再误标未过期。默认样例无 EXPTBAD 探针 ⇒ 零逃生。"
+  },
+  {
+    "slug": "it/calc-8",
+    "clicks": ["document.getElementById('jwtInput').value='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ6ZXJvIiwiZXhwIjowfQ.sig';decodeJwt();var h=String(document.getElementById('result').innerHTML);document.getElementById('__tbProbe').textContent='EXPT0 '+(h.indexOf('已过期')>=0&&h.indexOf('1970')>=0?'OK':'BAD');"],
+    "expect": ["EXPT0 OK"],
+    "ref": "审计修复回归：exp:0（Unix 纪元，必已过期）旧实现因真值判断 `payload.exp` 为假被完全忽略，不输出过期信息；修复后 hasOwnProperty 命中，显示 1970 年并判「已过期」。默认样例 JWT 无 exp、不含 EXPT0 探针 ⇒ 零逃生。"
+  },
+  {
+    "slug": "it/calc-8",
+    "clicks": ["document.getElementById('jwtInput').value='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJiYWQiLCJleHAiOiJiYWQifQ.sig';decodeJwt();var h=String(document.getElementById('result').innerHTML);document.getElementById('__tbProbe').textContent='EXPTBAD '+(h.indexOf('无效 exp 值')>=0&&h.indexOf('未过期')<0?'OK':'BAD');"],
+    "expect": ["EXPTBAD OK"],
+    "ref": "审计修复回归：exp:\"bad\" 旧实现 new Date(NaN) 得 Invalid Date，比较恒 false 被标「未过期」；修复后 Number(exp) 非有限数时显示「无效 exp 值 / 无效」，不再误标未过期。默认样例无 EXPTBAD 探针 ⇒ 零逃生。"
+  },
+  {
+    "slug": "it/email-normalizer",
+    "inputs": {"input": "user.name+tag@notgmail.com"},
+    "clicks": ["document.getElementById('opt_gmail').checked=true;normalize();var a=String(document.getElementById('afterOut').textContent||'');document.getElementById('__tbProbe').textContent='EMGM '+(a==='user.name+tag@notgmail.com'?'OK':'BAD');"],
+    "expect": ["EMGM OK"],
+    "ref": "审计修复回归：旧实现 /gmail\\.com$/ 把 notgmail.com 误判为 Gmail，去掉点号与 + 标签得到 username@notgmail.com；修复后精确匹配域名，保留原本地名。修复前 BAD。探针默认态不存在 ⇒ 零逃生。"
+  },
+  {
+    "slug": "it/email-normalizer",
+    "inputs": {"input": "A.B@gmail.com"},
+    "clicks": ["document.getElementById('__tbProbe').textContent='EMCHG '+(typeof __email_normalizerGmailChange==='function'?'OK':'BAD');"],
+    "expect": ["EMCHG OK"],
+    "ref": "审计修复回归：Gmail 归一选项原无 change 事件，取消勾选后结果不刷新；修复后绑定 onchange 调 __email_normalizerGmailChange 即时重算。修复前函数不存在 BAD。探针默认态不存在 ⇒ 零逃生。"
+  },
+
+  {
+    "slug": "it/css-escape",
+    "inputs": {"input": "-1a", "mode": "identifier"},
+    "clicks": ["esc();var o=String(document.getElementById('output').value||'');document.getElementById('__tbProbe').textContent='CSID '+(o.indexOf('\\\\2d ')>=0?'OK':'BAD');"],
+    "expect": ["CSID OK"],
+    "ref": "审计修复回归：CSS 标识符首位为 - 且次位为数字时（-1a）会被解析成数字 token，旧实现原样输出 -1a；修复后转义首位为 \\2d （即 \\2d 1a）。修复前 BAD。探针默认态不存在 ⇒ 零逃生。"
+  },
+  {
+    "slug": "it/c-string-escape",
+    "inputs": {"input": "\\x"},
+    "clicks": ["var ok=false;try{unesc();ok=true;}catch(e){};var o=String(document.getElementById('output').value||'');document.getElementById('__tbProbe').textContent='CSXBIN '+(ok&&o.indexOf('\\\\x')>=0?'OK':'BAD');"],
+    "expect": ["CSXBIN OK"],
+    "ref": "审计修复回归：反转义 \\x 后无十六进制数字时，旧实现 parseInt(\"\",16)=NaN ⇒ String.fromCodePoint(NaN) 抛 RangeError、无输出；修复后保留字面 \\x 且不抛错。修复前 BAD。探针串默认态不存在 ⇒ 零逃生。"
+  },
+  {
+    "slug": "it/c-string-escape",
+    "inputs": {"input": "a\"b", "qtype": "double"},
+    "clicks": ["esc();var before=String(document.getElementById('output').value||'');document.getElementById('qtype').value='single';var ok=typeof __c_string_escapeQtypeChange==='function';if(ok)__c_string_escapeQtypeChange();var after=String(document.getElementById('output').value||'');document.getElementById('__tbProbe').textContent='CSQQ '+(ok&&before!==after&&before.indexOf('\\\\\"')>=0&&after.indexOf('\\\\\"')<0?'OK':'BAD');"],
+    "expect": ["CSQQ OK"],
+    "ref": "审计修复回归：引号类型下拉原无 change 事件，切换后输出仍用旧引号；修复后 onchange 调 __c_string_escapeQtypeChange 即时刷新（双引号包裹→单引号包裹）。修复前函数不存在 BAD。探针默认态不存在 ⇒ 零逃生。"
+  },
+  {
+    "slug": "it/css-escape",
+    "inputs": {"input": "\\FFFFFF"},
+    "clicks": ["var input=document.getElementById('input'),output=document.getElementById('output');var cases=[['\\\\FFFFFF','\uFFFD'],['\\\\0','\uFFFD'],['\\\\d800','\uFFFD'],['\\\\10ffff',String.fromCodePoint(0x10ffff)],['\\\\41\\tB','AB'],['\\\\41 B','AB']];var ok=cases.every(function(c){input.value=c[0];unesc();return output.value===c[1];});document.getElementById('__tbProbe').textContent='CSHEX '+(ok?'OK':'BAD');"],
+    "expect": ["CSHEX OK"],
+    "ref": "CSS Syntax 反转义：越界、零及代理码点替换为 U+FFFD；合法最大码点保留，十六进制后的制表符或空格作为终止符消费。"
+  },
+  {
+    "slug": "it/css-escape",
+    "inputs": {"input": "1abc", "mode": "identifier"},
+    "clicks": ["esc();var before=String(document.getElementById('output').value||'');document.getElementById('mode').value='string';var ok=typeof __cssEscapeModeChange==='function';if(ok)__cssEscapeModeChange();var after=String(document.getElementById('output').value||'');document.getElementById('__tbProbe').textContent='CSMODE '+(ok&&before!==after?'OK':'BAD');"],
+    "expect": ["CSMODE OK"],
+    "ref": "审计修复回归：模式下拉原无 change 事件，切换 identifier→string 后输出不刷新；修复后 onchange 调 __cssEscapeModeChange 即时刷新（.cls→\\.cls）。修复前函数不存在 BAD。探针默认态不存在 ⇒ 零逃生。"
+  },
+{
+    "slug": "it/playfair-cipher",
+    "clicks": ["document.getElementById('__tbProbe').textContent='PLF score='+__playfair_cipherScore('FAILED');"],
+    "expect": ["PLF score=1"],
+    "ref": "复核失败重做·Playfair 明文误判：密钥 PLAYFAIR、明文 FAILED，加密再解密得到合法明文 FAILED，原 Score 命中 Failed 判 0 ⇒ 历史/趋势/CSV 全误标未通过。修复后 Score 只保留明确业务失败标识（⚠|无效|未通过|不正确|must be|请填写…），移除 Failed/失败/错误/Invalid 等用户文本词 ⇒ 判 1。默认态无探针串 ⇒ 零逃生。"
+  },
+{
+    "slug": "it/aes-encryptor",
+    "clicks": ["var __cap=[];TBKit={util:{isEn:function(){return false;},exportTable:function(){},diffBox:function(){}},chart:{line:function(){}},matrix:{table:function(){}},history:{list:function(){return __cap;},last:function(){return __cap.length?__cap[__cap.length-1]:null;},record:function(r){__cap.push(r);},mount:function(){}},preset:{bar:function(){}}};var __els=[{id:'encInput',type:'textarea',value:'FAILED PLAINTEXT'}];var __oq=document.querySelectorAll;document.querySelectorAll=function(s){return __els;};var __o=document.getElementById('output');if(__o){__o.textContent='1234abcd previous ciphertext';}__aes_encryptorLastBytes=0;__aes_encryptor_last=0;__aes_encryptorExtras();document.querySelectorAll=__oq;document.getElementById('__tbProbe').textContent='AESFAIL hist='+__cap.length;"],
+    "expect": ["AESFAIL hist=0"],
+    "ref": "复核失败重做·第46批 AES 空态/失败不清算旧结果：模拟加密失败（__aes_encryptorLastBytes=0）但结果区仍留上次解密文本，旧实现无成功守卫仍会把旧文本+旧字节数写进历史 ⇒ hist=1；修复后 Extras 先判 __aes_encryptorLastBytes>0 才记录 ⇒ hist=0。探针自建 TBKit/querySelectorAll 桩走真实 __aes_encryptorExtras，默认态无探针串 ⇒ 零逃生。"
+  },
+{
+    "slug": "it/aes-encryptor",
+    "clicks": ["var __cap=[];TBKit={util:{isEn:function(){return false;},exportTable:function(){},diffBox:function(){}},chart:{line:function(){}},matrix:{table:function(){}},history:{list:function(){return __cap;},last:function(){return __cap.length?__cap[__cap.length-1]:null;},record:function(r){__cap.push(r);},mount:function(){}},preset:{bar:function(){}}};var __els=[{id:'encInput',type:'textarea',value:'Hello AES'}];var __oq=document.querySelectorAll;document.querySelectorAll=function(s){return __els;};var __o=document.getElementById('output');if(__o){__o.textContent='CIPHERTEXT9';}__aes_encryptorLastBytes=0;__aes_encryptor_last=0;__aes_encryptor_d0=function(){__aes_encryptorLastBytes=11;return undefined;};decrypt();document.querySelectorAll=__oq;document.getElementById('__tbProbe').textContent='AESDEC hist='+__cap.length;"],
+    "expect": ["AESDEC hist=1"],
+    "ref": "复核失败重做·第46批 AES 解密成功入历史：旧实现只包装 encrypt，decrypt 成功不触发 Extras ⇒ 调用 decrypt 不会写历史 hist=0；修复后包装 decrypt 并在其 Promise/同步返回后触发 Extras，本例把 __aes_encryptor_d0 替换为同步桩设置成功字节数，走真实包装 ⇒ hist=1。探针串依赖修复引入的 decrypt 包装，默认态无探针串 ⇒ 零逃生。"
+  },
+  {
+    slug: "it/matrix-transpose",
+    clicks: ["var __oq=document.querySelectorAll;__lastTranspose=[[1,2],[3,4]];document.getElementById('rows').value='0';calculate();document.querySelectorAll=__oq;document.getElementById('__tbProbe').textContent='MXCLR cleared='+(__lastTranspose===null?'Y':'N');"],
+    expect: ["MXCLR cleared=Y"],
+    ref: "复核失败重做·F-N189 第46批 矩阵转置：有效转置后把行数改为 0 再计算，页面提示行列须 1–6 整数，但旧实现不清 __lastTranspose，导出仍下载旧 CSV；修复后两个失效分支均清空缓存。探针 __lastTranspose===null ⇒ 修复前 N、修复后 Y。"
+  },
+  {
+    slug: "it/rsa",
+    clicks: ["var __cap=[];TBKit={util:{isEn:function(){return false;},exportTable:function(){},diffBox:function(){}},chart:{line:function(){}},matrix:{table:function(){}},history:{list:function(){return __cap;},last:function(){return __cap.length?__cap[__cap.length-1]:null;},record:function(r){__cap.push(r);},mount:function(){}},preset:{bar:function(){}}};var __els=[{\"id\":\"encInput\",\"type\":\"text\",\"value\":\"FAILED\"}];var __oq=document.querySelectorAll;document.querySelectorAll=function(s){return __els;};document.getElementById('encInput').value='FAILED';document.getElementById('encResult').textContent='FAILED';__rsaLastBytes=6;__rsaExtras(true,true);document.querySelectorAll=__oq;document.getElementById('__tbProbe').textContent='RSAPLAIN score='+(__cap.length?__cap[__cap.length-1].__tbScore:'NA');"],
+    expect: ["RSAPLAIN score=1"],
+    ref: "RSA 解密成功状态应覆盖明文中出现的失败关键词；真实 WebCrypto 往返与验签失败另由 _verify_rsa_runtime.mjs 覆盖。"
+  },
+  {
+    slug: "it/json-diff",
+    inputs: {},
+    clicks: ["var a=Array.from({length:448},function(_,i){return i}),b=a.slice().reverse(),d=deepDiff(a,b,'items',true);document.getElementById('__tbProbe').textContent='BIGMATCH len='+a.length+' diffs='+d.length;"],
+    expect: ["BIGMATCH len=448 diffs=0"],
+    ref: "IT-N396 复核：超过 LCS 规模保护阈值的完全逆序数组，选择按内容匹配仍应判无差异。",
+  },
+  {
+    slug: "it/json-diff",
+    inputs: {},
+    clicks: ["var a=Array.from({length:448},function(_,i){return i%7}),b=a.slice().reverse();b[0]=999;var d=deepDiff(a,b,'items',true);document.getElementById('__tbProbe').textContent='BIGCHANGE diffs='+d.length+' op='+d[0].op+' from='+d[0].from+' to='+d[0].to;"],
+    expect: ["BIGCHANGE diffs=1 op=mod from=6 to=999"],
+    ref: "IT-N396 复核：大数组含重复值时多重集匹配不能吞掉真实变化。",
+  },
+  // ===== 复核失败·第一批重做·续批2（IT-N401/N403 与 文本清理器历史快照）=====
+  {
+    slug: "it/html-to-markdown",
+    htmlDom: true,
+    inputs: {htmlInput: "<p><strong>Hello</strong> <em>world</em></p>"},
+    clicks: ["convert();document.getElementById('__tbProbe').textContent='SPACE='+document.getElementById('mdOutput').value;"],
+    expect: ["SPACE=**Hello** _world_"],
+    ref: "IT-N401 复核：相邻行内元素之间独立空白文本节点必须保留，避免加粗与斜体的词粘连。",
+  },
+  {
+    slug: "it/html-to-markdown",
+    htmlDom: true,
+    inputs: {"htmlInput": "<ul><li>a<br>b</li></ul>"},
+    clicks: ["convert();var v=document.getElementById('mdOutput').value;document.getElementById('__tbProbe').textContent='ULBR='+(v.indexOf('- a  '+String.fromCharCode(10)+'  b')>=0?1:0)+' FLAT='+(v.indexOf('- a'+String.fromCharCode(10)+'  b')>=0?1:0)+' q='+(document.getElementById('htmlInput').value.indexOf('<br>')>=0?1:0);"],
+    expect: ["ULBR=1 FLAT=0"],
+    ref: "IT-N401/N403 复核重做：列表项内 <br> 必须保留 Markdown 硬换行（行尾两空格 + 换行）。旧 BR 直接返回「两空格+换行」，列表处理逐行 replace(/\\s+$/,'') 把这两个空格删掉 ⇒ 输出 - a\\n  b（渲染时仍合并成一行）。现 BR 用私有控制字符占位，中间所有 trim/尾空白清理都碰不到，convert() 末尾统一还原。ULBR=1 判 v 含 - a(两空格)\\n(两空格)b，FLAT=0 判不含无硬换行的普通换行，q=1 绑注入值。blob 会折叠空白，故判据全在页面内完成。",
+  },
+  {
+    slug: "it/html-to-markdown",
+    htmlDom: true,
+    inputs: {"htmlInput": "<p>Hello <strong>world </strong>again</p>"},
+    clicks: ["convert();var v=document.getElementById('mdOutput').value;document.getElementById('__tbProbe').textContent='STRONG='+v+' q='+(document.getElementById('htmlInput').value.indexOf('<strong>')>=0?1:0);"],
+    expect: ["STRONG=Hello **world** again q=1"],
+    ref: "IT-N401 复核重做：行内强调的边界空白必须留在标记之外。旧实现 innerMarkdown(...).trim() 吃掉 <strong>world </strong> 的尾空格 ⇒ Hello **world**again 单词粘连。现 inlineMark 提取 lead/trail 并拼在标记外 ⇒ Hello **world** again。q=1 绑注入的 <strong> 标签。",
+  },
+  {
+    slug: "it/html-to-markdown",
+    htmlDom: true,
+    inputs: {"htmlInput": "<p><em> italic </em>next</p>"},
+    clicks: ["convert();var v=document.getElementById('mdOutput').value;document.getElementById('__tbProbe').textContent='EM='+v+' q='+(document.getElementById('htmlInput').value.indexOf('<em>')>=0?1:0);"],
+    expect: ["EM=_italic_ next q=1"],
+    ref: "IT-N401 复核重做：<em> italic </em>next 旧输出 _italic_next（既丢空格又因标记紧跟单词无法形成斜体）。现输出 _italic_ next，斜体边界合法且 next 前有空格。与 STRONG 用例共同覆盖行内格式两侧空白。",
+  },
+  {
+    slug: "it/html-to-markdown",
+    htmlDom: true,
+    inputs: {"htmlInput": "<p>x <del> gone </del>y</p>"},
+    clicks: ["convert();var v=document.getElementById('mdOutput').value;document.getElementById('__tbProbe').textContent='DEL='+v+' q='+(document.getElementById('htmlInput').value.indexOf('<del>')>=0?1:0);"],
+    expect: ["DEL=x ~~gone~~ y q=1"],
+    ref: "IT-N401 复核重做（同族护栏）：删除线 <del>/<s>/<strike> 走同一 inlineMark，边界空白同样移到标记外，避免只修 strong/em 而留下另一分支的同类缺陷。",
+  },
+  {
+    slug: "it/text-cleaner",
+    inputs: {"input-text": "  OLD TEXT  "},
+    clicks: ["var pick,cap;TBKit={util:{isEn:function(){return false},diffBox:function(){}},matrix:{table:function(){}},chart:{line:function(){}},history:{record:function(x){cap=x},last:function(){return null},list:function(){return []},mount:function(h,f){pick=f}}};var input=document.getElementById('input-text'),trim=document.getElementById('opt-trim'),output=document.getElementById('output-text');trim.checked=true;var oq=document.querySelectorAll;document.querySelectorAll=function(s){if(s==='input[id],select[id],textarea[id]')return [trim,input];if(s==='input[type=checkbox],input[type=radio]')return [trim];return []};output.tagName='TEXTAREA';__text_cleaner_last=0;executeClean();input.value='  NEW TEXT  ';trim.checked=false;if(pick)pick(cap);document.querySelectorAll=oq;document.getElementById('__tbProbe').textContent='RESTORE='+input.value.replace(/ /g,'~')+' OUT='+output.value+' CHECK='+trim.checked+' PICK='+!!pick;"],
+    expect: ["RESTORE=~~OLD~TEXT~~ OUT=OLD TEXT CHECK=true PICK=true"],
+    ref: "文本清理器历史：记录原文与选项后修改，调用历史回填入口须恢复旧文本及选项并重新清理。",
+  },
+  {
+    slug: "it/text-cleaner",
+    inputs: {},
+    clicks: ["var __cap=null;var __els=[];for(var i=0;i<14;i++){__els.push({id:'opt-cb'+i,type:'checkbox',checked:(i%2===0),value:'1'});}__els.push({id:'input-text',type:'textarea',value:'  NEW TEXT  '});var __oq=document.querySelectorAll;document.querySelectorAll=function(s){return __els;};document.getElementById('output-text').textContent='CLEANED TEXT';globalThis.TBKit={util:{isEn:function(){return false;},exportTable:function(){}},chart:{line:function(){}},matrix:{table:function(){}},history:{list:function(){return [];},last:function(){return null;},record:function(r){__cap=r;},mount:function(){}},preset:{bar:function(){}}};__text_cleaner_last=0;__text_cleanerExtras();document.querySelectorAll=__oq;document.getElementById('__tbProbe').textContent='TC='+(__cap?Object.keys(__cap).length:'NONE')+' HAS='+(__cap&&__cap['input-text']!==undefined?'Y':'N')+' VAL='+(__cap?String(__cap['input-text']).replace(/ /g,'~'):'')+' CB0='+(__cap?String(__cap['opt-cb0']):'');"],
+    expect: ["TC=17 HAS=Y VAL=~~NEW~TEXT~~ CB0=1"],
+    ref: "IT 历史复用·文本清理器复核重做：快照按 DOM 顺序先收 14 个复选框再收 textarea input-text，旧实现 keys.slice(0,12) 同时用于保存/去重/渲染 ⇒ 历史记录里根本没有原文，点击历史只会重新清理当前 NEW TEXT。现「保存全量 allKeys」与「展示列 showKeys 限 12」分离：桩捕获的 rec 含 15 个字段 + 结果 + __tbScore = 17 键、input-text 值为两空格 NEW TEXT 两空格（探针把空格换成 ~ 防 blob 折叠）、首个复选框也在。旧代码下 TC=14 且 HAS=N ⇒ 本例必然 FAIL。",
+  },
+  // ===== 复核失败·第一批重做·续批（IT-N373 / N376 / N378 / N417）=====
+  {
+    slug: "it/confidence-interval",
+    inputs: {mean: "50", std: "8", n: "2", conf: "0.999", dist: "t"},
+    expect: ["临界值=636.619"],
+    ref: "99.9% 双侧 t，df=1，t=cot(π×0.0005)=636.619；旧表缺少 0.0005 列，输出无效值。",
+  },
+  {
+    slug: "it/confidence-interval",
+    inputs: {mean: "50", std: "8", n: "11", conf: "0.999", dist: "t"},
+    expect: ["临界值=4.587"],
+    ref: "99.9% 双侧 t，df=10，临界值约 4.587，验证非单自由度的表项。",
+  },
+  {
+    slug: "it/hypergeometric-distribution",
+    inputs: {"N": "2000", "K": "1500", "n": "1500", "k": "749"},
+    expect: ["exp(1035.8369 + −∞ − 1120.7877) = 0"],
+    ref: "IT-N373 复核重做：N=2000,K=1500,n=1500,k=749 ⇒ C(500,751)=0 是不可能事件。旧 combInfo 把 logComb 返回的 −Infinity 塞成 ln:0（对应组合数 1），步骤 4 写成 exp(1035.8369 + 0.0000 − 1120.7877) = 0，左侧实际约 1.28e-37，等式不成立。现 ln(0) 记作 −∞ 并追加「不可能事件」说明，exp(a + (−∞) − b) = 0 自洽。expect 含依赖该组大参数的 ln 数值与 −∞，默认 N=52/K=13/n=5/k=2 不命中。",
+  },
+  {
+    slug: "it/confidence-interval",
+    inputs: {"mean": "50", "std": "8", "n": "1", "conf": "0.95", "dist": "auto"},
+    expect: ["t 分布自由度 df = n−1 需 ≥ 1；请使用至少 2 个样本。仅当总体标准差已知时，n = 1 才可使用 z 分布"],
+    ref: "IT-N376 复核重做：n=1 且 auto 会选 t 分布，df=0 使 t 临界值为 NaN，旧实现把 NaN 洗成「—」输出「[ — , — ]」这种无效结果。现明确拒绝并给出可执行建议。默认 n=30/d auto 输出有效区间，不命中。",
+  },
+  {
+    slug: "it/confidence-interval",
+    inputs: {"mean": "50", "std": "8", "n": "2.5", "conf": "0.95", "dist": "auto"},
+    expect: ["请填写均值、标准差与样本量（n 为 ≥ 1 的整数、s > 0）"],
+    ref: "IT-N376 复核重做：样本量必须是整数。旧校验只判 n<1，n=2.5 会被当作有效样本量参与 √n 与 df 内插；现 !Number.isInteger(n) 直接拒绝。默认 n=30 不产生该提示。",
+  },
+  {
+    slug: "it/confidence-interval",
+    inputs: {"mean": "50", "std": "8", "n": "1", "conf": "0.95", "dist": "z"},
+    expect: ["[ 34.320 , 65.680 ]"],
+    ref: "IT-N376 复核重做（对照组）：显式选 z 且总体标准差已知时 n=1 可算；50 ± 1.960×8 = [34.320, 65.680]。默认 n=30/d auto 区间不同，不命中。",
+  },
+  {
+    slug: "it/margin-of-error",
+    inputs: {"n": "1000.9", "p": "0.5", "conf": "0.95", "N": "1000"},
+    expect: ["n must be an integer ≥ 2 (decimals are not accepted)."],
+    ref: "IT-N378 复核重做：n=1000.9、总体 N=1000。旧 parseInt 把 n 静默截成 1000，恰好等于 N ⇒ 误判「全查」并显示误差 0，绕过整数与 n≤N 约束。现 nRaw + Number + Number.isInteger 校验，小数直接拒绝。默认 n=1000/N 空 输出有效误差，不命中。",
+  },
+  {
+    slug: "it/margin-of-error",
+    inputs: {"n": "1000", "p": "0.5", "conf": "0.95", "N": "1000"},
+    expect: ["误差范围 E = ±0 (0.00%)"],
+    ref: "IT-N378 复核重做（对照组）：合法的 n=N=1000 全查仍应给出误差 0（有限总体校正因子 √[(N−n)/(N−1)]=0），新整数校验不得破坏既有合法路径。默认 N 为空、误差约 ±0.031，不命中。",
+  },
+  {
+    slug: "it/msisdn-lookup",
+    inputs: {"input": "+86 16212345678"},
+    expect: ["无法确定（162 为移动通信转售号段，实际签约服务商可能是虚拟运营商） 底层网络： 电信（底层网络）"],
+    ref: "IT-N417 复核重做：162 是工信部划给移动通信转售业务的号段，号段分配方只说明底层承载网络，用户实际签约服务商为虚拟运营商，静态号段无法确定。旧页面把 162 归入「电信」并直接输出「运营商：电信」。现从运营商映射移除、单独输出「无法确定 + 转售号段」与「底层网络」。默认输入 13800138000 不命中。",
+  },
+  {
+    slug: "it/msisdn-lookup",
+    inputs: {"input": "+86 16712345678"},
+    expect: ["无法确定（167 为移动通信转售号段，实际签约服务商可能是虚拟运营商） 底层网络： 联通（底层网络）"],
+    ref: "IT-N417 复核重做：167 同为转售号段，旧页面归入「联通」。现按同样口径处理且底层网络正确标为联通。与 162 用例共同覆盖两个底层网络。默认输入 13800138000 不命中。",
+  },
+  {
+    slug: "it/msisdn-lookup",
+    inputs: {"input": "+86 13900139000"},
+    expect: ["运营商： 移动（号段 139，携号转网后可能变化）"],
+    ref: "IT-N417 复核重做（对照组）：普通号段 139 仍应给出运营商并保持携号转网提示，证明移除 162/167 未破坏常规号段映射。刻意使用非默认号段 139（页面默认输入是 13800138000，若用默认号段会在判别器的 pure default snapshot 上命中 ⇒ 逃生项）。",
+  },
+  // ===== 复核失败·第一批重做（IT-N409 / N411 / N370 / N392 / N398 / N400 / N385 / N386）=====
+  {
+    slug: "it/uuid-generator",
+    inputs: {},
+    clicks: ["var ts=[' 6ba7b810-9dad-11d1-80b4-00c04fd430c8 ','6ba7b810----9dad11d180b400c04fd430c8','6ba7b8109dad11d180b400c04fd430c8','{6ba7b810-9dad-11d1-80b4-00c04fd430c8}','6ba7b810-9dad-11d1-80b4-00c04fd430c8'];var rs=[];for(var i=0;i<ts.length;i++)rs.push(isValidUuid(ts[i])?'Y':'N');document.getElementById('__tbProbe').textContent='UU='+rs.join('')+' NORM='+normalizeUuid(ts[0]);"],
+    expect: ["UU=YNYYY NORM=6ba7b810-9dad-11d1-80b4-00c04fd430c8"],
+    ref: "IT-N409 复核重做：isValidUuid 改为只接受 8-4-4-4-12 或 32 位连续十六进制（含首尾空格与花括号包裹）。五种书写依次 合法/错位连字符非法/连续 hex 合法/花括号合法/标准合法；NORM 证明带空格输入被规范化成同一标准串，生成时不再取未 trim 原值。探针只在注入 clicks 后出现，默认态零命中。",
+  },
+  {
+    slug: "it/uuid-generator",
+    inputs: {"version": "v5", "namespace": "6ba7b810----9dad11d180b400c04fd430c8", "name": "example.com", "count": "1"},
+    expect: ["命名空间 UUID 格式非法：请填写 8-4-4-4-12 的十六进制 UUID（或 32 位连续十六进制）"],
+    ref: "IT-N409 复核重做：错位连字符串旧实现去掉所有 - 后恰有 32 位 hex 而被接受，与错误提示宣称的 8-4-4-4-12 格式不符。现入口严格拒绝并给出明确提示；默认 v4 态不出现该提示。",
+  },
+  {
+    slug: "it/uuid-generator",
+    inputs: {"version": "v5", "namespace": " 6ba7b810-9dad-11d1-80b4-00c04fd430c8 ", "name": "www.example.com", "count": "1"},
+    expect: ["2ed6657d-e927-568b-95e1-2665a8aea6a2"],
+    ref: "IT-N409 复核重做：首尾带空格的合法 DNS 命名空间，旧实现入口 trim 通过但生成时读未 trim 原值 ⇒ generateUuidV5 抛 Invalid namespace UUID 且异步异常未捕获。现校验与 SHA-1 共用规范化结果，并用 try/catch 兜住异步异常；产物命中 RFC 4122 / Python uuid5(NAMESPACE_DNS, \"www.example.com\") 标准向量 2ed6657d-e927-568b-95e1-2665a8aea6a2。默认 v4 随机值不命中。",
+  },
+  {
+    slug: "it/matrix-inverter",
+    inputs: {},
+    clicks: ["var A=[[1e13,1e13],[1e13,2e13]],r=inverse(A),I=r.inv,P=[];for(var i=0;i<2;i++)for(var j=0;j<2;j++){var s=0;for(var k=0;k<2;k++)s+=A[i][k]*I[k][j];P.push(Math.round(s*1e6)/1e6);}document.getElementById('__tbProbe').textContent='MI='+P.join(',')+' INV='+I.map(function(x){return x.map(function(y){return y.toExponential(1);}).join(',');}).join('|');"],
+    expect: ["MI=1,0,0,1 INV=2.0e-13,-1.0e-13|-1.0e-13,1.0e-13"],
+    ref: "IT-N370 复核重做：A=[[1e13,1e13],[1e13,2e13]] 的尺度 tol≈20，旧实现把该相对主元阈值也用于「归一化之后」的消元因子 f≈1 ⇒ 跳过消元、输出 [[1e-13,0],[-1e-13,1e-13]]，A×A⁻¹=[[0,1],[-1,2]]。现只有 f===0 才跳过，逆矩阵与乘积单位阵自洽。默认单位阵不产生该串。",
+  },
+  {
+    slug: "it/toml-to-xml",
+    inputs: {"source": "\"a　b\" = 1"},
+    expect: ["&lt;a_b&gt;1&lt;/a_b&gt;"],
+    ref: "IT-N392 复核重做：合法 TOML 键 \"a　b\"（U+3000 全角空格）。旧 xmlName 放行整个 \\u00c0-\\uffff ⇒ 输出 <a　b> 被 XML 解析器拒绝；现按 XML 1.0 NameStartChar/NameChar 逐码点清洗 ⇒ <a_b>。expect 是结果区 escH 实体形态，输入 TOML 原文不含尖括号 ⇒ 非回显；默认 config 样例不命中。",
+  },
+  {
+    slug: "it/toml-to-xml",
+    inputs: {"source": "\"́x\" = 1"},
+    expect: ["&lt;_x&gt;1&lt;/_x&gt;"],
+    ref: "IT-N392 复核重做：键首字符为 U+0301 组合音标（属 NameChar 但不是 NameStartChar）。旧实现原样放到标签首字符导致 XML 解析失败；现首字符非法补 _ 且不可见组合标记一律替换 ⇒ <_x>。同时回归锁住「数字开头须保留原字符」：既有用例 \"123\" 仍输出 <_123>，本批修掉的正是首字符被吞成 _23 的回归。默认态不命中。",
+  },
+  {
+    slug: "it/json-schema-validator",
+    inputs: {"schema": "{\"required\":[\"x\"],\"items\":{\"type\":\"number\"}}", "data": "[\"bad\"]"},
+    clicks: ["var sc=JSON.parse(document.getElementById('schema').value),da=JSON.parse(document.getElementById('data').value),o=[];walk(sc,da,'root',o,0);document.getElementById('__tbProbe').textContent='JSV='+(o.length?'FAIL:'+o.join('|'):'PASS')+' N='+Object.keys(sc).join(',');"],
+    expect: ["JSV=FAIL:类型不匹配 root[0]: 期望 number N=required,items"],
+    ref: "IT-N398 复核重做：schema 同时含 required 与 items、实例是数组 [\"bad\"]。旧实现因 hasObjKw 把角色猜成对象，items 不生效 ⇒ 判通过。现关键字按实例类型应用：required 只对对象生效、items 只对数组生效 ⇒ 指出元素 0 类型错误。探针由 clicks 写入，默认态（默认 schema/data 校验通过）不产生该串。",
+  },
+  {
+    slug: "it/json-schema-validator",
+    inputs: {"schema": "{\"type\":[\"object\",\"array\"],\"items\":{\"type\":\"number\"}}", "data": "[1]"},
+    clicks: ["var sc=JSON.parse(document.getElementById('schema').value),da=JSON.parse(document.getElementById('data').value),o=[];walk(sc,da,'root',o,0);document.getElementById('__tbProbe').textContent='JSV='+(o.length?'FAIL:'+o.join('|'):'PASS')+' N='+Object.keys(sc).join(',');"],
+    expect: ["JSV=PASS N=type,items"],
+    ref: "IT-N400 复核重做：联合类型 [\"object\",\"array\"] + items，实例 [1] 合法。旧实现因 explicitObj 在数组值上误报「不是对象」；现 typeOK 只校验类型集合，关键字按实例类型应用 ⇒ 无错误输出。默认态探针不存在。",
+  },
+  {
+    slug: "it/json-schema-validator",
+    inputs: {"schema": "{\"type\":[\"array\",\"string\"]}", "data": "\"hello\""},
+    clicks: ["var sc=JSON.parse(document.getElementById('schema').value),da=JSON.parse(document.getElementById('data').value),o=[];walk(sc,da,'root',o,0);document.getElementById('__tbProbe').textContent='JSV='+(o.length?'FAIL:'+o.join('|'):'PASS')+' N='+Object.keys(sc).join(',');"],
+    expect: ["JSV=PASS N=type"],
+    ref: "IT-N400 复核重做：联合类型 [\"array\",\"string\"] 配字符串 \"hello\"。旧实现要求同时满足 object/array 约束而误报「不是数组」；现按允许类型集合判断 ⇒ 通过。与 N398 用例共同覆盖对象/数组/标量三类实例。默认态探针不存在。",
+  },
+  {
+    slug: "it/invite-code-generator",
+    inputs: {},
+    clicks: ["var rs=['AB7','KB7','AK9','KA9','AB8'].map(function(c){return verifyLuhn(c)?'Y':'N';});document.getElementById('__tbProbe').textContent='IC='+rs.join('');"],
+    expect: ["IC=YYYYN"],
+    ref: "IT-N411 复核重做：实测 AB7→KB7 单字符替换、AK9→KA9 相邻换位均通过校验，AB8 改错校验位被拒。1 位数字校验位仅 10 种取值而字符集有 36 个符号（鸽巢原理），不可能保证全检出；本批保留兼容既有已发码的 Luhn 变体，改为如实标注边界：页面说明、公式注释与英文映射均改为「拦截部分错填 / 无法保证全部检出（附两个反例）」，不再冒称「可检出单字符错填与相邻换位」。该用例把漏检反例固化为回归护栏。",
+  },
+  {
+    slug: "it/toml-to-json",
+    inputs: {"source": "p = \"\"\"C:\\\\temp\"\"\""},
+    expect: ["JSON 输出 { \"p\": \"C:\\\\temp\" }"],
+    ref: "IT-N385 复核重做：TOML 多行基本串 \"\"\"C:\\\\temp\"\"\" 应解析为 C:\\temp（单个反斜杠）。旧实现链式 replace 先解 \\t 再解 \\\\，第二个反斜杠吃掉 t ⇒ 反斜杠后跟 TAB；现改单遍 tUnescape。expect 是 JSON.stringify 的双反斜杠转义形态，输入原文是 TOML 三引号 ⇒ 非回显；默认样例不命中。",
+  },
+  {
+    slug: "it/toml-to-json",
+    inputs: {"source": "m = \"\"\"a ''' b\"\"\"\nx = 1"},
+    expect: ["JSON 输出 { \"m\": \"a ''' b\", \"x\": 1 }"],
+    ref: "IT-N386 复核重做：合法混合引号 m = \"\"\"a ''' b\"\"\" 后另起一行 x = 1。旧 tOpenTriple 分别数 \"\"\" 与 ''' 的奇偶，双引号串里的三个单引号被误当成另一种多行串开头 ⇒ 继续吞并下一行、x 丢失；现按当前打开的三引号定界符类型判断闭合，两字段都保留。默认样例不命中。",
+  },
+  {
+    slug: "it/toml-to-json",
+    inputs: {"source": "v = \"C:\\\\temp\"\ns = \"a\\\\tb\""},
+    expect: ["JSON 输出 { \"v\": \"C:\\\\temp\", \"s\": \"a\\\\tb\" }"],
+    ref: "IT-N385 复核重做：单行基本字符串同样走单遍解码。C:\\\\temp 保留反斜杠不被 \\t 污染，a\\\\tb 解为 a + TAB + b 并在 JSON 输出里转义为 \\t。与多行串用例共同覆盖两条解码路径；默认样例不命中。",
+  },
+  // ===== 条码族 deepdive 示例一致性（自查续批：修正同模板错误文案）=====
+  {
+    slug: "it/barcode-code128",
+    inputs: {},
+    clicks: ["var calls=[];window.ToolBoxBarcode={encode:function(t,s){calls.push(t+':'+s);return {ok:true,bits:'101',text:s};},renderCanvas:function(){return {width:1};}};document.getElementById('data').value='ABC-1234';try{generate();}catch(e){}document.getElementById('__tbProbe').textContent='C128='+calls.join('|');"],
+    expect: ["C128=code128:ABC-1234"],
+    ref: "条码族 deepdive 示例一致性（自查续批）：Code 128 示例改为任意 ASCII 文本 ABC-1234，页面 generate() 确实把它原文交给编码库（校验符号由编码库自动算，页面不要求用户补位）。外部编码库在门禁里以桩替身捕获调用参数；默认输入 ABC-1234 虽相同，但探针 C128= 只在注入 clicks 后出现 ⇒ 非回显、强判别。",
+  },
+  {
+    slug: "it/barcode-code39",
+    inputs: {},
+    clicks: ["var a=buildCode39('CODE-39',false),b=buildCode39('CODE-39',true);document.getElementById('__tbProbe').textContent='C39='+a.text+'|'+b.text+'|'+a.bits.length+'|'+b.bits.length;"],
+    expect: ["C39=CODE-39|CODE-39P|116|129"],
+    ref: "条码族 deepdive 示例一致性（自查续批）：Code 39 示例 CODE-39 确实可编码；标准模式不加校验位，勾选「追加 Mod 43 校验位」后由工具追加校验字符 P、bits 从 116 增至 129，与文案「校验位可选且由工具追加」一致。旧示例 9 位数字配「请按规范长度与校验位填写」与页面行为不符。默认态不产生该串。",
+  },
+  {
+    slug: "it/barcode-itf",
+    inputs: {},
+    clicks: ["var a=buildITF('12345678901234'),b=buildITF('123456789');document.getElementById('__tbProbe').textContent='ITF='+a.length+'|'+b.length;"],
+    expect: ["ITF=133|97"],
+    ref: "条码族 deepdive 示例一致性（自查续批）：ITF 示例改为 14 位 ITF-14；9 位奇数输入会被自动在前面补 0 凑偶数位，bits 长度 97 与 14 位的 133 不同，证明文案所述「只保留数字、奇数位自动补 0、两两交织」与实现一致。页面不代算 GTIN-14 校验位，文案已如实说明。默认态不产生该串。",
+  },
+  {
+    slug: "it/barcode-msi",
+    inputs: {},
+    clicks: ["var a=buildMSI('1234567','none'),b=buildMSI('1234567','mod10');document.getElementById('__tbProbe').textContent='MSI='+a.text+'|'+b.text+'|'+a.bits.length+'|'+b.bits.length;"],
+    expect: ["MSI=1234567|12345674|91|103"],
+    ref: "条码族 deepdive 示例一致性（自查续批）：MSI 示例 1234567 可编码；无校验模式原样输出，Mod 10 模式由工具追加校验位 4（bits 91→103），与文案「MSI 本身无校验、按所选模式由工具追加」一致。默认态不产生该串。",
+  },
+  {
+    slug: "it/barcode-upc",
+    inputs: {},
+    clicks: ["var a=buildUPC('03600029145'),b=buildUPC('036000291451');document.getElementById('__tbProbe').textContent='UPC='+(a.error||'OK')+'|'+(b.error||'OK')+'|'+(a.bits?a.bits.length:0)+'|'+(b.expect===undefined?'NA':b.expect);"],
+    expect: ["UPC=OK|check|95|2"],
+    ref: "条码族 deepdive 示例一致性（自查续批）：UPC-A 示例 03600029145 是 11 位，工具自动补校验位后生成 95 模块条码；12 位且末位错误时返回 check 并提示正确校验位 2，与文案「11/12 位、自动补位、12 位核对末位」一致。旧示例 9 位数字在该页根本无法生成。默认态不产生该串。",
+  },
+  // ===== 复核失败·第二批剩余 7 条重做（IT-N492/N493、D-N21、IT-N421、N555、N355、N549、N358）=====
+  {
+    slug: "design/svg-to-png",
+    inputs: {},
+    clicks: ["var imgs=[],rev=[];globalThis.URL=globalThis.URL||{};URL.createObjectURL=function(){return 'blob:test';};URL.revokeObjectURL=function(u){rev.push(u);};window.Image=function(){var im={};imgs.push(im);return im;};globalThis.Image=window.Image;var ce=document.createElement.bind(document);document.createElement=function(t){return t==='canvas'?{getContext:function(){return {drawImage:function(){}};},toDataURL:function(){return 'PNG_OK';}}:ce(t);};var el=document.getElementById('svgInput');el.value='<svg><rect/></svg>';document.getElementById('width').value='10';document.getElementById('height').value='10';generate();el.value='';el.fire('input');imgs[0].onload();document.getElementById('__tbProbe').textContent='SVG_CLEAR='+(lastDataURL===''&&rev.length===1?'OK':'FAIL');"],
+    expect: ["SVG_CLEAR=OK"],
+    ref: "转换未完成时清空 SVG：旧回调必须作废且释放对象 URL，不得重新产生可下载结果。"
+  },
+  {
+    slug: "it/yaml-to-xml",
+    inputs: { source: "items:\n  - alpha\n  -" },
+    expect: ["&lt;root&gt; &lt;items&gt;alpha&lt;/items&gt;&lt;items&gt;&lt;/items&gt; &lt;/root&gt;"],
+    ref: "尾部空 YAML 序列项是 null，须保留为空 XML 元素而不抛异常。"
+  },
+  {
+    slug: "it/toml-to-yaml",
+    inputs: { source: "items = [\"\"\"a,b#c\"\"\", 'tail']" },
+    expect: ["items: - \"a,b#c\" - tail"],
+    ref: "TOML 三引号字符串位于数组时，逗号和 # 均为内容，不得丢弃。"
+  },
+  {
+    slug: "it/toml-to-yaml",
+    inputs: { source: "items = [ # ] comment\n  '''hello,\n# world]''',\n  'tail' # ] comment\n]" },
+    expect: ["items: - \"hello,\\n# world]\" - tail"],
+    ref: "多行字面字符串内的换行、# 和 ] 都是内容，字符串外注释里的 ] 不结束数组。"
+  },
+  {
+    slug: "design/svg-to-png",
+    inputs: {},
+    clicks: ["var __rev=[],__n=0;globalThis.Blob=globalThis.Blob||function(){};globalThis.URL=globalThis.URL||{};URL.createObjectURL=function(){return 'blob:'+(++__n);};URL.revokeObjectURL=function(u){__rev.push(u);};var __imgs=[];window.Image=function(){var im={onload:null,onerror:null,src:''};__imgs.push(im);return im;};globalThis.Image=window.Image;var __ce=document.createElement.bind(document);document.createElement=function(t){if(t==='canvas'){return {width:0,height:0,getContext:function(){return {fillRect:function(){},drawImage:function(){}};},toDataURL:function(){return 'PNG_OK';}};}return __ce(t);};document.getElementById('svgInput').value='<svg><rect/></svg>';document.getElementById('width').value='10';document.getElementById('height').value='10';generate();generate();generate();try{__imgs[0].onload();}catch(e){}try{__imgs[1].onerror();}catch(e){}var __pv=String(document.getElementById('preview').innerHTML);var __stale=(lastDataURL===''&&__pv.indexOf('<img')<0&&__pv.indexOf('SVG 加载失败')<0)?'Y':'N';var __old=__rev.join(',');try{__imgs[2].onload();}catch(e){}var __pv2=String(document.getElementById('preview').innerHTML);var __latest=(lastDataURL==='PNG_OK'&&__pv2.indexOf('<img')>=0)?'Y':'N';document.createElement=__ce;document.getElementById('__tbProbe').textContent='D21REV='+__old+' STALE='+__stale+' LATEST='+__latest+' ALL='+__rev.join(',');"],
+    expect: ["D21REV=blob:1,blob:2 STALE=Y LATEST=Y ALL=blob:1,blob:2,blob:3"],
+    ref: "D-N21 复核重做：连续三次 generate() 各创建一个 blob URL。旧修复把 token 守卫放在释放之前，过期的 onload/onerror 直接 return ⇒ blob:1、blob:2 永不释放。现两回调都用 try/finally，过期回调照样释放各自 URL 且不改写 lastDataURL/preview；最新的第三次 onload 仍能正常出图并释放 blob:3。URL/Image/canvas 均由桩捕获，默认态不产生该串。"
+  },
+  {
+    slug: "it/locale-lookup",
+    inputs: {},
+    clicks: ["var ts=['en-u-ca-gregory-x-gregory','en-US-x-1-1','en-US-1901-1901','en-u-ca-u-ca','sl-rozaj-biske-1994','de-DE-1996'];var rs=[];for(var i=0;i<ts.length;i++)rs.push(__lcValid(ts[i])?'Y':'N');document.getElementById('__tbProbe').textContent='LC='+rs.join('');"],
+    expect: ["LC=YYNNYY"],
+    ref: "IT-N421 复核重做：旧实现对全 parts 扫描判重，把 Unicode 扩展里的 gregory 与私有用途里的同名串、私有段里重复的 1 都误判为 variant/singleton 重复。现按 RFC 5646 段位推进：x 之后停止判重、扩展属性段不算 variant ⇒ 前两例合法；真正的重复 variant（1901）与重复 singleton（u）仍拒绝；多 variant 与 4 位数字 variant 保持合法。默认态不产生该串。"
+  },
+  {
+    slug: "it/unicode-lookup",
+    inputs: {},
+    clicks: ["var cs=[0x2B739,0x2B73F,0x2B81D,0x2B81F,0x2CEA1,0x2CEAF,0x2EBE0,0x2EBEF,0x3134A,0x3134F,0x2EBF0,0x2EE5D,0x2EE5E,0x31350,0x323AF,0x323B0,0x3FFFF];var rs=[];for(var i=0;i<cs.length;i++)rs.push(String(lookupName(cs[i])).indexOf('CJK UNIFIED IDEOGRAPH-')===0?'Y':'N');document.getElementById('__tbProbe').textContent='UL='+rs.join('');"],
+    expect: ["UL=YNYNYNYNYNYYNYYNN"],
+    ref: "IT-N555 复核重做：按 Unicode 15.1.0 unicodedata.name() 逐个扫描得到的 10 段已分配区间替换 block 边界。五个 block 尾码位 2B73F/2B81F/2CEAF/2EBEF/3134F 及 2EE5E/323B0/3FFFF 未分配不得伪造名称；同时补回此前遗漏的 Ext I（2EBF0–2EE5D）与 Ext H（31350–323AF）首尾已分配码位。默认态不产生该串。"
+  },
+  {
+    slug: "it/yaml-to-xml",
+    inputs: { source: "items:\n  -\n    - a\n    - b" },
+    expect: ["&lt;root&gt; &lt;items&gt;a&lt;/items&gt;&lt;items&gt;b&lt;/items&gt; &lt;/root&gt;"],
+    ref: "IT-N355 复核重做（页面真实输入）：单键嵌套序列 items:[[a,b]] 被 ser() 递归展平成两个并列 <items>。旧判断只看外层数组长度为 1 ⇒ 直接输出两个根；现按递归展开后的顶层元素数包一层 <root>。expect 是结果区 escH 转义后的实体形态且含 &lt;root&gt;，输入 YAML 不含尖括号 ⇒ 非回显；默认 note 样例不命中。",
+  },
+  {
+    slug: "it/yaml-to-xml",
+    inputs: { source: "items:\n  -\n    - a\n    - b\n  -\n    - c" },
+    expect: ["&lt;root&gt; &lt;items&gt;a&lt;/items&gt;&lt;items&gt;b&lt;/items&gt;&lt;items&gt;c&lt;/items&gt; &lt;/root&gt;"],
+    ref: "IT-N355 复核重做：多层/多元素嵌套数组共展开 3 个 <items>，countTop 递归求和为 3 ⇒ 仍只有一个 <root>。与单键单元素、单键标量用例共同覆盖空/嵌套/多层数组的唯一根约束。默认态不命中。",
+  },
+  {
+    slug: "it/yaml-to-xml",
+    inputs: { source: "items:\n  - only" },
+    expect: ["&lt;items&gt;only&lt;/items&gt;"],
+    ref: "IT-N355 复核重做：递归展开后恰好 1 个顶层元素时，必须保持原有「该元素即唯一根」的形态，不能被新逻辑强制再包一层 root。默认样例为 note/to/from，不命中。",
+  },
+  {
+    slug: "it/yaml-to-xml",
+    inputs: { source: "a: 1\nb: 2" },
+    expect: ["&lt;root&gt; &lt;a&gt;1&lt;/a&gt; &lt;b&gt;2&lt;/b&gt; &lt;/root&gt;"],
+    ref: "IT-N355 复核重做：多键映射仍按原约定包 <root>，缩进/换行形态未回归。默认态不含 a/b 键。",
+  },
+  {
+    slug: "it/yaml-to-xml",
+    inputs: { source: "items: []" },
+    expect: ["&lt;items&gt;[]&lt;/items&gt;"],
+    ref: "IT-N355 复核重做：空态近似回归。页面简易 YAML 解析器把 [] 当标量，输出单根 <items>[]</items>；源码层 countTop([[]])=0 的空嵌套分支输出单个空 <root>，保证零元素时也只有一个根元素。默认态不命中。",
+  },
+  {
+    slug: "it/team-name-generator",
+    inputs: {},
+    clicks: ["document.getElementById('seed').value='x';document.getElementById('style').value='classical';document.getElementById('domain').value='creative';document.getElementById('maxLen').value='6';document.getElementById('suffixMode').value='word';document.getElementById('count').value='30';generate();var __o=String(document.getElementById('output').innerHTML);var __names=__o.split('</div>').map(function(s){return s.replace(/<[^>]*>/g,'');}).filter(function(s){return s.length;});var __ok=__names.length===30&&__names.every(function(s){return s.length<=6;});var __long=__names.filter(function(s){return /Collective|Studio/.test(s);}).length;var __word=__names.filter(function(s){return / (Team|Crew)$/.test(s);}).length;document.getElementById('__tbProbe').textContent='TN='+(__ok?'Y':'N')+' LONG='+__long+' WORD='+(__word>0?'Y':'N');"],
+    expect: ["TN=Y LONG=0 WORD=Y"],
+    ref: "IT-N549 复核重做：种子 x、创意词库、古风、maxLen=6、词库后缀、30 条。旧实现 Math.max(1,maxLen-suffix.length) 让 ' Collective'/' Studio' 突破上限（出现 G Collective / I Studio）。现先筛出「后缀+至少 1 字符 base」放得下的候选，仍用一次 pick 保留可用短后缀（Team/Crew），超长后缀一律不出现，30 条全部 ≤6。默认态（无种子、maxLen=24）不产生该串。"
+  },
+  {
+    slug: "it/team-name-generator",
+    inputs: {},
+    clicks: ["var modes=['word','number','symbol'],rs=[];for(var m=0;m<modes.length;m++){document.getElementById('seed').value='x'+m;document.getElementById('domain').value='creative';document.getElementById('style').value='classical';document.getElementById('maxLen').value='6';document.getElementById('suffixMode').value=modes[m];document.getElementById('count').value='30';generate();var ns=String(document.getElementById('output').innerHTML).split('</div>').map(function(s){return s.replace(/<[^>]*>/g,'');}).filter(function(s){return s.length;});rs.push(ns.length===30&&ns.every(function(s){return s.length>0&&s.length<=6;})?'Y':'N');}document.getElementById('__tbProbe').textContent='TNMODE='+rs.join('');"],
+    expect: ["TNMODE=YYY"],
+    ref: "IT-N549 复核重做：词库、数字、符号三类后缀在短 maxLen=6 下都必须不超限且非空。数字/符号后缀长度固定可保留，词库后缀走可用候选筛选；硬夹保险丝保证任何模式都不会出现空名或 >6 字符。默认态不产生该串。"
+  },
+  {
+    slug: "it/toml-to-yaml",
+    inputs: { source: "dependencies = [ # ] note\n  'a#b',\n  'tokio',\n]" },
+    expect: ["dependencies: - \"a#b\" - tokio"],
+    ref: "IT-N358 复核重做（页面真实输入）：多行数组首行注释含 ]，元素为 TOML 字面字符串。旧 stripComment 只认双引号 ⇒ 'a#b' 的 # 被当注释、后续元素被合并成一个错误字符串。现按 TOML 词法区分字面串/基本串/注释，tSplitTop、tDepth、tVal 同步支持字面串 ⇒ 两元素完整保留。expect 是 YAML 冒号形态，输入为等号形态且元素带单引号 ⇒ 非回显；默认样例不命中。",
+  },
+  {
+    slug: "it/toml-to-yaml",
+    inputs: { source: "note = \"a\\\\\" # ] comment" },
+    expect: ["note: \"a\\\\\""],
+    ref: "IT-N358 复核重做：基本字符串末尾是成对转义反斜杠后接注释。旧实现只看引号前一个字符是否为 \\\\，把真正闭合的引号误判为转义引号、注释被吞进值里。现状态机成对吞掉转义序列 ⇒ 值 a+反斜杠，输出侧按 YAML 规则转义为双反斜杠。expect 依赖该精确形态，默认样例不命中。",
+  },
+  {
+    slug: "it/toml-to-yaml",
+    inputs: { source: "items = [ # ] ] note\n \"x\", \"y\"\n]" },
+    expect: ["items: - x - y"],
+    ref: "IT-N358 复核重做：注释里连续两个 ] 都不能被 tDepth 当成数组结束。剥注释后的括号深度仍为 1 ⇒ 继续吞并后续两行，得到两个元素。默认样例不命中。",
+  },
+  {
+    slug: "it/toml-to-yaml",
+    inputs: { source: "v = \"a#b\" # c" },
+    expect: ["v: \"a#b\""],
+    ref: "IT-N358 复核重做：双引号基本字符串内的 # 是数据，串外 # c 才是注释；输出侧对含 # 的字符串加引号保证 YAML 回读一致。默认样例不命中。",
+  },
+  {
+    slug: "it/toml-to-yaml",
+    inputs: { source: "x = ['a,b','c,d']" },
+    expect: ["x: - \"a,b\" - \"c,d\""],
+    ref: "IT-N358 复核重做：字面字符串内的逗号不能被 tSplitTop 当成顶层分隔符，两个元素各自保留逗号。默认样例不命中。",
+  },
+  {
+    slug: "it/barcode-codabar",
+    inputs: {},
+    clicks: ["var ok=buildCodabar('A12345678B'),bad=buildCodabar('123456789');document.getElementById('__tbProbe').textContent='DD='+(ok.bits&&ok.bits.length===80?'Y':'N')+' OLD='+(bad.error&&bad.error.indexOf('起止符')>=0?'Y':'N');"],
+    expect: ["DD=Y OLD=Y"],
+    ref: "IT-N492/N493 复核重做：深度解析示例改为带起止符的 A12345678B（10 个字符 × 8 单元 = 80），确实可被 buildCodabar 生成；旧示例纯数字 123456789 缺起止符，实际会被首字符校验拒绝，故文案不能再把它当可用输入。标准 Codabar 不含校验位，构建源 content_deepdive.json、英文映射 i18n/tools/en/it/barcode-codabar.json 与页面 dd-ex-body 三处已同步改为「无需额外补校验位」口径。默认态不产生该串。"
+  },
+  // ===== 复核失败·第三批重做（IT-N477 / IT-N478 / IT-N3 / IT-N413）=====
+  {
+    slug: "it/text-replace", inputs: {},
+    clicks: ["document.getElementById('__tbProbe').textContent='TOTAL='+__trFind('a'.repeat(200002),'a',{re:false,g:true,i:false,m:false}).length;"],
+    expect: ["TOTAL=200002"],
+    ref: "IT-N3 再复核：超过 20 万匹配时统计仍须与主替换计数一致。"
+  },
+  {
+    slug: "it/phone-parser", inputs: { phone: "07946095", cc: "44" },
+    expect: ["国内格式：0794 6095"],
+    ref: "IT-N413 再复核：剥除 trunk 后不足 8 位的英国短号，国内格式仍应保留单个前导 0。"
+  },
+  {
+    slug: "it/vector-magnitude",
+    inputs: {},
+    clicks: ["document.getElementById('dim').value='2';document.getElementById('v0').value='1e-13';document.getElementById('v1').value='0';calculate();"],
+    expect: ["|v| = 1.000e-13", "方向角 θ = atan2(y, x) = 0°"],
+    ref: "IT-N477 复核重做：二维 (1e-13, 0) 是非零向量。旧实现用 m>1e-12 判零且 fmt() 把微小数显示成 0，于是输出 v=(0,0)、|v|=0 并称无单位向量/方向角。现按最大分量缩放求稳健范数，真实 0 才显示 0，微小非零用科学计数法 ⇒ |v|=1.000e-13、单位向量 (1,0)、方向角 0°。两条 expect 都只在二维微小非零输入出现，默认态 (3,4,0) 三维不命中。"
+  },
+  {
+    slug: "it/vector-magnitude",
+    inputs: {},
+    clicks: ["document.getElementById('dim').value='3';document.getElementById('v0').value='1e-200';document.getElementById('v1').value='0';document.getElementById('v2').value='0';calculate();"],
+    expect: ["|v| = 1.000e-200", "方向余弦：cos α = 1, cos β = 0, cos γ = 0"],
+    ref: "IT-N477 复核重做：三维下溢边界。分量平方 1e-400 已超出 Number 范围，旧 x*x 平方和为 0 ⇒ 误判零向量。缩放范数与指数分解的平方和展示同时生效，方向余弦仍为 (1,0,0)、方向角 0/90/90；默认态三维 (3,4,0) 的余弦为 0.6/0.8/0 ⇒ 不命中。"
+  },
+  {
+    slug: "it/vector-magnitude",
+    inputs: {},
+    clicks: ["document.getElementById('dim').value='2';document.getElementById('v0').value='1e999';document.getElementById('v1').value='0';calculate();"],
+    expect: ["⚠ 向量分量必须为有限数值。"],
+    ref: "IT-N477 复核重做：1e999 经 parseFloat 得 Infinity，属非有限分量，必须阻断结论而不是输出 ∞ 或伪方向角。默认态有限输入不出现该提示。"
+  },
+  {
+    slug: "it/keyword-extractor",
+    inputs: { inputText: "constructor constructor" },
+    clicks: ["extractKeywords();"],
+    expect: ["1 constructor 2 100.0%"],
+    ref: "IT-N478 复核重做：词是任意用户字符串，普通对象词频表让 freq.constructor 读到 Object.prototype 的构造函数，拼接出 `function Object() { [native code] }11` 且相对频率 0.0%。改用无原型字典后应得 2 次、100.0%；默认中文样例词表不含 constructor ⇒ 强判别。"
+  },
+  {
+    slug: "it/keyword-extractor",
+    inputs: { inputText: "constructor constructor toString valueOf" },
+    clicks: ["extractKeywords();"],
+    expect: ["1 constructor 2 100.0% 2 tostring 1 50.0% 3 valueof 1 50.0%"],
+    ref: "IT-N478 复核重做：覆盖原型属性词的排序分支。toString / valueOf 同样不得继承原型值，按词频 2/1/1 与 100.0%/50.0%/50.0% 排序输出；sortFreq 改用 Object.prototype.hasOwnProperty.call 兼容无原型字典。默认样例不命中。"
+  },
+  {
+    slug: "it/text-replace",
+    inputs: { sourceText: "İ hello WORLD hello", findInput: "hello", replaceInput: "X" },
+    clicks: ["document.getElementById('optCase').checked=false;document.getElementById('optRegex').checked=false;document.getElementById('optGlobal').checked=true;document.getElementById('optMultiline').checked=false;var __cap=[];globalThis.TBKit={util:{isEn:function(){return false;},exportCsv:function(n,rows){__cap.push('CSV='+rows.slice(6).map(function(r){return r.join('|');}).join(','));}},chart:{bar:function(){}},history:{record:function(r){__cap.push('EXTRAS='+r.matches);},mount:function(){}}};__trExtras();__trExport();document.getElementById('resultText').value=__cap.join(' ');try{delete globalThis.TBKit;}catch(e){}"],
+    expect: ["EXTRAS=2 CSV=1|2|hello,2|14|hello"],
+    ref: "IT-N3 复核重做：附加统计与 CSV 导出共用 __trFind。旧实现先 toLowerCase() 再按小写串索引去原文 substr（İ 小写会扩为两个码元），导出位置 3/15 与文本 `ello `；现统一在原文上用转义正则匹配 ⇒ 位置 2/14、文本两处 hello，统计计数 2。EXTRAS/CSV 由 TBKit 桩捕获，只在注入态产生。"
+  },
+  {
+    slug: "it/text-replace",
+    inputs: { sourceText: "aaaa", findInput: "aa", replaceInput: "X" },
+    clicks: ["document.getElementById('optCase').checked=false;document.getElementById('optRegex').checked=false;document.getElementById('optGlobal').checked=true;document.getElementById('optMultiline').checked=false;var __cap=[];globalThis.TBKit={util:{isEn:function(){return false;},exportCsv:function(n,rows){__cap.push('CSV='+rows.slice(6).map(function(r){return r.join('|');}).join(','));}},chart:{bar:function(){}},history:{record:function(r){__cap.push('EXTRAS='+r.matches);},mount:function(){}}};__trExtras();__trExport();document.getElementById('resultText').value=__cap.join(' ');try{delete globalThis.TBKit;}catch(e){}"],
+    expect: ["EXTRAS=2 CSV=1|0|aa,2|2|aa"],
+    ref: "IT-N3 复核重做：字面全局查找必须非重叠。旧 __trFind 用 st=idx+1 把 aaaa 查 aa 数成 3 次、覆盖率 150%、CSV 位置 0/1/2；现与主替换 findMatches 一致用正则 lastIndex 自然前进 ⇒ 2 次、位置 0/2。"
+  },
+  {
+    slug: "it/text-replace",
+    inputs: { sourceText: "foo foo", findInput: "foo", replaceInput: "X" },
+    clicks: ["document.getElementById('optCase').checked=false;document.getElementById('optRegex').checked=true;document.getElementById('optGlobal').checked=false;document.getElementById('optMultiline').checked=false;var __cap=[];globalThis.TBKit={util:{isEn:function(){return false;},exportCsv:function(n,rows){__cap.push('CSV='+rows.slice(6).map(function(r){return r.join('|');}).join(','));}},chart:{bar:function(){}},history:{record:function(r){__cap.push('EXTRAS='+r.matches);},mount:function(){}}};__trExport();previewMatch();var __ctx=String(document.getElementById('contextArea').innerHTML);__cap.push('CTX='+(__ctx.indexOf('#1 [0]')>=0&&__ctx.indexOf('#2 [4]')<0?'ONE':'MULTI'));document.getElementById('resultText').value=__cap.join(' ');try{delete globalThis.TBKit;}catch(e){}"],
+    expect: ["CSV=1|0|foo EXTRAS=1 CTX=ONE"],
+    ref: "IT-N3 复核重做：正则模式关闭全局时，统计/预览/上下文列表/CSV/替换必须只取首个匹配。旧预览恒用 global 扫描 ⇒ 高亮两处并列出 0/4，与 count=1 矛盾。现 findMatches 与 __trFind 均在非全局时 break，CSV 仅 1 行、上下文仅 #1 [0]。"
+  },
+  {
+    slug: "it/phone-parser",
+    inputs: { phone: "079460958", cc: "44" },
+    clicks: ["calcTool();document.getElementById('__tbCopyProbe').textContent='COPY='+(typeof __lastE164!=='undefined'&&__lastE164===''?'BLOCKED':'OPEN');"],
+    expect: ["⚠️ 英国 07 手机国内号码应为 10 位（含 trunk 0 共 11 位），当前 8 位", "COPY=BLOCKED", "国内格式：07946 0958"],
+    ref: "IT-N413 复核重做：短英国 07 号 079460958 剥 trunk 0 后仅 8 位。旧实现只在剥 0 后仍满足通用 9–10 位时才剥，导致首位 0 保留、按 9 位固话通过、绕过 digits.charAt(0)==='7' 的手机专属校验，显示 00794 60958 且可复制 +44079460958。现先归一化剥 0 再按 07 手机恰 10 位校验，报错且 __lastE164 保持空 ⇒ 禁止复制；国内格式保留单个 trunk 0（与 9/10 位分支口径一致）。COPY 探针写入独立容器，默认态不存在。"
+  },
+  {
+    slug: "it/keyword-extractor",
+    inputs: { inputText: "__proto__ constructor __proto__ constructor prototype" },
+    clicks: ["extractKeywords();"],
+    expect: ["1 constructor 2 100.0% 2 proto 2 100.0% 3 prototype 1 50.0%"],
+    ref: "IT-N478 复核重做：__proto__ 是最易触发原型 setter 的键。无原型字典下按普通词计数，且与 constructor 同为 2 次时按词长降序排（constructor 11 > proto 5），验证 sortFreq 的计数/长度双键排序未被原型属性破坏；默认中文样例不命中。"
+  },
+  {
+    slug: "it/text-replace",
+    inputs: { findInput: "aa", replaceInput: "X" },
+    clicks: ["document.getElementById('sourceText').value='aa'.repeat(3000);document.getElementById('optCase').checked=false;document.getElementById('optRegex').checked=false;document.getElementById('optGlobal').checked=true;document.getElementById('optMultiline').checked=false;var __cap=[];globalThis.TBKit={util:{isEn:function(){return false;},exportCsv:function(n,rows){__cap.push('CSVROWS='+(rows.length-6));}},chart:{bar:function(){}},history:{record:function(r){__cap.push('EXTRAS='+r.matches);},mount:function(){}}};__trExtras();__trExport();document.getElementById('resultText').value=__cap.join(' ');try{delete globalThis.TBKit;}catch(e){}"],
+    expect: ["EXTRAS=3000 CSVROWS=200"],
+    ref: "IT-N3 复核重做：__trFind 旧的 2000 条上限会让附加统计的匹配数量/覆盖率与主替换（text.match 全局正则，不封顶）在长文本上不一致。6000 字符查 aa 得 3000 处非重叠匹配 ⇒ EXTRAS=3000；CSV 仍按自身约定只导出前 200 行 ⇒ CSVROWS=200。默认样例不产生该串。"
+  },
+  // ===== 复核失败·第二批重做（前 6 条：IT-N489 / N474 / N471 / N551 / N527 / N528）=====
+  {
+    slug: "it/json-path",
+    inputs: {},
+    clicks: ["var o={a:[1,2,3,4,5]},e={a:[]};var ps=['$.a[99::-1]','$.a[:-99:-1]','$.a[-99::-1]','$.a[4:0:-1]','$.a[0:5:-1]','$.a[::-2]'];var rs=[];for(var i=0;i<ps.length;i++){rs.push(jsonPath(o,ps[i]).join(','));}rs.push(jsonPath(e,'$.a[::-1]').join(','));document.getElementById('__tbProbe').textContent='JP='+rs.join('|');"],
+    expect: ["JP=5,4,3,2,1|5,4,3,2,1||5,4,3,2||5,3,1|"],
+    ref: "IT-N489 复核重做：负步长切片的越界与省略边界。旧实现正负步长共用夹在 [0,len] 的 norm()，[99::-1] 起点未夹紧导致首项 undefined、[:-99:-1] 丢首项、[-99::-1] 多返一项。现负步长按方向夹在 [-1,len-1]：99→4、-99→-1、省略 start→len-1、省略 end→-1。七组结果（含空数组与 -2 步长）一次断言，默认 path 不产生该串。"
+  },
+  {
+    slug: "it/math-evaluator",
+    inputs: {},
+    clicks: ["var es=['7%pi','7 % pi','7%sin(1)','7%e','7%.5','15%','.5%','50%*120','7%3'];var ws=['0.7168146928','0.7168146928','0.2682321215','1.5634363431','0','0.15','0.005','60','1'];var rs=[];for(var i=0;i<es.length;i++){document.getElementById('expr').value=es[i];calc();rs.push(String(document.getElementById('result').innerHTML).indexOf('>'+ws[i]+'<')>=0?'OK':'BAD');}document.getElementById('__tbProbe').textContent='ME='+rs.join('');"],
+    expect: ["ME=OKOKOKOKOKOKOKOKOK"],
+    ref: "IT-N474 复核重做：% 的右操作数识别补齐常量 pi/e、函数名、小数点起始操作数与带空格写法。7%pi=0.7168146928、7%sin(1)=0.2682321215、7%e=1.5634363431、7%.5=0；旧实现把它们改写成 (7/100)pi 一类语法错误。同时守住百分比路径 15%=0.15、.5%=0.005、50%*120=60 与取模 7%3=1。九组结果逐项比对，默认态不产生该串。"
+  },
+  {
+    slug: "it/vector-cross-product",
+    inputs: { a0: "1e-7", a1: "0", a2: "0", b0: "0", b1: "1e-7", b2: "0" },
+    clicks: ["calculate();document.getElementById('__tbProbe').textContent='VCP='+String(document.getElementById('output').innerHTML);"],
+    expect: ["A = (1.000e-7, 0, 0)", "A × B = (0, 0, 1.000e-14)"],
+    ref: "IT-N471 复核重做：小尺度正交向量。旧 fmt() 用绝对阈值 1e-12 且 toLocaleString() 默认仅 3 位小数，把 1e-7 的输入与 1e-14 的叉积都显示成 0，却仍写 sinθ=1 → θ=90°。现真实零才显示 0，<1e-3 一律科学计数法 ⇒ 输入/叉积/模长/角度自洽。默认 (1,2,3)×(4,5,6) 不命中。"
+  },
+  {
+    slug: "it/vector-cross-product",
+    inputs: { a0: "1e-7", a1: "0", a2: "0", b0: "-1e-7", b1: "0", b2: "0" },
+    clicks: ["calculate();document.getElementById('__tbProbe').textContent='VCP='+String(document.getElementById('output').innerHTML);"],
+    expect: ["B = (-1.000e-7, 0, 0)", "θ = 180°"],
+    ref: "IT-N471 复核重做：小尺度反向共线。负分量不得被显示成 -0；归一化向量下 sinθ=0、cosθ=-1 ⇒ atan2 给 180° 且平行结论成立。默认算例 12.933° 不命中。"
+  },
+  {
+    slug: "it/vector-cross-product",
+    inputs: { a0: "1e-200", a1: "0", a2: "0", b0: "0", b1: "1e-200", b2: "0" },
+    clicks: ["calculate();document.getElementById('__tbProbe').textContent='VCP='+String(document.getElementById('output').innerHTML);"],
+    expect: ["A × B = (0, 0, 1e-400)", "叉积绝对量级低于双精度可表示范围"],
+    ref: "IT-N471 复核重做：极端下溢边界。|A||B|=1e-400 已超出双精度，直接相乘会得 0 并造成「叉积为零但 θ=90°」的矛盾。现归一化向量给出角度，并用指数分解展示 c*|A|*|B| 的量级 1e-400，同时显式说明显示口径；默认算例不命中。"
+  },
+  {
+    slug: "it/text-qr",
+    inputs: { text: "old secret" },
+    clicks: ["window.__qrCanvas={toDataURL:function(){return 'OLD_PNG';}};window.__qrMeta={probe:1};document.getElementById('text').value='';generate();var __cap=[];var __ce=document.createElement.bind(document);document.createElement=function(t){var e=__ce(t);if(t==='a'){e.click=function(){__cap.push('DL:'+e.download);};}return e;};downloadPNG();downloadSVG();document.createElement=__ce;document.getElementById('__tbProbe').textContent='QR='+__cap.join('|')+' CANVAS='+(window.__qrCanvas===null?'NULL':'STALE')+' META='+(window.__qrMeta===null?'NULL':'STALE');"],
+    expect: ["QR= CANVAS=NULL META=NULL"],
+    ref: "IT-N551 复核重做：先放一张旧 canvas + 旧元数据，清空文本再 generate()，PNG/SVG 都必须无法下载旧图。旧修复只清 __qrMeta、不清 window.__qrCanvas，downloadPNG 仍触发一次旧图下载。现 generate() 开始即把两者作废，downloadPNG 还要求画布与元数据同时有效。下载动作由 createElement('a') 桩捕获，默认态不产生该串。"
+  },
+  {
+    slug: "it/text-qr",
+    inputs: { text: "old secret" },
+    clicks: ["window.__qrCanvas={toDataURL:function(){return 'OLD_PNG';}};window.__qrMeta={probe:1};document.getElementById('text').value='anything';generate();var __p=document.getElementById('__tbProbe');__p.textContent='ERR='+(window.__qrCanvas===null&&window.__qrMeta===null?'CLEAR':'STALE');drawQR=function(t){var c=document.createElement('canvas');c.__qrMeta={n:1,margin:4,cell:8,dark:[0],fg:'#000000',bg:'#ffffff'};c.toDataURL=function(){return 'NEW_PNG';};return c;};document.getElementById('text').value='NEW-QR';generate();__p.textContent=String(__p.textContent)+' RECOVER='+(window.__qrCanvas&&window.__qrMeta?'OK':'FAIL');var __cap=[];var __ce=document.createElement.bind(document);document.createElement=function(t){var e=__ce(t);if(t==='a'){e.click=function(){__cap.push('DL:'+e.download);};}return e;};downloadPNG();document.createElement=__ce;__p.textContent=String(__p.textContent)+' DL='+__cap.join('|');"],
+    expect: ["ERR=CLEAR RECOVER=OK DL=DL:qrcode.png"],
+    ref: "IT-N551 复核重做：生成异常（harness 下 qrcode 外部脚本不可加载）时也必须同时作废画布与元数据；随后用桩替身恢复合法生成，画布与元数据重建成功，并实际调用 downloadPNG() 捕获一次真实下载 qrcode.png，证明清空逻辑没有误伤正常导出。默认态不产生该串。"
+  },
+  {
+    slug: "it/markdown-lint",
+    inputs: { src: "```js\n``` not-a-closing-fence\n*not-a-list\n```" },
+    clicks: ["calcTool();document.getElementById('__tbProbe').textContent='MD='+String(document.getElementById('result').innerHTML);"],
+    expect: ["MD= 检查结果 4 行数 0 问题"],
+    ref: "IT-N527 复核重做：闭围栏后只能跟空白。第二行 ``` not-a-closing-fence 是代码内容而非闭围栏，旧实现只比字符与长度就翻转 inFence，导致第 3 行被误报列表缺空格、第 4 行被误报 MD040。现按 CommonMark 严格判定（缩进 ≤3、同字符、长度 ≥、后缀全空白）⇒ 0 问题。默认示例含多个待整改项，不命中。"
+  },
+  {
+    slug: "it/markdown-lint",
+    inputs: { src: "```js\n    ```\n*not-a-list\n```" },
+    clicks: ["calcTool();document.getElementById('__tbProbe').textContent='MD='+String(document.getElementById('result').innerHTML);"],
+    expect: ["MD= 检查结果 4 行数 0 问题"],
+    ref: "IT-N527 复核重做：缩进 4 空格的围栏状行按 CommonMark 是缩进代码块内容，不得关闭围栏。旧实现 fm 允许任意 \\s* 前导空白，会提前闭围栏并误报后续行。现限制前导空白 ≤3 ⇒ 0 问题；默认示例含多个待整改项，不命中。"
+  },
+  {
+    slug: "it/kubernetes-yaml-generator",
+    inputs: { name: "web", port: "80", replicas: "2" },
+    clicks: ["var ims=['[nginx]','&foo','*alias','{a}','a//b','nginx:latest:bad'];var rs=[];for(var i=0;i<ims.length;i++){document.getElementById('image').value=ims[i];calcTool();rs.push(String(document.getElementById('result').innerHTML).indexOf('不是合法的容器镜像引用')>=0?'REJECT':'ACCEPT');}document.getElementById('__tbProbe').textContent='K8='+rs.join('|');"],
+    expect: ["K8=REJECT|REJECT|REJECT|REJECT|REJECT|REJECT"],
+    ref: "IT-N528 复核重做：流式集合 [nginx]、锚点 &foo、别名 *alias、映射 {a}、空路径段 a//b、双 tag nginx:latest:bad 均不符合容器镜像引用语法，必须统一拒绝，而不是枚举 null/true/{} 等少数 YAML 特殊值。原有 #/关键字/空白 三条具体提示保持不变；默认合法镜像不产生该串。"
+  },
+  {
+    slug: "it/kubernetes-yaml-generator",
+    inputs: { name: "web", image: "123", port: "80", replicas: "2" },
+    clicks: ["calcTool();document.getElementById('__tbProbe').textContent='K8='+String(document.getElementById('result').innerHTML);"],
+    expect: ["image: '123'"],
+    ref: "IT-N528 复核重做：纯数字镜像名在语法上合法，但裸输出 image: 123 会被 YAML 解析成整数。现所有合法镜像一律以单引号标量输出 ⇒ image: '123' 得到字符串。默认镜像 nginx:latest 不命中。"
+  },
+  {
+    slug: "it/kubernetes-yaml-generator",
+    inputs: { name: "web", image: "ghcr.io/team/app:1.2.3", port: "80", replicas: "2" },
+    clicks: ["calcTool();document.getElementById('__tbProbe').textContent='K8='+String(document.getElementById('result').innerHTML);"],
+    expect: ["image: 'ghcr.io/team/app:1.2.3'"],
+    ref: "IT-N528 复核重做：带 registry 主机、多段路径与语义化 tag 的合法镜像必须仍可生成清单，且被引号正确包裹。白名单校验与引号化不得误伤正常镜像；默认 nginx:latest 不命中。"
+  },
+  {
+    slug: "it/json-path",
+    inputs: {},
+    clicks: ["var o={a:[1,2,3,4,5]};var ps=['$.a[99:]','$.a[:-99]','$.a[-99:3]','$.a[2:99]','$.a[::3]','$.a[4:1:-2]'];var rs=[];for(var i=0;i<ps.length;i++){rs.push(jsonPath(o,ps[i]).join(','));}document.getElementById('__tbProbe').textContent='JP2='+rs.join('|');"],
+    expect: ["JP2=||1,2,3|3,4,5|1,4|5,3"],
+    ref: "IT-N489 复核重做：正步长同样要按下标方向夹紧。[99:] / [:-99] 均为空，[-99:3] 取 1,2,3、[2:99] 取 3,4,5，[::3] 取 1,4，[4:1:-2] 取 5,3。与负步长用例一起覆盖正负方向、显式/省略、越界起止与步长绝对值 >1；默认 path 不产生该串。"
+  },
+  {
+    slug: "it/math-evaluator",
+    inputs: {},
+    clicks: ["var es=['7%-pi','7%+sin(1)','7 % -3','7 % +3'];var ws=['0.7168146928','0.2682321215','1','1'];var rs=[];for(var i=0;i<es.length;i++){document.getElementById('expr').value=es[i];calc();rs.push(String(document.getElementById('result').innerHTML).indexOf('>'+ws[i]+'<')>=0?'OK':'BAD');}document.getElementById('__tbProbe').textContent='ME2='+rs.join('');"],
+    expect: ["ME2=OKOKOKOK"],
+    ref: "IT-N474 复核重做：一元正负号与常量/函数组合的右操作数。7%-pi = 7 % (-pi) = 0.7168146928、7%+sin(1) = 0.2682321215，带空格的 7 % -3 / 7 % +3 均为 1。确认新增的标识符识别没有破坏旧的一元符号分支；默认态不产生该串。"
+  },
+  {
+    slug: "it/markdown-lint",
+    inputs: { src: "````js\n```\n*not-a-list\n````\n- item" },
+    clicks: ["calcTool();document.getElementById('__tbProbe').textContent='MD3='+String(document.getElementById('result').innerHTML);"],
+    expect: ["MD3= 检查结果 5 行数 0 问题"],
+    ref: "IT-N527 复核重做：闭围栏长度不得短于开围栏。开围栏 4 个反引号，内部 3 个反引号的 ``` 只是代码内容，4 个反引号的 ```` 才闭围栏；随后 '- item' 的列表标记后已有空格 ⇒ 0 问题。与跨类型、同标记带正文、缩进 4 空格三例共同覆盖围栏语法；默认示例含多个待整改项，不命中。"
+  },
+  {
     slug: "it/hex-to-text",
     inputs: { input: "E4B8ADF09F9880" },
     clicks: ["convert()"],
@@ -766,6 +1456,41 @@ const CASES = [
     inputs: { inTime: "1600000000" },
     expect: ["2020-09-13T12:26:40.000Z"],
     ref: "Unix 秒 1600000000 = 2020-09-13T12:26:40.000Z（UTC）。踩坑：默认 1700000000，注入值撞默认会逃生。",
+  },
+  {
+    slug: "it/bayes-theorem",
+    inputs: {"prior":"0","likelihood":"0.9","falsePositive":"0.05"},
+    clicks: ["calculate();var s=document.getElementById('output').innerHTML;var p=s.indexOf('边界说明');document.getElementById('__tbProbe').textContent='BAYES0 '+s.slice(p,p+160).replace(/<[^>]*>/g,'');"],
+    expect: ["BAYES0 边界说明：先验 P(H₁) = 0 时 P(¬H₁) = 1，先验优势 0/1 = 0；此时证据无法再改变信念，后验恒为 0。先验 vs 后验对比<span class=\"nam"],
+    ref: "复核失败重做·IT-N374 1/2（prior=0 边界说明）：旧说明把 prior=0 与 prior=1 混为一谈，误写「P(¬H₁)=0、先验优势 0/0 发散」。prior=0 实际 P(¬H₁)=1、先验优势 0/1=0，不发散。修复后 BAYES0 边界说明写「P(¬H₁) = 1，先验优势 0/1 = 0」；修复前写「P(¬H₁) = 0，先验优势 0/0 发散为 0」⇒ 真变红。默认态 prior=0.01 不进边界分支、无探针串 ⇒ 零逃生。"
+  },
+  {
+    slug: "it/bayes-theorem",
+    inputs: {"prior":"0.01","likelihood":"0.9","falsePositive":"0"},
+    clicks: ["calculate();var s=document.getElementById('output').innerHTML;document.getElementById('__tbProbe').textContent='BAYESBF inf='+(s.indexOf('<div class=\"v\">∞</div><div class=\"l\">贝叶斯因子 BF')>=0?1:0)+' undef='+(s.indexOf('<div class=\"v\">未定义</div><div class=\"l\">贝叶斯因子 BF')>=0?1:0);"],
+    expect: ["BAYESBF inf=1 undef=0"],
+    ref: "复核失败重做·IT-N374 2/2（BF 发散语义）：误报率 fp=0 时贝叶斯因子 BF=∞，统计卡必须用 fmtOdds 显示 ∞ 而不是 fmt 的「未定义」。探针在 #output 精确锚定 `<div class=\"v\">∞</div><div class=\"l\">贝叶斯因子 BF`，修复后 inf=1 undef=0；修复前 inf=0 undef=1 ⇒ 真变红。默认态 fp=0.05 不产生 ∞ ⇒ 零逃生。"
+  },
+  {
+    slug: "it/statistical-power",
+    inputs: {"d":"0.0001","alpha":"0.05","tail":"two","solveFor":"size","targetPower":"0.001"},
+    clicks: ["calculate()"],
+    expect: ["所需样本量 = 1（每组）", "0.0001 效应量 d"],
+    ref: "小效应量低目标功效：正算 n=1 已满足目标，反解结果和效应量显示均须正确。"
+  },
+  {
+    slug: "it/statistical-power",
+    inputs: {"d":"0.5","alpha":"0.05","tail":"two","solveFor":"size","targetPower":"0.001"},
+    clicks: ["calculate();var s=document.getElementById('output').innerHTML;var p=s.indexOf('反解');document.getElementById('__tbProbe').textContent='PWRMIN '+s.slice(p,p+200).replace(/<[^>]*>/g,'');"],
+    expect: ["PWRMIN 反解：n = ⌈2×((z₁₋α' + z₁₋β)/d)²⌉ = ⌈2×((1.96 + -3.09)/0.5)²⌉ = 11（正态近似候选）；用本页正算公式二分核验后，满足目标功效 0.001 的最小每组样本量 = 1步骤 1：非中心参数 δ = d × √(n/2) = 0.5 ×"],
+    ref: "复核失败重做·IT-N375 1/2（低功效反解过度估计）：solveFor=size、d=0.5、α=0.05、targetPower=0.001、双侧时，正态近似给出候选 n=11，但本页正算公式在 n=1 已达 0.001 目标功效。修复后从候选向下逐整数核验，给出最小每组样本量 1；修复前直出 11 ⇒ 真变红。默认态 solveFor 非 size、无「反解」行 ⇒ 零逃生。"
+  },
+  {
+    slug: "it/statistical-power",
+    inputs: {"d":"0.3","alpha":"0.01","tail":"two","solveFor":"size","targetPower":"0.01"},
+    clicks: ["calculate();var s=document.getElementById('output').innerHTML;var p=s.indexOf('反解');document.getElementById('__tbProbe').textContent='PWRCHK '+s.slice(p,p+200).replace(/<[^>]*>/g,'');"],
+    expect: ["PWRCHK 反解：n = ⌈2×((z₁₋α' + z₁₋β)/d)²⌉ = ⌈2×((2.576 + -2.326)/0.3)²⌉ = 2（正态近似候选）；用本页正算公式二分核验后，满足目标功效 0.01 的最小每组样本量 = 1步骤 1：非中心参数 δ = d × √(n/2) = 0.3 ×"],
+    ref: "复核失败重做·IT-N375 2/2（近似偏保守回退一整级）：d=0.3、α=0.01、targetPower=0.01 时近似候选 n=2，正算核验 n=1 已达标。修复后最小样本量 1；修复前 2 ⇒ 真变红。与上例共同覆盖「向下收敛多级」与「收敛一级」，默认态不触发 ⇒ 零逃生。"
   },
   {
     slug: "it/statistical-power",
@@ -1919,8 +2644,8 @@ const CASES = [
     slug: "it/phone-parser",
     inputs: { phone: "0794609584", cc: "44" },
     clicks: ["calcTool()"],
-    expect: ["⚠️ 国内号码应为 9–10 位"],
-    ref: "IT-N413：英国 07 手机国内须恰为 10 位（含 trunk 0 共 11 位）。0794609584 仅 10 位（含 0），剥 0 后 9 位 ⇒ 手机长度不足 ⇒ 应提示长度错误。修复前按 9 位固话判通过。expect 命中「⚠️ 国内号码应为 9–10 位」（默认态不命中）⇒ 强判别。"
+    expect: ["⚠️ 英国 07 手机国内号码应为 10 位（含 trunk 0 共 11 位），当前 9 位"],
+    ref: "IT-N413 复核重做（用例同步）：英国 07 手机国内须恰为 10 位（含 trunk 0 共 11 位）。0794609584 仅 10 位（含 0），剥 0 后 9 位 ⇒ 手机长度不足 ⇒ 应提示长度错误。短号警告不再笼统写 9–10 位，而点名手机需 10 位；expect 随页面文案同步更新（默认态不命中）⇒ 强判别。"
   },
   {
     slug: "it/country-code-lookup",
@@ -3166,6 +3891,26 @@ const CASES = [
     clicks: ["setLang('proto')"],
     expect: ["} message RootZz { int32 k = 1"],
     ref: "IT-N381（Proto）：同一 .proto 文件只允许一处 syntax 声明（proto3）。修复前根 message 的 `}` 后面紧跟又一段 syntax 声明 + message RootZz，故「} message RootZz」在修复前不存在。",
+  },
+  {
+    slug: "it/json-to-code",
+    inputs: { input: '{"parent":{"a\\\"b":1}}' },
+    clicks: ["var t=toGo(JSON.parse(document.getElementById('input').value),'Root');document.getElementById('__tbProbe').textContent='GOTAG nestedWarning='+(t.includes('Go JSON tag 无法映射')?1:0)+' noStruct='+(t.includes('type Root struct')?0:1);"],
+    expect: ["GOTAG nestedWarning=1 noStruct=1"],
+    ref: "特殊键位于嵌套对象时必须明确拒绝生成误导性 Go struct，避免 encoding/json 静默丢失字段映射。",
+  },
+  {
+    slug: "it/json-to-code",
+    clicks: ["var bad=['a,b','a\\\\b','', '-', 'a`b', 'a'+String.fromCharCode(0)+'b'];var ok=bad.every(function(k){var o={};o[k]=1;var t=toGo(o,'Root');return t.includes('Go JSON tag 无法映射')&&!t.includes('type Root struct');});document.getElementById('__tbProbe').textContent='GOBAD all='+Number(ok);"],
+    expect: ["GOBAD all=1"],
+    ref: "Go 特殊键包含逗号、反斜杠、空键、忽略标记、反引号和控制字符时必须全数拒绝错误映射。",
+  },
+  {
+    slug: "it/json-to-code",
+    inputs: { input: '{"姓名":"Alice","normal":4}' },
+    clicks: ["var t=toGo(JSON.parse(document.getElementById('input').value),'Root');document.getElementById('__tbProbe').textContent='GOUNICODE exported='+(t.includes('F姓名 string')?1:0);"],
+    expect: ["GOUNICODE exported=1"],
+    ref: "Unicode 字母虽可用于 Go JSON tag，但汉字字段名必须以大写字母开头导出，才能参与 encoding/json 的双向转换。",
   },
   {
     slug: "it/json-to-code",
@@ -5221,8 +5966,8 @@ const CASES = [
   {
     "slug": "it/kubernetes-yaml-generator",
     "inputs": { "name": "api", "image": "redis:7-alpine", "port": "6379", "replicas": "3" },
-    "expect": ["containerPort: 6379", "image: redis:7-alpine"],
-    "ref": "k8s 清单生成：注入 name/image/port/replicas。Deployment 的 `image: redis:7-alpine` 与 container 的 `containerPort: 6379` 是清单模板拼装后的形态（input value 为裸值，不含 `image: ` / `containerPort: ` 键名），排除输入回显。默认 web / nginx:latest / 80 / 2。"
+    "expect": ["containerPort: 6379", "image: 'redis:7-alpine'"],
+    "ref": "k8s 清单生成：注入 name/image/port/replicas。Deployment 的 `image: 'redis:7-alpine'` 与 container 的 `containerPort: 6379` 是清单模板拼装后的形态（input value 为裸值，不含 `image: ` / `containerPort: ` 键名），排除输入回显。IT-N528 复核重做：镜像一律输出为 YAML 单引号标量，避免纯数字/流式集合/锚点被解析成非字符串；expect 同步加引号。默认 web / nginx:latest / 80 / 2。"
   },
   {
     "slug": "it/nginx-config-generator",
@@ -6091,17 +6836,11 @@ const CASES = [
     "ref": "关闭「仅字母移位」时作用于可打印 ASCII 共 95 个字符：xyz 位移 +3 ⇒ x→{、y→|、z→}。修复前模数固定 26，会错误地回绕成字母；默认输入不是 xyz，注入失败即不命中。"
   },
   {
-    "slug": "it/calc-3",
-    "inputs": {
-      "hexInput": "abc123测试",
-      "colorPicker": "abc123测试",
-      "rgbInput": "abc123测试",
-      "hslInput": "abc123测试"
-    },
-    "expect": [
-      "3%, 39%)\n#5b1bac\nabc123测试"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"hexInput\":\"abc123测试\",\"colorPicker\":\"abc123测试\",\"rgbInput\":\"abc123测试\",\"hslInput\":\"abc123测试\"}，输出区含「3%, 39%)\n#5b1bac\nabc123测试」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    slug: "it/calc-3",
+    inputs: { hexInput: "#00FF7F" },
+    clicks: ["fromHex();document.getElementById('__tbProbe').textContent=String(document.getElementById('result').textContent).replace(/\\s+/g,' ').trim();"],
+    expect: ["HEX： #00FF7F RGB： rgb(0, 255, 127) HSL： hsl(150, 100%, 50%)"],
+    ref: "G06 元素顺序变更后的过期断言修正：旧断言锚「3%, 39%)\\n#5b1bac\\nabc123测试」，其中 #5b1bac 是页面默认色值、且三元素连续串依赖创建序 ⇒ 首屏自跑改变元素顺序后即失配（门禁 it calc correctness 红）。改为注入合法非默认色 #00FF7F 并显式 fromHex()，探针取结果区归一文本，锚完整派生串「HEX： … RGB： … HSL： …」；默认 #5B1BAC 不含该串 ⇒ 强判别、零逃生。",
   },
   {
     "slug": "it/calc-10",
@@ -7209,6 +7948,96 @@ const CASES = [
     "ref": "IT-N397 同批顺带修：成员判断原来用 `k in b`（走原型链），`'constructor' in {}` 为真 ⇒ 该键被当成「两侧都有」而递归比对 function，报成 mod 甚至丢键。改用 `Object.prototype.hasOwnProperty.call` 后正确报 del。默认样例无 constructor 键。"
   },
   {
+    "slug": "it/json-diff",
+    "inputs": {
+      "left": "{\"tags\":[\"a\",\"b\",\"c\"]}",
+      "right": "{\"tags\":[\"c\",\"b\",\"a\"]}",
+      "diffMode": "deep"
+    },
+    "clicks": [
+      "document.getElementById('arrayMatch').checked=true;doDiff();var d=JSON.parse(document.getElementById('jsonDiff').textContent);document.getElementById('__tbProbe').textContent='JDMUL n='+d.length+' mod='+d.filter(function(x){return x.op==='mod';}).length+' q='+document.getElementById('left').value.length;"
+    ],
+    "expect": [
+      "JDMUL n=0 mod=0 q=22"
+    ],
+    "ref": "复核失败重做·IT-N396 1/6（三元素完全逆序）：勾选数组按内容匹配，`{\"tags\":[\"a\",\"b\",\"c\"]}` 对 `{\"tags\":[\"c\",\"b\",\"a\"]}` 内容多重集相同，应判 0 处差异。修复前 LCS 只能配到 1 个元素，剩余项按下标硬配对 ⇒ `n=2 mod=2`；修复后剩余项先按规范内容多重集抵消 ⇒ `JDMUL n=0 mod=0 q=22` ⇒ 强判别。"
+  },
+  {
+    "slug": "it/json-diff",
+    "inputs": {
+      "left": "{\"tags\":[\"a\",\"b\",\"c\"]}",
+      "right": "{\"tags\":[\"c\",\"x\",\"a\"]}",
+      "diffMode": "deep"
+    },
+    "clicks": [
+      "document.getElementById('arrayMatch').checked=true;doDiff();var d=JSON.parse(document.getElementById('jsonDiff').textContent);document.getElementById('__tbProbe').textContent='JDMIX n='+d.length+' mod='+d.filter(function(x){return x.op==='mod';}).length+' p='+(d[0]?d[0].path:'-')+' q='+document.getElementById('left').value.length;"
+    ],
+    "expect": [
+      "JDMIX n=1 mod=1 p=tags[1] q=22"
+    ],
+    "ref": "复核失败重做·IT-N396 2/6（逆序 + 真变化）：`[\"a\",\"b\",\"c\"]` 对 `[\"c\",\"x\",\"a\"]`，应只报 1 处 mod（b→x）。修复前 `n=2 mod=2 p=tags[0]`；修复后多重集抵消掉 c/a，只剩 b 与 x 递归比对 ⇒ `JDMIX n=1 mod=1 p=tags[1] q=22` ⇒ 强判别，同时证明抵消没有把真变化吞掉。"
+  },
+  {
+    "slug": "it/json-diff",
+    "inputs": {
+      "left": "{\"a\":{\"__proto__\":{\"v\":1}}}",
+      "right": "{\"a\":{\"__proto__\":{\"v\":2}}}",
+      "diffMode": "simple"
+    },
+    "clicks": [
+      "doDiff();var d=JSON.parse(document.getElementById('jsonDiff').textContent);document.getElementById('__tbProbe').textContent='JDPROTO n='+d.length+' op='+(d[0]?d[0].op:'-')+' path='+(d[0]?d[0].path:'-')+' q='+document.getElementById('left').value.length;"
+    ],
+    "expect": [
+      "JDPROTO n=1 op=mod path=a q=27"
+    ],
+    "ref": "复核失败重做·IT-N397 3/6（简单模式嵌套特殊键）：`{\"a\":{\"__proto__\":{\"v\":1}}}` 对同处值为 2。修复前 `jdCanon` 用普通 `{}`，`o[\"__proto__\"]=...` 触发原型 setter、序列化丢键 ⇒ 两侧比较键都是 `{}` ⇒ `n=0 op=- path=-`；修复后无原型对象保住自有键 ⇒ `JDPROTO n=1 op=mod path=a q=27` ⇒ 强判别。"
+  },
+  {
+    "slug": "it/json-diff",
+    "inputs": {
+      "left": "{\"__proto__\":{\"v\":1}}",
+      "right": "{\"__proto__\":{\"v\":2}}",
+      "diffMode": "simple"
+    },
+    "clicks": [
+      "doDiff();var d=JSON.parse(document.getElementById('jsonDiff').textContent);document.getElementById('__tbProbe').textContent='JDTOP n='+d.length+' op='+(d[0]?d[0].op:'-')+' path='+(d[0]?d[0].path:'-')+' q='+document.getElementById('left').value.length;"
+    ],
+    "expect": [
+      "JDTOP n=1 op=mod path=__proto__ q=21"
+    ],
+    "ref": "复核失败重做·IT-N397 4/6（简单模式顶层特殊键）：`{\"__proto__\":{\"v\":1}}` 对 `{\"__proto__\":{\"v\":2}}`。修复前 `simpleDiff` 的去重表用普通 `{}`，`seen[\"__proto__\"]` 命中 Object.prototype 为 truthy ⇒ 该键被整个跳过，加上 jdCanon 丢键 ⇒ `n=0`；修复后去重表与规范化都用 `Object.create(null)` ⇒ `JDTOP n=1 op=mod path=__proto__ q=21` ⇒ 强判别。"
+  },
+  {
+    "slug": "it/json-diff",
+    "inputs": {
+      "left": "{\"arr\":[{\"__proto__\":{\"v\":1}}]}",
+      "right": "{\"arr\":[{\"__proto__\":{\"v\":2}}]}",
+      "diffMode": "deep"
+    },
+    "clicks": [
+      "document.getElementById('arrayMatch').checked=true;doDiff();var d=JSON.parse(document.getElementById('jsonDiff').textContent);document.getElementById('__tbProbe').textContent='JDARR n='+d.length+' op='+(d[0]?d[0].op:'-')+' path='+(d[0]?d[0].path:'-')+' q='+document.getElementById('left').value.length;"
+    ],
+    "expect": [
+      "JDARR n=1 op=mod path=arr[0].__proto__.v q=31"
+    ],
+    "ref": "复核失败重做·IT-N397 5/6（数组元素含特殊键，按内容匹配）：`{\"arr\":[{\"__proto__\":{\"v\":1}}]}` 对同处值为 2，deep + 按内容匹配。修复前元素比较键相同被 LCS 直接配对 ⇒ `n=0`；修复后比较键不同、多重集也无匹配 ⇒ 递归到叶子 ⇒ `JDARR n=1 op=mod path=arr[0].__proto__.v q=31` ⇒ 强判别。"
+  },
+  {
+    "slug": "it/json-diff",
+    "inputs": {
+      "left": "{\"a\":{\"x\":1,\"y\":2}}",
+      "right": "{\"a\":{\"y\":2,\"x\":1}}",
+      "diffMode": "simple"
+    },
+    "clicks": [
+      "doDiff();var d=JSON.parse(document.getElementById('jsonDiff').textContent);document.getElementById('__tbProbe').textContent='JDORDER n='+d.length+' q='+document.getElementById('left').value.length;"
+    ],
+    "expect": [
+      "JDORDER n=0 q=19"
+    ],
+    "ref": "复核失败重做·IT-N397 6/6（键序护栏）：`{\"a\":{\"x\":1,\"y\":2}}` 对 `{\"a\":{\"y\":2,\"x\":1}}` 在简单模式应仍判 0 处差异。本例修复前后都应 PASS，用于证明改用无原型对象后的规范序列化仍按键名排序，没有把「仅键序不同」误报成变化；默认态不执行 clicks、无探针串 ⇒ 零逃生。"
+  },
+  {
     "slug": "it/json-schema-validator",
     "inputs": {
       "schema": "1\n2\n3",
@@ -7349,6 +8178,82 @@ const CASES = [
       "01-01\" }\nabc123测试"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"rootName\":\"abc123测试\",\"input\":\"1\\n2\\n3\"}，输出区含「01-01\" }\nabc123测试」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "it/json-to-code",
+    "clicks": [
+      "var o={u:{aa:1}};var c=toPython(o,'Root');var iD=c.indexOf('class RootU('),iR=c.indexOf('class Root(');document.getElementById('__tbProbe').textContent='PYORD ok='+((iD>=0&&iR>=0&&iD<iR)?1:0)+' ref='+(c.indexOf('u: RootU')>=0?1:0);"
+    ],
+    "expect": [
+      "PYORD ok=1 ref=1"
+    ],
+    "ref": "复核失败重做·IT-N380 1/7（Python 嵌套类型定义顺序）：`{\"u\":{\"aa\":1}}` 生成代码里 `class RootU` 必须出现在 `class Root` 之前，且根里仍有 `u: RootU` 引用。修复前子类型排在根之后，真实 python3 执行报 `NameError: name RootU is not defined`；修复后 `PYORD ok=1 ref=1` ⇒ 强判别。"
+  },
+  {
+    "slug": "it/json-to-code",
+    "clicks": [
+      "var o1={orders:[{id:1}]};var c1=toPython(o1,'Root');var d1=c1.indexOf('class RootOrders(');var a1=(d1>=0&&d1<c1.indexOf('class Root('))?1:0;var c2=toPython([{id:1}],'Root');var d2=c2.indexOf('class RootItem(');var a2=(d2>=0&&d2<c2.indexOf('Root = List[RootItem]'))?1:0;document.getElementById('__tbProbe').textContent='PYARR nested='+a1+' rootArr='+a2+' ref='+(c1.indexOf('List[RootOrders]')>=0?1:0);"
+    ],
+    "expect": [
+      "PYARR nested=1 rootArr=1 ref=1"
+    ],
+    "ref": "复核失败重做·IT-N380 2/7（对象数组 + 根数组）：`{\"orders\":[{\"id\":1}]}` 的 `RootOrders` 与根数组 `[{\"id\":1}]` 的 `RootItem` 同样必须早于引用处定义。修复前两者分别报 `NameError: name RootOrders/RootItem is not defined`；修复后 `PYARR nested=1 rootArr=1 ref=1` ⇒ 强判别。"
+  },
+  {
+    "slug": "it/json-to-code",
+    "clicks": [
+      "var o={class:1,type:'x'};var c=toPython(o,'Root');document.getElementById('__tbProbe').textContent='PYKW ok='+((c.indexOf('class_: int')>=0&&c.indexOf('class: int')<0)?1:0);"
+    ],
+    "expect": [
+      "PYKW ok=1"
+    ],
+    "ref": "复核失败重做·IT-N382 3/7（Python 保留字）：`{\"class\":1,\"type\":\"x\"}` 不得生成 `class: int`（SyntaxError），应改名 `class_: int` 并由注释指回原键。修复前真实 python3 编译报 `SyntaxError: invalid syntax`；修复后 `PYKW ok=1` ⇒ 强判别。"
+  },
+  {
+    "slug": "it/json-to-code",
+    "clicks": [
+      "var dq=String.fromCharCode(34);var o={type:'x'};var c=toRust(o,'Root');var want='serde(rename = '+dq+'type'+dq+')';document.getElementById('__tbProbe').textContent='RSKW ok='+((c.indexOf('pub type_: String')>=0&&c.indexOf('pub type:')<0)?1:0)+' ren='+(c.indexOf(want)>=0?1:0);"
+    ],
+    "expect": [
+      "RSKW ok=1 ren=1"
+    ],
+    "ref": "复核失败重做·IT-N382 4/7（Rust 保留字）：`{\"type\":\"x\"}` 不得生成 `pub type: String`，应改名 `pub type_: String` 并补 `#[serde(rename = \"type\")]` 保留原键映射。修复前既无改名也无 rename；修复后 `RSKW ok=1 ren=1` ⇒ 强判别。"
+  },
+  {
+    "slug": "it/json-to-code",
+    "clicks": [
+      "var dq=String.fromCharCode(34),bs=String.fromCharCode(92);var o={};o['a'+dq+'b']=1;var rs=toRust(o,'Root'),cs=toCSharp(o,'Root'),go=toGo(o,'Root');var rsWant='serde(rename = '+dq+'a'+bs+dq+'b'+dq+')';var csWant='JsonProperty('+dq+'a'+bs+dq+'b'+dq+')';document.getElementById('__tbProbe').textContent='MAPESC rs='+(rs.indexOf(rsWant)>=0?1:0)+' cs='+(cs.indexOf(csWant)>=0?1:0)+' go='+((go.indexOf('Go JSON tag 无法映射')>=0&&go.indexOf('type Root struct')<0)?1:0);"
+    ],
+    "expect": [
+      "MAPESC rs=1 cs=1 go=1"
+    ],
+    "ref": "含双引号键：Rust 和 C# 必须转义；Go 的 encoding/json 不支持此 tag 名，必须明确提示并禁止生成误导性的 struct。"
+  },
+  {
+    "slug": "it/json-to-code",
+    "clicks": [
+      "var o={class:1,type:'x'};var jv=toJava(o,'Root'),kt=toKotlin(o,'Root');var plain={aa:1};var pj=toJava(plain,'Root'),pk=toKotlin(plain,'Root'),pp=toPython(plain,'Root');document.getElementById('__tbProbe').textContent='KW4 jv='+(jv.indexOf('private Integer class_;')>=0?1:0)+' kt='+(kt.indexOf('val class_:')>=0?1:0)+' pj='+(pj.indexOf('private Integer aa;')>=0?1:0)+' pk='+(pk.indexOf('val aa:')>=0?1:0)+' pp='+(pp.indexOf('    aa: int')>=0?1:0);"
+    ],
+    "expect": [
+      "KW4 jv=1 kt=1 pj=1 pk=1 pp=1"
+    ],
+    "ref": "复核失败重做·IT-N382 6/7（Java / Kotlin 保留字 + 普通键护栏）：`{\"class\":1,\"type\":\"x\"}` 应改成 `private Integer class_;` 与 `val class_:`；同时普通键 `aa` 在 Java / Kotlin / Python 三种生成器中仍保持原名，证明保留字规避没有误伤。修复前 `jv=0 kt=0` 但护栏三项已是 1；修复后 `KW4 jv=1 kt=1 pj=1 pk=1 pp=1` ⇒ 强判别。真实 javac：新版 `exit=0`，旧版 `exit=1`（`private Integer class;` 报「需要<标识符>」）。"
+  },
+  {
+    "slug": "it/json-to-code",
+    "clicks": [
+      "var dq=String.fromCharCode(34),bt=String.fromCharCode(96);var o={};o['a'+bt+'b']=1;var go=toGo(o,'Root');document.getElementById('__tbProbe').textContent='GOBT ok='+((go.indexOf('Go JSON tag 无法映射')>=0&&go.indexOf('type Root struct')<0)?1:0);"
+    ],
+    "expect": [
+      "GOBT ok=1"
+    ],
+    "ref": "含反引号键也不属于 encoding/json 支持的 tag 名，应提示限制并停止生成 struct，避免语法合法但映射错误。"
+  },
+  {
+    slug: "it/json-to-code",
+    clicks: ["var k='a'+String.fromCharCode(0,8,12,31)+'b',o={};o[k]=1;var rs=toRust(o,'Root'),cs=toCSharp(o,'Root'),go=toGo(o,'Root'),py=toPython(o,'Root'),bs=String.fromCharCode(92);var r='a'+bs+'u{0000}'+bs+'u{0008}'+bs+'u{000c}'+bs+'u{001f}b',s='a'+bs+'u0000'+bs+'u0008'+bs+'u000c'+bs+'u001fb';document.getElementById('__tbProbe').textContent='CTL rust='+(rs.indexOf(r)>=0?1:0)+' cs='+(cs.indexOf(s)>=0?1:0)+' go='+(go.indexOf('Go JSON tag 无法映射')>=0&&go.indexOf('type Root struct')<0?1:0)+' py='+(py.indexOf(String.fromCharCode(0))<0?1:0);"],
+    expect: ["CTL rust=1 cs=1 go=1 py=1"],
+    ref: "JSON 键中的控制字符需在 Rust/C# 字面量中转义、不得出现在 Python 注释中；Go 必须提示 tag 无法映射。"
   },
   {
     "slug": "it/json-schema-generator",
@@ -9049,6 +9954,56 @@ const CASES = [
     ],
     "ref": "B 类失败注入：downloadPng() 内 `a.href=c.toDataURL('image/png')` 裸调。把 #qrCanvas 的 toDataURL 改为必抛 Error 并把 ToolBox.showToast 换成录音器 ⇒ 结果区必须出现「TOAST:导出失败：Error」。"
       + "修复前异常裸冒成 pageerror、无任何提示；默认态无 TOAST: 串 ⇒ 判别明确。"
+  },
+  {
+    "slug": "it/qr-beautify",
+    "clicks": [
+      "globalThis.__q=[];globalThis.__t=[];ToolBox.showToast=function(m){globalThis.__t.push(String(m));};globalThis.qrcode=function(){this.addData=function(){};this.make=function(){};this.getModuleCount=function(){return 21;};this.isDark=function(r,c){return (r+c)%2===0;};};var __myCtx={clearRect:function(){},fillRect:function(){},fillStyle:'',beginPath:function(){},moveTo:function(){},arcTo:function(){},closePath:function(){},fill:function(){},drawImage:function(){globalThis.__q.push({t:'draw'});}};document.getElementById('qrCanvas').getContext=function(){return __myCtx;};globalThis.FileReader=function(){this.readAsDataURL=function(f){globalThis.__q.push({t:'rd',o:this,n:String(f&&f.name)});};};globalThis.Image=function(){var o=this;o.width=10;o.height=10;Object.defineProperty(o,'src',{set:function(v){o.__n=String(v);globalThis.__q.push({t:'img',o:o});}});};var __lf=document.getElementById('logoFile');if(!__lf._handlers.change||!__lf._handlers.change.length){__lf.__qrLogoBound=false;initLogoInput();}function __chg(n){__lf.files=[{name:n,type:'image/png'}];__lf._handlers.change[0].call(__lf,{target:__lf,preventDefault:function(){},stopPropagation:function(){}});}function __rds(){return globalThis.__q.filter(function(x){return x.t==='rd';});}function __imgs(){return globalThis.__q.filter(function(x){return x.t==='img';});}function __draws(){return globalThis.__q.filter(function(x){return x.t==='draw';});}function __probe(s){document.getElementById('__tbProbe').textContent=s;}__chg('A.png');__rds()[0].o.result='A';__rds()[0].o.onload();__imgs()[0].o.onload();__probe('QROK=1 IMG='+String(__qrLogoImg&&__qrLogoImg.__n)+' HAS='+(__qrLogoImg?1:0)+' DRAW='+__draws().length+' LABEL='+(document.getElementById('result').innerHTML.indexOf('已嵌中心 logo')>=0?1:0));"
+    ],
+    "expect": [
+      "QROK=1 IMG=A HAS=1 DRAW=1 LABEL=1"
+    ],
+    "ref": "复核失败重做·QR 美化过期回调 1/5（正常上传回归护栏）：用可控桩接管 FileReader / Image / 画布上下文，触发 A.png 的 rd.onload 与 img.onload ⇒ logo 生效、drawImage 1 次、结果区出现「已嵌中心 logo」（QROK=1 IMG=A HAS=1 DRAW=1 LABEL=1）。修复前后都应 PASS，用于证明取消机制没有破坏正常上传；默认态不执行 clicks、无探针串 ⇒ 零逃生。"
+  },
+  {
+    "slug": "it/qr-beautify",
+    "clicks": [
+      "globalThis.__q=[];globalThis.__t=[];ToolBox.showToast=function(m){globalThis.__t.push(String(m));};globalThis.qrcode=function(){this.addData=function(){};this.make=function(){};this.getModuleCount=function(){return 21;};this.isDark=function(r,c){return (r+c)%2===0;};};var __myCtx={clearRect:function(){},fillRect:function(){},fillStyle:'',beginPath:function(){},moveTo:function(){},arcTo:function(){},closePath:function(){},fill:function(){},drawImage:function(){globalThis.__q.push({t:'draw'});}};document.getElementById('qrCanvas').getContext=function(){return __myCtx;};globalThis.FileReader=function(){this.readAsDataURL=function(f){globalThis.__q.push({t:'rd',o:this,n:String(f&&f.name)});};};globalThis.Image=function(){var o=this;o.width=10;o.height=10;Object.defineProperty(o,'src',{set:function(v){o.__n=String(v);globalThis.__q.push({t:'img',o:o});}});};var __lf=document.getElementById('logoFile');if(!__lf._handlers.change||!__lf._handlers.change.length){__lf.__qrLogoBound=false;initLogoInput();}function __chg(n){__lf.files=[{name:n,type:'image/png'}];__lf._handlers.change[0].call(__lf,{target:__lf,preventDefault:function(){},stopPropagation:function(){}});}function __rds(){return globalThis.__q.filter(function(x){return x.t==='rd';});}function __imgs(){return globalThis.__q.filter(function(x){return x.t==='img';});}function __draws(){return globalThis.__q.filter(function(x){return x.t==='draw';});}function __probe(s){document.getElementById('__tbProbe').textContent=s;}__chg('A.png');clearLogo();__rds()[0].o.result='A';__rds()[0].o.onload();var __im2=__imgs();if(__im2.length){__im2[0].o.onload();if(typeof __im2[0].o.onerror==='function')__im2[0].o.onerror();}if(typeof __rds()[0].o.onerror==='function')__rds()[0].o.onerror();__probe('QRRD=0 NEWIMG='+__imgs().length+' HAS='+(__qrLogoImg?1:0)+' TOAST='+globalThis.__t.length+' DRAW='+__draws().length);"
+    ],
+    "expect": [
+      "QRRD=0 NEWIMG=0 HAS=0 TOAST=0 DRAW=0"
+    ],
+    "ref": "复核失败重做·QR 美化过期回调 2/5（清除发生在 FileReader 完成前）：选图后立即 clearLogo()，再让旧 rd.onload、它创建的 img.onload / onerror 以及 rd.onerror 全部执行。修复前实测 QRRD=0 NEWIMG=1 HAS=1 TOAST=1 DRAW=1（旧回调把 logo 写回并重新绘制，正是复核失败描述），修复后应为 NEWIMG=0 HAS=0 TOAST=0 DRAW=0 ⇒ 强判别。"
+  },
+  {
+    "slug": "it/qr-beautify",
+    "clicks": [
+      "globalThis.__q=[];globalThis.__t=[];ToolBox.showToast=function(m){globalThis.__t.push(String(m));};globalThis.qrcode=function(){this.addData=function(){};this.make=function(){};this.getModuleCount=function(){return 21;};this.isDark=function(r,c){return (r+c)%2===0;};};var __myCtx={clearRect:function(){},fillRect:function(){},fillStyle:'',beginPath:function(){},moveTo:function(){},arcTo:function(){},closePath:function(){},fill:function(){},drawImage:function(){globalThis.__q.push({t:'draw'});}};document.getElementById('qrCanvas').getContext=function(){return __myCtx;};globalThis.FileReader=function(){this.readAsDataURL=function(f){globalThis.__q.push({t:'rd',o:this,n:String(f&&f.name)});};};globalThis.Image=function(){var o=this;o.width=10;o.height=10;Object.defineProperty(o,'src',{set:function(v){o.__n=String(v);globalThis.__q.push({t:'img',o:o});}});};var __lf=document.getElementById('logoFile');if(!__lf._handlers.change||!__lf._handlers.change.length){__lf.__qrLogoBound=false;initLogoInput();}function __chg(n){__lf.files=[{name:n,type:'image/png'}];__lf._handlers.change[0].call(__lf,{target:__lf,preventDefault:function(){},stopPropagation:function(){}});}function __rds(){return globalThis.__q.filter(function(x){return x.t==='rd';});}function __imgs(){return globalThis.__q.filter(function(x){return x.t==='img';});}function __draws(){return globalThis.__q.filter(function(x){return x.t==='draw';});}function __probe(s){document.getElementById('__tbProbe').textContent=s;}__chg('A.png');__rds()[0].o.result='A';__rds()[0].o.onload();var __ia=__imgs()[0].o;clearLogo();__ia.onload();__ia.onerror();__probe('QRIMG=0 HAS='+(__qrLogoImg?1:0)+' TOAST='+globalThis.__t.length+' DRAW='+__draws().length+' IMGS='+__imgs().length);"
+    ],
+    "expect": [
+      "QRIMG=0 HAS=0 TOAST=0 DRAW=0 IMGS=1"
+    ],
+    "ref": "复核失败重做·QR 美化过期回调 3/5（清除发生在 Image 完成前）：rd 已完成并创建 img，clearLogo() 后才触发旧 img.onload 与 img.onerror。修复前实测 HAS=1 TOAST=1 DRAW=1，修复后 HAS=0 TOAST=0 DRAW=0、IMGS=1（img 本身已创建，只是回调失效）⇒ 强判别。"
+  },
+  {
+    "slug": "it/qr-beautify",
+    "clicks": [
+      "globalThis.__q=[];globalThis.__t=[];ToolBox.showToast=function(m){globalThis.__t.push(String(m));};globalThis.qrcode=function(){this.addData=function(){};this.make=function(){};this.getModuleCount=function(){return 21;};this.isDark=function(r,c){return (r+c)%2===0;};};var __myCtx={clearRect:function(){},fillRect:function(){},fillStyle:'',beginPath:function(){},moveTo:function(){},arcTo:function(){},closePath:function(){},fill:function(){},drawImage:function(){globalThis.__q.push({t:'draw'});}};document.getElementById('qrCanvas').getContext=function(){return __myCtx;};globalThis.FileReader=function(){this.readAsDataURL=function(f){globalThis.__q.push({t:'rd',o:this,n:String(f&&f.name)});};};globalThis.Image=function(){var o=this;o.width=10;o.height=10;Object.defineProperty(o,'src',{set:function(v){o.__n=String(v);globalThis.__q.push({t:'img',o:o});}});};var __lf=document.getElementById('logoFile');if(!__lf._handlers.change||!__lf._handlers.change.length){__lf.__qrLogoBound=false;initLogoInput();}function __chg(n){__lf.files=[{name:n,type:'image/png'}];__lf._handlers.change[0].call(__lf,{target:__lf,preventDefault:function(){},stopPropagation:function(){}});}function __rds(){return globalThis.__q.filter(function(x){return x.t==='rd';});}function __imgs(){return globalThis.__q.filter(function(x){return x.t==='img';});}function __draws(){return globalThis.__q.filter(function(x){return x.t==='draw';});}function __probe(s){document.getElementById('__tbProbe').textContent=s;}__chg('A.png');__chg('B.png');var __rs=__rds();__rs[0].o.result='A';__rs[0].o.onload();__rs[1].o.result='B';__rs[1].o.onload();var __im=__imgs();__im[0].o.onload();__probe('QRSWAP=1 IMGS='+__im.length+' LAST='+String(__qrLogoImg&&__qrLogoImg.__n)+' HAS='+(__qrLogoImg?1:0)+' DRAW='+__draws().length+' TOAST='+globalThis.__t.length);"
+    ],
+    "expect": [
+      "QRSWAP=1 IMGS=1 LAST=B HAS=1 DRAW=1 TOAST=0"
+    ],
+    "ref": "复核失败重做·QR 美化过期回调 4/5（换图乱序）：连续选 A、B 两图，先让 A 的 rd.onload 晚到，再让 B 完整加载。修复前实测 IMGS=2 LAST=A（旧图回调仍生效），修复后 A 的 rd.onload 被令牌挡住、根本不创建 Image ⇒ IMGS=1 LAST=B HAS=1 DRAW=1 TOAST=0 ⇒ 强判别。"
+  },
+  {
+    "slug": "it/qr-beautify",
+    "clicks": [
+      "globalThis.__q=[];globalThis.__t=[];ToolBox.showToast=function(m){globalThis.__t.push(String(m));};globalThis.qrcode=function(){this.addData=function(){};this.make=function(){};this.getModuleCount=function(){return 21;};this.isDark=function(r,c){return (r+c)%2===0;};};var __myCtx={clearRect:function(){},fillRect:function(){},fillStyle:'',beginPath:function(){},moveTo:function(){},arcTo:function(){},closePath:function(){},fill:function(){},drawImage:function(){globalThis.__q.push({t:'draw'});}};document.getElementById('qrCanvas').getContext=function(){return __myCtx;};globalThis.FileReader=function(){this.readAsDataURL=function(f){globalThis.__q.push({t:'rd',o:this,n:String(f&&f.name)});};};globalThis.Image=function(){var o=this;o.width=10;o.height=10;Object.defineProperty(o,'src',{set:function(v){o.__n=String(v);globalThis.__q.push({t:'img',o:o});}});};var __lf=document.getElementById('logoFile');if(!__lf._handlers.change||!__lf._handlers.change.length){__lf.__qrLogoBound=false;initLogoInput();}function __chg(n){__lf.files=[{name:n,type:'image/png'}];__lf._handlers.change[0].call(__lf,{target:__lf,preventDefault:function(){},stopPropagation:function(){}});}function __rds(){return globalThis.__q.filter(function(x){return x.t==='rd';});}function __imgs(){return globalThis.__q.filter(function(x){return x.t==='img';});}function __draws(){return globalThis.__q.filter(function(x){return x.t==='draw';});}function __probe(s){document.getElementById('__tbProbe').textContent=s;}__chg('A.png');__rds()[0].o.result='A';__rds()[0].o.onload();var __ia=__imgs()[0].o;__chg('B.png');var __rb=__rds()[1];__rb.o.result='B';__rb.o.onload();var __ib=__imgs()[1].o;__ib.onload();__ia.onload();__ia.onerror();__probe('QRLATE=1 LAST='+String(__qrLogoImg&&__qrLogoImg.__n)+' DRAW='+__draws().length+' TOAST='+globalThis.__t.length);"
+    ],
+    "expect": [
+      "QRLATE=1 LAST=B DRAW=1 TOAST=0"
+    ],
+    "ref": "复核失败重做·QR 美化过期回调 5/5（旧图 Image 回调最晚到达）：A 的 img 已创建后换选 B，B 正常生效，最后才触发 A 的 img.onload / img.onerror。修复前实测 LAST=A DRAW=2 TOAST=1（旧图覆盖新图并重复绘制），修复后 LAST=B DRAW=1 TOAST=0 ⇒ 强判别。"
   },
   {
     "slug": "it/python-formatter",

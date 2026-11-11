@@ -156,7 +156,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="美国 DEA 号码验证器。输入 9 位禁毒执法/药商注册号，校验格式与校验位，用于医药、合规场景中机构编号的合法性检查（不验证真实性）。">Validate a 9-digit DEA registration number for format and checksum in medical and compliance screening.</p>
 
     <label>输入（DEA 号码，2 字母 + 7 数字）</label>
-    <input type="text" id="input" oninput="validate()" placeholder="如：BJ6125341" value="AB1234565">
+    <input type="text" id="input" oninput="validate()" placeholder="如：BJ6125341" value="AB1111119">
     <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__dea_validatorExport()">导出明细 CSV</button></div><div class="result-box" id="output">等待输入...</div> <div id="dea_validatorTable"></div> <div id="dea_validatorDiff"></div> <div id="dea_validatorChart"></div> <div id="dea_validatorHist"></div>
   </div>
 
@@ -210,7 +210,7 @@ s.parentNode.insertBefore(el, s);
       <tbody>
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="DEA 注册号">DEA number</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="9 位；末位为校验位（首位+末两位算法）">9 digits; check digit algorithm</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="2 字母加 7 位数字；前 6 位数字加权后取个位作为校验位">2 letters and 7 digits; the last digit checks a weighted sum of the first 6 digits</td>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="美国缉毒局 DEA 注册号">US DEA registration</td>
         </tr>
       </tbody>
@@ -239,10 +239,9 @@ function deaCheck(s){
   const digits = s.substring(2,9); // 7 digits
   if(digits.length !== 7 || !/^\d{7}$/.test(digits)) return false;
   const d = digits.split('').map(c => parseInt(c,10));
-  // Checksum: (d1+d3+d5) + (2*d2 + 2*d4 + 2*d6, summed digits)
+  // DEA checksum: sum odd positions plus twice the sum of even positions.
   const sum1 = d[0] + d[2] + d[4];
-  let s2 = 2*d[1] + 2*d[3] + 2*d[5];
-  const sum2 = Math.floor(s2/10) + (s2%10);
+  const sum2 = 2 * (d[1] + d[3] + d[5]);
   const total = sum1 + sum2;
   const check = total % 10;
   return check === d[6];
@@ -310,7 +309,7 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 
-var __dea_validator_last=0,__dea_validator_skip=false;
+var __dea_validator_last=0,__dea_validator_skip=false,__dea_validator_timer=null;
 function __dea_validatorSnap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
@@ -319,7 +318,7 @@ function __dea_validatorSnap(){
         var t=(e.type||'').toLowerCase();
         if(t==='button'||t==='submit'||t==='hidden') continue;
         var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
-        if(v!==''&&v!=null) out[e.id]=v;
+        if(v!=null) out[e.id]=v;
     }
     return out;
 }
@@ -331,9 +330,16 @@ function __dea_validatorResText(){
     if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
 }
+function __dea_validatorFullResText(){
+    var r=document.getElementById('output');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    return t;
+}
 function __dea_validatorScore(t){
     var s=String(t||'');
-    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    if(/[❌]|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
     return 1;
 }
 function __dea_validatorTime(t){
@@ -356,7 +362,7 @@ function __dea_validatorRender(keys,rk,en){
         TBKit.matrix.table('#dea_validatorTable',{head:head,rows:rows});
         TBKit.util.diffBox('#dea_validatorDiff');
         TBKit.history.mount('#dea_validatorHist',function(rec){
-            __dea_validator_skip=true;
+            __dea_validator_skip=true;clearTimeout(__dea_validator_timer);__dea_validator_timer=null;
             try{
                 for(var k in rec){
                     if(k===rk||k==='__tbScore') continue;
@@ -380,9 +386,11 @@ function __dea_validatorRender(keys,rk,en){
         }
     }catch(e3){}
 }
-function __dea_validatorExtras(){
+function __dea_validatorExtras(force){
     if (typeof TBKit === 'undefined') return;
     if (__dea_validator_skip) return;
+    clearTimeout(__dea_validator_timer);
+    __dea_validator_timer=null;
     var snap=__dea_validatorSnap();
     var keys=Object.keys(snap);
     if(!keys.length) return;
@@ -392,7 +400,10 @@ function __dea_validatorExtras(){
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
     var now=Date.now();
-    if(now-__dea_validator_last<1000) return;
+    if(!force && now-__dea_validator_last<1000){
+        __dea_validator_timer=setTimeout(function(){__dea_validatorExtras(true);},1000-(now-__dea_validator_last));
+        return;
+    }
     var last=null;
     try{ last=TBKit.history.last(); }catch(e){}
     if(last){
@@ -406,12 +417,13 @@ function __dea_validatorExtras(){
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
-    rec.__tbScore=__dea_validatorScore(res);
+    rec.__tbScore=__dea_validatorScore(__dea_validatorFullResText());
     TBKit.history.record(rec);
     __dea_validatorRender(keys,rk,en);
 }
 function __dea_validatorExport(){
     if (typeof TBKit === 'undefined') return;
+    __dea_validatorExtras(true);
     try{
         var box=document.querySelector('#dea_validatorTable');
         if(!box||!box.querySelector('tr')){

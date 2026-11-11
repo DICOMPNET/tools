@@ -23,6 +23,107 @@ const { runCase } = require("./verify_it_calc.js");
 
 // ---------------------------------------------------------------- 用例
 const CASES = [
+  {
+    "slug": "finance/npv-calculator",
+    "inputs": {"rate": "8", "init": "100"},
+    "clicks": ["updateCF(0, 230)", "updateCF(1, -132)", "updateCF(2, 0)", "updateCF(3, 0)"],
+    "expect": ["多根 IRR 内部收益率", "9.9%", "20.0%"],
+    "ref": "清单复核案例：现金流 −100、+230、−132 在 r=10%、20% 均为 NPV 零点（残差 ~1e-14），但两根落在均匀扫描的同一粗区间（0~0.25）、端点同号；旧实现端点变号法漏判返回「无解」。修复后每段加中点采样，左右各二分捕获两跟（9.99%、20.00%）并判「多根」。默认态不同 ⇒ 无探针串、零逃生。"
+  },
+  {
+    "slug": "finance/depreciation-calculator",
+    "inputs": {"cost": "10000", "salvage": "1000", "life": "5", "totalUnits": "10000", "yearUnits": "3000x,2500,2000,1500,1000"},
+    "clicks": ["calc();var h=String(document.getElementById('stats').innerHTML);document.getElementById('__tbProbe').textContent='DEP53BAD '+(h.indexOf('请按使用年限逐年填写')>=0?'OK':'BAD');"],
+    "expect": ["DEP53BAD OK"],
+    "ref": "F-N53 审计修复回归：旧实现 parseFloat 把 \"3000x\" 读成 3000，工作量法照常出现；修复后严格纯数字校验拒绝该输入，提示「请按使用年限逐年填写」。默认态 yearUnits 合法且无 DEP53BAD 探针 ⇒ 零逃生。"
+  },
+  {
+    "slug": "finance/depreciation-calculator",
+    "inputs": {"cost": "10000", "salvage": "1000", "life": "5", "totalUnits": "10000", "yearUnits": "5000,5000,5000,5000,5000"},
+    "clicks": ["calc();var h=String(document.getElementById('stats').innerHTML);document.getElementById('__tbProbe').textContent='DEP53OVR '+(h.indexOf('超过总工作量')>=0?'OK':'BAD');"],
+    "expect": ["DEP53OVR OK"],
+    "ref": "F-N53 审计修复回归：5 年各 5000 合计 25000 > 总工作量 10000，旧实现静默截断无任何提示；修复后 calcUnits 标记 overflow、stats 提示「超过总工作量…已截封顶」。默认态合计 10000 不超额、无 DEP53OVR 探针 ⇒ 零逃生。"
+  },
+  {
+    slug: "finance/housing-fund-loan",
+    clicks: ["var __cap=null;TBKit={util:{isEn:function(){return false;},exportTable:function(sel,name){__cap={sel:sel,name:name};},diffBox:function(){}},chart:{line:function(){}},matrix:{table:function(){}},history:{list:function(){return [];},last:function(){return null;},record:function(){},mount:function(){}},preset:{bar:function(){}}};var __oq=document.querySelector;document.querySelector=function(s){return {querySelectorAll:function(q){return [{tagName:'TR'}];}};};__housing_fund_loanExport();document.querySelector=__oq;document.getElementById('__tbProbe').textContent='EXPH sel='+(__cap?__cap.sel:'NA')+' name='+(__cap?__cap.name:'NA');"],
+    expect: ["EXPH sel=#housing_fund_loanDetail name=housing-fund-loan.csv"],
+    ref: "复核失败重做·F-N189 第46批 公积金贷款：导出目标应是真实业务明细容器，而非历史记录表。旧实现把 TBKit.util.exportTable 指向 #<pre>Table（历史摘要），修复后指向该页业务明细容器。用例桩捕获 exportTable 的选择器与文件名，默认态不执行 clicks、无探针串 ⇒ 零逃生。"
+  },
+  {
+    slug: "finance/gstin-validator",
+    clicks: ["var __cap=[];TBKit={util:{isEn:function(){return false;},exportTable:function(){},diffBox:function(){}},chart:{line:function(){}},matrix:{table:function(){}},history:{list:function(){return __cap;},last:function(){return __cap.length?__cap[__cap.length-1]:null;},record:function(r){__cap.push(r);},mount:function(){}},preset:{bar:function(){}}};var __els=[{id:'x',type:'text',value:'1'}];var __oq=document.querySelectorAll;document.querySelectorAll=function(s){return __els;};document.getElementById('output').textContent=\"校验流程已完成。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。校验结论：校验失败，该 GSTIN 无效。\";__gstin_validatorExtras();document.querySelectorAll=__oq;document.getElementById('__tbProbe').textContent='FNGS score='+(__cap.length?__cap[__cap.length-1].__tbScore:'NA');"],
+    expect: ["FNGS score=0"],
+    ref: "复核失败重做·F-N189 第二批/第42–44批 GSTIN：失败结论/必填提示位于 80 字摘要之后，旧 Score 只看 ResText 前 80 字 ⇒ 误记通过(1)；修复后 Score 读 FullResText 完整文本，命中失败词 ⇒ 0。历史展示仍用摘要。默认态无探针串 ⇒ 零逃生。"
+  },
+  {
+    slug: "finance/meid-validator",
+    clicks: ["var __cap=[];TBKit={util:{isEn:function(){return false;},exportTable:function(){},diffBox:function(){}},chart:{line:function(){}},matrix:{table:function(){}},history:{list:function(){return __cap;},last:function(){return __cap.length?__cap[__cap.length-1]:null;},record:function(r){__cap.push(r);},mount:function(){}},preset:{bar:function(){}}};var __els=[{id:'x',type:'text',value:'1'}];var __oq=document.querySelectorAll;document.querySelectorAll=function(s){return __els;};document.getElementById('output').textContent=\"校验流程已完成。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。校验结论：校验失败，该 MEID 无效。\";__meid_validatorExtras();document.querySelectorAll=__oq;document.getElementById('__tbProbe').textContent='FNME score='+(__cap.length?__cap[__cap.length-1].__tbScore:'NA');"],
+    expect: ["FNME score=0"],
+    ref: "复核失败重做·F-N189 第二批/第42–44批 MEID：失败结论/必填提示位于 80 字摘要之后，旧 Score 只看 ResText 前 80 字 ⇒ 误记通过(1)；修复后 Score 读 FullResText 完整文本，命中失败词 ⇒ 0。历史展示仍用摘要。默认态无探针串 ⇒ 零逃生。"
+  },
+  {
+    slug: "finance/abn-validator",
+    inputs: { input: "2222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222" },
+    clicks: ["validate();document.getElementById('__tbProbe').textContent='FNAB score='+__abn_validatorScore();"],
+    expect: ["FNAB score=0"],
+    ref: "ABN 长无效输入走真实校验，失败状态不受历史摘要截断影响。"
+  },
+  {
+    slug: "finance/aadhaar-validator",
+    clicks: ["var __cap=[];TBKit={util:{isEn:function(){return false;},exportTable:function(){},diffBox:function(){}},chart:{line:function(){}},matrix:{table:function(){}},history:{list:function(){return __cap;},last:function(){return __cap.length?__cap[__cap.length-1]:null;},record:function(r){__cap.push(r);},mount:function(){}},preset:{bar:function(){}}};var __els=[{id:'x',type:'text',value:'1'}];var __oq=document.querySelectorAll;document.querySelectorAll=function(s){return __els;};document.getElementById('output').textContent=\"校验流程已完成。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。校验结论：校验失败，该 Aadhaar 无效。\";__aadhaar_validatorExtras();document.querySelectorAll=__oq;document.getElementById('__tbProbe').textContent='FNAA score='+(__cap.length?__cap[__cap.length-1].__tbScore:'NA');"],
+    expect: ["FNAA score=0"],
+    ref: "复核失败重做·F-N189 第二批/第42–44批 Aadhaar：失败结论/必填提示位于 80 字摘要之后，旧 Score 只看 ResText 前 80 字 ⇒ 误记通过(1)；修复后 Score 读 FullResText 完整文本，命中失败词 ⇒ 0。历史展示仍用摘要。默认态无探针串 ⇒ 零逃生。"
+  },
+  {
+    slug: "finance/bic-validator",
+    clicks: ["var __cap=[];TBKit={util:{isEn:function(){return false;},exportTable:function(){},diffBox:function(){}},chart:{line:function(){}},matrix:{table:function(){}},history:{list:function(){return __cap;},last:function(){return __cap.length?__cap[__cap.length-1]:null;},record:function(r){__cap.push(r);},mount:function(){}},preset:{bar:function(){}}};var __els=[{id:'x',type:'text',value:'1'}];var __oq=document.querySelectorAll;document.querySelectorAll=function(s){return __els;};document.getElementById('output').textContent=\"校验流程已完成。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。校验结论：校验失败，该 BIC 无效。\";__bic_validatorExtras();document.querySelectorAll=__oq;document.getElementById('__tbProbe').textContent='FNBV score='+(__cap.length?__cap[__cap.length-1].__tbScore:'NA');"],
+    expect: ["FNBV score=0"],
+    ref: "复核失败重做·F-N189 第二批/第42–44批 BIC：失败结论/必填提示位于 80 字摘要之后，旧 Score 只看 ResText 前 80 字 ⇒ 误记通过(1)；修复后 Score 读 FullResText 完整文本，命中失败词 ⇒ 0。历史展示仍用摘要。默认态无探针串 ⇒ 零逃生。"
+  },
+  {
+    slug: "finance/calc-5",
+    clicks: ["var __cap=[];TBKit={util:{isEn:function(){return false;},exportTable:function(){},diffBox:function(){}},chart:{line:function(){}},matrix:{table:function(){}},history:{list:function(){return __cap;},last:function(){return __cap.length?__cap[__cap.length-1]:null;},record:function(r){__cap.push(r);},mount:function(){}},preset:{bar:function(){}}};var __els=[{id:'x',type:'text',value:'1'}];var __oq=document.querySelectorAll;document.querySelectorAll=function(s){return __els;};document.getElementById('res').textContent=\"计算流程已完成。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。请填写「投资成本」后再计算。\";__calc_5Extras();document.querySelectorAll=__oq;document.getElementById('__tbProbe').textContent='FNC5 score='+(__cap.length?__cap[__cap.length-1].__tbScore:'NA');"],
+    expect: ["FNC5 score=0"],
+    ref: "复核失败重做·F-N189 第二批/第42–44批 calc-5：失败结论/必填提示位于 80 字摘要之后，旧 Score 只看 ResText 前 80 字 ⇒ 误记通过(1)；修复后 Score 读 FullResText 完整文本，命中失败词 ⇒ 0。历史展示仍用摘要。默认态无探针串 ⇒ 零逃生。"
+  },
+  {
+    slug: "finance/dca-calculator",
+    clicks: ["var __cap=[];TBKit={util:{isEn:function(){return false;},exportTable:function(){},diffBox:function(){}},chart:{line:function(){}},matrix:{table:function(){}},history:{list:function(){return __cap;},last:function(){return __cap.length?__cap[__cap.length-1]:null;},record:function(r){__cap.push(r);},mount:function(){}},preset:{bar:function(){}}};var __els=[{id:'x',type:'text',value:'1'}];var __oq=document.querySelectorAll;document.querySelectorAll=function(s){return __els;};document.getElementById('res').textContent=\"计算流程已完成。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。请填写「每月定投」后再计算。\";__dca_calculatorExtras();document.querySelectorAll=__oq;document.getElementById('__tbProbe').textContent='FNDC score='+(__cap.length?__cap[__cap.length-1].__tbScore:'NA');"],
+    expect: ["FNDC score=0"],
+    ref: "复核失败重做·F-N189 第二批/第42–44批 dca-calculator：失败结论/必填提示位于 80 字摘要之后，旧 Score 只看 ResText 前 80 字 ⇒ 误记通过(1)；修复后 Score 读 FullResText 完整文本，命中失败词 ⇒ 0。历史展示仍用摘要。默认态无探针串 ⇒ 零逃生。"
+  },
+  {
+    slug: "finance/imei-validator",
+    clicks: ["var __cap=[];TBKit={util:{isEn:function(){return false;},exportTable:function(){},diffBox:function(){}},chart:{line:function(){}},matrix:{table:function(){}},history:{list:function(){return __cap;},last:function(){return __cap.length?__cap[__cap.length-1]:null;},record:function(r){__cap.push(r);},mount:function(){}},preset:{bar:function(){}}};var __els=[{id:'x',type:'text',value:'1'}];var __oq=document.querySelectorAll;document.querySelectorAll=function(s){return __els;};document.getElementById('output').textContent=\"校验流程已完成。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。校验结论：校验失败，该 IMEI 无效。\";__imei_validatorExtras();document.querySelectorAll=__oq;document.getElementById('__tbProbe').textContent='FNIMEI score='+(__cap.length?__cap[__cap.length-1].__tbScore:'NA');"],
+    expect: ["FNIMEI score=0"],
+    ref: "复核失败重做·F-N189 第一批 IMEI：校验失败结论位于 80 字摘要之后，旧 Score 只看 ResText 前 80 字 ⇒ 误记通过(1)；修复后 Score 读 FullResText 完整文本，命中「校验失败/无效」⇒ 0。历史展示仍为摘要，不影响。默认态无探针串 ⇒ 零逃生。"
+  },
+  {
+    slug: "finance/gst-validator",
+    clicks: ["var __cap=[];TBKit={util:{isEn:function(){return false;},exportTable:function(){},diffBox:function(){}},chart:{line:function(){}},matrix:{table:function(){}},history:{list:function(){return __cap;},last:function(){return __cap.length?__cap[__cap.length-1]:null;},record:function(r){__cap.push(r);},mount:function(){}},preset:{bar:function(){}}};var __els=[{id:'x',type:'text',value:'1'}];var __oq=document.querySelectorAll;document.querySelectorAll=function(s){return __els;};document.getElementById('output').textContent=\"校验流程已完成。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。校验结论：校验失败，该 GSTIN 无效。\";__gst_validatorExtras();document.querySelectorAll=__oq;document.getElementById('__tbProbe').textContent='FNGST score='+(__cap.length?__cap[__cap.length-1].__tbScore:'NA');"],
+    expect: ["FNGST score=0"],
+    ref: "复核失败重做·F-N189 第一批 GSTIN：同 IMEI，失败结论在截断摘要之后。修复后 FullResText 判定 ⇒ 0（旧 1）。"
+  },
+  {
+    slug: "finance/iccid-validator",
+    clicks: ["var __cap=[];TBKit={util:{isEn:function(){return false;},exportTable:function(){},diffBox:function(){}},chart:{line:function(){}},matrix:{table:function(){}},history:{list:function(){return __cap;},last:function(){return __cap.length?__cap[__cap.length-1]:null;},record:function(r){__cap.push(r);},mount:function(){}},preset:{bar:function(){}}};var __els=[{id:'x',type:'text',value:'1'}];var __oq=document.querySelectorAll;document.querySelectorAll=function(s){return __els;};document.getElementById('output').textContent=\"校验流程已完成。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。校验结论：校验失败，该 ICCID 无效。\";__iccid_validatorExtras();document.querySelectorAll=__oq;document.getElementById('__tbProbe').textContent='FNICCID score='+(__cap.length?__cap[__cap.length-1].__tbScore:'NA');"],
+    expect: ["FNICCID score=0"],
+    ref: "复核失败重做·F-N189 第一批 ICCID：同 IMEI，失败结论在截断摘要之后。修复后 FullResText 判定 ⇒ 0（旧 1）。"
+  },
+  {
+    slug: "finance/bic-lookup",
+    clicks: ["var __cap=[];TBKit={util:{isEn:function(){return false;},exportTable:function(){},diffBox:function(){}},chart:{line:function(){}},matrix:{table:function(){}},history:{list:function(){return __cap;},last:function(){return __cap.length?__cap[__cap.length-1]:null;},record:function(r){__cap.push(r);},mount:function(){}},preset:{bar:function(){}}};var __els=[{id:'x',type:'text',value:'1'}];var __oq=document.querySelectorAll;document.querySelectorAll=function(s){return __els;};document.getElementById('output').textContent=\"⚠ 格式有效，但离线库中未收录该 BIC，请核对。正在整理银行代码信息。正在整理银行代码信息。正在整理银行代码信息。正在整理银行代码信息。正在整理银行代码信息。正在整理银行代码信息。正在整理银行代码信息。正在整理银行代码信息。\";__bic_lookupExtras();document.querySelectorAll=__oq;document.getElementById('__tbProbe').textContent='FNBIC score='+(__cap.length?__cap[__cap.length-1].__tbScore:'NA');"],
+    expect: ["FNBIC score=1"],
+    ref: "复核失败重做·F-N189 第一批 BIC：格式有效但离线库未知的警告（⚠）被通用词表判失败(0)；修复后从失败词表移除 ⚠（警告≠失败），FullResText 判定 ⇒ 1。"
+  },
+  {
+    slug: "finance/tax-calculator",
+    inputs: { salary: "", insurance: "3000", special: "2000", threshold: "5000" },
+    clicks: ["__taxExport()"],
+    expect: ["请填写税前月薪后再导出"],
+    ref: "第五批 F-N18 复核重做：清空月薪并计算后主结果已提示必填，但点击导出旧 __taxExport() 仍以 parseFloat(...)||0 生成「零应缴个税/零税后收入」CSV。现导出在最前面复用必填状态（且先于 TBKit 检查），空月薪时清空结果表并提示、不导出；显式填 0 仍合法可导出。默认 salary=20000 点击导出不产生该提示 ⇒ 强判别。"
+  },
   // ── 校验位算法类（11 正例 + 2 反例）──────────────────────────────
   {
     slug: "finance/credit-card-luhn",
@@ -31,10 +132,22 @@ const CASES = [
     ref: "Luhn（模 10）：4532015112830366 为公开测试卡号，加权和 mod 10 == 0；expect 取页面回显的数字串（含具体卡号 ⇒ 默认预填 4111111111111111 不命中，判别力保留）",
   },
   {
+    slug: "finance/credit-card-luhn",
+    inputs: { input: "00" },
+    expect: [ "数字： 00 长度： 2 位 Luhn 校验： ✅ 通过 ⚠️ 该数字串通过 Luhn 算法，但长度 2 位不是有效卡号长度" ],
+    ref: "F-N67 真锁：2 位「00」Luhn 算法虽通过（0+0），但必须点明「长度 2 位不是有效卡号长度」，不再误称「✅ 卡号通过 Luhn 校验」。旧实现必命中「卡号通过」⇒ 反相变红；默认 16 位预填不含该串 ⇒ 零逃生。",
+  },
+  {
     slug: "finance/aba-validator",
     inputs: { input: "011000015" },
     expect: ["美联储分区： 01 - Boston"],
     ref: "ABA 3-7-1 权重：Σ = 3×0+7×1+1×1+3×0+7×0+1×0+3×0+7×1+1×5 = 20，mod 10 == 0；expect 取页面回显「美联储分区： 01 - Boston」（含分区城市 ⇒ 默认预填 021000021 输出「02 - New York」不命中，消除「✅ 有效」通用串导致的逃生）",
+  },
+  {
+    slug: "finance/aba-validator",
+    inputs: { input: "000000000" },
+    expect: ["美联储分区前缀 00 未分配/非法，ABA 号码无效"],
+    ref: "F-N212 前缀白名单：全零 000000000 校验和 0 通过但前缀 00 非法；旧实现仅报「00 - 未知/特殊用途」仍判 ✅，修复后直接 ❌。默认预填前缀 02 ⇒ 不命中，强判别。",
   },
   {
     slug: "finance/iban-validator",
@@ -55,6 +168,27 @@ const CASES = [
     ref: "巴西 CNPJ 模 11 双校验：权重 [5,4,3,2,9,8,7,6,5,4,3,2]，余数 <2 记 0；expect 取页面回显的格式化串（含具体号码 ⇒ 默认预填 00000000000191 的格式化值 00.000.000/0001-91 不命中）",
   },
   {
+    slug: "finance/cnpj-validator",
+    inputs: { input: "11ABC2223330001-81" },
+    clicks: ["validate();var h=String(document.getElementById('output').innerHTML).replace(/<[^>]*>/g,' ').replace(/\\s+/g,' ');document.getElementById('__tbProbe').textContent='FNCNPJ '+document.getElementById('input').value+' '+((h.indexOf('第 3 位含非法字符「A」')>=0&&h.indexOf('✅ CNPJ 号码有效')<0)?'OK':'BAD');"],
+    expect: ["FNCNPJ 11ABC2223330001-81 OK"],
+    ref: "F-N168 字母拒绝：11ABC2223330001-81 剥离字母后是合法 CNPJ 11222333000181，旧实现 replace(\\D,'') 静默剔除 ABC 后判「✅ CNPJ 号码有效」；新实现白名单守卫点名第 3 位非法字符 A 并拒绝。默认态合法 ⇒ 零逃生。",
+  },
+  {
+    slug: "finance/cnpj-validator",
+    inputs: { input: "00000000000000" },
+    clicks: ["validate();var h=String(document.getElementById('output').innerHTML).replace(/<[^>]*>/g,' ').replace(/\\s+/g,' ');document.getElementById('__tbProbe').textContent='FNCNPZ '+document.getElementById('input').value+' '+((h.indexOf('全部数字相同，非有效 CNPJ')>=0&&h.indexOf('校验和： ✅ 通过')>=0)?'OK':'BAD');"],
+    expect: ["FNCNPZ 00000000000000 OK"],
+    ref: "F-N169 全同数字分流：00000000000000 的两个 mod-11 期望其实为 0/0 与末位相符，失败原因是「数字全同」而非「校验和失败」。旧实现统一输出「❌ 校验和失败」误导定位；新实现独立报告校验和通过，并提示「全部数字相同，非有效 CNPJ」。默认预填 00000000000191 非全同 ⇒ 零逃生。",
+  },
+  {
+    slug: "finance/cnpj-validator",
+    inputs: { input: "<img src=x onerror=1>" },
+    clicks: ["validate();var h=String(document.getElementById('output').innerHTML);document.getElementById('__tbProbe').textContent='FNCXSS '+((h.indexOf('&lt;img')>=0&&h.indexOf('<img')<0)?'ESC':'RAW');"],
+    expect: ["FNCXSS ESC"],
+    ref: "CNPJ 自 XSS 转义（同族第89批模式顺带修）：旧实现把 raw 原样拼入 innerHTML，输入 <img src=x onerror=1> 即执行；新实现 esc() 转义输出 &lt;img。默认态不含探针串 ⇒ 零逃生。",
+  },
+  {
     slug: "finance/abn-validator",
     inputs: { input: "98765432122" },
     expect: ["98 765 432 122"],
@@ -73,16 +207,47 @@ const CASES = [
     ref: "加拿大 SIN 使用 Luhn：046454286 加权和 mod 10 == 0；expect 取页面回显的格式化串「046-454-286」（含具体号码 ⇒ 默认预填 130692544 的格式化值 130-692-544 不命中）",
   },
   {
+    slug: "finance/sin-validator",
+    inputs: { input: "000-000-000" },
+    expect: ["首字符： 0 - Not issued 校验算法： Luhn（模 10） 校验和： ❌ 未通过 ❌ 校验和失败，SIN 无效"],
+    ref: "F-N209 全零：000000000 Luhn 虽通过但首字符 0 页面自述 Not issued（CRA 未发行）⇒ 无效。旧实现仅看 Luhn 判 ✅。默认预填首位 1 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/sin-validator",
+    inputs: { input: "130692544abc" },
+    expect: ["❌ SIN 只能包含数字、空格或连字符"],
+    ref: "F-N209 字母剥离：旧实现 replace(\\D,'') 把 abc 剥离后按 130692544 判 ✅；修复后含字母直接拒绝。默认预填纯数字 ⇒ 不命中。",
+  },
+  {
     slug: "finance/dni-validator",
     inputs: { input: "12345678Z" },
     expect: ["Z（期望 Z）"],
-    ref: "西班牙 DNI：校验字母 = 'TRWAGMYFPDXBNJZSQVHLCKET'[数字 mod 23]，12345678 mod 23 = 5 → Z；expect 取独有「校验字母：Z（期望 Z）」（含具体字母 ⇒ 默认预填 87654321X 输出 X（期望 X）不命中）",
+    ref: "西班牙 DNI：校验字母 = 'TRWAGMYFPDXBNJZSQVHLCKE'[数字 mod 23]，12345678 mod 23 = 14 → Z；expect 取独有「校验字母：Z（期望 Z）」（含具体字母 ⇒ 默认预填 87654321X 输出 X（期望 X）不命中）",
+  },
+  {
+    slug: "finance/dni-validator",
+    inputs: { input: "12345678Z" },
+    clicks: ["validate();var h=String(document.getElementById('output').innerHTML);document.getElementById('__tbProbe').textContent='DNIT '+document.getElementById('input').value+' '+(h.indexOf('字母表（TRWAGMYFPDXBNJZSQVHLCKE）')>=0?'OK':'BAD');"],
+    expect: ["DNIT 12345678Z OK"],
+    ref: "F-N204 字母表长度锁：官方 DNI 映射表只有 23 字符 TRWAGMYFPDXBNJZSQVHLCKE，旧表多一个尾 T（虽因 %23 不取到第 24 位而行为侥幸正确，但 FAQ/输出说明误导）。用例带输入号并断言输出算法行的闭括号边界，旧 24 字符表 hits BAD ⇒ 真判别；默认预填无 DNIT 探针 ⇒ 零逃生。",
   },
   {
     slug: "finance/npi-validator",
     inputs: { input: "1234567893" },
-    expect: ["⚠️ NPI 通常不以 0 或 1 开头"],
-    ref: "美国 NPI：前缀 80840 拼接后过 Luhn，80840 + 1234567893 加权和 mod 10 == 0；expect 取页面「首位 0/1 软提示」（依赖输入 ⇒ 默认预填 4234567897 首位为 4 无此提示，不命中），消除「✅ NPI 号码有效」通用串导致的逃生",
+    expect: ["输入： 1234567893 校验算法： Luhn（前缀 80840） 校验和： ✅ 通过 ✅ NPI 号码有效"],
+    ref: "F-N210 号段修正后首位 1 为合法段，不再有「通常不以 0 或 1 开头」误导提示；80840+1234567893 过 Luhn ⇒ ✅ 有效。expect 取带输入号的完整串（默认预填 4234567897 首位 4 修复后判未分配号段，不命中）⇒ 强判别。",
+  },
+  {
+    slug: "finance/npi-validator",
+    inputs: { input: "2234567891" },
+    expect: ["校验和： ✅ 通过 ✅ NPI 号码有效"],
+    ref: "CMS 已发行号段 2，80840 + 2234567891 通过 Luhn。",
+  },
+  {
+    slug: "finance/npi-validator",
+    inputs: { input: "5234567893" },
+    expect: ["首位 5 为未分配号段（CMS 已发行号段首位为 1 或 2），号码无效"],
+    ref: "F-N210 号段写反：首位 5 属未分配段，旧实现仅 Luhn 通过后判「✅ 有效」，修复后直接 ❌。expect 带首位 5（默认预填首位 4 不命中）⇒ 强判别。",
   },
   {
     slug: "finance/aadhaar-validator",
@@ -99,8 +264,33 @@ const CASES = [
   {
     slug: "finance/ird-validator",
     inputs: { input: "123456789" },
-    expect: ["校验和失败"],
-    ref: "新西兰 IRD 反例：base = 23456789，权重 [3,2,7,6,5,4,3,2]，Σ = 170 → 期望校验位 6 ≠ 9 → 无效",
+    expect: ["输入： 123456789 格式化： 123-456-789 长度： 9 位"],
+    ref: "新西兰 IRD 反例：补 0 后 base = 01234567、校验位 9，加权 mod 11 期望 ≠ 9 → 无效。原 expect「校验和失败」在 F-N220 修复中默认态一度变非法时命中 ⇒ 逃生，改锁带输入号的连续串。",
+  },
+  {
+    slug: "finance/ird-validator",
+    inputs: { input: "49091850" },
+    expect: ["输入： 49091850 格式化： 049-091-850 长度： 8 位 校验算法： 加权模 11（primary 3,2,7,6,5,4,3,2；得 10 改用 secondary 7,4,3,2,5,2,7,6） 校验和： ✅ 通过 ✅ IRD 号码有效"],
+    ref: "F-N220 合法号：8 位 49091850 补前导 0 → base 04909185，primary Σ=154 → rem 0 → 校验位 0（第 9 位）⇒ ✅。旧实现 base 取 substring(1,9) 错位判 ❌。expect 跨「长度/校验算法/校验和」取连续串（带输入号）。默认预填 490918507 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/ird-validator",
+    inputs: { input: "10000019" },
+    expect: ["输入： 10000019 格式化： 010-000-019 长度： 8 位 校验算法： 加权模 11（primary 3,2,7,6,5,4,3,2；得 10 改用 secondary 7,4,3,2,5,2,7,6） 校验和： ❌ 未通过 ❌ 校验和失败，IRD 无效"],
+    ref: "F-N220 非法号：8 位 10000019 补 0 → base 01000001 期望校验位 7 ≠ 9 ⇒ ❌；旧实现错位判 ✅。与 10000009（合法）镜像。默认预填 490918507 合法 ⇒ 不命中。",
+  },
+
+  {
+    slug: "finance/ird-validator",
+    inputs: { input: "100000131" },
+    expect: ["输入： 100000131", "✅ IRD 号码有效"],
+    ref: "主权重结果为 10，备用权重得校验位 1。",
+  },
+  {
+    slug: "finance/ird-validator",
+    inputs: { input: "100000132" },
+    expect: ["输入： 100000132", "❌ 校验和失败，IRD 无效"],
+    ref: "相同前八位经备用权重应为 1，校验位 2 无效。",
   },
 
   // ── 金融公式类（7 个，期望值由 python 独立复算）────────────────────
@@ -123,10 +313,46 @@ const CASES = [
     ref: "去默认化：净收益 = 128000−80000 = 48000；总 ROI = 48000/80000 = 60%；年化 = 1.6^(1/3)−1 = 16.96%。默认 100000/150000/5 → 50.00%、50,000.00、8.45%",
   },
   {
+    slug: "finance/calc-5",
+    inputs: { cost: "0", value: "150000", years: "5" },
+    expect: ["投资成本必须大于 0"],
+    ref: "F-N74 零成本：旧实现 netProfit=150000、ROI 0.00%、年化 0.00%，零回报却大额盈利；修复后字段级拒绝。默认成本 100000 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/calc-5",
+    inputs: { cost: "-100000", value: "150000", years: "5" },
+    expect: ["投资成本必须大于 0"],
+    ref: "F-N74 负成本：旧实现把成本额加进收益得 netProfit=250000，ROI 却 0.00%；修复后同样拒绝。默认成本 100000 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/calc-5",
+    inputs: { cost: "100000", value: "0", years: "5" },
+    expect: ["年化回报率（复利）： -100.00%"],
+    ref: "本金全损时 1+ROI=0，正年限的复利年化为 -100%，而非无法计算。",
+  },
+  {
+    slug: "finance/calc-5",
+    inputs: { cost: "100000", value: "-50000", years: "5" },
+    expect: ["亏损超过本金，无法按复利年化"],
+    ref: "F-N75 倒亏：ROI = −150% ⇒ 1+roi<0，旧实现年化同样显示 0.00%；修复后拒绝伪零回报。默认 ROI 50% ⇒ 两条均不命中。",
+  },
+  {
     slug: "finance/calc-3",
     inputs: { initial: "-200000", rate: "10", flows: "60000,60000,60000,60000,60000" },
     expect: ["27,447.21", "1.1372"],
     ref: "去默认化：NPV = −200000 + 60000×年金现值系数(10%,5) = −200000 + 60000×3.7907868 = 27,447.21；PI = 227447.21/200000 = 1.1372。默认 −100000/8%/30000×5 → 19,781.30、1.1978",
+  },
+  {
+    slug: "finance/calc-3",
+    inputs: { initial: "-100000", rate: "-100", flows: "30000,30000,30000,30000,30000" },
+    expect: ["折现率必须大于"],
+    ref: "F-N72：折现率 −100% 时 1+r=0、折现因子 Infinity，旧实现数值显示「—」却仍按 npv>0 给出「项目可行」；修复后字段级拒绝。默认 8% ⇒ 不命中。",
+  },
+  {
+    slug: "finance/calc-3",
+    inputs: { initial: "-100000", rate: "8", flows: "30000, abc, 30000" },
+    expect: ["第 2 项不是有效数字，已按 0 计入该期", "3 期"],
+    ref: "F-N73：旧实现 filter 丢弃非法项，30000,abc,30000 被压成 2 期、NPV −46,502.06；修复后保留期号按 0 计入，共 3 期、NPV −48,407.25。默认 5 期合法现金流 ⇒ 两条均不命中。",
   },
   {
     slug: "finance/break-even-calculator",
@@ -254,6 +480,48 @@ const CASES = [
     ref: "新加坡 NRIC：前缀 S（2000 年前出生公民）+ 7 位数字 1234567，按加权表 mod 11 得余数 ⇒ 校验字母 D。默认态输入不同 ⇒ 不命中。",
   },
   {
+    slug: "finance/nric-validator",
+    inputs: { input: "M1234567K" },
+    expect: ["校验字母： K（期望 K） ✅ NRIC/FIN 号码有效"],
+    ref: "MOM M 系列：加权和 106，加偏移 3，余数 10，反向索引官方 M 表得 K。",
+  },
+  {
+    slug: "finance/nric-validator",
+    inputs: { input: "M1234567X" },
+    expect: ["校验字母： X（期望 K） ❌ 校验和失败，号码无效"],
+    ref: "M 系列错误校验位不得通过。",
+  },
+  {
+    slug: "finance/nric-validator",
+    inputs: { input: "M0000004X" },
+    expect: ["校验字母： X（期望 X） ✅ NRIC/FIN 号码有效"],
+    ref: "MOM M 系列余数 0：加权和 8，加 3 后为 11，反向索引官方 M 表得 X。",
+  },
+  {
+    slug: "finance/nric-validator",
+    inputs: { input: "M0000009K" },
+    expect: ["校验字母： K（期望 K） ✅ NRIC/FIN 号码有效"],
+    ref: "MOM M 系列余数 10：加权和 18，加 3 后为 21，反向索引官方 M 表得 K。",
+  },
+  {
+    slug: "finance/nric-validator",
+    inputs: { input: "T1234567J" },
+    expect: ["校验字母： J（期望 J） ✅ NRIC/FIN 号码有效"],
+    ref: "T 前缀加权和 106 加 4，余数 0，NRIC 表得 J。",
+  },
+  {
+    slug: "finance/nric-validator",
+    inputs: { input: "F1234567N" },
+    expect: ["校验字母： N（期望 N） ✅ NRIC/FIN 号码有效"],
+    ref: "F 前缀加权和 106，余数 7，FIN 表得 N。",
+  },
+  {
+    slug: "finance/nric-validator",
+    inputs: { input: "G1234567X" },
+    expect: ["校验字母： X（期望 X） ✅ NRIC/FIN 号码有效"],
+    ref: "G 前缀加权和 106 加 4，余数 0，FIN 表得 X。",
+  },
+  {
     slug: "finance/ifsc-validator",
     inputs: { input: "HDFC0001234" },
     expect: ["分支代码： 001234"],
@@ -266,10 +534,22 @@ const CASES = [
     ref: "GSTIN 第 15 位为 mod-36 校验位：前 14 位字符编码按序加权求和 mod 36 ⇒ V。默认态不同 ⇒ 不命中。",
   },
   {
+    slug: "finance/gstin-validator",
+    inputs: { input: "99AAPFU0939F1ZK" },
+    expect: ["州代码： 99 - ❌ 未分配州码", "❌ 州代码不是 GST 已分配州码 ❌ GSTIN 校验失败"],
+    ref: "F-N193 防回归锁：州码 99 非法，即使校验位 K 正确也不得判有效；旧实现仅凭 zChar=Z 且校验位相等即判 ✅。默认预填 09AABCU9603R1ZL（州码 09 合法）⇒ 不命中。",
+  },
+  {
     slug: "finance/routing-number-validator",
     inputs: { input: "011000015" },
     expect: ["美联储分区： 01 - Boston"],
     ref: "ABA 路由号 9 位，按 3-7-1 权重加总 ⇒ 校验通过；前两位 01 对应波士顿联邦储备区。默认态不同 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/routing-number-validator",
+    inputs: { input: "990000000" },
+    expect: ["美联储分区前缀 99 未分配/非法，路由号码无效"],
+    ref: "F-N216 前缀白名单：前缀 99 校验和通过但未分配；旧实现仅报「99 - 未知/特殊用途」仍判 ✅，修复后直接 ❌。默认预填前缀 02 ⇒ 不命中，强判别。",
   },
   {
     slug: "finance/stock-profit-calculator",
@@ -319,6 +599,46 @@ const CASES = [
   },
   {
     slug: "finance/break-even-calculator",
+    inputs: { price: "50", vc: "60", fc: "100000" },
+    expect: ["不存在盈亏平衡点"],
+    ref: "F-N59 亏损产品：单价 50 < 单位变动成本 60 ⇒ 单位边际贡献 −10、真实边际贡献率 −20%，不存在平衡点。旧实现硬写 cmRatio:0 得「−10.00 / 0.00%」自相矛盾；现明确拒绝。默认 price50/vc30 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/break-even-calculator",
+    inputs: { price: "50", vc: "30", fc: "-100000" },
+    expect: ["固定成本、单位变动成本与销量不能为负数"],
+    ref: "F-N59 负固定成本：fc=−100000 旧实现 beq=fc/cm 得 −5000 件、平衡收入 −250000 元仍照常渲染；现字段级拒绝。默认 fc=100000 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/break-even-calculator",
+    inputs: { price: "50", vc: "30", fc: "-100000" },
+    clicks: ["scenarios=[];clearCanvas=function(){};addScenario();drawSensitivityChart=function(){};calcSensitivity();generateDetailTable();var calls=0;ToolBox.downloadText=function(){calls++};exportCSV();document.getElementById('__tbProbe').textContent='BEPGUARD scenarios='+scenarios.length+' sens='+(document.getElementById('sensGrid').innerHTML.indexOf('-5000')<0?1:0)+' detail='+(document.getElementById('detailTable').innerHTML.indexOf('-100,000')<0?1:0)+' exports='+calls;"],
+    expect: ["BEPGUARD scenarios=0 sens=1 detail=1 exports=0"],
+    ref: "负固定成本不能经场景、敏感性、明细和 CSV 入口绕过校验。",
+  },
+  {
+    slug: "finance/break-even-calculator",
+    inputs: { price: "50", vc: "60", fc: "100000" },
+    clicks: ["scenarios=[];addScenario();var r=calcBEP(100000,50,60);document.getElementById('__tbProbe').textContent='BEPLOSS count='+scenarios.length+' ratio='+r.cmRatio+' compare='+(String(document.getElementById('scenarioCompare').innerHTML).indexOf('-20.00%')>=0?'OK':'BAD');"],
+    expect: ["BEPLOSS count=1 ratio=-20 compare=OK"],
+    ref: "亏损场景仍可比较，单价 50、成本 60 的真实边际贡献率为 −20%。",
+  },
+  {
+    slug: "finance/break-even-calculator",
+    inputs: { price: "50", vc: "30", fc: "0", sensPct: "0" },
+    clicks: ["drawSensitivityChart=function(){};calcSensitivity();var h=String(document.getElementById('sensGrid').innerHTML);document.getElementById('__tbProbe').textContent='BEPZERO '+(h.indexOf('0 件')>=0&&h.indexOf('售价 +0%')>=0&&h.indexOf('NaN')<0?'OK':'BAD');"],
+    expect: ["BEPZERO OK"],
+    ref: "零固定成本合法；零变化幅度不得回退为 10% 或产生 NaN。",
+  },
+  {
+    slug: "finance/break-even-calculator",
+    inputs: { price: "50", vc: "30", fc: "100000" },
+    clicks: ["clearCanvas=function(){};drawSensitivityChart=function(){};calc();calcSensitivity();generateDetailTable();var before=String(document.getElementById('sensGrid').innerHTML).indexOf('5000 件')>=0&&String(document.getElementById('detailTable').innerHTML).indexOf('100,000.00')>=0;document.getElementById('fc').value='-100000';calc();var s=String(document.getElementById('sensGrid').innerHTML),d=String(document.getElementById('detailTable').innerHTML);document.getElementById('__tbProbe').textContent='BEPSTALE '+(before&&s.indexOf('5000 件')<0&&d.indexOf('100,000.00')<0?'OK':'BAD');"],
+    expect: ["BEPSTALE OK"],
+    ref: "有效结果切换到负成本时清除敏感性与明细的旧数据。",
+  },
+  {
+    slug: "finance/break-even-calculator",
     inputs: { price: "10", vc: "10", fc: "10000" },
     expect: ["不存在盈亏平衡点"],
     ref: "单位边际贡献 = 10−10 = 0 时原实现给 inf、页面显示「-」并仍渲染安全边际/经营杠杆；现明确提示不存在盈亏平衡点。默认 单价/成本不同 ⇒ 不命中。",
@@ -362,6 +682,13 @@ const CASES = [
     clicks: ["convert()"],
     expect: ["one thousand two hundred thirty-four"],
     ref: "1234 ⇒ one thousand two hundred thirty-four。与既有 900807.05 用例互补（后者守小数位缺陷，本例守整数段）。默认样例不同 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/number-to-words",
+    inputs: { inputVal: "1000000000000" },
+    clicks: ["convert()"],
+    expect: ["超出范围（最大 ±999,999,999,999）"],
+    ref: "F-N83 真锁：恰好 1e12 是页面声明上限之外的边界，必须拒绝。旧守卫 `> 1e12` 放过，numberToWords 的 scales 只到 billion ⇒ 单位丢失退化成「one」；现 `>= 1e12` 拦截。默认 1234567.89（远小于上限）不命中 ⇒ 零逃生。",
   },
   {
     slug: "finance/amount-in-words",
@@ -437,6 +764,26 @@ const CASES = [
     ref: "逐字符镜像：a↔ɔ、b↔d、c↔ɔ ⇒ 输出 ɔdɒ（同时给出 transform: scaleX(-1) 的 CSS 方案）。默认态不同 ⇒ 不命中。",
   },
   {
+    slug: "finance/mirror-text",
+    inputs: { input: "a😀b" },
+    clicks: ["convert()"],
+    expect: ["d😀ɒ"],
+    ref: "F-N211 emoji 码点反转：a😀b → 映射 ɒ😀d → 按码点反转 d😀ɒ；旧实现 split('') 按 UTF-16 码元反转，把 😀 的代理项对拆成孤立代理输出乱码。默认态 Hello World! ⇒ 不命中。",
+  },
+  {
+    slug: "finance/mirror-text",
+    inputs: { input: "a👩‍💻🇨🇳👍🏽e\u0301😀𠀀b" },
+    clicks: ["convert()"],
+    expect: ["d𠀀😀ɘ\u0301👍🏽🇨🇳👩‍💻ɒ"],
+    ref: "F-N211 字素簇倒序：ZWJ、国旗、肤色、组合重音内部顺序不变，单 emoji、增补汉字及映射字母也正确。",
+  },
+  {
+    slug: "finance/mirror-text",
+    clicks: ["var original=Intl.Segmenter;try{Intl.Segmenter=undefined;document.getElementById('input').value='a👩‍💻🇨🇳👍🏽e\\u0301b';convert();document.getElementById('__tbProbe').textContent='MIRRORFALLBACK='+document.getElementById('result').textContent;}finally{Intl.Segmenter=original;}"],
+    expect: ["MIRRORFALLBACK=dɘ\u0301👍🏽🇨🇳👩‍💻ɒ"],
+    ref: "无 Intl.Segmenter 的兼容回退：保持常见组合重音、肤色、旗帜和 ZWJ 簇。",
+  },
+  {
     slug: "automotive/vin-validator",
     inputs: { vinInput: "1M8GDM9AXKP042788" },
     clicks: ["validate()"],
@@ -465,7 +812,14 @@ const CASES = [
     slug: "finance/dni-validator",
     inputs: { input: "12345678Z" },
     expect: ["校验字母： Z（期望 Z）"],
-    ref: "西班牙 DNI：8 位数字 mod 23 映射到字母表 TRWAGMYFPDXBNJZSQVHLCKET ⇒ 12345678 对应 Z。可手算，结论双写「实得/期望」判别力最强。默认态不同 ⇒ 不命中。",
+    ref: "西班牙 DNI：8 位数字 mod 23 映射到字母表 TRWAGMYFPDXBNJZSQVHLCKE ⇒ 12345678 对应 Z。可手算，结论双写「实得/期望」判别力最强。默认态不同 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/dni-validator",
+    inputs: { input: "12345678Z" },
+    clicks: ["dniCheck=function(){return false;};validate();var h=String(document.getElementById('output').innerHTML);document.getElementById('__tbProbe').textContent='DNIFN '+document.getElementById('input').value+' '+(h.indexOf('❌ 校验字母不符，DNI 无效')>=0?'OK':'BAD');"],
+    expect: ["DNIFN 12345678Z OK"],
+    ref: "F-N205 复用锁：把页面顶层 dniCheck 临时替换为恒 false 后，validate() 的最终结论必须随之变 ❌；旧实现在 validate 内另算一遍 `letter === expected`，替换 dniCheck 不产生任何影响 ⇒ 探针 BAD。输入号绑定避免静态逃生。",
   },
   {
     slug: "finance/npi-validator",
@@ -486,6 +840,13 @@ const CASES = [
     clicks: ["calc()"],
     expect: ["贷款年限须为正整数年"],
     ref: "贷款年限 2.5 年：旧实现按小数年限折期数（30 期）照算；现要求正整数年并提示。默认 30 年 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/loan-amortization",
+    inputs: { loanAmount: "120000", annualRate: "6", loanYears: "2" },
+    clicks: ["calc();var before=scheduleData.length;document.getElementById('loanYears').value='2.3';calc();var noTable=!document.getElementById('scheduleTable').innerHTML&&!document.getElementById('yearlyTable').innerHTML;var exported=false;ToolBox.downloadText=function(){exported=true;};exportCSV();document.getElementById('__tbProbe').textContent='LOANSTALE '+(before===24&&scheduleData.length===0&&noTable&&!exported?'OK':'BAD');"],
+    expect: ["LOANSTALE OK"],
+    ref: "有效 2 年计划后改为非法 2.3 年，必须清空旧还款计划和表格并禁止导出旧数据。"
   },
   {
     slug: "investment/irr-calc",
@@ -568,6 +929,12 @@ const CASES = [
     ref: "ISO 4217 查询：`USD` ⇒ 名称 US Dollar、符号 $、最小单位 2 位、使用地区美国。默认态不同 ⇒ 不命中。",
   },
   {
+    slug: "finance/currency-lookup",
+    inputs: { input: "JPY" },
+    expect: ["最小单位位数： 0（无小数）"],
+    ref: "F-N87 真锁：最小单位位数说明须闭合括号「0（无小数）」。旧实现缺右括号渲染成「0（无小数」，现补全。默认态 EUR 是「2（1/100）」不含该串 ⇒ 零逃生；JPY 为 0 位小数，绑定输入。",
+  },
+  {
     slug: "finance/vcard-qr",
     inputs: { fn: "Zhang", ln: "San", org: "ACME", title: "Eng", tel: "13800138000", email: "a@b.com", url: "https://a.com" },
     clicks: ["generate()"],
@@ -575,11 +942,24 @@ const CASES = [
     ref: "vCard 3.0 文本：姓/名写入 `N:San;Zhang;;;`，字段名用大写驼峰（`FN`/`ORG`/`TEL`/`EMAIL`/`URL`），电话带 `;TYPE=CELL`。产物与输入形态不同 ⇒ 天然非回显。默认态不同 ⇒ 不命中。",
   },
   {
+    slug: "finance/vcard-qr",
+    inputs: { fn: "李四", ln: "测试", org: "ACME", title: "Eng", tel: "13900000000", email: "li@example.com", url: "https://li.example.com" },
+    clicks: ["var cap={};qrcode=function(t,e){cap.ec=e;return {addData:function(d){cap.data=d;},make:function(){cap.made=true;},getModuleCount:function(){return 21;},isDark:function(r,c){return r===0&&c===0;}};};qrcode.stringToBytesFuncs={'UTF-8':function(){}};var txt=buildVcard();var g=renderQR(txt);document.getElementById('__tbProbe').textContent='VCREAL '+document.getElementById('fn').value+' '+(cap.data===txt&&cap.ec==='M'&&cap.made&&g&&g.length===29&&g[4][4]===1?'OK':'BAD');"],
+    expect: ["VCREAL 李四 OK"],
+    ref: "F-N223 真编码锁：用可控 qrcode 桩替换后，renderQR 必须把 buildVcard() 全文交给 qrcode(0,'M').addData()/make()，并按 getModuleCount()+4 静区生成网格；旧伪随机网格既不调用库也不产生 29×29 静区布局 ⇒ 探针 BAD。输入姓名绑定避免静态逃生。",
+  },
+  {
     slug: "finance/option-profit-calculator",
     inputs: { s0: "100", strike: "105", premium: "3", mult: "100", fee: "1" },
     clicks: ["switchTab()"],
-    expect: ["盈亏平衡点： 108.00 元", "最大亏损： ¥300.00"],
-    ref: "看涨买方：盈亏平衡点 = 行权价 + 权利金 = 105 + 3 = 108.00 元；到期价 100 < 行权价 ⇒ 不行权，亏损 = 权利金 300 + 手续费 2 = ¥300.00。可独立复算。默认态不同 ⇒ 不命中。",
+    expect: ["盈亏平衡点： 108.00 元", "最大亏损： ¥302.00"],
+    ref: "看涨买方：盈亏平衡点 = 行权价 + 权利金 = 105 + 3 = 108.00 元；到期价 100 < 行权价 ⇒ 不行权，最大亏损 = 权利金 300 + 手续费 2（1元/张×1张×开平 2 次）= ¥302.00（F-N58 修复后含手续费，与总盈亏同口径）。默认态 fee=2 ⇒ 304 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/option-profit-calculator",
+    inputs: { s0: "100", strike: "110", premium: "5", mult: "100", fee: "3", contracts: "2" },
+    expect: ["最大盈亏已计入开仓+平仓手续费（¥12.00）"],
+    ref: "F-N58 含费口径专用锁：手续费 3元/张 × 2 张 × 开平 2 次 = ¥12.00，新增说明行须回显该金额并声明最大盈亏与总盈亏同口径。旧实现无此行 ⇒ 不命中；默认 fee=2/1张 ⇒ ¥4.00 ⇒ 不命中。绑定输入算得的手续费金额，避免静态文案逃生；该行在四种 tab 状态下均渲染，不受 harness 跨用例 tab 状态污染影响。",
   },
   {
     slug: "finance/option-profit-calculator",
@@ -602,10 +982,46 @@ const CASES = [
     ref: "BIN 库查询：`411111` ⇒ 网络 Visa、类型 Credit、国家 US、机构 Chase Bank（测试卡）。默认态不同 ⇒ 不命中。",
   },
   {
+    slug: "finance/credit-card-bin",
+    inputs: { input: "220012" },
+    expect: ["BIN： 220012 卡片网络： MIR"],
+    ref: "F-N88 真锁：220012 是 MIR BIN（2200–2204），须判 MIR。旧正则 Mastercard `2[2-7]\\d{2}` 先命中且 MIR 排其后 ⇒ 判 Mastercard，反相变红；默认 411111 判 Visa、不含该串 ⇒ 零逃生。",
+  },
+  {
+    slug: "finance/credit-card-bin",
+    inputs: { input: "272100" },
+    expect: ["BIN： 272100 卡片网络： 未知网络"],
+    ref: "F-N88 真锁：272100 超出 Mastercard 2 系列精确上界 2720 ⇒ 未知网络。旧正则 `2[2-7]\\d{2}` 泛吞 2700–2799 ⇒ 判 Mastercard，反相变红；默认 411111 判 Visa、不含该串 ⇒ 零逃生。",
+  },
+  {
     slug: "finance/bic-lookup",
     inputs: { input: "DEUTDEFF500" },
     expect: ["银行名称： Deutsche Bank (德国)"],
     ref: "BIC 反查：`DEUTDEFF500` ⇒ 银行代码 DEUT ⇒ Deutsche Bank（德国）、国家 DE、位置 FF、分支 500。默认态不同 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/bic-lookup",
+    inputs: { input: "Deutsche Bank" },
+    expect: ["按行名检索：DEUTSCHE BANK", "DEUT — Deutsche Bank (德国)"],
+    ref: "F-N186 反向按行名检索：`Deutsche Bank` 含空格非 BIC 形态 ⇒ 在 BANK_DB 银行名中大小写不敏感命中 DEUT。旧实现取前 4 位 DEUT 命中后因长度 13 报「BIC 长度应为 8 或 11 位」，无检索能力。默认预填 CHASUS33 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/bic-lookup",
+    inputs: { input: "NotARealBank" },
+    expect: ["离线库中未找到匹配的行名"],
+    ref: "F-N186 反向检索无匹配：非 BIC 形态且无行名命中 ⇒ 明确提示未找到；旧实现取前 4 位 NOTA 未收录并报长度错误。默认预填 CHASUS33 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/bic-lookup",
+    inputs: { input: "ABCDEFGH" },
+    expect: ["国家代码： EF - 非 ISO 3166-1 国家码", "❌ 国家代码 EF 不是 ISO 3166-1 alpha-2 代码", "❌ BIC 格式校验失败（长度须为 8 或 11 位，且国家/位置/分支码均须合法）"],
+    ref: "F-N187 国家码白名单：EF 非 ISO 3166-1 alpha-2，旧实现仅显示「未知」并按长度判 ✅；修复后必须拒绝。默认 CHASUS33 国家 US 合法 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/bic-lookup",
+    inputs: { input: "DEUTPTFF" },
+    expect: ["国家代码： PT - 有效 ISO 代码（离线库未收录）"],
+    ref: "F-N187 防误伤：PT 是 ISO 3166-1 有效代码但不在 23 项离线名称库，不能因名称缺失误判格式无效；旧实现显示「未知」但仍 ✅，新实现明确标注有效 ISO 后仍 ✅。默认国家 US 在名称库 ⇒ 不命中。",
   },
   {
     slug: "finance/postal-code-validator",
@@ -614,28 +1030,108 @@ const CASES = [
     ref: "6 位数字邮编匹配多国格式：`100000` 命中 RU/CN/IN/SG 及「香港无邮编系统」。锚取可独立核对的国家条目。默认态不同 ⇒ 不命中。",
   },
   {
+    slug: "finance/postal-code-validator",
+    inputs: { input: "HELLO" },
+    expect: ["不匹配任何已知国家的邮编格式"],
+    ref: "F-N218 香港 /.*/ 默认通过：无前缀任意串 `HELLO` 旧实现仅命中香港显示「✅ 香港无邮编系统（默认通过）」，修复后香港仅在显式 HK: 前缀参与 ⇒ 落入「不匹配任何已知国家的邮编格式」。默认 100000 命中多国 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/postal-code-validator",
+    inputs: { input: "HK:任意内容123" },
+    expect: ["Hong Kong（HK）：香港无邮编系统"],
+    ref: "F-N218 防误伤：显式 `HK:` 前缀仍应命中香港条目（香港无邮编系统，接受任意内容）；与无前缀 HELLO 被拒形成对照。默认 100000 不命中香港 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/postal-code-validator",
+    inputs: { input: "1000001" },
+    expect: ["Japan（JP）：3-4 格式（连字符可省）"],
+    ref: "F-N219 日本无连字符邮编：`1000001`（东京 100-0001）7 位数字应命中 JP；旧正则强制 `\\d{3}-\\d{4}` 拒之，仅命中香港被误判国家。默认 100000 不命中 JP ⇒ 不命中。",
+  },
+  {
+    slug: "finance/postal-code-validator",
+    inputs: { input: "01310100" },
+    expect: ["Brazil（BR）：5-3 格式（连字符可省）"],
+    ref: "F-N219 巴西无连字符邮编：`01310100`（01310-100）8 位数字应命中 BR；旧正则强制连字符拒之，仅命中香港。默认 100000 不命中 BR ⇒ 不命中。",
+  },
+  {
     slug: "finance/zip-code-validator",
     inputs: { input: "95014" },
     expect: ["前 3 位（SCF）： 950"],
     ref: "美国 ZIP：`95014` ⇒ 5 位 ZIP + 前 3 位 SCF 950（未映射到已知州/地区）。expect 只锁依赖输入的「前 3 位（SCF）： 950」；原第二条「✅ ZIP Code 格式有效」为通用串，默认预填 10001 也有效 ⇒ 恒命中变逃生，已删除。",
   },
   {
+    slug: "finance/zip-code-validator",
+    inputs: { input: "00000" },
+    expect: ["输入： 00000 ❌ ZIP 00000–00500、99951–99999 为 USPS 未分配段"],
+    ref: "F-N208 未分配段：00000 形状合法但不在 USPS 00501–99950 分配范围，旧实现判「✅ 格式有效」；修复后 ❌。默认预填 10001 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/zip-code-validator",
+    inputs: { input: "99999" },
+    expect: ["输入： 99999 ❌ ZIP 00000–00500、99951–99999 为 USPS 未分配段"],
+    ref: "F-N208 未分配段：99999 超出 USPS 上限 99950，旧实现判「✅ 格式有效」；修复后 ❌。expect 带输入号区分 00000 用例。默认预填 10001 ⇒ 不命中。",
+  },
+  {
     slug: "finance/voter-id-validator",
     inputs: { input: "ABC1234567" },
-    expect: ["州代码： ABC"],
-    ref: "印度 EPIC 选民 ID：3 字母州代码 + 7 位序号，仅做格式校验（无校验位）。expect 只锁依赖输入的「州代码： ABC」；原第二条「校验算法： 无（EPIC 为格式校验）」是静态文案，默认预填 XYZ1234567 也恒出现 ⇒ 按 expect 为「或」语义会变逃生，已删除。",
+    expect: ["州代码： ABC（仅格式校验，未核对是否为有效州码）"],
+    ref: "印度 EPIC 选民 ID：3 字母 + 7 位序号，仅格式校验。F-N213 州码行加「未核对有效性」标注，避免任意 3 字母被误当合法州码；expect 带输入州码 ABC（默认 XYZ 不命中）⇒ 强判别，静态标注串单列会逃生故不单列。",
   },
   {
     slug: "finance/imsi-validator",
     inputs: { input: "310150123456789" },
-    expect: ["MCC（前 3 位）： 310 - 美国", "MNC（第 4-5 位）： 15 - 未知运营商"],
-    ref: "IMSI 15 位分段：MCC=310（美国）、MNC=15（未知运营商）、MSIN=0123456789；官方说明 IMSI 无标准校验位，仅格式校验。默认态不同 ⇒ 不命中。",
+    expect: ["MNC（第 4-6 位）： 150 - 未知运营商 移动用户识别码 MSIN： 123456789"],
+    ref: "MCC 310 的 MNC 为三位，未收录 150 也不能截成两位。",
+  },
+  {
+    slug: "finance/imsi-validator",
+    inputs: { input: "310410123456789" },
+    expect: ["MNC（第 4-6 位）： 410 - AT&T 移动用户识别码 MSIN： 123456789"],
+    ref: "F-N217 三位 MNC：310410（AT&T）第 4-6 位 MNC 在库命中 ⇒ 按 3 位展示、MSIN 从第 7 位切 123456789；旧实现固定 2 位显示 41、MSIN 多带一位 0123456789。默认预填 460001234567890（2 位 MNC 00）⇒ 不命中。",
+  },
+  {
+    slug: "finance/imsi-validator",
+    inputs: { input: "460011234567890" },
+    expect: ["MNC（第 4-5 位）： 01 - China Unicom 中国联通", "MSIN： 1234567890"],
+    ref: "中国 460 的 MNC 使用两位。",
+  },
+  {
+    slug: "finance/imsi-validator",
+    inputs: { input: "999123456789012" },
+    expect: ["MNC 位数无法确定，无法解析 MNC 和 MSIN"],
+    ref: "未知 MCC 不应猜测 MNC 长度和 MSIN。",
   },
   {
     slug: "finance/meid-validator",
     inputs: { input: "490154203237518" },
     expect: ["制造商代码（前 8 位）： 49015420", "序列号（后 6 位）： 323751"],
     ref: "MEID 十六进制形态：前 8 位 49015420 为制造商码、后 6 位 323751 为序列号。该页同场的「校验位： 8（期望 C）❌ 校验失败」与 `it/imei-validator` 对同一号码的结论相反，属既有缺陷；本例只锁定可独立复算的分段解析段。默认态不同 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/meid-validator",
+    inputs: { input: "A0000012345678G" },
+    expect: ["输入： A0000012345678G ❌ 含非法字符（仅允许 0-9、A-F 及空格/连字符）"],
+    ref: "F-N206 非 hex 字符剥离：旧实现 replace(/[^0-9A-F]/g,'') 把 G 剥离后按 14 位合法 MEID 判 ✅；修复后含 G 直接拒绝。默认预填 A0000012345678（纯 hex）⇒ 不命中。",
+  },
+  {
+    slug: "finance/meid-validator",
+    inputs: { input: "A000-0012-3456-78" },
+    expect: ["输入： A000-0012-3456-78 格式： 十六进制（14 位） 制造商代码（前 8 位）： A0000012"],
+    ref: "F-N206 防误伤：常见连字符分隔写法仍允许（分隔符清洗后按 14 位 hex 解析），制造商码 A0000012。与含 G 被拒形成对照。默认预填不同 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/meid-validator",
+    inputs: { input: "A0000012345679" },
+    clicks: ["validate();var h=String(document.getElementById('output').innerHTML).replace(/<[^>]*>/g,' ').replace(/\\s+/g,' ');document.getElementById('__tbProbe').textContent='MEIDFIX '+document.getElementById('input').value+' '+((h.indexOf('⚠ 仅格式通过，未提供校验位，无法完成校验')>=0&&h.indexOf('十进制表示： 045035996579124857（同一 MEID）')>=0&&h.indexOf('校验算法： 参考 Luhn Base16（非标准，仅供格式自检）')>=0)?'OK':'BAD');"],
+    expect: ["MEIDFIX A0000012345679 OK"],
+    ref: "F-N207 三合一锁：14 位 hex 缺校验位时旧实现一律 ✅，且无 hex↔dec 换算、算法自称 Luhn-like；修复后必须同时给出「无法完成校验」、十进制等价 045035996579124857 与非标准算法标注。输入号绑定避免静态逃生。",
+  },
+  {
+    slug: "finance/meid-validator",
+    inputs: { input: "045035996579124856" },
+    clicks: ["validate();var h=String(document.getElementById('output').innerHTML).replace(/<[^>]*>/g,' ').replace(/\\s+/g,' ');document.getElementById('__tbProbe').textContent='MEIDDEC '+document.getElementById('input').value+' '+(h.indexOf('十六进制表示： A0000012345678（同一 MEID）')>=0?'OK':'BAD');"],
+    expect: ["MEIDDEC 045035996579124856 OK"],
+    ref: "F-N207 十进制→十六进制互证：BigInt('045035996579124856').toString(16) 补零为 A0000012345678，页面必须展示同一 MEID 的十六进制表示；旧实现无任何换算行 ⇒ 探针 BAD。输入号绑定避免静态逃生。",
   },
   {
     slug: "finance/mortgage-prepayment",
@@ -666,6 +1162,30 @@ const CASES = [
     ref: "DEA 编号规则 = 2 字母 + 7 数字共 9 位，`ABC123` 只有 6 位 ⇒ 长度校验直接失败。默认态为空输入，不命中本串。",
   },
   {
+    slug: "finance/dea-validator",
+    inputs: { input: "AB0134623" },
+    expect: ["7 位数字： 0134623 校验和： ✅ 通过 ✅ DEA 号码有效"],
+    ref: "DEA 校验：奇数位 0+3+6=9，偶数位之和 (1+4+2)×2=14，总和 23，校验位为 3。",
+  },
+  {
+    slug: "finance/dea-validator",
+    inputs: { input: "AB0118785" },
+    expect: ["7 位数字： 0118785 校验和： ❌ 未通过 ❌ 校验和失败，DEA 号码无效"],
+    ref: "DEA 校验：奇数位 0+1+7=8，偶数位之和 (1+8+8)×2=34，总和 42，校验位应为 2，而非 5。",
+  },
+  {
+    slug: "finance/dea-validator",
+    inputs: { input: "AB1234563" },
+    expect: ["7 位数字： 1234563 校验和： ✅ 通过 ✅ DEA 号码有效"],
+    ref: "DEA 校验：1+3+5+2×(2+4+6)=33，取个位 3；不能对乘积逐位求和。",
+  },
+  {
+    slug: "finance/dea-validator",
+    inputs: { input: "AB1234565" },
+    expect: ["7 位数字： 1234565 校验和： ❌ 未通过 ❌ 校验和失败，DEA 号码无效"],
+    ref: "DEA 反例：123456 的正确校验位是 3，而非 5。",
+  },
+  {
     slug: "finance/dca-calculator",
     inputs: { initial: "2000", monthly: "300", rate: "4", years: "5" },
     clicks: ["switchTiming()"],
@@ -685,8 +1205,8 @@ const CASES = [
       custodyFee: "0.2",
     },
     clicks: ["setRate(8)"],
-    expect: ["费用合计 ¥1,554.52"],
-    ref: "费用合计 = 申购 0.5% + 赎回 0.5% + 管理费 1%/年 + 托管 0.2%/年，按 8% 年化增长的持仓规模累计扣费 1,554.52 元（旧实现因 setRate() 无参把利率置 0，才得到 1,206.39；本次修复后按真实 8% 口径）。默认态不同 ⇒ 不命中。",
+    expect: ["费用合计 ¥1,599.70"],
+    ref: "初始申购费 50、月投申购费 600、加赎回费；月末按增长后净值买入，期末资产 188,989.59，费用合计 1,599.70。管理费与托管费已反映在净值增长率中，不重复计入申购赎回费用。",
   },
   {
     slug: "finance/mutual-fund-calculator",
@@ -694,6 +1214,13 @@ const CASES = [
     clicks: ["clearHistory();document.getElementById('rate').value='12';setRate();calc();"],
     expect: ["有效年化（按月复利） 12.68%"],
     ref: "无参调用 setRate() 不得把利率写成 undefined/0：注入 12% 后应保持 12%，并列显示名义 12.00% 与按月复利有效年化 (1+12%/12)^12−1 = 12.68%。默认 8% ⇒ 8.30%，不命中。",
+  },
+  {
+    slug: "finance/mutual-fund-calculator",
+    inputs: { initial: "10000", monthly: "1000", years: "10", rate: "8" },
+    clicks: ["document.getElementById('__tbProbe').textContent='FN45IRR='+calcIRR(getVal('monthly'),getVal('initial'),getVal('years')*12,184434.02,true).toFixed(2)"],
+    expect: ["FN45IRR=6.32"],
+    ref: "F-N45 月初扣款 IRR 时点：initial 10000 / monthly 1000 / 10 年 / 8%，月末扣款 IRR 6.40%（现金流 t=0 初始、t=1..120 月投、t=120 回收）；月初扣款首期应落在 t=0，真实现金流 IRR 6.32%。旧实现 monthStart 形参传入 calcIRR 却完全未使用，月初仍算成 6.40% ⇒ 不命中。",
   },
   {
     slug: "finance/mutual-fund-calculator",
@@ -757,8 +1284,29 @@ const CASES = [
   {
     slug: "finance/iccid-validator",
     inputs: { input: "8986011234567890123" },
-    expect: ["国家代码（第 3-4 位）： 86", "校验位： 3"],
+    expect: ["国家代码（E.164，变长）： 86", "校验位： 3"],
     ref: "ICCID 19 位：前 2 位 89 = ITU 电信、第 3-4 位 86 = 中国、第 5-7 位 011 = 发卡机构、末位 3 为 Luhn 校验位。该号 Luhn 实际不通过（页内如实报「❌ 校验失败」），本例只锁分段解析段。默认态不同 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/iccid-validator",
+    inputs: { input: "8930123456789012347" },
+    clicks: ["validate();var h=String(document.getElementById('output').innerHTML).replace(/<[^>]*>/g,' ').replace(/\\s+/g,' ');document.getElementById('__tbProbe').textContent='FN182 '+document.getElementById('input').value+' '+((h.indexOf('30 - 希腊')>=0&&h.indexOf('无法由此不完整的代码表确定')>=0&&h.indexOf('Japan')<0)?'OK':'BAD');"],
+    expect: ["FN182 8930123456789012347 OK"],
+    ref: "E.164 国家码 30 为希腊，不应凭不可靠前缀表推断日本运营商。",
+  },
+  {
+    slug: "finance/iccid-validator",
+    inputs: { input: "88123456789012345676" },
+    clicks: ["validate();var h=String(document.getElementById('output').innerHTML).replace(/<[^>]*>/g,' ').replace(/\\s+/g,' ');document.getElementById('__tbProbe').textContent='FN183 '+document.getElementById('input').value+' '+((h.indexOf('非 89 电信行业标识，不是 ICCID')>=0&&h.indexOf('✅ ICCID 有效')<0)?'OK':'BAD');"],
+    expect: ["FN183 88123456789012345676 OK"],
+    ref: "F-N183 非 89 前缀拒绝：88123456789012345676 为 20 位、Luhn true，但 MII=88 非电信标识；旧实现只看 Luhn ⇒「✅ ICCID 有效」自相矛盾；新实现非 89 直接判「❌ 非 89 电信行业标识，不是 ICCID」。默认预填 89 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/iccid-validator",
+    inputs: { input: "89123456789012345675" },
+    clicks: ["validate();var h=String(document.getElementById('output').innerHTML).replace(/<[^>]*>/g,' ').replace(/\\s+/g,' ');document.getElementById('__tbProbe').textContent='FN184 '+document.getElementById('input').value+' '+((h.indexOf('国家代码（E.164，变长）： 1 - 北美')>=0&&h.indexOf('国家代码（E.164，变长）： 12')<0)?'OK':'BAD');"],
+    expect: ["FN184 89123456789012345675 OK"],
+    ref: "F-N184 变长国家码最长匹配：891234... 的 89 之后国家码为 1 位（E.164 NANP=1），旧实现固定 substring(2,4)取'12'判未知⇒错位；新实现 E.164 表 3→1 位最长匹配命中 1=北美（NANP）。该号 Luhn 通过、非默认预填 ⇒ 零逃生。",
   },
   {
     slug: "finance/msisdn-validator",
@@ -767,10 +1315,70 @@ const CASES = [
     ref: "E.164：去掉前缀 0 后 14 位 ≤ 15 上限，+49 为德国。默认态不同 ⇒ 不命中。",
   },
   {
+    slug: "finance/msisdn-validator",
+    inputs: { input: "+44" },
+    expect: ["❌ 缺少国内号码"],
+    ref: "只有英国国家码，不是完整号码。",
+  },
+  {
+    slug: "finance/msisdn-validator",
+    inputs: { input: "+49" },
+    expect: ["❌ 缺少国内号码"],
+    ref: "只有德国国家码，不是完整号码。",
+  },
+  {
+    slug: "finance/msisdn-validator",
+    inputs: { input: "+44 1" },
+    expect: ["⚠️ 已识别国家码，但未校验该国家的国内号码格式或长度"],
+    ref: "英国短号不得断言有效，仅报告缺少对应国别规则。",
+  },
+  {
+    slug: "finance/msisdn-validator",
+    inputs: { input: "+44 7911 123456" },
+    expect: ["⚠️ 已识别国家码，但未校验该国家的国内号码格式或长度"],
+    ref: "英国号码也只能识别前缀，不能未经规则确认有效。",
+  },
+  {
+    slug: "finance/msisdn-validator",
+    inputs: { input: "+1 2025550123" },
+    expect: ["✅ 符合 NANP 10 位号码格式"],
+    ref: "NANP 的 10 位长度规则保持有效。",
+  },
+  {
+    slug: "finance/msisdn-validator",
+    inputs: { input: "+86 13900139000" },
+    expect: ["归一化： 8613900139000", "✅ 符合中国大陆 11 位手机号格式"],
+    ref: "中国号码规则保持有效。",
+  },
+  {
+    slug: "finance/msisdn-validator",
+    inputs: { input: "13800138000" },
+    expect: ["缺国家码，无法判定（疑似 +86 中国大陆手机号）"],
+    ref: "F-N215 本地号误判：无 + 的中国 11 位号旧实现命中前缀 '1' 硬判美加 +1、国内 3800138000 + NANP 通过；修复后提示疑似 +86 缺国家码。默认预填 +86 13800138000 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/msisdn-validator",
+    inputs: { input: "999999999999" },
+    expect: ["❌ 国家码未识别，无法验证号码格式"],
+    ref: "F-N215 未识别国家码：CC_DB 无 999/99/9 前缀，旧实现落入本地号分支仍输出「✅ MSISDN 格式有效」零区分度；修复后 ❌。默认预填 +86 ⇒ 不命中。",
+  },
+  {
     slug: "finance/pan-validator",
     inputs: { input: "AAACN0927F" },
-    expect: ["校验位： F ✅ PAN 号码格式有效"],
-    ref: "印度 PAN：10 位，第 4 位 C = Company，前 5 位 AAACN 为实体代码，0927 为序号，末位 F 为校验位（第四位为 C 时格式校验通过）。默认态不同 ⇒ 不命中。",
+    expect: ["末位字母： F（PAN 无算术校验位，仅结构校验） ✅ PAN 号码格式有效"],
+    ref: "印度 PAN：10 位，第 4 位 C = Company，前 5 位 AAACN 为实体代码，0927 为序号，末位 F 为结构字母。F-N200 把误导性「校验位」改为诚实标注。默认态不同 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/pan-validator",
+    inputs: { input: "ABCZS1234E" },
+    expect: ["❌ 第 4 位实体类型 Z 非官方类型（仅 A/B/C/F/G/H/J/L/P/T）"],
+    ref: "F-N199 未知实体类型：第 4 位 Z 不在官方 10 种内，旧实现显示「未知类型」仍判 ✅；修复后 ❌。默认预填第 4 位 P（合法）⇒ 不命中。",
+  },
+  {
+    slug: "finance/pan-validator",
+    inputs: { input: "ABCKS1234E" },
+    expect: ["❌ 第 4 位实体类型 K 非官方类型（仅 A/B/C/F/G/H/J/L/P/T）"],
+    ref: "F-N199 非官方类型：K (Krishik) 非印度税务官方实体类型，旧表收录并判 ✅；修复后从表中移除并判 ❌。默认预填 P ⇒ 不命中。",
   },
   {
     slug: "finance/tin-validator",
@@ -791,10 +1399,30 @@ const CASES = [
     ref: "英国 Sort Code 6 位，前 2 位 11 对应 Lloyds Bank。默认态不同 ⇒ 不命中。",
   },
   {
+    slug: "finance/sort-code-validator-validator",
+    inputs: { input: "12A34B56" },
+    expect: ["输入： 12A34B56 ❌ Sort Code 仅允许数字、空格或连字符，含字母为格式错误"],
+    ref: "F-N197 含字母拒绝：旧实现 replace(\\D,'') 剥离 A/B 后按 123456 判 ✅ 并给银行名；deep-dive 却承诺含字母提示格式错误。修复后直接拒绝。默认预填 200000 ⇒ 不命中。",
+  },
+  {
     slug: "finance/nie-validator",
     inputs: { input: "12345678Z" },
     expect: ["首字符为 X/Y/Z，中间 7 位数字，末尾大写字母"],
     ref: "西班牙 NIE 须以 X/Y/Z 开头 + 7 位数字 + 校验字母；喂入的 `12345678Z` 是 DNI 形态（数字开头）⇒ 如实报格式不符。默认态为空输入 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/nie-validator",
+    inputs: { input: "Z1234567R" },
+    clicks: ["validate();var h=String(document.getElementById('output').innerHTML).replace(/<[^>]*>/g,' ').replace(/\\s+/g,' ');document.getElementById('__tbProbe').textContent='FN180 '+document.getElementById('input').value+' '+((h.indexOf('Z - 分配序列')>=0&&h.indexOf('早期')<0&&h.indexOf('中期')<0&&h.indexOf('现行')<0&&h.indexOf('当年批次')<0)?'OK':'BAD');"],
+    expect: ["FN180 Z1234567R OK"],
+    ref: "F-N180 前缀文案中性化：Z1234567R 为合法非默认 NIE（mod23=1→R），前缀行须为「Z - 分配序列（非身份类别或有效期）」，且不得再出现早期/中期/现行/当年批次等无依据时间断言。旧文案「Z - 外国人（现行）」命中「现行」⇒ BAD 变红；探针绑定输入锚 ⇒ 默认态零逃生。",
+  },
+  {
+    slug: "finance/nie-validator",
+    inputs: { input: "Y1234567X" },
+    clicks: ["validate();var h=String(document.getElementById('output').innerHTML).replace(/<[^>]*>/g,' ').replace(/\\s+/g,' ');document.getElementById('__tbProbe').textContent='FN181 '+document.getElementById('input').value+' '+((typeof nieLetter==='function'&&nieCheck('Y1234567X')===true&&nieCheck('Y1234567Y')===false&&h.indexOf('（期望 X）')>=0)?'OK':'BAD');"],
+    expect: ["FN181 Y1234567X OK"],
+    ref: "F-N181 单一真源：期望字母抽成 nieLetter() 供 nieCheck 判定 + validate 展示共用。Y1234567X 合法（mod23=10→X），断言 nieLetter 函数存在、nieCheck 正反例正确、展示期望字母 X。旧实现无 nieLetter、validate 内联映射 ⇒ typeof 为 undefined ⇒ BAD 变红；探针绑定输入锚 ⇒ 零逃生。",
   },
   {
     slug: "finance/esn-validator",
@@ -817,6 +1445,20 @@ const CASES = [
     ref: "经营杠杆 DOL = 贡献边际 400,000 ÷ EBIT 300,000 = 1.33；财务杠杆 DFL = EBIT 300,000 ÷ (EBIT−利息 50,000) = 1.20；总杠杆 DCL = 1.33 × 1.20 = 1.60。默认态不同 ⇒ 不命中。",
   },
   {
+    slug: "finance/analysis-risk",
+    inputs: { s: "1000000", v: "600000", f: "400000", i: "0", t: "25", n: "100000", dec: "2" },
+    clicks: ["calc()"],
+    expect: ["EBIT 为 0（盈亏平衡），DOL/DFL/DCL 杠杆系数无定义，无法计算"],
+    ref: "F-N80 真锁：收入 100 万 − 变动 60 万 − 固定 40 万 ⇒ EBIT=0，利息 i=0。旧实现 i===0 分支优先，同屏三卡均「—」却仍提示「DFL = 1」；现按 ebit===0 优先提示「杠杆系数无定义」。默认 f=20 万（EBIT=20 万）不命中 ⇒ 零逃生。",
+  },
+  {
+    slug: "finance/analysis-risk",
+    inputs: { s: "1000000", v: "600000", f: "400000", i: "10000", t: "25", n: "100000", dec: "2" },
+    clicks: ["calc()"],
+    expect: ["DFL = 0.00 ÷ (0.00 − 10000.00) = —"],
+    ref: "EBIT 为零时百分比杠杆无定义，非零利息下 DFL 也应显示 —。",
+  },
+  {
     slug: "finance/analysis-5",
     inputs: {
       pre: "100000",
@@ -830,6 +1472,34 @@ const CASES = [
     clicks: ["calc()"],
     expect: ["流动比率 1.50"],
     ref: "流动比率 = 流动资产 60,000 ÷ 流动负债 40,000 = 1.50。刻意同时录入大额存货(80,000)与预付费用(100,000)使速动比率算出 −3.00 —— 这是该页既有缺陷（速动资产口径把预付费用逐项扣了两次），因此只锚纯可复算的流动比率，不把缺陷值固化成正确。默认态不同 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/analysis-5",
+    inputs: { ta: "1200000", tl: "1500000", ca: "500000", cl: "300000" },
+    clicks: ["calc()"],
+    expect: ["产权比率 — 3 警戒 无法计算 负债总额 1500000.00 ÷ 所有者权益 -300000.00"],
+    ref: "F-N79 真锁①：资产 120 万、负债 150 万 ⇒ 权益 −30 万（资不抵债）。旧实现 equity!==0 照算 de=−5 并标「偏低」，与 FAQ「权益为负显示无法计算」相反；现 equity>0 才计算，负权益显示「—/无法计算」。锚点绑定 tl=1500000 与负权益串；默认 tl=70 万（权益正）不命中 ⇒ 零逃生。",
+  },
+  {
+    slug: "finance/analysis-5",
+    inputs: { ta: "1500000", tl: "500000", ca: "500000", cl: "300000" },
+    clicks: ["calc()"],
+    expect: ["产权比率 0.50 3 警戒 稳健 负债总额 500000.00 ÷ 所有者权益 1000000.00"],
+    ref: "F-N79 真锁②：资产 150 万、负债 50 万 ⇒ 权益 100 万、de=0.5。旧用 tagHigh(de,1,2,2) 把 <1 标「偏低」，与同行参考「<1 稳健」矛盾；现专用四档标「稳健」。锚点绑定 de=0.50 与 ta/tl；默认 de=70/50=1.4（一般）不命中 ⇒ 零逃生。",
+  },
+  {
+    slug: "finance/analysis-5",
+    inputs: { ta: "400000", tl: "300000" },
+    clicks: ["calc()"],
+    expect: ["产权比率 3.00 3 警戒 偏高 负债总额 300000.00 ÷ 所有者权益 100000.00"],
+    ref: "产权比率恰为 3 时属于偏高而非警戒。",
+  },
+  {
+    slug: "finance/analysis-5",
+    inputs: { ta: "400000", tl: "300100" },
+    clicks: ["calc()"],
+    expect: ["产权比率 3.00 3 警戒 警戒 负债总额 300100.00 ÷ 所有者权益 99900.00"],
+    ref: "产权比率略大于 3 时即使显示为 3.00 也应警戒。",
   },
   {
     slug: "finance/assessor-manager",
@@ -846,11 +1516,64 @@ const CASES = [
     ref: "该页把利润率/负债率按「百分数字符串」显示（注入 0.15 显示成 `净利润率：0.15%`），属既有百分比口径缺陷；本例只锚评分侧的 `75 /100` 结论。默认态不同 ⇒ 不命中。",
   },
   {
+    slug: "finance/assessor-manager",
+    inputs: {
+      debtRatio: "-20", currentRatio: "1.8", revenue: "5000",
+      profitMargin: "12", overdue: "1", creditHistory: "5",
+    },
+    clicks: ["calc()"],
+    expect: ["资产负债率不能为负数，请核对输入"],
+    ref: "F-N82 真锁：资产负债率 −20（非法负值）旧实现 dr<=50 得满档 25 分并把评级推到 AAA；现字段级校验拒绝。默认 dr=55（合法）不命中 ⇒ 零逃生。",
+  },
+  {
+    slug: "finance/assessor-manager",
+    inputs: {
+      debtRatio: "", currentRatio: "1.8", revenue: "5000",
+      profitMargin: "12", overdue: "1", creditHistory: "5",
+    },
+    clicks: ["calc()"],
+    expect: ["资产负债率须填写有效数字，不能留空或非数字"],
+    ref: "F-N82 真锁：资产负债率留空旧实现 `||0` 得满档 25 分；现字段级校验拒绝空值。默认 dr=55（非空）不命中 ⇒ 零逃生。",
+  },
+  {
+    slug: "finance/assessor-manager",
+    inputs: { debtRatio: "55", currentRatio: "1.8", revenue: "5000", profitMargin: "-5", overdue: "1", creditHistory: "5" },
+    clicks: ["calc()"],
+    expect: ["净利润率：-5%", "信用评分： 64 /100"],
+    ref: "亏损企业的负净利润率应按原分档得零分，而非拒绝评分。",
+  },
+  {
+    slug: "finance/assessor-manager",
+    inputs: { debtRatio: "55", currentRatio: "1.8", revenue: "5000", profitMargin: "", overdue: "1", creditHistory: "5" },
+    clicks: ["calc()"],
+    expect: ["净利润率须填写有效数字，不能留空或非数字"],
+    ref: "净利润率允许负数，但不允许空值。",
+  },
+  ...[
+    ["currentRatio", "-1", "流动比率不能为负数"],
+    ["revenue", "-1", "年营业收入不能为负数"],
+    ["overdue", "-1", "逾期次数不能为负数"],
+    ["creditHistory", "-1", "信用历史不能为负数"],
+    ["debtRatio", "101", "资产负债率须在 0–100% 之间"],
+    ["overdue", "1.5", "逾期次数须为非负整数"],
+  ].map(([field, value, message]) => ({
+    slug: "finance/assessor-manager",
+    inputs: { [field]: value }, clicks: ["calc()"], expect: [message],
+    ref: "逐项保留负数、负债率范围与逾期次数整数校验。",
+  })),
+  {
     slug: "finance/report-1",
     inputs: { premium: "5000", inv: "100000", capital: "500000", pct: "0.12" },
     clicks: ["calc()"],
     expect: ["子公司净资产 = 实收资本 500,000.00 + 未分配利润 200,000.00 + 评估增值 5,000.00 = 705,000.00 元"],
     ref: "子公司净资产 = 实收资本 500,000 + 未分配利润 200,000 + 评估增值 5,000 = 705,000（纯加法段，可独立复算）。该页 `pct` 按百分数解读（注入 0.12 得股权 0.12%、少数股东权益 704,154），属既有缺陷 ⇒ 本例只锁加法段，不把缺陷值固化成正确。默认态不同 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/report-1",
+    inputs: { inv: "800000", capital: "500000", retained: "200000", pct: "0" },
+    clicks: ["calc()"],
+    expect: ["持股比例须大于 0 且不超过 100（当前 0%）"],
+    ref: "F-N89 真锁：持股 0% 旧实现 p=0、diff=inv 全额确认为商誉（与「不纳入合并范围」相反）；现 pct<=0 拦截。默认 pct=80（合法）不命中 ⇒ 零逃生。",
   },
   {
     slug: "finance/npv-calculator",
@@ -922,6 +1645,13 @@ const CASES = [
     ref: "CAPM 单因子模型（无风险利率 Rf = 4%、β = 1.5、市场收益率 Rm = 10%、资产预期收益 15%）：市场风险溢价 = Rm − Rf = 10% − 4% = **6.000%**；风险补偿 = β×(Rm−Rf) = 1.5×6% = **9.000%**；必要收益率 E(R) = 4% + 9% = **13.0000%**。整页把中间式直接印在明细区，两条 expect 分别是「一步乘法」与「一步加法」，且与卡片上的「β 1.25 ⇒ 11.500%」对照行不同源。默认组（3% / 1.2 / 8% ⇒ 溢价 5%、补偿 6%、E(R) 9.0000%）不命中。",
   },
   {
+    slug: "finance/capm-return",
+    inputs: { rf: "0.04", beta: "1.5", rm: "0.10", obs: "0.15" },
+    clicks: ["var u=document.getElementById('unit');u.value='100';__capmSwitchUnit();document.getElementById('__tbProbe').textContent='UNIT '+u.value+' RF '+document.getElementById('rf').value+' RM '+document.getElementById('rm').value+' OBS '+document.getElementById('obs').value"],
+    expect: ["UNIT 100 RF 4 RM 10 OBS 15"],
+    ref: "F-N60 口径互转专用锁：切到百分数口径后，rf/rm/obs 须从 0.04/0.10/0.15 互转为 4/10/15（β 不换算）。旧实现无 onchange/无互转 ⇒ 输入仍 0.04/0.10/0.15 ⇒ 不命中。probe 挂 __tbProbe 抓转换后的实际输入值，避免仅靠结果串在小数口径下碰巧命中。",
+  },
+  {
     slug: "finance/compound-interest",
     inputs: { principal: "20000", rate: "6", years: "10", annual: "0" },
     clicks: ["calc()"],
@@ -983,6 +1713,61 @@ const CASES = [
     clicks: ["calc()"],
     expect: ["/ 2.5 = 44.00%", "建议仓位比例： 17.60%"],
     ref: "凯利公式仓位（资金 20 万、胜率 60%、盈亏比 2.5:1、按半凯利即 fraction=0.4 使用）：f* = (p×b − q)/b = (60%×2.5 − 40%)/2.5 = (1.5−0.4)/2.5 = **44.00%**；建议仓位比例 = 凯利分数 × fraction = 44% × 40% = **17.60%**；建议仓位金额 = 200,000 × 17.6% = ¥35,200（同页第三行）。整条链路三个量都只由注入值一步得出。默认组（10 万 / 55% / 2 / 0.5 ⇒ 32.50% / 16.25%）不命中。",
+  },
+  {
+    slug: "finance/position-size-calculator",
+    inputs: { "m-initial": "2000", "m-multiplier": "2", "m-times": "3", "m-droppct": "10" },
+    clicks: ["switchMethod('martingale')"],
+    expect: ["85.78（相对初始价下跌14.22%）"],
+    ref: "F-N54 马丁格尔平均成本 = 累计投入 / 累计股数（各层按各自价格折算）：2000/100=20、4000/90=44.4444、8000/81=98.7654 股，累计 14000/163.2099 = ¥85.78，相对初始价 100 跌 14.22%。旧实现 avg=cumCost/(cumPos/price) 恒等于当期价 ¥81.00（跌 19.00%）⇒ 不命中。默认马丁格尔 1000/2/5/10 ⇒ 平均 ¥71.23、跌幅 28.77%，亦不命中。",
+  },
+  {
+    slug: "finance/position-size-calculator",
+    inputs: { "m-initial": "2000", "m-multiplier": "2", "m-times": "3", "m-droppct": "10" },
+    clicks: ["switchMethod('martingale');document.getElementById('m-droppct').value='100';calc();document.getElementById('__tbProbe').textContent='MARTZERO '+(currentResult===null&&document.getElementById('statGrid').innerHTML===''&&document.getElementById('res').innerHTML.indexOf('跌幅')>=0?'OK':'BAD');"],
+    expect: ["MARTZERO OK"],
+    ref: "100% 跌幅导致后续成交价为零，应提示并清除上次有效结果和统计。",
+  },
+  {
+    slug: "finance/position-size-calculator",
+    inputs: { "m-initial": "2000", "m-multiplier": "2", "m-times": "3", "m-droppct": "101" },
+    clicks: ["switchMethod('martingale');document.getElementById('__tbProbe').textContent='MARTOVER '+(currentResult===null&&document.getElementById('res').innerHTML.indexOf('跌幅')>=0?'OK':'BAD');"],
+    expect: ["MARTOVER OK"],
+    ref: "越界跌幅不可生成买入计划。",
+  },
+  {
+    slug: "finance/position-size-calculator",
+    inputs: { "m-initial": "2000", "m-multiplier": "2", "m-times": "3", "m-droppct": "0" },
+    clicks: ["switchMethod('martingale');document.getElementById('__tbProbe').textContent='MARTFLAT '+(currentResult&&currentResult.positions.length===3&&currentResult.avgPrice===100?'OK':'BAD');"],
+    expect: ["MARTFLAT OK"],
+    ref: "零跌幅是有效输入，三层价格与平均成本均为 100。",
+  },
+  {
+    slug: "finance/position-size-calculator",
+    inputs: { "m-initial": "2000", "m-multiplier": "2", "m-times": "3", "m-droppct": "10" },
+    clicks: ["switchMethod('martingale');document.getElementById('m-droppct').value='100';calc();localStorage.clear();saveHistory();var exports=0,records=0;TBKit={util:{isEn:function(){return false},exportTable:function(){exports++}},history:{last:function(){return null},record:function(){records++}}};__position_size_calculatorExtras();__position_size_calculatorExport();document.getElementById('__tbProbe').textContent='MARTHIST '+(!localStorage.getItem(HISTORY_KEY)&&records===0&&exports===0?'OK':'BAD');"],
+    expect: ["MARTHIST OK"],
+    ref: "输入无效时不能保存或导出旧结果，也不能自动写入历史。",
+  },
+  {
+    slug: "finance/position-size-calculator",
+    inputs: { "m-initial": "2000", "m-multiplier": "2", "m-times": "1", "m-droppct": "100" },
+    clicks: ["switchMethod('martingale');document.getElementById('__tbProbe').textContent='MARTONE '+(currentResult&&currentResult.positions.length===1&&currentResult.avgPrice===100?'OK':'BAD');"],
+    expect: ["MARTONE OK"],
+    ref: "单层只在初始价格成交，不触发后续跌幅。",
+  },
+  {
+    slug: "finance/position-size-calculator",
+    inputs: { "m-initial": "2000", "m-multiplier": "2", "m-times": "20", "m-droppct": "99.99999999999999" },
+    clicks: ["switchMethod('martingale');document.getElementById('__tbProbe').textContent='MARTFINITE '+(currentResult===null?'OK':'BAD');"],
+    expect: ["MARTFINITE OK"],
+    ref: "极端跌幅导致价格或股数溢出时不能生成虚假成本。",
+  },
+  {
+    slug: "finance/mutual-fund-calculator",
+    inputs: { initial: "0", monthly: "0", years: "10", rate: "8" },
+    expect: ["无法计算（请输入有效现金流）"],
+    ref: "F-N43 零现金流：initial=0/monthly=0 ⇒ 现金流全 0，无正负号变化，IRR 不存在。旧实现固定区间二分后取中点 −0.5×12×100 = −600%；修复后 calcIRR 返回 NaN，渲染「无法计算（请输入有效现金流）」。默认 monthly=1000 ⇒ IRR 有限 ⇒ 不命中。",
   },
   {
     slug: "finance/installment-real-rate",
@@ -1077,6 +1862,20 @@ const CASES = [
     ref: "黄金折算（总投入 6,500 元、足金 999.9 含金量 99.99%、现价 600 元/克）：页面自印计算式 6,500 ÷ (含金量 99.99% × ¥**600.00**/克) = **10.8344 克**，其中 600.00 即注入现价（一步取值）、10.8344 即该式结果（6,500/(0.9999×600) = 10.83447，一步可复算）。同页纯度表列出足金 99.99% 每克 599.94 元、18K 金每克 450.00 元，均 = 600×纯度 ⇒ 自洽。默认现价 650 ⇒ 10.0015 克，不命中。",
   },
   {
+    slug: "finance/gold-price-calculator",
+    inputs: { goldPrice: "650", discountRate: "150", weightInput: "10" },
+    clicks: ["calcAll()"],
+    expect: ["回收折价率须在 0–100% 之间，请修改后重试。"],
+    ref: "F-N63 折价率上界：150% ⇒ 旧实现只靠 HTML max 属性、JS 读入后不校验，输出回收估价 ¥9,749.03（高于金料总值 6,499.35）。修复后字段级拒绝。默认 95% ⇒ 不命中。",
+  },
+  {
+    slug: "finance/gold-price-calculator",
+    inputs: { goldPrice: "650", discountRate: "-10", weightInput: "10" },
+    clicks: ["calcAll()"],
+    expect: ["回收折价率须在 0–100% 之间，请修改后重试。"],
+    ref: "F-N63 折价率下界：−10% ⇒ 旧实现输出负回收价 ¥−649.94 并进入复制/导出/历史。修复后字段级拒绝。默认 95% ⇒ 不命中。",
+  },
+  {
     slug: "finance/break-even-calculator",
     inputs: { fc: "150000", price: "60", vc: "35", taxRate: "25" },
     clicks: ["calc()"],
@@ -1117,6 +1916,13 @@ const CASES = [
     clicks: ["calcTool()"],
     expect: ["12.50 每万分兑换价值（元）", "0.13 每 100 分兑换价值（元）"],
     ref: "积分兑换价值（积分 20,000 个、标价 25 元、加钱 0 元）：每万分兑换价值 = 25 ÷ (20,000/10,000) = **12.50 元**；每 100 分兑换价值 = 12.50/100 = **0.13 元**（同一数值换百分之一口径，同源只差一个百分数）。默认组（10,000 分 / 20 元 ⇒ 20.00 / 0.20）不命中。",
+  },
+  {
+    slug: "finance/points-redemption-value",
+    inputs: { pts: "10000", val: "20", fee: "30" },
+    clicks: ["calcTool()"],
+    expect: ["加钱金额已超过商品价值，换购不划算，请核对输入"],
+    ref: "F-N68 真锁：加钱 30 元 > 商品价值 20 元时净价值为负，旧实现照常输出负「净得价值/每万分价值」并判「偏亏」；现显式拦截点明「加钱已超过商品价值」。默认 fee=0（未超）不命中；fee==val（补强用例 42/42/42）仍合法不命中 ⇒ 零逃生。",
   },
   {
     slug: "finance/points-redemption-value",
@@ -1243,6 +2049,27 @@ const CASES = [
   },
   {
     slug: "finance/invoice-generator",
+    inputs: { "rv-total": "10000", "rv-tax": "15000" },
+    clicks: ["currentMethod='reverse'; calc()"],
+    expect: ["税额不得超过含税金额"],
+    ref: "F-N77：反推税额越界（15,000 > 10,000）旧实现给出不含税 −5,000、税率 0.0000% 与矛盾公式；修复后先校验 0 ≤ tax ≤ total 并标红停止。默认组 10,000 / 825.69 不命中该拒绝语。",
+  },
+  {
+    slug: "finance/invoice-generator",
+    inputs: { "rv-total": "10000", "rv-tax": "-1" },
+    clicks: ["currentMethod='reverse'; calc()"],
+    expect: ["税额不得小于 0"],
+    ref: "F-N77：税额为负时旧实现把不含税放大到 10,001 并输出负税率；修复后拒绝 tax < 0。默认组税额 825.69 为正，不命中。",
+  },
+  {
+    slug: "finance/invoice-generator",
+    inputs: { "rv-total": "10000", "rv-tax": "10000" },
+    clicks: ["currentMethod='reverse'; calc()"],
+    expect: ["不含税为 0，无法反推税率"],
+    ref: "F-N77：税额恰等于含税金额时不含税为 0，旧实现静默输出 0.0000% 税率；修复后明确提示无法反推并停止。默认组 10,000 / 825.69 不会命中该提示。",
+  },
+  {
+    slug: "finance/invoice-generator",
     inputs: { "sp-total": "80000", "sp-limit": "-5000" },
     clicks: ["currentMethod='split'; calc()"],
     expect: ["单张限额必须大于 0"],
@@ -1253,15 +2080,43 @@ const CASES = [
     slug: "finance/insurance-calculator",
     inputs: { dt_income: "36", dt_expense: "22", dt_debt: "120", dt_existing: "25" },
     clicks: ["switchMethod('dual-ten'); calc()"],
-    expect: ["455万", "180 万保额", "360万 (年收入×10)"],
-    ref: "双十法则非默认组（年收入 36 万、负债 120 万、存量保障 25 万）：寿险保额 = max(年收入×10 + 负债 − 存量, 0) = 360 + 120 − 25 = **455 万**；重疾 = max(年收入×5, 30) = 180 万；意外 = 年收入×10 = 360 万；年保费预算 = 年收入×10% = 3.6 万。三条 expect 分别锚在 stat 卡、险种配置条、明细拆解行上，同源不同式，可一步复核。默认组（年收入 20 / 负债 80 / 存量 10）⇒ 270 / 100 / 200 万，三条都不命中。",
+    expect: ["455万", "180 万保额", "年收入36万×10 + 负债120万 − 已有保障25万 = 455万"],
+    ref: "双十法则非默认组（年收入 36 万、负债 120 万、存量保障 25 万）：寿险保额 = max(年收入×10 + 负债 − 存量, 0) = 360 + 120 − 25 = **455 万**；重疾 = max(年收入×5, 30) = 180 万；明细拆解行同步展示完整算式（F-N55 修复后与结果卡一致，旧实现硬写 360 万年收入×10 与 455 万结果卡矛盾）。三条 expect 分别锚在 stat 卡、险种配置条、明细拆解行上，同源不同式，可一步复核。默认组（年收入 20 / 负债 80 / 存量 10）⇒ 270 / 100 / 算式 200+80−10=270，三条都不命中。",
+  },
+  {
+    slug: "finance/insurance-calculator",
+    inputs: { dt_income: "28", dt_expense: "15", dt_debt: "90", dt_existing: "33" },
+    clicks: ["switchMethod('dual-ten'); calc()"],
+    expect: ["年收入28万×10 + 负债90万 − 已有保障33万 = 337万"],
+    ref: "F-N55 明细与结果卡一致性专用锁：寿险 = 28×10 + 90 − 33 = 337 万；明细行须展示完整算式并与结果卡 337万 同源。旧实现明细硬写「280万 (年收入×10)」与结果卡 337万 矛盾 ⇒ 本串不命中。仅锚这一条输入绑定串，避免 stat 卡正确值让整个 expect「或」命中掩盖明细修复。默认组算式 20×10+80−10=270 ⇒ 不命中。",
   },
   {
     slug: "finance/insurance-calculator",
     inputs: { dt_income: "10", dt_expense: "8", dt_debt: "0", dt_existing: "200" },
     clicks: ["switchMethod('dual-ten'); calc()"],
-    expect: ["50 万保额", "1.0万", "100万 (年收入×10)"],
-    ref: "存量保障金反超需求：年收入×10 + 负债 = 100 + 0 < 存量 200 ⇒ 寿险保额 = max(…, 0) = 0 万；同组重疾 = max(10×5, 30) = 50 万、年保费预算 = 10×10% = 1.0 万。刻意不锚任何「0 万 / 0 万保额」串：harness 兜底阶段会以 switchMethod(undefined) 重跑 calc()，currentMethod 落空 ⇒ 四个保额量全部取初值 0 并写回结果区，该串在默认态 likewise 命中 ⇒ 逃生项。",
+    expect: ["年收入10万×10 + 负债0万 − 已有保障200万 = -100万；取零下限后 = 0万"],
+    ref: "F-N55 触底：先准确展示原算式 −100 万，再显示零下限后的结果 0 万，不能把未经截断的算式直接写成等于 0。",
+  },
+  {
+    slug: "finance/insurance-calculator",
+    inputs: { dt_income: "10", dt_expense: "8", dt_debt: "0", dt_existing: "100" },
+    clicks: ["switchMethod('dual-ten');var r=String(document.getElementById('res').innerHTML),s=String(document.getElementById('statGrid').innerHTML);document.getElementById('__tbProbe').textContent='INSZERO '+(r.indexOf('年收入10万×10 + 负债0万 − 已有保障100万 = 0万；取零下限后 = 0万')>=0&&s.indexOf('0万')>=0?'OK':'BAD');"],
+    expect: ["INSZERO OK"],
+    ref: "原始结果恰好为零，明确展示零下限后结果并匹配结果卡。",
+  },
+  {
+    slug: "finance/insurance-calculator",
+    inputs: { dt_income: "28", dt_expense: "15", dt_debt: "90", dt_existing: "33" },
+    clicks: ["switchMethod('dual-ten');var r=String(document.getElementById('res').innerHTML),s=String(document.getElementById('statGrid').innerHTML);document.getElementById('dt_expense').value='99';calc();var r2=String(document.getElementById('res').innerHTML),s2=String(document.getElementById('statGrid').innerHTML);document.getElementById('__tbProbe').textContent='INSPOS '+(r.indexOf('年收入28万×10 + 负债90万 − 已有保障33万 = 337万；取零下限后 = 337万')>=0&&s.indexOf('337万')>=0&&s2.indexOf('337万')>=0&&r2.indexOf('年支出不进入本法则公式')>=0&&r2.indexOf('99万')>=0?'OK':'BAD');"],
+    expect: ["INSPOS OK"],
+    ref: "正值明细与结果卡一致；修改年支出不改变寿险计算并保留参考项说明。",
+  },
+  {
+    slug: "finance/insurance-calculator",
+    inputs: { dt_income: "10.04", dt_expense: "8", dt_debt: "0", dt_existing: "0" },
+    clicks: ["switchMethod('dual-ten');var r=String(document.getElementById('res').innerHTML),s=String(document.getElementById('statGrid').innerHTML);document.getElementById('__tbProbe').textContent='INSDEC '+(r.indexOf('= 100.4万；取零下限后 = 100.4万')>=0&&r.indexOf('100.4 万保额')>=0&&s.indexOf('100.4万')>=0?'OK':'BAD');"],
+    expect: ["INSDEC OK"],
+    ref: "允许小数输入时，明细、结果卡和险种建议同为 100.4 万，不泄漏浮点噪声或静默取整。",
   },
   {
     slug: "finance/insurance-calculator",
@@ -1299,6 +2154,41 @@ const CASES = [
     expect: ["综合单位成本 = 250,000.000 ÷ 5,000.000 = 50.000 元 / 件", "250.000分摊率（元 / 单位基数）", "50.000综合单位成本（元 / 件）"],
     ref: "注入非默认(默认 total=120000/dec=2)：作业成本分配法 分摊额 = 250,000；分摊率 = 250,000 ÷ Σ基数 1,000 = 250.000 元/单位基数；综合单位成本 = 50.000 元/件。默认态 24.00（120,000 ÷ 5,000），三条均不命中。",
   },
+  {
+    slug: "finance/analysis-cost-1",
+    inputs: { total: "120000", dec: "2", outQty: "1500,-500,1000" },
+    clicks: ["calc()"],
+    expect: ["合计 1,000.00 100.00% 120,000.00 —"],
+    ref: "F-N84 真锁：产量含负值 -500，旧实现 qtyOk 只比条数、sumQty 累加负数得 2000 ⇒ 综合单位成本 60.00，合计行末位为 60.00；现 qtyOk 要求逐项有限且非负，负值使整体降级，合计行末位为「—」。锚点含 total=120,000（Σ基数默认 1,000）；默认 outQty=1500,2500,1000（全正，末位 24.00）不命中 ⇒ 零逃生。",
+  },
+  {
+    slug: "finance/analysis-cost-1",
+    inputs: { outQty: "1500,-500,1000" },
+    clicks: ["calc()"],
+    expect: ["产量必须为非负且有效的数字"],
+    ref: "负产量应明确提示无效，而非误报条数不一致。",
+  },
+  {
+    slug: "finance/analysis-cost-1",
+    inputs: { outQty: "1500,abc,1000" },
+    clicks: ["calc()"],
+    expect: ["产量必须为非负且有效的数字"],
+    ref: "非法产量应明确提示无效。",
+  },
+  {
+    slug: "finance/analysis-cost-1",
+    inputs: { outQty: "1500,1000" },
+    clicks: ["calc()"],
+    expect: ["产量条数（2）与对象条数（3）不一致"],
+    ref: "产量数量不匹配时保留对应提示。",
+  },
+  {
+    slug: "finance/analysis-44",
+    inputs: { items: "X,-500,600\n主体工程,500000,530000" },
+    clicks: ["calcBatch()"],
+    expect: ["已跳过 1 行：计划投资需大于 0 或数据无效"],
+    ref: "F-N85 真锁：批量行 X 计划 -500（录入符号错误），旧 calcBatch 仅 isFinite 校验，负分母把超支翻成 -220% 且判「明显节约」；现 pl<=0 的行跳过并汇总提示。默认 items 无负计划（跳过 0）不命中 ⇒ 零逃生。",
+  },
 
   // ── 零用例加固（2026-10-09）──────────────────────────
   {
@@ -1326,6 +2216,20 @@ const CASES = [
     inputs: { input: "Hello World", mode: "allchar" },
     expect: ["dlroW olleH"],
     ref: "按 allchar 模式整体反转：Hello World → dlroW olleH。默认态（mode=space、输入为「Hello World ToolBox/中文」两行）按词反转，输出不含 dlroW olleH ⇒ 不命中。",
+  },
+  {
+    slug: "finance/text-reverse-words",
+    inputs: { input: "COPY_ANCHOR_2026" },
+    clicks: ["var __cpText='',__cpErr='none',__copied=false,__bv='复制结果';var __btn={};Object.defineProperty(__btn,'textContent',{get:function(){return __bv;},set:function(v){__bv=String(v);if(__bv.indexOf('✅ 已复制')>=0)__copied=true;}});__btn.closest=function(){return this;};var __ev={target:{closest:function(){return __btn;}}};document.getElementById('result').textContent=document.getElementById('input').value;navigator.clipboard.writeText=function(t){__cpText=String(t);return {then:function(cb){try{if(typeof cb==='function')cb();}catch(e){__cpErr=String(e&&e.message||e);}}}};try{copyResult(__ev);}catch(e){__cpErr=String(e&&e.message||e);}document.getElementById('__tbProbe').textContent='FN177 '+(__copied?'COPIED':'NO')+'|'+__cpErr+'|'+__cpText;"],
+    expect: ["FN177 COPIED|none|COPY_ANCHOR_2026"],
+    ref: "F-N177 复制回调防回归锁：copyResult(ev) 必须用形参 ev 的 target.closest('.btn') 取按钮，在 writeText().then() 回调里把文案改为「✅ 已复制」且回调不抛。修复前用全局 event（harness 页面作用域无 event）⇒ 回调抛 TypeError、按钮文案不变 ⇒ 探针为『FN177 NO|event is not defined|…』不命中；探针用 __tbProbe 记录按钮是否曾被写入「✅ 已复制」（避开 setTimeout 同步恢复污染）+ 绑定输入锚 ⇒ 零逃生。",
+  },
+  {
+    slug: "finance/text-reverse-words",
+    inputs: { input: "他说「你好，世界」。", mode: "zhchar" },
+    clicks: ["document.getElementById('keepPunc').checked=true;reverse();document.getElementById('__tbProbe').textContent='FN179 '+document.getElementById('input').value+' '+document.getElementById('result').textContent;"],
+    expect: ["FN179 他说「你好，世界」。 界世「好你，说他」。"],
+    ref: "F-N179 中文标点原位防回归锁：keepPunc 用 Unicode 标点类 \\p{P} 覆盖「」等中文引号，zhchar 模式逐字切分后标点固定原位、仅汉字反转 ⇒ 界世「好你，说他」。（旧手写字符集不含「」⇒ 参与反转得 」界世好你，「说他。，不命中。）探针绑定输入锚与 __tbProbe ⇒ 默认态零逃生。",
   },
   {
     slug: "finance/futures-pnl-calculator",
@@ -1381,9 +2285,9 @@ const CASES = [
       "input": "abc123测试"
     },
     "expect": [
-      "abc123测试\n输入： abc123测试 ⚠️ Aadhaar 必须为 12 位数字（当前 3 位）"
+      "abc123测试\n输入： abc123测试 ❌ 第 1 位含非法字符「a」"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，输出区含「abc123测试\n输入： abc123测试 ⚠️ Aadhaar 必须为 12 …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，F-N151 修复后含字母在第 1 位报「非法字符「a」」（旧实现静默剔除后按位数判）；输出区绑定输入串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "finance/aba-validator",
@@ -1391,9 +2295,9 @@ const CASES = [
       "input": "abc123测试"
     },
     "expect": [
-      "abc123测试\n⚠️ ABA Routing Number 必须为 9 位数字（当前 3 位）"
+      "❌ 含非法字符：仅允许数字、空格或连字符"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，输出区含「abc123测试\n⚠️ ABA Routing Number 必须为 9 位数字…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，非法字符须被明确拒绝，不能静默剥离后计算。"
   },
   {
     "slug": "finance/abn-validator",
@@ -1401,9 +2305,9 @@ const CASES = [
       "input": "abc123测试"
     },
     "expect": [
-      "abc123测试\n输入： abc123测试 ⚠️ ABN 必须为 11 位数字（当前 3 位）"
+      "❌ 含非法字符：仅允许数字、空格或连字符"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，输出区含「abc123测试\n输入： abc123测试 ⚠️ ABN 必须为 11 位数字（…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "ABN 非法字符必须明确拒绝，不能静默剔除或直接插入 HTML。"
   },
   {
     "slug": "finance/amount-in-words",
@@ -1483,9 +2387,9 @@ const CASES = [
       "input": "abc123测试"
     },
     "expect": [
-      "abc123测试\n❌ 银行代码（前 4 位）必须为大写字母"
+      "abc123测试\n按行名检索：ABC123测试 ❌ 离线库中未找到匹配的行名"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，输出区含「abc123测试\n❌ 银行代码（前 4 位）必须为大写字母」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "F-N186 同步：反向检索分支接管含中文的非 BIC 输入，`abc123测试` 修复后走行名检索并提示未找到（旧实现报「银行代码必须为大写字母」）；默认态（CHASUS33）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "finance/cagr",
@@ -1535,11 +2439,11 @@ const CASES = [
   {
     "slug": "finance/capm-return",
     "inputs": {
+      "unit": "100",
       "rf": "42",
       "beta": "42",
       "rm": "42",
-      "obs": "42",
-      "unit": "100"
+      "obs": "42"
     },
     "expect": [
       "00% ，α = 42.000% − 42.000% = 0.000% α 接近 0，实际收益与 CAPM 要求回报基本吻合，未发现明显的定价偏差。"
@@ -1552,9 +2456,9 @@ const CASES = [
       "input": "abc123测试"
     },
     "expect": [
-      "abc123测试\n输入： abc123测试 ⚠️ CNPJ 必须为 14 位数字（当前 3 位）"
+      "abc123测试\n输入： abc123测试 ❌ 第 1 位含非法字符「a」：CNPJ 只能包含数字及 . / - 分隔符。"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，输出区含「abc123测试\n输入： abc123测试 ⚠️ CNPJ 必须为 14 位数字…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "F-N168 字符白名单守卫（第98批同步）：注入非默认输入{\"input\":\"abc123测试\"}，旧实现先 replace(\\D,'') 静默剥离字母后按 123 判位数错误；新实现先白名单守卫点名第 1 位非法字符「a」。默认态（合法预填）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "finance/break-even-calculator",
@@ -1639,9 +2543,9 @@ const CASES = [
       "input": "abc123测试"
     },
     "expect": [
-      "abc123测试\n输入： abc123测试 ⚠️ CPF 必须为 11 位数字（当前 3 位）"
+      "abc123测试\n输入： abc123测试 ❌ 第 1 位含非法字符「a」"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，输出区含「abc123测试\n输入： abc123测试 ⚠️ CPF 必须为 11 位数字（…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，F-N154 修复后含字母在第 1 位报「非法字符「a」」（旧实现静默剔除后按位数判）；输出区绑定输入串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "finance/credit-card-bin",
@@ -1649,9 +2553,9 @@ const CASES = [
       "input": "abc123测试"
     },
     "expect": [
-      "abc123测试\n⚠️ 需要至少 6 位数字（当前 3 位）"
+      "只能包含数字、空格或连字符"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，输出区含「abc123测试\n⚠️ 需要至少 6 位数字（当前 3 位）」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "BIN 输入含字母须拒绝，不能静默剥离后继续识别。"
   },
   {
     "slug": "finance/credit-card-luhn",
@@ -1659,9 +2563,9 @@ const CASES = [
       "input": "abc123测试"
     },
     "expect": [
-      "abc123测试\n数字： 123 长度： 3 位 Luhn 校验： ❌ 未通过 ❌ Luhn 校验失败，卡号无效"
+      "只能包含数字、空格或连字符"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，输出区含「abc123测试\n数字： 123 长度： 3 位 Luhn 校验： ❌ 未通过 …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "含非数字的 Luhn 输入须拒绝，不能静默剥离非法字符。"
   },
   {
     "slug": "finance/car-loan-calculator",
@@ -1688,9 +2592,9 @@ const CASES = [
       "input": "abc123测试"
     },
     "expect": [
-      "卡片类型（前缀初步判断）： 未知 ❌ 无法识别的卡片类型"
+      "只能包含数字、空格或连字符"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，输出区含「abc123测试\n输入数字： 123 长度： 3 位 卡片类型： 未知 ❌ 无法…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "卡类型输入含非法字符须拒绝，不能静默剥离后识别。"
   },
   {
     "slug": "finance/credit-card-grace-period",
@@ -1823,9 +2727,9 @@ const CASES = [
       "input": "abc123测试"
     },
     "expect": [
-      "abc123测试\n输入： ABC123测试 ❌ 格式不符。ESN HEX 应为 8 位十六进制，ESN DEC 应为 11 位十进制 提示：ESN 已被 MEID 取代，仅旧设备使用"
+      "abc123测试\n输入： ABC123测试 ❌ 第 7 位含非法字符「测」"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，输出区含「abc123测试\n输入： ABC123测试 ❌ 格式不符。ESN HEX 应为 …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，F-N156 修复后含中文「测」在第 7 位报「非法字符」（旧实现静默剔除后按位数判格式不符）；输出区绑定输入串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "finance/ein-validator",
@@ -1833,9 +2737,9 @@ const CASES = [
       "input": "abc123测试"
     },
     "expect": [
-      "abc123测试\n输入： abc123测试 ⚠️ EIN 必须为 9 位数字（当前 3 位）"
+      "输入： abc123测试 ❌ 含非法字符，仅允许数字、空格和连字符"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，输出区含「abc123测试\n输入： abc123测试 ⚠️ EIN 必须为 9 位数字（当…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "EIN 非数字字符不得被静默剔除，输入含字母时应报告非法字符。"
   },
   {
     "slug": "finance/generator-report-1",
@@ -1917,9 +2821,9 @@ const CASES = [
       "input": "abc123测试"
     },
     "expect": [
-      "abc123测试\n输入： abc123测试 ⚠️ IMEI 必须为 14 或 15 位数字（当前 3 位）"
+      "输入： abc123测试 ❌ 含非法字符，仅允许数字、空格和连字符"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，输出区含「abc123测试\n输入： abc123测试 ⚠️ IMEI 必须为 14 或 1…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "IMEI 和 IMEISV 不得静默丢弃输入中的非法字符。"
   },
   {
     "slug": "finance/dca-calculator",
@@ -2120,9 +3024,9 @@ const CASES = [
       "input": "abc123测试"
     },
     "expect": [
-      "abc123测试\n❌ 长度不符。HEX MEID 应为 14 或 15 位，DEC MEID 应为 18 或 19 位（当前 6 位）"
+      "abc123测试\n输入： ABC123测试 ❌ 含非法字符（仅允许 0-9、A-F 及空格/连字符）"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，输出区含「abc123测试\n❌ 长度不符。HEX MEID 应为 14 或 15 位，DE…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "F-N206 同步：含字母 G-Z/中文的非法输入修复后走「含非法字符」拒绝（旧实现剥离字母按清洗位数报长度错误）；默认态纯 hex A0000012345678 不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "finance/mirror-text",
@@ -2270,6 +3174,33 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"pv\":\"42\",\"downPct\":\"42\",\"rate\":\"42\",\"months\":\"42\",\"fv\":\"42\",\"fee\":\"42\",\"type\":\"principal\",\"timing\":\"begin\"}，输出区含「余本金 第1期 ¥0.45 ¥-0.42 ¥0.87 ¥24.78 第2期 ¥0…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
+    slug: "finance/password-generator-advanced",
+    inputs: { "len": "8", "count": "3" },
+    clicks: ["document.getElementById('up').checked=true;document.getElementById('lo').checked=true;document.getElementById('nm').checked=true;generate();var before=String(document.getElementById('output').innerHTML).length;clearAll();document.getElementById('__tbProbe').textContent='PGCLR before='+(before>0?'Y':'N')+' after='+String(document.getElementById('output').innerHTML).length+' strength='+String(document.getElementById('strengthText').textContent);"],
+    expect: ["PGCLR before=Y after=0 strength=点击生成按钮"],
+    ref: "F-N142 核实锁：旧按钮 onclick 只声明常量，生成 3 条后清空无效；现 clearAll() 同时清 #output 与强度条并把文案复位「点击生成按钮」。探针绑定 before>0 与 after=0，默认态无 PGCLR 探针串 ⇒ 零逃生。",
+  },
+  {
+    slug: "finance/password-generator-advanced",
+    inputs: { "len": "8", "count": "3" },
+    clicks: ["document.getElementById('up').checked=true;document.getElementById('lo').checked=true;document.getElementById('nm').checked=true;generate();var q=document.querySelectorAll;document.querySelectorAll=function(sel){if(sel==='#output .hist-item'){return [{textContent:'AAAAAAAA'},{textContent:'BBBBBBBB'},{textContent:'CCCCCCCC'}];}return q(sel);};var t='';navigator.clipboard={writeText:function(s){t=String(s);return Promise.resolve();}};copyResult();document.querySelectorAll=q;document.getElementById('__tbProbe').textContent='PGCOPY='+JSON.stringify(t);"],
+    expect: ["PGCOPY=\"AAAAAAAA\\nBBBBBBBB\\nCCCCCCCC\""],
+    ref: "F-N144 核实锁：stub DOM 不建模 innerHTML 子元素 textContent（#output.textContent 为空、.hist-item 节点无文本），故注入 querySelectorAll 桩返回三条固定文本，直接验证 copyResult 的逐行 join('\n') 行为：旧实现取整块 textContent ⇒ 无换行；现逐条文本换行拼接 ⇒ 三条各行。探针由 clicks 写入，默认态无 PGCOPY 串。",
+  },
+  {
+    slug: "finance/password-generator-advanced",
+    clicks: ["updateStrengthBatch(['a','Abcdefgh1!']);document.getElementById('__tbProbe').textContent='PGBAT '+String(document.getElementById('strengthText').textContent);"],
+    expect: ["PGBAT 强度：很弱 (0/5)（批量按最弱一条）"],
+    ref: "F-N145 核实锁：旧 generate 仅对首条 updateStrength，批量强度口径错误；现 updateStrengthBatch 取最弱一条并标注「批量按最弱一条」。直接注入 ['a','Abcdefgh1!'] 令最弱分=0，默认态无 PGBAT 探针串 ⇒ 零逃生。",
+  },
+  {
+    slug: "finance/password-generator-advanced",
+    inputs: { "len": "8", "count": "2" },
+    clicks: ["__password_generator_advanced_last=0;__password_generator_advancedSnap=function(){return {count:'2',len:'8'};};__password_generator_advancedResText=function(){return 'AAAAAAAA BBBBBBBB';};var rec=null;if(typeof TBKit==='undefined'){TBKit={util:{isEn:function(){return false},diffBox:function(){}},history:{record:function(r){rec=r;},last:function(){return null;},mount:function(){},list:function(){return [];}},matrix:{table:function(){}}};}else{TBKit.util=TBKit.util||{};TBKit.util.isEn=function(){return false;};TBKit.util.diffBox=function(){};TBKit.history={record:function(r){rec=r;},last:function(){return null;},mount:function(){},list:function(){return [];}};TBKit.matrix=TBKit.matrix||{};TBKit.matrix.table=function(){};}__password_generator_advancedExtras();document.getElementById('__tbProbe').textContent='PGMASK='+(rec?String(rec['结果']||''):'NOREC');"],
+    expect: ["PGMASK=已生成 2 条 · 长度 8（未保存明文）"],
+    ref: "F-N143 隐私锁：stub 的组合选择器不识别 input[id],select[id] 等，故对快照/结果文本注入桩函数，直接验证 Extras 写入历史的 rk 字段是掩码而非明文：旧实现 rec[rk]=res（明文）⇒ 不命中；现写「已生成 N 条 · 长度 L（未保存明文）」。绑定注入 len=8/count=2，默认态无 PGMASK 探针。",
+  },
+  {
     "slug": "finance/password-generator-advanced",
     "inputs": {
       "len": "42",
@@ -2348,9 +3279,9 @@ const CASES = [
       "input": "abc123测试"
     },
     "expect": [
-      "abc123测试\n输入： ABC123测试 匹配的国家/格式： ✅ Hong Kong（HK）：香港无邮编系统（默认通过）"
+      "abc123测试\n输入： ABC123测试 ❌ 不匹配任何已知国家的邮编格式"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，输出区含「abc123测试\n输入： ABC123测试 匹配的国家/格式： ✅ Hong K…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "F-N218 同步：香港 /.*/ 不再默认通过，带中文的任意串 `abc123测试` 修复后落入「不匹配任何已知国家的邮编格式」；默认态（100000）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "finance/position-size-calculator",
@@ -2406,9 +3337,9 @@ const CASES = [
       "sellFee": "42"
     },
     "expect": [
-      "30% 第2年 ¥504.00 ¥1,050.00 ¥396.38 ¥357.16 -62.25% 第3年 ¥504.00 ¥1,554.00 ¥492.14 ¥408.24 -68.33% 第4年 ¥504.00 ¥2,058.00 ¥5"
+      "期末资产 ¥403.68 累计收益 -¥20,806.32 费用合计 ¥9,200.52"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"monthly\":\"42\",\"years\":\"42\",\"rate\":\"42\",\"initial\":\"42\",\"buyFee\":\"42\",\"manageFee\":\"42\",\"custodyFee\":\"42\",\"sellFee\":\"42\"}，输出区含「30% 第2年 ¥504.00 ¥1,050.00 ¥396.38 ¥357.1…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "月末买入下 42 年、42% 收益和各项 42% 费率时，期末资产 403.68、亏损 20,806.32、申购赎回费用 9,200.52。"
   },
   {
     "slug": "finance/rental-yield-calculator",
@@ -2439,9 +3370,9 @@ const CASES = [
       "input": "abc123测试"
     },
     "expect": [
-      "abc123测试\n⚠️ ABA Routing Number 必须为 9 位数字（当前 3 位）"
+      "❌ 含非法字符：仅允许数字、空格或连字符"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，输出区含「abc123测试\n⚠️ ABA Routing Number 必须为 9 位数字…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，非法字符须被明确拒绝，不能静默剥离后计算。"
   },
   {
     "slug": "finance/payroll-calculator",
@@ -2595,9 +3526,9 @@ const CASES = [
       "input": "abc123测试"
     },
     "expect": [
-      "abc123测试\n输入： abc123测试 ⚠️ SIN 必须为 9 位数字（当前 3 位）"
+      "abc123测试\n❌ SIN 只能包含数字、空格或连字符"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，输出区含「abc123测试\n输入： abc123测试 ⚠️ SIN 必须为 9 位数字（当…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "F-N209 同步：含字母/中文的非法字符输入修复后走「只能包含数字、空格或连字符」拒绝（旧实现剥离字母按 3 位报错）；默认态（130692544）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "finance/salary-calculator",
@@ -2632,9 +3563,9 @@ const CASES = [
       "input": "abc123测试"
     },
     "expect": [
-      "abc123测试\n输入： abc123测试 ⚠️ Sort Code 必须为 6 位数字（当前 3 位）"
+      "abc123测试\n输入： abc123测试 ❌ Sort Code 仅允许数字、空格或连字符，含字母为格式错误"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，输出区含「abc123测试\n输入： abc123测试 ⚠️ Sort Code 必须为 6…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "F-N197 同步：含字母/中文输入修复后走「含字母为格式错误」拒绝（旧实现剥离字母按 3 位报错）；默认态（200000）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "finance/swift-bic-validator",
@@ -2728,9 +3659,9 @@ const CASES = [
       "input": "abc123测试"
     },
     "expect": [
-      "abc123测试\n输入： abc123测试 ⚠️ TFN 必须为 8 或 9 位数字（当前 3 位）"
+      "输入： abc123测试 ❌ 含非法字符：仅允许数字、空格或连字符"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，输出区含「abc123测试\n输入： abc123测试 ⚠️ TFN 必须为 8 或 9 位…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，输入安全回显且非法字符须被明确拒绝。"
   },
   {
     "slug": "finance/uan-validator",
@@ -2738,9 +3669,9 @@ const CASES = [
       "input": "abc123测试"
     },
     "expect": [
-      "abc123测试\n输入： abc123测试 ⚠️ UAN 必须为 12 位数字（当前 3 位）"
+      "abc123测试\n输入： abc123测试 ❌ 第 1 位含非法字符「a」"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，输出区含「abc123测试\n输入： abc123测试 ⚠️ UAN 必须为 12 位数字（…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，F-N148 修复后含字母在第 1 位报错「非法字符「a」」（旧实现静默剔除 abc/测试 后按 3 位报长度错）；输出区绑定输入串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "finance/vcard-qr",
@@ -2779,9 +3710,9 @@ const CASES = [
       "input": "1\n2\n3"
     },
     "expect": [
-      "1 2 3\n5 总字符数 3 不含空格 0 中文字符 0 英文单词 3 行数 1 段落数 1 句子数 1分钟 预计阅读时间\n📖 可读性分析 平均句长： 3.0 词/句 | 平均每词： 1.0 字符 | 难度： 简单"
+      "1 2 3\n5 总字符数 3 不含空格 0 中文字符 0 英文单词 3 行数 1 段落数 1 句子数 1分钟 预计阅读时间\n📖 可读性分析 平均句长： 0.0 词/句 | 平均每词： 0 字符 | 难度： 简单"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\"}，输出区含「1 2 3\n5 总字符数 3 不含空格 0 中文字符 0 英文单词 3 行数 1…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\"}。F-N174 新口径词数=英文单词+中文字符，纯数字无可读词 ⇒ 平均句长 0.0（旧空白切分误把 3 个数字当 3 词得 3.0）。绑定输入与数值 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "finance/word-frequency",
@@ -3124,22 +4055,35 @@ const CASES = [
     ref: "F-N47：保证金比例 0 ⇒ 旧实现保证金为 0、保证金收益率显示 +0.00%，与大额盈亏自相矛盾；修复后字段级拒绝。默认 12% ⇒ 不命中。",
   },
   {
-    slug: "finance/mutual-fund-calculator",
-    inputs: { initial: "10000", monthly: "1000", years: "1", rate: "-50" },
-    expect: ["-¥7,090 总收益"],
-    ref: "F-N44：初始 10,000、月投 1,000、1 年、年化 −50% ⇒ 总收益 −7,090.43、累计收益率 −32.23%。旧实现金额取绝对值且亏损不加符号，卡片显示「¥7,090」；修复后为「-¥7,090」。默认盈利 ⇒ 不命中。",
+    slug: "finance/futures-pnl-calculator",
+    inputs: { lots: "0" },
+    clicks: ["copyResult()"],
+    expect: ["输入有误，无法复制结果"],
+    ref: "F-N47 复制绕过校验：手数 0 时 calc() 显示字段错误，但旧 copyResult() 仍按 ||1 兜底生成并复制完整盈亏；修复后 copyResult() 先走 validateInputs() 并拒绝复制。默认态复制正常 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/investment-calculator",
+    inputs: { initial: "10000", final: "8000", years: "5", additional: "-5000" },
+    expect: ["追加投入须 ≥ 0；如需从本金中取出，请按真实现金流另行计算。"],
+    ref: "F-N46：初始 10,000、期末 8,000、追加 −5,000 ⇒ 旧实现 totalInv=5,000、累计盈亏 +3,000、回报率 +60.00%、CAGR +9.86%，把真实亏损包装成高收益；修复后字段级拒绝负追加。默认追加 0 ⇒ 不命中。",
   },
   {
     slug: "finance/mutual-fund-calculator",
     inputs: { initial: "10000", monthly: "1000", years: "1", rate: "-50" },
-    expect: [" -32.23% 累计收益率"],
-    ref: "F-N44 双负号修复：亏损时累计收益率 −32.23% 只应有一个负号（旧实现 profitSign 复用到已是负值的 totalReturn，卡片显示「--32.23%」）。statGrid 速率卡断言「 -32.23% 累计收益率」（前导空格保证不与「--32.23%」子串误配）。默认盈利态不含该负收益率串 ⇒ 不命中。",
+    expect: ["-¥6,682 总收益"],
+    ref: "F-N44：初始 10,000、月投 1,000、1 年、年化 −50%，月末买入 ⇒ 总收益 −6,682.30；亏损卡片须显示负号。",
   },
   {
     slug: "finance/mutual-fund-calculator",
     inputs: { initial: "10000", monthly: "1000", years: "1", rate: "-50" },
-    expect: ["-¥7,090.43"],
-    ref: "F-N44：同组输入的费用/收益明细行按两位小数展示 −¥7,090.43；旧实现丢负号显示 ¥7,090.43。",
+    expect: [" -30.37% 累计收益率"],
+    ref: "F-N44：月末买入时累计收益率为 −30.37%，只应有一个负号；前导空格防止误匹配双负号。",
+  },
+  {
+    slug: "finance/mutual-fund-calculator",
+    inputs: { initial: "10000", monthly: "1000", years: "1", rate: "-50" },
+    expect: ["-¥6,682.30"],
+    ref: "F-N44：月末买入后明细按两位小数展示亏损 −¥6,682.30，不得丢失负号。",
   },
   {
     slug: "finance/depreciation-calculator",
@@ -3186,16 +4130,58 @@ const CASES = [
        + "属逃生项；分组串只在注入值命中，默认态为「格式化： 876 543 210」故不重合。",
   },
   {
+    slug: "finance/tfn-validator",
+    inputs: { input: "12345678" },
+    expect: ["格式化： 012 345 678 长度： 8 位"],
+    ref: "F-N196 8 位 TFN 分组：补前导 0 后按 3-3-3 显示 012 345 678；旧实现 3-3-2 切成 123 456 78（末组仅 2 位）。默认预填 876543210（9 位）⇒ 不命中。",
+  },
+  {
+    slug: "finance/tfn-validator",
+    inputs: { input: "100000062" },
+    expect: ["格式化： 100 000 062 长度： 9 位 校验算法： 加权模 11（权重 1,4,3,7,5,8,6,9,10） 校验和： ❌ 未通过"],
+    ref: "F-N195 权重末位锁定：官方权重 10 时 100000062 加权和 75、余 9 ⇒ ❌；旧权重 11 时和 77、余 0 误判 ✅。默认预填 876543210（合法）⇒ 不命中。",
+  },
+  {
     slug: "finance/curp-validator",
     inputs: { input: "BOXA100820HMNERNB7" },
     expect: ["出生日期： 100820（2010-8-20）"],
     ref: "CURP 第 17 位为字母 B 表示 2000 年后出生：年份 = 2000 + 10 = 2010，而非旧的 yy<30 启发式。校验位 7 由 mod-10 加权算得。默认态 1931 ⇒ 不命中。",
   },
   {
+    slug: "finance/curp-validator",
+    inputs: { input: "GARW150820HMNERN58" },
+    expect: ["出生日期： 150820（1915-8-20）"],
+    ref: "F-N202 数字同音位锁定：第 17 位为 5（数字）⇒ 1900+15=1915；旧 yy<30 启发式会显示 2015。校验位 8 由 mod-10 加权算得。默认态不同 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/curp-validator",
+    inputs: { input: "BOXW100820HZZERNA6" },
+    expect: ["州代码： ZZ - 未知 ❌ 未分配/非法州码", "❌ CURP 校验失败"],
+    ref: "F-N203 州码白名单：ZZ 不在 RENAPO 州码全集，即使日期 2010-08-20 合法且校验位 6 吻合也必须拒绝；旧实现仅展示「未知」并放行。默认态州码有效 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/curp-validator",
+    inputs: { input: "BOXW310230HMNERNA4" },
+    expect: ["出生日期： 310230（❌ 无效）", "❌ CURP 校验失败"],
+    ref: "F-N203 日期按各月天数与闰年校验：1931-02-30 不存在，即便校验位 4 吻合也必须拒绝；防止退回 mm<=12&&dd<=31 粗校验。默认态 1931-08-20 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/curp-validator",
+    inputs: { input: "BOXW310820HMNERNA08" },
+    expect: ["长度： 19 字符（应为 18） ❌ 格式不符。应为：18 位 = 4 字母 + 6 数字(YYMMDD) + H/M/X + 2 字母(州) + 3 辅音 + 1 字母数字 + 1 校验位"],
+    ref: "F-N201 非法长度也要给结论：默认样例已修为 18 位，但旧失败分支只在 raw.length===18 时追加 ❌，19 位输入只回显长度。锁 19 位输入的完整失败串；默认 18 位合法样例不命中。",
+  },
+  {
     slug: "finance/tin-validator",
     inputs: { input: "000000000" },
     expect: ["❌ 不属于 SSN/ITIN/EIN 任何有效号段"],
     ref: "9 位兜底：Area 000 属 SSN 禁用号段、group 00 不满足 ITIN 70–88、EIN 前缀 00 不在 IRS 分配号段 ⇒ 必须判无效（旧逻辑无条件当 EIN 通过）。",
+  },
+  {
+    slug: "finance/tin-validator",
+    inputs: { input: "12-3456789" },
+    expect: ["类型： EIN (雇主识别号)", "EIN 格式： 12-3456789"],
+    ref: "F-N191 防回归锁：2-7 连字符写法必须按原文判为 EIN（旧实现按 3-2-4 切片报 SSN），并按 2+7 展示；默认 456789012 判 SSN ⇒ 不命中。F-N192 公式框三分支属静态文案，harness 不采集 constRefBox，按源码 diff 核实。",
   },
   {
     slug: "finance/mortgage-prepayment",
@@ -3366,6 +4352,194 @@ const CASES = [
     clicks: ["__irrRestoreFromSnapshot(); calc()"],
     expect: ["15.00%", "每期 IRR = 15.0000%", "NPV @ 折现率 8.00% = 6.48"],
     ref: "F-N8：现金流控件由 `renderFlows()` 动态生成且无 id，通用历史快照漏掉全部期号与金额 ⇒ 恢复历史后仍用当前现金流。现新增只读快照输入 `irrCashflowSnapshot`（`T期号:金额` 序列），历史的 `mount` 回填回调显式调用 `__irrRestoreFromSnapshot()` 按快照重建现金流再 `calc()`；`renderFlows` / `updateAmount` 等在每次变化时写回快照并落 localStorage，保证快照不落后于内存。刻意不在 `calc()` 里隐式读回（否则会覆盖用户当期输入与 clicks 直接赋数组）。注入 `T0:-100,T1:115` 并在 clicks 里模拟该恢复回调、贴现率 8%、期数单位=年：IRR = 115/100 − 1 = **15.00%**（页面 `每期 IRR = 15.0000%`）；NPV = −100 + 115/1.08 = **+6.48**。三态实测：只注入贴现率/期数单位（不注入快照）与纯默认快照（project 预设 IRR≈16.60%）三条都不命中；旧版无该输入 ⇒ 注入失败，同样不命中。刻意避开 `-100/230/-132` 双根现金流（多根识别属另案 F-N29）。",
+  },
+  {
+    slug: "finance/shebeizulinfeilvjisuan",
+    inputs: { price: "500000", months: "24", depYears: "8", maintRate: "3", profitRate: "8", salvageRate: "150" },
+    clicks: ["calc()"],
+    expect: ["残值率须在 0–100% 之间，维护费率与利润率不得为负。"],
+    ref: "F-N64 残值率上界：s=150% ⇒ 旧实现 depreciableBase 为负、月折旧/租金可为负，仍输出正 ROI。修复后 readInputs 字段级拒绝。默认 s=5 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/shebeizulinfeilvjisuan",
+    inputs: { price: "500000", months: "24", depYears: "8", maintRate: "3", profitRate: "8", salvageRate: "12" },
+    clicks: ["calc()"],
+    expect: ["¥9166.67 月租金 (元)", "-44.00% 投资回报率 ROI"],
+    ref: "F-N64 正常态 + ROI 公式口径：P=50万/T=24/Y=8/r=3/m=8/s=12 ⇒ 残值 60000、月折旧 (500000−60000)/96=4583.33、月租 4583.33+1250+3333.33=9166.67；总租金 220000 + 残值 60000 − 原值 500000 = −220000 ⇒ ROI −44.00%（信息框公式 (R×T+P×s/100−P)/P 与实现一致）。刻意用非默认 s=12（默认 s=5）避免 A===B 逃生；越界态拒绝不命中。",
+  },
+  {
+    slug: "finance/isbn-validator",
+    inputs: { isbnInput: "4006381333931" },
+    clicks: ["validate()"],
+    expect: ["前缀 400 不是 978/979，这是普通商品条码（EAN-13），不是 ISBN"],
+    ref: "F-N129 防回归锁：合法 EAN-13 商品码 4006381333931（mod-10 校验和正确但前缀 400 非 ISBN）必须判「非 ISBN 前缀」，不得宣称「ISBN-13 校验通过」。默认 978 前缀不命中。源码 HEAD 已修，本锁防未来把前缀判断改回仅查 mod-10 的退化。",
+  },
+  {
+    slug: "finance/isbn-validator",
+    inputs: { isbnInput: "1234567890" },
+    clicks: ["validate()"],
+    expect: ["源 ISBN-10 校验未通过，不生成对应 ISBN-13"],
+    ref: "F-N130 防回归锁：1234567890 校验和 210 mod 11 = 1（应为 0），源 ISBN-10 非法 ⇒ 结果区不得生成对应 ISBN-13。默认 978 前缀走 13 位分支不命中。源码 HEAD 已修，本锁防未来把「对应 ISBN-13」无条件输出的退化。",
+  },
+  {
+    slug: "finance/iban-validator",
+    inputs: { ibanInput: "ZZ121234567890" },
+    expect: ["国家代码未收录，仅完成数学校验，不能判定有效"],
+    ref: "F-N132 防回归锁：ZZ121234567890 后四位前移后 BigInt mod-97 == 1（数学校验通过）但国家代码 ZZ 未收录 ⇒ 总体结论必须判「不能判定有效」，不得显示绿色「✅ mod-97 校验通过」假阳性。默认 DE89 国家已收录不命中。源码 HEAD 已修（总体结论三态），本锁防未来把国家存在性从结论中剔除的退化。",
+  },
+  {
+    slug: "finance/iban-validator",
+    inputs: { ibanInput: "SA0380000000608010167519" },
+    clicks: ["validate();var h=String(document.getElementById('result').innerHTML).replace(/<[^>]*>/g,' ').replace(/\\s+/g,' ');document.getElementById('__tbProbe').textContent='IBSA '+document.getElementById('ibanInput').value+' '+((h.indexOf('沙特阿拉伯 (SA)')>=0&&h.indexOf('长度校验： ✅ 当前 24 位，期望 24 位')>=0&&h.indexOf('国家、长度与 mod-97 校验均通过')>=0)?'OK':'BAD');"],
+    expect: ["IBSA SA0380000000608010167519 OK"],
+    ref: "F-N133 防回归锁：SA0380000000608010167519 长度 24、mod-97==1，沙特阿拉伯必须收录、长度 24 校验通过、总体判有效，三项用探针 AND 串一次断言。旧表仅 33 国不含 SA ⇒ 三项皆不满足得 BAD。⚠️ 用 __tbProbe 而非静态 blob：页面预置国家表格含所有国名，直接写 blob 会被表格串干扰/默认态命中；探针仅取 result 容器且绑定输入号 ⇒ 零逃生。参考 MEID/DNI 用例模式。",
+  },
+  {
+    slug: "finance/bic-validator",
+    inputs: { input: "DEUT DEFF" },
+    clicks: ["validate();var h=String(document.getElementById('output').innerHTML).replace(/<[^>]*>/g,' ').replace(/\\s+/g,' ');document.getElementById('__tbProbe').textContent='BICSP '+document.getElementById('input').value+' '+((h.indexOf('长度： 8 字符')>=0&&h.indexOf('银行代码： DEUT')>=0&&h.indexOf('BIC 代码格式有效')>=0)?'OK':'BAD');"],
+    expect: ["BICSP DEUT DEFF OK"],
+    ref: "F-N137 防回归锁：标准 4+2+2 空格写法「DEUT DEFF」先 replace(/[\\s-]/g,'') 清洗为 DEUTDEFF(8 位) 后应判格式有效；旧实现只 trim 不清洗 ⇒ 长度变 9 报「长度必须为 8 或 11」。探针 AND 断言长度 8 + 银行代码 + 格式有效三项，绑定原始输入串 ⇒ 默认态不命中。",
+  },
+  {
+    slug: "finance/bic-validator",
+    inputs: { input: "<img src=x onerror=alert(1)>" },
+    clicks: ["validate();var h=String(document.getElementById('output').innerHTML);document.getElementById('__tbProbe').textContent='BICXSS '+((h.indexOf('&lt;IMG')>=0&&h.indexOf('<IMG')<0&&h.indexOf('<img')<0)?'ESC':'RAW');"],
+    expect: ["BICXSS ESC"],
+    ref: "F-N136 防回归锁：用户输入 <img src=x onerror=alert(1)> 经 toUpperCase+去空格得 <IMGSRC=XONERROR=ALERT(1)>，写入 innerHTML 前必须 esc() 转义为 &lt;IMG…&gt;；旧实现直接拼 raw ⇒ 输出含裸 <IMG 可执行。探针断言含 &lt;IMG 且不含裸 <IMG/<img ⇒ 零逃生（与输入值无关，纯转义行为锁）。",
+  },
+  {
+    slug: "finance/currency-symbol",
+    inputs: { searchInput: "AUD" },
+    clicks: ["search();var g=String(document.getElementById('currencyGrid').innerHTML);var n=(g.match(/AUD/g)||[]).length;document.getElementById('__tbProbe').textContent='CURDEDUP '+(currencies.length===149&&n===1?'OK':'BAD len='+currencies.length+' aud='+n);"],
+    expect: ["CURDEDUP OK"],
+    ref: "F-N138 去重锁：原始数组 153 条、AUD/XCD/UGX/NIO 各重复 2 次，运行时按 code 去重后应剩 149 条 ⇒ 搜索 AUD 只渲染 1 张卡片。旧实现不去重为 153 条/2 张卡片。探针断言 currencies.length===149 且 AUD 卡片数===1（不依赖 resultStat，harness 下该计数被二次渲染污染）⇒ 真判别、零逃生。",
+  },
+  {
+    slug: "finance/currency-symbol",
+    inputs: { searchInput: "" },
+    clicks: ["var c=null;for(var i=0;i<currencies.length;i++){if(currencies[i].code==='CNY'){c=currencies[i];break;}}document.getElementById('__tbProbe').textContent='CURCNY '+(c&&c.subunit==='Fen'&&c.subunitRate===100?'OK':'BAD '+(c?c.subunit+'/'+c.subunitRate:'NOCNY'));"],
+    expect: ["CURCNY OK"],
+    ref: "F-N140 辅单位锁：CNY 的辅单位应为 Fen、换算 100（1 Yuan = 100 Fen）。旧实现 subunit:'Jiao/Fen' + subunitRate:10 显示「1 Yuan = 10 Jiao/Fen」。探针遍历去重后 currencies 找 CNY 读 subunit/subunitRate 两字段（不依赖 showDetail，harness 下其 index 参数被包装污染）⇒ 真判别、零逃生。",
+  },
+  {
+    slug: "finance/credit-card-interest",
+    inputs: { billAmount: "10000", dailyRate: "-0.05", minRatio: "10", repayType: "minimum" },
+    clicks: ["calc()"],
+    expect: ["日利率不能为负，请填写 ≥0 的数值"],
+    ref: "F-N124 负值拒绝：日利率 −0.05 旧实现 +value/100||0 → 负利率照算得负利息/负总支出；修复后 calc() 前置拒绝并提示「日利率不能为负，请填写 ≥0 的数值」。默认日利率 0.05 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/uan-validator",
+    inputs: { input: "10A1234567890" },
+    clicks: ["validate()"],
+    expect: ["第 3 位含非法字符「A」"],
+    ref: "F-N148 字母剔除修复：10A1234567890 旧实现 replace(/\\D/g,'') 静默剔除 A → 101234567890（12 位）判「✅ UAN 格式有效」；修复后含字母在第 3 位报错并指出字符。输入绑定串 ⇒ 默认态不命中。",
+  },
+  {
+    slug: "finance/uan-validator",
+    inputs: { input: "10-1234567890" },
+    clicks: ["validate();var h=String(document.getElementById('output').innerHTML).replace(/<[^>]*>/g,' ').replace(/\\s+/g,' ');document.getElementById('__tbProbe').textContent='UANHY '+document.getElementById('input').value+' '+((h.indexOf('101234567890')>=0&&h.indexOf('12 位')>=0&&h.indexOf('UAN 格式有效')>=0&&h.indexOf('非法字符')<0)?'OK':'BAD');"],
+    expect: ["UANHY 10-1234567890 OK"],
+    ref: "F-N148 防误伤：连字符分隔是合法写法，去掉分隔符后 101234567890 共 12 位、首字符 1 ⇒ 格式有效且不报非法字符。探针 AND 四项并绑输入号（静态结论串「✅ UAN 格式有效」在默认态也命中会成逃生，故走探针）⇒ 零逃生。",
+  },
+  {
+    slug: "finance/aadhaar-validator",
+    inputs: { input: "234123412346A" },
+    clicks: ["validate()"],
+    expect: ["第 13 位含非法字符「A」"],
+    ref: "F-N151 字母拒绝：合法 Aadhaar 234123412346 尾随字母 A，旧实现 replace(/\\D/g,'') 静默剔除后判有效；修复后第 13 位报「非法字符「A」」。绑定输入与位置 ⇒ 默认态不命中。",
+  },
+  {
+    slug: "finance/cpf-validator",
+    inputs: { input: "abc11144477735" },
+    clicks: ["validate()"],
+    expect: ["第 1 位含非法字符「a」"],
+    ref: "F-N154 字母拒绝：abc11144477735 旧实现静默剔除 abc 得 11144477735（合法 CPF）判有效，与 FAQ「含字母判格式错误」矛盾；修复后第 1 位报「非法字符「a」」。绑定输入与位置 ⇒ 默认态不命中。",
+  },
+  {
+    slug: "finance/cpf-validator",
+    inputs: { input: "111.444.777-35" },
+    clicks: ["validate();var h=String(document.getElementById('output').innerHTML).replace(/<[^>]*>/g,' ').replace(/\\s+/g,' ');document.getElementById('__tbProbe').textContent='CPFPT '+((h.indexOf('格式化： 111.444.777-35')>=0&&h.indexOf('CPF 号码有效')>=0&&h.indexOf('非法字符')<0)?'OK':'BAD');"],
+    expect: ["CPFPT OK"],
+    ref: "F-N154 防误伤：点/连字符是 CPF 标准分组写法（111.444.777-35），清洗后 11144477735 合法有效且不报非法字符。探针 AND 三项（静态「✅ CPF 号码有效」默认态命中会成逃生，故走探针）⇒ 零逃生。",
+  },
+  {
+    slug: "finance/cpf-validator",
+    inputs: { input: "<img src=x onerror=alert(1)>" },
+    clicks: ["validate();var h=String(document.getElementById('output').innerHTML);document.getElementById('__tbProbe').textContent='CPFXSS '+((h.indexOf('&lt;img')>=0&&h.indexOf('<img')<0&&h.indexOf('<IMG')<0)?'ESC':'RAW');"],
+    expect: ["CPFXSS ESC"],
+    ref: "F-N150 自 XSS：输入 <img src=x onerror=alert(1)>，四页原样插值 ${raw} 会执行；修复后 esc(raw) 转义为 &lt;img…&gt;（这四页未大写化，保留小写）。探针断言含 &lt;img 且不含裸 <img/<IMG ⇒ 零逃生（纯转义行为锁）。",
+  },
+  {
+    slug: "finance/esn-validator",
+    inputs: { input: "80A1B2C3" },
+    clicks: ["validate()"],
+    expect: ["12810597059（3 位制造商码 + 8 位序列号）"],
+    ref: "F-N155 十进制标准拼接：80A1B2C3（制造商 0x80=128、序列 0xA1B2C3=10597059）应输出标准 11 位十进制 ESN 12810597059（3+8 拼接）。旧实现 parseInt(hex,16) 整体转十进制得 02158080707（互不可逆）。输入绑定串 ⇒ 默认 A1B2C3D4 不同值不命中。",
+  },
+  {
+    slug: "finance/esn-validator",
+    inputs: { input: "A1B2C3D4G" },
+    clicks: ["validate()"],
+    expect: ["第 9 位含非法字符「G」"],
+    ref: "F-N156 非法字符拒绝：A1B2C3D4G 第 9 位 G 非十六进制，旧实现 replace(/[^0-9A-F]/g,'') 静默剔除后按 8 位 HEX 判有效；修复后按整体形态判并报第 9 位非法字符。输入绑定串 ⇒ 默认态不命中。",
+  },
+  {
+    slug: "finance/esn-validator",
+    inputs: { input: "00000000" },
+    clicks: ["validate()"],
+    expect: ["制造商码 0x00 为保留码，ESN 无效"],
+    ref: "F-N156 保留码拒绝：8 位 HEX 00000000 制造商码 0x00（MFR_DB 标 RESERVED）应判无效。旧实现无条件输出「✅ ESN HEX 格式有效」。输入绑定保留码 ⇒ 默认态不命中。",
+  },
+  {
+    slug: "finance/ein-validator",
+    inputs: { input: "00-0000000" },
+    clicks: ["validate()"],
+    expect: ["前缀 00 未在 IRS 分配范围，EIN 无效"],
+    ref: "F-N157 前缀判据锁：00 是 IRS 保留/未分配前缀，should 判无效。旧实现 IRS_PREFIX 查表只用于展示、无条件 ✅；修复后 EIN_INVALID_PREFIX 黑名单参与判据。默认 01-1234567 有效前缀不命中。",
+  },
+  {
+    slug: "finance/ein-validator",
+    inputs: { input: "1-2-3-4-5-6-7-8-9" },
+    clicks: ["validate()"],
+    expect: ["格式化： 12-3456789"],
+    ref: "F-N158 分隔符容错口径：乱分隔 1-2-...-9 剥离后 123456789，归一化为 12-3456789 并判有效（公式框已改为「剥离分隔符后 9 位数字」口径，与实现自洽）。旧实现公式写 ^\\d{2}-\\d{7}$ 与行为矛盾。默认 01-1234567 不同值不命中。",
+  },
+  {
+    slug: "finance/imei-validator",
+    inputs: { input: "356938035643809" },
+    clicks: ["validate();var h=String(document.getElementById('output').innerHTML).replace(/<[^>]*>/g,' ').replace(/\\s+/g,' ');document.getElementById('__tbProbe').textContent='IMEIFIX '+document.getElementById('input').value+' '+((h.indexOf('校验位： 9（期望 9） ✅')>=0&&h.indexOf('IMEI 号码有效')>=0)?'OK':'BAD');"],
+    expect: ["IMEIFIX 356938035643809 OK"],
+    ref: "F-N172 校验位相位修复：356938035643809 是 Luhn 合法 15 位 IMEI（校验位 9），期望位必须由前 14 位本体反推得 9，不得出现「校验位 9（期望 0）❌」与「✅ 有效」同屏矛盾。旧实现把含校验位的整串从右 alt=false 求和致期望恒 0。探针 AND 两串并绑输入号（裸 blob 中该串在判别器注入失败态仍命中别处，故走探针）⇒ 零逃生。",
+  },
+  {
+    slug: "finance/imei-validator",
+    inputs: { input: "3569380356438097" },
+    clicks: ["validate()"],
+    expect: ["长度： 16 位（IMEISV）", "序列号 SNR（第 9-14 位）： 564380", "软件版本号 SVN： 97", "IMEISV 不含校验位，仅检查 16 位数字结构"],
+    ref: "IMEISV 由 8 位 TAC、6 位 SNR 和 2 位 SVN 构成，不含 Luhn 校验位，不能宣称校验通过。",
+  },
+  {
+    slug: "finance/word-counter",
+    inputs: { input: "这是一个用于测试可读性的中文句子。它没有空格分隔词语。统计结果会显示平均句长。" },
+    clicks: ["analyze()"],
+    expect: ["平均句长： 12.0 词/句"],
+    ref: "F-N174 中文可读性：36 个汉字、0 英文词、3 句，新口径词数=英文词+中文字符=36 ⇒ 平均句长 12.0（难度中等），旧空白切分得 1 词/3 句=0.3（恒「简单」）。绑定输入专属数值 ⇒ 默认 ToolBox 样例不同值不命中。",
+  },
+  {
+    slug: "finance/word-counter",
+    inputs: { input: "中文词频测试 中文词频测试" },
+    clicks: ["document.getElementById('showDensity').checked=true;analyze();var h=String(document.getElementById('densityList').innerHTML).replace(/<[^>]*>/g,' ').replace(/\\s+/g,' ');document.getElementById('__tbProbe').textContent='WCCN '+((h.indexOf('词频 2 次')>=0&&h.indexOf('测试 2 次')>=0)?'OK':'BAD');"],
+    expect: ["WCCN OK"],
+    ref: "F-N175 中文词频：纯中文「中文词频测试」重复 2 次，新实现按 2 字 bigram（中文/文词/词频/频测/测试 各 2 次）计入词频表。旧实现只取 [a-z]+ 得 0 项、区块空白。探针 AND 两个 bigram 计数（默认英文样例不含中文 bigram）⇒ 零逃生。",
+  },
+  {
+    slug: "finance/word-counter",
+    inputs: { input: "A😀B" },
+    clicks: ["analyze();var g=String(document.getElementById('statsGrid').innerHTML).replace(/<[^>]*>/g,' ').replace(/\\s+/g,' ');document.getElementById('__tbProbe').textContent='FN176 '+document.getElementById('input').value+' '+((g.indexOf('3 总字符数')>=0&&g.indexOf('3 不含空格')>=0)?'OK':'BAD');"],
+    expect: ["FN176 A😀B OK"],
+    ref: "F-N176 代码点计数：A😀B 含 emoji，码点数=3（A/😀/B），旧 text.length 按 UTF-16 码元=4 ⇒「4 总字符数」不命中。引据表承诺「代码点」、示例亦同步。探针读 statsGrid 两张卡片且绑定输入锚 ⇒ 默认态零逃生。",
   },
 
 ];

@@ -2,6 +2,20 @@
 "use strict";
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
+  { slug: "ecommerce/analysis-71", inputs: { data: "A,100,100,,-1\nB,100,100,4,2" },
+    clicks: ["calc();"], expect: ["发货时效天数不能为负数"], ref: "即使同行其他字段缺失，仍应指出负发货时效。" },
+  { slug: "ecommerce/analysis-71", inputs: { data: "A,100,100,4,1e-2\nB,100,100,4,2" },
+    clicks: ["calc();"], expect: ["0.01 天"], ref: "科学计数法 1e-2 必须正确解析为 0.01。" },
+  {
+    slug: "ecommerce/report",
+    clicks: ["var __cap=null;TBKit={util:{isEn:function(){return false;},exportTable:function(sel,name){__cap={sel:sel,name:name};},diffBox:function(){}},chart:{line:function(){}},matrix:{table:function(){}},history:{list:function(){return [];},last:function(){return null;},record:function(){},mount:function(){}},preset:{bar:function(){}}};var __oq=document.querySelector;document.querySelector=function(s){return {querySelectorAll:function(q){return [{tagName:'TR'}];}};};__reportExport();document.querySelector=__oq;document.getElementById('__tbProbe').textContent='EXPR sel='+(__cap?__cap.sel:'NA')+' name='+(__cap?__cap.name:'NA');"],
+    expect: ["EXPR sel=#res table name=report.csv"],
+    ref: "复核失败重做·F-N189 第46批 电商报表：导出目标应是真实业务明细容器，而非历史记录表。旧实现把 TBKit.util.exportTable 指向 #<pre>Table（历史摘要），修复后指向该页业务明细容器。用例桩捕获 exportTable 的选择器与文件名，默认态不执行 clicks、无探针串 ⇒ 零逃生。"
+  },
+  { slug: "ecommerce/analysis-71", inputs: { data: "A,90,10,4.1,-1\nB,100,20,4.2,2" },
+    clicks: ["calc();"],
+    expect: ["发货时效天数不能为负数", "请核对以下行：A"],
+    ref: "第六批 06-N50：A 发货 −1 天、B 发货 2 天，旧实现把 A 选为最快标杆并显示差 3 天。现解析时收集负发货行并停止计算、提示对应行名，负发货天数不参与时效比较；正常正数与 0 天分组保持原行为。默认态数据合法不含该提示 ⇒ 强判别。" },
   {
     slug: "ecommerce/analysis-71",
     inputs: {data: "Fast,90,10,4.1,1.5\nSlow,100,20,4.2,4.25"},

@@ -150,13 +150,13 @@ s.parentNode.insertBefore(el, s);
      <h2 data-zh="📞 MSISDN 验证（手机号码）">📞 MSISDN (Mobile Number) Validator</h2>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理与说明</div>
-      <div class="formula-eq">MSISDN 校验（E.164 格式+查表，非数学计算）：先去掉 +、空格、连字符等归一化，须全数字且总长不超过 15 位（超限报「超过 E.164 规定的 15 位最大长度」）；按 3→2→1 位前缀查 CC_DB 识别国家码，再行国别校验——cc=86 须 1 开头 11 位手机号（不符报错、非 11 位提示可能固话）、cc=1 须 NANP 10 位、其他识别国判「MSISDN 格式有效」、未识别国码按本地号码处理。校验：空输入显示「等待输入」、归一化后含非数字报「仅允许数字及 +、空格、连字符」。判据：仅格式与长度判定，不代表号码真实可用。</div>
+      <div class="formula-eq">MSISDN 校验（E.164 格式与查表）：归一化后须为数字且不超过 15 位；按前缀识别国家码，缺少国内号码时报错。中国大陆按 11 位手机号格式检查，NANP 检查国内号码是否为 10 位；其他已识别国家仅提示国家码，未校验国内号码格式或长度。未识别国家码或疑似缺少国家码时无法验证。格式检查不代表号码真实可用。</div>
   <div class="formula-desc">依据 E.164 规则校验国际移动号码(MSISDN)格式，允许数字与 +、空格、连字符；用于国际手机号格式核验与表单校验（不验证真实性）。</div>
 </div>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="MSISDN 验证器（手机号）。输入带国家码的移动号码，校验数字及 +、空格、连字符格式，用于国际手机号格式核验与表单校验（不验证真实性）。">Validate an international mobile number with country code, allowing digits, + and separators. Format check only.</p>
 
     <label>输入（MSISDN，含国家代码或不含）</label>
-    <input type="text" id="input" oninput="validate()" placeholder="如：+86 13800138000 或 13800138000" value="13800138000">
+    <input type="text" id="input" oninput="validate()" placeholder="如：+86 13800138000 或 13800138000" value="+86 13800138000">
     <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__msisdn_validatorExport()">导出明细 CSV</button></div><div class="result-box" id="output">等待输入...</div> <div id="msisdn_validatorTable"></div> <div id="msisdn_validatorDiff"></div> <div id="msisdn_validatorChart"></div> <div id="msisdn_validatorHist"></div>
   </div>
 
@@ -184,7 +184,7 @@ s.parentNode.insertBefore(el, s);
 <ul class="dd-list">
 <li>校验带国家码手机号的数字与格式（含 +、空格、连字符）</li>
 <li>国际短信、客服系统录入前的号码规范化检查</li>
-<li>识别国家码与本地号码长度是否匹配</li>
+<li>识别国家码，检查中国和 NANP 号码长度</li>
 </ul>
 <div class="dd-example"><div class="dd-ex-title">示例：国际手机号格式</div><div class="dd-ex-body">输入 +86 138 0013 8000，页面归一化后校验国家码 86 与 11 位本地号码；长度或字符不符会提示错误。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
@@ -243,6 +243,7 @@ function validate(){
   const out = document.getElementById('output');
   if(!raw){ const __h0=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Waiting for input...":"等待输入...");if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h0; return; }
   // Normalize: remove +, spaces, dashes, parentheses
+  const hasPlus = raw.replace(/[\s\-\(\)\.]/g,'').startsWith('+');
   let normalized = raw.replace(/[\s\-\(\)\.]/g,'');
   if(normalized.startsWith('+')) normalized = normalized.substring(1);
   let html = `<p><strong>输入：</strong>${raw}</p>`;
@@ -255,6 +256,13 @@ function validate(){
     html += `<p style="color:var(--danger);">❌ 超过 E.164 规定的 15 位最大长度</p>`;
     const __h2=html;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h2;
     return;
+  }
+  // F-N215：无显式 + 的中国 11 位本地号不得被前缀 '1' 硬判成美加号
+  if(!hasPlus && /^1[3-9]\d{9}$/.test(normalized)){
+    html += `<p><strong>归一化：</strong>${normalized}</p>`;
+    html += `<p style="color:#ff9800;">⚠️ 缺国家码，无法判定（疑似 +86 中国大陆手机号）；请补全 +86 后重试</p>`;
+    const __hCn=html;if((typeof __hCn==='number'&&!isFinite(__hCn))||/Infinity/.test(String(__hCn))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__hCn)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}
+    out.innerHTML=__hCn; return;
   }
   // Detect country code
   let cc = '';
@@ -285,7 +293,9 @@ function validate(){
   html += html2;
   // Country-specific checks
   let extra = '';
-  if(cc === '86'){
+  if(cc && !nationalNum){
+    extra = `<p style="color:var(--danger);">❌ 缺少国内号码</p>`;
+  } else if(cc === '86'){
     if(/^1[3-9]\d{9}$/.test(nationalNum)){
       extra = `<p>✅ 符合中国大陆 11 位手机号格式</p>`;
     } else if(nationalNum.length === 11){
@@ -299,8 +309,11 @@ function validate(){
     } else {
       extra = `<p style="color:var(--danger);">❌ NANP 号码应为 10 位数字</p>`;
     }
+  } else if(cc){
+    extra = `<p style="color:#ff9800;">⚠️ 已识别国家码，但未校验该国家的国内号码格式或长度</p>`;
   } else {
-    extra = `<p style="color:var(--success);">✅ MSISDN 格式有效</p>`;
+    // F-N215：国家码未识别不得无条件判「格式有效」
+    extra = `<p style="color:var(--danger);">❌ 国家码未识别，无法验证号码格式（请用 + 国家码开头）</p>`;
   }
   html += extra;
   const __h3=html;if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h3;

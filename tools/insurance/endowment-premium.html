@@ -259,7 +259,7 @@ function __tbInputGuardCore(_ids,_labels){
     return __msg;
   }
   // 分母项：__D 由真浏览器逐项置零探测得出，命中即说明该输入在此页作分母
-  var __D={"i": "年利率 i", "n": "保险年数 (年)"};
+  var __D={"n": "保险年数 (年)"};
   for(var _d=0;_d<_ids.length;_d++){
     if(!(_ids[_d] in __D)) continue;
     var _de=document.getElementById(_ids[_d]);
@@ -323,12 +323,14 @@ function fmt(v){const neg=v<0?'-':'';v=Math.abs(v);let s=v.toFixed(2);let p=s.sp
             for(let t=1;t<=n;t++){
                 const term=B*Math.pow(v,t)*sp*q;
                 death+=term;
+                if(!isFinite(term)||!isFinite(death)){__epBlock('<p style="color:var(--danger)">⚠ 计算溢出，请调整利率、金额或年数后重试。</p>');return;}
                 schedule.push([t,sp,term,death]);
                 sp*=(1-q);
             }
             const survival=B*Math.pow(v,n)*sp;
-            const a=(1-Math.pow(v,n))/i;
+            const a=i===0?n:-Math.expm1(-n*Math.log1p(i))/i;
             const P=(death+survival)/a;
+            if(!isFinite(survival)||!isFinite(a)||!isFinite(P)||a<=0){__epBlock('<p style="color:var(--danger)">⚠ 计算溢出，请调整利率、金额或年数后重试。</p>');return;}
             __epLast={B:B,q:q,i:i,n:n,sp:sp,death:death,survival:survival,a:a,P:P,schedule:schedule};
             const __g2=dataGrid([
                 [fmt(P),'两全年保费 (元)'],
@@ -367,7 +369,7 @@ function __endowment_premiumResText(){
 }
 function __endowment_premiumScore(t){
     var s=String(t||'');
-    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|请填写|再计算|必须|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
     return 1;
 }
 function __endowment_premiumTime(t){
@@ -417,6 +419,9 @@ function __endowment_premiumRender(keys,rk,en){
 function __endowment_premiumExtras(){
     if (typeof TBKit === 'undefined') return;
     if (__endowment_premium_skip) return;
+    // R-H5 复核重做：以「最近一次完整有效计算」为唯一有效态判据。无 ⚠ 的「请填写…」提示
+    // 曾绕过只认警告字符的评分函数被记为有效历史；__epLast 只在有效计算成功后赋值。
+    if(!__epLast) return;
     var snap=__endowment_premiumSnap();
     var keys=Object.keys(snap);
     if(!keys.length) return;

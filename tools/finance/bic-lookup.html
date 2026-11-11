@@ -181,15 +181,16 @@ s.parentNode.insertBefore(el, s);
 <h2>📚 深度解析：BIC 查询</h2>
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
-<li>先阅读BIC Query的输入说明，使用一组可复现的示例参数运行一次并记录结果。</li>
-<li>只改变一个输入变量重新运行，观察输出变化是否符合工具说明和业务常识。</li>
-<li>正式使用前保留输入参数与结果，方便与原始凭据或专业规则进行复核。</li>
+<li>跨境汇款填单时核对收款行：把银行提供的 BIC 贴入，确认 4 位银行码对应的机构与国家码是否与收款行所在地一致。</li>
+<li>拆解 BIC 四段：8 位 = 银行码(4) + 国家码(2) + 位置码(2)；11 位再追加 3 位分行码，页面逐段给出含义。</li>
+<li>判断是否需 11 位分支码：若收款行要求区分具体分行，核对末尾是否有 3 位分行码，避免误用 8 位主办公代码。</li>
 </ul>
 <div class="dd-example"><div class="dd-ex-title">示例：按 BIC 查银行信息</div><div class="dd-ex-body">输入 DEUTDEFF，页面解析银行码 DEUT、国家 DE（德国）、位置 FF；可辅助识别跨境汇款收款行。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
+<dt>8 位和 11 位 BIC 有什么区别？</dt><dd>8 位是机构主码（银行 4 + 国家 2 + 位置 2），11 位在其后追加 3 位分行码（branch code）；末尾 XXX 通常表示主办公室而非某个具体分行。</dd>
+<dt>离线库收录多少银行？查不到怎么办？</dt><dd>本页离线库收录 34 个银行代码前缀（不同前缀可能对应同一机构），用于快速定位，并非完整注册名录。查不到时不代表 BIC 无效，请到 SWIFT 官方网站（swift.com 的 BIC 查询）或联系收款行核对。</dd>
 <dt>结果可以直接用于正式业务吗？</dt><dd>不建议直接使用，正式业务应结合原始凭据、适用规则和人工复核。</dd>
-<dt>如何复核结果？</dt><dd>固定其余输入，只改变一个变量，并用独立公式或已知样例对照。</dd>
 </dl>
 </div>
 </section>
@@ -268,11 +269,45 @@ const COUNTRY_NAMES = {
   AU:'澳大利亚',CA:'加拿大',BE:'比利时',AT:'奥地利',DK:'丹麦',
   FI:'芬兰',PL:'波兰',RU:'俄罗斯',TR:'土耳其',BR:'巴西',IN:'印度'
 };
+const ISO3166_ALPHA2 = new Set(('AD AE AF AG AI AL AM AO AQ AR AS AT AU AW AX AZ '+
+  'BA BB BD BE BF BG BH BI BJ BL BM BN BO BQ BR BS BT BV BW BY BZ '+
+  'CA CC CD CF CG CH CI CK CL CM CN CO CR CU CV CW CX CY CZ '+
+  'DE DJ DK DM DO DZ EC EE EG EH ER ES ET FI FJ FK FM FO FR '+
+  'GA GB GD GE GF GG GH GI GL GM GN GP GQ GR GS GT GU GW GY '+
+  'HK HM HN HR HT HU ID IE IL IM IN IO IQ IR IS IT JE JM JO JP '+
+  'KE KG KH KI KM KN KP KR KW KY KZ LA LB LC LI LK LR LS LT LU LV LY '+
+  'MA MC MD ME MF MG MH MK ML MM MN MO MP MQ MR MS MT MU MV MW MX MY MZ '+
+  'NA NC NE NF NG NI NL NO NP NR NU NZ OM PA PE PF PG PH PK PL PM PN PR PS PT PW PY '+
+  'QA RE RO RS RU RW SA SB SC SD SE SG SH SI SJ SK SL SM SN SO SR SS ST SV SX SY SZ '+
+  'TC TD TF TG TH TJ TK TL TM TN TO TR TT TV TW TZ UA UG UM US UY UZ '+
+  'VA VC VE VG VI VN VU WF WS YE YT ZA ZM ZW').split(' '));
+function esc(s){return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function validate(){
   const raw = document.getElementById('input').value.trim().toUpperCase();
   const out = document.getElementById('output');
   if(!raw){ const __h0=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Waiting for input...":"等待输入...");if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h0; return; }
-  let html = `<p><strong>输入：</strong>${raw}</p>`;
+  let html = `<p><strong>输入：</strong>${esc(raw)}</p>`;
+  // F-N186 反向检索：非 BIC 形态输入（含空格/非 ASCII/超长）按行名在离线库检索代码
+  if(/[^A-Z0-9]/.test(raw) || raw.length>11){
+    function __bicRev(name){
+      var q=String(name||'').toUpperCase(),hits=[];
+      for(var code in BANK_DB){
+        if(!Object.prototype.hasOwnProperty.call(BANK_DB,code)) continue;
+        if(String(BANK_DB[code]).toUpperCase().indexOf(q)>=0) hits.push({code:code,name:BANK_DB[code]});
+      }
+      return hits;
+    }
+    var __hits=__bicRev(raw);
+    var __rev='<p><strong>'+((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'Reverse lookup by bank name:':'按行名检索：')+esc(raw)+'</strong></p>';
+    if(__hits.length){
+      __rev+='<p>'+((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'Matched ':'找到 ')+__hits.length+((typeof TBKit!=='undefined'&&TBKit.util.isEn())?' codes:':' 个匹配代码：')+'</p>';
+      __hits.forEach(function(x){ __rev+='<p>'+x.code+' — '+x.name+'</p>'; });
+    } else {
+      __rev+='<p style="color:var(--danger);">❌ '+((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'No matching bank name in offline DB':'离线库中未找到匹配的行名')+'</p>';
+    }
+    if((typeof __rev==='number'&&!isFinite(__rev))||/Infinity/.test(String(__rev))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__rev)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}
+    out.innerHTML=__rev; return;
+  }
   const bankCode = raw.substring(0,4);
   if(!/^[A-Z]{4}$/.test(bankCode)){
     const __h1=`<p>❌ 银行代码（前 4 位）必须为大写字母</p>`;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h1;
@@ -285,23 +320,35 @@ function validate(){
   } else {
     html += `<p style="color:#ff9800;">⚠️ 银行代码未在离线数据库中</p>`;
   }
+  let countryOk = false;
+  let locationOk = false;
+  let branchOk = false;
   if(raw.length >= 6){
     const country = raw.substring(4,6);
-    const countryName = COUNTRY_NAMES[country] || ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Unknown":"未知");
+    const en = (typeof TBKit!=='undefined'&&TBKit.util.isEn());
+    countryOk = ISO3166_ALPHA2.has(country);
+    const countryName = COUNTRY_NAMES[country] || (countryOk
+      ? (en?'Valid ISO code (not in offline DB)':'有效 ISO 代码（离线库未收录）')
+      : (en?'Not an ISO 3166-1 alpha-2 code':'非 ISO 3166-1 国家码'));
     html += `<p><strong>国家代码：</strong>${country} - ${countryName}</p>`;
+    if(!countryOk) html += `<p style="color:var(--danger);">❌ 国家代码 ${country} 不是 ISO 3166-1 alpha-2 代码</p>`;
   }
   if(raw.length >= 8){
-    html += `<p><strong>位置代码：</strong>${raw.substring(6,8)}</p>`;
+    const location = raw.substring(6,8);
+    locationOk = /^[A-Z0-9]{2}$/.test(location);
+    html += `<p><strong>位置代码：</strong>${location}${locationOk?'':' ❌ 位置码须为 2 位字母或数字'}</p>`;
   }
   if(raw.length === 11){
-    html += `<p><strong>分支代码：</strong>${raw.substring(8,11)}</p>`;
+    const branch = raw.substring(8,11);
+    branchOk = /^[A-Z0-9]{3}$/.test(branch);
+    html += `<p><strong>分支代码：</strong>${branch}${branchOk?'':' ❌ 分支码须为 3 位字母或数字'}</p>`;
   }
-  if(raw.length === 8 || raw.length === 11){
+  if((raw.length === 8 && countryOk && locationOk) || (raw.length === 11 && countryOk && locationOk && branchOk)){
     html += `<p style="color:var(--success);">✅ BIC 格式有效</p>`;
   } else if(raw.length > 0 && raw.length < 8){
     html += `<p style="color:#ff9800;">⏳ 继续输入以补全 BIC（8 或 11 位）</p>`;
   } else {
-    html += `<p style="color:var(--danger);">❌ BIC 长度应为 8 或 11 位</p>`;
+    html += `<p style="color:var(--danger);">❌ BIC 格式校验失败（长度须为 8 或 11 位，且国家/位置/分支码均须合法）</p>`;
   }
   const __h2=html;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h2;
 }
@@ -358,9 +405,16 @@ function __bic_lookupResText(){
     if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
 }
+function __bic_lookupFullResText(){
+    var r=document.getElementById('output');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    return t;
+}
 function __bic_lookupScore(t){
     var s=String(t||'');
-    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    if(/[❌]|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
     return 1;
 }
 function __bic_lookupTime(t){
@@ -433,7 +487,7 @@ function __bic_lookupExtras(){
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
-    rec.__tbScore=__bic_lookupScore(res);
+    rec.__tbScore=__bic_lookupScore(__bic_lookupFullResText());
     TBKit.history.record(rec);
     __bic_lookupRender(keys,rk,en);
 }

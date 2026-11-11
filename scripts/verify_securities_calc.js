@@ -13,6 +13,22 @@
 const { runCase } = require("./verify_it_calc.js");
 
 const CASES = [
+  { slug: "securities/position-sizing",
+    inputs: { winRate: "55", winLossRatio: "1.5", totalCapital: "100000", riskPerTrade: "2000", capital2: "100000", riskPct: "2", entryPrice: "10", stopPrice: "9", targetPrice: "9.99999", feeRate: "0" },
+    expect: ["目标净亏损 = -¥0.02"], ref: "微小净亏损不得舍入显示为负零。" },
+  { slug: "securities/position-sizing",
+    inputs: { winRate: "55", winLossRatio: "1.5", totalCapital: "100000", riskPerTrade: "2000", capital2: "100000", riskPct: "2", entryPrice: "10", stopPrice: "9", targetPrice: "10.00001", feeRate: "0" },
+    expect: ["目标盈利 = +¥0.02"], ref: "微小净盈利不得舍入显示为正零。" },
+  {
+    slug: "securities/position-sizing",
+    clicks: ["var __cap=[];TBKit={util:{isEn:function(){return false;},exportTable:function(){},diffBox:function(){}},chart:{line:function(){}},matrix:{table:function(){}},history:{list:function(){return __cap;},last:function(){return __cap.length?__cap[__cap.length-1]:null;},record:function(r){__cap.push(r);},mount:function(){}},preset:{bar:function(){}}};var __els=[{\"id\":\"winRate\",\"type\":\"text\",\"value\":\"55\"}];var __oq=document.querySelectorAll;document.querySelectorAll=function(s){return __els;};document.getElementById('result').textContent='请填写「胜率」后再计算。';__position_sizingExtras();document.querySelectorAll=__oq;document.getElementById('__tbProbe').textContent='PSFILL score='+(__cap.length?__cap[__cap.length-1].__tbScore:'NA');"],
+    expect: ["PSFILL score=0"],
+    ref: "复核失败重做·F-N189 第46批 仓位：凯利模式清空胜率，页面提示「请填写「胜率」后再计算。」应判失败。旧 Score 关键词表无「请填写/填写/required」，把必填失败记为通过（__tbScore=1）；修复后判 0。探针走真实 __position_sizingExtras，默认态无探针串 ⇒ 零逃生。"
+  },
+  { slug: "securities/position-sizing",
+    inputs: { winRate: "55", winLossRatio: "1.5", totalCapital: "100000", riskPerTrade: "2000", capital2: "100000", riskPct: "2", entryPrice: "10", stopPrice: "9", targetPrice: "10", feeRate: "1" },
+    expect: ["目标净亏损 = -¥336"],
+    ref: "第五批 B-N1 复核重做：总资金 10万、风险 2%、买入 10、止损 9、目标价 10（等于买价）、手续费 1%。股数=floor(2000/1.19)=1680；目标端手续费 = 1680×10×1% + 1680×10×1% = 336；净额 = 0−336 = −336 元，是净亏损。旧实现固定写「目标盈利 = +¥-336」且套成功色（正号+负数混用）；现按符号分别用「目标盈利 / 目标净亏损 / 目标盈亏持平」并配对应颜色。默认目标价 12 ⇒ +¥2,990，不含该串 ⇒ 强判别。" },
   {
     slug: "securities/market-cap",
     inputs: { price: "80", shares: "3000000000" },

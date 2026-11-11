@@ -408,6 +408,7 @@ function equalSplit() {
 }
 
 function calcSimple() {
+  __billSplitLast = null;
   const totalEl = document.getElementById('total-amount');
   const tipEl = document.getElementById('tip-percent');
   const outEl = document.getElementById('simple-result');
@@ -512,13 +513,32 @@ function removeAdvPerson(i) {
 function addItem() {
   const div = document.createElement('div');
   div.className = 'item-row';
-  const __h3=`<input type="text" placeholder=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Project name":"项目名称")><input type="number" placeholder=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Amount":"金额") value="0" step="0.01"><div class="item-persons" style="display:flex;flex-wrap:wrap;gap:4px;"></div><button type="button" class="btn danger" onclick="this.parentElement.remove();calcAdvanced();">×</button>`;if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){div.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}div.innerHTML=__h3;
+  const __h3=`<input type="text" placeholder="${(typeof TBKit!=='undefined'&&TBKit.util.isEn())?'Project name':'项目名称'}"><input type="number" placeholder="${(typeof TBKit!=='undefined'&&TBKit.util.isEn())?'Amount':'金额'}" value="0" step="0.01"><div class="item-persons" style="display:flex;flex-wrap:wrap;gap:4px;"></div><button type="button" class="btn danger" onclick="this.parentElement.remove();calcAdvanced();">×</button>`;if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){div.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}div.innerHTML=__h3;
   document.getElementById('items-list').appendChild(div);
   renderItemPersons();
   invalidateAdvanced();
 }
 
+/** 逐项分摊核心：按人员索引（身份）累积，再以「分」为单位用最大余数法配平到账单总额 */
+function __advSplitAmounts(items, personCount, tipMultiplier, totalCents){
+  const result = new Array(personCount).fill(0);
+  items.forEach(item=>{
+    const perPerson = item.amount / (item.involved.length||1);
+    item.involved.forEach(idx=>{
+      if(idx>=0 && idx<personCount) result[idx] += perPerson * tipMultiplier;
+    });
+  });
+  const cents = result.map(v=>Math.floor(v*100));
+  let diff = totalCents - cents.reduce((a,b)=>a+b,0);
+  const byFrac = result.map((v,i)=>({i:i,f:v*100-Math.floor(v*100),value:v})).filter(x=>x.value>0).sort((a,b)=>b.f-a.f||a.i-b.i);
+  if(byFrac.length){
+    if(diff>0){ for(let k=0;k<diff;k++) cents[byFrac[k%byFrac.length].i]+=1; }
+    else if(diff<0){ const rev=byFrac.slice().reverse(); for(let k=0;k<-diff;k++){const entry=rev[k%rev.length];if(cents[entry.i]>0)cents[entry.i]-=1;} }
+  }
+  return cents.map(c=>c/100);
+}
 function invalidateAdvanced() {
+  __billSplitLast = null;
   const en=typeof TBKit!=='undefined' && TBKit.util && TBKit.util.isEn();
   document.getElementById('adv-result').innerHTML = en ? '<p>Inputs changed. Please recalculate the split.</p>' : '<p>输入已变更，请重新计算分摊。</p>';
 }
@@ -532,6 +552,7 @@ function renderItemPersons() {
 }
 
 function calcAdvanced() {
+  __billSplitLast = null;
   const tipEl = document.getElementById('adv-tip');
   const outEl = document.getElementById('adv-result');
   const rawTip = String(tipEl.value == null ? '' : tipEl.value).trim();
@@ -554,7 +575,8 @@ function calcAdvanced() {
     const amount = rawAmt === '' ? 0 : Number(rawAmt);
     const checks = row.querySelectorAll('input[type="checkbox"]');
     const involved = [];
-    checks.forEach((c,i)=>{if(c.checked&&advPersons[i])involved.push(advPersons[i]);});
+    // 复核失败重做：按人员索引（身份）而非姓名记录参与人，避免同名人员被对象键合并。
+    checks.forEach((c,i)=>{if(c.checked&&advPersons[i]!==undefined)involved.push(i);});
     const hasContent = String(inputs[0].value).trim() !== '' || involved.length > 0;
     if(hasContent && (rawAmt === '' || !isFinite(amount) || amount < 0)){
       if(invalidRow === 0) invalidRow = idx + 1;
@@ -576,24 +598,29 @@ function calcAdvanced() {
   
   const totalWithTip = total * (1 + tip/100);
   const tipMultiplier = total>0 ? totalWithTip/total : 1;
-  const result = {};
-  advPersons.forEach(n=>result[n]=0);
-  
-  items.forEach(item=>{
-    const perPerson = item.amount / item.involved.length;
-    item.involved.forEach(p=>{
-      if(result[p]!==undefined) result[p] += perPerson * tipMultiplier;
-    });
-  });
-  
-  let html = `<p><strong>总消费：</strong>¥${total.toFixed(2)} + ${tip}%小费 = ¥${totalWithTip.toFixed(2)}</p>`;
-  html += `<div style="margin-top:12px;">`;
-  for(const [name,amount] of Object.entries(result)){
-    html += `<div class="result-person"><span>${escHtml(name)}</span><strong>¥${amount.toFixed(2)}</strong></div>`;
+  // 复核失败重做①：结果按人员索引累积，同名参与人各自成行、分别计算。
+  // 复核失败重做②：以「分」为单位做最大余数配平，保证各人金额之和严格等于含小费总额
+  // （三人均分 100 元旧实现显示 33.33×3=99.99）。
+  const totalCents = Math.round(totalWithTip*100);
+  if (!Number.isSafeInteger(totalCents)) {
+    outEl.innerHTML = '<p style="color:var(--danger)">⚠ 金额超出可精确计算范围，请减小金额或小费比例。</p>';
+    return;
   }
+  const amounts = __advSplitAmounts(items, advPersons.length, tipMultiplier, totalCents);
+  
+  let html = `<p><strong>总消费：</strong>¥${total.toFixed(2)} + ${tip}%小费 = ¥${(totalCents/100).toFixed(2)}</p>`;
+  html += `<div style="margin-top:12px;">`;
+  advPersons.forEach((name,idx)=>{
+    html += `<div class="result-person"><span>${escHtml(name)}</span><strong>¥${amounts[idx].toFixed(2)}</strong></div>`;
+  });
   html += `</div>`;
   outEl.innerHTML = html;
-  
+  __billSplitLast = {
+    totalCents: totalCents,
+    totalShare: '',
+    rule: '逐项按参与人员分摊，按最大余数配平',
+    rows: advPersons.map((name, idx) => ({ name: String(name), share: '', cents: Math.round(amounts[idx] * 100) })),
+  };
   if(total>0) addToHistory(total, advPersons.length);
 }
 
@@ -628,7 +655,7 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 
-var __bill_splitter_last=0,__bill_splitter_skip=false;
+var __bill_splitter_skip=false;
 function __bill_splitterSnap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
@@ -642,8 +669,8 @@ function __bill_splitterSnap(){
     }
     return out;
 }
-function __bill_splitterResText(){
-    var r=document.querySelector('.result-box');
+function __bill_splitterResText(resultId){
+    var r=resultId ? document.getElementById(resultId) : document.querySelector('.result-box');
     if(!r) return '';
     var t=(r.textContent||'').replace(/\s+/g,' ').trim();
     if(!t||t==='--'||t==='—'||t==='-') return '';
@@ -705,19 +732,17 @@ function __bill_splitterRender(keys,rk,en){
         }
     }catch(e3){}
 }
-function __bill_splitterExtras(){
+function __bill_splitterExtras(resultId){
     if (typeof TBKit === 'undefined') return;
     if (__bill_splitter_skip) return;
     var snap=__bill_splitterSnap();
     var keys=Object.keys(snap);
     if(!keys.length) return;
     if(keys.length>12) keys=keys.slice(0,12);
-    var res=__bill_splitterResText();
+    var res=__bill_splitterResText(resultId);
     if(!res) return;
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
-    var now=Date.now();
-    if(now-__bill_splitter_last<1000) return;
     var last=null;
     try{ last=TBKit.history.last(); }catch(e){}
     if(last){
@@ -727,7 +752,6 @@ function __bill_splitterExtras(){
         }
         if(same&&String(last[rk])===String(res)) return;
     }
-    __bill_splitter_last=now;
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
@@ -778,7 +802,12 @@ function __bill_splitterPresets(){
 }
 var __bill_splitter_f0=(typeof calcSimple==='function')?calcSimple:null;
 if(__bill_splitter_f0){
-    calcSimple=function(){ var __r=__bill_splitter_f0.apply(null,arguments); try{ __bill_splitterExtras(); }catch(e){} return __r; };
+    calcSimple=function(){ var __r=__bill_splitter_f0.apply(null,arguments); try{ __bill_splitterExtras('simple-result'); }catch(e){} return __r; };
+}
+// F-N189：切到高级模式后真实入口是 calcAdvanced()，原记录器只包装 calcSimple ⇒ 高级模式计算不进历史。
+var __bill_splitter_a0=(typeof calcAdvanced==='function')?calcAdvanced:null;
+if(__bill_splitter_a0){
+    calcAdvanced=function(){ var __r=__bill_splitter_a0.apply(null,arguments); try{ __bill_splitterExtras('adv-result'); }catch(e){} return __r; };
 }
 function __bill_splitterBoot(){ try{ __bill_splitterPresets(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __bill_splitterBoot();

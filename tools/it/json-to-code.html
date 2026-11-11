@@ -338,8 +338,32 @@ function jcUniq(base, used){
   used[n] = 1;
   return n;
 }
+/* 目标语言保留字（IT-N382）：撞上就加下划线后缀，改名由既有注释 / serde / json tag 指回原键。
+   Go / C# 用 PascalCase 字段名不会撞小写保留字；TS / Proto 允许关键字作属性名，故不列入。 */
+var JC_KW = {
+  py: 'False None True and as assert async await break class continue def del elif else except finally for from global if import in is lambda nonlocal not or pass raise return try while with yield match case'.split(' '),
+  rust: 'as break const continue crate else enum extern false fn for if impl in let loop match mod move mut pub ref return self Self static struct super trait true type unsafe use where while async await dyn abstract become box do final macro override priv typeof unsized virtual yield try union'.split(' '),
+  java: 'abstract assert boolean break byte case catch char class const continue default do double else enum extends final finally float for goto if implements import instanceof int interface long native new package private protected public return short static strictfp super switch synchronized this throw throws transient try void volatile while true false null'.split(' '),
+  kotlin: 'as break class continue do else false for fun if in interface is null object package return super this throw true try typealias typeof val var when while'.split(' ')
+};
+function jcSafe(name, lang){
+  var bad = JC_KW[lang] || [];
+  return bad.indexOf(name) >= 0 ? name + '_' : name;
+}
+/* 代码里的字符串字面量转义（IT-N384）：原键含引号/反斜杠/控制字符时不能裸拼进
+   serde rename / JsonProperty / Go struct tag，否则目标语言直接编译失败。 */
+function jcStr(s, rust){
+  return String(s)
+    .replace(/\\/g, '\\\\')
+    .replace(/"/g, '\\"')
+    .replace(/[\x00-\x1f]/g, function(ch){
+      var hex = ('000' + ch.charCodeAt(0).toString(16)).slice(-4);
+      return rust ? '\\u{' + hex + '}' : '\\u' + hex;
+    });
+}
 function jcNote(field, key, mark){
-  return field === key ? '' : ' ' + (mark || '//') + ' ' + jcT('原键: ', 'key: ') + key;
+  var safeKey = String(key).replace(/[\x00-\x1f]/g, ' ');
+  return field === key ? '' : ' ' + (mark || '//') + ' ' + jcT('原键: ', 'key: ') + safeKey;
 }
 function jcObj(v){ return v !== null && typeof v === 'object' && !Array.isArray(v); }
 function jcElem(v){ while(Array.isArray(v) && v.length) v = v[0]; return v; }
@@ -381,7 +405,7 @@ function tsFieldType(v, tname){
 function tsBody(obj, typeName, ro, ex){
   var used = {}, lines = [ex + 'interface ' + typeName + ' {'];
   Object.keys(obj).forEach(function(k){
-    var f = jcUniq(jcIdent(k, 'camel'), used);
+    var f = jcUniq(jcSafe(jcIdent(k, 'camel'), 'ts'), used);
     lines.push('  ' + (ro ? 'readonly ' : '') + f + ': ' + tsFieldType(obj[k], jcSubName(typeName, k)) + ';' + jcNote(f, k));
   });
   lines.push('}');
@@ -409,6 +433,20 @@ function toTS(obj, name){
   return head + (subs.length ? '\n\n' + subs.map(function(s){ return tsBody(s.obj, s.name, ro, ex); }).join('\n\n') : '');
 }
 /* ---------- Go ---------- */
+// encoding/json 的 tag 名不接受逗号、引号、反斜杠、控制字符等；单独的 - 代表忽略字段。
+function goUnsupportedKey(value){
+  if(Array.isArray(value)){
+    for(var i=0;i<value.length;i++){ var nested=goUnsupportedKey(value[i]); if(nested!==null) return nested; }
+  }else if(jcObj(value)){
+    var keys=Object.keys(value);
+    for(var j=0;j<keys.length;j++){
+      var key=keys[j];
+      if(key==='-' || !/^[\p{L}\p{Nd}!#$%&()*+\-./:;<=>?@\[\]^_{|}~ ]+$/u.test(key)) return key;
+      var nested=goUnsupportedKey(value[key]); if(nested!==null) return nested;
+    }
+  }
+  return null;
+}
 function goPrim(v){
   if(v === null) return 'interface{}';
   if(typeof v === 'string') return 'string';
@@ -424,8 +462,14 @@ function goFieldType(v, tname){
 function goBody(obj, typeName){
   var used = {}, lines = ['type ' + typeName + ' struct {'];
   Object.keys(obj).forEach(function(k){
-    var f = jcUniq(jcIdent(k, 'pascal'), used);
-    lines.push('\t' + f + ' ' + goFieldType(obj[k], jcSubName(typeName, k)) + ' `json:"' + k + '"`');
+    var base = jcSafe(jcIdent(k, 'pascal'), 'go');
+    // Go 仅导出以大写字母开头的字段；汉字等非大写字母需加前缀。
+    if(!/^[A-Z]/.test(base)) base = 'F' + base;
+    var f = jcUniq(base, used);
+    var tag = 'json:"' + jcStr(k) + '"';
+    // 原键含反引号/换行时，backtick 原始字符串会被截断 ⇒ 退回转义过的普通字符串字面量
+    var tagLit = /[`\r\n]/.test(String(k)) ? JSON.stringify(tag) : '`' + tag + '`';
+    lines.push('\t' + f + ' ' + goFieldType(obj[k], jcSubName(typeName, k)) + ' ' + tagLit);
   });
   lines.push('}');
   return lines.join('\n');
@@ -433,6 +477,8 @@ function goBody(obj, typeName){
 function toGo(obj, name){
   var root = capitalize(jcRoot(name)), subs = [], head;
   if(obj === null) return jcNull();
+  var unsupported = goUnsupportedKey(obj);
+  if(unsupported !== null) return '// ' + jcT('Go JSON tag 无法映射键 ', 'Go JSON tags cannot map key ') + JSON.stringify(unsupported) + jcT('；请手写 MarshalJSON / UnmarshalJSON 或使用 map。', '; implement MarshalJSON / UnmarshalJSON or use a map.');
   if(Array.isArray(obj)){
     if(!obj.length) head = 'type ' + root + ' []interface{}';
     else if(jcObj(obj[0])){
@@ -466,8 +512,8 @@ function csFieldType(v, tname){
 function csBody(obj, typeName){
   var used = {}, lines = ['public class ' + typeName, '{'];
   Object.keys(obj).forEach(function(k){
-    var f = jcUniq(jcIdent(k, 'pascal'), used);
-    lines.push('    [Newtonsoft.Json.JsonProperty("' + k + '")]');
+    var f = jcUniq(jcSafe(jcIdent(k, 'pascal'), 'csharp'), used);
+    lines.push('    [Newtonsoft.Json.JsonProperty("' + jcStr(k) + '")]');
     lines.push('    public ' + csFieldType(obj[k], jcSubName(typeName, k)) + ' ' + f + ' { get; set; }');
   });
   lines.push('}');
@@ -509,7 +555,7 @@ function javaFieldType(v, tname){
 function javaBody(obj, typeName){
   var used = {}, lines = ['public class ' + typeName + ' {'];
   Object.keys(obj).forEach(function(k){
-    var f = jcUniq(jcIdent(k, 'camel'), used);
+    var f = jcUniq(jcSafe(jcIdent(k, 'camel'), 'java'), used);
     var t = javaFieldType(obj[k], jcSubName(typeName, k));
     lines.push('    private ' + t + ' ' + f + ';' + jcNote(f, k));
     lines.push('    public ' + t + ' get' + capitalize(f) + '() { return ' + f + '; }');
@@ -554,7 +600,7 @@ function kotlinFieldType(v, tname){
 function kotlinBody(obj, typeName){
   var used = {}, keys = Object.keys(obj), lines = ['data class ' + typeName + '('];
   keys.forEach(function(k, i){
-    var f = jcUniq(jcIdent(k, 'camel'), used);
+    var f = jcUniq(jcSafe(jcIdent(k, 'camel'), 'kotlin'), used);
     lines.push('    val ' + f + ': ' + kotlinFieldType(obj[k], jcSubName(typeName, k)) + (i < keys.length - 1 ? ',' : '') + jcNote(f, k));
   });
   lines.push(')');
@@ -594,8 +640,8 @@ function rustFieldType(v, tname){
 function rustBody(obj, typeName){
   var used = {}, lines = ['#[derive(Debug, Serialize, Deserialize)]', 'pub struct ' + typeName + ' {'];
   Object.keys(obj).forEach(function(k){
-    var f = jcUniq(jcIdent(k, 'snake'), used);
-    if(f !== k) lines.push('    #[serde(rename = "' + k + '")]');
+    var f = jcUniq(jcSafe(jcIdent(k, 'snake'), 'rust'), used);
+    if(f !== k) lines.push('    #[serde(rename = "' + jcStr(k, true) + '")]');
     lines.push('    pub ' + f + ': ' + rustFieldType(obj[k], jcSubName(typeName, k)) + ',');
   });
   lines.push('}');
@@ -638,7 +684,7 @@ function pyBody(obj, typeName){
   var used = {}, keys = Object.keys(obj), lines = ['class ' + typeName + '(BaseModel):'];
   if(!keys.length) lines.push('    pass');
   else keys.forEach(function(k){
-    var f = jcUniq(jcIdent(k, 'raw'), used);
+    var f = jcUniq(jcSafe(jcIdent(k, 'raw'), 'py'), used);
     lines.push('    ' + f + ': ' + pyFieldType(obj[k], jcSubName(typeName, k)) + jcNote(f, k, '#'));
   });
   return lines.join('\n');
@@ -659,8 +705,12 @@ function toPython(obj, name){
     head = pyBody(obj, root);
     jcSubs(obj, root, subs, {});
   }
-  var out = ['from typing import Any, List, Optional', 'from pydantic import BaseModel', '', head];
-  subs.forEach(function(s){ out.push(''); out.push(pyBody(s.obj, s.name)); });
+  // Python 的类注解在定义时立即求值：被引用的子类型必须先出现，否则 NameError。
+  // jcSubs 是前序收集（父的子 → 孙），逆序后即「最深的子类型先定义」，
+  // 根里的 RootU / RootOrders / RootItem 引用才不会悬空。
+  var out = ['from typing import Any, List, Optional', 'from pydantic import BaseModel', ''];
+  subs.slice().reverse().forEach(function(s){ out.push(pyBody(s.obj, s.name)); out.push(''); });
+  out.push(head);
   return out.join('\n');
 }
 /* ---------- Protobuf ---------- */
@@ -678,7 +728,7 @@ function protoFieldType(v, tname){
 function protoBody(obj, typeName){
   var used = {}, idx = 1, lines = ['message ' + typeName + ' {'];
   Object.keys(obj).forEach(function(k){
-    var f = jcUniq(jcIdent(k, 'snake'), used);
+    var f = jcUniq(jcSafe(jcIdent(k, 'snake'), 'proto'), used);
     var v = obj[k], t = protoFieldType(jcElem(v), jcSubName(typeName, k));
     lines.push('  ' + (Array.isArray(v) ? 'repeated ' : '') + t + ' ' + f + ' = ' + (idx++) + ';');
   });

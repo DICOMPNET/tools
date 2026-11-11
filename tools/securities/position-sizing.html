@@ -306,7 +306,10 @@ s.parentNode.insertBefore(el, s);
 
 <script>function __tbInputGuard(_ids,_labels){
   var __r=__tbInputGuardCore(_ids,_labels);
-  if(__r){var __t=document.getElementById('position_sizingTable');if(__t)__t.innerHTML='';}
+  if(__r){
+    document.getElementById('statGrid').innerHTML='';
+    var __t=document.getElementById('position_sizingTable');if(__t)__t.innerHTML='';
+  }
   return __r;
 }
 function __tbInputGuardCore(_ids,_labels){
@@ -527,7 +530,14 @@ function calcFixed(){
   html += '<p>止损端手续费（买入 + 止损卖出）= ¥' + ToolBox.formatNumber(feeRoundTrip, 2) + '</p>';
   html += '<p>目标端手续费（买入 + 目标价卖出）= ¥' + ToolBox.formatNumber(feeBuy + feeTarget, 2) + '</p>';
   html += '<p>最大亏损 = <strong style="color:var(--danger);">-¥' + ToolBox.formatNumber(netLoss, 2) + '</strong>（风险预算 ¥' + ToolBox.formatNumber(riskAmount, 0) + '，占用 ' + (riskAmount > 0 ? (netLoss / riskAmount * 100).toFixed(1) : '0.0') + '%）</p>';
-  html += '<p>目标盈利 = <strong style="color:var(--success);">+¥' + ToolBox.formatNumber(netProfit, 0) + '</strong></p>';
+  // B-N1 复核重做：目标端含费净额为负时是「净亏损」，不得写成「+¥-336」并套成功色。
+  var __profitLabel = netProfit > 0 ? '目标盈利' : (netProfit < 0 ? '目标净亏损' : '目标盈亏持平');
+  var __profitColor = netProfit > 0 ? 'var(--success)' : (netProfit < 0 ? 'var(--danger)' : 'var(--text-light)');
+  var __profitAbs = Math.abs(netProfit);
+  var __profitAmount = __profitAbs < 0.005 ? __profitAbs.toExponential(2) : ToolBox.formatNumber(__profitAbs, __profitAbs < 0.5 ? 2 : 0);
+  var __profitTxt = netProfit > 0 ? '+¥' + __profitAmount
+    : (netProfit < 0 ? '-¥' + __profitAmount : '¥0');
+  html += '<p>' + __profitLabel + ' = <strong style="color:' + __profitColor + ';">' + __profitTxt + '</strong></p>';
   html += '<p>净盈亏比（含费）= ' + (rrNet > 0 ? rrNet.toFixed(2) : '—') + '</p>';
   if(rrRatio < 1){
     html += '<div class="tip-box tip-warn">盈亏比低于1，风险收益不对称，建议盈亏比至少2:1。</div>';
@@ -638,7 +648,7 @@ function __position_sizingResText(){
 }
 function __position_sizingScore(t){
     var s=String(t||'');
-    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|请填写|填写|Waiting|required/i.test(s)) return 0;
     return 1;
 }
 function __position_sizingTime(t){

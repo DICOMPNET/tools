@@ -24,6 +24,13 @@ const { runCase } = require("./verify_it_calc.js");
 
 // ---------------------------------------------------------------- 用例
 const CASES = [
+  { slug: "design/contrast-checker", inputs: { fgHex: "F#FF", bgHex: "000000" },
+    expect: ["颜色需为有效的 3 或 6 位 HEX 值"],
+    ref: "第六批 D-N1：前景 F#FF 含内部 #，旧实现入口与 isValidHex 各 replace 一次 # 使其变成 FFF 通过校验，算出白黑 21.00。现 normalizeHex 只去单个前导 #，内部 # 由正则拒绝。默认白/黑为有效输入不含该提示 ⇒ 强判别。" },
+  { slug: "design/contrast-checker", inputs: { fgHex: "GGGGGG", bgHex: "000000" },
+    clicks: ["document.getElementById('fgHex').value='FFFFFF';document.getElementById('bgHex').value='000000';updateAll();document.getElementById('fgHex').value='GGGGGG';updateAll();"],
+    expect: ["待判定"],
+    ref: "第六批 D-N1：先算白/黑（21.00、AA 通过、评分条 100%），再把前景改成非法 GGGGGG。旧实现只清比率与评级，WCAG 状态与评分条残留旧结论；现 clearWCAG() 把 4 组状态置「待判定」并清零评分条。默认态为有效计算（通过/未通过），不含「待判定」⇒ 强判别。" },
   // ── 单位换算类 ─────────────────────────────────────────────────
   {
     slug: "design/px-to-rem",
@@ -452,8 +459,33 @@ const CASES = [
   {
     slug: "design/music-scale-reference",
     inputs: { root: "Db", scaleType: "minor" },
-    expect: ["Db - Eb - Fb - Gb - Ab - Bb - Cb"],
-    ref: "2026-11-09 复核失败重做（D-N198 降号音阶）：选 Db 自然小调，修复前 SPELL_MINOR['Db'] 错写成 C# 小调音节（C# D# E F# G# A B），显示与所选 Db 不一致的升号拼写，且 CSV 因 notes.indexOf('Db')=-1 直接 return 无法导出。修复后 SPELL_MINOR['Db']=['Db','Eb','Fb','Gb','Ab','Bb','Cb']，msExportCsv 改用 ROOT_PC/NOTE_PC 支持降号根音与音高类。期望音阶串 'Db - Eb - Fb - Gb - Ab - Bb - Cb'。默认 C 大调 → 'C - D - E - F - G - A - B' 不命中。"
+    expect: ["Db - Eb - Fb - Gb - Ab - Bbb - Cb"],
+    ref: "复核失败重做 D-N198（第七批·Db 自然小调第六音）：修复前 SPELL_MINOR['Db'] 错写成 C# 小调音节，且第六音写成 Bb（466.2 Hz）高半音。按自然小调半音序列逐级字母拼写，Db 小调应为 Db Eb Fb Gb Ab Bbb Cb，第六级是重降 B（音高类 9 = A4 440 Hz）。修复后 notesDisplay 输出 'Db - Eb - Fb - Gb - Ab - Bbb - Cb'。默认 C 大调 → 'C - D - E - F - G - A - B' 不命中。"
+  },
+  {
+    slug: "design/music-scale-reference",
+    inputs: { root: "E", scaleType: "major" },
+    expect: ["关系小调：C#m"],
+    ref: "复核失败重做 D-N198（第七批·关系小调等音拼写）：E 大调（4 个升号）关系小调是 C#m。修复前用 ROOT_PC 反查 (rootIdx+9)%12=1 命中字典里先出现的 'Db'，输出 'Dbm'（等音异名但记谱错误）。修复后按调号建立 REL_MINOR 映射，E→C#m。默认 C 大调输出「关系小调：Am」不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    slug: "design/music-scale-reference",
+    inputs: { root: "Db", scaleType: "minor" },
+    expect: ["Bbb 440.0Hz"],
+    ref: "复核失败重做 D-N198（第七批·CSV/页面频率口径）：旧 CSV 第六行输出 'Bb, 466.2 Hz'。修复后 NOTE_PC 扩充重降/重升异名（Bbb=9、Cb=11、Fb=4 等），频率统一由 msNoteFreq(note) 按十二平均律 A4=440 计算，页面 sigInfo、图表与 msExportCsv 三处共用同一函数；Db 小调第六音 Bbb → midi 69 → 440.0 Hz。默认 C 大调频率行不含 'Bbb' ⇒ 强判别、零逃生。"
+  },
+  {
+    slug: "design/depth-of-field-calculator",
+    inputs: { sensor: "1", focal: "50", aperture: "1.8", distance: "0.01" },
+    expect: ["对焦距离须大于焦距"],
+    ref: "D-N6 再复核：对焦距离 10mm 小于焦距 50mm，不能输出负景深。"
+  },
+  {
+    slug: "design/depth-of-field-calculator",
+    inputs: { sensor: "1", focal: "85", aperture: "2.8" },
+    clicks: ["document.getElementById('distance').value='';calc();"],
+    expect: ["请填写有效的焦距、光圈与对焦距离"],
+    ref: "复核失败重做 D-N6/D-N7（第七批·空物距仍出结论）：修复前清空物距，+'' 得 0，页面仍输出景深「0.00m ~ 0.00m」与超焦距「46.3m」。修复后 calc() 显式判空/非有限/非正，清空 dofTotal、results 与标尺位置，并在 results 给出提示。默认态（距离 2m）输出正常景深不含该提示 ⇒ 强判别、零逃生。"
   },
 
   // ── §7.4 覆盖缺口线 · design/loading-dots
@@ -2038,12 +2070,13 @@ const CASES = [
     "inputs": {
       "width": "42",
       "height": "42",
-      "svgInput": "1\n2\n3"
+      "svgInput": "<svg xmlns='http://www.w3.org/2000/svg'><rect width='10' height='10'/></svg>"
     },
+    "clicks": ["generate()"],
     "expect": [
-      "42\n42\n1 2 3"
+      "42 × 42 · 1x · transparent"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"width\":\"42\",\"height\":\"42\",\"svgInput\":\"1\\n2\\n3\"}，输出区含「42\n42\n1 2 3」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "42×42、1x 透明背景生成前输出像素元信息；不依赖输入回显或测试环境中的 Image 实现。"
   },
   {
     "slug": "design/tester-assessor",
@@ -2223,6 +2256,18 @@ const CASES = [
     expect: ["最低对比度 3.30:1（与 #764ba2）· AA 大文本"],
     ref: "WCAG 改造：默认三色 #667eea/#764ba2/#f093fb，叠加文字注入 #000000 ⇒ 与最暗色 #764ba2 对比度 = (0.1187+0.05)/(0.0353+0.05)=3.30"
        + "（独立复算 sRGB 线性化），等级按 <4.5 判「AA 大文本」。默认态 overlay=#ffffff 输出「最低对比度 2.04:1（与 #f093fb）」，不含该串。"
+  },
+  {
+    slug: "design/mesh-gradient",
+    clicks: ["var __seq=[];var _ce=document.createElement.bind(document);document.createElement=function(t){var el=_ce(t);if(t==='canvas'){el.getContext=function(){return{fillRect:function(){},createRadialGradient:function(){return{addColorStop:function(o,c){if(o===0)__seq.push(c);}};},fillStyle:null};};el.toDataURL=function(){return 'data:image/png;base64,';};}return el;};colors=['#ff0000','#0000ff'];pos=[[50,50],[50,50]];var css=meshCSS();var cssFirst=(css.indexOf('#ff0000')>=0&&css.indexOf('#ff0000')<css.indexOf('#0000ff'))?1:0;downloadPNG();document.getElementById('__tbProbe').textContent='MESHLAYER css='+cssFirst+' order='+__seq.join(',')+' ok='+((__seq[__seq.length-1]==='#ff0000')?1:0);"],
+    expect: ["MESHLAYER css=1 order=#0000ff,#ff0000 ok=1"],
+    ref: "复核失败重做·D-N60 1/2（重合色点层叠顺序）：CSS 多个 background-image 是「第一层在最上」，canvas 却是「后画的覆盖先画的」。把红/蓝两色点都放在 50% 50%，捕获 addColorStop(0,c) 的绘制序列 ⇒ 修复前 order=#ff0000,#0000ff（最后画的蓝覆盖中心，与预览相反，ok=0）；修复后倒序 order=#0000ff,#ff0000，最后画的是 CSS 首层红 ⇒ 预览与 PNG 中心一致。默认态不执行 clicks、无探针串 ⇒ 零逃生。"
+  },
+  {
+    slug: "design/mesh-gradient",
+    clicks: ["var __seq=[];var _ce=document.createElement.bind(document);document.createElement=function(t){var el=_ce(t);if(t==='canvas'){el.getContext=function(){return{fillRect:function(){},createRadialGradient:function(){return{addColorStop:function(o,c){if(o===0)__seq.push(c);}};},fillStyle:null};};el.toDataURL=function(){return 'data:image/png;base64,';};}return el;};colors=['#111111','#222222','#333333'];pos=[[50,50],[50,50],[50,50]];downloadPNG();document.getElementById('__tbProbe').textContent='MESH3 order='+__seq.join(',')+' ok='+((__seq[__seq.length-1]==='#111111'&&__seq[0]==='#333333')?1:0);"],
+    expect: ["MESH3 order=#333333,#222222,#111111 ok=1"],
+    ref: "复核失败重做·D-N60 2/2（三色重合护栏）：三个色点重合时绘制序列必须严格倒序 #333333,#222222,#111111，证明逆序修复不止对两色成立。修复前为正序 ⇒ ok=0。"
   },
   // ── 照片存储：超容量明示（不再静默夹 100%）────────────────────
   {

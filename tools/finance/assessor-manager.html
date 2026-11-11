@@ -187,7 +187,7 @@ s.parentNode.insertBefore(el, s);
 
   <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
   <ul>
-      <li>信用评分基于财务指标(75%)和信用记录(25%)综合评估</li>
+      <li>信用评分由资产负债率、流动比率、收入、净利润率、逾期次数、信用历史六项分档得分直接累加（满分 100）得出</li>
       <li>资产负债率50%为最优，超过80%风险显著增加</li>
       <li>授信额度建议为年收入的5%-30%，根据信用等级递减</li>
       <li>催收策略按五级分类：正常/关注/次级/可疑/损失</li>
@@ -198,9 +198,17 @@ s.parentNode.insertBefore(el, s);
 </div>
 <script>
 function calc(){
-  var dr=+document.getElementById('debtRatio').value||0;var cr=+document.getElementById('currentRatio').value||0;
-  var rev=+document.getElementById('revenue').value||0;var pm=+document.getElementById('profitMargin').value||0;
-  var od=+document.getElementById('overdue').value||0;var ch=+document.getElementById('creditHistory').value||0;
+  var raw={dr:document.getElementById('debtRatio').value,cr:document.getElementById('currentRatio').value,rev:document.getElementById('revenue').value,pm:document.getElementById('profitMargin').value,od:document.getElementById('overdue').value,ch:document.getElementById('creditHistory').value};
+  var ids={dr:'debtRatio',cr:'currentRatio',rev:'revenue',pm:'profitMargin',od:'overdue',ch:'creditHistory'};
+  var labels={dr:'资产负债率',cr:'流动比率',rev:'年营业收入',pm:'净利润率',od:'逾期次数',ch:'信用历史'};
+  for(var k in raw){
+    var s=String(raw[k]).trim();
+    if(s===''||!isFinite(Number(s))){document.getElementById('res').innerHTML='<p class="tip-error">'+labels[k]+'须填写有效数字，不能留空或非数字。</p>';return;}
+    if(k!=='pm'&&Number(s)<0){document.getElementById('res').innerHTML='<p class="tip-error">'+labels[k]+'不能为负数，请核对输入。</p>';return;}
+  }
+  var dr=Number(raw.dr),cr=Number(raw.cr),rev=Number(raw.rev),pm=Number(raw.pm),od=Number(raw.od),ch=Number(raw.ch);
+  if(dr>100){document.getElementById('res').innerHTML='<p class="tip-error">资产负债率须在 0–100% 之间。</p>';return;}
+  if(!Number.isInteger(od)){document.getElementById('res').innerHTML='<p class="tip-error">逾期次数须为非负整数。</p>';return;}
   var sc=0;
   sc+=(dr<=50?25:dr<=60?20:dr<=70?15:dr<=80?8:0);
   sc+=(cr>=2?15:cr>=1.5?12:cr>=1.0?8:cr>=0.5?4:0);
@@ -297,7 +305,7 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 
-var __assessor_manager_last=0,__assessor_manager_skip=false;
+var __assessor_manager_last=0,__assessor_manager_skip=false,__assessor_manager_timer=null;
 function __assessor_managerSnap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
@@ -306,7 +314,7 @@ function __assessor_managerSnap(){
         var t=(e.type||'').toLowerCase();
         if(t==='button'||t==='submit'||t==='hidden') continue;
         var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
-        if(v!==''&&v!=null) out[e.id]=v;
+        if(v!=null) out[e.id]=v;
     }
     return out;
 }
@@ -318,10 +326,9 @@ function __assessor_managerResText(){
     if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
 }
-function __assessor_managerScore(t){
-    var s=String(t||'');
-    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
-    return 1;
+function __assessor_managerScore(){
+    var first=document.getElementById('res').firstElementChild;
+    return first && first.classList.contains('tip-error') ? 0 : 1;
 }
 function __assessor_managerTime(t){
     var d=new Date(t);
@@ -344,6 +351,8 @@ function __assessor_managerRender(keys,rk,en){
         TBKit.util.diffBox('#assessor_managerDiff');
         TBKit.history.mount('#assessor_managerHist',function(rec){
             __assessor_manager_skip=true;
+            clearTimeout(__assessor_manager_timer);
+            __assessor_manager_timer=null;
             try{
                 for(var k in rec){
                     if(k===rk||k==='__tbScore') continue;
@@ -367,9 +376,11 @@ function __assessor_managerRender(keys,rk,en){
         }
     }catch(e3){}
 }
-function __assessor_managerExtras(){
+function __assessor_managerExtras(force){
     if (typeof TBKit === 'undefined') return;
     if (__assessor_manager_skip) return;
+    clearTimeout(__assessor_manager_timer);
+    __assessor_manager_timer=null;
     var snap=__assessor_managerSnap();
     var keys=Object.keys(snap);
     if(!keys.length) return;
@@ -379,7 +390,10 @@ function __assessor_managerExtras(){
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
     var now=Date.now();
-    if(now-__assessor_manager_last<1000) return;
+    if(!force && now-__assessor_manager_last<1000){
+        __assessor_manager_timer=setTimeout(function(){__assessor_managerExtras(true);},1000-(now-__assessor_manager_last));
+        return;
+    }
     var last=null;
     try{ last=TBKit.history.last(); }catch(e){}
     if(last){
@@ -399,6 +413,7 @@ function __assessor_managerExtras(){
 }
 function __assessor_managerExport(){
     if (typeof TBKit === 'undefined') return;
+    __assessor_managerExtras(true);
     try{
         var box=document.querySelector('#assessor_managerTable');
         if(!box||!box.querySelector('tr')){
