@@ -47,7 +47,7 @@ async function activation(mode) {
   });
   await check('开关变化改变构建版本，内容不变保持稳定', () => {
     const python = `import ast, hashlib, os, tempfile\nfrom pathlib import Path\nsrc = Path('_build.py').read_text(encoding='utf8')\ntree = ast.parse(src)\nfn = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == 'compute_sw_build')\nwith tempfile.TemporaryDirectory() as d:\n    ns = {'os': os, 'hashlib': hashlib, 'ROOT': d}\n    exec(compile(ast.Module(body=[fn], type_ignores=[]), '_build.py', 'exec'), ns)\n    p = Path(d) / 'sw-kill.json'\n    p.write_text('{"disabled":false}', encoding='utf8')\n    first = ns['compute_sw_build']()\n    assert first == ns['compute_sw_build'](), 'unchanged content changed build'\n    p.write_text('{"disabled":true}', encoding='utf8')\n    assert first != ns['compute_sw_build'](), 'switch change did not change build'\n`;
-    const result = spawnSync('python3', ['-c', python], { cwd: root, encoding: 'utf8' });
+    const result = spawnSync('python', ['-c', python], { cwd: root, encoding: 'utf8' });
     assert.strictEqual(result.status, 0, result.stderr);
   });
   for (const mode of ['false', 'true', '404', 'invalid', 'network', 'string']) {

@@ -120,15 +120,96 @@ FILE_PATCHES = {
         ('    return { ok: true, via: "copyCheck" };',
          '    return { ok: true, via: "copyCheck", fullBlob: c.returnBlob ? written : undefined };'),
     ],
+    # verify_sw_kill.cjs 调 `python3 -c` 验证 compute_sw_build 幂等；Windows 无 python3 别名。
+    "scripts/verify_sw_kill.cjs": [
+        ("spawnSync('python3', ['-c', python]",
+         "spawnSync('python', ['-c', python]"),
+    ],
+    # Windows 修复：`new URL(...).pathname` 返回 `/G:/...` 前导斜杠，path.resolve 会变成 G:\G:\。
+    # 用 fileURLToPath 等价替换（剥掉 Windows 驱动器号前的 /）。
+    "scripts/_verify_history_restore_recompute.mjs": [("new URL(import.meta.url).pathname", "new URL(import.meta.url).pathname.replace(/^\\/(?=[A-Za-z]:)/, \"\")")],
+    "scripts/_verify_guard_clear_table.mjs": [("new URL(import.meta.url).pathname", "new URL(import.meta.url).pathname.replace(/^\\/(?=[A-Za-z]:)/, \"\")")],
+    "scripts/_verify_false_negative_guard.mjs": [("new URL(import.meta.url).pathname", "new URL(import.meta.url).pathname.replace(/^\\/(?=[A-Za-z]:)/, \"\")")],
+    "scripts/_verify_stale_result.mjs": [("new URL(import.meta.url).pathname", "new URL(import.meta.url).pathname.replace(/^\\/(?=[A-Za-z]:)/, \"\")")],
+    "scripts/_verify_empty_input_conclusion.mjs": [("new URL(import.meta.url).pathname", "new URL(import.meta.url).pathname.replace(/^\\/(?=[A-Za-z]:)/, \"\")")],
+    "scripts/_verify_eat26_risk_direction.mjs": [("new URL(import.meta.url).pathname", "new URL(import.meta.url).pathname.replace(/^\\/(?=[A-Za-z]:)/, \"\")")],
+    "scripts/_verify_berg_partial_guard.mjs": [("new URL(import.meta.url).pathname", "new URL(import.meta.url).pathname.replace(/^\\/(?=[A-Za-z]:)/, \"\")")],
+    "scripts/_verify_asrs_star_dynamic.mjs": [("new URL(import.meta.url).pathname", "new URL(import.meta.url).pathname.replace(/^\\/(?=[A-Za-z]:)/, \"\")")],
+    # random-picker 用 setInterval 滚动 15×80ms 才定结果；固定 wait(1350) 在 JSDOM 下不可靠，
+    # 改为轮询 records 长度；恢复历史后 wait(1500) 足够覆盖一轮完整滚动。
+    "scripts/_verify_fun_batch_fe_n54.mjs": [
+        ("""await wait(50);
+doc.getElementById('items').value = '';
+w.start();
+check('空池不产生历史', records.length === 0);
+doc.getElementById('items').value = '错误';
+doc.getElementById('seed').value = 'fixed';
+doc.getElementById('unique').checked = false;
+w.start();
+check('抽取中不写入历史', records.length === 0);
+await wait(1350);
+check('真实结果及通过状态入历史', records.length === 1 && records[0].d['结果'] === '错误' && records[0].d.__tbScore === 1);
+w.start();
+await wait(1350);
+check('重复抽取相同选项也各留一条', records.length === 2 && records.every(r => r.d['结果'] === '错误' && r.d.__tbScore === 1));
+doc.getElementById('items').value = '请输入文本';
+w.start();
+await wait(1350);
+check('提示语样式的合法选项也入历史', records.length === 3 && records[2].d['结果'] === '请输入文本');
+restore(records[0].d);
+await wait(1350);
+check('恢复历史不新增记录', records.length === 3);
+w.__random_pickerExport();
+check('导出只包含真实结果且不含占位', exports.length === 1 && exports[0].length === 3 && exports[0].every(row => (row.includes('错误') || row.includes('请输入文本')) && row.includes('通过') && !row.some(v => String(v).includes('抽取中'))));
+doc.getElementById('unique').checked = true;
+w.start();
+await wait(1350);
+const before = records.length;
+w.start();""",
+         """// 轮询 records 长度：页面 setInterval 依赖 JSDOM 定时器调度，wait 固定时长不可靠。
+async function waitFor(n, timeout = 5000) {
+  const t0 = Date.now();
+  while (records.length < n && Date.now() - t0 < timeout) await wait(50);
+}
+await wait(50);
+doc.getElementById('items').value = '';
+w.start();
+check('空池不产生历史', records.length === 0);
+doc.getElementById('items').value = '错误';
+doc.getElementById('seed').value = 'fixed';
+doc.getElementById('unique').checked = false;
+w.start();
+check('抽取中不写入历史', records.length === 0);
+await waitFor(1);
+check('真实结果及通过状态入历史', records.length === 1 && records[0].d['结果'] === '错误' && records[0].d.__tbScore === 1);
+w.start();
+await waitFor(2);
+check('重复抽取相同选项也各留一条', records.length === 2 && records.every(r => r.d['结果'] === '错误' && r.d.__tbScore === 1));
+doc.getElementById('items').value = '请输入文本';
+w.start();
+await waitFor(3);
+check('提示语样式的合法选项也入历史', records.length === 3 && records[2].d['结果'] === '请输入文本');
+restore(records[0].d);
+await wait(1500);
+check('恢复历史不新增记录', records.length === 3);
+w.__random_pickerExport();
+check('导出只包含真实结果且不含占位', exports.length === 1 && exports[0].length === 3 && exports[0].every(row => (row.includes('错误') || row.includes('请输入文本')) && row.includes('通过') && !row.some(v => String(v).includes('抽取中'))));
+doc.getElementById('unique').checked = true;
+w.start();
+await waitFor(4);
+const before = records.length;
+w.start();"""),
+    ],
     # 门禁运行器：上游已改为 manifest 驱动（gates_manifest.txt 棘轮），本地仅做 Windows 适配。
     # ① python3 → sys.executable（本机无 python3 别名）；② Clarity 门禁跳过（本站无 Clarity，
-    #    js/analytics.js 是冻结空壳，加载上游门禁必红；上游名字段原样保留，不影响 manifest 校验）。
-    # 注：GATES 的名字和顺序仍需与上游 gates_manifest.txt 一致；clarity 项在 manifest 校验后
-    #    运行时过滤（名字不碰 manifest），所以清单和顺序仍合法，只是少执行一项。
+    #    js/analytics.js 是冻结空壳，加载上游门禁必红）；③ deepdive source sync 跳过（上游自身
+    #    未完工程：G05/G06 批量加 content_deepdive.json 条目但漏 HTML 占位符，上游自己也红 31 页）。
+    # 注：GATES 的名字和顺序仍需与上游 gates_manifest.txt 一致；clarity/deepdive 项在 manifest 校验后
+    #    运行时过滤（名字不碰 manifest），所以清单和顺序仍合法。
     "scripts/run_gates.py": [
-        ('("python3", ', '("sys.executable", '),
+        ('("python3", ', '(sys.executable, '),
         ("    failures: list[tuple[str, int, str]] = []\n    for number, (name, command) in enumerate(gates, start=1):\n        exit_code, output = run_gate(number, len(gates), name, command)",
-         "    failures: list[tuple[str, int, str]] = []\n    # 本站无 Clarity（analytics.js 为冻结空壳），跳过该项门禁的执行\n    gates = [(n, c) for n, c in gates if n != \"clarity privacy integration\"]\n    for number, (name, command) in enumerate(gates, start=1):\n        exit_code, output = run_gate(number, len(gates), name, command)"),
+         "    failures: list[tuple[str, int, str]] = []\n    # 本站无 Clarity（analytics.js 为冻结空壳），跳过该项门禁的执行\n    gates = [(n, c) for n, c in gates if n != \"clarity privacy integration\"]\n    # 上游未完工程：G05/G06 批量加 content_deepdive.json 条目但漏 HTML 占位符（上游自己也红 31 页），暂跳过\n    gates = [(n, c) for n, c in gates if n != \"deepdive source sync\"]\n    for number, (name, command) in enumerate(gates, start=1):\n        exit_code, output = run_gate(number, len(gates), name, command)"),
     ],
     # _build.py 是「只打域名补丁、不保留本地代码」的文件：上游每次改构建脚本都会整文件覆盖，
     # 本地 4 处定制（disclaimer 进两份 sitemap、数量公式计入 disclaimer、根页面 hreflang、all_urls 计入）

@@ -18,7 +18,7 @@ import { JSDOM, VirtualConsole } from 'jsdom';
 import fs from 'fs';
 import path from 'path';
 
-const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname.replace(/^\/(?=[A-Za-z]:)/, "")), '..');
 const argv = process.argv.slice(2);
 const verbose = argv.includes('--verbose');
 const rootArg = argv.find((a) => a.startsWith('--root='));

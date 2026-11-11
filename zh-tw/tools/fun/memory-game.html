@@ -362,6 +362,7 @@ let matched = 0;
 let moves = 0;
 let lock = false;
 let timerInterval = null;
+let matchTimeout = null;
 let seconds = 0;
 let gameStarted = false;
 
@@ -394,6 +395,8 @@ function setTheme(theme, btn){
 }
 
 function startGame(){
+  clearTimeout(matchTimeout);
+  matchTimeout = null;
   stopTimer();
   seconds = 0;
   moves = 0;
@@ -415,6 +418,8 @@ function startGame(){
 
 function shuffleCards(){
   if(!gameStarted) return;
+  clearTimeout(matchTimeout);
+  matchTimeout = null;
   shuffleArray(cards);
   renderGrid();
   flipped = [];
@@ -463,11 +468,12 @@ function flipCard(i, el){
     moves++;
     updateStats();
     lock = true;
-    setTimeout(checkMatch, 800);
+    matchTimeout = setTimeout(checkMatch, 800);
   }
 }
 
 function checkMatch(){
+  matchTimeout = null;
   const [a,b] = flipped;
   if(a.emoji === b.emoji){
     a.el.classList.add('matched');

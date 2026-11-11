@@ -8,7 +8,7 @@ import { JSDOM, VirtualConsole } from 'jsdom';
 import fs from 'fs';
 import path from 'path';
 
-const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname.replace(/^\/(?=[A-Za-z]:)/, "")), '..');
 
 const CASES = [
   {

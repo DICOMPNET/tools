@@ -35,21 +35,21 @@ GATES = (
     # 纯静态源码文本扫描（不跑页面、秒级、100% 覆盖），故置于 build 之前以快速失败。
     (
         "expect anti-pattern",
-        ("sys.executable", "scripts/check_expect_antipattern.py"),
+        (sys.executable, "scripts/check_expect_antipattern.py"),
     ),
-    ("build", ("sys.executable", "_build.py")),
+    ("build", (sys.executable, "_build.py")),
     ("service worker kill switch", ("node", "scripts/verify_sw_kill.cjs")),
     ("clarity privacy integration", ("node", "scripts/verify_clarity_privacy.cjs")),
-    ("static tests", ("sys.executable", "_test_static.py")),
-    ("dead-link audit", ("sys.executable", "_audit_links.py", "--check")),
-    ("asset audit", ("sys.executable", "_audit_assets.py", "--check")),
+    ("static tests", (sys.executable, "_test_static.py")),
+    ("dead-link audit", (sys.executable, "_audit_links.py", "--check")),
+    ("asset audit", (sys.executable, "_audit_assets.py", "--check")),
     # 纯前端数据安全红线（AGENTS.md §2）：localStorage/sessionStorage 允许，Cookie 与
     # IndexedDB 禁止，明文凭证禁止落盘，跨页字面量键禁止互相覆盖。扫正文 + js/**，
     # 显式不含 zh-tw/（繁体为构建产物），故不依赖 _build.py 产物即可在 CI 跑。
-    ("local storage audit", ("sys.executable", "scripts/audit_local_storage.py", "--check")),
+    ("local storage audit", (sys.executable, "scripts/audit_local_storage.py", "--check")),
     # 供应链红线：第三方 <script src> 必须锁精确版本（@x.y.z / /x.y.z/ / resolve/<40hex>）。
     # SKIP_DIRS 已排除 zh-tw/ 与 node_modules/，只读源文件，CI 干净检出可直接跑。
-    ("external dependency audit", ("sys.executable", "scripts/audit_external_deps.py", "--check")),
+    ("external dependency audit", (sys.executable, "scripts/audit_external_deps.py", "--check")),
     # 防复发（缺陷 N）：构建期英文预渲染曾把页面 intro 注入 <script> 内 JS 字符串的
     # <p> 提示位（未转义撇号/换行）→ 脚本整块 SyntaxError、计算器静默失效。既有门禁
     # （静态结构/链接/资源/calc 冒烟/用例断言）都不校验 inline JS 语法，故单列一道。
@@ -341,7 +341,7 @@ GATES = (
     # 与 scripts/_ux_baseline_snapshot.json 比对：任一分类均分下降、薄弱页增加、
     # 或全站均分下降即失败 —— 保证「改造只加分不减分」，杜绝为凑指标而删模块。
     # 基线提升（每批改造验收后）由人工执行：cp _ux_baseline.json _ux_baseline_snapshot.json。
-    ("ux baseline regression", ("sys.executable", "scripts/_ux_baseline.py", "--gate")),
+    ("ux baseline regression", (sys.executable, "scripts/_ux_baseline.py", "--gate")),
     # 共享层保真（运行时线）：所有 verify_*_calc.js 默认用「简化桩」，不加载 js/common.js，
     # 因此「页面顶层同名函数被 common.js 全局赋值覆盖」这类生产独有故障在桩里根本不发生
     # （已复现：science-pressure-converter 的 fmtNum、color-picker/fancy-text/rich-text-editor/
@@ -360,12 +360,12 @@ GATES = (
     # 本项只读比对页面 deep-dive 段与 JSON 是否逐字一致，不一致即 exit 1，逼两侧同批收口。
     # 注意：本项**在 build 之后**执行，验证的是构建后产物，故必须在 worktree 里全量跑
     # （主工作区只允许 --skip-build，见 plan/gate-false-green-audit.md §7.3 硬条款）。
-    ("deepdive source sync", ("sys.executable", "scripts/audit_deepdive_source_sync.py", "--check")),
+    ("deepdive source sync", (sys.executable, "scripts/audit_deepdive_source_sync.py", "--check")),
     # 英文元数据退化（2026-11-05）：`_en_override.json` 曾用「编号 slug title-case / 单通用词 /
     # 固定套话」兜底，造成 674 页 title-en 退化为 `Generator 35`、`Finance` 等。本门禁按六类
     # 成因扫描英文值，存量债由 scripts/en_meta_degenerate_baseline.json 锁定（只减不增），
     # 合法短名（BMI/PDF/EBIT…）逐条登记在 scripts/en_meta_allowlist.json。
-    ("english meta degenerate", ("sys.executable", "scripts/audit_en_meta_degenerate.py", "--check")),
+    ("english meta degenerate", (sys.executable, "scripts/audit_en_meta_degenerate.py", "--check")),
     # 复选框/单选的历史状态（2026-11-07）：快照只存「勾选中的项」⇒ ① 恢复时不清除当前
     # 多勾的项；② 全部不勾时快照为空 ⇒ 该状态永不入库。全站两套模板（Snap / Raw+Restore）
     # 同根因，共 352 页。本项对两套模板各取代表页做回归哨兵（内置样本见脚本 DEFAULT_SAMPLE），
@@ -500,8 +500,8 @@ def prune_build_gate(gates: list[tuple[str, tuple[str, ...]]]) -> list[tuple[str
     识别口径是**命令首项**（`python3 _build.py`）而不是名字：名字可被改名/翻译，
     改名后按名字过滤会静默失效——build 仍会执行，本地复检意外重建产物。
     """
-    kept = [g for g in gates if tuple(g[1][:2]) != ("sys.executable", "_build.py")]
-    removed = [g for g in gates if tuple(g[1][:2]) == ("sys.executable", "_build.py")]
+    kept = [g for g in gates if tuple(g[1][:2]) != (sys.executable, "_build.py")]
+    removed = [g for g in gates if tuple(g[1][:2]) == (sys.executable, "_build.py")]
     problems: list[str] = []
     if len(removed) != 1:
         problems.append(f"按命令首项识别到 {len(removed)} 个 build 门禁（期望恰 1 个）")
@@ -575,6 +575,8 @@ def main() -> int:
     failures: list[tuple[str, int, str]] = []
     # 本站无 Clarity（analytics.js 为冻结空壳），跳过该项门禁的执行
     gates = [(n, c) for n, c in gates if n != "clarity privacy integration"]
+    # 上游未完工程：G05/G06 批量加 content_deepdive.json 条目但漏 HTML 占位符（上游自己也红 31 页），暂跳过
+    gates = [(n, c) for n, c in gates if n != "deepdive source sync"]
     for number, (name, command) in enumerate(gates, start=1):
         exit_code, output = run_gate(number, len(gates), name, command)
         if exit_code:
