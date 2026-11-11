@@ -15,6 +15,7 @@ EXCLUDE_PATHS 中的文件在快照后直接删除（本地已永久移除的上
 否则冻结路径上的未提交改动会被覆盖丢失。
 """
 import os
+import re
 import subprocess
 import sys
 
@@ -426,6 +427,48 @@ for i in range(0, len(dom_files), 100):
     git("add", "--", *dom_files[i:i + 100])
 if dom_files:
     print("已全局重打域名补丁: %d 个文件" % len(dom_files))
+
+# 7.5 清 ttzz push.js 块（上游 2025-11 已安全审计移除，但本地 orphan 页因 HEAD 独有而每次同步被恢复回来）
+# 匹配两种形态：带 <!-- TOOLBOX-TTZZ --> 标记的 和 裸 IIFE（只有 <script> 开头）
+TTZZ_BLOCK_RE = re.compile(
+    rb'(?:<!-- TOOLBOX-TTZZ -->\r?\n)?'
+    rb'<script>\r?\n'
+    rb'\(function\(\)\{try\{\r?\n'
+    rb'var el = document\.createElement\("script"\);\r?\n'
+    rb'el\.src = "https://lf1-cdn-tos\.bytegoofy\.com/goofy/ttzz/push\.js\?[^"]+";\r?\n'
+    rb'el\.id = "ttzz";\r?\n'
+    rb'var s = document\.getElementsByTagName\("script"\)\[0\];\r?\n'
+    rb's\.parentNode\.insertBefore\(el, s\);\r?\n'
+    rb'\}catch\(e\)\{\}\r?\n'
+    rb'\}\)\(window\);\r?\n'
+    rb'</script>\r?\n',
+    re.DOTALL,
+)
+ttzz_files = []
+for p in tracked:
+    if os.path.abspath(p) == SELF_PATH:
+        continue
+    if not p.endswith(".html"):
+        continue
+    try:
+        with open(p, "rb") as f:
+            src = f.read()
+    except OSError:
+        continue
+    if b"lf1-cdn-tos.bytegoofy.com/goofy/ttzz/push.js" not in src:
+        continue
+    new, n = TTZZ_BLOCK_RE.subn(b"", src)
+    if n == 0:
+        print("⚠️ ttzz 标记存在但正则未命中: %s" % p)
+        continue
+    if new != src:
+        with open(p, "wb") as f:
+            f.write(new)
+        ttzz_files.append(p)
+for i in range(0, len(ttzz_files), 100):
+    git("add", "--", *ttzz_files[i:i + 100])
+if ttzz_files:
+    print("已清 ttzz push.js 块: %d 个文件" % len(ttzz_files))
 
 # 8. 提交
 git("commit", "-m", "同步上游内容（css 样式保持本地版本）")
