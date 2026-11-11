@@ -244,12 +244,20 @@ function verhoeffCheck(num){
   }
   return c === 0;
 }
+function esc(s){return String(s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
 function validate(){
   const raw = document.getElementById('input').value.trim();
-  const digits = raw.replace(/\D/g,'');
   const out = document.getElementById('output');
-  if(!digits){ const __h0=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Waiting for input...":"等待输入...");if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h0; return; }
-  let html = `<p><strong>输入：</strong>${raw}</p>`;
+  if(!raw){ const __h0=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Waiting for input...":"等待输入...");if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h0; return; }
+  // F-N151：字母等非数字字符（空格/连字符除外）报错，不静默剔除
+  const badIdx = raw.search(/[^0-9\s-]/);
+  if(badIdx >= 0){
+    const bad = raw[badIdx];
+    out.innerHTML = `<p><strong>输入：</strong>${esc(raw)}</p><p style="color:var(--danger);">❌ 第 ${badIdx+1} 位含非法字符「${esc(bad)}」：Aadhaar 只能包含数字及空格/连字符分隔。</p>`;
+    return;
+  }
+  const digits = raw.replace(/[\s-]/g,'');
+  let html = `<p><strong>输入：</strong>${esc(raw)}</p>`;
   if(digits.length !== 12){
     html += `<p>⚠️ Aadhaar 必须为 12 位数字（当前 ${digits.length} 位）</p>`;
     const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h1;
@@ -304,7 +312,7 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 
-var __aadhaar_validator_last=0,__aadhaar_validator_skip=false;
+var __aadhaar_validator_last=0,__aadhaar_validator_skip=false,__aadhaar_validator_timer=null;
 function __aadhaar_validatorSnap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
@@ -325,9 +333,19 @@ function __aadhaar_validatorResText(){
     if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
 }
+function __aadhaar_validatorFullResText(){
+    var r=document.getElementById('output');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    return t;
+}
 function __aadhaar_validatorScore(t){
+    var raw=document.getElementById('input').value.trim();
+    var digits=raw.replace(/[\s-]/g,'');
+    if(/[^0-9\s-]/.test(raw)||digits.length!==12||/^[01]/.test(digits)||!verhoeffCheck(digits)) return 0;
     var s=String(t||'');
-    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    if(/[❌]|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
     return 1;
 }
 function __aadhaar_validatorTime(t){
@@ -351,6 +369,8 @@ function __aadhaar_validatorRender(keys,rk,en){
         TBKit.util.diffBox('#aadhaar_validatorDiff');
         TBKit.history.mount('#aadhaar_validatorHist',function(rec){
             __aadhaar_validator_skip=true;
+            clearTimeout(__aadhaar_validator_timer);
+            __aadhaar_validator_timer=null;
             try{
                 for(var k in rec){
                     if(k===rk||k==='__tbScore') continue;
@@ -374,9 +394,11 @@ function __aadhaar_validatorRender(keys,rk,en){
         }
     }catch(e3){}
 }
-function __aadhaar_validatorExtras(){
+function __aadhaar_validatorExtras(force){
     if (typeof TBKit === 'undefined') return;
     if (__aadhaar_validator_skip) return;
+    clearTimeout(__aadhaar_validator_timer);
+    __aadhaar_validator_timer=null;
     var snap=__aadhaar_validatorSnap();
     var keys=Object.keys(snap);
     if(!keys.length) return;
@@ -386,7 +408,10 @@ function __aadhaar_validatorExtras(){
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
     var now=Date.now();
-    if(now-__aadhaar_validator_last<1000) return;
+    if(!force && now-__aadhaar_validator_last<1000){
+        __aadhaar_validator_timer=setTimeout(function(){__aadhaar_validatorExtras(true);},1000-(now-__aadhaar_validator_last));
+        return;
+    }
     var last=null;
     try{ last=TBKit.history.last(); }catch(e){}
     if(last){
@@ -400,12 +425,13 @@ function __aadhaar_validatorExtras(){
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
-    rec.__tbScore=__aadhaar_validatorScore(res);
+    rec.__tbScore=__aadhaar_validatorScore(__aadhaar_validatorFullResText());
     TBKit.history.record(rec);
     __aadhaar_validatorRender(keys,rk,en);
 }
 function __aadhaar_validatorExport(){
     if (typeof TBKit === 'undefined') return;
+    __aadhaar_validatorExtras(true);
     try{
         var box=document.querySelector('#aadhaar_validatorTable');
         if(!box||!box.querySelector('tr')){

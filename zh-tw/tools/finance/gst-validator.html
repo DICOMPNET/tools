@@ -260,7 +260,7 @@ function validate(){
   const raw = document.getElementById('input').value.trim().toUpperCase();
   const out = document.getElementById('output');
   if(!raw){ const __h0=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Waiting for input...":"等待输入...");if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h0; return; }
-  let html = `<p><strong>输入：</strong>${raw}</p>`;
+  let html = `<p><strong>输入：</strong>${raw.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}</p>`;
   html += `<p><strong>长度：</strong>${raw.length} 字符（应为 15）</p>`;
   if(raw.length !== 15){
     html += `<p style="color:var(--danger);">❌ 长度必须为 15 字符</p>`;
@@ -332,7 +332,7 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 
-var __gst_validator_last=0,__gst_validator_skip=false;
+var __gst_validator_last=0,__gst_validator_skip=false,__gst_validator_timer=null;
 function __gst_validatorSnap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
@@ -341,7 +341,7 @@ function __gst_validatorSnap(){
         var t=(e.type||'').toLowerCase();
         if(t==='button'||t==='submit'||t==='hidden') continue;
         var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
-        if(v!==''&&v!=null) out[e.id]=v;
+        if(v!=null) out[e.id]=v;
     }
     return out;
 }
@@ -353,9 +353,16 @@ function __gst_validatorResText(){
     if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
 }
+function __gst_validatorFullResText(){
+    var r=document.getElementById('output');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    return t;
+}
 function __gst_validatorScore(t){
     var s=String(t||'');
-    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    if(/[❌]|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
     return 1;
 }
 function __gst_validatorTime(t){
@@ -378,7 +385,7 @@ function __gst_validatorRender(keys,rk,en){
         TBKit.matrix.table('#gst_validatorTable',{head:head,rows:rows});
         TBKit.util.diffBox('#gst_validatorDiff');
         TBKit.history.mount('#gst_validatorHist',function(rec){
-            __gst_validator_skip=true;
+            __gst_validator_skip=true;clearTimeout(__gst_validator_timer);__gst_validator_timer=null;
             try{
                 for(var k in rec){
                     if(k===rk||k==='__tbScore') continue;
@@ -402,9 +409,11 @@ function __gst_validatorRender(keys,rk,en){
         }
     }catch(e3){}
 }
-function __gst_validatorExtras(){
+function __gst_validatorExtras(force){
     if (typeof TBKit === 'undefined') return;
     if (__gst_validator_skip) return;
+    clearTimeout(__gst_validator_timer);
+    __gst_validator_timer=null;
     var snap=__gst_validatorSnap();
     var keys=Object.keys(snap);
     if(!keys.length) return;
@@ -414,7 +423,10 @@ function __gst_validatorExtras(){
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
     var now=Date.now();
-    if(now-__gst_validator_last<1000) return;
+    if(!force && now-__gst_validator_last<1000){
+        __gst_validator_timer=setTimeout(function(){__gst_validatorExtras(true);},1000-(now-__gst_validator_last));
+        return;
+    }
     var last=null;
     try{ last=TBKit.history.last(); }catch(e){}
     if(last){
@@ -428,12 +440,13 @@ function __gst_validatorExtras(){
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
-    rec.__tbScore=__gst_validatorScore(res);
+    rec.__tbScore=__gst_validatorScore(__gst_validatorFullResText());
     TBKit.history.record(rec);
     __gst_validatorRender(keys,rk,en);
 }
 function __gst_validatorExport(){
     if (typeof TBKit === 'undefined') return;
+    __gst_validatorExtras(true);
     try{
         var box=document.querySelector('#gst_validatorTable');
         if(!box||!box.querySelector('tr')){

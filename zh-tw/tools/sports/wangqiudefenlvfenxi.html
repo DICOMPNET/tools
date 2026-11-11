@@ -118,7 +118,7 @@ s.parentNode.insertBefore(el, s);
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="輸入發球相關資料，計算 ACE 率、雙誤率、一發成功率、破發點挽救率與發球效率綜合指數，評估發球表現與關鍵分能力。">Enter serve-related data to compute ace rate, double-fault rate, first-serve in-rate, break-point save rate and a composite serve-efficiency index for serve performance and key-point ability.</p>    <div class="formula-box">
       <div class="formula-title">📐 計算公式 / 原理</div>
       <div class="formula-eq">網球發球統計（本頁程式碼口徑）：ACE 率=ACE÷總髮球分×100；雙誤率=雙誤÷總髮球分×100；一發成功率=f；破發點挽救率=面對&gt;0 時 挽救÷面對×100，面對=0 時顯示「—」並從綜合指數中剔除該項、其餘權重按比例歸一（不再 0/0 記 100 白送 30 分）；一發得分率=一發得分÷(總髮球分×f)；二發得分率=二發得分÷(總髮球分×(1−f))；總得分率=本方全場得分÷全場總得分（兩者留空則不算）。發球效率指數=0.40×一發成功率+0.30×破發點挽救率+0.15×ACE 標準化+0.15×雙誤標準化（ACE 率 12% 記滿分、雙誤率 8% 記零分線性折算），破發點無樣本時按 0.70 權重和歸一。校驗：總髮球分&gt;0、ACE/雙誤∈[0,總髮球分]、一發得分≤一發命中數、二發得分≤二發球數、一發得分+二發得分≤總髮球分、挽救≤面對、本方全場得分≤全場總得分，不滿足即標紅並中止。判據：指數≥75 優秀、≥60 良好、≥45 一般、其餘待提升。</div>
-      <div class="formula-desc">網球發球統計：ACE 率、雙誤率、一發成功率、一發/二發得分率、總得分率與破發點挽救率綜合為發球效率指數，用於評估發球表現與關鍵分能力。ACE 計入一發得分、雙誤計入二發失分；破發點無樣本時不參與指數計算。</div>
+      <div class="formula-desc">網球發球統計：ACE 率、雙誤率、一發成功率與破發點挽救率綜合為發球效率指數；一發、二發及全場得分率單獨計算。ACE 可來自一發或二發，雙誤計入二發失分；破發點無樣本時不參與指數計算。</div>
     </div>
 
     <div class="input-row" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;align-items:end;">
@@ -126,7 +126,7 @@ s.parentNode.insertBefore(el, s);
       <div><label>ACE 數</label><input type="number" id="ace" value="8" min="0" max="500" step="1" oninput="calc()" enterkeyhint="done" aria-label="ACE數" placeholder="e.g. 8 (0–500)"></div>
       <div><label>雙誤數</label><input type="number" id="df" value="4" min="0" max="500" step="1" oninput="calc()" enterkeyhint="done" aria-label="雙誤數" placeholder="e.g. 4 (0–500)"></div>
       <div><label>一發成功率 (%)</label><input type="number" id="firstIn" value="65" min="0" max="100" step="1" oninput="calc()" enterkeyhint="done" aria-label="一發成功率" placeholder="e.g. 65 (0–100)"></div>
-      <div><label>一發得分（贏下的分）</label><input type="number" id="p1w" value="45" min="0" max="2000" step="1" oninput="calc()" enterkeyhint="done" aria-label="一發得分" placeholder="e.g. 45 (含 ACE)"></div>
+      <div><label>一發得分（贏下的分）</label><input type="number" id="p1w" value="45" min="0" max="2000" step="1" oninput="calc()" enterkeyhint="done" aria-label="一發得分" placeholder="e.g. 45"></div>
       <div><label>二發得分（贏下的分）</label><input type="number" id="p2w" value="18" min="0" max="2000" step="1" oninput="calc()" enterkeyhint="done" aria-label="二發得分" placeholder="e.g. 18"></div>
       <div><label>全場總得分（雙方合計，可留空）</label><input type="number" id="rt" value="140" min="1" max="5000" step="1" oninput="calc()" enterkeyhint="done" aria-label="全場總得分" placeholder="e.g. 140（留空則不算總得分率）"></div>
       <div><label>本方全場得分（可留空）</label><input type="number" id="rw" value="63" min="0" max="5000" step="1" oninput="calc()" enterkeyhint="done" aria-label="本方全場得分" placeholder="e.g. 63"></div>
@@ -213,15 +213,19 @@ function readInputs(){
   // SF-N120：发球分区与全场得分率
   if(!(!isNaN(p1w)&&p1w>=0)) errs.push('一发得分需 ≥0');
   else if(!isNaN(firstInCount)&&p1w>firstInCount+1e-9) errs.push('一发得分不能超过一发命中数（'+firstInCount.toFixed(0)+'）');
-  // SF-N120：ACE 计入一发得分，故一发得分不应少于 ACE 数
-  if(!isNaN(p1w)&&!isNaN(ace)&&p1w<ace-1e-9) errs.push('一发得分应不少于 ACE 数（ACE 计入一发得分）');
+  // SF-N120 复核重做：ACE 既可能来自一发也可能来自二发，不能全部强行计入一发得分。
+  // 合理约束是「总 ACE 数 ≤ 一发得分 + 二发得分」，8 个二发 ACE（p1w=0/p2w=8）应被视为可能情况。
+  if(!isNaN(p1w)&&!isNaN(p2w)&&!isNaN(ace)&&p1w+p2w<ace-1e-9) errs.push('总 ACE 数不能超过一发得分与二发得分之和（ACE 可来自一发或二发）');
   if(!(!isNaN(p2w)&&p2w>=0)) errs.push('二发得分需 ≥0');
   else if(!isNaN(secondCount)&&p2w>secondCount+1e-9) errs.push('二发得分不能超过二发球数（'+secondCount.toFixed(0)+'）');
   // SF-N120：双误计入二发失分，故二发得分不应超过（二发球数 − 双误数）
   if(!isNaN(p2w)&&!isNaN(secondCount)&&!isNaN(df)&&p2w>secondCount-df+1e-9) errs.push('二发得分不能超过二发球数减去双误数（双误计入二发失分）');
   if(!isNaN(p1w)&&!isNaN(p2w)&&!isNaN(total)&&p1w+p2w>total+1e-9) errs.push('一发得分 + 二发得分不能超过总发球分');
   var hasRt=!isNaN(rt)&&rt>0, hasRw=!isNaN(rw)&&rw>=0;
-  if(!isNaN(rt)&&rt>0&&!isNaN(rw)&&rw>rt+1e-9) errs.push('本方全场得分不能超过全场总得分');
+  if(hasRt&&hasRw&&rw>rt+1e-9) errs.push('本方全场得分不能超过全场总得分');
+  if(hasRt&&!isNaN(total)&&rt<total-1e-9) errs.push('全场总得分不能少于总发球分');
+  if(hasRw&&!isNaN(p1w)&&!isNaN(p2w)&&rw<p1w+p2w-1e-9) errs.push('本方全场得分不能少于发球得分');
+  if(hasRt&&hasRw&&!isNaN(total)&&!isNaN(p1w)&&!isNaN(p2w)&&rw-p1w-p2w>rt-total+1e-9) errs.push('接发球得分不能超过接发球总分');
   // SF-N120：本方全场得分非负，负值虽标红但此前仍继续输出，须中止
   if(!isNaN(rw)&&rw<0) errs.push('本方全场得分需 ≥0');
   setInvalid(document.getElementById('total'),!(!isNaN(total)&&total>0));
@@ -281,7 +285,7 @@ function calc(){
     '<div class="data-card"><div class="num">'+(p2Rate===null?'—':p2Rate.toFixed(1)+'%')+'</div><div class="label">二发得分率</div></div>'+
     '<div class="data-card"><div class="num">'+(totalRate===null?'—':totalRate.toFixed(1)+'%')+'</div><div class="label">总得分率</div></div>'+
     '</div>'+
-    '<div class="info-box" style="margin-top:10px;font-size:12px;">发球分区：一发命中 <strong>'+firstInCount.toFixed(0)+'</strong> 分中赢下 <strong>'+iv.p1w+'</strong> 分；二发 <strong>'+iv.secondCount.toFixed(0)+'</strong> 分中赢下 <strong>'+iv.p2w+'</strong> 分（ACE 计入一发得分、双误计入二发失分）。'+(bpNote?' '+bpNote+'。':'')+(totalRate===null?' 总得分率需同时填「全场总得分」与「本方全场得分」才计算。':'')+'</div>'+
+    '<div class="info-box" style="margin-top:10px;font-size:12px;">发球分区：一发命中 <strong>'+firstInCount.toFixed(0)+'</strong> 分中赢下 <strong>'+iv.p1w+'</strong> 分；二发 <strong>'+iv.secondCount.toFixed(0)+'</strong> 分中赢下 <strong>'+iv.p2w+'</strong> 分（ACE 计入发球得分、可来自一发或二发；双误计入二发失分）。'+(bpNote?' '+bpNote+'。':'')+(totalRate===null?' 总得分率需同时填「全场总得分」与「本方全场得分」才计算。':'')+'</div>'+
     '<div style="margin-top:10px;"><span class="grade-tag '+gradeCls+'">发球表现：'+grade+'</span></div>'+
     '<div class="info-box" style="margin-top:10px;">📌 '+advise+'</div>';try{ if(typeof efficiency==='number'&&isFinite(efficiency)&&typeof TBKit!=='undefined'&&TBKit.chart&&TBKit.chart.refBar){ TBKit.chart.refBar('#resRefBar',{value:efficiency,unit:'',bands:[{"lo":75,"hi":null,"label":{"zh":"优秀","en":"Excellent"},"color":"#10B981"},{"lo":60,"hi":75,"label":{"zh":"良好","en":"Good"},"color":"#84CC16"},{"lo":null,"hi":60,"label":{"zh":"一般","en":"Fair"},"color":"#F59E0B"}],title:((TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())?'Reference range':'参考区间标尺')}); } }catch(e){}
   document.getElementById('res').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));

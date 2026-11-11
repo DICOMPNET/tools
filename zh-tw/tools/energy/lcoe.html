@@ -303,7 +303,21 @@ function __lcoeValid(){
   return values[0]>=0 && values[1]>0 && values[2]>=0 && values[3]>=0 && values[4]>0;
 }
 // Equivalent to r(1+r)^n / ((1+r)^n - 1), without cancellation near r = 0.
-function __lcoeCRF(r,n){return r===0 ? 1/n : r / -Math.expm1(-n * Math.log1p(r));}
+function __lcoeCRF(r,n){
+  if(r===0) return n>0?1/n:NaN;
+  var x=n*Math.log1p(r);
+  // CE-N10 复核重做：n·log1p(r) 下溢为 0（如 n=1e-30、r=1e-300）时 -expm1(-x) 为 -0，
+  // r/(-0) 得 ±Infinity，主结果显示「—」而增强表仍含 Infinity。中间量不可表示即返回 NaN。
+  if(x===Infinity) return r;
+  if(!isFinite(x)||x===0) return NaN;
+  return r / -Math.expm1(-x);
+}
+function __lcoeComputable(){
+  var C=num('capex'),n=num('n'),r=num('r'),om=num('om'),E=num('e');
+  if(!(n>0&&E>0&&r>=0)) return false;
+  var crf=__lcoeCRF(r,n);
+  return isFinite(crf)&&crf>0&&isFinite((C*crf+om)/E);
+}
 
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
@@ -318,6 +332,13 @@ const C=num('capex'),n=num('n'),r=num('r'),om=num('om'),E=num('e');
             // r→0 时 CRF 的极限为 1/n（不计折现）
             const crf = __lcoeCRF(r,n);
             const lcoe=(C*crf+om)/E;
+            if(!isFinite(crf)||!(crf>0)||!isFinite(lcoe)){
+                __lcoeClear();
+                ToolBox.setResult('result',__lcoeIsEn()
+                  ? '⚠ Parameters produce an unrepresentable capital recovery factor (intermediate underflow/overflow). Please adjust the lifetime or discount rate.'
+                  : '⚠ 当前参数组合导致资本回收因子不可表示（中间量下溢/溢出），请调整年限或折现率后重新计算。');
+                return;
+            }
             const en=__lcoeIsEn();
             const __g2=dataGrid([
                 [lcoe.toFixed(3),en?'LCOE (CNY/kWh)':'LCOE (元/kWh)'],
@@ -336,7 +357,7 @@ function __lcoeNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.va
 function __lcoeExtras(){
     function __lcoeRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
-    if(!__lcoeValid()){__lcoeClear();return;}
+    if(!__lcoeValid()||!__lcoeComputable()){__lcoeClear();return;}
     var C=num('capex'),n=num('n'),r=num('r'),om=num('om'),E=num('e');
     var crf=__lcoeCRF(r,n);
     var lcoe=(C*crf+om)/E;
@@ -356,7 +377,7 @@ function __lcoeExtras(){
 }
 function __lcoeExport(){
     if (typeof TBKit === 'undefined') return;
-    if(!__lcoeValid()) return;
+    if(!__lcoeValid()||!__lcoeComputable()){__lcoeClear();return;}
     try { TBKit.util.exportTable('#lcoeTable','lcoe.csv'); } catch(e){}
 }
 function __lcoePresets(){
@@ -415,7 +436,7 @@ else document.addEventListener('DOMContentLoaded', __lcoeBoot);
 <section class="opt-guide"><h2>如何使用生命週期成本 / 發電量</h2><ol><li>在對應的輸入框或選項中填寫、選擇所需引數。</li><li>點選「計算」或「生成」按鈕執行。</li><li>在結果區檢視輸出，可複製結果或匯出使用。</li></ol><h2>引數說明</h2><ul class="param-list"><li>初投資 (元)</li><li>年限 (年)</li><li>折現率 r</li><li>年運維 (元)</li><li>年發電量 (kWh)</li></ul><h2>適用場景</h2><p>家庭光伏與風電專案初投、運維與年發電量核算，對比不同容量機組的度電成本與回收期。</p></section><section class="opt-faq"><h2>常見問題</h2><dl class="faq-list"><dt>生命週期成本 / 發電量是做什麼的？</dt><dd>按 CAPEX、折現率、運維與年發電量計算平準化度電成本 LCOE，比較發電專案經濟性，純前端估算輔助投資判斷。</dd><dt>如何使用生命週期成本 / 發電量？</dt><dd>在對應的輸入框或選項中填寫、選擇所需引數，點選「計算」或「生成」按鈕即可執行，結果會在結果區即時顯示，支援複製與匯出。</dd><dt>計算結果準確嗎？</dt><dd>本工具在你的本地瀏覽器中即時計算，不依賴伺服器；只要輸入的引數正確，結果即按對應的規則得出。涉及經驗估算的部分僅供參考，不作為正式依據。</dd><dt>生命週期成本 / 發電量適合哪些場景？</dt><dd>家庭光伏與風電專案初投、運維與年發電量核算，對比不同容量機組的度電成本與回收期。</dd><dt>使用本工具需要聯網或上傳資料嗎？</dt><dd>不需要。所有計算均在你的裝置本地完成，資料不會上傳到任何伺服器，可放心使用。</dd></dl></section>
 <script>
 function __lcoSweep(){
-  if(!__lcoeValid())return null;
+  if(!__lcoeValid()||!__lcoeComputable())return null;
   var C=num('capex'), r=num('r'), om=num('om'), E=num('e');
   var labels=[],dL=[],dF=[];
   var ns=[5,10,15,20,25,30];

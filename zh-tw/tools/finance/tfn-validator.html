@@ -168,7 +168,7 @@ s.parentNode.insertBefore(el, s);
 <div class="dd-example"><div class="dd-ex-title">示例：TFN 加權校驗（含反例）</div><div class="dd-ex-body">876543210 加權和為 154，能被 11 整除，判為通過；123456789 加權和為 323，餘 4，判為失敗。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
-<dt>TFN 校驗演算法是什麼？</dt><dd>9 位（8 位前補 0）按權重 1、4、3、7、5、8、6、9、11 加權，總和須被 11 整除。</dd>
+<dt>TFN 校驗演算法是什麼？</dt><dd>9 位（8 位前補 0）按權重 1、4、3、7、5、8、6、9、10 加權，總和須被 11 整除。</dd>
 <dt>為什麼常見測試號校驗失敗？</dt><dd>部分流傳的測試號並不滿足官方校驗，頁面按真實演算法判定；請以能被 11 整除的號碼為準。</dd>
 <dt>校驗通過代表稅號有效嗎？</dt><dd>不代表。是否註冊有效須在澳洲稅務局（ATO）官方渠道確認。</dd>
 </dl>
@@ -225,19 +225,28 @@ function tfnCheck(digits){
   }
   return sum % 11 === 0;
 }
+var __tfnValid=false;
 function validate(){
+  __tfnValid=false;
   const raw = document.getElementById('input').value.trim();
   const digits = raw.replace(/\D/g,'');
   const out = document.getElementById('output');
-  if(!digits){ const __h0=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Waiting for input...":"等待输入...");if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h0; return; }
-  let html = `<p><strong>输入：</strong>${raw}</p>`;
+  if(!raw){ const __h0=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Waiting for input...":"等待输入...");if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h0; return; }
+  let html = `<p><strong>输入：</strong>${raw.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}</p>`;
+  if(/[^0-9\s-]/.test(raw)){
+    out.innerHTML = html + '<p style="color:var(--danger);">❌ 含非法字符：仅允许数字、空格或连字符</p>';
+    return;
+  }
   if(digits.length !== 8 && digits.length !== 9){
     html += `<p>⚠️ TFN 必须为 8 或 9 位数字（当前 ${digits.length} 位）</p>`;
     const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h1;
     return;
   }
-  const formatted = digits.replace(/(\d{3})(\d{3})(\d+)/, '$1 $2 $3');
+  // F-N196：8 位 TFN 前补 0 后按 3-3-3 分组，避免 3-3-2 错误分段（与 tfnCheck 补 0 口径一致）
+  const fmtDigits = digits.length === 8 ? '0' + digits : digits;
+  const formatted = fmtDigits.replace(/(\d{3})(\d{3})(\d{3})/, '$1 $2 $3');
   const valid = tfnCheck(digits);
+  __tfnValid=valid;
   html += `<p><strong>格式化：</strong>${formatted}</p>`;
   html += `<p><strong>长度：</strong>${digits.length} 位</p>`;
   html += `<p><strong>校验算法：</strong>加权模 11（权重 1,4,3,7,5,8,6,9,10）</p>`;
@@ -281,7 +290,7 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 
-var __tfn_validator_last=0,__tfn_validator_skip=false;
+var __tfn_validator_last=0,__tfn_validator_skip=false,__tfn_validator_timer=null;
 function __tfn_validatorSnap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
@@ -302,11 +311,7 @@ function __tfn_validatorResText(){
     if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
 }
-function __tfn_validatorScore(t){
-    var s=String(t||'');
-    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
-    return 1;
-}
+function __tfn_validatorScore(){ return __tfnValid ? 1 : 0; }
 function __tfn_validatorTime(t){
     var d=new Date(t);
     function q(x){return (x<10?'0':'')+x;}
@@ -351,9 +356,11 @@ function __tfn_validatorRender(keys,rk,en){
         }
     }catch(e3){}
 }
-function __tfn_validatorExtras(){
+function __tfn_validatorExtras(force){
     if (typeof TBKit === 'undefined') return;
     if (__tfn_validator_skip) return;
+    clearTimeout(__tfn_validator_timer);
+    __tfn_validator_timer=null;
     var snap=__tfn_validatorSnap();
     var keys=Object.keys(snap);
     if(!keys.length) return;
@@ -363,7 +370,10 @@ function __tfn_validatorExtras(){
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
     var now=Date.now();
-    if(now-__tfn_validator_last<1000) return;
+    if(!force && now-__tfn_validator_last<1000){
+        __tfn_validator_timer=setTimeout(function(){__tfn_validatorExtras(true);},1000-(now-__tfn_validator_last));
+        return;
+    }
     var last=null;
     try{ last=TBKit.history.last(); }catch(e){}
     if(last){
@@ -383,6 +393,7 @@ function __tfn_validatorExtras(){
 }
 function __tfn_validatorExport(){
     if (typeof TBKit === 'undefined') return;
+    __tfn_validatorExtras(true);
     try{
         var box=document.querySelector('#tfn_validatorTable');
         if(!box||!box.querySelector('tr')){

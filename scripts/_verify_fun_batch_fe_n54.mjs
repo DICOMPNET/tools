@@ -25,6 +25,15 @@ const dom = new JSDOM(html, {
 });
 const w = dom.window, doc = w.document;
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
+// 页面用 setInterval 滚动 15×80ms 才定结果；JSDOM 定时器调度不稳，固定 wait 会假红。
+async function waitFor(n, timeout = 8000) {
+  const t0 = Date.now();
+  while (records.length < n && Date.now() - t0 < timeout) await wait(50);
+}
+async function waitText(el, needle, timeout = 8000) {
+  const t0 = Date.now();
+  while (!el.textContent.includes(needle) && Date.now() - t0 < timeout) await wait(50);
+}
 let ok = true;
 function check(name, condition) {
   console.log(`${condition ? 'PASS' : 'FAIL'} ${name}`);
@@ -39,41 +48,42 @@ doc.getElementById('seed').value = 'fixed';
 doc.getElementById('unique').checked = false;
 w.start();
 check('抽取中不写入历史', records.length === 0);
-await wait(1350);
+await waitFor(1);
 check('真实结果及通过状态入历史', records.length === 1 && records[0].d['结果'] === '错误' && records[0].d.__tbScore === 1);
 w.start();
-await wait(1350);
+await waitFor(2);
 check('重复抽取相同选项也各留一条', records.length === 2 && records.every(r => r.d['结果'] === '错误' && r.d.__tbScore === 1));
 doc.getElementById('items').value = '请输入文本';
 w.start();
-await wait(1350);
+await waitFor(3);
 check('提示语样式的合法选项也入历史', records.length === 3 && records[2].d['结果'] === '请输入文本');
 for (const candidate of ['等待', '抽取中', '🎲']) {
   doc.getElementById('items').value = candidate;
   const count = records.length;
   w.start();
   check(`${candidate} 动画不入历史`, records.length === count);
-  await wait(1350);
+  await waitFor(count + 1);
   check(`${candidate} 真实结果判通过`, records.length === count + 1 && records.at(-1).d['结果'] === candidate && records.at(-1).d.__tbScore === 1);
 }
 restore(records[0].d);
-await wait(1350);
+await wait(1500);
 check('恢复历史不新增记录', records.length === 6);
 w.__random_pickerExport();
 check('导出真实结果均为通过', exports.length === 1 && exports[0].length === 6 && exports[0].every(row => row.includes('通过')));
 doc.getElementById('unique').checked = true;
+const preDraw = records.length;
 w.start();
-await wait(1350);
+await waitFor(preDraw + 1);
 const before = records.length;
 w.start();
-await wait(100);
+await waitText(doc.getElementById('output'), '抽完');
 check('抽空后不写入过期结果', records.length === before && doc.getElementById('output').textContent.includes('抽完'));
 w.reset();
 doc.getElementById('items').value = '唯一选项';
 doc.getElementById('unique').checked = true;
 const beforeDouble = records.length;
 w.start(); w.start();
-await wait(1400);
+await waitFor(beforeDouble + 1);
 check('不重复模式连点只完成一次，结果不被空池覆盖', records.length === beforeDouble + 1 && doc.getElementById('result').textContent === '唯一选项' && doc.getElementById('output').textContent.includes('唯一选项'));
 w.reset();
 doc.getElementById('items').value = '旧选项';
@@ -84,7 +94,7 @@ await wait(100);
 w.reset();
 doc.getElementById('items').value = '新选项';
 w.start();
-await wait(1400);
+await waitFor(beforeReset + 1);
 check('重置取消旧动画，不干扰新一轮抽取', records.length === beforeReset + 1 && records.at(-1).d['结果'] === '新选项' && doc.getElementById('result').textContent === '新选项');
 dom.window.close();
 process.exit(ok ? 0 : 1);

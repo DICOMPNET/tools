@@ -129,7 +129,7 @@ s.parentNode.insertBefore(el, s);
      <h2 data-zh="📶 IMSI 驗證">📶 IMSI Validator</h2>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理與說明</div>
-      <div class="formula-eq">IMSI = MCC(3 位) + MNC(2~3 位) + MSIN，總長 14~15 位數字</div>
+      <div class="formula-eq">IMSI = MCC(3 位) + MNC(2~3 位) + MSIN；本工具檢查 14~15 位，僅對 MCC 310 和 460 確定 MNC 位數，其他不推測分段。</div>
   <div class="formula-desc">依據 3GPP 規範校驗 IMSI 的字首與長度，並解析 MCC（國家碼）與 MNC（網路碼）含義；用於通訊資料核驗，純前端不聯網。</div>
 </div>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="按結構校驗 IMSI（國際移動使用者標識）的字首與位數，提示 MCC/MNC 含義，用於通訊資料核驗，純前端校驗不聯網。">Check an IMSI's prefix and length and read the MCC/MNC meaning for telecom data verification.</p>
@@ -219,7 +219,7 @@ const MCC_DB = {
 };
 const MNC_DB = {
   '460':{'00':'China Mobile 中国移动','01':'China Unicom 中国联通','02':'China Mobile 中国移动','03':'China Telecom 中国电信','05':'China Telecom 中国电信','06':'China Unicom 中国联通','07':'China Mobile 中国移动','11':'China Telecom 中国电信'},
-  '310':{'00':'T-Mobile US','030':'AT&T','120':'Sprint','160':'T-Mobile','260':'T-Mobile','410':'AT&T'},
+  '310':{'030':'AT&T','120':'Sprint','160':'T-Mobile','260':'T-Mobile','410':'AT&T'},
   '234':{'10':'O2 UK','15':'Vodafone UK','20':'3 UK','30':'EE','33':'Orange'},
   '262':{'01':'T-Mobile DE','02':'Vodafone DE','03':'Telekom DE','07':'O2 DE'},
   '440':{'00':'NTT DoCoMo','10':'SoftBank','20':'au (KDDI)'},
@@ -245,21 +245,21 @@ function validate(){
     return;
   }
   const mcc = digits.substring(0,3);
-  const mnc = digits.substring(3,5); // 2-digit MNC default
-  const msin = digits.substring(5);
   const country = MCC_DB[mcc] || '未知国家';
-  // Try 2-digit then 3-digit MNC lookup
-  let operator = '';
   const mncDb = MNC_DB[mcc];
-  if(mncDb){
-    operator = mncDb[mnc] || mncDb[digits.substring(3,6)] || '未知运营商';
-  } else {
-    operator = '未知运营商';
-  }
+  // 固定长度仅覆盖规则明确的 MCC；其他 MCC 不猜测分界。
+  const mncLength = mcc === '310' ? 3 : mcc === '460' ? 2 : 0;
   html += `<p><strong>长度：</strong>${digits.length} 位</p>`;
   html += `<p><strong>移动国家代码 MCC（前 3 位）：</strong>${mcc} - ${country}</p>`;
-  html += `<p><strong>移动网络代码 MNC（第 4-5 位）：</strong>${mnc} - ${operator}</p>`;
-  html += `<p><strong>移动用户识别码 MSIN：</strong>${msin}</p>`;
+  if(mncLength){
+    const mnc = digits.substring(3, 3 + mncLength);
+    const msin = digits.substring(3 + mncLength);
+    const operator = (mncDb && mncDb[mnc]) ? mncDb[mnc] : '未知运营商';
+    html += `<p><strong>移动网络代码 MNC（第 4-${3 + mncLength} 位）：</strong>${mnc} - ${operator}</p>`;
+    html += `<p><strong>移动用户识别码 MSIN：</strong>${msin}</p>`;
+  } else {
+    html += `<p>⚠️ MNC 位数无法确定，无法解析 MNC 和 MSIN</p>`;
+  }
   html += `<p><strong>校验：</strong>格式校验（IMSI 无标准校验位）</p>`;
   if(MCC_DB[mcc]){
     html += `<p style="color:var(--success);">✅ IMSI 格式有效，MCC 已识别</p>`;
@@ -300,7 +300,7 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 
-var __imsi_validator_last=0,__imsi_validator_skip=false;
+var __imsi_validator_last=0,__imsi_validator_skip=false,__imsi_validator_timer=null;
 function __imsi_validatorSnap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
@@ -309,7 +309,7 @@ function __imsi_validatorSnap(){
         var t=(e.type||'').toLowerCase();
         if(t==='button'||t==='submit'||t==='hidden') continue;
         var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
-        if(v!==''&&v!=null) out[e.id]=v;
+        if(v!=null) out[e.id]=v;
     }
     return out;
 }
@@ -321,9 +321,20 @@ function __imsi_validatorResText(){
     if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
 }
+function __imsi_validatorFullResText(){
+    var r=document.getElementById('output');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    return t;
+}
 function __imsi_validatorScore(t){
+    // 复核判据：长度不足/含非法字符属于未通过，中性提示（MCC 未收录）不算失败
+    var raw=document.getElementById('input').value.trim();
+    var d=raw.replace(/\D/g,'');
+    if(/[^0-9\s-]/.test(raw)||d.length<14||d.length>15) return 0;
     var s=String(t||'');
-    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    if(/[❌]|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
     return 1;
 }
 function __imsi_validatorTime(t){
@@ -346,7 +357,7 @@ function __imsi_validatorRender(keys,rk,en){
         TBKit.matrix.table('#imsi_validatorTable',{head:head,rows:rows});
         TBKit.util.diffBox('#imsi_validatorDiff');
         TBKit.history.mount('#imsi_validatorHist',function(rec){
-            __imsi_validator_skip=true;
+            __imsi_validator_skip=true;clearTimeout(__imsi_validator_timer);__imsi_validator_timer=null;
             try{
                 for(var k in rec){
                     if(k===rk||k==='__tbScore') continue;
@@ -370,9 +381,11 @@ function __imsi_validatorRender(keys,rk,en){
         }
     }catch(e3){}
 }
-function __imsi_validatorExtras(){
+function __imsi_validatorExtras(force){
     if (typeof TBKit === 'undefined') return;
     if (__imsi_validator_skip) return;
+    clearTimeout(__imsi_validator_timer);
+    __imsi_validator_timer=null;
     var snap=__imsi_validatorSnap();
     var keys=Object.keys(snap);
     if(!keys.length) return;
@@ -382,7 +395,10 @@ function __imsi_validatorExtras(){
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
     var now=Date.now();
-    if(now-__imsi_validator_last<1000) return;
+    if(!force && now-__imsi_validator_last<1000){
+        __imsi_validator_timer=setTimeout(function(){__imsi_validatorExtras(true);},1000-(now-__imsi_validator_last));
+        return;
+    }
     var last=null;
     try{ last=TBKit.history.last(); }catch(e){}
     if(last){
@@ -396,12 +412,13 @@ function __imsi_validatorExtras(){
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
-    rec.__tbScore=__imsi_validatorScore(res);
+    rec.__tbScore=__imsi_validatorScore(__imsi_validatorFullResText());
     TBKit.history.record(rec);
     __imsi_validatorRender(keys,rk,en);
 }
 function __imsi_validatorExport(){
     if (typeof TBKit === 'undefined') return;
+    __imsi_validatorExtras(true);
     try{
         var box=document.querySelector('#imsi_validatorTable');
         if(!box||!box.querySelector('tr')){

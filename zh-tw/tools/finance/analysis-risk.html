@@ -240,7 +240,7 @@ function calc(){
   var ebit=cm-f;
   var dol=ebit!==0?cm/ebit:NaN;
   var ebt=ebit-i;
-  var dfl=ebt!==0?ebit/ebt:NaN;
+  var dfl=ebit!==0&&ebt!==0?ebit/ebt:NaN;
   var dcl=(isFinite(dol)&&isFinite(dfl))?dol*dfl:NaN;
   var icr=i!==0?ebit/i:NaN;
   var net=ebt*(1-tr);
@@ -278,7 +278,9 @@ function calc(){
   html+='</tbody></table>';
 
   html+='<hr style="border:none;border-top:1px solid var(--border);margin:10px 0;">';
-  if(i===0){
+  if(ebit===0){
+    html+='<div class="tip-box tip-error">EBIT 为 0（盈亏平衡），DOL/DFL/DCL 杠杆系数无定义，无法计算。</div>';
+  }else if(i===0){
     html+='<div class="tip-box tip-success">利息费用为 0，DFL = 1，EPS 只受经营杠杆影响（DCL = DOL）。</div>';
   }else if(ebit<=i){
     html+='<div class="tip-box tip-error">EBIT（'+fx(ebit,d)+'）不足以覆盖利息（'+fx(i,d)+'），利息保障倍数 ≤ 1，财务风险极高，DFL 的数值已失去正常解释意义。</div>';
@@ -380,7 +382,7 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 
-var __analysis_risk_last=0,__analysis_risk_skip=false;
+var __analysis_risk_last=0,__analysis_risk_skip=false,__analysis_risk_timer=null;
 function __analysis_riskSnap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
@@ -389,7 +391,7 @@ function __analysis_riskSnap(){
         var t=(e.type||'').toLowerCase();
         if(t==='button'||t==='submit'||t==='hidden') continue;
         var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
-        if(v!==''&&v!=null) out[e.id]=v;
+        if(v!=null) out[e.id]=v;
     }
     return out;
 }
@@ -427,6 +429,8 @@ function __analysis_riskRender(keys,rk,en){
         TBKit.util.diffBox('#analysis_riskDiff');
         TBKit.history.mount('#analysis_riskHist',function(rec){
             __analysis_risk_skip=true;
+            clearTimeout(__analysis_risk_timer);
+            __analysis_risk_timer=null;
             try{
                 for(var k in rec){
                     if(k===rk||k==='__tbScore') continue;
@@ -450,9 +454,11 @@ function __analysis_riskRender(keys,rk,en){
         }
     }catch(e3){}
 }
-function __analysis_riskExtras(){
+function __analysis_riskExtras(force){
     if (typeof TBKit === 'undefined') return;
     if (__analysis_risk_skip) return;
+    clearTimeout(__analysis_risk_timer);
+    __analysis_risk_timer=null;
     var snap=__analysis_riskSnap();
     var keys=Object.keys(snap);
     if(!keys.length) return;
@@ -462,7 +468,10 @@ function __analysis_riskExtras(){
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
     var now=Date.now();
-    if(now-__analysis_risk_last<1000) return;
+    if(!force && now-__analysis_risk_last<1000){
+        __analysis_risk_timer=setTimeout(function(){__analysis_riskExtras(true);},1000-(now-__analysis_risk_last));
+        return;
+    }
     var last=null;
     try{ last=TBKit.history.last(); }catch(e){}
     if(last){
@@ -482,6 +491,7 @@ function __analysis_riskExtras(){
 }
 function __analysis_riskExport(){
     if (typeof TBKit === 'undefined') return;
+    __analysis_riskExtras(true);
     try{
         var box=document.querySelector('#analysis_riskTable');
         if(!box||!box.querySelector('tr')){

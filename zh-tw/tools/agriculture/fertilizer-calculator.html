@@ -588,7 +588,7 @@ document.addEventListener('DOMContentLoaded',function(){
 <!-- /SEO 介紹區塊 -->
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"為什麼分底肥和追肥？","acceptedAnswer":{"@type":"Answer","text":"作物不同生育期需肥不同，底肥重磷鉀打基礎、追肥重氮促生長。一次性施易燒苗或後期脫肥，分期更穩。"}},{"@type":"Question","name":"養分含量怎麼看標籤？","acceptedAnswer":{"@type":"Answer","text":"國產復混肥標註 N-P₂O₅-K₂O 百分比，單質肥標主元素含量（尿素 46%N、過磷酸鈣 12%P₂O₅、氯化鉀 60%K₂O）。按此折算純量。"}}]}</script>
 <script>
-var __fertilizer_calculator_last=0,__fertilizer_calculator_skip=false;
+var __fertilizer_calculator_last=0,__fertilizer_calculator_skip=false,__fertilizer_calculator_timer=null;
 function __fertilizer_calculatorSnap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
@@ -611,7 +611,8 @@ function __fertilizer_calculatorResText(){
 }
 function __fertilizer_calculatorScore(t){
     var s=String(t||'');
-    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    // F-N189：必填守卫文案为「请填写「%s」后再计算。」，原词表漏掉 ⇒ 失效态被记通过。
+    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|请填写|填写|再计算|Waiting/i.test(s)) return 0;
     return 1;
 }
 function __fertilizer_calculatorTime(t){
@@ -658,7 +659,7 @@ function __fertilizer_calculatorRender(keys,rk,en){
         }
     }catch(e3){}
 }
-function __fertilizer_calculatorExtras(){
+function __fertilizer_calculatorExtras(force){
     if (typeof TBKit === 'undefined') return;
     if (__fertilizer_calculator_skip) return;
     var snap=__fertilizer_calculatorSnap();
@@ -670,7 +671,6 @@ function __fertilizer_calculatorExtras(){
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
     var now=Date.now();
-    if(now-__fertilizer_calculator_last<1000) return;
     var last=null;
     try{ last=TBKit.history.last(); }catch(e){}
     if(last){
@@ -680,16 +680,25 @@ function __fertilizer_calculatorExtras(){
         }
         if(same&&String(last[rk])===String(res)) return;
     }
+    var score=__fertilizer_calculatorScore(res);
+    if(!force&&last&&last.__tbScore===score&&now-__fertilizer_calculator_last<1000){
+        clearTimeout(__fertilizer_calculator_timer);
+        __fertilizer_calculator_timer=setTimeout(function(){__fertilizer_calculatorExtras(true);},1000-(now-__fertilizer_calculator_last));
+        return;
+    }
+    clearTimeout(__fertilizer_calculator_timer);
+    __fertilizer_calculator_timer=null;
     __fertilizer_calculator_last=now;
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
-    rec.__tbScore=__fertilizer_calculatorScore(res);
+    rec.__tbScore=score;
     TBKit.history.record(rec);
     __fertilizer_calculatorRender(keys,rk,en);
 }
 function __fertilizer_calculatorExport(){
     if (typeof TBKit === 'undefined') return;
+    if (__fertilizer_calculator_timer) __fertilizer_calculatorExtras(true);
     try{
         var box=document.querySelector('#fertilizer_calculatorTable');
         if(!box||!box.querySelector('tr')){

@@ -172,8 +172,8 @@ s.parentNode.insertBefore(el, s);
 <div class="dd-example"><div class="dd-ex-title">示例：NRIC 校驗字母</div><div class="dd-ex-body">輸入 S1234567D，按字首權重對 7 位數字加權後 mod 11 查表得到校驗字母，須與末位一致；不符則失敗。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
-<dt>NRIC 校驗字母怎麼算？</dt><dd>按字首對應的權重對 7 位數字加權求和，加上字首偏移量後 mod 11 查表得校驗字母。</dd>
-<dt>NRIC 和 FIN 的區別？</dt><dd>NRIC 面向公民與永久居民（S/T 字首），FIN 面向外國人（F/G/M 字首），演算法相同。</dd>
+<dt>NRIC 校驗字母怎麼算？</dt><dd>按固定權重對 7 位數字加權求和，加上字首偏移量後取模 11，再按字首對應字母表查得校驗字母。</dd>
+<dt>NRIC 和 FIN 的區別？</dt><dd>NRIC 面向公民與永久居民（S/T 字首），FIN 面向外國人（F/G/M 字首）；數字權重相同，但偏移量與校驗字母表因字首而異。</dd>
 <dt>校驗通過代表身份有效嗎？</dt><dd>不代表。須通過新加坡官方渠道核驗。</dd>
 </dl>
 </div>
@@ -217,19 +217,20 @@ function nricCheck(s){
   const prefix = s[0];
   const digits = s.substring(1,8);
   const checkLetter = s[8];
-  if(!/^[STFG]\d{7}[A-Z]$/.test(s)) return {valid:false, reason:'格式不符'};
+  if(!/^[STFGM]\d{7}[A-Z]$/.test(s)) return {valid:false, reason:'格式不符'};
   // weights
   const weights = [2,7,6,5,4,3,2];
   let sum = 0;
   for(let i = 0; i < 7; i++){
     sum += parseInt(digits[i],10) * weights[i];
   }
-  // offset for T/G (2000+ born)
-  const offset = (prefix === 'T' || prefix === 'G') ? 4 : 0;
+  const offset = prefix === 'M' ? 3 : (prefix === 'T' || prefix === 'G') ? 4 : 0;
   const rem = (sum + offset) % 11;
   const checkArrS = ['J','Z','I','H','G','F','E','D','C','B','A'];
   const checkArrFG = ['X','W','U','T','R','Q','P','N','M','L','K'];
-  const expected = (prefix === 'S' || prefix === 'T') ? checkArrS[rem] : checkArrFG[rem];
+  const checkArrM = ['K','L','J','N','P','Q','R','T','U','W','X'];
+  const expected = prefix === 'M' ? checkArrM[10 - rem] :
+    (prefix === 'S' || prefix === 'T') ? checkArrS[rem] : checkArrFG[rem];
   return {
     valid: expected === checkLetter,
     expected: expected
@@ -252,7 +253,7 @@ function validate(){
     F:'外国人（FIN，2000 年前）',G:'外国人（FIN，2000 年后）',
     M:'外国人（FIN，2022 年后）'
   };
-  if(!/^[STFG]\d{7}[A-Z]$/.test(raw)){
+  if(!/^[STFGM]\d{7}[A-Z]$/.test(raw)){
     if(!/^[STFGM]/.test(prefix)){
       html += `<p style="color:var(--danger);">❌ 前缀必须为 S/T/F/G/M</p>`;
     } else {

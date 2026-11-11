@@ -220,7 +220,7 @@ CASES.push({
     if (!JSDOM) return { skip: true, got: "jsdom 不可用: " + JSDOM_ERR };
     const { spawnSync } = require('child_process');
     const code = `const fs=require('fs'),{JSDOM}=require('jsdom');const html=fs.readFileSync('tools/life/bill-splitter.html','utf8');const w=new JSDOM(html,{url:'http://localhost/',runScripts:'outside-only'}).window;for(const m of html.matchAll(/<script(?:\\s[^>]*)?>([\\s\\S]*?)<\\/script>/g))if(m[1].includes("const HISTORY_KEY = 'bill_splitter_history'"))w.eval(m[1]);w.switchTab('advanced');w.document.querySelector('#items-list input[type=number]').value='1e100';w.calcAdvanced();process.stdout.write(w.document.getElementById('adv-result').textContent);`;
-    const child = spawnSync(process.execPath, ['-e', code], { cwd: ROOT, encoding: 'utf8', timeout: 3000 });
+    const child = spawnSync(process.execPath, ['-e', code], { cwd: ROOT, encoding: 'utf8', timeout: 10000 });
     return { ok: child.status === 0 && /超出|无法|过大/.test(child.stdout) && !/Infinity|NaN/.test(child.stdout), got: child.error ? child.error.message : child.stderr || child.stdout };
   },
 });

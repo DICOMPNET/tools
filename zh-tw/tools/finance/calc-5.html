@@ -284,6 +284,13 @@ function calc(){
     var __ig=__tbInputGuard(['cost', 'value'],["投资成本（元）", ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Final value (CNY)":"最终价值（元）")]);if(__ig){ToolBox.setResult("res",__ig);var __dg=document.getElementById("summary");if(__dg)__dg.innerHTML="";return;}
 save();
   const cost = parseFloat($('cost').value)||0;
+  // F-N74：投资成本是 ROI 分母，非正时 netProfit 仍算非零会与「ROI 0.00%」自相矛盾
+  if(!(cost > 0)){
+    const __en = (typeof TBKit!=='undefined'&&TBKit.util.isEn());
+    ToolBox.setResult("res", __en ? '<p style="color:var(--danger)">Investment cost must be greater than 0.</p>' : '<p style="color:var(--danger)">投资成本必须大于 0，无法计算 ROI。</p>');
+    const __dg=document.getElementById('summary'); if(__dg) __dg.innerHTML='';
+    return;
+  }
   const value = parseFloat($('value').value)||0;
   const extra = parseFloat($('extra').value)||0;
   const years = parseFloat($('years').value)||0;
@@ -291,14 +298,18 @@ save();
   const roi = cost>0 ? (netProfit / cost) : 0;
   let annualized = 0;
   let annualText='';
-  if(years>0 && roi>-1){
+  if(years>0 && roi>=-1){
     annualized = Math.pow(1+roi, 1/years) - 1;
     annualText = `<p>年化回报率（复利）：<strong>${fmt(annualized*100,2)}%</strong></p>`;
+  } else if(years>0){
+    // 亏损超过本金时，负数不能按一般复利公式计算年化。
+    const __en = (typeof TBKit!=='undefined'&&TBKit.util.isEn());
+    annualText = __en ? '<p style="color:var(--danger)">Loss exceeds principal; compound annualization is undefined.</p>' : '<p style="color:var(--danger)">亏损超过本金，无法按复利年化。</p>';
   }
   const summary=[
     {num:fmt(roi*100,2)+'%',label:'总 ROI'},
     {num:fmt(netProfit,2),label:'净收益（元）'},
-    {num:years>0?fmt(annualized*100,2)+'%':'—',label:'年化回报率'}
+    {num:(years>0 && roi>=-1)?fmt(annualized*100,2)+'%':'—',label:'年化回报率'}
   ];
   const __g1=summary.map(s=>`<div class="data-card"><div class="num">${s.num}</div><div class="label">${s.label}</div></div>`).join('');$('summary').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
   const __g2=`<p>总 ROI：<strong>${fmt(roi*100,2)}%</strong></p><p>净收益：<strong>${fmt(netProfit,2)} 元</strong>（投资成本 ${fmt(cost,2)} 元，最终价值 ${fmt(value,2)} 元${extra>0?'，其他成本 '+fmt(extra,2)+((typeof TBKit!=='undefined'&&TBKit.util.isEn())?" CNY":" 元"):''}）</p>${annualText}`;$('res').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
@@ -307,7 +318,7 @@ function copyRes(){ ToolBox.copyText($('res').innerText.replace(/\n+/g,'；'),'�
 function resetAll(){ $('cost').value=100000; $('value').value=150000; $('years').value=5; $('extra').value=0; calc(); }
 document.addEventListener('DOMContentLoaded',()=>{ load(); calc(); });
 
-var __calc_5_last=0,__calc_5_skip=false;
+var __calc_5_last=0,__calc_5_skip=false,__calc_5_timer=null;
 function __calc_5Snap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
@@ -316,7 +327,7 @@ function __calc_5Snap(){
         var t=(e.type||'').toLowerCase();
         if(t==='button'||t==='submit'||t==='hidden') continue;
         var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
-        if(v!==''&&v!=null) out[e.id]=v;
+        if(v!=null) out[e.id]=v;
     }
     return out;
 }
@@ -328,10 +339,8 @@ function __calc_5ResText(){
     if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
 }
-function __calc_5Score(t){
-    var s=String(t||'');
-    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
-    return 1;
+function __calc_5Score(){
+    return document.getElementById('summary').children.length ? 1 : 0;
 }
 function __calc_5Time(t){
     var d=new Date(t);
@@ -354,6 +363,8 @@ function __calc_5Render(keys,rk,en){
         TBKit.util.diffBox('#calc_5Diff');
         TBKit.history.mount('#calc_5Hist',function(rec){
             __calc_5_skip=true;
+            clearTimeout(__calc_5_timer);
+            __calc_5_timer=null;
             try{
                 for(var k in rec){
                     if(k===rk||k==='__tbScore') continue;
@@ -377,9 +388,11 @@ function __calc_5Render(keys,rk,en){
         }
     }catch(e3){}
 }
-function __calc_5Extras(){
+function __calc_5Extras(force){
     if (typeof TBKit === 'undefined') return;
     if (__calc_5_skip) return;
+    clearTimeout(__calc_5_timer);
+    __calc_5_timer=null;
     var snap=__calc_5Snap();
     var keys=Object.keys(snap);
     if(!keys.length) return;
@@ -389,7 +402,10 @@ function __calc_5Extras(){
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
     var now=Date.now();
-    if(now-__calc_5_last<1000) return;
+    if(!force && now-__calc_5_last<1000){
+        __calc_5_timer=setTimeout(function(){__calc_5Extras(true);},1000-(now-__calc_5_last));
+        return;
+    }
     var last=null;
     try{ last=TBKit.history.last(); }catch(e){}
     if(last){
@@ -403,12 +419,13 @@ function __calc_5Extras(){
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
-    rec.__tbScore=__calc_5Score(res);
+    rec.__tbScore=__calc_5Score();
     TBKit.history.record(rec);
     __calc_5Render(keys,rk,en);
 }
 function __calc_5Export(){
     if (typeof TBKit === 'undefined') return;
+    __calc_5Extras(true);
     try{
         var box=document.querySelector('#calc_5Table');
         if(!box||!box.querySelector('tr')){

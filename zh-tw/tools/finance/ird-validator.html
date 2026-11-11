@@ -130,13 +130,13 @@ s.parentNode.insertBefore(el, s);
      <h2 data-zh="🇳🇿 紐西蘭 IRD 驗證">🇳🇿 New Zealand IRD Number Validator</h2>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理與說明</div>
-      <div class="formula-eq">IRD 校驗：8 位按權重 [3,2,7,6,5,4,3,2] 求和 mod 11 = 0（9 位版前置補 0 處理）</div>
+      <div class="formula-eq">IRD 校驗：8 位前置補 0 成 9 位，前 8 位按權重 [3,2,7,6,5,4,3,2] 加權求和，check = (11 − sum mod 11) mod 11；得 10 時改用 secondary [7,4,3,2,5,2,7,6] 重算，仍為 10 則無效</div>
   <div class="formula-desc">依據紐西蘭 IRD 官方演算法校驗 8 或 9 位稅務號的校驗位；僅校驗格式合法性，不驗證真實性。</div>
 </div>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="紐西蘭 IRD 驗證器。輸入 8 或 9 位稅務號，按官方演算法校驗校驗位，用於紐西蘭個人與企業稅務場景的號碼格式檢查（不驗證真實性）。">Validate an 8- or 9-digit New Zealand IRD number with the official checksum. Format check only.</p>
 
     <label>輸入（IRD 號碼，8-9 位數字）</label>
-    <input type="text" id="input" oninput="validate()" placeholder="如：49091850" value="490918503">
+    <input type="text" id="input" oninput="validate()" placeholder="如：49091850" value="490918507">
     <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__ird_validatorExport()">匯出明細 CSV</button></div><div class="result-box" id="output">等待輸入...</div> <div id="ird_validatorTable"></div> <div id="ird_validatorDiff"></div> <div id="ird_validatorChart"></div> <div id="ird_validatorHist"></div>
   </div>
 
@@ -166,11 +166,11 @@ s.parentNode.insertBefore(el, s);
 <li>紐西蘭僱傭、報稅前核對稅號</li>
 <li>識別 8 位與 9 位兩種寫法的差異</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">示例：IRD 加權校驗（含反例）</div><div class="dd-ex-body">輸入 123456789 會被判失敗（期望校驗位為 6 而實際為 9）；換成校驗位正確的號碼則顯示通過。</div></div>
+<div class="dd-example"><div class="dd-ex-title">示例：IRD 加權校驗（含反例）</div><div class="dd-ex-body">輸入 123456789 會被判失敗（期望校驗位為 5 而實際為 9）；換成校驗位正確的號碼則顯示通過。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
-<dt>IRD 校驗演算法是什麼？</dt><dd>以 9 位為準（8 位前補 0），取第 2–9 位為基數按權重 3、2、7、6、5、4、3、2 加權，期望校驗位為 (11 - 和 mod 11) mod 11，須與首位一致。</dd>
-<dt>IRD 號有兩種權重表嗎？</dt><dd>紐西蘭 IRD 按號段使用不同權重集，頁面預設按主權重集校驗，特殊號段可能需要人工複核。</dd>
+<dt>IRD 校驗演算法是什麼？</dt><dd>以 9 位為準（8 位前補 0），前 8 位按權重 3、2、7、6、5、4、3、2 加權，期望校驗位為 (11 - 和 mod 11) mod 11，須與第 9 位一致。</dd>
+<dt>IRD 號有兩種權重表嗎？</dt><dd>先使用主權重；若得到的校驗位為 10，則改用備用權重 7、4、3、2、5、2、7、6 重算，若仍為 10 則號碼無效。</dd>
 <dt>校驗通過代表稅號有效嗎？</dt><dd>不代表。稅號是否註冊有效須在紐西蘭 IRD 官方渠道確認。</dd>
 </dl>
 </div>
@@ -215,22 +215,24 @@ const IRD_WEIGHTS = [
 ];
 function irdCheck(digits){
   let d = digits;
-  // Pad to 9 digits with leading zero
+  // 官方口径：8 位前置补 0 成 9 位；前 8 位为 base，第 9 位为校验位（F-N220）
   while(d.length < 9) d = '0' + d;
   if(d.length !== 9) return false;
-  // The base is first 8 digits (positions 2-9 of 9), check digit is last
-  // Weight selection based on the leading digits of the 8-digit base
-  // Use first weight set by default (effective range 0-10 mod 11)
-  let weightSet = 0;
-  const base = d.substring(1,9); // 8 digits
+  const base = d.substring(0,8);
   const checkDigit = parseInt(d[8],10);
-  let sum = 0;
-  for(let i = 0; i < 8; i++){
-    sum += parseInt(base[i],10) * IRD_WEIGHTS[weightSet][i];
+  function expectedWith(w){
+    let sum = 0;
+    for(let i = 0; i < 8; i++) sum += parseInt(base[i],10) * w[i];
+    const rem = sum % 11;
+    return (rem === 0) ? 0 : 11 - rem;
   }
-  const rem = sum % 11;
-  const expected = (rem === 0) ? 0 : 11 - rem;
-  return expected === checkDigit;
+  // primary 算出 10 无法作校验位 ⇒ 改用 secondary 权重重算；仍为 10 则号码无效
+  let c = expectedWith(IRD_WEIGHTS[0]);
+  if(c === 10){
+    c = expectedWith(IRD_WEIGHTS[1]);
+    if(c === 10) return false;
+  }
+  return c === checkDigit;
 }
 function validate(){
   const raw = document.getElementById('input').value.trim();
@@ -253,7 +255,7 @@ function validate(){
   const formatted = padded.substring(0,3) + '-' + padded.substring(3,6) + '-' + padded.substring(6);
   html += `<p><strong>格式化：</strong>${formatted}</p>`;
   html += `<p><strong>长度：</strong>${digits.length} 位</p>`;
-  html += `<p><strong>校验算法：</strong>加权模 11（权重 3,2,7,6,5,4,3,2）</p>`;
+  html += `<p><strong>校验算法：</strong>加权模 11（primary 3,2,7,6,5,4,3,2；得 10 改用 secondary 7,4,3,2,5,2,7,6）</p>`;
   html += `<p><strong>校验和：</strong> ${valid?'✅ 通过':'❌ 未通过'}</p>`;
   if(valid){
     html += `<p style="color:var(--success);">✅ IRD 号码有效</p>`;
@@ -294,7 +296,7 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 
-var __ird_validator_last=0,__ird_validator_skip=false;
+var __ird_validator_last=0,__ird_validator_skip=false,__ird_validator_timer=null;
 function __ird_validatorSnap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
@@ -303,7 +305,7 @@ function __ird_validatorSnap(){
         var t=(e.type||'').toLowerCase();
         if(t==='button'||t==='submit'||t==='hidden') continue;
         var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
-        if(v!==''&&v!=null) out[e.id]=v;
+        if(v!=null) out[e.id]=v;
     }
     return out;
 }
@@ -315,9 +317,20 @@ function __ird_validatorResText(){
     if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
 }
+function __ird_validatorFullResText(){
+    var r=document.getElementById('output');
+    if(!r) return '';
+    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
+    if(!t||t==='--'||t==='—'||t==='-') return '';
+    return t;
+}
 function __ird_validatorScore(t){
+    // 复核判据：8/9 位纯数字且模 11 校验通过才算有效（对齐 Aadhaar 口径）
+    var raw=document.getElementById('input').value.trim();
+    var d=raw.replace(/\D/g,'');
+    if(/[^0-9\s-]/.test(raw)||d.length<8||d.length>9||!irdCheck(d)) return 0;
     var s=String(t||'');
-    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    if(/[❌]|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
     return 1;
 }
 function __ird_validatorTime(t){
@@ -340,7 +353,7 @@ function __ird_validatorRender(keys,rk,en){
         TBKit.matrix.table('#ird_validatorTable',{head:head,rows:rows});
         TBKit.util.diffBox('#ird_validatorDiff');
         TBKit.history.mount('#ird_validatorHist',function(rec){
-            __ird_validator_skip=true;
+            __ird_validator_skip=true;clearTimeout(__ird_validator_timer);__ird_validator_timer=null;
             try{
                 for(var k in rec){
                     if(k===rk||k==='__tbScore') continue;
@@ -364,9 +377,11 @@ function __ird_validatorRender(keys,rk,en){
         }
     }catch(e3){}
 }
-function __ird_validatorExtras(){
+function __ird_validatorExtras(force){
     if (typeof TBKit === 'undefined') return;
     if (__ird_validator_skip) return;
+    clearTimeout(__ird_validator_timer);
+    __ird_validator_timer=null;
     var snap=__ird_validatorSnap();
     var keys=Object.keys(snap);
     if(!keys.length) return;
@@ -376,7 +391,10 @@ function __ird_validatorExtras(){
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
     var now=Date.now();
-    if(now-__ird_validator_last<1000) return;
+    if(!force && now-__ird_validator_last<1000){
+        __ird_validator_timer=setTimeout(function(){__ird_validatorExtras(true);},1000-(now-__ird_validator_last));
+        return;
+    }
     var last=null;
     try{ last=TBKit.history.last(); }catch(e){}
     if(last){
@@ -390,12 +408,13 @@ function __ird_validatorExtras(){
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
-    rec.__tbScore=__ird_validatorScore(res);
+    rec.__tbScore=__ird_validatorScore(__ird_validatorFullResText());
     TBKit.history.record(rec);
     __ird_validatorRender(keys,rk,en);
 }
 function __ird_validatorExport(){
     if (typeof TBKit === 'undefined') return;
+    __ird_validatorExtras(true);
     try{
         var box=document.querySelector('#ird_validatorTable');
         if(!box||!box.querySelector('tr')){

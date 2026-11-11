@@ -170,7 +170,7 @@ s.parentNode.insertBefore(el, s);
         <div><label>合約數量(張)</label><input type="number" id="contracts" value="1" step="1" min="1" oninput="calc()" placeholder="如 1"></div>
       </div>
       <div class="input-row">
-        <div><label>合約乘數</label><input type="number" id="mult" value="100" step="1" min="1" oninput="calc()" placeholder="如 100"></div>
+        <div><label>合約乘數</label><input type="number" id="mult" value="100" step="any" min="0" oninput="calc()" placeholder="如 100"></div>
         <div><label>交易手續費(元/張)</label><input type="number" id="fee" value="2" step="any" min="0" oninput="calc()" placeholder="如 2"></div>
       </div>
 
@@ -432,8 +432,8 @@ function calc(){
   var K = getVal('strike');
   var p = getVal('premium');
   var S = getVal('s0');
-  var contracts = Math.max(1, Math.floor(getVal('contracts')));
-  var mult = Math.max(1, getVal('mult'));
+  var contracts = getVal('contracts');
+  var mult = getVal('mult');
   var fee = getVal('fee');
   var err = '';
   if(!(K > 0) || !(p > 0)) err = '行权价与期权金需大于 0。';
@@ -442,7 +442,11 @@ function calc(){
   else if(!(getVal('mult') > 0)) err = '合约乘数需大于 0。';
   else if(fee < 0) err = '手续费不能为负数。';
   if(err){
+    currentResult = null;
+    document.getElementById('statGrid').innerHTML = '';
     document.getElementById('res').innerHTML = '<p class="tip-error">' + err + '</p>';
+    var canvas = document.getElementById('chart');
+    if(canvas) canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
     return;
   }
 
@@ -531,15 +535,16 @@ function calc(){
   resHtml += '<p>亏损区间：<strong style="color:var(--danger);">' + lossZone + '</strong></p>';
 
   if(isFinite(maxProfit)){
-    resHtml += '<p>最大盈利：<strong style="color:var(--success);">¥' + ToolBox.formatNumber(maxProfit * mult * contracts, 2) + '</strong></p>';
+    resHtml += '<p>最大盈利：<strong style="color:var(--success);">¥' + ToolBox.formatNumber(maxProfit * mult * contracts - totalFee, 2) + '</strong></p>';
   } else {
     resHtml += '<p>最大盈利：<strong style="color:var(--success);">理论无限</strong></p>';
   }
   if(isFinite(maxLoss)){
-    resHtml += '<p>最大亏损：<strong style="color:var(--danger);">¥' + ToolBox.formatNumber(maxLoss * mult * contracts, 2) + '</strong></p>';
+    resHtml += '<p>最大亏损：<strong style="color:var(--danger);">¥' + ToolBox.formatNumber(maxLoss * mult * contracts + totalFee, 2) + '</strong></p>';
   } else {
     resHtml += '<p>最大亏损：<strong style="color:var(--danger);">理论无限</strong></p>';
   }
+  resHtml += '<p style="font-size:12px;color:var(--text-muted);">最大盈亏已计入开仓+平仓手续费（¥' + ToolBox.formatNumber(totalFee, 2) + '），与总盈亏同口径。</p>';
 
   resHtml += '<p style="font-size:20px;font-weight:700;color:' + color + ';margin-top:8px;">总盈亏：' + profitSign + '¥' + ToolBox.formatNumber(totalProfit, 2) + '</p>';
 
@@ -920,7 +925,7 @@ function __option_profit_calculatorRender(keys,rk,en){
     }catch(e3){}
 }
 function __option_profit_calculatorExtras(){
-    if (typeof TBKit === 'undefined') return;
+    if (!currentResult || typeof TBKit === 'undefined') return;
     if (__option_profit_calculator_skip) return;
     var snap=__option_profit_calculatorSnap();
     var keys=Object.keys(snap);
@@ -950,7 +955,7 @@ function __option_profit_calculatorExtras(){
     __option_profit_calculatorRender(keys,rk,en);
 }
 function __option_profit_calculatorExport(){
-    if (typeof TBKit === 'undefined') return;
+    if (!currentResult || typeof TBKit === 'undefined') return;
     try{
         var box=document.querySelector('#option_profit_calculatorTable');
         if(!box||!box.querySelector('tr')){

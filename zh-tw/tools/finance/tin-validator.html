@@ -129,7 +129,7 @@ s.parentNode.insertBefore(el, s);
      <h2 data-zh="🪪 美國 TIN 驗證">🪪 US TIN Validator</h2>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理與說明</div>
-      <div class="formula-eq">格式 ^\d{3}-?\d{2}-?\d{4}$（SSN 結構），並排除無效段（如區域碼 000/666/9xx）</div>
+      <div class="formula-eq">SSN ^\d{3}-?\d{2}-?\d{4}$（Area/Group/Serial，排除 000/666/900-999、00、0000）；EIN ^\d{2}-?\d{7}$（字首按 IRS 分配號段）；ITIN 9xx-7x-xxxx（Group 70–88，排除 76/77）</div>
   <div class="formula-desc">依據美國 TIN/SSN 結構規則校驗 9 位納稅人識別號的格式與有效性區間；用於報稅、開戶與合規場景的號碼格式檢查（不驗證真實性）。</div>
 </div>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="美國 TIN 驗證器。輸入 9 位納稅人識別號，校驗格式與結構合法性，用於美國報稅、開戶與合規場景的號碼格式檢查（不驗證真實性）。">Validate a 9-digit US Taxpayer Identification Number for structure and format in tax and account screening.</p>
@@ -207,12 +207,14 @@ s.parentNode.insertBefore(el, s);
 <!-- /注意事項區塊 -->
 </div>
 <script>
+var __tinValid=false;
 function validate(){
+  __tinValid=false;
   const raw = document.getElementById('input').value.trim();
   const digits = raw.replace(/\D/g,'');
   const out = document.getElementById('output');
-  if(!digits){ const __h0=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Waiting for input...":"等待输入...");if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h0; return; }
-  let html = `<p><strong>输入：</strong>${raw}</p>`;
+  if(!raw){ const __h0=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Waiting for input...":"等待输入...");if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h0; return; }
+  let html = `<p><strong>输入：</strong>${raw.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}</p>`;
   if(/[^0-9\-\s]/.test(raw)){
     html += `<p style="color:var(--danger);">❌ 含非法字符：号码只能包含数字、连字符与空格</p>`;
     const __h0=html;out.innerHTML=__h0;return;
@@ -237,12 +239,14 @@ function validate(){
   const itinOk = area.startsWith('9') && parseInt(group,10) >= 70 && parseInt(group,10) <= 88 && group !== '76' && group !== '77';
   if(rawFormat === 'EIN' || itinOk || rawFormat === 'SSN' || ssnOk || einPrefixOk){
     if(itinOk){
+      __tinValid=true;
       type = 'ITIN (个人纳税人识别号)';
       html2 += `<p><strong>类型：</strong>${type}${rawFormat === 'auto' ? '（按号段推断）' : ''}</p>`;
       html2 += `<p><strong>ITIN 格式：</strong>${area}-${group}-${serial}</p>`;
       html2 += `<p style="color:var(--success);">✅ TIN/ITIN 格式有效</p>`;
     }else if(rawFormat === 'EIN' || (rawFormat === 'auto' && !ssnOk && einPrefixOk)){
       if(einPrefixOk){
+        __tinValid=true;
         type = 'EIN (雇主识别号)';
         html2 += `<p><strong>类型：</strong>${type}${rawFormat === 'auto' ? '（按号段推断）' : ''}</p>`;
         html2 += `<p><strong>EIN 格式：</strong>${einPrefix}-${digits.substring(2)}</p>`;
@@ -254,6 +258,7 @@ function validate(){
       }
     }else{
       if(ssnOk){
+        __tinValid=true;
         type = 'SSN (社会安全号)';
         html2 += `<p><strong>类型：</strong>${type}${rawFormat === 'auto' ? '（按号段推断）' : ''}</p>`;
         html2 += `<p><strong>SSN 格式：</strong>${area}-${group}-${serial}</p>`;
@@ -306,7 +311,7 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 
-var __tin_validator_last=0,__tin_validator_skip=false;
+var __tin_validator_last=0,__tin_validator_skip=false,__tin_validator_timer=null;
 function __tin_validatorSnap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
@@ -327,10 +332,8 @@ function __tin_validatorResText(){
     if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
 }
-function __tin_validatorScore(t){
-    var s=String(t||'');
-    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
-    return 1;
+function __tin_validatorScore(){
+    return __tinValid ? 1 : 0;
 }
 function __tin_validatorTime(t){
     var d=new Date(t);
@@ -376,9 +379,11 @@ function __tin_validatorRender(keys,rk,en){
         }
     }catch(e3){}
 }
-function __tin_validatorExtras(){
+function __tin_validatorExtras(force){
     if (typeof TBKit === 'undefined') return;
     if (__tin_validator_skip) return;
+    clearTimeout(__tin_validator_timer);
+    __tin_validator_timer=null;
     var snap=__tin_validatorSnap();
     var keys=Object.keys(snap);
     if(!keys.length) return;
@@ -388,7 +393,10 @@ function __tin_validatorExtras(){
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
     var now=Date.now();
-    if(now-__tin_validator_last<1000) return;
+    if(!force && now-__tin_validator_last<1000){
+        __tin_validator_timer=setTimeout(function(){__tin_validatorExtras(true);},1000-(now-__tin_validator_last));
+        return;
+    }
     var last=null;
     try{ last=TBKit.history.last(); }catch(e){}
     if(last){
@@ -408,6 +416,7 @@ function __tin_validatorExtras(){
 }
 function __tin_validatorExport(){
     if (typeof TBKit === 'undefined') return;
+    __tin_validatorExtras(true);
     try{
         var box=document.querySelector('#tin_validatorTable');
         if(!box||!box.querySelector('tr')){

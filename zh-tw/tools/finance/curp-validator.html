@@ -229,18 +229,19 @@ function curpChecksum(s17){
   const rem = sum % 10;
   return (rem === 0) ? 0 : 10 - rem;
 }
+var __curpValid=false;
 function validate(){
+  __curpValid=false;
   const raw = document.getElementById('input').value.trim().toUpperCase();
   const out = document.getElementById('output');
   if(!raw){ const __h0=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Waiting for input...":"等待输入...");if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h0; return; }
-  let html = `<p><strong>输入：</strong>${raw}</p>`;
+  const safeRaw = raw.replace(/[&<>"']/g, c => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'}[c]));
+  let html = `<p><strong>输入：</strong>${safeRaw}</p>`;
   html += `<p><strong>长度：</strong>${raw.length} 字符（应为 18）</p>`;
   // CURP format: 4 letters + 6 digits (YYMMDD) + H/M/X + 2 letters (state) + 3 consonants + 1 alphanumeric + 1 digit
   const re = /^([A-Z]{4})(\d{6})([HMX])([A-Z]{2})([A-Z]{3})([0-9A-Z])(\d)$/;
   if(raw.length !== 18 || !re.test(raw)){
-    if(raw.length === 18){
-      html += `<p style="color:var(--danger);">❌ 格式不符。应为：4 字母 + 6 数字(YYMMDD) + H/M/X + 2 字母(州) + 3 辅音 + 1 字母数字 + 1 校验位</p>`;
-    }
+    html += `<p style="color:var(--danger);">❌ 格式不符。应为：18 位 = 4 字母 + 6 数字(YYMMDD) + H/M/X + 2 字母(州) + 3 辅音 + 1 字母数字 + 1 校验位</p>`;
     const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h1;
     return;
   }
@@ -255,16 +256,19 @@ function validate(){
   const monthDays=[31,((year%4===0&&year%100!==0)||year%400===0)?29:28,31,30,31,30,31,31,30,31,30,31];
   let dateValid = mm >= 1 && mm <= 12 && dd >= 1 && dd <= monthDays[mm-1] && year <= new Date().getFullYear();
   const expectedCheck = curpChecksum(raw.substring(0,17));
+  const stateValid = Object.prototype.hasOwnProperty.call(STATES, state);
   const stateName = STATES[state] || ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Unknown":"未知");
+  const stateBad = stateValid ? '' : ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?" ❌ Invalid/unassigned state code":" ❌ 未分配/非法州码");
   const genderDesc = gender === 'H' ? '男性' : gender === 'M' ? '女性' : '未指定';
   html += `<p><strong>姓名首字母：</strong>${name}</p>`;
   html += `<p><strong>出生日期：</strong>${date}（${dateValid ? year+'-'+mm+'-'+dd : '❌ 无效'}）</p>`;
   html += `<p><strong>性别：</strong>${gender} - ${genderDesc}</p>`;
-  html += `<p><strong>州代码：</strong>${state} - ${stateName}</p>`;
+  html += `<p><strong>州代码：</strong>${state} - ${stateName}${stateBad}</p>`;
   html += `<p><strong>父姓/母姓/名字辅音：</strong>${consonants}</p>`;
   html += `<p><strong>同音字防重位：</strong>${homonym}</p>`;
   html += `<p><strong>校验位：</strong>${check}（期望 ${expectedCheck}） ${parseInt(check,10) === expectedCheck ? '✅' : '❌'}</p>`;
-  if(dateValid && parseInt(check,10) === expectedCheck){
+  __curpValid=dateValid && stateValid && parseInt(check,10) === expectedCheck;
+  if(__curpValid){
     html += `<p style="color:var(--success);">✅ CURP 有效</p>`;
   } else {
     html += `<p style="color:var(--danger);">❌ CURP 校验失败</p>`;
@@ -303,7 +307,7 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 
-var __curp_validator_last=0,__curp_validator_skip=false;
+var __curp_validator_last=0,__curp_validator_skip=false,__curp_validator_timer=null;
 function __curp_validatorSnap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
@@ -324,11 +328,7 @@ function __curp_validatorResText(){
     if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
 }
-function __curp_validatorScore(t){
-    var s=String(t||'');
-    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
-    return 1;
-}
+function __curp_validatorScore(){ return __curpValid ? 1 : 0; }
 function __curp_validatorTime(t){
     var d=new Date(t);
     function q(x){return (x<10?'0':'')+x;}
@@ -373,9 +373,11 @@ function __curp_validatorRender(keys,rk,en){
         }
     }catch(e3){}
 }
-function __curp_validatorExtras(){
+function __curp_validatorExtras(force){
     if (typeof TBKit === 'undefined') return;
     if (__curp_validator_skip) return;
+    clearTimeout(__curp_validator_timer);
+    __curp_validator_timer=null;
     var snap=__curp_validatorSnap();
     var keys=Object.keys(snap);
     if(!keys.length) return;
@@ -385,7 +387,10 @@ function __curp_validatorExtras(){
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
     var now=Date.now();
-    if(now-__curp_validator_last<1000) return;
+    if(!force && now-__curp_validator_last<1000){
+        __curp_validator_timer=setTimeout(function(){__curp_validatorExtras(true);},1000-(now-__curp_validator_last));
+        return;
+    }
     var last=null;
     try{ last=TBKit.history.last(); }catch(e){}
     if(last){
@@ -405,6 +410,7 @@ function __curp_validatorExtras(){
 }
 function __curp_validatorExport(){
     if (typeof TBKit === 'undefined') return;
+    __curp_validatorExtras(true);
     try{
         var box=document.querySelector('#curp_validatorTable');
         if(!box||!box.querySelector('tr')){

@@ -135,7 +135,7 @@ s.parentNode.insertBefore(el, s);
 <ul>
 <li>使用 <strong>Web Crypto <code>getRandomValues</code></strong> 生成密碼學安全隨機數(非 <code>Math.random</code>,不可預測)。</li>
 <li>採用 Base32 / Base36 編碼,並<strong>剔除易混字元</strong>(0/O、1/I、l),降低人工錄入錯誤。</li>
-<li>可附加<strong>校驗位</strong>(Luhn 變體)以攔截錯填,並在下方提供校驗入口;批次生成用 Set 去重保證唯一。</li>
+<li>可附加<strong>校驗位</strong>(Luhn 變體)以攔截部分錯填,並在下方提供校驗入口;批次生成用 Set 去重保證唯一。</li>
 </ul>
 <p>⚠️ 全程純前端,邀請碼不上傳伺服器;請妥善保管,避免洩露被冒用。</p>
 </div>
@@ -173,7 +173,7 @@ s.parentNode.insertBefore(el, s);
         <input type="text" id="verifyInput" placeholder="貼上 INV-XXXXXXX 形態的邀請碼" style="flex:1 1 240px;">
         <button type="button" class="btn" onclick="verifyCode()">校驗</button>
       </div>
-      <p style="font-size:13px;color:var(--text-muted);">校驗結果追加到上方結果區；支援帶字首的碼，可檢出單字元錯填與相鄰換位。</p>
+      <p style="font-size:13px;color:var(--text-muted);">校驗結果追加到上方結果區；支援帶字首的碼。注意：1 位數字校驗位只有 10 種取值，而字元集有 36 個符號，無法保證檢出所有單字元錯填與相鄰換位（如 AB7→KB7、AK9→KA9 都會漏檢）；高可靠場景請用服務端查表或更長的校驗位。</p>
     </div>
   </div>
 
@@ -295,7 +295,9 @@ function generate(){
 }
 function escapeHtml(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 // Luhn 变体：字母 A-Z 映射为 10-35、数字 0-9 用自身，从右往左隔位乘 2（>9 减 9）求和，
-// 校验位 = (10 - sum%10)%10。与「字符码求和取模」不同，它能检出相邻两位换位（AB→BA）。
+// 校验位 = (10 - sum%10)%10。比「字符码求和取模」更强，但 1 位数字只有 10 种取值、
+// 字符集却有 36 个符号（鸽巢原理），不可能检出所有单字符替换与相邻换位：
+// AB7→KB7（A=10、K=20 相差 10）、AK9→KA9 均会通过。页面文案已如实标注该边界。
 function luhnValue(ch){
   const c=String(ch==null?'':ch).toUpperCase();
   if(c>='0'&&c<='9')return c.charCodeAt(0)-48;

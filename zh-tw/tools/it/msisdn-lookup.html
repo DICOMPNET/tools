@@ -128,7 +128,7 @@ s.parentNode.insertBefore(el, s);
 <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
     <h2 data-zh="🔎 MSISDN 查詢">🔎 MSISDN Query</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">歸一化：去除空格、連字元、括號、點，剝離前導 +；國家/地區碼按 3→2→1 位降序匹配 E.164 碼錶；先校驗 E.164 總長 8–15 位與各國國內號長，再按 +86 前 3 位號段查運營商、+1 按 NANP（NPA/NXX）規則校驗並查區號；輸出 E.164（+國家碼+國內號碼）</div>
+  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">歸一化：去除空格、連字元、括號、點，剝離前導 +；國家/地區碼按 3→2→1 位降序匹配 E.164 碼錶；先校驗 E.164 總長 8–15 位與各國國內號長，再按 +86 前 3 位號段查運營商（162/167 等行動通訊轉售號段只給底層網路、不判定實際簽約服務商）、+1 按 NANP（NPA/NXX）規則校驗並查區號；輸出 E.164（+國家碼+國內號碼）</div>
   <div class="formula-desc">MSISDN 是手機號碼在行動通訊網路中的完整國際編號。</div>
   <ul class="formula-list">
     <li><b>結構</b>：國家碼（CC）+ 國內目的地碼（NDC）+ 使用者號碼（SN），總長不超過 15 位。</li>
@@ -172,7 +172,7 @@ s.parentNode.insertBefore(el, s);
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
 <dt>MSISDN 與 IMSI 區別？</dt><dd>MSISDN 是使用者可見號碼，IMSI 是 SIM 內國際標識。</dd>
-<dt>為什麼同一個號碼解析結果不同？</dt><dd>因為號碼規劃會調整：攜號轉網後號碼段不再代表原運營商，新啟用的號段也可能尚未收錄。此外部分國家的號碼長度不固定（如德國、奧地利），需結合國家碼判斷。因此解析結果適合作為輔助資訊，不應作為計費或路由的唯一依據。</dd>
+<dt>為什麼同一個號碼解析結果不同？</dt><dd>因為號碼規劃會調整：攜號轉網後號碼段不再代表原運營商，新啟用的號段也可能尚未收錄；162、167 等行動通訊轉售號段由虛擬運營商放號，靜態號段只能說明底層承載網路，無法確定使用者實際簽約服務商。此外部分國家的號碼長度不固定（如德國、奧地利），需結合國家碼判斷。因此解析結果適合作為輔助資訊，不應作為計費或路由的唯一依據。</dd>
 </dl>
 </div>
 </section>
@@ -284,11 +284,17 @@ const OP_DB3 = (function(){
   const m={};
   const put=function(op,list){ String(list).split(' ').forEach(function(p){ if(p) m[p]=OP_NAME[op]; }); };
   put('移动','134 135 136 137 138 139 147 148 150 151 152 157 158 159 172 178 182 183 184 187 188 195 197 198');
-  put('联通','130 131 132 145 146 155 156 166 167 175 176 185 186 196');
-  put('电信','133 141 149 153 162 173 177 180 181 189 190 191 193 199');
+  put('联通','130 131 132 145 146 155 156 166 175 176 185 186 196');
+  put('电信','133 141 149 153 173 177 180 181 189 190 191 193 199');
   put('广电','192');
   return m;
 })();
+/* IT-N417：162/167 是工信部划给移动通信转售业务的号段。号段分配方只说明底层承载网络，
+   实际签约服务商为虚拟运营商，静态号段无法确定，不能再当作确定的「运营商」。 */
+const RESALE_3 = {
+  '162':['电信（底层网络）','China Telecom (underlying network)'],
+  '167':['联通（底层网络）','China Unicom (underlying network)']
+};
 const OP_DB4 = {'1349':OP_NAME['电信']};
 /* NANP 常见 NPA 区号 → 地区（未收录只影响归属地展示，不否定结构合法性） */
 const AC_DB = {
@@ -386,7 +392,10 @@ function validate(){
   if(cc==='86'){
     const p3=nationalNum.substring(0,3), p4=nationalNum.substring(0,4);
     const hit=OP_DB4[p4]||OP_DB3[p3];
-    if(hit){
+    if(RESALE_3[p3]){
+      html+='<p><strong>'+L('运营商：','Carrier: ')+'</strong>'+L('无法确定（'+p3+' 为移动通信转售号段，实际签约服务商可能是虚拟运营商）','Cannot determine ('+p3+' is a mobile resale/MVNO prefix; the actual contracted provider may be a virtual operator)')+'</p>';
+      html+='<p><strong>'+L('底层网络：','Underlying network: ')+'</strong>'+L(RESALE_3[p3][0],RESALE_3[p3][1]);
+    }else if(hit){
       html+='<p><strong>'+L('运营商：','Carrier: ')+'</strong>'+L(hit[0],hit[1])+
             L('（号段 '+p3+'，携号转网后可能变化）',' (prefix '+p3+', may change after number portability)')+'</p>';
     } else {

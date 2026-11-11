@@ -128,7 +128,7 @@ s.parentNode.insertBefore(el, s);
      <h2 data-zh="🇬🇧 英國 Sort Code 驗證">🇬🇧 UK Sort Code Validator</h2>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理與說明</div>
-      <div class="formula-eq">英國 Sort Code 校驗（本頁程式碼口徑，格式校驗+銀行字首查表、無數學計算）：剝離非數字後須恰為 6 位（不足/超出提示「必須為 6 位數字（當前 N 位）」），按 XX-XX-XX 格式化；前 2 位查銀行表——01/02/07/60→NatWest、08/11/30/90→Lloyds、09/40→HSBC、20/23→Barclays 等，未命中顯示「未知/其他銀行」。校驗：輸入無數字時顯示「等待輸入」。判據：湊足 6 位數字即「✅ Sort Code 格式有效」，銀行名僅按清算字首推斷供參考。</div>
+      <div class="formula-eq">Sort Code 無算術校驗位：格式 = 6 位數字（常寫 XX-XX-XX）；規則 = 僅允許數字/空格/連字元，清洗後須恰為 6 位；銀行 = 前 2 位清算字首查表（如 01/02/12→NatWest、08/11/30→Lloyds、20/23→Barclays），未命中顯示「未知/其他銀行」，僅供參考。</div>
   <div class="formula-desc">依據英國 Sort Code 規則校驗 6 位分行程式碼的長度與數字格式；用於英國本地轉賬與賬戶標識場景的分行程式碼核驗。</div>
 </div>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="英國 Sort Code 驗證器。輸入 6 位數字銀行分行程式碼，校驗長度與數字格式，用於英國本地轉賬與賬戶標識場景下的分行程式碼格式核驗。">Validate a 6-digit UK sort code for length and digits before setting up local transfers.</p>
@@ -206,17 +206,25 @@ s.parentNode.insertBefore(el, s);
 <!-- /注意事項區塊 -->
 </div>
 <script>
+var __sortCodeValid=false;
 function validate(){
+  __sortCodeValid=false;
   const raw = document.getElementById('input').value.trim();
   const digits = raw.replace(/\D/g,'');
   const out = document.getElementById('output');
-  if(!digits){ const __h0=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Waiting for input...":"等待输入...");if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h0; return; }
-  let html = `<p><strong>输入：</strong>${raw}</p>`;
+  if(!raw){ const __h0=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Waiting for input...":"等待输入...");if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h0; return; }
+  let html = `<p><strong>输入：</strong>${raw.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}</p>`;
+  // F-N197：含字母/符号的输入不得被静默剥离（deep-dive 承诺「含字母提示格式错误」）
+  if(/[^0-9\-\s]/.test(raw)){
+    const __hBad=html+`<p style="color:var(--danger);">❌ Sort Code 仅允许数字、空格或连字符，含字母为格式错误</p>`;
+    out.innerHTML=__hBad; return;
+  }
   if(digits.length !== 6){
     html += `<p>⚠️ Sort Code 必须为 6 位数字（当前 ${digits.length} 位）</p>`;
     const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h1;
     return;
   }
+  __sortCodeValid=true;
   // Format: XX-XX-XX
   const formatted = digits.replace(/(\d{2})(\d{2})(\d{2})/, '$1-$2-$3');
   // First two digits indicate clearing region/bank
@@ -274,7 +282,7 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 
-var __sort_code_validator_validator_last=0,__sort_code_validator_validator_skip=false;
+var __sort_code_validator_validator_last=0,__sort_code_validator_validator_skip=false,__sort_code_validator_validator_timer=null;
 function __sort_code_validator_validatorSnap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
@@ -295,11 +303,7 @@ function __sort_code_validator_validatorResText(){
     if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
 }
-function __sort_code_validator_validatorScore(t){
-    var s=String(t||'');
-    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
-    return 1;
-}
+function __sort_code_validator_validatorScore(){ return __sortCodeValid ? 1 : 0; }
 function __sort_code_validator_validatorTime(t){
     var d=new Date(t);
     function q(x){return (x<10?'0':'')+x;}
@@ -344,9 +348,11 @@ function __sort_code_validator_validatorRender(keys,rk,en){
         }
     }catch(e3){}
 }
-function __sort_code_validator_validatorExtras(){
+function __sort_code_validator_validatorExtras(force){
     if (typeof TBKit === 'undefined') return;
     if (__sort_code_validator_validator_skip) return;
+    clearTimeout(__sort_code_validator_validator_timer);
+    __sort_code_validator_validator_timer=null;
     var snap=__sort_code_validator_validatorSnap();
     var keys=Object.keys(snap);
     if(!keys.length) return;
@@ -356,7 +362,10 @@ function __sort_code_validator_validatorExtras(){
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
     var now=Date.now();
-    if(now-__sort_code_validator_validator_last<1000) return;
+    if(!force && now-__sort_code_validator_validator_last<1000){
+        __sort_code_validator_validator_timer=setTimeout(function(){__sort_code_validator_validatorExtras(true);},1000-(now-__sort_code_validator_validator_last));
+        return;
+    }
     var last=null;
     try{ last=TBKit.history.last(); }catch(e){}
     if(last){
@@ -376,6 +385,7 @@ function __sort_code_validator_validatorExtras(){
 }
 function __sort_code_validator_validatorExport(){
     if (typeof TBKit === 'undefined') return;
+    __sort_code_validator_validatorExtras(true);
     try{
         var box=document.querySelector('#sort_code_validator_validatorTable');
         if(!box||!box.querySelector('tr')){

@@ -135,70 +135,36 @@ FILE_PATCHES = {
     "scripts/_verify_eat26_risk_direction.mjs": [("new URL(import.meta.url).pathname", "new URL(import.meta.url).pathname.replace(/^\\/(?=[A-Za-z]:)/, \"\")")],
     "scripts/_verify_berg_partial_guard.mjs": [("new URL(import.meta.url).pathname", "new URL(import.meta.url).pathname.replace(/^\\/(?=[A-Za-z]:)/, \"\")")],
     "scripts/_verify_asrs_star_dynamic.mjs": [("new URL(import.meta.url).pathname", "new URL(import.meta.url).pathname.replace(/^\\/(?=[A-Za-z]:)/, \"\")")],
-    # random-picker 用 setInterval 滚动 15×80ms 才定结果；固定 wait(1350) 在 JSDOM 下不可靠，
-    # 改为轮询 records 长度；恢复历史后 wait(1500) 足够覆盖一轮完整滚动。
+    # random-picker 用 setInterval 滚动 15×80ms 才定结果；固定 wait(1350/1400) 在 JSDOM 下
+    # 定时器调度不稳会假红，改为轮询 records 长度 / 输出文案。
     "scripts/_verify_fun_batch_fe_n54.mjs": [
-        ("""await wait(50);
-doc.getElementById('items').value = '';
-w.start();
-check('空池不产生历史', records.length === 0);
-doc.getElementById('items').value = '错误';
-doc.getElementById('seed').value = 'fixed';
-doc.getElementById('unique').checked = false;
-w.start();
-check('抽取中不写入历史', records.length === 0);
-await wait(1350);
-check('真实结果及通过状态入历史', records.length === 1 && records[0].d['结果'] === '错误' && records[0].d.__tbScore === 1);
-w.start();
-await wait(1350);
-check('重复抽取相同选项也各留一条', records.length === 2 && records.every(r => r.d['结果'] === '错误' && r.d.__tbScore === 1));
-doc.getElementById('items').value = '请输入文本';
-w.start();
-await wait(1350);
-check('提示语样式的合法选项也入历史', records.length === 3 && records[2].d['结果'] === '请输入文本');
-restore(records[0].d);
-await wait(1350);
-check('恢复历史不新增记录', records.length === 3);
-w.__random_pickerExport();
-check('导出只包含真实结果且不含占位', exports.length === 1 && exports[0].length === 3 && exports[0].every(row => (row.includes('错误') || row.includes('请输入文本')) && row.includes('通过') && !row.some(v => String(v).includes('抽取中'))));
-doc.getElementById('unique').checked = true;
-w.start();
-await wait(1350);
-const before = records.length;
-w.start();""",
-         """// 轮询 records 长度：页面 setInterval 依赖 JSDOM 定时器调度，wait 固定时长不可靠。
-async function waitFor(n, timeout = 5000) {
-  const t0 = Date.now();
-  while (records.length < n && Date.now() - t0 < timeout) await wait(50);
-}
-await wait(50);
-doc.getElementById('items').value = '';
-w.start();
-check('空池不产生历史', records.length === 0);
-doc.getElementById('items').value = '错误';
-doc.getElementById('seed').value = 'fixed';
-doc.getElementById('unique').checked = false;
-w.start();
-check('抽取中不写入历史', records.length === 0);
-await waitFor(1);
-check('真实结果及通过状态入历史', records.length === 1 && records[0].d['结果'] === '错误' && records[0].d.__tbScore === 1);
-w.start();
-await waitFor(2);
-check('重复抽取相同选项也各留一条', records.length === 2 && records.every(r => r.d['结果'] === '错误' && r.d.__tbScore === 1));
-doc.getElementById('items').value = '请输入文本';
-w.start();
-await waitFor(3);
-check('提示语样式的合法选项也入历史', records.length === 3 && records[2].d['结果'] === '请输入文本');
-restore(records[0].d);
-await wait(1500);
-check('恢复历史不新增记录', records.length === 3);
-w.__random_pickerExport();
-check('导出只包含真实结果且不含占位', exports.length === 1 && exports[0].length === 3 && exports[0].every(row => (row.includes('错误') || row.includes('请输入文本')) && row.includes('通过') && !row.some(v => String(v).includes('抽取中'))));
-doc.getElementById('unique').checked = true;
-w.start();
-await waitFor(4);
-const before = records.length;
-w.start();"""),
+        ("const wait = ms => new Promise(resolve => setTimeout(resolve, ms));",
+         "const wait = ms => new Promise(resolve => setTimeout(resolve, ms));\n"
+         "// 页面用 setInterval 滚动 15×80ms 才定结果；JSDOM 定时器调度不稳，固定 wait 会假红。\n"
+         "async function waitFor(n, timeout = 8000) {\n"
+         "  const t0 = Date.now();\n"
+         "  while (records.length < n && Date.now() - t0 < timeout) await wait(50);\n"
+         "}\n"
+         "async function waitText(el, needle, timeout = 8000) {\n"
+         "  const t0 = Date.now();\n"
+         "  while (!el.textContent.includes(needle) && Date.now() - t0 < timeout) await wait(50);\n"
+         "}"),
+        ("await wait(1350);\ncheck('真实结果及通过状态入历史'",
+         "await waitFor(1);\ncheck('真实结果及通过状态入历史'"),
+        ("await wait(1350);\ncheck('重复抽取相同选项也各留一条'",
+         "await waitFor(2);\ncheck('重复抽取相同选项也各留一条'"),
+        ("await wait(1350);\ncheck('提示语样式的合法选项也入历史'",
+         "await waitFor(3);\ncheck('提示语样式的合法选项也入历史'"),
+        ("  await wait(1350);\n  check(`",
+         "  await waitFor(count + 1);\n  check(`"),
+        ("restore(records[0].d);\nawait wait(1350);",
+         "restore(records[0].d);\nawait wait(1500);"),
+        ("doc.getElementById('unique').checked = true;\nw.start();\nawait wait(1350);\nconst before = records.length;\nw.start();\nawait wait(100);",
+         "doc.getElementById('unique').checked = true;\nconst preDraw = records.length;\nw.start();\nawait waitFor(preDraw + 1);\nconst before = records.length;\nw.start();\nawait waitText(doc.getElementById('output'), '抽完');"),
+        ("await wait(1400);\ncheck('不重复模式连点只完成一次",
+         "await waitFor(beforeDouble + 1);\ncheck('不重复模式连点只完成一次"),
+        ("await wait(1400);\ncheck('重置取消旧动画",
+         "await waitFor(beforeReset + 1);\ncheck('重置取消旧动画"),
     ],
     # 门禁运行器：上游已改为 manifest 驱动（gates_manifest.txt 棘轮），本地仅做 Windows 适配。
     # ① python3 → sys.executable（本机无 python3 别名）；② Clarity 门禁跳过（本站无 Clarity，
@@ -270,6 +236,12 @@ w.start();"""),
          "        all_urls.append('https://tools.dicomp.net/about.html')\n"
          "    if os.path.isfile(os.path.join(ROOT, 'disclaimer.html')):\n"
          "        all_urls.append('https://tools.dicomp.net/disclaimer.html')\n"),
+    ],
+    # history guard：bill-splitter 巨大金额子用例在 Windows spawnSync 下含 JSDOM 初始化 + eval + calc
+    # 冷启动，实测 3s 边界容易被 child_process 启动开销击穿；本地提到 10s。
+    "scripts/verify_history_guard.js": [
+        ("timeout: 3000 });\n    return { ok: child.status === 0 && /超出|无法|过大/",
+         "timeout: 10000 });\n    return { ok: child.status === 0 && /超出|无法|过大/"),
     ],
 }
 DRY_RUN = "--dry-run" in sys.argv
