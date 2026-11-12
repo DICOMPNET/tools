@@ -93,7 +93,7 @@
 <div class="card tool-card-accent" style="--tool-accent:#3B82F6;">
     <h2 data-zh="📄 XML 轉 YAML 轉換器">📄 XML to YAML Converter</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">XML → JSON：先剔除註釋、處理指令並把 CDATA 段還原為文本；對每個元素取 &lt; 與 &gt; 之間的頭部，尾部為 / 判為自閉合，頭部第一個空白前為標籤名，其餘用 ([\w:-]+)\s*=\s*"([^"]*)" 提取屬性；子節點按標籤名分組，同名只有一個取單值、多個取陣列；屬性以 @ 字首放入物件，文本以 #text 鍵放入；根節點缺失或解析失敗給出錯誤提示。JSON → XML：值為物件時以 @ 字首的鍵還原為屬性、#text 還原為文本、陣列按同名元素逐個序列化；頂層鍵不止一個時外層包 &lt;root&gt;。YAML 標量還原規則：去成對引號，true/false 轉布林，null 與 ~ 轉空，純整數轉 parseInt、純小數轉 parseFloat，其餘保持字串；字串含 : # - [ ] { } , 或首尾有空白、以數字開頭、等於 true/false/null 時加雙引號</div>
+  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">XML → JSON：先剔除註釋、處理指令並把 CDATA 段還原為文本；對每個元素取 &lt; 與 &gt; 之間的頭部，尾部為 / 判為自閉合，頭部第一個空白前為標籤名，其餘用 ([\w:-]+)\s*=\s*"([^"]*)" 提取屬性；子節點按標籤名分組，同名只有一個取單值、多個取陣列；屬性以 @ 字首放入物件，文本以 #text 鍵放入；根節點缺失或解析失敗給出錯誤提示。JSON → XML：值為物件時以 @ 字首的鍵還原為屬性、#text 還原為文本、陣列按同名元素逐個序列化；頂層鍵不止一個時外層包 &lt;root&gt;。YAML 標量還原規則：去成對引號，true/false 轉布林，null 與 ~ 轉空，純整數轉 parseInt、純小數轉 parseFloat，其餘保持字串；字串含 : # - [ ] { } , 或首尾有空白、以數字開頭、等於 true/false/null 時加雙引號；以 @ / # 開頭的對映鍵（如屬性 @id、文本 #text）也加雙引號以符合 YAML 1.2</div>
   <div class="formula-desc">把 XML 轉換為 YAML。</div>
   <ul class="formula-list">
     <li><b>對映</b>：XML 的層級結構轉為 YAML 的巢狀對映，重複元素轉為序列。</li>
@@ -158,7 +158,7 @@
 
   <div class="tool-notes-title">⚠️ 使用說明與注意事項</div>
   <ul>
-        <li>XML 屬性在 YAML 中表示為以 @ 開頭的鍵（如 @id），元素文本表示為 #text。</li>
+        <li>XML 屬性在 YAML 中以加引號的鍵表示（如 "@id"），元素文本用 "#text" 鍵；引號保證嚴格 YAML 解析器不會把 @ / # 當保留字元或註釋。</li>
         <li>重複的同名子元素會轉為 YAML 列表；多個同級元素按順序保留。</li>
         <li>名稱空間、CDATA、註釋等會被忽略或歸一化；極複雜 XML 建議人工核對。</li>
   </ul>
@@ -239,8 +239,19 @@ function xmlToJson(xml){
   xml=xml.replace(/<!--[\s\S]*?-->/g,'').replace(/<\?[\s\S]*?\?>/g,'').replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g,function(m,c){return c;});
   var pos=0;
   function skipws(){ while(pos<xml.length && /\s/.test(xml[pos])) pos++; }
+  // IT-N266：属性值里合法的 > 不能提前截断标签头，跳过单/双引号内的字符
+  function findGt(s,from){
+    var q='';
+    for(var i=from;i<s.length;i++){
+      var c=s[i];
+      if(q){ if(c===q) q=''; }
+      else if(c==='"'||c==="'"){ q=c; }
+      else if(c==='>') return i;
+    }
+    return -1;
+  }
   function parseEl(){
-    var gt=xml.indexOf('>',pos); if(gt<0) return null;
+    var gt=findGt(xml,pos); if(gt<0) return null;
     var head=xml.slice(pos+1,gt); pos=gt+1;
     var selfClose=false;
     if(head.slice(-1)==='/'){ selfClose=true; head=head.slice(0,-1); }
@@ -248,8 +259,9 @@ function xmlToJson(xml){
     var name= sp<0? head : head.slice(0,sp);
     var attrStr= sp<0? '' : head.slice(sp+1);
     var attrs={};
-    var re=/([\w:-]+)\s*=\s*"([^"]*)"/g, m;
-    while((m=re.exec(attrStr))){ attrs[m[1]]=m[2]; }
+    // IT-N266：单引号属性同样合法，两组捕获分别取双/单引号内容
+    var re=/([\w:-]+)\s*=\s*(?:"([^"]*)"|'([^']*)')/g, m;
+    while((m=re.exec(attrStr))){ attrs[m[1]] = (m[2]!==undefined ? m[2] : m[3]); }
     if(selfClose) return {name:name, val:nodeVal(name,attrs,null,'')};
     var children=[]; var text='';
     while(pos<xml.length){
@@ -362,6 +374,14 @@ function yMapFrom(items, mapIndent, p, firstItem){
   return m;
 }
 function yNeedQ(v){ return /[:#\-\[\]\{\},]/.test(v)||v.trim()!==v||v===''||/^\d/.test(v)||v==='true'||v==='false'||v==='null'; }
+// IT-N266：YAML 1.2 中 @ / ` 是保留指示符、# 起始即注释，裸键 @id/#text 在严格解析器里
+// 会报错或被当注释丢弃；这些键统一加双引号（解析后键名仍是 @id/#text，不影响 XML 往返）。
+function yKey(k){
+  k=String(k);
+  if(/^[@`#]/.test(k)||/^\d/.test(k)||/^[-?]/.test(k)||/[:#\[\]{},]/.test(k)||k.trim()!==k||k===''||k==='true'||k==='false'||k==='null')
+    return '"'+k.replace(/"/g,'\\"')+'"';
+  return k;
+}
 function yVal(v){
   if(v===null||v===undefined) return 'null';
   if(typeof v==='boolean') return v?'true':'false';
@@ -369,17 +389,18 @@ function yVal(v){
   if(typeof v==='string'){ return yNeedQ(v)? ('"'+v.replace(/"/g,'\\"')+'"') : v; }
   return String(v);
 }
-function dumpYaml(node,pad,sort,isRoot){
+function dumpYaml(node,pad,sort,isRoot,unit){
   if(isRoot===undefined)isRoot=true;
+  if(unit===undefined) unit='  ';
   var out='';
   if(node instanceof Array){
     for(var i=0;i<node.length;i++){
       var it=node[i];
       if(it!==null && typeof it==='object' && !(it instanceof Array)){
         var ks=Object.keys(it); if(sort)ks=ks.slice().sort();
-      for(var j=0;j<ks.length;j++){ var kk=ks[j]; var vv=it[kk]; var head=(j===0?pad+'- ':pad+'  ');
-        if(vv instanceof Array || (vv!==null && typeof vv==='object')) out+=head+kk+':\n'+dumpYaml(vv,pad+'    ',sort,false);
-        else out+=head+kk+': '+yVal(vv)+'\n'; }
+      for(var j=0;j<ks.length;j++){ var kk=ks[j]; var vv=it[kk]; var head=(j===0?pad+'- ':pad+unit);
+        if(vv instanceof Array || (vv!==null && typeof vv==='object')) out+=head+yKey(kk)+':\n'+dumpYaml(vv,pad+unit,sort,false,unit);
+        else out+=head+yKey(kk)+': '+yVal(vv)+'\n'; }
       } else out+=pad+'- '+yVal(it)+'\n';
     }
     return out;
@@ -388,9 +409,9 @@ function dumpYaml(node,pad,sort,isRoot){
   for(var i=0;i<keys.length;i++){
     var k=keys[i]; var v=node[k];
     var p=isRoot?'':pad;
-    if(v instanceof Array) out+=p+k+':\n'+dumpYaml(v,pad+'  ',sort,false);
-    else if(v!==null && typeof v==='object') out+=p+k+':\n'+dumpYaml(v,pad+'  ',sort,false);
-    else out+=p+k+': '+yVal(v)+'\n';
+    if(v instanceof Array) out+=p+yKey(k)+':\n'+dumpYaml(v,pad+unit,sort,false,unit);
+    else if(v!==null && typeof v==='object') out+=p+yKey(k)+':\n'+dumpYaml(v,pad+unit,sort,false,unit);
+    else out+=p+yKey(k)+': '+yVal(v)+'\n';
   }
   return out;
 }
@@ -401,7 +422,7 @@ var obj=xmlToJson(src);
 if(obj && obj.__err){ const __g3='<p class="muted">解析失败：'+escH(obj.__err)+'</p>';document.getElementById('result').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—')); return; }
 var pad = document.getElementById('indent').value==='tab' ? '\t' : (' ').repeat(parseInt(document.getElementById('indent').value||'2',10));
 var sort=document.getElementById('top_1').checked;
-var yaml=dumpYaml(obj,pad,sort);
+var yaml=dumpYaml(obj,'',sort,true,pad);
 const __g4='<div class="result-title">YAML 输出</div><pre class="code-block">'+escH(yaml)+'</pre>';document.getElementById('result').innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));}
 function resetForm(){document.getElementById('source').value='<note>\n  <to>Tony</to>\n  <from>Anna</from>\n  <heading>Reminder</heading>\n  <body>Don\'t forget me!</body>\n  <items id="1">\n    <item>Apple</item>\n    <item>Banana</item>\n  </items>\n</note>';
       document.getElementById('indent').selectedIndex=0;
