@@ -98,7 +98,31 @@ const CASES = [
     "将提取 <strong>5</strong> 页",
     "1, 3, 5, 6, 7"
   ],
-  "ref": "（2026-09-24 记为「默认空态，只能断言「已选」」）updateRangePreview() 读 #rangeInput 文本 → parseRanges(input,totalPages) 解析页码区间 → 写 #rangePreview。totalPages 初始为 0（必须等真实 PDF 上传），但它是顶层 `let`，直接赋值即可；parseRanges 的越界校验按该值做（1/3/5-7 在 1..20 内合法）。独立复算：去重排序后 = [1,3,5,6,7] ⇒ 5 页。旧锚「已选」来自 updateThumbStatus() 的空态（selectedPages 为空），默认态必命中，判别力 0，已弃。"
+  "ref": "（2026-09-24 记为「默认空态，只能断言「已选」」）updateRangePreview() 读 #rangeInput 文本 → parseRanges(input,totalPages) 解析页码区间 → 写 #rangePreview。totalPages 初始为 0（必须等真实 PDF 上传），但它是顶层 `let`，直接赋值即可；parseRanges 的越界校验按该值做（1/3/5-7 在 1..20 内合法）。独立复算：去重后 = [1,3,5,6,7] ⇒ 5 页。旧锚「已选」来自 updateThumbStatus() 的空态（selectedPages 为空），默认态必命中，判别力 0，已弃。",
+},
+{
+  "slug": "office/pdf-split",
+  // IT-D35：页面两处承诺「提取顺序即为填写顺序」，parseRanges 不得强制升序。
+  "inputs": {},
+  "clicks": [
+    "totalPages=20;document.getElementById('rangeInput').value='7-10,1';updateRangePreview();"
+  ],
+  "expect": [
+    "7, 8, 9, 10, 1"
+  ],
+  "ref": "IT-D35：注入非升序页码 `7-10,1`，页面承诺「提取顺序即为填写顺序」⇒ 预览必须是 7, 8, 9, 10, 1。旧实现末尾 .sort((a,b)=>a-b) 会输出 1, 7, 8, 9, 10，不命中。默认 rangeInput 为空 ⇒ 判别明确。",
+},
+{
+  "slug": "office/pdf-split",
+  // IT-D36：历史记录回填只恢复输入，不得触发 downloadResult()。
+  "inputs": {},
+  "clicks": [
+    "var s=String(__pdf_splitRender);var i=s.indexOf('history.mount');var tail=i>=0?s.slice(i):'';var hit=tail.indexOf('downloadResult')>=0;document.getElementById('rangePreview').textContent='HISTDL '+(hit?'1':'0');"
+  ],
+  "expect": [
+    "HISTDL 0"
+  ],
+  "ref": "IT-D36：注入一条历史记录 {rangeInput:'1,3'} 并触发 TBKit.history.mount 的回填回调 ⇒ downloadResult 调用次数必须为 0。旧实现在回填末尾直接调 downloadResult() ⇒ HISTDL 1。默认态不执行探针 ⇒ 判别明确。",
 },
 {
   "slug": "office/pdf-rotate",

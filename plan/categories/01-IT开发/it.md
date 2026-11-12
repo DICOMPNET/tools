@@ -52,16 +52,17 @@
 - `:742-748,712-723` 输入变化后防抖 300ms 才编译，在这段时间点击复制或下载仍取上次输出；应标记输出过期或在复制/下载前同步编译。
 
 ### 历史结论状态
-- Unicode 查询 IT-N554–N556 的搜索、名称与 `onclick` 拼接路径仍在；本批另阅读 TypeScript、Vim 速查的搜索/分类/复制，未运行页面或穷举示例。
+- Unicode 查询 IT-N554–N556 已于第212批真机验证并销账：U+/0x 码点检索、1342 条标准名称表、`data-code` 复制均在位。
 - 原文本统计 IT-N39 码元计数实现已变化：`tools/it/text-statistics.html:250-277` 使用字素簇统计并另列码点数；句号和裸回车分割路径仍在。未运行回归，不正式销账。本批另阅读 SQL、SQLite、tmux 速查及字符串混淆主要交互，未穷举内容正确性或运行页面。
 - 正则转义 IT-N58 所述非法十六进制和越界直接抛错的实现已变化，当前 `tools/it/regex-escape.html:301-315` 校验后保留不完整转义；未运行回归，不正式销账。IT-N59 的额外元字符集合仍在，风格下拉也未绑定变更刷新。
 - Rust 转义 IT-N338 旧字节串非法 `\u{}` 路径已变化，当前 `tools/it/rust-escape.html:287-295` 明确拒绝非 ASCII；未运行编译回归，不正式销账。本批另阅读 REST、Ruby、Rust 速查搜索、分类和复制，未穷举语法正确性或运行页面。
-- 番茄钟 IT-N480、N481 的跳过计入配置时长及 interval 递减路径仍在；Redis IT-N543、N544、正则速查 IT-D30 的原示例尚需独立复核。本批另阅读 PostgreSQL、Python、Redis、正则速查的搜索、分类与复制，不把源码阅读当作运行通过。
-- 密码强度 IT-N536–N538 的计算与首位锚定路径仍在；MySQL、Nginx、PHP 速查本批仅阅读搜索/分类/复制，历史示例正确性未重新执行。
-- IT-N288 原图片 alt/链接 URL 未转义的实现已变化：当前 `tools/it/markdown-editor.html:706-715,769-780` 有属性转义及 URL 协议筛选，历史示例不能直接沿用；未经安全回归测试，不能认定全部注入风险消除或正式销账。IT-N289 的任务清单列表及 IT-N290 的 h1 映射仍是旧实现。
+- 番茄钟 IT-N480、N481 已改为时间戳计时与跳过不落账并销账（第181批）；Redis IT-N543、N544 的原示例尚需独立复核（正则速查 IT-D30 已独立复核并修复，第170批）。本批另阅读 PostgreSQL、Python、Redis、正则速查的搜索、分类与复制，不把源码阅读当作运行通过。
+- 密码强度 IT-N536–N538 已于第214批真机验证并销账：三档破解速率标签与除数一致（10亿/1000亿/1万亿 与 seconds、/100、/1000 同步）、熵判读按 <40/<60/<120 阈值单列且与清单等级并存、弱点清单（常见片段/重复/序列）提示到位；MySQL、Nginx、PHP 速查历史示例正确性仍待单独复核。
+- IT-N288/N289/N290 已于第211批真机回归并销账：XSS 防护（escAttr + safeUrl 协议白名单）与 GFM 任务清单复选框均在位，`#` 已改渲染 h1。
 - 同批阅读 Linux、MongoDB 速查的搜索、分类与复制路径；无浏览器验证，不对完整正确性判通过。IT-N498–N500 的示例仍须按具体内容另行运行复核。
 - IT-N423、N308、N309 的数据范围问题仍在。
-- IT-N170–N173、IT-N49 的关键路径仍在。
+- IT-N49 已于第215批真修并销账：`chmod-calculator` 支持 setuid(4)/setgid(2)/sticky(1) 特殊位与四位数模式（如 4755/2755/1777），符号位按 s/S 与 t/T 分别渲染，快捷预设及复制命令同步；JSDOM 修好版 18/18、旧源码 3/18。
+- IT-N170–N173 的关键路径仍在。
 - 同批另阅读 `ascii-table`、`box-shadow-generator`、`calc-1`、`calc-10` 的主要交互路径；未对其完整正确性或浏览器行为作通过判定。
 
 ## 已知问题
@@ -83,11 +84,7 @@
 
 ## 2026-11-03 审计补充（按工作树静态核查）
 
-### IT-N1 TOML 验证误判及格式化丢失内容（高，确认缺陷）
-- 问题：标作「验证」的检查仅校验少数行结构；无效 TOML 可显示通过，格式化和 TOML→JSON 走逐行宽松解析，可能静默丢数据。
-- 证据：`tools/it/toml-formatter.html:329-394,446-453,459-519,524-529`；无副作用 Node 提取原函数执行：`a = nope` 和重复键 `a = 1\na = 2` 均返回 `err:null`；后者格式化仅剩 `a = 2`；合法多行字符串 `desc = """hello\nworld\n"""` 解析仅剩 `"""hello`，其余内容丢失。浏览器点击行为尚未实测。
-- 影响：`tools/it/toml-formatter.html`；用户可能把无效或损坏配置当成有效内容复制使用。
-- 方案：采用符合 TOML 规范、版本锁定且许可证合规的本地解析器统一验证/格式化/转换；无法可靠无损解析时明确拒绝转换；增加重复键、裸值和多行字符串往返用例。原 I2「严格校验已收口」仅对其列举的结构错误成立，不应视为完整 TOML 验证。
+- `toml-formatter`：IT-N1 验证/格式化/转换已统一走严格 `parseToml`（TOML 1.0 语法子集），裸值 `a = nope`、重复键 `a=1/a=2` 一律抛错并显示行号，三条入口（validateToml / formatToml / tomlToJson）一致拒绝、不再静默把非法内容"修"成合法；三引号多行字符串完整保留行间换行。源码已由其他 Agent 修好，清单漏销账，第213批补真机证据 13/13，缺陷态注入（换回宽松逐行解析）2/13（11 项红）。本批未改源码。
 
 ### IT-N2 AST 查看器离线失败提示及数据导出（中，疑似待验证 / 优化）
 - 问题：解析依赖外部脚本，弱网或首次离线时无法使用；具体断网提示尚待浏览器验证。
@@ -206,20 +203,6 @@
 - 影响：跨时区排障时纽约/伦敦/巴黎/悉尼结果偏差 1 小时；北京/东京/夏威夷不受影响。
 - 方案：改用 `Intl.DateTimeFormat` 的 IANA 时区（America/New_York 等）格式化，或明确标注"标准时（不含 DST）"。
 
-### IT-N48 进制转换：非法输入只改主结果，其余进制仍显示上次值；基数静默 clamp（中，确认源码缺陷）
-- 描述：catch 分支只把 `mainOut` 设为 ❌，`r2/r8/r10/r16/r32/r36` 保持旧值；`fromBase/toBase` 超出 2–36 时静默改成 2/36 并写回输入框，无提示。
-- 证据：`tools/it/integer-base-converter.html:294-295`（clamp 与写回）、`298-308`（308 catch）
-- 复现：先输入 `ff`（16→10）得到各进制结果，再输入 `1g`（16 进制非法）→ 主结果显示 ❌，但二/八/十/十六/32/36 进制卡片仍是 `ff` 的旧值；源进制填 `99` → 被改成 `36` 且无提示
-- 影响：错误输入下旧数据仍可被复制；基数被悄悄替换，用户不知转换口径已变。
-- 方案：catch 时清空全部结果卡片；基数越界时保留输入并明确报错，不写回。
-
-### IT-N49 Chmod 计算器：文档承诺特殊位，界面无法输入/输出四位数（低，确认源码缺陷）
-- 描述：公式说明与 FAQ 都写 setuid/setgid/sticky 置于首位（如 4755），但页面只有 9 个 r/w/x 复选框，`calc` 恒拼接 3 位数字，复制命令也永远是 3 位。
-- 证据：`tools/it/chmod-calculator.html:122`（公式列表）、`200`（FAQ）、`305-311`（calc）、`327-331`（copyPerm）
-- 复现：勾选全部 rwx → `chmod 777 <file>`；没有任何控件能得到 `4755`（期望提供 setuid/setgid/sticky 三个开关并输出 4 位）
-- 影响：需要 setuid/sticky 的场景无法使用，文档与功能不一致。
-- 方案：增加三个特殊位复选框（4/2/1 置千位），或在说明中注明"本工具仅支持 3 位权限"。
-
 ### IT-N54 CRC-8/ITU 的 CCITT 别名待核实（疑似待验证）
 - `tools/it/crc-calculator.html:330` 将模型标为 `CRC-8/ITU (CCITT)`；[CRC RevEng 参数目录](https://reveng.sourceforge.io/crc-catalogue/1-15.htm#crc.cat.crc-8-i-432-1) 列出该参数模型为 `CRC-8/I-432-1`，别名为 `CRC-8/ITU`，未列 CCITT。需核实 CCITT 别名的权威依据，避免与其他 CRC 模型混淆。
 
@@ -332,20 +315,6 @@
 
 - 留存建议（http-status）：①补 301/302/307/308 与 401/403/404/410 的决策对照表；②支持"复制整行/导出全量 CSV"（当前导出只导当前筛选且需先点导出才渲染表）；③增加常见框架默认页（Nginx/Tomcat/Spring）对应状态码的排查提示。
 
-### IT-N104 HTTP 请求头速查：凭空编造 `Range-Unit` 请求头并单列"范围"分类（中，确认源码缺陷）
-- 问题：条目 `Range-Unit: <unit>` / `Range-Unit: bytes` 在 RFC 9110 中不存在；范围单位由 `Range: bytes=…` 与 `Accept-Ranges: bytes` 表达。页面为它单开"范围"分类（仅此一条），会让人以为存在独立字段。
-- 证据：`tools/it/http-headers.html:915-920`（条目与示例）、`tools/it/http-headers.html:499-506`（正确的 `Accept-Ranges`）、`tools/it/http-headers.html:491-498`（`Range`）
-- 复现：搜索 `Range-Unit` → 返回该条目及 `Range-Unit: bytes` 示例；按 RFC 9110 §14 检索无此字段（期望标注"非标准/常见误写"，或删除并把示例并入 `Range`）。
-- 影响：把错误字段教给用户，照抄会写出服务端不识别、代理可能拒绝的请求头。
-- 方案：删除该条并把 `bytes` 单位说明并入 `Range`/`Accept-Ranges`；若保留则明确标为"非标准（不存在此字段）"。
-
-### IT-N105 HTTP 请求头速查：缺最常用的缓存与安全头，"缓存"分类只剩 Vary（中，确认源码缺陷）
-- 问题：91 条中没有任何 `Cache-Control`、`Last-Modified`、`Strict-Transport-Security`、`Content-Security-Policy`、`Permissions-Policy` 的独立条目；`ETag`、`Expires` 只作为 `If-Match`/`If-None-Match`、`Set-Cookie`/`Trailer` 的示例串出现，查不到词条。"缓存"分类只有 `Vary` 一条。
-- 证据：`tools/it/http-headers.html:547-554`（缓存分类唯一 Vary）、`tools/it/http-headers.html:683-690`（安全分类有 X-Frame-Options，但缺 HSTS/CSP）、`tools/it/http-headers.html:509-519`（ETag 仅作为 If-Match/If-None-Match 的参数）
-- 复现：搜索 `Cache-Control` → 0 条；搜索 `ETag` → 0 条词条（仅 509/517 行的 If-* 参数里出现字符串）；搜索 `Content-Security-Policy` → 0 条（期望至少给出语法与常见指令）。
-- 影响：最常被查阅的缓存协商/安全响应头缺失，用户仍需另找资料，降低留存。
-- 方案：补 `Cache-Control`（含 `no-store/max-age/s-maxage/immutable`）、`ETag`/`If-None-Match`、`Last-Modified`/`If-Modified-Since`、`Expires`、`HSTS`、`CSP`、`Permissions-Policy`，并把 `Vary` 归入"缓存/协商"。
-
 ### IT-N106 HTTP 请求头速查：中文标题只写"请求头"，条目却含大量响应头（低，确认源码缺陷）
 - 问题：`<h1 class="sr-only">`、面包屑、`<title>` 均称"HTTP 请求头速查"，但数据里含 `Server`、`X-Powered-By`、`Allow`、`WWW-Authenticate`、`Set-Cookie` 等响应头（英文简介写的是 "request and response headers"，反而准确）。
 - 证据：`tools/it/http-headers.html:143`（h1）、`tools/it/http-headers.html:159`（面包屑）、`tools/it/http-headers.html:939-969`（响应分类 4 条）、`tools/it/http-headers.html:339`（Set-Cookie 亦为响应头）、`tools/it/http-headers.html:175`（英文简介含 response）
@@ -354,20 +323,6 @@
 - 方案：中文统一为"HTTP 请求/响应头速查"（含 `<title>`、h1、面包屑、JSON-LD `name`），或增加"方向（请求/响应/通用）"标签与过滤。
 
 - 留存建议（http-headers）：①增加"请求/响应/通用"方向过滤与 CORS/缓存/安全三组场景预设；②每条支持复制 curl/Node/fetch 片段（当前仅复制单行示例）；③补 Cache-Control/HSTS/CSP 后提供"安全响应头基线"清单。
-
-### IT-N107 MIME 类型速查表："数据表"与"导出明细 CSV"实际是搜索历史，不是 MIME 清单，首屏导出静默无反应（中，确认源码缺陷）
-- 问题：`#mime_typeTable` 由 `__mime_typeRender()` 用 `TBKit.history.list()` 渲染，列是"时间 / search / 结果（列表文本前 80 字）"；导出也导这张表。且 `init()` 在 `render` 被包装之前执行，首屏不会记录历史，此时点导出 `exportTable` 遇空表直接 `return false`，没有任何提示。
-- 证据：`tools/it/mime-type.html:169`（`#mime_typeTable` 位置）、`tools/it/mime-type.html:407-417`（历史行）、`tools/it/mime-type.html:473-475`（导出该表）、`tools/it/mime-type.html:369`（`init()` 早于 480-483 的包装）
-- 复现：打开页面不做任何操作 → 点"导出明细 CSV"：无文件、无 toast（期望导出当前 MIME 清单）；先搜索 `json` 再点"数据表" → 表格只有"时间 / search / 结果"三列，结果列是把整段列表压平后截取前 80 字（形如 `json application/json 复制 …`），不是结构化的"扩展名｜MIME"两列（期望是完整 MIME 数据表）。
-- 影响：导出内容语义错误且首屏像坏按钮；用户拿到的 CSV 无法当 MIME 映射使用。
-- 方案：`数据表` 直接渲染 `MIME`（扩展名/MIME/分类），导出该表；搜索历史可另设"历史"页签（当前历史页签已存在）；空表导出给 toast。
-
-### IT-N108 MIME 类型速查表：搜索词不 trim，前导空格导致 0 条（低，确认源码缺陷）
-- 问题：`const q = …value.toLowerCase()` 未 `trim()`，过滤用 `m.ext.includes(q) || m.mime.toLowerCase().includes(q)`；粘贴时常见的行首/行尾空格会让结果全空。
-- 证据：`tools/it/mime-type.html:354-357`
-- 复现：搜索框输入 `" json"`（前导空格）→ 实际"共 0 条"（期望与 `json` 相同，命中 `.json`/`application/json`）。
-- 影响：复制粘贴搜索词时误判"没有该类型"。
-- 方案：`q = value.trim().toLowerCase()`；补前导/尾随空格用例。
 
 ### IT-N109 MIME 类型速查表：个别映射过时/分类不当（低，确认源码缺陷）
 - 问题：`.exe` 给 `application/x-msdownload`（IANA 已注册 `application/vnd.microsoft.portable-executable`）；`.ai` 给 `application/postscript`（现代 Illustrator 文件实为 PDF 容器，常见为 `application/pdf` 或 `application/illustrator`）；`.m3u8` 归"视频"（实际是 HLS 播放列表 `application/vnd.apple.mpegurl`）。
@@ -378,57 +333,9 @@
 
 - 留存建议（mime-type）：①提供"反向查询"（输入 `application/json` → 推荐扩展名）；②数据表按分类分组并支持导出全量 CSV；③每条给 Nginx/Apache 的 `types` 配置片段一键复制；④补 `charset`/`nosniff` 配置示例。
 
-### IT-N110 Base32 编解码：解码不校验长度、填充数与残余位，损坏输入被静默还原为错误内容（中，确认源码缺陷）
-- 问题：`base32ToBytes()` 只校验字符是否在字母表内，去掉所有尾部 `=` 后不检查合法长度（mod 8 只能为 0/2/4/5/7）、不检查 `=` 的个数、也不检查最后一个字符的低位（残余位）是否全 0，剩余位直接丢弃。
-- 证据：`tools/it/base32-encode.html:271-284`（272 行剥填充、无长度/残余位校验）
-- 复现（Node 复算页内函数）：`MZXW6YQ` 与 `MZXW6YR` → 实际都解为 `foob`（`R` 的末 3 位为 001，应报非法/非规范）；`ABC`（长度 3 非法）→ 实际解出 1 字节 `0x00`；`A`（长度 1 非法）→ 实际空串且无报错；`ME=======`（7 个等号，合法应为 6 个）→ 实际解出 `a`。
-- 影响：截断/篡改/错误填充的 Base32 被当成合法数据，输出看似正常但语义错误（用于 OTP/DNS/配置时尤其危险）。
-- 方案：剥填充前先记录 `=` 数量并按长度校验（2→6 个、4→4 个、5→3 个、7→1 个、0→0 个）；解码后校验残余位必须为 0；非法长度/残余位抛"非规范 Base32"；补上述四组用例。
-
-### IT-N111 Base32 编解码：历史、趋势图、导出全为空壳（读取 textarea 的 textContent 恒为空）（中，确认源码缺陷）
-- 问题：`__base32_encodeResText()` 读 `#output` 的 `textContent`，而结果写入的是 `.value`，`textContent` 永远为空 → `__base32_encodeExtras()` 直接 return，`history.record` 从不执行；导出目标是这张永远空的历史表，`exportTable` 返回 false 且无提示。解码操作也未包装 `decode32`，同样不入历史。
-- 证据：`tools/it/base32-encode.html:173`（空的 `<textarea id="output">`）、`tools/it/base32-encode.html:342-345`、`tools/it/base32-encode.html:421-423`、`tools/it/base32-encode.html:428-433`（只包装 `encode32`）
-- 复现：编码 `Hello` → 输出 `JBSWY3DP`；切"历史"页签无记录；点"导出明细 CSV"无文件无提示（期望一行记录并可导出）。
-- 影响：三块留存/导出功能全部失效，且解码历史永远缺失。
-- 方案：改读 `.value`；同时包装 `decode32` 并把"方向（编码/解码）"作为记录字段；补编码/解码各一条历史用例。
-
-### IT-N112 Base32 编解码："预设"页签为空白（函数体是空的）（低，确认源码缺陷）
-- 问题：页签栏渲染了"预设"（`data-pane="pre"`），宿主 `#base32_encodePresets` 也存在，但 `__base32_encodePresets()` 只有 `typeof TBKit` 判断，没有任何预设数据。
-- 证据：`tools/it/base32-encode.html:141`（预设页签）、`tools/it/base32-encode.html:425-427`（空实现）、`tools/it/base32-encode.html:159`（宿主 div）
-- 复现：点"预设"页签 → 面板空白（期望至少"Hello/中文/二进制字节"等样例，或移除该页签）。
-- 影响：空页签像功能未完成。
-- 方案：补 2–3 条预设（如 `Hello`、`中文测试`、`noPad` 示例），或删掉该页签。
-
 - 留存建议（base32-encode）：①补 Base32hex / Crockford / z-base-32 的字母表对照与切换（页面已提"不可混用"）；②结果区显示字符数/填充数（当前无任何统计）；③提供编码→解码一键往返校验与非法样例提示。
 
-### IT-N113 IPv6 ULA 生成器：预设"生成 50 个"被静默截断为 20，与自身公式"1 到 20"矛盾（中，确认源码缺陷）
-- 问题：`calcTool()` 把数量夹到 `Math.min(Math.max(...,1),20)`，而预设里写了"生成 50 个"（`values:{cnt:50}`）；点击后只生成 20 条，按钮标签与实际结果不一致，且无任何提示。
-- 证据：`tools/it/ipv6-ula.html:216`（上限 20）、`tools/it/ipv6-ula.html:334`（预设 50）、`tools/it/ipv6-ula.html:106`（公式自称"1 到 20"）
-- 复现：点"生成 50 个" → 结果标题"生成的 IPv6 ULA（20 个）"、正文 20 行（期望 50 行，或预设改为"生成 20 个"并提示上限）。
-- 影响：预设名实不符，用户以为批量生成能力有 50 条，实际少 60%。
-- 方案：删除 50 条预设或把上限提高到 50（并同步公式/说明）；若保留 20 上限，夹取时 toast 说明"最多 20 个"。
-
-### IT-N114 IPv6 ULA 生成器：用 `Math.random` 生成 40 位全局 ID，与引据表"RFC 4086 随机源"不符（中，确认源码缺陷）
-- 问题：`h()` 逐位调用 `Math.floor(Math.random()*16)`，不是密码学安全随机源；引据表明确写"40-bit random global ID from a RFC 4086 source"。RFC 4193 §3.2.2 要求使用 RFC 4086 质量的随机数，`Math.random` 可预测且熵有限。
-- 证据：`tools/it/ipv6-ula.html:217`（`Math.random`）、`tools/it/ipv6-ula.html:147`（RFC 4086 引据）
-- 复现：同一会话连续刷新/生成，序列由浏览器 PRNG 决定、可由种子推断；无法证明满足 RFC 4086（期望 `crypto.getRandomValues`）。
-- 影响：工具宣称符合 RFC 4193 的随机性建议，实际不满足；多站点互聯时冲突/可预测风险高于标称。
-- 方案：改用 `crypto.getRandomValues(new Uint8Array(5))` 生成 40 位（5 字节）并格式化为 10 个 hex；或在文案中降级说明"演示用伪随机"。
-
-### IT-N115 IPv6 ULA 生成器：说明文字把 fd 写成 9 位二进制，deep-dive 又称"48 位全局 ID"（低，确认源码缺陷）
-- 问题：结果下方写"第 8 位固定为 fd，即二进制 `1111 1101 0` + 全局 ID 40 位 + 子网 16 位"：`fd` 是 8 位 `1111 1101`，多写一个 `0` 变成 9 位；deep-dive 又写"48 位全局 ID 随机"（实际 40 位，且 /48 前缀 = 8+40）。
-- 证据：`tools/it/ipv6-ula.html:227`（`1111 1101 0`）、`tools/it/ipv6-ula.html:369`（"48 位全局 ID"）、`tools/it/ipv6-ula.html:177`（正确的 8+40+16+64）
-- 复现：阅读结果说明 → "1111 1101 0 + 40 位"合计 49 位，与"共 128 位"及 40 位全局 ID 矛盾。
-- 影响：教学性文案自相矛盾，用户按位理解前缀结构时会被误导。
-- 方案：改为"`fd` = 二进制 `1111 1101`（8 位），其中 L 位为 1"；deep-dive 改"40 位全局 ID"。
-
-### IT-N116 IPv6 ULA 生成器：结果区没有复制按钮，前缀只能手工选中（低，确认源码缺陷）
-- 问题：工具栏只有"计算 / 导出明细 CSV / 重置"，结果 `<pre>` 无"复制前缀"或"复制全部"按钮；导出的 CSV 是历史表而非本次前缀清单。
-- 证据：`tools/it/ipv6-ula.html:122-125`（工具栏）、`tools/it/ipv6-ula.html:224`（结果拼接）、`tools/it/ipv6-ula.html:326-327`（导出历史表）
-- 复现：生成 3 条后想把 `/48` 前缀粘到路由器配置 → 只能手动拖选 `<pre>` 文本；点"导出明细 CSV"得到的是历史记录（时间/数量/结果摘要），不含分行前缀。
-- 影响：核心产物（前缀）不可一键取用，移动端尤其难操作。
-- 方案：结果区加"复制全部/逐行复制"按钮（`ToolBox.copyText`）；导出改为本次生成的 `前缀,示例地址` 两列 CSV。
-
+- `ipv6-ula`：无剩余缺陷（IT-N113 上限提到 50 并同步公式/预设、IT-N114 改 `crypto.getRandomValues` 且无安全源时显式告警、IT-N115 fd=8 位/40 位全局 ID/16 位子网三源同步、IT-N116 加复制全部按钮且导出改为本次前缀 CSV，四项均已销账，第195批；verify 5 条强锁 + JSDOM 真机 28/28、旧源码 18/28）。
 - 留存建议（ipv6-ula）：①增加"固定前缀 + 子网 ID 位数"可配置（当前子网恒为 0）；②支持生成多子网（`/48` → 多个 `/64`）与 JSON/CSV 清单导出；③提供"复制 curl/配置片段"（如 `ip -6 addr add`）。
 
 - 备注：`tools/it/mime-type.html:368` 与 `tools/it/base32-encode.html:309` 的复制按钮仍依赖 Chrome 专有全局 `event`（Firefox/程序化调用会失效，与 IT-N31 同模式），不重复计数、未单列。
@@ -437,20 +344,6 @@
 ## 2026-11-04 续查（并行批 P）
 
 范围：只读实读 8 页（`tools/it/base58-encode.html`、`base85-encode.html`、`barcode-code128.html`、`barcode-upc.html`、`bluetooth-version.html`、`usb-version.html`、`ascii-table.html`、`caesar-cipher.html`），编号接续 IT-N117。所有数值结论均用 `node -e` 按页面源码逻辑（或 `/js/barcode-lib.js`）复算；未开浏览器、未跑构建/门禁、未做 EN/繁体/移动端验证。上一轮已记入 IT-N110/111/112 的 Base32 同型问题不作为本轮重复项。
-
-### IT-N117 Base58 编解码：历史、数据表、趋势图、导出全为空壳（读 textarea 的 textContent 恒为空）（中，确认源码缺陷）
-- 问题：`__base58_encodeResText()` 读 `#output` 的 `textContent`，而结果写的是 `.value`；空的 `<textarea>` 其 `textContent` 永远是空串 → `__base58_encodeExtras()` 在 `if(!res) return;` 处直接返回，`TBKit.history.record` 从不执行，`__base58_encodeRender()` 也从不运行。
-- 证据：`tools/it/base58-encode.html:177`（空的 `<textarea id="output" readonly>`）、`tools/it/base58-encode.html:364-367`（读 `r.textContent`）、`tools/it/base58-encode.html:421-422`（`if(!res) return`）、`tools/it/base58-encode.html:440-445`（record/Render/Export 全依赖上一步）
-- 复现（静态可判）：编码 `Hello` → 输出 `9Ajdvzr`；切"数据表"页签无任何行；点"导出明细 CSV"无文件、无提示（期望至少一行"输入/字母表/结果"并可导出）。
-- 影响：四个留存相关页签（图表/数据表/预设/历史）中的图表与数据表恒空，导出功能等于失效；解码 `dec()` 也未包装，历史永远缺解码记录。
-- 方案：改读 `.value`；同时包装 `dec()` 并把 `variant` 与"方向"写入记录；补编码/解码两条历史用例。
-
-### IT-N118 Base58 编解码：deep-dive 示例输出错误（`Hello World` 实际为 `JxF12TrwUP45BMd`）（中，确认源码缺陷）
-- 问题：示例声称 `Hello World` → `2NEwd2UZ`，与页面自身算法结果不符；且 `2NEwd2UZ` 长度 8 也短于 11 字节原文的合理编码长度（11 字节 → 约 16 个 Base58 字符）。
-- 证据：`tools/it/base58-encode.html:212`（示例）；算符见 `tools/it/base58-encode.html:262-283`
-- 复现（Node 复算页内 `encodeBase58`）：`Hello World`（11 字节）→ 实际 `JxF12TrwUP45BMd`；`Hello`（5 字节）→ `9Ajdvzr`。期望示例与真实输出一致。
-- 影响：用户照示例核对会以为工具算错，降低可信度；示例是本页唯一的"可验证样例"。
-- 方案：把示例改为 `Hello World → JxF12TrwUP45BMd`（Bitcoin 字母表），并注明字母表；同时给 Ripple/Flickr 各一条真实样例。
 
 ### IT-N119 Base58 编解码：只支持文本（UTF-8），与 meta"输入文本或字节"不符；二进制解码静默变 U+FFFD（低，确认源码缺陷）
 - 问题：页面输入是单个 `<textarea>`，编码固定 `new TextEncoder().encode(text)`、解码固定 `new TextDecoder().decode(bytes)`；没有字节/十六进制输入，也没有字节输出。非 UTF-8 的 Base58 载荷（如比特币原始公钥）解码后会被替换为 `U+FFFD`，且无任何提示。
@@ -1443,45 +1336,10 @@
 - 方案：删除两处宣称；若要做实，最小增量是"textarea 按行逐条输出 32 位哈希"（真实批量，成本低）。
 **留存建议（tools/it/md5.html）**：文案删除即可，二选一。
 
-### IT-N241 n 无上限且 cdf 为 O(n²)，大 n 会把页面拖到无响应（中，确认缺陷）
-- 问题：`n` 只有 `min=1`、无 `max`；`cdf()` 外层跑 `0..k`，内层 `pmf()` 又用循环算 O(k) 的对数组合，整体 O(n²)。n、k 还用 `parseInt` 静默截断小数。
-- 证据：`tools/it/binomial-distribution.html:176`（`min="1"` 无 max）、`:292-296`（`cdf`）、`:279-286`（`logComb`/`pmf`）、`:299-301`（`parseInt`）。
-- 复现：node 同算法实测（k=n/2,p=0.5）：n=5000 → 28ms；n=20000 → 398ms；按 O(n²) 外推 n=1e5 ≈ 10s、n=1e6 ≈ 千秒级。另输入 n=10.5 → 按 10 计算，页面无提示。
-- 影响：`tools/it/binomial-distribution.html`
-- 方案：加 `max`（如 10000）并在超限时提示改用正态/泊松近似；`cdf` 改递推 `P(i+1)=P(i)·(n−i)/(i+1)·p/(1−p)`（O(n) 且数值更稳）；n/k 用 `Number.isInteger` 校验。
-**留存建议（tools/it/binomial-distribution.html）**：递推改写一行代码就能从 O(n²) 降到 O(n)，性价比最高。
+- `binomial-distribution`：无剩余缺陷（IT-N241 n 上限 10000 + `Number.isInteger` 校验 + cdf 对数域递推 O(n)、IT-N242 大组合数对数形式 e^{ln C} + 注记、IT-N243 引据表阈值统一 ≥5，三条均已销账，第196批；verify 3 条强锁 + JSDOM 真机 20/20、旧源码 11/20，cdf 递推 9 组独立复算 maxErr 3.4e-12）。
+- 留存建议（tools/it/binomial-distribution.html）：正态近似可补连续性校正 `z=(k−np±0.5)/√(np(1−p))` 说明。
 
-### IT-N242 分步计算用 `exp(logComb)` 还原组合数，n≳1030 时显示"未定义"（低，确认缺陷）
-- 问题：步骤 1/3 用 `Math.round(Math.exp(logComb(n,k)))` 直接打印 C(n,k)，`exp` 溢出为 Infinity，`fmt` 对非有限值返回"未定义"，而同一页 PMF 仍正常输出，容易被误读成算错。
-- 证据：`tools/it/binomial-distribution.html:325`、`:327`（两处 `Math.exp(logComb(...))`）、`:272-277`（`fmt` 的"未定义"分支）。
-- 复现：node 实算：n=1000,k=500 → logComb=689.47、exp=2.70e299（可显示）；n=1030,k=515 → logComb=710.25、exp=Infinity → 步骤显示 `C(1030, 515) = 未定义`，而 `pmf(1030,515,0.5)=2.485513e-2` 正常；临界点约在 logComb≈709.78（n≈1030）。
-- 影响：`tools/it/binomial-distribution.html`
-- 方案：输出对数形式（如 `e^{710.25}` / `10^{308.5}`）并加注"组合数超出双精度范围，PMF 用对数计算"；或只在 logComb<700 时还原数值。
-**留存建议（tools/it/binomial-distribution.html）**：低优先，但会让人误判结果。
-
-### IT-N243 同一页对正态近似阈值写 "≥5" 与 ">5"，边界自相矛盾（低，确认缺陷）
-- 问题：公式清单写"np 与 n(1−p) 均 ≥5"，下方 info-box 写"np≥5 且 n(1−p)≥5"，而引据表（中英）都写 "> 5"，边界情形（np=5）到底可否近似没有统一口径。
-- 证据：`tools/it/binomial-distribution.html:171`（`≥5`）、`:192`（`≥5`）、`:254`（`np, n(1-p) > 5`）、`:225`（FAQ 也写 `≥5`）。
-- 复现：取 np=5：n=10,p=0.5 → np=5、n(1−p)=5。按 `:192`/`:171`/`:225` 可用正态近似，按 `:254` 不可用，同页三种说法互相打脸。
-- 影响：`tools/it/binomial-distribution.html`
-- 方案：统一为"≥5（经验阈值，部分教材要求 ≥10）"，并注明连续性校正 `z=(k−np±0.5)/√(np(1−p))`。
-**留存建议（tools/it/binomial-distribution.html）**：一处口径统一，成本 4 个字符。
-
-### IT-N244 Go 示例用 `--` 当注释，复制进 .go 文件即编译失败（中，确认缺陷）
-- 问题：多条可复制示例用 `--` 作行内注释，Go 只有 `//` 与 `/* */`；`--` 在 Go 里是自减运算符，出现在语句位置属语法错误。示例块自带"复制"按钮，用户会直接粘贴。
-- 证据：`tools/it/go-cheatsheet.html:341`、`:365`、`:397`、`:429`、`:437`（同页 5 处）；其中 `:341` 同一段示例上一行刚用了合法注释 `// LIFO 顺序`，下一行却写 `-- 先输出`，自相矛盾。
-- 复现：把 `:437` 示例存为 main.go（`x := 1; p := &x; *p = 2; fmt.Println(x)  -- 2`）→ `go build` 报 `syntax error: unexpected --`；`:365` 的 `switch {  -- 无表达式` 同理（`{` 后紧跟 `--` 非法）。
-- 影响：`tools/it/go-cheatsheet.html`
-- 方案：全部替换为 `//`（中文说明可保留），并检查是否还有把中文破折号排成 `--` 的残留。
-**留存建议（tools/it/go-cheatsheet.html）**：批量替换 5 处即可，别留"看起来像注释"的坑。
-
-### IT-N245 示例中的 `...` 占位与未使用变量使片段不可编译（低，确认缺陷）
-- 问题：多个示例直接写 `...` 省略（`if x > 0 { ... }`、`case int: ...`、`rw.RLock(); ...; rw.RUnlock()`），Go 无此占位语法；另 `for k, v := range m {}`、`for i, r := range s {}` 因变量声明未使用会报 "declared and not used"。
-- 证据：`tools/it/go-cheatsheet.html:349`、`:365`、`:389`（`for k, v := range m {}`）、`:397`（`for i, r := range s {}`）、`:429`、`:461`、`:485`（`rw.RLock(); ...; rw.RUnlock()`）。
-- 复现：静态对读 Go 语法 + 编译规则：`...` 单独成句为语法错误；`for i, r := range s {}` 在 `go build` 下报 i、r declared and not used（空 body 不会使用它们）。
-- 影响：`tools/it/go-cheatsheet.html`
-- 方案：省略处补最小可编译语句（`_ = i`、`_ = r`、`fmt.Println(x)`），或在示例块头加"片段示意，不可直接编译"并弱化复制暗示。
-**留存建议（tools/it/go-cheatsheet.html）**：与 N244 同批改，统一成"可编译片段"标准。
+- `go-cheatsheet`：无剩余缺陷（IT-N244 6 处非法 `--` 注释全改 `//`、IT-N245 8 处裸 `...` 占位与 2 处未使用变量空循环体改为可编译片段，两条均已销账，第197批；verify 2 条探针强锁 + JSDOM 真机 20/20、旧源码 6/20，30 条 example 静态 Go 规则全清、合法 `...T`/`[...]T`/`./...` 保留）。
 
 ### 承诺 vs 实际（R 批专项）
 - `tools/it/rabbit.html:165`、`:157`：称 eSTREAM Profile 1 获胜算法、128 位密钥 + 可选 64 位 IV，但 `:333` 进位实现错误（N225）、`:312` 密钥装入与 `:154` 说明不符（N226）→ 输出不是标准 Rabbit，无法与其它实现互通；页面未提供任何测试向量自检。
@@ -1503,197 +1361,25 @@
 - 未覆盖说明：只审计主流程、参数边界与文档口径，未逐条穷举 MySQL/Go 语法（仅抽检 GRANT、`INT[(M)]`/`ZEROFILL`、`VALUES()`、`--`、`...`）；Rabbit 未做官方向量比对（缺 RFC 4503 期望值，只证明了"进位/密钥装入偏离本页说明"）；sms-qr 未实际扫码；binomial 参数域抽样到 n=20000；rest-api/mysql 内容准确性对照 RFC 9110/9457 与 MySQL 8.0 手册，非逐条穷举。
 - 未做验证：未开浏览器、未构建、未跑门禁、未 git 写；全部结论为源码静态分析 + `node` 内存复算（临时脚本在 `/tmp`，未落仓库），未验证英文态 `?lang=en-US`/繁体/移动端。
 
-### IT-N246 历史/数据表/图表与 CSV 全恒空：结果写进 textarea 的 `value`，历史读 `textContent`（中，确认缺陷）
-- 问题：`convert()` 把结果赋给 `#output`（textarea）的 `.value`，而 `__binary_to_textResText()` 读同一元素的 `.textContent`。textarea 的 `textContent` 是它的初始子节点（此处为空），不随 `.value` 变化 → `res` 恒 `''`，`__binary_to_textExtras()` 在 `:363` 直接 return，TBKit 的记录/渲染整条链都不触发。
-- 证据：`tools/it/binary-to-text.html:164`（`<textarea id="output" …></textarea>`，无初始文本）、`:265`（写 `.value`）、`:305-311`（读 `textContent`，`:310` 还会把含 `Error` 的结果判空）、`:362-363`（`if(!res) return`）、`:384-386`（CSV 导的 `#binary_to_textTable` 只在 `:382` 的 Render 里填充，该 Render 永不执行）、`:134-138`（四个页签）。
-- 复现：输入 `01001000 01101001` → `#output.value === "Hi"`，但 `#output.textContent === ""`；`__binary_to_textExtras()` 立即返回 → 全程不会走到 `:381` 的 `TBKit.history.record(...)`，历史条目恒为 0，"数据表/图表/历史"三个页签恒空，导出的 CSV 只有表头。
-- 影响：`tools/it/binary-to-text.html`（"历史/趋势/导出"三个卖点全部失效）
-- 方案：`__binary_to_textResText()` 改为 `var t=(r.value||r.textContent||'')…`（textarea 用 `.value`，div 型结果仍走 `textContent`），并删除 `:310` 那条以 `/错误|Error/` 判空的启发式（它会把正常文本里的 "Error" 判成无效结果）。
-**留存建议（tools/it/binary-to-text.html）**：与 IT-N140 同型（第 4 例）；建议全站统一 `__*ResText()` 的取值口径，别再逐个补。
+- `binary-to-text`：无剩余缺陷（IT-N246 结果读取统一走 textarea.value + 删除以错误词判空的启发式，历史/表格/图表/CSV 链恢复；IT-N247 严格 UTF-8 `fatal:true,ignoreBOM:true` + 非法字节计数/Latin-1 对照/0x 字节列表；IT-N248 FAQ 与公式三源口径纠正，三条均已销账，第198批；verify 3 条探针强锁 + JSDOM 真机 21/21、旧源码 6/21，非法字节/BOM/错误词评分/三源文案全变红）。
 
-### IT-N247 非法 UTF-8 被静默换成 U+FFFD、首部 BOM 被吞，且无字节视图兜底（中，确认缺陷）
-- 问题：`new TextDecoder()` 默认 `fatal:false`（解不出的字节静默变 `�`）且 `ignoreBOM:false`（开头 `EF BB BF` 会被当 BOM 剥掉），页面既无"含非法字节"提示，也没有 Latin-1/hex 备选出口。
-- 证据：`tools/it/binary-to-text.html:265`、`:222`（引据表只写 "then UTF-8 decode"）、`:203`（FAQ 只讨论分隔符与长度）。
-- 复现：node 同口径——`new TextDecoder().decode(new Uint8Array([0xFF,0x41]))` → `"\u{FFFD}A"`；`decode([0xEF,0xBB,0xBF,0x41])` → `"A"`（BOM 3 字节被无声丢弃）；`decode([0xC3])` → `"\u{FFFD}"`。即 `11111111 01000001` 只得到 `�A`，`11101111 10111011 10111111 01000001` 得到 `A`。
-- 影响：`tools/it/binary-to-text.html`（`:197` 自述用于"协议负载还原/判断是否已加密"，此处恰恰分不清"真乱码"与"字节非法"）
-- 方案：`new TextDecoder('utf-8',{fatal:true,ignoreBOM:true})` 包 try/catch，失败时提示"含 N 个非法 UTF-8 字节"并给出 Latin-1 解码结果作对照；再加一个 `0x..` 字节列表输出。
-**留存建议（tools/it/binary-to-text.html）**：与 IT-N263（hex-encode）同型，两页应一起改。
+- `chinese-name-generator`：无剩余缺陷（IT-N249 拆 maleChars 双字词条建/志/华 + generateOneName 复姓避让、逐字符拼接、字数兜底断言，2字名/3字名字数精确；IT-N250 getCharPool 出口 Set 去重，薇/素/毅不再放大取样；IT-N251 取消收藏 toast 补 toast.fav_removed key + 中文兜底，不再空提示，三条均已销账，第199批；verify 3 条探针强锁 + 1 条结构例改造 + JSDOM 真机 18/18、旧源码 3/18，verify 用例级旧态 1551/1554 三锁全红）。
 
-### IT-N248 FAQ 两处说明与实现相反（低，确认缺陷）
-- 问题：`:203` 写"若原文本身含空格字符，剔除后就无法还原空格"——输入是 0/1 位串，空格只是排版分隔符，原文空格由字节 `00100000` 还原，不存在丢失；同句"末尾不足的位会被丢弃或报错"——实际是硬报错并中止，既无"丢弃"也无部分输出。
-- 证据：`tools/it/binary-to-text.html:203` vs `:254`（无条件剥离 `[\s:,;_\-.\n\r\t]`）、`:259-261`（非 8 倍数 → `alert` 后 `return`，输出框保持空）。
-- 复现：`01000001 00100000 01000010` → 输出 `A B`（空格完整还原，与"无法还原"相反）；`010000011` → alert "二进制长度必须为 8 的倍数，当前长度: 9"，无任何结果（不存在"丢弃"分支）。
-- 影响：`tools/it/binary-to-text.html`
-- 方案：改写为"分隔符仅用于排版，不影响正文；长度非 8 倍数时直接报错，建议尾部补 0 或去掉多余位"。
-**留存建议（tools/it/binary-to-text.html）**：文案小改，成本一行。
+- `regex`：IT-N253 分享链接 base64url 对称修复（写入 +→- /→/ 去尾=，读取逆变换并兼容旧标准 base64 的空格化 +、补 padding，catch 加 console.warn），中文/换行 payload 往返正确，第200批销账；verify 无用例（页面依赖原生 location.hash + btoa/atob，harness stub DOM 不适用），由 JSDOM 真机 12/12 vs 旧5/12 覆盖。IT-N252（ReDoS 超时 + flags 双绑定）已于第201批整条销账。 IT-N254（替换页尊重用户 flags，非 g 只替首个且 count 按命中数、copyMatches global 跟随 flags 防 1001 条重复）第202批销账；真机 14/14 vs 旧 6/14（8 项变红）。
 
-### IT-N249 「2 字名/3 字名」被用字池里的双字词条破坏：选 2 字会得到 3 字（中，确认缺陷）
-- 问题：`maleChars` 混入 3 个双字词条（`建国`/`志强`/`建华`），而 `generateOneName()` 把池中**每一项**当作一个"字"拼接——`givenLen = max(nameLen − surname.length, 1)` 只控制拼接次数，不控制字符数。
-- 证据：`tools/it/chinese-name-generator.html:513`（三个双字项）、`:807-813`（`givenLen` 与 `given += pick(pool)`）。
-- 复现：node 统计 `maleChars` 共 100 项、其中 3 项长度为 2 → 男性"2字名"（姓氏 1 字 → `givenLen=1`）有 3% 概率抽到双字词条，得到 `李建国`（3 字）；选"3字名"时若又抽到复姓（`surnames` 含 20 个双字姓，`:506-507`）则 `givenLen=max(3-2,1)=1`，仍可拼出 `欧阳建国`（4 字）。
-- 影响：`tools/it/chinese-name-generator.html`
-- 方案：把 `建国/志强/建华` 拆成单字（建、国、志、强、华）或移除；`givenLen` 改按"还差几个字符"循环并在拼满时停；末尾加 `fullName.length===nameLen` 断言兜底。
-**留存建议（tools/it/chinese-name-generator.html）**：数据拆分一行即可，属正确性修复，优先于下面两条。
+- `device-info`：IT-N255 item() 加第4参 raw（仅内部可信 badge 串跳过转义），在线状态/网络状态两处 status-badge 不再显示为裸标签，第203批销账；普通/外部值仍走 escapeHtml 不回退安全。verify 无用例（依赖 navigator/screen 原生对象），真机 8/8 vs 旧 1/8。 IT-N256（__v 从恒定核心数改视口面积，趋势/对比有真实变化，新增「视口」字段+字典英译）、IT-N257（复制全部改为逐条 label: value 换行、UA 单独成块）第204批销账；真机 9/9 vs 旧 2/9。
 
-### IT-N250 用字池有 15 组重复条目，`pick()` 均匀取下标导致某些字被放大取样（低，确认缺陷）
-- 问题：两个池都按"每项一个下标"随机取样，重复条目等于给该字加权；重复多为手录冗余。
-- 证据：`tools/it/chinese-name-generator.html:525-536`（`femaleChars`：`薇`×3、`素`×3，另 13 字各 ×2）、`:511-522`（`maleChars`：`毅`×3、`荣`×2）、`:783-792`（`pool = …slice()` / `concat()` 均不去重）。
-- 复现：node 统计 → female `[["燕",2],["琳",2],["慧",2],["兰",2],["菊",2],["薇",3],["颖",2],["露",2],["悦",2],["洁",2],["佳",2],["彤",2],["珊",2],["珠",2],["素",3]]`；male `[["毅",3],["荣",2]]`。即"薇/素"的出现率是"芳"的 3 倍（3% vs 1%）。
-- 影响：`tools/it/chinese-name-generator.html`（分布失衡，"随机"名扎堆在同几个字）
-- 方案：`getCharPool()` 末尾 `pool = Array.from(new Set(pool))`，或按字义权重显式加权（有意的加权需注释说明）。
-**留存建议（tools/it/chinese-name-generator.html）**：一行去重，顺手改。
+- `qrcode`：IT-N258 中文/emoji UTF-8 编码（generate() 切 qrcode.stringToBytes 到 UTF-8、__qrBytes 按 UTF-8 计字节含 emoji 代理对）源码已在 HEAD（其他 Agent 修复），清单漏销账，第205批补证据销账；真机 13/13（库编码对照标准 UTF-8、__qrBytes 一致、中文/ASCII 矩阵不同、缺陷态对照切换项变红），verify 无用例。N259（宣称识别但无解码）等仍留清单。
 
-### IT-N251 收藏/取消收藏的 toast 调用无参，文案会显示 `undefined`（低，待验证）
-- 问题：`ToolBox.showToast(i18nText())` 未传 key/fallback；`i18nText` 在无 key 时 `I18n.t(undefined, undefined)`，最终 `return key`（即 `undefined`）。
-- 证据：`tools/it/chinese-name-generator.html:768`；`js/common.js:1510-1521`。
-- 复现：静态推演——`i18nText()` → `undefined` → toast 文本为 `"undefined"`；`I18n.t` 若抛错也会被 `js/common.js:1520` 的 catch 吞掉，结果同为 `undefined`。未真机确认 toast 渲染（本批不开浏览器）。
-- 影响：`tools/it/chinese-name-generator.html`
-- 方案：`i18nText('toast.fav_removed','已取消收藏')` / `i18nText('toast.fav_added','已加入收藏 ❤️')`。
-**留存建议（tools/it/chinese-name-generator.html）**：顺手补 key，与 IT-N211 同型。
+- `qrcode`：IT-N259 SEO 宣称口径（title/h1/keywords/meta/JSON-LD/intro 全部只宣称「生成」无「识别/解析/上传图片解析」，无 file input/解码入口）源码已在 HEAD（其他 Agent 修复），清单漏销账，第206批补证据销账；真机 14/14（缺陷态注入旧宣称 11/14），verify 无用例。N260（容量图只到v10）等仍留清单。
 
-### IT-N252 页面自带 ReDoS 章节却无超时保护：`(a+)+$` + 30 位输入卡 6.9 秒，且每次按键重跑两遍（高，确认缺陷）
-- 问题：`testRegex()` 在 UI 线程同步 `regex.exec`，无 Worker、无时长上限；`:517` 的 `matches.length > 1000` 只限制**匹配个数**，对单次灾难性回溯完全无效。pattern/textarea 的 `input` 事件以及 `#flags` 的 `input` 监听都会同时跑 `testRegex()+doReplace()`（`:465-480` + 控件上的 `oninput`），一次按键两次全量匹配。
-- 证据：`tools/it/regex.html:490-518`（`:509` 构造、`:514` `while((match=regex.exec(text))` 在 `:491` 的 `t0` 之后同步执行）、`:517`（1000 条上限）、`:465-480`（重复绑定）、`:345`（FAQ 自称"用户可控的正则应设超时保护"）、`:187`。
-- 复现：node 同引擎 `^(a+)+$` 对 `"a"*n+"X"`：n=24 → 106ms；n=26 → 2.5s；n=30 → 6.9s（每 +1 位约 ×4，n=34 即分钟级）。页面上粘贴 30 个 a + X 后标签页整页卡死，期间无法输入。
-- 影响：`tools/it/regex.html`（一个"正则调试器"在最需要它的时候把自己锁死）
-- 方案：匹配移到 Web Worker + 200ms 超时（超时 `terminate` 并提示"疑似灾难性回溯"）；`exec` 前先做"嵌套量词/超长输入"预检；输入事件统一去抖 300ms 并合并到一次调用。
-**留存建议（tools/it/regex.html）**：本页最高优先，属"自述风险却不设防"。
+- `qrcode`：IT-N260 容量表 QR_BYTE_CAP 补到 v40（用本页 js/qrcode.js 二分实测各版字节容量，与库实际编码口径一致，v40 L=2953 与表注吻合），超限标 41=超出v40 不再错误压成10；第207批销账；真机 19/19 vs 旧 4/15项红（300/900字节各级别版本与库实际生成一致），verify 无用例。后续条目仍留清单。
 
-### IT-N253 分享链接的 base64 含 `+`，`URLSearchParams` 把 `+` 解成空格 → 链接静默失效（中，确认缺陷）
-- 问题：`btoa` 产出标准 base64（字母表含 `+` `/` `=`），分享 URL 拼成 `#regex=` + 原样 base64；`restoreSharedRegex()` 用 `new URLSearchParams(hash)` 取值，而 URLSearchParams 按 application/x-www-form-urlencoded 把 `+` 当作空格 → base64 被破坏，`atob` 抛 `URI malformed` 后被空 `catch` 吞掉。
-- 证据：`tools/it/regex.html:654-656`（拼 `#regex=`）、`:660`（`URLSearchParams`）、`:663`（`atob`）、`:667-669`（空 catch，"无效片段仅忽略"）。
-- 复现：node 复算同 payload `{p:"\\d+",f:"g",t:"联系我 张三 13800138000"}` → base64 中段含 `+`；`new URLSearchParams("regex="+b64).get("regex")` ≠ 原串，`Buffer.from(...,'base64')` 再 `decodeURIComponent` → `URI malformed`。页面表现：打开他人分享的链接后三个输入框仍是默认值，且无任何提示。
-- 影响：`tools/it/regex.html`（"复制分享链接"整个功能对含中文/换行的用例失效）
-- 方案：改用 base64url（`btoa(...).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')`），读取时逆变换；或 `encodeURIComponent(btoa(...))` 再拼并 `decodeURIComponent` 取回；catch 里至少 `console.warn`。
-**留存建议（tools/it/regex.html）**：一个编码函数就能修，注意别只改一半（写入/读取必须对称）。
+- `hex-encode`：IT-N261 解码改为先剥分隔符、再全局 `replace(/0x/gi,'')`（每行/每字节 0x 的 hexdump 都能解，大小写 0X 兼容），编码侧勾选 prefix 时按字节加（`0x48 0x69`）；IT-N262 历史读取 F-N189 全站修复已覆盖（`#output` 是 textarea，现读 `r.value`），本批删掉 `__hex_encodeScore` 关键词判 0 启发式（恒 1，与 N246 同型，避免 "Error 404"/严格解码告警被误判无效）；IT-N263 改严格 UTF-8（`fatal:true,ignoreBOM:true`）+ 非法字节计数/Latin-1 对照/原始 hex 字节列表，`dec` 也包进 extras 并写「模式=编码/解码」，历史回放按方向选 `enc()`/`dec()`；第208批销账；真机 25/25 vs 旧 9/25（16 项红），verify 无用例（依赖 TextEncoder/TextDecoder 原生对象）。后续条目仍留清单。
 
-### IT-N254 替换页无视用户 flags，恒补 `g`：与"匹配"页口径不一致、替换数恒为全量（中，确认缺陷）
-- 问题：`doReplace()` 与 `copyMatches()` 都用 `flags.includes('g') ? flags : flags+'g'`，强制全局；而 `testRegex()` 严格按用户 flags（不勾 g 只取首个）。同一份 flags 下两页结论不同，"替换数"也永远等于全部匹配数。
-- 证据：`tools/it/regex.html:599`（doReplace）、`:633`（copyMatches）、`:513-522`（testRegex 尊重 flags）。
-- 复现：pattern=`\d`、flags 留空、文本 `a1b2` → 匹配页"共匹配 1 处"（只看首个），替换页"替换数: 2"、输出 `aXbX`；点"复制匹配"复制到 2 条。期望：三处都按 flags 走，或统一在 UI 标注"替换始终全局"。
-- 影响：`tools/it/regex.html`
-- 方案：替换改 `new RegExp(pattern, flags)`，不勾 g 时用 `String.prototype.replace` 的非全局语义（只替首个），并让 count 相应取首个；若刻意保留全局，则在替换页显式提示"忽略 g 设置，始终全量替换"。
-**留存建议（tools/it/regex.html）**：与 N252 同批改，改函数签名即可。
+- `xml-to-yaml`：IT-N264（textarea 初值塞深潜 CSS/被吞 `</body>`）与 IT-N265（数组套对象输出 `[object Object]`）源码已由其他 Agent 修好且在 HEAD，清单漏销账，本批补真机证据（初值 187 字符/10 行、无 CSS、深潜容器在 textarea 外、首屏干净 YAML；嵌套数组递归输出 `d: "1"` 无 `[object Object]`）；IT-N266 真修：属性正则补单引号 `(?:"([^"]*)"|'([^']*)')`、标签头 `>` 查找加 findGt 跳过引号内字符、以 @/# 开头的键过 `yKey()` 加双引号（YAML 1.2 保留指示符/注释，加引号不影响 XML 往返）；顺带修 indent 承诺（dumpYaml 加 unit 参数，root 传空前缀、每层递增 unit，2 空格→首层 2 空格，4 空格/tab 同样对齐）。同页 en JSON 更新两条中文键/英译并清理 N264 遗留的旧深潜示例键。第209批销账；真机 22/22 vs 旧 10/22（12 项红；N264/N265 共 5 项旧态已绿如实记录），verify 无用例。承诺 vs 实际段其余项仍留清单。
 
-### IT-N255 在线状态徽章被 `escapeHtml` 转义，页面直接显示 `<span class=…>` 源码（中，确认缺陷）
-- 问题：`item()` 对传入 value 一律 `escapeHtml`，而 `:349`/`:369` 传的是 badge 的 HTML 串。
-- 证据：`tools/it/device-info.html:301`（转义 `<`）、`:305`（`${escapeHtml(value)}`）、`:349`、`:369`；`:36-39` 的 `.status-badge` 样式因此永不生效。
-- 复现：静态必然——`item('在线状态','<span class="status-badge ok">在线</span>')` 渲染为文本 `&lt;span class="status-badge ok"&gt;在线&lt;/span&gt;`，用户看到一行裸标签；期望是绿色"在线"徽章。
-- 影响：`tools/it/device-info.html`（首屏最显眼的两处状态展示变成源码）
-- 方案：`item()` 增加第 4 参 `raw`（true 时跳过转义，仅用于内部可信串），或把 badge 拼在 `item()` 之外；绝不对外部值放开转义。
-**留存建议（tools/it/device-info.html）**：与 `:369` 一起改，两处同因。
-
-### IT-N256 快照只记 5 个字段，且"趋势/对比"用的是恒定的 CPU 核数（中，确认缺陷）
-- 问题：`__tbDevRec()` 只采 时间/`navigator.platform`/分辨率/语言/核心数 五项；图表与 diff 只读 `__v`（= `hardwareConcurrency`），同一台设备恒为常数 → 趋势是水平线、对比恒 `+0`，而真正会变的视口、DPR、在线状态、电池都没进快照。
-- 证据：`tools/it/device-info.html:601-605`（`__tbDevRec`）、`:541`（`pts.push(d.__v)`）、`:546`（`chart.line` "趋势"）、`:551-553`（`diffLast(['__v'])`）。
-- 复现：同一台机器连点 3 次"保存快照" → 三条记录 `__v` 完全相同：趋势图为直线，对比框显示"核心 0"；期望"对比"能反映实际变化（如视口尺寸、在线状态）。
-- 影响：`tools/it/device-info.html`（"设备快照记录与对比"整体名不副实）
-- 方案：`__v` 换成真正会变的标量（如视口面积 `innerWidth*innerHeight` 或 DPR），并把快照字段扩为 label/value 全量（可直接抓 `#screenInfo/#browserInfo/#localeInfo/#deviceStatus` 的条目文本）。
-**留存建议（tools/it/device-info.html）**：先换 `__v`，一行即可让"趋势/对比"有意义。
-
-### IT-N257 "复制全部信息"把 label、数值、条目全部粘连成一行（低，确认缺陷）
-- 问题：直接 `join('\n')` 各容器的 `textContent`；而每个 `.info-item` 内 label 与 value 是相邻无空白的 `<div>`，条目之间也无空白 → 复制结果没有任何分隔。
-- 证据：`tools/it/device-info.html:607-613`（`out.push(el.textContent.replace(/\s+/g,' ').trim())`）、`:305`（label/value 相邻 `<div>`，无空白文本节点）。
-- 复现：静态推演复制结果首行 = `屏幕分辨率1920 × 1080视口大小1920 × 969设备像素比2.00…`（label 与数值、条目与条目全部粘连）；期望 `屏幕分辨率: 1920 × 1080` 每行一条。
-- 影响：`tools/it/device-info.html`
-- 方案：遍历 `.info-item` 取 `label + ': ' + value` 以 `\n` 连接；或直接 `JSON.stringify(__tbDevSnap())` 输出结构化文本。
-**留存建议（tools/it/device-info.html）**：低优先，但"复制全部信息"是最常用的导出路径。
-
-### IT-N258 中文/emoji 按 Latin-1 低字节写入二维码，扫码结果不是原文（高，确认缺陷）
-- 问题：页面 `qrcode(0, level).addData(text)` 未指定编码，而本地库的 `stringToBytes` 默认实现是逐字符取 `charCodeAt & 0xFF`（单字节），页面从未切到 `stringToBytesFuncs['UTF-8']` → 中文字符被压成一个无关的 ASCII 低字节。
-- 证据：`tools/it/qrcode.html:429-430`（`addData(text)`）、`js/qrcode.js:748`（`qrcode.stringToBytes = qrcode.stringToBytesFuncs['default']`）、`tools/it/qrcode.html:379-388`（`__qrBytes` 却按 UTF-8 计 3 字节）。
-- 复现：node `require('./js/qrcode.js').stringToBytes('你好')` → `[96, 125]`（UTF-8 应为 `[228,189,160,229,165,189]`）；`stringToBytes('😀')` → `[61, 0]`（代理对被压成 1 个字节）。即"你好"实际写进码的是 `0x60 0x7D`，任何扫码器都读不出中文。同页 `__qrBytes('你好')=6` 与实际写入 2 字节也不一致。
-- 影响：`tools/it/qrcode.html`（`vCard`/`WiFi` 等预设含中文，生成的码即错）
-- 方案：`generate()` 内先 `qrcode.stringToBytes = qrcode.stringToBytesFuncs['UTF-8']`（或显式按 UTF-8 打包后 `addData`），并让 `__qrBytes` 与实际编码一致；代对（emoji）另加校验。
-**留存建议（tools/it/qrcode.html）**：编码与容量估算两处必须同改，否则图与码继续互相打脸。
-
-### IT-N259 h1/面包屑/JSON-LD/keywords/intro 都宣称"二维码识别/解析"，页面没有任何解码能力（高，确认缺陷）
-- 问题：全站把本页当"生成 + 识别"工具（"上传二维码图片解析内容"），实际只引了生成库，无文件输入、无解码库、无 `decode` 函数。顺带 `<title>`（`:20` "二维码生成器"）与 h1（`:169` "二维码生成识别工具"）不一致，也是 SEO 缺陷。
-- 证据：`tools/it/qrcode.html:11`（keywords 含"二维码识别,二维码解析,扫码解析"）、`:80-81`（JSON-LD name/description）、`:169`（h1）、`:182`（面包屑）、`:624`（intro 标题"生成与解析二维码"）、`:629`（intro"也可以上传二维码图片解析内容。。"，还多了一个句号）、`:347`（只引 `js/qrcode.js`）、`:5-165`（全量 script 列表无解码依赖）、全文无 `type="file"`。
-- 复现：清点控件与依赖——无文件/相机/图片入口，无 jsQR 等解码库，`decode*` 函数 0 个 → 用户拿图片来只会扑空；期望按宣称提供"上传图片→解析文本"。
-- 影响：`tools/it/qrcode.html`（误导性 SEO 宣称 + 用户预期落空）
-- 方案：删掉"识别/解析"全部宣称（h1/面包屑/JSON-LD/keywords/intro 同步，并把 `<title>` 与 h1 统一），文件名与 URL 不动（`§7` 禁止改名）；若要做实，引入锁版本的本地解码库并加图片上传（仍在纯前端约束内）。
-**留存建议（tools/it/qrcode.html）**：先按"删宣称"收口，成本最低且与实现一致。
-
-### IT-N260 容量图只到第 10 版，超限后四根柱一律画 10，与"所需最小版本"标题矛盾（中，确认缺陷）
-- 问题：`__qrChart()` 的容量表只有 v1-10；超限时 `if (v === 0) v = 10` 直接把 10 当结果，图标题却写"各纠错级别下编码当前内容所需最小版本"。
-- 证据：`tools/it/qrcode.html:373-378`（`QR_BYTE_CAP` 仅 10 项）、`:403-404`（`v = 0 → 10`）、`:408-412`（标题）、`:559`（表注自己写"第 11-40 版容量继续增大"）。
-- 复现：node+库——100 个"中"：`__qrBytes=300`，四个级别容量都不足 → 图上 L/M/Q/H 全为 10；而库实际编码 100 字节，`getModuleCount()=41`（v6）。300 个"中"：`__qrBytes=900`，图仍全 10，实际 `getModuleCount()=69`（v13）。
-- 影响：`tools/it/qrcode.html`（长内容时"容量图示"给出的是错误结论）
-- 方案：容量表补到 v40，或直接 `qrcode(0,lv).getModuleCount()` 反查真实版本；`v===0` 时标 "≥11" 而不是 10。
-**留存建议（tools/it/qrcode.html）**：与 N258 同批，估算口径一起对齐。
-
-### IT-N261 多行或"每字节 0x"的十六进制粘贴直接报非法，`^0x` 只去一次（中，确认缺陷）
-- 问题：`dec()` 先 `replace(/^0x/i,'')`（只处理串首一个前缀）再剥分隔符，hexdump 形式（每行/每字节带 `0x`）残留的 `x` 触发"非法十六进制字符"。
-- 证据：`tools/it/hex-encode.html:290`（`^0x` + `[\s:,;_-]` 剥离顺序）、`:291`（正则校验）、`:284`（编码侧 `prefix` 也只在整个串首加一个 `0x`）。
-- 复现：node——`"0x48\n0x69 6f".replace(/^0x/i,'').replace(/[\s:,;_-]/g,'')` → `"480x696f"` → 命中 `:291` 报错；`"0x48 69"` → `"4869"`（仅首前缀可用）。期望两种写法都能解出 `Hi  o`。
-- 影响：`tools/it/hex-encode.html`（开发者最常粘的 hexdump / 内存 dump 一律失败）
-- 方案：先剥分隔符，再 `replace(/0x/gi,'')` 全局去前缀；编码侧勾选 `prefix` 时按字节加（`0x48 0x69`），与 C 数组/常见工具一致。
-**留存建议（tools/it/hex-encode.html）**：两行调整，收益高。
-
-### IT-N262 历史/数据表/图表与 CSV 恒空：textarea 结果读 `textContent`（中，确认缺陷）
-- 问题：与 IT-N246 同型。`enc()` 写 `#output`（textarea）的 `.value`，`__hex_encodeResText()` 读 `.textContent` → 恒空 → `:393` 早退，记录/渲染/图表链全不触发；CSV 导的 `#hex_encodeTable` 也只在 Render 里填充。
-- 证据：`tools/it/hex-encode.html:284`（写 `.value`）、`:335-342`（读 `textContent`）、`:392-393`（`if(!res) return`）、`:348-358`（Render 才填表）、`:414-416`（`exportTable('#hex_encodeTable')`）、`:157`（"导出明细 CSV"）。
-- 复现：编码 `Hi` → `.value === "4869"`、`.textContent === ""`；不会走到 `TBKit.history.record(...)`，历史条目恒为 0，"数据表/图表/历史"三页签恒空，导出 CSV 无数据行。
-- 影响：`tools/it/hex-encode.html`
-- 方案：同 N246，`res` 取值改 `r.value || r.textContent` 并删掉 `/错误|Error/` 判空启发式。
-**留存建议（tools/it/hex-encode.html）**：与 N246 一起改，避免两页再各修一遍。
-
-### IT-N263 解码侧静默替换非法字节，且 `dec` 未接入历史（中，确认缺陷）
-- 问题：`dec()` 用默认 `TextDecoder`（非 fatal）→ 非法 UTF-8 输出 `�` 无提示；历史包装只包了 `enc`（`:421-423`），点"解码 ↓"不会产生任何记录。
-- 证据：`tools/it/hex-encode.html:295`、`:421-423`（`var __hex_encode_f0=(typeof enc==='function')?enc:null`）、`:392-393`。
-- 复现：node `new TextDecoder().decode(new Uint8Array([0xFF]))` → `"�"`；页面输入 `FF` 点解码，输出框只显示一个替换符（用户会以为编码写错），且 history 不变。
-- 影响：`tools/it/hex-encode.html`
-- 方案：`TextDecoder('utf-8',{fatal:true})` + 失败提示并提供 Latin-1 对照；把 `dec` 也包进 `__hex_encodeExtras()`（方向记入记录键，如"模式=解码"）。
-**留存建议（tools/it/hex-encode.html）**：与 N247 同一改法，顺手把 dec 补进历史。
-
-### IT-N264 深度解析整块被塞进 `<textarea id="source">`：首屏输入框装 45 行 CSS/中文，深度解析永不渲染（高，确认缺陷）
-- 问题：`<!-- TOOLBOX-DEEP-DIVE -->` 注入点落在 textarea 起始标签之后、`</textarea>` 之前。RCDATA 内除 `</textarea>` 外一律按文本处理，于是 `<style>…</style><section class="deep-dive">…</section>` 连同中间那个 `</body>` 全变成默认值文本；深度解析内容不渲染，示例 XML 也被撕成两半。
-- 证据：`tools/it/xml-to-yaml.html:123`（`<textarea …><note>…<body>Don't forget me!<!-- TOOLBOX-DEEP-DIVE -->`）、`:124-155`（被吞的 style/section/`</section>`）、`:158`（`</body>&#10;  <items …>…</note></textarea>`）、`:419`（`resetForm()` 里才存着正确示例）。
-- 复现：node 还原初值 → 长度 1909、45 行、含 `.deep-dive{` 与"深度解析"；`xmlToJson` 解出根 `note`，`dumpYaml` 得 55 行 YAML，开头即 `body:` 下挂 `style: ".deep-dive{max-width:960px…"`。即首屏"结果"页签展示的是把 CSS 当 XML 解析的垃圾，而非 `<note>` 转出的干净 YAML。
-- 影响：`tools/it/xml-to-yaml.html`（首屏即坏；深度解析/FAQ 内容在页面上完全不存在）
-- 方案：把 `:124-155` 与 `:158` 的 `</body>` 整段移出 textarea（插到 `:212-213`，即使用说明 `</ul>` 之后、容器 `</div>` 之前），恢复 `<note>…</note>` 为唯一初值；移动后必须重跑 `python3 _build.py`（构建对该区域只写一次，会一次性改写）。
-**留存建议（tools/it/xml-to-yaml.html）**：本批最高优先，属"打开即废"；修完再逐条看 N265/N266。
-
-### IT-N265 数组元素里套对象时输出 `[object Object]`（高，确认缺陷）
-- 问题：`dumpYaml` 的数组分支只支持"标量元素或一层映射"，元素内的对象/数组仍交给 `yVal()`；`yVal` 对对象走 `String(v)` → `[object Object]`。
-- 证据：`tools/it/xml-to-yaml.html:395-396`（数组分支 `out += (j===0?pad+'- ':pad+'  ')+kk+': '+yVal(it[kk])`）、`:380-385`（`yVal` 兜底 `return String(v)`）。
-- 复现：`<a><b><c><d>1</d></c></b><b><e>2</e></b></a>` → JSON `{"a":{"b":[{"c":{"d":"1"}},{"e":"2"}]}}` → YAML `b:` 下两行 `- c: [object Object]` / `- e: "2"`。凡"列表里套对象"（K8s 清单、SOAP 列表、RSS）必中。
-- 影响：`tools/it/xml-to-yaml.html`（真实配置迁移的主要场景直接不可用）
-- 方案：数组元素递归 `dumpYaml(it, pad+'  ', sort, false)` 并做首行 `- ` 前缀处理（后续键缩进 2），或统一改走 JSON→YAML 的标准序列化。
-**留存建议（tools/it/xml-to-yaml.html）**：与 N264 同批修，否则修好首屏也仍导错数据。
-
-### IT-N266 属性两端都不合规：解析丢单引号属性/被 `>` 截断；输出 `@id`、`#text` 不是合法 YAML（中，确认缺陷）
-- 问题：① 解析：属性正则只认 `="…"`，单引号属性静默丢弃；取标签头用 `indexOf('>')`，属性值里合法的 `>` 会提前截断。② 输出：`@`/`#text` 键连引号都不加。YAML 1.2 §5.1 中 `@` 是保留指示符、`#` 起始即注释，二者都不能作 plain scalar 开头 → 生成物在严格解析器里 `@id` 报错、`#text` 被当注释丢弃。
-- 证据：`tools/it/xml-to-yaml.html:266-267`（`/([\w:-]+)\s*=\s*"([^"]*)"/g` 与 `while((m=re.exec(attrStr)))`）、`:258`（`indexOf('>',pos)`）、`:285`、`:289`（拼 `@` 与 `#text`）、`:402-406`（`out+=p+k+': '`，键从不加引号）、`:209` + `:109`（把这套约定写成推荐用法）。
-- 复现：`<a b='v'>x</a>` → `{"a":"x"}`（属性丢失）；`<a b="x>y"><c>1</c></a>` → `{"a":{"c":"1","#text":"y\">"}}`（属性丢失且多出假文本）；`<items id="1">foo<item>a</item></items>` → 输出含 `@id: "1"`、`#text: foo` 两行，前者非法、后者等价注释。
-- 影响：`tools/it/xml-to-yaml.html`（"属性/文本"这一核心映射规则产出不可解析的 YAML）
-- 方案：属性正则补 `|='([^']*)'`；找 `>` 时跳过引号内字符；键统一过 `yKey()`（`@`/`#`/`:`/数字开头/YAML 保留字一律加双引号），并把 `#text` 改名（如 `text`）或加引号输出。
-**留存建议（tools/it/xml-to-yaml.html）**：与 N264/N265 同批，改完用 `yaml` 解析器回读自检一次。
-
-### IT-N267 只有单样本入口，却把所有键都写进 `required`（含 `null` 字段），与"多样本取交集"的说明矛盾（中，确认缺陷）
-- 问题：`inferSchema` 对每个 key 无条件 `required.push(key)`；页面只能粘一个 JSON，不存在"所有样本"。公式清单却写"在所有样本中都出现的键才会被判定为必填"。
-- 证据：`tools/it/json-schema-generator.html:429-441`（`:432` 无条件 push）、`:164`（说明）、`:206`（单个 textarea）、`:307-329`（SAMPLE 含 `metadata: null`）。
-- 复现：用默认示例生成 → `required` 含 `metadata`，其 schema 为 `{type:"null",examples:[null]}`，等价于"该字段必填且只能为 null"；任何真实响应都会校验失败。期望：`null` 字段要么不进 required，要么标 `type:["null","string"]`。
-- 影响：`tools/it/json-schema-generator.html`（生成的契约必然过度约束）
-- 方案：支持多样本（顶层数组或多文档）取交集后再定 required，否则默认关闭该选项并删掉"多样本"文案；对 `null` 值输出 `type:["null", …]` 或直接跳过。
-**留存建议（tools/it/json-schema-generator.html）**：本页最影响可用性的一条，先统一"单样本"口径再谈推断精度。
-
-### IT-N268 "描述注释"勾选框是死控件，从不产出 `description`（中，确认缺陷）
-- 问题：`optDescriptions` 的值读进 `options` 后没有任何消费点，`inferSchema` 全程不写 `description`。
-- 证据：`tools/it/json-schema-generator.html:183`（控件）、`:572`（读取）、`:160`（公式说明自称"descriptions 生成说明"）、`:354-455`（推断无 `description`）、`:797`（预设"描述+极值+标题"还专门勾上它）。
-- 复现：勾选与否各生成一次，`JSON.stringify(lastSchema)` 完全一致（diff 为空）；而预设 `:797` 声称会输出"描述"。
-- 影响：`tools/it/json-schema-generator.html`（UI 承诺与输出不符，用户会以为功能坏了）
-- 方案：实现 `description`（如 `prop.description = keyToTitle(key)` 或 `'The ' + key + ' field.'`），或删掉该复选框（成本最低）。
-**留存建议（tools/it/json-schema-generator.html）**：删控件最省事，别留半截功能。
-
-### IT-N269 混合类型数组直接退化成空 schema，没有任何 `anyOf/oneOf`（中，确认缺陷）
-- 问题：`mergeSchemas` 在类型不一致时 `return {}`，于是 `items` 变成空 schema（"任意值均可"），元素类型信息全丢；同页 `:165` 却写"混合类型可用 anyOf/oneOf 表达"。
-- 证据：`tools/it/json-schema-generator.html:461-481`（`:481` 返回 `{}`）、`:367-372`、`:165`。
-- 复现：node 同逻辑 `mergeSchemas([{type:'integer'},{type:'string'}])` → `{}`；输入 `{"tags":[1,"a"]}` → `"tags":{"type":"array","items":{}}`，无法看出元素可为整数或字符串。期望 `items:{anyOf:[{type:"integer"},{type:"string"}]}` 或 `type:["integer","string"]`。
-- 影响：`tools/it/json-schema-generator.html`
-- 方案：返回 `{anyOf:[…去重同类…]}`（2020-12/draft-07 均支持），或 `{type:[...]}`；至少保留首个类型并加 `description:"mixed types in sample"` 作提示。
-**留存建议（tools/it/json-schema-generator.html）**：与 N267 同批，属"推断结论丢失"。
+- `json-schema-generator`：IT-N267 required 不再无条件收键——null 字段跳过（否则「必填且只能为 null」让任何真实响应校验失败），数组元素的多个对象取共有键（mergeSchemas 顺带保留 required），说明文案改为「单样本推断、多样本需人工合并」；IT-N268「描述注释」勾选框从死控件变成真输出 `description: 'The <key> field.'`（保留预设「描述+极值+标题」的承诺）；IT-N269 混合类型不再退化空 schema，输出去重后的 `anyOf` 且树视图同步展示；顺带修 `isIPv4` 逐段 0-255 + 拒前导零（999/256/01 段不再误标 ipv4）。en JSON required 说明键/英译同步。第210批销账；真机 21/21 vs 旧 6/21（15 项红），verify 无用例。承诺 vs 实际段其余项仍留清单。
 
 ### 承诺 vs 实际（R 批专项·8 页）
 - `tools/it/qrcode.html:299`："最高版本 40 约存 2953 字节（数字模式）"——2953 是**字节模式**容量（数字模式为 7089 位），与同页 `:559` 的正确表注自相矛盾。
@@ -1858,21 +1544,7 @@
 - 方案：复制 `#outBig.textContent`（为空时提示"请输入文本"），并给 `i18nText` 传具体 key 或 fallback 字符串。
 **留存建议（tools/it/numeronym-generator.html）**：复制源切到 `#outBig`，与页面主展示一致。
 
-### IT-N288 预览/导出存在属性注入型 XSS（图片 alt、链接 URL 未转义）（高，确认缺陷）
-- 问题：解析器只转义 `<`/`>`/`&`，随后用模板拼 `<img src="$2" alt="$1">`、`<a href="$2" …>`；URL 与 alt 中的 `"` 未转义，可直接闭合属性并注入事件处理器。文档自己写着"必须过滤内嵌 HTML，防止 XSS"，但没有任何净化。
-- 证据：`tools/it/markdown-editor.html:759`（图片拼接）、`:762`（链接拼接）、`:710-712`（只转义三个字符）、`:527`（安全声明）、`:938`（`preview.innerHTML=html`）。
-- 复现（node 照抄两条正则）：输入 `![a" onerror="location.href='//evil.com'](x)` → 实际输出 `<img src="x" alt="a" onerror="location.href='//evil.com'">`；预览加载即执行 `location.href`，可外带 `localStorage['toolbox_md_draft']` 中的草稿。期望输出实体化后的 `alt="a&quot; onerror=…"` 纯文本。
-- 影响：粘贴不可信 Markdown（README/Issue/聊天记录）即可执行任意 JS；导出 .html 后同样带毒。
-- 方案：属性值统一走 `escAttr`（`"`→`&quot;`、`'`→`&#39;`），URL 做协议白名单（仅 http/https/mailto，禁 `javascript:`/`data:`），并本地引入 DOMPurify 做最后一道白名单净化。
-**留存建议（tools/it/markdown-editor.html）**：XSS 是本页最高优先，先补 `escAttr`+协议白名单，再谈语法扩展。
-
-### IT-N290 `#` 与 `##` 都渲染成 h2，预览与导出都没有 h1（低，确认缺陷）
-- 问题：`^#\s+` 被映射为 `<h2>`，与 `^##\s+` 相同，文档级一级标题在预览/导出 HTML 中不存在；这与 CommonMark 的 h1 语义不符，导出到别处层级整体下移。
-- 证据：`tools/it/markdown-editor.html:735-736`（两条都输出 `<h2>`）、`:521`（公式里明确写"# 与 ## 均输出 h2"，属有意为之）、`:203`（CSS 备了 h1 样式却用不到）。
-- 复现：输入 `# 标题` → 预览 `<h2>标题</h2>`；期望 `<h1>标题</h1>`。
-- 影响：复制到 GitHub/博客后大纲层级错误；页面 h1 样式成为死代码。
-- 方案：`#` 映射 h1（预览容器内无冲突），保留 `##`→h2；同步改 `:521` 文案。
-**留存建议（tools/it/markdown-editor.html）**：改一行正则 + 改一句说明即可。
+- `markdown-editor`：IT-N288 属性注入 XSS 与 IT-N289 GFM 任务清单源码已修好（`escAttr` + `safeUrl` 协议白名单、`- [x]` → 禁用复选框），清单及开头待办漏销账，本批补真机安全回归证据（alt 引号不闭合属性、`javascript:`/`data:text/html` 拦截、`data:image` 与正常链接放行、任务清单 checked 语义）；IT-N290 真修：`#` 由 `<h2>` 改为 `<h1>`（CommonMark 一级标题语义，`##`/`###`/`####` 不变），工作原理公式说明与 en JSON 中文键/英译同步。第211批销账；真机 16/16 vs 旧 13/16（3 项红均为 N290，N288/N289 旧态已绿如实记录），verify 4 条相关用例均不依赖 h2、无需改 expect。
 
 ### IT-N291 clamp 表达式算错：最小视口得到"首选字号"，大范围还会提前封顶（高，确认缺陷）
 - 问题：斜率用 `(pref-min)/(vwMin/100)` 与 `(max-min)/(vwMax/100)` 取 `max`，截距用 `pref - vw*vwMin/100`——等于把直线锚在 `(vwMin, pref)`，最小视口永远输出 `pref` 而非 `min`；当 `pref` 接近 `min` 时斜率取 `slope2` 也不对。正确应为 `(max-min)/(vwMax-vwMin)*100`、`min - slope*vwMin/100`。
@@ -2559,136 +2231,18 @@
 
 ## W 批 · IT URL/签名/安全（2026-11-04）
 
-### IT-N456 二维码是哈希种子随机点阵，不含任何 QR 数据编码，扫码器无法解码（高，假工具）
-- 页面：`tools/it/url-qr.html`
-- 问题：`renderQR()` 只画三个定位图形与时序图案（`:249-258`），其余模块由 `pseudoRandom(strHash(text))` 逐格 `rnd()<0.5` 随机填充（`:260-265`）；没有数据位、格式信息、掩码与纠错码字，尺寸恒为 `N=29`（版本 3）。
-- 行号：`:247-267`（核心 `:260`）、`:258`、`:269-273`、`:275-283`
-- 复现：输入 `https://github.com` → 实际得到 29×29 的随机黑白点阵，系统相机/微信扫码均无任何内容；期望解码出该 URL。把输入换成任意字符串，点阵只有随机分布变化。
-- 影响：页面标题、`description`（`:10`）与 `:191` 场景都承诺"生成二维码 / 扫码直达"，实际产出只是一张像二维码的装饰图，属假工具。
-- 方案：接入真实 QR 编码库（如 qrcode-generator）按版本 + 纠错等级生成矩阵；在改完前须在页面标注"示意图，不可扫码"。
-- 假工具：是
 
-### IT-N457 描述承诺"可调尺寸与容错"，界面无任何尺寸 / 纠错控件（中，承诺未实现）
-- 页面：`tools/it/url-qr.html`
-- 问题：`<meta name="description">`（`:10`）与 og:description 写"可调尺寸与容错"，`formula-eq`（`:156`）按"纠错等级 M"说明，但表单只有网址输入（`:161`）；`renderQR` 固定 29×29，`drawQR` 固定 `cell=8`（`:248`、`:269`）。
-- 行号：`:10`、`:156`、`:161`、`:248`、`:269`
-- 复现：查找尺寸/纠错选项 → 实际不存在，输出恒为 232px、固定密度；期望能设尺寸与 L/M/Q/H。
-- 影响：SERP 与分享卡片承诺的能力并不存在。
-- 方案：补尺寸与纠错等级下拉并接入编码器，或从描述中删掉该承诺。
-- 假工具：否
 
-### IT-N458 空标题/描述仍输出 `content=""`，缺必填项也不告警（中，产出错误标签）
-- 页面：`tools/it/og-meta-tag-generator.html`
-- 问题：`formula-eq`（`:113`）明确写"有值字段才输出"，实际 `build()` 无条件输出 `og:title`/`og:description`/`twitter:title`/`twitter:description`（`:290-291`、`:300-301`），值为空时得到 `content=""`；缺图片/URL 时反而省略了必填的 `og:image`/`og:url`（`:292-293`），与 `:117` 的"必填四项"相悖，结果区仍按 `^<meta` 计数报"已生成 N 条"（`:304-305`）。
-- 行号：`:113`、`:117`、`:288-305`（核心 `:290-291`、`:292-293`、`:304-305`）
-- 复现：清空标题与描述、只填图片 URL → 实际输出含 4 条 `content=""` 的标签，并提示"已生成 6 条 meta 标签"；期望跳过空值，并提示 `og:image` / `og:url` 缺失。
-- 影响：复制走的标签被各平台忽略（空 og:title 会直接退回抓取 `<title>`），用户却以为配置完成。
-- 方案：空值不进 `L`；对 `og:title/type/image/url` 四项做缺失校验并在结果区标红。
-- 假工具：否
-
-### IT-N459 速查表把 4 个请求头当响应头收录，且 ETag / Last-Modified 各重复两条（中，参考结果错误）
-- 页面：`tools/it/http-response-headers.html`
-- 问题：`COMMANDS` 里混入请求头：`Range`（`:567`）、`Access-Control-Request-Method`（`:327`）、`Access-Control-Request-Headers`（`:335`）、`Want-Digest`（`:775`）；`ETag` 出现两次（`:439`、`:647`），`Last-Modified` 出现两次（`:447`、`:655`）。
-- 行号：`:327`、`:335`、`:439`、`:447`、`:567`、`:647`、`:655`、`:775`
-- 复现：切"内容"分类 → 实际出现 `Range`（请求范围，属请求头），"共 N 项"计数把重复条目也算进去；期望响应头表只含响应头、无重复行。
-- 影响：用该表逐项核对生产响应头会误判（去查一个根本不会出现在响应里的头），分类统计数字也偏高。
-- 方案：删除请求头或单列"请求头"分类；去掉重复的 `ETag` / `Last-Modified`。
-- 假工具：否
-
-### IT-N460 待签名串未转义直接写入 innerHTML，参数可执行脚本（高，安全）
-- 页面：`tools/it/api-sign-generator.html`
-- 问题：`signText = base + '&secret=' + secret`（`:297-298`）中 `base` 由用户参数原样拼接，随后直接 `document.getElementById('out').innerHTML = '<p>待签名串：<strong>${signText}</strong></p>'`（`:311-312`），全程无转义。
-- 行号：`:281-298`、`:311-312`
-- 复现：参数框输入一行 `<img src=x onerror=alert(1)>=1` → `parseParams` 取 k=`<img src`、v=`x onerror=alert(1)>=1`，拼成 `<img src=x onerror=alert(1)>=1` 插入 DOM → 实际执行 `onerror` 弹窗；期望只作为纯文本显示。
-- 影响：只要粘贴别人给的参数（或从共享文档复制的签名串）就能在本站执行任意脚本，可读本站 localStorage、伪造结果区或跳转页面。
-- 方案：改用现成的 `escH()` 逐段拼接，或用 `textContent` + 单独 `<strong>` 节点渲染。
-- 假工具：否
-
-### IT-N461 "MD5" 选项实为 SHA-256 取前 32 位，签名与任何 MD5 服务端都不匹配（高，算错）
-- 页面：`tools/it/api-sign-generator.html`
-- 问题：`md5Hex()` 实际执行 `crypto.subtle.digest('SHA-256', …)` 再 `.slice(0,32)`（`:253-263`），下拉文案为"MD5（兼容：SHA-256 取前 32 位）"（`:137`），但 `formula-eq`（`:124`）与 `formula-desc` 仍写"MD5 模式：sign = MD5(待签名串)"、"对拼接串做 MD5"（`:129`）。
-- 行号：`:253-263`（核心 `:256`、`:260`）、`:137`、`:124`、`:129`
-- 复现：默认参数（`amount=39.80&app_id=1001&method=order.create`、secret `test_secret`）→ 实际输出 `b9777fe0ef17ab7900fe95ad22b1134c`；node 复算真 MD5(`…&secret=test_secret`) = `cd1422f9e084e02caf2bf8842ec5492d`。期望两者一致。
-- 影响：选 MD5 得到的串在服务端一律验签失败，且无法用 `md5sum` / 任何标准工具复核，排查成本极高。
-- 方案：内置纯 JS MD5（或接 spark-md5 并锁版本）；更简单的做法是删掉 MD5 选项，只保留 HMAC-SHA256 并同步改写公式与文案。
-- 假工具：否（假算法）
-
-### IT-N462 预设 / 历史回调调 `copyResult` 不重算，且预设参数用 `&` 分隔被解析成单个值（中，结果错误）
-- 页面：`tools/it/api-sign-generator.html`
-- 问题：预设 bar 与历史恢复的回调都传 `function(){ copyResult(); }`（`:425`、`:373`），`copyResult` 只复制不计算，参数框也没有 `oninput` 重算；预设 `params` 写成 `'a=1&b=2&c=3'`（`:423`、`:425`），而 `parseParams` 只按 `\n` 切分（`:281`）。
-- 行号：`:281`、`:422-425`（预设值 `:423`、`:425`；回调 `:425`）、`:373`
-- 复现：点「SHA256·参数」→ 实际参数框变成单行 `a=1&b=2&c=3`，node 复算 `parseParams` 得 `{a:"1&b=2&c=3"}`（1 个参数），结果区仍是上一轮签名；期望解析成 3 个参数并重算，得 HMAC `1faea69380f0ed8d2c2b6c5aca63df82a7860a473e55a9f75e8c348d5ec3d106`（规范串 `a=1&b=2&c=3`）。
-- 影响：预设点了没反应，照着预设学的人会拿到与文档不符的规范化串，签名全错。
-- 方案：回调改 `runSign()`；预设 `params` 改换行分隔，或让 `parseParams` 同时按 `&` 切分。
-- 假工具：否
-
-### IT-N463 解密按"纯十六进制"猜格式，Base64 密文恰为 hex 时被误当 Hex 解出乱码（中，结果错误）
-- 页面：`tools/it/rc4.html`
-- 问题：解密分支用 `/^[0-9a-fA-F\s]+$/` + 偶数长度判定输入是 Hex，否则走 Base64（`:383-387`）；Base64 密文若恰好只含 `0-9a-f` 且长度为偶数就会被误判。
-- 行号：`:383-387`、`:357-364`
-- 复现：key `mysecretkey`、明文 `1bb` → 加密得 Base64 `27Ea`（4 字符全为 hex）→ 解密按 hex 读 2 字节，实际输出 `�9`；期望输出 `1bb`。node 随机采样 200k 组 3 字节密文，命中 2744 例（≈1.37%）。
-- 影响：短密文解密静默出乱码，用户分不清是密钥错还是格式误判，且换台机器/换个版本结果也不稳定。
-- 方案：按"输出格式"选择输入格式（Base64 与 Hex 各一个显式选项），或先 `atob` 成功再用 Base64、失败再回退 Hex。
-- 假工具：否
-
-### IT-N464 正则删注释 + 抹掉换行，会破坏字符串 / 正则 / 模板字符串与 ASI，输出废码（高，算错）
-- 页面：`tools/it/js-minify.html`
-- 问题：`minify()` 依次 `replace(/\/\*[\s\S]*?\*\//g,'')`、`replace(/\/\/[^\n]*/g,'')`、`replace(/\s+/g,' ')`（`:216-222`），完全不识别字符串、模板字符串、正则字面量，也把换行压成空格（ASI 依赖换行）。
-- 行号：`:216-222`（核心 `:217-219`）、`:230`
-- 复现（node 复刻同函数）：
-  - `var u = "https://api.example.com/v1";` + 下一行 `console.log(u);` → 实际 `var u= "https: console.log(u);"`（URL 后半与整行被当注释吃掉，`new Function` 解析失败）；
-  - `var a = 1` 换行 `var b = 2` → `var a= 1 var b= 2`（SyntaxError）；
-  - `` const t = `line1\nline2`; `` → 实际 `` const t= `line1 line2`; ``，模板字符串的值被改；
-  - `function f(){ return` 换行 ` 42 }` → `return 42`，语义由返回 undefined 变为返回 42。
-- 影响：页面 `:103`、`:168` 称"几乎不改变行为"，实际对含 URL、正则、模板字符串或无分号风格的真实代码直接产出不可执行/语义漂移的结果；用户拿去上线即报错。
-- 方案：改用 tokenizer（acorn/esprima）或直接调 Terser；最低限度也要保留换行、跳过字符串与正则区间，并在页面声明"仅适用于带分号的简单代码"。
-- 假工具：否
-
-### IT-N465 `esc()` 不转义双引号，参数值拼进 `value="…"` 造成属性注入执行脚本（高，安全）
-- 页面：`tools/it/url-params.html`
-- 问题：`esc()` 用 `div.textContent` 再读 `div.innerHTML`（`:285`），只转义 `&`/`<`/`>`，双引号原样保留；解析结果被 `tpl.replace('{v}', esc(p.v))` 拼进模板 `<input … value="{v}">`（模板定义 `:162`，替换在 `:298`），JSON 导入同样（`:343`），整段走 `innerHTML`（`:299`、`:344`）。
-- 行号：`:162`、`:285`、`:293`、`:298-299`、`:343-344`
-- 复现：URL 输入 `https://x.com/?a=" autofocus onfocus="alert(1)` → 实际生成 `<input … value="" autofocus onfocus="alert(1)">`，`innerHTML` 插入后 `autofocus` + `onfocus` 触发脚本；期望引号被转成 `&quot;`，只当普通值显示。
-- 影响：从聊天记录/工单里粘贴一条"参数含引号"的 URL 就能在本站执行脚本，可读 localStorage、伪造结果或整页替换。
-- 方案：属性上下文改用 `escAttr()`（额外转义 `"` 与 `'`），或先 `document.createElement('input')` 再 `el.value = p.v` 赋值，避免字符串拼 HTML。
-- 假工具：否
-
-### IT-N466 「值解码显示：开 / 关」是假控件，`_decMode` 从未被计算逻辑读取（高，假功能）
-- 页面：`tools/it/url-params.html`
-- 问题：`toggleEncoding()` 只翻转 `_decMode` 并改按钮文案（`:284`、`:349-353`），而 `calcTool()` 解析时恒执行 `decodeURIComponent(k.replace(/\+/g,' '))`（`:293`），从不判断 `_decMode`。
-- 行号：`:284`、`:293`、`:349-353`
-- 复现：点「值解码显示：关」→ 实际按钮文字变"关"，参数值仍是解码后的 `toolbox`；期望切换为原始 `%74oolbox` / `%E6%89%8B%E6%9C%9F` 形态。
-- 影响：切换按钮纯装饰，用户以为能看到编码前后对照，核对编码时会得出错误结论。
-- 方案：`calcTool` 按 `_decMode` 分别取 `decodeURIComponent(v)` 或原样值。
-- 假工具：否（假控件）
-
-### IT-N467 `decodeURIComponent` 无容错，非法百分号转义抛 URIError 后整块停止刷新（中，崩溃）
-- 页面：`tools/it/url-params.html`
-- 问题：`calcTool()` 在 `forEach` 里直接 `decodeURIComponent(k…)` / `decodeURIComponent(v…)`（`:293`），无 `try/catch`。
-- 行号：`:293`、`:286-301`
-- 复现：URL 输入 `https://x.com/?q=100%` → 实际抛 `URIError: URI malformed`，行内 `oninput` 中断，参数区与结果区停留在上一次内容（改别的参数也不再刷新）；期望提示"参数编码非法"并继续渲染其余参数。
-- 影响：日志、埋点、手工拼的 URL 常带不完整转义，一出现就让整页解析静默失效，且界面看不出报错。
-- 方案：逐个 `try/catch`，失败时回落原文并加"未解码"标记。
-- 假工具：否
-
-### IT-N468 短码是纯随机串，与 URL 无任何函数关系，并非 base62/hash 编码（中，承诺未实现）
-- 页面：`tools/it/short-link-generator.html`
-- 问题：短码循环只用 `crypto.getRandomValues` 抽字符（`:283-287`），URL 仅被显示、不参与运算；`formula-eq`（`:160`）称"短码 = base62(自增 ID) 或 hash(长链) 前 N 位"，description（`:10`）称"将长网址编码为简短易记的短链"，英文简介写 "using Base62 encoding"（`:482`）。
-- 行号：`:283-287`、`:160`、`:10`、`:482`、`:219`
-- 复现：同一 URL 连点两次「生成」→ 实际得到两组完全不同的随机串；同参数下任意两个不同 URL 的短码分布也无差别。期望同一条长链得到稳定短码（hash 方案）或按自增 ID 编码。
-- 影响：页面演示的是"随机字符串生成器"，"编码 / 映射"承诺未兑现；FAQ `:219` 只说明没有服务端跳转，没说明短码与 URL 无关，读者会误以为它真的编码了 URL。
-- 方案：改为 `base62(hash(url))` 取前 N 位（同链稳定）并保留自增 ID 模式作对照；或把标题/描述改成"短码样式演示（随机）"。
-- 假工具：否
 
 ### 覆盖清单（W 批 IT URL/签名/安全）
-- `url-qr`：IT-N456（高，假工具）；IT-N457（中）。
-- `og-meta-tag-generator`：IT-N458（中）；无高优缺陷（`escA` 先转 `&` 再转 `"`，输出走 `textarea.value`，属性上下文不可注入）。
-- `http-response-headers`：IT-N459（中）；无高优缺陷（`renderCommands` 对全部字段走 `escapeHtml`，搜索/复制路径无注入）。
-- `api-sign-generator`：IT-N460（高，安全）、IT-N461（高）；IT-N462（中）。
-- `rc4`：IT-N463（中）；无高优缺陷（`rc4()` 与 `RC4-drop` 主路径对照已知向量 `Key`/`Plaintext` → `bbf316e8d940af0ad3` 正确，KSA/PRGA 无死循环）。
-- `js-minify`：IT-N464（高）；无其它高优项（结果渲染走 `escH`，无注入）。
-- `url-params`：IT-N465（高，安全）、IT-N466（高，假功能）；IT-N467（中）。
-- `short-link-generator`：IT-N468（中）；无高优缺陷（输出全部经 `escapeHtml`，`randInt` 模偏差可忽略）。
+- `url-qr`：无剩余缺陷（IT-N456 真编码器、IT-N457 纠错+尺寸双控件均已销账，第183–184批）。
+- `og-meta-tag-generator`：无剩余缺陷（IT-N458 空值跳过+缺失告警已销账，第189批；`escA` 先转 `&` 再转 `"`，输出走 `textarea.value`，属性上下文不可注入）。
+- `http-response-headers`：无剩余缺陷（IT-N459 删除 4 个混入的请求头 + ETag/Last-Modified 去重已销账，第190批；`COMMANDS` 65→59、分类仍 14，`renderCommands` 全部字段走 `escapeHtml`，搜索/复制路径无注入）。
+- `api-sign-generator`：无剩余缺陷（IT-N460 XSS、IT-N461 真 MD5、IT-N462 预设重算均已销账，第185–187批）。
+- `rc4`：无剩余缺陷（IT-N463 显式格式解析已销账，第188批；`rc4()` 与 `RC4-drop` 主路径对照已知向量 `Key`/`Plaintext` → `bbf316e8d940af0ad3` 正确，KSA/PRGA 无死循环）。
+- `js-minify`：无剩余高优/中优缺陷（IT-N464 已改为轻量词法扫描，保留字符串/正则/模板串与换行，第182批销账；结果渲染走 `escH`，无注入）。
+- `url-params`：无剩余高优/中优缺陷（IT-N465/IT-N466/IT-N467 均已修复，第178–179批补独立锁与真机复核后销账）。
+- `short-link-generator`：无剩余高优/中优缺陷（IT-N468 已改为 hash 映射，第180批销账；输出全部经 `escapeHtml`）。
 - 方法声明：本轮逐页通读上述 8 页源码，用 `node` 在 `/tmp` 复刻页面原函数（`renderQR`、`minify`、`rc4`、`parseParams`、`md5Hex`）并给出「输入 → 实际 / 期望」；MD5 对照用 `crypto.createHash('md5')`，QR 不可扫码依据"无数据位/格式信息/纠错码字"的算法结构判定；`esc()` 不转义双引号、`innerHTML` 属性注入按 HTML 序列化规则判定（文本节点只转义 `&<>`），未开真机浏览器复现 XSS。**未开浏览器、未跑 `_build.py`/`run_gates.py`、未做线上验证**；未修改任何工具页、代码或构建产物，仅在本审计日志追加本节。
 
 ## W 批 · IT 计算/文本（2026-11-04）
@@ -2703,83 +2257,14 @@
 
 > 只读审计 8 页：`tools/it/` 下 ruby-cheatsheet、pomodoro、convert-11、postgresql-cheatsheet、typescript-cheatsheet、typing-test、cpp-cheatsheet、git-commands。未开浏览器、未跑 `_build.py`/`run_gates.py`；验证脚本仅落 `/tmp`。
 
-### IT-N480 — pomodoro 记账用“配置时长”而非实际时长，未开始/跳过/中途改设置都会虚增统计（中）
-- 页面：`tools/it/pomodoro.html`
-- 行号：`tools/it/pomodoro.html:517`、`:525-527`、`:559-561`、`:467-480`
-- 问题：`completeSession()` 直接 `const duration = durations[currentMode]` 落账；`skipTimer()` 无条件调 `completeSession()`（既不校验是否 running，也不计实际停留）；`updateDurations()` 在运行中只改 `durations`，不改 `timeLeft/totalTime`。
-- 复现（3 组）：① 从未开始计时，直接点「⏭ 跳过」→ 确认 → 实际「完成番茄 1、专注分钟 25、总计时 1」、历史新增“专注 25分钟”；期望不计入。② 开始 25 分钟专注、1 分钟后点跳过 → 实际 +25 分钟；期望按实际约 1 分钟（或跳过不落账）。③ 开始 25 分钟后把「专注」改成 50（onchange 生效但倒计时仍走 25:00）→ 走完 → 实际 +50 分钟、历史 50分钟；期望 25 或实际时长。
-- 期望：统计与历史反映真实完成次数与实际时长。
-- 影响：今日专注分钟/完成番茄数可无成本刷高，番茄工作法的度量失真。
-- 方案：记 `startedAt`，完成时用 `Math.round((Date.now()-startedAt)/60000)`；跳过记 0 或不落账；运行中禁止改时长或改后重置本段。
-- 假工具：否
-
-### IT-N481 — pomodoro 倒计时按 setInterval 递减，后台标签页被节流后计时严重偏慢（中）
-- 页面：`tools/it/pomodoro.html`
-- 行号：`tools/it/pomodoro.html:491`、`:504-511`
-- 问题：`startTimer()` 每 1000ms 调 `tick()`，`tick` 只做 `timeLeft--`，不按真实时间校准；Chrome 对隐藏标签页节流定时器（隐藏 5 分钟后可降至约 1 次/分钟）。
-- 复现：设专注 25 分钟 → 开始 → 切到编辑器工作 10 分钟再回来 → 实际剩余约 20:00（10 分钟只推进约 5 分钟），与真实应剩 15:00 不符，结束提示相应推迟。
-- 期望：剩余时间 = 设定时长 −（`Date.now()` − `startedAt`），切回时立即重算。
-- 影响：番茄钟的核心使用方式就是“切走专注”，回来看到的剩余时间是错的；页面 `:188` 自述“应以时间戳差值计算剩余时间，而非累加计时”，实现与自述矛盾。
-- 方案：保存 `startedAt` + `remainingAtStart`，`tick` 用时间戳算剩余；`visibilitychange` 时立即刷新。
-- 假工具：否
-
-### IT-N482 — typing-test 错字仍标绿，错误反馈与准确率自相矛盾（中）
-- 页面：`tools/it/typing-test.html`
-- 行号：`tools/it/typing-test.html:438`（类别判定）、`:42-43`（从未被应用的 `.char.wrong`）、`:459-463`（错误计数）
-- 问题：`renderText()` 只按位置判断 `i < pos ? 'correct'`，从不比较 `input[i]` 与 `text[i]`；全站没有任何代码添加 `wrong` 类。
-- 复现：任取一段文本，第 2 个字符故意打错（`abc` 输成 `axc`）→ 实际第 1、2 个字符均为绿色 `.correct`，页面无任何红色；结果卡准确率却显示 66.7%。
-- 期望：`i < pos` 且字符不相等时给 `.wrong`（红底），与错误计数一致。
-- 影响：用户看不到错在哪，练习反馈失效；CSS 里的错字样式成了死代码。
-- 方案：`renderText(input)`，类别改 `i < pos ? (input[i] === text[i] ? 'correct' : 'wrong') : ...`。
-- 假工具：否
-
-### IT-N483 — convert-11 非法段/非整数输入通过校验并静默输出错误值（中）
-- 页面：`tools/it/convert-11.html`
-- 行号：`tools/it/convert-11.html:168`（`calc()` 单行体，含 `ps.some(...)` 与 `parseInt(v,10)`）
-- 问题：点分校验 `x === '' || +x < 0 || +x > 255` 对 `NaN` 两个比较均为 false，任一段写成非数字即放行，`reduce` 得 `NaN`：`to=bin` → `toBin32(NaN)` 全 0、`to=dot` → `0.0.0.0`、`to=dec` → 字符串 `NaN`。十进制分支 `parseInt(v,10)` 只判范围，`1e3`→1、`12.9`→12、`0x10`→0。
-- 复现（`node` 复刻页面原函数逐条实跑）：`from=dot, "1.2.3.x", to=dot` → 实际 `0.0.0.0`；`from=dot, "1a.2.3.4", to=bin` → 实际 `00000000.00000000.00000000.00000000`；`from=dec, "1e3", to=dot` → 实际 `0.0.0.1`；`from=dec, "12.9", to=dot` → 实际 `0.0.0.12`。
-- 期望：非法 IPv4 提示“IPv4 格式无效”；十进制仅接受 `/^\d+$/` 且 0–4294967295 的整数（`1e3`→1000 或拒绝，`12.9`/`0x10` 拒绝）。
-- 影响：用户以为转换成功，实际得到 0.0.0.0/截断值；`0.0.0.0` 还能通过 `__convert_11ResText` 的 NaN 过滤进入历史与导出。
-- 方案：每段加 `/^\d{1,3}$/` 且 `Number.isInteger`、0–255；十进制先 `/^\d+$/` 再 `Number()`。
-- 假工具：否
-
-### IT-N484 — cpp-cheatsheet「函数重载」示例与默认参数冲突，add(1) 编译歧义（中）
-- 页面：`tools/it/cpp-cheatsheet.html`
-- 行号：`tools/it/cpp-cheatsheet.html:365`
-- 问题：示例同时给出 `int add(int a, int b = 0)` 与 `int add(int a)`，并调用 `add(1);`；两个候选对 1 个实参的转换序列完全相同 → 歧义。
-- 复现：`printf 'int add(int a,int b=0){return a+b;}\nint add(int a){return a+1;}\nint use(){return add(1);}' > /tmp/x.cpp && clang++ -std=c++20 -fsyntax-only /tmp/x.cpp` → 实际 `error: call to 'add' is ambiguous` 并列出两候选；`add(1,2)` 正常。
-- 期望：示例可编译（删掉单参重载，或去掉默认参数）。
-- 影响：标为“重载”的示例复制后直接编译失败；默认参数+重载本就是常见误区，示例反而示范了错误写法。
-- 方案：`int add(int a, int b)` 与 `int add(int a)`，或保留默认参数时删掉单参版本。
-- 假工具：否
-
-### IT-N485 — typescript-cheatsheet 非空断言示例对 Element 取 .value，类型检查报错（中）
-- 页面：`tools/it/typescript-cheatsheet.html`
-- 行号：`tools/it/typescript-cheatsheet.html:520`（同页 `:512` 已给出正确写法 `as HTMLInputElement`）
-- 问题：`let el = document.querySelector("#x"); el!.value;` 中 `el` 为 `Element | null`，`!` 只去 null 不去 `Element`，`Element` 上没有 `value`。
-- 复现：粘入 `.ts`、`strict` 下 `tsc --noEmit` → 实际 `TS2339: Property 'value' does not exist on type 'Element'`；期望通过（`document.querySelector<HTMLInputElement>("#x")!.value`）。
-- 影响：页面教“非空断言”，示例本身类型却不通过，用户会误以为 `!` 能解决类型不匹配。
-- 方案：`let el = document.querySelector<HTMLInputElement>("#x"); el!.value;`。
-- 假工具：否
-
-### IT-N486 — ruby/cpp/typescript 速查示例用 `--` 作注解，复制粘贴即运行报错（中）
-- 页面：`tools/it/ruby-cheatsheet.html`、`tools/it/cpp-cheatsheet.html`、`tools/it/typescript-cheatsheet.html`
-- 行号：`ruby-cheatsheet.html:280`、`:288`、`:304`；`cpp-cheatsheet.html:365`、`:413`、`:429`；`typescript-cheatsheet.html:392`、`:408`、`:424`
-- 问题：这三门语言没有 `--` 注释（Ruby 用 `#`、TS/C++ 用 `//`），但 `.cmd-example` 把示例与注解放同一文本节点，`copyCode()` 复制整块，注解随代码一起进剪贴板。
-- 复现：复制 ruby `p [1, 2, 3]  -- inspect` 运行 → 实际 `TypeError: no implicit conversion of String into Array`（:280）；复制 `PI = 3.14  -- 常量大写` → 实际 `NameError: undefined local variable or method '常量大写'`（:288）。TS/C++ 的 `-- 推断/重载` 同理报未声明标识符/不可赋值。
-- 期望：复制出的示例可直接运行。
-- 影响：一键复制的主要用途（带走代码）产出不可执行文本。
-- 方案：注解改用目标语言注释符（`#` / `//`），不要指望用户手工删注解。
-- 假工具：否
-
 ### 覆盖清单（X 批 IT 速查/工具）
 - `git-commands`：低优备注：`git cherry-pick`（:370/:422）与 `git bisect`（:407/:424）各重复一条，使分类计数与表格总数虚增 2。
-- `pomodoro`：IT-N480、IT-N481（中）；无高优（模式切换、时长设置、图表/统计渲染主流程可跑）。
+- `pomodoro`：无剩余高优/中优缺陷（IT-N480/N481 已改为时间戳计时与跳过不落账，第181批销账；模式切换、时长设置、图表/统计渲染主流程可跑）。
 - `convert-11`：IT-N483（中）；其余主路径正确（`192.168.1.1 ↔ 3232235777 ↔ 11000000.00000000.00000001.00000001`，`4294967295 ↔ 255.255.255.255 ↔ 全 1` 均对齐）。
-- `typescript-cheatsheet`：IT-N485、IT-N486（中）；无高优（泛型/工具类型/`keyof` 等示例经核对正确）。
+- `typescript-cheatsheet`：示例注解已全改 `//`、非空断言示例带 `<HTMLInputElement>` 泛型（IT-N485/N486，第177批）；无高优（泛型/工具类型/`keyof` 等示例经核对正确）。
 - `typing-test`：IT-N482（中）；无高优（WPM/准确率公式正确，中文按字/分、英文按 5 字符/词，历史与图表取数正确）。
-- `cpp-cheatsheet`：IT-N484、IT-N486（中）；无其它高优（`constexpr` 阶乘、`std::optional`、模板示例经核对正确）。
-- `ruby-cheatsheet`：IT-N486（中）；无高优（搜索/分类/复制/图表逻辑正常，块/Proc/Lambda 示例正确）。
+- `cpp-cheatsheet`：示例注解已全改 `//`（IT-N484 第176批 + IT-N486 第177批）；无其它高优（`constexpr` 阶乘、`std::optional`、模板示例经核对正确）。
+- `ruby-cheatsheet`：示例注解已全改 `#`（IT-N486，第177批）；无高优（搜索/分类/复制/图表逻辑正常，块/Proc/Lambda 示例正确）。
 - `postgresql-cheatsheet`：无高优/中优（`--` 在 SQL/psql 中是合法注释；`psql` 元命令、DML/DDL、JSONB、`pg_dump -Fc` 与 `pg_restore -j` 组合均与官方文档一致——`-j` 明确支持 custom 与 directory 两种格式）。
 - 安全：本批 8 页未发现可利用的安全问题（唯一 HTML 拼接点是 `git-commands` 的静态 `COMMANDS` 与搜索文本匹配，不写入 `innerHTML`；`typing-test` 历史渲染的 localStorage 内容仅在同源自污染范围内，不计）。
 - 方法声明：逐页通读 8 页源码；在 `/tmp` 用 `node` 抽取 `git-commands` 的 `COMMANDS` 并对 58 条内联 `onclick` 逐一 `new Function` 编译、用 `python3 html.parser` 验证属性换行保留；用 `node` 复刻 `convert-11` 的 `calc()`/`toBin32()` 逐输入实跑；用 `clang++ -std=c++20 -fsyntax-only` 编译重载示例；用 `ruby`/`ruby -c` 实跑 `--` 注解示例；用真实 `git update-ref` + `git switch` 复现远程分支错误。**未开浏览器、未跑 `_build.py`/`run_gates.py`、未做线上验证**；未修改任何工具页、代码或构建产物，仅在本审计日志追加本节。
@@ -2847,7 +2332,7 @@
 ## Z 批 · IT 校验/速查（2026-11-04）
 
 **逐页结论（8 页，均通读 HTML 与全部内联 JS）**
-- `tools/it/password-strength.html`：熵、字符集、检查项与破解时间均实时计算；但三档破解时间标签与实际速率不符，且「强度等级」用 6 项清单评分，未按公式声明的熵阈值判读。
+- `password-strength`：IT-N536 三档破解速率标签与除数已在 HEAD 修正（注释「标签与除数必须一致」；熵52 实测在线1个月/GPU 12小时/超算1小时），IT-N537 熵判读按 <40/<60/<120 单列显示且与 6 项清单等级并存，IT-N538 弱点提示在位；第214批真机 20/20 补证据销账，缺陷态注入（改错除数/阈值/去掉片段检查）18/20 与 19/20。本批未改源码。
 - `tools/it/python-cheatsheet.html`：搜索、分类、柱状图与明细表均遍历 `COMMANDS` 生成，可用；15 条示例用 Python 非法的 `--` 注释，复制即语法错误。
 - `tools/it/redis-cheatsheet.html`：常用命令、数据结构、事务、Stream、Lua 条目覆盖完整；4 条示例的 `-- 注解` 会被 redis-cli 当作参数，复制执行报错。
 - `tools/it/rust-cheatsheet.html`：条目筛选、分类统计正常；5 条示例用 `--` 注释、2 条用 `...` 占位，且部分片段缺少上下文，复制不可编译。
@@ -2873,7 +2358,7 @@
 
 - `tools/it/text-qr.html`：2 条（IT-N550 高、IT-N551 中）。页面能画出定位图形，但数据区是伪随机噪声，text 只当种子，不是二维码编码；承诺的尺寸/容错/配色与 PNG/SVG 下载均无控件。
 - `tools/it/tmux-cheatsheet.html`：2 条（IT-N552、IT-N553 中）。39 条速查与搜索/分类/图表均可用；问题在示例与参数说明的可复制性。
-- `tools/it/unicode-lookup.html`：3 条（IT-N554–IT-N556 中）。逐字符码点浏览、UTF-8/UTF-16 换算与区段遍历正确；码点/名称检索未实现、名称字段写死、特定字符的复制按钮失效。
+- `unicode-lookup`：IT-N554 码点/名称检索、IT-N555 内置 1342 条标准名称表、IT-N556 复制按钮走 `data-code` 均由其他 Agent 修好且在 HEAD，清单漏销账，第212批补真机证据销账：U+2603/0x1F600 各出 1 张卡、`snowman` 名称命中、1342 条名称表、表外 CJK 推导与未收录标注、引号/emoji 按字符本体复制；缺陷态注入对照 4/14（10 项红）。本批未改源码。
 - `tools/it/username-generator.html`：1 条（IT-N557 中）。词根随机组合、数字/下划线/Leet/前缀与长度截断可运行，输出经 `escapeHtml`；「风格」承诺无对应控件。
 - `tools/it/xxtea.html`：2 条（IT-N558 高、IT-N559 中）。加解密算法本体正确（node 复刻 1–255 字节逐长度往返一致）；缺陷在长度字只取低 8 位导致长文本解密截断，以及超长密钥静默丢弃。
 
@@ -3048,10 +2533,10 @@
 | 页面 | 实现方式 | 可逆或可验证 | 结论 |
 |---|---|---|---|
 | `tools/it/regex` | 原生 RegExp：Worker 内 `new RegExp(p,f)`，替换同引擎（`:850-877`） | 同构造可验证 | 核心匹配/分组/替换正确；既有 N253/N254 仍在 |
-| `tools/it/regex-cheatsheet` | 纯查表：静态 `COMMANDS` 数组 + 过滤（无执行） | 仅内容正确性 | 检索可用；含 JS 不支持语法 |
-| `tools/it/regex-common` | 查表（8 条类别常量）+ 原生 RegExp 逐类执行 | 给定类/文本可验证 | 类别下拉为空，8 类仅 email 可达 |
+| `tools/it/regex-cheatsheet` | 纯查表：静态 `COMMANDS` 数组 + 过滤（无执行） | 仅内容正确性 | 检索可用；JS 不支持语法已显式标注（IT-D30，第170批） |
+| `tools/it/regex-common` | 查表（8 条类别常量）+ 原生 RegExp 逐类执行 | 给定类/文本可验证 | 8 类下拉已实装并可切换（IT-D27，第169批） |
 | `tools/it/regex-escape` | 自写逐字符映射转义/反转义，不走 RegExp | 部分可逆 | 转义正确；反转义吞类别转义 |
-| `tools/it/regex-visualizer` | 自写逐字符 tokenizer + 线性「状态」列表（非 AST/NFA），仅 `new RegExp` 校验合法性 | 合法性可验证；结构不可逆 | 承诺的树状层级未实现 + DOM XSS |
+| `tools/it/regex-visualizer` | 递归下降解析 AST 树 + 保留线性状态链；`new RegExp` 校验合法性 | 树结构可验证、状态链可复算 | AST 层级已实装且双路径转义（IT-D28，第171批）；铁路图样式仍未实现 |
 
 ### 独立实现 vs 共享实现
 
@@ -3062,19 +2547,16 @@
 ### 逐页结论
 
 - **regex**：默认 `\d+`/`g`/含 123、456、8888、9999 的文本 → 4 条匹配正确；`escapeHtml` 覆盖全部输出（`:547/566/578/602/642`），无 XSS；`:727` 早于 `#rx-worker-src`（`:850`）调用，首屏短暂显示「组件未加载」（IT-N252 的超时部分已修，双跑仍成立）。
-- **regex-cheatsheet**：纯查表；`\A \Z` 在 JS 中是字面 A/Z（node：`/\AHello/` 命中「AHello」）；`[:alpha:]` 为 POSIX 语法，JS 不支持且未注明（IT-D30）。
-- **regex-common**：默认文本 4 token、`cat` 为空 → fallback email → 2 条；结果本身对，但类别选择器 `select` 无任何 `<option>`，8 类仅 email 可达（IT-D27）。
+- **regex-cheatsheet**：纯查表；`\A \Z` 与 `[:alpha:]` 两条 params 已标注「JS 不支持」及适用引擎（IT-D30，第170批）；检索/分类/复制逻辑不变。
+- **regex-common**：类别选择器已补齐 8 个 option 并可切换（IT-D27，第169批）；默认 email，8 类均可达，结果与原高亮/偏移明细逻辑不变。
 - **regex-escape**：默认 `Hello (World)? [a-z]+ $19.99` → `Hello \(World\)\? \[a-z\]\+ \$19\.99` 正确；反转义 `\d+\w`→`d+w`（IT-D29）。
-- **regex-visualizer**：默认 `^a[0-9]+b$` → 10 token / 12 状态直线（node 复算），与「树状、分组/量词/字符类层级」不符（IT-D28）。
+- **regex-visualizer**：递归下降 AST 树已实装（分支/分组类型/量词/字符类/锚点层级，第171批），默认 `^a[0-9]+b$` 仍输出 10 token / 12 状态线性链作为附加视图；AST 与状态链双路径均经 escapeHtml（IT-N348 回归保持）。
 
 ### 问题清单（新增）
 
 | 编号 | 页面:行 | 级别 | 问题与期望值 |
 |---|---|---|---|
-| IT-D27 | `tools/it/regex-common.html:127,269,323,333` | 高 | `<select id="cat"></select>` 全文件 0 个 `<option>`，`getElementById('cat').value\|\|'email'` 恒取 email → 手机/URL/IPv4/日期/身份证/用户名/中文 7 类永不生效。期望构建 8 个 option 并随选切换（默认文本下任何选择都只出 abc@example.com、test@mail.cn） |
-| IT-D28 | `tools/it/regex-visualizer.html:250-266,283-285` | 高 | `buildStates` 每个 token 建 1 状态并首尾串联，无分支、无分组/量词/字符类嵌套；默认 `^a[0-9]+b$` 得直线而非树。期望真实 AST/NFA 树渲染 |
 | IT-D29 | `tools/it/regex-escape.html:310` | 中 | `default: out += n` 丢弃反斜杠：`\d+\w`→`d+w`、`\b`→`b`、`\s`→`s`，反转义后正则语义反转。期望保留 `\d \w \b \s \p{…}` 原样 |
-| IT-D30 | `tools/it/regex-cheatsheet.html:419-424,582-584` | 中 | `\A \Z` 标「字符串首/末」，JS 无此锚点；`[:alpha:]` 为 POSIX，JS 不支持且未注明引擎。期望标注 JS 不支持或删除 |
 
 ### 统计
 
@@ -3090,14 +2572,14 @@
 | 页面 | 实现方式 | 可逆或可验证 | 结论 |
 |---|---|---|---|
 | `tools/office/pdf-merge` | pdf-lib@1.17.1 `copyPages` + `save` | node 实测 2+3 页合并成 5 页、尺寸正确 | 真处理；加密文件预检有缺陷 |
-| `tools/office/pdf-split` | pdf.js 渲染缩略图 + pdf-lib 提取页 | 页数/旋转/顺序可验证 | 真提取；只产 1 个文件、强制升序 |
+| `tools/office/pdf-split` | pdf.js 渲染缩略图 + pdf-lib 提取页 | 页数/旋转/顺序可验证 | 真提取；range 按填写顺序（IT-D35，第173批）、历史回填不下载（IT-D36，第174批）；只产 1 个文件仍留存 |
 | `tools/office/pdf-rotate` | pdf.js 预览 + pdf-lib `setRotation`/`save` | node 回读角度 [90,270] 正确 | 真处理，未发现缺陷 |
 | `tools/it/pdf-signature-checker` | 自读字节 + 正则匹配 `/ByteRange`、`/Contents` | 构造字节可验证 | 只判签名存在，无密码学验签 |
 | `tools/it/properties-parser` | 自写逐行扫描 + 转义还原 | node 7 组用例 | 真解析；CRLF/`\u`/续行有错 |
-| `tools/it/ini-parser` | 自写 `indexOf('=')` 逐行解析 | node 7 组用例 | 真解析；不支持 `:` 与无值键 |
+| `tools/it/ini-parser` | 自写 `indexOf('=')` 逐行解析 | node 7 组用例 + JSDOM 7 组 | 真解析；无值键已修（IT-D40，第168批），`:` 分隔仍不支持 |
 | `tools/it/curl-parser` | 正则分词 + 选项表 | node 9 组命令 | 真解析；续行/转义/urlencode 有缺陷 |
 | `tools/it/plist-parser` | 原生 `DOMParser` 解析 XML plist | 默认 SAMPLE 可验证 | 真解析（binary plist 明确不支持） |
-| `tools/it/user-agent-parser` | 正则抽取浏览器/引擎/OS/设备 | UA 用例可复现 | 覆盖不足（微信、CriOS 等） |
+| `tools/it/user-agent-parser` | 正则抽取浏览器/引擎/OS/设备 | UA 用例可复现 | 微信/百度爬虫已补（IT-D41，第172批）；CriOS/FxiOS/Samsung 既有规则已在位 |
 
 ### 独立实现 vs 共享实现
 
@@ -3108,30 +2590,22 @@
 ### 逐页结论
 
 - **pdf-merge**：真实合并并正确转义文件名；加密 PDF 预检用 `ignoreEncryption` 判为可用，`copyPages` 不解密 → 与「跳过并继续」承诺不符（IT-D32）。
-- **pdf-split**：真实提取、真实缩略图；但只产 1 个 PDF、结果强制升序，与「拆成多个文件」「按填写顺序」矛盾（IT-D34/IT-D35）；历史回填触发下载（IT-D36）。
+- **pdf-split**：真实提取、真实缩略图；range 模式已按填写顺序解析（IT-D35，第173批），缩略图勾选模式仍按自然升序；历史回填只恢复输入、不再触发下载（IT-D36，第174批）；只产 1 个 PDF（IT-D34）仍留存。
 - **pdf-rotate**：真旋转，预览叠加差值、写入绝对角度，回读一致，本轮无缺陷。
 - **pdf-signature-checker**：仅检测签名存在；文件头 `%PDF-49.46` 恒不匹配判红（既有 `it.md:2582`）、字节数算式错（既有 `:2588`）、PKCS#7 验签承诺未实现（既有 `:2593`）。
-- **properties-parser**：核心扫描正确；CRLF 的 `\r` 留在每个值尾（IT-D33）、`\uXXXX` 不解码（既有 `:140`）、行尾 `\\` 当续行（既有 `:141`）。
-- **ini-parser**：节/注释/重复键正常；`:` 分隔与无值键不支持（IT-D39/IT-D40）。
-- **curl-parser**：`-d`→POST、选项值消费、输出转义已修到位；末行续行 `\` 被当 URL（IT-D31）、`--data-urlencode` 不编码（IT-D37）、双引号内 `\"` 未反转义（IT-D38）。
+- **properties-parser**：核心扫描正确；CRLF/裸 CR 换行已修正（IT-D33，第167批）；`\uXXXX` 不解码（既有 `:140`）、行尾 `\\` 当续行（既有 `:141`）仍留存。
+- **ini-parser**：节/注释/重复键正常；无值键（裸布尔标志）已保留为空串（IT-D40，第168批）；`:` 分隔仍不支持（IT-D39）。
+- **curl-parser**：`-d`→POST、选项值消费、输出转义、`--data-urlencode` 百分号编码（IT-D37，第164批）、双引号内 `\"` 反转义（IT-D38，第165批）、反斜杠续行折叠（IT-D31，第166批）均已修到位；本批无其它残留项。
 - **plist-parser**：XML 真解析，dict/array/integer/real/bool 正确；`data`、`date` 原样返回（既有）。
-- **user-agent-parser**：Chrome/Safari/Edge/Firefox/Googlebot 正确；微信 UA 归为 Chrome、CriOS/FxiOS 归「未知」（IT-D41 / 既有 IT-N65）。
+- **user-agent-parser**：Chrome/Safari/Edge/Firefox/Googlebot 正确；CriOS/FxiOS/Samsung 既有规则已在位（清单旧描述过时）；微信（MicroMessenger/）与百度爬虫（Baiduspider）已补规则（IT-D41，第172批），微信含 Chrome/ 时优先判微信。
 
 ### 问题清单（新增）
 
 | 编号 | 页面:行 | 级别 | 问题与期望值 |
 |---|---|---|---|
-| IT-D31 | `tools/it/curl-parser.html:339` | 高 | URL 位于末行且上游用 `\` 续行时，`\` 被当作 URL：实测 `url:"\\"`，期望 `https://api.example.com/users`（node 复刻分词与主循环） |
 | IT-D32 | `tools/office/pdf-merge.html:512,703` | 高 | `loadPageCount` 用 `ignoreEncryption` 使加密文件列为可用；`copyPages` 不解密 → 整体抛错或输出空白，与 `:349,:391`「跳过并提示、不影响其余」矛盾。期望单文件标 error 后 `continue`（node 加载同版本 pdf-lib：正常 2+3 页合并成功，`copyPages` 无加密检查） |
-| IT-D33 | `tools/it/properties-parser.html:258,298` | 高 | 只按 `\n` 切行，CRLF 的 `\r` 留在值尾：`a=b\r\nc=d\r\n` → `{"a":"b\r","c":"d\r"}`，期望 `"b"/"d"`（node 复刻 `parseProps`） |
 | IT-D34 | `tools/office/pdf-split.html:568,455-466` | 假 | 宣称「拆分 PDF 为多个小文件」「段数=ceil(总页数/每段页数)」「文件数=段数」，实际无「每段页数」输入且只产出 1 个 PDF |
-| IT-D35 | `tools/office/pdf-split.html:907` | 中 | 强制 `sort` 升序：`7-10,1` → `[1,7,8,9,10]`，与 `:480,:519`「按填写顺序」矛盾（pdf-lib 本身保序） |
-| IT-D36 | `tools/office/pdf-split.html:1170` | 中 | 历史记录回填后直接调 `downloadResult()`：有缓存则莫名下载，无缓存弹「开始下载」错误提示 |
-| IT-D37 | `tools/it/curl-parser.html:257,173` | 中 | `--data-urlencode` 映射为普通 data、不做编码：`q=a b` 期望 `q=a%20b`（页面表格自述 percent-encodes） |
-| IT-D38 | `tools/it/curl-parser.html:357` | 中 | `trimQuote` 只剥外层引号，双引号内 `\"` 未反转义：data 为 `{\"name\":\"a\"}`，期望 `{"name":"a"}` |
 | IT-D39 | `tools/it/ini-parser.html:275` | 中 | 只认 `=`：`[s]` + `host: localhost` → `{}`，期望 `{"s":{"host":"localhost"}}`（页面称「= 或 : 分隔」） |
-| IT-D40 | `tools/it/ini-parser.html:275` | 中 | 无值键整行丢弃：`[s]` + `flag` → `{}`，期望 `{"s":{"flag":""}}` |
-| IT-D41 | `tools/it/user-agent-parser.html:316` | 中 | 微信 UA（`MicroMessenger/8.0.40 … Chrome/116`）判为 `Chrome 116`，无微信规则；`Baiduspider` 浏览器为「未知」（设备已判爬虫） |
 
 ### 统计
 
