@@ -118,7 +118,7 @@
      <h2 data-zh="🔤 文字 Favicon">🔤 Text Favicon Generator</h2>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">畫布邊長 = size（下限 16，預設 64）；字號 = size × 0.55（bold），文字中心 = (size ÷ 2, size ÷ 2 + size × 0.04)；圓角 &gt; 0 時用四段二次貝塞爾繪製圓角矩形路徑再填充，為 0 時直接填充整幅；三檔預覽圓角與字號均按畫布比例等比縮放（16 / 64 / 128 px 檔分別取 radius ÷ size × 檔位邊長、字號 × 0.55），最終 toDataURL 匯出 PNG</div>
-  <div class="formula-desc">把文字或字母渲染為方形圖示（可調字型、字號與配色）並匯出多尺寸 PNG / ICO；適合無 Logo 的小站快速獲得品牌標識。</div>
+  <div class="formula-desc">把文字或字母渲染為方形圖示（可調字型、字號與配色）並匯出 PNG；適合無 Logo 的小站快速獲得品牌標識。</div>
 </div>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="輸入文字或字母，生成簡潔的文字型網站圖示（favicon），支援配色與字型調節，便於小站點快速獲得品牌標識。">Type a letter or a short text to build a clean text-based favicon with adjustable colours and fonts for a quick brand mark.</p>
 
@@ -132,7 +132,7 @@
     <div class="toolbar">
       <button type="button" class="btn primary" onclick="generate()">生成</button>
       <button type="button" class="btn success" onclick="copyResult()">複製 Data URL</button>
-      <div id="favicon_from_textPresets"></div><button type="button" class="btn" onclick="downloadImg()">下載 ICO/PNG</button><button class="btn" type="button" onclick="__favicon_from_textExport()">匯出明細 CSV</button>
+      <div id="favicon_from_textPresets"></div><button type="button" class="btn" onclick="downloadImg()">下載 PNG</button><button class="btn" type="button" onclick="__favicon_from_textExport()">匯出明細 CSV</button>
     </div>
     <label>預覽</label>
     <div class="result-box" id="output"><div class="preview-area" id="preview">點選生成按鈕</div></div> <div id="favicon_from_textTable"></div> <div id="favicon_from_textDiff"></div> <div id="favicon_from_textChart"></div> <div id="favicon_from_textHist"></div>
@@ -217,6 +217,14 @@
 </div>
 <script>
 let lastURL = '';
+let __favTextLastSig = '';
+function __favTextSig(){
+  try{return [document.getElementById('text').value, document.getElementById('bgColor').value, document.getElementById('textColor').value, document.getElementById('size').value, document.getElementById('radius').value].join('|');}catch(e){return '';}
+}
+function __favTextStale(){
+  if(__favTextSig() !== __favTextLastSig){ return ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'Parameters changed, regenerate first':'参数已变更，请重新点「生成」再下载'); }
+  return '';
+}
 function generate(){
   const text = document.getElementById('text').value || 'T';
   const bg = document.getElementById('bgColor').value;
@@ -258,13 +266,16 @@ function generate(){
     <div class="favicon-preview large" style="background:${bg};color:${tc};border-radius:${radius*128/size}px;font-size:70.4px;">${text}</div>
     <img src="/zh-tw/tools/design/${lastURL}" alt="Favicon" style="width:64px;height:64px;">
   `;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('preview').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('preview').innerHTML=__h0;
+  __favTextLastSig = __favTextSig();
 }
 function downloadImg(){
+  const __st=__favTextStale(); if(__st){ lastURL=''; alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'Generate first':'请先生成')); return; }
   if(!lastURL){ alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Generate first":"请先生成")); return; }
   const a = document.createElement('a');
   a.href = lastURL; a.download = 'favicon.png'; a.click();
 }
 function copyResult(){
+  const __st=__favTextStale(); if(__st){ lastURL=''; alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'Nothing to copy':'无内容可复制')); return; }
   if(!lastURL){ alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Nothing to copy":"无内容可复制")); return; }
   navigator.clipboard.writeText(lastURL).then(() => alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Copied Data URL":"已复制 Data URL")));
 }
