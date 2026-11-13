@@ -122,12 +122,6 @@
 
 ## 2026-11-03 续查（并行批 J）
 
-### D-N19 PNG 转 SVG 阈值 0 被代换为 128、负块宽生成非法 SVG，换图后仍复制旧结果（中，确认函数缺陷，三个问题）
-- 问题：① `parseInt(...) || 128` 把合法的 `0` 当作空值换成 128，用户想保留全部像素却得到大量透明格被跳过；② 块大小同样用 `|| 8`，负值 `-5` 能通过，`Math.max(1, floor(w/block))` 把网格压成 1，但输出宽高仍用 `w*block`，得到负值；③ `lastSVG` 只在生成成功时覆盖，换图或改参数后不失效，直接点「复制 SVG」会拿到上一张的结果。
-- 证据：`tools/design/png-to-svg.html:258-259`（`||8` / `||128`）、`:264-265`（网格下限 1）、`:280`（`width="${w*block}"`）、`:253`（`lastSVG` 初值，全文无清空）、`:288-290`（复制只判非空）、`:160-163`（`min/max` 未参与脚本）。node 内存复算：`alphaTh=0` → 实际按 128；`block=0` → 8，`block=-5` → -5；100px 原图配 `block=-5` → 网格 `w=1`、输出宽 `-5`（`<svg width="-5">`）；`block=8.7` → `parseInt` 得 8。
-- 影响：`tools/design/png-to-svg.html`；阈值 0 场景输出严重缺块、非法 SVG 在部分浏览器/编辑器打不开，换图复制则把上一张的矢量交给用户。
-- 方案：用 `Number.isNaN` 显式判空而非 `||`；块大小限定正整数并在越界时回写/提示；换图、改块大小或阈值时清空 `lastSVG`、清空代码框并禁用复制，直至重新生成。
-
 ### D-N23 翻转依赖异步 `currentImg`，快速连点两次不能还原（中，待验证）
 - 问题：`flip()` 在点击时读取 `currentImg`，但 `currentImg` 只在下一次生成图片的 `newImg.onload` 回调里更新；若第二次点击早于回调，两次都基于 `origImg` 生成同一张单次翻转图，页面「重复翻转两次应完全还原」的说明不成立。
 - 证据：`tools/design/image-flipper.html:265-266`（读取 `currentImg || origImg`）、`:280-282`（`newImg.onload` 才赋值 `currentImg`）、说明表 `:230-234`。源码路径推演：连点「水平翻转」两次 → 第一次 `lastURL` 生成水平镜像，第二次仍在 `onload` 前读到 `origImg` → 覆盖为同一张水平镜像，而非原图。Canvas 与回调时序未在浏览器实测，故列待验证。
@@ -250,19 +244,6 @@
 - 复现：复制得到 `.ripple-container`/`.ripple`/keyframes，但没有任何创建涟漪元素的脚本；粘进项目后点击无反应。
 - 影响：复制产物不可独立工作，与「导出 CSS / JS」承诺不符。
 - 方案：增加 JS 输出片段（事件委托 + 创建 span），或把文案改为「复制 CSS」。
-
-### D-N97 pixel-art 历史恢复重置网格、不保留用户绘制（中，残留）
-
-- 现状（第325批核验）：点击上色已实时刷新字符画——`_px` 写回 `window.__pxGrid` 并调 `refreshArt()` 重建 `<pre>`，原“字符画不随点击更新”已不成立；格子用 `.px-cell` class 选择，容器不再误选（D-N96 已修）。
-- 残留问题：历史快照 `__pixel_art_generatorSnap` 仅保存输入项（gs/color/mode），不含网格数据；历史恢复调 `calcTool()` 重建空网格，用户绘制内容丢失。
-- 影响：`tools/design/pixel-art-generator.html`；历史回看无法还原当时绘制的像素画。
-- 方案：快照序列化 `window.__pxGrid` 并在恢复时写回、刷新画布与字符画；留待专门批次处理。
-
-### D-N100 checkerboard 透明底预设仍带 #ffffff、名不副实（残留）
-
-- 问题：预设「透明底导出棋盘（16px）」实际 CSS 仍为 `background-color:#ffffff`，无法作透明底使用（「格数 / 导出图片」文案已于第329批改为「可调格子大小 / 可复制 CSS 代码」）。
-- 证据：`tools/design/checkerboard-generator.html:395`（预设「透明底」用 `#ffffff`）。
-- 方案：透明预设改 `background-color: transparent`。
 
 ### 留存/优势建议（逐页，具体可落地）
 
@@ -545,22 +526,6 @@
 - 复现：查 Tailwind v4 主题变量 → `--color-blue-500`；页面给出 `--tw-blue-500`，复制到 CSS 中变量不存在。
 - 影响：`tools/design/tailwind-colors.html` 输出错误参考值。
 - 方案：改为 `--color-${name}-${level}` 并标注适用 v4；或删掉该行只保留 `bg-/text-/border-` 类。
-
-### D-N145 pixel-art 应用画布模板不写入历史，撤销后无法重做回模板（中，确认源码缺陷）
-
-- 问题：`__paApplyTemplate` 先 `saveHistory()`（保存「应用前」快照）再改写 `pixels`；模板结果本身从未入栈。撤销可回到应用前，但 redo 只能回到同一张应用前图，模板丢失。
-- 证据：`tools/design/pixel-art.html:863-880`（`:870` 先 saveHistory、`:871-877` 后写像素）、`:582-587`（saveHistory 推入当前快照）、`:598-604`（redo 读取 history）。
-- 复现：空白画布 → 点「❤️ 爱心」→ 撤销（回到空白，符合预期）→ 重做 → 仍是空白（期望恢复爱心）；先画几笔再套模板同样无法 redo 回模板。
-- 影响：`tools/design/pixel-art.html` 模板操作历史语义错位，用户误以为模板不可撤销/不可恢复。
-- 方案：先写 `pixels` 再 `saveHistory()`（使模板成为新快照）；或在 saveHistory 后额外 push 模板状态。
-
-### D-N146 pixel-art SEO 简介承诺「一键生成/复制 CSS 代码」，页面无 CSS 输出（中，确认文案与实现不一致）
-
-- 问题：简介写「设计创意工具，可视化操作，一键生成 CSS 代码」，功能特点列「一键复制 CSS 代码」「支持实时预览与调试」；页面只有 Canvas 绘制与 PNG 导出，无 clipboard、无 CSS 文本输出。
-- 证据：`tools/design/pixel-art.html:719`（简介）、`:723-724`（功能特点）、`:729-731`（使用场景还写「快速生成 CSS 效果代码」）；全页无 `clipboard`/CSS 输出，实际导出为 `toDataURL` PNG（`:628`）、按钮「导出原始/放大版」（`:203-204`）。
-- 复现：页面无「复制 CSS」按钮，Ctrl+F「CSS 代码」只命中 `:719`、`:724`、`:731` 三处简介文本。
-- 影响：`tools/design/pixel-art.html` 简介与真实能力不符（与另一页 `pixel-art-generator` 的 D-N98 不同页）。
-- 方案：把简介改为「网格像素绘制、画笔/橡皮/填充/吸管、撤销重做、PNG 导出」，删除 CSS 卖点。
 
 ### D-N148 signature-pad 笔宽滑杆与笔迹预设不更新 `strokeWidth` 变量，画笔恒定 3px（高，确认源码缺陷）
 
