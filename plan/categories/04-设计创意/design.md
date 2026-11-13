@@ -175,12 +175,6 @@
 - 复现：percentScale=-50 → canvas 1×1，无任何报错；清空比例 → 按 100% 原尺寸；customWidth=0 → 不缩放
 - 方案：按 1–1000 校验并提示，负值/0 直接报错；1×1 兜底改为显式失败提示
 
-### D-N39 Favicon 生成器 meta/OG 与公式说明宣称「一键下载 .ico」，实际只导出 PNG（中，确认源码缺陷）
-- 描述：页面 meta description、OG description、公式说明与 deep-dive 四处均写 `.ico` 可下载/可打包，但同页正文与 FAQ 又承认「纯前端无法生成真 ICO」「本工具导出 PNG」，文案自相矛盾且宣称的能力不存在。
-- 证据：`tools/design/favicon-generator.html:10`、`:15`（description「一键下载 .ico 适配各浏览器」）、`:265`（formula-desc「打包为 .ico」）、`:313`（deep-dive「ICO 与 PNG 套装可下载」）对照 `:263`（「纯前端无法生成真 ICO」）、`:689`（FAQ「本工具导出 PNG」）
-- 影响：搜索结果与分享卡片承诺 ICO，用户下载只得到 PNG；信任损耗，且属于对外元数据错误
-- 方案：四处统一改为「导出多尺寸 PNG」；如确需 ICO，前端手写 ICO 容器（PNG-in-ICO 可行）或在页内给出明确的外部转换指引
-
 ### D-N42 SVG 查看器把用户输入原样写入 innerHTML，内嵌事件处理器可执行（高，确认源码缺陷）
 - 描述：`generate()` 只用 `/svg[\s\S]*<\/svg>/i` 判断“像不像 SVG”，随后把整段输入赋给 `preview.innerHTML`；未移除 `on*` 事件属性、`<script>`、`foreignObject` 或外部引用，也没有用沙箱 iframe。通过 innerHTML 插入的 SVG 事件属性会正常注册，`<svg onload="…">` 在解析完成时即执行。页面自己的引据表还写着「SVG 可内嵌脚本，外部文件须隔离渲染以防注入」，实现与声明相反。
 - 证据：`tools/design/svg-viewer.html:255-256`（`preview.innerHTML=__h1`）、`:250-262`（无任何清洗）、`:231-233`（OWASP 隔离引据）
@@ -243,30 +237,6 @@
 
 - 范围：`tools/design` 剩余生成器/互动演示 8 页（Favicon 文字、Favicon Emoji、首字母头像、Identicon、Loading Dots、Ripple、像素画、棋盘），逐页通读整份 HTML（内联 JS/CSS 生成逻辑、deep-dive、FAQ），编号续 D-N75。
 
-### D-N78 favicon-from-text 按钮称「下载 ICO/PNG」实际只有单张 PNG，改参数后仍导出旧图（中，确认源码缺陷）
-
-- 问题：页面与说明宣称多尺寸 PNG/ICO，实际 `download='favicon.png'` 单张；输入控件无 `onchange`，改文字/配色后直接下载仍是上一次结果。
-- 证据：`tools/design/favicon-from-text.html:167`（按钮文案）、`:153`（「多尺寸 PNG / ICO」）、`:199`（deep-dive「多尺寸 favicon 可下载」）、`:294`（`a.download='favicon.png'`）、`:158-162`（输入无事件绑定）。
-- 复现：文字 T→AB、底色调绿（不点「生成」）→ 点「下载 ICO/PNG」得到旧 T 红底 `.png`；产物中不存在 `.ico` 或第二尺寸。
-- 影响：SEO/文案承诺与实际产物不符；用户拿到过期图，需再点一次生成才正确。
-- 方案：按钮改「下载 PNG」或真正实现 ICO 打包；输入加 `onchange=generate()`（或下载前强制重绘）。
-
-### D-N81 favicon-from-emoji 宣称多尺寸 ICO/PNG，实际仅单张 PNG；改参数后仍导旧图（中，确认文案与实现不一致）
-
-- 问题：meta/OG/Twitter、公式说明、deep-dive 均写「多尺寸 ICO/PNG」，实现只有 `canvas.toDataURL` 单张 PNG；Emoji/大小/圆角无 `onchange`，改后直接下载仍旧图。
-- 证据：`tools/design/favicon-from-emoji.html:10,15,60`（meta 描述）、`:147`（formula-desc）、`:192`（deep-dive）、`:270-274`（只导 PNG）、`:285`（`favicon-emoji.png`）、`:152-155`（输入无事件）。
-- 复现：emoji 🚀→🔥（不点生成）→ 下载仍是 🚀 的 PNG；任何路径都不产生 ICO 或第二种尺寸。
-- 影响：与 D-N39 同类文案承诺落空；用户拿到过期图。
-- 方案：文案改为「PNG」，或补 ICO/16/32/48 多尺寸打包；输入加 `onchange=generate()`。
-
-### D-N85 initials-avatar 宣称导出 PNG/SVG，实际只有 PNG（低，确认文案与实现不一致）
-
-- 问题：formula-desc 与英文 intro 写「导出 PNG / SVG」，页面没有 SVG 输出、也没有第二个下载入口。
-- 证据：`tools/design/initials-avatar.html:10,15,64`（meta 描述「一键下载 PNG/SVG」）、`:155`（formula-desc）、`:521`（英文 intro「downloadable as PNG or SVG」）、`:325`（`toDataURL('image/png')`）、`:331`（`initials-avatar.png`）。
-- 复现：页面上只有单个「下载」按钮，任何操作都只得到 `.png`。
-- 影响：文案承诺落空，设计场景常用的矢量导出缺失。
-- 方案：补 SVG 导出（圆形/圆角矩形 + `<text>`），或删掉文案中的 SVG。
-
 ### D-N92 ripple-effect 点击预览涟漪的视觉效果待真机确认（高，源码缺陷已于第323批复核不成立；台账 O-4 保留待复核）
 
 - 第323批源码 + JSDOM 复核：点击处理已用内联 `position:absolute / border-radius:50% / background:rgba(...)` 创建 span，并调用 Web Animations（`ripple.animate`）驱动 `scale(0)→scale(4)`、`opacity 1→0`，`dur*1000` 后移除；旧缺陷「`className='ripple'` 无样式、`position:static` 挤开文字」在源码中已不成立。
@@ -281,37 +251,18 @@
 - 影响：复制产物不可独立工作，与「导出 CSS / JS」承诺不符。
 - 方案：增加 JS 输出片段（事件委托 + 创建 span），或把文案改为「复制 CSS」。
 
-### D-N96 pixel-art 点击上色命中错位一格，首个格子命中画布容器（高，确认源码缺陷）
+### D-N97 pixel-art 历史恢复重置网格、不保留用户绘制（中，残留）
 
-- 问题：`querySelectorAll('div[style*="32px"]')` 会把外层画布容器（style 含 `repeat(n,32px)`）也算进集合，容器排在所有格子之前，导致 `cells[0]` 是容器，按 `r*gs+c` 取到的元素整体错位一格（实际涂到左/上一格）。
-- 证据：`tools/design/pixel-art-generator.html:289`（容器 `grid-template-columns:repeat(gs,32px)`）、`:293`（格子 `width:32px`）、`:319`（选择器）、`:320`（`idx=r*gs+c`）。
-- 复现（8×8，node 复算匹配数 = 1+64 = 65）：点 (r=0,c=0) → `idx=0` → 改的是容器背景；点 (r=0,c=1) → `idx=1` → 实际涂到第 0 格。即每次点击都涂到「左/上一格」，首格涂到整块容器。
-- 影响：绘制结果与鼠标位置错位，用户无法精确作画；容器背景被改后可能影响整块画布。
-- 方案：给格子加统一 class（如 `px-cell`）后按 class 选择；或改用 `:scope > div` 过滤容器。
+- 现状（第325批核验）：点击上色已实时刷新字符画——`_px` 写回 `window.__pxGrid` 并调 `refreshArt()` 重建 `<pre>`，原“字符画不随点击更新”已不成立；格子用 `.px-cell` class 选择，容器不再误选（D-N96 已修）。
+- 残留问题：历史快照 `__pixel_art_generatorSnap` 仅保存输入项（gs/color/mode），不含网格数据；历史恢复调 `calcTool()` 重建空网格，用户绘制内容丢失。
+- 影响：`tools/design/pixel-art-generator.html`；历史回看无法还原当时绘制的像素画。
+- 方案：快照序列化 `window.__pxGrid` 并在恢复时写回、刷新画布与字符画；留待专门批次处理。
 
-### D-N97 pixel-art 字符画不随点击更新，重算/历史恢复会清空绘制（中，确认源码缺陷）
+### D-N100 checkerboard 透明底预设仍带 #ffffff、名不副实（残留）
 
-- 问题：`grid` 是 `calcTool` 的局部数组，`_px` 只改 DOM 背景与 `data-c`，不写回 `grid`；字符画一次性由 `grid` 生成。任何重新 `calcTool`（点「计算」或历史恢复）都按预置笑脸重建，覆盖用户绘制。
-- 证据：`tools/design/pixel-art-generator.html:286`（grid 局部初始化）、`:299-303`（art 来自 grid）、`:317-326`（只改 DOM）、`:384`（历史恢复 `calcTool`）。
-- 复现：点几格涂色 → 字符画预览仍是初始笑脸（无新 ■）；点「计算」→ 所有手工涂色被预置图案覆盖。
-- 影响：字符画与实际画布不一致；用户作品无法保留，历史里也没有绘制内容。
-- 方案：把网格状态提到函数外（或读 DOM 的 `data-c` 重建 grid），`_px` 同步更新 grid 并刷新 `<pre>`；历史快照包含网格。
-
-### D-N98 pixel-art 名实不符：无上传/量化/块大小/下载，6 色却称 8 色，且无复制导出（中，确认文案与实现不一致）
-
-- 问题：标题/meta/intro 承诺「导出为字符画或 CSS 代码」；deep-dive 示例描述「上传图片 → 32 色 → 块 12px → 下载像素风图」；说明称「8 种基础色板」「字符画可复制」。实际无 file input、无 canvas、无下载、无复制按钮，调色板只有 6 色，CSS 从未生成。
-- 证据：`tools/design/pixel-art-generator.html:10,13,16`（标题/描述）、`:121`（intro）、`:134`（6 个 option）、`:142-147`（仅计算/CSV/重置）、`:182-186`（deep-dive 上传图/32 色/块大小/下载）、`:227-228`（8 色/可复制）、`:304-315`（结果仅 dataGrid + 网格 + pre）。
-- 复现：全页 grep `type="file"`/`<canvas`/`toDataURL`/`download`/`clipboard` 均 0 命中；选色只有红/橙/绿/蓝/紫/黑 6 项；字符画只能看不能复制。
-- 影响：页面标题与示例引导用户做一件页面做不到的事，属严重名实不符；导出与复制能力缺失。
-- 方案：补 PNG/SVG 导出与「复制字符画」；调色板补到 8 色；或把 deep-dive/说明改成实际支持的绘制流程。
-
-### D-N100 checkerboard 文案承诺「格数」与「导出图片」，实际无格数控件、无图片导出（中，确认文案与实现不一致）
-
-- 问题：标题/描述/meta 反复写「可调格数」「可导出图片」；公式引据描述「SVG pattern、格数决定单元尺寸、单元边长 = 画布边长 / 格数」。实际只有颜色 1/2 + 格子大小三个输入，纯 CSS 平铺，无 canvas/SVG/下载。预设「透明底导出棋盘」也仍带 `background-color:#ffffff`，并不透明。
-- 证据：`tools/design/checkerboard-generator.html:10,14,20`（title/meta）、`:154,156`（formula-desc/intro）、`:222,227`（引据 SVG pattern/画布边长）、`:159-161`（仅 3 个输入）、`:253-255`（只生成 CSS）、`:395`（预设「透明底」用 `#ffffff`）。
-- 复现：页面无「格数」输入、无下载/Canvas 调用；选预设「透明底导出棋盘（16px）」→ CSS 仍为 `background-color:#ffffff`，无法作透明底使用。
-- 影响：SEO 标题与 deep-dive 引导与实际能力不符；透明底预设名不副实。
-- 方案：补「格数/画布尺寸」与 PNG/SVG 导出；或把文案统一改为「可调格子大小、复制 CSS」；透明预设改 `background-color: transparent`。
+- 问题：预设「透明底导出棋盘（16px）」实际 CSS 仍为 `background-color:#ffffff`，无法作透明底使用（「格数 / 导出图片」文案已于第329批改为「可调格子大小 / 可复制 CSS 代码」）。
+- 证据：`tools/design/checkerboard-generator.html:395`（预设「透明底」用 `#ffffff`）。
+- 方案：透明预设改 `background-color: transparent`。
 
 ### 留存/优势建议（逐页，具体可落地）
 
@@ -758,14 +709,6 @@
 - 影响：文案自指，削弱建议可信度。
 - 方案：按当前 bias 选择一句「可切换的对比方案」，并从当前权重最低的维度取示例。
 
-### D-N162 stripe-pattern 宣称「导出图片」，实际只有 CSS 文本与复制，没有任何图片下载（高，确认承诺与实现不符）
-
-- 问题：meta/简介/formula-desc 三处写「纯前端导出图片」「可导出图片」；页面与脚本中没有 canvas、toDataURL、Blob、download、SVG 生成，结果区只有 `#preview` 与只读 `#cssOutput`。
-- 证据：`:10`（meta）、`:154`（formula-desc）、`:156`（简介）、`:177-178`（结果区）、`:259-284`（生成逻辑）、`:171-172`（仅有「导出明细 CSV / 复制 CSS」）。
-- 复现：Ctrl+F `png|download|toDataURL|canvas|Blob` → 0 命中；点遍按钮只能得到 CSS 文本，无法产出可用于包装/印刷的图片。
-- 影响：以「图片导出」获客的页面无法交付承诺物；包装/印刷场景不可用。
-- 方案：补「导出 PNG」（离屏 canvas 绘制 repeating 条纹，尺寸/倍率可选）与「导出 SVG」；同步改文案。
-
 ### D-N164 stripe-pattern 双线型在宽度 <6px 时停点越界，实际周期为 w+6 而非 2×w（低，确认源码/复算缺陷）
 
 - 问题：双线型停点 `w+6` 与末点 `w*2` 在 w<6 时逆序；CSS 会把小于前值的停点抬到前值，末段 c2 变成零宽，重复周期变成 `w+6`，与 formula-eq 写的「色二 宽度+6→2×宽度」自相矛盾。
@@ -773,14 +716,6 @@
 - 复现（node）：w=2 停点 `0,2,2,5,5,8,8,4` → 末点被抬到 8，周期 8；w=5 停点 `0,5,5,8,8,11,11,10` → 周期 11。期望周期 4/10。
 - 影响：窄条纹下预览与说明不一致，按公式推算会错。
 - 方案：四个停点按宽度比例分配（间隙取 `min(3, w/2)`），或在 w<6 时禁用双线型；同步改公式。
-
-### D-N165 dot-pattern 宣称「导出透明或纯色图片」，实际无任何图片导出（高，确认承诺与实现不符）
-
-- 问题：meta 与简介/formula-desc 都写导出图片；脚本只有 CSS 文本，没有 canvas/download/Blob/SVG；按钮只有「导出明细 CSV / 复制 CSS」。
-- 证据：`:10`（meta）、`:154`（formula-desc）、`:156`（简介）、`:175-176`（结果区）、`:257-273`（生成逻辑）、`:171-172`（按钮）。
-- 复现：Ctrl+F `png|download|toDataURL|canvas|SVG` → 0；无下载按钮，预览只是 DOM 背景。
-- 影响：透明底 PNG / SVG 底纹无法产出，「印刷稿」用途落空。
-- 方案：canvas 平铺绘制并支持透明/背景色两种导出；或用 `<svg><pattern>` 生成矢量下载。
 
 ### D-N167 dot-pattern 引据称 SVG pattern/矢量输出，实际是 CSS radial-gradient；选项「渐变大小」也不改变点径（中，确认引据与实现不符）
 
@@ -984,14 +919,6 @@
 - 影响：历史/趋势页签形同虚设。
 - 方案：历史记录另存结构化数值列（`count`/`size`），图表用该列；或 ResText 返回 `cnt|size|color` 供解析。
 
-### D-N192 承诺「导出图片 / Canvas 处理」，实际只有 CSS 文本（高，确认缺陷）
-
-- 问题：meta/og/简介/FAQ 反复承诺「纯前端导出图片」「可调格子大小与配色并导出图片」「处理大图用 Canvas 完成」，但页面只有 `#preview` 背景与 `#cssOutput` 文本域 + 复制/CSV，全文无 canvas、无 `toDataURL`、无 SVG/PNG 下载。
-- 证据：`tools/design/isometric-grid.html:10`、`:15`、`:157`、`:159`（导出图片）、`:206`（Canvas 大图）；实际 `:172-173`、`:259`（仅 CSS）。
-- 复现：找遍按钮 → 只有「生成/复制/导出明细 CSV」；全文无 `<canvas>` / `toDataURL` / `.png` 链接，唯一「Canvas」字样就是 FAQ `:206` 的虚构说明。期望点「导出图片」得到 PNG，meta 主卖点无法兑现。
-- 影响：SEO 描述与实际功能不符，按「导出图片」进来的用户找不到入口；FAQ 的 Canvas 说法纯属虚构。
-- 方案：用 `canvas` 画 512×512 平铺图 + `toDataURL('image/png')` 下载，或至少导出 SVG `<pattern>`；删掉 `:206` 的 Canvas 大图说法。
-
 ### D-N194 四层渐变实为 3 方向（30° 重复）+ 公式与规格不符（低，确认缺陷）
 
 - 问题：`background-image` 写了 4 层，第 1、4 层都是 `linear-gradient(30deg …)`，完全重复，实际只有 30°/150°/270° 三个方向；公式却把「四层 30°、150°、270°、30°」当特性，`background-size = 边长 × (边长 × 0.5774)` 写成面积式（实际是 `s` 宽 × `0.5774s` 高）；引据表又推荐 2:1 菱形（0.5），与实现的 0.5774 不一致。
@@ -1127,15 +1054,6 @@
 - 复现：数量填 5 → 实际得到 5 段随机配置文本，复制后无法扫码；期望生成 5 个可扫二维码并提供 PNG/SVG 下载。
 - 影响：`<title>`、meta、formula-desc 均写「输入网址或文本…生成二维码…支持导出」，搜索意图与页面能力完全不符。
 - 方案：本地实现 QR 编码（矩阵→canvas/SVG），补文本输入与尺寸/纠错/颜色控件、PNG/SVG 导出；若不做则删除「生成/导出」表述并下架该页。
-
-### D-N209 蓝图网格宣称「导出图片」，实际只有 CSS 文本与明细 CSV（高，确认源码缺陷）
-
-- 假工具候选：是（类型 C：网格本身可生成，但 meta 主卖点「导出图片」完全未实现）
-- 问题：页面只有「复制 CSS」与「导出明细 CSV」；源码无 `canvas`、无 `toDataURL/toBlob/download`，`generate()` 仅把 CSS 写进 `<textarea>`。
-- 证据：`tools/design/blueprint-grid.html:154`、`:156`、`:203`、`:166-167`、`:258-260`
-- 复现：点击任何按钮 → 只得到 `background-image` CSS 或 CSV，得不到 PNG；期望按当前尺寸导出可平铺 PNG（或至少 SVG）。
-- 影响：meta description/og/twitter 三处都主推「纯前端导出图片」，实际无法导出，属名不副实。
-- 方案：加离屏 canvas 按主/次间距绘制并 `toBlob` 下载 PNG；或删掉全部「导出图片」表述，改为「复制 CSS」。
 
 ### D-N210 粒子特效生成的 CSS 无元素与动画绑定，多数参数不生效（高，确认源码缺陷）
 
