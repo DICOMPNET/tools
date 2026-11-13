@@ -252,7 +252,7 @@
 <li>用關鍵詞迴圈位移的多表代替密碼，比凱撒更難破。</li>
 <li>講清多表替換的原理：視覺化展示關鍵詞如何迴圈位移，理解它為何能抵抗簡單的頻率分析。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">加密 &quot;ATTACK&quot; key=KEY</div><div class="dd-ex-body">A+K=A、T+E=X、T+C=V … → 輸出 `AXVCZ`；金鑰 KEY 迴圈使用。</div></div>
+<div class="dd-example"><div class="dd-ex-title">加密 &quot;ATTACK&quot; key=KEY</div><div class="dd-ex-body">A+K=K、T+E=X、T+Y=R、A+K=K、C+E=G、K+Y=I → 輸出 `KXRKGI`；金鑰 KEY 按 K/E/Y/K/E/Y 迴圈。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
 <dt>維吉尼亞如何被破？</dt><dd>用卡西斯基試驗或重合指數找金鑰長度後逐位頻分析。</dd>
@@ -313,6 +313,7 @@ const HISTORY_KEY = 'vigenere_history';
 const MAX_HISTORY = 20;
 
 function setMode(mode){
+  mode = mode || currentMode || 'encrypt';  // IT-N151: 无参（历史回填）不得置 undefined
   currentMode = mode;
   document.querySelectorAll('.mode-tabs button').forEach(b => {
     b.classList.toggle('active', b.dataset.mode === mode);
@@ -350,7 +351,9 @@ function vigenere(text, key, encrypt){
         cipher: result,
         keyIdx: k,
         plainIdx: p,
-        cipherIdx: c
+        cipherIdx: c,
+        // IT-N164: 显式记录「输入/输出」角色，解密时 plain/cipher 字段含义反转，分步面板不得再直接使用
+        inLetter: ch, inIdx: p, outLetter: result, outIdx: c
       });
       plainArr.push(ch);
       keyArr.push(key[ki % key.length]);
@@ -369,7 +372,9 @@ function vigenere(text, key, encrypt){
         cipher: result.toUpperCase(),
         keyIdx: k,
         plainIdx: p,
-        cipherIdx: c
+        cipherIdx: c,
+        // IT-N164: 小写输入同样记录输入/输出角色，展示统一用大写形式
+        inLetter: ch.toUpperCase(), inIdx: p, outLetter: result.toUpperCase(), outIdx: c
       });
       plainArr.push(ch.toUpperCase());
       keyArr.push(key[ki % key.length]);
@@ -391,6 +396,24 @@ function process(){
   const key = document.getElementById('key').value;
   const encrypt = currentMode === 'encrypt';
 
+  // IT-N166: vigenere() 会把空密钥（以及清洗后无字母的密钥）回退成 'A'，位移 0 等价于不加密，
+  // 旧实现仍把明文原样写进结果区与历史，用户会误以为加密成功。这里统一拒绝，并清掉上一轮残留结果。
+  const cleanKey = String(key || '').toUpperCase().replace(/[^A-Z]/g, '');
+  if(!cleanKey){
+    const __msg = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())
+      ? 'Please enter a key containing letters before calculating (an empty key means no shift).'
+      : '请输入含字母的密钥后再计算（空密钥相当于不加密）。');
+    steps = [];
+    totalSteps = 0;
+    document.getElementById('output').value = '';
+    document.getElementById('stepTotal').textContent = 0;
+    resetStep();
+    document.getElementById('stepInfo').innerHTML = '<span style="color:var(--danger)">⚠ ' + __msg + '</span>';
+    document.getElementById('vizTable').innerHTML = '';
+    if(typeof ToolBox!=='undefined' && ToolBox.showToast) ToolBox.showToast(__msg, 'error');
+    return;
+  }
+
   const {result, steps: s, plainArr, keyArr, cipherArr} = vigenere(text, key, encrypt);
   steps = s;
   totalSteps = steps.length;
@@ -402,7 +425,7 @@ function process(){
   resetStep();
 
   if(text && result){
-    saveHistory(text, result, key, currentMode);
+    __vigenere_visualizerScheduleHistory(text, result, key, currentMode);
   }
 }
 
@@ -440,7 +463,7 @@ function stepPrev(){
 
 function updateStepDisplay(){
   document.getElementById('stepNum').textContent = currentStep;
-
+  const __en = (typeof TBKit!=='undefined'&&TBKit.util.isEn());
   const text = document.getElementById('input').value;
   const key = document.getElementById('key').value;
   const encrypt = currentMode === 'encrypt';
@@ -452,19 +475,27 @@ function updateStepDisplay(){
     highlightIdx = findHighlightIndex(plainArr, step.index);
 
     const info = document.getElementById('stepInfo');
-    const opName = encrypt ? '加密' : '解密';
+    const opName = __en ? (encrypt ? 'Encrypt' : 'Decrypt') : (encrypt ? '加密' : '解密');
+    const inLabel = __en ? (encrypt ? 'Plaintext letter' : 'Ciphertext letter') : (encrypt ? '明文字母' : '密文字母');
+    const keyLabel = __en ? 'Key letter' : '密钥字母';
+    const outLabel = __en ? 'Result' : '结果';
+    const posWord = __en ? 'index' : '位置';
+    // IT-N164: 统一用 in/out 角色字段，公式左右恒等；旧版解密把密文标成明文，且 (c-k+26)=p 左右不等
     const formula = encrypt
-      ? `(${step.plainIdx} + ${step.keyIdx}) mod 26 = ${step.cipherIdx}`
-      : `(${step.cipherIdx} - ${step.keyIdx} + 26) mod 26 = ${step.plainIdx}`;
+      ? `(${step.inIdx} + ${step.keyIdx}) mod 26 = ${step.outIdx}`
+      : `(${step.inIdx} - ${step.keyIdx} + 26) mod 26 = ${step.outIdx}`;
+    const head = __en
+      ? `${opName} step ${currentStep}:<br>`
+      : `${opName}第 ${currentStep} 个字符：<br>`;
     const __h1=`
       <span class="step-num">${currentStep}</span>
-      ${opName}第 ${currentStep} 个字符：<br>
-      明文字母: <code>${step.plain}</code> (位置 ${step.plainIdx})，
-      密钥字母: <code>${step.key}</code> (位置 ${step.keyIdx})<br>
-      ${formula} → 结果: <code>${step.cipher}</code> (位置 ${step.cipherIdx})
+      ${head}
+      ${inLabel}: <code>${step.inLetter}</code> (${posWord} ${step.inIdx})，
+      ${keyLabel}: <code>${step.key}</code> (${posWord} ${step.keyIdx})<br>
+      ${formula} → ${outLabel}: <code>${step.outLetter}</code> (${posWord} ${step.outIdx})
     `;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){info.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}info.innerHTML=__h1;
   } else {
-    document.getElementById('stepInfo').textContent = '点击"下一步"开始分步演示';
+    document.getElementById('stepInfo').textContent = __en ? 'Click "Next" to start the step-by-step demo' : '点击"下一步"开始分步演示';
   }
 
   renderVizTable(plainArr, keyArr, cipherArr, highlightIdx);
@@ -547,8 +578,10 @@ function highlightVigenereTable(step){
   }
 
   if(step){
-    const rowIdx = currentMode === 'encrypt' ? step.keyIdx : step.cipherIdx;
-    const colIdx = currentMode === 'encrypt' ? step.plainIdx : step.keyIdx;
+    // IT-N165: 方阵行=密钥字母、列=明文字母。解密时明文下标在 step.cipherIdx，密钥下标在 keyIdx；
+    // 旧版解密取 rowIdx=cipherIdx、colIdx=keyIdx，行列对调，与页面说明及列头字母矛盾。
+    const rowIdx = step.keyIdx;
+    const colIdx = currentMode === 'encrypt' ? step.plainIdx : step.cipherIdx;
 
     const row = document.getElementById(`row-${rowIdx}`);
     const col = document.getElementById(`col-${colIdx}`);
@@ -599,6 +632,12 @@ function escapeHtml(text){
   return div.innerHTML;
 }
 
+// IT-N150: 500ms 防抖
+var __vigenereHistoryTimer = null;
+function __vigenere_visualizerScheduleHistory(input, output, key, mode){
+  if(__vigenereHistoryTimer){ clearTimeout(__vigenereHistoryTimer); __vigenereHistoryTimer=null; }
+  __vigenereHistoryTimer = setTimeout(function(){ __vigenereHistoryTimer=null; saveHistory(input, output, key, mode); }, 500);
+}
 function saveHistory(input, output, key, mode){
   if(!input || !output) return;
   let history = getHistory();
@@ -609,6 +648,9 @@ function saveHistory(input, output, key, mode){
     mode,
     time: Date.now()
   };
+  var dup = history.findIndex(function(h){ return h.input === item.input && h.key === key && h.mode === mode; });
+  if(dup === 0) return;
+  if(dup > 0) history.splice(dup, 1);
   history.unshift(item);
   if(history.length > MAX_HISTORY) history = history.slice(0, MAX_HISTORY);
   localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
@@ -739,14 +781,14 @@ function __vigenere_visualizerRender(keys,rk,en){
             __vigenere_visualizer_skip=true;
             try{
                 for(var k in rec){
-                    if(k===rk||k==='__tbScore') continue;
+                    if(k===rk||k==='__tbScore'||k==='__mode') continue;
                     var e=document.getElementById(k);
                     if(!e) continue;
                     var t=(e.type||'').toLowerCase();
                     if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
                     else{e.value=rec[k];}
                 }
-                setMode();
+                setMode(rec.__mode || 'encrypt');
             }catch(e2){}
             __vigenere_visualizer_skip=false;
         });
@@ -787,6 +829,7 @@ function __vigenere_visualizerExtras(){
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
     rec.__tbScore=__vigenere_visualizerScore(res);
+    rec.__mode=currentMode;
     TBKit.history.record(rec);
     __vigenere_visualizerRender(keys,rk,en);
 }

@@ -108,7 +108,7 @@
       <h2 data-zh="📝 Markdown 表格生成器">📝 Markdown Table Generator</h2>
       <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="輸入行列與表頭文本，快速生成標準 Markdown 表格原始碼。">Generate Markdown table syntax from rows, columns, and content.</p>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">行數取輸入值並保證在 1 到 50 之間（非法時取 1），列數取輸入值並保證在 1 到 20 之間（非法時取 1）。表頭與正文種子均按逗號切分、逐項去首尾空白，去掉首項為空的前導項後截斷到列數。填充單元格時按順序取種子值，取不到時用「C 加列序號」佔位，並對內容做 Markdown 轉義。分隔行按對齊方式生成標記：居中為兩側帶冒號、右對齊為右側帶冒號、其餘為左側帶冒號，各列標記以空格豎線空格連線。正文每行在種子值後追加行序號，逐行以豎線包裹、單元格之間以空格豎線空格連線。最終依次拼為表頭行、分隔行與若干正文行</div>
+  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">行數取輸入值並保證在 1 到 50 之間（非法時取 1），列數取輸入值並保證在 1 到 20 之間（非法時取 1）。表頭與正文種子均按 CSV 規則切分：英文逗號分隔，單元格可用雙引號包裹以容納逗號（"" 表示一個字面引號），逐項去首尾空白，去掉首項為空的前導項後截斷到列數。填充單元格時按順序取種子值，取不到時用「C 加列序號」佔位，並對內容做 Markdown 轉義：先把反斜槓轉義為雙反斜槓，再把豎線轉義為反斜槓加豎線，最後把換行換成空格，避免輸入本身含反斜槓時豎線重新變成列分隔符。分隔行按對齊方式生成標記：居中為兩側帶冒號、右對齊為右側帶冒號、其餘為左側帶冒號，各列標記以空格豎線空格連線。正文每行在種子值後追加行序號，逐行以豎線包裹、單元格之間以空格豎線空格連線。最終依次拼為表頭行、分隔行與若干正文行</div>
   <div class="formula-desc">生成 Markdown 格式的表格。</div>
   <ul class="formula-list">
     <li><b>結構</b>：表頭行 + 分隔行（<code>| --- | --- |</code>）+ 資料行。</li>
@@ -131,10 +131,10 @@
         </select>
       </div>
 
-      <label for="headerLine">表頭（英文逗號分隔）</label>
+      <label for="headerLine">表頭（逗號分隔，含逗號的單元格用雙引號包裹）</label>
       <input id="headerLine" type="text" value="姓名,年龄,城市" oninput="syncColumns()">
 
-      <label for="bodyLine">首行模板（英文逗號分隔）</label>
+      <label for="bodyLine">首行模板（逗號分隔，含逗號的單元格用雙引號包裹）</label>
       <input id="bodyLine" type="text" value="Alice,24,Shanghai" oninput="syncColumns()">
 
       <div class="toolbar">
@@ -220,9 +220,29 @@
   </div>
 </div>
 <script>
+  // IT-N217：支持 CSV 双引号包裹，形如 "a,b",c ⇒ 2 列 ["a,b","c"]；引号内 "" 表示一个字面引号。
+  function splitCsvRow(line) {
+    const s = String(line == null ? '' : line);
+    const out = [];
+    let cell = '', inQuote = false;
+    for (let i = 0; i < s.length; i += 1) {
+      const ch = s.charAt(i);
+      if (inQuote) {
+        if (ch === '"') {
+          if (s.charAt(i + 1) === '"') { cell += '"'; i += 1; }
+          else inQuote = false;
+        } else cell += ch;
+      } else if (ch === '"' && cell === '') {
+        inQuote = true;
+      } else if (ch === ',') {
+        out.push(cell); cell = '';
+      } else cell += ch;
+    }
+    out.push(cell);
+    return out;
+  }
   function parseRow(line) {
-    return String(line || '')
-      .split(',')
+    return splitCsvRow(line)
       .map(v => String(v || '').trim())
       .filter((v, idx) => !(v === '' && idx === 0));
   }
@@ -243,6 +263,8 @@
 
   function escapeMarkdown(text) {
     return String(text == null ? '' : text)
+      // IT-N215：先转义反斜杠再转义竖线，否则输入 a\|b 会变成 a\\|b（GFM 把 \\ 当字面反斜杠、| 重新成为分隔符）
+      .replace(/\\/g, '\\\\')
       .replace(/\|/g, '\\|')
       .replace(/\r?\n/g, ' ')
       .trim();
@@ -294,17 +316,8 @@
   }
 
   function syncColumns() {
-    const cols = Math.max(1, parseInt(document.getElementById('cols').value, 10) || 1);
-    const headerVals = parseRow(document.getElementById('headerLine').value);
-    const bodyVals = parseRow(document.getElementById('bodyLine').value);
-    if (headerVals.length < cols) {
-      const add = new Array(cols - headerVals.length).fill('列');
-      document.getElementById('headerLine').value = headerVals.concat(add).join(',');
-    }
-    if (bodyVals.length < cols) {
-      const add = new Array(cols - bodyVals.length).fill('值');
-      document.getElementById('bodyLine').value = bodyVals.concat(add).join(',');
-    }
+    // IT-N216：编辑期绝不写回表头/首行输入（旧实现补占位写回 value 会让光标跳末尾、删掉的尾列被立刻补回）。
+    // 缺列由 fillCells() 在生成预览时用 C1/C2… 占位补齐即可，输入框保持用户原样。
     renderPreview();
   }
 

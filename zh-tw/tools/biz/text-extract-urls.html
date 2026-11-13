@@ -119,7 +119,7 @@
   <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
     <h2 data-zh="🔗 提取所有 URL">🔗 URL Extractor</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">URL 正則為 (https?://|ftp://|file://)? 開頭可選協議，接 [a-zA-Z0-9][-a-zA-Z0-9]* 再加一個或多個「.域名段」，後接可選的路徑（不含空白與 &lt; &gt; " ' ( ) [ ] { }）。缺協議時自動補 http://；只要 HTTP/HTTPS 時丟棄 ftp/file 開頭的項；去引數時先按 ? 截斷再按 # 截斷。之後按選項去重（保留首次出現）、字典序排序，輸出條數即結果條數，用所選分隔符連線（分隔符為 \n 時按換行連）</div>
+  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">URL 正則為 (https?://|ftp://|file://)? 開頭可選協議，主機支援含點域名 / localhost / IPv4 / [IPv6]（BS-N44，舊式強制點號會漏內網帶埠地址），接可選埠 :數字，再接可選的路徑（不含空白與 &lt; &gt; " ' ( ) [ ] { }）。缺協議時自動補 http://；只要 HTTP/HTTPS 時丟棄 ftp/file 開頭的項；去引數時先按 ? 截斷再按 # 截斷。之後按選項去重（保留首次出現）、字典序排序，輸出條數即結果條數，用所選分隔符連線（分隔符為 \n 時按換行連）</div>
   <p class="formula-desc" data-zh="本文本工具基於標準字元編碼與文本處理規則，純前端執行，程式碼不離開瀏覽器。 工具名稱：提取 URL - 商業辦公線上工具。">Extract every URL from long text or page source and deduplicate the list, handy for batch reference collection, backlink audits and link validation.</p>
 </div>
 
@@ -253,7 +253,10 @@ function extract() {
   var stripQuery = document.getElementById('stripQuery').checked;
   var sepSel = document.getElementById('separator').value;
 
-  var urlRegex = /(https?:\/\/|ftp:\/\/|file:\/\/)?[a-zA-Z0-9][-a-zA-Z0-9]*(\.[a-zA-Z0-9][-a-zA-Z0-9]*)+(\/[^\s<>"'()\[\]{}]*)?/g;
+  // BS-N44: 旧式要求主机至少一个点且在冒号处截断，漏抽 localhost/内网 IP 带端口的 URL。
+  // 新式：协议可选；主机为「域名(含点) | localhost | IPv4 | IPv6方括号」，后接可选端口，再拼路径/查询/片段。
+  // 无协议的裸词（如中文/普通单词）不会被当作域名，避免误抽。
+  var urlRegex = /(https?:\/\/|ftp:\/\/|file:\/\/)?((?:[a-zA-Z0-9](?:[-a-zA-Z0-9]*[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}|localhost|\[[0-9a-fA-F:]+\]|(?:\d{1,3}\.){3}\d{1,3})(:\d+)?([\/?#][^\s<>"'()\[\]{}]*)?/g;
 
   var matches = input.match(urlRegex) || [];
   var urls = [];

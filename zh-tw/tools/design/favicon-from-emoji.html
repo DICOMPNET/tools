@@ -111,7 +111,7 @@
 <div class="card tool-card-accent" style="--tool-accent:#7C3AED;">
     <h2>😀 <span data-i18n="design.favicon-from-emoji.title" data-i18n-fb="Emoji 生成 Favicon">Emoji Favicon Generator</span></h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">畫布邊長 = size（下限 16，預設 128）；字號 = size × 0.65，繪製中心 = (size ÷ 2, size ÷ 2 + size × 0.02)；圓角 &gt; 0 時以四段二次貝塞爾構造圓角矩形路徑填充，為 0 時填滿整幅；三檔預覽圓角分別取 radius ÷ 128 × 16、radius ÷ 2、radius，最終 toDataURL 匯出 PNG</div>
+  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">畫布邊長 = size（下限 16，預設 128）；字號 = size × 0.65，繪製中心 = (size ÷ 2, size ÷ 2 + size × 0.02)；圓角 &gt; 0 時以四段二次貝塞爾構造圓角矩形路徑填充，為 0 時填滿整幅；三檔預覽圓角按 radius ÷ size × 檔位邊長等比縮放（16 / 64 / 128 px），最終 toDataURL 匯出 PNG</div>
       <div class="formula-desc">將所選 Emoji 以指定字號渲染到 Canvas 並匯出為多尺寸 ICO / PNG；用於快速更換站點圖示，純前端生成不上傳。</div>
 
 </div>
@@ -220,8 +220,10 @@ function __exportFail(msg){
 function generate(){
   const emoji = document.getElementById('emoji').value || '🚀';
   const bg = document.getElementById('bgColor').value;
-  const size = Math.max(16, parseInt(document.getElementById('size').value) || 128);
-  const radius = Math.max(0, parseInt(document.getElementById('radius').value) || 0);
+  const size = Math.min(256, Math.max(16, parseInt(document.getElementById('size').value) || 128));
+  const radius = Math.min(size/2, Math.max(0, parseInt(document.getElementById('radius').value) || 0));
+  document.getElementById('size').value = String(size);
+  document.getElementById('radius').value = String(radius);
   const canvas = document.createElement('canvas');
   canvas.width = size; canvas.height = size;
   const ctx = canvas.getContext('2d');
@@ -248,9 +250,9 @@ function generate(){
   ctx.fillText(emoji, size/2, size/2 + size*0.02);
   try{ lastURL = canvas.toDataURL('image/png'); }catch(e){ lastURL=''; __exportFail('导出 PNG 失败：'+((e&&(e.name||e.message))||((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Unknown error":"未知错误"))+'（画布可能含外部资源或被污染）'); return; }
   const __h0=`
-    <div class="emoji-preview small" style="background:${bg};border-radius:${radius/128*16}px;">${emoji}</div>
-    <div class="emoji-preview medium" style="background:${bg};border-radius:${radius/2}px;">${emoji}</div>
-    <div class="emoji-preview large" style="background:${bg};border-radius:${radius}px;">${emoji}</div>
+    <div class="emoji-preview small" style="background:${bg};border-radius:${radius*16/size}px;">${emoji}</div>
+    <div class="emoji-preview medium" style="background:${bg};border-radius:${radius*64/size}px;">${emoji}</div>
+    <div class="emoji-preview large" style="background:${bg};border-radius:${radius*128/size}px;">${emoji}</div>
     <img src="/zh-tw/tools/design/${lastURL}" alt="Favicon" style="width:64px;height:64px;">
   `;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('preview').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('preview').innerHTML=__h0;
 }
@@ -351,7 +353,7 @@ function __favicon_from_emojiRender(keys,rk,en){
                     if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
                     else{e.value=rec[k];}
                 }
-                downloadImg();
+                generate();
             }catch(e2){}
             __favicon_from_emoji_skip=false;
         });

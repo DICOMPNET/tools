@@ -96,7 +96,7 @@
     <h2 data-zh="✅ PDF 簽名檢查">✅ PDF Signature Check</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="檢查 PDF 檔案是否包含數字簽名：解析 PDF 內部的 ByteRange 與 Contents 引用，識別簽名存在性（不做密碼學驗證），純本地解析不上傳。">Check PDF digital signatures in your browser — verify signers and integrity locally.</p>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">檢測規則：檔案頭須匹配 %PDF-x.y 模式；正則提取 /ByteRange [偏移 長度 偏移 長度]，簽名覆蓋長度 = 第 4 引數 − 第 3 引數位元組；提取 /Contents 十六進位制串；ByteRange 與 Contents 兼具即判定含數字簽名（不驗證證書鏈有效性）</div>
+  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">檢測規則：檔案頭須匹配 %PDF-x.y 模式；正則提取 /ByteRange [偏移 長度 偏移 長度]，簽名覆蓋長度 = 兩段長度之和（第 2 引數 + 第 4 引數）位元組；提取 /Contents 十六進位制串；ByteRange 與 Contents 兼具即判定含簽名結構（不做摘要計算、PKCS#7 解析或證書鏈驗證）</div>
   <div class="formula-desc">檢查 PDF 中的數字簽名信息。</div>
   <ul class="formula-list">
     <li><b>原理</b>：數字簽名基於 PKI，簽名者對文件摘要做私鑰加密，驗證方用證書公鑰驗籤。</li>
@@ -144,14 +144,14 @@
 <h2>📚 深度解析：PDF 簽名檢查</h2>
 <h3>💡 常見使用場景</h3>
 <ul class="dd-list">
-<li>校驗 PDF 內嵌 PKCS#7 簽名與證書鏈。</li>
-<li>收到電子合同後先驗籤：確認簽名者證書、簽發時間與文件是否被改動，再走蓋章歸檔流程。</li>
+<li>檢查 PDF 中的 /ByteRange 與 /Contents 簽名結構（不驗證 PKCS#7 內容或證書鏈）。</li>
+<li>收到電子合同後先做結構核查：確認檔案含簽名結構、檢視覆蓋位元組數，再用專業驗籤工具核對簽名者與完整性。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">檢查</div><div class="dd-ex-body">讀取簽名域，驗證摘要一致且證書鏈到可信根（顯示“有效/無效/未知”）。</div></div>
+<div class="dd-example"><div class="dd-ex-title">檢查</div><div class="dd-ex-body">讀取 /ByteRange 與 /Contents，判斷簽名結構是否存在，並顯示簽名區域覆蓋位元組數；不給出“有效/無效”的密碼學結論。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
-<dt>簽名有效=內容未被改？</dt><dd>是，摘要不符會標記篡改。</dd>
-<dt>為什麼提示證書不受信？</dt><dd>說明簽發該證書的 CA 不在本地信任鏈中，或證書已過期、已被吊銷。數字簽名的可信度取決於信任鏈與吊銷狀態（OCSP/CRL）兩件事，缺一不可。若簽名帶有<a class="term-link" href="/zh-tw/tools/life/timestamp.html">時間戳</a>，還需驗證時間戳本身有效——否則證書過期後簽名也會隨之失效。</dd>
+<dt>為什麼“檢測到簽名”不等於驗籤通過？</dt><dd>本工具只用正則查詢 /ByteRange 和 /Contents，統計兩段覆蓋長度，不做摘要計算、PKCS#7 解析或證書鏈驗證；完整驗籤需用專業 PDF 庫。</dd>
+<dt>為什麼可能提示未檢測到簽名？</dt><dd>簽名值可能位於物件流、交叉引用流或增量更新中，正則讀不到；未命中只代表本頁的結構掃描未發現兩項標記，不等於檔案必然無簽名，需用專業 PDF 庫複核。</dd>
 </dl>
 </div>
 </section>
@@ -255,13 +255,15 @@ function check(){
   var reader=new FileReader();
   reader.onload=function(e){
     var buf=new Uint8Array(e.target.result);
-    var head='%PDF-'+(buf[5]||'')+'.'+(buf[6]||'');
-    setCell('d_head',head,/^%PDF-\d$/.test(head)?'var(--success)':'var(--danger)');
+    // IT-N315：%PDF-1.7 的前 8 字节本身已是完整版本号，直接取整段再做严格格式校验。
+    var head=String.fromCharCode.apply(null,Array.from(buf.slice(0,8)));
+    setCell('d_head',head,/^%PDF-\d\.\d$/.test(head)?'var(--success)':'var(--danger)');
     var text='';
     for(var i=0;i<buf.length;i++)text+=String.fromCharCode(buf[i]);
     var br=/\/ByteRange\s*\[\s*(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s*\]/.exec(text);
     var ct=/\/Contents\s*\[?\s*(<[0-9A-Fa-f\s]+>|\d+)\s*\]?/.exec(text);
-    if(br){setCell('d_br',br[0].replace(/\s+/g,' '),'var(--success)');setCell('d_bytes',(parseInt(br[4],10)-parseInt(br[3],10))+' bytes','var(--success)');}
+    // IT-N316：ByteRange = [offset1 len1 offset2 len2]，覆盖长度是两段长度之和，不是后段长度减起点。
+    if(br){var signedBytes=(BigInt(br[2])+BigInt(br[4])).toString();setCell('d_br',br[0].replace(/\s+/g,' '),'var(--success)');setCell('d_bytes',signedBytes+' bytes','var(--success)');}
     else{setCell('d_br','未找到','var(--danger)');setCell('d_bytes','—');}
     if(ct){setCell('d_ct','已找到（'+ct[1].replace(/\s+/g,'').length+' hex 字符）','var(--success)');}
     else{setCell('d_ct','未找到','var(--danger)');}
@@ -406,8 +408,8 @@ else document.addEventListener('DOMContentLoaded', __pdf_signature_checkerBoot);
 .opt-result-interpret code{background:var(--result-bg,#f6f6f6);padding:1px 5px;border-radius:5px;font-size:12.5px;}</style>
 <section class="opt-result-interpret"><div class="ir-card">
 <h2>📊 結果解讀</h2>
-<h3>結果含義</h3><p>PDF 數字簽名校驗：驗證文件自簽名後是否被篡改，以及簽名證書是否有效/可信。</p>
-<h3>用途</h3><p>用於合同、票據等需防篡改的場景；"有效"表示內容完整且簽名可信，"無效/未知"需檢查證書鏈或文件已被修改。本工具在本地校驗，不上傳檔案。</p>
+<h3>結果含義</h3><p>PDF 簽名結構檢查：判斷文件是否包含 ByteRange 與 Contents 兩項簽名結構，並統計被覆蓋的位元組範圍。</p>
+<h3>用途</h3><p>用於合同、票據等檔案的初步結構核查；本工具不給出“有效/無效”密碼學結論，也不能替代專業驗籤。檔案僅在本機解析，不上傳。</p>
 </div></section>
 <script>/*TBKIT-INJECT-START*/
 (function(){

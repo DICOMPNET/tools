@@ -122,7 +122,7 @@ canvas{background:#fff;border:6px solid #fff;border-radius:8px;box-shadow:var(--
 <div class="formula-box">
   <div class="formula-title">📐 工作原理與說明</div>
   <div class="formula-eq">sms:+15551234567?body=文本內容<br>或 SMSTO:號碼:內容（相容舊安卓）</div>
-  <div class="formula-desc">簡訊二維碼本質是把 URI Scheme 編碼進二維碼：掃碼端解析出 URI 後交給系統處理，自動開啟簡訊編輯介面並預填號碼與正文。iOS 支援 sms:號碼?body=… 形式，部分安卓還支援 SMSTO:號碼:正文 的老格式。內容較長時二維碼會變密（版本升高、模組變小），建議正文控制在 100 字以內、糾錯等級選 M，並在列印時保證碼區留白（Quiet Zone ≥ 4 個模組寬）。正文與號碼中的特殊字元需先做百分號編碼。</div>
+  <div class="formula-desc">簡訊二維碼本質是把 URI Scheme 編碼進二維碼：掃碼端解析出 URI 後交給系統處理，自動開啟簡訊編輯介面並預填號碼與正文。iOS 支援 sms:號碼?body=… 形式，部分安卓還支援 SMSTO:號碼:正文 的老格式。內容較長時二維碼會變密（版本升高、模組變小），建議正文控制在 100 字以內、糾錯等級選 M，並在列印時保證碼區留白（Quiet Zone ≥ 4 個模組寬）。正文與號碼中的特殊字元需先做百分號編碼。本頁號碼僅接受 5–15 位數字與可選前導 +（空格/連字元自動去除），正文按 UTF-8 百分號編碼；號碼非法時直接提示，不生成殘缺 URI。</div>
 </div>
 
     <label>電話號碼</label>
@@ -161,7 +161,7 @@ canvas{background:#fff;border:6px solid #fff;border-radius:8px;box-shadow:var(--
 <li>生成 smsto <a class="term-link" href="/zh-tw/tools/it/qrcode.html">二維碼</a>（號碼+內容）。</li>
 <li>在門店物料上放「掃碼發簡訊」：預填號碼與內容，使用者掃碼後只需點擊發送即可參與活動。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">生成</div><div class="dd-ex-body">`smsto:13800000000?body=Hi` → QR。</div></div>
+<div class="dd-example"><div class="dd-ex-title">生成</div><div class="dd-ex-body">`sms:13800138000?body=Hi` → 二維碼；正文中的空格與中文會先做百分號編碼。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
 <dt>掃碼會直接發嗎？</dt><dd>喚起簡訊草稿，需使用者確認傳送。</dd>
@@ -213,9 +213,16 @@ canvas{background:#fff;border:6px solid #fff;border-radius:8px;box-shadow:var(--
 </div>
 <script src="/js/qrcode.js"></script>
 <script>
-// 使用 qrcode-generator 库生成真正可扫描的二维码（此前为随机图案，扫码无效）
+// 使用 MIT 许可的 qrcode-generator 库生成真正可扫描的二维码（此前为随机图案，扫码无效）
+function smsEn(){return !!(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());}
 function buildSms(){
-  const phone=document.getElementById('phone').value;
+  const raw=String(document.getElementById('phone').value||'').trim();
+  // 号码只接受数字与可选前导 +；空格/连字符视为格式化字符自动去除，其余字符拒绝，
+  // 避免 # 把 ?body 变成 fragment、& 起新参数或空格造成非法 URI。
+  const phone=raw.replace(/[\s-]/g,'');
+  if(!/^\+?\d{5,15}$/.test(phone)){
+    throw new Error(smsEn()?'Phone number must be 5–15 digits with an optional leading +':'电话号码仅支持 5–15 位数字与可选的前导 +');
+  }
   const msg=encodeURIComponent(document.getElementById('msg').value);
   return 'sms:'+phone+'?body='+msg;
 }
@@ -230,11 +237,16 @@ function drawQR(text){
   return canvas;
 }
 function generate(){
-  const text=buildSms();const canvas=drawQR(text);
   const out=document.getElementById('output');
-  if(!canvas){out.innerHTML='<p style="color:var(--danger)">⚠ 二维码库加载失败，请刷新页面重试。</p><div class="qr-text">'+escapeHtml(text)+'</div>';return;}
-  const __h0='<div class="qr-wrap"></div><div class="qr-text">'+escapeHtml(text)+'</div>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h0;
-  out.querySelector('.qr-wrap').appendChild(canvas);
+  try{
+    const text=buildSms(), canvas=drawQR(text);
+    if(!canvas){out.innerHTML='<p style="color:var(--danger)">⚠ '+(smsEn()?'QR library failed to load; please refresh.':'二维码库加载失败，请刷新页面重试。')+'</p><div class="qr-text">'+escapeHtml(text)+'</div>';return;}
+    // 文本/URI 类结果不做 NaN 正则守卫：正文合法含 "NaN" 时也必须正常出码。
+    out.innerHTML='<div class="qr-wrap"></div><div class="qr-text">'+escapeHtml(text)+'</div>';
+    out.querySelector('.qr-wrap').appendChild(canvas);
+  }catch(e){
+    out.innerHTML='<p style="color:var(--danger)">⚠ '+escapeHtml(e&&e.message?e.message:String(e))+'</p>';
+  }
 }
 function escapeHtml(s){return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function copyResult(){

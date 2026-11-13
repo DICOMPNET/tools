@@ -154,7 +154,7 @@
   <ul class="formula-list">
     <li><b>方陣</b>：用金鑰詞填充 5×5 矩陣，字母 I 與 J 合併共佔一格。</li>
     <li><b>規則</b>：同行取各自右鄰、同列取各自下鄰、不同行不同列則取矩形的另兩個對角。</li>
-    <li><b>預處理</b>：明文兩兩分組，同一組內字母相同則插入 X，末尾為奇數補 X。</li>
+    <li><b>預處理</b>：明文兩兩分組，同一組內字母相同則插入 X（該字母本身為 X 時改用 Q，避免生成 XX 同字母對），末尾為奇數補 X。</li>
     <li><b>強度</b>：強於單表替換，但仍屬古典密碼，可用雙字母頻率分析破解。</li>
   </ul>
 </div>
@@ -243,7 +243,7 @@
          5. 對每一組應用三條規則之一進行加密</p>
 
       <h4 style="margin-top:16px;">歷史意義</h4>
-      <p>普萊費爾密碼是第一個廣泛使用的雙字母替換密碼。與單字母替換密碼相比，它的安全性大大提高，因為頻率分析針對的是單個字母，而普萊費爾有 26×26=676 種可能的字母對，使得頻率分析變得困難得多。</p>
+      <p>普萊費爾密碼是第一個廣泛使用的雙字母替換密碼。與單字母替換密碼相比，它的安全性大大提高，因為頻率分析針對的是單個字母，而本頁 5×5 方陣把 I/J 合併後只有 25 個字母，對應 25×25=625 種可能的字母對，使得頻率分析變得困難得多；若採用 6×6 含數字的變體，則為 36×36=1296 種。</p>
 
       <h4 style="margin-top:16px;">安全性</h4>
       <p>雖然比單字母替換安全，但普萊費爾密碼仍可被破解：</p>
@@ -291,11 +291,11 @@
 <li>雙字母替換密碼，用 5×5 方陣（I/J 同格）。</li>
 <li>教學雙字母替換：用 5×5 方陣把明文兩兩分組加密，體會「雙字母」如何破壞單字母頻率分析。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">加密 &quot;HI&quot;</div><div class="dd-ex-body">H 與 I 組對，按方陣同行/同列/矩形規則替換；如 HI → `BM`（示例金鑰方陣）。</div></div>
+<div class="dd-example"><div class="dd-ex-title">加密 &quot;HI&quot;（預設金鑰 PLAYFAIR）</div><div class="dd-ex-body">預設金鑰 PLAYFAIR 構造的 5×5 方陣（I/J 合併）為 PLAYF / IRBCD / EGHKM / NOQST / UVWXZ。H 在第 3 行第 3 列、I 在第 2 行第 1 列，不同行不同列時取矩形另兩角 E 與 B ⇒ `EB`，與工具實算一致。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
-<dt>Playfair 如何處理重複字母？</dt><dd>插入填充字母（如 X）隔開，如 `LL` → `LX L`。</dd>
-<dt>為什麼加密結果長度是偶數？</dt><dd>因為 Playfair 以兩個字母為一組處理：明文先去掉非字母字元、把 J 合併到 I，若同一組內兩字母相同則在中間插入填充字母（通常為 X），末組不足時也補一個，因此密文長度恆為偶數。解密後需自行去掉這些填充並恢復斷詞。</dd>
+<dt>Playfair 如何處理重複字母？</dt><dd>插入填充字母（如 X）隔開，如 `LL` → `LX L`；重複字母本身是 X 時改用 Q（`XX` → `XQ XQ`），否則會生成規則不允許的 XX 同字母對。</dd>
+<dt>為什麼加密結果長度是偶數？</dt><dd>因為 Playfair 以兩個字母為一組處理：明文先去掉非字母字元、把 J 合併到 I，若同一組內兩字母相同則在中間插入填充字母（通常為 X，字母本身為 X 時改用 Q），末組不足時也補一個，因此密文長度恆為偶數。解密後需自行去掉這些填充並恢復斷詞。</dd>
 </dl>
 </div>
 </section>
@@ -350,6 +350,7 @@ const HISTORY_KEY = 'playfair_history';
 const MAX_HISTORY = 20;
 
 function setMode(mode){
+  mode = mode || currentMode || 'encrypt';  // IT-N151: 防御无参调用
   currentMode = mode;
   document.querySelectorAll('.mode-tabs button').forEach(b => {
     b.classList.toggle('active', b.dataset.mode === mode);
@@ -397,7 +398,8 @@ function prepareText(text){
     let a = text[i];
     let b = i + 1 < text.length ? text[i+1] : 'X';
     if(a === b){
-      pairs.push([a, 'X']);
+      // IT-N157: 字母对本身为 X 时改用 Q 填充，否则会生成 XX 同字母对（Playfair 规则不允许）
+      pairs.push([a, a === 'X' ? 'Q' : 'X']);
       i += 1;
     } else {
       pairs.push([a, b]);
@@ -447,9 +449,26 @@ function process(){
   }
 
   // 解密时密文已按 2 个字符一组切好，不能再插入填充 X 或合并重复字母
-  const pairs = encrypt
-    ? prepareText(text)
-    : text.toUpperCase().replace(/[^A-Z]/g, '').replace(/J/g, 'I').match(/.{1,2}/g).map(s => s.split(''));
+  let pairs;
+  if(encrypt){
+    pairs = prepareText(text);
+  } else {
+    // IT-N157: 清洗后为空或奇数长度会在分组时产出 undefined 或让 .match() 返回 null 后抛 TypeError
+    const cleaned = text.toUpperCase().replace(/[^A-Z]/g, '').replace(/J/g, 'I');
+    if(!cleaned || cleaned.length % 2 !== 0){
+      const __msg = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())
+        ? 'Ciphertext must contain an even number of letters (Playfair works on 2-letter pairs).'
+        : '密文需为偶数个字母（Playfair 按 2 字母分组），请检查输入。');
+      document.getElementById('output').value = '';
+      stepData = [];
+      totalSteps = 0;
+      document.getElementById('stepTotal').textContent = 0;
+      document.getElementById('pairList').innerHTML = '<p style="color:var(--danger)">⚠ ' + __msg + '</p>';
+      if(typeof ToolBox!=='undefined' && ToolBox.showToast) ToolBox.showToast(__msg, 'error');
+      return;
+    }
+    pairs = cleaned.match(/.{2}/g).map(s => s.split(''));
+  }
 
   let output = '';
   stepData = [];
@@ -478,7 +497,7 @@ function process(){
   resetStep();
 
   if(text && output){
-    saveHistory(text, output, key, currentMode);
+    __playfair_cipherScheduleHistory(text, output, key, currentMode);
   }
 }
 
@@ -609,6 +628,12 @@ function escapeHtml(text){
   return div.innerHTML;
 }
 
+// IT-N150: 500ms 防抖
+var __playfairHistoryTimer = null;
+function __playfair_cipherScheduleHistory(input, output, key, mode){
+  if(__playfairHistoryTimer){ clearTimeout(__playfairHistoryTimer); __playfairHistoryTimer=null; }
+  __playfairHistoryTimer = setTimeout(function(){ __playfairHistoryTimer=null; saveHistory(input, output, key, mode); }, 500);
+}
 function saveHistory(input, output, key, mode){
   if(!input || !output) return;
   let history = getHistory();
@@ -619,9 +644,9 @@ function saveHistory(input, output, key, mode){
     mode,
     time: Date.now()
   };
-  if(history.length > 0 && history[0].input === item.input && history[0].key === key && history[0].mode === mode){
-    return;
-  }
+  var dup = history.findIndex(function(h){ return h.input === item.input && h.key === key && h.mode === mode; });
+  if(dup === 0) return;
+  if(dup > 0) history.splice(dup, 1);
   history.unshift(item);
   if(history.length > MAX_HISTORY) history = history.slice(0, MAX_HISTORY);
   localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
@@ -766,7 +791,7 @@ function __playfair_cipherRender(keys,rk,en){
                     if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
                     else{e.value=rec[k];}
                 }
-                setMode(currentMode || 'encrypt');
+                setMode(rec.__mode || currentMode || 'encrypt');
             }catch(e2){}
             __playfair_cipher_skip=false;
         });
@@ -804,6 +829,7 @@ function __playfair_cipherExtras(){
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
     rec.__tbScore=__playfair_cipherScore(res);
+    rec.__mode=currentMode;
     TBKit.history.record(rec);
     __playfair_cipherRender(keys,rk,en);
 }

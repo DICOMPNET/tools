@@ -109,7 +109,7 @@
     <h2 data-zh="🔤 HTML 實體完整編解碼">🔤 HTML Entities Encode</h2>
     <p style="font-size:13px;color:var(--text-light);margin-bottom:12px;" data-zh="命名 / 十進位制 / 十六進位制三種編碼模式。">Encode and decode HTML entities (named and numeric) in your browser — keep markup and text safe.</p>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">逐字元取碼點，滿足下列任一條件才編碼：開啟全部編碼，或碼點大於 127，或字元是與號、小於號、大於號、雙引號、單引號。命名模式且該字元存在命名實體時輸出命名實體；十進位制模式輸出與號井號加十進位制碼點再加分號；十六進位制模式輸出與號井號 x 加十六進位制碼點再加分號；其餘情況回退為十進位制形式。不滿足編碼條件的字元原樣保留</div>
+  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">逐字元取碼點，滿足下列任一條件才編碼：開啟全部編碼，或碼點大於 127，或字元是與號、小於號、大於號、雙引號、單引號。命名模式且該字元存在命名實體時輸出命名實體；十進位制模式輸出與號井號加十進位制碼點再加分號；十六進位制模式輸出與號井號 x 加十六進位制碼點再加分號；其餘情況回退為十進位制形式。不滿足編碼條件的字元原樣保留。解碼走單次純文本掃描：按「&#十進位制 / &#x十六進位制 / &命名實體」三種形態匹配，分號可省略；命名實體只查本頁對照表，無分號時僅解 HTML5 允許省略分號的常用子集（amp/lt/gt/quot/nbsp/copy/reg）；碼點超出 0–0x10FFFF 或落在代理區 0xD800–0xDFFF 時原樣保留。全程不建 DOM、不把輸入交給 innerHTML，因此不會觸發外部資源請求，也不會把解出的與號二次解碼</div>
   <div class="formula-desc">在文本與 HTML 實體之間雙向轉換。</div>
   <ul class="formula-list">
     <li><b>編碼</b>：可只轉義必要字元，也可把全部非 ASCII 字元轉為數值實體。</li>
@@ -263,18 +263,26 @@ function enc(){
   document.getElementById('output').value = out;
 }
 
+// IT-N198：HTML5 legacy 中允许省略分号的常用命名实体（本工具实体表内的子集）。
+// 其余命名实体必须带分号，否则像 AT&T / &notin 这类普通文本会被误改。
+const LEGACY_NO_SEMI = /^(?:amp|lt|gt|quot|nbsp|copy|reg)$/;
 function dec(){
   const text = document.getElementById('input').value;
   if(!text) return alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter HTML entity to decode":"请输入要解码的 HTML 实体"));
-  // 纯文本解码：不把用户输入交给 innerHTML / DOM 解析，避免注入与外部资源请求
-  let result = text;
-  if(/&(?:[a-zA-Z]+|#\d+|#x[0-9a-fA-F]+);/.test(text)){
-    const fromCp = (cp, raw) => (cp >= 0 && cp <= 0x10FFFF && !(cp >= 0xD800 && cp <= 0xDFFF)) ? String.fromCodePoint(cp) : raw;
-    let s = text.replace(/&#(\d+);/g, (m, n) => fromCp(parseInt(n,10), m));
-    s = s.replace(/&#x([0-9a-fA-F]+);/g, (m, n) => fromCp(parseInt(n,16), m));
-    s = s.replace(/&[a-zA-Z]+;/g, m => (Object.prototype.hasOwnProperty.call(REVERSE, m) ? REVERSE[m] : m));
-    result = s;
-  }
+  // IT-N196/N197/N198：纯文本「单次扫描」解码。
+  // ① 不建 DOM、不把输入交给 innerHTML / DOMParser ⇒ 不会触发外部资源请求；
+  // ② 码点越界（>0x10FFFF）或落在代理区 0xD800–0xDFFF 时原样保留，不抛 RangeError；
+  // ③ 单次 replace 保证带分号与无分号写法走同一出口，且不会把解出的 & 二次解码。
+  const fromCp = (cp, raw) => (cp >= 0 && cp <= 0x10FFFF && !(cp >= 0xD800 && cp <= 0xDFFF)) ? String.fromCodePoint(cp) : raw;
+  let result = text.replace(/&(?:#(\d+)|#x([0-9a-fA-F]+)|([a-zA-Z]+))(;?)/g,
+    function(m, decNum, hexNum, name, semi){
+      if(decNum !== undefined) return fromCp(parseInt(decNum, 10), m);
+      if(hexNum !== undefined) return fromCp(parseInt(hexNum, 16), m);
+      const key = '&' + name + ';';
+      if(!Object.prototype.hasOwnProperty.call(REVERSE, key)) return m;
+      if(!semi && !LEGACY_NO_SEMI.test(name)) return m;
+      return REVERSE[key];
+    });
   document.getElementById('output').value = result;
 }
 
@@ -432,6 +440,11 @@ function __html_entities_encodePresets(){
 var __html_entities_encode_f0=(typeof enc==='function')?enc:null;
 if(__html_entities_encode_f0){
     enc=function(){ var __r=__html_entities_encode_f0.apply(null,arguments); try{ __html_entities_encodeExtras(); }catch(e){} return __r; };
+}
+// IT-N198 顺带修：解码是另一个产结果的真实入口，原先只包装了 enc ⇒ 点「解码」不写历史/明细表/趋势/CSV
+var __html_entities_encode_fd0=(typeof dec==='function')?dec:null;
+if(__html_entities_encode_fd0){
+    dec=function(){ var __r=__html_entities_encode_fd0.apply(null,arguments); try{ __html_entities_encodeExtras(); }catch(e){} return __r; };
 }
 // S1 首屏即答案：默认样例静默渲染一次编码结果（不弹 alert、不写历史）
 function __html_entities_encodeFirstRender(){

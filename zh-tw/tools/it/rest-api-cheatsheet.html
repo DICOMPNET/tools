@@ -186,7 +186,7 @@
 <li>資源命名/狀態碼/版本規範。</li>
 <li>評審介面設計時對照規範：確認資源名用複數、狀態碼語義正確、分頁與錯誤格式統一，減少後續返工。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">命名</div><div class="dd-ex-body">用複數名詞 `/users/{id}`，GET 查、POST 建、PATCH 改。</div></div>
+<div class="dd-example"><div class="dd-ex-title">命名</div><div class="dd-ex-body">集合與例項分開：`GET /users` 列表、`POST /users` 建、`GET /users/{id}` 查單個、`PATCH /users/{id}` 改、`DELETE /users/{id}` 刪。建立要 POST 到集合 `/users`，不要 POST 到帶 id 的例項地址。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
 <dt>409 與 400 區別？</dt><dd>400 請求格式錯，409 衝突（如重複建立）。</dd>
@@ -221,6 +221,11 @@
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="冪等與安全">Idempotency</td>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="GET/HEAD 安全；PUT/DELETE 冪等；POST 非冪等">GET and HEAD safe; PUT and DELETE idempotent; POST is not</td>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="RFC 9110 Section 9.2">RFC 9110 Section 9.2</td>
+        </tr>
+        <tr>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="錯誤響應格式">Error response format</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="自定義 {error:{code,message,details}} 或標準 application/problem+json（type/title/status/detail/instance）">Custom {error:{code,message,details}} or standard application/problem+json (type/title/status/detail/instance)</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="RFC 9457">RFC 9457</td>
         </tr>
       </tbody>
     </table>
@@ -523,8 +528,8 @@ const COMMANDS = [
     "cmd": "错误格式",
     "cat": "设计规范",
     "desc": "统一错误结构",
-    "syntax": "{\"error\":{\"code\",\"message\",\"details\"}}",
-    "params": "",
+    "syntax": "{\"error\":{\"code\":\"ERROR_CODE\",\"message\":\"human readable message\",\"details\":{\"field\":\"name\"}}}",
+    "params": "另见 RFC 9457 application/problem+json：{\"type\":\"…\",\"title\":\"…\",\"status\":400,\"detail\":\"…\",\"instance\":\"…\"}",
     "example": "{\"error\":{\"code\":\"VALIDATION_ERROR\",\"message\":\"Invalid email\",\"details\":{\"field\":\"email\"}}}"
   },
   {

@@ -126,12 +126,12 @@
     <h2 data-zh="༐ Protobuf 解析器">༐ Protobuf Parser</h2>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">先對 .proto 原始碼做詞法切分得到記號序列，再用遞迴下降解析：頂層依次識別 syntax、package、import、option、message、enum、service 宣告。欄位解析先連續讀取 repeated / optional / required 修飾符，再讀型別名（遇到點號時繼續拼接成完整限定型別名），接著讀欄位名；遇到等號時把後面的記號取整作為欄位編號；遇到方括號時逐項讀取「鍵 = 值」對填入欄位選項，逗號分隔，最後以分號結束。oneof 解析名稱與花括號內若干「型別 名 = 編號」欄位。message 解析時對花括號內記號分派：message 遞迴下探、enum 解析列舉、oneof 解析聯合、reserved 讀取分號前逗號分隔的編號列表、option 讀取鍵值對，其餘按普通欄位處理。讀取時若當前記號與期望記號不一致，丟擲「期望某記號」的解析錯誤</div>
-  <div class="formula-desc">解析 Protocol Buffers 的二進位制編碼結構。</div>
+  <div class="formula-desc">把 .proto 定義文本解析為結構化 JSON，便於檢視與校驗訊息、列舉、服務與欄位宣告。</div>
   <ul class="formula-list">
-    <li><b>編碼</b>：每個欄位為 <code>key + value</code>，key 是 varint，等於 <code>(字段号 &lt;&lt; 3) | wire_type</code>。</li>
-    <li><b>wire type</b>：0 為 varint、1 為 64 位、2 為長度字首（字串/巢狀/位元組）、5 為 32 位。</li>
-    <li><b>varint</b>：每位元組低 7 位存資料，最高位為 1 表示還有後續位元組，小端排列。</li>
-    <li><b>侷限</b>：無 .proto 時只能還原欄位號與原始值，欄位名與型別需 schema 才能確定。</li>
+    <li><b>輸入</b>：.proto 原始檔文本（proto2 / proto3），支援 syntax、package、import、option、message、enum、service 宣告。</li>
+    <li><b>欄位</b>：讀取修飾符（repeated / optional / required）、型別（含限定名與 map&lt;K,V&gt;）、欄位名、編號與方括號選項。</li>
+    <li><b>輸出</b>：欄位、巢狀訊息、列舉值、oneof、rpc 方法組織成的 JSON 結構樹。</li>
+    <li><b>邊界</b>：本工具解析 .proto 文本結構，不解碼 protobuf 二進位制 wire 位元組流（varint / 長度字首等）。</li>
   </ul>
 </div>
 
@@ -169,13 +169,13 @@
 <h2>📚 深度解析：Protobuf 解析器</h2>
 <h3>💡 常見使用場景</h3>
 <ul class="dd-list">
-<li>按 .proto 解析二進位制訊息（需 schema）。</li>
-<li>抓包排查 gRPC 介面：用 .proto 定義解析二進位制訊息，看清欄位值，而不是對著十六進位制猜。</li>
+<li>審閱 .proto 定義的結構：快速看清訊息、欄位、列舉與服務方法的組織關係。</li>
+<li>核對介面契約：把 .proto 轉成結構化 <a class="term-link" href="/zh-tw/tools/data/calc-2.html">JSON</a>，便於比對欄位編號、型別與選項，校驗語法是否合法。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">解析</div><div class="dd-ex-body">給定 message User{string name=1} 與位元組流 → {name:&quot;Tom&quot;}。</div></div>
+<div class="dd-example"><div class="dd-ex-title">解析</div><div class="dd-ex-body">輸入 message User { string name = 1; int64 id = 2; } → JSON 結構中 fields 列出 name（string，編號 1）與 id（int64，編號 2）。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
-<dt>無 schema 能解析嗎？</dt><dd>不能，Protobuf 自描述弱，需 .proto。</dd>
+<dt>能解析 protobuf 二進位制資料嗎？</dt><dd>不能。本工具解析的是 .proto 定義文本，把它轉成結構化 JSON；不解碼 wire 位元組流（varint / 長度字首等二進位制格式）。</dd>
 <dt>為什麼解析出來的欄位對不上？</dt><dd>多半是 schema 版本不一致：Protobuf 靠欄位編號（而非名稱）識別字段，收發雙方若用了不同版本的 .proto，同一個編號會被解釋成完全不同的含義，且不會報錯。因此必須保證解析用的 .proto 與傳送方完全一致，並做好向後相容（不復用已廢棄的編號）。</dd>
 </dl>
 </div>
@@ -290,12 +290,24 @@ function parseProto(){
       expect('{');
       const fields = [];
       while(peek() && peek().v !== '}'){
-        const type = next().v;
+        let type = next().v;
+        let mapKey = null, mapValue = null;
+        if(type === 'map' && peek() && peek().v === '<'){
+          next();
+          mapKey = next().v;
+          while(peek() && peek().v === '.'){ next(); mapKey += '.' + next().v; }
+          expect(',');
+          mapValue = next().v;
+          while(peek() && peek().v === '.'){ next(); mapValue += '.' + next().v; }
+          expect('>');
+          type = 'map<' + mapKey + ', ' + mapValue + '>';
+        }
+        while(peek() && peek().v === '.'){ next(); type += '.' + next().v; }
         const fname = next().v;
         let num = null;
         if(peek() && peek().v === '='){ next(); num = parseInt(next().v); }
         expect(';');
-        fields.push({type, name:fname, number:num});
+        fields.push({type, name:fname, number:num, mapKey, mapValue});
       }
       expect('}');
       return {kind:'oneof', name, fields};
@@ -365,7 +377,13 @@ function parseProto(){
       else if(t === 'message') result.messages.push(parseMessage(0));
       else if(t === 'enum') result.enums.push(parseEnum());
       else if(t === 'service') result.services.push(parseService());
-      else { next(); }
+      else if(t === ';'){ next(); } // 允许顶层空语句
+      else if(t === 'extend'){ // extend 块：跳过到配对 }
+        next(); next(); expect('{'); let depth=1;
+        while(peek() && depth>0){ const v=next().v; if(v==='{')depth++; else if(v==='}')depth--; }
+        if(depth!==0) throw new Error('extend 块缺少 }');
+      }
+      else throw new Error('无法识别的顶层内容「'+t+'」');
     }
     setOut(JSON.stringify(result, null, 2));
     setErr('✅ 解析成功');

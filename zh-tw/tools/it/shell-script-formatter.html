@@ -29,7 +29,7 @@
 .output-pre{background:#1e1e2e;color:#e0e0e0;border-radius:8px;padding:14px;font-family:'SF Mono','Courier New',monospace;font-size:13px;white-space:pre-wrap;word-break:break-all;min-height:120px;max-height:500px;overflow:auto;margin-top:12px;}
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(20px);background:rgba(0,0,0,0.8);color:#fff;padding:8px 16px;border-radius:6px;font-size:13px;opacity:0;transition:all 0.2s;pointer-events:none;z-index:9999;}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
-.err{color:#f44336;font-size:13px;margin-top:8px;min-height:20px;}
+.err{color:#f44336;font-size:13px;margin-top:8px;min-height:20px;white-space:pre-line;}
 .ok{color:#4caf50;}
 .diff-add{background:rgba(76,175,80,0.15);color:#4caf50;display:block;padding:2px 8px;white-space:pre-wrap;word-break:break-all;}
 .diff-del{background:rgba(244,67,54,0.15);color:#f44336;text-decoration:line-through;display:block;padding:2px 8px;white-space:pre-wrap;word-break:break-all;}
@@ -125,7 +125,7 @@
 <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
     <h2 data-zh="⌥ Shell 指令碼格式化">⌥ Shell Script Format</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">按行遍歷指令碼並維護縮排深度。先處理 here 文件：命中「重定向符加定界符」的行原樣輸出並進入文件態，直到出現與定界符相同（或去掉引號後相同）的行才退出，期間所有行原樣保留。普通行去掉首尾空白後處理；連續空行只保留一個。本行縮排判據：以 fi、done、esac 開頭，或以 else、elif 開頭，或整行是分號類終止符時，本行深度減 1（不小於 0）。輸出後調整深度：以 if、for、while、until、case 開頭，或行尾為左花括號，或行尾是 then、do，或整行就是左花括號時深度加 1；case 分支模式行以右括號結尾時深度再加 1；整行是 fi、done、esac 或以右花括號開頭或整行就是右花括號時深度減 1；分號類終止符時深度再減 1。最終按「縮排單位 × 深度 + 去空白後的行」拼接輸出</div>
+  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">按行遍歷指令碼並維護縮排深度與 case 塊計數。先用「剝離引號、轉義與行內註釋後的程式碼」探測 here 文件：命中「<< 加定界符」的起始行按當前縮排輸出，隨後各行原樣保留（縮排正文會改變 shell 語義），直到出現與定界符相同的行才退出；字串或註釋裡的 << 不觸發。普通行去掉首尾空白後處理，連續空行只保留一個。本行輸出深度：整行是 fi/done/esac、以右花括號開頭、以 else/elif/then/do 開頭，或整行是 ;;/;&/;;& 時減 1（不小於 0）。輸出後狀態深度：fi/done/esac、右花括號與分支終止符減 1；else/elif/then/do 不變（其前的 if/for 已開層）；以 if/for/while/until/case 開頭、行尾為左花括號或整行就是左花括號時加 1；僅在 case 塊內、且「行首到右括號之間無空白/引號/括號、右括號是行尾」的分支模式行也加 1。最終按「縮排單位 × 輸出深度 + 去空白後的行」拼接。壓縮只逐行去首尾空白並刪空行、保留換行，不插入分號；校驗按剝離後的程式碼統計關鍵字與括號，結果寫狀態列且不覆蓋輸出</div>
   <div class="formula-desc">本開發工具在前端本地完成解析、轉換與處理，程式碼不離開瀏覽器，遵循對應語法與格式規範。 工具名稱：Shell 指令碼格式化 - 免費開發工具，線上Shell 指令碼格式化，免費使用。</div>
 </div>
 
@@ -231,46 +231,79 @@
 <script>
 const SAMPLE = '#!/bin/bash\n# Backup script\nset -e\n\nbackup() {\n    local src=$1\n    local dest=$2\n    if [ -d "$src" ]; then\n        tar -czf "$dest" "$src"\n        echo "Backup complete"\n    else\n        echo "Source not found"\n    fi\n}\n\nfor dir in /home /var; do\n    backup "$dir" "/tmp/$(basename $dir).tar.gz"\ndone\n\ncase $1 in\n    start)\n        systemctl start nginx\n        ;;\n    stop)\n        systemctl stop nginx\n        ;;\n    *)\n        echo "Usage: $0 {start|stop}"\n        ;;\nesac';
 const IND = () => { const v = document.getElementById('indent').value; return v === 'tab' ? '\t' : ' '.repeat(parseInt(v)); };
+// IT-N189/N190：把引号内文本、转义字符与行内注释替换成等长空格，只留下可用于语法判定的「代码」。
+// 这样 echo "a <<EOF"、# if fi、echo "if fi" 都不会被误当作 heredoc 起始或块关键字。
+function shellCode(line){
+  let out = '', quote = null;
+  for(let i = 0; i < line.length; i++){
+    const c = line.charAt(i);
+    if(quote){
+      if(c === '\\' && quote === '"'){ out += ' '; i++; out += ' '; continue; }
+      if(c === quote) quote = null;
+      out += ' ';
+      continue;
+    }
+    if(c === "'" || c === '"'){ quote = c; out += ' '; continue; }
+    if(c === '\\'){ out += ' '; i++; out += ' '; continue; }
+    if(c === '#' && (i === 0 || /\s/.test(line.charAt(i - 1)))) break;
+    out += c;
+  }
+  while(out.length < line.length) out += ' ';
+  return out;
+}
 function formatShell(){
   setErr('');
   try{
-    const src = document.getElementById('input').value;
-    const lines = src.split('\n');
+    const unit = IND();
+    const lines = document.getElementById('input').value.split('\n');
     const out = [];
-    let depth = 0;
-    let inHeredoc = false;
-    let heredocEnd = '';
+    let depth = 0;      // 下一行的缩进层级
+    let caseDepth = 0;  // IT-N186：只有 case 块内才允许识别分支模式
+    let inHeredoc = false, heredocEnd = '';
     let prevBlank = false;
-    const indStart = /^(if|for|while|until|case)\b/;
-    const indMid = /^(then|do|else|elif)\b/;
-    const dedMid = /^(fi|done|esac)\b/;
-    const funcOpen = /\{\s*$/;
-    const funcClose = /^\s*\}/;
+    const reOpen = /^(if|for|while|until|case)\b/;
+    const reClose = /^(fi|done|esac)\b/;
+    const reMid = /^(else|elif|then|do)\b/;
+    const reTerm = /^(;;|;&|;;&)$/;
     for(const line of lines){
       const trimmed = line.trim();
+      // here 文档正文原样保留（缩进会改变 shell 语义），结束标记同理
       if(inHeredoc){
         out.push(line);
-        if(trimmed === heredocEnd || trimmed === heredocEnd.replace(/^['"]|['"]$/g,'')) inHeredoc = false;
+        if(trimmed === heredocEnd) inHeredoc = false;
+        prevBlank = false;
         continue;
       }
-      const heredocMatch = line.match(/<<-?\s*(['"]?)([A-Za-z_][A-Za-z0-9_]*)\1/);
-      if(heredocMatch){ heredocEnd = heredocMatch[2]; inHeredoc = true; out.push(line); continue; }
       if(trimmed === ''){
         if(!prevBlank){ out.push(''); prevBlank = true; }
         continue;
       }
       prevBlank = false;
-      let d = depth;
-      if(dedMid.test(trimmed)) d = Math.max(0, d - 1);
-      if(indMid.test(trimmed) && trimmed.startsWith('esac')) d = Math.max(0, d - 1);
-      else if(indMid.test(trimmed) && (trimmed.startsWith('else') || trimmed.startsWith('elif'))) d = Math.max(0, d - 1);
-      else if(trimmed === ';;' || trimmed === ';&' || trimmed === ';;&') d = Math.max(0, d - 1);
-      const isCasePat = /^([A-Za-z0-9_*?\-|]+\)|.+\))/.test(trimmed) && !trimmed.includes('function');
-      out.push(IND().repeat(d) + trimmed);
-      if(indStart.test(trimmed) || funcOpen.test(trimmed) || trimmed.endsWith('then') || trimmed.endsWith('do') || trimmed === '{') depth++;
-      if(isCasePat && trimmed.endsWith(')')) depth++;
-      if(trimmed === 'fi' || trimmed === 'done' || trimmed === 'esac' || funcClose.test(trimmed) || trimmed === '}') depth = Math.max(0, depth - 1);
-      if(trimmed === ';;' || trimmed === ';&' || trimmed === ';;&') depth = Math.max(0, depth - 1);
+      const code = shellCode(trimmed).trim();
+      const isClose = reClose.test(code) || /^\}/.test(code);
+      const isMid = reMid.test(code);
+      const isTerm = reTerm.test(code);
+      // IT-N186：分支模式要求「行首到 ) 之间无空白/引号/括号且 ) 是行尾」，且必须处于 case 块内
+      const isCasePat = caseDepth > 0 && /^[^\s()'";]+\)$/.test(trimmed);
+      // IT-N187/N188：闭合行、else/elif/then/do、;; 本行都回落一级
+      const d = (isClose || isMid || isTerm) ? Math.max(0, depth - 1) : depth;
+      out.push(unit.repeat(d) + trimmed);
+      if(isClose || isTerm){
+        // 闭合与分支终止符：下一行也回到回落后的层级
+        depth = Math.max(0, depth - 1);
+        if(/^esac\b/.test(code)) caseDepth = Math.max(0, caseDepth - 1);
+      }else if(isMid){
+        // IT-N187：单独成行的 then/do 与 else/elif 只影响本行输出，正文仍留在当前层
+        // （前面的 if/for 已开层，这里不能再 +1）
+      }else if(reOpen.test(code) || /\{\s*$/.test(code) || code === '{'){
+        depth++;
+        if(/^case\b/.test(code)) caseDepth++;
+      }else if(isCasePat){
+        depth++;
+      }
+      // IT-N189：起始行本身参与缩进与层级；仅在剥离后的代码上探测定界符
+      const hm = code.match(/<<-?\s*([A-Za-z_][A-Za-z0-9_]*)/);
+      if(hm){ heredocEnd = hm[1]; inHeredoc = true; }
     }
     setOut(out.join('\n'));
     setErr('✅ 格式化成功');
@@ -292,7 +325,8 @@ function minifyShell(){
       }
       const t = raw.trim();
       if(!t) continue;
-      const m = t.match(/<<-?\s*['"]?([A-Za-z_][A-Za-z0-9_]*)['"]?/);
+      // IT-N185 加固：只在剥离引号/注释后的代码上探测定界符，字符串与注释里的 << 不再误触发
+      const m = shellCode(t).match(/<<-?\s*([A-Za-z_][A-Za-z0-9_]*)/);
       out.push(t);
       if(m) heredoc = m[1];
     }
@@ -305,13 +339,25 @@ function doMinify(){ minifyShell(); }
 function doValidate(){
   setErr('');
   try{
-    const src = document.getElementById('input').value;
-    const opens = (src.match(/\b(if|for|while|until|case)\b/g) || []).length;
-    const closes = (src.match(/\b(fi|done|esac)\b/g) || []).length;
-    const braceO = (src.match(/\{/g) || []).length;
-    const braceC = (src.match(/\}/g) || []).length;
-    const parenO = (src.match(/\(/g) || []).length;
-    const parenC = (src.match(/\)/g) || []).length;
+    const lines = document.getElementById('input').value.split('\n');
+    // IT-N190：只在剥离引号/注释后的代码上计数，并跳过 here 文档正文
+    let opens = 0, closes = 0, braceO = 0, braceC = 0, parenO = 0, parenC = 0;
+    let heredoc = null;
+    for(const line of lines){
+      if(heredoc){
+        if(line.trim() === heredoc) heredoc = null;
+        continue;
+      }
+      const code = shellCode(line);
+      const hm = code.match(/<<-?\s*([A-Za-z_][A-Za-z0-9_]*)/);
+      if(hm) heredoc = hm[1];
+      opens  += (code.match(/\b(if|for|while|until|case)\b/g) || []).length;
+      closes += (code.match(/\b(fi|done|esac)\b/g) || []).length;
+      braceO += (code.match(/\{/g) || []).length;
+      braceC += (code.match(/\}/g) || []).length;
+      parenO += (code.match(/\(/g) || []).length;
+      parenC += (code.match(/\)/g) || []).length;
+    }
     const stats = '✅ Shell 脚本分析\n' +
       '块开头: ' + opens + '\n' +
       '块结尾: ' + closes + '\n' +
@@ -319,13 +365,14 @@ function doValidate(){
       '} 数量: ' + braceC + '\n' +
       '( 数量: ' + parenO + '\n' +
       ') 数量: ' + parenC + '\n' +
-      '行数: ' + src.split('\n').length;
-    let ok = true;
-    if(opens !== closes){ ok = false; setErr('❌ 块未平衡：开始 ' + opens + ' / 结束 ' + closes); }
-    else if(braceO !== braceC){ ok = false; setErr('❌ 花括号未平衡：{ ' + braceO + ' / } ' + braceC); }
-    else if(parenO !== parenC){ ok = false; setErr('❌ 圆括号未平衡：( ' + parenO + ' / ) ' + parenC); }
-    else { setErr('✅ 校验通过'); }
-    setOut(stats);
+      '行数: ' + lines.length;
+    let ok = true, msg = stats + '\n✅ 校验通过';
+    if(opens !== closes){ ok = false; msg = stats + '\n❌ 块未平衡：开始 ' + opens + ' / 结束 ' + closes; }
+    else if(braceO !== braceC){ ok = false; msg = stats + '\n❌ 花括号未平衡：{ ' + braceO + ' / } ' + braceC; }
+    else if(parenO !== parenC){ ok = false; msg = stats + '\n❌ 圆括号未平衡：( ' + parenO + ' / ) ' + parenC; }
+    // 结果写入状态栏，绝不覆盖「输出结果」，已生成的格式化/压缩成果保持可见
+    setErr(msg);
+    document.getElementById('err').className = ok ? 'err ok' : 'err';
   }catch(e){ setErr('❌ ' + e.message); }
 }
 function getIndent(){const v=document.getElementById('indent').value;return v==='tab'?'\t':' '.repeat(parseInt(v));}

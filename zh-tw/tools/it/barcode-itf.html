@@ -121,7 +121,7 @@ canvas{background:#fff;border:6px solid #fff;border-radius:8px;box-shadow:var(--
     <h2 data-zh="📊 ITF-14 條形碼（交叉 25）">📊 ITF Barcode</h2>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理與說明</div>
-  <div class="formula-eq">每 2 位數字交叉編碼為 5 條 + 5 空<br>校驗位：GTIN-14 mod 10（從右往左 3、1 交替加權）</div>
+  <div class="formula-eq">每 2 位數字交叉編碼為 5 條 + 5 空（寬窄比 3:1）<br>起止符：起始 1010 / 終止 11010（寬窄元素）<br>校驗位：GTIN-14 mod 10（從右往左 3、1 交替加權）</div>
   <div class="formula-desc">ITF（Interleaved 2 of 5）是純數字、高密度條碼：把數字兩兩配對，第一位決定 5 個條（寬窄）的位置，第二位決定 5 個空，二者交織在同一段寬度內，因此同樣長度下比 Code 39 短得多。每個字元 5 個元素中 2 個為寬（寬窄比通常 2:1 或 3:1）。ITF 只能表示偶數位數字，常用於瓦楞紙箱外箱的 ITF-14（承載 GTIN-14）。因無自校驗且易發生「短讀」，通常加黑色護邊框（Bearer Bar）防止斜掃描時漏讀。</div>
 </div>
 
@@ -215,10 +215,15 @@ const ITF={
 '0':'NNWWN','1':'WNNNW','2':'NWNNW','3':'WWNNN','4':'NNWNW',
 '5':'WNWNN','6':'NWWNN','7':'NNNWW','8':'WNNWN','9':'NWNWN'
 };
+function normalizeITF(text){
+  // IT-N325：补零后的数字串是唯一真值，画布、页面文本与复制内容都用它。
+  var digits=String(text==null?'':text).replace(/\D/g,'');
+  return digits.length%2 ? '0'+digits : digits;
+}
 function buildITF(text){
-  text=text.replace(/\D/g,'');
-  if(text.length%2!==0)text='0'+text;
-  let bits='0000'; // start guard (narrow bar narrow space narrow bar narrow space)
+  text=normalizeITF(text);
+  // ITF-14/ISO 16390：起始 1010（窄条-窄空-窄条-窄空），终止 11010（宽条-窄空-窄条-窄空-宽条）。
+  let bits='1010';
   for(let i=0;i<text.length;i+=2){
     const b1=ITF[text[i]],b2=ITF[text[i+1]];
     if(!b1||!b2)continue;
@@ -229,10 +234,12 @@ function buildITF(text){
       bits+=(b2[j]==='W'?'000':'0');
     }
   }
-  bits+='100'; // end guard (wide bar narrow space narrow bar) -> simplified
+  bits+='111010111'; // end guard: 11010 in wide/narrow elements -> 3:1 module bits
   return bits;
 }
 function drawBarcode(bits,text){
+  // 兜底调用（无参扫描/测试）不应抛 null 解引用；正常 generate() 始终传有效 bits。
+  bits=String(bits||'');text=String(text||'');
   const N=bits.length;const modW=2;const barH=120;const textH=22;
   const w=N*modW+20;const h=barH+textH;
   const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;
@@ -255,17 +262,20 @@ function downloadBarcodePNG(){
   a.click();
   if(window.ToolBox&&ToolBox.showToast)ToolBox.showToast('PNG 已下载','success');
 }
+var __itfLastNormalized='';
 function generate(){
-  const text=document.getElementById('data').value;
-  const bits=buildITF(text);
-  const canvas=drawBarcode(bits,text.replace(/\D/g,''));
+  const normalized=normalizeITF(document.getElementById('data').value);
+  __itfLastNormalized=normalized;
+  const bits=buildITF(normalized);
+  const canvas=drawBarcode(bits,normalized);
   const out=document.getElementById('output');
-  const __h0='<div class="bar-wrap"></div><div class="bar-text">'+escapeHtml(text)+'</div>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h0;
+  const __h0='<div class="bar-wrap"></div><div class="bar-text">'+escapeHtml(normalized)+'</div>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h0;
   out.querySelector('.bar-wrap').appendChild(canvas);
 }
 function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function copyResult(){
-  const text = document.getElementById('output').textContent || document.getElementById('output').innerText;
+  // IT-N325：复制最近一次生成时实际编码的规范化数字串，而非原始输入。
+  const text=__itfLastNormalized || (document.querySelector('#output .bar-text')||{}).textContent || document.getElementById('output').textContent || '';
   navigator.clipboard.writeText(text).then(() => alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Copied":"已复制")));
 }
 function toggleToolTheme(){

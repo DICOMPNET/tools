@@ -203,7 +203,7 @@
         </tr>
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="雜湊函式">Hash function</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="SHA-256 輸出 256 位，足夠對映 5 x 5 網格的取值">SHA-256 gives 256 bits, enough for a 5 by 5 grid</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="Java String.hashCode 變體（32 位乘 31 雜湊）輸出 32 位，由 hash mod 360 決定色相；非密碼學雜湊，不同種子可能碰撞">Java String.hashCode variant (32-bit multiply-by-31 hash) drives hue via hash mod 360; not cryptographic and collisions are possible</td>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="FIPS 180-4 (SHA-2)">FIPS 180-4 (SHA-2)</td>
         </tr>
       </tbody>
@@ -258,6 +258,7 @@ function generate(){
   try { lastURL = canvas.toDataURL('image/png'); }
   catch (e) { lastURL=''; ToolBox.showToast('导出失败：' + ((e && (e.name || e.message)) || ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Unknown error":"未知错误")), 'error'); return; }
   const __h0='<img src="/zh-tw/tools/design/'+lastURL+'" alt="Identicon" style="width:'+size+'px;height:'+size+'px;border-radius:8px;">';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('preview').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('preview').innerHTML=__h0;
+  generateGallery();
 }
 function generateGallery(){
   const gallery = document.getElementById('gallery');
@@ -269,17 +270,20 @@ function generateGallery(){
     const hue = hash % 360;
     const fgColor = `hsl(${hue}, 65%, 45%)`;
     const size = 60;
-    const blocks = 5;
+    const blocks = Math.max(3, Math.min(9, parseInt(document.getElementById('blocks').value) || 5));
+    const bg = document.getElementById('bgColor').value;
+    gallery.setAttribute('data-blocks', String(blocks));
+    gallery.setAttribute('data-bg', bg);
     const canvas = document.createElement('canvas');
     canvas.width = size; canvas.height = size;
     canvas.title = name;
     const ctx = canvas.getContext('2d');
-    ctx.fillStyle = '#f0f0f0';
+    ctx.fillStyle = bg;
     ctx.fillRect(0, 0, size, size);
     const cellSize = size / blocks;
     let s = hash;
     for(let y=0;y<blocks;y++){
-      for(let x=0;x<3;x++){
+      for(let x=0;x<Math.ceil(blocks/2);x++){
         s = (s * 9301 + 49297) % 233280;
         if(s / 233280 > 0.5){
           ctx.fillStyle = fgColor;
@@ -349,12 +353,12 @@ function __identicon_generatorSnap(){
     return out;
 }
 function __identicon_generatorResText(){
-    var r=document.getElementById('output');
-    if(!r) return '';
-    var t=(r.textContent||'').replace(/\s+/g,' ').trim();
-    if(!t||t==='--'||t==='—'||t==='-') return '';
-    if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
-    return t.slice(0,80);
+    var g=function(id){var e=document.getElementById(id);return e?String(e.value||''):'';};
+    var seed=g('seed');
+    if(!seed) return '';
+    var size=g('size');
+    if(!size||!isFinite(Number(size))) return '';
+    return ('Identicon:'+seed+'|'+size+'|'+g('blocks')+'|'+g('bgColor')).slice(0,80);
 }
 function __identicon_generatorScore(t){
     var s=String(t||'');
@@ -391,7 +395,7 @@ function __identicon_generatorRender(keys,rk,en){
                     if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
                     else{e.value=rec[k];}
                 }
-                downloadImg();
+                generate();
             }catch(e2){}
             __identicon_generator_skip=false;
         });
@@ -455,9 +459,9 @@ function __identicon_generatorPresets(){
   {"label":"用户 ID 头像（7 块）","labelEn":"User ID avatar 7 blocks","values":{"seed":"user-10086","size":"128","bgColor":"#e0e7ff","blocks":"7"}},
   {"label":"暗色高密度头像（9 块）","labelEn":"Dark dense avatar 9 blocks","values":{"seed":"dark-identicon-2026","size":"256","bgColor":"#1e293b","blocks":"9"}}],function(){ generate(); });
 }
-var __identicon_generator_f0=(typeof downloadImg==='function')?downloadImg:null;
+var __identicon_generator_f0=(typeof generate==='function')?generate:null;
 if(__identicon_generator_f0){
-    downloadImg=function(){ var __r=__identicon_generator_f0.apply(null,arguments); try{ __identicon_generatorExtras(); }catch(e){} return __r; };
+    generate=function(){ var __r=__identicon_generator_f0.apply(null,arguments); try{ __identicon_generatorExtras(); }catch(e){} return __r; };
 }
 function __identicon_generatorBoot(){ try{ __identicon_generatorPresets(); }catch(e){} try{ if(typeof generate==='function') generate(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __identicon_generatorBoot();
