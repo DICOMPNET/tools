@@ -508,7 +508,13 @@
   //       ③ 无子元素（含内链/结构的段落不能整体 textContent 覆盖，与 applyEnDict data-zh 分支同口径）。
   //       h2 不进本扫描：公式型 h2（skipH2/isFormula）不可被整体覆盖，且主 h2 已由 ORIG.title 还原。
   function restoreAllDataZh() {
-    var list = document.querySelectorAll('p[data-zh]');
+    // 【2026-11-12 全量覆盖】构建期把英文预渲染进静态 HTML 的不止 p：表格/公式引据区的
+    // h3/th/td/span/label/summary/strong 同样是「静态英文 + data-zh 中文」（全站约 5 万处）。
+    // 此前中文态只还原 p[data-zh]，导致中文下「Formula & Standard References」及其表格
+    // 单元格仍是英文（老板实测）。扩展到所有纯文本 data-zh 元素，守卫口径不变：
+    // data-zh 含汉字、当前文本无汉字、无子元素、非 data-i18n 管理。
+    // 英文专名（data-zh 本身无汉字，如 Christiansen 1942 / FAO-56）按原口径跳过。
+    var list = document.querySelectorAll('p[data-zh], h2[data-zh], h3[data-zh], th[data-zh], td[data-zh], span[data-zh], label[data-zh], summary[data-zh], strong[data-zh]');
     for (var i = 0; i < list.length; i++) {
       var el = list[i];
       if (el.hasAttribute('data-i18n')) continue;
@@ -518,6 +524,10 @@
       var cur = el.textContent;
       if (!cur || /[\u4e00-\u9fff]/.test(cur)) continue;
       if (cur === zh) continue;
+      // h2 中有一类是「公式标题」（PR = …、F = …），data-zh 是中文说明，但公式本体
+      // 必须保留原样；主 h2 已由 applyToolBody() 的 ORIG.title 还原（cur 含汉字天然跳过）。
+      // 仅对 h2 增加公式守卫，避免把公式标题替换成中文说明。
+      if (el.tagName === 'H2' && isFormula(cur)) continue;
       if (el.__tbEnStatic === undefined) el.__tbEnStatic = cur;
       el.textContent = zh;
     }

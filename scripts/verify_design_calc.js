@@ -349,6 +349,12 @@ const CASES = [
     ref: "独立复算：`background-size: ${size*2}px ${size*2}px`（32 ⇒ 64px）且 `background-position: 0 0, ${size}px ${size}px;` ⇒ 注入 size=32 得 `background-position: 0 0, 32px 32px;`，与默认态（size 默认值 ⇒ 另一组尺寸）不同。同页 `background-size: 64px 64px;` 亦由 size×2 推出，两者任选其一即可，本例取 position 那条（更短且不与默认 40px 同形）。"
         + "⚠ 颜色只进 `linear-gradient` 段，锚颜色会撞默认态渐变描述 ⇒ 只用尺寸类字段。",
   },
+  {
+    slug: "design/checkerboard-generator",
+    inputs: { size: "999", color1: "#22c55e", color2: "#0f172a" },
+    expect: ["background-position: 0 0, 200px 200px;"],
+    ref: "D-N101 强锁：size=999 原样进入会生成 1998px 背景撑破布局，现 `Math.min(200, Math.max(5, parseInt(value)||30))` 钳到 200 ⇒ background-position 第二项恒为 200px。注入 999 与默认态（size 默认值 40 ⇒ 40px）零交集。",
+  },
 
   // ── §7.4 覆盖缺口线 · design/*（第四交付 BATCH142）
   {
@@ -498,6 +504,18 @@ const CASES = [
     ],
     ref: "第一条锚整句：size / color / speed 三个字段全进同一条 `.dot` 声明（默认态为 `#3b82f6` + 1s）。\n"
       + "第二条把 `count` 纳入被测点：count=5 ⇒ 第 3 个点延迟 0.24s（默认 4 个点时为 0.20s）。只锚第一条时，改点数不会触发失败。",
+  },
+  {
+    slug: "design/loading-dots",
+    inputs: { count: "5", speed: "-1", color: "#f43f5e", size: "12", animType: "bounce" },
+    expect: [".dot { width: 12px; height: 12px; background: #f43f5e; border-radius: 50%; animation: dotBounce 1.4s ease-in-out infinite; }"],
+    ref: "D-N90 强锁①（速度下限）：speed=-1 原样进 `animation:-1.4s` 非法被浏览器丢弃、动画失效；现 `isFinite(sv) && sv>0` 不成立 ⇒ 回落 1.4s。注入负值与默认态（1s 正速）零交集。",
+  },
+  {
+    slug: "design/loading-dots",
+    inputs: { count: "5", speed: "1.2", color: "#f43f5e", size: "9999", animType: "bounce" },
+    expect: [".dot { width: 120px; height: 120px; background: #f43f5e; border-radius: 50%; animation: dotBounce 1.2s ease-in-out infinite; }"],
+    ref: "D-N90 强锁②（尺寸上限）：size=9999 原样进会撑爆预览，现 `Math.min(120, Math.max(4, parseInt(value)||12))` 钳到 120 ⇒ width/height 恒 120px。注入 9999 与默认态（12px）零交集。",
   },
   {
     slug: "design/loading-dots",
@@ -1030,7 +1048,7 @@ const CASES = [
       "cssOutput": "1\n2\n3"
     },
     "expect": [
-      "abc123测试\nabc123测试\n42\n42\n42\nabc123测试\n42\nabc123测试\n42\n42\n42\n42\nabc123测试"
+      "abc123测试\nabc123测试\n42\n42\n42\nabc123测试\n5\nabc123测试\n42\n42\n42\n42\nabc123测试"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"bgColor\":\"abc123测试\",\"textColor\":\"abc123测试\",\"radius\":\"42\",\"padX\":\"42\",\"padY\":\"42\",\"borderColor\":\"abc123测试\",\"borderW\":\"42\",\"btnText\":\"abc123测试\",\"fontSize\":\"42\",\"shX\":\"42\",\"shY\":\"42\",\"shBlur\":\"42\",\"cssOutput\":\"1\\n2\\n3\"}，输出区含「abc123测试\nabc123测试\n42\n42\n42\nabc123测试\n42\na…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -1060,7 +1078,7 @@ const CASES = [
       "cssOutput": "1\n2\n3"
     },
     "expect": [
-      "abc123测试\n42\n42\n42\n42\n42\nabc123测试\n42\nabc123测试\n42"
+      "abc123测试\n42\n42\n42\n42\n42\nabc123测试\n5\nabc123测试\n1"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"bgColor\":\"abc123测试\",\"radius\":\"42\",\"shX\":\"42\",\"shY\":\"42\",\"shBlur\":\"42\",\"pad\":\"42\",\"borderColor\":\"abc123测试\",\"borderW\":\"42\",\"shadowColor\":\"abc123测试\",\"shadowOp\":\"42\",\"cssOutput\":\"1\\n2\\n3\"}，输出区含「abc123测试\n42\n42\n42\n42\n42\nabc123测试\n42\nabc1…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -1185,7 +1203,7 @@ const CASES = [
       "containerW": "42"
     },
     "expect": [
-      "42\n42\n42\n列数需在 1-12 之间。"
+      "42\n42\nfr\n42\n列数需在 1-12 之间。"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"cols\":\"42\",\"gap\":\"42\",\"containerW\":\"42\"}，输出区含「42\n42\n42\n列数需在 1-12 之间。」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -1523,14 +1541,14 @@ const CASES = [
       "bgColor": "abc123测试",
       "lineColor": "abc123测试",
       "cellSize": "42",
-      "lineWidth": "42",
+      "lineWidth": "8",
       "cssOutput": "1\n2\n3",
       "gridType": "dotted"
     },
     "expect": [
-      "abc123测试\nabc123测试\n42\n42\ndotted"
+      "abc123测试\nabc123测试\n42\n8\ndotted"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"bgColor\":\"abc123测试\",\"lineColor\":\"abc123测试\",\"cellSize\":\"42\",\"lineWidth\":\"42\",\"cssOutput\":\"1\\n2\\n3\",\"gridType\":\"dotted\"}，输出区含「abc123测试\nabc123测试\n42\n42\ndotted」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"bgColor\":\"abc123测试\",\"lineColor\":\"abc123测试\",\"cellSize\":\"42\",\"lineWidth\":\"8\",\"cssOutput\":\"1\\n2\\n3\",\"gridType\":\"dotted\"}，输出区含「abc123测试\nabc123测试\n42\n8\ndotted」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。第318批：lineWidth 由 42 改为合法值 8（HTML max=10），因修复后 generate() 会按 1..10 钳制并回写，越界 42 会被回写成 10 而破坏回显锚。"
   },
   {
     "slug": "design/glassmorphism-generator",
@@ -2170,16 +2188,16 @@ const CASES = [
   {
     "slug": "design/waveform-visualizer",
     "inputs": {
-      "freq": "42",
-      "amp": "42",
+      "freq": "8",
+      "amp": "0.6",
       "phase": "42",
       "color": "abc123测试",
       "waveType": "square"
     },
     "expect": [
-      "square\n42\n42\n42\nabc123测试\n⏸ 暂停"
+      "square\n8\n0.6\n42\nabc123测试\n⏸ 暂停"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"freq\":\"42\",\"amp\":\"42\",\"phase\":\"42\",\"color\":\"abc123测试\",\"waveType\":\"square\"}，输出区含「square\n42\n42\n42\nabc123测试\n⏸ 暂停」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"freq\":\"8\",\"amp\":\"0.6\",\"phase\":\"42\",\"color\":\"abc123测试\",\"waveType\":\"square\"}，输出区含「square\n8\n0.6\n42\nabc123测试\n⏸ 暂停」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。第318批：freq/amp 由越界 42 改为合法 8/0.6（HTML 1–20 / 0.1–1），因修复后 drawWave() 会钳制并回写，越界 42 会被回写成 20/1 而破坏回显锚。"
   },
   {
     "slug": "design/web-audio-metronome",
@@ -2337,8 +2355,8 @@ const CASES = [
   {
     slug: "design/px-to-rem",
     inputs: { px: "100", root: "0" },
-    expect: ["根字号必须大于 0，已按 16px 计算"],
-    ref: "根字号为 0 时旧实现静默改成 16 且不说明；现明确提示夹取口径。默认 16 不命中。",
+    expect: ["根字号必须大于 0，请重新输入"],
+    ref: "D-N14：根字号为 0 时旧实现静默改成 16 后继续输出伪结果；现显式提示并清空结果，不再代算。默认 16 不命中。",
   },
   {
     slug: "design/shutter-speed-calculator",
@@ -2619,6 +2637,392 @@ const CASES = [
   "expect": ["font-family: 'Cormorant Garamond', sans-serif;", "font-weight: 500;"],
   "ref": "setCategory('classic') 切分类后 selectPair(3) 取 FONT_PAIRS.classic[3] = {title:'Cormorant Garamond', body:'Inter', titleWeight:500}，"
      + "标题规则字体名与字重（500，非默认 400/600/700）同时落进 cssOutput。默认态（modern、未选）cssOutput 为空 ⇒ 零交集。"
+},
+{
+  "slug": "design/color-palette",
+  "clicks": ["document.getElementById('__tbProbe').textContent=(hexToRgb('#gggggg')===null&&JSON.stringify(hexToRgb('#667eea'))==='[102,126,234]'?'HEXVAL OK':'BAD '+JSON.stringify(hexToRgb('#gggggg')));"],
+  "expect": ["HEXVAL OK"],
+  "ref": "D-N33：hexToRgb 旧实现只校验长度，parseInt 得 NaN 数组（真值）使调用处 if(rgb) 校验失效 ⇒ 产出 #NaNNaNNaN。修复后加 /^[0-9a-fA-F]{6}$/ 字符校验、非法返回 null。探针断言非法 hex 返回 null 且合法 #667eea 仍正确 ⇒ HEXVAL OK。默认态不生成该哨兵。"
+},
+// ── 第314批：边界校验与输入同步强锁 ─────────────────────────────
+{
+  slug: "design/spacing-scale",
+  inputs: { baseSize: "6", ratio: "1.4", levels: "20" },
+  expect: ["实际生成 15 档"],
+  ref: "D-N13：档位数越界旧实现静默夹到 15 且输入框仍显示 20，也没有任何档数标注；修复后在 CSS 首行标注实际档数并把夹取值回写输入框。默认 10 档不含「实际生成 15 档」⇒ 强判别。",
+},
+{
+  slug: "design/px-to-rem",
+  inputs: { px: "", root: "16" },
+  expect: ["请输入有效的 px 数值与大于 0 的根字号"],
+  ref: "D-N14：px 清空旧实现按 0 算出 0.0000rem；修复后显式拦截空值。默认 16 不含该提示 ⇒ 强判别。",
+},
+{
+  slug: "design/rem-to-px",
+  inputs: { rem: "", root: "16" },
+  expect: ["请输入有效的 rem 数值与大于 0 的根字号"],
+  ref: "D-N14：rem 清空旧实现按 0 算出 0.00px；修复后显式拦截空值。默认 1 不含该提示 ⇒ 强判别。",
+},
+{
+  slug: "design/css-grid-generator",
+  inputs: { cols: "4", coltype: "fixed", gap: "16", containerW: "960" },
+  expect: ["grid-template-columns: repeat(4, 120px)"],
+  ref: "D-N27：旧实现 select 无任何 option，注入 fixed 无效、永远走 fr 分支得 repeat(4, 1fr)；修复后补 fr/fixed/auto 三选项，fixed 分支生成 repeat(4, 120px)。默认 fr 不含该串 ⇒ 强判别。",
+},
+{
+  slug: "design/css-grid-generator",
+  inputs: { cols: "5", coltype: "fr", gap: "16", containerW: "960" },
+  expect: ["&lt;div&gt;3&lt;/div&gt;"],
+  ref: "D-N28：旧实现 HTML 结构硬编码 1、2、cols 三个子项，cols=5 时不含第 3 格；修复后按列数循环生成 1..5。默认 3 列不含第 3 格转义串 ⇒ 强判别。",
+},
+{
+  slug: "design/css-grid-generator",
+  inputs: { cols: "3", gap: "-10", containerW: "960" },
+  expect: ["gap: 0px;"],
+  ref: "D-N29：旧实现负 gap 原样拼出 gap: -10px 与负 padding；修复后 clamp 到 0..80 并回写 ⇒ gap: 0px。默认 gap=16 不含该串 ⇒ 强判别。",
+},
+{
+  slug: "design/color-picker",
+  inputs: { hInput: "400", sInput: "50", lInput: "50" },
+  clicks: ["onHslInput();document.getElementById('formatList').textContent+='|H='+document.getElementById('hInput').value;"],
+  expect: ["H=360"],
+  ref: "D-N31：旧实现 clampInput 把 400 夹成 360 但不回写正在聚焦的输入框，框内仍显示 400；修复后强制回写 ⇒ H=360。默认 234 不含 ⇒ 强判别。",
+},
+{
+  slug: "design/color-picker",
+  inputs: { hexInput: "#11223344" },
+  clicks: ["onHexInput();"],
+  expect: ["rgb(17, 34, 51)"],
+  ref: "D-N32：旧实现 hexToRgb 只接受 3/6 位，8 位 #RRGGBBAA 被判非法、颜色停留默认 #4151e1；修复后支持 8 位并解析 alpha ⇒ rgb(17, 34, 51)。默认态不含 ⇒ 强判别。",
+},
+{
+  slug: "design/shadow-generator-advanced",
+  clicks: ["layers[0].x=NaN;generate();if(document.getElementById('cssOutput').value==='')document.getElementById('cssOutput').value='NANGUARD OK';"],
+  expect: ["NANGUARD OK"],
+  ref: "D-N45：旧实现把 NaN 直接拼进 box-shadow 得 NaNpx，整条声明被浏览器丢弃且无任何提示；修复后有限性守卫清空输出。探针在输出为空时写哨兵 ⇒ NANGUARD OK，旧实现输出非空不写。默认态不含 ⇒ 强判别。",
+},
+{
+  slug: "design/text-shadow-generator",
+  inputs: { blur: "-4" },
+  clicks: ["generate();if(document.getElementById('cssOutput').value==='')document.getElementById('cssOutput').value='BLURGUARD OK';"],
+  expect: ["BLURGUARD OK"],
+  ref: "D-N53：旧实现负 blur 原样拼进 text-shadow 使整条声明失效；修复后 blur 必须为 0..50 有限数，非法清空输出。探针在输出为空时写哨兵 ⇒ BLURGUARD OK，旧实现非空不写。默认 blur=4 不含 ⇒ 强判别。",
+},
+{
+  slug: "design/flexbox-generator",
+  inputs: { gap: "-10" },
+  expect: ["gap: 0px;"],
+  ref: "D-N29 同族：旧实现把负 gap 原样拼进 gap: -10px；修复后 clamp 到 0..80 并回写输入框 ⇒ gap: 0px。默认 gap=12 不含该串 ⇒ 强判别。",
+},
+// ── 第315批：边界钳制与 XSS 转义强锁 ─────────────────────────────
+{
+  slug: "design/color-temperature-converter",
+  inputs: { rgb: "0, 0, 255" },
+  expect: ["该颜色不在黑体轨迹附近"],
+  ref: "D-N18：纯蓝远离黑体轨迹，旧实现仍返回边界色温 11800K 冒充精确值；修复后残差超阈值时提示无法给出可靠色温。默认输入为合法色温 RGB，不含该提示 ⇒ 强判别。",
+},
+{
+  slug: "design/badge-generator",
+  inputs: { text: "<img src=x onerror=alert(1)>" },
+  expect: ["&lt;img src=x onerror=alert(1)&gt;"],
+  ref: "D-N47：徽章文字旧实现原样拼进 preview.innerHTML，注入的 img 会注册 onerror；修复后先做 HTML 转义再拼接，输出 &lt;img。默认文案 Badge 不含该串 ⇒ 强判别。",
+},
+{
+  slug: "design/card-generator",
+  inputs: { borderW: "-1" },
+  expect: ["border: 0px"],
+  ref: "D-N50：负边框宽旧实现原样输出 border: -1px；修复后 clamp 到 0..5 并回写输入框 ⇒ border: 0px。默认 borderW=1 不含 ⇒ 强判别。",
+},
+{
+  slug: "design/button-generator",
+  inputs: { radius: "-5" },
+  expect: ["border-radius: 0px"],
+  ref: "D-N52：负圆角旧实现输出 border-radius: -5px；修复后 clamp 到 0..50 并回写 ⇒ border-radius: 0px。默认 radius=8 不含 ⇒ 强判别。",
+},
+{
+  slug: "design/css-animation-generator",
+  inputs: { easing: "custom", bx1: "-0.5" },
+  expect: ["cubic-bezier( 0 ,"],
+  ref: "D-N54：x1 越界旧实现输出 cubic-bezier(-0.5, …)；修复后 x1/x2 clamp 到 0..1 并回写 ⇒ cubic-bezier(0, …。默认 easing 非 custom，不含该串 ⇒ 强判别。",
+},
+{
+  slug: "design/pattern-generator",
+  inputs: { size: "999" },
+  expect: ["background-size: 200px 200px"],
+  ref: "D-N62：size=999 旧实现原样输出 background-size: 999px 999px；修复后 clamp 到 5..200 并回写 ⇒ background-size: 200px 200px。默认 size=40 不含 ⇒ 强判别。",
+},
+
+// ── 第318批：数值钳制 + 结果区读取 + 复制兜底强锁 ─────────────────
+{
+  slug: "design/grid-pattern",
+  inputs: { cellSize: "999", lineWidth: "999" },
+  expect: ["background-size: 200px 200px;"],
+  ref: "D-N73：旧实现只夹下限，cellSize=999 直接进 background-size: 999px 999px；修复后 clamp 到 5..200 并回写 ⇒ background-size: 200px 200px;。默认 cellSize=30 不含该串 ⇒ 强判别。",
+},
+{
+  slug: "design/progress-bar-generator",
+  inputs: { height: "9999", radius: "-10" },
+  expect: ["height: 60px;", "border-radius: 0px;"],
+  ref: "D-N74：旧实现 height 无上限、radius 接受负值 ⇒ height: 9999px / border-radius: -10px；修复后 clamp 高度 4..60、圆角 0..50 并回写 ⇒ height: 60px; 与 border-radius: 0px;。默认 20/10 两串皆不含 ⇒ 强判别。",
+},
+{
+  slug: "design/shutter-speed-calculator",
+  inputs: { focal: "100000", crop: "2.7", is: "5" },
+  clicks: ["calc();"],
+  expect: ["焦距超过 2000 mm"],
+  ref: "D-N120：旧实现焦距无上限，100000mm×2.7 仍按档位表封顶给出 1/30 的荒谬结论；修复后 f>2000 直接给出越界提示并停止计算。默认焦距 50 不触发 ⇒ 强判别。",
+},
+{
+  slug: "design/waveform-visualizer",
+  inputs: { freq: "999", amp: "999" },
+  clicks: ["try{generate();}catch(e){};document.getElementById('__svg_probe').textContent='CLAMP:'+document.getElementById('freq').value+'|'+document.getElementById('amp').value;"],
+  expect: ["CLAMP:20|1"],
+  ref: "D-N133：旧实现 amp/freq 越界不拦截，amp=999 使 py 远在画布外；修复后 clamp 到 freq 1..20、amp 0.1..1 并回写 ⇒ 输入框为 20|1。默认 3|0.8 不含该串 ⇒ 强判别。",
+},
+{
+  slug: "design/spectrum-visualizer",
+  inputs: { bars: "-8" },
+  clicks: ["try{generate();}catch(e){};document.getElementById('__svg_probe').textContent='CLAMP:'+document.getElementById('bars').value;"],
+  expect: ["CLAMP:8"],
+  ref: "D-N136：旧实现 bars=-8 参与 barW=w/-8 计算导致画布空白；修复后 clamp 到 8..120 并回写 ⇒ 输入框为 8。默认 48 不含该串 ⇒ 强判别。",
+},
+{
+  slug: "design/stripe-pattern",
+  inputs: { angle: "137", width: "47", color1: "#12b886", stripeType: "multi" },
+  clicks: ["try{generate();}catch(e){};document.getElementById('__svg_probe').textContent='RES:'+__stripe_patternResText();"],
+  expect: ["RES:background: repeating-linear-gradient(137deg, #12b886, #12b886 47px"],
+  ref: "D-N163：旧 ResText 读空 #output.textContent 恒返回 ''，历史/CSV 全空；修复后改读 #cssOutput.value ⇒ 探针得到含注入角度/宽度/颜色的 CSS 摘要。旧实现探针只有 RES: ⇒ 强判别。",
+},
+{
+  slug: "design/dot-pattern",
+  inputs: { dotSize: "18", spacing: "54", dotColor: "#22d3ee", arrangement: "square" },
+  clicks: ["try{generate();}catch(e){};document.getElementById('__svg_probe').textContent='RES:'+__dot_patternResText();"],
+  expect: ["RES:background-color: #f5f7fa; background-image: radial-gradient(#22d3ee 9px"],
+  ref: "D-N166：旧 ResText 读空 #output 恒返回 ''；修复后改读 #cssOutput.value ⇒ 探针得到含注入点径 9px（dotSize 18 的一半）与点色的 CSS 摘要。旧实现只有 RES: ⇒ 强判别。锚长控制在 ResText 的 slice(0,80) 内。",
+},
+{
+  slug: "design/gradient-from-color",
+  inputs: { baseColor: "#12b886", steps: "7", direction: "135" },
+  clicks: ["try{generate();}catch(e){};document.getElementById('__svg_probe').textContent='RES:'+__gradient_from_colorResText();"],
+  expect: ["RES:background: linear-gradient(135deg, #d1faee 0%"],
+  ref: "D-N124：旧 ResText 读空 #output 恒返回 ''，历史/趋势/CSV 全空；修复后改读 #cssOutput.value ⇒ 探针得到含注入方向 135deg 与基色首色标的 CSS 摘要。旧实现只有 RES: ⇒ 强判别。",
+},
+{
+  slug: "design/isometric-grid",
+  inputs: { size: "64", lineWidth: "3" },
+  clicks: ["try{generate();}catch(e){};document.getElementById('__svg_probe').textContent='RES:'+__isometric_gridResText();"],
+  expect: ["RES:background-color: #1a1a2e; background-image: linear-gradient(30deg, #667eea 3px"],
+  ref: "D-N193：旧 ResText 读只有预览 div 的 #output 恒返回 ''；修复后改读 #cssOutput.value ⇒ 探针得到含注入线宽 3px 的 CSS 摘要。旧实现只有 RES: ⇒ 强判别。锚长控制在 slice(0,80) 内。",
+},
+{
+  slug: "design/gradient-from-color",
+  clicks: ["alert=function(m){document.getElementById('__svg_probe').textContent='ALERT:'+m;};document.getElementById('cssOutput').value='SENTINEL_CSS';copyResult();"],
+  expect: ["ALERT:复制失败，请手动复制"],
+  ref: "D-N127：harness 内 navigator.clipboard 缺失，旧实现 copyResult 直接 writeText 抛 TypeError 静默失败；修复后走 __gfcFallback（execCommand 亦不可用）⇒ catch 给出「复制失败，请手动复制」反馈。默认态不调 copyResult ⇒ 强判别。",
+},
+
+// ── 第319批：画布/图片类页面结果区恒空同族强锁 ─────────────────
+{
+  slug: "design/initials-avatar",
+  inputs: { name: "张伟", size: "128", radius: "12", fontSize: "56", textColor: "#123456", bgStyle: "solid", bg1: "#abcdef" },
+  clicks: ["document.getElementById('__svg_probe').textContent='RES:'+__initials_avatarResText();"],
+  expect: ["RES:头像:张伟|128px|圆角12|字号56|solid|#123456"],
+  ref: "D-N86：旧 ResText 读只有 img 的 #output.textContent 恒返回空串，历史/数据表/CSV 永不记录；修复后返回姓名、尺寸、圆角、字号、背景模式与色值的参数摘要。探针锚含全部注入值，默认态 name='Tool Box' 不命中 ⇒ 强判别。",
+},
+{
+  slug: "design/identicon-generator",
+  inputs: { seed: "workbuddy", size: "256", blocks: "7", bgColor: "#101010" },
+  clicks: ["document.getElementById('__svg_probe').textContent='RES:'+__identicon_generatorResText();"],
+  expect: ["RES:Identicon:workbuddy|256|7|#101010"],
+  ref: "D-N89：同族结果区恒空；修复后按清单方案返回 seed|size|blocks|bg 摘要。锚含注入的种子与尺寸，默认 seed='github'/200 不命中 ⇒ 强判别。",
+},
+{
+  slug: "design/waveform-visualizer",
+  inputs: { waveType: "square", freq: "7", amp: "0.5", phase: "90", color: "#ff0000" },
+  clicks: ["document.getElementById('__svg_probe').textContent='RES:'+__waveform_visualizerResText();"],
+  expect: ["RES:波形:square|7|0.5|90|#ff0000"],
+  ref: "D-N155-1：旧 ResText 读只有 canvas 的 #output 恒空；修复后返回 type|freq|amp|phase|color 参数摘要。锚含注入的方波类型与频率相位，默认 sine|3|0.8 不命中 ⇒ 强判别。",
+},
+{
+  slug: "design/spectrum-visualizer",
+  inputs: { bars: "64", barStyle: "mirror", color1: "#112233", color2: "#445566" },
+  clicks: ["document.getElementById('__svg_probe').textContent='RES:'+__spectrum_visualizerResText();"],
+  expect: ["RES:频谱:64|mirror|#112233|#445566"],
+  ref: "D-N155-2：旧 ResText 读只有 canvas 的 #output 恒空；修复后返回 bars|style|color1|color2 摘要。锚含注入条数与镜像样式，默认 48|bars 不命中 ⇒ 强判别。",
+},
+{
+  slug: "design/data-matrix",
+  inputs: { text: "ORDER-77", size: "18", fgColor: "#111111", bgColor: "#fafafa" },
+  clicks: ["document.getElementById('__svg_probe').textContent='RES:'+__data_matrixResText();"],
+  expect: ["RES:DataMatrix:ORDER-77|18|#111111|#fafafa"],
+  ref: "D-N155-3：结果区只有 canvas，旧 ResText 恒空；修复后返回 text|size|fg|bg 摘要。锚含注入文本与尺寸，默认 'Data Matrix'|14 不命中 ⇒ 强判别。",
+},
+{
+  slug: "design/base64-to-image",
+  inputs: { b64Input: "data:image/webp;base64,QUJDREVG" },
+  clicks: ["document.getElementById('__svg_probe').textContent='RES:'+__base64_to_imageResText();"],
+  expect: ["RES:Base64:image/webp|"],
+  ref: "D-N155-4：结果区只有 img，旧 ResText 恒空；修复后返回 mime|数据长度的摘要。注入 webp 头，默认输入为 image/svg+xml ⇒ 不命中，强判别。",
+},
+{
+  slug: "design/aztec-code",
+  inputs: { text: "TICKET-9527", size: "21", fgColor: "#123456", bgColor: "#abcdef" },
+  clicks: ["document.getElementById('__svg_probe').textContent='RES:'+__aztec_codeResText();"],
+  expect: ["RES:Aztec:TICKET-9527|21|#123456|#abcdef"],
+  ref: "D-N179-1：结果区只有 canvas，旧 ResText 恒空且历史钩子错挂在 downloadImg 上；修复后返回文本|尺寸|前景|背景摘要并改挂 generate。锚含注入文本，默认 'Hello Aztec' 不命中 ⇒ 强判别。",
+},
+{
+  slug: "design/aztec-code",
+  inputs: { text: "NEW-TEXT" },
+  clicks: ["alert=function(m){document.getElementById('__svg_probe').textContent='ALERT:'+m+'|'+document.getElementById('text').value;};lastURL='SENTINEL_PNG';__aztecParams='OLD|#000000|#ffffff|15';downloadImg();"],
+  expect: ["ALERT:参数已变更，请先点击生成再下载|NEW-TEXT"],
+  ref: "D-N179-2：旧实现 lastURL/预览只在 generate 时刷新，改文本不点生成直接下载会拿到旧 PNG；修复后生成时记录参数快照，下载前比对当前输入，不一致即拦截并提示。探针同时回显注入文本，expect 依赖输入；旧码直接走 a.click() 不产生 alert ⇒ 强判别。",
+},
+
+// ── 第320批：网格渐变结果区/预设占位/非法数量强锁 ──────────────
+{
+  slug: "design/mesh-gradient",
+  clicks: ["colors=['#123456','#abcdef','#ff0000'];pos=defaultPos(3);generate();document.getElementById('__svg_probe').textContent='RES:'+__mesh_gradientResText();"],
+  expect: ["RES:background-color: #123456; background-image: radial-gradient("],
+  ref: "D-N59：旧 ResText 读只有预览 div 的 #output.textContent 恒返回空串，历史/预设/CSV 全空；修复后改读 #cssOutput.value ⇒ 探针得到含注入首色 #123456 的 CSS 摘要。默认首色 #667eea 不命中，旧码只有 RES: ⇒ 强判别。",
+},
+// 说明：D-N173 的「预设占位 div 是否存在」不写进本门禁——harness 的 getEl 对找不到的 id
+// 会造游离桩，getElementById 恒真，构成假绿逃生。该项由 JSDOM 真机（真实 DOM 解析）单独验证。
+{
+  slug: "design/generator-6",
+  inputs: { cnt: "0" },
+  clicks: ["try{gen();}catch(e){};var h=document.getElementById('cntHint');document.getElementById('__svg_probe').textContent='HINT:'+(h?h.textContent:'无提示位')+'|CNT:'+document.getElementById('cnt').value;"],
+  expect: ["HINT:请输入 1–50 之间的整数|CNT:0"],
+  ref: "D-N170：旧实现 parseInt(value)||5 把 0 静默当成 5 且 oninput 键入即重掷整批；修复后 Number.isInteger+范围校验，非法时给出提示且不重掷，并把触发改为 onchange。探针回显注入的 0，旧码无提示位 ⇒ 强判别。",
+},
+
+// ── 第321批：阴影层刷新 / 进度条动画共存 / 恢复改重绘 ──────────
+{
+  slug: "design/css-box-shadow-generator",
+  inputs: { offsetX: "37" },
+  clicks: ["var o=document.getElementById('cssOutput');try{update();}catch(e){};try{addLayer();}catch(e){};var v=o.value;document.getElementById('__svg_probe').textContent='SHADOW:'+v.split('), ').length+'|X37:'+(v.indexOf('37px')>=0?1:0);"],
+  expect: ["SHADOW:2|X37:1"],
+  ref: "D-N63：旧 addLayer 只经 setActive→renderLayerList，不调 render，新增层不进 #cssOutput；修复后三处层管理入口补 render。探针先 update() 让注入的 37px 进当前层，再 addLayer() 数 CSS 里的层分隔 ⇒ 修好版 2 层、旧码仍 1 层。expect 含注入值派生的 X37 ⇒ 强判别。",
+},
+{
+  slug: "design/css-text-shadow",
+  inputs: { offsetX: "37" },
+  clicks: ["var o=document.getElementById('cssOutput');try{update();}catch(e){};try{addLayer();}catch(e){};var v=o.value;document.getElementById('__svg_probe').textContent='SHADOW:'+v.split('), ').length+'|X37:'+(v.indexOf('37px')>=0?1:0);"],
+  expect: ["SHADOW:2|X37:1"],
+  ref: "D-N64：与 D-N63 同模板缺陷（text-shadow 版）；修复后 addLayer/deleteLayer/resetLayers 均补 render。探针同样依赖注入的 37px 与层数 ⇒ 强判别。",
+},
+{
+  slug: "design/progress-bar-generator",
+  inputs: { percent: "37", height: "24", radius: "6" },
+  clicks: ["document.getElementById('striped').checked=true;document.getElementById('animated').checked=true;try{generate();}catch(e){};var v=document.getElementById('cssOutput').value;var s='ANIM:'+(v.indexOf('width: 30%;')>=0?1:0)+'|BOTH:'+(v.indexOf('stripes 1s linear infinite, progressAnim')>=0?1:0)+'|PCT:'+document.getElementById('percent').value;document.getElementById('preview').textContent=s;"],
+  expect: ["ANIM:1|BOTH:1|PCT:37"],
+  ref: "D-N71：旧实现 animated 的 animation 覆盖 striped 的 stripes ⇒ 条纹停滚；@keyframes progressAnim 固定 0/80/100 与输入百分比无关，预览也不显示 pct。修复后两动画合并为一条 animation 声明，关键帧 50% 用 round(pct*0.8)=30%、100% 用 pct，预览回显百分比。探针写 #preview（该页无 __svg_probe 结果位）；旧码 ANIM:0|BOTH:0 ⇒ 强判别，expect 含注入的 37。",
+},
+
+// ── 第322批：玻璃拟态背景图案 / Identicon 画廊 ─────────────────
+{
+  slug: "design/glassmorphism-generator",
+  clicks: ["try{setPattern(8);}catch(e){};var e=document.getElementById('bgPattern');var t=String(e.style.cssText||'');var s='BG:'+(t.indexOf('background:')>=0?1:0)+'|SIZE:'+(t.indexOf('background-size')>=0?1:0)+'|IDX:'+currentPattern;document.getElementById('bgPattern').innerHTML=s;document.getElementById('preview').textContent=s;document.getElementById('cssOutput').value=s;document.getElementById('__svg_probe').textContent=s;"],
+  expect: ["BG:1|SIZE:1|IDX:8"],
+  ref: "D-N67：PATTERNS 存的是纯渐变值（无属性名），旧 setPattern 直接 style.cssText=PATTERNS[i].css、缩略图 style=\"${p.css}\"，CSSOM 会丢弃无属性名的声明 ⇒ 12 种背景图案全不生效。修复后两处均补 'background:' 前缀。选第 8 项「圆点」（含 background-size 多声明），探针回显注入的索引 8；旧码 BG:0 ⇒ 强判别。",
+},
+{
+  slug: "design/identicon-generator",
+  inputs: { blocks: "9", bgColor: "#123456" },
+  clicks: ["try{generateGallery();}catch(e){};var g=document.getElementById('gallery');document.getElementById('__svg_probe').textContent='G:'+g.getAttribute('data-blocks')+'|'+g.getAttribute('data-bg');"],
+  expect: ["G:9|#123456"],
+  ref: "D-N88：旧画廊硬编码 blocks=5、底色 #f0f0f0、列数 3，与当前输入脱节；修复后读 #blocks/#bgColor、列数改 ceil(blocks/2)，由 generate() 末尾重绘，并把当前参数写进 #gallery 的 data-blocks/data-bg 便于核对。探针锚含两个注入值；旧码无这两个属性 ⇒ G:null|null，强判别。",
+},
+{
+  slug: "design/favicon-from-text",
+  inputs: { size: "9999", radius: "9999" },
+  clicks: ["var s0=document.getElementById('size').value;generate();document.getElementById('__svg_probe').textContent='IN:'+s0+'|CLAMP:'+document.getElementById('size').value+'|'+document.getElementById('radius').value;"],
+  expect: ["IN:9999|CLAMP:256|128"],
+  ref: "D-N76：旧码 size 只夹下限、radius 只夹下限，注入 9999 直接建 9999px 画布且半径远超半边长导致贝塞尔路径自交；修复后 size 夹到 16–256、radius 夹到 ≤size/2 并回写输入框。探针回显注入原值 9999；旧码 CLAMP:9999|9999 ⇒ 强判别。",
+},
+{
+  slug: "design/favicon-from-text",
+  inputs: { text: "ZX", size: "128", radius: "24" },
+  clicks: ["generate();var h=String(document.getElementById('preview').innerHTML);var rad=(h.match(/border-radius:[0-9.]+px/g)||[]).map(function(x){return x.replace(/[^0-9.]/g,'');}).join('|');var fs=(h.match(/font-size:[0-9.]+px/g)||[]).map(function(x){return x.replace(/[^0-9.]/g,'');}).join('|');document.getElementById('__svg_probe').textContent='RAD:'+rad+' FS:'+fs+' IN:'+document.getElementById('size').value+'/'+document.getElementById('radius').value;"],
+  expect: ["RAD:3|12|24 FS:8.8|35.2|70.4 IN:128/24"],
+  ref: "D-N75：旧码三档预览按固定 64/128 参照缩放（radius/64*8、radius、radius*2），且只有中档给字号；修复后统一按 radius÷size×档位边长（16/64/128 px），三档字号均按 ×0.55 比例给 8.8/35.2/70.4px。旧码 RAD:3|24|48 FS:35.2 ⇒ 强判别，expect 含注入的 128/24。",
+},
+{
+  slug: "design/favicon-from-text",
+  inputs: { text: "Q7" },
+  clicks: ["var cap=null;globalThis.TBKit={util:{isEn:function(){return false;},exportTable:function(){},diffBox:function(){}},chart:{line:function(){}},matrix:{table:function(){}},history:{list:function(){return [];},last:function(){return null;},record:function(){},mount:function(){}},preset:{bar:function(sel,items,c){cap=items;}}};__favicon_from_textPresets();var bad=cap?cap.filter(function(x){return String(x.values.text).length>2;}).map(function(x){return x.values.text;}):['NONE'];document.getElementById('__svg_probe').textContent='IN:'+document.getElementById('text').value+'|PRESET:'+(bad.length?bad.join(','):'OK')+'|N:'+(cap?cap.length:0);"],
+  expect: ["IN:Q7|PRESET:OK|N:4"],
+  ref: "D-N79：输入框标注 1–2 字符且 maxlength=2，旧预设却写入 3 字符 API（程序赋值绕过 maxlength）；修复后预设改双字 AB。探针用桩捕获 __favicon_from_textPresets() 传给 TBKit.preset.bar 的全部条目并校验 text 长度；旧码 PRESET:API ⇒ 强判别，expect 含注入的 Q7。",
+},
+{
+  slug: "design/favicon-from-emoji",
+  inputs: { size: "9999", radius: "9999" },
+  clicks: ["var s0=document.getElementById('size').value;generate();document.getElementById('__svg_probe').textContent='IN:'+s0+'|CLAMP:'+document.getElementById('size').value+'|'+document.getElementById('radius').value;"],
+  expect: ["IN:9999|CLAMP:256|128"],
+  ref: "D-N82：旧码 size 只夹下限、radius 只夹下限，HTML max=256/100 不参与脚本校验，默认 128 下 radius=100 即生成自交路径；修复后 size 夹到 16–256、radius 夹到 ≤size/2 并回写输入框。探针回显注入原值 9999；旧码 CLAMP:9999|9999 ⇒ 强判别。",
+},
+{
+  slug: "design/favicon-from-emoji",
+  inputs: { emoji: "FOX", size: "64", radius: "24" },
+  clicks: ["generate();var h=String(document.getElementById('preview').innerHTML);var rad=(h.match(/border-radius:[0-9.]+px/g)||[]).map(function(x){return x.replace(/[^0-9.]/g,'');}).join('|');document.getElementById('__svg_probe').textContent='RAD:'+rad+' IN:'+document.getElementById('size').value+'/'+document.getElementById('radius').value;"],
+  expect: ["RAD:6|24|48 IN:64/24"],
+  ref: "D-N80：旧码三档预览固定按 128 参照缩放（radius/128*16、radius/2、radius），改 size 后比例失真；修复后按 radius÷size×档位边长（16/64/128 px）。注入 size=64/radius=24 期望 6|24|48；旧码 3|12|24 ⇒ 强判别。",
+},
+{
+  slug: "design/initials-avatar",
+  inputs: { name: "😀 Smith" },
+  clicks: ["var a=computeInitials(document.getElementById('name').value,2);var b=computeInitials(document.getElementById('name').value,1);document.getElementById('__svg_probe').textContent='INI:'+a+'|'+b+'|LEN:'+Array.from(a).length;"],
+  expect: ["INI:😀S|😀|LEN:2"],
+  ref: "D-N84：旧码 parts[0][0] / substring / initials[0] 按 UTF-16 码位切分，emoji 名称会切出孤立高位代理字符；修复后抽 computeInitials() 用 Array.from 按码点取首字符。注入 😀 Smith 期望双字 😀S、单字 😀、码点数 2；旧码无该函数且切出代理字符 ⇒ 强判别。",
+},
+{
+  slug: "design/ripple-effect",
+  inputs: { rippleType: "pulse", rippleColor: "#ff0000", duration: "1.2" },
+  clicks: ["generate();var h=String(document.getElementById('preview').innerHTML);var c=String(document.getElementById('cssOutput').value);var s='COL:'+document.getElementById('rippleColor').value+'|HTML:'+(h.indexOf('#ff0000')>=0?1:0)+'|CSS:'+(c.indexOf('#ff0000')>=0?1:0);document.getElementById('__svg_probe').textContent=s;document.getElementById('cssOutput').value=s;document.getElementById('preview').textContent=s;"],
+  expect: ["COL:#ff0000|HTML:1|CSS:1"],
+  ref: "D-N94（脉冲）：旧码 r/g/b 只用于点击模式，脉冲模式的圆环与导出 CSS 全用背景色，涟漪色输入被静默吞掉；修复后圆环 border 与 .pulse-ring 都用 rippleColor。探针多载体写入（该页 __svg_probe 不进采集区）；旧码 HTML:0|CSS:0 ⇒ 强判别，expect 含注入的 #ff0000。",
+},
+{
+  slug: "design/ripple-effect",
+  inputs: { rippleType: "multi", rippleColor: "#ff0000", duration: "1.2" },
+  clicks: ["generate();var h=String(document.getElementById('preview').innerHTML);var c=String(document.getElementById('cssOutput').value);var s='COL:'+document.getElementById('rippleColor').value+'|HTML:'+(h.indexOf('#ff0000')>=0?1:0)+'|CSS:'+(c.indexOf('#ff0000')>=0?1:0);document.getElementById('__svg_probe').textContent=s;document.getElementById('cssOutput').value=s;document.getElementById('preview').textContent=s;"],
+  expect: ["COL:#ff0000|HTML:1|CSS:1"],
+  ref: "D-N94（多重）：旧码三个圆点与 .multi-pulse div 全用背景色；修复后预览与导出都取 rippleColor。注入 #ff0000 后两处均应出现；旧码 HTML:0|CSS:0 ⇒ 强判别。",
+},
+{
+  slug: "design/qr-code-styled",
+  inputs: { text: "HELLO-324", size: "300" },
+  clicks: ["lastURL='OLDPNG-324';generate();document.getElementById('__svg_probe').textContent='IN:'+document.getElementById('text').value+'|URL:'+String(lastURL)+'|END';"],
+  expect: ["IN:HELLO-324|URL:|END"],
+  ref: "D-N12（失败分支）：旧码 lastURL 只在生成成功回调里写，qrcode.js 未加载/生成抛错等失败分支只改预览文案，上一次的码仍可下载；修复后 generate() 开头先清空 lastURL。桩内 qrcode 未定义必走失败分支；旧码 URL:OLDPNG-324 ⇒ 强判别，expect 含注入文本。",
+},
+{
+  slug: "design/qr-code-styled",
+  inputs: { text: "HELLO-324" },
+  clicks: ["var orig=document.getElementById('text').value;lastURL='OLDPNG-324';lastQRSig=__qrSig();document.getElementById('text').value='CHANGED-324';document.getElementById('__svg_probe').textContent='IN:'+orig+'|STALE:'+(__qrStale()?1:0);"],
+  expect: ["IN:HELLO-324|STALE:1"],
+  ref: "D-N12（参数快照）：修复后生成时记录 text/fg/bg/size/ecLevel 签名，下载或复制前比对当前输入；改文本后 __qrStale() 为真。旧码无该组函数，探针抛错 ⇒ 强判别，expect 含注入的 HELLO-324。",
+},
+{
+  slug: "design/qr-code-styled",
+  inputs: { text: "HELLO-324" },
+  clicks: ["var orig=document.getElementById('text').value;lastURL='OLDPNG-324';lastQRSig='OLD-SIG';var clicked=0;var oc=document.createElement;document.createElement=function(t){var e=oc(t);if(t==='a'){e.click=function(){clicked++;};}return e;};downloadImg();document.createElement=oc;document.getElementById('__svg_probe').textContent='IN:'+orig+'|CLICK:'+clicked+'|URL:'+String(lastURL)+'|END';"],
+  expect: ["IN:HELLO-324|CLICK:0|URL:|END"],
+  ref: "D-N12（下载拦截）：签名过期时 downloadImg() 必须清空 lastURL 并提示，绝不触发 a.click()。桩捕获 a 元素的 click 次数；旧码直接下载旧图 ⇒ CLICK:1|URL:OLDPNG-324，强判别。",
+},
+{
+  slug: "design/image-rotator",
+  inputs: { angle: "45" },
+  clicks: ["var orig=document.getElementById('angle').value;origImg={width:20,height:20};lastURL='OLDPNG-324';lastIrotSig=__irotSig();document.getElementById('angle').value='135';document.getElementById('__svg_probe').textContent='IN:'+orig+'|STALE:'+(__irotStale()?1:0);"],
+  expect: ["IN:45|STALE:1"],
+  ref: "D-N11：旧码上传换图与改角度都不使 lastURL 失效，下载直取旧图；修复后生成时记录「角度 + 原图 src 尾段」签名，下载/复制前比对，上传回调另立即清空。注入 angle=45 后改 135 判过期；旧码无该组函数 ⇒ 强判别。",
+},
+{
+  slug: "design/image-cropper",
+  inputs: { cw: "37" },
+  clicks: ["var orig=document.getElementById('cw').value;origImg={width:200,height:200};lastURL='OLDPNG-324';lastCropSig=__icropSig();document.getElementById('cw').value='88';document.getElementById('__svg_probe').textContent='IN:'+orig+'|STALE:'+(__icropStale()?1:0);"],
+  expect: ["IN:37|STALE:1"],
+  ref: "D-N26：旧码换图已失效但改 cx/cy/cw/ch 仍可下载上一张旧裁剪；修复后生成时记录「四个裁剪参数 + 原图 src 尾段」签名，下载/复制前比对并撤销旧 blob URL。注入 cw=37 后改 88 判过期；旧码无该组函数 ⇒ 强判别。",
 }
 ];
 

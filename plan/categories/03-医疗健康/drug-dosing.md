@@ -667,47 +667,30 @@
 - 影响：同一页三套口径，用户无法判断以说明框还是结果卡为准。
 - 方案：说明框改为「R=(ALT/ULN)/(ALP/ULN)」「AST/ALT 0.7–1.0 正常」「BUN/Cr 按 mg/dL 换算（BUN×2.8、Cr÷88.4）」并删除 ×1000 说法；阈值需临床复核。
 
-### D-N84 生化比值：公式说明 `data-zh` 残缺为「÷88.4)；×2.8；bun × 2.8」（低，确认缺陷）
-- 问题：公式说明以半截括号和碎片变量开头，中英文两版都不成句，缺少被除对象与公式主体。
-- 证据：`tools/clinical-lab/biochemistry-ratio.html:134`。
-- 复现：直接查看页面公式框下方说明 → 中文「核心计算公式（按输入变量）：÷88.4)；×2.8；bun × 2.8」，英文「Key formulas: ÷88.4); ×2.8; bun × 2.8」。
-- 影响：公式区反而比结果卡更难读，降低可信度。
-- 方案：改为完整公式串，如「BUN/Cr = (BUN×2.8)/(Cr÷88.4)；AST/ALT=AST/ALT；R=(ALT/40)/(ALP/120)」，并同步 `data-zh` 与英文。
+### D-N84 生化比值：公式说明 `data-zh` 残缺（低，第304批已修销账）
+- 已修（第304批）：`tools/clinical-lab/biochemistry-ratio.html:123` 碎片串改为完整公式串「核心计算公式（按输入变量）：BUN/Cr=(BUN×2.8)/(Cr÷88.4)；De Ritis=AST/ALT；R因子=(ALT/40)/(ALP/120)」，与 calc 实际公式一致（bun*2.8 / cr/88.4、ast/alt、(alt/40)/(alp/120)）；三源同步 HTML data-zh + 可见英文 + `i18n/tools/en/clinical-lab/biochemistry-ratio.json` map 键值。JSDOM 差分 NEW 双态 OK / OLD 双态 BAD，build 后修改存活、三源一致（data-zh 命中 json map 且值等于可见英文）。未触碰同页高危 D-N83 口径问题。
+- 原问题/证据/复现（存档）：`biochemistry-ratio.html` 公式框说明以半截括号和碎片变量开头，中文「核心计算公式（按输入变量）：÷88.4)；×2.8；bun × 2.8」，英文「Key formulas: ÷88.4); ×2.8; bun × 2.8」，中英两版都不成句。
 
-### D-N85 PCR：样本 Ct=0（无扩增）判阴性，却同时输出约 1.10e+12 拷贝、ΔCt 与相对表达量（高，确认缺陷）
-- 问题：阴性判定把 `ct===0` 纳入，但拷贝数分支只判 `ct<cutoff`，Ct=0 同时满足两者；ΔCt 分支也只判 `ref>0`，不判样本 Ct，导致「阴性」结果下继续输出定量值。
-- 证据：`tools/clinical-lab/pcr-ct-interpretation.html:263`（`ct===0` 判阴性）、`:297-301`（ΔCt/2^-ΔCt）、`:306-308`（`if(ct<cutoff)` 估算拷贝数）。
-- 复现：样本 Ct 填 0、内参 20、cutoff 40 → 主结果「阴性」，同页又显示「ΔCt = 0 - 20 = -20.00」「相对表达量 1048576.0000」「粗略估算拷贝数 ≈ 1.10e+12 copies」。node 复算：`Math.pow(2,40).toExponential(2)="1.10e+12"`、`Math.pow(2,20).toFixed(4)="1048576.0000"`。期望：阴性/无扩增时不出定量值，或提示「无扩增，无法定量」。
-- 影响：报告可被复制成「阴性但 1.1 万亿拷贝」的自相矛盾结论，是临床解读级错误。
-- 方案：拷贝数分支改为 `if(ct>0 && ct<cutoff)`；ΔCt 分支增加 `ct>0`；`ct<=0` 在阴性分支直接 return，不再渲染定量卡。阈值需临床复核。
+### D-N85 PCR：Ct=0 判阴性却输出定量（高，既往已修，第305批真机确认销账）
+- 已修（既往提交 `e27ffd9`/`3f6dec8` 等，第305批真机复核）：`interpretQual()` 中 `ct<=0` 直接 return 并提示「不能判为阴性，也不输出定量结果」；ΔCt 分支 `!isNaN(ref)&&ref>0&&ct>0`、拷贝数分支 `ct>0&&ct<cutoff`。JSDOM 真机：Ct=0 仅输出警告、无 ΔCt/拷贝数/相对表达量 ⇒ OK。
+- 原问题/复现（存档）：Ct=0 曾被判阴性，同时输出 ΔCt=-20、相对表达量 1048576、拷贝数≈1.10e+12，造成「阴性但万亿拷贝」自相矛盾。
 
-### D-N86 PCR：阴性/阳性对照留空时仍显示「质控正常」（中，确认缺陷）
-- 问题：QC 检查全部带 `!isNaN` 前置条件，对照留空得到 NaN 时既不报异常也不报「未完成」，直接落入 `else` 的「质控正常」。
-- 证据：`tools/clinical-lab/pcr-ct-interpretation.html:289-294`（三条 QC 与 `else` 正常提示）。
-- 复现：清空「阴性对照 Ct」「阳性对照 Ct」→ 两条检查均因 NaN 跳过、`qc.length===0` → 显示「质控正常：阴性对照无扩增，阳性对照扩增良好」。期望：提示「质控未完成/请填写对照 Ct」。
-- 影响：没有对照数据却给出质控通过结论，属于假阴性式安全误导。
-- 方案：先校验 `isFinite(neg)&&isFinite(pos)`；缺失时显示「质控未完成」，异常与正常提示只在数据齐全时出现。
+### D-N86 PCR：对照留空仍显示质控正常（中，既往已修，第305批真机确认销账）
+- 已修（既往提交，第305批真机复核）：`negFilled=isFinite(neg)&&neg>0`、`posFilled=isFinite(pos)&&pos>0`，`!(negFilled&&posFilled)` 时显示「质控未完成」。JSDOM 真机：对照留空 → 提示质控未完成 ⇒ OK。
+- 原问题/复现（存档）：对照留空 NaN 时 QC 检查被跳过、`qc.length===0` → 误显示「质控正常」。
 
-### D-N87 PCR：历史/CSV「结果」列固定抓取首个 `.result-box`（ΔCt 面板），定量结果从未入库（中，确认缺陷）
-- 问题：`ResText` 用 `document.querySelector('.result-box')` 取页面第一个结果框；定性面板的 ΔCt 结果框在 DOM 中先出现，定量标准曲线结果框在后，因此无论当前在哪个页签，历史结果都记录 ΔCt 文本，而不是标准曲线浓度。
-- 证据：`tools/clinical-lab/pcr-ct-interpretation.html:300-302`（定性 ΔCt 结果框）、`:308`（定量结果框）、`:500-501`（`querySelector('.result-box')`）。
-- 复现：默认状态点「绘制标准曲线」→ 历史/CSV 的「结果」列显示「ΔCt = 25 - 20 = 5.00 ...」，而不是「计算浓度 = … copies/μL」。期望：定量记录保存 `#quantResult` 内的浓度结论。
-- 影响：历史与 CSV 长期保存错误的定量结果，无法复盘。
-- 方案：`ResText` 接受容器参数；定量调用传 `#quantResult`（或给浓度结果框加唯一 id），定性调用传 `#qualResult`。
+### D-N87 PCR：历史/CSV「结果」列固定抓取首个 `.result-box`（中，第305批已修销账）
+- 已修（第305批）：`__pcr_ct_interpretationResText()` 改为从 `#quantResult` 内 `.result-box` 中优先取含「计算浓度」的框（标准曲线方程框在前、浓度框在后），无则回退首个 `.result-box`。JSDOM 真机：跑 calcQuant 后 ResText 返回「计算浓度 = … copies/μL」而非 ΔCt ⇒ OK。verify +1 强锁 PCRRES（旧 0/1、新 1/1）。
+- 原问题/复现（存档）：原固定取首个 `.result-box`（ΔCt 面板 DOM 在前），历史/CSV 长期记 ΔCt 而非浓度，无法复盘。
 
-### D-N88 PCR：历史回放只调 `calcQuant()`，定性判读不重算，输入与结论错位（中，确认缺陷）
-- 问题：历史回放恢复所有输入后只执行 `calcQuant()`；定性面板由 `interpretQual()` 渲染，未被调用，回放后定性结论仍是回放前的旧值。
-- 证据：`tools/clinical-lab/pcr-ct-interpretation.html:525-538`（回放循环与 `:536 calcQuant()`）、`:251`（`interpretQual`）。
-- 复现：先以 Ct=33 记录一条（定性「阳性(低拷贝)」），再把 Ct 改成 25（定性变「阳性(高拷贝)」），点历史回放 → 输入框恢复 33，但定性结论仍显示「高拷贝」。期望：回放后定性结论与 Ct=33 一致（低拷贝）。
-- 影响：历史回放展示与输入不匹配的判读，易被误当作当时结论。
+### D-N88 PCR：历史回放只调 `calcQuant()`，定性判读不重算（中，第305批已修销账）
+- 已修（第305批）：`__pcr_ct_interpretationRender()` 的 history.mount 回放回调中补 `interpretQual()`，恢复输入后同时重算定性判读。JSDOM 真机：Ct=33 记录→改成 25→回放，定性从「高拷贝」恢复为「低拷贝」⇒ OK；旧源码差分回放后仍「高拷贝」(真红)。
+- 原问题/复现（存档）：回放只调 calcQuant，定性结论停留在回放前旧值，与恢复的输入不匹配。
 - 方案：回放恢复输入后同时调用 `interpretQual()` 与 `calcQuant()`，并保持 `__pcr_ct_interpretation_skip` 防止重复入库。
 
-### D-N89 PCR：标准品浓度/Ct 输入无 id，历史快照不含标准曲线，定量回放不可复现（低，确认缺陷）
-- 问题：`renderStd()` 生成的浓度与 Ct 输入没有 id，历史快照只收集 `input[id]`，因此标准曲线数据不入库；回放时用当前标准点重算，结果与记录时不同。
-- 证据：`tools/clinical-lab/pcr-ct-interpretation.html:330-335`（无 id 的标准品输入）、`:490`（快照只取 `input[id]`）。
-- 复现：记录一次 4 点标准曲线结果 → 修改标准点浓度并重算 → 回放旧记录 → 浓度结论按新标准点计算，与历史结果列不一致。
-- 影响：定量历史不可复现，CSV 失去复核价值。
-- 方案：为每组标准品输入生成稳定 id（如 `stdConc0/stdCt0`），或在 `Snapshot` 中直接序列化 `stdPoints` 数组并随记录保存。
+### D-N89 PCR：标准品输入无 id，定量回放不可复现（低，第306批已修销账）
+- 已修（第306批）：`renderStd()` 给标准品浓度/Ct 输入加稳定 id `stdConc<i>/stdCt<i>`，快照自动捕获；history.mount 回放回调按这些 id 回写 `stdPoints` 数组后重算。JSDOM 真机：id 存在、快照含 stdConc0/stdCt0、回放后 stdPoints[0] 恢复 {conc:9.99e7, ct:14.2} ⇒ OK。verify +1 强锁 PCRSTD（旧 1/2、新 2/2）。
+- 原问题/复现（存档）：标准品输入无 id ⇒ 快照只取 input[id] 不含标准曲线 ⇒ 回放用当前标准点重算，与历史结果不一致。
 
 ### D-N90 PCR：判读边界与深析示例两处口径不符（低，确认缺陷）
 - 问题：信息框写「Ct<29 强阳性」，代码以 `<30` 判「阳性(高拷贝)」；深析示例写「Ct 28 … 载量中等」，代码 Ct 28 判「高拷贝」。
@@ -716,26 +699,15 @@
 - 影响：边界附近的报告解读容易产生歧义。
 - 方案：统一写作「Ct<30 高拷贝、30–37 低拷贝、38–cutoff 灰区、≥cutoff 阴性」，并把示例改为 Ct 28→高拷贝。
 
-### D-N91 主动脉夹层：「升主动脉+弓部」被映射为 DeBakey I，与同页表格的 I/II 定义冲突（中，确认缺陷）
-- 问题：表格定义 I 型为「升主动脉+弓部+降主动脉(全程)」、II 型为「仅升主动脉」；代码把 `ascArch`（升主动脉+弓部）直接映射为「I型(累及弓部)」，即没有降主动脉也判 I 型。
-- 证据：`tools/cardiology/aortic-dissection.html:174-177`（DeBakey 表格）、`:296`（`ascArch → 'I型(累及弓部)'`）。
-- 复现：累及范围选「升主动脉+弓部」、不勾任何并发症 → 结果卡「DeBakey分型：I型(累及弓部)」，而同页表格要求 I 型含降主动脉、II 型才是仅升主动脉。期望：与表格一致（升主动脉+弓部→II 型，或表格改定义）。
-- 影响：DeBakey 分型与页面自身引据冲突，影响外科策略表述。
-- 方案：`ascArch` 映射为 II 型；若要保留「累及弓部」信息，另设文案而不改分型。DeBakey 定义需临床复核。
+### D-N91 主动脉夹层：DeBakey 分型映射（中，既往已修，第306批真机确认销账）
+- 已修（既往提交，第306批真机复核）：`ascArch`（升主动脉+弓部）→ II 型、`ascDesc`（含降主动脉全程）→ I 型，与同页表格定义一致。JSDOM 真机：ascArch→II型 ⇒ OK。
+- 原问题/复现（存档）：ascArch 曾被映射为「I型(累及弓部)」，与表格「II型仅升主动脉 / I型含降主动脉」冲突。
 
-### D-N92 主动脉夹层：结果卡输出「Stanford分型：A型型」（低，确认缺陷）
-- 问题：`stanford` 变量本身已是「A型」，渲染时又拼了「型」。
-- 证据：`tools/cardiology/aortic-dissection.html:342`（`stanford+'型'`）。
-- 复现：任意输入 → 结果卡「Stanford分型：A型型（累及升主动脉）」或「B型型…」。期望：「A型」/「B型」。
-- 影响：主结论出现明显重复字，降低专业观感。
-- 方案：去掉拼接的 `+'型'`，统一由 `stanford` 输出；全页检索同类「X型型」。
+### D-N92 主动脉夹层：「A型型」重复字（低，既往已修，第306批真机确认销账）
+- 已修（既往提交，第306批真机复核）：渲染直接用 `stanford`（值已含「型」），不再拼 `+'型'`。JSDOM 真机：结果无「X型型」重复字 ⇒ OK。
 
-### D-N93 主动脉夹层：累及范围 radio 无 id，历史只存 checkboxes，回放不还原范围导致分型错误（中，确认缺陷）
-- 问题：5 个 `name="extent"` 的单选框都没有 id；历史快照只取 `input[id]`，因此累及范围从未入库。回放时只恢复风险因素勾选，范围保持当前选择。
-- 证据：`tools/cardiology/aortic-dissection.html:129-135`（radio 无 id）、`:438-440`（快照 `querySelectorAll('input[id]…')`）。
-- 复现：选「仅降主动脉」记为 B 型并记录 → 改选「升主动脉+降主动脉」成 A 型 → 点历史记录回放 → 风险勾选恢复，但范围仍是 A 型，结果显示 A 型，而非记录的 B 型。期望：回放还原 B 型。
-- 影响：历史记录与回放结论不一致，无法用于病例复盘。
-- 方案：为每个 radio 加唯一 id，或在快照中按 `input[name=extent]:checked` 记录 value，并在回放时按 value 设置 `checked`。
+### D-N93 主动脉夹层：累及范围 radio 无 id（中，既往已修，第306批真机确认销账）
+- 已修（既往提交，第306批真机复核）：5 个 `name="extent"` radio 均加唯一 id（extAscOnly/extAscArch/extAscDesc/extDescOnly/extDescAbd），快照 `input[id]` 自动捕获、回放还原范围。JSDOM 真机：5 个 id 全存在 ⇒ OK。
 
 ### D-N94 主动脉夹层：深度解析示例含页面不存在的「双臂血压差 25 mmHg」，且「默认数据演练」与默认值不符（中，确认缺陷）
 - 问题：示例输入写「破口位于升主动脉、累及主动脉弓、伴右臂血压高于左臂 25 mmHg」，但页面没有破口位置/血压差输入；示例标题称「默认数据演练」，而页面默认是「升主动脉+降主动脉(全程)」，并非「升主动脉+弓部」。
@@ -744,12 +716,9 @@
 - 影响：示例无法照做，读者按默认值演练会得到与示例不同的分型。
 - 方案：把示例改成「累及范围选升主动脉+弓部、勾选高血压」并修正 DeBakey 结论；标题改「示例」；若要血压差，另加输入并纳入分型提示。阈值需临床复核。
 
-### D-N95 主动脉夹层：预设容器为空函数，「预设」页签点击后无任何内容（低，确认缺陷）
-- 问题：`__aortic_dissectionPresets` 只有空壳，TBKIT 仍渲染「预设」页签，点击后空白。
-- 证据：`tools/cardiology/aortic-dissection.html:533-535`（空函数）。
-- 复现：打开页面点「预设」→ 无预设按钮、无提示。期望：提供典型场景（A 型/ B 型/复杂型）或移除该页签。
-- 影响：空白页签让用户以为页面加载失败。
-- 方案：补 2–3 个预设（如仅升主动脉、升主动脉+降主动脉、仅降主动脉），或在 `P` 配置中移除 `pre`。
+### D-N95 主动脉夹层：预设容器空函数（低，第307批已修销账）
+- 已修（第307批）：`__aortic_dissectionPresets()` 补 3 个预设（A型·升主动脉+降主动脉 / B型·仅降主动脉 / A型·复杂），radio 用 id 值 1、checkbox 用 1/0，after 回调 calc()。JSDOM 真机：预设数 3、标签正确 ⇒ OK。
+- 原问题/复现（存档）：预设函数空壳，「预设」页签点击后空白。
 
 ### D-N96 Holter：频发室早只看「最高每小时」，清空 pvcHr 后 8500 次/24h 被判「偶发」Lown 1（中，确认缺陷）
 - 问题：Lown 2 级只判 `pvcHr>=30`，`pvcHr` 清空（0）时落入 `pvcHr>0||pvcTotal>0` 的 Lown 1「偶发(<30次/小时）」，完全不参考 24h 总数；8500 次/24h 折合约 354 次/小时，已属频发。
@@ -821,12 +790,9 @@
 - 影响：用户容易把 ACT 17 误读为「部分控制」，与升降级建议冲突。
 - 方案：把该预设 ACT 调到 20–24（如 4/4/4/4/4），或把预设改名为「GINA 部分控制（ACT 未控制）」并分开展示。阈值需临床复核。
 
-### D-N106 哮喘 GINA/ACT：历史/CSV 只围绕 GINA，ACT 评估不入库，回放也只重算 GINA（中，确认缺陷）
-- 问题：统计扩展只包装 `calcGina`，`calcAct` 未被包装；因此只改 ACT、或点「ACT评估」都不会写历史，CSV 也没有 ACT 记录。回放时只调 `calcGina()`，ACT 结果不重算。
-- 证据：`tools/pulmonology/gina-asthma.html:454-465`（快照含 a1–a5）、`:516-519`（Extras 仅由 calcGina 触发）、`:553-555`（只包装 calcGina）、`:502`（回放只调 calcGina）。
-- 复现：只调整 ACT 选项或点「ACT评估」→ 历史表无新增记录；回放一条含 a1–a5 的记录 → GINA 结果恢复，ACT 结果保持回放前的值。期望：ACT 评估同样入库，回放同时重算 GINA 与 ACT。
-- 影响：ACT 评估完全丢失历史与 CSV，无法随访趋势。
-- 方案：用同样的 Extras 包装 `calcAct`；回放后同时调用 `calcGina()` 与 `calcAct()`，并保留 skip 防重复。CSV 增加量表字段。
+### D-N106 哮喘 GINA/ACT：ACT 不入库/回放不重算（中，第307批已修销账）
+- 已修（第307批）：按 calcGina 同型包装 `calcAct`（Extras 入库），history.mount 回放回调补 `calcAct()`，预设 after 回调改 `calcGina(); calcAct();`。代码断言：回放含 calcGina+calcAct、calcAct 已包装、预设含两者（全 True）；JSDOM 真机 ACT 入库 OK、旧源码差分真红。
+- 原问题/复现（存档）：只包装 calcGina，ACT 评估不写历史/CSV、回放只重算 GINA。
 
 
 ### D-N108 肺结节 Lung-RADS：实性 15mm 判 4A，与同页公式「≥15mm 为 4B」冲突（中，确认缺陷）
@@ -850,12 +816,9 @@
 - 影响：小结节被过度升级，可能引发不必要的活检/手术焦虑。
 - 方案：改为 `if(mal && cat.startsWith('4')) cat='4X'`；非 4 类时仅追加「形态可疑，建议专科评估」文案。阈值需临床复核。
 
-### D-N111 肺结节 Lung-RADS：页面 `meta toolbox` 为 `cat=finance`，JSON-LD 为 `FinanceApplication`（中，确认缺陷）
-- 问题：呼吸内科医疗工具的构建元数据分类写成 finance，结构化数据也声明为金融应用，与页面主题和行业目录不一致。
-- 证据：`tools/pulmonology/lung-rads.html:9`（`cat=finance,industry=pulmonology`）、`:32`（`applicationCategory:"FinanceApplication"`）。
-- 复现：查看 `<head>` → `cat=finance`、`FinanceApplication`；页面标题与简介均为肺结节 Lung-RADS。期望：`cat=health`/医疗分类与 `MedicalApplication`（或项目约定的医疗分类值）。
-- 影响：索引/分类页可能把医疗工具归入金融；结构化数据与内容不符，影响搜索引擎理解。
-- 方案：修正 `meta[name=toolbox]` 的 `cat` 与 JSON-LD 的 `applicationCategory`，随后按项目规则重跑 `_build.py`；同时检查同批医疗页是否有同类错分。
+### D-N111 肺结节 Lung-RADS：cat=finance 错分（中，第307批已修销账）
+- 已修（第307批）：`tools/pulmonology/lung-rads.html` meta toolbox `cat=finance`→`cat=health`（与同目录 stop-bang/wells-pe 等医疗工具一致），JSON-LD `applicationCategory` `FinanceApplication`→`UtilitiesApplication`（与同目录 23 页一致）。JSDOM/源码断言 OK。cat 唯一源=meta，本改即权威源；如分类页/索引需刷新由构建流程处理。
+- 原问题/复现（存档）：医疗工具 meta cat=finance、JSON-LD FinanceApplication，与内容/行业目录不符。
 
 ### D-N112 肺结节 Lung-RADS：页面保留可见的 `opt-guide`/`opt-faq` 通用套话（中，确认缺陷）
 - 问题：页尾 `opt-guide`/`opt-faq` 仍是「在对应的输入框或选项中填写」「工作与生活中的相关计算与查询」等通用模板文案，与 Lung-RADS 的结节类型/大小/随访主题无关；CSS 将其作为正常内容显示，不是隐藏文本。
@@ -871,12 +834,9 @@
 - 影响：默认值可使低危被判中危，增加不必要的 PSG 转诊。
 - 方案：把性别改为「男/女」单选且不预选，未选时提示；或在计算前强制确认性别。阈值需临床复核。
 
-### D-N114 STOP-BANG：预设容器为空函数，「预设」页签点击后无内容（低，确认缺陷）
-- 问题：`__stop_bangPresets` 只有空壳，TBKIT 仍渲染「预设」页签，点击后空白。
-- 证据：`tools/pulmonology/stop-bang.html:438-440`（空函数）。
-- 复现：打开页面点「预设」→ 无按钮、无提示。期望：提供「典型 OSA 高危/低危」预设，或移除该页签。
-- 影响：空白页签造成加载失败的错觉。
-- 方案：补 2 个预设（如 8 项全中、仅 BMI+年龄），或在 TBKIT `P` 配置中移除 `pre`。
+### D-N114 STOP-BANG：预设容器空函数（低，第307批已修销账）
+- 已修（第307批）：`__stop_bangPresets()` 补 2 个预设（OSA高危·8项全中 / OSA低危·仅BMI+年龄），8 项 checkbox 用 1/0，after 回调 calc()。JSDOM 真机：预设数 2、标签正确 ⇒ OK。
+- 原问题/复现（存档）：预设函数空壳，「预设」页签点击后空白。
 
 ### 留存/优势（按页）
 - 生化比值：AST/ALT、BUN/Cr、GGT/ALT、R 因子、UA/ALB 五项各有独立结果卡与参考标尺，结构清楚；建议先让简介/深析与这五项对齐，再决定是否新增 AG/A/G 工具。
@@ -913,12 +873,9 @@
 - 影响：ADL 分级整体偏移 4–5 分，影响护理等级、长护险与康复目标判定。
 - 方案：以文献 :136 的 0–20/21–40/41–60/61–99/100 为准，把 `updateResult()` 界值改为 20/40/60/99，并统一信息框、文献表与示例；补齐 96–99、21–24 的空档。
 
-### D-N118 疼痛 NRS：页面加载即自动记一条 0 分「无痛」评估（高，确认缺陷）
-- 问题：加载时无条件调用 `selectPain(0)`，首屏显示「0 分 - 无痛」；该调用经过被包装后的 `selectPain`，会执行 `TBKit.history.record`，用户未作答也写入一条 0 分评估。
-- 证据：`tools/clinical-nursing/pain-nrs.html:158-159`（默认 bigFace 😊/bigNum 0）、`:367-368`（包装 selectPain）、`:375`（写历史）、`:389`（加载调用）。
-- 复现：直接打开页面不点任何数字 → 结果显示「0分 - 无痛」，历史列表新增「0 分/无痛」记录。期望初始为「未评估」，历史仅在用户点击后写入。
-- 影响：虚构疼痛评估进入本地记录/导出，污染交接与复评趋势。
-- 方案：删除加载时的 `selectPain(0)`，改为「未评估」占位；`__nrsExtras` 仅在用户交互后记录；历史回放时抑制记录。
+### D-N118 疼痛 NRS：页面加载即自动记一条 0 分「无痛」评估（高，第308批已修销账）
+- 已修（第308批）：首屏默认渲染 `selectPain(0)` 改为 `__np0(0)`（原始函数，绕过 __nrsExtras 包装），加载不再写历史；主动选分仍正常记录。JSDOM 真机：加载后历史 0、主动选5分后历史 1 ⇒ OK。
+- 原问题/复现（存档）：加载时无条件调用被包装的 `selectPain(0)` → 写入一条虚构「0 分/无痛」历史，污染本地记录/导出。
 
 ### D-N119 压疮风险（Braden）计算：感觉维度四项分值整体反转（高，确认缺陷）
 - 问题：「感觉」下拉把完全受限设为 4 分、极度受限 3、轻度受限 2、未受损 1，与同页引据「完全受限 1 分…无损害 4 分」相反；默认首项即「完全受限 (4分)」，首屏合计 23 判「无风险」。
@@ -955,12 +912,9 @@
 - 影响：护理记录出现 0cm 创面，测量值缺失被当成有效尺寸归档。
 - 方案：`generate()` 前置校验 `l>0 && w>0 && d>=0`，失败时显示错误并 return；`copyDesc()` 与 EMR 复用同一校验。
 
-### D-N124 压力性损伤描述生成：历史回放调用 `selectStage()` 无参数抛 TypeError，部位也不入库（中，确认缺陷）
-- 问题：回放回调调用 `selectStage()` 不传 stage/btn，函数内 `btn.classList.add('active')` 抛 TypeError 被 `catch` 吞掉，`generate()` 不执行；部位复选框没有 id，快照/回放不含部位，回放后显示「（请选择部位）」。
-- 证据：`tools/clinical-nursing/pressure-injury-description.html:573`（无参调用）、`:333-336`（`btn.classList.add`）、`:149-156`（无 id 的 checkbox）、`:527-535`（只快照有 id 控件）。
-- 复现：生成一条「3期/骶尾部/4×3×2」记录 → 历史点回放 → 实际输出不变或部位变「（请选择部位）」；期望恢复分期、部位、尺寸并重新生成。
-- 影响：历史回放显示错误记录，交接/复核取到旧结论。
-- 方案：回放时按 stage 找 active 按钮调用 `selectStage(stage, btn)`，或给 `selectStage` 加 btn 空守卫；给部位 checkbox 加 id 并纳入快照。
+### D-N124 压力性损伤描述：回放 TypeError 与部位不入库（中，第308批已修销账）
+- 已修（第308批）：①`selectStage(stage,btn)` 加 btn 空守卫并按 `data-stage` 精确高亮（6 个分期按钮补 data-stage）；②`Snap` 的 keys 不含内部字段，改为在 `rec.__stage=currentStage` 单独入记录、回放读 `rec.__stage` 还原分期（回放循环跳过 __stage 避免污染 CSV 业务列）；③8 个部位 checkbox 补 id（loc0~loc7），纳入快照/回放。JSDOM 真机：selectStage('2') 无 btn 不抛错且高亮 data-stage=2 ⇒ OK；代码断言 data-stage/入记录/回放还原全 True。
+- 原问题/复现（存档）：回放无参 `selectStage()` 抛 TypeError 被吞、generate 不执行；部位 checkbox 无 id 不入库，回放显示「（请选择部位）」。
 
 ### D-N125 冰袋冷敷提醒：允许单次 30 分钟、间隔 10 分钟，与同页 ≤20/≥30 安全说明矛盾（高，确认缺陷）
 - 问题：冷敷时长 `max=30`、休息间隔 `min=10`，而页面提示「建议单次冷敷 15–20 分钟，两次之间至少休息 30 分钟」、EMR 提示「单次不宜超过 20 分钟，两次之间至少休息 30 分钟」；工具允许并计时 30 分钟冷敷、10 分钟休息，还写进门诊记录。

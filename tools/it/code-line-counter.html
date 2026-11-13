@@ -303,7 +303,9 @@ function calcTool(){
     if(!line.trim()){blank++;continue;}
     var t=line.trim();
     var isComment=false;
-    if(inBlock){comment++;var endAt=-1;for(var b=0;b<blockRules.length;b++){var idx=t.indexOf(blockRules[b][1]);if(idx>=0){endAt=Math.max(endAt,idx);}}if(endAt>=0){inBlock=false;t=t.slice(endAt+2).trim();isComment=t===''?true:false;}else{continue;}}
+    // IT-N446: 块注释中间行仅在此处计一次 comment++ 后 continue；结束行交给末尾统一收口（if(isComment)comment++），
+    // 避免原实现「inBlock 分支先 comment++、结束行收口又 comment++」造成的重复计数。
+    if(inBlock){var endAt=-1;for(var b=0;b<blockRules.length;b++){var idx=t.indexOf(blockRules[b][1]);if(idx>=0){endAt=Math.max(endAt,idx);}}if(endAt>=0){inBlock=false;t=t.slice(endAt+2).trim();isComment=t===''?true:false;}else{comment++;continue;}}
     if(!isComment){
       for(var l=0;l<lineRules.length;l++){if(t.indexOf(lineRules[l])===0){isComment=true;break;}}
     }
@@ -311,7 +313,7 @@ function calcTool(){
       for(var b2=0;b2<blockRules.length;b2++){
         var s=blockRules[b2][0],e=blockRules[b2][1];
         var si=t.indexOf(s);
-        if(si>=0){var rest=t.slice(si+2);if(rest.indexOf(e)<0){inBlock=true;}isComment=true;break;}
+        if(si>=0){var rest=t.slice(si+2);if(rest.indexOf(e)<0){inBlock=true;}isComment=(si===0);break;}
       }
     }
     if(isComment){comment++;}else{code++;}

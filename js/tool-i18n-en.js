@@ -3,6 +3,8 @@ window.__TI18N_EN = {
   GEN_UI_MAP: {
     // IT-N457：url-qr 输出尺寸下拉 label + 4 项，英文态精确整节点替换
     '输出尺寸（像素，正方形边长）':'Output size (pixels, square side)','128 × 128（小图标）':'128 × 128 (small icon)','256 × 256（屏幕显示，推荐）':'256 × 256 (screen, recommended)','512 × 512（高清分享）':'512 × 512 (HD share)','1024 × 1024（打印物料）':'1024 × 1024 (print material)',
+    // IT-N192：unit-converter-advanced 新增「压强」下拉项（「能量」已有通用映射）
+    '压强':'Pressure',
     // IT-D27：regex-common 类别下拉 8 项 + label，英文态精确整节点替换
     '正则类别':'Regex Category','邮箱地址':'Email Address','中国大陆手机号':'Mainland China Phone','身份证号':'ID Card Number','URL 链接':'URL Link','IPv4 地址':'IPv4 Address','日期 YYYY-MM-DD':'Date YYYY-MM-DD','中文字符':'Chinese Characters','用户名(字母数字_3-16)':'Username (letters/digits/_ 3-16)',
     '计算':'Calculate','校验':'Verify','重置':'Reset','清空':'Clear','复制结果':'Copy Result','📋 复制结果':'Copy Result',
@@ -13,7 +15,7 @@ window.__TI18N_EN = {
     '清空记录':'Clear Records','复制全部':'Copy All','公式说明':'Formula Notes','说明':'Notes','随机种子（可选）：':'Random seed (optional):','留空自动生成；填同一种子可复算':'Leave blank to auto-generate; reuse the same seed to recompute','随机种子：':'Random seed:',
     '编码 ↑':'Encode','解码 ↓':'Decode','分析':'Analyze','历史':'History','清空全部':'Clear All',
     '检测':'Detect','提交':'Submit','开始':'Start','停止':'Stop','暂停':'Pause','播放':'Play',
-    '下载':'Download','下载 JSON':'Download JSON','下载结果':'Download Result','⬇️ 下载 PNG':'⬇️ Download PNG','⬇️ 下载 SVG':'⬇️ Download SVG','应用':'Apply',
+    '下载':'Download','下载 JSON':'Download JSON','下载结果':'Download Result','下载原文件':'Download File','⬇️ 下载 PNG':'⬇️ Download PNG','⬇️ 下载 SVG':'⬇️ Download SVG','应用':'Apply',
     '添加':'Add','删除':'Delete','移除':'Remove','确定':'OK','取消':'Cancel','关闭':'Close',
     '打开':'Open','搜索':'Search','筛选':'Filter','排序':'Sort','刷新':'Refresh','导出':'Export','导出 CSV':'Export CSV','导出CSV':'Export CSV','导出明细 CSV':'Export Details CSV','导出 CSV 明细':'Export CSV Details','导出样本量网格 CSV':'Export Sample Size Grid CSV','导出临界值对照 CSV':'Export Critical Value Table CSV','导出统计结果 CSV':'Export Stats CSV','导出药物清单 CSV':'Export Drug List CSV','导出判读结果 CSV':'Export Interpretation CSV','导出等效组合 CSV':'Export Equivalent Combos CSV','导出计算结果为 CSV':'Export Calculation Result CSV','导出对照表 CSV':'Export Comparison Table CSV','导出分位表 CSV':'Export Quantile Table CSV','导出显著性对照 CSV':'Export Significance Table CSV','导出对比表 CSV':'Export Comparison Table CSV','导出影响对比表 CSV':'Export Impact Comparison Table CSV','导出区间对照 CSV':'Export Interval Table CSV','导出样本量敏感性 CSV':'Export Sample Size Sensitivity CSV','导出税率表 CSV':'Export Tax Rate Table CSV','导出运动记录 CSV':'Export Exercise Records CSV','导出疏散时间计算结果 CSV':'Export Evacuation Time Results CSV','导出纸箱尺寸计算结果 CSV':'Export Carton Size Results CSV','导出管道水头损失结果 CSV':'Export Pipe Head Loss Results CSV','导出虹吸高度计算结果 CSV':'Export Siphon Height Results CSV','导出灌溉均匀度结果 CSV':'Export Irrigation Uniformity Results CSV','导出用电负荷曲线结果 CSV':'Export Load Curve Results CSV','导出缓冲厚度计算结果 CSV':'Export Cushion Thickness Results CSV',
 '导出费用计算结果 CSV':'Export Cost Results CSV',

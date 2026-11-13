@@ -160,7 +160,7 @@
   <div class="card">
     <h2>📖 包含的格式</h2>
     <div class="result-box">
-      <p>ASCII 码 / Unicode 码点 / HTML 命名 / HTML 十进制 / HTML 十六进制 / URL 编码 / Base64 / Base32 / Hex / Binary / Octal / JS 转义 / Punycode</p>
+      <p>ASCII 码 / Unicode 码点 / 常用 HTML 实体 / HTML 十进制 / HTML 十六进制 / URL 编码 / Base64 / Base32 / Hex / Binary / Octal / JS 转义 / Punycode</p>
     </div></div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -268,13 +268,23 @@ function convert(){
   for(const ch of text) codePoints.push(ch.codePointAt(0));
 
   const formats = [
-    [(EN?'ASCII code':'ASCII 码'), bytes.length <= 1 ? bytes.join(', ') : (EN?'Multi-byte sequence: ':'多字节序列: ') + Array.from(bytes).join(', ')],
+    [(EN?'ASCII code':'ASCII 码'), (() => {
+      // IT-N205：按码点（非 UTF-8 字节数）判定。纯 ASCII 输出十进制码点，
+      // 含非 ASCII 时逐点标注 U+XXXX，不再与下一行 UTF-8 字节重复、也不误标 "多字节序列"。
+      if(codePoints.every(cp => cp <= 0x7F)) return codePoints.join(' ');
+      return codePoints.map(cp => cp <= 0x7F ? String(cp) :
+        ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'Non-ASCII(U+':'非ASCII(U+') + cp.toString(16).toUpperCase().padStart(4,'0') + ')').join(' ');
+    })()],
     [(EN?'Unicode code point':'Unicode 码点'), codePoints.map(cp => 'U+' + cp.toString(16).toUpperCase().padStart(4,'0')).join(' ')],
     ['UTF-8 Bytes', Array.from(bytes).map(b => b).join(' ')],
     [(EN?'HTML decimal':'HTML 十进制'), codePoints.map(cp => '&#' + cp + ';').join('')],
     [(EN?'HTML hex':'HTML 十六进制'), codePoints.map(cp => '&#x' + cp.toString(16) + ';').join('')],
-    [(EN?'HTML named':'HTML 命名'), (() => {
-      const map = {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','\u00A9':'&copy;','\u00AE':'&reg;','\u2122':'&trade;','\u20AC':'&euro;'};
+    [(EN?'Common HTML entities':'常用 HTML 实体'), (() => {
+      // IT-N207：补全常见 HTML5 命名实体；无对应命名实体的字符保持原样（本行是编码，非解码）。
+      const map = {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;',
+        '\u00A0':'&nbsp;','\u00A9':'&copy;','\u00AE':'&reg;','\u2122':'&trade;','\u20AC':'&euro;',
+        '\u2026':'&hellip;','\u2014':'&mdash;','\u2013':'&ndash;','\u2018':'&lsquo;','\u2019':'&rsquo;',
+        '\u201C':'&ldquo;','\u201D':'&rdquo;','\u00AB':'&laquo;','\u00BB':'&raquo;'};
       let s = '';
       for(const ch of text) s += map[ch] || ch;
       return s;
@@ -370,6 +380,8 @@ function copyAll(){
 
 function clearAll(){
   document.getElementById('input').value = '';
+  // IT-N206：清空时同步清掉字节对照表，避免残留上一段文本
+  document.getElementById('byteViewBox').innerHTML = '';
   const __h2='';if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('results').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('results').innerHTML=__h2;
 }
 

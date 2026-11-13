@@ -575,12 +575,24 @@ def normalize_tool_h1(html_str, zh_name='', dd_title=''):
     均不可用则保持原样（不瞎编）。返回 (新 html, 改动数)。
     """
     n = 0
+    # script/style 块内的 '<h1>...</h1>' 是 JS/CSS 字符串字面量（如 markdown 渲染器的标题模板），
+    # 不是真实标题；下面的全局正则会误伤并改坏页面功能（2026-11-11 markdown-editor 回归）。
+    # 先标记这些区间，②③④ 及错配修复一律跳过。
+    skip_spans = [(m.start(), m.end()) for m in
+                  re.finditer(r'<(script|style)\b[^>]*>[\s\S]*?</\1>', html_str, re.I)]
+
+    def _h1_in_skip(pos):
+        return any(s <= pos < e for s, e in skip_spans)
+
     # ① 错配闭标签
     i = 0
     while True:
         m = _H1_OPEN_RE.search(html_str, i)
         if not m:
             break
+        if _h1_in_skip(m.start()):
+            i = m.end()
+            continue
         oe = m.end()
         n1 = html_str.find('</h1>', oe)
         n2 = html_str.find('</h2>', oe)
@@ -601,6 +613,8 @@ def normalize_tool_h1(html_str, zh_name='', dd_title=''):
     # ②③④ 处理 h1 块
     reps = []
     for idx, b in enumerate(_H1_BLOCK_RE.finditer(html_str)):
+        if _h1_in_skip(b.start()):
+            continue
         attr, inner, close = b.group(1), b.group(2), b.group(3)
         _raw = _h1_text(inner)
         if not re.search(r'[\u4e00-\u9fff]', _raw):
@@ -3858,7 +3872,12 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
             if 'content="content="' in content:
                 content = content.replace('content="content="', 'content="')
             for _tag_attr in ('property="og:title"', 'name="twitter:title"'):
-                content = re.sub(
+                # 只在真实 document head 内替换：早期版本用全文 re.sub(count=1)，
+                # 会误命中内联 JS 里的字符串字面量（如 meta-tags-generator 的
+                # L.push('<meta name="twitter:title" content="'+t+'">')），把工具的运行
+                # 逻辑改写成硬编码 SEO 文案。head 内无该标签时 _sub_in_document_head
+                # 原样返回，JS 保持不变。
+                content = _sub_in_document_head(
                     r'<meta %s([^>]*?)content="[^"]*"([^>]*)>' % _tag_attr,
                     lambda m, a=_tag_attr: '<meta %s%scontent="%s"%s>' % (a, m.group(1), _og_t, m.group(2)),
                     content, count=1)
@@ -3910,8 +3929,11 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
         if 'twitter:description' not in content:
             seo_tags += '\n<meta name="twitter:description" content="%s">' % seo_desc
         else:
-            content = re.sub(r'<meta name="twitter:description" content="[^"]*"[^>]*>',
-                             lambda m: re.sub(r'content="[^"]*"', lambda mm: 'content="%s"' % seo_desc, m.group(0), count=1), content, count=1)
+            # 同上：仅改 document head，避免全文 re.sub 误伤内联 JS 字符串字面量。
+            content = _sub_in_document_head(
+                r'<meta name="twitter:description" content="[^"]*"[^>]*>',
+                lambda m: re.sub(r'content="[^"]*"', lambda mm: 'content="%s"' % seo_desc, m.group(0), count=1),
+                content, count=1)
         if 'rel="canonical"' not in content:
             seo_tags += '\n<link rel="canonical" href="https://tools.dicomp.net/%s">' % t['url']
         if 'og:type' not in content:
