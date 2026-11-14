@@ -327,8 +327,32 @@ if DRY_RUN:
     print("\n[dry-run] 未做任何修改。去掉 --dry-run 执行同步。")
     sys.exit(0)
 
+# 3.5 过滤 Windows 非法文件名：上游偶尔提交本机无法落盘的文件名（如含 '>'），
+#     此时 read-tree -u 直接报 "invalid path" 中止。用临时索引剔除这些路径得到等价 tree。
+_WIN_INVALID = re.compile(r'[<>:"|?*]')
+snapshot_ref = UPSTREAM_REF
+bad_paths = [n for n in git("ls-tree", "-r", "--name-only", "-z",
+                            UPSTREAM_REF).split("\x00") if n and _WIN_INVALID.search(n)]
+if bad_paths:
+    tmp_index = os.path.join(os.environ.get("TEMP", "/tmp"),
+                             "tb_sync_index_%d" % os.getpid())
+    tmp_env = dict(os.environ, GIT_INDEX_FILE=tmp_index)
+    for args in (["git", "read-tree", UPSTREAM_REF],
+                 ["git", "update-index", "--force-remove", "--"] + bad_paths,
+                 ["git", "write-tree"]):
+        r = subprocess.run(args, capture_output=True, text=True,
+                           encoding="utf-8", errors="replace", env=tmp_env)
+        if r.returncode != 0:
+            sys.exit("%s 失败:\n%s" % (" ".join(args[:3]), r.stderr))
+        tree_sha = r.stdout.strip()
+    if os.path.exists(tmp_index):
+        os.remove(tmp_index)
+    snapshot_ref = tree_sha
+    print("已过滤 Windows 非法路径 %d 个（如 %s），快照改用过滤后 tree %s"
+          % (len(bad_paths), bad_paths[0], tree_sha[:10]))
+
 # 4. 快照式同步：整体重置为上游树
-git("read-tree", "-u", "--reset", UPSTREAM_REF)
+git("read-tree", "-u", "--reset", snapshot_ref)
 
 # 5. 恢复冻结路径为本仓库版本
 for p in FREEZE_PATHS:
