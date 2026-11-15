@@ -177,7 +177,7 @@
         <div class="input-group">
           <label>目標利潤率（%）</label>
           <input type="number" id="targetProfit" value="10" min="0" oninput="calc()" placeholder="如 10">
-          <div class="input-hint">可選，計算目標ROAS</div>
+          <div class="input-hint">可選，須低於毛利率，用於計算目標ROAS</div>
         </div>
       </div>
 
@@ -305,7 +305,7 @@
 <li>設目標<a class="term-link" href="/zh-tw/tools/finance/profit-margin-calculator.html">利潤率</a>反推需要做到的目標 ROAS。</li>
 <li>評估當前 ROAS 處於優秀/良好/微利哪一檔。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title"><a class="term-link" href="/zh-tw/tools/accounting/gross-margin.html">毛利率</a>定平衡線</div><div class="dd-ex-body">毛利率 40% → <a class="term-link" href="/zh-tw/tools/finance/break-even-calculator.html">盈虧平衡</a> ROAS=1/(40/100)=2.5。即 ROAS≥2.5 才不虧；當前 ROAS=3 時利潤率=40%−1/3≈6.7% 微利。</div></div>
+<div class="dd-example"><div class="dd-ex-title">毛利率定平衡線</div><div class="dd-ex-body"><a class="term-link" href="/zh-tw/tools/accounting/gross-margin.html">毛利率</a> 40% → <a class="term-link" href="/zh-tw/tools/finance/break-even-calculator.html">盈虧平衡</a> ROAS=1/(40/100)=2.5。即 ROAS≥2.5 才不虧；當前 ROAS=3 時利潤率=40%−1/3≈6.7% 微利。</div></div>
 <div class="dd-example"><div class="dd-ex-title">目標利潤率反推</div><div class="dd-ex-body">毛利率 40%、目標利潤率 10% → 目標 ROAS=1/(0.4−0.1)=3.33，投放須做到 3.33x 才能落袋 10% 淨利。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
@@ -351,8 +351,11 @@ function calc() {
   const targetProfit = parseFloat(document.getElementById('targetProfit').value) || 0;
   const r = document.getElementById('result');
 
-  if (isNaN(price) || isNaN(margin) || margin <= 0 || margin >= 100) {
-    r.innerHTML='<div class="metric-card"><p style="color:var(--text-muted);">请输入有效数值（毛利率0-100之间）</p></div>';
+  const errs = [];
+  if (!isFinite(price) || price <= 0) errs.push('请输入产品客单价（须大于 0）');
+  if (!isFinite(margin) || margin <= 0 || margin >= 100) errs.push('毛利率须在 0–100 之间（不含 0 与 100）');
+  if (errs.length) {
+    r.innerHTML='<div class="metric-card"><p style="color:var(--text-muted);">' + errs.join('；') + '</p></div>';
     return;
   }
 
@@ -365,6 +368,14 @@ function calc() {
   if (targetProfit > 0 && targetProfit < margin) {
     targetRoas = 1 / (marginRatio - targetProfit / 100);
   }
+  // 目标利润率 ≥ 毛利率时数学上不可达：说明原因，避免目标卡片静默消失。
+  const targetHint = (targetProfit > 0 && targetProfit >= margin) ? `
+    <div class="metric-card">
+      <div class="label">目标ROAS 无法计算</div>
+      <div class="value" style="color:#f44336;">—</div>
+      <div class="sub">目标利润率 ${targetProfit}% 不低于毛利率 ${margin}%，扣除广告费后不可能达到，请把目标利润率调到低于 ${margin}%</div>
+    </div>
+    ` : '';
 
   let currentStatus = null, currentColor = null, currentProfit = null;
   if (currentRoas > 0) {
@@ -397,6 +408,7 @@ function calc() {
       <div class="sub">ROAS ≥ ${targetRoas.toFixed(2)} 可达成 ${targetProfit}% 利润率</div>
     </div>
     ` : ''}
+    ${targetHint}
 
     <div class="metric-card">
       <div class="label">详细数据</div>
@@ -448,7 +460,7 @@ function saveHistory() {
   const currentRoas = parseFloat(document.getElementById('currentRoas').value) || 0;
   const targetProfit = parseFloat(document.getElementById('targetProfit').value) || 0;
 
-  if (isNaN(price) || isNaN(margin) || margin <= 0 || margin >= 100) {
+  if (!isFinite(price) || price <= 0 || !isFinite(margin) || margin <= 0 || margin >= 100) {
     ToolBox.showToast(i18nText('toast.msg690'), 'error');
     return;
   }
@@ -694,27 +706,27 @@ else document.addEventListener('DOMContentLoaded', __marketing_break_even_roasBo
   <div class="related-tools-grid">
     <a href="/zh-tw/tools/marketing/marketing-keyword-density.html" class="related-tool-card">
       <span class="rt-icon">🔍</span>
-      <span class="rt-info"><span class="rt-name">SEO關鍵詞密度檢查器 - 免費文本處理工具，線上SEO關鍵詞密度檢查器，免費使用</span><span class="rt-desc">SEO關鍵詞密度檢查器</span></span>
+      <span class="rt-info"><span class="rt-name">SEO關鍵詞密度檢查器</span><span class="rt-desc">貼上網頁或文章正文並輸入目標關鍵詞，統計關鍵詞出現頻次與密度百分比，幫助最佳化內容SEO關鍵詞佈局與堆…</span></span>
     </a>
     <a href="/zh-tw/tools/marketing/xiaohongshu-counter.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">小紅書文案計數器</span><span class="rt-desc">小紅書文案計數器線上工具，即時統計標題與正文字元數、表情與話題標籤數量，提示平臺字數限制，便於合規…</span></span>
+      <span class="rt-info"><span class="rt-name">小紅書文案計數器</span><span class="rt-desc">線上工具，即時統計標題與正文字元數、表情與話題標籤數量，提示平臺字數限制，便於合規釋出，純前端</span></span>
     </a>
     <a href="/zh-tw/tools/marketing/marketing-utm-builder.html" class="related-tool-card">
       <span class="rt-icon">📢</span>
-      <span class="rt-info"><span class="rt-name">UTM引數構建器 - 免費生成器工具，線上UTM引數構建器，免費使用</span><span class="rt-desc">UTM引數構建器</span></span>
+      <span class="rt-info"><span class="rt-name">UTM引數構建器</span><span class="rt-desc">輸入基礎URL與來源、媒介、活動等UTM引數，單條或按行批次生成標準UTM追蹤連結，用於在廣告分析中…</span></span>
     </a>
     <a href="/zh-tw/tools/marketing/utm-builder.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">UTM引數生成器 - 免費生成器工具，線上UTM引數生成器，免費使用</span><span class="rt-desc">UTM引數生成器</span></span>
+      <span class="rt-info"><span class="rt-name">UTM引數生成器</span><span class="rt-desc">輸入基礎URL與一個或多個UTM引數行，支援單個與批次生成帶追蹤引數的連結，便於廣告投放與渠道效果統…</span></span>
     </a>
     <a href="/zh-tw/tools/marketing/marketing-chinese-hashtag-generator.html" class="related-tool-card">
       <span class="rt-icon">#️⃣</span>
-      <span class="rt-info"><span class="rt-name">中文營銷話題標籤生成器 - 免費生成器工具，線上中文營銷話題標籤生成器，免費使用</span><span class="rt-desc">#️⃣ 中文營銷話題標籤生成器</span></span>
+      <span class="rt-info"><span class="rt-name">中文營銷話題標籤生成器</span><span class="rt-desc">輸入主題關鍵詞，為中文營銷內容生成適用微博、小紅書、抖音等平臺的熱門話題標籤，可直接複製</span></span>
     </a>
     <a href="/zh-tw/tools/marketing/marketing-qr-campaign-tracker.html" class="related-tool-card">
       <span class="rt-icon">🔳</span>
-      <span class="rt-info"><span class="rt-name">二維碼活動追蹤器 - 免費生成器工具，線上二維碼活動追蹤器，免費使用</span><span class="rt-desc">二維碼活動追蹤器</span></span>
+      <span class="rt-info"><span class="rt-name">二維碼活動追蹤器</span><span class="rt-desc">輸入活動URL與渠道引數，生成帶UTM追蹤引數的二維碼活動連結，用於統計線下海報、物料的掃碼效果與來…</span></span>
     </a>
   </div>
 </div>

@@ -10,9 +10,9 @@
 <title>Farnsworth D-15 色相排列測試 - 色覺缺陷型別</title>
 <link rel="canonical" href="https://tools.dicomp.net/zh-tw/tools/design/farnsworth-d15-test.html">
 <meta property="og:title" content="Farnsworth D-15 色相排列測試 - 色覺缺陷型別">
-<meta property="og:description" content="經典 Farnsworth Panel D-15 色相排列測試的瀏覽器實現：15 個色帽由標準 D-15 的 CIE 1931 xy 色度座標在等亮度下即時換算為可顯示的 sRGB 色值，兩端基準帽固定，中間 13 個需按色相連續漸變的順序">
+<meta property="og:description" content="經典 Farnsworth Panel D-15 色相排列測試的瀏覽器實現：15 個色帽由標準 D-15 的 CIE 1931 xy 色度座標在等亮度下即時換算為可顯示的 sRGB 色值，兩端基準帽固定。">
 <meta name="twitter:card" content="summary">
-<meta name="description" content="經典 Farnsworth Panel D-15 色相排列測試的瀏覽器實現：15 個色帽由標準 D-15 的 CIE 1931 xy 色度座標在等亮度下即時換算為可顯示的 sRGB 色值，兩端基準帽固定，中間 13 個需按色相連續漸變的順序">
+<meta name="description" content="經典 Farnsworth Panel D-15 色相排列測試的瀏覽器實現：15 個色帽由標準 D-15 的 CIE 1931 xy 色度座標在等亮度下即時換算為可顯示的 sRGB 色值，兩端基準帽固定。">
 <link rel="stylesheet" href="/css/common.css">
 <script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="/js/common.js" defer></script>
@@ -91,7 +91,7 @@ table.fd-tbl td.bad{background:rgba(239,68,68,.14);color:var(--danger);font-weig
 <script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 <!-- TOOLBOX-WEBAPP-LD -->
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Farnsworth D-15 色相排列測試","url":"https://tools.dicomp.net/zh-tw/tools/design/farnsworth-d15-test.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"經典 Farnsworth Panel D-15 色相排列測試的瀏覽器實現：15 個色帽由標準 D-15 的 CIE 1931 xy 色度座標在等亮度下即時換算為可顯示的 sRGB 色值，兩端基準帽固定，中間 13 個需按色相連續漸變的順序排好，提交後按跨軸錯誤的方向與數量評估色覺缺陷型別與程度。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Farnsworth D-15 色相排列測試","url":"https://tools.dicomp.net/zh-tw/tools/design/farnsworth-d15-test.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"經典 Farnsworth Panel D-15 色相排列測試的瀏覽器實現：15 個色帽由標準 D-15 的 CIE 1931 xy 色度座標在等亮度下即時換算為可顯示的 sRGB 色值，兩端基準帽固定，中間 13 個需按色相連續漸變的順序排好，提交後按跨軸錯誤的方向與數量評估色覺缺陷型別與程度","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
 <meta property="og:image" content="https://tools.dicomp.net/og-image.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
@@ -100,7 +100,7 @@ table.fd-tbl td.bad{background:rgba(239,68,68,.14);color:var(--danger);font-weig
 <meta name="twitter:image:alt" content="ToolBox - 5000+免費線上工具">
 
 <meta name="twitter:title" content="Farnsworth D-15 色相排列測試 - 色覺缺陷型別">
-<meta name="twitter:description" content="經典 Farnsworth Panel D-15 色相排列測試的瀏覽器實現：15 個色帽由標準 D-15 的 CIE 1931 xy 色度座標在等亮度下即時換算為可顯示的 sRGB 色值，兩端基準帽固定，中間 13 個需按色相連續漸變的順序">
+<meta name="twitter:description" content="經典 Farnsworth Panel D-15 色相排列測試的瀏覽器實現：15 個色帽由標準 D-15 的 CIE 1931 xy 色度座標在等亮度下即時換算為可顯示的 sRGB 色值，兩端基準帽固定。">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://tools.dicomp.net/zh-tw/tools/design/farnsworth-d15-test.html">
 
@@ -346,7 +346,9 @@ table.fd-tbl td.bad{background:rgba(239,68,68,.14);color:var(--danger);font-weig
   function textOn(hex) {
     var n = parseInt(hex.slice(1), 16);
     var L = 0.2126 * srgbToLin((n >> 16) & 255) + 0.7152 * srgbToLin((n >> 8) & 255) + 0.0722 * srgbToLin(n & 255);
-    return L > 0.32 ? '#111827' : '#FFFFFF';
+    // 黑白字按 WCAG 对比度取较大者（分界 L≈0.179）；深色用纯黑，不用 #111827（L≈0.198 时仅 4.19:1）
+    var crW = 1.05 / (L + 0.05), crB = (L + 0.05) / 0.05;
+    return crB >= crW ? '#000000' : '#FFFFFF';
   }
   function norm180(a) { a = ((a % 180) + 180) % 180; return a > 90 ? a - 180 : a; }
   function angDist(a, b) { var d = Math.abs(norm180(a) - norm180(b)); return Math.min(d, 180 - d); }
@@ -1129,6 +1131,8 @@ table.fd-tbl td.bad{background:rgba(239,68,68,.14);color:var(--danger);font-weig
    * ========================================================== */
   shuffleOrder('medium');
   renderStrip();
+  // 文字色选择器对外暴露，供导出与自检脚本复用（纯读取，不改变行为）
+  window.__fdTextOn = textOn;
 })();
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -1172,19 +1176,19 @@ table.fd-tbl td.bad{background:rgba(239,68,68,.14);color:var(--danger);font-weig
   <div class="related-tools-grid">
     <a href="/zh-tw/tools/design/cvd-safe-palette.html" class="related-tool-card">
       <span class="rt-icon">🎨</span>
-      <span class="rt-info"><span class="rt-name">色盲安全配色生成器</span><span class="rt-desc">生成在 8 種色覺型別下均可區分的安全配色，支援順序/發散/定性模式、鎖定色、明暗交替策略、8 型實</span></span>
+      <span class="rt-info"><span class="rt-name">色盲安全配色生成器</span><span class="rt-desc">生成在紅綠 / 藍黃 / 全色盲等 7 類色覺缺陷與正常視共 8 種色覺視角下都能清晰區分的配色方案…</span></span>
     </a>
     <a href="/zh-tw/tools/design/colorblind-simulator.html" class="related-tool-card">
       <span class="rt-icon">🧪</span>
-      <span class="rt-info"><span class="rt-name">色盲模擬器 Pro</span><span class="rt-desc">專業色覺缺陷（CVD）模擬器：支援紅色盲、紅色弱、綠色盲、綠色弱、藍色盲、藍色弱、全色盲、藍錐單色…</span></span>
+      <span class="rt-info"><span class="rt-name">色盲模擬器 Pro</span><span class="rt-desc">專業色覺缺陷（CVD）模擬器：支援紅色盲、紅色弱、綠色盲、綠色弱、藍色盲、藍色弱、全色盲、藍錐單色共…</span></span>
     </a>
     <a href="/zh-tw/tools/design/palette-cvd-checker.html" class="related-tool-card">
       <span class="rt-icon">🎨</span>
-      <span class="rt-info"><span class="rt-name">調色盤色覺可辨識度檢查器</span><span class="rt-desc">檢查配色在 8 種色覺型別與灰度下的兩兩 ΔE 可辨識度，輸出混淆預警、灰度明度階梯評分與一鍵修正建</span></span>
+      <span class="rt-info"><span class="rt-name">調色盤色覺可辨識度檢查器</span><span class="rt-desc">把一組配色貼進來，立刻看到它在「正常 / 紅綠色盲 / 藍黃色盲 / 全色盲 / 灰度」共 8 種視…</span></span>
     </a>
     <a href="/zh-tw/tools/design/generator-38.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">AI（輔助/生成/最佳化）探索</span><span class="rt-desc">按「角色 + 任務 + 上下文 + 輸出格式 + 約束」五要素拼裝結構化提示詞：選擇任務型別與輸出格</span></span>
+      <span class="rt-info"><span class="rt-name">AI（輔助/生成/最佳化）探索</span><span class="rt-desc">按「角色 + 任務 + 上下文 + 輸出格式 + 約束」五要素拼裝結構化提示詞：選擇任務型別與輸出格…</span></span>
     </a>
   </div>
 </div>

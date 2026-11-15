@@ -116,8 +116,9 @@
 <div><label>ISO</label><select id="iso" onchange="calc()"><option>100</option><option selected>200</option><option>400</option><option>800</option><option>1600</option><option>3200</option><option>6400</option></select></div>
 </div>
 <div class="toolbar" style="margin-top:8px;"><span style="font-size:13px;color:var(--text-muted);">📌 場景預設：</span><button type="button" class="btn" onclick="applyExpPreset('portrait')">人像晴天 f/2.8</button><button type="button" class="btn" onclick="applyExpPreset('indoor')">室內弱光 ISO800</button><button type="button" class="btn" onclick="applyExpPreset('sports')">運動抓拍 1/1000</button><button type="button" class="btn" onclick="applyExpPreset('landscape')">風光小光圈 f/11</button></div>
-<div class="toolbar"><span style="font-size:13px;color:var(--text-muted);">修改後曝光量變化：</span><button type="button" class="btn" onclick="changeExp(-1)">-1EV</button><button type="button" class="btn" onclick="changeExp(1)">+1EV</button><button type="button" class="btn primary" onclick="calc()">🔒 鎖定曝光</button></div>
+<div class="toolbar"><span style="font-size:13px;color:var(--text-muted);" data-zh="曝光補償（按標準快門檔位，約 ±1 檔）：">Exposure compensation (standard shutter stops, ≈±1 stop): </span><button type="button" class="btn" data-zh="−1 檔 · 更暗" onclick="changeExp(-1)">−1 stop · darker</button><button type="button" class="btn" data-zh="+1 檔 · 更亮" onclick="changeExp(1)">+1 stop · brighter</button><button type="button" class="btn primary" id="lockBtn" onclick="toggleLock()">🔒 鎖定曝光</button></div>
 <div id="equiv" style="margin-top:14px;"></div>
+<div style="font-size:12px;color:var(--text-muted);margin-top:8px;" data-zh="ISO 或快門到達檔位邊界時，等效組合會自動按可用檔位調整，仍保持相同曝光量">When ISO or shutter reaches the end of the available stops, equivalent combos are adjusted automatically to keep the same exposure</div>
 <div id="etChart"></div>
     <div style="margin-top:14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
       <button type="button" class="btn" data-zh="⬇️ 匯出等效組合 CSV" onclick="__expExport()">⬇️ Export Equivalent Combos CSV</button>
@@ -154,7 +155,7 @@
 <li>理解曝光三角關係。</li>
 <li>弱光提高 ISO 的代價估算。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">快門放慢一檔補光圈</div><div class="dd-ex-body">&lt;p&gt;&lt;strong&gt;輸入：&lt;/strong&gt;原 f/4、1/100、ISO100；改 f/5.6。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;處理：&lt;/strong&gt;按檔位守恆換算。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;輸出：&lt;/strong&gt;快門需 1/50 或 ISO 提一檔保持曝光。&lt;/p&gt;</div></div>
+<div class="dd-example"><div class="dd-ex-title">快門放慢一檔補光圈</div><div class="dd-ex-body">輸入：原 f/4、1/100、ISO100；改 f/5.6。處理：按檔位守恆換算。輸出：快門需 1/50 或 ISO 提一檔保持曝光。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
 <dt>提 ISO 會怎樣？</dt><dd>提 ISO 補亮度但噪點增；優先用光圈/快門，最後才加 ISO。結果以瀏覽器即時計算為準，純前端本地處理、資料不上傳；生成的樣式與程式碼僅作快速產出參考，正式專案請以設計系統、規範與瀏覽器實測為準。</dd>
@@ -214,7 +215,50 @@ function evFromIdx(ai,si,ii){return Math.log2((apertures[ai]*apertures[ai])/shut
 function fmtShutter(s){if(s>=1)return s+'s';return '1/'+Math.round(1/s);}
 function parseShutterValue(str){str=String(str).trim();if(str.indexOf('/')>=0){var p=str.split('/');return parseFloat(p[0])/parseFloat(p[1]);}return parseFloat(str);}
 function idxOfNum(arr,val){for(var i=0;i<arr.length;i++){if(Math.abs(arr[i]-val)<1e-9)return i;}return 0;}
+var __lockEv=null;
+function __lockLabel(){
+  const btn=document.getElementById('lockBtn');
+  if(!btn) return;
+  if(__lockEv===null){btn.textContent='🔒 锁定曝光';btn.classList.add('primary');}
+  else{btn.textContent='🔓 解锁曝光 (EV '+__lockEv.toFixed(1)+')';btn.classList.remove('primary');}
+}
+// 当前三档位索引：统一按 value 反查（与 calc 同口径，避免依赖 selectedIndex）
+function __curIdx(){
+  return {
+    a: idxOfNum(apertures, parseFloat(document.getElementById('aperture').value)),
+    s: idxOfNum(shutters, parseShutterValue(document.getElementById('shutter').value)),
+    i: idxOfNum(isos, parseFloat(document.getElementById('iso').value))
+  };
+}
+// 锁定期间用户主动改 EV / 套预设：把锁定基准同步到新组合，避免补偿逻辑把它们立刻抵消
+function __syncLockEv(){
+  if(__lockEv===null) return;
+  var c=__curIdx();
+  __lockEv=evFromIdx(c.a,c.s,c.i);
+  __lockLabel();
+}
+function toggleLock(){
+  if(__lockEv===null){
+    var c=__curIdx();
+    __lockEv=evFromIdx(c.a,c.s,c.i);
+  } else {
+    __lockEv=null;
+  }
+  __lockLabel();
+  calc();
+}
 function calc(){
+  if(__lockEv !== null){
+    // 锁定曝光：根据当前光圈/ISO 反推维持 EV 的快门档（保持曝光量不变）
+    const _ai=idxOfNum(apertures, parseFloat(document.getElementById('aperture').value));
+    const _ii=idxOfNum(isos, parseFloat(document.getElementById('iso').value));
+    const _N=apertures[_ai], _S=isos[_ii];
+    const _t=(_N*_N)/Math.pow(2, __lockEv + Math.log2(_S/100));
+    let _best=0,_bd=Infinity;
+    for(let k=0;k<shutters.length;k++){const d=Math.abs(shutters[k]-_t);if(d<_bd){_bd=d;_best=k;}}
+    document.getElementById('shutter').value=shutterLabels[_best];
+  }
+
   // 按 option 的 value 反查档位（不再依赖 selectedIndex，表单回填/脚本赋值时同样准确）
   const ai=idxOfNum(apertures, parseFloat(document.getElementById('aperture').value));
   const si=idxOfNum(shutters, parseShutterValue(document.getElementById('shutter').value));
@@ -222,15 +266,18 @@ function calc(){
   const a=apertures[ai],s=shutters[si],iso=isos[ii];
   const ev=evFromIdx(ai,si,ii);
   let html='<h3 style="font-size:14px;margin:12px 0 8px;">🔄 等效曝光组合（相同曝光量，EV '+ev.toFixed(1)+'）</h3><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;">';
+  const __usedA=new Set(),__usedI=new Set();
   for(let da=-2;da<=2;da++){
     const na=Math.max(0,Math.min(apertures.length-1,ai+da));
     const neededSi=si+(na-ai);
-    if(na!==ai&&neededSi>=0&&neededSi<shutters.length){
+    if(na!==ai&&neededSi>=0&&neededSi<shutters.length&&!__usedA.has(na)){
+      __usedA.add(na);
       html+=`<div style="padding:10px;background:#f8f9ff;border-radius:8px;text-align:center;font-size:13px;"><strong>f/${apertures[na]}</strong><br>${fmtShutter(shutters[neededSi])}<br>ISO ${iso}</div>`;
     }
     const niso=Math.max(0,Math.min(isos.length-1,ii+da));
-    const ns=si-da;
-    if(niso!==ii&&ns>=0&&ns<shutters.length){
+    const ns=si-(niso-ii);
+    if(niso!==ii&&ns>=0&&ns<shutters.length&&!__usedI.has(niso)){
+      __usedI.add(niso);
       html+=`<div style="padding:10px;background:#f8f9ff;border-radius:8px;text-align:center;font-size:13px;"><strong>f/${a}</strong><br>${fmtShutter(shutters[ns])}<br>ISO ${isos[niso]}</div>`;
     }
   }
@@ -249,13 +296,14 @@ function applyExpPreset(kind){
   document.getElementById('aperture').value = p.a;
   document.getElementById('shutter').value = p.s;
   document.getElementById('iso').value = p.iso;
+  __syncLockEv();
   calc();
 }
 function changeExp(delta){
   const ai=document.getElementById('aperture').selectedIndex;
   let si=document.getElementById('shutter').selectedIndex;
   si=Math.max(0,Math.min(shutters.length-1,si+delta));
-  document.getElementById('shutter').selectedIndex=si;calc();
+  document.getElementById('shutter').selectedIndex=si;__syncLockEv();calc();
 }
 var __expF0 = calc;
 calc = function(){ __expF0(); __expExtras(); };
@@ -267,15 +315,18 @@ function __expExtras(){
     var iso=isos[ii];
     var a=apertures[ai];
     var rows=[];
+    var __usedA2=new Set(),__usedI2=new Set();
     for(var da=-2; da<=2; da++){
       var na=Math.max(0,Math.min(apertures.length-1,ai+da));
       var neededSi=si+(na-ai);
-      if(na!==ai && neededSi>=0 && neededSi<shutters.length){
+      if(na!==ai && neededSi>=0 && neededSi<shutters.length && !__usedA2.has(na)){
+        __usedA2.add(na);
         rows.push(['f/'+apertures[na], fmtShutter(shutters[neededSi]), 'ISO '+iso]);
       }
       var niso=Math.max(0,Math.min(isos.length-1,ii+da));
-      var ns=si-da;
-      if(niso!==ii && ns>=0 && ns<shutters.length){
+      var ns=si-(niso-ii);
+      if(niso!==ii && ns>=0 && ns<shutters.length && !__usedI2.has(niso)){
+        __usedI2.add(niso);
         rows.push(['f/'+a, fmtShutter(shutters[ns]), 'ISO '+isos[niso]]);
       }
     }
@@ -315,24 +366,24 @@ document.addEventListener('DOMContentLoaded',function(){
   <div class="related-tools-grid">
     <a href="/zh-tw/tools/design/generator-10.html" class="related-tool-card">
       <span class="rt-icon">📈</span>
-      <span class="rt-info"><span class="rt-name">CSS動畫生成器（關鍵幀視覺化） - 免費線上工具，純前端處理 | ToolBox免費線上工具箱</span><span class="rt-desc">CSS動畫生成器（關鍵幀視覺化）</span></span>
+      <span class="rt-info"><span class="rt-name">CSS動畫生成器（關鍵幀視覺化）</span><span class="rt-desc">以視覺化方式編排 CSS 關鍵幀動畫，調整時長、緩動與屬性並即時預覽，生成可直接使用的 @keyfr…</span></span>
     </a>
 
     <a href="/zh-tw/tools/design/web-audio-metronome.html" class="related-tool-card">
       <span class="rt-icon">🎵</span>
-      <span class="rt-info"><span class="rt-name">Web Audio 節拍器 - 免費生成器工具，線上節拍器 | ToolBox免費線上工具箱</span><span class="rt-desc">線上節拍器</span></span>
+      <span class="rt-info"><span class="rt-name">Web Audio 節拍器</span><span class="rt-desc">線上節拍器，使用 Web Audio API 提供精準節拍並支援多種拍號，適合練習樂器與節奏訓練</span></span>
     </a>
     <a href="/zh-tw/tools/design/generator-8.html" class="related-tool-card">
       <span class="rt-icon">🔳</span>
-      <span class="rt-info"><span class="rt-name">二維碼生成器（已有，可加強定製） - 免費線上工具，純前端處理 | ToolBox免費線上工具箱</span><span class="rt-desc">二維碼生成器（已有，可加強定製）</span></span>
+      <span class="rt-info"><span class="rt-name">二維碼生成器（可定製尺寸、糾錯與靜區）</span><span class="rt-desc">輸入網址或文本，生成可定製尺寸與糾錯的二維碼：按 ISO/IEC 18004 自動選版本與掩碼、按等…</span></span>
     </a>
-    <a href="/zh-tw/tools/design/generator-9.html" class="related-tool-card">
+    <a href="/zh-tw/tools/biz/barcode-generator.html" class="related-tool-card">
       <span class="rt-icon">🏷️</span>
-      <span class="rt-info"><span class="rt-name">條形碼生成器（EAN-13等） - 免費線上工具，純前端處理 | ToolBox免費線上工具箱</span><span class="rt-desc">條形碼生成器（EAN-13等）</span></span>
+      <span class="rt-info"><span class="rt-name">條形碼生成器</span><span class="rt-desc">支援Code128、EAN-13、UPC-A、Code39等多種碼制，純前端生成可下載</span></span>
     </a>
     <a href="/zh-tw/tools/design/generator-6.html" class="related-tool-card">
-      <span class="rt-icon">📈</span>
-      <span class="rt-info"><span class="rt-name">盒子陰影生成器（視覺化調整） - 免費線上工具，純前端處理 | ToolBox免費線上工具箱</span><span class="rt-desc">盒子陰影生成器（視覺化調整）</span></span>
+      <span class="rt-icon">✨</span>
+      <span class="rt-info"><span class="rt-name">盒子陰影批次生成器</span><span class="rt-desc">按「生成數量」隨機產出多組多層 box-shadow 宣告（含 inset 與 rgba 透明度）…</span></span>
     </a>
   </div>
 </div>

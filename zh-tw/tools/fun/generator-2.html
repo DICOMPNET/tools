@@ -46,6 +46,7 @@
 <script src="/js/tool-i18n.js" defer></script>
 <!-- TOOLBOX-I18N-SCRIPT -->
 
+<meta name="title-en" content="Sudoku Generator &amp; Solver">
 <meta name="desc-en" content="Generate Sudoku puzzles at several difficulties complete with reference solutions, or paste an existing puzzle to solve it — for practice and leisure">
 
 
@@ -211,13 +212,23 @@ function isValid(b, r, c, n) {
   return true;
 }
 function genSudoku() {
-  let board = Array.from({ length: 9 }, () => Array(9).fill(0));
-  const first = shuffle([1, 2, 3, 4, 5, 6, 7, 8, 9]);
-  for (let i = 0; i < 9; i++) board[0][i] = first[i];
-  solve(board);
+  // 2026-11-14：旧实现先随机填满第一行再调 solve() 回溯，某些首行排列会让回溯搜索爆炸
+  // （实测门禁 fun calc correctness 卡死 15 分钟以上，浏览器里同样会冻住）。
+  // 改为「标准基座 + 行/列/数字三重置换」直接构造合法终盘，恒定 O(81)，无随机失败。
+  const base = Array.from({ length: 9 }, (_, r) =>
+    Array.from({ length: 9 }, (_, c) => (r * 3 + Math.floor(r / 3) + c) % 9));
+  const digits = shuffle([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+  const rows = [];
+  shuffle([0, 1, 2]).forEach(b => shuffle([0, 1, 2]).forEach(i => rows.push(b * 3 + i)));
+  const cols = [];
+  shuffle([0, 1, 2]).forEach(b => shuffle([0, 1, 2]).forEach(i => cols.push(b * 3 + i)));
+  const board = rows.map(r => cols.map(c => digits[base[r][c]]));
   const puzzle = board.map(r => [...r]);
-  let holes = 40 + Math.floor(Math.random() * 11);
-  while (holes > 0) { const r = Math.floor(Math.random() * 9), c = Math.floor(Math.random() * 9); if (puzzle[r][c] !== 0) { puzzle[r][c] = 0; holes--; } }
+  // 直接按乱序索引挖空（不用 while+random 重试）：Math.random 被外部固定时也能一次完成，
+  // 不会出现「永远挖同一格」的死循环（校验桩曾因随机数未恢复而卡死）。
+  const holes = 40 + Math.floor(Math.random() * 11);
+  shuffle(Array.from({ length: 81 }, (_, i) => i)).slice(0, holes)
+    .forEach(k => { puzzle[Math.floor(k / 9)][k % 9] = 0; });
   return { puzzle, solution: board };
 }
 function fmt(b) { return b.map(r => r.map(v => v === 0 ? '·' : v).join(' ')).join('\n'); }
@@ -255,20 +266,20 @@ function copyRes() { ToolBox.copyText(document.getElementById("res").innerText);
 
     <a href="/zh-tw/tools/fun/generator-laugh.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">笑聲音效生成器 - 免費趣味工具，用Web Audio API合成笑聲 | ToolBox免費線上工具箱</span><span class="rt-desc">笑聲音效生成器</span></span>
+      <span class="rt-info"><span class="rt-name">笑聲音效生成器（合成）</span><span class="rt-desc">笑聲音效合成器。基於 Web Audio API 在瀏覽器內即時合成多樣化笑聲，可隨機微調引數、下載…</span></span>
     </a>
 
     <a href="/zh-tw/tools/dance/choreography-timeline.html" class="related-tool-card">
       <span class="rt-icon">💃</span>
-      <span class="rt-info"><span class="rt-name">編舞時間線 - 8拍分段規劃器，按BPM和小節數生成舞蹈編排時間軸 | ToolBox免費線上工具箱</span><span class="rt-desc">編舞時間線</span></span>
+      <span class="rt-info"><span class="rt-name">編舞時間線</span><span class="rt-desc">規劃器，按 BPM 與拍號生成8拍分段時間軸並支援自定義段落，輔助舞蹈編排與教學</span></span>
     </a>
     <a href="/zh-tw/tools/fun/generator-3.html" class="related-tool-card">
       <span class="rt-icon">🧩</span>
-      <span class="rt-info"><span class="rt-name">迷宮生成器（自動生成並求解） - 免費線上工具，純前端處理 | ToolBox免費線上工具箱</span><span class="rt-desc">迷宮生成器（自動生成並求解）</span></span>
+      <span class="rt-info"><span class="rt-name">迷宮生成器（自動生成並求解）</span><span class="rt-desc">迷宮生成器。採用隨機化演算法自動生成迷宮並附帶 BFS/A* 求解路徑，支援網格尺寸調節，純前端生成…</span></span>
     </a>
     <a href="/zh-tw/tools/fun/generator-24.html" class="related-tool-card">
       <span class="rt-icon">🧩</span>
-      <span class="rt-info"><span class="rt-name">數字謎題生成（24點遊戲）</span><span class="rt-desc">數字謎題生成（24點遊戲）是一款免費的線上娛樂遊戲工具，數字謎題生成（24點遊戲）。免費線上工具，純</span></span>
+      <span class="rt-info"><span class="rt-name">數字謎題生成（24點遊戲）</span><span class="rt-desc">四個數字三種運算加括號組合，窮舉規模約數千</span></span>
     </a>
   </div>
 </div>

@@ -139,7 +139,7 @@
     <h2 data-zh="🔮 銷售預測">Sales Forecast</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="基於歷史月度銷售資料，使用移動平均、加權移動平均、線性迴歸或季節性方法預測未來銷售。">Sales Forecast</p>
     <div class="formula-box">
-      <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">銷售預測四法（移動平均/加權/線性迴歸/季節）<br>SMA：下期 = 最近 N 期簡單平均<br>WMA：權重按距預測期遠近分配（近期權重大）<br>LR：最小二乘擬合 ŷ = a + b·t，b 為趨勢斜率<br>季節法：按季節週期長度分解趨勢與季節分量<br>95% 置信區間 = 預測值 ± t×σ×√(1+1/n)<br>輸出：歷史均值、歷史標準差、趨勢方向<br>輸入校驗：至少 3 期歷史資料<br>預測期數可調，逐期滾動遞推</div>
+      <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">銷售預測四法（移動平均/加權/線性迴歸/季節）<br>SMA：下期 = 最近 N 期簡單平均<br>WMA：權重按距預測期遠近分配（近期權重大）<br>LR：最小二乘擬合 ŷ = a + b·t，b 為趨勢斜率<br>季節法：按季節週期長度分解趨勢與季節分量<br>95% 置信區間 = 預測值 ± 1.96×σ（σ 取模型殘差標準差，樣本不足時退回歷史標準差）<br>輸出：歷史均值、歷史標準差、趨勢方向<br>輸入校驗：至少 3 期歷史資料<br>預測期數可調，逐期滾動遞推</div>
       <p class="formula-desc" data-zh="「基於歷史月度銷售資料，使用移動平均、加權移動平均、線性迴歸或季節性方法預測未來銷售。」按輸入引數進行專業計算並輸出結果。">Sales Forecast: computes and outputs results from the input parameters.</p>
     </div>
 
@@ -205,7 +205,7 @@
       </tbody>
     </table>
     <div class="info-box">
-      <strong>置信區間：</strong>基於歷史殘差標準差的近似 95% 置信區間（預測值 ± 1.96σ）。僅作參考，實際預測誤差受多種因素影響。
+      <strong>置信區間：</strong>基於模型殘差標準差的近似 95% 置信區間（預測值 ± 1.96σ）；樣本不足時退回歷史標準差並在結果區標註口徑。僅作參考，實際預測誤差受多種因素影響。
     </div>
   </div>
 
@@ -240,7 +240,7 @@
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
 <dt>四種預測方法怎麼選？</dt><dd>平穩序列用 MA/WMA；明顯線性趨勢用線性迴歸；強週期（如雙11、暑季）用季節性；EMA 適合流式更新。方法無絕對優劣，建議多法對照並看<a class="term-link" href="/zh-tw/tools/it/confidence-interval.html">置信區間</a>（±1.96σ）。</dd>
-<dt>置信區間怎麼理解？</dt><dd>工具以歷史<a class="term-link" href="/zh-tw/tools/it/standard-deviation.html">標準差</a> σ 給出 ±1.96σ 區間，表示約 95% 可能落在該範圍。σ 越大、歷史越波動，區間越寬，預測越不可靠，需結合業務判斷。</dd>
+<dt>置信區間怎麼理解？</dt><dd>工具按模型殘差<a class="term-link" href="/zh-tw/tools/it/standard-deviation.html">標準差</a> σ 給出 ±1.96σ 區間，表示約 95% 可能落在該範圍；樣本不足時退回歷史標準差並在結果區標註口徑。σ 越大、波動越劇烈，區間越寬，預測越不可靠，需結合業務判斷。</dd>
 </dl>
 </div>
 </section>
@@ -283,6 +283,7 @@
 </div>
 
 <script>function __tbInputGuard(_ids,_labels){
+  _ids=_ids||[];_labels=_labels||[];
   var __r=__tbInputGuardCore(_ids,_labels);
   if(__r){var __t=document.getElementById('sales_forecastTable');if(__t)__t.innerHTML='';}
   return __r;
@@ -454,8 +455,27 @@ function forecast(hist, method, paramN, forecastN){
     }
   }
 
-  // 置信区间：基于历史标准差
-  var sigma = std(hist);
+  // 置信区间：优先用模型残差 σ；样本不足时退回历史 σ 并注明口径
+  var sigma = std(hist), sigmaKind = 'hist';
+  if(method === 'lr'){
+    sigma = lr.sigma;
+    sigmaKind = 'residual';
+  } else if(method === 'ma' || method === 'wma'){
+    var stepRes = [];
+    for(var t=n; t<hist.length; t++){
+      var win = hist.slice(t-n, t);
+      var pv = 0;
+      if(method === 'ma'){
+        pv = mean(win);
+      } else {
+        var wsum2 = 0, acc = 0;
+        for(var w=0; w<win.length; w++){ acc += win[w] * (w+1); wsum2 += (w+1); }
+        pv = acc / wsum2;
+      }
+      stepRes.push(hist[t] - pv);
+    }
+    if(stepRes.length >= 2){ sigma = std(stepRes); sigmaKind = 'residual'; }
+  }
   var ci = forecasts.map(function(v){
     return {low: v - 1.96 * sigma, high: v + 1.96 * sigma};
   });
@@ -463,8 +483,8 @@ function forecast(hist, method, paramN, forecastN){
   return {
     method: method, paramN: paramN, forecastN: forecastN,
     hist: hist, forecasts: forecasts, series: series, ci: ci,
-    trendLine: trendLine, sigma: sigma,
-    histMean: mean(hist), histStd: sigma
+    trendLine: trendLine, sigma: sigma, sigmaKind: sigmaKind,
+    histMean: mean(hist), histStd: std(hist)
   };
 }
 
@@ -501,6 +521,7 @@ var hist = parseHist();
   html += '<div class="result-big">下期预测 ¥' + fmt(r.forecasts[0]) + '</div>';
   html += '<div class="result-sub">方法：' + esc(methodName(method)) + (method !== 'lr' ? '（N=' + paramN + '）' : '') + '</div>';
   html += '<div class="result-sub">历史均值：¥' + fmt(r.histMean) + ' · 历史标准差：¥' + fmt(r.histStd) + '</div>';
+  html += '<div class="result-sub">95% 区间口径：' + (r.sigmaKind === 'residual' ? '模型残差 σ=¥' + fmt(r.sigma) : '历史 σ=¥' + fmt(r.sigma) + '（样本不足，以历史波动近似）') + '</div>';
   if(r.trendLine){
     var dir = r.trendLine.b >= 0 ? '上升' : '下降';
     html += '<div class="result-sub">趋势：' + dir + '（每期 ' + (r.trendLine.b >= 0 ? '+' : '') + fmt(r.trendLine.b) + '）</div>';
@@ -517,6 +538,7 @@ var hist = parseHist();
 }
 
 function renderChart(r){
+  if(!r||!Array.isArray(r.series)||!Array.isArray(r.ci)) return;
   var svg = document.getElementById('chart');
   var W = 800, H = 320;
   var pad = {l: 60, r: 20, t: 20, b: 40};
@@ -623,6 +645,7 @@ function renderChart(r){
 }
 
 function renderDataGrid(r){
+  if(!r||!Array.isArray(r.hist)||!Array.isArray(r.forecasts)) return;
   var html = '<div class="data-grid">';
   r.hist.forEach(function(v, i){
     html += '<div class="d-cell"><div class="d-period">第 ' + (i+1) + ' 期</div><div class="d-val">¥' + fmt(v) + '</div></div>';
@@ -838,27 +861,27 @@ else document.addEventListener('DOMContentLoaded', __sales_forecastBoot);
   <div class="related-tools-grid">
     <a href="/zh-tw/tools/sales/conversion-funnel.html" class="related-tool-card">
       <span class="rt-icon">🎯</span>
-      <span class="rt-info"><span class="rt-name">轉化漏斗分析 - - 各環節轉化率分析</span><span class="rt-desc">轉化漏斗分析</span></span>
+      <span class="rt-info"><span class="rt-name">轉化漏斗分析</span><span class="rt-desc">錄入營銷各階段（訪問、加購、下單、支付）的客流量，工具計算每步轉化率與流失率並可視化漏斗，定位轉化瓶…</span></span>
     </a>
     <a href="/zh-tw/tools/sales/target-breakdown.html" class="related-tool-card">
       <span class="rt-icon">📈</span>
-      <span class="rt-info"><span class="rt-name">銷售目標分解 - - 團隊目標自下而上分解，按人員權重或均分拆解銷售目標</span><span class="rt-desc">銷售目標分解</span></span>
+      <span class="rt-info"><span class="rt-name">銷售目標分解</span><span class="rt-desc">將年度目標按區域、月份或人員拆分並彙總，校驗合計一致，用於銷售計劃制定，純前端分解可匯出表格</span></span>
     </a>
     <a href="/zh-tw/tools/sales/moving-average.html" class="related-tool-card">
       <span class="rt-icon">🔮</span>
-      <span class="rt-info"><span class="rt-name">銷售趨勢預測 - - 移動平均法預測，支援簡單移動平均</span><span class="rt-desc">銷售趨勢預測</span></span>
+      <span class="rt-info"><span class="rt-name">銷售趨勢預測</span><span class="rt-desc">移動平均法預測，支援簡單移動平均(SMA)、加權移動平均(WMA)與指數平滑(EMA)</span></span>
     </a>
     <a href="/zh-tw/tools/sales/commission-calc.html" class="related-tool-card">
       <span class="rt-icon">💵</span>
-      <span class="rt-info"><span class="rt-name">佣金提成計算 - - 階梯式佣金自動計算，支援自定義提成階梯與超額累進</span><span class="rt-desc">佣金提成計算</span></span>
+      <span class="rt-info"><span class="rt-name">佣金提成計算</span><span class="rt-desc">錄入銷售額與自定義提成階梯（超額累進或全額累進），工具分段計算各檔佣金並彙總提成總額，支援多檔稅率與…</span></span>
     </a>
     <a href="/zh-tw/tools/sales/stacked-discount.html" class="related-tool-card">
       <span class="rt-icon">🧮</span>
-      <span class="rt-info"><span class="rt-name">疊加折扣計算 - - 多重摺扣疊加最終價格，支援滿減券與折扣組合計算</span><span class="rt-desc">疊加折扣計算</span></span>
+      <span class="rt-info"><span class="rt-name">疊加折扣計算</span><span class="rt-desc">輸入多重摺扣（折扣券、滿減券、百分比優惠）及疊加順序，工具計算最終成交價與總優惠金額，提示不同疊加方…</span></span>
     </a>
     <a href="/zh-tw/tools/sales/price-calculator.html" class="related-tool-card">
       <span class="rt-icon">💰</span>
-      <span class="rt-info"><span class="rt-name">定價計算器 - 銷售管理領域的線上工具</span><span class="rt-desc">定價計算器</span></span>
+      <span class="rt-info"><span class="rt-name">定價計算器</span><span class="rt-desc">支援成本加成、目標利潤、競品參照、價值定價四種策略，輸出建議售價、毛利率與盈虧平衡銷量</span></span>
     </a>
   </div>
 </div>

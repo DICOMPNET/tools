@@ -159,7 +159,10 @@ function calc(){
   var r1=p1*q1,r2=p2*q2,dR=r2-r1,dRPct=r1>0?dR/r1*100:0;
 
   var level,advice;
-  if(abs>1){
+  if(pctP===0){
+    level='<span style="color:var(--warning);">价格未变化（Ed 无定义）</span>';
+    advice='两次价格相同，需求价格弹性无定义；请修改调价后价格再计算。';
+  }else if(abs>1){
     level='<span style="color:var(--success);">富有弹性（|Ed|&gt;1）</span>';
     advice=dP<0?'降价提升了销量，收入增加，应继续适度降价以扩大收入':'涨价导致销量大幅下降，收入减少，建议降价促销';
   }else if(abs<1){
@@ -174,8 +177,8 @@ function calc(){
   var revTag=dR>0?'<span style="color:var(--success);">收入增加</span>':dR<0?'<span style="color:var(--danger);">收入减少</span>':'<span style="color:var(--warning);">收入不变</span>';
 
   var cards='<div class="stat-grid">'+
-    '<div class="stat-card"><div class="val">'+fmt(ed,3)+'</div><div class="lbl">弹性系数 Ed</div></div>'+
-    '<div class="stat-card"><div class="val">'+fmt(abs,3)+'</div><div class="lbl">|Ed| 绝对值</div></div>'+
+    '<div class="stat-card"><div class="val">'+(pctP===0?'—':fmt(ed,3))+'</div><div class="lbl">弹性系数 Ed</div></div>'+
+    '<div class="stat-card"><div class="val">'+(pctP===0?'—':fmt(abs,3))+'</div><div class="lbl">|Ed| 绝对值</div></div>'+
     '<div class="stat-card"><div class="val">'+(dR>0?'+':'')+fmt(dR,0)+'</div><div class="lbl">收入变化（元）</div></div>'+
     '<div class="stat-card"><div class="val">'+(dRPct>0?'+':'')+fmt(dRPct,2)+'%</div><div class="lbl">收入变化率</div></div>'+
     '</div>';
@@ -198,7 +201,7 @@ function calc(){
     '</div>';document.getElementById('res').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
   saveHistory({p1:p1,q1:q1,p2:p2,q2:q2});
 }
-function copyRes(){var t=document.getElementById('res').innerText;if(!t.trim()){ToolBox.showToast(i18nText(),'warning');return;}ToolBox.copyText(t);}
+function copyRes(){var el=document.getElementById('res');var t=String((el&&(el.innerText||el.textContent))||'');if(!t.trim()){ToolBox.showToast(i18nText(),'warning');return;}ToolBox.copyText(t);}
 function resetAll(){
   document.getElementById('p1').value=100;document.getElementById('q1').value=1000;
   document.getElementById('p2').value=90;document.getElementById('q2').value=1300;
@@ -353,7 +356,7 @@ else document.addEventListener('DOMContentLoaded', __calc_price_elasticityBoot);
         <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="出處 / 標準">Source / Standard</th>
       </tr></thead>
       <tbody>
-        <tr><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="需求價格彈性">Price elasticity of demand</span></td><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="Ed = −(%ΔQ)/(%ΔP)；弧彈性 Ed = −(ΔQ/Q̄)/(ΔP/P̄)">Ed = −(%ΔQ)/(%ΔP)</span></td><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="Marshall 1890《經濟學原理》">Marshall 1890</span></td></tr>
+        <tr><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="需求價格彈性">Price elasticity of demand</span></td><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="Ed = (%ΔQ)/(%ΔP)（帶符號）；弧彈性 Ed = (ΔQ/Q̄)/(ΔP/P̄)，判讀取 |Ed|">Ed = (%ΔQ)/(%ΔP) (signed); arc Ed = (ΔQ/Q̄)/(ΔP/P̄), interpret with |Ed|</span></td><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="Marshall 1890《經濟學原理》">Marshall 1890</span></td></tr>
         <tr><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="彈性分類">Elasticity classes</span></td><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="|Ed|>1 富有彈性、=1 單位彈性、<1 缺乏彈性">|Ed|&gt;1 elastic</span></td><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="Mankiw《經濟學原理》">Mankiw</span></td></tr>
         <tr><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="收入影響">Revenue implication</span></td><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="|Ed|>1 降價增收，|Ed|<1 提價增收">Revenue rule</span></td><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="Mankiw《經濟學原理》">Mankiw</span></td></tr>
 
@@ -388,12 +391,13 @@ else document.addEventListener('DOMContentLoaded', __calc_price_elasticityBoot);
 <li>促銷降價時用彈性判斷能多賣多少、總收入增還是減。</li>
 <li>對比不同品類彈性，對剛需品可提價比彈性品更穩。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">提價 10% 的需求變化</div><div class="dd-ex-body">價格由 100 漲到 110（+10%），銷量由 1000 跌到 850（−15%），彈性 E=−15%/+10%=−1.5，|E|&gt;1 富有彈性，提價反而使總收入由 100000 降到 93500 元，不划算。</div></div>
-<div class="dd-example"><div class="dd-ex-title">缺乏彈性的剛需品</div><div class="dd-ex-body">價格 +10%、銷量僅 −3% → E=−0.3 缺乏彈性，總收入由 100000 升到 106700 元（110×970），適合小幅提價。</div></div>
+<div class="dd-example"><div class="dd-ex-title">提價 10% 的需求變化</div><div class="dd-ex-body">價格由 100 漲到 110（+10%），銷量由 1000 跌到 850（−15%），按中點法 E=(−150/925)÷(10/105)=−1.70，|E|&gt;1 富有彈性，提價反而使總收入由 100000 降到 93500 元，不划算（若按簡單<a class="term-link" href="/zh-tw/tools/life/percentage-calculator.html">百分比</a>法才會得到 −1.5）。</div></div>
+<div class="dd-example"><div class="dd-ex-title">缺乏彈性的剛需品</div><div class="dd-ex-body">價格 +10%、銷量僅 −3%，按中點法 E=(−30/985)÷(10/105)=−0.32，|E|&lt;1 缺乏彈性，總收入由 100000 升到 106700 元（110×970），適合小幅提價（簡單百分比法會得到 −0.3）。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
 <dt>|E|&gt;1 和 &lt;1 什麼意思？</dt><dd>|E|&gt;1 富有彈性，價漲量跌更猛，總收入隨提價下降；|E|&lt;1 缺乏彈性，需求剛性，提價能增收。</dd>
 <dt>彈性為負數是正常嗎？</dt><dd>正常。價格與銷量通常反向變動，彈性天然為負，看絕對值大小即可。</dd>
+<dt>兩次價格相同還能算彈性嗎？</dt><dd>不能。ΔP=0 時彈性係數無定義，頁面會提示「價格未變化（Ed 無定義）」而不是判為單位彈性；請修改調價後價格再計算。</dd>
 </dl>
 </div>
 </section>
@@ -403,27 +407,27 @@ else document.addEventListener('DOMContentLoaded', __calc_price_elasticityBoot);
   <div class="related-tools-grid">
     <a href="/zh-tw/tools/marketing/marketing-keyword-density.html" class="related-tool-card">
       <span class="rt-icon">🔍</span>
-      <span class="rt-info"><span class="rt-name">SEO關鍵詞密度檢查器 - 免費文本處理工具，線上SEO關鍵詞密度檢查器，免費使用</span><span class="rt-desc">SEO關鍵詞密度檢查器</span></span>
+      <span class="rt-info"><span class="rt-name">SEO關鍵詞密度檢查器</span><span class="rt-desc">貼上網頁或文章正文並輸入目標關鍵詞，統計關鍵詞出現頻次與密度百分比，幫助最佳化內容SEO關鍵詞佈局與堆…</span></span>
     </a>
     <a href="/zh-tw/tools/marketing/xiaohongshu-counter.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">小紅書文案計數器</span><span class="rt-desc">小紅書文案計數器線上工具，即時統計標題與正文字元數、表情與話題標籤數量，提示平臺字數限制，便於合規…</span></span>
+      <span class="rt-info"><span class="rt-name">小紅書文案計數器</span><span class="rt-desc">線上工具，即時統計標題與正文字元數、表情與話題標籤數量，提示平臺字數限制，便於合規釋出，純前端</span></span>
     </a>
     <a href="/zh-tw/tools/marketing/marketing-utm-builder.html" class="related-tool-card">
       <span class="rt-icon">📢</span>
-      <span class="rt-info"><span class="rt-name">UTM引數構建器 - 免費生成器工具，線上UTM引數構建器，免費使用</span><span class="rt-desc">UTM引數構建器</span></span>
+      <span class="rt-info"><span class="rt-name">UTM引數構建器</span><span class="rt-desc">輸入基礎URL與來源、媒介、活動等UTM引數，單條或按行批次生成標準UTM追蹤連結，用於在廣告分析中…</span></span>
     </a>
     <a href="/zh-tw/tools/marketing/utm-builder.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">UTM引數生成器 - 免費生成器工具，線上UTM引數生成器，免費使用</span><span class="rt-desc">UTM引數生成器</span></span>
+      <span class="rt-info"><span class="rt-name">UTM引數生成器</span><span class="rt-desc">輸入基礎URL與一個或多個UTM引數行，支援單個與批次生成帶追蹤引數的連結，便於廣告投放與渠道效果統…</span></span>
     </a>
     <a href="/zh-tw/tools/marketing/marketing-chinese-hashtag-generator.html" class="related-tool-card">
       <span class="rt-icon">#️⃣</span>
-      <span class="rt-info"><span class="rt-name">中文營銷話題標籤生成器 - 免費生成器工具，線上中文營銷話題標籤生成器，免費使用</span><span class="rt-desc">#️⃣ 中文營銷話題標籤生成器</span></span>
+      <span class="rt-info"><span class="rt-name">中文營銷話題標籤生成器</span><span class="rt-desc">輸入主題關鍵詞，為中文營銷內容生成適用微博、小紅書、抖音等平臺的熱門話題標籤，可直接複製</span></span>
     </a>
     <a href="/zh-tw/tools/marketing/marketing-qr-campaign-tracker.html" class="related-tool-card">
       <span class="rt-icon">🔳</span>
-      <span class="rt-info"><span class="rt-name">二維碼活動追蹤器 - 免費生成器工具，線上二維碼活動追蹤器，免費使用</span><span class="rt-desc">二維碼活動追蹤器</span></span>
+      <span class="rt-info"><span class="rt-name">二維碼活動追蹤器</span><span class="rt-desc">輸入活動URL與渠道引數，生成帶UTM追蹤引數的二維碼活動連結，用於統計線下海報、物料的掃碼效果與來…</span></span>
     </a>
   </div>
 </div>

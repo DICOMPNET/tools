@@ -126,7 +126,7 @@
 <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
     <h2 data-zh="📣 口號生成器">📣 Slogan Generator</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">按場景取標語庫，隨機抽選並寫入已用集合去重（抽到重複則跳過重抽）；輸出條數 = min(設定條數, 庫容量)；每條在末尾追加感嘆號</div>
+  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">輸入場景、產品、核心賣點與調性後，從「場景句庫」與「調性模板庫」合併取候選，把 [P] 替換產品、[F] 替換賣點（未填用場景預設詞），去重後隨機抽取；輸出條數 = min(設定條數, 候選池條數)，每條末尾追加感嘆號</div>
   <p class="formula-desc" data-zh="本生成器依據指定格式規範在前端按規則隨機或確定性生成內容，結果可直接複製使用，資料不離開瀏覽器。 工具名稱：口號生成器 - 營銷推廣領域的線上工具。">Generate brand slogans and taglines from keywords and tone.</p>
 </div>
 
@@ -137,6 +137,17 @@
       <option value="campaign">活動</option>
       <option value="team">團隊</option>
       <option value="sales">促銷</option>
+    </select>
+    <label>產品 / 服務（可選）</label>
+    <input type="text" id="product" value="" placeholder="如：咖啡" style="margin-bottom:12px;">
+    <label>核心賣點（可選）</label>
+    <input type="text" id="feature" value="" placeholder="如：提神" style="margin-bottom:12px;">
+    <label>調性</label>
+    <select id="tone" style="margin-bottom:12px;">
+      <option value="young">年輕活力</option>
+      <option value="professional">專業可信</option>
+      <option value="warm">溫暖治癒</option>
+      <option value="humor">幽默</option>
     </select>
     <div class="slider-row">
       <label>數量</label>
@@ -172,16 +183,17 @@
 <h2>📚 深度解析：口號生成器</h2>
 <h3>💡 常見使用場景</h3>
 <ul class="dd-list">
-<li>按品牌/產品/調性生成多條候選口號。</li>
-<li>不同場景（年輕/專業/溫暖）出不同風格。</li>
-<li>A/B 候選口號做投放測試。</li>
+<li>給品牌或產品起口號：填產品、核心賣點與調性，一次得到 20 條以內候選。</li>
+<li>同一賣點切換調性對比：年輕活力、專業可信、溫暖治癒、幽默。</li>
+<li>活動與促銷場景可只選場景庫，快速拿到通用句。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">咖啡品牌</div><div class="dd-ex-body">輸入「咖啡 / 年輕 / 提神」→ 「每一口，醒來的理由」「年輕就要醒著拼」「三秒回血，一杯到位」多條候選。</div></div>
-<div class="dd-example"><div class="dd-ex-title">專業調性</div><div class="dd-ex-body">輸入「財稅軟體 / 專業 / 可信」→ 「讓每一筆賬都經得起查」「專業的事，交給算得清的軟體」。</div></div>
+<div class="dd-example"><div class="dd-ex-title">咖啡品牌（年輕）</div><div class="dd-ex-body">場景促銷、產品「咖啡」、賣點「提神」、調性「年輕活力」→ 輸出如「咖啡，把提神變成日常」「提神這件事，咖啡是認真的」「年輕就要提神」「咖啡，讓提神拉滿」等；候選池為 10 條場景句 + 10 條調性句，按設定條數隨機抽取。</div></div>
+<div class="dd-example"><div class="dd-ex-title">財稅軟體（專業）</div><div class="dd-ex-body">產品「財稅軟體」、賣點「每筆賬可查」、調性「專業可信」→ 輸出如「財稅軟體，讓每筆賬可查經得起檢驗」「每筆賬可查，交給財稅軟體」「財稅軟體：每筆賬可查的標準答案」等。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
 <dt>生成的口號能直接用嗎？</dt><dd>作靈感草稿，需核對是否侵權/誤導，並做小範圍測試，本工具不保證註冊可用。</dd>
 <dt>怎麼選口號？</dt><dd>按記憶點+利益點+不違和篩選，再用點選/轉化 A/B 定最終。</dd>
+<dt>不填產品和賣點會怎樣？</dt><dd>會用場景預設詞（如勵志=我們/堅持）補位，仍能出句但針對性較弱；建議至少填寫產品與一個賣點。</dd>
 </dl>
 </div>
 </section>
@@ -230,22 +242,43 @@ const SLOGANS={
   team:['团结协作，共赢未来','同心协力，再创佳绩','凝聚力量，成就梦想','协作无间，战无不胜','一起更好','同心同德，携手前行','我们是冠军','团结就是力量','携手并进，共铸辉煌','齐心协力，无所不能'],
   sales:['限时优惠，错过即无','超值特价，速来抢购','买一送一，机不可失','疯狂折扣，全场低价','今日特惠，仅此一天','满减优惠，买就赚','清仓大甩卖，先到先得','零利润，真心惠','年底大促，惠不可挡','惊喜折扣，等你来拿']
 };
+const TONE_TEMPLATES={
+  young:['[P]，把[F]变成日常','[F]这件事，[P]是认真的','年轻就要[F]','[P]，让[F]拉满','[P]一出手，[F]全都有','[F]自由，[P]承包','和[P]一起，[F]上头','[P]，[F]的最佳搭子','[P]，[F]从不缺席','[P]：把[F]做成习惯'],
+  professional:['[P]，让[F]经得起检验','[F]，交给[P]','[P]：[F]的标准答案','每一份[F]，都算得清','[P]，[F]有据可依','专业[F]，选[P]','[P]：把[F]做到位','[F]这件事，[P]讲证据','[P]，让[F]可复核','[F]标准，[P]执行'],
+  warm:['[P]，陪你[F]每一天','[F]，是[P]给的温柔','[P]，慢慢[F]也很好','把[F]留给[P]','[P]在，[F]就在','[F]的日子，有[P]','[P]，懂你的每一次[F]','[F]，从[P]开始','和[P]一起[F]','[P]：让[F]有温度'],
+  humor:['[P]：[F]界卷王','[F]好不好，[P]说了算','别问，问就是[F]','[P]，真的会谢[F]','[F]这件事，[P]是专业的（大概）','[P]出手，[F]发抖','[F]自由，[P]买单','[P]：除了[F]，别的不会','[F]人，[P]魂','[P]，把[F]进行到底']
+};
+const SCENE_DEFAULTS={
+  motivation:{p:'我们',f:'坚持'},
+  sports:{p:'每一次训练',f:'突破'},
+  campaign:{p:'每个人',f:'善意'},
+  team:{p:'团队',f:'协作'},
+  sales:{p:'这份好物',f:'实惠'}
+};
 function randInt(max){const a=new Uint32Array(1);crypto.getRandomValues(a);return a[0]%max;}
 function pick(arr){return arr[randInt(arr.length)];}
 function generate(){
   const scene=document.getElementById('scene').value;
   const count=parseInt(document.getElementById('count').value);
-  const list=SLOGANS[scene];
+  const productInput=document.getElementById('product').value.trim();
+  const featureInput=document.getElementById('feature').value.trim();
+  const tone=document.getElementById('tone').value;
+  const def=SCENE_DEFAULTS[scene]||{p:'产品',f:'好用'};
+  const product=productInput||def.p;
+  const feature=featureInput||def.f;
+  function fill(t){return t.replace(/\[P\]/g,product).replace(/\[F\]/g,feature);}
+  const pool=Array.from(new Set((SLOGANS[scene]||[]).concat((TONE_TEMPLATES[tone]||[]).map(fill))));
   const used=new Set();
   let html='';
   let i=0;
-  while(i<count&&used.size<list.length){
-    const s=pick(list);
+  while(i<count&&used.size<pool.length){
+    const s=pick(pool);
     if(used.has(s))continue;
     used.add(s);
     html+='<div class="code-row">'+escapeHtml(s)+'!</div>';
     i++;
   }
+  html+='<div style="margin-top:10px;font-size:13px;color:var(--text-light);">'+((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'Candidates: ':'候选池：')+pool.length+((typeof TBKit!=='undefined'&&TBKit.util.isEn())?' slogans':' 条')+'</div>';
   const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h0;
 }
 function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
@@ -426,27 +459,27 @@ else document.addEventListener('DOMContentLoaded', __slogan_generatorBoot);
   <div class="related-tools-grid">
     <a href="/zh-tw/tools/marketing/marketing-keyword-density.html" class="related-tool-card">
       <span class="rt-icon">🔍</span>
-      <span class="rt-info"><span class="rt-name">SEO關鍵詞密度檢查器 - 免費文本處理工具，線上SEO關鍵詞密度檢查器，免費使用</span><span class="rt-desc">SEO關鍵詞密度檢查器</span></span>
+      <span class="rt-info"><span class="rt-name">SEO關鍵詞密度檢查器</span><span class="rt-desc">貼上網頁或文章正文並輸入目標關鍵詞，統計關鍵詞出現頻次與密度百分比，幫助最佳化內容SEO關鍵詞佈局與堆…</span></span>
     </a>
     <a href="/zh-tw/tools/marketing/xiaohongshu-counter.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">小紅書文案計數器</span><span class="rt-desc">小紅書文案計數器線上工具，即時統計標題與正文字元數、表情與話題標籤數量，提示平臺字數限制，便於合規…</span></span>
+      <span class="rt-info"><span class="rt-name">小紅書文案計數器</span><span class="rt-desc">線上工具，即時統計標題與正文字元數、表情與話題標籤數量，提示平臺字數限制，便於合規釋出，純前端</span></span>
     </a>
     <a href="/zh-tw/tools/marketing/marketing-utm-builder.html" class="related-tool-card">
       <span class="rt-icon">📢</span>
-      <span class="rt-info"><span class="rt-name">UTM引數構建器 - 免費生成器工具，線上UTM引數構建器，免費使用</span><span class="rt-desc">UTM引數構建器</span></span>
+      <span class="rt-info"><span class="rt-name">UTM引數構建器</span><span class="rt-desc">輸入基礎URL與來源、媒介、活動等UTM引數，單條或按行批次生成標準UTM追蹤連結，用於在廣告分析中…</span></span>
     </a>
     <a href="/zh-tw/tools/marketing/utm-builder.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">UTM引數生成器 - 免費生成器工具，線上UTM引數生成器，免費使用</span><span class="rt-desc">UTM引數生成器</span></span>
+      <span class="rt-info"><span class="rt-name">UTM引數生成器</span><span class="rt-desc">輸入基礎URL與一個或多個UTM引數行，支援單個與批次生成帶追蹤引數的連結，便於廣告投放與渠道效果統…</span></span>
     </a>
     <a href="/zh-tw/tools/marketing/marketing-chinese-hashtag-generator.html" class="related-tool-card">
       <span class="rt-icon">#️⃣</span>
-      <span class="rt-info"><span class="rt-name">中文營銷話題標籤生成器 - 免費生成器工具，線上中文營銷話題標籤生成器，免費使用</span><span class="rt-desc">#️⃣ 中文營銷話題標籤生成器</span></span>
+      <span class="rt-info"><span class="rt-name">中文營銷話題標籤生成器</span><span class="rt-desc">輸入主題關鍵詞，為中文營銷內容生成適用微博、小紅書、抖音等平臺的熱門話題標籤，可直接複製</span></span>
     </a>
     <a href="/zh-tw/tools/marketing/marketing-qr-campaign-tracker.html" class="related-tool-card">
       <span class="rt-icon">🔳</span>
-      <span class="rt-info"><span class="rt-name">二維碼活動追蹤器 - 免費生成器工具，線上二維碼活動追蹤器，免費使用</span><span class="rt-desc">二維碼活動追蹤器</span></span>
+      <span class="rt-info"><span class="rt-name">二維碼活動追蹤器</span><span class="rt-desc">輸入活動URL與渠道引數，生成帶UTM追蹤引數的二維碼活動連結，用於統計線下海報、物料的掃碼效果與來…</span></span>
     </a>
   </div>
 </div>

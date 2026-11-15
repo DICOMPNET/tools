@@ -46,6 +46,7 @@
 <script src="/js/tool-i18n.js" defer></script>
 <!-- TOOLBOX-I18N-SCRIPT -->
 
+<meta name="title-en" content="CSS Keyframe Animation Generator">
 <meta name="desc-en" content="Compose a CSS keyframe animation visually, adjust duration, easing and properties, preview it live and export the @keyframes code">
 
 
@@ -99,14 +100,22 @@
      <h2 data-zh="📈 CSS動畫生成器（關鍵幀視覺化）">📈 CSS Keyframe Animation Generator</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="關鍵幀視覺化">Compose a CSS keyframe animation visually, adjust duration, easing and properties, preview it live and export the @keyframes code.</p>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">生成條數鉗制在 1–50（預設 5）；第 i 條按 i 對 8 取模迴圈選取 fadeIn、slideUp、bounce、pulse、rotate、shake、zoomIn、flip 八種關鍵幀模板；動畫名 = 模板名 + "-" + 1–999 的隨機整數；時長取 5–30 的隨機整數 ÷ 10（即 0.5–3.0 s），延遲取 0–20 的隨機整數 ÷ 10（即 0–2.0 s），緩動、播放次數（1/2/3/infinite）、方向、填充模式均從預設列表隨機取一項，最後拼裝為 animation 宣告與 @keyframes 程式碼塊</div>
+  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">生成條數鉗制在 1–50（預設 5）；第 i 條預設按 i 對 8 取模迴圈選取 fadeIn、slideUp、bounce、pulse、rotate、shake、zoomIn、flip 八種關鍵幀模板，選「動畫型別」則全批統一為所選模板；動畫名 = 模板名 + "-" + 1–999 的隨機整數；時長（0.5–3.0 s）、延遲（0–2.0 s）、緩動、播放次數（1/2/3/infinite）、方向、填充模式六項留空時隨機，填寫即按所選值固定，最後拼裝為 animation 宣告與 @keyframes 程式碼塊。頁面頂部預覽區把第 1 條動畫實際應用到色塊上迴圈播放（@keyframes 以真實 style 元素注入，非僅顯示文本），可直觀判斷動效觀感後再複製程式碼</div>
       <div class="formula-desc">視覺化編排關鍵幀：把時間點、動畫屬性與緩動函式拼裝為 @keyframes 與 animation 宣告，即時預覽並複製；用於 CSS 動畫開發。</div>
 
 </div>
 
-<div class="input-row"><div><label>生成數量</label><input type="number" id="cnt" value="5" min="1" max="50" oninput="gen()" placeholder="如 5（1–50）"></div></div>
+<div class="input-row"><div><label>生成數量</label><input type="number" id="cnt" value="5" min="1" max="50" placeholder="如 5（1–50）"></div>
+<div><label>時長（秒，留空隨機）</label><input type="number" id="dur" min="0.1" max="10" step="0.1" placeholder="留空隨機 0.5~3.0"></div>
+<div><label>延遲（秒，留空隨機）</label><input type="number" id="dly" min="0" max="5" step="0.1" placeholder="留空隨機 0~2.0"></div>
+<div><label>緩動</label><select id="eas"><option value="">隨機</option><option value="ease">ease</option><option value="ease-in">ease-in</option><option value="ease-out">ease-out</option><option value="ease-in-out">ease-in-out</option><option value="linear">linear</option><option value="cubic-bezier(0.68,-0.55,0.27,1.55)">回彈 cubic-bezier</option></select></div>
+<div><label>迴圈次數</label><select id="it"><option value="">隨機</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="infinite">infinite 無限</option></select></div>
+<div><label>方向</label><select id="dir"><option value="">隨機</option><option value="normal">normal</option><option value="reverse">reverse</option><option value="alternate">alternate</option><option value="alternate-reverse">alternate-reverse</option></select></div>
+<div><label>填充模式</label><select id="fill"><option value="">隨機</option><option value="forwards">forwards</option><option value="backwards">backwards</option><option value="both">both</option><option value="none">none</option></select></div>
+<div><label>動畫型別</label><select id="atype"><option value="">八種輪換</option><option value="fadeIn">fadeIn 淡入</option><option value="slideUp">slideUp 上滑</option><option value="bounce">bounce 彈跳</option><option value="pulse">pulse 脈衝</option><option value="rotate">rotate 旋轉</option><option value="shake">shake 抖動</option><option value="zoomIn">zoomIn 縮放入場</option><option value="flip">flip 翻轉</option></select></div></div>
 <div class="toolbar"><div id="generator_10Presets"></div><button type="button" class="btn primary" onclick="gen()">生成</button><button class="btn" type="button" onclick="__generator_10Export()">匯出明細 CSV</button><button type="button" class="btn" onclick="copyRes()">複製</button></div>
-<div class="result-box" id="res"></div> <div id="generator_10Table"></div> <div id="generator_10Diff"></div> <div id="generator_10Chart"></div> <div id="generator_10Hist"></div>
+<style id="animKfStyle"></style>
+    <div class="result-box" id="res"></div> <div id="generator_10Table"></div> <div id="generator_10Diff"></div> <div id="generator_10Chart"></div> <div id="generator_10Hist"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -135,7 +144,7 @@
 <li>loading 動效。</li>
 <li>教學 keyframes。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">生成旋轉動畫</div><div class="dd-ex-body">&lt;p&gt;&lt;strong&gt;輸入：&lt;/strong&gt;0→360deg、1s linear infinite。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;處理：&lt;/strong&gt;生成 keyframes。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;輸出：&lt;/strong&gt;@keyframes 與呼叫類。結果以瀏覽器即時計算為準，純前端本地處理、資料不上傳；生成的樣式與程式碼僅作快速產出參考，正式專案請以設計系統、規範與瀏覽器實測為準。&lt;/p&gt;</div></div>
+<div class="dd-example"><div class="dd-ex-title">生成旋轉動畫</div><div class="dd-ex-body"><p><strong>輸入：</strong>0→360deg、1s linear infinite。</p><p><strong>處理：</strong>生成 keyframes。</p><p><strong>輸出：</strong>@keyframes 與呼叫類。結果以瀏覽器即時計算為準，純前端本地處理、資料不上傳；生成的樣式與程式碼僅作快速產出參考，正式專案請以設計系統、規範與瀏覽器實測為準。</p></div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
 <dt>infinite 影響效能？</dt><dd>持續動畫佔主執行緒渲染，複雜場景注意降級。結果以瀏覽器即時計算為準，純前端本地處理、資料不上傳；生成的樣式與程式碼僅作快速產出參考，正式專案請以設計系統、規範與瀏覽器實測為準。</dd>
@@ -193,14 +202,15 @@ function randInt(min, max) {
 function randItem(arr) {
   return arr[Math.floor(Math.random() * arr.length)];
 }
-function randColor() {
-  const colors = ['#FF6B35','#7C3AED','#00C9A7','#3B82F6','#F59E0B','#EC4899','#10B981','#6366F1','#EF4444','#14B8A6'];
-  return randItem(colors);
-}
 const animEasings = ['ease','ease-in','ease-out','ease-in-out','linear','cubic-bezier(0.68,-0.55,0.27,1.55)'];
 const animDirections = ['normal','reverse','alternate','alternate-reverse'];
 function gen() {
   const n = Math.min(Math.max(parseInt(document.getElementById('cnt').value) || 5, 1), 50);
+  const elVal=function(id){var e=document.getElementById(id);return e?String(e.value).trim():'';};
+  const elNum=function(id,min,max){var v=elVal(id);if(v==='')return null;var p=parseFloat(v);if(!Number.isFinite(p))return null;return Math.min(Math.max(p,min),max);};
+  const fixDur=elNum('dur',0.1,10), fixDly=elNum('dly',0,5);
+  const pickEas=elVal('eas'), pickIt=elVal('it'), pickDir=elVal('dir'), pickFill=elVal('fill'), pickType=elVal('atype');
+  let kfs='', previewHtml='';
   const animTypes = [
     { name:'fadeIn', kf:'0%{opacity:0}100%{opacity:1}' },
     { name:'slideUp', kf:'0%{opacity:0;transform:translateY(30px)}100%{opacity:1;transform:translateY(0)}' },
@@ -213,14 +223,21 @@ function gen() {
   ];
   let html = '<p style="margin-bottom:8px;">生成结果：</p>';
   for (let i = 0; i < n; i++) {
-    const type = animTypes[i % animTypes.length];
+    const type = pickType ? (animTypes.filter(function(t){return t.name===pickType;})[0] || animTypes[i % animTypes.length]) : animTypes[i % animTypes.length];
     const name = type.name + '-' + randInt(1, 999);
-    const duration = (randInt(5, 30) / 10).toFixed(1);
-    const delay = (randInt(0, 20) / 10).toFixed(1);
-    const easing = randItem(animEasings);
-    const iteration = randItem(['1','2','3','infinite']);
-    const direction = randItem(animDirections);
-    const fill = randItem(['forwards','backwards','both','none']);
+    const duration = ((fixDur!==null)?fixDur:(randInt(5, 30) / 10)).toFixed(1);
+    const delay = ((fixDly!==null)?fixDly:(randInt(0, 20) / 10)).toFixed(1);
+    const easing = pickEas || randItem(animEasings);
+    const iteration = pickIt || randItem(['1','2','3','infinite']);
+    const direction = pickDir || randItem(animDirections);
+    const fill = pickFill || randItem(['forwards','backwards','both','none']);
+    kfs += '@keyframes ' + name + ' { ' + type.kf + ' }';
+    if(i===0){
+      previewHtml = '<div style="margin:8px 0 12px;padding:14px;background:var(--bg-hover);border-radius:8px;text-align:center;">'
+        + '<div style="font-size:12px;color:var(--text-muted);margin-bottom:8px;">实时预览（第 1 条动画，循环播放）</div>'
+        + '<div id="animPreviewBox" style="display:inline-block;width:56px;height:56px;border-radius:12px;background:linear-gradient(135deg,#FF6B35,#7C3AED);animation:' + name + ' ' + duration + 's ' + easing + ' ' + delay + 's infinite ' + direction + ' both;"></div>'
+        + '</div>';
+    }
     html += `<div style="margin:8px 0;padding:10px;background:var(--bg-hover);border-radius:8px;">
       <strong>${i+1}. .${name}</strong>
       <pre style="margin:6px 0 0;white-space:pre-wrap;word-break:break-all;font-size:12px;">.${name} {
@@ -232,11 +249,26 @@ function gen() {
 }</pre>
     </div>`;
   }
+  html = previewHtml + html;
+  const kfEl=document.getElementById('animKfStyle'); if(kfEl) kfEl.textContent = kfs;
   const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('res').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('res').innerHTML=__h0;
 }
 function copyRes() {
   ToolBox.copyText(document.getElementById('res').innerText);
 }
+function __bindG10(){
+    var ids=['cnt','dur','dly','eas','it','dir','fill','atype'];
+    for(var i=0;i<ids.length;i++){
+        (function(id){
+            var e=document.getElementById(id);
+            if(!e||e.__g10Bound) return;
+            e.__g10Bound=true;
+            e.addEventListener('input',function(){gen();});
+            e.addEventListener('change',function(){gen();});
+        })(ids[i]);
+    }
+}
+if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',__bindG10);}else{__bindG10();}
 gen();
 </script>
 
@@ -253,23 +285,23 @@ gen();
 
     <a href="/zh-tw/tools/design/web-audio-metronome.html" class="related-tool-card">
       <span class="rt-icon">🎵</span>
-      <span class="rt-info"><span class="rt-name">Web Audio 節拍器 - 免費生成器工具，線上節拍器 | ToolBox免費線上工具箱</span><span class="rt-desc">線上節拍器</span></span>
+      <span class="rt-info"><span class="rt-name">Web Audio 節拍器</span><span class="rt-desc">線上節拍器，使用 Web Audio API 提供精準節拍並支援多種拍號，適合練習樂器與節奏訓練</span></span>
     </a>
     <a href="/zh-tw/tools/design/generator-8.html" class="related-tool-card">
       <span class="rt-icon">🔳</span>
-      <span class="rt-info"><span class="rt-name">二維碼生成器（已有，可加強定製） - 免費線上工具，純前端處理 | ToolBox免費線上工具箱</span><span class="rt-desc">二維碼生成器（已有，可加強定製）</span></span>
+      <span class="rt-info"><span class="rt-name">二維碼生成器（可定製尺寸、糾錯與靜區）</span><span class="rt-desc">輸入網址或文本，生成可定製尺寸與糾錯的二維碼：按 ISO/IEC 18004 自動選版本與掩碼、按等…</span></span>
     </a>
-    <a href="/zh-tw/tools/design/generator-9.html" class="related-tool-card">
+    <a href="/zh-tw/tools/biz/barcode-generator.html" class="related-tool-card">
       <span class="rt-icon">🏷️</span>
-      <span class="rt-info"><span class="rt-name">條形碼生成器（EAN-13等） - 免費線上工具，純前端處理 | ToolBox免費線上工具箱</span><span class="rt-desc">條形碼生成器（EAN-13等）</span></span>
+      <span class="rt-info"><span class="rt-name">條形碼生成器</span><span class="rt-desc">支援Code128、EAN-13、UPC-A、Code39等多種碼制，純前端生成可下載</span></span>
     </a>
     <a href="/zh-tw/tools/design/generator-6.html" class="related-tool-card">
-      <span class="rt-icon">📈</span>
-      <span class="rt-info"><span class="rt-name">盒子陰影生成器（視覺化調整） - 免費線上工具，純前端處理 | ToolBox免費線上工具箱</span><span class="rt-desc">盒子陰影生成器（視覺化調整）</span></span>
+      <span class="rt-icon">✨</span>
+      <span class="rt-info"><span class="rt-name">盒子陰影批次生成器</span><span class="rt-desc">按「生成數量」隨機產出多組多層 box-shadow 宣告（含 inset 與 rgba 透明度）…</span></span>
     </a>
     <a href="/zh-tw/tools/design/generator-12.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">粒子特效生成器（可配置引數） - 免費線上工具，純前端處理 | ToolBox免費線上工具箱</span><span class="rt-desc">粒子特效生成器（可配置引數）</span></span>
+      <span class="rt-info"><span class="rt-name">粒子特效生成器（可配置引數）</span><span class="rt-desc">按數量批次生成 CSS 粒子特效方案：每套含可直接貼上的 HTML 粒子節點與已繫結動畫的 CSS…</span></span>
     </a>
   </div>
 </div>
@@ -426,9 +458,9 @@ function __generator_10Export(){
 function __generator_10Presets(){
     if (typeof TBKit === 'undefined') return;
     TBKit.preset.bar('#generator_10Presets',[{label:'默认参数',labelEn:'Default',values:{'cnt':'5'}},
-  {"label":"3 个关键帧（简化演示）","labelEn":"3 keyframes simple","values":{"cnt":"3"}},
-  {"label":"8 个关键帧（常规动效）","labelEn":"8 keyframes regular","values":{"cnt":"8"}},
-  {"label":"15 个关键帧（复杂序列）","labelEn":"15 keyframes complex","values":{"cnt":"15"}}],function(){ gen(); });
+  {"label":"3 段动画（简化演示）","labelEn":"3 animation blocks (simple)","values":{"cnt":"3"}},
+  {"label":"8 段动画（常规动效）","labelEn":"8 animation blocks (regular)","values":{"cnt":"8"}},
+  {"label":"15 段动画（复杂序列）","labelEn":"15 animation blocks (complex)","values":{"cnt":"15"}}],function(){ gen(); });
 }
 var __generator_10_f0=(typeof gen==='function')?gen:null;
 if(__generator_10_f0){

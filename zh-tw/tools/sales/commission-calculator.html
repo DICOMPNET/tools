@@ -237,7 +237,7 @@
   <div class="card">
     <h3>提成模式公式</h3>
     <div class="step-line">固定比例：提成 = 銷售額 × 比例</div>
-    <div class="step-line">階梯提成：各區間分段累計計算（超出部分按對應比例）</div>
+    <div class="step-line">階梯提成：各區間分段累計計算（區間上限須從低到高嚴格遞增，超出部分按對應比例）</div>
     <div class="step-line">底薪+提成：稅前收入 = 底薪 + max(0, 銷售額 - 起徵點) × 比例</div>
     <div class="step-line">團隊提成：個人提成 = 團隊總額 × 團隊比例 × 個人分配係數</div>
   </div>
@@ -357,14 +357,32 @@ function getTiers(){
     var rateInput = rows[i].querySelector('.tier-rate');
     var cap = parseFloat(capInput.value);
     var rate = parseFloat(rateInput.value);
-    if(isNaN(cap) || isNaN(rate)){
-      cap = i === rows.length-1 ? Infinity : 0;
-      rate = 0;
-    }
     if(i === rows.length-1) cap = Infinity; // 最后一档必为无穷
     tiers.push({cap: cap, rate: rate});
   }
   return tiers;
+}
+
+// 校验档位：有限档位上限须为正且严格递增，比例须在 0–100%
+function validateTiers(tiers){
+  var en = (typeof TBKit !== 'undefined' && TBKit.util && typeof TBKit.util.isEn === 'function' && TBKit.util.isEn());
+  var prev = 0;
+  for(var i=0; i<tiers.length; i++){
+    var t = tiers[i];
+    if(isNaN(t.rate) || t.rate < 0 || t.rate > 100){
+      return en ? 'Each tier rate must be between 0% and 100%.' : '每档提成比例需在 0–100% 之间';
+    }
+    if(i < tiers.length-1){
+      if(isNaN(t.cap) || t.cap <= 0){
+        return en ? 'Enter a positive upper bound for every tier except the last.' : '请填写各档区间上限（正数），最后一档留空表示无穷';
+      }
+      if(t.cap <= prev){
+        return en ? 'Tier upper bounds must increase strictly from low to high.' : '阶梯区间上限须从低到高严格递增';
+      }
+      prev = t.cap;
+    }
+  }
+  return '';
 }
 
 function calcTiered(sales, tiers){
@@ -402,12 +420,24 @@ function calc(){
     detail = '销售额 ¥' + fmt(sales) + ' × ' + rate + '%';
   } else if(currentMode === 'tier'){
     var tiers = getTiers();
+    var tierErr = validateTiers(tiers);
+    if(tierErr){
+      document.getElementById('result').innerHTML = '<div class="result-sub" style="color:var(--danger,#dc2626);">' + esc(tierErr) + '</div>';
+      window._lastResult = null;
+      ToolBox.showToast(tierErr, 'error');
+      return;
+    }
     commission = calcTiered(sales, tiers);
     detail = '阶梯提成（' + tiers.length + ' 档）';
   } else if(currentMode === 'base'){
     baseSalary = parseFloat(document.getElementById('baseSalary').value) || 0;
     var threshold = parseFloat(document.getElementById('threshold').value) || 0;
     var baseRate = parseFloat(document.getElementById('baseRate').value);
+    if(!(baseSalary >= 0) || !(threshold >= 0)){
+      document.getElementById('result').innerHTML='<div class="result-sub" style="color:var(--danger,#dc2626);">底薪与业绩门槛不能为负数</div>';
+      window._lastResult = null;
+      ToolBox.showToast(i18nText(), 'error'); return;
+    }
     if(isNaN(baseRate) || baseRate < 0 || baseRate > 100){
       ToolBox.showToast(i18nText(), 'error'); return;
     }
@@ -418,6 +448,11 @@ function calc(){
     var teamSales = parseFloat(document.getElementById('teamSales').value) || 0;
     var teamRate = parseFloat(document.getElementById('teamRate').value);
     var shareRatio = parseFloat(document.getElementById('shareRatio').value);
+    if(!(teamSales >= 0)){
+      document.getElementById('result').innerHTML='<div class="result-sub" style="color:var(--danger,#dc2626);">团队销售额不能为负数</div>';
+      window._lastResult = null;
+      ToolBox.showToast(i18nText(), 'error'); return;
+    }
     if(isNaN(teamRate) || teamRate < 0 || teamRate > 100){
       ToolBox.showToast(i18nText(), 'error'); return;
     }
@@ -735,27 +770,27 @@ else document.addEventListener('DOMContentLoaded', __commission_calculatorBoot);
   <div class="related-tools-grid">
     <a href="/zh-tw/tools/sales/conversion-funnel.html" class="related-tool-card">
       <span class="rt-icon">🎯</span>
-      <span class="rt-info"><span class="rt-name">轉化漏斗分析 - - 各環節轉化率分析</span><span class="rt-desc">轉化漏斗分析</span></span>
+      <span class="rt-info"><span class="rt-name">轉化漏斗分析</span><span class="rt-desc">錄入營銷各階段（訪問、加購、下單、支付）的客流量，工具計算每步轉化率與流失率並可視化漏斗，定位轉化瓶…</span></span>
     </a>
     <a href="/zh-tw/tools/sales/target-breakdown.html" class="related-tool-card">
       <span class="rt-icon">📈</span>
-      <span class="rt-info"><span class="rt-name">銷售目標分解 - - 團隊目標自下而上分解，按人員權重或均分拆解銷售目標</span><span class="rt-desc">銷售目標分解</span></span>
+      <span class="rt-info"><span class="rt-name">銷售目標分解</span><span class="rt-desc">將年度目標按區域、月份或人員拆分並彙總，校驗合計一致，用於銷售計劃制定，純前端分解可匯出表格</span></span>
     </a>
     <a href="/zh-tw/tools/sales/moving-average.html" class="related-tool-card">
       <span class="rt-icon">🔮</span>
-      <span class="rt-info"><span class="rt-name">銷售趨勢預測 - - 移動平均法預測，支援簡單移動平均</span><span class="rt-desc">銷售趨勢預測</span></span>
+      <span class="rt-info"><span class="rt-name">銷售趨勢預測</span><span class="rt-desc">移動平均法預測，支援簡單移動平均(SMA)、加權移動平均(WMA)與指數平滑(EMA)</span></span>
     </a>
     <a href="/zh-tw/tools/sales/sales-forecast.html" class="related-tool-card">
       <span class="rt-icon">🔮</span>
-      <span class="rt-info"><span class="rt-name">銷售預測 - 銷售管理領域的線上工具</span><span class="rt-desc">銷售預測</span></span>
+      <span class="rt-info"><span class="rt-name">銷售預測</span><span class="rt-desc">基於歷史月度銷售資料，使用移動平均、加權移動平均、線性迴歸或季節性方法預測未來銷售</span></span>
     </a>
     <a href="/zh-tw/tools/sales/commission-calc.html" class="related-tool-card">
       <span class="rt-icon">💵</span>
-      <span class="rt-info"><span class="rt-name">佣金提成計算 - - 階梯式佣金自動計算，支援自定義提成階梯與超額累進</span><span class="rt-desc">佣金提成計算</span></span>
+      <span class="rt-info"><span class="rt-name">佣金提成計算</span><span class="rt-desc">錄入銷售額與自定義提成階梯（超額累進或全額累進），工具分段計算各檔佣金並彙總提成總額，支援多檔稅率與…</span></span>
     </a>
     <a href="/zh-tw/tools/sales/stacked-discount.html" class="related-tool-card">
       <span class="rt-icon">🧮</span>
-      <span class="rt-info"><span class="rt-name">疊加折扣計算 - - 多重摺扣疊加最終價格，支援滿減券與折扣組合計算</span><span class="rt-desc">疊加折扣計算</span></span>
+      <span class="rt-info"><span class="rt-name">疊加折扣計算</span><span class="rt-desc">輸入多重摺扣（折扣券、滿減券、百分比優惠）及疊加順序，工具計算最終成交價與總優惠金額，提示不同疊加方…</span></span>
     </a>
   </div>
 </div>

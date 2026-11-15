@@ -115,7 +115,7 @@
 
 <div class="formula-box">
   <div class="formula-title">計算公式</div>
-  <div class="formula-eq">折扣券：當前價 → 當前價 ×(折扣÷100)；滿減券：達門檻後 當前價 − 固定金額</div>
+  <div class="formula-eq">折扣券：當前價 → 當前價 ×(折扣率÷100)；滿減券：達門檻後 當前價 − 固定金額</div>
   <p class="formula-desc" data-zh="按從上到下依次應用；疊加不等於折扣率簡單相加。">Stacked Discount</p>
 </div>
 
@@ -152,7 +152,7 @@
 
 
     <div class="tip-box tip-info">
-      疊加順序：按從上到下依次應用。折扣券=當前價×折扣；滿減券=滿足門檻後扣減固定金額。疊加折扣不等於折扣率簡單相加。
+      疊加順序：按從上到下依次應用。折扣券=當前價×折扣率（如 80%）；滿減券=滿足門檻後扣減固定金額。疊加折扣不等於折扣率簡單相加。
     </div>
   </div>
 
@@ -242,12 +242,12 @@ function renderDiscs(){
     var row = document.createElement('div');
     row.className = 'disc-row';
     var typeSel = '<div style="flex:1;"><label>类型</label><select onchange="discounts['+i+'].type=this.value;renderDiscs();calc()">'+
-      '<option value="rate"'+(d.type==='rate'?' selected':'')+'>折扣(%)</option>'+
+      '<option value="rate"'+(d.type==='rate'?' selected':'')+'>折扣率(%)</option>'+
       '<option value="amount"'+(d.type==='amount'?' selected':'')+'>满减(元)</option>'+
       '</select></div>';
     var valInp;
     if(d.type==='rate'){
-      valInp = '<div style="flex:1;"><label>折扣（如 8 = 8折）</label><input type="number" value="'+d.value+'" min="0" max="100" step="0.1" oninput="discounts['+i+'].value=+this.value;calc()" placeholder="如 '+d.value+'（0–100）"></div>';
+      valInp = '<div style="flex:1;"><label>折扣率（%，80 = 8折）</label><input type="number" value="'+d.value+'" min="0" max="100" step="0.1" oninput="discounts['+i+'].value=+this.value;calc()" placeholder="如 80（0–100）"></div>';
     } else {
       valInp = '<div style="flex:1;"><label>减免金额</label><input type="number" value="'+d.value+'" min="0" step="0.01" oninput="discounts['+i+'].value=+this.value;calc()" placeholder="如 '+d.value+'"></div>'+
         '<div style="flex:1;"><label>满减门槛</label><input type="number" value="'+(d.threshold||0)+'" min="0" step="0.01" oninput="discounts['+i+'].threshold=+this.value;calc()" placeholder="如 '+(d.threshold||0)+'"></div>';
@@ -280,6 +280,12 @@ function applyDiscPreset(kind){
 function calc(){
   var price = +document.getElementById('price').value || 0;
   if(price<=0){ document.getElementById('finalVal').textContent='—'; return; }
+  var badRate = discounts.some(function(d){ return d.type==='rate' && (!isFinite(d.value)||d.value<0||d.value>100); });
+  if(badRate){
+    document.getElementById('finalVal').textContent='—';
+    document.getElementById('finalLbl').textContent='折扣率请填写 0–100 的数值（80 = 8 折）';
+    return;
+  }
   var cur = price;
   var details = [{step:'原价', price:cur, save:0}];
   discounts.forEach(function(d, i){
@@ -291,13 +297,14 @@ function calc(){
         cur = Math.max(cur - d.value, 0);
       }
     }
-    details.push({step:'第'+(i+1)+'层'+(d.type==='rate'?(d.value+'折'):'满'+(d.threshold||0)+'减'+d.value), price:cur, save:before-cur, skip: d.type==='amount' && before<(d.threshold||0)});
+    details.push({step:'第'+(i+1)+'层'+(d.type==='rate'?((d.value/10).toFixed(1)+'折'):'满'+(d.threshold||0)+'减'+d.value), price:cur, save:before-cur, skip: d.type==='amount' && before<(d.threshold||0)});
   });
   var totalSave = price - cur;
-  var effRate = (totalSave/price*100);
+  var effRate = price>0 ? cur/price*10 : 0;      // 成交价相当于几折
+  var savePct = price>0 ? totalSave/price*100 : 0;
 
   const __g4='¥ '+cur.toFixed(2);document.getElementById('finalVal').textContent=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
-  const __g5='最终价格　·　省 '+totalSave.toFixed(2)+' 元　·　<span class="save-tag">相当于 '+effRate.toFixed(1)+' 折</span>';document.getElementById('finalLbl').innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
+  const __g5='最终价格　·　省 '+totalSave.toFixed(2)+' 元　·　<span class="save-tag">成交价 ≈ '+effRate.toFixed(1)+' 折（省 '+savePct.toFixed(1)+'%）</span>';document.getElementById('finalLbl').innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
 
   var rows = details.map(function(d){
     return [d.step, '¥ '+d.price.toFixed(2), d.skip?'未达门槛':'−'+d.save.toFixed(2)+((typeof TBKit!=='undefined'&&TBKit.util.isEn())?" CNY":" 元")];
@@ -311,6 +318,9 @@ function __sdExport(){
   var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
   var price=+document.getElementById('price').value||0;
   if(price<=0){ToolBox.showToast(en?'Please enter original price':'请输入商品原价');return;}
+  if(discounts.some(function(d){return d.type==='rate'&&(!isFinite(d.value)||d.value<0||d.value>100);})){
+    ToolBox.showToast(en?'Discount rate must be between 0 and 100':'折扣率请填写 0–100 的数值');return;
+  }
   var cur=price;
   var tb=document.querySelector('#sdHidden tbody');
   tb.innerHTML='';
@@ -336,7 +346,7 @@ function __sdExport(){
   });
   var totalSave=price-cur;
   var tr=document.createElement('tr');
-  tr.innerHTML='<td>Final</td><td>-</td><td>-</td><td>-</td><td>'+price.toFixed(2)+'</td><td>'+cur.toFixed(2)+'</td><td>'+totalSave.toFixed(2)+'</td><td>'+(price>0?((totalSave/price*10).toFixed(2)+(en?'/10 off':' 折')):'-')+'</td>';
+  tr.innerHTML='<td>Final</td><td>-</td><td>-</td><td>-</td><td>'+price.toFixed(2)+'</td><td>'+cur.toFixed(2)+'</td><td>'+totalSave.toFixed(2)+'</td><td>'+(price>0?((cur/price*10).toFixed(2)+(en?'/10 (saved '+(totalSave/price*100).toFixed(1)+'%)':' 折（省 '+(totalSave/price*100).toFixed(1)+'%）')):'-')+'</td>';
   tb.appendChild(tr);
   TBKit.util.exportTable('#sdHidden',en?'stacked-discount.csv':'叠加折扣明细.csv');
 }
@@ -356,27 +366,27 @@ calc();
   <div class="related-tools-grid">
     <a href="/zh-tw/tools/biz/presentation-timer.html" class="related-tool-card">
       <span class="rt-icon">⏱️</span>
-      <span class="rt-info"><span class="rt-name">演講計時器 - 免費開發工具，線上演講計時器 | ToolBox免費線上工具箱</span><span class="rt-desc">演講計時器</span></span>
+      <span class="rt-info"><span class="rt-name">演講計時器</span><span class="rt-desc">為 PPT 每頁分配時間並進度提醒、支援全屏，輔助演講節奏把控</span></span>
     </a>
     <a href="/zh-tw/tools/biz/markdown-quote.html" class="related-tool-card">
       <span class="rt-icon">📝</span>
-      <span class="rt-info"><span class="rt-name">Markdown 引用轉換器 - 免費文本處理工具，線上Markdown 引用轉換器 | ToolBox免費線上工具箱</span><span class="rt-desc">Markdown 引用轉換器</span></span>
+      <span class="rt-info"><span class="rt-name">Markdown 引用轉換器</span><span class="rt-desc">將貼上的多行文本批次轉換為 Markdown 引用塊（每行前加 &gt;），便於在文件中引用他人內容或做批…</span></span>
     </a>
     <a href="/zh-tw/tools/biz/markdown.html" class="related-tool-card">
       <span class="rt-icon">📝</span>
-      <span class="rt-info"><span class="rt-name">Markdown 預覽 - 免費文本處理工具，Markdown 即時預覽 | ToolBox免費線上工具箱</span><span class="rt-desc">Markdown 即時預覽</span></span>
+      <span class="rt-info"><span class="rt-name">Markdown 即時預覽</span><span class="rt-desc">在左側編輯區輸入 Markdown，右側即時渲染標題、列表、程式碼塊等效果，支援即時對照，便於寫作與格…</span></span>
     </a>
     <a href="/zh-tw/tools/biz/unicode-normalize.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
-      <span class="rt-info"><span class="rt-name">Unicode 規範化 - 免費文本處理工具，線上Unicode 規範化 | ToolBox免費線上工具箱</span><span class="rt-desc">Unicode 規範化</span></span>
+      <span class="rt-info"><span class="rt-name">Unicode 規範化</span><span class="rt-desc">將文本按 NFC/NFD/NFKC/NFKD 等範式進行 Unicode 規範化，統一異體字與組合字…</span></span>
     </a>
     <a href="/zh-tw/tools/biz/zalgo-text.html" class="related-tool-card">
       <span class="rt-icon">💼</span>
-      <span class="rt-info"><span class="rt-name">Zalgo 文字 - 免費文本處理工具，Zalgo 文字生成器 | ToolBox免費線上工具箱</span><span class="rt-desc">Zalgo 文字生成器</span></span>
+      <span class="rt-info"><span class="rt-name">Zalgo 文字</span><span class="rt-desc">為文字疊加大量組合字元生成 Zalgo 亂碼風格效果，可調節紊亂強度，用於惡搞表情、標題裝飾與渲染測…</span></span>
     </a>
     <a href="/zh-tw/tools/biz/superscript-text.html" class="related-tool-card">
       <span class="rt-icon">💼</span>
-      <span class="rt-info"><span class="rt-name">上標文字 - 免費文本處理工具，在線上標文字 | ToolBox免費線上工具箱</span><span class="rt-desc">⬆️ 上標文字</span></span>
+      <span class="rt-info"><span class="rt-name">上標文字</span><span class="rt-desc">將選中文字轉為上標格式並生成可複製的 Unicode 或 HTML 上標程式碼，適合化學式、數學指數與…</span></span>
     </a>
   </div>
 </div>

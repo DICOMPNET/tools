@@ -648,24 +648,24 @@
   <div class="related-tools-grid">
     <a href="/zh-tw/tools/design/generator-10.html" class="related-tool-card">
       <span class="rt-icon">📈</span>
-      <span class="rt-info"><span class="rt-name">CSS動畫生成器（關鍵幀視覺化） - 免費線上工具，純前端處理 | ToolBox免費線上工具箱</span><span class="rt-desc">CSS動畫生成器（關鍵幀視覺化）</span></span>
+      <span class="rt-info"><span class="rt-name">CSS動畫生成器（關鍵幀視覺化）</span><span class="rt-desc">以視覺化方式編排 CSS 關鍵幀動畫，調整時長、緩動與屬性並即時預覽，生成可直接使用的 @keyfr…</span></span>
     </a>
 
     <a href="/zh-tw/tools/design/web-audio-metronome.html" class="related-tool-card">
       <span class="rt-icon">🎵</span>
-      <span class="rt-info"><span class="rt-name">Web Audio 節拍器 - 免費生成器工具，線上節拍器 | ToolBox免費線上工具箱</span><span class="rt-desc">線上節拍器</span></span>
+      <span class="rt-info"><span class="rt-name">Web Audio 節拍器</span><span class="rt-desc">線上節拍器，使用 Web Audio API 提供精準節拍並支援多種拍號，適合練習樂器與節奏訓練</span></span>
     </a>
     <a href="/zh-tw/tools/design/generator-8.html" class="related-tool-card">
       <span class="rt-icon">🔳</span>
-      <span class="rt-info"><span class="rt-name">二維碼生成器（已有，可加強定製） - 免費線上工具，純前端處理 | ToolBox免費線上工具箱</span><span class="rt-desc">二維碼生成器（已有，可加強定製）</span></span>
+      <span class="rt-info"><span class="rt-name">二維碼生成器（可定製尺寸、糾錯與靜區）</span><span class="rt-desc">輸入網址或文本，生成可定製尺寸與糾錯的二維碼：按 ISO/IEC 18004 自動選版本與掩碼、按等…</span></span>
     </a>
-    <a href="/zh-tw/tools/design/generator-9.html" class="related-tool-card">
+    <a href="/zh-tw/tools/biz/barcode-generator.html" class="related-tool-card">
       <span class="rt-icon">🏷️</span>
-      <span class="rt-info"><span class="rt-name">條形碼生成器（EAN-13等） - 免費線上工具，純前端處理 | ToolBox免費線上工具箱</span><span class="rt-desc">條形碼生成器（EAN-13等）</span></span>
+      <span class="rt-info"><span class="rt-name">條形碼生成器</span><span class="rt-desc">支援Code128、EAN-13、UPC-A、Code39等多種碼制，純前端生成可下載</span></span>
     </a>
     <a href="/zh-tw/tools/design/generator-6.html" class="related-tool-card">
-      <span class="rt-icon">📈</span>
-      <span class="rt-info"><span class="rt-name">盒子陰影生成器（視覺化調整） - 免費線上工具，純前端處理 | ToolBox免費線上工具箱</span><span class="rt-desc">盒子陰影生成器（視覺化調整）</span></span>
+      <span class="rt-icon">✨</span>
+      <span class="rt-info"><span class="rt-name">盒子陰影批次生成器</span><span class="rt-desc">按「生成數量」隨機產出多組多層 box-shadow 宣告（含 inset 與 rgba 透明度）…</span></span>
     </a>
   </div>
 </div>
@@ -727,7 +727,7 @@
 <li>WEBP 相容回退。</li>
 <li>統一素材格式。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">PNG 轉 WEBP</div><div class="dd-ex-body">&lt;p&gt;&lt;strong&gt;輸入：&lt;/strong&gt;1MB PNG、目標 WEBP 質量 85。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;處理：&lt;/strong&gt;canvas 重編碼。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;輸出：&lt;/strong&gt;約 200KB WEBP 下載。結果以瀏覽器即時計算為準，純前端本地處理、資料不上傳；生成的樣式與程式碼僅作快速產出參考，正式專案請以設計系統、規範與瀏覽器實測為準。&lt;/p&gt;</div></div>
+<div class="dd-example"><div class="dd-ex-title">PNG 轉 WEBP</div><div class="dd-ex-body"><p><strong>輸入：</strong>1MB PNG、目標 WEBP 質量 85。</p><p><strong>處理：</strong>canvas 重編碼。</p><p><strong>輸出：</strong>約 200KB WEBP 下載。結果以瀏覽器即時計算為準，純前端本地處理、資料不上傳；生成的樣式與程式碼僅作快速產出參考，正式專案請以設計系統、規範與瀏覽器實測為準。</p></div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
 <dt>WEBP 都支援嗎？</dt><dd>現代瀏覽器支援；老舊環境需回退 JPG/PNG。結果以瀏覽器即時計算為準，純前端本地處理、資料不上傳；生成的樣式與程式碼僅作快速產出參考，正式專案請以設計系統、規範與瀏覽器實測為準。</dd>
@@ -1001,18 +1001,32 @@ window.__svgFileBlocked=__svgFileBlocked;
     var quality = state.quality / 100;
     var mode = state.sizeMode;
 
+    // D-N38：尺寸输入显式校验，禁止空值 / 0 / 负值 / 非数字 / 超范围被静默兜底
+    var cw = 0, ch = 0, pct = 0;
+    if (mode === 'custom') {
+      cw = parseInt(document.getElementById('customWidth').value, 10);
+      ch = parseInt(document.getElementById('customHeight').value, 10);
+      if (!isFinite(cw) || !isFinite(ch) || cw < 1 || ch < 1 || cw > 10000 || ch > 10000) {
+        ToolBox.showToast(__ifcT('自定义宽高需为 1–10000 的整数', 'Custom width and height must be integers between 1 and 10000'), 'error');
+        return;
+      }
+    } else if (mode === 'percent') {
+      pct = parseInt(document.getElementById('percentScale').value, 10);
+      if (!isFinite(pct) || pct < 1 || pct > 1000) {
+        ToolBox.showToast(__ifcT('缩放比例需为 1–1000 的整数', 'Scale percent must be an integer between 1 and 1000'), 'error');
+        return;
+      }
+    }
+
     state.files.forEach(function(item, idx) {
       try {
         var w = item.width;
         var h = item.height;
 
         if (mode === 'custom') {
-          var cw = parseInt(document.getElementById('customWidth').value);
-          var ch = parseInt(document.getElementById('customHeight').value);
-          if (cw > 0) w = cw;
-          if (ch > 0) h = ch;
+          w = cw;
+          h = ch;
         } else if (mode === 'percent') {
-          var pct = parseInt(document.getElementById('percentScale').value) || 100;
           w = Math.round(w * pct / 100);
           h = Math.round(h * pct / 100);
         }

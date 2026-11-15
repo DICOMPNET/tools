@@ -7,12 +7,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="toolbox" content="cat=calculator,industry=marketing,icon=🎧,bg=#fff3e0">
-<meta name="description" content="簡單模式按客單價、年購買頻次、客戶生命週期和毛利率估算 LTV；詳細模式改用月均收入、月流失率與獲客成本 CAC，並給出 LTV:CAC 比值，判斷獲客投入是否划算。">
+<meta name="description" content="簡單模式按客單價、年購買頻次、客戶生命週期和毛利率估算 LTV；詳細模式改用月均收入、月流失率與獲客成本 CAC，並給出 LTV:CAC 比值，判斷獲客投入是否划算">
 <meta name="keywords" content="LTV客戶終身價值計算器,LTV客戶終身價值計算器線上,線上LTV客戶終身價值計算器,數學計算,營銷推廣,線上工具,免費工具,ToolBox">
 <meta name="robots" content="index,follow">
 <link rel="canonical" href="https://tools.dicomp.net/zh-tw/tools/marketing/marketing-ltv-calculator.html">
 <meta property="og:title" content="LTV客戶終身價值計算器 - 獲客投入是否划算">
-<meta property="og:description" content="簡單模式按客單價、年購買頻次、客戶生命週期和毛利率估算 LTV；詳細模式改用月均收入、月流失率與獲客成本 CAC，並給出 LTV:CAC 比值，判斷獲客投入是否划算。">
+<meta property="og:description" content="簡單模式按客單價、年購買頻次、客戶生命週期和毛利率估算 LTV；詳細模式改用月均收入、月流失率與獲客成本 CAC，並給出 LTV:CAC 比值，判斷獲客投入是否划算">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://tools.dicomp.net/zh-tw/tools/marketing/marketing-ltv-calculator.html">
 <meta name="twitter:card" content="summary">
@@ -75,9 +75,9 @@
 <meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
 <meta name="twitter:image:alt" content="ToolBox - 5000+免費線上工具">
     <meta name="twitter:title" content="LTV客戶終身價值計算器 - 獲客投入是否划算">
-    <meta name="twitter:description" content="簡單模式按客單價、年購買頻次、客戶生命週期和毛利率估算 LTV；詳細模式改用月均收入、月流失率與獲客成本 CAC，並給出 LTV:CAC 比值，判斷獲客投入是否划算。">
+    <meta name="twitter:description" content="簡單模式按客單價、年購買頻次、客戶生命週期和毛利率估算 LTV；詳細模式改用月均收入、月流失率與獲客成本 CAC，並給出 LTV:CAC 比值，判斷獲客投入是否划算">
 <!-- TOOLBOX-WEBAPP-LD -->
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"LTV客戶終身價值計算器","url":"https://tools.dicomp.net/zh-tw/tools/marketing/marketing-ltv-calculator.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"簡單模式按客單價、年購買頻次、客戶生命週期和毛利率估算 LTV；詳細模式改用月均收入、月流失率與獲客成本 CAC，並給出 LTV:CAC 比值，判斷獲客投入是否划算。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"LTV客戶終身價值計算器","url":"https://tools.dicomp.net/zh-tw/tools/marketing/marketing-ltv-calculator.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"簡單模式按客單價、年購買頻次、客戶生命週期和毛利率估算 LTV；詳細模式改用月均收入、月流失率與獲客成本 CAC，並給出 LTV:CAC 比值，判斷獲客投入是否划算","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
@@ -386,13 +386,18 @@ function calc() {
   let ltv, ltvGross, cac = 0, inputs = {};
 
   if (currentMode === 'simple') {
-    const arv = parseFloat(document.getElementById('arvSimple').value) || 0;
-    const freq = parseFloat(document.getElementById('freqSimple').value) || 0;
-    const lifespan = parseFloat(document.getElementById('lifespanSimple').value) || 0;
-    const margin = parseFloat(document.getElementById('marginSimple').value) || 0;
+    const arv = parseFloat(document.getElementById('arvSimple').value);
+    const freq = parseFloat(document.getElementById('freqSimple').value);
+    const lifespan = parseFloat(document.getElementById('lifespanSimple').value);
+    const margin = parseFloat(document.getElementById('marginSimple').value);
 
-    if (arv <= 0) {
-      const __h0='<div class="metric-card"><p style="color:var(--text-muted);">请输入有效数值</p></div>';r.innerHTML='<div class="metric-card"><p style="color:var(--text-muted);">请输入有效数值</p></div>';
+    const errs = [];
+    if (!isFinite(arv) || arv <= 0) errs.push('客单价须大于 0');
+    if (!isFinite(freq) || freq <= 0) errs.push('年购买频次须大于 0');
+    if (!isFinite(lifespan) || lifespan <= 0) errs.push('客户生命周期须大于 0 年');
+    if (!isFinite(margin) || margin < 0 || margin > 100) errs.push('毛利率须在 0–100% 之间');
+    if (errs.length) {
+      r.innerHTML='<div class="metric-card"><p class="tip-error">' + errs.join('；') + '</p></div>';
       return;
     }
 
@@ -400,13 +405,18 @@ function calc() {
     ltv = ltvGross * (margin / 100);
     inputs = { mode: 'simple', arv, freq, lifespan, margin };
   } else {
-    const mrr = parseFloat(document.getElementById('mrrDetail').value) || 0;
-    const churn = parseFloat(document.getElementById('churnDetail').value) || 0;
-    const margin = parseFloat(document.getElementById('marginDetail').value) || 0;
+    const mrr = parseFloat(document.getElementById('mrrDetail').value);
+    const churn = parseFloat(document.getElementById('churnDetail').value);
+    const margin = parseFloat(document.getElementById('marginDetail').value);
     cac = parseFloat(document.getElementById('cacDetail').value) || 0;
 
-    if (mrr <= 0 || churn <= 0) {
-      const __h1='<div class="metric-card"><p style="color:var(--text-muted);">请输入有效数值</p></div>';r.innerHTML='<div class="metric-card"><p style="color:var(--text-muted);">请输入有效数值</p></div>';
+    const errs = [];
+    if (!isFinite(mrr) || mrr <= 0) errs.push('月收入须大于 0');
+    if (!isFinite(churn) || churn <= 0 || churn > 100) errs.push('月流失率须在 0–100% 之间（不含 0）');
+    if (!isFinite(margin) || margin < 0 || margin > 100) errs.push('毛利率须在 0–100% 之间');
+    if (!isFinite(cac) || cac < 0) errs.push('CAC 须为 ≥0 的数字');
+    if (errs.length) {
+      r.innerHTML='<div class="metric-card"><p class="tip-error">' + errs.join('；') + '</p></div>';
       return;
     }
 
@@ -417,10 +427,14 @@ function calc() {
     inputs = { mode: 'detail', mrr, churn, margin, cac, lifespanYears };
   }
 
+  // 生命周期（年）：简单模式取输入年限，详情模式由月流失率反推
+  const lifeYears = currentMode === 'simple'
+    ? inputs.lifespan
+    : (inputs.churn > 0 ? 100 / (inputs.churn * 12) : 0);
+
   let extra = '';
   if (cac > 0) {
     const ratio = ltv / cac;
-    const lifeYears = currentMode === 'simple' ? (inputs.lifespan || 0) : (inputs.churn > 0 ? 100 / (inputs.churn * 12) : 0);
     const paybackMonths = (lifeYears > 0 && ltv > 0) ? cac / (ltv / lifeYears / 12) : NaN;
     extra = `
       <div class="metric-card">
@@ -493,27 +507,26 @@ function calc() {
       <table style="margin-top:8px;font-size:13px;width:100%;">
         <tr><td style="padding:4px 0;color:var(--text-light);">LTV（毛收入）</td><td style="text-align:right;font-weight:600;">¥${ToolBox.formatNumber(ltvGross, 2)}</td></tr>
         <tr><td style="padding:4px 0;color:var(--text-light);">LTV（毛利）</td><td style="text-align:right;font-weight:600;color:var(--primary);">¥${ToolBox.formatNumber(ltv, 2)}</td></tr>
-        ${currentMode === 'detail' ? `<tr><td style="padding:4px 0;color:var(--text-light);">预期生命周期</td><td style="text-align:right;font-weight:600;">${(1 / (inputs.churn/100)).toFixed(1)} 个月</td></tr>` : ''}
       </table>
     </div>
 
     <div class="metric-card">
-      <div class="label">相关指标</div>
+      <div class="label">相关指标（按 ${lifeYears.toFixed(1)} 年生命周期摊算）</div>
       <div class="related-metrics">
         <div class="related-metric">
-          <div class="val">¥${ToolBox.formatNumber(ltv / 12, 0)}</div>
+          <div class="val">¥${ToolBox.formatNumber(ltv / (lifeYears * 12), 0)}</div>
           <div class="lbl">月均价值</div>
         </div>
         <div class="related-metric">
-          <div class="val">¥${ToolBox.formatNumber(ltv / 52, 0)}</div>
+          <div class="val">¥${ToolBox.formatNumber(ltv / (lifeYears * 52), 0)}</div>
           <div class="lbl">周均价值</div>
         </div>
         <div class="related-metric">
-          <div class="val">¥${ToolBox.formatNumber(ltv / 365, 0)}</div>
+          <div class="val">¥${ToolBox.formatNumber(ltv / (lifeYears * 365), 0)}</div>
           <div class="lbl">日均价值</div>
         </div>
         <div class="related-metric">
-          <div class="val">${currentMode === 'detail' ? (1 / (inputs.churn/100)).toFixed(0) + ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"mo":"月") : (inputs.lifespan || 3) + '年'}</div>
+          <div class="val">${currentMode === 'detail' ? (1 / (inputs.churn/100)).toFixed(0) + ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"mo":"月") : inputs.lifespan + '年'}</div>
           <div class="lbl">预期生命周期</div>
         </div>
       </div>
@@ -527,7 +540,7 @@ function calc() {
 
 function saveHistory() {
   const r = document.getElementById('result');
-  if (r.innerHTML.includes('请输入')) {
+  if (r.innerHTML.includes('请输入') || r.innerHTML.includes('tip-error')) {
     ToolBox.showToast(i18nText(),'error');
     return;
   }
@@ -827,7 +840,7 @@ else document.addEventListener('DOMContentLoaded', __marketing_ltv_calculatorBoo
   <div class="related-tools-grid">
     <a href="/zh-tw/tools/marketing/marketing-ltv-cac-ratio.html" class="related-tool-card">
       <span class="rt-icon">🧮</span>
-      <span class="rt-info"><span class="rt-name">LTV:CAC比率計算器</span><span class="rt-desc">輸入客戶終身價值 LTV 與獲客成本 CAC，計算兩者健康比率，評估使用者價值與營銷投入的平衡關係。</span></span>
+      <span class="rt-info"><span class="rt-name">LTV:CAC比率計算器</span><span class="rt-desc">輸入客戶終身價值 LTV 與獲客成本 CAC，計算兩者健康比率，評估使用者價值與營銷投入的平衡關係</span></span>
     </a>
     <a href="/zh-tw/tools/marketing/marketing-cac-calculator.html" class="related-tool-card">
       <span class="rt-icon">💰</span>
@@ -835,19 +848,19 @@ else document.addEventListener('DOMContentLoaded', __marketing_ltv_calculatorBoo
     </a>
     <a href="/zh-tw/tools/marketing/marketing-churn-rate.html" class="related-tool-card">
       <span class="rt-icon">🎧</span>
-      <span class="rt-info"><span class="rt-name">客戶流失率計算器</span><span class="rt-desc">輸入統計期內的客戶總數與流失客戶數，計算客戶流失率（Churn Rate），評估客戶留存狀況與業務健</span></span>
+      <span class="rt-info"><span class="rt-name">客戶流失率計算器</span><span class="rt-desc">輸入統計期內的客戶總數與流失客戶數，計算客戶流失率（Churn Rate），評估客戶留存狀況與業務健…</span></span>
     </a>
     <a href="/zh-tw/tools/marketing/marketing-break-even-roas.html" class="related-tool-card">
       <span class="rt-icon">📈</span>
-      <span class="rt-info"><span class="rt-name">盈虧平衡ROAS計算器</span><span class="rt-desc">輸入毛利率或客單價與廣告成本佔比，計算廣告投放剛好不虧不賺的最低ROAS，用於設定投放盈利底線與出價</span></span>
+      <span class="rt-info"><span class="rt-name">盈虧平衡ROAS計算器</span><span class="rt-desc">輸入毛利率或客單價與廣告成本佔比，計算廣告投放剛好不虧不賺的最低ROAS，用於設定投放盈利底線與出價…</span></span>
     </a>
     <a href="/zh-tw/tools/marketing/marketing-conversion-rate-calculator.html" class="related-tool-card">
       <span class="rt-icon">🎯</span>
-      <span class="rt-info"><span class="rt-name">轉化率計算器</span><span class="rt-desc">轉化率計算器根據訪問量與轉化動作數計算轉化率，並估算轉化成本，幫助評估營銷活動效果與投放 ROI，適</span></span>
+      <span class="rt-info"><span class="rt-name">轉化率計算器</span><span class="rt-desc">根據訪問量與轉化動作數計算轉化率，並估算轉化成本，幫助評估營銷活動效果與投放 ROI，適合運營與增長…</span></span>
     </a>
     <a href="/zh-tw/tools/marketing/marketing-roi.html" class="related-tool-card">
       <span class="rt-icon">📣</span>
-      <span class="rt-info"><span class="rt-name">ROI計算器</span><span class="rt-desc">營銷 ROI=(收入−營銷投入)÷營銷投入；ROAS=收入÷廣告投入。疊加復購時 總收入=首單轉化量</span></span>
+      <span class="rt-info"><span class="rt-name">ROI計算器</span><span class="rt-desc">營銷 ROI=(收入−營銷投入)÷營銷投入；ROAS=收入÷廣告投入。</span></span>
     </a>
   </div>
 </div>

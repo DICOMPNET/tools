@@ -134,7 +134,7 @@
     <div class="input-grid">
       <div>
         <label>儀式開始時間</label>
-        <input type="time" id="startTime" value="09:00" onchange="calc()">
+        <input type="time" id="startTime" value="09:00" onchange="applyStart()">
       </div>
       <div>
         <label>告別廳規模</label>
@@ -341,6 +341,11 @@ function calc(){
   render();
 }
 
+function applyStart(){
+  autoTime();
+  render();
+}
+
 function autoTime(){
   // 按开始时间和各环节时长自动排列
   var start = document.getElementById('startTime').value;
@@ -358,23 +363,34 @@ function autoTime(){
 }
 
 function render(){
-  autoTime();
-  steps.sort(function(a,b){ return a.time < b.time ? -1 : 1; });
+  // 按录入先后推断跨日顺序，用绝对分钟排序，避免次日 00 点排到前一日 23 点之前
+  var dayOffset = 0, prevMin = -1;
+  steps.forEach(function(s){
+    var p = String(s.time || '00:00').split(':');
+    var m = (parseInt(p[0]) || 0) * 60 + (parseInt(p[1]) || 0);
+    if(prevMin >= 0 && m < prevMin) dayOffset += 1440;
+    s.__abs = m + dayOffset;
+    prevMin = m;
+  });
+  steps.sort(function(a,b){ return a.__abs - b.__abs; });
+
+  function hhmm(abs){
+    var x = ((abs % 1440) + 1440) % 1440;
+    var h = Math.floor(x / 60), m = x % 60;
+    return (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m;
+  }
 
   var totalDur = steps.reduce(function(s,st){return s + st.dur;}, 0);
-  var endH, endM;
+  var endAbs = 0;
   if(steps.length > 0){
-    var lastParts = steps[steps.length-1].time.split(':');
-    endH = parseInt(lastParts[0]);
-    endM = parseInt(lastParts[1]) + steps[steps.length-1].dur;
-    while(endM >= 60){ endM -= 60; endH++; }
-    if(endH >= 24) endH -= 24;
+    endAbs = steps[steps.length-1].__abs + (parseInt(steps[steps.length-1].dur) || 0);
   }
+  var endLabel = steps.length > 0 ? (hhmm(endAbs) + (endAbs >= 1440 ? '（次日）' : '')) : '--';
 
   const __g1='<div class="summary-card"><div class="v">' + steps.length + '</div><div class="l">环节数量</div></div>' +
     '<div class="summary-card"><div class="v">' + totalDur + ' 分钟</div><div class="l">总时长</div></div>' +
-    '<div class="summary-card"><div class="v">' + (steps.length > 0 ? steps[0].time : '--') + '</div><div class="l">开始时间</div></div>' +
-    '<div class="summary-card"><div class="v">' + (steps.length > 0 ? (endH < 10 ? '0' : '') + endH + ':' + (endM < 10 ? '0' : '') + endM : '--') + '</div><div class="l">结束时间</div></div>';document.getElementById('summary').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
+    '<div class="summary-card"><div class="v">' + (steps.length > 0 ? hhmm(steps[0].__abs) : '--') + '</div><div class="l">开始时间</div></div>' +
+    '<div class="summary-card"><div class="v">' + endLabel + '</div><div class="l">结束时间</div></div>';document.getElementById('summary').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 
   if(steps.length === 0){
     document.getElementById('timeline').innerHTML='<p style="color:var(--text-muted);font-size:13px;padding:12px 0;">暂无环节，请添加或载入标准流程</p>';
@@ -385,7 +401,7 @@ function render(){
   steps.forEach(function(s){
     html += '<div class="tl-item">' +
       '<span class="tl-del" onclick="delStep(' + s.id + ')">✕</span>' +
-      '<div class="tl-time">' + s.time + '</div>' +
+      '<div class="tl-time">' + s.time + (s.__abs >= 1440 ? '（次日）' : '') + '</div>' +
       '<div class="tl-name">' + ToolBox.escHtml(s.name) + '</div>' +
       '<div class="tl-dur">时长 ' + s.dur + ' 分钟</div>' +
       (s.desc ? '<div class="tl-desc">' + ToolBox.escHtml(s.desc) + '</div>' : '') +
@@ -428,19 +444,19 @@ document.addEventListener('DOMContentLoaded',function(){
 
     <a href="/zh-tw/tools/funeral/grave-design.html" class="related-tool-card">
       <span class="rt-icon">📐</span>
-      <span class="rt-info"><span class="rt-name">墓地碑文設計器 - 線上設計碑文排版與墓地面積，含碑文模板 | ToolBox免費線上工具箱</span><span class="rt-desc">墓地碑文設計器</span></span>
+      <span class="rt-info"><span class="rt-name">墓地碑文設計器</span><span class="rt-desc">按碑文格式生成墓碑設計，含抬頭稱謂（故先考/故先妣/顯考/顯妣）、正文與落款排版，便於刻碑參考</span></span>
     </a>
     <a href="/zh-tw/tools/wedding/seating-chart.html" class="related-tool-card">
       <span class="rt-icon">💒</span>
-      <span class="rt-info"><span class="rt-name">賓客座點陣圖 - 日常生活線上工具 | ToolBox免費線上工具箱</span><span class="rt-desc">賓客座點陣圖</span></span>
+      <span class="rt-info"><span class="rt-name">賓客座點陣圖</span><span class="rt-desc">錄入賓客名單並按親友、同事等關係分組，設定桌數與每桌人數後自動排位生成座點陣圖，避免賓客離散，用於婚宴…</span></span>
     </a>
     <a href="/zh-tw/tools/life/generator-strength.html" class="related-tool-card">
       <span class="rt-icon">🔑</span>
-      <span class="rt-info"><span class="rt-name">密碼生成器（帶強度檢測） - 可自定義長度、字元型別，生成高強度隨機密碼並即時評估密碼強度 | ToolBox免費線上工具箱</span><span class="rt-desc">密碼生成器（帶強度檢測）</span></span>
+      <span class="rt-info"><span class="rt-name">密碼生成器（帶強度檢測）</span><span class="rt-desc">自定義密碼長度並勾選大小寫、數字、符號等字元型別，生成高強度隨機密碼，同時即時評估其安全強度，一鍵復…</span></span>
     </a>
     <a href="/zh-tw/tools/life/generator-random-1.html" class="related-tool-card">
       <span class="rt-icon">🎲</span>
-      <span class="rt-info"><span class="rt-name">隨機數生成器（範圍任意） - 免費線上工具，純前端處理 | ToolBox免費線上工具箱</span><span class="rt-desc">隨機數生成器（範圍任意）</span></span>
+      <span class="rt-info"><span class="rt-name">隨機數生成器（範圍任意）</span><span class="rt-desc">隨機數生成器支援自定義範圍、數量與是否允許重複，批次生成整數或小數，純前端隨機演算法，適合抽獎、抽樣…</span></span>
     </a>
 
   </div>

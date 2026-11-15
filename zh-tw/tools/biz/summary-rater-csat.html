@@ -103,8 +103,8 @@
     <h2 data-zh="🎧 客戶滿意度（CSAT）評分彙總">🎧 CSAT Score Summary</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="客戶滿意度（CSAT）評分彙總">Enter CSAT scores to summarise the average, distribution and share of each rating band, with a satisfaction verdict and improvement directions for support and after-sales reviews.</p>
 <div class="formula-box">
-  <div class="formula-title">📐 計算原理</div> <div class="formula-eq">CSAT 客戶滿意度彙總<br>平均分 = Σ評分 / 樣本量 n（評分 1-5）<br>CSAT 滿意度 = 評分 ≥ 閾值的份數 / n × 100%（預設閾值 4 分）<br>眾數 = 分佈中出現次數最多的分值；同時輸出 1-5 各檔分佈計數</div>
-  <p class="formula-desc">輸入每份滿意度評分（1–5 分），自動統計樣本量、平均分、各檔分佈與滿意度佔比（CSAT，預設 ≥4 分為滿意），用於客服與售後復盤。計算全部在瀏覽器本地完成。</p>
+  <div class="formula-title">📐 計算原理</div> <div class="formula-eq">CSAT 客戶滿意度彙總<br>平均分 = Σ評分 / 樣本量 n（評分 1-5）<br>中位數 = 排序後中間值（偶數取中間兩值均值）；標準差 = √(Σ(評分−平均分)² / n)<br>CSAT 滿意度 = 評分 ≥ 閾值的份數 / n × 100%（預設閾值 4 分，越界自動鉗制 1–5）<br>眾數 = 出現次數最多的分值，並列時全部列出；同時輸出 1-5 各檔分佈與低分（1–2 分）樣本數</div>
+  <p class="formula-desc">輸入每份滿意度評分（1–5 分），自動統計樣本量、平均分、中位數、標準差、各檔分佈與滿意度佔比（CSAT，預設 ≥4 分為滿意），並彙總低分樣本數供回訪歸因，用於客服與售後復盤。計算全部在瀏覽器本地完成。</p>
 </div>
 
 <div class="input-row"><label>滿意度評分（1–5，逗號或換行分隔）</label><textarea id="data" rows="3" oninput="calc()" placeholder="例如: 5,4,5,3,4,5,2,4,5,3">5,4,5,3,4,5,2,4,5,3</textarea></div>
@@ -154,11 +154,11 @@
 <h2>📚 深度解析：客戶滿意度（CSAT）評分彙總</h2>
 <h3>💡 常見使用場景</h3>
 <ul class="dd-list">
-<li>把回收的 CSAT 1–5 分評分貼入，得到平均分、<a class="term-link" href="/zh-tw/tools/science/median-calculator.html">中位數</a>與離散情況。</li>
-<li>按渠道（電話/線上/工單）分別彙總，比較不同渠道的滿意度差異。</li>
-<li>月度復盤時對比上月平均分與極差，判斷整改措施是否見效。</li>
+<li>把回收的 CSAT 1–5 分評分貼入，得到平均分、<a class="term-link" href="/zh-tw/tools/science/median-calculator.html">中位數</a>、<a class="term-link" href="/zh-tw/tools/it/standard-deviation.html">標準差</a>與低分樣本數。</li>
+<li>月度復盤時對比上月平均分與標準差，判斷整改措施是否降低了負面體驗的集中度。</li>
+<li>先看 1–2 分樣本的佔比，再結合眾數判斷最常見評分檔，定位是普遍偏低還是少數重度不滿。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">平均分相同但結構不同</div><div class="dd-ex-body">A 月與 B 月平均分都是 4.2，但 A 月<a class="term-link" href="/zh-tw/tools/it/standard-deviation.html">標準差</a> 0.6、B 月 1.4；B 月存在大量 1 分拉低，說明負面體驗集中在特定問題，應去查這些低分樣本的原因。</div></div>
+<div class="dd-example"><div class="dd-ex-title">平均分相同但結構不同</div><div class="dd-ex-body">A 月與 B 月平均分都是 4.2，但 A 月標準差 0.6、B 月 1.4；B 月存在大量 1 分拉低，說明負面體驗集中在特定問題，應去查這些低分樣本的原因。</div></div>
 <div class="dd-example"><div class="dd-ex-title">小樣本誤判</div><div class="dd-ex-body">僅 8 條評分時平均分 4.5，看似很高；補到 120 條後降到 3.9，說明早期樣本存在主動好評的自選擇偏差，統計時應固定回收視窗。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
@@ -182,17 +182,29 @@
 <script>
 function calc(){
   const raw=document.getElementById("data").value.split(/[,\n\s]+/).map(s=>parseInt(s.trim(),10)).filter(v=>!isNaN(v)&&v>=1&&v<=5);
-  const thr=parseInt(document.getElementById("thr").value,10)||4;
+  const thrRaw=String(document.getElementById("thr").value).trim();
+  let thr=parseInt(thrRaw,10);
+  const thrBad=thrRaw!==''&&(!isFinite(thr)||thr<1||thr>5);
+  if(!isFinite(thr)) thr=4;
+  thr=Math.min(5,Math.max(1,thr)); // 阈值越界钳制到 1–5（BS-N11）
   if(!raw.length){document.getElementById("res").innerHTML=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"<p>Enter a rating from 1 to 5</p>":"<p>请输入 1–5 的评分</p>");return;}
   const n=raw.length,sum=raw.reduce((a,b)=>a+b,0),mean=sum/n;
   const dist=[0,0,0,0,0];raw.forEach(v=>dist[v-1]++);
+  const sorted=[...raw].sort((a,b)=>a-b);
+  const median=n%2?sorted[(n-1)/2]:(sorted[n/2-1]+sorted[n/2])/2;
+  const sd=Math.sqrt(raw.reduce((s,v)=>s+(v-mean)*(v-mean),0)/n);
   const sat=raw.filter(v=>v>=thr).length,csat=sat/n*100;
-  const mode=dist.indexOf(Math.max(...dist))+1;
+  const maxCount=Math.max(...dist);
+  const modes=dist.map((c,i)=>c===maxCount?i+1:null).filter(Boolean);
+  const modeText=modes.join(' / ')+(modes.length>1?'（并列）':'');
+  const lows=raw.filter(v=>v<=2);
   const __g2=`<p>样本量：<strong>${n}</strong></p>`+
-    `<p>平均分：<strong style="color:var(--primary);">${mean.toFixed(2)}</strong> / 5</p>`+
+    `<p>平均分：<strong style="color:var(--primary);">${mean.toFixed(2)}</strong> / 5　中位数：<strong>${median.toFixed(1)}</strong> / 5　标准差：<strong>${sd.toFixed(2)}</strong></p>`+
     `<p>CSAT 满意度（≥${thr}分）：<strong>${csat.toFixed(1)}%</strong>（${sat} 份）</p>`+
-    `<p>众数（最常见分）：<strong>${mode}</strong> 分</p>`+
-    `<p style="margin-top:8px;color:var(--text-muted);">各档分布：1分 ${dist[0]} · 2分 ${dist[1]} · 3分 ${dist[2]} · 4分 ${dist[3]} · 5分 ${dist[4]}</p>`;document.getElementById("res").innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
+    `<p>众数（最常见分）：<strong>${modeText}</strong> 分</p>`+
+    (thrBad?'<p style="color:var(--danger)">⚠ 满意阈值需在 1–5 之间，已按 '+thr+' 分计算。</p>':'')+
+    `<p style="margin-top:8px;color:var(--text-muted);">各档分布：1分 ${dist[0]} · 2分 ${dist[1]} · 3分 ${dist[2]} · 4分 ${dist[3]} · 5分 ${dist[4]}</p>`+
+    `<p style="color:var(--text-muted);">低分样本（1–2 分）：共 ${lows.length} 份${lows.length?'，建议逐条回访定位原因':'，暂无'}。</p>`;document.getElementById("res").innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 }
 calc();
 function copyResult(){ToolBox.copyText(document.getElementById("res").innerText);}
@@ -210,19 +222,19 @@ function copyResult(){ToolBox.copyText(document.getElementById("res").innerText)
   <div class="related-tools-grid">
     <a href="/zh-tw/tools/biz/random-script.html" class="related-tool-card">
       <span class="rt-icon">🎲</span>
-      <span class="rt-info"><span class="rt-name">標準話術模板隨機抽取器</span><span class="rt-desc">按設定數量從標準話術模板庫中隨機抽取話術條目，輔助客服培訓、話術演練與抽檢考核，純前端執行不上傳數…</span></span>
+      <span class="rt-info"><span class="rt-name">標準話術模板隨機抽取器</span><span class="rt-desc">按設定數量從標準話術模板庫中隨機抽取話術條目，輔助客服培訓、話術演練與抽檢考核，純前端執行不上傳資料</span></span>
     </a>
     <a href="/zh-tw/tools/biz/stats-time-response.html" class="related-tool-card">
       <span class="rt-icon">🎧</span>
-      <span class="rt-info"><span class="rt-name">客服平均響應時間/解決率統計</span><span class="rt-desc">輸入客服響應或處理時長資料，統計平均響應時間、解決率與分佈區間，輔助客服團隊效率評估、排班與流程優…</span></span>
+      <span class="rt-info"><span class="rt-name">客服平均響應時間/解決率統計</span><span class="rt-desc">輸入客服響應時長、工單總數與首次解決數，統計平均/中位/P90 響應、SLA 達標率與首次解決率（F…</span></span>
     </a>
     <a href="/zh-tw/tools/biz/presentation-timer.html" class="related-tool-card">
       <span class="rt-icon">⏱️</span>
-      <span class="rt-info"><span class="rt-name">演講計時器</span><span class="rt-desc">演講計時器，為 PPT 每頁分配時間並進度提醒、支援全屏，輔助演講節奏把控。</span></span>
+      <span class="rt-info"><span class="rt-name">演講計時器</span><span class="rt-desc">為 PPT 每頁分配時間並進度提醒、支援全屏，輔助演講節奏把控</span></span>
     </a>
     <a href="/zh-tw/tools/biz/markdown.html" class="related-tool-card">
       <span class="rt-icon">📝</span>
-      <span class="rt-info"><span class="rt-name">Markdown 即時預覽</span><span class="rt-desc">在左側編輯區輸入 Markdown，右側即時渲染標題、列表、程式碼塊等效果，支援即時對照，便於寫作與格</span></span>
+      <span class="rt-info"><span class="rt-name">Markdown 即時預覽</span><span class="rt-desc">在左側編輯區輸入 Markdown，右側即時渲染標題、列表、程式碼塊等效果，支援即時對照，便於寫作與格…</span></span>
     </a>
   </div>
 </div>

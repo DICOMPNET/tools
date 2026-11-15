@@ -138,7 +138,7 @@
           <div class="formula-box">
       <div class="formula-title">📐 計算公式 / 原理</div>
       <div class="formula-eq">（參考表）動態範圍 ≈ 14 − log₂(ISO / 100) EV；ISO 每翻倍約損失 1 EV</div>
-      <div class="formula-desc">按不同相機在各 ISO 下的噪點與動態範圍表現提供對照參考：ISO 越高畫面越亮但噪點越多、動態範圍越窄，用於暗光拍攝時權衡亮度與畫質。</div>
+      <div class="formula-desc">按不同相機在各 ISO 下的噪點與動態範圍表現提供對照參考：ISO 越高畫面越亮但噪點越多、動態範圍越窄，用於暗光拍攝時權衡亮度與畫質。噪點分級在等效 ISO（機身 ISO ÷ 畫幅係數）上判定，因此「純淨上限 / 可用上限」展示的是折算回機身 ISO 的閾值：手機 120 / 480、M4/3 400 / 1600、APS-C 1120 / 4480、全畫幅 3200 / 12800、中畫幅 9600 / 38400。</div>
     </div>
 <div class="input-row">
         <div><label>畫幅型別</label><select id="sensor" onchange="renderISO()">
@@ -273,7 +273,7 @@
 <li>教學 ISO 影響。</li>
 <li>選拍攝檔位。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">對比 ISO100/1600/6400</div><div class="dd-ex-body">&lt;p&gt;&lt;strong&gt;輸入：&lt;/strong&gt;選三檔。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;處理：&lt;/strong&gt;展示噪點樣例。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;輸出：&lt;/strong&gt;噪點對比圖，越高越粗。結果以瀏覽器即時計算為準，純前端本地處理、資料不上傳；生成的樣式與程式碼僅作快速產出參考，正式專案請以設計系統、規範與瀏覽器實測為準。&lt;/p&gt;</div></div>
+<div class="dd-example"><div class="dd-ex-title">對比 ISO100/1600/6400</div><div class="dd-ex-body"><p><strong>輸入：</strong>選三檔。</p><p><strong>處理：</strong>展示噪點樣例。</p><p><strong>輸出：</strong>噪點對比圖，越高越粗。結果以瀏覽器即時計算為準，純前端本地處理、資料不上傳；生成的樣式與程式碼僅作快速產出參考，正式專案請以設計系統、規範與瀏覽器實測為準。</p></div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
 <dt>ISO 越高越亮？</dt><dd>是，但噪點增；優先用光圈/快門，最後提 ISO。結果以瀏覽器即時計算為準，純前端本地處理、資料不上傳；生成的樣式與程式碼僅作快速產出參考，正式專案請以設計系統、規範與瀏覽器實測為準。</dd>
@@ -464,6 +464,9 @@ function onISOChange() {
 
 function getNoiseLevel(iso, sensorType) {
   const s = sensorMultiplier[sensorType];
+  // 判定在「等效 ISO」上做：小画幅 mult<1 ⇒ 同机身 ISO 的等效噪点更高。
+  // 因此对外展示的上限必须是 cleanMax*mult / usableMax*mult（机身 ISO 侧），否则
+  // 「页面标可用上限 6400」与「ISO 5000 判较重」会互相矛盾（APS-C 真实可用上限 4480）。
   const effectiveISO = iso / s.mult;
 
   if (effectiveISO <= s.cleanMax) return { level: 'excellent', name: '优秀', desc: '几乎不可见，画质纯净' };
@@ -472,11 +475,20 @@ function getNoiseLevel(iso, sensorType) {
   return { level: 'high', name: '较重', desc: '噪点明显，需要后期降噪' };
 }
 
+function sensorLimits(sensorType) {
+  const s = sensorMultiplier[sensorType];
+  return {
+    clean: Math.round(s.cleanMax * s.mult),
+    usable: Math.round(s.usableMax * s.mult)
+  };
+}
+
 function renderISO() {
   const sensorType = document.getElementById('sensor').value;
   const light = document.getElementById('light').value;
   const iso = isoValues[currentISOIndex];
   const s = sensorMultiplier[sensorType];
+  const lim = sensorLimits(sensorType);
   const noise = getNoiseLevel(iso, sensorType);
 
   let lightFactor = 1;
@@ -493,8 +505,8 @@ function renderISO() {
     </div>
     <div class="stat-grid">
       <div><div class="v">${iso.toLocaleString()}</div><div class="l">当前ISO</div></div>
-      <div><div class="v">${s.cleanMax.toLocaleString()}</div><div class="l">纯净上限</div></div>
-      <div><div class="v">${s.usableMax.toLocaleString()}</div><div class="l">可用上限</div></div>
+      <div><div class="v">${lim.clean.toLocaleString()}</div><div class="l">纯净上限</div></div>
+      <div><div class="v">${lim.usable.toLocaleString()}</div><div class="l">可用上限</div></div>
       <div><div class="v">${s.name}</div><div class="l">画幅</div></div>
     </div>
   `;
@@ -512,7 +524,7 @@ function renderISO() {
   isoValues.forEach((val, idx) => {
     const n = getNoiseLevel(val, sensorType);
     const isCurrent = idx === currentISOIndex;
-    const pct = Math.min(100, (val / s.usableMax) * 100);
+    const pct = Math.min(100, (val / lim.usable) * 100);
     levelsHtml += `
       <div class="iso-level ${isCurrent ? 'current' : ''}" onclick="setISO(${idx})">
         <span class="iso-val">${val < 1000 ? val : (val >= 1000000 ? (val/1000000).toFixed(0)+'M' : (val/1000).toFixed(0)+'K')}</span>
@@ -774,24 +786,24 @@ else document.addEventListener('DOMContentLoaded', __iso_noise_referenceBoot);
   <div class="related-tools-grid">
     <a href="/zh-tw/tools/design/generator-10.html" class="related-tool-card">
       <span class="rt-icon">📈</span>
-      <span class="rt-info"><span class="rt-name">CSS動畫生成器（關鍵幀視覺化） - 免費線上工具，純前端處理 | ToolBox免費線上工具箱</span><span class="rt-desc">CSS動畫生成器（關鍵幀視覺化）</span></span>
+      <span class="rt-info"><span class="rt-name">CSS動畫生成器（關鍵幀視覺化）</span><span class="rt-desc">以視覺化方式編排 CSS 關鍵幀動畫，調整時長、緩動與屬性並即時預覽，生成可直接使用的 @keyfr…</span></span>
     </a>
 
     <a href="/zh-tw/tools/design/web-audio-metronome.html" class="related-tool-card">
       <span class="rt-icon">🎵</span>
-      <span class="rt-info"><span class="rt-name">Web Audio 節拍器 - 免費生成器工具，線上節拍器 | ToolBox免費線上工具箱</span><span class="rt-desc">線上節拍器</span></span>
+      <span class="rt-info"><span class="rt-name">Web Audio 節拍器</span><span class="rt-desc">線上節拍器，使用 Web Audio API 提供精準節拍並支援多種拍號，適合練習樂器與節奏訓練</span></span>
     </a>
     <a href="/zh-tw/tools/design/generator-8.html" class="related-tool-card">
       <span class="rt-icon">🔳</span>
-      <span class="rt-info"><span class="rt-name">二維碼生成器（已有，可加強定製） - 免費線上工具，純前端處理 | ToolBox免費線上工具箱</span><span class="rt-desc">二維碼生成器（已有，可加強定製）</span></span>
+      <span class="rt-info"><span class="rt-name">二維碼生成器（可定製尺寸、糾錯與靜區）</span><span class="rt-desc">輸入網址或文本，生成可定製尺寸與糾錯的二維碼：按 ISO/IEC 18004 自動選版本與掩碼、按等…</span></span>
     </a>
-    <a href="/zh-tw/tools/design/generator-9.html" class="related-tool-card">
+    <a href="/zh-tw/tools/biz/barcode-generator.html" class="related-tool-card">
       <span class="rt-icon">🏷️</span>
-      <span class="rt-info"><span class="rt-name">條形碼生成器（EAN-13等） - 免費線上工具，純前端處理 | ToolBox免費線上工具箱</span><span class="rt-desc">條形碼生成器（EAN-13等）</span></span>
+      <span class="rt-info"><span class="rt-name">條形碼生成器</span><span class="rt-desc">支援Code128、EAN-13、UPC-A、Code39等多種碼制，純前端生成可下載</span></span>
     </a>
     <a href="/zh-tw/tools/design/generator-6.html" class="related-tool-card">
-      <span class="rt-icon">📈</span>
-      <span class="rt-info"><span class="rt-name">盒子陰影生成器（視覺化調整） - 免費線上工具，純前端處理 | ToolBox免費線上工具箱</span><span class="rt-desc">盒子陰影生成器（視覺化調整）</span></span>
+      <span class="rt-icon">✨</span>
+      <span class="rt-info"><span class="rt-name">盒子陰影批次生成器</span><span class="rt-desc">按「生成數量」隨機產出多組多層 box-shadow 宣告（含 inset 與 rgba 透明度）…</span></span>
     </a>
   </div>
 </div>

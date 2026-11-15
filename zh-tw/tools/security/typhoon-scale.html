@@ -254,27 +254,27 @@
   <div class="related-tools-grid">
     <a href="/zh-tw/tools/it/properties-parser.html" class="related-tool-card">
       <span class="rt-icon">📄</span>
-      <span class="rt-info"><span class="rt-name">.properties 解析器 - 免費開發工具，properties 解析器 | ToolBox免費線上工具箱</span><span class="rt-desc">.properties 解析器</span></span>
+      <span class="rt-info"><span class="rt-name">.properties 解析器</span><span class="rt-desc">Java .properties 檔案解析：支援 key=value、key:value、行內註釋…</span></span>
     </a>
     <a href="/zh-tw/tools/it/ast-viewer.html" class="related-tool-card">
       <span class="rt-icon">💻</span>
-      <span class="rt-info"><span class="rt-name">AST抽象語法樹檢視器 - 線上解析JavaScript程式碼生成AST樹形結構，支援節點 | ToolBox免費線上工具箱</span><span class="rt-desc">AST 抽象語法樹檢視器</span></span>
+      <span class="rt-info"><span class="rt-name">AST抽象語法樹檢視器</span><span class="rt-desc">線上 AST 檢視器，用 acorn 解析 JavaScript 原始碼為抽象語法樹並可視化展開節點…</span></span>
     </a>
     <a href="/zh-tw/tools/it/css-minifier.html" class="related-tool-card">
       <span class="rt-icon">🧹</span>
-      <span class="rt-info"><span class="rt-name">CSS 壓縮/美化工具 - 免費開發工具，CSS 壓縮/格式化/美化 | ToolBox免費線上工具箱</span><span class="rt-desc">CSS 壓縮/格式化/美化</span></span>
+      <span class="rt-info"><span class="rt-name">CSS 壓縮/美化工具</span><span class="rt-desc">CSS 壓縮/格式化/美化</span></span>
     </a>
     <a href="/zh-tw/tools/it/css-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
-      <span class="rt-info"><span class="rt-name">CSS 格式化 - 免費開發工具，線上CSS 格式化 | ToolBox免費線上工具箱</span><span class="rt-desc">CSS 格式化</span></span>
+      <span class="rt-info"><span class="rt-name">CSS 格式化</span><span class="rt-desc">CSS 樣式表格式化：規範化選擇器縮排、對齊屬性、支援 @media/@supports/@keyf…</span></span>
     </a>
     <a href="/zh-tw/tools/it/cron.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">Cron 表示式生成器 - 免費開發工具，線上Cron 表示式生成器 | ToolBox免費線上工具箱</span><span class="rt-desc">⏰ Cron 表示式生成器</span></span>
+      <span class="rt-info"><span class="rt-name">Cron 表示式生成器</span><span class="rt-desc">視覺化生成 Cron 表示式，支援 5 位 Unix 格式，小白也能輕鬆上手</span></span>
     </a>
     <a href="/zh-tw/tools/it/graphql-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
-      <span class="rt-info"><span class="rt-name">GraphQL 格式化 - 免費開發工具，線上GraphQL 格式化 | ToolBox免費線上工具箱</span><span class="rt-desc">◈ GraphQL 格式化</span></span>
+      <span class="rt-info"><span class="rt-name">GraphQL 格式化</span><span class="rt-desc">GraphQL 查詢語言格式化：美化/壓縮，支援 Query/Mutation/Subscripti…</span></span>
     </a>
   </div>
 </div>
@@ -411,8 +411,8 @@
         + '<div class="bf-level bf-' + b.level + '">' + b.level + '</div>'
         + '<div><div class="bf-name">' + b.level + '级 · ' + ToolBox.escHtml(b.name) + '</div>'
         + '<div class="bf-desc">陆地：' + ToolBox.escHtml(b.land) + '<br>海上：' + ToolBox.escHtml(b.sea) + '</div></div>'
-        + '<div class="bf-speed">' + ToolBox.escHtml(b.speed) + ' m/s</div>'
-        + '<div class="bf-desc">风速范围 ' + ToolBox.escHtml(b.speed) + ' 级</div>'
+        + '<div class="bf-speed">' + ToolBox.escHtml(b.speed) + ' 节</div>'
+        + '<div class="bf-desc">风速范围 ' + ToolBox.escHtml(b.speed) + ' 节（约 ' + b.ms + ' m/s）</div>'
         + '</div>';
     });
     const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('beaufortList').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('beaufortList').innerHTML=__h0;
@@ -439,7 +439,11 @@
 
   window.convertWind = function(){
     var val = parseFloat(document.getElementById('windInput').value);
-    if(isNaN(val) || val < 0){ return; }
+    if(isNaN(val) || val < 0){
+      document.getElementById('convResult').innerHTML='<p style="color:var(--danger)">请输入 ≥0 的风速</p>';
+      document.getElementById('beaufortResult').innerHTML='';
+      return;
+    }
     var unit = document.getElementById('windUnit').value;
     var ms;
     if(unit === 'ms') ms = val;
@@ -470,12 +474,10 @@
 
     var typhoonInfo = '';
     TYPHOONS.forEach(function(t){
-      var parts = t.ms.split('-');
-      var min = parseFloat(parts[0]);
-      var max = parts[1] ? parseFloat(parts[1]) : 999;
-      if(ms >= min && ms <= max){
-        typhoonInfo = '（对应：' + t.name + '）';
-      } else if(t.ms.indexOf('≥') !== -1 && ms >= min){
+      var mm = String(t.ms).match(/[\d.]+/);
+      var min = mm ? parseFloat(mm[0]) : NaN;
+      var max = String(t.ms).indexOf('-') !== -1 ? parseFloat(String(t.ms).split('-')[1]) : 999;
+      if(isFinite(min) && ms >= min && ms <= max){
         typhoonInfo = '（对应：' + t.name + '）';
       }
     });

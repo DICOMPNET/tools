@@ -114,13 +114,14 @@
 <div class="formula-box">
 
 
-<div class="formula-eq">互動率 =（點贊 + 評論 + 分享）÷ 粉絲數 × 100%；互動曝光率 =（點贊 + 評論 + 分享）÷ 曝光量 × 100%，衡量內容互動質量。</div></div>
+<div class="formula-eq">互動率 =（點贊 + 評論 + 分享 + 收藏）÷ 粉絲數 × 100%；互動曝光率 =（點贊 + 評論 + 分享 + 收藏）÷ 曝光量 × 100%；四項互動數須為非負整數且不能留空（可填 0）。</div></div>
 
-    <div data-tb="preset" data-tb-presets='[{"label":"粉丝/关注者数50000·点赞数1200·评论数180·分…","labelEn":"followers=50000 · likes=1200 · comments…","values":{"followers":"50000","likes":"1200","comments":"180","shares":"120","impressionsEng":"200000"}}]'></div>
+    <div data-tb="preset" data-tb-presets='[{"label":"粉丝/关注者数50000·点赞数1200·评论数180·分…","labelEn":"followers=50000 · likes=1200 · comments…","values":{"followers":"50000","likes":"1200","comments":"180","shares":"120","saves":"60","impressionsEng":"200000"}}]'></div>
 <label>粉絲/關注者數</label><input type="number" id="followers" value="50000" oninput="calc()" placeholder="如 50000">
 <label style="margin-top:12px;">點贊數</label><input type="number" id="likes" value="1200" oninput="calc()" placeholder="如 1200">
 <label style="margin-top:12px;">評論數</label><input type="number" id="comments" value="180" oninput="calc()" placeholder="如 180">
 <label style="margin-top:12px;">分享/轉發數</label><input type="number" id="shares" value="120" oninput="calc()" placeholder="如 120">
+<label style="margin-top:12px;">收藏數</label><input type="number" id="saves" value="60" oninput="calc()" placeholder="如 60">
 <label style="margin-top:12px;">帖子展示量（可選）</label><input type="number" id="impressionsEng" value="200000" oninput="calc()" placeholder="如 200000">
 
     <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__marketing_engagement_rateExport()">匯出明細 CSV</button></div>
@@ -182,6 +183,7 @@
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
 <dt>互動率分母用粉絲還是曝光？</dt><dd>粉絲基數看鐵粉粘性，曝光基數看內容破圈力，兩個都看更全面。</dd>
+<dt>互動率要不要算收藏？</dt><dd>本工具按「點贊+評論+分享+收藏」計；部分平臺後臺只給贊評轉，需自行補收藏數，否則互動率會偏低。</dd>
 <dt>互動率高但沒轉化？</dt><dd>互動≠購買，種草內容互動高但掛車轉化低，需看進店/成交漏斗下一環。</dd>
 </dl>
 </div>
@@ -199,21 +201,34 @@
 </div>
 <script>
 function calc(){
-  const followers = parseFloat(document.getElementById('followers').value);
-  const likes = parseFloat(document.getElementById('likes').value) || 0;
-  const comments = parseFloat(document.getElementById('comments').value) || 0;
-  const shares = parseFloat(document.getElementById('shares').value) || 0;
-  const impressions = parseFloat(document.getElementById('impressionsEng').value) || 0;
+  const followersRaw = document.getElementById('followers').value.trim();
+  const followers = Number(followersRaw);
+  function num(id){const raw=document.getElementById(id).value.trim();return raw===''?null:Number(raw);}
+  const likes = num('likes');
+  const comments = num('comments');
+  const shares = num('shares');
+  const saves = num('saves');
+  const impressionsRaw = document.getElementById('impressionsEng').value.trim();
+  const impressions = impressionsRaw===''?0:Number(impressionsRaw);
   const r = document.getElementById('result');
-  const totalEng = likes + comments + shares;
-  if(isNaN(followers)||followers<=0){
+  if(followersRaw===''||!isFinite(followers)||followers<=0){
     r.innerHTML='<p>请输入有效粉丝数</p>';
     return;
   }
-  if(likes<0||comments<0||shares<0||impressions<0){
-    r.innerHTML='<p style="color:var(--danger);">点赞、评论、分享与曝光量不能为负数，请核对输入。</p>';
+  const missing=[];
+  if(likes===null) missing.push('点赞');
+  if(comments===null) missing.push('评论');
+  if(shares===null) missing.push('分享');
+  if(saves===null) missing.push('收藏');
+  if(missing.length){
+    r.innerHTML='<p style="color:var(--danger);">请填写'+missing.join('、')+'数（确无互动请填 0，留空不等于 0）。</p>';
     return;
   }
+  if(!isFinite(likes)||!isFinite(comments)||!isFinite(shares)||!isFinite(saves)||!isFinite(impressions)||likes<0||comments<0||shares<0||saves<0||impressions<0){
+    r.innerHTML='<p style="color:var(--danger);">点赞、评论、分享、收藏与曝光量须为非负数，请核对输入。</p>';
+    return;
+  }
+  const totalEng = likes + comments + shares + saves;
   const engRateFollower = (totalEng/followers)*100;
   let extra = '';
   if(impressions > 0){
@@ -224,8 +239,8 @@ function calc(){
     <p>总互动数：${ToolBox.formatNumber(totalEng, 0)}</p>
     <p><strong>互动率（按粉丝）：${engRateFollower.toFixed(2)}%</strong></p>
     ${extra}
-    <p>点赞：${likes} / 评论：${comments} / 分享：${shares}</p>
-    <p style="margin-top:8px;font-size:12px;color:var(--text-muted);">互动率 = (点赞+评论+分享) / 粉丝数 × 100%</p>
+    <p>点赞：${likes} / 评论：${comments} / 分享：${shares} / 收藏：${saves}</p>
+    <p style="margin-top:8px;font-size:12px;color:var(--text-muted);">互动率 = (点赞+评论+分享+收藏) / 粉丝数 × 100%</p>
     <p style="margin-top:4px;font-size:12px;color:var(--text-muted);">分母口径：按粉丝用粉丝数，按展示用曝光量</p>
   `;r.innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 
@@ -360,10 +375,10 @@ function __marketing_engagement_rateExport(){
 }
 function __marketing_engagement_ratePresets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#marketing_engagement_ratePresets',[{label:'默认参数',labelEn:'Default',values:{followers:'50000', likes:'1200', comments:'180', shares:'120', impressionsEng:'200000'}},
-  {"label":"5万粉 常规互动","labelEn":"50k followers, normal engagement","values":{"followers":50000,"likes":1200,"comments":180,"shares":120,"impressionsEng":200000}},
-  {"label":"小微网红 高互动","labelEn":"Micro influencer high engagement","values":{"followers":8000,"likes":640,"comments":95,"shares":60,"impressionsEng":30000}},
-  {"label":"百万大号 低互动","labelEn":"1M account low engagement","values":{"followers":1200000,"likes":8000,"comments":300,"shares":500,"impressionsEng":3000000}}],function(){ calc(); });
+    TBKit.preset.bar('#marketing_engagement_ratePresets',[{label:'默认参数',labelEn:'Default',values:{followers:'50000', likes:'1200', comments:'180', shares:'120', saves:'60', impressionsEng:'200000'}},
+  {"label":"5万粉 常规互动","labelEn":"50k followers, normal engagement","values":{"followers":50000,"likes":1200,"comments":180,"shares":120,"saves":60,"impressionsEng":200000}},
+  {"label":"小微网红 高互动","labelEn":"Micro influencer high engagement","values":{"followers":8000,"likes":640,"comments":95,"shares":60,"saves":40,"impressionsEng":30000}},
+  {"label":"百万大号 低互动","labelEn":"1M account low engagement","values":{"followers":1200000,"likes":8000,"comments":300,"shares":500,"saves":300,"impressionsEng":3000000}}],function(){ calc(); });
 }
 var __marketing_engagement_rate_f0=(typeof calc==='function')?calc:null;
 if(__marketing_engagement_rate_f0){
@@ -385,27 +400,27 @@ else document.addEventListener('DOMContentLoaded', __marketing_engagement_rateBo
   <div class="related-tools-grid">
     <a href="/zh-tw/tools/marketing/marketing-keyword-density.html" class="related-tool-card">
       <span class="rt-icon">🔍</span>
-      <span class="rt-info"><span class="rt-name">SEO關鍵詞密度檢查器 - 免費文本處理工具，線上SEO關鍵詞密度檢查器，免費使用</span><span class="rt-desc">SEO關鍵詞密度檢查器</span></span>
+      <span class="rt-info"><span class="rt-name">SEO關鍵詞密度檢查器</span><span class="rt-desc">貼上網頁或文章正文並輸入目標關鍵詞，統計關鍵詞出現頻次與密度百分比，幫助最佳化內容SEO關鍵詞佈局與堆…</span></span>
     </a>
     <a href="/zh-tw/tools/marketing/xiaohongshu-counter.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">小紅書文案計數器</span><span class="rt-desc">小紅書文案計數器線上工具，即時統計標題與正文字元數、表情與話題標籤數量，提示平臺字數限制，便於合規…</span></span>
+      <span class="rt-info"><span class="rt-name">小紅書文案計數器</span><span class="rt-desc">線上工具，即時統計標題與正文字元數、表情與話題標籤數量，提示平臺字數限制，便於合規釋出，純前端</span></span>
     </a>
     <a href="/zh-tw/tools/marketing/marketing-utm-builder.html" class="related-tool-card">
       <span class="rt-icon">📢</span>
-      <span class="rt-info"><span class="rt-name">UTM引數構建器 - 免費生成器工具，線上UTM引數構建器，免費使用</span><span class="rt-desc">UTM引數構建器</span></span>
+      <span class="rt-info"><span class="rt-name">UTM引數構建器</span><span class="rt-desc">輸入基礎URL與來源、媒介、活動等UTM引數，單條或按行批次生成標準UTM追蹤連結，用於在廣告分析中…</span></span>
     </a>
     <a href="/zh-tw/tools/marketing/utm-builder.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">UTM引數生成器 - 免費生成器工具，線上UTM引數生成器，免費使用</span><span class="rt-desc">UTM引數生成器</span></span>
+      <span class="rt-info"><span class="rt-name">UTM引數生成器</span><span class="rt-desc">輸入基礎URL與一個或多個UTM引數行，支援單個與批次生成帶追蹤引數的連結，便於廣告投放與渠道效果統…</span></span>
     </a>
     <a href="/zh-tw/tools/marketing/marketing-chinese-hashtag-generator.html" class="related-tool-card">
       <span class="rt-icon">#️⃣</span>
-      <span class="rt-info"><span class="rt-name">中文營銷話題標籤生成器 - 免費生成器工具，線上中文營銷話題標籤生成器，免費使用</span><span class="rt-desc">#️⃣ 中文營銷話題標籤生成器</span></span>
+      <span class="rt-info"><span class="rt-name">中文營銷話題標籤生成器</span><span class="rt-desc">輸入主題關鍵詞，為中文營銷內容生成適用微博、小紅書、抖音等平臺的熱門話題標籤，可直接複製</span></span>
     </a>
     <a href="/zh-tw/tools/marketing/marketing-qr-campaign-tracker.html" class="related-tool-card">
       <span class="rt-icon">🔳</span>
-      <span class="rt-info"><span class="rt-name">二維碼活動追蹤器 - 免費生成器工具，線上二維碼活動追蹤器，免費使用</span><span class="rt-desc">二維碼活動追蹤器</span></span>
+      <span class="rt-info"><span class="rt-name">二維碼活動追蹤器</span><span class="rt-desc">輸入活動URL與渠道引數，生成帶UTM追蹤引數的二維碼活動連結，用於統計線下海報、物料的掃碼效果與來…</span></span>
     </a>
   </div>
 </div>

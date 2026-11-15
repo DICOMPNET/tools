@@ -127,7 +127,7 @@
 <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
     <h2 data-zh="💡 標語生成器">💡 Tagline Generator</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">按主題取模板庫，隨機抽選不重複模板並把佔位符 [B] 全部替換為品牌名（未填則用 [品牌]）；生成條數受 count 與模板總數雙重限制，遍歷到已用模板則跳過重抽，輸出條數 = min(count, 模板數)</div>
+  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">輸入主題、品牌名、產品、核心賣點與情感調性後，從「主題模板庫」與「調性模板庫」合併取候選，把 [B] 替換品牌名、[P] 替換產品、[F] 替換賣點（未填則用主題預設值），去重後隨機抽取；輸出條數 = min(count, 候選池條數)</div>
   <p class="formula-desc" data-zh="本生成器依據指定格式規範在前端按規則隨機或確定性生成內容，結果可直接複製使用，資料不離開瀏覽器。 工具名稱：標語生成器 - 營銷推廣領域的線上工具。">Generate concise taglines for products and campaigns.</p>
 </div>
 
@@ -141,6 +141,17 @@
     </select>
     <label>品牌名（可選）</label>
     <input type="text" id="brand" value="ToolBox" placeholder="如：Acme" style="margin-bottom:12px;">
+    <label>產品 / 品類（可選）</label>
+    <input type="text" id="product" value="" placeholder="如：運動手錶" style="margin-bottom:12px;">
+    <label>核心賣點（可選）</label>
+    <input type="text" id="feature" value="" placeholder="如：記錄心率" style="margin-bottom:12px;">
+    <label>情感調性</label>
+    <select id="tone" style="margin-bottom:12px;">
+      <option value="passion">熱血</option>
+      <option value="warm">溫暖</option>
+      <option value="minimal">極簡</option>
+      <option value="professional">專業</option>
+    </select>
     <div class="slider-row">
       <label>數量</label>
       <input type="range" id="count" min="1" max="20" value="8" oninput="document.getElementById('countVal').textContent=this.value">
@@ -175,16 +186,17 @@
 <h2>📚 深度解析：標語生成器</h2>
 <h3>💡 常見使用場景</h3>
 <ul class="dd-list">
-<li>給產品一句話定位生成多條標語。</li>
-<li>按情感調性（熱血/溫暖/極簡）出風格。</li>
-<li>對比候選標語做品牌測試。</li>
+<li>給新品起標語：填產品、核心賣點與調性，一次得到 20 條以內候選。</li>
+<li>同一賣點切換調性對比：熱血、溫暖、極簡、專業四套語氣。</li>
+<li>品牌測試前先批量出草稿，再由人工篩選與查重。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">運動手錶</div><div class="dd-ex-body">輸入「運動手錶 / 記錄心跳」→ 「記錄每一次心跳」「為奔跑而生」「把堅持戴在手腕上」多條候選。</div></div>
-<div class="dd-example"><div class="dd-ex-title">極簡調性</div><div class="dd-ex-body">輸入「極簡筆記 App」→ 「少一點，清一點」「記，僅此而已」，去修飾突出核心。</div></div>
+<div class="dd-example"><div class="dd-ex-title">運動手錶（熱血）</div><div class="dd-ex-body">品牌 Keep、產品「運動手錶」、賣點「記錄心率」、調性「熱血」→ 輸出如「Keep，讓運動手錶燃起來」「每一次記錄心率，都算數」「為記錄心率而生」「Keep：把不可能變成記錄心率」等；候選池為 8 條主題模板 + 12 條調性模板，按設定條數隨機抽取。</div></div>
+<div class="dd-example"><div class="dd-ex-title">極簡筆記 App</div><div class="dd-ex-body">產品「筆記 App」、賣點「只記重點」、調性「極簡」→ 輸出如「筆記 App，僅此而已」「只記重點，就夠了」「少即是多」「筆記 App：只記重點」等，去修飾突出核心。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
 <dt>標語和口號區別？</dt><dd>標語更短、長期繫結品牌（如 Slogan），口號可隨活動變；本工具偏品牌向短句。</dd>
 <dt>生成結果能註冊商標嗎？</dt><dd>不保證。通用短句難註冊，正式使用前需查重與法務確認。</dd>
+<dt>產品與賣點不填會怎樣？</dt><dd>會用主題預設詞（如科技=智慧裝置/把複雜變簡單）補位，仍能出句，但針對性較弱；建議至少填寫產品與一個賣點。</dd>
 </dl>
 </div>
 </section>
@@ -233,24 +245,45 @@ const TEMPLATES={
   service:['[B]，用心服务每一天','选择 [B]，放心无忧','[B]，专业值得信赖','[B] - 你身边的专家','与 [B] 携手，共赢未来','[B]，服务至上','[B]，让生活更轻松','信赖 [B]，信赖未来'],
   lifestyle:['[B]，让生活更美好','[B]，简单生活之道','[B] - 慢下来，享受生活','与 [B] 一起，活出自我','[B]，点亮你的每一天','[B]，平衡的艺术','[B]，发现生活的小确幸','[B]，让每个瞬间闪光']
 };
+const TONE_TEMPLATES={
+  passion:['为[F]而生','[B]，让[P]燃起来','每一次[F]，都算数','把[F]做到极致','[P]，就该全力以赴','[B]，为[F]而战','[F]到底，[B]陪你','[B]：把不可能变成[F]','[P]这件事，[B]认真了','[F]，是[P]的底色','[B]，让[F]成为习惯','冲一次[F]，值了'],
+  warm:['[B]，陪你每一次[F]','[F]，是最温柔的坚持','把[P]过成喜欢的样子','[B]，懂你的[P]','[F]，慢慢来也很好','[B]，把[F]放在心里','有[P]，就有[F]','[F]的日子，[B]在','[B]：让[F]有温度','[P]不必完美，[F]就好','[B]，和你一起[F]','[F]，从[P]开始'],
+  minimal:['[P]，仅此而已','[F]，就够了','[B]。少即是多','只做[F]这一件事','[P]，刚刚好','[B]，[F]而已','不多不少，[F]就好','[P]：[F]','[B]——把[F]说清楚','[F]，然后没了','[P]，简单点','[B]，[F]就位'],
+  professional:['[F]，经得起检验','[B]，[P]的专业之选','用数据说话：[F]','[P]，交给[B]','[F]，按标准做到位','[B]：让[F]可复核','[F]有据，[P]有底','专业[F]，选[B]','[B]，把[F]做扎实','[F]这件事，[B]讲证据','[P]的[F]，看得见','[B]：[F]的标准答案']
+};
+const THEME_DEFAULTS={
+  tech:{p:'智能设备',f:'把复杂变简单'},
+  food:{p:'这一餐',f:'新鲜好味道'},
+  fashion:{p:'日常穿搭',f:'好看又自在'},
+  service:{p:'服务',f:'省心省力'},
+  lifestyle:{p:'日常',f:'简单生活'}
+};
 function randInt(max){const a=new Uint32Array(1);crypto.getRandomValues(a);return a[0]%max;}
 function pick(arr){return arr[randInt(arr.length)];}
 function generate(){
   const theme=document.getElementById('theme').value;
-  const brand=document.getElementById('brand').value.trim()||'[品牌]';
+  const brandInput=document.getElementById('brand').value.trim();
+  const productInput=document.getElementById('product').value.trim();
+  const featureInput=document.getElementById('feature').value.trim();
+  const tone=document.getElementById('tone').value;
   const count=parseInt(document.getElementById('count').value);
-  const templates=TEMPLATES[theme];
+  const def=THEME_DEFAULTS[theme]||{p:'产品',f:'好用'};
+  const brand=brandInput||productInput||'[品牌]';
+  const product=productInput||def.p;
+  const feature=featureInput||def.f;
+  function fill(t){return t.replace(/\[B\]/g,brand).replace(/\[P\]/g,product).replace(/\[F\]/g,feature);}
+  const pool=Array.from(new Set((TEMPLATES[theme]||[]).concat(TONE_TEMPLATES[tone]||[]).map(fill)));
   const used=new Set();
   let html='';
   let i=0;
-  while(i<count&&used.size<templates.length){
-    const t=pick(templates);
+  while(i<count&&used.size<pool.length){
+    const t=pick(pool);
     if(used.has(t))continue;
     used.add(t);
-    const slogan=t.replace(/\[B\]/g,brand);
-    html+='<div class="code-row">"'+escapeHtml(slogan)+'"</div>';
+    html+='<div class="code-row">"'+escapeHtml(t)+'"</div>';
     i++;
   }
+  html+='<div style="margin-top:10px;font-size:13px;color:var(--text-light);">'+((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'Candidates: ':'候选池：')+pool.length+((typeof TBKit!=='undefined'&&TBKit.util.isEn())?' taglines':' 条')+'</div>';
   const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h0;
 }
 function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
@@ -431,27 +464,27 @@ else document.addEventListener('DOMContentLoaded', __tagline_generatorBoot);
   <div class="related-tools-grid">
     <a href="/zh-tw/tools/marketing/marketing-keyword-density.html" class="related-tool-card">
       <span class="rt-icon">🔍</span>
-      <span class="rt-info"><span class="rt-name">SEO關鍵詞密度檢查器 - 免費文本處理工具，線上SEO關鍵詞密度檢查器，免費使用</span><span class="rt-desc">SEO關鍵詞密度檢查器</span></span>
+      <span class="rt-info"><span class="rt-name">SEO關鍵詞密度檢查器</span><span class="rt-desc">貼上網頁或文章正文並輸入目標關鍵詞，統計關鍵詞出現頻次與密度百分比，幫助最佳化內容SEO關鍵詞佈局與堆…</span></span>
     </a>
     <a href="/zh-tw/tools/marketing/xiaohongshu-counter.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">小紅書文案計數器</span><span class="rt-desc">小紅書文案計數器線上工具，即時統計標題與正文字元數、表情與話題標籤數量，提示平臺字數限制，便於合規…</span></span>
+      <span class="rt-info"><span class="rt-name">小紅書文案計數器</span><span class="rt-desc">線上工具，即時統計標題與正文字元數、表情與話題標籤數量，提示平臺字數限制，便於合規釋出，純前端</span></span>
     </a>
     <a href="/zh-tw/tools/marketing/marketing-utm-builder.html" class="related-tool-card">
       <span class="rt-icon">📢</span>
-      <span class="rt-info"><span class="rt-name">UTM引數構建器 - 免費生成器工具，線上UTM引數構建器，免費使用</span><span class="rt-desc">UTM引數構建器</span></span>
+      <span class="rt-info"><span class="rt-name">UTM引數構建器</span><span class="rt-desc">輸入基礎URL與來源、媒介、活動等UTM引數，單條或按行批次生成標準UTM追蹤連結，用於在廣告分析中…</span></span>
     </a>
     <a href="/zh-tw/tools/marketing/utm-builder.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">UTM引數生成器 - 免費生成器工具，線上UTM引數生成器，免費使用</span><span class="rt-desc">UTM引數生成器</span></span>
+      <span class="rt-info"><span class="rt-name">UTM引數生成器</span><span class="rt-desc">輸入基礎URL與一個或多個UTM引數行，支援單個與批次生成帶追蹤引數的連結，便於廣告投放與渠道效果統…</span></span>
     </a>
     <a href="/zh-tw/tools/marketing/marketing-chinese-hashtag-generator.html" class="related-tool-card">
       <span class="rt-icon">#️⃣</span>
-      <span class="rt-info"><span class="rt-name">中文營銷話題標籤生成器 - 免費生成器工具，線上中文營銷話題標籤生成器，免費使用</span><span class="rt-desc">#️⃣ 中文營銷話題標籤生成器</span></span>
+      <span class="rt-info"><span class="rt-name">中文營銷話題標籤生成器</span><span class="rt-desc">輸入主題關鍵詞，為中文營銷內容生成適用微博、小紅書、抖音等平臺的熱門話題標籤，可直接複製</span></span>
     </a>
     <a href="/zh-tw/tools/marketing/marketing-qr-campaign-tracker.html" class="related-tool-card">
       <span class="rt-icon">🔳</span>
-      <span class="rt-info"><span class="rt-name">二維碼活動追蹤器 - 免費生成器工具，線上二維碼活動追蹤器，免費使用</span><span class="rt-desc">二維碼活動追蹤器</span></span>
+      <span class="rt-info"><span class="rt-name">二維碼活動追蹤器</span><span class="rt-desc">輸入活動URL與渠道引數，生成帶UTM追蹤引數的二維碼活動連結，用於統計線下海報、物料的掃碼效果與來…</span></span>
     </a>
   </div>
 </div>

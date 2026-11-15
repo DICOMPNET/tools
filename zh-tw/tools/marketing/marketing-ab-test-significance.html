@@ -176,12 +176,14 @@
 <li>決定要不要全量推勝出版本，還是繼續放量收集資料。</li>
 <li>避免把隨機波動誤當成「顯著提升」過早下結論。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">兩比例 z 檢驗</div><div class="dd-ex-body">A 組 200/2000=10%，B 組 260/2000=13%，兩比例 z≈2.45，雙側 p≈0.014&lt;0.05 → 95% 置信下差異顯著，可全量推 B。</div></div>
+<div class="dd-example"><div class="dd-ex-title">兩比例 z 檢驗</div><div class="dd-ex-body">A 組 200/2000=10%，B 組 260/2000=13%，合併率 p̂=(200+260)/4000=11.5%，標準誤 ≈0.01009，z≈2.974，雙側 p≈0.003&lt;0.05 → 95% 置信下差異顯著，可全量推 B。</div></div>
+<div class="dd-example"><div class="dd-ex-title">A 組 0 轉化</div><div class="dd-ex-body">A 組 0/1000、B 組 20/1000：合併率 1%，標準誤 ≈0.00445，z≈4.49，雙側 p&lt;0.0001，差異顯著；相對提升因 A 組基線為 0 顯示「不適用」，改看 B 組絕對提升 2 個百分點。</div></div>
 <div class="dd-example"><div class="dd-ex-title">不顯著的處理</div><div class="dd-ex-body">若 p&gt;0.05（如只差 0.5 個百分點且樣本小），結論為「尚不顯著」，應繼續收集資料或擴大樣本，不可貿然全量。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
 <dt>p&lt;0.05 就一定該推嗎？</dt><dd>p&lt;0.05 只說明差異不太可能由隨機造成，還要看提升幅度與業務成本，微小顯著也可能不划算。</dd>
 <dt>樣本不夠怎麼辦？</dt><dd>按期望提升與基線算出所需<a class="term-link" href="/zh-tw/tools/stats/sample-size.html">樣本量</a>再開測，中途看「趨勢」停測容易誤判。</dd>
+<dt>A 組 0 轉化還能計算嗎？</dt><dd>可以。0 轉化是合法觀測，z 檢驗照常輸出；只有相對提升因基線為 0 而顯示「不適用」。合併<a class="term-link" href="/zh-tw/tools/marketing/marketing-conversion-rate-calculator.html">轉化率</a>為 0% 或 100% 時標準誤為 0，頁面會提示無法進行檢驗。</dd>
 </dl>
 </div>
 </section>
@@ -197,11 +199,13 @@
 <!-- /注意事項區塊 -->
 </div>
 <script>function __tbInputGuard(_ids,_labels){
+  _ids=_ids||[];_labels=_labels||[];
   var __r=__tbInputGuardCore(_ids,_labels);
   if(__r){var __t=document.getElementById('marketing_ab_test_significanceTable');if(__t)__t.innerHTML='';}
   return __r;
 }
 function __tbInputGuardCore(_ids,_labels){
+  _ids=_ids||[];_labels=_labels||[];
   var __TPL='请填写「%s」后再计算。';
   var __TPL2="<p style=\"color:var(--danger)\">⚠ 「%s」是本计算的分母，不能为 0。</p>";
   var _vals=[],_firstBad=-1;
@@ -226,8 +230,8 @@ function __tbInputGuardCore(_ids,_labels){
     if(_fe&&_fe.classList&&_fe.classList.add)_fe.classList.add('input-error');
     return __msg;
   }
-  // 分母项：__D 由真浏览器逐项置零探测得出，命中即说明该输入在此页作分母
-  var __D={"conversionsA": "conversionsA"};
+  // 分母项：__D 记录真正不能为 0 的字段；转化数为 0 是合法观测，不在此列
+  var __D={};
   for(var _d=0;_d<_ids.length;_d++){
     if(!(_ids[_d] in __D)) continue;
     var _de=document.getElementById(_ids[_d]);
@@ -268,26 +272,41 @@ function normCdf(x){
   const vB = parseFloat(document.getElementById('visitorsB').value);
   const cB = parseFloat(document.getElementById('conversionsB').value);
   const r = document.getElementById('result');
+  const en = (typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
   if(isNaN(vA)||isNaN(cA)||isNaN(vB)||isNaN(cB)||vA<=0||vB<=0){
     r.innerHTML=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"<p>Enter a valid number</p>":"<p>请输入有效数值</p>");
     return;
   }
+  if(cA<0||cA>vA||cB<0||cB>vB){
+    r.innerHTML='<p style="color:var(--danger)">'+(en?'Conversions must be between 0 and the matching visitor count.':'转化数须介于 0 与对应访客数之间，请检查输入。')+'</p>';
+    return;
+  }
   const pA = cA/vA, pB = cB/vB, pPool = (cA+cB)/(vA+vB);
   const se = Math.sqrt(pPool*(1-pPool)*(1/vA+1/vB));
+  if(!isFinite(se)||se===0){
+    r.innerHTML='<p style="color:var(--warning)">'+(en?'The pooled conversion rate is 0% or 100%, so the standard error is 0 and the z test is undefined; both groups have the same rate.':'两组合并转化率为 0% 或 100%，标准误为 0，无法进行 z 检验（两组转化率相同）。')+'</p>';
+    return;
+  }
   const z = (pB-pA)/se;
   const pValue = 2*(1-normCdf(Math.abs(z)));
   const sig95 = pValue < 0.05;
-  const lift = ((pB-pA)/pA)*100;
+  const lift = pA===0 ? null : ((pB-pA)/pA)*100;
+  const pText = pValue < 0.0001 ? '<0.0001' : pValue.toFixed(4);
+  const liftText = lift===null
+    ? (en?'n/a (group A conversion rate is 0)':'不适用（A 组转化率为 0）')
+    : (lift >= 0 ? '+' : '')+lift.toFixed(2)+'%';
   const __g3=`
-    <p><strong>A组转化率：${(pA*100).toFixed(2)}%</strong></p>
-    <p><strong>B组转化率：${(pB*100).toFixed(2)}%</strong></p>
-    <p>相对提升：${lift >= 0 ? '+' : ''}${lift.toFixed(2)}%</p>
-    <p>P值：${pValue.toFixed(4)}</p>
-    <p style="margin-top:8px;font-size:14px;font-weight:600;color:${sig95?'var(--success)':'var(--warning)'||'#ff9800'};">${sig95?'✅ 结果统计显著（95%置信度）':'⚠️ 结果尚不显著，建议继续收集数据'}</p>
+    <p><strong>${en?'Group A conversion rate: ':'A组转化率：'}${(pA*100).toFixed(2)}%</strong></p>
+    <p><strong>${en?'Group B conversion rate: ':'B组转化率：'}${(pB*100).toFixed(2)}%</strong></p>
+    <p>${en?'Relative lift: ':'相对提升：'}${liftText}</p>
+    <p>${en?'z value: ':'z 值：'}${isFinite(z)?z.toFixed(3):'—'}</p>
+    <p>${en?'p value: ':'P值：'}${pText}</p>
+    <p style="margin-top:8px;font-size:14px;font-weight:600;color:${sig95?'var(--success)':'var(--warning)'||'#ff9800'};">${sig95?(en?'✅ Statistically significant at 95% confidence':'✅ 结果统计显著（95%置信度）'):(en?'⚠️ Not significant yet — keep collecting data':'⚠️ 结果尚不显著，建议继续收集数据')}</p>
   `;r.innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
 
 }
 document.addEventListener('DOMContentLoaded', calc);
+window.addEventListener('toolbox:langchange', calc);
 document.querySelectorAll('input,textarea').forEach(el => {
   el.addEventListener('input', calc);
 });
@@ -442,27 +461,27 @@ else document.addEventListener('DOMContentLoaded', __marketing_ab_test_significa
   <div class="related-tools-grid">
     <a href="/zh-tw/tools/marketing/marketing-keyword-density.html" class="related-tool-card">
       <span class="rt-icon">🔍</span>
-      <span class="rt-info"><span class="rt-name">SEO關鍵詞密度檢查器 - 免費文本處理工具，線上SEO關鍵詞密度檢查器，免費使用</span><span class="rt-desc">SEO關鍵詞密度檢查器</span></span>
+      <span class="rt-info"><span class="rt-name">SEO關鍵詞密度檢查器</span><span class="rt-desc">貼上網頁或文章正文並輸入目標關鍵詞，統計關鍵詞出現頻次與密度百分比，幫助最佳化內容SEO關鍵詞佈局與堆…</span></span>
     </a>
     <a href="/zh-tw/tools/marketing/xiaohongshu-counter.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">小紅書文案計數器</span><span class="rt-desc">小紅書文案計數器線上工具，即時統計標題與正文字元數、表情與話題標籤數量，提示平臺字數限制，便於合規…</span></span>
+      <span class="rt-info"><span class="rt-name">小紅書文案計數器</span><span class="rt-desc">線上工具，即時統計標題與正文字元數、表情與話題標籤數量，提示平臺字數限制，便於合規釋出，純前端</span></span>
     </a>
     <a href="/zh-tw/tools/marketing/marketing-utm-builder.html" class="related-tool-card">
       <span class="rt-icon">📢</span>
-      <span class="rt-info"><span class="rt-name">UTM引數構建器 - 免費生成器工具，線上UTM引數構建器，免費使用</span><span class="rt-desc">UTM引數構建器</span></span>
+      <span class="rt-info"><span class="rt-name">UTM引數構建器</span><span class="rt-desc">輸入基礎URL與來源、媒介、活動等UTM引數，單條或按行批次生成標準UTM追蹤連結，用於在廣告分析中…</span></span>
     </a>
     <a href="/zh-tw/tools/marketing/utm-builder.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">UTM引數生成器 - 免費生成器工具，線上UTM引數生成器，免費使用</span><span class="rt-desc">UTM引數生成器</span></span>
+      <span class="rt-info"><span class="rt-name">UTM引數生成器</span><span class="rt-desc">輸入基礎URL與一個或多個UTM引數行，支援單個與批次生成帶追蹤引數的連結，便於廣告投放與渠道效果統…</span></span>
     </a>
     <a href="/zh-tw/tools/marketing/marketing-chinese-hashtag-generator.html" class="related-tool-card">
       <span class="rt-icon">#️⃣</span>
-      <span class="rt-info"><span class="rt-name">中文營銷話題標籤生成器 - 免費生成器工具，線上中文營銷話題標籤生成器，免費使用</span><span class="rt-desc">#️⃣ 中文營銷話題標籤生成器</span></span>
+      <span class="rt-info"><span class="rt-name">中文營銷話題標籤生成器</span><span class="rt-desc">輸入主題關鍵詞，為中文營銷內容生成適用微博、小紅書、抖音等平臺的熱門話題標籤，可直接複製</span></span>
     </a>
     <a href="/zh-tw/tools/marketing/marketing-qr-campaign-tracker.html" class="related-tool-card">
       <span class="rt-icon">🔳</span>
-      <span class="rt-info"><span class="rt-name">二維碼活動追蹤器 - 免費生成器工具，線上二維碼活動追蹤器，免費使用</span><span class="rt-desc">二維碼活動追蹤器</span></span>
+      <span class="rt-info"><span class="rt-name">二維碼活動追蹤器</span><span class="rt-desc">輸入活動URL與渠道引數，生成帶UTM追蹤引數的二維碼活動連結，用於統計線下海報、物料的掃碼效果與來…</span></span>
     </a>
   </div>
 </div>

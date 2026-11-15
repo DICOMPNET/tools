@@ -114,10 +114,11 @@
 <div class="formula-box">
 
 
-<div class="formula-eq">達人報價估算：按粉絲量級取基礎 CPM，報價 = 粉絲數 ÷ 1000 × CPM × 互動率係數 × 平臺係數 × 內容型別係數。</div></div>
+<div class="formula-eq">達人報價估算：報價 = 粉絲數 ÷ 1000 × 基礎千粉價（元/千粉）× 互動率係數 × 平臺係數 × 內容型別係數；互動率係數 = 1 + (互動率 − 2) ÷ 10。</div></div>
 
-    <div data-tb="preset" data-tb-presets='[{"label":"粉丝数500000·平均互动率（%）3·平台系数（小红书1…","labelEn":"followersInf=500000 · engRateInf=3 · pl…","values":{"followersInf":"500000","engRateInf":"3","platformFactor":"1.5","contentType":"1.5"}}]'></div>
+    <div data-tb="preset" data-tb-presets='[{"label":"粉丝数500000·千粉价10元·互动率3%·小红书图文","labelEn":"followersInf=500000 · baseCpm=10 · engRateInf=3 · platformFactor=1.5 · contentType=1.5","values":{"followersInf":"500000","baseCpm":"10","engRateInf":"3","platformFactor":"1.5","contentType":"1.5"}}]'></div>
 <label>粉絲數</label><input type="number" id="followersInf" value="500000" oninput="calc()" placeholder="如 500000">
+<label style="margin-top:12px;">基礎千粉價（元/千粉）</label><input type="number" id="baseCpm" value="10" oninput="calc()" placeholder="如 10">
 <label style="margin-top:12px;">平均互動率（%）</label><input type="number" id="engRateInf" value="3" oninput="calc()" placeholder="如 3">
 <label style="margin-top:12px;">平臺係數（小紅書1.5,抖音1.2,微博1.0,B站2.0）</label><input type="number" id="platformFactor" value="1.5" oninput="calc()" placeholder="如 1.5">
 <label style="margin-top:12px;">內容形式係數（圖文1.0,短影片1.5,直播2.5）</label><input type="number" id="contentType" value="1.5" oninput="calc()" placeholder="如 1.5">
@@ -153,7 +154,7 @@
 <h3>💡 常見使用場景</h3>
 <ul class="dd-list">
 <li>按粉絲量、互動、平臺、內容形式估一條筆記合理報價區間。</li>
-<li>對比多個達人 CPM（千粉成本）選高性價比。</li>
+<li>對比多個達人的千粉報價（元/千粉）選高性價比。</li>
 <li>預算有限時反推能覆蓋多少粉絲量級。</li>
 </ul>
 <div class="dd-example"><div class="dd-ex-title">報價區間</div><div class="dd-ex-body">粉絲 5 萬（50k）、基礎千粉價 10 元、互動加成 1.2、平臺係數 1.0、內容係數 1.0 → 報價=50×10×1.2×1×1=600 元，合理區間 420–780 元（±30%）。</div></div>
@@ -162,6 +163,7 @@
 <dl class="dd-faq">
 <dt>報價區間怎麼來的？</dt><dd>以基準報價為中心 ±30% 給出區間，實際受檔期、獨家、返點影響，區間僅作議價錨點。</dd>
 <dt>粉絲多就一定貴？</dt><dd>不一定。互動率低的「殭屍粉」賬號千粉成本高、轉化差，應看互動加成後的有效報價。</dd>
+<dt>千粉價和 CPM 是一回事嗎？</dt><dd>不是。千粉報價 = 報價 ÷ 粉絲數 × 1000，按粉絲規模比價；CPM = 報價 ÷ 預估曝光 × 1000，是千次曝光成本。本工具只算千粉報價，真正的 CPM 需另填預估曝光/閱讀。</dd>
 </dl>
 </div>
 </section>
@@ -184,9 +186,9 @@
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);">engagement rate</td>
         </tr>
         <tr>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="千次曝光成本">CPM</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="報價/預估曝光量 ×1000">Price/estimated impressions ×1000</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);">cost per mille</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="基礎千粉價">Base price per 1,000 followers</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="元/千粉，由使用者輸入">CNY per 1,000 followers, entered by the user</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);">industry benchmark</td>
         </tr>
       </tbody>
     </table>
@@ -205,34 +207,24 @@
 <script>
 function calc(){
   const followers = parseFloat(document.getElementById('followersInf').value);
+  const baseCpm = parseFloat(document.getElementById('baseCpm').value);
   const eng = parseFloat(document.getElementById('engRateInf').value);
   const plat = parseFloat(document.getElementById('platformFactor').value);
   const content = parseFloat(document.getElementById('contentType').value);
   const r = document.getElementById('result');
-  if(isNaN(followers)||isNaN(eng)||followers<=0){
-    const __h0=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"<p>Enter a valid number</p>":"<p>请输入有效数值</p>");r.innerHTML=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"<p>Enter a valid number</p>":"<p>请输入有效数值</p>");
+  if(isNaN(followers)||isNaN(baseCpm)||isNaN(eng)||isNaN(plat)||isNaN(content)||followers<=0||baseCpm<=0||eng<0||eng>100||plat<=0||content<=0){
+    const __bad=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"<p>Enter valid values: followers and the base price per 1,000 followers must be &gt; 0, engagement 0–100%, and both factors &gt; 0.</p>":"<p>请输入有效数值：粉丝数与基础千粉价须大于 0，互动率 0–100，平台与内容系数须大于 0。</p>");r.innerHTML=__bad;
     return;
   }
-  let cpmBase;
-  if(followers < 10000) cpmBase = 100;
-  else if(followers < 100000) cpmBase = 200;
-  else if(followers < 500000) cpmBase = 300;
-  else if(followers < 1000000) cpmBase = 400;
-  else cpmBase = 500;
   const engBonus = 1 + (eng - 2)/10;
-  const price = (followers/1000) * cpmBase * engBonus * plat * content;
+  const price = (followers/1000) * baseCpm * engBonus * plat * content;
   const priceRangeLow = price * 0.7;
   const priceRangeHigh = price * 1.3;
   let tier = followers < 10000 ? '素人/KOC' : followers < 100000 ? '尾部达人' : followers < 500000 ? '腰部达人' : followers < 1000000 ? '肩部达人' : '头部达人';
-  const __h1=`
+  const __g1=`
     <p>达人层级：${tier}</p>
     <p><strong>参考报价：¥${ToolBox.formatNumber(priceRangeLow,0)} - ¥${ToolBox.formatNumber(priceRangeHigh,0)}</strong></p>
-    <p>建议报价：¥${ToolBox.formatNumber(price,0)}</p>
-    <p style="margin-top:8px;font-size:12px;color:var(--text-muted);">实际报价受垂直领域、粉丝粘性、合作形式等影响</p>
-  `;const __g1=`
-    <p>达人层级：${tier}</p>
-    <p><strong>参考报价：¥${ToolBox.formatNumber(priceRangeLow,0)} - ¥${ToolBox.formatNumber(priceRangeHigh,0)}</strong></p>
-    <p>建议报价：¥${ToolBox.formatNumber(price,0)}</p>
+    <p>建议报价：¥${ToolBox.formatNumber(price,0)}（千粉报价 ¥${ToolBox.formatNumber(price/(followers/1000),1)}/千粉）</p>
     <p style="margin-top:8px;font-size:12px;color:var(--text-muted);">实际报价受垂直领域、粉丝粘性、合作形式等影响</p>
   `;r.innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 
@@ -392,27 +384,27 @@ else document.addEventListener('DOMContentLoaded', __marketing_influencer_pricin
   <div class="related-tools-grid">
     <a href="/zh-tw/tools/marketing/marketing-keyword-density.html" class="related-tool-card">
       <span class="rt-icon">🔍</span>
-      <span class="rt-info"><span class="rt-name">SEO關鍵詞密度檢查器 - 免費文本處理工具，線上SEO關鍵詞密度檢查器，免費使用</span><span class="rt-desc">SEO關鍵詞密度檢查器</span></span>
+      <span class="rt-info"><span class="rt-name">SEO關鍵詞密度檢查器</span><span class="rt-desc">貼上網頁或文章正文並輸入目標關鍵詞，統計關鍵詞出現頻次與密度百分比，幫助最佳化內容SEO關鍵詞佈局與堆…</span></span>
     </a>
     <a href="/zh-tw/tools/marketing/xiaohongshu-counter.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">小紅書文案計數器</span><span class="rt-desc">小紅書文案計數器線上工具，即時統計標題與正文字元數、表情與話題標籤數量，提示平臺字數限制，便於合規…</span></span>
+      <span class="rt-info"><span class="rt-name">小紅書文案計數器</span><span class="rt-desc">線上工具，即時統計標題與正文字元數、表情與話題標籤數量，提示平臺字數限制，便於合規釋出，純前端</span></span>
     </a>
     <a href="/zh-tw/tools/marketing/marketing-utm-builder.html" class="related-tool-card">
       <span class="rt-icon">📢</span>
-      <span class="rt-info"><span class="rt-name">UTM引數構建器 - 免費生成器工具，線上UTM引數構建器，免費使用</span><span class="rt-desc">UTM引數構建器</span></span>
+      <span class="rt-info"><span class="rt-name">UTM引數構建器</span><span class="rt-desc">輸入基礎URL與來源、媒介、活動等UTM引數，單條或按行批次生成標準UTM追蹤連結，用於在廣告分析中…</span></span>
     </a>
     <a href="/zh-tw/tools/marketing/utm-builder.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">UTM引數生成器 - 免費生成器工具，線上UTM引數生成器，免費使用</span><span class="rt-desc">UTM引數生成器</span></span>
+      <span class="rt-info"><span class="rt-name">UTM引數生成器</span><span class="rt-desc">輸入基礎URL與一個或多個UTM引數行，支援單個與批次生成帶追蹤引數的連結，便於廣告投放與渠道效果統…</span></span>
     </a>
     <a href="/zh-tw/tools/marketing/marketing-chinese-hashtag-generator.html" class="related-tool-card">
       <span class="rt-icon">#️⃣</span>
-      <span class="rt-info"><span class="rt-name">中文營銷話題標籤生成器 - 免費生成器工具，線上中文營銷話題標籤生成器，免費使用</span><span class="rt-desc">#️⃣ 中文營銷話題標籤生成器</span></span>
+      <span class="rt-info"><span class="rt-name">中文營銷話題標籤生成器</span><span class="rt-desc">輸入主題關鍵詞，為中文營銷內容生成適用微博、小紅書、抖音等平臺的熱門話題標籤，可直接複製</span></span>
     </a>
     <a href="/zh-tw/tools/marketing/marketing-qr-campaign-tracker.html" class="related-tool-card">
       <span class="rt-icon">🔳</span>
-      <span class="rt-info"><span class="rt-name">二維碼活動追蹤器 - 免費生成器工具，線上二維碼活動追蹤器，免費使用</span><span class="rt-desc">二維碼活動追蹤器</span></span>
+      <span class="rt-info"><span class="rt-name">二維碼活動追蹤器</span><span class="rt-desc">輸入活動URL與渠道引數，生成帶UTM追蹤引數的二維碼活動連結，用於統計線下海報、物料的掃碼效果與來…</span></span>
     </a>
   </div>
 </div>

@@ -272,12 +272,12 @@
 <li>定位流失最狠的環節優先最佳化（如支付棄單高）。</li>
 <li>A/B 兩個落地頁各自建漏斗對比哪條漏得更慢。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">四級漏斗</div><div class="dd-ex-body">訪問 10000 → 加購 5000 → 下單 1000 → 支付 100。整體轉化率=100/10000=1%；逐級 50%/20%/10%。支付環節 10% 掉單最嚴重，應查支付流程。</div></div>
+<div class="dd-example"><div class="dd-ex-title">四級漏斗</div><div class="dd-ex-body">訪問 10000 → 加購 5000 → 下單 1000 → 支付 100。整體轉化率=100/10000=1%；逐級轉化 50%/20%/10%，對應掉單率 50%/80%/90%。支付環節轉化率僅 10%、掉單 90%，最嚴重，應查支付流程。</div></div>
 <div class="dd-example"><div class="dd-ex-title">環比對照</div><div class="dd-ex-body">最佳化支付頁後支付環節由 10% 升到 15%，整體轉化由 1% 升到 1.5%，同等流量多 50 單。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
 <dt>整體轉化率低先改哪？</dt><dd>先改環比轉化率最低、且流量最大的環節，邊際收益最高；別一上來動頂部大流量低轉化的環節。</dd>
-<dt>漏斗能算金額嗎？</dt><dd>本工具按人數算，金額轉化可在各級乘客單價估算 GMV，定位丟錢最多的環節。</dd>
+<dt>漏斗能算金額嗎？</dt><dd>本工具按人數算，金額轉化可在各級以客單價估算 GMV，定位丟錢最多的環節。</dd>
 </dl>
 </div>
 </section>
@@ -404,33 +404,61 @@ function calc(){
   if(steps.length<2) return;
   const first = parseFloat(steps[0].value)||0;
   const last = parseFloat(steps[steps.length-1].value)||0;
-  const overallRate = first>0 ? (last/first)*100 : 0;
+  // prev<=0 时环比不可计算，统一返回 null，三个出口都显示「—」
+  const rateOf = (prev, val) => prev>0 ? (val/prev)*100 : null;
+  const overallRate = rateOf(first, last);
 
   let maxVal = 0;
   steps.forEach(s=>{ maxVal = Math.max(maxVal, parseFloat(s.value)||0); });
 
-  let summaryHtml = `
+  const zeroSteps = [], growthSteps = [];
+  let maxLost = 0, maxLostIdx = -1;
+  steps.forEach((s,i)=>{
+    if(i===0) return;
+    const val = parseFloat(s.value)||0;
+    const prevVal = parseFloat(steps[i-1].value)||0;
+    if(prevVal<=0){ zeroSteps.push(i+1); return; }
+    if(val>prevVal) growthSteps.push(i+1);
+    const lost = prevVal - val;
+    if(lost>maxLost){ maxLost = lost; maxLostIdx = i; }
+  });
+  let warn = '';
+  if(zeroSteps.length){
+    warn += '<p style="color:#ff9800;font-size:13px;margin:0 0 8px;">⚠ 第 ' + zeroSteps.join('、') + ' 级的上一级人数为 0，环比转化率无法计算，已显示「—」。</p>';
+  }
+  if(growthSteps.length){
+    warn += '<p style="color:#ff9800;font-size:13px;margin:0 0 8px;">⚠ 第 ' + growthSteps.join('、') + ' 级人数高于上一级，漏斗通常逐级递减，请检查是否填反。</p>';
+  }
+  let topLost = '';
+  if(maxLostIdx > 0 && maxLost > 0){
+    const r = rateOf(parseFloat(steps[maxLostIdx-1].value)||0, parseFloat(steps[maxLostIdx].value)||0);
+    topLost = '<p style="font-size:13px;margin:0 0 8px;color:var(--text-light);">最大流失：<strong>' + ToolBox.escHtml(steps[maxLostIdx-1].name) + ' → ' + ToolBox.escHtml(steps[maxLostIdx].name) + '</strong>，流失 ' + ToolBox.formatNumber(maxLost,0) + ' 人（环比 ' + (r===null?'—':r.toFixed(1)+'%') + '）</p>';
+  }
+
+  let summaryHtml = warn + topLost + `
     <div class="stat-grid">
       <div class="stat-card"><div class="val">${ToolBox.formatNumber(first,0)}</div><div class="lbl">入口人数</div></div>
       <div class="stat-card"><div class="val">${ToolBox.formatNumber(last,0)}</div><div class="lbl">最终转化</div></div>
-      <div class="stat-card"><div class="val">${overallRate.toFixed(2)}%</div><div class="lbl">整体转化率</div></div>
+      <div class="stat-card"><div class="val">${overallRate===null?'—':overallRate.toFixed(2)+'%'}</div><div class="lbl">整体转化率</div></div>
       <div class="stat-card"><div class="val">${steps.length}</div><div class="lbl">漏斗层数</div></div>
     </div>
   `;
 
-  summaryHtml += '<table style="margin-top:12px;"><thead><tr><th>步骤</th><th>人数</th><th>环比转化率</th><th>总体转化率</th></tr></thead><tbody>';
+  summaryHtml += '<table style="margin-top:12px;"><thead><tr><th>步骤</th><th>人数</th><th>环比转化率</th><th>流失人数</th><th>总体转化率</th></tr></thead><tbody>';
   steps.forEach((s,i)=>{
     const val = parseFloat(s.value)||0;
     const prevVal = i>0 ? parseFloat(steps[i-1].value)||0 : 0;
-    const stepRate = prevVal>0 ? (val/prevVal)*100 : 100;
-    const totalRate = first>0 ? (val/first)*100 : 0;
-    const rateClass = i===0 ? 'down' : (stepRate>=50 ? '' : 'down');
+    const stepRate = i>0 ? rateOf(prevVal, val) : null;
+    const totalRate = rateOf(first, val);
+    const lost = i>0 && prevVal>0 ? prevVal-val : null;
+    const isTop = i===maxLostIdx && maxLost>0;
     summaryHtml += `
-      <tr>
+      <tr${isTop?' style="background:#fff3e0;"':''}>
         <td><strong>${ToolBox.escHtml(s.name)}</strong></td>
         <td>${ToolBox.formatNumber(val,0)}</td>
-        <td><span class="funnel-rate-tag ${i===0?'':(stepRate>=50?'':'down')}">${i===0?'--':stepRate.toFixed(2)+'%'}</span></td>
-        <td>${totalRate.toFixed(2)}%</td>
+        <td><span class="funnel-rate-tag ${i===0?'':(stepRate!==null&&stepRate>=50?'':'down')}">${i===0?'--':(stepRate===null?'—':stepRate.toFixed(2)+'%')}</span></td>
+        <td>${lost===null?'—':ToolBox.formatNumber(lost,0)}</td>
+        <td>${totalRate===null?'—':totalRate.toFixed(2)+'%'}</td>
       </tr>
     `;
   });
@@ -442,15 +470,15 @@ function calc(){
     const val = parseFloat(s.value)||0;
     const width = maxVal>0 ? (val/maxVal)*100 : 0;
     const prevVal = i>0 ? parseFloat(steps[i-1].value)||0 : 0;
-    const stepRate = prevVal>0 ? (val/prevVal)*100 : 0;
+    const stepRate = i>0 ? rateOf(prevVal, val) : null;
     visualHtml += `
       <div class="funnel-step" style="width:${Math.max(width,25)}%">
         <span class="step-name">${ToolBox.escHtml(s.name)}</span>
         <span class="step-value">${ToolBox.formatNumber(val,0)}</span>
       </div>
       <div class="funnel-meta">
-        <span>${i===0?'起点':'环比转化 '+(stepRate>=50?'↑':'↓')}</span>
-        <span><span class="funnel-rate-tag ${i===0?'':(stepRate>=50?'':'down')}">${i===0?'100%':stepRate.toFixed(1)+'%'}</span></span>
+        <span>${i===0?'起点':(stepRate===null?'环比不可计算':'环比转化 '+(stepRate>=50?'↑':'↓'))}</span>
+        <span><span class="funnel-rate-tag ${i===0?'':(stepRate!==null&&stepRate>=50?'':'down')}">${i===0?'100%':(stepRate===null?'—':stepRate.toFixed(1)+'%')}</span></span>
       </div>
     `;
   });
@@ -528,15 +556,17 @@ function clearHistory(){
 }
 
 function exportFunnel(){
-  let csv = '步骤,人数,环比转化率,总体转化率\n';
+  let csv = '步骤,人数,环比转化率,流失人数,总体转化率\n';
   const cell = v => { let t = String(v==null?'':v); if(/^[=+\-@\t\r]/.test(t)) t = "'" + t; return /[",\n\r]/.test(t) ? '"' + t.replace(/"/g,'""') + '"' : t; };
   const first = parseFloat(steps[0].value)||0;
+  const rateOf = (prev, val) => prev>0 ? (val/prev)*100 : null;
   steps.forEach((s,i)=>{
     const val = parseFloat(s.value)||0;
     const prevVal = i>0 ? parseFloat(steps[i-1].value)||0 : 0;
-    const stepRate = prevVal>0 ? (val/prevVal)*100 : 0;
-    const totalRate = first>0 ? (val/first)*100 : 0;
-    csv += `${cell(s.name)},${val},${i===0?'--':stepRate.toFixed(2)+'%'},${totalRate.toFixed(2)}%\n`;
+    const stepRate = i>0 ? rateOf(prevVal, val) : null;
+    const totalRate = rateOf(first, val);
+    const lost = i>0 && prevVal>0 ? prevVal-val : null;
+    csv += `${cell(s.name)},${val},${i===0?'--':(stepRate===null?'—':stepRate.toFixed(2)+'%')},${lost===null?'—':lost},${totalRate===null?'—':totalRate.toFixed(2)+'%'}\n`;
   });
   ToolBox.downloadText('funnel_analysis.csv', csv, 'text/csv');
 }
@@ -567,27 +597,27 @@ document.addEventListener('DOMContentLoaded',function(){
   <div class="related-tools-grid">
     <a href="/zh-tw/tools/marketing/marketing-keyword-density.html" class="related-tool-card">
       <span class="rt-icon">🔍</span>
-      <span class="rt-info"><span class="rt-name">SEO關鍵詞密度檢查器 - 免費文本處理工具，線上SEO關鍵詞密度檢查器，免費使用</span><span class="rt-desc">SEO關鍵詞密度檢查器</span></span>
+      <span class="rt-info"><span class="rt-name">SEO關鍵詞密度檢查器</span><span class="rt-desc">貼上網頁或文章正文並輸入目標關鍵詞，統計關鍵詞出現頻次與密度百分比，幫助最佳化內容SEO關鍵詞佈局與堆…</span></span>
     </a>
     <a href="/zh-tw/tools/marketing/xiaohongshu-counter.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">小紅書文案計數器</span><span class="rt-desc">小紅書文案計數器線上工具，即時統計標題與正文字元數、表情與話題標籤數量，提示平臺字數限制，便於合規…</span></span>
+      <span class="rt-info"><span class="rt-name">小紅書文案計數器</span><span class="rt-desc">線上工具，即時統計標題與正文字元數、表情與話題標籤數量，提示平臺字數限制，便於合規釋出，純前端</span></span>
     </a>
     <a href="/zh-tw/tools/marketing/marketing-utm-builder.html" class="related-tool-card">
       <span class="rt-icon">📢</span>
-      <span class="rt-info"><span class="rt-name">UTM引數構建器 - 免費生成器工具，線上UTM引數構建器，免費使用</span><span class="rt-desc">UTM引數構建器</span></span>
+      <span class="rt-info"><span class="rt-name">UTM引數構建器</span><span class="rt-desc">輸入基礎URL與來源、媒介、活動等UTM引數，單條或按行批次生成標準UTM追蹤連結，用於在廣告分析中…</span></span>
     </a>
     <a href="/zh-tw/tools/marketing/utm-builder.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">UTM引數生成器 - 免費生成器工具，線上UTM引數生成器，免費使用</span><span class="rt-desc">UTM引數生成器</span></span>
+      <span class="rt-info"><span class="rt-name">UTM引數生成器</span><span class="rt-desc">輸入基礎URL與一個或多個UTM引數行，支援單個與批次生成帶追蹤引數的連結，便於廣告投放與渠道效果統…</span></span>
     </a>
     <a href="/zh-tw/tools/marketing/marketing-chinese-hashtag-generator.html" class="related-tool-card">
       <span class="rt-icon">#️⃣</span>
-      <span class="rt-info"><span class="rt-name">中文營銷話題標籤生成器 - 免費生成器工具，線上中文營銷話題標籤生成器，免費使用</span><span class="rt-desc">#️⃣ 中文營銷話題標籤生成器</span></span>
+      <span class="rt-info"><span class="rt-name">中文營銷話題標籤生成器</span><span class="rt-desc">輸入主題關鍵詞，為中文營銷內容生成適用微博、小紅書、抖音等平臺的熱門話題標籤，可直接複製</span></span>
     </a>
     <a href="/zh-tw/tools/marketing/marketing-qr-campaign-tracker.html" class="related-tool-card">
       <span class="rt-icon">🔳</span>
-      <span class="rt-info"><span class="rt-name">二維碼活動追蹤器 - 免費生成器工具，線上二維碼活動追蹤器，免費使用</span><span class="rt-desc">二維碼活動追蹤器</span></span>
+      <span class="rt-info"><span class="rt-name">二維碼活動追蹤器</span><span class="rt-desc">輸入活動URL與渠道引數，生成帶UTM追蹤引數的二維碼活動連結，用於統計線下海報、物料的掃碼效果與來…</span></span>
     </a>
   </div>
 </div>

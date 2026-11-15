@@ -135,7 +135,9 @@ ToolBox 文本工具
       <label><input type="checkbox" id="keepSpace"> 保留空格位置</label>
       <label><input type="checkbox" id="keepPunc"> 保留標點位置</label>
       <label><input type="checkbox" id="seeded"> 使用固定種子（可復現）</label>
+      <label>種子 <input type="number" id="seed" value="12345" min="1" max="9999999" style="width:100px;" oninput="shuffle()"></label>
     </div>
+    <p id="seedUsed" style="font-size:13px;color:var(--text-muted);margin:4px 0 0;" data-zh="未啟用固定種子（每次結果不同）">Randomly reorder lines or character sequences for draws, random sampling and classroom demos, with a repeatable shuffle in the browser.</p>
     <div class="toolbar">
       <div id="text_shufflePresets"></div>
       <button type="button" class="btn primary" onclick="shuffle()">打亂</button>
@@ -265,6 +267,7 @@ function seedRand(){
   return seedState / 233280;
 }
 function shuffleArr(arr, useSeed){
+  if(!Array.isArray(arr)) return [];
   const a = arr.slice();
   for(let i = a.length - 1; i > 0; i--){
     const j = Math.floor(useSeed ? seedRand() : Math.random() * (i + 1));
@@ -282,13 +285,16 @@ function shuffle(){
   const keepSpace = document.getElementById('keepSpace').checked;
   const keepPunc = document.getElementById('keepPunc').checked;
   const seeded = document.getElementById('seeded').checked;
-  if(seeded) seedState = 12345;
+  // BS-N97：种子可编辑并回显，不再固定 12345
+  const seedInput = document.getElementById('seed');
+  const seedVal = Math.abs(parseInt(seedInput.value, 10)) || 12345;
+  if(seeded){ seedState = seedVal; }
 
   let out = text;
   if(mode === 'chars'){
     if(keepSpace || keepPunc){
       const arr = text.split('');
-      const positions = arr.map((ch, i) => ({ch, i, keep: (keepSpace && /\s/.test(ch)) || (keepPunc && /[，。！？；：、,.!?;:'"()\[\]<>]/.test(ch))}));
+      const positions = arr.map((ch, i) => ({ch, i, keep: (keepSpace && /\s/.test(ch)) || (keepPunc && /\p{P}/u.test(ch))}));
       const toShuffle = positions.filter(p => !p.keep).map(p => p.ch);
       const shuffled = shuffleArr(toShuffle, seeded);
       let idx = 0;
@@ -297,7 +303,8 @@ function shuffle(){
       out = shuffleArr(text.split(''), seeded).join('');
     }
   }else if(mode === 'words'){
-    out = shuffleArr(text.split(/(\s+)/), seeded).join('');
+    // 仅打乱词，词间统一单空格，空白不参与洗牌（BS-N95）
+    out = shuffleArr(text.split(/\s+/).filter(Boolean), seeded).join(' ');
   }else if(mode === 'lines'){
     out = shuffleArr(text.split('\n'), seeded).join('\n');
   }else if(mode === 'charsInLine'){
@@ -307,9 +314,11 @@ function shuffle(){
     }).join('\n');
   }else if(mode === 'wordsInLine'){
     out = text.split('\n').map(line => {
-      return shuffleArr(line.split(/(\s+)/), seeded).join('');
+      return shuffleArr(line.split(/\s+/).filter(Boolean), seeded).join(' ');
     }).join('\n');
   }
+  const seedUsed = document.getElementById('seedUsed');
+  if(seedUsed) seedUsed.textContent = seeded ? ('本次种子：' + seedVal) : '未启用固定种子（每次结果不同）';
   result.textContent = out;
 }
 
@@ -485,27 +494,27 @@ else document.addEventListener('DOMContentLoaded', __text_shuffleBoot);
   <div class="related-tools-grid">
     <a href="/zh-tw/tools/biz/presentation-timer.html" class="related-tool-card">
       <span class="rt-icon">⏱️</span>
-      <span class="rt-info"><span class="rt-name">演講計時器 - 免費開發工具，線上演講計時器 | ToolBox免費線上工具箱</span><span class="rt-desc">演講計時器</span></span>
+      <span class="rt-info"><span class="rt-name">演講計時器</span><span class="rt-desc">為 PPT 每頁分配時間並進度提醒、支援全屏，輔助演講節奏把控</span></span>
     </a>
     <a href="/zh-tw/tools/biz/markdown-quote.html" class="related-tool-card">
       <span class="rt-icon">📝</span>
-      <span class="rt-info"><span class="rt-name">Markdown 引用轉換器 - 免費文本處理工具，線上Markdown 引用轉換器 | ToolBox免費線上工具箱</span><span class="rt-desc">Markdown 引用轉換器</span></span>
+      <span class="rt-info"><span class="rt-name">Markdown 引用轉換器</span><span class="rt-desc">將貼上的多行文本批次轉換為 Markdown 引用塊（每行前加 &gt;），便於在文件中引用他人內容或做批…</span></span>
     </a>
     <a href="/zh-tw/tools/biz/markdown.html" class="related-tool-card">
       <span class="rt-icon">📝</span>
-      <span class="rt-info"><span class="rt-name">Markdown 預覽 - 免費文本處理工具，Markdown 即時預覽 | ToolBox免費線上工具箱</span><span class="rt-desc">Markdown 即時預覽</span></span>
+      <span class="rt-info"><span class="rt-name">Markdown 即時預覽</span><span class="rt-desc">在左側編輯區輸入 Markdown，右側即時渲染標題、列表、程式碼塊等效果，支援即時對照，便於寫作與格…</span></span>
     </a>
     <a href="/zh-tw/tools/biz/unicode-normalize.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
-      <span class="rt-info"><span class="rt-name">Unicode 規範化 - 免費文本處理工具，線上Unicode 規範化 | ToolBox免費線上工具箱</span><span class="rt-desc">Unicode 規範化</span></span>
+      <span class="rt-info"><span class="rt-name">Unicode 規範化</span><span class="rt-desc">將文本按 NFC/NFD/NFKC/NFKD 等範式進行 Unicode 規範化，統一異體字與組合字…</span></span>
     </a>
     <a href="/zh-tw/tools/biz/zalgo-text.html" class="related-tool-card">
       <span class="rt-icon">💼</span>
-      <span class="rt-info"><span class="rt-name">Zalgo 文字 - 免費文本處理工具，Zalgo 文字生成器 | ToolBox免費線上工具箱</span><span class="rt-desc">Zalgo 文字生成器</span></span>
+      <span class="rt-info"><span class="rt-name">Zalgo 文字</span><span class="rt-desc">為文字疊加大量組合字元生成 Zalgo 亂碼風格效果，可調節紊亂強度，用於惡搞表情、標題裝飾與渲染測…</span></span>
     </a>
     <a href="/zh-tw/tools/biz/superscript-text.html" class="related-tool-card">
       <span class="rt-icon">💼</span>
-      <span class="rt-info"><span class="rt-name">上標文字 - 免費文本處理工具，在線上標文字 | ToolBox免費線上工具箱</span><span class="rt-desc">⬆️ 上標文字</span></span>
+      <span class="rt-info"><span class="rt-name">上標文字</span><span class="rt-desc">將選中文字轉為上標格式並生成可複製的 Unicode 或 HTML 上標程式碼，適合化學式、數學指數與…</span></span>
     </a>
   </div>
 </div>

@@ -203,21 +203,22 @@ function calc(){
   var txt=document.getElementById('data').value.trim();
   if(!txt){document.getElementById('res').innerHTML=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"<p>Enter excavation unit data</p>":"<p>请输入探方数据</p>");return;}
   var lines=txt.split(/[\n;；]+/).map(function(s){return s.trim();}).filter(Boolean);
-  var rows=[],totC=0,totA=0,bad=false;
-  lines.forEach(function(ln){
-    var p=ln.split(/[,，\s]+/).map(function(x){return parseFloat(x);});
-    if(p.length<2||isNaN(p[0])||isNaN(p[1])||p[1]<=0){bad=true;return;}
-    var c=p[0],a=p[1];
+  var rows=[],totC=0,totA=0,rejects=[];
+  lines.forEach(function(ln,idx){
+    var parts=ln.split(/[,，\s]+/).filter(Boolean);
+    var c=Number(parts[0]),a=Number(parts[1]);
+    var ok=parts.length===2 && /^\d+$/.test(parts[0]) && /^\d+(\.\d+)?$/.test(parts[1]) && isFinite(c) && isFinite(a) && c>=0 && a>0;
+    if(!ok){rejects.push(idx+1);return;}
     rows.push({c:c,a:a,d:c/a});totC+=c;totA+=a;
   });
-  if(!rows.length){document.getElementById('res').innerHTML='<p style="color:var(--danger);">未识别到有效行（每行需：件数, 面积㎡）</p>';return;}
+  if(!rows.length){document.getElementById('res').innerHTML='<p style="color:var(--danger);">未识别到有效行（每行需：件数, 面积㎡；件数须为≥0整数、面积须为正数）'+(rejects.length?'，已拒绝第 '+rejects.join('、')+' 行':'')+'</p>';return;}
   var totalD=totA>0?totC/totA:0;
   var html='';
   rows.forEach(function(r){
     html+='<p>'+fmt(r.a,0)+' ㎡ 出土 '+fmt(r.c,0)+' 件 → 密度 <strong style="color:var(--primary);">'+fmt(r.d,2)+' 件/㎡</strong></p>';
   });
   html+='<p style="margin-top:6px;">合计：'+fmt(totC,0)+' 件 / '+fmt(totA,0)+' ㎡ → 总密度 <strong style="color:var(--danger);">'+fmt(totalD,2)+' 件/㎡</strong></p>';
-  if(bad)html+='<p style="font-size:12px;color:var(--text-muted);">注：已跳过无法识别的行（需「件数, 面积」且面积&gt;0）。</p>';
+  if(rejects.length)html+='<p style="font-size:12px;color:var(--danger);">注：第 '+rejects.join('、')+' 行格式无效已拒绝（件数须为≥0整数，面积须为正数，且每行仅两列）。</p>';
   const __g3=html;document.getElementById('res').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
 }
 function copyResult(){ToolBox.copyText(document.getElementById('res').innerText);}
@@ -237,23 +238,23 @@ calc();
   <div class="related-tools-grid">
     <a href="/zh-tw/tools/archaeology/site-grid.html" class="related-tool-card">
       <span class="rt-icon">🧮</span>
-      <span class="rt-info"><span class="rt-name">遺址探方計算 - 科學研究領域的線上工具</span><span class="rt-desc">遺址探方計算</span></span>
+      <span class="rt-info"><span class="rt-name">遺址探方計算</span><span class="rt-desc">根據遺址範圍與探方規格計算探方數量、發掘面積與各探方座標（西南角為原點，北為 X 正向、東為 Y 正…</span></span>
     </a>
     <a href="/zh-tw/tools/archaeology/artifact-measurement.html" class="related-tool-card">
       <span class="rt-icon">🏺</span>
-      <span class="rt-info"><span class="rt-name">遺物測量記錄 - 科學研究領域的線上工具</span><span class="rt-desc">遺物測量記錄</span></span>
+      <span class="rt-info"><span class="rt-name">遺物測量記錄</span><span class="rt-desc">按考古測量規範記錄遺物尺寸、重量，自動計算體積、密度與形制指數並生成標準記錄條目</span></span>
     </a>
     <a href="/zh-tw/tools/archaeology/stratum-identify.html" class="related-tool-card">
       <span class="rt-icon">🔍</span>
-      <span class="rt-info"><span class="rt-name">地層識別 - 科學研究領域的線上工具</span><span class="rt-desc">地層識別</span></span>
+      <span class="rt-info"><span class="rt-name">地層識別</span><span class="rt-desc">考古地層識別對照，涵蓋地質時代與中國主要考古學文化期特徵，輔助遺址地層劃分與年代判定</span></span>
     </a>
     <a href="/zh-tw/tools/archaeology/dating-method.html" class="related-tool-card">
       <span class="rt-icon">🏺</span>
-      <span class="rt-info"><span class="rt-name">考古測年法 - 科學研究領域的線上工具</span><span class="rt-desc">考古測年法</span></span>
+      <span class="rt-info"><span class="rt-name">考古測年法</span><span class="rt-desc">碳-14、熱釋光、光釋光等主要考古測年方法對照，含測年範圍、適用材料、原理與精度</span></span>
     </a>
     <a href="/zh-tw/tools/archaeology/pottery-typology.html" class="related-tool-card">
       <span class="rt-icon">📚</span>
-      <span class="rt-info"><span class="rt-name">陶器型別學 - 科學研究領域的線上工具</span><span class="rt-desc">陶器型別學</span></span>
+      <span class="rt-info"><span class="rt-name">陶器型別學</span><span class="rt-desc">對照，按中國主要考古學文化期列出陶質、陶色、紋飾與典型器形，輔助田野考古陶片辨識</span></span>
     </a>
   </div>
 </div>
@@ -396,16 +397,23 @@ function __stats_densityExtras(){
 }
 function __stats_densityExport(){
     if (typeof TBKit === 'undefined') return;
-    try{
-        var box=document.querySelector('#stats_densityTable');
-        if(!box||!box.querySelector('tr')){
-            var snap=__stats_densitySnap(); var keys=Object.keys(snap);
-            if(keys.length>12) keys=keys.slice(0,12);
-            var en=(TBKit.util&&TBKit.util.isEn())?true:false;
-            __stats_densityRender(keys,en?'Result':'结果',en);
-        }
-    }catch(e){}
-    try { TBKit.util.exportTable('#stats_densityTable','stats-density.csv'); } catch(e){}
+    var en=(TBKit.util&&TBKit.util.isEn())?true:false;
+    var txt=(document.getElementById('data')||{}).value||'';
+    var lines=txt.split(/[\n;；]+/).map(function(s){return s.trim();}).filter(Boolean);
+    var rows=[],totC=0,totA=0;
+    lines.forEach(function(ln){
+        var parts=ln.split(/[,，\s]+/).filter(Boolean);
+        var c=Number(parts[0]),a=Number(parts[1]);
+        var ok=parts.length===2 && /^\d+$/.test(parts[0]) && /^\d+(\.\d+)?$/.test(parts[1]) && isFinite(c) && isFinite(a) && c>=0 && a>0;
+        if(!ok) return;
+        rows.push([c,a,c/a]);totC+=c;totA+=a;
+    });
+    if(!rows.length) return;
+    rows.sort(function(p,q){return q[2]-p[2];});
+    var out=rows.map(function(r){return [r[0],r[1],fmt(r[2],2)];});
+    out.unshift([en?'Count':'件数',en?'Area (m2)':'面积(㎡)',en?'Density (pcs/m2)':'密度(件/㎡)']);
+    out.push([en?'Total':'合计',fmt(totA,0),fmt(totC/totA,2)]);
+    try { TBKit.export.csv('stats-density.csv',out); } catch(e){}
 }
 function __stats_densityPresets(){
     if (typeof TBKit === 'undefined') return;

@@ -10,10 +10,10 @@
 <title>Human Benchmark 認知基準測評 - 常模百分位</title>
 <link rel="canonical" href="https://tools.dicomp.net/zh-tw/tools/cognition/human-benchmark.html">
 <meta property="og:title" content="Human Benchmark 認知基準測評 - 常模百分位">
-<meta property="og:description" content="Human Benchmark 認知基準測評 - 線上工具是一款免費的線上認知與腦力訓練工具，8 項經典認知子測驗，逐項換算常模百分位，彙總為記憶·注意·加工速度·執行四維能力雷達圖與 0–100 綜合腦力指數。純前端執行、資料不上傳、無需">
+<meta property="og:description" content="Human Benchmark 認知基準測評是一款免費的線上認知與腦力訓練工具，8 項經典認知子測驗，逐項換算常模百分位，彙總為記憶·注意·加工速度·執行四維能力雷達圖與 0–100 綜合腦力指數。">
 <meta property="og:url" content="https://tools.dicomp.net/zh-tw/tools/cognition/human-benchmark.html">
 <meta name="twitter:card" content="summary">
-<meta name="description" content="Human Benchmark 認知基準測評 - 線上工具是一款免費的線上認知與腦力訓練工具，8 項經典認知子測驗，逐項換算常模百分位，彙總為記憶·注意·加工速度·執行四維能力雷達圖與 0–100 綜合腦力指數。純前端執行、資料不上傳、無需">
+<meta name="description" content="Human Benchmark 認知基準測評是一款免費的線上認知與腦力訓練工具，8 項經典認知子測驗，逐項換算常模百分位，彙總為記憶·注意·加工速度·執行四維能力雷達圖與 0–100 綜合腦力指數。">
 <link rel="stylesheet" href="/css/common.css">
 <script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="/js/common.js" defer></script>
@@ -88,7 +88,7 @@
 <script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 <!-- TOOLBOX-WEBAPP-LD -->
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Human Benchmark 認知基準測評","url":"https://tools.dicomp.net/zh-tw/tools/cognition/human-benchmark.html","applicationCategory":"GamesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"Human Benchmark 認知基準測評 - 線上工具是一款免費的線上認知與腦力訓練工具，8 項經典認知子測驗，逐項換算常模百分位，彙總為記憶·注意·加工速度·執行四維能力雷達圖與 0–100 綜合腦力指數。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Human Benchmark 認知基準測評","url":"https://tools.dicomp.net/zh-tw/tools/cognition/human-benchmark.html","applicationCategory":"GamesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"Human Benchmark 認知基準測評是一款免費的線上認知與腦力訓練工具，8 項經典認知子測驗，逐項換算常模百分位，彙總為記憶·注意·加工速度·執行四維能力雷達圖與 0–100 綜合腦力指數。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
 <meta property="og:image" content="https://tools.dicomp.net/og-image.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
@@ -97,7 +97,7 @@
 <meta name="twitter:image:alt" content="ToolBox - 5000+免費線上工具">
 
 <meta name="twitter:title" content="Human Benchmark 認知基準測評 - 常模百分位">
-<meta name="twitter:description" content="Human Benchmark 認知基準測評 - 線上工具是一款免費的線上認知與腦力訓練工具，8 項經典認知子測驗，逐項換算常模百分位，彙總為記憶·注意·加工速度·執行四維能力雷達圖與 0–100 綜合腦力指數。純前端執行、資料不上傳、無需">
+<meta name="twitter:description" content="Human Benchmark 認知基準測評是一款免費的線上認知與腦力訓練工具，8 項經典認知子測驗，逐項換算常模百分位，彙總為記憶·注意·加工速度·執行四維能力雷達圖與 0–100 綜合腦力指數。">
 <meta property="og:type" content="website">
 
 <script src="/js/privacy.js" defer></script>
@@ -234,6 +234,23 @@
    * 0. 工具函数
    * ========================================================== */
   var $ = function (id) { return document.getElementById(id); };
+  /* 计时器登记：切换测验/重置时必须全部取消，否则延迟回调会写入已被清空的节点，
+     触发 `Cannot set properties of null (setting 'textContent')`。 */
+  var HB_TIMERS = [];
+  function hbLater(fn, ms) {
+    var id = window.setTimeout(function () {
+      var i = HB_TIMERS.indexOf(id);
+      if (i >= 0) { HB_TIMERS.splice(i, 1); }
+      fn();
+    }, ms);
+    HB_TIMERS.push(id);
+    return id;
+  }
+  function hbEvery(fn, ms) { var id = window.setInterval(fn, ms); HB_TIMERS.push(id); return id; }
+  function hbCancelAll() {
+    HB_TIMERS.forEach(function (id) { clearTimeout(id); clearInterval(id); });
+    HB_TIMERS = [];
+  }
   function EN(){ try{ return (typeof TBKit!=='undefined' && TBKit.util.isEn()); }catch(e){ return false; } }
   function T(zh,en){ return EN()?en:zh; }
   function clamp(v, a, b) { return v < a ? a : (v > b ? b : v); }
@@ -285,7 +302,7 @@
     el.textContent = msg;
     el.style.opacity = '1'; el.style.transform = 'translateX(-50%) translateY(0)';
     clearTimeout(el._t);
-    el._t = setTimeout(function () { el.style.opacity = '0'; el.style.transform = 'translateX(-50%) translateY(20px)'; }, 1600);
+    el._t = hbLater(function () { el.style.opacity = '0'; el.style.transform = 'translateX(-50%) translateY(20px)'; }, 1600);
   }
   function erf(x) {
     var s = x < 0 ? -1 : 1; x = Math.abs(x);
@@ -347,7 +364,7 @@
    * 2. 子测验基类与统一接口
    *    每个测验: { id, name, icon, desc, abilities, render(stage), onResult(score) }
    * ========================================================== */
-  function clearStage() { const __h0='';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){$('hbStage').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}$('hbStage').innerHTML=__h0; }
+  function clearStage() { hbCancelAll(); const __h0='';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){$('hbStage').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}$('hbStage').innerHTML=__h0; }
   function stageEl() { return $('hbStage'); }
 
   /* ---- 2.1 反应速度 ---- */
@@ -376,7 +393,7 @@
       setPhase('wait');
       var delay = 1200 + rndFloat() * 2800;
       running = true;
-      setTimeout(function () {
+      hbLater(function () {
         if (phase !== 'wait') { return; }
         running = false; t0 = performance.now(); setPhase('go'); beep(880, 0.08);
       }, delay);
@@ -393,7 +410,7 @@
       if (phase === 'idle') { schedule(); return; }
       if (phase === 'wait') {
         running = false; setPhase('bad'); beep(220, 0.18, 'square');
-        setTimeout(schedule, 800);
+        hbLater(schedule, 800);
         return;
       }
       if (phase === 'go') {
@@ -482,17 +499,17 @@
     var btns = pad.querySelectorAll('button');
     function light(i) {
       btns[i].classList.add('lit'); beep(440 + i * 110, 0.22);
-      setTimeout(function () { btns[i].classList.remove('lit'); }, 360);
+      hbLater(function () { btns[i].classList.remove('lit'); }, 360);
     }
     function play() {
       locked = true; input = [];
       var k = 0;
-      var iv = setInterval(function () {
+      var iv = hbEvery(function () {
         light(seq[k]);
         k++;
         if (k >= seq.length) {
           clearInterval(iv);
-          setTimeout(function () { locked = false; $('sHint').textContent = T('该你了：按记忆顺序点击。','Your turn: tap in the remembered order.'); }, 500);
+          hbLater(function () { locked = false; $('sHint').textContent = T('该你了：按记忆顺序点击。','Your turn: tap in the remembered order.'); }, 500);
         }
       }, 620);
     }
@@ -501,7 +518,7 @@
       seq.push(rndInt(4));
       log.textContent = T('最长 ','Longest ') + level + ' ' + T('级','lv');
       $('sHint').textContent = T('第 ','Round ') + level + ' ' + T('级：看好顺序…','lv: watch the order…');
-      setTimeout(play, 500);
+      hbLater(play, 500);
     }
     function onPick(i, b) {
       if (locked) { return; }
@@ -511,7 +528,7 @@
       if (input.length === seq.length) {
         locked = true;
         if (level >= 20) { finish(); return; }
-        setTimeout(nextLevel, 700);
+        hbLater(nextLevel, 700);
       }
     }
     function gameOver() {
@@ -547,7 +564,7 @@
       show.textContent = secret;
       $('nHint').textContent = T('记住这 ','Memorize these ') + len + ' ' + T('位数字…','digits…');
       beep(600, 0.1);
-      setTimeout(function () {
+      hbLater(function () {
         show.textContent = '？？？';
         inp.value = ''; inp.style.display = 'block'; go.style.display = 'inline-flex';
         inp.focus();
@@ -571,7 +588,7 @@
     }
     var lastSecret = '';
     var _origRound = round;
-    round = function () { lastSecret = gen(); show.textContent = lastSecret; $('nHint').textContent = T('记住这 ','Memorize these ') + len + ' ' + T('位数字…','digits…'); beep(600, 0.1); setTimeout(function () { show.textContent = '？？？'; inp.value = ''; inp.style.display = 'block'; go.style.display = 'inline-flex'; inp.focus(); $('nHint').textContent = '输入你记住的数字：'; }, 1100); };
+    round = function () { lastSecret = gen(); show.textContent = lastSecret; $('nHint').textContent = T('记住这 ','Memorize these ') + len + ' ' + T('位数字…','digits…'); beep(600, 0.1); hbLater(function () { show.textContent = '？？？'; inp.value = ''; inp.style.display = 'block'; go.style.display = 'inline-flex'; inp.focus(); $('nHint').textContent = '输入你记住的数字：'; }, 1100); };
     go.addEventListener('click', check);
     inp.addEventListener('keydown', function (e) { if (e.key === 'Enter') { check(); } });
     round();
@@ -653,7 +670,7 @@
       log.textContent = T('等级 ','Level ') + level;
       $('cHint').textContent = T('记住数字位置…','Remember number positions…');
       beep(600, 0.1);
-      setTimeout(hide, 1000 + level * 60);
+      hbLater(hide, 1000 + level * 60);
     }
     function makeCell(i, val) {
       var b = document.createElement('button');
@@ -675,7 +692,7 @@
         cells[i].textContent = num; cells[i].classList.add('picked');
         beep(500 + num * 30, 0.05);
         pickNext++;
-        if (pickNext > order.length) { level++; setTimeout(start, 500); }
+        if (pickNext > order.length) { level++; hbLater(start, 500); }
       } else { wrong(); }
     }
     function wrong() {
@@ -714,7 +731,7 @@
       idxs.forEach(function (i) { cells[i].classList.add('on'); });
       $('gHint').textContent = T('记住 ','Remember ') + n + ' ' + T('个高亮格子…','highlighted cells…');
       beep(600, 0.1);
-      setTimeout(function () {
+      hbLater(function () {
         cells.forEach(function (c) { c.classList.remove('on'); c.classList.add('hot'); });
         $('gHint').textContent = T('点击刚才高亮的 ','Tap the ') + n + ' ' + T('格。','highlighted cells.');
       }, 900 + n * 40);
@@ -728,7 +745,7 @@
       beep(520, 0.05);
       if (Object.keys(picked).length === need.length) {
         n++; log.textContent = T('目标 ','Target ') + n + ' ' + T('格','cells');
-        setTimeout(round, 400);
+        hbLater(round, 400);
       }
     }
     function fail() {
@@ -834,6 +851,7 @@
   }
 
   function handleResult(id, score) {
+    hbCancelAll();
     var pct = percentile(id, score);
     results[id] = { score: score, percentile: pct };
     saveProgress();
@@ -1084,7 +1102,7 @@
           var a = document.createElement('a');
           a.href = url; a.download = 'human-benchmark-scorecard.png';
           document.body.appendChild(a); a.click();
-          setTimeout(function () { document.body.removeChild(a); URL.revokeObjectURL(url); }, 400);
+          hbLater(function () { document.body.removeChild(a); URL.revokeObjectURL(url); }, 400);
         } else {
           __hbExportFail(T('导出失败：浏览器未能生成 PNG（画布可能为空或被污染）','Export failed: browser could not generate PNG (canvas may be empty or tainted).'));
         }
@@ -1210,57 +1228,27 @@
   <div class="related-tools-grid">
     <a href="/zh-tw/tools/cognition/cognitive-assessment.html" class="related-tool-card">
       <span class="rt-icon">⚡</span>
-      <span class="rt-info"><span class="rt-name">SCOPE 綜合認知評估</span><span class="rt-desc">SCOPE 綜合認知評估：簡單反應時、選擇反應時、數字廣度正背與倒背、符號數字模態、Stroop 幹</span></span>
+      <span class="rt-info"><span class="rt-name">SCOPE 綜合認知評估</span><span class="rt-desc">簡單反應時、選擇反應時、數字廣度正背與倒背、符號數字模態、Stroop 干擾、2-back 工作記憶…</span></span>
     </a>
     <a href="/zh-tw/tools/cognition/stroop-test.html" class="related-tool-card">
       <span class="rt-icon">📝</span>
-      <span class="rt-info"><span class="rt-name">Stroop 斯特魯普效應測試 - 線上工具</span><span class="rt-desc">斯特魯普效應揭示「讀詞」與「報色」兩個自動化加工之間的衝突：當字義顏色與墨水顏色不一致時，說出墨水顏</span></span>
+      <span class="rt-info"><span class="rt-name">Stroop 斯特魯普效應測試</span><span class="rt-desc">斯特魯普效應揭示「讀詞」與「報色」兩個自動化加工之間的衝突：當字義顏色與墨水顏色不一致時，說出墨水顏…</span></span>
     </a>
     <a href="/zh-tw/tools/cognition/digit-span-test.html" class="related-tool-card">
       <span class="rt-icon">📖</span>
-      <span class="rt-info"><span class="rt-name">數字廣度記憶測驗 - 線上工具</span><span class="rt-desc">數字廣度（Digit Span）是 WAIS 智力測驗中測量言語工作記憶廣度的經典分測驗。數字以穩定</span></span>
+      <span class="rt-info"><span class="rt-name">數字廣度記憶測驗</span><span class="rt-desc">數字廣度（Digit Span）是 WAIS 智力測驗中測量言語工作記憶廣度的經典分測驗。</span></span>
     </a>
     <a href="/zh-tw/tools/cognition/corsi-block-test.html" class="related-tool-card">
       <span class="rt-icon">📝</span>
-      <span class="rt-info"><span class="rt-name">Corsi 木塊敲擊測試 - 線上工具</span><span class="rt-desc">Corsi 木塊敲擊測試（Corsi Block-Tapping Test）用於測量視覺空間短時記憶</span></span>
+      <span class="rt-info"><span class="rt-name">Corsi 木塊敲擊測試</span><span class="rt-desc">（Corsi Block-Tapping Test）用於測量視覺空間短時記憶廣度。</span></span>
     </a>
     <a href="/zh-tw/tools/cognition/nback-training.html" class="related-tool-card">
       <span class="rt-icon">🧠</span>
-      <span class="rt-info"><span class="rt-name">N-Back 工作記憶訓練 - 線上工具</span><span class="rt-desc">N-Back 是工作記憶研究的經典範式：每個刺激出現時，判斷它與「前 N 個」刺激在對應通道上是否相</span></span>
+      <span class="rt-info"><span class="rt-name">N-Back 工作記憶訓練</span><span class="rt-desc">N-Back 是工作記憶研究的經典範式：每個刺激出現時，判斷它與「前 N 個」刺激在對應通道上是否相…</span></span>
     </a>
     <a href="/zh-tw/tools/cognition/time-perception.html" class="related-tool-card">
       <span class="rt-icon">🎵</span>
-      <span class="rt-info"><span class="rt-name">時間感知與節奏精度測試 - 線上工具</span><span class="rt-desc">測你的「時間感」與「節奏感」：一秒挑戰、雙擊速度、節拍同步三大模組，誤差分佈用 canvas 柱狀圖</span></span>
-    </a>
-  </div>
-</div>
-<!-- 相關工具 -->
-<div class="related-tools" data-related-tools="1">
-  <h3 class="related-tools-title">🔗 相關工具</h3>
-  <div class="related-tools-grid">
-    <a href="/zh-tw/tools/cognition/cognitive-assessment.html" class="related-tool-card">
-      <span class="rt-icon">⚡</span>
-      <span class="rt-info"><span class="rt-name">SCOPE 綜合認知評估</span><span class="rt-desc">SCOPE 綜合認知評估：簡單反應時、選擇反應時、數字廣度正背與倒背、符號數字模態、Stroop 幹</span></span>
-    </a>
-    <a href="/zh-tw/tools/cognition/stroop-test.html" class="related-tool-card">
-      <span class="rt-icon">📝</span>
-      <span class="rt-info"><span class="rt-name">Stroop 斯特魯普效應測試</span><span class="rt-desc">斯特魯普效應揭示「讀詞」與「報色」兩個自動化加工之間的衝突：當字義顏色與墨水顏色不一致時，說出墨水顏</span></span>
-    </a>
-    <a href="/zh-tw/tools/cognition/digit-span-test.html" class="related-tool-card">
-      <span class="rt-icon">📖</span>
-      <span class="rt-info"><span class="rt-name">數字廣度記憶測驗</span><span class="rt-desc">數字廣度（Digit Span）是 WAIS 智力測驗中測量言語工作記憶廣度的經典分測驗。數字以穩定</span></span>
-    </a>
-    <a href="/zh-tw/tools/cognition/corsi-block-test.html" class="related-tool-card">
-      <span class="rt-icon">📝</span>
-      <span class="rt-info"><span class="rt-name">Corsi 木塊敲擊測試</span><span class="rt-desc">Corsi 木塊敲擊測試（Corsi Block-Tapping Test）用於測量視覺空間短時記憶</span></span>
-    </a>
-    <a href="/zh-tw/tools/cognition/nback-training.html" class="related-tool-card">
-      <span class="rt-icon">🧠</span>
-      <span class="rt-info"><span class="rt-name">N-Back 工作記憶訓練</span><span class="rt-desc">N-Back 是工作記憶研究的經典範式：每個刺激出現時，判斷它與「前 N 個」刺激在對應通道上是否相</span></span>
-    </a>
-    <a href="/zh-tw/tools/cognition/time-perception.html" class="related-tool-card">
-      <span class="rt-icon">🎵</span>
-      <span class="rt-info"><span class="rt-name">時間感知與節奏精度測試</span><span class="rt-desc">測你的「時間感」與「節奏感」：一秒挑戰、雙擊速度、節拍同步三大模組，誤差分佈用 canvas 柱狀圖</span></span>
+      <span class="rt-info"><span class="rt-name">時間感知與節奏精度測試</span><span class="rt-desc">測你的「時間感」與「節奏感」：一秒挑戰、雙擊速度、節拍同步三大模組，誤差分佈用 canvas 柱狀圖…</span></span>
     </a>
   </div>
 </div>

@@ -10,10 +10,10 @@
 <title>映象辨識練習 - 右側是否為映象寫法的練習遊戲</title>
 <link rel="canonical" href="https://tools.dicomp.net/zh-tw/tools/kids/mirror-letter.html">
 <meta property="og:title" content="映象辨識練習 - 右側是否為映象寫法的練習遊戲">
-<meta property="og:description" content="出示字母或數字及其映象，讓孩子判斷右側是否為映象寫法的練習遊戲，訓練視覺空間辨識與左右區分能力，常用於預防低齡兒童書寫顛倒（如 b/d 混淆）。">
+<meta property="og:description" content="出示字母或數字及其映象，讓孩子判斷右側是否為映象寫法的練習遊戲，訓練視覺空間辨識與左右區分能力，常用於預防低齡兒童書寫顛倒（如 b/d 混淆）">
 <meta property="og:url" content="https://tools.dicomp.net/zh-tw/tools/kids/mirror-letter.html">
 <meta name="twitter:card" content="summary">
-<meta name="description" content="出示字母或數字及其映象，讓孩子判斷右側是否為映象寫法的練習遊戲，訓練視覺空間辨識與左右區分能力，常用於預防低齡兒童書寫顛倒（如 b/d 混淆）。">
+<meta name="description" content="出示字母或數字及其映象，讓孩子判斷右側是否為映象寫法的練習遊戲，訓練視覺空間辨識與左右區分能力，常用於預防低齡兒童書寫顛倒（如 b/d 混淆）">
 <link rel="stylesheet" href="/css/common.css">
 <script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="/js/common.js" defer></script>
@@ -61,9 +61,9 @@
 <meta name="twitter:image:alt" content="ToolBox - 5000+免費線上工具">
     <meta property="og:type" content="website">
     <meta name="twitter:title" content="映象辨識練習 - 右側是否為映象寫法的練習遊戲">
-    <meta name="twitter:description" content="出示字母或數字及其映象，讓孩子判斷右側是否為映象寫法的練習遊戲，訓練視覺空間辨識與左右區分能力，常用於預防低齡兒童書寫顛倒（如 b/d 混淆）。">
+    <meta name="twitter:description" content="出示字母或數字及其映象，讓孩子判斷右側是否為映象寫法的練習遊戲，訓練視覺空間辨識與左右區分能力，常用於預防低齡兒童書寫顛倒（如 b/d 混淆）">
 <!-- TOOLBOX-WEBAPP-LD -->
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"映象辨識練習","url":"https://tools.dicomp.net/zh-tw/tools/kids/mirror-letter.html","applicationCategory":"GamesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"出示字母或數字及其映象，讓孩子判斷右側是否為映象寫法的練習遊戲，訓練視覺空間辨識與左右區分能力，常用於預防低齡兒童書寫顛倒（如 b/d 混淆）。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"映象辨識練習","url":"https://tools.dicomp.net/zh-tw/tools/kids/mirror-letter.html","applicationCategory":"GamesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"出示字母或數字及其映象，讓孩子判斷右側是否為映象寫法的練習遊戲，訓練視覺空間辨識與左右區分能力，常用於預防低齡兒童書寫顛倒（如 b/d 混淆）","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
@@ -271,7 +271,7 @@
 <script>
 var KEY = 'kids_mirror_stats';
 var stats = { total:0, right:0, bestStreak:0 };
-var round = { idx:0, target:'R', mirrored:false, streak:0, answered:false, limit:10 };
+var round = { idx:0, target:'R', mirrored:false, streak:0, answered:false, limit:10, right:0, total:0, nextId:null };
 
 function loadStats(){
   try{ var s = JSON.parse(localStorage.getItem(KEY)); if(s) stats = Object.assign(stats, s); }catch(e){}
@@ -292,9 +292,10 @@ function genTarget(){
   var type = document.getElementById('typeSel').value;
   var diff = document.getElementById('diffSel').value;
   var pool;
-  if(type === 'letter'){ pool = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'; }
-  else if(type === 'number'){ pool = '0123456789'; }
-  else { pool = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'; }
+  // 剔除左右翻转后与原字形几乎一致的字符（A/H/I/M/O/T/U/V/W/X/Y、0/1/8），否则「是否镜像」无法从画面判别
+  if(type === 'letter'){ pool = 'BCDEFGJKLNPQRSZ'; }
+  else if(type === 'number'){ pool = '2345679'; }
+  else { pool = 'BCDEFGJKLNPQRSZ2345679'; }
   var len = diff === 'hard' ? 2 : 1;
   var s = '';
   for(var i = 0; i < len; i++){ s += pool[Math.floor(Math.random() * pool.length)]; }
@@ -302,10 +303,11 @@ function genTarget(){
 }
 
 function nextRound(){
+  if(round.nextId){ clearTimeout(round.nextId); round.nextId = null; }
   var limit = parseInt(document.getElementById('roundSel').value);
   if(limit > 0 && round.idx >= limit){
-    var acc = stats.total > 0 ? Math.round(stats.right / stats.total * 100) : 0;
-    ToolBox.showToast('练习完成！正确率 ' + acc + '%', 'success');
+    var acc = round.total > 0 ? Math.round(round.right / round.total * 100) : 0;
+    ToolBox.showToast('练习完成！本轮正确率 ' + acc + '%（' + round.right + '/' + round.total + '）', 'success');
     resetGame();
     return;
   }
@@ -326,7 +328,9 @@ function nextRound(){
 
 function answer(userMirror){
   if(round.answered) return;
+  if(round.nextId){ clearTimeout(round.nextId); round.nextId = null; }
   round.answered = true;
+  round.total++;
   var correct = (userMirror === round.mirrored);
   var btns = document.querySelectorAll('.opt-row .opt');
   btns.forEach(function(b){ b.disabled = true; });
@@ -337,6 +341,7 @@ function answer(userMirror){
   stats.total++;
   if(correct){
     stats.right++;
+    round.right++;
     round.streak++;
     if(round.streak > stats.bestStreak) stats.bestStreak = round.streak;
     const __h2='<span style="color:var(--success);">答对了！👍</span>';if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('feedback').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('feedback').innerHTML=__h2;
@@ -347,12 +352,15 @@ function answer(userMirror){
   }
   saveStats();
   renderStats();
-  setTimeout(function(){ nextRound(); }, 1100);
+  round.nextId=setTimeout(function(){ nextRound(); }, 1100);
 }
 
 function resetGame(){
+  if(round.nextId){ clearTimeout(round.nextId); round.nextId = null; }
   round.idx = 0;
   round.streak = 0;
+  round.right = 0;
+  round.total = 0;
   renderStats();
   nextRound();
 }
@@ -398,27 +406,27 @@ nextRound();
   <div class="related-tools-grid">
     <a href="/zh-tw/tools/edu/pinyin-typing-practice.html" class="related-tool-card">
       <span class="rt-icon">⌨️</span>
-      <span class="rt-info"><span class="rt-name">拼音打字練習 - 免費開發工具，線上拼音打字練習 | ToolBox免費線上工具箱</span><span class="rt-desc">⌨️ 拼音打字練習</span></span>
+      <span class="rt-info"><span class="rt-name">拼音打字練習</span><span class="rt-desc">提供中文打字練習與速度、正確率統計並支援多種文本</span></span>
     </a>
     <a href="/zh-tw/tools/edu/english-vocabulary.html" class="related-tool-card">
       <span class="rt-icon">📖</span>
-      <span class="rt-info"><span class="rt-name">英語單詞測試 - 免費開發工具，線上英語單詞測試 | ToolBox免費線上工具箱</span><span class="rt-desc">英語單詞測試</span></span>
+      <span class="rt-info"><span class="rt-name">英語單詞測試</span><span class="rt-desc">內建四六級/考研/託福詞庫隨機抽題測試並支援生詞本，純前端判分、資料不上傳，輔助背單詞</span></span>
     </a>
     <a href="/zh-tw/tools/edu/study-planner.html" class="related-tool-card">
       <span class="rt-icon">📖</span>
-      <span class="rt-info"><span class="rt-name">學習計劃制定 - 免費生成器工具，線上學習計劃制定 | ToolBox免費線上工具箱</span><span class="rt-desc">學習計劃制定</span></span>
+      <span class="rt-info"><span class="rt-name">學習計劃制定</span><span class="rt-desc">支援科目管理、每日每週計劃與進度追蹤，輔助學習時間安排與自律管理</span></span>
     </a>
-    <a href="/zh-tw/tools/edu/generator-4.html" class="related-tool-card">
+    <a href="/zh-tw/tools/it/summary-generator.html" class="related-tool-card">
       <span class="rt-icon">#️⃣</span>
-      <span class="rt-info"><span class="rt-name">摘要生成器（基於句子權重） - 免費線上工具，純前端處理 | ToolBox免費線上工具箱</span><span class="rt-desc">摘要生成器（基於句子權重）</span></span>
+      <span class="rt-info"><span class="rt-name">摘要生成器</span><span class="rt-desc">貼上長文章後，工具依據句子權重演算法評估每句重要程度，自動抽取關鍵句並按原文順序生成摘要，同時展示每個…</span></span>
     </a>
     <a href="/zh-tw/tools/library/archive-label.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">檔案盒標籤生成 - 器 - 檔案盒脊背標籤格式生成，可列印 | ToolBox免費線上工具箱</span><span class="rt-desc">檔案盒標籤生成</span></span>
+      <span class="rt-info"><span class="rt-name">檔案盒標籤生成</span><span class="rt-desc">按《檔號編制規則》生成檔案盒脊背標籤，支援檔號、題名、年度等欄位豎排排版，可直接列印在 A4 紙上裁…</span></span>
     </a>
     <a href="/zh-tw/tools/kids/memory-palace.html" class="related-tool-card">
       <span class="rt-icon">🔤</span>
-      <span class="rt-info"><span class="rt-name">記憶宮殿編碼 - 教育學習線上工具 | ToolBox免費線上工具箱</span><span class="rt-desc">記憶宮殿編碼</span></span>
+      <span class="rt-info"><span class="rt-name">記憶宮殿編碼</span><span class="rt-desc">為數字生成虛擬格子位置編碼，結合影像記憶法，幫助快速記憶長串數字或詞表，提升記力</span></span>
     </a>
   </div>
 </div>

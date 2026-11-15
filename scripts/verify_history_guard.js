@@ -120,7 +120,7 @@ CASES.push({
     if (!JSDOM) return { skip: true, got: "jsdom 不可用: " + JSDOM_ERR };
     const { spawnSync } = require("child_process");
     const code = `const fs=require('fs'),{JSDOM}=require('jsdom');const html=fs.readFileSync('tools/it/vector-magnitude.html','utf8');const w=new JSDOM(html,{url:'http://localhost/',runScripts:'outside-only'}).window;for(const m of html.matchAll(/<script(?:\\s[^>]*)?>([\\s\\S]*?)<\\/script>/g)){if(m[1].includes('function fmtSumSq('))w.eval(m[1]);}w.document.getElementById('dim').value='2';w.document.getElementById('v0').value='5e-324';w.document.getElementById('v1').value='0';w.calculate();process.stdout.write(w.document.getElementById('output').textContent);`;
-    const child = spawnSync(process.execPath, ["-e", code], { cwd: ROOT, encoding: "utf8", timeout: 5000 });
+    const child = spawnSync(process.execPath, ["-e", code], { cwd: ROOT, encoding: "utf8", timeout: 30000 });
     return { ok: child.status === 0 && child.stdout.includes("4.941e-324") && child.stdout.includes("e-647"), got: child.error ? child.error.message : child.stderr || child.stdout };
   },
 });
@@ -220,7 +220,7 @@ CASES.push({
     if (!JSDOM) return { skip: true, got: "jsdom 不可用: " + JSDOM_ERR };
     const { spawnSync } = require('child_process');
     const code = `const fs=require('fs'),{JSDOM}=require('jsdom');const html=fs.readFileSync('tools/life/bill-splitter.html','utf8');const w=new JSDOM(html,{url:'http://localhost/',runScripts:'outside-only'}).window;for(const m of html.matchAll(/<script(?:\\s[^>]*)?>([\\s\\S]*?)<\\/script>/g))if(m[1].includes("const HISTORY_KEY = 'bill_splitter_history'"))w.eval(m[1]);w.switchTab('advanced');w.document.querySelector('#items-list input[type=number]').value='1e100';w.calcAdvanced();process.stdout.write(w.document.getElementById('adv-result').textContent);`;
-    const child = spawnSync(process.execPath, ['-e', code], { cwd: ROOT, encoding: 'utf8', timeout: 10000 });
+    const child = spawnSync(process.execPath, ['-e', code], { cwd: ROOT, encoding: 'utf8', timeout: 30000 });
     return { ok: child.status === 0 && /超出|无法|过大/.test(child.stdout) && !/Infinity|NaN/.test(child.stdout), got: child.error ? child.error.message : child.stderr || child.stdout };
   },
 });

@@ -3,22 +3,22 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>jwt-size 使用指南 - ToolBox</title>
-<meta name="description" content="jwt-size：線上輸入引數即可即時得到結果，無需安裝與註冊。本指南整理核心功能、適用場景、使用步驟與常見問題，純前端免費線上使用，資料不上傳。">
-<meta property="og:title" content="jwt-size 使用指南 - ToolBox">
+<title>JWT 長度估算使用指南 - ToolBox</title>
+<meta name="description" content="按 header、payload 與簽名的位元組數估算 JWT 編碼後的字串長度，便於控制請求頭與 URL 體積。按 header/payload/signature 大小估算編碼後 JWT 總長度。">
+<meta property="og:title" content="JWT 長度估算使用指南 - ToolBox">
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="ToolBox">
 <meta property="og:url" content="https://tools.dicomp.net/zh-tw/guides/jwt-size-guide.html">
-<meta property="og:description" content="jwt-size：線上輸入引數即可即時得到結果，無需安裝與註冊。本指南整理核心功能、適用場景、使用步驟與常見問題，純前端免費線上使用，資料不上傳。">
-<meta name="twitter:title" content="jwt-size 使用指南 - ToolBox">
-<meta name="twitter:description" content="jwt-size：線上輸入引數即可即時得到結果，無需安裝與註冊。本指南整理核心功能、適用場景、使用步驟與常見問題，純前端免費線上使用，資料不上傳。">
+<meta property="og:description" content="按 header、payload 與簽名的位元組數估算 JWT 編碼後的字串長度，便於控制請求頭與 URL 體積。按 header/payload/signature 大小估算編碼後 JWT 總長度。">
+<meta name="twitter:title" content="JWT 長度估算使用指南 - ToolBox">
+<meta name="twitter:description" content="按 header、payload 與簽名的位元組數估算 JWT 編碼後的字串長度，便於控制請求頭與 URL 體積。按 header/payload/signature 大小估算編碼後 JWT 總長度。">
 <meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
 <meta name="twitter:image:alt" content="ToolBox - 免費線上工具與使用指南">
 <meta property="og:image" content="https://tools.dicomp.net/og-image.png">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="canonical" href="https://tools.dicomp.net/zh-tw/guides/jwt-size-guide.html">
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"jwt-size 使用指南","description":"jwt-size：線上輸入引數即可即時得到結果，無需安裝與註冊。","author":{"@type":"Organization","name":"ToolBox"},"datePublished":"2026-09-14","dateModified":"2026-09-14","mainEntityOfPage":{"@type":"WebPage","@id":"https://tools.dicomp.net/zh-tw/guides/encode-jwt-size-guide.html"}}</script>
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"ToolBox","item":"https://tools.dicomp.net/zh-tw/"},{"@type":"ListItem","position":2,"name":"使用指南","item":"https://tools.dicomp.net/zh-tw/guides/index.html"},{"@type":"ListItem","position":3,"name":"jwt-size 使用指南","item":"https://tools.dicomp.net/zh-tw/guides/encode-jwt-size-guide.html"}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"JWT 長度估算使用指南","description":"按 header、payload 與簽名的位元組數估算 JWT 編碼後的字串長度，便於控制請求頭與 URL 體積。按 header/payload/signature 大小估算編碼後 JWT 總長度。","author":{"@type":"Organization","name":"ToolBox"},"datePublished":"2026-09-14","dateModified":"2026-09-14","mainEntityOfPage":{"@type":"WebPage","@id":"https://tools.dicomp.net/zh-tw/guides/jwt-size-guide.html"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"ToolBox","item":"https://tools.dicomp.net/zh-tw/"},{"@type":"ListItem","position":2,"name":"使用指南","item":"https://tools.dicomp.net/zh-tw/guides/index.html"},{"@type":"ListItem","position":3,"name":"JWT 長度估算使用指南","item":"https://tools.dicomp.net/zh-tw/guides/jwt-size-guide.html"}]}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"JWT 為什麼會變長？","acceptedAnswer":{"@type":"Answer","text":"三段均由 Base64URL 編碼，原始 JSON 體積會膨脹約 33%，簽名段再疊加固定長度。"}},{"@type":"Question","name":"多長算安全？","acceptedAnswer":{"@type":"Answer","text":"安全性與長度無直接關係，但過長會佔用請求頭配額，建議僅放必要宣告。"}}]}</script>
 <style>
 :root{--primary:#FF6B35;--text:#1F2937;--muted:#6B7280;--border:#E5E7EB;--bg:#FFFAF7;}
@@ -62,10 +62,10 @@ li{margin:8px 0;}
 <meta property="og:locale:alternate" content="en_US">
 </head>
 <body>
-<nav class="breadcrumb"><a href="https://tools.dicomp.net/">ToolBox</a> / <a href="https://tools.dicomp.net/guides/index.html">使用指南</a> / <span>jwt-size 使用指南</span></nav>
+<nav class="breadcrumb"><a href="https://tools.dicomp.net/">ToolBox</a> / <a href="https://tools.dicomp.net/guides/index.html">使用指南</a> / <span>JWT 長度估算使用指南</span></nav>
 <main>
-<h1>jwt-size 使用指南</h1>
-<p class="lead">jwt-size：線上輸入引數即可即時得到結果，無需安裝與註冊。</p>
+<h1>JWT 長度估算使用指南</h1>
+<p class="lead">按 header、payload 與簽名的位元組數估算 JWT 編碼後的字串長度，便於控制請求頭與 URL 體積。按 header/payload/signature 大小估算編碼後 JWT 總長度。</p>
 <h2>計算公式與原理</h2>
 <p><strong>JWT = base64url(header) + . + base64url(payload) + . + base64url(signature)</strong></p><p>jwt-size：線上輸入引數即可即時得到結果，無需安裝與註冊。</p>
 <h2>典型使用場景</h2>
@@ -85,7 +85,7 @@ li{margin:8px 0;}
 <dt>JWT 為什麼會變長？</dt><dd>三段均由 Base64URL 編碼，原始 JSON 體積會膨脹約 33%，簽名段再疊加固定長度。</dd>
 <dt>多長算安全？</dt><dd>安全性與長度無直接關係，但過長會佔用請求頭配額，建議僅放必要宣告。</dd>
 </dl>
-<div class="back"><a href="https://tools.dicomp.net/tools/encode/jwt-size.html">→ 開啟jwt-size工具</a></div>
+<div class="back"><a href="https://tools.dicomp.net/tools/encode/jwt-size.html">→ 開啟JWT 長度估算工具</a></div>
 </main>
 </body>
 </html>

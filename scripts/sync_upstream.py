@@ -238,11 +238,15 @@ FILE_PATCHES = {
          "    if os.path.isfile(os.path.join(ROOT, 'disclaimer.html')):\n"
          "        all_urls.append('https://tools.dicomp.net/disclaimer.html')\n"),
     ],
-    # history guard：bill-splitter 巨大金额子用例在 Windows spawnSync 下含 JSDOM 初始化 + eval + calc
-    # 冷启动，实测 3s 边界容易被 child_process 启动开销击穿；本地提到 10s。
+    # history guard：bill-splitter / 向量最小非零分量子用例在 Windows spawnSync 下含 JSDOM 初始化
+    # + eval + calc 冷启动，实测 3s/5s/10s 边界都会被 child_process 启动开销击穿；本地提到 30s。
     "scripts/verify_history_guard.js": [
+        # 上游 3000ms：Windows 下 node 冷启动 + JSDOM 解析常超时（假红），抬高到 30s
         ("timeout: 3000 });\n    return { ok: child.status === 0 && /超出|无法|过大/",
-         "timeout: 10000 });\n    return { ok: child.status === 0 && /超出|无法|过大/"),
+         "timeout: 30000 });\n    return { ok: child.status === 0 && /超出|无法|过大/"),
+        # 同上：向量最小非零分量（JSDOM 冷启动）
+        ("const child = spawnSync(process.execPath, [\"-e\", code], { cwd: ROOT, encoding: \"utf8\", timeout: 5000 });",
+         "const child = spawnSync(process.execPath, [\"-e\", code], { cwd: ROOT, encoding: \"utf8\", timeout: 30000 });"),
     ],
 }
 DRY_RUN = "--dry-run" in sys.argv

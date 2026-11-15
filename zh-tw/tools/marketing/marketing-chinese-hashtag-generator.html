@@ -152,16 +152,17 @@
 <h2>📚 深度解析：中文話題標籤生成</h2>
 <h3>💡 常見使用場景</h3>
 <ul class="dd-list">
-<li>小紅書/抖音發筆記時生成中文話題詞提升搜尋命中。</li>
-<li>按品類詞擴展出成分黨、人群、場景等長尾標籤。</li>
-<li>對比不同標籤組合覆蓋的受眾做內容選題。</li>
+<li>輸入核心關鍵詞後，從內建品類/成分/人群/場景詞庫擴充套件長尾標籤。</li>
+<li>國貨護膚、早C晚A 等具體主題可按詞庫給出平價、敏感肌、成分黨、熬夜黨等細分標籤。</li>
+<li>詞庫未收錄時用少量通用標籤補位，並在結果區明確提示。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">品類擴充套件</div><div class="dd-ex-body">輸入「國貨護膚」→ 生成 #國貨護膚 #平價護膚 #敏感肌護膚 #成分黨 #學生黨護膚，由品類到人群層層收窄。</div></div>
-<div class="dd-example"><div class="dd-ex-title">場景組合</div><div class="dd-ex-body">「早C晚A」主題 → #早C晚A #護膚流程 #抗初老 #熬夜黨護膚，覆蓋方法論與人群雙維度。</div></div>
+<div class="dd-example"><div class="dd-ex-title">品類擴充套件</div><div class="dd-ex-body">輸入「國貨護膚」→ 依次生成 #國貨護膚 #平價護膚 #敏感肌護膚 #成分黨 #學生黨護膚 #護膚流程，再補關鍵詞字尾與少量通用詞，由品類到人群層層收窄。</div></div>
+<div class="dd-example"><div class="dd-ex-title">場景組合</div><div class="dd-ex-body">「早C晚A」主題 → #早C晚A #護膚流程 #抗初老 #熬夜黨護膚 #成分黨，覆蓋方法論與人群雙維度。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
 <dt>中文標籤要帶 # 嗎？</dt><dd>平臺以 # 識別話題，釋出時保留 #；本工具輸出即帶 # 可直接複製。</dd>
 <dt>標籤和正文要一致嗎？</dt><dd>要。標籤須貼合正文主題，硬蹭熱詞會被限流，相關長尾標籤轉化更好。</dd>
+<dt>關鍵詞不在詞庫怎麼辦？</dt><dd>結果區會提示「未命中內建詞庫」，此時只保留少量通用標籤，建議手動替換為具體人群（如學生黨）或場景（如通勤）詞。</dd>
 </dl>
 </div>
 </section>
@@ -212,7 +213,26 @@ function calc(){
     r.innerHTML='<p>请输入核心关键词</p>';
     return;
   }
-  const commonTags = ['好物分享','干货分享','必入','种草','避雷','测评','平价','学生党','打工人','日常分享','新手必看','保姆级教程','yyds','绝绝子','氛围感','高级感','小众','宝藏','亲测','真香','安利','回购','合集','指南','攻略','经验分享','避坑指南','省钱攻略'];
+  const CONCEPT_TAGS = {
+    '早C晚A': ['护肤流程','抗初老','熬夜党护肤','成分党','平价护肤'],
+    '国货护肤': ['平价护肤','敏感肌护肤','成分党','学生党护肤','护肤流程'],
+    '护肤': ['平价护肤','敏感肌护肤','成分党','学生党护肤','护肤流程','抗初老','熬夜党护肤'],
+    '美妆': ['平价美妆','新手化妆','成分党','学生党美妆','伪素颜','早八妆容'],
+    '穿搭': ['小个子穿搭','微胖穿搭','通勤穿搭','学生党穿搭','秋冬穿搭','氛围感穿搭'],
+    '健身': ['新手健身','居家健身','减脂餐','运动打卡','健身穿搭','增肌训练'],
+    '减脂': ['减脂餐','低卡饮食','居家减脂','减脂打卡','暴汗运动'],
+    '旅行': ['周末旅行','小众旅行','旅行攻略','旅行拍照','特种兵旅游'],
+    '美食': ['美食探店','家常菜','低卡美食','美食教程','深夜食堂'],
+    '宠物': ['养猫经验','养狗经验','宠物日常','宠物用品','新手养宠'],
+    '学习': ['高效学习','学习方法','学生党','学习打卡','干货分享'],
+    '职场': ['打工人','职场穿搭','职场干货','效率工具','通勤日常']
+  };
+  const conceptKeys = Object.keys(CONCEPT_TAGS).sort((a,b) => b.length - a.length);
+  function conceptTags(kw){
+    for(const k of conceptKeys){ if(kw.indexOf(k) >= 0) return {key:k, tags:CONCEPT_TAGS[k]}; }
+    return null;
+  }
+  const commonTags = ['好物分享','干货分享','测评','避坑指南','新手必看','保姆级教程','氛围感','高级感','宝藏','合集','攻略','经验分享'];
   const platformTags = {
     '小红书': ['小红书好物','小红书美妆','无滤镜','原相机','真实测评','小红薯'],
     '抖音': ['抖音好物','抖音爆款','短视频','直播带货','抖音热门'],
@@ -222,6 +242,8 @@ function calc(){
   const seasonalTags = ['今日份','日常vlog','每日打卡','周末去哪儿','换季必备'];
   const tags = new Set();
   tags.add('#' + kw);
+  const expanded = conceptTags(kw);
+  if(expanded) expanded.tags.forEach(t => tags.add('#' + t));
   tags.add('#' + kw + '分享');
   tags.add('#' + kw + '推荐');
   if(ind){
@@ -229,7 +251,7 @@ function calc(){
     tags.add('#' + ind + '推荐');
     tags.add('#' + ind + '好物');
   }
-  commonTags.slice(0,15).forEach(t => tags.add('#' + t));
+  commonTags.slice(0,6).forEach(t => tags.add('#' + t));
   if(plat && platformTags[plat]) platformTags[plat].forEach(t => tags.add('#' + t));
   seasonalTags.slice(0,3).forEach(t => tags.add('#' + t));
   const tagArr = Array.from(tags).slice(0,30);
@@ -238,6 +260,7 @@ function calc(){
     <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;">
       ${tagArr.map(t => `<span style="background:var(--primary);color:#fff;padding:4px 10px;border-radius:12px;font-size:12px;cursor:pointer;" onclick="navigator.clipboard.writeText('${t}')">${t}</span>`).join('')}
     </div>
+    <p style="font-size:12px;color:var(--text-muted);margin-bottom:10px;">${expanded ? '词库命中「'+expanded.key+'」，扩展 '+expanded.tags.length+' 个品类/成分/人群/场景标签；' : '未命中内置词库，仅用核心词 + 通用标签补位，建议手动替换为细分人群/场景词。'}</p>
     <button type="button" class="btn primary" onclick="ToolBox.copyText(\`${tagArr.join(' ')}\`)">复制全部标签</button>
   `;r.innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 
@@ -397,27 +420,27 @@ else document.addEventListener('DOMContentLoaded', __marketing_chinese_hashtag_g
   <div class="related-tools-grid">
     <a href="/zh-tw/tools/marketing/marketing-keyword-density.html" class="related-tool-card">
       <span class="rt-icon">🔍</span>
-      <span class="rt-info"><span class="rt-name">SEO關鍵詞密度檢查器 - 免費文本處理工具，線上SEO關鍵詞密度檢查器，免費使用</span><span class="rt-desc">SEO關鍵詞密度檢查器</span></span>
+      <span class="rt-info"><span class="rt-name">SEO關鍵詞密度檢查器</span><span class="rt-desc">貼上網頁或文章正文並輸入目標關鍵詞，統計關鍵詞出現頻次與密度百分比，幫助最佳化內容SEO關鍵詞佈局與堆…</span></span>
     </a>
     <a href="/zh-tw/tools/marketing/xiaohongshu-counter.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">小紅書文案計數器</span><span class="rt-desc">小紅書文案計數器線上工具，即時統計標題與正文字元數、表情與話題標籤數量，提示平臺字數限制，便於合規…</span></span>
+      <span class="rt-info"><span class="rt-name">小紅書文案計數器</span><span class="rt-desc">線上工具，即時統計標題與正文字元數、表情與話題標籤數量，提示平臺字數限制，便於合規釋出，純前端</span></span>
     </a>
     <a href="/zh-tw/tools/marketing/marketing-utm-builder.html" class="related-tool-card">
       <span class="rt-icon">📢</span>
-      <span class="rt-info"><span class="rt-name">UTM引數構建器 - 免費生成器工具，線上UTM引數構建器，免費使用</span><span class="rt-desc">UTM引數構建器</span></span>
+      <span class="rt-info"><span class="rt-name">UTM引數構建器</span><span class="rt-desc">輸入基礎URL與來源、媒介、活動等UTM引數，單條或按行批次生成標準UTM追蹤連結，用於在廣告分析中…</span></span>
     </a>
     <a href="/zh-tw/tools/marketing/utm-builder.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">UTM引數生成器 - 免費生成器工具，線上UTM引數生成器，免費使用</span><span class="rt-desc">UTM引數生成器</span></span>
+      <span class="rt-info"><span class="rt-name">UTM引數生成器</span><span class="rt-desc">輸入基礎URL與一個或多個UTM引數行，支援單個與批次生成帶追蹤引數的連結，便於廣告投放與渠道效果統…</span></span>
     </a>
     <a href="/zh-tw/tools/marketing/marketing-qr-campaign-tracker.html" class="related-tool-card">
       <span class="rt-icon">🔳</span>
-      <span class="rt-info"><span class="rt-name">二維碼活動追蹤器 - 免費生成器工具，線上二維碼活動追蹤器，免費使用</span><span class="rt-desc">二維碼活動追蹤器</span></span>
+      <span class="rt-info"><span class="rt-name">二維碼活動追蹤器</span><span class="rt-desc">輸入活動URL與渠道引數，生成帶UTM追蹤引數的二維碼活動連結，用於統計線下海報、物料的掃碼效果與來…</span></span>
     </a>
     <a href="/zh-tw/tools/marketing/slogan-generator.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">口號生成器 - 營銷推廣領域的線上工具</span><span class="rt-desc">口號生成器</span></span>
+      <span class="rt-info"><span class="rt-name">口號生成器</span><span class="rt-desc">按行業與調性生成宣傳口號候選，支援多風格切換，用於品牌標語頭腦風暴，純前端生成僅供參考可編輯</span></span>
     </a>
   </div>
 </div>

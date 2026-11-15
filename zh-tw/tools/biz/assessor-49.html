@@ -49,6 +49,7 @@
 <!-- TOOLBOX-I18N-SCRIPT -->
 
 
+<meta name="title-en" content="Competency Model Assessor">
 <meta name="desc-en" content="Score six competency dimensions and weight them by job type to produce an overall competency score, level and development suggestions for talent review, promot…">
 
 
@@ -168,7 +169,7 @@
 <li>社招初篩時快速給出勝任力畫像，把低於 6 分的維度標為面試追問重點。</li>
 <li>培訓規劃期彙總團隊評分，看哪個維度整體偏低，據此排下季度課程。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">同一份評分在不同崗位下的差異</div><div class="dd-ex-body">六維均為 8/7/9/7/7/8：技術崗權重下綜合約 8.05（優秀），管理崗權重下約 7.60；說明該員工更適合技術線深耕，轉管理需先補團隊協作與執行推動。</div></div>
+<div class="dd-example"><div class="dd-ex-title">同一份評分在不同崗位下的差異</div><div class="dd-ex-body">六維均為 8/7/9/7/7/8：技術崗權重下綜合約 7.90（優秀），管理崗權重下約 7.65；說明該員工更適合技術線深耕，轉管理需先補團隊協作與執行推動。</div></div>
 <div class="dd-example"><div class="dd-ex-title">定位待提升維度</div><div class="dd-ex-body">銷售崗評分中「創新思維」僅 4 分被標為待提升，綜合 6.9 屬合格；發展計劃應先補創新思維，再談晉升，因為低分維度會拉低整體畫像的可信度。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
@@ -194,12 +195,20 @@
 <script>
 function calc(){
   var jt=document.getElementById('jobType').value;
-  var dims=[{n:'专业知识',v:+document.getElementById('d1').value||0},{n:'沟通表达',v:+document.getElementById('d2').value||0},{n:'问题解决',v:+document.getElementById('d3').value||0},{n:'团队协作',v:+document.getElementById('d4').value||0},{n:'创新思维',v:+document.getElementById('d5').value||0},{n:'执行力',v:+document.getElementById('d6').value||0}];
+  var raw=['d1','d2','d3','d4','d5','d6'].map(function(id){return parseFloat(document.getElementById(id).value);});
+  var names=['专业知识','沟通表达','问题解决','团队协作','创新思维','执行力'];
+  var res=document.getElementById('res');
+  var blank=raw.map(function(x,i){return isNaN(x)?names[i]:null;}).filter(Boolean);
+  if(blank.length){res.innerHTML='<p style="color:var(--danger)">⚠ 请填写全部六个维度评分（1–10）：'+blank.join('、')+'。</p>';return;}
+  var clamped=false;
+  var dims=raw.map(function(x,i){if(x<1||x>10) clamped=true; return {n:names[i],v:Math.min(10,Math.max(1,x))};});
   var weights={'manager':[0.15,0.2,0.15,0.2,0.1,0.2],'tech':[0.3,0.1,0.25,0.1,0.15,0.1],'sales':[0.2,0.25,0.1,0.1,0.05,0.3]}[jt];
   var total=0;dims.forEach(function(d,i){total+=d.v*weights[i];});
+  total=Math.min(10,Math.max(0,total));
   var grade=total>=8.5?'卓越':total>=7?'优秀':total>=5.5?'合格':total>=4?'需提升':'不胜任';
   var color=total>=7?'var(--success)':total>=5.5?'var(--warning)':'var(--danger)';
   var h='<p>岗位类型：'+{'manager':'管理岗','tech':'技术岗','sales':'销售岗'}[jt]+'</p>';
+  if(clamped) h+='<p style="color:var(--danger)">⚠ 有评分超出 1–10，已按边界钳制后计算。</p>';
   dims.forEach(function(d,i){h+='<p>'+d.n+'：'+d.v+'/10 (权重'+(weights[i]*100)+'%) - '+(d.v>=7?'优势':d.v>=5?'一般':'待提升')+'</p>';});
   h+='<p>综合胜任力：<strong style="font-size:22px;color:'+color+';">'+total.toFixed(2)+'/10</strong></p>';
   h+='<p>胜任等级：<strong style="color:'+color+';">'+grade+'</strong></p>';
@@ -225,19 +234,19 @@ calc();
   <div class="related-tools-grid">
     <a href="/zh-tw/tools/biz/analysis-47.html" class="related-tool-card">
       <span class="rt-icon">📊</span>
-      <span class="rt-info"><span class="rt-name">戰略（分析/定位/實施）框架</span><span class="rt-desc">輸入關鍵經營資料，按「分析—定位—實施」三段框架輸出戰略梳理結果與行動要點，輔助諮詢顧問與管理層做…</span></span>
+      <span class="rt-info"><span class="rt-name">戰略（分析/定位/實施）框架</span><span class="rt-desc">輸入關鍵經營資料，按「分析—定位—實施」三段框架輸出戰略梳理結果與行動要點，輔助諮詢顧問與管理層做戰…</span></span>
     </a>
     <a href="/zh-tw/tools/biz/analysis-manager.html" class="related-tool-card">
       <span class="rt-icon">📊</span>
-      <span class="rt-info"><span class="rt-name">財務（管理/分析/決策）諮詢</span><span class="rt-desc">輸入財務與經營資料（逗號或換行分隔），輸出均值、極值、波動等管理分析指標與決策提示，輔助財務管理…</span></span>
+      <span class="rt-info"><span class="rt-name">財務（管理/分析/決策）諮詢</span><span class="rt-desc">輸入財務與經營資料（逗號或換行分隔），輸出均值、極值、波動等管理分析指標與決策提示，輔助財務管理、預…</span></span>
     </a>
     <a href="/zh-tw/tools/biz/presentation-timer.html" class="related-tool-card">
       <span class="rt-icon">⏱️</span>
-      <span class="rt-info"><span class="rt-name">演講計時器</span><span class="rt-desc">演講計時器，為 PPT 每頁分配時間並進度提醒、支援全屏，輔助演講節奏把控。</span></span>
+      <span class="rt-info"><span class="rt-name">演講計時器</span><span class="rt-desc">為 PPT 每頁分配時間並進度提醒、支援全屏，輔助演講節奏把控</span></span>
     </a>
     <a href="/zh-tw/tools/biz/markdown.html" class="related-tool-card">
       <span class="rt-icon">📝</span>
-      <span class="rt-info"><span class="rt-name">Markdown 即時預覽</span><span class="rt-desc">在左側編輯區輸入 Markdown，右側即時渲染標題、列表、程式碼塊等效果，支援即時對照，便於寫作與格</span></span>
+      <span class="rt-info"><span class="rt-name">Markdown 即時預覽</span><span class="rt-desc">在左側編輯區輸入 Markdown，右側即時渲染標題、列表、程式碼塊等效果，支援即時對照，便於寫作與格…</span></span>
     </a>
   </div>
 </div>

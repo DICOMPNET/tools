@@ -271,9 +271,15 @@ function calc(){
   var hoursAgo=parseFloat(document.getElementById('hoursAgo').value);
   var diff=document.getElementById('difficulty').value;
   var age=parseFloat(document.getElementById('age').value);
-  if(!reps||reps<1){
-    document.getElementById('result').innerHTML='<div class="retention-val">--</div><div class="retention-sub">请输入有效次数</div>';
+  var badReps=!isFinite(reps)||reps<1||Math.floor(reps)!==reps;
+  var badHours=!isFinite(hoursAgo)||hoursAgo<0;
+  var badAge=!isFinite(age)||age<=0;
+  if(badReps||badHours||badAge){
+    var msg=badReps?'请输入 ≥1 的整数训练次数':(badHours?'请输入已过小时数（≥0）':'请输入有效年龄（月）');
+    document.getElementById('result').innerHTML='<div class="retention-val">--</div><div class="retention-sub">'+msg+'</div>';
     document.getElementById('scheduleGrid').innerHTML='';
+    var cv0=document.getElementById('curveChart');
+    if(cv0){var c0=cv0.getContext('2d');c0.save();c0.setTransform(1,0,0,1,0,0);c0.clearRect(0,0,cv0.width,cv0.height);c0.restore();}
     return;
   }
   var s=DIFFICULTY_S[diff];
@@ -295,6 +301,7 @@ function calc(){
     mainSub='记忆严重衰退，需立即重新训练';
   }
   const __g3='<div class="retention-val">'+mainVal+'</div><div class="retention-sub">'+mainSub+'</div>';document.getElementById('result').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
+  window.__crMain='口令记忆：'+mainVal+' - '+mainSub;
   renderSchedule(reps,s);
   drawCurve(reps,s,hoursAgo);
 }
@@ -308,22 +315,26 @@ function renderSchedule(reps,s){
     schedule.push({session:i+1,interval:intervals[i],retention:ret});
   }
   var html='';
+  var planLines=[];
   schedule.forEach(function(sc){
     var retPct=Math.round(sc.retention*100);
     var color=retPct>=60?'var(--success)':(retPct>=30?'var(--warning)':'var(--danger)');
     var intervalText;
     if(sc.interval<24)intervalText=sc.interval+'小时后';
     else intervalText=fmtLocal(sc.interval/24,1)+'天后';
+    planLines.push('第'+(reps+sc.session-1)+'→'+(reps+sc.session)+'次 | '+intervalText+' | 保留'+retPct+'%');
     html+='<div class="schedule-card">'+
       '<div class="session">第'+(reps+sc.session-1)+'→'+(reps+sc.session)+'次</div>'+
       '<div class="when">'+intervalText+'</div>'+
       '<div class="ret" style="color:'+color+';">保留'+retPct+'%</div>'+
       '</div>';
   });
+  window.__crPlan=planLines;
   const __g4=html;document.getElementById('scheduleGrid').innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
 }
 
 function drawCurve(reps,s,hoursAgo){
+  var en = /^en/i.test(document.documentElement.lang || '');
   var canvas=document.getElementById('curveChart');
   var ctx=canvas.getContext('2d');
   var dpr=window.devicePixelRatio||1;
@@ -408,13 +419,24 @@ function drawCurve(reps,s,hoursAgo){
   }
   ctx.fillStyle=getComputedStyle(document.documentElement).getPropertyValue('--text-light')||'#6B7280';
   ctx.textAlign='left';
-  ctx.fillText('保留率 (%)',6,14);
+  ctx.fillText(en ? 'Retention (%)' : '保留率 (%)',6,14);
+  window.__tbRedraw = function(){ if(typeof calc==='function') calc(); };
+  if(!window.__tbLangBound){
+    window.__tbLangBound = 1;
+    window.addEventListener('toolbox:langchange', function(){ if(window.__tbRedraw) window.__tbRedraw(); });
+  }
 }
 
 function copyResult(){
-  var mainVal=document.getElementById('result').querySelector('.retention-val').textContent;
-  var mainSub=document.getElementById('result').querySelector('.retention-sub').textContent;
-  ToolBox.copyText('口令记忆：'+mainVal+' - '+mainSub);
+  var head=window.__crMain||'';
+  if(!head){
+    var el=document.getElementById('result');
+    head='口令记忆：'+((el&&el.textContent)||'').replace(/\s+/g,' ').trim();
+  }
+  var plan=window.__crPlan||[];
+  var txt=head;
+  if(plan.length) txt+='\n复习计划：\n'+plan.join('\n');
+  ToolBox.copyText(txt);
 }
 
 calc();
@@ -437,23 +459,23 @@ document.addEventListener('DOMContentLoaded',function(){
 
     <a href="/zh-tw/tools/funeral/grave-design.html" class="related-tool-card">
       <span class="rt-icon">📐</span>
-      <span class="rt-info"><span class="rt-name">墓地碑文設計器 - 線上設計碑文排版與墓地面積，含碑文模板 | ToolBox免費線上工具箱</span><span class="rt-desc">墓地碑文設計器</span></span>
+      <span class="rt-info"><span class="rt-name">墓地碑文設計器</span><span class="rt-desc">按碑文格式生成墓碑設計，含抬頭稱謂（故先考/故先妣/顯考/顯妣）、正文與落款排版，便於刻碑參考</span></span>
     </a>
     <a href="/zh-tw/tools/wedding/seating-chart.html" class="related-tool-card">
       <span class="rt-icon">💒</span>
-      <span class="rt-info"><span class="rt-name">賓客座點陣圖 - 日常生活線上工具 | ToolBox免費線上工具箱</span><span class="rt-desc">賓客座點陣圖</span></span>
+      <span class="rt-info"><span class="rt-name">賓客座點陣圖</span><span class="rt-desc">錄入賓客名單並按親友、同事等關係分組，設定桌數與每桌人數後自動排位生成座點陣圖，避免賓客離散，用於婚宴…</span></span>
     </a>
     <a href="/zh-tw/tools/life/generator-strength.html" class="related-tool-card">
       <span class="rt-icon">🔑</span>
-      <span class="rt-info"><span class="rt-name">密碼生成器（帶強度檢測） - 可自定義長度、字元型別，生成高強度隨機密碼並即時評估密碼強度 | ToolBox免費線上工具箱</span><span class="rt-desc">密碼生成器（帶強度檢測）</span></span>
+      <span class="rt-info"><span class="rt-name">密碼生成器（帶強度檢測）</span><span class="rt-desc">自定義密碼長度並勾選大小寫、數字、符號等字元型別，生成高強度隨機密碼，同時即時評估其安全強度，一鍵復…</span></span>
     </a>
     <a href="/zh-tw/tools/funeral/ceremony-timeline.html" class="related-tool-card">
       <span class="rt-icon">📜</span>
-      <span class="rt-info"><span class="rt-name">追悼會時間軸規劃器 - 線上規劃追悼會流程時間軸，含各環節時長與注意事項 | ToolBox免費線上工具箱</span><span class="rt-desc">⏰ 追悼會時間軸規劃器</span></span>
+      <span class="rt-info"><span class="rt-name">追悼會時間軸規劃器</span><span class="rt-desc">規劃追悼會告別儀式流程時間軸，自定義各環節與時長，資料本地儲存，便於安排簽到與告別順序</span></span>
     </a>
     <a href="/zh-tw/tools/life/generator-random-1.html" class="related-tool-card">
       <span class="rt-icon">🎲</span>
-      <span class="rt-info"><span class="rt-name">隨機數生成器（範圍任意） - 免費線上工具，純前端處理 | ToolBox免費線上工具箱</span><span class="rt-desc">隨機數生成器（範圍任意）</span></span>
+      <span class="rt-info"><span class="rt-name">隨機數生成器（範圍任意）</span><span class="rt-desc">隨機數生成器支援自定義範圍、數量與是否允許重複，批次生成整數或小數，純前端隨機演算法，適合抽獎、抽樣…</span></span>
     </a>
   </div>
 </div>

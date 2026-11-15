@@ -120,7 +120,7 @@
 <div class="card tool-card-accent" style="--tool-accent:#7C3AED;">
      <h2 data-zh="🖼️ SVG 轉 PNG">🖼️ SVG to PNG Converter</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">把 SVG 程式碼包成 image/svg+xml 型別的 Blob 並建立物件 URL，交由 Image 非同步載入；畫布畫素 = 設定寬高 × 匯出倍率（1x/2x/3x），背景預設透明、可選白色（僅選白色時鋪底，避免透明 SVG 被刷白）；按 drawImage(圖, 0, 0, 畫布寬, 畫布高) 縮放繪製；匯出 PNG data URL 後立即釋放物件 URL，載入失敗提示 SVG 載入失敗</div>
+  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">把 SVG 程式碼包成 image/svg+xml 型別的 Blob 並建立物件 URL，交由 Image 非同步載入；畫布畫素 = 設定寬高 × 匯出倍率（1x/2x/3x），背景預設透明、可選白色（僅選白色時鋪底，避免透明 SVG 被刷白）；適配模式預設「保持比例」居中繪製並保留多餘畫布、可選「拉伸鋪滿」拉伸至畫布尺寸；匯出 PNG data URL 後立即釋放物件 URL，載入失敗提示 SVG 載入失敗</div>
   <div class="formula-desc">本工具為純前端線上工具，資料在瀏覽器本地處理、不上傳伺服器，依據對應領域標準與規範進行計算或處理，結果僅供參考。 工具名稱：SVG 轉 PNG - 免費圖片處理工具，線上SVG 轉 PNG，免費使用。</div>
 </div>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="將向量 SVG 轉換為 PNG 點陣圖並支援下載，可設定尺寸與背景，便於在不支援向量的場景使用，純前端本地轉換。">Rasterise a vector SVG into a PNG with a chosen size and background for contexts that cannot render SVG, processed locally.</p>
@@ -134,6 +134,9 @@
     <div class="input-row">
       <div><label>匯出倍率</label><select id="scale"><option value="1">1x</option><option value="2">2x</option><option value="3">3x</option></select></div>
       <div><label>背景</label><select id="bgMode"><option value="transparent">透明</option><option value="white">白色</option></select></div>
+    </div>
+    <div class="input-row">
+      <div><label>適配模式</label><select id="fitMode"><option value="contain" selected>保持比例（留白）</option><option value="stretch">拉伸鋪滿</option></select></div>
     </div>
     <div class="toolbar">
       <button type="button" class="btn primary" onclick="generate()">轉換</button>
@@ -171,7 +174,7 @@
 <li>素材轉換。</li>
 <li>設計交付。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">SVG 轉 512 PNG</div><div class="dd-ex-body">&lt;p&gt;&lt;strong&gt;輸入：&lt;/strong&gt;上傳 SVG、512px。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;處理：&lt;/strong&gt;canvas 繪製。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;輸出：&lt;/strong&gt;PNG 下載。&lt;/p&gt;</div></div>
+<div class="dd-example"><div class="dd-ex-title">SVG 轉 512 PNG</div><div class="dd-ex-body"><p><strong>輸入：</strong>上傳 SVG、512px。</p><p><strong>處理：</strong>canvas 繪製。</p><p><strong>輸出：</strong>PNG 下載。</p></div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
 <dt>透明保留嗎？</dt><dd>預設匯出透明背景；把「背景」切到白色即可得到白底 PNG。</dd>
@@ -195,7 +198,7 @@
       <tbody>
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="柵格化尺寸">Raster size</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="輸出畫素寬 = viewBox 寬 x 縮放倍率，保持長寬比">output width = viewBox width x scale factor, ratio preserved</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="畫布畫素 = 設定寬高 × 倍率；預設 contain 保持長寬比居中，可選 stretch 拉伸鋪滿">canvas pixels = width × height × scale; contain keeps aspect ratio centered, stretch fills the canvas</td>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="W3C SVG 1.1">W3C SVG 1.1</td>
         </tr>
         <tr>
@@ -304,8 +307,8 @@ function __svgSanitize(raw){
   out = out.replace(/url\(\s*(['"]?)(?:https?:)?\/\/[^)]*\)/gi, 'none');
   return { ok: true, svg: out, report: report };
 }
-['svgInput','width','height','scale','bgMode'].forEach(function(id){
-  document.getElementById(id).addEventListener(id === 'scale' || id === 'bgMode' ? 'change' : 'input', function(){
+['svgInput','width','height','scale','bgMode','fitMode'].forEach(function(id){
+  document.getElementById(id).addEventListener(id === 'scale' || id === 'bgMode' || id === 'fitMode' ? 'change' : 'input', function(){
     __genToken++;
     lastDataURL = '';
     document.getElementById('exportMetaVal').textContent = '';
@@ -321,6 +324,7 @@ function generate(){
   const h = parseInt(document.getElementById('height').value);
   const scale = parseInt(document.getElementById('scale').value) || 1;
   const bgMode = document.getElementById('bgMode').value;
+  const fitMode = document.getElementById('fitMode').value;
   const preview = document.getElementById('preview');
   if(!(w > 0) || !(h > 0)){
     lastDataURL = '';
@@ -340,7 +344,7 @@ function generate(){
     if(window.ToolBox && ToolBox.showToast) ToolBox.showToast('已自动移除 ' + n + ' 处外部资源引用，避免污染画布', 'info');
   }
   document.getElementById('exportMetaVal').textContent =
-    `${w * scale} × ${h * scale} · ${scale}x · ${bgMode}`;
+    `${w * scale} × ${h * scale} · ${scale}x · ${bgMode} · ${fitMode}`;
   lastDataURL = '';
   try{
     const blob = new Blob([cleaned.svg], {type:'image/svg+xml;charset=utf-8'});
@@ -359,8 +363,19 @@ function generate(){
           ctx.fillStyle = '#fff';
           ctx.fillRect(0, 0, canvas.width, canvas.height);
         }
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        // D-N25：默认 contain 保持长宽比居中（多余处保留背景/留白），可选 stretch 拉伸铺满画布
+        let drawX = 0, drawY = 0, drawW = canvas.width, drawH = canvas.height;
+        if(fitMode !== 'stretch' && img.width > 0 && img.height > 0){
+          const ratio = Math.min(canvas.width / img.width, canvas.height / img.height);
+          drawW = Math.round(img.width * ratio);
+          drawH = Math.round(img.height * ratio);
+          drawX = Math.round((canvas.width - drawW) / 2);
+          drawY = Math.round((canvas.height - drawH) / 2);
+        }
+        ctx.drawImage(img, drawX, drawY, drawW, drawH);
         lastDataURL = canvas.toDataURL('image/png');
+        // 生成完成后补充实际绘制尺寸（contain 留白时帮助用户了解图形真实大小）
+        document.getElementById('exportMetaVal').textContent += ` · 绘制${drawW}×${drawH}`;
         const __h0='<img src="/zh-tw/tools/design/'+lastDataURL+'" alt="PNG">';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){preview.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}preview.innerHTML=__h0;
       }catch(e){
         lastDataURL = '';
@@ -565,24 +580,24 @@ else document.addEventListener('DOMContentLoaded', __svg_to_pngBoot);
   <div class="related-tools-grid">
     <a href="/zh-tw/tools/design/generator-10.html" class="related-tool-card">
       <span class="rt-icon">📈</span>
-      <span class="rt-info"><span class="rt-name">CSS動畫生成器（關鍵幀視覺化） - 免費線上工具，純前端處理 | ToolBox免費線上工具箱</span><span class="rt-desc">CSS動畫生成器（關鍵幀視覺化）</span></span>
+      <span class="rt-info"><span class="rt-name">CSS動畫生成器（關鍵幀視覺化）</span><span class="rt-desc">以視覺化方式編排 CSS 關鍵幀動畫，調整時長、緩動與屬性並即時預覽，生成可直接使用的 @keyfr…</span></span>
     </a>
 
     <a href="/zh-tw/tools/design/web-audio-metronome.html" class="related-tool-card">
       <span class="rt-icon">🎵</span>
-      <span class="rt-info"><span class="rt-name">Web Audio 節拍器 - 免費生成器工具，線上節拍器 | ToolBox免費線上工具箱</span><span class="rt-desc">線上節拍器</span></span>
+      <span class="rt-info"><span class="rt-name">Web Audio 節拍器</span><span class="rt-desc">線上節拍器，使用 Web Audio API 提供精準節拍並支援多種拍號，適合練習樂器與節奏訓練</span></span>
     </a>
     <a href="/zh-tw/tools/design/generator-8.html" class="related-tool-card">
       <span class="rt-icon">🔳</span>
-      <span class="rt-info"><span class="rt-name">二維碼生成器（已有，可加強定製） - 免費線上工具，純前端處理 | ToolBox免費線上工具箱</span><span class="rt-desc">二維碼生成器（已有，可加強定製）</span></span>
+      <span class="rt-info"><span class="rt-name">二維碼生成器（可定製尺寸、糾錯與靜區）</span><span class="rt-desc">輸入網址或文本，生成可定製尺寸與糾錯的二維碼：按 ISO/IEC 18004 自動選版本與掩碼、按等…</span></span>
     </a>
-    <a href="/zh-tw/tools/design/generator-9.html" class="related-tool-card">
+    <a href="/zh-tw/tools/biz/barcode-generator.html" class="related-tool-card">
       <span class="rt-icon">🏷️</span>
-      <span class="rt-info"><span class="rt-name">條形碼生成器（EAN-13等） - 免費線上工具，純前端處理 | ToolBox免費線上工具箱</span><span class="rt-desc">條形碼生成器（EAN-13等）</span></span>
+      <span class="rt-info"><span class="rt-name">條形碼生成器</span><span class="rt-desc">支援Code128、EAN-13、UPC-A、Code39等多種碼制，純前端生成可下載</span></span>
     </a>
     <a href="/zh-tw/tools/design/generator-6.html" class="related-tool-card">
-      <span class="rt-icon">📈</span>
-      <span class="rt-info"><span class="rt-name">盒子陰影生成器（視覺化調整） - 免費線上工具，純前端處理 | ToolBox免費線上工具箱</span><span class="rt-desc">盒子陰影生成器（視覺化調整）</span></span>
+      <span class="rt-icon">✨</span>
+      <span class="rt-info"><span class="rt-name">盒子陰影批次生成器</span><span class="rt-desc">按「生成數量」隨機產出多組多層 box-shadow 宣告（含 inset 與 rgba 透明度）…</span></span>
     </a>
   </div>
 </div>
