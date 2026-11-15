@@ -329,27 +329,34 @@ if DRY_RUN:
 
 # 3.5 过滤 Windows 非法文件名：上游偶尔提交本机无法落盘的文件名（如含 '>'），
 #     此时 read-tree -u 直接报 "invalid path" 中止。用临时索引剔除这些路径得到等价 tree。
-_WIN_INVALID = re.compile(r'[<>:"|?*]')
+# 注意：read-tree 自身就会做路径校验，故不能用「read-tree + 删除」的方式，
+# 必须用 --index-info 逐条灌入（字节级传递，避免中文路径编码错配）。
+_WIN_INVALID_B = re.compile(rb'[<>:"|?*]')
 snapshot_ref = UPSTREAM_REF
-bad_paths = [n for n in git("ls-tree", "-r", "--name-only", "-z",
-                            UPSTREAM_REF).split("\x00") if n and _WIN_INVALID.search(n)]
-if bad_paths:
+_all = [e for e in subprocess.run(["git", "ls-tree", "-r", "-z", UPSTREAM_REF],
+                                  capture_output=True).stdout.split(b"\x00") if e]
+_keep = [e for e in _all if not _WIN_INVALID_B.search(e.split(b"\t", 1)[1])]
+if len(_keep) != len(_all):
     tmp_index = os.path.join(os.environ.get("TEMP", "/tmp"),
                              "tb_sync_index_%d" % os.getpid())
-    tmp_env = dict(os.environ, GIT_INDEX_FILE=tmp_index)
-    for args in (["git", "read-tree", UPSTREAM_REF],
-                 ["git", "update-index", "--force-remove", "--"] + bad_paths,
-                 ["git", "write-tree"]):
-        r = subprocess.run(args, capture_output=True, text=True,
-                           encoding="utf-8", errors="replace", env=tmp_env)
-        if r.returncode != 0:
-            sys.exit("%s 失败:\n%s" % (" ".join(args[:3]), r.stderr))
-        tree_sha = r.stdout.strip()
     if os.path.exists(tmp_index):
         os.remove(tmp_index)
-    snapshot_ref = tree_sha
-    print("已过滤 Windows 非法路径 %d 个（如 %s），快照改用过滤后 tree %s"
-          % (len(bad_paths), bad_paths[0], tree_sha[:10]))
+    tmp_env = dict(os.environ, GIT_INDEX_FILE=tmp_index)
+    for args, data in ((["git", "read-tree", "--empty"], None),
+                       (["git", "update-index", "-z", "--index-info"],
+                        b"\x00".join(_keep) + b"\x00")):
+        r = subprocess.run(args, env=tmp_env, input=data, capture_output=True)
+        if r.returncode != 0:
+            sys.exit("过滤 Windows 非法路径失败（%s）:\n%s"
+                     % (" ".join(args), r.stderr.decode("utf-8", "replace")))
+    snapshot_ref = subprocess.run(["git", "write-tree"], env=tmp_env,
+                                  capture_output=True, text=True).stdout.strip()
+    if os.path.exists(tmp_index):
+        os.remove(tmp_index)
+    dropped = [_all[i] for i in range(len(_all)) if _all[i] not in set(_keep)]
+    print("已过滤 Windows 非法路径 %d 个（如 %s），快照改用 tree %s"
+          % (len(dropped), dropped[0].split(b"\t", 1)[1].decode("utf-8", "replace"),
+             snapshot_ref[:10]))
 
 # 4. 快照式同步：整体重置为上游树
 git("read-tree", "-u", "--reset", snapshot_ref)
