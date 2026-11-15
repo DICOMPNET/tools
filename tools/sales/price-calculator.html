@@ -368,6 +368,7 @@ function computeFor(mode){
     var deviation = getNum('deviation');
     if(isNaN(compPrice) || compPrice < 0){ return {error:'竞品价应 ≥ 0'}; }
     if(isNaN(deviation)){ return {error:'请输入偏差'}; }
+    if(deviation <= -100){ return {error:'偏差应大于 -100%（否则售价 ≤ 0）'}; }
     price = compPrice * (1 + deviation/100);
     formula = '售价 = ¥' + fmt(compPrice) + ' × (1 + (' + deviation + '%))';
     extra.compPrice = compPrice;
@@ -400,7 +401,12 @@ function modeName(m){
 
 function calc(){
   var r = computeFor(currentMode);
-  if(r.error){ ToolBox.showToast(r.error, 'error'); return; }
+  if(r.error){
+    document.getElementById('result').innerHTML = '<p class="tip-error">' + esc(r.error) + '</p>';
+    window._lastResult = null;
+    ToolBox.showToast(r.error, 'error');
+    return;
+  }
 
   var html = '';
   html += '<div class="result-big">建议售价 ¥' + fmt(r.price) + '</div>';
@@ -425,7 +431,13 @@ function calc(){
       html += '<div class="result-sub">盈亏平衡销量：<strong>' + fmt(r.breakEven, 0) + ' 件</strong>（覆盖固定成本 ¥' + fmt(r.fixedCost) + '）</div>';
     }
   } else {
-    html += '<div class="result-sub">盈亏平衡销量：1 件（无固定成本时，售价 &gt; 成本即盈利）</div>';
+    if(r.grossProfit > 0){
+      html += '<div class="result-sub">盈亏平衡销量：1 件即可盈利（无固定成本，售价 &gt; 成本）</div>';
+    } else if(r.grossProfit === 0){
+      html += '<div class="result-sub">盈亏平衡销量：不盈不亏（售价 = 成本，且无固定成本）</div>';
+    } else {
+      html += '<div class="result-sub" style="color:var(--danger);">每卖一件亏损 ¥' + fmt(-r.grossProfit) + '（售价 &lt; 成本），无法保本</div>';
+    }
   }
   if(r.mode === 'target'){
     var totalRev = r.price * r.extra.volume;
@@ -629,27 +641,27 @@ else document.addEventListener('DOMContentLoaded', __price_calculatorBoot);
   <div class="related-tools-grid">
     <a href="conversion-funnel.html" class="related-tool-card">
       <span class="rt-icon">🎯</span>
-      <span class="rt-info"><span class="rt-name">转化漏斗分析 - - 各环节转化率分析</span><span class="rt-desc">转化漏斗分析</span></span>
+      <span class="rt-info"><span class="rt-name">转化漏斗分析</span><span class="rt-desc">录入营销各阶段（访问、加购、下单、支付）的客流量，工具计算每步转化率与流失率并可视化漏斗，定位转化瓶…</span></span>
     </a>
     <a href="target-breakdown.html" class="related-tool-card">
       <span class="rt-icon">📈</span>
-      <span class="rt-info"><span class="rt-name">销售目标分解 - - 团队目标自下而上分解，按人员权重或均分拆解销售目标</span><span class="rt-desc">销售目标分解</span></span>
+      <span class="rt-info"><span class="rt-name">销售目标分解</span><span class="rt-desc">将年度目标按区域、月份或人员拆分并汇总，校验合计一致，用于销售计划制定，纯前端分解可导出表格</span></span>
     </a>
     <a href="moving-average.html" class="related-tool-card">
       <span class="rt-icon">🔮</span>
-      <span class="rt-info"><span class="rt-name">销售趋势预测 - - 移动平均法预测，支持简单移动平均</span><span class="rt-desc">销售趋势预测</span></span>
+      <span class="rt-info"><span class="rt-name">销售趋势预测</span><span class="rt-desc">移动平均法预测，支持简单移动平均(SMA)、加权移动平均(WMA)与指数平滑(EMA)</span></span>
     </a>
     <a href="sales-forecast.html" class="related-tool-card">
       <span class="rt-icon">🔮</span>
-      <span class="rt-info"><span class="rt-name">销售预测 - 销售管理领域的在线工具</span><span class="rt-desc">销售预测</span></span>
+      <span class="rt-info"><span class="rt-name">销售预测</span><span class="rt-desc">基于历史月度销售数据，使用移动平均、加权移动平均、线性回归或季节性方法预测未来销售</span></span>
     </a>
     <a href="commission-calc.html" class="related-tool-card">
       <span class="rt-icon">💵</span>
-      <span class="rt-info"><span class="rt-name">佣金提成计算 - - 阶梯式佣金自动计算，支持自定义提成阶梯与超额累进</span><span class="rt-desc">佣金提成计算</span></span>
+      <span class="rt-info"><span class="rt-name">佣金提成计算</span><span class="rt-desc">录入销售额与自定义提成阶梯（超额累进或全额累进），工具分段计算各档佣金并汇总提成总额，支持多档税率与…</span></span>
     </a>
     <a href="stacked-discount.html" class="related-tool-card">
       <span class="rt-icon">🧮</span>
-      <span class="rt-info"><span class="rt-name">叠加折扣计算 - - 多重折扣叠加最终价格，支持满减券与折扣组合计算</span><span class="rt-desc">叠加折扣计算</span></span>
+      <span class="rt-info"><span class="rt-name">叠加折扣计算</span><span class="rt-desc">输入多重折扣（折扣券、满减券、百分比优惠）及叠加顺序，工具计算最终成交价与总优惠金额，提示不同叠加方…</span></span>
     </a>
   </div>
 </div>

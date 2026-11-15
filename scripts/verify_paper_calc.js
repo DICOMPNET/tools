@@ -142,6 +142,38 @@ const CASES = [
     "17.19%"
   ],
   "ref": "v0=750,v1=80 → 撕裂指数=750/80=9.375 mN·m²/g、每 100 g/m² 归一化 937.5 mN、相对 8.0 基准 (9.375-8)/8×100=17.19%（默认 500/60 → 8.333/833.3/4.17%；swap 0.120/12.0/-98.50%，均不重合）"
+},
+{
+  "slug": "paper/roll-length",
+  "inputs": { "targetLen": "500", "coreDia2": "-76", "paperThk2": "0.1" },
+  "expect": ["纸芯内径需为 ≥0 的数值"],
+  "ref": "12-K6：负纸芯内径旧实现仍算 D=263.5 mm、壁厚 169.8 mm、层数 1698；现在拒绝。默认纸芯 76 合法不出现该文案。"
+},
+{
+  "slug": "paper/roll-length",
+  "inputs": { "targetLen": "600", "coreDia2": "100", "paperThk2": "0.15" },
+  "expect": ["353.0 mm"],
+  "ref": "12-K6 回归（避开默认 500/76/0.1）：D=√(4×0.15×600000/π+100²)=√124591.56=353.0 mm。"
+},
+{
+  "slug": "paper/roll-length",
+  "inputs": { "outerDia": "100", "coreDia": "-10", "paperThk": "0.1" },
+  "expect": ["纸芯内径需≥0"],
+  "ref": "12-K6 续：calcLen 旧实现只校验 D>d 与 t>0，负纸芯照样算出长度；现拒绝并提示纸芯内径 ≥0。"
+},
+{
+  "slug": "paper/roll-length",
+  "inputs": { "outerDia": "100", "coreDia": "99.5", "paperThk": "1" },
+  "expect": ["无法形成有效缠绕层数"],
+  "ref": "外径与纸芯差 0.5 mm、纸厚 1 mm ⇒ 层数 round(0.25)=0，旧实现再算 lengthM/layers 得 Infinity（显示破折号）；现在层数 <1 时直接拒绝。"
+},
+{
+  "slug": "paper/paper-grade",
+  "clicks": [
+    "var seen=[],orig=document.querySelectorAll;document.querySelectorAll=function(sel){seen.push(String(sel));return [];};filterTable();document.querySelectorAll=orig;document.getElementById('__tbProbe').textContent='PGF='+((seen.join('|').indexOf('#table1 tbody tr')>=0&&seen.join('|').indexOf('#table4 tbody tr')>=0)?'OK':'BAD');"
+  ],
+  "expect": ["PGF=OK"],
+  "ref": "修复前 filterTable 用全局 'tbody tr'，会把不属于等级表的白度明细行一起隐藏；现只遍历 #table1~#table4 的等级表 tbody。用 querySelectorAll 捕获实际选择器，默认态无该探针串。"
 }
 ];
 async function main() {

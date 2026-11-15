@@ -414,10 +414,10 @@
 <li>对比同族字重。</li>
 <li>做字体规范样张。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">预览 &quot;ToolBox 工具箱&quot;</div><div class="dd-ex-body">&lt;p&gt;&lt;strong&gt;输入：&lt;/strong&gt;文字、字号 18/24、字重 400/700。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;处理：&lt;/strong&gt;逐字体渲染。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;输出：&lt;/strong&gt;并列预览，可比对。结果以浏览器实时计算为准，纯前端本地处理、数据不上传；生成的样式与代码仅作快速产出参考，正式项目请以设计系统、规范与浏览器实测为准。&lt;/p&gt;</div></div>
+<div class="dd-example"><div class="dd-ex-title">预览 &quot;ToolBox 工具箱&quot;</div><div class="dd-ex-body"><p><strong>输入：</strong>文字、字号 18/24、字重 400/700。</p><p><strong>处理：</strong>逐字体渲染。</p><p><strong>输出：</strong>并列预览，可比对。结果以浏览器实时计算为准，纯前端本地处理、数据不上传；生成的样式与代码仅作快速产出参考，正式项目请以设计系统、规范与浏览器实测为准。</p></div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>本地没有的字体？</dt><dd>仅显示浏览器已加载字体；未加载会回退默认。结果以浏览器实时计算为准，纯前端本地处理、数据不上传；生成的样式与代码仅作快速产出参考，正式项目请以设计系统、规范与浏览器实测为准。</dd>
+<dt>本地没有的字体？</dt><dd>仅显示当前浏览器已加载的字体；某设备未安装该字体时会回退到系统默认字体。预览效果取决于本机系统字体，Windows / macOS / Android / iOS 的可用字体集不同，复制到其它设备或系统后实际显示可能与预览不一致。结果以浏览器实时计算为准，纯前端本地处理、数据不上传；生成的样式与代码仅作快速产出参考，正式项目请以设计系统、规范与浏览器实测为准。</dd>
 <dt>结果以什么为准？</dt><dd>以浏览器实时计算为准，正式项目请以设计系统与实测为准。</dd>
 <dt>会保存或上传我的内容吗？</dt><dd>结果以浏览器实时计算为准，纯前端本地处理、数据不上传；生成的样式与代码仅作快速产出参考，正式项目请以设计系统、规范与浏览器实测为准。</dd>
 </dl>
@@ -521,6 +521,9 @@
     var html = '';
     var totalVisible = 0;
     var query = state.query.toLowerCase().trim();
+    /* 英文态的卡片提示、分类标题与计数都在本函数内生成，必须随语言切换；
+       TBKit 未加载或不支持 isEn 时按中文态渲染，避免脚本中断。 */
+    var isEn = (typeof TBKit !== 'undefined' && TBKit.util && typeof TBKit.util.isEn === 'function' && TBKit.util.isEn());
 
     var sections = Object.keys(fonts);
     for (var s = 0; s < sections.length; s++) {
@@ -539,7 +542,7 @@
           itemsHtml += '<div class="fp-font-item" data-family="' + escAttr(font.family) + '" onclick="copyFontCSS(this)">'
             + '<div class="fp-font-name">'
             + '<span>' + escHtml(font.name) + '</span>'
-            + '<span class="fp-copy-hint">点击复制</span>'
+            + '<span class="fp-copy-hint">' + (isEn ? 'Click to copy' : '点击复制') + '</span>'
             + '</div>'
             + '<div class="fp-font-preview" style="font-family:' + font.family + ';font-size:' + state.size + 'px;font-weight:' + state.weight + ';">'
             + escHtml(state.text)
@@ -549,12 +552,12 @@
       }
 
       var sectionClass = sectionVisibleCount === 0 ? ' fp-section-title hidden' : '';
-      html += '<div class="fp-section-title' + sectionClass + '">' + escHtml(sectionName) + '</div>'
+      html += '<div class="fp-section-title' + sectionClass + '">' + escHtml(isEn ? (fpCatEn[sectionName] || sectionName) : sectionName) + '</div>'
         + '<div class="fp-font-list">' + itemsHtml + '</div>';
     }
 
     const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){listEl.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}listEl.innerHTML=__h0;
-    countEl.textContent = totalVisible + ' / ' + getTotalFontCount() + ' 种字体';
+    countEl.textContent = totalVisible + ' / ' + getTotalFontCount() + (isEn ? ' fonts' : ' 种字体');
     try { __fpChart(); } catch (e) {}
   }
 
@@ -633,7 +636,10 @@
       series: [{ name: en ? 'count' : '数量', data: data }]
     });
   }
-  window.addEventListener('toolbox:langchange', function () { try { __fpChart(); } catch (e) {} });
+  /* 切换语言后必须重跑 render()：卡片提示、分类标题与计数都在这里生成；
+     __fpChart() 已由 render() 末尾调用，只重画图表会让列表停留在旧语言。 */
+  window.__fpOnLangChange = function () { try { render(); } catch (e) {} };
+  window.addEventListener('toolbox:langchange', window.__fpOnLangChange);
   render();
 })();
 </script>
@@ -650,24 +656,24 @@
   <div class="related-tools-grid">
     <a href="generator-10.html" class="related-tool-card">
       <span class="rt-icon">📈</span>
-      <span class="rt-info"><span class="rt-name">CSS动画生成器（关键帧可视化） - 免费在线工具，纯前端处理 | ToolBox免费在线工具箱</span><span class="rt-desc">CSS动画生成器（关键帧可视化）</span></span>
+      <span class="rt-info"><span class="rt-name">CSS动画生成器（关键帧可视化）</span><span class="rt-desc">以可视化方式编排 CSS 关键帧动画，调整时长、缓动与属性并实时预览，生成可直接使用的 @keyfr…</span></span>
     </a>
     
     <a href="web-audio-metronome.html" class="related-tool-card">
       <span class="rt-icon">🎵</span>
-      <span class="rt-info"><span class="rt-name">Web Audio 节拍器 - 免费生成器工具，在线节拍器 | ToolBox免费在线工具箱</span><span class="rt-desc">在线节拍器</span></span>
+      <span class="rt-info"><span class="rt-name">Web Audio 节拍器</span><span class="rt-desc">在线节拍器，使用 Web Audio API 提供精准节拍并支持多种拍号，适合练习乐器与节奏训练</span></span>
     </a>
     <a href="generator-8.html" class="related-tool-card">
       <span class="rt-icon">🔳</span>
-      <span class="rt-info"><span class="rt-name">二维码生成器（已有，可加强定制） - 免费在线工具，纯前端处理 | ToolBox免费在线工具箱</span><span class="rt-desc">二维码生成器（已有，可加强定制）</span></span>
+      <span class="rt-info"><span class="rt-name">二维码生成器（可定制尺寸、纠错与静区）</span><span class="rt-desc">输入网址或文本，生成可定制尺寸与纠错的二维码：按 ISO/IEC 18004 自动选版本与掩码、按等…</span></span>
     </a>
-    <a href="generator-9.html" class="related-tool-card">
+    <a href="../biz/barcode-generator.html" class="related-tool-card">
       <span class="rt-icon">🏷️</span>
-      <span class="rt-info"><span class="rt-name">条形码生成器（EAN-13等） - 免费在线工具，纯前端处理 | ToolBox免费在线工具箱</span><span class="rt-desc">条形码生成器（EAN-13等）</span></span>
+      <span class="rt-info"><span class="rt-name">条形码生成器</span><span class="rt-desc">支持Code128、EAN-13、UPC-A、Code39等多种码制，纯前端生成可下载</span></span>
     </a>
     <a href="generator-6.html" class="related-tool-card">
-      <span class="rt-icon">📈</span>
-      <span class="rt-info"><span class="rt-name">盒子阴影生成器（可视化调整） - 免费在线工具，纯前端处理 | ToolBox免费在线工具箱</span><span class="rt-desc">盒子阴影生成器（可视化调整）</span></span>
+      <span class="rt-icon">✨</span>
+      <span class="rt-info"><span class="rt-name">盒子阴影批量生成器</span><span class="rt-desc">按「生成数量」随机产出多组多层 box-shadow 声明（含 inset 与 rgba 透明度）…</span></span>
     </a>
   </div>
 </div>

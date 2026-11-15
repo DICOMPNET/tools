@@ -314,14 +314,28 @@ function filter(){
   const result = document.getElementById('result');
   if(!text){ result.textContent = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Please enter text...":"请输入文本..."); updateStats(0, 0); return; }
 
-  let lines = text.split('\n');
+  const normalized = text.replace(/\r\n?/g, '\n');
+  let lines = normalized.split('\n');
+  // 「原始行数」按输入原文统计，不受 trim/去空影响（BS-N84）
+  const origCount = lines.length;
   if(document.getElementById('trimEach').checked) lines = lines.map(l => l.trim());
   if(document.getElementById('removeEmpty').checked) lines = lines.filter(l => l !== '');
-  const origCount = lines.length;
 
   const kw = document.getElementById('keyword').value;
   const ci = document.getElementById('caseInsensitive').checked;
   const invert = document.getElementById('invert').checked;
+
+  // 非法正则直接提示并中止，不再静默返回 0 行（BS-N83）
+  let rx = null;
+  if(currentMode === 'regex'){
+    try{
+      rx = new RegExp(kw, ci ? 'i' : '');
+    }catch(e){
+      result.textContent = '⚠ 正则表达式无效：' + e.message;
+      updateStats(origCount, 0);
+      return;
+    }
+  }
 
   let out = lines.filter(line => {
     let matched = false;
@@ -333,9 +347,7 @@ function filter(){
       case 'starts': matched = target.startsWith(keyword); break;
       case 'ends': matched = target.endsWith(keyword); break;
       case 'exact': matched = target === keyword; break;
-      case 'regex':
-        try { matched = new RegExp(kw, ci ? 'i' : '').test(line); } catch(e){ matched = false; }
-        break;
+      case 'regex': matched = rx.test(line); break;
       case 'length-gt': matched = line.length > (parseInt(kw) || 0); break;
       case 'length-lt': matched = line.length < (parseInt(kw) || 0); break;
     }
@@ -522,27 +534,27 @@ else document.addEventListener('DOMContentLoaded', __text_filter_linesBoot);
   <div class="related-tools-grid">
     <a href="presentation-timer.html" class="related-tool-card">
       <span class="rt-icon">⏱️</span>
-      <span class="rt-info"><span class="rt-name">演讲计时器 - 免费开发工具，在线演讲计时器 | ToolBox免费在线工具箱</span><span class="rt-desc">演讲计时器</span></span>
+      <span class="rt-info"><span class="rt-name">演讲计时器</span><span class="rt-desc">为 PPT 每页分配时间并进度提醒、支持全屏，辅助演讲节奏把控</span></span>
     </a>
     <a href="markdown-quote.html" class="related-tool-card">
       <span class="rt-icon">📝</span>
-      <span class="rt-info"><span class="rt-name">Markdown 引用转换器 - 免费文本处理工具，在线Markdown 引用转换器 | ToolBox免费在线工具箱</span><span class="rt-desc">Markdown 引用转换器</span></span>
+      <span class="rt-info"><span class="rt-name">Markdown 引用转换器</span><span class="rt-desc">将粘贴的多行文本批量转换为 Markdown 引用块（每行前加 &gt;），便于在文档中引用他人内容或做批…</span></span>
     </a>
     <a href="markdown.html" class="related-tool-card">
       <span class="rt-icon">📝</span>
-      <span class="rt-info"><span class="rt-name">Markdown 预览 - 免费文本处理工具，Markdown 实时预览 | ToolBox免费在线工具箱</span><span class="rt-desc">Markdown 实时预览</span></span>
+      <span class="rt-info"><span class="rt-name">Markdown 实时预览</span><span class="rt-desc">在左侧编辑区输入 Markdown，右侧实时渲染标题、列表、代码块等效果，支持即时对照，便于写作与格…</span></span>
     </a>
     <a href="unicode-normalize.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
-      <span class="rt-info"><span class="rt-name">Unicode 规范化 - 免费文本处理工具，在线Unicode 规范化 | ToolBox免费在线工具箱</span><span class="rt-desc">Unicode 规范化</span></span>
+      <span class="rt-info"><span class="rt-name">Unicode 规范化</span><span class="rt-desc">将文本按 NFC/NFD/NFKC/NFKD 等范式进行 Unicode 规范化，统一异体字与组合字…</span></span>
     </a>
     <a href="zalgo-text.html" class="related-tool-card">
       <span class="rt-icon">💼</span>
-      <span class="rt-info"><span class="rt-name">Zalgo 文字 - 免费文本处理工具，Zalgo 文字生成器 | ToolBox免费在线工具箱</span><span class="rt-desc">Zalgo 文字生成器</span></span>
+      <span class="rt-info"><span class="rt-name">Zalgo 文字</span><span class="rt-desc">为文字叠加大量组合字符生成 Zalgo 乱码风格效果，可调节紊乱强度，用于恶搞表情、标题装饰与渲染测…</span></span>
     </a>
     <a href="superscript-text.html" class="related-tool-card">
       <span class="rt-icon">💼</span>
-      <span class="rt-info"><span class="rt-name">上标文字 - 免费文本处理工具，在线上标文字 | ToolBox免费在线工具箱</span><span class="rt-desc">⬆️ 上标文字</span></span>
+      <span class="rt-info"><span class="rt-name">上标文字</span><span class="rt-desc">将选中文字转为上标格式并生成可复制的 Unicode 或 HTML 上标代码，适合化学式、数学指数与…</span></span>
     </a>
   </div>
 </div>

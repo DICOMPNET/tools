@@ -354,78 +354,78 @@ const CASES = [
   {
     slug: "marketing/marketing-engagement-rate",
     name: "社交媒体互动率计算器",
-    inputs: { followers: "10000", likes: "300", comments: "120", shares: "60", impressionsEng: "0" },
-    expect: ["总互动数：480", "互动率（按粉丝）：4.80%"],
-    ref: 'totalEng=300+120+60=480；按粉丝互动率=480/10000×100=4.80%；impressions=0 ⇒ 无「基于展示」行。',
+    inputs: { followers: "10000", likes: "300", comments: "120", shares: "60", saves: "20", impressionsEng: "0" },
+    expect: ["总互动数：500", "互动率（按粉丝）：5.00%"],
+    ref: 'totalEng=300+120+60+20=500（收藏已计入）；按粉丝互动率=500/10000×100=5.00%；impressions=0 ⇒ 无「基于展示」行。',
   },
   {
     slug: "marketing/marketing-engagement-rate",
     name: "社交媒体互动率计算器",
-    inputs: { followers: "20000", likes: "500", comments: "100", shares: "80", impressionsEng: "50000" },
-    expect: ["总互动数：680", "互动率（按粉丝）：3.40%", "基于展示的互动率：1.36%"],
-    ref: 'totalEng=500+100+80=680；按粉丝=680/20000×100=3.40%；基于展示=680/50000×100=1.36%。',
+    inputs: { followers: "20000", likes: "500", comments: "100", shares: "80", saves: "40", impressionsEng: "50000" },
+    expect: ["总互动数：720", "互动率（按粉丝）：3.60%", "基于展示的互动率：1.44%"],
+    ref: 'totalEng=500+100+80+40=720（收藏已计入）；按粉丝=720/20000×100=3.60%；基于展示=720/50000×100=1.44%。',
   },
   {
     slug: "marketing/marketing-engagement-rate",
     name: "社交媒体互动率计算器",
-    inputs: { followers: "1000", likes: "80", comments: "30", shares: "20", impressionsEng: "0" },
-    expect: ["总互动数：130", "互动率（按粉丝）：13.00%"],
-    ref: 'totalEng=80+30+20=130；按粉丝=130/1000×100=13.00%；impressions=0 无展示行。',
+    inputs: { followers: "1000", likes: "80", comments: "30", shares: "20", saves: "20", impressionsEng: "0" },
+    expect: ["总互动数：150", "互动率（按粉丝）：15.00%"],
+    ref: 'totalEng=80+30+20+20=150（收藏已计入）；按粉丝=150/1000×100=15.00%；impressions=0 无展示行。',
   },
   {
     slug: "marketing/marketing-engagement-rate",
     name: "社交媒体互动率计算器",
-    inputs: { followers: "5000", likes: "200", comments: "50", shares: "50", impressionsEng: "10000" },
+    inputs: { followers: "5000", likes: "200", comments: "50", shares: "50", saves: "0", impressionsEng: "10000" },
     expect: ["总互动数：300", "互动率（按粉丝）：6.00%", "基于展示的互动率：3.00%"],
     ref: 'totalEng=200+50+50=300；按粉丝=300/5000×100=6.00%；基于展示=300/10000×100=3.00%。',
   },
   {
     slug: "marketing/marketing-engagement-rate",
     name: "社交媒体互动率计算器",
-    inputs: { followers: "1000000", likes: "1000", comments: "200", shares: "100", impressionsEng: "0" },
+    inputs: { followers: "1000000", likes: "1000", comments: "200", shares: "100", saves: "0", impressionsEng: "0" },
     expect: ["总互动数：1,300", "互动率（按粉丝）：0.13%"],
     ref: 'totalEng=1000+200+100=1300（千分位 1,300）；按粉丝=1300/1000000×100=0.13%；impressions=0 无展示行。',
   },
   {
     slug: "marketing/marketing-engagement-rate",
     name: "社交媒体互动率计算器",
-    inputs: { followers: "30000", likes: "150", comments: "30", shares: "20", impressionsEng: "80000" },
+    inputs: { followers: "30000", likes: "150", comments: "30", shares: "20", saves: "0", impressionsEng: "80000" },
     expect: ["总互动数：200", "互动率（按粉丝）：0.67%", "基于展示的互动率：0.25%"],
     ref: 'totalEng=150+30+20=200；按粉丝=200/30000×100=0.6667⇒0.67%；基于展示=200/80000×100=0.25%。',
   },
   {
     slug: "marketing/marketing-influencer-pricing",
-    inputs: { followersInf: "5000", engRateInf: "4", platformFactor: "1.0", contentType: "1.0" },
+    inputs: { followersInf: "5000", baseCpm: "100", engRateInf: "4", platformFactor: "1.0", contentType: "1.0" },
     expect: ["达人层级：素人/KOC", "参考报价：¥420 - ¥780", "建议报价：¥600"],
     ref: 'f=5000<10000⇒cpmBase=100,素人/KOC；engBonus=1+(4-2)/10=1.2；price=5×100×1.2×1.0×1.0=600；low=420；high=780'
   },
   {
     slug: "marketing/marketing-influencer-pricing",
-    inputs: { followersInf: "50000", engRateInf: "5", platformFactor: "1.2", contentType: "1.5" },
+    inputs: { followersInf: "50000", baseCpm: "200", engRateInf: "5", platformFactor: "1.2", contentType: "1.5" },
     expect: ["达人层级：尾部达人", "参考报价：¥16,380 - ¥30,420", "建议报价：¥23,400"],
     ref: 'f=50000⇒cpmBase=200,尾部达人；engBonus=1.3；price=50×200×1.3×1.2×1.5=23400；low=16380；high=30420'
   },
   {
     slug: "marketing/marketing-influencer-pricing",
-    inputs: { followersInf: "300000", engRateInf: "6", platformFactor: "2.0", contentType: "2.5" },
+    inputs: { followersInf: "300000", baseCpm: "300", engRateInf: "6", platformFactor: "2.0", contentType: "2.5" },
     expect: ["达人层级：腰部达人", "参考报价：¥441,000 - ¥819,000", "建议报价：¥630,000"],
     ref: 'f=300000⇒cpmBase=300,腰部达人；engBonus=1.4；price=300×300×1.4×2.0×2.5=630000；low=441000；high=819000'
   },
   {
     slug: "marketing/marketing-influencer-pricing",
-    inputs: { followersInf: "800000", engRateInf: "3", platformFactor: "1.5", contentType: "1.0" },
+    inputs: { followersInf: "800000", baseCpm: "400", engRateInf: "3", platformFactor: "1.5", contentType: "1.0" },
     expect: ["参考报价：¥369,600 - ¥686,400", "建议报价：¥528,000"],
     ref: 'f=800000⇒cpmBase=400,肩部达人分支；engBonus=1.1；price=800×400×1.1×1.5×1.0=528000；low=369600；high=686400。锚用价格串（bare 预置 500000→肩部同档，纯『达人层级：肩部达人』串会与默认态撞车逃生，故改用依赖全部输入的价格区间串）'
   },
   {
     slug: "marketing/marketing-influencer-pricing",
-    inputs: { followersInf: "2000000", engRateInf: "4", platformFactor: "1.0", contentType: "1.5" },
+    inputs: { followersInf: "2000000", baseCpm: "500", engRateInf: "4", platformFactor: "1.0", contentType: "1.5" },
     expect: ["达人层级：头部达人", "参考报价：¥1,260,000 - ¥2,340,000", "建议报价：¥1,800,000"],
     ref: 'f=2000000≥1e6⇒cpmBase=500,头部达人；engBonus=1.2；price=2000×500×1.2×1.0×1.5=1800000；low=1260000；high=2340000'
   },
   {
     slug: "marketing/marketing-influencer-pricing",
-    inputs: { followersInf: "200000", engRateInf: "2", platformFactor: "1.2", contentType: "2.5" },
+    inputs: { followersInf: "200000", baseCpm: "300", engRateInf: "2", platformFactor: "1.2", contentType: "2.5" },
     expect: ["达人层级：腰部达人", "参考报价：¥126,000 - ¥234,000", "建议报价：¥180,000"],
     ref: 'f=200000⇒cpmBase=300,腰部达人；engBonus=1+(2-2)/10=1.0；price=200×300×1.0×1.2×2.5=180000；low=126000；high=234000'
   },
@@ -647,9 +647,9 @@ const CASES = [
   // ── 零用例加固（2026-10-06）──────────────────────────
   {
     slug: "marketing/assessor-51",
-    inputs: { profit: "8000", contribution: "72", strength: "0.85", discount: "15", years: "12", share: "20" },
+    inputs: { profit: "8000", contribution: "72", discount: "15", years: "12", d1: "8.5", d2: "8.5", d3: "8.5", d4: "8.5", d5: "8.5", d6: "8.5", d7: "8.5" },
     expect: ["品牌年净利润：5760万元（贡献率72%）", "品牌强度评分：85/100", "调整后折现率：15.75%", "品牌资产价值： 30249万元"],
-    ref: "注入非默认(默认 profit=5000/contribution=65/strength=0.75/discount=12/years=10/share=15)：Interbrand 模型 品牌年净利润 = 8000×0.72 = 5760 万元；品牌强度 = 0.85×100 = 85/100 ⇒ 顶级品牌；调整后折现率 r = dr/100 + (1−st)×0.05 = 0.15 + 0.15×0.05 = 15.75%；品牌资产价值 = Σ_{i=1..12} 5760/(1.1575)^i = 30249 万元。Python 独立复算逐项吻合。默认态 3250/75/13.25%/17460，四条均不命中。",
+    ref: "注入非默认(默认 profit=5000/contribution=65/7 维均为 8/8/7/7/7/8/7 ⇒ 强度 0.75/discount=12/years=10)：Interbrand 模型 品牌年净利润 = 8000×0.72 = 5760 万元；7 维均为 8.5 分、权重 25/15/10/25/10/10/5 合计 100% ⇒ 品牌强度 = 8.5/10 = 0.85，强度评分 85/100 ⇒ 顶级品牌；调整后折现率 r = dr/100 + (1−st)×0.05 = 0.15 + 0.15×0.05 = 15.75%；品牌资产价值 = Σ_{i=1..12} 5760/(1.1575)^i = 30249 万元。Python/Node 独立复算逐项吻合。默认态 3250/75/13.25%/17460，四条均不命中。",
   },
   {
     slug: "marketing/assessor-65",
@@ -732,10 +732,10 @@ const CASES = [
       "newQty": "70"
     },
     "expect": [
-      "1.50 类型：富有弹性",
+      "1.59 类型：富有弹性",
       "新总收入 ¥5,600.00"
     ],
-    "ref": "需求价格弹性 E = 销量变动% ÷ 价格变动% = (−30%)/(−20%) = 1.50（|>1| 富有弹性）；原收入 100 × 100 = ¥10,000，新收入 80 × 70 = ¥5,600。页面输出弹性 1.50、新总收入 ¥5,600.00 与独立复算吻合。HTML 默认 (100→90, 1000→1200) 为涨价情形、弹性为负，默认态不产生 1.50。"
+    "ref": "弧弹性中点法：价格变动 = −20/((100+80)/2) = −22.22%，销量变动 = −30/((100+70)/2) = −35.29% ⇒ E = −1.588 ≈ 1.59（|>1| 富有弹性）；原收入 100×100=¥10,000，新收入 80×70=¥5,600。页面输出弹性 1.59、新总收入 ¥5,600.00 与独立复算吻合。HTML 默认 (100→90, 1000→1200) 按中点法为 −1.73，默认态不产生 1.59。"
   },
   {
     "slug": "marketing/estimate-sample-size-confidence",
@@ -806,20 +806,26 @@ const CASES = [
   {
     "slug": "marketing/marketing-keyword-density",
     "inputs": { "keyword": " Toolbox ", "content": "Toolbox tool 是好工具。toolbox 与 ToolBox 混用，测试密度。" },
-    "expect": ["27.27%", "3 关键词出现次数", "11 中文字数", "8 词数（英文）"],
-    "ref": "注入英文关键词 Toolbox（两侧带空格，页面 trim）+ 中英混排正文。独立复算：正文去标点后英文词 = Toolbox/tool/toolbox/与/ToolBox/混用/测试密度 等共 8 个；中文字符 = 是好工具(4)+混用(2)+测试密度(4)+。(1)+与(1) 等去非汉字后共 11 个；关键词大小写不敏感出现 3 次（Toolbox/toolbox/ToolBox）。英文单词按『词』计密度而非按字符 ⇒ 密度 = 3/11 × 100% = 27.27%。修复前该页对英文关键词也乘 keyword.length(7)，算出 3×7/11 = 190.91%（>100% 越界，即真 bug，已改为仅中文关键词乘长度）。默认态 content 为空 ⇒ 只输出『请输入内容和关键词』，四条均不命中。"
+    "expect": ["58.33%", "3 关键词出现次数", "36 总字符数（中英文数字）", "11 中文字数", "8 词数（英文）"],
+    "ref": "注入英文关键词 Toolbox（两侧带空格，页面 trim）+ 中英混排正文。统一字符口径：去空格/标点后总字符 = toolbox(7)+tool(4)+是好工具(4)+toolbox(7)+与(1)+toolbox(7)+混用(2)+测试密度(4) = 36；关键词大小写不敏感、整词匹配出现 3 次（tool 不算命中 toolbox）⇒ 密度 = 3×7/36×100% = 58.33%。旧实现按中文字数作分母得 27.27%，英文关键词在中文正文中被低报，本次一并修正。默认态 content 为空 ⇒ 只输出『请输入内容和关键词』，五条均不命中。"
   },
   {
     "slug": "marketing/marketing-keyword-density",
     "inputs": { "keyword": "工具", "content": "这是工具文章，介绍工具使用方法与工具选择建议。" },
-    "expect": ["28.57%", "21 中文字数", "2 词数（英文）"],
-    "ref": "中文关键词对照组，验证修复未改变中文口径。独立复算：中文关键词按字符计 ⇒ 密度 = 3 次 × 2 字 / 21 个汉字 × 100% = 28.571…% ⇒ toFixed(2) = 28.57%；正文中无英文单词（去标点切分后全为中文短串）⇒ 词数（英文）显示 2（切分残片）。默认态 content 为空不产生输出，三条均不命中。与上一例英文关键词合计覆盖公式两个分支。"
+    "expect": ["28.57%", "21 中文字数", "21 总字符数（中英文数字）", "2 词数（英文）"],
+    "ref": "中文关键词对照组：去空格/标点后总字符 21，关键词「工具」出现 3 次、每次 2 字 ⇒ 密度 = 3×2/21×100% = 28.57%，中英文统一字符口径后结果不变。正文无英文单词（去标点切分后为中文短串）⇒ 词数（英文）显示 2。默认态 content 为空不产生输出，四条均不命中。"
   },
   {
     "slug": "marketing/xiaohongshu-counter",
     "inputs": { "limit": "5", "text": "标题一 #干货 标题二 #干货 #成长 标题三" },
-    "expect": ["字符数： 23 / 5", "行数： 1", "词数： 6", "话题标签： 3", "状态： 超出"],
-    "ref": "注入 limit=5 字（默认 1000）+ 三行标题文本（含 3 个话题标签 #干货 #干货 #成长，重复标签应只计 1 个唯一标签）。独立复算：标题一/标题二/标题三 = 3×3 = 9 字；空格分隔（3+1+2+1+3+1+3 = 14）⇒ 字符数含空格 23；无换行 ⇒ 行数 1；唯一话题标签 = 干货、成长 = 2 个… 页面显示 3 为标签出现次数（含重复的 #干货 两次 + #成长 一次）⇒ 3，与独立统计一致。字符上限 5 ⇒ 23 > 5 ⇒ 状态『超出』。默认态 text 为空 ⇒ 全部计数为 0、状态『正常』，五条均不命中。"
+    "expect": ["标题字数： 0 / 20（剩余 20）", "正文字符数： 23 / 5（超出 18）", "UTF-16 技术计数： 23", "行数： 1", "词数： 6", "话题标签： 3（# 与 ＃ 均计入）", "状态： 超出：正文超出 18 字"],
+    "ref": "注入 limit=5 字（默认 1000）+ 三行标题文本（含 3 个话题标签 #干货 #干货 #成长，重复标签按出现次数计）。独立复算：标题一/标题二/标题三 = 3×3 = 9 字；空格分隔（3+1+2+1+3+1+3 = 14）⇒ 正文字符数含空格 23（与 UTF-16 计数一致，无 emoji）；无换行 ⇒ 行数 1；话题标签 3 个。正文上限 5 ⇒ 23 > 5 ⇒ 状态『超出：正文超出 18 字』；标题为空 ⇒ 0/20。默认态 text 为空 ⇒ 全部计数为 0、状态『正常』，七条均不命中。"
+  },
+  {
+    "slug": "marketing/xiaohongshu-counter",
+    "inputs": { "title": "这是一条超过二十个字的标题用来测试标题上限提示", "limit": "5", "text": "＃秋日穿搭 好看 👨‍👩‍👧‍👦" },
+    "expect": ["标题字数： 23 / 20（超出 3）", "正文字符数： 10 / 5（超出 5）", "UTF-16 技术计数： 20", "话题标签： 1（# 与 ＃ 均计入）", "状态： 超出：标题超出 3 字；正文超出 5 字"],
+    "ref": "覆盖标题上限与全角标签、emoji 字素计数：标题 23 字 ⇒ 超出 3；正文「＃秋日穿搭 好看 👨‍👩‍👧‍👦」按字素簇 = 5+1+2+1+1 = 10 字，而 UTF-16 码元 = 5+1+2+1+11 = 20；全角 ＃ 被识别 ⇒ 话题标签 1。正文上限 5 ⇒ 超出 5。默认态（标题空、正文空、上限 1000）不含这些串。"
   },
   {
     "slug": "marketing/marketing-utm-builder",
@@ -880,15 +886,20 @@ const CASES = [
     "inputs": {
       "profit": "42",
       "contribution": "42",
-      "strength": "42",
       "discount": "42",
       "years": "42",
-      "share": "42"
+      "d1": "4.2",
+      "d2": "4.2",
+      "d3": "4.2",
+      "d4": "4.2",
+      "d5": "4.2",
+      "d6": "4.2",
+      "d7": "4.2"
     },
     "expect": [
-      " 品牌资产价值： 2897396277万元 品牌等级： 顶级品牌 市场占有率：42"
+      " 品牌资产价值： 39万元 品牌等级： 成长品牌 短板维度（低于 6 分）：领导力 4.2"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"profit\":\"42\",\"contribution\":\"42\",\"strength\":\"42\",\"discount\":\"42\",\"years\":\"42\",\"share\":\"42\"}，输出区含「 品牌资产价值： 2897396277万元 品牌等级： 顶级品牌 市场占有率：4…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"profit\":\"42\",\"contribution\":\"42\",\"discount\":\"42\",\"years\":\"42\",\"7 维均 4.2\"}，输出区含「品牌资产价值：39万元 / 品牌等级：弱势品牌 / 短板维度（低于 6 分）：领导力 4.2…」；默认态（输入回退 3250/75/13.25%/17460）不含该串 ⇒ 强判别、零逃生。Node 独立复算：品牌净利润 42×0.42=17.64 万元，强度 0.42，调整后折现率 44.90%，42 年现值 39.29 ⇒ 39 万元。"
   },
   {
     "slug": "marketing/ad-roi",
@@ -916,14 +927,25 @@ const CASES = [
       "actualPax": "42",
       "budget": "42",
       "actualCost": "42",
-      "satisfaction": "42",
+      "satisfaction": "4.2",
       "achieveRate": "42",
+      "wAttendance": "25",
+      "wBudget": "20",
+      "wSat": "30",
+      "wAchieve": "25",
       "eventType": "exhibition"
     },
     "expect": [
-      "估报告 活动类型：展览 到场率：100.0%(42/42) 预算执行率：100.0%(42/42万) 满意度：42"
+      "估报告 活动类型：展览 到场率：100.0%(42/42) 预算执行率：100.0%(42/42万) 满意度：4.2",
+      "综合效果评分： 68.1/100"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"targetPax\":\"42\",\"actualPax\":\"42\",\"budget\":\"42\",\"actualCost\":\"42\",\"satisfaction\":\"42\",\"achieveRate\":\"42\",\"eventType\":\"exhibition\"}，输出区含「估报告 活动类型：展览 到场率：100.0%(42/42) 预算执行率：100.…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"targetPax\":\"42\",\"actualPax\":\"42\",\"budget\":\"42\",\"actualCost\":\"42\",\"satisfaction\":\"4.2\",\"achieveRate\":\"42\",\"wAttendance\":\"25\",\"wBudget\":\"20\",\"wSat\":\"30\",\"wAchieve\":\"25\",\"eventType\":\"exhibition\"}，输出区含「估报告 活动类型：展览 到场率：100.0%(42/42) 预算执行率：100.…」；复算 100×0.25+100×0.2+42×0.3+42×0.25=68.1 ⇒ 合格。默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "marketing/assessor-65",
+    "inputs": { "targetPax": "100", "actualPax": "80", "budget": "10", "actualCost": "10", "satisfaction": "8", "achieveRate": "90", "wAttendance": "40", "wBudget": "10", "wSat": "20", "wAchieve": "30" },
+    "expect": ["权重：到场率 40% / 预算 10% / 满意度 20% / 达成率 30%", "综合效果评分： 85.0/100", "评估等级： 卓越"],
+    "ref": "自定义权重：到场 80×0.4=32、预算贴合 100×0.1=10、满意度 80×0.2=16、达成 90×0.3=27 ⇒ 85.0「卓越」；默认权重下同一输入为 86.5，与 85.0 不同，可验证权重是否真正生效。"
   },
   {
     "slug": "marketing/calc-1",
@@ -947,7 +969,7 @@ const CASES = [
       "conversionsB": "42"
     },
     "expect": [
-      "42\n42\n42\n42\nA组转化率：100.00% B组转化率：100.00% 相对提升：+0.00% P值：— ⚠️ 结果尚不显著，建议继续收集数据"
+      "两组合并转化率为 0% 或 100%，标准误为 0，无法进行 z 检验（两组转化率相同）。"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"visitorsA\":\"42\",\"conversionsA\":\"42\",\"visitorsB\":\"42\",\"conversionsB\":\"42\"}，输出区含「42\n42\n42\n42\nA组转化率：100.00% B组转化率：100.00% …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -960,7 +982,7 @@ const CASES = [
       "q2": "42"
     },
     "expect": [
-      " 收入变化 ΔR 0 元（0.00%） 收入不变 弹性判读： 单位弹性（|Ed|="
+      "— 弹性系数 Ed — |Ed| 绝对值 0 收入变化（元） 0.00% 收入变化率"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"p1\":\"42\",\"q1\":\"42\",\"p2\":\"42\",\"q2\":\"42\"}，输出区含「 收入变化 ΔR 0 元（0.00%） 收入不变 弹性判读： 单位弹性（|Ed|…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -976,7 +998,7 @@ const CASES = [
       "budget3Pct": "42"
     },
     "expect": [
-      "42\n42\n42\n42\n42\n42\n42\n⚠ 输入比例合计 126 %，与 100% 相差 26.0 %，已按比例归一；下表「分配占比」为归一后的实际占比。 ¥42 总预算 ¥1,764 预估总收入 42.00"
+      "⚠ 输入比例合计 126 %，与 100% 相差 26.0 %","¥42 总预算 ¥1,764 预估总收入 42.00x 整体ROAS"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"totalBudget\":\"42\",\"roas1\":\"42\",\"budget1Pct\":\"42\",\"roas2\":\"42\",\"budget2Pct\":\"42\",\"roas3\":\"42\",\"budget3Pct\":\"42\"}，输出区含「42\n42\n42\n42\n42\n42\n42\n¥42 总预算 ¥1,764 预估总收…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -1009,7 +1031,7 @@ const CASES = [
       "estMargin": "42"
     },
     "expect": [
-      " 合计 70% ¥42 - 28 1 ¥53.16\n42\n42\n42\n42\n42\n42\n¥1,764\n¥1,764\n¥-1,023\n238\n100\n-58.0%"
+      "合计 100.0% ¥42 - 28 1 ¥53.16","⚠ 输入占比合计 70%"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"budget\":\"42\",\"unitPrice\":\"42\",\"ctr\":\"42\",\"cvr\":\"42\",\"totalBudget\":\"42\",\"targetConv\":\"42\",\"estCpa\":\"42\",\"estCtr\":\"42\",\"estCvr\":\"42\",\"estPrice\":\"42\",\"estMargin\":\"42\"}，输出区含「 合计 70% ¥42 - 28 1 ¥53.16\n42\n42\n42\n42\n42…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -1112,10 +1134,11 @@ const CASES = [
       "likes": "42",
       "comments": "42",
       "shares": "42",
+      "saves": "0",
       "impressionsEng": "42"
     },
     "expect": [
-      "基于展示的互动率：300.00% 点赞：42 / 评论：42 / 分享：42"
+      "总互动数：126 互动率（按粉丝）：300.00%"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"followers\":\"42\",\"likes\":\"42\",\"comments\":\"42\",\"shares\":\"42\",\"impressionsEng\":\"42\"}，输出区含「基于展示的互动率：300.00% 点赞：42 / 评论：42 / 分享：42」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -1128,7 +1151,7 @@ const CASES = [
       "avgOrderValue": "42"
     },
     "expect": [
-      "42\n42\n42\n42\n¥1,764 日预算 ¥52,920 月预算 17.6 日订单数 0.42"
+      "¥1,764 日预算 ¥52,920 月预算 17.6 日转化数 ¥100.00 CPA"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"avgCpc\":\"42\",\"targetClicksDay\":\"42\",\"convRate\":\"42\",\"avgOrderValue\":\"42\"}，输出区含「42\n42\n42\n42\n¥1,764 日预算 ¥52,920 月预算 17.6 …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -1167,7 +1190,7 @@ const CASES = [
       "contentType": "42"
     },
     "expect": [
-      "42\n42\n42\n42\n达人层级：素人/KOC 参考报价：¥25,931 - ¥48,157 建议报价：¥37,044"
+      "42\n10\n42\n42\n42\n达人层级：素人/KOC 参考报价：¥2,593 - ¥4,816 建议报价：¥3,704"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"followersInf\":\"42\",\"engRateInf\":\"42\",\"platformFactor\":\"42\",\"contentType\":\"42\"}，输出区含「42\n42\n42\n42\n达人层级：素人/KOC 参考报价：¥25,931 - ¥…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -1248,7 +1271,7 @@ const CASES = [
       "q2": "42"
     },
     "expect": [
-      "性系数 PED 1,764 元 原收入 1,764 元 新收入 +0 元 (0"
+      "价格未变化（P₁ = P₂），需求价格弹性无定义","— 弹性系数 Ed — |Ed| 绝对值 0"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"p1\":\"42\",\"q1\":\"42\",\"p2\":\"42\",\"q2\":\"42\"}，输出区含「性系数 PED 1,764 元 原收入 1,764 元 新收入 +0 元 (0」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -1318,7 +1341,7 @@ const CASES = [
   {
     slug: "marketing/marketing-engagement-rate",
     inputs: { followers: "10000", likes: "-10", comments: "0", shares: "0", impressionsEng: "0" },
-    expect: ["点赞、评论、分享与曝光量不能为负数"],
+    expect: ["点赞、评论、分享、收藏与曝光量须为非负数"],
     ref: "点赞为负时旧实现总互动 −10、互动率 −0.10%；现拦截。默认点赞 1200 ⇒ 注入失败不命中。",
   }
 

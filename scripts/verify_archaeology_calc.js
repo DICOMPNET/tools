@@ -66,6 +66,34 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  "slug": "archaeology/stats-density",
+  "inputs": {
+    "data": "10abc,10\n20,5"
+  },
+  "expect": [
+    "第 1 行格式无效已拒绝"
+  ],
+  "ref": "修复前 parseFloat('10abc')=10 被当有效；现件数须为≥0整数、面积须正数，逐行拒绝并报行号。第 2 行 20/5=4.00 件/㎡ 正常参与合计。"
+},
+{
+  "slug": "archaeology/stats-density",
+  "inputs": {
+    "data": "-10,10"
+  },
+  "expect": [
+    "件数须为≥0整数"
+  ],
+  "ref": "修复前 -10 件/10 ㎡ 得 -1 件/㎡；现整行拒绝并提示格式要求（默认合法数据不含该文案）。"
+},
+{
+  "slug": "archaeology/stats-density",
+  "clicks": [
+    "var got=null;TBKit={util:{isEn:function(){return false;}},export:{csv:function(f,r){got=r;}}};document.getElementById('data').value='12,4\\n6,3';__stats_densityExport();var ok=!!got&&got.length===4&&got[0][0]==='件数'&&got[1][0]===12&&got[1][1]===4&&Math.abs(parseFloat(got[1][2])-3)<1e-9&&got[2][0]===6&&got[3][0]==='合计'&&Math.abs(parseFloat(got[3][2])-2.57)<0.005;document.getElementById('__tbProbe').textContent='SDEXP '+(ok?'OK':'BAD:'+JSON.stringify(got));"
+  ],
+  "expect": ["SDEXP OK"],
+  "ref": "修复前导出读 #stats_densityTable（历史记录表），与当前输入无关；现按当前 textarea 逐行重算，导出 件数/面积/密度（按密度降序）并附合计行。默认态无 TBKit.export.csv 调用、也无该探针串。"
+},
+{
   "slug": "archaeology/stratum-identify",
   "inputs": {
     "ageFilter": "geo"

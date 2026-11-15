@@ -197,6 +197,24 @@ const CASES = [
     ref: "WCAG 相对亮度：黑 L=0、白 L=1 → 对比度 = (1+0.05)/(0+0.05) = 21.00:1（W3C 对比度公式）",
   },
   {
+    slug: "design/detector-29",
+    // 第353批 D-N186：清单原本 14 项全为 A/AA，AAA 分支/行/建议恒不可达。
+    // 全勾 17 项 + 黑白 21:1 ⇒ 顶部应升到 AAA级合规、AAA 行应「✓ 通过」、总数 17/17。
+    inputs: { fgColor: "#000000", bgColor: "#FFFFFF" },
+    clicks: ["a11yItems.forEach(function(it){document.getElementById(it.id).checked=true;});calc();var __h=String(document.getElementById('res').innerHTML||'');var __i=__h.indexOf('AAA级（最佳）');var __s=__i>=0?__i:__h.length;var __aaa=__h.slice(__s,Math.min(__h.length,__s+260));document.getElementById('__tbProbe').textContent='无障碍三级 项数='+a11yItems.filter(function(x){return x.level==='AAA';}).length+' 等级='+(__h.indexOf('>AAA级合规</div>')>=0?'Y':'N')+' 行='+(__aaa.indexOf('✓ 通过')>=0&&__aaa.indexOf('○ 未达标')<0?'Y':'N')+' 总数='+(__h.indexOf('清单通过：17/17')>=0?'Y':'N');"],
+    expect: ["无障碍三级 项数=3 等级=Y 行=Y 总数=Y"],
+    ref: "第353批：补 3 个 AAA 清单项（1.4.6 正文 7:1、1.4.8 文本块可调、2.4.9 链接目的）后，全勾且黑白 21:1 时 isAAPass()/isAAAPass() 全真 ⇒ 顶部 AAA级合规、AAA 行 ✓ 通过、清单 17/17。旧码 a11yItems 无 AAA 项（项数=0）、顶部恒 AA级合规、AAA 行恒 ○ 可选、总数 14/14 ⇒ 四项全失配。探针仅由 clicks 生成，默认态无该串 ⇒ 零逃生。",
+  },
+  {
+    slug: "design/detector-29",
+    // 第353批 D-N188：旧码 AA 行只看清单勾选、不看对比度，AAA 行不要求 A/AA 全过。
+    // 全勾 17 项但前景 #949494/白底（约 3.0:1）⇒ 顶部 A级合规，AA/AAA 行均须「○ 未达标」。
+    inputs: { fgColor: "#949494", bgColor: "#FFFFFF" },
+    clicks: ["a11yItems.forEach(function(it){document.getElementById(it.id).checked=true;});calc();var __h=String(document.getElementById('res').innerHTML||'');var __s=__h.indexOf('AA级（推荐）'),__e=__h.indexOf('AAA级（最佳）');var __aa=__h.slice(__s>=0?__s:0,__e>=0?__e:__h.length);var __i=__e>=0?__e:__h.length;var __aaa=__h.slice(__i,Math.min(__h.length,__i+260));document.getElementById('__tbProbe').textContent='无障碍低对比 等级='+(__h.indexOf('>A级合规</div>')>=0&&__h.indexOf('>AA级合规</div>')<0&&__h.indexOf('>AAA级合规</div>')<0?'A':'X')+' AA行='+(__aa.indexOf('○ 未达标')>=0&&__aa.indexOf('✓ 通过')<0?'OK':'BAD')+' AAA行='+(__aaa.indexOf('✓ 通过')>=0?'BAD':'OK');"],
+    expect: ["无障碍低对比 等级=A AA行=OK AAA行=OK"],
+    ref: "第353批：#949494 相对亮度约 0.29，与白底对比度约 3.0:1 < 正常文字 AA 门槛 4.5:1 ⇒ contrastLevelAA=false。抽公共 isAPass/isAAPass/isAAAPass 后，顶部与三行表格复用同一判据：顶部 A级合规，AA 行与 AAA 行均 ○ 未达标。旧码 AA 行条件缺 contrastLevelAA ⇒ 全勾时输出 ✓ 通过（AA行=BAD），与顶部结论相反。探针仅由 clicks 生成 ⇒ 零逃生。",
+  },
+  {
     slug: "design/progress-bar-generator",
     // 该页原无任何 verify 用例（2026-09-26 §7.4 覆盖缺口扫描发现）。
     // generate() 读 percent / height / radius 并对高度做 ≥4 下限、百分比做 0..100 钳制，
@@ -481,6 +499,12 @@ const CASES = [
     ref: "复核失败重做 D-N198（第七批·CSV/页面频率口径）：旧 CSV 第六行输出 'Bb, 466.2 Hz'。修复后 NOTE_PC 扩充重降/重升异名（Bbb=9、Cb=11、Fb=4 等），频率统一由 msNoteFreq(note) 按十二平均律 A4=440 计算，页面 sigInfo、图表与 msExportCsv 三处共用同一函数；Db 小调第六音 Bbb → midi 69 → 440.0 Hz。默认 C 大调频率行不含 'Bbb' ⇒ 强判别、零逃生。"
   },
   {
+    slug: "design/music-scale-reference",
+    clicks: ["var __r=document.getElementById('root'),__t=document.getElementById('scaleType');__r.value='A';__t.value='minor';render();var __h1=String(document.getElementById('sigInfo').innerHTML||'');__t.value='harmonicMinor';render();var __h2=String(document.getElementById('sigInfo').innerHTML||'');var __n=String(document.getElementById('notesDisplay').textContent||'');document.getElementById('__tbProbe').textContent='MS nat='+(__h1.indexOf('调号：无升降号')>=0?'Y':'N')+' har='+(__h2.indexOf('调号：无升降号')>=0?'Y':'N')+' triad='+(__h2.indexOf('I 级三和弦：A - C - E（小三和弦）')>=0?'Y':'N')+' notes='+(__n==='A - B - C - D - E - F - G#'?'Y':'N');"],
+    expect: ["MS nat=Y har=Y triad=Y notes=Y"],
+    ref: "D-N200 回归锁：小调此前不输出调号（只有大调分支拼 keySig），且下拉无和声/旋律小调、表格和弦构成是固定示例。修复后 A 自然小调输出「调号：无升降号」、A 和声小调第七音升为 G#（note='A - B - C - D - E - F - G#'）且同调号，结果区给出「I 级三和弦：A - C - E（小三和弦）」。旧码 scaleType='harmonicMinor' 时 scales[type] 为 undefined 直接抛错 ⇒ 探针不写入、四判全失配。",
+  },
+  {
     slug: "design/depth-of-field-calculator",
     inputs: { sensor: "1", focal: "50", aperture: "1.8", distance: "0.01" },
     expect: ["对焦距离须大于焦距"],
@@ -534,6 +558,31 @@ const CASES = [
     expect: ["材料类型： 内墙涂料 甲醛释放量：0.12 mg/m³ VOC含量：120 g/L"],
     ref: "结果区 `#res` 是单行拼串：材料类型 + 三项浓度 + 限值 + 环保等级 + 结论。本例连排前四段，把 matType（select 的 option value 是 `paint`）+ 三个数值同时纳入被测点。\n"
       + "⚠ matType 必须给 option value（paint / board / adhesive / floor），给英文材料名会得到 `材料类型： undefined`；注入 `particleboard` 这类自造值即踩坑。",
+  },
+  // ── 第382批 D-N184：板材分级口径（GB 18580-2017 强制底线 E1 + GB/T 39600-2021 分级）
+  {
+    slug: "design/detector-28",
+    inputs: { matType: "board", formaldehyde: "0.12", voc: "0", benzeneContent: "0" },
+    expect: [
+      "限值要求：≤0.124 mg/m³ 环保等级： E1级（合格）",
+      "满足 GB 18580-2017 强制底线 E1（≤0.124 mg/m³）",
+    ],
+    ref: "D-N184 强锁：板材分级口径统一为「GB 18580-2017 强制底线 E1 ≤0.124 mg/m³ + GB/T 39600-2021 的 ENF ≤0.025 / E0 ≤0.050 / E1 ≤0.124」。"
+      + "注入 formaldehyde=0.12（落在 0.050–0.124 区间）⇒ 限值与等级必须是「≤0.124 mg/m³ + E1级（合格）」。"
+      + "旧实现把 0.124 一档命名为 E2（GB 18580-2017 早已取消 E2，E0/ENF 出自 GB/T 39600-2021），0.12 被判「E2级（限室内）」，两条 expect 全不命中；"
+      + "默认态 formaldehyde=0.08 ⇒ 同样不命中（它走 E1 旧分支）。"
+      + "⚠ 不要锚「甲醛释放量：0.12 mg/m³」这类输入回显；也不要锚 tip-box 的 class 名（属模板常量）。",
+  },
+  // ── 第382批 D-N185：参考标尺按材料类型切换（不再是固定甲醛 E0/E1/E2 三段）
+  {
+    slug: "design/detector-28",
+    inputs: { matType: "paint", formaldehyde: "0.05", voc: "60", benzeneContent: "30" },
+    clicks: ["var cap=[];globalThis.TBKit={util:{isEn:function(){return false;},exportTable:function(){},diffBox:function(){}},chart:{refBar:function(sel,cfg){cap.push(cfg);},line:function(){}},matrix:{table:function(){}},history:{list:function(){return [];},last:function(){return null;},record:function(){},mount:function(){}},preset:{bar:function(){}}};function snap(mt){document.getElementById('matType').value=mt;calc();var c=cap[cap.length-1];return c?(c.unit+'/'+c.bands.length+'/'+c.bands[0].label.zh):'NONE';}var a=snap('board'),b=snap('paint'),c2=snap('adhesive');document.getElementById('__tbProbe').textContent='REFBAR board='+a+' paint='+b+' adh='+c2;"],
+    expect: ["REFBAR board=mg/m³/4/ENF≤0.025 paint=g/L/3/优等 VOC≤30 adh=g/L/3/优等 VOC≤50"],
+    ref: "D-N185 强锁：标尺 bands 必须随 matType 切换。人造板/地板取甲醛（mg/m³，ENF/E0/E1/不合格 共 4 段，首段 ENF≤0.025）；"
+      + "内墙涂料取 VOC（g/L，优等≤30 / 合格≤80 / 不合格 共 3 段）；胶粘剂取 VOC（g/L，优等≤50 / 合格≤100 / 不合格 共 3 段）。"
+      + "旧实现无论选哪种材料都画甲醛 E0/E1/E2 标尺（固定 4 段、单位恒 mg/m³、首段 E0级（优等）），涂料/胶粘剂态结论与标尺口径完全脱节。"
+      + "⚠ stub 的 chart.refBar 只捕获 cfg、不渲染 SVG，所以断言落在「单位 + 段数 + 首段标签」三元组上，这是该页标尺口径的唯一可判别指纹。",
   },  {
     slug: "design/css-box-shadow-generator",
     inputs: { offsetX: "12", offsetY: "-6", blur: "30", spread: "8", opacity: "75", color: "#ff6b35" },
@@ -552,8 +601,8 @@ const CASES = [
   {
     slug: "design/gradient-from-color",
     inputs: { baseColor: "#12b886", steps: "7", direction: "135" },
-    expect: ["background: linear-gradient(135deg, #d1faee 0%, #9af5da 17%, #64f0c6 33%, #2eebb2 50%, #14c993 67%, #0e936b 83%, #095d44 100%);"],
-    ref: "结果区 `#cssOutput` 是「baseColor → 按 steps 均分的 HSL 阶梯」。锚点必须包含全部 7 个色标：若只锚首尾两色，steps 被改坏（比如页面退化成 5 段）仍会 PASS。百分比分母固定 100/(steps-1)，故 steps=7 ⇒ 0/17/33/50/67/83/100。\n"
+    expect: ["background: linear-gradient(135deg, #89f3d3 0%, #53eebf 17%, #1de9ac 33%, #12b987 50%, #0d835f 67%, #084d38 83%, #021711 100%);"],
+    ref: "结果区 `#cssOutput` 是「baseColor → 按 steps 均分的 HSL 阶梯」。锚点必须包含全部 7 个色标：若只锚首尾两色，steps 被改坏（比如页面退化成 5 段）仍会 PASS。百分比分母固定 100/(steps-1)，故 steps=7 ⇒ 0/17/33/50/67/83/100。第351批 D-N126 把亮度区间改为以基色明度 L 为中心的 [max(5,L−35), min(95,L+35)]，色标值同步更新；50% 处 #12b987 ≈ 基色 #12b886，正好印证基色真正进入渐变。\n"
       + "⚠ direction 必须给 option value（数字角度或 `radial`），给中文档位名会走默认分支；steps 的 min/max 是 2~10，给 7 之外的越界值会被页面夹住而不是报错。",
   },
   {
@@ -600,13 +649,33 @@ const CASES = [
   },
   {
     slug: "design/checker-5",
-    inputs: { poem: "\u767d\u65e5\u4f9d\u5c71\u5c3d\n\u9ec4\u6cb3\u5165\u6d77\u6d41\n\u6b32\u7a77\u5343\u91cc\u76ee\n\u66f4\u4e0a\u4e00\u5c42\u697c" },
     clicks: ["document.getElementById('poem').value='\u767d\u65e5\u4f9d\u5c71\u5c3d\\n\u9ec4\u6cb3\u5165\u6d77\u6d41\\n\u6b32\u7a77\u5343\u91cc\u76ee\\n\u66f4\u4e0a\u4e00\u5c42\u697c';check()"],
-    expect: ["\u7b2c2\u53e5 \u9ec4 \u5e73 \u6cb3 \u4ec4 \u5165 \u4ec4 \u6d77 \u4ec4 \u6d41 \u4ec4", "\u7b2c4\u53e5 \u66f4 \u4ec4 \u4e0a \u4ec4 \u4e00 \u4ec4 \u5c42 \u4ec4 \u697c \u4ec4"],
+    expect: ["\u7b2c2\u53e5 \u9ec4 \u5e73 \u6cb3 \u5e73 \u5165 \u4ec4 \u6d77 \u4ec4 \u6d41 \u5e73", "\u7b2c4\u53e5 \u66f4 \u4e24 \u4e0a \u4ec4 \u4e00 \u4ec4 \u5c42 \u5e73 \u697c \u5e73"],
     ref: "结果区 `#res` 是「逐句 + 逐字平仄徽标」。本页只有按钮 `check()` 会渲染结果，页面加载时用 textarea 的预填示例诗跑了一次。锚点取第 2 句与第 4 句整串：逐字以空格相连，任一句的字数或平仄字库命中被改坏都会失配。\\n"
-      + "⚠ **textarea 不受 inputs 注入**：runCase 的注入只处理 `input` / `select`，写 `inputs.poem` 后页面读到的仍是默认示例诗（`床前明月光…`），用例会静默拿默认值去比对。必须在 `clicks` 里直接写 `document.getElementById('poem').value='…';check()`。\\n"
+      + "⚠ **禁止 `inputs.poem`**：第 361 批排查发现，`textarea` 的 id 一旦出现在 `inputs` 里，会与 `clicks` 的 `document.getElementById('poem').value=…;check()` 相互干扰，使 `#res` 始终停在默认示例诗（`床前明月光…`），用例静默拿默认值比对而变红。本例已删除 `inputs.poem`，只用 `clicks` 直接赋值 + 调 `check()`。\\n"
       + "⚠ clicks 代码串里的换行必须写成转义序列 `\\n`（文件里是两字符），写成真实换行会报 `Invalid or unexpected token`。\\n"
       + "⚠ 不用「第1句」做锚：默认 textarea 预填 20 字示例诗，默认态也会出现「第1句」。",
+  },
+  {
+    // D-N182 标点断句：逗号/句号不应被当成「未收录」单字计入徽章
+    slug: "design/checker-5",
+    clicks: ["document.getElementById('poem').value='甲，乙。';check()"],
+    expect: ["甲 仄 乙 仄"],
+    ref: "D-N182 强锁：输入「甲，乙。」单句（甲/乙均在仄库 ZE，见 checker-5.html:189）。旧实现逐字循环未排除标点，会把「，」「。」也当成单字渲染成「未收录 ?」徽章，输出含 \"甲 仄 ， ？ 乙 仄 。 ？\"；新实现在逐字循环跳过 \\u3000-\\u303f / \\uFF00-\\uFFEF / ASCII 标点，只渲染 甲、乙 两字 ⇒ 输出精确 \"甲 仄 乙 仄\"（⚠ collectStrings 对 innerHTML 会把每个徽章标签替换成一个空格，故 expect 必须写成带空格的 \"甲 仄 乙 仄\"，不可写连写 \"甲仄乙仄\"）。默认四行示例诗（床前明月光…）不含该串 ⇒ 强判别。",
+  },
+  {
+    // D-N180 两读态：跨平仄的多音字不再被强行归平或归仄
+    slug: "design/checker-5",
+    clicks: ["document.getElementById('poem').value='空山不见人';check()"],
+    expect: ["\u7a7a \u4e24 \u5c71 \u5e73 \u4e0d \u4ec4 \u89c1 \u4ec4 \u4eba \u5e73"],
+    ref: "D-N180 强锁：字库重建为「平声 / 仄声 / 两读 / 未收录」四态，BOTH 集合收录 38 个跨平仄多音字。「空」兼有 kōng（平）与 kòng（仄）两读，旧实现按「先查 PING」判成「空 平」；新实现先查 BOTH 输出「空 两读」，角标「两」、title「两读」。同串一并锁住「山」shān 平、「不」bù 仄（平水韵入声并入仄库）、「见」jiàn 仄、「人」rén 平，任一字声调口径被改坏即失配。默认示例诗（床前明月光…）不含该串 ⇒ 强判别。",
+  },
+  {
+    // D-N182 预设：七律预设应填 8 行并触发检查（校验其数据与换行切句等价效果）
+    slug: "design/checker-5",
+    clicks: ["document.getElementById('poem').value='国破山河在\\n城春草木深\\n感时花溅泪\\n恨别鸟惊心\\n烽火连三月\\n家书抵万金\\n白头搔更短\\n浑欲不胜簪';check()"],
+    expect: ["第8句"],
+    ref: "D-N182 强锁：点「七言律诗·春望」预设会把 8 行诗写入 #poem 并调用 check()，结果应出现「第8句」。默认四行示例诗只到第 4 句，不含「第8句」⇒ 强判别；同时证明标点修复未破坏换行切句（每行=一句）。预设按钮渲染由 TBKit.preset.bar 在真实浏览器完成（harness 桩 click 为空操作且未注入 TBKit），本锁校验预设的数据与切句等价效果。",
   },
   {
     // 遮蔽回归：本页复制函数已改名 copySwatch(btn, text)，避免被 js/common.js 的全局 copyText(text) 覆盖。
@@ -632,6 +701,55 @@ const CASES = [
     ref: "结果区 `#res` 三段：加权总分 / 维度明细表 / 结论。锚点取首段两条 + 明细表里权重最大的一行：`+50.0` 的差距只可能由注入的 p2a=9 / p2b=4 产生，防止「明细表被整块替换成静态参考表」这一形态的逃生项。\\n"
       + "⚠ 注入值必须偏离页面默认值（默认 p1a=7/p1b=8/…）。第一版把默认值当注入值，导致注入态与默认态输出完全一致 ⇒ 判别器直接报「默认态=PASS ✗逃生」。\\n"
       + "⚠ 尾段「维度评分口径参考」是常量说明块，任何输入都不变，混入即逃生项。",
+  },
+  {
+    slug: "design/analysis-64",
+    inputs: { scale: "10", bias: "even", p1a: "5", p1b: "9", p2a: "5", p2b: "9", p3a: "5", p3b: "9", p4a: "5", p4b: "9", p5a: "5", p5b: "9" },
+    clicks: ["calc();"],
+    expect: ["无明显优势维度"],
+    ref: "D-N159 强锁：注入我方 5/竞品 9（10 分制、均衡权重）⇒ 五维贡献全为负，总分差为负。旧实现 adv 未过滤 con>0，会把两条负贡献标成「优势维度」；新实现输出「无明显优势维度」。默认态（p1a=7/p1b=8…）存在正贡献维度 ⇒ 不命中该串。",
+  },
+  {
+    slug: "design/analysis-64",
+    inputs: { bias: "ux" },
+    clicks: ["calc();var __h=String(document.getElementById('res').innerHTML||'');document.getElementById('__tbProbe').textContent='SENS338_SELF='+(__h.indexOf('可切换「重体验」')>=0?'YES':'NO')+'_ALT='+(__h.indexOf('可切换「重功能」')>=0?'FEATURE':'BAD');"],
+    expect: ["SENS338_SELF=NO_ALT=FEATURE"],
+    ref: "D-N161 强锁：当前已选「重体验」时，旧实现仍固定建议「可切换『重体验』」（自指）；新实现选与当前不同的对比方案「重功能」。探针锚派生哨兵而非输入回显，默认态 bias=even ⇒ 建议「重体验」、SELF=YES 不命中。",
+  },
+  {
+    slug: "design/analysis-64",
+    inputs: { bias: "price" },
+    clicks: ["calc();var __h=String(document.getElementById('res').innerHTML||'');document.getElementById('__tbProbe').textContent='SENS338_LOW='+(__h.indexOf('品牌信任 占 10%')>=0?'BRAND':'BAD');"],
+    expect: ["SENS338_LOW=BRAND"],
+    ref: "D-N161 强锁：旧实现固定拿 DIMS[0]（价格竞争力）举例，重价格权重下价格恰是最高（35%）却仍被当低权重示例；新实现取当前权重最低维度（品牌信任 10%）。默认态 even 最低为品牌信任 15% ⇒ 不命中「占 10%」。",
+  },
+  // ── 第339批：checker 色值规范化 / toast 自定义背景色 ────────────
+  {
+    slug: "design/checker",
+    inputs: { fgColor: "rgb(204,0,17)" },
+    clicks: ["calc();document.getElementById('__tbProbe').textContent='PREV339='+document.getElementById('previewBox').style.color;"],
+    expect: ["PREV339=rgb(204,0,17)"],
+    ref: "D-N156 强锁：前景输入 rgb() 时旧码拼出非法色 #rgb(204,0,17)，style.color 被浏览器丢弃、预览沿用上一次颜色；新码用解析后的 RGB 写预览。锚为注入色派生串，默认 #1F2937 ⇒ 不命中。",
+  },
+  {
+    slug: "design/checker",
+    inputs: { fgColor: "rgb(255,0,0)", bgColor: "rgb(0,0,255)" },
+    clicks: ["document.getElementById('fgColor').value='rgb(255,0,0)';document.getElementById('bgColor').value='rgb(0,0,255)';swapColors();document.getElementById('__tbProbe').textContent='SWAP339='+document.getElementById('fgPicker').value+'|'+document.getElementById('bgPicker').value;"],
+    expect: ["SWAP339=#0000ff|#ff0000"],
+    ref: "D-N158 强锁：旧 swapColors 把 rgb() 文本直接回填 color input（真实 DOM 会置黑，harness 只存原串）；新码先规范化为 #rrggbb。锚为两注入色交换后的 hex，默认 #1F2937/#FFFFFF ⇒ 不命中。",
+  },
+  {
+    slug: "design/toast-generator",
+    inputs: { bgColor: "#123456" },
+    clicks: ["document.getElementById('bgColor').value='#123456';generate();var __c=String(document.getElementById('cssOutput').value||'');document.getElementById('__tbProbe').textContent='KEEP339='+(__c.indexOf('#123456')>=0?'YES':'NO')+'_OVER='+(__c.indexOf('#4caf50')>=0?'YES':'NO');"],
+    expect: ["KEEP339=YES_OVER=NO"],
+    ref: "D-N128 强锁：旧 generate() 只要焦点不在 bgColor 就强制改回类型预设并回写取色器；新码保留自定义背景色。默认态 #4caf50 下旧码得 KEEP=NO，锚为注入色的派生结果 ⇒ 强判别。",
+  },
+  {
+    slug: "design/toast-generator",
+    clicks: ["document.getElementById('toastType').value='warning';applyTypePreset();document.getElementById('__tbProbe').textContent='PRESET339='+document.getElementById('bgColor').value;"],
+    expect: ["PRESET339=#ff9800"],
+    ref: "D-N128 强锁：切换类型仍须把该类型预设色写回取色器；旧码无 applyTypePreset ⇒ ReferenceError 变红。锚为注入类型 warning 对应的预设色，默认 success 为 #4caf50 ⇒ 不命中。",
   },
   {
     slug: "design/particle-effect-generator",
@@ -682,6 +800,12 @@ const CASES = [
     inputs: { distance: "18", blur: "30", intensity: "35", radius: "44", bgColor: "#1f2937" },
     expect: [".neomorphism { background-color: #1f2937; border-radius: 44px; box-shadow: 18px 18px 30px rgba(10, 20, 34, 0.35), -18px -18px 30px rgba(52, 62, 76, 0.35); }"],
     ref: "输出整行由 bgColor/radius/distance/blur/intensity 共同决定，必须整行锚；只锚 `.neomorphism` 会让默认态（#e0e5ec / 20px）也命中 ⇒ 报「默认态=PASS ✗逃生」。注入瞬间 `adjustColor` 会抛错（依赖未注入的取色字段），但 `#cssOutput` 已先写入。",
+  },
+  {
+    slug: "design/neomorphism-generator",
+    clicks: ["currentShape='circle';generate();var __o1=String(document.getElementById('cssOutput').value||'');var __c1=__o1.indexOf('border-radius: 50%')>=0;currentShape='btn';generate();var __o2=String(document.getElementById('cssOutput').value||'');var __c2=__o2.indexOf('border-radius: 50px')>=0;document.getElementById('__tbProbe').textContent='NEU circle50='+(__c1?'Y':'N')+' btn50='+(__c2?'Y':'N')+' pressed='+(__o2.indexOf('.neomorphism-pressed')>=0?'Y':'N')+' punch='+(__o2.indexOf('.neomorphism-punch')>=0?'Y':'N');"],
+    expect: ["NEU circle50=Y btn50=Y pressed=Y punch=Y"],
+    ref: "D-N68 回归锁：预览的圆形是 border-radius:50%、按钮是 50px，且同时展示凸起/凹陷/浮雕三变体；导出必须与预览一致并三套齐全。旧实现固定 `border-radius:${radius}px` + 仅 flatShadow（探针全 N）⇒ 强判别。探针由 clicks 生成，默认态无该串 ⇒ 零逃生。",
   },
   {
     slug: "design/border-radius-generator",
@@ -800,18 +924,38 @@ const CASES = [
     ref: "随机边框生成器，锚第 7 条的结构前缀 `.border-7 { border:`。边框样式枚举（solid/dashed/dotted/...）与颜色是随机的，只取结构前缀规避 flaky。默认态 5 条 ⇒ 不命中。",
   },
   {
+    // D-N208 默认态：真实 QR 编码（29 字节 → 版本 3 / 29×29 / 纠错 M）
     slug: "design/generator-8",
-    inputs: { cnt: "6" },
-    expect: ["配置参数 #6"],
-    ref: "二维码定制方案生成器。每条方案内部含随机示例链接与随机色值，只锚第 6 条的序号标签 `配置参数 #6`（默认态 5 条 ⇒ 不命中）。\n"
-      + "⚠ `errs` 里的 `randItem: ... 'length'` 是 harness 内随机数组取值的桩盲区，不阻断 `#res` 写入。",
+    expect: ["版本 3 · 29×29 模块 · 纠错 M · 29 字节"],
+    ref: "D-N208 强锁：页面改为调用项目内置 js/qrcode.js 真实编码（ISO/IEC 18004）。默认文本 `https://tools.dicomp.net`（29 字节 UTF-8）在 M 级下由库自动选中版本 3 ⇒ 模块数 4×3+17 = 29。\n"
+      + "期望值由 node 独立跑库复算：`qrcode(0,'M') + addData(text,'Byte') + make()` → getModuleCount() = 29、版本 (29-17)/4 = 3，与页面信息行逐字一致。\n"
+      + "旧实现只拼「配置参数 #1:」随机文本、不生成任何矩阵，不含该串 ⇒ 强判别。\n"
+      + "⚠ harness 原本不加载外部 <script src>；本轮在 verify_it_calc.js 里按「页面 HTML 引用 js/qrcode.js」为条件把构造函数作为 new Function 形参注入，未引用该库的用例行为不变。",
   },
   {
-    slug: "design/generator-9",
-    inputs: { cnt: "6" },
-    expect: ["6. EAN-13 条形码"],
-    ref: "EAN-13 生成器。12 位随机码 + 确定校验位 ⇒ 数值部分不可锚，只锚第 6 条的序号与标题 `6. EAN-13 条形码`（默认态 5 条 ⇒ 不命中）。校验位算法本身的正确性由页面其它验证路径覆盖，本例只锁「条数随 cnt 增长」。\n"
-      + "本页是本批唯一 `errs` 为空的 generator 页（gen 不依赖 `randItem`）。",
+    // D-N208 纠错等级参与版本选择：同一文本 H 级比 M 级高一版
+    slug: "design/generator-8",
+    inputs: { qrtext: "https://example.com", qrecl: "H" },
+    expect: ["版本 3 · 29×29 模块 · 纠错 H · 19 字节"],
+    ref: "D-N208 强锁：同一文本在 H 级下需要更多纠错码字，版本被抬高。node 复算 `https://example.com`（19 字节）：L/M/Q 均版本 2（25×25），H 为版本 3（29×29）。\n"
+      + "默认态是 M 级版本 2，本用例改 qrecl=H 后取得「版本 3 … 纠错 H」，证明纠错等级真正参与编码而不是只改标签。\n"
+      + "⚠ 只注入 qrtext 与 qrecl 两个键，不动 qrsize/qrmargin/qrfg/qrbg，避免颜色变化干扰文本锚点。",
+  },
+  {
+    // D-N208 批量：多行文本各生成一个二维码
+    slug: "design/generator-8",
+    inputs: { qrtext: "A\nB\nC" },
+    expect: ["生成结果：共 3 个二维码（纠错 M，静区 4 模块）"],
+    ref: "D-N208：输入框按行切分，每行一个二维码（上限 20 行）。三行 ⇒ 首行汇总写「共 3 个二维码」。默认态 1 行 ⇒ 不含「共 3 个」⇒ 强判别；同时验证空行/去空格逻辑未把换行吞掉。",
+  },
+  {
+    // D-N208 UTF-8 字节计数：中文按 3 字节/字，而非按字符数
+    slug: "design/generator-8",
+    inputs: { qrtext: "中文测试" },
+    expect: ["版本 1 · 21×21 模块 · 纠错 M · 12 字节"],
+    ref: "D-N208 强锁：编码按 UTF-8 计字节，`中文测试` 4 个汉字 = 12 字节（每字 3 字节），M 级下落在版本 1 ⇒ 21×21。\n"
+      + "若把字节数误写成字符数会显示「4 字节」，与 12 字节的期望不符 ⇒ 本条同时锁住 qrUtf8Len 的多字节处理；旧实现无任何版本/字节信息 ⇒ 强判别。\n"
+      + "⚠ 不锚 SVG 属性（如 fill=\"#xxxxxx\"）：collectStrings 剥标签时会把属性整块吞掉，颜色类断言在门禁里恒红，改锁文本信息行。",
   },
   {
     slug: "design/generator-11",
@@ -824,6 +968,34 @@ const CASES = [
     inputs: { cnt: "6" },
     expect: ["6. square 粒子方案"],
     ref: "粒子特效生成器。形状枚举按序取（circle/square/...），第 6 条落到 square；粒子数量/速度/色值随机，不进 expect。默认态 5 条 ⇒ 不命中。",
+  },
+  // ── 第386批 D-N210：输出改为「可运行 HTML + CSS」，animation 真正绑定到粒子节点
+  {
+    slug: "design/generator-12",
+    inputs: { cnt: "50" },
+    expect: [
+      "animation: float-50 var(--speed) linear infinite",
+    ],
+    ref: "D-N210 强锁：第 50 条方案必须真正把 animation 绑到粒子选择器上，且 keyframes 名 float-50 与选择器同源。"
+      + "旧实现只声明 `--count/--shape` 等变量与 `@keyframes float-N`，全文没有任何选择器写 animation，`--count`/`--shape`/`--speed` 也没被引用 ⇒ 复制的 CSS 跑不出粒子。"
+      + "⚠ 只能保留这一条：`50. square 粒子方案` 这类「序号 + 形状」标题新旧实现都有，属零判别力串（首版两条 expect 时旧码也 2/2 通过，已实测）。"
+      + "默认态（5 条）只有 float-1..float-5 ⇒ 该串默认不命中，零逃生。",
+  },
+  // ── 第386批 D-N210 配套：参数控件（每套粒子数 / 周期 / 颜色）必须真正进入输出
+  {
+    slug: "design/generator-12",
+    inputs: { cnt: "1", pcount: "88" },
+    expect: ["88 个粒子 ·"],
+    ref: "D-N210 配套强锁：`每套粒子数` 输入必须驱动输出，方案说明里出现「88 个粒子 ·」（其后尺寸/周期/扩散仍随机，故只锚到「·」为止）。"
+      + "旧实现只有「生成数量」一个输入，粒子数固定随机 20–200，该串永不出现。默认态 pcount 为空 ⇒ 随机值 ⇒ 不命中。",
+  },
+  {
+    slug: "design/generator-12",
+    inputs: { cnt: "1", pcolor: "#123456", pspeed: "1.2" },
+    expect: ["--color: #123456;"],
+    ref: "D-N210 配套强锁：`粒子颜色` 与 `动画周期` 必须写进生成的 CSS 变量。"
+      + "注入 #123456 / 1.2 ⇒ 输出含 `--color: #123456;`（颜色取自固定 10 色随机池，不可能撞上 #123456）。"
+      + "⚠ 只锚颜色、不锚 `--speed: 1.2s;`：周期在一位小数区间内随机，实测旧码在同一注入下随机到 1.2 而误判通过（已踩坑），属逃生项。",
   },
   {
     slug: "design/favicon-generator",
@@ -876,8 +1048,9 @@ const CASES = [
   {
     slug: "design/ripple-effect",
     inputs: { duration: "1.5", size: "320" },
-    expect: ["animation: rippleAnim 1.5s ease-out"],
-    ref: "注入非默认(默认 duration=0.8)：生成的 CSS 关键帧动画时长取注入值 ⇒ 'animation: rippleAnim 1.5s ease-out'。默认态为 0.8s，本锚不命中。size 不参与 CSS 输出，仅作陪注入。",
+    clicks: ["generate();var t=String(document.getElementById('cssOutput').value);document.getElementById('__tbProbe').textContent='RIP css='+(t.indexOf('animation: rippleAnim 1.5s ease-out')>=0?'Y':'N')+' js='+(t.indexOf('box.addEventListener(')>=0?'Y':'N');"],
+    expect: ["RIP css=Y js=Y"],
+    ref: "注入非默认(默认 duration=0.8)：生成 CSS 的关键帧时长取注入值（animation: rippleAnim 1.5s ease-out）。D-N95：页面 meta/公式框承诺「导出 CSS/JS」，旧码只输出 CSS ⇒ 修复后 click 型追加可直接粘贴的 JS 片段（事件委托 + 生成 .ripple span，超时时间取 duration）。且断言 css 与 js 两段同时命中，旧码 js=N ⇒ 红；默认态不含该探针串。",
   },
   {
     slug: "design/spinner-generator",
@@ -906,6 +1079,27 @@ const CASES = [
     ref: "安全修复判别：注入含 onload 与 <script> 的 SVG。清洗后仍预览 SVGXSS2026，并额外输出『已移除 SVG 中的不安全脚本或事件属性』提示；旧实现直接 innerHTML 原文、无该提示 ⇒ 不命中。默认态无该提示。",
   },
   {
+    slug: "design/svg-viewer",
+    inputs: { svgInput: "<svg><image href='data:image/svg+xml;base64,PHN2Zz48L3N2Zz4='/><text>SVGB2026</text></svg>" },
+    clicks: ["var __r=sanitizeSvg(document.getElementById('svgInput').value);var __h=String(__r.html).toLowerCase();var __bad=(__h.indexOf('<script')>=0||__h.indexOf('<foreignobject')>=0||__h.indexOf('data:image/svg')>=0||__h.indexOf('javascript:')>=0);document.getElementById('__tbProbe').textContent='SVGB2026_CLEAN='+(__bad?'BAD':'OK')+'_RM='+__r.removed+'_DANGER='+__svgStillDangerous(__r.html);"],
+    expect: ["SVGB2026_CLEAN=OK_RM=true_DANGER=false"],
+    ref: "B 类绕过（data:image/svg+xml 可内嵌脚本）：旧清洗白名单 /^data:image\\// 放行 ⇒ 残留危险串、removed=false；新清洗仅放行位图 data URI ⇒ 该 href 被移除、removed=true，终检不触发。expect 锚清洗后的派生哨兵（非输入回显），默认态 svgInput 为示例 SVG ⇒ RM=false 不命中。",
+  },
+  {
+    slug: "design/svg-viewer",
+    inputs: { svgInput: "<svg><scr<script>ipt>alert(3)</scr<script>ipt><text>SVGC2026</text></svg>" },
+    clicks: ["var __r=sanitizeSvg(document.getElementById('svgInput').value);var __h=String(__r.html).toLowerCase();var __bad=(__h.indexOf('<script')>=0||__h.indexOf('<foreignobject')>=0||__h.indexOf('data:image/svg')>=0||__h.indexOf('javascript:')>=0);document.getElementById('__tbProbe').textContent='SVGC2026_CLEAN='+(__bad?'BAD':'OK')+'_RM='+__r.removed+'_DANGER='+__svgStillDangerous(__r.html);"],
+    expect: ["SVGC2026_CLEAN=OK_RM=true_DANGER=false"],
+    ref: "C 类绕过（<scr<script>ipt> 嵌套重组）：旧清洗单次 replace 移除内层后重组出新的 <script>；新清洗循环到不动点 ⇒ 彻底清除。expect 锚清洗后派生哨兵，默认态 RM=false 不命中。",
+  },
+  {
+    slug: "design/svg-viewer",
+    inputs: { svgInput: "<svg><foreignObj<foreignObject>ect><div>X</div></foreignObj<foreignObject>ect><text>SVGD2026</text></svg>" },
+    clicks: ["var __r=sanitizeSvg(document.getElementById('svgInput').value);var __h=String(__r.html).toLowerCase();var __bad=(__h.indexOf('<script')>=0||__h.indexOf('<foreignobject')>=0||__h.indexOf('data:image/svg')>=0||__h.indexOf('javascript:')>=0);document.getElementById('__tbProbe').textContent='SVGD2026_CLEAN='+(__bad?'BAD':'OK')+'_RM='+__r.removed+'_DANGER='+__svgStillDangerous(__r.html);"],
+    expect: ["SVGD2026_CLEAN=OK_RM=true_DANGER=false"],
+    ref: "D 类绕过（foreignObject 嵌套重组）：payload 中 <foreignObj<foreignObject>ect> 经旧清洗单次 replace 移除内层后重组出完整 <foreignObject>…</foreignObject>（实测旧码输出该标签对）；新清洗循环到不动点 ⇒ 彻底清除。expect 锚清洗后派生哨兵，默认态 RM=false 不命中。",
+  },
+  {
     slug: "design/font-preview",
     inputs: { fpText: "ZZPREVZZ" },
     expect: ["ZZPREVZZ"],
@@ -916,13 +1110,23 @@ const CASES = [
     slug: "design/iso-noise-reference",
     inputs: { sensor: "medium", light: "low", camera: "canon_r5", isoRange: "51200" },
     expect: ["中画幅", "佳能 R5 全画幅 · 45MP", "8K视频", "几乎不可见，画质纯净"],
-    ref: "注入 sensor=medium（默认 phone）/ light=low（默认 bright）/ camera=canon_r5（默认 sony_a7iv）。三条均经页面 change 监听器 → onISOChange → renderISO 生效，独立复算依据页面内置噪声基准表：medium 画幅纯净上限 6400、可用上限 25600；弱光档等效 ISO = 6400×1.3 = 8320。判别锚（均与默认态零撞车）：①『中画幅』（默认渲染『手机 (1/1.3 吋)』）②『佳能 R5 全画幅 · 45MP』（默认 sony_a7iv ⇒『索尼 A7 IV 全画幅 · 33MP』）③『8K视频』（佳能 R5 独有优点，默认 A7 IV 为『对焦优秀、视频强、实时眼部对焦』）④『几乎不可见，画质纯净』（ISO 6400 在 medium+low 下评『优秀』，默认 phone+bright 评『较重』并输出『噪点明显，需要后期降噪』）。⚠️ 不用『原生ISO 100-51200』——默认 A7 IV 同为 100-51200，属逃生串（判别器已实测报出）。纯本地查表，无随机、无时间依赖。",
+    ref: "注入 sensor=medium（默认 phone）/ light=low（默认 bright）/ camera=canon_r5（默认 sony_a7iv）。三条均经页面 change 监听器 → onISOChange → renderISO 生效，独立复算依据页面内置噪声基准表：medium 画幅 cleanMax=6400 / usableMax=25600、mult=1.5 ⇒ 折算到机身 ISO 的纯净/可用上限为 9600 / 38400；弱光档等效 ISO = 6400×1.3 = 8320。判别锚（均与默认态零撞车）：①『中画幅』（默认渲染『手机 (1/1.3 吋)』）②『佳能 R5 全画幅 · 45MP』（默认 sony_a7iv ⇒『索尼 A7 IV 全画幅 · 33MP』）③『8K视频』（佳能 R5 独有优点，默认 A7 IV 为『对焦优秀、视频强、实时眼部对焦』）④『几乎不可见，画质纯净』（ISO 6400 在 medium+low 下评『优秀』，默认 phone+bright 评『较重』并输出『噪点明显，需要后期降噪』）。⚠️ 不用『原生ISO 100-51200』——默认 A7 IV 同为 100-51200，属逃生串（判别器已实测报出）。纯本地查表，无随机、无时间依赖。",
+  },
+  // ── 第384批 D-N206：噪点分级阈值统一到「机身 ISO」侧（上限展示 = cleanMax×mult / usableMax×mult）
+  {
+    slug: "design/iso-noise-reference",
+    inputs: { sensor: "medium", isoRange: "20" },
+    expect: ["9,600", "38,400"],
+    ref: "D-N206 强锁：判定在等效 ISO（机身 ISO ÷ mult）上做，所以统计卡展示的上限必须是 cleanMax×mult / usableMax×mult。"
+      + "中画幅 mult=1.5、cleanMax=6400、usableMax=25600 ⇒ 展示 9,600 / 38,400（toLocaleString 带千分位）。"
+      + "旧实现直接展示 6400 / 25600，与「ISO 6400 在 medium 下仍判优秀、到 9600 才掉档」自相矛盾 —— 两条 expect 全不命中。"
+      + "默认 sensor=aps（mult=0.7）展示 1,120 / 4,480 ⇒ 默认态同样不命中，无逃生。",
   },
   {
     slug: "design/cvd-safe-palette",
     inputs: { csMode: "sequential", csStrategy: "lightness" },
     expect: ["sequential"],
-    ref: "⚠ 下拉值回显（结构性不可修）：csMode=sequential / csStrategy=lightness 注入后，模式与策略标签确实变化，但实测色板（#A2828B → #1B179C → …）、ΔE、对比度表在默认 qualitative/auto 下**逐字节相同** —— 该页色板由固定种子搜索生成、不受模式/策略影响 ⇒ 任何色板数值锚都会在默认态命中（已双态实测 A/B 一致）。能区分的只有 `sequential`/`lightness` 两个下拉回显本身，故维持原断言。",
+    ref: "⚠ 下拉值回显（结构性不可修）：csMode=sequential / csStrategy=lightness 注入后，模式与策略标签确实变化，但对照组（同一色板）数值锚会在默认态命中 —— 该页主逻辑在 IIFE 内、`change` 监听器读 `this.value` 而 harness 的 fire 不绑定 this、`click()` 又是空操作，故策略无法在同步 stub 内驱动。D-N107（maxmin 空实现）改以独立复算取证（见交接档 2026-11-14-378），此处只保留下拉回显。",
   },
   {
     "slug": "design/avatar-generator",
@@ -964,14 +1168,15 @@ const CASES = [
     "slug": "design/aztec-code",
     "inputs": {
       "text": "abc123测试",
-      "fgColor": "abc123测试",
-      "bgColor": "abc123测试",
-      "size": "42"
+      "fgColor": "#112233",
+      "bgColor": "#ffffff",
+      "size": "42",
+      "ecc": "50"
     },
     "expect": [
-      "abc123测试\nabc123测试\nabc123测试\n42"
+      "层数 2 · 紧凑型 · 19×19 模块 · 数据码字 21 · 纠错 50% · 12 字节"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"text\":\"abc123测试\",\"fgColor\":\"abc123测试\",\"bgColor\":\"abc123测试\",\"size\":\"42\"}，输出区含「abc123测试\nabc123测试\nabc123测试\n42」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "第390批：真编码接管后重写本用例（原为自动补强的输入回显弱用例）。注入中文混排文本 + 纠错 50% ⇒ 符号必须由内容与纠错率共同决定：12 字节（abc123 六字节 + 两个汉字各 3 字节 UTF-8）在 50% 纠错下升到紧凑型 2 层、19×19、15 个数据码字。旧假实现只有 hash+LCG，输出里没有任何层数/码字信息，默认态（33% + TB-2026-009）得到的是 1 层 15×15 11 码字 ⇒ 双向强判别。"
   },
   {
     "slug": "design/badge-generator",
@@ -1091,9 +1296,9 @@ const CASES = [
       "bgPicker": "abc123测试"
     },
     "expect": [
-      "ABC123测试\nABC123测试\n色值格式无效，请输入 #RRGGBB 或 rgb(r,g,b) 格式\nABC123测试\nABC123测试"
+      "ABC123测试\nABC123测试\n色值格式无效，请输入 #RRGGBB 或 rgb(r,g,b) 格式\nabc123测试\nabc123测试"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"fgColor\":\"abc123测试\",\"fgPicker\":\"abc123测试\",\"bgColor\":\"abc123测试\",\"bgPicker\":\"abc123测试\"}，输出区含「ABC123测试\nABC123测试\n色值格式无效，请输入 #RRGGBB 或 r…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）· 第339批漂移同步：注入非默认输入{\"fgColor\":\"abc123测试\",\"fgPicker\":\"abc123测试\",\"bgColor\":\"abc123测试\",\"bgPicker\":\"abc123测试\"}。D-N158 修复后 swapColors 对非法色值不再把原串写回 color input（真实 DOM 会置黑并覆盖文本），末两行由大写回显变为注入原串小写；旧源码差分已证明该漂移来自修复本身。默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "design/checkerboard-generator",
@@ -1279,9 +1484,22 @@ const CASES = [
       "matType": "paint"
     },
     "expect": [
-      "/kg 限值要求：VOC≤120g/L 环保等级： 合格品 符合GB 18582标准，可用于室内墙面"
+      "/kg 限值要求：VOC≤80g/L 且苯系物≤50mg/kg 环保等级： 合格品 符合GB 18582标准，可用于室内墙面"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"formaldehyde\":\"42\",\"voc\":\"42\",\"benzeneContent\":\"42\",\"matType\":\"paint\"}，输出区含「/kg 限值要求：VOC≤120g/L 环保等级： 合格品 符合GB 18582…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "design/detector-28",
+    "inputs": {
+      "matType": "paint",
+      "formaldehyde": "0.05",
+      "voc": "20",
+      "benzeneContent": "5"
+    },
+    "expect": [
+      "/kg 限值要求：VOC≤30g/L 且苯系物≤10mg/kg 环保等级： 优等品 低VOC环保涂料，适合儿童房和敏感人群使用"
+    ],
+    "ref": "D-N183 强锁：内墙涂料优等边界 voc=20/bz=5（≤30 且 ≤10）应判优等品，limit 文案须为「VOC≤30g/L 且苯系物≤10mg/kg」。旧实现 limit 写「VOC≤80g/L」（与合格阈值混淆）、公式块/引据也写 80/120，四套口径矛盾；新实现统一为判定值 30/10。默认态（voc 回退默认 80）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "design/detector-29",
@@ -1412,9 +1630,9 @@ const CASES = [
       "cnt": "42"
     },
     "expect": [
-      "mation: flip-873 2.7s cubic-bezier(0.68,-0.55,0.27,1.55) 0.2s 2 normal"
+      "42. .slideUp-"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"cnt\":\"42\"}，输出区含「mation: flip-873 2.7s cubic-bezier(0.68,…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "注入非默认输入{\"cnt\":\"42\"}，输出区含第 42 条的标题前缀「42. .slideUp-」（八种动画按 i % 8 轮换，41 % 8 = 1 ⇒ 第 42 条必为 slideUp）。原 expect 锚「mation: flip-873 2.7s cubic-bezier(…」依赖随机时长/延迟/缓动与随机后缀，页面源码一改随机序列即位移而假红，改锚确定性结构串；默认态 5 条 ⇒ 不含该串。"
   },
   {
     "slug": "design/generator-11",
@@ -1422,9 +1640,9 @@ const CASES = [
       "cnt": "42"
     },
     "expect": [
-      "(45deg, #00C9A7, #00C9A7 10.75px, #00C9A7 10.75px, #00C9A7 21.5px); } 30. 波浪"
+      "42. 波浪纹理"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"cnt\":\"42\"}，输出区含「(45deg, #00C9A7, #00C9A7 10.75px, #00C9A…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "注入非默认输入{\"cnt\":\"42\"}，输出区含第 42 条的标题「42. 波浪纹理」（六种纹理按 i % 6 轮换，41 % 6 = 5 ⇒ 第 42 条必为波浪）。原 expect 锚「(45deg, #00C9A7, #00C9A7 10.75px…」依赖随机双色与随机尺寸，页面源码一改随机序列即位移而假红，改锚确定性结构串；默认态 5 条 ⇒ 不含该串。"
   },
   
   {
@@ -1471,34 +1689,15 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"slides\":\"42\",\"minutes\":\"42\",\"points\":\"42\",\"fontSize\":\"42\",\"speed\":\"180\",\"ratio\":\"1920x1200\"}，输出区含「第 4 页 正文 61.2 s 1.5 s 110 字 第 22 页 正文 61…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "design/generator-9",
-    "inputs": {
-      "cnt": "42"
-    },
-    "expect": [
-      "N-13 条形码 1 661910 592918 完整数字: 1661910592918 | 校验位: 8 17"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"cnt\":\"42\"}，输出区含「N-13 条形码 1 661910 592918 完整数字: 166191059…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
-  },
-  {
     "slug": "design/generator-7",
     "inputs": {
       "cnt": "42"
     },
     "expect": [
-      "-radius: 26px; } 16. outset"
+      "border-41 {",
+      "42. outset 边框"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"cnt\":\"42\"}，输出区含「-radius: 26px; } 16. outset」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
-  },
-  {
-    "slug": "design/generator-8",
-    "inputs": {
-      "cnt": "42"
-    },
-    "expect": [
-      "le.com/q/ffzqi2oo"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"cnt\":\"42\"}，输出区含「le.com/q/ffzqi2oo」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "注入非默认输入{\"cnt\":\"42\"}，输出区含第 41 条的结构前缀「border-41 {」与第 42 条标题「42. outset 边框」（八种样式轮换，42 % 8 = 2 ⇒ 第 42 条必为 outset）。原 expect 锚「-radius: 26px; } 16. outset」依赖随机圆角，改控件后随机序列位移即失效（且本属 flaky），改锚确定性结构串；默认态 5 条 ⇒ 不含该串。"
   },
   {
     "slug": "design/generator-6",
@@ -1577,9 +1776,9 @@ const CASES = [
       "direction": "90"
     },
     "expect": [
-      "gradient(90deg, #fed1cd 0%, #feada6 11%, #fd897f 22%, #fc6558 33%, #fc4131 44%, #fb1d0a 56%, #da1503 67%, #b21103 78%, #"
+      "gradient(90deg, #fd8075 0%, #fc5d4f 11%, #fc3b29 22%, #fb1804 33%, #d51403 44%, #b01103 56%, #8a0d02 67%, #640a02 78%, #"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"baseColor\":\"abc123测试\",\"steps\":\"42\",\"cssOutput\":\"1\\n2\\n3\",\"direction\":\"90\"}，输出区含「gradient(90deg, #fed1cd 0%, #feada6 11%,…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"baseColor\":\"abc123测试\",\"steps\":\"42\",\"cssOutput\":\"1\\n2\\n3\",\"direction\":\"90\"}，输出区含「gradient(90deg, #fd8075 0%, #fc5d4f 11%,…」（第351批随 D-N126 亮度口径同步更新）；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "design/identicon-generator",
@@ -1611,41 +1810,6 @@ const CASES = [
       "线 (mm) 1.0000 宽高比 42 × 42 像素 @ 42 DPI = 25.40 × 25.40 mm\n42\n42\n42\n694 宽度 (像素) 694 高度 (像素) 0.48 MP 总像素 1.0000 宽高比 42 × 42"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"w1\":\"42\",\"h1\":\"42\",\"dpi1\":\"42\",\"w2\":\"42\",\"h2\":\"42\",\"dpi2\":\"42\",\"w3\":\"42\",\"h3\":\"42\",\"diag3\":\"6.1\"}，输出区含「线 (mm) 1.0000 宽高比 42 × 42 像素 @ 42 DPI = …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
-  },
-  {
-    "slug": "design/image-cropper",
-    "inputs": {
-      "cx": "42",
-      "cy": "42",
-      "cw": "42",
-      "ch": "42"
-    },
-    "expect": [
-      "42\n42\n42\n42"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"cx\":\"42\",\"cy\":\"42\",\"cw\":\"42\",\"ch\":\"42\"}，输出区含「42\n42\n42\n42」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
-  },
-  {
-    "slug": "design/image-cropper",
-    "inputs": { "cx": "12", "cy": "34", "cw": "56", "ch": "78" },
-    "clicks": [
-      "origImg={width:200,height:160};generate();window.__n1=document.getElementById('dlName').textContent;window.__h1=document.getElementById('downloadLink').href;origImg={width:240,height:180};document.getElementById('cx').value='5';document.getElementById('cy').value='6';document.getElementById('cw').value='70';document.getElementById('ch').value='80';generate();var __n2=document.getElementById('dlName').textContent;var __h2=document.getElementById('downloadLink').href;document.getElementById('dlName').textContent=__n2+'|nameChanged='+(window.__n1!==__n2)+'|hrefSet='+!!__h2+'|hrefFirstSet='+!!window.__h1;"
-    ],
-    "expect": [
-      "cropped_240x180_5-6_70x80.png|nameChanged=true|hrefSet=true|hrefFirstSet=true"
-    ],
-    "ref": "换图/改参回归：先以 200×160 原图 + 裁剪(12,34,56×78) 生成下载名 cropped_200x160_12-34_56x78.png，再换 240×180 原图并把参数改为(5,6,70×80) 重跑 generate()。断言新文件名为 cropped_240x180_5-6_70x80.png、nameChanged=true（与上一张不同）、下载链接 href 已置为当前 canvas 数据（hrefSet/hrefFirstSet=true）。旧实现下载入口恒指上一张裁剪结果且 href 不随裁剪刷新，本用例不命中。"
-  },
-  {
-    "slug": "design/image-resizer",
-    "inputs": {
-      "width": "42",
-      "height": "42"
-    },
-    "expect": [
-      "42\n42"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"width\":\"42\",\"height\":\"42\"}，输出区含「42\n42」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "design/image-rounded-corners",
@@ -1787,9 +1951,9 @@ const CASES = [
       "pcMetric": "e76"
     },
     "expect": [
-      "色盲 灰度/黑白\n尚未解析到有效颜色\ne76\n1 2 3\nabc123测试"
+      "正常 红色盲 红色弱 绿色盲 绿色弱 蓝色盲 蓝色弱 全色盲\n尚未解析到有效颜色\ne76\n1 2 3\nabc123测试"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"pcPick\":\"abc123测试\",\"pcInput\":\"1\\n2\\n3\",\"pcMetric\":\"e76\"}，输出区含「色盲 灰度/黑白\n尚未解析到有效颜色\ne76\n1 2 3\nabc123测试」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"pcPick\":\"abc123测试\",\"pcInput\":\"1\\n2\\n3\",\"pcMetric\":\"e76\"}，输出区含「正常 红色盲 红色弱 绿色盲 绿色弱 蓝色盲 蓝色弱 全色盲\n尚未解析到有效颜色\ne76\n1 2 3\nabc123测试」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "design/pattern-generator",
@@ -2092,9 +2256,20 @@ const CASES = [
     },
     "clicks": ["generate()"],
     "expect": [
-      "42 × 42 · 1x · transparent"
+      "42 × 42 · 1x · transparent · contain"
     ],
     "ref": "42×42、1x 透明背景生成前输出像素元信息；不依赖输入回显或测试环境中的 Image 实现。"
+  },
+  {
+    "slug": "design/svg-to-png",
+    "inputs": {
+      "width": "200",
+      "height": "100",
+      "svgInput": "<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 64 64'><rect width='64' height='64'/></svg>"
+    },
+    "clicks": ["document.getElementById('fitMode').value='stretch';generate()"],
+    "expect": ["200 × 100 · 1x · transparent · stretch"],
+    "ref": "D-N25 强锁：拉伸铺满模式下 exportMetaVal 同步串含 'stretch'（与默认 contain 区分）。64×64 SVG 在 200×100 画布下若用 contain 会是 100×100 居中，stretch 才是 200×100 铺满 ⇒ 模式串可判别。"
   },
   {
     "slug": "design/tester-assessor",
@@ -2487,25 +2662,19 @@ const CASES = [
   "ref": "C1 上传口径（canvas 污染源根除）：SVG（可含 foreignObject/外链）必须被拒收，位图必须放行。由真机负向自证（21/21）配套覆盖。"
 },
 {
-  "slug": "design/image-cropper",
-  "clicks": ["var g=(typeof window!=='undefined'?window.__svgFileBlocked:null)||(typeof __svgFileBlocked==='function'?__svgFileBlocked:null);document.getElementById('__svg_probe').textContent='SVG:'+(g&&g({name:'evil.svg',type:'image/svg+xml'})?'BLOCK':'PASS')+'|PNG:'+(g&&g({name:'ok.png',type:'image/png'})?'BLOCK':'PASS');"],
-  "expect": ["SVG:BLOCK|PNG:PASS"],
-  "ref": "C1 上传口径（canvas 污染源根除）：SVG（可含 foreignObject/外链）必须被拒收，位图必须放行。由真机负向自证（21/21）配套覆盖。"
-},
-{
   "slug": "design/image-flipper",
   "clicks": ["var g=(typeof window!=='undefined'?window.__svgFileBlocked:null)||(typeof __svgFileBlocked==='function'?__svgFileBlocked:null);document.getElementById('__svg_probe').textContent='SVG:'+(g&&g({name:'evil.svg',type:'image/svg+xml'})?'BLOCK':'PASS')+'|PNG:'+(g&&g({name:'ok.png',type:'image/png'})?'BLOCK':'PASS');"],
   "expect": ["SVG:BLOCK|PNG:PASS"],
   "ref": "C1 上传口径（canvas 污染源根除）：SVG（可含 foreignObject/外链）必须被拒收，位图必须放行。由真机负向自证（21/21）配套覆盖。"
 },
 {
-  "slug": "design/image-format-converter",
-  "clicks": ["var g=(typeof window!=='undefined'?window.__svgFileBlocked:null)||(typeof __svgFileBlocked==='function'?__svgFileBlocked:null);document.getElementById('__svg_probe').textContent='SVG:'+(g&&g({name:'evil.svg',type:'image/svg+xml'})?'BLOCK':'PASS')+'|PNG:'+(g&&g({name:'ok.png',type:'image/png'})?'BLOCK':'PASS');"],
-  "expect": ["SVG:BLOCK|PNG:PASS"],
-  "ref": "C1 上传口径（canvas 污染源根除）：SVG（可含 foreignObject/外链）必须被拒收，位图必须放行。由真机负向自证（21/21）配套覆盖。"
+  "slug": "design/image-flipper",
+  "clicks": ["var _ce=document.createElement.bind(document);document.createElement=function(t){var e=_ce(t);if(t==='canvas'){e.toDataURL=function(){return 'data:image/png;base64,AAA';};}return e;};origImg={width:20,height:20};flip('h');flip('h');document.getElementById('__svg_probe').textContent='FLIP2:'+(currentImg?'OK':'NULL');"],
+  "expect": ["FLIP2:OK"],
+  "ref": "D-N23 回归锁：原 currentImg 仅在 newImg.onload 异步回调里更新，快速连点两次 flip('h') 时第二次仍读旧图、无法还原（FLIP2:NULL）；修复后 currentImg 在每次 flip 内同步设为本次 canvas（canvas 可作 drawImage 源），两次水平翻转即还原（FLIP2:OK）。toDataURL 覆盖为返回测试串以保证翻转流程走完，不依赖真实像素。"
 },
 {
-  "slug": "design/image-resizer",
+  "slug": "design/image-format-converter",
   "clicks": ["var g=(typeof window!=='undefined'?window.__svgFileBlocked:null)||(typeof __svgFileBlocked==='function'?__svgFileBlocked:null);document.getElementById('__svg_probe').textContent='SVG:'+(g&&g({name:'evil.svg',type:'image/svg+xml'})?'BLOCK':'PASS')+'|PNG:'+(g&&g({name:'ok.png',type:'image/png'})?'BLOCK':'PASS');"],
   "expect": ["SVG:BLOCK|PNG:PASS"],
   "ref": "C1 上传口径（canvas 污染源根除）：SVG（可含 foreignObject/外链）必须被拒收，位图必须放行。由真机负向自证（21/21）配套覆盖。"
@@ -2522,6 +2691,12 @@ const CASES = [
   "expect": ["SVG:BLOCK|PNG:PASS"],
   "ref": "C1 上传口径（canvas 污染源根除）：SVG（可含 foreignObject/外链）必须被拒收，位图必须放行。由真机负向自证（21/21）配套覆盖。"
 },
+{
+  "slug": "design/image-color-picker",
+  "clicks": ["canvas={width:10,height:10};ctx={getImageData:function(){return {data:[255,0,0,128]};}};var __el={getBoundingClientRect:function(){return {left:0,top:0,width:10,height:10};}};pickColor({clientX:1,clientY:1},__el);document.getElementById('__tbProbe').textContent='ALPHA hex='+document.getElementById('hex').textContent+' rgb='+document.getElementById('rgb').textContent;"],
+  "expect": ["ALPHA hex=#FF7F7F rgb=rgb(255, 127, 127)"],
+  "ref": "D-N46 回归锁：预览区为白底（.preview-area background:#fff），50% 透明纯红像素在画面上呈现 rgb(255,127,127)，取色必须与之一致。注入 data=[255,0,0,128] 后按白底合成得 #FF7F7F；旧实现直取 RGB 三通道得 #FF0000（且全透明像素得 #000000）⇒ 强判别。探针仅由 clicks 生成，默认态无该串 ⇒ 零逃生。"
+},
 // ── B 类：导出失败必须可见（toDataURL/toBlob 抛异常或返回 null 时不得静默）──
 ...[
   {
@@ -2530,19 +2705,9 @@ const CASES = [
     ref: "exportImage() 内 toDataURL 裸调；注入后必须 toast「导出失败：<e.name||e.message>」。",
   },
   {
-    slug: "design/image-resizer",
-    entry: "origImg={width:20,height:20};generate()",
-    ref: "image-resizer generate() 内 toDataURL 裸调；注入后必须 toast。默认态（无注入）无该文案 ⇒ 判别明确。",
-  },
-  {
     slug: "design/image-rotator",
     entry: "origImg={width:20,height:20};generate()",
     ref: "image-rotator generate() 内 toDataURL 裸调；注入后必须 toast。",
-  },
-  {
-    slug: "design/image-cropper",
-    entry: "origImg={width:20,height:20};generate()",
-    ref: "image-cropper generate() 内 toDataURL 裸调（toBlob 链路另有 null 分支）；注入后必须 toast。",
   },
   {
     slug: "design/image-flipper",
@@ -2794,17 +2959,24 @@ const CASES = [
   ref: "D-N163：旧 ResText 读空 #output.textContent 恒返回 ''，历史/CSV 全空；修复后改读 #cssOutput.value ⇒ 探针得到含注入角度/宽度/颜色的 CSS 摘要。旧实现探针只有 RES: ⇒ 强判别。",
 },
 {
+  slug: "design/stripe-pattern",
+  inputs: { color1: "#ff0000", color2: "#00ff00", angle: "45", width: "3", stripeType: "double" },
+  clicks: ["generate();var __el=document.getElementById('__svg_probe')||document.getElementById('__tbProbe');var __c=document.getElementById('cssOutput').value;var __hasMid=/#00ff00 4px, #ff0000 4px/.test(__c);var __bad=/9px/.test(__c);__el.textContent='STRIPE340_DBL='+(__hasMid?'OK':'BAD')+'_BADPERIOD='+__bad;"],
+  expect: ["STRIPE340_DBL=OK_BADPERIOD=false"],
+  ref: "D-N164：双线型旧实现内部停点用固定 w+3/w+6，宽度<6 时 w+6>2w 致周期坍缩为 w+6（输出含 9px 且缺 4px 段）；修复后内部细线宽随 w 等比缩放、周期恒 2w（width=3 时末段 6px、含 #00ff00 4px,#ff0000 4px 中段）。注入 width=3 双线：旧码 STRIPE340_DBL=BAD_BADPERIOD=true，新码 OK。锚派生 CSS 而非输入回显 ⇒ 强判别。",
+},
+{
   slug: "design/dot-pattern",
   inputs: { dotSize: "18", spacing: "54", dotColor: "#22d3ee", arrangement: "square" },
   clicks: ["try{generate();}catch(e){};document.getElementById('__svg_probe').textContent='RES:'+__dot_patternResText();"],
   expect: ["RES:background-color: #f5f7fa; background-image: radial-gradient(#22d3ee 9px"],
-  ref: "D-N166：旧 ResText 读空 #output 恒返回 ''；修复后改读 #cssOutput.value ⇒ 探针得到含注入点径 9px（dotSize 18 的一半）与点色的 CSS 摘要。旧实现只有 RES: ⇒ 强判别。锚长控制在 ResText 的 slice(0,80) 内。",
+  ref: "D-N166：旧 ResText 读空 #output 恒返回 ''；修复后改读 #cssOutput.value ⇒ 探针得到含注入点径 9px（dotSize 18 的一半）与点色的 CSS 摘要。旧实现只有 RES: ⇒ 强判别。锚长控制在 ResText 的 slice(0,80) 内。第351批随 D-N126 亮度口径同步更新首色标。",
 },
 {
   slug: "design/gradient-from-color",
   inputs: { baseColor: "#12b886", steps: "7", direction: "135" },
   clicks: ["try{generate();}catch(e){};document.getElementById('__svg_probe').textContent='RES:'+__gradient_from_colorResText();"],
-  expect: ["RES:background: linear-gradient(135deg, #d1faee 0%"],
+  expect: ["RES:background: linear-gradient(135deg, #89f3d3 0%"],
   ref: "D-N124：旧 ResText 读空 #output 恒返回 ''，历史/趋势/CSV 全空；修复后改读 #cssOutput.value ⇒ 探针得到含注入方向 135deg 与基色首色标的 CSS 摘要。旧实现只有 RES: ⇒ 强判别。",
 },
 {
@@ -2877,6 +3049,40 @@ const CASES = [
   clicks: ["alert=function(m){document.getElementById('__svg_probe').textContent='ALERT:'+m+'|'+document.getElementById('text').value;};lastURL='SENTINEL_PNG';__aztecParams='OLD|#000000|#ffffff|15';downloadImg();"],
   expect: ["ALERT:参数已变更，请先点击生成再下载|NEW-TEXT"],
   ref: "D-N179-2：旧实现 lastURL/预览只在 generate 时刷新，改文本不点生成直接下载会拿到旧 PNG；修复后生成时记录参数快照，下载前比对当前输入，不一致即拦截并提示。探针同时回显注入文本，expect 依赖输入；旧码直接走 a.click() 不产生 alert ⇒ 强判别。",
+},
+
+// ── 第390批：Aztec 真实编码（层数/码字/字节随内容与纠错率变化） ──────
+{
+  slug: "design/aztec-code",
+  inputs: { text: "TB-2026-0009", ecc: "23", size: "12" },
+  expect: ["层数 1 · 紧凑型 · 15×15 模块 · 数据码字 11 · 纠错 23% · 12 字节"],
+  ref: "D-N177：旧实现 hash+LCG 随机填格，输出里没有层数/码字概念，任何文本都是同一尺寸；真编码后 12 字节在 23% 纠错下恰好落入紧凑型 1 层、15×15、11 个数据码字。注入文本比页面默认多一位（默认 TB-2026-009 为 11 字节）⇒ 字节数随输入变化，非默认态可判别。",
+},
+{
+  slug: "design/aztec-code",
+  clicks: ["document.getElementById('text').value=Array(201).join('A');document.getElementById('ecc').value='33';generate();"],
+  expect: ["层数 7 · 全尺寸 · 45×45 模块 · 数据码字 125 · 纠错 33% · 200 字节"],
+  ref: "D-N178：旧实现矩阵尺寸只由滑杆决定、与文本长度无关，10 字符与 200 字符同尺寸。真编码后 200 字节必须升级为全尺寸 7 层、45×45、125 个数据码字 ⇒ 尺寸由 payload 决定。默认文本 TB-2026-009 只有 1 层 15×15 ⇒ 判别明确。",
+},
+{
+  slug: "design/aztec-code",
+  inputs: { text: "中文二维码" },
+  expect: ["层数 2 · 紧凑型 · 19×19 模块 · 数据码字 26 · 纠错 33% · 15 字节"],
+  ref: "非 ASCII 路径：5 个汉字按 UTF-8 编码为 15 字节并写入 ECI 26，符号随之为紧凑型 2 层 / 26 个数据码字。旧实现按 UTF-16 code unit 算 hash，字节数无意义；默认 ASCII 文本得 11 字节 ⇒ 字节数与层数同时变化，判别明确。",
+},
+{
+  slug: "design/aztec-code",
+  inputs: { text: "TB-2026-009", size: "1" },
+  clicks: ["generate();var _vb=(String(lastSVG).split('viewBox=\"0 0 ')[1]||'').split(' ')[0];document.getElementById('__svg_probe').textContent='SZ='+document.getElementById('size').value+' DIM='+_vb;"],
+  expect: ["SZ=4 DIM=92"],
+  ref: "D-N178 第二处：旧实现预设 8/10 低于 min=11，输入框显示 8 但矩阵被夹成 11，UI 与实际不符。修复后每模块像素夹到 4–40 并回写输入框，画布与 SVG 用同一夹取后取值（15+4+4 模块 × 4px = 92）。旧实现无 SVG、无回写 ⇒ 三个量全部对不上。",
+},
+{
+  slug: "design/aztec-code",
+  inputs: { text: "AZTEC-VERIFY" },
+  clicks: ["generate();document.getElementById('__svg_probe').textContent='TAG='+(lastSVG.indexOf('<svg')===0?'OK':'BAD')+' VB='+(/viewBox=\"0 0 276 276\"/.test(lastSVG)?'OK':'BAD')+' BADCOLOR='+(lastSVG.indexOf('#112233')>=0?'Y':'N');"],
+  expect: ["TAG=OK VB=OK BADCOLOR=N"],
+  ref: "矢量导出：SVG 必须以 <svg 开头、viewBox 覆盖符号加 4 模块留白（(15+8)×12=276），且不得混入未使用的颜色值。旧实现只有 canvas、lastSVG 恒空 ⇒ TAG=BAD VB=BAD，判别明确。",
 },
 
 // ── 第320批：网格渐变结果区/预设占位/非法数量强锁 ──────────────
@@ -2992,9 +3198,9 @@ const CASES = [
 {
   slug: "design/qr-code-styled",
   inputs: { text: "HELLO-324", size: "300" },
-  clicks: ["lastURL='OLDPNG-324';generate();document.getElementById('__svg_probe').textContent='IN:'+document.getElementById('text').value+'|URL:'+String(lastURL)+'|END';"],
+  clicks: ["qrcode=function(){throw new Error('boom');};lastURL='OLDPNG-324';generate();document.getElementById('__svg_probe').textContent='IN:'+document.getElementById('text').value+'|URL:'+String(lastURL)+'|END';"],
   expect: ["IN:HELLO-324|URL:|END"],
-  ref: "D-N12（失败分支）：旧码 lastURL 只在生成成功回调里写，qrcode.js 未加载/生成抛错等失败分支只改预览文案，上一次的码仍可下载；修复后 generate() 开头先清空 lastURL。桩内 qrcode 未定义必走失败分支；旧码 URL:OLDPNG-324 ⇒ 强判别，expect 含注入文本。",
+  ref: "D-N12（失败分支）：旧码 lastURL 只在生成成功回调里写，生成抛错等失败分支只改预览文案，上一次的码仍可下载；修复后 generate() 开头先清空 lastURL。第390批修正：第389批让 harness 注入真实 qrcode 后，本页不再必然走「库未定义」分支（原断言随之常红），改为显式注入必抛异常的编码器，仍锁定同一失败分支；旧码 URL:OLDPNG-324 ⇒ 强判别，expect 含注入文本。",
 },
 {
   slug: "design/qr-code-styled",
@@ -3017,13 +3223,194 @@ const CASES = [
   expect: ["IN:45|STALE:1"],
   ref: "D-N11：旧码上传换图与改角度都不使 lastURL 失效，下载直取旧图；修复后生成时记录「角度 + 原图 src 尾段」签名，下载/复制前比对，上传回调另立即清空。注入 angle=45 后改 135 判过期；旧码无该组函数 ⇒ 强判别。",
 },
+// ── 第341批：design 多缺陷批量强锁 ───────────────────────────────
 {
-  slug: "design/image-cropper",
-  inputs: { cw: "37" },
-  clicks: ["var orig=document.getElementById('cw').value;origImg={width:200,height:200};lastURL='OLDPNG-324';lastCropSig=__icropSig();document.getElementById('cw').value='88';document.getElementById('__svg_probe').textContent='IN:'+orig+'|STALE:'+(__icropStale()?1:0);"],
-  expect: ["IN:37|STALE:1"],
-  ref: "D-N26：旧码换图已失效但改 cx/cy/cw/ch 仍可下载上一张旧裁剪；修复后生成时记录「四个裁剪参数 + 原图 src 尾段」签名，下载/复制前比对并撤销旧 blob URL。注入 cw=37 后改 88 判过期；旧码无该组函数 ⇒ 强判别。",
+  slug: "design/generator-7",
+  clicks: ["var bad=0;for(var i=0;i<200;i++){gen();var h=document.getElementById('res').innerHTML;var re=/border:\\s*(\\d+)px\\s+double/g;var m;while((m=re.exec(h))){if(parseInt(m[1],10)<3)bad++;}}document.getElementById('__tbProbe').textContent='G7DBL='+bad;"],
+  expect: ["G7DBL=0"],
+  ref: "D-N202 回归：double 在 1–2px 时浏览器按 solid 渲染，预览与 solid 无差异。修复后 gen() 在 style==='double' 且 width<3 时把 width 提升到 3。跑 200 次生成、每次扫描 #res 内所有 `border: Npx double`，任一 N<3 计 bad。修复前约出现数十个 width=1/2 的 double 卡 ⇒ G7DBL>0；修复后恒 0。默认态（页面加载时也 gen() 一次）不产生该探针串。"
+},
+{
+  slug: "design/exposure-triangle-calculator",
+  inputs: { aperture: "2" },
+  clicks: ["calc();var h=document.getElementById('equiv').innerHTML;var c=(h.match(/f\\/1\\.4</g)||[]).length;document.getElementById('__tbProbe').textContent='EXP_DUP='+c;"],
+  expect: ["EXP_DUP=1"],
+  ref: "D-N118 回归（重复卡片）：光圈选 f/2（index 1）时，da=-2 与 da=-1 均被 clamp 到 na=0（f/1.4）且 neededSi 相同，旧实现生成两张完全一样的 f/1.4 卡片。修复后按 na 去重，#equiv 中 `f/1.4<` 仅 1 次。注入 aperture='2'（非默认 f/4），旧实现下 EXP_DUP=2。"
+},
+{
+  slug: "design/exposure-triangle-calculator",
+  clicks: ["toggleLock();var s0=document.getElementById('shutter').selectedIndex;changeExp(-1);var s1=document.getElementById('shutter').selectedIndex;var lb=String(document.getElementById('lockBtn').textContent);changeExp(1);var s2=document.getElementById('shutter').selectedIndex;document.getElementById('aperture').value='8';calc();document.getElementById('__tbProbe').textContent='LOCK_SH='+document.getElementById('shutter').value+' d1='+(s1-s0)+' d2='+(s2-s1)+' L='+(lb.indexOf('解锁曝光 (EV ')>=0?'SYNC':'NOSYNC');"],
+  expect: ["LOCK_SH=1/15 d1=-1 d2=1 L=SYNC"],
+  ref: "D-N118 回归（锁定曝光）：默认 f/4·1/60·ISO200 锁定 EV≈8.9 后，把光圈改为 f/8，锁定逻辑应自动调快门维持 EV。t=64/2^(8.907+log2(200/100))=64/2^9.907≈0.0667s ⇒ 最近档 1/15。旧实现「🔒 锁定曝光」按钮只调 calc() 无任何锁定，改光圈后快门仍为 1/60 ⇒ LOCK_SH=1/60。默认态不触发该探针。"
+},
+{
+  slug: "design/tailwind-colors",
+  clicks: ["render();var h=document.getElementById('colorContainer').innerHTML;var total=(h.match(/class=\"shade\"/g)||[]).length;var withRole=(h.match(/class=\"shade\"[^>]*role=\"button\"/g)||[]).length;document.getElementById('__tbProbe').textContent='TW_A11Y='+withRole+'/'+total;"],
+  expect: ["TW_A11Y=242/242"],
+  ref: "D-N143 回归：242 个色块（22 色 × 11 阶）原为纯 div+onclick，键盘/读屏不可达；修复后每个色块带 tabindex=\"0\" role=\"button\" aria-label。扫描 #colorContainer 内所有 .shade 标记并统计含 role=\"button\" 者，旧实现 withRole=0。显式调用 render() 确保容器已填充。"
+},
+{
+  slug: "design/generator-38",
+  inputs: { target: "", constraint: "", task: "", format: "" },
+  clicks: ["var t=document.getElementById('task'),f=document.getElementById('format');var tv=(t.options&&t.options[0])?t.options[0].value:'NA';var fv=(f.options&&f.options[0])?f.options[0].value:'NA';calc();var h=document.getElementById('res').innerHTML;var m=h.match(/class=\"num\">(\\d+)<\\/div><div class=\"label\">提示词完整度/);document.getElementById('__tbProbe').textContent='G38 t=['+tv+'] f=['+fv+'] S='+(m?m[1]:'NA');"],
+  expect: ["G38 t=[] f=[] S=20"],
+  ref: "D-N213 回归：任务类型/输出格式两个 select 原无空项 ⇒ 真机恒有值恒 ok，五要素全空仍给 60 分（文档口径应为 1/5=20）。修复=两 select 首项为空值占位 + prompt 输出空任务时给「【请补充任务类型】」防护 + 算例文案同步。断言两 select 首项 option.value 为空（真机可清空的前提）且全空时提示词完整度=20；旧版首项分别是「生成」「分条列表」⇒ t/f 段即不匹配。默认态（target/constraint 预填）不产出该串。"
+},
+// ── 第342批：文字色阈值与死输入联动 ─────────────────────────────
+{
+  slug: "design/css-border-radius",
+  clicks: ["document.getElementById('linkCorners').checked=false;document.getElementById('allRadius').value='80';updateAll();var v=String(document.getElementById('cssOutput').value);document.getElementById('__tbProbe').textContent='BR '+v;"],
+  expect: ["BR border-radius: 80px 80px 80px 80px / 80px 80px 80px 80px;"],
+  ref: "D-N172 回归：简单模式只有 allRadius 一个滑杆，旧码取消「四角联动」后 updateAll 不再写四角、滑杆变成死控件。修复=简单模式强制按统一值作用四角。默认态无该探针串；旧码 cssOutput 停在 20px ⇒ 红。"
+},
+{
+  slug: "design/generator-34",
+  inputs: { ratio: "1024x768" },
+  clicks: ["calc();var h=String(document.getElementById('res').innerHTML);var m=h.match(/>([0-9.]+) px</);document.getElementById('__tbProbe').textContent='G34 '+(h.indexOf('1024×768')>=0?'SIZE_OK':'SIZE_BAD')+' px='+(m?m[1]:'NA');"],
+  expect: ["G34 SIZE_OK px=21.3"],
+  ref: "D-N212 回归：比例下拉原为死输入，等效像素固定按 1280 宽算（20pt→26.7px）。修复后等效像素按所选画布宽度换算，1024 宽下 20*96/72*1024/1280=21.3；并输出画布尺寸与比例对照表。旧码 SIZE_BAD（结果无 1024×768）且 px=26.7 ⇒ 红。"
+},
+{
+  slug: "design/farnsworth-d15-test",
+  clicks: ["var t=(typeof __fdTextOn==='function')?__fdTextOn('#7B7B7B'):'NOFN';document.getElementById('__tbProbe').textContent='FD_TXT='+t;"],
+  expect: ["FD_TXT=#000000"],
+  ref: "D-N218 回归：15 个色帽等亮度 L≈0.198（灰度预览 #7B7B7B 同亮度），旧 textOn 用 L>0.32 判深色 ⇒ 全部白字 4.23:1（不达 AA）。修复后按黑白对比度取高者并改纯黑（4.96:1）。#7B7B7B 的 L≈0.1976 ⇒ 期望 #000000；旧码返回 #FFFFFF ⇒ 红。textOn 在 IIFE 内，页面末尾以 window.__fdTextOn 暴露（纯读取）。"
+},
+// ── 第345批：章数少于幕数不再产出负章数 ───────────────────────────
+{
+  slug: "design/generator-33",
+  inputs: { chapters: "1", mode: "three" },
+  clicks: ["calc();var h=String(document.getElementById('res').innerHTML);document.getElementById('__tbProbe').textContent='CH33 neg='+(/-[0-9]+ 章/.test(h)?'Y':'N')+' hint='+(h.indexOf('少于结构幕数')>=0?'Y':'N');"],
+  expect: ["CH33 neg=N hint=Y"],
+  ref: "D-N207 回归：章数=1、三幕时旧码 [1,1,-1]（末幕被尾差减成负数，表格现「-1 章」）。修复后尾差减量只从 >1 的幕扣除、扣不动时保留每幕 1 章并给出「少于结构幕数」提示。探针同时断言「无负章数」与「有不足提示」；旧码 neg=Y hint=N ⇒ 红。默认态（120 章三幕）不产出该串。"
+},
+
+// ── 第346批：边框生成器补齐可视化控件与单边独立 ───────────────────
+{
+  slug: "design/generator-7",
+  inputs: { cnt: "1", bw: "6", br: "20", bs: "dashed" },
+  clicks: ["gen();var h=String(document.getElementById('res').innerHTML);document.getElementById('__tbProbe').textContent='G7FIX w='+(h.indexOf('border: 6px dashed')>=0?'Y':'N')+' r='+(h.indexOf('border-radius: 20px')>=0?'Y':'N');"],
+  expect: ["G7FIX w=Y r=Y"],
+  ref: "D-N201 回归：旧码无宽度/圆角/样式控件，宽度与圆角恒随机 1–8 / 0–32、样式按 i%8 轮换（首条恒 solid），meta 承诺的「可视化设置」无从兑现。修复后填写即固定：注入宽度 6、圆角 20、样式 dashed ⇒ 首条 CSS 必为 `border: 6px dashed`（随机态下宽度恰为 6 且样式恰为 dashed 的概率极低）且 `border-radius: 20px`。旧码 w=N ⇒ 红。"
+},
+{
+  slug: "design/generator-7",
+  inputs: { cnt: "1", bw: "4", bs: "solid", bSide: "top" },
+  clicks: ["gen();var h=String(document.getElementById('res').innerHTML);var one=h.indexOf('border-top: 4px solid')>=0;var all=/border: 4px/.test(h);document.getElementById('__tbProbe').textContent='G7SIDE one='+(one?'Y':'N')+' all='+(all?'Y':'N');"],
+  expect: ["G7SIDE one=Y all=N"],
+  ref: "D-N201 回归（单边独立）：meta 与简介均写「支持单边独立设置」，旧码只输出 `border` 简写、永不产生 `border-top`。修复后选「仅上边」+ 4px solid ⇒ CSS 含 `border-top: 4px solid` 且不再出现四边简写 `border: 4px`（预览内联样式无空格，故不误判）。旧码 one=N all=Y ⇒ 红。"
+},
+
+// ── 第347批：阴影生成器补齐参数控件与层级递增 ─────────────────────
+{
+  slug: "design/generator-6",
+  inputs: { cnt: "1", sx: "10", sy: "-6", sb: "18", ss: "2", sl: "2", si: "no", scc: "fix", sc: "#ff6b35" },
+  clicks: ["gen();var h=String(document.getElementById('res').innerHTML);var re=/(10px -6px 18px 2px rgba\\(255, 107, 53, )/g;var c=(h.match(re)||[]).length;document.getElementById('__tbProbe').textContent='G6FIX n='+c+' inset='+(h.indexOf('inset ')>=0?'Y':'N');"],
+  expect: ["G6FIX n=4 inset=N"],
+  ref: "D-N168 回归：旧码无偏移/模糊/扩散/颜色/层数/inset 控件，全由 Math.random 决定，meta 承诺的「拖动控件调整偏移、模糊、扩散、颜色」无从兑现。修复后填写即固定：注入 10/-6/18/2、每层数 2、外阴影、固定色 #ff6b35 ⇒ 必输出两条完全相同的 `10px -6px 18px 2px rgba(255, 107, 53,`；该声明同时出现在 CSS 代码块与 60×60 预览的内联样式里，故 n=4（2 层 × 2 处载体），且全页不含 inset。旧码 n=0 ⇒ 红。"
+},
+{
+  slug: "design/generator-6",
+  inputs: { cnt: "3", mode: "scale", sl: "1", si: "no" },
+  clicks: ["gen();var h=String(document.getElementById('res').innerHTML);var a=h.indexOf('0px 1px 4px 0px rgba(0, 0, 0, 0.14)')>=0;var c=h.indexOf('0px 3px 8px 0px rgba(0, 0, 0, 0.13)')>=0;document.getElementById('__tbProbe').textContent='G6SCALE a='+(a?'Y':'N')+' c='+(c?'Y':'N');"],
+  expect: ["G6SCALE a=Y c=Y"],
+  ref: "D-N169 回归：「8 组阴影（层级体系）」旧码只设 cnt，每条独立随机，产出互不相关且可能倒序，不能当 elevation scale 用。修复后新增「层级递增」模式：第 i 条固定 offset-x 0、offset-y i、blur 2i+2、spread 0、透明度 0.15−0.006i（下限 0.05）。注入 3 条 ⇒ 第 1 条必为 `0px 1px 4px 0px rgba(0, 0, 0, 0.14)`、第 3 条必为 `0px 3px 8px 0px rgba(0, 0, 0, 0.13)`，同时锚定递增与透明度递减。旧码无 mode 控件 ⇒ 两条均不命中 ⇒ 红。"
+},
+
+// ── 第348批：网格虚线类型、等距网格重复层与上限 ───────────────────
+{
+  slug: "design/grid-pattern",
+  inputs: { gridType: "dashed", cellSize: "30", lineWidth: "2" },
+  clicks: ["var t=document.getElementById('gridType');t.value='dashed';generate();var h=String(document.getElementById('cssOutput').value);var rep=(h.match(/repeating-linear-gradient/g)||[]).length;document.getElementById('__tbProbe').textContent='G72 rep='+rep+' solid='+(h.indexOf('background-image: linear-gradient(')>=0?'Y':'N');"],
+  expect: ["G72 rep=2 solid=N"],
+  ref: "D-N72 回归：旧码 dashed 分支与 square 分支的 background-image / background-size 逐字符相同，只多一条 background-position，实为整体位移半像素的实线网格，选「虚线网格」拿不到虚线。修复后改用两层 repeating-linear-gradient（实线段 lw px + 间隔 2·lw px），输出含 2 处 repeating-linear-gradient、且不再退回普通 linear-gradient 实线写法。旧码 rep=0 solid=Y ⇒ 红。"
+},
+{
+  slug: "design/isometric-grid",
+  inputs: { size: "40", lineWidth: "1" },
+  clicks: ["generate();var o=String(document.getElementById('cssOutput').value);var n=(o.match(/linear-gradient\\(/g)||[]).length;document.getElementById('size').value='999';generate();var o2=String(document.getElementById('cssOutput').value);var m=o2.match(/background-size: ([0-9.]+)px/);document.getElementById('__tbProbe').textContent='G194 n='+n+' clamp='+(m?m[1]:'N');"],
+  expect: ["G194 n=3 clamp=200"],
+  ref: "D-N194 回归：旧码 background-image 写 4 层，其中第 1、4 层都是 linear-gradient(30deg …) 完全重复，实际只有 3 个方向；且 size 只在 HTML 上写 max=200、JS 未夹取。修复后删掉重复层（n=3）并把 size 钳到 10–200（输入 999 ⇒ background-size 宽 200px）。旧码 n=4 clamp=999 ⇒ 红。"
+},
+
+// ── 第349批：动画生成器参数控件与实时预览 ─────────────────────────
+{
+  slug: "design/generator-10",
+  inputs: { cnt: "2", atype: "fadeIn", dur: "2.5", dly: "0", eas: "linear", it: "1", dir: "normal", fill: "forwards" },
+  clicks: ["gen();var h=String(document.getElementById('res').innerHTML);document.getElementById('__tbProbe').textContent='G10 dur='+(h.indexOf('2.5s linear 0.0s 1 normal forwards')>=0?'Y':'N')+' prev='+(h.indexOf('animPreviewBox')>=0?'Y':'N')+' noSlide='+(h.indexOf('slideUp')>=0?'N':'Y');"],
+  expect: ["G10 dur=Y prev=Y noSlide=Y"],
+  ref: "D-N195 回归：旧码只有 cnt 一个输入，时长/缓动/延迟/方向/填充全部随机，页面没有任何预览元素，`#res` 只有 <pre> 文本 ⇒「可视化编排 + 实时预览」两个主卖点落空。修复后注入时长 2.5 / 延迟 0 / 线性缓动 / 1 次 / normal / forwards，并指定动画类型 fadeIn、生成 2 条 ⇒ 必出 `2.5s linear 0.0s 1 normal forwards`（dur=Y）；顶部预览色块 `animPreviewBox` 存在（prev=Y）；两条都用 fadeIn，故全文不再出现 slideUp（noSlide=Y，锚定「动画类型」控件生效）。旧码三项全 N ⇒ 红。"
+},
+{
+  slug: "design/generator-11",
+  inputs: { cnt: "1", tPattern: "stripes", tMain: "#ff6b35", tBg: "#0f172a", tColorMode: "fix", tSize: "32" },
+  clicks: ["gen();var h=String(document.getElementById('res').innerHTML);document.getElementById('__tbProbe').textContent='GE11 css='+(h.indexOf('repeating-linear-gradient(90deg, #ff6b35, #ff6b35 16px, #0f172a 16px, #0f172a 32px)')>=0?'Y':'N')+' pat='+(h.indexOf('条纹纹理')>=0?'Y':'N')+' other='+(h.indexOf('圆点纹理')>=0?'Y':'N');"],
+  expect: ["GE11 css=Y pat=Y other=N"],
+  ref: "D-N189 回归：旧码只有 cnt 一个输入，图案按 i%6 固定轮换、颜色与尺寸全随机，用户既选不了纹理也复现不了上次结果。修复后注入「条纹」+ 主色 #ff6b35 / 底色 #0f172a + 固定尺寸 32 ⇒ 必出 `repeating-linear-gradient(90deg, #ff6b35, #ff6b35 16px, #0f172a 16px, #0f172a 32px)`（16 = size/2），标题为「条纹纹理」且不再出现「圆点纹理」（cnt=1 时轮换首项本是圆点，故 other=N 同时锚定「图案类型」控件生效）。旧码三项为 N/N/Y ⇒ 红。"
+},
+{
+  slug: "design/exposure-triangle-calculator",
+  inputs: { aperture: "4", shutter: "1/60", iso: "200" },
+  clicks: ["calc();var h=String(document.getElementById('equiv').innerHTML);var a=h.indexOf('<br>1/30<br>ISO 100')>=0;var b=h.indexOf('<br>1/15<br>ISO 100')>=0;var ev=evFromIdx(3,6,1).toFixed(2);document.getElementById('__tbProbe').textContent='EXP115 s30='+(a?'Y':'N')+' s15='+(b?'Y':'N')+' ev='+ev;"],
+  expect: ["EXP115 s30=Y s15=N ev=8.91"],
+  ref: "D-N115 回归：默认 f/4·1/60·ISO200（EV=8.91），等效组合循环里 da=-2 时 ISO 档位被 clamp（ii=1 → niso=0，实际只降 1 档），但旧码用期望差 da 补偿快门（ns=si-da=8 ⇒ 1/15），卡片标在「相同曝光量」下却是 EV=7.91（暗 1 档）。修复后按实际档位差补偿（ns=si-(niso-ii)=7 ⇒ 1/30），EV=8.91 重新等效。旧码 s30=N s15=Y ⇒ 红；ev=8.91 同时锚定基准 EV 未被改坏。"
+},
+{
+  slug: "design/shutter-speed-calculator",
+  inputs: { focal: "50", crop: "1.5", is: "3" },
+  clicks: ["var src=(typeof __ssChartDraw==='function')?String(__ssChartDraw):'';var r=(typeof ssStopsFor==='function')?ssStopsFor(50,1.5,3):{baseDen:-1,safeDen:-1};var r2=(typeof ssStopsFor==='function')?ssStopsFor(90,1,3):{baseDen:-1,safeDen:-1};document.getElementById('__tbProbe').textContent='SS119 use='+(src.indexOf('ssStopsFor(')>=0?'Y':'N')+' b='+r.baseDen+' s='+r.safeDen+' b2='+r2.baseDen+' s2='+r2.safeDen;"],
+  expect: ["SS119 use=Y b=125 s=15 b2=125 s2=15"],
+  ref: "D-N119 回归：旧码结果区/CSV 用标准档位表 findIndex（50mm·1.5x·3档 ⇒ 基础 1/125、建议 1/15），图表却用连续除法 d1=fv*crop 与 Math.round(d1/2^isStops)（给 1/9 或 1/11），同一页三个快门；且 round 会把 11.25 取成 11（更慢方向），违反公式框「向更快方向取整」。修复后抽公共 ssStopsFor，三处共用档位表：50·1.5·3 与 90·1·3 均得 1/125 / 1/15（分母 125/15），并用 String(__ssChartDraw) 锚定图表确实改为调用该函数。旧码 use=N b=-1 s=-1 ⇒ 红。"
+},
+{
+  slug: "design/gradient-from-color",
+  inputs: { baseColor: "#000000", steps: "3", direction: "90" },
+  clicks: ["generate();var c=String(document.getElementById('cssOutput').value);document.getElementById('__tbProbe').textContent='GFC old='+(c.indexOf('#e6e6e6')>=0?'Y':'N')+' new='+(c.indexOf('#595959')>=0?'Y':'N')+' low='+(c.indexOf('#0d0d0d')>=0?'Y':'N');"],
+  expect: ["GFC old=N new=Y low=Y"],
+  ref: "D-N126 回归：旧码亮度固定 90→20，完全丢弃基色 hsl.l —— 黑色基色 #000000 竟然得到 #e6e6e6→#333333 的灰阶，纯黑/纯白都不出现在渐变里。修复后以基色明度 L 为中心取 [max(5,L−35), min(95,L+35)]：L=0 ⇒ 区间 [5,35]，steps=3 时色标为 #595959 / #333333 / #0d0d0d，不再出现旧码的 #e6e6e6。旧码 old=Y new=N low=N ⇒ 红。"
+},
+{
+  slug: "design/flexbox-generator",
+  inputs: { dir: "column", gap: "20" },
+  clicks: ["var ids=['dir','just','ali','wrap','gap'];var n=0;for(var i=0;i<ids.length;i++){var e=document.getElementById(ids[i]);if(e&&e.__flexLiveBound)n++;}document.getElementById('__tbProbe').textContent='FLX live='+n+'/5';"],
+  expect: ["FLX live=5/5"],
+  ref: "D-N123 回归：结果标题写「实时预览」，但旧码 5 个控件（dir/just/ali/wrap/gap）全无 change/input 监听，只有点「生成」才调 calcTool()。修复后由 __bindFlexLive 统一绑定并在元素上留 __flexLiveBound 标记，5/5 全部绑定；旧码 0/5 ⇒ 红。"
+},
+{
+  slug: "design/flexbox-generator",
+  clicks: ["var e=document.getElementById('dir');var saved=e.addEventListener;e.addEventListener=undefined;var r='Y';try{e.__flexLiveBound=false;__bindFlexLive();}catch(err){r='N';}e.addEventListener=saved;document.getElementById('__tbProbe').textContent='FLX degrade='+r+' bound='+(e.__flexLiveBound?'Y':'N');"],
+  expect: ["FLX degrade=Y bound=N"],
+  ref: "第356批全量门禁阻断回归：calculation regression 的 DOM stub 给 dir/just/ali/wrap/gap 的元素只有 value，不带 addEventListener；旧码 __bindFlexLive 直调该 API，整页初始化抛 e.addEventListener is not a function。探针摘除 dir 的事件 API 后重跑绑定：旧码抛错且已置标记 ⇒ degrade=N bound=Y ⇒ 红；新码先做能力判断再跳过 ⇒ 不抛错、不置标记 ⇒ degrade=Y bound=N。真实浏览器下原有 FLX live=5/5 用例仍保证五个控件全绑定。"
+},
+{
+  slug: "design/font-preview",
+  clicks: ["globalThis.TBKit={util:{isEn:function(){return true;}},chart:{bar:function(){}}};loadFontSample('ZZENZZ');var h=String(document.getElementById('fpFontList').innerHTML);var c=String(document.getElementById('fpCount').textContent);try{delete globalThis.TBKit;}catch(e){}document.getElementById('__tbProbe').textContent='FPEN hint='+(h.indexOf('Click to copy')>=0?'Y':'N')+' zh='+(h.indexOf('点击复制')>=0?'Y':'N')+' count='+(c.indexOf(' fonts')>=0?'Y':'N')+' zhcount='+(c.indexOf('种字体')>=0?'Y':'N')+' cat='+(h.indexOf('中文字体')>=0?'Y':'N');"],
+  expect: ["FPEN hint=Y zh=N count=Y zhcount=N cat=N"],
+  ref: "D-N4 回归：旧码 render() 把「点击复制」「N / M 种字体」与三个中文分类标题硬编码，EN 态卡片夹中文。探针注入 EN 态 TBKit 后走全局 loadFontSample() 触发 IIFE 内的 render()：新码按 isEn 输出 Click to copy / fonts / Chinese 等英文分类名，旧码仍全中文 ⇒ hint=N zh=Y count=N zhcount=Y cat=Y ⇒ 红。默认态不执行 clicks、无探针串 ⇒ 零逃生。"
+},
+{
+  slug: "design/font-preview",
+  clicks: ["var s=String(globalThis.__fpOnLangChange||'');document.getElementById('__tbProbe').textContent='FPLANG render='+(s.indexOf('render()')>=0?'Y':'N')+' chart='+(s.indexOf('__fpChart()')>=0?'Y':'N');"],
+  expect: ["FPLANG render=Y chart=N"],
+  ref: "D-N4 回归（语言切换）：旧码 toolbox:langchange 回调只重画 __fpChart()，切换语言后列表卡片与计数仍是旧语言。新码抽出全局 __fpOnLangChange 并直接重跑 render()（图表由 render 内部调用），不再单独调 __fpChart()。旧码无该函数 ⇒ render=N ⇒ 红；默认态不执行 clicks ⇒ 零逃生。"
+},
+{
+  slug: "design/tailwind-colors",
+  clicks: ["var src=String(showDetail);document.getElementById('__tbProbe').textContent='TWV4 color='+(src.indexOf('--color-')>=0?'Y':'N')+' old='+(src.indexOf('--tw-')>=0?'Y':'N');"],
+  expect: ["TWV4 color=Y old=N"],
+  ref: "D-N144 回归：详情面板的「CSS 变量」行旧码输出 --tw-${name}-${level}，Tailwind v3 无此变量、v4 官方命名是 --color-${name}-${level}，用户复制后变量不存在。修复后改 --color- 并标注 (v4)。用 String(showDetail) 锚定详情渲染函数源码本身（绕开 stub DOM 缺 classList 的限制）：旧码 color=N old=Y ⇒ 红。"
+},
+{
+  slug: "design/tester-assessor",
+  // 第354批 D-N175：历史快照原 keys.slice(0,12) 只保留前 4 题 SUS，后 6 题不入库也不恢复。
+  // 自建 TBKit + 18 个输入桩，跑真 Extras ⇒ 记录应含 20 键（18 输入 + 结果 + 评分）、表头 21 列、
+  // 且 mount 的恢复回调能把末题 sus9 回写成记录值。
+  clicks: ["var __cap=null,__head=null,__pick=null;TBKit={util:{isEn:function(){return false;},diffBox:function(){},exportTable:function(){}},matrix:{table:function(h,o){__head=o.head;}},chart:{line:function(){}},history:{list:function(){return [];},last:function(){return null;},record:function(r){__cap=r;},mount:function(h,f){__pick=f;}},preset:{bar:function(){}}};var __els=[],__ids=['totalTasks','successTasks','avgTime','expectedTime','errors','helpCount','userCount','satisfaction'];for(var __i=0;__i<__ids.length;__i++)__els.push({id:__ids[__i],type:'text',value:'5'});for(var __j=0;__j<10;__j++)__els.push({id:'sus'+__j,type:'select-one',value:__j===9?'1':'3'});var __oq=document.querySelectorAll;document.querySelectorAll=function(s){return __els;};document.getElementById('res').textContent='86 综合可用性评分';__tester_assessor_last=0;__tester_assessor_skip=false;__tester_assessorExtras();document.querySelectorAll=__oq;var __n=__cap?Object.keys(__cap).length:0,__has=!!(__cap&&Object.prototype.hasOwnProperty.call(__cap,'sus9'));if(__cap&&__has)__cap.sus9='2';if(__pick){try{__pick(__cap||{});}catch(e){}}document.getElementById('__tbProbe').textContent='可用性历史 键数='+__n+' 末题='+( __has?'Y':'N')+' 表头='+(__head?__head.length:0)+' 恢复='+(String(document.getElementById('sus9').value)==='2'?'Y':'N');"],
+  expect: ["可用性历史 键数=20 末题=Y 表头=21 恢复=Y"],
+  ref: "第354批：__tester_assessorSnap() 收集 8 项绩效 + 10 题 SUS 共 18 键，旧码在 Extras 与 Export 两处 keys.slice(0,12) 截掉后 6 题 ⇒ 历史只存 4 题 SUS，恢复时其余 6 题保留当前值再 calc()，SUS 分数与记录结果不符。删除截断后：rec = 18 输入 + 结果 + __tbScore = 20 键，Render 表头 = 时间 + 18 + 结论 + 结果 = 21 列，mount 恢复回调能把 sus9 回写成记录值。旧码应为 键数=14 末题=N 表头=15 恢复=N ⇒ 全失配。探针仅由 clicks 生成 ⇒ 零逃生。",
+  inputs: {}
 }
+
 ];
 
 // ---------------------------------------------------------------- main

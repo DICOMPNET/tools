@@ -403,6 +403,7 @@ function exportData(){
 
 function drawChart(){
   var cv = document.getElementById('trendCanvas');
+  var en = /^en/i.test(document.documentElement.lang || '');
   var ctx = cv.getContext('2d');
   // 适配高分屏
   var w = cv.clientWidth, h = 260;
@@ -418,7 +419,7 @@ function drawChart(){
     ctx.fillStyle = '#9CA3AF';
     ctx.font = '14px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('暂无数据，请先记录', w / 2, h / 2);
+    ctx.fillText(en ? 'No data yet — add a record first' : '暂无数据，请先记录', w / 2, h / 2);
     renderChartStats([]);
     return;
   }
@@ -429,7 +430,7 @@ function drawChart(){
     series.push(data.map(function(r){ return r.sys; }));
     series.push(data.map(function(r){ return r.dia; }));
     colors = ['#EF4444', '#3B82F6'];
-    labels = ['收缩压', '舒张压'];
+    labels = en ? ['Systolic', 'Diastolic'] : ['收缩压', '舒张压'];
     yMax = Math.max(180, Math.max.apply(null, series[0]) + 10);
     yMin = Math.min(40, Math.min.apply(null, series[1]) - 10);
     refLines = [{ y:140, c:'rgba(239,68,68,.3)' }, { y:90, c:'rgba(59,130,246,.3)' }];
@@ -437,7 +438,7 @@ function drawChart(){
     var gluVals = data.map(function(r){ return r.glu === null ? null : r.glu; });
     series.push(gluVals);
     colors = ['#F59E0B'];
-    labels = ['血糖'];
+    labels = en ? ['Blood glucose'] : ['血糖'];
     var valid = gluVals.filter(function(v){ return v !== null; });
     yMax = Math.max(15, valid.length ? Math.max.apply(null, valid) + 2 : 15);
     yMin = Math.min(3, valid.length ? Math.min.apply(null, valid) - 2 : 3);
@@ -446,7 +447,7 @@ function drawChart(){
     var hrVals = data.map(function(r){ return r.hr === null ? null : r.hr; });
     series.push(hrVals);
     colors = ['#10B981'];
-    labels = ['心率'];
+    labels = en ? ['Heart rate'] : ['心率'];
     var hv = hrVals.filter(function(v){ return v !== null; });
     yMax = Math.max(120, hv.length ? Math.max.apply(null, hv) + 10 : 120);
     yMin = Math.min(40, hv.length ? Math.min.apply(null, hv) - 10 : 40);
@@ -522,6 +523,11 @@ function drawChart(){
   });
 
   renderChartStats(data);
+  window.__tbRedraw = function(){ drawChart(); };
+  if(!window.__tbLangBound){
+    window.__tbLangBound = 1;
+    window.addEventListener('toolbox:langchange', function(){ if(window.__tbRedraw) window.__tbRedraw(); });
+  }
 }
 
 function renderChartStats(data){
@@ -562,27 +568,27 @@ renderHistory();
   <div class="related-tools-grid">
     <a href="../health/breath-timer.html" class="related-tool-card">
       <span class="rt-icon">🫁</span>
-      <span class="rt-info"><span class="rt-name">呼吸计时器 - 免费开发工具，在线呼吸计时器 | ToolBox免费在线工具箱</span><span class="rt-desc">呼吸计时器</span></span>
+      <span class="rt-info"><span class="rt-name">呼吸计时器</span><span class="rt-desc">提供 4-7-8 呼吸法、箱式呼吸、平静呼吸等多种引导模式，按设定节奏提示吸气、屏息与呼气，帮助缓解…</span></span>
     </a>
     <a href="../accessibility/voice-synthesis.html" class="related-tool-card">
       <span class="rt-icon">♿</span>
-      <span class="rt-info"><span class="rt-name">语音合成 - 健康医疗在线工具 | ToolBox免费在线工具箱</span><span class="rt-desc">语音合成</span></span>
+      <span class="rt-info"><span class="rt-name">语音合成</span><span class="rt-desc">基于浏览器 Web Speech API，将文字朗读为语音，支持中英文、语速音调调节</span></span>
     </a>
     <a href="../health/rehab-timer.html" class="related-tool-card">
       <span class="rt-icon">🦿</span>
-      <span class="rt-info"><span class="rt-name">康复训练计时器 - 健康医疗在线工具 | ToolBox免费在线工具箱</span><span class="rt-desc">⏱️ 康复训练计时器</span></span>
+      <span class="rt-info"><span class="rt-name">康复训练计时器</span><span class="rt-desc">支持自定义训练项目、组数和休息时间，记录每日康复训练的计时打卡与连续坚持天数，帮助患者建立规律康复习…</span></span>
     </a>
     <a href="../health/stretch-generator.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">拉伸动作生成器 - 拉伸动作随机生成器 - 根据身体部位和时长，随机生成一套拉伸 | ToolBox免费在线工具箱</span><span class="rt-desc">拉伸动作随机生成器</span></span>
+      <span class="rt-info"><span class="rt-name">拉伸动作生成器</span><span class="rt-desc">选择身体部位与训练时长，一键生成随机拉伸方案，每次动作组合各不相同，让日常拉伸锻炼更有趣味、覆盖更全…</span></span>
     </a>
     <a href="../sports/yoga-pose-generator.html" class="related-tool-card">
       <span class="rt-icon">🎲</span>
-      <span class="rt-info"><span class="rt-name">瑜伽体式随机生成 - 健康医疗在线工具 | ToolBox免费在线工具箱</span><span class="rt-desc">瑜伽体式随机生成</span></span>
+      <span class="rt-info"><span class="rt-name">瑜伽体式随机生成</span><span class="rt-desc">选择难度与练习时长，随机生成含 30+ 常见体式的瑜伽序列，给出体式顺序建议，用于居家练习与课程编排…</span></span>
     </a>
     <a href="../sports/climbing-grade-converter.html" class="related-tool-card">
       <span class="rt-icon">🧗</span>
-      <span class="rt-info"><span class="rt-name">攀岩难度等级转换 - 健康医疗在线工具 | ToolBox免费在线工具箱</span><span class="rt-desc">攀岩难度等级转换</span></span>
+      <span class="rt-info"><span class="rt-name">攀岩难度等级转换</span><span class="rt-desc">攀岩难度等级互转，支持 V 级抱石、YDS、法式、英式等主流系统对照(V0入门至V16顶级)，便于跨…</span></span>
     </a>
   </div>
 </div>

@@ -1,10 +1,9 @@
 # 金融计算 · tools/finance（115 页，第二大分类）
 
-## 2026-11-06 已修记录独立复核：APY 和零利率贷款
-
 - `node scripts/verify_finance_calc.js apy-calculator loan-amortization` 为 8/8，DOM 桩断言命中任一输出即通过；其结果不等于所有显示值、图表与导出已验证。
 
 ## 已知问题
+
 ### F1. 贷款/利率系「名义 vs 实际」口径页散
 - `tools/finance/compound-interest.html` 的利率口径导航位于默认隐藏的「公式说明」面板，而非结果区之后；需切换面板才能看到。
 - 🔴 「同输入多口径并排」未做（计算器组，量级大待裁）。
@@ -39,10 +38,8 @@
 
 ## 2026-11-03 续查：现金流、债券与退休规划
 
-
 ### 续查覆盖
 - 新抽查 `tools/finance/irr-calculator.html`、`tools/finance/bond-yield-calculator.html`、`tools/finance/dca-calculator.html`、`tools/finance/retirement-calculator.html` 共 4 页，新增 7 条（6 条高优），均为源码及数值推导，未做浏览器、线上和门禁验证。
-
 
 ### 留存优化（按页落点，非确认缺陷）
 - `tools/finance/compound-interest.html`：只能正算终值，缺「目标金额反推所需年限/月投」。建议加目标反推与「单利 vs 复利」并排对比，这是理财类搜索的主要意图。
@@ -54,9 +51,6 @@
 ## 2026-11-03 续查（并行批）：金融回补
 （路径均相对 `tools/`）
 
-
-
-
 ### 留存优化（按页落点）
 - `finance/mortgage-calculator`：仅前 24 期；补首付+税费总成本与全表下载。
 - `finance/housing-fund-loan`：规则硬编码 2024、年龄只提示；补利率可选与年龄压年限。
@@ -67,9 +61,6 @@
 - 实读 6 页：finance 的 mortgage、housing、lease、salary；banking 的 apy、loan-to-value；node 复算，未做浏览器/线上验证。
 
 ## 2026-11-03 续查（并行批 I）
-
-
-
 
 ### 留存优化
 - `finance/tax-calculator.html`：CSV 仅导出月度口径，年终奖两方案与「月度/年度」切换未随导出；建议补年终奖对比行与年度口径导出。
@@ -120,7 +111,6 @@
 
 > 范围：本轮阅读 8 页（`tools/finance/amount-in-words.html`、`tools/finance/number-to-words-chinese.html`、`tools/finance/gold-price-calculator.html`、`tools/finance/shebeizulinfeilvjisuan.html`、`tools/finance/register-depreciation.html`、`tools/finance/credit-card-validator.html`、`tools/finance/credit-card-luhn.html`、`tools/finance/points-redemption-value.html`）。仅源码 + node 复算，未开浏览器/未做 EN/移动端/门禁验证；历史已修声明未独立复验。
 
-
 - 本轮实读 8 页：`tools/finance/amount-in-words.html`、`tools/finance/number-to-words-chinese.html`、`tools/finance/gold-price-calculator.html`、`tools/finance/shebeizulinfeilvjisuan.html`、`tools/finance/register-depreciation.html`、`tools/finance/credit-card-validator.html`、`tools/finance/credit-card-luhn.html`、`tools/finance/points-redemption-value.html`；新增 9 条（高 2/中 4/低 3）；未覆盖：其余 finance 页（约 78 页）未逐页复扫。
 - 证据均由源码行号 + node 内存复算取得；未做浏览器、英文态、移动端、门禁与线上验证；历史已修声明未独立复验。
 
@@ -128,15 +118,12 @@
 
 > 范围：本轮阅读 8 页（`tools/finance/calc-2.html`、`tools/finance/calc-3.html`、`tools/finance/calc-4.html`、`tools/finance/calc-5.html`、`tools/finance/invoice-generator.html`、`tools/finance/currency-converter.html`、`tools/finance/analysis-5.html`、`tools/finance/analysis-risk.html`）。仅源码 + node 复算，未开浏览器/未做 EN/移动端/门禁验证；历史已修声明未独立复验。
 
-
-
 - 本轮实读 8 页：`tools/finance/calc-2.html`、`tools/finance/calc-3.html`、`tools/finance/calc-4.html`、`tools/finance/calc-5.html`、`tools/finance/invoice-generator.html`、`tools/finance/currency-converter.html`、`tools/finance/analysis-5.html`、`tools/finance/analysis-risk.html`；新增 11 条（高 3/中 6/低 2）；未覆盖：其余 finance 页（约 66 页）未逐页复扫。
 - 证据均由源码行号 + node 内存复算取得；未做浏览器、英文态、移动端、门禁与线上验证；历史已修声明未独立复验。
 
 ## 2026-11-04 续查（并行批 O）
 
 > 范围：本轮阅读 8 页（`tools/finance/analysis-44.html`、`analysis-cost-1.html`、`assessor-manager.html`、`report-1.html`、`generator-report-1.html`、`number-to-words.html`、`currency-lookup.html`、`credit-card-bin.html`）。仅源码 + node 复算，未开浏览器/未做 EN/移动端/门禁验证；历史已修声明未独立复验。
-
 
 - 本轮实读 8 页：`tools/finance/analysis-44.html`、`tools/finance/analysis-cost-1.html`、`tools/finance/assessor-manager.html`、`tools/finance/report-1.html`、`tools/finance/generator-report-1.html`、`tools/finance/number-to-words.html`、`tools/finance/currency-lookup.html`、`tools/finance/credit-card-bin.html`；新增 10 条（高 1/中 5/低 4）；未覆盖：其余 finance 页（约 58 页）未逐页复扫。
 
@@ -321,7 +308,6 @@
 | 编号 | 页面:行 | 级别 | 问题与期望值 |
 |---|---|---|---|
 
-> **AC 批 F-N224–F-N233 已全部消费完（2026-11-06）**：9 条修复并分别移交 `plan/已修复/2026-11-06-F-N225-N230-金融贷款族A.md`（6 条）与 `plan/已修复/2026-11-06-F-N224-N233-金融贷款族B.md`（3 条）；F-N231（城市公积金额度口径）已移 `plan/G01-公式与计算正确性裁量项.md` C6 待裁断清单，裁断前不改代码、不计入已修/未修。
 > 下方「统计」为 2026-11-04 审计当时的登记数，属历史档案，不代表当前待办数量。
 
 ### 统计

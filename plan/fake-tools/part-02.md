@@ -1,3 +1,7 @@
+> **2026-11-14 销账说明**：本文件为 2026-11-04 历史快照，下列 44 页复核结果与 T–Y 批候选
+> 已于 2026-11-14 逐页对照当前源码复核，全部为「已修复」或「文案已对齐」，不再作为待修清单。
+> 当前状态与证据见 `part-01.md`；修复记录见 `plan/已修复/2026-11-14-412-*.md`。本文件仅保留历史。
+
 ## 44 页待验证复核结果
 
 结论口径：`真` = 原记录成立、必须修（计入必须重做）；`部分` = 记录仅部分成立、需修但非整体重做（计入必须重做）；`假` = 记录不成立/已修复（不计入）。
@@ -22,8 +26,6 @@
 | `tools/legal/child-support.html` | 真 | `:320` | `childCount` 读入后未参与比例/金额计算，抚养费不随子女数变化。 |
 | `tools/legal/court-fee.html` | 真 | `:320-323` | IP 案件有金额时仍 `min(500+1%,1000)` 封顶，未按财产案件累进。 |
 | `tools/biz/stats-time-response.html` | 真 | `:200-211` | 仅均值/中位数/达标率，无 P90/FCR/分组。 |
-| `tools/edu/flag-quiz.html` | 真 | `:158,200` | 英文简介称 timed quiz，但无计时器；深解承诺「错题库」，无存储。 |
-| `tools/edu/typing-game.html` | 真 | `:10,212,359-363` | 宣称错题回看、成绩存本地；localStorage 仅存主题。 |
 | `tools/edu/chinese-zodiac.html` | 真 | `:353-355` | 只吃公历年取模，无日期/春节边界处理。 |
 | `tools/edu/study-planner.html` | 真 | `:189-196,246` | 两个公式框重复；完成率/优先级仅文字，页面只统计完成任务数。 |
 | `tools/research/analysis-49.html` | 真 | `:230-250` | 仅 Cronbach α；KMO/Bartlett 无实现。 |
@@ -46,33 +48,31 @@
 | `tools/life/stats-13.html` | 真 | `:291-293,218-251` | 承诺漏斗/时段峰值/占比，实际仅人数/份数/均值/金额。 |
 | `tools/life/analysis-cost-9.html` | 真 | `:231-234` | 仅合计/均值/占比/极差；无固定-变动拆分与降本排序。 |
 | `tools/life/assessor-target.html` | 真 | `:427,226,232` | `opt-guide` 通用套话；面积 `shopArea` 读入但未参与加权。 |
-| `tools/edu/math-quiz.html` | 真 | `:513,363` | `opt-guide` 仍是「点击计算/生成」套话（计时功能已实现，问题只在文案）。 |
 | `tools/rehabilitation/fim-scale.html` | 真 | `:576` | `opt-guide` 通用套话与实际下拉即时汇总流程不符。 |
 
-## Top 20 简析
+## Top 19 简析
 
-> 本节为原批次留存简析，仅对第 5 条按本轮复核结果做了更正；其余条目对应页面仍成立。
+> 本节为原批次留存简析。原第 4 条 `spectrum-visualizer` 已修复销账（当前源码为「不执行真实 FFT」的正弦模拟动画，无虚构 AnalyserNode 文案）；原第 5 条 `lung-rads` 按复核结果做了更正；其余条目对应页面仍成立。
 
 1. **`tools/pulmonology/tb-resistance.html:271-287`**：吡嗪酰胺/乙胺丁醇耐药被勾选后，`dPza/dEmb` 虽被读取却从未进入方案分支；DS-TB 仍输出含 Z/E 的 `2HRZE/4HR`。这是本批风险最高的一条——用户会据此得到与实际耐药谱冲突的用药方案，属安全级问题，应优先修或强制加免责声明。
 2. **`tools/cardiology/calc-3.html:180-193`**：页面引用表明确写 TIMI **7 项、0-2/3-4/5-7、NSTEMI**，实现却是 STEMI 的 10 项加权 0-14。同一页两套口径，临床评分可信度直接归零。
 3. **`tools/pediatrics/ddst-screening.html:143`**：矫正胎龄输入存在、预设也写入，但 JS 从未读取；早产儿按实际月龄判项会系统性偏严。引据的 125 项与实现一致（32/31/29/33），说明缺陷集中在死输入而非项数。
-4. **`tools/design/spectrum-visualizer.html:155`**：文案写 AnalyserNode + FFT + 峰值查看，代码里没有 `getUserMedia`/`AnalyserNode`，画面是正弦动画。设计类工具靠「看起来专业」留存，这类假实现最伤复访。
-5. **`tools/pulmonology/lung-rads.html:142,266-271`（本轮更正）**：复核发现页面已有「实性成分(mm)」输入并参与 4A/4B 判定，实性成分 ≥8mm→4B 分支可达；**原记录「≥15mm 恒判 4A、4B 不可达」已否定**，不再列入修复。
-6. **`tools/chess/xiangqi-endgame.html`**：0 个控件、无棋盘、无落子，只有静态题库。标题「残局提示」与「输入残局判一步杀」完全落空。
-7. **`tools/tcm-chemistry/metabolite-prediction.html:343`**：核心「选择成分」下拉只负责渲染选项，`predict()` 从不读取它的值；用户换成分结果不变，是典型 A 类死输入。
-8. **`tools/ecommerce/estimate-ranking.html:130-132`**：简介宣称搜索量/销量/评价/点击/转化多维建模，实际只有 2 个数字输入，结果由权重×搜索量直接推出。运营类用户一次就能识破。
-9. **`tools/hr/calc-81.html:130-132`**：内推计算只有「基数×系数」，深解承诺的分岗位明细、自动分档、按过保人数滚动统计全未实现，ROI 无从谈起。
-10. **`tools/ecommerce/report.html:124`**：整页唯一输入是一个 textarea，简介却写拖拽上传、筛选、汇总报表。交互承诺与实现差一个量级。
-11. **`tools/clinical-lab/flow-cytometry-ratio.html:154,260,316-330`**：Treg 输入不参算；NK 只有绝对值展示、无低值告警，NK 42/μL、CD4 60% 仍可能统一报「各项指标在参考范围内」，属危险的正向误判。
-12. **`tools/chess/gomoku-forbidden.html:149-162`**：用「棋型/连子数/活口数」三个抽象参数代替棋盘，用户无法还原自己的局面，判禁手失去意义。
-13. **`tools/clinical-lab/parasite-egg-id.html:139`**：整页 0 张图，`.egg-svg` 是空容器。「形态识别」只剩文字表，检索价值大打折扣。
-14. **`tools/clinical-lab/urine-sediment-atlas.html:144,289-292`**：同上，0 张图，只输出大小/形态/外观文字，「图谱」名不副实。
-15. **`tools/pulmonology/pulmonary-function.html:139-142`**：FAQ 明确说「老年建议按 LLN」，但下拉只有 0.70/0.75，无法输入 LLN 值，老年阻塞判读会偏差。
-16. **`tools/nephrology/aki-kdigo.html:130-146`**：KDIGO 依赖 48h/7d 时间窗与 RRT 状态，页面只有 4 个字段，分期的核心判据缺失。
-17. **`tools/hr/stats-funnel-recruit.html:123-126`**：标题/meta 讲渠道花费与单聘成本，页面只有 4 个环节人数，成本维度全部缺失。
-18. **`tools/marketing/email-subject-line-tester.html:191,436`**：只按关键词权重画饼图，无打开率/送达率/垃圾度模型；预览正文输入不参与评分，且自带示例标题得 85 分「优秀」。
-19. **`tools/edu/word-memory.html:572-575`**：`lastReview` 只写不读，所谓艾宾浩斯调度没有到期队列，复习节点实际由用户手动决定。
-20. **`tools/design/pixel-art-generator.html:145,427-429`**：导出按钮实际导出矩阵 CSV，而不是宣称的字符画/CSS；调色板仅 6 色而非文案的 8 色。
+4. **`tools/pulmonology/lung-rads.html:142,266-271`（本轮更正）**：复核发现页面已有「实性成分(mm)」输入并参与 4A/4B 判定，实性成分 ≥8mm→4B 分支可达；**原记录「≥15mm 恒判 4A、4B 不可达」已否定**，不再列入修复。
+5. **`tools/chess/xiangqi-endgame.html`**：0 个控件、无棋盘、无落子，只有静态题库。标题「残局提示」与「输入残局判一步杀」完全落空。
+6. **`tools/tcm-chemistry/metabolite-prediction.html:343`**：核心「选择成分」下拉只负责渲染选项，`predict()` 从不读取它的值；用户换成分结果不变，是典型 A 类死输入。
+7. **`tools/ecommerce/estimate-ranking.html:130-132`**：简介宣称搜索量/销量/评价/点击/转化多维建模，实际只有 2 个数字输入，结果由权重×搜索量直接推出。运营类用户一次就能识破。
+8. **`tools/hr/calc-81.html:130-132`**：内推计算只有「基数×系数」，深解承诺的分岗位明细、自动分档、按过保人数滚动统计全未实现，ROI 无从谈起。
+9. **`tools/ecommerce/report.html:124`**：整页唯一输入是一个 textarea，简介却写拖拽上传、筛选、汇总报表。交互承诺与实现差一个量级。
+10. **`tools/clinical-lab/flow-cytometry-ratio.html:154,260,316-330`**：Treg 输入不参算；NK 只有绝对值展示、无低值告警，NK 42/μL、CD4 60% 仍可能统一报「各项指标在参考范围内」，属危险的正向误判。
+11. **`tools/chess/gomoku-forbidden.html:149-162`**：用「棋型/连子数/活口数」三个抽象参数代替棋盘，用户无法还原自己的局面，判禁手失去意义。
+12. **`tools/clinical-lab/parasite-egg-id.html:139`**：整页 0 张图，`.egg-svg` 是空容器。「形态识别」只剩文字表，检索价值大打折扣。
+13. **`tools/clinical-lab/urine-sediment-atlas.html:144,289-292`**：同上，0 张图，只输出大小/形态/外观文字，「图谱」名不副实。
+14. **`tools/pulmonology/pulmonary-function.html:139-142`**：FAQ 明确说「老年建议按 LLN」，但下拉只有 0.70/0.75，无法输入 LLN 值，老年阻塞判读会偏差。
+15. **`tools/nephrology/aki-kdigo.html:130-146`**：KDIGO 依赖 48h/7d 时间窗与 RRT 状态，页面只有 4 个字段，分期的核心判据缺失。
+16. **`tools/hr/stats-funnel-recruit.html:123-126`**：标题/meta 讲渠道花费与单聘成本，页面只有 4 个环节人数，成本维度全部缺失。
+17. **`tools/marketing/email-subject-line-tester.html:191,436`**：只按关键词权重画饼图，无打开率/送达率/垃圾度模型；预览正文输入不参与评分，且自带示例标题得 85 分「优秀」。
+18. **`tools/edu/word-memory.html:572-575`**：`lastReview` 只写不读，所谓艾宾浩斯调度没有到期队列，复习节点实际由用户手动决定。
+19. **`tools/design/pixel-art-generator.html:145,427-429`**：导出按钮实际导出矩阵 CSV，而不是宣称的字符画/CSS；调色板仅 6 色而非文案的 8 色。
 
 ## 建议修复顺序
 
@@ -182,7 +182,6 @@
 | 长尾行业 | `tools/nutrition/generator-nutrition-label.html` | A | `:120` 唯一输入是「生成数量」；`:203-209` 能量/蛋白/脂肪/碳水/钠全部 `Math.random()` 独立生成，能量与宏量营养素不符（Atwater 核算应 28.5–403.5 kcal，页面只 80–379 kcal） | `plan/categories/12-长尾行业/_others.md` 12-N215 | 宣称「适合预包装食品合规」 |
 | 生活消费 | `tools/sports/analysis-19.html` | C | `:120-121` 仅一个「回合,攻/防,成/败」文本框；`:210-245` 只做计数与百分比，无视频上传/播放/时间轴/标注 | `plan/categories/05-生活消费/sports-fitness.md` SF-N65 | 标题称「视频分析」 |
 | 工程制造 | `tools/machinery/detector-159.html` | C | `:136-138`、`:221` 三项自定义阈值（刚度≥100 N/mm、载荷≥50 kN、疲劳≥1×10⁶）被标为 GB/T 1448 / GB/T 307 要求；`:240` 称「可用于质量验收」 | `plan/categories/08-工程制造/machinery-metalwork.md` MM-H56 | 冒用国标验收口径 |
-| 文娱爱好 | `tools/fun/tongue-twister.html` | C | `:275` `function start(){next();}`；全页无计时状态/停止按钮/用时显示，`:199-204` 算例与 FAQ 却称 performance 计时 | `plan/categories/11-文娱爱好/fun-entertainment.md` FE-N59 | 「跟读计时」完全未实现 |
 
 ## X 批新增假工具候选（2026-11-04）
 
@@ -196,7 +195,6 @@
 | 文娱爱好 | `tools/music/random-training-rhythm.html` | C | 唯一输入「生成数量」，`gen()` 只拼文本；无 `AudioContext`、无敲击采集/命中判定/准确率 | `plan/categories/11-文娱爱好/fun-entertainment.md` FE-N72 | 宣称节拍训练与准确率统计 |
 | IT开发 | `tools/it/charset-detector.html` | C | 「编码识别器」仅做 6 条固定替换，非真实检测 | `plan/categories/01-IT开发/it.md` IT-N49x | 名不副实 |
 | 文娱爱好 | `tools/fun/generator-laugh.html` | C | `:232-241` `gen()` 只输出文字方案；全文无 `AudioContext`/`OscillatorNode`，无播放与 wav 导出 | `plan/categories/11-文娱爱好/fun-entertainment.md` FE-N79 | 宣称实时合成并可导出 wav |
-| 文娱爱好 | `tools/fun/meditation-timer.html` | C | `:275-320` 只生成静态时刻表；无开始/暂停、无 `setInterval`、无 `AudioContext`，历史不记实际时长 | `plan/categories/11-文娱爱好/fun-entertainment.md` FE-N86 | 无法用于计时 |
 
 ## Y 批新增假工具候选（2026-11-04）
 

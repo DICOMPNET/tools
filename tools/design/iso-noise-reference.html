@@ -161,7 +161,7 @@
           <div class="formula-box">
       <div class="formula-title">📐 计算公式 / 原理</div>
       <div class="formula-eq">（参考表）动态范围 ≈ 14 − log₂(ISO / 100) EV；ISO 每翻倍约损失 1 EV</div>
-      <div class="formula-desc">按不同相机在各 ISO 下的噪点与动态范围表现提供对照参考：ISO 越高画面越亮但噪点越多、动态范围越窄，用于暗光拍摄时权衡亮度与画质。</div>
+      <div class="formula-desc">按不同相机在各 ISO 下的噪点与动态范围表现提供对照参考：ISO 越高画面越亮但噪点越多、动态范围越窄，用于暗光拍摄时权衡亮度与画质。噪点分级在等效 ISO（机身 ISO ÷ 画幅系数）上判定，因此「纯净上限 / 可用上限」展示的是折算回机身 ISO 的阈值：手机 120 / 480、M4/3 400 / 1600、APS-C 1120 / 4480、全画幅 3200 / 12800、中画幅 9600 / 38400。</div>
     </div>
 <div class="input-row">
         <div><label>画幅类型</label><select id="sensor" onchange="renderISO()">
@@ -296,7 +296,7 @@
 <li>教学 ISO 影响。</li>
 <li>选拍摄档位。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">对比 ISO100/1600/6400</div><div class="dd-ex-body">&lt;p&gt;&lt;strong&gt;输入：&lt;/strong&gt;选三档。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;处理：&lt;/strong&gt;展示噪点样例。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;输出：&lt;/strong&gt;噪点对比图，越高越粗。结果以浏览器实时计算为准，纯前端本地处理、数据不上传；生成的样式与代码仅作快速产出参考，正式项目请以设计系统、规范与浏览器实测为准。&lt;/p&gt;</div></div>
+<div class="dd-example"><div class="dd-ex-title">对比 ISO100/1600/6400</div><div class="dd-ex-body"><p><strong>输入：</strong>选三档。</p><p><strong>处理：</strong>展示噪点样例。</p><p><strong>输出：</strong>噪点对比图，越高越粗。结果以浏览器实时计算为准，纯前端本地处理、数据不上传；生成的样式与代码仅作快速产出参考，正式项目请以设计系统、规范与浏览器实测为准。</p></div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>ISO 越高越亮？</dt><dd>是，但噪点增；优先用光圈/快门，最后提 ISO。结果以浏览器实时计算为准，纯前端本地处理、数据不上传；生成的样式与代码仅作快速产出参考，正式项目请以设计系统、规范与浏览器实测为准。</dd>
@@ -487,6 +487,9 @@ function onISOChange() {
 
 function getNoiseLevel(iso, sensorType) {
   const s = sensorMultiplier[sensorType];
+  // 判定在「等效 ISO」上做：小画幅 mult<1 ⇒ 同机身 ISO 的等效噪点更高。
+  // 因此对外展示的上限必须是 cleanMax*mult / usableMax*mult（机身 ISO 侧），否则
+  // 「页面标可用上限 6400」与「ISO 5000 判较重」会互相矛盾（APS-C 真实可用上限 4480）。
   const effectiveISO = iso / s.mult;
   
   if (effectiveISO <= s.cleanMax) return { level: 'excellent', name: '优秀', desc: '几乎不可见，画质纯净' };
@@ -495,11 +498,20 @@ function getNoiseLevel(iso, sensorType) {
   return { level: 'high', name: '较重', desc: '噪点明显，需要后期降噪' };
 }
 
+function sensorLimits(sensorType) {
+  const s = sensorMultiplier[sensorType];
+  return {
+    clean: Math.round(s.cleanMax * s.mult),
+    usable: Math.round(s.usableMax * s.mult)
+  };
+}
+
 function renderISO() {
   const sensorType = document.getElementById('sensor').value;
   const light = document.getElementById('light').value;
   const iso = isoValues[currentISOIndex];
   const s = sensorMultiplier[sensorType];
+  const lim = sensorLimits(sensorType);
   const noise = getNoiseLevel(iso, sensorType);
   
   let lightFactor = 1;
@@ -516,8 +528,8 @@ function renderISO() {
     </div>
     <div class="stat-grid">
       <div><div class="v">${iso.toLocaleString()}</div><div class="l">当前ISO</div></div>
-      <div><div class="v">${s.cleanMax.toLocaleString()}</div><div class="l">纯净上限</div></div>
-      <div><div class="v">${s.usableMax.toLocaleString()}</div><div class="l">可用上限</div></div>
+      <div><div class="v">${lim.clean.toLocaleString()}</div><div class="l">纯净上限</div></div>
+      <div><div class="v">${lim.usable.toLocaleString()}</div><div class="l">可用上限</div></div>
       <div><div class="v">${s.name}</div><div class="l">画幅</div></div>
     </div>
   `;
@@ -535,7 +547,7 @@ function renderISO() {
   isoValues.forEach((val, idx) => {
     const n = getNoiseLevel(val, sensorType);
     const isCurrent = idx === currentISOIndex;
-    const pct = Math.min(100, (val / s.usableMax) * 100);
+    const pct = Math.min(100, (val / lim.usable) * 100);
     levelsHtml += `
       <div class="iso-level ${isCurrent ? 'current' : ''}" onclick="setISO(${idx})">
         <span class="iso-val">${val < 1000 ? val : (val >= 1000000 ? (val/1000000).toFixed(0)+'M' : (val/1000).toFixed(0)+'K')}</span>
@@ -797,24 +809,24 @@ else document.addEventListener('DOMContentLoaded', __iso_noise_referenceBoot);
   <div class="related-tools-grid">
     <a href="generator-10.html" class="related-tool-card">
       <span class="rt-icon">📈</span>
-      <span class="rt-info"><span class="rt-name">CSS动画生成器（关键帧可视化） - 免费在线工具，纯前端处理 | ToolBox免费在线工具箱</span><span class="rt-desc">CSS动画生成器（关键帧可视化）</span></span>
+      <span class="rt-info"><span class="rt-name">CSS动画生成器（关键帧可视化）</span><span class="rt-desc">以可视化方式编排 CSS 关键帧动画，调整时长、缓动与属性并实时预览，生成可直接使用的 @keyfr…</span></span>
     </a>
     
     <a href="web-audio-metronome.html" class="related-tool-card">
       <span class="rt-icon">🎵</span>
-      <span class="rt-info"><span class="rt-name">Web Audio 节拍器 - 免费生成器工具，在线节拍器 | ToolBox免费在线工具箱</span><span class="rt-desc">在线节拍器</span></span>
+      <span class="rt-info"><span class="rt-name">Web Audio 节拍器</span><span class="rt-desc">在线节拍器，使用 Web Audio API 提供精准节拍并支持多种拍号，适合练习乐器与节奏训练</span></span>
     </a>
     <a href="generator-8.html" class="related-tool-card">
       <span class="rt-icon">🔳</span>
-      <span class="rt-info"><span class="rt-name">二维码生成器（已有，可加强定制） - 免费在线工具，纯前端处理 | ToolBox免费在线工具箱</span><span class="rt-desc">二维码生成器（已有，可加强定制）</span></span>
+      <span class="rt-info"><span class="rt-name">二维码生成器（可定制尺寸、纠错与静区）</span><span class="rt-desc">输入网址或文本，生成可定制尺寸与纠错的二维码：按 ISO/IEC 18004 自动选版本与掩码、按等…</span></span>
     </a>
-    <a href="generator-9.html" class="related-tool-card">
+    <a href="../biz/barcode-generator.html" class="related-tool-card">
       <span class="rt-icon">🏷️</span>
-      <span class="rt-info"><span class="rt-name">条形码生成器（EAN-13等） - 免费在线工具，纯前端处理 | ToolBox免费在线工具箱</span><span class="rt-desc">条形码生成器（EAN-13等）</span></span>
+      <span class="rt-info"><span class="rt-name">条形码生成器</span><span class="rt-desc">支持Code128、EAN-13、UPC-A、Code39等多种码制，纯前端生成可下载</span></span>
     </a>
     <a href="generator-6.html" class="related-tool-card">
-      <span class="rt-icon">📈</span>
-      <span class="rt-info"><span class="rt-name">盒子阴影生成器（可视化调整） - 免费在线工具，纯前端处理 | ToolBox免费在线工具箱</span><span class="rt-desc">盒子阴影生成器（可视化调整）</span></span>
+      <span class="rt-icon">✨</span>
+      <span class="rt-info"><span class="rt-name">盒子阴影批量生成器</span><span class="rt-desc">按「生成数量」随机产出多组多层 box-shadow 声明（含 inset 与 rgba 透明度）…</span></span>
     </a>
   </div>
 </div>

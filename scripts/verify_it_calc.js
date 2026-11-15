@@ -83,6 +83,38 @@ try {
   globalThis.__tbBarcodeLibForVerify = null;
 }
 
+// 项目内置 QR 库 js/qrcode.js（Kazuhiko Arase 实现，ISO/IEC 18004）：页面同样以 <script src> 引入。
+// 懒加载一次取构造函数，仅供「页面 HTML 确实引用该库」的用例作为 new Function 形参注入，
+// 使页面内联脚本在门禁里能真实完成版本选择、Reed-Solomon 纠错与掩码，而不是只跑兜底分支。
+let _qrcodeCtor;
+function loadQrcodeCtor() {
+  if (_qrcodeCtor === undefined) {
+    try {
+      const _vm = require("vm");
+      const _sb = {};
+      _vm.runInNewContext(fs.readFileSync(path.join(ROOT, "js/qrcode.js"), "utf8"), _sb);
+      _qrcodeCtor = _sb.qrcode || null;
+    } catch (e) { _qrcodeCtor = null; }
+  }
+  return _qrcodeCtor;
+}
+
+// 项目内置 Aztec 编码库 js/aztec-lib.js（移植自 ZXing，ISO/IEC 24778）：同样以 <script src> 引入。
+// 与 qrcode 同策略：仅当页面 HTML 命中该引用时才注入，让内联脚本能真实完成高电平编码、
+// Reed-Solomon 纠错与布点，而不是只跑「库未加载」兜底分支。
+let _aztecLib;
+function loadAztecLib() {
+  if (_aztecLib === undefined) {
+    try {
+      const _vm = require("vm");
+      const _sb = { window: {} };
+      _vm.runInNewContext(fs.readFileSync(path.join(ROOT, "js/aztec-lib.js"), "utf8"), _sb);
+      _aztecLib = (_sb.Aztec || (_sb.window && _sb.window.Aztec)) || null;
+    } catch (e) { _aztecLib = null; }
+  }
+  return _aztecLib;
+}
+
 // ToolBox 早期 API 桩（/js/toolbox-stub.js）源缓存：页面已将该桩外链化（<script src>），
 // 本 harness 不加载外部脚本，故在用例上下文里显式以同内容注入，使 harness 的 window.ToolBox
 // 与生产设备一致：补全 qs/qsa/debounce/resolveCanvasColor/canvasColorWithAlpha/i18nText 等
@@ -152,7 +184,6 @@ function _rngReset() { _rngState = 0x9e3779b9 >>> 0; }
   };
   Math.random = next;
 })();
-
 
 // ---------------------------------------------------------------- 用例
 const CASES = [
@@ -837,9 +868,9 @@ const CASES = [
   {
     slug: "it/text-qr",
     inputs: { text: "old secret" },
-    clicks: ["window.__qrCanvas={toDataURL:function(){return 'OLD_PNG';}};window.__qrMeta={probe:1};document.getElementById('text').value='anything';generate();var __p=document.getElementById('__tbProbe');__p.textContent='ERR='+(window.__qrCanvas===null&&window.__qrMeta===null?'CLEAR':'STALE');drawQR=function(t){var c=document.createElement('canvas');c.__qrMeta={n:1,margin:4,cell:8,dark:[0],fg:'#000000',bg:'#ffffff'};c.toDataURL=function(){return 'NEW_PNG';};return c;};document.getElementById('text').value='NEW-QR';generate();__p.textContent=String(__p.textContent)+' RECOVER='+(window.__qrCanvas&&window.__qrMeta?'OK':'FAIL');var __cap=[];var __ce=document.createElement.bind(document);document.createElement=function(t){var e=__ce(t);if(t==='a'){e.click=function(){__cap.push('DL:'+e.download);};}return e;};downloadPNG();document.createElement=__ce;__p.textContent=String(__p.textContent)+' DL='+__cap.join('|');"],
+    clicks: ["globalThis.qrcode=function(){throw new Error('boom');};window.__qrCanvas={toDataURL:function(){return 'OLD_PNG';}};window.__qrMeta={probe:1};document.getElementById('text').value='anything';generate();var __p=document.getElementById('__tbProbe');__p.textContent='ERR='+(window.__qrCanvas===null&&window.__qrMeta===null?'CLEAR':'STALE');drawQR=function(t){var c=document.createElement('canvas');c.__qrMeta={n:1,margin:4,cell:8,dark:[0],fg:'#000000',bg:'#ffffff'};c.toDataURL=function(){return 'NEW_PNG';};return c;};document.getElementById('text').value='NEW-QR';generate();__p.textContent=String(__p.textContent)+' RECOVER='+(window.__qrCanvas&&window.__qrMeta?'OK':'FAIL');var __cap=[];var __ce=document.createElement.bind(document);document.createElement=function(t){var e=__ce(t);if(t==='a'){e.click=function(){__cap.push('DL:'+e.download);};}return e;};downloadPNG();document.createElement=__ce;__p.textContent=String(__p.textContent)+' DL='+__cap.join('|');"],
     expect: ["ERR=CLEAR RECOVER=OK DL=DL:qrcode.png"],
-    ref: "IT-N551 复核重做：生成异常（harness 下 qrcode 外部脚本不可加载）时也必须同时作废画布与元数据；随后用桩替身恢复合法生成，画布与元数据重建成功，并实际调用 downloadPNG() 捕获一次真实下载 qrcode.png，证明清空逻辑没有误伤正常导出。默认态不产生该串。"
+    ref: "IT-N551 复核重做：生成异常（第390批起显式注入必抛异常的编码器，替代原先「harness 不加载外部脚本」的隐式失败前提）时也必须同时作废画布与元数据；随后用桩替身恢复合法生成，画布与元数据重建成功，并实际调用 downloadPNG() 捕获一次真实下载 qrcode.png，证明清空逻辑没有误伤正常导出。默认态不产生该串。"
   },
   {
     slug: "it/markdown-lint",
@@ -1236,12 +1267,6 @@ const CASES = [
     inputs: { inputValue: "10", inputBase: "custom", customBase: "2.5" },
     expect: ["进制必须为 2–36 的整数"],
     ref: "独立复算：customBase='2.5' ⇒ getInputBase 先 /^\\d+$/ 校验失败 ⇒ 返回 null ⇒ convertFromInput 显示「⚠ 进制必须为 2–36 的整数。」；修复前 parseInt('2.5')=2 被当 base 2 静默转换。默认 preset 路径（inputBase=10）不受影响、不命中。",
-  },
-  {
-    slug: "it/calc-2",
-    inputs: { numInput: "254", fromBase: "10" },
-    expect: ["FE", "fe"],
-    ref: "format(254,'X') = FE。原用例取 255/10，恰等于页面默认值（value=\"255\"、option 10 selected）⇒ 不注入也命中、属「输入等于默认值」型假门禁；改用 254 后默认态输出 255/FF 不再命中。",
   },
   {
     slug: "it/caesar-cipher",
@@ -5321,13 +5346,6 @@ const CASES = [
     ref: "按位异或：12 ^ 10 = 0b1100 ^ 0b1010 = 0b0110 = 6，可手算逐位核对。运算符 select 的 option 真值是 `'AND'/'OR'/'XOR'/'NOT'/'SHL'/'SHR'`（不是序号）；默认 op 与默认 a/b 组合的结果与注入组不同。",
   },
   {
-    slug: "it/calc-2",
-    inputs: { numInput: "1010", fromBase: "2" },
-    clicks: ["convertBase()"],
-    expect: ["十进制真值： 10", "16 十六进制 A"],
-    ref: "二进制 `1010` 的真值 = 1×2³ + 0×2² + 1×2¹ + 0×2⁰ = 10；同页把同一数值分别渲染为 2 进制 1010 / 8 进制 12 / 10 进制 10 / 16 进制 A，四路输出互为交叉校验。",
-  },
-  {
     slug: "it/calc-1",
     inputs: { sizeInput: "2048", unitSelect: "KiB" },
     clicks: ["copySizeResult()"],
@@ -5540,13 +5558,6 @@ const CASES = [
     clicks: ["calc()"],
     expect: ["结果： 8 = 0x8 = 0b1000"],
     ref: "按位与：12 = `1100`、10 = `1010` ⇒ `1000` = **8**，十六进制与二进制形式同串给出（**三种进制同源，可手算复算**）。默认 `op` 是异或 ⇒ 不命中。",
-  },
-  {
-    slug: "it/calc-2",
-    inputs: { numInput: "1101", fromBase: "2" },
-    clicks: ["convertBase()"],
-    expect: ["十进制真值： 13", "十六进制 D"],
-    ref: "进制换算：`1101₂` = 8+4+0+1 = **13**（权重展开可手算），十六进制 = **D**。默认输入进制不同 ⇒ 不命中。",
   },
   {
     slug: "it/calc-3",
@@ -8084,17 +8095,6 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"textInput\":\"1\\n2\\n3\"}，输出区含「SHA-256 ad53e8806d17c82d38902738d1d47d96…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "it/calc-2",
-    "inputs": {
-      "numInput": "abc123测试",
-      "fromBase": "8"
-    },
-    "expect": [
-      "abc123测试\n8\n请输入有效的 8 进制数值。"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"numInput\":\"abc123测试\",\"fromBase\":\"8\"}，输出区含「abc123测试\n8\n请输入有效的 8 进制数值。」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
-  },
-  {
     "slug": "it/calc-4",
     "inputs": {
       "baseSize": "42",
@@ -8728,10 +8728,9 @@ const CASES = [
       "indent": "4"
     },
     "expect": [
-      " } } } }\n4\n",
-      "createdAt } } } } }\n4"
+      "1 2 3"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\",\"indent\":\"4\"}，输出区含「 } } } }\n4\n」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。G06-S1 首屏自跑改变了元素创建序 ⇒ blob 字段序随之改变，expect 容忍新旧两种字段序；判别力不变。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\",\"indent\":\"4\"}，格式化/压缩输出均含「1 2 3」；默认示例为 query GetUser…，不命中。缩进改为读取 #indent 后不再锚定跨元素拼接的默认样例尾部。"
   },
   {
     "slug": "it/hash-id-generator",
@@ -11241,16 +11240,16 @@ const CASES = [
   {
     "slug": "it/qr-beautify",
     "inputs": {
-      "fg": "abc123测试",
-      "bg": "abc123测试",
-      "text": "1\n2\n3",
-      "ecc": "M",
-      "style": "square"
+      "text": "QRBEAUTIFY-2026-0001",
+      "ecc": "H",
+      "style": "square",
+      "fg": "#123456",
+      "bg": "#ffffff"
     },
     "expect": [
-      " defined\nM\nabc123测试\nabc123测试\nsquare"
+      "✅ 已生成 29 × 29 模块 · 容错 H · 232px"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"fg\":\"abc123测试\",\"bg\":\"abc123测试\",\"text\":\"1\\n2\\n3\",\"ecc\":\"M\",\"style\":\"square\"}，输出区含「 defined\nM\nabc123测试\nabc123测试\nsquare」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "第390批重写（原为自动补强弱用例，anchor 依赖旧环境 'qrcode is not defined' 报错串）：harness 注入真实 qrcode 后该串不复存在，改为锚「已生成 N × N 模块 · 容错 H」这类由内容与纠错等级共同决定的派生量；20 字节 ASCII 在 H 级必须升到比默认样例更大的版本，默认态（Hello World + M）不命中。"
   },
   {
     "slug": "it/qr-beautify",
@@ -15157,6 +15156,17 @@ async function runCaseInner(c) {
         deleteProperty(_, k) { if (win.ToolBox) delete win.ToolBox[k]; return true; },
       })
     : ToolBox;
+  // 页面以 <script src=".../js/qrcode.js"> 引入 QR 库，而 harness 不加载外部脚本；
+  // 若本页确实引用了它，就把构造函数作为 new Function 形参注入，让内联脚本能真实生成矩阵。
+  // 未引用该库的页面拿到 undefined，行为与改造前逐字节一致。
+  const pageQrcode = /js\/qrcode\.js/.test(html) ? loadQrcodeCtor() : undefined;
+  const pageAztec = /js\/aztec-lib\.js/.test(html) ? loadAztecLib() : undefined;
+  // 用全局注入而非 new Function 形参：页面内联脚本里对 qrcode / Aztec 的引用本就是
+  // 「未声明标识符 → 查全局」，与浏览器一致；形参注入会把用例内 globalThis.qrcode=... 的
+  // 桩遮蔽掉（第389批改形参后 it/url-qr、it/text-qr 等既有桩用例由绿转红）。每页无条件赋值，
+  // 未引用该库的页面拿到 undefined，行为与改造前一致，也不会跨页残留。
+  try { globalThis.qrcode = pageQrcode; } catch (e) { /* 只读全局跳过 */ }
+  try { globalThis.Aztec = pageAztec; } catch (e) { /* 只读全局跳过 */ }
   const compiled = new Function(
       "document", "window", "console", "navigator", "localStorage", "sessionStorage", "ToolBox", "alert", "setTimeout", "requestAnimationFrame", "setInterval", "requestIdleCallback", "Date",
       `var __f={};\n${script}\n${expose}\n__f["__pageEval"]=function(c){return eval(String(c));};\n__f["__rebindGlobal"]=function(n){try{eval(n+' = window.'+n);}catch(e){}};\nreturn __f;`

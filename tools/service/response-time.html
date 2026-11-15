@@ -10,10 +10,10 @@
 <title>客服响应时间统计 - 录入工单响应与解决时间</title>
 <link rel="canonical" href="https://tools.dicomp.net/tools/service/response-time.html">
 <meta property="og:title" content="客服响应时间统计 - 录入工单响应与解决时间">
-<meta property="og:description" content="客服响应时间统计是一款免费的在线客户服务工具，录入工单响应与解决时间，自动计算平均响应时间、解决率、P50/P90/P99等关键SLA指标。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+<meta property="og:description" content="响应时间统计是一款免费的在线客户服务工具，录入工单响应与解决时间，自动计算平均响应时间、解决率、P50/P90/P99等关键SLA指标。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
 <meta property="og:url" content="https://tools.dicomp.net/tools/service/response-time.html">
 <meta name="twitter:card" content="summary">
-<meta name="description" content="客服响应时间统计是一款免费的在线客户服务工具，录入工单响应与解决时间，自动计算平均响应时间、解决率、P50/P90/P99等关键SLA指标。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+<meta name="description" content="响应时间统计是一款免费的在线客户服务工具，录入工单响应与解决时间，自动计算平均响应时间、解决率、P50/P90/P99等关键SLA指标。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
 <link rel="stylesheet" href="../../css/common.css">
 <script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
@@ -40,10 +40,10 @@
 <meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
     <meta property="og:type" content="website">
     <meta name="twitter:title" content="客服响应时间统计 - 录入工单响应与解决时间">
-    <meta name="twitter:description" content="客服响应时间统计是一款免费的在线客户服务工具，录入工单响应与解决时间，自动计算平均响应时间、解决率、P50/P90/P99等关键SLA指标。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+    <meta name="twitter:description" content="响应时间统计是一款免费的在线客户服务工具，录入工单响应与解决时间，自动计算平均响应时间、解决率、P50/P90/P99等关键SLA指标。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
 <!-- TOOLBOX-WEBAPP-LD -->
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebApplication","name":"响应时间统计","url":"https://tools.dicomp.net/tools/service/response-time.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"客服响应时间统计是一款免费的在线客户服务工具，录入工单响应与解决时间，自动计算平均响应时间、解决率、P50/P90/P99等关键SLA指标。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+{"@context":"https://schema.org","@type":"WebApplication","name":"响应时间统计","url":"https://tools.dicomp.net/tools/service/response-time.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"响应时间统计是一款免费的在线客户服务工具，录入工单响应与解决时间，自动计算平均响应时间、解决率、P50/P90/P99等关键SLA指标。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
 </script>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
@@ -244,8 +244,8 @@ function renderList(){
   const __g1=tickets.map(function(t,i){
     return '<div class="ticket-row">'+
       '<input type="text" value="'+ToolBox.escHtml(t.id)+'" placeholder="工单号" oninput="updateTicket('+i+',\'id\',this.value)">'+
-      '<input type="number" value="'+t.resp+'" step="any" min="0" placeholder="响应(分)" oninput="updateTicket('+i+',\'resp\',this.value)" title="响应时间(分钟)">'+
-      '<input type="number" value="'+t.solve+'" step="any" min="0" placeholder="解决(分)" oninput="updateTicket('+i+',\'solve\',this.value)" title="解决时间(分钟)">'+
+      '<input type="number" value="'+(t.resp==null?'':t.resp)+'" step="any" min="0" placeholder="响应(分)" oninput="updateTicket('+i+',\'resp\',this.value)" title="响应时间(分钟)">'+
+      '<input type="number" value="'+(t.solve==null?'':t.solve)+'" step="any" min="0" placeholder="解决(分)" oninput="updateTicket('+i+',\'solve\',this.value)" title="解决时间(分钟)">'+
       '<select onchange="updateTicket('+i+',\'status\',this.value)">'+
         '<option value="resolved"'+(t.status==='resolved'?' selected':'')+'>已解决</option>'+
         '<option value="pending"'+(t.status==='pending'?' selected':'')+'>处理中</option>'+
@@ -256,11 +256,14 @@ function renderList(){
 }
 
 function updateTicket(i,field,val){
-  if(field==='resp'||field==='solve') val=parseFloat(val)||0;
+  if(field==='resp'||field==='solve'){
+    var n=val===''?null:parseFloat(val);
+    val=(n!=null && isFinite(n) && n>=0)?n:null;
+  }
   tickets[i][field]=val;
   calc();
 }
-function addTicket(){ tickets.push({id:'T'+String(tickets.length+1).padStart(3,'0'),resp:0,solve:0,status:'resolved'}); renderList(); calc(); }
+function addTicket(){ tickets.push({id:'T'+String(tickets.length+1).padStart(3,'0'),resp:null,solve:null,status:'resolved'}); renderList(); calc(); }
 function removeTicket(i){ tickets.splice(i,1); renderList(); calc(); }
 function clearTickets(){ tickets=[]; renderList(); calc(); }
 function loadDemo(){
@@ -287,25 +290,27 @@ function percentile(arr,p){
 }
 
 function calc(){
-  var sla=parseFloat(document.getElementById('slaTarget').value)||30;
-  var respTimes=tickets.map(function(t){return t.resp;});
-  var solveTimes=tickets.filter(function(t){return t.status==='resolved' && t.solve>0;}).map(function(t){return t.solve;});
+  var slaRaw=parseFloat(document.getElementById('slaTarget').value);
+  var slaValid=isFinite(slaRaw)&&slaRaw>0;
+  var sla=slaValid?slaRaw:null;
+  var respTimes=tickets.filter(function(t){return t.resp!=null && isFinite(t.resp) && t.resp>=0;}).map(function(t){return t.resp;});
+  var solveTimes=tickets.filter(function(t){return t.status==='resolved' && t.solve!=null && isFinite(t.solve) && t.solve>0;}).map(function(t){return t.solve;});
   var total=tickets.length;
-  var resolved=solveTimes.length;
+  var resolved=tickets.filter(function(t){return t.status==='resolved';}).length;
   var resolveRate=total>0?resolved/total:0;
   var avgResp=respTimes.length?respTimes.reduce(function(a,b){return a+b;},0)/respTimes.length:0;
   var avgSolve=solveTimes.length?solveTimes.reduce(function(a,b){return a+b;},0)/solveTimes.length:0;
-  var metSla=respTimes.filter(function(t){return t<=sla;}).length;
-  var slaRate=total>0?metSla/total:0;
+  var metSla=slaValid?respTimes.filter(function(t){return t<=sla;}).length:0;
+  var slaRate=(slaValid && respTimes.length)?metSla/respTimes.length:null;
 
-  const __g2='<div class="stat-card"><div class="val" style="color:var(--primary);">'+fmt(avgResp)+'分</div><div class="lbl">平均响应时间</div></div>'+
+  const __g2='<div class="stat-card"><div class="val" style="color:var(--primary);">'+(respTimes.length?fmt(avgResp):'--')+'分</div><div class="lbl">平均响应时间</div></div>'+
     '<div class="stat-card"><div class="val">'+(resolveRate*100).toFixed(1)+'%</div><div class="lbl">解决率</div></div>'+
-    '<div class="stat-card"><div class="val" style="color:'+(slaRate>=0.9?'var(--success)':'var(--danger)')+';">'+(slaRate*100).toFixed(1)+'%</div><div class="lbl">SLA达标率</div></div>'+
+    '<div class="stat-card"><div class="val" style="color:'+(slaRate==null?'var(--text-muted)':(slaRate>=0.9?'var(--success)':'var(--danger)'))+';">'+(slaRate==null?'--':(slaRate*100).toFixed(1)+'%')+'</div><div class="lbl">'+(slaValid?'SLA达标率':'SLA目标需为正数')+'</div></div>'+
     '<div class="stat-card"><div class="val">'+total+'</div><div class="lbl">工单总数</div></div>'+
-    '<div class="stat-card"><div class="val p50">'+fmt(percentile(respTimes,0.5))+'分</div><div class="lbl">P50响应</div></div>'+
-    '<div class="stat-card"><div class="val p90">'+fmt(percentile(respTimes,0.9))+'分</div><div class="lbl">P90响应</div></div>'+
-    '<div class="stat-card"><div class="val p99">'+fmt(percentile(respTimes,0.99))+'分</div><div class="lbl">P99响应</div></div>'+
-    '<div class="stat-card"><div class="val">'+fmt(avgSolve)+'分</div><div class="lbl">平均解决时间</div></div>';document.getElementById('stats').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
+    '<div class="stat-card"><div class="val p50">'+(respTimes.length?fmt(percentile(respTimes,0.5)):'--')+'分</div><div class="lbl">P50响应</div></div>'+
+    '<div class="stat-card"><div class="val p90">'+(respTimes.length?fmt(percentile(respTimes,0.9)):'--')+'分</div><div class="lbl">P90响应</div></div>'+
+    '<div class="stat-card"><div class="val p99">'+(respTimes.length?fmt(percentile(respTimes,0.99)):'--')+'分</div><div class="lbl">P99响应</div></div>'+
+    '<div class="stat-card"><div class="val">'+(solveTimes.length?fmt(avgSolve):'--')+'分</div><div class="lbl">平均解决时间</div></div>';document.getElementById('stats').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 
   var bins=[{label:'0-5分',min:0,max:5},{label:'5-15分',min:5,max:15},{label:'15-30分',min:15,max:30},{label:'30-60分',min:30,max:60},{label:'60分+',min:60,max:Infinity}];
   var counts=bins.map(function(b){
@@ -322,8 +327,8 @@ function calc(){
 
   var body=document.getElementById('detailBody');
   const __g4=tickets.map(function(t){
-    var ok=t.resp<=sla;
-    return '<tr><td>'+ToolBox.escHtml(t.id)+'</td><td>'+fmt(t.resp)+'</td><td>'+(t.solve>0?fmt(t.solve):'-')+'</td><td>'+(t.status==='resolved'?'已解决':'处理中')+'</td><td style="color:'+(ok?'var(--success)':'var(--danger)')+';">'+(ok?'达标':'超标')+'</td></tr>';
+    var ok=slaValid && t.resp!=null && t.resp<=sla;
+    return '<tr><td>'+ToolBox.escHtml(t.id)+'</td><td>'+(t.resp!=null?fmt(t.resp):'-')+'</td><td>'+(t.solve!=null&&t.solve>0?fmt(t.solve):'-')+'</td><td>'+(t.status==='resolved'?'已解决':'处理中')+'</td><td style="color:'+(slaValid?(ok?'var(--success)':'var(--danger)'):'var(--text-muted)')+';">'+(slaValid?(ok?'达标':'超标'):'-')+'</td></tr>';
   }).join('');body.innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
 }
 
@@ -343,27 +348,27 @@ calc();
   <div class="related-tools-grid">
     <a href="../biz/presentation-timer.html" class="related-tool-card">
       <span class="rt-icon">⏱️</span>
-      <span class="rt-info"><span class="rt-name">演讲计时器 - 免费开发工具，在线演讲计时器 | ToolBox免费在线工具箱</span><span class="rt-desc">演讲计时器</span></span>
+      <span class="rt-info"><span class="rt-name">演讲计时器</span><span class="rt-desc">为 PPT 每页分配时间并进度提醒、支持全屏，辅助演讲节奏把控</span></span>
     </a>
     <a href="../biz/markdown-quote.html" class="related-tool-card">
       <span class="rt-icon">📝</span>
-      <span class="rt-info"><span class="rt-name">Markdown 引用转换器 - 免费文本处理工具，在线Markdown 引用转换器 | ToolBox免费在线工具箱</span><span class="rt-desc">Markdown 引用转换器</span></span>
+      <span class="rt-info"><span class="rt-name">Markdown 引用转换器</span><span class="rt-desc">将粘贴的多行文本批量转换为 Markdown 引用块（每行前加 &gt;），便于在文档中引用他人内容或做批…</span></span>
     </a>
     <a href="../biz/markdown.html" class="related-tool-card">
       <span class="rt-icon">📝</span>
-      <span class="rt-info"><span class="rt-name">Markdown 预览 - 免费文本处理工具，Markdown 实时预览 | ToolBox免费在线工具箱</span><span class="rt-desc">Markdown 实时预览</span></span>
+      <span class="rt-info"><span class="rt-name">Markdown 实时预览</span><span class="rt-desc">在左侧编辑区输入 Markdown，右侧实时渲染标题、列表、代码块等效果，支持即时对照，便于写作与格…</span></span>
     </a>
     <a href="../biz/unicode-normalize.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
-      <span class="rt-info"><span class="rt-name">Unicode 规范化 - 免费文本处理工具，在线Unicode 规范化 | ToolBox免费在线工具箱</span><span class="rt-desc">Unicode 规范化</span></span>
+      <span class="rt-info"><span class="rt-name">Unicode 规范化</span><span class="rt-desc">将文本按 NFC/NFD/NFKC/NFKD 等范式进行 Unicode 规范化，统一异体字与组合字…</span></span>
     </a>
     <a href="../biz/zalgo-text.html" class="related-tool-card">
       <span class="rt-icon">💼</span>
-      <span class="rt-info"><span class="rt-name">Zalgo 文字 - 免费文本处理工具，Zalgo 文字生成器 | ToolBox免费在线工具箱</span><span class="rt-desc">Zalgo 文字生成器</span></span>
+      <span class="rt-info"><span class="rt-name">Zalgo 文字</span><span class="rt-desc">为文字叠加大量组合字符生成 Zalgo 乱码风格效果，可调节紊乱强度，用于恶搞表情、标题装饰与渲染测…</span></span>
     </a>
     <a href="../biz/superscript-text.html" class="related-tool-card">
       <span class="rt-icon">💼</span>
-      <span class="rt-info"><span class="rt-name">上标文字 - 免费文本处理工具，在线上标文字 | ToolBox免费在线工具箱</span><span class="rt-desc">⬆️ 上标文字</span></span>
+      <span class="rt-info"><span class="rt-name">上标文字</span><span class="rt-desc">将选中文字转为上标格式并生成可复制的 Unicode 或 HTML 上标代码，适合化学式、数学指数与…</span></span>
     </a>
   </div>
 </div>

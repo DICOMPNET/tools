@@ -205,21 +205,22 @@ function calc(){
   var txt=document.getElementById('data').value.trim();
   if(!txt){document.getElementById('res').innerHTML=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"<p>Enter excavation unit data</p>":"<p>请输入探方数据</p>");return;}
   var lines=txt.split(/[\n;；]+/).map(function(s){return s.trim();}).filter(Boolean);
-  var rows=[],totC=0,totA=0,bad=false;
-  lines.forEach(function(ln){
-    var p=ln.split(/[,，\s]+/).map(function(x){return parseFloat(x);});
-    if(p.length<2||isNaN(p[0])||isNaN(p[1])||p[1]<=0){bad=true;return;}
-    var c=p[0],a=p[1];
+  var rows=[],totC=0,totA=0,rejects=[];
+  lines.forEach(function(ln,idx){
+    var parts=ln.split(/[,，\s]+/).filter(Boolean);
+    var c=Number(parts[0]),a=Number(parts[1]);
+    var ok=parts.length===2 && /^\d+$/.test(parts[0]) && /^\d+(\.\d+)?$/.test(parts[1]) && isFinite(c) && isFinite(a) && c>=0 && a>0;
+    if(!ok){rejects.push(idx+1);return;}
     rows.push({c:c,a:a,d:c/a});totC+=c;totA+=a;
   });
-  if(!rows.length){document.getElementById('res').innerHTML='<p style="color:var(--danger);">未识别到有效行（每行需：件数, 面积㎡）</p>';return;}
+  if(!rows.length){document.getElementById('res').innerHTML='<p style="color:var(--danger);">未识别到有效行（每行需：件数, 面积㎡；件数须为≥0整数、面积须为正数）'+(rejects.length?'，已拒绝第 '+rejects.join('、')+' 行':'')+'</p>';return;}
   var totalD=totA>0?totC/totA:0;
   var html='';
   rows.forEach(function(r){
     html+='<p>'+fmt(r.a,0)+' ㎡ 出土 '+fmt(r.c,0)+' 件 → 密度 <strong style="color:var(--primary);">'+fmt(r.d,2)+' 件/㎡</strong></p>';
   });
   html+='<p style="margin-top:6px;">合计：'+fmt(totC,0)+' 件 / '+fmt(totA,0)+' ㎡ → 总密度 <strong style="color:var(--danger);">'+fmt(totalD,2)+' 件/㎡</strong></p>';
-  if(bad)html+='<p style="font-size:12px;color:var(--text-muted);">注：已跳过无法识别的行（需「件数, 面积」且面积&gt;0）。</p>';
+  if(rejects.length)html+='<p style="font-size:12px;color:var(--danger);">注：第 '+rejects.join('、')+' 行格式无效已拒绝（件数须为≥0整数，面积须为正数，且每行仅两列）。</p>';
   const __g3=html;document.getElementById('res').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
 }
 function copyResult(){ToolBox.copyText(document.getElementById('res').innerText);}
@@ -239,23 +240,23 @@ calc();
   <div class="related-tools-grid">
     <a href="site-grid.html" class="related-tool-card">
       <span class="rt-icon">🧮</span>
-      <span class="rt-info"><span class="rt-name">遗址探方计算 - 科学研究领域的在线工具</span><span class="rt-desc">遗址探方计算</span></span>
+      <span class="rt-info"><span class="rt-name">遗址探方计算</span><span class="rt-desc">根据遗址范围与探方规格计算探方数量、发掘面积与各探方坐标（西南角为原点，北为 X 正向、东为 Y 正…</span></span>
     </a>
     <a href="artifact-measurement.html" class="related-tool-card">
       <span class="rt-icon">🏺</span>
-      <span class="rt-info"><span class="rt-name">遗物测量记录 - 科学研究领域的在线工具</span><span class="rt-desc">遗物测量记录</span></span>
+      <span class="rt-info"><span class="rt-name">遗物测量记录</span><span class="rt-desc">按考古测量规范记录遗物尺寸、重量，自动计算体积、密度与形制指数并生成标准记录条目</span></span>
     </a>
     <a href="stratum-identify.html" class="related-tool-card">
       <span class="rt-icon">🔍</span>
-      <span class="rt-info"><span class="rt-name">地层识别 - 科学研究领域的在线工具</span><span class="rt-desc">地层识别</span></span>
+      <span class="rt-info"><span class="rt-name">地层识别</span><span class="rt-desc">考古地层识别对照，涵盖地质时代与中国主要考古学文化期特征，辅助遗址地层划分与年代判定</span></span>
     </a>
     <a href="dating-method.html" class="related-tool-card">
       <span class="rt-icon">🏺</span>
-      <span class="rt-info"><span class="rt-name">考古测年法 - 科学研究领域的在线工具</span><span class="rt-desc">考古测年法</span></span>
+      <span class="rt-info"><span class="rt-name">考古测年法</span><span class="rt-desc">碳-14、热释光、光释光等主要考古测年方法对照，含测年范围、适用材料、原理与精度</span></span>
     </a>
     <a href="pottery-typology.html" class="related-tool-card">
       <span class="rt-icon">📚</span>
-      <span class="rt-info"><span class="rt-name">陶器类型学 - 科学研究领域的在线工具</span><span class="rt-desc">陶器类型学</span></span>
+      <span class="rt-info"><span class="rt-name">陶器类型学</span><span class="rt-desc">对照，按中国主要考古学文化期列出陶质、陶色、纹饰与典型器形，辅助田野考古陶片辨识</span></span>
     </a>
   </div>
 </div>
@@ -398,16 +399,23 @@ function __stats_densityExtras(){
 }
 function __stats_densityExport(){
     if (typeof TBKit === 'undefined') return;
-    try{
-        var box=document.querySelector('#stats_densityTable');
-        if(!box||!box.querySelector('tr')){
-            var snap=__stats_densitySnap(); var keys=Object.keys(snap);
-            if(keys.length>12) keys=keys.slice(0,12);
-            var en=(TBKit.util&&TBKit.util.isEn())?true:false;
-            __stats_densityRender(keys,en?'Result':'结果',en);
-        }
-    }catch(e){}
-    try { TBKit.util.exportTable('#stats_densityTable','stats-density.csv'); } catch(e){}
+    var en=(TBKit.util&&TBKit.util.isEn())?true:false;
+    var txt=(document.getElementById('data')||{}).value||'';
+    var lines=txt.split(/[\n;；]+/).map(function(s){return s.trim();}).filter(Boolean);
+    var rows=[],totC=0,totA=0;
+    lines.forEach(function(ln){
+        var parts=ln.split(/[,，\s]+/).filter(Boolean);
+        var c=Number(parts[0]),a=Number(parts[1]);
+        var ok=parts.length===2 && /^\d+$/.test(parts[0]) && /^\d+(\.\d+)?$/.test(parts[1]) && isFinite(c) && isFinite(a) && c>=0 && a>0;
+        if(!ok) return;
+        rows.push([c,a,c/a]);totC+=c;totA+=a;
+    });
+    if(!rows.length) return;
+    rows.sort(function(p,q){return q[2]-p[2];});
+    var out=rows.map(function(r){return [r[0],r[1],fmt(r[2],2)];});
+    out.unshift([en?'Count':'件数',en?'Area (m2)':'面积(㎡)',en?'Density (pcs/m2)':'密度(件/㎡)']);
+    out.push([en?'Total':'合计',fmt(totA,0),fmt(totC/totA,2)]);
+    try { TBKit.export.csv('stats-density.csv',out); } catch(e){}
 }
 function __stats_densityPresets(){
     if (typeof TBKit === 'undefined') return;

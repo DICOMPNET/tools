@@ -142,7 +142,7 @@
 <div class="card tool-card-accent" style="--tool-accent:#7C3AED;">
      <h2 data-zh="📐 等距网格">📐 Isometric Grid Generator</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">网格边长下限 10（默认 40）、线宽下限 1；四层 linear-gradient 分别按 30°、150°、270°、30° 绘制等距网格线；background-size = 边长 × (边长 × 0.5774)，高度按 tan(30°) 压缩形成等距透视</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">网格边长钳制在 10–200（默认 40）、线宽钳制在 1–5；三层 linear-gradient 分别按 30°、150°、270° 绘制等距网格线（三个方向互不重复，第四层与第一层完全相同已删除）；background-size 为「宽 = 边长 s、高 = s·tan30° ≈ 0.5774s」，即 tile 高度按 30° 压缩，形成等距透视</div>
   <div class="formula-desc">等距网格由 30° / 150° 斜线按固定步距平铺构成菱形格，网格尺寸与配色可调并复制 CSS 代码；用于 2.5D 游戏地图、插画底图与示意图。</div>
 </div>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="生成等距（2.5D）风格网格背景，可调格子大小与配色，用于游戏地图、插画底图与示意图，可复制 CSS 代码。">Generate an isometric (2.5D) grid background with adjustable cell size and colours for game maps, illustrations and diagrams.</p>
@@ -188,7 +188,7 @@
 <li>架构示意图。</li>
 <li>游戏地图。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">生成等距格</div><div class="dd-ex-body">&lt;p&gt;&lt;strong&gt;输入：&lt;/strong&gt;格距、线色。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;处理：&lt;/strong&gt;菱形网格平铺。&lt;/p&gt;&lt;p&gt;&lt;strong&gt;输出：&lt;/strong&gt;背景预览与代码/图。结果以浏览器实时计算为准，纯前端本地处理、数据不上传；生成的样式与代码仅作快速产出参考，正式项目请以设计系统、规范与浏览器实测为准。&lt;/p&gt;</div></div>
+<div class="dd-example"><div class="dd-ex-title">生成等距格</div><div class="dd-ex-body"><p><strong>输入：</strong>格距、线色。</p><p><strong>处理：</strong>菱形网格平铺。</p><p><strong>输出：</strong>背景预览与代码/图。结果以浏览器实时计算为准，纯前端本地处理、数据不上传；生成的样式与代码仅作快速产出参考，正式项目请以设计系统、规范与浏览器实测为准。</p></div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>等距和正交？</dt><dd>等距呈 30° 菱形，更有立体感；正交为正方格。结果以浏览器实时计算为准，纯前端本地处理、数据不上传；生成的样式与代码仅作快速产出参考，正式项目请以设计系统、规范与浏览器实测为准。</dd>
@@ -217,8 +217,8 @@
         </tr>
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="菱形单元">Diamond cell</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="常用 2:1 菱形近似等距效果，便于整数像素对齐">a 2:1 diamond approximates isometric while snapping to pixels</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="Design practice">Design practice</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="本页 tile 高取 s·tan30° ≈ 0.5774s（非 2:1 的 0.5）；2:1 菱形是另一种近似，二者不可混用">this page uses tile height s·tan30° ≈ 0.5774s (not the 2:1 diamond ratio of 0.5); the two approximations must not be mixed</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="Isometric geometry">Isometric geometry</td>
         </tr>
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="三角网格高度">Triangular pitch</td>
@@ -243,9 +243,9 @@
 function generate(){
   const bg = document.getElementById('bgColor').value;
   const line = document.getElementById('lineColor').value;
-  const s = Math.max(10, parseInt(document.getElementById('size').value) || 40);
-  const lw = Math.max(1, parseInt(document.getElementById('lineWidth').value) || 1);
-  const css = `background-color: ${bg}; background-image: linear-gradient(30deg, ${line} ${lw}px, transparent ${lw}px), linear-gradient(150deg, ${line} ${lw}px, transparent ${lw}px), linear-gradient(270deg, ${line} ${lw}px, transparent ${lw}px), linear-gradient(30deg, ${line} ${lw}px, transparent ${lw}px); background-size: ${s}px ${s*0.5774}px; background-position: 0 0, 0 0, 0 0, 0 0;`;
+  const s = Math.min(200, Math.max(10, parseInt(document.getElementById('size').value) || 40));
+  const lw = Math.min(5, Math.max(1, parseInt(document.getElementById('lineWidth').value) || 1));
+  const css = `background-color: ${bg}; background-image: linear-gradient(30deg, ${line} ${lw}px, transparent ${lw}px), linear-gradient(150deg, ${line} ${lw}px, transparent ${lw}px), linear-gradient(270deg, ${line} ${lw}px, transparent ${lw}px); background-size: ${s}px ${s*0.5774}px;`;
   document.getElementById('preview').style.cssText = 'min-height:200px;border-radius:8px;'+css;
   document.getElementById('cssOutput').value = css;
 }
@@ -427,24 +427,24 @@ else document.addEventListener('DOMContentLoaded', __isometric_gridBoot);
   <div class="related-tools-grid">
     <a href="generator-10.html" class="related-tool-card">
       <span class="rt-icon">📈</span>
-      <span class="rt-info"><span class="rt-name">CSS动画生成器（关键帧可视化） - 免费在线工具，纯前端处理 | ToolBox免费在线工具箱</span><span class="rt-desc">CSS动画生成器（关键帧可视化）</span></span>
+      <span class="rt-info"><span class="rt-name">CSS动画生成器（关键帧可视化）</span><span class="rt-desc">以可视化方式编排 CSS 关键帧动画，调整时长、缓动与属性并实时预览，生成可直接使用的 @keyfr…</span></span>
     </a>
     
     <a href="web-audio-metronome.html" class="related-tool-card">
       <span class="rt-icon">🎵</span>
-      <span class="rt-info"><span class="rt-name">Web Audio 节拍器 - 免费生成器工具，在线节拍器 | ToolBox免费在线工具箱</span><span class="rt-desc">在线节拍器</span></span>
+      <span class="rt-info"><span class="rt-name">Web Audio 节拍器</span><span class="rt-desc">在线节拍器，使用 Web Audio API 提供精准节拍并支持多种拍号，适合练习乐器与节奏训练</span></span>
     </a>
     <a href="generator-8.html" class="related-tool-card">
       <span class="rt-icon">🔳</span>
-      <span class="rt-info"><span class="rt-name">二维码生成器（已有，可加强定制） - 免费在线工具，纯前端处理 | ToolBox免费在线工具箱</span><span class="rt-desc">二维码生成器（已有，可加强定制）</span></span>
+      <span class="rt-info"><span class="rt-name">二维码生成器（可定制尺寸、纠错与静区）</span><span class="rt-desc">输入网址或文本，生成可定制尺寸与纠错的二维码：按 ISO/IEC 18004 自动选版本与掩码、按等…</span></span>
     </a>
-    <a href="generator-9.html" class="related-tool-card">
+    <a href="../biz/barcode-generator.html" class="related-tool-card">
       <span class="rt-icon">🏷️</span>
-      <span class="rt-info"><span class="rt-name">条形码生成器（EAN-13等） - 免费在线工具，纯前端处理 | ToolBox免费在线工具箱</span><span class="rt-desc">条形码生成器（EAN-13等）</span></span>
+      <span class="rt-info"><span class="rt-name">条形码生成器</span><span class="rt-desc">支持Code128、EAN-13、UPC-A、Code39等多种码制，纯前端生成可下载</span></span>
     </a>
     <a href="generator-6.html" class="related-tool-card">
-      <span class="rt-icon">📈</span>
-      <span class="rt-info"><span class="rt-name">盒子阴影生成器（可视化调整） - 免费在线工具，纯前端处理 | ToolBox免费在线工具箱</span><span class="rt-desc">盒子阴影生成器（可视化调整）</span></span>
+      <span class="rt-icon">✨</span>
+      <span class="rt-info"><span class="rt-name">盒子阴影批量生成器</span><span class="rt-desc">按「生成数量」随机产出多组多层 box-shadow 声明（含 inset 与 rgba 透明度）…</span></span>
     </a>
   </div>
 </div>

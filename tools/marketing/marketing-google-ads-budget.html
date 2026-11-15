@@ -230,8 +230,8 @@ function calc(){
   const cr = parseFloat(document.getElementById('convRate').value);
   const aov = parseFloat(document.getElementById('avgOrderValue').value);
   const r = document.getElementById('result');
-  if(isNaN(cpc)||isNaN(clicksDay)||isNaN(cr)||isNaN(aov)||cpc<=0){
-    r.innerHTML=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"<p>Enter a valid number</p>":"<p>请输入有效数值</p>");
+  if(isNaN(cpc)||isNaN(clicksDay)||isNaN(cr)||isNaN(aov)||cpc<=0||clicksDay<=0||cr<0||cr>100||aov<0){
+    r.innerHTML=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"<p>Enter valid values: CPC and daily clicks must be &gt; 0, conversion rate 0–100%, average order value ≥ 0.</p>":"<p>请输入有效数值：CPC 与目标日点击须大于 0，转化率 0–100，客单价不可为负。</p>");
     return;
   }
   const dailyBudget = cpc * clicksDay;
@@ -239,16 +239,20 @@ function calc(){
   const dailyConv = clicksDay * cr / 100;
   const dailyRev = dailyConv * aov;
   const monthlyRev = dailyRev * 30;
-  const roas = dailyRev / dailyBudget;
+  const roas = dailyBudget > 0 ? dailyRev / dailyBudget : 0;
+  const cpa = dailyConv > 0 ? dailyBudget / dailyConv : NaN;
+  const en = (typeof TBKit!=='undefined'&&TBKit.util.isEn());
   const __g2=`
     <div class="stat-grid">
-      <div class="stat-card"><div class="val">¥${ToolBox.formatNumber(dailyBudget,0)}</div><div class="lbl">日预算</div></div>
-      <div class="stat-card"><div class="val">¥${ToolBox.formatNumber(monthlyBudget,0)}</div><div class="lbl">月预算</div></div>
-      <div class="stat-card"><div class="val">${dailyConv.toFixed(1)}</div><div class="lbl">日订单数</div></div>
-      <div class="stat-card"><div class="val">${roas.toFixed(2)}x</div><div class="lbl">预估ROAS</div></div>
+      <div class="stat-card"><div class="val">¥${ToolBox.formatNumber(dailyBudget,0)}</div><div class="lbl">${en?'Daily budget':'日预算'}</div></div>
+      <div class="stat-card"><div class="val">¥${ToolBox.formatNumber(monthlyBudget,0)}</div><div class="lbl">${en?'Monthly budget':'月预算'}</div></div>
+      <div class="stat-card"><div class="val">${dailyConv.toFixed(1)}</div><div class="lbl">${en?'Daily conversions':'日转化数'}</div></div>
+      <div class="stat-card"><div class="val">${isFinite(cpa)?'¥'+ToolBox.formatNumber(cpa,2):'—'}</div><div class="lbl">${en?'CPA per conversion':'CPA 单次转化成本'}</div></div>
+      <div class="stat-card"><div class="val">${(dailyConv*30).toFixed(1)}</div><div class="lbl">${en?'Monthly conversions':'月转化数'}</div></div>
+      <div class="stat-card"><div class="val">${roas.toFixed(2)}x</div><div class="lbl">${en?'Estimated ROAS':'预估ROAS'}</div></div>
     </div>
-    <p style="margin-top:8px;">日预估收入：¥${ToolBox.formatNumber(dailyRev,0)}</p>
-    <p>月预估收入：¥${ToolBox.formatNumber(monthlyRev,0)}</p>
+    <p style="margin-top:8px;">${en?'Estimated daily revenue':'日预估收入'}：¥${ToolBox.formatNumber(dailyRev,0)}</p>
+    <p>${en?'Estimated monthly revenue':'月预估收入'}：¥${ToolBox.formatNumber(monthlyRev,0)}</p>
   `;r.innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 
 }
@@ -407,27 +411,27 @@ else document.addEventListener('DOMContentLoaded', __marketing_google_ads_budget
   <div class="related-tools-grid">
     <a href="marketing-keyword-density.html" class="related-tool-card">
       <span class="rt-icon">🔍</span>
-      <span class="rt-info"><span class="rt-name">SEO关键词密度检查器 - 免费文本处理工具，在线SEO关键词密度检查器，免费使用</span><span class="rt-desc">SEO关键词密度检查器</span></span>
+      <span class="rt-info"><span class="rt-name">SEO关键词密度检查器</span><span class="rt-desc">粘贴网页或文章正文并输入目标关键词，统计关键词出现频次与密度百分比，帮助优化内容SEO关键词布局与堆…</span></span>
     </a>
     <a href="xiaohongshu-counter.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">小红书文案计数器</span><span class="rt-desc">小红书文案计数器在线工具，实时统计标题与正文字符数、表情与话题标签数量，提示平台字数限制，便于合规…</span></span>
+      <span class="rt-info"><span class="rt-name">小红书文案计数器</span><span class="rt-desc">在线工具，实时统计标题与正文字符数、表情与话题标签数量，提示平台字数限制，便于合规发布，纯前端</span></span>
     </a>
     <a href="marketing-utm-builder.html" class="related-tool-card">
       <span class="rt-icon">📢</span>
-      <span class="rt-info"><span class="rt-name">UTM参数构建器 - 免费生成器工具，在线UTM参数构建器，免费使用</span><span class="rt-desc">UTM参数构建器</span></span>
+      <span class="rt-info"><span class="rt-name">UTM参数构建器</span><span class="rt-desc">输入基础URL与来源、媒介、活动等UTM参数，单条或按行批量生成标准UTM追踪链接，用于在广告分析中…</span></span>
     </a>
     <a href="utm-builder.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">UTM参数生成器 - 免费生成器工具，在线UTM参数生成器，免费使用</span><span class="rt-desc">UTM参数生成器</span></span>
+      <span class="rt-info"><span class="rt-name">UTM参数生成器</span><span class="rt-desc">输入基础URL与一个或多个UTM参数行，支持单个与批量生成带追踪参数的链接，便于广告投放与渠道效果统…</span></span>
     </a>
     <a href="marketing-chinese-hashtag-generator.html" class="related-tool-card">
       <span class="rt-icon">#️⃣</span>
-      <span class="rt-info"><span class="rt-name">中文营销话题标签生成器 - 免费生成器工具，在线中文营销话题标签生成器，免费使用</span><span class="rt-desc">#️⃣ 中文营销话题标签生成器</span></span>
+      <span class="rt-info"><span class="rt-name">中文营销话题标签生成器</span><span class="rt-desc">输入主题关键词，为中文营销内容生成适用微博、小红书、抖音等平台的热门话题标签，可直接复制</span></span>
     </a>
     <a href="marketing-qr-campaign-tracker.html" class="related-tool-card">
       <span class="rt-icon">🔳</span>
-      <span class="rt-info"><span class="rt-name">二维码活动追踪器 - 免费生成器工具，在线二维码活动追踪器，免费使用</span><span class="rt-desc">二维码活动追踪器</span></span>
+      <span class="rt-info"><span class="rt-name">二维码活动追踪器</span><span class="rt-desc">输入活动URL与渠道参数，生成带UTM追踪参数的二维码活动链接，用于统计线下海报、物料的扫码效果与来…</span></span>
     </a>
   </div>
 </div>

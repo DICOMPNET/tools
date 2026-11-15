@@ -10,9 +10,9 @@
 <title>Farnsworth D-15 色相排列测试 - 色觉缺陷类型</title>
 <link rel="canonical" href="https://tools.dicomp.net/tools/design/farnsworth-d15-test.html">
 <meta property="og:title" content="Farnsworth D-15 色相排列测试 - 色觉缺陷类型">
-<meta property="og:description" content="经典 Farnsworth Panel D-15 色相排列测试的浏览器实现：15 个色帽由标准 D-15 的 CIE 1931 xy 色度坐标在等亮度下实时换算为可显示的 sRGB 色值，两端基准帽固定，中间 13 个需按色相连续渐变的顺序">
+<meta property="og:description" content="经典 Farnsworth Panel D-15 色相排列测试的浏览器实现：15 个色帽由标准 D-15 的 CIE 1931 xy 色度坐标在等亮度下实时换算为可显示的 sRGB 色值，两端基准帽固定。">
 <meta name="twitter:card" content="summary">
-<meta name="description" content="经典 Farnsworth Panel D-15 色相排列测试的浏览器实现：15 个色帽由标准 D-15 的 CIE 1931 xy 色度坐标在等亮度下实时换算为可显示的 sRGB 色值，两端基准帽固定，中间 13 个需按色相连续渐变的顺序">
+<meta name="description" content="经典 Farnsworth Panel D-15 色相排列测试的浏览器实现：15 个色帽由标准 D-15 的 CIE 1931 xy 色度坐标在等亮度下实时换算为可显示的 sRGB 色值，两端基准帽固定。">
 <link rel="stylesheet" href="../../css/common.css">
 <script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
@@ -94,7 +94,7 @@ table.fd-tbl td.bad{background:rgba(239,68,68,.14);color:var(--danger);font-weig
 <!-- TOOLBOX-CLARITY -->
 <!-- TOOLBOX-WEBAPP-LD -->
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebApplication","name":"Farnsworth D-15 色相排列测试","url":"https://tools.dicomp.net/tools/design/farnsworth-d15-test.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"经典 Farnsworth Panel D-15 色相排列测试的浏览器实现：15 个色帽由标准 D-15 的 CIE 1931 xy 色度坐标在等亮度下实时换算为可显示的 sRGB 色值，两端基准帽固定，中间 13 个需按色相连续渐变的顺序排好，提交后按跨轴错误的方向与数量评估色觉缺陷类型与程度。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+{"@context":"https://schema.org","@type":"WebApplication","name":"Farnsworth D-15 色相排列测试","url":"https://tools.dicomp.net/tools/design/farnsworth-d15-test.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"经典 Farnsworth Panel D-15 色相排列测试的浏览器实现：15 个色帽由标准 D-15 的 CIE 1931 xy 色度坐标在等亮度下实时换算为可显示的 sRGB 色值，两端基准帽固定，中间 13 个需按色相连续渐变的顺序排好，提交后按跨轴错误的方向与数量评估色觉缺陷类型与程度","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
 </script>
 <meta property="og:image" content="https://tools.dicomp.net/og-image.png">
 <meta property="og:image:width" content="1200">
@@ -104,7 +104,7 @@ table.fd-tbl td.bad{background:rgba(239,68,68,.14);color:var(--danger);font-weig
 <meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
 
 <meta name="twitter:title" content="Farnsworth D-15 色相排列测试 - 色觉缺陷类型">
-<meta name="twitter:description" content="经典 Farnsworth Panel D-15 色相排列测试的浏览器实现：15 个色帽由标准 D-15 的 CIE 1931 xy 色度坐标在等亮度下实时换算为可显示的 sRGB 色值，两端基准帽固定，中间 13 个需按色相连续渐变的顺序">
+<meta name="twitter:description" content="经典 Farnsworth Panel D-15 色相排列测试的浏览器实现：15 个色帽由标准 D-15 的 CIE 1931 xy 色度坐标在等亮度下实时换算为可显示的 sRGB 色值，两端基准帽固定。">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://tools.dicomp.net/tools/design/farnsworth-d15-test.html">
 
@@ -348,7 +348,9 @@ table.fd-tbl td.bad{background:rgba(239,68,68,.14);color:var(--danger);font-weig
   function textOn(hex) {
     var n = parseInt(hex.slice(1), 16);
     var L = 0.2126 * srgbToLin((n >> 16) & 255) + 0.7152 * srgbToLin((n >> 8) & 255) + 0.0722 * srgbToLin(n & 255);
-    return L > 0.32 ? '#111827' : '#FFFFFF';
+    // 黑白字按 WCAG 对比度取较大者（分界 L≈0.179）；深色用纯黑，不用 #111827（L≈0.198 时仅 4.19:1）
+    var crW = 1.05 / (L + 0.05), crB = (L + 0.05) / 0.05;
+    return crB >= crW ? '#000000' : '#FFFFFF';
   }
   function norm180(a) { a = ((a % 180) + 180) % 180; return a > 90 ? a - 180 : a; }
   function angDist(a, b) { var d = Math.abs(norm180(a) - norm180(b)); return Math.min(d, 180 - d); }
@@ -1131,6 +1133,8 @@ table.fd-tbl td.bad{background:rgba(239,68,68,.14);color:var(--danger);font-weig
    * ========================================================== */
   shuffleOrder('medium');
   renderStrip();
+  // 文字色选择器对外暴露，供导出与自检脚本复用（纯读取，不改变行为）
+  window.__fdTextOn = textOn;
 })();
 </script>
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -1174,19 +1178,19 @@ table.fd-tbl td.bad{background:rgba(239,68,68,.14);color:var(--danger);font-weig
   <div class="related-tools-grid">
     <a href="cvd-safe-palette.html" class="related-tool-card">
       <span class="rt-icon">🎨</span>
-      <span class="rt-info"><span class="rt-name">色盲安全配色生成器</span><span class="rt-desc">生成在 8 种色觉类型下均可区分的安全配色，支持顺序/发散/定性模式、锁定色、明暗交替策略、8 型实</span></span>
+      <span class="rt-info"><span class="rt-name">色盲安全配色生成器</span><span class="rt-desc">生成在红绿 / 蓝黄 / 全色盲等 7 类色觉缺陷与正常视共 8 种色觉视角下都能清晰区分的配色方案…</span></span>
     </a>
     <a href="colorblind-simulator.html" class="related-tool-card">
       <span class="rt-icon">🧪</span>
-      <span class="rt-info"><span class="rt-name">色盲模拟器 Pro</span><span class="rt-desc">专业色觉缺陷（CVD）模拟器：支持红色盲、红色弱、绿色盲、绿色弱、蓝色盲、蓝色弱、全色盲、蓝锥单色…</span></span>
+      <span class="rt-info"><span class="rt-name">色盲模拟器 Pro</span><span class="rt-desc">专业色觉缺陷（CVD）模拟器：支持红色盲、红色弱、绿色盲、绿色弱、蓝色盲、蓝色弱、全色盲、蓝锥单色共…</span></span>
     </a>
     <a href="palette-cvd-checker.html" class="related-tool-card">
       <span class="rt-icon">🎨</span>
-      <span class="rt-info"><span class="rt-name">调色板色觉可辨识度检查器</span><span class="rt-desc">检查配色在 8 种色觉类型与灰度下的两两 ΔE 可辨识度，输出混淆预警、灰度明度阶梯评分与一键修正建</span></span>
+      <span class="rt-info"><span class="rt-name">调色板色觉可辨识度检查器</span><span class="rt-desc">把一组配色贴进来，立刻看到它在「正常 / 红绿色盲 / 蓝黄色盲 / 全色盲 / 灰度」共 8 种视…</span></span>
     </a>
     <a href="generator-38.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">AI（辅助/生成/优化）探索</span><span class="rt-desc">按「角色 + 任务 + 上下文 + 输出格式 + 约束」五要素拼装结构化提示词：选择任务类型与输出格</span></span>
+      <span class="rt-info"><span class="rt-name">AI（辅助/生成/优化）探索</span><span class="rt-desc">按「角色 + 任务 + 上下文 + 输出格式 + 约束」五要素拼装结构化提示词：选择任务类型与输出格…</span></span>
     </a>
   </div>
 </div>

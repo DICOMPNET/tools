@@ -125,3 +125,41 @@
 7. `git add -A` → `commit`（说明「删除 pets 重定向存根，旧 URL 真正 404」）→ `push origin master`。
 8. 单次查询 GitHub Actions 确认部署成功（不轮询）。
 9. 回本文件把对应行状态改为「已删（commit xxx）」。
+
+## 2026-11-15 补登记：存量 29 个未登记存根（均已超 1 个月保留期）
+
+> 来源：全站 `grep TOOLBOX-REDIRECT`（29 文件）。建存根日期取该文件首次入库日期（2026-08-25 批量迁移），
+> 到期日按 +1 个月计算，全部**已超期**，状态统一记「待删（超期）」。
+> 删除前须按「删除 SOP」：全站内链改写 → 删文件 → `sitemap-deadlinks.xml` 登记 → 部署 success 后 `_submit_indexnow_deadlinks.py`。
+
+| 源 URL | 目标 URL | 建存根日期 | 到期日 | 状态 | 备注 |
+|---|---|---|---|---|---|
+| https://tools.dicomp.net/tools/acoustics/intensity-level.html | https://tools.dicomp.net/tools/acoustics/sound-intensity-level.html | 2026-08-25 | 2026-09-25 | 待删（超期） | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/agriculture/calc-2.html | https://tools.dicomp.net/tools/agriculture/calculator-calc-density.html | 2026-08-25 | 2026-09-25 | 待删（超期） | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/biz/text-compare.html | https://tools.dicomp.net/tools/it/text-diff.html | 2026-08-25 | 2026-09-25 | 待删（超期） | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/design/generator-9.html | https://tools.dicomp.net/tools/biz/barcode-generator.html | 2026-08-25 | 2026-09-25 | 待删（超期） | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/design/image-cropper.html | https://tools.dicomp.net/tools/image/image-crop.html | 2026-08-25 | 2026-09-25 | 待删（超期） | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/design/image-resizer.html | https://tools.dicomp.net/tools/image/image-resize.html | 2026-08-25 | 2026-09-25 | 待删（超期） | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/dynamics/inelastic-collision.html | https://tools.dicomp.net/tools/dynamics/momentum-conservation.html | 2026-08-25 | 2026-09-25 | 待删（超期） | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/dynamics/period-pendulum.html | https://tools.dicomp.net/tools/science/pendulum-period.html | 2026-08-25 | 2026-09-25 | 待删（超期） | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/economics/pv-annuity.html | https://tools.dicomp.net/tools/insurance/annuity-present.html | 2026-08-25 | 2026-09-25 | 待删（超期） | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/edu/generator-4.html | https://tools.dicomp.net/tools/it/summary-generator.html | 2026-08-25 | 2026-09-25 | 待删（超期） | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/energy/electrical-power.html | https://tools.dicomp.net/tools/electromagnetism/electric-power.html | 2026-08-25 | 2026-09-25 | 待删（超期） | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/finance/password.html | https://tools.dicomp.net/tools/life/generator-strength.html | 2026-08-25 | 2026-09-25 | 待删（超期） | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/finance/word-counter.html | https://tools.dicomp.net/tools/text/stats-1.html | 2026-08-25 | 2026-09-25 | 待删（超期） | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/fitness/calculator-calc-constitution.html | https://tools.dicomp.net/tools/healthcare/bmi-calculator.html | 2026-08-25 | 2026-09-25 | 待删（超期） | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/hr/overtime-pay-calc.html | https://tools.dicomp.net/tools/legal/overtime-pay.html | 2026-08-25 | 2026-09-25 | 待删（超期） | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/investment/annuity-pv-inv.html | https://tools.dicomp.net/tools/insurance/annuity-present.html | 2026-08-25 | 2026-09-25 | 待删（超期） | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/it/calc-2.html | https://tools.dicomp.net/tools/life/base-convert.html | 2026-08-25 | 2026-09-25 | 待删（超期） | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/math/calc-1.html | https://tools.dicomp.net/tools/life/percentage-calculator.html | 2026-08-25 | 2026-09-25 | 待删（超期） | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/mechanical/calc-1.html | https://tools.dicomp.net/tools/machinery/calc-lifespan-belt.html | 2026-08-25 | 2026-09-25 | 待删（超期） | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/medical/calculator-calc-due-date.html | https://tools.dicomp.net/tools/health/pregnancy-due-date.html | 2026-08-25 | 2026-09-25 | 待删（超期） | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/nuclear/specific-activity-from-halflife.html | https://tools.dicomp.net/tools/nuclear/specific-activity.html | 2026-08-25 | 2026-09-25 | 待删（超期） | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/optical/rayleigh-resolution.html | https://tools.dicomp.net/tools/optics/rayleigh-criterion.html | 2026-08-25 | 2026-09-25 | 待删（超期） | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/optical/snell-refraction.html | https://tools.dicomp.net/tools/glass/snell-refraction.html | 2026-08-25 | 2026-09-25 | 待删（超期） | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/pet/pet-age-converter.html | https://tools.dicomp.net/tools/pet/pet-age.html | 2026-08-25 | 2026-09-25 | 待删（超期） | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/realestate/calc-2.html | https://tools.dicomp.net/tools/finance/rental-yield-calculator.html | 2026-08-25 | 2026-09-25 | 待删（超期） | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/safety/detector-strength.html | https://tools.dicomp.net/tools/it/password-strength.html | 2026-08-25 | 2026-09-25 | 待删（超期） | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/science/factorial-calculator.html | https://tools.dicomp.net/tools/math/factorial-calc.html | 2026-08-25 | 2026-09-25 | 待删（超期） | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/science/range-calculator.html | https://tools.dicomp.net/tools/statistics/range-stat.html | 2026-08-25 | 2026-09-25 | 待删（超期） | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/statistics/variance-list.html | https://tools.dicomp.net/tools/statistics/sample-variance.html | 2026-08-25 | 2026-09-25 | 待删（超期） | 简体+繁体各 1 页 |

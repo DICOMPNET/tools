@@ -118,9 +118,9 @@ const CASES = [
     "method": "wma"
   },
   "expect": [
-    "102904"
+    "219,333.33"
   ],
-  "ref": "auto-restore"
+  "ref": "注入 histData 为空（页面回填默认 12 期样本）、method=wma、paramN=3、forecastN=3 ⇒ 加权移动平均（权重 1/2/3）下期预测 219,333.33；默认 ma 方法得 205,833.33，不命中。"
 },
 {
   "slug": "sales/stacked-discount",
@@ -137,8 +137,8 @@ const CASES = [
   "inputs": {
     "total": "1500"
   },
-  "expect": [ "1,500 万元" ],
-  "ref": "auto-restore"
+  "expect": [ "1,500.00 万元", "权重总和 80" ],
+  "ref": "注入 total=1500 万元（默认 1000）⇒ 汇总显示「1,500.00 万元」；默认 4 名成员权重 25/20/25/10 合计 80，显示「权重总和 80」。两串均随金额变化，默认态不含 1,500.00。"
 },
 
 {
@@ -182,6 +182,13 @@ const CASES = [
     "clicks": ["stages[0].count=0;calc()"],
     "expect": ["请填写首阶段人数后再计算漏斗转化率。"],
     "ref": "空态守卫（2026-11-05）：首阶段人数为 0 时旧实现仍渲染「0 → 0 · 共 N 个阶段」与整表 0 值漏斗，现只给填写提示并清空整体转化率框与明细表。⚠ 只有首阶段（分母）0 视为无数据，后续阶段 0 人（流失 100%）仍照常计算。注入 preset=ecom 用例断 50.00% ⇒ 两态互斥。页面阶段行为动态插入，无法按 id 注入，故用 clicks 置零。",
+  },
+  {
+    "slug": "sales/commission-calculator",
+    "inputs": { "sales": "120000" },
+    "clicks": ["currentMode='team';document.getElementById('teamSales').value='-500000';calc()"],
+    "expect": ["团队销售额不能为负数"],
+    "ref": "12-M5：团队销售额 -500,000、费率 6%、份额 0.3 原先照算提成 ¥-9,000；现在明确拒绝并清空缓存。注入非默认销售额 120000，默认团队档不出现该文案。"
   }
 ];
 async function main() {

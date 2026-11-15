@@ -10,10 +10,10 @@
 <title>CSAT客户满意度评分 - 录入各星级评价人数</title>
 <link rel="canonical" href="https://tools.dicomp.net/tools/service/csat-score.html">
 <meta property="og:title" content="CSAT客户满意度评分 - 录入各星级评价人数">
-<meta property="og:description" content="CSAT客户满意度评分是一款免费的在线客户服务工具，录入各星级评价人数，自动计算 CSAT 得分、满意度分布与 NPS 趋势参考，评估客户体验。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+<meta property="og:description" content="CSAT评分汇总是一款免费的在线客户服务工具，录入各星级评价人数，自动计算 CSAT 得分、满意度分布与 NPS 趋势参考，评估客户体验。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
 <meta property="og:url" content="https://tools.dicomp.net/tools/service/csat-score.html">
 <meta name="twitter:card" content="summary">
-<meta name="description" content="CSAT客户满意度评分是一款免费的在线客户服务工具，录入各星级评价人数，自动计算 CSAT 得分、满意度分布与 NPS 趋势参考，评估客户体验。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+<meta name="description" content="CSAT评分汇总是一款免费的在线客户服务工具，录入各星级评价人数，自动计算 CSAT 得分、满意度分布与 NPS 趋势参考，评估客户体验。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
 <link rel="stylesheet" href="../../css/common.css">
 <script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
@@ -38,10 +38,10 @@
 <meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
     <meta property="og:type" content="website">
     <meta name="twitter:title" content="CSAT客户满意度评分 - 录入各星级评价人数">
-    <meta name="twitter:description" content="CSAT客户满意度评分是一款免费的在线客户服务工具，录入各星级评价人数，自动计算 CSAT 得分、满意度分布与 NPS 趋势参考，评估客户体验。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+    <meta name="twitter:description" content="CSAT评分汇总是一款免费的在线客户服务工具，录入各星级评价人数，自动计算 CSAT 得分、满意度分布与 NPS 趋势参考，评估客户体验。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
 <!-- TOOLBOX-WEBAPP-LD -->
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebApplication","name":"CSAT评分汇总","url":"https://tools.dicomp.net/tools/service/csat-score.html","applicationCategory":"FinanceApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"CSAT客户满意度评分是一款免费的在线客户服务工具，录入各星级评价人数，自动计算 CSAT 得分、满意度分布与 NPS 趋势参考，评估客户体验。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+{"@context":"https://schema.org","@type":"WebApplication","name":"CSAT评分汇总","url":"https://tools.dicomp.net/tools/service/csat-score.html","applicationCategory":"FinanceApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"CSAT评分汇总是一款免费的在线客户服务工具，录入各星级评价人数，自动计算 CSAT 得分、满意度分布与 NPS 趋势参考，评估客户体验。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
 </script>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
@@ -244,8 +244,28 @@
 function val(id){ return parseInt(document.getElementById(id).value)||0; }
 
 function calc(){
-  var s5=val('s5'),s4=val('s4'),s3=val('s3'),s2=val('s2'),s1=val('s1');
+  var __ids=['s5','s4','s3','s2','s1'],__counts=[],__bad=false;
+  for(var __i=0;__i<__ids.length;__i++){
+    var __el=document.getElementById(__ids[__i]);
+    var __raw=__el?String(__el.value==null?'':__el.value).trim():'';
+    var __n=Number(__raw);
+    if(__raw===''||!isFinite(__n)||__n<0||__n%1!==0){__bad=true;break;}
+    __counts.push(__n);
+  }
+  if(__bad){
+    document.getElementById('stats').innerHTML='<p style="color:var(--danger);">请填写 0 或正整数星级人数，留空或负数无法统计。</p>';
+    document.getElementById('distChart').innerHTML='';
+    document.getElementById('analysis').innerHTML='';
+    return;
+  }
+  var s5=__counts[0],s4=__counts[1],s3=__counts[2],s2=__counts[3],s1=__counts[4];
   var total=s1+s2+s3+s4+s5;
+  if(total===0){
+    document.getElementById('stats').innerHTML='<p style="color:var(--text-muted);">请至少输入一条评价（星级人数合计大于 0）后再统计。</p>';
+    document.getElementById('distChart').innerHTML='';
+    document.getElementById('analysis').innerHTML='';
+    return;
+  }
   var satisfied=s4+s5;
   var csat=total>0?satisfied/total*100:0;
   var promoters=total>0?s5/total*100:0;
@@ -259,7 +279,7 @@ function calc(){
   var gradeText=csat>=90?'优秀':csat>=75?'良好':csat>=50?'合格':'需改善';
 
   const __g1='<div class="stat-card"><div class="val" style="color:'+csatColor+';">'+csat.toFixed(1)+'%</div><div class="lbl">CSAT 满意度</div></div>'+
-    '<div class="stat-card"><div class="val" style="color:'+npsColor+';">'+nps.toFixed(0)+'</div><div class="lbl">NPS 净推荐值</div></div>'+
+    '<div class="stat-card"><div class="val" style="color:'+npsColor+';">'+nps.toFixed(0)+'</div><div class="lbl">NPS（星级代理）</div></div>'+
     '<div class="stat-card"><div class="val">'+avgScore.toFixed(2)+'</div><div class="lbl">平均星级</div></div>'+
     '<div class="stat-card"><div class="val">'+total+'</div><div class="lbl">总评价数</div></div>';document.getElementById('stats').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 
@@ -313,6 +333,10 @@ function resetData(){
 function copyReport(){
   var s5=val('s5'),s4=val('s4'),s3=val('s3'),s2=val('s2'),s1=val('s1');
   var total=s1+s2+s3+s4+s5;
+  if(total<=0){
+    ToolBox.showToast('请先输入评价人数并完成统计', 'warning');
+    return;
+  }
   var csat=total>0?(s4+s5)/total*100:0;
   var nps=total>0?(s5/total*100)-((s1+s2)/total*100):0;
   var txt='CSAT满意度报告\n总评价：'+total+'人\nCSAT：'+csat.toFixed(1)+'%\nNPS：'+nps.toFixed(0)+'\n5星：'+s5+' 4星：'+s4+' 3星：'+s3+' 2星：'+s2+' 1星：'+s1;
@@ -334,27 +358,27 @@ calc();
   <div class="related-tools-grid">
     <a href="../biz/presentation-timer.html" class="related-tool-card">
       <span class="rt-icon">⏱️</span>
-      <span class="rt-info"><span class="rt-name">演讲计时器 - 免费开发工具，在线演讲计时器 | ToolBox免费在线工具箱</span><span class="rt-desc">演讲计时器</span></span>
+      <span class="rt-info"><span class="rt-name">演讲计时器</span><span class="rt-desc">为 PPT 每页分配时间并进度提醒、支持全屏，辅助演讲节奏把控</span></span>
     </a>
     <a href="../biz/markdown-quote.html" class="related-tool-card">
       <span class="rt-icon">📝</span>
-      <span class="rt-info"><span class="rt-name">Markdown 引用转换器 - 免费文本处理工具，在线Markdown 引用转换器 | ToolBox免费在线工具箱</span><span class="rt-desc">Markdown 引用转换器</span></span>
+      <span class="rt-info"><span class="rt-name">Markdown 引用转换器</span><span class="rt-desc">将粘贴的多行文本批量转换为 Markdown 引用块（每行前加 &gt;），便于在文档中引用他人内容或做批…</span></span>
     </a>
     <a href="../biz/markdown.html" class="related-tool-card">
       <span class="rt-icon">📝</span>
-      <span class="rt-info"><span class="rt-name">Markdown 预览 - 免费文本处理工具，Markdown 实时预览 | ToolBox免费在线工具箱</span><span class="rt-desc">Markdown 实时预览</span></span>
+      <span class="rt-info"><span class="rt-name">Markdown 实时预览</span><span class="rt-desc">在左侧编辑区输入 Markdown，右侧实时渲染标题、列表、代码块等效果，支持即时对照，便于写作与格…</span></span>
     </a>
     <a href="../biz/unicode-normalize.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
-      <span class="rt-info"><span class="rt-name">Unicode 规范化 - 免费文本处理工具，在线Unicode 规范化 | ToolBox免费在线工具箱</span><span class="rt-desc">Unicode 规范化</span></span>
+      <span class="rt-info"><span class="rt-name">Unicode 规范化</span><span class="rt-desc">将文本按 NFC/NFD/NFKC/NFKD 等范式进行 Unicode 规范化，统一异体字与组合字…</span></span>
     </a>
     <a href="../biz/zalgo-text.html" class="related-tool-card">
       <span class="rt-icon">💼</span>
-      <span class="rt-info"><span class="rt-name">Zalgo 文字 - 免费文本处理工具，Zalgo 文字生成器 | ToolBox免费在线工具箱</span><span class="rt-desc">Zalgo 文字生成器</span></span>
+      <span class="rt-info"><span class="rt-name">Zalgo 文字</span><span class="rt-desc">为文字叠加大量组合字符生成 Zalgo 乱码风格效果，可调节紊乱强度，用于恶搞表情、标题装饰与渲染测…</span></span>
     </a>
     <a href="../biz/superscript-text.html" class="related-tool-card">
       <span class="rt-icon">💼</span>
-      <span class="rt-info"><span class="rt-name">上标文字 - 免费文本处理工具，在线上标文字 | ToolBox免费在线工具箱</span><span class="rt-desc">⬆️ 上标文字</span></span>
+      <span class="rt-info"><span class="rt-name">上标文字</span><span class="rt-desc">将选中文字转为上标格式并生成可复制的 Unicode 或 HTML 上标代码，适合化学式、数学指数与…</span></span>
     </a>
   </div>
 </div>

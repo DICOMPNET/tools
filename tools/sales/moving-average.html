@@ -192,7 +192,7 @@
 </ul>
 <div class="dd-example"><div class="dd-ex-title">举例：序列 [100,120,110,130,140]，窗口 N=3</div><div class="dd-ex-body">SMA(3)：第3期 (100+120+110)/3 = 110；第4期 (120+110+130)/3 = 120；第5期 (110+130+140)/3 = 126.67。
 下一期预测 = 最近窗口均值 = (110+130+140)/3 = 126.67。
-WMA(3) 权重 1/2/3，第5期 = (110×1+130×2+140×3)/6 = 133.33，对近期更敏感；EMA 平滑系数 α=2/(3+1)=0.5。</div></div>
+WMA(3) 权重 1/2/3，第5期 = (110×1+130×2+140×3)/6 = 131.67，对近期更敏感；EMA 平滑系数 α=2/(3+1)=0.5。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>SMA、WMA、EMA 怎么选？</dt><dd>SMA 最平滑但滞后；WMA 给近期更高权重、对拐点更敏感；EMA 用 α 递推、只需上一期结果、适合流式预测。数据噪声大用 SMA，趋势强且想跟紧用 WMA/EMA。</dd>
@@ -259,6 +259,15 @@ function calc(){
   var n = +document.getElementById('window').value || 3;
   var periods = +document.getElementById('periods').value || 1;
   if(data.length<2){ return; }
+  if(method!=='ema' && n>data.length){
+    var en=/^en/i.test(document.documentElement.lang||'');
+    document.getElementById('forecastVal').textContent='—';
+    document.getElementById('forecastLbl').textContent=en
+      ? 'Moving window N cannot exceed the number of historical periods (currently '+data.length+')'
+      : '移动窗口 N 不能大于历史期数（当前 '+data.length+' 期）';
+    document.getElementById('resultTable').innerHTML='';
+    return;
+  }
 
   // 计算移动平均序列
   var maSeries = [];
@@ -326,6 +335,7 @@ function calc(){
 function fmt(n){ return Math.round(n).toLocaleString('zh-CN'); }
 
 function drawChart(actual, ma, forecast, offset){
+  var en = /^en/i.test(document.documentElement.lang || '');
   var canvas = document.getElementById('chart');
   var ctx = canvas.getContext('2d');
   var W = canvas.width, H = canvas.height;
@@ -382,9 +392,14 @@ function drawChart(actual, ma, forecast, offset){
   ctx.setLineDash([]);
   // 图例
   ctx.font='11px sans-serif';
-  ctx.fillStyle='#FF6B35';ctx.fillRect(padL+6,padT-4,12,3);ctx.fillStyle=getCss('--text');ctx.fillText('实际',padL+22,padT);
-  ctx.fillStyle='#7C3AED';ctx.fillRect(padL+60,padT-4,12,3);ctx.fillStyle=getCss('--text');ctx.fillText('移动平均',padL+76,padT);
-  ctx.fillStyle='#00C9A7';ctx.fillRect(padL+150,padT-4,12,3);ctx.fillStyle=getCss('--text');ctx.fillText('预测',padL+166,padT);
+  ctx.fillStyle='#FF6B35';ctx.fillRect(padL+6,padT-4,12,3);ctx.fillStyle=getCss('--text');ctx.fillText(en?'Actual':'实际',padL+22,padT);
+  ctx.fillStyle='#7C3AED';ctx.fillRect(padL+60,padT-4,12,3);ctx.fillStyle=getCss('--text');ctx.fillText(en?'Moving average':'移动平均',padL+76,padT);
+  ctx.fillStyle='#00C9A7';ctx.fillRect(padL+150,padT-4,12,3);ctx.fillStyle=getCss('--text');ctx.fillText(en?'Forecast':'预测',padL+166,padT);
+  window.__tbRedraw = function(){ if(typeof calc==='function') calc(); };
+  if(!window.__tbLangBound){
+    window.__tbLangBound = 1;
+    window.addEventListener('toolbox:langchange', function(){ if(window.__tbRedraw) window.__tbRedraw(); });
+  }
 }
 
 function getCss(v){ return getComputedStyle(document.body).getPropertyValue(v).trim() || '#ccc'; }
@@ -443,27 +458,27 @@ window.addEventListener('resize', calc);
   <div class="related-tools-grid">
     <a href="../biz/presentation-timer.html" class="related-tool-card">
       <span class="rt-icon">⏱️</span>
-      <span class="rt-info"><span class="rt-name">演讲计时器 - 免费开发工具，在线演讲计时器 | ToolBox免费在线工具箱</span><span class="rt-desc">演讲计时器</span></span>
+      <span class="rt-info"><span class="rt-name">演讲计时器</span><span class="rt-desc">为 PPT 每页分配时间并进度提醒、支持全屏，辅助演讲节奏把控</span></span>
     </a>
     <a href="../biz/markdown-quote.html" class="related-tool-card">
       <span class="rt-icon">📝</span>
-      <span class="rt-info"><span class="rt-name">Markdown 引用转换器 - 免费文本处理工具，在线Markdown 引用转换器 | ToolBox免费在线工具箱</span><span class="rt-desc">Markdown 引用转换器</span></span>
+      <span class="rt-info"><span class="rt-name">Markdown 引用转换器</span><span class="rt-desc">将粘贴的多行文本批量转换为 Markdown 引用块（每行前加 &gt;），便于在文档中引用他人内容或做批…</span></span>
     </a>
     <a href="../biz/markdown.html" class="related-tool-card">
       <span class="rt-icon">📝</span>
-      <span class="rt-info"><span class="rt-name">Markdown 预览 - 免费文本处理工具，Markdown 实时预览 | ToolBox免费在线工具箱</span><span class="rt-desc">Markdown 实时预览</span></span>
+      <span class="rt-info"><span class="rt-name">Markdown 实时预览</span><span class="rt-desc">在左侧编辑区输入 Markdown，右侧实时渲染标题、列表、代码块等效果，支持即时对照，便于写作与格…</span></span>
     </a>
     <a href="../biz/unicode-normalize.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
-      <span class="rt-info"><span class="rt-name">Unicode 规范化 - 免费文本处理工具，在线Unicode 规范化 | ToolBox免费在线工具箱</span><span class="rt-desc">Unicode 规范化</span></span>
+      <span class="rt-info"><span class="rt-name">Unicode 规范化</span><span class="rt-desc">将文本按 NFC/NFD/NFKC/NFKD 等范式进行 Unicode 规范化，统一异体字与组合字…</span></span>
     </a>
     <a href="../biz/zalgo-text.html" class="related-tool-card">
       <span class="rt-icon">💼</span>
-      <span class="rt-info"><span class="rt-name">Zalgo 文字 - 免费文本处理工具，Zalgo 文字生成器 | ToolBox免费在线工具箱</span><span class="rt-desc">Zalgo 文字生成器</span></span>
+      <span class="rt-info"><span class="rt-name">Zalgo 文字</span><span class="rt-desc">为文字叠加大量组合字符生成 Zalgo 乱码风格效果，可调节紊乱强度，用于恶搞表情、标题装饰与渲染测…</span></span>
     </a>
     <a href="../biz/superscript-text.html" class="related-tool-card">
       <span class="rt-icon">💼</span>
-      <span class="rt-info"><span class="rt-name">上标文字 - 免费文本处理工具，在线上标文字 | ToolBox免费在线工具箱</span><span class="rt-desc">⬆️ 上标文字</span></span>
+      <span class="rt-info"><span class="rt-name">上标文字</span><span class="rt-desc">将选中文字转为上标格式并生成可复制的 Unicode 或 HTML 上标代码，适合化学式、数学指数与…</span></span>
     </a>
   </div>
 </div>

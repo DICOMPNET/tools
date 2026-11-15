@@ -7,12 +7,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="toolbox" content="cat=reference,industry=gardening2,icon=🌷,bg=#e3f2fd">
-<meta name="description" content="浇水频次推荐器是一款免费的在线园艺养护工具，综合季节、天气、盆土类型与植物种类，推荐浇水频次与每次浇水量（如见干见湿原则），指导家庭盆栽科学补水。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+<meta name="description" content="浇水频次推荐是一款免费的在线园艺养护工具，综合季节、天气、盆土类型与植物种类，推荐浇水频次与每次浇水量（如见干见湿原则），指导家庭盆栽科学补水。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
 <meta name="keywords" content="浇水频次,植物浇水,浇水推荐,watering frequency,园艺参考,日常生活,在线工具,免费工具,ToolBox">
 <meta name="robots" content="index,follow">
 <link rel="canonical" href="https://tools.dicomp.net/tools/gardening2/watering-frequency.html">
 <meta property="og:title" content="浇水频次推荐器 - 免费在线园艺养护工具">
-<meta property="og:description" content="浇水频次推荐器是一款免费的在线园艺养护工具，综合季节、天气、盆土类型与植物种类，推荐浇水频次与每次浇水量（如见干见湿原则），指导家庭盆栽科学补水。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+<meta property="og:description" content="浇水频次推荐是一款免费的在线园艺养护工具，综合季节、天气、盆土类型与植物种类，推荐浇水频次与每次浇水量（如见干见湿原则），指导家庭盆栽科学补水。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://tools.dicomp.net/tools/gardening2/watering-frequency.html">
 <meta name="twitter:card" content="summary">
@@ -47,10 +47,10 @@
 <meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
 <meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
     <meta name="twitter:title" content="浇水频次推荐器 - 免费在线园艺养护工具">
-    <meta name="twitter:description" content="浇水频次推荐器是一款免费的在线园艺养护工具，综合季节、天气、盆土类型与植物种类，推荐浇水频次与每次浇水量（如见干见湿原则），指导家庭盆栽科学补水。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+    <meta name="twitter:description" content="浇水频次推荐是一款免费的在线园艺养护工具，综合季节、天气、盆土类型与植物种类，推荐浇水频次与每次浇水量（如见干见湿原则），指导家庭盆栽科学补水。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
 <!-- TOOLBOX-WEBAPP-LD -->
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebApplication","name":"浇水频次推荐","url":"https://tools.dicomp.net/tools/gardening2/watering-frequency.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"浇水频次推荐器是一款免费的在线园艺养护工具，综合季节、天气、盆土类型与植物种类，推荐浇水频次与每次浇水量（如见干见湿原则），指导家庭盆栽科学补水。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+{"@context":"https://schema.org","@type":"WebApplication","name":"浇水频次推荐","url":"https://tools.dicomp.net/tools/gardening2/watering-frequency.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"浇水频次推荐是一款免费的在线园艺养护工具，综合季节、天气、盆土类型与植物种类，推荐浇水频次与每次浇水量（如见干见湿原则），指导家庭盆栽科学补水。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
 </script>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
@@ -286,7 +286,13 @@ function calc(){
   var soil=document.getElementById('soil').value;
   var plantType=document.getElementById('plantType').value;
   var location=document.getElementById('location').value;
-  var potSize=parseFloat(document.getElementById('potSize').value)||15;
+  var potEl=document.getElementById('potSize');
+  var potRaw=potEl?String(potEl.value==null?'':potEl.value).trim():'';
+  var potSize=parseFloat(potRaw);
+  if(potRaw===''||!isFinite(potSize)||potSize<=0){
+    document.getElementById('result').innerHTML='<p style="color:var(--danger);">请输入大于 0 的盆器口径（cm）后再计算。</p>';
+    return;
+  }
   var baseDays=SEASON_BASE[season];
   var days=baseDays*WEATHER_MOD[weather]*SOIL_MOD[soil]*PLANT_MOD[plantType]*LOCATION_MOD[location];
   days=Math.round(days);
@@ -371,23 +377,23 @@ document.addEventListener('DOMContentLoaded',function(){
     
     <a href="../funeral/grave-design.html" class="related-tool-card">
       <span class="rt-icon">📐</span>
-      <span class="rt-info"><span class="rt-name">墓地碑文设计器 - 在线设计碑文排版与墓地面积，含碑文模板 | ToolBox免费在线工具箱</span><span class="rt-desc">墓地碑文设计器</span></span>
+      <span class="rt-info"><span class="rt-name">墓地碑文设计器</span><span class="rt-desc">按碑文格式生成墓碑设计，含抬头称谓（故先考/故先妣/显考/显妣）、正文与落款排版，便于刻碑参考</span></span>
     </a>
     <a href="../wedding/seating-chart.html" class="related-tool-card">
       <span class="rt-icon">💒</span>
-      <span class="rt-info"><span class="rt-name">宾客座位图 - 日常生活在线工具 | ToolBox免费在线工具箱</span><span class="rt-desc">宾客座位图</span></span>
+      <span class="rt-info"><span class="rt-name">宾客座位图</span><span class="rt-desc">录入宾客名单并按亲友、同事等关系分组，设置桌数与每桌人数后自动排位生成座位图，避免宾客离散，用于婚宴…</span></span>
     </a>
     <a href="../life/generator-strength.html" class="related-tool-card">
       <span class="rt-icon">🔑</span>
-      <span class="rt-info"><span class="rt-name">密码生成器（带强度检测） - 可自定义长度、字符类型，生成高强度随机密码并实时评估密码强度 | ToolBox免费在线工具箱</span><span class="rt-desc">密码生成器（带强度检测）</span></span>
+      <span class="rt-info"><span class="rt-name">密码生成器（带强度检测）</span><span class="rt-desc">自定义密码长度并勾选大小写、数字、符号等字符类型，生成高强度随机密码，同时实时评估其安全强度，一键复…</span></span>
     </a>
     <a href="../funeral/ceremony-timeline.html" class="related-tool-card">
       <span class="rt-icon">📜</span>
-      <span class="rt-info"><span class="rt-name">追悼会时间轴规划器 - 在线规划追悼会流程时间轴，含各环节时长与注意事项 | ToolBox免费在线工具箱</span><span class="rt-desc">⏰ 追悼会时间轴规划器</span></span>
+      <span class="rt-info"><span class="rt-name">追悼会时间轴规划器</span><span class="rt-desc">规划追悼会告别仪式流程时间轴，自定义各环节与时长，数据本地保存，便于安排签到与告别顺序</span></span>
     </a>
     <a href="../life/generator-random-1.html" class="related-tool-card">
       <span class="rt-icon">🎲</span>
-      <span class="rt-info"><span class="rt-name">随机数生成器（范围任意） - 免费在线工具，纯前端处理 | ToolBox免费在线工具箱</span><span class="rt-desc">随机数生成器（范围任意）</span></span>
+      <span class="rt-info"><span class="rt-name">随机数生成器（范围任意）</span><span class="rt-desc">随机数生成器支持自定义范围、数量与是否允许重复，批量生成整数或小数，纯前端随机算法，适合抽奖、抽样…</span></span>
     </a>
   </div>
 </div>
