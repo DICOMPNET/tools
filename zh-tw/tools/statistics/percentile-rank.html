@@ -111,7 +111,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="某值低於總體中多少比例的資料。">Enter a data set and a target value to compute the percentile rank, i.e. the percentage of the data below that value, for score and ranking evaluation.</p>
     <div class="formula-box">
       <div class="formula-title">📐 計算公式</div>
-      <div class="formula-eq">百分等級（本頁程式碼口徑）：PR=(小於目標值的個數+0.5×等於目標值的個數)÷N×100（%，N=資料總個數，資料按逗號分隔逐項 parseFloat）；聯動量：無其它派生項。校驗：資料逐項 parseFloat 後過濾非有限值（無法解析的項不計入 N）；目標值非數字按 0 兜底。判據：無固定分級，PR 表徵目標值在樣本中的相對位置，恰為 50 即樣本中位水平。</div>
+      <div class="formula-eq">百分等級（本頁程式碼口徑）：PR=(小於目標值的個數+0.5×等於目標值的個數)÷N×100（%，N=有效資料個數，序列按逗號、分號、空白或全形分隔符逐項嚴格解析）；聯動量：無其它派生項。校驗：非法項不計入 N，N=0 時提示並中止；主算、明細表與曲線共用同一份解析後的陣列；目標值非數字按 0 兜底。判據：無固定分級，PR 表徵目標值在樣本中的相對位置，恰為 50 即樣本中位水平。</div>
       <p class="formula-desc">某值低於總體中多少比例的資料。</p>
     </div>
 
@@ -219,10 +219,24 @@
 </div>
 <script>
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
+// SMS-55：主算 / 明细表 / 曲线共用同一份解析结果
+function __prVals(){
+  var e=document.getElementById('data');
+  var toks=String(e?e.value:'').split(/[,\s;，；、]+/).map(function(x){return x.trim();}).filter(function(x){return x;});
+  var vals=[];
+  for(var i=0;i<toks.length;i++){var v=Number(toks[i]);if(isFinite(v))vals.push(v);}
+  return vals;
+}
+function __prClear(){
+  var ids=['prTable','prChart','prDiff','prHist'];
+  for(var i=0;i<ids.length;i++){var e=document.getElementById(ids[i]);if(e)e.innerHTML='';}
+}
+var __prRows = [];
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){
-            const arr = document.getElementById('data').value.split(',').map(s=>parseFloat(s.trim())).filter(Number.isFinite);
+            const arr = __prVals();
             const v = num('val'), N = arr.length;
+            if(!N){__prClear();ToolBox.setResult('result','⚠ 数据序列中没有有效数值，请至少输入 1 个数字');return;}
             let below = 0, equal = 0;
             arr.forEach(x => { if (x < v) below++; else if (x === v) equal++; });
             const pr = (below + 0.5 * equal) / N * 100;
@@ -241,9 +255,9 @@ function __prExport(){
 }
 function __prExtras(){
     if (typeof TBKit === 'undefined') return;
-    var arr=TBKit.util.parseList(document.getElementById('data').value);
+    var arr=__prVals();
     var v=parseFloat(document.getElementById('val').value);
-    if(!arr.length||!isFinite(v)) return;
+    if(!arr.length||!isFinite(v)){__prClear();return;}
     var en=TBKit.util.isEn();
     var sorted=arr.slice().sort(function(a,b){return a-b;});
     var rows=[], below=0, equal=0;
@@ -258,7 +272,7 @@ function __prExtras(){
         head: en?['Rank (asc)','Value','Percentile','Mark']:['升序排名','数值','百分等级','标记'],
         rows: rows
     });
-    window.__prRows = rows;
+    __prRows = rows;
     var pr0=(below+0.5*equal)/sorted.length*100;
     TBKit.history.record({val:v,n:sorted.length,pr:Number(pr0.toFixed(2))});
     TBKit.util.diffBox('#prDiff',['val','pr']);
@@ -328,9 +342,9 @@ else document.addEventListener("DOMContentLoaded", __prBoot);
 function __prChart(){
   if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
   var el=document.getElementById('data'); if(!el)return;
-  var raw=el.value.split(',').map(function(s){return parseFloat(s.trim());}).filter(function(x){return isFinite(x);});
+  var raw=__prVals();
   var v=parseFloat(document.getElementById('val').value);
-  if(!raw.length||!isFinite(v))return;
+  if(!raw.length||!isFinite(v)){var pc=document.getElementById('prChart');if(pc)pc.innerHTML='';return;}
   var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
   var sorted=raw.slice().sort(function(a,b){return a-b;});
   var labels=[],data=[];

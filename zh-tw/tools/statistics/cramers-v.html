@@ -112,7 +112,7 @@
 
     <div class="formula-box">
       <div class="formula-title">📐 計算公式</div>
-      <div class="formula-eq">Cramér's V（2×2 列聯表特例）：期望頻數 E_ij = 行合計×列合計 ÷ 總數 n，χ² = Σ(觀測−期望)² ÷ 期望（四格求和），V = √(χ² ÷ n)（2×2 時 min(r−1,c−1)=1）。校驗：a、b、c、d 四項非空合法數值守衛，n=0 時除零落 NaN 兜底。判據：無固定分級，V 取值 0~1、越接近 1 關聯越強。</div>
+      <div class="formula-eq">Cramér's V（2×2 列聯表特例）：期望頻數 E_ij = 行合計×列合計 ÷ 總數 n，χ² = Σ(觀測−期望)² ÷ 期望（四格求和），V = √(χ² ÷ n)（2×2 時 min(r−1,c−1)=1）。校驗：a、b、c、d 四項須為非負整數；出現負值、小數或行/列合計為 0 時停算並清空結果、圖表與明細。判據：無固定分級，V 取值 0~1、越接近 1 關聯越強。</div>
       <div class="formula-desc">Cramér's V 由卡方統計量 χ² 除以樣本量與最小維度約束後開方得到，把卡方值標準化到 0 到 1 區間，衡量兩個分類變數關聯強度：0 表示無關聯、1 表示完全關聯，適用於任意大小的列聯表。本頁由 2×2 表的四項頻數計算。</div>
     </div>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="分類變數間關聯強度的標準化效應量（2×2）。">From the chi-square value, sample size and degrees of freedom of a contingency table, compute Cramer's V to measure the association strength between two categorical variables.</p>
@@ -145,12 +145,11 @@
       <button class="btn" onclick="__crExport()">匯出 CSV</button>
     </div>
 
-    <div class="result-box" id="result">
+    <div class="result-box" id="result"></div>
     <div id="crChart" role="img" aria-label="結果視覺化"></div>
     <div id="crTable"></div>
     <div id="crDiff"></div>
     <div id="crHist"></div>
-</div>
 
     <!-- Formula & Standard References -->
     <div class="card" id="constRefBox">
@@ -293,9 +292,10 @@ function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+=
 function calcTool(){
               var __ig=__tbInputGuard(['a', 'b', 'c', 'd'],["a", "b", "c", "d"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
 const a=parseFloat(document.getElementById('a').value),b=parseFloat(document.getElementById('b').value),c=parseFloat(document.getElementById('c').value),d=parseFloat(document.getElementById('d').value);
-            if(!isFinite(a)||!isFinite(b)||!isFinite(c)||!isFinite(d)||a<0||b<0||c<0||d<0){ToolBox.setResult('result','<p style="color:var(--danger)">⚠ 例数必须为 ≥ 0 的数值</p>');return;}
+            if(!isFinite(a)||!isFinite(b)||!isFinite(c)||!isFinite(d)||a<0||b<0||c<0||d<0){__crClear();ToolBox.setResult('result','<p style="color:var(--danger)">⚠ 例数必须为 ≥ 0 的数值</p>');return;}
+            if(Math.floor(a)!==a||Math.floor(b)!==b||Math.floor(c)!==c||Math.floor(d)!==d){__crClear();ToolBox.setResult('result','<p style="color:var(--danger)">⚠ 列联表各格例数必须是非负整数，不接受小数。</p>');return;}
             const n=a+b+c+d;
-            if(n===0||a+b===0||c+d===0||a+c===0||b+d===0){ToolBox.setResult('result','<p style="color:var(--danger)">⚠ 存在行或列合计为 0，卡方与 Cramér\'s V 无定义</p>');return;}
+            if(n===0||a+b===0||c+d===0||a+c===0||b+d===0){__crClear();ToolBox.setResult('result','<p style="color:var(--danger)">⚠ 存在行或列合计为 0，卡方与 Cramér\'s V 无定义</p>');return;}
             const e11=(a+b)*(a+c)/n, e12=(a+b)*(b+d)/n, e21=(c+d)*(a+c)/n, e22=(c+d)*(b+d)/n;
             const chi=(a-e11)*(a-e11)/e11+(b-e12)*(b-e12)/e12+(c-e21)*(c-e21)/e21+(d-e22)*(d-e22)/e22;
             const V=Math.sqrt(chi/(n*1));
@@ -317,12 +317,17 @@ function __crL(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:
 
 
 function __crExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.exportTable('#crTable','cramers-v.csv');}catch(e){} }
+function __crClear(){
+    var ids=['crChart','crTable','crDiff','crHist'];
+    for(var i=0;i<ids.length;i++){var e=document.getElementById(ids[i]);if(e)e.innerHTML='';}
+}
 function __crExtras(){
     if(typeof TBKit==='undefined')return;
     try{
         var a=__crN('a'),b=__crN('b'),c=__crN('c'),d=__crN('d');
-        if(!(isFinite(a)&&isFinite(b)&&isFinite(c)&&isFinite(d)))return;
+        if(!(isFinite(a)&&isFinite(b)&&isFinite(c)&&isFinite(d))||a<0||b<0||c<0||d<0||Math.floor(a)!==a||Math.floor(b)!==b||Math.floor(c)!==c||Math.floor(d)!==d){__crClear();return;}
         var n=a+b+c+d;
+        if(!(n>0)||!(a+b>0)||!(c+d>0)||!(a+c>0)||!(b+d>0)){__crClear();return;}
         var e11=(a+b)*(a+c)/n,e12=(a+b)*(b+d)/n,e21=(c+d)*(a+c)/n,e22=(c+d)*(b+d)/n;
         var chi=(a-e11)*(a-e11)/e11+(b-e12)*(b-e12)/e12+(c-e21)*(c-e21)/e21+(d-e22)*(d-e22)/e22;
         var V=Math.sqrt(chi/(n*1));

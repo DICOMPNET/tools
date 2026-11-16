@@ -248,6 +248,14 @@ FILE_PATCHES = {
         ("const child = spawnSync(process.execPath, [\"-e\", code], { cwd: ROOT, encoding: \"utf8\", timeout: 5000 });",
          "const child = spawnSync(process.execPath, [\"-e\", code], { cwd: ROOT, encoding: \"utf8\", timeout: 30000 });"),
     ],
+    # generator-8 默认态：域名补丁把默认文本 chenguangwu.github.io(29B) 换成本地 tools.dicomp.net(24B)，
+    # 版本随之从 3/29×29 降到 2/25×25；上游期望值按原域名写死，须随域名补丁同步改写。
+    "scripts/verify_design_calc.js": [
+        ('    expect: ["版本 3 · 29×29 模块 · 纠错 M · 29 字节"],',
+         '    expect: ["版本 2 · 25×25 模块 · 纠错 M · 24 字节"],'),
+        ("    // D-N208 默认态：真实 QR 编码（29 字节 → 版本 3 / 29×29 / 纠错 M）",
+         "    // D-N208 默认态：真实 QR 编码（域名补丁后默认文本 24 字节 → 版本 2 / 25×25 / 纠错 M）"),
+    ],
 }
 DRY_RUN = "--dry-run" in sys.argv
 

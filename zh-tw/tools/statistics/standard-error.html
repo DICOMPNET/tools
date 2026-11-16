@@ -112,7 +112,7 @@
 
     <div class="formula-box">
       <div class="formula-title">📐 計算公式</div>
-      <div class="formula-eq">均值標準誤（本頁程式碼口徑）：SE=總體標準差 σ÷√n；聯動量：95% 置信半寬=1.96×SE、SE 的一半=SE÷2、√n÷max(σ,10⁻¹²)。校驗：兩欄位經輸入守衛必填且須為合法數值，否則提示並中止。判據：無固定分級，n 增至 4 倍 SE 恰減半，σ=0 時總體無波動、SE=0。</div>
+      <div class="formula-eq">均值標準誤（本頁程式碼口徑）：SE=總體標準差 σ÷√n；聯動量：95% 置信半寬=1.96×SE、SE 的一半=SE÷2、√n÷σ（σ=0 時該比值顯示「—」）。校驗：兩欄位經輸入守衛必填且須為合法數值；σ 不能為負，負 σ 時主算中止並清空明細表、矩陣與曲線。判據：無固定分級，n 增至 4 倍 SE 恰減半，σ=0 時總體無波動、SE=0。</div>
       <p class="formula-desc">樣本均值分佈的標準差。</p>
     </div>
 
@@ -264,7 +264,7 @@ function __tbInputGuardCore(_ids,_labels){
     }
   }
   // 负值受限项：__N 由真浏览器逐项置 -1 探测得出（质量/体积/年限/样本量等物理量）
-  var __N={"n": "样本量 n"};
+  var __N={"n": "样本量 n", "sigma": "标准差 σ"};
   for(var _n=0;_n<_ids.length;_n++){
     if(!(_ids[_n] in __N)) continue;
     var _ne=document.getElementById(_ids[_n]);
@@ -297,11 +297,12 @@ function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+=
 function calcTool(){
               var __ig=__tbInputGuard(['sigma', 'n'],["标准差 σ", "样本量 n"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
 const sigma = num('sigma'), n = num('n');
+            if(sigma<0){__seClear();ToolBox.setResult('result','⚠ 标准差 σ 不能为负值');return;}
             const __g2=dataGrid([
                 [(sigma / Math.sqrt(n)).toFixed(4), '标准误 SE'],
                 [(sigma/Math.sqrt(n)*1.96).toFixed(4), '95% 置信半宽'],
                 [(sigma/Math.sqrt(n)/2).toFixed(4), '标准误一半'],
-                [(Math.sqrt(n)/Math.max(sigma,1e-12)).toFixed(4), '根号 n 与 σ 之比']
+                [sigma>0?(Math.sqrt(n)/sigma).toFixed(4):'—', '根号 n 与 σ 之比']
             ]);ToolBox.setResult('result',(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));
         }
 function resetForm(){document.getElementById('sigma').value = '15';
@@ -310,12 +311,16 @@ function resetForm(){document.getElementById('sigma').value = '15';
 calcTool();
 
 function __seNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __seClear(){
+  var ids=['seTable','seMatrix','seDiff','seHist','seChart'];
+  for(var i=0;i<ids.length;i++){var e=document.getElementById(ids[i]);if(e)e.innerHTML='';}
+}
 function __seList(id){var e=document.getElementById(id);return e?TBKit.util.parseList(e.value):[];}
 
 function __seExtras(){
     if (typeof TBKit === 'undefined') return;
     var sg=__seNum('sigma'), n=__seNum('n');
-    if(!isFinite(sg)||!isFinite(n)||n<=0||sg<0) return;
+    if(!isFinite(sg)||!isFinite(n)||n<=0||sg<0){ __seClear(); return; }
     var en=TBKit.util.isEn();
     var SE=sg/Math.sqrt(n);
     TBKit.matrix.table('#seTable',{
@@ -324,18 +329,18 @@ function __seExtras(){
             ['Standard error', SE.toFixed(4), 'σ/√n'],
             ['95% half width', (1.96*SE).toFixed(4), '1.96·SE'],
             ['99% half width', (2.576*SE).toFixed(4), '2.576·SE'],
-            ['SE / σ', (SE/sg).toFixed(5), 'shrinks as 1/√n'],
+            ['SE / σ', sg>0?(SE/sg).toFixed(5):'—', 'shrinks as 1/√n'],
             ['n to halve SE', String(Math.ceil(n*4)), 'SE ∝ 1/√n']
         ]:[
             ['标准误 SE', SE.toFixed(4), 'σ/√n'],
             ['95% 置信半宽', (1.96*SE).toFixed(4), '1.96·SE'],
             ['99% 置信半宽', (2.576*SE).toFixed(4), '2.576·SE'],
-            ['SE / σ', (SE/sg).toFixed(5), '随 1/√n 收缩'],
+            ['SE / σ', sg>0?(SE/sg).toFixed(5):'—', '随 1/√n 收缩'],
             ['SE 减半所需 n', String(Math.ceil(n*4)), 'SE ∝ 1/√n']
         ]
     });
     var ns=[4,9,16,25,36,49,64,100,225,400,900], mrows=[];
-    ns.forEach(function(k){ var e=sg/Math.sqrt(k); mrows.push([String(k), e.toFixed(4), (1.96*e).toFixed(4), (e/sg*100).toFixed(2)+'%']); });
+    ns.forEach(function(k){ var e=sg/Math.sqrt(k); mrows.push([String(k), e.toFixed(4), (1.96*e).toFixed(4), sg>0?(e/sg*100).toFixed(2)+'%':'—']); });
     TBKit.matrix.table('#seMatrix',{
         head: en?['n','SE','95% ±','SE as % of σ']:['样本量 n','标准误 SE','95% 半宽 ±','SE 占 σ'],
         rows: mrows

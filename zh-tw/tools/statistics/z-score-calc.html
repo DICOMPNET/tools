@@ -111,7 +111,7 @@
 
     <div class="formula-box">
       <div class="formula-title">📐 計算公式</div>
-      <div class="formula-eq">標準分 Z 計算（本頁程式碼口徑）：z=(x−μ)÷σ（保留 3 位）；偏離量=x−μ；95% 上界=μ+1.96σ；附加層按 Φ(z)×100% 輸出百分位（Φ 由 erf 有理近似實現），並列 ±3σ 內 10 檔 z 基準表與鐘形圖。校驗：x、μ、σ 經輸入守衛必填且須為合法數值，否則提示並中止；σ≤0 時僅跳過圖表與基準表。判據：無固定分級，|z| 越大越偏離均值，z=1.645/1.96 分別對應 90%/95% 單側分位點。</div>
+      <div class="formula-eq">標準分 Z 計算（本頁程式碼口徑）：z=(x−μ)÷σ（保留 3 位）；偏離量=x−μ；95% 上界=μ+1.96σ；附加層按 Φ(z)×100% 輸出百分位（Φ 由 erf 有理近似實現），並列 ±3σ 內 10 檔 z 基準表與鐘形圖。校驗：x、μ、σ 經輸入守衛必填且須為合法數值；σ 必須大於 0，σ≤0 時主算中止並清空圖表、基準表與差異面板。判據：無固定分級，|z| 越大越偏離均值，z=1.645/1.96 分別對應 90%/95% 單側分位點。</div>
       <div class="formula-desc">標準分把原始值 x 減去均值 μ 再除以標準差 σ，得到相對均值的標準差數。z &gt; 0 高於均值、z &lt; 0 低於均值，常用於資料標準化與離群判斷（如 |z| &gt; 2 或 3 視為異常）。</div>
     </div>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="資料偏離均值的標準差倍數。">Enter a raw value, mean and standard deviation to compute the z score (x - mu)/sigma, for standardisation and outlier detection.</p>
@@ -260,9 +260,10 @@ function __tbInputGuardCore(_ids,_labels){
     var _de=document.getElementById(_ids[_d]);
     if(!_de) continue;
     if(_de.classList&&_de.classList.remove)_de.classList.remove('input-error');
-    if(parseFloat(String(_de.value==null?'':_de.value).trim())===0){
+    var _dv=parseFloat(String(_de.value==null?'':_de.value).trim());
+    if(!isNaN(_dv)&&_dv<=0){
       if(_de.classList&&_de.classList.add)_de.classList.add('input-error');
-      return __TPL2.replace('%s',__D[_ids[_d]]);
+      return "<p style=\"color:var(--danger)\">⚠ 标准差 σ 必须大于 0（零或负标准差无定义）。</p>";
     }
   }
   // 全零：任何一项作分母都会得到 Infinity/NaN。页面公式本身没错，是输入无意义
@@ -287,6 +288,7 @@ function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+=
 function calcTool(){
               var __ig=__tbInputGuard(['x', 'mu', 'sigma'],["数值 x", "均值 μ", "标准差 σ"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
 const x = num('x'), mu = num('mu'), sigma = num('sigma');
+            if(!(sigma>0)){__zsClear();ToolBox.setResult('result','⚠ 标准差 σ 必须大于 0（零或负标准差无定义）');return;}
             const __g2=dataGrid([
                 [((x - mu) / sigma).toFixed(3), '标准分 z'],
                 [(x-mu).toFixed(4), '偏离量 x-mu'],
@@ -300,6 +302,10 @@ function resetForm(){document.getElementById('x').value = '115';
 calcTool();
 
 function __zsNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __zsClear(){
+  var ids=['zsChart','zsTable','zsDiff','zsHist'];
+  for(var i=0;i<ids.length;i++){var e=document.getElementById(ids[i]);if(e)e.innerHTML='';}
+}
 function __zsPhi(z){var s=z<0?-1:1;var u=Math.abs(z)/Math.SQRT2;var t=1/(1+0.3275911*u);var y=1-(((((1.061405429*t-1.453152027)*t+1.421413741)*t-0.284496736)*t+0.254829592)*t)*Math.exp(-u*u);return 0.5*(1+s*y);}
 function __zsExport(){
     if (typeof TBKit === 'undefined') return;
@@ -308,7 +314,7 @@ function __zsExport(){
 function __zsExtras(){
     if (typeof TBKit === 'undefined') return;
     var x=__zsNum('x'), mu=__zsNum('mu'), sg=__zsNum('sigma');
-    if(!isFinite(x)||!isFinite(mu)||!isFinite(sg)||sg<=0) return;
+    if(!isFinite(x)||!isFinite(mu)||!isFinite(sg)||sg<=0){ __zsClear(); return; }
     var z=(x-mu)/sg, pr=__zsPhi(z)*100;
     var en=TBKit.util.isEn();
     TBKit.chart.bell('#zsChart',{

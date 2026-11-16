@@ -197,15 +197,15 @@
 <h2>📚 深度解析：草莓文字（裝飾文字）</h2>
 <h3>💡 常見使用場景</h3>
 <ul class="dd-list">
-<li>社媒暱稱裝飾：在文字上疊加組合字元形成「草莓/帶點」觀感，增加個性。</li>
+<li>社媒暱稱裝飾：在原文字前後拼接草莓等 emoji 形成裝飾效果，增加個性。</li>
 <li>趣味標題與賀卡：用於輕鬆場景的視覺點綴。</li>
 <li>區分同類賬號的展示變體。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">給暱稱加裝飾</div><div class="dd-ex-body">輸入「hello」，工具在每字元上疊加組合標記得到帶點裝飾形態，複製到支援組合字元的平臺暱稱中顯示特別效果。</div></div>
+<div class="dd-example"><div class="dd-ex-title">給暱稱加裝飾</div><div class="dd-ex-body">輸入「hello」，工具按 <a class="term-link" href="/zh-tw/tools/it/unicode-lookup.html">Unicode</a> 碼點逐字在原字元前後（或包夾）插入所選 emoji，原字母不變，得到帶草莓圖案的裝飾串，複製到支援 emoji 的平臺暱稱即可顯示。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
-<dt>為什麼有的平臺顯示異常？</dt><dd>裝飾依賴 <a class="term-link" href="/zh-tw/tools/it/unicode-lookup.html">Unicode</a> 組合字元，老舊字型或嚴格過濾的系統會顯示為方框或去除組合層；正式名稱仍以普通字為主。</dd>
-<dt>會影響搜尋嗎？</dt><dd>組合字元一般不參與常規檢索，展示用即可，別用作關鍵詞本身。</dd>
+<dt>為什麼有的平臺顯示異常？</dt><dd>裝飾依賴 Unicode emoji 字元，老舊字型或過濾暱稱 emoji 的平臺會顯示為方框或空白；正式名稱仍以普通字為主。</dd>
+<dt>會影響搜尋嗎？</dt><dd>插入的 emoji 會分隔原文，整串難以被關鍵詞精確命中，展示用即可，別用作關鍵詞本身。</dd>
 </dl>
 </div>
 </section>
@@ -223,13 +223,13 @@
       <tbody>
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="裝飾原理">Decoration principle</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="裝飾效果以同形或近形字元替換，屬視覺替換而非語義變化">decoration substitutes visually similar characters without semantic change</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="Unicode UTS #39, security mechanisms">Unicode UTS #39, security mechanisms</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="按 Unicode 碼點逐字在原字元前後或包夾插入所選 emoji，原字元不變">inserts the chosen emoji before, after or around each original code point, leaving the characters unchanged</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="Unicode emoji 碼位與 UTF-16 代理對">Unicode emoji code points and UTF-16 surrogate pairs</td>
         </tr>
         <tr>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="歸一化還原">Normalisation back</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="替換字元經相容歸一化可部分還原，但同形異碼字元無法自動對映">compatibility normalisation restores some substitutions but not homoglyphs</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="Unicode UAX #15, normalisation forms">Unicode UAX #15, normalisation forms</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="文字完整性">Text integrity</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="原字元按碼點原樣保留；不做字元替換或歸一化，去掉插入的 emoji 即可還原">original characters are kept as-is; no character substitution or normalisation is performed, so removing the inserted emoji restores the text</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="Unicode 碼點遍歷（Array.from）">Unicode code-point iteration (Array.from)</td>
         </tr>
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="檢索影響">Search impact</td>
@@ -273,8 +273,10 @@ function convert(){
   var wrapEach = document.getElementById('wrapEach').checked;
 
   var result = '';
-  for(var i=0;i<input.length;i++){
-    var ch = input[i];
+  // BS-N129：按 Unicode 码点遍历，emoji 不再被拆成孤立代理项
+  var chars = Array.from(input);
+  for(var i=0;i<chars.length;i++){
+    var ch = chars[i];
     var isSpace = (ch === ' ' || ch === '\t' || ch === '\n' || ch === '\r');
 
     if(wrapEach){
@@ -501,7 +503,7 @@ else document.addEventListener('DOMContentLoaded', __strawberry_textBoot);
   <div class="tool-intro-body">
     <h4><span class="h4-icon">🎯</span>使用場景</h4>
     <ul class="intro-scenes">
-      <li>社媒暱稱裝飾：在文字上疊加組合字元形成「草莓/帶點」觀感，增加個性。</li><li>趣味標題與賀卡：用於輕鬆場景的視覺點綴。</li><li>區分同類賬號的展示變體。</li>
+      <li>社媒暱稱裝飾：在原文字前後拼接草莓等 emoji 形成裝飾效果，增加個性。</li><li>趣味標題與賀卡：用於輕鬆場景的視覺點綴。</li><li>區分同類賬號的展示變體。</li>
     </ul>
     </div>
 </div>

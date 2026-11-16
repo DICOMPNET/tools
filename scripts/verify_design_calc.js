@@ -924,11 +924,11 @@ const CASES = [
     ref: "随机边框生成器，锚第 7 条的结构前缀 `.border-7 { border:`。边框样式枚举（solid/dashed/dotted/...）与颜色是随机的，只取结构前缀规避 flaky。默认态 5 条 ⇒ 不命中。",
   },
   {
-    // D-N208 默认态：真实 QR 编码（29 字节 → 版本 3 / 29×29 / 纠错 M）
+    // D-N208 默认态：真实 QR 编码（域名补丁后默认文本 24 字节 → 版本 2 / 25×25 / 纠错 M）
     slug: "design/generator-8",
-    expect: ["版本 3 · 29×29 模块 · 纠错 M · 29 字节"],
-    ref: "D-N208 强锁：页面改为调用项目内置 js/qrcode.js 真实编码（ISO/IEC 18004）。默认文本 `https://tools.dicomp.net`（29 字节 UTF-8）在 M 级下由库自动选中版本 3 ⇒ 模块数 4×3+17 = 29。\n"
-      + "期望值由 node 独立跑库复算：`qrcode(0,'M') + addData(text,'Byte') + make()` → getModuleCount() = 29、版本 (29-17)/4 = 3，与页面信息行逐字一致。\n"
+    expect: ["版本 2 · 25×25 模块 · 纠错 M · 24 字节"],
+    ref: "D-N208 强锁：页面改为调用项目内置 js/qrcode.js 真实编码（ISO/IEC 18004）。默认文本经域名补丁为 `https://tools.dicomp.net`（24 字节 UTF-8）在 M 级下由库自动选中版本 2 ⇒ 模块数 4×2+17 = 25。\n"
+      + "期望值由 node 独立跑库复算：`qrcode(0,'M') + addData(text,'Byte') + make()` → getModuleCount() = 25、版本 (25-17)/4 = 2，与页面信息行逐字一致。\n"
       + "旧实现只拼「配置参数 #1:」随机文本、不生成任何矩阵，不含该串 ⇒ 强判别。\n"
       + "⚠ harness 原本不加载外部 <script src>；本轮在 verify_it_calc.js 里按「页面 HTML 引用 js/qrcode.js」为条件把构造函数作为 new Function 形参注入，未引用该库的用例行为不变。",
   },
