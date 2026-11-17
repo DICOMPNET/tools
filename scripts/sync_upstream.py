@@ -40,6 +40,8 @@ FREEZE_PATHS = [                   # 冻结路径：永远保持本仓库自己�
     "scripts/gen_opencc_locales.mjs",  # ROOT_PAGES 增加 disclaimer.html（zh-tw 生成清单）
     "scripts/check_clarity_refs.py",   # 统计守卫豁免 TOOLBOX-REDIRECT 存根页
     ".gitignore",                  # 本地忽略规则（tools.zip >100MB 不可入库，上游版本无此行会致误提交）
+    "scripts/_ux_baseline.json",           # UX 测绘结果按本站实际页面生成（本站多 4 个本地分类索引页）
+    "scripts/_ux_baseline_snapshot.json",  # UX 门禁基线快照，须与本站测绘一致，否则每轮同步后门禁误报回退
 ]
 EXCLUDE_PATHS = [                  # 排除路径：上游仍有、但本地已永久删除的文件（read-tree 后强制删除，防每轮复活）
     "js/ad_metrics.js",            # 广告埋点（推广信息，已清理）
