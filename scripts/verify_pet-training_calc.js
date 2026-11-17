@@ -10,8 +10,7 @@ const CASES = [
   "expect": [
     "1200"
   ],
-    ref: "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
-  "ref": "auto-restore"
+    "ref": "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。 [auto-restore]"
 },
 {
   "slug": "pet-training/command-repetition",
@@ -33,8 +32,7 @@ const CASES = [
   "expect": [
     "cat"
   ],
-    ref: "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
-  "ref": "auto-restore"
+    "ref": "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。 [auto-restore]"
 },
 {
   "slug": "pet-training/elimination-predict",
@@ -43,17 +41,6 @@ const CASES = [
   ],
   "expect": ["ELIM true true true"],
   "ref": "修复前 `postDrinkTime=isPuppy?15-30:20-40` 是减法（幼宠 −15、成宠 −20），任何饮水后时间都判「立即带去」；现幼宠窗口 15–30 分钟，饮水后 30 分钟才提示立即、5 分钟显示「10 分钟后」，空值提示补录并清空时间线。默认 age3/afterDrink15 不走这三支。"
-},
-{
-  "slug": "pet-training/clicker-timing",
-  "inputs": {
-    "duration": "1200"
-  },
-  "expect": [
-    "1200"
-  ],
-    ref: "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
-  "ref": "auto-restore"
 },
 {
   "slug": "pet-training/clicker-timing",

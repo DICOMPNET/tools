@@ -10,10 +10,10 @@
 <title>调色板提取器 - 生成可编辑的调色板并导出为CSS或JSON</title>
 <link rel="canonical" href="https://tools.dicomp.net/tools/design/palette-extractor.html">
 <meta property="og:title" content="调色板提取器 - 生成可编辑的调色板并导出为CSS或JSON">
-<meta property="og:description" content="调色板提取器是一款免费的在线设计创意工具，上传图片后用中位切分算法智能提取主色调，生成可编辑的调色板并导出为CSS或JSON，方便设计师从参考图中快速获取配色方案用于项目。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+<meta property="og:description" content="调色板提取器是一款免费的在线设计创意工具，上传图片后用中位切分算法智能提取主色调，生成可编辑的调色板并导出为CSS或JSON，方便设计师从参考图中快速获取配色方案用于项目。">
 <meta property="og:url" content="https://tools.dicomp.net/tools/design/palette-extractor.html">
 <meta name="twitter:card" content="summary">
-<meta name="description" content="调色板提取器是一款免费的在线设计创意工具，上传图片后用中位切分算法智能提取主色调，生成可编辑的调色板并导出为CSS或JSON，方便设计师从参考图中快速获取配色方案用于项目。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+<meta name="description" content="调色板提取器是一款免费的在线设计创意工具，上传图片后用中位切分算法智能提取主色调，生成可编辑的调色板并导出为CSS或JSON，方便设计师从参考图中快速获取配色方案用于项目。">
 <link rel="stylesheet" href="../../css/common.css">
 <script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
@@ -336,10 +336,10 @@
 <meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
     <meta property="og:type" content="website">
     <meta name="twitter:title" content="调色板提取器 - 生成可编辑的调色板并导出为CSS或JSON">
-    <meta name="twitter:description" content="调色板提取器是一款免费的在线设计创意工具，上传图片后用中位切分算法智能提取主色调，生成可编辑的调色板并导出为CSS或JSON，方便设计师从参考图中快速获取配色方案用于项目。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+    <meta name="twitter:description" content="调色板提取器是一款免费的在线设计创意工具，上传图片后用中位切分算法智能提取主色调，生成可编辑的调色板并导出为CSS或JSON，方便设计师从参考图中快速获取配色方案用于项目。">
 <!-- TOOLBOX-WEBAPP-LD -->
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebApplication","name":"调色板提取器","url":"https://tools.dicomp.net/tools/design/palette-extractor.html","applicationCategory":"MultimediaApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"调色板提取器是一款免费的在线设计创意工具，上传图片后用中位切分算法智能提取主色调，生成可编辑的调色板并导出为CSS或JSON，方便设计师从参考图中快速获取配色方案用于项目。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+{"@context":"https://schema.org","@type":"WebApplication","name":"调色板提取器","url":"https://tools.dicomp.net/tools/design/palette-extractor.html","applicationCategory":"MultimediaApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"调色板提取器是一款免费的在线设计创意工具，上传图片后用中位切分算法智能提取主色调，生成可编辑的调色板并导出为CSS或JSON，方便设计师从参考图中快速获取配色方案用于项目。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
 </script>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
@@ -712,7 +712,10 @@
 
   // ===== 中位切分法 Median Cut =====
   function medianCut(pixels, depth, maxDepth) {
-    if (depth >= maxDepth || pixels.length === 0) {
+    // D-N232：空簇直接返回，单像素簇在 depth 未满时也直接聚合——
+    // 否则 mid=0 会切出空簇（n=0 → 0/0=NaN → rgbToHex 位运算得 #000000 0.0%）。
+    if (pixels.length === 0) return [];
+    if (depth >= maxDepth || pixels.length === 1) {
       var r = 0, g = 0, b = 0;
       for (var i = 0; i < pixels.length; i++) {
         r += pixels[i][0];
@@ -837,6 +840,11 @@
       rawPalette = rawPalette.slice(0, count);
     }
 
+    // D-N231：中位切分产出 2^maxDepth 簇后截到 count 簇，被截掉的簇像素不应
+    // 再计入分母，否则占比合计 < 100%（5 色时仅 62.5%）。按保留簇像素数归一。
+    var keptTotal = rawPalette.reduce(function(s, c) { return s + c.count; }, 0);
+    if (keptTotal <= 0) keptTotal = pixels.length;
+
     // 构建结果
     state.palette = rawPalette.map(function(c) {
       var hex = rgbToHex(c.r, c.g, c.b);
@@ -845,7 +853,7 @@
         r: c.r, g: c.g, b: c.b,
         hex: hex,
         count: c.count,
-        percent: ((c.count / pixels.length) * 100).toFixed(1),
+        percent: ((c.count / keptTotal) * 100).toFixed(1),
         hue: hsl.h,
         lightness: hsl.l,
         luminance: relativeLuminance(c.r, c.g, c.b)

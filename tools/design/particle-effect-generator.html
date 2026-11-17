@@ -10,10 +10,10 @@
 <title>粒子特效生成器 - 免费在线设计创意工具</title>
 <link rel="canonical" href="https://tools.dicomp.net/tools/design/particle-effect-generator.html">
 <meta property="og:title" content="粒子特效生成器 - 免费在线设计创意工具">
-<meta property="og:description" content="粒子特效生成器是一款免费的在线设计创意工具，实时 Canvas 粒子系统，支持多种发射模式、鼠标交互和预设效果，参数实时调整即时生效。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+<meta property="og:description" content="粒子特效生成器是一款免费的在线设计创意工具，实时 Canvas 粒子系统，支持多种发射模式、鼠标交互和预设效果，参数实时调整即时生效。适合工程估算、日常换算与快速复核，结果可一键复制。">
 <meta property="og:url" content="https://tools.dicomp.net/tools/design/particle-effect-generator.html">
 <meta name="twitter:card" content="summary">
-<meta name="description" content="粒子特效生成器是一款免费的在线设计创意工具，实时 Canvas 粒子系统，支持多种发射模式、鼠标交互和预设效果，参数实时调整即时生效。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+<meta name="description" content="粒子特效生成器是一款免费的在线设计创意工具，实时 Canvas 粒子系统，支持多种发射模式、鼠标交互和预设效果，参数实时调整即时生效。适合工程估算、日常换算与快速复核，结果可一键复制。">
 <link rel="stylesheet" href="../../css/common.css">
 <script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
@@ -296,10 +296,10 @@ input[type="color"]::-webkit-color-swatch {
 <meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
     <meta property="og:type" content="website">
     <meta name="twitter:title" content="粒子特效生成器 - 免费在线设计创意工具">
-    <meta name="twitter:description" content="粒子特效生成器是一款免费的在线设计创意工具，实时 Canvas 粒子系统，支持多种发射模式、鼠标交互和预设效果，参数实时调整即时生效。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+    <meta name="twitter:description" content="粒子特效生成器是一款免费的在线设计创意工具，实时 Canvas 粒子系统，支持多种发射模式、鼠标交互和预设效果，参数实时调整即时生效。适合工程估算、日常换算与快速复核，结果可一键复制。">
 <!-- TOOLBOX-WEBAPP-LD -->
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebApplication","name":"粒子特效生成器","url":"https://tools.dicomp.net/tools/design/particle-effect-generator.html","applicationCategory":"MultimediaApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"粒子特效生成器是一款免费的在线设计创意工具，实时 Canvas 粒子系统，支持多种发射模式、鼠标交互和预设效果，参数实时调整即时生效。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+{"@context":"https://schema.org","@type":"WebApplication","name":"粒子特效生成器","url":"https://tools.dicomp.net/tools/design/particle-effect-generator.html","applicationCategory":"MultimediaApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"粒子特效生成器是一款免费的在线设计创意工具，实时 Canvas 粒子系统，支持多种发射模式、鼠标交互和预设效果，参数实时调整即时生效。适合工程估算、日常换算与快速复核，结果可一键复制。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
 </script>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
@@ -639,7 +639,10 @@ input[type="color"]::-webkit-color-swatch {
     return p;
   }
 
-  function spawnParticles() {
+  function spawnParticles(dtFactor) {
+    // 380 复核重做：爆发计时与螺旋角度须按时间差推进，而非每帧固定增量。
+    // 原实现 60Hz 约 0.5 秒爆发一次，120Hz 变 0.25 秒、低帧率更慢；dtFactor 以 60fps 为 1。
+    var step = (typeof dtFactor === 'number' && isFinite(dtFactor)) ? dtFactor : 1;
     var w = canvas.offsetWidth;
     var h = canvas.offsetHeight;
     var cx = w / 2, cy = h / 2;
@@ -657,8 +660,8 @@ input[type="color"]::-webkit-color-swatch {
         particles.shift();
       }
     } else if (opts.mode === 'burst') {
-      burstTimer++;
-      if (burstTimer >= 30) { // 每0.5秒爆发一次
+      burstTimer += step;
+      if (burstTimer >= 30) { // 每约 0.5 秒爆发一次（30 帧@60fps，按 dt 归一）
         burstTimer = 0;
         var burstCount = Math.min(opts.count, 60);
         for (var i = 0; i < burstCount; i++) {
@@ -674,7 +677,7 @@ input[type="color"]::-webkit-color-swatch {
         particles.shift();
       }
     } else if (opts.mode === 'spiral') {
-      spiralAngle += 0.05;
+      spiralAngle += 0.05 * step;
       while (particles.length < opts.count) {
         var r = 50 + Math.random() * 80;
         var a = spiralAngle + particles.length * 0.15;
@@ -829,7 +832,7 @@ input[type="color"]::-webkit-color-swatch {
     prevTs = timestamp;
     var dtFactor = __dtMs / 16.6667;
 
-    spawnParticles();
+    spawnParticles(dtFactor);
     updateParticles(dtFactor);
     drawParticles();
 

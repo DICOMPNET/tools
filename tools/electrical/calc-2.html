@@ -10,10 +10,10 @@
 <title>三相功率计算 - 免费在线电气工程工具</title>
 <link rel="canonical" href="https://tools.dicomp.net/tools/electrical/calc-2.html">
 <meta property="og:title" content="三相功率计算 - 免费在线电气工程工具">
-<meta property="og:description" content="三相功率计算是一款免费的在线电气工程工具，根据三相电压、电流、功率因数计算有功功率、无功功率、视在功率及电流偏差。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+<meta property="og:description" content="三相功率计算是一款免费的在线电气工程工具，根据三相电压、电流、功率因数计算有功功率、无功功率、视在功率及电流偏差。适合工程估算、日常换算与快速复核，结果可一键复制。">
 <meta property="og:url" content="https://tools.dicomp.net/tools/electrical/calc-2.html">
 <meta name="twitter:card" content="summary">
-<meta name="description" content="三相功率计算是一款免费的在线电气工程工具，根据三相电压、电流、功率因数计算有功功率、无功功率、视在功率及电流偏差。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+<meta name="description" content="三相功率计算是一款免费的在线电气工程工具，根据三相电压、电流、功率因数计算有功功率、无功功率、视在功率及电流偏差。适合工程估算、日常换算与快速复核，结果可一键复制。">
 <link rel="stylesheet" href="../../css/common.css">
 <script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
@@ -28,10 +28,10 @@
 <meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
     <meta property="og:type" content="website">
     <meta name="twitter:title" content="三相功率计算 - 免费在线电气工程工具">
-    <meta name="twitter:description" content="三相功率计算是一款免费的在线电气工程工具，根据三相电压、电流、功率因数计算有功功率、无功功率、视在功率及电流偏差。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+    <meta name="twitter:description" content="三相功率计算是一款免费的在线电气工程工具，根据三相电压、电流、功率因数计算有功功率、无功功率、视在功率及电流偏差。适合工程估算、日常换算与快速复核，结果可一键复制。">
 <!-- TOOLBOX-WEBAPP-LD -->
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebApplication","name":"三相功率计算","url":"https://tools.dicomp.net/tools/electrical/calc-2.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"三相功率计算是一款免费的在线电气工程工具，根据三相电压、电流、功率因数计算有功功率、无功功率、视在功率及电流偏差。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+{"@context":"https://schema.org","@type":"WebApplication","name":"三相功率计算","url":"https://tools.dicomp.net/tools/electrical/calc-2.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"三相功率计算是一款免费的在线电气工程工具，根据三相电压、电流、功率因数计算有功功率、无功功率、视在功率及电流偏差。适合工程估算、日常换算与快速复核，结果可一键复制。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
 </script>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
@@ -243,20 +243,24 @@ function calcThreePhase() {
 
   let I = 0, P = 0, Q = 0, S = 0;
 
+  // 462 复核重做：三个模式输入不得用 || 0 把空串静默当合法零值；空串须为 NaN 触发提示，真实 0 仍合法。
   if (mode === 'ui') {
-    I = parseFloat(document.getElementById('current').value) || 0;
+    const curRaw = document.getElementById('current').value.trim();
+    I = curRaw === '' ? NaN : parseFloat(curRaw);
     if (!isFinite(I) || I < 0) { ToolBox.setResult('result', '<p class="tip-error">请输入有效的电流值。</p>'); return; }
     S = SQRT3 * U * I;
     P = S * pf;
     Q = S * sinPhi;
   } else if (mode === 'up') {
-    P = (parseFloat(document.getElementById('pInput').value) || 0) * 1000;
+    const pRaw = document.getElementById('pInput').value.trim();
+    P = (pRaw === '' ? NaN : parseFloat(pRaw)) * 1000;
     if (!isFinite(P) || P < 0) { ToolBox.setResult('result', '<p class="tip-error">请输入有效的有功功率。</p>'); return; }
     S = P / pf;
     I = S / (SQRT3 * U);
     Q = S * sinPhi;
   } else if (mode === 'uq') {
-    Q = (parseFloat(document.getElementById('qInput').value) || 0) * 1000;
+    const qRaw = document.getElementById('qInput').value.trim();
+    Q = (qRaw === '' ? NaN : parseFloat(qRaw)) * 1000;
     if (!isFinite(Q) || Q < 0) { ToolBox.setResult('result', '<p style="color:var(--danger)">请输入有效的无功功率。</p>'); return; }
     S = Q / sinPhi;
     P = S * pf;

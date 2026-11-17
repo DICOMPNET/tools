@@ -10,10 +10,10 @@
 <title>卡方检验计算器 - 免费在线统计学工具</title>
 <link rel="canonical" href="https://tools.dicomp.net/tools/statistics/chi-square-test.html">
 <meta property="og:title" content="卡方检验计算器 - 免费在线统计学工具">
-<meta property="og:description" content="卡方检验计算器是一款免费的在线统计学工具，输入观测值与期望值频数，计算 χ² 统计量并判断分布偏离显著性，用于拟合优度与独立性检验。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+<meta property="og:description" content="卡方检验计算器是一款免费的在线统计学工具，输入观测值与期望值频数，计算 χ² 统计量并判断分布偏离显著性，用于拟合优度与独立性检验。适合工程估算、日常换算与快速复核，结果可一键复制。">
 <meta property="og:url" content="https://tools.dicomp.net/tools/statistics/chi-square-test.html">
 <meta name="twitter:card" content="summary">
-<meta name="description" content="卡方检验计算器是一款免费的在线统计学工具，输入观测值与期望值频数，计算 χ² 统计量并判断分布偏离显著性，用于拟合优度与独立性检验。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+<meta name="description" content="卡方检验计算器是一款免费的在线统计学工具，输入观测值与期望值频数，计算 χ² 统计量并判断分布偏离显著性，用于拟合优度与独立性检验。适合工程估算、日常换算与快速复核，结果可一键复制。">
 <link rel="stylesheet" href="../../css/common.css">
 <script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
@@ -27,10 +27,10 @@
 <meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
     <meta property="og:type" content="website">
     <meta name="twitter:title" content="卡方检验计算器 - 免费在线统计学工具">
-    <meta name="twitter:description" content="卡方检验计算器是一款免费的在线统计学工具，输入观测值与期望值频数，计算 χ² 统计量并判断分布偏离显著性，用于拟合优度与独立性检验。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+    <meta name="twitter:description" content="卡方检验计算器是一款免费的在线统计学工具，输入观测值与期望值频数，计算 χ² 统计量并判断分布偏离显著性，用于拟合优度与独立性检验。适合工程估算、日常换算与快速复核，结果可一键复制。">
 <!-- TOOLBOX-WEBAPP-LD -->
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebApplication","name":"卡方检验计算器","url":"https://tools.dicomp.net/tools/statistics/chi-square-test.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"卡方检验计算器是一款免费的在线统计学工具，输入观测值与期望值频数，计算 χ² 统计量并判断分布偏离显著性，用于拟合优度与独立性检验。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+{"@context":"https://schema.org","@type":"WebApplication","name":"卡方检验计算器","url":"https://tools.dicomp.net/tools/statistics/chi-square-test.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"卡方检验计算器是一款免费的在线统计学工具，输入观测值与期望值频数，计算 χ² 统计量并判断分布偏离显著性，用于拟合优度与独立性检验。适合工程估算、日常换算与快速复核，结果可一键复制。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
 </script>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
@@ -356,7 +356,28 @@ function calcTool(){
   if(r===1){ df=k-1; mode='拟合优度'; }
   else {
     if(k%r!==0 || k/r<2){__csData=null;__csSet('⚠ '+k+' 个频数无法按 '+r+' 行 × 每行 ≥2 列 组成列联表');return;}
-    df=(r-1)*(k/r-1); mode='列联表 '+r+'×'+(k/r);
+    var c=k/r;
+    df=(r-1)*(c-1); mode='列联表 '+r+'×'+c;
+    // 独立性检验的期望频数必须由观测表边际生成（E = 行合计 × 列合计 ÷ 总计）；
+    // 若用户填的期望值与边际不一致，χ² 不再是该观测表的独立性检验结果 ⇒ 拒绝并指明首个不一致格
+    var grand=0;
+    for(var t=0;t<k;t++) grand+=oa[t];
+    if(grand>0){
+      for(var ri=0;ri<r;ri++){
+        for(var ci=0;ci<c;ci++){
+          var rt=0,ct=0;
+          for(var jj=0;jj<c;jj++) rt+=oa[ri*c+jj];
+          for(var ii=0;ii<r;ii++) ct+=oa[ii*c+ci];
+          var want=rt*ct/grand, idx=ri*c+ci;
+          if(Math.abs(ea[idx]-want) > 1e-9*Math.max(1,Math.abs(want))){
+            __csData=null;
+            __csSet('⚠ 期望频数与观测表边际不一致：第 '+(idx+1)+' 格应为 行合计×列合计÷总计 = '+want.toFixed(4)+
+                    '，当前填 '+ea[idx]+'。独立性检验的期望频数须由观测表边际生成，请按该值修正后再算。');
+            return;
+          }
+        }
+      }
+    }
   }
   var chi=0;
   for(var i=0;i<k;i++) chi += Math.pow(oa[i]-ea[i], 2) / ea[i];
@@ -410,7 +431,7 @@ function __csPresets(){
     if (typeof TBKit === 'undefined') return;
     TBKit.preset.bar('#csPresets',[
         {label:'掷骰子 60 次是否均匀',labelEn:'Dice 60 rolls, fair?',values:{o:'8,9,12,11,10,10',e:'10,10,10,10,10,10',rowsIn:'1'}},
-        {label:'性别 × 偏好（2×2 简化）',labelEn:'Gender × preference (2x2)',values:{o:'50,30,20,40',e:'35,35,35,35',rowsIn:'2'}},
+        {label:'性别 × 偏好（2×2 独立性）',labelEn:'Gender × preference (2x2 independence)',values:{o:'50,30,20,40',e:'40,40,30,30',rowsIn:'2'}},
         {label:'拟合很好（几乎无差异）',labelEn:'Good fit (almost no gap)',values:{o:'20,21,19,20',e:'20,20,20,20',rowsIn:'1'}},
         {label:'拟合很差（差异大）',labelEn:'Poor fit (big gap)',values:{o:'60,10,10,20',e:'25,25,25,25',rowsIn:'1'}}
     ],function(){ calcTool(); });

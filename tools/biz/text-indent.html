@@ -7,12 +7,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="toolbox" content="cat=text,industry=biz,icon=🧹,bg=#e8eaf6">
-<meta name="description" content="自动缩进是一款免费的在线商业办公工具，在线自动缩进工具，为文本或代码按层级自动添加缩进，支持 JSON/多行文本格式化与统一缩进宽度，提升可读性。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+<meta name="description" content="自动缩进是一款免费的在线商业办公工具，在线自动缩进工具，为文本或代码按层级自动添加缩进，支持 JSON/多行文本格式化与统一缩进宽度，提升可读性。">
 <meta name="keywords" content="自动缩进,自动缩进在线,在线自动缩进,文本处理,商业办公,在线工具,免费工具,ToolBox">
 <meta name="robots" content="index,follow">
 <link rel="canonical" href="https://tools.dicomp.net/tools/biz/text-indent.html">
 <meta property="og:title" content="自动缩进 - 文本或代码按层级自动添加缩进">
-<meta property="og:description" content="自动缩进是一款免费的在线商业办公工具，在线自动缩进工具，为文本或代码按层级自动添加缩进，支持 JSON/多行文本格式化与统一缩进宽度，提升可读性。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+<meta property="og:description" content="自动缩进是一款免费的在线商业办公工具，在线自动缩进工具，为文本或代码按层级自动添加缩进，支持 JSON/多行文本格式化与统一缩进宽度，提升可读性。">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://tools.dicomp.net/tools/biz/text-indent.html">
 <meta name="twitter:card" content="summary">
@@ -60,10 +60,10 @@
 <meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
 <meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
     <meta name="twitter:title" content="自动缩进 - 文本或代码按层级自动添加缩进">
-    <meta name="twitter:description" content="自动缩进是一款免费的在线商业办公工具，在线自动缩进工具，为文本或代码按层级自动添加缩进，支持 JSON/多行文本格式化与统一缩进宽度，提升可读性。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+    <meta name="twitter:description" content="自动缩进是一款免费的在线商业办公工具，在线自动缩进工具，为文本或代码按层级自动添加缩进，支持 JSON/多行文本格式化与统一缩进宽度，提升可读性。">
 <!-- TOOLBOX-WEBAPP-LD -->
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebApplication","name":"自动缩进","url":"https://tools.dicomp.net/tools/biz/text-indent.html","applicationCategory":"DeveloperApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"自动缩进是一款免费的在线商业办公工具，在线自动缩进工具，为文本或代码按层级自动添加缩进，支持 JSON/多行文本格式化与统一缩进宽度，提升可读性。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+{"@context":"https://schema.org","@type":"WebApplication","name":"自动缩进","url":"https://tools.dicomp.net/tools/biz/text-indent.html","applicationCategory":"DeveloperApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"自动缩进是一款免费的在线商业办公工具，在线自动缩进工具，为文本或代码按层级自动添加缩进，支持 JSON/多行文本格式化与统一缩进宽度，提升可读性。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
 </script>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
@@ -367,8 +367,11 @@ function indent(){
   }
 
   // 计算一行中大括号/圆括号的净层级，跳过字符串与注释（BS-N117）
+  // 复核失败重做（580）：跨行块注释 /* ... */ 的中间行也会把括号算入层级。
+  // blockComment 状态必须跨行保留，不能在每行调用时重置。
+  let blockComment = false;
   function countBraces(line){
-    let openCount = 0, closeCount = 0, quote = null, blockComment = false;
+    let openCount = 0, closeCount = 0, quote = null;
     for(let i = 0; i < line.length; i++){
       const ch = line[i], next = line[i + 1];
       if(blockComment){
@@ -388,6 +391,7 @@ function indent(){
     }
     return { openCount, closeCount };
   }
+  blockComment = false; // 每次 indent() 开始时重置跨行状态
 
   for(let line of lines){
     if(trimEach) line = line.trim();

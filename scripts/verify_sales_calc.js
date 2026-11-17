@@ -1,6 +1,25 @@
 #!/usr/bin node
 "use strict";
 const { runCase } = require("./verify_it_calc.js");
+const fs = require("fs");
+const path = require("path");
+const COMMISSION_PATH = path.join(__dirname, "..", "tools", "sales", "commission-calculator.html");
+
+// 558 复核失败：末档上限此前仍可编辑，但 getTiers() 无条件替换为 Infinity；
+// 禁用末档输入并明确固定无穷，是唯一不产生「填了却不算」歧义的口径。
+function commissionStaticChecks() {
+  const src = fs.readFileSync(COMMISSION_PATH, "utf8");
+  return [
+    {
+      name: "阶梯提成末档上限输入禁用（固定无穷）",
+      ok: /t\.cap === Infinity\s*\?\s*'[^']*tier-cap[^']*disabled[^']*'\s*:/.test(src)
+        && !/placeholder="上限\(元\)"[^']*disabled/.test(src)
+        && /newLast\.querySelector\('\.tier-cap'\)\.disabled = true/.test(src)
+        && /last\.querySelector\('\.tier-cap'\)\.disabled = true/.test(src),
+    },
+  ];
+}
+
 const CASES = [
 {
   "slug": "sales/commission-calc",
@@ -92,6 +111,24 @@ const CASES = [
   "ref": "WMA(3) 对最新 3 期 [130,150,190] 按 1/2/3 加权：130×1+150×2+190×3=1000，÷6=166.67 ⇒ 展示 167。旧预测分支把最旧值赋最大权重：(130×3+150×2+190×1)÷6=146.67 ⇒ 147，故「预测 1 — 167」可强判别。"
 },
 {
+  "slug": "sales/moving-average",
+  "inputs": { "window": "5", "periods": "2", "data": "1200\n1250\n1300\n1400" },
+  "clicks": [
+    "calc();document.getElementById('data').value='1500';calc();var t=document.getElementById('resultTable');document.getElementById('__tbProbe').textContent='MAONLY '+document.getElementById('forecastLbl').textContent+' table='+(t.innerHTML?t.innerHTML.length:0);"
+  ],
+  "expect": ["MAONLY 至少需要 2 期历史数据（当前 1 期） table=0"],
+  "ref": "542 复核失败重做：先多期算出结果，再只留 1 期 ⇒ 结果标签改为「至少需要 2 期历史数据（当前 1 期）」且表格清空；旧实现 data.length<2 直接 return，旧结果与表格仍在 ⇒ 本串不命中。"
+},
+{
+  "slug": "sales/moving-average",
+  "inputs": { "window": "3", "periods": "1", "data": "100\n110\n120\n" },
+  "clicks": [
+    "document.getElementById('__tbProbe').textContent='MAN '+parseData().length+' '+JSON.stringify(parseData());"
+  ],
+  "expect": ["MAN 3 [100,110,120]"],
+  "ref": "542 复核失败重做：split 后先滤空串再转数值，末尾换行不再生成 0 值第 4 期；旧实现 +'' = 0 ⇒ MAN 4 [100,110,120,0]，本串不命中。"
+},
+{
   "slug": "sales/price-calculator",
   "inputs": {
     "cost": "150",
@@ -140,6 +177,18 @@ const CASES = [
   "expect": [ "1,500.00 万元", "权重总和 80" ],
   "ref": "注入 total=1500 万元（默认 1000）⇒ 汇总显示「1,500.00 万元」；默认 4 名成员权重 25/20/25/10 合计 80，显示「权重总和 80」。两串均随金额变化，默认态不含 1,500.00。"
 },
+{
+  "slug": "sales/target-breakdown",
+  "clicks": ["globalThis.TBKit={util:{isEn:function(){return false;},exportTable:function(){}},chart:{bar:function(){}}};members=[{name:'甲',weight:10},{name:'乙',weight:10},{name:'丙',weight:10}];document.getElementById('total').value='1000';document.getElementById('mode').value='avg';calc();var tbEl=null;var q=document.querySelector;document.querySelector=function(s){var e=q.call(document,s);if(s==='#tbkHidden tbody')tbEl=e;return e;};__tbkExport();document.querySelector=q;var h=String(tbEl&&tbEl.innerHTML);document.getElementById('__tbProbe').textContent='TB559 '+((h.indexOf('33.4%')>=0&&h.indexOf('33.3%')>=0&&h.indexOf('33.3%')!==h.lastIndexOf('33.3%')&&h.indexOf('100.0%')>=0)?'OK':'BAD:['+h+']');"],
+  "expect": ["TB559 OK"],
+  "ref": "559 复核失败重做：1000 均分 3 人 ⇒ 目标 333.34/333.33/333.33，占比尾差归最大项后为 33.4/33.3/33.3%。导出旧实现另按 target/total 重算，得到 33.3/33.3/33.3%，与主表不一致却仍写合计 100.0%。探针读导出表并要求同时出现 33.4% 与两个 33.3%（后者用首末索引不同判断）。默认态（4 人、权重模式）不产生该组合。"
+},
+{
+  "slug": "sales/target-breakdown",
+  "clicks": ["globalThis.TBKit={util:{isEn:function(){return false;}},chart:{bar:function(){}}};members=[{name:'甲',weight:-10},{name:'乙',weight:30}];document.getElementById('total').value='1000';document.getElementById('mode').value='weight';var c=0;TBKit.chart.bar=function(){c++;};calc();var t=String(document.getElementById('resultTable').innerHTML);document.getElementById('__tbProbe').textContent='TB559N '+((c===0&&t.indexOf('权重不能为负数')>=0)?'OK':'BAD:c='+c);"],
+  "expect": ["TB559N OK"],
+  "ref": "559 复核失败重做：权重 -10/30 时主表报「权重不能为负数」，但旧 __tbExtras 只校验合计 > 0（此处 20 > 0）⇒ 仍调用图表绘制负目标，且无效时不清除旧图。现图表复用同一完整校验（非负 + 合计 > 0）并清空画布；探针把 chart.bar 替换为计数桩，要求调用次数为 0 且主表错误提示存在。"
+},
 
 {
     "slug": "sales/commission-calculator",
@@ -184,6 +233,12 @@ const CASES = [
     "ref": "空态守卫（2026-11-05）：首阶段人数为 0 时旧实现仍渲染「0 → 0 · 共 N 个阶段」与整表 0 值漏斗，现只给填写提示并清空整体转化率框与明细表。⚠ 只有首阶段（分母）0 视为无数据，后续阶段 0 人（流失 100%）仍照常计算。注入 preset=ecom 用例断 50.00% ⇒ 两态互斥。页面阶段行为动态插入，无法按 id 注入，故用 clicks 置零。",
   },
   {
+    "slug": "sales/conversion-funnel",
+    "clicks": ["stages.forEach(function(s){s.count=0;});calc();var f=document.getElementById('funnel').innerHTML;document.getElementById('__tbProbe').textContent='F463SA '+stages.length+' '+((f.indexOf('请填写首阶段人数')<0&&f.indexOf('width:0%')>=0&&document.getElementById('overallBox').innerHTML.indexOf('—')>=0)?'OK':'BAD');"],
+    "expect": ["F463SA 4 OK"],
+    "ref": "第463批复核失败重做：0 是合法人数。原 calc() 把首阶段 0 一律当未填写，全零漏斗也被拒，无法展示记录要求的 0% 柱宽。修复后区分「全阶段均 0」（合法全零漏斗，展示 width:0%、整体转化率 —）与「首阶段 0 但后续为正」（分母为 0 却有下游，保留原填写提示）。协议串绑定 stages.length=4 且要求全零态出现 0% 柱宽、无填写提示、整体 —；判别器注入失败（回退旧守卫）时全零仍报填写提示 ⇒ 探针变 BAD。",
+  },
+  {
     "slug": "sales/commission-calculator",
     "inputs": { "sales": "120000" },
     "clicks": ["currentMode='team';document.getElementById('teamSales').value='-500000';calc()"],
@@ -211,7 +266,12 @@ async function main() {
     }
   }
 
+  const stat = commissionStaticChecks();
+  const staticFails = stat.filter((s) => !s.ok);
+  for (const s of staticFails) console.log("❌ [static] " + s.name);
+
   console.log("==== sales calc " + pass + "/" + cases.length + " ====");
-  if (fails.length) process.exit(1);
+  if (staticFails.length) console.log("❌ static " + (stat.length - staticFails.length) + "/" + stat.length + " 未通过");
+  if (fails.length || staticFails.length) process.exit(1);
 }
 if (require.main === module) main();

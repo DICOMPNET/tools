@@ -16,6 +16,25 @@
  */
 "use strict";
 const { runCase } = require("./verify_it_calc.js");
+const fs = require("fs");
+const path = require("path");
+const RECORDER_PATH = path.join(__dirname, "..", "tools", "metalwork", "recorder-9.html");
+
+// 640 复核失败：syncTargetTemp() 对非法目标只标红，但 calcSoaking() 用 `+value || 0`
+// 把当前目标改成 0，后续偏差、记录与导出继续按无效目标运行。
+function recorderStaticChecks() {
+  const src = fs.readFileSync(RECORDER_PATH, "utf8");
+  const i = src.indexOf("function calcSoaking(");
+  const j = src.indexOf("\nfunction ", i + 1);
+  const body = i < 0 ? "" : src.slice(i, j < 0 ? src.length : j);
+  return [
+    {
+      name: "保温计算不再用空/非法目标覆盖当前目标",
+      ok: !/\+document\.getElementById\('targetTemp'\)\.value *\|\| *0/.test(body)
+        && /tRaw!==''&&isFinite\(t\)&&t>0\) current\.target=t/.test(body),
+    },
+  ];
+}
 
 const CASES = [
   {
@@ -160,6 +179,31 @@ const CASES = [
   "ref": "总数 8+5+3+6=22；密度 22/12=1.83；加权 8×2+5×3+3×2+6×1=43（默认 6 次试模、飞边 4×2 与欠铸 2×3 → 6/1.00/14，避开；最高频与最高加权默认同为飞边故不作断言）"
 },
 {
+  "slug": "metalwork/analysis-35",
+  "inputs": { "trials": "6", "data": "飞边,-4,2\n欠铸,2,3" },
+  "expect": ["已忽略 1 行", "次数须为正整数", "问题总数： 2"],
+  "ref": "负数次数拦截（669）：飞边 -4 被拒并列出「次数须为正整数」，仅统计欠铸 2 个（修复前总数 -2、密度 -0.33、结论「问题较少」；默认 6/22 不含这些串）"
+},
+{
+  "slug": "metalwork/analysis-35",
+  "inputs": { "trials": "6", "data": "short shot,4,2\n飞边,4,2" },
+  "expect": ["问题总数： 8"],
+  "ref": "含空格问题名不再丢行（669）：仅按逗号/制表符切分，short shot 整名保留 ⇒ 总数 8、类型 2（修复前按空格切分导致该行被静默丢弃，总数 4、类型 1）。判别器实测「问题类型数： 2」在默认态也命中（默认数据恰为两类），已移除该逃生锚，仅保留依赖注入数据的总数 8（默认 22 不含）。"
+},
+{
+  "slug": "metalwork/analysis-35",
+  "inputs": { "trials": "6", "data": "short shot,-1,2" },
+  "clicks": ["calc();var t=String(document.getElementById('res').innerHTML);document.getElementById('__tbProbe').textContent='A35ALL '+((t.indexOf('（1 行无效）')>=0&&t.indexOf('short shot,-1,2')>=0&&t.indexOf('次数须为正整数')>=0)?'OK':'BAD:['+t+']');"],
+  "expect": ["A35ALL OK"],
+  "ref": "全行无效也必须列出被忽略行及原因（669 复核失败重做）：唯一数据行次数为 -1 ⇒ 无有效行，进入早退分支；修复前该分支只输出「请输入至少一行…（1 行无效）」后 return，后面的 skipped 逐条列表不执行，用户看不到「次数须为正整数」。现早退分支同样渲染 skipBox ⇒ 结果区同时含无效行数、行原文与原因。用单一探针串断言三项（expect 为「任一命中」，拆成三条会因「（1 行无效）」先命中而假通过）。默认数据无 -1 行且存在有效行 ⇒ 不进早退分支 ⇒ 探针 BAD。"
+},
+{
+  "slug": "metalwork/analysis-35",
+  "inputs": { "trials": "6", "data": "<svg/onload=alert(1)>,1,2" },
+  "expect": ["&lt;svg/onload=alert(1)&gt;"],
+  "ref": "问题名转义（669 复核 MM-H62）：标签被 escHtml 转义后输出 &lt;svg/onload=alert(1)&gt;，结果区不出现可执行 <svg>（默认数据不含该串）"
+},
+{
   "slug": "metalwork/laxue-ladao-chisheng-lali-sheji",
   "inputs": {
     "v0": "3.0",
@@ -213,6 +257,9 @@ const CASES = [
 
   // ── 零用例加固（2026-10-06）──────────────────────────
   { slug: "metalwork/detector-24", inputs: { defLen: "8", thick: "35", defCount: "3" }, expect: ["缺陷长度/板厚比=22.9%"], ref: "注入非默认(默认 defLen=5/thick=20/defCount=1)：独立复算 8/35 = 22.857% → 22.9%；GB/T 3323 分级 22.9% 超允许范围 ⇒ Ⅴ级（严重不合格）。⚠『Ⅴ级（严重不合格）』文案两态相同（默认 25.0% 同样超限）⇒ 不可作锚，只取比值串。默认态为 25.0%，不命中。" },
+  { slug: "metalwork/detector-24", inputs: { defLen: "", thick: "20", defCount: "1" }, expect: ["缺陷长度须为正数"], ref: "空值拦截（668）：缺陷长度清空 ⇒ parseFloat('')=NaN，输出「请修正输入：缺陷长度须为正数。未进行档位评定。」（修复前空值按 0 计算并判 1 档；默认 5mm 不含该串）" },
+  { slug: "metalwork/detector-24", inputs: { defLen: "5", thick: "20", defCount: "" }, expect: ["未填缺陷数量"], ref: "数量空值拦截（668）：缺陷数量清空 ⇒ 提示「未填缺陷数量（无缺陷请填 0）」，不再静默按 0 判 1 档（默认 1 个不含该串）" },
+  { slug: "metalwork/detector-24", inputs: { defLen: "-5", thick: "", defCount: "-1" }, expect: ["缺陷长度须为正数；母材厚度须为正数；缺陷数量须为 ≥0 的整数"], ref: "负数/空值拦截（668）：defLen=-5、thick 清空、defCount=-1 ⇒ 三条错误同时列出，不再输出 1 档（默认 5/20/1 全合法，不含该串）" },
   { slug: "metalwork/analysis-simulator", inputs: { vol: "300", area: "150", runner: "15", fillrate: "70", tmelt: "260", tmold: "50", teject: "120", tw: "40", thick: "4", alpha: "0.05" }, expect: ["总充填体积 345 cm³", "充填时间 4.93 s", "冷却时间（近似） 40.63 s", "流程/壁厚比 0.5,000"], ref: "注入非默认(默认 200/100/10/50/240/60/110/30/3/0.04)：型腔+流道+浇口 300+15 与射胶量填充 ⇒ 总充填体积 345 cm³；充填时间 = 345/70 = 4.93 s；冷却时间近似 40.63 s；流程/壁厚比 = (300+15+…)/4 → 0.5,000。默认态 220 cm³/4.40 s/27.51 s/0.6,667，四条均不命中。" },
   { slug: "metalwork/detector-23", inputs: { nominal: "60.000", actual: "60.034", upperTol: "0.039", lowerTol: "0.000" }, expect: ["实测偏差： +0.0340 mm", "偏差占公差带：87.2%", "极限尺寸：60.0000 ~ 60.0390 mm"], ref: "注入非默认(默认 nominal=50.000/actual=50.025)：独立复算 偏差 = 60.034−60.000 = +0.0340 mm；公差带 0.0390 ⇒ 占比 0.034/0.039 = 87.2%；极限尺寸 = 60.0000 ~ 60.0390 mm。默认态 50.025/+0.0250/64.1%/50.0000~50.0390，三条均不命中（『合格』判定与 IT4/±0.005mm 两态相同，不作锚）。" },
   { slug: "metalwork/detector-mold", inputs: { tx: "70.000", ty: "40.000", tz: "25.000", ax: "70.021", ay: "39.975", az: "25.030", tol: "0.020" }, expect: ["X轴：+0.021 mm ✗ 超差", "Z轴：+0.030 mm ✗ 超差", "空间偏差：0.0443 mm"], ref: "注入非默认(默认 50/30/20 与实测 50.015/29.988/20.022)：三轴偏差 = +0.021 / −0.025 / +0.030 mm，均超 ±0.020 ⇒ 三轴全『✗ 超差』；空间偏差 = √(0.021²+0.025²+0.030²) = 0.0443 mm > 0.020。默认态仅 Z 轴超差、空间偏差 0.0292，三条均不命中。" },
@@ -229,6 +276,18 @@ const CASES = [
     inputs: { v0: "500", v1: "1000" },
     expect: ["500 W 功率差"],
     ref: "注入非默认(默认 v0=800/v1=1200→400 W 功率差)：功率差 = |500−1000| = 500 W。默认态『400 W 功率差』不命中 500。v0=电钻功率、v1=角磨功率，二者互换不影响差值绝对值。"
+  },
+  {
+    slug: "metalwork/recorder-9",
+    clicks: ["createJob();document.getElementById('targetTemp').value='900';syncTargetTemp();document.getElementById('__tbProbe').textContent='TGT '+current.target;"],
+    expect: ["TGT 900"],
+    ref: "目标温度编辑同步：createJob 后 current.target=850，把输入改为 900 再触发 syncTargetTemp ⇒ current.target 应为 900；旧实现 oninput 只调 renderCurrent，current.target 仍 850 ⇒ 探针『TGT 850』不命中。"
+  },
+  {
+    slug: "metalwork/recorder-9",
+    clicks: ["createJob();document.getElementById('logTemp').value='';addReading();document.getElementById('__tbProbe').textContent='READ '+current.readings.length;"],
+    expect: ["READ 0"],
+    ref: "测温值空输入拒绝：清空 logTemp 后 addReading 应提示并不落记录 ⇒ readings 长度 0；旧实现一元 `+''`=0 且 `!t&&t!==0` 对 0 放行，读数为 0℃ 入表 ⇒ 探针『READ 1』不命中。"
   },
   {
     slug: "metalwork/recorder-9",
@@ -405,9 +464,9 @@ const CASES = [
       "method": "ut"
     },
     "expect": [
-      "评定区内缺陷数量：42 个 评定等级： Ⅳ级（不合格） 最大反射波幅当量按GB/T 11345超声探伤评定，缺陷指示长度=42mm"
+      "评定区内缺陷数量：42 个 参考档位： 4 档（参考不合格） 缺陷指示长度=42mm，按本页尺寸阈值给出参考档位（未按波幅当量评定）"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"defLen\":\"42\",\"thick\":\"42\",\"defCount\":\"42\",\"method\":\"ut\"}，输出区含「评定区内缺陷数量：42 个 评定等级： Ⅳ级（不合格） 最大反射波幅当量按GB/…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"defLen\":\"42\",\"thick\":\"42\",\"defCount\":\"42\",\"method\":\"ut\"}，输出区含「评定区内缺陷数量：42 个 参考档位： 4 档（参考不合格） 缺陷指示长度=42mm」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。668 批把「国家标准评定」降级为尺寸阈值参考档位并删去波幅当量表述。"
   },
   {
     "slug": "metalwork/detector-hardness",
@@ -620,8 +679,7 @@ const CASES = [
     "expect": [
       "abc123测试\n"
     ],
-    ref: "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"search\":\"abc123测试\"}，输出区含「abc123测试\n」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"search\":\"abc123测试\"}，输出区含「abc123测试\n」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。 [被覆盖的前条说明：⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。]"
   },
   {
     "slug": "metalwork/welding-heat",
@@ -733,7 +791,12 @@ async function main() {
     }
   }
 
+  const stat = recorderStaticChecks();
+  const staticFails = stat.filter((s) => !s.ok);
+  for (const s of staticFails) console.log("❌ [static] " + s.name);
+
   console.log("==== metalwork calc " + pass + "/" + cases.length + " ====");
-  if (fails.length) process.exit(1);
+  if (staticFails.length) console.log("❌ static " + (stat.length - staticFails.length) + "/" + stat.length + " 未通过");
+  if (fails.length || staticFails.length) process.exit(1);
 }
 if (require.main === module) main();

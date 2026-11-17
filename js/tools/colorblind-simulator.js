@@ -320,7 +320,9 @@
   });
   $('c1Hex').addEventListener('input', function () {
     var c = hexToRgb(this.value);
-    if (c) { this.style.borderColor = ''; setColorFromRgb(c, true); }
+    // D-N102 复核重做：手输 HEX 是外部来源，须同步取色器（skipColorPicker=false）；
+    // 只有取色器自身的 input 才跳过回写，避免双向死循环。
+    if (c) { this.style.borderColor = ''; setColorFromRgb(c, false); }
     else { this.style.borderColor = 'var(--danger)'; }
   });
   function syncRgbInputs(c) {
@@ -1001,7 +1003,9 @@
         } else if (S5.mode === 'hue') {
           var spread = minD;
           var avgL = chosen.reduce(function (s, c) { return s + c.L; }, 0) / chosen.length;
-          score = spread - Math.abs(cand.L - avgL) * 0.35;
+          // 复核失败重做（367）：策略名「明暗分散」要求色差相同时偏向亮度远离已选均值，
+          // 旧实现用减号反而偏向亮度接近，与文案方向相反。改加号使明暗真正分散。
+          score = spread + Math.abs(cand.L - avgL) * 0.35;
         } else {
           score = minD;
         }

@@ -374,6 +374,241 @@ def check_related_slug_map():
         print('  ✅ 映射与路径均一致，相关工具英文映射可用')
 
 
+def check_h1_normalization():
+    """216 批复核失败重做：把 normalize_tool_h1 的 script/style 干扰固化进静态门禁。
+
+    历史缺陷：闭标签查找与多 h1 降级曾把 script/style 内的字符串字面量当真标题，
+    改坏 markdown-editor 等页面；此前只有一次性临时复现，未进入可重复执行的门禁。
+    """
+    import importlib.util
+    spec = importlib.util.spec_from_file_location('toolbox_build_h1', os.path.join(ROOT, '_build.py'))
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    norm = mod.normalize_tool_h1
+
+    script_case = "<html><body><h1>标题<script>let a='</h2>';</script></h1></body></html>"
+    style_case = "<html><head><style>.x:after{content:'<h1>假标题</h1>'}</style></head><body><h1>真标题</h1></body></html>"
+    multi_case = "<html><body><h1>主标题</h1><h1>副标题</h1></body></html>"
+    pseudo_case = "<html><body><script>let t='<h1>脚本标题</h1>';</script><h1>主标题</h1><h1>副标题</h1></body></html>"
+    cases = [
+        ('script 内错配闭标签字面量不破坏脚本', script_case,
+         lambda o, c: o == script_case and c == 0 and "let a='</h2>';" in o),
+        ('style 内伪 h1 不参与规范化', style_case,
+         lambda o, c: o == style_case and c == 0 and o.count('<h1>') == 2),
+        ('普通多 h1 只降级第二个', multi_case,
+         lambda o, c: '<h1>主标题</h1><h2>副标题</h2>' in o and c == 1),
+        ('script 内伪 h1 不影响真实标题降级', pseudo_case,
+         lambda o, c: "let t='<h1>脚本标题</h1>';" in o
+         and '<h1>主标题</h1><h2>副标题</h2>' in o and c == 1),
+    ]
+    for name, src, check in cases:
+        try:
+            out, changed = norm(src, '工具名', '')
+            if check(out, changed):
+                stats['passed'] += 1
+            else:
+                stats['errors'].append(f'h1 规范化回归失败：{name} → {out[:160]}（改动 {changed}）')
+        except Exception as exc:
+            stats['errors'].append(f'h1 规范化回归异常：{name} → {exc}')
+
+
+def check_related_tool_cards():
+    """392/403/406 批复核失败重做：锁定相关工具卡名称自愈与无序集合去重口径。
+
+    历史缺陷：
+    - 卡片名称按目标页元数据刷新链在部分页未生效，残留整段 SEO 模板文案；
+    - 多块去重按原始顺序 tuple 比较，[A,B] 与 [B,A] 集合相同却被保留两块。
+    """
+    build_src = open(os.path.join(ROOT, '_build.py'), encoding='utf-8').read()
+
+    # 406：去重键必须是 frozenset（无序集合），且保留第一块顺序（仅跳过后续重复块）
+    if re.search(r'_hrefs\s*=\s*frozenset\(', build_src) and '_seen_sets.add(_hrefs)' in build_src:
+        stats['passed'] += 1
+    else:
+        stats['errors'].append('相关工具块去重未按 frozenset 集合口径实现（406 回归）')
+
+    # 行为验证：[A,B] 与 [B,A] 必须判为同一集合，仅保留第一块原顺序
+    _b1 = '<div><a href="a.html" class="related-tool-card">A</a><a href="b.html" class="related-tool-card">B</a></div>'
+    _b2 = '<div><a href="b.html" class="related-tool-card">B</a><a href="a.html" class="related-tool-card">A</a></div>'
+    _seen, _kept = set(), []
+    for _blk in (_b1, _b2):
+        _hs = frozenset(re.findall(r'href="([^"]+)" class="related-tool-card"', _blk))
+        if _hs and _hs in _seen:
+            continue
+        _seen.add(_hs)
+        _kept.append(_blk)
+    if len(_kept) == 1 and 'a.html' in _kept[0] and _kept[0].index('a.html') < _kept[0].index('b.html'):
+        stats['passed'] += 1
+    else:
+        stats['errors'].append('相关工具块集合去重行为不符：[A,B] 与 [B,A] 未合并或第一块顺序被改（406 回归）')
+
+    # 392/403：刷新链必须按目标工具名原位覆写 rt-name
+    if re.search(r"_new_name\s*=\s*esc_html_py\(_rt_obj\.get\('name'\)", build_src):
+        stats['passed'] += 1
+    else:
+        stats['errors'].append('相关工具卡名称自愈链缺失（392/403 回归）')
+
+    # 产物回归：Pharmacode 卡片名等于目标页 H1，且无整段 SEO 模板指纹
+    src_page = os.path.join(ROOT, 'tools', 'aerospace', 'lift-coefficient.html')
+    tgt_page = os.path.join(ROOT, 'tools', 'science', 'barcode-pharmacode.html')
+    if os.path.isfile(src_page) and os.path.isfile(tgt_page):
+        src = open(src_page, encoding='utf-8').read()
+        tgt = open(tgt_page, encoding='utf-8').read()
+        h1 = re.search(r'<h1[^>]*>([^<]+)</h1>', tgt)
+        card = re.search(
+            r'href="[^"]*barcode-pharmacode\.html"[^>]*>[\s\S]*?'
+            r'<span class="rt-name"[^>]*>([^<]*)</span>', src)
+        if h1 and card and card.group(1).strip() == h1.group(1).strip():
+            stats['passed'] += 1
+        else:
+            stats['errors'].append('Pharmacode 相关工具卡名称与目标页 H1 不一致（392/403 回归）')
+        for bad in ('免费生成器工具', 'ToolBox免费在线工具箱'):
+            if card and bad in card.group(0):
+                stats['errors'].append('Pharmacode 相关工具卡残留模板指纹：' + bad)
+
+
+def check_text_polisher_desc():
+    """411 批复核失败重做：文本润色不得被行业模板误标为翻译工具。
+
+    历史缺陷：zh-CN.intro 清洗后不足 70 字，触发 industry 级模板
+    「XX是一款免费的在线语言翻译工具」，污染 meta/og/twitter/JSON-LD 四处。
+    """
+    page = os.path.join(ROOT, 'tools', 'language', 'text-polisher.html')
+    if not os.path.isfile(page):
+        return
+    src = open(page, encoding='utf-8').read()
+    bad = '在线语言翻译工具'
+    # 四处权威载体逐项检查，避免只看首条 meta 漏掉 JSON-LD
+    carriers = {
+        'meta': r'<meta name="description" content="([^"]*)"',
+        'og': r'<meta property="og:description" content="([^"]*)"',
+        'twitter': r'<meta name="twitter:description" content="([^"]*)"',
+        'json-ld': r'"description":"([^"]*)"',
+    }
+    for name, pat in carriers.items():
+        m = re.search(pat, src)
+        if not m or bad in m.group(1):
+            stats['errors'].append('文本润色 %s 描述仍误标为翻译工具（411 回归）' % name)
+        else:
+            stats['passed'] += 1
+
+    # 权威源清洗后必须自足 70 字，不再靠行业模板补写
+    src_json = os.path.join(ROOT, 'i18n', 'tools', 'language.json')
+    en_json = os.path.join(ROOT, 'i18n', 'tools', 'en', 'language', 'text-polisher.json')
+    intro = ''
+    if os.path.isfile(src_json):
+        data = json.load(open(src_json, encoding='utf-8'))
+        intro = data.get('text-polisher', {}).get('zh-CN', {}).get('intro', '')
+        stripped = re.sub(r'^文本润色工具[。，]?', '', intro)
+        if len(stripped) >= 70:
+            stats['passed'] += 1
+        else:
+            stats['errors'].append('文本润色 intro 清洗后不足 70 字，会再次触发行业模板（411 回归）')
+    if os.path.isfile(en_json) and intro:
+        en_map = json.load(open(en_json, encoding='utf-8')).get('map', {})
+        if intro in en_map and 'Text polishing tool' in en_map[intro]:
+            stats['passed'] += 1
+        else:
+            stats['errors'].append('文本润色新 intro 缺少英文映射（411 回归）')
+
+
+def check_deadlink_map():
+    """431/432 批复核失败重做：每个重定向桩必须登记简体与繁体死链 URL。
+
+    历史缺陷：同分类重复页合并后旧地址只留 TOOLBOX-REDIRECT 桩，
+    未同步 sitemap-deadlinks.xml，搜索引擎仍按旧 URL 索引。
+    """
+    xp = os.path.join(ROOT, 'sitemap-deadlinks.xml')
+    if not os.path.isfile(xp):
+        stats['errors'].append('缺少 sitemap-deadlinks.xml（431/432 回归）')
+        return
+    have = set(re.findall(r'<loc>([^<]+)</loc>', open(xp, encoding='utf-8').read()))
+    missing = []
+    for root, _, files in os.walk(TOOLS_DIR):
+        for fn in files:
+            if not fn.endswith('.html'):
+                continue
+            fp = os.path.join(root, fn)
+            try:
+                src = open(fp, encoding='utf-8', errors='ignore').read()
+            except Exception:
+                continue
+            if 'TOOLBOX-REDIRECT' not in src:
+                continue
+            rel = os.path.relpath(fp, ROOT).replace(os.sep, '/')
+            simp = 'https://tools.dicomp.net/' + rel
+            trad = 'https://tools.dicomp.net/zh-tw/' + rel
+            if simp not in have:
+                missing.append('简体 ' + rel)
+            if trad not in have:
+                missing.append('繁体 ' + rel)
+    if missing:
+        for item in missing[:20]:
+            stats['errors'].append('重定向页未登记死链地图：' + item)
+    else:
+        stats['passed'] += 1
+
+
+def check_guide_desc_boiler():
+    """409 批复核失败重做：有专属正文的指南不得再带通用隐私尾句。
+
+    noindex 页与重定向桩按构建口径跳过；其余指南的 meta/og/twitter
+    description 必须由正文摘要替换，避免站内大规模重复描述。
+    """
+    import html as _html
+    tail = ('本指南整理核心功能、适用场景、使用步骤与常见问题，'
+            '纯前端免费在线使用，数据不上传。')
+    bad = []
+    for fp in sorted(__import__('glob').glob(os.path.join(ROOT, 'guides', '*.html'))):
+        try:
+            src = open(fp, encoding='utf-8', errors='ignore').read()
+        except Exception:
+            continue
+        if 'TOOLBOX-REDIRECT' in src or 'noindex' in src:
+            continue
+        for tag in re.findall(r'<meta[^>]+>', src):
+            if 'description' not in tag:
+                continue
+            cm = re.search(r'\scontent="([^"]*)"', tag)
+            if cm and tail in _html.unescape(cm.group(1)):
+                bad.append(os.path.basename(fp))
+                break
+    if bad:
+        for name in bad[:20]:
+            stats['errors'].append('指南描述仍含通用尾句：' + name)
+    else:
+        stats['passed'] += 1
+
+
+def check_desc_accuracy_901():
+    """435/437 批复核失败重做：锁定三处「描述与真实功能一致」的权威源。"""
+    checks = [
+        (os.path.join(ROOT, 'i18n', 'tools', '_en_override.json'),
+         lambda d: d.get('agriculture/calc-15', {}).get('en') == 'Sowing Date Calculator',
+         'agriculture/calc-15 英文名与倒推播种日功能不符（435 回归）'),
+        (os.path.join(ROOT, 'i18n', 'tools', 'civil.json'),
+         lambda d: '多规格汇总' not in d.get('rebar-weight', {}).get('zh-CN', {}).get('desc', ''),
+         'rebar-weight 卡片描述承诺了页面没有的多规格汇总（437 回归）'),
+        (os.path.join(ROOT, 'i18n', 'tools', 'encode.json'),
+         lambda d: '换行方式' not in d.get('base64-size', {}).get('zh-CN', {}).get('desc', ''),
+         'base64-size 卡片描述把百分比输入写成换行方式（437 回归）'),
+    ]
+    for fp, pred, msg in checks:
+        try:
+            data = json.load(open(fp, encoding='utf-8'))
+            if pred(data):
+                stats['passed'] += 1
+            else:
+                stats['errors'].append(msg)
+        except Exception as exc:
+            stats['errors'].append(msg + '：' + str(exc))
+    page = os.path.join(ROOT, 'tools', 'agriculture', 'calc-15.html')
+    if os.path.isfile(page) and 'Harvest Date Calculator' not in open(page, encoding='utf-8', errors='ignore').read():
+        stats['passed'] += 1
+    elif os.path.isfile(page):
+        stats['errors'].append('页面仍残留旧英文名 Harvest Date Calculator（435 回归）')
+
+
 def main():
     print('=' * 60)
     print('ToolBox 自动化静态测试')
@@ -402,6 +637,12 @@ def main():
     # 所有检查必须先跑完，再打印汇总（否则末尾告警不会进入 ⚠️ 警告 计数与详情）
     check_i18n_foundation()
     check_related_slug_map()
+    check_h1_normalization()
+    check_related_tool_cards()
+    check_text_polisher_desc()
+    check_deadlink_map()
+    check_guide_desc_boiler()
+    check_desc_accuracy_901()
 
     # 输出结果
     print(f'扫描完成，共检查 {stats["total"]} 个工具页面')

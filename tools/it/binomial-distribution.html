@@ -7,12 +7,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="toolbox" content="cat=validator,industry=it,icon=📊,bg=#ffebee">
-<meta name="description" content="二项分布计算器是一款免费的在线IT 开发工具，二项分布在线计算器，输入试验次数 n、成功概率 p 与成功次数 k，计算恰好 k 次及累积概率，用于质量与统计推断。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+<meta name="description" content="二项分布计算器是一款免费的在线IT 开发工具，二项分布在线计算器，输入试验次数 n、成功概率 p 与成功次数 k，计算恰好 k 次及累积概率，用于质量与统计推断。">
 <meta name="keywords" content="二项分布计算器,二项分布计算器在线,在线二项分布计算器,验证器,IT开发,在线工具,免费工具,ToolBox">
 <meta name="robots" content="index,follow">
 <link rel="canonical" href="https://tools.dicomp.net/tools/it/binomial-distribution.html">
 <meta property="og:title" content="二项分布计算器 - 成功概率 p 与成功次数 k">
-<meta property="og:description" content="二项分布计算器是一款免费的在线IT 开发工具，二项分布在线计算器，输入试验次数 n、成功概率 p 与成功次数 k，计算恰好 k 次及累积概率，用于质量与统计推断。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+<meta property="og:description" content="二项分布计算器是一款免费的在线IT 开发工具，二项分布在线计算器，输入试验次数 n、成功概率 p 与成功次数 k，计算恰好 k 次及累积概率，用于质量与统计推断。">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://tools.dicomp.net/tools/it/binomial-distribution.html">
 <meta name="twitter:card" content="summary">
@@ -75,10 +75,10 @@
 <meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
 <meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
     <meta name="twitter:title" content="二项分布计算器 - 成功概率 p 与成功次数 k">
-    <meta name="twitter:description" content="二项分布计算器是一款免费的在线IT 开发工具，二项分布在线计算器，输入试验次数 n、成功概率 p 与成功次数 k，计算恰好 k 次及累积概率，用于质量与统计推断。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+    <meta name="twitter:description" content="二项分布计算器是一款免费的在线IT 开发工具，二项分布在线计算器，输入试验次数 n、成功概率 p 与成功次数 k，计算恰好 k 次及累积概率，用于质量与统计推断。">
 <!-- TOOLBOX-WEBAPP-LD -->
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebApplication","name":"二项分布计算器","url":"https://tools.dicomp.net/tools/it/binomial-distribution.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"二项分布计算器是一款免费的在线IT 开发工具，二项分布在线计算器，输入试验次数 n、成功概率 p 与成功次数 k，计算恰好 k 次及累积概率，用于质量与统计推断。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+{"@context":"https://schema.org","@type":"WebApplication","name":"二项分布计算器","url":"https://tools.dicomp.net/tools/it/binomial-distribution.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"二项分布计算器是一款免费的在线IT 开发工具，二项分布在线计算器，输入试验次数 n、成功概率 p 与成功次数 k，计算恰好 k 次及累积概率，用于质量与统计推断。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
 </script>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
@@ -301,14 +301,16 @@ function cdf(n,k,p){
       s+=Math.exp(logT);
       if(i<k) logT+=Math.log(n-i)-Math.log(i+1)+lp-lq;
     }
-    return s;
+    return Math.min(1, Math.max(0, s));
   }
   let logT=n*lp, s=0;                          // logT = ln P(X=n)
   for(let i=n;i>k;i--){
     s+=Math.exp(logT);
     if(i>k+1) logT+=Math.log(i)-Math.log(n-i+1)+lq-lp;
   }
-  return 1-s;
+  // 补集累计在浮点下可能略大于 1（如 n=10000,k=5001,p=0.6 得 1+2.9e−12），
+  // 1−s 会变成负概率；概率必须落在 [0,1]，尾部真实值远小于 1 时按 0 处理。
+  return Math.min(1, Math.max(0, 1-s));
 }
 function calculate(){
   const out=document.getElementById('output');

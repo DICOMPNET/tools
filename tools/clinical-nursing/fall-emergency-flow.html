@@ -10,10 +10,10 @@
 <title>跌倒/坠床应急流程模拟器 - 坠床后的标准应急处理流程</title>
 <link rel="canonical" href="https://tools.dicomp.net/tools/clinical-nursing/fall-emergency-flow.html">
 <meta property="og:title" content="跌倒/坠床应急流程模拟器 - 坠床后的标准应急处理流程">
-<meta property="og:description" content="跌倒坠床应急流程模拟器是一款免费的在线临床护理工具，模拟患者跌倒/坠床后的标准应急处理流程，逐步引导完成每个步骤。点击步骤可标记为完成。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+<meta property="og:description" content="跌倒坠床应急流程模拟器是一款免费的在线临床护理工具，模拟患者跌倒/坠床后的标准应急处理流程，逐步引导完成每个步骤。点击步骤可标记为完成。适合工程估算、日常换算与快速复核，结果可一键复制。">
 <meta property="og:url" content="https://tools.dicomp.net/tools/clinical-nursing/fall-emergency-flow.html">
 <meta name="twitter:card" content="summary">
-<meta name="description" content="跌倒坠床应急流程模拟器是一款免费的在线临床护理工具，模拟患者跌倒/坠床后的标准应急处理流程，逐步引导完成每个步骤。点击步骤可标记为完成。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+<meta name="description" content="跌倒坠床应急流程模拟器是一款免费的在线临床护理工具，模拟患者跌倒/坠床后的标准应急处理流程，逐步引导完成每个步骤。点击步骤可标记为完成。适合工程估算、日常换算与快速复核，结果可一键复制。">
 <link rel="stylesheet" href="../../css/common.css">
 <script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
@@ -44,10 +44,10 @@
 <meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
     <meta property="og:type" content="website">
     <meta name="twitter:title" content="跌倒/坠床应急流程模拟器 - 坠床后的标准应急处理流程">
-    <meta name="twitter:description" content="跌倒坠床应急流程模拟器是一款免费的在线临床护理工具，模拟患者跌倒/坠床后的标准应急处理流程，逐步引导完成每个步骤。点击步骤可标记为完成。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+    <meta name="twitter:description" content="跌倒坠床应急流程模拟器是一款免费的在线临床护理工具，模拟患者跌倒/坠床后的标准应急处理流程，逐步引导完成每个步骤。点击步骤可标记为完成。适合工程估算、日常换算与快速复核，结果可一键复制。">
 <!-- TOOLBOX-WEBAPP-LD -->
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebApplication","name":"跌倒坠床应急流程模拟器","url":"https://tools.dicomp.net/tools/clinical-nursing/fall-emergency-flow.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"跌倒坠床应急流程模拟器是一款免费的在线临床护理工具，模拟患者跌倒/坠床后的标准应急处理流程，逐步引导完成每个步骤。点击步骤可标记为完成。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+{"@context":"https://schema.org","@type":"WebApplication","name":"跌倒坠床应急流程模拟器","url":"https://tools.dicomp.net/tools/clinical-nursing/fall-emergency-flow.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"跌倒坠床应急流程模拟器是一款免费的在线临床护理工具，模拟患者跌倒/坠床后的标准应急处理流程，逐步引导完成每个步骤。点击步骤可标记为完成。适合工程估算、日常换算与快速复核，结果可一键复制。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
 </script>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
@@ -295,9 +295,11 @@ function toggleStep(i){
 }
 
 function startSim(){
-  if(startTime) return;
+  if(timerInterval) return;
+  if(completedSteps.length === steps.length){ completedSteps = []; }
   startTime = Date.now();
   currentStep = 0;
+  document.getElementById('simTimer').textContent = '00:00';
   renderSteps();
   timerInterval = setInterval(updateTimer, 1000);
   ToolBox.showToast(i18nText('toast.msg453'), 'info');
@@ -382,7 +384,7 @@ function clearFlowMarks(){
 function __flowExtras(){
   if(typeof TBKit==='undefined') return;
   try{
-    TBKit.history.record({progress:completedSteps.length+'/'+steps.length, done:completedSteps.length===steps.length}, 3000);
+    TBKit.history.record({progress:completedSteps.length+'/'+steps.length, done:completedSteps.length===steps.length, steps:completedSteps.join(',')}, 3000);
     __flowMountHist();
   }catch(e){}
 }
@@ -390,11 +392,16 @@ function __flowMountHist(){
   if(typeof TBKit==='undefined') return;
   try{
     TBKit.history.mount('#flowHistory', function(rec){
-      var m=/^(\d+)\//.exec(rec.progress||'');
-      if(!m) return;
-      var n=parseInt(m[1]);
-      completedSteps=[];
-      for(var i=0;i<n;i++) completedSteps.push(i);
+      // 优先用完整步骤索引回放；旧记录无 steps 时按进度数兜底
+      if(rec.steps!==undefined){
+        completedSteps=String(rec.steps).split(',').filter(function(x){return x!=='';}).map(function(x){return parseInt(x,10);}).filter(function(x){return isFinite(x)&&x>=0&&x<steps.length;});
+      }else{
+        var m=/^(\d+)\//.exec(rec.progress||'');
+        if(!m) return;
+        var n=parseInt(m[1]);
+        completedSteps=[];
+        for(var i=0;i<n;i++) completedSteps.push(i);
+      }
       currentStep=-1;
       renderSteps();
     }, 8);
@@ -533,7 +540,7 @@ document.addEventListener('DOMContentLoaded',function(){
 
 <script>
 (function(){
-  var FE_EN={'立即评估患者状况':'Assess patient immediately','呼叫协助':'Call for help','初步评估损伤程度':'Assess injury severity','生命体征监测':'Monitor vital signs','根据伤情处理':'Treat according to injury','协助患者转移':'Assist patient transfer','通知医生与家屝':'Notify doctor and family','完善记录与上报':'Complete documentation and reporting'};
+  var FE_EN={'立即评估患者状况':'Assess patient immediately','呼叫协助':'Call for help','初步评估损伤程度':'Assess injury severity','生命体征监测':'Monitor vital signs','根据伤情处理':'Treat according to injury','协助患者转移':'Assist patient transfer','通知医生与家属':'Notify doctor and family','完善记录与上报':'Complete documentation and reporting'};
   function feT(zh,en){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
   function feAll(){
     if(typeof TBKit==='undefined') return;

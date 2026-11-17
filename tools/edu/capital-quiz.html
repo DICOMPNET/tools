@@ -7,12 +7,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="toolbox" content="cat=game,industry=edu,icon=📝,bg=#fff8e1">
-<meta name="description" content="首都测验是一款免费的在线教育学习工具，随机出题考查各国首都，限时作答并即时判分，覆盖各大洲国家，适合地理学习自测与课堂小测。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+<meta name="description" content="首都测验是一款免费的在线教育学习工具，随机出题考查各国首都，限时作答并即时判分，覆盖各大洲国家，适合地理学习自测与课堂小测。适合工程估算、日常换算与快速复核，结果可一键复制。">
 <meta name="keywords" content="首都测验,首都测验在线,在线首都测验,游戏趣味,教育学习,在线工具,免费工具,ToolBox">
 <meta name="robots" content="index,follow">
 <link rel="canonical" href="https://tools.dicomp.net/tools/edu/capital-quiz.html">
 <meta property="og:title" content="首都测验 - 免费在线教育学习工具">
-<meta property="og:description" content="首都测验是一款免费的在线教育学习工具，随机出题考查各国首都，限时作答并即时判分，覆盖各大洲国家，适合地理学习自测与课堂小测。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+<meta property="og:description" content="首都测验是一款免费的在线教育学习工具，随机出题考查各国首都，限时作答并即时判分，覆盖各大洲国家，适合地理学习自测与课堂小测。适合工程估算、日常换算与快速复核，结果可一键复制。">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://tools.dicomp.net/tools/edu/capital-quiz.html">
 <meta name="twitter:card" content="summary">
@@ -68,10 +68,10 @@
 <meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
 <meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
     <meta name="twitter:title" content="首都测验 - 免费在线教育学习工具">
-    <meta name="twitter:description" content="首都测验是一款免费的在线教育学习工具，随机出题考查各国首都，限时作答并即时判分，覆盖各大洲国家，适合地理学习自测与课堂小测。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+    <meta name="twitter:description" content="首都测验是一款免费的在线教育学习工具，随机出题考查各国首都，限时作答并即时判分，覆盖各大洲国家，适合地理学习自测与课堂小测。适合工程估算、日常换算与快速复核，结果可一键复制。">
 <!-- TOOLBOX-WEBAPP-LD -->
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebApplication","name":"首都测验","url":"https://tools.dicomp.net/tools/edu/capital-quiz.html","applicationCategory":"GamesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"首都测验是一款免费的在线教育学习工具，随机出题考查各国首都，限时作答并即时判分，覆盖各大洲国家，适合地理学习自测与课堂小测。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+{"@context":"https://schema.org","@type":"WebApplication","name":"首都测验","url":"https://tools.dicomp.net/tools/edu/capital-quiz.html","applicationCategory":"GamesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"首都测验是一款免费的在线教育学习工具，随机出题考查各国首都，限时作答并即时判分，覆盖各大洲国家，适合地理学习自测与课堂小测。适合工程估算、日常换算与快速复核，结果可一键复制。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
 </script>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
@@ -271,19 +271,23 @@ const data=[
   {c:'瑞士',cap:'伯尔尼'},{c:'瑞典',cap:'斯德哥尔摩'},{c:'挪威',cap:'奥斯陆'},
   {c:'希腊',cap:'雅典'},{c:'土耳其',cap:'安卡拉'},{c:'泰国',cap:'曼谷'}
 ];
-let queue,qNo,score,cur,timerId,locked;
+let queue,qNo,score,cur,timerId,locked,advanceTimer=null,gameToken=0;
 
 function getCount(){var el=document.getElementById('qCount');return (el&&+el.value)||10;}
 function getSeconds(){var el=document.getElementById('qTimeLimit');return el?+el.value:0;}
 
 function start(){
   reset();
+  gameToken++;
+  if(advanceTimer){clearTimeout(advanceTimer);advanceTimer=null;}
   queue=[...data].sort(()=>Math.random()-0.5).slice(0,getCount());
   qNo=0;score=0;
   next();
 }
 function reset(){
   clearInterval(timerId);
+  gameToken++;
+  if(advanceTimer){clearTimeout(advanceTimer);advanceTimer=null;}
   locked=false;
   document.getElementById('qNo').textContent='0';
   document.getElementById('score').textContent='0';
@@ -297,6 +301,7 @@ function showStatus(remain){
 }
 function next(){
   clearInterval(timerId);
+  if(advanceTimer){clearTimeout(advanceTimer);advanceTimer=null;}
   locked=false;
   if(qNo>=queue.length){
     finish();
@@ -335,6 +340,16 @@ function next(){
     showStatus();
   }
 }
+// 延迟推进加局次令牌：start()/reset() 递增 gameToken 并清 advanceTimer，
+// 计时超时/作答后 0.9 秒内若已重置或重开，过期回调因令牌不匹配被丢弃。
+function scheduleNext(){
+  var myToken=gameToken;
+  advanceTimer=setTimeout(function(){
+    advanceTimer=null;
+    if(myToken!==gameToken)return;
+    next();
+  },900);
+}
 function timeout(){
   if(locked) return;
   locked=true;
@@ -342,7 +357,7 @@ function timeout(){
   opts.forEach(b=>b.onclick=null);
   opts.forEach(b=>{if(b.textContent===cur.cap)b.classList.add('correct');});
   document.getElementById('output').textContent='⏱ 超时，正确答案是 '+cur.cap;
-  setTimeout(next,900);
+  scheduleNext();
 }
 function choose(o,el){
   if(locked) return;
@@ -358,7 +373,7 @@ function choose(o,el){
     opts.forEach(b=>{if(b.textContent===cur.cap)b.classList.add('correct');});
   }
   document.getElementById('score').textContent=score;
-  setTimeout(next,900);
+  scheduleNext();
 }
 function finish(){
   clearInterval(timerId);

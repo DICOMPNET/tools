@@ -70,8 +70,7 @@ const CASES = [
   "expect": [
     "15"
   ],
-    ref: "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
-  "ref": "auto-restore"
+    "ref": "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。 [auto-restore]"
 },
 {
   "slug": "tcm-chemistry/crystallization-yield",
@@ -98,8 +97,7 @@ const CASES = [
   "expect": [
     "甘草_X"
   ],
-    ref: "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
-  "ref": "auto-restore"
+    "ref": "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。 [auto-restore]"
 },
 {
   "slug": "tcm-chemistry/extraction-counts",
@@ -213,6 +211,14 @@ const CASES = [
   },
   "expect": [ "243 脱糖基", "421 羟基化", "581 葡萄糖醛酸化" ],
   "ref": "MW=405（黄芩苷）按官能团质量差独立复算：脱糖基 −162（葡萄糖基 C₆H₁₀O₅）⇒ 243；羟基化 +16 ⇒ 421；葡萄糖醛酸化 +176 ⇒ 581。默认态 MW=270 ⇒ 108 / 286 / 446，三串均不命中。旧断言 229 为误用 −176（那是葡萄糖醛酸加合的质量差）所致。"
+},
+{
+  "slug": "tcm-chemistry/metabolite-prediction",
+  "inputs": {
+    "mw": "10"
+  },
+  "expect": [ "— 去甲基" ],
+  "ref": "MW=10：旧实现去甲基直接算 10−14=−4 并显示负分子量；现与脱糖基/脱水一致，非正值显示「—」。默认 MW=270 ⇒ 256，不命中。"
 },
 {
   "slug": "tcm-chemistry/ointment-release",

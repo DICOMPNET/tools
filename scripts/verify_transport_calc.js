@@ -25,8 +25,7 @@ const CASES = [
   "expect": [
     "480"
   ],
-    ref: "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
-  "ref": "auto-restore"
+    "ref": "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。 [auto-restore]"
 },
 {
   "slug": "transport/calculator-calc-3",
@@ -94,6 +93,24 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  "slug": "transport/convert-fuel-oil",
+  "inputs": { "val": "30", "from": "mpg", "to": "mpg" },
+  "expect": ["30.00 MPG"],
+  "ref": "同单位换算不得取倒数：from=to=mpg、输入 30 时大字结果应为 30.00 MPG；旧实现无条件先算 r=235.2146/v 并据此输出，得到 7.84 MPG。默认 to=l100、val=45 ⇒ 5.23，不含 30.00 MPG。"
+},
+{
+  "slug": "transport/convert-fuel-oil",
+  "inputs": { "val": "12.34", "from": "l100", "to": "l100" },
+  "expect": ["12.34 L/100km"],
+  "ref": "同单位换算：from=to=l100、输入 12.34 时结果应为 12.34 L/100km；旧实现输出 235.2146/12.34=19.06 L/100km（倒数）。原输入 7.84 撞页面静态换算表（默认态也含「7.84 L/100km」）；改唯一值 12.34 ⇒ 默认态不含，零逃生。"
+},
+{
+  "slug": "transport/convert-fuel-oil",
+  "inputs": { "val": "30", "gal": "uk", "from": "mpg", "to": "l100" },
+  "expect": ["9.42 L/100km"],
+  "ref": "英制加仑（683 批）：30 MPG(UK) → 282.4809/30 = 9.4160 ≈ 9.42 L/100km；旧版无 gal 选项且恒用 235.2146（得 7.84），默认美制也含 7.84 ⇒ 必须切 UK 才命中 9.42"
+},
+{
   "slug": "transport/convert-volume-weight",
   "inputs": {
     "l": "60",
@@ -143,8 +160,7 @@ const CASES = [
   "expect": [
     "6.75"
   ],
-    ref: "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
-  "ref": "auto-restore"
+    "ref": "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。 [auto-restore]"
 },
 {
   "slug": "transport/estimate-energy",

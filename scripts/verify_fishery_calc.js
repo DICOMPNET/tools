@@ -9,7 +9,41 @@
  * 用法: node scripts/verify_fishery_calc.js [slug ...]
  */
 "use strict";
+const fs = require("fs");
+const path = require("path");
 const { runCase } = require("./verify_it_calc.js");
+
+// 深解算例是构建注入的静态正文，harness 只采集结果容器，读不到 .deep-dive。
+// 因此以源文件断言守住「权威源 + 构建产物 + EN 映射」三处口径一致。
+const PARASITE_TOOL = path.join(__dirname, "..", "tools", "fishery", "parasite-lifecycle.html");
+const PARASITE_DEEPDIVE = path.join(__dirname, "..", "i18n", "tools", "content_deepdive.json");
+const PARASITE_EN = path.join(__dirname, "..", "i18n", "tools", "en", "fishery", "parasite-lifecycle.json");
+function parasiteStaticChecks() {
+  const tool = fs.readFileSync(PARASITE_TOOL, "utf8");
+  const deep = JSON.parse(fs.readFileSync(PARASITE_DEEPDIVE, "utf8"));
+  const en = JSON.parse(fs.readFileSync(PARASITE_EN, "utf8"))["map"] || {};
+  const zh = deep["fishery/parasite-lifecycle"]["examples"][0]["body"];
+  const hasGood = function (s) { return s.indexOf("滋养体寄生 8.0 天(120)") >= 0 && s.indexOf("包囊繁殖 3.8 天(57)") >= 0; };
+  const hasOld = function (s) { return s.indexOf("8.6 天(120)") >= 0 || s.indexOf("4.1 天(57)") >= 0; };
+  return [
+    {
+      name: "寄生虫深解源：25℃ 三阶段合计 0.2+8.0+3.8=12.0 天",
+      ok: hasGood(zh) && !hasOld(zh),
+    },
+    {
+      name: "寄生虫工具页构建产物与深解源一致",
+      ok: hasGood(tool) && !hasOld(tool),
+    },
+    {
+      name: "寄生虫英文映射键与中文深解逐字一致",
+      ok: Object.prototype.hasOwnProperty.call(en, zh)
+        && en[zh].indexOf("trophont parasitism 8.0 days (120)") >= 0
+        && en[zh].indexOf("tomont reproduction 3.8 days (57)") >= 0
+        && en[zh].indexOf("8.6 days (120)") < 0
+        && en[zh].indexOf("4.1 days (57)") < 0,
+    },
+  ];
+}
 
 const CASES = [
   {
@@ -66,8 +100,8 @@ const CASES = [
   {
     slug: "fishery/mesh-size-guide",
     inputs: { mesh: "60", length: "32" },
-    expect: ["网目 60mm，L50≈3.0cm", "对应体重 1 g"],
-    ref: "注入非默认(默认 50/25)：网目 60mm ⇒ L50 ≈ 3.0 cm（经验系数按品种取值），按 W = 0.0223·L^3.01 换算对应体重 1 g。默认态为 50mm 档的一对值，两条均不命中。"
+    expect: ["网目 60mm，L50≈30.0cm", "对应体重 623 g"],
+    ref: "注入非默认(默认 50/25)：网目 60mm ⇒ L50 ≈ 30.0 cm（L50(cm)=k×网目(mm)，鲤 k=0.50），按 W = 0.0223·L^3.01 换算对应体重 623 g。默认态为 50mm 档的一对值，两条均不命中。"
   },
   {
     slug: "fishery/stocking-density",
@@ -143,6 +177,12 @@ const CASES = [
   },
   {
     slug: "fishery/assessor-risk-4",
+    inputs: { temp: "21", do: "7.5", ph: "6.4", nh3: "0.08", no2: "0.03", density: "900" },
+    expect: ["pH异常(6.4)"],
+    ref: "706 pH 分档锚：ph=6.4 < 6.5 ⇒ 代码 ph<6.5 判异常并输出专属串「pH异常(6.4)」（+3 分），与表格「pH<6.5 判异常」一致。该串含注入的 6.4 且只在该档出现，默认 ph=7.5 不命中 ⇒ 强判别。中间档 6.7 与异常档 6.4 共同锚定表格分档：表格旧称 6.0–6.5 需关注、<6.5 异常互相矛盾，现按代码厘清。",
+  },
+  {
+    slug: "fishery/assessor-risk-4",
     inputs: { temp: "21", do: "7.5", ph: "8.2", nh3: "0.08", no2: "0.03", density: "900" },
     expect: ["风险评分： 0"],
     ref: "注入非默认(默认 25/5.0/7.5/0.5/0.1/1500)：水温/DO/pH 均在适宜区间，氨氮 0.08、亚硝酸盐 0.03 低于鲤科安全限，密度 900 尾/亩未超载 ⇒ 六项零罚分，风险评分 0、低风险。默认态氨氮 0.5 已超限会加分；评价文案会随等级漂移，故只锚分值串。"
@@ -160,6 +200,13 @@ const CASES = [
     ref: "注入非默认(默认 1000/100/26)：温水性鱼均重 150g ⇒ 基础投喂率 1.53%；21℃ 温度因子 0.37 ⇒ 修正后投喂率 0.56%；日投喂 = 1500×0.56% = 8.45 kg，分 3 餐 ⇒ 每餐 2.82 kg。默认态三项均不同。"
   },
   {
+    slug: "fishery/feed-rate-calculator",
+    inputs: { biomass: "1500", weight: "150", temp: "21" },
+    clicks: ["var n=0;var orig=ToolBox.copyText;ToolBox.copyText=function(){n++;};calc();document.getElementById('biomass').value='-1';calc();copyResult();ToolBox.copyText=orig;document.getElementById('__tbProbe').textContent='FR699 n='+n+' r='+(lastResult===''?0:1);"],
+    expect: ["FR699 n=0 r=0"],
+    ref: "699 复核失败重做：原交接写的 `feed-rate.html` 是文件名笔误，真实页面为 feed-rate-calculator.html。先合法输入算出 lastResult，再把存塘量改为 -1 触发校验失败；旧实现只替换结果文字不清缓存，复制仍输出上一次方案；现失败分支 lastResult='' 且 copyResult() 拒绝复制。探针统计真实 copyText 调用次数并要求缓存为空，默认态无探针串。"
+  },
+  {
     slug: "fishery/drug-withdrawal-fish",
     inputs: { temp: "24", stdDays: "20", refTemp: "18", tbase: "6" },
     expect: ["7.4 天", "0.53 校正系数"],
@@ -167,9 +214,9 @@ const CASES = [
   },
   {
     slug: "fishery/plankton-biomass",
-    inputs: { count: "200", chamber: "1", dilution: "2", vol: "800", factor: "0.11" },
+    inputs: { count: "200", chamber: "1", dilution: "2", dilMode: "dilute", vol: "800", factor: "0.11" },
     expect: ["0.0352", "400.0", "88.000"],
-    ref: "注入非默认(默认 120/1/1/500/0.11)：细胞密度 = 200×2÷1 = 400.0 个/mL；单细胞质量 = 0.11×800 = 88.000 pg；生物量 = 400×88 pg/mL = 0.0352 mg C/L。默认态 120.0/55.000/0.0066 均不命中。"
+    ref: "注入非默认(默认 120/1/1/none/500/0.11)：稀释 2 倍后计数 ⇒ 细胞密度 = 200×2÷1 = 400.0 个/mL；单细胞质量 = 0.11×800 = 88.000 pg；生物量 = 400×88 pg/mL = 0.0352 mg C/L。默认态 120.0/55.000/0.0066 均不命中。"
   },
   {
     slug: "fishery/water-oxygen",
@@ -286,18 +333,18 @@ const CASES = [
   {
     "slug": "fishery/assessor-risk-4",
     "inputs": {
-      "temp": "42",
-      "do": "42",
-      "ph": "42",
-      "nh3": "42",
-      "no2": "42",
-      "density": "42",
+      "temp": "38",
+      "do": "1",
+      "ph": "10",
+      "nh3": "2",
+      "no2": "1",
+      "density": "100000",
       "fishType": "tilapia"
     },
     "expect": [
-      "亩 风险评分： 15 风险等级： 极高风险 风险因素： 水温严重偏离适宜范围 pH异常(42) 氨氮超标(42mg/L)，急性中毒 亚硝酸盐严重超标，褐血病"
+      "亩 风险评分： 23 风险等级： 极高风险"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"temp\":\"42\",\"do\":\"42\",\"ph\":\"42\",\"nh3\":\"42\",\"no2\":\"42\",\"density\":\"42\",\"fishType\":\"tilapia\"}，输出区含「亩 风险评分： 15 风险等级： 极高风险 风险因素： 水温严重偏离适宜范围 p…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入极端但合法的输入（水温 38℃、DO 1、pH 10、氨氮 2、亚硝酸盐 1、密度 10 万尾/亩，均在新校验范围内）；罗非鱼适宜 22–30℃，六项分别罚 4+5+3+4+4+3=23 分 ⇒ 极高风险。默认态（25/5/7.5/0.5/0.1/1500）仅 4 分，不命中。"
   },
   {
     "slug": "fishery/calc-39",
@@ -338,9 +385,20 @@ const CASES = [
       "pondLastClean": "abc123测试"
     },
     "expect": [
-      "🐟 abc123测试 低风险 面积： 42 亩 水深： 42 米 密度： 42 尾/亩 投饵率： 42% 日投饵量： 370.4 kg 月有机质累积： 3334.0 kg 月浓度增量： 2.83 mg/L 上次清淤： "
+      "🐟 abc123测试 低风险 面积： 42 亩 水深： 42 米 密度： 42 尾/亩 投饵率： 42% 日投饵量： 370.4 kg 月有机质累积： 3334.0 kg 月单位面积负荷： 0.119 kg/m² 上次清淤： "
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"pondName\":\"abc123测试\",\"pondArea\":\"42\",\"pondDepth\":\"42\",\"pondDensity\":\"42\",\"pondFeed\":\"42\",\"pondLastClean\":\"abc123测试\"}，输出区含「🐟 abc123测试 低风险 面积： 42 亩 水深： 42 米 密度： 42…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"pondName\":\"abc123测试\",\"pondArea\":\"42\",\"pondDepth\":\"42\",\"pondDensity\":\"42\",\"pondFeed\":\"42\",\"pondLastClean\":\"abc123测试\"}，输出区含「🐟 abc123测试 低风险 面积： 42 亩 水深： 42 米 密度： 42…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。月负荷 = 370.44×30×0.3 ÷ (42×667) = 3333.96/28014 ≈ 0.119 kg/m²。"
+  },
+  {
+    "slug": "fishery/cycle-6",
+    "inputs": {},
+    "clicks": [
+      "var p=calcParams({area:5,depth:1.5,density:800,feedRate:1.5});document.getElementById('__tbProbe').textContent='CY6 '+((Math.abs(p.monthlyLoad-0.081)<0.001&&Math.abs(p.cycleMonths-43.2)<0.2)?'OK':'BAD');"
+    ],
+    "expect": [
+      "CY6 OK"
+    ],
+    "ref": "精养塘预设（5 亩/1.5 m/800 尾/1.5%）：月残留 800×0.5×1.5%×5×30×0.3=270 kg，塘底 3335 m² ⇒ 0.081 kg/m²/月，按 3.5 kg/m² 判据得 43.2 个月（约 3.6 年）。旧模型按水体浓度 15 mg/L 反推仅 0.28 个月（8 天），与常规清淤量级不符。"
   },
   {
     "slug": "fishery/drug-withdrawal-fish",
@@ -477,7 +535,7 @@ const CASES = [
       "mode": "bySize"
     },
     "expect": [
-      "bySize\ngrass\n42\n42 目标体长(cm) 1533 对应体重(g) 808 建议网目(mm) 草鱼：目标体长 42cm，体重 1533g 建议网目 808 mm （L50=体长）\n42"
+      "bySize\ngrass\n42\n42 目标体长(cm) 1533 对应体重(g) 81 建议网目(mm) 草鱼：目标体长 42cm，体重 1533g 建议网目 81 mm （L50=体长）\n42"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"mesh\":\"42\",\"length\":\"42\",\"species\":\"grass\",\"mode\":\"bySize\"}，输出区含「bySize\ngrass\n42\n42 目标体长(cm) 1533 对应体重(g)…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -535,9 +593,10 @@ const CASES = [
       "ctype": "fresh"
     },
     "expect": [
-      "42\n42\n42\n42\n1\nfresh\n0.0018 mg/L(鲜重) · 偏低 42"
+      "0.0000 mg/L(鲜重) · 偏低",
+      "1.0 密度(个/mL)"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"count\":\"42\",\"chamber\":\"42\",\"dilution\":\"42\",\"vol\":\"42\",\"factor\":\"42\",\"ctype\":\"fresh\"}，输出区含「42\n42\n42\n42\n1\nfresh\n0.0018 mg/L(鲜重) · 偏低…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"count\":\"42\",\"chamber\":\"42\",\"dilution\":\"42\",\"vol\":\"42\",\"factor\":\"42\",\"ctype\":\"fresh\"}（dilMode 默认 none，故倍数不作修正）；细胞密度 = 42÷42×1 = 1.0 个/mL，鲜重系数被 onchange 重置为 1.0 ⇒ 单细胞 42 pg、生物量 0.000042 mg/L 显示 0.0000 且判「偏低」；默认态为碳 0.0066 mg C/L，不命中。"
   },
   {
     "slug": "fishery/profit-calculator",
@@ -588,28 +647,28 @@ const CASES = [
   {
     "slug": "fishery/seafood-cold-storage",
     "inputs": {
-      "temp": "42",
+      "temp": "12",
       "q10": "42",
       "product": "shrimp"
     },
     "expect": [
-      " 0℃ 下保质期 4 天 储藏于 42℃，按 Q10=42 修正后保质期 2.4 小时"
+      " 0℃ 下保质期 4 天 储藏于 12℃，按 Q10=42 修正后保质期 2.4 小时"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"temp\":\"42\",\"q10\":\"42\",\"product\":\"shrimp\"}，输出区含「 0℃ 下保质期 4 天 储藏于 42℃，按 Q10=42 修正后保质期 2.4…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"temp\":\"12\",\"q10\":\"42\",\"product\":\"shrimp\"}（温度限 −30~30℃，12℃ 合法、与 0℃ 基准差 12℃ 未触发外推提示）；理论 4×42^-1.2≈0.045 天，被 0.1 天下限钳住 ⇒ 2.4 小时。输出区含「 0℃ 下保质期 4 天 储藏于 12℃，按 Q10=42 修正后保质期 2.4 小时」；默认态（0/3/鲜鱼）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "fishery/spawning-hormone",
     "inputs": {
       "weight": "42",
       "count": "42",
-      "temp": "42",
+      "temp": "28",
       "species": "tilapia",
       "protocol": "hcg"
     },
     "expect": [
       "第二针(85%) HCG 40320.0 IU 1693440 IU 254016.0 IU 1439424.0 IU"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"weight\":\"42\",\"count\":\"42\",\"temp\":\"42\",\"species\":\"tilapia\",\"protocol\":\"hcg\"}，输出区含「第二针(85%) HCG 40320.0 IU 1693440 IU 25401…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"weight\":\"42\",\"count\":\"42\",\"temp\":\"28\",\"species\":\"tilapia\",\"protocol\":\"hcg\"}（水温限 0–40℃），HCG 方案 1200×0.8=960 IU/kg ⇒ 单尾 40320 IU、总量 1693440 IU、第二针 1439424 IU；默认态（草鱼/LRH+DOM）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "fishery/wastewater-cod",
@@ -734,7 +793,12 @@ async function main() {
     }
   }
 
+  const stat = parasiteStaticChecks();
+  const staticFails = stat.filter((s) => !s.ok);
+  for (const s of staticFails) console.log("❌ [static] " + s.name);
+
   console.log("==== fishery calc " + pass + "/" + cases.length + " ====");
-  if (fails.length) process.exit(1);
+  if (staticFails.length) console.log("❌ static " + (stat.length - staticFails.length) + "/" + stat.length + " 未通过");
+  if (fails.length || staticFails.length) process.exit(1);
 }
 if (require.main === module) main();

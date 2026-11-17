@@ -142,6 +142,11 @@ def _seo_ind_label(ind_label):
 def _seo_mod_ok(cand, name, min_cn):
     if not cand or not (4 <= len(cand) <= 24):
         return False
+    # 单位换算口径（「每 5 个正确字符计 1 词」）是算法说明，不是功能修饰；
+    # 选进 <title> 会挤掉行业标签。独立的「每 3 字节 → 4 字符」「每100mL…颗粒数」
+    # 等功能描述不含「计 N」，不受影响（实测外溢会降级两页既有优质标题）。
+    if re.match(r'^每\s*\d', cand) and re.search(r'计\s*\d', cand):
+        return False
     if not (min_cn <= len(_seo_cn(cand)) <= 14):
         return False
     if any(b in cand for b in SEO_BOILER):
@@ -598,7 +603,19 @@ def normalize_tool_h1(html_str, zh_name='', dd_title=''):
     def _h1_in_skip(pos):
         return any(s <= pos < e for s, e in skip_spans)
 
-    # ① 错配闭标签
+    # ① 错配闭标签：闭标签查找必须跳过 script/style 内的字面量，
+    # 否则 <h1>中文标题<script>let a='</h2>';</script></h1> 会把脚本字符串改坏（第 216 批）。
+    def _find_close(tag, start):
+        pos = start
+        while True:
+            p = html_str.find(tag, pos)
+            if p == -1:
+                return -1
+            if not _h1_in_skip(p):
+                return p
+            pos = p + len(tag)
+
+    fixes = []
     i = 0
     while True:
         m = _H1_OPEN_RE.search(html_str, i)
@@ -608,14 +625,20 @@ def normalize_tool_h1(html_str, zh_name='', dd_title=''):
             i = m.end()
             continue
         oe = m.end()
-        n1 = html_str.find('</h1>', oe)
-        n2 = html_str.find('</h2>', oe)
+        n1 = _find_close('</h1>', oe)
+        n2 = _find_close('</h2>', oe)
         if n2 != -1 and (n1 == -1 or n2 < n1):
-            html_str = html_str[:n2] + '</h1>' + html_str[n2 + len('</h2>'):]
-            n += 1
-            i = n2 + len('</h1>')
+            fixes.append(n2)
+            i = n2 + len('</h2>')
         else:
             i = oe
+    for p in reversed(fixes):
+        html_str = html_str[:p] + '</h1>' + html_str[p + len('</h2>'):]
+        n += 1
+    if fixes:
+        # 替换改变字符串长度后重算跳过区间，供 ②③④ 使用。
+        skip_spans = [(m.start(), m.end()) for m in
+                      re.finditer(r'<(script|style)\b[^>]*>[\s\S]*?</\1>', html_str, re.I)]
     # 解析可用中文名（先剥标签再反转义，避免实体被误当标签）
     cand = ''
     bcs = re.findall(r'<span class="bc-current">([\s\S]*?)</span>', html_str)
@@ -626,9 +649,14 @@ def normalize_tool_h1(html_str, zh_name='', dd_title=''):
             break
     # ②③④ 处理 h1 块
     reps = []
-    for idx, b in enumerate(_H1_BLOCK_RE.finditer(html_str)):
+    # 索引只统计 script/style 之外的真实 h1；旧实现用 enumerate 全量计数，
+    # 脚本块里的 <h1> 字面量会让页面唯一真实标题的 idx>0 而被误降级为 h2（第 216 批）。
+    real_idx = 0
+    for b in _H1_BLOCK_RE.finditer(html_str):
         if _h1_in_skip(b.start()):
             continue
+        idx = real_idx
+        real_idx += 1
         attr, inner, close = b.group(1), b.group(2), b.group(3)
         _raw = _h1_text(inner)
         if not re.search(r'[\u4e00-\u9fff]', _raw):
@@ -3145,7 +3173,7 @@ def normalize_guide_descriptions():
     if not os.path.isdir(gdir):
         return 0
     meta_re = re.compile(
-        r'(<meta (?:name="description"|property="og:description"|name="twitter:description") content=")'
+        r'(<meta (?:name="description"|property="og:description"|name="twitter:description")[^>]*?\scontent=")'
         r'((?:[^"\\]|\\.)*)(")')
     ld_re = re.compile(r'("description":")((?:[^"\\]|\\.)*)(")')
     fixed = 0
@@ -4159,6 +4187,19 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
                                  % (_d_name, ind_name))
             if len(_seo_desc_raw) < 70:
                 _seo_desc_raw = _seo_desc_raw.rstrip('。') + '。适合工程估算、日常换算与快速复核，结果可一键复制。'
+        # 436（2026-11-16）：页面 meta / og / twitter / JSON-LD 的 description 不再保留
+        # 生成器隐私尾句。卡片描述早已由 tool_desc_source.clean_zh_candidate 用同一正则
+        # 清掉该句（json/tools.json 的 d 字段为 0），但历史构建源在三处主动把它拼回页面，
+        # 造成 4022 页 description 尾部雷同、与卡片口径不一致。这里复用卡片同一正则统一
+        # 收口：循环截掉 core 可能自带的同类尾句，只保留有效功能描述；隐私承诺仍在页面
+        # 可见区与 footer 承载，不是信息丢失。截短后不足 70 字符则补真实价值句。
+        for _tail_round in range(3):
+            _no_tail = TDS._PRIVACY_TAIL_RE.sub('', _seo_desc_raw).rstrip('；;，, ')
+            if _no_tail == _seo_desc_raw:
+                break
+            _seo_desc_raw = _no_tail
+        if len(_seo_desc_raw) < 70 and '适合工程估算' not in _seo_desc_raw:
+            _seo_desc_raw = _seo_desc_raw.rstrip('。') + '。适合工程估算、日常换算与快速复核，结果可一键复制。'
         app_desc = esc_html_py(_clip_zh_desc(_seo_desc_raw, 150))
         # JSON-LD 字符串安全（2026-09-23）：desc 含反斜杠字面量（转义类工具 \n \b…）或
         # 控制字符时，未转义会导致 WebApplication JSON 非法、整块被 Google 丢弃。
@@ -4642,7 +4683,9 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
             _seen_sets = set()
             _out, _pos = [], 0
             for _bm in _rt_blocks:
-                _hrefs = tuple(re.findall(r'href="([^"]+)" class="related-tool-card"', _bm.group(0)))
+                # 406 批复核失败重做：按 href 集合去重，[A,B] 与 [B,A] 视作同一组，
+                # 只删后出现的重复块，保留第一块原有卡片顺序。
+                _hrefs = frozenset(re.findall(r'href="([^"]+)" class="related-tool-card"', _bm.group(0)))
                 if _hrefs and _hrefs in _seen_sets:
                     _out.append(content[_pos:_bm.start()])
                     _pos = _bm.end()

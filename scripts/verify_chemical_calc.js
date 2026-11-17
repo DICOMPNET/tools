@@ -17,19 +17,42 @@ const CASES = [
     "1020000",
     "0.0039",
     "0.394 m"
-  ]
+  ],
+  "ref": "独立复算：D=300mm=0.3m/L=150m/v=2/ρ=850/μ=0.0005/ε=0.1mm ⇒ Re=850×2×0.3÷0.0005=1020000（湍流，锚Re）；Haaland f=1/[−1.74·ln((0.1÷1000)/(3.7×0.3)+6.9÷1020000)]²≈0.0039（锚f）；ΔP=f×(150÷0.3)×(850×2²÷2)≈3287Pa=3.29kPa（锚kPa）；液柱=3287÷(850×9.81)≈0.394m（锚液柱，区别于水柱0.335m）。页面默认 200/100/1.5/1000/0.001/0.045 四锚均不命中，四值全依赖注入。"
 },
 {
   "slug": "chemical/convert-capacity-tank",
-  "inputs": { "type": "vcyl", "d": "6", "w": "3", "h": "3" },
+  "clicks": ["document.getElementById('type').value='vcyl';document.getElementById('mode').value='level';document.getElementById('d').value='6';document.getElementById('w').value='3';document.getElementById('L').value='12';document.getElementById('h').value='3';document.getElementById('Vt').value='314.159';calc();document.getElementById('__tbProbe').textContent=document.getElementById('res').innerHTML"],
   "expect": ["容积 V = 84.823 m³"],
-  "ref": "立式圆柱 直径 6m、液位 3m → V=π·3²·3=84.823 m³（默认 d=10/h=4 → 314.159，注入态不重合）"
+  "ref": "立式圆柱 直径 6m、液位 3m → V=π·3²·3=84.823 m³（默认 d=10/h=4 → 314.159，注入态不重合；clicks 全量赋值避免同 slug 用例共享 DOM 时串态）"
 },
 {
   "slug": "chemical/convert-capacity-tank",
-  "inputs": { "type": "box", "d": "4", "w": "3", "h": "2" },
-  "expect": ["容积 V = 24.000 m³"],
-  "ref": "长方体 长 4m×宽 3m×液位 2m → V=24.000 m³"
+  "inputs": { "type": "vcyl", "mode": "level", "d": "8", "w": "3", "L": "10", "h": "3", "Vt": "150.796" },
+  "clicks": ["calc();document.getElementById('__tbProbe').textContent=document.getElementById('res').innerHTML"],
+  "expect": ["容积 V = 150.796 m³", "充装率 = 30.00%"],
+  "ref": "682 批复核失败回归（存量逃生项收紧）：立式罐 d=8、L=10、液位 3 ⇒ V=π·4²·3=150.796，满罐 502.655，充装率 30.00%；旧用例注入值与页面默认 d=10/L=12/h=4 完全相同，默认态即命中 33.33%/942.478，判别器判逃生。现改为全非默认输入，默认态两锚均不命中。"
+},
+{
+  "slug": "chemical/convert-capacity-tank",
+  "clicks": ["document.getElementById('type').value='hcyl';document.getElementById('mode').value='volume';document.getElementById('d').value=2.4;document.getElementById('L').value=8;document.getElementById('Vt').value=18.0956;calc();document.getElementById('__tbProbe').textContent=document.getElementById('res').innerHTML"],
+  "expect": ["18.096 m³", "液位 1.200 m"],
+  "ref": "卧式罐反算：d=2.4、L=8 满罐 36.191，目标 18.0956（半满）⇒ 液位 1.200m、充装率 50.00%；旧版无卧式与反算，必失败"
+},
+{
+  "slug": "chemical/convert-capacity-tank",
+  "clicks": ["document.getElementById('type').value='vcyl';document.getElementById('mode').value='level';document.getElementById('d').value='10';document.getElementById('w').value='3';document.getElementById('L').value='12';document.getElementById('h').value='13';document.getElementById('Vt').value='314.159';calc();document.getElementById('__tbProbe').textContent=document.getElementById('res').innerHTML"],
+  "expect": ["液位须在 0~12.00 m 之间"],
+  "ref": "液位 13m 超过罐高 12m 须拦截，不得算出 1021 m³ 的超过满罐容积结果（682 批）"
+},
+{
+  "slug": "chemical/convert-capacity-tank",
+  "inputs": { "Vt": "0", "d": "2.4", "L": "8", "w": "3", "mode": "volume" },
+  "clicks": [
+    "var out=[];['vcyl','hcyl','box'].forEach(function(t){document.getElementById('type').value=t;calc();var h=String(document.getElementById('res').innerHTML);out.push(h.indexOf('液位 0.000 m')>=0&&h.indexOf('充装率 = 0.00%')>=0?'Y':'N');});document.getElementById('__tbProbe').textContent='VT0 '+out.join('');"
+  ],
+  "expect": ["VT0 YYY"],
+  "ref": "682 批复核失败回归：目标容积 0 表示空罐，应反算液位 0、充装率 0%；旧条件 `!(Vt>0)` 与提示「0~满罐」自相矛盾，三种罐型都被拦截。注入 Vt=0（默认 314.159）并逐型断言，探针串只在新口径出现。"
 },
 {
 "slug": "chemical/convert-density-crude",
@@ -73,7 +96,8 @@ const CASES = [
     "90.0%",
     "82.5%",
     "86.3"
-  ]
+  ],
+  "ref": "独立复算：抽检200/合格180/规格符合165 ⇒ 合格率=180÷200=90.0%（锚1）、规格符合率=165÷200=82.5%（锚2）、综合得分=(90+82.5)×0.5=86.25→86.3（锚3）。页面默认 100/92/88 得 92.0%/88.0%/90.0% 三锚均不命中，全依赖注入；原用例缺 ref 说明判别依据，补齐。"
 },
 {
   "slug": "chemical/mixture-ratio",
@@ -94,6 +118,12 @@ const CASES = [
     "混合比 (A:B) 200 : 100"
   ],
   "ref": "去默认化（原 expect「混合比」是静态标签词，默认态同样命中 = 逃生项）：A 60%×200 + B 30%×100，总质量 300 ⇒ 混合浓度 (12000+3000)/300 = 50.00%；混合比 200 : 100。默认 80/100/20/300 得 35.00% 与 100 : 300（v1 只影响「稀释」页签，不影响本结果，故须改 ca/ma/cb/mb）"
+},
+{
+  "slug": "chemical/mixture-ratio",
+  "clicks": ["cur='alcohol';renderModes();renderParams();document.getElementById('al1').value=60;document.getElementById('v1').value=500;document.getElementById('al2').value=40;calc();document.getElementById('__tbProbe').textContent=document.getElementById('result').innerHTML"],
+  "expect": ["500mL 60° 酒", "250mL 水"],
+  "ref": "酒精稀释结果句跟随输入酒精度（681，N213）：60vol% 500mL → 40vol%，v2=750mL、加水 250mL；修复前结果句硬编码「500mL 95° 酒」，与输入 60° 不符（默认 95° 会命中旧串，故必须改 al1=60）"
 },
 {
   "slug": "chemical/reaction-yield",
@@ -246,8 +276,8 @@ const CASES = [
 {
   "slug": "chemical/convert-capacity-tank",
   "inputs": { "type": "box", "d": "", "w": "3", "h": "4" },
-  "expect": ["请填写长、宽、高（米）后再计算容积。"],
-  "ref": "空态守卫（2026-11-05）：长方体模式清空任一边长后不再输出「容积 V = 0.000 m³」与「每米液深容积」，只给填写提示。⚠ 判空只认空串——0 边长为合法输入，仍按公式算 0；立式圆柱只要求直径与高度。"
+  "expect": ["请填写长、宽、罐高（米）后再计算。"],
+  "ref": "空态守卫（2026-11-05，2026-11-16 第 682 批改文案）：长方体模式清空任一边长后不再输出「容积 V = 0.000 m³」与「每米液深容积」，只给填写提示；罐高改由 L 字段承担（h 仍为液位），故提示统一为「罐高」。⚠ 判空只认空串——0 边长为合法输入，仍按公式算 0。"
 }
 ];
 async function main() {

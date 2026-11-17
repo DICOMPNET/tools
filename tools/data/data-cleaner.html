@@ -7,12 +7,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="toolbox" content="cat=text,industry=data,icon=🔎,bg=#06b6d4">
-<meta name="description" content="数据清洗是一款免费的在线数据分析工具，清理文本/CSV 数据(去重、去空、格式化)。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。适合工程估算、日常换算与快速复核，结果可一键复制。">
+<meta name="description" content="数据清洗是一款免费的在线数据分析工具，清理文本/CSV 数据(去重、去空、格式化)。适合工程估算、日常换算与快速复核，结果可一键复制。">
 <meta name="keywords" content="数据清洗,数据清洗在线,在线数据清洗,文本处理,数据分析,在线工具,免费工具,ToolBox">
 <meta name="robots" content="index,follow">
 <link rel="canonical" href="https://tools.dicomp.net/tools/data/data-cleaner.html">
 <meta property="og:title" content="数据清洗 - 免费在线数据分析工具">
-<meta property="og:description" content="数据清洗是一款免费的在线数据分析工具，清理文本/CSV 数据(去重、去空、格式化)。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。适合工程估算、日常换算与快速复核，结果可一键复制。">
+<meta property="og:description" content="数据清洗是一款免费的在线数据分析工具，清理文本/CSV 数据(去重、去空、格式化)。适合工程估算、日常换算与快速复核，结果可一键复制。">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://tools.dicomp.net/tools/data/data-cleaner.html">
 <meta name="twitter:card" content="summary">
@@ -45,7 +45,7 @@
 </script>
 <!-- TOOLBOX-WEBAPP-LD -->
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebApplication","name":"数据清洗","url":"https://tools.dicomp.net/tools/data/data-cleaner.html","applicationCategory":"DeveloperApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"数据清洗是一款免费的在线数据分析工具，清理文本/CSV 数据(去重、去空、格式化)。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。适合工程估算、日常换算与快速复核，结果可一键复制。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+{"@context":"https://schema.org","@type":"WebApplication","name":"数据清洗","url":"https://tools.dicomp.net/tools/data/data-cleaner.html","applicationCategory":"DeveloperApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"数据清洗是一款免费的在线数据分析工具，清理文本/CSV 数据(去重、去空、格式化)。适合工程估算、日常换算与快速复核，结果可一键复制。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
 </script>
 <meta property="og:image" content="https://tools.dicomp.net/og-image.png">
 <meta property="og:image:width" content="1200">
@@ -55,7 +55,7 @@
 <meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
 
 <meta name="twitter:title" content="数据清洗 - 免费在线数据分析工具">
-<meta name="twitter:description" content="数据清洗是一款免费的在线数据分析工具，清理文本/CSV 数据(去重、去空、格式化)。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。适合工程估算、日常换算与快速复核，结果可一键复制。">
+<meta name="twitter:description" content="数据清洗是一款免费的在线数据分析工具，清理文本/CSV 数据(去重、去空、格式化)。适合工程估算、日常换算与快速复核，结果可一键复制。">
 
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
@@ -273,8 +273,11 @@ function toggleOp(id) {
 
 function clean() {
   const text = document.getElementById('inputData').value;
-  const beforeCount = text.split('\n').length;
-  let lines = text.split('\n');
+  // 统一换行并忽略末尾空行：`abc\n` 是 1 条，不是 2 条
+  const rawLines = text.replace(/\r\n?/g, '\n').split('\n');
+  while (rawLines.length && rawLines[rawLines.length - 1] === '') rawLines.pop();
+  const beforeCount = rawLines.length;
+  let lines = rawLines.slice();
 
   const applied = [];
   if (selected.has('trim')) { lines = lines.map(l => l.trim()); applied.push('去空白'); }
@@ -287,7 +290,22 @@ function clean() {
   if (selected.has('shuffle')) { for (let i = lines.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i+1)); [lines[i], lines[j]] = [lines[j], lines[i]]; } applied.push('打乱'); }
 
   const maxLen = +document.getElementById('maxLen').value || 0;
-  if (maxLen > 0) { lines = lines.map(l => l.length > maxLen ? l.slice(0, maxLen) : l); applied.push(`限长 ${maxLen}`); }
+  if (maxLen > 0) {
+    // 按码点/字形簇截断，避免切断代理对把 emoji 变成乱码
+    const truncate = (s) => {
+      if (!s) return s;
+      if (typeof Intl !== 'undefined' && Intl.Segmenter) {
+        try {
+          const segs = [...new Intl.Segmenter(undefined, { granularity: 'grapheme' }).segment(s)].map(x => x.segment);
+          return segs.length > maxLen ? segs.slice(0, maxLen).join('') : s;
+        } catch (e) {}
+      }
+      const cps = Array.from(s);
+      return cps.length > maxLen ? cps.slice(0, maxLen).join('') : s;
+    };
+    lines = lines.map(truncate);
+    applied.push(`限长 ${maxLen}`);
+  }
 
   const result = lines.join('\n');
   document.getElementById('outputData').value = result;

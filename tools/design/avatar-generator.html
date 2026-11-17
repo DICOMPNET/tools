@@ -7,12 +7,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="toolbox" content="cat=design,industry=design,icon=👤,bg=#fce4ec">
-<meta name="description" content="头像生成器是一款免费的在线设计创意工具，在线头像生成器，随机或按种子生成几何风、像素风、渐变风头像，可调整配色与形状，一键下载 PNG 或 SVG，适合社交账号与占位图，纯前端。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+<meta name="description" content="头像生成器是一款免费的在线设计创意工具，在线头像生成器，随机或按种子生成几何风、像素风、渐变风头像，可调整配色与形状，一键下载 PNG 或 SVG，适合社交账号与占位图，纯前端。">
 <meta name="keywords" content="头像生成器,头像生成器在线,在线头像生成器,设计工具,设计创意,在线工具,免费工具,ToolBox">
 <meta name="robots" content="index,follow">
 <link rel="canonical" href="https://tools.dicomp.net/tools/design/avatar-generator.html">
 <meta property="og:title" content="头像生成器 - 免费在线设计创意工具">
-<meta property="og:description" content="头像生成器是一款免费的在线设计创意工具，在线头像生成器，随机或按种子生成几何风、像素风、渐变风头像，可调整配色与形状，一键下载 PNG 或 SVG，适合社交账号与占位图，纯前端。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+<meta property="og:description" content="头像生成器是一款免费的在线设计创意工具，在线头像生成器，随机或按种子生成几何风、像素风、渐变风头像，可调整配色与形状，一键下载 PNG 或 SVG，适合社交账号与占位图，纯前端。">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://tools.dicomp.net/tools/design/avatar-generator.html">
 <meta name="twitter:card" content="summary">
@@ -64,10 +64,10 @@
 <meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
 <meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
     <meta name="twitter:title" content="头像生成器 - 免费在线设计创意工具">
-    <meta name="twitter:description" content="头像生成器是一款免费的在线设计创意工具，在线头像生成器，随机或按种子生成几何风、像素风、渐变风头像，可调整配色与形状，一键下载 PNG 或 SVG，适合社交账号与占位图，纯前端。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+    <meta name="twitter:description" content="头像生成器是一款免费的在线设计创意工具，在线头像生成器，随机或按种子生成几何风、像素风、渐变风头像，可调整配色与形状，一键下载 PNG 或 SVG，适合社交账号与占位图，纯前端。">
 <!-- TOOLBOX-WEBAPP-LD -->
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebApplication","name":"头像生成器","url":"https://tools.dicomp.net/tools/design/avatar-generator.html","applicationCategory":"MultimediaApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"头像生成器是一款免费的在线设计创意工具，在线头像生成器，随机或按种子生成几何风、像素风、渐变风头像，可调整配色与形状，一键下载 PNG 或 SVG，适合社交账号与占位图，纯前端。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+{"@context":"https://schema.org","@type":"WebApplication","name":"头像生成器","url":"https://tools.dicomp.net/tools/design/avatar-generator.html","applicationCategory":"MultimediaApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"头像生成器是一款免费的在线设计创意工具，在线头像生成器，随机或按种子生成几何风、像素风、渐变风头像，可调整配色与形状，一键下载 PNG 或 SVG，适合社交账号与占位图，纯前端。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
 </script>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
@@ -411,9 +411,18 @@ function __avatar_generatorResText(){
     var r=document.getElementById('output');
     if(!r) return '';
     var t=(r.textContent||'').replace(/\s+/g,' ').trim();
-    if(!t||t==='--'||t==='—'||t==='-') return '';
-    if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
-    return t.slice(0,80);
+    if(/导出 PNG 失败|Export PNG failed|⚠/.test(t)) return '';  // 导出失败不记历史
+    if(t && t!=='--' && t!=='—' && t!=='-' && !/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)){
+        return t.slice(0,80);
+    }
+    // 头像结果是 <img>：#output 的 textContent 为空，旧实现恒返回空串导致不记历史。
+    // 用已生成 PNG 的稳定摘要作为结果文本，供历史记录 / 回放判定。
+    var pv=document.getElementById('preview');
+    var im=pv && pv.getElementsByTagName ? pv.getElementsByTagName('img')[0] : null;
+    if(im && im.src && im.src.indexOf('data:image')===0){
+        return ('Avatar PNG|'+im.src.length+'B|'+im.src.slice(-24)).slice(0,80);
+    }
+    return '';
 }
 function __avatar_generatorScore(t){
     var s=String(t||'');
@@ -514,9 +523,11 @@ function __avatar_generatorPresets(){
   {"label":"色块拼接方形头像","labelEn":"Block square avatar","values":{"seed":"toolbox-2026","size":"120","radius":"12","c1":"#f97316","c2":"#ef4444","avatarStyle":"block"}},
   {"label":"抽象艺术大尺寸头像","labelEn":"Abstract large avatar","values":{"seed":"design-system","size":"200","radius":"100","c1":"#10b981","c2":"#0ea5e9","avatarStyle":"abstract"}}],function(){ generate(); });
 }
-var __avatar_generator_f0=(typeof downloadImg==='function')?downloadImg:null;
+// D-N43：历史钩子改挂 generate —— 正常生成即创建可回放记录；
+// 回放回调里同样调用 generate()，由 __avatar_generator_skip 阻止重复记录。
+var __avatar_generator_f0=(typeof generate==='function')?generate:null;
 if(__avatar_generator_f0){
-    downloadImg=function(){ var __r=__avatar_generator_f0.apply(null,arguments); try{ __avatar_generatorExtras(); }catch(e){} return __r; };
+    generate=function(){ var __r=__avatar_generator_f0.apply(null,arguments); try{ __avatar_generatorExtras(); }catch(e){} return __r; };
 }
 function __avatar_generatorBoot(){ try{ __avatar_generatorPresets(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __avatar_generatorBoot();

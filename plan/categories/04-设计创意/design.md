@@ -32,28 +32,6 @@
 - 证据：同页 `:259-261,273-288` 已展示比例卡、预览和固定 300 DPI 打印尺寸。
 - 影响：同页；方案：补可选 DPI 与按平台比例的居中裁切尺寸、损失像素说明，保留一键套用。
 
-### 设计工具进一步抽样（2026-11-03）
-
-#### 换图后仍可下载上一次缩放结果（高，确认源码缺陷）
-- 问题与证据：`tools/design/image-resizer.html:259-274,288-307` 上传 A 并缩放后，上传 B 仅更换原图和预览，未清除 lastURL；未重新缩放就下载或复制会取得 A 的结果。浏览器交互未实测。
-- 影响：`tools/design/image-resizer.html`，可能误交付旧图。
-- 方案：换图或修改参数时使旧结果失效，禁用输出直至重新生成并提示状态。
-
-#### DPI 历史恢复遗漏单位及零值静默代入（中，确认函数缺陷，两个问题）
-- 问题与证据：`tools/design/image-dpi-converter.html:409-420,441-470,535-540,577-595` 保存历史含单位，恢复只设置数值不恢复 currentUnit；内存执行英寸 10×15、300 DPI 的记录在当前单位为厘米时恢复成 1181×1772，而英寸应为 3000×4500。空或零 DPI 则由 `||72` 代入，输入框不更新。
-- 影响：`tools/design/image-dpi-converter.html`，历史结果或打印尺寸可能不符。
-- 方案：恢复单位及按钮状态；对空值与非正 DPI 明确提示并清除结果，历史保存使用同样校验。
-
-#### 照片打印 CSV 总标记为可打印（高，确认函数缺陷）
-- 问题与证据：`tools/design/photo-print-size.html:264-285,296-317` 页面根据分辨率生成充足、基本可用、不足三档，导出虽计算 ok 却恒写“是”；内存执行一寸 295×413、300 DPI 时 A4 页面为不足、CSV 为是。
-- 影响：`tools/design/photo-print-size.html`，使用者依导出清单可能误判质量。
-- 方案：导出与页面共享同一状态逻辑并保留三档；增加逐行一致性回归。可附裁切比例、预计有效 DPI 和横竖方向，辅助打印决策。
-
-#### SVG 压缩破坏文本空白或内部声明（高，确认函数缺陷）
-- 问题与证据：`tools/design/svg-minifier.html:254-275` 对整串全局折叠空白，使 `<text xml:space="preserve">A  B</text>` 变成单空格；DOCTYPE 正则遇内部实体声明首个 `>` 提前终止，可能遗留无效片段和实体引用。已对页面原函数内存执行，未作浏览器 XML 解析测试。
-- 影响：`tools/design/svg-minifier.html`，导出 SVG 显示变化或损坏。
-- 方案：采用理解 XML 结构的保守压缩，保留有语义空白；不支持内部 DTD 时明确拒绝而非输出损坏结果。可加入前后对照及解析失败提示。
-
 ### 覆盖
 - 本轮共核查 5 页：`tools/design/photo-aspect-ratio-calculator.html`、`tools/design/image-resizer.html`、`tools/design/image-dpi-converter.html`、`tools/design/photo-print-size.html`、`tools/design/svg-minifier.html`；本次新增 5 个缺陷、2 条嵌入式针对性建议。其他设计页及真实浏览器、移动端、线上状态未逐一验证。
 
@@ -370,40 +348,26 @@
 ### 逐页结论
 
 - **color-palette-generator**：默认单色 #0C1A5A→#E9ECFC 五档可复算，字色取 max(CR) 正确；D-N2 已失效（旧 YIQ 已改），D-N3（随机无协调）仍成立。
-- **color-palette**：默认互补五色；#788EED 上白字仅 3.05:1（D-N228）；FAQ 宣称的 WCAG 校验不存在（D-N229）
-- **color-picker**：默认 #4151e1 自洽、白字 6.02:1；#788EED 时「推荐文字色」仍给 #FFF（3.05:1），与同页 WCAG 面板自相矛盾（D-N230）
+- **color-palette**：默认互补五色；字色按 max(CR) 选（分界 L≈0.179），FAQ 已如实说明仅自动选可读字色、非任意两色等级检查（原 D-N228/D-N229 已修）
+- **color-picker**：默认 #4151e1 自洽；「推荐文字色」已按 max(CR) 选并与 WCAG 面板一致（原 D-N230 已修）
 - **color-shade-generator**：默认 11 卡线性混白/黑，公式一致；D-N34/D-N36 已失效，D-N35 部分仍成立（`:148`、`:383` 仍称 HSL/OKLCH 十档）。
 - **color-temperature-converter**：默认 5500K→(255,238,222) 正算可用；D-N17 已失效（已加范围校验）。
 - **colorblind-simulator**：默认绿盲 #FF6B35→#B9A62F 与 Machado 1.0 手算一致
-- **contrast-checker**：默认 14.68:1、AA/AAA 判定正确；D-N1（非法 HEX 不刷新结果）仍成立。
+- **contrast-checker**：默认 14.68:1、AA/AAA 判定正确；非法 HEX 已同步清空比率/评级/WCAG 状态/评分条（原 D-N1 已修）。
 - **cvd-safe-palette**：无默认结果；D-N106（发散亮度方向反，L 两端 0.90、中心 0.32）、D-N107（策略两分支同实现）仍成立
 - **gradient-from-color**：默认 L90→20 五色标，基色 #667eea(L66) 不出现；D-N125/D-N126 仍成立。
-- **gradient**：默认相邻色标 1.74:1；新增对比度使 D-N47/D-N48 的 gradient 部分失效（image-color-picker 部分仍成立）；D-N233/D-N234 为新增。
+- **gradient**：默认相邻色标 1.74:1；已明示「本工具不提供 oklab 切换」、相邻色标对比度「不适用 WCAG 文字等级」（原 D-N233/D-N234 已修）。
 - **material-color**：常量表正确；主色徽标取 600 阶而图表取 500 阶；D-N205 仍成立。
 - **mesh-gradient**：默认白字最差 2.04:1，报告正确
 - **palette-cvd-checker**：默认绿盲最小 ΔE00=4.27、判「差」正确；D-N112（OKLCH 分支把 Lab 当 RGB，复算最小距离 0.55 vs 正确 2.14）仍成立。
-- **palette-extractor**：默认 8 色正确；5/10/12 色百分比合计仅 62.5%/62.5%/75.0%（D-N231）；极小/大面积透明图产 #000000 0.0%（D-N232）
+- **palette-extractor**：默认 8 色正确；占比已按保留簇像素数归一（合计 100%，922 批），单像素簇直接聚合不再产 #000000 0.0% 空簇（原 D-N231/D-N232 已修）。
 - **tailwind-colors**：数据与 Tailwind v3 一致；43/242 色块文字 <4.5:1（yellow-500 白字 1.92:1），D-N142 仍成立。
 - **image-color-picker**（实际在 `tools/design/`）：取样坐标换算正确；半透明 PNG 按原始 RGB 复制（预览为白底合成）；D-N46/D-N47 仍成立。
-
-### 问题清单（新增）
-
-| 编号 | 页面:行 | 级别 | 问题与期望值 |
-|---|---|---|---|
-| D-N228 | `tools/design/color-palette.html:401-405` | 中 | 色块字色按 `lum>0.5` 选白/黑：默认 #788EED 白字 3.05:1（黑字 6.89:1）、单色 #A5B3F3 白字 2.03:1（黑字 10.34:1）。期望按 `max(CR_black,CR_white)` 选字（阈值 L≈0.179） |
-| D-N229 | `tools/design/color-palette.html:248,278` | 假 | FAQ「会按 WCAG 算出对比度、未达标标红」+ 引据表 4.5:1 条目，全页无相对亮度/对比度计算、无红标，仅亮度阈值选字 |
-| D-N230 | `tools/design/color-picker.html:487,494,546` | 中 | 「推荐文字色」同用 `luminance>0.5`：HSL(230,76,65)=#788EED(L=0.295) 推荐 #FFF，仅 3.05:1；期望 #000（6.89:1） |
-| D-N231 | `tools/design/palette-extractor.html:840,848,859` | 中 | `maxDepth=ceil(log2 count)` 先切 2^k 簇再 `slice(0,count)`：5 色丢 3/8 簇、10 色丢 6/16、12 色丢 4/16，`percent` 合计仅 62.5%/62.5%/75.0%，JSON 导出同带错值；期望按保留簇重新归一或精确切 N 簇 |
-| D-N232 | `tools/design/palette-extractor.html:752-755` | 中 | 1 像素簇 `mid=0` 仍递归，空簇 `n=0` 分支得 NaN，`rgbToHex` 位运算把 NaN 变 #000000 0.0%。复现：不透明像素 <8 的图（2×2 PNG / 大面积透明 logo）→ 多个 #000000 0.0% |
-| D-N233 | `tools/design/gradient.html:270` | 假 | 引据表称「按 sRGB 或 oklab 插值，oklab 可用」，页面无 oklab 选项/代码，输出一律浏览器 sRGB 插值 |
-| D-N234 | `tools/design/gradient.html:365-421` | 中 | 新补对比度为「相邻色标互比」，却套 WCAG 文字档位贴「正文级/大字或图形级」；默认 1.74:1 被标「仅装饰」，易被读成文字可读性结论。期望改名「色标间对比度、不适用 WCAG 文字等级」 |
 
 ### 统计
 
 - 页数 **16**；独立实现 **6** / 共享或同模板 **10**。
-- 新增 **7** 条（高 **0** / 中 **5** / 假 **2** / 安全 **0**）；编号 D-N228–D-N234。
-- 复核既有 **27** 条：22 条仍成立或部分成立，5 条已失效（D-N2、D-N17、D-N34、D-N36、D-N60）；`plan/fake-tools.md` 中 gradient/mesh 的假工具结论已随实现补齐而失效，建议降级。
-- 复算方式：按页面同款公式用 node/Python 内存复算（HSL/OKLab/WCAG/ΔE00/中位切分），未开浏览器、未跑 `_build.py`/门禁、未改源码、未做 git 写操作。
+- 本族新增 D-N228–D-N234 共 7 条、复核失效 D-N2/N17/N34/N36/N60 共 5 条，均已在后续批次修复并删除记录。
 
 ### AA 批第 1 波处置（2026-11-07 X 批 · 对比度校验器非法 HEX 校验）
 

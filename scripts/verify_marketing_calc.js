@@ -76,6 +76,24 @@ const CASES = [
     ref: "默认 detail 模式：lifespanMonths=1/(10/100)=10；ltvGross=100×10=1000；ltv=1000×0.6=600.00；LTV:CAC=600/200=3.00",
   },
   {
+    slug: "marketing/marketing-ltv-calculator",
+    clicks: ["switchMode('detail');document.getElementById('cacDetail').value='';calc();var h=String(document.getElementById('result').innerHTML);document.getElementById('__tbProbe').textContent='LTV563 '+((h.indexOf('请填写 CAC')>=0&&h.indexOf('LTV:CAC')<0)?'OK':'BAD:['+h+']');"],
+    expect: ["LTV563 OK"],
+    ref: "563 复核失败重做：详情模式清空 CAC 时不得把它当 0 继续算。旧实现 `parseFloat(v)||0` ⇒ 通过校验、不显示 LTV:CAC（cac=0 时分支跳过）却照常给 LTV；现先判 raw==='' 并提示「请填写 CAC（可为 0，但不可留空）」，结果区不再出现比率卡。默认 300 不命中。",
+  },
+  {
+    slug: "marketing/marketing-ltv-calculator",
+    clicks: ["switchMode('detail');calc();var h=String(document.getElementById('result').innerHTML);var n=(h.match(/预期生命周期/g)||[]).length;document.getElementById('__tbProbe').textContent='LTV563D '+(n===1?'OK':'BAD:'+n);"],
+    expect: ["LTV563D OK"],
+    ref: "563 复核失败重做：详情模式的「预期生命周期」重复展示（详细拆解表一行 + 相关指标卡一项）。现删除拆解表中的重复行，仅保留指标卡；探针统计结果区出现次数须为 1。",
+  },
+  {
+    slug: "marketing/marketing-ltv-calculator",
+    clicks: ["switchMode('detail');document.getElementById('cacDetail').value='';calc();var n0=getHistory().length;saveHistory();document.getElementById('__tbProbe').textContent='LTV563S '+((getHistory().length===n0)?'OK':'BAD');"],
+    expect: ["LTV563S OK"],
+    ref: "563 复核失败重做：空 CAC 时保存历史须与计算同一校验。旧实现另行 parseFloat ⇒ NaN 被 JSON 序列化成 null 仍写入历史；现 saveHistory 只接受 calc() 校验通过的 __ltvLast 快照（错误态被清空），探针断言历史条数不变。",
+  },
+  {
     slug: "marketing/marketing-markup-margin",
     inputs: { costMarkup: "180", markupRate: "35" },
     expect: ["¥243.00", "¥63.00", "25.93%"],
@@ -172,15 +190,60 @@ const CASES = [
   },
   {
     slug: "marketing/calc-price-elasticity",
-    inputs: { p1: "100", q1: "100", p2: "90", q2: "120" },
-    expect: ["-1.727"],
-    ref: "midQ=110,midP=95；pctQ=20/110×100=18.18；pctP=-10/95×100=-10.53；ed=18.18/-10.53=-1.73（|Ed|>1 富有弹性）",
+    inputs: { p1: "100", q1: "100", p2: "110", q2: "120" },
+    clicks: [
+      "calc();var h=String(document.getElementById('res').innerHTML);document.getElementById('__tbProbe').textContent='ELAS '+((h.indexOf('核验销量口径或竞品影响')>=0&&h.indexOf('建议降价促销')<0)?'OK':'BAD');"
+    ],
+    expect: ["ELAS OK"],
+    ref: "543 复核失败重做：P100→110、Q100→120 ⇒ Ed=+1.909、收入 10000→13200。建议应按 dR 判「收入增加」并提示正弹性需核验，而不是机械写「涨价导致销量下降、建议降价促销」。旧实现只看 |Ed| 与 dP ⇒ 含「建议降价促销」、不含核验提示 ⇒ BAD。",
   },
+  {
+    slug: "marketing/marketing-ad-budget-allocator",
+    inputs: { totalBudget: "0", roas1: "2", roas2: "3", roas3: "4" },
+    clicks: ["calc();"],
+    expect: ["整体 ROAS 的分母为 0，不可计算"],
+    ref: "562 复核失败重做：总预算 0 时整体 ROAS 明确标为不可计算并给出说明；旧实现 totalRev/total=0/0=NaN，仅显示破折号、无无定义说明 ⇒ 本串不命中。",
+  },
+  {
+    slug: "marketing/cpc-calculator",
+    clicks: [
+      "updateChannel(0,'ratio',parseFloat(''));var h=String(document.getElementById('budgetError').textContent||'');document.getElementById('__tbProbe').textContent='CPCEMPTY '+((h.indexOf('渠道1占比须在 0–100% 之间')>=0)?'OK':'BAD '+h);"
+    ],
+    expect: ["CPCEMPTY OK"],
+    ref: "564 复核失败重做：清空占比后 parseFloat('')=NaN 不再被 ||0 兜成合法 0，calcBudget 在 #budgetError 报「渠道1占比须在 0–100% 之间」；旧实现空值→0 继续计算 ⇒ BAD。",
+  },
+  {
+    slug: "marketing/cpc-calculator",
+    clicks: [
+      "updateChannel(0,'cvr',parseFloat(''));var h=String(document.getElementById('budgetError').textContent||'');document.getElementById('__tbProbe').textContent='CPCEMPTY2 '+((h.indexOf('渠道1 CVR 须在 0–100% 之间')>=0)?'OK':'BAD '+h);"
+    ],
+    expect: ["CPCEMPTY2 OK"],
+    ref: "564 复核失败重做：清空 CVR 后同样在 #budgetError 报错，不再当 0% 计算；旧实现 ||0 ⇒ BAD。",
+  },
+
   {
     slug: "marketing/price-elasticity",
     inputs: { p1: "100", q1: "100", p2: "110", q2: "80" },
     expect: ["-2.33"],
     ref: "avgQ=90,avgP=105；pctQ=-20/90×100=-22.22；pctP=10/105×100=9.52；ped=-22.22/9.52=-2.33（|Ed|>1 富有弹性）",
+  },
+  {
+    slug: "marketing/price-elasticity",
+    inputs: { p1: "100", q1: "1000", p2: "90", q2: "1200" },
+    expect: ["-1.727", "8.0%"],
+    ref: "553 复核失败重做（纠正验收数据）：中点法 dQ=200、avgQ=1100、dP=−10、avgP=95 ⇒ (0.1818)/(−0.10526)=−1.727；收入 100000→108000=+8.0%。原验收记录写的 −2.478/+17% 实际对应 q2=1300，已纠正并以本用例锁定（q2=1200 是非默认值，默认 1300 输出 −2.478，不命中）。",
+  },
+  {
+    slug: "marketing/price-elasticity",
+    inputs: { p1: "100", q1: "100", p2: "110", q2: "120" },
+    expect: ["本次提价后总收入增加 32.0%"],
+    ref: "553 复核失败重做（建议与数据一致）：ped=(20/110)/(10/105)=+1.909，价格与销量同向；收入 10000→13200=+32%。旧实现按 |PED|>1 套话「涨价会减少收入」，与数据相反；现建议先给 |PED| 档位、结论一律按实际收入方向给出。默认 100→90/1000→1300 不产生「增加 32.0%」。",
+  },
+  {
+    slug: "marketing/price-elasticity",
+    clicks: ["window.TBKit=window.TBKit||{util:{isEn:function(){return false;}}};var __t=[];var __o=ToolBox.showToast;ToolBox.showToast=function(s){__t.push(String(s));};document.getElementById('p1').value='100';document.getElementById('q1').value='100';document.getElementById('p2').value='100';document.getElementById('q2').value='120';__peExport();ToolBox.showToast=__o;var h=String(document.getElementById('peHidden').innerHTML);document.getElementById('__tbProbe').textContent='PE553E '+((__t.join('|').indexOf('价格未变化')>=0&&h.indexOf('Infinity')<0&&h.indexOf('NaN')<0)?'OK':'BAD:['+__t.join('|')+']');"],
+    expect: ["PE553E OK"],
+    ref: "553 复核失败重做（导出守卫）：P₁=P₂=100、Q₁=100、Q₂=120 时 dP=0，导出旧逻辑只校验四项 > 0 ⇒ 生成 Infinity/NaN 并写「富有弹性」。现导出复用 calc 的价格未变守卫，toast 提示且不写表。探针要求提示出现且导出表无 Infinity/NaN。",
   },
   // ── 广告投放 ROI 测算（marketing/ad-roi）：CPC / CPM 双计费分支 ──
   {
@@ -200,11 +263,20 @@ const CASES = [
     slug: "marketing/ad-roi",
     inputs: { budget: "5000", cpc: "5", ctr: "1", cvr: "2", aov: "100", costRate: "60", fixedCost: "200" },
     clicks: ["setBuy('cpc');calc();"],
-    expect: ["0.40 ROAS", "-68.8% 综合 ROI", "5.00%"],
+    expect: ["0.40 ROAS", "-68.8% 综合 ROI", "13.00%"],
     ref: "点击 = 5000/5 = 1000；展示 = 1000/1% = 100,000；转化 = 20；收入 = 2000；商品成本 = 1200；"
      + "总成本 = 5000+1200+200 = 6400；利润 = −4400；ROAS = 0.40；ROI = −4400/6400 = −68.75% ⇒ −68.8%。"
-     + "盈亏平衡 ROAS = 1/40% = 2.50；补亏提示「转化率需提升至 (5000/100)/1000 = 5.00% 或客单价提升至"
-     + " 5000/(1000×2%) = 250 元」。默认态三条全不命中。",
+     + "盈亏平衡 ROAS = 1/40% = 2.50；补亏提示按「转化数×客单价×毛利率 = 预算+固定成本」反推："
+     + "(5000+200)/(100×0.4) = 130 单 ⇒ 转化率需提升至 130/1000 = 13.00%（修复前用总成本 6400 作分子得 160 单 / 16.00%，"
+     + "把随收入变化的货品成本重复计入）。默认态三条全不命中。",
+  },
+  {
+    // 保本反推不得把货品成本重复计入分子（545 复核失败重做）
+    slug: "marketing/ad-roi",
+    inputs: { budget: "10000", cpc: "2", ctr: "1", cvr: "1", aov: "200", costRate: "50", fixedCost: "0" },
+    clicks: ["setBuy('cpc');calc();var t=String(document.getElementById('tipBox').innerHTML);document.getElementById('__tbProbe').textContent='AR545 '+((t.indexOf('转化率需提升至 2.00%')>=0&&t.indexOf('客单价提升至 400 元')>=0&&t.indexOf('总成本 15,000')<0)?'OK':'BAD:['+t+']');"],
+    expect: ["AR545 OK"],
+    ref: "545 复核失败重做：预算 10000、CPC 2 ⇒ 点击 5000；CVR 1% ⇒ 50 单、收入 10000、货品成本 5000、总成本 15000、利润 −5000。保本条件为 转化数×客单价×毛利率 = 预算+固定成本 ⇒ 10000/(200×0.5)=100 单 ⇒ 转化率 2.00%，客单价 = 10000/(50×0.5)=400 元。旧实现以 totalCost 15000 作分子 ⇒ 150 单/3.00% 与 600 元，并把提示写成「按总成本 15,000 元计」，重复计入随收入变化的货品成本。探针同时断言新值成立、旧值/旧措辞不出现 ⇒ 零逃生。"
   },
   {
     // CPM 计费分支（buyMode 默认 cpc，用例显式切 cpm）：非默认（预算 8000、CPM 40、CTR 2.5%、CVR 4%）
@@ -648,7 +720,7 @@ const CASES = [
   {
     slug: "marketing/assessor-51",
     inputs: { profit: "8000", contribution: "72", discount: "15", years: "12", d1: "8.5", d2: "8.5", d3: "8.5", d4: "8.5", d5: "8.5", d6: "8.5", d7: "8.5" },
-    expect: ["品牌年净利润：5760万元（贡献率72%）", "品牌强度评分：85/100", "调整后折现率：15.75%", "品牌资产价值： 30249万元"],
+    expect: ["→ 品牌净利润 5760万元", "品牌强度评分：85/100", "调整后折现率：15.75%", "品牌资产价值： 30249万元"],
     ref: "注入非默认(默认 profit=5000/contribution=65/7 维均为 8/8/7/7/7/8/7 ⇒ 强度 0.75/discount=12/years=10)：Interbrand 模型 品牌年净利润 = 8000×0.72 = 5760 万元；7 维均为 8.5 分、权重 25/15/10/25/10/10/5 合计 100% ⇒ 品牌强度 = 8.5/10 = 0.85，强度评分 85/100 ⇒ 顶级品牌；调整后折现率 r = dr/100 + (1−st)×0.05 = 0.15 + 0.15×0.05 = 15.75%；品牌资产价值 = Σ_{i=1..12} 5760/(1.1575)^i = 30249 万元。Python/Node 独立复算逐项吻合。默认态 3250/75/13.25%/17460，四条均不命中。",
   },
   {
@@ -661,7 +733,8 @@ const CASES = [
   {"slug": "marketing/email-subject-line-tester", "inputs": {"subject": "限时秒杀", "previewText": "仅今日"}, "expect": ["4 1 ✓ 完整 4字", "87 优秀 👍 标题质量良好，继续保持！", "💡 标题较短，建议提供更多信息吸引读者 ⚠️ 标题包含垃圾词「限时」，可能影响送达率 🚫 标题包含垃圾词「秒杀」，可能影响送达率"], "ref": "独立复算：标题「限时秒杀」4 字符（< 10 ⇒ 扣 5 分，并输出「标题较短」建议）、1 词；命中垃圾词表两项「限时」「秒杀」，各扣 4 分（warn 级 ⚠️ / 强拦截级 🚫 两档）；4 字无数字加分、无括号 ⇒ 总分 100 − 5 − 4 − 4 = 87。默认态 25 字符、含【】与「限时优惠」类词，总分与建议串均不同；「4 1」「4字」两锚不命中。与上一例互为对照：一条满分无扣分、一条 13 分扣分，同时覆盖「过短」与「适中」两个长度分支及两档垃圾词。"},
   {"slug": "marketing/email-subject-line-tester", "inputs": {"subject": "本周行业简报", "previewText": "限时福利"}, "expect": ["6 1 ✓ 完整 6字", "94 优秀 👍 标题质量良好，继续保持！", "💡 标题较短，建议提供更多信息吸引读者 ⚠️ 预览正文包含垃圾词「限时」，可能影响送达率"], "ref": "独立复算：标题 6 字符（<10 ⇒ 扣 5 分）、1 词、无数字无括号；垃圾词扫描覆盖标题 + 预览正文，预览「限时福利」命中垃圾词「限时」扣 4 分（标题内未命中 ⇒ 提示标注「预览正文」），同时「福利」命中积极词加 3 分 ⇒ 100 − 5 − 4 + 3 = 94。该例专测预览正文参与扫描的分支：若只看标题则总分为 98 且不出现「预览正文包含垃圾词」提示。"},
   {"slug": "marketing/social-media-image-sizes", "inputs": {"searchInput": "竖版封面视频"}, "clicks": ["filterSizes();"], "expect": ["未找到匹配的尺寸"], "ref": "独立判定：关键词「竖版封面视频」在页面 12 个平台 × 各类尺寸的名称/平台名/宽高/比例数据中均无任何子串命中 ⇒ 过滤后集合为空，filterSizes() 走空分支渲染「未找到匹配的尺寸」。默认态（空关键词）全量渲染 12 个平台的全部尺寸卡，blob 无该提示串；兜底无参 filterSizes() 读空 searchInput 同样渲染全量、不会复现空提示 ⇒ 非兜底产物。过滤命中的串（如搜「头像」得 11 条头像卡连排）**不可作锚**：默认态本就全量含这些串，判别器回退 searchInput 后照样命中。搜索词在输入框 value 中回显，不作锚。"},
-  {"slug": "marketing/social-media-image-sizes", "inputs": {"searchInput": "Instagram"}, "clicks": ["ToolBox.downloadText=function(n,c){document.getElementById('sizesList').textContent=c;};exportSizes();"], "expect": ["Instagram,头像"], "ref": "按平台名搜索后导出（方向 5 导出/屏幕一致性）：屏幕过滤含 p.name，旧导出过滤漏掉 p.name ⇒ 只剩名称里含 Instagram 的尺寸（故事类），「头像」行缺失。本用例把导出 CSV 写回 sizesList 再锚「平台,类型」行；导出已收敛到 ToolBox.csvCell（RFC 4180 最小引号：无逗号/换行/引号时不加引号），故锚为 `Instagram,头像` 而非旧的 `\"Instagram\",\"头像\"`。默认空关键词虽含 Instagram 卡，但无 CSV 形态的「Instagram,头像」串；且无 p.name 过滤时该行也不存在 ⇒ 双向判别。"}
+  {"slug": "marketing/social-media-image-sizes", "inputs": {"searchInput": "Instagram"}, "clicks": ["ToolBox.downloadText=function(n,c){document.getElementById('sizesList').textContent=c;};exportSizes();"], "expect": ["Instagram,头像"], "ref": "按平台名搜索后导出（方向 5 导出/屏幕一致性）：屏幕过滤含 p.name，旧导出过滤漏掉 p.name ⇒ 只剩名称里含 Instagram 的尺寸（故事类），「头像」行缺失。本用例把导出 CSV 写回 sizesList 再锚「平台,类型」行；导出已收敛到 ToolBox.csvCell（RFC 4180 最小引号：无逗号/换行/引号时不加引号），故锚为 `Instagram,头像` 而非旧的 `\"Instagram\",\"头像\"`。默认空关键词虽含 Instagram 卡，但无 CSV 形态的「Instagram,头像」串；且无 p.name 过滤时该行也不存在 ⇒ 双向判别。"},
+  {"slug": "marketing/social-media-image-sizes", "inputs": {"searchInput": "微博"}, "clicks": ["ToolBox.downloadText=function(n,c){document.getElementById('sizesList').textContent=c;};exportSizes();"], "expect": ["微博,头像,头像,180,180,1:1"], "ref": "915 批：微博客服公开说明头像大尺寸为 180×180，页面旧数据仍为 200×200。本用例按平台名搜索后导出，锚定 CSV 整行「平台,类型,名称,宽,高,比例」，旧值 200 时整行不匹配；默认态无 CSV 输出，故非回显/默认态逃生。与 Instagram 用例同为导出链路但锚定不同平台数据。"}
 ,
 {
     "slug": "marketing/marketing-cpa-calculator",
@@ -818,8 +891,8 @@ const CASES = [
   {
     "slug": "marketing/xiaohongshu-counter",
     "inputs": { "limit": "5", "text": "标题一 #干货 标题二 #干货 #成长 标题三" },
-    "expect": ["标题字数： 0 / 20（剩余 20）", "正文字符数： 23 / 5（超出 18）", "UTF-16 技术计数： 23", "行数： 1", "词数： 6", "话题标签： 3（# 与 ＃ 均计入）", "状态： 超出：正文超出 18 字"],
-    "ref": "注入 limit=5 字（默认 1000）+ 三行标题文本（含 3 个话题标签 #干货 #干货 #成长，重复标签按出现次数计）。独立复算：标题一/标题二/标题三 = 3×3 = 9 字；空格分隔（3+1+2+1+3+1+3 = 14）⇒ 正文字符数含空格 23（与 UTF-16 计数一致，无 emoji）；无换行 ⇒ 行数 1；话题标签 3 个。正文上限 5 ⇒ 23 > 5 ⇒ 状态『超出：正文超出 18 字』；标题为空 ⇒ 0/20。默认态 text 为空 ⇒ 全部计数为 0、状态『正常』，七条均不命中。"
+    "expect": ["正文字符数： 23 / 5（超出 18）", "UTF-16 技术计数： 23", "行数： 1", "词数： 6", "话题标签： 3（# 与 ＃ 均计入）", "状态： 超出：正文超出 18 字"],
+    "ref": "注入 limit=5 字（默认 1000）+ 三行标题文本（含 3 个话题标签 #干货 #干货 #成长，重复标签按出现次数计）。独立复算：标题一/标题二/标题三 = 3×3 = 9 字；空格分隔（3+1+2+1+3+1+3 = 14）⇒ 正文字符数含空格 23（与 UTF-16 计数一致，无 emoji）；无换行 ⇒ 行数 1；话题标签 3 个。正文上限 5 ⇒ 23 > 5 ⇒ 状态『超出：正文超出 18 字』；标题为空 ⇒ 0/20。默认态 text 为空 ⇒ 全部计数为 0、状态『正常』。判别器实测「标题字数： 0 / 20（剩余 20）」在默认快照也命中（标题默认为空），已删该逃生锚，其余六条均依赖注入文本。"
   },
   {
     "slug": "marketing/xiaohongshu-counter",
@@ -874,6 +947,25 @@ const CASES = [
     "clicks": ["comps.forEach(function(c){c.value=0;});calc();"],
     "expect": ["合计须大于 0"],
     "ref": "所有企业销售额置 0：合计为 0 时旧实现直接 return，页面残留上一次的占比与 HHI（看起来仍然有效）；现提示合计须大于 0 并清空旧结果。默认合计 10,000 ⇒ 不命中。"
+  },
+  {
+    "slug": "marketing/market-share",
+    "clicks": ["comps=[{name:'甲',value:100},{name:'乙',value:100},{name:'其他',value:800}];calc();var h=String(document.getElementById('hhiBox').innerHTML);document.getElementById('__tbProbe').textContent='MS546 '+((h.indexOf('≥ 200')>=0&&h.indexOf('无法判定')>=0&&h.indexOf('下界')>=0&&h.indexOf('竞争型')<0)?'OK':'BAD:['+h+']');"],
+    "expect": ["MS546 OK"],
+    "ref": "546 复核失败重做：具名企业各 10%、「其他」80%。合并口径内部仍由真实企业组成，平方和 > 0 且可能进入前四 ⇒ 已知部分只是下界。新实现显示「≥ 200」「≥ 20.0%」，市场类型改为「无法判定（需拆分「其他」）」并注明下界；旧实现显示 HHI 200 / CR4 20.0%、判「竞争型」并称「其他视为分散，未计入」——若其他实为一家企业，真实 HHI=6500、CR4=100%。探针同时要求下界标识/无法判定/下界说明出现且「竞争型」不出现 ⇒ 互斥判别。默认输入不含「其他」条目 ⇒ 不命中。"
+  },
+  {
+    "slug": "marketing/assessor-51",
+    "clicks": ["document.getElementById('contribution').value='';calc();var t=String(document.getElementById('res').innerHTML);document.getElementById('__tbProbe').textContent='AC547 '+((t.indexOf('请填写品牌贡献率')>=0&&t.indexOf('品牌资产价值')<0)?'OK':'BAD:['+t+']');"],
+    "expect": ["AC547 OK"],
+    "ref": "547 复核失败重做：清空品牌贡献率后不得继续出估值。旧实现用一元 + 把空串转 0，0 又在 0–100 区间内 ⇒ 校验放行、按 0% 贡献算出估值；新实现先判 raw===''，提示「请填写品牌贡献率」并清空结果（不再出现「品牌资产价值」）。默认 65 不命中。"
+  },
+  {
+    "slug": "marketing/assessor-51",
+    "inputs": { "contribution": "0" },
+    "clicks": ["calc();var t=String(document.getElementById('res').innerHTML);document.getElementById('__tbProbe').textContent='AC547Z '+((t.indexOf('品牌资产价值')>=0&&t.indexOf('请填写品牌贡献率')<0)?'OK':'BAD:['+t+']');"],
+    "expect": ["AC547Z OK"],
+    "ref": "547 对照：贡献率取合法的 0（非空）时必须照常计算，不能被空值校验误伤。若把「0 或空」一并拦截，本用例转红——与上一条形成空值/零值互斥对照。"
   },
   {
     "slug": "marketing/marketing-qr-campaign-tracker",
@@ -944,8 +1036,8 @@ const CASES = [
   {
     "slug": "marketing/assessor-65",
     "inputs": { "targetPax": "100", "actualPax": "80", "budget": "10", "actualCost": "10", "satisfaction": "8", "achieveRate": "90", "wAttendance": "40", "wBudget": "10", "wSat": "20", "wAchieve": "30" },
-    "expect": ["权重：到场率 40% / 预算 10% / 满意度 20% / 达成率 30%", "综合效果评分： 85.0/100", "评估等级： 卓越"],
-    "ref": "自定义权重：到场 80×0.4=32、预算贴合 100×0.1=10、满意度 80×0.2=16、达成 90×0.3=27 ⇒ 85.0「卓越」；默认权重下同一输入为 86.5，与 85.0 不同，可验证权重是否真正生效。"
+    "expect": ["权重：到场率 40% / 预算 10% / 满意度 20% / 达成率 30%", "综合效果评分： 85.0/100"],
+    "ref": "自定义权重：到场 80×0.4=32、预算贴合 100×0.1=10、满意度 80×0.2=16、达成 90×0.3=27 ⇒ 85.0；默认权重下同一输入为 86.5，与 85.0 不同。判别器实测「评估等级： 卓越」在默认快照也命中，已删该逃生锚，仅留依赖注入权重与数值的两条。"
   },
   {
     "slug": "marketing/calc-1",

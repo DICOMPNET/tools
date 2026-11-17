@@ -7,11 +7,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="toolbox" content="cat=reference,industry=fishery,icon=🥗,bg=#fce4ec">
-<meta name="description" content="饲料蛋白质脂肪配比需求器是一款免费的在线渔业水产工具，输入养殖种类与生长阶段，工具查询蛋白、脂肪需求标准，并计算蛋脂比与可消化能，指导配合饲料配方设计。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+<meta name="description" content="饲料蛋白质脂肪配比需求器是一款免费的在线渔业水产工具，输入养殖种类与生长阶段，工具查询蛋白、脂肪需求标准，并计算蛋脂比与可消化能，指导配合饲料配方设计。">
 <title>饲料蛋白质脂肪配比需求器 - 指导配合饲料配方设计</title>
 <link rel="canonical" href="https://tools.dicomp.net/tools/fishery/feed-protein-fat.html">
 <meta property="og:title" content="饲料蛋白质脂肪配比需求器 - 指导配合饲料配方设计">
-<meta property="og:description" content="饲料蛋白质脂肪配比需求器是一款免费的在线渔业水产工具，输入养殖种类与生长阶段，工具查询蛋白、脂肪需求标准，并计算蛋脂比与可消化能，指导配合饲料配方设计。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+<meta property="og:description" content="饲料蛋白质脂肪配比需求器是一款免费的在线渔业水产工具，输入养殖种类与生长阶段，工具查询蛋白、脂肪需求标准，并计算蛋脂比与可消化能，指导配合饲料配方设计。">
 <meta property="og:url" content="https://tools.dicomp.net/tools/fishery/feed-protein-fat.html">
 <meta name="twitter:card" content="summary">
 <link rel="stylesheet" href="../../css/common.css">
@@ -28,10 +28,10 @@
 <meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
     <meta property="og:type" content="website">
     <meta name="twitter:title" content="饲料蛋白质脂肪配比需求器 - 指导配合饲料配方设计">
-    <meta name="twitter:description" content="饲料蛋白质脂肪配比需求器是一款免费的在线渔业水产工具，输入养殖种类与生长阶段，工具查询蛋白、脂肪需求标准，并计算蛋脂比与可消化能，指导配合饲料配方设计。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+    <meta name="twitter:description" content="饲料蛋白质脂肪配比需求器是一款免费的在线渔业水产工具，输入养殖种类与生长阶段，工具查询蛋白、脂肪需求标准，并计算蛋脂比与可消化能，指导配合饲料配方设计。">
 <!-- TOOLBOX-WEBAPP-LD -->
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebApplication","name":"饲料蛋白质脂肪配比需求器","url":"https://tools.dicomp.net/tools/fishery/feed-protein-fat.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"饲料蛋白质脂肪配比需求器是一款免费的在线渔业水产工具，输入养殖种类与生长阶段，工具查询蛋白、脂肪需求标准，并计算蛋脂比与可消化能，指导配合饲料配方设计。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+{"@context":"https://schema.org","@type":"WebApplication","name":"饲料蛋白质脂肪配比需求器","url":"https://tools.dicomp.net/tools/fishery/feed-protein-fat.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"饲料蛋白质脂肪配比需求器是一款免费的在线渔业水产工具，输入养殖种类与生长阶段，工具查询蛋白、脂肪需求标准，并计算蛋脂比与可消化能，指导配合饲料配方设计。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
 </script>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
@@ -229,7 +229,14 @@ function calc(){
   const sp=REQ[document.getElementById('species').value];
   const stage=document.getElementById('stage').value;
   const stageName={fry:'苗期',fingerling:'鱼种期',growout:'成体期'}[stage];
-  const T=+document.getElementById('temp').value;
+  const Traw=String(document.getElementById('temp').value).trim();
+  const T=Traw===''?NaN:+Traw;
+  if(!isFinite(T)||T<0||T>40){
+    lastResult='';
+    document.getElementById('result').innerHTML='<p style="color:var(--danger,#EF4444);">请填写 0–40℃ 的水温：留空或越界时无法判断是否需要低温/高温修正，本页不给出配方值。</p>';
+    ToolBox.showToast(i18nText('toast.msg721'),'error');
+    return;
+  }
   let [p,f]=sp[stage];
   // 水温修正：低温时温水鱼蛋白需求略降、冷水鱼反之；简化小幅修正
   if(document.getElementById('species').value==='warm'&&T<18){p=p-2;}

@@ -5,23 +5,23 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="toolbox" content="cat=dev,industry=it,icon=✨,bg=#ecfdf5">
 <title>CAA 记录生成器 - 指定域名与允许的证书颁发机构</title>
-<meta name="description" content="CAA 记录生成器是一款免费的在线IT 开发工具，DNS CAA 记录：指定域名与允许的证书颁发机构，输出标准 CAA 资源记录，防止证书误签发。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+<meta name="description" content="CAA 记录生成器是一款免费的在线IT 开发工具，DNS CAA 记录：指定域名与允许的证书颁发机构，输出标准 CAA 资源记录，防止证书误签发。">
 <link rel="canonical" href="https://tools.dicomp.net/tools/it/caa-record-generator.html">
 <meta property="og:title" content="CAA 记录生成器 - 指定域名与允许的证书颁发机构">
-<meta property="og:description" content="CAA 记录生成器是一款免费的在线IT 开发工具，DNS CAA 记录：指定域名与允许的证书颁发机构，输出标准 CAA 资源记录，防止证书误签发。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+<meta property="og:description" content="CAA 记录生成器是一款免费的在线IT 开发工具，DNS CAA 记录：指定域名与允许的证书颁发机构，输出标准 CAA 资源记录，防止证书误签发。">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://tools.dicomp.net/tools/it/caa-record-generator.html">
 <meta property="og:image" content="https://tools.dicomp.net/og-image.png">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="CAA 记录生成器 - 指定域名与允许的证书颁发机构">
-<meta name="twitter:description" content="CAA 记录生成器是一款免费的在线IT 开发工具，DNS CAA 记录：指定域名与允许的证书颁发机构，输出标准 CAA 资源记录，防止证书误签发。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+<meta name="twitter:description" content="CAA 记录生成器是一款免费的在线IT 开发工具，DNS CAA 记录：指定域名与允许的证书颁发机构，输出标准 CAA 资源记录，防止证书误签发。">
 <meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
 <link rel="stylesheet" href="../../css/common.css">
 <script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
 <!-- TOOLBOX-WEBAPP-LD -->
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebApplication","name":"CAA 记录生成器","url":"https://tools.dicomp.net/tools/it/caa-record-generator.html","applicationCategory":"DeveloperApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"CAA 记录生成器是一款免费的在线IT 开发工具，DNS CAA 记录：指定域名与允许的证书颁发机构，输出标准 CAA 资源记录，防止证书误签发。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+{"@context":"https://schema.org","@type":"WebApplication","name":"CAA 记录生成器","url":"https://tools.dicomp.net/tools/it/caa-record-generator.html","applicationCategory":"DeveloperApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"CAA 记录生成器是一款免费的在线IT 开发工具，DNS CAA 记录：指定域名与允许的证书颁发机构，输出标准 CAA 资源记录，防止证书误签发。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
 </script>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
@@ -268,9 +268,18 @@ function escH(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').rep
 function copyOut(){var v=document.getElementById('output').value;if(!v){if(ToolBox.showToast)ToolBox.showToast(i18nText('toast.msg617'));return;}ToolBox.copyText(v);if(ToolBox.showToast)ToolBox.showToast(i18nText('toast.msg191'));}
 function gen(){
   var d=document.getElementById('domain').value.trim().toLowerCase().replace(/^\.+|\.+$/g,'');
-  if(!/^(?!-)[a-z0-9-]+(\.[a-z0-9-]+)*$/.test(d)){
+  // N434 复核重做：先做字符集合法性校验（保留原提示文案），再校验每个 DNS 标签 ≤63 字节、
+  // 完整域名 ≤253 字节且首尾不得为连字符——64 个 a 的标签能过字符正则，但不是有效 DNS 名称。
+  if(!d || !/^[a-z0-9-]+(\.[a-z0-9-]+)*$/.test(d)){
     document.getElementById('output').value='';
     document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 请填写裸域名（如 example.com），不要带协议、空格或路径。</p>';
+    return;
+  }
+  var labels=d.split('.');
+  var badLabel=labels.some(function(l){ return !l || l.length>63 || l.charAt(0)==='-' || l.charAt(l.length-1)==='-'; });
+  if(badLabel || d.length>253){
+    document.getElementById('output').value='';
+    document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 域名格式不合规：每级标签 1–63 字符、总长 ≤253 字符，标签首尾不得为连字符。</p>';
     return;
   }
   d=d+'.';

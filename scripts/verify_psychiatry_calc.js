@@ -133,10 +133,9 @@ const CASES = [
     "pick(25,3)"
   ],
   "expect": [
-    "【EAT-26 进食态度量表（26 条目）】 结果：总分 24/78，分级：高风险",
-    "行为条目：暴食（Q4）阴性、自我催吐（Q9）阳性"
+    "总分 18/78", "行为条目：暴食（Q4）阴性、自我催吐（Q9）阳性"
   ],
-  "ref": "门诊记录：i%4==0 选「总是」(0)、其余「有时」(3)。按 NORM/REV 映射后总分 24 ≥20 ⇒ 高风险。行为条目判据为 OPTS 索引 <=2（即总是/通常/经常）：Q4 索引 3 ⇒ 阴性、Q9 索引 0 ⇒ 阳性（本批同时修正了原实现 A[i]>=3 的方向错误，原写法把「有时/很少/从不」判成阳性）。未作答态零交集。via=click"
+  "ref": "M-N9 修复后：i%4==0 选「总是」(j=0 ⇒ 正向 3 分；第 25 题反向 0 分)、其余「有时」(j=3 ⇒ 0 分)，6 个正向总是 ×3 = 18 ⇒ 低于临界 20，分级低风险。行为条目判据为 OPTS 索引 <=2（总是/通常/经常）：Q4 索引 3 ⇒ 阴性、Q9 索引 0 ⇒ 阳性。未作答态零交集。"
 },
 {
   "slug": "psychiatry/pcl5-ptsd",
@@ -209,6 +208,14 @@ const CASES = [
     "受累条目数（≥1 分）15/15"
   ],
   "ref": "门诊记录：10 项 2 分 + 5 项 1 分 = 25 >14 落「高」；全部 15 项均 ≥1 分 ⇒ 受累 15/15。未作答态零交集。via=click"
+},
+{
+  "slug": "psychiatry/lsas-social",
+  "clicks": [
+    "applyLsasPreset('severe');var B=__lsasBands();var L=B[B.length-1]||{};document.getElementById('__tbProbe').textContent='LSASBAND '+((L.label&&L.label.zh==='极重度'&&L.color==='#EF4444')?'OK':'BAD');"
+  ],
+  "expect": ["LSASBAND OK"],
+  "ref": "M-N29：24 情境全选 3 ⇒ 总分 144，结果文字为「极重度」，标尺末段原本仍标「无/轻度」绿色；修正后末段为「极重度」#EF4444。默认（未作答）不渲染标尺，零交集。"
 },
 {
   "slug": "psychiatry/phq9-depression",
@@ -308,6 +315,22 @@ const CASES = [
   "ref": "AQ-50 五十项逐项点选（FWD 项选「完全同意」j=0、其余选「稍微不同意」j=2）：FWD 24 项 + 非 FWD 26 项各得 1 分 ⇒ AQ 总分 50/50 ⇒ 落 total>31 分支「临床显著」；五个维度分卡 社交技巧/注意力转换/注意细节/沟通/想象力 均 10/10（各维度均为 10 项，全得分）。默认（未作答）只渲染「已作答 0/50 项」提示，与注入态零交集。in-clicks 通道：via=click"
 },
 {
+  "slug": "psychiatry/aq-autism",
+  "clicks": [
+    "var B=__aqBands();var L=B[B.length-1]||{};var M=B[1]||{};document.getElementById('__tbProbe').textContent='AQBAND '+((L.label&&L.label.zh==='临床显著'&&L.color==='#EF4444'&&M.label&&M.label.zh==='广泛自闭症表型'&&M.color==='#F59E0B')?'OK':'BAD');"
+  ],
+  "expect": ["AQBAND OK"],
+  "ref": "M-N7：标尺原只有两段（0–26 低、26+ 广泛表型），与 __aqSev 三档（≤25 低、26–31 广泛、≥32 临床显著）不一致；现补 26–32 广泛表型橙、≥32 临床显著红。"
+},
+{
+  "slug": "psychiatry/aq-autism",
+  "clicks": [
+    "applyAqPreset('clinical');resetQuiz();var rb=document.getElementById('resultRefBar');document.getElementById('__tbProbe').textContent='AQRESET '+(rb&&rb.innerHTML===''?'OK':'BAD');"
+  ],
+  "expect": ["AQRESET OK"],
+  "ref": "M-N7：重置只清 #result 未清 #resultRefBar，标尺残留在已清空的结果下方。现 resetQuiz 同步清空标尺容器；默认页未渲染标尺，不命中。"
+},
+{
   "slug": "psychiatry/asrs-adhd",
   "clicks": [ "pick(0,4)", "pick(1,4)", "pick(2,4)", "pick(3,4)", "pick(4,4)", "pick(5,4)"],
   "expect": [
@@ -396,14 +419,23 @@ const CASES = [
 },
 {
   "slug": "psychiatry/eat26-eating",
-  "clicks": [ "pick(0,5)", "pick(1,5)", "pick(2,5)", "pick(3,5)", "pick(4,5)", "pick(5,5)", "pick(6,5)",
-    "pick(7,0)", "pick(8,5)", "pick(9,5)", "pick(10,5)", "pick(11,5)", "pick(12,0)", "pick(13,5)", "pick(14,5)",
-    "pick(15,5)", "pick(16,5)", "pick(17,5)", "pick(18,5)", "pick(19,5)", "pick(20,5)", "pick(21,5)",
-    "pick(22,5)", "pick(23,5)", "pick(24,0)", "pick(25,5)"],
+  "clicks": [ "pick(0,0)", "pick(1,0)", "pick(2,0)", "pick(3,0)", "pick(4,0)", "pick(5,0)", "pick(6,0)",
+    "pick(7,5)", "pick(8,0)", "pick(9,0)", "pick(10,0)", "pick(11,0)", "pick(12,5)", "pick(13,0)", "pick(14,0)",
+    "pick(15,0)", "pick(16,0)", "pick(17,0)", "pick(18,0)", "pick(19,0)", "pick(20,0)", "pick(21,0)",
+    "pick(22,0)", "pick(23,0)", "pick(24,5)", "pick(25,0)"],
   "expect": [
     "高风险 总分 78 / 78", "≥20 临界值20"
   ],
-  "ref": "EAT-26 二十六项按反向/正向分别取满分（REV_IDX 3 项选 j=0 ⇒ REV[0]=3；其余 23 项选 j=5 ⇒ NORM[5]=3）⇒ 总分 78/78 ≥20 ⇒「高风险」；A[3]、A[8] 均 5 ≥3 ⇒ 追加暴食/催吐就医提示。默认（未作答）为提示框，零交集。via=click"
+  "ref": "M-N9 修复后：OPTS 由「总是」到「从不」，正向题 总是=3；25 个正向题选 j=0（总是）得 75，唯一反向题（第 25 题）选 j=5（从不）得 REV[5]=3，总分 78/78 ≥20 ⇒「高风险」；A[3]=0、A[8]=0（总是）⇒ 追加暴食/催吐就医提示。默认（未作答）为提示框，零交集。"
+},
+{
+  "slug": "psychiatry/eat26-eating",
+  "inputs": {},
+  "clicks": [
+    "A=QS.map(function(){return 5;});calc();var h=String(document.getElementById('result').innerHTML);document.getElementById('__tbProbe').textContent='EATLOW '+((h.indexOf('低风险')>=0&&h.indexOf('总分 3 / 78')>=0)?'OK':'BAD');"
+  ],
+  "expect": ["EATLOW OK"],
+  "ref": "537 复核失败重做：全选「从不」(j=5) ⇒ 25 个正向题各 0 分、第 25 题反向 REV[5]=3 ⇒ 总分 3/78、低风险。若计分数组方向颠倒，全选「从不」会得 75 分高风险 ⇒ BAD。"
 },
 {
   "slug": "psychiatry/gad7-anxiety",
@@ -490,12 +522,34 @@ const CASES = [
   "ref": "PCL-5 二十项全选「极其严重」j=4 ⇒ 总分 80/80 ⇒ 落 total>35 分支「重度」；四个症状群 B 20/C 8/D 28/E 24 均满分 ⇒ DSM-5 症状群筛查判定「符合」。默认态为提示框，零交集。via=click"
 },
 {
+  "slug": "psychiatry/pcl5-ptsd",
+  "clicks": [
+    "for(var i=0;i<20;i++){pick(i,0);} pick(0,1);pick(5,1);pick(7,1);pick(8,1);pick(14,1);pick(15,1);document.getElementById('__tbProbe').textContent='PCL5NEG '+(document.getElementById('result').innerHTML.indexOf('筛查：不符合')>=0?'OK':'BAD')+(A.reduce(function(s,v){return s+v;},0));"
+  ],
+  "expect": ["PCL5NEG OK6"],
+  "ref": "M-N1：第 1、6、8、9、15、16 题各 1 分、其余 0 ⇒ 总分 6；按 ≥2 分的症状群口径，各群均无阳性条目 ⇒ 筛查「不符合」，与门诊记录一致。修复前按 >0 计数会判「符合」。"
+},
+{
+  "slug": "psychiatry/pcl5-ptsd",
+  "clicks": [
+    "for(var i=0;i<20;i++){pick(i,2);}document.getElementById('__tbProbe').textContent='PCL5POS '+(document.getElementById('result').innerHTML.indexOf('筛查：符合')>=0?'OK':'BAD');"
+  ],
+  "expect": ["PCL5POS OK"],
+  "ref": "M-N1 边界：20 题全选 2 分 ⇒ 每群至少 2 个条目 ≥2，B≥1/C≥1/D≥2/E≥2 同时满足 ⇒ 筛查「符合」。"
+},
+{
   "slug": "psychiatry/pdss-panic",
   "clicks": [ "pick(0,4)", "pick(1,4)", "pick(2,4)", "pick(3,4)", "pick(4,4)", "pick(5,4)", "pick(6,4)"],
   "expect": [
     "重度 总分 28 / 28 · 均分 4.0", "≥8 临界值8"
   ],
   "ref": "PDSS 七项全选最重档 j=4 ⇒ 总分 28/28 ⇒ 落 total>13 分支「重度」；均分 (28/7).toFixed(1) = 4.0。注意 #quiz 第 1 题选项含「2-3次」等文本，旧 expect 正是该静态串（默认全量渲染即命中＝逃生项），本次改锚结果卡。默认态为提示框，零交集。via=click"
+},
+{
+  "slug": "psychiatry/pdss-panic",
+  "clicks": ["applyPdssPreset(4)"],
+  "expect": ["惊恐症状严重、功能明显受损，建议尽快精神科评估"],
+  "ref": "M-N6：重度预设各维度取 4 ⇒ 总分 28，结果描述不再写「存在重度惊恐障碍」的疾病结论，改为症状严重度 + 建议精神科评估、由医生决定治疗方案；默认未作答，零交集。"
 },
 {
   "slug": "psychiatry/phq15-somatization",
@@ -507,6 +561,22 @@ const CASES = [
   "ref": "PHQ-15 十五项全选「很多困扰」j=2 ⇒ 总分 30/30 ⇒ 落 total>14 分支「高」；中重度临界卡显示 ≥10。默认态为提示框，零交集。via=click"
 },
 {
+  "slug": "psychiatry/phq15-somatization",
+  "clicks": [
+    "A=A.map(function(){return 2;});render();calc();var ok1=document.getElementById('result').innerHTML.indexOf('30 / 30')>=0;A[0]=-1;calc();var rb=document.getElementById('resultRefBar');document.getElementById('__tbProbe').textContent='PHQ15REST '+(ok1&&rb&&rb.innerHTML===''?'OK':'BAD');"
+  ],
+  "expect": ["PHQ15REST OK"],
+  "ref": "恢复答案：模拟历史回调写入 A 后 `render();calc()`，结果立即算出 30/30（原回调只 render 不 calc，仍显示 0/30）；随后改为未完成再 calc，标尺容器被清空（原清空逻辑只在 resetQuiz，未答完路径会残留旧标尺）。"
+},
+{
+  "slug": "psychiatry/bis11-impulse",
+  "clicks": [
+    "applyBisPreset('high');A[0]=-1;calc();var rb=document.getElementById('resultRefBar');document.getElementById('__tbProbe').textContent='BIS11RB '+(rb&&rb.innerHTML===''?'OK':'BAD');"
+  ],
+  "expect": ["BIS11RB OK"],
+  "ref": "未答完路径原本只替换 #result，不清理 #resultRefBar：先渲染高分标尺再撤掉一题，旧标尺残留。现在 calc 的未完成分支同步清空标尺；默认页未渲染标尺，不命中。"
+},
+{
   "slug": "psychiatry/phq9-depression",
   "clicks": [ "pick(0,3)", "pick(1,3)", "pick(2,3)", "pick(3,3)", "pick(4,3)", "pick(5,3)", "pick(6,3)",
     "pick(7,3)", "pick(8,3)"],
@@ -514,6 +584,12 @@ const CASES = [
     "重度抑郁 总分 27 / 27", "DSM-5 重性抑郁发作筛查：符合"
   ],
   "ref": "PHQ-9 九项全选「几乎每天」j=3 ⇒ 总分 27/27 ⇒ 落 total>19 分支「重度抑郁」；症状条目(≥2) = 9 ⇒ DSM-5 重性抑郁发作筛查「符合」；第 9 题自伤念头得分 ⇒ 追加危机提示。默认态为「已作答 0/9 项」提示，零交集。via=click"
+},
+{
+  "slug": "psychiatry/phq9-depression",
+  "clicks": ["applyQuizPreset(2)"],
+  "expect": ["中度抑郁 总分 14 / 27"],
+  "ref": "M-N37：中度预设原为 9 项全取 2 ⇒ 18 分，落 15–19「中重度」，与按钮「中度」矛盾。现改为前 7 项取 2、其余 0 ⇒ 14 分，恰在 10–14 中度上界；按钮文案同步为「7 项一半天数」。默认未作答，零交集。"
 },
 {
   "slug": "psychiatry/panss-schizophrenia",
@@ -577,9 +653,18 @@ const CASES = [
   "clicks": [ "pick(0,4)", "pick(1,4)", "pick(2,4)", "pick(3,4)", "pick(4,4)", "pick(5,4)", "pick(6,4)",
     "pick(7,4)", "pick(8,4)", "pick(9,4)"],
   "expect": [
-    "总分 24 / 40", "重度强迫症状，需积极药物联合心理治疗。"
+    "总分 40 / 40", "极重度强迫症状，功能严重受损，建议强化治疗。"
   ],
-  "ref": "Y-BOCS 十项（强迫思维 5 + 强迫行为 5）全选「极重度」j=4：第 4/5/9/10 项为抵抗/控制反向计分（4−选项=0），故强迫思维 3×4=12、强迫行为 3×4=12，总分 24 落 24–31 段「重度」。旧期望 40/40「极重度」是反向计分引入前的口径，已更正。默认态为「已作答 0/10 项」提示，零交集。via=click"
+  "ref": "Y-BOCS 十项全选各自最重选项 j=4：按原始量表(Goodman 1989)统一正向计分——第 4/5/9/10 题选项为「几乎无法抵抗/控制」=4 分（原反向写法 4−4=0 已废止），10 项各 4 分总分 40 落 32–40 段「极重度」。默认态为「已作答 0/10 项」提示，零交集。via=click"
+}
+,{
+  "slug": "psychiatry/ybocs-ocd",
+  "clicks": [ "pick(0,0)", "pick(1,0)", "pick(2,0)", "pick(3,0)", "pick(4,0)", "pick(5,0)", "pick(6,0)",
+    "pick(7,0)", "pick(8,0)", "pick(9,0)"],
+  "expect": [
+    "总分 0 / 40", "目前无明显强迫症状。"
+  ],
+  "ref": "539 核心回归：完全无症状者全选每题首项（普通题「无」、抵抗/控制题「总能抵抗/控制」）均得 0 分，总分 0 落 0–7 段「亚临床」。旧版把抵抗/控制题套用通用选项再 4−0=4 反向，会得到 16 分误判「中度」，本用例锁死该 bug。默认态为「已作答 0/10 项」提示，零交集。via=click"
 }
   ,{
     "slug": "psychiatry/cdrisc-resilience",
@@ -594,9 +679,9 @@ const CASES = [
     "slug": "psychiatry/ybocs-ocd",
     "clicks": ["for(var i=0;i<QS.length;i++){A[i]=(i<5?3:2);}calc()"],
     "expect": [
-      "总分 21 / 40", "中度强迫症状，建议接受CBT-ERP或药物治疗。"
+      "总分 25 / 40", "重度强迫症状，需积极药物联合心理治疗。"
     ],
-    "ref": "门诊记录（EMR note）：前 5 项（强迫思维）各 3 分、后 5 项（强迫行为）各 2 分；其中第 3/4/8/9 项（0 基）反向计分为 1/1/2/2 ⇒ 强迫思维 3+3+3+1+1=11、强迫行为 2+2+2+2+2=10，总分 21 落 16–23 段「中度」。旧期望 25/40「重度」未计入反向计分，已更正。默认态 A 全为 -1（未作答）⇒ done<10 直接 return，不渲染门诊记录，零交集。"
+    "ref": "门诊记录（EMR note）：前 5 项（强迫思维）各设 j=3 得 3 分、后 5 项（强迫行为）各设 j=2 得 2 分；统一正向计分（抵抗/控制题选项已按方向书写，不再 4−选项 反向）⇒ 强迫思维 5×3=15、强迫行为 5×2=10，总分 25 落 24–31 段「重度」。默认态 A 全为 -1（未作答）⇒ done<10 直接 return，不渲染门诊记录，零交集。"
   }
   ,{
     "slug": "psychiatry/panss-schizophrenia",

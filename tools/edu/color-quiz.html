@@ -7,12 +7,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="toolbox" content="cat=game,industry=edu,icon=🎨,bg=#fff8e1">
-<meta name="description" content="颜色测验是一款免费的在线教育学习工具，随机显示颜色要求选出名称或 HEX 代码，训练色彩辨识与配色直觉，即时反馈正误，适合设计入门与色彩记忆练习，纯前端。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+<meta name="description" content="颜色测验是一款免费的在线教育学习工具，随机显示颜色要求选出名称或 HEX 代码，训练色彩辨识与配色直觉，即时反馈正误，适合设计入门与色彩记忆练习，纯前端。">
 <meta name="keywords" content="颜色测验,颜色测验在线,在线颜色测验,游戏趣味,教育学习,在线工具,免费工具,ToolBox">
 <meta name="robots" content="index,follow">
 <link rel="canonical" href="https://tools.dicomp.net/tools/edu/color-quiz.html">
 <meta property="og:title" content="颜色测验 - 免费在线教育学习工具">
-<meta property="og:description" content="颜色测验是一款免费的在线教育学习工具，随机显示颜色要求选出名称或 HEX 代码，训练色彩辨识与配色直觉，即时反馈正误，适合设计入门与色彩记忆练习，纯前端。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+<meta property="og:description" content="颜色测验是一款免费的在线教育学习工具，随机显示颜色要求选出名称或 HEX 代码，训练色彩辨识与配色直觉，即时反馈正误，适合设计入门与色彩记忆练习，纯前端。">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://tools.dicomp.net/tools/edu/color-quiz.html">
 <meta name="twitter:card" content="summary">
@@ -68,10 +68,10 @@
 <meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
 <meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
     <meta name="twitter:title" content="颜色测验 - 免费在线教育学习工具">
-    <meta name="twitter:description" content="颜色测验是一款免费的在线教育学习工具，随机显示颜色要求选出名称或 HEX 代码，训练色彩辨识与配色直觉，即时反馈正误，适合设计入门与色彩记忆练习，纯前端。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+    <meta name="twitter:description" content="颜色测验是一款免费的在线教育学习工具，随机显示颜色要求选出名称或 HEX 代码，训练色彩辨识与配色直觉，即时反馈正误，适合设计入门与色彩记忆练习，纯前端。">
 <!-- TOOLBOX-WEBAPP-LD -->
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebApplication","name":"颜色测验","url":"https://tools.dicomp.net/tools/edu/color-quiz.html","applicationCategory":"GamesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"颜色测验是一款免费的在线教育学习工具，随机显示颜色要求选出名称或 HEX 代码，训练色彩辨识与配色直觉，即时反馈正误，适合设计入门与色彩记忆练习，纯前端。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+{"@context":"https://schema.org","@type":"WebApplication","name":"颜色测验","url":"https://tools.dicomp.net/tools/edu/color-quiz.html","applicationCategory":"GamesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"颜色测验是一款免费的在线教育学习工具，随机显示颜色要求选出名称或 HEX 代码，训练色彩辨识与配色直觉，即时反馈正误，适合设计入门与色彩记忆练习，纯前端。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
 </script>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
@@ -246,14 +246,18 @@ const colors=[
   {n:'紫',c:'#9c27b0'},{n:'粉',c:'#e91e63'},{n:'黑',c:'#000000'},
   {n:'白',c:'#ffffff'},{n:'灰',c:'#9e9e9e'},{n:'棕',c:'#795548'}
 ];
-let qNo,score,cur;
+let qNo,score,cur,advanceTimer=null,gameToken=0;
 
 function start(){
   reset();
+  gameToken++;
+  if(advanceTimer){clearTimeout(advanceTimer);advanceTimer=null;}
   qNo=0;score=0;
   next();
 }
 function reset(){
+  gameToken++;
+  if(advanceTimer){clearTimeout(advanceTimer);advanceTimer=null;}
   document.getElementById('qNo').textContent='0';
   document.getElementById('score').textContent='0';
   document.getElementById('colorName').textContent='—';
@@ -262,6 +266,7 @@ function reset(){
   document.getElementById('output').textContent='点击"开始"开始游戏';
 }
 function next(){
+  if(advanceTimer){clearTimeout(advanceTimer);advanceTimer=null;}
   if(qNo>=10){
     finish();
     return;
@@ -293,6 +298,16 @@ function next(){
   });
   document.getElementById('output').textContent='选择文字描述的颜色（注意：文字本身的颜色是干扰项）';
 }
+// 延迟推进加局次令牌：start()/reset() 递增 gameToken 并清 advanceTimer，
+// 过期回调即使触发也因令牌不匹配丢弃，避免答题后重置/重开被旧回调重新出题或跳题。
+function scheduleNext(){
+  var myToken=gameToken;
+  advanceTimer=setTimeout(function(){
+    advanceTimer=null;
+    if(myToken!==gameToken)return;
+    next();
+  },900);
+}
 function choose(o,el){
   const opts=document.querySelectorAll('.opt');
   opts.forEach(b=>b.onclick=null);
@@ -304,7 +319,7 @@ function choose(o,el){
     opts.forEach(b=>{if(b.textContent.includes(cur.n)&&b.textContent.length<=3)b.classList.add('correct');});
   }
   document.getElementById('score').textContent=score;
-  setTimeout(next,900);
+  scheduleNext();
 }
 function finish(){
   document.getElementById('colorName').textContent='🏁 完成！';

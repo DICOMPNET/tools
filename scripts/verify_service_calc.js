@@ -51,6 +51,27 @@ const CASES = [
 },
 {
   "slug": "service/csat-score",
+  "inputs": {"s5":"10","s4":"0","s3":"0","s2":"0","s1":"-1"},
+  "clicks": ["var cap=null,ot=ToolBox.copyText,ts=ToolBox.showToast;ToolBox.copyText=function(t){cap=String(t);};ToolBox.showToast=function(){};try{copyReport();}finally{ToolBox.copyText=ot;ToolBox.showToast=ts;}document.getElementById('__tbProbe').textContent='CSATCPY '+((cap===null||cap==='')?'OK':'BAD '+cap);"],
+  "expect": ["CSATCPY OK"],
+  "ref": "590：copyReport 原用 parseInt(v)||0 绕过 calc 校验，5星10/1星-1 会把 -1 截成 0 仍导出 10 人报告。修复后共用 readCounts 校验，非法输入直接拒绝、不复制。合法态默认 45/30/12/8/5 不触发探针串。"
+},
+{
+  "slug": "service/csat-score",
+  "inputs": {"s5":"50","s4":"30","s3":"12","s2":"5","s1":"3"},
+  "clicks": ["var cap=null,ot=ToolBox.copyText;ToolBox.copyText=function(t){cap=String(t);};try{copyReport();}finally{ToolBox.copyText=ot;}document.getElementById('__tbProbe').textContent='CSATAGENT '+((cap&&cap.indexOf('NPS（星级代理）')>=0&&cap.indexOf('总评价：100人')>=0)?'OK':'BAD '+String(cap).slice(0,60));"],
+  "expect": ["CSATAGENT OK"],
+  "ref": "590：复制报告里的 NPS 需标注「星级代理」，与统计卡/公式框口径一致，避免误认为标准推荐意愿问卷。100 条评价导出报告须含该标注；旧源码仅写「NPS：」⇒ BAD。"
+},
+{
+  "slug": "service/csat-score",
+  "inputs": {"s5":"50","s4":"30","s3":"12","s2":"5","s1":"3"},
+  "clicks": ["var cap=null,ot=ToolBox.copyText;ToolBox.copyText=function(t){cap=String(t);};var prevTB=globalThis.TBKit;globalThis.TBKit={util:{isEn:function(){return true;}}};try{copyReport();}finally{ToolBox.copyText=ot;globalThis.TBKit=prevTB;}var ok=!!cap&&cap.indexOf('CSAT Satisfaction Report')>=0&&cap.indexOf('NPS (star-based proxy)')>=0&&cap.indexOf('Total ratings: 100')>=0&&!/[\\u4e00-\\u9fa5]/.test(cap);document.getElementById('__tbProbe').textContent='CSATEN '+(ok?'OK':'BAD '+String(cap).slice(0,50));"],
+  "expect": ["CSATEN OK"],
+  "ref": "881 复核失败重做：copyReport 原硬编码中文，英文态复制仍出中文报告（英文 DOM 探针覆盖不到剪贴板）。注入 isEn=true 捕获 copyText，断言英文报告串且零 CJK；旧实现输出中文 ⇒ BAD。合法态默认 45/30/12/8/5 不触发探针串。"
+},
+{
+  "slug": "service/csat-score",
   "inputs": {
     "s5": "10",
     "s4": "0",
@@ -115,6 +136,24 @@ const CASES = [
   ],
   "expect": ["RTEMPTY=Y"],
   "ref": "修复前空响应时间被当成 0 计入均值（两条得 10.0 分）；现未填写的响应时间不参与均值/分位数统计，仅 B 的 20.0 分入样。默认态无 RTEMPTY 探针串。"
+},
+{
+  "slug": "service/response-time",
+  "inputs": { "slaTarget": "45" },
+  "clicks": [
+    "tickets=[{id:'Z',resp:5,solve:0,status:'resolved'},{id:'Y',resp:15,solve:20,status:'resolved'}];renderList();calc();var s=String(document.getElementById('stats').innerHTML);var d=String(document.getElementById('detailBody').innerHTML);document.getElementById('__tbProbe').textContent='RTZERO10 '+(s.indexOf('10.0分')>=0&&d.indexOf('<td>0.0</td>')>=0?'OK':'BAD');"
+  ],
+  "expect": ["RTZERO10 OK"],
+  "ref": "591 批复核失败回归：已解决且解决时间 0 分钟是合法采样，旧 `solve>0` 把 Z 排除在平均解决时间外只剩 20 分钟；现按 `solve>=0` 入样，两条 (0+20)/2=10.0 分，明细应显示 0.0 而非「-」。注入 SLA=45（默认 30）避免默认态。"
+},
+{
+  "slug": "service/response-time",
+  "inputs": { "slaTarget": "45" },
+  "clicks": [
+    "tickets=[{id:'N',resp:null,solve:5,status:'resolved'},{id:'M',resp:20,solve:null,status:'pending'}];renderList();calc();var d=String(document.getElementById('detailBody').innerHTML);var row=d.split('</tr>').filter(function(r){return r.indexOf('>N<')>=0;})[0]||'';document.getElementById('__tbProbe').textContent='RTNOSAMPLE '+(row.indexOf('<td>-</td><td>5.0</td>')>=0&&row.indexOf('超标')<0?'OK':'BAD');"
+  ],
+  "expect": ["RTNOSAMPLE OK"],
+  "ref": "591 批复核失败回归：SLA 有效但响应时间未采样时，旧明细把 ok=false 直接显示「超标」，等于把「没数据」当成违规；现无采样显示「-」且不着红色。注入 N 行 resp=null 专锚该行，默认 8 单响应均非空。"
 },
 {
   "slug": "service/ticket-priority",

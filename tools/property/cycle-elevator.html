@@ -7,11 +7,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="toolbox" content="cat=text,industry=property,icon=⏱️,bg=#efebe9">
-<meta name="description" content="电梯（维保/年检）周期是一款免费的在线物业管理工具，电梯维保与年检周期管理，按半月/季度/半年/年度维保与法定年检自动推算下次到期，逾期合规预警。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+<meta name="description" content="电梯（维保/年检）周期是一款免费的在线物业管理工具，电梯维保与年检周期管理，按半月/季度/半年/年度维保与法定年检自动推算下次到期，逾期合规预警。">
 <title>电梯（维保/年检）周期 - 电梯维保与年检周期管理</title>
 <link rel="canonical" href="https://tools.dicomp.net/tools/property/cycle-elevator.html">
 <meta property="og:title" content="电梯（维保/年检）周期 - 电梯维保与年检周期管理">
-<meta property="og:description" content="电梯（维保/年检）周期是一款免费的在线物业管理工具，电梯维保与年检周期管理，按半月/季度/半年/年度维保与法定年检自动推算下次到期，逾期合规预警。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+<meta property="og:description" content="电梯（维保/年检）周期是一款免费的在线物业管理工具，电梯维保与年检周期管理，按半月/季度/半年/年度维保与法定年检自动推算下次到期，逾期合规预警。">
 <meta property="og:url" content="https://tools.dicomp.net/tools/property/cycle-elevator.html">
 <meta name="twitter:card" content="summary">
 <link rel="stylesheet" href="../../css/common.css">
@@ -34,10 +34,10 @@
 <meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
     <meta property="og:type" content="website">
     <meta name="twitter:title" content="电梯（维保/年检）周期 - 电梯维保与年检周期管理">
-    <meta name="twitter:description" content="电梯（维保/年检）周期是一款免费的在线物业管理工具，电梯维保与年检周期管理，按半月/季度/半年/年度维保与法定年检自动推算下次到期，逾期合规预警。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+    <meta name="twitter:description" content="电梯（维保/年检）周期是一款免费的在线物业管理工具，电梯维保与年检周期管理，按半月/季度/半年/年度维保与法定年检自动推算下次到期，逾期合规预警。">
 <!-- TOOLBOX-WEBAPP-LD -->
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebApplication","name":"电梯（维保/年检）周期","url":"https://tools.dicomp.net/tools/property/cycle-elevator.html","applicationCategory":"DeveloperApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"电梯（维保/年检）周期是一款免费的在线物业管理工具，电梯维保与年检周期管理，按半月/季度/半年/年度维保与法定年检自动推算下次到期，逾期合规预警。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+{"@context":"https://schema.org","@type":"WebApplication","name":"电梯（维保/年检）周期","url":"https://tools.dicomp.net/tools/property/cycle-elevator.html","applicationCategory":"DeveloperApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"电梯（维保/年检）周期是一款免费的在线物业管理工具，电梯维保与年检周期管理，按半月/季度/半年/年度维保与法定年检自动推算下次到期，逾期合规预警。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
 </script>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
@@ -307,7 +307,7 @@ var MAINT_TYPES = [
 
 function getElevator(id){ return elevators.find(function(e){return e.id===id;}); }
 function latestLog(el, type){
-  var recs = el.logs.filter(function(l){return l.type===type;});
+  var recs = el.logs.filter(function(l){ return l.type===type && parseDate(l.date) && parseDate(l.date) <= today(); });
   if(!recs.length) return null;
   return recs.reduce(function(a,b){ return parseDate(a.date) >= parseDate(b.date) ? a : b; });
 }
@@ -374,6 +374,10 @@ function addLog(elId){
   var findings = document.getElementById('logFind_'+elId).value.trim();
   var parts = document.getElementById('logParts_'+elId).value.trim();
   if(!date){ ToolBox.showToast(i18nText(), 'error'); return; }
+  var ld = parseDate(date), inst = parseDate(el.installDate);
+  if(!ld){ ToolBox.showToast('维保日期格式无效','error'); return; }
+  if(inst && ld < inst){ ToolBox.showToast('维保日期不能早于安装日期 '+el.installDate,'error'); return; }
+  if(ld > today()){ ToolBox.showToast('维保日期不能晚于今天','error'); return; }
   el.logs.push({ id:uid(), type:type, date:date, technician:tech, findings:findings, parts:parts });
   save(); render();
   ToolBox.showToast(i18nText());

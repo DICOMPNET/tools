@@ -6,16 +6,6 @@
 - 证据：同页 `:106,116-139,287-305` 文案提及运费及多件促销，但实际输入为两商品数量、单位和价格。
 - 影响：同页；方案：按商品加入选填运费、促销总件数，展示标准单位单价和每次采购节省额，支持复制结果。
 
-### 会议计时把一次性费用按小时计入（中，确认函数缺陷）
-- 问题与证据：`tools/biz/meeting-cost-calculator.html:341-350,386-404` 常规计算将场地费直接加总，实时计时却按 `roomCost/3600*elapsed` 增长；1 人时薪 100、场地费 600、计时 30 分钟，原函数得到 350 元，按一次性费用应为 650 元。
-- 影响：`tools/biz/meeting-cost-calculator.html`，计划和实时结果口径冲突。
-- 方案：实时计时按一次性费用计算；若需要按时费用，另以明确单位区分。可本地保存计划与实际耗时成本对照。
-
-### 融资稀释后复制仍是融资前股权（高，确认函数缺陷）
-- 问题与证据：`tools/startup/equity-calculator.html:437-459,498-510` 展示按融资比例稀释，复制函数重新算融资前股权；一名创始人、期权池 0%、投前 5000 万、投资 1000 万，原函数展示创始人 83.33%、投资人 16.67%，复制却为创始人 100% 且缺投资人。
-- 影响：`tools/startup/equity-calculator.html`，复制用于沟通时可能传播错误股权。
-- 方案：展示、复制及导出使用同一最终结构并列出融资轮与投资人；可本地保存多轮融资情景对比。
-
 ### 覆盖
 - 本轮核查 `tools/biz/unit-price-compare.html`、`tools/biz/meeting-cost-calculator.html`、`tools/startup/equity-calculator.html` 共 3 页；新增 2 个缺陷及 2 条建议。后两页为内存 DOM 桩执行，未实测浏览器、系统剪贴板或其他商业页。
 
@@ -91,13 +81,6 @@
 - 复现：任一项 3×4=12 → 结果「高风险」；按公式框应称「较高」。5×5=25 → 结果「极高风险」；公式框称「高风险」。
 - 影响：对照公式框复核时误判等级，10–15 档容易被当成最高档。
 - 方案：统一四档命名（低/中/较高/高 或 低/中/高/极高），同步公式框、结果卡、图例与 CSV。
-
-### BS-N28 HSE 检查：关键项 0 分仍可评「优秀」，缺一票否决（高，确认）
-- 描述：10 项纯加总评分，没有「关键项一票否决」；页面自己称为「一票否决/重大隐患」的特种作业持证项即使 0 分，其余 9 项满分仍得 18 分判「优秀」。
-- 证据：`tools/project/checker-training-hr-1.html:208`（纯 `total+=`）、`:211-214`（仅按总分分级）、`:157`、`:164`（一票否决/即时停工表述）。
-- 复现：仅「特种作业持证」选不达标（0 分），其余 9 项均达标（2 分）→ 总分 18/20、达标率 90%、等级「优秀」，建议「安全管理体系健全」；期望触发「重大隐患/停工整改」而非优秀。
-- 影响：HSE 自评可能把无证上岗等重大隐患判为优秀，直接违背页面 FAQ 与法规要求，安全风险高。
-- 方案：为关键项（特种作业持证、重大隐患等）设否决位：任一为 0 时整体最高只能「不合格/限期整改」并置顶红色提示；或在总分旁单列「关键项」状态。
 
 ### 续查覆盖（K 批）
 - 本轮实读 8 页：`tools/biz/analysis-47.html`、`tools/biz/analysis-manager.html`、`tools/biz/stats-time-response.html`、`tools/biz/assessor-49.html`、`tools/biz/assessor-risk-8.html`、`tools/project/analysis-28.html`、`tools/project/assessor-risk-9.html`、`tools/project/checker-training-hr-1.html`；新增 16 条（高 2 / 中 9 / 低 5）。
@@ -228,15 +211,6 @@
 - 是否假工具：**是**（核心的图片横幅能力未实现，仅剩文本方框）
 - 方案：二选一——① 真做 canvas 横幅（字体族/字号/前景背景色/PNG 下载）；② 若保留 ASCII 方框，则同步改写 title、description、深度解析与引据表，并去掉「字体/配色/导出图片」承诺。
 
-### BS-N71 条码生成：内容行未经转义写入 `innerHTML`，Code 128 可注入 HTML 并执行事件（高，安全）
-- 页面：`tools/biz/barcode-generator.html`
-- 问题：`meta()` 用字符串拼 `<b>` + `rows[i][1]` 后写 `box.innerHTML`；`buildMeta()` 第一行就是 `['条码内容', res.text]`，而 Code 128 接受全部可打印 ASCII（含 `<`、`>`、`"`），用户输入会作为 HTML 解析。
-- 证据：`tools/biz/barcode-generator.html:311-319`（`h += '<div><span>' + rows[i][0] + '</span><b>' + rows[i][1] + '</b></div>'; box.innerHTML = h`）、`:353`（内容行）、`:389`（未转义原文）。
-- 复现：Code 128 输入 `<img src=x onerror="window.__xss=1">` → 编码成功；jsdom 复算 `meta()` 后 `#bcMeta` 内出现 1 个真实 `<img>` 元素，页面加载即触发 `onerror`。属自 XSS（需本人粘贴），但可被“示例文本”诱导。
-- 影响：与项目结果区统一 `textContent`/`escapeHtml` 的约定不符，任何未来把输入带入 URL/分享的场景会升级为可传播 XSS。
-- 是否假工具：否
-- 方案：`meta()` 改用 `textContent` 逐节点构建，或对 `rows[i][0]/[1]` 统一 `escapeHtml`；SVG 的 `o.text` 已有转义，可复用同一函数。
-
 ### BS-N72 条码生成：宽度缩放 0.5 被静默抬到 1，控件标称范围失效（中，确认缺陷）
 - 页面：`tools/biz/barcode-generator.html`
 - 问题：页面允许 `min="0.5" step="0.5"`，但渲染层 `normalizeOptions()` 用 `Math.max(1, Math.min(10, ...))`，0.5 永远变成 1；用户选最小档与选 1 输出像素完全相同。
@@ -277,12 +251,12 @@
 - `tools/biz/text-to-banner.html`：3 条（BS-N65、BS-N66 高；BS-N67 中）。生成/复制/CSV 可运行，但页面身份与宣传严重不符。
 - `tools/biz/motto-generator.html`：1 条（BS-N73 中）。随机抽取、去重、条数上限与 CSV 正常；未发现 XSS（结果走 `textContent`）。
 - `tools/biz/text-box-drawing.html`：2 条（BS-N68 高；BS-N69 中）。视觉宽度、八种边框、对齐、预设均真实；结果走 `textContent`。
-- `tools/biz/barcode-generator.html`：2 条（BS-N71 高；BS-N72 中）；EAN-13/UPC-A 随机 30 组与参考库逐位一致，Code 39 码表/校验、Code 128 校验和均正确；问题集中在元信息注入、trim 与缩放钳制
+- `tools/biz/barcode-generator.html`：1 条（BS-N72 中）；EAN-13/UPC-A 随机 30 组与参考库逐位一致，Code 39 码表/校验、Code 128 校验和均正确；原元信息注入已改 `textContent` 渲染，第 953 批清账，剩余问题为 trim 与缩放钳制
 - `tools/biz/text-reverse-lines.html`：1 条（BS-N76 中）；行级倒序、跳空行、首末行保留的主体逻辑正确
 - `tools/biz/superscript-text.html`：3 条（BS-N77 高；BS-N78、BS-N79 中）。数字/符号映射正确，字母 q–z 与模式分流有问题。
 - `tools/biz/fullwidth-halfwidth.html`：1 条（BS-N80 中）。U+FF01–FF5E / U+3000 双向转换与开关组合实算正常，结果 `textContent` 输出。
 
-- **本批合计 16 条：高 5（BS-N65、BS-N66、BS-N68、BS-N71、BS-N77）/ 中 11。假工具 1 个（`text-to-banner`，核心图片横幅承诺未实现）。**
+- **本批合计 15 条：高 4（BS-N65、BS-N66、BS-N68、BS-N77）/ 中 11（BS-N71 已修复销账）。假工具 1 个（`text-to-banner`，核心图片横幅承诺未实现）。**
 - 说明：本轮为**只读**审计，结论来自逐行阅读源码 + `node` 在 `/tmp` 复刻核心函数实算（脚本 `/tmp/v_biz_text.js`、`/tmp/c39cmp2.js`、`/tmp/bccmp.js`）；条码另用 `/tmp/pylibs` 的 `python-barcode` 参考实现比对 EAN/UPC/Code39 码表；**未开浏览器**、**未运行 `_build.py` / `run_gates.py`**、**未做线上验证**，除本文件外未修改任何文件。
 
 ## V 批 · 商业文本 B（2026-11-04）

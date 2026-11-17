@@ -907,8 +907,8 @@ const CASES = [
     "slug": "tax/rfc-validator",
     "inputs": { "input": "ABCD900101ABC" },
     "clicks": ["validate()"],
-    "expect": ["1990-1-1"],
-    "ref": "RFC ABCD900101ABC：首字母 ABCD，日期段 900101 ⇒ 1990-01-01，个人(Persona Física)无校验位。默认输入为空 ⇒ 无此串。"
+    "expect": ["1990-01-01", "校验位： C（期望 4）"],
+    "ref": "RFC ABCD900101ABC：首字母 ABCD，日期段 900101 ⇒ 页面按补零格式输出 1990-01-01；尾部 ABC 中 C 为校验位，按 RFC_BASE 权重算法期望 4 ⇒ 该串校验位不符。旧 expect 写未补零的 1990-1-1 且与校验位结论脱钩，已改为双锚。默认输入为空 ⇒ 两锚均不命中。"
   },
   {
     "slug": "text/text-extract-phones",
@@ -2046,6 +2046,20 @@ const CASES = [
     ref: "SMS-27 残留一：两值仅差 1、量级 1e8。主算 s²=0.5（偏差 ±0.5 → SS=0.5 → /(n-1)=0.5）；替代公式 E(X²)−[E(X)]² 在双精度下消减为 0 并曾无条件标「与上方一致」。修复后按相对误差 relGap=|v2−variance|/max(|variance|,1e-300)>1e-6 判定并改述。判别性：默认数据 2,4,4,4,5,5,7,9 量级小、替代值一致 ⇒ 新提示默认态零命中。",
   },
   {
+    slug: "science/variance-calculator",
+    inputs: { dtype: "sample", data: "2,4,4,4" },
+    clicks: ["(function(){document.getElementById('variance_calculatorTable').innerHTML='OLD';document.getElementById('data').value='3';calculate();var t=String(document.getElementById('variance_calculatorTable').innerHTML);document.getElementById('__tbProbe').textContent='VARCLR '+(t===''?'OK':'BAD t='+t);})()"],
+    expect: ["VARCLR OK"],
+    ref: "624 复核失败重做：样本方差在仅剩 1 个数时只提示、不调 __varClear()；空数据分支同样只改主输出并 return ⇒ 旧 table/diff/chart/hist 残留，包装层还会把提示当结果重绘旧面板。修复后两条错误分支均置 __variance_calculatorValid=false + __varClear()，extras 遇错误态直接返回。探针预置旧表面板后注入单值样本数据，断言面板被清空；默认态无探针串 ⇒ 零逃生。"
+  },
+  {
+    slug: "science/mode-calculator",
+    inputs: { data: "1,2,2,3" },
+    clicks: ["(function(){document.getElementById('mode_calculatorTable').innerHTML='OLD';document.getElementById('data').value='';calculate();var t=String(document.getElementById('mode_calculatorTable').innerHTML);document.getElementById('__tbProbe').textContent='MODECLR '+(t===''?'OK':'BAD t='+t);})()"],
+    expect: ["MODECLR OK"],
+    ref: "624 复核失败重做：众数页清空数据后 data.length<1 分支只更新主输出并 return，未清 table/diff/chart/hist，包装层随后把「请输入数据」当结果记入历史并重绘旧面板。修复后空数据/非法数据分支统一 __modeClear() 并置错误态，extras 提前返回。探针预置旧表面板后清空数据，断言面板被清空；默认态无探针串 ⇒ 零逃生。"
+  },
+  {
     "slug": "science/wavelength-to-rgb",
     "inputs": { "wl": "550", "wlNum": "520.5" },
     "clicks": ["syncWl('num')"],
@@ -2115,6 +2129,25 @@ const CASES = [
     "clicks": ["calculate()"],
     "expect": ["与单位矩阵最大偏差：|Δ| = 2.22e-16", "在容差内"],
     "ref": "632 批 SMS-109：求逆分支原有 `const check = mul(A, inv)` 计算后从未使用，步骤行只打印「验证：A · A⁻¹ = I」这句定义，属死代码（承诺的验证结果未实现）。现实际输出乘积矩阵并给出与单位矩阵的最大偏差：A=[[4,7],[2,6]] det=10，A⁻¹=[[0.6,-0.7],[-0.2,0.4]]，A·A⁻¹ 对角元 1±1.1e-16，最大偏差 2.22e-16，容差 max(1e-9, max|元素|·1e-12)=1e-9 ⇒ 判「在容差内」。默认 op=det 不输出该行 ⇒ 强判别。"
+  },
+  {
+    "slug": "science/wire-gauge-converter",
+    "inputs": { "awg": "20.5" },
+    "clicks": ["(function(){var cap='';var fake={};Object.defineProperty(fake,'innerHTML',{set:function(v){cap=v;},get:function(){return cap;}});var oq=document.querySelector.bind(document);document.querySelector=function(s){return /wgHidden/.test(String(s))?fake:oq(s);};globalThis.TBKit={util:{isEn:function(){return false;},exportTable:function(){}}};try{__wgExport();}catch(e){cap='ERR '+e.message;}document.querySelector=oq;document.getElementById('__tbProbe').textContent='WGEXP '+(cap.indexOf('20.50')>=0?'OK':'BAD '+cap.slice(0,120));})()"],
+    "expect": ["WGEXP OK"],
+    "ref": "625/629 复核失败重做：__wgExport 的 AWG 分支原用 parseInt，主算按 20.5 计算、CSV 却按 20 计算。修复后与 calcFromAwg 同源：Number() 保留小数，并补空值/0–40 范围校验。探针拦截 #wgHidden tbody 写入，断言导出首行为 AWG=20.50；旧实现为 20.00 ⇒ 转红。默认 awg=24 不含 20.50 ⇒ 强判别。"
+  },
+  {
+    "slug": "science/matrix-calculator",
+    "clicks": ["(function(){var A=[[1e-13,0],[0,1e-13]];var inv=null;try{inv=inverse(A);}catch(e){}var okInv=!!inv&&Math.abs(inv[0][0]-1e13)<=1e-2&&Math.abs(inv[1][1]-1e13)<=1e-2&&inv[0][1]===0;var s1='x',s2='x';try{s1=__matSingular(A);s2=__matSingular([[1,2],[2,4]]);}catch(e){}document.getElementById('__tbProbe').textContent='MATINV '+((okInv&&s1===false&&s2===true)?'OK':'BAD inv='+(inv?JSON.stringify(inv).slice(0,60):'null')+' s1='+s1+' s2='+s2);})()"],
+    "expect": ["MATINV OK"],
+    "ref": "631 复核失败重做：inverse() 原用 |det| 对比元素级 ε（max|a|×1e-12），行列式是元素的 n 次幂、量纲不一致。A=1e-13·I₂ 时 det=1e-26 < ε=1e-25 ⇒ 误判奇异并返回 null，实际逆为 1e13·I₂。修复后新增 __matSingular 用部分主元消元（元素级 ε）统一行列式与求逆判定：该矩阵主元 1e-13 ≫ 1e-25 ⇒ 可逆；真奇异 [[1,2],[2,4]] ⇒ 判奇异。默认 op=det 不调用 inverse ⇒ 探针串零命中。"
+  },
+  {
+    "slug": "science/matrix-calculator",
+    "clicks": ["(function(){globalThis.TBKit={util:{isEn:function(){return true;}}};try{showFormulas();}catch(e){}var h=String(document.getElementById('output').innerHTML);document.getElementById('__tbProbe').textContent='MATEN '+((h.indexOf('Matrix formula reference')>=0&&h.indexOf('Addition:')>=0&&!/[\\u4e00-\\u9fff]/.test(h))?'OK':'BAD '+h.slice(0,100));})()"],
+    "expect": ["MATEN OK"],
+    "ref": "632 复核失败重做：showFormulas() 原无条件写入中文标题与多行中文说明，英文态（?lang=en-US）点击「公式说明」仍全中文。修复后按 __matIsEn() 分流整套英文文案。探针 mock TBKit.util.isEn=true 后调用，断言含 Matrix formula reference / Addition: 且无 CJK；默认态不执行 clicks ⇒ 零逃生。"
   }
 ];
 

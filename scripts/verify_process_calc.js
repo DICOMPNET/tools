@@ -15,6 +15,30 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  "slug": "process/cp-index",
+  "inputs": {
+    "usl": "10",
+    "lsl": "10.5",
+    "sigma": "0.01"
+  },
+  "expect": [
+    "USL 必须大于下规格限 LSL"
+  ],
+  "ref": "规格限颠倒：旧实现输出 Cp=-8.333 并正常展示公差带；现拦截。默认 10.05/9.95 合法，不命中。"
+},
+{
+  "slug": "process/cp-index",
+  "inputs": {
+    "usl": "10.05",
+    "lsl": "9.95",
+    "sigma": "-0.01"
+  },
+  "expect": [
+    "过程标准差 σ 必须大于 0"
+  ],
+  "ref": "负标准差：旧实现直接算出 Cp=-1.667；现拦截 σ≤0。"
+},
+{
   "slug": "process/cpk-index",
   "inputs": {
     "usl": "15.05",
@@ -25,8 +49,7 @@ const CASES = [
   "expect": [
     "15.05"
   ],
-    ref: "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
-  "ref": "auto-restore"
+    "ref": "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。 [auto-restore]"
 },
 {
   "slug": "process/cpk-with-shift",
@@ -40,8 +63,35 @@ const CASES = [
   "expect": [
     "15.05"
   ],
-    ref: "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
-  "ref": "auto-restore"
+    "ref": "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。 [auto-restore]"
+},
+{
+  "slug": "process/cpk-with-shift",
+  "inputs": {
+    "usl": "10.05",
+    "lsl": "9.95",
+    "nominal": "10.0",
+    "shift": "0.02",
+    "sigma": "0"
+  },
+  "expect": [
+    "过程标准差 σ」是本计算的分母，不能为 0"
+  ],
+  "ref": "σ=0：分母守卫先行拦截并标红「过程标准差 σ」。默认 0.01 合法，不命中。"
+},
+{
+  "slug": "process/cpk-with-shift",
+  "inputs": {
+    "usl": "10.05",
+    "lsl": "9.95",
+    "nominal": "10.0",
+    "shift": "0.02",
+    "sigma": "-0.01"
+  },
+  "expect": [
+    "过程标准差 σ 必须大于 0"
+  ],
+  "ref": "负 σ：分母守卫只拦 0，旧实现直接算 Cpk=-1.667；现显式要求 σ>0。"
 },
 {
   "slug": "process/defect-probability",
@@ -66,15 +116,39 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
-  "slug": "process/first-pass-yield",
+  "slug": "process/dpmo-calc",
   "inputs": {
-    "good": "1425",
-    "total": "1500"
+    "def": "30000",
+    "units": "2000",
+    "opp": "10"
   },
   "expect": [
-    "95.00"
+    "缺陷数不能超过总机会数"
   ],
-  "ref": "1425/1500=95.00%（旧用例 good>total 会被新校验拦截，改为合法输入）"
+  "ref": "缺陷数 30,000 > 总机会 20,000：旧实现算出 1,500,000 DPMO（>100%）；现按机会上界拦截。默认 186/20000 合法，不命中。"
+},
+{
+  "slug": "process/dpmo-calc",
+  "inputs": {
+    "def": "-5",
+    "units": "2000",
+    "opp": "10"
+  },
+  "expect": [
+    "缺陷数须 ≥0"
+  ],
+  "ref": "负缺陷数：旧实现输出 -250.0 DPMO；现要求 ≥0。"
+},
+{
+  "slug": "process/first-pass-yield",
+  "inputs": {
+    "good": "1440",
+    "total": "1600"
+  },
+  "expect": [
+    "90.00"
+  ],
+  "ref": "1440/1600=90.00%。判别器实测旧输入 1425/1500 与页面默认 950/1000 同为 95.00%（默认态命中），已换非默认比例；默认态不出现 90.00。"
 },
 {
   "slug": "process/first-pass-yield",
@@ -253,6 +327,18 @@ const CASES = [
     "3.450"
   ],
   "ref": "auto-restore"
+},
+{
+  "slug": "process/tolerance-worst-case",
+  "inputs": { "t1": "-0.2", "t2": "0.15", "t3": "0.2" },
+  "expect": ["公差须为非负数"],
+  "ref": "负公差拦截（685 批）：t₁=-0.2 时旧版得总公差 0.150（比单项还小），现应提示去掉负号；默认 0.1/0.15/0.2 不含该文案"
+},
+{
+  "slug": "process/tolerance-rss",
+  "inputs": { "t1": "-0.2", "t2": "0.15", "t3": "0.2" },
+  "expect": ["公差须为非负数"],
+  "ref": "负公差拦截（685 批）：旧版线性叠加 0.150 且 RSS 占比 213.44%，现应提示绝对值；默认态不含该文案"
 },
 {
   "slug": "process/xbar-control-limits",

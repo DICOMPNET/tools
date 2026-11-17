@@ -92,6 +92,14 @@ const CASES = [
     ref: "12.5×9/5+32 = 54.50°F；12.5+273.15 = 285.65K；体感 <15°C → 凉爽"
        + "（默认 25°C → 77.00°F / 298.15K / 舒适，注入失败即不命中）",
   },
+  {
+    slug: "life/temperature-converter",
+    clicks: ["var oe=document.activeElement;document.activeElement={id:'celsius'};document.getElementById('celsius').value='12.5';updateAll(12.5);var keep=document.getElementById('celsius').value==='12.5';var f=document.getElementById('fahrenheit').value;document.activeElement=oe;document.getElementById('__tbProbe').textContent='TEMP148 '+((keep&&f==='54.50')?'OK':'BAD');"],
+    expect: ["TEMP148 OK"],
+    ref: "LF-N148：键入中的摄氏框不得被回写（否则 12.5 会被 toFixed(2) 重排、多位数被吞）；"
+       + "模拟 activeElement=celsius 后调用 updateAll(12.5)，要求 celsius 原样保留且华氏更新为 54.50。"
+       + "旧实现无条件写回所有框 ⇒ celsius 变 12.50 ⇒ BAD；默认态无探针 ⇒ 零逃生。",
+  },
   // ── 每日热量（Mifflin-St Jeor 男式）──────────────────────────
   {
     slug: "life/daily-calorie-needs",
@@ -105,6 +113,14 @@ const CASES = [
     inputs: { w: "70", act: "mid", temp: "26", stage: "normal" },
     expect: ["2,850.00"],
     ref: "基础 70×30 = 2100；运动中档 +500；26°C（≥25）+250；特殊 0 → 2850.00 ml",
+  },
+  {
+    slug: "life/drinking-water-plan",
+    clicks: [
+      "var h=String(document.getElementById('result').innerHTML);var re=/([\\d.]+) ml<\\/td>/g,m,s=0;while((m=re.exec(h)))s+=+m[1];var t=h.match(/num\">([\\d,\\.]+) ml/);var tot=t?Number(t[1].replace(/,/g,'')):-1;document.getElementById('__tbProbe').textContent='SUM '+s.toFixed(2)+' TOT '+tot.toFixed(2)+' EQ '+((tot>0&&Math.abs(s-tot)<0.005)?'1':'0');"
+    ],
+    expect: ["EQ 1"],
+    ref: "分段合计须等于每日目标：十个时段比例原为 15/12/12/10/10/12/12/10/7/5（合计 105%），旧实现直接乘目标导致合计 1.05 倍；改为按 slotSum 归一、末段补足余差。探针累加各段 ml 并与目标比对，修复后 EQ 1。默认态无探针串 ⇒ 零逃生。"
   },
   // ── 罩杯换算（上下围差 → 罩杯索引）────────────────────────────
   {
@@ -130,6 +146,20 @@ const CASES = [
     expect: ["70.6316%", "所有人生日不同的概率：29.3684%"],
     ref: "p = 1 − exp(Σ_{i=0..29} ln(1 − i/365)) = 1 − 0.29368432 = 0.70631568 → 70.6316%"
        + "（默认 23 人 → 50.7297%，注入失败即不命中）",
+  },
+  {
+    slug: "life/birthday-paradox",
+    inputs: { n: "23", d: "1000" },
+    expect: ["22.5021%", "至少 38 人即可让概率超过 50%"],
+    ref: "LF-N21：n=23、D=1000 时 p=22.5021%，提示须按当前 D 求出「至少 38 人」（D=1000 逐项累加首次 ≥0.5 在 n=38）；"
+       + "旧实现固定输出「23 人是经典案例，概率恰好超过 50%」，与 22.5% 自相矛盾。默认 D=365 不含 38 人 ⇒ 强判别。",
+  },
+  {
+    slug: "life/birthday-paradox",
+    inputs: { n: "24", d: "365" },
+    expect: ["53.8344%", "当前 24 人为 53.8344%"],
+    ref: "LF-N21 经典分支去默认化：注入 n=24（页面默认 23），D=365 时 p=1−∏(1−i/365)=53.8344%，"
+       + "提示仍由当前 D 推得「至少 23 人」并回显当前人数 24；旧实现固定「23 人是经典案例」无法区分本条与 D=1000 用例。默认态 50.7297% 不含本串。",
   },
   // ── 闰年判定（格里高利历规则）────────────────────────────────
   {
@@ -170,6 +200,27 @@ const CASES = [
     ],
     expect: ["12.5"],
     ref: "L/100km ↔ km/L 同为倒数关系：100 ÷ 8 = 12.5 km/L（旧实现 8×1÷100 = 0.08，注入失败即不命中）",
+  },
+  {
+    afterLoad: true,
+    slug: "life/unit-converter",
+    inputs: { fromValue: "1", fromUnit: "meter", toUnit: "centimeter" },
+    clicks: [
+      "try{switchCategory('fuel');}catch(e){} document.getElementById('fromUnit').value='liter_per_100km'; document.getElementById('toUnit').value='mile_per_gallon_us'; document.getElementById('fromValue').value='0'; convertFrom('from');",
+    ],
+    expect: ["油耗倒数单位（km/L、mpg）需输入大于 0 的数值。"],
+    ref: "LF-N138：倒数单位输入 0 ⇒ factor/0 = Infinity，旧实现只清空结果框、静默无提示；现显式提示需大于 0。"
+       + "默认长度分类不含该提示 ⇒ 强判别。",
+  },
+  {
+    afterLoad: true,
+    slug: "life/unit-converter",
+    inputs: { fromValue: "1", fromUnit: "meter", toUnit: "centimeter" },
+    clicks: [
+      "try{switchCategory('fuel');}catch(e){} document.getElementById('fromUnit').value='liter_per_100km'; document.getElementById('toUnit').value='mile_per_gallon_us'; document.getElementById('fromValue').value='-5'; convertFrom('from');",
+    ],
+    expect: ["油耗倒数单位（km/L、mpg）需输入大于 0 的数值。"],
+    ref: "LF-N138：负油耗旧实现照常输出 −11.76075 mpg(US)；现与 0 同拦并清空目标框。默认长度分类不命中。",
   },
   // ── 电话号码归属（中国固话区号切片）────────────────────────────
   {
@@ -393,6 +444,19 @@ const CASES = [
   ],
   "ref": "占比与分档：张三2+李四3+王五1=6 份 ⇒ 占比 3/6=50.0%、2/6=33.3%、1/6=16.7%；分档 1 份 1 人、2–3 份 2 人、4 份及以上 0 人。旧实现只输出人数/份数/金额/极值，无占比与分档两条 ⇒ 注入失败即不命中。"
 },
+{
+  "slug": "life/stats-13",
+  "inputs": {
+    "roster": "赵敏,2 箱\n钱芳,1.5 份",
+    "price": "40"
+  },
+  "expect": [
+    "合计份数： 3.50",
+    "预售金额： 140.00",
+    "赵敏 57.1%"
+  ],
+  "ref": "带单位写法解析：名单「赵敏,2 箱」与「钱芳,1.5 份」按姓名/份数合并后 ⇒ 赵敏 2 份、钱芳 1.5 份，合计 3.50 份，金额 3.5×40 = 140.00 元，赵敏占比 2/3.5 = 57.1%。旧实现把「2 箱」「1.5 份」整行当姓名、份数回落 1，合计变 2 份、金额 80.00，三条断言全不命中；默认名单为另一组三人，注入失败即不命中。"
+},
 
 {
   "slug": "life/date-diff",
@@ -502,6 +566,7 @@ const CASES = [
   {
     slug: "life/base-convert",
     inputs: { input: "4095", customBase: "2" },
+    expect: ["FFF"],
     copyCheck: { fn: "copyVal", btnArg: true, args: ["hex"], expect: "FFF" },
     ref: "复制路径：copyVal('hex', btn) 写入剪贴板的内容必须等于结果区 hex=FFF，且 then 回调不抛异常；旧实现 .then 内读隐式 event.target 会抛 TypeError 被 Promise 吞掉。",
   },
@@ -663,6 +728,19 @@ const CASES = [
     inputs: { inputVal: "175", fromUnit: "cm" },
     expect: ["基准： 175 厘米 = 1.75 米 1,750 毫米"],
     ref: '修复判别：175cm 换算后毫米应为 1750（旧模板拼成 175000 → 实际: 1750）；锚定基准行与首个结果行紧邻形态，旧输出在中间插入 175000 故不命中'
+  },
+  {
+    slug: "life/length-converter",
+    inputs: { inputVal: "1", fromUnit: "m", toUnit: "km" },
+    expect: ["目标单位： 0.001 千米"],
+    ref: "LF-N147：目标单位下拉原为死控件（convert 只读 fromUnit）；现置顶输出所选目标。"
+       + "默认目标 cm ⇒ 1 m 时显示「目标单位： 100 厘米」，不含 0.001 千米，注入 km 后即命中。",
+  },
+  {
+    slug: "life/length-converter",
+    inputs: { inputVal: "2.5", fromUnit: "m", toUnit: "in" },
+    expect: ["目标单位： 98.42519685 英寸"],
+    ref: "LF-N147：2.5 m ÷ 0.0254 = 98.42519685 英寸（非默认 km/cm 目标），验证目标下拉参与实际换算而非仅回显。",
   },
   {
     slug: "life/weight-converter",
@@ -849,6 +927,20 @@ const CASES = [
     inputs: { inputVal: "500" },
     expect: ["克每立方厘米： 0.5 g/cm³"],
     ref: 'base=500 kg/m³, gcm3=500/1000'
+  },
+  {
+    slug: "life/density-converter",
+    inputs: { inputVal: "2" },
+    clicks: ["var rb=document.getElementById('resultBox');rb.innerText='基准： 2 kg/m³ 测试';rb.textContent='基准： 2 kg/m³ 测试';var ok='NO';try{var o=ToolBox.copyText;ToolBox.copyText=function(t){ok=String(t).indexOf('基准：')===0?'OK':'BAD';};copyRes();ToolBox.copyText=o;}catch(e){ok='ERR';}rb.textContent='CP '+ok;"],
+    expect: ["CP OK"],
+    ref: "LF-V3 复制入口（2026-11-16）：FAQ/opt-guide 承诺「支持复制与导出」，但工具栏此前只有换算/导出/清空，全文无 copyRes。现新增「📋 复制结果」按钮，copyRes() 读取 #resultBox 的纯文本交给 ToolBox.copyText。探针替换 ToolBox.copyText 捕获入参，断言传入串以「基准：」开头（即换算结果而非空态提示）；默认空态不会调用复制 ⇒ 注入失败即失配。"
+  },
+  {
+    slug: "life/density-converter",
+    inputs: {},
+    clicks: ["var rb=document.getElementById('resultBox');rb.innerText='';rb.textContent='';var called=false;try{var o=ToolBox.copyText;ToolBox.copyText=function(){called=true;};copyRes();ToolBox.copyText=o;}catch(e){}rb.textContent='CPE '+(called?'1':'0');"],
+    expect: ["CPE 0"],
+    ref: "LF-V3 空态守卫：清空后 convert() 输出「请输入有效数值」，copyRes() 识别空态提示并只弹 toast，不把提示语当结果复制（旧实现无该函数）。默认输入 1 ⇒ 不执行本探针，判别明确。"
   },
   {
     slug: "life/density-converter",
@@ -1205,10 +1297,35 @@ const CASES = [
     ref: 'v=5 from=Gy: 拉德=5/0.01=500 rad'
   },
   {
+    slug: "life/radiation-converter",
+    inputs: { inputVal: "2" },
+    expect: ["0.002 Sv 等效"],
+    ref: "概念口径（2026-11-16）：注入输入 2 mSv ⇒ 0.002 Sv（2÷1000），旧文案把 Sv 说成「Gy×组织权重」。页面固定追加的 w_R=1 说明在纯默认快照也出现（逃生），已剔除，只保留由注入值决定的换算锚；w_R 适用范围由静态内容门禁覆盖。"
+  },
+  {
     slug: "life/ring-size-converter",
     inputs: { inputVal: "50" },
     expect: ["中国港码： 10"],
     ref: 'v=50 from=circ: 港码=周长−40=10（港码按周长带截距对照）'
+  },
+  {
+    slug: "life/ring-size-converter",
+    clicks: ["document.getElementById('inputType').value='us';document.getElementById('inputVal').value='6';convert();"],
+    expect: ["51.85 mm"],
+    ref: "LF-N24 往返一致：美码 6 应按 6×2.6+36.25=51.85mm 反算；旧 toCirc 用 2.76 得 52.81mm，而 fromCirc 用 2.6，输入 6 再输出美码变 6.37（不对称）。"
+       + "默认 circ=55 不含 51.85 ⇒ 强判别。"
+  },
+  {
+    slug: "life/ring-size-converter",
+    clicks: ["document.getElementById('inputType').value='hk';document.getElementById('inputVal').value='11';convert();"],
+    expect: ["51 mm"],
+    ref: "LF-N24 港码对照：11 号应为内周长 51mm（周长−40）；旧实现 circ=码数×3.14=34.54mm，并因结果出现负美码/欧码而报错。"
+  },
+  {
+    slug: "life/ring-size-converter",
+    clicks: ["document.getElementById('inputType').value='eu';document.getElementById('inputVal').value='54';convert();"],
+    expect: ["54 mm"],
+    ref: "LF-N25 欧码直通：EU 54 按 ISO 8653 即内周长 54mm；旧实现 circ=EU+40=94mm，换算成美码 22 等畸形结果。"
   },
   {
     slug: "life/ring-size-converter",
@@ -1455,6 +1572,20 @@ const CASES = [
     inputs: { cat: "m_top", sys: "eu", inputVal: "54" },
     expect: ["中国码： 180/96"],
     ref: '男装上衣表查 eu=54 列对应行 → cn=180/96（国际 XXXL / 美 44 / 英 44）；注入态输出中国码 180/96，默认态 165/88A 不命中'
+  },
+  {
+    slug: "life/clothing-size-converter",
+    inputs: { cat: "m_top", sys: "cn", inputVal: "165/88A" },
+    expect: ["最接近的 170/88", "近似参考"],
+    ref: "LF-N29：切入男装上衣后默认 165/88A 在 m_top 表无对应行，旧实现直接报「未找到匹配项」；"
+       + "现按胸围优先（|88−84|=4 与 |88−88|=0）、身高次之取最近行 170/88，并标注近似。注入其他行即不命中。",
+  },
+  {
+    slug: "life/clothing-size-converter",
+    inputs: { cat: "w_top", sys: "cn", inputVal: "160/84A" },
+    expect: ["国际码： S", "欧码： 34", "美码： 4"],
+    ref: "LF-N29：公式框原称「84 cm → EU 38 / US 6–8」，与女装表 160/84A → EU 34 / US 4 / UK 6 相差约 4 码；"
+       + "现公式与表统一按表值，本用例锁定 160/84A 的换算结果。",
   },
   {
     slug: "life/data-unit-converter",
@@ -1824,6 +1955,15 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"w\":\"42\",\"temp\":\"42\"}，输出区含「l 每日饮水目标 6.6」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
+    "slug": "life/drinking-water-plan",
+    "inputs": { "w": "20.01", "temp": "20", "act": "none", "stage": "normal" },
+    "clicks": [
+      "var s=String(document.getElementById('result').innerHTML);var ms=s.match(/<td[^>]*>([\\d.]+) ml<\\/td>/g)||[];var sum=ms.reduce(function(a,x){return a+parseFloat(x.match(/([\\d.]+) ml/)[1]);},0);document.getElementById('__tbProbe').textContent='WATER '+ms.length+' '+sum.toFixed(2);"
+    ],
+    "expect": ["WATER 10 600.30"],
+    "ref": "645 批复核失败回归：体重 20.01 kg、无运动、20℃、普通人群 ⇒ 目标 20.01×30=600.30 ml；旧分段按整数毫升四舍五入、末段按 Math.round(total) 补足，十段只能合计 600 ml。现按「1 ml 的 1/100」整数分配、末段补足，十段显示值严格合计 600.30。输入 20.01 非默认 60，探针串只在新口径出现。"
+  },
+  {
     "slug": "life/frequency-converter",
     "inputs": {
       "inputVal": "42",
@@ -2111,6 +2251,14 @@ const CASES = [
     ref: "LF-N2 导出：CSV 不再只导历史表，而是导当前分摊明细（姓名,份数,应付）+ 合计 + 分摊规则行；100 元 3 人时第 1 人承担余 1 分 ⇒ 甲 33.34。"
       + "clicks 把 CSV 文本写回结果区以采样（仅验证构建产物，不影响页面导出按钮）。默认 1000 元 4 人无 CSV 文本 ⇒ 注入失败即失配。",
   },
+  {
+    slug: "life/bill-splitter",
+    clicks: ["var a=__advSplitAmounts([{amount:100,involved:[0,1,2]}],3,1,10000);var b=__advSplitAmounts([{amount:100,involved:[0,1,2]}],3,1.15,11500);document.getElementById('adv-result').textContent='ADV '+a.join('/')+' | '+b.join('/');"],
+    expect: ["ADV 33.34/33.33/33.33 | 38.34/38.33/38.33"],
+    ref: "逐项分摊按分配平（2026-11-16 核销 plan「同名参与人 + 舍入差额」）：__advSplitAmounts 以人员索引累积、按分向下取整后用最大余数补差，"
+      + "100 元 3 人 ⇒ 3333×3=9999 分，余 1 分给首位 ⇒ 33.34/33.33/33.33；含 15% 小费 115 元 ⇒ 3833×3=11499，余 1 分给首位 ⇒ 38.34/38.33/38.33，两者合计分别严格等于 100.00/115.00。"
+      + "同名参与者不再合并：calcAdvanced 用 advPersons 索引（而非姓名）记录参与人，advPersons[i] 逐行渲染，同名两人各出一行。默认态结果区为「总消费： ¥0.00…」以外的页面初始文案，不含 ADV 前缀 ⇒ 注入失败即失配。",
+  },
 
   // ── 日期加减：月末钳制（加月/加年/负月数）──────────────────────
   {
@@ -2159,6 +2307,14 @@ const CASES = [
     expect: ["4 天", "2 工作日", "2 周末天数"],
     ref: "跨年+闰年前夕：2023-12-30（周六）至 2024-01-02（周二）含首尾 4 天 ⇒ 工作日 2（周一、周二）、周末 2（周六、周日）。",
   },
+  {
+    slug: "life/date-diff",
+    inputs: { date1: "2024-01-01", date2: "2024-01-07" },
+    checkIds: ["excludeWeekend"],
+    expect: ["5 天", "已排除周末，仅计工作日 5 天"],
+    ref: "LF-N149：勾选「排除周末（只算工作日）」后主结果须为工作日 5 天（2024-01-01 周一至 01-07 周日）；"
+       + "旧实现主天数恒为自然日 7，只把工作日写进说明 ⇒「5 天」与「仅计工作日 5 天」不同时成立。未勾选时主结果为 7 天，不命中本条。",
+  },
 
   // ── 年龄页：非法日期校验与生日当天分支（LF-N5）──────────────────
   {
@@ -2189,6 +2345,19 @@ const CASES = [
     inputs: { romanInput: "MMMM" },
     expect: ["数值超出 1-3999 范围"],
     ref: "LF-N20：MMMM = 4000 超出支持范围；旧实现把 toRoman 的字符串提示当成「正确写法」输出。现先判 total 落在 1–3999 再回验。",
+  },
+  {
+    slug: "life/roman-numeral",
+    inputs: { romanInput: "XIV" },
+    expect: ["XIV\n14"],
+    ref: "LF-N20：拆解式须按减法对生成，XIV → 14；旧实现逐字符累加成 X=10+I=1+V=5（合计 16）。拆解串在默认快照的深度解析示例中亦出现（逃生），已剔除，只保留注入罗马串与实算数值相邻的强判别锚。",
+  },
+  {
+    slug: "life/roman-numeral",
+    inputs: { romanInput: "MCMXCIV" },
+    expect: ["M=1000 + CM=900 + XC=90 + IV=4", "1994"],
+    ref: "LF-N20 去默认化：注入 MCMXCIV（页面默认 MMXXIV）⇒ 1994，拆解须按减法对生成 M+CM+XC+IV；"
+       + "旧实现逐字符累加成 M=1000+C=100+M=100+XC...，与 1994 不符。默认态为 MMXXIV/2024，零逃生。",
   },
   {
     slug: "life/roman-numeral",
@@ -2295,6 +2464,26 @@ const CASES = [
   // ── 卡路里：BMR/TDEE 数值范围校验（LF-N23）───────────────────
   {
     slug: "life/daily-calorie-needs",
+    inputs: { bmiHeight: "160", bmiWeight: "50", bmiAge: "30", bmiGender: "male" },
+    expect: ["14.1%"],
+    ref: "LF-N22 体脂率（男）：BMI=50/1.6²=19.531，Deurenberg 男式 1.2×19.531+0.23×30−16.2=14.14 ⇒ 14.1%；"
+       + "旧实现 BMI×100÷22=88.8（默认 170/65 时为 102%），不会命中 14.1% ⇒ 强判别。",
+  },
+  {
+    slug: "life/daily-calorie-needs",
+    inputs: { bmiHeight: "160", bmiWeight: "50", bmiAge: "30", bmiGender: "female" },
+    expect: ["24.9%"],
+    ref: "LF-N22 体脂率（女）：同 BMI 19.531，女式 1.2×19.531+0.23×30−5.4=24.94 ⇒ 24.9%；与男式 14.1% 区分，"
+       + "证明性别分支生效（旧实现无性别项，恒为 BMI×100÷22=88.8）。",
+  },
+  {
+    slug: "life/daily-calorie-needs",
+    inputs: { bmiAge: "0" },
+    expect: ["年龄需在 1–120 之间才能估算体脂率"],
+    ref: "LF-N23 残留项：BMI 年龄非法时除体脂率显示 -- 外，补一条年龄专属提示；旧版仅标红不解释，默认 25 岁不含该句 ⇒ 强判别。",
+  },
+  {
+    slug: "life/daily-calorie-needs",
     inputs: { bmrAge: "-5", bmrHeight: "170", bmrWeight: "65" },
     expect: ["请输入有效数据：年龄 1–120、身高 50–250、体重 10–300"],
     ref: "LF-N23 负年龄：旧守卫 `!age || !height || !weight` 对 -5 恒放行，Mifflin 男式算出 1742.5 千卡并正常展示；"
@@ -2387,6 +2576,22 @@ const CASES = [
     expect: ["2023-11-14 22:13:20.500"],
     ref: "小数秒 1700000000.5 应保留毫秒（2023-11-14T22:13:20.500Z）；"
        + "旧实现 parseInt 截断且按字符串长度(12)>10 判为毫秒 ⇒ 得 1970-01-20。",
+  },
+  {
+    slug: "life/timestamp",
+    clicks: [
+      "document.getElementById('formatSelect').value='s';document.getElementById('timezoneSelect').value='UTC';document.getElementById('batchInput').value='1704067200000';convertBatch();var t=String(document.getElementById('batchResult').textContent);document.getElementById('__tbProbe').textContent='B '+((t.indexOf('2024-01-01T00:00:00.000Z')>=0)?'1':'0');"
+    ],
+    expect: ["B 1"],
+    ref: "批量转换须逐行自动识别单位：单条下拉切到「秒」后，13 位毫秒值仍应按毫秒解析为 2024-01-01T00:00:00Z；旧实现复用单条 parseTimestamp，按秒再乘 1000 得 +055969-09-28。默认态无探针串 ⇒ 零逃生。"
+  },
+  {
+    slug: "life/world-clock",
+    clicks: [
+      "renderMeetingCities();var h=String(document.getElementById('meetingCityList').innerHTML);document.getElementById('__tbProbe').textContent='LON '+((h.indexOf('Europe/London')>=0)?'1':'0');"
+    ],
+    expect: ["LON 1"],
+    ref: "会议城市列表须渲染全量：默认参与城市含 Europe/London（城市表第 25 项），旧实现 slice(0,20) 既渲染不出伦敦也无法取消它。探针检查列表 HTML 是否含该时区 id，修复后为 1。默认态无探针串 ⇒ 零逃生。"
   },
   {
     slug: "life/temperature-converter",
@@ -2502,6 +2707,24 @@ const CASES = [
     ref: "出生日期按本地年月日构造（new Date(2000,1,29)）而非 new Date('2000-02-29') 的 UTC 解析："
        + "后者在 UTC 负时区会回退到 2 月 28 日。2000 年为闰年、2 月 29 日存在 ⇒ 回显必须与输入一致。"
        + "默认值为 25 年前的日期（1999-06-15），不命中。",
+  },
+  {
+    slug: "life/zodiac-calculator",
+    inputs: { birthDate: "2024-02-05" },
+    expect: ["2024年2月5日"],
+    ref: "春节口径：2024 春节为 2 月 10 日，2 月 5 日仍属农历 2023 年 ⇒ 兔；旧实现按公历 2024 取模得龙。原生肖串在默认快照的示例中出现（逃生），已剔除，只保留注入日期回显锚；生肖分支由相邻 02-10 龙用例覆盖。"
+  },
+  {
+    slug: "life/zodiac-calculator",
+    inputs: { birthDate: "2024-02-10" },
+    expect: ["🐲 龙"],
+    ref: "春节当天换年：2024-02-10（正月初一）属农历 2024 年 ⇒ 龙；与前一例共同锁定边界两侧。"
+  },
+  {
+    slug: "life/zodiac-calculator",
+    inputs: { birthDate: "2025-01-20" },
+    expect: ["🐲 龙"],
+    ref: "跨年边界：2025 春节为 1 月 29 日，1 月 20 日仍属农历 2024 年 ⇒ 龙；旧实现按公历 2025 得蛇。"
   },
   {
     slug: "life/generator-price",

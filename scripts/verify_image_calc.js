@@ -62,8 +62,7 @@ const CASES = [
   "expect": [
     "138"
   ],
-    ref: "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
-  "ref": "auto-restore"
+    "ref": "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。 [auto-restore]"
 },
 {
   "slug": "image/image-filter",
@@ -90,8 +89,7 @@ const CASES = [
   "expect": [
     "15"
   ],
-    ref: "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
-  "ref": "auto-restore"
+    "ref": "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。 [auto-restore]"
 },
 {
   "slug": "image/image-mosaic",
@@ -133,8 +131,7 @@ const CASES = [
   "expect": [
     "fast"
   ],
-    ref: "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
-  "ref": "auto-restore"
+    "ref": "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。 [auto-restore]"
 },
 {
   "slug": "image/image-resize",
@@ -166,8 +163,7 @@ const CASES = [
   "expect": [
     "jpeg"
   ],
-    ref: "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
-  "ref": "auto-restore"
+    "ref": "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。 [auto-restore]"
 },
 {
   "slug": "image/image-watermark",
@@ -191,8 +187,7 @@ const CASES = [
   "expect": [
     "48"
   ],
-    ref: "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
-  "ref": "auto-restore"
+    "ref": "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。 [auto-restore]"
 },
 {
   "slug": "image/image-watermark",
@@ -256,8 +251,7 @@ const CASES = [
   "expect": [
     "工具名示例_X"
   ],
-    ref: "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
-  "ref": "auto-restore"
+    "ref": "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。 [auto-restore]"
 },
 {
   "slug": "image/wechat-cover-maker",
@@ -287,6 +281,12 @@ const CASES = [
   "clicks": ["var g=(typeof window!=='undefined'?window.__svgFileBlocked:null)||(typeof __svgFileBlocked==='function'?__svgFileBlocked:null);document.getElementById('__svg_probe').textContent='SVG:'+(g&&g({name:'evil.svg',type:'image/svg+xml'})?'BLOCK':'PASS')+'|PNG:'+(g&&g({name:'ok.png',type:'image/png'})?'BLOCK':'PASS');"],
   "expect": ["SVG:BLOCK|PNG:PASS"],
   "ref": "C1 上传口径（canvas 污染源根除）：SVG（可含 foreignObject/外链）必须被拒收，位图必须放行。由真机负向自证（21/21）配套覆盖。"
+},
+{
+  "slug": "image/id-photo-crop",
+  "clicks": ["var calls=[],ctx={fillStyle:'',fillRect:function(){},drawImage:function(){calls.push(Array.prototype.slice.call(arguments,1).join(','));}};var img={width:200,height:100};drawCropped(ctx,img,100,100,'#fff','contain');var a=calls.slice();calls=[];drawCropped(ctx,img,100,100,'#fff','cover');document.getElementById('__tbProbe').textContent='IDFIT '+a.join(';')+' | '+calls.join(';');"],
+  "expect": ["IDFIT 0,25,100,50 | 50,0,100,100,0,0,100,100"],
+  "ref": "2026-11-16（694 批）适配方式：contain 把 200×100 等比缩到 100×50 并垂直居中（dx0,dy25），cover 先横向居中裁出 100×100（sx50,sw100）再铺满整框。旧实现只有 cover 分支、底色永远被照片盖住 ⇒ 无法命中前半段。"
 },
 {
   "slug": "image/image-collage",

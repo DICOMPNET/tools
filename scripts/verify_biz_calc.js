@@ -163,6 +163,7 @@ const CASES = [
     slug: "biz/text-case",
     inputs: { input: "Abc Def" },
     clicks: ["convert('kebab');"],
+    expect: ["abc-def"],
     copyCheck: { fn: "copyResult", expect: "abc-def" },
     ref: "复制路径：convert('kebab') 后 copyResult(event) 写入剪贴板的内容必须等于结果区 'abc-def'，且 then 回调不抛异常；旧实现 .then 内读隐式 event.target 会抛 TypeError 被 Promise 吞掉。",
   },
@@ -867,6 +868,14 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"duration\":\"42\",\"attendees\":\"42\",\"hourlyRate\":\"42\",\"roomCost\":\"42\"}，输出区含「42\n42\n42\n42\n会议总成本 ¥1276.80 人力成本 ¥1234.80…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
+    "slug": "biz/meeting-cost-calculator",
+    "clicks": [
+      "document.getElementById('attendees').value='1';document.getElementById('hourlyRate').value='100';document.getElementById('roomCost').value='600';timerStart=Date.now()-1800000;updateLiveTimer();var L=document.getElementById('liveCost');L.textContent+=' MCLIVE '+((L.textContent.indexOf('¥650.00')>=0)?'OK':'BAD');"
+    ],
+    "expect": ["MCLIVE OK"],
+    "ref": "计时口径：1 人、时薪 100、场地费 600、计时 30 分钟 ⇒ 人力 0.5×1×100=50 + 场地 600 = 650.00。原实现把场地费按秒摊（600/3600×1800=300）得 350.00，与常规计算的一次性场地费口径冲突。默认未计时，不命中。"
+  },
+  {
     "slug": "biz/lorem-ipsum-advanced",
     "inputs": {
       "count": "42",
@@ -1503,6 +1512,13 @@ const CASES = [
     ref: "BS-N133：记住上次模式并在输入变化时重算。先转全大写得 HELLO WORLD，再把输入改成 abc 调 updatePreview；修复后预览为 ABC，旧空函数仍停留 HELLO WORLD ⇒ BAD。探针默认态不执行 ⇒ 零逃生。"
   },
   {
+    slug: "biz/text-case-advanced",
+    inputs: { input: "abc" },
+    clicks: ["convert('upper');var i=document.getElementById('input');i.value='';updatePreview();var s=String(preview.textContent||'');var copied=false;try{navigator.clipboard={writeText:function(){copied=true;return Promise.resolve();}};}catch(e){}try{copyResult();}catch(e){}document.getElementById('__tbProbe').textContent='TCCLR '+((s==='请输入文本'&&!copied)?'OK':'BAD:'+s+'|'+copied);"],
+    expect: ["TCCLR OK"],
+    ref: "609 复核：合法 → 清空输入后 updatePreview 旧实现因 `input.value` 为空直接跳过 ⇒ 预览仍为 ABC，copyResult 还能复制旧结果。修复后空输入写回「请输入文本」且复制被拦截。探针先转大写再清空，断言预览文案与 alert 拦截同时成立；默认态不执行 ⇒ 零逃生。"
+  },
+  {
     slug: "biz/random-script",
     inputs: { cnt: "7" },
     clicks: ["var s=String(pick);document.getElementById('__tbProbe').textContent='RSPICK '+(s.indexOf('Math.random()-0.5')<0&&s.indexOf('i=a.length-1')>=0&&s.indexOf('Math.floor(Math.random()*(i+1))')>=0?'OK':'BAD');"],
@@ -1527,6 +1543,13 @@ const CASES = [
     clicks: ["currentLang='html';currentStyle='line';document.getElementById('input').value='说明';generate();var s=String(document.getElementById('result').textContent||'');document.getElementById('__tbProbe').textContent='CMHTMLLINE '+(s.indexOf('<!-- 说明 -->')>=0?'OK':'BAD:'+s);"],
     expect: ["CMHTMLLINE OK"],
     ref: "BS-N41：HTML 单行注释必须成对闭合；旧实现只拼 `<!-- 说明`，粘进页面会吞掉后续标签。探针只在 clicks 注入执行 ⇒ 默认态零逃生。"
+  },
+  {
+    slug: "biz/comment-generator",
+    inputs: { input: "说明" },
+    clicks: ["currentLang='html';currentStyle='doc';document.getElementById('input').value='hello';generate();var s=String(document.getElementById('result').textContent||'');document.getElementById('__tbProbe').textContent='CMHTMLDOC '+((s.indexOf('<!--')===0&&s.indexOf('-->')>0&&s.indexOf('hello')>0&&s.indexOf('-->',s.indexOf('hello'))>0)?'OK':'BAD:'+s);"],
+    expect: ["CMHTMLDOC OK"],
+    ref: "610 复核：HTML 文档注释旧实现落入通用分支 `cfg.line + ' ' + l`，产出未闭合的 `<!-- hello`，粘贴后会吞掉后续页面。修复后 HTML doc 走 `<!--` + 逐行缩进 + `-->` 多行包裹；断言以 `<!--` 开头、`-->` 在正文之后闭合。默认样式是 JS 单行注释 ⇒ 零逃生。"
   },
   {
     slug: "biz/comment-generator",
@@ -1609,7 +1632,20 @@ const CASES = [
     expect: ["The API guide."],
     ref: "BS-N131：sentence 模式同样占位保护缩写，the API guide. ⇒ The API guide.；旧实现整串 toLowerCase 得 The api guide.。默认态不含该串 ⇒ 强判别、零逃生。"
   },
-
+  {
+    slug: "biz/text-extract-dates",
+    inputs: {"input": "会议 A 于 2025-01-06 召开，B 于 2025/02/17 结束，纪念日 2024年12月25日。"},
+    checkIds: ["iso", "slash", "dot", "zh", "us", "eu", "en", "time", "dedup"],
+    expect: ["2025-01-06 2025/02/17 2024年12月25日"],
+    ref: "全新日期文本经ISO/斜杠/正则匹配提取；checkIds声明页面默认勾选的9个格式开关（桩内恒未勾需显式声明）；结果按出现顺序join。",
+  },
+  {
+    slug: "biz/text-extract-dates",
+    inputs: {"input": "开始 2025-03-20 结束 2024-11-05 中点 2025-01-09"},
+    checkIds: ["iso", "normalize", "sort"],
+    expect: ["2024-11-05 2025-01-09 2025-03-20"],
+    ref: "仅勾iso/normalize/sort：提取ISO日期并规范化为YYYY-MM-DD后升序排序。",
+  },
 ];
 
 

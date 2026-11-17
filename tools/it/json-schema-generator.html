@@ -7,12 +7,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="toolbox" content="cat=dev,industry=it,icon=📄,bg=#fff3e0">
-<meta name="description" content="JSON Schema 生成器是一款免费的在线IT 开发工具，根据 JSON 数据自动生成 JSON Schema，支持类型推断、必填字段、数组项推断、多版本输出。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+<meta name="description" content="JSON Schema 生成器是一款免费的在线IT 开发工具，根据 JSON 数据自动生成 JSON Schema，支持类型推断、必填字段、数组项推断、多版本输出。">
 <meta name="keywords" content="JSON Schema 生成器,JSON Schema 生成器在线,在线JSON Schema 生成器,开发工具,IT开发,JSON,Schema,生成器,在线工具,免费工具,ToolBox">
 <meta name="robots" content="index,follow">
 <link rel="canonical" href="https://tools.dicomp.net/tools/it/json-schema-generator.html">
 <meta property="og:title" content="JSON Schema 生成器 - 数组项推断">
-<meta property="og:description" content="JSON Schema 生成器是一款免费的在线IT 开发工具，根据 JSON 数据自动生成 JSON Schema，支持类型推断、必填字段、数组项推断、多版本输出。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+<meta property="og:description" content="JSON Schema 生成器是一款免费的在线IT 开发工具，根据 JSON 数据自动生成 JSON Schema，支持类型推断、必填字段、数组项推断、多版本输出。">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://tools.dicomp.net/tools/it/json-schema-generator.html">
 <meta name="twitter:card" content="summary">
@@ -74,10 +74,10 @@
 <meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
 <meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
     <meta name="twitter:title" content="JSON Schema 生成器 - 数组项推断">
-    <meta name="twitter:description" content="JSON Schema 生成器是一款免费的在线IT 开发工具，根据 JSON 数据自动生成 JSON Schema，支持类型推断、必填字段、数组项推断、多版本输出。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+    <meta name="twitter:description" content="JSON Schema 生成器是一款免费的在线IT 开发工具，根据 JSON 数据自动生成 JSON Schema，支持类型推断、必填字段、数组项推断、多版本输出。">
 <!-- TOOLBOX-WEBAPP-LD -->
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebApplication","name":"JSON Schema 生成器","url":"https://tools.dicomp.net/tools/it/json-schema-generator.html","applicationCategory":"DeveloperApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"JSON Schema 生成器是一款免费的在线IT 开发工具，根据 JSON 数据自动生成 JSON Schema，支持类型推断、必填字段、数组项推断、多版本输出。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+{"@context":"https://schema.org","@type":"WebApplication","name":"JSON Schema 生成器","url":"https://tools.dicomp.net/tools/it/json-schema-generator.html","applicationCategory":"DeveloperApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"JSON Schema 生成器是一款免费的在线IT 开发工具，根据 JSON 数据自动生成 JSON Schema，支持类型推断、必填字段、数组项推断、多版本输出。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
 </script>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
@@ -208,7 +208,8 @@
     </div>
     
     <div id="viewSchema">
-      <div class="json-highlight" id="output">等待生成...</div> <div id="json_schema_generatorTable"></div> <div id="json_schema_generatorDiff"></div> <div id="json_schema_generatorChart"></div> <div id="json_schema_generatorHist"></div>
+      <div style="font-size:12px;color:var(--text-muted);margin:6px 0;" data-zh="输出区可直接编辑或粘贴 Schema，再点「✅ 验证」做结构校验（覆盖 draft-04/06/07 与 2020-12 的通用结构；布尔 Schema 亦合法）。">The output area is editable — paste or edit a schema there, then click "✅ Validate" for a structural check (common structure of draft-04/06/07 and 2020-12; boolean schemas are valid too).</div>
+      <div class="json-highlight" id="output" contenteditable="true" spellcheck="false" aria-label="可编辑 / 可粘贴的 Schema 输出区">等待生成...</div> <div id="json_schema_generatorTable"></div> <div id="json_schema_generatorDiff"></div> <div id="json_schema_generatorChart"></div> <div id="json_schema_generatorHist"></div>
     </div>
     
     <div id="viewTree" style="display:none;">
@@ -476,7 +477,31 @@ function mergeSchemas(schemas) {
       }
       return merged;
     }
-    return schemas[0];
+    // 第210批复核重做：同类型但非 object 的多个样本不再直接丢回第一个，
+    // 而是递归合并数组子项，并只保留所有样本都满足的约束，保证生成的 schema
+    // 至少能接受全部原始样本（含嵌套数组、字符串 format 混合）。
+    const merged = { type: type };
+    if (type === 'array') {
+      // 递归合并各子数组的 items：[[1],["x"]] 的 items 必须同时覆盖 integer 与 string，
+      // 旧实现只取第一个子数组的 integer，字符串样本连自己都校验不过。
+      const subs = schemas.filter(s => s.items).map(s => s.items);
+      if (subs.length === schemas.length && subs.length) merged.items = mergeSchemas(subs);
+    }
+    // 其余约束键（format / minLength / maxLength / minimum / minItems …）：
+    // 仅当所有样本取值完全一致才保留；冲突或缺失的约束一律丢弃，避免沿用首个样本的
+    // format:"email" 把后续的 "hello" 错误拒绝。
+    for (const key of Object.keys(schemas[0])) {
+      if (key === 'type' || key === 'items' || key === 'examples') continue;
+      const v = JSON.stringify(schemas[0][key]);
+      if (schemas.every(s => Object.prototype.hasOwnProperty.call(s, key) && JSON.stringify(s[key]) === v)) {
+        merged[key] = schemas[0][key];
+      }
+    }
+    // examples 只是注解而非约束，合并前两项便于阅读，不影响校验结果。
+    if (schemas.some(s => Array.isArray(s.examples))) {
+      merged.examples = schemas.reduce((acc, s) => acc.concat(s.examples || []), []).slice(0, 2);
+    }
+    return merged;
   }
 
   // IT-N269：混合类型原来直接返回 {}（items 变成「任意值均可」，元素类型信息全丢），
@@ -670,8 +695,10 @@ function downloadSchema() {
 function __schemaIssues(node, path, depth) {
   var issues = [];
   if (depth > 12) return issues;
+  // 布尔 Schema（true/false）自 draft-06 起合法，且在 properties/items/anyOf 的任意层级可作子 Schema。
+  if (node === true || node === false) return issues;
   if (node === null || typeof node !== 'object' || Array.isArray(node)) {
-    issues.push(path + ': not an object');
+    issues.push(path + ': not an object or boolean');
     return issues;
   }
   var TYPES = ['string', 'number', 'integer', 'boolean', 'object', 'array', 'null'];
@@ -691,14 +718,11 @@ function __schemaIssues(node, path, depth) {
     });
   }
   if ('required' in node) {
+    // draft-04 起 required 只要求「字符串数组」；不要求每项都出现在同一层 properties：
+    // `{"type":"object","required":["a"]}` 是合法 Schema（缺省 properties 视为允许任意属性）。
     var r = node.required;
     if (!Array.isArray(r) || r.some(function(x) { return typeof x !== 'string'; })) {
       issues.push(path + '.required: not a string array');
-    } else {
-      var pr = (node.properties && typeof node.properties === 'object' && !Array.isArray(node.properties)) ? node.properties : {};
-      r.forEach(function(k) {
-        if (!Object.prototype.hasOwnProperty.call(pr, k)) issues.push(path + '.required: ' + k + ' not in properties');
-      });
     }
   }
   if ('items' in node) issues = issues.concat(__schemaIssues(node.items, path + '.items', depth + 1));
@@ -711,28 +735,47 @@ function __schemaIssues(node, path, depth) {
   return issues;
 }
 
-function validateSchema() {
+function __schemaRawText() {
   var out = document.getElementById('output');
-  var raw = out ? String(out.textContent || '').trim() : '';
-  var obj = null;
+  if (!out) return '';
+  // contenteditable 编辑后浏览器可能插入 <div>/<br> 与不换行空格；textContent 已合并元素文本。
+  return String(out.textContent || '').replace(/\u00a0/g, ' ').trim();
+}
+
+function __schemaIsPlaceholder(raw) {
+  var t = String(raw || '').replace(/\s+/g, ' ');
+  if (!t) return true;
+  if (/^(--|—|-)$/.test(t)) return true;
+  return /^(等待生成|等待输入|Generating|Waiting for input|Please enter)/i.test(t);
+}
+
+function validateSchema() {
   var en = (typeof TBKit !== 'undefined' && TBKit.util.isEn());
-  if (!raw || raw.indexOf('{') < 0) {
+  var st = document.getElementById('statusText');
+  var raw = __schemaRawText();
+  var obj = null;
+  if (__schemaIsPlaceholder(raw)) {
+    // 只有「空/占位」才回退到最近一次生成结果；非空文本一律按内容判定（避免 `oops` 被静默放行）。
     if (!lastSchema) { ToolBox.showToast(i18nText('toast.msg649')); return; }
     obj = lastSchema;
   } else {
     try { obj = JSON.parse(raw); }
-    catch (e) { ToolBox.showToast('❌ JSON: ' + e.message); return; }
+    catch (e) {
+      var jsonErr = (en ? '❌ Invalid schema: JSON syntax error — ' : '❌ Schema 无效：JSON 语法错误 —— ') + e.message;
+      ToolBox.showToast(jsonErr);
+      if (st) { st.textContent = jsonErr; st.className = 'err'; }
+      return;
+    }
   }
   var issues = __schemaIssues(obj, 'root', 0);
-  var st = document.getElementById('statusText');
   if (issues.length) {
     var first = issues[0] + (issues.length > 1 ? ' (+' + (issues.length - 1) + ')' : '');
     ToolBox.showToast('❌ ' + first);
-    if (st) { st.textContent = (en ? '❌ Invalid schema: ' : '❌ Schema 无效：') + first; st.className = 'err'; }
+    if (st) { st.textContent = (en ? '❌ Invalid schema: ' : '❌ Schema 结构错误：') + first; st.className = 'err'; }
     return;
   }
   ToolBox.showToast(i18nText('toast.msg032'));
-  if (st) { st.textContent = en ? '✅ Schema is valid' : '✅ Schema 有效'; st.className = 'ok'; }
+  if (st) { st.textContent = en ? '✅ Schema is valid (structure check)' : '✅ Schema 结构有效'; st.className = 'ok'; }
 }
 
 function clearAll() {

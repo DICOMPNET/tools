@@ -276,9 +276,15 @@ const CASES = [
   {
     slug: "edu/chinese-stroke-counter",
     inputs: { "input": "你好" },
-    expect: ["📊 统计结果 2 总字数 13 总笔画 2 已收录 6.5 平均笔画"],
+    expect: ["📊 统计结果 2 总字数 13 总笔画 2 已收录 6.5 平均笔画（按已收录 2 字）"],
     ref: "与上例同页同输入、锚另一条渲染链：`result` 区统计「总字数 / 总笔画 / 平均笔画」。"
        + "2 字共 13 画（你 7 + 好 6）⇒ 平均 6.5。默认态仅单字示例，不命中。",
+  },
+  {
+    slug: "edu/chinese-stroke-counter",
+    inputs: { "input": "一二郁郁" },
+    expect: ["4 总字数 3 总笔画 2 已收录 1.5 平均笔画（按已收录 2 字）"],
+    ref: "平均笔画分母只算已收录字：一二郁郁 → 郁未收录（各 0），total=3、found=2 ⇒ 1.5；旧实现用 chars.length=4 得 0.8。默认单字不命中。"
   },
   {
     slug: "edu/generator-26",
@@ -368,8 +374,7 @@ const CASES = [
       "4200",
       "15000"
     ],
-    ref: "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
-    "ref": "注入非默认（默认 3000 字 / 500 wpm / 目标 10000 字）。独立复算：预计阅读时间 = 总字数 ÷ 阅读速度 = 4200 ÷ 680 = 6.1765 分钟；页面按『多少天读完』口径向上取整展示 ⇒ 23 分钟对应目标字数场景（15000 字 ÷ 680 wpm = 22.06 分钟 → 页面取 23 分钟含向上取整）。默认态输出『预计阅读时间：20分钟』（3000 ÷ 500 = 6 分钟的另一种口径），不命中。⚠ 页面 switchTab(event) 依赖事件对象，在 harness 桩下抛 'event is not defined'，但 wordCount/wpm 的 oninput 链已产出结果（实测 via=input event 通过）。"
+    "ref": "注入非默认（默认 3000 字 / 500 wpm / 目标 10000 字）。独立复算：预计阅读时间 = 总字数 ÷ 阅读速度 = 4200 ÷ 680 = 6.1765 分钟；页面按『多少天读完』口径向上取整展示 ⇒ 23 分钟对应目标字数场景（15000 字 ÷ 680 wpm = 22.06 分钟 → 页面取 23 分钟含向上取整）。默认态输出『预计阅读时间：20分钟』（3000 ÷ 500 = 6 分钟的另一种口径），不命中。⚠ 页面 switchTab(event) 依赖事件对象，在 harness 桩下抛 'event is not defined'，但 wordCount/wpm 的 oninput 链已产出结果（实测 via=input event 通过）。 [被覆盖的前条说明：⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。]"
   },
   {
     "slug": "edu/study-planner",
@@ -385,6 +390,27 @@ const CASES = [
     "inputs": { "content": "TbVerifyUnit", "startDate": "2024-06-01", "mode": "intensive" },
     "expect": [ "当天 100" ],
     "ref": "注入唯一学习内容 TbVerifyUnit（默认『英语单词Unit1』）+ 起始日 2024-06-01（默认空 ⇒ 页面输出『计算结果含无效值』无时间表）+ 强化模式 intensive（默认 standard）。独立复算（艾宾浩斯间隔：第1次当天 100%、第2次 +1 天 58%、第3次 +2 天 44%、第4次 +4 天 36%、第5次 +7 天 33%、第6次 +10 天 28%）：强化模式的间隔序列为 0/1/2/4/7/10 天 ⇒ 第6次 = 2024-06-01 + 10 天 = 2024-06-11；记忆保持率按页面 R = e^(−t/S) 衰减表取 58%。harness 的 new Date() 冻结在 2024-06-15（verify_it_calc.js FIXED_NOW）⇒ 各次『已过期』状态确定。默认态无 startDate 即无时间表，四条均不命中。"
+  },
+  {
+    "slug": "edu/ebbinghaus-curve",
+    "inputs": { "content": "TbVerifyToday", "mode": "standard" },
+    "clicks": ["var d=new Date();var s=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');document.getElementById('startDate').value=s;calc();"],
+    "expect": [ "TbVerifyToday", "当天 100% 📌 今天" ],
+    "ref": "本地日历日比较去冻结锚点：起始日在 clicks 内由页面同一时刻的 new Date() 生成本地日期串（跨时区仍与页面 today 同日），不把 harness 冻结的『今天』写进 expect；首个复习点应为「📌 今天」。旧实现用 new Date('YYYY-MM-DD')（UTC 零点）与本地零点比较，UTC+8 下差 8 小时恒不相等，落成「⏳ 待复习」。默认态无时间表且无注入内容 ⇒ 两锚均不命中。"
+  },
+  {
+    "slug": "edu/ebbinghaus-curve",
+    "inputs": { "content": "TbVerifyRet", "startDate": "2024-06-01", "mode": "intensive" },
+    "expect": [ "1天后 34%", "2天后 28%" ],
+    "ref": "保持率按经过天数而非序号：强化模式第 2/3 次为 +1/+2 天，经典遗忘曲线 1 天≈34%、2 天≈28%。旧实现按下标取 [100,58,44,...] ⇒ 58%/44%，与同页引据「1 天后≈34%」矛盾。默认态无时间表 ⇒ 零逃生。"
+  },
+  {
+    "slug": "edu/ebbinghaus-curve",
+    "clicks": [
+      "document.getElementById('startDate').value='2024-06-01';generate();document.getElementById('startDate').value='';generate();document.getElementById('__tbProbe').textContent='E '+((String(document.getElementById('result').innerHTML).indexOf('请选择开始日期')>=0)?'1':'0');"
+    ],
+    "expect": [ "E 1" ],
+    "ref": "清空开始日期须提示而非输出 NaN 表：先生成一份合法时间表（证明链路可用），再清空日期重算；旧实现 new Date('') 为 Invalid Date，表格回显 NaN-NaN-NaN。现显式拦截并清空结果区。默认态无探针串 ⇒ 零逃生。"
   },
   {
     "slug": "edu/assessor-27",
@@ -844,6 +870,43 @@ const CASES = [
   "expect": ["得分：10/10（100%）"],
   "ref": "同 capital-quiz：country-quiz 的 choose(o,el) 比较 o.name === cur.name，逐题传等价选项对象 ⇒ score=10 ⇒ finish 输出「得分：10/10（100%）」。"
        + "默认未开始时输出「根据国旗选择对应的国家 / 得分：0」，零交集。"
+}
+,
+{
+  "slug": "edu/country-quiz",
+  "clicks": ["(function(){var dfd=[];var oST=setTimeout,oQ=document.querySelectorAll;setTimeout=function(f,ms){dfd.push(f);return dfd.length;};document.querySelectorAll=function(){return [];};try{start();var fe={classList:{add:function(){}},disabled:false,onclick:null};choose(cur,fe);reset();start();var qB=qNo;if(dfd.length)dfd[dfd.length-1]();var qA=qNo;var ok=(qA===qB&&dfd.length>=1);document.getElementById('__tbProbe').textContent='CTRYSTALE '+(ok?'OK':'BAD qB='+qB+' qA='+qA+' n='+dfd.length);}finally{setTimeout=oST;document.querySelectorAll=oQ;}})()"],
+  "expect": ["CTRYSTALE OK"],
+  "ref": "第395批：country-quiz 裸 setTimeout(next,900) 答题后未取消，0.9 秒内重置/重开会被旧回调重新出题或跳题。延迟桩捕获旧推进回调，答题→立即 reset→start 后手动触发旧回调，须被 gameToken 令牌丢弃（qNo 不变）。旧源码旧回调直接 next() ⇒ qNo+1 ⇒ BAD。"
+},
+{
+  "slug": "edu/color-quiz",
+  "clicks": ["(function(){var dfd=[];var oST=setTimeout,oQ=document.querySelectorAll;setTimeout=function(f,ms){dfd.push(f);return dfd.length;};document.querySelectorAll=function(){return [];};try{start();var fe={classList:{add:function(){}},disabled:false,onclick:null};choose(cur,fe);reset();start();var qB=qNo;if(dfd.length)dfd[dfd.length-1]();var qA=qNo;var ok=(qA===qB&&dfd.length>=1);document.getElementById('__tbProbe').textContent='CLRSTALE '+(ok?'OK':'BAD qB='+qB+' qA='+qA+' n='+dfd.length);}finally{setTimeout=oST;document.querySelectorAll=oQ;}})()"],
+  "expect": ["CLRSTALE OK"],
+  "ref": "第395批：color-quiz 同类裸 setTimeout 推进未取消。延迟桩捕获旧回调，答题→重置→重开后触发旧回调须被令牌丢弃（qNo 不变）。旧源码 qNo+1 ⇒ BAD。"
+},
+{
+  "slug": "edu/math-quiz",
+  "clicks": ["(function(){var dfd=[];var oST=setTimeout,oQ=document.querySelectorAll;setTimeout=function(f,ms){dfd.push(f);return dfd.length;};document.querySelectorAll=function(){return [];};try{start();var fe={classList:{add:function(){}},disabled:false,onclick:null};choose(ans,fe);reset();start();var qB=qNo;if(dfd.length)dfd[dfd.length-1]();var qA=qNo;var ok=(qA===qB&&dfd.length>=1);document.getElementById('__tbProbe').textContent='MATHSTALE '+(ok?'OK':'BAD qB='+qB+' qA='+qA+' n='+dfd.length);}finally{setTimeout=oST;document.querySelectorAll=oQ;}})()"],
+  "expect": ["MATHSTALE OK"],
+  "ref": "第395批：math-quiz 两处 setTimeout(next,900)（作答/超时）均未取消。延迟桩捕获回调，作答→重置→重开后触发旧回调须被令牌丢弃。旧源码 qNo+1 ⇒ BAD。"
+},
+{
+  "slug": "edu/capital-quiz",
+  "clicks": ["(function(){var dfd=[];var oST=setTimeout,oQ=document.querySelectorAll;setTimeout=function(f,ms){dfd.push(f);return dfd.length;};document.querySelectorAll=function(){return [];};try{start();var fe={classList:{add:function(){}},disabled:false,onclick:null};choose(cur,fe);reset();start();var qB=qNo;if(dfd.length)dfd[dfd.length-1]();var qA=qNo;var ok=(qA===qB&&dfd.length>=1);document.getElementById('__tbProbe').textContent='CAPSTALE '+(ok?'OK':'BAD qB='+qB+' qA='+qA+' n='+dfd.length);}finally{setTimeout=oST;document.querySelectorAll=oQ;}})()"],
+  "expect": ["CAPSTALE OK"],
+  "ref": "第395批：capital-quiz 两处裸 setTimeout(next,900) 未取消。延迟桩捕获回调，作答→重置→重开后触发须被令牌丢弃。旧源码 qNo+1 ⇒ BAD。"
+},
+{
+  "slug": "edu/flag-quiz",
+  "clicks": ["(function(){var dfd=[];var oST=setTimeout,oQ=document.querySelectorAll;setTimeout=function(f,ms){dfd.push(f);return dfd.length;};document.querySelectorAll=function(){return [];};try{start('normal');var fe={classList:{add:function(){}},disabled:false,onclick:null};choose(cur,fe);reset();start('normal');var qB=qNo;if(dfd.length)dfd[dfd.length-1]();var qA=qNo;var ok=(qA===qB&&dfd.length>=1);document.getElementById('__tbProbe').textContent='FLAGSTALE '+(ok?'OK':'BAD qB='+qB+' qA='+qA+' n='+dfd.length);}finally{setTimeout=oST;document.querySelectorAll=oQ;}})()"],
+  "expect": ["FLAGSTALE OK"],
+  "ref": "第395批：答题后 setTimeout(next,900) 未取消，0.9 秒内重置/重开会被旧回调重新出题或跳过新局当前题。用延迟执行桩捕获旧推进回调，答题→立即重置→重新开始后手动触发旧回调，须被局次令牌丢弃（qNo 不变）。修复前旧回调直接 next() ⇒ qNo+1 ⇒ BAD。"
+},
+{
+  "slug": "edu/typing-game",
+  "clicks": ["(function(){var T=1700000000000;var D=Date.now;Date.now=function(){return T;};startTime=T-60000;correctKeys=100;totalKeys=100;updateStats();var w=String(document.getElementById('wpm').textContent);Date.now=D;document.getElementById('__tbProbe').textContent='TYPWPM '+(w==='20'?'OK':'BAD '+w);})()"],
+  "expect": ["TYPWPM OK"],
+  "ref": "第398批：速度单位为 WPM（标准词/分），算法 WPM=(正确按键数/5)/(分钟数)；每分钟 100 个正确字符应输出 20 而非 100「字/分」。锁定算法与文案一致（meta 已由「字/分」改 WPM 标准词/分），默认态正确按键 0 ⇒ WPM 0，不命中。"
 }
 ];
 

@@ -10,10 +10,10 @@
 <title>日期差 / 年龄计算器 - 免费在线日常生活工具</title>
 <link rel="canonical" href="https://tools.dicomp.net/tools/life/date-diff.html">
 <meta property="og:title" content="日期差 / 年龄计算器 - 免费在线日常生活工具">
-<meta property="og:description" content="日期差计算是一款免费的在线日常生活工具，日期差与年龄计算器求两个日期之间的天数、月数与年龄，支持跨年计算与工作日历，适合生日提醒、合同期限与工期统计。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+<meta property="og:description" content="日期差计算是一款免费的在线日常生活工具，日期差与年龄计算器求两个日期之间的天数、月数与年龄，支持跨年计算与工作日历，适合生日提醒、合同期限与工期统计。">
 <meta property="og:url" content="https://tools.dicomp.net/tools/life/date-diff.html">
 <meta name="twitter:card" content="summary">
-<meta name="description" content="日期差计算是一款免费的在线日常生活工具，日期差与年龄计算器求两个日期之间的天数、月数与年龄，支持跨年计算与工作日历，适合生日提醒、合同期限与工期统计。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+<meta name="description" content="日期差计算是一款免费的在线日常生活工具，日期差与年龄计算器求两个日期之间的天数、月数与年龄，支持跨年计算与工作日历，适合生日提醒、合同期限与工期统计。">
 <link rel="stylesheet" href="../../css/common.css">
 <script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
@@ -39,10 +39,10 @@
 <meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
     <meta property="og:type" content="website">
     <meta name="twitter:title" content="日期差 / 年龄计算器 - 免费在线日常生活工具">
-    <meta name="twitter:description" content="日期差计算是一款免费的在线日常生活工具，日期差与年龄计算器求两个日期之间的天数、月数与年龄，支持跨年计算与工作日历，适合生日提醒、合同期限与工期统计。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。">
+    <meta name="twitter:description" content="日期差计算是一款免费的在线日常生活工具，日期差与年龄计算器求两个日期之间的天数、月数与年龄，支持跨年计算与工作日历，适合生日提醒、合同期限与工期统计。">
 <!-- TOOLBOX-WEBAPP-LD -->
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebApplication","name":"日期差计算","url":"https://tools.dicomp.net/tools/life/date-diff.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"日期差计算是一款免费的在线日常生活工具，日期差与年龄计算器求两个日期之间的天数、月数与年龄，支持跨年计算与工作日历，适合生日提醒、合同期限与工期统计。纯前端运行、数据不上传、无需注册，打开浏览器即可使用。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+{"@context":"https://schema.org","@type":"WebApplication","name":"日期差计算","url":"https://tools.dicomp.net/tools/life/date-diff.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"日期差计算是一款免费的在线日常生活工具，日期差与年龄计算器求两个日期之间的天数、月数与年龄，支持跨年计算与工作日历，适合生日提醒、合同期限与工期统计。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
 </script>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
@@ -259,12 +259,14 @@ function calc(){
     cur.setDate(cur.getDate()+1);
   }
   const totalDays=workdays+weekends;
+  // 勾选「排除周末（只算工作日）」时主结果与全部汇总按工作日口径，避免勾选后主天数不变
+  const shownDays=excludeWeekend?workdays:totalDays;
   // breakdown
-  const weeks=Math.floor(totalDays/7);
-  const remainDays=totalDays%7;
-  const months=(totalDays/30.4375).toFixed(1);
-  const years=(totalDays/365.25).toFixed(2);
-  let html='<div class="big-diff">'+totalDays+' 天</div>';
+  const weeks=Math.floor(shownDays/7);
+  const remainDays=shownDays%7;
+  const months=(shownDays/30.4375).toFixed(1);
+  const years=(shownDays/365.25).toFixed(2);
+  let html='<div class="big-diff">'+shownDays+' 天</div>';
   html+='<div class="stat-grid">';
   html+='<div class="stat-card"><div class="v">'+workdays+'</div><div class="l">工作日</div></div>';
   html+='<div class="stat-card"><div class="v">'+weekends+'</div><div class="l">周末天数</div></div>';
@@ -274,13 +276,13 @@ function calc(){
   html+='<div class="breakdown">';
   html+='<div class="data-card"><div class="num">'+months+'</div><div class="label">约月数</div></div>';
   html+='<div class="data-card"><div class="num">'+years+'</div><div class="label">约年数</div></div>';
-  html+='<div class="data-card"><div class="num">'+(totalDays*24)+'</div><div class="label">总小时</div></div>';
-  html+='<div class="data-card"><div class="num">'+(totalDays*1440)+'</div><div class="label">总分钟</div></div>';
+  html+='<div class="data-card"><div class="num">'+(shownDays*24)+'</div><div class="label">总小时</div></div>';
+  html+='<div class="data-card"><div class="num">'+(shownDays*1440)+'</div><div class="label">总分钟</div></div>';
   html+='</div>';
   html+='<div class="timeline" style="margin-top:14px;">';
   html+='<div class="step-line"><strong>起始：</strong>'+fmtDate(d1)+' '+weekDay(d1)+(swapped?' <span style="color:var(--text-muted);">(原结束日)</span>':'')+'</div>';
   html+='<div class="step-line"><strong>结束：</strong>'+fmtDate(d2)+' '+weekDay(d2)+(swapped?' <span style="color:var(--text-muted);">(原起始日)</span>':'')+'</div>';
-  html+='<div class="step-line"><strong>间隔：</strong>'+totalDays+' 天（'+(excludeStart?'不含':'含')+'起始日，'+(excludeEnd?'不含':'含')+'结束日）'+(excludeWeekend?'，其中工作日 '+workdays+' 天':'')+'</div>';
+  html+='<div class="step-line"><strong>间隔：</strong>'+shownDays+' 天（'+(excludeStart?'不含':'含')+'起始日，'+(excludeEnd?'不含':'含')+'结束日）'+(excludeWeekend?'，已排除周末，仅计工作日 '+workdays+' 天':'')+'</div>';
   html+='</div>';
   const __g2=html;out.innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 }

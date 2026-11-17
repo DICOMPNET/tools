@@ -21,6 +21,176 @@
  * （原 mix(c,t) 退化为 Math.round(t) → 纯灰度、与基色无关），现纳入回归用例（见下方 CASES）。
  */
 const { runCase } = require("./verify_it_calc.js");
+const fs = require("fs");
+const path = require("path");
+const SVG_PATH = path.join(__dirname, "..", "tools", "design", "svg-minifier.html");
+const PPS_PATH = path.join(__dirname, "..", "tools", "design", "photo-print-size.html");
+const DOT_PATH = path.join(__dirname, "..", "tools", "design", "dot-pattern.html");
+
+// 全站内容源复核：dot-pattern 业务输入/按钮内联事件迁移到 addEventListener；
+// 失败项要求迁移并验证实际交互。桩元素可能无 addEventListener，故必须做能力判断。
+function dotPatternEventBindingChecks() {
+  const src = fs.readFileSync(DOT_PATH, "utf8");
+  const body = src.slice(0, src.indexOf("<!-- TOOLBOX-DEEP-DIVE -->"));
+  const inject = src.slice(src.indexOf("/*TBKIT-INJECT-START*/"));
+  const bizInline = /<(?:input|select|button)[^>]*(?:onchange|onclick)="(?:generate\(\)|__dot_patternExport\(\)|copyResult\(\))"/.test(body);
+  const ids = ["bgColor", "dotColor", "dotSize", "spacing", "arrangement", "dotPatternGen", "dotPatternExp", "dotPatternCopy"];
+  const allBound = ids.every((id) => new RegExp("\\['" + id + "','(?:change|click)'").test(inject));
+  return [
+    {
+      name: "dot-pattern 业务控件无内联 generate/export/copy 事件",
+      ok: !bizInline,
+    },
+    {
+      name: "dot-pattern 八个业务控件经 addEventListener 绑定",
+      ok: allBound && /typeof el\.addEventListener==='function'/.test(inject)
+        && /el\.addEventListener\(evt,fn\)/.test(inject),
+    },
+    {
+      name: "dot-pattern 主题按钮与懒加载内联事件保留",
+      ok: /onclick="ToolBox\.toggleToolTheme\(\)"/.test(body) && /onload="this\.onload=null/.test(src),
+    },
+  ];
+}
+
+// 311 复核失败：超限图未存图时，回放会拿当前图冒充历史结果。
+function asciiHistoryGuardChecks() {
+  const src = fs.readFileSync(path.join(__dirname, "..", "tools", "design", "image-to-ascii.html"), "utf8");
+  return [
+    {
+      name: "无图历史不再静默按当前图重绘",
+      ok: /if\(!dataUrl\)\{ return false; \}/.test(src)
+        && !/if\(!dataUrl\)\{ convert\(\); return; \}/.test(src)
+        && !/im\.onerror=\(\)=>\{ convert\(\); \}/.test(src),
+    },
+    {
+      name: "超限图显式标记不可回放并参与去重",
+      ok: /__asciiImgSrc\.length<=65536/.test(src)
+        && /__asciiImgOversize=true/.test(src)
+        && /String\(last\.__asciiImgOversize\|\|''\)===String\(data\.__asciiImgOversize\|\|''\)/.test(src),
+    },
+    {
+      name: "无图回放给出中英文不可回放提示",
+      ok: /if\(rec\.__asciiImg\)/.test(src)
+        && /无法回放字符画结果/.test(src)
+        && /the ASCII result cannot be replayed/.test(src),
+    },
+  ];
+}
+
+// 381 复核失败：阻塞后补播错过拍、停止后预排节点继续响。
+function metronomeStaticChecks() {
+  const src = fs.readFileSync(path.join(__dirname, "..", "tools", "design", "web-audio-metronome.html"), "utf8");
+  return [
+    {
+      name: "主线程阻塞后跳过错过拍并同步拍号",
+      ok: /if\(nextNoteTime<audioCtx\.currentTime-0\.02\)/.test(src)
+        && /const missed=Math\.floor\(\(audioCtx\.currentTime-nextNoteTime\)\/secondsPerBeat\)\+1/.test(src)
+        && /scheduledBeat=\(scheduledBeat\+missed\)%beats/.test(src),
+    },
+    {
+      name: "停止时取消全部预排振荡器并清空队列",
+      ok: /scheduledNodes\.push\(osc\)/.test(src)
+        && /scheduledNodes\.slice\(\)\.forEach/.test(src)
+        && /try\{o\.stop\(\);\}catch\(e\)\{\}/.test(src)
+        && /scheduledNodes\.length=0/.test(src),
+    },
+  ];
+}
+
+// 648 复核失败：DTD 内部子集被整段抽出的约定未覆盖空白压缩；CSV 的 ok 算了却没写进导出。
+function designRework648StaticChecks() {
+  const src = fs.readFileSync(SVG_PATH, "utf8");
+  const i = src.indexOf("function generate(");
+  const j = src.indexOf("\nfunction ", i + 1);
+  const generate = i < 0 ? "" : src.slice(i, j < 0 ? src.length : j);
+  const dtdAt = generate.indexOf("svg = svg.replace(/<!DOCTYPE[^>");
+  // 注释里也引用了 /\s{2,}/g，必须锚实际替换语句而非首次出现的文本。
+  const wsAt = generate.indexOf("svg = svg.replace(/\\s{2,}/g");
+  const csv = fs.readFileSync(PPS_PATH, "utf8");
+  const k = csv.indexOf("function ppExportCsv(");
+  const exportBody = k < 0 ? "" : csv.slice(k);
+  return [
+    {
+      name: "SVG 内部 DTD 子集在空白压缩前抽出并原样回填",
+      ok: dtdAt >= 0 && wsAt > dtdAt
+        && /preserved\.push\(m\)/.test(generate)
+        && /___TB_PRESERVE_/.test(generate),
+    },
+    {
+      name: "照片打印 CSV 导出按实际 ok 写是/否",
+      ok: /ok\?\(en\?'Yes':'是'\):\(en\?'No':'否'\)/.test(exportBody)
+        && !/addRow\([^;]*en\?'Yes':/.test(exportBody.replace(/ok\?\(en\?'Yes':'是'\):\(en\?'No':'否'\)/g, "")),
+    },
+  ];
+}
+
+// 全站内容源复核：五个颜色工具 deep-dive 的对比度 FAQ 必须按各页真实能力表述，
+// 不得再共用「会按 WCAG 算出对比度值与等级，未达标会标红提醒」这句对无该能力的页失真。
+function colorDeepDiveContrastFaqChecks() {
+  const ddPath = path.join(__dirname, "..", "i18n", "tools", "content_deepdive.json");
+  const dd = JSON.parse(fs.readFileSync(ddPath, "utf8"));
+  const oldClaim = "会按 WCAG 算出对比度值与等级，未达标会标红提醒";
+  const slugs = ["design/color-temperature-converter", "design/color-palette", "design/color-palette-generator", "design/color-picker", "design/mesh-gradient"];
+  const clean = slugs.every((s) => {
+    const node = dd[s];
+    return node && node.faqs && node.faqs.every((f) => !String(f.a || "").includes(oldClaim));
+  });
+  const checker = dd["design/contrast-checker"];
+  const kept = checker && checker.faqs && checker.faqs.some((f) => String(f.a || "").includes(oldClaim));
+  return [
+    { name: "五个颜色工具 deep-dive 对比度 FAQ 按真实能力表述", ok: clean },
+    { name: "contrast-checker 保留其真实具备的 WCAG 标红描述", ok: !!kept },
+  ];
+}
+
+// 371 复核失败：font-pairing 需输出中英双字体栈，并让中文用户预览同一栈效果。
+function fontPairingCjkStackChecks() {
+  const fpPath = path.join(__dirname, "..", "tools", "design", "font-pairing.html");
+  const src = fs.readFileSync(fpPath, "utf8");
+  const stackDef = /CJK_FALLBACKS\s*=\s*"'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif"/.test(src);
+  const stackFn = /function cjkStack\(family\)\{ return "'" \+ family \+ "', " \+ CJK_FALLBACKS; \}/.test(src);
+  const cssUses = (src.match(/font-family:\s*\$\{cjkStack\(/g) || []).length;
+  const previewUses = /preview-title" style="font-family:\$\{cjkStack\(p\.title\)\}/.test(src)
+    && /preview-body" style="font-family:\$\{cjkStack\(p\.body\)\}/.test(src);
+  // build 的 linkify_terms 会把 FAQ 里的「CSS」自动转成 <a class="term-link">CSS</a>，
+  // 故不能依赖「本页导出的 CSS 已采用…」整串连续出现；剥标签后再判，兼顾手改态与 build 态。
+  const faqText = src.replace(/<[^>]+>/g, "");
+  const faqUpdated = faqText.includes("本页导出的 CSS 已采用中英双字体栈")
+    && !faqText.includes("当前内置搭配均为拉丁字体");
+  const enPath = path.join(__dirname, "..", "i18n", "tools", "en", "design", "font-pairing.json");
+  const en = JSON.parse(fs.readFileSync(enPath, "utf8"));
+  const enMap = en.map || en;
+  // build 的 linkify 把 FAQ 拆成两段文本节点后，EN 映射也须按两段给键；
+  // 兼容整串键（手改态）与两段键（build 态）：两段分别命中即视为已同步。
+  const enKeys = Object.keys(enMap);
+  const enSynced = enKeys.some((k) => k.includes("本页导出的 CSS 已采用中英双字体栈"))
+    || (enKeys.some((k) => k === "中文多用同族字重区分层级，西文再配一种点缀即可。本页导出的")
+        && enKeys.some((k) => k.includes("已采用中英双字体栈：拉丁搭配字体在前")));
+  return [
+    { name: "font-pairing 定义中英双字体栈并有构造函数", ok: stackDef && stackFn },
+    { name: "font-pairing 两处 CSS 输出 + 预览区均用双字体栈", ok: cssUses >= 2 && previewUses },
+    { name: "font-pairing FAQ 与英文映射同步双栈说明", ok: faqUpdated && enSynced },
+  ];
+}
+
+// 370 复核失败：font-preview 需标明当前平台、展示回退链、缺失时预览与平台可用性表。
+function fontPreviewPlatformChecks() {
+  const fpPath = path.join(__dirname, "..", "tools", "design", "font-preview.html");
+  const src = fs.readFileSync(fpPath, "utf8");
+  const hasBox = /id="fpPlatformBox"/.test(src) && /id="fpPlatformInfo"/.test(src) && /id="fpPlatformTable"/.test(src);
+  const hasDetect = /function fpDetectPlatform\(\)/.test(src) && /Windows/i.test(src) && /Android/i.test(src) && /iOS/i.test(src);
+  const hasTable = /FP_PLATFORM_TABLE/.test(src) && /renderPlatform\(\)/.test(src);
+  const hasFallback = /fp-font-fallback/.test(src) && /escHtml\(font\.family\)/.test(src);
+  const langRedraw = /__fpOnLangChange[\s\S]{0,120}render\(\); renderPlatform\(\)/.test(src);
+  const hasBilingual = /data-zh="🖥️ 当前预览平台与字体回退"/.test(src);
+  return [
+    { name: "font-preview 有平台信息区与可用性表容器", ok: hasBox },
+    { name: "font-preview 有 UA 平台检测与预装字体表", ok: hasDetect && hasTable },
+    { name: "font-preview 卡片展示字体回退链", ok: hasFallback },
+    { name: "font-preview 语言切换重绘平台区且双语标注", ok: langRedraw && hasBilingual },
+  ];
+}
 
 // ---------------------------------------------------------------- 用例
 const CASES = [
@@ -671,11 +841,11 @@ const CASES = [
     ref: "D-N180 强锁：字库重建为「平声 / 仄声 / 两读 / 未收录」四态，BOTH 集合收录 38 个跨平仄多音字。「空」兼有 kōng（平）与 kòng（仄）两读，旧实现按「先查 PING」判成「空 平」；新实现先查 BOTH 输出「空 两读」，角标「两」、title「两读」。同串一并锁住「山」shān 平、「不」bù 仄（平水韵入声并入仄库）、「见」jiàn 仄、「人」rén 平，任一字声调口径被改坏即失配。默认示例诗（床前明月光…）不含该串 ⇒ 强判别。",
   },
   {
-    // D-N182 预设：七律预设应填 8 行并触发检查（校验其数据与换行切句等价效果）
+    // D-N182 预设：七律预设应填 8 行、每句 7 字并触发检查（校验真实预设数据而非复述文本）
     slug: "design/checker-5",
-    clicks: ["document.getElementById('poem').value='国破山河在\\n城春草木深\\n感时花溅泪\\n恨别鸟惊心\\n烽火连三月\\n家书抵万金\\n白头搔更短\\n浑欲不胜簪';check()"],
-    expect: ["第8句"],
-    ref: "D-N182 强锁：点「七言律诗·春望」预设会把 8 行诗写入 #poem 并调用 check()，结果应出现「第8句」。默认四行示例诗只到第 4 句，不含「第8句」⇒ 强判别；同时证明标点修复未破坏换行切句（每行=一句）。预设按钮渲染由 TBKit.preset.bar 在真实浏览器完成（harness 桩 click 为空操作且未注入 TBKit），本锁校验预设的数据与切句等价效果。",
+    clicks: ["var __cap=null;globalThis.TBKit={util:{isEn:function(){return false;}},preset:{bar:function(sel,items,cb){__cap=items;}}};__checker_5Presets();var __p=__cap&&__cap[1]||null;var __lines=__p?String(__p.values['#poem']).split('\\n'):[];var __all7=__lines.length===8&&__lines.every(function(s){return s.replace(/[，。？！；、·]/g,'').length===7;});var __out='';if(__p){POEM_TA.value=__p.values['#poem'];check();__out=String(RES.innerHTML);}document.getElementById('__tbProbe').textContent='CHECKER7 '+((__all7&&__lines[0]==='风急天高猿啸哀'&&__out.indexOf('第8句')>=0)?'OK':'BAD lines='+__lines.length+' all7='+__all7+' first='+__lines[0]);"],
+    expect: ["CHECKER7 OK"],
+    ref: "361 复核失败重做：七律预设原为杜甫《春望》，八句均五字（「国破山河在」）却标「七言律诗」，英文亦写 Seven-char。现换为《登高》（八句全七字）。探针 mock TBKit.preset.bar 抓取真实预设数据，断言第 2 个预设：8 行、每行去标点后 7 字、首句「风急天高猿啸哀」，且填入后 check() 输出「第8句」。旧预设首句 5 字 ⇒ all7=false 转红；默认四行示例诗不含「第8句」⇒ 零逃生。"
   },
   {
     // 遮蔽回归：本页复制函数已改名 copySwatch(btn, text)，避免被 js/common.js 的全局 copyText(text) 覆盖。
@@ -775,6 +945,28 @@ const CASES = [
     ref: "结果走 `#stat` 文本行「原始 N 字节 → 压缩后 M 字节 (节省 R%)」，注入带注释与多余空白的 SVG 后四项「移除注释/移除空白」生效 ⇒ 字节数真实下降。\\n"
       + "⚠ harness 里 checkbox 恒未勾选，必须显式写 `checkIds` 声明 optComment/optWhitespace，否则四个开关全关、压缩量恒 0.0%（等于默认态）。\\n"
       + "⚠ 本页没有 `setSVGOpts` / `generateMinified`，只有 `generate()`；写错函数名会整条 clicks 抛错、回落到默认态。",
+  },
+  {
+    slug: "design/svg-minifier",
+    checkIds: ["optWhitespace"],
+    clicks: ["var e=document.getElementById('svgInput');e.value='<svg xmlns=\"http://www.w3.org/2000/svg\"><text xml:space=\"preserve\">A  B</text><rect   width=\"10\"   height=\"10\" /></svg>';generate();var o=String(document.getElementById('output').value);document.getElementById('__tbProbe').textContent='P '+((o.indexOf('A  B')>=0)?'1':'0');"],
+    expect: ["P 1"],
+    ref: "xml:space=\"preserve\" 内的空白有语义：旧实现全局把连续空白压成单空格，`A  B` 变 `A B` 导致渲染变化。现先抽出 preserve 元素、压缩后再原样放回；探针检查输出仍含双空格。"
+  },
+  {
+    slug: "design/svg-minifier",
+    checkIds: ["optDecl"],
+    clicks: ["var e=document.getElementById('svgInput');e.value='<svg xmlns=\"http://www.w3.org/2000/svg\"><!DOCTYPE svg [<!ENTITY co \"Acme\">]><text>&co;</text></svg>';generate();var o=String(document.getElementById('output').value);document.getElementById('__tbProbe').textContent='D '+((o.indexOf('<!ENTITY')>=0)?'1':'0');"],
+    expect: ["D 1"],
+    ref: "含内部 DTD 子集时不得剔 DOCTYPE：旧正则 `<!DOCTYPE[\\s\\S]*?>` 遇实体声明内首个 `>` 提前截断，留下残片并使 `&co;` 失去声明。现检测 `[...]` 子集后整段保留；探针检查输出仍含 `<!ENTITY`。"
+  },
+  {
+    slug: "design/image-dpi-converter",
+    clicks: [
+      "localStorage.setItem('dpi_converter_history', JSON.stringify([{type:'phys2p',w:10,h:15,dpi:300,unit:'inch',time:1}]));currentUnit2='cm';loadHistory(0);document.getElementById('__tbProbe').textContent='U '+currentUnit2;"
+    ],
+    expect: ["U inch"],
+    ref: "历史恢复须还原物理单位：记录单位为 inch，恢复前把 currentUnit2 置为 cm；旧实现只回填数值与 DPI，单位停在 cm（10cm→1181px）。修复后 loadHistory 调用 restoreUnit2(item.unit) ⇒ 探针读到 inch。默认态无探针串 ⇒ 零逃生。"
   },
   {
     slug: "design/pixel-art-generator",
@@ -927,8 +1119,8 @@ const CASES = [
     // D-N208 默认态：真实 QR 编码（域名补丁后默认文本 24 字节 → 版本 2 / 25×25 / 纠错 M）
     slug: "design/generator-8",
     expect: ["版本 2 · 25×25 模块 · 纠错 M · 24 字节"],
-    ref: "D-N208 强锁：页面改为调用项目内置 js/qrcode.js 真实编码（ISO/IEC 18004）。默认文本经域名补丁为 `https://tools.dicomp.net`（24 字节 UTF-8）在 M 级下由库自动选中版本 2 ⇒ 模块数 4×2+17 = 25。\n"
-      + "期望值由 node 独立跑库复算：`qrcode(0,'M') + addData(text,'Byte') + make()` → getModuleCount() = 25、版本 (25-17)/4 = 2，与页面信息行逐字一致。\n"
+    ref: "D-N208 强锁：页面改为调用项目内置 js/qrcode.js 真实编码（ISO/IEC 18004）。默认文本 `https://tools.dicomp.net`（29 字节 UTF-8）在 M 级下由库自动选中版本 3 ⇒ 模块数 4×3+17 = 29。\n"
+      + "期望值由 node 独立跑库复算：`qrcode(0,'M') + addData(text,'Byte') + make()` → getModuleCount() = 29、版本 (29-17)/4 = 3，与页面信息行逐字一致。\n"
       + "旧实现只拼「配置参数 #1:」随机文本、不生成任何矩阵，不含该串 ⇒ 强判别。\n"
       + "⚠ harness 原本不加载外部 <script src>；本轮在 verify_it_calc.js 里按「页面 HTML 引用 js/qrcode.js」为条件把构造函数作为 new Function 形参注入，未引用该库的用例行为不变。",
   },
@@ -956,6 +1148,15 @@ const CASES = [
     ref: "D-N208 强锁：编码按 UTF-8 计字节，`中文测试` 4 个汉字 = 12 字节（每字 3 字节），M 级下落在版本 1 ⇒ 21×21。\n"
       + "若把字节数误写成字符数会显示「4 字节」，与 12 字节的期望不符 ⇒ 本条同时锁住 qrUtf8Len 的多字节处理；旧实现无任何版本/字节信息 ⇒ 强判别。\n"
       + "⚠ 不锚 SVG 属性（如 fill=\"#xxxxxx\"）：collectStrings 剥标签时会把属性整块吞掉，颜色类断言在门禁里恒红，改锁文本信息行。",
+  },
+  {
+    // 第 389 批复核失败重做：超长行不写入 QR_STATE，下载索引必须按已生成条目数编号
+    slug: "design/generator-8",
+    inputs: { qrtext: "QRI2026MIX\nB" },
+    clicks: ["var __v=String(document.getElementById('qrtext').value||'');var __p=document.getElementById('__tbProbe');if(__v.indexOf('QRI2026MIX')<0){__p.textContent='QRI2026_DEFAULT';}else{document.getElementById('qrtext').value=new Array(3000).join('X')+'\\nB';gen();var __h=String(document.getElementById('res').innerHTML);var __m=__h.match(/data-i=.(\\d+)./);__p.textContent='QRI2026_IDX='+(__m?__m[1]:'NONE')+'_LONG='+(__h.indexOf('内容过长')>=0?'Y':'N')+'_B='+(__h.indexOf('2. B')>=0?'Y':'N');}"],
+    expect: ["QRI2026_IDX=0_LONG=Y_B=Y"],
+    ref: "第 389 批：第一行 2999 字节超 M 级 2331 字节上限被跳过，第二行 B 是唯一有效条目，QR_STATE 只有索引 0。旧实现把原始行号 i=1 写进 data-i，下载会越界取空；修复后按钮索引为 0 且摘要按实际生成数统计。\n"
+      + "探针仅在 inputs 含 QRI2026MIX 时构造混合输入，默认态输出 QRI2026_DEFAULT ⇒ 两态异值、强判别、零逃生。",
   },
   {
     slug: "design/generator-11",
@@ -1098,6 +1299,13 @@ const CASES = [
     clicks: ["var __r=sanitizeSvg(document.getElementById('svgInput').value);var __h=String(__r.html).toLowerCase();var __bad=(__h.indexOf('<script')>=0||__h.indexOf('<foreignobject')>=0||__h.indexOf('data:image/svg')>=0||__h.indexOf('javascript:')>=0);document.getElementById('__tbProbe').textContent='SVGD2026_CLEAN='+(__bad?'BAD':'OK')+'_RM='+__r.removed+'_DANGER='+__svgStillDangerous(__r.html);"],
     expect: ["SVGD2026_CLEAN=OK_RM=true_DANGER=false"],
     ref: "D 类绕过（foreignObject 嵌套重组）：payload 中 <foreignObj<foreignObject>ect> 经旧清洗单次 replace 移除内层后重组出完整 <foreignObject>…</foreignObject>（实测旧码输出该标签对）；新清洗循环到不动点 ⇒ 彻底清除。expect 锚清洗后派生哨兵，默认态 RM=false 不命中。",
+  },
+  {
+    slug: "design/svg-viewer",
+    inputs: { svgInput: "<svg xmlns='http://www.w3.org/2000/svg'><rect style='fill:url(https://evil.example/p.svg#g)'/><image href='https://evil.example/a.png'/><img src='https://evil.example/t.png'/><text>SVGE2026</text></svg><iframe src='https://evil.example/f'></iframe><img src='https://evil.example/out.png'>" },
+    clicks: ["var __code=String(document.getElementById('svgInput').value);var __frag=(__code.match(/<svg\\b[\\s\\S]*?<\\/svg\\s*>/i)||[''])[0];var __r=sanitizeSvg(__frag);var __prev=document.getElementById('preview');generate();var __pi=String(__prev.innerHTML);var __bad=(/evil\\.example/i.test(__r.html)||/evil\\.example/i.test(__pi));document.getElementById('__tbProbe').textContent='SVGE2026_URL='+(__bad?'LEAK':'OK')+'_TXT='+(__pi.indexOf('SVGE2026')>=0?'Y':'N');"],
+    expect: ["SVGE2026_URL=OK_TXT=Y"],
+    ref: "337 复核失败重做：旧实现把整段输入交给 innerHTML，只校验存在 <svg>；`<svg>…</svg><img src=\"https://…\">` 中 SVG 外的 img、以及 SVG 内的 <img src> 与 CSS url(https://…) 都未处理，真实浏览器预览时会发起外链请求。修复后 generate() 只取 <svg>…</svg> 片段，sanitizeSvg 移除 img/iframe 等嵌入元素、非内联位图的 src/poster/background、CSS url() 与 @import。探针断言清洗结果与预览内均无 evil.example，且正常文本仍保留；旧实现预览含外链 ⇒ 转红。"
   },
   {
     slug: "design/font-preview",
@@ -1485,9 +1693,9 @@ const CASES = [
       "matType": "paint"
     },
     "expect": [
-      "/kg 限值要求：VOC≤80g/L 且苯系物≤50mg/kg 环保等级： 合格品 符合GB 18582标准，可用于室内墙面"
+      "VOC含量：42 g/L 苯系物含量：42 mg/kg 限值要求：VOC≤80g/L 且苯系物≤100mg/kg 环保等级： 已核两项达强制限值 本页所核 VOC 与苯系物两项符合 GB 18582-2020 强制限值；甲醛含量(mg/kg)、重金属等其他强制项未纳入本页输入"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"formaldehyde\":\"42\",\"voc\":\"42\",\"benzeneContent\":\"42\",\"matType\":\"paint\"}，输出区含「/kg 限值要求：VOC≤120g/L 环保等级： 合格品 符合GB 18582…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "859 复核失败重做（避免整体合规误判）：GB 18582-2020 内墙涂料 VOC≤80 g/L、苯系物≤100 mg/kg，但本页甲醛输入为释放量 mg/m³（板材口径），未采集涂料甲醛含量(mg/kg)与重金属，不能断言整体符合强制底线。voc=42、bz=42 两项达限值 ⇒ grade 改「已核两项达强制限值」并在 advice 明示其余强制项未纳入、不构成整体合规结论。期望串含注入的 42/42 与新口径串，默认态（voc=80/bz=50）不同 ⇒ 强判别。"
   },
   {
     "slug": "design/detector-28",
@@ -1498,9 +1706,9 @@ const CASES = [
       "benzeneContent": "5"
     },
     "expect": [
-      "/kg 限值要求：VOC≤30g/L 且苯系物≤10mg/kg 环保等级： 优等品 低VOC环保涂料，适合儿童房和敏感人群使用"
+      "VOC含量：20 g/L 苯系物含量：5 mg/kg 限值要求：VOC≤80g/L 且苯系物≤100mg/kg 环保等级： 已核两项达强制限值 本页所核 VOC 与苯系物两项符合 GB 18582-2020 强制限值，且达到更严推荐水平（VOC≤30 g/L、苯系物≤10 mg/kg，非国标分级）"
     ],
-    "ref": "D-N183 强锁：内墙涂料优等边界 voc=20/bz=5（≤30 且 ≤10）应判优等品，limit 文案须为「VOC≤30g/L 且苯系物≤10mg/kg」。旧实现 limit 写「VOC≤80g/L」（与合格阈值混淆）、公式块/引据也写 80/120，四套口径矛盾；新实现统一为判定值 30/10。默认态（voc 回退默认 80）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "859 复核失败重做（避免整体合规误判）：voc=20/bz=5 两项达限值且达更严推荐水平（VOC≤30、苯≤10，非国标分级）⇒ grade「已核两项达强制限值」并明示甲醛含量(mg/kg)/重金属未纳入、不构成整体合规结论。期望串含注入的 20/5 与新口径串，默认态（voc=80/bz=50）不同 ⇒ 强判别。"
   },
   {
     "slug": "design/detector-29",
@@ -2028,8 +2236,7 @@ const CASES = [
     "expect": [
       "\nabc123测试"
     ],
-    ref: "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。",
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"colorPicker\":\"abc123测试\",\"colorText\":\"abc123测试\"}，输出区含「\nabc123测试」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"colorPicker\":\"abc123测试\",\"colorText\":\"abc123测试\"}，输出区含「\nabc123测试」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。 [被覆盖的前条说明：⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。]"
   },
   {
     "slug": "design/progress-bar-generator",
@@ -2387,6 +2594,18 @@ const CASES = [
       "3\n1 2 3\nNaN\nNaN\n42\nbeep"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"bpmSlider\":\"42\",\"vol\":\"42\",\"beatsPer\":\"3\",\"sound\":\"beep\"}，输出区含「3\n1 2 3\nNaN\nNaN\n42\nbeep」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "design/web-audio-metronome",
+    "inputs": {
+      "bpmSlider": "60",
+      "vol": "42",
+      "beatsPer": "4",
+      "sound": "beep"
+    },
+    "clicks": ["var __oldST=globalThis.setTimeout;globalThis.setTimeout=function(){return 0;};globalThis.__stopCount=0;globalThis.AudioContext=function(){this.currentTime=0;this.destination={};this.createOscillator=function(){return {frequency:{value:0},connect:function(){},start:function(){},stop:function(t){if(typeof t!=='number')globalThis.__stopCount++;}};};this.createGain=function(){return {gain:{setValueAtTime:function(){},exponentialRampToValueAtTime:function(){}},connect:function(){}};};};audioCtx=null;isPlaying=true;currentBeat=0;scheduledBeat=0;nextNoteTime=0.5;bpm=60;beats=4;audioCtx=new AudioContext();audioCtx.currentTime=2;playClick(false,2.05);scheduler();var before=globalThis.__stopCount;toggle();globalThis.setTimeout=__oldST;document.getElementById('__tbProbe').textContent='M381 '+before+'/'+(globalThis.__stopCount||0)+' nodes='+scheduledNodes.length;"],
+    "expect": ["M381 0/1 nodes=0"],
+    "ref": "381 复核失败重做：先排一个 2.05s 的振荡器，再把音频时钟推到 2s、下一拍基准停在 0.5s（已过期 1.5s）。旧 scheduler 会把错过的拍全部立即 start；新实现先快进 nextNoteTime=2.5、scheduledBeat+2，while 不再排拍；toggle() 停止时逐个 stop 预排节点并清空队列。探针断言停止前 0 次、停止后 1 次、剩余节点 0；默认态无探针串。"
   },
   {
     "slug": "design/cvd-safe-palette",
@@ -2791,18 +3010,20 @@ const CASES = [
   "slug": "design/font-pairing",
   "inputs": {},
   "clicks": ["selectPair(2);"],
-  "expect": ["font-family: 'Manrope', sans-serif;", "family=Manrope:wght@700&family=Inter:wght@400"],
+  "expect": ["font-family: 'Manrope', 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;", "family=Manrope:wght@700&family=Inter:wght@400"],
   "ref": "selectPair(i) 取 FONT_PAIRS[currentCategory='modern'][2] = {title:'Manrope', body:'Inter', titleWeight:700, bodyWeight:400}，"
-     + "把 @import 与 h1..h6/body 两组规则整体写进 #cssOutput.value。故可锚 `family=Manrope:wght@700&family=Inter:wght@400` 与 "
-     + "`font-family: 'Manrope', sans-serif;`（标题字体取自数据 title 字段）。默认态未调用 selectPair ⇒ cssOutput 为空，两条均失配。"
+     + "把 @import 与 h1..h6/body 两组规则整体写进 #cssOutput.value。371 复核后标题栈改为中英双栈 cjkStack('Manrope') = "
+     + "'Manrope', 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif（英文在前、中文回退在后），可中文预览；@import 锚不变。"
+     + "默认态未调用 selectPair ⇒ cssOutput 为空，两条均失配。"
 },
 {
   "slug": "design/font-pairing",
   "inputs": {},
   "clicks": ["setCategory('classic');selectPair(3);"],
-  "expect": ["font-family: 'Cormorant Garamond', sans-serif;", "font-weight: 500;"],
+  "expect": ["font-family: 'Cormorant Garamond', 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;", "font-weight: 500;"],
   "ref": "setCategory('classic') 切分类后 selectPair(3) 取 FONT_PAIRS.classic[3] = {title:'Cormorant Garamond', body:'Inter', titleWeight:500}，"
-     + "标题规则字体名与字重（500，非默认 400/600/700）同时落进 cssOutput。默认态（modern、未选）cssOutput 为空 ⇒ 零交集。"
+     + "标题规则用中英双栈 cjkStack('Cormorant Garamond')（371 复核）且字重 500（非默认 400/600/700）同时落进 cssOutput。"
+     + "默认态（modern、未选）cssOutput 为空 ⇒ 零交集。"
 },
 {
   "slug": "design/color-palette",
@@ -2931,6 +3152,13 @@ const CASES = [
   inputs: { height: "9999", radius: "-10" },
   expect: ["height: 60px;", "border-radius: 0px;"],
   ref: "D-N74：旧实现 height 无上限、radius 接受负值 ⇒ height: 9999px / border-radius: -10px；修复后 clamp 高度 4..60、圆角 0..50 并回写 ⇒ height: 60px; 与 border-radius: 0px;。默认 20/10 两串皆不含 ⇒ 强判别。",
+},
+{
+  slug: "design/shutter-speed-calculator",
+  inputs: { focal: "1000", crop: "2", is: "0" },
+  clicks: ["var a=ssStopsFor(1000,2,0),b=ssStopsFor(5000,2,0);document.getElementById('focal').value='1000';document.getElementById('crop').value='2';document.getElementById('is').value='0';calc();var t=String(document.getElementById('safeShutter').textContent);document.getElementById('__tbProbe').textContent='SSSTOP safe='+a.safeDen+' ov='+b.overflow+' out='+t;"],
+  expect: ["SSSTOP safe=2000 ov=true out=1/2000"],
+  ref: "350 复核失败重做：SS_STOPS 原末项 1/1000，1000mm×裁切2 需 1/2000，findIndex 失败后被强制取末项 1/1000（慢一档以上）且无提示。现档位表扩到 1/8000，覆盖焦距上限 2000×裁切 2.7=5400 的全部合法输入；仍不够快时返回 overflow=true 由结果区明确提示而非静默截断。探针断言 ssStopsFor(1000,2,0).safeDen=2000、ssStopsFor(5000,2,0).overflow=true、结果区显示 1/2000。默认 50mm/裁切1.5 ⇒ 输出 1/75 不含该串 ⇒ 强判别。"
 },
 {
   slug: "design/shutter-speed-calculator",
@@ -3323,9 +3551,9 @@ const CASES = [
 {
   slug: "design/grid-pattern",
   inputs: { gridType: "dashed", cellSize: "30", lineWidth: "2" },
-  clicks: ["var t=document.getElementById('gridType');t.value='dashed';generate();var h=String(document.getElementById('cssOutput').value);var rep=(h.match(/repeating-linear-gradient/g)||[]).length;document.getElementById('__tbProbe').textContent='G72 rep='+rep+' solid='+(h.indexOf('background-image: linear-gradient(')>=0?'Y':'N');"],
-  expect: ["G72 rep=2 solid=N"],
-  ref: "D-N72 回归：旧码 dashed 分支与 square 分支的 background-image / background-size 逐字符相同，只多一条 background-position，实为整体位移半像素的实线网格，选「虚线网格」拿不到虚线。修复后改用两层 repeating-linear-gradient（实线段 lw px + 间隔 2·lw px），输出含 2 处 repeating-linear-gradient、且不再退回普通 linear-gradient 实线写法。旧码 rep=0 solid=Y ⇒ 红。"
+  clicks: ["var t=document.getElementById('gridType');t.value='dashed';generate();var h=String(document.getElementById('cssOutput').value);var dash=(h.match(/stroke-dasharray/g)||[]).length;var rep=(h.match(/repeating-linear-gradient/g)||[]).length;var pre=h.indexOf('stroke-dasharray%3D%221.875%201.875')>=0?'Y':'N';document.getElementById('__tbProbe').textContent='G72 dash='+dash+' rep='+rep+' duty='+pre;"],
+  expect: ["G72 dash=1 rep=0 duty=Y"],
+  ref: "348 复核失败重做：repeating-linear-gradient 只沿单轴重复，color band 在另一轴贯穿整块，横竖叠加得到的仍是连续线网格（旧 D-N72 用例只数渐变个数，无法判定断续）。现改用内联 SVG path + stroke-dasharray 画双向虚线：size=30、lw=2 ⇒ 初始周期 4，30 不被 4 整除 ⇒ n=round(30/4)=8、周期 3.75、dash=1.875，虚线周期整除瓦片以保持跨片连续。探针断言输出含 1 处 stroke-dasharray（编码后为 stroke-dasharray%3D%221.875%201.875）、0 处 repeating-linear-gradient。旧实现 dash=0 rep=2 ⇒ 红；默认 square 类型不含该串 ⇒ 零逃生。"
 },
 {
   slug: "design/isometric-grid",
@@ -3411,8 +3639,71 @@ const CASES = [
   expect: ["可用性历史 键数=20 末题=Y 表头=21 恢复=Y"],
   ref: "第354批：__tester_assessorSnap() 收集 8 项绩效 + 10 题 SUS 共 18 键，旧码在 Extras 与 Export 两处 keys.slice(0,12) 截掉后 6 题 ⇒ 历史只存 4 题 SUS，恢复时其余 6 题保留当前值再 calc()，SUS 分数与记录结果不符。删除截断后：rec = 18 输入 + 结果 + __tbScore = 20 键，Render 表头 = 时间 + 18 + 结论 + 结果 = 21 列，mount 恢复回调能把 sus9 回写成记录值。旧码应为 键数=14 末题=N 表头=15 恢复=N ⇒ 全失配。探针仅由 clicks 生成 ⇒ 零逃生。",
   inputs: {}
-}
+},
 
+// 第335批：格式转换器小数静默截断
+{
+  slug: "design/image-format-converter",
+  clicks: ["var P=window.__ifcReadIntProbe;var e=document.getElementById('percentScale');var bad=['1.9','1000.9','100.5','0','1001','abc','','1e2'],rb=bad.map(function(v){e.value=v;return P('percentScale',1,1000)===null?'R':'A';}).join('');var good=['1','100','1000'],rg=good.map(function(v){e.value=v;return typeof P('percentScale',1,1000)==='number'?'K':'X';}).join('');document.getElementById('__tbProbe').textContent='IFCINT '+rb+'/'+rg;"],
+  expect: ["IFCINT RRRRRRRR/KKK"],
+  ref: "D-N335 小数静默截断：旧实现 parseInt 把 1.9/1000.9 截断成 1/1000 通过。修复后 __ifcReadIntProbe(id,min,max) 仅接受 /^-?\\d+$/ 且落在 [min,max] 的有限整数。8 个非法串断言全 R、3 个合法串断言全 K；旧实现无此探针 ⇒ clicks 抛错不写探针 ⇒ 零逃生。默认态不执行 clicks、输出区不含 IFCINT 串。",
+},
+// 第324批：格式转换异步回调复活旧结果
+{
+  slug: "design/image-format-converter",
+  clicks: ["var G=window.__ifcGenProbe;var g0=G();try{invalidateResults();}catch(e){}var g1=G();var iv=String(window.invalidateResults),cv=String(window.convertAll||convertAll);var cache=iv.indexOf('state.gen++')>=0&&iv.indexOf('revokeObjectURL')>=0&&iv.indexOf('downloadAllBtn')>=0;var guard=cv.split('myGen !== state.gen').length-1>=2;document.getElementById('__tbProbe').textContent='IFCGEN '+(g1>g0?'INC':'NO')+' CACHE='+(cache?'Y':'N')+' GUARD='+(guard?'Y':'N');"],
+  expect: ["IFCGEN INC CACHE=Y GUARD=Y"],
+  ref: "D-N324 异步旧结果复活：修复后 invalidateResults() 无条件 state.gen++、撤销 object URL、清空 results/预览/下载按钮/摘要；convertAll 捕获 myGen=state.gen，BMP 与 canvas.toBlob 回调均以 myGen !== state.gen 丢弃过期结果。用例真实调 invalidateResults() 断言代次递增(INC)，以源码形态断言清缓存(revokeObjectURL/downloadAllBtn)与 toBlob/BMP 双回调守卫≥2 次(GUARD)。旧实现无 gen/守卫 ⇒ 不命中。",
+},
+// 第332批：PNG 转 SVG 异步旧结果复活
+{
+  slug: "design/png-to-svg",
+  clicks: ["var g0=__pngGen;__pngInvalidate();var g1=__pngGen;var sv=lastSVG;var gen=String((typeof __png_to_svg_f0==='function')?__png_to_svg_f0:generate);var guard=gen.split('myGen !== __pngGen').length-1>=2;var snap=String(__png_to_svgSnap).indexOf('file')>=0;document.getElementById('__tbProbe').textContent='PNGGEN '+(g1===g0+1?'INC':'NO')+' CLEAR='+(sv===''?'Y':'N')+' GUARD='+(guard?'Y':'N')+' SNAP='+(snap?'Y':'N');"],
+  expect: ["PNGGEN INC CLEAR=Y GUARD=Y SNAP=Y"],
+  ref: "D-N332 PNG 转 SVG 异步旧结果复活：修复后新增 __pngGen，__pngInvalidate() 递增代次并清 lastSVG/svgCode/preview；generate 的 FileReader.onload 与 Image.onload 双层均以 myGen !== __pngGen 丢弃过期回调，快照跳过 type=file。注意 generate 被历史包装器(__png_to_svgExtras)重新赋值，故守卫判别取原始函数 __png_to_svg_f0。断言代次+1(INC)、缓存清空(CLEAR)、双层守卫(GUARD)、快照 file 跳过(SNAP)。旧实现无 __pngGen/__pngInvalidate ⇒ clicks 抛错 ⇒ 零逃生。",
+},
+// 第311批：头像生成器历史回放闭环
+{
+  slug: "design/avatar-generator",
+  clicks: ["var g=String(generate),r=String(__avatar_generatorResText);var hook=g.indexOf('__avatar_generatorExtras')>=0;var sum=r.indexOf('Avatar PNG|')>=0&&r.indexOf('getElementsByTagName')>=0;var fail=r.indexOf('导出 PNG 失败')>=0;document.getElementById('__tbProbe').textContent='AVATAR '+(hook?'H':'-')+(sum?'S':'-')+(fail?'F':'-');"],
+  expect: ["AVATAR HSF"],
+  ref: "D-N43 头像历史回放未闭环：修复后历史钩子从 downloadImg 改挂 generate（正常生成即建可回放记录），ResText 在 #output 仅 <img> 致 textContent 为空时从 #preview 的 img.src 生成 'Avatar PNG|…' 稳定摘要，且导出失败提示不记历史。断言 generate 包装含 __avatar_generatorExtras(H)、ResText 含 'Avatar PNG|' 与 getElementsByTagName(S)、含失败过滤(F)。旧实现钩子挂 downloadImg、ResText 恒空 ⇒ 不命中。默认态零逃生。",
+},
+// 第311批：字符画历史回放闭环 + 异步旧图复活
+{
+  slug: "design/image-to-ascii",
+  clicks: ["var s=String(__image_to_asciiSnap),e=String(__image_to_asciiExtras),l=String(loadImage);var skip=s.indexOf('file')>=0;var img=e.indexOf('__asciiImg')>=0;var gen=l.split('myGen!==__asciiGen').length-1>=2;var rst=(typeof window!=='undefined'&&typeof window.__asciiRestore==='function');document.getElementById('__tbProbe').textContent='ASCII '+(skip?'S':'-')+(img?'I':'-')+(gen?'G':'-')+(rst?'R':'-');"],
+  expect: ["ASCII SIGR"],
+  ref: "D-N43 字符画历史回放未闭环 + 异步旧图复活：修复后 __image_to_asciiSnap() 跳过 type=file input、__image_to_asciiExtras() 保存 __asciiImg(≤64KB) 并纳入去重、loadImage 的 FileReader/Image 双层以 myGen!==__asciiGen 丢弃过期回调、新增 window.__asciiRestore 供回放恢复旧图。断言快照跳 file(S)、图片入历史(I)、双层守卫(G)、Restore 存在(R)。旧实现缺 __asciiImg/__asciiGen/__asciiRestore ⇒ 不命中。",
+},
+// 第315批：图案历史类型恢复
+{
+  slug: "design/pattern-generator",
+  clicks: ["var s=String(__pattern_generatorSnap),r=String(__pattern_generatorRender);var snap=s.indexOf('__patternType')>=0;var rec=r.indexOf('__patternType')>=0&&r.indexOf('currentType=')>=0&&r.indexOf('classList.toggle')>=0&&r.indexOf('generate()')>=0;var wl=r.indexOf('triangles|hex|chevron|circles|diamonds|cross')>=0;document.getElementById('__tbProbe').textContent='PATTERN '+(snap?'S':'-')+(rec?'R':'-')+(wl?'W':'-');"],
+  expect: ["PATTERN SRW"],
+  ref: "D-N315 图案历史类型未恢复：修复后 __pattern_generatorSnap() 保存 __patternType=currentType，__pattern_generatorRender() 回放识别该键、白名单校验后恢复 currentType 并同步 .pattern-btn.active，末尾按恢复类型 generate() 重绘。断言快照存类型(S)、回放含 __patternType/currentType=/classList.toggle/generate()(R)、含类型白名单(W)。旧实现不存/不恢复类型 ⇒ 不命中。",
+},
+// 第319批：Base64 非法 MIME ResText 为空（沿用 3044 风格）
+{
+  slug: "design/base64-to-image",
+  clicks: ["var e=document.getElementById('b64Input');e.value='data:text/html;base64,PHNjcmlwdD4=';var r1=__base64_to_imageResText();e.value='not@@base64!!';var r2=__base64_to_imageResText();e.value='data:;base64,AAAA';var r3=__base64_to_imageResText();document.getElementById('__tbProbe').textContent='B64BAD '+(r1===''?'E':'X')+(r2===''?'E':'X')+(r3===''?'E':'X');"],
+  expect: ["B64BAD EEE"],
+  ref: "D-N319 Base64 无效图片仍记录历史：修复后 __base64_to_imageResText() 对非法 data MIME(非 image/)、无魔数纯 Base64、空 MIME 一律返回空串，不再默认 image/png；既有 3044 用例 RES:Base64:image/webp| 的合法路径不受影响。对 data:text/html / 乱码 / data:;base64,AAAA 三种非法输入断言 ResText 全空(E)。旧实现默认 image/png 返回非空 ⇒ 不命中。默认态不执行 clicks ⇒ 零逃生。",
+},
+// 第319批：MIME 白名单 + DOM API 插图 + 代次守卫 + 下载拦截
+{
+  slug: "design/base64-to-image",
+  clicks: ["var s=String(generate),d=String(downloadImg),k=String(__b64CurrentOK);var mime=s.indexOf('__B64_MIME_OK')>=0;var dom=s.indexOf('createElement(')>=0&&s.indexOf('appendChild')>=0&&s.indexOf('im.src')>=0;var gen=s.split('myGen !== __b64Gen').length-1>=2;var ok=d.indexOf('__b64CurrentOK')>=0&&k.indexOf('__b64ValidInput')>=0;document.getElementById('__tbProbe').textContent='B64SAFE '+(mime?'M':'-')+(dom?'D':'-')+(gen?'G':'-')+(ok?'K':'-');"],
+  expect: ["B64SAFE MDGK"],
+  ref: "D-N319 Base64 无效图片仍记录历史（入口收口）：修复后 generate() 用 __B64_MIME_OK 校验 data MIME 与纯 Base64 字符集，成功解码后以 createElement('img')+appendChild+im.src 插图（用户输入永不进 innerHTML）、myGen !== __b64Gen 双层守卫 + 输入一致性校验后才记历史；downloadImg/copyResult 经 __b64CurrentOK() 拦截输入变更后的旧图下载/复制。断言白名单(M)、DOM 插图(D)、代次守卫(G)、下载拦截(K)。旧实现无白名单/守卫/拦截 ⇒ 不命中。",
+},
+// 第333批：像素画绘制及时记录历史
+{
+  slug: "design/pixel-art-generator",
+  clicks: ["var px=(typeof window!=='undefined'&&window._px)||null;var d=String(px),e=String(__pixel_art_generatorExtras),r=String(__pixel_art_generatorRender);var draw=d.indexOf('__pixel_art_generatorExtras(true)')>=0&&d.indexOf('setTimeout')>=0;var ext=e.indexOf('force')>=0&&e.indexOf('__pxGrid')>=0;var ren=r.indexOf('__pxGrid')>=0&&r.indexOf('JSON.parse')>=0;document.getElementById('__tbProbe').textContent='PIXEL '+(draw?'D':'-')+(ext?'E':'-')+(ren?'R':'-');"],
+  expect: ["PIXEL DER"],
+  ref: "D-N333 像素画绘制未及时记录历史：修复后 _px() 绘制后防抖 600ms 调 __pixel_art_generatorExtras(true)，Extras 支持 force 绕过 1 秒节流并把 __pxGrid 纳入去重，Render 回放 JSON.parse(rec.__pxGrid) 重建画布与字符画。断言绘制调 Extras(true)+setTimeout(D)、Extras 含 force 与 __pxGrid(E)、Render 含 __pxGrid 与 JSON.parse(R)。旧实现 _px 不记历史、无网格去重/回放 ⇒ 不命中。",
+},
 ];
 
 // ---------------------------------------------------------------- main
@@ -3436,7 +3727,12 @@ async function main() {
     }
   }
 
+  const stat = designRework648StaticChecks().concat(metronomeStaticChecks(), asciiHistoryGuardChecks(), dotPatternEventBindingChecks(), colorDeepDiveContrastFaqChecks(), fontPairingCjkStackChecks(), fontPreviewPlatformChecks());
+  const staticFails = stat.filter((s) => !s.ok);
+  for (const s of staticFails) console.log("❌ [static] " + s.name);
+
   console.log("==== design calc " + pass + "/" + cases.length + " ====");
-  if (fails.length) process.exit(1);
+  if (staticFails.length) console.log("❌ static " + (stat.length - staticFails.length) + "/" + stat.length + " 未通过");
+  if (fails.length || staticFails.length) process.exit(1);
 }
 if (require.main === module) main();
