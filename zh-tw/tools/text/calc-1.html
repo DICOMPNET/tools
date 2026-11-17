@@ -10,10 +10,10 @@
 <title>文本差異對比（文字） - 貼上或輸入兩段文本</title>
 <link rel="canonical" href="https://tools.dicomp.net/zh-tw/tools/text/calc-1.html">
 <meta property="og:title" content="文本差異對比（文字） - 貼上或輸入兩段文本">
-<meta property="og:description" content="文本差異對比是一款免費的線上文本處理工具，貼上或輸入兩段文本，按行逐字比對並高亮顯示新增、刪除與修改之處，用顏色區分差異，用於程式碼、文稿修訂時快速定位兩版內容的變動位置與具體內容。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta property="og:description" content="文本差異對比是一款免費的線上文本處理工具，貼上或輸入兩段文本，按行逐字比對並高亮顯示新增、刪除與修改之處，用顏色區分差異，用於程式碼、文稿修訂時快速定位兩版內容的變動位置與具體內容。">
 <meta property="og:url" content="https://tools.dicomp.net/zh-tw/tools/text/calc-1.html">
 <meta name="twitter:card" content="summary">
-<meta name="description" content="文本差異對比是一款免費的線上文本處理工具，貼上或輸入兩段文本，按行逐字比對並高亮顯示新增、刪除與修改之處，用顏色區分差異，用於程式碼、文稿修訂時快速定位兩版內容的變動位置與具體內容。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta name="description" content="文本差異對比是一款免費的線上文本處理工具，貼上或輸入兩段文本，按行逐字比對並高亮顯示新增、刪除與修改之處，用顏色區分差異，用於程式碼、文稿修訂時快速定位兩版內容的變動位置與具體內容。">
 <link rel="stylesheet" href="/css/common.css">
 <script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="/js/common.js" defer></script>
@@ -26,9 +26,9 @@
 <meta name="twitter:image:alt" content="ToolBox - 5000+免費線上工具">
     <meta property="og:type" content="website">
     <meta name="twitter:title" content="文本差異對比（文字） - 貼上或輸入兩段文本">
-    <meta name="twitter:description" content="文本差異對比是一款免費的線上文本處理工具，貼上或輸入兩段文本，按行逐字比對並高亮顯示新增、刪除與修改之處，用顏色區分差異，用於程式碼、文稿修訂時快速定位兩版內容的變動位置與具體內容。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+    <meta name="twitter:description" content="文本差異對比是一款免費的線上文本處理工具，貼上或輸入兩段文本，按行逐字比對並高亮顯示新增、刪除與修改之處，用顏色區分差異，用於程式碼、文稿修訂時快速定位兩版內容的變動位置與具體內容。">
 <!-- TOOLBOX-WEBAPP-LD -->
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"文本差異對比","url":"https://tools.dicomp.net/zh-tw/tools/text/calc-1.html","applicationCategory":"DeveloperApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"文本差異對比是一款免費的線上文本處理工具，貼上或輸入兩段文本，按行逐字比對並高亮顯示新增、刪除與修改之處，用顏色區分差異，用於程式碼、文稿修訂時快速定位兩版內容的變動位置與具體內容。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"文本差異對比","url":"https://tools.dicomp.net/zh-tw/tools/text/calc-1.html","applicationCategory":"DeveloperApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"文本差異對比是一款免費的線上文本處理工具，貼上或輸入兩段文本，按行逐字比對並高亮顯示新增、刪除與修改之處，用顏色區分差異，用於程式碼、文稿修訂時快速定位兩版內容的變動位置與具體內容。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
@@ -229,6 +229,21 @@ function lcs(a, b) {
   return result;
 }
 
+// LCS 矩阵是 (m+1)×(n+1)：2500×2500 行就要 625 万个格子，同步计算会阻塞主线程。
+// 超过阈值时降级为 O(m+n) 的逐行位置对齐，并明确告知不再检测行移动。
+const MAX_DIFF_CELLS = 4000000;
+function alignedDiff(a, b) {
+  const out = [], len = Math.max(a.length, b.length);
+  for (let k = 0; k < len; k++) {
+    if (k < a.length && k < b.length) {
+      if (a[k] === b[k]) out.push({type: 'same', line: a[k]});
+      else out.push({type: 'del', line: a[k]}, {type: 'add', line: b[k]});
+    } else if (k < a.length) out.push({type: 'del', line: a[k]});
+    else out.push({type: 'add', line: b[k]});
+  }
+  return out;
+}
+
 function compareText() {
   const a = splitLines(document.getElementById('textA').value);
   const b = splitLines(document.getElementById('textB').value);
@@ -239,8 +254,13 @@ function compareText() {
     return;
   }
 
-  const diff = lcs(a, b);
-  let html = '<table style="font-family:monospace;font-size:13px;"><thead><tr><th style="width:40px;">行号</th><th>A</th><th>B</th><th>内容</th></tr></thead><tbody>';
+  const cells = (a.length + 1) * (b.length + 1);
+  const degraded = cells > MAX_DIFF_CELLS;
+  const diff = degraded ? alignedDiff(a, b) : lcs(a, b);
+  let html = degraded
+    ? '<p style="color:var(--text-muted)">文本规模超过 400 万单元，已切换为逐行位置对齐（仅比较相同序号的行，不检测行移动）。</p>'
+    : '';
+  html += '<table style="font-family:monospace;font-size:13px;"><thead><tr><th style="width:40px;">行号</th><th>A</th><th>B</th><th>内容</th></tr></thead><tbody>';
   let numA = 0, numB = 0;
   let changes = 0;
 

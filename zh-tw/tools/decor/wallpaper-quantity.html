@@ -7,12 +7,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="toolbox" content="cat=calculator,industry=decor,icon=📐,bg=#efebe9">
-<meta name="description" content="桌布用量計算器是一款免費的線上室內裝修工具，按牆面尺寸與桌布幅寬、幅長、損耗率求所需卷數與幅數，輔助裝修貼桌布備料與預算。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta name="description" content="桌布用量計算器是一款免費的線上室內裝修工具，按牆面尺寸與桌布幅寬、幅長、損耗率求所需卷數與幅數，輔助裝修貼桌布備料與預算。適合工程估算、日常換算與快速複核，結果可一鍵複製。">
 <meta name="keywords" content="桌布用量計算,桌布計算器,對花損耗,桌布卷數,建築裝飾,線上工具,免費工具,ToolBox">
 <meta name="robots" content="index,follow">
 <link rel="canonical" href="https://tools.dicomp.net/zh-tw/tools/decor/wallpaper-quantity.html">
 <meta property="og:title" content="桌布用量計算器 - 免費線上室內裝修工具">
-<meta property="og:description" content="桌布用量計算器是一款免費的線上室內裝修工具，按牆面尺寸與桌布幅寬、幅長、損耗率求所需卷數與幅數，輔助裝修貼桌布備料與預算。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta property="og:description" content="桌布用量計算器是一款免費的線上室內裝修工具，按牆面尺寸與桌布幅寬、幅長、損耗率求所需卷數與幅數，輔助裝修貼桌布備料與預算。適合工程估算、日常換算與快速複核，結果可一鍵複製。">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://tools.dicomp.net/zh-tw/tools/decor/wallpaper-quantity.html">
 <meta name="twitter:card" content="summary">
@@ -42,9 +42,9 @@
 <meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
 <meta name="twitter:image:alt" content="ToolBox - 5000+免費線上工具">
     <meta name="twitter:title" content="桌布用量計算器 - 免費線上室內裝修工具">
-    <meta name="twitter:description" content="桌布用量計算器是一款免費的線上室內裝修工具，按牆面尺寸與桌布幅寬、幅長、損耗率求所需卷數與幅數，輔助裝修貼桌布備料與預算。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+    <meta name="twitter:description" content="桌布用量計算器是一款免費的線上室內裝修工具，按牆面尺寸與桌布幅寬、幅長、損耗率求所需卷數與幅數，輔助裝修貼桌布備料與預算。適合工程估算、日常換算與快速複核，結果可一鍵複製。">
 <!-- TOOLBOX-WEBAPP-LD -->
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"桌布用量計算器","url":"https://tools.dicomp.net/zh-tw/tools/decor/wallpaper-quantity.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"桌布用量計算器是一款免費的線上室內裝修工具，按牆面尺寸與桌布幅寬、幅長、損耗率求所需卷數與幅數，輔助裝修貼桌布備料與預算。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"桌布用量計算器","url":"https://tools.dicomp.net/zh-tw/tools/decor/wallpaper-quantity.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"桌布用量計算器是一款免費的線上室內裝修工具，按牆面尺寸與桌布幅寬、幅長、損耗率求所需卷數與幅數，輔助裝修貼桌布備料與預算。適合工程估算、日常換算與快速複核，結果可一鍵複製。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
@@ -303,7 +303,12 @@ function calc(){
 
   // 每卷可裁幅数
   var stripsPerRoll = Math.floor(rollLen / stripLen);
-  if(stripsPerRoll < 1) stripsPerRoll = 1;
+  if(stripsPerRoll < 1){
+    document.getElementById('bigResult').innerHTML='<div class="num" style="color:var(--danger)">无法裁切</div><div class="lbl">每卷 '+rollLen+' m 小于每幅所需 '+stripLen.toFixed(2)+' m</div>';
+    document.getElementById('detail').innerHTML='<p>每卷长度不足以裁出一幅完整墙高（墙高 '+height+' m'+(pattern>0?' + 对花 '+pattern+' m':'')+' = '+stripLen.toFixed(2)+' m）。请改用更长卷材、减少对花损耗，或采用横向拼接方案。</p>';
+    document.getElementById('tips').innerHTML='';
+    return;
+  }
 
   // 所需卷数
   var rolls = Math.ceil(strips / stripsPerRoll);

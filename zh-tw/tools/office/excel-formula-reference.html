@@ -24,7 +24,7 @@
 <script src="/js/tool-page-runtime.js" defer></script>
 <!-- TOOLBOX-TOOL-RUNTIME -->
 <!-- TOOLBOX-WEBAPP-LD -->
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Excel 公式速查表","url":"https://tools.dicomp.net/zh-tw/tools/office/excel-formula-reference.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"Excel 公式速查表是一款免費的線上辦公文件工具，輸入關鍵字可快速檢索常用公式與用法。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Excel 公式速查表","url":"https://tools.dicomp.net/zh-tw/tools/office/excel-formula-reference.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"Excel 公式速查表是一款免費的線上辦公文件工具，輸入關鍵字可快速檢索常用公式與用法。適合工程估算、日常換算與快速複核，結果可一鍵複製。適合日常快速計算與核對，結果可一鍵複製，免費線上使用。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
 <meta property="og:image" content="https://tools.dicomp.net/og-image.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
@@ -32,11 +32,11 @@
 <meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
 <meta name="twitter:image:alt" content="ToolBox - 5000+免費線上工具">
 
-<meta name="description" content="Excel 公式速查表是一款免費的線上辦公文件工具，輸入關鍵字可快速檢索常用公式與用法。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta name="description" content="Excel 公式速查表是一款免費的線上辦公文件工具，輸入關鍵字可快速檢索常用公式與用法。適合工程估算、日常換算與快速複核，結果可一鍵複製。適合日常快速計算與核對，結果可一鍵複製，免費線上使用。">
 <meta property="og:title" content="Excel 公式速查表 - 免費線上辦公文件工具">
-<meta property="og:description" content="Excel 公式速查表是一款免費的線上辦公文件工具，輸入關鍵字可快速檢索常用公式與用法。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta property="og:description" content="Excel 公式速查表是一款免費的線上辦公文件工具，輸入關鍵字可快速檢索常用公式與用法。適合工程估算、日常換算與快速複核，結果可一鍵複製。適合日常快速計算與核對，結果可一鍵複製，免費線上使用。">
 <meta name="twitter:title" content="Excel 公式速查表 - 免費線上辦公文件工具">
-<meta name="twitter:description" content="Excel 公式速查表是一款免費的線上辦公文件工具，輸入關鍵字可快速檢索常用公式與用法。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta name="twitter:description" content="Excel 公式速查表是一款免費的線上辦公文件工具，輸入關鍵字可快速檢索常用公式與用法。適合工程估算、日常換算與快速複核，結果可一鍵複製。適合日常快速計算與核對，結果可一鍵複製，免費線上使用。">
 <link rel="canonical" href="https://tools.dicomp.net/zh-tw/tools/office/excel-formula-reference.html">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://tools.dicomp.net/zh-tw/tools/office/excel-formula-reference.html">
@@ -319,16 +319,25 @@ function __excel_formula_referenceExtras(){
 }
 function __excel_formula_referenceExport(){
     if (typeof TBKit === 'undefined') return;
-    try{
-        var box=document.querySelector('#excel_formula_referenceTable');
-        if(!box||!box.querySelector('tr')){
-            var snap=__excel_formula_referenceSnap(); var keys=Object.keys(snap);
-            if(keys.length>12) keys=keys.slice(0,12);
-            var en=(TBKit.util&&TBKit.util.isEn())?true:false;
-            __excel_formula_referenceRender(keys,en?'Result':'结果',en);
-        }
-    }catch(e){}
-    try { TBKit.util.exportTable('#excel_formula_referenceTable','excel-formula-reference.csv'); } catch(e){}
+    var key=(document.getElementById('keyword').value||'').toLowerCase();
+    var rows=DATA.filter(function(item){
+        var k=(item.name+item.cat+item.syntax+item.hint).toLowerCase();
+        return !key||k.indexOf(key)>=0;
+    });
+    if(!rows.length){ ToolBox.showToast('当前筛选没有可导出的公式','warning'); return; }
+    var en=false;
+    try{ en=!!(TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn()); }catch(e){}
+    var html='<table id="xfrHidden" style="display:none"><thead><tr>'
+        +'<th>'+(en?'Name':'函数')+'</th><th>'+(en?'Category':'分类')+'</th>'
+        +'<th>'+(en?'Syntax':'语法')+'</th><th>'+(en?'Notes':'说明')+'</th>'
+        +'</tr></thead><tbody>';
+    rows.forEach(function(item){
+        html+='<tr><td>'+item.name+'</td><td>'+item.cat+'</td><td>'+item.syntax+'</td><td>'+item.hint+'</td></tr>';
+    });
+    html+='</tbody></table>';
+    var host=document.createElement('div');host.innerHTML=html;document.body.appendChild(host);
+    try { TBKit.util.exportTable('#xfrHidden','excel-formula-reference.csv'); } catch(e){}
+    setTimeout(function(){ if(host.parentNode) host.parentNode.removeChild(host); },300);
 }
 function __excel_formula_referencePresets(){
     if (typeof TBKit === 'undefined') return;

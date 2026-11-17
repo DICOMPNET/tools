@@ -104,7 +104,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="網目尺寸與最小可捕體長/體重互查，支援常見魚類選擇性與規格估算">Look up fishing net mesh size and the corresponding minimum catchable size.</p>
     <div class="formula-box">
       <div class="formula-title">📐 計算公式</div>
-      <div class="formula-eq">刺網網目選擇（本頁程式碼口徑，魚種查表+冪律）：按網目查 最小可捕體長 L50=k×網目÷10（cm）、對應體重 W=a×L50^b（g）；按目標體長查 建議網目=體長×10÷k（mm）、體重 W=a×體長^b。魚種引數 k/a/b：鯉 0.50/0.0223/3.01、草魚 0.52/0.0185/3.03、羅非魚 0.46/0.0490/2.85、鯰魚 0.48/0.0075/3.12、對蝦 0.30/0.012/2.95。校驗：網目或體長非數值、≤0 報錯中止。判據：無固定分級，網目越大 L50 越大、小個體越易逃逸，引數為經驗值需結合當地法規。</div>
+      <div class="formula-eq">刺網網目選擇（本頁程式碼口徑，魚種查表+冪律）：按網目查 L50 體長 = k × 網目(mm)（cm）、對應體重 W=a×L50^b（g）；按目標體長查 建議網目 = 目標體長(cm) ÷ k（mm）、體重 W=a×體長^b。魚種引數 k/a/b：鯉 0.50/0.0223/3.01、草魚 0.52/0.0185/3.03、羅非魚 0.46/0.0490/2.85、鯰魚 0.48/0.0075/3.12、對蝦 0.30/0.012/2.95；k 為「體長(cm)/網目(mm)」經驗比。校驗：網目或體長非數值、≤0 報錯中止。說明：L50 是 50% 留網體長（選擇性引數），不等於法規最小可捕規格；判據：網目越大 L50 越大、小個體越易逃逸，引數為經驗值需結合當地法規。</div>
       <p class="formula-desc">網目尺寸與最小可捕體長/體重互查，支援常見魚類選擇性與規格估算</p>
     </div>
 
@@ -129,7 +129,7 @@
       <div><label>網目尺寸 (mm)</label><input type="number" id="mesh" value="50" step="1" oninput="calc()" placeholder="如 50"></div>
     </div>
     <div class="input-row" id="sizeRow" style="display:none;">
-      <div><label>目標最小體長 (cm)</label><input type="number" id="length" value="25" step="0.5" oninput="calc()" placeholder="如 25"></div>
+      <div><label>目標體長 L50 (cm)</label><input type="number" id="length" value="25" step="0.5" oninput="calc()" placeholder="如 25"></div>
     </div>
 
     <div class="toolbar">
@@ -140,7 +140,7 @@
     <div class="result-box" id="result"></div> <div id="mesh_size_guideTable"></div> <div id="mesh_size_guideDiff"></div> <div id="mesh_size_guideChart"></div> <div id="mesh_size_guideHist"></div>
 
     <div class="tip-box tip-info">
-      <strong>計算依據：</strong>刺網選擇性 L50≈k×網目，k 取體長/網目係數（鯉科約 0.45-0.55）；體重由體長-體重關係 W=aLᵇ 換算。資料為經驗參考，實際還需結合漁具型別與法規。
+      <strong>計算依據：</strong>刺網選擇性 L50(cm)≈k×網目(mm)，k 取「體長/網目」經驗比（鯉科約 0.46–0.52，對蝦約 0.30）；體重由體長-體重關係 W=aLᵇ 換算。L50 是半數留網體長，法規最小可捕規格另以當地漁業規定為準。
     </div>
   </div>
 
@@ -232,33 +232,33 @@ function calc(){
   const m=document.getElementById('mode').value;
   if(m==='byMesh'){
     const mesh=+document.getElementById('mesh').value;
-    if(isNaN(mesh)||mesh<=0){ToolBox.showToast(i18nText('toast.msg865'),'error');return;}
-    // mesh(mm), L50(cm)=k*mesh*0.1? 网目系数：L50(cm)=k*mesh(cm)=k*(mesh/10)
-    const L50=sp.k*mesh/10;
+    if(isNaN(mesh)||mesh<=0){lastResult='';document.getElementById('result').innerHTML='<p style="color:var(--danger,#EF4444);">请输入 &gt;0 的网目尺寸（mm）。</p>';ToolBox.showToast(i18nText('toast.msg865'),'error');return;}
+    // 网目(mm) → L50(cm)：k 为「体长(cm)/网目(mm)」经验比（鲤科约 0.46–0.52）
+    const L50=sp.k*mesh;
     const w=weight(L50,sp);
     lastResult=`网目尺寸查询
 ====================
 鱼种：${sp.name}
 网目尺寸：${mesh} mm
-最小可捕体长(L50)：${L50.toFixed(1)} cm
+L50 体长（50% 留网）：${L50.toFixed(1)} cm
 对应体重：${w.toFixed(0)} g`;
     const __g1=`
       <div class="stat-grid">
         <div class="stat-card"><div class="val">${mesh}</div><div class="lbl">网目(mm)</div></div>
-        <div class="stat-card"><div class="val">${L50.toFixed(1)}</div><div class="lbl">最小体长(cm)</div></div>
+        <div class="stat-card"><div class="val">${L50.toFixed(1)}</div><div class="lbl">L50 体长(cm)</div></div>
         <div class="stat-card"><div class="val">${w.toFixed(0)}</div><div class="lbl">对应体重(g)</div></div>
       </div>
       <div class="step-line">${sp.name}：网目 ${mesh}mm，L50≈${L50.toFixed(1)}cm</div>
       <div class="step-line">按 W=${sp.a}L^${sp.b} 换算，对应体重 <strong>${w.toFixed(0)} g</strong></div>`;document.getElementById('result').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
   } else {
     const L=+document.getElementById('length').value;
-    if(isNaN(L)||L<=0){ToolBox.showToast(i18nText('toast.msg811'),'error');return;}
-    const mesh=L*10/sp.k;
+    if(isNaN(L)||L<=0){lastResult='';document.getElementById('result').innerHTML='<p style="color:var(--danger,#EF4444);">请输入 &gt;0 的目标体长（cm）。</p>';ToolBox.showToast(i18nText('toast.msg811'),'error');return;}
+    const mesh=L/sp.k;
     const w=weight(L,sp);
     lastResult=`目标规格查询
 ====================
 鱼种：${sp.name}
-目标最小体长：${L} cm
+目标体长(L50)：${L} cm
 对应体重：${w.toFixed(0)} g
 建议网目：${mesh.toFixed(0)} mm`;
     const __g2=`
@@ -490,7 +490,7 @@ function __mesh_size_guidePresets(){
     if (typeof TBKit === 'undefined') return;
     TBKit.preset.bar('#mesh_size_guidePresets',[{label:'默认参数',labelEn:'Default',values:{'species':'carp', 'mode':'byMesh', 'mesh':'50', 'length':'25'}},
   {"label":"鲤鱼 网目 50mm","labelEn":"Carp 50mm mesh","values":{"species":"carp","mode":"byMesh","mesh":50,"length":25}},
-  {"label":"草鱼 目标 2kg 查网目","labelEn":"Grass carp target 2kg","values":{"species":"grass","mode":"bySize","mesh":100,"length":50}},
+  {"label":"草鱼 目标 2kg 查网目","labelEn":"Grass carp target 2kg","values":{"species":"grass","mode":"bySize","mesh":88,"length":46}},
   {"label":"对虾 网目 25mm","labelEn":"Shrimp 25mm mesh","values":{"species":"shrimp","mode":"byMesh","mesh":25,"length":12}}],function(){ calc(); });
 }
 var __mesh_size_guide_f0=(typeof calc==='function')?calc:null;

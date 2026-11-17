@@ -7,12 +7,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="toolbox" content="cat=reference,industry=finance,icon=💳,bg=#ffebee">
-<meta name="description" content="BIC 查詢是一款免費的線上金融財務工具，輸入或貼上 BIC/SWIFT 程式碼查詢銀行名稱與國家，也可反向按行名檢索程式碼，用於跨境匯款填單核對，純前端查表。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta name="description" content="BIC 查詢是一款免費的線上金融財務工具，輸入或貼上 BIC/SWIFT 程式碼查詢銀行名稱與國家，也可反向按行名檢索程式碼，用於跨境匯款填單核對，純前端查表。">
 <meta name="keywords" content="BIC 查詢,BIC 查詢線上,線上BIC 查詢,驗證器,金融財務,BIC,查詢,線上工具,免費工具,ToolBox">
 <meta name="robots" content="index,follow">
 <link rel="canonical" href="https://tools.dicomp.net/zh-tw/tools/finance/bic-lookup.html">
 <meta property="og:title" content="BIC 查詢 - 免費線上金融財務工具">
-<meta property="og:description" content="BIC 查詢是一款免費的線上金融財務工具，輸入或貼上 BIC/SWIFT 程式碼查詢銀行名稱與國家，也可反向按行名檢索程式碼，用於跨境匯款填單核對，純前端查表。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta property="og:description" content="BIC 查詢是一款免費的線上金融財務工具，輸入或貼上 BIC/SWIFT 程式碼查詢銀行名稱與國家，也可反向按行名檢索程式碼，用於跨境匯款填單核對，純前端查表。">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://tools.dicomp.net/zh-tw/tools/finance/bic-lookup.html">
 <meta name="twitter:card" content="summary">
@@ -41,9 +41,9 @@
 <meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
 <meta name="twitter:image:alt" content="ToolBox - 5000+免費線上工具">
     <meta name="twitter:title" content="BIC 查詢 - 免費線上金融財務工具">
-    <meta name="twitter:description" content="BIC 查詢是一款免費的線上金融財務工具，輸入或貼上 BIC/SWIFT 程式碼查詢銀行名稱與國家，也可反向按行名檢索程式碼，用於跨境匯款填單核對，純前端查表。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+    <meta name="twitter:description" content="BIC 查詢是一款免費的線上金融財務工具，輸入或貼上 BIC/SWIFT 程式碼查詢銀行名稱與國家，也可反向按行名檢索程式碼，用於跨境匯款填單核對，純前端查表。">
 <!-- TOOLBOX-WEBAPP-LD -->
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"BIC 查詢","url":"https://tools.dicomp.net/zh-tw/tools/finance/bic-lookup.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"BIC 查詢是一款免費的線上金融財務工具，輸入或貼上 BIC/SWIFT 程式碼查詢銀行名稱與國家，也可反向按行名檢索程式碼，用於跨境匯款填單核對，純前端查表。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"BIC 查詢","url":"https://tools.dicomp.net/zh-tw/tools/finance/bic-lookup.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"BIC 查詢是一款免費的線上金融財務工具，輸入或貼上 BIC/SWIFT 程式碼查詢銀行名稱與國家，也可反向按行名檢索程式碼，用於跨境匯款填單核對，純前端查表。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
@@ -370,7 +370,8 @@ function __bic_lookupResText(){
     if(!r) return '';
     var t=(r.textContent||'').replace(/\s+/g,' ').trim();
     if(!t||t==='--'||t==='—'||t==='-') return '';
-    if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
+    // 复核失败重做（201）：等待态也要进历史，避免导出沿用上一条有效值冒充当前输入；
+    // 该态由 Score 判「未通过」，不会当作成功结论。
     return t.slice(0,80);
 }
 function __bic_lookupFullResText(){
@@ -382,7 +383,7 @@ function __bic_lookupFullResText(){
 }
 function __bic_lookupScore(t){
     var s=String(t||'');
-    if(/[❌]|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    if(/[❌]|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting|等待输入/i.test(s)) return 0;
     return 1;
 }
 function __bic_lookupTime(t){

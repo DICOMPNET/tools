@@ -7,12 +7,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="toolbox" content="cat=validator,industry=it,icon=📊,bg=#ffebee">
-<meta name="description" content="二項分佈計算器是一款免費的線上IT 開發工具，二項分佈線上計算器，輸入試驗次數 n、成功機率 p 與成功次數 k，計算恰好 k 次及累積機率，用於質量與統計推斷。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta name="description" content="二項分佈計算器是一款免費的線上IT 開發工具，二項分佈線上計算器，輸入試驗次數 n、成功機率 p 與成功次數 k，計算恰好 k 次及累積機率，用於質量與統計推斷。">
 <meta name="keywords" content="二項分佈計算器,二項分佈計算器線上,線上二項分佈計算器,驗證器,IT開發,線上工具,免費工具,ToolBox">
 <meta name="robots" content="index,follow">
 <link rel="canonical" href="https://tools.dicomp.net/zh-tw/tools/it/binomial-distribution.html">
 <meta property="og:title" content="二項分佈計算器 - 成功機率 p 與成功次數 k">
-<meta property="og:description" content="二項分佈計算器是一款免費的線上IT 開發工具，二項分佈線上計算器，輸入試驗次數 n、成功機率 p 與成功次數 k，計算恰好 k 次及累積機率，用於質量與統計推斷。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta property="og:description" content="二項分佈計算器是一款免費的線上IT 開發工具，二項分佈線上計算器，輸入試驗次數 n、成功機率 p 與成功次數 k，計算恰好 k 次及累積機率，用於質量與統計推斷。">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://tools.dicomp.net/zh-tw/tools/it/binomial-distribution.html">
 <meta name="twitter:card" content="summary">
@@ -56,9 +56,9 @@
 <meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
 <meta name="twitter:image:alt" content="ToolBox - 5000+免費線上工具">
     <meta name="twitter:title" content="二項分佈計算器 - 成功機率 p 與成功次數 k">
-    <meta name="twitter:description" content="二項分佈計算器是一款免費的線上IT 開發工具，二項分佈線上計算器，輸入試驗次數 n、成功機率 p 與成功次數 k，計算恰好 k 次及累積機率，用於質量與統計推斷。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+    <meta name="twitter:description" content="二項分佈計算器是一款免費的線上IT 開發工具，二項分佈線上計算器，輸入試驗次數 n、成功機率 p 與成功次數 k，計算恰好 k 次及累積機率，用於質量與統計推斷。">
 <!-- TOOLBOX-WEBAPP-LD -->
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"二項分佈計算器","url":"https://tools.dicomp.net/zh-tw/tools/it/binomial-distribution.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"二項分佈計算器是一款免費的線上IT 開發工具，二項分佈線上計算器，輸入試驗次數 n、成功機率 p 與成功次數 k，計算恰好 k 次及累積機率，用於質量與統計推斷。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"二項分佈計算器","url":"https://tools.dicomp.net/zh-tw/tools/it/binomial-distribution.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"二項分佈計算器是一款免費的線上IT 開發工具，二項分佈線上計算器，輸入試驗次數 n、成功機率 p 與成功次數 k，計算恰好 k 次及累積機率，用於質量與統計推斷。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
@@ -280,14 +280,16 @@ function cdf(n,k,p){
       s+=Math.exp(logT);
       if(i<k) logT+=Math.log(n-i)-Math.log(i+1)+lp-lq;
     }
-    return s;
+    return Math.min(1, Math.max(0, s));
   }
   let logT=n*lp, s=0;                          // logT = ln P(X=n)
   for(let i=n;i>k;i--){
     s+=Math.exp(logT);
     if(i>k+1) logT+=Math.log(i)-Math.log(n-i+1)+lq-lp;
   }
-  return 1-s;
+  // 补集累计在浮点下可能略大于 1（如 n=10000,k=5001,p=0.6 得 1+2.9e−12），
+  // 1−s 会变成负概率；概率必须落在 [0,1]，尾部真实值远小于 1 时按 0 处理。
+  return Math.min(1, Math.max(0, 1-s));
 }
 function calculate(){
   const out=document.getElementById('output');

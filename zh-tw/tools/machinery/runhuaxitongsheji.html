@@ -7,11 +7,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="toolbox" content="cat=engineer,industry=machinery,icon=📐,bg=#f1f5f9">
-<meta name="description" content="潤滑系統設計是一款免費的線上機械製造工具，輸入軸承直徑、長度、轉速、載荷及工況，計算比壓、PV值、所需油量並推薦潤滑方式。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta name="description" content="潤滑系統設計是一款免費的線上機械製造工具，輸入軸承直徑、長度、轉速、載荷及工況，計算比壓、PV值、所需油量並推薦潤滑方式。適合工程估算、日常換算與快速複核，結果可一鍵複製。">
 <title>潤滑系統設計 - 免費線上機械製造工具</title>
 <link rel="canonical" href="https://tools.dicomp.net/zh-tw/tools/machinery/runhuaxitongsheji.html">
 <meta property="og:title" content="潤滑系統設計 - 免費線上機械製造工具">
-<meta property="og:description" content="潤滑系統設計是一款免費的線上機械製造工具，輸入軸承直徑、長度、轉速、載荷及工況，計算比壓、PV值、所需油量並推薦潤滑方式。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta property="og:description" content="潤滑系統設計是一款免費的線上機械製造工具，輸入軸承直徑、長度、轉速、載荷及工況，計算比壓、PV值、所需油量並推薦潤滑方式。適合工程估算、日常換算與快速複核，結果可一鍵複製。">
 <meta property="og:url" content="https://tools.dicomp.net/zh-tw/tools/machinery/runhuaxitongsheji.html">
 <meta name="twitter:card" content="summary">
 <link rel="stylesheet" href="/css/common.css">
@@ -28,9 +28,9 @@
 <meta name="twitter:image:alt" content="ToolBox - 5000+免費線上工具">
     <meta property="og:type" content="website">
     <meta name="twitter:title" content="潤滑系統設計 - 免費線上機械製造工具">
-    <meta name="twitter:description" content="潤滑系統設計是一款免費的線上機械製造工具，輸入軸承直徑、長度、轉速、載荷及工況，計算比壓、PV值、所需油量並推薦潤滑方式。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+    <meta name="twitter:description" content="潤滑系統設計是一款免費的線上機械製造工具，輸入軸承直徑、長度、轉速、載荷及工況，計算比壓、PV值、所需油量並推薦潤滑方式。適合工程估算、日常換算與快速複核，結果可一鍵複製。">
 <!-- TOOLBOX-WEBAPP-LD -->
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"潤滑系統設計","url":"https://tools.dicomp.net/zh-tw/tools/machinery/runhuaxitongsheji.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"潤滑系統設計是一款免費的線上機械製造工具，輸入軸承直徑、長度、轉速、載荷及工況，計算比壓、PV值、所需油量並推薦潤滑方式。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"潤滑系統設計","url":"https://tools.dicomp.net/zh-tw/tools/machinery/runhuaxitongsheji.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"潤滑系統設計是一款免費的線上機械製造工具，輸入軸承直徑、長度、轉速、載荷及工況，計算比壓、PV值、所需油量並推薦潤滑方式。適合工程估算、日常換算與快速複核，結果可一鍵複製。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
@@ -129,7 +129,6 @@
         <select id="v_type" onchange="calc()" style="font-size:16px;">
           <option value="journal">徑向滑動軸承</option>
           <option value="thrust">推力滑動軸承</option>
-          <option value="rolling">滾動軸承</option>
         </select>
       </div>
     </div>
@@ -213,8 +212,8 @@ function calc(){
     lastResult='';return;
   }
   var d=iv.d,L=iv.L,n=iv.n,W=iv.w,eta=iv.eta*1e-3,psi=iv.psi/1000,dt=iv.dt;
-  var type=iv.type;
-  var area=d*L;                    // 投影面积 mm²
+  var type=iv.type,isThrust=(type==='thrust');
+  var area=d*L;                    // 投影面积 mm²（推力轴承为等效承载面积）
   var p=W/area;                     // 比压 MPa
   var v=Math.PI*d*n/60000;          // 表面速度 m/s
   var pv=p*v;                       // PV值 MPa·m/s
@@ -230,18 +229,19 @@ function calc(){
   var QLmin=Q*60*1000;             // L/min
   // 润滑方式推荐
   var method='',methodColor='',reason='';
-  if(type==='rolling'){
-    if(n<3000){method='脂润滑';methodColor='#059669';reason='转速较低，脂润滑维护简单';}
-    else if(n<10000){method='油浴/飞溅润滑';methodColor='#2563EB';reason='中等转速，油浴润滑可靠';}
-    else{method='油雾/强制喷油润滑';methodColor='#D97706';reason='高转速需油雾冷却';}
+  if(isThrust){
+    if(v<1){method='脂润滑或手加油';methodColor='#059669';reason='端面速度低，脂润滑即可满足';}
+    else if(v<5){method='油浴/飞溅润滑';methodColor='#2563EB';reason='中低速推力盘，油浴润滑适用';}
+    else if(v<10){method='油环/滴油润滑';methodColor='#2563EB';reason='中高速推力盘，须保证端面供油';}
+    else{method='强制循环润滑';methodColor='#D97706';reason='端面速度高，需强制循环散热';}
   }else{
     if(v<1){method='脂润滑或手加油';methodColor='#059669';reason='速度低，脂润滑即可满足';}
     else if(v<5){method='油浴/飞溅润滑';methodColor='#2563EB';reason='中低速，油浴润滑适用';}
     else if(v<15){method='油环/滴油润滑';methodColor='#2563EB';reason='中高速，油环供油可靠';}
     else{method='强制循环润滑';methodColor='#D97706';reason='高速度需强制循环散热';}
   }
-  // PV 校核
-  var pvLimit=15;  // 巴氏合金
+  // PV 校核（巴氏合金：径向 15，推力轴瓦取下限 8 MPa·m/s）
+  var pvLimit=isThrust?8:15;
   var pvOk=pv<=pvLimit;
   var filmCheck = (n*Math.sqrt(p))/eta; // 简化承载系数
   const __g2='<div class="data-grid">'+
@@ -261,8 +261,9 @@ function calc(){
     '</div>'+
     '<p style="margin-top:10px;font-size:13px;color:'+methodColor+';">润滑方式推荐：'+method+'（'+reason+'）</p>'+
     '<p style="font-size:13px;color:'+(pvOk?'var(--success)':'var(--danger)')+';">'+(pvOk?'✓ PV值 '+pv.toFixed(2)+' ≤ 许用 '+pvLimit+'，巴氏合金可用':'✗ PV值 '+pv.toFixed(2)+' > 许用 '+pvLimit+'，需改用高 PV 材料或增大尺寸')+'</p>'+
-    '<p style="font-size:13px;color:var(--text-muted);">长径比 L/d='+Ld.toFixed(2)+(Ld>=0.5&&Ld<=1.5?'（合理范围）':'（建议0.5~1.5）')+'</p>';document.getElementById('res').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
-  lastResult='轴承直径:'+d+'mm, 长度:'+L+'mm, 转速:'+n+'rpm, 载荷:'+(W/1000)+'kN\n比压:'+p.toFixed(2)+'MPa, 速度:'+v.toFixed(2)+'m/s, PV值:'+pv.toFixed(2)+'MPa·m/s\n摩擦系数:'+f.toFixed(4)+', 摩擦功率:'+Pf.toFixed(1)+'W\n所需油量:'+QLmin.toFixed(2)+'L/min, 推荐润滑方式:'+method+'\n'+reason;
+    '<p style="font-size:13px;color:var(--text-muted);">长径比 L/d='+Ld.toFixed(2)+(Ld>=0.5&&Ld<=1.5?'（合理范围）':'（建议0.5~1.5）')+'</p>'+
+    (isThrust?'<p style="font-size:13px;color:var(--warning);">⚠ 推力滑动轴承按 d×L 作等效承载面积估算，实际应按瓦块承载面积与端面线速度校核，PV 许用取 8 MPa·m/s。</p>':'');document.getElementById('res').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
+  lastResult=(isThrust?'推力滑动轴承':'径向滑动轴承')+'\n轴承直径:'+d+'mm, 长度:'+L+'mm, 转速:'+n+'rpm, 载荷:'+(W/1000)+'kN\n比压:'+p.toFixed(2)+'MPa, 速度:'+v.toFixed(2)+'m/s, PV值:'+pv.toFixed(2)+'MPa·m/s\n摩擦系数:'+f.toFixed(4)+', 摩擦功率:'+Pf.toFixed(1)+'W\n所需油量:'+QLmin.toFixed(2)+'L/min, 推荐润滑方式:'+method+'\n'+reason;
 }
 function copyRes(){
   if(!lastResult){ToolBox.showToast(i18nText(),'warning');return;}
@@ -445,7 +446,7 @@ function __runhuaxitongshejiPresets(){
     TBKit.preset.bar('#runhuaxitongshejiPresets',[{label:'默认参数',labelEn:'Default',values:{'v_d':'80', 'v_l':'80', 'v_n':'1500', 'v_w':'10', 'v_eta':'30', 'v_psi':'1.5', 'v_dt':'20', 'v_type':'journal'}},
   {"label":"D80 径向轴承·1500rpm·10kN","labelEn":"D80 journal 1500rpm 10kN","values":{"v_d":"80","v_l":"80","v_n":"1500","v_w":"10","v_eta":"30","v_psi":"1.5","v_dt":"20","v_type":"journal"}},
   {"label":"D100 重载·1000rpm·25kN","labelEn":"D100 heavy 1000rpm 25kN","values":{"v_d":"100","v_l":"100","v_n":"1000","v_w":"25","v_eta":"46","v_psi":"1.2","v_dt":"25","v_type":"journal"}},
-  {"label":"D120 滚动轴承·3000rpm·8kN","labelEn":"D120 rolling 3000rpm 8kN","values":{"v_d":"120","v_l":"60","v_n":"3000","v_w":"8","v_eta":"22","v_psi":"2.0","v_dt":"15","v_type":"rolling"}}],function(){ calc(); });
+  ],function(){ calc(); });
 }
 var __runhuaxitongsheji_f0=(typeof calc==='function')?calc:null;
 if(__runhuaxitongsheji_f0){

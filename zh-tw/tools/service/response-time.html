@@ -10,10 +10,10 @@
 <title>客服響應時間統計 - 錄入工單響應與解決時間</title>
 <link rel="canonical" href="https://tools.dicomp.net/zh-tw/tools/service/response-time.html">
 <meta property="og:title" content="客服響應時間統計 - 錄入工單響應與解決時間">
-<meta property="og:description" content="響應時間統計是一款免費的線上客戶服務工具，錄入工單響應與解決時間，自動計算平均響應時間、解決率、P50/P90/P99等關鍵SLA指標。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta property="og:description" content="響應時間統計是一款免費的線上客戶服務工具，錄入工單響應與解決時間，自動計算平均響應時間、解決率、P50/P90/P99等關鍵SLA指標。適合工程估算、日常換算與快速複核，結果可一鍵複製。">
 <meta property="og:url" content="https://tools.dicomp.net/zh-tw/tools/service/response-time.html">
 <meta name="twitter:card" content="summary">
-<meta name="description" content="響應時間統計是一款免費的線上客戶服務工具，錄入工單響應與解決時間，自動計算平均響應時間、解決率、P50/P90/P99等關鍵SLA指標。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta name="description" content="響應時間統計是一款免費的線上客戶服務工具，錄入工單響應與解決時間，自動計算平均響應時間、解決率、P50/P90/P99等關鍵SLA指標。適合工程估算、日常換算與快速複核，結果可一鍵複製。">
 <link rel="stylesheet" href="/css/common.css">
 <script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="/js/common.js" defer></script>
@@ -40,9 +40,9 @@
 <meta name="twitter:image:alt" content="ToolBox - 5000+免費線上工具">
     <meta property="og:type" content="website">
     <meta name="twitter:title" content="客服響應時間統計 - 錄入工單響應與解決時間">
-    <meta name="twitter:description" content="響應時間統計是一款免費的線上客戶服務工具，錄入工單響應與解決時間，自動計算平均響應時間、解決率、P50/P90/P99等關鍵SLA指標。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+    <meta name="twitter:description" content="響應時間統計是一款免費的線上客戶服務工具，錄入工單響應與解決時間，自動計算平均響應時間、解決率、P50/P90/P99等關鍵SLA指標。適合工程估算、日常換算與快速複核，結果可一鍵複製。">
 <!-- TOOLBOX-WEBAPP-LD -->
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"響應時間統計","url":"https://tools.dicomp.net/zh-tw/tools/service/response-time.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"響應時間統計是一款免費的線上客戶服務工具，錄入工單響應與解決時間，自動計算平均響應時間、解決率、P50/P90/P99等關鍵SLA指標。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"響應時間統計","url":"https://tools.dicomp.net/zh-tw/tools/service/response-time.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"響應時間統計是一款免費的線上客戶服務工具，錄入工單響應與解決時間，自動計算平均響應時間、解決率、P50/P90/P99等關鍵SLA指標。適合工程估算、日常換算與快速複核，結果可一鍵複製。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
@@ -292,7 +292,7 @@ function calc(){
   var slaValid=isFinite(slaRaw)&&slaRaw>0;
   var sla=slaValid?slaRaw:null;
   var respTimes=tickets.filter(function(t){return t.resp!=null && isFinite(t.resp) && t.resp>=0;}).map(function(t){return t.resp;});
-  var solveTimes=tickets.filter(function(t){return t.status==='resolved' && t.solve!=null && isFinite(t.solve) && t.solve>0;}).map(function(t){return t.solve;});
+  var solveTimes=tickets.filter(function(t){return t.status==='resolved' && t.solve!=null && isFinite(t.solve) && t.solve>=0;}).map(function(t){return t.solve;});
   var total=tickets.length;
   var resolved=tickets.filter(function(t){return t.status==='resolved';}).length;
   var resolveRate=total>0?resolved/total:0;
@@ -325,8 +325,12 @@ function calc(){
 
   var body=document.getElementById('detailBody');
   const __g4=tickets.map(function(t){
-    var ok=slaValid && t.resp!=null && t.resp<=sla;
-    return '<tr><td>'+ToolBox.escHtml(t.id)+'</td><td>'+(t.resp!=null?fmt(t.resp):'-')+'</td><td>'+(t.solve!=null&&t.solve>0?fmt(t.solve):'-')+'</td><td>'+(t.status==='resolved'?'已解决':'处理中')+'</td><td style="color:'+(slaValid?(ok?'var(--success)':'var(--danger)'):'var(--text-muted)')+';">'+(slaValid?(ok?'达标':'超标'):'-')+'</td></tr>';
+    var respValid=t.resp!=null && isFinite(t.resp) && t.resp>=0;
+    var solveValid=t.solve!=null && isFinite(t.solve) && t.solve>=0;
+    var ok=slaValid && respValid && t.resp<=sla;
+    var verdict=(!slaValid||!respValid)?'-':(ok?'达标':'超标');
+    var verdictColor=verdict==='-'?'var(--text-muted)':(ok?'var(--success)':'var(--danger)');
+    return '<tr><td>'+ToolBox.escHtml(t.id)+'</td><td>'+(respValid?fmt(t.resp):'-')+'</td><td>'+(solveValid?fmt(t.solve):'-')+'</td><td>'+(t.status==='resolved'?'已解决':'处理中')+'</td><td style="color:'+verdictColor+';">'+verdict+'</td></tr>';
   }).join('');body.innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
 }
 

@@ -7,12 +7,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="toolbox" content="cat=finance,industry=finance,icon=🧮,bg=#e8eaf6">
-<meta name="description" content="退休金計算器是一款免費的線上金融財務工具，輸入當前資產、每年儲蓄與距退休年限，工具基於 4% 法則估算退休所需資金池及資產增長軌跡，規劃養老儲備。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta name="description" content="退休金計算器是一款免費的線上金融財務工具，輸入當前資產、每年儲蓄與距退休年限，工具基於 4% 法則估算退休所需資金池及資產增長軌跡，規劃養老儲備。">
 <meta name="keywords" content="退休金計算器,退休金計算器線上,線上退休金計算器,金融投資,金融財務,退休金,養老金計算器,線上工具,免費工具,ToolBox">
 <meta name="robots" content="index,follow">
 <link rel="canonical" href="https://tools.dicomp.net/zh-tw/tools/finance/retirement-calculator.html">
 <meta property="og:title" content="退休金/養老金計算器 - 退休所需資金池">
-<meta property="og:description" content="退休金計算器是一款免費的線上金融財務工具，輸入當前資產、每年儲蓄與距退休年限，工具基於 4% 法則估算退休所需資金池及資產增長軌跡，規劃養老儲備。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta property="og:description" content="退休金計算器是一款免費的線上金融財務工具，輸入當前資產、每年儲蓄與距退休年限，工具基於 4% 法則估算退休所需資金池及資產增長軌跡，規劃養老儲備。">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://tools.dicomp.net/zh-tw/tools/finance/retirement-calculator.html">
 <meta name="twitter:card" content="summary">
@@ -38,9 +38,9 @@
 <meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
 <meta name="twitter:image:alt" content="ToolBox - 5000+免費線上工具">
     <meta name="twitter:title" content="退休金/養老金計算器 - 退休所需資金池">
-    <meta name="twitter:description" content="退休金計算器是一款免費的線上金融財務工具，輸入當前資產、每年儲蓄與距退休年限，工具基於 4% 法則估算退休所需資金池及資產增長軌跡，規劃養老儲備。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+    <meta name="twitter:description" content="退休金計算器是一款免費的線上金融財務工具，輸入當前資產、每年儲蓄與距退休年限，工具基於 4% 法則估算退休所需資金池及資產增長軌跡，規劃養老儲備。">
 <!-- TOOLBOX-WEBAPP-LD -->
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"退休金計算器","url":"https://tools.dicomp.net/zh-tw/tools/finance/retirement-calculator.html","applicationCategory":"FinanceApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"退休金計算器是一款免費的線上金融財務工具，輸入當前資產、每年儲蓄與距退休年限，工具基於 4% 法則估算退休所需資金池及資產增長軌跡，規劃養老儲備。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"退休金計算器","url":"https://tools.dicomp.net/zh-tw/tools/finance/retirement-calculator.html","applicationCategory":"FinanceApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"退休金計算器是一款免費的線上金融財務工具，輸入當前資產、每年儲蓄與距退休年限，工具基於 4% 法則估算退休所需資金池及資產增長軌跡，規劃養老儲備。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
@@ -679,12 +679,17 @@ function __retirement_calculatorFullResText(){
     return t;
 }
 function __retirement_calculatorScore(t){
-    // 复核判据：本页「❌ 资金不足 / ⚠️ 接近目标」是有效业务结论，不是计算失败；
-    // Score 只表示本次计算是否成功，年龄等输入非法才判 0。
+    var __fs=String(t||'');
+    // 兼容结论级短语。刻意不含「❌」：本页「❌ 资金不足 / ⚠️ 接近目标」是有效计算结论（记 1）。
+    if(/校验失败|含非法字符|请填写「|后再计算|格式不符|长度必须|不能为 0|不能全为 0|年龄顺序无效|校验和失败|mod-97 校验失败|Luhn 校验失败|Waiting|Please enter|must be/.test(__fs)) return 0;
+    // 第203批：年龄顺序无效（age>=retireAge 或 retireAge>=lifeAge）是拒绝态，须记 0；
+    // 「❌ 资金不足 / ⚠️ 接近目标」是有效计算结论，仍记 1，不恢复「警告一律当失败」。
     var age=parseFloat(document.getElementById('age').value);
+    var retireAge=parseFloat(document.getElementById('retireAge').value);
+    var lifeAge=parseFloat(document.getElementById('lifeAge').value);
     if(!isFinite(age)||age<=0||age>120) return 0;
-    var s=String(t||'');
-    if(/请输入|含无效值|无法计算|Waiting|Please enter|Invalid|Failed/i.test(s)) return 0;
+    if(!isFinite(retireAge)||!isFinite(lifeAge)) return 0;
+    if(age>=retireAge||retireAge>=lifeAge) return 0;      // 与 calc() 的年龄顺序拒绝分支对齐
     return 1;
 }
 function __retirement_calculatorTime(t){

@@ -29,7 +29,7 @@
     <meta name="twitter:title" content="由經營現金流與債務償付額求保障倍數 - 免費線上會計審計工具">
     <meta name="twitter:description" content="由經營現金流與債務償付額求保障倍數是一款免費的線上會計審計工具，債務保障倍數(DSCR)計算器，輸入經營現金流與年度債務償付額，按 DSCR=經營現金流/債務償付求償債能力，用於貸款授信評估。">
 <!-- TOOLBOX-WEBAPP-LD -->
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"DSCR = 經營現金流 / 債務償付","url":"https://tools.dicomp.net/zh-tw/tools/accounting/debt-service-coverage.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"由經營現金流與債務償付額求保障倍數是一款免費的線上會計審計工具，債務保障倍數(DSCR)計算器，輸入經營現金流與年度債務償付額，按 DSCR=經營現金流/債務償付求償債能力，用於貸款授信評估。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"DSCR = 經營現金流 / 債務償付","url":"https://tools.dicomp.net/zh-tw/tools/accounting/debt-service-coverage.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"由經營現金流與債務償付額求保障倍數是一款免費的線上會計審計工具，債務保障倍數(DSCR)計算器，輸入經營現金流與年度債務償付額，按 DSCR=經營現金流/債務償付求償債能力，用於貸款授信評估。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
@@ -112,7 +112,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="輸入經營現金流與年度債務償付額，求 DSCR。">Compute DSCR from operating cash flow and annual debt service to assess loan repayment capacity.</p>
     <div class="formula-box">
       <div class="formula-title">📐 計算公式</div>
-      <div class="formula-eq">償債保障倍數：DSCR = 經營現金流 OCF ÷ 債務償付額；聯動量：盈餘現金 = OCF − 償付額（萬元）、償債負擔率 = 1 ÷ max(DSCR,10⁻⁹)、覆蓋率百分數 = OCF ÷ 償付額 ×100（%）。校驗：兩項非空守衛，償付額置 0 報「分母不能為 0」，全 0 報錯。判據：無固定分級，DSCR 越高償債能力越強。</div>
+      <div class="formula-eq">償債保障倍數：DSCR = 經營現金流 OCF ÷ 債務償付額；聯動量：盈餘現金 = OCF − 償付額（萬元）、償債負擔率 = 1 ÷ DSCR（DSCR ≤ 0 時顯示「—」）、覆蓋率百分數 = DSCR × 100（%）。校驗：兩項非空、償付額須大於 0。判據：無固定分級，DSCR 越高償債能力越強。</div>
       <p class="formula-desc">輸入經營現金流與年度債務償付額，求 DSCR。</p>
     </div>
 
@@ -262,12 +262,14 @@ function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+=
 function calcTool(){
               var __ig=__tbInputGuard(['OCF', 'ds'],["经营现金流 OCF (万元)", "债务偿付额 (万元)"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
 const OCF=num('OCF'),ds=num('ds');
+            if(!(ds>0)){ToolBox.setResult('result','<p style="color:var(--danger)">⚠ 债务偿付额必须大于 0。</p>');return;}
             const DSCR=OCF/ds;
+            const burden=DSCR>0?(1/DSCR).toFixed(4):'—';
             const __g2=dataGrid([
                 [DSCR.toFixed(2),'偿债保障倍数 DSCR'],
                 [(OCF-ds).toFixed(2), '盈余现金 (万元)'],
-                [(1/Math.max(DSCR,1e-9)).toFixed(4), '偿债负担率'],
-                [(OCF/Math.max(ds,1e-9)*100).toFixed(1), '覆盖率百分数']
+                [burden, '偿债负担率'],
+                [(DSCR*100).toFixed(1), '覆盖率百分数']
             ]);ToolBox.setResult('result',(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));
         }
 function resetForm(){document.getElementById('OCF').value = '150';
@@ -338,8 +340,8 @@ function __debt_service_coverageExtras(){
         rows: [
             ['偿债保障倍数 DSCR', DSCR.toFixed(2)],
             ['盈余现金 (万元)', (OCF-ds).toFixed(2)],
-            ['偿债负担率', (1/Math.max(DSCR,1e-9)).toFixed(4)],
-            ['覆盖率百分数', (OCF/Math.max(ds,1e-9)*100).toFixed(1)],
+            ['偿债负担率', DSCR>0?(1/DSCR).toFixed(4):'—'],
+            ['覆盖率百分数', (DSCR*100).toFixed(1)],
         ]
     });
     TBKit.history.record({OCF:__debt_service_coverageRaw('OCF'), ds:__debt_service_coverageRaw('ds'), DSCR:DSCR});

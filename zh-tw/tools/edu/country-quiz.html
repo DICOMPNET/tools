@@ -7,12 +7,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="toolbox" content="cat=game,industry=edu,icon=📝,bg=#fff8e1">
-<meta name="description" content="國家測驗是一款免費的線上教育學習工具，隨機考查國旗、首都或地理位置對應的國家，限時作答並判分，覆蓋全球主要國家，適合地理複習與趣味自測。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta name="description" content="國家測驗是一款免費的線上教育學習工具，看國旗選國家，隨機 10 題即時判分並給正確率，不計時、不含首都或地圖題，適合地理複習與趣味自測。適合工程估算、日常換算與快速複核，結果可一鍵複製。">
 <meta name="keywords" content="國家測驗,國家測驗線上,線上國家測驗,遊戲趣味,教育學習,線上工具,免費工具,ToolBox">
 <meta name="robots" content="index,follow">
 <link rel="canonical" href="https://tools.dicomp.net/zh-tw/tools/edu/country-quiz.html">
 <meta property="og:title" content="國家測驗 - 免費線上教育學習工具">
-<meta property="og:description" content="國家測驗是一款免費的線上教育學習工具，隨機考查國旗、首都或地理位置對應的國家，限時作答並判分，覆蓋全球主要國家，適合地理複習與趣味自測。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta property="og:description" content="國家測驗是一款免費的線上教育學習工具，看國旗選國家，隨機 10 題即時判分並給正確率，不計時、不含首都或地圖題，適合地理複習與趣味自測。適合工程估算、日常換算與快速複核，結果可一鍵複製。">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://tools.dicomp.net/zh-tw/tools/edu/country-quiz.html">
 <meta name="twitter:card" content="summary">
@@ -49,9 +49,9 @@
 <meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
 <meta name="twitter:image:alt" content="ToolBox - 5000+免費線上工具">
     <meta name="twitter:title" content="國家測驗 - 免費線上教育學習工具">
-    <meta name="twitter:description" content="國家測驗是一款免費的線上教育學習工具，隨機考查國旗、首都或地理位置對應的國家，限時作答並判分，覆蓋全球主要國家，適合地理複習與趣味自測。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+    <meta name="twitter:description" content="國家測驗是一款免費的線上教育學習工具，看國旗選國家，隨機 10 題即時判分並給正確率，不計時、不含首都或地圖題，適合地理複習與趣味自測。適合工程估算、日常換算與快速複核，結果可一鍵複製。">
 <!-- TOOLBOX-WEBAPP-LD -->
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"國家測驗","url":"https://tools.dicomp.net/zh-tw/tools/edu/country-quiz.html","applicationCategory":"GamesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"國家測驗是一款免費的線上教育學習工具，隨機考查國旗、首都或地理位置對應的國家，限時作答並判分，覆蓋全球主要國家，適合地理複習與趣味自測。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"國家測驗","url":"https://tools.dicomp.net/zh-tw/tools/edu/country-quiz.html","applicationCategory":"GamesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"國家測驗是一款免費的線上教育學習工具，看國旗選國家，隨機 10 題即時判分並給正確率，不計時、不含首都或地圖題，適合地理複習與趣味自測。適合工程估算、日常換算與快速複核，結果可一鍵複製。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
@@ -228,15 +228,19 @@ const countries=[
   {name:'阿根廷',flag:'🇦🇷'},{name:'埃及',flag:'🇪🇬'},{name:'南非',flag:'🇿🇦'},
   {name:'瑞士',flag:'🇨🇭'},{name:'瑞典',flag:'🇸🇪'}
 ];
-let queue,qNo,score,cur;
+let queue,qNo,score,cur,advanceTimer=null,gameToken=0;
 
 function start(){
   reset();
+  gameToken++;
+  if(advanceTimer){clearTimeout(advanceTimer);advanceTimer=null;}
   queue=[...countries].sort(()=>Math.random()-0.5).slice(0,10);
   qNo=0;score=0;
   next();
 }
 function reset(){
+  gameToken++;
+  if(advanceTimer){clearTimeout(advanceTimer);advanceTimer=null;}
   document.getElementById('qNo').textContent='0';
   document.getElementById('score').textContent='0';
   document.getElementById('question').textContent='点击"开始"开始';
@@ -245,6 +249,7 @@ function reset(){
   document.getElementById('output').textContent='根据国旗选择对应的国家';
 }
 function next(){
+  if(advanceTimer){clearTimeout(advanceTimer);advanceTimer=null;}
   if(qNo>=queue.length){
     finish();
     return;
@@ -271,6 +276,16 @@ function next(){
   });
   document.getElementById('output').textContent='选择一个答案';
 }
+// 延迟推进加局次令牌：start()/reset() 递增 gameToken 并清 advanceTimer，
+// 过期回调即使触发也因令牌不匹配丢弃，避免答题后重置/重开被旧回调重新出题或跳题。
+function scheduleNext(){
+  var myToken=gameToken;
+  advanceTimer=setTimeout(function(){
+    advanceTimer=null;
+    if(myToken!==gameToken)return;
+    next();
+  },900);
+}
 function choose(o,el){
   const opts=document.querySelectorAll('.opt');
   opts.forEach(b=>b.onclick=null);
@@ -282,7 +297,7 @@ function choose(o,el){
     opts.forEach(b=>{if(b.textContent===cur.name)b.classList.add('correct');});
   }
   document.getElementById('score').textContent=score;
-  setTimeout(next,900);
+  scheduleNext();
 }
 function finish(){
   document.getElementById('question').textContent='🏁 完成！';

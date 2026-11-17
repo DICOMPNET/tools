@@ -7,12 +7,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="toolbox" content="cat=design,industry=design,icon=✨,bg=#fce4ec">
-<meta name="description" content="圖案生成器是一款免費的線上設計創意工具，線上圖案生成器，基於 SVG 製作點陣、條紋、網格、波浪等無縫背景紋理，調節間距顏色與透明度，匯出 CSS 背景程式碼用於網頁裝飾，純前端。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta name="description" content="圖案生成器是一款免費的線上設計創意工具，線上圖案生成器，基於 SVG 製作點陣、條紋、網格、波浪等無縫背景紋理，調節間距顏色與透明度，匯出 CSS 背景程式碼用於網頁裝飾，純前端。">
 <meta name="keywords" content="圖案生成器,圖案生成器線上,線上圖案生成器,設計工具,設計創意,線上工具,免費工具,ToolBox">
 <meta name="robots" content="index,follow">
 <link rel="canonical" href="https://tools.dicomp.net/zh-tw/tools/design/pattern-generator.html">
 <meta property="og:title" content="圖案生成器 - 免費線上設計創意工具">
-<meta property="og:description" content="圖案生成器是一款免費的線上設計創意工具，線上圖案生成器，基於 SVG 製作點陣、條紋、網格、波浪等無縫背景紋理，調節間距顏色與透明度，匯出 CSS 背景程式碼用於網頁裝飾，純前端。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta property="og:description" content="圖案生成器是一款免費的線上設計創意工具，線上圖案生成器，基於 SVG 製作點陣、條紋、網格、波浪等無縫背景紋理，調節間距顏色與透明度，匯出 CSS 背景程式碼用於網頁裝飾，純前端。">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://tools.dicomp.net/zh-tw/tools/design/pattern-generator.html">
 <meta name="twitter:card" content="summary">
@@ -44,9 +44,9 @@
 <meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
 <meta name="twitter:image:alt" content="ToolBox - 5000+免費線上工具">
     <meta name="twitter:title" content="圖案生成器 - 免費線上設計創意工具">
-    <meta name="twitter:description" content="圖案生成器是一款免費的線上設計創意工具，線上圖案生成器，基於 SVG 製作點陣、條紋、網格、波浪等無縫背景紋理，調節間距顏色與透明度，匯出 CSS 背景程式碼用於網頁裝飾，純前端。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+    <meta name="twitter:description" content="圖案生成器是一款免費的線上設計創意工具，線上圖案生成器，基於 SVG 製作點陣、條紋、網格、波浪等無縫背景紋理，調節間距顏色與透明度，匯出 CSS 背景程式碼用於網頁裝飾，純前端。">
 <!-- TOOLBOX-WEBAPP-LD -->
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"圖案生成器","url":"https://tools.dicomp.net/zh-tw/tools/design/pattern-generator.html","applicationCategory":"MultimediaApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"圖案生成器是一款免費的線上設計創意工具，線上圖案生成器，基於 SVG 製作點陣、條紋、網格、波浪等無縫背景紋理，調節間距顏色與透明度，匯出 CSS 背景程式碼用於網頁裝飾，純前端。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"圖案生成器","url":"https://tools.dicomp.net/zh-tw/tools/design/pattern-generator.html","applicationCategory":"MultimediaApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"圖案生成器是一款免費的線上設計創意工具，線上圖案生成器，基於 SVG 製作點陣、條紋、網格、波浪等無縫背景紋理，調節間距顏色與透明度，匯出 CSS 背景程式碼用於網頁裝飾，純前端。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
@@ -343,6 +343,18 @@ function __pattern_generatorRender(keys,rk,en){
             try{
                 for(var k in rec){
                     if(k===rk||k==='__tbScore') continue;
+                    if(k==='__patternType'){
+                        // 恢复图案类型及选中按钮 UI，避免跨类型回放仍按当前类型重绘
+                        var pt=String(rec[k]);
+                        if(/^(triangles|hex|chevron|circles|diamonds|cross)$/.test(pt)){
+                            currentType=pt;
+                            var btns=document.querySelectorAll('.pattern-btn');
+                            for(var bi=0;bi<btns.length;bi++){
+                                btns[bi].classList.toggle('active', btns[bi].getAttribute('data-type')===pt);
+                            }
+                        }
+                        continue;  // __patternType 无对应 DOM 元素，不参与普通字段赋值
+                    }
                     var e=document.getElementById(k);
                     if(!e) continue;
                     var t=(e.type||'').toLowerCase();

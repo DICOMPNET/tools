@@ -7,12 +7,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="toolbox" content="cat=convert,industry=life,icon=⏲️,bg=#e8eaf6">
-<meta name="description" content="時間戳轉換是一款免費的線上日常生活工具，線上時間戳轉換工具，支援 Unix 時間戳與日期時間互轉，多時區顯示與批次轉換，方便日誌與介面除錯。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta name="description" content="時間戳轉換是一款免費的線上日常生活工具，線上時間戳轉換工具，支援 Unix 時間戳與日期時間互轉，多時區顯示與批次轉換，方便日誌與介面除錯。">
 <meta name="keywords" content="時間戳轉換,時間戳轉換線上,線上時間戳轉換,格式轉換,日常生活,線上工具,免費工具,ToolBox">
 <meta name="robots" content="index,follow">
 <link rel="canonical" href="https://tools.dicomp.net/zh-tw/tools/life/timestamp.html">
 <meta property="og:title" content="時間戳轉換 - 免費線上日常生活工具">
-<meta property="og:description" content="時間戳轉換是一款免費的線上日常生活工具，線上時間戳轉換工具，支援 Unix 時間戳與日期時間互轉，多時區顯示與批次轉換，方便日誌與介面除錯。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta property="og:description" content="時間戳轉換是一款免費的線上日常生活工具，線上時間戳轉換工具，支援 Unix 時間戳與日期時間互轉，多時區顯示與批次轉換，方便日誌與介面除錯。">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://tools.dicomp.net/zh-tw/tools/life/timestamp.html">
 <meta name="twitter:card" content="summary">
@@ -46,9 +46,9 @@
 <meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
 <meta name="twitter:image:alt" content="ToolBox - 5000+免費線上工具">
     <meta name="twitter:title" content="時間戳轉換 - 免費線上日常生活工具">
-    <meta name="twitter:description" content="時間戳轉換是一款免費的線上日常生活工具，線上時間戳轉換工具，支援 Unix 時間戳與日期時間互轉，多時區顯示與批次轉換，方便日誌與介面除錯。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+    <meta name="twitter:description" content="時間戳轉換是一款免費的線上日常生活工具，線上時間戳轉換工具，支援 Unix 時間戳與日期時間互轉，多時區顯示與批次轉換，方便日誌與介面除錯。">
 <!-- TOOLBOX-WEBAPP-LD -->
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"時間戳轉換","url":"https://tools.dicomp.net/zh-tw/tools/life/timestamp.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"時間戳轉換是一款免費的線上日常生活工具，線上時間戳轉換工具，支援 Unix 時間戳與日期時間互轉，多時區顯示與批次轉換，方便日誌與介面除錯。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"時間戳轉換","url":"https://tools.dicomp.net/zh-tw/tools/life/timestamp.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"時間戳轉換是一款免費的線上日常生活工具，線上時間戳轉換工具，支援 Unix 時間戳與日期時間互轉，多時區顯示與批次轉換，方便日誌與介面除錯。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
@@ -495,10 +495,18 @@ function copyText(text) {
   ToolBox.copyText(text, '已复制：' + text);
 }
 
+function parseTimestampAuto(ts) {
+  const raw = String(ts).trim();
+  if (!/^-?\d+$/.test(raw)) return NaN;
+  const n = Number(raw);
+  if (!isFinite(n)) return NaN;
+  return Math.abs(n) >= 1e11 ? n : n * 1000;
+}
+
 function convertBatch() {
   const lines = document.getElementById('batchInput').value.split(/\r?\n/).map(value => value.trim()).filter(Boolean);
   const result = lines.map(value => {
-    const ms = parseTimestamp(value);
+    const ms = parseTimestampAuto(value);
     const date = new Date(ms);
     return isNaN(date.getTime()) ? `${value} → 无效时间戳` : `${value} → ${formatDate(date)} (${formatZoneLabel()}) | ${date.toISOString()}`;
   }).join('\n');

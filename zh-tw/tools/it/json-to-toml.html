@@ -7,12 +7,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="toolbox" content="cat=dev,industry=it,icon=📄,bg=#fff3e0">
-<meta name="description" content="JSON 轉 TOML是一款免費的線上IT 開發工具，將 JSON 轉換為 TOML 格式，支援頂級鍵值對、巢狀表、陣列、數字、布林和 ISO 日期字串。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta name="description" content="JSON 轉 TOML是一款免費的線上IT 開發工具，將 JSON 轉換為 TOML 格式，支援頂級鍵值對、巢狀表、陣列、數字、布林和 ISO 日期字串。">
 <meta name="keywords" content="JSON 轉 TOML,JSON 轉 TOML線上,線上JSON 轉 TOML,開發工具,IT開發,JSON,TOML,線上工具,免費工具,ToolBox">
 <meta name="robots" content="index,follow">
 <link rel="canonical" href="https://tools.dicomp.net/zh-tw/tools/it/json-to-toml.html">
 <meta property="og:title" content="JSON 轉 TOML - 布林和 ISO 日期字串">
-<meta property="og:description" content="JSON 轉 TOML是一款免費的線上IT 開發工具，將 JSON 轉換為 TOML 格式，支援頂級鍵值對、巢狀表、陣列、數字、布林和 ISO 日期字串。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta property="og:description" content="JSON 轉 TOML是一款免費的線上IT 開發工具，將 JSON 轉換為 TOML 格式，支援頂級鍵值對、巢狀表、陣列、數字、布林和 ISO 日期字串。">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://tools.dicomp.net/zh-tw/tools/it/json-to-toml.html">
 <meta name="twitter:card" content="summary">
@@ -48,9 +48,9 @@
 <meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
 <meta name="twitter:image:alt" content="ToolBox - 5000+免費線上工具">
     <meta name="twitter:title" content="JSON 轉 TOML - 布林和 ISO 日期字串">
-    <meta name="twitter:description" content="JSON 轉 TOML是一款免費的線上IT 開發工具，將 JSON 轉換為 TOML 格式，支援頂級鍵值對、巢狀表、陣列、數字、布林和 ISO 日期字串。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+    <meta name="twitter:description" content="JSON 轉 TOML是一款免費的線上IT 開發工具，將 JSON 轉換為 TOML 格式，支援頂級鍵值對、巢狀表、陣列、數字、布林和 ISO 日期字串。">
 <!-- TOOLBOX-WEBAPP-LD -->
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"JSON 轉 TOML","url":"https://tools.dicomp.net/zh-tw/tools/it/json-to-toml.html","applicationCategory":"DeveloperApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"JSON 轉 TOML是一款免費的線上IT 開發工具，將 JSON 轉換為 TOML 格式，支援頂級鍵值對、巢狀表、陣列、數字、布林和 ISO 日期字串。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"JSON 轉 TOML","url":"https://tools.dicomp.net/zh-tw/tools/it/json-to-toml.html","applicationCategory":"DeveloperApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"JSON 轉 TOML是一款免費的線上IT 開發工具，將 JSON 轉換為 TOML 格式，支援頂級鍵值對、巢狀表、陣列、數字、布林和 ISO 日期字串。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
@@ -237,8 +237,22 @@ const SAMPLE = JSON.stringify({title:"My App",version:"1.0",debug:true,port:8080
 function tomlDateLiteral(v){
   const m = /^(\d{4})-(\d{2})-(\d{2})(?:[Tt ](\d{2}):(\d{2}):(\d{2})(\.\d+)?(Z|z|[+-]\d{2}:\d{2})?)?$/.exec(v);
   if(m){
-    if(+m[2] < 1 || +m[2] > 12 || +m[3] < 1 || +m[3] > 31) return null;
+    const y = +m[1], mo = +m[2], d = +m[3];
+    // 218 复核：TOML 采用 RFC 3339，年份 0000 不是可解析日期（Python tomllib 报 Invalid date or datetime），
+    // 必须与非法月日一样退回普通带引号字符串。
+    if(y < 1) return null;
+    if(mo < 1 || mo > 12) return null;
+    // 第224批复核重做：按真实日历核对各月天数与闰年，避免 2023-02-31 之类非法日期
+    // 被当作 TOML 原生 datetime 裸值输出（tomllib 会抛 TOMLDecodeError）。
+    const leap = (y % 4 === 0 && (y % 100 !== 0 || y % 400 === 0));
+    const mdays = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+    if(d < 1 || d > mdays[mo - 1]) return null;
     if(m[4] !== undefined && (+m[4] > 23 || +m[5] > 59 || +m[6] > 59)) return null;
+    // 时区偏移：小时 00-23、分钟 00-59；+99:99 之类越界偏移须回退为普通字符串引用。
+    if(m[8] && m[8] !== 'Z' && m[8] !== 'z'){
+      const off = /^[+-](\d{2}):(\d{2})$/.exec(m[8]);
+      if(!off || +off[1] > 23 || +off[2] > 59) return null;
+    }
     let lit = m[1] + '-' + m[2] + '-' + m[3];
     if(m[4] !== undefined) lit += 'T' + m[4] + ':' + m[5] + ':' + m[6] + (m[7] || '') + (m[8] || '');
     return lit;

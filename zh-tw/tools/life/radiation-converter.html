@@ -148,6 +148,7 @@
 
     <div class="toolbar">
       <div id="radiation_converterPresets"></div><button type="button" class="btn primary" onclick="convert()">換算</button><button class="btn" type="button" onclick="__radiation_converterExport()">匯出明細 CSV</button>
+      <button type="button" class="btn" onclick="copyRes()">📋 複製結果</button>
       <button type="button" class="btn" onclick="clearAll()">清空</button>
     </div>
 
@@ -190,11 +191,11 @@
 <li>Sv/Gy/mSv 互轉（科普）。</li>
 <li>看到輻射劑量報道時把 mSv 換算成 µSv，與日常本底劑量對照。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">換算</div><div class="dd-ex-body">1 Sv=1000 mSv；1 Gy <a class="term-link" href="/zh-tw/tools/nuclear/absorbed-dose.html">吸收劑量</a>在組織權重 1 時≈1 Sv。</div></div>
+<div class="dd-example"><div class="dd-ex-title">換算</div><div class="dd-ex-body">1 Sv=1000 mSv；當量劑量 Sv = <a class="term-link" href="/zh-tw/tools/nuclear/absorbed-dose.html">吸收劑量</a> Gy × 輻射權重因子 w_R。對 X 射線/γ 射線 w_R=1，故 1 Gy 對應 1 Sv；α 粒子 w_R=20，則 1 Gy 對應 20 Sv。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
-<dt>Sv 與 Gy？</dt><dd>Gy 吸收、Sv 當量（乘組織權重）。</dd>
-<dt>Sv 和 Gy 有什麼區別？</dt><dd>Gy 是吸收劑量（每千克吸收的能量），Sv 是等效劑量（考慮生物效應加權）；組織權重為 1 時二者數值約等於。</dd>
+<dt>Sv 與 Gy？</dt><dd>Gy 吸收劑量、Sv 當量劑量（Gy 乘輻射權重因子 w_R，X 射線/γ 射線 w_R=1）。</dd>
+<dt>Sv 和 Gy 有什麼區別？</dt><dd>Gy 是吸收劑量（每千克吸收的能量），Sv 是當量劑量（吸收劑量乘輻射權重因子 w_R，反映生物效應）；X 射線/γ 射線 w_R=1 時二者數值相等，α 粒子等高 w_R 射線需另乘 w_R。</dd>
 </dl>
 </div>
 </section>
@@ -280,12 +281,25 @@ function convert(){
       html += `<p>${names[k]} (${types[k]})：<strong>${fmt(base / factors[k])} ${k}</strong></p>`;
     }
   });
+  html += '<p style="font-size:12px;color:var(--text-muted);margin-top:8px;">跨类换算（Gy ↔ Sv）按辐射权重因子 w_R = 1 处理，仅适用于 X 射线/γ 射线；α 粒子 w_R = 20、中子 5–20，当量剂量需另乘 w_R。</p>';
   const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('resultBox').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('resultBox').innerHTML=__h1;
 }
 
 function clearAll(){
   document.getElementById('inputVal').value = '';
   const __h2=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter a value to convert":"请输入数值进行换算");if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('resultBox').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('resultBox').innerHTML=__h2;
+}
+function copyRes(){
+  var box=document.getElementById('resultBox');
+  var text=String(box.innerText||box.textContent||'').replace(/\s+/g,' ').trim();
+  var en=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
+  var empty=(en?'Enter a value to convert':'请输入数值进行换算');
+  if(!text||text===empty||text==='请输入有效数值'){
+    if(typeof ToolBox!=='undefined'&&ToolBox.showToast)ToolBox.showToast(en?'Nothing to copy yet':'暂无可复制的结果','warning');
+    return;
+  }
+  if(typeof ToolBox!=='undefined'&&ToolBox.copyText){ToolBox.copyText(text);return;}
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text);}
 }
 convert();
 </script><script>
@@ -521,7 +535,7 @@ else document.addEventListener('DOMContentLoaded', __radiation_converterBoot);
 .opt-result-interpret code{background:var(--result-bg,#f6f6f6);padding:1px 5px;border-radius:5px;font-size:12.5px;}</style>
 <section class="opt-result-interpret"><div class="ir-card">
 <h2>📊 結果解讀</h2>
-<h3>單位含義</h3><p>吸收劑量 Gy（J/kg，1 Gy=100 rad）；當量劑量 Sv = Gy×組織權重因子（1 Sv=100 rem）。mSv 用於日常/醫療劑量表達。</p>
+<h3>單位含義</h3><p>吸收劑量 Gy（J/kg，1 Gy=100 rad）；當量劑量 Sv = Gy×輻射權重因子 w_R（1 Sv=100 rem）。X 射線/γ 射線 w_R=1，數值上 1 Gy=1 Sv；α 粒子 w_R=20、中子 5–20，須按射線型別另乘 w_R。mSv 用於日常/醫療劑量表達。</p>
 <h3>量級參考</h3><p>天然本底約 2–3 mSv/年；胸片約 0.1 mSv；CT 約 2–10 mSv；輻射工作者年限值通常 20 mSv（5年平均）。</p>
 <h3>注意</h3><p>不同射線權重因子不同；本工具僅做單位換算，劑量安全評價以專業標準為準。</p>
 </div></section>

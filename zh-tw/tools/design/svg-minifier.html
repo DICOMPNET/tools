@@ -7,12 +7,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="toolbox" content="cat=image,industry=design,icon=🖼️,bg=#e8f5e9">
-<meta name="description" content="SVG 壓縮是一款免費的線上設計創意工具，貼上SVG程式碼即可自動移除冗餘註釋、空白與預設屬性，壓縮體積並生成精簡後的程式碼，便於前端載入最佳化，支援視覺化對比壓縮前後效果。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta name="description" content="SVG 壓縮是一款免費的線上設計創意工具，貼上SVG程式碼即可自動移除冗餘註釋、空白與預設屬性，壓縮體積並生成精簡後的程式碼，便於前端載入最佳化，支援視覺化對比壓縮前後效果。">
 <meta name="keywords" content="SVG 壓縮,SVG 壓縮線上,線上SVG 壓縮,圖片處理,設計創意,SVG,壓縮,線上工具,免費工具,ToolBox">
 <meta name="robots" content="index,follow">
 <link rel="canonical" href="https://tools.dicomp.net/zh-tw/tools/design/svg-minifier.html">
 <meta property="og:title" content="SVG 壓縮 - 免費線上設計創意工具">
-<meta property="og:description" content="SVG 壓縮是一款免費的線上設計創意工具，貼上SVG程式碼即可自動移除冗餘註釋、空白與預設屬性，壓縮體積並生成精簡後的程式碼，便於前端載入最佳化，支援視覺化對比壓縮前後效果。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta property="og:description" content="SVG 壓縮是一款免費的線上設計創意工具，貼上SVG程式碼即可自動移除冗餘註釋、空白與預設屬性，壓縮體積並生成精簡後的程式碼，便於前端載入最佳化，支援視覺化對比壓縮前後效果。">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://tools.dicomp.net/zh-tw/tools/design/svg-minifier.html">
 <meta name="twitter:card" content="summary">
@@ -42,9 +42,9 @@
 <meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
 <meta name="twitter:image:alt" content="ToolBox - 5000+免費線上工具">
     <meta name="twitter:title" content="SVG 壓縮 - 免費線上設計創意工具">
-    <meta name="twitter:description" content="SVG 壓縮是一款免費的線上設計創意工具，貼上SVG程式碼即可自動移除冗餘註釋、空白與預設屬性，壓縮體積並生成精簡後的程式碼，便於前端載入最佳化，支援視覺化對比壓縮前後效果。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+    <meta name="twitter:description" content="SVG 壓縮是一款免費的線上設計創意工具，貼上SVG程式碼即可自動移除冗餘註釋、空白與預設屬性，壓縮體積並生成精簡後的程式碼，便於前端載入最佳化，支援視覺化對比壓縮前後效果。">
 <!-- TOOLBOX-WEBAPP-LD -->
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"SVG 壓縮","url":"https://tools.dicomp.net/zh-tw/tools/design/svg-minifier.html","applicationCategory":"MultimediaApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"SVG 壓縮是一款免費的線上設計創意工具，貼上SVG程式碼即可自動移除冗餘註釋、空白與預設屬性，壓縮體積並生成精簡後的程式碼，便於前端載入最佳化，支援視覺化對比壓縮前後效果。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"SVG 壓縮","url":"https://tools.dicomp.net/zh-tw/tools/design/svg-minifier.html","applicationCategory":"MultimediaApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"SVG 壓縮是一款免費的線上設計創意工具，貼上SVG程式碼即可自動移除冗餘註釋、空白與預設屬性，壓縮體積並生成精簡後的程式碼，便於前端載入最佳化，支援視覺化對比壓縮前後效果。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
@@ -232,15 +232,33 @@ function generate(){
   }
   if(removeDecl){
     svg = svg.replace(/<\?xml[\s\S]*?\?>/gi, '');
-    svg = svg.replace(/<!DOCTYPE[\s\S]*?>/gi, '');
+    // 含内部 DTD 子集（[] 内实体声明）时跳过 DOCTYPE 剔除，避免实体引用失效
+    if(!/<!DOCTYPE[\s\S]*?\[[\s\S]*?\]>/.test(svg)){
+      svg = svg.replace(/<!DOCTYPE[\s\S]*?>/gi, '');
+    }
   }
   if(removeMeta){
     svg = svg.replace(/<metadata[\s\S]*?<\/metadata>/gi, '');
   }
   if(removeWhitespace){
+    // xml:space="preserve" 元素内的空白有语义，抽出后再压缩，压缩完原样放回
+    const preserved = [];
+    // 内部 DTD 子集里的空白有语义（如 <!ENTITY x "A  B">），必须先整段抽出，
+    // 否则后续的 /\s{2,}/g 会改变实体值，压缩后 SVG 与原始内容不等价。
+    svg = svg.replace(/<!DOCTYPE[^>\[]*\[[\s\S]*?\]>/gi, function(m){
+      preserved.push(m);
+      return '___TB_PRESERVE_' + (preserved.length - 1) + '___';
+    });
+    svg = svg.replace(/<text[^>]*xml:space=["']preserve["'][^>]*>[\s\S]*?<\/text>/gi, function(m){
+      preserved.push(m);
+      return '___TB_PRESERVE_' + (preserved.length - 1) + '___';
+    });
     svg = svg.replace(/>\s+</g, '><');
     svg = svg.replace(/\s{2,}/g, ' ');
     svg = svg.replace(/^\s+|\s+$/g, '');
+    svg = svg.replace(/___TB_PRESERVE_(\d+)___/g, function(m, i){
+      return preserved[+i] !== undefined ? preserved[+i] : m;
+    });
   }
   const newSize = new Blob([svg]).size;
   const ratio = origSize>0 ? ((1 - newSize/origSize)*100).toFixed(1) : 0;

@@ -7,12 +7,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="toolbox" content="cat=dev,industry=it,icon=🏋️,bg=#fff3e0">
-<meta name="description" content="JavaScript 格式化是一款免費的線上IT 開發工具，JavaScript 程式碼格式化：基於詞法分析規範化縮排、保留字串與註釋、支援箭頭函式與解構。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta name="description" content="JavaScript 格式化是一款免費的線上IT 開發工具，JavaScript 程式碼格式化：基於詞法分析規範化縮排、保留字串與註釋、支援箭頭函式與解構。">
 <meta name="keywords" content="JavaScript 格式化,JavaScript 格式化線上,線上JavaScript 格式化,開發工具,IT開發,JavaScript,格式化,線上工具,免費工具,ToolBox">
 <meta name="robots" content="index,follow">
 <link rel="canonical" href="https://tools.dicomp.net/zh-tw/tools/it/js-formatter.html">
 <meta property="og:title" content="JavaScript 格式化 - 規範化縮排">
-<meta property="og:description" content="JavaScript 格式化是一款免費的線上IT 開發工具，JavaScript 程式碼格式化：基於詞法分析規範化縮排、保留字串與註釋、支援箭頭函式與解構。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta property="og:description" content="JavaScript 格式化是一款免費的線上IT 開發工具，JavaScript 程式碼格式化：基於詞法分析規範化縮排、保留字串與註釋、支援箭頭函式與解構。">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://tools.dicomp.net/zh-tw/tools/it/js-formatter.html">
 <meta name="twitter:card" content="summary">
@@ -48,9 +48,9 @@
 <meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
 <meta name="twitter:image:alt" content="ToolBox - 5000+免費線上工具">
     <meta name="twitter:title" content="JavaScript 格式化 - 規範化縮排">
-    <meta name="twitter:description" content="JavaScript 格式化是一款免費的線上IT 開發工具，JavaScript 程式碼格式化：基於詞法分析規範化縮排、保留字串與註釋、支援箭頭函式與解構。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+    <meta name="twitter:description" content="JavaScript 格式化是一款免費的線上IT 開發工具，JavaScript 程式碼格式化：基於詞法分析規範化縮排、保留字串與註釋、支援箭頭函式與解構。">
 <!-- TOOLBOX-WEBAPP-LD -->
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"JavaScript 格式化","url":"https://tools.dicomp.net/zh-tw/tools/it/js-formatter.html","applicationCategory":"DeveloperApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"JavaScript 格式化是一款免費的線上IT 開發工具，JavaScript 程式碼格式化：基於詞法分析規範化縮排、保留字串與註釋、支援箭頭函式與解構。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"JavaScript 格式化","url":"https://tools.dicomp.net/zh-tw/tools/it/js-formatter.html","applicationCategory":"DeveloperApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"JavaScript 格式化是一款免費的線上IT 開發工具，JavaScript 程式碼格式化：基於詞法分析規範化縮排、保留字串與註釋、支援箭頭函式與解構。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
@@ -367,8 +367,12 @@ function minifyJs(){
     let pendingSpace = false;
     const wordLike = t => t === 'name' || t === 'num' || t === 'keyword' || t === 'str' || t === 'regex';
     for(const tk of tokens){
-      // 注释直接丢弃；原换行必须保留，否则 ASI 边界会消失。
-      if(tk.t === 'comment') continue;
+      // 注释不输出；但含换行的块注释本身就是 ASI 边界（如 return/*\n*/1），
+      // 直接丢弃会把 `return;` 变成 `return 1`，必须在原位保留等效换行。
+      if(tk.t === 'comment'){
+        if(tk.v.indexOf('\n') >= 0){ out = out.replace(/[ \t]+$/, '') + '\n'; pendingSpace = false; }
+        continue;
+      }
       if(tk.t === 'ws'){
         if(tk.v.indexOf('\n') >= 0){ out = out.replace(/[ \t]+$/, '') + '\n'; pendingSpace = false; }
         else pendingSpace = true;

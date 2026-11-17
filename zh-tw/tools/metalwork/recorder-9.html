@@ -136,7 +136,7 @@
       </div>
       <div>
         <label>目標溫度 (℃)</label>
-        <input type="number" id="targetTemp" value="850" step="5" oninput="renderCurrent()" placeholder="如 850">
+        <input type="number" id="targetTemp" value="850" step="5" oninput="syncTargetTemp()" placeholder="如 850">
       </div>
     </div>
     <div id="refTip"></div>
@@ -380,6 +380,16 @@ function onProcessChange(){
 }
 function applyRefTemp(){onProcessChange();ToolBox.showToast(i18nText('toast.msg323'));}
 
+function syncTargetTemp(){
+  var el=document.getElementById('targetTemp');
+  var raw=el.value.trim();
+  var t=Number(raw);
+  var ok=raw!==''&&isFinite(t)&&t>0;
+  if(el.classList)el.classList.toggle('input-error',!ok);
+  if(current&&ok)current.target=t;
+  renderCurrent();
+}
+
 function calcSoaking(){
   var th=+document.getElementById('thickness').value||0;
   var p=document.getElementById('processType').value;
@@ -395,7 +405,9 @@ function calcSoaking(){
     current.thickness=th;current.process=p;
     current.soaking=mins;
     current.steel=document.getElementById('steelGrade').value;
-    current.target=+document.getElementById('targetTemp').value||0;
+    var tRaw=String(document.getElementById('targetTemp').value).trim();
+    var t=Number(tRaw);
+    if(tRaw!==''&&isFinite(t)&&t>0) current.target=t;
     renderCurrent();
   }
   return mins;
@@ -434,9 +446,11 @@ function calcSoakingRaw(){
 
 function addReading(){
   if(!current){ToolBox.showToast(i18nText('toast.msg629'),'error');return;}
-  var t=+document.getElementById('logTemp').value;
+  var raw=document.getElementById('logTemp').value.trim();
+  var t=Number(raw);
   var note=document.getElementById('logNote').value.trim();
-  if(!t&&t!==0){ToolBox.showToast(i18nText('toast.msg882'),'error');return;}
+  if(raw===''||!isFinite(t)||t<0){document.getElementById('logTemp').classList.add('input-error');ToolBox.showToast(i18nText('toast.msg882'),'error');return;}
+  document.getElementById('logTemp').classList.remove('input-error');
   current.readings.push({t:new Date().toISOString(),v:t,n:note});
   document.getElementById('logNote').value='';
   renderCurrent();

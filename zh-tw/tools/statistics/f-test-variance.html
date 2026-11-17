@@ -10,10 +10,10 @@
 <title>F 方差檢驗計算器 - 計算 F 統計量與臨界值</title>
 <link rel="canonical" href="https://tools.dicomp.net/zh-tw/tools/statistics/f-test-variance.html">
 <meta property="og:title" content="F 方差檢驗計算器 - 計算 F 統計量與臨界值">
-<meta property="og:description" content="F 方差檢驗計算器是一款免費的線上統計學工具，輸入兩組樣本方差與自由度，計算 F 統計量與臨界值，檢驗兩總體方差是否相等，用於方差齊性判定。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta property="og:description" content="F 方差檢驗計算器是一款免費的線上統計學工具，輸入兩組樣本方差與自由度，計算 F 統計量與臨界值，檢驗兩總體方差是否相等，用於方差齊性判定。">
 <meta property="og:url" content="https://tools.dicomp.net/zh-tw/tools/statistics/f-test-variance.html">
 <meta name="twitter:card" content="summary">
-<meta name="description" content="F 方差檢驗計算器是一款免費的線上統計學工具，輸入兩組樣本方差與自由度，計算 F 統計量與臨界值，檢驗兩總體方差是否相等，用於方差齊性判定。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta name="description" content="F 方差檢驗計算器是一款免費的線上統計學工具，輸入兩組樣本方差與自由度，計算 F 統計量與臨界值，檢驗兩總體方差是否相等，用於方差齊性判定。">
 <link rel="stylesheet" href="/css/common.css">
 <script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="/js/common.js" defer></script>
@@ -27,9 +27,9 @@
 <meta name="twitter:image:alt" content="ToolBox - 5000+免費線上工具">
     <meta property="og:type" content="website">
     <meta name="twitter:title" content="F 方差檢驗計算器 - 計算 F 統計量與臨界值">
-    <meta name="twitter:description" content="F 方差檢驗計算器是一款免費的線上統計學工具，輸入兩組樣本方差與自由度，計算 F 統計量與臨界值，檢驗兩總體方差是否相等，用於方差齊性判定。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+    <meta name="twitter:description" content="F 方差檢驗計算器是一款免費的線上統計學工具，輸入兩組樣本方差與自由度，計算 F 統計量與臨界值，檢驗兩總體方差是否相等，用於方差齊性判定。">
 <!-- TOOLBOX-WEBAPP-LD -->
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"F 方差檢驗計算器","url":"https://tools.dicomp.net/zh-tw/tools/statistics/f-test-variance.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"F 方差檢驗計算器是一款免費的線上統計學工具，輸入兩組樣本方差與自由度，計算 F 統計量與臨界值，檢驗兩總體方差是否相等，用於方差齊性判定。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"F 方差檢驗計算器","url":"https://tools.dicomp.net/zh-tw/tools/statistics/f-test-variance.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"F 方差檢驗計算器是一款免費的線上統計學工具，輸入兩組樣本方差與自由度，計算 F 統計量與臨界值，檢驗兩總體方差是否相等，用於方差齊性判定。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
@@ -344,10 +344,17 @@ calcTool();
 
 function __ftNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
 
+function __ftClear(){
+    var ids=['ftTable','ftMatrix','ftDiff','ftHist'];
+    for(var i=0;i<ids.length;i++){var e=document.getElementById(ids[i]);if(e)e.innerHTML='';}
+}
+
 function __ftExtras(){
     if (typeof TBKit === 'undefined') return;
     var v1=__ftNum('s1'), v2=__ftNum('s2'), n1=__ftNum('n1'), n2=__ftNum('n2');
-    if(!isFinite(v1)||!isFinite(v2)||!isFinite(n1)||!isFinite(n2)||v1<=0||v2<=0||n1<2||n2<2) return;
+    // 与主算同源：样本量须为 ≥2 的整数，非法时清空旧表/矩阵，不得用 df1=1.5 之类伪自由度继续出表
+    if(!isFinite(v1)||!isFinite(v2)||!isFinite(n1)||!isFinite(n2)||v1<=0||v2<=0||n1<2||n2<2||
+       Math.abs(n1-Math.round(n1))>1e-9||Math.abs(n2-Math.round(n2))>1e-9){ __ftClear(); return; }
     var en=TBKit.util.isEn();
     var df1=n1-1, df2=n2-1;
     var F=v1/v2;

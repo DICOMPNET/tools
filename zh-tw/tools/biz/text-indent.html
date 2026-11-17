@@ -7,12 +7,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="toolbox" content="cat=text,industry=biz,icon=🧹,bg=#e8eaf6">
-<meta name="description" content="自動縮排是一款免費的線上商業辦公工具，線上自動縮排工具，為文本或程式碼按層級自動新增縮排，支援 JSON/多行文本格式化與統一縮排寬度，提升可讀性。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta name="description" content="自動縮排是一款免費的線上商業辦公工具，線上自動縮排工具，為文本或程式碼按層級自動新增縮排，支援 JSON/多行文本格式化與統一縮排寬度，提升可讀性。">
 <meta name="keywords" content="自動縮排,自動縮排線上,線上自動縮排,文本處理,商業辦公,線上工具,免費工具,ToolBox">
 <meta name="robots" content="index,follow">
 <link rel="canonical" href="https://tools.dicomp.net/zh-tw/tools/biz/text-indent.html">
 <meta property="og:title" content="自動縮排 - 文本或程式碼按層級自動新增縮排">
-<meta property="og:description" content="自動縮排是一款免費的線上商業辦公工具，線上自動縮排工具，為文本或程式碼按層級自動新增縮排，支援 JSON/多行文本格式化與統一縮排寬度，提升可讀性。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta property="og:description" content="自動縮排是一款免費的線上商業辦公工具，線上自動縮排工具，為文本或程式碼按層級自動新增縮排，支援 JSON/多行文本格式化與統一縮排寬度，提升可讀性。">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://tools.dicomp.net/zh-tw/tools/biz/text-indent.html">
 <meta name="twitter:card" content="summary">
@@ -41,9 +41,9 @@
 <meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
 <meta name="twitter:image:alt" content="ToolBox - 5000+免費線上工具">
     <meta name="twitter:title" content="自動縮排 - 文本或程式碼按層級自動新增縮排">
-    <meta name="twitter:description" content="自動縮排是一款免費的線上商業辦公工具，線上自動縮排工具，為文本或程式碼按層級自動新增縮排，支援 JSON/多行文本格式化與統一縮排寬度，提升可讀性。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+    <meta name="twitter:description" content="自動縮排是一款免費的線上商業辦公工具，線上自動縮排工具，為文本或程式碼按層級自動新增縮排，支援 JSON/多行文本格式化與統一縮排寬度，提升可讀性。">
 <!-- TOOLBOX-WEBAPP-LD -->
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"自動縮排","url":"https://tools.dicomp.net/zh-tw/tools/biz/text-indent.html","applicationCategory":"DeveloperApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"自動縮排是一款免費的線上商業辦公工具，線上自動縮排工具，為文本或程式碼按層級自動新增縮排，支援 JSON/多行文本格式化與統一縮排寬度，提升可讀性。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"自動縮排","url":"https://tools.dicomp.net/zh-tw/tools/biz/text-indent.html","applicationCategory":"DeveloperApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"自動縮排是一款免費的線上商業辦公工具，線上自動縮排工具，為文本或程式碼按層級自動新增縮排，支援 JSON/多行文本格式化與統一縮排寬度，提升可讀性。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
@@ -346,8 +346,11 @@ function indent(){
   }
 
   // 计算一行中大括号/圆括号的净层级，跳过字符串与注释（BS-N117）
+  // 复核失败重做（580）：跨行块注释 /* ... */ 的中间行也会把括号算入层级。
+  // blockComment 状态必须跨行保留，不能在每行调用时重置。
+  let blockComment = false;
   function countBraces(line){
-    let openCount = 0, closeCount = 0, quote = null, blockComment = false;
+    let openCount = 0, closeCount = 0, quote = null;
     for(let i = 0; i < line.length; i++){
       const ch = line[i], next = line[i + 1];
       if(blockComment){
@@ -367,6 +370,7 @@ function indent(){
     }
     return { openCount, closeCount };
   }
+  blockComment = false; // 每次 indent() 开始时重置跨行状态
 
   for(let line of lines){
     if(trimEach) line = line.trim();

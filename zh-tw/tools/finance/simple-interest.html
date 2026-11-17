@@ -7,12 +7,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="toolbox" content="cat=calculator,industry=finance,icon=🧮,bg=#e8eaf6">
-<meta name="description" content="單利計算器是一款免費的線上金融財務工具，輸入本金 P、年利率 r 與年限 t，按 I = P×r×t 計算單利及本利和，適用於短期借貸、存款利息的簡易估算與教學演示。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta name="description" content="單利計算器是一款免費的線上金融財務工具，輸入本金 P、年利率 r 與年限 t，按 I = P×r×t 計算單利及本利和，適用於短期借貸、存款利息的簡易估算與教學演示。">
 <meta name="keywords" content="單利計算器,單利計算器線上,線上單利計算器,數學計算,金融財務,線上工具,免費工具,ToolBox">
 <meta name="robots" content="index,follow">
 <link rel="canonical" href="https://tools.dicomp.net/zh-tw/tools/finance/simple-interest.html">
 <meta property="og:title" content="單利計算器 - 免費線上金融財務工具">
-<meta property="og:description" content="單利計算器是一款免費的線上金融財務工具，輸入本金 P、年利率 r 與年限 t，按 I = P×r×t 計算單利及本利和，適用於短期借貸、存款利息的簡易估算與教學演示。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta property="og:description" content="單利計算器是一款免費的線上金融財務工具，輸入本金 P、年利率 r 與年限 t，按 I = P×r×t 計算單利及本利和，適用於短期借貸、存款利息的簡易估算與教學演示。">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://tools.dicomp.net/zh-tw/tools/finance/simple-interest.html">
 <meta name="twitter:card" content="summary">
@@ -38,9 +38,9 @@
 <meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
 <meta name="twitter:image:alt" content="ToolBox - 5000+免費線上工具">
     <meta name="twitter:title" content="單利計算器 - 免費線上金融財務工具">
-    <meta name="twitter:description" content="單利計算器是一款免費的線上金融財務工具，輸入本金 P、年利率 r 與年限 t，按 I = P×r×t 計算單利及本利和，適用於短期借貸、存款利息的簡易估算與教學演示。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+    <meta name="twitter:description" content="單利計算器是一款免費的線上金融財務工具，輸入本金 P、年利率 r 與年限 t，按 I = P×r×t 計算單利及本利和，適用於短期借貸、存款利息的簡易估算與教學演示。">
 <!-- TOOLBOX-WEBAPP-LD -->
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"單利計算器","url":"https://tools.dicomp.net/zh-tw/tools/finance/simple-interest.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"單利計算器是一款免費的線上金融財務工具，輸入本金 P、年利率 r 與年限 t，按 I = P×r×t 計算單利及本利和，適用於短期借貸、存款利息的簡易估算與教學演示。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"單利計算器","url":"https://tools.dicomp.net/zh-tw/tools/finance/simple-interest.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"單利計算器是一款免費的線上金融財務工具，輸入本金 P、年利率 r 與年限 t，按 I = P×r×t 計算單利及本利和，適用於短期借貸、存款利息的簡易估算與教學演示。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
@@ -274,7 +274,14 @@ function fmt(n){
 }
 
 function calc(){
-  const P = parseFloat(document.getElementById('principal').value) || 0;
+  // 第203批：本金区分「未填写」与显式输入的合法 0。空态只提示、不产生 0 本金结论，
+  // 清结果区避免旧结果复活；显式输入 0 仍照常计算。
+  const __pRaw = String(document.getElementById('principal').value==null?'':document.getElementById('principal').value).trim();
+  if(__pRaw===''){
+    document.getElementById('resultBox').innerHTML=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter data":"请输入数据");
+    return;
+  }
+  const P = parseFloat(__pRaw);
   const r = parseFloat(document.getElementById('rate').value) || 0;
   const t = parseFloat(document.getElementById('years').value) || 0;
   const mode = document.getElementById('mode').value;
@@ -329,6 +336,8 @@ function calc(){
 }
 
 function clearAll(){
+  // F-N103 复核失败重做：先取消待执行的节流任务，否则清空后 1s 定时器到期会把占位文案重新记入历史。
+  clearTimeout(__simple_interest_timer); __simple_interest_timer=null;
   document.getElementById('principal').value = '';
   document.getElementById('rate').value = '';
   document.getElementById('years').value = '';
@@ -381,9 +390,18 @@ function __simple_interestFullResText(){
     return t;
 }
 function __simple_interestScore(t){
-    var s=String(t||'');
-    if(/[❌]|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
-    return 1;
+    var __fs=String(t||'');
+    if(/❌|校验失败|含非法字符|请填写「|后再计算|格式不符|长度必须|不能为 0|不能全为 0|年龄顺序无效|校验和失败|mod-97 校验失败|Luhn 校验失败|Waiting|Please enter|must be/.test(__fs)) return 0;
+    // 第203批：区分「未填写」与显式输入的合法 0。空本金只提示、不算结论，历史与导出不得冒充成功。
+    var pEl=document.getElementById('principal');
+    var pRaw=pEl?String(pEl.value==null?'':pEl.value).trim():'';
+    if(pRaw==='') return NaN;                              // 空 → 无结论（MANUAL）
+    var P=parseFloat(pRaw);
+    if(!isFinite(P)||P<0) return 0;
+    var r=parseFloat(document.getElementById('rate').value);
+    var y=parseFloat(document.getElementById('years').value);
+    if(!isFinite(r)||r<0||!isFinite(y)||y<0) return 0;    // t=0 是合法输入（与 calc 的 <0 拒绝一致）
+    return 1;                                              // 显式 0 本金合法，正常计算
 }
 function __simple_interestTime(t){
     var d=new Date(t);

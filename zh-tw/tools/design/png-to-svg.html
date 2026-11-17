@@ -7,12 +7,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="toolbox" content="cat=image,industry=design,icon=🖼️,bg=#e8f5e9">
-<meta name="description" content="PNG 轉 SVG是一款免費的線上設計創意工具，將點陣圖 PNG 轉換為向量 SVG 格式（描摹或嵌入），便於縮放無損與前端使用，純前端本地處理不上傳原圖。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta name="description" content="PNG 轉 SVG是一款免費的線上設計創意工具，將點陣圖 PNG 轉換為向量 SVG 格式（描摹或嵌入），便於縮放無損與前端使用，純前端本地處理不上傳原圖。">
 <meta name="keywords" content="PNG 轉 SVG,PNG 轉 SVG線上,線上PNG 轉 SVG,圖片處理,設計創意,PNG,SVG,線上工具,免費工具,ToolBox">
 <meta name="robots" content="index,follow">
 <link rel="canonical" href="https://tools.dicomp.net/zh-tw/tools/design/png-to-svg.html">
 <meta property="og:title" content="PNG 轉 SVG - 向量 SVG 格式">
-<meta property="og:description" content="PNG 轉 SVG是一款免費的線上設計創意工具，將點陣圖 PNG 轉換為向量 SVG 格式（描摹或嵌入），便於縮放無損與前端使用，純前端本地處理不上傳原圖。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta property="og:description" content="PNG 轉 SVG是一款免費的線上設計創意工具，將點陣圖 PNG 轉換為向量 SVG 格式（描摹或嵌入），便於縮放無損與前端使用，純前端本地處理不上傳原圖。">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://tools.dicomp.net/zh-tw/tools/design/png-to-svg.html">
 <meta name="twitter:card" content="summary">
@@ -42,9 +42,9 @@
 <meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
 <meta name="twitter:image:alt" content="ToolBox - 5000+免費線上工具">
     <meta name="twitter:title" content="PNG 轉 SVG - 向量 SVG 格式">
-    <meta name="twitter:description" content="PNG 轉 SVG是一款免費的線上設計創意工具，將點陣圖 PNG 轉換為向量 SVG 格式（描摹或嵌入），便於縮放無損與前端使用，純前端本地處理不上傳原圖。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+    <meta name="twitter:description" content="PNG 轉 SVG是一款免費的線上設計創意工具，將點陣圖 PNG 轉換為向量 SVG 格式（描摹或嵌入），便於縮放無損與前端使用，純前端本地處理不上傳原圖。">
 <!-- TOOLBOX-WEBAPP-LD -->
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"PNG 轉 SVG","url":"https://tools.dicomp.net/zh-tw/tools/design/png-to-svg.html","applicationCategory":"MultimediaApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"PNG 轉 SVG是一款免費的線上設計創意工具，將點陣圖 PNG 轉換為向量 SVG 格式（描摹或嵌入），便於縮放無損與前端使用，純前端本地處理不上傳原圖。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"PNG 轉 SVG","url":"https://tools.dicomp.net/zh-tw/tools/design/png-to-svg.html","applicationCategory":"MultimediaApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"PNG 轉 SVG是一款免費的線上設計創意工具，將點陣圖 PNG 轉換為向量 SVG 格式（描摹或嵌入），便於縮放無損與前端使用，純前端本地處理不上傳原圖。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
@@ -219,22 +219,28 @@
 </div>
 <script>
 let lastSVG = '';
-function __pngReset(){
+let __pngGen = 0;   // 生成代次：换图 / 改参数 / 重新生成时自增，使在途异步回调失效
+function __pngEn(){ try{ return (typeof TBKit!=='undefined' && TBKit.util.isEn()); }catch(e){ return false; } }
+function __pngInvalidate(){
+  __pngGen++;
   lastSVG = '';
   const _c = document.getElementById('svgCode');
   if(_c) _c.value = '';
+  const _p = document.getElementById('preview');
+  if(_p) _p.textContent = __pngEn() ? 'Upload an image' : '请上传图片';
 }
 function __pngBindReset(){
-  try{ const f=document.getElementById('fileInput'); if(f&&f.addEventListener) f.addEventListener('change', __pngReset); }catch(e){}
-  try{ const b=document.getElementById('blockSize'); if(b&&b.addEventListener) b.addEventListener('change', __pngReset); }catch(e){}
-  try{ const a=document.getElementById('alphaTh'); if(a&&a.addEventListener) a.addEventListener('change', __pngReset); }catch(e){}
+  try{ const f=document.getElementById('fileInput'); if(f&&f.addEventListener) f.addEventListener('change', __pngInvalidate); }catch(e){}
+  try{ const b=document.getElementById('blockSize'); if(b&&b.addEventListener) b.addEventListener('change', __pngInvalidate); }catch(e){}
+  try{ const a=document.getElementById('alphaTh'); if(a&&a.addEventListener) a.addEventListener('change', __pngInvalidate); }catch(e){}
 }
 __pngBindReset();
 function generate(){
   const file = document.getElementById('fileInput').files[0];
   const preview = document.getElementById('preview');
-  if(!file){ preview.textContent = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Upload an image":"请上传图片"); return; }
-  lastSVG = '';
+  if(!file){ __pngInvalidate(); return; }  // 清空输入同样使在途任务失效
+  __pngInvalidate();                       // 重新生成：旧在途任务全部作废，清结果 / 面板
+  const myGen = __pngGen;                  // 捕获本次代次
   const blockRaw = parseInt(document.getElementById('blockSize').value, 10);
   const block = Number.isNaN(blockRaw) ? 8 : Math.min(40, Math.max(1, blockRaw));
   const alphaRaw = parseInt(document.getElementById('alphaTh').value, 10);
@@ -243,8 +249,10 @@ function generate(){
   if(alphaRaw !== alphaTh){ const _a = document.getElementById('alphaTh'); if(_a) _a.value = alphaTh; }
   const reader = new FileReader();
   reader.onload = (e) => {
+    if(myGen !== __pngGen) return;         // 过期 FileReader 回调丢弃
     const img = new Image();
     img.onload = () => {
+      if(myGen !== __pngGen) return;       // 过期 Image 回调丢弃（换图 / 改参数 / 重新生成）
       const w = Math.max(1, Math.floor(img.width / block));
       const h = Math.max(1, Math.floor(img.height / block));
       const canvas = document.createElement('canvas');
@@ -312,7 +320,7 @@ function __png_to_svgSnap(){
     for(var i=0;i<els.length;i++){
         var e=els[i];
         var t=(e.type||'').toLowerCase();
-        if(t==='button'||t==='submit'||t==='hidden') continue;
+        if(t==='button'||t==='submit'||t==='hidden'||t==='file') continue;  // file input 不可程序赋值，不入快照
         var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
         if(v!==''&&v!=null) out[e.id]=v;
     }
@@ -358,6 +366,7 @@ function __png_to_svgRender(keys,rk,en){
                     var e=document.getElementById(k);
                     if(!e) continue;
                     var t=(e.type||'').toLowerCase();
+                    if(t==='file') continue;  // 跳过 file input，避免赋值抛 InvalidStateError 中断回放
                     if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
                     else{e.value=rec[k];}
                 }

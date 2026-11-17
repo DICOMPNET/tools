@@ -7,12 +7,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="toolbox" content="cat=text,industry=finance,icon=💰,bg=#e8eaf6">
-<meta name="description" content="自動換行是一款免費的線上金融財務工具，報表備註與合同條款按固定寬度排版、固定寬度文本欄位對齊、中英文混排窄欄折行。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta name="description" content="自動換行是一款免費的線上金融財務工具，報表備註與合同條款按固定寬度排版、固定寬度文本欄位對齊、中英文混排窄欄折行。適合工程估算、日常換算與快速複核，結果可一鍵複製。">
 <meta name="keywords" content="自動換行,自動換行線上,線上自動換行,文本處理,金融財務,線上工具,免費工具,ToolBox">
 <meta name="robots" content="index,follow">
 <link rel="canonical" href="https://tools.dicomp.net/zh-tw/tools/finance/word-wrap.html">
 <meta property="og:title" content="自動換行 - 免費線上金融財務工具">
-<meta property="og:description" content="自動換行是一款免費的線上金融財務工具，報表備註與合同條款按固定寬度排版、固定寬度文本欄位對齊、中英文混排窄欄折行。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta property="og:description" content="自動換行是一款免費的線上金融財務工具，報表備註與合同條款按固定寬度排版、固定寬度文本欄位對齊、中英文混排窄欄折行。適合工程估算、日常換算與快速複核，結果可一鍵複製。">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://tools.dicomp.net/zh-tw/tools/finance/word-wrap.html">
 <meta name="twitter:card" content="summary">
@@ -41,9 +41,9 @@
 <meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
 <meta name="twitter:image:alt" content="ToolBox - 5000+免費線上工具">
     <meta name="twitter:title" content="自動換行 - 免費線上金融財務工具">
-    <meta name="twitter:description" content="自動換行是一款免費的線上金融財務工具，報表備註與合同條款按固定寬度排版、固定寬度文本欄位對齊、中英文混排窄欄折行。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+    <meta name="twitter:description" content="自動換行是一款免費的線上金融財務工具，報表備註與合同條款按固定寬度排版、固定寬度文本欄位對齊、中英文混排窄欄折行。適合工程估算、日常換算與快速複核，結果可一鍵複製。">
 <!-- TOOLBOX-WEBAPP-LD -->
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"自動換行","url":"https://tools.dicomp.net/zh-tw/tools/finance/word-wrap.html","applicationCategory":"DeveloperApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"自動換行是一款免費的線上金融財務工具，報表備註與合同條款按固定寬度排版、固定寬度文本欄位對齊、中英文混排窄欄折行。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"自動換行","url":"https://tools.dicomp.net/zh-tw/tools/finance/word-wrap.html","applicationCategory":"DeveloperApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"自動換行是一款免費的線上金融財務工具，報表備註與合同條款按固定寬度排版、固定寬度文本欄位對齊、中英文混排窄欄折行。適合工程估算、日常換算與快速複核，結果可一鍵複製。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
@@ -149,6 +149,7 @@
 <div class="tbk-tabbar" role="tablist">
   <button type="button" class="tbk-tab" data-pane="res">結果</button>
   <button type="button" class="tbk-tab" data-pane="tbl">資料表</button>
+  <button type="button" class="tbk-tab" data-pane="pre">預設</button>
   <button type="button" class="tbk-tab" data-pane="his">歷史</button>
 </div>
 <div class="card">
@@ -292,6 +293,26 @@ function wrap(){
   const indent = document.getElementById('indent').checked;
   const hanging = document.getElementById('hanging').checked;
 
+  // 第205批：prefixFor 固定 2 空格缩进，缩进计入可用宽度。宽度被缩进占满时（如 width=2 且
+  // 勾选首行/悬挂缩进）不能再用 Math.max(1, width-indent) 强取字符、静默输出长度 3 的超宽行。
+  // 此时明确提示并停止折行，四种模式统一生效；单个码点自身超过可用宽度的情形由 takeByLen
+  // 整字输出、不拆码点、也不会无进展（见 takeByLen 的 i===0 兜底），同属「无法容纳字符」边界。
+  const __indentW = (indent || hanging) ? 2 : 0;
+  if(width <= __indentW){
+    result.textContent = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())
+      ? "⚠ Width is too small to fit the 2-space indent and any character; a single code point wider than the width is kept whole (never split). Increase the width or turn off indentation."
+      : "⚠ 宽度不足以容纳 2 空格缩进及任意字符；单个码点自身超过宽度时整字输出、不拆分码点。请增大宽度或取消首行/悬挂缩进。");
+    return;
+  }
+
+  // 第205批：宽度能容纳缩进、但单个码点自身宽于「可用宽度」时，takeByLen 的 i===0 兜底会整码点
+  // 输出（不拆代理项、且推进 rest 不会无进展），该行必然超宽。此时不能静默，须单独说明。
+  const __availMax = width - __indentW;
+  let __overwide = false;
+  for(const __ch of text){
+    if(visualLen(__ch) > __availMax){ __overwide = true; break; }
+  }
+
   const paragraphs = keepExisting ? text.split('\n') : [text.replace(/\n/g, ' ')];
   const out = [];
 
@@ -354,7 +375,11 @@ function wrap(){
       flush();
     }
   });
-  result.textContent = out.join('\n');
+  result.textContent = out.join('\n') + (__overwide
+    ? ('\n' + ((typeof TBKit!=='undefined'&&TBKit.util.isEn())
+        ? '⚠ Note: a single code point is wider than the available width; it is kept whole (never split), so that line may still exceed the set width.'
+        : '⚠ 说明：存在单个码点宽于可用宽度，已整字输出（不拆分码点），该行可能仍超过设定宽度。'))
+    : '');
 }
 
 function copyResult(ev){
@@ -412,9 +437,17 @@ function __word_wrapFullResText(){
     return t;
 }
 function __word_wrapScore(t){
-    var s=String(t||'');
-    if(/[❌]|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
-    return 1;
+    // 第205批/第113批：按真实控件状态判定，绝不解析用户输入全文——折行工具输入可为任意文本，
+    // 其中的「无效/失败/Failed/Invalid」等词不应污染历史结论；旧全文词表会把这些正常输入误记未通过。
+    var inp=document.getElementById('input');
+    var raw=inp?String(inp.value==null?'':inp.value):'';
+    if(!raw.trim()) return NaN;                 // 空输入：等待态，MANUAL（无结论）
+    var wEl=document.getElementById('width');
+    var w=parseInt(wEl?String(wEl.value):'20',10); if(!isFinite(w)) w=20; w=Math.max(1,w);
+    var ind=document.getElementById('indent'),han=document.getElementById('hanging');
+    var indentW=((ind&&ind.checked)||(han&&han.checked))?2:0;
+    if(w<=indentW) return 0;                    // 宽度容纳不下 2 空格缩进：拒绝态（第205批）
+    return 1;                                   // 成功折行（含单码点整字输出的边界说明）
 }
 function __word_wrapTime(t){
     var d=new Date(t);
@@ -599,8 +632,9 @@ else document.addEventListener('DOMContentLoaded', __word_wrapBoot);
 
 <script>/*TBKIT-INJECT-START*/
 (function(){
-  var P={"res": ["result", "word_wrapChart"], "tbl": ["word_wrapTable"], "his": ["word_wrapHist"]};
+  var P={"res": ["result", "word_wrapChart"], "tbl": ["word_wrapTable"], "pre": ["word_wrapPresets"], "his": ["word_wrapHist"]};
   var L={res:['结果','Result'],chart:['图表','Chart'],tbl:['数据表','Data'],pre:['预设','Presets'],his:['历史','History']};
+
   function tabify(){
     var bar=document.querySelector('.tbk-tabbar');
     if(!bar||!bar.querySelectorAll) return;

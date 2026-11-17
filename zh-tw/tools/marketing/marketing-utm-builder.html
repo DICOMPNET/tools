@@ -7,12 +7,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="toolbox" content="cat=generate,industry=marketing,icon=📢,bg=#e3f2fd">
-<meta name="description" content="UTM引數構建器是一款免費的線上營銷推廣工具，輸入基礎URL與來源、媒介、活動等UTM引數，單條或按行批次生成標準UTM追蹤連結，用於在廣告分析中區分不同流量來源與活動。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta name="description" content="UTM引數構建器是一款免費的線上營銷推廣工具，輸入基礎URL與來源、媒介、活動等UTM引數，單條或按行批次生成標準UTM追蹤連結，用於在廣告分析中區分不同流量來源與活動。">
 <meta name="keywords" content="UTM引數構建器,UTM引數構建器線上,線上UTM引數構建器,生成器,營銷推廣,線上工具,免費工具,ToolBox">
 <meta name="robots" content="index,follow">
 <link rel="canonical" href="https://tools.dicomp.net/zh-tw/tools/marketing/marketing-utm-builder.html">
 <meta property="og:title" content="UTM引數構建器 - 標準UTM追蹤連結">
-<meta property="og:description" content="UTM引數構建器是一款免費的線上營銷推廣工具，輸入基礎URL與來源、媒介、活動等UTM引數，單條或按行批次生成標準UTM追蹤連結，用於在廣告分析中區分不同流量來源與活動。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta property="og:description" content="UTM引數構建器是一款免費的線上營銷推廣工具，輸入基礎URL與來源、媒介、活動等UTM引數，單條或按行批次生成標準UTM追蹤連結，用於在廣告分析中區分不同流量來源與活動。">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://tools.dicomp.net/zh-tw/tools/marketing/marketing-utm-builder.html">
 <meta name="twitter:card" content="summary">
@@ -35,9 +35,9 @@
 <meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
 <meta name="twitter:image:alt" content="ToolBox - 5000+免費線上工具">
     <meta name="twitter:title" content="UTM引數構建器 - 標準UTM追蹤連結">
-    <meta name="twitter:description" content="UTM引數構建器是一款免費的線上營銷推廣工具，輸入基礎URL與來源、媒介、活動等UTM引數，單條或按行批次生成標準UTM追蹤連結，用於在廣告分析中區分不同流量來源與活動。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+    <meta name="twitter:description" content="UTM引數構建器是一款免費的線上營銷推廣工具，輸入基礎URL與來源、媒介、活動等UTM引數，單條或按行批次生成標準UTM追蹤連結，用於在廣告分析中區分不同流量來源與活動。">
 <!-- TOOLBOX-WEBAPP-LD -->
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"UTM引數構建器","url":"https://tools.dicomp.net/zh-tw/tools/marketing/marketing-utm-builder.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"UTM引數構建器是一款免費的線上營銷推廣工具，輸入基礎URL與來源、媒介、活動等UTM引數，單條或按行批次生成標準UTM追蹤連結，用於在廣告分析中區分不同流量來源與活動。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"UTM引數構建器","url":"https://tools.dicomp.net/zh-tw/tools/marketing/marketing-utm-builder.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"UTM引數構建器是一款免費的線上營銷推廣工具，輸入基礎URL與來源、媒介、活動等UTM引數，單條或按行批次生成標準UTM追蹤連結，用於在廣告分析中區分不同流量來源與活動。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
@@ -222,7 +222,9 @@ function __utmBuildLink(url, source, medium, campaign, term, content){
   const qIdx = base.indexOf('?');
   const pathOnly = qIdx >= 0 ? base.slice(0, qIdx) : base;
   const kept = new URLSearchParams(qIdx >= 0 ? base.slice(qIdx + 1) : '');
-  pairs.forEach(function(p){ kept.delete(p[0]); });
+  // MS-N32 复核重做：先删除全部受管 UTM 键（含本次留空的），再只写非空项；
+  // 否则留空的 medium/campaign 会继承 URL 里的旧值，页面却提示缺失，导致错误归因。
+  ['utm_source','utm_medium','utm_campaign','utm_term','utm_content'].forEach(function(k){ kept.delete(k); });
   pairs.forEach(function(p){ kept.set(p[0], p[1]); });
   return pathOnly + '?' + kept.toString() + hash;
 }

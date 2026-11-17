@@ -7,13 +7,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="toolbox" content="cat=finance,industry=hotel,icon=🧮,bg=#e3f2fd">
-<meta name="description" content="出租率RevPAR計算是一款免費的線上酒店管理工具，輸入售出/可用客房數與收入，按 OCC、ADR 計算出租率與每可售房收入（RevPAR），用於酒店經營效益分析。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta name="description" content="出租率RevPAR計算是一款免費的線上酒店管理工具，輸入售出/可用客房數與收入，按 OCC、ADR 計算出租率與每可售房收入（RevPAR），用於酒店經營效益分析。">
 <meta name="keywords" content="出租率,RevPAR,ADR,酒店經營,客房出租率,平均房價,酒店與旅遊,線上工具,免費工具,ToolBox">
 <meta name="robots" content="index,follow">
 <link rel="canonical" href="https://tools.dicomp.net/zh-tw/tools/hotel/occupancy-revpar.html">
 <title>出租率與 RevPAR 計算 - ADR 計算出租率與每可售房收入</title>
 <meta property="og:title" content="出租率與 RevPAR 計算 - ADR 計算出租率與每可售房收入">
-<meta property="og:description" content="出租率RevPAR計算是一款免費的線上酒店管理工具，輸入售出/可用客房數與收入，按 OCC、ADR 計算出租率與每可售房收入（RevPAR），用於酒店經營效益分析。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta property="og:description" content="出租率RevPAR計算是一款免費的線上酒店管理工具，輸入售出/可用客房數與收入，按 OCC、ADR 計算出租率與每可售房收入（RevPAR），用於酒店經營效益分析。">
 <meta property="og:url" content="https://tools.dicomp.net/zh-tw/tools/hotel/occupancy-revpar.html">
 <meta name="twitter:card" content="summary">
 <meta name="theme-color" content="#FF6B35">
@@ -35,9 +35,9 @@
 <meta name="twitter:image:alt" content="ToolBox - 5000+免費線上工具">
     <meta property="og:type" content="website">
     <meta name="twitter:title" content="出租率與 RevPAR 計算 - ADR 計算出租率與每可售房收入">
-    <meta name="twitter:description" content="出租率RevPAR計算是一款免費的線上酒店管理工具，輸入售出/可用客房數與收入，按 OCC、ADR 計算出租率與每可售房收入（RevPAR），用於酒店經營效益分析。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+    <meta name="twitter:description" content="出租率RevPAR計算是一款免費的線上酒店管理工具，輸入售出/可用客房數與收入，按 OCC、ADR 計算出租率與每可售房收入（RevPAR），用於酒店經營效益分析。">
 <!-- TOOLBOX-WEBAPP-LD -->
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"出租率RevPAR計算","url":"https://tools.dicomp.net/zh-tw/tools/hotel/occupancy-revpar.html","applicationCategory":"FinanceApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"出租率RevPAR計算是一款免費的線上酒店管理工具，輸入售出/可用客房數與收入，按 OCC、ADR 計算出租率與每可售房收入（RevPAR），用於酒店經營效益分析。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"出租率RevPAR計算","url":"https://tools.dicomp.net/zh-tw/tools/hotel/occupancy-revpar.html","applicationCategory":"FinanceApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"出租率RevPAR計算是一款免費的線上酒店管理工具，輸入售出/可用客房數與收入，按 OCC、ADR 計算出租率與每可售房收入（RevPAR），用於酒店經營效益分析。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
@@ -241,31 +241,39 @@ function fmt(n){
   return n.toLocaleString('zh-CN', {maximumFractionDigits:2});
 }
 
+function readMetrics(){
+  const raw=function(id){return String(document.getElementById(id).value).trim();};
+  const totalRaw=raw('totalRooms'), soldRaw=raw('soldRooms'), revenueRaw=raw('revenue'), daysRaw=raw('days');
+  const totalRooms=totalRaw===''?NaN:Number(totalRaw);
+  const soldRooms=soldRaw===''?NaN:Number(soldRaw);
+  const revenue=revenueRaw===''?NaN:Number(revenueRaw);
+  const days=daysRaw===''?NaN:Number(daysRaw);
+  if(!Number.isInteger(totalRooms)||totalRooms<1||totalRooms>10000){
+    return {error:'请检查输入：总房量需在 1–10000 间之间'};
+  }
+  if(!Number.isInteger(days)||days<1||days>366){
+    return {error:'请检查输入：统计天数需在 1–366 天之间'};
+  }
+  if(!isFinite(revenue)||revenue<0){
+    return {error:revenueRaw===''?'请检查输入：客房收入须填写有效数值':'请检查输入：客房收入不能为负数'};
+  }
+  if(!Number.isInteger(soldRooms)||soldRooms<0){
+    return {error:'请检查输入：售出间夜须填写有效整数'};
+  }
+  const availableRooms=totalRooms*days;
+  if(soldRooms>availableRooms){
+    return {error:'请检查输入：售出间夜不应超过可用间夜'};
+  }
+  return {totalRooms:totalRooms,soldRooms:soldRooms,revenue:revenue,days:days,availableRooms:availableRooms};
+}
+
 function calc(){
-  const totalRooms = parseFloat(document.getElementById('totalRooms').value) || 0;
-  const soldRooms = parseFloat(document.getElementById('soldRooms').value) || 0;
-  const revenue = parseFloat(document.getElementById('revenue').value) || 0;
-  const daysRaw = parseInt(document.getElementById('days').value, 10);
-  const days = isNaN(daysRaw) ? 0 : daysRaw;
-
-  const availableRooms = totalRooms * days;
-  if(totalRooms <= 0 || totalRooms > 10000){
-    document.getElementById('result').innerHTML='<p style="color:var(--danger);">请检查输入：总房量需在 1–10000 间之间</p>';
+  const m=readMetrics();
+  if(m.error){
+    document.getElementById('result').innerHTML='<p style="color:var(--danger);">'+m.error+'</p>';
     return;
   }
-  if(!(days >= 1 && days <= 366)){
-    document.getElementById('result').innerHTML='<p style="color:var(--danger);">请检查输入：统计天数需在 1–366 天之间</p>';
-    return;
-  }
-  if(revenue < 0){
-    document.getElementById('result').innerHTML='<p style="color:var(--danger);">请检查输入：客房收入不能为负数</p>';
-    return;
-  }
-  if(soldRooms < 0 || soldRooms > availableRooms){
-    document.getElementById('result').innerHTML='<p style="color:var(--danger);">请检查输入：售出间夜不应超过可用间夜</p>';
-    return;
-  }
-
+  const totalRooms=m.totalRooms, soldRooms=m.soldRooms, revenue=m.revenue, availableRooms=m.availableRooms;
   const occ = soldRooms / availableRooms * 100;
   const adr = soldRooms > 0 ? revenue / soldRooms : 0;
   const revpar = availableRooms > 0 ? revenue / availableRooms : 0;
@@ -290,16 +298,12 @@ function calc(){
 }
 
 function copyResult(){
-  const totalRooms = parseFloat(document.getElementById('totalRooms').value) || 0;
-  const soldRooms = parseFloat(document.getElementById('soldRooms').value) || 0;
-  const revenue = parseFloat(document.getElementById('revenue').value) || 0;
-  const daysRaw = parseInt(document.getElementById('days').value, 10);
-  const days = isNaN(daysRaw) ? 0 : daysRaw;
-  const availableRooms = totalRooms * days;
-  if(totalRooms <= 0 || totalRooms > 10000 || days < 1 || days > 366 || revenue < 0 || soldRooms < 0 || soldRooms > availableRooms){
+  const m=readMetrics();
+  if(m.error){
     ToolBox.showToast('请先修正输入并通过校验', 'warning');
     return;
   }
+  const soldRooms=m.soldRooms, revenue=m.revenue, availableRooms=m.availableRooms;
   const occ = soldRooms / availableRooms * 100;
   const adr = soldRooms > 0 ? revenue / soldRooms : 0;
   const revpar = availableRooms > 0 ? revenue / availableRooms : 0;

@@ -10,10 +10,10 @@
 <title>XML 轉 YAML 轉換器 - 免費線上開發工具</title>
 <link rel="canonical" href="https://tools.dicomp.net/zh-tw/tools/it/xml-to-yaml.html">
 <meta property="og:title" content="XML 轉 YAML 轉換器 - 免費線上開發工具">
-<meta property="og:description" content="XML 轉 YAML 轉換器是一款免費的線上IT 開發工具，在配置遷移、介面聯調時常需要把 XML 轉成更易讀的 YAML。貼上 XML，立即得到結構等價的 YAML。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta property="og:description" content="XML 轉 YAML 轉換器是一款免費的線上IT 開發工具，在配置遷移、介面聯調時常需要把 XML 轉成更易讀的 YAML。貼上 XML，立即得到結構等價的 YAML。">
 <meta property="og:url" content="https://tools.dicomp.net/zh-tw/tools/it/xml-to-yaml.html">
 <meta name="twitter:card" content="summary">
-<meta name="description" content="XML 轉 YAML 轉換器是一款免費的線上IT 開發工具，在配置遷移、介面聯調時常需要把 XML 轉成更易讀的 YAML。貼上 XML，立即得到結構等價的 YAML。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta name="description" content="XML 轉 YAML 轉換器是一款免費的線上IT 開發工具，在配置遷移、介面聯調時常需要把 XML 轉成更易讀的 YAML。貼上 XML，立即得到結構等價的 YAML。">
 <link rel="stylesheet" href="/css/common.css">
 <script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="/js/common.js" defer></script>
@@ -23,7 +23,7 @@
 <meta property="og:image:height" content="630">
 <meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
 <!-- TOOLBOX-WEBAPP-LD -->
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"XML 轉 YAML 轉換器","url":"https://tools.dicomp.net/zh-tw/tools/it/xml-to-yaml.html","applicationCategory":"DeveloperApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"XML 轉 YAML 轉換器是一款免費的線上IT 開發工具，在配置遷移、介面聯調時常需要把 XML 轉成更易讀的 YAML。貼上 XML，立即得到結構等價的 YAML。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"XML 轉 YAML 轉換器","url":"https://tools.dicomp.net/zh-tw/tools/it/xml-to-yaml.html","applicationCategory":"DeveloperApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"XML 轉 YAML 轉換器是一款免費的線上IT 開發工具，在配置遷移、介面聯調時常需要把 XML 轉成更易讀的 YAML。貼上 XML，立即得到結構等價的 YAML。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
 <!-- TOOLBOX-SECURITY -->
@@ -40,7 +40,7 @@
 <!-- TOOLBOX-I18N-SCRIPT -->
 
 <meta name="twitter:title" content="XML 轉 YAML 轉換器 - 免費線上開發工具">
-<meta name="twitter:description" content="XML 轉 YAML 轉換器是一款免費的線上IT 開發工具，在配置遷移、介面聯調時常需要把 XML 轉成更易讀的 YAML。貼上 XML，立即得到結構等價的 YAML。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta name="twitter:description" content="XML 轉 YAML 轉換器是一款免費的線上IT 開發工具，在配置遷移、介面聯調時常需要把 XML 轉成更易讀的 YAML。貼上 XML，立即得到結構等價的 YAML。">
 
 <meta property="og:type" content="website">
 
@@ -111,7 +111,7 @@
       </div>
       <div>
         <label for="indent">縮排</label>
-        <select id="indent" style="width:100%;"><option value="2">2 空格</option><option value="4">4 空格</option><option value="tab">Tab</option></select>
+        <select id="indent" style="width:100%;"><option value="2">2 空格</option><option value="4">4 空格</option></select>
       </div>
       <div>
         <label for="sort">按鍵名排序輸出</label>
@@ -389,6 +389,9 @@ function yVal(v){
   if(typeof v==='string'){ return yNeedQ(v)? ('"'+v.replace(/"/g,'\\"')+'"') : v; }
   return String(v);
 }
+/** Array of objects: YAML 中 `- key:` 的键从「短横 + 空格」后开始，嵌套子节点还要再进一层；
+ *  旧实现首项用 pad+'- '、子层却用 pad+unit（2 空格），与键同列 ⇒ 子键被当成同级兄弟；
+ *  4 空格模式更会把后续键缩到 4 列、与首键 2 列错位。这里显式按「短横占 2 列」对齐。 */
 function dumpYaml(node,pad,sort,isRoot,unit){
   if(isRoot===undefined)isRoot=true;
   if(unit===undefined) unit='  ';
@@ -398,8 +401,9 @@ function dumpYaml(node,pad,sort,isRoot,unit){
       var it=node[i];
       if(it!==null && typeof it==='object' && !(it instanceof Array)){
         var ks=Object.keys(it); if(sort)ks=ks.slice().sort();
-      for(var j=0;j<ks.length;j++){ var kk=ks[j]; var vv=it[kk]; var head=(j===0?pad+'- ':pad+unit);
-        if(vv instanceof Array || (vv!==null && typeof vv==='object')) out+=head+yKey(kk)+':\n'+dumpYaml(vv,pad+unit,sort,false,unit);
+      for(var j=0;j<ks.length;j++){ var kk=ks[j]; var vv=it[kk]; var head=(j===0?pad+'- ':pad+'  ');
+        var childPad=pad+'    ';
+        if(vv instanceof Array || (vv!==null && typeof vv==='object')) out+=head+yKey(kk)+':\n'+dumpYaml(vv,childPad,sort,false,unit);
         else out+=head+yKey(kk)+': '+yVal(vv)+'\n'; }
       } else out+=pad+'- '+yVal(it)+'\n';
     }
@@ -420,7 +424,8 @@ var src=document.getElementById('source').value||'';
 if(!src.trim()){ document.getElementById('result').innerHTML='<p class="muted">请输入 XML 文本</p>'; return; }
 var obj=xmlToJson(src);
 if(obj && obj.__err){ const __g3='<p class="muted">解析失败：'+escH(obj.__err)+'</p>';document.getElementById('result').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—')); return; }
-var pad = document.getElementById('indent').value==='tab' ? '\t' : (' ').repeat(parseInt(document.getElementById('indent').value||'2',10));
+// YAML 规范禁止 Tab 缩进：只提供 2/4 空格；历史值 tab / 非法值一律回退 2 空格
+var pad = (' ').repeat(parseInt(document.getElementById('indent').value||'2',10)||2);
 var sort=document.getElementById('top_1').checked;
 var yaml=dumpYaml(obj,'',sort,true,pad);
 const __g4='<div class="result-title">YAML 输出</div><pre class="code-block">'+escH(yaml)+'</pre>';document.getElementById('result').innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));}

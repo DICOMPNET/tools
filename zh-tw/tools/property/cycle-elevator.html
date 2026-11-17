@@ -7,11 +7,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="toolbox" content="cat=text,industry=property,icon=⏱️,bg=#efebe9">
-<meta name="description" content="電梯（維保/年檢）週期是一款免費的線上物業管理工具，電梯維保與年檢週期管理，按半月/季度/半年/年度維保與法定年檢自動推算下次到期，逾期合規預警。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta name="description" content="電梯（維保/年檢）週期是一款免費的線上物業管理工具，電梯維保與年檢週期管理，按半月/季度/半年/年度維保與法定年檢自動推算下次到期，逾期合規預警。">
 <title>電梯（維保/年檢）週期 - 電梯維保與年檢週期管理</title>
 <link rel="canonical" href="https://tools.dicomp.net/zh-tw/tools/property/cycle-elevator.html">
 <meta property="og:title" content="電梯（維保/年檢）週期 - 電梯維保與年檢週期管理">
-<meta property="og:description" content="電梯（維保/年檢）週期是一款免費的線上物業管理工具，電梯維保與年檢週期管理，按半月/季度/半年/年度維保與法定年檢自動推算下次到期，逾期合規預警。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta property="og:description" content="電梯（維保/年檢）週期是一款免費的線上物業管理工具，電梯維保與年檢週期管理，按半月/季度/半年/年度維保與法定年檢自動推算下次到期，逾期合規預警。">
 <meta property="og:url" content="https://tools.dicomp.net/zh-tw/tools/property/cycle-elevator.html">
 <meta name="twitter:card" content="summary">
 <link rel="stylesheet" href="/css/common.css">
@@ -34,9 +34,9 @@
 <meta name="twitter:image:alt" content="ToolBox - 5000+免費線上工具">
     <meta property="og:type" content="website">
     <meta name="twitter:title" content="電梯（維保/年檢）週期 - 電梯維保與年檢週期管理">
-    <meta name="twitter:description" content="電梯（維保/年檢）週期是一款免費的線上物業管理工具，電梯維保與年檢週期管理，按半月/季度/半年/年度維保與法定年檢自動推算下次到期，逾期合規預警。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+    <meta name="twitter:description" content="電梯（維保/年檢）週期是一款免費的線上物業管理工具，電梯維保與年檢週期管理，按半月/季度/半年/年度維保與法定年檢自動推算下次到期，逾期合規預警。">
 <!-- TOOLBOX-WEBAPP-LD -->
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"電梯（維保/年檢）週期","url":"https://tools.dicomp.net/zh-tw/tools/property/cycle-elevator.html","applicationCategory":"DeveloperApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"電梯（維保/年檢）週期是一款免費的線上物業管理工具，電梯維保與年檢週期管理，按半月/季度/半年/年度維保與法定年檢自動推算下次到期，逾期合規預警。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"電梯（維保/年檢）週期","url":"https://tools.dicomp.net/zh-tw/tools/property/cycle-elevator.html","applicationCategory":"DeveloperApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"電梯（維保/年檢）週期是一款免費的線上物業管理工具，電梯維保與年檢週期管理，按半月/季度/半年/年度維保與法定年檢自動推算下次到期，逾期合規預警。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
@@ -305,7 +305,7 @@ var MAINT_TYPES = [
 
 function getElevator(id){ return elevators.find(function(e){return e.id===id;}); }
 function latestLog(el, type){
-  var recs = el.logs.filter(function(l){return l.type===type;});
+  var recs = el.logs.filter(function(l){ return l.type===type && parseDate(l.date) && parseDate(l.date) <= today(); });
   if(!recs.length) return null;
   return recs.reduce(function(a,b){ return parseDate(a.date) >= parseDate(b.date) ? a : b; });
 }
@@ -372,6 +372,10 @@ function addLog(elId){
   var findings = document.getElementById('logFind_'+elId).value.trim();
   var parts = document.getElementById('logParts_'+elId).value.trim();
   if(!date){ ToolBox.showToast(i18nText(), 'error'); return; }
+  var ld = parseDate(date), inst = parseDate(el.installDate);
+  if(!ld){ ToolBox.showToast('维保日期格式无效','error'); return; }
+  if(inst && ld < inst){ ToolBox.showToast('维保日期不能早于安装日期 '+el.installDate,'error'); return; }
+  if(ld > today()){ ToolBox.showToast('维保日期不能晚于今天','error'); return; }
   el.logs.push({ id:uid(), type:type, date:date, technician:tech, findings:findings, parts:parts });
   save(); render();
   ToolBox.showToast(i18nText());

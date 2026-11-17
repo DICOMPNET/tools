@@ -7,12 +7,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="toolbox" content="cat=game,industry=edu,icon=📝,bg=#fff8e1">
-<meta name="description" content="國旗測驗是一款免費的線上教育學習工具，隨機展示國旗要求選出對應國家，即時判分並累計成績，覆蓋常見國家，適合地理學習與國旗記憶訓練，純前端可重複練習。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta name="description" content="國旗測驗是一款免費的線上教育學習工具，隨機展示國旗要求選出對應國家，即時判分並累計成績，覆蓋常見國家，適合地理學習與國旗記憶訓練，純前端可重複練習。">
 <meta name="keywords" content="國旗測驗,國旗測驗線上,線上國旗測驗,遊戲趣味,教育學習,線上工具,免費工具,ToolBox">
 <meta name="robots" content="index,follow">
 <link rel="canonical" href="https://tools.dicomp.net/zh-tw/tools/edu/flag-quiz.html">
 <meta property="og:title" content="國旗測驗 - 免費線上教育學習工具">
-<meta property="og:description" content="國旗測驗是一款免費的線上教育學習工具，隨機展示國旗要求選出對應國家，即時判分並累計成績，覆蓋常見國家，適合地理學習與國旗記憶訓練，純前端可重複練習。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta property="og:description" content="國旗測驗是一款免費的線上教育學習工具，隨機展示國旗要求選出對應國家，即時判分並累計成績，覆蓋常見國家，適合地理學習與國旗記憶訓練，純前端可重複練習。">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://tools.dicomp.net/zh-tw/tools/edu/flag-quiz.html">
 <meta name="twitter:card" content="summary">
@@ -48,9 +48,9 @@
 <meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
 <meta name="twitter:image:alt" content="ToolBox - 5000+免費線上工具">
     <meta name="twitter:title" content="國旗測驗 - 免費線上教育學習工具">
-    <meta name="twitter:description" content="國旗測驗是一款免費的線上教育學習工具，隨機展示國旗要求選出對應國家，即時判分並累計成績，覆蓋常見國家，適合地理學習與國旗記憶訓練，純前端可重複練習。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+    <meta name="twitter:description" content="國旗測驗是一款免費的線上教育學習工具，隨機展示國旗要求選出對應國家，即時判分並累計成績，覆蓋常見國家，適合地理學習與國旗記憶訓練，純前端可重複練習。">
 <!-- TOOLBOX-WEBAPP-LD -->
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"國旗測驗","url":"https://tools.dicomp.net/zh-tw/tools/edu/flag-quiz.html","applicationCategory":"GamesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"國旗測驗是一款免費的線上教育學習工具，隨機展示國旗要求選出對應國家，即時判分並累計成績，覆蓋常見國家，適合地理學習與國旗記憶訓練，純前端可重複練習。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"國旗測驗","url":"https://tools.dicomp.net/zh-tw/tools/edu/flag-quiz.html","applicationCategory":"GamesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"國旗測驗是一款免費的線上教育學習工具，隨機展示國旗要求選出對應國家，即時判分並累計成績，覆蓋常見國家，適合地理學習與國旗記憶訓練，純前端可重複練習。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
@@ -231,7 +231,7 @@ const data=[
   {name:'瑞士',flag:'🇨🇭'},{name:'瑞典',flag:'🇸🇪'},{name:'挪威',flag:'🇳🇴'},
   {name:'希腊',flag:'🇬🇷'},{name:'土耳其',flag:'🇹🇷'},{name:'泰国',flag:'🇹🇭'}
 ];
-let queue,qNo,score,cur,mode='normal',timer=null,timeLeft=0;
+let queue,qNo,score,cur,mode='normal',timer=null,timeLeft=0,advanceTimer=null,gameToken=0;
 const PER_Q_SEC=10;
 const WRONG_KEY='__tbq_flag_wrong';
 
@@ -255,6 +255,7 @@ function clearWrong(){
 }
 function start(m){
   mode=(m==='wrong')?'wrong':'normal';
+  gameToken++;
   stopTimer();
   document.getElementById('qNo').textContent='0';
   document.getElementById('score').textContent='0';
@@ -276,6 +277,7 @@ function start(m){
   next();
 }
 function reset(){
+  gameToken++;
   stopTimer();
   mode='normal';
   document.getElementById('qNo').textContent='0';
@@ -329,13 +331,24 @@ function startTimer(){
 }
 function stopTimer(){
   if(timer){clearInterval(timer);timer=null;}
+  if(advanceTimer){clearTimeout(advanceTimer);advanceTimer=null;}
+}
+// 延迟推进用局次令牌校验：start()/reset() 会 gameToken++ 并清掉 advanceTimer，
+// 过期回调即使触发也因令牌不匹配而丢弃，避免答题后 0.9 秒内重置/重开被旧回调重新出题或跳过新局当前题。
+function scheduleNext(){
+  var myToken=gameToken;
+  advanceTimer=setTimeout(function(){
+    advanceTimer=null;
+    if(myToken!==gameToken)return;
+    next();
+  },900);
 }
 function onTimeout(){
   const opts=document.querySelectorAll('.opt');
   opts.forEach(b=>{b.onclick=null;b.disabled=true;if(b.textContent===cur.name)b.classList.add('correct');});
   addWrong(cur.name);
   document.getElementById('output').textContent='⏰ 时间到！正确答案：'+cur.name;
-  setTimeout(next,900);
+  scheduleNext();
 }
 function choose(o,el){
   stopTimer();
@@ -350,7 +363,7 @@ function choose(o,el){
     addWrong(cur.name);
   }
   document.getElementById('score').textContent=score;
-  setTimeout(next,900);
+  scheduleNext();
 }
 function finish(){
   stopTimer();

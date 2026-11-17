@@ -7,12 +7,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="toolbox" content="cat=calculator,industry=sales,icon=🎯,bg=#f3e5f5">
-<meta name="description" content="轉化漏斗分析是一款免費的線上銷售管理工具，錄入營銷各階段（訪問、加購、下單、支付）的客流量，工具計算每步轉化率與流失率並可視化漏斗，定位轉化瓶頸環節，輔助運營最佳化投放與頁面。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta name="description" content="轉化漏斗分析是一款免費的線上銷售管理工具，錄入營銷各階段（訪問、加購、下單、支付）的客流量，工具計算每步轉化率與流失率並可視化漏斗，定位轉化瓶頸環節，輔助運營最佳化投放與頁面。">
 <meta name="keywords" content="轉化漏斗,漏斗分析,轉化率,銷售漏斗,營銷漏斗,流失分析,線上工具,ToolBox">
 <title>轉化漏斗分析 - 免費線上銷售管理工具</title>
 <link rel="canonical" href="https://tools.dicomp.net/zh-tw/tools/sales/conversion-funnel.html">
 <meta property="og:title" content="轉化漏斗分析 - 免費線上銷售管理工具">
-<meta property="og:description" content="轉化漏斗分析是一款免費的線上銷售管理工具，錄入營銷各階段（訪問、加購、下單、支付）的客流量，工具計算每步轉化率與流失率並可視化漏斗，定位轉化瓶頸環節，輔助運營最佳化投放與頁面。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta property="og:description" content="轉化漏斗分析是一款免費的線上銷售管理工具，錄入營銷各階段（訪問、加購、下單、支付）的客流量，工具計算每步轉化率與流失率並可視化漏斗，定位轉化瓶頸環節，輔助運營最佳化投放與頁面。">
 <meta property="og:url" content="https://tools.dicomp.net/zh-tw/tools/sales/conversion-funnel.html">
 <meta name="twitter:card" content="summary">
 <link rel="stylesheet" href="/css/common.css">
@@ -40,9 +40,9 @@
 <meta name="twitter:image:alt" content="ToolBox - 5000+免費線上工具">
     <meta property="og:type" content="website">
     <meta name="twitter:title" content="轉化漏斗分析 - 免費線上銷售管理工具">
-    <meta name="twitter:description" content="轉化漏斗分析是一款免費的線上銷售管理工具，錄入營銷各階段（訪問、加購、下單、支付）的客流量，工具計算每步轉化率與流失率並可視化漏斗，定位轉化瓶頸環節，輔助運營最佳化投放與頁面。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+    <meta name="twitter:description" content="轉化漏斗分析是一款免費的線上銷售管理工具，錄入營銷各階段（訪問、加購、下單、支付）的客流量，工具計算每步轉化率與流失率並可視化漏斗，定位轉化瓶頸環節，輔助運營最佳化投放與頁面。">
 <!-- TOOLBOX-WEBAPP-LD -->
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"轉化漏斗分析","url":"https://tools.dicomp.net/zh-tw/tools/sales/conversion-funnel.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"轉化漏斗分析是一款免費的線上銷售管理工具，錄入營銷各階段（訪問、加購、下單、支付）的客流量，工具計算每步轉化率與流失率並可視化漏斗，定位轉化瓶頸環節，輔助運營最佳化投放與頁面。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"轉化漏斗分析","url":"https://tools.dicomp.net/zh-tw/tools/sales/conversion-funnel.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"轉化漏斗分析是一款免費的線上銷售管理工具，錄入營銷各階段（訪問、加購、下單、支付）的客流量，工具計算每步轉化率與流失率並可視化漏斗，定位轉化瓶頸環節，輔助運營最佳化投放與頁面。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
@@ -258,7 +258,10 @@ function delStage(i){ if(stages.length<=2){ToolBox.showToast(i18nText(), 'warnin
 
 function calc(){
   var funnel = document.getElementById('funnel');
-  if(!stages.length || !(stages[0].count > 0)){
+  // 463 复核重做：0 是合法人数。全阶段均为 0 时是合法的全零漏斗，应展示 0% 柱宽而非「未填写」；
+  // 仅当首阶段为 0 而后续存在正数（分母为 0 却有下游）才视为无数据，保留原填写提示。
+  var allZero = stages.length>0 && stages.every(function(s){return s.count===0;});
+  if(!stages.length || (!allZero && !(stages[0].count > 0))){
     funnel.innerHTML='<div class="info-box"><strong>请填写首阶段人数后再计算漏斗转化率。</strong></div>';
     document.getElementById('overallBox').innerHTML='';
     document.getElementById('resultTable').innerHTML='';

@@ -7,12 +7,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="toolbox" content="cat=text,industry=data,icon=🔎,bg=#06b6d4">
-<meta name="description" content="資料清洗是一款免費的線上資料分析工具，清理文本/CSV 資料(去重、去空、格式化)。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。適合工程估算、日常換算與快速複核，結果可一鍵複製。">
+<meta name="description" content="資料清洗是一款免費的線上資料分析工具，清理文本/CSV 資料(去重、去空、格式化)。適合工程估算、日常換算與快速複核，結果可一鍵複製。適合日常快速計算與核對，結果可一鍵複製，免費線上使用。">
 <meta name="keywords" content="資料清洗,資料清洗線上,線上資料清洗,文本處理,資料分析,線上工具,免費工具,ToolBox">
 <meta name="robots" content="index,follow">
 <link rel="canonical" href="https://tools.dicomp.net/zh-tw/tools/data/data-cleaner.html">
 <meta property="og:title" content="資料清洗 - 免費線上資料分析工具">
-<meta property="og:description" content="資料清洗是一款免費的線上資料分析工具，清理文本/CSV 資料(去重、去空、格式化)。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。適合工程估算、日常換算與快速複核，結果可一鍵複製。">
+<meta property="og:description" content="資料清洗是一款免費的線上資料分析工具，清理文本/CSV 資料(去重、去空、格式化)。適合工程估算、日常換算與快速複核，結果可一鍵複製。適合日常快速計算與核對，結果可一鍵複製，免費線上使用。">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://tools.dicomp.net/zh-tw/tools/data/data-cleaner.html">
 <meta name="twitter:card" content="summary">
@@ -40,7 +40,7 @@
 
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首頁","item":"https://tools.dicomp.net/zh-tw/"},{"@type":"ListItem","position":2,"name":"資料分析","item":"https://tools.dicomp.net/zh-tw/tools/data/index.html"},{"@type":"ListItem","position":3,"name":"資料清洗","item":"https://tools.dicomp.net/zh-tw/tools/data/data-cleaner.html"}]}</script>
 <!-- TOOLBOX-WEBAPP-LD -->
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"資料清洗","url":"https://tools.dicomp.net/zh-tw/tools/data/data-cleaner.html","applicationCategory":"DeveloperApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"資料清洗是一款免費的線上資料分析工具，清理文本/CSV 資料(去重、去空、格式化)。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。適合工程估算、日常換算與快速複核，結果可一鍵複製。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"資料清洗","url":"https://tools.dicomp.net/zh-tw/tools/data/data-cleaner.html","applicationCategory":"DeveloperApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"資料清洗是一款免費的線上資料分析工具，清理文本/CSV 資料(去重、去空、格式化)。適合工程估算、日常換算與快速複核，結果可一鍵複製。適合日常快速計算與核對，結果可一鍵複製，免費線上使用。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
 <meta property="og:image" content="https://tools.dicomp.net/og-image.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
@@ -49,7 +49,7 @@
 <meta name="twitter:image:alt" content="ToolBox - 5000+免費線上工具">
 
 <meta name="twitter:title" content="資料清洗 - 免費線上資料分析工具">
-<meta name="twitter:description" content="資料清洗是一款免費的線上資料分析工具，清理文本/CSV 資料(去重、去空、格式化)。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。適合工程估算、日常換算與快速複核，結果可一鍵複製。">
+<meta name="twitter:description" content="資料清洗是一款免費的線上資料分析工具，清理文本/CSV 資料(去重、去空、格式化)。適合工程估算、日常換算與快速複核，結果可一鍵複製。適合日常快速計算與核對，結果可一鍵複製，免費線上使用。">
 
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
@@ -269,8 +269,11 @@ function toggleOp(id) {
 
 function clean() {
   const text = document.getElementById('inputData').value;
-  const beforeCount = text.split('\n').length;
-  let lines = text.split('\n');
+  // 统一换行并忽略末尾空行：`abc\n` 是 1 条，不是 2 条
+  const rawLines = text.replace(/\r\n?/g, '\n').split('\n');
+  while (rawLines.length && rawLines[rawLines.length - 1] === '') rawLines.pop();
+  const beforeCount = rawLines.length;
+  let lines = rawLines.slice();
 
   const applied = [];
   if (selected.has('trim')) { lines = lines.map(l => l.trim()); applied.push('去空白'); }
@@ -283,7 +286,22 @@ function clean() {
   if (selected.has('shuffle')) { for (let i = lines.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i+1)); [lines[i], lines[j]] = [lines[j], lines[i]]; } applied.push('打乱'); }
 
   const maxLen = +document.getElementById('maxLen').value || 0;
-  if (maxLen > 0) { lines = lines.map(l => l.length > maxLen ? l.slice(0, maxLen) : l); applied.push(`限长 ${maxLen}`); }
+  if (maxLen > 0) {
+    // 按码点/字形簇截断，避免切断代理对把 emoji 变成乱码
+    const truncate = (s) => {
+      if (!s) return s;
+      if (typeof Intl !== 'undefined' && Intl.Segmenter) {
+        try {
+          const segs = [...new Intl.Segmenter(undefined, { granularity: 'grapheme' }).segment(s)].map(x => x.segment);
+          return segs.length > maxLen ? segs.slice(0, maxLen).join('') : s;
+        } catch (e) {}
+      }
+      const cps = Array.from(s);
+      return cps.length > maxLen ? cps.slice(0, maxLen).join('') : s;
+    };
+    lines = lines.map(truncate);
+    applied.push(`限长 ${maxLen}`);
+  }
 
   const result = lines.join('\n');
   document.getElementById('outputData').value = result;

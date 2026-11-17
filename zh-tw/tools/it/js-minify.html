@@ -10,10 +10,10 @@
 <title>JS 壓縮器 - 免費線上開發工具</title>
 <link rel="canonical" href="https://tools.dicomp.net/zh-tw/tools/it/js-minify.html">
 <meta property="og:title" content="JS 壓縮器 - 免費線上開發工具">
-<meta property="og:description" content="JS 壓縮器是一款免費的線上IT 開發工具，僅做快速瘦身可用本工具；CI 流水線裡推薦整合 Terser 以獲得更優壓縮率與 tree-shaking。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta property="og:description" content="JS 壓縮器是一款免費的線上IT 開發工具，僅做快速瘦身可用本工具；CI 流水線裡推薦整合 Terser 以獲得更優壓縮率與 tree-shaking。">
 <meta property="og:url" content="https://tools.dicomp.net/zh-tw/tools/it/js-minify.html">
 <meta name="twitter:card" content="summary">
-<meta name="description" content="JS 壓縮器是一款免費的線上IT 開發工具，僅做快速瘦身可用本工具；CI 流水線裡推薦整合 Terser 以獲得更優壓縮率與 tree-shaking。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta name="description" content="JS 壓縮器是一款免費的線上IT 開發工具，僅做快速瘦身可用本工具；CI 流水線裡推薦整合 Terser 以獲得更優壓縮率與 tree-shaking。">
 <link rel="stylesheet" href="/css/common.css">
 <script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="/js/common.js" defer></script>
@@ -23,7 +23,7 @@
 <meta property="og:image:height" content="630">
 <meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
 <!-- TOOLBOX-WEBAPP-LD -->
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"JS 壓縮器","url":"https://tools.dicomp.net/zh-tw/tools/it/js-minify.html","applicationCategory":"DeveloperApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"JS 壓縮器是一款免費的線上IT 開發工具，僅做快速瘦身可用本工具；CI 流水線裡推薦整合 Terser 以獲得更優壓縮率與 tree-shaking。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"JS 壓縮器","url":"https://tools.dicomp.net/zh-tw/tools/it/js-minify.html","applicationCategory":"DeveloperApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"JS 壓縮器是一款免費的線上IT 開發工具，僅做快速瘦身可用本工具；CI 流水線裡推薦整合 Terser 以獲得更優壓縮率與 tree-shaking。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
 <!-- TOOLBOX-SECURITY -->
@@ -36,7 +36,7 @@
 <!-- TOOLBOX-CLARITY -->
 
 <meta name="twitter:title" content="JS 壓縮器 - 免費線上開發工具">
-<meta name="twitter:description" content="JS 壓縮器是一款免費的線上IT 開發工具，僅做快速瘦身可用本工具；CI 流水線裡推薦整合 Terser 以獲得更優壓縮率與 tree-shaking。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta name="twitter:description" content="JS 壓縮器是一款免費的線上IT 開發工具，僅做快速瘦身可用本工具；CI 流水線裡推薦整合 Terser 以獲得更優壓縮率與 tree-shaking。">
 <meta property="og:type" content="website">
 
 <script src="/js/i18n.js" defer></script>
@@ -204,7 +204,17 @@ function minify(s){
   // IT-N464：轻量词法扫描——字符串/正则/模板串原样保留，注释只在代码区删除，
   // 保留换行以维持 ASI；纯正则替换会把 URL 的 // 当注释、把换行压掉造成废码。
   var out='', i=0, n=s.length, lastSig='';
-  function regexAllowed(prev){
+  // 正则字面量判定：除了看前一字符，还要识别「表达式关键字」——
+  // `return /a  b/` 的前一字符是 n（看起来像标识符/除法），但 return 之后必然是新表达式，
+  // 这里的正则必须按字面量整体保留，否则内部连续空格会被当成空白折叠。
+  function prevWordAt(pos){
+    var k=pos-1;
+    while(k>=0&&/\s/.test(s[k])) k--;
+    while(k>=0&&/[A-Za-z0-9_$]/.test(s[k])) k--;
+    return s.slice(k+1,pos).replace(/^\s+|\s+$/g,'');
+  }
+  function regexAllowed(prev, word){
+    if(word && /^(return|typeof|instanceof|in|of|new|delete|void|throw|case|do|else|yield|await)$/.test(word)) return true;
     if(!prev) return true;
     return !/[A-Za-z0-9_$\)\]\}]/.test(prev);
   }
@@ -237,7 +247,7 @@ function minify(s){
       }
       lastSig='`'; continue;
     }
-    if(c==='/'&&regexAllowed(lastSig)){
+    if(c==='/'&&regexAllowed(lastSig, prevWordAt(i))){
       out+=c; i++;
       var inClass=false;
       while(i<n){

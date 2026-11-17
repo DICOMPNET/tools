@@ -7,12 +7,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="toolbox" content="cat=validator,industry=finance,icon=💳,bg=#ffebee">
-<meta name="description" content="ESN 號碼驗證是一款免費的線上金融財務工具，輸入 8 位十六進位制電子序列號，校驗格式與字元範圍，用於舊式 CDMA 裝置身份核驗與庫存管理（不驗證真實性）。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta name="description" content="ESN 號碼驗證是一款免費的線上金融財務工具，輸入 8 位十六進位制電子序列號，校驗格式與字元範圍，用於舊式 CDMA 裝置身份核驗與庫存管理（不驗證真實性）。">
 <meta name="keywords" content="ESN 號碼驗證,ESN 號碼驗證線上,線上ESN 號碼驗證,驗證器,金融財務,ESN,號碼驗證,線上工具,免費工具,ToolBox">
 <meta name="robots" content="index,follow">
 <link rel="canonical" href="https://tools.dicomp.net/zh-tw/tools/finance/esn-validator.html">
 <meta property="og:title" content="ESN 號碼驗證 - 校驗格式與字元範圍">
-<meta property="og:description" content="ESN 號碼驗證是一款免費的線上金融財務工具，輸入 8 位十六進位制電子序列號，校驗格式與字元範圍，用於舊式 CDMA 裝置身份核驗與庫存管理（不驗證真實性）。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta property="og:description" content="ESN 號碼驗證是一款免費的線上金融財務工具，輸入 8 位十六進位制電子序列號，校驗格式與字元範圍，用於舊式 CDMA 裝置身份核驗與庫存管理（不驗證真實性）。">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://tools.dicomp.net/zh-tw/tools/finance/esn-validator.html">
 <meta name="twitter:card" content="summary">
@@ -41,9 +41,9 @@
 <meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
 <meta name="twitter:image:alt" content="ToolBox - 5000+免費線上工具">
     <meta name="twitter:title" content="ESN 號碼驗證 - 校驗格式與字元範圍">
-    <meta name="twitter:description" content="ESN 號碼驗證是一款免費的線上金融財務工具，輸入 8 位十六進位制電子序列號，校驗格式與字元範圍，用於舊式 CDMA 裝置身份核驗與庫存管理（不驗證真實性）。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+    <meta name="twitter:description" content="ESN 號碼驗證是一款免費的線上金融財務工具，輸入 8 位十六進位制電子序列號，校驗格式與字元範圍，用於舊式 CDMA 裝置身份核驗與庫存管理（不驗證真實性）。">
 <!-- TOOLBOX-WEBAPP-LD -->
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"ESN 號碼驗證","url":"https://tools.dicomp.net/zh-tw/tools/finance/esn-validator.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"ESN 號碼驗證是一款免費的線上金融財務工具，輸入 8 位十六進位制電子序列號，校驗格式與字元範圍，用於舊式 CDMA 裝置身份核驗與庫存管理（不驗證真實性）。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"ESN 號碼驗證","url":"https://tools.dicomp.net/zh-tw/tools/finance/esn-validator.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"ESN 號碼驗證是一款免費的線上金融財務工具，輸入 8 位十六進位制電子序列號，校驗格式與字元範圍，用於舊式 CDMA 裝置身份核驗與庫存管理（不驗證真實性）。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
@@ -322,9 +322,17 @@ function __esn_validatorFullResText(){
     return t;
 }
 function __esn_validatorScore(t){
-    var s=String(t||'');
-    if(/[❌]|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
-    return 1;
+    var __fs=String(t||'');
+    if(/❌|校验失败|含非法字符|请填写「|后再计算|格式不符|长度必须|不能为 0|不能全为 0|年龄顺序无效|校验和失败|mod-97 校验失败|Luhn 校验失败|Waiting|Please enter|must be/.test(__fs)) return 0;
+    // 第113批：按本页真实校验结论判定，不解析含用户输入的全文关键词；空态无结论。
+    var inp=document.getElementById('input');
+    var raw=inp?String(inp.value||'').trim():'';
+    if(!raw) return NaN;                                   // 空输入：无结论（MANUAL）
+    var out=document.getElementById('output')||document.getElementById('result')||document.getElementById('resultBox');
+    var h=out?String(out.innerHTML||''):'';
+    if(/color:var\(--danger\)|❌/.test(h)) return 0;
+    if(/color:var\(--success\)|✅/.test(h)) return 1;
+    return NaN;
 }
 function __esn_validatorTime(t){
     var d=new Date(t);

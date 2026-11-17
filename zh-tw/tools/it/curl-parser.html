@@ -12,7 +12,7 @@
 
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首頁","item":"https://tools.dicomp.net/zh-tw/"},{"@type":"ListItem","position":2,"name":"IT 開發","item":"https://tools.dicomp.net/zh-tw/tools/it/index.html"},{"@type":"ListItem","position":3,"name":"curl 命令解析器","item":"https://tools.dicomp.net/zh-tw/tools/it/curl-parser.html"}]}</script>
 <!-- TOOLBOX-WEBAPP-LD -->
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"curl 命令解析器","url":"https://tools.dicomp.net/zh-tw/tools/it/curl-parser.html","applicationCategory":"DeveloperApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"curl 命令解析器是一款免費的線上IT 開發工具，從 curl 命令提取 URL、方法、Header 與 Body。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"curl 命令解析器","url":"https://tools.dicomp.net/zh-tw/tools/it/curl-parser.html","applicationCategory":"DeveloperApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"curl 命令解析器是一款免費的線上IT 開發工具，從 curl 命令提取 URL、方法、Header 與 Body。適合工程估算、日常換算與快速複核，結果可一鍵複製。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
 <meta property="og:image" content="https://tools.dicomp.net/og-image.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
@@ -35,11 +35,11 @@
 <script src="/js/tool-i18n.js" defer></script>
 <!-- TOOLBOX-I18N-SCRIPT -->
 
-<meta name="description" content="curl 命令解析器是一款免費的線上IT 開發工具，從 curl 命令提取 URL、方法、Header 與 Body。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta name="description" content="curl 命令解析器是一款免費的線上IT 開發工具，從 curl 命令提取 URL、方法、Header 與 Body。適合工程估算、日常換算與快速複核，結果可一鍵複製。">
 <meta property="og:title" content="curl 命令解析器 - 免費線上開發工具">
-<meta property="og:description" content="curl 命令解析器是一款免費的線上IT 開發工具，從 curl 命令提取 URL、方法、Header 與 Body。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta property="og:description" content="curl 命令解析器是一款免費的線上IT 開發工具，從 curl 命令提取 URL、方法、Header 與 Body。適合工程估算、日常換算與快速複核，結果可一鍵複製。">
 <meta name="twitter:title" content="curl 命令解析器 - 免費線上開發工具">
-<meta name="twitter:description" content="curl 命令解析器是一款免費的線上IT 開發工具，從 curl 命令提取 URL、方法、Header 與 Body。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta name="twitter:description" content="curl 命令解析器是一款免費的線上IT 開發工具，從 curl 命令提取 URL、方法、Header 與 Body。適合工程估算、日常換算與快速複核，結果可一鍵複製。">
 <link rel="canonical" href="https://tools.dicomp.net/zh-tw/tools/it/curl-parser.html">
 
 <meta property="og:type" content="website">
@@ -236,11 +236,29 @@ function looksLikeUrl(t) {
 
 function parse() {
   const raw0 = document.getElementById('cmd').value || '';
-  // IT-D31：shell 反斜杠续行（`\` + 换行）不是参数，须先折叠为空格再切词，
-  // 否则 `\` 会成为独立 token 被当成 URL（URL 在续行下游时尤其明显）。
-  // 只匹配行尾续行：反斜杠后允许尾随空白再换行，不碰引号内的 \" 等转义。
-  const raw = raw0.replace(/\\[ \t]*\r?\n/g, ' ');
-  const tokens = raw.match(/(?:\"[^\"]*\"|'[^']*'|\S)+/g) || [];
+  // shell 续行：未引用或双引号内的「\ + 换行」删除二者（不插入空格），
+  // 这样 `exa\`+换行+`mple.com` 拼成 `example.com`；单引号内反斜杠与换行都是字面内容。
+  const joinContinuations = (s) => {
+    let out = '', q = null;
+    for (let i = 0; i < s.length; i++) {
+      const c = s.charAt(i);
+      if (c === '\\') {
+        const n1 = s.charAt(i + 1);
+        if (q !== "'" && (n1 === '\n' || (n1 === '\r' && s.charAt(i + 2) === '\n'))) {
+          i += (n1 === '\r') ? 2 : 1;
+          continue;
+        }
+        if (q === '"' && n1 !== '') { out += c + n1; i++; continue; }
+        out += c; continue;
+      }
+      if (q) { out += c; if (c === q) q = null; continue; }
+      if (c === '"' || c === "'") { q = c; out += c; continue; }
+      out += c;
+    }
+    return out;
+  };
+  const raw = joinContinuations(raw0);
+  const tokens = raw.match(/(?:"[^"]*"|'[^']*'|\S)+/g) || [];
 
   let method = 'GET';
   let explicitMethod = false;
@@ -285,8 +303,7 @@ function parse() {
         if (kind === 'method') { method = val.toUpperCase(); explicitMethod = true; }
         else if (kind === 'header') headers.push(val);
         else if (kind === 'data') {
-          // IT-D37：--data-urlencode 须按 curl 语义做百分号编码（RFC3986，空格→%20），
-          // 而非像普通 -d 那样原样拼接。name=value 形态只编码两端、保留 '=' 分隔符。
+          // --data-urlencode：name 视为已编码原样保留、只编码 value；空格转 +（curl 口径）
           const enc = (name === '--data-urlencode') ? urlEncodeData(val) : val;
           data = data ? data + '&' + enc : enc;
           hasData = true;
@@ -329,13 +346,14 @@ function trimQuote(v) {
   return dq ? bare.replace(/\\"/g, '"') : bare;
 }
 
-// IT-D37：curl --data-urlencode 的百分号编码（RFC3986）。
-// encodeURIComponent 保留 !'()*，curl 对这些也编码；空格→%20（非 +）。
+// curl --data-urlencode 语义：name=value 时 name 视为「已编码、原样使用」，只编码 value；
+// 空格按 application/x-www-form-urlencoded 转 +（与 curl 实际生成的 URL 一致）。
+// 裸值（无 =）整体编码。
 function urlEncodeData(v) {
-  const rfc3986 = s => encodeURIComponent(s).replace(/[!'()*]/g, ch => '%' + ch.charCodeAt(0).toString(16).toUpperCase());
+  const enc = s => encodeURIComponent(s).replace(/[!'()*]/g, ch => '%' + ch.charCodeAt(0).toString(16).toUpperCase()).replace(/%20/g, '+');
   const eq = v.indexOf('=');
-  if (eq < 0) return rfc3986(v);            // 裸值：整体编码
-  return rfc3986(v.slice(0, eq)) + '=' + rfc3986(v.slice(eq + 1));  // key=value：保留分隔符
+  if (eq < 0) return enc(v);
+  return v.slice(0, eq) + '=' + enc(v.slice(eq + 1));
 }
 
 function copyResult() {

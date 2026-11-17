@@ -7,12 +7,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="toolbox" content="cat=text,industry=biz,icon=🌐,bg=#e8eaf6">
-<meta name="description" content="提取 IP 地址是一款免費的線上商業辦公工具，從日誌或文件中一鍵提取所有 IPv4/IPv6 地址並去重列出，方便網路排查、訪問統計與資料清洗整理。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta name="description" content="提取 IP 地址是一款免費的線上商業辦公工具，從日誌或文件中一鍵提取所有 IPv4/IPv6 地址並去重列出，方便網路排查、訪問統計與資料清洗整理。">
 <meta name="keywords" content="提取 IP 地址,提取 IP 地址線上,線上提取 IP 地址,文本處理,商業辦公,提取,IP,地址,線上工具,免費工具,ToolBox">
 <meta name="robots" content="index,follow">
 <link rel="canonical" href="https://tools.dicomp.net/zh-tw/tools/biz/text-extract-ips.html">
 <meta property="og:title" content="提取 IP 地址 - IPv6 地址並去重列出">
-<meta property="og:description" content="提取 IP 地址是一款免費的線上商業辦公工具，從日誌或文件中一鍵提取所有 IPv4/IPv6 地址並去重列出，方便網路排查、訪問統計與資料清洗整理。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta property="og:description" content="提取 IP 地址是一款免費的線上商業辦公工具，從日誌或文件中一鍵提取所有 IPv4/IPv6 地址並去重列出，方便網路排查、訪問統計與資料清洗整理。">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://tools.dicomp.net/zh-tw/tools/biz/text-extract-ips.html">
 <meta name="twitter:card" content="summary">
@@ -43,9 +43,9 @@
 <meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
 <meta name="twitter:image:alt" content="ToolBox - 5000+免費線上工具">
     <meta name="twitter:title" content="提取 IP 地址 - IPv6 地址並去重列出">
-    <meta name="twitter:description" content="提取 IP 地址是一款免費的線上商業辦公工具，從日誌或文件中一鍵提取所有 IPv4/IPv6 地址並去重列出，方便網路排查、訪問統計與資料清洗整理。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+    <meta name="twitter:description" content="提取 IP 地址是一款免費的線上商業辦公工具，從日誌或文件中一鍵提取所有 IPv4/IPv6 地址並去重列出，方便網路排查、訪問統計與資料清洗整理。">
 <!-- TOOLBOX-WEBAPP-LD -->
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"提取 IP 地址","url":"https://tools.dicomp.net/zh-tw/tools/biz/text-extract-ips.html","applicationCategory":"DeveloperApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"提取 IP 地址是一款免費的線上商業辦公工具，從日誌或文件中一鍵提取所有 IPv4/IPv6 地址並去重列出，方便網路排查、訪問統計與資料清洗整理。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"提取 IP 地址","url":"https://tools.dicomp.net/zh-tw/tools/biz/text-extract-ips.html","applicationCategory":"DeveloperApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"提取 IP 地址是一款免費的線上商業辦公工具，從日誌或文件中一鍵提取所有 IPv4/IPv6 地址並去重列出，方便網路排查、訪問統計與資料清洗整理。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
@@ -307,10 +307,27 @@ function extract(){
   if(!text){ result.textContent = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Please enter text...":"请输入文本..."); document.getElementById('count').textContent = 0; return; }
 
   let matches = [];
-  const v6 = document.getElementById('ipv6').checked ? (text.match(IPV6_RE) || []) : [];
-  let v4 = document.getElementById('ipv4').checked ? (text.match(IPV4_RE) || []) : [];
-  // IPv4 映射地址已被 IPv6 命中时，不再重复输出其中的 IPv4（BS-N89）
-  if(v6.length) v4 = v4.filter(ip => !v6.some(x => x.includes(ip)));
+  // IPv4 映射地址（如 ::ffff:192.168.1.1）里的 IPv4 不重复输出，但独立出现的同值 IPv4 必须保留。
+  // BS-N89 复核失败重做（575）：旧实现 filter(ip => !v6.some(x=>x.includes(ip))) 按值删，会误删独立 IPv4。
+  // 改为按匹配位置判断——仅当该次 IPv4 出现落在某个 IPv6 映射地址区间内才排除。
+  let v6 = [], v6Ranges = [];
+  if(document.getElementById('ipv6').checked){
+    v6 = text.match(IPV6_RE) || [];
+    const re6 = new RegExp(IPV6_RE.source, 'g');
+    let m6;
+    while((m6 = re6.exec(text)) !== null){ v6Ranges.push([m6.index, m6.index + m6[0].length]); if(m6[0].length===0) re6.lastIndex++; }
+  }
+  let v4 = [];
+  if(document.getElementById('ipv4').checked){
+    const re4 = new RegExp(IPV4_RE.source, 'g');
+    let m4;
+    while((m4 = re4.exec(text)) !== null){
+      const s = m4.index, e = s + m4[0].length;
+      const inV6 = v6Ranges.some(([a,b]) => s >= a && e <= b);
+      if(!inV6) v4.push(m4[0]);
+      if(m4[0].length===0) re4.lastIndex++;
+    }
+  }
   matches = matches.concat(v4, v6);
 
   if(document.getElementById('validate').checked){

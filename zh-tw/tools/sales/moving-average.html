@@ -7,12 +7,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="toolbox" content="cat=calculator,industry=sales,icon=🔮,bg=#e0f7fa">
-<meta name="description" content="銷售趨勢預測是一款免費的線上銷售管理工具，移動平均法預測，支援簡單移動平均(SMA)、加權移動平均(WMA)與指數平滑(EMA)。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta name="description" content="銷售趨勢預測是一款免費的線上銷售管理工具，移動平均法預測，支援簡單移動平均(SMA)、加權移動平均(WMA)與指數平滑(EMA)。適合工程估算、日常換算與快速複核，結果可一鍵複製。">
 <meta name="keywords" content="移動平均,銷售預測,趨勢預測,SMA,WMA,指數平滑,線上工具,ToolBox">
 <title>銷售趨勢預測 - 免費線上銷售管理工具</title>
 <link rel="canonical" href="https://tools.dicomp.net/zh-tw/tools/sales/moving-average.html">
 <meta property="og:title" content="銷售趨勢預測 - 免費線上銷售管理工具">
-<meta property="og:description" content="銷售趨勢預測是一款免費的線上銷售管理工具，移動平均法預測，支援簡單移動平均(SMA)、加權移動平均(WMA)與指數平滑(EMA)。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+<meta property="og:description" content="銷售趨勢預測是一款免費的線上銷售管理工具，移動平均法預測，支援簡單移動平均(SMA)、加權移動平均(WMA)與指數平滑(EMA)。適合工程估算、日常換算與快速複核，結果可一鍵複製。">
 <meta property="og:url" content="https://tools.dicomp.net/zh-tw/tools/sales/moving-average.html">
 <meta name="twitter:card" content="summary">
 <link rel="stylesheet" href="/css/common.css">
@@ -39,9 +39,9 @@
 <meta name="twitter:image:alt" content="ToolBox - 5000+免費線上工具">
     <meta property="og:type" content="website">
     <meta name="twitter:title" content="銷售趨勢預測 - 免費線上銷售管理工具">
-    <meta name="twitter:description" content="銷售趨勢預測是一款免費的線上銷售管理工具，移動平均法預測，支援簡單移動平均(SMA)、加權移動平均(WMA)與指數平滑(EMA)。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。">
+    <meta name="twitter:description" content="銷售趨勢預測是一款免費的線上銷售管理工具，移動平均法預測，支援簡單移動平均(SMA)、加權移動平均(WMA)與指數平滑(EMA)。適合工程估算、日常換算與快速複核，結果可一鍵複製。">
 <!-- TOOLBOX-WEBAPP-LD -->
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"銷售趨勢預測","url":"https://tools.dicomp.net/zh-tw/tools/sales/moving-average.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"銷售趨勢預測是一款免費的線上銷售管理工具，移動平均法預測，支援簡單移動平均(SMA)、加權移動平均(WMA)與指數平滑(EMA)。純前端執行、資料不上傳、無需註冊，開啟瀏覽器即可使用。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"銷售趨勢預測","url":"https://tools.dicomp.net/zh-tw/tools/sales/moving-average.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"銷售趨勢預測是一款免費的線上銷售管理工具，移動平均法預測，支援簡單移動平均(SMA)、加權移動平均(WMA)與指數平滑(EMA)。適合工程估算、日常換算與快速複核，結果可一鍵複製。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
@@ -248,6 +248,7 @@ function setMethod(m){
 function parseData(){
   return document.getElementById('data').value
     .split(/[\n,，\s]+/)
+    .filter(function(s){return s !== '';})
     .map(function(s){return +s;})
     .filter(function(n){return !isNaN(n);});
 }
@@ -256,11 +257,19 @@ function calc(){
   var data = parseData();
   var n = +document.getElementById('window').value || 3;
   var periods = +document.getElementById('periods').value || 1;
-  if(data.length<2){ return; }
-  if(method!=='ema' && n>data.length){
+  if(data.length<2){
     var en=/^en/i.test(document.documentElement.lang||'');
     document.getElementById('forecastVal').textContent='—';
     document.getElementById('forecastLbl').textContent=en
+      ? 'At least 2 historical periods are required (currently '+data.length+')'
+      : '至少需要 2 期历史数据（当前 '+data.length+' 期）';
+    document.getElementById('resultTable').innerHTML='';
+    return;
+  }
+  if(method!=='ema' && n>data.length){
+    var en2=/^en/i.test(document.documentElement.lang||'');
+    document.getElementById('forecastVal').textContent='—';
+    document.getElementById('forecastLbl').textContent=en2
       ? 'Moving window N cannot exceed the number of historical periods (currently '+data.length+')'
       : '移动窗口 N 不能大于历史期数（当前 '+data.length+' 期）';
     document.getElementById('resultTable').innerHTML='';
@@ -412,6 +421,7 @@ function maExportCsv(){
   var n=+document.getElementById('window').value||3;
   var periods=+document.getElementById('periods').value||1;
   if(data.length<2){return;}
+  if(method!=='ema' && n>data.length){return;}
   var alpha=2/(n+1);
   var ma=[];
   if(method==='sma'){for(var i=n-1;i<data.length;i++){var s=0;for(var j=0;j<n;j++)s+=data[i-j];ma.push(s/n);}}
