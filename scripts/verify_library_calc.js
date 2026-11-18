@@ -36,6 +36,24 @@ const CASES = [
   "ref": "inputs 写 search=zzzqx ⇒ oninput=onSearch() ⇒ renderSubs('zzzqx') 命中 0 条 ⇒ 结果区渲染「搜索结果：0 条」。默认态走 else 分支渲染当前主类二级类目、blob 无「搜索结果」串（已双态核验）；兜底 onSearch() 读到空值仍走 else，不产该串。"
 },
 {
+  "slug": "library/clc-classifier",
+  "clicks": ["selectedCode='B84';updateResult();var b=document.getElementById('result').innerHTML.match(/当前选择分类号：<strong[^>]*>([^<]+)<\\/strong>/)[1];switchMain('T');var a=document.getElementById('result').innerHTML.match(/当前选择分类号：<strong[^>]*>([^<]+)<\\/strong>/)[1];document.getElementById('__tbProbe').textContent='SWITCH '+b+'->'+a;"],
+  "expect": ["SWITCH B84->未选择"],
+  "ref": "切换大类清空选择：旧版按钮只改 currentMain 不重置 selectedCode，选中 B84 后切到 T，结果区仍显示 B84 并生成 B84/123 跨大类索书号。封装 switchMain 并在切换时清空，端到端断言分类号从 B84 变为未选择；默认态无 SWITCH 串，不命中。"
+},
+{
+  "slug": "library/clc-classifier",
+  "inputs": { "search": "tp3" },
+  "expect": ["搜索结果：3 条", "TP31"],
+  "ref": "深度解析示例承诺检索 TP3 可命中并生成 TP3/123，但旧表只到二级 TB…TV，search('tp3') 返回 0 条。现补 TP3/TP31/TP39 常用三级类目，按类号前缀命中 3 条。默认 A 大类无这些类号，不命中。"
+},
+{
+  "slug": "library/clc-classifier",
+  "inputs": { "search": "计算机" },
+  "expect": ["搜索结果：4 条", "TP39"],
+  "ref": "中文主题检索：旧版仅命中 TP 自动化技术、计算机技术 1 条，无法复现深度解析的「检索计算机」三级下钻。补三级类目后命中 TP/TP3/TP31/TP39 共 4 条。默认 A 大类无这些条目，不命中。"
+},
+{
   "slug": "library/generator-label",
   "inputs": {
     "fonds": "B123",
@@ -124,6 +142,30 @@ const CASES = [
   "ref": "馆藏利用：藏书86000、借阅64500、读者5200、到馆91000 → 利用率64500/86000=75.00%、人均借阅64500/5200=12.40册、人均到馆91000/5200=17.50次（独立复算，非页面默认 120000/96000/8000/150000/6000）"
 },
 {
+  "slug": "library/stats-report",
+  "inputs": { "loanCnt": "-5000" },
+  "expect": ["年度借阅册次不能为负"],
+  "ref": "负借阅：旧版 isFinite 与馆藏/读者正数校验均放行 -5000，输出 -4.17% 利用率与负人均。现按字段拦截。默认借阅 96000 ⇒ 不命中。"
+},
+{
+  "slug": "library/stats-report",
+  "inputs": { "visitCnt": "-100" },
+  "expect": ["年度到馆人次不能为负"],
+  "ref": "负到馆：旧版负值进入人均到馆与单次借阅得负数。现按字段拦截。默认到馆 150000 ⇒ 不命中。"
+},
+{
+  "slug": "library/stats-report",
+  "inputs": { "newCol": "-100" },
+  "expect": ["年度新增馆藏不能为负"],
+  "ref": "负新增：旧版负值被当成净减馆藏仍出完整报表。现按字段拦截。默认新增 6000 ⇒ 不命中。"
+},
+{
+  "slug": "library/stats-report",
+  "inputs": { "colTotal": "100000", "loanCnt": "25000" },
+  "expect": ["图书周转天数： 1,460.0 天"],
+  "ref": "周转天数：公式框承诺 365÷流通率但结果区未实现，且百分数直除会差 100 倍。现按小数口径 365÷(25000/100000)=1460.0 天并显式标注；默认 365÷0.8=456.3 天不命中。"
+},
+{
   "slug": "library/overdue-fine",
   "inputs": {
     "borrowDate": "2026-01-10",
@@ -170,6 +212,30 @@ const CASES = [
   "inputs": { "fillRate": "0" },
   "expect": ["填充率需在 1–100 之间。"],
   "ref": "填充率填 0 后旧实现 parseFloat('0')||100 ⇒ 静默按 100% 铺满计算，容量虚高；现显式拒绝。默认 75 ⇒ 不命中。"
+},
+{
+  "slug": "library/shelf-capacity",
+  "inputs": { "bookThick": "0" },
+  "expect": ["图书平均厚度需大于 0 cm。"],
+  "ref": "书厚 0：旧版 parseFloat('0')||1 静默按 1cm 算得每层 85 册与一整套容量方案，掩盖错误输入。现书厚须 >0 并拦截。默认 2.5 ⇒ 不命中。"
+},
+{
+  "slug": "library/shelf-capacity",
+  "inputs": { "totalBooks": "-5000" },
+  "expect": ["总馆藏量需为不小于 0 的数值。"],
+  "ref": "负馆藏：旧版无负数守卫，输出 -12 架、-1 排、-8.0 米、-13.6㎡ 等不可实现的规划结果。现总馆藏量 >=0 拦截。默认 4200 ⇒ 不命中。"
+},
+{
+  "slug": "library/shelf-capacity",
+  "inputs": { "rowGap": "-1.2" },
+  "expect": ["排间距需为不小于 0 的数值。"],
+  "ref": "负排距：旧版 -1.2 米直接进面积公式得负面积。现排间距 >=0 拦截。默认 1.2 ⇒ 不命中。"
+},
+{
+  "slug": "library/shelf-capacity",
+  "inputs": { "fillRate": "150" },
+  "expect": ["填充率需在 1–100 之间。"],
+  "ref": "填充率超 100：旧版 150% 会算出超过物理层长的册数，仍输出完整方案。现填充率限 1–100。默认 75 ⇒ 不命中。"
 },
 {
   "slug": "library/shelf-capacity",

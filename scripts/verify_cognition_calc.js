@@ -88,12 +88,25 @@ const CASES = [
     "window.__corsiDrive('start');",
     "window.__corsiDrive('answer',false);",
     "window.__corsiDrive('answer',true);",
-    "var s=window.__corsiDrive('state');document.getElementById('cbMsg').textContent='RETRY:'+s.phase+'/'+s.length+'/'+(s.passed+(s.half?0.5:0));"
+    "var s=window.__corsiDrive('state');document.getElementById('cbMsg').textContent='RETRY:'+s.phase+'/'+s.length+'/'+(s.passed+(s.full?0.5:0));"
   ],
   "expect": [
-    "RETRY:input/3/2.5"
+    "RETRY:input/3/2"
   ],
-  "ref": "首错重试回归（W6-A）：长度 2 第 1 次错→仍有第 2 次机会；第 2 次对 ⇒ 记为 2 中 1（passed=2.5）并晋升长度 3 且立即出题（phase=input、length=3）。旧实现晋升后停在 idle（期望串为 RETRY:idle/3/2.5），据此区分。"
+  "ref": "首错重试回归（W6-A）：长度 2 第 1 次错→仍有第 2 次机会；第 2 次对 ⇒ 记为 2 中 1（passed=2，不加 0.5）并晋升长度 3 且立即出题（phase=input、length=3）。K25 修复前把 0.5 加给 2 中 1，输出 RETRY:input/3/2.5，表现更差反而广度更高；修复后断言 2.0。"
+},
+{
+  "slug": "cognition/corsi-block-test",
+  "clicks": [
+    "window.__corsiDrive('start');",
+    "window.__corsiDrive('answer',true);",
+    "window.__corsiDrive('answer',true);",
+    "var s=window.__corsiDrive('state');document.getElementById('cbMsg').textContent='FULL:'+s.phase+'/'+s.length+'/'+(s.passed+(s.full?0.5:0));"
+  ],
+  "expect": [
+    "FULL:input/3/2.5"
+  ],
+  "ref": "满分加分方向（RL-K25）：长度 2 两次全对才应加 0.5，得 span 2.5，高于 2 中 1 的 2.0。修复前 state.full 不存在且 0.5 只给 2 中 1，输出 FULL:input/3/2；断言依赖 clicks 驱动的真实状态，默认态不命中。"
 },
 {
   "slug": "cognition/digit-span-test",
@@ -116,6 +129,12 @@ const CASES = [
     "总广度 8.0（已完成 1 项均值）"
   ],
   "ref": "单项回归：只完成正背一项（广度 8）⇒ dsMeanCompleted({fwd:8}) 按已完成 1 项求均值 = 8（旧实现固定除以 3 得 2.7）；同时 __dsEmr(rec.done=1) 的总结文案显示「已完成 1 项均值」。断言含 dsMeanCompleted 的真实返回值，非默认态（默认无结果）可命中。"
+},
+{
+  "slug": "cognition/digit-span-test",
+  "clicks": ["var a=window.__dsRestartProbe();var b=window.__dsRestartProbe();document.getElementById('__tbProbe').textContent='GEN '+a.gen+'->'+b.gen+' timers '+b.timers;"],
+  "expect": ["GEN 1->2"],
+  "ref": "重复开始必须作废旧异步链：旧版 startSingle 不 clearTimeout/不置 phase，两次开始会在同一 _timer 上叠两条 step 链、数字串交错。现 cancelPending 递增 _gen 并清空所有定时注册，两次重开代际 1→2，旧链回调因代际不符直接 return。默认态无 GEN 串。"
 },
 {
   "slug": "cognition/human-benchmark",
@@ -169,6 +188,24 @@ const CASES = [
     "ref": "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。 [auto-restore]"
 },
 {
+  "slug": "cognition/schulte-table",
+  "clicks": ["document.getElementById('__tbProbe').textContent='LV '+window.__scLevel(5,'num','asc',25/38,0);"],
+  "expect": ["本次评级： 良好"],
+  "ref": "5 阶 25 格 38 秒：速率 0.658 个/秒，旧固定阈值 <0.7 判「需加强」，与同页深度解析「成人 5×5 常见 25–40 秒」矛盾。现按每格耗时 38/25=1.52 秒判「良好」。默认态无 LV 串。"
+},
+{
+  "slug": "cognition/schulte-table",
+  "clicks": ["document.getElementById('__tbProbe').textContent='LV '+window.__scLevel(3,'num','asc',9/10,0);"],
+  "expect": ["本次评级： 优秀"],
+  "ref": "3 阶 9 格 10 秒：旧固定阈值 0.9<1.0 只判「良好」，不同阶不可比。现每格 10/9=1.11 秒判「优秀」。默认态无 LV 串。"
+},
+{
+  "slug": "cognition/schulte-table",
+  "clicks": ["var p=window.__scColorProbe();document.getElementById('__tbProbe').textContent='INK '+p.label+'|'+p.ink+'|'+p.bg;"],
+  "expect": ["INK 红|#EC4899|#1F2937"],
+  "ref": "颜色名模式：旧版白字配词义色底（黄/白/银格不可读），且字义与底色同色不存在 Stroop 冲突。现字义「红」、墨水色错开 7 位为粉 #EC4899，中性底按墨水亮度选深底 #1F2937 保证对比。默认态无 INK 串。"
+},
+{
   "slug": "cognition/stroop-test",
   "inputs": {
     "stTimeout": "3750"
@@ -177,6 +214,12 @@ const CASES = [
     "3750"
   ],
     "ref": "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。 [auto-restore]"
+},
+{
+  "slug": "cognition/stroop-test",
+  "clicks": ["var p=window.__stFinishProbe();document.getElementById('__tbProbe').textContent='ST '+p.before+'->'+p.after+' '+p.html;"],
+  "expect": ["ST 0->0 本次无有效试次，未保存记录"],
+  "ref": "零试次提前结束：旧版 overallAcc=0 仍 push 一条 0 分历史，污染趋势。现无 scored 试次时提示并直接 return，断言历史条数 0->0 与提示文案；默认态无 ST 串。"
 },
 {
   "slug": "cognition/time-perception",
@@ -202,6 +245,17 @@ const CASES = [
     "完成（无有效样本）"
   ],
   "ref": "零点击回归（W6-C）：切到节拍同步、注入最小 AudioContext 桩后点开始，收集窗口到点 finish() 时 taps=[] ⇒ 必须显示「样本不足」且不写入百分位。旧实现 std([])=0 ⇒ percentile('beat',0)=P98，零点击也输出「P98」异常值。断言串为页面统计卡真实产物，默认态（未开始）不含。"
+},
+{
+  "slug": "cognition/time-perception",
+  "clicks": [
+    "window.__tpSelectMode('beat');",
+    "var r=window.__tpBeatDupProbe(20);document.getElementById('bHint').textContent='TAP:'+r.taps+'/'+r.matched+'|'+r.log;"
+  ],
+  "expect": [
+    "TAP:1/1|1 / 20 拍 · 本拍已记录，忽略重复点击"
+  ],
+  "ref": "一拍一次（RL-K29）：开始后对最近拍连点 20 次，只有首次命中计入，其余 19 次必须提示「本拍已记录」并保持 1/20。旧实现未排除已匹配拍，matched 直接累加到 20 并立即 finish，输出「20 / 20 拍」且 σ 极小刷出高分；断言落在真实进度日志，默认态无 TAP 前缀。"
 }
 ];
 async function main() {

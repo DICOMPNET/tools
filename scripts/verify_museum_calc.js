@@ -31,6 +31,15 @@ const CASES = [
   "ref": "必看节点串联：A→B→C→D 各段 10 m，途经必看节点 C 后总距离 30 m，而直达 A→D 为 100 m；「（必看）」标记只对必看节点输出。旧实现无 waypoints 输入、无条件直接求 start→end ⇒ 总距离 100 m 且无必看标记，两条均不命中。默认展线为 115 m，30 m 亦不与默认冲突。"
 },
 {
+  "slug": "museum/visitor-route",
+  "inputs": {},
+  "clicks": ["document.getElementById('nodeInput').value='A,B,C';syncNodes();edges=[['A','B',30],['A','B',100],['B','C',10]];compute();"],
+  "expect": [
+    "A (30m) → 2. B"
+  ],
+  "ref": "平行边分段（RL-K46）：A–B 同时存在 30 m 与 100 m 两条通道，Dijkstra 选 30 m。旧版分段渲染遍历全部 edges 并覆盖权值为最后一条 100 m，显示「A (100m) → 2. B」；修复后取 prevW 实际选中边显示「A (30m) → 2. B」。锚含节点 A/B，避开默认态（入口→青铜馆 30m）与「40 m 总距离」两版同值造成的假绿。"
+},
+{
   "slug": "museum/era-comparator",
   "inputs": {},
   "clicks": ["document.getElementById('era1').value='3';document.getElementById('era2').value='9';compare()"],
@@ -70,6 +79,40 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  "slug": "museum/exhibit-spacing",
+  "inputs": {
+    "artWidth": "120",
+    "artHeight": "100",
+    "centerH": "150",
+    "hAngle": "30",
+    "vAngle": "15",
+    "eyeH": "155",
+    "viewers": "2",
+    "shoulder": "60"
+  },
+  "expect": [
+    "0.46 幅/m"
+  ],
+  "ref": "每米布展数（RL-K32）：推荐间距 = max(120+60×2×0.8, 120×1.5) = 216 cm ⇒ 100÷216 = 0.46296 ⇒ 显示 0.46 幅/m。旧版 Math.floor 截成 0 幅/m，默认态为 0.57，两值均不命中 0.46。"
+},
+{
+  "slug": "museum/exhibit-spacing",
+  "inputs": {
+    "artWidth": "80",
+    "artHeight": "100",
+    "centerH": "150",
+    "hAngle": "60",
+    "vAngle": "45",
+    "eyeH": "155",
+    "viewers": "1",
+    "shoulder": "60"
+  },
+  "expect": [
+    "视角与清晰距离冲突：已按最小观看距离给建议。"
+  ],
+  "ref": "距离冲突（RL-K33）：水平 40÷tan60°≈23.1 cm、垂直 (5+50)÷tan45°=55 cm，视角最佳 55 cm < 对角线 0.6 倍 76.8 cm。修复后最佳距离抬到 76.8 cm 并提示冲突；旧版两条建议打架且无该提示，默认态也不命中。"
+},
+{
   "slug": "museum/historical-calendar",
   "inputs": {
     "date-input": "2008-08-08"
@@ -88,6 +131,14 @@ const CASES = [
      + "它既非页面缺陷也零判别力（默认态即命中）。",
 },
 {
+  "slug": "museum/historical-calendar",
+  "clicks": ["document.getElementById('date-input').value='1899-12-31';update();"],
+  "expect": [
+    "仅支持 1900–2100 年日期，请重新选择。"
+  ],
+  "ref": "年份越界（RL-K36）：solarToLunar 对 1899 年返回 null，旧版未判空直接读 lunar.y ⇒ TypeError 中断，详情与历史事件停留在上一次结果。修复后给出范围提示并清空事件列表；默认态为当前本地日期，不含该提示。"
+},
+{
   "slug": "museum/lighting-lux",
   "inputs": {
     "lampCount": "7",
@@ -104,6 +155,92 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  "slug": "museum/lighting-lux",
+  "inputs": {
+    "lampCount": "5",
+    "area": "4"
+  },
+  "clicks": ["document.getElementById('lumens').value='0';calc();"],
+  "expect": [
+    "单盏光通量需大于 0 lm。"
+  ],
+  "ref": "零光通守卫（RL-K13）：单盏 0 lm 是无效光源，旧版 parseFloat('0')||0 后照度 0 lx 却判「照度达标 ✓」，把全暗包装成合规。修复后拦截「单盏光通量需大于 0 lm。」，旧版不输出该串。用 clicks 注入是因为 harness 会无参试探 onLampChange() 把 lumens 重置为预设 500。"
+},
+{
+  "slug": "museum/lighting-lux",
+  "inputs": {
+    "lampCount": "5",
+    "area": "4",
+    "trans": "0"
+  },
+  "expect": [
+    "玻璃透过率需大于 0 且不超过 100%。"
+  ],
+  "ref": "零透过率守卫（RL-K13）：透过率 0% 表示玻璃完全不透光，旧版 ||100 当成 100% 算出 875 lx 并报超标（中等敏感 150 lx），既掩盖输入错误又给出无意义结论。修复后直接拦截，旧版不含该提示。"
+},
+{
+  "slug": "museum/lighting-lux",
+  "inputs": {
+    "lampCount": "5",
+    "area": "4"
+  },
+  "clicks": ["document.getElementById('utilCoef').value='0';calc();"],
+  "expect": [
+    "利用系数需大于 0 且不超过 1。"
+  ],
+  "ref": "零利用系数守卫（RL-K13）：旧版 util=0 被 ||0.7 静默替换，5 盏 500 lm、面积 4 ㎡ 算出无效照度。修复后拦截，旧版不含该提示。clicks 注入避开 onLampChange() 预设重置。"
+},
+{
+  "slug": "museum/lighting-lux",
+  "inputs": {
+    "lampCount": "5",
+    "area": ""
+  },
+  "expect": [
+    "展柜面积需大于 0 ㎡。"
+  ],
+  "ref": "空面积守卫（RL-K13）：面积清空旧版 ||1 当作 1 ㎡ 继续算并给出超标结论，修复后明确要求大于 0。空字符串随 input/change 事件触发 calc()，断言只落在结果区提示。"
+},
+{
+  "slug": "museum/lighting-lux",
+  "inputs": {
+    "lampCount": "1",
+    "distance": "0.8",
+    "area": "20",
+    "trans": "92",
+    "sensClass": "high"
+  },
+  "expect": [
+    "中心照度过曝 ✕",
+    "尽管平均照度达标"
+  ],
+  "ref": "峰值合规双条件（RL-K14）：1 盏 500 lm、36°、利用系数 0.7、透过率 92%、距离 0.8 m、面积 20 ㎡、高敏感 50 lx ⇒ 平均 16 lx 达标但中心约 1636 lx 远超限值。旧版只看 avgLux 输出「照度达标 ✓」，两条断言均不命中；修复后输出「照度中心照度过曝 ✕」与峰值警告。"
+},
+{
+  "slug": "museum/lighting-lux",
+  "inputs": {
+    "sensClass": "low",
+    "lampCount": "2",
+    "area": "7"
+  },
+  "expect": [
+    "展品限值（低敏感） 150 lx，年曝光量≤150万 lx·h/年"
+  ],
+  "ref": "年曝光口径（RL-K15）：低敏感照度限值 150 lx 对应年曝光量应与其他档同量级为 150 万 lx·h/年，旧版写「≤150 lx·h」少四个数量级。锚含「展品限值（低敏感）」上下文，默认中等敏感不命中；旧版低敏感串不含「万」也不命中。"
+},
+{
+  "slug": "museum/lighting-lux",
+  "inputs": {
+    "lampCount": "3",
+    "area": "4",
+    "distance": "1.2"
+  },
+  "expect": [
+    "375 lm/㎡ 光通量密度（标称）"
+  ],
+  "ref": "术语与量纲（RL-K15）：灯数×单灯光通÷面积 的单位是 lm/㎡，属于光通量密度而非功率密度（W/㎡）。旧版结果卡片写「展柜功率密度」，修复后改「光通量密度（标称）」并同步公式框。锚带非默认数值 3×500÷4=375 lm/㎡（默认 4×500÷2=1000），避免默认态静态标签造成假绿。"
+},
+{
   "slug": "museum/showcase-monitor",
   "inputs": {
     "temp": "30",
@@ -115,6 +252,16 @@ const CASES = [
     "建议降温至"
   ],
   "ref": "auto-restore"
+},
+{
+  "slug": "museum/showcase-monitor",
+  "clicks": [
+    "currentMat='ceramic';document.getElementById('temp').value='40';document.getElementById('rh').value='50';evalEnv();"
+  ],
+  "expect": [
+    "温度偏高，建议降至 35℃ 以下"
+  ],
+  "ref": "范围型材质建议（RL-K38）：陶瓷/玻璃用 tempR=[5,35]、rhR=[20,60]，旧版建议分支只覆盖数组 temp 与 rhMax，40℃ 超标时 advice 为空，输出「调整建议：。」。修复后按 tempR 上下界给出降温建议；默认材质为书画（数组 temp），不命中该串。"
 },
 {
   "slug": "museum/timeline-viewer",
@@ -201,11 +348,9 @@ const CASES = [
     "calcQuick();"
   ],
   "expect": [
-    "严重超时",
-    "缩短单件讲解至 23 秒",
-    "减少讲解展品数至 4 件"
+    "缩短单件讲解至 23 秒"
   ],
-  "ref": "量纲回归（W6-D）：总时长 = 10×90 + 9×30 + 40 = 1210 秒；可用 = 9×60 = 540 秒；时间差 = −670 秒（严重超时）；cutPer = floor((540 − 9×30 − 40)/10) = 23 秒（旧实现给 floor((90×540 − 270 − 40)/10) = 4829 秒）；展品数 = floor((540−40)/(90+30)) = 4 件。明确区分修复前后（23 vs 4829）。"
+  "ref": "量纲回归（W6-D）：总时长 = 10×90 + 9×30 + 40 = 1210 秒；可用 = 9×60 = 540 秒；时间差 = −670 秒（严重超时）；cutPer = floor((540 − 9×30 − 40)/10) = 23 秒（旧实现给 floor((90×540 − 270 − 40)/10) = 4829 秒）；展品数 = floor((540−40)/(90+30)) = 4 件。已删「严重超时」「减少讲解展品数至 4 件」两条弱锚：旧量纲版这两条仍成立，会让 expect 的「或」语义假绿，只保留随修复切换的 23 秒强锚。"
 },
 {
     dynDom: true,
@@ -241,11 +386,27 @@ const CASES = [
     "calcQuick();"
   ],
   "expect": [
-    "每件可用时长 0 秒",
-    "缩短单件讲解至 0 秒",
-    "至 -1 件"
+    "可用时间需大于 0，无法排程。"
   ],
-  "ref": "可用 = 0 秒 ⇒ 每件可用时长 0 秒、`avail>0` 为假 ⇒ avgPer = 0；时间差 = −360 秒（< −300 ⇒ 严重超时）；cutPer = floor((60×0 − 4×10 − 20)/5) = −12 ⇒ Math.max(−12,0) = 0 秒；展品数 = floor((0−20)/(60+10)) = −1 件（负数，可用时间为 0 时的边界产物，非真实场景）。本条锚页面当前实际产物，页面修正负数值后须同步更新。"
+  "ref": "可用时间边界（RL-K31）：可用 0 分钟旧版仍算出「每件可用 0 秒 / 缩短至 0 秒 / 减少至 -1 件」，给出物理上无法执行的建议。修复后在计算前拦截并提示，断言只在结果区出现；默认态 available=90 不命中。"
+},
+{
+    dynDom: true,
+  "slug": "museum/audio-guide-timer",
+  "inputs": {
+    "exhibitCount": "5",
+    "perExhibit": "60",
+    "moveTime": "10",
+    "introTime": "400",
+    "available": "5"
+  },
+  "clicks": [
+    "calcQuick();"
+  ],
+  "expect": [
+    "②开场结束已占满可用时间，无法再安排讲解；"
+  ],
+  "ref": "开场超时保护（RL-K31）：可用 300 秒 < 开场结束 400 秒，旧版 floor((300−400)/(60+10)) = −2 件仍输出「减少讲解展品数至 -2 件」。修复后容量封顶为 0 并改提示「无法再安排讲解」，断言依赖 intro>avail 的输入组合，默认态不命中。"
 }
 ];
 async function main() {
