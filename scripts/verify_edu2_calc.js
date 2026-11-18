@@ -1,7 +1,35 @@
 #!/usr/bin node
 "use strict";
+const fs = require("fs");
 const { runCase } = require("./verify_it_calc.js");
+globalThis.__tbFs = fs;
 const CASES = [
+// ── 第1173批：成绩分析多分数解析、0分线、超满分提示与算例精度 ──
+{
+  "slug": "edu2/exam-analysis",
+  "inputs": { "scoreInput": "92,85,78,88" },
+  "expect": ["4 参考人数", "85.8 平均分"],
+  "ref": "EL-J108：整行逗号分隔的纯分数须拆成 4 名学生，均值 (92+85+78+88)/4=85.75→85.8；旧版只取第二个数当分数且把首数当姓名，得 1 人/85.0。默认 loadSample 为 15 人 ⇒ 零逃生。"
+},
+{
+  "slug": "edu2/exam-analysis",
+  "inputs": { "passLine": "0", "excellentLine": "0", "scoreInput": "甲,92\n乙,58" },
+  "expect": ["100.0% 及格率", "100.0% 优秀率"],
+  "ref": "EL-J109：及格线与优秀线填 0 须按 0% 生效，两人均达标；旧版 parseFloat||60/85 会回退成 60/85 分，得 50.0%/0.0%。默认 60/85 不命中。"
+},
+{
+  "slug": "edu2/exam-analysis",
+  "inputs": { "scoreInput": "甲,105\n乙,90" },
+  "expect": ["有 1 个分数超过满分 100"],
+  "ref": "EL-J110：超满分须给出明确提示并归入最高分段；旧版分段上界 full+1 使 105 不入任何段，分段人数之和小于参考人数。默认样例无超满分。"
+},
+{
+  "slug": "edu2/exam-analysis",
+  "inputs": { "fullScore": "110" },
+    "clicks": ["var fs=globalThis.__tbFs;var h=fs.readFileSync(process.cwd()+'/tools/edu2/exam-analysis.html','utf8');var d=JSON.stringify(JSON.parse(fs.readFileSync(process.cwd()+'/i18n/tools/content_deepdive.json','utf8'))['edu2/exam-analysis']);var sq=String.fromCharCode(39);var boot='if(String(document.getElementById('+sq+'scoreInput'+sq+').value||'+sq+sq+').trim()) calc();';var ok=d.indexOf('均值=78.4')>=0&&d.indexOf('78.38')<0&&h.indexOf('已清空输入')>=0&&h.indexOf('__exam_analysisScaleSample')<0&&h.indexOf(boot)>=0;document.getElementById('__tbProbe').textContent='JDOC:'+(ok?'OK':'BAD');"],
+    "expect": ["JDOC:OK"],
+    "ref": "EL-J112：权威源算例均值精度须与页面 toFixed(1) 一致（78.4），清空须有 Toast；第1188批又删掉 __exam_analysisScaleSample 并取消首屏自动载样，现改为断言缩放样例函数不存在且只有 scoreInput 非空才 calc()。旧版保留样例缩放函数并首屏自动载样 ⇒ 必红。"
+},
 {
     "slug": "edu2/exam-analysis",
     "clicks": ["var __cap=[];TBKit={util:{isEn:function(){return false;},exportTable:function(){},diffBox:function(){}},chart:{line:function(){}},matrix:{table:function(){}},history:{list:function(){return __cap;},last:function(){return __cap.length?__cap[__cap.length-1]:null;},record:function(r){__cap.push(r);},mount:function(){}},preset:{bar:function(){}}};var __els=[{id:'fullScore',type:'text',value:''},{id:'scoreInput',type:'textarea',value:'张三,92'}];var __oq=document.querySelectorAll;document.querySelectorAll=function(s){return __els;};var __r=document.getElementById('result');__r.textContent='平均分 85.5 · 及格率 90%';__r.style=__r.style||{};__r.style.display='none';__exam_analysis_last=0;__exam_analysisExtras();document.querySelectorAll=__oq;document.getElementById('__tbProbe').textContent='EXAMHIDE n='+__cap.length;"],
@@ -103,6 +131,12 @@ const CASES = [
   "ref": "EL-J10 正向对照：合法成语「一马当先」仍应计分并继续游戏，避免修复把正常接龙一并拒掉。"
 },
 {
+  "slug": "language/idiom-solitaire",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/language/idiom-solitaire.html','utf8');var m=h.match(/var IDIOM_DB = \\[([\\s\\S]*?)\\n\\];/);var a=JSON.parse('['+m[1]+']');var ok=a.length===883&&a.every(function(x){return x.length===4})&&new Set(a).size===a.length;document.getElementById('chainList').textContent='JIDIOM:'+(ok?'OK':'BAD');"],
+  "expect": ["JIDIOM:OK"],
+  "ref": "EL-J11：词库须全四字且无重复（清理后 883 条）；旧版 903 条含 15 组重复与 5 条三/五字熟语 ⇒ BAD。"
+},
+{
   "slug": "language/grammar-checker",
   "clicks": [
     "document.getElementById('input-text').value='   ';check();document.getElementById('grammar_checkerPresets').textContent='G_EMPTY:'+document.getElementById('s-issues').textContent+'|PROMPT:'+(document.getElementById('result').innerHTML.indexOf('请输入文本后再检查')>=0?1:0);"
@@ -161,6 +195,61 @@ const CASES = [
     "CC_MISS:未收录|HINT:1"
   ],
   "ref": "EL-J15 回归：未收录字「鑫」应明确提示未收录，避免用户误以为数据错误；页面已标注收录范围（45 字，非完整字典）。"
+},
+{
+  "slug": "edu2/schedule-conflict",
+  "inputs": {
+    "courseInput": "物理,王老师,D401,2,1,2\n化学,王老师,E502,2,1.5,2\n生物,赵老师,D401,2,1abc,2\n历史,孙老师,F603,4,1,2"
+  },
+  "clicks": ["detect();var h=String(document.getElementById('result').innerHTML).replace(/<[^>]+>/g,' ');var ok=h.indexOf('已拒绝 2 行')>=0&&h.indexOf('第2行星期/节次须为整数')>=0&&h.indexOf('第3行星期/节次须为整数')>=0&&h.indexOf('课程总数')>=0;document.getElementById('__tbProbe').textContent='STRICT '+(ok?'OK':'BAD '+h.slice(h.indexOf('已拒绝'),h.indexOf('已拒绝')+160));"],
+  "expect": ["STRICT OK"],
+  "ref": "第1091批 J10：旧版 parseInt 把 1.5/1abc 静默截成 1，四行全计入；严格整数解析后第2/3行被拒绝并在结果区列出行号与原因，仅两门合法课保留。哨兵同时锚拒绝计数与两条行号原因，旧版无拒绝串必然变红。"
+},
+{
+  "slug": "edu2/schedule-conflict",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/edu2/schedule-conflict.html','utf8').replace(/\\s+/g,' ');var ok=h.indexOf('loadSample(); }catch(e2){}')<0&&h.indexOf('detect(); }catch(e2){}')>=0&&h.indexOf('a.start≤b.end 且 b.start≤a.end')>=0&&h.indexOf('a.start&lt;b.end 且 b.start&lt;a.end')<0&&h.indexOf('[start,end)')<0&&h.indexOf('[start,end]')>=0;document.getElementById('__tbProbe').textContent='SCHEDFIX '+(ok?'OK':'BAD');"],
+  "expect": ["SCHEDFIX OK"],
+  "ref": "第1091批 J10 源码形态：历史回调回填后必须调 detect()（旧版 loadSample() 会把 courseInput 重写为固定 SAMPLE，历史回放失效）；FAQ 与 constRef 区间口径统一为离散整节闭区间 [start,end]，旧半开表述与 [start,end) 必须消失。旧版四项全命中旧串，必然变红。"
+},
+{
+  "slug": "edu2/study-progress",
+  "inputs": {"dailyHours": "4"},
+  "clicks": ["var fs=globalThis.__tbFs;var h=fs.readFileSync(process.cwd()+'/tools/edu2/study-progress.html','utf8');var d=JSON.stringify(JSON.parse(fs.readFileSync(process.cwd()+'/i18n/tools/content_deepdive.json','utf8'))['edu2/study-progress']);var ok=h.indexOf('function addWorkdays')>=0&&h.indexOf('function workdaysUntil')>=0&&h.indexOf('addWorkdays(today, needDays)')>=0&&d.indexOf('跳过周六日')>=0&&document.getElementById('dailyHours').value==='4';document.getElementById('__tbProbe').textContent='SPWORK '+(ok?'OK':'BAD');"],
+  "expect": ["SPWORK OK"],
+  "ref": "EL-J132：旧版 estDate=today+needDays*86400000 按日历天推进，与说明「按工作日计」不符。现 addWorkdays 跳过周六日推进完成日、workdaysUntil 按工作日评估目标，权威源 FAQ 同步「跳过周六日」。源码+权威源哨兵，旧版必红。"
+},
+{
+  "slug": "edu2/study-progress",
+  "inputs": {"dailyHours": "3"},
+  "clicks": ["var fs=globalThis.__tbFs;var h=fs.readFileSync(process.cwd()+'/tools/edu2/study-progress.html','utf8');var ok=h.indexOf('if(!isFinite(done) || !isFinite(total) || !isFinite(hours)')>=0&&h.indexOf('parseSubjects.invalid = invalid')>=0&&h.indexOf('isFinite(rawDaily) && rawDaily>0')>=0&&document.getElementById('dailyHours').value==='3';document.getElementById('__tbProbe').textContent='SPNAN '+(ok?'OK':'BAD');"],
+  "expect": ["SPNAN OK"],
+  "ref": "EL-J133：旧版 hours 直接 parseFloat、dailyHours 仅 ||4，NaN 传播后整表显示「—」且无原因。现 parseSubjects 校验 isFinite(hours)&&>0、跳过非法行并计数提示，dailyHours 用 isFinite&&>0 否则 4。源码哨兵，旧版必红。"
+},
+{
+  "slug": "edu2/study-progress",
+  "inputs": {"dailyHours": "5"},
+  "clicks": ["var fs=globalThis.__tbFs;var h=fs.readFileSync(process.cwd()+'/tools/edu2/study-progress.html','utf8');var ok=h.indexOf('calendarDaysToTarget < 0')>=0&&h.indexOf('目标已逾期')>=0&&h.indexOf('已逾期 ')>=0&&document.getElementById('dailyHours').value==='5';document.getElementById('__tbProbe').textContent='SPOVER '+(ok?'OK':'BAD');"],
+  "expect": ["SPOVER OK"],
+  "ref": "EL-J134：旧版目标日期已过时 daysToTarget 钳成 0、落入中性 else「设置目标日期可评估」，完全不提逾期。现 calendarDaysToTarget<0 单独分支显示「目标已逾期 N 天」+相对目标卡标「目标已逾期」。源码哨兵避开 harness 无参兜底重复调 calc 的日期状态干扰，dailyHours 注入非默认值。"
+},
+{
+  "slug": "edu2/study-progress",
+  "inputs": {"dailyHours": "6"},
+  "clicks": ["var fs=globalThis.__tbFs;var h=fs.readFileSync(process.cwd()+'/tools/edu2/study-progress.html','utf8');var ok=h.indexOf('subjects: document.getElementById(\\'subjectInput\\').value')>=0&&h.indexOf('targetDate: document.getElementById(\\'targetDate\\').value')>=0&&h.indexOf('dailyHours: document.getElementById(\\'dailyHours\\').value')>=0&&h.indexOf('__study_progressDetail = list.map')>=0&&h.indexOf('study-progress-detail.csv')>=0&&document.getElementById('dailyHours').value==='6';document.getElementById('__tbProbe').textContent='SPPERSIST '+(ok?'OK':'BAD');"],
+  "expect": ["SPPERSIST OK"],
+  "ref": "EL-J135：旧版 saveInput 仅存科目纯文本、targetDate/dailyHours 每次重置，导出绑历史快照表而非当前明细。现存 JSON 三字段（兼容旧纯文本 fillSaved）、导出用 __study_progressDetail 生成「科目/完成/总数/完成度/剩余工时」明细 CSV。源码哨兵，旧版必红。"
+},
+{
+  "slug": "edu2/wrong-book",
+  "clicks": ["var fs=globalThis.__tbFs;var h=fs.readFileSync(process.cwd()+'/tools/edu2/wrong-book.html','utf8');var ok=h.indexOf('function parseLocalDate(s)')>=0&&h.indexOf('return new Date(Number(m[1]), Number(m[2])-1, Number(m[3]));')>=0&&h.indexOf('new Date(it.reviewDate)')<0&&h.split('parseLocalDate(it.reviewDate)').length-1===3;document.getElementById('__tbProbe').textContent='WBLOCAL '+(ok?'OK':'BAD');"],
+  "expect": ["WBLOCAL OK"],
+  "ref": "EL 当日错题到期复核：reviewDate 保存的是本地日历日期字符串，旧版 new Date('YYYY-MM-DD') 按 UTC 解析，在 UTC- 时区会落到前一天，导致“今日复习”在统计卡里被当到期/逾期。现统一 parseLocalDate 按本地零点解析，三处引用一并替换；源码哨兵，旧版必红。"
+},
+{
+  "slug": "edu2/exam-countdown",
+  "clicks": ["var fs=globalThis.__tbFs;var h=fs.readFileSync(process.cwd()+'/tools/edu2/exam-countdown.html','utf8');var ok=h.indexOf('var studyDays = workdays + (countWeekend ? weekends : 0);')>=0&&h.indexOf('周末计入可复习天数')>=0&&h.indexOf('可复习天数（含周末）')>=0&&h.indexOf('workdays--')<0;document.getElementById('__tbProbe').textContent='EXCWKND '+(ok?'OK':'BAD');"],
+  "expect": ["EXCWKND OK"],
+  "ref": "R 批承诺复核：旧版 countWeekend 只改卡片显示，可复习天数不随勾选变化；节假日在 weekday 分支 workdays-- 后又 workdays++，实际未扣减。现 studyDays 按勾选含/不含周末，标签与说明同步，节假日只计一次不再错扣；源码哨兵，旧版必红。"
 }
 ];
 async function main() {

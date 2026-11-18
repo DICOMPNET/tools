@@ -13,6 +13,8 @@
  */
 "use strict";
 const { runCase } = require("./verify_it_calc.js");
+// harness 的点击代码在 new Function 里执行，模块局部 require 不可见；显式挂到全局供静态源码断言使用。
+globalThis.__tbFs = require("fs");
 
 const CASES = [
   { slug: "quantum/angular-momentum-quant",
@@ -93,6 +95,19 @@ const CASES = [
     inputs: { lam: "800e-9" },
     expect: ["2.483e-19", "1.550"],
     ref: "E=hc/λ=6.626e-34×2.998e8/800e-9=2.483e-19 J=1.550 eV" },
+  {
+    "slug": "quantum/photon-energy",
+    "inputs": { lam: "500e-9" },
+    "clicks": ["var cap=null;globalThis.TBKit={util:{isEn:function(){return false;},diffBox:function(sel,keys){cap=keys;}},matrix:{table:function(){}},history:{record:function(){},mount:function(){}}};__photon_energyExtras();document.getElementById('__tbProbe').textContent='DIFF '+(cap?cap.join(','):'NONE');"],
+    "expect": ["DIFF lam"],
+    "ref": "998 差异对照监视真实输入（PQ-22）：旧版 diffBox 监视常量 H，永远没有差异；修复后监视 λ。默认态不执行 clicks、无探针串 ⇒ 零逃生。"
+  },
+  {
+    "slug": "quantum/photon-energy",
+    "inputs": { lam: "-500e-9" },
+    "expect": ["波长 λ 必须为正数"],
+    "ref": "998 波长正值守卫（PQ-22）：旧版负波长直接算出负能量与负 eV；修复后主区与明细同时拒绝。默认 500e-9 不含该串。"
+  },
   { slug: "quantum/photon-flux",
     inputs: { P: "2", lam: "400e-9" },
     expect: ["4.027e+18"],
@@ -299,6 +314,29 @@ const CASES = [
     "ref": "注入 μ 子对 + 铝靶 A=27（默认 e/A=0）：E=2·m_μ·c²·(1+m_μ/M)，M=27×1.66053906660e-27=4.48345e-26 kg，m_μ/M=0.004201 ⇒ E=3.400e-11 J=212.2177 MeV；默认态 1.0220 MeV 不命中。"
   },
   {
+    "slug": "quantum/pair-production-threshold",
+    "inputs": {
+      "lepton": "mu",
+      "targetA": ""
+    },
+    "expect": [
+      "⚠ 请填写靶核质量数 A（0 表示不计反冲）。"
+    ],
+    "ref": "999 空靶核质量数守卫（PQ-09）：旧版 parseFloat('') 得 NaN 后静默按 0 计算纯阈值；修复后空值提示补填，显式 0 仍表示不计反冲。默认 targetA=0 不含该串。"
+  },
+  {
+    "slug": "quantum/pair-production-threshold",
+    "inputs": {
+      "lepton": "mu",
+      "targetA": ""
+    },
+    "clicks": ["var rows=-1,rec=0;globalThis.TBKit={util:{isEn:function(){return false;},diffBox:function(){}},matrix:{table:function(sel,cfg){rows=cfg&&cfg.rows?cfg.rows.length:-1;}},history:{record:function(){rec++;},mount:function(){}}};__pair_production_thresholdExtras();document.getElementById('__tbProbe').textContent='PPBLANK '+((rows===0&&rec===0)?'OK':'BAD rows='+rows+' rec='+rec);"],
+    "expect": [
+      "PPBLANK OK"
+    ],
+    "ref": "999 空靶核质量数不得生成明细或写入历史（PQ-09）：旧版按 A=0 写出 8 行明细并 record；修复后先清表且 record 不被调用。探针只在 clicks 注入后出现，默认态零逃生。"
+  },
+  {
     "slug": "quantum/photoelectric-threshold",
     "inputs": {
       "phi": "42"
@@ -412,6 +450,76 @@ const CASES = [
       " ΔE (eV) 3.895e-22"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"B\":\"42\"}，输出区含「 ΔE (eV) 3.895e-22」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "quantum/compton-shift",
+    "inputs": { "th": "270" },
+    "clicks": ["var rows=-1,rec=0;globalThis.TBKit={util:{isEn:function(){return false;},diffBox:function(){}},matrix:{table:function(sel,cfg){rows=cfg&&cfg.rows?cfg.rows.length:-1;}},history:{record:function(){rec++;},mount:function(){}}};__compton_shiftExtras();document.getElementById('__tbProbe').textContent='COM270 '+((rows===0&&rec===0)?'OK':'BAD rows='+rows+' rec='+rec);"],
+    "expect": ["COM270 OK"],
+    "ref": "1000 康普顿散射明细同步主区角度定义域（PQ-05）：旧版 θ=270° 主区报错但明细仍生成 2 行并写历史；修复后先清表且不记录。探针只在 clicks 注入后出现，默认 90° 不含该串。"
+  },
+  {
+    "slug": "quantum/compton-shift",
+    "inputs": { "th": "45" },
+    "clicks": ["var cap=null;globalThis.TBKit={util:{isEn:function(){return false;},diffBox:function(sel,keys){cap=keys;}},matrix:{table:function(){}},history:{record:function(){},mount:function(){}}};__compton_shiftExtras();document.getElementById('__tbProbe').textContent='CDIFF '+(cap?cap.join(','):'NONE');"],
+    "expect": ["CDIFF th"],
+    "ref": "1000 康普顿差异对照监视真实散射角而非常量 H：旧版 diffBox 固定监视 H，修复后监视 th；默认态不执行 clicks，零逃生。"
+  },
+  {
+    "slug": "quantum/zeeman-splitting",
+    "inputs": { "B": "-1" },
+    "clicks": ["var rows=-1,rec=0;globalThis.TBKit={util:{isEn:function(){return false;},diffBox:function(){}},matrix:{table:function(sel,cfg){rows=cfg&&cfg.rows?cfg.rows.length:-1;}},history:{record:function(){rec++;},mount:function(){}}};__zeeman_splittingExtras();document.getElementById('__tbProbe').textContent='ZEENEG '+((rows===0&&rec===0)?'OK':'BAD rows='+rows+' rec='+rec);"],
+    "expect": ["ZEENEG OK"],
+    "ref": "1000 塞曼分裂明细同步主区 B≥0 校验（PQ-08）：旧版 B=-1 主区报错但明细仍写 4 行并记历史；修复后清表且不记录。默认 B=1 不含该串。"
+  },
+  {
+    "slug": "quantum/zeeman-splitting",
+    "inputs": { "B": "0" },
+    "clicks": ["var cap=null;globalThis.TBKit={util:{isEn:function(){return false;},diffBox:function(sel,keys){cap=keys;}},matrix:{table:function(){}},history:{record:function(){},mount:function(){}}};__zeeman_splittingExtras();document.getElementById('__tbProbe').textContent='ZDIFF '+(cap?cap.join(','):'NONE');"],
+    "expect": ["ZDIFF B"],
+    "ref": "1000 塞曼差异对照监视真实磁感应强度而非常量 μ_B；B=0 是合法输入，旧版 diffBox 监视 muB，修复后监视 B。默认态不执行 clicks，零逃生。"
+  },
+  {
+    "slug": "quantum/rydberg-wavelength",
+    "inputs": { "n1": "2", "n2": "2" },
+    "clicks": ["var rows=-1,rec=0;globalThis.TBKit={util:{isEn:function(){return false;},diffBox:function(){}},matrix:{table:function(sel,cfg){rows=cfg&&cfg.rows?cfg.rows.length:-1;}},history:{record:function(){rec++;},mount:function(){}}};__rydberg_wavelengthExtras();document.getElementById('__tbProbe').textContent='RYDEQ '+((rows===0&&rec===0)?'OK':'BAD rows='+rows+' rec='+rec);"],
+    "expect": ["RYDEQ OK"],
+    "ref": "1001 里德伯明细同步主区 n₁≠n₂ 校验：旧版 n₁=n₂=2 仍写波长 Infinity 的 2 行明细并记历史；修复后清表且不记录。默认 2/3 不含该串。"
+  },
+  {
+    "slug": "quantum/rydberg-wavelength",
+    "inputs": { "n1": "4", "n2": "6" },
+    "clicks": ["var keys=null;globalThis.TBKit={util:{isEn:function(){return false;},diffBox:function(sel,k){keys=k;}},matrix:{table:function(){}},history:{record:function(){},mount:function(){}}};__rydberg_wavelengthExtras();document.getElementById('__tbProbe').textContent='RYDIFF '+(keys?keys.join(','):'NONE');"],
+    "expect": ["RYDIFF n1,n2"],
+    "ref": "1001 里德伯差异框监视真实能级 n1/n2 而非常量 H；默认态不执行 clicks，零逃生。"
+  },
+  {
+    "slug": "quantum/rydberg-wavelength",
+    "inputs": { "n1": "3", "n2": "4" },
+    "clicks": ["var p=null;globalThis.TBKit={preset:{bar:function(sel,items){p=items;}},util:{isEn:function(){return false;},diffBox:function(){}},matrix:{table:function(){}},history:{record:function(){},mount:function(){}}};__rydberg_wavelengthPresets();var vals=p?p.map(function(x){return x.values.n1+'/'+x.values.n2;}).join('|'):'NONE';document.getElementById('__tbProbe').textContent='RYDPRE '+vals;"],
+    "expect": ["RYDPRE 2/3|4/6|3/4"],
+    "ref": "1001 里德伯 0.5× 预设由非法 1/1.5 改为 3→4；旧版预设探针为 2/3|4/6|1/1.5，修复后为 2/3|4/6|3/4。默认态不执行 clicks，零逃生。"
+  },
+  {
+    "slug": "quantum/photoelectric-effect",
+    "inputs": { "f": "1e14", "phi": "2" },
+    "clicks": ["var rows=null,rec=0;globalThis.TBKit={util:{isEn:function(){return false;},diffBox:function(){}},matrix:{table:function(sel,cfg){rows=cfg&&cfg.rows?cfg.rows:null;}},history:{record:function(){rec++;},mount:function(){}}};__photoelectric_effectExtras();var s=rows?JSON.stringify(rows):'NONE';document.getElementById('__tbProbe').textContent='PENOPHOTO '+((s.indexOf('无光电子，最大动能不适用')>=0&&rec===1)?'OK':'BAD '+s);"],
+    "expect": ["PENOPHOTO OK"],
+    "ref": "1001 光电效应低于阈值时明细不再把钳到 0 的负能量差称作最大动能（旧版写 -1.586e+0 J / -0.991 eV），改为「无光电子，最大动能不适用」；默认 f=1e15 不含该串。"
+  },
+  {
+    "slug": "quantum/photoelectric-effect",
+    "inputs": { "f": "3e15", "phi": "1.5" },
+    "clicks": ["var cap=null;globalThis.TBKit={util:{isEn:function(){return false;},diffBox:function(sel,keys){cap=keys;}},matrix:{table:function(){}},history:{record:function(){},mount:function(){}}};__photoelectric_effectExtras();document.getElementById('__tbProbe').textContent='PED '+(cap?cap.join(','):'NONE');"],
+    "expect": ["PED f,phi"],
+    "ref": "1001 光电效应差异框监视真实输入 f/phi 而非常量 H；默认态不执行 clicks，零逃生。"
+  },
+  {
+    "slug": "quantum/photoelectric-effect",
+    "inputs": { "f": "1e14", "phi": "2" },
+    "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/quantum/photoelectric-effect.html','utf8');document.getElementById('__tbProbe').textContent='PEDEEP '+(h.indexOf('hf&lt;Φ 时 hf−Φ 为负值，仅表示能量不足')>=0&&h.indexOf('没有逸出电子，因此 K_max 不适用')>=0&&h.indexOf('K_max&lt;0')<0&&h.indexOf('无光电子 emission')<0?'OK':'BAD');"],
+    "expect": ["PEDEEP OK"],
+    "ref": "1001 复核重做：深度解析权威源须与低于阈值时的主结果一致——负值是 hf−Φ 能量差，没有逸出电子故 K_max 不适用；旧版正文写「K_max<0，无光电子 emission」，旧句不命中。harness 的 body 桩不含静态正文，故直接读构建后页面源码；探针仅在 clicks 注入后出现，且同时要求新句命中、旧句与混英文词消失。"
   }
 
 ];

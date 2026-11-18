@@ -1,6 +1,8 @@
 #!/usr/bin node
 "use strict";
 const { runCase } = require("./verify_it_calc.js");
+const fs = require("fs");
+globalThis.__tbFs = fs;
 const CASES = [
 {
   "slug": "tcm-chemistry/calc-44",
@@ -327,6 +329,36 @@ const CASES = [
   "clicks": ["document.getElementById('herbA').value='乌头';document.getElementById('herbB').value='半夏';checkClassic()"],
   "expect": ["乌头 与 半夏", "乌头组"],
   "ref": "⚠ 该页两个 select 的选项由 initHerbs() 在 DOMContentLoaded 时填充，而 harness step-3 兜底会再调 initHerbs ⇒ inputs 字段注入会被冲回默认（甘草/甘遂）。改用 clicks 在页面作用域设值并直接调 checkClassic()（step-2.5 立即判定，不等 step-3）。注入「乌头 + 半夏」命中十八反乌头组（乌头反半夏/瓜蒌/贝母/白蔹/白及）⇒ 输出『禁止配伍！乌头 与 半夏 属于 十八反』。⚠ expect 只取『乌头 与 半夏』+『十八反』：默认态（甘草/甘遂）虽也含『十八反』，但不含『乌头 与 半夏』，判别器实测两条均会变红（OR 语义下同态需全部命中才逃生）。"
+},
+{
+  "slug": "tcm-chemistry/hplc-optimization",
+  "clicks": ["document.getElementById('t0').value='1.2';document.getElementById('kPrime').value='5';document.getElementById('gradSlope').value='2';calcRT();"],
+  "expect": ["梯度参数不适用", "早于死时间"],
+  "ref": "第1071批 N145：短柱梯度预设 t0=1.2/k=5/slope=2 ⇒ tR_grad=1.2×6/7=1.03 < t0=1.2，物理上不可能。旧版照常渲染「梯度保留时间 1.03 min」无警示；新版 tR_grad<t0 时输出「⚠️ 梯度参数不适用…早于死时间 t₀」警示。默认 slope=0 走等度不触发 ⇒ 依赖 inputs 注入，强判别零逃生。"
+},
+{
+  "slug": "tcm-chemistry/hplc-optimization",
+  "clicks": ["document.getElementById('rt_plate').value='2';document.getElementById('t0_plate').value='2.5';document.getElementById('peakWidth').value='0.5';calcPlate();"],
+  "expect": ["保留时间 tR 须大于死时间"],
+  "ref": "第1071批 N147：tR=2 < t0=2.5 ⇒ k′=(2−2.5)/2.5=−0.2 无物理意义。旧版仍渲染「有效塔板数 16」；新版 calcPlate 开头校验 tR>t0>0&&W>0&&L>0，不满足则提示「保留时间 tR 须大于死时间 t₀」并停算。默认 tR=2.5/t0=2.5 相等也不满足（须严格大于），但默认实际值不同 ⇒ 依赖 clicks 注入，强判别。"
+},
+{
+  "slug": "tcm-chemistry/solubility-guide",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/tcm-chemistry/solubility-guide.html','utf8');var n=h.split('let rows = filterRows();').length-1;var ok=h.indexOf('function filterRows()')>=0&&n===2&&h.indexOf('导出明细 CSV')<0;document.getElementById('__tbProbe').textContent='SOLFILTER '+(ok?'OK':'BAD');"],
+  "expect": ["SOLFILTER OK"],
+  "ref": "12-N110 表格/导出筛选口径统一：filterRows 同时匹配名称/来源/类别，renderTable 与 exportData 各复用一次；空结果态误导性的历史导出按钮移除。旧版 exportData 只按名称且空态按钮存在 ⇒ 变红。默认态不产生该串，零逃生。"
+},
+{
+  "slug": "tcm-chemistry/hplc-optimization",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/tcm-chemistry/hplc-optimization.html','utf8');var en=globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/en/tcm-chemistry/hplc-optimization.json','utf8');var ok=h.indexOf('基于权威医学标准')<0&&h.indexOf('支持多种临床参数')<0&&h.indexOf('医疗数据不上传，保护隐私')<0&&h.indexOf('临床计算与评估辅助')<0&&h.indexOf('医学学习与考试备考')<0&&h.indexOf('健康监测参考')<0&&h.indexOf('按 HPLC 参数计算保留时间、柱效与分离度')>=0&&h.indexOf('支持等度与梯度洗脱条件评估')>=0&&h.indexOf('分析方法开发与色谱条件筛选')>=0&&h.indexOf('实验结果复核与方案比较')>=0&&en.indexOf('Compute retention time, column efficiency and resolution from HPLC parameters')>=0&&en.indexOf('Supports isocratic and gradient elution evaluation')>=0&&en.indexOf('Parameters are processed only in the browser and are never uploaded')>=0;document.getElementById('__tbProbe').textContent='HPLCINTRO '+(ok?'OK':'BAD');"],
+  "expect": ["HPLCINTRO OK"],
+  "ref": "12-N146：HPLC 工具简介残留医疗/临床话术（基于权威医学标准、临床参数、医疗数据、健康监测等），与分析化学定位不符。修复后功能特点与使用场景全部改为色谱方法开发口径，并在本页 en map 补齐新键避免英文态 CJK 残留；旧版任一医疗串命中即红。"
+},
+{
+  "slug": "tcm-chemistry/metabolite-prediction",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/tcm-chemistry/metabolite-prediction.html','utf8');var zh=globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/tcm-chemistry.json','utf8');var en=globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/en/tcm-chemistry/metabolite-prediction.json','utf8');var ok=h.indexOf('预测 I 相与 II 相代谢产物')>=0&&h.indexOf('输入中药成分结构')<0&&h.indexOf('外用给药代谢特点')>=0&&h.indexOf('给药途径只影响以上提示；下方 I/II 相反应按化合物类别给出，不随途径变化。')>=0&&zh.indexOf('不解析结构式，结果需实验验证')>=0&&en.indexOf('Topical route:')>=0&&en.indexOf('The route only affects the note above')>=0;document.getElementById('__tbProbe').textContent='METABI '+(ok?'OK':'BAD');"],
+  "expect": ["METABI OK"],
+  "ref": "12-N92/N94/N95：meta/标题不再承诺结构输入（页面说明与公式框均声明不解析结构式），标题补全 I 相与 II 相；给药途径补外用分支并明示下方类别模板不随途径变化，中英源同步。旧版旧结构输入串命中、标题截断、无外用提示 ⇒ 变红；默认态不产生该哨兵，零逃生。"
 }
 ];
 async function main() {

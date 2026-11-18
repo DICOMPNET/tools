@@ -305,6 +305,12 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  "slug": "process/sigma-level",
+  "inputs": { "dpmo": "0" },
+  "expect": [ "DPMO = 0：理想无缺陷" ],
+  "ref": "DPMO=0 代表无缺陷理想工况（y=1−0/1e6=1，invNorm(1)=∞），应显示「西格玛水平 ≥ 6σ」而非被判为分母为 0 或全零无意义。修复前 __D 把 dpmo 误登记为分母 + 全零守卫拒绝，页面报错；默认 dpmo=6210 不含该串 ⇒ 强判别"
+},
+{
   "slug": "process/tolerance-rss",
   "inputs": {
     "t1": "3.1",
@@ -351,6 +357,17 @@ const CASES = [
     "77.683"
   ],
   "ref": "auto-restore"
+},
+{
+  "slug": "process/cp-index",
+  "inputs": {
+    "usl": "10.05",
+    "lsl": "9.95",
+    "sigma": "0.0001"
+  },
+  "clicks": ["var s=document.getElementById('sigma');var min=s.getAttribute('min');s.value='0.0001';calcTool();var h=String(document.getElementById('result').innerHTML);document.getElementById('__tbProbe').textContent='CPMIN '+(min==='0.0001'&&h.indexOf('166.667')>=0?'OK':'BAD min='+min);"],
+  "expect": ["CPMIN OK"],
+  "ref": "1054 复核重做：σ 输入除原有的 >0 计算守卫外，还须有表单下限 min=0.0001；边界值 0.0001 仍可算出 Cp=(10.05−9.95)/(6×0.0001)=166.667。旧版无 min 属性 ⇒ BAD；默认 σ=0.01 不含该探针。"
 }
 ];
 async function main() {

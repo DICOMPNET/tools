@@ -117,7 +117,6 @@
     </div>
     <div class="input-row">
       <div><label>孔径 D (mm)</label><input type="number" id="v0" value="50" step="any" oninput="calc()" enterkeyhint="done" aria-label="镗刀" placeholder="如 50"></div>
-      <div style="display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px;"><button class="btn" type="button" onclick="swapValues()" title="互换 A/B" aria-label="互换 A/B" style="padding:10px 12px;">⇄</button></div>
       <div><label>IT 公差等级 (5-10)</label><input type="number" id="v1" value="7" step="any" oninput="calc()" enterkeyhint="done" aria-label="镗杆" placeholder="如 7"></div>
     </div>
     <div class="toolbar">
@@ -202,13 +201,6 @@ function resetAll(){
   calc();
   ToolBox.showToast(i18nText(),'info');
 }
-function swapValues(){
-  var a=document.getElementById('v0').value;
-  var b=document.getElementById('v1').value;
-  document.getElementById('v0').value=b;
-  document.getElementById('v1').value=a;
-  calc();
-}
 function historyKey(){
   try{return 'tb_history_'+location.pathname;}catch(e){return 'tb_history_'+(document.title||'calc');}
 }
@@ -269,6 +261,8 @@ function calc(){
   var box=document.getElementById('res');
   if(!box)return;
   if(!isFinite(A)||!isFinite(B)){box.innerHTML='<div class="info-box">请输入两个有效数值后再计算。</div>';return;}
+  var __txCalcEn=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())?true:false;
+  if(A<=0){box.innerHTML='<div class="info-box">'+(__txCalcEn?'Hole diameter D must be positive.':'孔径 D 须为正数，请检查输入。')+'</div>';return;}
   if(!(B>=5&&B<=10)){box.innerHTML='<div class="info-box">IT 等级需为 5–10 的整数。</div>';return;}
   var gf={5:7,6:10,7:16,8:25,9:40,10:64}[Math.round(B)]||16;
   var items=[];

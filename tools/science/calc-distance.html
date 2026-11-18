@@ -181,7 +181,8 @@ function parseCoord(v){
     var sec = parseFloat(dms[3])||0;
     var hemi = (dms[4]||'').toUpperCase();
     var val = Math.abs(deg) + min/60 + sec/3600;
-    if(deg<0) val = -val;
+    // -0 在数值比较里不小于 0，但书写上仍代表负号；不足 1 度的西经/南纬不能翻成正值。
+    if(deg<0 || /^-/.test(dms[1])) val = -val;
     if(hemi==='S'||hemi==='W') val = -Math.abs(val);
     return val;
   }
@@ -190,7 +191,7 @@ function parseCoord(v){
     var deg=parseFloat(parts[0]),min=parseFloat(parts[1]),sec=parseFloat(parts[2]);
     if(!isNaN(deg)&&!isNaN(min)&&!isNaN(sec)){
       var val=Math.abs(deg)+min/60+sec/3600;
-      if(deg<0)val=-val;
+      if(deg<0 || /^-/.test(parts[0]))val=-val;
       return val;
     }
   }
@@ -256,6 +257,7 @@ function calc(){
     '</div>';
   var flyHr=dKm/900;
   var hh=Math.floor(flyHr), mm=Math.round((flyHr-hh)*60);
+  if(mm>=60){hh+=1;mm-=60;}  // 分钟四舍五入可能得 60，须进位为 1 小时
   html+='<p style="margin-top:10px;font-size:13px;color:var(--text-light);">✈️ 按 900 km/h 巡航速度估算飞行时间约 <strong>'+hh+' 小时 '+mm+' 分</strong></p>';
 
   const __g4=html;document.getElementById('res').innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
@@ -263,14 +265,20 @@ function calc(){
 }
 function swapFmt(){
   var dms=document.querySelector('input[name="fmt"][value="dms"]').checked;
+  // 度分秒串含 ° ' " 等非数字字符，number 输入会被浏览器清空 ⇒ 必须先在旧 type 下解析并缓存，
+  // 再切换 type 写回；否则十进制→度分秒→十进制时原值已被浏览器清空，坐标丢失。
+  var ids=['lat1','lon1','lat2','lon2'];
+  var cached={};
+  ids.forEach(function(id){ cached[id]=document.getElementById(id).value; });
+  ids.forEach(function(id){ document.getElementById(id).type = dms ? 'text' : 'number'; });
   if(dms){
-    ['lat1','lon1','lat2','lon2'].forEach(function(id){
-      var v=parseFloat(document.getElementById(id).value);
-      if(!isNaN(v)) document.getElementById(id).value=decToDms(v);
+    ids.forEach(function(id){
+      var v=parseCoord(cached[id]);
+      if(v!==null) document.getElementById(id).value=decToDms(v);
     });
   } else {
-    ['lat1','lon1','lat2','lon2'].forEach(function(id){
-      var v=parseCoord(document.getElementById(id).value);
+    ids.forEach(function(id){
+      var v=parseCoord(cached[id]);
       if(v!==null) document.getElementById(id).value=v.toFixed(6);
     });
   }

@@ -1,5 +1,7 @@
 #!/usr/bin node
 "use strict";
+const fs = require("fs");
+globalThis.__tbFs = fs;
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
 {
@@ -31,6 +33,13 @@ const CASES = [
     "5.00 cm ÷ 每寸折量 2.00 cm ≈ 2.50 寸"
   ],
   "ref": "upper 首段「腋前纹头→肘横纹」标准折量 9 寸；实测 18 cm ⇒ 每寸 2.00 cm；反算输入 5 cm ⇒ 5 ÷ 2.00 = 2.50 寸。该复合串只由反算分支拼出（旧实现无真实反算、只输出错误提示式），默认态 realDist 为空不命中 ⇒ 强判别。"
+},
+{
+  "slug": "acupuncture/acupoint-location",
+  "inputs": { "realCm": "36", "targetCun": "20" },
+  "clicks": ["selectRegion('head');var h=String(document.getElementById('result').innerHTML);document.getElementById('result').innerHTML='ACUGUARD '+(h.indexOf('目标穴位距起点应在 0–12 寸之间')>=0&&h.indexOf('60.00 cm')<0?'OK':'BAD '+h.slice(0,90));"],
+  "expect": ["ACUGUARD OK"],
+  "ref": "N37 越界守卫：head 首段「前发际→后发际」标准折量 12 寸，目标 20 寸超出 0–12 ⇒ 提示越界且不渲染 60.00 cm。旧实现 targetCun>=0 无上限，20 寸算出 60.00 cm、无越界提示 ⇒ 旧版 BAD。默认 targetCun 为空不命中该哨兵 ⇒ 零逃生。"
 },
   // 注：acupuncture/analysis-10 已于 2026-09-19 改为 TOOLBOX-REDIRECT 存根（重定向到同义真工具），不再是工具页，用例移除。
 {
@@ -233,6 +242,12 @@ const CASES = [
   "ref": "分类切到「内科」并按关键词「失眠」过滤 ⇒ 只剩失眠卡：神门+内关+三阴交+安眠；心肾不交加太溪+心俞（DISEASE_CATS['内科'] 首条）。"
        + "页面 initDiseaseCats() 用 innerHTML 填 <select> 后 renderDisease() 立刻读 .value，桩默认不会自动选中首项（读到空串 ⇒ DISEASE_CATS[''].filter 抛错）；"
        + "afterLoad 开启浏览器保真初始化（空 select 自动选首项）后可用。默认态分类为「头面五官」，不含该串 ⇒ 强判别、零逃生。"
+},
+{
+  "slug": "acupuncture/acupoint-location",
+  "clicks": ["var q=String.fromCharCode(39);var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/acupuncture/acupoint-location.html','utf8');var ok=h.indexOf('胫骨内侧髁下缘→内踝尖')>=0&&h.indexOf('胫骨内侧髁下缘至内踝尖 13 寸')>=0&&h.indexOf('髌骨下缘→内踝尖')<0&&h.indexOf('脉中→耳根')<0&&h.indexOf('胸骨上穴')<0&&h.indexOf('胸骨上窝→剑突 9寸；脐中→耻骨联合上缘 5寸')>=0&&h.indexOf('navel to pubic symphysis = 5 cun')>=0;document.getElementById('__tbProbe').textContent='ACUGUDU '+(ok?'OK':'BAD');"],
+  "expect": ["ACUGUDU OK"],
+  "ref": "12-N38/N39/N40：下肢 13 寸段起点由「髌骨下缘」改为标准「胫骨内侧髁下缘」并与自身括注统一；参考表中英两栏改为与 BONE_DATA 一致的「胸骨上窝→剑突 9 寸；脐中→耻骨联合上缘 5 寸」，删除「脉中→耳根」错误骨度；N39 反算已用 realDist/cmPerCun 正确实现，源码核销。源码形态断言旧起点/旧骨度串消失、新中英串到位；旧版必红，默认态不产生该哨兵，零逃生。"
 }
 ];
 async function main() {

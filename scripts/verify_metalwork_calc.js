@@ -17,6 +17,7 @@
 "use strict";
 const { runCase } = require("./verify_it_calc.js");
 const fs = require("fs");
+globalThis.__tbFs = fs; // 供 clicks 内做源码形态判别（harness 点击串无 require）
 const path = require("path");
 const RECORDER_PATH = path.join(__dirname, "..", "tools", "metalwork", "recorder-9.html");
 
@@ -52,6 +53,12 @@ const CASES = [
     "缺陷率： 19.20%"
   ],
   "ref": "总数=45+28+15+8=96；加权=45×2+28×3+15×2+8×1=90+84+30+8=212；缺陷率=96/500=19.20%（默认 200 件 30/70/15.00%，避开）"
+},
+{
+  "slug": "metalwork/analysis-36",
+  "inputs": { "qty": "500", "data": "气孔,-5,2" },
+  "expect": ["数量须为正数，权重须在 1–3"],
+  "ref": "993 计数/权重守卫：数量 -5 旧版照常算负总数与负缺陷率；修复后整表拒绝并提示范围，默认态合法不命中。"
 },
 {
   "slug": "metalwork/analysis-36",
@@ -107,13 +114,29 @@ const CASES = [
   { slug: "metalwork/tester-19",
     inputs: { cableType: "pvc", ir: "10", temp: "40", cr: "0.2", cs: "2.5", ratedV: "6", len: "100" },
     expect: ["17.0"],
-    ref: "1<ratedV=6≤8.7 → 试验电压=2.5×6×1000+2000=17000 V=17.0 kV；温度修正系数=0.5^((40−20)/10)=0.25，R₂₀=10×0.25=2.5 MΩ·km（默认 ratedV0.6→3.5kV，避开）" },
+    ref: "1<ratedV=6≤8.7 → 试验电压=2.5×6×1000+2000=17000 V=17.0 kV；温度修正系数=2^((40−20)/10)=4，R₂₀=10×4=40.0 MΩ·km（默认 ratedV0.6→3.5kV，避开）" },
+
+  { slug: "metalwork/tester-19",
+    inputs: { cableType: "pvc", ir: "1", temp: "40", cr: "0.2", cs: "2.5", ratedV: "0.6", len: "100" },
+    expect: ["4.0 MΩ·km"],
+    ref: "983 温度修正方向：实测 1 MΩ·km @ 40℃ 修正到 20℃ 应为 1×2^((40−20)/10)=4.0 MΩ·km；旧版用 0.5 指数得 0.25 且误判不合格。默认 temp=20/ir=500 → 500.0，不命中 4.0。" },
+
+  { slug: "metalwork/tester-19",
+    inputs: { cableType: "pvc", ir: "500", temp: "20", cr: "", cs: "70", ratedV: "0.6", len: "100" },
+    expect: ["请输入有效参数（绝缘电阻、导体电阻、长度与额定电压须为正数，温度为有限数值）"],
+    ref: "983 空值守卫：cr 清空后旧版 `+''||0` 得 0，0≤0.268×1.1 直接判导体合格；修复后 parseFloat('')=NaN 拦截。默认 cr=0.268 不命中该提示。" },
 
   { slug: "metalwork/thread",
     inputs: { threadType: "metric", diameter: "24", pitch: "3", material: "carbon",
               threadDir: "external", batch: "single" },
     expect: ["22.05", "20.32"],
     ref: "d2=d−0.64952P=24−1.94856=22.05；d1=d−1.22687P=24−3.68061=20.32（默认 d10/P1.5→9.03/8.16，避开）" },
+
+  { slug: "metalwork/thread",
+    inputs: { threadType: "metric", diameter: "40", pitch: "2", material: "carbon",
+              threadDir: "external", batch: "medium" },
+    expect: ["铣削螺纹 573"],
+    ref: "985 备选转速与 vc 同比例：vc=60 m/min，基础 n=1000×60/(π×40)=477 rpm；铣削 vc×1.2=72 m/min，按同页 n=1000vc/(πd) 应为 573 rpm（旧版 n×0.8=382，与 vc 反向变动）。默认 batch=single 无该备选行，不命中。" },
 
 
   { slug: "metalwork/welding-heat",
@@ -167,6 +190,18 @@ const CASES = [
     "&lt;svg/onload=alert(1)&gt;"
   ],
   "ref": "转义：期次名取自「期次,价格」行首并拼进表格；未转义时 &lt;svg onload&gt; 会被当作标签执行。转义后实体文本保留。默认输入为纯数值，不命中。"
+},
+{
+  "slug": "metalwork/analysis-cost-price-5",
+  "inputs": { "data": "10\n-10" },
+  "expect": ["价格须为非负有限数值"],
+  "ref": "993 负价守卫（替代 973 零均值旧锚）：价格 -10 旧版参与均值/CV/回撤统计并制造零均值假合规；修复后整列拒绝并提示非负。合法默认期价格不含该串。"
+},
+{
+  "slug": "metalwork/analysis-cost-price-5",
+  "inputs": { "data": "0\n10\n20" },
+  "expect": ["无法计算（首期为 0）"],
+  "ref": "973 首期零除零：数据 0/10/20 首期=0，首末涨跌幅 (末−首)/首 除零无定义，应显示「—/无法计算（首期为 0）」；修复前显示 Infinity%。默认数据首期≠0 不含该串。"
 },
 {
   "slug": "metalwork/analysis-35",
@@ -235,7 +270,7 @@ const CASES = [
               "crosscutGrade": "0", "thickMethod": "eddy", "thickness": "48",
               "stdThickness": "40", "thickTolerance": "4", "hardnessMethod": "vickers", "vickersVal": "900" },
     expect: ["涂层质量优秀"],
-    ref: "结合力 0 级=100、厚度 48/40=1.2 倍=100、维氏 900HV（有机涂层要求 100HV）=100 → 综合 100 且三项全通过（默认铅笔 6B 不通过 → 等级标「涂层质量良好（未达标）」，与本值不重合）" },
+    ref: "结合力 0 级=100、厚度 48/40=1.2 倍=100、维氏 900HV（有机涂层要求 100HV）=100 → 综合 100 且三项全通过（997 后默认铅笔改为 HB，该用例改用维氏法仍与本值口径不同）" },
 
   { slug: "metalwork/detector-hardness",
     inputs: { "coatingType": "paint", "reqLevel": "2", "adhesionMethod": "crosscut",
@@ -243,6 +278,12 @@ const CASES = [
               "stdThickness": "40", "thickTolerance": "4", "hardnessMethod": "pencil", "pencilGrade": "6B" },
     expect: ["涂层质量合格（未达标）"],
     ref: "结合力 2 级=65（要求≤1 级 → 不通过）、厚度 100、铅笔 6B=10 不通过 → 综合 65×0.4+100×0.3+10×0.3=59，评分档位为「涂层质量合格」，逐项不通过时等级文案须带「（未达标）」（默认档位为「良好」，与本值不重合）" },
+  { slug: "metalwork/detector-hardness",
+    inputs: { "coatingType": "paint", "reqLevel": "2", "adhesionMethod": "crosscut",
+              "crosscutGrade": "0", "thickMethod": "eddy", "thickness": "48",
+              "stdThickness": "40", "thickTolerance": "4", "hardnessMethod": "pencil" },
+    expect: ["达标（48μm） 100 ✓ 涂层硬度 30% HB（中等） 46"],
+    ref: "997 默认硬度档（MM-H136）：不注入 pencilGrade 时新默认 HB 满足油漆要求 HB（硬项 46 分、三项全通过），旧默认 6B 是 10 分且未达标。锚含 48μm 避开默认 50μm ⇒ 零逃生。" },
 
   { slug: "metalwork/thread",
     inputs: { threadType: "metric", diameter: "12", pitch: "1.75", material: "carbon",
@@ -252,6 +293,7 @@ const CASES = [
   { slug: "metalwork/forging-ratio", inputs: { "shape": "rect" }, expect: ["锻造比 K = 2.000", "F₁=90×80=7200mm²"], ref: " shape=矩形 ⇒ renderInputs 生成 w0=120/h0=120/w1=90/h1=80；a0=120×120=14400mm²、a1=90×80=7200mm² ⇒ K=2.000、ε=50.0%（默认圆形 d0=120/d1=70 ⇒ K=2.939、11310/3848mm²，与本值不重合；K=2<目标 3 ⇒ 未达标）" },
   { slug: "metalwork/surface-finish", inputs: { "inType": "ra", "inVal": "0.4" }, expect: ["对应 N5 级表面", "建议加工方法： 精车/精铣/精磨"], ref: " Ra=0.4 落在 0.4→N5 区间，命中最近邻档位 ⇒ 等级与建议加工方法随 Ra 变动" },
   { slug: "metalwork/temp-forging", inputs: { "material": "titanium", "weight": "20", "diameter": "80" }, expect: ["锻造温度范围 180 ℃", "约 14 min"], ref: " 钛合金 MAT_DATA 温度区间下限 180 ℃；加热 t=ceil(20·0.5+80·0.05)=14 min、保温 ceil(20·0.2)=4 min" },
+  { slug: "metalwork/temp-forging", inputs: { material: "aluminum", weight: "10", diameter: "50" }, expect: ["最高加热（满量程 100%） 490℃"], ref: "995 温度条满量程（MM-H160）：铝合金 maxHeat=490℃，旧版满量程恒 1300 只画 38%；修复后以材料最高加热温度为满量程并在标签显示 100%。默认低碳钢虽同为 100%，但显示 1300℃，整串不命中 ⇒ 零逃生。" },
   { slug: "metalwork/zulinfeilvjisuan", inputs: { "value": "120000", "months": "24", "residual": "8", "rate": "6", "payType": "monthly", "mgmtFee": "2" }, expect: ["月租金 5093.00 元", "9.86%"], ref: " 残值 9600.00 → 本金 110400.00；管理费 120000·2%·2.0=4800.00；24 期、期利率 0.5000% ⇒ PMT 4892.9954，月租 5093.00；ROI 9.86%" },
   { slug: "metalwork/pressure-casting", inputs: { "weight": "10", "wall": "1.5", "material": "zinc", "batch": "mass" }, expect: ["压力铸造(压铸) 推荐方法", "最大重量 30 kg"], ref: " 锌 + 批量 mass 命中 METHODS 首项 ⇒ 压铸；壁厚 1.5 的工艺上限重量 30 kg" },
 
@@ -261,8 +303,12 @@ const CASES = [
   { slug: "metalwork/detector-24", inputs: { defLen: "5", thick: "20", defCount: "" }, expect: ["未填缺陷数量"], ref: "数量空值拦截（668）：缺陷数量清空 ⇒ 提示「未填缺陷数量（无缺陷请填 0）」，不再静默按 0 判 1 档（默认 1 个不含该串）" },
   { slug: "metalwork/detector-24", inputs: { defLen: "-5", thick: "", defCount: "-1" }, expect: ["缺陷长度须为正数；母材厚度须为正数；缺陷数量须为 ≥0 的整数"], ref: "负数/空值拦截（668）：defLen=-5、thick 清空、defCount=-1 ⇒ 三条错误同时列出，不再输出 1 档（默认 5/20/1 全合法，不含该串）" },
   { slug: "metalwork/analysis-simulator", inputs: { vol: "300", area: "150", runner: "15", fillrate: "70", tmelt: "260", tmold: "50", teject: "120", tw: "40", thick: "4", alpha: "0.05" }, expect: ["总充填体积 345 cm³", "充填时间 4.93 s", "冷却时间（近似） 40.63 s", "流程/壁厚比 0.5,000"], ref: "注入非默认(默认 200/100/10/50/240/60/110/30/3/0.04)：型腔+流道+浇口 300+15 与射胶量填充 ⇒ 总充填体积 345 cm³；充填时间 = 345/70 = 4.93 s；冷却时间近似 40.63 s；流程/壁厚比 = (300+15+…)/4 → 0.5,000。默认态 220 cm³/4.40 s/27.51 s/0.6,667，四条均不命中。" },
+  { slug: "metalwork/analysis-simulator", inputs: { vol: "300", area: "150", runner: "15", fillrate: "70", tmelt: "240", tmold: "50", teject: "300", tw: "30", thick: "4", alpha: "0.05" }, expect: ["熔体温度＞顶出温度＞水温"], ref: "994 温度顺序守卫（MM-H122）：顶出 300℃ 高于熔体 240℃ 时旧版 ln 项为负仍出负冷却时间；修复后先拦截并要求 Tm>Te>Tw。默认 240/110/30 不含该串。" },
   { slug: "metalwork/detector-23", inputs: { nominal: "60.000", actual: "60.034", upperTol: "0.039", lowerTol: "0.000" }, expect: ["实测偏差： +0.0340 mm", "偏差占公差带：87.2%", "极限尺寸：60.0000 ~ 60.0390 mm"], ref: "注入非默认(默认 nominal=50.000/actual=50.025)：独立复算 偏差 = 60.034−60.000 = +0.0340 mm；公差带 0.0390 ⇒ 占比 0.034/0.039 = 87.2%；极限尺寸 = 60.0000 ~ 60.0390 mm。默认态 50.025/+0.0250/64.1%/50.0000~50.0390，三条均不命中（『合格』判定与 IT4/±0.005mm 两态相同，不作锚）。" },
+  { slug: "metalwork/detector-23", inputs: { nominal: "60.000", actual: "60.034", upperTol: "-0.050", lowerTol: "0.050" }, expect: ["请输入有限尺寸，且上偏差须大于下偏差"], ref: "993 公差方向守卫：旧版空值 `||0` 与倒挂公差照算并归 IT01，修复后先拒绝上偏差≤下偏差；默认 0.039/0.000 不含该串。" },
   { slug: "metalwork/detector-mold", inputs: { tx: "70.000", ty: "40.000", tz: "25.000", ax: "70.021", ay: "39.975", az: "25.030", tol: "0.020" }, expect: ["X轴：+0.021 mm ✗ 超差", "Z轴：+0.030 mm ✗ 超差", "空间偏差：0.0443 mm"], ref: "注入非默认(默认 50/30/20 与实测 50.015/29.988/20.022)：三轴偏差 = +0.021 / −0.025 / +0.030 mm，均超 ±0.020 ⇒ 三轴全『✗ 超差』；空间偏差 = √(0.021²+0.025²+0.030²) = 0.0443 mm > 0.020。默认态仅 Z 轴超差、空间偏差 0.0292，三条均不命中。" },
+  { slug: "metalwork/detector-mold", inputs: { tx: "50.000", ty: "30.000", tz: "20.000", ax: "50.015", ay: "29.988", az: "20.022", tol: "0" }, expect: ["公差须大于 0"], ref: "993 零公差守卫：旧版 tol=0 仍输出三轴超差与刀具补偿建议，修复后先拒绝非正公差；默认 ±0.020 不含该串。" },
+  { slug: "metalwork/detector-mold", inputs: { tx: "50.000", ty: "30.000", tz: "20.000", ax: "50.019", ay: "30.019", az: "20.019", tol: "0.020" }, expect: ["空间偏差：0.0329 mm 公差要求：±0.020 mm 综合判定： 不合格（超差）"], ref: "994 空间偏差纳判定（MM-H139）：三轴各 +0.019 均未超 ±0.020，但空间偏差 √(3×0.019²)=0.0329>tol；旧版判「合格」，修复后判不合格。默认空间偏差 0.0292 且 Z 轴已超差，整串不命中。" },
 
   // ── §7.4 零用例收敛续批：metalwork 确定性数值页（探针实测取锚）────
   {
@@ -308,10 +354,41 @@ const CASES = [
     ref: "注入非默认(默认 v0=50/v1=7→标准公差 IT≈0.0216 mm)：真实 calc（页内行 516 镗削专用，覆盖通用两参）孔径 D=100、IT8 系数 a₈=25 ⇒ IT≈(0.45·∛100+0.001·100)×25/1000 = (0.45×4.6416+0.1)×25/1000 = 2.1887×25/1000 = 0.0547 mm。默认态 50/7 → (0.45·3.684+0.05)×16/1000=0.0216，不命中 0.0547。"
   },
   {
+    slug: "metalwork/tangxue-tangdao-tanggan-jingdu-kongzhi",
+    clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/metalwork/tangxue-tangdao-tanggan-jingdu-kongzhi.html','utf8');document.getElementById('__tbProbe').textContent='SWAPRM '+(h.indexOf('swapValues')<0&&h.indexOf('互换 A/B')<0&&h.indexOf('onclick=\"swapValues()\"')<0?'OK':'BAD');"],
+    expect: ["SWAPRM OK"],
+    ref: "996量纲互换移除（MM-H157）：孔径 D（mm 正实数）与 IT 等级（5–10 整数）量纲不同，互换无业务意义；旧版仅凭两数同落 5–10 就互换，5.5/7 互换后 IT=5.5 被 calc 拒绝。修复后移除 ⇄ 按钮与 swapValues 函数；源码形态断言互换入口与函数均已消失，默认态不执行 clicks ⇒ 零逃生。"
+  },
+  {
+    slug: "metalwork/tangxue-tangdao-tanggan-jingdu-kongzhi",
+    inputs: { v0: "5.5", v1: "7" },
+    expect: ["D=5.5 可算"],
+    ref: "996小数孔径回归：孔径 D=5.5（合法正实数）应能正常算出 IT 公差，而非报错。用 DOM 哨兵判定：结果容器出现「标准公差 IT」且无「等级需为 5–10」拒绝提示。旧版 5.5/7 单次 calc 本就能算（问题在互换），此用例仅做移除互换后的回归保护，判别力由 SWAPRM 用例承担。",
+    clicks: ["var h=String(document.getElementById('res').innerHTML);document.getElementById('__tbProbe').textContent=(h.indexOf('标准公差 IT')>=0&&h.indexOf('等级需为 5–10')<0)?'D=5.5 可算':'BAD'"]
+  },
+  {
+    slug: "metalwork/tangxue-tangdao-tanggan-jingdu-kongzhi",
+    inputs: { v0: "-50", v1: "7" },
+    expect: ["孔径 D 须为正数"],
+    ref: "996 孔径正值守卫（MM-H158）：旧版 cbrt(-50) 得负标准公差仍照常渲染；修复后先拦截 D≤0。默认 50 不含该串。"
+  },
+  {
     slug: "metalwork/wushua-zhinengyuqingliangduibijisuanqi",
     inputs: { v0: "60", v1: "85" },
-    expect: ["25 综合差距"],
-    ref: "注入非默认(默认 v0=90/v1=72→18 综合差距)：综合差距 = |60−85| = 25。默认态 |90−72|=18 不命中 25。v0=无刷评分、v1=轻量评分。"
+    expect: ["25.0 综合差距"],
+    ref: "注入非默认(默认 v0=90/v1=72→18.0 综合差距)：综合差距 = |60−85| = 25.0，按连续差值保留 1 位小数。默认态 |90−72|=18.0 不命中 25.0。v0=无刷评分、v1=轻量评分。"
+  },
+  {
+    slug: "metalwork/wushua-zhinengyuqingliangduibijisuanqi",
+    inputs: { v0: "90.5", v1: "72.2" },
+    expect: ["18.3 综合差距"],
+    ref: "983 小数精度：|90.5−72.2| = 18.3，差距按连续值保留 1 位小数（旧 toFixed(0) 记 18）。默认 90/72 → 18.0，不命中 18.3。"
+  },
+  {
+    slug: "metalwork/zhineng-duogongnengyunaiyongduibijisuanqi",
+    inputs: { v0: "85.5", v1: "78.2" },
+    expect: ["7.3 综合差距"],
+    ref: "983 小数精度：|85.5−78.2| = 7.3，差距按连续值保留 1 位小数（旧 toFixed(0) 记 7）。默认 85/78 → 7.0，不命中 7.3。"
   },
   {
     slug: "metalwork/yuanlingongju-xifen",
@@ -322,8 +399,8 @@ const CASES = [
   {
     slug: "metalwork/zhineng-duogongnengyunaiyongduibijisuanqi",
     inputs: { v0: "70", v1: "90" },
-    expect: ["20 综合差距"],
-    ref: "注入非默认(默认 v0=85/v1=78→7 综合差距)：综合差距 = |70−90| = 20。默认态 |85−78|=7 不命中 20。v0=智能评分、v1=耐用评分。"
+    expect: ["20.0 综合差距"],
+    ref: "注入非默认(默认 v0=85/v1=78→7.0 综合差距)：综合差距 = |70−90| = 20.0，按连续差值保留 1 位小数。默认态 |85−78|=7.0 不命中 20.0。v0=智能评分、v1=耐用评分。"
   },
   {
     "slug": "metalwork/analysis-simulator",
@@ -340,9 +417,9 @@ const CASES = [
       "alpha": "42"
     },
     "expect": [
-      "流程/壁厚比 0.0,238 缺陷预警 各项指标在常规区间，无明显缺陷预警"
+      "熔体温度＞顶出温度＞水温"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"vol\":\"42\",\"area\":\"42\",\"runner\":\"42\",\"fillrate\":\"42\",\"tmelt\":\"42\",\"tmold\":\"42\",\"teject\":\"42\",\"tw\":\"42\",\"thick\":\"42\",\"alpha\":\"42\"}，输出区含「流程/壁厚比 0.0,238 缺陷预警 各项指标在常规区间，无明显缺陷预警」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "994 温度顺序守卫同步：自动补强旧输入 tmelt=teject=tw=42 原在 ln 项 NaN 下仍输出「各项指标在常规区间」，属假合规；修复后统一拒绝 Tm≤Te≤Tw。默认态 240/110/30 不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "metalwork/cable-tray-sizing",
@@ -451,9 +528,9 @@ const CASES = [
       "measureMethod": "offline"
     },
     "expect": [
-      "确定度：±0.002mm 判定结果： 不合格（超差） 实测偏差+0.0000mm低于下偏差+42.0000mm，尺寸偏小42.0000mm。需调整刀具补偿或更换刀具。"
+      "请输入有限尺寸，且上偏差须大于下偏差"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"nominal\":\"42\",\"actual\":\"42\",\"upperTol\":\"42\",\"lowerTol\":\"42\",\"measureMethod\":\"offline\"}，输出区含「确定度：±0.002mm 判定结果： 不合格（超差） 实测偏差+0.0000mm…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "993 公差方向守卫同步：自动补强旧输入 upperTol=lowerTol=42 原判「超差/尺寸偏小」，属倒挂公差假结果；修复后统一拒绝上偏差≤下偏差。默认态 0.039/0.000 不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "metalwork/detector-24",
@@ -556,9 +633,15 @@ const CASES = [
       "industry": "consumer"
     },
     "expect": [
-      "牌利润 (万元) 4.20 市场份额系数 知名品牌（1-10亿） 行业 消费品（乘数=8） 年营收 42 万元 品牌利润 42 × 42% = 18"
+      "请输入有效年限系数(0.5–3)"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"revenue\":\"42\",\"profitRate\":\"42\",\"multiplier\":\"42\",\"yearFactor\":\"42\",\"marketShare\":\"42\",\"industry\":\"consumer\"}，输出区含「牌利润 (万元) 4.20 市场份额系数 知名品牌（1-10亿） 行业 消费品（…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "995 年限范围同步：自动补强旧输入 yearFactor=42 原照常估算品牌价值，修复后按页面占位范围 0.5–3 拒绝。默认态 1.2 不含该串 ⇒ 强判别、零逃生。",
+  },
+  {
+    "slug": "metalwork/pinpaijiazhipinggujisuan",
+    "inputs": { revenue: "5000", profitRate: "90", multiplier: "5", yearFactor: "1.2", marketShare: "10", industry: "metalwork" },
+    "expect": ["请输入有效品牌利润率(1-80)"],
+    "ref": "995 利润率上限（MM-H142）：输入框自带 max=80，键盘输 90 旧版仍按 100 上限出估值；修复后按同页口径拒绝。默认 15% 不含该串 ⇒ 零逃生。"
   },
   {
     "slug": "metalwork/pressure-casting",
@@ -622,9 +705,9 @@ const CASES = [
       "plateType": "medium"
     },
     "expect": [
-      "42\nalloy\nlap\nmedium\n埋弧焊 推荐方法 焊剂(无气体) 保护方式 高 焊缝质量 中"
+      "42\nalloy\nlap\nthick\n埋弧焊 推荐方法 焊剂(无气体) 保护方式 高 焊缝质量 中"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"thickness\":\"42\",\"material\":\"alloy\",\"joint\":\"lap\",\"plateType\":\"medium\"}，输出区含「42\nalloy\nlap\nmedium\n埋弧焊 推荐方法 焊剂(无气体) 保护方…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "995 板厚档位同步：厚度 42mm 按页内口径应归厚板(thick)，旧版沿用注入的 medium 仍可出同一方法；修复后 select 与评分统一由厚度派生。默认态 3mm/sheet 不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "metalwork/speed-itinerary",
@@ -706,9 +789,9 @@ const CASES = [
       "batch": "medium"
     },
     "expect": [
-      "8253×P = -3.466 mm 攻丝底孔 D = d - P = 0.0 mm 精度等级 6H 其他可选方法 方法 转速(rpm) 精度 适用批量 铣削螺纹(内) 273 6H 中批量 车削内螺纹 205 6H/4H 单件"
+      "螺距相对直径过大"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"diameter\":\"42\",\"pitch\":\"42\",\"threadType\":\"unified\",\"material\":\"alloy\",\"threadDir\":\"internal\",\"batch\":\"medium\"}，输出区含「8253×P = -3.466 mm 攻丝底孔 D = d - P = 0.0 …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "985 几何守卫（原自动补强用例同步）：注入 diameter=42/pitch=42 内螺纹，旧版输出负牙底直径 -3.466 mm 与 0.0 mm 底孔；修复后小径/中径/底孔出现非正值即拦截并提示「螺距相对直径过大」。默认 10×1.5 不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "metalwork/wushua-zhinengyuqingliangduibijisuanqi",
@@ -717,9 +800,9 @@ const CASES = [
       "v1": "42"
     },
     "expect": [
-      "线优先 推荐侧重 50.0"
+      "两方案持平"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"v0\":\"42\",\"v1\":\"42\"}，输出区含「线优先 推荐侧重 50.0」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "973 相等分值修正 + 983 判别力加固：注入 v0=v1=42，A=B 应判「两方案持平」。权重 50.0% 在旧版 A=B 时同样成立，属假绿锚，故只保留「两方案持平」作判别。默认 90/72 不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "metalwork/yuanlingongju-xifen",
@@ -739,9 +822,9 @@ const CASES = [
       "v1": "42"
     },
     "expect": [
-      "线优先 推荐侧重 50.0"
+      "两方案持平"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"v0\":\"42\",\"v1\":\"42\"}，输出区含「线优先 推荐侧重 50.0」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "983 相等分值修正 + 判别力加固：注入 v0=v1=42，A=B 应判「两方案持平」。权重 50.0% 在旧版 A=B 时同样成立，属假绿锚，故只保留「两方案持平」作判别。默认 85/78 不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "metalwork/zulinfeilvjisuan",
@@ -767,6 +850,14 @@ const CASES = [
     "ref": "维修服务质量评分：3 模块 × 6 项、每项满分 2 ⇒ 总满分 36；18 个运行时下拉在页面作用域内逐一置「完全执行(2)」后调 calc() ⇒ 实得 36/36 = 100% ≥90 且无关键项缺失 ⇒「优秀」。"
        + "默认态（不执行 clicks）各下拉取不到值（+''=0）⇒ 实得 0%、★ 关键安全项未执行 ⇒「不合格（关键项未执行）」并压到 59%，两锚均不命中。"
        + "（下拉由 innerHTML 运行时生成，pageDefaults 取不到，故改用 clicks 显式驱动，避免进入 skip。）"
+  },
+  {
+    "slug": "metalwork/detector-55",
+    "clicks": [
+      "var oldRef=(typeof TBKit!=='undefined'&&TBKit.chart)?TBKit.chart.refBar:null;var cap=null;if(typeof TBKit==='undefined'){TBKit={util:{isEn:function(){return false;}},chart:{},matrix:{},history:{},preset:{}};}if(!TBKit.chart)TBKit.chart={};TBKit.chart.refBar=function(sel,opt){cap=opt;};if(typeof calc==='function')calc();TBKit.chart.refBar=oldRef;var s=(cap&&cap.bands)?cap.bands.map(function(b){return (b.lo===null?'null':b.lo)+'-'+(b.hi===null?'null':b.hi)+'-'+(b.label&&b.label.zh?b.label.zh:'');}).join('|'):'NONE';document.getElementById('__tbProbe').textContent='BANDS '+s;"
+    ],
+    "expect": ["BANDS 90-null-优秀|75-90-良好|60-75-合格|null-60-不合格"],
+    "ref": "994 标尺区间（MM-H131）：旧版第三段 lo:null/hi:75 把 <60 的不合格也标成合格；修复后补 60–75 合格段与 null–60 不合格段。探针截取 refBar 的 bands 实参，默认态不执行 clicks、无探针串 ⇒ 零逃生。"
   }
 
 ];

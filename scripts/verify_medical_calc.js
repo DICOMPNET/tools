@@ -439,6 +439,43 @@ const CASES = [
   "ref": "阿司匹林（DRUGS[2]）childW=0 且 childContra=true：5 岁（<14）⇒ basisFor 返回 contra ⇒ renderBlocked，结果区不输出数字剂量并显示儿童禁用/剂量基准未计算。修复前按成人 10 mg/kg×20 kg 输出 200.0 mg 且无结果区警示。注入 20/118/5 均非默认（60/170/30），失败态回落成人态 ⇒ 两条动态锚均不命中（「儿童禁用」原生字串在药物下拉与静态说明里恒存在，不能作锚）。"
 },
 {
+  "slug": "medical/dosage-calculator",
+  "inputs": {
+    "weight": "20",
+    "height": "112",
+    "age": "6"
+  },
+  "clicks": [
+    "document.getElementById('drug').value='3';document.getElementById('perDose').value='13';document.getElementById('freq').value='3';onDrugChange();"
+  ],
+  "expect": [
+    "20~45 mg/kg/day × 20 kg = 400.0~900.0",
+    "折算单次区间：133.3~300.0 mg"
+  ],
+  "ref": "A5 逐药权威口径落地：DailyMed 阿莫西林说明书 >3 月龄且 <40 kg 为 20~45 mg/kg/日，分 8~12 小时；6 岁、20 kg、q8h 时区间 400.0~900.0 mg/day、单次 133.3~300.0 mg/8h，13×3=39.0 mg/kg/day 落在区间内。失败态默认药物为对乙酰氨基酚且 age=30 成人，区间卡不出现。"
+},
+{
+  "slug": "medical/dosage-calculator",
+  "inputs": { "weight": "20", "height": "118", "age": "6" },
+  "clicks": ["document.getElementById('drug').value='0';onDrugChange();"],
+  "expect": ["儿童剂量逐药核验未完成", "禁止按成人 mg/kg 系数折算"],
+  "ref": "A5 安全拦截：对乙酰氨基酚儿童剂量尚未完成逐药说明书核验，旧版按 10 mg/kg 输出 200.0 mg；修复后停止输出剂量并提示查说明书，默认药物/成人态不出现该提示。"
+},
+{
+  "slug": "medical/dosage-calculator",
+  "inputs": { "weight": "20", "height": "118", "age": "6", "perDose": "13", "freq": "4" },
+  "clicks": ["document.getElementById('drug').value='3';onDrugChange();"],
+  "expect": ["当前 4 次/日不在核验范围内", "本工具不输出儿童剂量"],
+  "ref": "A5 分次条件核验：阿莫西林说明书区间只覆盖每日 2 次或 3 次，旧版任意频次仍输出剂量并可能提示落在区间；修复后频次 4 停止输出，默认 freq=3 不命中。"
+},
+{
+  "slug": "medical/dosage-calculator",
+  "inputs": { "weight": "20", "height": "118", "age": "0.2", "perDose": "13", "freq": "3" },
+  "clicks": ["document.getElementById('drug').value='3';onDrugChange();"],
+  "expect": ["≤3 月龄儿童上限 30 mg/kg/日"],
+  "ref": "A5 年龄条件核验：DailyMed 对 ≤3 月龄给出 30 mg/kg/日分 2 次上限，旧版按儿童 13 mg/kg×3=39 mg/kg/日 输出；修复后停止输出并提示医师核定。"
+},
+{
   "slug": "medical/drug-info",
   "inputs": {
     "search": "zzzqx"

@@ -1,6 +1,8 @@
 #!/usr/bin node
 "use strict";
 const { runCase } = require("./verify_it_calc.js");
+const fs = require("fs");
+globalThis.__tbFs = fs;
 const CASES = [
 {
   "slug": "language/calc-1",
@@ -84,6 +86,29 @@ const CASES = [
   "ref": "① 缩写：三词各取首字母（acroCase 默认 upper，radio 落 checked 默认态）→ WHO，明细项「• World → W • Health → H • Organization → O」；② 字符统计「Hello 世界！AB 12.」→ 总字符 15 / 汉字 2 / 字母 7 / 数字 2 / 标点 2 / 空格 2 / 单词 2 / 句子 1（blob 按元素创建顺序拼接，故用换行符做连续断言）。默认态两 textarea 皆空 ⇒ 缩写面板隐藏、字符统计区显示「—」与「请输入文本后再统计。」提示，两组 expect 均失配。"
 },
 {
+  // EL-F16：中文输入不再输出单字冒充缩写，明确跳过并提示（旧版输出「中华人民共和国 → 中」）。
+  "slug": "language/language-toolkit",
+  "inputs": {
+    "acronymInput": "中华人民共和国 World Health"
+  },
+  "expect": [
+    "中华人民共和国 → 已跳过（仅支持英文/拉丁字母）",
+    "已跳过 1 个非拉丁字母词，未计入缩写"
+  ],
+  "ref": "注入「中华人民共和国 World Health」：新实现按词查找首个拉丁字母，中文词无拉丁字母⇒跳过并在明细写「中华人民共和国 → 已跳过（仅支持英文/拉丁字母）」，汇总写「已跳过 1 个非拉丁字母词，未计入缩写」。旧实现中文分支取 w.charAt(0) 输出「中华人民共和国 → 中」，两条断言全失配；默认态 acronymInput 为空⇒缩写面板隐藏，同样失配。**注意**：英文共有串「• World → W • Health → H」旧版也成立，按「或」语义会让整条用例假绿，禁止列入。"
+},
+{
+  // EL-F16 补充：全中文输入明确拒算，不再输出单个汉字冒充缩写（旧版输出「中」）。
+  "slug": "language/language-toolkit",
+  "inputs": {
+    "acronymInput": "中华人民共和国"
+  },
+  "expect": [
+    "未识别到英文/拉丁字母词；本生成器仅支持英文/拉丁字母输入。"
+  ],
+  "ref": "只输入中文时新实现 result 为空⇒缩写位「—」并在明细写「未识别到英文/拉丁字母词；本生成器仅支持英文/拉丁字母输入。」；旧实现把整段中文当一个词取首字输出「中」，该串失配；默认态 acronymInput 为空⇒面板隐藏不显示提示，同样失配。"
+},
+{
   // 原为 no_inputs 弱用例（inputs 空），expect「gentlemen.」是 PHRASES 全量列表里的静态短语（逃生项）。
   // 检索过滤型：q=please 命中 4 条，卡片子集变化 ⇒ 只能锚「仅过滤态成立的跨卡片相邻串」。
   "slug": "language/phrase-translator",
@@ -95,6 +120,15 @@ const CASES = [
     "购物 例: Can you make it cheaper? 请说慢一点"
   ],
   "ref": "haystack = zh+en+cat（不含 ex），please 命中 请原谅我(idx12)/便宜点(30)/请说慢一点(41)/请再说一遍(42)。默认态（q 空）渲染全部 48 条、卡片按原序相邻（12→13、30→31），故「礼貌 例: Please forgive me for my mistake. 便宜点」「购物 例: Can you make it cheaper? 请说慢一点」两条跨卡片相邻串仅过滤态成立；单卡片文本在默认态必然出现，不可作 expect。"
+},
+{
+  "slug": "language/phrase-translator",
+  "inputs": {
+    "search-input": "pleasezz"
+  },
+  "clicks": ["var q=document.getElementById('search-input').value;var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/language/phrase-translator.html','utf8');var d=globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/content_deepdive.json','utf8');var ok=q==='pleasezz'&&h.indexOf('支持多种语言互转')<0&&h.indexOf('中英文常用语互查')>=0&&d.indexOf('¿Cuánto')<0&&d.indexOf('Je ne comprends')<0;document.getElementById('__tbProbe').textContent='PTL20 '+(ok?'OK':'BAD');"],
+  "expect": ["PTL20 OK"],
+  "ref": "EL-J20：词库只有中英，intro 与深挖示例须删「支持多种语言互转」及西语/法语虚标，改中英互查口径；旧版两处虚标均在，源码哨兵必 BAD。"
 },
 {
   "slug": "language/stats-2",
@@ -139,15 +173,39 @@ const CASES = [
   ],
   "ref": "独立复算：注入的收藏表 ['aberrant'] 命中 WORDS.gre[0]，pickWord() 走 state.cat==='fav' 分支 ⇒ pool 只含该词，#word 渲染单词名、#phonetic 渲染 /æˈberənt/。注入路径复刻 .cat-btn[data-c=fav] 的真实 onclick（state.cat=b.dataset.c; pickWord()），仅把 dataset.c 换成注入的收藏表。选 gre 词条是因为默认 state.cat='cet4'：cet4 池内任一随机词都产不出该串，规避 pickWord() 的 Math.random() 导致的默认态偶发命中。"
 },
+{
+  "slug": "language/vocabulary-builder",
+  "clicks": ["var s={vocab_fav:JSON.stringify(['existing'])};localStorage.getItem=function(k){return s[k]||null;};localStorage.setItem=function(k,v){s[k]=String(v);};state.cat='cet4';pickWord();var w=state.current.w;mark('known');var after=JSON.parse(s.vocab_fav||'[]');var noAuto=after.indexOf(w)<0&&after.length===1;state.current={cat:'cet4',w:w};toggleFav();var added=JSON.parse(s.vocab_fav).indexOf(w)>=0;toggleFav();var removed=JSON.parse(s.vocab_fav).indexOf(w)<0;document.getElementById('vbHidden').textContent='JFAV:'+(noAuto&&added&&removed?'OK':'BAD');"],
+  "expect": ["JFAV:OK"],
+  "ref": "EL-J7：标记「认识」不得自动塞收藏，星标须可显式加入与移出；旧版 mark('known') 无条件 push 且无 toggleFav，必 BAD。"
+},
+{
+  "slug": "language/vocabulary-builder",
+  "clicks": ["var s={};localStorage.getItem=function(k){return s[k]||null;};localStorage.setItem=function(k,v){s[k]=String(v);};state.current={cat:'cet4',w:'TESTWORD'};mark('known');var r1=JSON.parse(s.vocab_review||'{}')['cet4_TESTWORD'];state.current={cat:'cet4',w:'TESTWORD'};mark('known');var r2=JSON.parse(s.vocab_review||'{}')['cet4_TESTWORD'];var ok=r1&&r2&&r1.step===1&&r2.step===2&&r1.due!==r2.due;document.getElementById('vbHidden').textContent='JDUE:'+(ok?'OK':'BAD');"],
+  "expect": ["JDUE:OK"],
+  "ref": "EL-J8：复习间隔须按 1/2/4/7/15 天递增记录 due；旧版 progress 只存字符串状态、无 vocab_review，r1/r2 均 undefined ⇒ BAD。"
+},
   {
     "slug": "language/german-gender-quiz",
     "inputs": {
       "searchInput": "abc123测试"
     },
     "expect": [
-      "Wolf (狼)\nabc123测试\n0\n1\n0\n未找到包含 \"abc123测试\" 的名词。当前词库包含 184 个名词。"
+      "Wolf (狼)\nabc123测试\n0\n1\n0\n未找到包含 \"abc123测试\" 的名词。当前词库包含 183 个名词。"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"searchInput\":\"abc123测试\"}，输出区含「Wolf (狼)\nabc123测试\n0\n1\n0\n未找到包含 \"abc123测试\"…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "language/german-gender-quiz",
+    "clicks": ["document.getElementById('__tbProbe').textContent='GQFIX '+NOUN_CONFLICTS.length+'/'+UNIQUE_NOUNS.length+'/'+NOUNS.length+'/'+NOUNS.filter(function(n){return n.word==='Augen';}).length;"],
+    "expect": ["GQFIX 0/183/183/0"],
+    "ref": "EL-F20 数据自检：删除复数独立词条 Augen、伪条目 der Haus 与两条完全重复（Mädchen/Buch）后，NOUNS/UNIQUE_NOUNS 均为 183，同词同义不同性冲突 NOUN_CONFLICTS=0，Augen 独立词条数为 0。旧版无 NOUN_CONFLICTS 变量且 UNIQUE_NOUNS=184、含 Augen ⇒ 该串失配。",
+  },
+  {
+    "slug": "language/german-gender-quiz",
+    "inputs": { "searchInput": "Augen" },
+    "expect": ["未找到包含 \"augen\" 的名词。当前词库包含 183 个名词。"],
+    "ref": "EL-F20 行为回归：搜「Augen」应无命中（正确词形是单数 das Auge，复数 die Augen 只在详情展示，不作为独立测验词条）；旧版词库含 Augen/die 会命中并显示表格，该提示串失配。",
   },
   {
     "slug": "language/grammar-checker",
@@ -299,10 +357,37 @@ const CASES = [
   "ref": "showDetail('θ') 渲染 /θ/ 详情：发音方法「清齿间摩擦音。舌尖放在上下齿之间，气流摩擦而出。」+ 例词 think /θɪŋk/。默认详情区为空（只渲染音标卡片网格），零交集。"
 },
 {
+  // EL-F19：/e/ 术语按 IPA 官方表改为 close-mid（半闭），旧版写「半开」。
+  "slug": "language/ipa-practice",
+  "clicks": ["showDetail('e')"],
+  "expect": ["半闭前不圆唇元音。口形比 i: 大，舌头稍后缩。"],
+  "ref": "showDetail('e') 渲染 /e/ 详情：IPA 官方元音表 e=close-mid front unrounded（半闭前不圆唇），旧版误写「半开前不圆唇」（open-mid 是 ɛ/ɔ/ʌ/ɜ），该串失配；默认详情区为空，零交集。"
+},
+{
+  // EL-F19 源码哨兵：/i:/ 例词删去跨语言的「茶 chá」，且 /e/ 术语已改。
+  "slug": "language/ipa-practice",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/language/ipa-practice.html','utf8');var ok=!/茶/.test(h)&&!/chá/.test(h)&&h.indexOf('半闭前不圆唇元音')>=0;document.getElementById('__tbProbe').textContent='IPAFIX '+(ok?'OK':'BAD');"],
+  "expect": ["IPAFIX OK"],
+  "ref": "IPA_DATA 的 /i:/ 例词原混中文「茶 chá (类似)」（韵母 /a/ 与 /i:/ 无关），删除后页面无「茶」/「chá」；同时 /e/ 描述改「半闭」。旧版两者皆不满足 ⇒ IPAFIX BAD。"
+},
+{
   "slug": "language/riyuwushiyintulianxi-dianjifayin",
   "clicks": ["onKana(11)"],
   "expect": ["し 假名 shi 罗马字"],
   "ref": "onKana(11) ⇒ 平假名第 12 格「し / shi」：详情卡渲染两行数据卡「し · 假名」「shi · 罗马字」。默认未点选、详情区为空，零交集；网格内虽有「し」「shi」拼接文本，但不含「し 假名 shi 罗马字」这一带标签分隔的序列。"
+},
+{
+  "slug": "language/stats-2",
+  "inputs": { "text": "１２３④😀" },
+  "clicks": ["calc();var h=document.getElementById('res').innerHTML;var ok=h.indexOf('数字字符数：<strong>3</strong>')>=0&&h.indexOf('总字符数（含空格）：<strong style=\"color:var(--primary);\">5</strong>')>=0;document.getElementById('__tbProbe').textContent='JWIDE:'+(ok?'OK':'BAD');"],
+  "expect": ["JWIDE:OK"],
+  "ref": "EL-J27：全角 １２３ 应计入数字（3），emoji 按 Unicode 码点计 1 字符（总 5）；旧版只认半角 [0-9] 且 t.length 把 emoji 算 2 ⇒ BAD。"
+},
+{
+  "slug": "language/riyuwushiyintulianxi-dianjifayin",
+  "clicks": ["quizRight=3;quizTotal=5;answerQuiz(0);var before=quizTotal;resetQuizStats(1);var after=quizTotal;var shown=document.getElementById('quizTotal').textContent;document.getElementById('__tbProbe').textContent='JRESET:'+(before===6&&after===0&&shown==='0'?'OK':'BAD');"],
+  "expect": ["JRESET:OK"],
+  "ref": "EL-J34：答题统计须可显式重置，重置后内存计数与 DOM 同时归零；旧版 resetAll 为空函数、无 resetQuizStats ⇒ BAD。"
 },
 {
   "slug": "language/language-toolkit",

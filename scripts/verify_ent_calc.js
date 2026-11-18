@@ -1,6 +1,8 @@
 #!/usr/bin node
 "use strict";
+const fs = require("fs");
 const { runCase } = require("./verify_it_calc.js");
+globalThis.__tbFs = fs;
 const CASES = [
 {
   // 原为 no_inputs 弱用例：expect「26-50%」来自 grade=2 的默认档，与勾选无关。
@@ -207,6 +209,20 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  "slug": "ent/tdi-score",
+  "inputs": {"scoreT":"","scoreD":"","scoreI":""},
+  "clicks": ["calc();var h=String(document.getElementById('result').innerHTML);document.getElementById('__tbProbe').textContent='TDIGUARD '+(h.indexOf('0–16')>=0&&h.indexOf('功能性失嗅')<0?'OK':'BAD '+h.slice(0,70));"],
+  "expect": ["TDIGUARD OK"],
+  "ref": "N115 清空守卫：三项留空经 `+||0` 旧版得 tdi=0「功能性失嗅」；修复后 __tdiInputs 判空+范围（0–16）⇒ 提示「0–16」不出分级。旧版 BAD。默认 9/10/11 合法不含该提示，零逃生。"
+},
+{
+  "slug": "ent/tdi-score",
+  "inputs": {"scoreT":"20","scoreD":"16","scoreI":"16"},
+  "clicks": ["var __cap='';var old=ToolBox.copyText;ToolBox.copyText=function(s){__cap=String(s);};copyResult();ToolBox.copyText=old;document.getElementById('__tbProbe').textContent='TDICOPY '+(__cap.indexOf('总分=52')<0?'OK':'BAD '+__cap.slice(0,80));"],
+  "expect": ["TDICOPY OK"],
+  "ref": "N116 复制一致性：T=20 越界（>16），旧版 copyResult 不 clamp ⇒ 复制「总分=52.0/48」（超满分），修复后 __tdiInputs ok=false ⇒ 不复制、只刷新结果提示 ⇒ 无「总分=52」。默认 9/10/11 合法，但本哨兵只在 clicks 注入 copyResult 探针后出现，零逃生。"
+},
+{
   "slug": "ent/temporal-resolution-hearing",
   "inputs": {
     "trGapSlider": "20",
@@ -280,7 +296,34 @@ const CASES = [
   { slug: "ent/caloric-test",
     inputs: { rw: "", lw: "", rc: "", lc: "" },
     expect: ["请填写四组冷热试验反应值（°/s）后再判读。"],
-    ref: "空态守卫：四项全清空时不再把空值按 0 参与计算（旧实现 +''||0 → 总和 0 → UW=0/DP=0 →「前庭功能正常」），改为只输出填写提示，不给正常/异常结论。默认态四项 25/22/20/18 有值 ⇒ 提示串不出现。" }
+    ref: "空态守卫：四项全清空时不再把空值按 0 参与计算（旧实现 +''||0 → 总和 0 → UW=0/DP=0 →「前庭功能正常」），改为只输出填写提示，不给正常/异常结论。默认态四项 25/22/20/18 有值 ⇒ 提示串不出现。" },
+  { slug: "ent/lund-mackay-score",
+    clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/ent/lund-mackay-score.html','utf8');var ok=h.indexOf('各 5 个鼻窦')>=0&&h.indexOf('OMC（仅 0 或 2')>=0&&h.indexOf('各 6 个鼻窦 / 窦口复合体（每项 0 至 2')<0;document.getElementById('__tbProbe').textContent='LMFIX '+(ok?'OK':'BAD');"],
+    expect: ["LMFIX OK"],
+    ref: "第1096批 N30：公式框旧文案把 6 个部位都写成 0 至 2 三档，但 OMC 只有 0 未阻塞/2 完全阻塞两档，用户会以为漏了 1 分按钮；改为 5 个鼻窦 0–2 + OMC 仅 0 或 2，源码形态判别旧串消失且新串出现。" },
+{
+  "slug": "ent/lund-mackay-score",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/ent/lund-mackay-score.html','utf8');var ok=h.indexOf('function __lmRefBar(total)')>=0&&h.indexOf('try{__lmRefBar(__lmTotal());}catch(e){} try{__lmChart();}catch(e){}')>=0;document.getElementById('__tbProbe').textContent='LMREFBAR '+(ok?'OK':'BAD');"],
+  "expect": ["LMREFBAR OK"],
+  "ref": "12-N29 首屏参考区间标尺：DOMContentLoaded 后必须重绘 refBar；旧版回调只调 __lmChart、refBar 被吞掉 ⇒ 变红。默认态不产生该串，零逃生。"
+},
+{
+  "slug": "ent/tonsil-grading",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/ent/tonsil-grading.html','utf8');var ok=h.indexOf('out.grade=String(grade)')>=0&&h.indexOf('TBKit.preset.bar(')>=0&&h.indexOf('tonsil_gradingPresets')>=0&&h.indexOf('Grade III with OSAHS')>=0&&h.indexOf('ToolBox.copyText(full')>=0&&h.indexOf('hasOwnProperty.call(rec')>=0;document.getElementById('__tbProbe').textContent='TONSILHIST '+(ok?'OK':'BAD');"],
+  "expect": ["TONSILHIST OK"],
+  "ref": "12-N101/N102/N103 复制部分：历史快照显式包含分度且恢复时同步按钮；预设栏补三组场景；复制结果改为完整结果文本。旧版快照无 grade、预设空壳、复制仅分度 ⇒ 变红。IV 度单独是否手术仍待专业复核，不在本用例。"
+},
+{
+  "slug": "ent/tdi-score",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/ent/tdi-score.html','utf8');var ok=h.indexOf('id=\"scoreT\" value=\"6\" min=\"0\" max=\"16\"')>=0&&h.indexOf('范围 0-16')>=0&&h.indexOf('阈值T (0-16)')>=0&&h.indexOf('总分 >30.5 正常')>=0&&h.indexOf('min=\"1\" max=\"16\"')<0&&h.indexOf('范围 1-16')<0&&h.indexOf('总分 >30 正常')<0;document.getElementById('__tbProbe').textContent='TDIRANGE '+(ok?'OK':'BAD');"],
+  "expect": ["TDIRANGE OK"],
+  "ref": "12-N117：T 子项统一 0–16，引据阈值统一 >30.5；旧版 min=1、提示 1-16、引据 >30 ⇒ 变红。默认态不产生该串，零逃生。"
+  },{
+    "slug": "ent/tonsil-grading",
+    "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/ent/tonsil-grading.html','utf8');var dd=globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/content_deepdive.json','utf8');var en=globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/en/ent/tonsil-grading.json','utf8');var a=JSON.parse(dd)['ent/tonsil-grading'].faqs.filter(function(f){return f.q==='分度与手术关系？';})[0].a;var ok=h.indexOf('吞咽困难（仅记录，不参与指征判断）')>=0&&a.indexOf('吞咽障碍')<0&&a.indexOf('OSAHS')>=0&&a.indexOf('不单独构成手术指征')>=0&&en.indexOf('record only, not a surgical indication')>=0;document.getElementById('__tbProbe').textContent='TONSILS3 '+(ok?'OK':'BAD');"],
+    "expect": ["TONSILS3 OK"],
+    "ref": "12-N100：吞咽困难原被采集却称「伴吞咽障碍多建议手术」，与判定逻辑（s3 不参与指征）冲突。现复选框明示仅记录，深解 FAQ 对齐页面既有手术指征列表并声明吞咽困难不单独构成指征。旧版 FAQ 仍含「吞咽障碍」且无仅记录标注 ⇒ 变红。N103 的 IV 度单独手术阈值保留专业复核。"
+  }
 ];
 async function main() {
   const only = process.argv.slice(2);

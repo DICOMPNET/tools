@@ -1,5 +1,7 @@
 #!/usr/bin node
 "use strict";
+const fs = require("fs");
+globalThis.__tbFs = fs;
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
   { slug: "rehabilitation/berg-balance-scale", checks: ["4"],
@@ -212,8 +214,24 @@ const CASES = [
     "【FIM 功能独立性评定（18 项 · 运动 13 + 认知 5）】 结果：总分 72/126（运动 52/91、认知 20/35）→ 分级：轻度依赖",
     "52/91（独立率57%）"
   ],
-  "ref": "门诊记录（EMR note）：18 项下拉 `fim_0..17` 由 renderItems() 动态生成、stub 中不存在，故 clicks 覆写 getElementById 统一给 4 分 ⇒ 运动 13×4=52/91、认知 5×4=20/35、总分 72 ⇒ 72–89 落「轻度依赖」。本页只求和与分级，不预测出院分数（旧用例的「康复预期 22 分」已随伪造预测一并删除）。默认态 18 项全 7（满分 126）⇒「完全独立」，与本用例零交集。"
-},
+    "ref": "门诊记录（EMR note）：18 项下拉 `fim_0..17` 由 renderItems() 动态生成、stub 中不存在，故 clicks 覆写 getElementById 统一给 4 分 ⇒ 运动 13×4=52/91、认知 5×4=20/35、总分 72 ⇒ 72–89 落「轻度依赖」。本页只求和与分级，不预测出院分数（旧用例的「康复预期 22 分」已随伪造预测一并删除）。默认态 18 项全 7（满分 126）⇒「完全独立」，与本用例零交集。"
+  },
+  {
+    "slug": "rehabilitation/fim-scale",
+    "clicks": [
+      "var src=String(typeof __tb_fn0==='function'?__tb_fn0:updateScore);var ok=typeof __tb_fn0==='function'&&/calcScore\s*\(\s*\)/.test(src);document.getElementById('__tbProbe').textContent='FIM68SRC '+(ok?'OK':'BAD');"
+    ],
+    "expect": ["FIM68SRC OK"],
+    "ref": "N68 改分项同步：updateScore（原始函数被 __tb_fn0 捕获）须在统计卡之外调用 calcScore 同步结果框/分级/EMR/_score；旧实现只刷统计卡。探针直接断言 __tb_fn0 函数体含 calcScore() 调用——旧版源码形态不含 ⇒ 变红。该页 select 由 renderItems 动态生成、stub 取不到，且结果区多容器在 mock getElementById 下采集不稳，故按项目先例（1043 批 cost-depreciation）用源码形态判别。默认态不产生该串，零逃生。"
+  },
+  {
+    "slug": "rehabilitation/fim-scale",
+    "clicks": [
+      "var __m={};for(var i=0;i<18;i++)__m['fim_'+i]='1';var __g=document.getElementById;document.getElementById=function(id){if(__m[id]!==undefined)return {value:__m[id],checked:false};return __g.call(document,id);};calcScore();var __before=window._score?window._score.total:null;resetAll();var __after=window._score?window._score.total:null;__g.call(document,'__tbProbe').textContent='FIMRESET before='+__before+' after='+(__after===null?'null':__after);"
+    ],
+    "expect": ["FIMRESET before=18 after=null"],
+    "ref": "N66 重置清分：18 项全 1 ⇒ calcScore 写入 _score.total=18；resetAll 后必须清 window._score=null，否则「保存记录」仍写 18 分旧值。修复后 after=null；旧实现 resetAll 不清 _score ⇒ after=18 ⇒ 旧版 BAD。默认态不触发哨兵，零逃生。"
+  },
 {
   "slug": "rehabilitation/flacc-scale",
   "checks": [
@@ -429,7 +447,35 @@ const CASES = [
     "inputs": {"usArea":"20","usHead":"5","usIntensity":"1.5","usFreq":"1"},
     "checks": ["pulsed"],
     "expect": ["超声波 1MHz 脉冲1:4 1.5W/cm² × 4.0 分钟 · 辐射头 5cm² · 治疗面积 20cm² · 总功率 7.5W · 总能量 360J · 有效深度 4-5cm（深部） · 病程分期 慢性期"],
-    "ref": "门诊记录：usArea=20、usHead=5 ⇒ 时间=20/5=4.0 分钟（未触 3–10 分钟上下限）；总功率=1.5×5=7.5W；checks 注入 usMode:pulsed ⇒ 脉冲 1:4 能量=7.5×4×60×0.2=360J；强度 1.5>0.5 ⇒ 慢性期；freq=1 ⇒ 深部 4-5cm。默认态 usArea 为空 ⇒ calcUS 早退显示「请输入治疗面积」、不产生门诊记录，零交集。原先那条超长 expect 混合了三段 tab 的原始 blob，已收敛为门诊记录单串。"
+    "ref": "门诊记录：usArea=20、usHead=5 ⇒ 时间=20/5=4.0 分钟（未触 3–10 分钟上下限）；总功率=1.5×5=7.5W；checks 注入 usMode:pulsed ⇒ 脉冲 1:4 能量=7.5×4×60×0.2=360J；强度 1.5>0.5 ⇒ 慢性期；freq=1 ⇒ 深部 4-5cm。默认态 usArea 为空 ⇒ calcUS 早退、不产生门诊记录，零交集。原先那条超长 expect 混合了三段 tab 的原始 blob，已收敛为门诊记录单串。"
+  }
+  ,{
+    "slug": "rehabilitation/physiotherapy-dose",
+    "inputs": {"usArea":"-20","usHead":"5","usIntensity":"1.5","usFreq":"1"},
+    "clicks": ["calcUS();var h=String(document.getElementById('usResult').innerHTML);document.getElementById('__tbProbe').textContent='USGUARD '+(h.indexOf('均须大于 0')>=0&&h.indexOf('3.0')<0?'OK':'BAD '+h.slice(0,80));"],
+    "expect": ["USGUARD OK"],
+    "ref": "N125 负面积守卫：usArea=-20（负数 truthy，旧 !area 挡不住）⇒ 应提示「均须大于 0」且不渲染被 Math.max(time,3) 兜出的 3.0 分钟。旧版负 area 照算 ⇒ BAD。默认 20/5/1.5/1 不含该错误提示，零逃生。"
+  }
+  ,{
+    "slug": "rehabilitation/physiotherapy-dose",
+    "inputs": {"laserPower":"-500","laserArea":"10","laserDose":"2"},
+    "clicks": ["calcLaser();var h=String(document.getElementById('laserResult').innerHTML);document.getElementById('__tbProbe').textContent='LASERGUARD '+(h.indexOf('均须大于 0')>=0&&h.indexOf('照射时间')<0?'OK':'BAD '+h.slice(0,80));"],
+    "expect": ["LASERGUARD OK"],
+    "ref": "N125 负功率守卫：laserPower=-500（旧 !power 挡不住负数）⇒ 应提示「均须大于 0」且不渲染负照射时间。旧版负功率照算 ⇒ BAD。默认正功率不含该错误提示，零逃生。"
+  }
+  ,{
+    "slug": "rehabilitation/physiotherapy-dose",
+    "inputs": {"tensTime":"-10"},
+    "clicks": ["calcTENS();var h=String(document.getElementById('tensResult').innerHTML);document.getElementById('__tbProbe').textContent='TENSGUARD '+(h.indexOf('0–120')>=0&&h.indexOf('× -10')<0?'OK':'BAD '+h.slice(0,80));"],
+    "expect": ["TENSGUARD OK"],
+    "ref": "N125 TENS 负时间守卫：tensTime=-10（旧 parseFloat||30 挡不住负数）⇒ 应提示「0–120 分钟」且不写入「× -10分钟」处方。旧版 −10 原样进处方 ⇒ BAD。默认 tensTime 30 合法不命中，零逃生。"
+  }
+  ,{
+    "slug": "rehabilitation/physiotherapy-dose",
+    "inputs": {"usArea":"1","usHead":"10","usIntensity":"0.5","usFreq":"3"},
+    "clicks": ["calcUS();var h=String(document.getElementById('usResult').innerHTML).replace(/<[^>]+>/g,' ');var ok=h.indexOf('0.1')>=0&&h.indexOf('3.0')<0&&h.indexOf('避免局部过量')>=0;document.getElementById('__tbProbe').textContent='USMINTIME '+(ok?'OK':'BAD '+h.slice(0,100));"],
+    "expect": ["USMINTIME OK"],
+    "ref": "12-N126：usArea=1、头 10cm² 的理论时间 0.1 分钟，旧版 Math.max(time,3) 强制拉到 3 分钟使能量从 30J 虚增到 900J；现移除下限、按实际面积计算并提示核对治疗区。默认 usArea 为空 ⇒ calcUS 早退，零逃生。"
   }
   ,{
     "slug": "rehabilitation/berg-balance-scale",
@@ -449,6 +495,12 @@ const CASES = [
     ],
     "ref": "边界用例：14 项各 3 分 = 42 分，锁定 41–44 这一档（此前页面把该档写成「40–44」与「41–44」两种口径，已统一为 41–44 轻度障碍/中度跌倒风险）；跌倒风险估算 (45-42)×7=21%。"
        + "默认态 answered=0 ⇒ 门诊记录整段不渲染，零交集；21–40 段（总分 28）返回「中高跌倒风险」，与本例「中度跌倒风险」互斥。"
+  }
+  ,{
+    "slug": "rehabilitation/fim-scale",
+    "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/rehabilitation/fim-scale.html','utf8');var dd=globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/content_deepdive.json','utf8');var en=globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/en/rehabilitation/fim-scale.json','utf8');var d=JSON.parse(dd)['rehabilitation/fim-scale'];var faq=d.faqs[0].a,ex=d.examples[1].body;var ok=h.indexOf('72-107')<0&&h.indexOf('18-53')<0&&h.indexOf('预期增益')<0&&h.indexOf('108–125 基本独立')>=0&&h.indexOf('不预测出院分数')>=0&&faq.indexOf('72-107')<0&&faq.indexOf('90–107')>=0&&faq.indexOf('19–35')>=0&&ex.indexOf('入院<80')<0&&ex.indexOf('不预测出院分数')>=0&&en.indexOf('72-107 moderate dependence')<0&&en.indexOf('expected gain')<0;document.getElementById('__tbProbe').textContent='FIMGRADE '+(ok?'OK':'BAD');"],
+    "expect": ["FIMGRADE OK"],
+    "ref": "12-N64/N65/N67/N69：deep-dive FAQ 旧 5 档（72-107 中度/54-71 重度/18-53 极重度）与主表/代码 8 档冲突；算例残留已从代码删除的「预期增益≈20+(80-总分)×0.3」承诺。权威源 content_deepdive.json 统一为 8 档并改为「不预测出院分数」；N67 首屏统计卡与结果框文案、N69 opt 区与 FAQPage 均为源码复核已修纯销账。旧版旧档串/增益串命中即红；默认态不产生该哨兵。"
   }
 ];
 async function main() {

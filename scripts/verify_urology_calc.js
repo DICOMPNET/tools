@@ -1,6 +1,8 @@
 #!/usr/bin node
 "use strict";
 const { runCase } = require("./verify_it_calc.js");
+const fs = require("fs");
+globalThis.__tbFs = fs;
 // 第八批加固：urology 全部用例去默认化 / 修复破损与退化
 // 每条用例输入均 ≠ 页面默认值，且 expect 断言「页面计算出的结果文本」（非输入值、非静态表字面量）。
 // 判别力由 scripts/discriminate_check.js 反向验证（模拟注入失败须 FAIL）。
@@ -166,7 +168,54 @@ const CASES = [
   "clicks": ["__markScaleDirty();resetAll();var __b=document.getElementById('result').innerHTML.replace(/<[^>]+>/g,' ');var __ok=/IPSS 总分/.test(__b)&&/当前为默认评分/.test(__b)&&!/分级|建议|诊断|治疗|风险/.test(__b);document.getElementById('result').innerHTML=__ok?'__IPSS_RST_OK__':'__IPSS_RST_FAIL__ '+__b;"],
   "expect": ["__IPSS_RST_OK__"],
   "ref": "批 3 重置态：先置 dirty 制造决策，再 resetAll() 复位后决策文案消失。"
-}
+},
+{
+  "slug": "urology/ipss-score",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/urology/ipss-score.html','utf8');var noTpl=h.indexOf(\"<li>'+q.t+'</li>\")<0;var noFill=h.indexOf('工作与生活中的相关计算与查询')<0;var noQol=h.indexOf('加 QoL 0-6 共 35')<0;var hasScene=h.indexOf('BPH / 下尿路症状自评')>=0;var hasQol=h.indexOf('QoL 另计 0-6')>=0;document.getElementById('__tbProbe').textContent=(noTpl&&noFill&&noQol&&hasScene&&hasQol)?'__IPSS_CONTENT_OK__':'__IPSS_CONTENT_BAD__ '+[noTpl,noFill,noQol,hasScene,hasQol].join(',');"],
+  "expect": ["__IPSS_CONTENT_OK__"],
+  "ref": "第1097批 N44/N45/N46：模板残留 '+q.t+' 删除、opt-guide/opt-faq/FAQPage 三处套话「工作与生活中的相关计算与查询」改真实场景、deepdive FAQ 的「加 QoL 0-6 共 35」改为 7 项合计 0-35 且 QoL 另计 0-6 不进总分。五哨兵须同时成立，全为源码形态判别，旧版必红。"
+},
+{
+  "slug": "urology/psa-density",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/urology/psa-density.html','utf8');var ok=h.indexOf('function __psaRefBar(psad)')>=0&&h.indexOf('if(__ppa>0&&__pvol>0) __psaRefBar(__ppa/__pvol);')>=0;document.getElementById('__tbProbe').textContent='PSAREFBAR '+(ok?'OK':'BAD');"],
+  "expect": ["PSAREFBAR OK"],
+  "ref": "12-N29 同类时序缺陷：PSAD 首屏参考区间标尺须在 TBKit 就绪后重绘；旧版 boot 只挂预设 ⇒ 变红。默认态不产生该串，零逃生。"
+},
+{
+  "slug": "urology/bladder-capacity",
+  "inputs": {"voided":"0","pvr":"0","age":"45"},
+  "expect": ["排尿量与残余尿至少一项需大于 0"],
+  "ref": "12-N108：0+0 空记录旧版按容量0给出偏小/排空障碍；新版前置拦截并停止分级。默认 280+30 不产生该串。"
+},
+{
+  "slug": "urology/bladder-capacity",
+  "inputs": {"voided":"120","pvr":"60","age":"45"},
+  "expect": ["膀胱容量显著缩小（低于预期50%）"],
+  "ref": "12-N109：180/400=45% 旧版只判「偏小」，与 FAQ「<50% 显著下降」冲突；新版三档口径给显著缩小。默认 310/400 不产生该串。"
+},
+{
+  "slug": "urology/bladder-capacity",
+  "inputs": {"voided":"300","pvr":"0","age":"45"},
+  "clicks": ["var b=document.getElementById('result').innerHTML.replace(/<[^>]+>/g,' ').replace(/\\s+/g,' ');var ok=b.indexOf('300 + 0 = 300 mL')>=0&&b.indexOf('残余尿：残余尿低于 50 mL，正常')>=0;document.getElementById('__tbProbe').textContent='PVRZERO '+(ok?'OK':'BAD');"],
+  "expect": ["PVRZERO OK"],
+  "ref": "12-N108 残余尿0：旧版 pvr>0 分支跳过残余尿提示；新版 0 仍显示正常参考。默认 pvr=30 也会显示同类提示，故用注入输入 300+0 与残余尿提示组合成哨兵，只由 clicks 产出，零逃生。"
+},
+{
+  "slug": "urology/stone-size-assessment",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/urology/stone-size-assessment.html','utf8');var ok=h.indexOf('肾结石 8mm（孤立肾）')>=0&&h.indexOf('肾结石 8mm 伴积水')<0&&h.indexOf('hasOwnProperty.call(rec,__cbs[__ci].id)')>=0;document.getElementById('__tbProbe').textContent='STONEPRESET '+(ok?'OK':'BAD');"],
+  "expect": ["STONEPRESET OK"],
+  "ref": "12-N87/N91：预设标签与 renal=孤立肾/肾功能不全 语义一致，不再谎称伴积水；历史恢复清空未记录勾选的逻辑保留。旧版标签为伴积水 ⇒ 变红。默认态不产生该串，零逃生。"
+  },{
+    "slug": "urology/stone-size-assessment",
+    "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/urology/stone-size-assessment.html','utf8');var en=globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/en/urology/stone-size-assessment.json','utf8');var ok=h.indexOf('输尿管中段 0.9')>=0&&h.indexOf('膀胱 1.0')>=0&&h.indexOf('经验修正，非指南直接给出')>=0&&h.indexOf('肾/输尿管上段 0.7、下段 1.25')<0&&en.indexOf('mid ureter 0.9')>=0&&en.indexOf('empirical adjustments')>=0;document.getElementById('__tbProbe').textContent='STONEFACTOR '+(ok?'OK':'BAD');"],
+    "expect": ["STONEFACTOR OK"],
+    "ref": "12-N90：公式框原只列 3 个部位系数，代码另有 mid 0.9 / bladder 1.0；现补齐 6 个并明示系数为页面经验修正、膀胱套用输尿管模型仅供粗参。旧版缺 mid/bladder 与局限性说明 ⇒ 变红。N89 模型适用性保留专业复核。"
+  },{
+    "slug": "urology/psa-density",
+    "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/urology/psa-density.html','utf8');var ok=h.indexOf('0.15 - &lt;0.25')>=0&&h.indexOf('≥ 0.25')>=0&&h.indexOf('&gt; 0.25')<0&&h.indexOf('密度分级仅描述 PSAD')>=0&&h.indexOf('穿刺指征另按 PSA 绝对值')>=0&&h.indexOf('该分级仅按 PSAD 密度划分')>=0&&h.indexOf('暂不穿刺，建议 MRI/DRE 复核')>=0&&h.indexOf('按 PSA&gt;10 指征，与 PSAD 密度分级无关')>=0;document.getElementById('__tbProbe').textContent='PSAGRADE '+(ok?'OK':'BAD');"],
+    "expect": ["PSAGRADE OK"],
+    "ref": "12-N27/N28：表格 0.25 边界原写 0.15-0.25 与 >0.25，与代码 ≥0.25 高危冲突；分级文案原称前列腺癌风险，与穿刺建议两套阈值同屏相反。现表格改 0.15-<0.25 / ≥0.25，明确 PSAD 密度分级≠穿刺指征，低 PSA 高 PSAD 走 MRI/DRE 复核、PSA>10 按绝对值穿刺并注明与密度无关。源码形态哨兵旧版必红。"
+  }
 ];
 async function main() {
   const only = process.argv.slice(2);

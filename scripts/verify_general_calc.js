@@ -382,8 +382,8 @@ const CASES = [
     slug: "general/power-focal",
     inputs: { power: "1000", speed: "1000", focal: "50", material: "1" },
     clicks: ["calc()"],
-    expect: ["1.00 线能量（J/mm）"],
-    ref: "线能量 = 功率 1000 W ÷ 速度 1000 mm/s = 1.00 J/mm，同场光斑直径 0.063mm、功率密度 323.4 kW/mm²。可独立复算。默认态不同 ⇒ 不命中。",
+    expect: ["1.00 线能量（J/mm）", "323.4功率密度（kW/mm²）"],
+    ref: "线能量 = 功率 1000 W ÷ 速度 1000 mm/s = 1.00 J/mm，同场光斑直径 0.063mm、功率密度 = P/S² = 1000/(0.063²) ≈ 323400 W/mm² = 323.4 kW/mm²；旧实现把已除 1000 的 kW 值再拼 'k' → 323.4k（放大1000倍）。可独立复算，默认态不同 ⇒ 不命中。",
   },
   {
     slug: "machinery/torque-motion",
@@ -391,6 +391,13 @@ const CASES = [
     clicks: ["calc()"],
     expect: ["1500 选型推力 (N)"],
     ref: "选型推力 = 负载力 1000 N × 安全系数 1.5 = 1500 N，向上取整到标准推力 2000 N。可独立复算。默认态不同 ⇒ 不命中。",
+  },
+  {
+    slug: "machinery/torque-motion",
+    inputs: { vF: "2000", vS: "300", vT: "10", vSF: "1.5", vType: "0.6" },
+    clicks: ["var os=localStorage.setItem,og=localStorage.getItem,cap=null;localStorage.setItem=function(k,v){cap=v;};saveHistory();localStorage.setItem=os;var arr=JSON.parse(cap||'[]');var stored=arr[0]?String(arr[0].type):'NONE';document.getElementById('vType').value='0.85';localStorage.getItem=function(){return JSON.stringify(arr);};restoreHistory(0);localStorage.getItem=og;var restored=document.getElementById('vType').value;document.getElementById('__tbProbe').textContent='TMTYPE stored='+stored+' restored='+restored;"],
+    expect: ["TMTYPE stored=0.6 restored=0.6"],
+    ref: "992 历史类型（MM-H108）：原 saveHistory 不存 vType、restoreHistory 不恢复，改选齿轮齿条后恢复按 0.85 重算；修复后记录与恢复均保留 0.6。默认态 0.7 不含该串。",
   },
   {
     slug: "antiques/rater-1",
@@ -791,8 +798,8 @@ const CASES = [
     slug: "general/detector-16",
     inputs: { v1: "3", v2: "3", v3: "3", v4: "3" },
     clicks: ["calc()"],
-    expect: ["估算覆盖面积：约 16.3 m²"],
-    ref: "覆盖面积 = π×安装高度×tan30°×检测距离 = π×3×0.577×3 ≈ 16.3 m²。三参数全部注入，可独立复算。",
+    expect: ["估算覆盖面积：约 9.4 m²"],
+    ref: "固定 30° 半张角下地面覆盖半径 r = 安装高度×tan30° = 3×0.577 = 1.732 m，与检测距离无关；面积 = πr² ≈ 9.4 m²。旧实现误乘检测距离得 16.3 m²。三参数全部注入，可独立复算。",
   },
   {
     slug: "safety/detector-manager-protection",
@@ -890,6 +897,20 @@ const CASES = [
     clicks: ["calc()"],
     expect: ["12.57 制动力矩 (N·m)", "157.08 角速度 (rad/s)"],
     ref: "角速度 ω = 2πn/60 = 2π×1500/60 = 157.08 rad/s；制动力矩 = 轴向载荷 × 制动盘半径 = 80N × 0.157m = 12.57 N·m；选型力矩 = 12.57 × 1.5 = 18.85 N·m。两串均可手算复算。",
+  },
+  {
+    slug: "machinery/torque-response",
+    inputs: { vN: "2900", vJ: "1.2", vT: "1", vSF: "1.5", vLoad: "1.3" },
+    clicks: ["calc()"],
+    expect: ["71.94 制动能量 (kJ)"],
+    ref: "992 能量载荷系数（MM-H109）：ω=2π×2900/60≈303.69 rad/s，0.5×J×ω²/1000×1.3≈71.94 kJ；旧版漏乘负载系数得 55.34 kJ，默认 1450/2.5/0.8 不含该串。",
+  },
+  {
+    slug: "machinery/torque-response",
+    inputs: { vN: "1450", vJ: "2.5", vT: "3", vSF: "1.5", vLoad: "1.3" },
+    clicks: ["var os=localStorage.setItem,og=localStorage.getItem,cap=null;localStorage.setItem=function(k,v){cap=v;};saveHistory();localStorage.setItem=os;var arr=JSON.parse(cap||'[]');var stored=arr[0]?String(arr[0].load):'NONE';document.getElementById('vLoad').value='0.8';localStorage.getItem=function(){return JSON.stringify(arr);};restoreHistory(0);localStorage.getItem=og;var restored=document.getElementById('vLoad').value;document.getElementById('__tbProbe').textContent='TRLOAD stored='+stored+' restored='+restored;"],
+    expect: ["TRLOAD stored=1.3 restored=1.3"],
+    ref: "992 历史负载（同源补强）：原 saveHistory 不存 vLoad、restoreHistory 不恢复，改选阻力辅助后恢复按 0.8 重算；修复后记录与恢复均保留 1.3。默认态 0.8 不含该串。",
   },
   {
     slug: "general/tester-40",
@@ -995,8 +1016,8 @@ const CASES = [
     slug: "machinery/jingmishebeixuanxing",
     inputs: { vAcc: "0.5", vLoad: "200", vStroke: "300", vSpeed: "1000" },
     clicks: ["calc()"],
-    expect: ["25000 所需转速 (rpm)", "13.86 驱动扭矩 (N·m)"],
-    ref: "丝杠选型：导程 40mm / 行程 300mm / 进给 1000 ⇒ 所需转速 25000rpm 量级；驱动扭矩 13.86 N·m（含加速惯量项 vAcc=0.5）。两者均随进给速度与负载联动。同场「导轨规格 HGR20 / 精度 C3 / 导程精度」为查表文案串，不锚。",
+    expect: ["超出本页导程表"],
+    ref: "990 导程超范围（MM-H92）：速度 1000 m/min 所需最小导程 333.3mm > 40mm 上限，旧版静默取 40mm 并输出 25000rpm、13.86 N·m；修复后明确提示超范围并中止，默认 15m/min 不含该串。",
   },
   // ---- BATCH258：general 分类「双约束极值 / 配比 / 链路 / 传动」族（7 例） ----
   // 【判据】本批全部沿用「同源不同式交叉锚」：每条用例锚两个**由不同算式得到、但指向同一结果**的行，
@@ -1928,9 +1949,9 @@ const CASES = [
       "v4": "2"
     },
     "expect": [
-      "估算覆盖面积：约 3199.5 m² ⚠️ 参数超出传感器规格 微波多普勒可穿透非金属障碍物，适合隔墙检测，灵敏度高 检测距离超出该传感器最大量程，建议更换传感器类型"
+      "估算覆盖面积：约 1847.3 m² ⚠️ 参数超出传感器规格 微波多普勒可穿透非金属障碍物，适合隔墙检测，灵敏度高 检测距离超出该传感器最大量程，建议更换传感器类型"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"v1\":\"42\",\"v2\":\"42\",\"v3\":\"42\",\"v4\":\"2\"}，输出区含「估算覆盖面积：约 3199.5 m² ⚠️ 参数超出传感器规格 微波多普勒可穿透…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"v1\":\"42\",\"v2\":\"42\",\"v3\":\"42\",\"v4\":\"2\"}，输出区含「估算覆盖面积：约 1847.3 m² ⚠️ 参数超出传感器规格 微波多普勒可穿透…」；固定视角覆盖面积 π×(42×tan30°)²≈1847.3，与检测距离无关（旧实现误乘距离得 3199.5）。默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "electrical/detector-173",
@@ -2508,9 +2529,27 @@ const CASES = [
       "sf": "42"
     },
     "expect": [
-      "负载率 📌 Q=42m³/h，H=42m，需 0.48"
+      "效率 η 须在 1–100 之间"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"qVal\":\"42\",\"hVal\":\"42\",\"rho\":\"42\",\"eff\":\"42\",\"sf\":\"42\"}，输出区含「负载率 📌 Q=42m³/h，H=42m，需 0.48」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "988 范围守卫：eff=42%、sf=42 旧版照常出结果；修复后效率越界直接拦截并提示 1–100 范围，默认态 75%/1.15 不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "machinery/flow-14",
+    "inputs": { "qVal": "1000", "hVal": "100", "rho": "1000", "eff": "80", "sf": "1.2" },
+    "expect": ["超出标准电机表范围"],
+    "ref": "988 电机超范围（MM-H86）：Pm = 1000×9.81×1000×100/3.6e6/0.8×1.2 = 408.75 kW > 400 kW，旧版静默返回 400 kW 并给出 102% 负载率；修复后明确提示超范围，默认 Pm=6.27 kW 不含该串。"
+  },
+  {
+    "slug": "machinery/flow-14",
+    "inputs": { "qVal": "50", "hVal": "30", "rho": "1000", "eff": "75", "sf": "1.15", "rpm": "2900" },
+    "expect": ["97.3 比转速 nq", "离心泵（中比转速）"],
+    "ref": "988 转速参与比转速（MM-H89）：n=2900 r/min 时 nq = 3.65×2900×√(50/3.6/1000)/30^0.75 ≈ 97.3，泵型由默认 1450 r/min 的「旋涡泵/部分流泵」跨到「离心泵（中比转速）」；旧版无转速输入恒为 48.7。"
+  },
+  {
+    "slug": "machinery/flow-14",
+    "inputs": { "qVal": "50", "hVal": "30", "rho": "1000", "eff": "75", "sf": "0.5" },
+    "expect": ["安全系数 K 须在 1–2 之间"],
+    "ref": "988 安全系数下限（MM-H87）：K=0.5 旧版算出 Pm=2.73 kW 且照常推荐电机；修复后按页面 min=1 拦截，默认 K=1.15 不含该串。"
   },
   {
     "slug": "general/frequency-15",
@@ -2646,6 +2685,19 @@ const CASES = [
       "/导程(mm) C7 丝杠精度等级 55"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"vAcc\":\"42\",\"vLoad\":\"42\",\"vStroke\":\"42\",\"vSpeed\":\"42\"}，输出区含「/导程(mm) C7 丝杠精度等级 55」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "machinery/jingmishebeixuanxing",
+    "inputs": { "vAcc": "10", "vLoad": "2000", "vStroke": "500", "vSpeed": "15" },
+    "expect": ["超出 HGR15~HGR65 上限 101 kN"],
+    "ref": "990 导轨超范围（MM-H92）：2000kg 需动额定 117.6kN > HGR65 的 101kN，旧版静默取 HGR65 仍出结果；修复后明确提示超范围，默认 50kg/7.7kN 不含该串。"
+  },
+  {
+    "slug": "machinery/jingmishebeixuanxing",
+    "inputs": { "vAcc": "5", "vLoad": "50", "vStroke": "300", "vSpeed": "30" },
+    "clicks": ["var os=localStorage.setItem,og=localStorage.getItem,cap=null;localStorage.setItem=function(k,v){cap=v;};saveHistory();localStorage.setItem=os;var arr=JSON.parse(cap||'[]');var stored=arr[0]?String(arr[0].speed):'NONE';document.getElementById('vSpeed').value='1';localStorage.getItem=function(){return JSON.stringify(arr);};restoreHistory(0);localStorage.getItem=og;var restored=document.getElementById('vSpeed').value;document.getElementById('__tbProbe').textContent='JMSPD stored='+stored+' restored='+restored;"],
+    "expect": ["JMSPD stored=30 restored=30"],
+    "ref": "990 历史速度（MM-H93）：saveHistory 原不存 vSpeed、restoreHistory 不恢复，改速度后恢复按 1m/min 重算；修复后记录与恢复都保留 30m/min。默认 15m/min 不含该串。"
   },
   {
     "slug": "materials/huanbaonaimopinggu",
@@ -2937,6 +2989,18 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"vTemp\":\"42\",\"vPress\":\"42\",\"vSpeed\":\"42\",\"vMat\":\"fk\",\"vMed\":\"water\"}，输出区含「预计寿命 (年) 222.86 温度因子 0.12 压力因子 0.99 速度因子…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
+    "slug": "machinery/lifespan-7",
+    "inputs": { "vTemp": "80", "vPress": "5", "vSpeed": "1500", "vShaft": "100", "vMat": "nbr", "vMed": "oil" },
+    "expect": ["39.270 PV值 (MPa·m/s)"],
+    "ref": "991 轴径参与 PV（MM-H97）：轴径 100mm 时线速度 = 1500×0.1×π/60 = 7.854 m/s，PV = 5×7.854 = 39.270 MPa·m/s；旧版轴径写死 50mm 恒得 19.635。"
+  },
+  {
+    "slug": "machinery/lifespan-7",
+    "inputs": { "vTemp": "80", "vPress": "5", "vSpeed": "1500", "vShaft": "0", "vMat": "nbr", "vMed": "oil" },
+    "expect": ["轴径须大于 0mm"],
+    "ref": "991 轴径守卫（MM-H97）：vShaft=0 旧版仍按 50mm 照算 PV 19.635；修复后拦截并提示轴径须大于 0mm，默认 50mm 不含该串。"
+  },
+  {
     "slug": "general/lifespan-wear-2",
     "inputs": {
       "vRate": "42",
@@ -3086,6 +3150,18 @@ const CASES = [
       "kW，乘安全系数 42 得 7.76kW → 推荐 11kW / 12极 / 42V YC/YU（单相"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"torque\":\"42\",\"speed\":\"42\",\"volt\":\"42\",\"sf\":\"42\"}，输出区含「kW，乘安全系数 42 得 7.76kW → 推荐 11kW / 12极 / 4…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "machinery/power-voltage",
+    "inputs": { "torque": "100", "speed": "3000", "volt": "380", "sf": "1.2" },
+    "expect": ["无法产生正转差"],
+    "ref": "989 极数守卫（MM-H100）：n=3000 rpm 等于 50Hz 下 2 极同步转速，旧版按阈值取 2 极并输出 0.0% 转差率；修复后明确提示无法产生正转差，默认 1450rpm→4 极不含该串。"
+  },
+  {
+    "slug": "machinery/power-voltage",
+    "inputs": { "torque": "2000", "speed": "2000", "volt": "380", "sf": "1.2" },
+    "expect": ["超出标准电机表范围"],
+    "ref": "989 电机超范围（MM-H101）：Pm = 2000×2000/9550×1.2 = 502.62 kW > 400 kW，旧版静默返回 400 kW 并给出 105% 负载率；修复后明确提示超范围，默认 Pm=18.22 kW 不含该串。"
   },
   {
     "slug": "machinery/power-16",
@@ -3744,6 +3820,34 @@ const CASES = [
       "42\n42\n42\n42\n42\n合格判定数 Ac 应小于样本数 n\n暂无计算记录"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"v0\":\"42\",\"v1\":\"42\",\"v2\":\"42\",\"v3\":\"42\",\"v4\":\"42\"}，输出区含「42\n42\n42\n42\n42\n合格判定数 Ac 应小于样本数 n\n暂无计算记录」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "machinery/jingmishebeixuanxing",
+    "inputs": { "vAcc": "0", "vLoad": "200", "vStroke": "300", "vSpeed": "15" },
+    "clicks": ["var os=localStorage.setItem,writes=0;localStorage.setItem=function(k,v){if(String(k).indexOf('tb_history_')===0)writes++;};calc();saveHistory();localStorage.setItem=os;document.getElementById('__tbProbe').textContent='JSHIS0 '+(writes===0?'OK':'BAD'+writes);"],
+    "expect": ["JSHIS0 OK"],
+    "ref": "990无效输入不入历史：精密选型精度=0 无效（calc 清空 lastResult），旧版 saveHistory 仍写 tb_history；修复后 saveHistory 开头 if(!lastResult)return 不写。合法默认态 saveHistory 会写一条 ⇒ 探针仅无效态出现，零逃生。"
+  },
+  {
+    "slug": "machinery/lifespan-7",
+    "inputs": { "vTemp": "60", "vPress": "0.4", "vSpeed": "1200", "vShaft": "0" },
+    "clicks": ["var os=localStorage.setItem,writes=0;localStorage.setItem=function(k,v){if(String(k).indexOf('tb_history_')===0)writes++;};calc();saveHistory();localStorage.setItem=os;document.getElementById('__tbProbe').textContent='LSHIS0 '+(writes===0?'OK':'BAD'+writes);"],
+    "expect": ["LSHIS0 OK"],
+    "ref": "990无效输入不入历史：密封件轴径=0 无效（calc 清空 lastResult），旧版 saveHistory 仍写历史；修复后不写。合法默认轴径=50 会写一条 ⇒ 零逃生。"
+  },
+  {
+    "slug": "machinery/torque-motion",
+    "inputs": { "vF": "0", "vS": "300", "vT": "10", "vSF": "1.5" },
+    "clicks": ["var os=localStorage.setItem,writes=0;localStorage.setItem=function(k,v){if(String(k).indexOf('tb_history_')===0)writes++;};calc();saveHistory();localStorage.setItem=os;document.getElementById('__tbProbe').textContent='TMHIS0 '+(writes===0?'OK':'BAD'+writes);"],
+    "expect": ["TMHIS0 OK"],
+    "ref": "990无效输入不入历史：执行器负载力=0 无效，旧版 saveHistory 仍写历史；修复后不写。合法默认 F>0 会写一条 ⇒ 零逃生。"
+  },
+  {
+    "slug": "machinery/torque-response",
+    "inputs": { "vN": "0", "vJ": "2.5", "vT": "3", "vSF": "1.5" },
+    "clicks": ["var os=localStorage.setItem,writes=0;localStorage.setItem=function(k,v){if(String(k).indexOf('tb_history_')===0)writes++;};calc();saveHistory();localStorage.setItem=os;document.getElementById('__tbProbe').textContent='TRHIS0 '+(writes===0?'OK':'BAD'+writes);"],
+    "expect": ["TRHIS0 OK"],
+    "ref": "990无效输入不入历史：制动器转速=0 无效，旧版 saveHistory 仍写历史；修复后不写。合法默认 n>0 会写一条 ⇒ 零逃生。"
   }
 
 ];

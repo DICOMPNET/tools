@@ -80,6 +80,44 @@ const CASES = [
   ],
   "ref": "start=0×3600+1×60+30=90s ⇒ 00:01:30；end=3×60=180s ⇒ 00:03:00；片段时长=180−90=90s ⇒ 00:01:30。"
      + "原 expect「添加一个开始吧」是空列表提示（默认全 0 ⇒ 起止相同、无法成段，回退默认仍命中 ⇒ 逃生项）。"
+},
+{
+  "slug": "video/video-compressor",
+  "clicks": ["document.getElementById('duration').value='0';calc();"],
+  "expect": ["请输入有效的视频时长"],
+  "ref": "943零值守卫：时长显式填 0 须提示并停止，不得静默按 10 分钟计算。默认 duration=10 ⇒ 出压缩参数不含该提示。"
+},
+{
+  "slug": "video/video-compressor",
+  "clicks": ["var d=document.getElementById('duration');d.value='';calc();var h=String(document.getElementById('result').innerHTML);document.getElementById('__tbProbe').textContent='VCDUR '+(h.indexOf('请输入有效的视频时长')>=0&&h.indexOf('kbps')<0?'OK':'BAD');"],
+  "expect": ["VCDUR OK"],
+  "ref": "943清空守卫：时长清空须同样拦截且不残留旧 kbps 参数；旧版 +''||10 会静默按 10 分钟出结果 ⇒ 哨兵 BAD。"
+},
+{
+  "slug": "video/video-converter",
+  "clicks": ["document.getElementById('duration').value='0';generate();"],
+  "expect": ["请输入有效的视频时长"],
+  "ref": "943零值守卫：转换器时长 0 须提示，不得用 0 估算大小/生成命令。默认 duration=10 不命中。"
+},
+{
+  "slug": "video/video-speed",
+  "inputs": { "h": "0", "m": "0", "s": "1", "ms": "0", "fps": "30", "speed": "0.75" },
+  "expect": ["增加00:00.333"],
+  "ref": "减速对照：1 秒素材按 0.75× 播放需 1.333 秒，差值为负 0.333 秒。旧版把负数直接送 fmtTimeShort 得「节省-1:-1」；现按绝对值显示并改标签为「增加00:00.333」。默认 30 分钟 1.5× 命中「节省」不命中本串。"
+},
+{
+  "slug": "video/video-fps",
+  "inputs": { "duration": "10" },
+  "clicks": ["var s=document.getElementById('srcFps'),d=document.getElementById('dstFps');s.value='24';d.value='60';calc();var t=String(document.getElementById('frameDesc').innerHTML||'');var r=String(document.getElementById('frameResult').textContent||'');var ok=t.indexOf('时长仍为 10s 不变')>=0&&t.indexOf('放慢')<0&&t.indexOf('慢放')>=0&&r.indexOf('240 → 600 帧')>=0;document.getElementById('__tbProbe').textContent='VFPSUP '+(ok?'OK':'BAD '+t.slice(0,120));"],
+  "expect": ["VFPSUP OK"],
+  "ref": "P-N9 升帧误述：源24→目标60、10s，旧版 frameDesc 写「放慢2.50倍播放」暗示时长变 25s，但 frameResult 仍 240→600 帧/时长10s，自相矛盾。现改为「时长仍为 10s 不变」并提示如需慢放须另用变速重定时。注入非默认目标60（默认30）避开默认态。"
+},
+{
+  "slug": "video/video-fps",
+  "inputs": { "duration": "10" },
+  "clicks": ["var s=document.getElementById('srcFps'),d=document.getElementById('dstFps');s.value='60';d.value='24';calc();var t=String(document.getElementById('frameDesc').innerHTML||'');var r=String(document.getElementById('frameResult').textContent||'');var ok=t.indexOf('时长仍为 10s 不变')>=0&&t.indexOf('加速')<0&&t.indexOf('快放')>=0&&r.indexOf('600 → 240 帧')>=0;document.getElementById('__tbProbe').textContent='VFPSDN '+(ok?'OK':'BAD '+t.slice(0,120));"],
+  "expect": ["VFPSDN OK"],
+  "ref": "P-N9 降帧误述：源60→目标24、10s，旧版写「加速2.50倍播放」暗示时长变 4s，但帧数 600→240/时长10s。现改为「时长仍为 10s 不变」+「如需快放须另用变速重定时」。注入非默认源60（默认24）避开默认态。P-N10 同批修正公式框与权威源算例口径（时长比=源÷目标、速度比=目标÷源）。"
 }
 ];
 async function main() {

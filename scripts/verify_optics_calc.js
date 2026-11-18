@@ -64,6 +64,14 @@ const CASES = [
     inputs: { f: "0.3", do: "0.8" },
     expect: ["0.4800"],
     ref: "1/dᵢ=1/f−1/dₒ=3.3333−1.25=2.0833 → dᵢ=0.4800 m" },
+  { slug: "optics/mirror-equation",
+    inputs: { f: "-0.2", do: "0.5" },
+    expect: ["-0.1429"],
+    ref: "凸面镜成像（f 为有符号量，凹正凸负）：f=-0.2 m、dₒ=0.5 m → 1/dᵢ=1/f−1/dₒ=-5−2=-7 → dᵢ=-0.1429 m（虚像、缩小、正立）；旧版把 f 列入「不能为负」拦截，页面文案/算例承诺的凸面镜功能被屏蔽。-0.1429 非默认 ⇒ 零逃生。" },
+  { slug: "optics/mirror-equation",
+    clicks: ["document.getElementById('f').value='0';document.getElementById('do').value='0.5';calcTool();var h=String(document.getElementById('result').textContent||document.getElementById('result').innerHTML);document.getElementById('f').value='FZERO_'+(h.indexOf('不能为 0')>=0?'OK':'BAD');"],
+    expect: ["FZERO_OK"],
+    ref: "PQ-20 清账（f=0 分母守卫）：f=0、dₒ=0.5 时 1/f 发散、dᵢ=1/(∞−2) 收敛成 0，旧版输出「像距 0、放大率 0」伪结果；现 __D 含 f，f=0 提示「焦距不能为 0」。探针断言结果含「不能为 0」，旧版 ⇒ FZERO_BAD，零逃生。" },
 
   { slug: "optics/optical-power-diopter",
     inputs: { f: "0.25" },
@@ -155,6 +163,10 @@ const CASES = [
     inputs: { lam: "480", L: "2", d: "0.4" },
     expect: ["2.400"],
     ref: "Δy=λL/d=480e-9×2/(0.4e-3)=2.4e-3 m=2.400 mm" },
+  { slug: "optics/young-fringe",
+    inputs: { lam: "0", L: "2", d: "0.4" },
+    expect: ["波长 λ、屏距 L、缝距 d 均必须 > 0"],
+    ref: "998 分母误标修复（PQ-04）：λ=0 旧版被误标「波长 λ 是本计算的分母，不能为 0」，实际 λ 在分子；修复后只把 d 当分母，零值走统一正性提示。" },
   {
     "slug": "optics/angular-magnification",
     "inputs": {
@@ -391,6 +403,40 @@ const CASES = [
       "像距 d_i = 1806.0000 m（正） 横向放大率 m = -42.0000"
     ],
     "ref": "焦点边界重做同批同步：原自动补强用例用 f=42 / d_o=42 恰好落在焦点上，修复后该输入改走「出射光平行、像在无穷远」分支，旧的 dataGrid 断言必然漂移 ⇒ inputs 改为非焦点的 42/43。1/dᵢ=1/42−1/43 ⇒ dᵢ=1806.0000 m、m=−42.0000，expect 取真实派生结论串（依赖两个注入值；默认态 f0.1/d_o0.3 不含）⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "optics/malus-law",
+    "inputs": { "I0": "0", "th": "60" },
+    "expect": ["— 吸收光强占比 (%)"],
+    "ref": "1000 I₀=0 时吸收占比不再用 1e-9 兜底伪造巨大百分比（PQ-01）；旧版显示 1000000000.00，修复后显示「—」。默认 I₀=100 不含该串。"
+  },
+  {
+    "slug": "optics/malus-law",
+    "inputs": { "I0": "-100", "th": "60" },
+    "clicks": ["var rows=-1,rec=0;globalThis.TBKit={util:{isEn:function(){return false;},diffBox:function(){}},matrix:{table:function(sel,cfg){rows=cfg&&cfg.rows?cfg.rows.length:-1;}},history:{record:function(){rec++;},mount:function(){}}};__malus_lawExtras();document.getElementById('__tbProbe').textContent='MALUSBAD '+((rows===0&&rec===0)?'OK':'BAD rows='+rows+' rec='+rec);"],
+    "expect": ["MALUSBAD OK"],
+    "ref": "1000 马吕斯明细同步主区 I₀≥0 校验（PQ-01）：旧版负光强仍写 4 行明细并记历史，修复后清表且不记录。探针只在 clicks 注入后出现，默认态零逃生。"
+  },
+  {
+    "slug": "optics/brewster-angle",
+    "inputs": { "n1": "0", "n2": "1.5" },
+    "clicks": ["var rows=-1,rec=0;globalThis.TBKit={util:{isEn:function(){return false;},diffBox:function(){}},matrix:{table:function(sel,cfg){rows=cfg&&cfg.rows?cfg.rows.length:-1;}},history:{record:function(){rec++;},mount:function(){}}};__brewster_angleExtras();document.getElementById('__tbProbe').textContent='BREWBAD '+((rows===0&&rec===0)?'OK':'BAD rows='+rows+' rec='+rec);"],
+    "expect": ["BREWBAD OK"],
+    "ref": "1000 布儒斯特明细同步主区 n₁>0 校验（PQ-02）：旧版 n₁=0 仍写 3 行明细并用 n1||1 造伪比值，修复后清表且不记录。默认 n₁=1 不含该串。"
+  },
+  {
+    "slug": "optics/brewster-angle",
+    "inputs": { "n1": "1.5", "n2": "1.33" },
+    "clicks": ["var p=null;globalThis.TBKit={preset:{bar:function(sel,items){p=items;}},util:{isEn:function(){return false;},diffBox:function(){}},matrix:{table:function(){}},history:{record:function(){},mount:function(){}}};__brewster_anglePresets();var vals=p?p.map(function(x){return x.values.n1+'/'+x.values.n2;}).join('|'):'NONE';document.getElementById('__tbProbe').textContent='BRWPRE '+vals;"],
+    "expect": ["BRWPRE 1.0/1.5|1/1.33|1.5/1.33"],
+    "ref": "1000 布儒斯特预设改为不同介质比值（PQ-03）：旧版 2×/0.5× 的 n2/n1 恒 1.5、三个预设输出完全相同；新版空气→水 1.33 与玻璃→水 1.33/1.5 给出不同角度。默认态不执行 clicks，零逃生。"
+  },
+  {
+    "slug": "optics/prism-deviation",
+    "inputs": { "n": "-1", "A": "10" },
+    "clicks": ["var rows=-1,rec=0;globalThis.TBKit={util:{isEn:function(){return false;},diffBox:function(){}},matrix:{table:function(sel,cfg){rows=cfg&&cfg.rows?cfg.rows.length:-1;}},history:{record:function(){rec++;},mount:function(){}}};__prism_deviationExtras();document.getElementById('__tbProbe').textContent='PRISMBAD '+((rows===0&&rec===0)?'OK':'BAD rows='+rows+' rec='+rec);"],
+    "expect": ["PRISMBAD OK"],
+    "ref": "1001 棱镜明细同步主区 n>0 校验：旧版 n=-1、A=10° 仍写 4 行明细并记历史；修复后清表且不记录。默认 n=1.5 不含该串。"
   }
 
 ];

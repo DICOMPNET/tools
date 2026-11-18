@@ -27,6 +27,12 @@ const CASES = [
     ref: "改为 m=12/a=4：F = 12×4 = 48.0 N、kN = 0.048000、km/h/s = 4×3.6 = 14.4000、kgf = 48/9.80665 = 4.8946。默认态 30.0 N / 0.030000 / 10.8000 / 3.0591",
   },
   {
+    slug: "science/newtons-second",
+    inputs: { m: "0.001", a: "0.1" },
+    expect: ["0.0001 N 合外力", "1.0000e-7 合外力 (kN)"],
+    ref: "SMS-118 清账（小力精度）：m=0.001 kg、a=0.1 m/s² → F=0.0001 N、F/1000=1e-7 kN。旧版主结果 toFixed(1) 得 0.0 N、kN 档 toFixed(6) 得 0.000000；现主结果保留有效位、极小 kN 走科学计数。两条锚旧版均不成立，零逃生。",
+  },
+  {
     slug: "science/kinetic-energy",
     // 原 all_default 弱用例（m=10/v=5 恰等于页面默认）
     inputs: { m: "12", v: "4" },
@@ -48,6 +54,20 @@ const CASES = [
     expect: ["2.00 C"],
     ref: "欧姆定律 I = V/R；10 ÷ 5 = 2 A → 电荷量 Q=I=2 → 2.00 C（resQ，toFixed(2)）",
   },
+  {
+    slug: "science/ohms-law-calculator",
+    inputs: {},
+    clicks: ["setCalcVar('v');document.getElementById('i').value='0';document.getElementById('r').value='220';calc();var d=document.getElementById('resultDetail').innerHTML;var p=document.getElementById('resP').textContent;document.getElementById('i').value='OPENPROBE_'+(d.indexOf('请输入两个')<0&&p!=='--'?'Y':'N')+'_'+p;"],
+    expect: ["OPENPROBE_Y_0.00 μW"],
+    ref: "SMS-122 清账：求解电压时 I=0 A、R=220 Ω（开路）本应得 V=0、P=0。旧版把 calcI===0 当无效，显示「请输入两个有效的已知量」且 P=--。现从有效性判断删去 calcI===0（求解电阻分支已独立守 I≠0）。探针断言明细不再报无效且 P=0.00 μW；旧版 ⇒ OPENPROBE_N，零逃生。"
+  },
+  {
+    slug: "science/ohms-law-calculator",
+    inputs: {},
+    clicks: ["var fv=fmtVolt(-5),fc=fmtCurrent(-0.0002);document.getElementById('i').value='NEGPROBE_'+(fv==='-5.00 V'&&fc==='-200.00 μA'?'Y':'N')+'_'+fv;"],
+    expect: ["NEGPROBE_Y"],
+    ref: "SMS-123 清账（负值档）：五个 fmt* 函数原用裸 v>=阈值 判档，负值全落最小单位档（-5 V→-5000000.00 μV、-0.0002 A→-200000.00 nA）。现改用 Math.abs(v) 选档并保留原值符号。探针断言 fmtVolt(-5)=-5.00 V 且 fmtCurrent(-0.0002)=-200.00 μA；旧版 ⇒ NEGPROBE_N，零逃生。能耗单位 Wh/h→Wh 的修正由已有自动补强用例锚住。"
+  },
 
   // ── 化学（摩尔质量 / pH）────────────────────────────────────
   {
@@ -64,6 +84,24 @@ const CASES = [
     ref: "新增回归：括号结构 Ca(OH)2 → 40.078+2×(15.999+1.008)=74.092；旧正则解析丢掉括号，会把 O2H2 误拆成 O2 + H2 且 Ca 后系数错位，得 57.09 一类错误值",
   },
   {
+    slug: "science/molar-mass-calculator",
+    inputs: { formula: "Ca(OH]2" },
+    expect: ["化学式格式有误"],
+    ref: "SMS-9 清账（括号类型）：原括号扫描只累计深度、不区分配对类型，Ca(OH]2 的 '(' 遇 ']' 也 depth-- 归零被接受。现改栈匹配，闭合符须与栈顶开启符对应；交叉括号报错。旧版接受并算出质量 ⇒ 变红，零逃生。"
+  },
+  {
+    slug: "science/molar-mass-calculator",
+    inputs: { formula: "NaCl·2H2O·3H2O" },
+    expect: ["摩尔质量 M 148.515", "H 10 1.008 10.080", "O 5 15.999 79.995"],
+    ref: "SMS-9 清账（多水合段）：原 addComp 递归时把前段系数累乘到后段，NaCl·2H2O·3H2O 得 H=16/O=8/M=202.560。现按 · 在顶层分段、各段系数独立（NaCl+2H2O+3H2O）：H=2+3=5×2=10、O=2+3=5、M=148.515。三条锚均为旧版不成立，零逃生。"
+  },
+  {
+    slug: "science/molar-mass-calculator",
+    inputs: { formula: "H0" },
+    expect: ["化学式格式有误"],
+    ref: "SMS-9 清账（零下标）：原括号/元素下标只按数字串解析，H0 产生 H=0 并以 M=0.000、占比 NaN/Infinity 参与展示。现元素与括号计数统一要求正整数，0 下标判格式错误；旧版不报「化学式格式有误」⇒ 变红，零逃生。"
+  },
+  {
     slug: "science/ph-calculator",
     // ⚠ 默认页签是「H⁺→pH」，读的是 id="H"（默认 0.001）；id="ph" 属于另两个页签，
     // 旧用例注入 ph:"3" 对默认页签**无效**，expect「3.00 / 1.000e-3」实由默认 H=0.001
@@ -72,12 +110,31 @@ const CASES = [
     expect: ["[OH⁻] 2.000e-11 mol/L", "pOH 10.70"],
     ref: "H=5e-4 → pH=-log10(5e-4)=3.30；[OH⁻]=1e-14/5e-4=2.000e-11；pOH=14-3.301=10.70。默认 H=0.001 得 pH 3.00 / [OH⁻] 1.000e-11 / pOH 11.00（跨档）",
   },
+  {
+    slug: "science/ph-calculator",
+    inputs: {},
+    clicks: ["var e=document.getElementById('H');e.value='0.0005';calc();var h1=String(document.getElementById('result').innerHTML);e.value='';calc();var h2=String(document.getElementById('result').innerHTML);e.value='PH11_'+((h1.indexOf('2.000e-11')>=0&&h2.indexOf('2.000e-11')<0&&h2.indexOf('请输入有效参数以查看结果')>=0)?'OK':'BAD');"],
+    expect: ["PH11_OK"],
+    ref: "SMS-11 清账（状态链）：先以 H=5e-4 算出 [OH⁻]=2.000e-11，再清空 H 触发非法输入。旧版 toast 后 return 保留上一份报告；现 calc 开头先清结果并显示「请输入有效参数以查看结果」，旧浓度报告必须消失。探针同时断言旧报告存在过、清空后报告消失且提示出现，默认态不含 PH11_OK ⇒ 零逃生。",
+  },
 
   {
     slug: "science/mean-calculator",
     inputs: { data: "1,2,4" },
     expect: ["2.333"],
     ref: "算术平均 = (1+2+4)/3 = 2.333（fmt：round(x·1e10)/1e10 后 toLocaleString，默认最多 3 位小数）",
+  },
+  {
+    slug: "science/mean-calculator",
+    inputs: { data: Array(100).fill("10000").join(",") },
+    expect: ["几何平均 (GM) 10,000"],
+    ref: "SMS-110 清账（溢出）：100 个 10000 连乘 = 1e400 = Infinity，旧版 GM=Math.pow(Infinity,0.01)=Infinity 显示「未定义」；现改对数域 exp(Σln/n)=exp(ln10000)=10000，GM 卡显示 10,000。判别锚「几何平均 (GM) 10,000」旧版不成立。注：原第二条不等式锚含独立词「AM」（算术平均缩写），被时区反模式门禁误判为上午/下午，故以 GM 卡单锚判别，判别力不变。"
+  },
+  {
+    slug: "science/mean-calculator",
+    inputs: { data: Array(200).fill("0.01").join(",") },
+    expect: ["几何平均 (GM) 0.01"],
+    ref: "SMS-110 清账（下溢）：200 个 0.01 连乘下溢为 0，旧版 GM=0；现对数域 exp(ln0.01)=0.01，GM 卡显示 0.01。判别锚「几何平均 (GM) 0.01」旧版不成立。与上一例共同钉住对数域改造两端；原不等式锚含独立词「AM」被时区门禁误判，改 GM 卡单锚。"
   },
 
   {
@@ -94,6 +151,13 @@ const CASES = [
     ref: "O=[35,25,25,15]、E 留空 → 等概率 E=25：χ² = Σ(O−E)²/E = 4+0+0+4 = 8，df = k−1 = 3，右尾 p = P(χ²₃>8) = 0.0460（精确不完全 Gamma）。原 Wilson–Hilferty 近似漏括号得 p≈0.604（χ²=12.5/df=4 更极端：0.994 vs 真值 0.014）",
   },
   // ── 效应量（Cohen's d → U₃）──────────────────────────────────
+  {
+    slug: "science/chi-square-calculator",
+    inputs: { obs: "30, 20, 15, 35", exp: "22.5, 27.5, 22.5, 27.5", rowsIn: "2" },
+    expect: ["χ² = 9.09"],
+    ref: "2×2 独立性检验按边际期望：行合计 50/50、列合计 45/55，E=(22.5,27.5,22.5,27.5)；χ²=Σ(O−E)²/E=(7.5²/22.5)×2+(7.5²/27.5)×2=2.5×2+2.0455×2=9.0909→9.09。原独立性预设误填均分 25,25,25,25 得 χ²=10（判别：默认态 χ²=8、不含 9.09）",
+  },
+
   {
     slug: "science/effect-size-calculator",
     inputs: { m1: "112", mu0: "100", sd1: "8" }, // mode0（单样本，默认页签）
@@ -113,6 +177,20 @@ const CASES = [
     inputs: { meteorDiameter: "50", meteorVelocity: "13", meteorDensity: "7800", impactAngle: "45", targetDensity: "2700", targetType: "sedimentary" }, // 巴林杰陨石坑参数
     expect: ["1.22 km", "202.9 m", "5.91 km"],
     ref: "CMM 瞬态坑 D=1.161(ρi/ρt)^(1/3)·L^0.78·v^0.44·g^-0.22·sin^(1/3)45° = 1.161×(7800/2700)^(1/3)×50^0.78×13000^0.44×9.80665^-0.22×0.8909 = 1217 m → 1.22 km（巴林杰坑实测 1.186 km）；深度 1217/6 = 202.9 m；E=4.314e16 J → 10312 kt → 20psi 半径 0.28×10312^0.33 = 5.91 km。原实现 D=0.07(E/ρ)^(1/4) 仅得 0.12 km（偏小 10 倍）、破坏半径误代入「吨」高估 10 倍",
+  },
+  {
+    slug: "science/meteor-crater-estimator",
+    inputs: {},
+    clicks: ["document.getElementById('targetType').value='ice';calc();document.getElementById('targetDensity').value='1030';calc();var v=String(document.getElementById('targetDensity').value);document.getElementById('targetDensity').value='METEORDENS_'+(v==='1030'?'OK':'BAD');"],
+    expect: ["METEORDENS_OK"],
+    ref: "SMS-119 清账（自定义地表密度）：先切到 ice 让密度默认 917，再手改 1030 触发 calc()。旧版 every calc 无条件回写 917，输入形同只读；现仅在地表类型变化时套默认值，同类型手改值保留。探针断言最终输入仍为 1030，旧版 ⇒ METEORDENS_BAD，零逃生。",
+  },
+  {
+    slug: "science/meteor-crater-estimator",
+    inputs: {},
+    clicks: ["var a=formatMass(1.9635e8),b=formatMass(1e9);document.getElementById('meteorDiameter').value='MASSUNIT_'+(a.indexOf('(千吨)')>=0&&b.indexOf('(百万吨)')>=0?'OK':'BAD');"],
+    expect: ["MASSUNIT_OK"],
+    ref: "SMS-120 清账（质量单位档）：1e6 kg = 1 千吨、1e9 kg = 1 百万吨；旧版分别标「(吨)」「(千吨)」少一个数量级。探针要求 1.9635e8 kg 显示千吨、1e9 kg 显示百万吨；旧版 ⇒ MASSUNIT_BAD，零逃生。",
   },
 
   // ── 样本量（E 按百分比输入）────────────────────────────────
@@ -149,6 +227,13 @@ const CASES = [
     inputs: { m: "1.5", V: "0.0006" },
     expect: ["156.070", "2.500000"],
     ref: "ρ=2500 kg/m³ → lb/ft³ = 2500×0.062428 = 156.070（新增卡片，替代原无意义的 V/ρ「m⁶/kg」）；g/cm³ = 2500/1000 = 2.5 → 2.500000",
+  },
+  {
+    slug: "science/density-physics",
+    inputs: { m: "4", V: "0.001" },
+    clicks: ["calcTool()"],
+    expect: ["4000 kg/m³"],
+    ref: "SMS-88 清账：m=4 kg、V=0.001 m³ → ρ=4000 kg/m³（≥100 分支）。旧版 `rho>=100?rho.toFixed(0):rho.toFixed(3)+' kg/m³'` 因三元优先级使 ≥100 分支丢失单位，结果卡与数据表只显示「4000」；现两分支均带 kg/m³。默认 m=2/V=0.001 得 2000 kg/m³ 不含本串，零逃生。",
   },
 
   // ── 物理单位换算（默认同量纲）───────────────────────────────
@@ -217,6 +302,53 @@ const CASES = [
     ref: "巴林杰陨石坑参数（铁陨石 L=50 m、v=13 km/s、ρi=7800、ρt=2700、45°）：CMM 瞬态坑 D_tc=1.161×(7800/2700)^(1/3)×50^0.78×13000^0.44×9.80665^−0.22×sin^(1/3)45°=1217.4 m，未超 2.5 km 过渡径（不折减）→ 1.217 km；E=0.5×(4/3)π·25³×7800×13000²=4.314e16 J ⇒ 广岛当量 684.7 倍。原实现把 CMM 与另一条 D=0.07(E/ρ)^(1/4) 取平均 ⇒ 仅 619 m，且与同站 science/meteor-crater-estimator 同参数给出的 1.22 km 自相矛盾",
   },
 
+  {
+    slug: "science/astronomy-toolkit",
+    inputs: { latInput: "0", lonInput: "180" },
+    clicks: ["convertLatLonToUTM();document.getElementById('lonInput').value='ASTROZONE_'+(String(document.getElementById('utmResult').textContent||document.getElementById('utmResult').innerHTML).indexOf('60N')>=0?'OK':'BAD');"],
+    expect: ["ASTROZONE_OK"],
+    ref: "SMS-73 清账（经度边界）：经度 +180° 是 UTM 东半球合法边界，应归入第 60 带（60N）。旧版 ⌊(180+180)/6⌋+1=61 输出不存在的 61 带；现钳制到 60。探针断言正向结果含「60N」且非「61」，旧版 ⇒ ASTROZONE_BAD，零逃生。",
+  },
+  {
+    slug: "science/astronomy-toolkit",
+    inputs: { utmZone: "50", utmHemisphere: "N", utmEasting: "1500000", utmNorthing: "5000000" },
+    clicks: ["convertUTMToLatLon();document.getElementById('utmEasting').value='ASTRORNG_'+(String(document.getElementById('utmReverseResult').textContent||document.getElementById('utmReverseResult').innerHTML).indexOf('东移应在 0~1000000')>=0?'OK':'BAD');"],
+    expect: ["ASTRORNG_OK"],
+    ref: "SMS-73 清账（E 范围守卫）：东移值 1500000 m 超出假东移 500000 的物理上限 1000000，旧版照常反算输出荒谬经纬度；现直接提示「东移应在 0~1000000 m」。探针断言反向结果容器出现该提示，旧版 ⇒ ASTRORNG_BAD，零逃生。",
+  },
+  {
+    slug: "science/led-resistor-calculator",
+    inputs: { vs: "12", if: "20", ifUnit: "0.001", vf: "2.2", count: "2" },
+    clicks: ["config='parallel';calc();document.getElementById('vs').value='LEDPAR_'+(String(document.getElementById('resP').textContent).indexOf('392.0 mW')>=0?'OK':'BAD_'+String(document.getElementById('resP').textContent));"],
+    expect: ["LEDPAR_OK"],
+    ref: "SMS-102 清账（并联功耗）：并联 n 只共用限流电阻，流过电阻的总电流 = n·If。Vs=12 V、Vf=2.2 V、If=20 mA、count=2：R=(12−2.2)/(0.02×2)=245 Ω，旧版 P=If²·R·n=0.02²×245×2=196.0 mW（少乘一个 n）；正确 P=(n·If)²·R=(0.04)²×245=392.0 mW。探针断言电阻功率卡为 392.0 mW，旧版 ⇒ LEDPAR_BAD，零逃生。",
+  },
+  {
+    slug: "science/led-resistor-calculator",
+    inputs: { vs: "12", if: "20", ifUnit: "0.001", vf: "2", count: "1" },
+    clicks: ["document.getElementById('tolerance').value='0.01';calc();var a=String(document.getElementById('resStd').textContent);document.getElementById('tolerance').value='0.05';calc();var b=String(document.getElementById('resStd').textContent);document.getElementById('tolerance').value='0.2';calc();var c=String(document.getElementById('resStd').textContent);document.getElementById('vs').value='LEDTOL_'+(a.indexOf('499.0')>=0&&b.indexOf('510.0')>=0&&c.indexOf('470.0')>=0?'OK':'BAD_'+a+'_'+b+'_'+c);"],
+    expect: ["LEDTOL_OK"],
+    ref: "SMS-103 清账（电阻精度档生效）：R=(12−2)/0.02=500 Ω，旧版 nearestStdR 写死 E24，四档精度对结果零影响；现按 tol 选系列：E96→499 Ω、E24→510 Ω、E6→470 Ω（IEC 60062 标准数列）。探针断言三档标准电阻各为 499/510/470，旧版三档同为 510 ⇒ LEDTOL_BAD，零逃生。",
+  },
+  {
+    slug: "science/led-resistor-calculator",
+    inputs: { vs: "12", if: "20", ifUnit: "0.001", vf: "2.2", count: "2" },
+    clicks: ["config='parallel';calc();var h=String(document.getElementById('resultDetail').innerHTML);document.getElementById('vs').value='LEDAP_'+(h.indexOf('400.2 mW')>=0?'OK':'BAD');"],
+    expect: ["LEDAP_OK"],
+    ref: "SMS-102 清账（并联实际功耗）：并联 2 只、R=245 Ω、E24 标准值 240 Ω，实际每支路电流 =(12−2.2)/240/2=20.4167 mA，电阻总电流 40.833 mA，实际功耗=(0.040833)²×240=400.17 mW≈400.2 mW；旧版按单支路电流平方×R×n≈200 mW（少乘一个 n）。探针断言明细含 400.2 mW，旧版 ⇒ LEDAP_BAD，零逃生。",
+  },
+  {
+    slug: "science/physics-calculator",
+    clicks: ["currentCategory='electromagnetism';currentFormula=FORMULAS.electromagnetism.find(function(f){return f.id==='phi_bs';});renderInputs();document.getElementById('var_phi').value='1';document.getElementById('var_B').value='';document.getElementById('var_S').value='2';document.getElementById('var_theta').value='60';calculate();var h=String(document.getElementById('output').textContent||document.getElementById('output').innerHTML);document.getElementById('var_S').value='PHIBS_'+(h.indexOf('磁感应强度 (T) = 1')>=0&&h.indexOf('= 0.5')<0?'OK':'BAD_'+h.slice(-80));"],
+    expect: ["PHIBS_OK"],
+    ref: "SMS（磁通量反解漏 cosθ）：Φ=BS cosθ，反解 B 须 B=Φ/(S·cosθ)。Φ=1 Wb、S=2 m²、θ=60° → B=1/(2×0.5)=1.0000 T；旧版 B=Φ/S=0.5000 T（漏 cosθ）。探针断言解出 B=1（且非旧版 0.5），旧版 ⇒ PHIBS_BAD，零逃生。",
+  },
+  {
+    slug: "science/doppler-effect",
+    inputs: { f: "1000", v: "343", vo: "-10", vs: "0" },
+    expect: ["970.8 Hz 观测频率"],
+    ref: "多普勒负速度守卫（vo/vs 为有符号速度，标签「朝向为正」）：f=1000 Hz、v=343、观察者后退 vo=-10、声源静止 vs=0 → f′=1000×(343-10)/343=970.85 ⇒ 970.8 Hz；旧版把 vo 列入「不能为负」直接拦截并提示错误，无法算后退场景。970.6 非默认 ⇒ 零逃生。",
+  },
   // ---- BATCH251：数学基础族（9 例）——「分步推导行」批量收口 ----
   // 【判据】这一族（阶乘/斐波那契/分数/组合/排列/方差/中位数/众数/n 次根）几乎清一色地输出
   // 「编号步骤 + 可手算的等式」，且默认参数各不相同 ⇒ **首轮多数就能过**，不必换参博弈。
@@ -246,16 +378,60 @@ const CASES = [
     ref: "组合数：C(7,3) = 7! / (3! × 4!) = 5040 / (6 × 24) = 35（**因子可手算复算**：7!=5040、3!=6、4!=24）。页面的对称性 C(7,3)=C(7,4) 与递推 C(6,2)+C(6,3)=15+20 三个性质行同为 35，互为交叉验证。默认 n/r 不同 ⇒ 不命中。",
   },
   {
+    slug: "science/combination-calculator",
+    inputs: { n: "10.5", r: "3" },
+    expect: ["小数将被拒绝"],
+    ref: "SMS-86 清账：n=10.5 旧版 parseInt 静默截断为 10，算出 C(10,3)=120 却不提示；现 Number+isInteger 严格拒绝小数并提示。默认 n=7/r=3 不含本串，零逃生。",
+  },
+  {
+    slug: "science/combination-calculator",
+    inputs: { n: "1e3", r: "3" },
+    expect: ["C(1000, 3) = 166,167,000"],
+    ref: "SMS-86 清账（科学计数法）：n=1e3、r=3 旧版 parseInt 截断为 1，落 r>n 报错；现按实际整数 1000 解析，C(1000,3)=1000×999×998/6=166,167,000。默认 n=7 不含本串，零逃生。",
+  },
+  {
     slug: "science/permutation-calculator",
     inputs: { n: "7", r: "3" },
     expect: ["P(7, 3) = 210", "= 7 × 6 × 5 = 210"],
     ref: "排列数：P(7,3) = 7! / 4! = 7 × 6 × 5 = 210（**可手算复算**，且与同参数组合数 C(7,3)=35 满足 P = C × 3! = 210）。默认 n/r 不同 ⇒ 不命中。",
   },
   {
+    slug: "science/permutation-calculator",
+    inputs: { n: "5.9", r: "2" },
+    clicks: ["calculate()"],
+    expect: ["请输入整数（小数或非整数不被接受）"],
+    ref: "SMS-126 清账：原 parseInt 把 5.9 截为 5 仍算出 P(5,2)=20 且输入框留 5.9。现 Number + Number.isInteger 严格解析，非整数直接提示。旧版无该提示 ⇒ 变红，零逃生。"
+  },
+  {
+    slug: "science/permutation-calculator",
+    inputs: { n: "2001", r: "2" },
+    clicks: ["calculate()"],
+    expect: ["n 过大（上限 2000），请减小 n 以免页面卡死"],
+    ref: "SMS-127 清账：原 n 无上限，BigInt 连乘 r 项 + 两个未使用的 O(n) 数组，n=1e5 冻结页面。现加 n≤2000 上限守卫并删除未使用数组。注入 n=2001（刚过界，旧版可在秒内算出、不会卡死）断言上限提示；旧版正常输出排列数 ⇒ 变红，零逃生。"
+  },
+  {
     slug: "science/nth-root-calculator",
     inputs: { x: "27", n: "7" },
     expect: ["e^0.471 = 1.601", "验证：(1.601)^7 = 27 ≈ 27"],
     ref: "n 次根：⁷√27 = 27^(1/7) = e^((1/7)·ln27)，ln27 = 3.2958、(1/7)×3.2958 = 0.4708、e^0.4708 = 1.6009 ≈ 1.601（**分步自洽、可手算复算**），末行验证 (1.601)⁷ ≈ 27 成立。默认底数/次数不同 ⇒ 不命中。",
+  },
+  {
+    slug: "science/nth-root-calculator",
+    inputs: { x: "-8", n: "-3" },
+    expect: ["-3√-8 = -0.5", "验证：(-0.5)^-3 = -8 ≈ -8"],
+    ref: "SMS-114 清账（负奇整数根）：x=-8、n=-3 时 (-0.5)^(-3)=-8，⁻³√(-8)=-0.5。旧版 n%2===-1 误判为非整数次根并报「无定义」；现用 Math.abs(n)%2===1 识别负奇数。两条锚旧版均不成立，零逃生。",
+  },
+  {
+    slug: "science/nth-root-calculator",
+    inputs: { x: "0", n: "-2" },
+    expect: ["0 的负次根无定义"],
+    ref: "SMS-115 清账（0 的负次根）：x=0、n=-2 时 1/0 无定义，旧版 x===0 分支无条件输出 0 并补「0 的 n 次根仅为 0」；现负指数明确报错且不写「仅为 0」步骤。旧版不含该提示 ⇒ 零逃生。",
+  },
+  {
+    slug: "science/nth-root-calculator",
+    inputs: { x: "0.00001", n: "2" },
+    expect: ["2√1.0000000000e-5"],
+    ref: "SMS-116 清账（极小值回显）：fmt 原用 toLocaleString 默认最多 3 位小数，1e-5 被显示为 0，页面写「²√0」。现把科学计数阈值放宽到 ≤1e-3，1e-5 显示 1.0000000000e-5；旧版不含该串 ⇒ 零逃生。",
   },
   {
     slug: "science/fibonacci",
@@ -304,6 +480,13 @@ const CASES = [
     inputs: { v: "20", theta: "-30", g: "9.8" },
     expect: ["抛射角 θ 须在 0–90° 范围内"],
     ref: "θ=−30° 会让 sin2θ=−0.866 产出负射程（页面曾显示 −35.3 m）；修复后拒绝定义域外角度。默认 45° 不命中",
+  },
+  {
+    slug: "science/projectile-range",
+    inputs: {},
+    clicks: ["globalThis.TBKit={util:{isEn:function(){return false;},exportTable:function(){},diffBox:function(){}},chart:{line:function(){},scatter:function(){}},matrix:{table:function(){}},history:{record:function(){},mount:function(){}}};document.getElementById('v').value='20';document.getElementById('theta').value='100';document.getElementById('g').value='9.81';__projectile_rangeExtras();delete globalThis.TBKit;"],
+    expect: ["输入无效，明细表与图表已清空"],
+    ref: "SMS-41 清账：主结果已拒 θ∉[0,90°]，但旧 __projectile_rangeExtras 只查有限性，越界仍生成负射程明细并写历史。现 Extras 与主计算共用角度范围 + v>0 + g>0 守卫，非法时清空明细/差异/历史并写入双语提示。自建 TBKit 桩注入 θ=100° 直接调 Extras，断言清空提示；旧版无此逻辑且生成 −13.95 m 负射程 ⇒ 变红，零逃生。合法态表格仍含「水平射程」且无提示。"
   },
   {
     slug: "science/pcb-trace-width",
@@ -365,6 +548,12 @@ const CASES = [
     ref: "机械功率（F=100 N、v=3 m/s）：P = F·v = 100×3 = **300 W**；kW 换算 300/1000 = **0.300000**、英制马力 300/745.7 = **0.402307**、kgf·m/s 300/9.80665 = **30.5915**（三个换算行与 300 W 自洽，可手算）。",
   },
   {
+    slug: "science/mechanical-power",
+    inputs: { F: "0.4", v: "0.5" },
+    expect: ["0.2 W 功率 P = F·v"],
+    ref: "SMS-117 清账（小功率精度）：F=0.4 N、v=0.5 m/s → P=0.2 W，旧版 toFixed(0) 显示 0 W；现用有效数字格式显示 0.2 W。默认 F=100/v=5 得 500 W，旧版锚也不成立 ⇒ 零逃生。",
+  },
+  {
     slug: "science/spring-oscillation-period",
     inputs: { m: "3", k: "3" },
     expect: ["6.283 s", "0.1592 频率 f (Hz)"],
@@ -405,6 +594,13 @@ const CASES = [
     ref: "分压电路（Vin=12 V、R1=3 Ω、R2=9 Ω）：Vout = Vin·R2/(R1+R2) = 12×9/12 = **9.000 V**；分压比 = R2/(R1+R2) = 9/12 = **75.0%**。页面另给 I = 12/12 = 1 A = 1000.00 mA、P = 12 W = 12000.00 mW，均与上式自洽。默认参数不同 ⇒ 不命中。",
   },
   {
+    slug: "science/voltage-divider-calculator",
+    inputs: {},
+    clicks: ["function __s(id){var e=document.getElementById(id);return (e&&e.textContent?e.textContent:'');}document.getElementById('vin').value='12';document.getElementById('r1').value='3';document.getElementById('r2').value='9';calc();var v1=__s('resVout');document.getElementById('vin').value='';calc();var v2=__s('resVout');document.getElementById('vin').value='VD_BEFORE_'+v1+'_AFTER_'+v2;"],
+    expect: ["VD_BEFORE_9.000 V_AFTER_—"],
+    ref: "SMS-36/37 残留清账：正向求 Vout 原用 parseFloat(... )||0，清空 Vin 被吞成 0 而输出「0.000 V」伪结果。现改严格 Number 解析 + 必填/正值校验，空 Vin 走 clearResults 把四结果清为「—」。探针先注入 12/3/9 得 9.000 V，再清空 Vin 重算得「—」；旧版清空后为 0.000 V ⇒ 锚变红，零逃生。探针串写到 vin 的 value（harness 采集纯文本），默认态无该串。"
+  },
+  {
     slug: "science/led-resistor-calculator",
     inputs: { vs: "12", if: "0.02", vf: "2", count: "1" },
     expect: ["总正向压降： 2.00 V", "电阻压降： 10.00 V"],
@@ -417,6 +613,13 @@ const CASES = [
     ref: "点电荷场（q=2 μC、r=3 m，页面默认单位表为 μC）：k·q = 8.99e9×2e-6 = 1.7976e4；E = k·q/r² = 1.7976e4/9 = **1997.3 N/C**；V = k·q/r = 1.7976e4/3 = **5992.0 V**。页面另给「库仑常数乘电荷 1.7976e+4」「电场强度与半径乘积 5.9920e+3」两行，与上式同源可交叉复算。默认参数不同 ⇒ 不命中。",
   },
   {
+    slug: "science/electric-field-point",
+    inputs: { q: "2", r: "3" },
+    clicks: ["var cap=null,df=null;globalThis.TBKit={util:{isEn:function(){return false;},diffBox:function(el,fs){df=fs;}},matrix:{table:function(){}},history:{record:function(o){cap=o;},mount:function(){}}};document.getElementById('q').value='2';document.getElementById('r').value='3';__electric_field_pointExtras();document.getElementById('q').value='EFH_'+(cap&&cap.E===1997.3&&df&&(''+df).indexOf('E')>=0?'OK':'BAD');delete globalThis.TBKit;"],
+    expect: ["EFH_OK"],
+    ref: "SMS-89 清账：q=2 μC/r=3 m → E=1997.3 N/C。旧版历史只记 q/r/k，diffBox 传常量 ['k'] 恒无差异、历史面板不显示结果；现记录 E=1997.3 且 diffBox 用 ['E']。探针经最小 TBKit 桩捕获 record 与 diff 字段，旧版 ⇒ EFH_BAD，零逃生。",
+  },
+  {
     slug: "science/gravitational-potential",
     inputs: { m: "5", g: "10", h: "4" },
     expect: ["200.0 J", "0.0002 重力势能 (MJ)"],
@@ -427,6 +630,27 @@ const CASES = [
     inputs: { condK: "2", condA: "3", condL: "2", condT1: "100", condT2: "20" },
     expect: ["热流量 Q： 4.81 kW", "热流密度： 16040000.00 W/m²"],
     ref: "傅里叶热传导（页内材质表把 condK 回写为铜 401 W/m·K；A=3.00 cm²=3.0000e-4 m²、L=2.00 mm=2.0000e-3 m、ΔT=100−20=80.0 K）：Q = k·A·ΔT/L = 401×3e-4×80/2e-3 = **4812 W = 4.81 kW**；热流密度 = Q/A = 4812/3e-4 = **1.604e7 W/m²**（显示 16040000.00）。两行同源不同式，手算可复算。默认参数不同 ⇒ 不命中。",
+  },
+  {
+    slug: "science/heat-transfer-calculator",
+    inputs: {},
+    clicks: ["document.getElementById('condA').value='3';calc();var before=String(document.getElementById('resQ').textContent);document.getElementById('condA').value='-10';calc();var after=String(document.getElementById('resQ').textContent);var d=String(document.getElementById('resultDetail').innerHTML);document.getElementById('condA').value='HTCLR_'+(before.indexOf('902.25 W')>=0&&after==='--'&&d.indexOf('请输入有效')>=0?'OK':'BAD');"],
+    expect: ["HTCLR_OK"],
+    ref: "SMS-98 清账：先合法面积 3 cm²、默认 L=10 mm/ΔT=75 K 算出 902.25 W，再把 A=-10 交给旧守卫 `if(!A)`（负数 truthy）算出负热流并保留旧结果；现统一正数/有限性校验并 clearHeatResult 清结果卡与明细。探针断言旧结果存在过、非法后结果回 -- 且出现错误提示；旧版 ⇒ HTCLR_BAD，零逃生。",
+  },
+  {
+    slug: "science/heat-transfer-calculator",
+    inputs: {},
+    clicks: ["localStorage.removeItem(HISTORY_KEY);document.getElementById('condA').value='77.7';calc();saveHistory();document.getElementById('condA').value='11.1';loadHistory(0);var v=String(document.getElementById('condA').value);document.getElementById('condA').value='HTHIST_'+(v==='77.7'?'OK':'BAD');"],
+    expect: ["HTHIST_OK"],
+    ref: "SMS-99 清账：历史条目现写入 17 个输入字段，loadHistory 先回填输入再 calc；旧版只切模式后用当前输入重算，condA=77.7 的记录点击后仍显示 11.1。探针断言加载历史后 condA 回到 77.7，旧版 ⇒ HTHIST_BAD，零逃生。",
+  },
+  {
+    slug: "science/heat-transfer-calculator",
+    inputs: {},
+    clicks: ["mode='specific';document.getElementById('specM').value='1';document.getElementById('specMUnit').value='1';document.getElementById('specT1').value='20';document.getElementById('specT2').value='120';calc();var q=String(document.getElementById('resQ').textContent);var kwh=String(document.getElementById('resQKwh').textContent);var lab=String(document.getElementById('resQLabel').textContent);document.getElementById('specM').value='HTUNIT_'+(q.indexOf('kJ')>=0&&kwh.indexOf('kWh')>=0&&lab.indexOf('总热量')>=0?'OK':'BAD');"],
+    expect: ["HTUNIT_OK"],
+    ref: "比热容单位清账：m=1 kg、c=4186 J/kg·°C、ΔT=100 °C → Q=418600 J=418.60 kJ=0.116278 kWh。旧版主结果 fmtPower(Q) 显示 418.60 kW、第二卡也写 kW，标签「热流量」；现按模式显示总热量 kJ/kWh/kcal，复制与导出同源。旧版 ⇒ HTUNIT_BAD，零逃生。",
   },
   {
     slug: "science/wavelength-to-rgb",
@@ -477,6 +701,13 @@ const CASES = [
     ref: "样本统计量（n=4，数据 2,4,6,8）：均值 = 20/4 = **5.0000**；Σ(xᵢ−5)² = 9+1+1+9 = 20 ⇒ 样本方差 = 20/(4−1) = **6.6667**、样本标准差 = √6.6667 = **2.5820**、变异系数 = 2.5820/5 = 51.64%；极差 = 8−2 = 6.0000、Q1 = 3.5000、Q3 = 6.5000、IQR = 3.0000，均与上两行同源可交叉复算。默认数据不同 ⇒ 不命中。",
   },
   {
+    slug: "science/calc-stats",
+    inputs: { data: "0,1,2,3,4", typ: "sample" },
+    clicks: ["calc()"],
+    expect: ["均值 2.0000", "方差（样本） 2.5000"],
+    ref: "数据列表以 0 开头（0,1,2,3,4）：n=5、均值=10/5=2.0000、样本方差=Σ(x−2)²/4=(4+1+0+1+4)/4=2.5000。修复前 ①__D 把 data 误登记为分母字段、②全零守卫对 textarea 用 parseFloat 取首段=0 → 合法数据被拒「data 是本计算的分母」；修复后按分隔符拆值逐项判断。默认数据不同 ⇒ 不命中",
+  },
+  {
     slug: "science/statistics-calculator",
     inputs: { data: "2, 4, 6, 8, 10", dtype: "population" },
     clicks: ["calculate()"],
@@ -484,11 +715,46 @@ const CASES = [
     ref: "总体描述统计（n=5，数据 2,4,6,8,10，population 口径）：Σx = **30**、均值 x̄ = 30/5 = **6**；总体方差 = Σ(xᵢ−6)²/n = (16+4+0+4+16)/5 = 40/5 = **8**；总体标准差 = **√8 = 2.828**；标准误 SE = 2.828/√5 = 1.265、中位数 6、极差 8、偏度 0（对称）、峰度 −1.3（扁峰），均与上式自洽。默认数据/dtype 不同 ⇒ 不命中。",
   },
   {
+    slug: "science/statistics-calculator",
+    inputs: { data: "5, 5, 5", dtype: "population" },
+    clicks: ["calculate()"],
+    expect: ["—/不适用（方差为 0，样本无偏度）"],
+    ref: "常数数据方差为0，偏度/峰度无定义；旧版 fmt(NaN)='未定义' 却按 skew>0/skew<0 判假落入'对称/正态'；新版 isFinite 门控显示不适用。默认数据不含此串，强判别"
+  },
+  {
     slug: "science/exp-calculator",
     inputs: { x: "5" },
     clicks: ["calculate()"],
     expect: ["e^5 = 148.413", "e^(−5) = 1 / e^5 = 0.007"],
     ref: "自然指数（x=5）：e ≈ 2.718281828459045 ⇒ e^5 = **148.413**；e^(−5) = 1/148.413 = **0.007**；双曲函数 sinh = (eˣ−e⁻ˣ)/2 = (148.413−0.007)/2 = 74.203、cosh = 74.21、tanh = sinh/cosh = 1，与上行同源可交叉复算；10ˣ = 100,000、2ˣ = 32 亦自洽。默认参数不同 ⇒ 不命中。",
+  },
+  {
+    slug: "science/exp-calculator",
+    inputs: { x: "1000" },
+    clicks: ["calculate()"],
+    expect: ["tanh(x) = sinh/cosh 1"],
+    ref: "SMS-90 清账：x=1000 时 e^x 溢出为 ∞，旧版 sinh/cosh 均 ∞、tanh=NaN，fmt(NaN) 落 '-∞' 分支（x=1000 与 x=-1000 同为 -∞）；现用稳定式 tanh=±(1−e^(−2|x|))/(1+e^(−2|x|))，x=1000 得 +1。默认 x=2 得 tanh≈0.96 不含本串，零逃生。",
+  },
+  {
+    slug: "science/exp-calculator",
+    inputs: { x: "0.0005" },
+    clicks: ["calculate()"],
+    expect: ["x = 5.000000e-4", "e^5.000000e-4 = 1.000500"],
+    ref: "SMS-91 清账：x=5e-4 旧版 fmt 普通分支用无精度 toLocaleString，Node 默认三位小数把 x 与 e^x 都显示 0，与 e^x 恒正矛盾；现阈值收紧到 |x|<1e-3 走科学计数，x 显示 5.000000e-4、e^x=exp(0.0005)=1.000500125 → 1.000500。旧版不含两串，零逃生。",
+  },
+  {
+    slug: "science/power-calculator",
+    inputs: { base: "2", exp: "-10" },
+    clicks: ["calculate()"],
+    expect: ["2^-10 = 9.7656250000e-4"],
+    ref: "SMS-132 清账：2^-10=1/1024=0.0009765625，旧版普通分支 toLocaleString 三位小数显示 0.001（丢失 2.4% 精度），现阈值 <1e-3 走 toExponential(10) 得 9.7656250000e-4。默认 2^10=1024 不含此串，零逃生。",
+  },
+  {
+    slug: "science/quadratic-equation",
+    inputs: { a: "-1", b: "0", c: "-1" },
+    clicks: ["solve()"],
+    expect: ["x₁ 0 + 1i", "x₂ 0 − 1i"],
+    ref: "a<0 的共轭复根：x²+1=0 → x=±i。虚部须一正一负；修复前 im=sq/(2a) 在 a=−1 时为 −1，两根拼成「0 + -1i」与「0 − 1i」都是 −i；修复后 im 取绝对值，得「x₁0 + 1i」「x₂0 − 1i」。默认 a=1 实根不命中",
   },
   {
     slug: "science/quadratic-equation",
@@ -537,6 +803,13 @@ const CASES = [
     ref: "对数（x=8、底 n=2）：换底公式 log_n(x) = ln(x)/ln(n) = 2.079/0.693 = **3**，验证 2³ = 8；页面同给 log₁₀8 = 0.903、ln 8 = 2.079，与上两行同源自洽。默认底数/真数不同 ⇒ 不命中。",
   },
   {
+    slug: "science/log-calculator",
+    inputs: { x: "0.00001", base: "10" },
+    clicks: ["calculate()"],
+    expect: ["x = 1.000000e-5"],
+    ref: "SMS-105 清账（极小真数回显）：fmt 原用 toLocaleString 默认最多 3 位小数，1e-5 显示为 0，页面写「x = 0」；现把科学计数阈值放宽到 ≤1e-3，1e-5 显示 x = 1.000000e-5。旧版锚不成立 ⇒ 零逃生。",
+  },
+  {
     slug: "science/trigonometry-calculator",
     inputs: { x: "3", y: "4" },
     clicks: ["calculate()"],
@@ -549,6 +822,27 @@ const CASES = [
     clicks: ["calcGas()"],
     expect: ["P = nRT/V = 1 × 8.314 × 300 / 10 = 249.42 Pa", "P = 249.42 Pa"],
     ref: "理想气体状态方程求压强（n=1 mol、V=10 L、T=300 K、R=8.314 J/(mol·K)）：P = nRT/V = 1×8.314×300/10 = **249.42 Pa**；页面高亮结果与上式逐字符自洽，并给出摄氏温度 300 K − 273.15 = 26.85 °C 作交叉校验。默认 gasFind 分支不同 ⇒ 不命中。",
+  },
+  {
+    slug: "science/chemistry-calculator",
+    inputs: {},
+    clicks: ["var a=calcMolarMass('H2Zz'),b=calcMolarMass('2H2O'),c=calcMolarMass('CuSO4.5H2O');document.getElementById('formula').value='CHM83_'+(a.error&&Math.abs(b.totalMass-36.032)<0.01&&Math.abs(c.totalMass-249.7)<0.01?'OK':'BAD');"],
+    expect: ["CHM83_OK"],
+    ref: "SMS-83 清账：未知元素 H2Zz 旧版静默跳字给 2.016，现返回 error；2H2O 旧版段首系数丢失给 18.016，现按 2 个水分子 = 36.032；CuSO4.5H2O 旧版点号未解析给 177.636，现按结晶水（本页 O=16.00）= 249.70。探针断言三者同时成立，旧版 ⇒ CHM83_BAD，零逃生。",
+  },
+  {
+    slug: "science/chemistry-calculator",
+    inputs: {},
+    clicks: ["currentCategory='concentration';selectCategory('concentration');document.getElementById('concType').value='dilution';renderConcInputs();document.getElementById('concC1').value='1';document.getElementById('concV1').value='2';document.getElementById('concC2').value='';document.getElementById('concV2').value='4';calcConcentration();var h1=String(document.getElementById('output').textContent||document.getElementById('output').innerHTML);document.getElementById('concC2').value='0.5';document.getElementById('concV2').value='';calcConcentration();var h2=String(document.getElementById('output').textContent||document.getElementById('output').innerHTML);document.getElementById('concC1').value='CHMDIL_'+(h1.indexOf('C₂ = 0.5')>=0&&h2.indexOf('V₂ = 4')>=0?'OK':'BAD');"],
+    expect: ["CHMDIL_OK"],
+    ref: "SMS-84 清账：稀释公式 C₁V₁=C₂V₂。C₁=1、V₁=2，留空 C₂ 且给 V₂=4 → C₂=1×2/4=0.5；留空 V₂ 且给 C₂=0.5 → V₂=1×2/0.5=4。旧版 C₂ 留空即报「请输入最终浓度」、给了 C₂ 又被覆盖，两个方向无法都算；现恰好留空一个即可双向求解。探针断言两向结果都出现，旧版 ⇒ CHMDIL_BAD，零逃生。",
+  },
+  {
+    slug: "science/chemistry-calculator",
+    inputs: { gasP: "101325", gasV: "0.0224", gasT: "-10", gasN: "1" },
+    clicks: ["calcGas()"],
+    expect: ["热力学温度须大于 0"],
+    ref: "SMS-85 清账：理想气体 T=-10 K 旧版直接算 n=PV/(RT) 得负物质的量；现非求解字段校验正数，T≤0 明确报错并停算。默认 T=300 不含本串，零逃生。",
   },
   {
     slug: "science/calc-1",
@@ -565,6 +859,13 @@ const CASES = [
     ref: "Haversine 大圆距离（A=(0°,0°)、B=(0°,1°)，地球半径 6371 km）：同纬度 1° 子午弧长 = 6371×π/180 = **111.1949 km**；初始方位角 = atan2(sin Δλ·cos φ₂, cos φ₁·sin φ₂ − sin φ₁·cos φ₂·cos Δλ)，φ₁=φ₂=0 ⇒ 正西方向 = **270.0000°**（页面标注「正西 (W)」）。两行可分别手算复算且互为方向校验。默认经纬度对不同 ⇒ 不命中。",
   },
   {
+    slug: "science/geo-distance-calculator",
+    inputs: {},
+    clicks: ["document.getElementById('lat1').value='100';document.getElementById('lon1').value='0';document.getElementById('lat2').value='0';document.getElementById('lon2').value='0';calculate();var e=document.getElementById('error1');var t=String(e.textContent||'');var s=!!(e.classList&&e.classList.contains&&e.classList.contains('show'));document.getElementById('lat1').value='GEOERR_'+(t.indexOf('纬度范围应为 -90 ~ 90')>=0&&s?'OK':'BAD');"],
+    expect: ["GEOERR_OK"],
+    ref: "SMS-97 清账（同组错误容器）：lat1=100 非法、lon1=0 合法。旧版 validateInput 每次先 error1.classList.remove('show')，后校验的 lon1 把 lat1 的错误提示抹掉（文本仍在但不可见）；现按字段保存错误并聚合渲染，纬度越界提示保持可见。探针同时断言文本与 show 状态，旧版 ⇒ GEOERR_BAD，零逃生。",
+  },
+  {
     slug: "science/pi-digits",
     inputs: { n: "10" },
     clicks: ["run()"],
@@ -577,6 +878,20 @@ const CASES = [
     clicks: ["convert()"],
     expect: ["S Sierra O Oscar S Sierra"],
     ref: "NATO 字母表转写（输入 SOS，默认 setMode 为字母模式）：S → **Sierra**、O → **Oscar**、S → **Sierra**，逐字母对应、无公式依赖，可逐字手算复算。默认输入串不同 ⇒ 不命中。",
+  },
+  {
+    slug: "science/nato-phonetic",
+    inputs: { input: "YZ" },
+    clicks: ["setMode('ansi');convert();var h=String(document.getElementById('output').innerHTML);document.getElementById('input').value='ANSIYZ_'+(h.indexOf('YOKE')>=0&&h.indexOf('ZEBRA')>=0&&h.indexOf('YOUNG')<0&&h.indexOf('ZEBA')<0?'OK':'BAD');"],
+    expect: ["ANSIYZ_OK"],
+    ref: "SMS-112 清账（ANSI 词表）：旧 ANSI 老表 Y=YOUNG、Z=ZEBA，现改 Y=YOKE、Z=ZEBRA。探针切 ANSI 后转写 YZ，断言新词齐全且旧词不再出现；默认 NATO 模式不含这些锚 ⇒ 零逃生。",
+  },
+  {
+    slug: "science/nato-phonetic",
+    inputs: {},
+    clicks: ["var s=String(__nato_phoneticExtras);var cb=null;globalThis.TBKit={util:{isEn:function(){return false;},diffBox:function(){},exportTable:function(){}},matrix:{table:function(){}},chart:{line:function(){}},history:{list:function(){return [];},record:function(){},mount:function(_,f){cb=f;}}};__nato_phoneticRender(['input'],'结果',false);if(cb)cb({input:'SOS',__natoMode:0,结果:'S Sierra O Oscar S Sierra'});delete globalThis.TBKit;var h=String(document.getElementById('output').innerHTML);document.getElementById('input').value='NATOHIST_'+(s.indexOf('__natoMode')>=0&&typeof modeIdx==='number'&&modeIdx===0&&h.indexOf('Sierra')>=0&&h.indexOf('SUGAR')<0?'OK':'BAD');"],
+    expect: ["NATOHIST_OK"],
+    ref: "SMS-113 清账（历史模式回填）：旧版历史点击无条件 setMode()（无参）→ else 分支强制 ANSI，NATO 模式记录也被切到 ANSI（S→SUGAR）。现 Extras 写入 __natoMode，mount 回调按保存值恢复；探针用 mode=0 的 NATO 记录断言恢复 modeIdx=0 且输出 Sierra 而非 SUGAR，并要求源码确实写入 __natoMode。旧版 ⇒ NATOHIST_BAD，零逃生。",
   },
   {
     slug: "science/astro-geo-calculator",
@@ -634,6 +949,13 @@ const CASES = [
     ref: "两点距离（A=(0°,0°)、B=(0°,1°)，地球半径 6371 km）：大圆距离 = 6371×π/180 = **111.195 km**；英里换算 = 111.195×0.621371 = **69.093 mi**、海里 = **60.040 NM**；初始方位角 = **90.0°（东）**、中点 (0.00000, 0.50000)、距离 = **111194.9 m**，四行同源可交叉复算。默认坐标不同 ⇒ 不命中。",
   },
   {
+    slug: "science/calc-distance",
+    inputs: { lat1: "40", lon1: "116", lat2: "31.907", lon2: "116" },
+    clicks: ["calc()"],
+    expect: ["1 小时 0 分"],
+    ref: "飞行时间分钟进位：A=(40,116)、B=(31.907,116) 距离≈899.9km，÷900=0.9999h，分钟 round(0.9999×60)=60 → 须进位为「1 小时 0 分」，不得显示「0 小时 60 分」。默认坐标不同 ⇒ 不命中",
+  },
+  {
     slug: "life/phone-lookup",
     inputs: { input: "13812345678" },
     clicks: ["validate()"],
@@ -664,6 +986,13 @@ const CASES = [
     ref: "电池放电（容量 2000 mAh = 2 Ah、电流 200 mA = 0.2 A、电压 3.7 V）：功率 P = 3.7×0.2 = **0.74 W**；电能 E = 3.7×2 = **7.40 Wh**；续航 = 2 Ah/0.2 A = **10 小时**（页面时间轴 100%→0 秒/10 小时、90%→1 小时…与之一致）。默认组（1 Ah / 0.1 A）在 BATCH255 判过逃生 ⇒ 本例换组到 2 Ah / 0.2 A 后 0.74 W / 7.40 Wh 双态过。",
   },
   {
+    slug: "science/battery-life-calculator",
+    inputs: {},
+    clicks: ["var __exp=0;globalThis.TBKit={util:{isEn:function(){return false;},exportTable:function(){__exp++;}},diffBox:function(){}};document.getElementById('cap').value='3000';document.getElementById('curr').value='100';document.getElementById('volt').value='3.7';document.getElementById('eff').value='1.5';__batteryExport();document.getElementById('cap').value='BATEXP_'+__exp+'_'+(document.querySelector('#battHidden tbody')?document.querySelector('#battHidden tbody').innerHTML.indexOf('3000')>=0?'Y':'N':'N');delete globalThis.TBKit;"],
+    expect: ["BATEXP_0_N"],
+    ref: "SMS-38 残留清账：导出函数原只守 capV/currV/volt，效率 eff 非法（如 150%）仍导出。现与主计算同口径要求容量/电流/电压>0 且 0<eff≤1，非法时提示且不导出。自建 TBKit 桩捕获 exportTable 调用次数 + 检查 #battHidden tbody：注入 eff=1.5 ⇒ 旧版导出 1 次且表含 3000（BATEXP_1_Y），修复后 0 次且表空（BATEXP_0_N）⇒ 变红，零逃生。"
+  },
+  {
     slug: "science/prime-number",
     inputs: { num: "91" },
     clicks: ["run()"],
@@ -676,6 +1005,20 @@ const CASES = [
     clicks: ["run()"],
     expect: ["89 是素数"],
     ref: "素数判定（n=89，√89 ≈ 9.43 ⇒ 只需试 2,3,5,7，均不整除）：判定「**是素数**」，并给出位数 2、前一个素数 89−2=**89**…（实际为向前回溯得到的 89 之前的素数 83…本例锚定的「89 是素数」只依赖试除结论，无需依赖派生值）。与 91 那条互为反向对照，两条同页共存、互不削弱。",
+  },
+  {
+    slug: "science/prime-number",
+    inputs: { num: "97.9" },
+    clicks: ["run()"],
+    expect: ["请输入正整数"],
+    ref: "严格整数解析（SMS-134）：parsePositiveInt 用 Number() 后 Number.isSafeInteger 校验，小数 97.9 不是整数 ⇒ 拒绝并提示「请输入正整数」，不再被旧 parseInt 静默截成 97 而误判「97 是素数」。默认态 num=97 是真素数，不命中该提示；旧版注入失败会判「97 是素数」⇒ 本用例变红，判别力真实。",
+  },
+  {
+    slug: "science/prime-number",
+    inputs: { num: "1e3" },
+    clicks: ["run()"],
+    expect: ["1000 不是素数"],
+    ref: "科学计数解析（SMS-134）：number 输入框 value 对「1e3」保留原串，parsePositiveInt 用 Number('1e3')=1000 且为安全整数 ⇒ 按 1000 判定为合数「1000 不是素数」；旧 parseInt('1e3') 截成 1 判「1 不是素数」，与本 expecting 串不同 ⇒ 注入失败即变红。1000=2³×5³ 有因子 2，否定结论只依赖数值 1000。",
   },
   {
     slug: "science/si-unit-converter",
@@ -813,11 +1156,32 @@ const CASES = [
     "ref": "独立复算：GCD(8,12)=4，GCD(4,20)=4 ⇒ 4。默认 nums=48,36,24 ⇒ 12，不出现 'GCD = 4'。"
   },
   {
+    "slug": "science/gcd-calculator",
+    "inputs": {},
+    "clicks": ["var p=parseNums('1.5,3');document.getElementById('nums').value='DECPROBE_'+(p.error?'Y':'N')+'_'+p.error;"],
+    "expect": ["DECPROBE_Y_请输入整数"],
+    "ref": "SMS-94 清账：parseNums 原用 parseInt 静默截断小数（1.5→1）。现改 Number + Number.isInteger 严格解析，小数返回 error。探针直接调 parseNums('1.5,3') 断言 error；旧版返回数组无 error ⇒ DECPROBE_N，零逃生。"
+  },
+  {
+    "slug": "science/gcd-calculator",
+    "inputs": {},
+    "clicks": ["var p=parseNums('9007199254740993,3');document.getElementById('nums').value='BIGPROBE_'+(p.error&&p.error.indexOf('安全整数')>=0?'Y':'N');"],
+    "expect": ["BIGPROBE_Y"],
+    "ref": "SMS-95 清账：parseNums 原 parseInt 把 2^53+1 截为 2^53（失真）且 factorize 穷举 √n 卡死。现拒绝 |v|>Number.MAX_SAFE_INTEGER 并提示超出安全整数范围。探针直接调 parseNums 避免旧版卡死，断言 error 含「安全整数」；旧版无 error ⇒ BIGPROBE_N，零逃生。"
+  },
+  {
     "slug": "science/lcm-calculator",
     "inputs": { "nums": "15,20,25" },
     "clicks": ["calculate()"],
     "expect": ["LCM = 300"],
     "ref": "独立复算：LCM(15,20)=60，LCM(60,25)=300 ⇒ 300。默认 nums=12,18,24 ⇒ 72，不出现 300。"
+  },
+  {
+    "slug": "science/lcm-calculator",
+    "inputs": {},
+    "clicks": ["var p=parseNums('4.5,6');document.getElementById('nums').value='LCMDECPROBE_'+(p.error?'Y':'N')+'_'+p.error;"],
+    "expect": ["LCMDECPROBE_Y_请输入整数"],
+    "ref": "SMS-94 同族清账：lcm 页 parseNums 原同样用 parseInt 静默截断小数（4.5→4）。现与 gcd 页一致改严格解析。探针直接调 parseNums('4.5,6') 断言 error；旧版返回数组无 error ⇒ LCMDECPROBE_N，零逃生。"
   },
   {
     "slug": "science/vector-calculator",
@@ -860,6 +1224,27 @@ const CASES = [
     "clicks": ["calc()"],
     "expect": ["7.85 L/s"],
     "ref": "圆管 Q=A·v，A=π·(0.05m)²=0.007854 m²，v=1 ⇒ 0.007854 m³/s=7.854 L/s。默认 diam=50,vel=2 ⇒ 3.93 L/s，不出现 7.85。"
+  },
+  {
+    "slug": "science/science-flow-rate",
+    "inputs": {},
+    "clicks": ["function __d(id){var e=document.getElementById(id);return e?e.innerHTML:'';}document.getElementById('diam').value='50';document.getElementById('vel').value='2';calc();var has1=__d('resultDetail').length>0;document.getElementById('diam').value='';calc();var has2=__d('resultDetail').length>0;var ra=document.getElementById('resArea').textContent;document.getElementById('diam').value='CLRPROBE_'+(has1&&!has2&&ra==='--'?'Y':'N')+'_'+has1+has2+'_'+ra;"],
+    "expect": ["CLRPROBE_Y_truefalse_--"],
+    "ref": "SMS-145 清账：圆形分支原 `if(!diam||!v)return` 在清空输入后保留上一次结果。现新增 clearFlowResult() 清空 flowUnits/resultDetail/resArea/resVel/resRe/resMass/pipeDiagram 并置 lastResult=null；三模式非法输入均调用。探针先算合法值得明细，再清空 diam 重算 ⇒ 明细消失、resArea=--；旧版保留旧明细 ⇒ N，零逃生。探针串写 diam 的 value（harness 采集纯文本）。"
+  },
+  {
+    "slug": "science/science-flow-rate",
+    "inputs": {},
+    "clicks": ["document.getElementById('diam').value='2';var sel=document.getElementById('diamUnit');sel.value='25.4';document.getElementById('vel').value='1';calc();var d=document.getElementById('resultDetail').innerHTML;document.getElementById('diam').value='UNITPROBE_'+(d.indexOf('2 inch')>=0&&d.indexOf('2 mm =')<0?'Y':'N');"],
+    "expect": ["UNITPROBE_Y"],
+    "ref": "SMS-144 清账：明细原把已折算的内径左侧值恒标 mm，选 inch 时显示「2 mm = …」自相矛盾。现从 diamUnit 的选中 option 文本取真实单位标签。探针注入 diam=2、单位 inch、vel=1，断言明细含「2 inch」且不含写死的「2 mm =」；旧版写死 mm ⇒ N，零逃生。"
+  },
+  {
+    "slug": "science/science-flow-rate",
+    "inputs": {},
+    "clicks": ["document.getElementById('diam').value='77.7';document.getElementById('vel').value='2';calc();saveHistory();document.getElementById('diam').value='11.1';loadHistory(0);document.getElementById('diam').value='HISPROBE_'+(document.getElementById('diam').value==='77.7'?'Y':'N')+'_'+document.getElementById('diam').value;"],
+    "expect": ["HISPROBE_Y_77.7"],
+    "ref": "SMS-143 清账：原 saveHistory 只存派生量、loadHistory 切模式后用当前输入重算（假恢复）。现 saveHistory 连同 14 个输入/单位字段一并存入 inputs，loadHistory 逐项回填后再 calc。探针存 diam=77.7 后改为 11.1，loadHistory(0) 后断言 diam 回填为 77.7；旧版保持 11.1 ⇒ N，零逃生。"
   },
   {
     "slug": "science/matrix-calculator",
@@ -1011,8 +1396,8 @@ const CASES = [
       "obsMoonPhase": "crescent",
       "obsBortle": "2"
     },
-    "expect": ["果仅供科普参考。\n-2779796544", "\n1138178552", "\nUTM 标准投影范围：纬度 -80° 到 84°。请检查输入值。\n42\nS\n42\n42\n纬度 ：2779796544"],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"moonDate\":\"abc123测试\",\"mag1\":\"42\",\"mag2\":\"42\",\"meteorDiameter\":\"42\",\"meteorSpeed\":\"42\",\"meteorDensity\":\"42\",\"meteorAngle\":\"42\",\"groundDensity\":\"42\",\"latInput\":\"42\",\"lonInput\":\"42\",\"utmZone\":\"42\",\"utmEasting\":\"42\",\"utmNorthing\":\"42\",\"polarLat\":\"42\",\"utmHemisphere\":\"S\",\"obsMoonPhase\":\"crescent\",\"obsBortle\":\"2\"}，输出区含「果仅供科普参考。\n-277979654460.676331\n1138178552…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "expect": ["果仅供科普参考。", "该区号与东移/北移值不匹配，无法反算为有效经纬度"],
+    "ref": "自动补强（B类零用例）·SMS-73 清账：注入非默认输入含 utmZone=42/utmEasting=42/utmNorthing=42/utmHemisphere=S，旧版反向溢出为荒谬值「纬度：2779796544」；现结果域守卫拒绝并提示「该区号与东移/北移值不匹配」。默认态（合法 E/N）不含该提示 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "science/battery-life-calculator",
@@ -1331,9 +1716,9 @@ const CASES = [
       "convType": "25"
     },
     "expect": [
-      "K 热流量 Q： 0.00 μW 热流密度： 0.00 W/m²\n42\n42\n42\n42\n42\n42\n42\n42\n42\n0.001"
+      "功率 (kW)\n千卡/秒\n0.00 μW\n0.00 W\n0.0°C\n0.0000 kcal/s"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"condK\":\"42\",\"condA\":\"42\",\"condL\":\"42\",\"condT1\":\"42\",\"condT2\":\"42\",\"specM\":\"42\",\"specC\":\"42\",\"specT1\":\"42\",\"specT2\":\"42\",\"convH\":\"42\",\"convA\":\"42\",\"convTw\":\"42\",\"convTf\":\"42\",\"condMat\":\"237\",\"specMUnit\":\"0.001\",\"specMat\":\"450\",\"convType\":\"25\"}，输出区含「K 热流量 Q： 0.00 μW 热流密度： 0.00 W/m²\n42\n42\n4…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）·第1013批同步：注入非默认输入使 ΔT=0，输出区含导热模式动态标签「功率 (kW)/千卡/秒」与 0.00 μW、0.00 W、0.0°C、0.0000 kcal/s 成套值；默认态为 3007.50 W，不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "science/kinetic-energy",
@@ -1367,8 +1752,22 @@ const CASES = [
       "utmNorthing": "42",
       "utmHemisphere": "S"
     },
-    "expect": ["需注意精度损失。\n42\nS\n42\n42\n-2779796542", "° 纬度 1138178550", "° 经度 -277979654269°29'42.64"],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"lat\":\"42\",\"lon\":\"42\",\"utmZone\":\"42\",\"utmEasting\":\"42\",\"utmNorthing\":\"42\",\"utmHemisphere\":\"S\"}，输出区含「需注意精度损失。\n42\nS\n42\n42\n-277979654269.495178…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "expect": ["该带号与东移/北移值不匹配，无法反算为有效经纬度"],
+    "ref": "自动补强（B类零用例）·SMS-101 清账：注入非默认输入{\"lat\":\"42\",\"lon\":\"42\",\"utmZone\":\"42\",\"utmEasting\":\"42\",\"utmNorthing\":\"42\",\"utmHemisphere\":\"S\"}，E=42/N=42 落在物理范围内但与带号 42 不匹配，旧版反算溢出为荒谬值「经度 -277979654269°29'42.64」；现结果域守卫拒绝并提示「该带号与东移/北移值不匹配，无法反算为有效经纬度」。默认态（合法 E/N）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "science/latlon-utm-converter",
+    "inputs": { lat: "0", lon: "180" },
+    clicks: ["convertLL2UTM()"],
+    expect: ["60 UTM带号", "中央经线： 177.0°"],
+    ref: "SMS-101 清账（经度边界）：经度 +180° 是 UTM 东半球的合法边界，应归入第 60 带（中央经线 = 6×60−180+3 = 177.0°）。旧版 ⌊(180+180)/6⌋+1 = 61 越出合法的 1~60 带号，中央经线算成 183.0°；现钳制到 60。两条锚旧版均不成立（旧版为 61/183.0°）⇒ 零逃生。",
+  },
+  {
+    "slug": "science/latlon-utm-converter",
+    "inputs": { utmZone: "50", utmHemisphere: "N", utmEasting: "1500000", utmNorthing: "5000000" },
+    clicks: ["convertUTM2LL();document.getElementById('utmEasting').value='UTMRNG_'+(String(document.getElementById('result-utm2ll').textContent||document.getElementById('result-utm2ll').innerHTML).indexOf('超出有效范围')>=0?'OK':'BAD');"],
+    expect: ["UTMRNG_OK"],
+    ref: "SMS-101 清账（E 范围守卫）：东移值 1500000 m 超出 UTM 假东移 500000 的物理上限 1000000，旧版照常反算输出荒谬经纬度；现直接提示「UTM 坐标超出有效范围」。探针断言结果容器出现该提示，旧版 ⇒ UTMRNG_BAD，零逃生。",
   },
   {
     "slug": "science/led-resistor-calculator",
@@ -1504,9 +1903,9 @@ const CASES = [
       "r": "42"
     },
     "expect": [
-      "42\n1\n42\nI\n安培\n42.00 W\n42.000 Wh/h\n23.81 mS\n1.00 C\n电压 V： 4"
+      "42\n1\n42\nI\n安培\n42.00 W\n42.000 Wh\n23.81 mS\n1.00 C\n电压 V： 4"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"v\":\"42\",\"i\":\"42\",\"r\":\"42\"}，输出区含「42\n1\n42\nI\n安培\n42.00 W\n42.000 Wh/h\n23.81 m…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"v\":\"42\",\"i\":\"42\",\"r\":\"42\"}，输出区含「42\n1\n42\nI\n安培\n42.00 W\n42.000 Wh\n23.81 m…」；第 1008 批 SMS-123 同步修正旧错误单位「Wh/h」→「Wh」（标签为 1 小时能耗=E=P×1h）。默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "science/p-value-calculator",
@@ -1920,6 +2319,12 @@ const CASES = [
        + "判别器清空 clicks 后兜底调 showDetail()（无参 ⇒ ELEMENTS.find 返回 undefined ⇒ 直接 return），详情仍是氢，不命中。"
   },
 
+  {
+    slug: "science/periodic-table",
+    clicks: ["buildTable();var h=String(document.getElementById('periodicTable').innerHTML);var ac=h.indexOf('class=\"element cat-actinide\" style=\"grid-column:1;\"');var la=h.indexOf('class=\"element cat-lanthanide\" style=\"grid-column:1;\"');document.getElementById('search').value='PTGRID_'+(ac>=0&&la>=0?'OK':'BAD');"],
+    expect: ["PTGRID_OK"],
+    ref: "SMS-125 清账（镧锕系独立成行）：18 列 grid 中主表 7×18=126 格占满 7 行，镧系 15 格排第 8 行 1–15 列，旧版锕系第 1 格（Ac）无 grid-column 定位、从第 8 行第 16 列续排 → 与镧系同行错位；现镧系与锕系首格均加 grid-column:1 强制各起新行。探针断言两者首格均带 grid-column:1，旧版无 ⇒ PTGRID_BAD，零逃生。",
+  },
   // ---- 2026-11-05：8 页 science 工具「深度解析算例」与页面输出对齐（算例数字均 node 实跑取回）----
   {
     "slug": "science/power-calculator",
@@ -2148,6 +2553,165 @@ const CASES = [
     "clicks": ["(function(){globalThis.TBKit={util:{isEn:function(){return true;}}};try{showFormulas();}catch(e){}var h=String(document.getElementById('output').innerHTML);document.getElementById('__tbProbe').textContent='MATEN '+((h.indexOf('Matrix formula reference')>=0&&h.indexOf('Addition:')>=0&&!/[\\u4e00-\\u9fff]/.test(h))?'OK':'BAD '+h.slice(0,100));})()"],
     "expect": ["MATEN OK"],
     "ref": "632 复核失败重做：showFormulas() 原无条件写入中文标题与多行中文说明，英文态（?lang=en-US）点击「公式说明」仍全中文。修复后按 __matIsEn() 分流整套英文文案。探针 mock TBKit.util.isEn=true 后调用，断言含 Matrix formula reference / Addition: 且无 CJK；默认态不执行 clicks ⇒ 零逃生。"
+  },
+  {
+    "slug": "science/calc-cycle",
+    "inputs": { "formula": "H2O)" },
+    "expect": ["括号不匹配：多余的右括号"],
+    "ref": "SMS-75：parseSegment 原在 ')' 分支直接 stack.pop()，多余右括号（H2O)/)H2O）无对应左括号时 top=undefined，随后 for(var k in top){cur[k]=…} 抛未捕获 TypeError、结果停留旧值。修复为 pop 前判断 stack.length<=1 直接返回错误。默认 formula=H2O 合法 ⇒ 不含该错误串（页面原生静态说明只有泛化「括号不匹配」，无此精确串）。"
+  },
+  {
+    "slug": "science/calc-cycle",
+    "inputs": { "formula": "CuSO4.5H2O" },
+    "expect": ["249.68 g/mol", "共 21 个原子"],
+    "ref": "SMS-76：文档示范水合物 CuSO4.5H2O，但旧 parseSegment 把段首系数 5 当非法字符报「无法识别的字符：\\\"5\\\"」。修复后 parseFormula 分段剥离段首系数乘算：Cu 63.546+S 32.06+O4 63.996+5×(H2 2.016+O 15.999)=63.546+32.06+63.996+90.075=249.677→249.68 g/mol；原子数 1+1+4+5×3=21。默认 H2O=18.02 ⇒ 不含该串。"
+  },
+  {
+    "slug": "science/astro-geo-calculator",
+    "inputs": { "sun-lat": "-33.86", "sun-lon": "151.21", "sun-date": "2026-06-21" },
+    "clicks": ["calcSunriseSunset()"],
+    "expect": ["33.8600°S, 151.2100°E", "05:03", "14:47"],
+    "ref": "SMS-65/67：hourAngle 算地方太阳时，转北京时间应 +8−lon/15（东八区中央经线120°E），旧版写反为 +lon/15−8。悉尼 2026-06-21（南半球冬季，dayOfYear=172、赤纬23.4498°）：cosH=−tan(−33.86°)tan(23.4498°)=0.2898⇒H=73.0796°⇒太阳时日出 12−73.0796/15=7.128h；修正 7.128+8−151.21/15=5.047h⇒05:03、日落 14:47。位置行旧版固定 °N/°E 对负值显示 −33.8600°N；修复后按符号输出 33.8600°S, 151.2100°E。默认 lat/lon/date 不同且需 clicks 触发 ⇒ 三条均不命中（默认态 sun-date 空，不产生该位置/时刻串）。"
+  },
+  {
+    "slug": "science/astro-geo-calculator",
+    "inputs": { "wind-speed": "12", "wind-unit": "kmh" },
+    "clicks": ["calcWindLevel()"],
+    "expect": ["3.3 风速（m/s）", "蒲福 2 级", "轻风"],
+    "ref": "SMS-66：蒲福表各级 min~max 间留 0.1 m/s 空隙（1.5→1.6、3.3→3.4…），12 km/h=3.3333 m/s 正落 3.3~3.4 空隙，旧版 !found 兜底 12 级飓风。修复后按 min 下界逐级命中：3.3333≥level2.min(1.6) 且 <level3.min(3.4) ⇒ 2 级轻风。3.3 m/s 为 3.3333.toFixed(1)。默认 wind-speed=5 m/s（命中3级微风）且需 clicks ⇒ 三条均不命中。"
+  },
+  {
+    "slug": "science/astro-geo-calculator",
+    "inputs": { "hz-height": "2" },
+    "clicks": ["calcHorizon()"],
+    "expect": ["0.0m 5km处目标最低高度", "1.9m 10km处目标最低高度", "17.5m 20km处目标最低高度"],
+    "ref": "SMS-68：观察者高度 h=2m 时几何地平线 d0=sqrt(2×6371km×0.002km)=5.0482km。目标最低高度按 (d−d0)²/(2R)×1000 计算：5km 未超地平线记 0.0m；10km 得 1.922→1.9m；20km 得 17.525→17.5m。旧版三卡写死 d²/(2R)，无论 h 为何均输出 2.0/7.9/31.4m 且标签为「遮挡」，三条锚均不命中；默认 h=1.7m 得 0.0/2.2/18.5m，注入失败亦不命中。"
+  },
+  {
+    "slug": "science/calc-distance",
+    "clicks": ["var _qs=document.querySelector.bind(document);document.querySelector=function(s){if(String(s).indexOf('dms')>=0)return {checked:true};return _qs(s);};try{swapFmt();}catch(e){}document.querySelector=_qs;var r=document.getElementById('res');r.innerHTML=r.innerHTML+' DMSPROBE type='+document.getElementById('lat1').type+' val='+document.getElementById('lat1').value;"],
+    "expect": ["DMSPROBE type=text val=39°54'15.12\""],
+    "ref": "SMS-77：四个坐标输入原为 type=number，swapFmt() 把度分秒串（含 ° ' \"）写回 number 输入被浏览器清空 ⇒ 坐标全空报「坐标格式无效」、切回十进制也无法恢复。修复后切格式时同步把四输入 type 改为 text（度分秒）/number（十进制），并用 parseCoord 读取已格式化值。探针勾选 dms 调 swapFmt，断言 lat1.type=text 且保留 39°54'15.12\"；旧版 type 恒 number ⇒ 不命中。默认态不执行 clicks ⇒ 零逃生。"
+  },
+  {
+    "slug": "science/calc-distance",
+    "inputs": { "lat1": "39.904200", "lon1": "116.407400", "lat2": "31.230400", "lon2": "121.473700" },
+    "clicks": ["var ids=['lat1','lon1','lat2','lon2'];ids.forEach(function(id){var el=document.getElementById(id),t=el.type;Object.defineProperty(el,'type',{configurable:true,get:function(){return t;},set:function(v){if(v==='number'&&/[^\\d.eE+-]/.test(String(el.value)))el.value='';t=v;}});});var mode=false,before=ids.map(function(id){return document.getElementById(id).value;}).join(','),_qs=document.querySelector.bind(document);document.querySelector=function(s){if(String(s).indexOf('dms')>=0)return {checked:mode};return _qs(s);};mode=true;swapFmt();var mid=ids.map(function(id){return document.getElementById(id).value;}).join(',');mode=false;swapFmt();document.querySelector=_qs;var after=ids.map(function(id){return document.getElementById(id).value;}).join(',');document.getElementById('__tbProbe').textContent='DMSRT '+((mid.indexOf('°')>=0&&after===before)?'OK':'BAD '+before+'|'+mid+'|'+after);"],
+    "expect": ["DMSRT OK"],
+    "ref": "1029 复核重做：桩内对四个坐标输入补真机语义——切到 number 时含 ° ' \" 的度分秒串会被清空。旧版先改 type 再读值，十进制→度分秒→十进制后四坐标全丢；修复版先在旧 type 下缓存，再切 type 写回，往返必须逐字回到 39.904200/116.407400/31.230400/121.473700。探针仅在 clicks 注入后出现。"
+  },
+  {
+    "slug": "science/calc-distance",
+    "clicks": ["var q=String.fromCharCode(39),dq=String.fromCharCode(34);var a=parseCoord('-0°30'+q+'0'+dq),b=parseCoord('-0 30 0'),c=parseCoord('0°30'+q+'0'+dq+'S'),d=parseCoord('');document.getElementById('lat1').value='';calc();var msg=String(document.getElementById('res').innerHTML);document.getElementById('__tbProbe').textContent='COORDNEG '+(a===-0.5&&b===-0.5&&c===-0.5&&d===null&&msg.indexOf('坐标格式无效')>=0?'OK':'BAD '+[a,b,c,d].join(','));"],
+    "expect": ["COORDNEG OK"],
+    "ref": "1029 复核重做：-0°30' 与 -0 30 0 的负零在数值比较 deg<0 为假，旧版翻成正 0.5；修复版按字面负号识别为 -0.5，同时 S 后缀仍为 -0.5、空串仍判 null 并拦截计算。默认态不执行 clicks ⇒ 零逃生。"
+  },
+  {
+    "slug": "science/astronomy-toolkit",
+    "inputs": { "mag1": "1.5", "mag2": "1.5" },
+    "clicks": ["calcMagnitude()"],
+    "expect": ["两天体星等相同，亮度相等（比值 1.00）"],
+    "ref": "SMS-71：两星等相等时 ratio=2.512^0=1，旧版 brighter='一样亮' 拼出「即天体 一样亮 比 A 亮 1.00 倍」自相矛盾。修复后相等分支独立输出「两天体星等相同，亮度相等（比值 1.00）」（英文态经 TBKit.util.isEn helper）。默认 mag1=-1.46/mag2=2.0 不等 ⇒ 走原「比…亮…倍」分支，不含该串。"
+  },
+  {
+    "slug": "science/astronomy-toolkit",
+    "inputs": { "moonDate": "2026-09-25" },
+    "clicks": [
+      "(function(){var hist=[],rows=0,chart=null,noop=function(){};globalThis.TBKit={util:{isEn:function(){return false;},diffBox:noop,exportTable:noop},matrix:{table:function(s,o){rows=o.rows.length;}},chart:{line:function(s,o){chart=o;}},history:{list:function(){return hist.slice();},last:function(){return hist.length?hist[hist.length-1].d:null;},record:function(d){hist.push({t:Date.now()+hist.length*1000,d:d});},mount:noop,clear:function(){hist.length=0;},diffLast:function(){return null;}},preset:{bar:noop},export:{csv:noop},share:{params:function(){return {};}}};var _qsa=document.querySelectorAll.bind(document);document.querySelectorAll=function(s){if(String(s).indexOf('input[id]')>=0)return ['moonDate','mag1','mag2','meteorDiameter','meteorSpeed','meteorDensity','meteorAngle','groundDensity','latInput','lonInput','utmZone','utmHemisphere'].map(function(id){return document.getElementById(id);});return _qsa(s);};var mg=document.getElementById('moonInfoGrid');var ids=['moonPhaseName','moonAge','moonIllum','moonNextNew'];Object.defineProperty(mg,'textContent',{configurable:true,get:function(){return ids.map(function(id){return document.getElementById(id).textContent||'';}).join(' ');},set:function(v){mg.innerHTML=String(v);}});__astronomy_toolkit_last=0;calcMoonPhase();document.getElementById('moonDate').value='2026-06-21';__astronomy_toolkit_last=0;calcMoonPhase();var last=hist.length?String(hist[hist.length-1].d['结果']||''):'';document.getElementById('moonDate').value='ASTROHIST_'+(last.indexOf('上弦月 6.2 37.9 23.3天')>=0&&rows===2?'OK':'BAD '+last);})()"
+    ],
+    "expect": ["ASTROHIST_OK"],
+    "ref": "SMS-74：附加层只包裹 calcMoonPhase()，月相结果写在 #moonInfoGrid（非 .result-box）。旧 __astronomy_toolkitResText() 取页面首个 .result-box（#magResult），未算星等时读到占位「请输入…」被正则判空，月相历史/表/图全无；算过星等则把星等结果误记为月相。修复后优先读 #moonInfoGrid，探针注入 2026-09-25（满月13.6/98.6/15.9天）与 2026-06-21（上弦月6.2/37.9/23.3天）两次，断言最后一条历史结果为后者且表格2行。旧版无历史记录 ⇒ ASTROHIST_BAD；默认态不执行 clicks ⇒ 零逃生。harness 需补 input 选择器与月相网格 textContent getter，属桩能力边界。"
+  },
+  {
+    "slug": "science/astronomy-toolkit",
+    "inputs": { "moonDate": "2026-01-01" },
+    "clicks": ["calcMoonPhase();var a=document.getElementById('moonPhaseName').textContent,b=document.getElementById('moonIllum').textContent;document.getElementById('moonDate').value='MOONILL_'+(a==='盈凸月'&&b==='93.9'?'OK':'BAD '+a+'/'+b);"],
+    "expect": ["MOONILL_OK"],
+    "ref": "SMS-70：照明度原用 8 段等距线性插值，2026-01-01（页面按 UTC 12:00 取日）月龄 12.4215 天落在 9.22831~12.91963 段，旧式算 50+(12.4215−9.22831)/3.69133×25≈71.6%，且 12.91963~16.61096 全程恒 100%（3.69 天平台）。修复为相角余弦模型 (1−cos(2π·age/S))/2：age=12.4215、S=29.530588 ⇒ 93.9%，月相名称仍按原阈值判「盈凸月」。旧版 ⇒ MOONILL_BAD 71.6%；默认态（moonDate 空→今天）不命中。"
+  },
+  {
+    "slug": "science/astronomy-toolkit",
+    "inputs": { "polarLat": "66.5" },
+    "clicks": ["calcPolar();var t=String(document.getElementById('polarResult').innerHTML);document.getElementById('polarLat').value='POLAREDGE_'+(t.indexOf('66.5°')>=0&&t.indexOf('不是全年极昼或极夜')>=0&&t.indexOf('全年为极昼或极夜')<0?'OK':'BAD '+t.slice(0,60));"],
+    "expect": ["POLAREDGE_OK"],
+    "ref": "SMS-72：纬度 66.5° 时 declCritical=23.5°，大于页面简化模型的 maxDecl=23.44°，旧版进入早退分支输出「理论上全年为极昼或极夜」，与常用 66.5° 极圈定义直接矛盾。修复后说明该纬度处在常用 66.5° 与 23.44° 真极圈之间：太阳中心几何口径不满足严格阈值，但视直径+折射可致夏至/冬至前后短暂无落日或无日出，并明确否定「全年」。Time and Date 天文资料确认极圈按太阳中心定义、上缘与折射会让极点内侧出现偏差，不能把边界附近写成全年极昼/极夜。默认 polarLat=70（进入正常日期分支）不命中。"
+  },
+  {
+    slug: "science/battery-life-calculator",
+    inputs: {},
+    clicks: ["var _qs=document.querySelector;document.querySelector=function(s){return s==='#battHidden tbody'?document.getElementById('battHidden'):_qs(s);};globalThis.TBKit={util:{isEn:function(){return false;},exportTable:function(){}},diffBox:function(){}};var c=document.getElementById('cap'),u=document.getElementById('capUnit'),i=document.getElementById('curr'),iu=document.getElementById('currUnit');c.value='3';u.value='1000';i.value='2';iu.value='1000';document.getElementById('volt').value='7.4';document.getElementById('eff').value='0.9';__batteryExport();var h=String(document.getElementById('battHidden').innerHTML);document.getElementById('result').innerHTML='BATEXPUNIT_'+(h.indexOf('3 Ah')>=0&&h.indexOf('2 A')>=0&&h.indexOf('3000 Ah')<0&&h.indexOf('2000 A')<0?'OK':'BAD '+h.slice(0,120));delete globalThis.TBKit;document.querySelector=_qs;"],
+    expect: ["BATEXPUNIT_OK"],
+    ref: "1004 批复核：容量 3 Ah、电流 2 A 时内部换算为 3000 mAh/2000 mA 正确，但旧导出把换算值与用户所选单位标签拼成「3000 Ah」「2000 A」。修复后导出显示原始输入值与对应标签「3 Ah」「2 A」，换算值只用于功率/能量与有效容量。用例把 harness 的 #battHidden tbody 查询重定向到真实元素，避免读空桩造成假绿。"
+  },
+  {
+    slug: "science/battery-life-calculator",
+    inputs: {},
+    clicks: ["var _qs=document.querySelector;document.querySelector=function(s){return s==='#battHidden tbody'?document.getElementById('battHidden'):_qs(s);};globalThis.TBKit={util:{isEn:function(){return false;},exportTable:function(){}},diffBox:function(){}};var c=document.getElementById('cap'),u=document.getElementById('capUnit'),i=document.getElementById('curr'),iu=document.getElementById('currUnit');c.value='2';u.value='1000';i.value='500';iu.value='1';document.getElementById('volt').value='3.7';document.getElementById('eff').value='1';__batteryExport();var h=String(document.getElementById('battHidden').innerHTML);document.getElementById('result').innerHTML='BATMIXUNIT_'+(h.indexOf('2 Ah')>=0&&h.indexOf('500 mA')>=0&&h.indexOf('2000 Ah')<0?'OK':'BAD '+h.slice(0,120));delete globalThis.TBKit;document.querySelector=_qs;"],
+    expect: ["BATMIXUNIT_OK"],
+    ref: "1004 批复核·混合单位补强：容量 2 Ah、电流 500 mA，内部统一为 2000 mAh/500 mA 计算 3.7 W 与 7.40 Wh，但导出必须显示「2 Ah」「500 mA」。旧版容量行写「2000 Ah」，本用例变红；与上一条 Ah/A 同组互证。"
+  },
+  {
+    slug: "science/gcd-calculator",
+    inputs: {},
+    clicks: ["var r=factorize(1000036000099);document.getElementById('nums').value='GCDBUDGET_'+(r.indexOf('超出同步计算上限')>=0&&r.indexOf('1000003')<0?'OK':'BAD '+r);"],
+    expect: ["GCDBUDGET_OK"],
+    ref: "1006 批复核：1000036000099=1000003×1000033 是安全整数，旧 factorize 需约一百万次同步试除才给出完整分解；现设 200000 次上限，超限只提示跳过分解而不伪造结果。旧版返回「1000003 × 1000033」⇒ BAD；不直接调用 9007199254740881 是为了让旧版差分在受控时间内完成。"
+  },
+  {
+    slug: "science/gcd-calculator",
+    inputs: {},
+    clicks: ["document.getElementById('nums').value='1000036000099,3';calculate();var h=String(document.getElementById('output').innerHTML);document.getElementById('output').innerHTML='GCDBIG_'+(h.indexOf('GCD = 1')>=0&&h.indexOf('超出同步计算上限')>=0&&h.indexOf('GCD = 12')<0?'OK':'BAD');"],
+    expect: ["GCDBIG_OK"],
+    ref: "1006 批复核·链路补强：大安全整数与 3 的 GCD=1 必须照常算出，质因数分解跳过提示须同时出现在结果区。旧版虽给出 GCD=1 但没有跳过提示且完成长分解；默认 48,36,24 的 GCD=12，不命中。"
+  },
+  {
+    slug: "science/gcd-calculator",
+    inputs: {},
+    clicks: ["var s=String(factorize);document.getElementById('nums').value='GCDGUARD_'+(typeof MAX_TRIAL_DIVISIONS!=='undefined'&&MAX_TRIAL_DIVISIONS===200000&&s.indexOf('MAX_TRIAL_DIVISIONS')>=0&&s.indexOf('超出同步计算上限')>=0?'OK':'BAD');"],
+    expect: ["GCDGUARD_OK"],
+    ref: "1006 批复核·源码形态补强：复核点名的 9007199254740881 若在旧版直接执行会长时间阻塞，故用源码形态断言分解函数确实读固定试除上限并带跳过分支；旧版无该常量与分支 ⇒ BAD。"
+  },
+  {
+    slug: "science/significant-figures",
+    inputs: { num: "987654321", digits: "16" },
+    clicks: ["var v=1.234567890123456;var r=roundToSig(v,16);document.getElementById('num').value='SIGFP_'+(r===v?'OK':'BAD');"],
+    expect: ["SIGFP_OK"],
+    ref: "1007 批复核：原数已是 16 位有效数字，修约后应保持不变。旧版对 scaled 无条件加 abs(scaled)×EPSILON×8 补偿，末位被推高一位；新版仅按十进制第 17 位判断，无后续位则不进位。用等值布尔哨兵避免把长浮点写进 expect 造成跨环境 1ULP 反模式；默认 num/digits 不命中探针。"
+  },
+  {
+    slug: "science/significant-figures",
+    inputs: {},
+    clicks: ["var r=document.getElementById('result'),n=document.getElementById('num'),d=document.getElementById('digits');d.value='1';n.value='2.5';calc();var a=String(r.innerHTML).replace(/<[^>]+>/g,' ');n.value='3.5';calc();var b=String(r.innerHTML).replace(/<[^>]+>/g,' ');n.value='-2.5';calc();var c=String(r.innerHTML).replace(/<[^>]+>/g,' ');r.innerHTML='SIGEVEN_'+(a.indexOf('保留 1 位有效数字： 2')>=0&&b.indexOf('保留 1 位有效数字： 4')>=0&&c.indexOf('保留 1 位有效数字： -2')>=0?'OK':'BAD');"],
+    expect: ["SIGEVEN_OK"],
+    ref: "1007 批复核·半值与负数：页面引据写 NIST B.7.1，恰好 5 且后续全 0 时应舍入到偶数：2.5→2、3.5→4、-2.5→-2。旧版 Math.round 对正数 2.5 进一、对负数受补偿影响给 -3，三项不可能同时命中；默认态无探针串。"
+  },
+  {
+    slug: "science/significant-figures",
+    inputs: {},
+    clicks: ["var r=document.getElementById('result'),n=document.getElementById('num'),d=document.getElementById('digits');d.value='2';n.value='1.25e3';calc();var a=String(r.innerHTML).replace(/<[^>]+>/g,' ');d.value='1';n.value='2.5001';calc();var b=String(r.innerHTML).replace(/<[^>]+>/g,' ');n.value='2.4999';calc();var c=String(r.innerHTML).replace(/<[^>]+>/g,' ');r.innerHTML='SIGNEAR_'+(a.indexOf('保留 2 位有效数字： 1200')>=0&&a.indexOf('1.2e+3')>=0&&b.indexOf('保留 1 位有效数字： 3')>=0&&c.indexOf('保留 1 位有效数字： 2')>=0?'OK':'BAD');"],
+    expect: ["SIGNEAR_OK"],
+    ref: "1007 批复核·科学计数法与半值两侧：1.25e3 按 NIST 偶数规则为 1.2e3=1200（旧版浮点放大 125 后原样回除得 1250）；2.5001>半值进到 3，2.4999<半值舍到 2。默认 num/digits 不同，且默认态无探针串。"
+  },
+  {
+    slug: "science/equation-balancer",
+    inputs: { eqInput: "NH3 = NH + NH4 + N3H" },
+    clicks: ["balance();var h=String(document.getElementById('resultArea').innerHTML).replace(/<[^>]+>/g,' ');document.getElementById('eqInput').value='EQRANGE_'+(h.indexOf('有限搜索范围内未找到全正系数')>=0&&h.indexOf('不等于方程式无解')>=0?'OK':'BAD '+h.slice(0,80));"],
+    expect: ["EQRANGE_OK"],
+    ref: "1009 批复核·有限搜索边界：NH3 → NH + NH4 + N3H 存在全正解 14:1:10:1，但权重超出 ±8 搜索范围；旧版把未命中说成「反应物与生成物可能放反、方程式有误」，现明确「搜索范围未命中不等于无解」。默认 H2+O2=H2O 有唯一解，不命中。"
+  },
+  {
+    slug: "science/meteor-crater-estimator",
+    inputs: { meteorDiameter: "42", meteorVelocity: "13", impactAngle: "60", targetDensity: "3000" },
+    clicks: ["calc();var a=String(document.getElementById('result').innerHTML);document.getElementById('targetDensity').value='-1';calc();var b=String(document.getElementById('result').innerHTML),t=String(document.getElementById('meteor_crater_estimatorTable').innerHTML);document.getElementById('targetDensity').value='3000';calc();var c=String(document.getElementById('result').innerHTML);document.getElementById('targetDensity').value='METEORNEG_'+(a.indexOf('撞击坑直径')>=0&&b.indexOf('均须为正值')>=0&&t.length===0&&c.indexOf('撞击坑直径')>=0?'OK':'BAD');"],
+    expect: ["METEORNEG_OK"],
+    ref: "1012 批复核·状态链：合法 42 m/13 km·s⁻¹/60°/3000 kg·m⁻³ 得撞击坑结果；地表密度改 -1 时旧版算 Math.pow(负数,1/3)=NaN 或残留旧结论，现拦截、清空表格且提示密度须为正；恢复 3000 后结果重现。默认直径 50、速度 20、角度 45，不命中本组。"
+  },
+  {
+    slug: "science/chemistry-calculator",
+    inputs: { formula: "abc123测试" },
+    clicks: ["var a=parseFormula('H2O..NaCl'),b=parseFormula('.H2O'),c=parseFormula('H2O·'),d=calcMolarMass('CuSO4.5H2O');document.getElementById('formula').value='CHMEMPTY_'+(a===null&&b===null&&c===null&&d&&Math.abs(d.totalMass-249.7)<0.01?'OK':'BAD');"],
+    expect: ["CHMEMPTY_OK"],
+    ref: "1015 批复核：旧 parseFormula 先 split 再 filter 丢空段，把 H2O..NaCl、.H2O、H2O· 当合法；现发现首尾或连续分隔符立即返回 null，同时正常结晶水 CuSO4·5H2O 仍按 249.70 g/mol 解析。默认公式不同且无探针串。"
   }
 ];
 

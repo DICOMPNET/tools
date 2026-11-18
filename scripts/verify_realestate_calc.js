@@ -87,6 +87,15 @@ const CASES = [
     ref: "新增「逐年摊还明细」表（renderAmort，等额本息逐月复算按年汇总）：贷款 1,600,000、240 期、月率 5%/12=0.4167% ⇒ 月供 10,559.29；Y1 本金 = Σ(月供−余额×月率) = 47,796.98、利息 78,914.52、年末余 1,552,203.02（node 独立复算一致）。默认态（300万/30%/30年/4.2%）Y1 数值不同 ⇒ 强判别、零逃生。",
   },
 
+  // ── RE-DP1：等额本金逐月递减额 = 每月本金×月利率 ─────────────────────
+  {
+    slug: "realestate/down-payment",
+    inputs: { totalPrice: "120000", downPct: "0", years: "1", rate: "12" },
+    radios: { method: "equal-principal" },
+    expect: ["每月递减： ¥100"],
+    ref: "RE-DP1：贷款 L=120,000（总价 120,000、首付 0%）、n=12、月率 r=12%÷12=1%、每月本金 P=L÷n=10,000。首月=P+L×r=11,200，次月=P+(L−P)×r=11,100，末月=P+P×r=10,100，逐月差额恒为 P×r=100；旧源码显示 L×r=1,200（夸大 12 倍）。默认态为等额本息、无「每月递减」字样 ⇒ 强判别、零逃生。",
+  },
+
   // ── 公积金额度：余额倍数 vs 月缴存测算，取小后再受当地上限封顶 ────────
   {
     slug: "realestate/fund-loan",
@@ -105,6 +114,28 @@ const CASES = [
     inputs: { balance: "80000", multiplier: "20", monthlyFund: "2400", fundYears: "5", payMultiple: "60", cap: "100000" },
     expect: ["100,000"],
     ref: "当地上限 100,000 生效：min(144,000, 100,000) = 100,000（验证封顶逻辑）",
+  },
+  // ── RE-N2/N3：倍数与上限口径守卫 ────────────────────────────────────
+  {
+    slug: "realestate/fund-loan",
+    inputs: { balance: "80000", multiplier: "-1", monthlyFund: "2400", fundYears: "5", payMultiple: "60", cap: "600000" },
+    clicks: ["calc();var h=String(document.getElementById('result').innerHTML);document.getElementById('result').innerHTML='FUNDNEG '+((h.indexOf('请输入合理')>=0&&h.indexOf('-80,000')<0)?'OK':'BAD '+h.slice(0,80));"],
+    expect: ["FUNDNEG OK"],
+    ref: "RE-N2：余额 80,000、倍数 -1 ⇒ amt1=-80,000；旧守卫只查 balance/monthlyFund/fundYears，amt2=144,000 取小后仍得 -80,000 并写「¥-80,000/额度评级：较低」。新守卫要求倍数>0 ⇒ 只显示错误提示。默认 20 倍不命中。",
+  },
+  {
+    slug: "realestate/fund-loan",
+    inputs: { balance: "80000", multiplier: "20", monthlyFund: "2400", fundYears: "5", payMultiple: "60", cap: "0" },
+    clicks: ["calc();var h=String(document.getElementById('result').innerHTML);document.getElementById('result').innerHTML='FUNDCAP0 '+((h.indexOf('未设置')>=0&&h.indexOf('¥0')<0&&h.indexOf('¥144,000')>=0)?'OK':'BAD '+h.slice(0,100));"],
+    expect: ["FUNDCAP0 OK"],
+    ref: "RE-N3-a：上限 0 时旧版上限卡显示「¥0」但最终额度 144,000 不受约束，两卡矛盾；新口径把上限卡写成「未设置（不限）」，finalLimit 仍为 min(1,600,000, 144,000)=144,000。默认 cap=600000 不命中。",
+  },
+  {
+    slug: "realestate/fund-loan",
+    inputs: { balance: "80000", multiplier: "20", monthlyFund: "2400", fundYears: "5", payMultiple: "60", cap: "-100000" },
+    clicks: ["calc();var h=String(document.getElementById('result').innerHTML);document.getElementById('result').innerHTML='FUNDCAPNEG '+((h.indexOf('请输入合理')>=0&&h.indexOf('-100,000')<0)?'OK':'BAD '+h.slice(0,80));"],
+    expect: ["FUNDCAPNEG OK"],
+    ref: "RE-N3-b：负上限 -100,000 旧版仍渲染「当地额度上限 ¥-100,000」，而 finalLimit 取 rawLimit=144,000；新守卫拦负上限并停止渲染。默认 cap=600000 不命中。",
   },
 
   // ── 按揭可贷额度：loan=评估价×成数；月供/总利息按等额本息 ─────────────
@@ -190,6 +221,72 @@ const CASES = [
     expect: ["-5%"],
     ref: "综合修正幅度 =(28,500/30,000 − 1)×100 = −5%（房龄折损 5% 的直接体现）",
   },
+  // ── 租金估算：负单价/负面积守卫 ─────────────────────────────────────
+  {
+    slug: "realestate/rent-1",
+    inputs: { v0: "-10", v1: "100" },
+    clicks: ["calc();var h=String(document.getElementById('res').innerHTML);document.getElementById('res').innerHTML='RENTNEGU '+((h.indexOf('均须大于 0')>=0&&h.indexOf('-1000.00')<0)?'OK':'BAD '+h.slice(0,100));"],
+    expect: ["RENTNEGU OK"],
+    ref: "租金估算负单价：单价 −10、面积 100 时旧版月潜在毛收入 −1,000 且 saveHistory 照常写入；新守卫要求两输入 >0，越界只提示并中止。默认 85/1200 合法不命中。",
+  },
+  {
+    slug: "realestate/rent-1",
+    inputs: { v0: "85", v1: "-100" },
+    clicks: ["calc();var h=String(document.getElementById('res').innerHTML);document.getElementById('res').innerHTML='RENTNEGA '+((h.indexOf('均须大于 0')>=0&&h.indexOf('-8500.00')<0)?'OK':'BAD '+h.slice(0,100));"],
+    expect: ["RENTNEGA OK"],
+    ref: "租金估算负面积：面积 −100 时旧版月潜在毛收入 −8,500 照常输出；新守卫同样拦截。默认 85/1200 合法不命中。",
+  },
+  // ── RE-N11/N12：折旧页成新率与年限守卫 ──────────────────────────────
+  {
+    slug: "realestate/depreciation-2",
+    inputs: { v0: "1000000", v1: "150" },
+    clicks: ["calc();var h=String(document.getElementById('res').innerHTML);document.getElementById('res').innerHTML='DEP150 '+((h.indexOf('成新率须在 0')>=0&&h.indexOf('-500,000.00')<0&&h.indexOf('成新度较高')<0)?'OK':'BAD '+h.slice(0,100));"],
+    expect: ["DEP150 OK"],
+    ref: "RE-N11-a：成新率 150% 旧版产出负已提折旧、超 100% 现值与「成新度较高」（真机手算 −500,000/1,500,000/−50%；harness 注入态两参错位，实测为 −1,499,850/1,500,000）；新守卫限制 0–100，越界只提示。默认 78% 不命中。",
+  },
+  {
+    slug: "realestate/depreciation-2",
+    inputs: { v0: "1000000", v1: "-20" },
+    clicks: ["calc();var h=String(document.getElementById('res').innerHTML);document.getElementById('res').innerHTML='DEPNEG '+((h.indexOf('成新率须在 0')>=0&&h.indexOf('-200,000.00')<0&&h.indexOf('120.00%')<0)?'OK':'BAD '+h.slice(0,100));"],
+    expect: ["DEPNEG OK"],
+    ref: "RE-N11-b：成新率 −20% 旧版仍输出负现值/负折旧率与「成新度较高」（真机手算 −200,000/120%；harness 注入态两参错位，实测 −200,000/−999,900%）；新守卫拦截负成新率。默认 78% 不命中。",
+  },
+  {
+    slug: "realestate/cost-depreciation",
+    inputs: { v0: "900000", v1: "1" },
+    clicks: ["var s=String(typeof __cost_depreciation_f0==='function'?__cost_depreciation_f0:calc);document.getElementById('res').innerHTML='DEPACC '+((s.indexOf('Math.min(dep*10')>=0&&s.indexOf('A*0.95')>=0&&s.indexOf('30 年半程账面成本')<0)?'OK':'BAD');"],
+    expect: ["DEPACC OK"],
+    ref: "RE-N12-a：使用年限 1 年时旧版「10 年累计折旧」=855,000×10=8,550,000（为重建成本 9.5 倍）；新口径 min(10,年限)×年折旧并封顶 95% 重建成本，账面成本按剩余比例推导。harness 对这两参的注入顺序不稳定（__tbInputGuard 报 length 错且输入回显错位），改用源码形态判别：旧版无 Math.min(dep*10) 与 A*0.95 封顶、且有「30 年半程账面成本」固定标签 ⇒ BAD。",
+  },
+  {
+    slug: "realestate/cost-depreciation",
+    inputs: { v0: "900000", v1: "-30" },
+    clicks: ["calc();var h=String(document.getElementById('res').innerHTML);document.getElementById('res').innerHTML='DEPNEGAGE '+((h.indexOf('使用年限须不小于 1')>=0&&h.indexOf('-28,500.00')<0)?'OK':'BAD '+h.slice(0,100));"],
+    expect: ["DEPNEGAGE OK"],
+    ref: "RE-N12-b：使用年限 −30 年旧版年折旧 −28,500、累计 −285,000 照常输出；新守卫要求年限≥1，越界只提示。默认 30 年不命中。",
+  },
+  // ── RE-N5：房龄/其他修正越界守卫 ────────────────────────────────────
+  {
+    slug: "realestate/market-valuation",
+    inputs: { area: "100", basePrice: "30000", floor: "1", facing: "1", deco: "1", age: "-8", school: "1", extra: "0" },
+    clicks: ["calc();var h=String(document.getElementById('result').innerHTML);document.getElementById('result').innerHTML='VALAGE '+((h.indexOf('请输入有效的面积')>=0&&h.indexOf('31,200')<0)?'OK':'BAD '+h.slice(0,100));"],
+    expect: ["VALAGE OK"],
+    ref: "RE-N5-a：房龄 −8 年旧版系数 max(0.80,1.04)=1.04（反向加价 4%），估值 31,200 元/㎡；新守卫要求 age>=0，非法提示并中止。默认 10 年不命中。",
+  },
+  {
+    slug: "realestate/market-valuation",
+    inputs: { area: "100", basePrice: "30000", floor: "1", facing: "1", deco: "1", age: "10", school: "1", extra: "-60" },
+    clicks: ["calc();var h=String(document.getElementById('result').innerHTML);document.getElementById('result').innerHTML='VALEXTRA '+((h.indexOf('请输入有效的面积')>=0&&h.indexOf('-55.00%')<0)?'OK':'BAD '+h.slice(0,100));"],
+    expect: ["VALEXTRA OK"],
+    ref: "RE-N5-b：其他修正 −60% 旧版综合修正 −55%，远超本页 ±25% 引据；新守卫把 extra 限在 −30%~+30%。默认 0% 不命中。",
+  },
+  {
+    slug: "realestate/market-valuation",
+    inputs: { area: "100", basePrice: "30000", floor: "1", facing: "1", deco: "1", age: "2", school: "1.08", extra: "25" },
+    clicks: ["calc();var h=String(document.getElementById('result').innerHTML);document.getElementById('result').innerHTML='VALWARN '+((h.indexOf('累计 25% 指导值')>=0)?'OK':'BAD '+h.slice(0,100));"],
+    expect: ["VALWARN OK"],
+    ref: "RE-N5-c：房龄 2 年（系数 0.99）、学区 1.08、其他修正 +25% ⇒ 综合修正 =(1.08×1.25×0.99−1)×100≈+33.65%，超过本页引据累计 25%；新结果区给黄色提示。默认 age=10/extra=0 ⇒ −5%，不命中。",
+  },
 
   // ── 面积换算：套内面积 × 公摊系数 → 公摊/建面/得房率 ───────────────
   {
@@ -203,6 +300,21 @@ const CASES = [
     inputs: { inner: "120", ratio: "18" },
     expect: ["公摊面积 = 21.60 ㎡", "建筑面积 = 141.60 ㎡", "得房率 = 84.75 %"],
     ref: "套内 120㎡ × 18% = 公摊 21.60㎡，建面 141.60㎡，得房率 84.75%",
+  },
+  // ── RE-N1：套内面积/公摊系数越界守卫 ────────────────────────────────
+  {
+    slug: "realestate/convert-area-shared",
+    inputs: { inner: "0", ratio: "20" },
+    clicks: ["calc();var h=String(document.getElementById('res').innerHTML);document.getElementById('res').innerHTML='AREAGUARD0 '+(h.indexOf('请输入有效的套内面积')>=0&&h.indexOf('NaN')<0?'OK':'BAD '+h.slice(0,80));"],
+    expect: ["AREAGUARD0 OK"],
+    ref: "RE-N1-a：套内面积 0、系数 20% 旧版 gross=0 使 rate=0/0=NaN，仍渲染「得房率 = NaN %」。守卫要求 inner>0 且 0<=ratio<=100，非法时只显示提示并 return；默认 100/20 合法 ⇒ 零逃生。",
+  },
+  {
+    slug: "realestate/convert-area-shared",
+    inputs: { inner: "100", ratio: "-50" },
+    clicks: ["calc();var h=String(document.getElementById('res').innerHTML);document.getElementById('res').innerHTML='AREARATIO '+(h.indexOf('请输入有效的套内面积')>=0&&h.indexOf('-50.00')<0&&h.indexOf('优秀')<0?'OK':'BAD '+h.slice(0,80));"],
+    expect: ["AREARATIO OK"],
+    ref: "RE-N1-b：系数 -50% 旧版 shared=-50㎡、gross=50㎡、rate=200% 且判「优秀」。同一守卫拦截负系数；默认 20% ⇒ 零逃生。",
   },
 {
   "slug": "realestate/analysis-risk-1",
@@ -229,6 +341,36 @@ const CASES = [
     inputs: { v0: "12000", v1: "15" },
     expect: ["85.00%"],
     ref: "实售占标价比 = 10,200 ÷ 12,000 × 100% = **85.00%**，与同页「等效折数 8.5 折」同源（(1−15%)×10）⇒ 两条锚互为交叉校验；不锚「标价 12,000 / 15%」（那是输入回显）。",
+  },
+  // ── RE-N4：折扣率 0–100 边界守卫 ────────────────────────────────────
+  {
+    slug: "realestate/price-discount-1",
+    inputs: { v0: "8800", v1: "150" },
+    clicks: ["calc();var h=String(document.getElementById('res').innerHTML);document.getElementById('res').innerHTML='PDMAX '+((h.indexOf('折扣率须在 0')>=0&&h.indexOf('-4400.00')<0&&h.indexOf('-5.0 折')<0)?'OK':'BAD '+h.slice(0,100));"],
+    expect: ["PDMAX OK"],
+    ref: "RE-N4-a：标价 8,800、折扣率 150% 旧版 sp=8,800×(1−1.5)=−4,400、等效折数 −5.0 折、占比 −50%；新守卫限制折扣率 0–100，非法即提示并 return。默认 12% 不命中。",
+  },
+  {
+    slug: "realestate/price-discount-1",
+    inputs: { v0: "8800", v1: "-20" },
+    clicks: ["calc();var h=String(document.getElementById('res').innerHTML);document.getElementById('res').innerHTML='PDMIN '+((h.indexOf('折扣率须在 0')>=0&&h.indexOf('10560.00')<0&&h.indexOf('12.0 折')<0)?'OK':'BAD '+h.slice(0,100));"],
+    expect: ["PDMIN OK"],
+    ref: "RE-N4-b：折扣率 −20% 旧版实售价 10,560（高于标价）、优惠额 −1,760、等效折数 12.0 折；新守卫拦截负折扣率。默认 12% 不命中。",
+  },
+  // ── RE-N8：收益还原负净收益/负资本化率守卫 ──────────────────────────
+  {
+    slug: "realestate/return-1",
+    inputs: { v0: "216000", v1: "-4.8" },
+    clicks: ["calc();var h=String(document.getElementById('res').innerHTML);document.getElementById('res').innerHTML='RETCAP '+((h.indexOf('资本化率须在 0')>=0&&h.indexOf('-4,500,000.00')<0&&h.indexOf('-20.83')<0)?'OK':'BAD '+h.slice(0,100));"],
+    expect: ["RETCAP OK"],
+    ref: "RE-N8-a：年净收益 216,000、资本化率 −4.8% ⇒ 旧版 R<0 使收益价格与静态回收年限同为负（真机手算 V=−4,500,000、回收=−20.83 年；harness 注入态 A/B 互换，实测仍为负收益价格/零回收）；新守卫拦截负资本化率。默认 4.8% 不命中。",
+  },
+  {
+    slug: "realestate/return-1",
+    inputs: { v0: "-216000", v1: "4.8" },
+    clicks: ["calc();var h=String(document.getElementById('res').innerHTML);document.getElementById('res').innerHTML='RETNOI '+((h.indexOf('年净收益须大于 0')>=0&&h.indexOf('-4,500,000.00')<0)?'OK':'BAD '+h.slice(0,100));"],
+    expect: ["RETNOI OK"],
+    ref: "RE-N8-b：年净收益 −216,000、资本化率 4.8% ⇒ 旧版仍照常输出负收益价格（harness 注入态 A/B 互换，实测为负收益价格/负月净收益）；新守卫要求年净收益>0。默认 216,000 不命中。",
   },
   {
     slug: "realestate/calc-cost",
@@ -1049,8 +1191,22 @@ const CASES = [
   {
     slug: "realestate/layout-score",
     inputs: { builtArea: "140", innerArea: "105", width: "9", depth: "14", rooms: "4" },
-    expect: ["80.6 综合评分 / 100 良好", "得房率： 75% ，面宽进深比： 0.64", "方正度 20.29/25"],
-    ref: "注入非默认(默认 100/78/8/10/3)：得房率 = 105/140 = 75%；面宽进深比 = 9/14 = 0.643 → 0.64；方正度按 0.64 偏离理想 0.8 的程度扣分 = 20.29/25；房间数 4 间仍满分 10/10（默认 3 间亦 10/10 ⇒ 该项无判别力不作锚）；综合 80.6 分『良好』。默认态 91.6/78%/0.8/25 分，三条均不命中。"
+    expect: ["79.1 综合评分 / 100 良好", "得房率： 75% ，面宽进深比： 0.64", "方正度 20.29/25"],
+    ref: "注入非默认(默认 100/78/8/10/3)：得房率 = 105/140 = 75%；面宽进深比 = 9/14 = 0.643 → 0.64；方正度按 0.64 偏离理想 0.8 的程度扣分 = 20.29/25；房间数按连续插值 idealRooms=3+(140−120)/40=3.5，4 间得 8.5/10（旧硬边界给 10/10）；综合 79.1 分『良好』。默认态分数不同，三条均不命中。"
+  },
+  // ── RE-N6：理想间数连续插值与面宽/进深守卫 ──────────────────────────
+  {
+    slug: "realestate/layout-score",
+    inputs: { builtArea: "120", innerArea: "96", width: "8", depth: "10", rooms: "3" },
+    expect: ["房间数 10/10", "95.1 综合评分 / 100 优秀"],
+    ref: "RE-N6-a：建面 120㎡、3 室，旧硬边界 idealRooms=4 ⇒ s5=7；新连续插值 idealRooms=3 ⇒ s5=10（119.9㎡ 与 120㎡ 不再跳档 3 分）。默认 100㎡/3 间不区分该边界。",
+  },
+  {
+    slug: "realestate/layout-score",
+    inputs: { builtArea: "100", innerArea: "78", width: "0", depth: "0", rooms: "3" },
+    clicks: ["calc();var h=String(document.getElementById('result').innerHTML);document.getElementById('result').innerHTML='LAYOUTDIM '+((h.indexOf('请输入合理面积与面宽')>=0&&h.indexOf('综合评分')<0)?'OK':'BAD '+h.slice(0,100));"],
+    expect: ["LAYOUTDIM OK"],
+    ref: "RE-N6-b：面宽、进深均留 0 时旧版 s2=0、s4=0 静默扣 35 分，只显示面宽进深比 --；新守卫要求两者>0，直接提示并中止。默认 8/10 合法 ⇒ 零逃生。",
   },
   {
     slug: "realestate/analysis-42",
@@ -1709,9 +1865,9 @@ const CASES = [
       "school": "1.03"
     },
     "expect": [
-      "42\n42\n1.03\n1.00\n1.02\n42\n1.03\n42\n¥51.63"
+      "请输入有效的面积、参考均价（房龄不小于 0，其他修正 −30%~+30%）"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"area\":\"42\",\"basePrice\":\"42\",\"age\":\"42\",\"extra\":\"42\",\"floor\":\"1.03\",\"facing\":\"1.00\",\"deco\":\"1.02\",\"school\":\"1.03\"}，输出区含「42\n42\n1.03\n1.00\n1.02\n42\n1.03\n42\n¥51.63」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"area\":\"42\",\"basePrice\":\"42\",\"age\":\"42\",\"extra\":\"42\",\"floor\":\"1.03\",\"facing\":\"1.00\",\"deco\":\"1.02\",\"school\":\"1.03\"}，extra=42% 超出 RE-N5 的 ±30% 守卫 ⇒ 输出区为越界提示；默认 extra=0 合法、不含该串 ⇒ 强判别、零逃生。旧版曾输出 ¥51.63，已随守卫同步更正。"
   },
   {
     "slug": "realestate/rater-usable-layout",
@@ -1766,9 +1922,9 @@ const CASES = [
       "v1": "42"
     },
     "expect": [
-      " 月净收益（元） 2.38"
+      "年净收益须大于 0，资本化率须在 0–30% 之间。"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"v0\":\"42\",\"v1\":\"42\"}，输出区含「 月净收益（元） 2.38」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"v0\":\"42\",\"v1\":\"42\"}，cap=42% 超出 RE-N8 的 0–30% 守卫 ⇒ 输出区为越界提示；默认 4.8% 合法、不含该串 ⇒ 强判别、零逃生。旧版曾输出月净收益 2.38，已随守卫同步更正。"
   },
   {
     "slug": "realestate/return-2",

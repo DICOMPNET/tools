@@ -12,13 +12,15 @@
  * 用法: node scripts/verify_photo_calc.js [slug ...]
  */
 "use strict";
+const fs = require("fs");
+globalThis.__tbFs = fs;
 const { runCase } = require("./verify_it_calc.js");
 
 const CASES = [
   { slug: "photo/bracketing-plan",
     inputs: { range: "9", step: "3", base: "2" },
-    expect: ["-2.5", "6.5"],
-    ref: "张数=9/3+1=4；最低EV=2−9/2=−2.5；最高EV=2+9/2=6.5（默认 3/1/0→4/−1.5/1.5，避开）" },
+    expect: ["-2.5", "6.5", "EV 序列： -2.5, 0.5, 3.5, 6.5"],
+    ref: "张数=9/3+1=4；最低EV=2−9/2=−2.5；最高EV=2+9/2=6.5；每档序列 −2.5/0.5/3.5/6.5（默认 3/1/0→4/−1.5/1.5，避开）" },
 
   { slug: "photo/card-capacity",
     inputs: { card: "128", per: "40", jpeg: "8" },
@@ -60,15 +62,30 @@ const CASES = [
     expect: ["90.0", "22.6"],
     ref: "等效焦距=60×1.5=90.0mm；视角=2·atan(36/(2×90))×180/π=22.6°（默认 35/1.5→52.5/37.8，避开）" },
 
+  { slug: "photo/equivalent-focal",
+    inputs: { focal: "0", crop: "1.5", sensorW: "36" },
+    expect: ["焦距、裁剪系数与传感器宽均须为正数"],
+    ref: "974 零焦距守卫：focal=0 时 36/(2×focal×crop) 无定义，修复前 atan(Infinity) 显示 180°；默认 focal=35 不含该提示。" },
+
   { slug: "photo/ev",
     inputs: { aperture: "11", shutter: "0.008", iso: "400" },
     expect: ["11.88", "13.88"],
     ref: "EV100=log2(11²/0.008)−log2(400/100)=13.88−2=11.88；实际EV=13.88（默认 2.8/0.01/100→9.61，避开）" },
 
+  { slug: "photo/ev",
+    inputs: { aperture: "-2.8", shutter: "0.01", iso: "100" },
+    expect: ["「aperture」不能为负值"],
+    ref: "975 负光圈守卫：aperture=-2.8 平方后与正值同 EV，修复前掩盖非法输入；默认 2.8 不含该提示。" },
+
   { slug: "photo/field-of-view",
     inputs: { focal: "24", sensor: "36", sensorH: "24" },
     expect: ["73.7", "53.1"],
     ref: "水平=2·atan(36/48)×180/π=73.7°；垂直=2·atan(24/48)×180/π=53.1°（默认 50/36/24→39.6/27.0，避开）" },
+
+  { slug: "photo/field-of-view",
+    inputs: { focal: "-50", sensor: "36", sensorH: "24" },
+    expect: ["焦距与传感器尺寸均须为正数"],
+    ref: "976 负焦距守卫：f=-50 会得负视角，修复前照常渲染；默认 f=50 不含该提示。" },
 
   { slug: "photo/flash-gn",
     inputs: { gn: "60", dist: "4", iso: "400" },
@@ -89,6 +106,11 @@ const CASES = [
     inputs: { f: "35", n: "5.6", c: "0.03" },
     expect: ["超焦距 mm： 7327", "超焦距 m： 7.33"],
     ref: "S2 预设「街拍 35mm f/5.6」等价注入：H=35²/(5.6×0.03)+35=7291.67+35=7326.67→7327mm=7.33m（默认及 f/8 用例均避开）" },
+
+  { slug: "photo/hyperfocal",
+    inputs: { f: "-35", n: "8", c: "0.03" },
+    expect: ["焦距、光圈与弥散圆均须为正数"],
+    ref: "975 负焦距守卫：f=-35 时 H=f²/(n×c)+f 仍出正数，修复前负焦距被当作有效输入；默认 f=24 不含该提示。" },
 
   { slug: "photo/mired",
     inputs: { k: "3200", shift: "20" },
@@ -115,6 +137,10 @@ const CASES = [
     expect: ["508.0", "338.7"],
     ref: "宽=6000/300×25.4=508.0mm；高=4000/300×25.4=338.7mm（默认 3000/2000/72→1058.3/705.6，避开）" },
 
+  { slug: "photo/print-size",
+    inputs: { width: "4500", height: "3000", dpi: "300", unit: "cm" },
+    expect: ["4500×3000 px"],
+    ref: "量纲：所需最小分辨率只取决于物理英寸尺寸×300DPI，与显示单位无关；4500px@300dpi=15in→4500px。旧版 cm 模式 wOut/25.4*300=450×300（差10倍）；默认 3000/2000 不含 4500×3000 px，强判别" },
   { slug: "photo/raw-size",
     inputs: { mp: "50", bit: "16", fps: "12" },
     expect: ["100.0", "72.00"],
@@ -191,8 +217,14 @@ const CASES = [
   {
     slug: "photo/macro-magnification",
     inputs: { focal: "105", s: "200", frame: "36" },
-    expect: ["1.11 ×", "39.8 mm"],
-    ref: "注入非默认(默认 focal=100/s=150/frame=24)：放大率 m = f/(s−f) = 105/(200−105) = 1.11×；像高 = frame×m = 36×1.11 = 39.8 mm。默认态 2.00 ×/48.0 mm 不命中。"
+    expect: ["可拍物高 mm（画幅高÷m）： 32.6 mm"],
+    ref: "974 可拍物高方向修正：m=105/(200−105)=1.11×，画幅高 36mm 对应的可拍物高 = 36÷1.105 = 32.6 mm（修复前误用 m×画幅高 得 39.8 mm）。默认 100/150/24 为 12.0 mm，不命中。"
+  },
+  {
+    slug: "photo/macro-magnification",
+    inputs: { focal: "50", s: "150", frame: "24" },
+    expect: ["可拍物高 mm（画幅高÷m）： 48.0 mm"],
+    ref: "974 低放大率方向：m=50/(150−50)=0.50×，可拍物高 = 24÷0.50 = 48.0 mm（修复前误算 12.0 mm）。默认 m=2.00/12.0 mm 不命中。"
   },
   {
     slug: "photo/exposure-value",
@@ -201,10 +233,22 @@ const CASES = [
     ref: "注入非默认(默认 n=2.8/t=0.125/iso=100)：EV = log₂(N²/t) = log₂(16/0.25) = log₂64 = 6.00；换算到 ISO100 ⇒ EV@ISO100 = 6.00 − log₂(400/100) = 4.00。默认态 5.98/5.98 不命中。"
   },
   {
+    slug: "photo/exposure-value",
+    inputs: { n: "-2.8", t: "0.125", iso: "100" },
+    expect: ["「aperture」不能为负值"],
+    ref: "975 负光圈守卫：n=-2.8 平方后与正值同 EV，修复前掩盖非法输入；默认 2.8 不含该提示。"
+  },
+  {
     slug: "photo/photo-11",
     inputs: { speed: "80", distance: "15", focal: "135" },
     expect: ["22.22 m/s", "84.88", "0.0009 s", "1146"],
     ref: "注入非默认(默认 50/10/100)：80 km/h = 22.22 m/s；视角移动角速度 = v/d 换算 ⇒ 84.88 °/s；推荐快门 ≪ 1/角速度 ⇒ 0.0009 s（推荐分母 1146）。默认态 13.89 m/s 与各值不命中。"
+  },
+  {
+    slug: "photo/photo-11",
+    inputs: { speed: "50", distance: "-10", focal: "100" },
+    expect: ["速度、距离与焦距均须为正数"],
+    ref: "976 负距离守卫：distance=-10 时 Math.max(1/4000, …) 把负秒数夹成 1/4000，修复前输出看似正常的快门；默认 distance=10 不含该提示。"
   },
   {
     slug: "photo/photo-6",
@@ -394,9 +438,9 @@ const CASES = [
       "frame": "42"
     },
     "expect": [
-      "42\n42\n42\n放大率： —"
+      "42\n42\n42\n⚠ 物距必须大于焦距（否则无法成像）。"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"focal\":\"42\",\"s\":\"42\",\"frame\":\"42\"}，输出区含「42\n42\n42\n放大率： —」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "974 等距边界修正（原自动补强用例同步）：注入 focal=s=42 时 m=f/(s−f)=Infinity，修复前经全局替换只剩「放大率： —」；默认 s=150>f 不含该提示 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "photo/nd-filter",
@@ -586,11 +630,106 @@ const CASES = [
       "ibis": "42"
     },
     "expect": [
-      "快门 秒： 0.0006 s 建议分母： 1764"
+      "防抖档数须为 0–8"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"focal\":\"42\",\"crop\":\"42\",\"ibis\":\"42\"}，输出区含「快门 秒： 0.0006 s 建议分母： 1764」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"focal\":\"42\",\"crop\":\"42\",\"ibis\":\"42\"}，P-N2 修复后超出常见 0–8 档须拦截并提示；旧版仍输出 0.0006s 与 1/1764。默认态不含该提示 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "photo/nd-filter",
+    "inputs": { "base": "0.001", "stops": "0", "target": "2" },
+    "expect": ["新快门： 0.001 s"],
+    "ref": "ND 短曝光显示：基准 0.001s、ND 0 档 ⇒ 新快门仍为 0.001s。旧版固定 toFixed(2) 显示 0.00 s，现场不可用；现 fmtSec 对 <1s 保留 3 位有效数字。默认 0.01/10 不命中。"
+  },
+  {
+    "slug": "photo/safe-shutter",
+    "inputs": { "focal": "40", "crop": "1.25", "ibis": "0" },
+    "expect": ["建议快门：约 1/50"],
+    "ref": "P-N1 分母顺序：40mm×1.25=50 ⇒ 建议快门约 1/50 秒。旧版输出「建议分母：50 1/」，把 50 当分子；现改为可读的 1/50，英文态同步。默认 50/1.5/3 得 1/75 不命中。"
+  },
+  {
+    "slug": "photo/safe-shutter",
+    "inputs": { "focal": "50", "crop": "1.5", "ibis": "-3" },
+    "expect": ["防抖档数须为 0–8"],
+    "ref": "P-N2 防抖档位下界：ibis=-3 时旧版 Math.pow(2,-3)=0.125 会把安全快门从约 1/75 缩短到 0.1067s，与防抖延长曝光方向相反。现限制 0–8 档并提示；默认 ibis=3 不命中。"
+  },
+  {
+    "slug": "photo/depth-of-field",
+    "inputs": { "f": "50", "n": "8", "s": "0.02", "c": "0.03" },
+    "expect": ["对焦距离必须大于焦距"],
+    "ref": "P-N3 对焦距离边界：s=0.02m=20mm 小于 f=50mm，旧版仍算近限/远限且数值无物理意义。现 s*1000>f 才计算；默认 f50/s5 不命中。"
+  },
+  {
+    "slug": "photo/raw-size",
+    "inputs": { "mp": "", "bit": "14", "fps": "10" },
+    "expect": ["像素、位深与帧率均须为正数"],
+    "ref": "RAW 空值守卫：旧版 +''||0 按 0 计算仍显示 0.0MB/0.00GB；现三项均为正数才出结果。默认 24/14/10 不命中。"
+  },
+  {
+    "slug": "photo/raw-size",
+    "inputs": { "mp": "45", "bit": "14", "fps": "5" },
+    "expect": ["分钟@5帧"],
+    "ref": "RAW 帧率标签：第二项按用户 fps 计算却固定写「分钟@10帧」，5fps 时标题与实际口径不符。现标签随输入帧率变化；默认 fps=10 不命中。"
+  },
+  {
+    "slug": "photo/mired",
+    "inputs": { "k": "-3200", "shift": "0" },
+    "expect": ["色温须为正数"],
+    "ref": "P-N7 负色温：旧版输出 Mired −312.5、偏移后色温 −3200K；现 k>0 校验拦截。默认 5600K 不命中。"
+  },
+  {
+    "slug": "photo/mired",
+    "inputs": { "k": "3200", "shift": "600" },
+    "expect": ["偏移 mired 须在 -500 到 +500"],
+    "ref": "P-N7 超大偏移：shift=600 超出常用 -500…+500 范围，旧版仍给出负的偏移后色温；现字段级提示且不输出。默认 shift=0 不命中。"
+  },
+  {
+    "slug": "photo/bracketing-plan",
+    "inputs": { "range": "-3", "step": "1", "base": "0" },
+    "expect": ["范围与步进须为正数"],
+    "ref": "P-N11 负范围：旧版输出「张数 −2 张」且最低 EV 1.5 / 最高 EV −1.5 颠倒；现 range>0 守卫。默认 range=3 不命中。"
+  },
+  {
+    "slug": "photo/bracketing-plan",
+    "inputs": { "range": "3", "step": "2", "base": "0" },
+    "expect": ["范围÷步进 必须为整数"],
+    "ref": "P-N11 非整数档：3÷2=1.5 被旧版 toFixed(0) 显示成 2 张，实际无法等距覆盖 ±1.5EV；现要求整除并提示。默认 3÷1 不命中。"
+  },
+  {
+    "slug": "photo/ev",
+    "clicks": ["var fs=globalThis.__tbFs;var h=fs.readFileSync(process.cwd()+'/tools/photo/ev.html','utf8');var ok=h.indexOf('if(!isFinite(aperture)||aperture<=0)')>=0&&h.indexOf('光圈 f 值须为正数。')>=0;document.getElementById('__tbProbe').textContent='EVAPERT '+(ok?'OK':'BAD');"],
+    "expect": ["EVAPERT OK"],
+    "ref": "P-N12 负光圈：通用 __tbInputGuard 已能拦负值，但 calc() 自身仍用 Math.pow(aperture,2) 掩盖负号。现增加显式 aperture>0 守卫与中英提示，与 calc-exposure-aperture 同口径；源码哨兵，旧版必红。"
+  },
+  {
+    "slug": "photo/flash-gn",
+    "inputs": { "gn": "-40", "dist": "5", "iso": "100" },
+    "expect": ["闪光指数 GN 与距离均须为正数"],
+    "ref": "P-N13 负闪光指数：旧版 gn=-40/dist=5 直接算出「可用光圈 -8.0 f」无意义值（通用守卫只查分母0和iso负值，gn 不在 __N）。现加 gn>0 且 dist>0 显式守卫与中英提示；默认 40/5 不命中。"
+  },
+  {
+    "slug": "photo/flash-gn",
+    "clicks": ["var fs=globalThis.__tbFs;var h=fs.readFileSync(process.cwd()+'/tools/photo/flash-gn.html','utf8');var ok=h.indexOf('accounting for ISO and zoom')<0&&h.indexOf('ISO correction factor is shown separately')>=0;document.getElementById('__tbProbe').textContent='FGIso '+(ok?'OK':'BAD');"],
+    "expect": ["FGIso OK"],
+    "ref": "P-N13 ISO 口径：英文简介旧称 accounting for ISO and zoom 会让用户误以为结果已含 ISO 增益，与公式框「ISO 独立展示不回乘」冲突。现改为 ISO correction factor is shown separately，与计算口径一致。源码哨兵，旧版必红。"
+  },
+  {
+    "slug": "photo/convert-focal",
+    "inputs": { "focal": "-50", "sensor": "36", "fov": "39.6" },
+    "expect": ["焦距与传感器尺寸均须为正数"],
+    "ref": "P-N14 负焦距：旧版 f=-50 被静默替换为 0.0001，输出「视场角 180.00°」超广角假结论且无提示。现 f<=0 或 d<=0 直接字段级报错并 return；默认 f=50 不命中。"
+  },
+  {
+    "slug": "photo/convert-focal",
+    "inputs": { "focal": "0", "sensor": "36", "fov": "39.6" },
+    "expect": ["焦距与传感器尺寸均须为正数"],
+    "ref": "P-N14 零焦距：旧版 f=0 同样静默兜底成 0.0001 → 180.00°。现正数守卫拦截；与上一条负焦距共用提示但输入不同，各自独立复算。"
+  },
+  {
+    "slug": "photo/convert-focal",
+    "inputs": { "focal": "50", "sensor": "36", "fov": "200" },
+    "expect": ["视场角须在 0 到 180 之间"],
+    "ref": "P-N14 反解 FOV 越界：旧版 fov=200 时 f2 条件不满足被静默算成 0，显示「0.00 mm」看似合法结果。现越界显示「视场角须在 0 到 180 之间」提示；默认 fov=39.6 命中正常反解不命中本串。"
   }
-
 ];
 
 async function main() {

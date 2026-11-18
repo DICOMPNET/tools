@@ -42,6 +42,8 @@ const CASES = [
   { slug: "machinery/drive-2", inputs: {z1:"4", z2:"40", module:"5"}, expect: ["10.00 传动比"], ref: "蜗杆传动" },
   { slug: "machinery/energy-2", inputs: {v_J:"5", v_n1:"1500", v_n2:"0"}, expect: ["261.80 制动扭矩"], ref: "制动能" },
   { slug: "machinery/estimate-gravity", inputs: {plateL:"120", plateW:"60"}, expect: ["565.200 质量"], ref: "零件重量：钢板 120×60×10 → 72cm³×7.85" },
+  { slug: "machinery/estimate-gravity", inputs: {shape:"plate", plateL:"-100", plateW:"50", plateH:"10"}, expect: ["尺寸须为正数"], ref: "987 负值守卫：板长 -100 mm 旧版算出负体积/负质量，修复后尺寸统一有限性与正值校验并拦截。" },
+  { slug: "machinery/detector-stretch", inputs: {v1:"-0.5", v2:"22", v3:"1.2", hi1:"0.08", lo2:"20", lo3:"1"}, expect: ["实测值（不得为负）"], ref: "987 负值守卫：磨耗量 -0.5 g 旧版按 -0.5≤0.08 判「满足」，修复后负实测值拦截。" },
   { slug: "machinery/estimate-lifespan-bearing", inputs: {loadC:"67", loadP:"5", speed:"1500"}, expect: ["2406.10"], ref: "轴承寿命估算" },
   { slug: "machinery/frequency-17", inputs: {v_m:"200", v_k:"50000", v_f:"25"}, expect: ["2.516 固有频率"], ref: "振动隔振" },
   { slug: "machinery/gear", inputs: {v_fa:"200", v_fb:"150", v_fc:"120"}, expect: ["不满足", "320.00"], ref: "四连杆：200 使最短+最长 320 > 其余和 310 → 不满足 Grashof" },
@@ -68,9 +70,9 @@ const CASES = [
     "v1": "100"
   },
   "expect": [
-    "25.231"
+    "25.231", "17.841双销并联直径（mm）"
   ],
-  "ref": "销钉直径 d=√(4×50×1000/(π×100))=25.231 mm（默认 20/120 得 14.567，注入失败即不命中）"},
+  "ref": "销钉直径 d=√(4×50×1000/(π×100))=25.231 mm；双销并联两销各担 F/2，每销直径=d/√2=17.841 mm（修复前误算 2d=50.46）。默认 20/120 得 d=14.567、双销 10.301，注入失败即不命中"},
   { slug: "machinery/analysis-casting", inputs: {vol:"3000", area:"600", rho:"7.8", C:"2.4"}, expect: ["23400.00"], ref: "铸件重量 G = V·ρ = 3,000 × 7.8 = **23,400.00** g（默认 1,000 cm³ × 7.2 得 7,200.00）" },
   { slug: "machinery/detector-159", inputs: {v1:"80", v2:"60", v3:"2", t1:"100", t2:"50", t3:"1"}, expect: ["-20.0%", "1 项低于设计限值"], ref: "刚度 80 低于设计下限 100 → 裕度 (80-100)/100×100% = -20.0%，共 1 项低于限值（默认 120/60/2 与 100/50/1 全满足，不含这两个串）" },
   { slug: "machinery/detector-134", inputs: {v1:"12", v2:"250", v3:"0.06", lo1:"15", lo2:"200", hi3:"0.1"}, expect: ["-20.0%", "1 项不满足设计限值"], ref: "断裂强力 12 < 下限 15 → 裕度 (12-15)/15×100% = -20.0%，共 1 项不满足（默认 18/250/0.06 与 15/200/0.1 全满足，不含这两个串）" },
@@ -91,6 +93,9 @@ const CASES = [
   { slug: "machinery/analysis-lifespan", inputs: {rt:"8760", nf:"0.5", mt:"66", tv:"500"}, expect: ["故障次数须为正整数"], ref: "故障次数须为正整数（672）：0.5 次故障无统计意义，原按 0.5 次参与 MTBF=17,520 h；现标红中止" },
   { slug: "machinery/calc-gear", inputs: {module:"3", teeth:"16", pressure:"20"}, expect: ["48.0000"], ref: "分度圆 d = m·z = 3 × 16 = **48.0000** mm（默认 2×20 得 40.0000）" },
   { slug: "machinery/calc-gear", inputs: {module:"3", teeth:"16", pressure:"20"}, expect: ["54.0000"], ref: "齿顶圆 da = d + 2hₐ = 48 + 2×1×3 = **54.0000** mm；齿根圆 df = 48 − 2×1.25×3 = 40.5000，与 da 相差恰为一个全齿高" },
+  { slug: "machinery/analysis-casting", inputs: {vol:"1000", area:"400", rho:"-5", C:"2.0"}, expect: ["体积、表面积、密度与凝固系数均须为正数"], ref: "986 负值守卫：密度 -5 旧版算出 -5000.00 g 并照常输出，修复后非正值拦截。" },
+  { slug: "machinery/calc-89", inputs: {v_D:"200", v_d:"120", v_mu:"0.25", v_F:"2000", v_z:"2.5", v_n:"1500"}, expect: ["摩擦面数须为正整数"], ref: "986 整数守卫：摩擦面数 2.5 旧版接受并乘进扭矩，修复后非整数拦截。" },
+  { slug: "machinery/calc-gear", inputs: {module:"2", teeth:"20", pressure:"90", helix:"0", haCoef:"1", cCoef:"0.25"}, expect: ["压力角须在 0 到 90 度之间"], ref: "986 角度守卫：α=90 旧版只标红不中止仍输出 db=0/pb=0，修复后提前拦截。" },
   { slug: "welding/calc-weld", inputs: {plateThk:"10", weldSize:"8", weldLen:"200", load:"40", weldMat:"E50"}, expect: ["5.66"], ref: "角焊缝喉厚 a = 0.707 K = 0.707 × 8 = **5.66** mm（默认 6 ⇒ 4.24）" },
   { slug: "welding/calc-weld", inputs: {plateThk:"10", weldSize:"8", weldLen:"200", load:"40", weldMat:"E50"}, expect: ["1131.20"], ref: "有效面积 A = a·L = 5.66 × 200 = **1131.20** mm²（默认 424.20）。页面先按 0.707K 四舍五入到 5.66 再乘全长，与一步相乘 1131.37 有 0.17 的舍入差 ⇒ 锚取页面值" },
   { slug: "machinery/calc-200", inputs: {pload:"1200", nVal:"1450", eff:"90"}, expect: ["1333.33", "超出 IEC 标准功率表上限"], ref: "所需功率 P = 1200 ÷ 0.9 = **1333.33** kW > 630 kW → 只输出所需功率与「超出 IEC 标准功率表上限」，不再推荐 630 kW 电机、不再给额定转矩/裕量（默认 7.5/90% 得 8.33 kW、推荐 11 kW，不含这两个串）" },
@@ -187,7 +192,7 @@ const CASES = [
       "v_n": "42"
     },
     "expect": [
-      "42\n42\n42\n42\n42\n42\n请检查输入：外径须大于内径，各值须为正数\n暂无计算记录"
+      "42\n42\n42\n42\n42\n42\n请检查输入：外径须大于内径，摩擦面数须为正整数，各值须为正数\n暂无计算记录"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"v_D\":\"42\",\"v_d\":\"42\",\"v_mu\":\"42\",\"v_F\":\"42\",\"v_z\":\"42\",\"v_n\":\"42\"}，输出区含「42\n42\n42\n42\n42\n42\n请检查输入：外径须大于内径，各值须为正数\n暂…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
