@@ -1,5 +1,7 @@
 #!/usr/bin node
 "use strict";
+const fs = require("fs");
+globalThis.__tbFs = fs;
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
 {
@@ -142,6 +144,24 @@ const CASES = [
     "3.1%"
   ],
   "ref": "age 选项值 3 = ≥75 岁计 3 分，其余默认未勾选 → 总分 3；mortality[3]='3.1%'。默认 <65 岁 → 0.8%，注入失败回退默认不命中。"
+},
+{
+  "slug": "cardiology/calc-3",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/cardiology/calc-3.html','utf8');var ok=h.indexOf('cat=health,industry=cardiology')>=0&&h.indexOf('\"applicationCategory\":\"MedicalApplication\"')>=0&&h.indexOf('FinanceApplication')<0&&h.indexOf('cat=finance')<0;document.getElementById('__tbProbe').textContent='C3CAT '+(ok?'OK':'BAD');"],
+  "expect": ["C3CAT OK"],
+  "ref": "03-89 医疗页误标金融类：meta cat=finance、JSON-LD applicationCategory=FinanceApplication，与同目录心血管页 cat=health 不符。改 meta 为 cat=health 后 build 自动重生成 JSON-LD 为 MedicalApplication。源码形态哨兵：须含 cat=health + MedicalApplication 且不含两种旧串。默认态不产哨兵（仅 clicks 读源码后出现），零逃生。"
+},
+{
+  "slug": "cardiology/calc-3",
+  "clicks": ["var a=__calc_3Timi('TIMI 评分： 11 分（满分 14 分）');var b=__calc_3Timi('TIMI Score: 5 / 14');var c=__calc_3Timi('TIMI 评分： 0 分（满分 14 分）');document.getElementById('__tbProbe').textContent='C3TREND '+(a===11&&b===5&&c===0?'OK':'BAD '+a+','+b+','+c);"],
+  "expect": ["C3TREND OK"],
+  "ref": "03-87 趋势图按 TIMI 分值画线：历史记录「结果」首段是「TIMI 评分： N 分」，旧版趋势图对整段 parseFloat 得 NaN 永不渲染；曾伪修为 __tbScore=0/1（有效性标记）画 0/1 线，非分值。本批新增 __calc_3Timi 从结果文本提取 N（兼容中英），record 存 __tbTimi，趋势图读它并按分值画线，历史表结论列仍用 0/1 __tbScore 不变。三档断言 11/5/0 精确提取；旧版无该函数⇒THROWN红；默认态无探针，零逃生。"
+},
+{
+  "slug": "cardiology/coronary-calcium",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/cardiology/coronary-calcium.html','utf8');var noOld=h.indexOf('事件率<1%')<0&&h.indexOf('事件率&lt;1%')<0&&h.indexOf('rate <1%')<0;var unified=(h.match(/5–10年事件率 1\.1–1\.5%/g)||[]).length>=2&&h.indexOf(\"Very low (5–10y event rate 1.1–1.5%)\")>=0;document.getElementById('__tbProbe').textContent='CACS100 '+(noOld&&unified?'OK':'BAD');"],
+  "expect": ["CACS100 OK"],
+  "ref": "03-100 零积分事件率口径统一：分级表/结果 risk 变量写「5–10年事件率<1%」，而代码 event10、公式、MESA 表均为 1.1–1.5%，患者看到两个不同数值。本批把分级表、risk 变量、EN 映射三处统一为 1.1–1.5%。源码形态哨兵：无三种旧串且 ≥2 处新串 + EN 映射新值。默认态不产哨兵（仅 clicks 读源码），零逃生。"
 },
 {
   "slug": "cardiology/cardiac-rehab-mets",
@@ -463,7 +483,7 @@ const CASES = [
   "inputs": {
     "ldl": "6.8"
   },
-  "expect": ["6.8\n1.8\n6.8 当前 LDL-C 1.8 目标 LDL-C 73.5% 所需降幅 高强度 他汀强度 计算过程 当前LDL-C = 6.8 mmol/L 目标LDL-C = 1.8 mmol/L 所需降幅 = (6.8−1.8)/6.8×100% = 73.5% 预计达标后LDL-C = 1.80 mmol/L 他汀强度等级： 高强度 联合用药建议 单药最大降幅可能不足，建议联合治疗 高强度他汀(最大降幅~55%) + 依折麦布(额外~20%) 联合后预期降幅：~64% 联合仍不达标：加用PCSK9抑制剂(额外降50–60%) 需联合用药 单药最大他汀可能无法达标，建议联合依折麦布和PCSK9抑制剂。"],
+  "expect": ["6.8\n1.8\n6.8 当前 LDL-C 1.8 目标 LDL-C 73.5% 所需降幅 高强度 他汀强度 计算过程 当前LDL-C = 6.8 mmol/L 目标LDL-C = 1.8 mmol/L 所需降幅 = (6.8−1.8)/6.8×100% = 73.5% 预计达标后LDL-C = 1.80 mmol/L 他汀强度等级： 高强度 联合用药建议 单药最大降幅可能不足，建议联合治疗 高强度他汀(最大降幅~63%) + 依折麦布(额外~20%) 联合后预期降幅：~64% 联合仍不达标：加用PCSK9抑制剂(额外降50–60%) 需联合用药 单药最大他汀可能无法达标，建议联合依折麦布和PCSK9抑制剂。"],
   "ref": "auto-restore"
 },
 {
@@ -503,10 +523,34 @@ const CASES = [
   "ref": "03-91 核销：8 项任一空值即拦截，不再按 0 输出「0/0 正常 + 非杓型」并生成随访建议。"
 },
 {
+  "slug": "cardiology/ambulatory-bp",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/cardiology/ambulatory-bp.html','utf8');var deep=globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/content_deepdive.json','utf8');var noSbb=h.indexOf('SBB')<0;var noOldDate=h.indexOf('2024-01-01')<0&&h.indexOf('2024-02-01')<0&&h.indexOf('2024-03-01')<0;var dynamicDate=h.indexOf('var __t=new Date()')>=0&&(h.match(/followDate\":__today/g)||[]).length>=3;var label=h.indexOf('起床后 2h 平均收缩压')>=0&&h.indexOf('>清晨收缩压<')<0;var noRatio=deep.indexOf('cardiology/ambulatory-bp')>=0&&h.indexOf('昼/夜比值 1.13')<0;document.getElementById('__tbProbe').textContent='ABP1290 '+(noSbb&&noOldDate&&dynamicDate&&label&&noRatio?'OK':'BAD');"],
+  "expect": ["ABP1290 OK"],
+  "ref": "03-93~03-96 同页四条批量：①深解示例删未输出的「昼/夜比值 1.13」（权威源 content_deepdive + build 落地）；②结果卡错字 SBB→SBP；③预设写死 2024-01/02/03 改为动态今天 var __today（≥3 处 followDate，默认参数也补，切回默认不残留旧日期）；④输入标签「清晨收缩压」改「起床后 2h 平均收缩压」并注明非单次峰值。源码形态哨兵：旧串 SBB/2024 写死/清晨收缩压/1.13 任一出现即红。日期不依赖具体值（只断言动态构造与无写死），跨天稳定；默认态不产哨兵，零逃生。"
+},
+{
+  "slug": "cardiology/ambulatory-bp",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/cardiology/ambulatory-bp.html','utf8');var deep=globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/content_deepdive.json','utf8');var d=JSON.parse(deep);var sc=d['cardiology/ambulatory-bp'].scenarios.join('|');var noClaim=sc.indexOf('白大衣')<0&&sc.indexOf('隐匿')<0;var noPage=h.indexOf('白大衣与隐匿性高血压鉴别')<0&&h.indexOf('白大衣高血压')<0;document.getElementById('__tbProbe').textContent='ABP92 '+(noClaim&&noPage?'OK':'BAD');"],
+  "expect": ["ABP92 OK"],
+  "ref": "03-92 删虚假功能承诺：页面无诊室血压输入，无法鉴别白大衣/隐匿性高血压，但简介场景+深解场景宣称该功能。改权威源 content_deepdive 的 scenarios 删该条（build 同步删简介场景与深解场景两处渲染），EN 词典删对应2键。源码形态哨兵：JSON 解析 scenarios 不含白大衣/隐匿，页面 HTML 不含两处承诺串。默认态不产哨兵（仅 clicks 读源码），零逃生。"
+},
+{
   "slug": "cardiology/coronary-calcium",
   "inputs": { "age": "60", "cacs": "", "sex": "m" },
-  "expect": ["请填写有效年龄（1–120 岁）与 Agatston 钙化积分（≥0，无钙化请填 0）。"],
-  "ref": "03-97 核销：钙化积分空值不再按 0 判「无钙化」并建议停用他汀，改为提示填写（0 分为合法值，须显式填 0）。补注入 sex=m 使提示从默认态的「请选择性别…」变为「请填写有效年龄…积分」（默认态全空只显示前者），原锚撞默认态故改之。"
+  "expect": ["请填写有效年龄（1–120 岁）与 Agatston 钙化积分（非负整数，无钙化请填 0）。"],
+  "ref": "03-97 核销：钙化积分空值不再按 0 判「无钙化」并建议停用他汀，改为提示填写（0 分为合法值，须显式填 0）。补注入 sex=m 使提示从默认态的「请选择性别…」变为「请填写有效年龄…积分」（默认态全空只显示前者），原锚撞默认态故改之。03-102 起校验补整数约束，文案「≥0」改「非负整数」，本锚同步。"
+},
+{
+  "slug": "cardiology/coronary-calcium",
+  "inputs": { "age": "62", "cacs": "0.5", "sex": "m" },
+  "expect": ["Agatston 钙化积分（非负整数，无钙化请填 0）"],
+  "ref": "03-102 CACS 须非负整数：Agatston 积分=面积×权重求和必为整数；旧版 0.5 落入 <100 判「轻度钙化」，但标尺 band [0,1) 写「无钙化」，同屏矛盾。本批输入加 step=1/min=0、calc 加 Math.floor(cacs)!==cacs 拦截，0.5 直接提示填非负整数、不产分级/标尺。默认 CACS 空不命中本串（默认态先撞年龄复核），强判别零逃生。"
+},
+{
+  "slug": "cardiology/coronary-calcium",
+  "clicks": ["document.getElementById('age').value='62';document.getElementById('sex').value='m';document.getElementById('cacs').value='0';calc();var h=String(document.getElementById('result').innerHTML).replace(/<[^>]+>/g,' ').replace(/\\s+/g,' ');var ok=h.indexOf('年龄性别百分位：无钙化')>=0&&h.indexOf('年龄性别百分位 0')<0&&h.indexOf('百分位：0')<0;document.getElementById('__tbProbe').textContent='CACS102Z '+(ok?'OK':'BAD');"],
+  "expect": ["CACS102Z OK"],
+  "ref": "03-102 零积分百分位显示统一：旧版结果卡 stat 区 __pctEn(0) 返回数字 0（显示「百分位 0」），而参考卡 percentile===0 写「无钙化」，同屏矛盾。本批 __pctEn(0) 改返回「无钙化」/「None」，与参考卡一致。强锚要求结果卡两处（stat 区 + 解读区）均显示无钙化；旧版 stat 区显示 0 ⇒ 红；CACS=280 默认态走 ≥75 分位，注入失败零逃生。"
 },
 {
   "slug": "cardiology/echo-report",
@@ -531,8 +575,55 @@ const CASES = [
   "clicks": ["var tb=document.getElementById('totalBeats');tb.value='';calc();var h1=String(document.getElementById('result').innerHTML);tb.value='120000';calc();var h2=String(document.getElementById('result').innerHTML);document.getElementById('__tbProbe').textContent='HOLTERCHAIN '+(h1.indexOf('须为正数')<0&&h1.indexOf('100000')>=0&&h2.indexOf('120000')>=0&&h2.indexOf('须为正数')<0?'OK':'BAD');"],
   "expect": ["HOLTERCHAIN OK"],
   "ref": "944状态链：空值仍走 100000 估算（不拦截），随后填合法 120000 重算负荷且无残留提示；验证空值估算与明确无效值区分、切换后结果更新。"
+},
+{
+  "slug": "cardiology/statin-dose",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/cardiology/statin-dose.html','utf8');var dyn=h.indexOf('maxStatinReduction')>=0&&h.indexOf('requiredReduction>maxStatinReduction')>=0&&h.indexOf('最大降幅~55%')<0;document.getElementById('__tbProbe').textContent='STATIN81 '+(dyn?'OK':'BAD');"],
+  "expect": ["STATIN81 OK"],
+  "ref": "03-81 单药最大降幅动态求值：旧版写死 required>55 且文案「最大降幅~55%」，56–62% 所需降幅（单药瑞舒伐他汀40mg 63% 可达）被误报需联合。本批由 statinData 动态求 maxStatinReduction 并以其为联合阈值、文案同步。源码形态哨兵：无写死 55、含动态阈值与文案串。默认态不产哨兵（仅 clicks 读源码），零逃生。"
+},
+{
+  "slug": "cardiology/statin-dose",
+  "inputs": { "ldl": "" },
+  "expect": ["请填写有效的当前 LDL-C（>0 mmol/L）后再计算。"],
+  "ref": "03-82 LDL-C 必填守卫：旧版空值 parseFloat||0 → required=0 → 误报「无需他汀」+「预计达标后 0.00」。本批空/0/非法值拦截并清空结果。默认 ldl=3.8 合法，不命中本提示，零逃生。"
+},
+{
+  "slug": "cardiology/ckd-epi",
+  "inputs": { "age": "0", "scr": "1.3", "uacr": "80", "sex": "m" },
+  "expect": ["年龄须为 1–120 岁，请重新填写。"],
+  "ref": "03-83 年龄守卫：旧版 age=0 无拦截，0.9938^0=1 使 eGFR 抬高（age=65→61.0、age=0→91.3）；负值同理。本批 age≤0 或 >120 拦截。注入 age=0 命中提示、默认 age 合法不命中；原用例 age=98 合法仍通过，二者零交集。"
+},
+{
+  "slug": "cardiology/has-bled",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/cardiology/has-bled.html','utf8');var en=globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/en/cardiology/has-bled.json','utf8');var zhOk=h.indexOf('3 分为中风险（加强监测）')<0&&h.indexOf('0 至 1 分为低出血风险、2 分为中等出血风险、3 分及以上为高出血风险')>=0;var enOk=en.indexOf('3 medium (closer monitoring)')<0&&en.indexOf('0-1 low bleeding risk, 2 moderate, >=3 high bleeding risk')>=0;document.getElementById('__tbProbe').textContent='HASBLED78 '+(zhOk&&enOk?'OK':'BAD');"],
+  "expect": ["HASBLED78 OK"],
+  "ref": "03-78 HAS-BLED 三处分级口径统一：计算分支与分级表均为 0–1 低/2 中等/≥3 高危，唯公式说明写「0–2 低、3 中、≥4 高」。本批公式说明中文 + EN 词典同步改到一致口径。源码形态哨兵：旧中文/旧英文串消失、新串出现；默认态不产哨兵（仅 clicks 读源码），零逃生。"
+},
+{
+  "slug": "cardiology/nt-probnp",
+  "inputs": { "age": "", "ntprobnp": "" },
+  "expect": ["请填写有效年龄（1–120 岁）与 NT-proBNP（>0 pg/mL）后再计算。"],
+  "ref": "03-80 NT-proBNP 必填守卫：旧版空值 parseFloat||0 → nt=0 命中 <300、age=0 命中 <50岁 → 误报「急性心衰可能性低(排除)」+450 截断值。本批 age 1–120 且 nt>0 才计算。默认 age/ntprobnp 合法不命中本提示，零逃生。"
+},
+{
+  "slug": "cardiology/antiarrhythmic-class",
+  "clicks": ["showClass('4', {classList:{add:function(){},remove:function(){}}});var h=String(document.getElementById('classContent').innerHTML);document.getElementById('__tbProbe').textContent='AAR141 '+(h.indexOf('IV类类')<0&&h.indexOf('>IV类<')>=0&&h.indexOf('钙通道阻滞剂')>=0?'OK':'BAD');"],
+  "expect": ["AAR141 OK"],
+  "ref": "03-141 面板标题重复「类」：classData 的 II/III/IV name 原含「类」，渲染再拼 +'类' → 「IV类类」。本批 name 去「类」与 IA/IB/IC 一致，渲染仍为「IV类」（h4 精确标签）但无「IV类类」。哨兵要求无重复串、h4 为「IV类」、保留类描述「钙通道阻滞剂」（来自 title）。默认态 I 类不产本哨兵，零逃生。"
+},
+{
+  "slug": "cardiology/myocardial-bridge",
+  "inputs": { "compression": "" },
+  "expect": ["请输入收缩期压缩程度（0–100%）"],
+  "ref": "03-144 压缩程度必填守卫：旧版空值 ||0 → compression=0 落入 <50 → 1级/轻度 +「通常为良性变异，无需特殊治疗」。本批压缩必填 0–100，空/越界拦截不出分级。默认 compression=65 合法不命中本提示，零逃生。"
+},
+{
+  "slug": "cardiology/chads2-vasc",
+  "inputs": { "sex": "f", "age": "0" },
+  "expect": ["与0分同", "女性单独 1 分不增加卒中风险：此处风险按 0 分（0.2%）口径，通用分档 0.6% 仅适用于男性 1 分。"],
+  "ref": "03-79 女性单纯性别分风险标注：默认 age=2(≥75岁)+sex=f → score=3（既有用例），本用例注入 age=0(<65)+sex=f → score=1（女性单独性别分）。旧版显示 0.6% 年风险却同屏建议「无需OAC/女性单独1分不增加卒中风险」，自相矛盾；本批 riskRate 改「与0分同」并加说明卡。「与0分同」旧版不产，强判别零逃生。"
 }
-
 ];
 async function main() {
   const only = process.argv.slice(2);

@@ -256,8 +256,8 @@ const CASES = [
   {
     slug: "ai/token",
     inputs: { chars: "900", lang: "1", overlap: "1.5" },
-    expect: ["600", "180", "0.0012"],
-    ref: "估算=ceil(900×1/1.5)=600；英文参考=ceil(900×0.3/1.5)=180；成本=600/1e6×2=0.0012 USD",
+    expect: ["600", "225", "0.0012"],
+    ref: "AI-N12 统一英文参考口径：估算=ceil(900×1/1.5)=600；英文参考=ceil(900/4)=225（与页面「英文约 4 字符/token」一致，不再随 overlap 变化）；成本=600/1e6×2=0.0012 USD",
   },
 
   // ── 上下文窗口占用 ─────────────────────────────────────────
@@ -1175,9 +1175,9 @@ const CASES = [
       "overlap": "42"
     },
     expect: [
-      "Token 数： 42 个 英文参考： 9"
+      "Token 数： 42 个 英文参考： 11"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"chars\":\"42\",\"lang\":\"42\",\"overlap\":\"42\"}，输出区含「Token 数： 42 个 英文参考： 9」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "AI-N12 口径统一后重算：英文参考=ceil(42/4)=11；旧实现用 chars×0.3/overlap 得 9，且与主结果分母不一致。注入非默认输入{\"chars\":\"42\",\"lang\":\"42\",\"overlap\":\"42\"}，默认态不含该串 ⇒ 零逃生。"
   },
   {
     "slug": "ai/training-flops",
@@ -1297,31 +1297,85 @@ const CASES = [
 const HOST_CASES = [
   {
     slug: "ai/token",
+    coalesce: true, // AI-N9：连续重算须在 800ms 窗口内合并
     chart: "tkChart", table: "tkTable",
     extras: ["tkChart", "tkTable", "tkDiff", "tkHist", "tkPresets"],
     inputs: { chars: "900", lang: "1", overlap: "1.5" },
     tableExpect: "600",
     restore: { inputId: "chars", historyKey: "chars" },
     exportFn: "__tkExport",
+    // AI-N12：主结果与明细表必须同为 900/4=225，不能一个固定分母一个用 overlap。
+    extraExpect: ["英文参考 (4 字符/token)", "225"],
   },
   {
     slug: "ai/token-2",
+    coalesce: true, // AI-N9：连续重算须在 800ms 窗口内合并
     chart: "t2Chart", table: "t2Table",
     extras: ["t2Chart", "t2Table", "t2Diff", "t2Hist", "t2Presets"],
     inputs: { input_tokens: "2500", output_tokens: "800", input_price: "3", output_price: "10" },
     tableExpect: "0.0155",
+    // AI-N11：同一批数字旧表格全标 ¥（实为 USD），人民币行缺失。
+    extraExpect: ["输入成本 (USD)", "人民币约 (×7.2, CNY)"],
     restore: { inputId: "input_tokens", historyKey: "input_tokens" },
     exportFn: "__t2Export", emptyHint: true,
   },
   {
     slug: "ai/token-usage",
+    coalesce: true, // AI-N9：连续重算须在 800ms 窗口内合并
     chart: "tuChart", table: "tuTable",
     extras: ["tuChart", "tuTable", "tuDiff", "tuHist", "tuPresets"],
     inputs: { cn: "240", enWords: "150", code: "40" },
     tableExpect: "400",
+    // AI-N13：代码输入单位是已计数的 tokens，表格不能再写成「代码行数」。
+    extraExpect: ["输入代码 tokens"],
     restore: { inputId: "cn", historyKey: "cn" },
     exportFn: "__tuExport",
   },
+  // AI-N7 余下 4 页：主结果 innerHTML 曾把图表/表格/差值/历史宿主一起清掉。
+  // restore 刻意不设：这 4 页 history.record 只写输出字段，属 AI-N8 另案，不在本批混修。
+  {
+    slug: "ai/context-window",
+    coalesce: true, // AI-N9：连续重算须在 800ms 窗口内合并
+    restore: { inputId: "system", historyKey: "system" },
+    chart: "cwChart", table: "cwTable",
+    extras: ["cwChart", "cwTable", "cwDiff", "cwHist", "cwPresets"],
+    inputs: { system: "800", prompt: "2200", resp: "1500", ctx: "64000" },
+    tableExpect: "59500",
+    exportFn: "__cwExport",
+  },
+  {
+    slug: "ai/inference-throughput",
+    coalesce: true, // AI-N9：连续重算须在 800ms 窗口内合并
+    restore: { inputId: "tokens", historyKey: "tokens" },
+    chart: "itChart", table: "itTable",
+    extras: ["itChart", "itTable", "itDiff", "itHist", "itPresets"],
+    inputs: { tokens: "900", sec: "6", batch: "2" },
+    tableExpect: "150.0",
+    exportFn: "__itExport",
+  },
+  {
+    slug: "ai/quantization-ratio",
+    coalesce: true, // AI-N9：连续重算须在 800ms 窗口内合并
+    restore: { inputId: "params", historyKey: "params" },
+    chart: "qrChart", table: "qrTable",
+    extras: ["qrChart", "qrTable", "qrDiff", "qrHist", "qrPresets"],
+    inputs: { params: "2500", fromB: "8", toB: "4" },
+    tableExpect: "20000",
+    exportFn: "__qrExport",
+  },
+  // AI-N15：量化字节 > 原字节时是体积增加，不能把负「节省」取绝对值后仍叫节省。
+  {
+    slug: "ai/quantization-ratio",
+    chart: "qrChart", table: "qrTable",
+    extras: ["qrChart", "qrTable", "qrDiff", "qrHist", "qrPresets"],
+    inputs: { params: "7000", fromB: "1", toB: "4" },
+    tableExpect: "体积增加 (MB)",
+    chartExpect: "体积增加",
+    extraExpect: ["21000", "300.0%", "<1 表示体积变大"],
+    forbidden: ["节省 (MB)"],
+  },
+  { slug: "ai/ai-text-summarizer", kind: "summarizer" },
+  { slug: "ai/ai-text-summarizer", kind: "keywords" },
   { slug: "ai/ai-code-review", kind: "codeReview" },
 ];
 
@@ -1352,7 +1406,7 @@ function installTBKit(win, state) {
       },
       diffBox: () => null,
     },
-    chart: { bar: chart, pie: chart },
+    chart: { bar: chart, pie: chart, gauge: chart, line: chart },
     matrix: {
       table: (sel, o) => {
         const el = q(sel);
@@ -1362,7 +1416,15 @@ function installTBKit(win, state) {
       },
     },
     history: {
-      record: (v) => { state.history.push(v); },
+      // 与 js/tool-kit.js 一致：coalesceMs>0 且上一条在窗口内则覆盖，不新增槽位。
+      record: (v, coalesceMs) => {
+        const now = Date.now();
+        if (coalesceMs && state.history.length && now - (state.history[0].t || 0) < coalesceMs) {
+          state.history[0] = Object.assign({}, v, { t: now });
+          return;
+        }
+        state.history.push(Object.assign({}, v, { t: now }));
+      },
       mount: (sel, cb) => { state.mountCb = cb; },
       list: () => state.history.slice(),
       last: () => state.history[state.history.length - 1] || null,
@@ -1420,6 +1482,22 @@ async function runTokenHostCase(h) {
   win.calc();
   if (!doc.getElementById(h.chart).textContent.trim()) return { ok: false, why: "改输入后 #" + h.chart + " 为空" };
   if (!doc.getElementById(h.table).textContent.includes(h.tableExpect)) return { ok: false, why: "改输入后 #" + h.table + " 未含 " + h.tableExpect };
+  for (const s of h.extraExpect || []) {
+    if (!doc.getElementById(h.table).textContent.includes(s)) return { ok: false, why: "改输入后 #" + h.table + " 未含 " + s };
+  }
+  if (h.coalesce) {
+    const before = state.history.length;
+    win.calc(); win.calc();
+    if (state.history.length !== before) {
+      return { ok: false, why: "连续重算新增历史 " + (state.history.length - before) + " 条，未合并" };
+    }
+  }
+  for (const s of h.forbidden || []) {
+    if (doc.getElementById(h.table).textContent.includes(s)) return { ok: false, why: "改输入后 #" + h.table + " 仍含错误口径 " + s };
+  }
+  if (h.chartExpect && !doc.getElementById(h.chart).textContent.includes(h.chartExpect)) {
+    return { ok: false, why: "改输入后 #" + h.chart + " 未含 " + h.chartExpect };
+  }
   // 页签切换
   const tblBtn = doc.querySelector('.tbk-tab[data-pane="tbl"]');
   const resBtn = doc.querySelector('.tbk-tab[data-pane="res"]');
@@ -1429,8 +1507,8 @@ async function runTokenHostCase(h) {
     if (doc.getElementById(h.table).style.display === "none") return { ok: false, why: "页签切换未显示数据表" };
     resBtn.click();
   }
-  // 历史回填：用首屏默认那条回填，输入应被恢复
-  if (typeof state.mountCb === "function" && state.history.length) {
+  // 历史回填：用首屏默认那条回填，输入应被恢复（仅 record/mount 字段一致的页面）
+  if (h.restore && typeof state.mountCb === "function" && state.history.length) {
     const first = state.history[0];
     state.mountCb(first);
     const got = doc.getElementById(h.restore.inputId).value;
@@ -1456,7 +1534,8 @@ async function runTokenHostCase(h) {
 }
 
 async function runCodeReviewCase() {
-  const dom = makeDom("ai/ai-code-review", { state: { history: [], exportCalls: 0, exported: false, mountCb: null }, notify: [] });
+  const state = { history: [], exportCalls: 0, exported: false, mountCb: null };
+  const dom = makeDom("ai/ai-code-review", { state, notify: [] });
   const win = dom.window;
   await domReady(win);
   const doc = win.document;
@@ -1467,6 +1546,68 @@ async function runCodeReviewCase() {
   if (!/userName/.test(code)) return { ok: false, why: "示例代码未还原为干净示例" };
   if (!doc.getElementById("scoreBox").textContent.includes("代码质量评分")) return { ok: false, why: "载入示例后评分卡未重算" };
   if (!doc.getElementById("result").textContent.includes("详细问题")) return { ok: false, why: "载入示例后结果区未重算" };
+  // AI-N17：同一段 TS 代码切到 typescript 必须多出 TS 规则，切回 javascript 后消失。
+  doc.getElementById("lang").value = "typescript";
+  doc.getElementById("code").value = "let x: any = 1;\nconst y = obj!.name;\nconst z = foo as Bar;";
+  win.review();
+  const ts = doc.getElementById("result").textContent;
+  for (const s of ["使用 any 类型", "使用非空断言", "使用类型断言"]) {
+    if (!ts.includes(s)) return { ok: false, why: "TS 模式缺少规则 " + s };
+  }
+  doc.getElementById("lang").value = "javascript";
+  win.review();
+  if (doc.getElementById("result").textContent.includes("使用 any 类型")) {
+    return { ok: false, why: "JS 模式误报 TS 规则" };
+  }
+  const before = state.history.length;
+  win.review(); win.review();
+  if (state.history.length !== before) return { ok: false, why: "审查页连续重算新增历史 " + (state.history.length - before) + " 条" };
+  return { ok: true };
+}
+
+async function runSummarizerHostCase() {
+  const state = { history: [], exportCalls: 0, exported: false, mountCb: null };
+  const dom = makeDom("ai/ai-text-summarizer", { state, notify: [] });
+  const win = dom.window;
+  await domReady(win);
+  const doc = win.document;
+  const result = doc.getElementById("result");
+  if (!result) return { ok: false, why: "缺少 #result" };
+  for (const id of ["tzTable", "tzDiff", "tzHist"]) {
+    const el = doc.getElementById(id);
+    if (!el) return { ok: false, why: "#" + id + " 已被主结果 innerHTML 覆盖" };
+    if (result.contains(el)) return { ok: false, why: "#" + id + " 仍嵌套在 #result 内" };
+  }
+  if (typeof win.summarize !== "function") return { ok: false, why: "缺少 summarize()" };
+  doc.getElementById("input").value = "第一句用于验证。第二句用于验证。第三句用于验证。第四句用于验证。";
+  win.summarize();
+  const table = doc.getElementById("tzTable");
+  if (!table.textContent.trim()) return { ok: false, why: "摘要后 #tzTable 为空" };
+  if (!table.textContent.includes("原文长度")) return { ok: false, why: "#tzTable 未写入明细行" };
+  const before = state.history.length;
+  win.summarize(); win.summarize();
+  if (state.history.length !== before) return { ok: false, why: "摘要页连续重算新增历史 " + (state.history.length - before) + " 条" };
+  return { ok: true };
+}
+
+async function runKeywordsCase() {
+  const dom = makeDom("ai/ai-text-summarizer", { state: { history: [], exportCalls: 0, exported: false, mountCb: null }, notify: [] });
+  const win = dom.window;
+  await domReady(win);
+  const doc = win.document;
+  if (typeof win.extractKeywords !== "function") return { ok: false, why: "缺少 extractKeywords()" };
+  doc.getElementById("input").value = "人工智能是人工智能的核心。机器学习是人工智能的核心。Machine learning models are used in machine learning. ".repeat(3);
+  win.extractKeywords();
+  const out = doc.getElementById("result").textContent;
+  if (!out.includes("关键词")) return { ok: false, why: "未渲染关键词面板" };
+  // AI-N16：按每个关键词 token 精确比对（不能用子串，否则完整词「人工智能」会误命中「工智」）。
+  const words = Array.from(doc.querySelectorAll("#result .sent-item")).map((el) => String(el.textContent).split(" (")[0].trim());
+  for (const bad of ["工智", "人工智", "ac", "mo"]) { // 「in」是输入里的真实单词，不能当碎片
+    if (words.includes(bad)) return { ok: false, why: "关键词仍是碎片 " + bad };
+  }
+  if (!words.some((w) => /^(machine|learning|人工智能|机器学习)$/.test(w))) {
+    return { ok: false, why: "关键词未保留完整词: " + words.join(",") };
+  }
   return { ok: true };
 }
 
@@ -1508,7 +1649,10 @@ async function main() {
       continue;
     }
     try {
-      const r = h.kind === "codeReview" ? await runCodeReviewCase() : await runTokenHostCase(h);
+      const r = h.kind === "codeReview" ? await runCodeReviewCase()
+        : h.kind === "summarizer" ? await runSummarizerHostCase()
+        : h.kind === "keywords" ? await runKeywordsCase()
+        : await runTokenHostCase(h);
       if (r.ok) hostPass++;
       else { hostFails.push(h.slug); console.log("❌ DOM " + h.slug + "  " + r.why); }
     } catch (e) {

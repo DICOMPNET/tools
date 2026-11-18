@@ -571,6 +571,31 @@ const CASES = [
   "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/pulmonology/curb65.html','utf8');var dd=JSON.parse(globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/content_deepdive.json','utf8'))['pulmonology/curb65'];var ok=h.indexOf('var mortByScore=[0.7,2.1,9.2,14.5,40,57]')>=0&&h.indexOf('<td>40%</td>')>=0&&h.indexOf('<td>57%</td>')>=0&&h.indexOf('<td>0.7%</td>')>=0&&h.indexOf('死亡风险</th>')<0&&h.indexOf('高(≥15%)')<0&&h.indexOf('4–5 分重点考虑 ICU/HDU')>=0&&h.indexOf('score>=4?')>=0&&dd.examples[0].body.indexOf('14.5%')>=0&&dd.examples[1].body.indexOf('0.7%')>=0;document.getElementById('__tbProbe').textContent='CURBMORT '+(ok?'OK':'BAD');"],
   "expect": ["CURBMORT OK"],
   "ref": "12-N31：CURB-65 死亡率原 0–1 合并 1.5%、≥3 统一 ≥15%，4/5 分（Lim 2003 为 40%/57%）被严重低估；ICU 阈值公式框 ≥3、表格/代码 ≥4、深解 3 分三处冲突。现代码按逐分数组 [0.7,2.1,9.2,14.5,40,57] 展示、表格逐分、公式框与深解统一 4–5 分重点 ICU。源码形态哨兵，旧版必红。"
+},{
+  "slug": "pulmonology/calc-48",
+  "inputs": { "pao2": "80", "fio2": "150" },
+  "expect": ["FiO2 应在 21–100% 之间，请重新填写。"],
+  "ref": "03-162 FiO2 上限校验：旧版仅 isNaN||fio2<21 判下限，max=100 属性不阻止键入，150% 直接算出 P/F≈53「重度ARDS」+OI 被放大。本批加 fio2>100 拦截。默认 fio2=40 合法不命中，零逃生。"
+},{
+  "slug": "pulmonology/oxygenation-index",
+  "inputs": { "pao2": "65", "fio2": "150", "spo2": "95" },
+  "expect": ["FiO2 应在 21–100% 之间，请重新填写。"],
+  "ref": "03-192 FiO2 范围校验：旧版 parseFloat||21 无范围校验，150% 算出 P/F≈43「重度ARDS」、-10% 走兜底 P/F 0 且 FiO₂ 显示负值。本批用原始字符串判空 + 21–100 拦截。默认 fio2=40 合法不命中，零逃生。"
+},{
+  "slug": "pulmonology/respiratory-failure",
+  "inputs": { "pao2": "", "paco2": "40", "fio2": "21", "age": "65" },
+  "expect": ["请输入 PaO₂（>0 mmHg）与 PaCO₂（>0 mmHg）后再判断呼吸衰竭类型。"],
+  "ref": "03-165 血气呼衰空值守卫：旧版 pao2/paco2 空值 ||0 → pao2=0<60 直接判「I型呼衰」并算虚假 A-a 梯度。本批 PaO2/PaCO2 必填 >0，空/0/非法拦截不出分型。保留 paco2=40/fio2=21/age=65 合法，仅清空 pao2 命中；默认 pao2=55 合法不命中，零逃生。"
+},{
+  "slug": "pulmonology/oxygenation-index",
+  "inputs": { "pao2": "", "fio2": "40", "spo2": "92" },
+  "expect": ["请输入 PaO₂（>0 mmHg）后再计算氧合指数与 ARDS 分级。"],
+  "ref": "03-190 氧合指数 PaO2 空值守卫：旧版 ||0 → P/F=0 落入「重度ARDS」+PEEP默认勾选直接给 ECMO 建议。本批 PaO2 必填 >0，空/0 拦截。保留 fio2=40/spo2=92 合法，仅清空 pao2 命中（先过 FiO2 校验）；默认 pao2=65 合法不命中，零逃生。"
+},{
+  "slug": "pulmonology/light-criteria",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/pulmonology/light-criteria.html','utf8');var noOld=h.indexOf('0.67')<0&&h.indexOf('above 0.67')<0;var hasNew=(h.match(/>0\.6 /g)||[]).length>=1&&h.indexOf('LDH ratio above 0.6,')>=0;document.getElementById('__tbProbe').textContent='LIGHT164 '+(noOld&&hasNew?'OK':'BAD');"],
+  "expect": ["LIGHT164 OK"],
+  "ref": "03-164 Light 标准引据表 LDH 阈值口径：公式框/表格/代码均为 0.6（Light 1972 原值），独引据表 data-zh 中文与英文写 0.67。本批改为 0.6 并同步英文。源码形态哨兵：无 0.67、含新 0.6；默认态不产哨兵（仅 clicks 读源码），零逃生。"
 }
 ];
 

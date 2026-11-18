@@ -34,11 +34,6 @@
 ### Cpk 清空/σ=0 时数据表状态待核查（中，待运行复核）
 - `tools/process/cpk-index.html:281-293,310-313`：σ>0、USL>LSL 检查已加，非法输入主结果提示并清表；仍需分别核查清空或 σ=0 经通用守卫提前返回时的数据表状态；均值超规格产生负 Cpk 本身可以成立。未做浏览器回归。
 
-### 年金期数 0 被静默改为 1（中，确认源码缺陷）
-- 证据：`tools/audit/npv-discount.html:147-161,308-320,327-334` 年金模式初始 100、折现率 0%、每期 50、期数 0，`parseInt(...) || 1` 按 1 期输出 NPV -50，输入仍显示 0。
-- 影响：`tools/audit/npv-discount.html`，输出依赖用户看不到的参数替换。
-- 方案：明确校验正整数和上限，不把零或空改默认；导出初始投资、利率、期数及现金流明细。
-
 ### 覆盖
 - 本轮抽查地质质控及上述 10 个不同目录页面共 11 页；其余长尾行业未逐页覆盖。新增 10 条为源码及算术推导，未做浏览器、专业规范及线上验证。
 
@@ -109,32 +104,11 @@
 
 > 范围：本轮阅读 8 页——`tools/chemical/solution-concentration.html`（chemical）、`tools/mining/convert-grade-ore.html`（mining）、`tools/hvac/cooling-load.html`（hvac）、`tools/paper/roll-length.html`（paper）、`tools/fire/hydrant-pressure.html`（fire）、`tools/gas/load-1.html`（gas）、`tools/security/flood-level.html`（security）、`tools/transport/convert-volume-weight.html`（transport）。仅源码 + node 内存复算，未开浏览器，未做 EN/移动端/门禁验证。
 
-### 12-K2 chemical/solution-concentration：深度解析宣称的「w%↔mol/L」跨换算无密度输入，示例无法复现（中，确认缺陷）
-- 描述：深度解析把"给定密度与分子量，在 w% 与 mol/L 间换算"列为核心场景，并给出"输入 w%=10、密度 1.07 g/mL、M=58.44 → 约 1.83 mol/L"的算例；但页面四个模式（molar/mass/ppm/dilute）均无密度或质量分数联合输入，mass 模式只输出 `%` 与 `ppm`，molar 模式只接受溶质质量/摩尔质量/体积，用户无法在界面复现该算例。
-- 证据：`tools/chemical/solution-concentration.html:209,213`（场景与算例）、`:274-296`（四个模式的输入项）、`:322-343`（mass 模式仅输出 %/质量比/ppm）。
-- 复现：按算例只能分别算 10% 与 1.83 mol/L，页面没有任何"w% + 密度 + M"入口；node：1000×1.07×0.10/58.44 = 1.831 mol/L，说明示例数值本身正确、但功能缺失。
-- 影响：简介/深度解析承诺的核心互算能力缺失，用户按示例找不到入口，也影响搜索词与内容一致性。
-- 方案：新增"质量分数↔摩尔浓度"模式（输入 w%、密度 g/mL、摩尔质量），或把深度解析算例改写成页面可实现的两步（先算质量浓度 g/L，再除以 M）。
-
-### 12-K11 transport/convert-volume-weight：缺实际重输入与计费重量输出，与标题/meta/引据表承诺不符（中，确认缺陷）
-- 描述：标题、meta description、引据表与深度解析算例都承诺"实际重 vs 体积重，取较大者作为计费重量"，深度解析还给出"实重 8 kg → 计费重 12 kg"的算例；但页面只有长/宽/高/除数四个输入，`calc` 只算体积重（及 lb、6000 系数对照），没有实重输入，也没有 `max(实重, 体积重)` 结果。`formula-box` 末尾虽注明"本工具输出体积重"，但标题/meta/算例仍按"对比取大"宣传。
-- 证据：`tools/transport/convert-volume-weight.html:10`（meta 承诺）、`:120-124`（四个输入与除数下拉）、`:150`（引据表 Chargeable=max）、`:169`（`calc` 仅输出体积重）、`:181`（公式框注明仅输出体积重）、`:209`（算例含实重 8 kg）。
-- 复现：50×40×30 cm、系数 5000 → 12.00 kg；页面无法输入实重 8 kg，无法得到算例所写的计费重 12 kg，也无"计费重量"字段。
-- 影响：工具名与搜索词承诺的核心对比功能缺失，用户按描述无法得到计费重量，只能自行再比大小。
-- 方案：增加"实际重量 (kg)"输入，输出 `max(实重, 体积重)` 并同时列出 5000/6000 两系数的计费重；实重为空/负时报错；同步 meta 与公式说明。
-
 - 本轮实读 8 页：`tools/chemical/solution-concentration.html`、`tools/mining/convert-grade-ore.html`、`tools/hvac/cooling-load.html`、`tools/paper/roll-length.html`、`tools/fire/hydrant-pressure.html`、`tools/gas/load-1.html`、`tools/security/flood-level.html`、`tools/transport/convert-volume-weight.html`；新增 11 条（高 1 / 中 9 / 低 1）；未覆盖：chemical、mining、hvac、paper、fire、gas、security、transport 各目录的其余页面，以及 dyeing、leather、safety、nutrition、usedcar、wedding、restaurant、elderly、procurement、cleaning 等长尾目录本轮未读。
 
 ## 2026-11-04 续查（并行批 L）
 
 > 范围：本轮阅读 8 页——`tools/dyeing/calc-dosage-2.html`（dyeing）、`tools/leather/convert-area-weight.html`（leather）、`tools/safety/accident-stats.html`（safety）、`tools/nutrition/calorie-deficit.html`（nutrition）、`tools/usedcar/car-residual.html`（usedcar）、`tools/wedding/wedding-banquet.html`（wedding）、`tools/restaurant/safety-stock.html`（restaurant）、`tools/elderly/fall-risk.html`（elderly）。仅源码 + node 复算，未开浏览器/未做 EN/移动端/门禁验证。
-
-### 12-L3 nutrition/calorie-deficit：减脂提示「300~500 千卡缺口」与页面自身目标区间不一致（中，确认缺陷）
-- 描述：`lose` 目标按 TDEE 的 85%~90% 计算（缺口 10%~15%），提示文案却写「保持 300~500 千卡缺口」；默认参数下实际缺口仅约 217~325 千卡，文案与实际输出不符，且未随 TDEE 缩放。
-- 证据：`tools/nutrition/calorie-deficit.html:240-243`（`:241-242` 区间、`:243` 提示），`:257-261`（输出）
-- 复现：默认 男/28 岁/170 cm/65 kg/轻量活动 1.375（`:135` selected）→ BMR 1,577.5、TDEE 2,169、目标 `1844 ~ 1952` 千卡/天，实际缺口 217~325 千卡；提示仍为「300~500 千卡缺口，周减重约 0.25~0.5kg」。（node 复算）
-- 影响：低 TDEE 人群按提示追求 300~500 缺口会落到目标区间之外；高 TDEE 人群则被提示低估，减脂速度预期错位。
-- 方案：提示改为动态文案（如「当前缺口约 X 千卡/天，约合每周 Y kg」），或把目标改为「TDEE − 固定缺口」并同时给出百分比校验；补 1500/2500/3500 TDEE 三组用例。
 
 ### 12-L4 nutrition/calorie-deficit：低体重女性「较快减脂」目标低于 BMR，无任何下限提示（中，疑似）
 - 描述：`lose2` 直接取 TDEE 的 78%~85%，不与已算出的 BMR 比较，也不设常见 1200 千卡下限；低体重、久坐用户的目标摄入可低于 BMR，页面仍照常给出「建议日摄入」。
@@ -149,13 +123,6 @@
 - 复现：120 位宾客、圆桌 10 人、备桌「少」→ 主桌 12 桌 + 备桌 1 = `合计 13 桌`；按页面自述 90% 到场 108 人只需 11 桌，加 1 备桌应为 12 桌（多订 1 桌）。（node 复算）
 - 影响：按结果预订会多订 1 桌（10 人/桌），场地费按 1500–3000 元/桌多支出；`expectTables` 成为死变量，后续维护易误改。
 - 方案：主桌数改用 `expectTables`，或明确「主桌按满员、备桌为额外」并删除 90% 文案；结果同时列出「按满员/按 90%」两套桌数；补 108/120/240 人与 8/10/12 人桌用例。
-
-### 12-L8 elderly/fall-risk：引据表 Morse「>45 高危」与本页 12 题 25 分制百分比分级不可对应（中，确认缺陷）
-- 描述：页面自建 12 题问卷（环境 6 题各 0–2 分、身体 6 题最高 3 分），`maxScore` 实为 25，并按 `total/maxScore` 的 25%/50%/75% 分为低/中/高/极高；但「公式与标准引据」表却列「Morse 评分 / 条目加权求和 / Morse 2009」与「>45 高危」，该阈值在本页 0–25 分体系内永远无法达到，且分级名称（极高风险）也不属于 Morse 口径。
-- 证据：`tools/elderly/fall-risk.html:204-211`（引据表），`:263-267`（`maxScore` 求和），`:308-313`（百分比分级）
-- 复现：12 题全选最差 → 总分 25、风险占比 100%、判「极高风险」；按引据表「>45 高危」则 25 分连高危门槛都不到，两套口径互斥。（node 复算 maxScore=25）
-- 影响：用户按引据表把得分与 Morse 阈值对照会得出相反结论；对外宣称 Morse 2009 但实际未采用其条目与权重，可信度受损。
-- 方案：要么改为真正的 Morse 量表（6 项、0–15/0–20/0–25 权重、>45 高危），要么删掉 Morse 引用、改标「自建问卷（0–25 分，按百分比分级）」并给出分级依据；补全对/全错两组用例。
 
 - 本轮实读 8 页：`tools/dyeing/calc-dosage-2.html`、`tools/leather/convert-area-weight.html`、`tools/safety/accident-stats.html`、`tools/nutrition/calorie-deficit.html`、`tools/usedcar/car-residual.html`、`tools/wedding/wedding-banquet.html`、`tools/restaurant/safety-stock.html`、`tools/elderly/fall-risk.html`；新增 9 条（高 2 / 中 6 / 低 1）；未覆盖：上述 8 个目录的其余页面（dyeing 13、leather 15、safety 15、nutrition 18、usedcar 12、wedding 9、restaurant 10、elderly 11），以及 procurement、cleaning 等长尾目录本轮未读；L4 的「低于 BMR/1200 千卡」属专业指南判断，标疑似待复核，其余均为源码与算术复算确认。
 
@@ -457,13 +424,6 @@
 ## T 批 长尾行业覆盖（2026-11-04）
 
 > 本批只读审计 8 页（每目录 1 页），均未出现在既有 plan 条目中（已 Grep 确认 slug 零命中）。编号续接 12-N166。
-
-### 12-N173 gardening/soil-ph：调节剂用量固定不随差值缩放，差 1.5 个 pH 仍只给 100–300 g/m²（中，确认缺陷）
-- 问题：深度解析 `:280` 承诺「按差值给调节剂与用量（升 1 单位约石灰粉 100-300 g/m²，降 1 单位约硫磺粉 100-200 g/m²）」，但 `ADJUSTERS` 每项 `dose` 是固定字符串（`:375-390`），`calc` 只把整表原样渲染（`:437-449`），没有任何乘 `diff` 的处理。
-- 证据：`tools/gardening/soil-ph.html:280`、`:375-390`、`:437-449`
-- 复现：蓝莓 4.5–5.5：实测 4.4（差 0.1）与实测 3.0（差 1.5）得到完全相同的「石灰粉 · 用量 100-300 g · 升 1 个 pH」清单；按承诺 1.5 单位应为 150–450 g/m²。
-- 影响：`tools/gardening/soil-ph.html` 按页面表格 100–300 g 对应「升 1 个 pH」，差 1.5 个单位应给 150–450 g，页面只给 100–300 g（仅覆盖所需区间的约 2/3），用户按清单补一次仍差 0.5–1.0 个 pH，误判「已按工具加足」。
-- 方案：结果区按 `diff` 计算建议区间（`dose×diff`）并显示「按差值 Z 个单位」，保留「分次、每次 ≤0.5–1.0」的提示；调酸同理乘硫磺粉 100–200 g。
 
 ### 覆盖清单（T 批 长尾行业，2026-11-04）
 - 审计页数：8（`tools/metallurgy/alloy-ratio.html`、`tools/leather/calc-dosage-4.html`、`tools/gardening/soil-ph.html`、`tools/chemical/reaction-yield.html`、`tools/nutrition/generator-glucose-load.html`、`tools/process/cpk-with-shift.html`、`tools/transport/calculator-calc-fuel.html`、`tools/usedcar/usedcar-valuation.html`），8 个不同目录各 1 页，均为既有 plan 未覆盖页（Grep 上述 8 个 slug 在 `_others.md` 零命中）。

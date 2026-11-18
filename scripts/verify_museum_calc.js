@@ -40,15 +40,48 @@ const CASES = [
   "ref": "平行边分段（RL-K46）：A–B 同时存在 30 m 与 100 m 两条通道，Dijkstra 选 30 m。旧版分段渲染遍历全部 edges 并覆盖权值为最后一条 100 m，显示「A (100m) → 2. B」；修复后取 prevW 实际选中边显示「A (30m) → 2. B」。锚含节点 A/B，避开默认态（入口→青铜馆 30m）与「40 m 总距离」两版同值造成的假绿。"
 },
 {
+  "slug": "museum/visitor-route",
+  "clicks": ["document.getElementById('nodeInput').value='入口,青铜馆,陶瓷馆,书画馆,玉器馆,东门';edges=[['玉器馆','出口',30]];syncNodes();document.getElementById('__tbProbe').textContent='MIG '+(edges[0][1]==='东门'?'OK':'BAD '+edges[0][1])"],
+  "expect": ["MIG OK"],
+  "ref": "RL-K47 展厅改名端点迁移：页面初始 nodes 含末项「出口」，edges 有「玉器馆—出口」边；把 nodeInput 末项改为「东门」后 syncNodes()，旧版不迁移、边端点仍是「出口」（下拉无匹配项、compute 静默丢弃），修复版按索引 1:1 迁移为「东门」。哨兵检查 edges[0][1]。"
+},
+{
+  "slug": "museum/visitor-route",
+  "clicks": ["document.getElementById('nodeInput').value='入口,青铜馆,陶瓷馆,书画馆,玉器馆,出口,东门';edges=[['入口','青铜馆',10],['青铜馆','出口',10],['玉器馆','玉石馆',30]];document.getElementById('startNode').value='入口';document.getElementById('endNode').value='出口';compute();var h=String(document.getElementById('result').innerHTML);document.getElementById('__tbProbe').textContent=(h.indexOf('端点已失效')>=0)?'DEAD OK':'DEAD BAD'"],
+  "expect": ["DEAD OK"],
+  "ref": "RL-K47 失效边提示：新增「东门」使「玉石馆」边不满足改名迁移（玉石馆从未在 nodes），compute() 时旧版对不在 nodes 的端点静默跳过、无任何提示，修复版在结果区输出「通道端点已失效、未纳入计算」。保留入口→青铜馆→出口有效路径避免无路径提前 return。"
+},
+{
+  "slug": "museum/visitor-route",
+  "clicks": ["edges=[['A','B',137],['B','C',8]];var s=__visitor_routeSnap();var e=[];try{e=JSON.parse(s.__vrEdges||'[]');}catch(err){}document.getElementById('__tbProbe').textContent=(e.length===2&&e[0][0]==='A'&&e[0][2]==137&&e[1][1]==='C')?'SNAP OK':'SNAP BAD'"],
+  "expect": ["SNAP OK"],
+  "ref": "RL-K53 快照含通道数据：历史快照原先只采集带 id 的控件，通道行只有 data-i/data-k 无 id ⇒ 快照不含边。修复后 __visitor_routeSnap() 增加内部键 __vrEdges 序列化 edges。注入非默认边 A–B 137m/B–C 8m 后断言快照 __vrEdges 解析含两条边及 137/8 数值；旧版无该键解析为空 ⇒ SNAP BAD。"
+},
+{
+  "slug": "museum/visitor-route",
+  "clicks": ["document.getElementById('nodeInput').value='A,B,C';syncNodes();document.getElementById('startNode').value='A';document.getElementById('endNode').value='C';edges=[['A','B',5],['B','C',5]];__visitor_routeApplySnap({nodeInput:'A,B,C',startNode:'A',endNode:'C',__vrEdges:JSON.stringify([['A','B',90],['B','C',4]])},'结果');var h=String(document.getElementById('result').innerHTML);var ok=(edges.length===2&&edges[0][2]==90&&edges[1][2]==4&&h.indexOf('94 m')>=0);document.getElementById('__tbProbe').textContent=ok?'REPLAY OK':'REPLAY BAD'"],
+  "expect": ["REPLAY OK"],
+  "ref": "RL-K53 回放重建通道：把当前 edges 设为 5+5（总 10m），回放一条快照 edges=90+4（总 94m），修复后 __visitor_routeApplySnap() 先恢复 edges 再 compute ⇒ result 显示 94 m、edges 为 90/4；旧版无该函数（或回放只回填带 id 控件不动 edges）⇒ 仍是 10m ⇒ REPLAY BAD。94 m 非默认态。"
+},
+{
   "slug": "museum/era-comparator",
   "inputs": {},
   "clicks": ["document.getElementById('era1').value='3';document.getElementById('era2').value='9';compare()"],
   "expect": [
-    "时间跨度相差: 839 年",
+    "建立时间相差: 839 年",
     "秦朝 15 年 vs 唐朝 289 年 (差 274 年)",
     "比值 0.25（相当于 25.0%；唐朝为秦朝的 4.00 倍）"
   ],
-  "ref": "两个朝代 <select> 的 option 由 JS 按 ERAS 下标填充（静态无 option ⇒ clicks 赋值后调 compare()）：era1=3 秦朝(s=-221,dur=15,人口约2000万)、era2=9 唐朝(s=618,dur=289,人口约8000万) ⇒ 起始年差 |−221−618|=839、时长差 |15−289|=274；人口按万=1e4 统一换算后 2e7/8e7=0.25（相当于 25.0%，唐朝为秦朝的 4 倍）。旧实现按未换算数字 2000/8000 求 max/min=4.0 倍，断言语义已切换为前/后比值。"
+  "ref": "两个朝代 <select> 的 option 由 JS 按 ERAS 下标填充（静态无 option ⇒ clicks 赋值后调 compare()）：era1=3 秦朝(s=-221,dur=15,人口约2000万)、era2=9 唐朝(s=618,dur=289,人口约8000万) ⇒ 起始年差 |−221−618|=839、时长差 |15−289|=274；人口按万=1e4 统一换算后 2e7/8e7=0.25（相当于 25.0%，唐朝为秦朝的 4 倍）。旧实现按未换算数字 2000/8000 求 max/min=4.0 倍，断言语义已切换为前/后比值。RL-K19：源码文案早已从「时间跨度相差」改为「建立时间相差」（e98f3a7d60），旧 expect 仍是「时间跨度相差」死锚、靠另外两条假绿，本批同步为现行文案。"
+},
+{
+  "slug": "museum/era-comparator",
+  "inputs": {},
+  "clicks": ["document.getElementById('era1').value='14';document.getElementById('era2').value='15';compare();var h=String(document.getElementById('result').innerHTML);var y=new Date().getFullYear();document.getElementById('__tbProbe').textContent=(h.indexOf('- '+y+' 年')>=0)?'NOWYEAR OK':'NOWYEAR STALE '+y"],
+  "expect": [
+    "NOWYEAR OK"
+  ],
+  "ref": "RL-K19 现代中国止年不能写死 2025：修复后 ERAS 末项 e=MODERN_END_YEAR=new Date().getFullYear()、dur=e-1949 ⇒ 哨兵「NOWYEAR OK」；批前版写死 e=2025/dur=76 ⇒ 哨兵「NOWYEAR STALE 2025/76」不命中。锚不锁具体年份、不依赖当前时间，只校验动态一致性。"
 },
 {
   "slug": "museum/era-comparator",
@@ -272,6 +305,18 @@ const CASES = [
     "前 3100 年 上下埃及统一"
   ],
   "ref": "去默认化（原 expect「2070」＝默认「中国历史」主题下夏朝建立 -2070 的渲染串，注入失败仍命中 → 逃生项）：clicks 置顶层全局 currentTheme='世界历史' 后调 renderTimeline()，timeline 渲染世界史首条「前 3100 年 上下埃及统一 政治 古埃及第一王朝建立」；默认中国历史显示「夏朝建立 ... -2070」，注入失败即不命中。"
+},
+{
+  "slug": "museum/timeline-viewer",
+  "clicks": ["document.getElementById('tlCentury').value='b3';renderTimeline();var h=String(document.getElementById('timeline').innerHTML);document.getElementById('__tbProbe').textContent=(h.indexOf('前 221')>=0&&h.indexOf('前 202')>=0&&h.indexOf('前 2070')<0)?'CEN OK':'CEN BAD'"],
+  "expect": ["CEN OK"],
+  "ref": "RL-K48 世纪筛选：新增 tlCentury 下拉与 renderTimeline 世纪过滤；选「公元前 3 世纪」(-300..-201) 应含前 221 秦统一、前 202 汉建立，不含前 2070 夏（前 21 世纪）。批前版无该控件（钩子缺失即缺陷）、无过滤、渲染全表 ⇒ 哨兵不成立。"
+},
+{
+  "slug": "museum/timeline-viewer",
+  "clicks": ["document.getElementById('tlKeyword').value='甲午';renderTimeline();var h=String(document.getElementById('timeline').innerHTML);document.getElementById('__tbProbe').textContent=(h.indexOf('1894')>=0&&h.indexOf('甲午战争')>=0&&h.indexOf('夏朝建立')<0)?'KW OK':'KW BAD'"],
+  "expect": ["KW OK"],
+  "ref": "RL-K48 关键词筛选 + 算例数据补齐：新增 tlKeyword 输入框按标题/分类/简述过滤，且中国历史补 1405 郑和、1861 洋务、1894 甲午三条算例事件（深度解析算例原有但数据缺失）。输入「甲午」应只显示 1894 甲午战争、不含夏朝建立；批前版无控件无该事件 ⇒ 哨兵不成立。"
 },
 {
     dynDom: true,

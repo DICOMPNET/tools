@@ -266,6 +266,13 @@ const CASES = [
     ref: "EL-J69：删除深度解析中不存在的「由页数估字数」反推承诺，改真实场景；旧版虚标。",
   },
   {
+    slug: "edu/word-count-pages",
+    inputs: { words: "6000" },
+    clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/edu/word-count-pages.html','utf8');var ok=h.indexOf('doubleEn:{name:')>=0&&/per:280/.test(h)&&h.indexOf('value=')>=0&&h.indexOf('doubleEn')>=0&&/'32k':0\.38/.test(h);document.getElementById('__tbProbe').textContent='J67J70 '+(ok?'OK':'BAD');"],
+    expect: ["J67J70 OK"],
+    ref: "EL-J67/J70：英文论文双倍行距从中文口径 350 拆分为 doubleEn=280 词/页（APA/MLA 250–280 取上限），32开纸张系数按面积比 0.48→0.38。探针直接读源码常量断言（该类口径常量不进结果 blob，沿用 IMGTERM/WPDOC 先例）；默认态无 J67J70 串，旧版缺 doubleEn 且 32k=0.48 会变红。",
+  },
+  {
     slug: "edu/edu-unit-converter",
     inputs: { fromVal: "0" },
     clicks: ["var v=document.getElementById('fromVal').value;var o=document.getElementById('toVal').value;document.getElementById('__tbProbe').textContent='ZERO '+(v==='0'&&o==='0'?'OK':'BAD');"],
@@ -719,6 +726,12 @@ const CASES = [
     expect: ["wǒ ài zhōng guó", "总字符：4"],
     ref: "pinyinData 实测 我=wǒ / 爱=ài / 中=zhōng / 国=guó；withSpace 默认勾选 ⇒ 逐字带声调拼接。"
        + "字符 4 / 汉字 4 / 已转换 4。默认输入「你好世界，学习拼音很重要！」不命中。",
+  },
+  {
+    slug: "edu/pinyin-converter",
+    inputs: { inputText: "男女空车觉立飞父母儿女" },
+    expect: ["nánnǚkōngchējuélìfēifùmǔérnǚ"],
+    ref: "EL-F2：补高频常用字后，plan 列举的 11 个缺字（男女空车觉立飞父母儿女）全部可转换；withSpace 默认未勾选逐字带声调拼接。旧版这些字不在 PINYIN_CHARS，segmentPinyin 回落单字回填原汉字 ⇒ 该拼音串整条失配；默认输入也不同 ⇒ 强判别。",
   },
   {
     slug: "edu/pinyin-converter",

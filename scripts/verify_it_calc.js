@@ -3240,6 +3240,18 @@ const CASES = [
     ref: "ISO 3166-1 alpha-2 → alpha-3/区号/首都/货币映射（CN→CHN→+86→北京→CNY）。默认示例代码不同。",
   },
   {
+    slug: "it/country-code-lookup",
+    inputs: { input: "IS" },
+    expect: ["国名： Iceland（冰岛）", "电话区号： +354", "货币： ISK"],
+    ref: "IT-N423：补 ISO 3166-1 常见遗漏国 IS（冰岛/Iceland/+354/ISL/雷克雅未克/ISK）。旧版 COUNTRIES 无 IS ⇒ 输出「未找到匹配」，三条期望均失配；默认示例 CN 不同 ⇒ 强判别。",
+  },
+  {
+    slug: "it/country-code-lookup",
+    inputs: { input: "UK" },
+    expect: ["ISO 3166-1： GB", "国名： United Kingdom（英国）"],
+    ref: "IT-N423：常见别名 UK→GB（非 ISO 但通用），旧版直接查 COUNTRIES['UK'] 未命中 ⇒ 未找到；修复经 COUNTRY_ALIASES 映射后返回英国条目（ISO 码显示 GB）。默认示例 CN 不同 ⇒ 强判别。",
+  },
+  {
     slug: "it/language-code-lookup",
     inputs: { input: "zh" },
     expect: ["ISO 639-3： zho"],
@@ -14293,6 +14305,25 @@ const CASES = [
     clicks: ["document.getElementById('__tbProbe').textContent='HLCOPY '+(/<style>/.test(String(copyHighlightedHTML))&&/hl-keyword/.test(String(copyHighlightedHTML))&&/dark-editor/.test(String(copyHighlightedHTML))?'OK':'BAD');"],
     expect: ["HLCOPY OK"],
     ref: "IT-N449 源码形态判定：复制函数须拼 <style> 前缀、含 .hl-* 颜色兜底、并按主题给容器加 dark-editor 类；旧实现三者皆无 ⇒ BAD。探针串只在注入该页且函数已改造时出现 ⇒ 零逃生。",
+  },
+  {
+    slug: "it/code-highlighter",
+    // IT-N448：跨行块注释必须三行同为 comment；旧逐行 tokenize 中间行 plain、结束行 operator。
+    clicks: ["var e=document.getElementById('codeInput');e.value='/* a\\n b\\n*/';document.getElementById('langSelect').value='javascript';highlight();var p=document.getElementById('codeOutputBody').innerHTML.split('<tr');var ok=p.length>=4&&[1,2,3].every(function(i){return p[i].indexOf('hl-comment')>=0&&p[i].indexOf('hl-plain')<0&&p[i].indexOf('hl-operator')<0;});document.getElementById('__tbProbe').textContent='HLBLOCK '+(ok?'OK':'BAD');"],
+    expect: ["HLBLOCK OK"],
+    ref: "IT-N448 JS 跨行块注释：旧 renderHighlighted 逐行 tokenize，第 2 行 b 为 hl-plain、第 3 行 */ 为 hl-operator；新实现整段 tokenize 后按 token 内换行拆行，三行均 hl-comment。默认示例无跨行块注释 ⇒ 探针串零逃生。",
+  },
+  {
+    slug: "it/code-highlighter",
+    clicks: ["var e=document.getElementById('codeInput');e.value='\"\"\"a\\n b\\n\"\"\"';document.getElementById('langSelect').value='python';highlight();var p=document.getElementById('codeOutputBody').innerHTML.split('<tr');var ok=p.length>=4&&[1,2,3].every(function(i){return p[i].indexOf('hl-string')>=0&&p[i].indexOf('hl-plain')<0&&p[i].indexOf('hl-operator')<0;});document.getElementById('__tbProbe').textContent='HLDOC '+(ok?'OK':'BAD');"],
+    expect: ["HLDOC OK"],
+    ref: "IT-N448 Python 三引号文档字符串：旧逐行 tokenize 只在首末行命中 string，中间行 b 为 hl-plain；新实现整段 tokenize ⇒ 三行均 hl-string。默认示例无三引号跨行串 ⇒ 探针串零逃生。",
+  },
+  {
+    slug: "it/code-highlighter",
+    clicks: ["var e=document.getElementById('codeInput');e.value='<!-- a\\n b\\n-->';document.getElementById('langSelect').value='html';highlight();var p=document.getElementById('codeOutputBody').innerHTML.split('<tr');var ok=p.length>=4&&[1,2,3].every(function(i){return p[i].indexOf('hl-comment')>=0&&p[i].indexOf('hl-plain')<0&&p[i].indexOf('hl-operator')<0;});document.getElementById('__tbProbe').textContent='HLHTML '+(ok?'OK':'BAD');"],
+    expect: ["HLHTML OK"],
+    ref: "IT-N448 HTML 跨行注释：旧逐行 tokenize 中间行 b 为 hl-plain、末行 --> 为 hl-plain；新实现整段 tokenize ⇒ 三行均 hl-comment。默认示例无跨行 HTML 注释 ⇒ 探针串零逃生。",
   },
   {
     slug: "it/benchmark-builder",
