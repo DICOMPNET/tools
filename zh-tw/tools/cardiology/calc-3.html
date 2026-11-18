@@ -6,7 +6,7 @@
 <!-- TOOLBOX-TOOL-RUNTIME -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="toolbox" content="cat=finance,industry=cardiology,icon=❤️,bg=#ffe8dd">
+<meta name="toolbox" content="cat=health,industry=cardiology,icon=📋,bg=#ffe8dd">
 <title>心肌梗塞 TIMI 危險分層（STEMI 30天死亡風險）</title>
 <link rel="canonical" href="https://tools.dicomp.net/zh-tw/tools/cardiology/calc-3.html">
 <meta property="og:title" content="心肌梗塞 TIMI 危險分層（STEMI 30天死亡風險）">
@@ -37,7 +37,7 @@
     <meta name="twitter:title" content="心肌梗塞 TIMI 危險分層（STEMI 30天死亡風險）">
     <meta name="twitter:description" content="心肌梗塞 TIMI 危險分層是一款免費的線上心血管科工具，錄入年齡、生命體徵、Killip 分級、體重、梗死部位、就診時間與合併症，按 TIMI 評分評估 STEMI 30 天死亡風險。">
 <!-- TOOLBOX-WEBAPP-LD -->
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"心肌梗塞 TIMI 危險分層","url":"https://tools.dicomp.net/zh-tw/tools/cardiology/calc-3.html","applicationCategory":"FinanceApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"心肌梗塞 TIMI 危險分層是一款免費的線上心血管科工具，錄入年齡、生命體徵、Killip 分級、體重、梗死部位、就診時間與合併症，按 TIMI 評分評估 STEMI 30 天死亡風險。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"心肌梗塞 TIMI 危險分層","url":"https://tools.dicomp.net/zh-tw/tools/cardiology/calc-3.html","applicationCategory":"MedicalApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"心肌梗塞 TIMI 危險分層是一款免費的線上心血管科工具，錄入年齡、生命體徵、Killip 分級、體重、梗死部位、就診時間與合併症，按 TIMI 評分評估 STEMI 30 天死亡風險。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
@@ -113,7 +113,7 @@
   <button type="button" class="tbk-tab" data-pane="his">歷史</button>
 </div>
 <div class="card">
-    <h2 data-zh="❤️ 心肌梗塞 TIMI 危險分層（STEMI 30天死亡風險）">STEMI TIMI Risk Score</h2>
+    <h2 data-zh="📋 心肌梗塞 TIMI 危險分層（STEMI 30天死亡風險）">STEMI TIMI Risk Score</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="基於年齡、生命體徵、Killip 分級、體重、梗死部位、就診時間及合併症評估急性 STEMI 預後。">30-day mortality risk in STEMI (TIMI).</p>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">TIMI 評分 = 年齡分（65–74 計 2、≥75 計 3）+ Killip 分（II–IV 計 2）+ Σ勾選項：心率&gt;100 +2、收縮壓&lt;100 +3、體重&lt;67kg +1、前壁 STEMI/LBBB +1、發病至治療&gt;4h +1、既往心肌梗塞/心絞痛/CABG +1；滿分 14 分。危險分層：0–4 低危、5–8 中危、≥9 高危（<strong>本工具自建切點</strong>；Morrow 2000 原文僅給 0–14 連續評分及逐分 30 天死亡率，未給低/中/高危切點）；30 天死亡風險按 Morrow 2000 逐分死亡率查表。</div>
@@ -312,6 +312,12 @@ function __calc_3Score(t){
     if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
     return 1;
 }
+// 从结果文本首段「TIMI 评分： N 分」提取分值，供趋势图按分值画线（03-87）
+function __calc_3Timi(t){
+    var s=String(t||'');
+    var m=s.match(/TIMI\s*(?:评分|Score)\s*[：:]\s*(\d+)/i);
+    return m?+m[1]:NaN;
+}
 function __calc_3Time(t){
     var d=new Date(t);
     function q(x){return (x<10?'0':'')+x;}
@@ -341,7 +347,7 @@ function __calc_3Render(keys,rk,en){
                     if(!Object.prototype.hasOwnProperty.call(rec,__cbs[__ci].id)) __cbs[__ci].checked=false;
                 }
                 for(var k in rec){
-                    if(k===rk||k==='__tbScore') continue;
+                    if(k===rk||k==='__tbScore'||k==='__tbTimi') continue;
                     var e=document.getElementById(k);
                     if(!e) continue;
                     var t=(e.type||'').toLowerCase();
@@ -354,11 +360,11 @@ function __calc_3Render(keys,rk,en){
         });
         var nums=[],labels=[];
         for(var j=arr.length-1;j>=0;j--){
-            var v=parseFloat(arr[j].d.__tbScore);
+            var v=parseFloat(arr[j].d.__tbTimi);
             if(isFinite(v)){nums.push(v);labels.push(__calc_3Time(arr[j].t));}
         }
         if(nums.length>=2){
-            TBKit.chart.line('#calc_3Chart',{labels:labels,series:[{name:en?'Validity trend':'有效性趋势',data:nums}]});
+            TBKit.chart.line('#calc_3Chart',{labels:labels,series:[{name:en?'TIMI Score trend':'TIMI 评分趋势',data:nums}]});
         }
     }catch(e3){}
 }
@@ -389,6 +395,7 @@ function __calc_3Extras(){
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
     rec.__tbScore=__calc_3Score(res);
+    rec.__tbTimi=__calc_3Timi(res);
     TBKit.history.record(rec);
     __calc_3Render(keys,rk,en);
 }

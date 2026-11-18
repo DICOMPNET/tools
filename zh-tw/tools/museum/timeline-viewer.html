@@ -7,12 +7,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="toolbox" content="cat=reference,industry=museum,icon=📜,bg=#78350f">
-<meta name="description" content="歷史時間軸是一款免費的線上文博展陳工具，按公元紀年排序瀏覽中外重大歷史事件，支援中西對照篩選；西元前事件以負值參與排序，先後順序不會顛倒。適合工程估算、日常換算與快速複核，結果可一鍵複製。">
+<meta name="description" content="按公元紀年排序瀏覽中外重大歷史事件，支援按世紀與關鍵詞篩選、中西對照檢視；西元前事件以負值參與排序，先後順序不會顛倒，並可匯出瀏覽記錄 CSV 供整理與複核">
 <meta name="keywords" content="歷史時間軸,歷史時間軸線上,線上歷史時間軸,速查表,文博展陳,線上工具,免費工具,ToolBox">
 <meta name="robots" content="index,follow">
 <link rel="canonical" href="https://tools.dicomp.net/zh-tw/tools/museum/timeline-viewer.html">
 <meta property="og:title" content="歷史時間軸 - 免費線上文博展陳工具">
-<meta property="og:description" content="歷史時間軸是一款免費的線上文博展陳工具，按公元紀年排序瀏覽中外重大歷史事件，支援中西對照篩選；西元前事件以負值參與排序，先後順序不會顛倒。適合工程估算、日常換算與快速複核，結果可一鍵複製。">
+<meta property="og:description" content="按公元紀年排序瀏覽中外重大歷史事件，支援按世紀與關鍵詞篩選、中西對照檢視；西元前事件以負值參與排序，先後順序不會顛倒，並可匯出瀏覽記錄 CSV 供整理與複核">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://tools.dicomp.net/zh-tw/tools/museum/timeline-viewer.html">
 <meta name="twitter:card" content="summary">
@@ -56,9 +56,9 @@
 <meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
 <meta name="twitter:image:alt" content="ToolBox - 5000+免費線上工具">
     <meta name="twitter:title" content="歷史時間軸 - 免費線上文博展陳工具">
-    <meta name="twitter:description" content="歷史時間軸是一款免費的線上文博展陳工具，按公元紀年排序瀏覽中外重大歷史事件，支援中西對照篩選；西元前事件以負值參與排序，先後順序不會顛倒。適合工程估算、日常換算與快速複核，結果可一鍵複製。">
+    <meta name="twitter:description" content="按公元紀年排序瀏覽中外重大歷史事件，支援按世紀與關鍵詞篩選、中西對照檢視；西元前事件以負值參與排序，先後順序不會顛倒，並可匯出瀏覽記錄 CSV 供整理與複核">
 <!-- TOOLBOX-WEBAPP-LD -->
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"歷史時間軸","url":"https://tools.dicomp.net/zh-tw/tools/museum/timeline-viewer.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"歷史時間軸是一款免費的線上文博展陳工具，按公元紀年排序瀏覽中外重大歷史事件，支援中西對照篩選；西元前事件以負值參與排序，先後順序不會顛倒。適合工程估算、日常換算與快速複核，結果可一鍵複製。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"歷史時間軸","url":"https://tools.dicomp.net/zh-tw/tools/museum/timeline-viewer.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"按公元紀年排序瀏覽中外重大歷史事件，支援按世紀與關鍵詞篩選、中西對照檢視；西元前事件以負值參與排序，先後順序不會顛倒，並可匯出瀏覽記錄 CSV 供整理與複核","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
@@ -135,8 +135,19 @@
 
     <div class="theme-row" id="theme-buttons"></div>
 
-    <div class="toolbar" style="margin:14px 0;">
-      <button type="button" class="btn" onclick="window.__tlExport()">⬇️ 匯出時間軸 CSV</button>
+    <div class="toolbar" style="margin:14px 0;display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+      <label style="font-size:13px;"><span data-zh="世紀篩選">Century</span>
+        <select id="tlCentury" onchange="renderTimeline()" style="height:36px;padding:0 8px;border:1px solid var(--border-color);border-radius:6px;background:var(--bg-card);color:var(--text-primary);">
+          <option value="" data-zh="全部世紀">All centuries</option>
+          <option value="b3" data-zh="西元前 3 世紀">3rd c. BCE</option>
+          <option value="15" data-zh="15 世紀">15th century</option>
+          <option value="19" data-zh="19 世紀">19th century</option>
+        </select>
+      </label>
+      <label style="font-size:13px;"><span data-zh="關鍵詞">Keyword</span>
+        <input type="text" id="tlKeyword" oninput="renderTimeline()" placeholder="Title / desc / category" style="height:36px;padding:0 10px;border:1px solid var(--border-color);border-radius:6px;background:var(--bg-card);color:var(--text-primary);width:170px;">
+      </label>
+      <button type="button" class="btn" data-zh="⬇️ 匯出時間軸 CSV" onclick="window.__tlExport()">⬇️ Export timeline CSV</button>
     </div>
 
     <div class="timeline" id="timeline"></div>
@@ -195,9 +206,9 @@
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);">ISO 8601-1 date representation</td>
         </tr>
         <tr>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="時間軸比例">Timeline scale</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="比例 = 畫素寬度 ÷ 總跨度">scale = pixel width / total span</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);">ISO 8601-1 intervals</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="排列方式">Layout</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="事件按年份升序等距排列，相鄰間距不代表時間間隔">events listed at equal spacing by year; gaps are not proportional to time intervals</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);">display convention</td>
         </tr>
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="事件序列排序">Event ordering</td>
@@ -237,8 +248,11 @@ const TIMELINES = {
     { y: 960, t: '北宋建立', cat: '政治', desc: '赵匡胤建立宋朝' },
     { y: 1271, t: '元朝建立', cat: '政治', desc: '忽必烈建立元朝' },
     { y: 1368, t: '明朝建立', cat: '政治', desc: '朱元璋建立明朝' },
+    { y: 1405, t: '郑和下西洋', cat: '探索', desc: '郑和首次下西洋,远航东南亚与印度洋' },
     { y: 1644, t: '清朝入关', cat: '政治', desc: '清朝入关,统一全国' },
     { y: 1840, t: '鸦片战争', cat: '政治', desc: '中国近代史开端' },
+    { y: 1861, t: '洋务运动', cat: '经济', desc: '洋务派创办近代军工与民用企业' },
+    { y: 1894, t: '甲午战争', cat: '政治', desc: '中日甲午战争,北洋水师覆没' },
     { y: 1911, t: '辛亥革命', cat: '政治', desc: '推翻清朝统治' },
     { y: 1949, t: '新中国成立', cat: '政治', desc: '中华人民共和国成立' },
     { y: 1978, t: '改革开放', cat: '经济', desc: '中国实行改革开放政策' },
@@ -328,7 +342,21 @@ function renderThemeButtons() {
 }
 
 function renderTimeline() {
-  const events = TIMELINES[currentTheme].slice().sort((a, b) => a.y - b.y);
+  // RL-K48：世纪 / 关键词筛选（世纪：1–100=1 世纪；公元前 3 世纪 = −300…−201）
+  var centurySel = document.getElementById('tlCentury');
+  var kwEl = document.getElementById('tlKeyword');
+  var cen = centurySel ? centurySel.value : '';
+  var kw = kwEl ? String(kwEl.value || '').trim().toLowerCase() : '';
+  var centuryOf = function (y) { return y > 0 ? Math.ceil(y / 100) : -Math.ceil(-y / 100); };
+  var events = TIMELINES[currentTheme].slice().filter(function (e) {
+    if (cen === 'b3') { if (!(e.y >= -300 && e.y <= -201)) return false; }
+    else if (/^\d+$/.test(cen)) { if (centuryOf(e.y) !== parseInt(cen, 10)) return false; }
+    if (kw) {
+      var hay = (e.t + ' ' + e.cat + ' ' + e.desc).toLowerCase();
+      if (hay.indexOf(kw) < 0) return false;
+    }
+    return true;
+  }).sort((a, b) => a.y - b.y);
   const el = document.getElementById('timeline');
   const __h1=events.map(e => {
     const yearStr = e.y < 0 ? `前 ${-e.y}` : `${e.y}`;
@@ -432,9 +460,11 @@ var __tbm=function(){
   try{var r=document.getElementById('timeline');if(r){lab=(r.textContent||'').replace(/\s+/g,' ').trim().slice(0,40);}}catch(e){}
   if(!lab)return;
   var EN=false;try{EN=TBKit.util.isEn();}catch(e){}
-  var T=EN?{hist:'Diagnosis Records',no:'#',time:'Time',item:'Item',freq:'Frequency',exp:'Export CSV',file:'tcm-history.csv',hint:'Browse 2+ items to see the frequency chart.'}
-          :{hist:'辨证记录历史',no:'序号',time:'时间',item:'条目',freq:'查看次数',exp:'导出 CSV',file:'tcm-history.csv',hint:'查看 2 个以上条目后显示条目频次图。'};
-  var KEY='__tbm_tcm_timeline';
+  var T=EN?{hist:'Browsing History',no:'#',time:'Time',item:'Topic',freq:'Views',exp:'Export CSV',file:'timeline-history.csv',hint:'Browse 2+ topics to see the view frequency chart.'}
+          :{hist:'浏览记录',no:'序号',time:'时间',item:'主题',freq:'查看次数',exp:'导出 CSV',file:'timeline-history.csv',hint:'查看 2 个以上主题后显示浏览频次图。'};
+  var KEY='__tbm_timeline_history';
+  // 迁移旧中医模板键的数据，保留用户既有浏览记录
+  try{var OLD='__tbm_tcm_timeline',oldRaw=localStorage.getItem(OLD);if(oldRaw&&!localStorage.getItem(KEY))localStorage.setItem(KEY,oldRaw);if(oldRaw)localStorage.removeItem(OLD);}catch(e){}
   var hist=[];try{hist=JSON.parse(localStorage.getItem(KEY)||'[]');}catch(e){hist=[];}
   if(!Array.isArray(hist))hist=[];
   var last=hist[hist.length-1];

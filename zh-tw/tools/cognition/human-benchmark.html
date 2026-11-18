@@ -898,17 +898,41 @@
     }
     return out;
   }
+  // RL-K43：已测维度（wsum>0）集合——未测维度不得按 0 计入综合指数
+  function measuredDims() {
+    var wsum = { memory: 0, attention: 0, speed: 0, executive: 0 };
+    ORDER.forEach(function (id) {
+      if (!results[id]) { return; }
+      var a = ABILITY[id];
+      for (var k in a) { if (a.hasOwnProperty(k)) { wsum[k] += a[k]; } }
+    });
+    var out = {};
+    for (var k2 in wsum) { if (wsum[k2] > 0) { out[k2] = true; } }
+    return out;
+  }
   function computeIndex() {
     var ab = computeAbilities();
-    var idx = 0;
+    var measured = measuredDims();
+    var idx = 0, wtotal = 0;
     for (var k in ABILITY_W) {
-      if (!ABILITY_W.hasOwnProperty(k)) { continue; }
+      if (!ABILITY_W.hasOwnProperty(k) || !measured[k]) { continue; }
       idx += (ab[k] || 0) * ABILITY_W[k];
+      wtotal += ABILITY_W[k];
     }
-    return Math.round(idx);
+    return wtotal > 0 ? Math.round(idx / wtotal) : 0;
   }
+  // 纯计算钩子（无 DOM 副作用）：供 verify 注入各子测验百分位，校验未测维度归一口径
+  window.__hbIndexWith = function (pcts) {
+    var saved = results;
+    results = {};
+    ORDER.forEach(function (id, i) { if (pcts[i] != null) { results[id] = { score: 0, percentile: pcts[i] }; } });
+    var ab = computeAbilities(), measured = measuredDims(), index = computeIndex();
+    results = saved;
+    return { index: index, ab: ab, measured: measured };
+  };
 
-  function drawRadar(canvas, ab) {
+  function drawRadar(canvas, ab, measured) {
+    measured = measured || {};
     var ctx = canvas.getContext('2d');
     var W = canvas.width, H = canvas.height, cx = W / 2, cy = H / 2 + 6, R = Math.min(W, H) / 2 - 46;
     var keys = ['memory', 'attention', 'speed', 'executive'];
@@ -941,7 +965,7 @@
     for (var k = 0; k <= n; k++) {
       var kk = k % n;
       var ang2 = -Math.PI / 2 + kk / n * Math.PI * 2;
-      var val = clamp((ab[keys[kk]] || 0), 0, 100) / 100;
+      var val = clamp((measured[keys[kk]] ? (ab[keys[kk]] || 0) : 50), 0, 100) / 100;
       var px = cx + Math.cos(ang2) * R * val, py = cy + Math.sin(ang2) * R * val;
       if (k === 0) { ctx.moveTo(px, py); } else { ctx.lineTo(px, py); }
     }
@@ -951,10 +975,11 @@
     // 顶点
     for (var m = 0; m < n; m++) {
       var am = -Math.PI / 2 + m / n * Math.PI * 2;
-      var v = clamp((ab[keys[m]] || 0), 0, 100) / 100;
+      var v = clamp((measured[keys[m]] ? (ab[keys[m]] || 0) : 50), 0, 100) / 100;
       var vx = cx + Math.cos(am) * R * v, vy = cy + Math.sin(am) * R * v;
       ctx.beginPath(); ctx.arc(vx, vy, 4, 0, Math.PI * 2);
-      ctx.fillStyle = getCSS('--primary'); ctx.fill();
+      if (measured[keys[m]]) { ctx.fillStyle = getCSS('--primary'); ctx.fill(); }
+      else { ctx.fillStyle = getCSS('--bg-card'); ctx.fill(); ctx.strokeStyle = getCSS('--primary'); ctx.lineWidth = 1.5; ctx.stroke(); }
     }
   }
   function getCSS(name) {
@@ -971,14 +996,19 @@
     $('hbReportEmpty').style.display = 'none';
     $('hbReport').style.display = 'block';
     var ab = computeAbilities();
+    var measured = measuredDims();
     var idx = computeIndex();
+    var measuredCount = ids.length;
     $('hbIndex').textContent = idx;
-    $('hbIndexSub').textContent = T('综合脑力指数（你击败了约 ','Composite Brain Index (you beat ~ ') + idx + T('% 的人）','% of people)');
-    drawRadar($('hbRadar'), ab);
+    var idxNote = measuredCount === ORDER.length
+      ? T('综合脑力指数（8 项全测，你击败了约 ','Composite Brain Index (all 8 done, you beat ~ ')
+      : T('综合脑力指数（已测 ' + measuredCount + '/' + ORDER.length + ' 项，按已测维度归一，你击败了约 ','Composite Brain Index (' + measuredCount + '/' + ORDER.length + ' done, normalized over measured dimensions, you beat ~ ');
+    $('hbIndexSub').textContent = idxNote + idx + T('% 的人）','% of people)');
+    drawRadar($('hbRadar'), ab, measured);
     var ps = '';
     for (var k in ABILITY_W) {
       if (!ABILITY_W.hasOwnProperty(k)) { continue; }
-      ps += '<span class="hb-pill">' + ABILITY_NAME[k] + ' <b>P' + (ab[k] || 0) + '</b></span>';
+      ps += '<span class="hb-pill">' + ABILITY_NAME[k] + ' <b>' + (measured[k] ? ('P' + (ab[k] || 0)) : T('未测','Not tested')) + '</b></span>';
     }
     const __h13=ps;if((typeof __h13==='number'&&!isFinite(__h13))||/Infinity/.test(String(__h13))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h13)){$('hbPartStats').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}$('hbPartStats').innerHTML=__h13;
     var h = '<thead><tr><th>' + T('子测验','Subtest') + '</th><th>' + T('原始分','Raw') + '</th><th>' + T('常模','Norm') + '</th><th>' + T('百分位','Percentile') + '</th><th>' + T('击败','Beat') + '</th></tr></thead><tbody>';
@@ -1074,7 +1104,8 @@
     if (window.ToolBox && ToolBox.showToast) ToolBox.showToast(msg, 'error');
   }
   function exportPng() {
-    var ab = computeAbilities(), idx = computeIndex();
+    var ab = computeAbilities(), idx = computeIndex(), measured = measuredDims();
+    var doneCount = ORDER.filter(function (id) { return results[id]; }).length;
     var out = document.createElement('canvas');
     out.width = 820; out.height = 620;
     var x = out.getContext('2d');
@@ -1084,10 +1115,10 @@
     x.fillStyle = '#FF6B35'; x.font = 'bold 64px sans-serif';
     x.fillText('' + idx, 28, 130);
     x.fillStyle = '#6B7280'; x.font = '15px sans-serif';
-    x.fillText(T('综合脑力指数 · 你击败了约 ','Composite Brain Index · you beat ~ ') + idx + T('% 的人','% of people'), 28, 156);
+    x.fillText(T('综合脑力指数（已测 ', 'Composite Brain Index (') + doneCount + T('/', '/') + ORDER.length + T(' 项） · 击败约 ', ' done) · beat ~ ') + idx + T('% 的人', '% of people'), 28, 156);
     // 雷达（右侧）
     var rc = document.createElement('canvas'); rc.width = 440; rc.height = 380;
-    drawRadar(rc, ab);
+    drawRadar(rc, ab, measured);
     x.drawImage(rc, 380, 30);
     // 表格
     x.fillStyle = '#1F2937'; x.font = '13px sans-serif';
@@ -1193,11 +1224,11 @@
 <h2>📚 深度解析：人類基準測試</h2>
 <h3>💡 常見使用場景</h3>
 <ul class="dd-list">
-<li>反應時測試：測量對視覺刺激做出點選的延遲，取多次中位值作為反應速度參考。</li>
+<li>反應時測試：測量對視覺刺激做出點選的延遲，5 次有效點選取算術平均作為反應速度參考（變綠前點選為搶跑、本次作廢不計入）。</li>
 <li>記憶類測試：數字/聽覺/視覺記憶分別測不同通道的保持容量與準確率。</li>
 <li>朋友間橫向對比：用同一套規則的成績做趣味排名，觀察各人強弱項差異。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">反應時中位值</div><div class="dd-ex-body">5 次反應時 268/251/243/259/247 ms，去掉極端後中位約 251 ms；反應時受裝置、輸入延遲與狀態影響，僅作相對參考。</div></div>
+<div class="dd-example"><div class="dd-ex-title">反應時算術平均</div><div class="dd-ex-body">5 次有效反應時 268/251/243/259/247 ms，算術平均 (268+251+243+259+247)÷5=253.6≈254 ms（不去極值、非中位值）；搶跑本次作廢不計入 5 次。反應時受裝置、輸入延遲與狀態影響，僅作相對參考。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
 <dt>各子測驗測的是什麼？</dt><dd>反應時測感知-動作延遲，數字/聽覺/視覺記憶分別測不同通道的短時保持，屬於多維度自評，不指向單一能力。</dd>

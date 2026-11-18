@@ -170,14 +170,14 @@
 <h3>💡 常見使用場景</h3>
 <ul class="dd-list">
 <li>館內動線設計時，以展廳為節點、通道為帶權邊（距離/時長），用 Dijkstra 最短路徑演算法規劃從入口到出口的最優參觀順序，減少折返。</li>
-<li>限流/單向參觀場景下，按通道權重調整路徑，平衡各展廳客流、避開擁堵段。</li>
+<li>限流或單向參觀場景下，可把需避開的通道距離權重調大再規劃，對比調整前後的最短路徑；工具按<a class="term-link" href="/zh-tw/tools/surveying/distance-calc.html">距離計算</a>，不自動統計客流或擁堵程度。</li>
 <li>多目標參觀（只去重點館）時，設定起終點與必看節點，快速得到最短串聯路徑與總距離。</li>
 </ul>
 <div class="dd-example"><div class="dd-ex-title">最短動線規劃示例</div><div class="dd-ex-body">設展廳 A（入口）→B 通道 20 m、B→C 30 m、A→C 直連 80 m。從 A 到 C，Dijkstra 比較 A→C 直連 80 m 與 A→B→C 累計 20+30=50 m，得出最短路徑 A→B→C、總距離 50 m（優於直連 80 m）。同理可編排「入口→青銅館→陶瓷館→書畫館→玉器館→出口」的全程最短動線。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
 <dt>為什麼有時繞路反而更短？</dt><dd>Dijkstra 按邊的權重（通道距離）求全域性最短，並非直線近就快；經中轉節點可能累計權重更小（如 A→B→C=50m &lt; 直連 80m）。規劃以演算法結果為準，憑直覺易誤判。</dd>
-<dt>權重除了距離還能用什麼？</dt><dd>可把邊權設為通行時間、擁擠度或能耗，演算法同樣適用；若要考慮「必經重點館」，可設其為中間節點分段求解再拼接路徑，得到帶約束的最短動線。</dd>
+<dt>通道權重可以按哪些量填寫？</dt><dd>本工具的通道權重按距離（米）填寫，Dijkstra 演算法本身也適用於時間或能耗等其它加權值，但本頁輸入口徑是距離。「必經重點館」可直接填入「必看節點」，工具會按輸入順序分段求最短並拼接，無需手工拆分。</dd>
 </dl>
 </div>
 </section>
@@ -195,14 +195,9 @@
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);">ISO 21542 building accessibility</td>
         </tr>
         <tr>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="預計瀏覽時長">Estimated visit duration</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="T = L ÷ v + Σ 停留時長">T = L / walking speed + sum of dwell times</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);">ISO 21542 circulation planning</td>
-        </tr>
-        <tr>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="擁擠度">Crowding index</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="擁擠度 = 同時線上人數 ÷ 通道通行能力">index = concurrent visitors / corridor capacity</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);">ISO 21542 accessibility and circulation</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="權重口徑">Weight basis</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="本工具邊權 = 通道距離（米）；Dijkstra 求帶權最短路徑">This tool: edge weight = corridor distance (m); Dijkstra finds the weighted shortest path</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);">Dijkstra (1959) shortest path</td>
         </tr>
       </tbody>
     </table>
@@ -239,7 +234,24 @@ function getNodes(){
 }
 
 function syncNodes(){
+  var oldNodes = nodes.slice();
   nodes = getNodes();
+  // RL-K47：展厅改名（旧名消失、新名全新增）时按相同索引 1:1 迁移通道端点，
+  // 避免下拉无匹配项显示错位、compute 静默丢弃该通道
+  var oldSet = {}, newSet = {};
+  oldNodes.forEach(function(n){ oldSet[n] = 1; });
+  nodes.forEach(function(n){ newSet[n] = 1; });
+  var rename = {}, usedNew = {};
+  for (var i = 0; i < Math.min(oldNodes.length, nodes.length); i++) {
+    var o = oldNodes[i], n = nodes[i];
+    if (o !== n && !newSet[o] && !oldSet[n] && !usedNew[n]) {
+      rename[o] = n; usedNew[n] = 1;
+    }
+  }
+  edges.forEach(function(e){
+    if (rename[e[0]]) { e[0] = rename[e[0]]; }
+    if (rename[e[1]]) { e[1] = rename[e[1]]; }
+  });
   renderNodeTags();
   renderEdges();
   renderNodeSelects();
@@ -262,9 +274,15 @@ function renderEdges(){
   edges.forEach(function(e, i){
     var div = document.createElement('div');
     div.className = 'edge-row';
+    // RL-K47：端点不在当前展厅列表时标红提示，避免下拉默认项造成「显示与实际不符」
+    var _vrEn = (typeof TBKit!=='undefined' && TBKit.util && TBKit.util.isEn());
+    var badEnds = [];
+    if (nodes.indexOf(e[0]) < 0) badEnds.push(_vrEn ? ('From "'+e[0]+'"') : ('起点「'+e[0]+'」'));
+    if (nodes.indexOf(e[1]) < 0) badEnds.push(_vrEn ? ('To "'+e[1]+'"') : ('终点「'+e[1]+'」'));
+    var invalidTip = badEnds.length ? '<div class="tip-box tip-error" style="margin:2px 0;">'+(_vrEn ? '⚠ Invalid edge endpoint: ' : '⚠ 通道端点已失效：')+badEnds.join(_vrEn ? ', ' : '、')+(_vrEn ? ', rename the hall or delete this edge.' : '，请修改展厅名或删除该通道。')+'</div>' : '';
     var opts = nodes.map(function(n){ return '<option value="'+ToolBox.escHtml(n)+'"'+(e[0]===n?' selected':'')+'>'+ToolBox.escHtml(n)+'</option>'; }).join('');
     var opts2 = nodes.map(function(n){ return '<option value="'+ToolBox.escHtml(n)+'"'+(e[1]===n?' selected':'')+'>'+ToolBox.escHtml(n)+'</option>'; }).join('');
-    const __h2='<select data-i="'+i+'" data-k="0">'+opts+'</select>' +
+    const __h2=invalidTip+'<select data-i="'+i+'" data-k="0">'+opts+'</select>' +
       '<input type="number" value="'+e[2]+'" min="0" step="1" style="max-width:90px;" data-i="'+i+'" data-k="2" placeholder="如 '+e[2]+'">' +
       '<span style="color:var(--text-muted);">m</span>' +
       '<select data-i="'+i+'" data-k="1">'+opts2+'</select>' +
@@ -364,6 +382,7 @@ function compute(){
   var negativeFixed = false;
   var graph = {};
   nodes.forEach(function(n){ graph[n] = []; });
+  var deadEdges = [];
   edges.forEach(function(e){
     if(graph[e[0]] && graph[e[1]]){
       var w = parseFloat(e[2]);
@@ -371,6 +390,8 @@ function compute(){
       if(w < 0){ w = Math.abs(w); negativeFixed = true; }
       graph[e[0]].push({to:e[1], w:w});
       graph[e[1]].push({to:e[0], w:w});
+    } else {
+      deadEdges.push((typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn()) ? ('"'+e[0]+' - '+e[1]+'"') : ('「'+e[0]+' — '+e[1]+'」'));
     }
   });
 
@@ -393,6 +414,7 @@ function compute(){
 
   var html = '';
   if(negativeFixed){ html += '<div class="tip-box tip-info" style="margin-bottom:12px;">检测到负距离，已按绝对值纳入计算。</div>'; }
+  if(deadEdges.length){ var _de = (typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn()); html += '<div class="tip-box tip-warning" style="margin-bottom:12px;">'+(_de ? '⚠ Ignored edges with invalid endpoints: ' : '⚠ 以下通道端点已失效、未纳入计算：')+deadEdges.map(function(s){ return ToolBox.escHtml(s); }).join(_de ? ', ' : '、')+'</div>'; }
   html += '<div class="data-grid">';
   html += dataCard('起点', start);
   html += dataCard('终点', end);
@@ -501,20 +523,20 @@ document.querySelectorAll('.tool-intro-header').forEach(function(h){
   </div>
   <div class="tool-intro-body">
     <h4><span class="h4-icon">📝</span>工具簡介</h4>
-    <p>參觀流線規劃 - 基於Dijkstra演算法的最短路徑規劃演示，免費線上博物館工具。。商業辦公工具，提升工作效率，資料本地處理保護隱私。</p>
+    <p>參觀流線規劃：將展廳抽象為節點、通道抽象為帶權邊，用 Dijkstra 最短路徑演算法規劃起點到終點的最短參觀流線，支援必看節點串聯與分段距離展示。</p>
     <h4><span class="h4-icon">✨</span>功能特點</h4>
     <ul class="intro-features">
-      <li>操作簡單，一鍵完成</li>
-      <li>純前端處理，資料不上傳</li>
-      <li>支援批次操作</li>
-      <li>結果可複製或下載</li>
+      <li>自定義展廳與通道距離</li>
+      <li>Dijkstra 最短路徑演算法</li>
+      <li>必看節點串聯與不可達檢測</li>
+      <li>分段距離與總距離展示</li>
     </ul>
     <h4><span class="h4-icon">🎯</span>使用場景</h4>
     <ul class="intro-scenes">
-      <li>日常辦公文件處理</li>
-      <li>會議與專案管理</li>
-      <li>資料整理與彙總</li>
-      <li>團隊協作輔助</li>
+      <li>博物館參觀動線規劃</li>
+      <li>展廳間最短路徑比較</li>
+      <li>限流與導覽路線設計</li>
+      <li>展陳佈局可達性評估</li>
     </ul>
     </div>
 </div>
@@ -542,6 +564,9 @@ function __visitor_routeSnap(){
         var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
         if(v!==''&&v!=null) out[e.id]=v;
     }
+    // RL-K53：通道行控件无 id，无法被上面的扫描采集；单独序列化 edges 数组存入内部键，
+    // 回放时据此重建通道端点与距离，使历史记录可完整复现规划结果。
+    out.__vrEdges=JSON.stringify(edges);
     return out;
 }
 function __visitor_routeResText(){
@@ -562,6 +587,35 @@ function __visitor_routeTime(t){
     function q(x){return (x<10?'0':'')+x;}
     return q(d.getMonth()+1)+'-'+q(d.getDate())+' '+q(d.getHours())+':'+q(d.getMinutes());
 }
+function __visitor_routeApplySnap(rec,rk){
+    __visitor_route_skip=true;
+    try{
+        // RL-K53：先恢复通道数据（快照时序列化的 edges），再回填带 id 的控件，
+        // 最后 compute() 用恢复后的 edges 与控件值重算，历史记录才能完整复现。
+        if(rec.__vrEdges){
+            try{
+                var _edges=JSON.parse(rec.__vrEdges);
+                if(Array.isArray(_edges)&&_edges.length){
+                    edges=_edges.map(function(e){
+                        if(Array.isArray(e)&&e.length>=3) return [String(e[0]),String(e[1]),e[2]];
+                        return null;
+                    }).filter(Boolean);
+                    renderEdges();
+                }
+            }catch(e){}
+        }
+        for(var k in rec){
+            if(k===rk||k==='__tbScore'||k==='__vrEdges') continue;
+            var e=document.getElementById(k);
+            if(!e) continue;
+            var t=(e.type||'').toLowerCase();
+            if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
+            else{e.value=rec[k];}
+        }
+        compute();
+    }catch(e2){}
+    __visitor_route_skip=false;
+}
 function __visitor_routeRender(keys,rk,en){
     try{
         var arr=TBKit.history.list().slice(0,10);
@@ -576,21 +630,7 @@ function __visitor_routeRender(keys,rk,en){
         });
         TBKit.matrix.table('#visitor_routeTable',{head:head,rows:rows});
         TBKit.util.diffBox('#visitor_routeDiff');
-        TBKit.history.mount('#visitor_routeHist',function(rec){
-            __visitor_route_skip=true;
-            try{
-                for(var k in rec){
-                    if(k===rk||k==='__tbScore') continue;
-                    var e=document.getElementById(k);
-                    if(!e) continue;
-                    var t=(e.type||'').toLowerCase();
-                    if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
-                    else{e.value=rec[k];}
-                }
-                compute();
-            }catch(e2){}
-            __visitor_route_skip=false;
-        });
+        TBKit.history.mount('#visitor_routeHist',function(rec){ __visitor_routeApplySnap(rec,rk); });
         var nums=[],labels=[];
         for(var j=arr.length-1;j>=0;j--){
             var v=parseFloat(arr[j].d.__tbScore);
@@ -605,8 +645,10 @@ function __visitor_routeExtras(){
     if (typeof TBKit === 'undefined') return;
     if (__visitor_route_skip) return;
     var snap=__visitor_routeSnap();
-    var keys=Object.keys(snap);
-    if(!keys.length) return;
+    // RL-K53：__vrEdges 是内部快照键（通道数据），不作为展示列；rec 中仍携带它供回放。
+    var allKeys=Object.keys(snap);
+    var keys=allKeys.filter(function(k){return k!=='__vrEdges';});
+    if(!allKeys.length) return;
     if(keys.length>12) keys=keys.slice(0,12);
     var res=__visitor_routeResText();
     if(!res) return;
@@ -621,11 +663,13 @@ function __visitor_routeExtras(){
         for(var i=0;i<keys.length;i++){
             if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
         }
+        if(same&&String(last.__vrEdges)!==String(snap.__vrEdges)) same=false;
         if(same&&String(last[rk])===String(res)) return;
     }
     __visitor_route_last=now;
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
+    rec.__vrEdges=snap.__vrEdges;
     rec[rk]=res;
     rec.__tbScore=__visitor_routeScore(res);
     TBKit.history.record(rec);
@@ -636,7 +680,7 @@ function __visitor_routeExport(){
     try{
         var box=document.querySelector('#visitor_routeTable');
         if(!box||!box.querySelector('tr')){
-            var snap=__visitor_routeSnap(); var keys=Object.keys(snap);
+            var snap=__visitor_routeSnap(); var keys=Object.keys(snap).filter(function(k){return k!=='__vrEdges';});
             if(keys.length>12) keys=keys.slice(0,12);
             var en=(TBKit.util&&TBKit.util.isEn())?true:false;
             __visitor_routeRender(keys,en?'Result':'结果',en);

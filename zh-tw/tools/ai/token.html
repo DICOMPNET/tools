@@ -108,12 +108,12 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="根據文本長度估算大模型 Token 數量。">Estimate how many tokens a piece of text will consume, so you can keep prompts inside the context window and control cost.</p>
         <div class="formula-box">
       <div class="formula-title">📐 計算公式 / 原理</div>
-      <div class="formula-eq">估算 token 數 = ⌈字元數 × 語言係數 / 重疊係數⌉；英文參考 = ⌈字元數 × 0.3 / 1.5⌉；成本 ≈ token 數 / 10⁶ × 單價</div>
+      <div class="formula-eq">估算 token 數 = ⌈字元數 × 語言係數 / 重疊係數⌉；英文參考 = ⌈字元數 / 4⌉；成本 ≈ token 數 / 10⁶ × 單價</div>
       <div class="formula-desc">不同語言與分詞器的壓縮率差異很大：中文常約 1–1.5 字元/token，英文約 4 字元/token。此式為量級估算，精確計費必須呼叫對應模型的官方 tokenizer；程式碼與數字因切分更碎，實際 token 數常高於純文本估計。</div>
     </div>
 <div class="input-row"><label>字元數</label><input type="number" id="chars" value="500" step="1" oninput="calc()" placeholder="如 500"></div>
     <div class="input-row"><label>語言係數 1=中文 0.3=英文</label><input type="number" id="lang" value="1" step="any" oninput="calc()" placeholder="如 1"></div>
-    <div class="input-row"><label>平均詞長</label><input type="number" id="overlap" value="1.5" step="any" oninput="calc()" placeholder="如 1.5"></div>
+    <div class="input-row"><label>每 token 字元數</label><input type="number" id="overlap" value="1.5" step="any" oninput="calc()" placeholder="如 1.5"></div>
     <div id="tkPresets"></div>
     <div class="toolbar">
       <button class="btn primary" onclick="calc()">計算</button>
@@ -261,7 +261,7 @@ function calc(){
   let html = '';
   const __v0 = (Math.ceil(chars*lang/overlap));
   html += `<p>估算 Token 数：<strong style="font-size:18px;color:var(--primary);">${__fin(__v0)?__v0.toFixed(0):'—'}</strong> 个</p>`;
-  const __v1 = (Math.ceil(chars*0.3/1.5));
+  const __v1 = (Math.ceil(chars/4));
   html += `<p>英文参考：<strong style="font-size:18px;color:var(--primary);">${__fin(__v1)?__v1.toFixed(0):'—'}</strong> 个</p>`;
   const __v2 = (Math.ceil(chars*lang/overlap)/1000000*2);
   html += `<p>成本参考（每 1M tokens $2）：<strong style="font-size:18px;color:var(--primary);">${__fin(__v2)?__v2.toFixed(4):'—'}</strong> USD</p>`;
@@ -294,10 +294,10 @@ function __tkExtras(){
         var cs=[500,1000,2000,5000,10000];
         TBKit.chart.bar('#tkChart',{labels:cs.map(function(c){return c>=1000?(c/1000)+'k':String(c);}),series:[{name:__tkL('tokens','Token 数'),data:cs.map(function(c){return Math.ceil(c*lang/overlap);})}],height:220,title:__tkL('Token estimate vs text length','Token 估算随文本长度线性增长')});
         var rows=__tkL(
-            [['characters',chars.toFixed(0)],['lang factor',lang.toFixed(2)],['chars per token',overlap.toFixed(2)],['estimated tokens',tok.toFixed(0)],['English reference (×0.3)',Math.ceil(chars*0.3/overlap).toFixed(0)],['tokens per 1M chars',(1e6*lang/overlap).toExponential(2)]],
-            [['字符数',chars.toFixed(0)],['语言系数',lang.toFixed(2)],['每 token 字符',overlap.toFixed(2)],['估算 token 数',tok.toFixed(0)],['英文参考 (×0.3)',Math.ceil(chars*0.3/overlap).toFixed(0)],['百万字符 token 数',(1e6*lang/overlap).toExponential(2)]]);
+            [['characters',chars.toFixed(0)],['lang factor',lang.toFixed(2)],['chars per token',overlap.toFixed(2)],['estimated tokens',tok.toFixed(0)],['English reference (4 chars/token)',Math.ceil(chars/4).toFixed(0)],['tokens per 1M chars',(1e6*lang/overlap).toExponential(2)]],
+            [['字符数',chars.toFixed(0)],['语言系数',lang.toFixed(2)],['每 token 字符',overlap.toFixed(2)],['估算 token 数',tok.toFixed(0)],['英文参考 (4 字符/token)',Math.ceil(chars/4).toFixed(0)],['百万字符 token 数',(1e6*lang/overlap).toExponential(2)]]);
         TBKit.matrix.table('#tkTable',{head:__tkL(['Metric','Value'],['指标','数值']),rows:rows});
-        TBKit.history.record({tokens:Number(tok.toFixed(0)),chars:chars,lang:lang,overlap:overlap});
+        TBKit.history.record({tokens:Number(tok.toFixed(0)),chars:chars,lang:lang,overlap:overlap}, 800);
         TBKit.util.diffBox('#tkDiff',['tokens']);
         TBKit.history.mount('#tkHist',function(v){ if(v.tokens!=null){document.getElementById('chars').value=v.chars;document.getElementById('lang').value=v.lang;document.getElementById('overlap').value=v.overlap;} calc(); });
     }catch(e){}
