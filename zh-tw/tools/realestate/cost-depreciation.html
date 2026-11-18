@@ -110,7 +110,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="按重建成本與使用年限以年限法計提年折舊與累計折舊。">Value property by the cost approach: replacement cost minus depreciation; for insurance and asset accounting.</p>
     <div class="formula-box">
       <div class="formula-title">📐 計算公式</div>
-      <div class="formula-eq">重建成本折舊（本頁程式碼口徑，生效為後段覆蓋版，殘值率固定 5% 並非獨立輸入）：年折舊額=重建成本×(1−5%)÷使用年限；月折舊額=年折舊÷12；10 年累計折舊=年折舊×10；30 年半程賬面成本=重建成本÷2。校驗：兩輸入經輸入守衛並須為有限數值，否則提示請輸入兩個有效數值後再計算。判據：無固定分級，年限越長年折舊越小，四項結果均保留 2 位小數。</div>
+      <div class="formula-eq">重建成本折舊（本頁程式碼口徑，生效為後段覆蓋版，殘值率固定 5% 並非獨立輸入）：年折舊額=重建成本×(1−5%)÷使用年限；月折舊額=年折舊÷12；10 年累計折舊=min(10, 使用年限)×年折舊並封頂 95% 重建成本；賬面成本=重建成本×(1−95%×min(30, 使用年限)÷使用年限)，年限≥30 時剩殘值 5%。校驗：重建成本大於 0、使用年限不小於 1，否則提示並中止。判據：無固定分級，年限越長年折舊越小，四項結果均保留 2 位小數。</div>
       <p class="formula-desc">輸入兩個引數，自動計算常用結果</p>
     </div>
     <div class="input-row">
@@ -348,12 +348,19 @@ var e0=document.getElementById('v0'),e1=document.getElementById('v1');
   var box=document.getElementById('res');
   if(!box)return;
   if(!isFinite(A)||!isFinite(B)){box.innerHTML='<div class="info-box">请输入两个有效数值后再计算。</div>';return;}
+  if(!(A>0)||!(B>=1)){
+    var __cdEn=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
+    box.innerHTML='<div class="info-box">'+(__cdEn?'Replacement cost must be >0 and useful life at least 1 year.':'重建成本须大于 0，使用年限须不小于 1 年。')+'</div>';
+    return;
+  }
   var items=[];
   var dep=A*(1-0.05)/B;
   items.push([dep.toFixed(2), "年折旧额（元）"]);
   items.push([(dep/12).toFixed(2), "月折旧额（元）"]);
-  items.push([(dep*10).toFixed(2), "10 年累计折旧（元）"]);
-  items.push([((A/2).toFixed(2)), "30 年半程账面成本（元）"]);
+  // 累计折旧不能超过应折旧总额 95%；年限不足 10 年时只计实际年限。
+  items.push([(Math.min(dep*10, A*0.95).toFixed(2)), "10 年累计折旧（元）"]);
+  // 账面成本按已提折旧比例推导；年限 ≥30 时剩残值 5%，不再固定为重建成本的一半。
+  items.push([((A*(1-0.95*Math.min(30,B)/B)).toFixed(2)), "账面成本（元）"]);
 
   var html='<div class="data-grid">'+items.map(function(it){return '<div class="data-card"><div class="num">'+it[0]+'</div><div class="label">'+it[1]+'</div></div>';}).join('')+'</div>';
   html+='💡 年折旧 = 重建成本 ×（1 − 残值率 5%）÷ 使用年限；月折旧 = 年折旧 ÷ 12；10 年累计折旧 = 年折旧 × 10。';

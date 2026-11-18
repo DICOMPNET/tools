@@ -112,7 +112,7 @@
     <h2 data-zh="🏬 庫存呆滯分析">Inventory Aging</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="根據庫存量、出庫量、庫齡計算週轉天數與呆滯品比例，對庫存進行分級預警，輔助清庫存決策。">Inventory Aging</p>
     <div class="formula-box">
-      <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">庫存呆滯（ aging ）分析<br>日均出庫 = 統計期出庫量 ÷ 統計週期天數<br>週轉天數 = 庫存量 ÷ 日均出庫（日均 0 時記 ∞）<br>庫存金額 = 庫存量 × 單價<br>呆滯判定：週轉天數 > 呆滯閾值（預設 180 天）<br>呆滯金額佔比 = 呆滯品庫存金額合計 ÷ 庫存總金額 × 100%<br>列表按週轉天數降序排列<br>呆滯金額分佈條形按最大庫存金額歸一化<br>輸入格式：SKU 名稱、庫存量、週期出庫量、單價（按行解析）<br>處置建議：呆滯品優先清理促銷、降價處理或退供應商<br>無呆滯品時判定整體週轉健康<br>統計卡片：SKU 總數、呆滯品數、庫存總金額、呆滯金額佔比</div>
+      <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">庫存呆滯（ aging ）分析<br>日均出庫 = 統計期出庫量 ÷ 統計週期天數<br>週轉天數 = 庫存量 ÷ 日均出庫（日均 0 時記 ∞）<br>庫存金額 = 庫存量 × 單價<br>呆滯判定：max(週轉天數, 庫齡) > 呆滯閾值（預設 180 天）<br>呆滯金額佔比 = 呆滯品庫存金額合計 ÷ 庫存總金額 × 100%<br>列表按週轉天數降序排列<br>呆滯金額分佈條形按最大庫存金額歸一化<br>輸入格式：SKU 名稱、庫存量、週期出庫量、庫齡天、單價（按行解析）<br>處置建議：呆滯品優先清理促銷、降價處理或退供應商<br>無呆滯品時判定整體週轉健康<br>統計卡片：SKU 總數、呆滯品數、庫存總金額、呆滯金額佔比</div>
       <p class="formula-desc" data-zh="核心計算公式（按輸入變數）：it.stockValue ÷ maxVal × 100">Key formulas: it.stockValue ÷ maxVal × 100</p>
     </div>
 
@@ -175,7 +175,7 @@
 <h3>💡 常見使用場景</h3>
 <ul class="dd-list">
 <li>快消品倉月度盤點：統計週期取 90 天、呆滯閾值取 180 天，按「名稱,庫存量,出庫量,庫齡天,單價」逐行貼上庫存明細，工具算出每個 SKU 的日均出庫、週轉天數與庫存金額，並給出呆滯金額佔比。</li>
-<li>呆滯品排序與處置：結果按週轉天數降序排列，週轉天數大於閾值即判定呆滯；日均出庫為 0 時週轉天數記為 ∞ 並直接判呆滯。呆滯資金集中時優先安排促銷清倉、降價處理或退供應商，並在明細表核對每個 SKU 的庫存金額。</li>
+<li>呆滯品排序與處置：結果按週轉天數降序排列，呆滯判定取 max(週轉天數, 庫齡天) 大於閾值；日均出庫為 0 時週轉天數記為 ∞ 並直接判呆滯。呆滯資金集中時優先安排促銷清倉、降價處理或退供應商，並在明細表核對每個 SKU 的庫存金額。</li>
 <li>閾值與週期口徑複核：統計週期可選 30/90/180 天，週期直接決定日均出庫大小，應與財務或 ERP 口徑保持一致；呆滯閾值按品類分別設定（快消 90 天、家電 180 天、備品備件 365 天），改閾值後同一批資料結論可能完全不同，需留存輸入快照。</li>
 </ul>
 <div class="dd-example"><div class="dd-ex-title">算例：3 個 SKU 的呆滯篩查（週期 90 天 / 閾值 180 天）</div><div class="dd-ex-body">輸入：礦泉水,5000,12000,30,2.5；紙巾,2000,3000,45,5；舊款鍋具,800,50,220,80。計算：日均出庫=出庫量÷90 → 礦泉水 133.33 件/天、紙巾 33.33 件/天、舊款鍋具 0.56 件/天；週轉天數=庫存量÷日均出庫 → 37.5 天、60.0 天、1440.0 天；庫存金額=庫存量×單價 → 12500 元、10000 元、64000 元。判定：僅舊款鍋具週轉天數 1440 &gt; 180 判呆滯。彙總：SKU 總數 3、呆滯品數 1、庫存總金額 86500 元、呆滯金額 64000 元、呆滯金額佔比 74.0% —— 說明庫存資金高度壓在單一呆滯品上，應優先清理舊款鍋具。</div></div>
@@ -240,32 +240,58 @@ function clearAll(){
 function parseInv(text){
   var lines = text.split('\n');
   var list = [];
+  var rejected = [];
   for(var i=0;i<lines.length;i++){
     var line = lines[i].trim();
     if(!line) continue;
+    var lineNo = i+1;
     var p = line.split(/[,，\t]/);
-    if(p.length < 5) continue;
+    if(p.length < 5){ rejected.push('第'+lineNo+'行：字段不足5列（需 名称,库存,出库,库龄,单价）'); continue; }
     var name = p[0].trim();
-    var stock = parseFloat(p[1]);
-    var out = parseFloat(p[2]);
-    var age = parseFloat(p[3]);
-    var price = parseFloat(p[4]);
-    if(!name || isNaN(stock)||isNaN(out)||isNaN(age)||isNaN(price)) continue;
+    var stock = Number(p[1].trim());
+    var out = Number(p[2].trim());
+    var age = Number(p[3].trim());
+    var price = Number(p[4].trim());
+    var why = '';
+    if(!name) why='名称为空';
+    else if(p.slice(1).some(function(x){return String(x).trim()==='';})) why='存在空数值';
+    else if(![stock,out,age,price].every(function(x){return isFinite(x);})) why='数值非法';
+    else if(stock<0||out<0||age<0||price<0) why='库存/出库/库龄/单价不得为负数';
+    else if(!Number.isInteger(age)) why='库龄须为整数天';
+    if(why){ rejected.push('第'+lineNo+'行：'+why); continue; }
     list.push({name:name, stock:stock, out:out, age:age, price:price});
   }
-  return list;
+  return {list:list, rejected:rejected};
 }
 
 function calc(){
+  var en = (typeof TBKit!=='undefined'&&TBKit.util.isEn && TBKit.util.isEn());
   var text = document.getElementById('invInput').value;
-  var list = parseInv(text);
-  if(list.length===0){
-    ToolBox.showToast(i18nText('toast.msg823'),'error');
-    document.getElementById('result').style.display='none';
+  var parsed = parseInv(text);
+  var list = parsed.list;
+  var rejected = parsed.rejected;
+  var out = document.getElementById('result');
+  function fail(msg){
+    out.innerHTML='<p style="color:var(--danger);">'+msg+'</p>';
+    out.style.display='block';
+  }
+  var periodRaw = document.getElementById('period').value;
+  var thresholdRaw = document.getElementById('threshold').value;
+  var period = Number(periodRaw);
+  var threshold = Number(thresholdRaw);
+  if(String(periodRaw).trim()===''||!Number.isInteger(period)||period<=0){
+    fail(en?'Statistics period must be a positive integer (days)':'统计周期须为正整数（天）');
     return;
   }
-  var period = parseFloat(document.getElementById('period').value) || 90;
-  var threshold = parseFloat(document.getElementById('threshold').value) || 180;
+  if(String(thresholdRaw).trim()===''||!isFinite(threshold)||threshold<=0){
+    fail(en?'Slow-moving threshold must be a positive number (days)':'呆滞阈值须为正数（天）');
+    return;
+  }
+  if(list.length===0){
+    fail(en?'No valid inventory row (see rejected lines below)':'无有效库存行（见下方被拒行说明）');
+    out.innerHTML+='<p style="color:var(--danger);">'+rejected.map(function(r){return ToolBox.escHtml(r);}).join('<br>')+'</p>';
+    return;
+  }
 
   var totalStockValue = 0;
   var slowStockValue = 0;
@@ -277,7 +303,9 @@ function calc(){
     it.dailyOut = dailyOut;
     it.turnoverDays = dailyOut > 0 ? it.stock / dailyOut : Infinity;
     it.stockValue = it.stock * it.price;
-    it.isSlow = it.turnoverDays > threshold;
+    // 库龄与周转天数取较大者作为呆滞判定依据（两者均反映占用时长，与页面"根据库龄计算"宣称一致）
+    it.decideDays = Math.max(it.turnoverDays, it.age);
+    it.isSlow = it.decideDays > threshold;
     totalStockValue += it.stockValue;
     totalOut += it.out;
     if(it.isSlow){ slowStockValue += it.stockValue; slowCount++; }
@@ -295,12 +323,18 @@ function calc(){
   html += '<div class="stat-card"><div class="val">'+slowPct.toFixed(1)+'%</div><div class="lbl">呆滞金额占比</div></div>';
   html += '</div>';
 
+  if(rejected.length){
+    html += '<div class="tip-box tip-error" style="margin-top:8px;">'+(en?'Rejected ':'已拒绝 ')+rejected.length+(en?' line(s) (ignored, not counted in totals):':' 行（原样忽略，未计入统计）：')+'<br>'+rejected.map(function(r){return ToolBox.escHtml(r);}).join('<br>')+'</div>';
+  }
+  html += '<div class="tip-box tip-info" style="margin-top:8px;">'+(en?'Slow-moving rule: max(turnover days, inventory age) > threshold; larger value used. Accepted ':'呆滞判定口径：max(周转天数, 库龄) 超过阈值即判呆滞，取两者较大值。已接受 ')+list.length+(en?' line(s).':' 行。')+'</div>';
+
   html += '<h3 style="margin-top:8px;">呆滞品明细（按周转天数降序）</h3>';
-  html += '<table><thead><tr><th>SKU</th><th>库存量</th><th>日均出库</th><th>周转天数</th><th>库存金额</th><th>状态</th></tr></thead><tbody>';
+  html += '<table><thead><tr><th>SKU</th><th>库存量</th><th>日均出库</th><th>周转天数</th><th>库龄(天)</th><th>判定天数</th><th>库存金额</th><th>状态</th></tr></thead><tbody>';
   list.forEach(function(it){
     var tdStr = it.turnoverDays===Infinity ? '∞' : ToolBox.formatNumber(it.turnoverDays,0);
+    var ddStr = it.decideDays===Infinity ? '∞' : ToolBox.formatNumber(it.decideDays,0);
     var status = it.isSlow ? '<span class="grade-tag grade-fail">呆滞</span>' : '<span class="grade-tag grade-excellent">正常</span>';
-    html += '<tr><td>'+ToolBox.escHtml(it.name)+'</td><td>'+ToolBox.formatNumber(it.stock,0)+'</td><td>'+ToolBox.formatNumber(it.dailyOut,1)+'</td><td>'+tdStr+'</td><td>¥'+ToolBox.formatNumber(it.stockValue,0)+'</td><td>'+status+'</td></tr>';
+    html += '<tr><td>'+ToolBox.escHtml(it.name)+'</td><td>'+ToolBox.formatNumber(it.stock,0)+'</td><td>'+ToolBox.formatNumber(it.dailyOut,1)+'</td><td>'+tdStr+'</td><td>'+it.age+'</td><td>'+ddStr+'</td><td>¥'+ToolBox.formatNumber(it.stockValue,0)+'</td><td>'+status+'</td></tr>';
   });
   html += '</tbody></table>';
 

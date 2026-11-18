@@ -110,7 +110,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="按標價與折扣率測算實售價、優惠額與等效折數。">From cost and positioning set discount depth and concession space for promotions and channel pricing.</p>
     <div class="formula-box">
       <div class="formula-title">📐 計算公式</div>
-      <div class="formula-eq">價格折扣計算（本頁程式碼口徑，生效版直算）：實售價=標價×(1−折扣率÷100)；優惠額=標價−實售價；等效折數=(1−折扣率÷100)×10（折）；實售佔標價比=實售價÷標價×100%。校驗：兩欄位經輸入守衛必填，且須為有限數值，否則提示「請輸入兩個有效數值後再計算」並中止。判據：無固定分級，折扣率 0 時實售價=標價、100 時為 0，等效折數隨折扣率線性遞減。</div>
+      <div class="formula-eq">價格折扣計算（本頁程式碼口徑，生效版直算）：實售價=標價×(1−折扣率÷100)；優惠額=標價−實售價；等效折數=(1−折扣率÷100)×10（折）；實售佔標價比=實售價÷標價×100%。校驗：兩欄位經輸入守衛必填且為有限數值；另要求標價大於 0、折扣率在 0–100 之間，否則提示並中止。判據：無固定分級，折扣率 0 時實售價=標價、100 時為 0，等效折數隨折扣率線性遞減。</div>
       <p class="formula-desc">輸入兩個引數，自動計算常用結果</p>
     </div>
     <div class="input-row">
@@ -377,6 +377,11 @@ var e0=document.getElementById('v0'),e1=document.getElementById('v1');
   var box=document.getElementById('res');
   if(!box)return;
   if(!isFinite(A)||!isFinite(B)){box.innerHTML='<div class="info-box">请输入两个有效数值后再计算。</div>';return;}
+  if(A<=0||B<0||B>100){
+    var __pdEn=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
+    box.innerHTML='<div class="info-box">'+(__pdEn?'Total price must be >0 and the discount rate must be between 0 and 100.':'标价须大于 0，折扣率须在 0–100 之间。')+'</div>';
+    return;
+  }
   var items=[];
   var sp=A*(1-B/100);
   items.push([sp.toFixed(2), "实售价（元）"]);

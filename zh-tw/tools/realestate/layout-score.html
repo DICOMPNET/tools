@@ -120,7 +120,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="綜合得房率、方正度、面寬進深比對戶型打分（滿分 100）">Score a floor plan (out of 100) from usable rate, regularity, width-depth ratio and lighting.</p>
     <div class="formula-box">
       <div class="formula-title">📐 計算公式</div>
-      <div class="formula-eq">戶型綜合評分（本頁程式碼口徑，五項合計滿分 100）：得房率分 0–40=40−max(0, 80−套內÷建面×100)×2；方正度 0–25 按面寬÷進深比 r——r∈[0.8,1.0] 記 25、偏離該區間按每 0.1 扣 3 線性遞減；通透記 15（不通透記 8）；採光 0–10=(面寬÷√建面)×7；房間數 0–10 按與理想間數（建面&lt;70㎡ 為 2、&lt;120 為 3、&lt;160 為 4、其餘 5）每差 1 間扣 3。校驗：建面、套內&gt;0 且套內≤建面，否則提示「請輸入合理面積」並中止。判據：總分≥85 優秀、≥70 良好、≥55 一般、其餘較差，各檔附入手建議。</div>
+      <div class="formula-eq">戶型綜合評分（本頁程式碼口徑，五項合計滿分 100）：得房率分 0–40=40−max(0, 80−套內÷建面×100)×2；方正度 0–25 按面寬÷進深比 r——r∈[0.8,1.0] 記 25、偏離該區間按每 0.1 扣 3 線性遞減；通透記 15（不通透記 8）；採光 0–10=(面寬÷√建面)×7；房間數 0–10 按與理想間數（建面 70/120/160㎡ 分別對應 2/3/4 間，區間內線性插值、無硬邊界跳檔）每差 1 間扣 3。校驗：建面、套內、面寬、進深均須&gt;0 且套內≤建面，否則提示並中止。判據：總分≥85 優秀、≥70 良好、≥55 一般、其餘較差，各檔附入手建議。</div>
       <p class="formula-desc">綜合得房率、方正度、面寬進深比對戶型打分（滿分 100）</p>
     </div>
 
@@ -181,7 +181,7 @@
       <p><strong>方正度評分（25 分）</strong>：面寬/進深比 0.8-1.0 最佳，偏離扣分</p>
       <p><strong>通透性評分（15 分）</strong>：南北通透滿分，否則扣分</p>
       <p><strong>採光評分（10 分）</strong>：面寬越大采光越好，按面積折算</p>
-      <p><strong>房間數評分（10 分）</strong>：3 室最優，按面積適配度評分</p>
+      <p><strong>房間數評分（10 分）</strong>：按建面適配的理想間數評分（面積越大理想間數越多）</p>
     </div>
   </div>
 
@@ -275,8 +275,9 @@ function calc(){
   const rooms = parseInt(document.getElementById('rooms').value, 10) || 0;
   const through = parseInt(document.getElementById('through').value, 10) || 0;
 
-  if(built <= 0 || inner <= 0 || inner > built){
-    document.getElementById('result').innerHTML='<p style="color:var(--danger);">请输入合理面积（套内不应大于建面）</p>';
+  if(built <= 0 || inner <= 0 || inner > built || width <= 0 || depth <= 0){
+    var __lsEn=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
+    document.getElementById('result').innerHTML='<p style="color:var(--danger);">'+(__lsEn?'Enter valid areas, width and depth (all must be >0).':'请输入合理面积与面宽、进深（均须大于 0，套内不应大于建面）')+'</p>';
     return;
   }
 
@@ -304,10 +305,14 @@ function calc(){
     s4 = Math.max(0, Math.min(10, lightRatio * 7));
   }
 
-  // 房间数 10，3 室最优，按面积适配
-  let s5 = 0;
-  const idealRooms = built < 70 ? 2 : (built < 120 ? 3 : (built < 160 ? 4 : 5));
-  s5 = 10 - Math.abs(rooms - idealRooms) * 3;
+  // 房间数 10，按建面在 70/120/160㎡ 锚点间线性插值理想间数，
+  // 避免 119.9㎡ 与 120㎡ 的同一户型因硬边界差 3 分。
+  let idealRooms;
+  if(built <= 70) idealRooms = 2;
+  else if(built < 120) idealRooms = 2 + (built - 70) / 50;
+  else if(built < 160) idealRooms = 3 + (built - 120) / 40;
+  else idealRooms = Math.min(5, 4 + (built - 160) / 45);
+  let s5 = 10 - Math.abs(rooms - idealRooms) * 3;
   s5 = Math.max(0, Math.min(10, s5));
 
   const total = s1 + s2 + s3 + s4 + s5;

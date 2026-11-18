@@ -133,7 +133,7 @@
         <option value="handwriting">手寫作業</option>
       </select>
     </div>
-    <div><label>圖表佔比</label>
+    <div><label>圖表篇幅增幅</label>
       <select id="imgs" oninput="calc()">
         <option value="0">純文字</option>
         <option value="0.1">少量圖表</option>
@@ -177,7 +177,7 @@
     <ul>
       <li>輸入文章的總字數</li>
       <li>選擇排版型別（作文、標準文件、畢業論文等）</li>
-      <li>根據文件內容調整圖表佔比</li>
+      <li>根據圖表帶來的額外篇幅選擇增幅（50% 表示篇幅額外增加 50%，非版面佔比）</li>
       <li>可調整紙張大小和字型大小獲得更精確結果</li>
       <li>系統會自動估算所需頁數</li>
       <li>歷史記錄可儲存最近20次換算</li>
@@ -300,7 +300,7 @@
 <ul class="dd-list">
 <li>頁數估算：字數÷每頁字數。</li>
 <li>引數可調：字號行距影響。</li>
-<li>字數反推：由頁數估字數。</li>
+<li>圖表增幅：按圖表帶來的額外篇幅估算頁數。</li>
 </ul>
 <div class="dd-example"><div class="dd-ex-title">示例</div><div class="dd-ex-body">示例：本科論文 8000 字、每頁約 800 字→約 10 頁。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
@@ -345,7 +345,12 @@ function switchTab(name){
 }
 
 function calc(){
-  const w=parseInt(document.getElementById('words').value)||0;
+  const raw=String(document.getElementById('words').value||'').trim();
+  const w=raw===''?NaN:Number(raw);
+  if(!Number.isInteger(w)||w<100){
+    document.getElementById('result').innerHTML='<p style="color:var(--danger)">请输入 ≥100 的正整数</p>';
+    return;
+  }
   const f=document.getElementById('format').value;
   const imgs=parseFloat(document.getElementById('imgs').value)||0;
   const paper=document.getElementById('paper').value;
@@ -379,7 +384,7 @@ function calc(){
       <tbody>
         <tr><td>排版格式</td><td style="text-align:right;">${formats[f].name}</td></tr>
         <tr><td>纸张大小</td><td style="text-align:right;">${paper.toUpperCase()}</td></tr>
-        <tr><td>图表占比</td><td style="text-align:right;">${imgs*100}%</td></tr>
+        <tr><td>图表篇幅增幅</td><td style="text-align:right;">${imgs*100}%</td></tr>
         <tr><td>调整后每页</td><td style="text-align:right;">约 ${Math.round(effectivePer)} 字</td></tr>
       </tbody>
     </table>

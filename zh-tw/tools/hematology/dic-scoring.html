@@ -28,7 +28,7 @@
     <meta name="twitter:title" content="DIC 彌散性血管內凝血 ISTH 評分器">
     <meta name="twitter:description" content="DIC彌散性血管內凝血ISTH評分器是一款免費的線上血液科工具，基於 ISTH 顯性 DIC 評分系統，適用於有基礎疾病患者的 DIC 診斷評估。">
 <!-- TOOLBOX-WEBAPP-LD -->
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"DIC彌散性血管內凝血ISTH評分器","url":"https://tools.dicomp.net/zh-tw/tools/hematology/dic-scoring.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"DIC彌散性血管內凝血ISTH評分器是一款免費的線上血液科工具，基於 ISTH 顯性 DIC 評分系統，適用於有基礎疾病患者的 DIC 診斷評估。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"DIC彌散性血管內凝血ISTH評分器","url":"https://tools.dicomp.net/zh-tw/tools/hematology/dic-scoring.html","applicationCategory":"MedicalApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"DIC彌散性血管內凝血ISTH評分器是一款免費的線上血液科工具，基於 ISTH 顯性 DIC 評分系統，適用於有基礎疾病患者的 DIC 診斷評估。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
@@ -142,7 +142,7 @@
         <tr><td>纖維蛋白原 (g/L)</td><td>≥1.0</td><td>&lt;1.0</td><td>-</td><td>-</td></tr>
       </tbody>
     </table>
-    <p style="font-size:12px;color:var(--text-muted);margin-top:8px;">總分≥5分提示顯性DIC；&lt;5分提示非顯性DIC，需動態監測。前提條件：必須存在可能誘發DIC的基礎疾病。</p>
+    <p style="font-size:12px;color:var(--text-muted);margin-top:8px;">總分≥5分提示顯性DIC；&lt;5分提示非顯性DIC，需動態監測。前提條件：必須存在可能誘發DIC的基礎疾病。D-二聚體計分為本頁 mg/L 數值化簡化檔（無升高0/中度1/顯著2），與 ISTH 原文的「無升高0/中度2/顯著3」不同，判讀請以ISTH口徑為準並結合臨床。</p>
 
     <h3 style="margin-top:16px;">📊 常見 DIC 誘因</h3>
     <div class="ref-card">
@@ -312,7 +312,16 @@ function calc(){
 
   html+='<div class="tip-box" style="border-color:'+color+';color:'+color+';background:'+color+'1a;">'+advice+'</div>';
 
-  const __g1=html;try{ if(hasDisease&&typeof score==='number'&&isFinite(score)&&typeof TBKit!=='undefined'&&TBKit.chart&&TBKit.chart.refBar){ TBKit.chart.refBar('#resultRefBar',{value:score,min:0,max:8,unit:'',bands:[{"lo":null,"hi":5,"label":{"zh":"不提示 DIC","en":"DIC unlikely"},"color":"#F59E0B"},{"lo":5,"hi":null,"label":{"zh":"高 DIC 可能","en":"DIC likely"},"color":"#EF4444"}],title:((TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())?'Reference range':'参考区间标尺')}); } }catch(e){}
+  const __g1=html;
+  try{
+    var rb=document.getElementById('resultRefBar');
+    if(hasDisease&&typeof score==='number'&&isFinite(score)&&typeof TBKit!=='undefined'&&TBKit.chart&&TBKit.chart.refBar){
+      TBKit.chart.refBar('#resultRefBar',{value:score,min:0,max:8,unit:'',bands:[{"lo":null,"hi":5,"label":{"zh":"不提示 DIC","en":"DIC unlikely"},"color":"#F59E0B"},{"lo":5,"hi":null,"label":{"zh":"高 DIC 可能","en":"DIC likely"},"color":"#EF4444"}],title:((TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())?'Reference range':'参考区间标尺')});
+    } else if(rb && rb.innerHTML){
+      // 前提不满足时清空标尺，避免与「前提不满足」结论并存的旧「高 DIC 可能」色带
+      rb.innerHTML='';
+    }
+  }catch(e){}
   document.getElementById('result').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 }
 
@@ -519,7 +528,7 @@ function __dic_scoringPresets(){
     if (typeof TBKit === 'undefined') return;
     TBKit.preset.bar('#dic_scoringPresets',[{label:'默认参数',labelEn:'Default',values:{'plt':'45', 'ddimer':'8.5', 'pt':'6', 'fib':'1.2'}},
   {"label":"显性 DIC","labelEn":"Overt DIC","values":{"plt":45,"ddimer":12,"pt":8,"fib":0.9,"hasDisease":true}},
-  {"label":"早期 DIC 可疑","labelEn":"Early suspected DIC","values":{"plt":85,"ddimer":3,"pt":2,"fib":2.5,"hasDisease":true}},
+  {"label":"早期 DIC 可疑","labelEn":"Early suspected DIC","values":{"plt":85,"ddimer":6,"pt":4,"fib":1.0,"hasDisease":true}},
   {"label":"非 DIC 对照","labelEn":"Non-DIC control","values":{"plt":180,"ddimer":0.5,"pt":0,"fib":3.5,"hasDisease":false}}],function(){ calc(); });
 }
 var __dic_scoring_f0=(typeof calc==='function')?calc:null;

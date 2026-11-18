@@ -123,7 +123,7 @@
   </div>
   <div class="card formula-box">
     <h3>📐 計算公式與說明</h3>
-    <div class="formula-eq">RAW 資料量估算（本頁程式碼口徑）：單幀大小=百萬畫素×10⁶×位深÷8÷10⁶（MB，即畫素數×bit÷8 再折 MB）；每分鐘資料量=單幀 MB×幀率 fps×60÷1000（GB，按輸入幀率計算而非固定 10fps，頁面「分鐘@10幀」文案僅為預設值示例口徑）。校驗：無強校驗，空值按 0 兜底。判據：無固定分級，資料量與位深、幀率均成正比，8bit 折半、16bit 翻倍。</div>
+    <div class="formula-eq">RAW 資料量估算（本頁程式碼口徑）：單幀大小=百萬畫素×10⁶×位深÷8÷10⁶（MB，即畫素數×bit÷8 再折 MB）；每分鐘資料量=單幀 MB×幀率 fps×60÷1000（GB，按輸入幀率計算而非固定 10fps，頁面「分鐘@10幀」文案僅為預設值示例口徑）。校驗：畫素、位深與幀率均須為正數，非法輸入不再按 0 出結論；結果標籤隨輸入幀率動態顯示。判據：無固定分級，資料量與位深、幀率均成正比，8bit 折半、16bit 翻倍。</div>
     <p style="font-size:13px;color:var(--text-muted);margin-top:12px;">未計壓縮與後設資料開銷。</p>
   </div>
 </div>
@@ -256,14 +256,19 @@
 </div>
 <script>
 function calc(){
+  const __en=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
   const mp = +document.getElementById('mp').value || 0;
   const bit = +document.getElementById('bit').value || 0;
   const fps = +document.getElementById('fps').value || 0;
+  if(!isFinite(mp)||mp<=0||!isFinite(bit)||bit<=0||!isFinite(fps)||fps<=0){
+    ToolBox.setResult('result', __en?'Pixels, bit depth and frame rate must be positive.':'像素、位深与帧率均须为正数。');
+    return;
+  }
   let html = '';
   const __v0 = (mp*1e6*bit/8/1e6);
   html += `<p>RAW MB：<strong style="font-size:18px;color:var(--primary);">${__v0.toFixed(1)}</strong> MB</p>`;
   const __v1 = ((mp*1e6*bit/8/1e6)*fps*60/1000);
-  html += `<p>分钟@10帧 GB：<strong style="font-size:18px;color:var(--primary);">${__v1.toFixed(2)}</strong> GB</p>`;
+  html += `<p>${__en?('Per minute @ '+fps+' fps GB'):('分钟@'+fps+'帧 GB')}：<strong style="font-size:18px;color:var(--primary);">${__v1.toFixed(2)}</strong> GB</p>`;
   const __g1=html;document.getElementById('result').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 }
 function copyResult() {

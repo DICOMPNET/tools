@@ -143,10 +143,10 @@
 <div class="container">
   <div class="card tool-card-accent" style="--tool-accent:#06B6D4;">
      <h2 data-zh="🧮 化學方程式配平器">🧮 Chemical Equation Balancer</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="輸入未配平的化學方程式，自動求解最小整數化學計量數並驗證原子守恆。支援括號 Ca(OH)₂、水合物 CuSO₄·5H₂O。">Balance a chemical equation automatically to the smallest integer coefficients and verify atom conservation; supports brackets and hydrates.</p>    <div class="formula-box">
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="輸入未配平的化學方程式，按原子守恆求解整數化學計量數並驗證；唯一解給出最小整數係數，欠定多解只在有限權重範圍內尋找一組。支援括號 Ca(OH)₂、水合物 CuSO₄·5H₂O。">Enter an unbalanced equation to find integer coefficients that conserve atoms; unique solutions use the smallest integers, underdetermined cases search a finite weight range for one solution. Supports brackets and hydrates.</p>    <div class="formula-box">
       <div class="formula-title">📐 計算公式 / 原理</div>
-      <div class="formula-eq">化學方程式配平（本頁程式碼口徑，矩陣零空間演算法）：按元素×物種構建原子守恆矩陣（反應物記正、生成物記負），高斯消元 RREF 求零空間基，再 LCM 通分、GCD 約化為最小整數係數；多基向量時在 ±8（2 個基）/±5（3 個）/±3（≥4 個）範圍窮舉權重，取全正且最大系數最小的解。校驗：須恰一個等號且兩側非空，未知元素符號報錯，無非零解報「無法配平」。判據：係數比唯一可配平，欠定多解同樣報錯提示檢查方程式。</div>
-      <div class="formula-desc">配平即求解線性方程組：為每種元素列出原子守恆方程，求最小正整數係數解；係數比唯一（或成整數倍）時方程式可配平，否則報錯提示無法配平。</div>
+      <div class="formula-eq">化學方程式配平（本頁程式碼口徑，矩陣零空間演算法）：按元素×物種構建原子守恆矩陣（反應物記正、生成物記負），高斯消元 RREF 求零空間基，再 LCM 通分、GCD 約化；唯一零空間基時結果為最小整數係數。多基向量時在 ±8（2 個基）/±5（3 個）/±3（≥4 個）範圍窮舉權重，取全正且最大系數最小的一組並標註「非唯一解」；該範圍未命中不等於無解，也不保證找到全域性最小系數。校驗：須恰一個等號且兩側非空，未知元素符號報錯，RREF 判定無非零解時才報「沒有非零解」。</div>
+      <div class="formula-desc">配平即求解線性方程組：為每種元素列出原子守恆方程。唯一解直接輸出最小正整數係數；欠定多解只在有限權重範圍內找一組，未找到會明確說明是搜尋範圍未命中而非證明無解。</div>
     </div>
 
 
@@ -214,6 +214,7 @@
 <dl class="dd-faq">
 <dt>為什麼配平？</dt><dd>質量守恆，反應前後各元素原子數相等。</dd>
 <dt>氧化還原反應也能配嗎？</dt><dd>可以，但複雜氧化還原建議用化合價升降或半反應法輔助校驗。</dd>
+<dt>欠定方程為啥可能提示找不到？</dt><dd>線性方程有自由變數時可能有多個正整數解；本頁只在 ±8/±5/±3 的權重範圍搜尋一組，未命中只說明超出該搜尋範圍，不等於方程式無解，也不保證全域性最小系數。</dd>
 </dl>
 </div>
 </section>
@@ -232,7 +233,7 @@
       <tbody>
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="質量守恆配平">Mass balance</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="按元素原子數相等解最小整數係數">Balance by equal atom count per element</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="按元素原子數相等求整數係數；欠定多解僅在有限範圍內搜尋">Balance by equal atom count; underdetermined cases use a finite search</td>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="拉瓦錫 1789 質量守恆; 化學計量">Lavoisier 1789 conservation of mass; Stoichiometry</td>
         </tr>
       </tbody>
@@ -535,7 +536,7 @@ function balanceEquation(eqStr){
   }
 
   if(!coeffs){
-    return {error:'无法配平：反应物与生成物可能放反、方程式有误，或存在多种配平方式（欠定）。请检查化学式。'};
+    return {error:'有限搜索范围内未找到全正系数：这不等于方程式无解，也不保证不存在更优解。请改写为唯一解形式或人工求解；同时可检查反应物与生成物是否放反、化学式是否有误。'};
   }
 
   return {coeffs:coeffs,species:species,nR:nR,elements:elements,comps:comps,

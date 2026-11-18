@@ -123,6 +123,11 @@ FILE_PATCHES = {
         ('    return { ok: true, via: "copyCheck" };',
          '    return { ok: true, via: "copyCheck", fullBlob: c.returnBlob ? written : undefined };'),
     ],
+    # text-polisher 静态哨兵按 LF 匹配源码；Windows autocrlf 检出为 CRLF 时会假红，先归一化换行。
+    "scripts/verify_edu_calc.js": [
+        ("var h=fs.readFileSync(process.cwd()+'/tools/language/text-polisher.html','utf8');var ok=",
+         "var h=fs.readFileSync(process.cwd()+'/tools/language/text-polisher.html','utf8').split(String.fromCharCode(13)+nl).join(nl);var ok="),
+    ],
     # verify_sw_kill.cjs 调 `python3 -c` 验证 compute_sw_build 幂等；Windows 无 python3 别名。
     "scripts/verify_sw_kill.cjs": [
         ("spawnSync('python3', ['-c', python]",

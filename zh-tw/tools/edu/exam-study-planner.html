@@ -262,10 +262,6 @@
   <div class="formula-title">📐 計算方式</div> <div class="formula-eq">完成率 = 已完成任務數 ÷ 任務總數 × 100%（無任務時記 0%）；累計專注時長 = 已完成任務的分鐘數之和；專注小時數 = 累計分鐘 ÷ 60 保留一位小數。按科目分組統計：每科完成率 = 該科已完成數 ÷ 該科總數 × 100%；番茄數與累計專注分鐘取自本地統計</div>
   <p>累計專注時長 = 單次專注分鐘數 × 完成輪數；當日目標達成 = 完成輪數 ÷ 目標輪數。番茄鍾按「專注 + 休息」交替，幫助維持注意力。</p>
 </div>
-<div class="card formula-box">
-  <div class="formula-title">📐 計算方式</div>
-  <p>累計專注時長 = 單次專注分鐘數 × 完成輪數；當日目標達成 = 完成輪數 ÷ 目標輪數。番茄鍾按「專注 + 休息」交替，幫助維持注意力。</p>
-</div>
 <div class="input-row">
         <label>科目</label>
         <input type="text" id="subject" placeholder="如：數學">
@@ -564,36 +560,44 @@ let pomo = {
   total: 25 * 60,
   round: 1,
   target: 4,
-  timer: null
+  timer: null,
+  deadline: null,
+  focusMin: 25,
+  breakMin: 5
 };
 
 let pomoStarted = false;
 function togglePomo() {
   if (pomo.running) {
+    pomo.remaining = Math.max(0, Math.ceil(((pomo.deadline || Date.now()) - Date.now()) / 1000));
     clearInterval(pomo.timer);
     pomo.running = false;
+    pomo.deadline = null;
     document.getElementById('pomo-btn').textContent = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"▶ Continue":"▶ 继续");
   } else {
     pomoStarted = true;
     pomo.running = true;
+    pomo.deadline = Date.now() + pomo.remaining * 1000;
     document.getElementById('pomo-btn').textContent = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"⏸ Paused":"⏸ 暂停");
     pomo.timer = setInterval(tickPomo, 1000);
   }
 }
 
 function tickPomo() {
-  pomo.remaining--;
+  if (pomo.deadline == null) return;
+  pomo.remaining = Math.max(0, Math.ceil((pomo.deadline - Date.now()) / 1000));
   if (pomo.remaining <= 0) {
     playBeep();
     if (pomo.mode === 'focus') {
       const stats = getStats();
       stats.pomoCount = (stats.pomoCount || 0) + 1;
-      stats.focusMinutes = (stats.focusMinutes || 0) + +document.getElementById('focus-mins').value;
+      stats.focusMinutes = (stats.focusMinutes || 0) + (pomo.focusMin || 25);
       saveStats(stats);
       ToolBox.showToast(i18nText('toast.msg1004'), 'success');
       if (pomo.round >= pomo.target) {
         clearInterval(pomo.timer);
         pomo.running = false;
+        pomo.deadline = null;
         document.getElementById('pomo-btn').textContent = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"▶ Start":"▶ 开始");
         ToolBox.showToast(`🎊 恭喜！完成 ${pomo.target} 轮番茄钟！`, 'success');
         pomo.mode = 'done';
@@ -601,15 +605,16 @@ function tickPomo() {
         updatePomoDisplay();
         return;
       }
+      pomo.round++;
       pomo.mode = 'break';
-      pomo.remaining = +document.getElementById('break-mins').value * 60;
+      pomo.remaining = pomo.breakMin * 60;
       pomo.total = pomo.remaining;
     } else {
       pomo.mode = 'focus';
-      pomo.round++;
-      pomo.remaining = +document.getElementById('focus-mins').value * 60;
+      pomo.remaining = pomo.focusMin * 60;
       pomo.total = pomo.remaining;
     }
+    pomo.deadline = Date.now() + pomo.remaining * 1000;
   }
   updatePomoDisplay();
 }
@@ -651,8 +656,11 @@ function resetPomo() {
   pomo.running = false;
   pomo.mode = 'focus';
   pomo.round = 1;
-  pomo.remaining = +document.getElementById('focus-mins').value * 60;
+  pomo.focusMin = +document.getElementById('focus-mins').value || 25;
+  pomo.breakMin = +document.getElementById('break-mins').value || 5;
+  pomo.remaining = pomo.focusMin * 60;
   pomo.total = pomo.remaining;
+  pomo.deadline = null;
   pomo.target = +document.getElementById('target-rounds').value;
   document.getElementById('pomo-btn').textContent = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"▶ Start":"▶ 开始");
   updatePomoDisplay();
@@ -660,10 +668,10 @@ function resetPomo() {
 
 function skipPomo() {
   pomo.mode = pomo.mode === 'focus' ? 'break' : 'focus';
-  if (pomo.mode === 'focus') pomo.round++;
-  const mins = pomo.mode === 'focus' ? +document.getElementById('focus-mins').value : +document.getElementById('break-mins').value;
+  const mins = pomo.mode === 'focus' ? pomo.focusMin : pomo.breakMin;
   pomo.remaining = mins * 60;
   pomo.total = pomo.remaining;
+  pomo.deadline = pomo.running ? Date.now() + pomo.remaining * 1000 : null;
   updatePomoDisplay();
 }
 
@@ -673,7 +681,9 @@ function updatePomoDisplay() {
   document.getElementById('pomo-time').textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
   document.getElementById('pomo-round').textContent = pomo.round;
   document.getElementById('pomo-target').textContent = pomo.target;
-  document.getElementById('pomo-status').textContent = pomo.mode === 'focus' ? '专注时间' : pomo.mode === 'break' ? '休息时间' : ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Completed":"已完成");
+  document.getElementById('pomo-status').textContent = pomo.mode === 'done' ? ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Completed":"已完成")
+    : (!pomoStarted && !pomo.running && pomo.mode === 'focus') ? ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Ready":"就绪")
+    : pomo.mode === 'focus' ? '专注时间' : '休息时间';
 }
 
 function renderStats() {

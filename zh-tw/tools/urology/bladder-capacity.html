@@ -112,7 +112,7 @@
     <h2 data-zh="🧊 膀胱容量(殘餘尿+尿量)測量器">Bladder Capacity</h2>
     <div class="formula-box">
       <div class="formula-title">📐 計算公式</div>
-      <div class="formula-eq">膀胱容量 = 排尿量 + 殘餘尿；兒童預期容量 =（年齡 + 2）× 30 mL，成人預期約 300 至 600 mL（中位 400）；實際除以預期比 小於0.7 偏小、大於1.5 偏大；排空效率 = 排尿量 ÷ 容量 × 100%。</div>
+      <div class="formula-eq">膀胱容量 = 排尿量 + 殘餘尿（兩項不可同時為 0）；兒童預期容量 =（年齡 + 2）× 30 mL，成人預期約 300 至 600 mL（中位 400）；實際除以預期比 小於0.5 顯著縮小、0.5 至 0.7 偏小、大於1.5 偏大；排空效率 = 排尿量 ÷ 容量 × 100%。</div>
     </div>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="由排尿量與殘餘尿計算膀胱容量，對照預期容量（含兒童 Koff 公式）評估">Bladder Capacity</p>
 
@@ -183,7 +183,7 @@
 <div class="dd-example"><div class="dd-ex-title">小容量 180mL</div><div class="dd-ex-body">排尿 120 + 殘餘 60 = 180mL（預期 400 的 45%），提示膀胱容量減小，常見於間質性膀胱炎或纖維化。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
-<dt>預期容量怎麼定？</dt><dd>成人預期約 400mL，按年齡與性別微調；實際/預期比值&lt;50% 提示容量顯著下降。</dd>
+<dt>預期容量怎麼定？</dt><dd>成人預期約 400mL，按年齡與性別微調；實際/預期比值&lt;50% 為顯著縮小，50% 至 70% 為偏小，&gt;150% 為偏大。</dd>
 <dt>殘餘尿多少需要處理？</dt><dd>成人殘餘尿 &lt;50 mL 視為正常，50–100 mL 需複查隨訪，&gt;100 mL 提示排尿不全，&gt;200 mL 常提示尿瀦留。是否處理不只看數值，還要結合症狀、腎功能與是否反覆感染；單次異常應擇日複查。</dd>
 </dl>
 </div>
@@ -229,11 +229,13 @@
 <!-- /注意事項區塊 -->
 </div>
 <script>
+function __bcText(zh,en){ return (typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())?en:zh; }
 function calc(){
   var voided=parseFloat(document.getElementById('voided').value);
   var pvr=parseFloat(document.getElementById('pvr').value);
   var age=parseInt(document.getElementById('age').value);
-  if(!(voided>=0)||!(pvr>=0)||!(age>0)){ document.getElementById('result').innerHTML='<p style="color:var(--danger);">请输入有效的排尿量、残余尿与年龄</p>'; return; }
+  if(!(voided>=0)||!(pvr>=0)||!(age>0)){ document.getElementById('result').innerHTML='<p style="color:var(--danger);">'+__bcText('请输入有效的排尿量、残余尿与年龄','Enter valid voided volume, residual urine and age')+'</p>'; return; }
+  if(voided+pvr<=0){ document.getElementById('result').innerHTML='<p style="color:var(--danger);">'+__bcText('排尿量与残余尿至少一项需大于 0','Voided volume and residual urine cannot both be zero')+'</p>'; return; }
   var capacity=voided+pvr;
   // expected capacity
   var expected, expRange;
@@ -245,21 +247,20 @@ function calc(){
 
   var assess,color;
   var ratio=capacity/expected;
-  if(ratio<0.7){ assess='膀胱容量偏小（低于预期70%）'; color='var(--warning)'; }
-  else if(ratio>1.5){ assess='膀胱容量偏大（高于预期150%）'; color='var(--danger)'; }
-  else { assess='膀胱容量在预期范围'; color='var(--success)'; }
+  if(ratio<0.5){ assess=__bcText('膀胱容量显著缩小（低于预期50%）','Markedly reduced bladder capacity (below 50% of expected)'); color='var(--danger)'; }
+  else if(ratio<0.7){ assess=__bcText('膀胱容量偏小（低于预期70%）','Reduced bladder capacity (below 70% of expected)'); color='var(--warning)'; }
+  else if(ratio>1.5){ assess=__bcText('膀胱容量偏大（高于预期150%）','Increased bladder capacity (above 150% of expected)'); color='var(--danger)'; }
+  else { assess=__bcText('膀胱容量在预期范围','Bladder capacity within expected range'); color='var(--success)'; }
 
   var html='<p>膀胱容量 = 排尿量 + 残余尿 = '+voided+' + '+pvr+' = <strong style="font-size:22px;color:var(--primary);">'+capacity+' mL</strong></p>';
   html+='<p>预期容量：<strong>'+expected+' mL</strong>（'+expRange+'）</p>';
   html+='<p>实际/预期比：'+ratio.toFixed(2)+' — <strong style="color:'+color+';">'+assess+'</strong></p>';
   html+='<p style="margin-top:6px;">排空效率：'+eff.toFixed(1)+'%'+(eff>=80?'（良好）':(eff>=60?'（欠佳）':'（差，排空障碍）'))+'</p>';
-  if(pvr>0){
-    var pvrTip;
-    if(pvr<50) pvrTip='残余尿<50 mL，正常';
-    else if(pvr<100) pvrTip='残余尿轻度增多，建议复查';
-    else pvrTip='残余尿明显增多，建议评估排空障碍原因';
-    html+='<p style="color:var(--text-muted);">残余尿：'+pvrTip+'</p>';
-  }
+  var pvrTip;
+  if(pvr<50) pvrTip=__bcText('残余尿低于 50 mL，正常','Residual urine below 50 mL, normal');
+  else if(pvr<100) pvrTip=__bcText('残余尿轻度增多，建议复查','Residual urine mildly increased, recheck recommended');
+  else pvrTip=__bcText('残余尿明显增多，建议评估排空障碍原因','Residual urine markedly increased, evaluate causes of incomplete emptying');
+  html+='<p style="color:var(--text-muted);">'+__bcText('残余尿','Residual urine')+'：'+pvrTip+'</p>';
   if(ratio<0.7) html+='<p style="margin-top:6px;color:var(--warning);">容量缩小提示：警惕膀胱炎、OAB、结核或纤维化，建议尿动力学评估。</p>';
   if(ratio>1.5) html+='<p style="margin-top:6px;color:var(--danger);">容量增大提示：警惕下尿路梗阻或神经源性膀胱，建议评估残余尿与尿动力学。</p>';
   const __g2=html;document.getElementById('result').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));

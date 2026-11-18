@@ -591,26 +591,29 @@ function getMoonPhaseData(date) {
   var moonAge = days % SYNODIC_MONTH;
   if (moonAge < 0) moonAge += SYNODIC_MONTH;
 
-  var phase, illum;
+  var phase;
   if (moonAge < 1.84566) {
-    phase = '新月'; illum = 0;
+    phase = '新月';
   } else if (moonAge < 5.53699) {
-    phase = '蛾眉月'; illum = ((moonAge - 1.84566) / 3.69133) * 25;
+    phase = '蛾眉月';
   } else if (moonAge < 9.22831) {
-    phase = '上弦月'; illum = 25 + ((moonAge - 5.53699) / 3.69133) * 25;
+    phase = '上弦月';
   } else if (moonAge < 12.91963) {
-    phase = '盈凸月'; illum = 50 + ((moonAge - 9.22831) / 3.69133) * 25;
+    phase = '盈凸月';
   } else if (moonAge < 16.61096) {
-    phase = '满月'; illum = 100;
+    phase = '满月';
   } else if (moonAge < 20.30228) {
-    phase = '亏凸月'; illum = 100 - ((moonAge - 16.61096) / 3.69133) * 25;
+    phase = '亏凸月';
   } else if (moonAge < 23.99361) {
-    phase = '下弦月'; illum = 50 - ((moonAge - 20.30228) / 3.69133) * 25;
+    phase = '下弦月';
   } else if (moonAge < 27.68493) {
-    phase = '残月'; illum = 25 - ((moonAge - 23.99361) / 3.69133) * 25;
+    phase = '残月';
   } else {
-    phase = '新月'; illum = 0;
+    phase = '新月';
   }
+  // 被照亮比例按日心-地-月夹角的标准相角模型计算：
+  // 新月(age=0) → 0%，满月(age=S/2) → 100%，而非 8 段线性插值或满月 3.69 天恒 100%。
+  var illum = (1 - Math.cos(2 * Math.PI * moonAge / SYNODIC_MONTH)) / 2 * 100;
   illum = Math.max(0, Math.min(100, illum));
 
   var daysToNext = SYNODIC_MONTH - moonAge;
@@ -742,11 +745,15 @@ function calcMagnitude() {
   }
   var ratio = Math.pow(2.512, m2 - m1);
   var ratioStr = ratio >= 1000000 ? ratio.toExponential(4) : ToolBox.formatNumber(ratio, 2);
-  var brighter = m1 < m2 ? 'A' : (m2 < m1 ? 'B' : '一样亮');
+  var __enMag = (typeof TBKit!=='undefined' && TBKit.util.isEn());
+  // 星等相等时 ratio=1、无「谁更亮」，旧版拼出「即天体 一样亮 比 A 亮 1.00 倍」自相矛盾（SMS-71）
+  var concl = (m1 === m2)
+    ? (__enMag ? '<p>Both objects have the same magnitude and equal brightness (ratio 1.00).</p>'
+               : '<p>两天体星等相同，亮度相等（比值 1.00）。</p>')
+    : '<p>即天体 <strong>' + (m1 < m2 ? 'A' : 'B') + '</strong> 比' + (m1 < m2 ? ' B' : ' A') + ' 亮 <strong>' + ratioStr + '</strong> 倍</p>';
 
   const __h1='<p>星等 A = <strong>' + m1.toFixed(2) + '</strong>，星等 B = <strong>' + m2.toFixed(2) + '</strong></p>' +
-    '<p>亮度比（A/B）= 2.512<sup>(' + m2.toFixed(2) + ' - ' + m1.toFixed(2) + ')</sup> = <strong>' + ratioStr + '</strong></p>' +
-    '<p>即天体 <strong>' + brighter + '</strong> 比' + (brighter === 'A' ? ' B' : ' A') + ' 亮 <strong>' + ratioStr + '</strong> 倍</p>';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('magResult').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('magResult').innerHTML=__h1;
+    '<p>亮度比（A/B）= 2.512<sup>(' + m2.toFixed(2) + ' - ' + m1.toFixed(2) + ')</sup> = <strong>' + ratioStr + '</strong></p>' + concl;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('magResult').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('magResult').innerHTML=__h1;
 }
 
 // ===== 3. Meteor Crater Estimation =====
@@ -838,7 +845,8 @@ function latLonToUTM(lat, lon) {
   var latRad = degToRad(lat);
   var lonRad = degToRad(lon);
 
-  var zone = Math.floor((lon + 180) / 6) + 1;
+  // UTM 带号合法范围 1~60；lon=180° 落在第 60 带，不越界成 61
+  var zone = Math.max(1, Math.min(60, Math.floor((lon + 180) / 6) + 1));
   var lon0 = (zone - 1) * 6 - 180 + 3; // central meridian
 
   var N = UTM_A / Math.sqrt(1 - UTM_E2 * Math.sin(latRad) * Math.sin(latRad));
@@ -903,6 +911,11 @@ function convertLatLonToUTM() {
     const __h5='<p>UTM 标准投影范围：纬度 -80° 到 84°。请检查输入值。</p>';if((typeof __h5==='number'&&!isFinite(__h5))||/Infinity/.test(String(__h5))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h5)){document.getElementById('utmResult').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('utmResult').innerHTML=__h5;
     return;
   }
+  // 经度合法性：lon 须在 -180~180，否则 zone 与东移会算到不存在的带
+  if (lon < -180 || lon > 180) {
+    document.getElementById('utmResult').innerHTML='<p style="color:var(--danger)">经度应在 -180° 到 180° 之间。</p>';
+    return;
+  }
   var result = latLonToUTM(lat, lon);
   const __h6='<p><strong>UTM 区号</strong>：' + result.zone + result.letter + '</p>' +
     '<p><strong>东移 (Easting)</strong>：' + ToolBox.formatNumber(result.easting, 3) + ' m</p>' +
@@ -930,9 +943,19 @@ function convertUTMToLatLon() {
     const __h8=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"<p>Enter valid easting and northing.</p>":"<p>请输入有效的东移和北移值。</p>");if((typeof __h8==='number'&&!isFinite(__h8))||/Infinity/.test(String(__h8))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h8)){document.getElementById('utmReverseResult').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('utmReverseResult').innerHTML=__h8;
     return;
   }
+  // 东移假值 500000、北移假值 10000000；超物理范围或带号不匹配时拒绝
+  if (easting < 0 || easting > 1000000 || northing < 0 || northing > 10000000) {
+    document.getElementById('utmReverseResult').innerHTML='<p style="color:var(--danger)">东移应在 0~1000000 m、北移应在 0~10000000 m 之间。</p>';
+    return;
+  }
 
   var isNorth = hemi === 'N';
   var result = utmToLatLon(zone, easting, northing, isNorth);
+  // 反算结果须落在合法经纬度域内；带号与 E/N 不匹配时会溢出成荒谬值
+  if (!isFinite(result.lat) || !isFinite(result.lon) || result.lat < -90 || result.lat > 90 || result.lon < -180 || result.lon > 180) {
+    document.getElementById('utmReverseResult').innerHTML='<p style="color:var(--danger)">该区号与东移/北移值不匹配，无法反算为有效经纬度。</p>';
+    return;
+  }
 
   var latDir = result.lat >= 0 ? 'N' : 'S';
   var lonDir = result.lon >= 0 ? 'E' : 'W';
@@ -983,7 +1006,14 @@ function calcPolar() {
   var declCritical = 90 - absLat;
 
   if (declCritical > maxDecl) {
-    const __h12='<p>纬度 ' + lat.toFixed(1) + '° 超出太阳直射点范围，理论上全年为极昼或极夜（极点附近特殊情况）。</p>';if((typeof __h12==='number'&&!isFinite(__h12))||/Infinity/.test(String(__h12))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h12)){document.getElementById('polarResult').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('polarResult').innerHTML=__h12;
+    // 66.5°~66.56° 位于常用 66.5° 极圈与 23.44° 真极圈之间：
+    // 按太阳中心几何口径不满足严格极昼/极夜，但考虑太阳视直径与大气折射，
+    // 夏至/冬至前后可出现短暂无落日或无日出，绝不能写成「全年极昼或极夜」。
+    var __polarNear=lat.toFixed(1)+'°';
+    const __h12=((typeof TBKit!=='undefined'&&TBKit.util.isEn())
+      ? "<p>Latitude <strong>"+__polarNear+"</strong> is near the polar-circle boundary. By the geometric solar-centre criterion the solstitial declination is just short of the threshold, so strict polar day/night does not occur. With the Sun's apparent disc and atmospheric refraction, a brief midnight-sun or no-sunrise period can still occur around the solstices; it is not a year-round condition.</p>"
+      : '<p>纬度 <strong>'+__polarNear+'</strong>（'+hemisphere+'）处于常用 66.5° 极圈与 23.44° 真极圈之间：按太阳中心几何口径，夏至/冬至赤纬尚未达到严格极昼/极夜阈值；考虑太阳视直径与大气折射，前后仍可能出现短暂无落日或无日出（白夜/近似极昼极夜），但<strong>不是全年极昼或极夜</strong>。</p>');
+    if((typeof __h12==='number'&&!isFinite(__h12))||/Infinity/.test(String(__h12))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h12)){document.getElementById('polarResult').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('polarResult').innerHTML=__h12;
     return;
   }
 
@@ -1204,7 +1234,9 @@ function __astronomy_toolkitSnap(){
     return out;
 }
 function __astronomy_toolkitResText(){
-    var r=document.querySelector('.result-box');
+    // 附加层只包裹 calcMoonPhase()，其结果不在 .result-box 而在月相信息网格；
+    // 旧写法取页面首个 .result-box（#magResult）会把星等占位/结果误记为月相结果。
+    var r=document.getElementById('moonInfoGrid')||document.querySelector('.result-box');
     if(!r) return '';
     var t=(r.textContent||'').replace(/\s+/g,' ').trim();
     if(!t||t==='--'||t==='—'||t==='-') return '';

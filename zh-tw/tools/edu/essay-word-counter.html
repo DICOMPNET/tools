@@ -107,7 +107,7 @@
 <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="多維度字數統計，作文寫作好幫手">Count characters, words and paragraphs of an essay against submission limits.</p>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理與說明</div>
-      <div class="formula-eq">作文字數統計：字元總數 = 全部字元（含標點與空格）；純文字字數 = 中文字元數 + 英文單詞數（按空白切分）；標點數 = 中文與英文標點命中之和；段落數 = 按換行切分的非空段數；平均句長 = 總字數 ÷ 句末標點數，用於對照作文要求與排版檢查。</div>
+      <div class="formula-eq">作文字數統計：字元總數按 Unicode 碼點計（emoji 與擴充套件 B 漢字各算 1 字元，不按 UTF-16 單元重複計）；不含空白符 = 剔除空格/換行/製表符後的碼點數；純文字字數 = 中文字元數 + 英文單詞數（按空白切分），中英混排按此統一口徑分級；標點數 = 中文與英文標點（含彎引號 “”‘’）命中之和；段落數 = 按換行切分的非空段數；平均句長 = 純文字字數 ÷ 句末標點數。</div>
 
 </div>
 
@@ -258,7 +258,7 @@
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
 <dt>中英文怎麼算？</dt><dd>中文按字、英文按詞（空格分詞）分別統計。</dd>
-<dt>標點算嗎？</dt><dd>可選是否計入字元總數。</dd>
+<dt>標點算嗎？</dt><dd>標點計入總字元數，同時在「標點符號」單列；本工具不提供排除標點的開關。</dd>
 <dt>用途？</dt><dd>作文、申論篇幅自查。</dd>
 </dl>
 </div>
@@ -318,32 +318,41 @@ function switchTab(name){
 
 function count(){
   const text=document.getElementById('text').value;
-  const totalChars=text.length;
+  // 总字符按 Unicode 码点计：emoji 与扩展 B 汉字各算 1 个字符，不按 UTF-16 单元重复计。
+  const totalChars=Array.from(text).length;
   const chineseChars=(text.match(/[\u4e00-\u9fa5]/g)||[]).length;
-  const punctuation=(text.match(/[，。！？、；：""''（）【】《》\.,!?;:"'()\[\]<>…—]/g)||[]).length;
-  const noSpace=(text.replace(/\s/g,'')).length;
+  const punctuation=(text.match(/[，。！？、；：“”‘’（）《》【】\.,!?;:"'()\[\]<>…—]/g)||[]).length;
+  // \s 覆盖空格、换行与制表符，故标签用「不含空白符」而非「不含空格」。
+  const noSpace=Array.from(text.replace(/\s/g,'')).length;
   // 段落以换行分隔（兼容单换行与空行分段）
   const paragraphs=text.split(/\n+/).filter(p=>p.trim()).length;
   const words=(text.match(/[a-zA-Z]+/g)||[]).length;
   const lines=text.split('\n').length;
   const numbers=(text.match(/\d+/g)||[]).length;
+  // 纯文字字数 = 中文字符 + 英文单词（公式框口径），分级与平均句长都用它。
+  const pureChars=chineseChars+words;
+  const sentenceCount=(text.match(/[。！？!?]+/g)||[]).length;
+  const avgSentence=sentenceCount>0?(pureChars/sentenceCount).toFixed(1):'—';
 
   let grade='',cls='',tip='';
-  if(chineseChars<100){grade='短文';cls='grade-pass';tip='字数偏少，建议补充内容';}
-  else if(chineseChars<300){grade='短篇';cls='grade-good';tip='适合小学低年级作文';}
-  else if(chineseChars<500){grade='中短篇';cls='grade-good';tip='适合小学中年级作文';}
-  else if(chineseChars<800){grade='中等';cls='grade-excellent';tip='适合小学高年级/初中作文';}
-  else if(chineseChars<1200){grade='中长篇';cls='grade-excellent';tip='适合高中作文';}
+  if(pureChars<100){grade='短文';cls='grade-pass';tip='字数偏少，建议补充内容';}
+  else if(pureChars<300){grade='短篇';cls='grade-good';tip='适合小学低年级作文';}
+  else if(pureChars<500){grade='中短篇';cls='grade-good';tip='适合小学中年级作文';}
+  else if(pureChars<800){grade='中等';cls='grade-excellent';tip='适合小学高年级/初中作文';}
+  else if(pureChars<1200){grade='中长篇';cls='grade-excellent';tip='适合高中作文';}
   else{grade='长篇';cls='grade-excellent';tip='内容丰富，注意精简';}
 
   const __h0=`
     <h3>📊 字数统计</h3>
     <div class="data-grid">
       <div class="data-card"><div class="num">${chineseChars}</div><div class="label">中文字数</div></div>
+      <div class="data-card"><div class="num">${words}</div><div class="label">英文词数</div></div>
+      <div class="data-card"><div class="num">${pureChars}</div><div class="label">纯文字字数</div></div>
       <div class="data-card"><div class="num">${totalChars}</div><div class="label">总字符数</div></div>
-      <div class="data-card"><div class="num">${noSpace}</div><div class="label">不含空格</div></div>
+      <div class="data-card"><div class="num">${noSpace}</div><div class="label">不含空白符</div></div>
       <div class="data-card"><div class="num">${punctuation}</div><div class="label">标点符号</div></div>
       <div class="data-card"><div class="num">${paragraphs}</div><div class="label">段落数</div></div>
+      <div class="data-card"><div class="num">${avgSentence}</div><div class="label">平均句长</div></div>
       <div class="data-card"><div class="num">${lines}</div><div class="label">行数</div></div>
     </div>
     <div style="text-align:center;margin-top:12px;">

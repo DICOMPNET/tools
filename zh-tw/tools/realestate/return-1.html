@@ -110,7 +110,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="按年淨收益與資本化率以收益還原法測算收益價格。">Value income property by net operating income divided by capitalization rate.</p>
     <div class="formula-box">
       <div class="formula-title">📐 計算公式</div>
-      <div class="formula-eq">收益還原法估值（本頁程式碼口徑，生效版）：資本化率 R=輸入%÷100；收益價格 V=年淨收益÷R（元，另換算萬元）；月淨收益=年淨收益÷12；靜態回收年限=1÷R（年）。校驗：兩欄位經輸入守衛必填且須為有限數值，否則提示「請輸入兩個有效數值後再計算」並中止（無 R&gt;0 強校驗）。判據：無固定分級，資本化率越低估值越高，靜態回收年限與資本化率互為倒數。</div>
+      <div class="formula-eq">收益還原法估值（本頁程式碼口徑，生效版）：資本化率 R=輸入%÷100；收益價格 V=年淨收益÷R（元，另換算萬元）；月淨收益=年淨收益÷12；靜態回收年限=1÷R（年）。校驗：兩欄位經輸入守衛必填且為有限數值；另要求年淨收益大於 0、資本化率在 0–30% 之間，否則提示並中止。判據：無固定分級，資本化率越低估值越高，靜態回收年限與資本化率互為倒數。</div>
       <p class="formula-desc">輸入兩個引數，自動計算常用結果</p>
     </div>
     <div class="input-row">
@@ -348,6 +348,11 @@ var e0=document.getElementById('v0'),e1=document.getElementById('v1');
   var box=document.getElementById('res');
   if(!box)return;
   if(!isFinite(A)||!isFinite(B)){box.innerHTML='<div class="info-box">请输入两个有效数值后再计算。</div>';return;}
+  if(A<=0||B<=0||B>30){
+    var __rtEn=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
+    box.innerHTML='<div class="info-box">'+(__rtEn?'Annual net income must be >0 and the capitalization rate between 0 and 30%.':'年净收益须大于 0，资本化率须在 0–30% 之间。')+'</div>';
+    return;
+  }
   var items=[];
   var cap=B/100;
   items.push([(A/cap).toFixed(2), "收益价格（元）"]);

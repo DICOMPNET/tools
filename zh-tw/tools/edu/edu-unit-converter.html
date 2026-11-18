@@ -111,7 +111,7 @@
 
 <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
 <h2 data-zh="📖 教育常用單位轉換器">📖 Education Unit Converter</h2>
-<p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="長度、重量、面積、體積、時間、角度等單位轉換">Convert common education units such as scores, grades, pages and word counts.</p>
+<p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="長度、重量、面積、體積、時間、角度等單位轉換">Convert common education units such as length, weight, area, volume, time and angle.</p>
 
 <div class="tabs">
   <div id="edu_unit_converterPresets"></div><button type="button" class="tab-btn active" onclick="switchTab('calc')">轉換</button><button class="btn" type="button" onclick="__edu_unit_converterExport()">匯出明細 CSV</button>
@@ -248,18 +248,18 @@
 </style>
 <section class="deep-dive" data-deep-dive="1">
 <div class="card">
-<h2>📚 深度解析：面向教育場景的常用單位（如分數/等級/頁碼/字數）換算，輔助作業與統計。</h2>
+<h2>📚 深度解析：面向教育場景的長度、質量、面積、體積、時間與角度等常用物理單位換算。</h2>
 <h3>💡 常見使用場景</h3>
 <ul class="dd-list">
-<li>等級換算：分數與等級互轉。</li>
-<li>頁碼字數：論文頁數估算。</li>
-<li>批次：多值一次換算。</li>
+<li>長度、質量、面積、體積、時間、角度：教育場景常用物理量換算。</li>
+<li>按單位進率換算：先統一到基準單位，再換算到目標單位。</li>
+<li>常見換算：1 米 = 100 釐米，1 小時 = 60 分鐘。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">示例</div><div class="dd-ex-body">示例：百分制 92 分對應等級 A。</div></div>
+<div class="dd-example"><div class="dd-ex-title">示例</div><div class="dd-ex-body">示例：1 米 = 100 釐米；輸入 92 米、米→釐米，得到 9200 釐米。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
-<dt>等級標準？</dt><dd>按常見五檔（A-E）對映，可自定義閾值。</dd>
-<dt>用途？</dt><dd>作業評定與成績登記輔助。</dd>
+<dt>支援哪些單位？</dt><dd>長度、質量、面積、體積、時間、角度等教育場景常用物理量。</dd>
+<dt>用途？</dt><dd>作業中的<a class="term-link" href="/zh-tw/tools/life/unit-converter.html">單位換算</a>、物理量核對與課堂練習。</dd>
 <dt>本地？</dt><dd>純前端計算，資料不上傳。</dd>
 </dl>
 </div>
@@ -331,10 +331,10 @@ function initCats(){
     html+=`<label><input type="radio" name="cat" value="${k}"${k===curCat?' checked':''} onchange="setCat('${k}')"> ${cats[k].name}</label>`;
   });
   const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('cats').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('cats').innerHTML=__h0;
-  setCat(curCat);
+  setCat(curCat, true);
 }
 
-function setCat(c){
+function setCat(c, silent){
   curCat=c;
   const us=cats[c].units;
   let opts='';
@@ -344,7 +344,7 @@ function setCat(c){
   const keys=Object.keys(us);
   document.getElementById('fromUnit').value=keys[0];
   document.getElementById('toUnit').value=keys[1]||keys[0];
-  convert();
+  convert(silent);
 }
 
 function swapUnits(){
@@ -356,16 +356,19 @@ function swapUnits(){
   convert();
 }
 
-function convert(){
+function convert(silent){
   const u=cats[curCat].units;
   const f=document.getElementById('fromUnit').value;
   const t=document.getElementById('toUnit').value;
-  const v=parseFloat(document.getElementById('fromVal').value)||0;
+  const raw=String(document.getElementById('fromVal').value||'').trim();
+  const v=raw===''?0:parseFloat(raw);
   const base=v*u[f].v;
   const res=base/u[t].v;
 
   let display='';
-  if(Math.abs(res)<0.0001||Math.abs(res)>1000000){
+  if(res===0){
+    display='0';
+  }else if(Math.abs(res)<0.0001||Math.abs(res)>1000000){
     display=res.toExponential(6).replace(/\.?0+e/,'e').replace('e+','e');
   }else{
     display=parseFloat(res.toFixed(10)).toString();
@@ -374,7 +377,7 @@ function convert(){
   document.getElementById('toVal').value=display;
   const __h3=`<p style="text-align:center;font-size:15px;">${v} <strong>${u[f].n}</strong> = <strong style="color:var(--primary);font-size:18px;">${display}</strong> <strong>${u[t].n}</strong></p>`;if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){document.getElementById('info').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('info').innerHTML=__h3;
 
-  saveHistory(curCat, f, t, v, res);
+  if(!silent&&raw!=='') saveHistory(curCat, f, t, v, res);
 }
 
 function copyResult(){

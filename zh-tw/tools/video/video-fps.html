@@ -115,7 +115,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="在不同幀率之間換算幀數，計算影片時長與幀數關係">Video Fps - online utility on ToolBox.</p>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理與說明</div>
-      <div class="formula-eq">總幀數 = 時長(s) × 幀率(fps)；跨幀率時長比 = 目標幀率 ÷ 源幀率（如 60 fps 素材放入 24 fps 時間線為 0.4 倍速慢放，時長 = 原始時長 × 60 ÷ 24）；抽幀間隔 = 源幀率 ÷ 目標幀率；單幀時長 = 1 ÷ 幀率（24 fps 為 41.67 ms、60 fps 為 16.67 ms）。</div>
+      <div class="formula-eq">總幀數 = 時長(s) × 幀率(fps)；常規幀率轉換隻改幀數、時長不變（在同一時間軸上抽幀或插值補幀）。若需改變播放速度，須顯式變速重定時：速度比 = 目標幀率 ÷ 源幀率（60 fps 素材放入 24 fps 時間線為 2.5× 慢放），新時長 = 原始時長 × 源幀率 ÷ 目標幀率（10 s × 60 ÷ 24 = 25 s）；抽幀間隔 = 源幀率 ÷ 目標幀率；單幀時長 = 1 ÷ 幀率（24 fps 為 41.67 ms、60 fps 為 16.67 ms）。</div>
 
 </div>
 
@@ -219,8 +219,8 @@
 <li>慢動作/升格拍攝時估算高幀率素材的幀數與儲存壓力，如 60fps 相對 24fps 幀數翻倍以上。</li>
 <li>對照常見幀率（23.976/24/25/29.97/30/50/59.94/60/120/240）檢視同一時長下各幀率的幀數。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">幀數換算</div><div class="dd-ex-body">總幀數 = 幀率 × 時長(秒)，按四捨五入取整；換算比 ratio = 目標幀率 / 源幀率。ratio&gt;1 為升幀（需插值、播放放慢 ratio 倍），ratio&lt;1 為降幀（抽幀、播放加速 1/ratio 倍），相等則無需轉換。</div></div>
-<div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">10 秒素材：24fps → 240 幀，60fps → 600 幀。24→60 時 ratio = 60/24 = 2.5，即每 24 幀需插值到 60 幀、播放放慢 2.5 倍（慢動作）；60→24 時 ratio = 0.4，抽幀後播放加速 2.5 倍。</div></div>
+<div class="dd-example"><div class="dd-ex-title">幀數換算</div><div class="dd-ex-body">總幀數 = 幀率 × 時長(秒)，按四捨五入取整；換算比 ratio = 目標幀率 / 源幀率，只決定幀數增減，不改變時長。常規轉碼在同一時間軸上抽幀或插值補幀：ratio&gt;1 為升幀（幀數增加），ratio&lt;1 為降幀（幀數減少），相等則無需轉換；播放速度保持不變，如需慢放/快放須另做變速重定時。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">10 秒素材：24fps → 240 幀，60fps → 600 幀。24→60 時 ratio = 60/24 = 2.5，每 24 幀插值補至 60 幀、幀數 240→600、時長仍為 10 s；60→24 時抽幀至 240 幀、時長仍為 10 s。若要慢放/快放需另做變速重定時：速度比 = 目標fps ÷ 源fps，新時長 = 原時長 × 源fps ÷ 目標fps（60fps 素材放 24fps 時間線為 2.5× 慢放、時長 25 s）。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
 <dt>為什麼有 23.976 和 29.97 這種小數幀率？</dt><dd>源於 NTSC 彩色電視的實際場頻（約 59.94Hz），為相容而採用 23.976/29.97；與 24/30 相差僅 0.1%，但長片會累積音畫不同步，轉換時需明確。</dd>
@@ -285,13 +285,18 @@ function calc(){
   const dstFrames = Math.round(dstFps * duration);
   const ratio = dstFps / srcFps;
 
+  var __fpsEn=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
   let note = '';
   if(ratio > 1){
-    note = `升帧转换：每${srcFps}帧需插值至${dstFps}帧，放慢${ratio.toFixed(2)}倍播放`;
+    note = __fpsEn
+      ? `Frame-rate upconversion: interpolate every ${srcFps} frames to ${dstFps}; frame count ${srcFrames}→${dstFrames}, duration stays ${duration}s (no retiming). Use separate speed retiming for slow motion.`
+      : `升帧转换：每${srcFps}帧插值补至${dstFps}帧，帧数 ${srcFrames}→${dstFrames}，时长仍为 ${duration}s 不变（常规转码不改变时间轴）；如需慢放须另用变速重定时。`;
   } else if(ratio < 1){
-    note = `降帧转换：每${srcFps}帧抽帧至${dstFps}帧，加速${(1/ratio).toFixed(2)}倍播放`;
+    note = __fpsEn
+      ? `Frame-rate downconversion: drop frames from ${srcFps} to ${dstFps}; frame count ${srcFrames}→${dstFrames}, duration stays ${duration}s (no retiming). Use separate speed retiming for fast motion.`
+      : `降帧转换：每${srcFps}帧抽帧至${dstFps}帧，帧数 ${srcFrames}→${dstFrames}，时长仍为 ${duration}s 不变（常规转码不改变时间轴）；如需快放须另用变速重定时。`;
   } else {
-    note = '帧率相同，无需转换';
+    note = __fpsEn ? 'Same frame rate, no conversion needed.' : '帧率相同，无需转换';
   }
 
   const __g3=srcFrames + ' → ' + dstFrames + ' 帧';document.getElementById('frameResult').textContent=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));

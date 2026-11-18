@@ -63,7 +63,7 @@
 
 <script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"標準分Z分數是做什麼的？","acceptedAnswer":{"@type":"Answer","text":"輸入原始分、均值與標準差計算 Z 分數與百分位，用於成績標準化比較與正態分佈定位，適合教學演示與測驗結果分析，純前端。"}},{"@type":"Question","name":"如何使用標準分Z分數？","acceptedAnswer":{"@type":"Answer","text":"在對應的輸入框或選項中填寫、選擇所需引數，點選「計算」或「生成」按鈕即可執行，結果會在結果區即時顯示，支援複製與匯出。"}},{"@type":"Question","name":"計算結果準確嗎？","acceptedAnswer":{"@type":"Answer","text":"本工具在你的本地瀏覽器中即時計算，不依賴伺服器；只要輸入的引數正確，結果即按對應的規則得出。涉及經驗估算的部分僅供參考，不作為正式依據。"}},{"@type":"Question","name":"標準分Z分數適合哪些場景？","acceptedAnswer":{"@type":"Answer","text":"學習與教學場景下的快速計算。"}},{"@type":"Question","name":"使用本工具需要聯網或上傳資料嗎？","acceptedAnswer":{"@type":"Answer","text":"不需要。所有計算均在你的裝置本地完成，資料不會上傳到任何伺服器，可放心使用。"}}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"標準分Z分數是做什麼的？","acceptedAnswer":{"@type":"Answer","text":"輸入原始分、均值與標準差計算 Z 分數與百分位，用於成績標準化比較與正態分佈定位，適合教學演示與測驗結果分析，純前端。"}},{"@type":"Question","name":"如何使用標準分Z分數？","acceptedAnswer":{"@type":"Answer","text":"填寫原始分數、均值 μ 與標準差 σ（σ 必須大於 0），選擇比較方向後結果區即時給出 Z 分數、百分位、有效 Z 分數、T 分數與等級評價，可一鍵複製。"}},{"@type":"Question","name":"計算結果準確嗎？","acceptedAnswer":{"@type":"Answer","text":"本工具在你的本地瀏覽器中即時計算，不依賴伺服器；只要輸入的引數正確，結果即按對應的規則得出。涉及經驗估算的部分僅供參考，不作為正式依據。"}},{"@type":"Question","name":"使用本工具需要聯網或上傳資料嗎？","acceptedAnswer":{"@type":"Answer","text":"不需要。所有計算均在你的裝置本地完成，資料不會上傳到任何伺服器，可放心使用。"}}]}</script>
 
 <script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
@@ -224,12 +224,15 @@
 <li>離群判斷：據 |Z| 評估偏離程度。</li>
 <li>成績對比：不同科目分數統一標準化比較。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">示例</div><div class="dd-ex-body">示例：均值 80、標準差 10、得分 95，Z=(95−80)/10=1.5，高於平均 1.5 個標準差。</div></div>
+<div class="dd-example"><div class="dd-ex-title">示例</div><div class="dd-ex-body">示例：均值 80、標準差 10、得分 95，Z=(95−80)/10=1.5，高於平均 1.5 個標準差。
+T 分數 = 50 + 10×1.5 = 65.00。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
 <dt>Z=0 含義？</dt><dd>等於均值；正為高於、負為低於平均。</dd>
 <dt>標準差未知？</dt><dd>先用樣本估算標準差，Z 為估計值。</dd>
 <dt>何時用？</dt><dd>比較不同分佈的資料或判斷極端值時使用。</dd>
+<dt>T 分數怎麼算？</dt><dd>T 分數 = 50 + 10 × 有效 Z。預設方向下有效 Z 即 Z；選「分數越低越好」時有效 Z = −Z，使低分對應更高的等級與 T 分數。</dd>
+<dt>百分位與方向有關嗎？</dt><dd>百分位 Φ(z)×100% 按原始<a class="term-link" href="/zh-tw/tools/science/fraction-calculator.html">分數計算</a>，表示低於該分數的參照群體比例，與比較方向無關；文案按 z 正負自動切換「高於/低於」。</dd>
 </dl>
 </div>
 </section>
@@ -332,15 +335,22 @@ function calc() {
   const pct = percentile(z);
   const grade = gradeLabel(z, direction);
   const effectiveZ = direction === 'lower' ? -z : z;
+  const tScore = 50 + 10 * effectiveZ;
+  // 百分位是标准正态 CDF：表示「低于该原始分数的参照群体比例」，与方向无关；
+  // 高/低于均值的措辞按 z 符号切换，避免负 Z 仍写「高于」。
+  const rel = z >= 0 ? '高于' : '低于';
+  const relPct = z >= 0 ? pct : 100 - pct;
+  const dirNote = direction === 'lower' ? '（比较方向：分数越低越好，等级/T 分数按反向 Z 计算）' : '';
 
   const __g2=`
     <div class="data-grid">
       <div class="data-card"><div class="num">${z.toFixed(4)}</div><div class="label">Z 分数</div></div>
       <div class="data-card"><div class="num">${pct.toFixed(2)}%</div><div class="label">百分位</div></div>
       <div class="data-card"><div class="num">${effectiveZ.toFixed(4)}</div><div class="label">有效 Z 分数</div></div>
+      <div class="data-card"><div class="num">${tScore.toFixed(2)}</div><div class="label">T 分数 (50+10Z)</div></div>
     </div>
     <p style="margin-top:12px;">等级评价：<span class="grade-tag ${grade.class}">${grade.text}</span></p>
-    <p style="font-size:12px;color:var(--text-muted);margin-top:8px;">该分数约高于 ${pct.toFixed(2)}% 的参照群体。</p>
+    <p style="font-size:12px;color:var(--text-muted);margin-top:8px;">按原始分数：处于第 ${pct.toFixed(2)} 百分位，${rel}约 ${relPct.toFixed(2)}% 的参照群体。${dirNote}</p>
   `;resEl.innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 }
 
@@ -493,7 +503,7 @@ function __calc_2Boot(){ try{ __calc_2Presets(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __calc_2Boot();
 else document.addEventListener('DOMContentLoaded', __calc_2Boot);
 </script>
-<section class="opt-guide"><h2>如何使用標準分Z分數</h2><ol><li>在對應的輸入框或選項中填寫、選擇所需引數。</li><li>點選「計算」或「生成」按鈕執行。</li><li>在結果區檢視輸出，可複製結果或匯出使用。</li></ol><h2>引數說明</h2><ul class="param-list"><li>原始分數</li><li>平均分 μ</li><li>標準差 σ</li><li>比較方向</li></ul><h2>適用場景</h2><p>學習與教學場景下的快速計算。</p></section><section class="opt-faq"><h2>常見問題</h2><dl class="faq-list"><dt>標準分Z分數是做什麼的？</dt><dd>輸入原始分、均值與標準差計算 Z 分數與百分位，用於成績標準化比較與正態分佈定位，適合教學演示與測驗結果分析，純前端。</dd><dt>如何使用標準分Z分數？</dt><dd>在對應的輸入框或選項中填寫、選擇所需引數，點選「計算」或「生成」按鈕即可執行，結果會在結果區即時顯示，支援複製與匯出。</dd><dt>計算結果準確嗎？</dt><dd>本工具在你的本地瀏覽器中即時計算，不依賴伺服器；只要輸入的引數正確，結果即按對應的規則得出。涉及經驗估算的部分僅供參考，不作為正式依據。</dd><dt>標準分Z分數適合哪些場景？</dt><dd>學習與教學場景下的快速計算。</dd><dt>使用本工具需要聯網或上傳資料嗎？</dt><dd>不需要。所有計算均在你的裝置本地完成，資料不會上傳到任何伺服器，可放心使用。</dd></dl></section>
+<section class="opt-guide"><h2>如何使用標準分Z分數</h2><ol><li>填寫原始分數、均值 μ 與標準差 σ（σ 必須大於 0）。</li><li>選擇比較方向：分數越高越好（預設）或分數越低越好。</li><li>結果區即時給出 Z 分數、百分位、有效 Z 分數、T 分數與等級評價，可一鍵複製。</li></ol><h2>引數說明</h2><ul class="param-list"><li>原始分數：待標準化的數值</li><li>平均分 μ：參照群體的均值</li><li>標準差 σ：參照群體的離散程度，必須為正</li><li>比較方向：僅影響等級與 T 分數的有效 Z，不改變百分位演算法</li></ul><h2>適用場景</h2><p>不同科目或量綱的成績標準化比較、教學演示與離群判斷。</p></section><section class="opt-faq"><h2>常見問題</h2><dl class="faq-list"><dt>標準分Z分數是做什麼的？</dt><dd>輸入原始分、均值與標準差計算 Z 分數與百分位，用於成績標準化比較與正態分佈定位，適合教學演示與測驗結果分析，純前端。</dd><dt>Z=0 含義？</dt><dd>等於均值；正為高於、負為低於平均。</dd><dt>標準差未知？</dt><dd>先用樣本估算標準差，Z 為估計值。</dd><dt>什麼時候用？</dt><dd>比較不同分佈的資料或判斷極端值時使用。</dd></dl></section>
 
 
 <script>/*TBKIT-INJECT-START*/

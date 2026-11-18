@@ -105,7 +105,7 @@
      <h2 data-zh="🚗 制動力矩計算">🚗 Braking Torque Calculator</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="輸入轉速、轉動慣量、制動時間，計算所需制動力矩與制動功率">From speed, moment of inertia and braking time, computes the required braking torque and braking power.</p>
         <div class="formula-box">
-      <div class="formula-title">📐 計算公式</div> <div class="formula-eq">角速度 ω = 2πn ÷ 60 (rad/s)；角減速度 α = ω ÷ t；制動力矩 T = J·α·載荷係數；選型力矩 = T × 安全係數；峰值功率 = T·ω ÷ 1000 (kW)；制動能量 = J·ω² ÷ 2000 (kJ)</div>
+      <div class="formula-title">📐 計算公式</div> <div class="formula-eq">角速度 ω = 2πn ÷ 60 (rad/s)；角減速度 α = ω ÷ t；制動力矩 T = J·α·載荷係數；選型力矩 = T × 安全係數；峰值功率 = T·ω ÷ 1000 (kW)；制動能量 = J·ω² ÷ 2000 × 載荷係數 (kJ)</div>
       <div class="formula-desc">制動力矩計算：基於轉速、轉動慣量與制動時間，按角加速度需求計算所需制動力矩並乘安全係數，用於制動器/剎車系統選型。</div>
     </div>
 <div class="input-row">
@@ -194,7 +194,7 @@ function calc(){
   var Tsel=Tbrake*sf; // 选型扭矩
   var brakePower=Tbrake*omega/1000; // kW (峰值)
   var avgPower=brakePower/2; // 平均功率
-  var brakeEnergy=0.5*J*omega*omega/1000; // kJ
+  var brakeEnergy=0.5*J*omega*omega/1000*load; // kJ，与制动力矩同乘载荷系数
   var decel = n/t; // rpm/s
   var advice = t<1?'制动时间极短，需大型制动器':(t<3?'制动较快，注意热负荷':(t<10?'制动时间适中':'制动较慢，可减小制动器规格'));
   const __g2='<div class="data-grid">'+
@@ -214,9 +214,9 @@ function calc(){
 function copyRes(){if(!lastResult){ToolBox.showToast(i18nText(),'warning');return;}ToolBox.copyText(lastResult);}
 function resetAll(){document.getElementById('vN').value=1450;document.getElementById('vJ').value=2.5;document.getElementById('vT').value=3;document.getElementById('vSF').value=1.5;document.getElementById('vLoad').value='0.8';['vN','vJ','vT','vSF'].forEach(function(id){setInvalid(document.getElementById(id),false);});calc();ToolBox.showToast(i18nText(),'info');}
 function historyKey(){try{return 'tb_history_'+location.pathname;}catch(e){return 'tb_history_brake_torque';}}
-function saveHistory(){try{var k=historyKey();var l=JSON.parse(localStorage.getItem(k)||'[]');var n=new Date();l.unshift({n:num('vN'),J:num('vJ'),t:num('vT'),sf:num('vSF'),time:n.toLocaleString('zh-CN',{hour:'2-digit',minute:'2-digit',second:'2-digit'})});if(l.length>8)l=l.slice(0,8);localStorage.setItem(k,JSON.stringify(l));renderHistory();}catch(e){}}
-function renderHistory(){var b=document.getElementById('historyBox');if(!b)return;try{var l=JSON.parse(localStorage.getItem(historyKey())||'[]');if(!l.length){b.innerHTML='<div class="history-empty">暂无计算记录</div>';return;}var h='';l.forEach(function(it,i){h+='<div class="history-item" onclick="restoreHistory('+i+')"><div><div class="time">'+ToolBox.escHtml(it.time)+'</div><div class="summary">n='+it.n+'rpm, J='+it.J+', t='+it.t+'s</div></div><span style="font-size:12px;color:var(--primary);">恢复</span></div>';});const __g4=h;b.innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));}catch(e){b.innerHTML='<div class="history-empty">读取记录失败</div>';}}
-function restoreHistory(i){try{var l=JSON.parse(localStorage.getItem(historyKey())||'[]');var h=l[i];if(!h)return;document.getElementById('vN').value=h.n;document.getElementById('vJ').value=h.J;document.getElementById('vT').value=h.t;document.getElementById('vSF').value=h.sf;calc();ToolBox.showToast(i18nText(),'info');}catch(e){}}
+function saveHistory(){if(!lastResult)return;try{var k=historyKey();var l=JSON.parse(localStorage.getItem(k)||'[]');var n=new Date();l.unshift({n:num('vN'),J:num('vJ'),t:num('vT'),sf:num('vSF'),load:document.getElementById('vLoad').value,time:n.toLocaleString('zh-CN',{hour:'2-digit',minute:'2-digit',second:'2-digit'})});if(l.length>8)l=l.slice(0,8);localStorage.setItem(k,JSON.stringify(l));renderHistory();}catch(e){}}
+function renderHistory(){var b=document.getElementById('historyBox');if(!b)return;try{var l=JSON.parse(localStorage.getItem(historyKey())||'[]');if(!l.length){b.innerHTML='<div class="history-empty">暂无计算记录</div>';return;}var h='';var loadMap={0.8:'阻力辅助',1.0:'纯惯性',1.3:'提升反向'};l.forEach(function(it,i){var loadText=loadMap[String(it.load)]?' · '+loadMap[String(it.load)]:'';h+='<div class="history-item" onclick="restoreHistory('+i+')"><div><div class="time">'+ToolBox.escHtml(it.time)+'</div><div class="summary">n='+it.n+'rpm, J='+it.J+', t='+it.t+'s'+loadText+'</div></div><span style="font-size:12px;color:var(--primary);">恢复</span></div>';});const __g4=h;b.innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));}catch(e){b.innerHTML='<div class="history-empty">读取记录失败</div>';}}
+function restoreHistory(i){try{var l=JSON.parse(localStorage.getItem(historyKey())||'[]');var h=l[i];if(!h)return;document.getElementById('vN').value=h.n;document.getElementById('vJ').value=h.J;document.getElementById('vT').value=h.t;document.getElementById('vSF').value=h.sf;if(h.load)document.getElementById('vLoad').value=h.load;calc();ToolBox.showToast(i18nText(),'info');}catch(e){}}
 function clearHistory(){try{localStorage.removeItem(historyKey());renderHistory();ToolBox.showToast(i18nText(),'info');}catch(e){}}
 document.addEventListener('DOMContentLoaded',function(){renderHistory();});
 calc();
@@ -336,7 +336,7 @@ function __torque_responseExport(){
 }
 function __torque_responsePresets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#torque_responsePresets',[{label:'默认参数',labelEn:'Default',values:{'vN':'1450', 'vJ':'2.5', 'vT':'3', 'vSF':'1.5', 'vLoad':'1.0'}},
+    TBKit.preset.bar('#torque_responsePresets',[{label:'默认参数',labelEn:'Default',values:{'vN':'1450', 'vJ':'2.5', 'vT':'3', 'vSF':'1.5', 'vLoad':'0.8'}},
   {"label":"伺服电机急停 3000rpm","labelEn":"Servo emergency stop 3000rpm","values":{"vN":3000,"vJ":0.8,"vT":0.15,"vSF":1.8,"vLoad":"1.0"}},
   {"label":"提升机构制动","labelEn":"Hoist braking","values":{"vN":980,"vJ":4.5,"vT":1.2,"vSF":1.6,"vLoad":"1.3"}},
   {"label":"输送辊道制动","labelEn":"Conveyor roller braking","values":{"vN":600,"vJ":12,"vT":4,"vSF":1.3,"vLoad":"0.8"}}],function(){ calc(); });
@@ -381,11 +381,11 @@ else document.addEventListener('DOMContentLoaded', __torque_responseBoot);
 <li>熱負荷評估：算峰值功率與制動能量，判斷制動器容量</li>
 <li>工況比選：按負載型別（慣性/阻力輔助/提升負載）調整力矩</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">方法</div><div class="dd-ex-body">演算法：<a class="term-link" href="/zh-tw/tools/kinematics/angular-velocity.html">角速度</a> ω = 2π×n/60（rad/s）；角減速度 = ω/制動時間；制動力矩 = 轉動慣量 J×角減速度×負載係數；選型力矩 = 制動力矩×安全係數；峰值功率 = 制動力矩×ω/1000（kW）；平均功率 = 峰值/2；制動能量 = 0.5×J×ω²/1000（kJ）。評估：t&lt;1s 制動極短需大型制動器，&lt;3s 制動較快注意熱負荷，&lt;10s 時間適中，否則制動較慢可減小規格。</div></div>
-<div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">例：n=1450rpm、J=2.5kg·m²、t=3s、SF=1.5、負載係數 0.8（阻力輔助）→ ω 151.84rad/s、角減速 50.61rad/s²、制動力矩 101.23N·m、選型力矩 151.84N·m、峰值功率 15.37kW、平均 7.69kW、制動能量 28.82kJ，提示「制動時間適中」。若改 n=2900rpm、J=1.2kg·m²、t=1s、負載係數 1.0 → ω 303.69rad/s、制動力矩 364.42N·m、選型力矩 546.64N·m、峰值功率 110.67kW、制動能量 55.34kJ，提示「制動較快，注意熱負荷」。</div></div>
+<div class="dd-example"><div class="dd-ex-title">方法</div><div class="dd-ex-body">演算法：<a class="term-link" href="/zh-tw/tools/kinematics/angular-velocity.html">角速度</a> ω = 2π×n/60（rad/s）；角減速度 = ω/制動時間；制動力矩 = 轉動慣量 J×角減速度×負載係數；選型力矩 = 制動力矩×安全係數；峰值功率 = 制動力矩×ω/1000（kW）；平均功率 = 峰值/2；制動能量 = 0.5×J×ω²/1000×負載係數（kJ）。評估：t&lt;1s 制動極短需大型制動器，&lt;3s 制動較快注意熱負荷，&lt;10s 時間適中，否則制動較慢可減小規格。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">例：n=1450rpm、J=2.5kg·m²、t=3s、SF=1.5、負載係數 0.8（阻力輔助）→ ω 151.84rad/s、角減速 50.61rad/s²、制動力矩 101.23N·m、選型力矩 151.84N·m、峰值功率 15.37kW、平均 7.69kW、制動能量 23.06kJ，提示「制動時間適中」。若改 n=2900rpm、J=1.2kg·m²、t=1s、負載係數 1.0 → ω 303.69rad/s、制動力矩 364.42N·m、選型力矩 546.64N·m、峰值功率 110.67kW、制動能量 55.34kJ，提示「制動較快，注意熱負荷」。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
-<dt>負載係數 0.8 是什麼意思？</dt><dd>它反映制動時除慣性力矩外是否還有其他力矩參與：選純慣性制動取 1.0；若有摩擦阻力等幫助制動（阻力輔助）可取小於 1；若是提升類負載下放（位能反過來驅動），則需大於 1。本工具把它作為制動力矩的直接乘數，取值前應判斷實際工況屬於哪一類。</dd>
+<dt>負載係數 0.8 是什麼意思？</dt><dd>它反映制動時除慣性力矩外是否還有其他力矩參與：選純慣性制動取 1.0；若有摩擦阻力等幫助制動（阻力輔助）可取小於 1；若是提升類負載下放（位能反過來驅動），則需大於 1。本工具把它作為制動力矩與制動能量的直接乘數，取值前應判斷實際工況屬於哪一類。</dd>
 <dt>峰值功率和平均功率為什麼差一倍？</dt><dd>勻減速制動時， braking 功率 = 制動力矩×瞬時角速度，角速度從 ω 線性降到 0，因此功率也線性下降，平均值恰為峰值的一半。選型時應按平均功率校核制動器的熱容量，按峰值力矩校核其機械能力，兩者不可混用。</dd>
 </dl>
 </div>

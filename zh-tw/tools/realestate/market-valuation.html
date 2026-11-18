@@ -120,7 +120,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="以同小區參考均價為基準，疊加樓層、朝向、裝修、年限等修正係數，快速估算房產價值">Quickly estimate value from the neighborhood reference average with floor, orientation, renovation and age adjustments.</p>
     <div class="formula-box">
       <div class="formula-title">📐 計算公式</div>
-      <div class="formula-eq">市場比較法估值（本頁程式碼口徑）：房齡折損係數=max(0.80, 1−房齡×0.005)（每年折 0.5%、折損封頂 20%）；評估單價=參考均價×樓層×朝向×裝修×學區係數×(1+其他修正%÷100)×房齡係數；評估總價=單價×面積；綜合修正幅度=(單價÷參考均價−1)×100；合理區間=總價×0.95~×1.05（±5%）。校驗：面積、參考均價須&gt;0，否則提示「請輸入有效的面積和參考均價」並中止。判據：無固定分級，修正幅度為正表示高於參考均價、為負低於參考均價。</div>
+      <div class="formula-eq">市場比較法估值（本頁程式碼口徑）：房齡折損係數=min(1, max(0.80, 1−房齡×0.005))（每年折 0.5%、折損封頂 20%，且不超過 100%）；評估單價=參考均價×樓層×朝向×裝修×學區係數×(1+其他修正%÷100)×房齡係數；評估總價=單價×面積；綜合修正幅度=(單價÷參考均價−1)×100；合理區間=總價×0.95~×1.05（±5%）。校驗：面積、參考均價須&gt;0、房齡不小於 0、其他修正須在 −30%~+30% 之間，否則提示並中止。判據：無固定分級，修正幅度為正表示高於參考均價、為負低於參考均價。</div>
       <p class="formula-desc">以同小區參考均價為基準，疊加樓層、朝向、裝修、年限等修正係數，快速估算房產價值</p>
     </div>
 
@@ -288,6 +288,12 @@ function fmt(n){
   return n.toLocaleString('zh-CN', {maximumFractionDigits:2});
 }
 
+function __valuationInvalid(area, basePrice, age, extra){
+  return !(area>0)||!(basePrice>0)||!(age>=0)||!(extra>=-30&&extra<=30);
+}
+function __valuationEn(){
+  return (typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
+}
 function calc(){
   const area = parseFloat(document.getElementById('area').value) || 0;
   const basePrice = parseFloat(document.getElementById('basePrice').value) || 0;
@@ -298,13 +304,13 @@ function calc(){
   const school = parseFloat(document.getElementById('school').value) || 1;
   const extra = parseFloat(document.getElementById('extra').value) || 0;
 
-  if(area <= 0 || basePrice <= 0){
-    document.getElementById('result').innerHTML='<p style="color:var(--danger);">请输入有效的面积和参考均价</p>';
+  if(__valuationInvalid(area, basePrice, age, extra)){
+    document.getElementById('result').innerHTML='<p style="color:var(--danger);">'+(__valuationEn()?'Enter a valid area and reference price; age must be >=0 and other adjustment between -30% and +30%.':'请输入有效的面积、参考均价（房龄不小于 0，其他修正 −30%~+30%）')+'</p>';
     return;
   }
 
   // 房龄折损：每年 0.5%，封顶 20%
-  const ageFactor = Math.max(0.80, 1 - age * 0.005);
+  const ageFactor = Math.min(1, Math.max(0.80, 1 - age * 0.005));
   const evalPrice = basePrice * floor * facing * deco * school * (1 + extra / 100) * ageFactor;
   const totalPrice = evalPrice * area;
 
@@ -322,6 +328,7 @@ function calc(){
     <p>参考均价：<strong>¥${fmt(basePrice)}</strong> /㎡</p>
     <p>房龄折损系数：<strong>${(ageFactor * 100).toFixed(1)}%</strong>（房龄 ${fmt(age)} 年）</p>
     <p>合理价格区间（±5%）：<strong style="color:var(--primary);">¥${fmt(totalPrice * 0.95)} ~ ¥${fmt(totalPrice * 1.05)}</strong></p>
+    ${Math.abs(totalAdjust)>25?'<p style="color:#d97706;">'+(__valuationEn()?'Warning: combined adjustment exceeds the 25% cumulative guidance cited on this page; review the factors.':'⚠ 综合修正幅度超过本页引据的累计 25% 指导值，请复核修正系数。')+'</p>':''}
   `;document.getElementById('result').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 }
 
@@ -334,7 +341,8 @@ function copyResult(){
   const age = parseFloat(document.getElementById('age').value) || 0;
   const school = parseFloat(document.getElementById('school').value) || 1;
   const extra = parseFloat(document.getElementById('extra').value) || 0;
-  const ageFactor = Math.max(0.80, 1 - age * 0.005);
+  if(__valuationInvalid(area, basePrice, age, extra)) return;
+  const ageFactor = Math.min(1, Math.max(0.80, 1 - age * 0.005));
   const evalPrice = basePrice * floor * facing * deco * school * (1 + extra / 100) * ageFactor;
   const totalPrice = evalPrice * area;
   const text = `二手房评估结果：评估单价 ¥${fmt(evalPrice)}/㎡，评估总价 ¥${fmt(totalPrice)}（${fmt(totalPrice/10000)}万元）`;

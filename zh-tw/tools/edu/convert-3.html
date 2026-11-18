@@ -152,7 +152,62 @@
 <!-- /注意事項區塊 -->
 </div>
 <script>
-function calc(){var v=(document.getElementById('val').value||'').trim();var f=+document.getElementById('from').value;var t=+document.getElementById('to').value;var out='';try{var dec=parseInt(v,f);if(v===''||isNaN(dec)){out='请输入有效的'+f+'进制数';}else{out=dec.toString(t).toUpperCase();}}catch(e){out='输入无效';}const __g1='<p style="font-size:20px;color:var(--primary);"><strong>'+out+'</strong></p><p style="font-size:12px;color:var(--text-muted);">'+f+' → '+t+' 进制</p>'+(isNaN(dec)?'':'<p style="font-size:13px;color:var(--text-muted);">十进制 '+dec+' ｜ 二进制 '+dec.toString(2)+' ｜ 八进制 '+dec.toString(8)+' ｜ 十六进制 '+dec.toString(16).toUpperCase()+' ｜ 二进制位数 '+dec.toString(2).length+'</p>');document.getElementById('res').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));}calc();function copyRes(){ToolBox.copyText(document.getElementById('res').innerText);}
+var DIGITS='0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+var __badPos=-1;
+function parseBaseValue(s,f){
+  s=(s===undefined||s===null)?'':String(s);
+  f=Number(f)||10;
+  var neg=s.charAt(0)==='-';
+  var body=neg?s.slice(1):s;
+  if(!body) return null;
+  var allowed=DIGITS.slice(0,f);
+  var re=new RegExp('^['+allowed+']+$','i');
+  if(!re.test(body)){
+    for(var j=0;j<body.length;j++){
+      if(allowed.indexOf(body.charAt(j).toUpperCase())<0){__badPos=neg?j+2:j+1;break;}
+    }
+    return null;
+  }
+  var n=BigInt(0),B=BigInt(f);
+  for(var i=0;i<body.length;i++){
+    var d=DIGITS.indexOf(body.charAt(i).toUpperCase());
+    if(d<0||d>=f) return null;
+    n=n*B+BigInt(d);
+  }
+  return neg?n*BigInt(-1):n;
+}
+function formatBaseValue(n,t){
+  if(n===undefined||n===null) return '';
+  t=Number(t)||10;
+  if(n===BigInt(0)) return '0';
+  var neg=n<BigInt(0);
+  if(neg) n=n*BigInt(-1);
+  var B=BigInt(t),s='';
+  while(n>BigInt(0)){s=DIGITS[Number(n%B)]+s;n=n/B;}
+  return (neg?'-':'')+s;
+}
+function calc(){
+  var v=(document.getElementById('val').value||'').trim();
+  var f=+document.getElementById('from').value;
+  var t=+document.getElementById('to').value;
+  var out='',dec=null;
+  __badPos=-1;
+  if(v===''){out='请输入有效的'+f+'进制数';}
+  else{
+    dec=parseBaseValue(v,f);
+    if(dec===null){out=(__badPos>0?('第 '+__badPos+' 位非法：'):'输入无效：')+f+'进制只允许 '+DIGITS.slice(0,f)+'，可带前导负号';}
+    else{out=formatBaseValue(dec,t);}
+  }
+  var detail='';
+  if(dec!==null){
+    var mag=dec<BigInt(0)?dec*BigInt(-1):dec;
+    detail='十进制 '+dec.toString()+' ｜ 二进制 '+formatBaseValue(dec,2)+' ｜ 八进制 '+formatBaseValue(dec,8)+' ｜ 十六进制 '+formatBaseValue(dec,16)+' ｜ 二进制位数 '+formatBaseValue(mag,2).length;
+  }
+  const __g1='<p style="font-size:20px;color:var(--primary);"><strong>'+out+'</strong></p><p style="font-size:12px;color:var(--text-muted);">'+f+' → '+t+' 进制</p>'+(dec!==null?'<p style="font-size:13px;color:var(--text-muted);">'+detail+'</p>':'');
+  document.getElementById('res').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
+}
+calc();
+function copyRes(){ToolBox.copyText(document.getElementById('res').innerText);}
 <!-- TOOLBOX-REALIZED -->
 </script>
 
@@ -163,7 +218,7 @@ function calc(){var v=(document.getElementById('val').value||'').trim();var f=+d
 </div>
 
 
-<div class="formula-box" style="margin-top:14px;"><div class="formula-title">進位制轉換原理</div> <div class="formula-eq">進位制轉換（2/8/10/16/36 進位制）<br>任意進位制 → 十進位制：按位權展開 Σ dᵢ × from^i（如 1A₁₆ = 1×16+10 = 26）<br>十進位制 → 目標進位制：除基取餘、逆序排列（26 ÷ 2 取餘 … → 11010）<br>十六進位制字母 A-F 表示 10-15；三十六進位制 0-9 + A-Z 表示 0-35<br>同步展示：十進位制、二進位制、八進位制、十六進位制及二進位制位數</div><div class="formula-desc">基於標準進制定義即時換算：十進位制 ↔ 二進位制/八進位制/十六進位制/三十六進位制 使用 <code>parseInt(value, base)</code> 與 <code>toString(targetBase)</code>，結果精確無近似。</div></div>
+<div class="formula-box" style="margin-top:14px;"><div class="formula-title">進位制轉換原理</div> <div class="formula-eq">進位制轉換（2/8/10/16/36 進位制）<br>任意進位制 → 十進位制：按位權展開 Σ dᵢ × from^i（如 1A₁₆ = 1×16+10 = 26）<br>十進位制 → 目標進位制：除基取餘、逆序排列（26 ÷ 2 取餘 … → 11010）<br>十六進位制字母 A-F 表示 10-15；三十六進位制 0-9 + A-Z 表示 0-35<br>同步展示：十進位制、二進位制、八進位制、十六進位制及二進位制位數</div><div class="formula-desc">基於標準進制定義即時換算：十進位制 ↔ 二進位制/八進位制/十六進位制/三十六進位制 使用 <code>BigInt</code> 逐位換算，保留前導負號，結果精確無近似。</div></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -187,14 +242,13 @@ function calc(){var v=(document.getElementById('val').value||'').trim();var f=+d
 <h3>💡 常見使用場景</h3>
 <ul class="dd-list">
 <li>任意互轉：2/8/10/16/36 互轉。</li>
-<li>批次轉換：一次處理多個數。</li>
 <li>校驗：顯示進位與結果。</li>
 </ul>
 <div class="dd-example"><div class="dd-ex-title">示例</div><div class="dd-ex-body">示例：十進位制 255 = 十六進位制 FF = 二進位制 11111111。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
 <dt>36 進位制？</dt><dd>用 0-9 與 a-z 共 36 字元，常見於短碼。</dd>
-<dt>負數？</dt><dd>通常轉換絕對值，符號另行處理。</dd>
+<dt>負數？</dt><dd>保留前導負號參與換算，如 -101₂ = -5₁₀；不採用取絕對值後另記符號的口徑。</dd>
 <dt>學習用途？</dt><dd>理解位權與進位制關係，計算機入門。</dd>
 </dl>
 </div>

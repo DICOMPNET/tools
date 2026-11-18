@@ -110,7 +110,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="按月租金單價與可租面積測算潛在毛收入與有效租金收入。">Estimate market rent level and potential gross income from input parameters for landlord pricing and investment.</p>
     <div class="formula-box">
       <div class="formula-title">📐 計算公式</div>
-      <div class="formula-eq">潛在毛收入（本頁程式碼口徑，生效版無入住率項）：月潛在毛收入 m=租金單價×面積（元）；年潛在毛收入=m×12；出租率 90% 為固定常數派生項——年有效收入=m×12×0.9、年空置損失=m×12×0.1。校驗：兩欄位須為有限數值，否則提示「請輸入兩個有效數值後再計算」並中止。判據：無固定分級，空置損失與有效收入按 1:9 互補拆分年毛收入。</div>
+      <div class="formula-eq">潛在毛收入（本頁程式碼口徑，生效版無入住率項）：月潛在毛收入 m=租金單價×面積（元）；年潛在毛收入=m×12；出租率 90% 為固定常數派生項——年有效收入=m×12×0.9、年空置損失=m×12×0.1。校驗：兩欄位須為有限數值且均大於 0，否則提示並中止。判據：無固定分級，空置損失與有效收入按 1:9 互補拆分年毛收入。</div>
       <p class="formula-desc">輸入兩個引數，自動計算常用結果</p>
     </div>
     <div class="input-row">
@@ -236,6 +236,11 @@ function calc(){
   var box=document.getElementById('res');
   if(!box)return;
   if(!isFinite(A)||!isFinite(B)){box.innerHTML='<div class="info-box">请输入两个有效数值后再计算。</div>';return;}
+  if(!(A>0)||!(B>0)){
+    var __rent1En=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
+    box.innerHTML='<div class="info-box">'+(__rent1En?'Monthly rent per sqm and leasable area must both be >0.':'月租金单价与可租面积均须大于 0。')+'</div>';
+    return;
+  }
   var items=[];
   var m=A*B;
   items.push([m.toFixed(2), "月潜在毛收入（元）"]);

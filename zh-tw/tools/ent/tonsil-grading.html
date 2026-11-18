@@ -142,11 +142,12 @@
         <div class="g-desc">>75%口咽寬度(對吻)</div>
       </button>
     </div>
+    <input type="hidden" id="gradeValue" value="2">
 
     <h3 style="font-size:14px;margin-bottom:10px;">伴隨症狀（可多選）</h3>
     <label class="symptom-check"><input type="checkbox" id="s1" onchange="calc()"> 反覆扁桃體炎發作(≥3次/年)</label>
     <label class="symptom-check"><input type="checkbox" id="s2" onchange="calc()"> 睡眠打鼾/呼吸暫停</label>
-    <label class="symptom-check"><input type="checkbox" id="s3" onchange="calc()"> 吞嚥困難</label>
+    <label class="symptom-check"><input type="checkbox" id="s3" onchange="calc()"> 吞嚥困難（僅記錄，不參與指徵判斷）</label>
     <label class="symptom-check"><input type="checkbox" id="s4" onchange="calc()"> 扁桃體周圍膿腫史</label>
     <label class="symptom-check"><input type="checkbox" id="s5" onchange="calc()"> 疑似病灶性扁桃體炎(腎炎/風溼等)</label>
 
@@ -201,7 +202,7 @@
 <div class="dd-example"><div class="dd-ex-title">III 度肥大</div><div class="dd-ex-body">雙側扁桃體達咽顎弓（III 度），堵塞咽腔約 70%，伴夜間打鼾缺氧，建議扁桃體切除術。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
-<dt>分度與手術關係？</dt><dd>III–IV 度伴 OSA、吞嚥障礙或每年化膿≥7 次，多建議手術；I–II 度可觀察。</dd>
+<dt>分度與手術關係？</dt><dd>III–IV 度伴 OSAHS、反覆發作≥3 次/年或≥5 次/2 年、扁桃體周圍膿腫史或病灶性扁桃體炎，多建議手術；IV 度對吻性肥大需結合氣道評估；I–II 度可觀察。吞嚥困難僅作症狀記錄，不單獨構成手術指徵。</dd>
 <dt>成人扁桃體大要緊嗎？</dt><dd>成人單側快速增大需警惕腫瘤，不全是生理性肥大，應活檢排除。</dd>
 </dl>
 </div>
@@ -246,12 +247,16 @@
 <script>
 var grade = 2;
 
-function selectGrade(btn, g){
-  document.querySelectorAll('.grade-btn').forEach(function(b){b.classList.remove('active');});
-  btn.classList.add('active');
-  grade = g;
+function setGrade(g){
+  var btns=document.querySelectorAll('.grade-btn');
+  for(var i=0;i<btns.length;i++) btns[i].classList.remove('active');
+  if(btns[g]) btns[g].classList.add('active');
+  grade=g;
+  var hv=document.getElementById('gradeValue');
+  if(hv) hv.value=String(g);
   calc();
 }
+function selectGrade(btn, g){ setGrade(g); }
 
 function calc(){
   var gradeInfo = {
@@ -291,8 +296,9 @@ function calc(){
 }
 
 function copyResult(){
-  var gradeInfo = {0:'0度',1:'I度',2:'II度',3:'III度',4:'IV度'};
-  ToolBox.copyText('扁桃体Brodsky分度：'+gradeInfo[grade], i18nText('toast.msg544'));
+  var r=document.getElementById('result');
+  var full=r?(r.innerText||r.textContent||'').replace(/\s+/g,' ').trim():'';
+  ToolBox.copyText(full||('扁桃体Brodsky分度：'+grade), i18nText('toast.msg544'));
 }
 
 calc();
@@ -379,6 +385,7 @@ function __tonsil_gradingSnap(){
         var v=(t==='checkbox'||t==='radio')?(e.checked?'1':'0'):e.value;
         if(v!==''&&v!=null) out[e.id]=v;
     }
+    out.grade=String(grade);
     return out;
 }
 function __tonsil_gradingResText(){
@@ -423,12 +430,20 @@ function __tonsil_gradingRender(keys,rk,en){
                     if(!Object.prototype.hasOwnProperty.call(rec,__cbs[__ci].id)) __cbs[__ci].checked=false;
                 }
                 for(var k in rec){
-                    if(k===rk||k==='__tbScore') continue;
+                    if(k===rk||k==='__tbScore'||k==='grade') continue;
                     var e=document.getElementById(k);
                     if(!e) continue;
                     var t=(e.type||'').toLowerCase();
                     if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}
                     else{e.value=rec[k];}
+                }
+                if(Object.prototype.hasOwnProperty.call(rec,'grade')){
+                    var g=Math.max(0,Math.min(4,parseInt(rec.grade,10)||0));
+                    grade=g;
+                    var gbtns=document.querySelectorAll('.grade-btn');
+                    for(var gi=0;gi<gbtns.length;gi++){ if(gi===g) gbtns[gi].classList.add('active'); else gbtns[gi].classList.remove('active'); }
+                    var ghv=document.getElementById('gradeValue');
+                    if(ghv) ghv.value=String(g);
                 }
                 calc();
             }catch(e2){}
@@ -487,8 +502,19 @@ function __tonsil_gradingExport(){
     }catch(e){}
     try { TBKit.util.exportTable('#tonsil_gradingTable','tonsil-grading.csv'); } catch(e){}
 }
+function __tonsil_gradingApplyPreset(){
+    var hv=document.getElementById('gradeValue');
+    var g=hv?parseInt(hv.value,10):grade;
+    if(!isFinite(g)) g=grade;
+    setGrade(g);
+}
 function __tonsil_gradingPresets(){
     if (typeof TBKit === 'undefined') return;
+    TBKit.preset.bar('#tonsil_gradingPresets',[
+      {label:'III度+OSAHS',labelEn:'Grade III with OSAHS',values:{gradeValue:3,s1:'0',s2:'1',s3:'0',s4:'0',s5:'0'}},
+      {label:'IV度对吻/气道梗阻',labelEn:'Grade IV kissing tonsils',values:{gradeValue:4,s1:'0',s2:'1',s3:'1',s4:'0',s5:'0'}},
+      {label:'反复扁桃体炎',labelEn:'Recurrent tonsillitis',values:{gradeValue:2,s1:'1',s2:'0',s3:'0',s4:'0',s5:'0'}}
+    ],__tonsil_gradingApplyPreset);
 }
 var __tonsil_grading_f0=(typeof calc==='function')?calc:null;
 if(__tonsil_grading_f0){

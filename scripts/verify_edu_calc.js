@@ -1826,7 +1826,7 @@ const CASES = [
   // ── 第1192批：输入变更过期、空答案反馈与无效估算清理 ──
   {
     slug: "language/text-polisher",
-    clicks: ["var fs=globalThis.__tbFs;var q=String.fromCharCode(34);var nl=String.fromCharCode(10);var h=fs.readFileSync(process.cwd()+'/tools/language/text-polisher.html','utf8');var ok=h.indexOf('function markPolishStale()')>=0&&h.indexOf('function copyPolishResult()')>=0&&h.indexOf('onclick='+q+'copyPolishResult()'+q)>=0&&h.indexOf('onclick='+q+'clearPolish()'+q)>=0&&h.indexOf('onclick='+q+'ToolBox.copyText(')<0&&h.indexOf('markPolishStale();'+nl+'}')>=0;document.getElementById('__tbProbe').textContent='TPSTALE '+(ok?'OK':'BAD');"],
+    clicks: ["var fs=globalThis.__tbFs;var q=String.fromCharCode(34);var nl=String.fromCharCode(10);var h=fs.readFileSync(process.cwd()+'/tools/language/text-polisher.html','utf8').split(String.fromCharCode(13)+nl).join(nl);var ok=h.indexOf('function markPolishStale()')>=0&&h.indexOf('function copyPolishResult()')>=0&&h.indexOf('onclick='+q+'copyPolishResult()'+q)>=0&&h.indexOf('onclick='+q+'clearPolish()'+q)>=0&&h.indexOf('onclick='+q+'ToolBox.copyText(')<0&&h.indexOf('markPolishStale();'+nl+'}')>=0;document.getElementById('__tbProbe').textContent='TPSTALE '+(ok?'OK':'BAD');"],
     expect: ["TPSTALE OK"],
     ref: "EL 静态复核：旧版输入 oninput 只更新统计，复制按钮直接取旧 #output.innerText。现输入变化与选项变化调用 markPolishStale() 标记过期，复制走 copyPolishResult() 阻止旧结果并提示重新润色，清空走 clearPolish() 同步复位；源码哨兵，旧版必红。",
   },

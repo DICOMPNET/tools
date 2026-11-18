@@ -30,7 +30,7 @@
     <meta name="twitter:title" content="康復結局(FIM)量表總分計算器 - 運動 13 項 + 認知 5 項">
     <meta name="twitter:description" content="按 FIM 的 18 個專案（運動 13 項 + 認知 5 項）逐項選擇 1–7 分，彙總運動分、認知分與總分，並按總分給出獨立程度分級；本頁只做求和與分級，不加權、不預測出院分數">
 <!-- TOOLBOX-WEBAPP-LD -->
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"康復結局(FIM)量表總分計算器","url":"https://tools.dicomp.net/zh-tw/tools/rehabilitation/fim-scale.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"按 FIM 的 18 個專案（運動 13 項 + 認知 5 項）逐項選擇 1–7 分，彙總運動分、認知分與總分，並按總分給出獨立程度分級；本頁只做求和與分級，不加權、不預測出院分數","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"康復結局(FIM)量表總分計算器","url":"https://tools.dicomp.net/zh-tw/tools/rehabilitation/fim-scale.html","applicationCategory":"MedicalApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"按 FIM 的 18 個專案（運動 13 項 + 認知 5 項）逐項選擇 1–7 分，彙總運動分、認知分與總分，並按總分給出獨立程度分級；本頁只做求和與分級，不加權、不預測出院分數","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
@@ -176,10 +176,10 @@
 <li>醫保評估</li>
 </ul>
 <div class="dd-example"><div class="dd-ex-title">總分 126</div><div class="dd-ex-body">運動 13 項 + 認知 5 項共 18 項×1-7：運動 91 + 認知 35 = 126，完全獨立（≥108）。</div></div>
-<div class="dd-example"><div class="dd-ex-title">總分 60</div><div class="dd-ex-body">合計 60（54-71 橙區），中度依賴，需大量輔助；入院&lt;80 預期增益≈20+(80-總分)×0.3。</div></div>
+<div class="dd-example"><div class="dd-ex-title">總分 60</div><div class="dd-ex-body">合計 60（54-71 橙區），中度依賴，需較多輔助；本頁只給出當前分級，不預測出院分數，康復變化請以實際複評差值為準。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
-<dt>分級？</dt><dd>≥126 完全獨立、108-125 基本獨立、72-107 中度依賴、54-71 重度依賴、18-53 極重度依賴（18 項滿分 126）。</dd>
+<dt>分級？</dt><dd>126 完全獨立；108–125 基本獨立；90–107 極輕度依賴；72–89 輕度依賴；54–71 中度依賴；36–53 重度依賴；19–35 極重度依賴；18 完全依賴（18 項滿分 126）。</dd>
 <dt>為什麼入院和出院都要評？</dt><dd>FIM 的核心價值在「差值」而非單次數值：FIM 效能 =（出院 FIM − 入院 FIM）÷ 住院天數，或 FIM 效率 =（出院 − 入院）÷（最高可能得分 − 入院分）。單看入院分只能判斷照顧負擔，看不出恢復快慢。評分需注意記錄「實際表現」而非「潛力」，且認知與運動分量表分開看——認知改善慢往往提示預後較差。</dd>
 </dl>
 </div>
@@ -310,6 +310,8 @@ function updateScore() {
   html += '<div class="stat-card"><div class="val" style="color:var(--primary);">' + total + '</div><div class="lbl">总分/126</div></div>';
   html += '<div class="stat-card"><div class="val">' + (total / 126 * 100).toFixed(0) + '%</div><div class="lbl">独立率</div></div>';
   const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('scoreGrid').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('scoreGrid').innerHTML=__h1;
+  // 改分项后同步结果框/分级/EMR/_score，避免统计卡与结论两个总分并存
+  if(typeof calcScore==='function') calcScore();
 }
 
 function calcScore() {
@@ -394,6 +396,11 @@ function resetAll() {
     document.getElementById('fim_' + i).value = '7';
   }
   updateScore();
+  // 重置后不得保留上一次计算的分数，否则「保存记录」会写入旧分（N66）
+  window._score = null;
+  window.__EMR_SUM = null;
+  var __emrBox = document.getElementById('emrBox');
+  if (__emrBox) __emrBox.innerHTML = '';
   document.getElementById('resultBox').innerHTML = '<p style="color:var(--text-muted);">各分项默认 7 分（完全独立）；调整后点击「计算总分」更新结果</p>';
 }
 

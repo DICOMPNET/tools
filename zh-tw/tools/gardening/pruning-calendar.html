@@ -194,7 +194,7 @@
 <li>區分當年新枝開花與老枝開花的植物，確定修剪視窗。</li>
 </ul>
 <div class="dd-example"><div class="dd-ex-title">評級與時機</div><div class="dd-ex-body">按季節給出 best（最適宜）/ok（可以）/avoid（避免）三檔。典型時機：月季早春萌芽前重剪、花後剪殘花促二次開花；桂花冬季休眠期修剪，夏季避免重剪；紫薇冬季重剪一年生枝、春季抹芽；繡球 8 月底至 9 月修剪（老枝開花品種花後立即剪）；茶花花後春季修剪，秋季花芽分化期不剪；三角梅冬末春初重剪造型；石榴早春萌芽前修剪；葡萄冬季休眠期修剪。</div></div>
-<div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">查詢“繡球花”：春 avoid、夏 ok、秋 best、冬 ok，最佳修剪期為秋季 8 月底至 9 月——因其老枝開花，若在春季重剪會剪掉已形成的花芽導致當年無花。查詢“月季”：春秋 best，冬夏 ok，可多次修剪。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">查詢“繡球花”：春 avoid、夏 ok、秋 best、冬 ok，最佳修剪期為秋季 8 月底至 9 月——因其老枝開花，若在春季重剪會剪掉已形成的花芽導致當年無花。查詢“月季”：春冬 best（冬季休眠期重剪）、夏秋 ok，可多次修剪。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
 <dt>為什麼有些植物秋季不能剪？</dt><dd>茶花等秋季正處於花芽分化期，此時修剪會直接剪除來年花芽；應等花謝後的春季再整形。</dd>
@@ -250,8 +250,8 @@ const SEASONS = [
 
 // status: best 最佳, ok 可以, avoid 避免
 const PLANTS = [
-  { name:'月季', icon:'🌹', seasons:{spring:'best',summer:'ok',autumn:'best',winter:'ok'},
-    time:'早春萌芽前重剪，花后轻剪', desc:'春季重剪促新枝，花后剪去残花可促二次开花。冬剪去除枯弱枝。' },
+  { name:'月季', icon:'🌹', seasons:{spring:'best',summer:'ok',autumn:'best',winter:'best'},
+    time:'早春萌芽前重剪，花后轻剪', desc:'春季重剪促新枝，花后剪去残花可促二次开花。冬季休眠期重剪骨架、去除枯弱枝。' },
   { name:'桂花', icon:'🌳', seasons:{spring:'ok',summer:'avoid',autumn:'avoid',winter:'best'},
     time:'冬季休眠期修剪', desc:'花后冬剪为主，疏除过密枝、交叉枝，保持树形通风透光。夏季避免重剪。' },
   { name:'紫薇', icon:'🌸', seasons:{spring:'best',summer:'ok',autumn:'ok',winter:'best'},
@@ -272,9 +272,9 @@ const PLANTS = [
     time:'春秋两季造型修剪', desc:'生长季可随时轻剪造型，春秋为佳。重剪宜在春季进行。' },
   { name:'茉莉花', icon:'🌼', seasons:{spring:'best',summer:'ok',autumn:'best',winter:'avoid'},
     time:'春季出房后重剪', desc:'春季重剪促新枝多花。花后摘心促分枝。冬季休眠期勿重剪。' },
-  { name:'栀子花', icon:' white', seasons:{spring:'ok',summer:'ok',autumn:'best',winter:'avoid'},
+  { name:'栀子花', icon:'🌼', seasons:{spring:'avoid',summer:'ok',autumn:'best',winter:'avoid'},
     time:'花后秋季轻剪', desc:'花后修剪残花和徒长枝，秋剪为主。冬春勿剪以免剪掉花芽。' },
-  { name:'杜鹃', icon:'🌺', seasons:{spring:'avoid',summer:'best',autumn:'ok',winter:'ok'},
+  { name:'杜鹃', icon:'🌺', seasons:{spring:'avoid',summer:'best',autumn:'avoid',winter:'ok'},
     time:'花后初夏修剪', desc:'花谢后立即修剪整形。花芽在夏秋形成，秋后勿修剪。' },
   { name:'迎春花', icon:'💛', seasons:{spring:'best',summer:'ok',autumn:'ok',winter:'ok'},
     time:'花后春季修剪', desc:'花后立即修剪，短截花枝促分枝。平时随时轻剪控型。' },
@@ -550,16 +550,15 @@ function __pruning_calendarExtras(){
 }
 function __pruning_calendarExport(){
     if (typeof TBKit === 'undefined') return;
-    try{
-        var box=document.querySelector('#pruning_calendarTable');
-        if(!box||!box.querySelector('tr')){
-            var snap=__pruning_calendarSnap(); var keys=Object.keys(snap);
-            if(keys.length>12) keys=keys.slice(0,12);
-            var en=(TBKit.util&&TBKit.util.isEn())?true:false;
-            __pruning_calendarRender(keys,en?'Result':'结果',en);
-        }
-    }catch(e){}
-    try { TBKit.util.exportTable('#pruning_calendarTable','pruning-calendar.csv'); } catch(e){}
+    var rows=[['植物','季节','档位','推荐时机','说明']];
+    var label={best:'最佳',ok:'可以',avoid:'不宜'};
+    PLANTS.forEach(function(p){
+        SEASONS.forEach(function(s){
+            var st=p.seasons[s.id];
+            rows.push([p.name,s.name,label[st]||st,p.time,p.desc]);
+        });
+    });
+    try { TBKit.util.exportCsv('pruning-calendar.csv',rows); } catch(e){}
 }
 function __pruning_calendarPresets(){
     if (typeof TBKit === 'undefined') return;

@@ -111,7 +111,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="輸入年營收、品牌利潤率、行業品牌乘數等引數，按經驗引數模型估算品牌價值參考值（非 ISO 10668 合規評估，非收益法）">Estimate brand value with a heuristic parameter model: revenue, brand margin and industry multiplier (not a compliant valuation).</p>
     <div class="formula-box">
       <div class="formula-title">📐 計算公式</div>
-      <div class="formula-eq">品牌價值評估（收益倍率口徑）：品牌利潤 = 年營收 × 利潤率%；份額係數 = min(份額% ÷ 10, 5)；品牌價值 = 品牌利潤 × 行業乘數 × 年限係數 × 份額係數（萬元），億元口徑 ÷ 10000。校驗：營收、利潤率、乘數、年限須 &gt;0，利潤率與份額須 ≤100，否則各自報錯返回。判據：≥100000 萬元頂級品牌（≥10億）、≥10000 知名（1-10億）、≥1000 區域（0.1-1億）、否則初創品牌。</div>
+      <div class="formula-eq">品牌價值評估（收益倍率口徑）：品牌利潤 = 年營收 × 利潤率%；份額係數 = min(份額% ÷ 10, 5)；品牌價值 = 品牌利潤 × 行業乘數 × 年限係數 × 份額係數（萬元），億元口徑 ÷ 10000。校驗：營收、利潤率、乘數與份額須 &gt;0，利潤率≤80、份額≤100、年限係數 0.5–3，否則各自報錯返回。判據：≥100000 萬元頂級品牌（≥10億）、≥10000 知名（1-10億）、≥1000 區域（0.1-1億）、否則初創品牌。</div>
       <p class="formula-desc">輸入年營收、品牌利潤率、行業品牌乘數等引數，按經驗引數模型估算品牌價值參考值（非 ISO 10668 合規評估，非收益法）</p>
     </div>
     <div class="input-row">
@@ -220,9 +220,9 @@ function calc() {
   var ind = document.getElementById('industry').value;
   var ms = parseFloat(document.getElementById('marketShare').value);
   if (isNaN(rev) || rev <= 0) { document.getElementById('res').innerHTML='<p style="color:var(--danger);">请输入有效年营收</p>'; return; }
-  if (isNaN(pr) || pr <= 0 || pr > 100) { document.getElementById('res').innerHTML='<p style="color:var(--danger);">请输入有效品牌利润率(1-100)</p>'; return; }
+  if (isNaN(pr) || pr <= 0 || pr > 80) { document.getElementById('res').innerHTML='<p style="color:var(--danger);">请输入有效品牌利润率(1-80)</p>'; return; }
   if (isNaN(mul) || mul <= 0) { document.getElementById('res').innerHTML='<p style="color:var(--danger);">请输入有效行业乘数</p>'; return; }
-  if (isNaN(yf) || yf <= 0) { document.getElementById('res').innerHTML='<p style="color:var(--danger);">请输入有效年限系数</p>'; return; }
+  if (isNaN(yf) || yf < 0.5 || yf > 3) { document.getElementById('res').innerHTML='<p style="color:var(--danger);">请输入有效年限系数(0.5–3)</p>'; return; }
   if (isNaN(ms) || ms <= 0 || ms > 100) { document.getElementById('res').innerHTML='<p style="color:var(--danger);">请输入有效市场份额(0.1-100)</p>'; return; }
   var brandProfit = rev * (pr / 100); // 品牌利润 万元
   var shareFactor = Math.min(ms / 10, 5); // 市场份额系数 (10%为基准=1，最高5)

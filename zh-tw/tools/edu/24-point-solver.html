@@ -34,9 +34,8 @@
 <script src="/js/tool-i18n.js" defer></script>
 <!-- TOOLBOX-I18N-SCRIPT -->
 
-T 點求解器，輸入 4 個數字（1-13）探索湊成24的表示式。">
+<meta property="og:description" content="24 點求解器是一款免費的線上教育學習工具，輸入 4 個數字，窮舉加減乘除與括號組合，給出能得到 24 的算式。適合工程估算、日常換算與快速複核，結果可一鍵複製。">
 <meta property="og:title" content="24 點求解器 - 窮舉加減乘除與括號組合">
-T 點求解器，輸入 4 個數字（1-13）探索湊成24的表示式。">
 <meta name="twitter:title" content="24 點求解器 - 窮舉加減乘除與括號組合">
 <meta name="twitter:description" content="24 點求解器是一款免費的線上教育學習工具，輸入 4 個數字，窮舉加減乘除與括號組合，給出能得到 24 的算式。適合工程估算、日常換算與快速複核，結果可一鍵複製。">
 <link rel="canonical" href="https://tools.dicomp.net/zh-tw/tools/edu/24-point-solver.html">
@@ -110,7 +109,7 @@ T 點求解器，輸入 4 個數字（1-13）探索湊成24的表示式。">
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="輸入 4 個數字（1-13）探索湊成24的表示式。">Find an arithmetic combination (+, −, ×, ÷ and parentheses) of four numbers that equals 24, or determine that no solution exists.</p>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理與說明</div>
-      <div class="formula-eq">24 點求解窮舉三運算子組合：從 4 個數字中任選 2 個做四則運算（加、減、乘、除，除法的分母不能為零）得中間值，再與剩餘數字繼續兩兩運算直至剩一個數，若結果等於 24（浮點比較容差 1e-6）即為解；運算子與括號結構逐一遍歷可保證不漏解。</div>
+      <div class="formula-eq">24 點求解窮舉三運算子組合：從 4 個數字中任選 2 個做四則運算（加、減、乘、除，除法的分母不能為零）得中間值，再與剩餘數字繼續兩兩運算直至剩一個數，若結果等於 24（浮點比較容差 1e-9）即為解；運算子與括號結構逐一遍歷可保證不漏解。</div>
 
 </div>
 
@@ -251,12 +250,9 @@ function solve() {
           if (!r) continue;
           restV.push(r.v);
           restE.push(r.s);
-          if (ans.length < 8) {
-            dfs(restV, restE);
-          }
+          dfs(restV, restE);
           restV.pop();
           restE.pop();
-          if (ans.length >= 8) return;
         }
       }
     }
@@ -269,9 +265,13 @@ function solve() {
     document.getElementById('result').innerHTML='<p>未找到标准算式（四则运算）</p>';
     return;
   }
-  const uniq = Array.from(new Set(ans.slice(0, 6)));
-  const __g3=`<p>命中 ${uniq.length} 个示例：</p>` +
-    uniq.map(s => `<p>${s} = 24</p>`).join('');document.getElementById('result').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
+  const uniq = Array.from(new Set(ans));
+  const shown = uniq.slice(0, 20);
+  const caption = uniq.length > shown.length
+    ? `共枚举到 ${uniq.length} 个不同的解，展示前 ${shown.length} 个：`
+    : `共 ${uniq.length} 个不同的解：`;
+  const __g3=`<p>${caption}</p>` +
+    shown.map(s => `<p>${s} = 24</p>`).join('');document.getElementById('result').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
 }
 
 function copyResult() {
