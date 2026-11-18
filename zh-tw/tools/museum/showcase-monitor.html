@@ -124,7 +124,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="查詢不同材質文物的溫溼度儲存標準，判斷展櫃實測值是否達標">Showcase Monitor</p>
     <div class="formula-box">
       <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">按材質取推薦溫溼度：溫度為區間陣列或 tempR 時判定實測溫度落在區間內，否則視為室溫預設達標；溼度為區間陣列或 rhR 時判定落在區間內，僅有 rhMax 時判定不超過上限，其餘情況不判；綜合達標 = 溫度與溼度同時達標；不達標時分別給出升溫 / 降溫、加溼 / 除溼的具體建議；溫度與溼度的日波動項只記錄不判定</div>
-      <p class="formula-desc" data-zh="按文物材質調取溫溼度儲存標準，比對實測溫溼度與允許波動，逐項判定是否達標並給出調控建議；標準為常用參考值，具體以館藏規範為準。">Look up temperature and humidity preservation standards by artifact material, compare measured values and allowed fluctuations, judge each criterion and suggest adjustments; standards are common reference values, subject to the institution's own specifications.</p>
+      <p class="formula-desc" data-zh="按文物材質調取溫溼度儲存標準，比對實測溫溼度判定瞬時值是否達標並給出調控建議；日波動允差僅作記錄參考、不參與判定；標準為常用參考值，具體以館藏規範為準。">Look up temperature and humidity preservation standards by artifact material, compare measured values and allowed fluctuations, judge each criterion and suggest adjustments; standards are common reference values, subject to the institution's own specifications.</p>
     </div>
 
     <label>文物材質型別</label>
@@ -174,7 +174,7 @@
 <h3>💡 常見使用場景</h3>
 <ul class="dd-list">
 <li>文物入庫/布展前，按材質（金屬/陶瓷/書畫/絲織/漆木等）查對應推薦溫溼度範圍，校驗展櫃實測溫溼度是否達標。</li>
-<li>日常監測時，記錄溫溼度日波動，對照材質允差判斷是否需增除溼/調溫裝置，防止金屬鏽蝕、紙質脆化、木器開裂。</li>
+<li>日常監測時，記錄溫溼度日波動作為人工巡檢參考（本工具僅判定瞬時溫溼度，不對日波動允差自動判定），防止金屬鏽蝕、紙質脆化、木器開裂。</li>
 <li>環境超標告警時，給出針對性調控建議（升溫/降溫、加溼/除溼）直至回到達標區間。</li>
 </ul>
 <div class="dd-example"><div class="dd-ex-title">材質環境達標校驗示例</div><div class="dd-ex-body">某書畫類展品推薦溫度 18~20℃、溼度 50~55%。實測 19℃、52% → 溫度與溼度均落入區間，判定「達標」；若實測 22℃、45%，則溫度超出 20℃ 上限（判定超標，建議降溫至 20℃ 以下），溼度雖在 50~55% 下限附近但偏低。金屬類則要求溼度 &lt;40% 防鏽、書畫要求 50~55% 防乾裂，兩者標準不能混用。</div></div>
@@ -312,11 +312,17 @@ function evalEnv(){
       if(temp < m.temp[0]) advice.push('温度偏低，建议升温至 '+m.temp[0]+'℃ 以上');
       else advice.push('温度偏高，建议降温至 '+m.temp[1]+'℃ 以下');
     }
+    else if(!tempOK && m.tempR){
+      if(temp < m.tempR[0]) advice.push('温度偏低，建议升温至 '+m.tempR[0]+'℃ 以上');
+      else advice.push('温度偏高，建议降至 '+m.tempR[1]+'℃ 以下');
+    }
     if(!rhOK){
       if(typeof m.rh==='object'){ if(rh<m.rh[0]) advice.push('湿度偏低，建议加湿至 '+m.rh[0]+'% 以上'); else advice.push('湿度偏高，建议除湿至 '+m.rh[1]+'% 以下'); }
       else if(m.rhMax){ advice.push('湿度偏高，建议除湿至 '+m.rhMax+' 以下'); }
+      else if(m.rhR){ if(rh<m.rhR[0]) advice.push('湿度偏低，建议加湿至 '+m.rhR[0]+'% 以上'); else advice.push('湿度偏高，建议除湿至 '+m.rhR[1]+'% 以下'); }
     }
-    html += '<div class="tip-box tip-error">环境超标！调整建议：'+advice.join('；')+'。</div>';
+    var adviceText = advice.length ? advice.join('；') : '请检查输入值是否超出该材质允许范围';
+    html += '<div class="tip-box tip-error">环境超标！调整建议：'+adviceText+'。</div>';
   }else{
     html += '<div class="tip-box tip-success">展柜环境达标，请保持并持续监测日波动不超过允差。</div>';
   }

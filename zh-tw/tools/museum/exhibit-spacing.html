@@ -121,8 +121,8 @@
     <h2 data-zh="📏 展品間距設計">Exhibit Spacing</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="根據展品尺寸與最佳觀看視角，計算推薦觀看距離與展品間距">Exhibit Spacing</p>
     <div class="formula-box">
-      <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">展陳空間計算（視角-距離模型）<br>水平觀看距離 = (展品寬÷2) ÷ tan(水平半視角)<br>垂直觀看距離 = (|展品中心高−眼高| + 展品高÷2) ÷ tan(垂直半視角)<br>最佳觀看距離 = max(水平距離, 垂直距離)<br>最小觀看距離 = 展品對角線 × 0.6，對角線 = √(寬²+高²)<br>推薦展品間距 = max(展品寬 + 肩寬×並排人數×0.8, 展品寬×1.5)<br>每米布展數 = ⌊100 ÷ 推薦間距⌋（單面牆，cm）<br>經驗值：水平半視角約 30°、垂直約 15°；展品中心宜在眼高 ±15 cm</div>
-      <p class="formula-desc" data-zh="核心計算公式（按輸入變數）：(|(dEye)| + h÷2) ÷ Math.tan(va × π ÷ 180)；(w÷2) ÷ Math.tan(ha × π ÷ 180)；min(360 ÷ (recSpacing×2 + 40), 1)">Key formulas: (|(dEye)| + h÷2) ÷ Math.tan(va × π ÷ 180); (w÷2) ÷ Math.tan(ha × π ÷ 180); min(360 ÷ (recSpacing×2 + 40), 1)</p>
+      <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">展陳空間計算（視角-距離模型）<br>水平觀看距離 = (展品寬÷2) ÷ tan(水平半視角)<br>垂直觀看距離 = (|展品中心高−眼高| + 展品高÷2) ÷ tan(垂直半視角)<br>最佳觀看距離 = max(水平距離, 垂直距離)<br>最小觀看距離 = 展品對角線 × 0.6，對角線 = √(寬²+高²)<br>推薦展品間距 = max(展品寬 + 肩寬×並排人數×0.8, 展品寬×1.5)<br>每米布展數 = 100 ÷ 推薦間距（保留兩位小數，單面牆，cm）<br>經驗值：水平半視角約 30°、垂直約 15°；展品中心宜在眼高 ±15 cm</div>
+      <p class="formula-desc" data-zh="核心計算公式（按輸入變數）：distH=(展品寬÷2)÷tan(水平半視角)；distV=(|展品中心高−眼高|+展品高÷2)÷tan(垂直半視角)；best=max(distH,distV,minDist)；minDist=0.6×√(寬²+高²)；recSpacing=max(展品寬+肩寬×並排人數×0.8, 展品寬×1.5)；每米件數=100÷recSpacing">Key formulas (by input): distH = (width/2)/tan(hAngle); distV = (|centerH-eyeH| + height/2)/tan(vAngle); best = max(distH, distV, minDist); minDist = 0.6*sqrt(width^2 + height^2); recSpacing = max(width + shoulder*viewers*0.8, width*1.5); per metre = 100/recSpacing</p>
     </div>
 
     <h3 style="font-size:15px;margin-bottom:10px;">展品引數</h3>
@@ -258,9 +258,12 @@ function calc(){
   var dEye = ch - eye; // 中心相对眼高
   // 垂直方向：上半视角覆盖展品上半部分 h/2，距离 = (h/2) / tan(垂直半视角)，并叠加中心高度差
   var distV = (Math.abs(dEye) + h/2) / Math.tan(va * Math.PI / 180);
-  var bestDist = Math.max(distH, distV);
   // 最小距离：至少能看清，不小于画幅对角线×0.6
   var minDist = Math.sqrt(w*w + h*h) * 0.6;
+  var rawBest = Math.max(distH, distV);
+  var viewConflict = rawBest < minDist;
+  // 最佳距离不得低于清晰观看的最小距离，避免两条核心建议互相矛盾
+  var bestDist = Math.max(rawBest, minDist);
 
   // 展品间距：相邻展品间留出观看空间
   // 单幅占据宽度 = 展品宽 + 2×(每人肩宽/2)×(并排数-1的余量) + 通行余量
@@ -270,15 +273,18 @@ function calc(){
   // 推荐间距取较大值：保证相邻展品观看不互相干扰
   var recSpacing = Math.max(spacing, w * 1.5);
 
-  // 每米可布展数（单面墙）
-  var perMeter = recSpacing > 0 ? Math.floor(100 / recSpacing) : 0;
+  // 每米可布展数（单面墙）：保留两位小数，避免推荐间距 >100 cm 时被 floor 截成 0
+  var perMeter = recSpacing > 0 ? (100 / recSpacing) : 0;
 
   var html = '<div class="summary-grid">';
   html += card('最佳观看距离', bestDist.toFixed(1) + ' cm');
   html += card('最小观看距离', minDist.toFixed(1) + ' cm');
   html += card('推荐展品间距', recSpacing.toFixed(1) + ' cm');
-  html += card('每米布展数', perMeter + ' 幅/m');
+  html += card('每米布展数', perMeter.toFixed(2) + ' 幅/m');
   html += '</div>';
+  if(viewConflict){
+    html += '<div class="tip-box tip-warn">视角与清晰距离冲突：已按最小观看距离给建议。</div>';
+  }
 
   // SVG 示意图
   var svgW = 460, svgH = 200;
