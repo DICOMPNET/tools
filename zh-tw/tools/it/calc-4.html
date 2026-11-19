@@ -101,7 +101,7 @@
     <h2 data-zh="🔄 CSS單位換算（px / em / rem / pt / %）">🔄 CSS Unit Converter (px / em / rem / pt / %)</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="以基準字號為橋樑，在常見 CSS 長度單位之間快速換算。">Convert between CSS length units.</p>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">基準字號取輸入值（非法時取 16）；px 值須為有效數字、非負且基準字號大於 0，否則提示請輸入有效的正數並把預覽字號固定為 16px。換算：em = px ÷ 基準字號；rem = px ÷ 16；pt = px × 0.75；百分比 = px ÷ 基準字號 × 100。逐項以表格輸出單位、數值與對應的 CSS 寫法（font-size 宣告），並把預覽文字的字號設為該 px 值、內容改為「示例文字（px 值 + px）」</div>
+  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">基準字號取輸入值（非法時提示，不靜默取 16）；px 值須為有效數字、非負且基準字號大於 0，否則提示請輸入有效的正數並把預覽字號固定為 16px。換算：em = px ÷ 基準字號；rem = px ÷ 16；pt = px × 0.75；百分比 = px ÷ 基準字號 × 100。逐項以表格輸出單位、數值與對應的 CSS 寫法（font-size 宣告），並把預覽文字的字號設為該 px 值、內容改為「示例文字（px 值 + px）」</div>
   <div class="formula-desc">在 px、em、rem 等 CSS 長度單位之間換算，相對單位依賴基準字號。</div>
   <ul class="formula-list">
     <li><b>px</b>：CSS 參考畫素，約等於 1/96 英寸，是絕對基準。</li>
@@ -212,12 +212,13 @@
 </div>
 <script>
 function convertCss() {
-  const base = parseFloat(document.getElementById('baseSize').value) || 16;
+  var __bsRaw=String(document.getElementById('baseSize').value==null?'':document.getElementById('baseSize').value).trim();
+  const base = __bsRaw==='' ? NaN : parseFloat(__bsRaw);
   const px = parseFloat(document.getElementById('pxInput').value);
   const result = document.getElementById('result');
   const preview = document.getElementById('previewText');
 
-  if (isNaN(px) || px < 0 || base <= 0) {
+  if (isNaN(px) || px < 0 || isNaN(base) || base <= 0) {
     const __h0='<p style="color:var(--danger)">请输入有效的正数。</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){result.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}result.innerHTML=__h0;
     preview.style.fontSize = '16px';
     return;
@@ -251,9 +252,10 @@ function setBase(size) {
 }
 
 function copyCssResult() {
-  const base = parseFloat(document.getElementById('baseSize').value) || 16;
+  var __bsRaw2=String(document.getElementById('baseSize').value==null?'':document.getElementById('baseSize').value).trim();
+  const base = __bsRaw2==='' ? NaN : parseFloat(__bsRaw2);
   const px = parseFloat(document.getElementById('pxInput').value);
-  if (isNaN(px)) return;
+  if (isNaN(px) || px < 0 || isNaN(base) || base <= 0) return;
   const em = px / base;
   const rem = px / 16;
   const pt = px * 0.75;

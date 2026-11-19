@@ -391,16 +391,32 @@
 </div>
 
 <script>
+function clearSmokingDerived(msg){
+  ['dailyCost','weeklyCost','monthlyCost','yearlyCost','lifeSaved','lifeYears'].forEach(function(id){
+    var el = document.getElementById(id); if(el) el.textContent = '--';
+  });
+  document.getElementById('savingProjection').innerHTML = '';
+  document.getElementById('savingIdeas').innerHTML = '';
+  document.getElementById('totalCost').textContent = msg;
+}
+
 function calc(){
   const yRaw = document.getElementById('years').value.trim();
   const y = yRaw===''?NaN:parseInt(yRaw,10);
   if(!Number.isFinite(y)||y<0||y>60){
-    document.getElementById('totalCost').textContent=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter smoking years between 0 and 60":"请输入 0–60 年的烟龄");
+    clearSmokingDerived(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter smoking years between 0 and 60":"请输入 0–60 年的烟龄"));
     return;
   }
-  const pd = parseInt(document.getElementById('perDay').value)||1;
-  const p = parseFloat(document.getElementById('price').value)||1;
-  const pp = parseInt(document.getElementById('perPack').value)||20;
+  var __pdRaw=String(document.getElementById('perDay').value==null?'':document.getElementById('perDay').value).trim();
+  const pd = __pdRaw==='' ? NaN : parseInt(__pdRaw,10);
+  var __pRaw=String(document.getElementById('price').value==null?'':document.getElementById('price').value).trim();
+  const p = __pRaw==='' ? NaN : parseFloat(__pRaw);
+  var __ppRaw=String(document.getElementById('perPack').value==null?'':document.getElementById('perPack').value).trim();
+  const pp = __ppRaw==='' ? NaN : parseInt(__ppRaw,10);
+  if(!isFinite(pd)||pd<0||!isFinite(p)||p<=0||!isFinite(pp)||pp<=0){
+    clearSmokingDerived(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter valid daily cigarettes, price and pack size":"请输入有效的每日支数、烟价与每包支数"));
+    return;
+  }
 
   const daily = pd / pp * p;
   const weekly = daily * 7;
@@ -408,7 +424,7 @@ function calc(){
   const yearly = daily * 365;
   const total = yearly * y;
   const cigs = pd * 365 * y;
-  const lifeSaved = Math.round(cigs * 11 / 60 * 24);
+  const lifeSaved = Math.round(cigs * 11 / (60 * 24));
   const lifeYears = (lifeSaved / 365).toFixed(1);
 
   const __g0='¥' + daily.toFixed(1);document.getElementById('dailyCost').textContent=(typeof __g0==='number'?(isFinite(__g0)?__g0:'—'):String(__g0).replace(/Infinity|NaN/g,'—'));
