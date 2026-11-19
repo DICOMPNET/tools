@@ -14,6 +14,22 @@ const fs = require("fs");
 globalThis.__tbFs = fs;
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
+{ "slug":"usedcar/car-purchase-cost", "inputs":{"price":"400000","taxRate":"","insurance":"8000","plate":"800"}, "clicks":["document.getElementById('taxMode').value='nev2627';calc()"], "expect":["20398.23","429198.23"], "ref":"新能源固定税率不依赖手动税率；清空税率仍应算出减免及落地价。" },
+{ "slug":"usedcar/car-purchase-cost", "inputs":{"price":"400000","taxRate":"","insurance":"8000","plate":"800"}, "clicks":["document.getElementById('taxMode').value='nev2627';calc();document.getElementById('taxMode').value='manual';calc()"], "expect":["请填写 购置税率"], "ref":"新能源切回手动模式后，空手动税率仍须阻止计算。" },
+{
+  "slug": "usedcar/car-purchase-cost",
+  "inputs": {"price":"400000", "taxRate":"10", "insurance":"8000", "plate":"800"},
+  "clicks": ["document.getElementById('taxMode').value='nev2627';calc()"],
+  "expect": ["20398.23", "429198.23"],
+  "ref": "2026–2027 合资格新能源乘用车减税上限 15000 元：400000÷1.13×10%−15000=20398.23。"
+},
+{
+  "slug": "usedcar/car-purchase-cost",
+  "inputs": {"price":"452000", "taxRate":"10", "insurance":"8000", "plate":"800"},
+  "clicks": ["document.getElementById('taxMode').value='nev2425';calc()"],
+  "expect": ["10000.00", "470800.00"],
+  "ref": "2024–2025 合资格新能源乘用车免税上限 30000 元。"
+},
 {
   "slug": "usedcar/car-purchase-cost",
   "inputs": {
@@ -245,7 +261,13 @@ const CASES = [
 },
 {
   "slug": "usedcar/usedcar-valuation",
-  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/usedcar/usedcar-valuation.html','utf8');var zh=globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/usedcar.json','utf8');var dd=globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/content_deepdive.json','utf8');var en=globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/en/usedcar/usedcar-valuation.json','utf8');var ok=h.indexOf('再按车况上下浮动形成残值区间')<0&&h.indexOf('输出单一基线估值')>=0&&zh.indexOf('里程与车况')<0&&zh.indexOf('估算残值基线')>=0&&dd.indexOf('单一基线估值')>=0&&dd.indexOf('成新率与估值区间')<0&&en.indexOf('single baseline estimate')>=0&&en.indexOf('valuation range')<0;document.getElementById('__tbProbe').textContent='UC179 '+(ok?'OK':'BAD');"],
+  "clicks": ["var a=document.getElementById('age'),m=document.getElementById('mileage'),r=document.getElementById('result');a.value='';calc();var e=r.innerHTML.indexOf('请填写')>=0&&r.innerHTML.indexOf('成新率')<0;a.value='0';m.value='0';calc();var z=r.innerHTML.indexOf('100.0%')>=0;a.value='30';m.value='100';calc();var b=r.innerHTML.indexOf('45.0%')>=0;a.value='30.1';calc();var x=r.innerHTML.indexOf('车龄 30 年')>=0&&r.innerHTML.indexOf('成新率')<0;a.value='3';m.value='100.1';calc();var y=r.innerHTML.indexOf('里程 100 万公里')>=0&&r.innerHTML.indexOf('成新率')<0;document.getElementById('__tbProbe').textContent='UCBOUND '+(e&&z&&b&&x&&y?'OK':'BAD');"],
+  "expect": ["UCBOUND OK"],
+  "ref": "空值、合法零值、30年和100万公里边界及越界拒绝。"
+},
+{
+  "slug": "usedcar/usedcar-valuation",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/usedcar/usedcar-valuation.html','utf8');var zh=globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/usedcar.json','utf8');var dd=globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/content_deepdive.json','utf8');var en=globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/en/usedcar/usedcar-valuation.json','utf8');var ok=h.indexOf('再按车况上下浮动形成残值区间')<0&&h.indexOf('输出算术示例')>=0&&zh.indexOf('里程与车况')<0&&zh.indexOf('估算残值基线')>=0&&dd.indexOf('单一基线估值')>=0&&dd.indexOf('成新率与估值区间')<0&&en.indexOf('single baseline estimate')>=0&&en.indexOf('valuation range')<0;document.getElementById('__tbProbe').textContent='UC179 '+(ok?'OK':'BAD');"],
   "expect": ["UC179 OK"],
   "ref": "12-N179：公式框/meta/深解均承诺「按车况浮动形成残值区间」，但页面无车况输入、代码只输出单一估值；统一改为「单一基线估值，未计入车况/品牌溢价/地区行情」并同步中英源。源码形态断言旧承诺串全部消失、新口径到位；旧版必红，默认态不产生该哨兵，零逃生。"
 }

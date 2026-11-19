@@ -15,6 +15,24 @@ globalThis.__tbFs = fs;
 const { runCase } = require("./verify_it_calc.js");
 
 const CASES = [
+{
+ "slug":"edu/edu-unit-converter",
+ "inputs":{"fromVal":"7"},
+ "clicks":["var e=document.getElementById('fromVal');e.value='';convert(true);var empty=document.getElementById('toVal').value===''&&document.getElementById('info').textContent.indexOf('请输入数值')>=0;e.value='0';convert(true);document.getElementById('__tbProbe').textContent='UNITZERO '+(empty&&document.getElementById('toVal').value==='0'?'OK':'BAD');"],
+ "expect":["UNITZERO OK"],"ref":"空输入仅提示，显式零值正常转换。"
+},
+{
+ "slug":"edu/exam-gpa-calculator",
+ "inputs":{"course-name":"Zero Test"},
+ "clicks":["setScale('100');document.getElementById('course-credit').value='3';document.getElementById('course-grade').value='';var before=state.courses.length;addCourse();var empty=state.courses.length===before;document.getElementById('course-grade').value='0';addCourse();document.getElementById('__tbProbe').textContent='GPAZERO '+(empty&&state.courses.length===before+1&&state.courses[before].grade===0?'OK':'BAD');"],
+ "expect":["GPAZERO OK"],"ref":"空成绩拒绝，显式零分接受。"
+},
+{
+ "slug":"edu/convert-2",
+ "inputs":{"val":"1,2,3,999","from":"rgb","to":"hex"},
+ "clicks":["var e=document.getElementById('val'),r=document.getElementById('res');var bad=['1,2,3,999','abc1xyz2foo3','1e2,0,0'].every(function(v){e.value=v;calc();return r.innerHTML.indexOf('输入无效')>=0});e.value='rgb(1,2,3)';calc();var ok=r.innerHTML.indexOf('#010203')>=0;e.value='300,0,0';calc();var clamp=r.innerHTML.indexOf('#FF0000')>=0&&r.innerHTML.indexOf('钳制')>=0;document.getElementById('__tbProbe').textContent='COLORS '+(bad&&ok&&clamp?'OK':'BAD');"],
+ "expect":["COLORS OK"],"ref":"多余通道、混杂字符、科学计数法拒绝；合法格式和越界提示保留。"
+},
   // ── 第1176批：数字记忆挑战记录与清空提示 ──
   {
     slug: "edu/number-memory",
@@ -201,6 +219,16 @@ const CASES = [
     ref: "EL-J92：趋势图须以换算时刻的当日分钟数为数值并标注 HH:MM，不再画有效性 0/1；旧版 series 名为「有效性趋势」⇒ BAD。",
   },
   {
+    slug: "edu/study-planner", inputs: {dailyHours:"3"},
+    clicks: ["var RealDate=Date;var day='2026-11-16T12:00:00';Date=class extends RealDate{constructor(...a){super(...(a.length?a:[day]));}static now(){return new RealDate(day).getTime();}};data.tasks=[{name:'A',minutes:60,subjectId:1,done:false},{name:'B',minutes:30,subjectId:1,done:false}];data.stats={todayMinutes:0,weekHours:0,totalHours:0,tasksDone:0,todayKey:localDayKey(),weekKey:localWeekKey()};data.subjectMinutes={1:0};toggleTask(0);day='2026-11-17T12:00:00';toggleTask(1);var a=data.stats.todayMinutes===30&&data.stats.tasksDone===1&&data.stats.weekHours===1.5;toggleTask(0);var b=data.stats.todayMinutes===30&&data.stats.tasksDone===1&&data.stats.weekHours===0.5&&data.stats.totalHours===0.5&&data.subjectMinutes[1]===30;var old=data.subjects[0].progress;editSubject(0,'X',null);var c=data.subjects[0].progress===old;Date=RealDate;document.getElementById('__tbProbe').textContent='STUDYDAY:'+(a&&b&&c?'OK':'BAD');"],
+    expect: ["STUDYDAY:OK"], ref: "跨午夜完成、次日撤销旧任务及取消进度输入。"
+  },
+  {
+    slug: "edu/essay-word-counter", inputs: {text:"𠀀 Hello world.你好！"},
+    clicks: ["count();var h=document.getElementById('result').innerHTML;var ok=h.indexOf('>3</div><div class=\"label\">中文字数')>=0&&h.indexOf('>5</div><div class=\"label\">纯文字字数')>=0&&h.indexOf('>2.5</div><div class=\"label\">平均句长')>=0;document.getElementById('__tbProbe').textContent='HANEXT:'+(ok?'OK':'BAD');"],
+    expect: ["HANEXT:OK"], ref: "扩展 B 汉字及英文句点和中文句末混排。",
+  },
+  {
     slug: "edu/essay-word-counter",
     inputs: { text: "“你好”😀" },
     expect: ["0 英文词数 2 纯文字字数 5 总字符数 5 不含空白符 2 标点符号 1 段落数 — 平均句长 1 行数"],
@@ -282,9 +310,9 @@ const CASES = [
   {
     slug: "edu/edu-unit-converter",
     inputs: { fromVal: "" },
-    clicks: ["var o=document.getElementById('toVal').value;document.getElementById('__tbProbe').textContent='EMPTYVAL '+(o==='0'?'OK':'BAD');"],
+    clicks: ["var o=document.getElementById('toVal').value;document.getElementById('__tbProbe').textContent='EMPTYVAL '+(o===''?'OK':'BAD');"],
     expect: ["EMPTYVAL OK"],
-    ref: "EL-J62：清空输入按 0 输出，不再显示 0e0；旧版 ||0 后走指数分支。",
+    ref: "空输入不输出结果，显式 0 的独立用例仍应输出 0。",
   },
   {
     slug: "edu/edu-unit-converter",
@@ -567,6 +595,13 @@ const CASES = [
     ref: "目标分反推（calcTarget）：perQ=2 → score=40×2=80；目标 90>80；需补 10 分；每对 1 题得 2 分 ⇒ ceil(10/2)=5 题；剩余题 50−40=10 够用；预计 80+5×2=90 分。默认态（correct85/target95）→「再做对 10 题可达 95 分」不命中 ⇒ 强判别、零逃生。",
   },
   {
+    slug: "edu/grade-calculator",
+    inputs: { tMidterm: "33" },
+    clicks: ["localStorage.removeItem('toolbox_grade_history');updateCourse(0,'score','');saveRecord();var a=document.getElementById('totalScore').textContent,b=document.getElementById('maxScore').textContent,h=localStorage.getItem('toolbox_grade_history');updateCourse(0,'score','0');saveRecord();var z=JSON.parse(localStorage.getItem('toolbox_grade_history')||'[]');document.getElementById('__tbProbe').textContent='GRADEEMPTY '+(a.indexOf('分数须')>=0&&b==='—'&&!h&&z.length===1&&z[0].score==='67.37'?'OK':'BAD');"],
+    expect: ["GRADEEMPTY OK"],
+    ref: "清空分数时清除旧结论且禁止保存；输入合法零分后恢复计算并保存 67.37。",
+  },
+  {
     slug: "edu/quiz-score-percentage", inputs: { total: "10000", correct: "8996", points: "2" },
     expect: ["A+ 太棒了！🌟"],
     ref: "EL-J32：89.96% 按展示精度 90.0% 判级 ⇒ A+；旧版用未舍入 pct 判 A 却展示 90.0%。展示串 90.0% 旧版也命中，禁止列入 expect。",
@@ -577,6 +612,13 @@ const CASES = [
     clicks: ["var nm=document.getElementById('quizName').value;var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/edu/quiz-score-percentage.html','utf8');var h2=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/language/text-polisher.html','utf8');var ok=nm==='TbQuizToast'&&h.indexOf('i18nText()')<0&&h2.indexOf('i18nText()')<0&&h.indexOf('已保存本次测验')>=0;document.getElementById('__tbProbe').textContent='TOASTFIX '+(ok?'OK':'BAD');"],
     expect: ["TOASTFIX OK"],
     ref: "EL-J33：测验页与润色页均无无参 i18nText() 调用，测验页保存有明确文案；旧版 toast 显示 undefined。",
+  },
+  {
+    slug: "edu/quiz-score-percentage",
+    inputs: { total: "10000", correct: "8996", points: "2", quizName: "QuizRound" },
+    clicks: ["localStorage.removeItem('quiz_score_history');saveToHistory();var q=JSON.parse(localStorage.getItem('quiz_score_history')||'[]')[0];document.getElementById('__tbProbe').textContent='QUIZSAVE '+(q&&q.pct===90&&q.quizName==='QuizRound'?'OK':'BAD');"],
+    expect: ["QUIZSAVE OK"],
+    ref: "保存历史使用显示精度：8996/10000=89.96%，四舍五入后为 90.0%；断言真实存储的名称及 pct。",
   },
   {
     slug: "edu/quiz-score-percentage",
@@ -1231,9 +1273,9 @@ const CASES = [
       "known": "42"
     },
     "expect": [
-      "重 60% 要达到42分，剩余需考 31.0 分"
+      "重 60% 要达到42分，剩余需考 24.0 分"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"target\":\"42\",\"known\":\"42\"}，输出区含「重 60% 要达到42分，剩余需考 31.0 分」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"target\":\"42\",\"known\":\"42\"}，输出区含「重 60% 要达到42分，剩余需考 24.0 分」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "edu/gpa-calculator",
@@ -1456,6 +1498,23 @@ const CASES = [
     "ref": "EL-J4 合法边界：题量 1 与 5 均在 1–100 内，抽题数应分别为 1 与 5，且不弹越界提示。默认态不产生 QOK 锚点。"
   },
   {
+    slug: "edu/english-vocabulary",
+    clicks: ["var s={};localStorage.getItem=function(k){return s[k]||null;};localStorage.setItem=function(k,v){s[k]=String(v);};questions=[];s['vocab-wordbook']=JSON.stringify([{w:'one',m:'same'},{w:'two',m:'same'}]);startQuiz('wordbook');var rejected=questions.length===0;s['vocab-wordbook']=JSON.stringify([{w:'one',m:'<img src=x onerror=alert(1)>'},{w:'two',m:'safe'}]);document.getElementById('qCount').value='1';startQuiz('wordbook');var q=questions.length===1&&questions[0].options.length===2;showWordbook();var h=document.getElementById('qOptions').innerHTML+' '+document.getElementById('wbList').innerHTML;document.getElementById('vocabChart').textContent='WBSAFE:'+(rejected&&q&&h.indexOf('<img')<0&&h.indexOf('&lt;img')>=0?'OK':'BAD');"],
+    expect: ["WBSAFE:OK"],
+    ref: "同义词不足拒绝出题；单题仍需两个不同选项，历史释义中的标签保持文本。",
+  },
+  {
+    slug: "edu/grade-weight-calculator", inputs: {target:"60"},
+    clicks: ["items=[{name:'a',weight:25,score:80},{name:'b',weight:25,score:''}];calc();var a=document.getElementById('result').innerHTML.indexOf('40.0 分')>=0;upd(0,'weight','');calc();var b=document.getElementById('result').innerHTML.indexOf('权重或得分无效')>=0;upd(0,'weight','0');var c=document.getElementById('result').innerHTML.indexOf('60.0 分')>=0;document.getElementById('__tbProbe').textContent='WEIGHT:'+(a&&b&&c?'OK':'BAD');"],
+    expect: ["WEIGHT:OK"], ref: "非 100 总权重目标归一、空权重与合法零权重。",
+  },
+  {
+    slug: "edu/exam-score-calculator",
+    clicks: ["var v=[gradeOf(69,70,false),gradeOf(70,70,false),gradeOf(79,80,false),gradeOf(80,80,false),gradeOf(89,90,false),gradeOf(90,90,false)];var ok=v[0].cls==='grade-fail'&&v[1].cls!=='grade-fail'&&v[2].cls==='grade-fail'&&v[3].cls!=='grade-fail'&&v[4].cls==='grade-fail'&&v[5].cls!=='grade-fail';localStorage.getItem=function(){return JSON.stringify([{time:'2024-01-01',examName:'x',score:75,total:100,rate:75,correct:75,totalQ:100,passLine:90}]);};renderHistory();ok=ok&&document.getElementById('historyList').innerHTML.indexOf('不及格')>=0;document.getElementById('__tbProbe').textContent='PASSLINE:'+(ok?'OK':'BAD');"],
+    expect: ["PASSLINE:OK"],
+    ref: "及格线优先，覆盖 70/80/90 边界及历史记录。",
+  },
+  {
     "slug": "edu/english-vocabulary",
     "clicks": [
       "questions=[{word:'assimilate',answer:'适应',options:['容纳；适应','适应'],answerIndex:1}];currentQ=0;score=0;wrongCount=0;answered=false;showQuestion();var bs=document.querySelectorAll('.option-btn');var marks=[];bs.forEach(function(b,i){b.classList.add=function(c){marks.push(i+':'+c);};});answer(0,bs[0]);document.getElementById('vocabChart').textContent='QSTRICT:'+marks.join(',')+'|wrong='+wrongCount;"
@@ -1572,16 +1631,16 @@ const CASES = [
   {
     slug: "edu2/exam-countdown",
     inputs: { examName: "TbCtiHol" },
-    clicks: ["var s=(new Date().getFullYear()+3)+'-10-01';document.getElementById('examDate').value=s;document.getElementById('countHoliday').checked=true;calc();var r=document.getElementById('result').innerHTML;document.getElementById('__tbProbe').textContent='CTIHOL '+(r.indexOf('TbCtiHol')>=0&&r.indexOf('该年份未内置节假日表')>=0?'OK':'BAD');"],
+    clicks: ["var s=(new Date().getFullYear()+3)+'-10-01';document.getElementById('examDate').value=s;document.getElementById('countHoliday').checked=true;calc();var r=document.getElementById('result').innerHTML;document.getElementById('__tbProbe').textContent='CTIHOL '+(r.indexOf('TbCtiHol')>=0&&r.indexOf('未内置 ')>=0&&r.indexOf('这些年份未扣减节假日')>=0?'OK':'BAD');"],
     expect: ["CTIHOL OK"],
     ref: "EL-J162：内置表仅 2026 年，其他年份勾选节假日时明确提示未扣减；旧版静默按 0 且注释谎称 2025-2027。",
   },
   {
     slug: "edu2/exam-countdown",
     inputs: { examName: "TbCtiSrc" },
-    clicks: ["var nm=document.getElementById('examName').value;var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/edu2/exam-countdown.html','utf8');var ok=nm==='TbCtiSrc'&&h.indexOf('progressPct')<0&&h.indexOf('2025-2027')<0&&h.indexOf('hasHolidayData')>=0;document.getElementById('__tbProbe').textContent='CDFIX '+(ok?'OK':'BAD');"],
+    clicks: ["var nm=document.getElementById('examName').value;var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/edu2/exam-countdown.html','utf8');var ok=nm==='TbCtiSrc'&&h.indexOf('progressPct')<0&&h.indexOf('2025-2027')<0&&h.indexOf('missingYears')>=0;document.getElementById('__tbProbe').textContent='CDFIX '+(ok?'OK':'BAD');"],
     expect: ["CDFIX OK"],
-    ref: "EL-J160/J161/J162 源码形态：删误导性 progressPct 与失实注释，新增 hasHolidayData；依赖 inputs 唯一串避免默认态命中。",
+    ref: "EL-J160/J161/J162 源码形态：删误导性 progressPct 与失实注释，按缺表年份提示；依赖 inputs 唯一串避免默认态命中。",
   },
 
   {
@@ -1604,7 +1663,7 @@ const CASES = [
   },
   {
     slug: "edu/country-quiz",
-    clicks: ["var fs=globalThis.__tbFs;var h=fs.readFileSync(process.cwd()+'/tools/edu/country-quiz.html','utf8');var seg=h.slice(h.indexOf('const countries=['),h.indexOf('let queue'));var n=(seg.match(/name:'/g)||[]).length;var ok=n>=50&&h.indexOf('Noto Color Emoji')>=0&&seg.indexOf('荷兰')>=0&&seg.indexOf('新加坡')>=0&&seg.indexOf('肯尼亚')>=0;document.getElementById('__tbProbe').textContent='CQJ127 '+n+' '+(ok?'OK':'BAD');"],
+    clicks: ["var fs=globalThis.__tbFs;var h=fs.readFileSync(process.cwd()+'/tools/edu/country-quiz.html','utf8');var seg=h.slice(h.indexOf('const countries=['),h.indexOf('let queue'));var n=(seg.match(/name:'/g)||[]).length;var flags=Array.from(seg.matchAll(/flag:'([^']+)'/g),m=>m[1]);var ok=n>=50&&flags.length===n&&flags.every(f=>fs.existsSync(process.cwd()+'/assets/country-flags/'+Array.from(f,c=>c.codePointAt(0).toString(16)).join('-')+'.svg'))&&h.indexOf('flagImg.onerror')>=0&&seg.indexOf('荷兰')>=0&&seg.indexOf('新加坡')>=0&&seg.indexOf('肯尼亚')>=0;document.getElementById('__tbProbe').textContent='CQJ127 '+n+' '+(ok?'OK':'BAD');"],
     expect: ["CQJ127 56 OK"],
     ref: "EL-J127：旧版题库仅 20 国、emoji 无字体栈，部分平台回退为字母代码。现扩到 56 国并加系统 emoji 字体栈兜底（Apple/Segoe/Noto/Twemoji）。源码形态哨兵（条目数+字体栈+新增国名）：旧版 n=20 ⇒ 必红。",
   },
@@ -1864,6 +1923,13 @@ const CASES = [
     expect: ["GWSUM OK"],
     ref: "E2 权重和提示：权重本来按 totalW 归一，Σw≠100 并非计算错误，但结果区未说明，容易被误认为漏项。现非 100% 时显式提示「结果按总权重归一；若按百分比口径请使合计为 100%」，英文同步；源码哨兵，旧版无提示必红。",
   },
+  { slug: "edu/chinese-zodiac", inputs: { year: "2000", birthDate: "1900-01-30" }, expect: ["生日早于春节（1900-01-31），生肖按 1899 年计"], ref: "EL-F18：春节前后及范围边界，1901–2100 数据来自香港天文台逐年公历农历对照表，1900 年为 1 月 31 日。" },
+  { slug: "edu/chinese-zodiac", inputs: { year: "2000", birthDate: "1900-01-31" }, expect: ["生日晚于或等于春节（1900-01-31），生肖按 1900 年计"], ref: "EL-F18：春节前后及范围边界，1901–2100 数据来自香港天文台逐年公历农历对照表，1900 年为 1 月 31 日。" },
+  { slug: "edu/chinese-zodiac", inputs: { year: "2000", birthDate: "1970-02-05" }, expect: ["生日早于春节（1970-02-06），生肖按 1969 年计"], ref: "EL-F18：春节前后及范围边界，1901–2100 数据来自香港天文台逐年公历农历对照表，1900 年为 1 月 31 日。" },
+  { slug: "edu/chinese-zodiac", inputs: { year: "2000", birthDate: "1970-02-06" }, expect: ["生日晚于或等于春节（1970-02-06），生肖按 1970 年计"], ref: "EL-F18：春节前后及范围边界，1901–2100 数据来自香港天文台逐年公历农历对照表，1900 年为 1 月 31 日。" },
+  { slug: "edu/chinese-zodiac", inputs: { year: "2000", birthDate: "2100-02-08" }, expect: ["生日早于春节（2100-02-09），生肖按 2099 年计"], ref: "EL-F18：春节前后及范围边界，1901–2100 数据来自香港天文台逐年公历农历对照表，1900 年为 1 月 31 日。" },
+  { slug: "edu/chinese-zodiac", inputs: { year: "2000", birthDate: "2100-02-09" }, expect: ["生日晚于或等于春节（2100-02-09），生肖按 2100 年计"], ref: "EL-F18：春节前后及范围边界，1901–2100 数据来自香港天文台逐年公历农历对照表，1900 年为 1 月 31 日。" },
+  { slug: "edu/chinese-zodiac", inputs: { year: "2000", birthDate: "2101-01-01" }, expect: ["出生日期仅支持 1900–2100 年。"], ref: "EL-F18：春节前后及范围边界，1901–2100 数据来自香港天文台逐年公历农历对照表，1900 年为 1 月 31 日。" },
 ];
 
 async function main() {

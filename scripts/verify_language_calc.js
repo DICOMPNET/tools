@@ -5,6 +5,12 @@ const fs = require("fs");
 globalThis.__tbFs = fs;
 const CASES = [
 {
+  "slug":"language/language-toolkit",
+  "inputs":{"acronymInput":"École e\u0301cole 中文 World"},
+  "expect":["École → É", "école → É", "中文 → 已跳过（仅支持英文/拉丁字母）"],
+  "ref":"带重音拉丁字母、组合重音及混合中文应正确取首字母。"
+},
+{
   "slug": "language/calc-1",
   "inputs": {
     "knownRatio": "90"
@@ -42,6 +48,9 @@ const CASES = [
   ],
   "ref": "第二组 -ir 规则：词干 fin + is/is/it/issons/issez/issent，变位表按 PRONOUNS=[je,tu,il/elle,nous,vous,ils/elles] 渲染 ⇒ 「nous finissons」「vous finissez」仅在注入态出现。默认态 verbInput 为空 → lookup() 首行 return、#result 不被改写 ⇒ 两串均失配。**注意**：整页 quickList（parler/aimer/finir/commencer…）是静态标签，一律不可作 expect。"
 },
+{"slug":"language/french-verb-conjugator","inputs":{"verbInput":"manger"},"expect":["nous mangeons"],"ref":"manger 的现在时 nous 保留 e。"},
+{"slug":"language/french-verb-conjugator","inputs":{"verbInput":"commencer"},"expect":["nous commençons"],"ref":"commencer 的现在时 nous 使用 ç。"},
+{"slug":"language/french-verb-conjugator","inputs":{"verbInput":"acheter"},"expect":["achète"],"ref":"acheter 的单数词干变为 achèt。"},
 {
   "slug": "language/generator-19",
   "inputs": {
@@ -181,9 +190,9 @@ const CASES = [
 },
 {
   "slug": "language/vocabulary-builder",
-  "clicks": ["var s={};localStorage.getItem=function(k){return s[k]||null;};localStorage.setItem=function(k,v){s[k]=String(v);};state.current={cat:'cet4',w:'TESTWORD'};mark('known');var r1=JSON.parse(s.vocab_review||'{}')['cet4_TESTWORD'];state.current={cat:'cet4',w:'TESTWORD'};mark('known');var r2=JSON.parse(s.vocab_review||'{}')['cet4_TESTWORD'];var ok=r1&&r2&&r1.step===1&&r2.step===2&&r1.due!==r2.due;document.getElementById('vbHidden').textContent='JDUE:'+(ok?'OK':'BAD');"],
+  "clicks": ["var s={};localStorage.getItem=function(k){return s[k]||null;};localStorage.setItem=function(k,v){s[k]=String(v);};state.current={cat:'cet4',w:'TESTWORD'};mark('known');var r1=JSON.parse(s.vocab_review||'{}')['cet4_TESTWORD'];state.current={cat:'cet4',w:'TESTWORD'};mark('known');var r2=JSON.parse(s.vocab_review||'{}')['cet4_TESTWORD'];var same=r1&&r2&&r1.step===0&&r1.due===r2.due&&r1.due===dayKeyAfter(1);r2.due=localDateKey();s.vocab_review=JSON.stringify({cet4_TESTWORD:r2});state.current={cat:'cet4',w:'TESTWORD'};updateReview('known');var r3=JSON.parse(s.vocab_review).cet4_TESTWORD;state.current={cat:'cet4',w:'TESTWORD'};updateReview('fuzzy');var r4=JSON.parse(s.vocab_review).cet4_TESTWORD;var ok=same&&r3.step===1&&r3.due===dayKeyAfter(2)&&r4.step===0&&r4.due===dayKeyAfter(1);document.getElementById('vbHidden').textContent='JDUE:'+(ok?'OK':'BAD');"],
   "expect": ["JDUE:OK"],
-  "ref": "EL-J8：复习间隔须按 1/2/4/7/15 天递增记录 due；旧版 progress 只存字符串状态、无 vocab_review，r1/r2 均 undefined ⇒ BAD。"
+  "ref": "EL-J8：首次安排 1 天，提前复习不升级；到期后安排 2 天，模糊重置为 1 天。"
 },
   {
     "slug": "language/german-gender-quiz",
