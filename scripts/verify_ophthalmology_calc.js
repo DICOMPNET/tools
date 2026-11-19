@@ -383,7 +383,59 @@ const CASES = [
        + "桩内未加载 canvasExportError（真机由共享脚本注入）⇒ 用例前先给恒返回 null 的替身，确保走到 toBlob。"
        + "修复前异常裸冒成 pageerror、无任何可见提示；默认态无该串 ⇒ 判别明确。"
   }
-
+,
+{
+  "slug": "ophthalmology/eye-chart-toolkit",
+  "clicks": [
+    "(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/ophthalmology/eye-chart-toolkit.html','utf8');var i=h.indexOf('function saveResult() {');var s=i>=0?h.slice(i,i+560):'';var ok=s.indexOf('if (!rowVal)')>=0&&s.indexOf('rows[rows.length - 1]')<0&&s.indexOf('请先在当前视力表测出一行识别结果再保存')>=0;document.getElementById('__tbProbe').textContent='EYESAVE '+(ok?'OK':'BAD');})();"
+  ],
+  "expect": [
+    "EYESAVE OK"
+  ],
+  "ref": "第1312批·视力表空行误保存修复源码形态强锚（saveResult 在 IIFE 内，harness 无法直接调用）：旧版识别行留空时取最后一行当实测视力写入历史；修复后空行直接提示并 return。旧版含 rows[rows.length-1] 回退 ⇒ BAD。"
+},
+{
+  "slug": "ophthalmology/iop-correction",
+  "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/ophthalmology/iop-correction.html','utf8');var i=h.indexOf('var __ig=__tbInputGuard');var seg=i>=0?h.slice(i,i+300):'';var ok=seg.indexOf(\"('grid').innerHTML=''\")>=0&&seg.indexOf(\"('formulaList').innerHTML=''\")>=0;document.getElementById('__tbProbe').textContent='IOPCLR '+(ok?'OK':'BAD');})();"],
+  "expect": ["IOPCLR OK"],
+  "ref": "第1322批·清空必填残留修复源码形态强锚：原 __tbInputGuard 空值分支只更新 result 即 return，grid/formulaList 沿用旧值；越界分支两处均清。修复后守卫分支同步清 grid 与 formulaList。旧版无 ⇒ BAD。"
+},
+{
+  "slug": "ophthalmology/refraction-error",
+  "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/ophthalmology/refraction-error.html','utf8');var ok=h.indexOf(\"isNaN(s)||isNaN(c)||isNaN(ax)){$('singleResult').innerHTML='';return;}\")>=0&&h.indexOf(\".some(isNaN)){$('combineResult').innerHTML='';return;}\")>=0;document.getElementById('__tbProbe').textContent='REFCLR '+(ok?'OK':'BAD');})();"],
+  "expect": ["REFCLR OK"],
+  "ref": "第1323批·屈光误差输入清空旧结果残留修复源码形态强锚：原 calcSingle/calcCombine 遇空值直接 return，旧处方结果保留；修复后两处 return 前清对应结果容器。旧版无 ⇒ BAD。"
+},
+{
+  "slug": "ophthalmology/tear-breakup-time",
+  "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/ophthalmology/tear-breakup-time.html','utf8');var i=h.indexOf('if(isNaN(but)){');var seg=i>=0?h.slice(i,i+220):'';var ok=seg.indexOf(\"('resultRefBar').innerHTML=''\")>=0&&seg.indexOf(\"('barWrap').innerHTML=''\")>=0;document.getElementById('__tbProbe').textContent='TBUTCLR '+(ok?'OK':'BAD');})();"],
+  "expect": ["TBUTCLR OK"],
+  "ref": "第1323批·泪膜破裂清空未清标尺修复源码形态强锚：原清空首次 BUT 只清 barWrap，resultRefBar 参考标尺留存；修复后同步清 resultRefBar。旧版无 ⇒ BAD。"
+},
+{
+  "slug": "ophthalmology/oct-rnfl",
+  "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/ophthalmology/oct-rnfl.html','utf8');var ok=h.indexOf(\"[age,g,s,i,n,t].some(function(v){return !isFinite(v)||v<=0;})\")>=0&&h.indexOf(\"年龄与各项厚度须为正数\")>=0;document.getElementById('__tbProbe').textContent='OCTNEG '+(ok?'OK':'BAD');})();"],
+  "expect": ["OCTNEG OK"],
+  "ref": "第1324批·负年龄/负厚度参与分级修复源码形态强锚：原只拦 NaN，负厚度也会出 RNFL 分级；修复后年龄与各项厚度须为正数。旧版无 ⇒ BAD。"
+},
+{
+  "slug": "ophthalmology/axial-length",
+  "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/ophthalmology/axial-length.html','utf8');var a=h.indexOf('function calcCorr(){'),b=h.indexOf('function calcSeg(){');var ca=a>=0?h.slice(a,b):'',cb=b>=0?h.slice(b,b+520):'';var ok=ca.indexOf(\"[al,vMeas,vTrue].some(function(v){return !isFinite(v)||v<=0;})\")>=0&&cb.indexOf(\"[acd,vAcd,lt,vLt,vl,vVl].some(function(v){return !isFinite(v)||v<=0;})\")>=0;document.getElementById('__tbProbe').textContent='ALNEG '+(ok?'OK':'BAD');})();"],
+  "expect": ["ALNEG OK"],
+  "ref": "第1324批·负眼轴/负声速参与运算修复源码形态强锚：原两分支只拦 NaN，负声速/零声速可致除零与荒谬 IOL 影响；修复后眼轴与声速须为正数。旧版无 ⇒ BAD。"
+},
+{
+  "slug": "ophthalmology/visual-field-analysis",
+  "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/ophthalmology/visual-field-analysis.html','utf8');var ok=h.indexOf('psd<0||vfi<0||vfi>100')>=0&&h.indexOf('VFI 须在 0–100% 之间')>=0;document.getElementById('__tbProbe').textContent='VFIDOM '+(ok?'OK':'BAD');})();"],
+  "expect": ["VFIDOM OK"],
+  "ref": "第1325批·视野指标定义域守卫修复源码形态强锚：原只拦 NaN，PSD 负值/VFI 越界仍进 HAP 分级；修复后要求 PSD≥0、VFI∈[0,100]。MD 负值按习惯输入保留。旧版无 ⇒ BAD。"
+},
+{
+  "slug": "ophthalmology/vision-screening-21",
+  "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/ophthalmology/vision-screening-21.html','utf8');var i=h.indexOf('window.__vsClearHist=');var seg=i>=0?h.slice(i,i+220):'';var ok=seg.indexOf(\"getElementById('__vsTrend')\")>=0&&seg.indexOf(\"__vt.innerHTML=''\")>=0;document.getElementById('__tbProbe').textContent='VSCLR '+(ok?'OK':'BAD');})();"],
+  "expect": ["VSCLR OK"],
+  "ref": "第1326批·清空历史未清趋势图修复源码形态强锚：原 __vsClearHist 只存空历史并重渲染，#__vsTrend 旧趋势留存；修复后同步清空趋势容器。旧版无 ⇒ BAD。"
+}
 ];
 async function main() {
   const only = process.argv.slice(2);

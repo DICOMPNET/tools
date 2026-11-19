@@ -706,7 +706,143 @@ const CASES = [
     "clicks": ["selectScene('snow')"],
     "expect": ["8%-18%", "棕色/琥珀"],
     "ref": "雪地场景固定参数：可见光透过率 8%-18%、推荐棕色/琥珀；默认白天为 15%-25%、灰色/棕色，零交集。"
-  }
+  },
+{
+  "slug": "optical/blue-light-filter",
+  "clicks": [
+    "(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/optical/blue-light-filter.html','utf8');var i=h.indexOf('function calc(){');var g=i>=0?h.slice(i,i+900):'';var ok=g.indexOf('__cRaw')>=0&&g.indexOf('__kRaw')>=0&&g.indexOf('k<=0')>=0&&g.indexOf('|| 430')<0&&g.indexOf('|| 10')<0;document.getElementById('__tbProbe').textContent='BLCUT '+(ok?'OK':'BAD');})();"
+  ],
+  "expect": [
+    "BLCUT OK"
+  ],
+  "ref": "第1314批·蓝光截止波长/陡度静默代入修复源码形态强锚：原 `||430`/`||10` 空值照常出阻隔率、负陡度可反转曲线；修复后原始串判空、k<=0 清空频谱。旧版含 || 回退 ⇒ BAD。"
+},
+{
+  "slug": "optical/tinted-lens",
+  "clicks": [
+    "(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/optical/tinted-lens.html','utf8');var i=h.indexOf('function calc(){');var g=i>=0?h.slice(i,i+900):'';var ok=g.indexOf('__dRaw')>=0&&g.indexOf('__bRaw')>=0&&g.indexOf('density>100')>=0&&g.indexOf('baseVlt>100')>=0&&g.indexOf('|| 92')<0&&g.indexOf('|| 0')<0;document.getElementById('__tbProbe').textContent='TINTVLT '+(ok?'OK':'BAD');})();"
+  ],
+  "expect": [
+    "TINTVLT OK"
+  ],
+  "ref": "第1314批·染色镜片基础透光率静默回退修复源码形态强锚：原 `||92` 空值/0 仍出 VLT 分类；修复后原始判空、0–100 范围校验、无效清 tintGrid。旧版含 || 回退 ⇒ BAD。"
+},
+{
+  "slug": "optical/edge-bevel",
+  "clicks": [
+    "(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/optical/edge-bevel.html','utf8');var i=h.indexOf('function calc(){');var g=i>=0?h.slice(i,i+900):'';var ok=g.indexOf('__tRaw')>=0&&g.indexOf('t<=0')>=0&&g.indexOf('|| 0')<0&&g.indexOf('请输入大于 0 的镜片厚度')>=0;document.getElementById('__tbProbe').textContent='EDGET '+(ok?'OK':'BAD');})();"
+  ],
+  "expect": [
+    "EDGET OK"
+  ],
+  "ref": "第1314批·镜片厚度空/负仍推荐磨边修复源码形态强锚：原 `||0` 使空值落入 <2mm 平边档、负厚度同档；修复后原始判空+正数守卫+双语提示。旧版含 || 回退 ⇒ BAD。"
+},
+{
+  "slug": "optical/frame-pupillary",
+  "clicks": [
+    "(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/optical/frame-pupillary.html','utf8');var i=h.indexOf('function calc(){');var g=i>=0?h.slice(i,i+1100):'';var ok=g.indexOf('__aRaw')>=0&&g.indexOf('__dblRaw')>=0&&g.indexOf('__pdRaw')>=0&&g.indexOf('A<=0')>=0;document.getElementById('__tbProbe').textContent='FPGUARD '+(ok?'OK':'BAD');})();"
+  ],
+  "expect": [
+    "FPGUARD OK"
+  ],
+  "ref": "第1315批·镜框尺寸/鼻梁/瞳距空值按0修复源码形态强锚：原三处 ||0 空值仍出几何移心建议；修复后原始判空+正数守卫+双语提示。旧版无 __aRaw ⇒ BAD。"
+},
+{
+  "slug": "optical/frame-tilt",
+  "clicks": [
+    "(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/optical/frame-tilt.html','utf8');var i=h.indexOf('function calc(){');var g=i>=0?h.slice(i,i+1100):'';var ok=g.indexOf('__tRaw')>=0&&g.indexOf('__pdRaw')>=0&&g.indexOf('__phRaw')>=0&&g.indexOf('pupilHeight<=0')>=0;document.getElementById('__tbProbe').textContent='FTGUARD '+(ok?'OK':'BAD');})();"
+  ],
+  "expect": [
+    "FTGUARD OK"
+  ],
+  "ref": "第1315批·倾角/瞳距/瞳高空值按0修复源码形态强锚：原三处 ||0 空值仍输出光心位置与调整结论；修复后原始判空+pd/瞳高正数守卫，倾角0仍合法。旧版无 __tRaw ⇒ BAD。"
+},
+{
+  "slug": "optical/convergence-near-point",
+  "clicks": [
+    "(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/optical/convergence-near-point.html','utf8');var i=h.indexOf('function calc(){');var g=i>=0?h.slice(i,i+1100):'';var ok=g.indexOf('__pdRaw')>=0&&g.indexOf('pd<=0')>=0&&g.indexOf('isFinite(pd)')>=0;document.getElementById('__tbProbe').textContent='CNPGUARD '+(ok?'OK':'BAD');})();"
+  ],
+  "expect": [
+    "CNPGUARD OK"
+  ],
+  "ref": "第1315批·集合近点瞳距空值按0修复源码形态强锚：原 pd||0 空值仍出集合需求与双眼总量；修复后原始判空+正数守卫+双语提示。旧版无 __pdRaw ⇒ BAD。"
+},
+{
+  "slug": "optical/progressive-corridor",
+  "clicks": [
+    "(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/optical/progressive-corridor.html','utf8');var i=h.indexOf('function calc(){');var g=i>=0?h.slice(i,i+1400):'';var ok=g.indexOf('__addRaw')>=0&&g.indexOf('__bhRaw')>=0&&g.indexOf('__phRaw')>=0&&g.indexOf('bH<=0')>=0&&g.indexOf('ph<=0')>=0&&g.indexOf('请输入有效的下加光')>=0&&g.indexOf('|| 1.5')<0;document.getElementById('__tbProbe').textContent='PCGUARD '+(ok?'OK':'BAD');})();"
+  ],
+  "expect": [
+    "PCGUARD OK"
+  ],
+  "ref": "第1316批·渐进通道下加光/镜圈高度/瞳高空值静默代入修复源码形态强锚：原 add||0、bHeight||40、pupilH||0 空值仍输出通道长度与结论；修复后原始判空+下加光非负、镜圈高度与瞳高正数守卫。旧版无 __addRaw ⇒ BAD。"
+},
+{
+  "slug": "optical/lens-refractive-index",
+  "clicks": [
+    "(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/optical/lens-refractive-index.html','utf8');var i=h.indexOf('function calc(){');var g=i>=0?h.slice(i,i+1400):'';var ok=g.indexOf('__pRaw')>=0&&g.indexOf('__dRaw')>=0&&g.indexOf('__ctRaw')>=0&&g.indexOf('dia<=0')>=0&&g.indexOf('ct<=0')>=0&&g.indexOf('请输入有效的度数')>=0;document.getElementById('__tbProbe').textContent='LRGUARD '+(ok?'OK':'BAD');})();"
+  ],
+  "expect": [
+    "LRGUARD OK"
+  ],
+  "ref": "第1316批·镜片折射率度数/直径/中心厚度空值静默代入修复源码形态强锚：原 power||0、diameter||65、ct||2 空值仍输出折射率与结论；修复后原始判空+直径与中心厚度正数守卫。旧版无 __pRaw ⇒ BAD。"
+},
+{
+  "slug": "optical/polarized-axis",
+  "clicks": [
+    "(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/optical/polarized-axis.html','utf8');var i=h.indexOf('function calc(){');var g=i>=0?h.slice(i,i+1500):'';var ok=g.indexOf('__sphRaw')>=0&&g.indexOf('__cylRaw')>=0&&g.indexOf('__pantoRaw')>=0&&g.indexOf('__wrapRaw')>=0&&g.indexOf('panto>=90')>=0&&g.indexOf('请输入有效的球镜')>=0;document.getElementById('__tbProbe').textContent='PAGUARD '+(ok?'OK':'BAD');})();"
+  ],
+  "expect": [
+    "PAGUARD OK"
+  ],
+  "ref": "第1317批·偏光镜轴位球镜/柱镜/前倾角/面弯空值静默按0修复源码形态强锚：原四处 ||0 空值仍输出诱导柱镜与有效球镜；修复后原始判空+非有限数与角度范围守卫。axis 未参与计算的专业口径余项不动。旧版无 __sphRaw ⇒ BAD。"
+},
+{
+  "slug": "optical/peripheral-defocus",
+  "clicks": [
+    "(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/optical/peripheral-defocus.html','utf8');var i=h.indexOf('function calc(){');var g=i>=0?h.slice(i,i+1500):'';var ok=g.indexOf('__centralRaw')>=0&&g.indexOf('__periphRaw')>=0&&g.indexOf('__angleRaw')>=0&&g.indexOf('angle<=0')>=0&&g.indexOf('__visEmpty')>=0&&g.indexOf('请输入有效的中心屈光')>=0;document.getElementById('__tbProbe').textContent='PDGUARD '+(ok?'OK':'BAD');})();"
+  ],
+  "expect": [
+    "PDGUARD OK"
+  ],
+  "ref": "第1317批·周边离焦中心/周边/偏心角空值静默按0或20修复源码形态强锚：原 ||0/||20 空值仍输出 RPD、方向结论与示意图；修复后原始判空+角度正数守卫+可视化容器清空。RPD=0 方向冲突与防控百分比属专业口径余项。旧版无 __centralRaw ⇒ BAD。"
+},
+{
+  "slug": "optical/accommodation-amplitude",
+  "clicks": [
+    "(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/optical/accommodation-amplitude.html','utf8');var i=h.indexOf('function calc(){');var g=i>=0?h.slice(i,i+700):'';var ok=g.indexOf('__ageRaw')>=0&&g.indexOf('age<=0')>=0&&g.indexOf('请输入有效的年龄')>=0&&g.indexOf('|| 0')<0;document.getElementById('__tbProbe').textContent='AAGUARD '+(ok?'OK':'BAD');})();"
+  ],
+  "expect": [
+    "AAGUARD OK"
+  ],
+  "ref": "第1318批·调节幅度年龄空值按0修复源码形态强锚：原 age||0 空值仍算出 Hofstetter 三档幅度与近点（0岁成人值）；修复后原始判空+年龄正数守卫。实测调节值为选填，不在本批改。旧版无 __ageRaw ⇒ BAD。"
+},
+{
+  "slug": "optical/anti-fatigue-design",
+  "clicks": [
+    "(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/optical/anti-fatigue-design.html','utf8');var i=h.indexOf(\"if(mode === 'basic'){\");var g=i>=0?h.slice(i,i+1100):'';var ok=g.indexOf('__ageRaw')>=0&&g.indexOf('__wdRaw')>=0&&g.indexOf('__rxRaw')>=0&&g.indexOf('workDist<=0')>=0&&g.indexOf('请输入有效的年龄、工作距离')>=0;document.getElementById('__tbProbe').textContent='AFGUARD '+(ok?'OK':'BAD');})();"
+  ],
+  "expect": [
+    "AFGUARD OK"
+  ],
+  "ref": "第1318批·抗疲劳下加光基础模式年龄/工作距离/远用度数码值静默代入修复源码形态强锚：原三处 ||0/||40 空值仍输出 ADD 与结论；修复后原始判空+年龄与距离正数守卫，远用度数允许0与负值。ADD 限幅1D 属专业口径余项。旧版无 __ageRaw ⇒ BAD。"
+},
+{
+  "slug": "optical/coating-design",
+  "clicks": [
+    "(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/optical/coating-design.html','utf8');var i=h.indexOf('function calc(){');var g=i>=0?h.slice(i,i+1400):'';var ok=g.indexOf('__lamRaw')>=0&&g.indexOf('__nLRaw')>=0&&g.indexOf('lam<=0')>=0&&g.indexOf('nLens<=0')>=0&&g.indexOf('__lsBad')>=0&&g.indexOf('请输入有效的设计波长')>=0&&g.indexOf('|| 550')<0&&g.indexOf('|| 1.6;')<0;document.getElementById('__tbProbe').textContent='CDGUARD '+(ok?'OK':'BAD');})();"
+  ],
+  "expect": [
+    "CDGUARD OK"
+  ],
+  "ref": "第1319批·镀膜设计波长/lensN 的 0 与负值静默换默认（||550/||1.6）修复源码形态强锚：原波长为负算负膜厚、0 值换默认仍出层系图；修复后原始判空+正数守卫，守卫分支与非法分支均清 layerStack。MgF₂ 固定文案与反射率'降至'措辞属专业口径余项不动。旧版无 __lamRaw ⇒ BAD。"
+},
+{
+  "slug": "optical/photochromic-lens",
+  "inputs": { "temp": "-20", "uv": "5", "type": "gray" },
+  "expect": ["温度超出本模型适用范围"],
+  "ref": "第1320批·负温度荒谬值修复真机强锚：temp=-20 时 tempFactorDark=1+(−20−25)×0.03=−0.35≤0，旧版算出负变深时间（−16秒）仍输出；修复后拒绝并提示。默认态 temp=25 因子=1>0 不命中该文案；旧版无该守卫不命中 ⇒ 真红。"
+}
 ];
 
 async function main() {

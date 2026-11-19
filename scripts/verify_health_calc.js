@@ -6,6 +6,8 @@
  * 用法: node scripts/verify_health_calc.js
  */
 "use strict";
+const fs = require("fs");
+globalThis.__tbFs = fs;
 const { runCase } = require("./verify_it_calc.js");
 
 const CASES = [
@@ -403,9 +405,9 @@ const CASES = [
       "mgdl": "42"
     },
     "expect": [
-      "2.3\n41\n严重低血糖\n立即就医！\n2.3 mmol/L 41 mg/dL 2.28 换算系数"
+      "2.3\n41\n严重低血糖\n立即就医！\n2.3 mmol/L 41 mg/dL 18.02 换算系数"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"mmol\":\"42\",\"mgdl\":\"42\"}，输出区含「2.3\n41\n严重低血糖\n立即就医！\n2.3 mmol/L 41 mg/dL 2…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "换算系数修复后自动补强锚：注入 mmols=42→取 mmol 42 经 mg/dL 换算链得 2.3 mmol/L/41 mg/dL（换算系数恒为18.02、不再随输入变化成旧假值2.28）；默认态(5.5/99)不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "health/body-fat-calculator",
@@ -774,9 +776,9 @@ const CASES = [
       "perPack": "16"
     },
     "expect": [
-      "42\n42\n42\n16\n¥110.3\n¥772\n¥3308\n¥40241\n¥1,690,132.5\n2,832,984\n7761.6"
+      "42\n42\n42\n16\n¥110.3\n¥772\n¥3308\n¥40241\n¥1,690,132.5\n4,918\n13.5"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"perDay\":\"42\",\"years\":\"42\",\"price\":\"42\",\"perPack\":\"16\"}，输出区含「42\n42\n42\n16\n¥110.3\n¥772\n¥3308\n¥40241\n¥1,…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "寿命损失分钟换天量纲修复强锚：每支11分钟，42支/天×365×42年=643,860支，11×643,860÷(60×24)=4,918天≈13.5年。旧版 `÷60×24` 放大576倍得2,832,984天/7761.6年，必红；默认态输入回退不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "health/water-intake-calculator",
@@ -833,6 +835,191 @@ const CASES = [
   "expect": ["消化内科/全科", "注意补液防脱水，清淡饮食，一般3-5天恢复。"],
   "ref": "categorySelect=digestive（消化系统）+ 固定路径 chooseOption(0)→chooseOption(0) ⇒ 决策树 d1 选「水样便，次数多」直达结果卡：科室「消化内科/全科」、建议「注意补液防脱水，清淡饮食，一般3-5天恢复。」。"
        + "注意：疾病名「急性肠胃炎」在页面静态科普列表里也出现（消化道：急性肠胃炎、食物中毒、胃炎），故不作锚；锚只取脚本内数据、静态正文零出现的科室与建议串。默认态未选分类、结果区隐藏，零交集。"
+},
+{
+  "slug": "health/sleep-cycle-calculator",
+  "inputs": { "wakeTime": "00:00", "fallAsleep": "0" },
+  "clicks": ["var h=String(document.getElementById('result').innerHTML);document.getElementById('__tbProbe').textContent='SLEEP0 '+(h.indexOf('已考虑 0 分钟入睡潜伏期')>=0 && h.indexOf('00:00 起床')>=0 ? 'OK':'BAD');"],
+  "expect": ["SLEEP0 OK"],
+  "ref": "第1304批·合法0误拦修复强锚：醒来时间00:00(time型,非数值分母)+入睡潜伏期0分钟均为合法输入，修复后守卫不误报『分母为0/输入不能全为0』、calc不再把0吞成15，结果含『已考虑 0 分钟入睡潜伏期』且含00:00起床 ⇒ OK。旧版守卫把 wakeTime 当分母、fallAsleep=0 全零误拦，结果区为错误提示无此串 ⇒ BAD；默认态 07:00/15 不含『已考虑 0 分钟』。"
+},
+{
+  "slug": "health/alcohol-units",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/health/caffeine-limit.html','utf8');var q=String.fromCharCode(39);var i=h.indexOf('function quickAdd(caf){');var seg=i>=0?h.slice(i,i+400):'';var add=i>=0&&h.indexOf(q+'#drinks .drink-row:last-child .drink-type'+q)<0&&seg.indexOf('addDrink()')>=0;document.getElementById('__tbProbe').textContent='CAFADD '+(add?'OK':'BAD');"],
+  "expect": ["CAFADD OK"],
+  "ref": "第1304批·caffeine quickAdd追加而非覆盖源码形态强锚(承载页用同目录alcohol-units避开caffeine页onclick=removeDrink(this)在harness的报错)：修复后 quickAdd 调 addDrink() 真正追加新行、不再用 :last-child 定位最后一行覆盖其类型。旧版只有 `last.value=caf` 覆盖最后一行，连点两种饮品前一种被吞 ⇒ 源码含 :last-child 串且函数体内无 addDrink() ⇒ BAD。harness stub DOM 的 appendChild/querySelectorAll 不完整(removeDrink 抛错)，故用源码形态断言、真机交互由复核方覆盖；默认态源码不变⇒探针恒为固定值，该用例靠源码差分而非输入判别(形态哨兵类)。"
+},
+{
+  "slug": "health/blood-pressure-classifier",
+  "inputs": { "sys": "100", "dia": "110", "age": "55", "gender": "female" },
+  "clicks": ["document.getElementById('__tbProbe').textContent='BPLOGIC '+String(document.getElementById('bpCat').textContent);"],
+  "expect": ["BPLOGIC 请填写有效的收缩压和舒张压（收缩压不得低于舒张压）"],
+  "ref": "第1304批·血压逻辑校验强锚：收缩压100<舒张压110，旧版 !s||!d 放行→输出『3级高血压』+负脉压-10，真缺陷；修复后拦截并清空结果、提示有效范围。默认态120/80合法不触发该提示 ⇒ 零逃生；中文态(页面原样硬编码)不依赖TBKit.isEn。"
+},
+{
+  "slug": "health/body-surface-area",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/health/blood-sugar-converter.html','utf8');var ok=h.indexOf('(18.0182).toFixed(2)')>=0&&h.indexOf('mmol * 18.0182 / 18')<0;document.getElementById('__tbProbe').textContent='COEF '+(ok?'OK':'BAD');"],
+  "expect": ["COEF OK"],
+  "ref": "第1305批·假换算系数修复源码形态强锚(承载页用同目录body-surface-area：blood-sugar 页 updateUI 在 harness 下 getStatus/marker 依赖报错、探针写不进)：原 `(mmol*18.0182/18).toFixed(2)` 实际≈输入值，输入5.5显示『5.51 换算系数』随输入变化完全误导；修复后恒为真实系数 `(18.0182).toFixed(2)`=18.02。旧版含旧表达式且无新常量 ⇒ BAD；真机双输入一致性由复核方覆盖。"
+},
+{
+  "slug": "health/body-surface-area",
+  "clicks": ["var b={classList:{add:function(){},remove:function(){}}};setUnit('imperial',b);var h=document.getElementById('height').value,w=document.getElementById('weight').value;document.getElementById('__tbProbe').textContent='BSAUNIT h='+h+' w='+w;"],
+  "expect": ["BSAUNIT h=66.93 w=143.3"],
+  "ref": "第1305批·单位切换换算强锚：切英制时 170cm→66.93in(170/2.54)、65kg→143.3lb(65/0.453592)。旧版 setUnit 只改标签不换算，height 仍170、weight 仍65 ⇒ 锚不命中必红；默认态公制不触发切换，输入框保持170/65 ⇒ 零逃生。"
+},
+{
+  "slug": "health/waist-hip-ratio",
+  "inputs": {
+    "waist": "92",
+    "hip": "100"
+  },
+  "clicks": [
+    "document.getElementById('waist').value='';calc();var a=document.getElementById('waistVal').textContent;var b=document.getElementById('whtrVal').textContent;var c=document.getElementById('riskContent').innerHTML;document.getElementById('__tbProbe').textContent='WHCLR '+(a==='--'&&b==='--'&&c===''?'OK':'BAD');"
+  ],
+  "expect": [
+    "WHCLR OK"
+  ],
+  "ref": "第1309批·清空残留修复强锚：先以 92/100 生成 WHR 及派生结果，再清空腰围调 calc；旧版无效分支只清主卡，waistVal/whtrVal/riskContent 仍是旧值 ⇒ BAD；修复后全部归位 ⇒ OK。默认态 85/95 不含该探针串，零逃生。"
+},
+{
+  "slug": "health/cholesterol-ratio",
+  "inputs": {
+    "total": "220",
+    "hdl": "45"
+  },
+  "clicks": [
+    "document.getElementById('total').value='';calc();var a=document.getElementById('ratioVal').textContent;var b=document.getElementById('statsGrid').innerHTML;var c=document.getElementById('ratioDetails').innerHTML;document.getElementById('__tbProbe').textContent='CHCLR '+(a==='--'&&b===''&&c===''?'OK':'BAD');"
+  ],
+  "expect": [
+    "CHCLR OK"
+  ],
+  "ref": "第1309批·清空残留修复强锚：先以 220/45 算出 4.89 与 LDL/HDL、风险明细，再清空总胆固醇调 calc；旧版无效输入直接 return，比值/统计卡/风险建议全部保留 ⇒ BAD；修复后同步清空 ⇒ OK。默认 200/50 不命中探针，零逃生。"
+},
+{
+  "slug": "health/body-surface-area",
+  "clicks": [
+    "(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/health/blood-sugar-converter.html','utf8');var ok=h.indexOf('function clearGlucose(){')>=0&&h.indexOf('clearGlucose(); return;')>=0&&h.indexOf(`value = ''; clearGlucose();`)>=0;document.getElementById('__tbProbe').textContent='BSCLR '+(ok?'OK':'BAD');})();"
+  ],
+  "expect": [
+    "BSCLR OK"
+  ],
+  "ref": "第1309批·血糖双向清空修复源码形态强锚（承载页 body-surface-area：blood-sugar 页 updateUI 在 harness 下依赖报错、探针写不进）：旧版 fromMmol/fromMgdl 遇空值直接 return，另一端输入与状态/刻度/统计全保留；修复后新增 clearGlucose 清全部派生，两处无效分支均调之并清对方输入。旧版无 clearGlucose ⇒ BAD；真机双输入一致性由复核方覆盖。"
+},
+{
+  "slug": "health/child-bmi-calculator",
+  "inputs": {
+    "age": "10",
+    "height": "140",
+    "weight": "35"
+  },
+  "clicks": [
+    "calc();document.getElementById('height').value='';calc();var a=document.getElementById('adviceContent').innerHTML;document.getElementById('__tbProbe').textContent='CBCLR '+(a===''?'OK':'BAD');"
+  ],
+  "expect": [
+    "CBCLR OK"
+  ],
+  "ref": "第1310批·清空残留修复强锚：先以 10岁/140cm/35kg 生成建议卡，再清空身高调 calc；旧版无效分支清主卡但留 adviceContent 旧分类与体重 ⇒ BAD；修复后建议卡清空 ⇒ OK。"
+},
+{
+  "slug": "health/child-height-predictor",
+  "inputs": {
+    "father": "175",
+    "mother": "160",
+    "age": "10",
+    "childHeight": "140"
+  },
+  "clicks": [
+    "calc();document.getElementById('father').value='';calc();var a=document.getElementById('fatherH').textContent;var b=document.getElementById('barChild').style.height;document.getElementById('__tbProbe').textContent='CHPCLR '+(a==='--'&&b==='0%'?'OK':'BAD');"
+  ],
+  "expect": [
+    "CHPCLR OK"
+  ],
+  "ref": "第1310批·清空残留修复强锚：先以 175/160 生成预测卡与柱状图，再清空父亲身高调 calc；旧版只清 targetHeight/heightRange，fatherH 与柱状图仍保留 ⇒ BAD；修复后全部归位 ⇒ OK。"
+},
+{
+  "slug": "health/calorie-needs",
+  "inputs": {
+    "age": "30",
+    "height": "175",
+    "weight": "70",
+    "bodyFat": "20",
+    "activity": "1.5"
+  },
+  "clicks": [
+    "calc();document.getElementById('height').value='';calc();var a=document.getElementById('goalLabel').textContent;var b=document.getElementById('macroResult').innerHTML;var c=document.getElementById('mealPlanContent').innerHTML;document.getElementById('__tbProbe').textContent='CALCLR '+(a==='--'&&b===''&&c===''?'OK':'BAD');"
+  ],
+  "expect": [
+    "CALCLR OK"
+  ],
+  "ref": "第1310批·清空残留修复强锚：先以 30岁/175cm/70kg 生成目标、营养分配与餐单，再清空身高调 calc；旧版仅把 calories 设 --，其余全保留 ⇒ BAD；修复后同步清空 ⇒ OK。"
+},
+{
+  "slug": "health/gfr-calculator",
+  "inputs": {
+    "age": "50",
+    "cr": "1.2",
+    "weight": "70",
+    "height": "175"
+  },
+  "clicks": [
+    "calc();document.getElementById('cr').value='';calc();var a=document.getElementById('gfrVal').textContent;var b=document.getElementById('gfrStage').textContent;var c=document.getElementById('statsGrid').innerHTML;document.getElementById('__tbProbe').textContent='GFCLR '+(a==='--'&&b==='--'&&c===''?'OK':'BAD');"
+  ],
+  "expect": [
+    "GFCLR OK"
+  ],
+  "ref": "第1310批·清空残留修复强锚：先以 50岁/1.2 生成 eGFR 与分期，再清空肌酐调 calc；旧版无效输入直接 return，gfrVal/gfrStage/statsGrid 全保留 ⇒ BAD；修复后 clearGfr 同步清空（Cockcroft 缺体重亦走同路径）⇒ OK。"
+},
+{
+  "slug": "health/breath-timer",
+  "clicks": [
+    "(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/health/rehab-timer.html','utf8');var i=h.indexOf('function deleteItem(idx) {');var s=i>=0?h.slice(i,i+800):'';var ok=s.indexOf('state.items.splice(idx, 1)')>=0&&s.indexOf('state.timer.itemId = null')>=0&&s.indexOf('idx === state.timer.itemId')>=0&&s.indexOf('idx < state.timer.itemId')>=0&&s.indexOf('state.timer.remaining = cur.duration')>=0;document.getElementById('__tbProbe').textContent='RHDEL '+(ok?'OK':'BAD');})();"
+  ],
+  "expect": [
+    "RHDEL OK"
+  ],
+  "ref": "第1311批·康复计时器删除项下标错位修复源码形态强锚（承载页同目录 breath-timer：rehab-timer 依赖 localStorage/计时器，harness 下不稳定）：旧版 splice 后不重设 timer.itemId，删当前或前项会指向别的动作或越界读 undefined.duration；修复后空列表置 null、删当前/前项重映射并同步 remaining。旧版无重映射 ⇒ BAD。"
+},
+{
+  "slug": "health/smoking-cost-calculator",
+  "inputs": {
+    "years": "20",
+    "perDay": "20",
+    "price": "15"
+  },
+  "clicks": [
+    "calc();document.getElementById('years').value='';calc();var a=document.getElementById('dailyCost').textContent;var b=document.getElementById('savingProjection').innerHTML;document.getElementById('__tbProbe').textContent='SMKCLR '+(a==='--'&&b===''?'OK':'BAD');"
+  ],
+  "expect": [
+    "SMKCLR OK"
+  ],
+  "ref": "第1312批·烟龄无效只替换累计花费修复强锚：先以20年/20支/15元生成全部费用与寿命结果，再清空烟龄调 calc；旧版仅把 totalCost 改成提示，dailyCost/savingProjection 等仍为旧值 ⇒ BAD；修复后全部派生同步归位 ⇒ OK。"
+},
+{
+  "slug": "health/smoking-cost-calculator",
+  "inputs": {
+    "years": "20",
+    "perDay": "20",
+    "price": "15",
+    "perPack": "20"
+  },
+  "clicks": [
+    "calc();document.getElementById('perDay').value='';calc();var a=document.getElementById('dailyCost').textContent;var b=document.getElementById('totalCost').textContent;document.getElementById('__tbProbe').textContent='SMKPD '+(a==='--'&&b.indexOf('有效')>=0?'OK':'BAD');"
+  ],
+  "expect": [
+    "SMKPD OK"
+  ],
+  "ref": "第1313批·每日支数静默代入1修复强锚：先以20年/20支/15元生成费用，再清空每支数调 calc；旧版 parseInt('')||1 仍出费用与寿命结果 ⇒ BAD；修复后原始判空走统一清空并提示有效参数 ⇒ OK。"
+},
+{
+  "slug": "health/alcohol-units",
+  "clicks": [
+    "(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/health/caffeine-limit.html','utf8');var i=h.indexOf('function calc(){');var s1=i>=0?h.slice(i,i+760):'';var j=h.indexOf('function calcHalfLife(){');var s2=j>=0?h.slice(j,j+760):'';var k=h.indexOf('function calcLastCafTime(){');var s3=k>=0?h.slice(k,k+520):'';var ok=s1.indexOf('__wRaw')>=0&&s1.indexOf('NaN : parseFloat(__wRaw)')>=0&&s1.indexOf('|| 65')<0&&s2.indexOf('__hlRaw')>=0&&s2.indexOf('NaN : parseFloat(__hlRaw)')>=0&&s2.indexOf('|| 5')<0&&s2.indexOf('|| 95')<0&&s3.indexOf('__hlRaw2')>=0&&s3.indexOf('NaN : parseFloat(__hlRaw2)')>=0&&h.indexOf('calcHalfLife();calcLastCafTime();')>=0;document.getElementById('__tbProbe').textContent='CAFGUARD '+(ok?'OK':'BAD');})();"
+  ],
+  "expect": [
+    "CAFGUARD OK"
+  ],
+  "ref": "第1313批·咖啡因三处静默代入修复源码形态强锚（承载页 alcohol-units：caffeine 页 harness 下 removeDrink(this) 报错）：体重空/非法不再 ||65 且清派生上限；半衰期摄入量与 halfLife 原始判空、空值清半衰期图；最晚饮用时间空 halfLife 显示 -- 并按 350M 口径不依赖时间断言。"
 }
 ];
 
