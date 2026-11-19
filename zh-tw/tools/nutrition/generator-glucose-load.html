@@ -100,7 +100,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="血糖生成指數">GI - generate results in-browser quickly and keep all data local.</p>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理與說明</div>
-      <div class="formula-eq">血糖負荷 GL = GI × 可消化碳水(g) ÷ 100，其中 GI 為血糖生成指數（以葡萄糖 100 為基準）；GL 不低於 20 為高負荷、11 至 19 為中負荷、10 及以下為低負荷；每日 GL 總量建議不超過 80，控糖人群宜選 GI 低且 GL 在 10 以內的食物。</div>
+      <div class="formula-eq">血糖負荷 GL = GI × 可消化碳水(g) ÷ 100，其中 GI 為血糖生成指數（以葡萄糖 100 為基準）；GL 不低於 20 為高負荷、大於 10 且小於 20 為中負荷、10 及以下為低負荷；每日 GL 總量建議不超過 80，控糖人群宜選 GI 低且 GL 在 10 以內的食物。</div>
 
 </div>
 
@@ -136,7 +136,7 @@
 <li>控糖/糖尿病飲食按 GL 分級選食物</li>
 </ul>
 <div class="dd-example"><div class="dd-ex-title">GL 計算</div><div class="dd-ex-body">GL = GI × 可用碳水(g) / 100。白米飯 GI 83、一份碳水 42g → GL = 83×42/100 = 34.9（高負荷）；蘋果 GI 36、碳水 15g → GL = 5.4（低負荷）。</div></div>
-<div class="dd-example"><div class="dd-ex-title">分級</div><div class="dd-ex-body">GL≤10 低負荷、11–19 中負荷、≥20 高負荷；西瓜 GI 72 但一份碳水約 11g → GL≈7.9 反為低負荷，看量也關鍵。</div></div>
+<div class="dd-example"><div class="dd-ex-title">分級</div><div class="dd-ex-body">GL≤10 低負荷、大於 10 且小於 20 中負荷、≥20 高負荷；西瓜 GI 72 但一份碳水約 11g → GL≈7.9 反為低負荷，看量也關鍵。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
 <dt>GI 和 GL 差在哪？</dt><dd>GI 只看升糖速度、不含量；GL 同時乘實際碳水，更貼近真實血糖負擔，選食更實用。</dd>
@@ -164,7 +164,7 @@
         </tr>
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="分級判定">Classification</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="低 GL ≤ 10，中 11–19，高 ≥ 20">low GL at most 10, medium 11 to 19, high at least 20</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="低 GL ≤ 10，中 大於 10 且小於 20，高 ≥ 20">low GL at most 10, medium above 10 and below 20, high at least 20</td>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);">ISO 26642 glycaemic index determination</td>
         </tr>
       </tbody>
@@ -193,14 +193,16 @@ const FOODS = [
   {name:'西瓜', gi:72, serve:120, carb:11}
 ];
 function gl(gi, carb){return gi * carb / 100;}
+// Per-serving GL categories: https://pmc.ncbi.nlm.nih.gov/articles/PMC9127965/
 function level(glVal){if(glVal>=20)return '高负荷';if(glVal>10)return '中负荷';return '低负荷';}
 function gen(){
   const n=Math.min(+document.getElementById("cnt").value||5,50);
   let h='<p style="margin-bottom:8px;">生成结果：</p>';
   for(let i=1;i<=n;i++){
     const f=FOODS[Math.floor(Math.random()*FOODS.length)];
-    const val=gl(f.gi, f.carb).toFixed(1);
-    h+=`<p style="padding:4px 0;">${i}. <strong>${f.name}</strong>：GI ${f.gi}，每份 ${f.serve}g（碳水 ${f.carb}g），血糖负荷 ${val}（${level(+val)}）。</p>`;
+    const raw=gl(f.gi, f.carb);
+    const val=raw.toFixed(1);
+    h+=`<p style="padding:4px 0;">${i}. <strong>${f.name}</strong>：GI ${f.gi}，每份 ${f.serve}g（碳水 ${f.carb}g），血糖负荷 ${val}（${level(raw)}）。</p>`;
   }
   const __h0=h;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById("res").innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById("res").innerHTML=__h0;
 }

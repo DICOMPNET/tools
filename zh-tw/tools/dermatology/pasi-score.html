@@ -64,7 +64,7 @@
 
 
 <meta name="title-en" content="PASI Score Calculator: Psoriasis Area and Severity Index">
-<meta name="desc-en" content="Calculate the PASI score for psoriasis: rate erythema, induration and desquamation (0-4) across four body regions with area percentages, weighted 0.1/0.2/0.3/0.">
+<meta name="desc-en" content="Calculate psoriasis PASI from severity and affected area across four body regions, weighted 0.1/0.2/0.3/0.4.">
 
 
 <link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
@@ -469,6 +469,13 @@ function __pasi_scoreRender(keys,rk,en){
         TBKit.matrix.table('#pasi_scoreTable',{head:head,rows:rows});
         TBKit.util.diffBox('#pasi_scoreDiff');
         TBKit.history.mount('#pasi_scoreHist',function(rec){
+            var required=[];
+            ['h','u','t','l'].forEach(function(part){ ['e','i','d','a'].forEach(function(field){ required.push(part+'_'+field); }); });
+            var valid=rec && required.every(function(id){
+                var el=document.getElementById(id);
+                return Object.prototype.hasOwnProperty.call(rec,id) && el && Array.prototype.some.call(el.options,function(option){return option.value===String(rec[id]);});
+            });
+            if(!valid){ ToolBox.showToast(en?'This history record is incomplete or invalid and cannot be restored.':'历史记录不完整或数据无效，无法恢复。','error'); return; }
             __pasi_score_skip=true;
             try{
                 for(var k in rec){

@@ -106,7 +106,7 @@
 <div class="formula-box">
 
 
-<div class="formula-eq">CURB-65 肺炎嚴重度評分 = 意識障礙 + 尿素氮 大於7mmol/L + 呼吸頻率 不低於30 次/分 + 血壓（收縮壓 小於90 或 舒張壓 不超過60mmHg）+ 年齡 不低於65 歲，每項 1 分，滿分 5；0–1 低危可門診、2 中危需住院、3–5 高危住院，其中 4–5 分重點考慮 ICU/HDU。30天死亡率(Lim 2003)：0分0.7%、1分2.1%、2分9.2%、3分14.5%、4分40%、5分57%。</div></div>
+<div class="formula-eq">CURB-65 肺炎嚴重度評分 = 意識障礙 + 尿素氮 大於7mmol/L + 呼吸頻率 不低於30 次/分 + 血壓（收縮壓 小於90 或 舒張壓 不超過60mmHg）+ 年齡 不低於65 歲，每項 1 分，滿分 5；0–1 低危可門診、2 中危需住院、3–5 高危住院，其中 4–5 分重點考慮 ICU/HDU。30天死亡率(Lim 2003)：0分0.7%、1分2.1%、2分9.2%、3分14.5%、4分40%、5分資料不確定。</div></div>
 
     <div class="checkbox-row">
       <label><input type="checkbox" id="c" onchange="calc()"> C — 意識模糊(Confusion，新發)</label>
@@ -135,10 +135,10 @@
         <tr><td>2</td><td>9.2%</td><td style="color:#F59E0B;">中危</td><td>住院治療(考慮短住)</td></tr>
         <tr><td>3</td><td>14.5%</td><td style="color:#EF4444;" rowspan="3">高危</td><td>住院治療</td></tr>
         <tr><td>4</td><td>40%</td><td>住院，考慮 ICU/HDU</td></tr>
-        <tr><td>5</td><td>57%</td><td>住院，考慮 ICU/HDU</td></tr>
+        <tr><td>5</td><td>資料不確定</td><td>住院，考慮 ICU/HDU</td></tr>
       </tbody>
     </table>
-    <div class="info-box" style="margin-top:16px;">死亡率取自 Lim WS et al. Thorax 2003;58:377-382 推導佇列，為人群層面估計，個體風險受合併症、氧合等影響。ICU/HDU 轉診在 4–5 分時重點考慮，3 分需住院評估，最終由臨床綜合判斷。CURB-65 適用於社群獲得性肺炎，B 項血壓兩條滿足任一即計1分(總分仍計1分)。重症肺炎需結合 PSI、IDSA/ATS 重症標準(如需機械通氣、感染性休克)。僅供臨床參考。</div>
+    <div class="info-box" style="margin-top:16px;">0–4 分死亡率取自 Lim WS et al. Thorax 2003;58:377-382 表 4 的推導佇列。5 分時表 4 為 1/7（14%），摘要為 57%，兩者不一致且樣本很小，故不提供確定估計。人群資料不能直接代表個體風險，個體風險受合併症、氧合等影響。ICU/HDU 轉診在 4–5 分時重點考慮，3 分需住院評估，最終由臨床綜合判斷。CURB-65 適用於社群獲得性肺炎，B 項血壓兩條滿足任一即計1分(總分仍計1分)。重症肺炎需結合 PSI、IDSA/ATS 重症標準(如需機械通氣、感染性休克)。僅供臨床參考。</div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -230,13 +230,13 @@ function calc(){
   var score=(C?1:0)+(U?1:0)+(R?1:0)+B+(age65?1:0);
 
   var risk,level,color,setting,advice;
-  // Lim WS et al. Thorax 2003;58:377-382 逐分 30 天死亡率：0→0.7%、1→2.1%、2→9.2%、3→14.5%、4→40%、5→57%
-  var mortByScore=[0.7,2.1,9.2,14.5,40,57];
+  // Lim WS et al. Thorax 2003;58:377-382 逐分 30 天死亡率：0→0.7%、1→2.1%、2→9.2%、3→14.5%、4→40%、5→数据不确定
+  var mortByScore=[0.7,2.1,9.2,14.5,40,null];
   var mort=mortByScore[score];
   if(score<=1){risk='低(约'+mort+'%)';level='低危';color='#10B981';setting='门诊治疗';advice='可门诊口服抗生素，48–72小时复评，告知危险信号。';}
   else if(score===2){risk='中(约'+mort+'%)';level='中危';color='#F59E0B';setting='住院治疗';advice='住院治疗，静脉抗生素，监测氧合与脏器功能，可考虑短住院路径。';}
-  else{risk='高(约'+mort+'%)';level='高危';color='#EF4444';setting='住院'+(score>=4?'，考虑ICU/HDU':'');
-    advice='住院治疗，经验性广谱抗生素静脉给药，评估脓毒症与脏器支持。'+(score>=4?'该分段 30 天死亡率显著升高（'+mort+'%），建议转 ICU/HDU 评估；':'')+'ICU 决策由临床综合判断，不单凭评分。';}
+  else{risk=mort===null?'高（具体死亡率不确定）':'高(约'+mort+'%)';level='高危';color='#EF4444';setting='住院'+(score>=4?'，考虑ICU/HDU':'');
+    advice='住院治疗，经验性广谱抗生素静脉给药，评估脓毒症与脏器支持。'+(score>=4?'建议转 ICU/HDU 评估；':'')+'ICU 决策由临床综合判断，不单凭评分。';}
 
   var details=[];
   if(C)details.push('意识模糊 → +1');

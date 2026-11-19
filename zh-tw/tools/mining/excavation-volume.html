@@ -188,7 +188,7 @@
 </ul>
 <div class="dd-example"><div class="dd-ex-title">公式口徑</div><div class="dd-ex-body">長方體 V=L·W·D；梯形截面 V=(上口寬+底寬)/2×深×長（上口寬直接採用輸入值，也可按 底寬+2·深·邊坡 估算）；圓柱 V=πR²H，圓臺 V=πH/3·(R₁²+R₁R₂+R₂²)；虛方=實方×鬆散係數 swell；成本=實方×單價。</div></div>
 <div class="dd-example"><div class="dd-ex-title">算例（長方體）</div><div class="dd-ex-body">坑長 20 m、寬 10 m、深 3 m、鬆散係數 1.3、單價 20 元/m³。實方 600 m³，虛方 780 m³，總造價 12,000 元。</div></div>
-<div class="dd-example"><div class="dd-ex-title">邊界：形狀切換</div><div class="dd-ex-body">切到圓臺（D1=20、D2=10、H=5）：V=π·5/3·(100+50+25)=π·5/3·175≈916.3 m³。圓柱（D2=0）則 V=πR₁²H。泳池/水池模式按深度 0.6 倍的簡易單側放坡放大，體積比純長方體略大；梯形模式直接採用「上口寬/底寬/深/長」，並提示上口寬與邊坡反推值是否一致。</div></div>
+<div class="dd-example"><div class="dd-ex-title">邊界：形狀切換</div><div class="dd-ex-body">切到圓臺（D1=20、D2=10、H=5）：V=π·5/3·(100+50+25)=π·5/3·175≈916.3 m³。當 D2=0 時為圓錐，V=πR₁²H/3；當 D1=D2 時為圓柱，V=πR₁²H。泳池/水池模式按深度 0.6 倍的簡易單側放坡放大，體積比純長方體略大；梯形模式直接採用「上口寬/底寬/深/長」，並提示上口寬與邊坡反推值是否一致。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
 <dt>實方和虛方為什麼差 1.3 倍？</dt><dd>土石開挖後孔隙增多、體積膨脹，鬆散係數/可松性係數 swell 描述這一膨脹（一般土 1.2–1.3、岩石更大）。實方=原狀體積，虛方=開挖後松堆體積。運輸、棄土場容量按虛方計，工程量結算常按實方，二者不可混用。</dd>
@@ -310,17 +310,13 @@ function calc() {
       : `上口宽与 1:${slope} 边坡反推值 ${W1Design.toFixed(2)} m 一致`;
   } else if (cur === 'circular') {
     const D1 = +document.getElementById('D1').value || 0;
-    const D2 = +document.getElementById('D2').value || 0;
+    const D2raw = document.getElementById('D2').value.trim();
+    const D2 = Number(D2raw);
     const H = +document.getElementById('H').value || 0;
-    if (D1<=0||H<=0) { ToolBox.showToast(i18nText(),'error'); return; }
+    if (D1<=0||H<=0||D2raw===''||!Number.isFinite(D2)||D2<0) { ToolBox.showToast(i18nText(),'error'); return; }
     const R1 = D1/2, R2 = D2/2;
-    if (D2 > 0) {
-      // 圆台
-      volume = (Math.PI * H / 3) * (R1*R1 + R1*R2 + R2*R2);
-    } else {
-      volume = Math.PI * R1 * R1 * H;
-    }
-    formula = D2 > 0 ? '圆台体积公式' : '圆柱体积公式';
+    volume = (Math.PI * H / 3) * (R1*R1 + R1*R2 + R2*R2);
+    formula = D2 === 0 ? '圆锥体积公式' : D1 === D2 ? '圆柱体积公式' : '圆台体积公式';
   } else if (cur === 'pool') {
     const L = +document.getElementById('L').value || 0;
     const W = +document.getElementById('W').value || 0;

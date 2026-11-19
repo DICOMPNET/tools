@@ -105,7 +105,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="按 NIST B.7.1 十進位制修約處理：4 舍 6 入，恰好 5 時舍入到偶數；支援科學計數法與普通小數。">Round to significant figures using NIST B.7.1 decimal rules: down on 4, up on 6, exact halves to even; scientific notation and plain decimals supported.</p>
 <div class="formula-box">
   <div class="formula-title">📐 計算公式 / 原理</div>
-      <div class="formula-eq">有效數字修約（本頁程式碼口徑）：位數 n 先取整並夾取 [1,20]；把輸入展開為十進位制字串，保留前 n 位有效數字，按第 n+1 位判斷：小於 5 捨去、大於 5 進一、恰好 5 且後續全 0 時使保留末位為偶數（NIST B.7.1）。進位溢位時數量級加一併重新取 n 位；另按科學計數法輸出（尾數至多 4 位小數、去尾隨零，指數為正補 + 號）。校驗：數值非有限或位數不在 1–20 時提示並中止；x=0 原樣返回，修約只改變有效位不改變數量級。</div>
+      <div class="formula-eq">有效數字修約（本頁程式碼口徑）：位數 n 須為 1–20 的整數；把輸入展開為十進位制字串，保留前 n 位有效數字，按第 n+1 位判斷：小於 5 捨去、大於 5 進一、恰好 5 且後續全 0 時使保留末位為偶數（NIST B.7.1）。進位溢位時數量級加一併重新取 n 位；另按完整精度科學計數法輸出並保留有效位末尾零，指數為正補 + 號。校驗：輸入最多 1000 字元、指數絕對值不超過 1000，位數須為 1–20 的整數，否則提示並中止；x=0 原樣返回，修約只改變有效位不改變數量級。</div>
       <div class="formula-desc">有效數字規則：非零數字與夾在中間的 0 有效、前導 0 無效、小數部分尾隨 0 有效；乘除取最少有效位數、加減取最少小數位數，本專案按此給出規範化結果。</div>
 
 </div>
@@ -263,30 +263,49 @@ function toScientific(v) {
   return fixed + 'e' + (e >= 0 ? '+' : '') + e;
 }
 
+// 输入原文按十进制处理，避免 Number 在修约前丢失有效位。
+function exactSig(raw, sig) {
+  if (typeof raw !== 'string') return null;
+  const m = raw.match(/^([+-]?)(?:(\d+)(?:\.(\d*))?|\.(\d+))(?:[eE]([+-]?\d+))?$/);
+  if (!m || raw.length > 1000) return null;
+  const exponent = Number(m[5] || 0);
+  if (!Number.isInteger(exponent) || Math.abs(exponent) > 1000) return null;
+  const whole = m[2] || '', frac = m[3] !== undefined ? m[3] : (m[4] || '');
+  const digits = whole + frac, first = digits.search(/[1-9]/);
+  if (first < 0) return {plain:'0', scientific:'0'};
+  let exp = whole.length - first - 1 + exponent;
+  let keep = digits.slice(first, first + sig).padEnd(sig, '0');
+  const next = digits.charAt(first + sig), rest = digits.slice(first + sig + 1);
+  if (next > '5' || (next === '5' && (/[1-9]/.test(rest) || Number(keep.charAt(sig-1)) % 2))) {
+    keep = (BigInt(keep) + 1n).toString();
+    if (keep.length > sig) { keep = '1' + '0'.repeat(sig-1); exp++; }
+  }
+  const sign = m[1] === '-' ? '-' : '';
+  const trimmed = keep;
+  const point = exp + 1;
+  let plain = point <= 0 ? '0.' + '0'.repeat(-point) + keep :
+    point >= keep.length ? keep + '0'.repeat(point - keep.length) : keep.slice(0,point) + '.' + keep.slice(point);
+  const mantissa = trimmed.charAt(0) + (trimmed.length > 1 ? '.' + trimmed.slice(1) : '');
+  return {plain:sign + plain, scientific:sign + mantissa + 'e' + (exp >= 0 ? '+' : '') + exp};
+}
 function calc() {
-  const num = parseFloat(document.getElementById('num').value);
-  const sig = parseInt(document.getElementById('digits').value, 10);
+  const raw = document.getElementById('num').value.trim();
+  const sigRaw = document.getElementById('digits').value.trim();
+  const sig = Number(sigRaw);
   const out = document.getElementById('result');
-
-  if (!isFinite(num) || !isFinite(sig) || sig < 1 || sig > 20) {
-    out.innerHTML='<p style="color:var(--danger)">请输入有效数值，位数须为 1–20 的整数</p>';
+  const r = /^\d+$/.test(sigRaw) && sig >= 1 && sig <= 20 ? exactSig(raw, sig) : null;
+  if (!r) {
+    out.innerHTML='<p style="color:var(--danger)">请输入有效数值，位数须为 1–20 的整数；输入最多 1000 字符，指数绝对值不超过 1000</p>';
     return;
   }
-
-  const r = roundToSig(num, sig);
-  const scientific = toScientific(r);
-  const __g2='<p>原始值：<strong>' + num + '</strong></p>' +
-    '<p>保留 ' + sig + ' 位有效数字：<strong>' + r + '</strong></p>' +
-    '<p>科学计数法：<strong>' + scientific + '</strong></p>';out.innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
+  out.innerHTML='<p>原始值：<strong>' + raw + '</strong></p>' +
+    '<p>保留 ' + sig + ' 位有效数字：<strong>' + r.plain + '</strong></p>' +
+    '<p>科学计数法：<strong>' + r.scientific + '</strong></p>';
 }
-
 function swapSign() {
   const input = document.getElementById('num');
-  const val = Number(input.value);
-  if (isFinite(val)) {
-    input.value = String(-val);
-    calc();
-  }
+  const value = input.value.trim();
+  if (exactSig(value, 1)) { input.value = value.charAt(0) === '-' ? value.slice(1) : '-' + value.replace(/^\+/, ''); calc(); }
 }
 
 calc();

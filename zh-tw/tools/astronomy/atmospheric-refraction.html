@@ -106,7 +106,7 @@
 
     <div class="formula-box">
       <div class="formula-title">📐 計算公式</div>
-      <div class="formula-eq">Saemundsson 經驗公式（以視高度角為引數）：蒙氣差 R = 1.02 ÷ tan(h + 10.3÷(h+5.11))（h 為視高度角°，角度和先化弧度再取正切，R 單位角分）；另換算 R÷60（度）、R×60（角秒）與修正後真高度角 = h − R÷60。校驗：視高度角須為 0–90° 的有效數值，空值、負數或超過 90° 提示不計算（h 趨近 0 時公式趨於地平線折射上限）。判據：視高度角越低蒙氣差越大，觀測歸算應以修正後真高度角為準。</div>
+      <div class="formula-eq">Saemundsson 近似：R(t) = 1.02 ÷ tan(t + 10.3÷(t+5.11)) 角分，t 為真高度角（度）。輸入視高度角 a 後，數值求解 a = t + R(t)/60，輸出 t 與 R；天頂處將微小負折射截為零。輸入限 0–90°；近地平線結果受氣象條件影響較大。</div>
       <p class="formula-desc">按視高度角估算近地面大氣蒙氣差（Saemundsson 近似，單位角分）。</p>
     </div>
 
@@ -142,7 +142,7 @@
         <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="出處 / 標準">Source / Standard</th>
       </tr></thead>
       <tbody>
-        <tr><td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="大氣折射修正">Atmospheric refraction correction</td><td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="R = 1.02 / tan(h + 10.3/(h + 5.11))（角分，h 為視高度角），Saemundsson 公式">R = 1.02 / tan(h + 10.3/(h + 5.11)) arcmin for apparent altitude h, Saemundsson's formula</td><td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="Saemundsson (1986)，實測擬合的蒙氣差近似式">Saemundsson (1986), empirical refraction approximation</td></tr>
+        <tr><td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="大氣折射修正">Atmospheric refraction correction</td><td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="R(t) = 1.02 / tan(t + 10.3/(t + 5.11))（角分，t 為真高度角）；由視高度反求">R(t) = 1.02 / tan(t + 10.3/(t + 5.11)) arcmin for true altitude t; invert from apparent altitude</td><td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="Saemundsson (1986)，實測擬合的蒙氣差近似式">Saemundsson (1986), empirical refraction approximation</td></tr>
       </tbody>
     </table>
   </div>
@@ -151,7 +151,7 @@
 <div class="tool-notes">
       <div class="tool-notes-title">📌 計算說明</div>
       <ul>
-        <li>R = 1.02 / tan(h + 10.3/(h+5.11)) 角分（Saemundsson 近似，h 為視高度角）。</li>
+        <li>Saemundsson 公式以真高度角為引數；輸入視高度後數值反求真高度及折射量。</li>
         <li>高度越低折射越大，天頂處趨近 0。</li>
       </ul>
     </div>
@@ -192,21 +192,36 @@
 <script>
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
+// Saemundsson uses true altitude. Invert apparent = true + refraction / 60.
+function refractionFromApparent(apparent) {
+  function refr(trueAltitude) {
+    return Math.max(0, 1.02 / Math.tan((trueAltitude + 10.3 / (trueAltitude + 5.11)) * Math.PI / 180));
+  }
+  var lo = -1, hi = 90;
+  for (var i = 0; i < 60; i++) {
+    var mid = (lo + hi) / 2;
+    if (mid + refr(mid) / 60 < apparent) lo = mid; else hi = mid;
+  }
+  var trueAltitude = (lo + hi) / 2;
+  return {trueAltitude:trueAltitude, refraction:refr(trueAltitude)};
+}
 function calcTool(){
+            const en = (document.documentElement.lang || '').toLowerCase().indexOf('en') === 0;
             const el=document.getElementById('h');
             const raw=el.value.trim();const h=parseFloat(raw);
             if(!(raw!==''&&isFinite(h)&&h>=0&&h<=90)){
                 el.classList.add('input-error');el.setAttribute('aria-invalid','true');
-                ToolBox.setResult('result','<p style="color:var(--danger,#dc2626);font-size:14px;">视高度角需填写 0–90° 的有效数值；留空、负数或超过 90° 不计算。</p>');
+                ToolBox.setResult('result','<p style="color:var(--danger,#dc2626);font-size:14px;">'+(en?'Enter an apparent altitude from 0 to 90°.':'视高度角需填写 0–90° 的有效数值；留空、负数或超过 90° 不计算。')+'</p>');
                 return;
             }
             el.classList.remove('input-error');el.removeAttribute('aria-invalid');
-            const R = 1.02 / Math.tan((h + 10.3 / (h + 5.11)) * Math.PI / 180);
+            const solution = refractionFromApparent(h);
+            const R = solution.refraction;
             const __g1=dataGrid([
-                [R.toFixed(3), '大气折射 R (′)'],
+                [R.toFixed(3), en?'Atmospheric refraction R (arcmin)':'大气折射 R (′)'],
                 [(R / 60).toFixed(4), 'R (°)'],
-                [(R*60).toFixed(1), '折射（角秒）'],
-                [(h-R/60).toFixed(4), '修正后真高度角 (度)']
+                [(R*60).toFixed(1), en?'Refraction (arcseconds)':'折射（角秒）'],
+                [solution.trueAltitude.toFixed(4), en?'Corrected true altitude (degrees)':'修正后真高度角 (度)']
             ]);ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
         }
 function resetForm(){document.getElementById('h').value = '30';
@@ -221,15 +236,16 @@ function __atmospheric_refractionExtras(){
     var __hRaw=__hEl?__hEl.value.trim():'';
     var h=parseFloat(__hRaw);
     if(!(__hRaw!==''&&isFinite(h)&&h>=0&&h<=90)) return;
-    var R = 1.02 / Math.tan((h + 10.3 / (h + 5.11)) * Math.PI / 180);
+    var solution = refractionFromApparent(h);
+    var R = solution.refraction;
     var en=TBKit.util.isEn();
     TBKit.matrix.table('#atmospheric_refractionTable',{
         head: en?['Item','Value']:['项目','数值'],
         rows: [
-            ['大气折射 R (′)', R.toFixed(3)],
+            [en?'Atmospheric refraction R (arcmin)':'大气折射 R (′)', R.toFixed(3)],
             ['R (°)', (R / 60).toFixed(4)],
-            ['折射（角秒）', (R*60).toFixed(1)],
-            ['修正后真高度角 (度)', (h-R/60).toFixed(4)],
+            [en?'Refraction (arcseconds)':'折射（角秒）', (R*60).toFixed(1)],
+            [en?'Corrected true altitude (degrees)':'修正后真高度角 (度)', solution.trueAltitude.toFixed(4)],
         ]
     });
     TBKit.history.record({h:__atmospheric_refractionRaw('h'), R:R});
@@ -286,15 +302,15 @@ else document.addEventListener('DOMContentLoaded', __atmospheric_refractionBoot)
 <li>對貼近地平線的太陽或月球做位置歸算時，修正其看似被「壓扁」和抬升的視位置。</li>
 <li>在天文導航或測地觀測中，把觀測到的視高度換算回真實高度角。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">示例：視高度角 30° 時的大氣折射</div><div class="dd-ex-body">代入 Saemundsson 公式 R=1.02/tan(h+10.3/(h+5.11))（單位角分），h=30°（視高度角）時括號內≈30.29°，tan≈0.5846，得 R≈1.02/0.5846≈1.74′。修正後真高度角 ≈ 30° − 1.74′ ≈ 29.971°；天體真實位置比觀測視位置低約 1.74 角分。</div></div>
+<div class="dd-example"><div class="dd-ex-title">示例：視高度角 30° 時的大氣折射</div><div class="dd-ex-body">輸入視高度 30°，數值反求真高度約 29.9709°，代入真高度公式得到折射約 1.748′；二者相加得到原視高度。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
-<dt>為什麼接近地平線折射最明顯？</dt><dd>視線穿過的大氣層路徑隨高度角降低而急劇變長，折射累積更大；視高度角趨近 0° 時本公式折射約 29′（真高度角口徑下約 34′），接近一個太陽視直徑。</dd>
+<dt>為什麼接近地平線折射最明顯？</dt><dd>視線穿過的大氣路徑隨高度降低而變長，折射通常更大。視高度為 0° 時此近似反求約 34.4′；地平線附近實際折射隨氣象條件變化明顯。</dd>
 <dt>Saemundsson 近似在什麼範圍適用？</dt><dd>對常規地面觀測（約數度到天頂）足夠好；極近地平線或要求毫角秒精度時需用更完整的折射表並考慮氣壓、溫度、水汽。</dd>
 </dl>
 </div>
 </section>
-<section class="opt-guide"><h2>如何使用折射量（R = 1.02 / tan(h + 10.3/(h+5.11)) ′）</h2><ol><li>按頁面提示逐項填寫或選擇所需引數。</li><li>點選「計算」或「生成」按鈕執行。</li><li>在結果區檢視輸出，可複製結果或匯出使用。</li></ol><h2>引數說明</h2><ul class="param-list"><li>視高度角（觀測值，°）</li></ul><h2>適用場景</h2><p>在低高度角觀測時，近地面大氣使天體視高度被抬升，用 Saemundsson 近似估算蒙氣差以修正望遠鏡指向。</p></section><section class="opt-faq"><h2>常見問題</h2><dl class="faq-list"><dt>為什麼接近地平線折射最明顯？</dt><dd>視線穿過的大氣層路徑隨高度角降低而急劇變長，折射累積更大；視高度角趨近 0° 時本公式折射約 29′（真高度角口徑下約 34′），接近一個太陽視直徑。</dd><dt>Saemundsson 近似在什麼範圍適用？</dt><dd>對常規地面觀測（約數度到天頂）足夠好；極近地平線或要求毫角秒精度時需用更完整的折射表並考慮氣壓、溫度、水汽。</dd></dl></section>
+<section class="opt-guide"><h2>如何使用折射量（R = 1.02 / tan(h + 10.3/(h+5.11)) ′）</h2><ol><li>按頁面提示逐項填寫或選擇所需引數。</li><li>點選「計算」或「生成」按鈕執行。</li><li>在結果區檢視輸出，可複製結果或匯出使用。</li></ol><h2>引數說明</h2><ul class="param-list"><li>視高度角（觀測值，°）</li></ul><h2>適用場景</h2><p>在低高度角觀測時，近地面大氣使天體視高度被抬升，用 Saemundsson 近似估算蒙氣差以修正望遠鏡指向。</p></section><section class="opt-faq"><h2>常見問題</h2><dl class="faq-list"><dt>為什麼接近地平線折射最明顯？</dt><dd>視線穿過的大氣路徑隨高度降低而變長，折射通常更大。視高度為 0° 時此近似反求約 34.4′；地平線附近實際折射隨氣象條件變化明顯。</dd><dt>Saemundsson 近似在什麼範圍適用？</dt><dd>對常規地面觀測（約數度到天頂）足夠好；極近地平線或要求毫角秒精度時需用更完整的折射表並考慮氣壓、溫度、水汽。</dd></dl></section>
 <style>.opt-result-interpret{max-width:960px;margin:16px auto;padding:0 16px;}
 .opt-result-interpret .ir-card{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:16px;padding:20px;margin-bottom:16px;box-shadow:var(--shadow-sm,0 1px 3px rgba(0,0,0,.06));}
 .opt-result-interpret h2{font-size:18px;margin:0 0 12px;color:var(--heading,#1F2937);}
@@ -304,23 +320,23 @@ else document.addEventListener('DOMContentLoaded', __atmospheric_refractionBoot)
 <section class="opt-result-interpret"><div class="ir-card">
 <h2>📊 結果解讀</h2>
 <h3>結果含義</h3><p>大氣折射量 R 表示天體因大氣密度梯度而被"抬高"的視角偏移量；結果越大，天體真實位置比肉眼所見越低。</p>
-<h3>單位</h3><p>單位通常為角分（′）或度（°）。視高度角接近地平線時本公式約 29′（≈0.48°；真高度角口徑約 34′/0.57°），天頂處趨近 0。</p>
-<h3>適用邊界與注意事項</h3><p>採用近似式 R≈1.02/tan(h+10.3/(h+5.11))（h 為視高度角觀測值，單位度）。折射隨氣溫、氣壓、溼度顯著變化；該式為平均大氣模型，精密天文/大地測量須用實測氣象修正。</p>
+<h3>單位</h3><p>單位通常為角分（′）或度（°）。視高度為 0° 時反求折射約 34.4′（0.574°），天頂處取 0。</p>
+<h3>適用邊界與注意事項</h3><p>採用 Saemundsson 真高度近似式並數值反求；折射隨氣溫、氣壓、溼度變化，近地平線誤差尤其大，精密測量須使用實測氣象與更完整模型。</p>
 </div></section>
 
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"為什麼接近地平線折射最明顯？","acceptedAnswer":{"@type":"Answer","text":"視線穿過的大氣層路徑隨高度角降低而急劇變長，折射累積更大；視高度角趨近 0° 時本公式折射約 29′（真高度角口徑下約 34′），接近一個太陽視直徑。"}},{"@type":"Question","name":"Saemundsson 近似在什麼範圍適用？","acceptedAnswer":{"@type":"Answer","text":"對常規地面觀測（約數度到天頂）足夠好；極近地平線或要求毫角秒精度時需用更完整的折射表並考慮氣壓、溫度、水汽。"}}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"為什麼接近地平線折射最明顯？","acceptedAnswer":{"@type":"Answer","text":"視線穿過的大氣路徑隨高度降低而變長，折射通常更大。視高度為 0° 時此近似反求約 34.4′；地平線附近實際折射隨氣象條件變化明顯。"}},{"@type":"Question","name":"Saemundsson 近似在什麼範圍適用？","acceptedAnswer":{"@type":"Answer","text":"對常規地面觀測（約數度到天頂）足夠好；極近地平線或要求毫角秒精度時需用更完整的折射表並考慮氣壓、溫度、水汽。"}}]}</script>
 <script>
 function __atrfChart(){
   if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
   var labels=[],data=[];
   for(var i=0;i<=18;i++){
     var h=i*5;
-    var R=1.02/Math.tan((h+10.3/(h+5.11))*Math.PI/180);
+    var R=refractionFromApparent(h).refraction;
     labels.push(h.toFixed(0));
     data.push(Math.round(R*1000)/1000);
   }
   var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
-  TBKit.chart.line('#atrfChart',{title:en?'Atmospheric refraction vs altitude (decay)':'大气折射随高度角变化（衰减）',labels:labels,series:[{name:en?'R (′)':'折射 R (′)',data:data}]});
+  TBKit.chart.line('#atrfChart',{title:en?'Atmospheric refraction vs apparent altitude':'大气折射随视高度角变化',labels:labels,series:[{name:en?'R (′)':'折射 R (′)',data:data}]});
 }
 
 function __atrfShow(which){
