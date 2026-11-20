@@ -255,6 +255,8 @@
 </div>
 <script>
 function switchTab(name, btn){
+  // 历史恢复无参调用：不切标签，重算四谱结果区；旧版 btn.classList 抛错被 catch 吞、结果停留旧值。
+  if(!name||!btn){ parseIR(); parseNMR(); parseMS(); parseUV(); return; }
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
   btn.classList.add('active');
@@ -279,7 +281,7 @@ const IR_DB = [
 function parseIR(){
   const input = document.getElementById('irInput').value;
   const peaks = input.split(/[,，\s]+/).map(Number).filter(n => !isNaN(n) && n > 0);
-  if(peaks.length === 0){ ToolBox.showToast(i18nText(), 'error'); return; }
+  if(peaks.length === 0){ document.getElementById('irResult').innerHTML='<p style="color:var(--danger)">⚠ 请填写 IR 吸收峰（cm⁻¹）</p>'; ToolBox.showToast(i18nText(), 'error'); return; } // TCMIRCLR
 
   let matches = [];
   peaks.forEach(p => {
@@ -337,7 +339,7 @@ function parseUV(){
   const input = document.getElementById('uvInput').value;
   const peaks = input.split(/[,，\s]+/).map(Number).filter(n => !isNaN(n) && n > 0);
   const solvent = document.getElementById('uvSolvent').value;
-  if(peaks.length === 0){ ToolBox.showToast(i18nText(), 'error'); return; }
+  if(peaks.length === 0){ document.getElementById('uvResult').innerHTML='<p style="color:var(--danger)">⚠ 请填写 UV 吸收峰（nm）</p>'; ToolBox.showToast(i18nText(), 'error'); return; } // TCMUVCLR
 
   let matches = [];
   peaks.forEach(p => {
@@ -384,7 +386,7 @@ const NMR_DB = [
 function parseNMR(){
   const input = document.getElementById('nmrInput').value;
   const peaks = input.split(/[,，\s]+/).map(Number).filter(n => !isNaN(n));
-  if(peaks.length === 0){ ToolBox.showToast(i18nText(), 'error'); return; }
+  if(peaks.length === 0){ document.getElementById('nmrResult').innerHTML='<p style="color:var(--danger)">⚠ 请填写 NMR 化学位移</p>'; ToolBox.showToast(i18nText(), 'error'); return; } // TCMNMRCLR
 
   let matches = [];
   peaks.forEach(p => {

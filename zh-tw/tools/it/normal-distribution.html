@@ -246,6 +246,8 @@ function setMode(m){
   currentMode=m;
   document.querySelectorAll('#modeTabs button').forEach(b=>b.classList.toggle('active',+b.dataset.mode===m));
   for(let i=0;i<3;i++) document.getElementById('mode'+i).style.display=i===m?'block':'none';
+  // 三模式共用 #output：切换后按新模式重算，避免保留上一模式旧结论。
+  calculate();
 }
 function fmt(x){
   if(!isFinite(x)) return '未定义';
@@ -305,6 +307,7 @@ function calculate(){
     const a=parseFloat(document.getElementById('a').value);
     const b=parseFloat(document.getElementById('b').value);
     if(isNaN(a)||isNaN(b)){const __h2='<p style="color:var(--danger)">请输入 a, b</p>';if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h2;return;}
+    if(a>b){out.innerHTML='<p style="color:var(--danger)">区间下限 a 不得大于上限 b（当前 P 会为负）。</p>';return;}
     const za=(a-mu)/sigma, zb=(b-mu)/sigma;
     const prob=normalCDF(zb)-normalCDF(za);
     html=`<div class="big-result">P(${fmt(a)} ≤ X ≤ ${fmt(b)}) = ${fmt(prob)}</div>`;

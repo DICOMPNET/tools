@@ -6,14 +6,14 @@ const CASES = [
     "slug": "express/insurance-fee",
     "inputs": {
       "company": "sf",
-      "value": "5000",
+      "value": "8000",
       "coverage": "20000"
     },
     "expect": [
-      "25.00",
-      "4,975.00"
+      "40.00",
+      "7,960.00"
     ],
-    "ref": "顺丰0.5% 5000→25元"
+    "ref": "顺丰0.5% 8000→40元（避开页面默认值 5000）"
   },
   {
     "slug": "express/insurance-fee",
