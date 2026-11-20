@@ -1082,7 +1082,33 @@ const CASES = [
   "expect": ["HRZGUARD OK"],
   "ref": "第1307批·心率区间空值与倒置修复源码形态强锚：calc 须 rawNum 判空/isFinite、无 ||30/65/190 默认回退、rhr<maxHr、乳酸阈 lt 在(rhr,maxHr)之间，无效走 __hrzClear 清全部区间与评价。旧版四处 || 回退且无关系校验、lactate 法 maxHr190/lthr190 得 Z4 190-181 倒置 ⇒ BAD；真机交互由复核方覆盖。"
 }
-
+,
+{
+  "slug": "healthcare/bmr-calculator",
+  "inputs": {
+    "weight": "",
+    "height": "",
+    "age": "",
+    "sex": ""
+  },
+  "expect": [
+    "请填写体重、身高、年龄并选择性别"
+  ],
+  "ref": "全空时不得算出 -161 kcal/天（BMRCLR）；旧实现无守卫，性别空即走女性分支"
+},
+{
+  "slug": "healthcare/ideal-weight",
+  "inputs": {
+    "sex": ""
+  },
+  "expect": [
+    "请选择性别后再计算"
+  ],
+  "ref": "性别未选时不得静默按女性公式给理想体重（IWCLR）"
+},
+{ slug:"healthcare/bmi-2", inputs:{"age":"","bmi":"","sex":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" },
+{ slug:"healthcare/due-date-calc", inputs:{"lmp":"","cycleLen":"","ovulationDay":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" },
+{ slug:"healthcare/water-intake", inputs:{"weight":"","activity":"","climate":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" },
 ];
 
 async function main() {

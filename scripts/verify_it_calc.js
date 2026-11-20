@@ -14435,6 +14435,65 @@ const CASES = [
     expect: ["NDENT OK"],
     ref: "第1309批·Nano ID 熵值口径纠错强锚：默认 64 字符表 × 21 位 ⇒ 21×log2(64)=126 bit，同页 FAQ 与引据表均写 126；原第183行写「约 122 位熵」与同页自相矛盾（122 实为 UUID v4 的位数）。修复为 126；旧版含 122 ⇒ BAD。纯静态文案不含动态中文，EN 态不受影响。",
   },
+{
+  "slug": 'it/url-encode',
+  "clicks": ['(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+\'/\'+\'tools/it/url-encode.html\',\'utf8\');var i=h.indexOf(\'function setEncodeMode(mode){\');var j=h.indexOf(\'\\nfunction \',i+10);var seg=i>=0?h.slice(i,j>0?j:i+700):\'\';var ok=seg.indexOf(\'encodeUrl();\')>=0;document.getElementById(\'__tbProbe\').textContent=\'URLENC0 \'+(ok?\'OK\':\'BAD\');})();'],
+  "expect": ['URLENC0 OK'],
+  "ref": "第1338批·模式切换残留旧结果修复源码形态强锚：旧版 function setEncodeMode(mode){ 只切 class/display 不重算，共用结果区保留上一模式结论；修复后切换即调重算函数。旧版无 ⇒ BAD。"
+},
+{
+  "slug": 'it/normal-distribution',
+  "clicks": ['(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+\'/\'+\'tools/it/normal-distribution.html\',\'utf8\');var i=h.indexOf(\'function setMode(m){\');var j=h.indexOf(\'\\nfunction \',i+10);var seg=i>=0?h.slice(i,j>0?j:i+700):\'\';var ok=seg.indexOf(\'calculate();\')>=0;document.getElementById(\'__tbProbe\').textContent=\'NORMD0 \'+(ok?\'OK\':\'BAD\');})();'],
+  "expect": ['NORMD0 OK'],
+  "ref": "第1338批·模式切换残留旧结果修复源码形态强锚：旧版 function setMode(m){ 只切 class/display 不重算，共用结果区保留上一模式结论；修复后切换即调重算函数。旧版无 ⇒ BAD。"
+},
+{
+  "slug": 'it/normal-distribution',
+  "clicks": ['(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+\'/\'+\'tools/it/normal-distribution.html\',\'utf8\');var i=h.indexOf(\'if(isNaN(a)||isNaN(b))\');var seg=i>=0?h.slice(i,i+520):\'\';var ok=seg.indexOf(\'if(a>b)\')>=0&&seg.indexOf(\'区间下限 a 不得大于上限 b\')>=0;document.getElementById(\'__tbProbe\').textContent=\'NORMAB \'+(ok?\'OK\':\'BAD\');})();'],
+  "expect": ['NORMAB OK'],
+  "ref": "第1344批·区间概率负守卫源码形态强锚：旧版区间模式 P(a≤X≤b) 只判 isNaN，a>b 时 normalCDF(b)-normalCDF(a)<0 显示负概率；修复后 a>b 提示并 return。旧版无 ⇒ BAD。"
+},
+{
+  "slug": "it/short-link-generator",
+  "inputs": {
+    "url": ""
+  },
+  "expect": [
+    "请输入 URL"
+  ],
+  "ref": "URL 为空时清掉上一批短链（ITGCLR）"
+},
+{
+  "slug": "it/tiny-url",
+  "inputs": {
+    "url": ""
+  },
+  "expect": [
+    "请输入 URL"
+  ],
+  "ref": "URL 为空时清掉上一批短链（ITGCLR）"
+},
+{
+  "slug": "it/url-qr",
+  "inputs": {
+    "url": ""
+  },
+  "expect": [
+    "请输入 URL"
+  ],
+  "ref": "URL 为空时清掉上一次二维码/文本（ITGCLR）"
+},
+{
+  "slug": "it/domain-name-generator",
+  "inputs": {
+    "kw": ""
+  },
+  "expect": [
+    "请输入关键词"
+  ],
+  "ref": "关键词为空时清掉上一批域名（ITGCLR）"
+},
+{ slug:"it/screen-size", inputs:{"width":"","height":"","diagonal":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" }
 ];
 // ---------------------------------------------------------------- DOM stub
 // canvas 2D 上下文桩（所有方法为空实现，measureText 返回零宽度以适配排版计算）

@@ -1,5 +1,8 @@
 #!/usr/bin node
 "use strict";
+const fs = require("fs");
+globalThis.__tbFs = fs;
+globalThis.__tbRoot = process.cwd();
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
 {
@@ -359,8 +362,17 @@ const CASES = [
       "0240425-L1772 16. 69025272047-B806059-20231201-L1682 17. 69038782100-B270359-20231217-L9085 18. 69054902830-B187499-2024"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"cnt\":\"42\"}，输出区含「0240425-L1772 16. 69025272047-B806059-20…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
-  }
-
+  },
+{
+  "slug": "food-testing/convert-36",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/food-testing/convert-36.html','utf8');var i=h.indexOf('function calc(){');var s=i>=0?h.slice(i,i+420):'';var ok=s.indexOf('!isFinite(V)||V<=0||!isFinite(c)||c<=0||!isFinite(m)||m<=0')>=0&&s.indexOf('滴定体积、浓度与样品质量均须为正数')>=0;document.getElementById('__tbProbe').textContent='FOODDIV '+(ok?'OK':'BAD');"],
+  "expect": ["FOODDIV OK"],
+  "ref": "第1343批 除零守卫：样品质量 m=0/空/非数字时原 calc 走 V*c*56.1/0=Infinity，改为 V/c/m 有限正数守卫并显示提示后 return。"
+},
+{ slug:"food-testing/assessor-risk-6", inputs:{"salmonella":"","staph":"","ecoli":"","listeria":"","vibrio":""}, expect:["请填写各类致病菌检出值"], ref:"核心测量值留空不得给出分级/合格结论（LABCLR）" },
+{ slug:"food-testing/colony-count", inputs:{"d1p1":"","d1p2":"","dil1":""}, expect:["请填写平皿菌落数与稀释度"], ref:"核心测量值留空不得给出分级/合格结论（LABCLR）" },
+{ slug:"food-testing/convert-37", inputs:{"val":""}, expect:["请填写待换算数值"], ref:"核心测量值留空不得给出分级/合格结论（LABCLR）" },
+{ slug:"food-testing/ingredient-sorter", inputs:{"ingredients":""}, expect:["请填写配料表文本"], ref:"核心测量值留空不得给出分级/合格结论（LABCLR）" }
 ];
 async function main() {
   const only = process.argv.slice(2);

@@ -1015,7 +1015,45 @@ const CASES = [
     "expect": ["约 25%（按 2×12V 单块折算 12.1 V）"],
     "ref": "第1062批 N244：24V 卡车系统整组静态电压 24.2 V，按 2×12V 串联折算单块 12.1 V，落在 [12.06,12.24) ⇒ 约 25%，结果卡标注折算口径（fmtLocal 去尾零故为 12.1）。旧实现把整组 24.2 V 直接套 12V 阈值（≥12.66）判「100%（满电）」且无折算注 ⇒ 锚不命中；新实现 blocks=round(24/12)=2、vCell=24.2/2=12.1 ⇒ 命中。默认 12V 系统 blocks=1、不走折算，锚依赖 volt=24/vbat=24.2 输入，强判别。"
   }
-
+,
+{
+  "slug": "automotive/speed-tire",
+  "inputs": {
+    "vmax": ""
+  },
+  "expect": [
+    "—（未填写最高车速）"
+  ],
+  "ref": "vmax 缺失时不得落到 stClass(NaN) 的最高档 Y(超) 300 km/h（SPEEDVMAX），应显示未填写"
+},
+{
+  "slug": "automotive/oil-change-countdown",
+  "inputs": {
+    "ldate": ""
+  },
+  "expect": [
+    "仅按里程判断（未填写上次换油日期）"
+  ],
+  "ref": "缺上次换油日期时时间维度不可判定，状态不得给「未到期」绿灯（OILDCLEAR）"
+},
+{
+  "slug": "automotive/calc-1",
+  "inputs": {
+    "m": "",
+    "P": ""
+  },
+  "expect": [
+    "请填写大于 0 的整备质量"
+  ],
+  "ref": "核心参数缺失时不得给「0 m/s² / 判定 估算完成」（ACC1CLR）"
+},
+{ slug:"automotive/catalyst", inputs:{hc1:"",hc2:"",co1:"",co2:"",nx1:"",nx2:""}, expect:["请填写进/出口 HC、CO、NOx 浓度"], ref:"进出口浓度全空时不得给「效率 0% · 疑似失效」（CATCLR）" },
+{ slug:"automotive/countdown-engine-oil", inputs:{last:"",cur:"",kmY:"12000",oil:"10000|12|全合成机油",habit:"1",turbo:"1"}, expect:["请填写上次换油里程与当前里程"], ref:"里程缺失时不得给「剩余 0 km · 状态正常」（ENGOILCLR）" },
+{ slug:"automotive/estimate-wear-tire", inputs:{nw:"8",cw:"",km:"",lim:"1.6",warn:"3",kmY:"15000",other:"0",cnt:"4"}, expect:["请填写新胎花深、当前花深与行驶里程"], ref:"花深/里程缺失时不得判「状态良好」（TIRECLR）" },
+{ slug:"automotive/analysis-strength", inputs:{b:"",h:"",L:"",F:"",mat:"235|2.06e5|8e4",sf:"1.5",T:"20",beam:"simple"}, expect:["请填写截面宽、高、跨度与载荷"], ref:"几何/载荷缺失时不得给「安全系数 ∞ / 屈服风险」（STRCLR）" },
+{ slug:"automotive/lux-1", inputs:{lm:"",pw:"",d:"",ang:"",eff:"30",lm2:"",type:"50|近光",dist:"1"}, expect:["请填写光通量、功率与光束角"], ref:"光通量/光束角缺失时不得判「明显不足」（LUXCLR）" },
+{ slug:"automotive/recommender-6", inputs:{veh:"2.3|2.3",load:"0|0",season:"0",amb:"",p1:"",p2:"",ref:"25",alm:"0"}, expect:["请填写环境温度与前后轮实测胎压"], ref:"实测胎压缺失时不得给「推荐 2.3 bar」结论（REC6CLR）" },
+{ slug:"automotive/cycle-belt", inputs:{modelSel:"vw_ea888",curKm:"",lastKm:"",yearKm:"15000"}, expect:["请填写当前里程与上次更换里程"], ref:"里程缺失时不得输出建议间隔结论（BELTCLR）" }
 ];
 async function main() {
   const only = process.argv.slice(2);

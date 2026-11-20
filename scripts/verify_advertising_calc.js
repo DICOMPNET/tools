@@ -131,6 +131,30 @@ const CASES = [
   "inputs": { "targetDuration": "45" },
   "expect": ["还剩45秒空间", "-45 差异(秒)"],
   "ref": "默认 target=30 → 差异 -30 /「还剩30秒空间」；本例 harness 下 scenes 为空数组（总时长 0），diff=0-45=-45。原断言「还剩15秒空间」依赖兜底函数加载模板后才成立，属危险信号，改为只依赖注入键的真值。"
+},
+{
+  "slug": 'advertising/ad-size',
+  "clicks": ['(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+\'/\'+\'tools/advertising/ad-size.html\',\'utf8\');var i=h.indexOf(\'function copyResult(){\');var j=h.indexOf(\'\\nfunction \',i+10);var seg=i>=0?h.slice(i,j>0?j:i+900):\'\';var ok=seg.indexOf(\'if(!isFinite(dpi)||dpi<=0\')>=0&&seg.indexOf(\'请先填写有效的尺寸与 DPI 再复制\')>=0;document.getElementById(\'__tbProbe\').textContent=\'ADSCP0 \'+(ok?\'OK\':\'BAD\');})();'],
+  "expect": ['ADSCP0 OK'],
+  "ref": "第1341批·复制与页面结果不同源修复源码形态强锚：旧版 copyResult 另算一遍且无守卫，页面显示错误/—时复制仍输出 Infinity/0dB 假值；修复后 copyResult 补与 calc 同源守卫，无效时提示并 return。旧版无 ⇒ BAD。"
+},
+{
+  "slug": 'advertising/reach-frequency',
+  "clicks": ['(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+\'/\'+\'tools/advertising/reach-frequency.html\',\'utf8\');var i=h.indexOf(\'function calcMulti(){\');var s=i>=0?h.slice(i,i+420):\'\';var ok=s.indexOf(\'singlePct<0||singlePct>100\')>=0&&s.indexOf(\'multiResult\')>=0&&s.indexOf(\'单次到达率须在 0–100%\')>=0;document.getElementById(\'__tbProbe\').textContent=\'REACH100 \'+(ok?\'OK\':\'BAD\');})();'],
+  "expect": ['REACH100 OK'],
+  "ref": "第1344批·到达率越界守卫源码形态强锚：旧版 calcMulti 单次到达率>100% 时 notReached 变负、累计到达率振荡超 100%；修复后入口限制 0–100% 与轮次>=1，越界提示并 return。旧版无 ⇒ BAD。"
+},
+{
+  "slug": 'advertising/convert-26',
+  "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/'+\"tools/advertising/convert-26.html\",'utf8');var i=h.indexOf('const px=+document.getElementById(\\\"px\\\")');var seg=i>=0?h.slice(i,i+240):'';var ok=seg.indexOf('!isFinite(dpi)||dpi<=0')>=0&&seg.indexOf('DPI 须为正数')>=0;document.getElementById('__tbProbe').textContent='PXDPIDIV '+(ok?'OK':'BAD');})();"],
+  "expect": ['PXDPIDIV OK'],
+  "ref": "第1346批·分母为零守卫源码形态强锚：旧版 dpi=0 时 mm=px*25.4/0=Infinity，主输出显示「物理尺寸 = Infinity mm」；修复后 dpi 非正提示并 return。旧版无 ⇒ BAD。"
+},
+{
+  "slug": 'advertising/reach-frequency',
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/'+\"tools/advertising/reach-frequency.html\",'utf8');var i=h.indexOf('function copyBasic(){');var s=i>=0?h.slice(i,i+320):'';var ok=s.indexOf('pop>0?(reach/pop*100):0')>=0&&s.indexOf('reach>0?(imp/reach):0')>=0;document.getElementById('__tbProbe').textContent='REACHCPY '+(ok?'OK':'BAD');"],
+  "expect": ['REACHCPY OK'],
+  "ref": "第1347批·复制与页面不同源：旧版 copyBasic 裸算 reach/pop 与 imp/reach，reach=0 时复制「频次:Infinity」；主 calcBasic 已用 reach>0 守卫。修复后 copyBasic 与 calcBasic 同源，零值取 0。"
 }
 ];
 async function main() {

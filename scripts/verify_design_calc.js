@@ -843,7 +843,7 @@ const CASES = [
   {
     // D-N182 预设：七律预设应填 8 行、每句 7 字并触发检查（校验真实预设数据而非复述文本）
     slug: "design/checker-5",
-    clicks: ["var __cap=null;globalThis.TBKit={util:{isEn:function(){return false;}},preset:{bar:function(sel,items,cb){__cap=items;}}};__checker_5Presets();var __p=__cap&&__cap[1]||null;var __lines=__p?String(__p.values['#poem']).split('\\n'):[];var __all7=__lines.length===8&&__lines.every(function(s){return s.replace(/[，。？！；、·]/g,'').length===7;});var __out='';if(__p){POEM_TA.value=__p.values['#poem'];check();__out=String(RES.innerHTML);}document.getElementById('__tbProbe').textContent='CHECKER7 '+((__all7&&__lines[0]==='风急天高猿啸哀'&&__out.indexOf('第8句')>=0)?'OK':'BAD lines='+__lines.length+' all7='+__all7+' first='+__lines[0]);"],
+    clicks: ["var __cap=null;globalThis.TBKit={util:{isEn:function(){return false;}},preset:{bar:function(sel,items,cb){__cap=items;}}};__checker_5Presets();var __p=__cap&&__cap[1]||null;var __lines=__p?String(__p.values['poem']).split('\\n'):[];var __all7=__lines.length===8&&__lines.every(function(s){return s.replace(/[，。？！；、·]/g,'').length===7;});var __out='';if(__p){POEM_TA.value=__p.values['poem'];check();__out=String(RES.innerHTML);}document.getElementById('__tbProbe').textContent='CHECKER7 '+((__all7&&__lines[0]==='风急天高猿啸哀'&&__out.indexOf('第8句')>=0)?'OK':'BAD lines='+__lines.length+' all7='+__all7+' first='+__lines[0]);"],
     expect: ["CHECKER7 OK"],
     ref: "361 复核失败重做：七律预设原为杜甫《春望》，八句均五字（「国破山河在」）却标「七言律诗」，英文亦写 Seven-char。现换为《登高》（八句全七字）。探针 mock TBKit.preset.bar 抓取真实预设数据，断言第 2 个预设：8 行、每行去标点后 7 字、首句「风急天高猿啸哀」，且填入后 check() 输出「第8句」。旧预设首句 5 字 ⇒ all7=false 转红；默认四行示例诗不含「第8句」⇒ 零逃生。"
   },
@@ -3710,6 +3710,34 @@ const CASES = [
   expect: ["6寸 (4R) ✅ 像素充足（旋转后）"],
   ref: "相纸方向不匹配：6寸(4R) 10.2×15.2cm@300DPI 需 1205×1796px。横图 1800×1300 正向宽1800≥1205✓但高1300<1796✗，旧版固定宽对窄边判「基本可用」；旋转后宽1800≥1796✓且高1300≥1205✓应判「像素充足」。交换为 1300×1800 正向即充足，二者应同为充足。现 rotW 判定覆盖旋转方向并标注「旋转后」。锚定「6寸 (4R)」整行避免默认态 A4 旋转命中（默认 4000×3000 对 A4 2481×3508 也是旋转后充足）；默认 6寸正向充足不带「旋转后」⇒ 强判别。",
 },
+{
+  "slug": 'design/iso-noise-reference',
+  "clicks": ['(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+\'/\'+\'tools/design/iso-noise-reference.html\',\'utf8\');var i=h.indexOf(\'function switchTab(tab, btn) {\');var j=h.indexOf(\'\\nfunction \',i+10);var seg=i>=0?h.slice(i,j>0?j:i+500):\'\';var ok=seg.indexOf(\'if (!tab || !btn)\')>=0&&seg.indexOf(\'renderISO(); return;\')>=0;document.getElementById(\'__tbProbe\').textContent=\'ISONO0 \'+(ok?\'OK\':\'BAD\');})();'],
+  "expect": ['ISONO0 OK'],
+  "ref": "第1337批·历史恢复无参切换抛错修复源码形态强锚：旧版 function switchTab(tab, btn) { 无参调用解引用参数/全局event抛错被 catch 吞、结果不重算；修复后无参分支安全返回或重算主结果。旧版无 ⇒ BAD。"
+},
+{
+  "slug": "design/generator-6",
+  "inputs": {
+    "cnt": "0"
+  },
+  "expect": [
+    "请输入 1–50 之间的整数"
+  ],
+  "ref": "数量非法时清掉旧的阴影样式（G6CLR）"
+},
+{
+  "slug": "design/detector-29",
+  "inputs": {
+    "fgColor": ""
+  },
+  "expect": [
+    "合法的 HEX 颜色"
+  ],
+  "ref": "颜色非法时不得输出「0 分 / 不合规」结论（D29CLR）"
+},
+{ slug:"design/generator-34", inputs:{"slides":"","minutes":"","points":"","fontSize":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" },
+{ slug:"design/photo-storage-calculator", inputs:{"count":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" }
 ];
 
 // ---------------------------------------------------------------- main

@@ -20,6 +20,9 @@
  *   node scripts/verify_energy_calc.js
  *   node scripts/verify_energy_calc.js carnot-efficiency lcoe
  */
+const fs = require("fs");
+globalThis.__tbFs = fs;
+globalThis.__tbRoot = process.cwd();
 const { runCase } = require("./verify_it_calc.js");
 
 const CASES = [
@@ -927,7 +930,27 @@ const CASES = [
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"rho\":\"42\",\"A\":\"42\",\"v\":\"42\"}，输出区含「v^2 (Pa) 1555848.0」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   }
-
+,
+{
+  "slug": "energy/solar-calculator",
+  "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/' +'tools/energy/solar-calculator.html','utf8');var i=h.indexOf('if (p <= 0)');var s=i>=0?h.slice(i,i+200):'';var ok=s.indexOf(\"getElementById('solarViz').innerHTML=''\")>=0&&s.indexOf(\"getElementById('result').innerHTML=''\")>=0;document.getElementById('__tbProbe').textContent='SOLCLR '+(ok?'OK':'BAD');})();"],
+  "expect": ["SOLCLR OK"],
+  "ref": "第1345批 solar-calculator p<=0 早退原只 showToast，不清 #solarViz/#result(收益卡+月度分布)。"
+}
+,
+{
+  "slug": "energy/energy-efficiency",
+  "inputs": {
+    "output": "0"
+  },
+  "expect": [
+    "请填写大于 0 的输出/输入数值"
+  ],
+  "ref": "输出为 0 时清空能效结果（EFFCLR）；旧实现仍显示 33.00 COP / A+++"
+},
+{ slug:"energy/air-purifier-area", inputs:{"cadrInput":"","factorInput":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" },
+{ slug:"energy/assessor-water-quality", inputs:{"tds":"","temp":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" },
+{ slug:"energy/fridge-power-estimator", inputs:{"volume":"","envTemp":"","elecPrice":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" }
 ];
 
 async function main() {

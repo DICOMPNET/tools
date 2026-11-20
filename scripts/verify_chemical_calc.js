@@ -1,5 +1,8 @@
 #!/usr/bin node
 "use strict";
+const fs = require("fs");
+globalThis.__tbFs = fs;
+globalThis.__tbRoot = process.cwd();
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
 {
@@ -278,6 +281,33 @@ const CASES = [
   "inputs": { "type": "box", "d": "", "w": "3", "h": "4" },
   "expect": ["请填写长、宽、罐高（米）后再计算。"],
   "ref": "空态守卫（2026-11-05，2026-11-16 第 682 批改文案）：长方体模式清空任一边长后不再输出「容积 V = 0.000 m³」与「每米液深容积」，只给填写提示；罐高改由 L 字段承担（h 仍为液位），故提示统一为「罐高」。⚠ 判空只认空串——0 边长为合法输入，仍按公式算 0。"
+},
+{
+  "slug": "chemical/molar-mass",
+  "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/' +'tools/chemical/molar-mass.html','utf8');var h=globalThis.__tbFs.readFileSync(process.cwd()+'/'+'tools/chemical/molar-mass.html','utf8');var i=h.indexOf(\"if (!formula)\");var s=i>=0?h.slice(i,i+620):'';var ok=(s.match(/getElementById\\('result'\\).innerHTML=''/g)||[]).length>=2&&s.indexOf('\u672a\u77e5\u5143\u7d20')>=0;document.getElementById('__tbProbe').textContent='MOLCLR '+(ok?'OK':'BAD');})();"],
+  "expect": ["MOLCLR OK"],
+  "ref": "第1345批 molar-mass 三早退(空式/未知元素/molar<=0)原只 showToast，不清 #result(元素组成明细表)；改为三处同步清空。"
+}
+,
+{
+  "slug": "chemical/solution-concentration",
+  "inputs": {
+    "mass": "0"
+  },
+  "expect": [
+    "请填写大于 0 的质量"
+  ],
+  "ref": "质量=0 时清空摩尔浓度卡（SOLCLR）；旧实现仅 toast，1.0000 mol/L 旧值残留"
+},
+{
+  "slug": "chemical/mixture-ratio",
+  "inputs": {
+    "ma": "0"
+  },
+  "expect": [
+    "请填写大于 0 的两组分质量"
+  ],
+  "ref": "质量=0 时清空混合浓度/配比（MIXCLR）；旧实现仅 toast，35.00%/400 残留"
 }
 ];
 async function main() {
