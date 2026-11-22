@@ -75,7 +75,7 @@
 <div class="nav">
   <a href="/zh-tw/index.html">← ToolBox</a>
   <span>/ PDF 簽名檢查</span>
-  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()" aria-label="切換主題" title="切換主題" data-i18n-aria="nav.theme" data-i18n-title="nav.theme">🌙</button>
 </div>
 
 <nav class="breadcrumb" aria-label="麵包屑導航" data-breadcrumb="1">
@@ -94,15 +94,15 @@
 </div>
 <div class="card">
     <h2 data-zh="✅ PDF 簽名檢查">✅ PDF Signature Check</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="檢查 PDF 檔案是否包含數字簽名：解析 PDF 內部的 ByteRange 與 Contents 引用，識別簽名存在性（不做密碼學驗證），純本地解析不上傳。">Check PDF digital signatures in your browser — verify signers and integrity locally.</p>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="檢查 PDF 檔案是否包含數字簽名：解析 PDF 內部的 ByteRange 與 Contents 引用，識別簽名存在性（不做密碼學驗證），純本地解析不上傳。">Detect whether a PDF contains signature structure (/ByteRange + /Contents) in your browser. Signer identity, certificates and cryptographic validity are not verified.</p>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">檢測規則：檔案頭須匹配 %PDF-x.y 模式；正則提取 /ByteRange [偏移 長度 偏移 長度]，簽名覆蓋長度 = 兩段長度之和（第 2 引數 + 第 4 引數）位元組；提取 /Contents 十六進位制串；ByteRange 與 Contents 兼具即判定含簽名結構（不做摘要計算、PKCS#7 解析或證書鏈驗證）</div>
-  <div class="formula-desc">檢查 PDF 中的數字簽名信息。</div>
+  <div class="formula-desc">檢查 PDF 中是否存在簽名結構（/ByteRange 與 /Contents）；不解析簽名者、證書或時間戳，也不做密碼學驗籤。</div>
   <ul class="formula-list">
-    <li><b>原理</b>：數字簽名基於 PKI，簽名者對文件摘要做私鑰加密，驗證方用證書公鑰驗籤。</li>
-    <li><b>檢查項</b>：是否存在簽名欄位、簽名者、時間、證書頒發者與有效期。</li>
-    <li><b>完整性</b>：文件被修改後摘要變化，簽名即失效，可據此判斷是否被篡改。</li>
-    <li><b>侷限</b>：本工具僅解析結構；完整驗籤需專業 PDF 庫與信任鏈配置。</li>
+    <li><b>檢測項</b>：檔案頭格式、<code>/ByteRange</code> 四元組、<code>/Contents</code> 十六進位制串，以及兩段覆蓋位元組數之和。</li>
+    <li><b>不檢測</b>：簽名者姓名、簽名時間、證書頒發者與有效期、PKCS#7/CAdES 內容、文件摘要是否匹配。</li>
+    <li><b>結論邊界</b>：「檢測到簽名結構」不等於「簽名有效」；文件被篡改也不會在本頁報出來。</li>
+    <li><b>需要驗籤時</b>：請用 Adobe Acrobat、pdfsig 等具備信任鏈校驗的專業工具。</li>
   </ul>
 </div>
 
@@ -169,12 +169,12 @@
       <tbody>
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="簽名結構">Signature structure</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="PKCS#7 或 CAdES 封裝簽名值、證書與時間戳">PKCS#7 or CAdES carries signature, certificate and timestamp</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="PKCS#7 或 CAdES 封裝簽名值、證書與時間戳（標準背景，本頁不解析）">PKCS#7 or CAdES carries the signature, certificate and timestamp (background only; not parsed here)</td>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="ISO 32000 / RFC 5652">ISO 32000 / RFC 5652</td>
         </tr>
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="完整性校驗">Integrity</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="簽名位元組範圍被覆蓋，篡改後校驗失敗">the signed byte range detects any later modification</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="簽名位元組範圍可檢測後續修改（需驗籤工具，本頁不計算摘要）">a signed byte range can reveal later modification (requires a verifier; this page does not hash)</td>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="ISO 32000">ISO 32000</td>
         </tr>
         <tr>

@@ -81,7 +81,7 @@
 <div class="nav">
   <a href="/zh-tw/index.html">← ToolBox</a>
   <span>/ 汙水（檢查井/跌水）佈置</span>
-  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()" aria-label="切換主題" title="切換主題" data-i18n-aria="nav.theme" data-i18n-title="nav.theme">🌙</button>
 </div>
 
 
@@ -99,11 +99,11 @@
     <h2 data-zh="♻️ 汙水管道檢查井與跌水井佈置">♻️ Sewer Inspection Chamber Layout Checker</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="根據管徑判定檢查井最大間距合規性，計算管道跌水高度判定是否需設跌水井，並自查汙水管道佈置規範性。">Sewer Inspection Chamber Layout Checker - online utility on ToolBox.</p>
     <div class="formula-box">
-      <div class="formula-title">📐 判定依據與計算式</div> <div class="formula-eq">汙水檢查井佈置與跌水核算<br>井間距標準同雨水：DN≤500 → 40m｜600-700 → 50m｜800-1000 → 65m｜1100-1500 → 80m｜≥1600 → 100m<br>總落差 = 上游管內底 − 下游管內底<br>管道坡降 = 坡度(‰) ÷ 1000 × 井間距(40m)<br>跌水高度 = 總落差 − 坡降（負值取 0）<br>跌水井判定：&lt;1m 不需設｜1~2m 需設跌水井｜≥2m 需設跌水井+消能設施<br>佈置合規度 = Σ各項得分 ÷ (檢查項數 × 2) × 100%<br>評級：≥90% 合格｜≥75% 基本合格｜≥60% 需整改｜&lt;60% 不合格</div>
+      <div class="formula-title">📐 判定依據與計算式</div> <div class="formula-eq">汙水檢查井佈置與跌水核算<br>井間距標準同雨水：DN≤500 → 40m｜600-700 → 50m｜800-1000 → 65m｜1100-1500 → 80m｜≥1600 → 100m<br>總落差 = 上游管內底 − 下游管內底<br>管道坡降 = 坡度(‰) ÷ 1000 × 實際井間距 L<br>跌水高度 = 總落差 − 坡降（負值取 0）<br>跌水井判定：&lt;1m 不需設｜1~2m 需設跌水井｜≥2m 需設跌水井+消能設施<br>佈置合規度 = Σ各項得分 ÷ (檢查項數 × 2) × 100%<br>評級：≥90% 合格｜≥75% 基本合格｜≥60% 需整改｜&lt;60% 不合格</div>
       <div class="formula-desc">
         <p><strong>檢查井最大間距（GB 50282）</strong>：DN≤500 → 40 m；DN600–700 → 50 m；DN800–1000 → 65 m；DN1100–1500 → 80 m；DN≥1600 → 100 m。判定合格條件為實際井間距 L ≤ 最大間距 L<sub>max</sub>。</p>
         <p><strong>超標整改</strong>：需增設井數 = ⌈L ÷ L<sub>max</sub>⌉ − 1，整改後間距 = L ÷ (增設井數 + 1)。</p>
-        <p><strong>跌水高度計算</strong>：總落差 Δ = 上游管底標高 − 下游管底標高（m）；管道坡降 = 坡度 i(‰) ÷ 1000 × 假設井間距（取 40 m）；跌水高度 h = Δ − 管道坡降，負值按 0 計。</p>
+        <p><strong>跌水高度計算</strong>：總落差 Δ = 上游管底標高 − 下游管底標高（m）；管道坡降 = 坡度 i(‰) ÷ 1000 × 實際井間距 L（同頁“檢查井間距”輸入）；跌水高度 h = Δ − 管道坡降，負值按 0 計。</p>
         <p><strong>跌水井判定</strong>：h &lt; 1 m 不需設跌水井；1 m ≤ h &lt; 2 m 需設跌水井（豎管式或溢流堰式，井底設消力檻消能）；h ≥ 2 m 需設跌水井並配專用消能設施（消力檻/消力池），並驗算大落差水流對管道的衝擊力。</p>
       </div>
     </div>
@@ -131,7 +131,7 @@
             <option value="2000">DN≥2000</option>
           </select>
         </div>
-        <div><label>實際井間距 L（m）</label><input type="number" id="actual_l" value="40" step="0.1" oninput="calcSpacing()" placeholder="如 40"></div>
+        <div><label>實際井間距 L（m）</label><input type="number" id="actual_l" value="40" step="0.1" oninput="calcSpacing();calcDrop()" placeholder="如 40"></div>
       </div>
       <p style="font-size:12px;color:var(--text-muted);margin-bottom:8px;">依據 GB 50282：DN≤500最大間距40m，DN600-700為50m，DN800-1000為65m，DN1100-1500為80m，DN≥1600為100m</p>
     </div>
@@ -258,7 +258,8 @@ function calcDrop(){
   }
   var totalDrop=upInv-dnInv; /* 总落差 m */
   var slopeDrop=0; /* 管道坡降（假设井间距约40m时） */
-  var L=40; /* 假设井间距 */
+  var L=parseFloat(document.getElementById('actual_l').value);
+  if(!(L>0)){document.getElementById('res').innerHTML='<p style="color:var(--danger);">请先在“检查井间距”页填写实际井间距 L（>0 m）。</p>';return;}
   slopeDrop=slope/1000*L; /* m */
   var dropH=totalDrop-slopeDrop; /* 跌水高度 */
   if(dropH<0) dropH=0;
@@ -545,7 +546,7 @@ function __checker_2Presets(){
     TBKit.preset.bar('#checker_2Presets',[{label:'默认参数',labelEn:'Default',values:{'pipe_dn':'200', 'actual_l':'40', 'up_inv':'52.5', 'dn_inv':'50.0', 'drop_dn':'400', 'pipe_slope':'3'}},
   {"label":"DN500 间距 50m 常规","labelEn":"DN500, 50m spacing","values":{"pipe_dn":"500","actual_l":50,"up_inv":48,"dn_inv":45.5,"drop_dn":600,"pipe_slope":2.5}},
   {"label":"DN800 间距 60m 主干","labelEn":"DN800, 60m trunk","values":{"pipe_dn":"800","actual_l":60,"up_inv":44,"dn_inv":41,"drop_dn":800,"pipe_slope":2}},
-  {"label":"DN300 间距 30m 支管","labelEn":"DN300, 30m branch","values":{"pipe_dn":"300","actual_l":30,"up_inv":52,"dn_inv":49.5,"drop_dn":300,"pipe_slope":3.5}}],function(){ calcSpacing(); });
+  {"label":"DN300 间距 30m 支管","labelEn":"DN300, 30m branch","values":{"pipe_dn":"300","actual_l":30,"up_inv":52,"dn_inv":49.5,"drop_dn":300,"pipe_slope":3.5}}],function(){ calcSpacing(); calcDrop(); });
 }
 var __checker_2_f0=(typeof calcSpacing==='function')?calcSpacing:null;
 if(__checker_2_f0){

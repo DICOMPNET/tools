@@ -7,12 +7,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="toolbox" content="cat=reference,industry=travel,icon=🛡️,bg=#e3f2fd">
-<meta name="description" content="旅行保險對比助手是一款免費的線上旅行出行工具，輸入出行天數、目的地與人數等需求，對比醫療、行李、延誤等不同險種的保障範圍與價格，幫助挑選價效比合適的旅行保險方案。">
+<meta name="description" content="旅行保險對比助手是一款免費的線上旅行出行工具，輸入出行天數、目的地與人數等需求，對比醫療、行李、延誤等不同險種的保障範圍與價格，幫助挑選價效比合適的旅行保險方案">
 <meta name="keywords" content="旅行保險對比助手,旅行保險對比助手線上,線上旅行保險對比助手,速查表,旅行出行,線上工具,免費工具,ToolBox">
 <meta name="robots" content="index,follow">
 <link rel="canonical" href="https://tools.dicomp.net/zh-tw/tools/travel/travel-insurance-comparison.html">
 <meta property="og:title" content="旅行保險對比助手 - 目的地與人數等需求">
-<meta property="og:description" content="旅行保險對比助手是一款免費的線上旅行出行工具，輸入出行天數、目的地與人數等需求，對比醫療、行李、延誤等不同險種的保障範圍與價格，幫助挑選價效比合適的旅行保險方案。">
+<meta property="og:description" content="旅行保險對比助手是一款免費的線上旅行出行工具，輸入出行天數、目的地與人數等需求，對比醫療、行李、延誤等不同險種的保障範圍與價格，幫助挑選價效比合適的旅行保險方案">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://tools.dicomp.net/zh-tw/tools/travel/travel-insurance-comparison.html">
 <meta name="twitter:card" content="summary">
@@ -55,9 +55,9 @@
 <meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
 <meta name="twitter:image:alt" content="ToolBox - 5000+免費線上工具">
     <meta name="twitter:title" content="旅行保險對比助手 - 目的地與人數等需求">
-    <meta name="twitter:description" content="旅行保險對比助手是一款免費的線上旅行出行工具，輸入出行天數、目的地與人數等需求，對比醫療、行李、延誤等不同險種的保障範圍與價格，幫助挑選價效比合適的旅行保險方案。">
+    <meta name="twitter:description" content="旅行保險對比助手是一款免費的線上旅行出行工具，輸入出行天數、目的地與人數等需求，對比醫療、行李、延誤等不同險種的保障範圍與價格，幫助挑選價效比合適的旅行保險方案">
 <!-- TOOLBOX-WEBAPP-LD -->
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"旅行保險對比助手","url":"https://tools.dicomp.net/zh-tw/tools/travel/travel-insurance-comparison.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"旅行保險對比助手是一款免費的線上旅行出行工具，輸入出行天數、目的地與人數等需求，對比醫療、行李、延誤等不同險種的保障範圍與價格，幫助挑選價效比合適的旅行保險方案。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"旅行保險對比助手","url":"https://tools.dicomp.net/zh-tw/tools/travel/travel-insurance-comparison.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"旅行保險對比助手是一款免費的線上旅行出行工具，輸入出行天數、目的地與人數等需求，對比醫療、行李、延誤等不同險種的保障範圍與價格，幫助挑選價效比合適的旅行保險方案","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
@@ -108,7 +108,7 @@
 <div class="nav">
   <a href="/zh-tw/index.html">← ToolBox</a>
   <span>/ 旅行保險對比助手</span>
-  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()" aria-label="切換主題" title="切換主題" data-i18n-aria="nav.theme" data-i18n-title="nav.theme">🌙</button>
 </div>
 
 
@@ -371,7 +371,14 @@ function getDelayLevel() {
 
 function calc() {
   const d = document.getElementById('dest').value;
-  const days = +document.getElementById('days').value || 7;
+  const daysRaw = document.getElementById('days').value.trim();
+  const days = Number(daysRaw);
+  if(daysRaw === '' || !isFinite(days) || days < 1 || days > 365){
+    document.getElementById('plans').innerHTML='<div class="info-box">请输入 1–365 天的旅行天数后再对比方案。</div>';
+    document.getElementById('compareDetail').innerHTML='';
+    return;
+  }
+  const sportReq = document.getElementById('sport').value === 'yes';
   const focus = document.getElementById('focus').value;
   const list = plans[d];
   const ageMult = getAgeMultiplier();
@@ -387,10 +394,11 @@ function calc() {
     let priceMax = Math.round(p.basePrice[1] * factor * ageMult * sportMult);
     const price = priceMin + '-' + priceMax;
 
-    const rec = (focus === 'basic' && i === 0) || (focus === 'medical' && i === 1) || (focus === 'comprehensive' && i === 2);
+    const focusMatch = (focus === 'basic' && i === 0) || (focus === 'medical' && i === 1) || (focus === 'comprehensive' && i === 2);
+    const rec = focusMatch && (!sportReq || p.sport);
 
     let delayAmount = p.delay;
-    if (delayLevel === 'basic') delayAmount = Math.max(500, p.delay * 0.5);
+    if (delayLevel === 'basic') delayAmount = p.delay * 0.5;
     if (delayLevel === 'high') delayAmount = p.delay * 1.5;
 
     html += `<div class="plan-card ${rec ? 'recommended' : ''}">
@@ -426,6 +434,7 @@ function renderCompare() {
 
   let html = '';
 
+  const delayLevel = getDelayLevel();
   const features = [
     { name: '医疗保额', key: 'medical', unit: '万' },
     { name: '意外身故/伤残', key: 'accident', unit: '万' },
@@ -448,7 +457,13 @@ function renderCompare() {
       } else if (f.key === 'cancel' && p[f.key] === 0) {
         val = '不包含';
       } else {
-        val = (f.prefix || '') + p[f.key] + (f.unit || '');
+        var raw = p[f.key];
+        if (f.key === 'delay') {
+          if (delayLevel === 'basic') raw = raw * 0.5;
+          if (delayLevel === 'high') raw = raw * 1.5;
+          raw = Math.round(raw);
+        }
+        val = (f.prefix || '') + raw + (f.unit || '');
       }
       html += `<td>${val}</td>`;
     });

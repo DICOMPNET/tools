@@ -7,11 +7,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="toolbox" content="cat=calculator,industry=fitness,icon=⚡,bg=#fce7f3">
-<meta name="description" content="體脂電阻估算是一款免費的線上健身運動工具，基於生物電阻抗分析法（BIA），通過阻抗指數估算總體水與去脂體重，進而換算體脂率。適合工程估算、日常換算與快速複核，結果可一鍵複製。">
+<meta name="description" content="體脂電阻估算是一款免費的線上健身運動工具，基於生物電阻抗分析法（BIA），通過阻抗指數估算總體水與去脂體重，進而換算體脂率。用體脂秤/皮脂儀的電阻抗值，結合身高體重估算體脂率、去脂體重與總體水。">
 <title>體脂電阻估算（BIA） - 進而換算體脂率</title>
 <link rel="canonical" href="https://tools.dicomp.net/zh-tw/tools/fitness/resistance.html">
 <meta property="og:title" content="體脂電阻估算（BIA） - 進而換算體脂率">
-<meta property="og:description" content="體脂電阻估算是一款免費的線上健身運動工具，基於生物電阻抗分析法（BIA），通過阻抗指數估算總體水與去脂體重，進而換算體脂率。適合工程估算、日常換算與快速複核，結果可一鍵複製。">
+<meta property="og:description" content="體脂電阻估算是一款免費的線上健身運動工具，基於生物電阻抗分析法（BIA），通過阻抗指數估算總體水與去脂體重，進而換算體脂率。用體脂秤/皮脂儀的電阻抗值，結合身高體重估算體脂率、去脂體重與總體水。">
 <meta property="og:url" content="https://tools.dicomp.net/zh-tw/tools/fitness/resistance.html">
 <meta name="twitter:card" content="summary">
 <link rel="stylesheet" href="/css/common.css">
@@ -28,9 +28,9 @@
 <meta name="twitter:image:alt" content="ToolBox - 5000+免費線上工具">
     <meta property="og:type" content="website">
     <meta name="twitter:title" content="體脂電阻估算（BIA） - 進而換算體脂率">
-    <meta name="twitter:description" content="體脂電阻估算是一款免費的線上健身運動工具，基於生物電阻抗分析法（BIA），通過阻抗指數估算總體水與去脂體重，進而換算體脂率。適合工程估算、日常換算與快速複核，結果可一鍵複製。">
+    <meta name="twitter:description" content="體脂電阻估算是一款免費的線上健身運動工具，基於生物電阻抗分析法（BIA），通過阻抗指數估算總體水與去脂體重，進而換算體脂率。用體脂秤/皮脂儀的電阻抗值，結合身高體重估算體脂率、去脂體重與總體水。">
 <!-- TOOLBOX-WEBAPP-LD -->
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"體脂電阻估算","url":"https://tools.dicomp.net/zh-tw/tools/fitness/resistance.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"體脂電阻估算是一款免費的線上健身運動工具，基於生物電阻抗分析法（BIA），通過阻抗指數估算總體水與去脂體重，進而換算體脂率。適合工程估算、日常換算與快速複核，結果可一鍵複製。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"體脂電阻估算","url":"https://tools.dicomp.net/zh-tw/tools/fitness/resistance.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"體脂電阻估算是一款免費的線上健身運動工具，基於生物電阻抗分析法（BIA），通過阻抗指數估算總體水與去脂體重，進而換算體脂率。用體脂秤/皮脂儀的電阻抗值，結合身高體重估算體脂率、去脂體重與總體水。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
@@ -80,7 +80,7 @@
 <div class="nav">
   <a href="/zh-tw/index.html">← ToolBox</a>
   <span>/ 體脂電阻估算</span>
-  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()" aria-label="切換主題" title="切換主題" data-i18n-aria="nav.theme" data-i18n-title="nav.theme">🌙</button>
 </div>
 
 
@@ -241,7 +241,10 @@ var sex=val('sex'),age=num('age'),h=num('h'),w=num('w'),z=num('z');
   var index=(h*h)/z;
   var tbw=1.20+0.45*index+0.18*w;
   var ffm=tbw/0.732;
-  if(ffm>w)ffm=w*0.95;
+  if(tbw>w || ffm>w){
+    document.getElementById('res').innerHTML='<p style="color:var(--danger)">测量值组合不合理：估算总体水 '+tbw.toFixed(1)+' L 已超过体重 '+w+' kg，或去脂体重超过体重。请检查身高、体重与阻抗，或换用皮脂钳/双能 X 线等方法。</p>';
+    return;
+  }
   var bf=(w-ffm)/w*100;
   if(bf<0)bf=0;if(bf>60)bf=60;
   var cat=bfCat(sex,bf);
@@ -431,7 +434,7 @@ else document.addEventListener('DOMContentLoaded', __resistanceBoot);
 <h2>📚 深度解析：體脂電阻抗估算（BIA 公式）</h2>
 <h3>💡 常見使用場景</h3>
 <ul class="dd-list">
-<li>用體脂秤/皮脂儀的電阻抗值，結合身高體重估算<a class="term-link" href="/zh-tw/tools/health/body-fat-calculator.html">體脂率</a>、去脂體重與總體水。</li>
+<li>用體脂秤/皮脂儀的電阻抗值，結合身高體重估算<a class="term-link" href="/zh-tw/guides/body-fat-calculator-guide.html">體脂率</a>、去脂體重與總體水。</li>
 <li>家庭監測體成分變化時，用同一裝置同一時段跟蹤趨勢。</li>
 <li>輸出體脂等級（必需脂肪/運動員/健康/可接受/肥胖）輔助判斷。</li>
 </ul>

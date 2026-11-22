@@ -81,7 +81,7 @@
 <div class="nav">
   <a href="/zh-tw/index.html">← ToolBox</a>
   <span>/ 吹塑引數計算</span>
-  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()" aria-label="切換主題" title="切換主題" data-i18n-aria="nav.theme" data-i18n-title="nav.theme">🌙</button>
 </div>
 
 
@@ -101,7 +101,7 @@
 </div>
 <div class="container">
   <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
-    <h2 data-zh="🧮 吹塑工藝引數計算">Blow Molding</h2>
+    <h2 data-zh="🧮 吹塑工藝引數計算">Blow Molding Parameter Calculator</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="計算吹脹比、吹脹壓力、壁厚等吹塑成型關鍵引數">Blow Molding</p>
     <div class="formula-box">
       <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">吹脹比 BUR = 製品直徑 ÷ 型坯直徑；面積吹脹比 = BUR²。評估：BUR 在 2–4 之間判適宜、4–5 判偏大、&gt; 5 判過大並提示壁薄不均風險、&lt; 2 判偏小；型坯直徑 ≤ 0 時提示需大於 0</div>
@@ -255,8 +255,8 @@ function switchTab(name, btn) {
 function calcRatio() {
   var partD = parseFloat(document.getElementById('partDia').value) || 0;
   var parD = parseFloat(document.getElementById('parisonDia').value) || 0;
-  if (parD <= 0) {
-    ToolBox.setResult('ratioResult', '<p style="color:var(--danger);">型坯直径需大于 0</p>');
+  if (partD <= 0 || parD <= 0) {
+    ToolBox.setResult('ratioResult', '<p style="color:var(--danger);">制品直径与型坯直径均需大于 0</p>');
     return;
   }
   var bur = partD / parD;
@@ -276,8 +276,8 @@ function calcRatio() {
 function calcWall() {
   var pw = parseFloat(document.getElementById('parisonWall').value) || 0;
   var bur = parseFloat(document.getElementById('bur').value) || 0;
-  if (bur <= 0) {
-    ToolBox.setResult('wallResult', '<p style="color:var(--danger);">吹胀比需大于 0</p>');
+  if (pw <= 0 || bur <= 0) {
+    ToolBox.setResult('wallResult', '<p style="color:var(--danger);">型坯壁厚与吹胀比均需大于 0</p>');
     return;
   }
   var wallThk = pw / bur;
@@ -292,8 +292,8 @@ function calcPressure() {
   var ys = parseFloat(document.getElementById('yieldStr').value) || 0;
   var wt = parseFloat(document.getElementById('wallThk').value) || 0;
   var bd = parseFloat(document.getElementById('bottleDia').value) || 0;
-  if (bd <= 0 || wt <= 0) {
-    ToolBox.setResult('pressureResult', '<p style="color:var(--danger);">壁厚和直径需大于 0</p>');
+  if (ys <= 0 || bd <= 0 || wt <= 0) {
+    ToolBox.setResult('pressureResult', '<p style="color:var(--danger);">屈服强度、壁厚和直径均需大于 0</p>');
     return;
   }
   var minPressure = (2 * ys * wt) / bd;
@@ -307,6 +307,9 @@ function calcPressure() {
 
 function copyResult() {
   var activeTab = document.querySelector('.tab-content.active').id;
+  var box = activeTab === 'tab-ratio' ? 'ratioResult' : (activeTab === 'tab-wall' ? 'wallResult' : 'pressureResult');
+  var el = document.getElementById(box);
+  if (el && el.textContent.indexOf('需大于') !== -1) { ToolBox.showToast('请先修正输入', 'error'); return; }
   var text;
   if (activeTab === 'tab-ratio') {
     var partD = parseFloat(document.getElementById('partDia').value) || 0;
@@ -390,7 +393,7 @@ calcPressure();
   </div>
   <div class="tool-intro-body">
     <h4><span class="h4-icon">📝</span>工具簡介</h4>
-    <p>吹塑工藝引數計算器，計算吹脹比、吹脹壓力、壁厚等吹塑成型關鍵引數。。商業辦公工具，提升工作效率，資料本地處理保護隱私。</p>
+    <p>吹塑工藝引數計算器，計算吹脹比、吹脹壓力、壁厚等吹塑成型關鍵引數。</p>
     <h4><span class="h4-icon">✨</span>功能特點</h4>
     <ul class="intro-features">
       <li>操作簡單，一鍵完成</li>

@@ -81,7 +81,7 @@
 <div class="nav">
   <a href="/zh-tw/index.html">← ToolBox</a>
   <span>/ TIMI 危險分層器</span>
-  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()" aria-label="切換主題" title="切換主題" data-i18n-aria="nav.theme" data-i18n-title="nav.theme">🌙</button>
 </div>
 
 
@@ -144,9 +144,10 @@
           <label>收縮壓/心率</label>
           <select id="s_bp" onchange="calcSTEMI()">
             <option value="">請選擇…</option>
-            <option value="0">SBP≥100且HR&lt;100 (0分)</option>
-            <option value="1">SBP&lt;100 或 HR&gt;100 (1分)</option>
-            <option value="2">SBP&lt;100且HR&gt;100 (2分)</option>
+            <option value="0">SBP≥100 且 HR≤100 (0分)</option>
+            <option value="2">僅 HR&gt;100 (2分)</option>
+            <option value="3">僅 SBP&lt;100 (3分)</option>
+            <option value="5">SBP&lt;100 且 HR&gt;100 (3+2=5分)</option>
           </select>
         </div>
       </div>
@@ -156,8 +157,8 @@
           <select id="s_killip" onchange="calcSTEMI()">
             <option value="">請選擇…</option>
             <option value="0">I級 (0分)</option>
-            <option value="1">II–III級 (1分)</option>
-            <option value="2">IV級 (2分)</option>
+            <option value="2">II–IV級 (2分)</option>
+
           </select>
         </div>
         <div>
@@ -256,17 +257,22 @@
       <tbody>
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="TIMI 危險評分">TIMI risk score</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="7 項各 1 分(年齡≥65/≥3危險因素/既往管狀動脈狀減≥50% 等)">7 items each 1 point (age ≥65 / ≥3 risk factors / prior stenosis ≥50% etc.)</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="NSTE-ACS：7 項各 1 分（年齡≥65 / ≥3 項危險因素 / 已知冠心病 / 7 天內阿斯匹靈 / 24h 心絞痛 / ST 偏移 / 標誌物升高）">NSTE-ACS: 7 items, 1 point each (age ≥65 / ≥3 risk factors / known CAD / aspirin within 7 days / angina within 24h / ST deviation / elevated markers)</td>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);">Antman EM et al. JAMA 2000</td>
         </tr>
         <tr>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="STEMI 14 分模型">STEMI 14-point model</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="年齡 0/2/3；SBP&lt;100 3；HR&gt;100 2；Killip II–IV 2；體重&lt;67kg 2；前壁/LBBB 2；危險因素 1；就診&gt;4h 1">Age 0/2/3; SBP &lt;100 = 3; HR &gt;100 = 2; Killip II–IV = 2; weight &lt;67 kg = 2; anterior/LBBB = 2; risk factors = 1; time &gt;4 h = 1</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);">Morrow DA et al. Circulation 2000</td>
+        </tr>
+        <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="風險分層">Risk stratification</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="0-2 低危; 3-4 中危; 5-7 高危">0-2 low risk; 3-4 intermediate; 5-7 high risk</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="NSTE-ACS 0–2 低危、3–4 中危、5–7 高危；STEMI 按 0–14 分對應 30 天死亡率表">0-2 low risk; 3-4 intermediate; 5-7 high risk</td>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);">Morrow DA et al. Circulation 2000</td>
         </tr>
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="應用">Application</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="指導 NSTEMI 早期介入策略">Guides early invasive strategy in NSTEMI</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="指導 NSTE-ACS 早期介入策略；STEMI 評分用於 30 天死亡風險分層">Guides early invasive strategy in NSTEMI</td>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);">2014 AHA/ACC NSTEMI Guideline</td>
         </tr>
       </tbody>
@@ -321,6 +327,8 @@ function calcSTEMI(){
     return;
   }
   var age=parseInt(document.getElementById('s_age').value);
+  var rawAge=document.getElementById('s_age').value, rawBp=document.getElementById('s_bp').value, rawK=document.getElementById('s_killip').value, rawWt=document.getElementById('s_wt').value;
+  if(rawAge===''||rawBp===''||rawK===''||rawWt===''){document.getElementById('result-stemi').innerHTML='<div class="info-box">请选择年龄、血压/心率、Killip 分级与体重后再评分；空项不会被当作 0 分。</div>';return;}
   var bp=parseInt(document.getElementById('s_bp').value);
   var killip=parseInt(document.getElementById('s_killip').value);
   var wt=parseInt(document.getElementById('s_wt').value);

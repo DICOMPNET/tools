@@ -81,7 +81,7 @@
 <div class="nav">
   <a href="/zh-tw/index.html">← ToolBox</a>
   <span>/ 熱應變計算器</span>
-  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()" aria-label="切換主題" title="切換主題" data-i18n-aria="nav.theme" data-i18n-title="nav.theme">🌙</button>
 </div>
 
 
@@ -104,7 +104,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="輸入線膨脹係數 α 與溫差 ΔT，求熱應變。">Thermal Strain</p>
     <div class="formula-box">
       <div class="formula-title">📐 計算公式</div>
-      <div class="formula-eq">熱應變（本頁程式碼口徑）：ε=線膨脹係數 α×溫差 ΔT；聯動量：微應變=ε×10⁶（με）、百分數=ε×100、應變倒數=1÷max(|ε|,10⁻¹²)。校驗：無強校驗，空值按 0 兜底。判據：無固定分級，ε 與兩因子均線性相關，負溫差產生負應變（收縮），主結果保留 5 位小數。</div>
+      <div class="formula-eq">熱應變（本頁程式碼口徑）：ε=線膨脹係數 α×溫差 ΔT；聯動量：微應變=ε×10⁶（με）、百分數=ε×100、應變倒數=1÷max(|ε|,10⁻¹²)。校驗：線膨脹係數或溫差留空即提示，係數不得為負；不再按 0 兜底。判據：無固定分級，ε 與兩因子均線性相關，負溫差產生負應變（收縮），主結果保留 5 位小數。</div>
       <p class="formula-desc">輸入線膨脹係數 α 與溫差 ΔT，求熱應變。</p>
     </div>
 
@@ -213,6 +213,12 @@
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){
+var __qEnC=null;function __qEn(){if(__qEnC!==null)return __qEnC;try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn())return __qEnC=true;}catch(e){}return __qEnC=/[?&]lang=en-US/.test(location.search);}
+function __qRaw(id){var el=document.getElementById(id);return el?String(el.value).trim():'';}
+function __qBad(zh,en){ToolBox.setResult('result','<p style="color:var(--danger)">'+(__qEn()?en:zh)+'</p>');}
+            const __a=__qRaw('a'),__t=__qRaw('dT');
+            if(__a===''||__t===''){__qBad('请填写线膨胀系数与温差后再计算。','Please enter the linear expansion coefficient and temperature change before calculating.');return;}
+            if(!Number.isFinite(Number(__a))||Number(__a)<0||!Number.isFinite(Number(__t))){__qBad('线膨胀系数不得为负，温差须为有效数值。','The expansion coefficient must be non-negative and the temperature change must be a valid number.');return;}
             const a=num('a'),dT=num('dT');
             const eps=a*dT;
             const __g1=dataGrid([

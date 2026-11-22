@@ -82,7 +82,7 @@
 <div class="nav">
   <a href="/zh-tw/index.html">← ToolBox</a>
   <span>/ 發酵糖度酒精轉化</span>
-  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()" aria-label="切換主題" title="切換主題" data-i18n-aria="nav.theme" data-i18n-title="nav.theme">🌙</button>
 </div>
 
 
@@ -109,7 +109,7 @@
   <button type="button" class="tbk-tab" data-pane="his">歷史</button>
 </div>
 <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
-    <h2 data-zh="🏋️ 發酵罐糖度（Brix）與酒精轉化計算器">Fermentation Brix</h2>
+    <h2 data-zh="🏋️ 發酵罐糖度（Brix）與酒精轉化計算器">Fermentation Brix & Alcohol Conversion</h2>
     <div class="formula-box">
       <div class="formula-title">📐 計算公式</div>
       <div class="formula-eq">糖耗量 = (初始糖度 − 終糖度) × 10 × 體積(L)（g，質量按 體積×(1 + 0.004×初始糖度) 近似）；實際酒精 = 糖耗 × 理論產率（預設 0.511 g/g、封頂 0.511）× 發酵效率%；ABV = (實際酒精 ÷ 0.789) ÷ (體積×1000) × 100%；另算殘糖 = 終糖度×10×體積、CO₂ = 糖耗×0.489×發酵效率%。校驗：體積 ≤0 或初始糖度 &lt;終糖度時 toast 提示並返回。判據：ABV &lt;5% 低度發酵殘糖多注意防腐、&lt;10% 常規啤酒/果酒水平、&lt;15% 接近酵母耐受上限、≥15% 需耐酒精酵母。</div>
@@ -235,8 +235,14 @@ function num(id){ return parseFloat(document.getElementById(id).value) || 0; }
 
 function calc(){
   var vol = num('vol'), b0 = num('b0'), b1 = num('b1'), theoYield = num('theoYield'), eff = num('eff');
-  if(vol <= 0){ ToolBox.showToast(i18nText('toast.msg779'),'error'); return; }
-  if(b0 < b1){ ToolBox.showToast(i18nText('toast.msg083'),'error'); return; }
+  // G10：空值/非法输入必须清空结果区
+  function __fbBad(msg){ document.getElementById('result').innerHTML = '<p style="color:var(--danger)">' + msg + '</p>'; ToolBox.showToast(i18nText(),'error'); }
+  if(String(document.getElementById('vol').value).trim()==='' || String(document.getElementById('b0').value).trim()==='' || !(vol > 0) || !isFinite(b0)){
+    __fbBad((document.documentElement.lang||'').indexOf('en')===0 ? '⚠ Enter a valid volume (> 0) and initial Brix.' : '⚠ 请填写有效的发酵液体积（> 0）与初始糖度。'); return;
+  }
+  if(b0 < b1){
+    __fbBad((document.documentElement.lang||'').indexOf('en')===0 ? '⚠ Initial Brix must not be lower than final Brix.' : '⚠ 初始糖度不能低于终点糖度。'); return;
+  }
 
   var deltaBrix = b0 - b1;                       // 糖度降低
   var mass = vol * (1 + 0.004 * b0);             // 发酵液近似质量 kg（密度≈1+0.004Brix）
@@ -313,9 +319,9 @@ ToolBox.initToolTheme();
       <span class="rt-icon">🍳</span>
       <span class="rt-info"><span class="rt-name">烹飪單位換算器</span><span class="rt-desc">在容量、重量、溫度與食材克數間換算，並內建常見食材密度，用於食譜閱讀、烘焙與跨單位烹飪的計量轉換</span></span>
     </a>
-    <a href="/zh-tw/tools/food/convert-concentration.html" class="related-tool-card">
+    <a href="/zh-tw/tools/food/syrup-brix-converter.html" class="related-tool-card">
       <span class="rt-icon">🔄</span>
-      <span class="rt-info"><span class="rt-name">糖漿濃度換算（白利度）</span><span class="rt-desc">糖漿濃度換算器（白利度）。在白利度（Brix）、波美度與糖質量分數間換算，用於糖漿、果醬等糖製品的濃…</span></span>
+      <span class="rt-info"><span class="rt-name">糖漿濃度換算</span><span class="rt-desc">輸入糖漿的白利度(Brix)、比重(SG)、波美度(°Bé)或折射率(RI)中任一值，轉換為其餘濃度…</span></span>
     </a>
   </div>
 </div>

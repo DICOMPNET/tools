@@ -7,12 +7,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="toolbox" content="cat=convert,industry=office,icon=🔀,bg=#f5f5f5">
-<meta name="description" content="PDF合併工具是一款免費的線上辦公文件工具，選擇多個 PDF 檔案，拖拽調整順序後一鍵合併。所有處理在瀏覽器本地完成，檔案不會上傳到伺服器。">
+<meta name="description" content="PDF合併工具是一款免費的線上辦公文件工具，選擇多個 PDF 檔案，拖拽調整順序後一鍵合併。所有處理在瀏覽器本地完成，檔案不會上傳到伺服器。把多份分散的合同、掃描件按順序合併成一個檔案，方便統一歸檔與傳送。">
 <meta name="keywords" content="PDF合併,合併PDF,PDF合併在線,線上合併PDF,免費PDF合併,PDF工具,文件合併,純前端,ToolBox">
 <meta name="robots" content="index,follow">
 <link rel="canonical" href="https://tools.dicomp.net/zh-tw/tools/office/pdf-merge.html">
 <meta property="og:title" content="PDF合併工具 - 免費線上辦公文件工具">
-<meta property="og:description" content="PDF合併工具是一款免費的線上辦公文件工具，選擇多個 PDF 檔案，拖拽調整順序後一鍵合併。所有處理在瀏覽器本地完成，檔案不會上傳到伺服器。">
+<meta property="og:description" content="PDF合併工具是一款免費的線上辦公文件工具，選擇多個 PDF 檔案，拖拽調整順序後一鍵合併。所有處理在瀏覽器本地完成，檔案不會上傳到伺服器。把多份分散的合同、掃描件按順序合併成一個檔案，方便統一歸檔與傳送。">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://tools.dicomp.net/zh-tw/tools/office/pdf-merge.html">
 <meta name="twitter:card" content="summary">
@@ -181,9 +181,9 @@
 <meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
 <meta name="twitter:image:alt" content="ToolBox - 5000+免費線上工具">
     <meta name="twitter:title" content="PDF合併工具 - 免費線上辦公文件工具">
-    <meta name="twitter:description" content="PDF合併工具是一款免費的線上辦公文件工具，選擇多個 PDF 檔案，拖拽調整順序後一鍵合併。所有處理在瀏覽器本地完成，檔案不會上傳到伺服器。">
+    <meta name="twitter:description" content="PDF合併工具是一款免費的線上辦公文件工具，選擇多個 PDF 檔案，拖拽調整順序後一鍵合併。所有處理在瀏覽器本地完成，檔案不會上傳到伺服器。把多份分散的合同、掃描件按順序合併成一個檔案，方便統一歸檔與傳送。">
 <!-- TOOLBOX-WEBAPP-LD -->
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"PDF合併工具","url":"https://tools.dicomp.net/zh-tw/tools/office/pdf-merge.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"PDF合併工具是一款免費的線上辦公文件工具，選擇多個 PDF 檔案，拖拽調整順序後一鍵合併。所有處理在瀏覽器本地完成，檔案不會上傳到伺服器。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"PDF合併工具","url":"https://tools.dicomp.net/zh-tw/tools/office/pdf-merge.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"PDF合併工具是一款免費的線上辦公文件工具，選擇多個 PDF 檔案，拖拽調整順序後一鍵合併。所有處理在瀏覽器本地完成，檔案不會上傳到伺服器。把多份分散的合同、掃描件按順序合併成一個檔案，方便統一歸檔與傳送。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
@@ -236,7 +236,7 @@
 <div class="nav">
   <a href="/zh-tw/index.html">← ToolBox</a>
   <span>/ PDF合併工具</span>
-  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()" aria-label="切換主題">🌙</button>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()" aria-label="切換主題" title="切換主題" data-i18n-aria="nav.theme" data-i18n-title="nav.theme">🌙</button>
 </div>
 
 
@@ -500,6 +500,8 @@ async function loadPageCount(item){
   try{
     const buf = await item.file.arrayBuffer();
     const doc = await PDFDocument.load(buf, { ignoreEncryption: true });
+    // pdf-lib 的 ignoreEncryption 只是跳过密码检查，copyPages 并不能解密；显式标错并跳过。
+    if(doc.isEncrypted) throw new Error('encrypted');
     item.pages = doc.getPageCount();
     item.status = 'ok';
   }catch(err){
@@ -552,9 +554,9 @@ function renderList(){
           </div>
         </div>
         <div class="file-actions">
-          <button class="icon-btn" title="上移" onclick="moveItem('${f.id}',-1)" ${i === 0 ? 'disabled' : ''}>↑</button>
-          <button class="icon-btn" title="下移" onclick="moveItem('${f.id}',1)" ${i === files.length - 1 ? 'disabled' : ''}>↓</button>
-          <button class="icon-btn danger" title="删除" onclick="removeItem('${f.id}')">✕</button>
+          <button class="icon-btn" title="上移" onclick="moveItem('${f.id}',-1)" ${i === 0 ? 'disabled' : ''} aria-label="上移">↑</button>
+          <button class="icon-btn" title="下移" onclick="moveItem('${f.id}',1)" ${i === files.length - 1 ? 'disabled' : ''} aria-label="下移">↓</button>
+          <button class="icon-btn danger" title="删除" onclick="removeItem('${f.id}')" aria-label="删除">✕</button>
         </div>
       </div>`;
   }).join('');if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){list.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}list.innerHTML=__h1;
@@ -689,11 +691,24 @@ async function mergePDFs(){
     for(let i = 0; i < okItems.length; i++){
       const item = okItems[i];
       showProgress(i, total, `正在处理 (${i + 1}/${total})`, '读取：' + item.name);
-      const buf = await item.file.arrayBuffer();
-      const src = await PDFDocument.load(buf, { ignoreEncryption: true });
-      const indices = src.getPageIndices();
-      const copied = await merged.copyPages(src, indices);
-      copied.forEach(p => merged.addPage(p));
+      try{
+        const buf = await item.file.arrayBuffer();
+        const src = await PDFDocument.load(buf, { ignoreEncryption: true });
+        if(src.isEncrypted) throw new Error('encrypted');
+        const indices = src.getPageIndices();
+        const copied = await merged.copyPages(src, indices);
+        copied.forEach(p => merged.addPage(p));
+      }catch(err){
+        // 单个文件失败只标记该文件，继续合并其余文件（与页面承诺一致）。
+        item.status = 'error';
+        item.error = err && err.message === 'encrypted' ? 'encrypted' : 'unreadable';
+        renderList();
+        continue;
+      }
+    }
+    if(merged.getPageCount() === 0){
+      ToolBox.showToast((document.documentElement.lang||'').toLowerCase().startsWith('en') ? 'No readable pages to merge' : '没有可合并的页面，请检查文件是否加密或损坏', 'warning');
+      return;
     }
     showProgress(total, total, '正在生成 PDF 文件...', '');
     const outBytes = await merged.save();

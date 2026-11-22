@@ -39,7 +39,7 @@
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="MD5 雜湊計算器 - 免費線上開發工具">
 <meta name="twitter:description" content="MD5 (Message-Digest Algorithm 5) 輸出128位(32字元)雜湊值。⚠️ 已被證明存在碰撞漏洞，請勿用於安全加密，僅適合檔案校驗等場景">
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"MD5 雜湊計算器","description":"免費線上 MD5 雜湊計算器，生成字串或檔案的 MD5 摘要，支援逐行批次計算與大小寫切換；純前端本地處理。","url":"https://tools.dicomp.net/zh-tw/tools/it/md5.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Web","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"},"inLanguage":"zh-TW","isAccessibleForFree":true,"browserRequirements":"Requires JavaScript. Requires HTML5.","softwareVersion":"1.0"}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"MD5 雜湊計算器","description":"免費線上 MD5 雜湊計算器，生成字串或檔案的 MD5 摘要，支援逐行批次計算與大小寫切換；檔案整份讀入記憶體，超大檔案受瀏覽器記憶體限制；純前端本地處理。","url":"https://tools.dicomp.net/zh-tw/tools/it/md5.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Web","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"},"inLanguage":"zh-TW","isAccessibleForFree":true,"browserRequirements":"Requires JavaScript. Requires HTML5.","softwareVersion":"1.0"}</script>
 
 
 
@@ -105,7 +105,7 @@
 <div class="nav">
   <a href="/zh-tw/index.html">← ToolBox</a>
   <span>/ MD5 雜湊</span>
-  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()" aria-label="切換主題" title="切換主題" data-i18n-aria="nav.theme" data-i18n-title="nav.theme">🌙</button>
 </div>
 
 
@@ -125,7 +125,7 @@
 </div>
 <div class="container">
   <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
-    <h2 data-zh="#️⃣ MD5 雜湊計算器">#️⃣ MD5 Encrypt</h2>
+    <h2 data-zh="#️⃣ MD5 雜湊計算器">#️⃣  MD5 Hash Calculator</h2>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">MD5 主迴圈：把填充後的訊息按 32 位字分組，每輪 64 步依次呼叫四個非線性函式 F = (b &amp; c) | (~b &amp; d)、G = (b &amp; d) | (c &amp; ~d)、H = b ^ c ^ d、I = c ^ (b | ~d)，每一步做 a = 迴圈左移(a + 函式值 + 訊息字 + 常量, 位移量) + b，並輪轉 a→d→c→b 的角色。訊息字下標按輪次取不同排列：第一輪順序 0…15，第二輪 (1+5i) mod 16，第三輪 (5+3i) mod 16，第四輪 (7i) mod 16；四輪的迴圈位移量分別為 7/12/17/22、5/9/14/20、4/11/16/23、6/10/15/21，常量取 ⌊2³²·|sin(i+1)|⌋。最後把四個暫存器按位元組小端序拼成 128 位摘要並轉十六進位制</div>
   <div class="formula-desc">計算輸入的 MD5 訊息摘要。</div>
@@ -139,7 +139,7 @@
 
     <p style="font-size:12px;color:var(--text-light);margin-bottom:12px;" data-zh="
       MD5 (Message-Digest Algorithm 5) 輸出128位(32字元)雜湊值。⚠️ 已被證明存在碰撞漏洞，請勿用於安全加密，僅適合檔案校驗等場景。
-    ">Compute the MD5 digest of any text or file locally in your browser. Handy for checksums and integrity checks; note MD5 is not safe for passwords.</p>
+    ">Compute the MD5 digest of text or a file locally in your browser. Handy for checksums and integrity checks; note MD5 is not safe for passwords.</p>
 
     <div class="tabs">
       <button type="button" class="tab-btn active" onclick="switchMode('text',this)">📝 文本</button>
@@ -166,7 +166,7 @@
       <div class="file-area" id="fileDrop" onclick="document.getElementById('fileInput').click()">
         <div style="font-size:32px;margin-bottom:8px;">📄</div>
         <p>點選選擇檔案或拖拽檔案到這裡</p>
-        <p style="font-size:12px;color:var(--text-muted);">支援任意大小檔案，本地計算不上傳</p>
+        <p style="font-size:12px;color:var(--text-muted);">檔案整份讀入記憶體計算（超大檔案受瀏覽器記憶體限制），不上傳</p>
       </div>
       <input type="file" id="fileInput" style="display:none" onchange="handleFile(this.files[0])">
       <div id="fileInfo" style="display:none;margin-top:12px;padding:12px;background:var(--result-bg);border-radius:8px;font-size:13px;"></div>
@@ -448,6 +448,9 @@ function __md5Snap(){
         var e=els[i];
         var t=(e.type||'').toLowerCase();
         if(t==='button'||t==='submit'||t==='hidden') continue;
+        // 隐私：密钥/口令/私钥/明文只保留长度，不写入本地历史。
+        var __tbPrivate={'hmacKey':'密钥长度','hmacInput':'HMAC输入长度','textInput':'文本长度'};
+        if(__tbPrivate[e.id]){ if(e.value) out[__tbPrivate[e.id]]=(e.value||'').length+' 字符（未存原文）'; continue; }
         var v=(t==='checkbox'||t==='radio')?(e.checked?'1':'0'):e.value;
         if(v!==''&&v!=null) out[e.id]=v;
     }

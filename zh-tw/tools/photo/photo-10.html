@@ -62,7 +62,7 @@
 
 <script src="/js/tool-page-runtime.js" defer></script>
 <!-- TOOLBOX-TOOL-RUNTIME -->
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"包圍曝光張數是做什麼的？","acceptedAnswer":{"@type":"Answer","text":"輸入期望的總動態範圍與每檔曝光步長（如 1 EV、2 EV），工具計算完成 HDR 合成所需的最少包圍曝光張數，並提示相鄰兩張應保留至少 1 EV 重疊，便於拍攝高光暗部細節完整的照片。"}},{"@type":"Question","name":"如何使用包圍曝光張數？","acceptedAnswer":{"@type":"Answer","text":"在對應的輸入框或選項中填寫、選擇所需引數，點選「計算」或「生成」按鈕即可執行，結果會在結果區即時顯示，支援複製與匯出。"}},{"@type":"Question","name":"計算結果準確嗎？","acceptedAnswer":{"@type":"Answer","text":"本工具在你的本地瀏覽器中即時計算，不依賴伺服器；只要輸入的引數正確，結果即按對應的規則得出。涉及經驗估算的部分僅供參考，不作為正式依據。"}},{"@type":"Question","name":"包圍曝光張數適合哪些場景？","acceptedAnswer":{"@type":"Answer","text":"攝影引數、曝光與畫質的快速參考。"}},{"@type":"Question","name":"使用本工具需要聯網或上傳資料嗎？","acceptedAnswer":{"@type":"Answer","text":"不需要。所有計算均在你的裝置本地完成，資料不會上傳到任何伺服器，可放心使用。"}}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"ceil 為什麼？","acceptedAnswer":{"@type":"Answer","text":"步數需向上取整保證範圍被完整覆蓋，再加中值 1 張得總張數，避免邊緣欠曝。"}},{"@type":"Question","name":"覆蓋 EV 和範圍一樣嗎？","acceptedAnswer":{"@type":"Answer","text":"略多，因首尾各含邊界；以實際覆蓋校是否包住場景最亮最暗。"}}]}</script>
 
 <script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
@@ -81,7 +81,7 @@
 <div class="nav">
   <a href="/zh-tw/index.html">← ToolBox</a>
   <span>/ 包圍曝光張數</span>
-  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()" aria-label="切換主題" title="切換主題" data-i18n-aria="nav.theme" data-i18n-title="nav.theme">🌙</button>
 </div>
 
 
@@ -107,7 +107,7 @@
 <div class="card">
     <h2 data-zh="📣 包圍曝光張數">📣 Bracketing Frame Count Calculator</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="計算 HDR 包圍曝光所需張數與步長。">Find the number of bracketing frames needed to cover a given EV range at a chosen exposure step.</p>
-    <div class="input-row"><label>總 EV 範圍</label><input type="number" id="ev_total" value="12" step="any" oninput="calc()" placeholder="如 12"></div>
+    <div class="input-row"><label>單側 EV 範圍（±）</label><input type="number" id="ev_total" value="12" step="any" oninput="calc()" placeholder="如 12"></div>
     <div class="input-row"><label>步長 EV</label><input type="number" id="step" value="2" step="any" oninput="calc()" placeholder="如 2"></div>
     <div class="input-row"><label>基準 EV</label><input type="number" id="base" value="0" step="any" oninput="calc()" placeholder="如 0"></div>
     <div class="toolbar">
@@ -124,7 +124,7 @@
   </div>
   <div class="card formula-box">
     <h3>📐 計算公式與說明</h3>
-    <div class="formula-eq">曝光包圍張數估算（本頁程式碼口徑）：所需張數 = 2×ceil(總 EV 範圍÷步長)+1（張，正負兩端各含基準一張）；聯動量：實際覆蓋 EV = ceil(總範圍÷步長)×步長×2、檔位列表 = 基準 EV ± ceil(總範圍÷步長)×步長 EV。校驗：三項輸入空值守衛，空值即提示；步長為 0 時 ceil 趨 Infinity、結果按「—」兜底。判據：無固定分級，步長越小張數越多（如 ±2 EV、0.5 EV 步長需 9 張）。</div>
+    <div class="formula-eq">曝光包圍張數估算（本頁程式碼口徑）：所需張數 = 2×ceil(單側 EV 範圍÷步長)+1（張，正負兩端各含基準一張）；聯動量：實際覆蓋 EV = ceil(單側範圍÷步長)×步長×2、檔位列表 = 基準 EV ± ceil(總範圍÷步長)×步長 EV。校驗：三項輸入空值守衛，空值即提示；步長為 0 時 ceil 趨 Infinity、結果按「—」兜底。判據：無固定分級，步長越小張數越多（如 ±2 EV、0.5 EV 步長需 9 張）。</div>
     <p style="font-size:13px;color:var(--text-muted);margin-top:12px;">確保相鄰兩張重疊至少 1 EV。</p>
   </div>
 </div>
@@ -466,9 +466,6 @@ function __photo_10Boot(){ try{ __photo_10Presets(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __photo_10Boot();
 else document.addEventListener('DOMContentLoaded', __photo_10Boot);
 </script>
-<section class="opt-guide"><h2>如何使用包圍曝光張數</h2><ol><li>在對應的輸入框或選項中填寫、選擇所需引數。</li><li>點選「計算」或「生成」按鈕執行。</li><li>在結果區檢視輸出，可複製結果或匯出使用。</li></ol><h2>引數說明</h2><ul class="param-list"><li>總 EV 範圍</li><li>步長 EV</li><li>基準 EV</li></ul><h2>適用場景</h2><p>攝影引數、曝光與畫質的快速參考。</p></section><section class="opt-faq"><h2>常見問題</h2><dl class="faq-list"><dt>包圍曝光張數是做什麼的？</dt><dd>輸入期望的總動態範圍與每檔曝光步長（如 1 EV、2 EV），工具計算完成 HDR 合成所需的最少包圍曝光張數，並提示相鄰兩張應保留至少 1 EV 重疊，便於拍攝高光暗部細節完整的照片。</dd><dt>如何使用包圍曝光張數？</dt><dd>在對應的輸入框或選項中填寫、選擇所需引數，點選「計算」或「生成」按鈕即可執行，結果會在結果區即時顯示，支援複製與匯出。</dd><dt>計算結果準確嗎？</dt><dd>本工具在你的本地瀏覽器中即時計算，不依賴伺服器；只要輸入的引數正確，結果即按對應的規則得出。涉及經驗估算的部分僅供參考，不作為正式依據。</dd><dt>包圍曝光張數適合哪些場景？</dt><dd>攝影引數、曝光與畫質的快速參考。</dd><dt>使用本工具需要聯網或上傳資料嗎？</dt><dd>不需要。所有計算均在你的裝置本地完成，資料不會上傳到任何伺服器，可放心使用。</dd></dl></section>
-
-
 <script>/*TBKIT-INJECT-START*/
 (function(){
   var P={"res": ["result", "photo_10Chart"], "tbl": ["photo_10Table"], "pre": ["photo_10Presets"], "his": ["photo_10Hist"]};

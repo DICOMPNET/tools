@@ -7,12 +7,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="toolbox" content="cat=text,industry=biz,icon=💼,bg=#e8eaf6">
-<meta name="description" content="新增行號是一款免費的線上商業辦公工具，為文本每行新增連續行號，支援自定義起始值與分隔符，便於程式碼貼上、文稿引用與步驟清單標註，一鍵複製帶行號結果。">
+<meta name="description" content="新增行號是一款免費的線上商業辦公工具，為文本每行新增連續行號，支援自定義起始值與分隔符，便於程式碼貼上、文稿引用與步驟清單標註，一鍵複製帶行號結果">
 <meta name="keywords" content="新增行號,新增行號線上,線上新增行號,文本處理,商業辦公,線上工具,免費工具,ToolBox">
 <meta name="robots" content="index,follow">
 <link rel="canonical" href="https://tools.dicomp.net/zh-tw/tools/biz/text-line-numbers.html">
 <meta property="og:title" content="新增行號 - 免費線上商業辦公工具">
-<meta property="og:description" content="新增行號是一款免費的線上商業辦公工具，為文本每行新增連續行號，支援自定義起始值與分隔符，便於程式碼貼上、文稿引用與步驟清單標註，一鍵複製帶行號結果。">
+<meta property="og:description" content="新增行號是一款免費的線上商業辦公工具，為文本每行新增連續行號，支援自定義起始值與分隔符，便於程式碼貼上、文稿引用與步驟清單標註，一鍵複製帶行號結果">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://tools.dicomp.net/zh-tw/tools/biz/text-line-numbers.html">
 <meta name="twitter:card" content="summary">
@@ -41,9 +41,9 @@
 <meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
 <meta name="twitter:image:alt" content="ToolBox - 5000+免費線上工具">
     <meta name="twitter:title" content="新增行號 - 免費線上商業辦公工具">
-    <meta name="twitter:description" content="新增行號是一款免費的線上商業辦公工具，為文本每行新增連續行號，支援自定義起始值與分隔符，便於程式碼貼上、文稿引用與步驟清單標註，一鍵複製帶行號結果。">
+    <meta name="twitter:description" content="新增行號是一款免費的線上商業辦公工具，為文本每行新增連續行號，支援自定義起始值與分隔符，便於程式碼貼上、文稿引用與步驟清單標註，一鍵複製帶行號結果">
 <!-- TOOLBOX-WEBAPP-LD -->
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"新增行號","url":"https://tools.dicomp.net/zh-tw/tools/biz/text-line-numbers.html","applicationCategory":"DeveloperApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"新增行號是一款免費的線上商業辦公工具，為文本每行新增連續行號，支援自定義起始值與分隔符，便於程式碼貼上、文稿引用與步驟清單標註，一鍵複製帶行號結果。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"新增行號","url":"https://tools.dicomp.net/zh-tw/tools/biz/text-line-numbers.html","applicationCategory":"DeveloperApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"新增行號是一款免費的線上商業辦公工具，為文本每行新增連續行號，支援自定義起始值與分隔符，便於程式碼貼上、文稿引用與步驟清單標註，一鍵複製帶行號結果","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
@@ -95,7 +95,7 @@
 <div class="nav">
   <a href="/zh-tw/index.html">← ToolBox</a>
   <span>/ 新增行號</span>
-  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()" aria-label="切換主題" title="切換主題" data-i18n-aria="nav.theme" data-i18n-title="nav.theme">🌙</button>
 </div>
 
 
@@ -259,10 +259,13 @@
 </div>
 
 <script>
-function padNum(num, width) {
-  var s = String(num);
-  while (s.length < width) s = '0' + s;
-  return s;
+function formatNum(num, width, padWidth, rightAlign) {
+  var neg = num < 0;
+  var digits = String(Math.abs(num));
+  while (digits.length < padWidth) digits = '0' + digits;
+  var n = (neg ? '-' : '') + digits;
+  if (rightAlign && n.length < width) n = ' '.repeat(width - n.length) + n;
+  return n;
 }
 
 function apply() {
@@ -275,22 +278,26 @@ function apply() {
   var separator = document.getElementById('separator').checked;
   var rightAlign = document.getElementById('rightAlign').checked;
 
+  if (!input.trim()) {
+    document.getElementById('result').textContent = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"(No content)":"（无内容）");
+    return;
+  }
   var lines = input.split('\n');
   var num = start;
   var result = [];
 
-  var numLines = lines.filter(function(l) { return !(skipEmpty && l === ''); }).length;
+  var numLines = lines.filter(function(l) { return !(skipEmpty && l.trim() === ''); }).length;
   var maxNum = start + (numLines - 1) * step;
   var autoWidth = String(maxNum).length;
-  var width = padWidth > 0 ? padWidth : autoWidth;
+  var width = Math.max(padWidth, autoWidth);
 
   for (var i = 0; i < lines.length; i++) {
     var line = lines[i];
-    if (skipEmpty && line === '') {
+    if (skipEmpty && line.trim() === '') {
       result.push('');
       continue;
     }
-    var n = padNum(num, width);
+    var n = formatNum(num, width, padWidth, rightAlign);
     var prefix = '';
     switch (format) {
       case 'dot': prefix = n + '.'; break;

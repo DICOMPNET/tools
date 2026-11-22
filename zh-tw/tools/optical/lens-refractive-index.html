@@ -93,7 +93,7 @@
 <div class="nav">
   <a href="/zh-tw/index.html">← ToolBox</a>
   <span>/ 鏡片折射率選擇器</span>
-  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()" aria-label="切換主題" title="切換主題" data-i18n-aria="nav.theme" data-i18n-title="nav.theme">🌙</button>
 </div>
 
 
@@ -132,8 +132,8 @@
     </div>
     <div class="checkbox-row">
       <label><input type="radio" name="goal" value="thin" checked onchange="calc()"> 優先輕薄</label>
-      <label><input type="radio" name="goal" value="value" onchange="calc()"> 優先價效比</label>
-      <label><input type="radio" name="goal" value="optical" onchange="calc()"> 優先光學品質(高阿貝數)</label>
+      <label><input type="radio" name="goal" value="value" onchange="calc()" aria-label="優先輕薄"> 優先價效比</label>
+      <label><input type="radio" name="goal" value="optical" onchange="calc()" aria-label="優先價效比"> 優先光學品質(高阿貝數)</label>
     </div>
 
     <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__lens_refractive_indexExport()">匯出明細 CSV</button></div><div class="result-box" id="result"></div> <div id="lens_refractive_indexTable"></div> <div id="lens_refractive_indexDiff"></div> <div id="lens_refractive_indexChart"></div> <div id="lens_refractive_indexHist"></div>
@@ -262,9 +262,9 @@
       <span class="rt-icon">📏</span>
       <span class="rt-info"><span class="rt-name">輻輳近點距離計算器</span><span class="rt-desc">輻輳(集合)近點距離計算器</span></span>
     </a>
-    <a href="/zh-tw/tools/optical/aspheric-design.html" class="related-tool-card">
+    <a href="/zh-tw/tools/optical/calc-47.html" class="related-tool-card">
       <span class="rt-icon">🧮</span>
-      <span class="rt-info"><span class="rt-name">非球面球差矯正計算器</span><span class="rt-desc">基於三階像差理論，計算球面鏡片的縱向球差與消除球差所需的非球面圓錐常數 K</span></span>
+      <span class="rt-info"><span class="rt-name">非球面（球差）矯正計算</span><span class="rt-desc">輸入折射率、曲率半徑、通光半口徑與錐面常數（K），計算三級球差並給出最佳錐面常數（無限遠物距，單折射…</span></span>
     </a>
     <a href="/zh-tw/tools/optical/calc-47.html" class="related-tool-card">
       <span class="rt-icon">🧮</span>
@@ -313,8 +313,9 @@ var LENSES = [
 
 function edgeThickness(power, dia, ct, n){
   var F = Math.abs(power);
-  var D = dia;
-  return ct + (D*D*F) / (2000*(n-1));
+  var sag = (dia*dia*F) / (2000*(n-1));
+  // 负镜中心薄、边缘厚；正镜中心厚、边缘薄（不低于 0）
+  return power < 0 ? ct + sag : Math.max(0, ct - sag);
 }
 
 function calc(){

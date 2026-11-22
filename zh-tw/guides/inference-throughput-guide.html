@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>推理吞吐估算 使用指南 - ToolBox</title>
-<meta name="description" content="推理吞吐估算器，由生成 token 數與端到端時延估算大模型推理吞吐(tokens/s)，輔助服務容量與併發規劃。視訊記憶體頻寬與算力是共享瓶頸，多請求競爭 KV 快取與計算單元，邊際吞吐遞減；需實測找到拐點再定併發上限。">
+<meta name="description" content="推理吞吐估算器，把端到端時延拆成首 token 延遲 TTFT 與每 token 間隔 TPOT，結合生成 token 數與併發批次估算總吞吐、單請求吞吐和單請求時延(tokens/s)，輔助容量規劃。視訊記憶體頻寬與算力是共享瓶頸，多請求競爭 KV 快取與計算單元，邊際吞吐遞減；需實測找到拐點再定併發上限。">
 <meta property="og:title" content="推理吞吐估算 使用指南">
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="ToolBox">
@@ -68,13 +68,13 @@ li{margin:8px 0;}
 <h1>推理吞吐估算 使用指南</h1>
 <p class="lead">推理吞吐估算器，由生成 token 數與端到端時延估算大模型推理吞吐(tokens/s)，輔助服務容量與併發規劃。</p>
 <h2>計算公式與原理</h2>
-<p><strong>吞吐 = tokens / 秒；單請求吞吐 = tokens / (秒 × 併發批次)</strong></p><p>推理服務的核心指標：總吞吐衡量叢集利用率，單請求吞吐才是使用者感知的快慢。batching 能顯著提升總吞吐但會拉長單請求延遲，線上服務通常需要在兩者間按 SLO 折中。</p>
+<p><strong>單請求時延 = TTFT + (tokens−1) × TPOT；總吞吐 = tokens × 併發批次 / 單請求時延；單請求吞吐 = tokens / 單請求時延</strong></p><p>TTFT 反映預填充與排隊，TPOT 反映逐 token 解碼速度。batching 能提升總吞吐但會拉長 TTFT/TPOT，線上服務需按 SLO 折中。</p>
 <h2>使用步驟</h2>
-<ol><li>填寫「生成 tokens」。</li><li>填寫「耗時 秒」。</li><li>填寫「併發數」。</li><li>結果區會即時更新；可一鍵複製結果用於記錄或彙報。</li></ol>
+<ol><li>填寫「生成 tokens」。</li><li>填寫「首 token 延遲 TTFT 秒」（從請求到首個 token）。</li><li>填寫「每 token 間隔 TPOT 秒」（後續每個 token 的平均間隔）。</li><li>填寫「併發批次」。</li><li>結果區即時給出總吞吐、單請求吞吐與單請求時延；可複製或匯出。</li></ol>
 <h2>典型使用場景</h2>
 <ul><li>吞吐≈生成 token 數 / 端到端時延(tokens/s)，衡量服務處理速度。</li><li>受模型大小、批大小、KV 快取與硬體頻寬共同影響，非僅由 FLOPs 決定。</li><li>容量規劃用 吞吐×併發上限 估算峰值 QPS，需預留餘量防雪崩。</li></ul>
 <h2>算例參考</h2>
-<ul><li><strong>單請求吞吐</strong>：生成 200 token 耗時 4s → 吞吐=50 tokens/s。若單卡支援 4 併發且各 50 tok/s，總吞吐≈200 tok/s；但實際共享 KV 快取與頻寬，併發增益低於線性。</li></ul>
+<ul><li><strong>單請求吞吐</strong>：生成 200 token，TTFT 0.5s、TPOT 20ms ⇒ 時延=0.5+199×0.02=4.48s，吞吐=200÷4.48≈44.6 tokens/s。若單卡 4 併發且各≈44.6 tok/s，理想總吞吐≈178 tok/s；實際共享 KV 快取與頻寬，併發增益低於線性。</li></ul>
 <h2>注意事項</h2>
 <p>結果為按上述公式得到的<strong>理論估算值</strong>，實際表現受資料分佈、實現細節與執行環境影響，落地決策請以實測為準；本工具純前端執行，輸入不上傳伺服器。</p>
 <div class="related">

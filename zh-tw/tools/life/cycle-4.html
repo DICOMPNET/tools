@@ -7,11 +7,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="toolbox" content="cat=math,industry=life,icon=⏱️,bg=#e8eaf6">
-<meta name="description" content="清潔用品消耗量與補貨週期是一款免費的線上日常生活工具，登記清潔用品的單位、庫存、消耗速率與補貨閾值，自動推算補貨週期與建議下單量，輔助家庭或辦公室耗材管理。">
+<meta name="description" content="清潔用品消耗量與補貨週期是一款免費的線上日常生活工具，登記清潔用品的單位、庫存、消耗速率與補貨閾值，自動推算補貨週期與建議下單量，輔助家庭或辦公室耗材管理">
 <title>清潔用品消耗量與補貨週期 - 登記清潔用品的單位</title>
 <link rel="canonical" href="https://tools.dicomp.net/zh-tw/tools/life/cycle-4.html">
 <meta property="og:title" content="清潔用品消耗量與補貨週期 - 登記清潔用品的單位">
-<meta property="og:description" content="清潔用品消耗量與補貨週期是一款免費的線上日常生活工具，登記清潔用品的單位、庫存、消耗速率與補貨閾值，自動推算補貨週期與建議下單量，輔助家庭或辦公室耗材管理。">
+<meta property="og:description" content="清潔用品消耗量與補貨週期是一款免費的線上日常生活工具，登記清潔用品的單位、庫存、消耗速率與補貨閾值，自動推算補貨週期與建議下單量，輔助家庭或辦公室耗材管理">
 <meta property="og:url" content="https://tools.dicomp.net/zh-tw/tools/life/cycle-4.html">
 <meta name="twitter:card" content="summary">
 <link rel="stylesheet" href="/css/common.css">
@@ -52,9 +52,9 @@
 <meta name="twitter:image:alt" content="ToolBox - 5000+免費線上工具">
     <meta property="og:type" content="website">
     <meta name="twitter:title" content="清潔用品消耗量與補貨週期 - 登記清潔用品的單位">
-    <meta name="twitter:description" content="清潔用品消耗量與補貨週期是一款免費的線上日常生活工具，登記清潔用品的單位、庫存、消耗速率與補貨閾值，自動推算補貨週期與建議下單量，輔助家庭或辦公室耗材管理。">
+    <meta name="twitter:description" content="清潔用品消耗量與補貨週期是一款免費的線上日常生活工具，登記清潔用品的單位、庫存、消耗速率與補貨閾值，自動推算補貨週期與建議下單量，輔助家庭或辦公室耗材管理">
 <!-- TOOLBOX-WEBAPP-LD -->
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"清潔用品消耗量與補貨週期","url":"https://tools.dicomp.net/zh-tw/tools/life/cycle-4.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"清潔用品消耗量與補貨週期是一款免費的線上日常生活工具，登記清潔用品的單位、庫存、消耗速率與補貨閾值，自動推算補貨週期與建議下單量，輔助家庭或辦公室耗材管理。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"清潔用品消耗量與補貨週期","url":"https://tools.dicomp.net/zh-tw/tools/life/cycle-4.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"清潔用品消耗量與補貨週期是一款免費的線上日常生活工具，登記清潔用品的單位、庫存、消耗速率與補貨閾值，自動推算補貨週期與建議下單量，輔助家庭或辦公室耗材管理","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
@@ -104,7 +104,7 @@
 <div class="nav">
   <a href="/zh-tw/index.html">← ToolBox</a>
   <span>/ 清潔用品消耗量與補貨週期</span>
-  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()" aria-label="切換主題" title="切換主題" data-i18n-aria="nav.theme" data-i18n-title="nav.theme">🌙</button>
 </div>
 
 
@@ -478,7 +478,14 @@ function applySupplyPreset(kind){
       {n:'糖浆',u:'瓶',s:3,r:0.5,p:'month',t:1}
     ]:null;
   if(!sc)return;
-  supplies=sc.map(function(x,i){return {id:Date.now()+i,name:x.n,unit:x.u,stock:x.s,rate:x.r,period:x.p,threshold:x.t,createdAt:Date.now()};});
+  // 预设只补充/同名更新，不再清空用户自建的其他用品
+  if(supplies.length && !confirm('已有用品清单，预设将补充缺少项并覆盖同名项，是否继续？')) return;
+  var byName={}; supplies.forEach(function(s){byName[s.name]=s;});
+  sc.forEach(function(x,i){
+    var hit=byName[x.n];
+    if(hit){hit.unit=x.u;hit.stock=x.s;hit.rate=x.r;hit.period=x.p;hit.threshold=x.t;}
+    else supplies.push({id:Date.now()+i,name:x.n,unit:x.u,stock:x.s,rate:x.r,period:x.p,threshold:x.t,createdAt:Date.now()});
+  });
   saveSup();render();
 }
 load();
@@ -666,9 +673,9 @@ render();
       <span class="rt-info"><span class="rt-name">家電深度清潔週期提醒</span><span class="rt-desc">按家電型別與上次清潔日期排定深度清潔提醒週期，生成待辦清單，輔助家庭清潔計劃管理</span></span>
     </a>
 
-    <a href="/zh-tw/tools/life/generator-strength.html" class="related-tool-card">
+    <a href="/zh-tw/tools/it/password-generator.html" class="related-tool-card">
       <span class="rt-icon">🔑</span>
-      <span class="rt-info"><span class="rt-name">密碼生成器（帶強度檢測）</span><span class="rt-desc">自定義密碼長度並勾選大小寫、數字、符號等字元型別，生成高強度隨機密碼，同時即時評估其安全強度，一鍵復…</span></span>
+      <span class="rt-info"><span class="rt-name">密碼生成器（IT）</span><span class="rt-desc">線上生成高強度隨機密碼與密碼短語，所有計算在瀏覽器本地完成，密碼不會上傳伺服器</span></span>
     </a>
   </div>
 </div>

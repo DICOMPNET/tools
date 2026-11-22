@@ -81,7 +81,7 @@
 <div class="nav">
   <a href="/zh-tw/index.html">← ToolBox</a>
   <span>/ 檢測（無損/尺寸/探傷）方法</span>
-  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()" aria-label="切換主題" title="切換主題" data-i18n-aria="nav.theme" data-i18n-title="nav.theme">🌙</button>
 </div>
 
 
@@ -111,7 +111,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="輸入工件材料、厚度、缺陷型別與檢測要求，自動推薦適合的無損檢測方法（UT超音波/RT射線/MT磁粉/PT滲透/ET渦流），並給出各方法對比分析。">Choose an inspection method covering non-destructive testing, dimensional checking and flaw detection according to part and defect type.</p>
     <div class="formula-box">
       <div class="formula-title">📐 計算公式</div>
-      <div class="formula-eq">無損檢測方法推薦（0~5 評分排序）：UT/RT/MT/PT/ET 五法按缺陷型別基礎打分——內部/焊縫缺陷 UT5 RT5、表面缺陷鐵磁 MT5 非鐵磁 PT5、近表面鐵磁 MT5 非鐵磁 UT4、測厚 UT5；疊加修正：非鐵磁材料 MT=0、厚度 &lt;2mm 時 RT 封頂 2、&gt;100mm 時 PT≤1 且 MT≤2、嚴格/關鍵檢測等級 RT+1 UT+1（總分封頂 5）。校驗：厚度非數或 ≤0 提示「請輸入有效工件厚度」。判據：按總分降序，≥4 強烈推薦、≥3 可選用、其餘不推薦，首位即首選方法。</div>
+      <div class="formula-eq">無損檢測方法推薦（0~5 評分排序）：UT/RT/MT/PT/ET 五法按缺陷型別基礎打分——內部/焊縫缺陷 UT5 RT5、表面缺陷鐵磁 MT5 非鐵磁 PT5、近表面鐵磁 MT5 非鐵磁 UT4、測厚 UT5；疊加修正：非鐵磁材料 MT=0、厚度 &lt;2mm 時 RT 封頂 2、&gt;100mm 時 PT≤1 且 MT≤2、嚴格檢測 RT+1 UT+1、關鍵檢測 RT+2 UT+2（總分封頂 5）。校驗：厚度非數或 ≤0 提示「請輸入有效工件厚度」。判據：按總分降序，≥4 強烈推薦、≥3 可選用、其餘不推薦，首位即首選方法。</div>
       <p class="formula-desc">輸入工件材料、厚度、缺陷型別與檢測要求，自動推薦適合的無損檢測方法（UT超音波/RT射線/MT磁粉/PT滲透/ET渦流），並給出各方法對比分析。</p>
     </div>
 
@@ -223,14 +223,16 @@ function calc(){
   if(th>100){scores.PT=Math.min(scores.PT,1);scores.MT=Math.min(scores.MT,2);}
   /* 等级加权 */
   if(lvl==='strict'){scores.RT+=1;scores.UT+=1;}
-  if(lvl==='critical'){scores.RT+=1;scores.UT+=1;}
+  if(lvl==='critical'){scores.RT+=2;scores.UT+=2;} // 关键件比严格件再提高体积/超声权重
   /* 排序 */
   var arr=Object.keys(scores).map(function(k){return {key:k,score:Math.min(scores[k],5)};});
   arr.sort(function(a,b){return b.score-a.score;});
   /* 推荐方法（评分>=3） */
   var recommended=arr.filter(function(a){return a.score>=3;});
   var primary=recommended[0];
+  var levelText={general:'常规检测（基准评分）',strict:'严格检测（放射/超声各 +1）',critical:'关键检测（放射/超声各 +2）'}[lvl]||lvl;
   var html='<h3>推荐检测方法</h3>';
+  html+='<p style="margin:8px 0;">检测等级：<strong>'+levelText+'</strong></p>';
   html+='<div class="tip-box tip-info" style="margin:8px 0;"><strong>首选方法：</strong>'+METHODS[primary.key].icon+' '+METHODS[primary.key].name+'（适用评分 '+primary.score+'/5）</div>';
   html+='<p style="margin:8px 0;">'+METHODS[primary.key].desc+'</p>';
   /* 各方法对比表 */

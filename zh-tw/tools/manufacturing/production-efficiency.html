@@ -7,12 +7,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="toolbox" content="cat=engineer,industry=manufacturing,icon=⚡,bg=#1d4ed8">
-<meta name="description" content="OEE生產效率計算是一款免費的線上製造業工具，輸入可用率、效能率與合格率，按 OEE=可用率×效能率×合格率計算綜合裝置效率(世界級≥85%)，定位產線損失環節。">
+<meta name="description" content="OEE生產效率計算是一款免費的線上製造業工具，輸入可用率、效能率與合格率，按 OEE=可用率×效能率×合格率計算綜合裝置效率(世界級≥85%)，定位產線損失環節">
 <meta name="keywords" content="OEE生產效率計算,OEE生產效率計算線上,線上OEE生產效率計算,數學計算,製造業,OEE,綜合裝置效率,線上工具,免費工具,ToolBox">
 <meta name="robots" content="index,follow">
 <link rel="canonical" href="https://tools.dicomp.net/zh-tw/tools/manufacturing/production-efficiency.html">
 <meta property="og:title" content="OEE 綜合裝置效率 - 定位產線損失環節">
-<meta property="og:description" content="OEE生產效率計算是一款免費的線上製造業工具，輸入可用率、效能率與合格率，按 OEE=可用率×效能率×合格率計算綜合裝置效率(世界級≥85%)，定位產線損失環節。">
+<meta property="og:description" content="OEE生產效率計算是一款免費的線上製造業工具，輸入可用率、效能率與合格率，按 OEE=可用率×效能率×合格率計算綜合裝置效率(世界級≥85%)，定位產線損失環節">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://tools.dicomp.net/zh-tw/tools/manufacturing/production-efficiency.html">
 <meta name="twitter:card" content="summary">
@@ -53,9 +53,9 @@
 <meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
 <meta name="twitter:image:alt" content="ToolBox - 5000+免費線上工具">
     <meta name="twitter:title" content="OEE 綜合裝置效率 - 定位產線損失環節">
-    <meta name="twitter:description" content="OEE生產效率計算是一款免費的線上製造業工具，輸入可用率、效能率與合格率，按 OEE=可用率×效能率×合格率計算綜合裝置效率(世界級≥85%)，定位產線損失環節。">
+    <meta name="twitter:description" content="OEE生產效率計算是一款免費的線上製造業工具，輸入可用率、效能率與合格率，按 OEE=可用率×效能率×合格率計算綜合裝置效率(世界級≥85%)，定位產線損失環節">
 <!-- TOOLBOX-WEBAPP-LD -->
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"OEE生產效率計算","url":"https://tools.dicomp.net/zh-tw/tools/manufacturing/production-efficiency.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"OEE生產效率計算是一款免費的線上製造業工具，輸入可用率、效能率與合格率，按 OEE=可用率×效能率×合格率計算綜合裝置效率(世界級≥85%)，定位產線損失環節。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"OEE生產效率計算","url":"https://tools.dicomp.net/zh-tw/tools/manufacturing/production-efficiency.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"OEE生產效率計算是一款免費的線上製造業工具，輸入可用率、效能率與合格率，按 OEE=可用率×效能率×合格率計算綜合裝置效率(世界級≥85%)，定位產線損失環節","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
@@ -106,7 +106,7 @@
 <div class="nav">
   <a href="/zh-tw/index.html">← ToolBox</a>
   <span>/ OEE生產效率</span>
-  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()" aria-label="切換主題" title="切換主題" data-i18n-aria="nav.theme" data-i18n-title="nav.theme">🌙</button>
 </div>
 
 
@@ -265,14 +265,19 @@ function ring(pct) {
   </svg><div class="ring-text"><div class="pct">${(pct*100).toFixed(1)}%</div><div class="lbl">OEE</div></div></div>`;
 }
 function calc() {
+  const fail = (msg) => {
+    document.getElementById('result').innerHTML = '<p style="color:var(--text-muted)">' + msg + '</p>';
+    const tb = document.getElementById('production_efficiencyTable'); if (tb) tb.innerHTML = '';
+    ToolBox.showToast(msg, 'error');
+  };
   const PT = +document.getElementById('plannedTime').value || 0;
   const DT = +document.getElementById('downtime').value || 0;
   const CT = +document.getElementById('cycleTime').value || 0;
   const O = +document.getElementById('output').value || 0;
   const G = +document.getElementById('goodOutput').value || 0;
-  if (PT<=0||CT<=0) { ToolBox.showToast(i18nText(),'error'); return; }
-  if (DT<0||DT>=PT) { var __en=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)?TBKit.util.isEn():false; document.getElementById('result').innerHTML='<p style="color:var(--danger);">'+(__en?'Downtime must be less than planned time and cannot be negative.':'停机时间须小于计划时间（且不能为负）。')+'</p>'; return; }
-  if (G>O) { ToolBox.showToast(i18nText('toast.msg107'),'error'); return; }
+  if (PT<=0||CT<=0) { fail('请填写计划时间与节拍时间后再计算 OEE。'); return; }
+  if (DT<0||DT>=PT) { fail('停机时间须小于计划时间（且不能为负）。'); return; }
+  if (G>O) { fail('合格产出不能大于总产出。'); return; }
 
   const runTime = PT - DT; // 实际运行时间(分钟)
   const availability = runTime / PT;

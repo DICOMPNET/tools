@@ -7,11 +7,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="toolbox" content="cat=calculator,industry=life,icon=⚖️,bg=#e8f5e9">
-<meta name="description" content="競爭（分析/應對/差異化）是一款免費的線上日常生活工具，輸入競品價格、份額、增速等資料（逗號或換行分隔），統計均值與差距，輔助競爭分析與差異化策略制定。">
+<meta name="description" content="競爭（分析/應對/差異化）是一款免費的線上日常生活工具，輸入競品價格、份額、增速等資料（逗號或換行分隔），統計均值與差距，輔助競爭分析與差異化策略制定">
 <title>競爭（分析/應對/差異化） - 增速等資料</title>
 <link rel="canonical" href="https://tools.dicomp.net/zh-tw/tools/life/analysis-74.html">
 <meta property="og:title" content="競爭（分析/應對/差異化） - 增速等資料">
-<meta property="og:description" content="競爭（分析/應對/差異化）是一款免費的線上日常生活工具，輸入競品價格、份額、增速等資料（逗號或換行分隔），統計均值與差距，輔助競爭分析與差異化策略制定。">
+<meta property="og:description" content="競爭（分析/應對/差異化）是一款免費的線上日常生活工具，輸入競品價格、份額、增速等資料（逗號或換行分隔），統計均值與差距，輔助競爭分析與差異化策略制定">
 <meta property="og:url" content="https://tools.dicomp.net/zh-tw/tools/life/analysis-74.html">
 <meta name="twitter:card" content="summary">
 <link rel="stylesheet" href="/css/common.css">
@@ -26,9 +26,9 @@
 <meta name="twitter:image:alt" content="ToolBox - 5000+免費線上工具">
     <meta property="og:type" content="website">
     <meta name="twitter:title" content="競爭（分析/應對/差異化） - 增速等資料">
-    <meta name="twitter:description" content="競爭（分析/應對/差異化）是一款免費的線上日常生活工具，輸入競品價格、份額、增速等資料（逗號或換行分隔），統計均值與差距，輔助競爭分析與差異化策略制定。">
+    <meta name="twitter:description" content="競爭（分析/應對/差異化）是一款免費的線上日常生活工具，輸入競品價格、份額、增速等資料（逗號或換行分隔），統計均值與差距，輔助競爭分析與差異化策略制定">
 <!-- TOOLBOX-WEBAPP-LD -->
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"競爭（分析/應對/差異化）","url":"https://tools.dicomp.net/zh-tw/tools/life/analysis-74.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"競爭（分析/應對/差異化）是一款免費的線上日常生活工具，輸入競品價格、份額、增速等資料（逗號或換行分隔），統計均值與差距，輔助競爭分析與差異化策略制定。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"競爭（分析/應對/差異化）","url":"https://tools.dicomp.net/zh-tw/tools/life/analysis-74.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"競爭（分析/應對/差異化）是一款免費的線上日常生活工具，輸入競品價格、份額、增速等資料（逗號或換行分隔），統計均值與差距，輔助競爭分析與差異化策略制定","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
@@ -77,7 +77,7 @@
 <div class="nav">
   <a href="/zh-tw/index.html">← ToolBox</a>
   <span>/ 競爭（分析/應對/差異化）</span>
-  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()" aria-label="切換主題" title="切換主題" data-i18n-aria="nav.theme" data-i18n-title="nav.theme">🌙</button>
 </div>
 
 <nav class="breadcrumb" aria-label="麵包屑導航" data-breadcrumb="1">
@@ -199,7 +199,9 @@ for(var i=0;i<lines.length;i++){
   var p=lines[i].split(/[,，\t ]+/);
   if(p.length<4) continue;
   var nm=p[0],pr=parseFloat(p[1]),sh=parseFloat(p[2]),gr=parseFloat(p[3]);
-  if(isNaN(pr)||isNaN(sh)||isNaN(gr)) continue;
+  if(isNaN(pr)||isNaN(sh)||isNaN(gr)||pr<0||sh<0||sh>100||gr<-100||gr>1000){
+    document.getElementById("res").innerHTML='<p style="color:var(--danger)">第 '+(i+1)+' 行数据越界：价格需 ≥0，份额 0–100%，增速 -100%–1000%。</p>';return;
+  }
   rows.push({n:nm,p:pr,s:sh,g:gr});
 }
 if(!rows.length){document.getElementById("res").innerHTML="<p>请输入至少一行「竞品,价格,份额,增速」数据</p>";return;}
@@ -212,7 +214,8 @@ rows.forEach(function(r){
 var lo=rows.slice().sort(function(a,b){return a.p-b.p;})[0];
 var hi=rows.slice().sort(function(a,b){return b.s-a.s;})[0];
 var fast=rows.slice().sort(function(a,b){return b.g-a.g;})[0];
-var judge=ss>=80?"样本覆盖主要竞争面":(ss>=50?"覆盖过半市场":"仅覆盖部分竞品");
+if(ss>105){document.getElementById("res").innerHTML='<p style="color:var(--danger)">份额合计 '+ss.toFixed(2)+'%，超过 100% 容差，请核对是否重复计入或包含非目标市场。</p>';return;}
+var judge=ss>=95?"样本基本覆盖主要竞争面":(ss>=50?"覆盖过半市场":"仅覆盖部分竞品，份额合计偏低");
 var h="<p>竞品数：<strong>"+k+"</strong></p>";
 h+="<p>价格均值：<strong>"+(sp/k).toFixed(2)+"</strong></p>";
 h+="<p>份额合计：<strong>"+ss.toFixed(2)+"%</strong></p>";
@@ -397,13 +400,18 @@ function __analysis_74Export(){
     try { TBKit.util.exportTable('#analysis_74Table','analysis-74.csv'); } catch(e){}
 }
 function __analysis_74Presets(){
-    if (typeof TBKit === 'undefined') return;
+    if (typeof TBKit === 'undefined' || !TBKit.preset) return;
+    TBKit.preset.bar('#analysis_74Presets',[
+      {label:'3C 数码',labelEn:'Consumer electronics',values:{data:'A品牌,2999,22,8\nB品牌,2599,18,5\nC品牌,3299,15,12\nD品牌,1999,30,-3'}},
+      {label:'餐饮连锁',labelEn:'Restaurant chains',values:{data:'甲火锅,120,26,15\n乙烤肉,95,21,9\n丙快餐,35,32,4\n丁日料,180,12,-2'}},
+      {label:'快消饮品',labelEn:'FMCG drinks',values:{data:'A气泡水,5,31,18\nB茶饮,6,27,22\nC果汁,7,19,7\nD功能饮,9,14,30'}}
+    ],function(){ calc(); });
 }
 var __analysis_74_f0=(typeof calc==='function')?calc:null;
 if(__analysis_74_f0){
     calc=function(){ var __r=__analysis_74_f0.apply(null,arguments); try{ __analysis_74Extras(); }catch(e){} return __r; };
 }
-function __analysis_74Boot(){ try{ __analysis_74Presets(); }catch(e){}  try{ if(typeof calc==='function') calc(); }catch(e){} }
+function __analysis_74Boot(){ try{ __analysis_74Presets(); }catch(e){}  __analysis_74_skip=true; try{ if(typeof calc==='function') calc(); }catch(e){} __analysis_74_skip=false; }
 if (document.readyState && document.readyState !== 'loading') __analysis_74Boot();
 else document.addEventListener('DOMContentLoaded', __analysis_74Boot);
 </script>

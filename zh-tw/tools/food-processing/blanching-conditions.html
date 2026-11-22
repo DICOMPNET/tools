@@ -82,7 +82,7 @@
 <div class="nav">
   <a href="/zh-tw/index.html">← ToolBox</a>
   <span>/ 熱燙溫度時間</span>
-  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()" aria-label="切換主題" title="切換主題" data-i18n-aria="nav.theme" data-i18n-title="nav.theme">🌙</button>
 </div>
 
 
@@ -109,7 +109,7 @@
   <button type="button" class="tbk-tab" data-pane="his">歷史</button>
 </div>
 <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
-    <h2 data-zh="🌡️ 熱燙溫度時間（酶失活）組合器">Blanching Conditions</h2>
+    <h2 data-zh="🌡️ 熱燙溫度時間（酶失活）組合器">Blanching Temperature–Time Combination</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="基於熱致死動力學計算使目標酶失活所需的溫度-時間組合">Blanching Conditions</p>
     <div class="formula-box">
       <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">熱燙（殺青）條件計算（D/Z 值模型）<br>D(T) = Dref × 10^((Tref − T) ÷ Z)<br>熱燙時間 t = D(T) × n（n 為對數還原數）<br>酶失活率 = (1 − 10^−n) × 100%；殘餘活力 = 10^−n × 100%<br>反解所需溫度 T = Tref − Z × log₁₀(t ÷ (Dref×n))<br>該時間對應的 D 值 = t ÷ n<br>對照表按 70~100℃ 逐溫輸出 D 值與所需時間</div>
@@ -265,11 +265,20 @@ function renderParams(){
 
 function calc(){
   var Dref = num('Dref'), Tref = num('Tref'), Z = num('Z'), n = num('n');
-  if(!(Dref > 0) || !(Z > 0) || !(n > 0)){ ToolBox.showToast(i18nText(),'error'); return; }
+  // G10：参数非法时既要 toast 也要清空结果区，否则复制/导出会把上一组参数的结果带走。
+  if(!(Dref > 0) || !(Z > 0) || !(n > 0)){
+    document.getElementById('result').innerHTML = '<p style="color:var(--danger)">' +
+      ((document.documentElement.lang||'').indexOf('en')===0 ? '⚠ Enter valid D-value, Z-value and log-reduction before calculating.' : '⚠ 请填写有效的 D 值、Z 值与目标对数后再计算。') + '</p>';
+    ToolBox.showToast(i18nText(),'error'); return;
+  }
 
   if(cur === 'tt'){
     var T = num('T');
-    if(!(T >= 0)){ ToolBox.showToast(i18nText('toast.msg886'),'error'); return; }
+    if(!(T >= 0)){
+      document.getElementById('result').innerHTML = '<p style="color:var(--danger)">' +
+        ((document.documentElement.lang||'').indexOf('en')===0 ? '⚠ Enter a valid blanching temperature (≥0 ℃).' : '⚠ 请填写有效的热烫温度（≥0 ℃）。') + '</p>';
+      ToolBox.showToast(i18nText('toast.msg886'),'error'); return;
+    }
     var D_T = Dref * Math.pow(10, (Tref - T) / Z);
     var t = D_T * n;
     const __g5='<h3 style="text-align:center;margin-bottom:10px;">🌡️ 所需热烫时间</h3>' +
@@ -281,7 +290,11 @@ function calc(){
       '<p style="margin-top:12px;">在 ' + T + '℃ 下使酶失活 ' + n + ' 个对数（残余 ' + Math.pow(10, -n) * 100 + '%），需热烫 <strong>' + t.toFixed(2) + ' min</strong>。</p>';document.getElementById('result').innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
   } else if(cur === 'tt2'){
     var t = num('t');
-    if(!(t > 0)){ ToolBox.showToast(i18nText('toast.msg885'),'error'); return; }
+    if(!(t > 0)){
+      document.getElementById('result').innerHTML = '<p style="color:var(--danger)">' +
+        ((document.documentElement.lang||'').indexOf('en')===0 ? '⚠ Enter a valid blanching time (>0 min).' : '⚠ 请填写有效的热烫时间（>0 min）。') + '</p>';
+      ToolBox.showToast(i18nText('toast.msg885'),'error'); return;
+    }
     // t = Dref * n * 10^((Tref-T)/Z) → (Tref-T)/Z = log10(t/(Dref*n)) → T = Tref - Z*log10(t/(Dref*n))
     var D_T = t / n;
     var T = Tref - Z * Math.log10(D_T / Dref);
@@ -348,9 +361,9 @@ ToolBox.initToolTheme();
       <span class="rt-icon">🍳</span>
       <span class="rt-info"><span class="rt-name">烹飪單位換算器</span><span class="rt-desc">在容量、重量、溫度與食材克數間換算，並內建常見食材密度，用於食譜閱讀、烘焙與跨單位烹飪的計量轉換</span></span>
     </a>
-    <a href="/zh-tw/tools/food/convert-concentration.html" class="related-tool-card">
+    <a href="/zh-tw/tools/food/syrup-brix-converter.html" class="related-tool-card">
       <span class="rt-icon">🔄</span>
-      <span class="rt-info"><span class="rt-name">糖漿濃度換算（白利度）</span><span class="rt-desc">糖漿濃度換算器（白利度）。在白利度（Brix）、波美度與糖質量分數間換算，用於糖漿、果醬等糖製品的濃…</span></span>
+      <span class="rt-info"><span class="rt-name">糖漿濃度換算</span><span class="rt-desc">輸入糖漿的白利度(Brix)、比重(SG)、波美度(°Bé)或折射率(RI)中任一值，轉換為其餘濃度…</span></span>
     </a>
   </div>
 </div>

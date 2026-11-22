@@ -81,7 +81,7 @@
 <div class="nav">
   <a href="/zh-tw/index.html">← ToolBox</a>
   <span>/ 精密裝置選型</span>
-  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()" aria-label="切換主題" title="切換主題" data-i18n-aria="nav.theme" data-i18n-title="nav.theme">🌙</button>
 </div>
 
 
@@ -158,7 +158,7 @@
       <div class="tool-notes-title">⚠️ 注意事項</div>
       <ul>
         <li>導軌規格基於動額定負荷為負載6倍的安全係數推薦</li>
-        <li>絲槓精度等級：C3(≤10μm)、C5(≤20μm)、C7(≤50μm/300mm)</li>
+        <li data-i18n="tool.machinery_gear_ratio_note" data-i18n-fb="絲槓精度等級：C3(≤10μm)、C5(≤20μm)、C7(≤50μm)、C10(其餘)；導程精度按等級取典型值（C3 ±3、C5 ±5、C7 ±50、C10 ±100 μm/300mm），實際隨直徑/導程/長度變化">絲槓精度等級：C3(≤10μm)、C5(≤20μm)、C7(≤50μm)、C10(其餘)；導程精度按等級取典型值（C3 ±3、C5 ±5、C7 ±50、C10 ±100 μm/300mm），實際隨直徑/導程/長度變化</li>
         <li>絲槓總長 = 行程 + 螺母長度 + 兩端支撐餘量（約行程×1.3）</li>
         <li>本工具純前端執行，資料不會上傳到伺服器</li>
       </ul>
@@ -210,7 +210,8 @@ function calc(){
   var screwClass = acc<=10?'C3':(acc<=20?'C5':(acc<=50?'C7':'C10'));
   var screwLen=stroke*1.3;
   var screwDia = loadN>5000?'32mm':(loadN>2000?'25mm':(loadN>500?'20mm':'16mm'));
-  var leadError = lead===5?'±3μm/300mm':(lead===10?'±5μm/300mm':'±8μm/300mm');
+  var leadErrorMap={C3:'±3μm/300mm',C5:'±5μm/300mm',C7:'±50μm/300mm',C10:'±100μm/300mm'};
+  var leadError=leadErrorMap[screwClass]||'±100μm/300mm';
   var driveTorque = loadN*lead/(2*Math.PI*0.9*1000); // N·m, screw efficiency 0.9
   const __g2='<div class="data-grid">'+
     '<div class="data-card"><div class="num">HGR'+rail.sz+'</div><div class="label">推荐导轨规格</div></div>'+
@@ -222,7 +223,7 @@ function calc(){
     '<div class="data-card"><div class="num">'+screwLen.toFixed(0)+'</div><div class="label">丝杠总长 (mm)</div></div>'+
     '<div class="data-card"><div class="num">'+rpm.toFixed(0)+'</div><div class="label">所需转速 (rpm)</div></div>'+
     '<div class="data-card"><div class="num">'+driveTorque.toFixed(2)+'</div><div class="label">驱动扭矩 (N·m)</div></div>'+
-    '<div class="data-card"><div class="num" style="font-size:13px;">'+leadError+'</div><div class="label">导程精度</div></div>'+
+    '<div class="data-card"><div class="num" style="font-size:13px;">'+leadError+'</div><div class="label">导程精度（等级典型值）</div></div>'+
     '</div>';document.getElementById('res').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
   lastResult='精密设备选型\n精度='+acc+'μm, 负载='+load+'kg, 行程='+stroke+'mm, 速度='+speed+'m/min\n导轨: HGR'+rail.sz+' (动额定'+rail.dr+'kN)\n丝杠: '+screwDia+'mm, 导程'+lead+'mm, 精度'+screwClass+'\n丝杠总长: '+screwLen.toFixed(0)+'mm\n转速: '+rpm.toFixed(0)+'rpm\n驱动扭矩: '+driveTorque.toFixed(2)+'N·m';
 }
@@ -397,7 +398,7 @@ else document.addEventListener('DOMContentLoaded', __jingmishebeixuanxingBoot);
 <li>方案校核：調整行程或速度後快速重算絲槓長度與扭矩</li>
 </ul>
 <div class="dd-example"><div class="dd-ex-title">方法</div><div class="dd-ex-body">演算法：負載換牛頓 loadN = 負載×9.8；導軌動額定需求 = loadN×6/1000（kN），在 [7.7,13.6,17.6,27.5,35.1,51.4,74.4,101] 中取首個 ≥ 需求者，對應 HGR15~HGR65；絲槓導程按 速度×1000/3000 在 [5,10,20,32,40] 中取首個 ≥ 者；所需轉速 = 速度×1000/導程；精度等級 ≤10μm 選 C3、≤20μm 選 C5、≤50μm 選 C7、否則 C10；絲槓總長 = 行程×1.3；絲槓直徑按 loadN 分檔（&gt;5000N 取 32mm、&gt;2000N 取 25mm、&gt;500N 取 20mm、否則 16mm）；驅動扭矩 = loadN×導程/(2π×0.9×1000)（N·m，0.9 為絲槓效率）。</div></div>
-<div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">例：定位精度 10μm、負載 50kg、行程 500mm、速度 15m/min → loadN 490N、導軌 HGR15（動額定 7.7kN）、絲槓 16mm/導程 5mm、精度 C3、絲槓總長 650mm、轉速 3000rpm、驅動扭矩 0.433N·m、導程精度 ±3μm/300mm。若負載 200kg、行程 800mm、速度 30m/min、精度 5μm → loadN 1960N、導軌 HGR20（13.6kN）、絲槓 20mm/導程 10mm、總長 1040mm、轉速 3000rpm、扭矩 3.466N·m、導程精度 ±5μm/300mm。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">例：定位精度 10μm、負載 50kg、行程 500mm、速度 15m/min → loadN 490N、導軌 HGR15（動額定 7.7kN）、絲槓 16mm/導程 5mm、精度 C3、絲槓總長 650mm、轉速 3000rpm、驅動扭矩 0.433N·m、導程精度按 C3 取 ±3μm/300mm。若負載 200kg、行程 800mm、速度 30m/min、精度 5μm → loadN 1960N、導軌 HGR20（13.6kN）、絲槓 20mm/導程 10mm、總長 1040mm、轉速 3000rpm、扭矩 3.466N·m、導程精度按 C5 取 ±5μm/300mm。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
 <dt>導程怎麼在轉速和推力之間取捨？</dt><dd>小導程推力大、解析度高但同速度下需要更高轉速；大導程反之。工具按最高 3000rpm 反推最小導程，若選中導程使轉速頂到 3000rpm，說明應放大一號導程或降低速度要求。</dd>

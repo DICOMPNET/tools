@@ -81,7 +81,7 @@
 <div class="nav">
   <a href="/zh-tw/index.html">← ToolBox</a>
   <span>/ 橡膠硬度換算</span>
-  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()" aria-label="切換主題" title="切換主題" data-i18n-aria="nav.theme" data-i18n-title="nav.theme">🌙</button>
 </div>
 
 
@@ -247,8 +247,10 @@ if(__ni.length && __ni.every(function(e){return String(e.value).trim()==='';})){
 
 
   var type = document.getElementById('hardType').value;
-  var val = parseFloat(document.getElementById('hardValue').value) || 0;
-  if (val < 0 || val > 100) {
+  var rawVal=document.getElementById('hardValue').value.trim();
+  if(!rawVal){ToolBox.setResult('convertResult','<p style="color:var(--text-muted);">请输入硬度值</p>');return;}
+  var val=parseFloat(rawVal);
+  if (!isFinite(val)||val < 0 || val > 100) {
     ToolBox.setResult('convertResult', '<p style="color:var(--danger);">硬度值应在 0-100 之间</p>');
     return;
   }
@@ -301,9 +303,11 @@ if(__ni.length && __ni.every(function(e){return String(e.value).trim()==='';})){
 
 
 
-  var ha = parseFloat(document.getElementById('shoreA').value) || 0;
-  if (ha < 0 || ha > 100) {
-    ToolBox.setResult('modulusResult', '<p style="color:var(--danger);">硬度值应在 0-100 之间</p>');
+  var rawHa=document.getElementById('shoreA').value.trim();
+  if(!rawHa){ToolBox.setResult('modulusResult','<p style="color:var(--text-muted);">请输入 Shore A 硬度</p>');return;}
+  var ha=parseFloat(rawHa);
+  if (!isFinite(ha)||ha < 0 || ha >= 100) {
+    ToolBox.setResult('modulusResult', '<p style="color:var(--danger);">Gent 公式适用于 0–99 HA；100 HA 请勿用此式估算</p>');
     return;
   }
   // Young's modulus approximation from Shore A (Gent's formula)
@@ -327,9 +331,9 @@ function copyResult() {
     var val = document.getElementById('hardValue').value;
     text = type + '硬度: ' + val + ' (换算结果见上方)';
   } else {
-    var ha = parseFloat(document.getElementById('shoreA').value) || 0;
-    var E = 0.0981 * (0.1375 * ha * ha / (100 - ha) + 2.963);
-    text = '邵氏A ' + ha + 'HA, 杨氏模量≈' + E.toFixed(3) + 'MPa';
+    var ha = parseFloat(document.getElementById('shoreA').value);
+    if(!isFinite(ha)||ha>=100){text='请输入 0–99 的 Shore A 硬度';}
+    else{var E = 0.0981 * (0.1375 * ha * ha / (100 - ha) + 2.963);text = '邵氏A ' + ha + 'HA, 杨氏模量≈' + E.toFixed(3) + 'MPa';}
   }
   ToolBox.copyText(text, i18nText('msg531'));
 }
@@ -394,7 +398,7 @@ calcModulus();
   </div>
   <div class="tool-intro-body">
     <h4><span class="h4-icon">📝</span>工具簡介</h4>
-    <p>橡膠邵氏硬度換算工具，支援邵氏A/D/IRHD硬度對照及硬度與彈性模量換算。。商業辦公工具，提升工作效率，資料本地處理保護隱私。</p>
+    <p>橡膠邵氏硬度換算工具，支援邵氏A/D/IRHD硬度對照及硬度與彈性模量換算。</p>
     <h4><span class="h4-icon">✨</span>功能特點</h4>
     <ul class="intro-features">
       <li>操作簡單，一鍵完成</li>

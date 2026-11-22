@@ -80,7 +80,7 @@
 <div class="nav">
   <a href="/zh-tw/index.html">← ToolBox</a>
   <span>/ Markdown 轉 HTML</span>
-  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()" aria-label="切換主題" title="切換主題" data-i18n-aria="nav.theme" data-i18n-title="nav.theme">🌙</button>
 </div>
 
 
@@ -103,7 +103,7 @@
 <!-- TOOLBOX-POLISH -->
 
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">先把圍欄程式碼塊（```lang 起、``` 止）整體取出，轉義後包成 &lt;pre&gt;&lt;code&gt;，原位置換成佔位標記，避免塊內內容被行內規則誤處理。隨後逐行匹配：佔位行直接回填程式碼塊；空行收尾當前列表與表格；^(#{1,6})\s+(.*)$ 按井號個數輸出 h1–h6；^---+$ 輸出 &lt;hr&gt;；^&gt;\s?(.*)$ 輸出引用塊；^[-*+]\s+(.*)$ 歸入同一 &lt;ul&gt; 列表；以 | 開頭且下一行是分隔行時進入表格，表頭與各行都按 | 切分並去掉首尾豎線。行內規則在 &amp; &lt; &gt; 轉義之後依次處理反引號程式碼、**粗體**、*斜體*、[文本](連結) 與 ![圖片說明](圖片地址)，連結與圖片地址只允許 http/https/mailto 或相對路徑，並做屬性轉義。文本為空時提示輸入 Markdown</div>
+  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">先把圍欄程式碼塊（```lang 起、``` 止，語言標識可為 c++/c# 等任意非換行串）整體取出，轉義後包成 &lt;pre&gt;&lt;code&gt;，原位置換成佔位標記，避免塊內內容被行內規則誤處理。隨後逐行匹配：佔位行直接回填程式碼塊；空行收尾當前列表與表格；^(#{1,6})\s+(.*)$ 按井號個數輸出 h1–h6；^---+$ 輸出 &lt;hr&gt;；^&gt;\s?(.*)$ 輸出引用塊；^[-*+]\s+(.*)$ 歸入同一 &lt;ul&gt; 列表；含 | 且下一行是 GFM 分隔行（每格 3+ 個短橫線、可帶對齊冒號）時進入表格，表頭與各行都按 | 切分並去掉可選的首尾豎線。行內規則在 &amp; &lt; &gt; 轉義之後先佔位反引號程式碼，再處理 **粗體**、*斜體*、[文本](連結) 與 ![圖片說明](圖片地址)，最後還原始碼，避免程式碼內符號被二次解析，連結與圖片地址只允許 http/https/mailto 或相對路徑，並做屬性轉義。文本為空時提示輸入 Markdown</div>
   <div class="formula-desc">按 CommonMark 規則將 Markdown 解析為 HTML：<b>#</b> 標題、<b>**</b> 粗體、<b>*</b> 斜體、<b>[]()</b> 連結、<b>-</b> 列表、<b>`</b> 行內程式碼、<b>|</b> 表格等。本頁內建自研輕量解析器（不依賴第三方庫），按上述規則生成帶語義標籤的 HTML 並即時預覽。</div>
   <ul class="formula-list">
     <li>直接插入 DOM 需防 XSS（對不可信輸入做消毒/沙箱）。</li>
@@ -270,7 +270,7 @@ function calcTool(){const md=document.getElementById('md').value||'';
    const esc=function(x){return String(x==null?'':x).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');};
    // 代码块（```lang ... ```）先保护
    const blocks=[];
-   s=s.replace(/```[a-zA-Z]*\n([\s\S]*?)```/g,function(m,code){
+   s=s.replace(/```([^\n]*)\n([\s\S]*?)```/g,function(m,lang,code){
      blocks.push('<pre><code>'+esc(code)+'</code></pre>');
      return '\x00BLOCK'+(blocks.length-1)+'\x00';
    });
@@ -282,6 +282,12 @@ function calcTool(){const md=document.getElementById('md').value||'';
    // 属性转义（与 esc 同口径，双引号/单引号一并转义，防止闭合属性后注入事件属性）
    const attrEsc=function(x){return String(x==null?'':x).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');};
    const unesc=function(x){return String(x==null?'':x).replace(/&quot;/g,'"').replace(/&#39;/g,"'").replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&amp;/g,'&');};
+   const splitRow=function(line){ return String(line).replace(/^\s*\|/,'').replace(/\|\s*$/,'').split('|').map(function(x){return x.trim();}); };
+   const isTableSep=function(line){
+     if(!line || line.indexOf('|')<0) return false;
+     const cells=splitRow(line);
+     return cells.length>=2 && cells.every(function(c){return /^:?-{3,}:?$/.test(c);});
+   };
    // URL 白名单：仅 http/https/mailto 与相对路径；其余协议（javascript/data/vbscript 等）退回 #。
    // 先把引号/尖括号/空白/控制字符百分号编码，杜绝属性逃逸。
    const safeUrl=function(u){
@@ -294,7 +300,9 @@ function calcTool(){const md=document.getElementById('md').value||'';
    };
    const inline=function(t){
      t=esc(t);
-     t=t.replace(/`([^`]+)`/g,'<code>$1</code>');
+     // 行内代码先占位：避免 `**x**` 被后续粗体规则二次解析成嵌套标签。
+     const codes=[];
+     t=t.replace(/`([^`]+)`/g,function(_,c){ codes.push('<code>'+c+'</code>'); return '\x01CODE'+(codes.length-1)+'\x01'; });
      t=t.replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>');
      t=t.replace(/\*([^*]+)\*/g,'<em>$1</em>');
      // 图片规则必须在链接规则之前，否则 ![alt](url) 的 [alt](url) 会被链接规则先吃掉
@@ -304,6 +312,7 @@ function calcTool(){const md=document.getElementById('md').value||'';
      t=t.replace(/\[([^\]]+)\]\(([^)]+)\)/g,function(_,txt,url){
        return '<a href="/zh-tw/tools/it/'+attrEsc(safeUrl(url))+'" target="_blank" rel="noopener noreferrer">'+txt+'</a>';
      });
+     t=t.replace(/\x01CODE(\d+)\x01/g,function(_,i){ return codes[parseInt(i,10)]||''; });
      return t;
    };
    for(let i=0;i<lines.length;i++){
@@ -318,15 +327,15 @@ function calcTool(){const md=document.getElementById('md').value||'';
      if(qm){ closeList(); closeTable(); html+='<blockquote>'+inline(qm[1])+'</blockquote>'; continue; }
      const lm=line.match(/^[-*+]\s+(.*)$/);
      if(lm){ if(!inList){ html+='<ul>'; inList=true; } html+='<li>'+inline(lm[1])+'</li>'; continue; }
-     // 表格：行以 | 开头且下一行是分隔
-     if(line.indexOf('|')===0 && /^\|[\s:-]+\|/.test(lines[i+1]||'')){
+     // 表格：GFM 允许省略首尾竖线，分隔行每格须为 3+ 个 -，可带对齐冒号。
+     if(line.indexOf('|')>=0 && isTableSep(lines[i+1]||'')){
        closeList();
-       const header=line.replace(/^\||\|$/g,'').split('|').map(function(x){return x.trim();});
+       const header=splitRow(line);
        i++; // 跳过分隔行
        tableRows=[];
-       while(i+1<lines.length && lines[i+1].indexOf('|')===0){
+       while(i+1<lines.length && lines[i+1].indexOf('|')>=0 && !isTableSep(lines[i+1])){
          i++;
-         tableRows.push(lines[i].replace(/^\||\|$/g,'').split('|').map(function(x){return x.trim();}));
+         tableRows.push(splitRow(lines[i]));
        }
        if(!inTable){ html+='<table class="csv-prev" style="border-collapse:collapse;width:100%;font-size:12.5px;">'; inTable=true; }
        html+='<tr>'+header.map(function(h){return '<th style="border:1px solid #d1d5db;padding:5px 8px;background:#f3f4f6;">'+inline(h)+'</th>';}).join('')+'</tr>';

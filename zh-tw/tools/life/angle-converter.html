@@ -7,12 +7,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="toolbox" content="cat=convert,industry=life,icon=📐,bg=#e8eaf6">
-<meta name="description" content="角度換算是一款免費的線上日常生活工具，支援 度(°) / 弧度(rad) / 梯度(grad) / 轉(rev)。適合工程估算、日常換算與快速複核，結果可一鍵複製。">
+<meta name="description" content="角度換算是一款免費的線上日常生活工具，支援 度(°) / 弧度(rad) / 梯度(grad) / 轉(rev)。度/弧度/梯度互轉。工程製圖把程式輸出的弧度換成度分秒，核對與圖紙標註是否一致。">
 <meta name="keywords" content="角度換算,角度換算線上,線上角度換算,格式轉換,日常生活,角度換算器,線上工具,免費工具,ToolBox">
 <meta name="robots" content="index,follow">
 <link rel="canonical" href="https://tools.dicomp.net/zh-tw/tools/life/angle-converter.html">
 <meta property="og:title" content="角度換算器 - 免費線上日常生活工具">
-<meta property="og:description" content="角度換算是一款免費的線上日常生活工具，支援 度(°) / 弧度(rad) / 梯度(grad) / 轉(rev)。適合工程估算、日常換算與快速複核，結果可一鍵複製。">
+<meta property="og:description" content="角度換算是一款免費的線上日常生活工具，支援 度(°) / 弧度(rad) / 梯度(grad) / 轉(rev)。度/弧度/梯度互轉。工程製圖把程式輸出的弧度換成度分秒，核對與圖紙標註是否一致。">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://tools.dicomp.net/zh-tw/tools/life/angle-converter.html">
 <meta name="twitter:card" content="summary">
@@ -35,9 +35,9 @@
 <meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
 <meta name="twitter:image:alt" content="ToolBox - 5000+免費線上工具">
     <meta name="twitter:title" content="角度換算器 - 免費線上日常生活工具">
-    <meta name="twitter:description" content="角度換算是一款免費的線上日常生活工具，支援 度(°) / 弧度(rad) / 梯度(grad) / 轉(rev)。適合工程估算、日常換算與快速複核，結果可一鍵複製。">
+    <meta name="twitter:description" content="角度換算是一款免費的線上日常生活工具，支援 度(°) / 弧度(rad) / 梯度(grad) / 轉(rev)。度/弧度/梯度互轉。工程製圖把程式輸出的弧度換成度分秒，核對與圖紙標註是否一致。">
 <!-- TOOLBOX-WEBAPP-LD -->
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"角度換算","url":"https://tools.dicomp.net/zh-tw/tools/life/angle-converter.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"角度換算是一款免費的線上日常生活工具，支援 度(°) / 弧度(rad) / 梯度(grad) / 轉(rev)。適合工程估算、日常換算與快速複核，結果可一鍵複製。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"角度換算","url":"https://tools.dicomp.net/zh-tw/tools/life/angle-converter.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"角度換算是一款免費的線上日常生活工具，支援 度(°) / 弧度(rad) / 梯度(grad) / 轉(rev)。度/弧度/梯度互轉。工程製圖把程式輸出的弧度換成度分秒，核對與圖紙標註是否一致。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
@@ -87,7 +87,7 @@
 <div class="nav">
   <a href="/zh-tw/index.html">← ToolBox</a>
   <span>/ 角度換算</span>
-  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()" aria-label="切換主題" title="切換主題" data-i18n-aria="nav.theme" data-i18n-title="nav.theme">🌙</button>
 </div>
 
 <nav class="breadcrumb" aria-label="麵包屑導航" data-breadcrumb="1">
@@ -250,6 +250,9 @@ function convert(){
     return;
   }
   const base = v * factors[from];
+  const absDeg=Math.abs(base), degInt=Math.floor(absDeg), minFull=(absDeg-degInt)*60, minInt=Math.floor(minFull), sec=Math.round((minFull-minInt)*60*10)/10;
+  const secRoll=sec>=60?0:sec, minRoll=sec>=60?minInt+1:minInt;
+  const dms=(base<0?'-':'')+degInt+'°'+minRoll+'′'+secRoll.toFixed(1)+'″';
   let html = `<p>基准：<strong>${fmt(v)} ${syms[from]}</strong> = <strong>${fmt(base)}°</strong></p>`;
   html += '<hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">';
   Object.keys(factors).forEach(k => {
@@ -257,6 +260,7 @@ function convert(){
       html += `<p>${names[k]}：<strong>${fmt(base / factors[k])} ${syms[k]}</strong></p>`;
     }
   });
+  html += `<p>度分秒（六十进制）：<strong>${dms}</strong></p>`;
   const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('resultBox').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('resultBox').innerHTML=__h1;
 }
 
@@ -423,17 +427,17 @@ else document.addEventListener('DOMContentLoaded', __angle_converterBoot);
       <span class="rt-icon">💒</span>
       <span class="rt-info"><span class="rt-name">賓客座點陣圖</span><span class="rt-desc">錄入賓客名單並按親友、同事等關係分組，設定桌數與每桌人數後自動排位生成座點陣圖，避免賓客離散，用於婚宴…</span></span>
     </a>
-    <a href="/zh-tw/tools/life/generator-strength.html" class="related-tool-card">
+    <a href="/zh-tw/tools/it/password-generator.html" class="related-tool-card">
       <span class="rt-icon">🔑</span>
-      <span class="rt-info"><span class="rt-name">密碼生成器（帶強度檢測）</span><span class="rt-desc">自定義密碼長度並勾選大小寫、數字、符號等字元型別，生成高強度隨機密碼，同時即時評估其安全強度，一鍵復…</span></span>
+      <span class="rt-info"><span class="rt-name">密碼生成器（IT）</span><span class="rt-desc">線上生成高強度隨機密碼與密碼短語，所有計算在瀏覽器本地完成，密碼不會上傳伺服器</span></span>
     </a>
     <a href="/zh-tw/tools/funeral/ceremony-timeline.html" class="related-tool-card">
       <span class="rt-icon">📜</span>
       <span class="rt-info"><span class="rt-name">追悼會時間軸規劃器</span><span class="rt-desc">規劃追悼會告別儀式流程時間軸，自定義各環節與時長，資料本地儲存，便於安排簽到與告別順序</span></span>
     </a>
-    <a href="/zh-tw/tools/life/generator-random-1.html" class="related-tool-card">
+    <a href="/zh-tw/tools/it/random.html" class="related-tool-card">
       <span class="rt-icon">🎲</span>
-      <span class="rt-info"><span class="rt-name">隨機數生成器（範圍任意）</span><span class="rt-desc">隨機數生成器支援自定義範圍、數量與是否允許重複，批次生成整數或小數，純前端隨機演算法，適合抽獎、抽樣…</span></span>
+      <span class="rt-info"><span class="rt-name">隨機數生成器</span><span class="rt-desc">線上隨機數生成器，支援設定範圍、數量與是否允許重複，生成整數或小數隨機序列，每次結果獨立隨機、不可復…</span></span>
     </a>
   </div>
 </div>
@@ -529,7 +533,7 @@ else document.addEventListener('DOMContentLoaded', __angle_converterBoot);
     html+='<h3>'+(en?'Scale sense: how big is it really?':'📐 尺度感知：这到底有多大')+'</h3>';
     html+='<p>'+(en?'Your input ≈ ':'你的输入 ≈ ')+fmt(base)+' '+bname+'</p>';
     if(best){
-      html+='<p style="font-weight:600;color:var(--primary);">💡 ≈ '+best[en?'en':'zh']+' ('+best.d+' '+bname+')</p>';
+      html+='<p style="font-weight:600;color:var(--primary);">💡 ≈ '+best[en?'en':'zh']+' ('+best.d+' '+bname+')'+(base<0?(en?' — compared by magnitude; the sign means opposite direction':'（按量值比较，负号表示反向）'):'')+'</p>';
     }
     html+='<details style="margin-top:6px;"><summary style="cursor:pointer;color:var(--primary);">'+(en?'Typical real-world references':'常见实物参照')+'</summary><ul style="font-size:13px;line-height:1.8;margin:6px 0 0;padding-left:18px;">';
     for(var j=0;j<REFS.length;j++){
