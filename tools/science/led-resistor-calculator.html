@@ -7,12 +7,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="toolbox" content="cat=engineer,industry=science,icon=⚡,bg=#fffde7">
-<meta name="description" content="LED电阻计算器是一款免费的在线科学研究工具，输入电源电压、LED 正向压降与额定工作电流，计算所需串联限流电阻阻值、实际消耗功率，并给出最接近的标准电阻选型建议。">
+<meta name="description" content="LED电阻计算器是一款免费的在线科学研究工具，输入电源电压、LED 正向压降与额定工作电流，计算所需串联限流电阻阻值、实际消耗功率，并给出最接近的标准电阻选型建议">
 <meta name="keywords" content="LED电阻计算器,LED电阻计算器在线,在线LED电阻计算器,数学计算,科学研究,LED限流电阻计算器,在线工具,免费工具,ToolBox">
 <meta name="robots" content="index,follow">
 <link rel="canonical" href="https://tools.dicomp.net/tools/science/led-resistor-calculator.html">
 <meta property="og:title" content="LED限流电阻计算器 - 所需串联限流电阻阻值">
-<meta property="og:description" content="LED电阻计算器是一款免费的在线科学研究工具，输入电源电压、LED 正向压降与额定工作电流，计算所需串联限流电阻阻值、实际消耗功率，并给出最接近的标准电阻选型建议。">
+<meta property="og:description" content="LED电阻计算器是一款免费的在线科学研究工具，输入电源电压、LED 正向压降与额定工作电流，计算所需串联限流电阻阻值、实际消耗功率，并给出最接近的标准电阻选型建议">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://tools.dicomp.net/tools/science/led-resistor-calculator.html">
 <meta name="twitter:card" content="summary">
@@ -88,10 +88,10 @@
 <meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
 <meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
     <meta name="twitter:title" content="LED限流电阻计算器 - 所需串联限流电阻阻值">
-    <meta name="twitter:description" content="LED电阻计算器是一款免费的在线科学研究工具，输入电源电压、LED 正向压降与额定工作电流，计算所需串联限流电阻阻值、实际消耗功率，并给出最接近的标准电阻选型建议。">
+    <meta name="twitter:description" content="LED电阻计算器是一款免费的在线科学研究工具，输入电源电压、LED 正向压降与额定工作电流，计算所需串联限流电阻阻值、实际消耗功率，并给出最接近的标准电阻选型建议">
 <!-- TOOLBOX-WEBAPP-LD -->
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebApplication","name":"LED电阻计算器","url":"https://tools.dicomp.net/tools/science/led-resistor-calculator.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"LED电阻计算器是一款免费的在线科学研究工具，输入电源电压、LED 正向压降与额定工作电流，计算所需串联限流电阻阻值、实际消耗功率，并给出最接近的标准电阻选型建议。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+{"@context":"https://schema.org","@type":"WebApplication","name":"LED电阻计算器","url":"https://tools.dicomp.net/tools/science/led-resistor-calculator.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"LED电阻计算器是一款免费的在线科学研究工具，输入电源电压、LED 正向压降与额定工作电流，计算所需串联限流电阻阻值、实际消耗功率，并给出最接近的标准电阻选型建议","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
 </script>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
@@ -143,7 +143,7 @@
 <div class="nav">
   <a href="../../index.html">← ToolBox</a>
   <span>/ LED电阻计算器</span>
-  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()" aria-label="切换主题" title="切换主题" data-i18n-aria="nav.theme" data-i18n-title="nav.theme">🌙</button>
 </div>
 
 
@@ -525,9 +525,16 @@ function calc(){
   const vs=parseFloat(document.getElementById('vs').value)*parseFloat(document.getElementById('vsUnit').value);
   const ifVal=parseFloat(document.getElementById('if').value)*parseFloat(document.getElementById('ifUnit').value);
   const vf=getVf();
-  const count=parseInt(document.getElementById('count').value)||1;
+  const __ledCountRaw=String(document.getElementById('count').value).trim();
+  const count=parseInt(__ledCountRaw);
   const tol=parseFloat(document.getElementById('tolerance').value);
-  if(!vs||!ifVal||!vf||count<1)return;
+  const __ledBad=(!Number.isFinite(vs)||vs<=0||!Number.isFinite(ifVal)||ifVal<=0||!Number.isFinite(vf)||vf<=0||__ledCountRaw===''||!Number.isFinite(count)||count<1||count>50);
+  if(__ledBad){
+    var __ledMsg=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn())?'Please enter a valid supply voltage, forward current and LED count (1–50) before calculating.':'请填写有效的电源电压、正向电流与 LED 数量（1–50）后再计算。';
+    ['resR','resStd','resP','resPw'].forEach(function(id){var el=document.getElementById(id);if(el)el.textContent='--';});
+    var __rd=document.getElementById('resultDetail'); if(__rd)__rd.innerHTML='<p style="color:var(--danger)">'+__ledMsg+'</p>';
+    return;
+  }
   
   let R=0,P=0,totalVf=0;
   let configName=config==='series'?'串联':'并联';

@@ -190,17 +190,6 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
-  "slug": "ophthalmology/osdi-scale",
-  "checks": [
-    "2"
-  ],
-  "expect": [
-    "分级： 重度干眼",
-    "已答 12/12 题"
-  ],
-  "ref": "12 题 radio 由 buildQ() 运行期拼 innerHTML 生成（静态 HTML 无控件）。checks 声明所有 `:checked` 返回 value=2 ⇒ 每题 2 分；OSDI = (12×2)×100/(12×4) = 50 ⇒ ≥33 ⇒「重度干眼」，同时输出「已答 12/12 题」。默认未答 ⇒ 0 分「正常」+「已答 0/12 题」。原 expect「一半时间(2)」是 OPTS 选项标签文案（常量型逃生项）。"
-},
-{
   "slug": "ophthalmology/pterygium-measurement",
   "inputs": {
     "cd": "17.5",
@@ -408,7 +397,7 @@ const CASES = [
 },
 {
   "slug": "ophthalmology/tear-breakup-time",
-  "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/ophthalmology/tear-breakup-time.html','utf8');var i=h.indexOf('if(isNaN(but)){');var seg=i>=0?h.slice(i,i+220):'';var ok=seg.indexOf(\"('resultRefBar').innerHTML=''\")>=0&&seg.indexOf(\"('barWrap').innerHTML=''\")>=0;document.getElementById('__tbProbe').textContent='TBUTCLR '+(ok?'OK':'BAD');})();"],
+  "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/ophthalmology/tear-breakup-time.html','utf8');var i=h.indexOf('if(!butOk && !tbutOk){');var seg=i>=0?h.slice(i,i+260):'';var ok=seg.indexOf(\"('resultRefBar').innerHTML=''\")>=0&&seg.indexOf(\"('barWrap').innerHTML=''\")>=0;document.getElementById('__tbProbe').textContent='TBUTCLR '+(ok?'OK':'BAD');})();"],
   "expect": ["TBUTCLR OK"],
   "ref": "第1323批·泪膜破裂清空未清标尺修复源码形态强锚：原清空首次 BUT 只清 barWrap，resultRefBar 参考标尺留存；修复后同步清 resultRefBar。旧版无 ⇒ BAD。"
 },
@@ -423,6 +412,24 @@ const CASES = [
   "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/ophthalmology/axial-length.html','utf8');var a=h.indexOf('function calcCorr(){'),b=h.indexOf('function calcSeg(){');var ca=a>=0?h.slice(a,b):'',cb=b>=0?h.slice(b,b+520):'';var ok=ca.indexOf(\"[al,vMeas,vTrue].some(function(v){return !isFinite(v)||v<=0;})\")>=0&&cb.indexOf(\"[acd,vAcd,lt,vLt,vl,vVl].some(function(v){return !isFinite(v)||v<=0;})\")>=0;document.getElementById('__tbProbe').textContent='ALNEG '+(ok?'OK':'BAD');})();"],
   "expect": ["ALNEG OK"],
   "ref": "第1324批·负眼轴/负声速参与运算修复源码形态强锚：原两分支只拦 NaN，负声速/零声速可致除零与荒谬 IOL 影响；修复后眼轴与声速须为正数。旧版无 ⇒ BAD。"
+},
+{
+  "slug": "ophthalmology/axial-length",
+  "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/ophthalmology/axial-length.html','utf8');var a=h.indexOf('function calcCorr(){'),b=h.indexOf('function calcSeg(){');var seg=a>=0?h.slice(a,b):'';var ok=seg.indexOf('alCorr+=comp')>=0&&seg.indexOf('约下调')>=0;document.getElementById('__tbProbe').textContent='ALFLAT '+(ok?'OK':'BAD');})();"],
+  "expect": ["ALFLAT OK"],
+  "ref": "第198批·接触压平方向修复源码形态强锚：压平使测得眼轴偏短，真值应加回 0.15mm；旧版 alCorr-=comp ⇒ BAD。"
+},
+{
+  "slug": "ophthalmology/astigmatism-chart",
+  "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/ophthalmology/astigmatism-chart.html','utf8');var i=h.indexOf('function computeAxis(');var seg=i>=0?h.slice(i,i+1400):'';var ok=seg.indexOf('* 2 * Math.PI')>=0&&seg.indexOf('* 90 / Math.PI')>=0;document.getElementById('__tbProbe').textContent='ASDOUBLE '+(ok?'OK':'BAD');})();"],
+  "expect": ["ASDOUBLE OK"],
+  "ref": "第198批·散光轴位对侧射线抵消修复源码形态强锚：轴向数据先倍角再平均；旧版直接 sin/cos 单角 ⇒ BAD。"
+},
+{
+  "slug": "ophthalmology/amsler-grid-test",
+  "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/ophthalmology/amsler-grid-test.html','utf8');var i=h.indexOf(\"$('amSave').addEventListener('click'\");var seg=i>=0?h.slice(i,i+420):'';var ok=seg.indexOf('closePoly()')>=0&&seg.indexOf('不足 3 个点')>=0;document.getElementById('__tbProbe').textContent='AMSAVE '+(ok?'OK':'BAD');})();"],
+  "expect": ["AMSAVE OK"],
+  "ref": "第198批·未闭合区域不入快照修复源码形态强锚：保存前先闭合绘制中多边形，不足 3 点则提示不保存；旧版直接读取已闭合 anns ⇒ BAD。"
 },
 {
   "slug": "ophthalmology/visual-field-analysis",
@@ -453,7 +460,80 @@ const CASES = [
   "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/ophthalmology/amsler-grid-test.html','utf8');var a=h.indexOf(\"$('amEye').addEventListener('change'\");var b=h.indexOf('function goStep(st)');var s1=a>=0?h.slice(a,a+320):'';var s2=b>=0?h.slice(b,b+500):'';var ok=s1.indexOf('S.drawing = null; S.cursor = null;')>=0&&s2.indexOf('S.drawing = null; S.cursor = null;')>=0;document.getElementById('__tbProbe').textContent='AMDRAW '+(ok?'OK':'BAD');})();"],
   "expect": ["AMDRAW OK"],
   "ref": "第1334批·切换眼别未清未完成绘制串眼修复源码形态强锚：amEye change 与 goStep 两处切眼别只改 S.eye，正在绘制的 S.drawing 闭合后归到新眼；修复后两处均补清 S.drawing/S.cursor。旧版两处皆无 ⇒ BAD。"
-}
+},
+{
+  "slug": "ophthalmology/amsler-grid-test",
+  "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/ophthalmology/amsler-grid-test.html','utf8');var i=h.lastIndexOf('amFinish');var seg=i>=0?h.slice(i,i+260):'';var ok=seg.indexOf('closePoly')>=0;document.getElementById('__tbProbe').textContent='AMFIN '+(ok?'OK':'BAD');})();"],
+  "expect": ["AMFIN OK"],
+  "ref": "完成按钮回归：页面提示「双击或点「完成」闭合」，但模式栏原先只有画区域/标点/擦除/撤销/清空，没有「完成」按钮，键盘与双击之外无法闭合。新增 amFinish 按钮并绑定 closePoly；旧版无该按钮/绑定即 BAD。"
+},
+{
+  "slug": "ophthalmology/vision-screening-21",
+  "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/ophthalmology/vision-screening-21.html','utf8');var i=h.indexOf('function astigVerdict(eye)');var seg=i>=0?h.slice(i,i+1200):'';var ok=seg.indexOf('a.q11[eye]')>=0&&seg.indexOf('a.q14[eye]')>=0&&seg.indexOf('a.q17[eye]')>=0&&seg.indexOf('a.q3[eye]')>=0&&seg.indexOf('Math.max(a.q11.l')<0;document.getElementById('__tbProbe').textContent='VSAS '+(ok?'OK':'BAD');})();"],
+  "expect": ["VSAS OK"],
+  "ref": "左右眼散光方向隔离：旧 astigVerdict 取 q11/q14/q17/q3 两眼的 Math.max，单眼症状可决定另一眼轴位方向；修复后按传入 eye 取本眼回答。拒绝 Math.max 两眼版本。"
+},
+{
+  "slug": "ophthalmology/visual-field-analysis",
+  "clicks": ["var a=document.getElementById('ghtNormal'),b=document.getElementById('ghtBorderline'),c=document.getElementById('ghtOutside');var src=String(__visual_field_analysisSnap);var ok=!!a&&!!b&&!!c&&src.indexOf('input[id]')>=0;document.getElementById('__tbProbe').textContent='GHTIDS '+(ok?'OK':'BAD');"],
+  "expect": ["GHTIDS OK"],
+  "ref": "GHT 历史可恢复：三个 single-choice 原本没有 id，历史快照只收 input[id] 因而永远漏掉 GHT，恢复时保留当前选择并重算出不同结论。补 id 后快照能按 1/0 记录并恢复。同时修正重复的 aria-label。"
+},
+{
+  "slug": "ophthalmology/cd-ratio",
+  "inputs": {"od": "0.5", "os": "0.5"},
+  "expect": ["临界/可疑 (0.50)", "未见明显异常"],
+  "ref": "C/D 恰为 0.5 时单眼分级与综合风险必须同口径：单眼不再标‘青光眼疑似’，综合也不提示风险。阈值表述改为 >0.5。"
+},
+{
+  "slug": "ophthalmology/cd-ratio",
+  "inputs": {"od": "0.51", "os": "0.51"},
+  "expect": ["青光眼疑似 (0.51)", "提示青光眼视神经改变"],
+  "ref": ">0.5 时单眼与综合均提示可疑。"
+},
+{
+  "slug": "ophthalmology/astigmatism-chart",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/ophthalmology/astigmatism-chart.html','utf8');var ok=h.indexOf('function sectorCenterAngle(rayDeg) { return rayDeg * Math.PI / 180 - Math.PI / 2; }')>=0&&h.indexOf('c.arc(center.x, center.y, R, sectorCenterAngle(')>=0&&h.indexOf('-a - half')<0;document.getElementById('__tbProbe').textContent='ASANGLE '+(ok?'OK':'BAD');"],
+  "expect": ["ASANGLE OK"],
+  "ref": "射线以正上方 0°、顺时针计量，canvas 弧角以正右方 0°、顺时针计量；高亮扇区必须用 a-90° 才能与红线同侧，旧写法 -a 会镜像到对侧。"
+},
+{
+  "slug": "ophthalmology/astigmatism-chart",
+  "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/ophthalmology/astigmatism-chart.html','utf8');var i=h.indexOf('function goStep(st)');var seg=i>=0?h.slice(i,i+420):'';var ok=seg.indexOf('render(); updateReadout();')>=0&&h.indexOf('goStep(S.eye')>=0;document.getElementById('__tbProbe').textContent='ASSTEP '+(ok?'OK':'BAD');})();"],
+  "expect": ["ASSTEP OK"],
+  "ref": "分步指引直接切眼时只改 S.eye 不重绘，眼别与画面/读数会不一致；goStep 内补 render+updateReadout，选择器 change 只保留一次重绘。"
+},
+{
+  "slug": "ophthalmology/vision-screening-21",
+  "clicks": ["document.getElementById('vsStart').fire('click');document.getElementById('vsNext').fire('click');var q=document.getElementById('vsQnum').textContent,t=document.getElementById('vsToast');var ok=q.indexOf('1 /')>=0&&!!t&&t.textContent.indexOf('请先')>=0;document.getElementById('__tbProbe').textContent='VSUNANS '+(ok?'OK':'BAD');"],
+  "expect": ["VSUNANS OK"],
+  "ref": "问卷频率选择增加空占位；未为左右眼各选频率时 next() 拦下并提示，不再默认‘从不’一路推进生成全阴性结论。"
+},
+{
+  "slug": "ophthalmology/tear-breakup-time",
+  "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/ophthalmology/tear-breakup-time.html','utf8');var ok=h.indexOf('<tr><td>&ge;10</td><td>正常</td><td>泪膜稳定</td></tr>')>=0&&h.indexOf('&gt;10')<0&&h.indexOf('>10')<0;document.getElementById('__tbProbe').textContent='TB10 '+(ok?'OK':'BAD');})();"],
+  "expect": ["TB10 OK"],
+  "ref": "BUT 分级代码为 >=10 正常（=10 归正常），表格/FAQ/图例却写 >10；统一为 ≥10，并断言旧 >10 文案已消失。"
+},
+{
+  "slug": "ophthalmology/strabismus-angle",
+  "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/ophthalmology/strabismus-angle.html','utf8');var ok=h.indexOf('1m处偏移(cm)')>=0&&h.indexOf('pd*0.5')<0&&h.indexOf('var pd=mm*15;')>=0&&h.indexOf('mm*7')<0;document.getElementById('__tbProbe').textContent='STRAMATH '+(ok?'OK':'BAD');})();"],
+  "expect": ["STRAMATH OK"],
+  "ref": "1Δ=1cm/1m，20Δ 在 1m 处偏移 20cm；旧版 pd*0.5 显示 10cm。Hirschberg 旧版 7°/mm 与公式 15Δ/mm 两套口径，改为 pd=mm*15 再用 PD 换算角度。"
+},
+{
+  "slug": "ophthalmology/oct-rnfl",
+  "inputs": {"age": "60", "g": "78", "s": "96", "i": "100", "n": "65", "t": "60"},
+  "expect": ["S>I−5 且 I>N>T", "符合"],
+  "ref": "S=96 比 I=100 低 4μm，代码 isntOk 以 s>i-5 容许该差异并判‘符合’，页面却标 S>I>N>T，字面会判违反；统一为 S>I−5 且 I>N>T。"
+},
+{
+  "slug": "ophthalmology/refraction-error",
+  "inputs": {"s": "-2", "c": "1", "ax": "180"},
+  "expect": ["顺规(WTR)", "按负柱镜轴 90° 判定"],
+  "ref": "S−2.00/C+1.00/ax180 等价于 S−1.00/C−1.00/ax90，属顺规；旧版只看 +C 的轴 180，误判逆规(ATR)。"
+},
+
 ];
 async function main() {
   const only = process.argv.slice(2);

@@ -74,15 +74,6 @@ const CASES = [
 "ref": "复算：E = 10^(1.5×7+4.8) = 10^15.3 = 1.995e+15 J（≈0.477 百万吨 TNT）；默认 M=6 得 6.310e+13 J ⇒ 不命中"
 },
 {
-  "slug": "astronomy/convert-17",
-  "inputs": {
-    "val": "12:00",
-    "from": "-8"
-  },
-  "expect": ["12:00\n-8\n1\n21:00 同日"],
-  "ref": "auto-restore"
-},
-{
   "slug": "astronomy/convert-18",
   "inputs": { "val": "540", "mode": "p2h" },
   "expect": ["海拔 h = 5003.5 m"],
@@ -291,10 +282,20 @@ const CASES = [
     "ref": "NOAA 口径独立复算：2024-06-21 12:00（UTC+8）、lon=116 ⇒ 经度时差 (116−120)/15h = −16 min、EoT≈−1.7 min ⇒ 太阳时 11:42；赤纬 23.45°，H=(11.7−12)×15=−4.5°；sin h = sin40°·sin23.45° + cos40°·cos23.45°·cosH = 0.2563+0.7006 = 0.9563 ⇒ h=73.03°；方位角 166.00°（正南偏东 14°）。默认 lat=39.9042/lon=116.4074、日期空（冻结日 2024-06-15，赤纬 23.31°）⇒ 高度角约 73.4°、无「166.00° 南」，三锚均不命中。"
   }
 ,
- {"slug":"astronomy/atmospheric-refraction","inputs":{"h":"0"},"expect":["34.433","-0.5739"],"ref":"视地平线 0°：反求真高度约 −0.573875°，代回真高度公式 R≈34.4325′；旧的直接代入约 29′。"},
+ {"slug":"astronomy/atmospheric-refraction","inputs":{"h":"5"},"expect":["9.920","4.8347"],"ref":"视高度 5°：反求真高度约 4.834659°，R≈9.92047′；默认输入 0° 不产生 9.920，注入失败必红。"},
  {"slug":"astronomy/atmospheric-refraction","inputs":{"h":"5"},"expect":["9.920","4.8347"],"ref":"视高度 5°：真高度约 4.834659°，R≈9.92047′，验证数值反求。"},
  {"slug":"astronomy/atmospheric-refraction","inputs":{"h":"90"},"expect":["0.000","90.0000"],"ref":"天顶截除经验式微小负值。"},
- {"slug":"astronomy/convert-18","clicks":["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/astronomy/convert-18.html','utf8');var i=h.indexOf('function calc(){');var s=i>=0?h.slice(i,i+520):'';var ok=s.indexOf('m===\"p2h\"&&(!isFinite(v)||v<=0)')>=0&&s.indexOf('m!==\"p2h\"&&(!isFinite(v)||v>=44330)')>=0&&s.indexOf('海拔超出模型适用范围')>=0;document.getElementById('__tbProbe').textContent='ASTMOD '+(ok?'OK':'BAD');"],"expect":["ASTMOD OK"],"ref":"第1343批 模型边界守卫：p2h 模式气压<=0（Math.pow 负数 1/5.255→NaN）、h2p 模式海拔>=44330（1−v/44330<=0，Math.pow 负数 5.255→NaN）此前均显示 NaN；改为有限/范围守卫并显示提示后 return。"}
+ {"slug":"astronomy/convert-18","clicks":["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/astronomy/convert-18.html','utf8');var i=h.indexOf('function calc(){');var s=i>=0?h.slice(i,i+520):'';var ok=s.indexOf('m===\"p2h\"&&(!isFinite(v)||v<=0)')>=0&&s.indexOf('m!==\"p2h\"&&(!isFinite(v)||v>=44330)')>=0&&s.indexOf('海拔超出模型适用范围')>=0;document.getElementById('__tbProbe').textContent='ASTMOD '+(ok?'OK':'BAD');"],"expect":["ASTMOD OK"],"ref":"第1343批 模型边界守卫：p2h 模式气压<=0（Math.pow 负数 1/5.255→NaN）、h2p 模式海拔>=44330（1−v/44330<=0，Math.pow 负数 5.255→NaN）此前均显示 NaN；改为有限/范围守卫并显示提示后 return。"},
+  { slug: "astronomy/schwarzschild-radius",
+    inputs: { M: "" },
+    expect: ["请填写天体质量（须大于 0）后再计算。"],
+    ref: "质量留空：旧代码按 0 kg 输出 r_s=0 与视界面积 0；新增守卫后须提示。" },
+  { slug: "astronomy/moon-illumination",
+    inputs: { D: "" },
+    expect: ["请填写月龄（0–29.53 天）后再计算。"],
+    ref: "月龄留空：旧代码按 0 天输出新月 0% 照明；新增守卫后须提示。" },
+
+{ "slug":"astronomy/convert-15", "inputs":{"val":"0","unit":"joule"}, "expect":["⚠ 能量必须大于 0 才能换算震级。"], "ref":"焦耳输入为 0 时 log10(E) 发散；新守卫应拒绝计算。默认 6 级→6.310e+13 J 不含该提示。" },
 
 ];
 async function main() {

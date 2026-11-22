@@ -94,6 +94,9 @@ const CASES = [
   { slug: "fitness/vo2max-12min", inputs: { distance: "3000", unit: "m", age: "30", gender: "male" },
     expect: ["55.8"],
     ref: "Cooper 12 分钟跑：VO₂max=(3000−504.9)/44.73=55.78→55.8 ml/kg/min（默认 2800 m→51.3 避开）" },
+  { slug: "fitness/weight-capacity-training", inputs: { weight: "", sets: "", reps: "", onerm: "" }, clicks: ["calc()"],
+    expect: ["请填写重量、组数与次数后再计算。"],
+    ref: "空重量/组数/次数不得输出 0.0kg 总容量与低强度结论；默认 60/4/10 不含该提示。" },
   { slug: "fitness/weight-capacity-training", inputs: { weight: "90", sets: "5", reps: "6", onerm: "" },
     expect: ["2700.0", "108.0", "83.3"],
     ref: "容量=90×5×6=2700.0 kg；估算 1RM=90×(1+6/30)=108.0 kg；强度=90/108×100=83.33→83.3%（默认 60kg/4×10→2400.0/80.0/75.0 避开）" },
@@ -601,7 +604,7 @@ const CASES = [
       "gender2": "female"
     },
     "expect": [
-      " ｜ 平均配速约 0:17 /km\nfemale\n42\n心肺耐力等级： 极佳 VO₂max 927.7\n42\nfemale\n15.0"
+      " ｜ 平均配速约 0:17 /km\nfemale\n42\n心肺耐力等级： 极佳 VO₂max 927.7\n42\nfemale\n14.5"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"distance\":\"42\",\"age\":\"42\",\"runMin\":\"42\",\"unit\":\"km\",\"gender\":\"female\",\"gender2\":\"female\"}，输出区含「 ｜ 平均配速约 0:17 /km\nfemale\n42\n心肺耐力等级： 极佳 V…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },

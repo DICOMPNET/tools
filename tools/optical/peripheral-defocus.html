@@ -90,7 +90,7 @@
 <div class="nav">
   <a href="../../index.html">← ToolBox</a>
   <span>/ 周边离焦信号量计算器</span>
-  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()" aria-label="切换主题" title="切换主题" data-i18n-aria="nav.theme" data-i18n-title="nav.theme">🌙</button>
 </div>
 
 
@@ -135,8 +135,8 @@
     </div>
     <div class="checkbox-row">
       <label><input type="radio" name="lens" value="single" checked onchange="calc()"> 单光镜片</label>
-      <label><input type="radio" name="lens" value="defocus" onchange="calc()"> 离焦防控镜片(DIMS/HALT)</label>
-      <label><input type="radio" name="lens" value="ortho" onchange="calc()"> 角膜塑形镜</label>
+      <label><input type="radio" name="lens" value="defocus" onchange="calc()" aria-label="单光镜片"> 离焦防控镜片(DIMS/HALT)</label>
+      <label><input type="radio" name="lens" value="ortho" onchange="calc()" aria-label="离焦防控镜片(DIMS/HALT)"> 角膜塑形镜</label>
     </div>
 
     <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__peripheral_defocusExport()">导出明细 CSV</button></div><div class="result-box" id="result"></div> <div id="peripheral_defocusTable"></div> <div id="peripheral_defocusDiff"></div> <div id="peripheral_defocusChart"></div> <div id="peripheral_defocusHist"></div>
@@ -276,9 +276,9 @@
       <span class="rt-icon">📏</span>
       <span class="rt-info"><span class="rt-name">辐辏近点距离计算器</span><span class="rt-desc">辐辏(集合)近点距离计算器</span></span>
     </a>
-    <a href="aspheric-design.html" class="related-tool-card">
+    <a href="calc-47.html" class="related-tool-card">
       <span class="rt-icon">🧮</span>
-      <span class="rt-info"><span class="rt-name">非球面球差矫正计算器</span><span class="rt-desc">基于三阶像差理论，计算球面镜片的纵向球差与消除球差所需的非球面圆锥常数 K</span></span>
+      <span class="rt-info"><span class="rt-name">非球面（球差）矫正计算</span><span class="rt-desc">输入折射率、曲率半径、通光半口径与锥面常数（K），计算三级球差并给出最佳锥面常数（无限远物距，单折射…</span></span>
     </a>
     <a href="calc-47.html" class="related-tool-card">
       <span class="rt-icon">🧮</span>
@@ -343,18 +343,20 @@ function calc(){
   // Estimated myopia control efficacy based on lens type and RPD
   var efficacy;
   if(lens === 'single'){
-    efficacy = rpd > 0 ? '轻度(0-20%)' : '无/可能加速';
+    efficacy = rpd > 0.5 ? '轻度(0-20%)' : '无/可能加速';
   } else if(lens === 'defocus'){
-    efficacy = rpd > 1 ? '良好(50-60%)' : rpd > 0 ? '中等(30-50%)' : '需调整';
+    efficacy = rpd > 1 ? '良好(50-60%)' : rpd > 0.5 ? '中等(30-50%)' : '需调整';
   } else { // ortho
-    efficacy = rpd > 1 ? '良好(40-60%)' : rpd > 0 ? '中等(30-50%)' : '需复查';
+    efficacy = rpd > 1 ? '良好(40-60%)' : rpd > 0.5 ? '中等(30-50%)' : '需复查';
   }
+  // 方向只在与主提示相同的 ±0.5D 阈值外成立；0 附近统一显示中性/微弱，避免“信号微弱”却标远视性。
+  var dirTxt = rpd > 0.5 ? '近视性' : (rpd < -0.5 ? '远视性' : '中性/微弱');
 
   var color = rpd > 0.5 ? 'var(--success)' : (rpd < -0.5 ? 'var(--danger)' : 'var(--warning)');
 
   var html = '<div class="data-grid">';
   html += '<div class="data-card"><div class="num" style="color:'+color+';">'+(rpd>=0?'+':'')+rpd.toFixed(2)+'D</div><div class="label">相对周边离焦RPD</div></div>';
-  html += '<div class="data-card"><div class="num" style="font-size:14px;color:'+color+';">'+(rpd>0?'近视性':'远视性')+'</div><div class="label">离焦方向</div></div>';
+  html += '<div class="data-card"><div class="num" style="font-size:14px;color:'+color+';">'+dirTxt+'</div><div class="label">离焦方向</div></div>';
   html += '<div class="data-card"><div class="num" style="font-size:14px;">'+efficacy+'</div><div class="label">预估防控效果</div></div>';
   html += '</div>';
 
@@ -380,13 +382,13 @@ function calc(){
   var rad = angle * Math.PI/180;
   var px = 50 + 38*Math.cos(-rad);
   var py = 50 + 38*Math.sin(-rad);
-  v += '<div class="pt" style="background:'+(rpd>0?'var(--success)':'var(--danger)')+';left:'+px+'%;top:'+py+'%;">周边</div>';
+  v += '<div class="pt" style="background:'+(rpd>0.5?'var(--success)':(rpd<-0.5?'var(--danger)':'var(--warning)'))+';left:'+px+'%;top:'+py+'%;">周边</div>';
   v += '</div>';
   v += '<div style="font-size:13px;color:var(--text-secondary);line-height:1.8;">';
   v += '中心屈光：<strong>'+central+'D</strong><br>';
   v += '周边屈光('+angle+'°)：<strong>'+periph+'D</strong><br>';
   v += 'RPD = 周边−中心 = <strong style="color:'+color+';">'+(rpd>=0?'+':'')+rpd.toFixed(2)+'D</strong><br>';
-  v += '<span style="font-size:12px;color:var(--text-muted);">'+(rpd>0?'近视性离焦→抑制眼轴增长':'远视性离焦→促进眼轴增长')+'</span>';
+  v += '<span style="font-size:12px;color:var(--text-muted);">'+(rpd>0.5?'近视性离焦→抑制眼轴增长':(rpd<-0.5?'远视性离焦→促进眼轴增长':'信号微弱→方向不明确'))+'</span>';
   v += '</div>';
   const __g2=v;vis.innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 }
@@ -397,33 +399,6 @@ document.addEventListener('DOMContentLoaded', function(){
 });
 calc();
 </script>
-
-<!-- SEO 介绍区块 -->
-<div class="tool-intro open" id="toolIntro">
-  <div class="tool-intro-header">
-    <span class="intro-icon-wrap"><span class="intro-icon">📖</span>关于「周边离焦信号量计算器」</span>
-    <span class="arrow">▼</span>
-  </div>
-  <div class="tool-intro-body">
-    <h4><span class="h4-icon">📝</span>工具简介</h4>
-    <p>周边离焦信号量计算器，计算相对周边离焦量(RPD)，评估近视防控离焦信号。。医疗专业工具，基于权威医学标准，仅供参考。</p>
-    <h4><span class="h4-icon">✨</span>功能特点</h4>
-    <ul class="intro-features">
-      <li>基于权威医学标准</li>
-      <li>支持多种临床参数</li>
-      <li>实时计算，结果即时显示</li>
-      <li>医疗数据不上传，保护隐私</li>
-    </ul>
-    <h4><span class="h4-icon">🎯</span>使用场景</h4>
-    <ul class="intro-scenes">
-      <li>临床计算与评估辅助</li>
-      <li>医学学习与考试备考</li>
-      <li>科研数据分析</li>
-      <li>健康监测参考</li>
-    </ul>
-    </div>
-</div>
-<!-- /SEO 介绍区块 -->
 
 <script>
 // tool-intro折叠交互

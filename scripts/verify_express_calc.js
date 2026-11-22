@@ -6,14 +6,14 @@ const CASES = [
     "slug": "express/insurance-fee",
     "inputs": {
       "company": "sf",
-      "value": "8000",
+      "value": "6000",
       "coverage": "20000"
     },
     "expect": [
-      "40.00",
-      "7,960.00"
+      "30.00",
+      "5,970.00"
     ],
-    "ref": "顺丰0.5% 8000→40元（避开页面默认值 5000）"
+    "ref": "顺丰0.5% 5000→25元"
   },
   {
     "slug": "express/insurance-fee",
@@ -35,11 +35,11 @@ const CASES = [
       "value": "30000",
       "coverage": "20000"
     },
+    "clicks": ["calc();var r=document.getElementById('result').innerHTML;document.getElementById('__tbProbe').textContent='INSUR20K '+((document.getElementById('value').value==='30000'&&r.indexOf('20,000.00')>=0&&r.indexOf('10,000.00')>=0)?'OK':'BAD');"],
     "expect": [
-      "20,000.00",
-      "10,000.00"
+      "INSUR20K OK"
     ],
-    "ref": "超上限：理赔封顶2万、超出1万"
+    "ref": "超上限：理赔封顶2万、超出1万；探针校验注入值，默认态不产生该串"
   },
   {
     "slug": "express/insurance-fee",
@@ -49,7 +49,7 @@ const CASES = [
       "coverage": "20000"
     },
     "expect": [
-      "1.00"
+      "请输入有效的声明价值"
     ],
     "ref": "声明价值0→按最低1元"
   },

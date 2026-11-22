@@ -7,11 +7,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="toolbox" content="cat=math,industry=life,icon=⏱️,bg=#e8eaf6">
-<meta name="description" content="清洁用品消耗量与补货周期是一款免费的在线日常生活工具，登记清洁用品的单位、库存、消耗速率与补货阈值，自动推算补货周期与建议下单量，辅助家庭或办公室耗材管理。">
+<meta name="description" content="清洁用品消耗量与补货周期是一款免费的在线日常生活工具，登记清洁用品的单位、库存、消耗速率与补货阈值，自动推算补货周期与建议下单量，辅助家庭或办公室耗材管理">
 <title>清洁用品消耗量与补货周期 - 登记清洁用品的单位</title>
 <link rel="canonical" href="https://tools.dicomp.net/tools/life/cycle-4.html">
 <meta property="og:title" content="清洁用品消耗量与补货周期 - 登记清洁用品的单位">
-<meta property="og:description" content="清洁用品消耗量与补货周期是一款免费的在线日常生活工具，登记清洁用品的单位、库存、消耗速率与补货阈值，自动推算补货周期与建议下单量，辅助家庭或办公室耗材管理。">
+<meta property="og:description" content="清洁用品消耗量与补货周期是一款免费的在线日常生活工具，登记清洁用品的单位、库存、消耗速率与补货阈值，自动推算补货周期与建议下单量，辅助家庭或办公室耗材管理">
 <meta property="og:url" content="https://tools.dicomp.net/tools/life/cycle-4.html">
 <meta name="twitter:card" content="summary">
 <link rel="stylesheet" href="../../css/common.css">
@@ -52,10 +52,10 @@
 <meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
     <meta property="og:type" content="website">
     <meta name="twitter:title" content="清洁用品消耗量与补货周期 - 登记清洁用品的单位">
-    <meta name="twitter:description" content="清洁用品消耗量与补货周期是一款免费的在线日常生活工具，登记清洁用品的单位、库存、消耗速率与补货阈值，自动推算补货周期与建议下单量，辅助家庭或办公室耗材管理。">
+    <meta name="twitter:description" content="清洁用品消耗量与补货周期是一款免费的在线日常生活工具，登记清洁用品的单位、库存、消耗速率与补货阈值，自动推算补货周期与建议下单量，辅助家庭或办公室耗材管理">
 <!-- TOOLBOX-WEBAPP-LD -->
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebApplication","name":"清洁用品消耗量与补货周期","url":"https://tools.dicomp.net/tools/life/cycle-4.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"清洁用品消耗量与补货周期是一款免费的在线日常生活工具，登记清洁用品的单位、库存、消耗速率与补货阈值，自动推算补货周期与建议下单量，辅助家庭或办公室耗材管理。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+{"@context":"https://schema.org","@type":"WebApplication","name":"清洁用品消耗量与补货周期","url":"https://tools.dicomp.net/tools/life/cycle-4.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"清洁用品消耗量与补货周期是一款免费的在线日常生活工具，登记清洁用品的单位、库存、消耗速率与补货阈值，自动推算补货周期与建议下单量，辅助家庭或办公室耗材管理","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
 </script>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
@@ -106,7 +106,7 @@
 <div class="nav">
   <a href="../../index.html">← ToolBox</a>
   <span>/ 清洁用品消耗量与补货周期</span>
-  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()" aria-label="切换主题" title="切换主题" data-i18n-aria="nav.theme" data-i18n-title="nav.theme">🌙</button>
 </div>
 
 
@@ -480,7 +480,14 @@ function applySupplyPreset(kind){
       {n:'糖浆',u:'瓶',s:3,r:0.5,p:'month',t:1}
     ]:null;
   if(!sc)return;
-  supplies=sc.map(function(x,i){return {id:Date.now()+i,name:x.n,unit:x.u,stock:x.s,rate:x.r,period:x.p,threshold:x.t,createdAt:Date.now()};});
+  // 预设只补充/同名更新，不再清空用户自建的其他用品
+  if(supplies.length && !confirm('已有用品清单，预设将补充缺少项并覆盖同名项，是否继续？')) return;
+  var byName={}; supplies.forEach(function(s){byName[s.name]=s;});
+  sc.forEach(function(x,i){
+    var hit=byName[x.n];
+    if(hit){hit.unit=x.u;hit.stock=x.s;hit.rate=x.r;hit.period=x.p;hit.threshold=x.t;}
+    else supplies.push({id:Date.now()+i,name:x.n,unit:x.u,stock:x.s,rate:x.r,period:x.p,threshold:x.t,createdAt:Date.now()});
+  });
   saveSup();render();
 }
 load();
@@ -668,9 +675,9 @@ render();
       <span class="rt-info"><span class="rt-name">家电深度清洁周期提醒</span><span class="rt-desc">按家电类型与上次清洁日期排定深度清洁提醒周期，生成待办清单，辅助家庭清洁计划管理</span></span>
     </a>
     
-    <a href="generator-strength.html" class="related-tool-card">
+    <a href="../it/password-generator.html" class="related-tool-card">
       <span class="rt-icon">🔑</span>
-      <span class="rt-info"><span class="rt-name">密码生成器（带强度检测）</span><span class="rt-desc">自定义密码长度并勾选大小写、数字、符号等字符类型，生成高强度随机密码，同时实时评估其安全强度，一键复…</span></span>
+      <span class="rt-info"><span class="rt-name">密码生成器（IT）</span><span class="rt-desc">在线生成高强度随机密码与密码短语，所有计算在浏览器本地完成，密码不会上传服务器</span></span>
     </a>
   </div>
 </div>

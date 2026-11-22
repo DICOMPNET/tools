@@ -7,11 +7,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="toolbox" content="cat=engineer,industry=life,icon=📊,bg=#fff3e0">
-<meta name="description" content="损耗（控制/分析/改善）体系是一款免费的在线日常生活工具，输入损耗数量与基准数据（逗号或换行分隔），统计损耗率、均值与波动，辅助损耗控制与改善分析。">
+<meta name="description" content="损耗（控制/分析/改善）体系是一款免费的在线日常生活工具，输入损耗数量与基准数据（逗号或换行分隔），统计损耗率、均值与波动，辅助损耗控制与改善分析">
 <title>损耗（控制/分析/改善）体系 - 逗号或换行分隔</title>
 <link rel="canonical" href="https://tools.dicomp.net/tools/life/analysis-80.html">
 <meta property="og:title" content="损耗（控制/分析/改善）体系 - 逗号或换行分隔">
-<meta property="og:description" content="损耗（控制/分析/改善）体系是一款免费的在线日常生活工具，输入损耗数量与基准数据（逗号或换行分隔），统计损耗率、均值与波动，辅助损耗控制与改善分析。">
+<meta property="og:description" content="损耗（控制/分析/改善）体系是一款免费的在线日常生活工具，输入损耗数量与基准数据（逗号或换行分隔），统计损耗率、均值与波动，辅助损耗控制与改善分析">
 <meta property="og:url" content="https://tools.dicomp.net/tools/life/analysis-80.html">
 <meta name="twitter:card" content="summary">
 <link rel="stylesheet" href="../../css/common.css">
@@ -28,10 +28,10 @@
 <meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
     <meta property="og:type" content="website">
     <meta name="twitter:title" content="损耗（控制/分析/改善）体系 - 逗号或换行分隔">
-    <meta name="twitter:description" content="损耗（控制/分析/改善）体系是一款免费的在线日常生活工具，输入损耗数量与基准数据（逗号或换行分隔），统计损耗率、均值与波动，辅助损耗控制与改善分析。">
+    <meta name="twitter:description" content="损耗（控制/分析/改善）体系是一款免费的在线日常生活工具，输入损耗数量与基准数据（逗号或换行分隔），统计损耗率、均值与波动，辅助损耗控制与改善分析">
 <!-- TOOLBOX-WEBAPP-LD -->
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebApplication","name":"损耗（控制/分析/改善）体系","url":"https://tools.dicomp.net/tools/life/analysis-80.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"损耗（控制/分析/改善）体系是一款免费的在线日常生活工具，输入损耗数量与基准数据（逗号或换行分隔），统计损耗率、均值与波动，辅助损耗控制与改善分析。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+{"@context":"https://schema.org","@type":"WebApplication","name":"损耗（控制/分析/改善）体系","url":"https://tools.dicomp.net/tools/life/analysis-80.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"损耗（控制/分析/改善）体系是一款免费的在线日常生活工具，输入损耗数量与基准数据（逗号或换行分隔），统计损耗率、均值与波动，辅助损耗控制与改善分析","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
 </script>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
@@ -82,7 +82,7 @@
 <div class="nav">
   <a href="../../index.html">← ToolBox</a>
   <span>/ 损耗（控制/分析/改善）体系</span>
-  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()" aria-label="切换主题" title="切换主题" data-i18n-aria="nav.theme" data-i18n-title="nav.theme">🌙</button>
 </div>
 
 
@@ -208,16 +208,21 @@ function calc(){
   for(var i=0;i<lines.length;i++){
     var p=lines[i].split(/[,，\t]/);
     var name=(p[0]||"").trim(), loss=parseFloat((p[1]||"").trim()), base=parseFloat((p[2]||"").trim());
-    if(!name||isNaN(loss)||isNaN(base)||base<=0)continue;
+    if(!name||isNaN(loss)||isNaN(base)||base<=0){document.getElementById("res").innerHTML='<p style="color:var(--danger)">第 '+(i+1)+' 行无效：需填「环节,损耗量,应售量」，损耗量 ≥0、应售量 >0。</p>';return;}
+    if(loss<0){document.getElementById("res").innerHTML='<p style="color:var(--danger)">第 '+(i+1)+' 行损耗量为负：本工具不接受盘盈/冲减，请拆到单独分析。</p>';return;}
     var rate=loss/base*100;
     rows.push({name:name,loss:loss,base:base,rate:rate}); totLoss+=loss; totBase+=base;
   }
   if(!rows.length){document.getElementById("res").innerHTML='<p>请输入「环节,损耗量,应售量」每行一条，如：进货,5,100</p>';return;}
   var avg=totLoss/totBase*100;
   var worst=rows[0]; rows.forEach(function(r){if(r.rate>worst.rate)worst=r;});
+  var meanRate=rows.reduce(function(a,r){return a+r.rate;},0)/rows.length;
+  var variance=rows.reduce(function(a,r){return a+Math.pow(r.rate-meanRate,2);},0)/rows.length;
+  var std=Math.sqrt(variance), cv=meanRate>0?std/meanRate*100:0;
   var html='<p>损耗合计：<strong>'+totLoss.toFixed(2)+'</strong> ｜ 平均损耗率：<strong>'+avg.toFixed(2)+'%</strong> ｜ 高发环节：<strong>'+esc(worst.name)+'</strong></p>';
-  html+='<table><thead><tr><th>环节</th><th>损耗量</th><th>应售量</th><th>损耗率</th></tr></thead><tbody>';
-  rows.forEach(function(r){html+='<tr><td>'+esc(r.name)+'</td><td>'+r.loss+'</td><td>'+r.base+'</td><td><strong>'+r.rate.toFixed(2)+'%</strong></td></tr>';});
+  html+='<p>环节间波动：标准差 <strong>'+std.toFixed(2)+'</strong> 个百分点 ｜ 变异系数 <strong>'+cv.toFixed(2)+'%</strong>（'+rows.length+' 个环节，总体标准差，分母 n）</p>';
+  html+='<table><thead><tr><th>环节</th><th>损耗量</th><th>应售量</th><th>损耗率</th><th>与环节均值偏差</th></tr></thead><tbody>';
+  rows.forEach(function(r){html+='<tr><td>'+esc(r.name)+'</td><td>'+r.loss+'</td><td>'+r.base+'</td><td><strong>'+r.rate.toFixed(2)+'%</strong></td><td>'+(r.rate-meanRate>=0?'+':'')+(r.rate-meanRate).toFixed(2)+' 个百分点</td></tr>';});
   html+='</tbody></table>';
   const __g2=html;document.getElementById("res").innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 }
@@ -238,7 +243,7 @@ function copyRes(){ToolBox.copyText(document.getElementById("res").innerText);}
   <div class="related-tools-grid">
     <a href="analysis-cost-10.html" class="related-tool-card">
       <span class="rt-icon">💰</span>
-      <span class="rt-info"><span class="rt-name">成本（控制/分析/优化）体系</span><span class="rt-desc">输入各项成本数据（逗号或换行分隔），统计占比、均值与离散度，辅助成本控制与结构优化</span></span>
+      <span class="rt-info"><span class="rt-name">成本（控制/分析/优化）体系</span><span class="rt-desc">逐行输入「成本项,预算,实际」，统计预算与实际合计、差异、执行率，定位超支与节约项</span></span>
     </a>
     <a href="report-profit.html" class="related-tool-card">
       <span class="rt-icon">📈</span>

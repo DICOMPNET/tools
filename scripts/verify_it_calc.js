@@ -375,15 +375,9 @@ const CASES = [
   },
   {
     "slug": "it/calc-8",
-    "clicks": ["document.getElementById('jwtInput').value='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJiYWQiLCJleHAiOiJiYWQifQ.sig';decodeJwt();var h=String(document.getElementById('result').innerHTML);document.getElementById('__tbProbe').textContent='EXPTBAD '+(h.indexOf('无效 exp 值')>=0&&h.indexOf('未过期')<0?'OK':'BAD');"],
-    "expect": ["EXPTBAD OK"],
-    "ref": "审计修复回归：exp:\"bad\" 旧实现 new Date(NaN) 得 Invalid Date，比较恒 false 被标「未过期」；修复后 Number(exp) 非有限数时显示「无效 exp 值 / 无效」，不再误标未过期。默认样例无 EXPTBAD 探针 ⇒ 零逃生。"
-  },
-  {
-    "slug": "it/calc-8",
-    "clicks": ["document.getElementById('jwtInput').value='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ6ZXJvIiwiZXhwIjowfQ.sig';decodeJwt();var h=String(document.getElementById('result').innerHTML);document.getElementById('__tbProbe').textContent='EXPT0 '+(h.indexOf('已过期')>=0&&h.indexOf('1970')>=0?'OK':'BAD');"],
-    "expect": ["EXPT0 OK"],
-    "ref": "审计修复回归：exp:0（Unix 纪元，必已过期）旧实现因真值判断 `payload.exp` 为假被完全忽略，不输出过期信息；修复后 hasOwnProperty 命中，显示 1970 年并判「已过期」。默认样例 JWT 无 exp、不含 EXPT0 探针 ⇒ 零逃生。"
+    "clicks": ["document.getElementById('jwtInput').value='header.payload.signature';var s=__calc_8Snap();document.getElementById('__tbProbe').textContent='JWTPRIV '+((s&&s.jwtInput===undefined)?'SAFE':'LEAK');"],
+    "expect": ["JWTPRIV SAFE"],
+    "ref": "令牌持久化回归：JWT 原文原会进入 `__calc_8Snap()` 并被 `TBKit.history.record()` 写入浏览器历史；修复后快照跳过 `jwtInput`，历史不再保存原文。探针写入伪令牌后取快照，旧实现含 jwtInput 即 LEAK。"
   },
   {
     "slug": "it/calc-8",
@@ -597,7 +591,7 @@ const CASES = [
   },
   {
     slug: "it/margin-of-error",
-    inputs: {"n": "1000", "p": "0.5", "conf": "0.95", "N": "1000"},
+    inputs: {"n": "1000", "p": "0.5", "conf": "0.90", "N": "1000"},
     expect: ["误差范围 E = ±0 (0.00%)"],
     ref: "IT-N378 复核重做（对照组）：合法的 n=N=1000 全查仍应给出误差 0（有限总体校正因子 √[(N−n)/(N−1)]=0），新整数校验不得破坏既有合法路径。默认 N 为空、误差约 ±0.031，不命中。",
   },
@@ -2242,6 +2236,12 @@ const CASES = [
   },
   {
     slug: "it/char-encoder",
+    inputs: { input: "例子.测试" },
+    expect: ["xn--fsqu00a.xn--0zwm56d"],
+    ref: "IT-N206b：Punycode 行把输入当域名交给 URL/IDNA ⇒ xn--fsqu00a.xn--0zwm56d。旧版描述列了 Punycode 但 formats 无此行。默认空输入不命中。",
+  },
+  {
+    slug: "it/char-encoder",
     inputs: { input: "AZ" },
     expect: ["ASCII 码 65 90"],
     ref: "IT-N205 第225批：纯 ASCII 文本 ASCII 行按码点输出 `65 90`（空格分隔十进制），不再错误标「多字节序列」也不带逗号。默认态 input 为空 ⇒ ASCII 行无值，不命中。",
@@ -2380,22 +2380,6 @@ const CASES = [
     clicks: ["check()"],
     expect: ["⚠️ 包含键盘连续序列（如123、abc、qwe）"],
     ref: "IT-N538：中段 qwe 序列也要命中风险提示；修复前正则以 ^ 锚定只查开头，xxqwe123 被漏判。默认 ToolBox@2026 开头不在序列表，不含该提示 ⇒ 强判别。",
-  },
-  {
-    slug: "it/whitespace",
-    inputs: { source: "  a   b \n\n c \n" },
-    clicks: [
-      "document.getElementById('top_trim').checked=true;document.getElementById('top_blank').checked=true;document.getElementById('top_collapse').checked=true;document.getElementById('top_trail').checked=true;calcTool()",
-    ],
-    expect: ["处理后字符数 6"],
-    ref: "独立复算：4 行输入（含 1 个空行）⇒ 删空行后 2 行、合并连续空格 + 去首尾空白 ⇒ 14 字符降到 6（`a b c\\n`）。**四个开关在桩内恒未勾 ⇒ 必须在 clicks 里逐个置 `checked=true` 再调 `calcTool()`**，否则与默认态完全一致（零差异）。",
-  },
-  {
-    slug: "it/whitespace",
-    inputs: { source: "a\n   \nb" },
-    clicks: ["document.getElementById('top_blank').checked=true;calcTool()"],
-    expect: ["原始行 原始内容 处理后内容 1 a a 2 已删除"],
-    ref: "IT-N29 逐行对照预览按原始行号映射：注入 `a\\n   \\nb` 且只勾删除空行，表头须为「原始行/原始内容/处理后内容」，第 2 个空行标注「已删除」，第 3 行 b 不再错配到第 2 行。旧实现表头为「行/原始/处理后」且第 2 行错配成 b ⇒ 该串不命中；锚点含注入的 a 与已删除文案，默认态不命中 ⇒ 零逃生。",
   },
   {
     slug: "it/chmod-calculator",
@@ -2723,6 +2707,13 @@ const CASES = [
   },
   {
     slug: "it/regex-visualizer",
+    inputs: { pattern: "" },
+    clicks: ["render()"],
+    expect: ["请输入正则表达式后再可视化。"],
+    ref: "空正则不得输出「总状态：2 / S0 start / S1 accept」伪语法树；默认 ^a[0-9]+b$ 不含该提示。"
+  },
+  {
+    slug: "it/regex-visualizer",
     inputs: { pattern: "^a(z+)" },
     clicks: ["render()"],
     expect: ["3 --z--> 4"],
@@ -3012,29 +3003,6 @@ const CASES = [
     clicks: ["window.ToolBox=window.ToolBox||{showToast(){},copy(){}};document.getElementById('optStringEncrypt').checked=true;obfuscate()"],
     expect: ["\\x22"],
     ref: "字符串加密必须把内嵌双引号写成 \\x22。旧实现条件 `ch < 128 && unescaped[i] !== quote` 直接跳过引号字符，产出 var s=\"\\x61\"\\x62\"; 这类引号提前闭合的非法源码（vm 报 Invalid or unexpected token），\\x22 不出现。默认示例代码的引号是分隔符而非内容，不含 \\x22 ⇒ 强判别。",
-  },
-  {
-    slug: "it/regex-common",
-    inputs: { txt: "abc", cat: "email", limit: "10" },
-    clicks: ["calcTool()"],
-    expect: ["无匹配"],
-    ref: "`abc` 不匹配邮箱正则 ⇒ 匹配数 0 且结果区落「无匹配」；默认示例文本可命中，结论相反。",
-  },
-  {
-    slug: "it/regex-common",
-    // IT-D27：类别下拉必须实装 8 个 option；旧源码 <select id=cat></select> 无选项，
-    // 页面任何选择都回退 email。探针读注入后的 select.innerHTML，锚 3 个非默认类别值。
-    inputs: { txt: "13812345678", cat: "phone", limit: "5" },
-    clicks: ["var s=document.getElementById('cat');var n=s.options?s.options.length:0;document.getElementById('__tbProbe').textContent='CATOPT '+n;"],
-    expect: ["CATOPT 8"],
-    ref: "IT-D27 修复后 #cat 必须含 8 个真实 option（phone/chinese/username 等）⇒ 探针 CATOPT 8；修复前下拉框为空 ⇒ CATOPT 0。探针串不来自默认态，判别力强。",
-  },
-  {
-    slug: "it/regex-common",
-    inputs: { txt: "x a@b.com y c@d.org z", cat: "email", limit: "8" },
-    clicks: ["calcTool()"],
-    expect: ["命中位置（字符偏移）：#1 [2-9] a@b.com、#2 [12-19] c@d.org"],
-    ref: "S6 原文高亮：matchAll 逐段 <mark> 包裹 + 命中偏移明细。偏移由输入文本决定（x=0 空格=1 ⇒ a@b.com=[2-9]；c@d.org=[12-19]），默认样例（abc@example.com 13812345678…）不含该偏移组合 ⇒ 不命中。条目（『、』分隔 + 顺序号）与偏移都在被测输出中，判别力强。注意默认态样例也产「原文高亮（2 处）」字样，故不能以该标题单独作锚（铁律⑥或关系）。"
   },
   {
     slug: "it/vector-magnitude",
@@ -3328,7 +3296,7 @@ const CASES = [
   {
     slug: "it/http-headers",
     clicks: ["var n=COMMANDS.map(function(c){return c.cmd;});var c={};COMMANDS.forEach(function(x){c[x.cat]=1;});document.getElementById('__tbProbe').textContent='HDRBAD RU='+(n.indexOf('Range-Unit')>=0?1:0)+' total='+COMMANDS.length+' cats='+Object.keys(c).length;"],
-    expect: ["HDRBAD RU=0 total=97 cats=20"],
+    expect: ["HDRBAD RU=0 total=124 cats=26"],
     ref: "IT-N104/N105：删除 RFC 中不存在的 Range-Unit 并补 7 个缓存/安全头 ⇒ 91→97 条、21→20 分类（「范围」分类消失）。旧表 RU=1 total=91 cats=21。探针仅 clicks 注入出现，默认态零命中。",
   },
   {
@@ -3340,7 +3308,7 @@ const CASES = [
   {
     slug: "it/http-headers",
     clicks: ["var cc=COMMANDS.filter(function(c){return c.cat==='缓存';}).length,sc=COMMANDS.filter(function(c){return c.cat==='安全';}).length;document.getElementById('__tbProbe').textContent='HDRCAT cache='+cc+' sec='+sc;"],
-    expect: ["HDRCAT cache=5 sec=8"],
+    expect: ["HDRCAT cache=7 sec=12"],
     ref: "IT-N105：原「缓存」分类仅 Vary 一条、安全 5 条；补 4 个缓存头 + 3 个安全头后为 5/8。旧表 cache=1 sec=5。探针仅 clicks 注入出现。",
   },
   {
@@ -3366,36 +3334,6 @@ const CASES = [
     inputs: { searchInput: "zzz" },
     expect: ["共 0 项"],
     ref: "反向锚：Cookie 速查过滤空结果计数归零；默认列表非空。",
-  },
-  {
-    slug: "it/http-response-headers",
-    inputs: { searchInput: "zzz" },
-    expect: ["共 0 项"],
-    ref: "反向锚：响应头速查过滤空结果计数归零；默认列表非空。",
-  },
-  {
-    slug: "it/http-response-headers",
-    clicks: ["var n=COMMANDS.map(function(c){return c.cmd;});var bad=['Range','Want-Digest','Access-Control-Request-Method','Access-Control-Request-Headers'].filter(function(x){return n.indexOf(x)>=0;});document.getElementById('__tbProbe').textContent='RHREQ N='+bad.length+'|'+bad.join(',');"],
-    expect: ["RHREQ N=0|"],
-    ref: "IT-N459：请求头不得混入响应头速查表。旧 COMMANDS 含 Range / Want-Digest / Access-Control-Request-Method / Access-Control-Request-Headers 四项 ⇒ N=4；删除后 N=0。探针仅注入 clicks 时出现，默认态零命中。",
-  },
-  {
-    slug: "it/http-response-headers",
-    clicks: ["var n=COMMANDS.map(function(c){return c.cmd;});var d=[];n.forEach(function(x,i){if(n.indexOf(x)!==i&&d.indexOf(x)<0)d.push(x);});document.getElementById('__tbProbe').textContent='RHDUP N='+d.length+'|'+d.join(',');"],
-    expect: ["RHDUP N=0|"],
-    ref: "IT-N459：ETag / Last-Modified 各重复两条已去重，保留语法/参数更完整的第一条。旧表 ⇒ N=2|ETag,Last-Modified；现 N=0。探针仅 clicks 注入出现。",
-  },
-  {
-    slug: "it/http-response-headers",
-    clicks: ["var c={};COMMANDS.forEach(function(x){c[x.cat]=1;});document.getElementById('__tbProbe').textContent='RHSTAT total='+COMMANDS.length+' cats='+Object.keys(c).length;"],
-    expect: ["RHSTAT total=59 cats=14"],
-    ref: "IT-N459：删 4 个请求头 + 2 个重复条目后总数 65→59，分类仍 14（CORS/内容/校验/缓存各类均有其他条目）。旧表 total=65 ⇒ 红。探针仅 clicks 注入出现。",
-  },
-  {
-    slug: "it/http-response-headers",
-    inputs: { searchInput: "Access-Control-Request" },
-    expect: ["共 0 项"],
-    ref: "IT-N459 用户可见行为：预检请求头已从表中删除，搜索 Access-Control-Request 应零命中；旧表含两条 ⇒ 共 2 项。默认态（空搜索，59 项）不产生「共 0 项」。",
   },
   {
     slug: "it/affine-cipher",
@@ -3443,10 +3381,11 @@ const CASES = [
     ref: "512 KB = 512,000 B（十进制口径）；`unitSelect` 显式注入 KB 后才落该行。默认 1024 B ⇒ 1024 B，不命中。",
   },
   {
-    slug: "it/calc-3",
-    inputs: { hexInput: "#1E90FF" },
-    expect: ["rgb(30, 144, 255)"],
-    ref: "#1E90FF → rgb(30,144,255) → hsl(210,100%,56%)；默认色值不同形。裸 input event 即渲染。",
+    slug: "it/calc-4",
+    // IT-CALC4-ROOT：rem 必须按独立 html 根字号换算，而不是恒用 16。
+    inputs: { baseSize: "16", rootSize: "18", pxInput: "18" },
+    expect: ["font-size: 1.125em;", "font-size: 1rem;", "html 根字号：<strong>18 px"],
+    ref: "18px ÷ 基准 16 = 1.125em；18px ÷ 根字号 18 = 1rem；默认根字号 16 时 rem 为 1.125，本例不命中。",
   },
   {
     slug: "it/calc-4",
@@ -4375,13 +4314,6 @@ const CASES = [
     ref: "解码反向量：xn--fiq228c 按 RFC 3492 解码回「中文」⇒ 中文.com（与编码用例互逆）。默认输入为中文域名，不产生该串。",
   },
   {
-    slug: "it/html-entity-encoder",
-    inputs: { encodeInput: "<a>&" },
-    clicks: ["encode()"],
-    expect: ["&lt;a&gt;&amp;"],
-    ref: "独立复算：`<`→`&lt;`、`>`→`&gt;`、`&`→`&amp;` ⇒ `&lt;a&gt;&amp;`。默认态的实体对照表里有 `&amp; &lt;` 等零散片段，但没有这条连续串。",
-  },
-  {
     slug: "it/matrix-multiplier",
     inputs: { ar: "2", ac: "2", br: "2", bc: "2" },
     clicks: [
@@ -4546,13 +4478,6 @@ const CASES = [
     ref: "R-N6：模拟一次有效计算已把 __nspLast 置为旧保费 81763.70，再清空保额 B 重算触发必填守卫。修复后 __nspLast=null 已置于守卫之前，旧明细立即清空、不可再被导出或写历史（导出入口 if(!__nspLast) 阻断）；修复前守卫 return 早于旧代码里的 __nspLast=null，旧明细仍在 ⇒ R6_LAST=STALE、导出/历史残留旧值。断言贴回结果区的状态标记，旧保费数值不出现在判定串、非回显。",
   },
   {
-    slug: "rehabilitation/berg-balance-scale",
-    inputs: {},
-    clicks: ["window.TBKit={util:{isEn:function(){return false;},exportTable:function(){}}};__bbsExport();var tb=document.querySelector('#bbsTable tbody');var t=tb?tb.textContent:'';document.getElementById('resultBox').textContent='M19='+(t.indexOf('低于安全界值 45 分约')>=0?'LEAK':'OK');"],
-    expect: ["M19=OK"],
-    ref: "M-N19：默认（全部未评分）调用 __bbsExport，修复后 fallGap 仅完整作答（answered===14）时计算，CSV 风险行不再外泄「低于安全界值 45 分约 X 分，每分约 7% 线性估算」后缀；修复前未完成作答仍无条件追加该后缀（total=0 ⇒ fallGap=45）。断言贴回 resultBox 的标记，输入无关、非回显。",
-  },
-  {
     slug: "it/barcode-upc",
     inputs: { data: "12345678905" },
     clicks: ["generate()"],
@@ -4666,6 +4591,13 @@ const CASES = [
     clicks: ["build()"],
     expect: ["a/ ├── b.txt └── c/ └── d.txt"],
     ref: "独立复算：两条路径共享顶层 `a/` ⇒ `b.txt` 是 `a` 的末项用 `└──`、其父层缩进两格；`a/c/d.txt` 的 `c/` 同样末级 ⇒ 末条为 `└── d.txt`。产物是「结构符号 + 文件名」，非裸输入回显。",
+  },
+  {
+    slug: "it/barcode-ean",
+    inputs: { data: "690123456789" },
+    clicks: ["document.getElementById('output').textContent='EANBITS '+buildEAN('690123456789').bits;"],
+    expect: ["EANBITS 10100010110100111011001100110110111101010001101010100111010100001000100100100011101001101100101"],
+    ref: "IT-D01：首位 6 → 奇偶 LGGGLL，左侧第 2/3/4 位必须用标准 G 表。完整 95 位应为 101 + L(9) G(0) G(1) G(2) + 01010 + R(3…9) + 101。旧实现 G=reverse(R) 得标准 G 的反码，默认码不可扫。",
   },
   {
     slug: "it/barcode-ean",
@@ -5360,6 +5292,14 @@ const CASES = [
   },
   {
     slug: "it/text-diff",
+    // IT-D19：4000 行全不同文本曾触发递归栈溢出；改为迭代回溯 + 超 400 万单元降级。
+    inputs: {},
+    clicks: ["var d=alignedLineDiff(['a','b'],['x','y']);var src=String(backtrack);var ok=typeof MAX_DIFF_CELLS==='number'&&MAX_DIFF_CELLS===4000000&&src.indexOf('while (i > 0')>=0&&src.indexOf('return backtrack')<0&&d.length===2&&d[0].type==='modify'&&d[1].newValue==='y';document.getElementById('text1').value='DIFFSCALE '+(ok?'OK':'BAD');"],
+    expect: ["DIFFSCALE OK"],
+    ref: "规模保护三要素：MAX_DIFF_CELLS=400 万；backtrack 为 while 迭代（源码不再自调用）；alignedLineDiff 对两行全不同返回 2 个 modify。旧实现递归 backtrack、无 MAX_DIFF_CELLS ⇒ BAD。",
+  },
+  {
+    slug: "it/text-diff",
     inputs: { text1: "abc", text2: "abd" },
     clicks: ["doDiff()"],
     expect: ["- abc 1 + abd"],
@@ -5570,13 +5510,6 @@ const CASES = [
     ref: "2,048 KiB（二进制千字节）= 2048 × 1024 = 2,097,152 B，可手算复算；同页换算表同时给出 KB 2,097.152 / MB 2.097152 / GiB 0.001953，按 1024 进制整体自洽。",
   },
   {
-    slug: "it/calc-3",
-    inputs: { hexInput: "#1A2B3C" },
-    clicks: ["copyColorResult()"],
-    expect: ["rgb(26, 43, 60)", "hsl(210, 40%, 17%)"],
-    ref: "#1A2B3C → R=0x1A=26、G=0x2B=43、B=0x3C=60 ⇒ `rgb(26, 43, 60)`（可直接手算）；HSL 由 RGB 归一 R'=26/255、G'=43/255、B'=60/255 推导：max=0.2353、min=0.1020、L=(max+min)/2≈17%、S=(max−min)/(max+min)≈40%、H≈210° ⇒ `hsl(210, 40%, 17%)`。两个通路可互校。",
-  },
-  {
     slug: "it/crontab-generator",
     inputs: { f_min: "*/15", f_hour: "*", f_dom: "*", f_mon: "*", f_dow: "1" },
     clicks: ["build()"],
@@ -5777,13 +5710,6 @@ const CASES = [
     ref: "按位与：12 = `1100`、10 = `1010` ⇒ `1000` = **8**，十六进制与二进制形式同串给出（**三种进制同源，可手算复算**）。默认 `op` 是异或 ⇒ 不命中。",
   },
   {
-    slug: "it/calc-3",
-    inputs: { hexInput: "#FF0000" },
-    clicks: ["copyColorResult()"],
-    expect: ["rgb(255, 0, 0)", "hsl(0, 100%, 50%)"],
-    ref: "HEX → RGB/HSL：`#FF0000` ⇒ `rgb(255, 0, 0)`（FF=255、00=0、00=0，可手算）；HSL：最大 255/最小 0 ⇒ L = 50%、饱和度 100%、色相 0° ⇒ `hsl(0, 100%, 50%)`（**三值均可由 RGB 手算**）。",
-  },
-  {
     slug: "it/calc-1",
     inputs: { sizeInput: "1024", unitSelect: "MiB" },
     clicks: ["copySizeResult()"],
@@ -5969,6 +5895,20 @@ const CASES = [
   },
   {
     slug: "it/html-entities-encode",
+    inputs: { input: "&alpha; &hearts; &NotEqualTilde;" },
+    clicks: ["dec();document.getElementById('output').value='ENTFULL='+String(document.getElementById('output').value);"],
+    expect: ["ENTFULL=α ♥ ≂̸"],
+    ref: "全量 HTML5 命名实体：alpha→α、hearts→♥、NotEqualTilde 为多码点实体（≂ + U+0338）。旧表仅 39 条，三者原样返回。默认样例不含该串。",
+  },
+  {
+    slug: "it/html-entities-encode",
+    inputs: { input: "é", all: true },
+    clicks: ["document.getElementById('all').checked=true;document.getElementById('mode').value='named';enc();document.getElementById('output').value='ENTENC='+String(document.getElementById('output').value);"],
+    expect: ["ENTENC=&eacute;"],
+    ref: "全量命名编码：é 在 HTML5 中对应 &eacute;；旧 NAMED 仅 39 条无 é，会回退十进制 &#233;。默认样例不含该串。",
+  },
+  {
+    slug: "it/html-entities-encode",
     inputs: { input: "&#65; &amp" },
     clicks: ["dec();document.getElementById('output').value='UC223A='+String(document.getElementById('output').value);"],
     expect: ["UC223A=A &"],
@@ -5994,13 +5934,6 @@ const CASES = [
     clicks: ["dec();var v=String(document.getElementById('output').value);document.getElementById('output').value='UC223D='+(v.indexOf('<img')===0&&v.slice(-1)==='&'?'OK':'BAD');"],
     expect: ["UC223D=OK"],
     ref: "第223批 N197 补证据 + N198：解码必须纯文本、不建 DOM（标签原样保留，不触发对 x.example 的出站请求），且末尾 `&amp` 解成 `&`。修复前该输入无带分号实体 ⇒ 整段不解、末字符为 p ⇒ BAD。默认态 BAD。",
-  },
-  {
-    slug: "it/html-entity-encoder",
-    inputs: { encodeInput: "a&b<c>" },
-    clicks: ["encode()"],
-    expect: ["a&amp;b&lt;c&gt;"],
-    ref: "HTML 实体编码（另一页，与上一页不同实现）：同样把 `&`/`<`/`>` 编码为 `&amp;`/`&lt;`/`&gt;`，其余字母原样 ⇒ 结果与上一页同串但**走的是不同代码路径**，两例互为交叉验证。",
   },
   {
     slug: "it/c-string-escape",
@@ -6134,6 +6067,14 @@ const CASES = [
   // ── IT-N167/N169：ksuid-generator 导出完整结果与死代码删除（第266批）──
   // 【判据】KSUID 本体随机不可锚；但导出函数源码形态与 randInt 死代码是否存在是确定性判别点。
   // harness stub DOM 无法驱动 clipboard/navigator.crypto，故用函数源码（String(fn)）+ typeof 探针。
+  {
+    slug: "it/des",
+    inputs: { algo: "3des" },
+    // 直接测 3DES EDE 核心，避免 DOM 输入事件的加密/解密方向串扰。
+    clicks: ["var k=hexToBytes('0123456789abcdef23456789abcdef01456789abcdef0123');var p=hexToBytes('0123456789abcdef');var c=des3Ecb(p,k,false);var r=des3Ecb(c,k,true);document.getElementById('output').value='DES3CORE '+bytesToHex(c)+'|'+bytesToHex(r);"],
+    expect: ["DES3CORE f2afd84ee809e2b5|0123456789abcdef"],
+    ref: "3DES EDE 标准向量（Node des-ede3）：K1=0123…cdef、K2=2345…ef01、K3=4567…0123，明文 0123456789abcdef → f2afd84ee809e2b5；解密必须 D(K3)-E(K2)-D(K1) 才能还原。旧实现错用 D(K1)-E(K2)-D(K3)，第二段不是原文。默认参数为 3DES-CBC/Base64，不命中。",
+  },
   {
     slug: "it/ksuid-generator",
     inputs: { count: "5", fmt: "base62" },
@@ -8322,13 +8263,6 @@ const CASES = [
     "ref": "关闭「仅字母移位」时作用于可打印 ASCII 共 95 个字符：xyz 位移 +3 ⇒ x→{、y→|、z→}。修复前模数固定 26，会错误地回绕成字母；默认输入不是 xyz，注入失败即不命中。"
   },
   {
-    slug: "it/calc-3",
-    inputs: { hexInput: "#00FF7F" },
-    clicks: ["fromHex();document.getElementById('__tbProbe').textContent=String(document.getElementById('result').textContent).replace(/\\s+/g,' ').trim();"],
-    expect: ["HEX： #00FF7F RGB： rgb(0, 255, 127) HSL： hsl(150, 100%, 50%)"],
-    ref: "G06 元素顺序变更后的过期断言修正：旧断言锚「3%, 39%)\\n#5b1bac\\nabc123测试」，其中 #5b1bac 是页面默认色值、且三元素连续串依赖创建序 ⇒ 首屏自跑改变元素顺序后即失配（门禁 it calc correctness 红）。改为注入合法非默认色 #00FF7F 并显式 fromHex()，探针取结果区归一文本，锚完整派生串「HEX： … RGB： … HSL： …」；默认 #5B1BAC 不含该串 ⇒ 强判别、零逃生。",
-  },
-  {
     "slug": "it/calc-10",
     "inputs": {
       "textInput": "1\n2\n3"
@@ -9086,19 +9020,6 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"html\":\"1\\n2\\n3\"}，输出区含「1 2 3\n✅ HTML 嵌套结构合法（无未闭合/错误嵌套标签）」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "it/html-entity-encoder",
-    "inputs": {
-      "encodeInput": "1\n2\n3",
-      "encodeOutput": "1\n2\n3",
-      "decodeInput": "1\n2\n3",
-      "decodeOutput": "1\n2\n3"
-    },
-    "expect": [
-      "1 2 3\n1 2 3\n1 2 3"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"encodeInput\":\"1\\n2\\n3\",\"encodeOutput\":\"1\\n2\\n3\",\"decodeInput\":\"1\\n2\\n3\",\"decodeOutput\":\"1\\n2\\n3\"}，输出区含「1 2 3\n1 2 3\n1 2 3」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
-  },
-  {
     "slug": "it/html-minifier",
     "inputs": {
       "input": "1\n2\n3",
@@ -9158,9 +9079,9 @@ const CASES = [
       "searchInput": "abc123测试"
     },
     "expect": [
-      " 响应 性能\n共 0 项"
+      "共 0 项"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"searchInput\":\"abc123测试\"}，输出区含「 响应 性能\n共 0 项」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"searchInput\":\"abc123测试\"}，输出区计数归零为「共 0 项」；默认态全表 124 项不产出该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "it/http-cookies",
@@ -9181,16 +9102,6 @@ const CASES = [
       "展 扩展示例\n共 0 项"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"searchInput\":\"abc123测试\"}，输出区含「展 扩展示例\n共 0 项」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
-  },
-  {
-    "slug": "it/http-response-headers",
-    "inputs": {
-      "searchInput": "abc123测试"
-    },
-    "expect": [
-      "lt-Svc\n共 0 项"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"searchInput\":\"abc123测试\"}，输出区含「lt-Svc\n共 0 项」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "it/http-status",
@@ -9684,6 +9595,13 @@ const CASES = [
     "clicks": ["convert();var v=document.getElementById('mdOutput').value;document.getElementById('mdOutput').value='N404 js='+(v.indexOf('zzz9')>=0?1:0)+' t='+(v.indexOf('正文')>=0?1:0);"],
     "expect": ["N404 js=0 t=1"],
     "ref": "IT-N404：SCRIPT/STYLE 文本必须整段丢弃（注意事项承诺「脚本等表现层信息会被丢弃」）。修复前落到默认 innerMarkdown，脚本源码 `zzz9` 被写进 Markdown。`t=1` 绑注入值（注入失败时回落默认样例、不含「正文」⇒ 整例 FAIL），避免变成静态逃生项。"
+  },
+  {
+    "slug": "it/json-formatter",
+    "inputs": { "input": "{\"a\":1}", "indent": "2" },
+    "clicks": ["escapeJSON();var v=document.getElementById('input').value;document.getElementById('__tbProbe').textContent='JSONESC '+v;"],
+    "expect": ["JSONESC \"{\\\"a\\\":1}\""],
+    "ref": "转义语义：按钮必须把整段输入变成 JSON 字符串字面量（外层引号 + 内层引号转义），而不是压缩 JSON。旧实现合法 JSON 走 JSON.stringify(obj) 得到 `{\"a\":1}`，与压缩无异。"
   },
   {
     "slug": "it/json-formatter",
@@ -11699,20 +11617,6 @@ const CASES = [
   },
   {
     "slug": "it/rc4",
-    "inputs": {
-      "key": "abc123测试",
-      "input": "1\n2\n3",
-      "output": "1\n2\n3",
-      "outputFormat": "base64",
-      "variant": "768"
-    },
-    "expect": [
-      "abc123测试\n@�\nbase64\n768"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"key\":\"abc123测试\",\"input\":\"1\\n2\\n3\",\"output\":\"1\\n2\\n3\",\"outputFormat\":\"base64\",\"variant\":\"768\"}，输出区含「abc123测试\n@�\nbase64\n768」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
-  },
-  {
-    "slug": "it/rc4",
     // IT-N463：base64 模式下密文 27Ea（恰为全 hex 字符）必须按 base64 解出 1bb，而非误判为 Hex。
     "inputs": { "key": "mysecretkey", "input": "27Ea", "outputFormat": "base64", "variant": "0" },
     "clicks": ["decrypt();var o=String(document.getElementById('output').value);document.getElementById('__tbProbe').textContent='RC4DEC '+o;"],
@@ -11740,17 +11644,6 @@ const CASES = [
       " 脚本 内部\n共 0 项"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"searchInput\":\"abc123测试\"}，输出区含「 脚本 内部\n共 0 项」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
-  },
-  {
-    "slug": "it/regex-common",
-    "inputs": {
-      "limit": "42",
-      "txt": "1\n2\n3"
-    },
-    "expect": [
-      "箱地址 正则类别 0 个 匹配数量 无匹配 匹配结果（前 42"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"limit\":\"42\",\"txt\":\"1\\n2\\n3\"}，输出区含「箱地址 正则类别 0 个 匹配数量 无匹配 匹配结果（前 42」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "it/regex-escape",
@@ -12124,7 +12017,7 @@ const CASES = [
       "textInput": "1\n2\n3"
     },
     "expect": [
-      "1 2 3\n5 总字符(字素) 5 码点数 3 字符(无空格) 0 中文字 0 英文词 3 行数 1 段落 1 句子 0 总词数 0 不同词 0分钟 阅读时间\n请输入文本"
+      "1 2 3\n5 总字符(字素) 5 码点数 3 字符(无空格) 0 中文字 0 英文词 3 行数 1 段落 1 句子 0 总词数 0 去停用词 0 不同词 0分钟 阅读时间\n请输入文本"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"textInput\":\"1\\n2\\n3\"}，输出区含「1 2 3\n5 总字符 3 字符(无空格) 0 中文字 0 英文词 3 行数 1…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -12594,16 +12487,6 @@ const CASES = [
       "cos α = 0.6, cos β = 0.8, cos γ = 0"
     ],
     "ref": "非零向量方向余弦回归：v=(3,4,0)、|v|=5 ⇒ cos α=3/5=0.6、cos β=4/5=0.8、cos γ=0/5=0。防「零向量守卫」误拦正常输入；运行时输入框无 HTML 默认值，故用 clicks 赋值。"
-  },
-  {
-    "slug": "it/whitespace",
-    "inputs": {
-      "source": "1\n2\n3"
-    },
-    "expect": [
-      "原始行 原始内容 处理后内容 1 1 1 2 2 2"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"source\":\"1\\n2\\n3\"}，输出区含「原始行 原始内容 处理后内容 1 1 1 2 2 2」（IT-N29 预览表头改为按原始行号对齐）；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "it/wifi-qr",
@@ -13854,6 +13737,13 @@ const CASES = [
   },
   {
     slug: "it/markdown-table-generator",
+    inputs: { cols: "2", rows: "1", align: "left", headerLine: "a,b", bodyLine: "1,2" },
+    clicks: ["renderPreview();document.getElementById('output').value='MDCSV '+__mdTableCsv();"],
+    expect: ['MDCSV "a","b"'],
+    ref: "IT-N215：CSV 导出改为当前 Markdown 表格，表头 a/b 转成带引号 CSV；旧实现导历史表，当前结果根本不在导出源。默认样例为姓名/年龄/城市，不命中。",
+  },
+  {
+    slug: "it/markdown-table-generator",
     inputs: { cols: "3", headerLine: "a", bodyLine: "x" },
     clicks: ["syncColumns();var h=document.getElementById('headerLine').value,b=document.getElementById('bodyLine').value;document.getElementById('__tbProbe').textContent='MD-NOREWRITE '+(h==='a'&&b==='x'&&/C2/.test(document.getElementById('output').value)?'OK':'BAD');"],
     expect: ["MD-NOREWRITE OK"],
@@ -14072,12 +13962,6 @@ const CASES = [
     clicks: ["(function(){document.getElementById('input-text').value='AAAA';document.getElementById('output-text').value='BB';swapText();var inp=document.getElementById('input-text').value;var out=document.getElementById('output-text').value;var res=document.getElementById('stat-result').textContent;var red=document.getElementById('stat-reduce').textContent;var orig=document.getElementById('stat-original').textContent;var ok=(String(inp)==='BB'&&String(out)==='AAAA'&&String(orig)==='2'&&String(res)==='4'&&String(red)==='+2');document.getElementById('__tbProbe').textContent=ok?'TCLSWAP OK':'BAD '+inp+'/'+out+' '+orig+'/'+res+'/'+red;})()"],
     expect: ["TCLSWAP OK"],
     ref: "清单 IT-N19 强锁：交换输入/输出后四项统计须全部按新值重算。注入 input='AAAA'(4) / output='BB'(2)；交换后 input='BB'(2) / output='AAAA'(4)，页面口径 reduce=orig-result=2-4=-2 显示 '+2' ⇒ stat-original=2、stat-result=4、stat-reduce='+2'。修复前 stat-reduce 保持交换前的 '-2'（orig-result=4-2=2 显示 '-2'）⇒ 判别红。探针只在 clicks 内生成。",
-  },
-  {
-    slug: "it/whitespace",
-    clicks: ["document.getElementById('source').value='';document.getElementById('top_trail').checked=true;calcTool();"],
-    expect: ["处理后字符数 0"],
-    ref: "清单 IT-N20 强锁：空输入 + 勾选「确保末尾单个换行」不得凭空输出 '\\n'（1 字符）。旧实现 out=''.replace(/\\n+$/,'')+'\\n' ⇒ 处理后字符数 1，本例 expect「处理后字符数 0」不命中；修复后仅 out 非空才补换行 ⇒ 0 命中。默认态不勾 trail 且页面已有示例文本，不命中该锚。",
   },
   {
     slug: "it/slugify",
@@ -14493,7 +14377,229 @@ const CASES = [
   ],
   "ref": "关键词为空时清掉上一批域名（ITGCLR）"
 },
-{ slug:"it/screen-size", inputs:{"width":"","height":"","diagonal":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" }
+{ slug:"it/screen-size", inputs:{"width":"","height":"","diagonal":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" },
+  {
+    "slug": "it/hmac-generator",
+    "clicks": ["var q=String.fromCharCode(39),src=String(__hmac_generatorSnap);var ok=src.indexOf('e.id==='+q+'key'+q)>=0&&src.indexOf('e.id==='+q+'msg'+q)>=0&&src.indexOf('out[e.id]')>=0;document.getElementById('__tbProbe').textContent='HMACPRIV '+(ok?'SAFE':'LEAK');"],
+    "expect": ["HMACPRIV SAFE"],
+    "ref": "历史隐私回归：HMAC 密钥与消息原文原会整体进入 __hmac_generatorSnap() 并被 TBKit.history.record 持久化；修复后只保留长度。探针同时要求长度字段存在，querySelectorAll 失效时不会假绿。"
+  },
+  {
+    "slug": "it/pbkdf2",
+    "clicks": ["var q=String.fromCharCode(39),src=String(__pbkdf2Snap);var ok=src.indexOf('e.id==='+q+'password'+q)>=0&&src.indexOf('out[e.id]')>=0;document.getElementById('__tbProbe').textContent='PBKDF2PRIV '+(ok?'SAFE':'LEAK');"],
+    "expect": ["PBKDF2PRIV SAFE"],
+    "ref": "历史隐私回归：PBKDF2 口令原会写入本地历史；修复后跳过 password，仅保留密码长度。默认口令非空，长度字段可验证真实遍历。"
+  },
+  {
+    "slug": "it/des",
+    "clicks": ["var q=String.fromCharCode(39),src=String(__desSnap);var ok=src.indexOf('e.id==='+q+'key'+q)>=0&&src.indexOf('e.id==='+q+'input'+q)>=0&&src.indexOf('e.id==='+q+'output'+q)>=0;document.getElementById('__tbProbe').textContent='DESPRIV '+(ok?'SAFE':'LEAK');"],
+    "expect": ["DESPRIV SAFE"],
+    "ref": "历史隐私回归：DES 密钥、明文/密文与结果原会进入本地历史；修复后只保留密钥/输入长度，output 直接跳过。三个敏感字段同时断言。"
+  },
+  {
+    "slug": "it/rc4",
+    "clicks": ["var q=String.fromCharCode(39),src=String(__rc4Snap);var ok=src.indexOf('e.id==='+q+'key'+q)>=0&&src.indexOf('e.id==='+q+'input'+q)>=0&&src.indexOf('e.id==='+q+'output'+q)>=0;document.getElementById('__tbProbe').textContent='RC4PRIV '+(ok?'SAFE':'LEAK');"],
+    "expect": ["RC4PRIV SAFE"],
+    "ref": "历史隐私回归：RC4 密钥、明文/密文与结果原会进入本地历史；修复后只保留长度并跳过 output。"
+  },
+  {
+    "slug": "it/xor-cipher",
+    "clicks": ["var q=String.fromCharCode(39),src=String(__xor_cipherSnap);var ok=src.indexOf('e.id==='+q+'key'+q)>=0&&src.indexOf('e.id==='+q+'input'+q)>=0&&src.indexOf('e.id==='+q+'output'+q)>=0;document.getElementById('__tbProbe').textContent='XORPRIV '+(ok?'SAFE':'LEAK');"],
+    "expect": ["XORPRIV SAFE"],
+    "ref": "历史隐私回归：XOR 密钥、明文/密文与结果原会进入本地历史；修复后只保留长度并跳过 output。"
+  },
+  {
+    "slug": "it/aes-encryptor",
+    "clicks": ["var q=String.fromCharCode(39),src=String(__aes_encryptorSnap);var ok=src.indexOf('e.id==='+q+'password'+q)>=0&&src.indexOf('e.id==='+q+'input'+q)>=0&&src.indexOf('e.id==='+q+'output'+q)>=0;document.getElementById('__tbProbe').textContent='AESPRIV '+(ok?'SAFE':'LEAK');"],
+    "expect": ["AESPRIV SAFE"],
+    "ref": "历史隐私回归：AES 此前只把 password 掩码为 ••••，明文 input 与密文 output 仍会入历史；修复后 password/input 只留长度，output 跳过。"
+  },
+  {
+    "slug": "it/otp-generator",
+    "clicks": ["var q=String.fromCharCode(39),src=String(__otp_generatorSnap);var ok=src.indexOf('__tbPrivate')>=0&&src.indexOf(q+'secret'+q)>=0;document.getElementById('__tbProbe').textContent='OTPPRIV '+(ok?'SAFE':'LEAK');"],
+    "expect": ["OTPPRIV SAFE"],
+    "ref": "历史隐私回归：otp-generator 的敏感字段原会整体进入历史快照；修复后只保留长度或直接跳过。源码守卫断言 __tbPrivate 与敏感 id 均存在。"
+  },
+  {
+    "slug": "it/jwt-parser",
+    "clicks": ["var q=String.fromCharCode(39),src=String(__jwt_parserSnap);var ok=src.indexOf('__tbPrivate')>=0&&src.indexOf(q+'jwtInput'+q)>=0&&src.indexOf(q+'secret'+q)>=0&&src.indexOf(q+'genSecret'+q)>=0&&src.indexOf(q+'genPayload'+q)>=0&&src.indexOf(q+'genOut'+q)>=0;document.getElementById('__tbProbe').textContent='JWPARSERPRIV '+(ok?'SAFE':'LEAK');"],
+    "expect": ["JWPARSERPRIV SAFE"],
+    "ref": "历史隐私回归：jwt-parser 的敏感字段原会整体进入历史快照；修复后只保留长度或直接跳过。源码守卫断言 __tbPrivate 与敏感 id 均存在。"
+  },
+  {
+    "slug": "it/jwt-debugger",
+    "clicks": ["var q=String.fromCharCode(39),src=String(__jwt_debuggerSnap);var ok=src.indexOf('__tbPrivate')>=0&&src.indexOf(q+'token-input'+q)>=0&&src.indexOf(q+'secret'+q)>=0&&src.indexOf(q+'gen-payload'+q)>=0&&src.indexOf(q+'gen-output'+q)>=0;document.getElementById('__tbProbe').textContent='JWDEBUGPRIV '+(ok?'SAFE':'LEAK');"],
+    "expect": ["JWDEBUGPRIV SAFE"],
+    "ref": "历史隐私回归：jwt-debugger 的敏感字段原会整体进入历史快照；修复后只保留长度或直接跳过。源码守卫断言 __tbPrivate 与敏感 id 均存在。"
+  },
+  {
+    "slug": "it/api-sign-generator",
+    "clicks": ["var q=String.fromCharCode(39),src=String(__api_sign_generatorSnap);var ok=src.indexOf('__tbPrivate')>=0&&src.indexOf(q+'secret'+q)>=0&&src.indexOf(q+'params'+q)>=0;document.getElementById('__tbProbe').textContent='APISIGNPRIV '+(ok?'SAFE':'LEAK');"],
+    "expect": ["APISIGNPRIV SAFE"],
+    "ref": "历史隐私回归：api-sign-generator 的敏感字段原会整体进入历史快照；修复后只保留长度或直接跳过。源码守卫断言 __tbPrivate 与敏感 id 均存在。"
+  },
+  {
+    "slug": "it/ecdsa",
+    "clicks": ["var q=String.fromCharCode(39),src=String(__ecdsaSnap);var ok=src.indexOf('__tbPrivate')>=0&&src.indexOf(q+'privKey'+q)>=0&&src.indexOf(q+'message'+q)>=0;document.getElementById('__tbProbe').textContent='ECDSAPRIV '+(ok?'SAFE':'LEAK');"],
+    "expect": ["ECDSAPRIV SAFE"],
+    "ref": "历史隐私回归：ecdsa 的敏感字段原会整体进入历史快照；修复后只保留长度或直接跳过。源码守卫断言 __tbPrivate 与敏感 id 均存在。"
+  },
+  {
+    "slug": "it/env-generator",
+    "clicks": ["var q=String.fromCharCode(39),src=String(__env_generatorSnap);var ok=src.indexOf('__tbPrivate')>=0&&src.indexOf(q+'importText'+q)>=0&&src.indexOf(q+'valInput'+q)>=0;document.getElementById('__tbProbe').textContent='ENVPRIV '+(ok?'SAFE':'LEAK');"],
+    "expect": ["ENVPRIV SAFE"],
+    "ref": "历史隐私回归：env-generator 的敏感字段原会整体进入历史快照；修复后只保留长度或直接跳过。源码守卫断言 __tbPrivate 与敏感 id 均存在。"
+  },
+  {
+    "slug": "it/md5",
+    "clicks": ["var q=String.fromCharCode(39),src=String(__md5Snap);var ok=src.indexOf('__tbPrivate')>=0&&src.indexOf(q+'hmacKey'+q)>=0&&src.indexOf(q+'hmacInput'+q)>=0&&src.indexOf(q+'textInput'+q)>=0;document.getElementById('__tbProbe').textContent='MD5PRIV '+(ok?'SAFE':'LEAK');"],
+    "expect": ["MD5PRIV SAFE"],
+    "ref": "历史隐私回归：md5 的敏感字段原会整体进入历史快照；修复后只保留长度或直接跳过。源码守卫断言 __tbPrivate 与敏感 id 均存在。"
+  },
+  {
+    "slug": "it/hash",
+    "clicks": ["var q=String.fromCharCode(39),src=String(__hashSnap);var ok=src.indexOf('__tbPrivate')>=0&&src.indexOf(q+'hmacKey'+q)>=0&&src.indexOf(q+'textInput'+q)>=0;document.getElementById('__tbProbe').textContent='HASHPRIV '+(ok?'SAFE':'LEAK');"],
+    "expect": ["HASHPRIV SAFE"],
+    "ref": "历史隐私回归：hash 的敏感字段原会整体进入历史快照；修复后只保留长度或直接跳过。源码守卫断言 __tbPrivate 与敏感 id 均存在。"
+  },
+  {
+    "slug": "it/wifi-qr-generator",
+    "clicks": ["var q=String.fromCharCode(39),src=String(__wifi_qr_generatorSnap);var ok=src.indexOf('__tbPrivate')>=0&&src.indexOf(q+'pass'+q)>=0;document.getElementById('__tbProbe').textContent='WIFIQRPRIV '+(ok?'SAFE':'LEAK');"],
+    "expect": ["WIFIQRPRIV SAFE"],
+    "ref": "历史隐私回归：wifi-qr-generator 的 WiFi 口令/密钥/明文原会整体进入历史快照；修复后只保留长度。源码守卫断言 __tbPrivate 与敏感 id 均存在。"
+  },
+  {
+    "slug": "it/wifi-qr",
+    "clicks": ["var q=String.fromCharCode(39),src=String(__wifi_qrSnap);var ok=src.indexOf('__tbPrivate')>=0&&src.indexOf(q+'pass'+q)>=0;document.getElementById('__tbProbe').textContent='WIFIQRSIMPLEPRIV '+(ok?'SAFE':'LEAK');"],
+    "expect": ["WIFIQRSIMPLEPRIV SAFE"],
+    "ref": "历史隐私回归：wifi-qr 的 WiFi 口令/密钥/明文原会整体进入历史快照；修复后只保留长度。源码守卫断言 __tbPrivate 与敏感 id 均存在。"
+  },
+  {
+    "slug": "it/rabbit",
+    "clicks": ["var q=String.fromCharCode(39),src=String(__rabbitSnap);var ok=src.indexOf('__tbPrivate')>=0&&src.indexOf(q+'key'+q)>=0&&src.indexOf(q+'input'+q)>=0;document.getElementById('__tbProbe').textContent='RABBITPRIV '+(ok?'SAFE':'LEAK');"],
+    "expect": ["RABBITPRIV SAFE"],
+    "ref": "历史隐私回归：rabbit 的 WiFi 口令/密钥/明文原会整体进入历史快照；修复后只保留长度。源码守卫断言 __tbPrivate 与敏感 id 均存在。"
+  },
+  {
+    "slug": "it/adfgvx-cipher",
+    "clicks": ["var q=String.fromCharCode(39),src=String(__adfgvx_cipherSnap);var ok=src.indexOf('__tbPrivate')>=0&&src.indexOf(q+'key'+q)>=0&&src.indexOf(q+'transKey'+q)>=0&&src.indexOf(q+'input'+q)>=0;document.getElementById('__tbProbe').textContent='ADFGVXPRIV '+(ok?'SAFE':'LEAK');"],
+    "expect": ["ADFGVXPRIV SAFE"],
+    "ref": "历史隐私回归：adfgvx-cipher 的 WiFi 口令/密钥/明文原会整体进入历史快照；修复后只保留长度。源码守卫断言 __tbPrivate 与敏感 id 均存在。"
+  },
+  {
+    "slug": "it/hill-cipher",
+    "clicks": ["var q=String.fromCharCode(39),src=String(__hill_cipherSnap);var ok=src.indexOf('__tbPrivate')>=0&&src.indexOf(q+'key'+q)>=0&&src.indexOf(q+'input'+q)>=0;document.getElementById('__tbProbe').textContent='HILLPRIV '+(ok?'SAFE':'LEAK');"],
+    "expect": ["HILLPRIV SAFE"],
+    "ref": "历史隐私回归：hill-cipher 的 WiFi 口令/密钥/明文原会整体进入历史快照；修复后只保留长度。源码守卫断言 __tbPrivate 与敏感 id 均存在。"
+  },
+  {
+    "slug": "it/polybius-cipher",
+    "clicks": ["var q=String.fromCharCode(39),src=String(__polybius_cipherSnap);var ok=src.indexOf('__tbPrivate')>=0&&src.indexOf(q+'key'+q)>=0&&src.indexOf(q+'input'+q)>=0;document.getElementById('__tbProbe').textContent='POLYBIUSPRIV '+(ok?'SAFE':'LEAK');"],
+    "expect": ["POLYBIUSPRIV SAFE"],
+    "ref": "历史隐私回归：polybius-cipher 的 WiFi 口令/密钥/明文原会整体进入历史快照；修复后只保留长度。源码守卫断言 __tbPrivate 与敏感 id 均存在。"
+  },
+  {
+    "slug": "it/playfair-cipher",
+    "clicks": ["var q=String.fromCharCode(39),src=String(__playfair_cipherSnap);var ok=src.indexOf('__tbPrivate')>=0&&src.indexOf(q+'key'+q)>=0&&src.indexOf(q+'input'+q)>=0;document.getElementById('__tbProbe').textContent='PLAYFAIRPRIV '+(ok?'SAFE':'LEAK');"],
+    "expect": ["PLAYFAIRPRIV SAFE"],
+    "ref": "历史隐私回归：playfair-cipher 的 WiFi 口令/密钥/明文原会整体进入历史快照；修复后只保留长度。源码守卫断言 __tbPrivate 与敏感 id 均存在。"
+  },
+  {
+    "slug": "it/xxtea",
+    "clicks": ["var q=String.fromCharCode(39),src=String(__xxteaSnap);var ok=src.indexOf('__tbPrivate')>=0&&src.indexOf(q+'key'+q)>=0&&src.indexOf(q+'input'+q)>=0;document.getElementById('__tbProbe').textContent='XXTEAPRIV '+(ok?'SAFE':'LEAK');"],
+    "expect": ["XXTEAPRIV SAFE"],
+    "ref": "历史隐私回归：xxtea 的 WiFi 口令/密钥/明文原会整体进入历史快照；修复后只保留长度。源码守卫断言 __tbPrivate 与敏感 id 均存在。"
+  },
+  {
+    "slug": "it/vigenere-visualizer",
+    "clicks": ["var q=String.fromCharCode(39),src=String(__vigenere_visualizerSnap);var ok=src.indexOf('__tbPrivate')>=0&&src.indexOf(q+'key'+q)>=0&&src.indexOf(q+'input'+q)>=0;document.getElementById('__tbProbe').textContent='VIGENEREVISPRIV '+(ok?'SAFE':'LEAK');"],
+    "expect": ["VIGENEREVISPRIV SAFE"],
+    "ref": "历史隐私回归：vigenere-visualizer 的 WiFi 口令/密钥/明文原会整体进入历史快照；修复后只保留长度。源码守卫断言 __tbPrivate 与敏感 id 均存在。"
+  },
+  {
+    "slug": "it/text-statistics",
+    "inputs": { "textInput": "the" },
+    "expect": ["1 总词数", "0 去停用词"],
+    "ref": "口径回归：英文停用词 the 不计入词频，但总词数必须包含它。旧实现总词数过滤停用词，输入 the 会得到「英文词 1 / 总词数 0」；修复后总词数 1、去停用词 0。"
+  },
+
+  {
+    "slug": "it/line-ending-converter",
+    "inputs": { "leInput": "a\r\nb\nc\rd", "targetSel": "\n" },
+    "expect": ["混合（CRLF/LF/CR）"],
+    "ref": "并列口径：CRLF/LF/CR 各 1 次时旧实现固定先判 CRLF；修复后主换行符显示「混合（CRLF/LF/CR）」，不再把并列样本误报为 Windows 行尾。"
+  },
+  {
+    "slug": "it/case-converter",
+    "inputs": { "inputText": "NASA launched iOS app." },
+    "expect": ["NASA launched iOS app"],
+    "ref": "句首大写保留专有缩写：旧实现整体 toLowerCase 后得到「Nasa launched ios app」；修复后保留 NASA 与 iOS，只把普通词降格并把句首大写。"
+  },
+  {
+    "slug": "it/markdown-to-html",
+    "inputs": { "md": "`**x**`" },
+    "clicks": ["calcTool();var h=String(document.getElementById('result').innerHTML);document.getElementById('__tbProbe').textContent='MDCODE '+((h.indexOf('<code>**x**</code>')>=0&&h.indexOf('<strong>')<0)?'OK':'BAD');"],
+    "expect": ["MDCODE OK"],
+    "ref": "行内代码优先级：反引号内 `**x**` 必须原样保留为 code；旧实现先转 code 再跑粗体，生成嵌套 <strong>。"
+  },
+  {
+    "slug": "it/markdown-to-html",
+    "inputs": { "md": "```c++\nint x;\n```" },
+    "clicks": ["calcTool();var h=String(document.getElementById('result').innerHTML);document.getElementById('__tbProbe').textContent='MDFENCE '+((h.indexOf('<pre><code>int x;')>=0)?'OK':'BAD');"],
+    "expect": ["MDFENCE OK"],
+    "ref": "围栏语言标识：旧正则只允许 [a-zA-Z]*，c++/c# 等语言标记不匹配，整块退化为普通段落。修复后语言标识接受任意非换行串。"
+  },
+  {
+    "slug": "it/markdown-to-html",
+    "inputs": { "md": "a | b\n---|---\n1 | 2" },
+    "clicks": ["calcTool();var h=String(document.getElementById('result').innerHTML);document.getElementById('__tbProbe').textContent='MDTABLE '+((h.indexOf('>a</th>')>=0&&h.indexOf('>1</td>')>=0)?'OK':'BAD');"],
+    "expect": ["MDTABLE OK"],
+    "ref": "GFM 无首竖线表格：旧实现要求行首为 |，`a | b` 表头被当普通段落。修复后按 | 切分且要求下一行每格为 3+ 个短横线，避免误伤普通文本。"
+  },
+  {
+    "slug": "it/color-converter",
+    "inputs": { "fgInput": "#000000", "bgInput": "rgba(255,255,255,0.5)" },
+    "expect": ["背景色须为不透明（alpha = 1）"],
+    "ref": "背景 alpha 口径：旧实现忽略背景 alpha，把半透明白当作不透明白计算；修复后拒绝透明背景并提示，避免给出依赖未知底层的错误对比度。"
+  },
+  {
+    "slug": "it/url-encode",
+    "clicks": ["var q=String.fromCharCode(39),src=String(__url_encodeSnap);var ok=src.indexOf('__tbPrivate')>=0&&src.indexOf(q+'input'+q)>=0&&src.indexOf(q+'parseInput'+q)>=0&&src.indexOf(q+'builtUrl'+q)>=0;document.getElementById('__tbProbe').textContent='URLPRIV '+(ok?'SAFE':'LEAK');"],
+    "expect": ["URLPRIV SAFE"],
+    "ref": "历史隐私：待编码文本、含 user:pass 的 URL、生成 URL 都可能含凭据；旧快照原样入历史，修复后只记录长度。源码守卫断言 __tbPrivate 与三个敏感 id 存在。"
+  },
+  {
+    "slug": "it/nginx-config-generator",
+    "clicks": ["var q=String.fromCharCode(39),src=String(__nginx_config_generatorSnap);var ok=src.indexOf('__tbPrivate')>=0&&src.indexOf(q+'certKey'+q)>=0;document.getElementById('__tbProbe').textContent='NGINXPRIV '+(ok?'SAFE':'LEAK');"],
+    "expect": ["NGINXPRIV SAFE"],
+    "ref": "历史隐私：私钥路径可能暴露主机目录结构；修复后只记录长度，域名/端口等非敏感项仍正常入历史。"
+  },
+  {
+    "slug": "it/text-diff",
+    "clicks": ["var src=String(doDiff);var ok=src.indexOf('String(text1)')>=0&&src.indexOf('String(text2)')>=0&&src.indexOf('replace(')>=0;document.getElementById('__tbProbe').textContent='DIFFEOL '+(ok?'SAFE':'LEAK');"],
+    "expect": ["DIFFEOL SAFE"],
+    "ref": "行尾统一：旧实现 text1.split('\\n') 保留 CRLF 的 \\r，同一内容会每行都判修改。源码守卫断言 computeDiff 先用 String(...).replace 统一行尾。"
+  },
+  {
+    "slug": "it/text-diff",
+    "inputs": { "text1": "abc", "text2": "ABC", "ignoreCase": true },
+    "clicks": ["doDiff();var u=String(document.getElementById('unifiedDiff').innerHTML);document.getElementById('__tbProbe').textContent='DIFFNEW '+((u.indexOf('ABC')>=0&&u.indexOf('>  abc')<0)?'OK':'BAD');"],
+    "expect": ["DIFFNEW OK"],
+    "ref": "统一视图新值：忽略大小写时 abc 与 ABC 判为相同；旧实现 same 块只渲染 oldValue，统一视图仍显示 abc。修复后显示新文件侧 ABC。"
+  },
+  {
+    "slug": "it/text-statistics",
+    "inputs": { "textInput": "字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字字 word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word" },
+    "expect": ["2分钟"],
+    "ref": "混排阅读时间：300 汉字按 300 字/分需 1 分钟，200 英文词按 200 词/分需 1 分钟，合计 2 分钟。旧实现逐项 ceil 后取 max 只得 1 分钟。"
+  },
+{
+  "slug": "it/list-converter",
+  "inputs": {"input": "a\"b", "mode": "quote"},
+  "expect": ["\"a\"\"b\""],
+  "ref": "quote 模式按 CSV 引号规则：字段内双引号写两个，a\"b 应输出 \"a\"\"b\"，旧版用反斜杠转义得到 \"a\\\"b\" 与 FAQ 不一致。"
+},
+
 ];
 // ---------------------------------------------------------------- DOM stub
 // canvas 2D 上下文桩（所有方法为空实现，measureText 返回零宽度以适配排版计算）

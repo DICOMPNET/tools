@@ -118,7 +118,7 @@
 <div class="nav">
   <a href="../../index.html">← ToolBox</a>
   <span>/ DES / 3DES 加密解密</span>
-  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()" aria-label="切换主题" title="切换主题" data-i18n-aria="nav.theme" data-i18n-title="nav.theme">🌙</button>
 </div>
 
 
@@ -460,9 +460,10 @@ function des3Ecb(data,keyBytes,decrypt){
     var block=data.slice(i,i+8);
     var b;
     if(decrypt){
-      b=desBlock(block,sk1,true);
+      // 3DES 解密必须按 K3→K2→K1（D-E-D），旧实现按 K1→K2→K3 解，密文无法还原。
+      b=desBlock(block,sk3,true);
       b=desBlock(b,sk2,false);
-      b=desBlock(b,sk3,true);
+      b=desBlock(b,sk1,true);
     }else{
       b=desBlock(block,sk1,false);
       b=desBlock(b,sk2,true);
@@ -481,9 +482,9 @@ function des3Cbc(data,keyBytes,ivBytes,decrypt){
   for(var i=0;i<data.length;i+=8){
     var block=data.slice(i,i+8);
     if(decrypt){
-      var b=desBlock(block,sk1,true);
+      var b=desBlock(block,sk3,true);
       b=desBlock(b,sk2,false);
-      b=desBlock(b,sk3,true);
+      b=desBlock(b,sk1,true);
       for(var j=0;j<8;j++)out[i+j]=b[j]^prev[j];
       prev=new Uint8Array(block);
     }else{
@@ -577,6 +578,12 @@ function __desSnap(){
         var e=els[i];
         var t=(e.type||'').toLowerCase();
         if(t==='button'||t==='submit'||t==='hidden') continue;
+        // 隐私：密钥、明文/密文与结果不写入本地历史，只保留输入长度。
+        if(e.id==='key'||e.id==='input'){
+            if(e.value) out[e.id==='key'?'密钥长度':'输入长度']=(e.value||'').length+' 字符（未存原文）';
+            continue;
+        }
+        if(e.id==='output') continue;
         var v=(t==='checkbox'||t==='radio')?(e.checked?'1':'0'):e.value;
         if(v!==''&&v!=null) out[e.id]=v;
     }

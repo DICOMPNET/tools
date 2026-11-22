@@ -112,6 +112,11 @@ const CASES = [
     expect: ["45.9 酷热指数 HI", "42.8 表观温度 AT", "极危险 致命中暑风险"],
     ref: "独立复算：T38/RH45/V5/kmh。Vms=5/3.6=1.389；HI(Rothfusz,T≥27&RH≥40)→45.9°C；WC(T>10)→null；AT(Steadman): e=0.45·6.105·exp(17.27·38/275.7)=29.7→AT=38+0.33·29.7-0.70·1.389-4.0=42.8；主参考 T≥27→HI=45.9→极危险。默认 T32/RH70/V2→HI 较低。"
   },
+  { slug: "meteorology/wind-direction",
+    inputs: { deg: "" },
+    expect: ["请填写风向角度后再计算。"],
+    ref: "角度留空：旧 num() 回退 0 静默输出 N；新增空值守卫后须提示。" },
+
   {
     slug: "meteorology/wind-direction",
     inputs: { deg: "135" },
@@ -184,6 +189,11 @@ const CASES = [
     expect: ["48.2 湿热指数 Humidex"],
     ref: "独立复算：T35/RH60。e=es(35)·0.6=33.96；Humidex=35+0.5555·(33.96−10)=48.2。默认 T30/RH70→≈40，不出现 48.2。"
   },
+  { slug: "meteorology/isa-temperature",
+    inputs: { h: "" },
+    expect: ["请填写海拔高度（0–20 km）后再计算。"],
+    ref: "海拔留空：旧代码按 0 km 输出海平面 15°C；新增守卫后须提示。" },
+
   {
     slug: "meteorology/isa-temperature",
     inputs: {"h": "12"},
@@ -214,6 +224,11 @@ const CASES = [
     expect: ["55.1 % 相对湿度 RH"],
     ref: "独立复算：T30/Td20。es(30)=42.46；es(20)=23.39；RH=23.39/42.46·100=55.1%。默认 T25/Td16.7→≈60，不出现 55.1 % 相对湿度 RH。"
   },
+  { slug: "meteorology/saturation-vapor-pressure",
+    inputs: { T: "" },
+    expect: ["请填写气温后再计算。"],
+    ref: "气温留空：旧 num() 回退 0 静默输出 0 ℃ 饱和水汽压；新增空值守卫后须提示。" },
+
   {
     slug: "meteorology/saturation-vapor-pressure",
     inputs: {"T": "35"},
@@ -502,12 +517,12 @@ const CASES = [
   {
     "slug": "meteorology/isa-temperature",
     "inputs": {
-      "h": "42"
+      "h": "5.5"
     },
     "expect": [
-      " (K) 0.995030"
+      "-20.8 °C 标准气温"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"h\":\"42\"}，输出区含「 (K) 0.995030」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "h=5.5 km（非默认 5）：T=15−6.5×5.5=−20.75→−20.8°C；原哨兵 42 超出新增 0–20 km 校验范围。"
   },
   {
     "slug": "meteorology/jiangshuigailvguji",
@@ -755,7 +770,37 @@ const CASES = [
       "降水强度不能为负数"
     ],
     "ref": "非法域：负降水强度无物理意义，旧实现按 mm<2.5 判「小雨」并输出 -120.00 的 24h 折算；现直接提示。默认 mm=12 ⇒ 不命中。"
-  }
+  },
+{
+  "slug": "meteorology/temp-pressure",
+  "inputs": {"temp": "-280", "rh": "60", "pres": "1013.25"},
+  "expect": ["⚠ 气温不能低于 −273.15 °C。"],
+  "ref": "绝对零度以下无物理意义，且 T→−243.04 会使 Magnus 分母归零；新守卫应拒绝。默认 25/60/1013.25 不含该提示。"
+},
+{
+  "slug": "meteorology/temp-pressure",
+  "inputs": {"temp": "-20", "rh": "20", "pres": "0.1"},
+  "expect": ["⚠ 气压必须大于实际水汽压"],
+  "ref": "0.1 hPa 低于水汽分压，pd=P−e 为负、密度失真；新守卫应提示检查输入。",
+},
+  {
+    "slug": "meteorology/heat-index",
+    "inputs": {"temp": "30", "rh": "120", "wind": "3"},
+    "expect": ["⚠ 相对湿度须在 0–100%，风速不能为负，气温不能低于 −273.15 °C。"],
+    "ref": "相对湿度 120% 无物理意义但仍按公式出体感值；新守卫应拒绝。默认温湿度不含该提示。"
+  },
+  {
+    "slug": "meteorology/risk-14",
+    "inputs": {"t": "35", "rh": "120", "v": "3", "p": "1013"},
+    "expect": ["⚠ 请完整填写气温、相对湿度、风速与气压；湿度须 0–100%、风速不得为负、气压须大于 0。"],
+    "ref": "湿度 120% 曾被静默压到 100 后仍出风险指数；新守卫应拒绝。默认 35/40/3/1013 不含该提示。"
+  },
+  {
+    "slug": "meteorology/temp",
+    "inputs": {"v0": "30", "v1": "120", "v2": "3"},
+    "expect": ["⚠ 相对湿度须在 0–100%，风速不能为负，气温不能低于 −273.15 °C。"],
+    "ref": "湿度 120% 曾被 Math.min 静默截断；新守卫应提示。默认 30/60/3 不含该提示。"
+  },
 
 ];
 

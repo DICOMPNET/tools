@@ -136,7 +136,7 @@ input,select,textarea { width:100%;padding:8px 10px;border:1px solid var(--borde
 <div class="nav">
   <a href="../../index.html">← ToolBox</a>
   <span>/ 营养计算器</span>
-  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()" aria-label="切换主题" title="切换主题" data-i18n-aria="nav.theme" data-i18n-title="nav.theme">🌙</button>
 </div>
 
 
@@ -179,7 +179,7 @@ input,select,textarea { width:100%;padding:8px 10px;border:1px solid var(--borde
           <option value="">-- 选择食物 --</option>
         </select>
         <input type="number" id="grams" placeholder="克数" min="0" step="10">
-        <button type="button" class="btn primary" style="padding:4px 10px;font-size:12px;" onclick="addFood()">+</button>
+        <button type="button" class="btn primary" style="padding:4px 10px;font-size:12px;" onclick="addFood()" aria-label="增加" data-i18n-aria="tool.aria.increase">+</button>
       </div>
       <div class="dish-input-list">
         <input type="text" id="customName" placeholder="自定义食物名" style="grid-column:span 2;">
@@ -401,7 +401,7 @@ function confirmCustom() {
   const fat = +document.getElementById('cFat').value;
   const carb = +document.getElementById('cCarb').value;
   if (!name) { ToolBox.showToast(i18nText('toast.msg616')); return; }
-  const grams = +document.getElementById('grams').value || 100;
+  const grams = document.getElementById('grams').value === '' ? 100 : +document.getElementById('grams').value;
   items.push({ name, grams, cal, protein, fat, carb });
   document.getElementById('cName').value = '';
   document.getElementById('cCal').value = '';
@@ -478,7 +478,12 @@ function render() {
 
   // 宏量分布
   const pCal = totalP * 4, fCal = totalF * 9, cCal = totalC * 4;
-  const total = pCal + fCal + cCal || 1;
+  const total = pCal + fCal + cCal;
+  if(total <= 0){
+    document.getElementById('macroBar').innerHTML = '<p style="font-size:13px;color:var(--text-muted);">蛋白质、脂肪、碳水均为 0，无法计算宏量占比。</p>';
+    document.getElementById('balanceTip').textContent = 'ℹ️ 暂无可计算的宏量营养素，请检查食物克数或营养数据';
+    return;
+  }
   const pPct = Math.round(pCal / total * 100);
   const fPct = Math.round(fCal / total * 100);
   const cPct = 100 - pPct - fPct;
@@ -573,9 +578,9 @@ document.addEventListener('DOMContentLoaded',function(){
       <span class="rt-icon">🍳</span>
       <span class="rt-info"><span class="rt-name">烹饪单位换算器</span><span class="rt-desc">在容量、重量、温度与食材克数间换算，并内置常见食材密度，用于食谱阅读、烘焙与跨单位烹饪的计量转换</span></span>
     </a>
-    <a href="convert-concentration.html" class="related-tool-card">
+    <a href="syrup-brix-converter.html" class="related-tool-card">
       <span class="rt-icon">🔄</span>
-      <span class="rt-info"><span class="rt-name">糖浆浓度换算（白利度）</span><span class="rt-desc">糖浆浓度换算器（白利度）。在白利度（Brix）、波美度与糖质量分数间换算，用于糖浆、果酱等糖制品的浓…</span></span>
+      <span class="rt-info"><span class="rt-name">糖浆浓度换算</span><span class="rt-desc">输入糖浆的白利度(Brix)、比重(SG)、波美度(°Bé)或折射率(RI)中任一值，转换为其余浓度…</span></span>
     </a>
   </div>
 </div>

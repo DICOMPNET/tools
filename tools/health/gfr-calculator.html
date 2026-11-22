@@ -133,7 +133,7 @@
 <div class="nav">
   <a href="../../index.html">← ToolBox</a>
   <span>/ GFR肾功能计算器</span>
-  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()" aria-label="切换主题" title="切换主题" data-i18n-aria="nav.theme" data-i18n-title="nav.theme">🌙</button>
 </div>
 
 
@@ -205,7 +205,7 @@
     <div class="result-box">
       <div style="text-align:center;padding:12px 0;">
         <div style="font-size:48px;font-weight:700;" id="gfrVal">--</div>
-        <div style="font-size:14px;color:var(--text-muted);margin-top:4px;">mL/min/1.73m²</div>
+        <div style="font-size:14px;color:var(--text-muted);margin-top:4px;" id="gfrUnit">mL/min/1.73m²</div>
         <div style="font-size:18px;font-weight:600;margin-top:8px;" id="gfrStage">--</div>
       </div>
       
@@ -384,7 +384,7 @@ CrCl = [(140 - 年龄) × 体重(kg) × 性别系数] / (72 × SCr)
 <h2>📚 深度解析：eGFR 肾功能计算器</h2>
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
-<li>体检血肌酐异常时，用 <a class="term-link" href="/tools/healthcare/egfr.html">eGFR 估算肾小球滤过率</a>，判断肾功能分期（G1–G5）。</li>
+<li>体检血肌酐异常时，用 eGFR 估算肾小球滤过率，判断肾功能分期（G1–G5）。</li>
 <li>慢性肾病(CKD)患者长期随访 eGFR 趋势，评估进展速度。</li>
 <li>用药前核对 eGFR 以调整经肾排泄药物的剂量（如抗生素、造影剂）。</li>
 </ul>
@@ -473,6 +473,7 @@ function calc() {
   function clearGfr(){
     var gv = document.getElementById('gfrVal'); if(gv){ gv.textContent='--'; gv.style.color=''; }
     var gs = document.getElementById('gfrStage'); if(gs){ gs.textContent='--'; gs.style.color=''; }
+    var gu = document.getElementById('gfrUnit'); if(gu){ gu.textContent='mL/min/1.73m²'; }
     var mk = document.getElementById('marker'); if(mk) mk.style.left='0%';
     document.getElementById('statsGrid').innerHTML='';
     var wi = document.getElementById('wtInfo'); if(wi) wi.innerHTML='';
@@ -498,7 +499,8 @@ function calc() {
   }
   
   gfr = Math.round(gfr);
-  const stage = getStage(gfr);
+  const stage = (formula === 'cockcroft') ? {stage:'CrCl：不套用 G1–G5 分期', desc:'用于药物剂量调整', color:'#64748b'} : getStage(gfr);
+  var unitEl = document.getElementById('gfrUnit'); if(unitEl) unitEl.textContent = (formula === 'cockcroft') ? 'mL/min（未按体表面积标准化）' : 'mL/min/1.73m²';
   
   const __g1=gfr;document.getElementById('gfrVal').textContent=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
   document.getElementById('gfrVal').style.color = stage.color;

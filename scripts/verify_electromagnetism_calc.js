@@ -56,6 +56,11 @@ const CASES = [
     ref: "V=k·q/r=8.98755e9·2e-6/4=4493.776 V" },
 
   { slug: "electromagnetism/electric-power",
+    inputs: { V: "12", I: "" },
+    expect: ["请填写电压与电流后再计算。"],
+    ref: "电流留空：旧 num() 回退 0 静默输出功率 0；新增空值守卫后须提示。" },
+
+  { slug: "electromagnetism/electric-power",
     inputs: { V: "24", I: "3.5" },
     expect: ["84.000", "0.0840"],
     ref: "P=V·I=24·3.5=84.000 W；84/1000=0.0840 kW" },
@@ -133,6 +138,11 @@ const CASES = [
     inputs: { L1: "3", L2: "6" },
     expect: ["2.0000", "0.5000"],
     ref: "L=1/(1/3+1/6)=2.0000 mH；总倒感=1/2=0.5000 1/mH" },
+
+  { slug: "electromagnetism/inductors-series",
+    inputs: { L1: "1", L2: "" },
+    expect: ["请填写两个电感值后再计算。"],
+    ref: "L₂ 留空：旧 num() 回退 0 使并联项除零为 Infinity；新增空值守卫后须提示。" },
 
   { slug: "electromagnetism/inductors-series",
     inputs: { L1: "3", L2: "5" },
@@ -426,7 +436,12 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"n\":\"42\",\"I\":\"42\"}，输出区含「强度 B (T) 2.217 B (mT) 5.2779e-5」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   }
 ,
-{ slug:"electromagnetism/ohms-law", inputs:{V:"",I:"",R:""}, expect:["请填写大于 0"], ref:"电压/电流/电阻全空时不得残留旧结果，须提示补填（OHMCLR）" }
+{ slug:"electromagnetism/ohms-law", inputs:{V:"",I:"",R:""}, expect:["请填写大于 0"], ref:"电压/电流/电阻全空时不得残留旧结果，须提示补填（OHMCLR）" },
+  { slug: "electromagnetism/force-wire-field", inputs: { B: "0.5", I: "10", L: "0.2", th: "270" }, expect: ["⚠ 请完整填写磁感应强度、电流、导线长度与夹角；前三项不能为负，夹角须在 0–180°。"], ref: "夹角 270° 无意义但 sin 仍给出 −1 倍力；新守卫应拒绝。默认 0.5/10/0.2/90→1.0000 不含该提示。" },
+  { slug: "electromagnetism/capacitors-series", inputs: { C1: "0", C2: "4" }, expect: ["⚠ 两只电容的容量都必须大于 0。"], ref: "C1=0 时 1/C1 为 Infinity，旧实现出 Infinity/0 结果；新守卫应拒绝。默认 2/2 不含该提示。" },
+  { slug: "electromagnetism/capacitors-parallel", inputs: { C1: "-2", C2: "4" }, expect: ["⚠ 两只电容的容量都必须大于 0。"], ref: "负电容会使并联等效变小；新守卫应拒绝。默认 10/22 不含该提示。" },
+  { slug: "electromagnetism/inductors-parallel", inputs: { L1: "-2", L2: "4" }, expect: ["⚠ 两只电感的感值都必须大于 0。"], ref: "负电感会使等效值变负；新守卫应拒绝。默认 2/4 不含该提示。" },
+
 ];
 
 

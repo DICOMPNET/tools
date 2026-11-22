@@ -82,6 +82,12 @@ const CASES = [
   "ref": "D-N94 示例回归：深解示例为「升+降全程 + 仅高血压 ⇒ Stanford A / DeBakey I / 急诊」，页面默认不预选范围（首屏显示「请选择夹层累及范围」）。clicks 读取结果区同时校验 Stanford A 与 DeBakey I，不选范围或分型错误均输出 FAIL。"
 },
 {
+  "slug": "cardiology/aspirin-prevention",
+  "inputs": { "age": "55", "ascvd": "15" },
+  "expect": [ "推荐考虑阿司匹林", "不随本例风险缩放" ],
+  "ref": "「高危净获益」预设年龄由 60 改为 55：旧预设 60 岁 + 风险 15% 会走 ≥60 岁 D 级「不推荐」，与预设名相反。55 岁低出血风险应推荐考虑，且绝对获益须标注为试验人群均值。"
+},
+{
   // 出血增量公式 + 50–59 岁个体化分支
   "slug": "cardiology/aspirin-prevention",
   "inputs": {
@@ -167,10 +173,10 @@ const CASES = [
   "slug": "cardiology/cardiac-rehab-mets",
   "inputs": {
     "mets": "8",
-    "weight": "70"
+    "weight": "70", "duration": "30"
   },
   "expect": [
-    "1960"
+    "1960", "240 METs·min"
   ],
   "ref": "auto-restore"
 },
@@ -495,6 +501,17 @@ const CASES = [
     "2/14"
   ],
   "ref": "auto-restore"
+},
+{
+  "slug": "cardiology/timi-score",
+  "inputs": {
+    "s_age": "3", "s_bp": "5", "s_killip": "2", "s_wt": "1"
+  },
+  "checkIds": ["s_anterior", "s_dm", "s_time"],
+  "expect": [
+    "14/14"
+  ],
+  "ref": "TIMI STEMI 满分为 14：年龄≥75(3)+SBP<100且HR>100(3+2)+Killip II–IV(2)+体重<67kg(1)+前壁/LBBB(1)+危险因素(1)+就诊>4h(1)=14。修复前 SBP/Killip/体重/前壁被低估，满分最多 11，页面却写死 /14。"
 },
 {
   "slug": "cardiology/echo-report",

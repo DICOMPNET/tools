@@ -13,7 +13,12 @@ const argv = process.argv.slice(2);
 const listArg = argv.find((a) => a.startsWith('--list='));
 const jsonArg = argv.find((a) => a.startsWith('--json='));
 if (!listArg) { console.error('usage: node scripts/_audit_stale_result.mjs --list=<file>'); process.exit(2); }
-const files = fs.readFileSync(listArg.slice(7), 'utf8').split('\n').map((s) => s.trim()).filter(Boolean);
+// 兼容站点绝对 URL 路径（/tools/...）：直接传绝对路径会让 existsSync 全 false，
+// 脚本静默跳过、仍打印「0 残留」——2026-11-20 曾因此造成 G10 假绿。
+const files = fs.readFileSync(listArg.slice(7), 'utf8').split('\n')
+  .map((s) => s.trim()).filter(Boolean)
+  .map((s) => (s.startsWith('/') ? '.' + s : s));
+if (!files.length) { console.error('样本清单为空，拒绝判定通过'); process.exit(2); }
 
 const anyStub = () => new Proxy({}, {
   get(t, k) { if (k === 'then') return undefined; return () => ({}); },
@@ -66,6 +71,18 @@ const ready = (w) => new Promise((res) => {
 
 const TEXTY = ['text', 'number', 'search', 'url', 'email', 'password', 'date', 'time', 'datetime-local', 'tel'];
 const norm = (s) => String(s || '').replace(/\s+/g, ' ').trim();
+// 隐藏的结果区（display:none / hidden 属性 / 祖先隐藏）等同已清空：
+// 大量页面接受「style.display='none'」作为清结果手段，旧版只看 textContent 会误判成残留。
+function visibleText(el) {
+  let cur = el;
+  while (cur && cur.nodeType === 1) {
+    if (cur.hidden) return '';
+    const st = cur.getAttribute && cur.getAttribute('style') || '';
+    if (/display\s*:\s*none|visibility\s*:\s*hidden/i.test(st)) return '';
+    cur = cur.parentElement;
+  }
+  return norm(el.textContent);
+}
 const ERRORISH = /请(输入|填写|选择|勾选|先)|无效|不合法|应在|不能为|必须|⚠|❌|失败|错误|Invalid|Please|must be/i;
 
 // 结果区候选：站点统一容器。最终取「真正随输入变化」的那个（见主循环），
@@ -93,8 +110,9 @@ function calcEntry(raw) {
 const rows = [];
 let skipNoBox = 0, skipNotResult = 0, pass = 0, stale = 0, err = 0;
 
+let missing = 0;
 for (const f of files) {
-  if (!fs.existsSync(f)) continue;
+  if (!fs.existsSync(f)) { missing++; continue; }
   const raw = fs.readFileSync(f, 'utf8');
   let dom;
   try { dom = build(raw, `https://x.test/${f}`); }
@@ -118,7 +136,7 @@ for (const f of files) {
     const orig = els.map((e) => e.value);
     const altOf = (v) => (/^-?\d+(\.\d+)?$/.test(v) ? String(parseFloat(v) * 2 || 7) : (v ? v + 'X' : '7'));
     const setAll = (fn) => { for (let i = 0; i < els.length; i++) els[i].value = fn(i, String(orig[i] || '')); };
-    const texts = () => cands.map((c) => norm(c.textContent));
+    const texts = () => cands.map((c) => visibleText(c));
 
     // 先取默认态，再全量改值：挑「文本真的变了」的容器作为结果区。
     setAll((i, v) => v); runCalc();
@@ -173,7 +191,12 @@ for (const f of files) {
 }
 
 console.log(`\n===== G10 审计（清空必填项后结果残留）=====`);
-console.log(`样本 ${files.length} / 残留 ${stale} / 正常 ${pass} / 无结果区 ${skipNoBox} / 结果区非结果 ${skipNotResult} / 异常 ${err}`);
+console.log(`样本 ${files.length} / 缺失 ${missing} / 残留 ${stale} / 正常 ${pass} / 无结果区 ${skipNoBox} / 结果区非结果 ${skipNotResult} / 异常 ${err}`);
+// 防空跑假绿：清单里的文件全部不存在时，不得打印「0 残留」当作通过。
+if (files.length - missing === 0) {
+  console.error('✗ 清单内文件全部不存在（路径口径错误），拒绝判定通过');
+  process.exit(2);
+}
 for (const r of rows.slice(0, 80)) {
   console.log(`${r.v.padEnd(5)} ${r.f}${r.fields ? '  ← 清空未失效: ' + r.fields.join(',') : ''}${r.why ? '  ! ' + r.why : ''}`);
 }

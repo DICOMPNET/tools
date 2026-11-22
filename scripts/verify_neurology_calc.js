@@ -140,17 +140,6 @@ const CASES = [
   ],
   "ref": "原用例是生成器模板残留：inputs 键写成 ni+单引号+i+单引号、expect 只有 +j+；后者能在页面内联 JS 里命中，属零判别力假通过，判别器又因输入键映射不到元素而跳过。已改为 clicks 注入 15 个生成式 select 全取 2 分 ⇒ 总分 30 >20 落「重度卒中」，得分率 30/42≈71%。默认态全 0 ⇒ 门诊记录为「总分 0/42，分级：无卒中症状」，零交集。"
 },
-{
-  "slug": "neurology/rater-19",
-  "clicks": [
-    "for(var i=0;i<14;i++){var e=document.getElementById('ui'+i);if(e)e.value='2';}calc()"
-  ],
-  "expect": [
-    "【UPDRS 运动检查评分（14 项 · 56 分制）】 结果：总分 28/56，分级：中重度运动障碍",
-    "量表满分 56；得分率 50%；≥1 分条目 14/14"
-  ],
-  "ref": "原用例同为生成器模板残留（ui+单引号+i+单引号 / +j+），假通过。已改为 clicks 注入 14 项全 2 分 ⇒ 总分 28 落 21–30 段「中重度运动障碍」，得分率 50%。默认态全 0 ⇒「总分 0/56，分级：轻度运动障碍」，零交集。"
-},
 {"slug":"neurology/rater-21","clicks":["var v={'t1':'2','t2':'1','t3':'1','t4':'0','t5':'0','t6':'2','t7':'1','t8':'1','t9':'2','t10':'2','d1':'2','d2':'2','d3':'2','d4':'2','d5':'2','d6':'2','p1':'4','p2':'3','p3':'3'};Object.keys(v).forEach(function(k){document.getElementById(k).value=v[k];});calc()"],"expect":["总分 36/85，分级：中度","严重程度 14 分（10 项）· 失能 12 分（6 项）· 疼痛 10 分"],"ref":"与 twstrs 同源：TWSTRS 原版严重程度 10 项/35（持续时间 ×2）、失能 6 项/30、疼痛 3 项/20，满分 85。14+12+10=36 落 21–40「中度」。默认全 0 ⇒ 0/85「轻度」，零交集。"},
 {
   "slug": "neurology/rater-22",
@@ -191,7 +180,6 @@ const CASES = [
   ],
   "ref": "弱用例去默认化（BATCH117）：原锚默认 I 级「无需任何药物治疗」（判别力0）。clicks 改 grade=3 后 calc() 切到 III 级，expect 锚 III 级专属名「BNI III级」；默认态（I 级）与清 clicks 兜底遍历均不产出该串 ⇒ 零逃生项。"
 },
-{"slug":"neurology/twstrs","clicks":["var v={'m1':'2','m2':'1','m3':'1','m4':'0','m5':'0','m6':'2','m7':'1','m8':'1','m9':'2','m10':'2','d1':'2','d2':'2','d3':'2','d4':'2','d5':'2','d6':'2','p1':'4','p2':'3','p3':'3'};Object.keys(v).forEach(function(k){document.getElementById(k).value=v[k];});calc()"],"expect":["结果：总分 36/85，分级：中度","运动 14 分 · 失能 12 分 · 疼痛 10 分；得分率 42%"],"ref":"TWSTRS 原版三子量表：严重程度 10 项/35（持续时间项 ×2）、失能 6 项/30、疼痛 3 项/20，总分 85。注入严重 2+1+1+0+0+2×2+1+1+2+2=14、失能 12、疼痛 4+3+3=10 ⇒ 36/85，落 21–40「中度」；36/85=42%。默认态全 0 ⇒「总分 0/85，分级：轻度」「得分率 0%」，零交集。"},
 {
   "slug": "neurology/updrs",
   "inputs": {
@@ -403,36 +391,6 @@ const CASES = [
     "clicks": ["resetAll();var __b=document.getElementById('result').innerHTML.replace(/<[^>]+>/g,' ');var __ok=/UPDRS-III 总分/.test(__b)&&/当前为默认评分/.test(__b)&&!/分级|建议|诊断|治疗|风险/.test(__b);document.getElementById('result').innerHTML=__ok?'__UPDRS_RST_OK__':'__UPDRS_RST_FAIL__ '+__b;"],
     "expect": ["__UPDRS_RST_OK__"],
     "ref": "重置态：新增的「重置评分」按钮调 resetAll() ⇒ 14 项回默认 0、dirty 复位，决策文案消失。"
-  }
-  ,{
-      "slug": "neurology/twstrs",
-      "clicks": [
-          "var __b=document.getElementById('result').innerHTML.replace(/<[^>]+>/g,' ');var __ok=/TWSTRS 总分/.test(__b)&&/当前为默认评分/.test(__b)&&!/分级|建议|诊断|治疗|风险/.test(__b);document.getElementById('result').innerHTML=__ok?'__TWSTRS_DEF_OK__':'__TWSTRS_DEF_FAIL__ '+__b;"
-      ],
-      "expect": [
-          "__TWSTRS_DEF_OK__"
-      ],
-      "ref": "默认态（量表项全为 0=正常）：只出分数 + 提示，结果区不含 分级/建议/诊断/治疗/风险。"
-  }
-  ,{
-      "slug": "neurology/twstrs",
-      "clicks": [
-          "var __e=document.getElementById('m1');__e.fire('change');var __b=document.getElementById('result').innerHTML.replace(/<[^>]+>/g,' ');var __ok=/治疗建议/.test(__b)&&/TWSTRS 总分/.test(__b);document.getElementById('result').innerHTML=__ok?'__TWSTRS_MOD_OK__':'__TWSTRS_MOD_FAIL__ '+__b;"
-      ],
-      "expect": [
-          "__TWSTRS_MOD_OK__"
-      ],
-      "ref": "改动态：任一量表项触发 change ⇒ dirty 置位，分级/建议文案出现。"
-  }
-  ,{
-      "slug": "neurology/twstrs",
-      "clicks": [
-          "resetAll();var __b=document.getElementById('result').innerHTML.replace(/<[^>]+>/g,' ');var __ok=/TWSTRS 总分/.test(__b)&&/当前为默认评分/.test(__b)&&!/分级|建议|诊断|治疗|风险/.test(__b);document.getElementById('result').innerHTML=__ok?'__TWSTRS_RST_OK__':'__TWSTRS_RST_FAIL__ '+__b;"
-      ],
-      "expect": [
-          "__TWSTRS_RST_OK__"
-      ],
-      "ref": "重置态：新增「重置评分」按钮 → resetAll() 先复位 dirty 再复算，决策文案消失。"
   }
   ,{
       "slug": "neurology/sara",

@@ -147,7 +147,7 @@
 | https://tools.dicomp.net/tools/economics/pv-annuity.html | https://tools.dicomp.net/tools/insurance/annuity-present.html | 2026-11-14 | 2026-12-14 | 保留期内 | 简体+繁体各 1 页 |
 | https://tools.dicomp.net/tools/edu/generator-4.html | https://tools.dicomp.net/tools/it/summary-generator.html | 2026-11-14 | 2026-12-14 | 保留期内 | 简体+繁体各 1 页 |
 | https://tools.dicomp.net/tools/energy/electrical-power.html | https://tools.dicomp.net/tools/electromagnetism/electric-power.html | 2026-11-14 | 2026-12-14 | 保留期内 | 简体+繁体各 1 页 |
-| https://tools.dicomp.net/tools/finance/password.html | https://tools.dicomp.net/tools/life/generator-strength.html | 2026-11-14 | 2026-12-14 | 保留期内 | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/finance/password.html | https://tools.dicomp.net/tools/it/password-generator.html | 2026-11-14 | 2026-12-14 | 保留期内 | 简体+繁体各 1 页 |
 | https://tools.dicomp.net/tools/finance/word-counter.html | https://tools.dicomp.net/tools/text/stats-1.html | 2026-11-14 | 2026-12-14 | 保留期内 | 简体+繁体各 1 页 |
 | https://tools.dicomp.net/tools/fitness/calculator-calc-constitution.html | https://tools.dicomp.net/tools/healthcare/bmi-calculator.html | 2026-11-14 | 2026-12-14 | 保留期内 | 简体+繁体各 1 页 |
 | https://tools.dicomp.net/tools/hr/overtime-pay-calc.html | https://tools.dicomp.net/tools/legal/overtime-pay.html | 2026-11-14 | 2026-12-14 | 保留期内 | 简体+繁体各 1 页 |
@@ -165,3 +165,260 @@
 | https://tools.dicomp.net/tools/science/factorial-calculator.html | https://tools.dicomp.net/tools/math/factorial-calc.html | 2026-11-14 | 2026-12-14 | 保留期内 | 简体+繁体各 1 页 |
 | https://tools.dicomp.net/tools/science/range-calculator.html | https://tools.dicomp.net/tools/statistics/range-stat.html | 2026-11-14 | 2026-12-14 | 保留期内 | 简体+繁体各 1 页 |
 | https://tools.dicomp.net/tools/statistics/variance-list.html | https://tools.dicomp.net/tools/statistics/sample-variance.html | 2026-11-14 | 2026-12-14 | 保留期内 | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/cosmetic-derm/time-23.html | https://tools.dicomp.net/tools/cosmetic-derm/post-procedure-recovery.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/cosmetic-derm/area-12.html | https://tools.dicomp.net/tools/cosmetic-derm/telangiectasia-area.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/cosmetic-derm/maokongcudafenji.html | https://tools.dicomp.net/tools/cosmetic-derm/pore-grading.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/cosmetic-derm/pifuphceding.html | https://tools.dicomp.net/tools/cosmetic-derm/skin-ph.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/cosmetic-derm/formula-1.html | https://tools.dicomp.net/tools/cosmetic-derm/meso-cocktail.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/cosmetic-derm/ratio-composition-injection.html | https://tools.dicomp.net/tools/cosmetic-derm/mesotherapy.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/life/date-diff.html | https://tools.dicomp.net/tools/life/date-difference-calculator.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/sports/youyonghuashuixiaolv-swolf.html | https://tools.dicomp.net/tools/sports/swimming-stroke-efficiency.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/psychiatry/lsas-social.html | https://tools.dicomp.net/tools/psychiatry/rater-23.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/clinical-nursing/braden-score.html | https://tools.dicomp.net/tools/clinical-nursing/calc-rater-risk.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/finance/calc-2.html | https://tools.dicomp.net/tools/finance/irr-calculator.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/dentistry/rater-risk-2.html | https://tools.dicomp.net/tools/dentistry/caries-risk.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/pediatrics/xinshengerhuangdan-xiaoshidanhongsu-quxian.html | https://tools.dicomp.net/tools/pediatrics/neonatal-jaundice.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/clinical-nursing/convert-flow-concentration.html | https://tools.dicomp.net/tools/clinical-nursing/oxygen-concentration.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/hematology/pnh-flow.html | https://tools.dicomp.net/tools/hematology/detector-5.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/finance/calc-3.html | https://tools.dicomp.net/tools/finance/npv-calculator.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/clinical-nursing/morse-score.html | https://tools.dicomp.net/tools/clinical-nursing/assessor-rater-risk.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/clinical-nursing/generator-pressure.html | https://tools.dicomp.net/tools/clinical-nursing/pressure-injury-description.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/hematology/generator-analysis.html | https://tools.dicomp.net/tools/hematology/thrombin-generation.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/food-testing/generator-27.html | https://tools.dicomp.net/tools/food-testing/colony-count.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/obstetrics/calc-risk.html | https://tools.dicomp.net/tools/obstetrics/down-screening.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/tcm-pharmacy/calc-time-concentration.html | https://tools.dicomp.net/tools/tcm-pharmacy/medicinal-wine.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/food-testing/convert-37.html | https://tools.dicomp.net/tools/food-testing/protein-kjeldahl.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/fishery/calc-power.html | https://tools.dicomp.net/tools/fishery/winter-heating.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/dentistry/assessor-5.html | https://tools.dicomp.net/tools/dentistry/zirconia-aesthetics.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/clinical-nursing/surgical-position-risk.html | https://tools.dicomp.net/tools/clinical-nursing/assessor-pressure-risk.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/hematology/mpn-scoring.html | https://tools.dicomp.net/tools/hematology/rater-5.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/obstetrics/kupperman-score.html | https://tools.dicomp.net/tools/obstetrics/rater-26.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/endocrinology/sex-hormone-cycle.html | https://tools.dicomp.net/tools/endocrinology/cycle-hormone.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/agriculture/calc-7.html | https://tools.dicomp.net/tools/agriculture/fertigation-ratio.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/hvac/kongtiaolengfuhejisuan.html | https://tools.dicomp.net/tools/hvac/cooling-load.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/construction/calc-6.html | https://tools.dicomp.net/tools/construction/window-shading.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/optical/aspheric-design.html | https://tools.dicomp.net/tools/optical/calc-47.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/pulmonology/calc-48.html | https://tools.dicomp.net/tools/pulmonology/oxygenation-index.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/rheumatology/assessor-10.html | https://tools.dicomp.net/tools/rheumatology/essdai.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/rheumatology/rater-16.html | https://tools.dicomp.net/tools/rheumatology/sledai.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/neurology/twstrs.html | https://tools.dicomp.net/tools/neurology/rater-21.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/psychiatry/cdrisc-resilience.html | https://tools.dicomp.net/tools/psychiatry/rater-24.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/psychiatry/asrs-adhd.html | https://tools.dicomp.net/tools/psychiatry/self-assess-4.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/pulmonology/feigongneng-fev1-fvc-fenji.html | https://tools.dicomp.net/tools/pulmonology/pulmonary-function.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/obstetrics/placenta-grading.html | https://tools.dicomp.net/tools/obstetrics/taipanchengshudu-grannumfenji.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/ophthalmology/osdi-scale.html | https://tools.dicomp.net/tools/ophthalmology/self-assess-2.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/rehabilitation/berg-balance-scale.html | https://tools.dicomp.net/tools/rehabilitation/tester-rater.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/gastroenterology/hp-resistance.html | https://tools.dicomp.net/tools/gastroenterology/detector-7.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/urology/iief5-score.html | https://tools.dicomp.net/tools/urology/rater-4.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/neurology/rater-19.html | https://tools.dicomp.net/tools/neurology/updrs.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/nephrology/aki-kdigo.html | https://tools.dicomp.net/tools/nephrology/jixingshensunshang-kdigo-fenqi.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/rheumatology/detector-8.html | https://tools.dicomp.net/tools/rheumatology/lupus-anticoagulant.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/finance/salary-after-tax.html | https://tools.dicomp.net/tools/finance/salary-calculator.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/automotive/tire-wear.html | https://tools.dicomp.net/tools/automotive/estimate-wear-tire.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/it/regex-common.html | https://tools.dicomp.net/tools/it/regex-cheatsheet.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/automotive/oil-change-countdown.html | https://tools.dicomp.net/tools/automotive/countdown-engine-oil.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/automotive/maintenance-schedule.html | https://tools.dicomp.net/tools/automotive/scheduler-cycle-maintenance.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/fishery/feed-rate-calculator.html | https://tools.dicomp.net/tools/fishery/feeding-rate.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/agriculture/convert-content-1.html | https://tools.dicomp.net/tools/agriculture/dry-matter-conversion.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/eco/noise-addition.html | https://tools.dicomp.net/tools/eco/noise-superposition.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/design/shadow-generator.html | https://tools.dicomp.net/tools/design/css-box-shadow-generator.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/it/html-entity-encoder.html | https://tools.dicomp.net/tools/it/html-entities-encode.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/it/whitespace.html | https://tools.dicomp.net/tools/it/text-cleaner.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/it/calc-3.html | https://tools.dicomp.net/tools/it/color-converter.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/ai/token.html | https://tools.dicomp.net/tools/ai/token-usage.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/elderly/medication-schedule.html | https://tools.dicomp.net/tools/elderly/reminder-time.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/acoustics/spl-add.html | https://tools.dicomp.net/tools/acoustics/combine-two-spl.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/acoustics/decibel-power.html | https://tools.dicomp.net/tools/acoustics/decibel-power-ratio.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/acoustics/decibel-voltage.html | https://tools.dicomp.net/tools/acoustics/decibel-voltage-ratio.html | 2026-11-21 | 2026-12-21 | 保留期内 | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/guides/convert-content-1-guide.html | https://tools.dicomp.net/guides/dry-matter-conversion-guide.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至dry-matter-conversion 使用指南 |
+| https://tools.dicomp.net/guides/generator-4-guide.html | https://tools.dicomp.net/tools/it/summary-generator.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至摘要生成器工具页 |
+| https://tools.dicomp.net/guides/variance-list-guide.html | https://tools.dicomp.net/guides/sample-variance-guide.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至sample-variance 使用指南 |
+| https://tools.dicomp.net/guides/period-pendulum-guide.html | https://tools.dicomp.net/guides/pendulum-period-guide.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至pendulum-period 使用指南 |
+| https://tools.dicomp.net/guides/annuity-pv-inv-guide.html | https://tools.dicomp.net/guides/annuity-present-guide.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至annuity-present 使用指南 |
+| https://tools.dicomp.net/guides/twstrs-guide.html | https://tools.dicomp.net/guides/rater-21-guide.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至rater-21 使用指南 |
+| https://tools.dicomp.net/guides/rater-19-guide.html | https://tools.dicomp.net/guides/updrs-guide.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至updrs 使用指南 |
+| https://tools.dicomp.net/guides/sex-hormone-cycle-guide.html | https://tools.dicomp.net/guides/cycle-hormone-guide.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至cycle-hormone 使用指南 |
+| https://tools.dicomp.net/guides/feigongneng-fev1-fvc-fenji-guide.html | https://tools.dicomp.net/guides/pulmonary-function-guide.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至pulmonary-function 使用指南 |
+| https://tools.dicomp.net/guides/calc-48-guide.html | https://tools.dicomp.net/guides/oxygenation-index-guide.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至oxygenation-index 使用指南 |
+| https://tools.dicomp.net/guides/intensity-level-guide.html | https://tools.dicomp.net/tools/acoustics/sound-intensity-level.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至声强级（L_I = 10·log₁₀(I / I₀)）工具页 |
+| https://tools.dicomp.net/guides/decibel-voltage-guide.html | https://tools.dicomp.net/tools/acoustics/decibel-voltage-ratio.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至电压分贝（L = 20·log₁₀(V / V₀)）工具页 |
+| https://tools.dicomp.net/guides/decibel-power-guide.html | https://tools.dicomp.net/tools/acoustics/decibel-power-ratio.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至功率分贝（L = 10·log₁₀(P / P₀)）工具页 |
+| https://tools.dicomp.net/guides/spl-add-guide.html | https://tools.dicomp.net/tools/acoustics/combine-two-spl.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至两声压级叠加（L = 10·log₁₀(10^(L₁/10)+10^(L₂/10))）工具页 |
+| https://tools.dicomp.net/guides/calc-power-guide.html | https://tools.dicomp.net/guides/winter-heating-guide.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至winter-heating 使用指南 |
+| https://tools.dicomp.net/guides/medication-schedule-guide.html | https://tools.dicomp.net/tools/elderly/reminder-time.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至用药提醒表工具页 |
+| https://tools.dicomp.net/guides/factorial-calculator-guide.html | https://tools.dicomp.net/guides/factorial-calc-guide.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至factorial-calc 使用指南 |
+| https://tools.dicomp.net/guides/kongtiaolengfuhejisuan-guide.html | https://tools.dicomp.net/guides/cooling-load-guide.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至cooling-load 使用指南 |
+| https://tools.dicomp.net/guides/convert-37-guide.html | https://tools.dicomp.net/guides/protein-kjeldahl-guide.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至protein-kjeldahl 使用指南 |
+| https://tools.dicomp.net/guides/generator-27-guide.html | https://tools.dicomp.net/guides/colony-count-guide.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至colony-count 使用指南 |
+| https://tools.dicomp.net/guides/kupperman-score-guide.html | https://tools.dicomp.net/guides/rater-26-guide.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至rater-26 使用指南 |
+| https://tools.dicomp.net/guides/placenta-grading-guide.html | https://tools.dicomp.net/guides/taipanchengshudu-grannumfenji-guide.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至taipanchengshudu-grannumfenji 使用指南 |
+| https://tools.dicomp.net/guides/calc-risk-guide.html | https://tools.dicomp.net/guides/down-screening-guide.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至down-screening 使用指南 |
+| https://tools.dicomp.net/guides/noise-addition-guide.html | https://tools.dicomp.net/guides/noise-superposition-guide.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至noise-superposition 使用指南 |
+| https://tools.dicomp.net/guides/detector-strength-guide.html | https://tools.dicomp.net/tools/it/password-strength.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至密码强度检测工具页 |
+| https://tools.dicomp.net/guides/aspheric-design-guide.html | https://tools.dicomp.net/guides/calc-47-guide.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至calc-47 使用指南 |
+| https://tools.dicomp.net/guides/pet-age-converter-guide.html | https://tools.dicomp.net/guides/pet-age-guide.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至pet-age 使用指南 |
+| https://tools.dicomp.net/guides/token-guide.html | https://tools.dicomp.net/guides/token-usage-guide.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至token-usage 使用指南 |
+| https://tools.dicomp.net/guides/calculator-calc-due-date-guide.html | https://tools.dicomp.net/guides/pregnancy-due-date-guide.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至pregnancy-due-date 使用指南 |
+| https://tools.dicomp.net/guides/overtime-pay-calc-guide.html | https://tools.dicomp.net/guides/overtime-pay-guide.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至overtime-pay 使用指南 |
+| https://tools.dicomp.net/guides/pv-annuity-guide.html | https://tools.dicomp.net/guides/annuity-present-guide.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至annuity-present 使用指南 |
+| https://tools.dicomp.net/guides/salary-after-tax-guide.html | https://tools.dicomp.net/tools/finance/salary-calculator.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至工资税后计算器工具页 |
+| https://tools.dicomp.net/guides/calculator-calc-constitution-guide.html | https://tools.dicomp.net/guides/bmi-calculator-guide.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至bmi-calculator 使用指南 |
+| https://tools.dicomp.net/guides/osdi-scale-guide.html | https://tools.dicomp.net/guides/self-assess-2-guide.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至self-assess-2 使用指南 |
+| https://tools.dicomp.net/guides/morse-score-guide.html | https://tools.dicomp.net/guides/assessor-rater-risk-guide.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至assessor-rater-risk 使用指南 |
+| https://tools.dicomp.net/guides/surgical-position-risk-guide.html | https://tools.dicomp.net/guides/assessor-pressure-risk-guide.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至assessor-pressure-risk 使用指南 |
+| https://tools.dicomp.net/guides/braden-score-guide.html | https://tools.dicomp.net/guides/calc-rater-risk-guide.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至calc-rater-risk 使用指南 |
+| https://tools.dicomp.net/guides/generator-pressure-guide.html | https://tools.dicomp.net/guides/pressure-injury-description-guide.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至pressure-injury-description 使用指南 |
+| https://tools.dicomp.net/guides/convert-flow-concentration-guide.html | https://tools.dicomp.net/guides/oxygen-concentration-guide.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至oxygen-concentration 使用指南 |
+| https://tools.dicomp.net/guides/assessor-5-guide.html | https://tools.dicomp.net/guides/zirconia-aesthetics-guide.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至zirconia-aesthetics 使用指南 |
+| https://tools.dicomp.net/guides/rater-risk-2-guide.html | https://tools.dicomp.net/guides/caries-risk-guide.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至caries-risk 使用指南 |
+| https://tools.dicomp.net/guides/formula-1-guide.html | https://tools.dicomp.net/guides/meso-cocktail-guide.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至meso-cocktail 使用指南 |
+| https://tools.dicomp.net/guides/maokongcudafenji-guide.html | https://tools.dicomp.net/guides/pore-grading-guide.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至pore-grading 使用指南 |
+| https://tools.dicomp.net/guides/pifuphceding-guide.html | https://tools.dicomp.net/tools/cosmetic-derm/skin-ph.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至皮肤pH测定工具页 |
+| https://tools.dicomp.net/guides/ratio-composition-injection-guide.html | https://tools.dicomp.net/tools/cosmetic-derm/mesotherapy.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至水光针配比计算工具页 |
+| https://tools.dicomp.net/guides/time-23-guide.html | https://tools.dicomp.net/guides/post-procedure-recovery-guide.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至post-procedure-recovery 使用指南 |
+| https://tools.dicomp.net/guides/area-12-guide.html | https://tools.dicomp.net/guides/telangiectasia-area-guide.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至telangiectasia-area 使用指南 |
+| https://tools.dicomp.net/guides/mpn-scoring-guide.html | https://tools.dicomp.net/guides/rater-5-guide.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至rater-5 使用指南 |
+| https://tools.dicomp.net/guides/pnh-flow-guide.html | https://tools.dicomp.net/guides/detector-5-guide.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至detector-5 使用指南 |
+| https://tools.dicomp.net/guides/generator-analysis-guide.html | https://tools.dicomp.net/guides/thrombin-generation-guide.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至thrombin-generation 使用指南 |
+| https://tools.dicomp.net/guides/calc-7-guide.html | https://tools.dicomp.net/tools/agriculture/fertigation-ratio.html | 2026-11-21 | 2026-12-21 | 保留期内 | 指南重定向至水肥配比工具页 |
+| https://tools.dicomp.net/guides/math-calc-2-guide.html | https://tools.dicomp.net/tools/math/calc-2.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/feeding-amount-guide.html | https://tools.dicomp.net/tools/pet/pet-feeding-calc.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/edu-calc-2-guide.html | https://tools.dicomp.net/tools/edu/calc-2.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/estimate-40-guide.html | https://tools.dicomp.net/tools/legal/work-injury-compensation.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/stats-report-frequency-guide.html | https://tools.dicomp.net/tools/safety/accident-stats.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/legal-calc-8-guide.html | https://tools.dicomp.net/tools/tax/calc-8.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/calorie-calculator-guide.html | https://tools.dicomp.net/tools/food/food-calorie-counter.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/ophthalmology-calc-1-guide.html | https://tools.dicomp.net/tools/ophthalmology/calc-1.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/geology-calc-1-guide.html | https://tools.dicomp.net/tools/geology/calc-1.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/carbon-ratio-guide.html | https://tools.dicomp.net/tools/fitness/macro-ratio.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/analysis-10-guide.html | https://tools.dicomp.net/tools/acupuncture/cupping-mark-analysis.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/insurance-calc-1-guide.html | https://tools.dicomp.net/tools/insurance/calc-1.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/fitness-calc-5-guide.html | https://tools.dicomp.net/tools/fitness/calc-5.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/speed-cutting-feed-guide.html | https://tools.dicomp.net/tools/mechanical/cutting-speed.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/cardiology-calc-3-guide.html | https://tools.dicomp.net/tools/cardiology/calc-3.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/analysis-15-guide.html | https://tools.dicomp.net/tools/forensic-medicine/fall-injury.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/area-shared-guide.html | https://tools.dicomp.net/tools/property/shared-area.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/stats-5-guide.html | https://tools.dicomp.net/tools/insurance/loss-ratio.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/kouling-shoushichongfucishuyujiyiquxian-guide.html | https://tools.dicomp.net/tools/pet-training/command-repetition.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/base64-guide.html | https://tools.dicomp.net/tools/it/base64-converter.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/surveying-calc-1-guide.html | https://tools.dicomp.net/tools/surveying/calc-1.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/voltage-current-guide.html | https://tools.dicomp.net/tools/welding/speed-voltage-current.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/convert-rehab-guide.html | https://tools.dicomp.net/tools/cardiology/cardiac-rehab-mets.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/color-blindness-sim-guide.html | https://tools.dicomp.net/tools/design/colorblind-simulator.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/analysis-8-guide.html | https://tools.dicomp.net/tools/clinical-lab/blood-gas-analysis.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/health-calc-1-guide.html | https://tools.dicomp.net/tools/health/calc-1.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/hematology-calc-1-guide.html | https://tools.dicomp.net/tools/hematology/calc-1.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/qiege-denglizi-huoyan-shuidao-canshu-guide.html | https://tools.dicomp.net/tools/electrical/speed-9.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/dentistry-calc-1-guide.html | https://tools.dicomp.net/tools/dentistry/calc-1.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/gradient-generator-guide.html | https://tools.dicomp.net/tools/design/gradient.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/marketing-calc-1-guide.html | https://tools.dicomp.net/tools/marketing/calc-1.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/quetie-juyou-rongxue-shiyanshijianbie-guide.html | https://tools.dicomp.net/tools/hematology/anemia-differential.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/estimate-analysis-1-guide.html | https://tools.dicomp.net/tools/food-processing/residual-oxygen.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/analysis-12-guide.html | https://tools.dicomp.net/tools/ophthalmology/visual-field-analysis.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/pet-age-convert-guide.html | https://tools.dicomp.net/tools/pet/pet-age.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/estimate-20-guide.html | https://tools.dicomp.net/tools/insurance/surrender-value.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/accounting-calc-2-guide.html | https://tools.dicomp.net/tools/accounting/calc-2.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/fitness-calc-2-guide.html | https://tools.dicomp.net/tools/fitness/calc-2.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/it-bayes-theorem-guide.html | https://tools.dicomp.net/tools/it/bayes-theorem.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/photography-exposure-guide.html | https://tools.dicomp.net/tools/photo/calc-exposure-aperture.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/analysis-strength-market-share-guide.html | https://tools.dicomp.net/tools/marketing/market-share.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/color-contrast-check-guide.html | https://tools.dicomp.net/tools/design/contrast-checker.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/it-margin-of-error-guide.html | https://tools.dicomp.net/tools/it/margin-of-error.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/encode-calc-1-guide.html | https://tools.dicomp.net/tools/encode/calc-1.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/neurology-calc-1-guide.html | https://tools.dicomp.net/tools/neurology/calc-1.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/maze-generator-guide.html | https://tools.dicomp.net/tools/fun/generator-3.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/cardiology-calc-1-guide.html | https://tools.dicomp.net/tools/cardiology/calc-1.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/feed-rate-calculator-guide.html | https://tools.dicomp.net/tools/fishery/feeding-rate.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/estimate-12-guide.html | https://tools.dicomp.net/tools/legal/labor-compensation.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/realestate-calc-2-guide.html | https://tools.dicomp.net/tools/finance/rental-yield-calculator.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/health-calc-3-guide.html | https://tools.dicomp.net/tools/health/calc-3.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/html-entity-encoder-guide.html | https://tools.dicomp.net/guides/cluster-encode.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/capacity-fps-guide.html | https://tools.dicomp.net/tools/photo2/video-storage.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/stats-report-attendance-guide.html | https://tools.dicomp.net/tools/hr/attendance-stats.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/gonggao-fuweiyutaiertizhong-hadlock-guide.html | https://tools.dicomp.net/tools/obstetrics/fetal-weight-hadlock.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/construction-calc-5-guide.html | https://tools.dicomp.net/tools/construction/calc-5.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/it-confidence-interval-guide.html | https://tools.dicomp.net/tools/it/confidence-interval.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/kouqiangai-tnm-shaichagongju-guide.html | https://tools.dicomp.net/tools/dentistry/oral-cancer-screening.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/zaoyin-shengya-pinpu-jiangzao-yugu-guide.html | https://tools.dicomp.net/tools/eco/noise-superposition.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/encode-calc-2-guide.html | https://tools.dicomp.net/tools/encode/calc-2.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/fitness-calc-4-guide.html | https://tools.dicomp.net/tools/fitness/calc-4.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/analysis-4-guide.html | https://tools.dicomp.net/tools/fun/blood-type-personality.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/rayleigh-resolution-guide.html | https://tools.dicomp.net/tools/optics/rayleigh-criterion.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/calc-pv-1-guide.html | https://tools.dicomp.net/tools/realestate/pv.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/recommender-temp-pottery-guide.html | https://tools.dicomp.net/tools/ceramics/ceramic-firing.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/analysis-tester-rhythm-guide.html | https://tools.dicomp.net/tools/fun/typing-rhythm.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/analysis-14-guide.html | https://tools.dicomp.net/tools/pulmonology/tb-resistance.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/construction-calc-6-guide.html | https://tools.dicomp.net/tools/construction/calc-6.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/specific-activity-from-halflife-guide.html | https://tools.dicomp.net/tools/nuclear/specific-activity.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/falvwenshuguanjiancizidongtiqu-guide.html | https://tools.dicomp.net/tools/legal2/keyword-extract.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/realestate-calc-1-guide.html | https://tools.dicomp.net/tools/realestate/calc-1.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/analysis-9-guide.html | https://tools.dicomp.net/tools/clinical-lab/electrophoresis-analysis.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/analysis-density-2-guide.html | https://tools.dicomp.net/tools/clinical-lab/semen-analysis.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/math-calc-3-guide.html | https://tools.dicomp.net/tools/math/calc-3.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/estimate-analysis-guide.html | https://tools.dicomp.net/tools/agriculture/canopy-coverage.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/falv-yijian-han-beiwanglu-bianxie-guide.html | https://tools.dicomp.net/tools/legal/generator-17.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/length-3-guide.html | https://tools.dicomp.net/tools/dentistry/dental-arch-development.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/edu-calc-3-guide.html | https://tools.dicomp.net/tools/edu/calc-3.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/inelastic-collision-guide.html | https://tools.dicomp.net/tools/dynamics/momentum-conservation.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/banjin-jianzhe-chongya-maohan-gongyi-guide.html | https://tools.dicomp.net/tools/metalwork/sheet-bend.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/oil-change-countdown-guide.html | https://tools.dicomp.net/tools/automotive/countdown-engine-oil.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/marketing-marketing-ltv-calculator-guide.html | https://tools.dicomp.net/tools/marketing/marketing-ltv-calculator.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/mobian-jianbian-pingbian-guige-guide.html | https://tools.dicomp.net/tools/optical/edge-bevel.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/sudoku-generator-guide.html | https://tools.dicomp.net/tools/fun/generator-2.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/wenbenquzhong-paixu-fanzhuan-guide.html | https://tools.dicomp.net/tools/it/text-dedupe-sort.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/healthcare-morse-guide.html | https://tools.dicomp.net/tools/healthcare/morse.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/laugh-generator-guide.html | https://tools.dicomp.net/tools/fun/generator-laugh.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/accounting-calc-1-guide.html | https://tools.dicomp.net/tools/accounting/calc-1.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/analysis-11-guide.html | https://tools.dicomp.net/tools/dentistry/bridge-span.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/securities-calc-1-guide.html | https://tools.dicomp.net/tools/securities/calc-1.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/caishuzi-1-100fanwei-guide.html | https://tools.dicomp.net/tools/fun/number-guess.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/stats-6-guide.html | https://tools.dicomp.net/tools/reproductive-medicine/ivf-statistics.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/text-compare-guide.html | https://tools.dicomp.net/tools/it/text-diff.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/electrical-power-guide.html | https://tools.dicomp.net/tools/electromagnetism/electric-power.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/convert-speed-stride-guide.html | https://tools.dicomp.net/tools/fitness/step-stride.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/stats-blink-guide.html | https://tools.dicomp.net/tools/fun/blink-counter.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/noise-1-guide.html | https://tools.dicomp.net/tools/eco/noise-superposition.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/edu-calc-4-guide.html | https://tools.dicomp.net/tools/edu/calc-4.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/health-calc-2-guide.html | https://tools.dicomp.net/tools/health/calc-2.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/convert-ref-cite-guide.html | https://tools.dicomp.net/tools/library/citation-format.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/ranking-guide.html | https://tools.dicomp.net/tools/edu2/exam-analysis.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/slope-4-guide.html | https://tools.dicomp.net/tools/road/grade-calc.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/it-keyword-density-guide.html | https://tools.dicomp.net/tools/it/keyword-density.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/math-calc-4-guide.html | https://tools.dicomp.net/tools/math/calc-4.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/succulent-watering-guide.html | https://tools.dicomp.net/tools/gardening/reminder-cycle-succulent.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/budget-planner-guide.html | https://tools.dicomp.net/tools/funeral/funeral-budget-planner.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/distance-4-guide.html | https://tools.dicomp.net/tools/surveying/horizontal-from-slope.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/math-calc-1-guide.html | https://tools.dicomp.net/tools/life/percentage-calculator.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/construction-calc-1-guide.html | https://tools.dicomp.net/tools/construction/calc-1.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/convert-sample-guide.html | https://tools.dicomp.net/tools/audio/audio-sample-rate.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/stats-guide.html | https://tools.dicomp.net/tools/edu/essay-word-counter.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/date-diff-guide.html | https://tools.dicomp.net/tools/life/date-difference-calculator.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/convert-fps-guide.html | https://tools.dicomp.net/tools/video/video-fps.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/fitness-calc-3-guide.html | https://tools.dicomp.net/tools/fitness/calc-3.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/qiaoliang-qiaodun-zhizuo-hezai-guide.html | https://tools.dicomp.net/tools/bridge/load-calc.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/analysis-conversion-recruit-guide.html | https://tools.dicomp.net/tools/hr/recruitment-funnel.html | 2026-11-21 | 2026-12-21 | 保留期内 | 孤儿指南重定向 |
+| https://tools.dicomp.net/guides/ocr-guide.html | https://tools.dicomp.net/tools/ai/index.html | 2026-11-21 | 2026-12-21 | 保留期内 | 无对应工具的AI指南重定向至AI工具分类 |
+| https://tools.dicomp.net/guides/image-classification-guide.html | https://tools.dicomp.net/tools/ai/index.html | 2026-11-21 | 2026-12-21 | 保留期内 | 无对应工具的AI指南重定向至AI工具分类 |
+| https://tools.dicomp.net/guides/sentiment-analysis-guide.html | https://tools.dicomp.net/tools/ai/index.html | 2026-11-21 | 2026-12-21 | 保留期内 | 无对应工具的AI指南重定向至AI工具分类 |
+| https://tools.dicomp.net/guides/text-summarization-guide.html | https://tools.dicomp.net/tools/ai/index.html | 2026-11-21 | 2026-12-21 | 保留期内 | 无对应工具的AI指南重定向至AI工具分类 |
+| https://tools.dicomp.net/guides/speech-to-text-guide.html | https://tools.dicomp.net/tools/ai/index.html | 2026-11-21 | 2026-12-21 | 保留期内 | 无对应工具的AI指南重定向至AI工具分类 |
+| https://tools.dicomp.net/tools/fire-rescue/calc-4.html | https://tools.dicomp.net/tools/fire/extinguisher-calc.html | 2026-11-22 | 2026-12-22 | 保留期内 | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/transport/estimate-4.html | https://tools.dicomp.net/tools/automotive/container-loading.html | 2026-11-22 | 2026-12-22 | 保留期内 | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/film/convert-time-1.html | https://tools.dicomp.net/tools/film/editing-timecode.html | 2026-11-22 | 2026-12-22 | 保留期内 | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/life/generator-random-1.html | https://tools.dicomp.net/tools/it/random.html | 2026-11-22 | 2026-12-22 | 保留期内 | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/life/generator-strength.html | https://tools.dicomp.net/tools/it/password-generator.html | 2026-11-22 | 2026-12-22 | 保留期内 | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/fluid/continuity-equation.html | https://tools.dicomp.net/tools/hydraulic/continuity-pipe.html | 2026-11-22 | 2026-12-22 | 保留期内 | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/food/convert-concentration.html | https://tools.dicomp.net/tools/food/syrup-brix-converter.html | 2026-11-22 | 2026-12-22 | 保留期内 | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/food/convert-19.html | https://tools.dicomp.net/tools/food/wine-alcohol-converter.html | 2026-11-22 | 2026-12-22 | 保留期内 | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/sports/generator-random-3.html | https://tools.dicomp.net/tools/sports/yoga-pose-generator.html | 2026-11-22 | 2026-12-22 | 保留期内 | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/design/generator-8.html | https://tools.dicomp.net/tools/it/qrcode.html | 2026-11-22 | 2026-12-22 | 保留期内 | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/astronomy/convert-17.html | https://tools.dicomp.net/tools/edu/convert-1.html | 2026-11-22 | 2026-12-22 | 保留期内 | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/energy/water-tds-evaluator.html | https://tools.dicomp.net/tools/energy/assessor-water-quality.html | 2026-11-22 | 2026-12-22 | 保留期内 | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/tools/construction/area.html | https://tools.dicomp.net/tools/construction/ac-size-guide.html | 2026-11-22 | 2026-12-22 | 保留期内 | 简体+繁体各 1 页 |
+| https://tools.dicomp.net/guides/convert-17-guide.html | https://tools.dicomp.net/tools/edu/convert-1.html | 2026-11-22 | 2026-12-22 | 保留期内 | 合并后遗留指南 |
+| https://tools.dicomp.net/guides/area-guide.html | https://tools.dicomp.net/tools/construction/ac-size-guide.html | 2026-11-22 | 2026-12-22 | 保留期内 | 合并后遗留指南 |
+| https://tools.dicomp.net/guides/water-tds-evaluator-guide.html | https://tools.dicomp.net/tools/energy/assessor-water-quality.html | 2026-11-22 | 2026-12-22 | 保留期内 | 合并后遗留指南 |
+| https://tools.dicomp.net/tools/it/http-response-headers.html | https://tools.dicomp.net/tools/it/http-headers.html | 2026-11-22 | 2026-12-22 | 保留期内 | 合并后旧页 |
+| https://tools.dicomp.net/guides/http-response-headers-guide.html | https://tools.dicomp.net/tools/it/http-headers.html | 2026-11-22 | 2026-12-22 | 保留期内 | 合并后指南 |
+| https://tools.dicomp.net/guides/generator-strength-guide.html | https://tools.dicomp.net/guides/password-generator-guide.html | 2026-11-22 | 2026-12-22 | 保留期内 | 重复指南合并 |
+| https://tools.dicomp.net/guides/vaccine-reminder-guide.html | https://tools.dicomp.net/guides/reminder-vaccine-deworming-guide.html | 2026-11-22 | 2026-12-22 | 待删 | 繁体同理 |

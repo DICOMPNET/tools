@@ -93,7 +93,7 @@
 <div class="nav">
   <a href="../../index.html">← ToolBox</a>
   <span>/ 糖浆浓度换算</span>
-  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()" aria-label="切换主题" title="切换主题" data-i18n-aria="nav.theme" data-i18n-title="nav.theme">🌙</button>
 </div>
 
 
@@ -183,17 +183,17 @@
       <span class="rt-icon">💒</span>
       <span class="rt-info"><span class="rt-name">宾客座位图</span><span class="rt-desc">录入宾客名单并按亲友、同事等关系分组，设置桌数与每桌人数后自动排位生成座位图，避免宾客离散，用于婚宴…</span></span>
     </a>
-    <a href="../life/generator-strength.html" class="related-tool-card">
+    <a href="../it/password-generator.html" class="related-tool-card">
       <span class="rt-icon">🔑</span>
-      <span class="rt-info"><span class="rt-name">密码生成器（带强度检测）</span><span class="rt-desc">自定义密码长度并勾选大小写、数字、符号等字符类型，生成高强度随机密码，同时实时评估其安全强度，一键复…</span></span>
+      <span class="rt-info"><span class="rt-name">密码生成器（IT）</span><span class="rt-desc">在线生成高强度随机密码与密码短语，所有计算在浏览器本地完成，密码不会上传服务器</span></span>
     </a>
     <a href="../funeral/ceremony-timeline.html" class="related-tool-card">
       <span class="rt-icon">📜</span>
       <span class="rt-info"><span class="rt-name">追悼会时间轴规划器</span><span class="rt-desc">规划追悼会告别仪式流程时间轴，自定义各环节与时长，数据本地保存，便于安排签到与告别顺序</span></span>
     </a>
-    <a href="../life/generator-random-1.html" class="related-tool-card">
+    <a href="../it/random.html" class="related-tool-card">
       <span class="rt-icon">🎲</span>
-      <span class="rt-info"><span class="rt-name">随机数生成器（范围任意）</span><span class="rt-desc">随机数生成器支持自定义范围、数量与是否允许重复，批量生成整数或小数，纯前端随机算法，适合抽奖、抽样…</span></span>
+      <span class="rt-info"><span class="rt-name">随机数生成器</span><span class="rt-desc">在线随机数生成器，支持设定范围、数量与是否允许重复，生成整数或小数随机序列，每次结果独立随机、不可复…</span></span>
     </a>
   </div>
 </div>
@@ -312,16 +312,20 @@ function brixToSG(brix) {
 
 function sgToBrix(sg) {
   if (sg <= 1) return 0;
-  // 逆近似：迭代求解
-  var brix = (sg - 1) * 260; // 初始猜测
-  for (var i = 0; i < 20; i++) {
+  // 正向模型在 100 °Brix 封顶，超出该比重无解，返回 -1 由页面明确提示。
+  var maxSG = brixToSG(100);
+  if (sg > maxSG + 1e-6) return -1;
+  var brix = Math.min(100, Math.max(0, (sg - 1) * 260));
+  for (var i = 0; i < 40; i++) {
     var calcSG = brixToSG(brix);
     var diff = sg - calcSG;
-    brix += diff * 200;
+    // 在 100 °Brix 附近导数趋零，缩小步长避免来回震荡
+    brix += diff * (brix > 95 ? 20 : 200);
     if (brix < 0) brix = 0;
     if (brix > 100) brix = 100;
-    if (Math.abs(diff) < 0.00001) break;
+    if (Math.abs(diff) < 1e-6) break;
   }
+  if (Math.abs(brixToSG(brix) - sg) > 1e-3) return -1;
   return brix;
 }
 
@@ -351,9 +355,22 @@ function calculate() {
     baume = brixToBaume(brix);
     ri = brixToRI(brix);
   } else if (currentInput === 'sg') {
-    sg = parseFloat(document.getElementById('inp-sg').value) || 1;
-    sg = Math.max(1, sg);
+    var sgRaw = document.getElementById('inp-sg').value.trim();
+    sg = parseFloat(sgRaw);
+    if(sgRaw === '' || !isFinite(sg) || sg < 1){
+      document.getElementById('result').innerHTML = '<p style="color:var(--danger)">请输入 ≥1 的比值（20°C 下水的 SG=1.0000）。</p>';
+      return;
+    }
+    var maxSG = brixToSG(100);
+    if(sg > maxSG + 1e-6){
+      document.getElementById('result').innerHTML = '<p style="color:var(--danger)">SG ' + sg.toFixed(4) + ' 超出本页蔗糖近似模型范围（约 1.0000–' + maxSG.toFixed(4) + '，对应 0–100 °Brix），无法给出自洽结果。</p>';
+      return;
+    }
     brix = sgToBrix(sg);
+    if(brix < 0){
+      document.getElementById('result').innerHTML = '<p style="color:var(--danger)">该比重在模型内未收敛，请核对 SG 是否在 ' + maxSG.toFixed(4) + ' 以内。</p>';
+      return;
+    }
     baume = brixToBaume(brix);
     ri = brixToRI(brix);
   } else {

@@ -52,8 +52,20 @@ const CASES = [
     "bill": "150",
     "people": "1"
   },
-  "expect": [ "176 含小费总计" ],
+  "expect": [ "$176.25 含小费总计" ],
   "ref": "auto-restore"
+},
+{
+  "slug": "travel/international-tip-calculator",
+  "inputs": { "country": "US", "service": "hotel", "bill": "300", "people": "2", "currency": "USD" },
+  "expect": ["$2 - $5 / 每房每晚", "不按账单百分比计算"],
+  "ref": "酒店/行李员固定额口径：美国酒店小费按每房每晚 $2–5，不按账单 2%–5% 计算；旧实现 bill=300 会输出 $6–$15 百分比结果，不命中固定额锚。"
+},
+{
+  "slug": "travel/luggage-size-checker",
+  "inputs": { "l": "", "w": "40", "h": "20", "wt": "7" },
+  "expect": ["请填写有效尺寸"],
+  "ref": "空值边界：长清空时不得按 0 计算并输出「符合要求」，应提示长宽高均需大于 0、空值不当 0。"
 },
 {
   "slug": "travel/jet-lag-recovery",
@@ -61,7 +73,7 @@ const CASES = [
     "flightHours": "12",
     "fromTz": "9"
   },
-  "expect": ["9\n8\n12\nnormal\n-1小时\n预计恢复 1 天 · 向西飞行（较易）\n✈️ 出发前 3 天 • 每天推迟1-2小时睡觉和起床 • 傍晚多接触光线，早上避免强光 • 适当调整用餐时间推迟 • 晚上可以适当做些轻度活动推迟困倦 🛫 飞行当天 • 飞行中保持充足饮水，避免酒精和咖啡因 • 将手表调至目的地时间，建立心理预期 • 如果是目的地白天到达，飞行中尽量少睡 • 如果是目的地晚上到达，飞行后半程尽量休息 • 穿舒适宽松的衣物，定时起身活动 🌅 到达后第一天 • 到达后即使累也要撑到当地晚上再睡 • 下午和傍晚多接触光线，推迟睡意 • 白天可小睡但不要超过1小时 • 晚上11点左右入睡，早上自然醒 • 早餐时间设定闹钟，帮助建立节律 📅 恢复期建议（共1天） • 一般跨越 1 个时区需要约 1 天完全恢复 • 每天调整约 1.5-2小时 是比较舒适的节奏 • 褪黑素在睡前服用可能有助于调整（请遵医嘱） • 避免使用安眠药，可能影响深度睡眠质量 • 到达后前几天避免安排重要会议或剧烈运动 • 保持规律饮食，帮助消化系统同步调整\n第 0 天（出发日） 建议起床：7:00 &nbsp;|&nbsp; 建议入睡：23:00 出发当天，按原时区作息 第 1 天（完全适应） 建议起床：6:00 &nbsp;|&nbsp; 建议入睡：22:00 已基本适应当地时间"],
+  "expect": ["预计恢复 1 天（时差）+ 0.5 天（长途飞行疲劳）= 1.5 天 · 向西飞行（较易）", "按出发地生物钟估算，落地时约 20:00", "📅 恢复期建议（共1.5天）"],
   "ref": "auto-restore"
 },
 {
@@ -171,15 +183,71 @@ const CASES = [
   "ref": "总距离 750 km、油耗 8 L/100km ⇒ 所需油量 750×8/100=60.0 L；油费 60×7.5=¥450，加通行费 ¥200 ⇒ 总费用 ¥650；2 人分摊每人 ¥325。默认 500 km ⇒ 40.0 L / ¥500 / ¥250，三条锚均不命中（原期望「60.0L」缺空格，与页面「60.0 L」渲染不符，且无派生费用锚）。"
 },
 {
+  "slug": "travel/road-trip-gas-cost",
+  "inputs": {},
+  "clicks": [
+    "localStorage.removeItem(HISTORY_KEY);localStorage.removeItem(COMPARE_KEY);document.getElementById('carType').value='sedan';applyPreset();saveToHistory();document.getElementById('carType').value='ev';applyPreset();loadHistory(0);document.getElementById('__tbProbe').textContent='HIST '+document.getElementById('consLabel').textContent+'|'+document.getElementById('priceLabel').textContent;"
+  ],
+  "expect": [
+    "HIST 百公里油耗 (L/100km)|油价 (元/L)"
+  ],
+  "ref": "历史恢复标签回归：先保存一条燃油车记录，再切到纯电（标签变电耗/电价），loadHistory(0) 恢复燃油记录后原实现只调 calc()、不调 syncUnitLabels()，标签仍停在「百公里电耗/电价」，与输入和结果矛盾。修复后恢复燃油记录时标签同步回油耗/油价；默认态为燃油车，但注入探针串「HIST …」只在点击流程产生。"
+},
+{
+  "slug": "travel/road-trip-gas-cost",
+  "inputs": {},
+  "clicks": [
+    "clearCompare();document.getElementById('carType').value='ev';applyPreset();document.getElementById('distance').value='300';document.getElementById('consumption').value='15';document.getElementById('price').value='1.2';document.getElementById('tolls').value='100';document.getElementById('people').value='2';addToCompare();renderCompare();document.getElementById('__tbProbe').textContent='CMP '+document.getElementById('compareList').textContent;"
+  ],
+  "expect": [
+    "CMP",
+    "耗电量",
+    "45.0kWh"
+  ],
+  "ref": "EV 对比卡单位回归：纯电方案 300km×15kWh/100km ⇒ 45.0kWh，原 compare 卡固定渲染 `${item.fuel}L` / 「耗油量」/「油费」/「百公里油耗」，把电量与油量混用。修复后按 item.carType 输出 kWh、耗电量、电费、百公里电耗；旧实现不含「耗电量」「45.0kWh」即不命中。"
+},
+{
   "slug": "travel/timezone-lookup",
   "inputs": {
     "input": "Asia/Tokyo"
   },
   "expect": [
     "日本标准时间",
-    "+09:00（UTC+9）"
+    "+09:00（标准偏移 +09:00；已按当前日期计算夏令时）"
   ],
   "ref": "去默认化（原 expect「等待输入...」＝空输入分支，注入失败仍命中 → 逃生项）：注入 IANA 名 Asia/Tokyo，validate() 走 TIMEZONES[raw] 精确命中分支，输出名称「日本标准时间」+「UTC 偏移：+09:00（UTC+9）」；默认空输入只输出「等待输入...」。"
+},
+{
+  "slug": "travel/timezone-lookup",
+  "inputs": {
+    "input": "加尔各答"
+  },
+  "expect": [
+    "印度标准时间",
+    "代表城市：加尔各答/新德里"
+  ],
+  "ref": "重复键回归：TIMEZONES 原有两个 `Asia/Kolkata`，后者 city=新德里 覆盖前者的「加尔各答/新德里」，按城市搜「加尔各答」恒返回「未找到匹配的时区」。删除重复键后精确命中印度标准时间，且代表城市含加尔各答；默认态不含该串。"
+},
+{
+  "slug": "travel/timezone-lookup",
+  "inputs": {},
+  "clicks": [
+    "var R=Date;globalThis.Date=function(a,b,c,d,e,f,g){if(arguments.length===0)return new R(1704067200000);return new R(a,b,c,d,e,f,g);};globalThis.Date.prototype=R.prototype;globalThis.Date.now=R.now;document.getElementById('input').value='Asia/Tokyo';validate();globalThis.Date=R;"
+  ],
+  "expect": [
+    "09:00"
+  ],
+  "ref": "宿主时区双计修复：原公式 `now.getTime() + (now.getTimezoneOffset() + r.offset*60)*60000` 把宿主偏移再加一遍（UTC+8 主机查东京会得 17:00）。点击探针把 Date 固定到 2024-01-01T00:00:00Z 后注入 Asia/Tokyo，正确结果 09:00；旧实现按宿主偏移偏移，在 UTC+8 下为 17:00 即不命中。"
+},
+{
+  "slug": "travel/timezone-lookup",
+  "inputs": {
+    "input": "Asia/Almaty"
+  },
+  "expect": [
+    "+05:00（标准偏移 +05:00；已按当前日期计算夏令时）"
+  ],
+  "ref": "哈萨克斯坦 2024-03-01 起全国统一 UTC+5，阿拉木图原表仍写 UTC+6 属过期数据；改为 +05:00 后命中，旧值 +06:00（UTC+6）不命中。"
 },
 {
   "slug": "travel/travel-adapter-guide",
@@ -196,6 +264,7 @@ const CASES = [
   "inputs": {
     "days": "11",
     "people": "2",
+    "nights": "6",
     "transport": "3000",
     "accommodation": "500",
     "food": "200",
@@ -204,7 +273,7 @@ const CASES = [
     "emergency": "1000"
   },
   "expect": [
-    "(22.2%)"
+    "(22.7%)"
   ],
   "ref": "auto-restore"
 },
@@ -225,7 +294,7 @@ const CASES = [
   "inputs": {
     "days": "21"
   },
-  "expect": ["europe\n21\nmedical\nadult\nno\nhigh\n🗂️ 推荐方案 基础申根 ¥150-300 满足申根签证最低要求 30万 医疗 30万 意外 ¥750 航班延误 ¥1000 行李丢失 无 行程取消 ❌ 高风险运动 标准医疗型 推荐 ¥300-600 医疗加强，推荐选择 50万 医疗 50万 意外 ¥2250 航班延误 ¥2000 行李丢失 ¥2000 行程取消 ❌ 高风险运动 全面型 ¥600-1200 含高风险运动，全面高端保障 100万 医疗 100万 意外 ¥4500 航班延误 ¥5000 行李丢失 ¥5000 行程取消 ✅ 高风险运动 💡 以上价格为参考区间，实际价格因保险公司、具体条款、被保人年龄等因素而异。 申根签证要求医疗保障不低于3万欧元（约25万人民币），请选择满足要求的方案。\n保障项目 基础申根 标准医疗型 全面型 医疗保额 30万 50万 100万 意外身故/伤残 30万 50万 100万 航班延误 ¥500 ¥1500 ¥3000 行李丢失 ¥1000 ¥2000 ¥5000 行程取消 不包含 ¥2000 ¥5000 高风险运动 ❌ 不含 ❌ 不含 ✅ 包含"],
+  "expect": ["europe\n21\nno\nmedical\nadult\nhigh\n🗂️ 推荐方案 基础申根 ¥150-300 满足申根签证最低要求 30万 医疗 30万 意外 ¥750 航班延误 ¥1000 行李丢失 无 行程取消 ❌ 高风险运动 标准医疗型 推荐 ¥300-600 医疗加强，推荐选择 50万 医疗 50万 意外 ¥2250 航班延误 ¥2000 行李丢失 ¥2000 行程取消 ❌ 高风险运动 全面型 ¥600-1200 含高风险运动，全面高端保障 100万 医疗 100万 意外 ¥4500 航班延误 ¥5000 行李丢失 ¥5000 行程取消 ✅ 高风险运动 💡 以上价格为参考区间，实际价格因保险公司、具体条款、被保人年龄等因素而异。 申根签证要求医疗保障不低于3万欧元（约25万人民币），请选择满足要求的方案。\n保障项目 基础申根 标准医疗型 全面型 医疗保额 30万 50万 100万 意外身故/伤残 30万 50万 100万 航班延误 ¥750 ¥2250 ¥4500 行李丢失 ¥1000 ¥2000 ¥5000 行程取消 不包含 ¥2000 ¥5000 高风险运动 ❌ 不含 ❌ 不含 ✅ 包含"],
   "ref": "auto-restore"
 },
 {
@@ -261,6 +330,12 @@ const CASES = [
   ],
   "ref": "去默认化（原 expect「北京/上海」是卡片里恒显示的静态城市名标签，注入失败仍命中 → 逃生项）：注入 localTime=14:30 / localDate=2026-10-01 后 render() 走 now=new Date('2026-10-01T14:30') 分支（不再回填当天），六个默认城市卡片的日期全部由该基准日推出（北京/上海 10月1日周四、洛杉矶 9月30日周三 昨天）；默认态基于当天显示 6月15日周六，注入失败即不命中。（注：harness 环境下 toTimeString() 被桩成固定串故时刻段恒为 00:00，因此只锚日期段。）"
   },
+{
+  "slug": "travel/timezone-converter-advanced",
+  "inputs": { "fromTz": "America/New_York", "toTz": "Asia/Shanghai", "fromTime": "2024-03-10T03:00" },
+  "expect": ["目标时区 Asia/Shanghai： 2024/03/10 中国标准时间 15:00"],
+  "ref": "DST 切换日防守：纽约 2024-03-10 03:00 已是 EDT（-240），对应 UTC 07:00、上海 15:00。旧实现把当地时刻当 UTC 先取到 EST（-300）会显示 16:00，本锚可区分。"
+},
 {
   "slug": "travel/timezone-converter-advanced",
   "inputs": { "fromTz": "Asia/Shanghai", "toTz": "America/New_York", "fromTime": "2026-03-15T09:00" },

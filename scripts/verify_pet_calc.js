@@ -46,6 +46,13 @@ const CASES = [
 },
 {
   "slug": "pet/convert-25",
+  "inputs": {"species": "dog", "age": ""},
+  "clicks": ["calc()"],
+  "expect": ["请输入宠物年龄（岁）后再换算。"],
+  "ref": "空年龄不得输出「人类年龄 ≈ 0.0 岁」；默认 3 岁不含该提示。"
+},
+{
+  "slug": "pet/convert-25",
   "inputs": {
     "species": "dog",
     "age": "5"
@@ -226,6 +233,12 @@ const CASES = [
   ],
   "ref": "433 复核：猫 1 岁取年龄表首项 15（修复前取 CAT_AGES[1]=24，历史页为 15）；6 岁默认态不含该串"
 },
+  {
+    "slug": "pet/checker-diagnosis",
+    "inputs": {"species": "dog", "age": "-1", "temp": "38.5", "weight": "10", "duration": "2"},
+    "expect": ["⚠ 体重须在 0–100 kg（不含 0）、年龄 0–40 岁、体温 30–45 °C，且都须为有效数值。"],
+    "ref": "负年龄此前不触发 isNaN 守卫；新守卫应拒绝。默认 3/38.5/10 不含该提示。"
+  },
 
 ];
 async function main() {

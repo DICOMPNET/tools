@@ -214,10 +214,10 @@ const CASES = [
 {
   "slug": "music/web-tuner",
   "inputs": {
-    "refFreq": "440"
+    "refFreq": "442"
   },
   "expect": [
-    "440"
+    "442"
   ],
     "ref": "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。 [auto-restore]"
 },
@@ -438,6 +438,20 @@ const CASES = [
     clicks: ["window.__wtSetRefA4(+document.getElementById('refFreq').value);var n=window.__wtFreqToNote(446);document.getElementById('centsText').textContent='C:'+n.cents.toFixed(2)+'|N:'+n.full;"],
     expect: ["C:23.45|N:A4"],
     ref: '深度解析算例一复算：A4=440 时 446 Hz → midiFloat=69.2345，音分 +23.45，仍判 A4。默认态 centsText 为空、不含该串 ⇒ 不命中。'
+  },
+  {
+    slug: "music/web-tuner",
+    inputs: { refFreq: "440" },
+    clicks: ["setTarget({classList:{contains:function(){return false;},add:function(){},remove:function(){}},dataset:{freq:'82.41'},textContent:'E2'});window.__wtRenderTarget(82.41);"],
+    expect: ["目标 E2（82.41 Hz）｜当前距目标 0.0 音分（已对准（±5 音分内））"],
+    ref: '第1064批：弦按钮不再只是高亮。点击首个 E2 按钮后 targetFreq=82.41；对 82.41 Hz 计算 1200·log2(f/82.41)=0，输出「距目标 0.0 音分（已对准）」。默认 targetFreq=0、targetText 只有「点击上方弦名可开启目标弦对照」，锚不命中。'
+  },
+  {
+    slug: "music/freq-note-converter",
+    inputs: { a4Input: "", freqInput: "440" },
+    clicks: ["var e=document.getElementById('a4Input');e.value='';finishA4Edit();document.getElementById('freq2note').textContent='A4EDIT '+(+e.value===440?'OK':'BAD');"],
+    expect: ["A4EDIT OK"],
+    ref: "第1065批：A4 自定义输入清空/越界时，失焦必须恢复标准 440 Hz，不能输入框空白而内部仍沿用旧参考频率。空值触发 finishA4Edit 后 a4Input 回填 440；默认态输入框本就是 440、探针串不存在 ⇒ 锚不逃生。"
   }
 ];
 async function main() {

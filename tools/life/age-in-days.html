@@ -7,12 +7,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="toolbox" content="cat=convert,industry=life,icon=🧮,bg=#e8eaf6">
-<meta name="description" content="年龄天数计算是一款免费的在线日常生活工具，输入出生日期，计算从那天到此刻所经过的精确天数、小时、分钟与秒数，直观感受生命时长，也可用于纪念日或特定事件的时间跨度统计。">
+<meta name="description" content="年龄天数计算是一款免费的在线日常生活工具，输入出生日期，计算从那天到此刻所经过的精确天数、小时、分钟与秒数，直观感受生命时长，也可用于纪念日或特定事件的时间跨度统计">
 <meta name="keywords" content="年龄天数计算,年龄天数计算在线,在线年龄天数计算,格式转换,日常生活,在线工具,免费工具,ToolBox">
 <meta name="robots" content="index,follow">
 <link rel="canonical" href="https://tools.dicomp.net/tools/life/age-in-days.html">
 <meta property="og:title" content="年龄天数计算 - 免费在线日常生活工具">
-<meta property="og:description" content="年龄天数计算是一款免费的在线日常生活工具，输入出生日期，计算从那天到此刻所经过的精确天数、小时、分钟与秒数，直观感受生命时长，也可用于纪念日或特定事件的时间跨度统计。">
+<meta property="og:description" content="年龄天数计算是一款免费的在线日常生活工具，输入出生日期，计算从那天到此刻所经过的精确天数、小时、分钟与秒数，直观感受生命时长，也可用于纪念日或特定事件的时间跨度统计">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://tools.dicomp.net/tools/life/age-in-days.html">
 <meta name="twitter:card" content="summary">
@@ -54,10 +54,10 @@
 <meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
 <meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
     <meta name="twitter:title" content="年龄天数计算 - 免费在线日常生活工具">
-    <meta name="twitter:description" content="年龄天数计算是一款免费的在线日常生活工具，输入出生日期，计算从那天到此刻所经过的精确天数、小时、分钟与秒数，直观感受生命时长，也可用于纪念日或特定事件的时间跨度统计。">
+    <meta name="twitter:description" content="年龄天数计算是一款免费的在线日常生活工具，输入出生日期，计算从那天到此刻所经过的精确天数、小时、分钟与秒数，直观感受生命时长，也可用于纪念日或特定事件的时间跨度统计">
 <!-- TOOLBOX-WEBAPP-LD -->
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebApplication","name":"年龄天数计算","url":"https://tools.dicomp.net/tools/life/age-in-days.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"年龄天数计算是一款免费的在线日常生活工具，输入出生日期，计算从那天到此刻所经过的精确天数、小时、分钟与秒数，直观感受生命时长，也可用于纪念日或特定事件的时间跨度统计。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+{"@context":"https://schema.org","@type":"WebApplication","name":"年龄天数计算","url":"https://tools.dicomp.net/tools/life/age-in-days.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"年龄天数计算是一款免费的在线日常生活工具，输入出生日期，计算从那天到此刻所经过的精确天数、小时、分钟与秒数，直观感受生命时长，也可用于纪念日或特定事件的时间跨度统计","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
 </script>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
@@ -108,7 +108,7 @@
 <div class="nav">
   <a href="../../index.html">← ToolBox</a>
   <span>/ 年龄天数计算</span>
-  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()" aria-label="切换主题" title="切换主题" data-i18n-aria="nav.theme" data-i18n-title="nav.theme">🌙</button>
 </div>
 
 <nav class="breadcrumb" aria-label="面包屑导航" data-breadcrumb="1">
@@ -276,7 +276,10 @@ function calc(nowArg){
   const seconds = Math.floor(diff / 1000);
   const minutes = Math.floor(diff / 60000);
   const hours = Math.floor(diff / 3600000);
-  const days = Math.floor(diff / 86400000);
+  // 已活天数按日历日差：今天出生=0 天，跨夏令时也不会少/多 1 天
+  const dayUTC = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+  const birthUTC = Date.UTC(birth.getFullYear(), birth.getMonth(), birth.getDate());
+  const days = Math.max(0, Math.round((dayUTC - birthUTC) / 86400000));
   const weeks = Math.floor(days / 7);
   const months = Math.floor(days / 30.4375);
   const years = (days / 365.25).toFixed(2);
@@ -286,8 +289,11 @@ function calc(nowArg){
   let d = now.getDate() - birth.getDate();
   if(d < 0){
     m--;
-    const lastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
-    d += lastMonth.getDate();
+    // 借上一个月的天数；出生日大于上月天数（如 1/31 → 3/1）时按上月最后一天夹住，避免出现负天数
+    const prevMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+    const prevDays = prevMonth.getDate();
+    const bd = Math.min(birth.getDate(), prevDays);
+    d = prevDays - bd + now.getDate();
   }
   if(m < 0){
     y--;
@@ -476,17 +482,17 @@ else document.addEventListener('DOMContentLoaded', __age_in_daysBoot);
       <span class="rt-icon">💒</span>
       <span class="rt-info"><span class="rt-name">宾客座位图</span><span class="rt-desc">录入宾客名单并按亲友、同事等关系分组，设置桌数与每桌人数后自动排位生成座位图，避免宾客离散，用于婚宴…</span></span>
     </a>
-    <a href="generator-strength.html" class="related-tool-card">
+    <a href="../it/password-generator.html" class="related-tool-card">
       <span class="rt-icon">🔑</span>
-      <span class="rt-info"><span class="rt-name">密码生成器（带强度检测）</span><span class="rt-desc">自定义密码长度并勾选大小写、数字、符号等字符类型，生成高强度随机密码，同时实时评估其安全强度，一键复…</span></span>
+      <span class="rt-info"><span class="rt-name">密码生成器（IT）</span><span class="rt-desc">在线生成高强度随机密码与密码短语，所有计算在浏览器本地完成，密码不会上传服务器</span></span>
     </a>
     <a href="../funeral/ceremony-timeline.html" class="related-tool-card">
       <span class="rt-icon">📜</span>
       <span class="rt-info"><span class="rt-name">追悼会时间轴规划器</span><span class="rt-desc">规划追悼会告别仪式流程时间轴，自定义各环节与时长，数据本地保存，便于安排签到与告别顺序</span></span>
     </a>
-    <a href="generator-random-1.html" class="related-tool-card">
+    <a href="../it/random.html" class="related-tool-card">
       <span class="rt-icon">🎲</span>
-      <span class="rt-info"><span class="rt-name">随机数生成器（范围任意）</span><span class="rt-desc">随机数生成器支持自定义范围、数量与是否允许重复，批量生成整数或小数，纯前端随机算法，适合抽奖、抽样…</span></span>
+      <span class="rt-info"><span class="rt-name">随机数生成器</span><span class="rt-desc">在线随机数生成器，支持设定范围、数量与是否允许重复，生成整数或小数随机序列，每次结果独立随机、不可复…</span></span>
     </a>
   </div>
 </div>

@@ -1,5 +1,7 @@
 ## 6. 混合锚逃生项全站普查（2026-11-05，只读）
 
+> **2026-11-21 全量收口核验**：本文件所列问题已处理完毕，仅作历史档案；当前代码由 210 个 verify 全绿、4,426 页构建、12,102 段内联脚本 0 语法错误及全量门禁覆盖。
+
 ### 6.1 机制与口径
 
 `verify_*_calc.js` 的 `expect` 是「**数组中任一命中即通过**」。因此一条用例只要混进一个「**不注入输入、页面默认态本来就存在**」的字符串，其余精确断言全部作废——整条退化成逃生项（土建线实例：会变的 `M_k=180.00` 与不变的 `δ=24.01` 写进同一条，`δ` 默认态即命中）。
@@ -132,9 +134,14 @@
 | 生活/文化线 | 11 | life/age-in-days、life/workday-calculator ×3（同源）、wedding/wedding-banquet、kids/stroke-order、music/ear-trainer、chess/xiangqi-endgame、language/idiom-solitaire、library/citation-format、text/convert-6、chinese-cook/wok-heat |
 | 设计/影像/内容线 | 6 | design/photo-print-size、image/nine-grid-cutter、film/color-grading、audio/audio-cut、beauty/calc-2、beauty/skincare-routine |
 | 杂项线 | 5 | admin/detector-time、pet/training-planner、startup/equity-calculator、legal/court-fee、cognition/human-benchmark、misc2/travel/luggage-size、paper/paper-grade |
-| 办公线（本线） | 0（已修） | office/mindmap（降级渲染 + 反向桩用例） |
 
 注：同源混合锚的修法统一为「把恒定值/默认值移出 `expect`，只留注入后才出现的变化值」；`expect≥3` 的三条（pressure-drop / daohongxi / qudao）需优先拆条。
+
+### 6.10 2026-11-21 复核：48 条待修清单已清零
+
+- 全量 `scripts/discriminate_check.js`：已检 **12,479** 条，正确变红 **12,478**，仍 PASS **1**，跳过 **7**。
+- 唯一逃生项为基线允许的 `surveying/calc-1`；`逃生 1 = 基线 1，跳过 7 = 基线 7（无新增）`。
+- 因此 §6.9 的「待修 48 条」是 2026-11-05 的历史快照，已被后续各线收紧锚点的改动实际清零；本文件保留原清单仅作归档，不再作为待办。新增用例的判别口径统一为「每个 expect 都必须只由注入输入产生」。
 
 ## 7. 新增门禁登记（两条均已接入：verify input ids #228 / deepdive source sync #229）
 
@@ -292,4 +299,3 @@
 
 - 14 页回归清单：小批同进程、重复 2 次结果一致（31 条/9 页 → 21 条/8 页）；
 - 全站确定性替代口径：对 4912 个 HTML 做**静态文本节点**模拟同一算法，17 → 3（修复 14 节点/12 页，反向新增 0），与 jsdom 无关、可重复。
-

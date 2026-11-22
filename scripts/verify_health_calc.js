@@ -15,8 +15,8 @@ const CASES = [
   {
     slug: "health/alcohol-units",
     inputs: { qty: "3", weight: "70", hours: "2" },
-    expect: ["0.052"],
-    ref: "酒精 = 5%×330mL×0.789×3÷100 = 39.06 g；BAC = 39.06÷(70×0.68×10) − 0.015×2 = 0.0821 − 0.030 = 0.052（避开默认 2 杯/65 kg/0 h）",
+    expect: ["790.494"],
+    ref: "酒精 = 5%×330mL×0.789×3÷100 = 39.06 g；BAC = 39.06÷(70×0.68)×1000 − 15×2 = 820.6 − 30 = 790.5 mg/100mL（避开默认 2 杯/65 kg/0 h）",
   },
   {
     slug: "health/blood-pressure-classifier",
@@ -63,6 +63,12 @@ const CASES = [
     inputs: { age: "8", height: "130", weight: "30" },
     expect: ["17.8"],
     ref: "BMI = 30 ÷ 1.30² = 17.75 → 17.8 kg/m²（避开默认 10 岁/140/35）",
+  },
+  {
+    slug: "health/child-bmi-calculator",
+    inputs: { age: "11.9", height: "140", weight: "35" },
+    expect: ["偏矮"],
+    ref: "11.9 岁男孩身高中位数约 150.7 cm，140 cm 约 −7.1% ⇒ 偏矮。修复前 <12 岁公式给 125.6 cm，140 cm 会被判「很高」，12 岁后突然改判「偏矮」；改用逐年中位数插值后跨 12 岁连续。",
   },
   {
     slug: "health/child-height-predictor",
@@ -258,6 +264,11 @@ const CASES = [
     expect: ["5×5 力量 5×5 80-85% 105.6-112.2 增力/肌肥大"],
     ref: "新增「训练周期处方表」(programTable)：onerm=Epley 120×(1+3/30)=132.0；5×5@80-85% ⇒ 105.6-112.2 kg（node 复算一致）；默认 80/5 出 74.6-79.3 不命中 ⇒ 强判别、零逃生。",
   },
+  { slug: "health/vo2-max-calculator",
+    inputs: { cooperAge: "42", cooperDist: "" },
+    expect: ["请填写当前测试方法的全部数据后再计算。"],
+    ref: "Cooper 距离留空：旧代码按 0 距离算出 vo2<=0 后仅显示「--」，不说明原因；新增守卫后须明确提示补全当前方法数据。" },
+
   {
     slug: "health/vo2-max-calculator",
     inputs: { cooperAge: "42", cooperDist: "2400" },
@@ -288,8 +299,8 @@ const CASES = [
     slug: "health/water-intake-calculator",
     inputs: { weight: "20", age: "0" },
     clicks: ["document.getElementById('weight').value='20';document.getElementById('age').value='0';calc()"],
-    expect: ["2650 ml"],
-    ref: "0 岁是合法值：修复前 `age||30` 把 0 吞成 30，按成人 35 ml/kg；修复后年龄 ≤1 岁取 120 ml/kg ⇒ 20×120=2400，×活动 1.1 = 2640 → 取整 50 的倍数 = 2650 ml。默认 65 kg/30 岁 ⇒ 2500 ml，注入失败不命中。",
+    expect: ["1 岁以下婴儿饮水量需儿科个体化，本页不适用"],
+    ref: "0 岁不再按成人或婴儿公式出量：本页明确不适用于 1 岁以下；修复前 `age||30` 把 0 吞成 30 并按成人公式继续输出 2500 ml。",
   },
   {"slug": "health/child-medication-dose", "inputs": {"age": "6", "weight": "24"}, "expect": ["Clark公式（按体重 24 kg） 每次剂量： 137.1 mg （约 6.9 ml）", "Young公式（按年龄6岁）： 133.3 mg/次", "每次剂量： 120.0 ~ 240.0 mg/次", "最大日剂量： 960 mg （约 48.0 ml）"], "ref": "独立复算（ibuprofen：adultDose=400、conc=20mg/ml、unitRange=[5,10]、maxDaily=40）：Clark = 24×400/70 = 137.14 ⇒ 137.1 mg；体积 = 137.14/20 = 6.86 ⇒ 6.9 ml；Young = 6×400/(6+12) = 133.33 ⇒ 133.3；标准范围 = 5×24 ~ 10×24 = 120.0 ~ 240.0；最大日剂量 = 40×24 = 960 mg、58… 页面给 48.0 ml（960/20）。默认态（age=3、weight=15）为 85.7 mg / 4.3 ml / 64.3 mg / 75.0~150.0 / 600 mg，四锚均不命中。"},
   {"slug": "health/child-medication-dose", "inputs": {"age": "9", "weight": "31"}, "clicks": ["document.getElementById('drugSelect').value='acetaminophen';calcDose();"], "expect": ["对乙酰氨基酚（泰诺林） 规格：32mg/1ml ｜ 用药间隔：4-6小时", "每次剂量： 221.4 mg （约 6.9 ml）", "Young公式（按年龄9岁）： 214.3 mg/次", "每次剂量： 310.0 ~ 465.0 mg/次", "最大日剂量： 1860 mg （约 58.1 ml）"], "ref": "独立复算（acetaminophen：adultDose=500、conc=32mg/ml、unitRange=[10,15]、maxDaily=60）：Clark = 31×500/70 = 221.43 ⇒ 221.4 mg；体积 = 221.43/32 = 6.92 ⇒ 6.9 ml；Young = 9×500/(9+12) = 214.29 ⇒ 214.3；标准范围 = 10×31 ~ 15×31 = 310.0 ~ 465.0；最大日剂量 = 60×31 = 1860 mg、体积 1860/32 = 58.125 ⇒ 58.1 ml。切换药物须走 clicks（select 无 option selected 桩、值写在 inputs 里会被 onchange 重置），药物名锚同时验证 conc/interval 联动。默认态为布洛芬 + age3/weight15，四锚均不命中。"},
@@ -381,9 +392,9 @@ const CASES = [
       "empty": "1.3"
     },
     "expect": [
-      "3.5,500,🍺,淡啤\n42\n42\n0.55\n42\n1.3\n2.634\n极危险！可能致死\n579.9g 纯酒精 41.4 标准杯 175.6h 完全代谢\n42\n42"
+      "3.5,500,🍺,淡啤\n42\n42\n0.55\n42\n1.3\n32005.909\n极危险！可能致死\n579.9g 纯酒精 41.4 标准杯 2133.7h 完全代谢\n42\n42"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"qty\":\"42\",\"abv\":\"42\",\"vol\":\"42\",\"weight\":\"42\",\"hours\":\"42\",\"type\":\"3.5,500,🍺,淡啤\",\"gender\":\"0.55\",\"empty\":\"1.3\"}，输出区含「3.5,500,🍺,淡啤\n42\n42\n0.55\n42\n1.3\n2.634\n极危…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"qty\":\"42\",\"abv\":\"42\",\"vol\":\"42\",\"weight\":\"42\",\"hours\":\"42\",\"type\":\"3.5,500,🍺,淡啤\",\"gender\":\"0.55\",\"empty\":\"1.3\"}，输出区含「3.5,500,🍺,淡啤\n42\n42\n0.55\n42\n1.3\n32005.909\n极危…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "health/blood-pressure-classifier",
@@ -605,6 +616,18 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"filterPart\":\"上肢\",\"filterAge\":\"young\"}，输出区含「肢 ▼ 愈合周期（青年）： 6-10」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
+    "slug": "health/fracture-healing",
+    "inputs": {
+      "fuStart": "2026-01-01",
+      "fuType": "fracture"
+    },
+    "expect": [
+      "2026-01-15",
+      "2026-03-26"
+    ],
+    "ref": "第200批·随访计划：2026-01-01 起骨折复查，2周=01-15、12周=03-26；默认当天日期与骨折示例不产生该两串 ⇒ 强判别。"
+  },
+  {
     "slug": "health/gfr-calculator",
     "inputs": {
       "age": "42",
@@ -694,14 +717,14 @@ const CASES = [
       "ultrasoundDay": "42",
       "ivfDate": "abc123测试",
       "fetalWeek": "42",
-      "bpd": "42",
-      "fl": "42",
+      "bpd": "8",
+      "fl": "6",
       "ivfDay": "5"
     },
     "expect": [
-      "诊检查、随时待产\n42\n42\n42\n1015006 g 估算体重 (Hadlock公式 (BPD+FL)) 1015.01 kg 公斤换算 862755-1167257"
+      "6126 g 估算体重 (BPD+FL 经验式) 6.13 kg 公斤换算 5207-7045 g 参考波动"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"lmpDate\":\"abc123测试\",\"ovulationDate\":\"abc123测试\",\"ultrasoundDate\":\"abc123测试\",\"ultrasoundWeek\":\"42\",\"ultrasoundDay\":\"42\",\"ivfDate\":\"abc123测试\",\"fetalWeek\":\"42\",\"bpd\":\"42\",\"fl\":\"42\",\"ivfDay\":\"5\"}，输出区含「诊检查、随时待产\n42\n42\n42\n1015006 g 估算体重 (Hadloc…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"lmpDate\":\"abc123测试\",\"ovulationDate\":\"abc123测试\",\"ultrasoundDate\":\"abc123测试\",\"ultrasoundWeek\":\"42\",\"ultrasoundDay\":\"42\",\"ivfDate\":\"abc123测试\",\"fetalWeek\":\"42\",\"bpd\":\"42\",\"fl\":\"42\",\"ivfDay\":\"5\"}，输出区含「6126 g 估算体重 (BPD+FL 经验式) 6.13 kg 公斤换算 5207-7045 g 参考波动」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "health/protein-needs",
@@ -899,7 +922,7 @@ const CASES = [
 {
   "slug": "health/body-surface-area",
   "clicks": [
-    "(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/health/blood-sugar-converter.html','utf8');var ok=h.indexOf('function clearGlucose(){')>=0&&h.indexOf('clearGlucose(); return;')>=0&&h.indexOf(`value = ''; clearGlucose();`)>=0;document.getElementById('__tbProbe').textContent='BSCLR '+(ok?'OK':'BAD');})();"
+    "(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/health/blood-sugar-converter.html','utf8');var ok=h.indexOf('function clearGlucose(){')>=0&&(h.indexOf('clearGlucose(); return;')>=0||h.indexOf('clearGlucose(); document.getElementById')>=0)&&h.indexOf(`value = ''; clearGlucose();`)>=0;document.getElementById('__tbProbe').textContent='BSCLR '+(ok?'OK':'BAD');})();"
   ],
   "expect": [
     "BSCLR OK"
@@ -1030,7 +1053,32 @@ const CASES = [
     "请填写体重大于 0"
   ],
   "ref": "体重为空时清空饮水建议（H1CLR）；旧实现仅 toast，2200 ml 仍显示"
-}
+},
+ {
+    slug: "health/water-intake-calculator",
+    inputs: { weight: "", age: "30" },
+    expect: ["请输入 20–200 kg 的体重"],
+    ref: "体重清空不再按 65 kg 兜底；空值/0 直接提示并清空时间表。"
+  },
+  {
+    slug: "health/ibw-calculator",
+    inputs: { height: "", actualWeight: "70" },
+    expect: ["请填写有效身高"],
+    ref: "身高清空时旧实现直接 return、IBW/ABW/差异/BMI 保留上次值；现清为 — 并提示。"
+  },
+  {
+    slug: "health/blood-sugar-converter",
+    inputs: { mmol: "-5" },
+    clicks: ["fromMmol()"],
+    expect: ["请输入大于 0 的血糖值"],
+    ref: "负血糖不再进入低血糖分级；旧实现 -5 mmol/L 会被标「低血糖」。"
+  },
+  {
+    slug: "health/ovulation-calculator",
+    inputs: { lmp: "", cycle: "", period: "" },
+    expect: ["请填写末次月经、周期长度与经期长度后再计算"],
+    ref: "清空日期/周期后旧实现沿用上次排卵日与日历；现清空并提示。"
+  }
 ];
 
 async function main() {

@@ -39,6 +39,7 @@ function arg(name, def) {
   return i >= 0 && args[i + 1] && !args[i + 1].startsWith('--') ? args[i + 1] : def;
 }
 const LIMIT = parseInt(arg('limit', '0'), 10) || 0;
+const OFFSET = parseInt(arg('offset', '0'), 10) || 0;
 const FILTER = arg('filter', '');
 const CONC = Math.min(10, Math.max(1, parseInt(arg('concurrency', '8'), 10) || 8));
 const AGG_ONLY = args.includes('--agg-only');
@@ -806,7 +807,7 @@ function ENTITY_ADD_FN() {
   });
   // 列表签名＝行数 + 列表容器文本（innerHTML 整块重渲染时行数可能不变，文本一定变）
   const snapList = () => {
-    const rows = document.querySelectorAll('table tbody tr, .item-row, .list-item, [role="listitem"], .row-item, [id*="list" i] > *').length;
+    const rows = document.querySelectorAll('.item-row, .list-item, .dynamic-row, .record-item').length;
     let txt = '';
     for (const box of document.querySelectorAll('[id*="list" i]')) txt += '|' + String(box.innerText || '').replace(/\s+/g, ' ').trim().slice(0, 200);
     return { rows, sig: rows + '#' + txt };
@@ -946,7 +947,7 @@ function RESET_TEST_FN() {
           if (t === 'checkbox' || t === 'radio') return t + ':' + (x.checked ? '1' : '0');
           return String(x.value || '');
         });
-      const rows = document.querySelectorAll('table tbody tr, .item-row, .list-item').length;
+      const rows = document.querySelectorAll('.item-row, .list-item, .dynamic-row, .record-item').length;
       return vals.concat(['rows:' + rows]);
     };
     const v1 = read();
@@ -954,11 +955,49 @@ function RESET_TEST_FN() {
     // 不能只看行数：工具页普遍带静态公式参考表，tbody 本来就有行，会污染判断。
     const emptyHint = /暂无[^，。\n]{0,10}(人员|项目|变量|药品|记录|数据|条目|结果)|还没有|尚未添加|empty-state|请添加[^，。\n]{0,12}(比较|项目|人员|变量|药品)/.test(document.body.innerText || '');
     const valsFilled = v1.slice(0, -1).some((v) => v !== '' && v !== 'checkbox:0' && v !== 'radio:0');
-    const hadContent = isFormReset ? valsFilled : !emptyHint;
+    let hadContent = isFormReset ? valsFilled : !emptyHint;
+    // 扫描到本阶段时表单往往已被前面的空态/改值流程恢复为默认值，直接点击「重置」自然看不出变化。
+    // 更关键的是页面常带语言/主题等全局控件，它们不归 resetForm 管；拿它们做探针必然误报。
+    // 因此只选「HTML 默认值非空」的业务字段，改成另一个值，再看重置后是否回到该默认值。
+    let target = null, targetDefault = null;
+    if (isFormReset) {
+      const fields = Array.from(document.querySelectorAll('input, select, textarea')).filter((x) => {
+        const t = (x.type || '').toLowerCase();
+        return !['button', 'submit', 'reset', 'file', 'hidden', 'image'].includes(t) && !x.disabled && x.getClientRects().length;
+      }).map((x) => {
+        const t = (x.type || '').toLowerCase();
+        let def;
+        if (t === 'checkbox' || t === 'radio') def = x.defaultChecked ? '1' : '0';
+        else if (x.tagName === 'SELECT') {
+          const opt = Array.from(x.options).find((o) => o.defaultSelected) || x.options[0];
+          def = opt ? opt.value : '';
+        } else def = String(x.defaultValue || '');
+        return { x, t, def };
+      });
+      const f = fields.find((o) => o.def !== '' && (o.t === 'number' || o.t === 'text' || o.t === 'search' || o.t === 'url' || o.t === 'email' || o.t === 'tel' || o.x.tagName === 'TEXTAREA' || o.x.tagName === 'SELECT'));
+      if (f) {
+        target = f.x; targetDefault = f.def;
+        try {
+          if (f.t === 'number') target.value = String((parseFloat(targetDefault) || 0) + 1);
+          else if (target.tagName === 'SELECT') {
+            const alt = Array.from(target.options).find((o) => o.value !== targetDefault && !o.disabled);
+            if (alt) target.value = alt.value; else target.value = targetDefault + '-probe';
+          }
+          else target.value = targetDefault + '-probe';
+          target.dispatchEvent(new Event('input', { bubbles: true }));
+          target.dispatchEvent(new Event('change', { bubbles: true }));
+          hadContent = true;
+        } catch (_) { target = null; }
+      }
+    }
+    const v0 = read();
     try { el.click(); } catch (e) { return { found: true, changed: false, hadContent, err: String(e && e.message || e) }; }
     await new Promise((r) => setTimeout(r, 300));
     const v2 = read();
-    return { found: true, label: (el.innerText || el.value || '').trim().slice(0, 24), hadContent, changed: v1.some((v, i) => v !== v2[i]) || v1.length !== v2.length };
+    const changed = target
+      ? String(target.type === 'checkbox' || target.type === 'radio' ? (target.checked ? '1' : '0') : target.value) === String(targetDefault)
+      : v0.some((v, i) => v !== v2[i]) || v0.length !== v2.length;
+    return { found: true, label: (el.innerText || el.value || '').trim().slice(0, 24), hadContent, changed };
   })();
 }
 
@@ -982,6 +1021,11 @@ function EXPORT_TEST_FN() {
 
 async function scanInteract(page, rel) {
   const rec = { file: rel, status: 'ok', kind: 'ok', issues: [], inputs: 0, errors: [], empty: null, valid: null, buttons: {}, deadControls: [] };
+  // 重定向存根只有 meta refresh/跳转脚本，交互与重置都属于目标页，不应拿它当独立工具页记缺陷
+  try {
+    const source = fs.readFileSync(path.join(ROOT, rel), 'utf8');
+    if (/TOOLBOX-REDIRECT|http-equiv=["']refresh["']/i.test(source.slice(0, 6000))) { rec.kind = 'redirect'; return rec; }
+  } catch (_) {}
   const issue = (t) => { if (!rec.issues.includes(t)) rec.issues.push(t); };
   const PRIORITY = ['click_error', 'no_effect', 'empty_bogus', 'empty_conclusion', 'sel_default_zero', 'copy_dead', 'export_dead', 'reset_dead', 'no-primary-button'];
   const t0 = Date.now();
@@ -998,6 +1042,7 @@ async function scanInteract(page, rel) {
     if (!text) return;
     if (/Failed to load resource|net::ERR_|the server responded with a status of|JSHandle@/i.test(text)) return;
     if (/Clipboard|Document is not focused|Write permission denied|NotAllowedError/i.test(text)) return; // 无头环境剪贴板噪音
+    if (/Permissions policy violation.*unload|unload is not allowed/i.test(text)) return; // Chrome 对页面 unload 的策略提示，不是页面报错
     rec.errors.push((rec._phase || 'load') + ' console: ' + text);
   };
   page.on('pageerror', onPageError);
@@ -1494,6 +1539,7 @@ async function main() {
     console.error(`定向复扫：保留 ${kept.length} 条旧记录，重扫 ${pages.length} 页`);
   }
   // --limit 在 resume 过滤之后再截断：保证「待扫 N 页」是剩余页数，而不是全量前 N 页
+  if (OFFSET) pages = pages.slice(OFFSET);
   if (LIMIT) pages = pages.slice(0, LIMIT);
 
   await ensureServer();

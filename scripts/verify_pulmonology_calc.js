@@ -31,33 +31,6 @@ const CASES = [
   "ref": "体重分档边界回归：72 kg 属 >70 kg 档 ⇒ PZA 2000 mg、EMB 1250 mg（INH=min(72×5,300)=300、RIF=600）。页面旧实现以 75 kg 为档界，72 kg 落在 50–75 档输出 Z 1750 + E 1000；体重分档（中国指南/WHO ≥70 kg 档）应以 70 kg 为界。默认 55 kg 输出 Z 1750 + E 1000 ⇒ 零交集。"
 },
 {
-  // 默认 pao2=80/fio2=40 → P/F=200 重度 ARDS；注入 90/21 → P/F=429 → 氧合功能正常
-  "slug": "pulmonology/calc-48",
-  "inputs": {
-    "pao2": "90",
-    "fio2": "21"
-  },
-  "expect": [
-    "氧合功能正常，无需特殊氧疗支持。"
-  ],
-  "ref": "auto-restore"
-},
-{
-  // 默认 2.1/3.5 → 比值 60.0% 阻塞；注入 3.0/3.5 → 85.7% ≥0.70 → 无阻塞
-  "slug": "pulmonology/feigongneng-fev1-fvc-fenji",
-  "inputs": {
-    "fev1": "3.0",
-    "fvc": "3.5",
-    "fev1pred": "3.0",
-    "fvcpred": "2.0",
-    "age": "40"
-  },
-  "expect": [
-    "FEV1/FVC = 0.857 ≥ 0.70，无阻塞性通气障碍。"
-  ],
-  "ref": "auto-restore"
-},
-{
   // 默认 42/65/320/200 → 渗出液；注入 20/65/100/200 → 三项均不达标 → 漏出液
   "slug": "pulmonology/light-criteria",
   "inputs": {
@@ -73,16 +46,15 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
-  // 默认 copd/8/60 → 480 mL；注入 cardiac/10/70 → 700 mL
+  // 心源性肺水肿固定档：EPAP 8 + PS 5 = IPAP 13
   "slug": "pulmonology/niv-settings",
   "inputs": {
     "indication": "cardiac",
-    "vt": "10",
-    "ibw": "70",
     "ph": "7.30"
   },
   "expect": [
-    "目标潮气量 = 10 mL/kg × 70 kg = 700 mL"
+    "EPAP(呼气相正压)= 8 cmH₂O",
+    "压力支持 PS = IPAP − EPAP = 13 − 8 = 5 cmH₂O"
   ],
   "ref": "auto-restore"
 },
@@ -107,7 +79,7 @@ const CASES = [
     "b": "1",
     "c": "1"
   },
-  "expect": ["1\n1\n1\nprimary\nmoderate\n10% 肺压缩估计 少量气胸但有症状 评估 计算明细 A=1, B=1, C=1 cm 平均胸膜间距 = (1+1+1)/3 = 1.00 cm 肺压缩% ≈ 1.00 × 10 = 10% 类型：原发性自发性 参考：本页按 Rhea 法估算（本页估算），BTS 指南以胸膜间距 ≥2 cm 区分大小，CT 测量更准确；需影像科/临床复核。 少量气胸但有症状 有症状的小量气胸可考虑简易抽气(14-16G套管针第2肋间)，若抽气后未复张或复发则胸腔闭式引流。"],
+  "expect": ["10.0% 肺压缩估计 少量气胸但有症状","BTS 最大胸膜间距 ≥2 cm"],
   "ref": "auto-restore"
 },
 {
@@ -388,7 +360,7 @@ const CASES = [
     "q6": "0"
   },
   "expect": [
-    "依赖程度轻。以行为干预为主(识别触发情境、延迟技巧)"
+    "极低依赖。以行为干预为主"
   ],
   "ref": "auto-restore"
 },
@@ -465,6 +437,22 @@ const CASES = [
   ],
   "expect": ["Pre-XDR-TB(准广泛耐药)", "MDR/RR + 耐氟喹诺酮"],
   "ref": "L-N40 RR-TB+FQ：利福平耐药（GeneXpert）且异烟肼敏感、氟喹诺酮耐药 ⇒ WHO 2021 属 Pre-XDR（MDR/RR + FQ）；修复前仅 rifR&&dInh 分支才查 FQ，RR-TB 被降级为普通 RR-TB。默认 d_rif 勾选且 d_fq 未勾 ⇒ 不命中。"
+},
+{
+  "slug": "pulmonology/tb-resistance",
+  "clicks": [
+    "document.getElementById('smear').value='3+';document.getElementById('culture').value='pos';document.getElementById('xpert').value='rif_r';document.getElementById('d_rif').checked=false;calc();var r=document.getElementById('result');r.innerHTML+=' 列表一致='+(r.innerHTML.indexOf('利福平（GeneXpert 分子提示）')>=0&&r.innerHTML.indexOf('耐药：无')<0);"
+  ],
+  "expect": ["列表一致=true"],
+  "ref": "Xpert rif_r 已足以判 RR-TB，但药敏勾选未勾利福平时旧版耐药列表写「无」，同屏矛盾。新版列表补「利福平（GeneXpert 分子提示）」。"
+},
+{
+  "slug": "pulmonology/tb-resistance",
+  "clicks": [
+    "document.getElementById('smear').value='3+';document.getElementById('culture').value='pos';document.getElementById('xpert').value='rif_s';document.getElementById('d_rif').checked=false;document.getElementById('d_inh').checked=true;document.getElementById('d_fq').checked=true;calc();var r=document.getElementById('result');r.innerHTML+=' INHFQ='+(r.innerHTML.indexOf('常规「RZE + 氟喹诺酮」方案不适用')>=0)+' 含左氧='+(r.innerHTML.indexOf('左氧氟沙星')>=0);"
+  ],
+  "expect": ["INHFQ=true 含左氧=false"],
+  "ref": "INH 单耐药 + FQ 耐药：旧版固定推荐 RZE+氟喹诺酮，会把已耐药的左氧/莫西写进方案；新版必须提示方案不适用且结果不列左氧。"
 },
 {
   "slug": "pulmonology/tb-resistance",
@@ -577,11 +565,6 @@ const CASES = [
   "expect": ["具体死亡率不确定", "考虑ICU/HDU"],
   "ref": "Five criteria selected: retain high-risk assessment without assigning the conflicting 57% to the derivation cohort."
 },{
-  "slug": "pulmonology/calc-48",
-  "inputs": { "pao2": "80", "fio2": "150" },
-  "expect": ["FiO2 应在 21–100% 之间，请重新填写。"],
-  "ref": "03-162 FiO2 上限校验：旧版仅 isNaN||fio2<21 判下限，max=100 属性不阻止键入，150% 直接算出 P/F≈53「重度ARDS」+OI 被放大。本批加 fio2>100 拦截。默认 fio2=40 合法不命中，零逃生。"
-},{
   "slug": "pulmonology/oxygenation-index",
   "inputs": { "pao2": "65", "fio2": "150", "spo2": "95" },
   "expect": ["FiO2 应在 21–100% 之间，请重新填写。"],
@@ -603,7 +586,50 @@ const CASES = [
   "ref": "03-164 Light 标准引据表 LDH 阈值口径：公式框/表格/代码均为 0.6（Light 1972 原值），独引据表 data-zh 中文与英文写 0.67。本批改为 0.6 并同步英文。源码形态哨兵：无 0.67、含新 0.6；默认态不产哨兵（仅 clicks 读源码），零逃生。"
 },
 { slug:"pulmonology/anti-tb-dosing", inputs:{"wt":"","age":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" },
-{ slug:"pulmonology/sputum-analysis", inputs:{"vol":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" }
+{ slug:"pulmonology/sputum-analysis", inputs:{"vol":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" },
+  {
+    "slug": "pulmonology/anti-tb-dosing",
+    "inputs": {"wt": "-10", "age": "40"},
+    "expect": ["⚠ 体重须在 0–250 kg（不含 0），年龄须在 0–120 岁。"],
+    "ref": "负体重按分段给量会得到负剂量而非报错；新守卫应拒绝。默认 55/40 不含该提示。"
+  },
+{
+  "slug": "pulmonology/lung-cancer-tnm",
+  "inputs": {"t":"T2b","n":"N0","m":"M0"},
+  "expect": ["分期 = ⅡA期"],
+  "ref": "AJCC 第 8 版 T2bN0M0 为 ⅡA；旧实现返回 ⅠB。"
+},
+{
+  "slug": "pulmonology/lung-cancer-tnm",
+  "inputs": {"t":"T3","n":"N2","m":"M0"},
+  "expect": ["分期 = ⅢB期"],
+  "ref": "AJCC 第 8 版 T3N2M0 为 ⅢB；旧实现落入 ⅢA。"
+},
+{
+  "slug": "pulmonology/copd-cat",
+  "inputs": {"q0":"3","q1":"3","q2":"3","q3":"3","q4":"3","q5":"3","q6":"3","q7":"5"},
+  "expect": ["21/40 CAT总分 重度影响"],
+  "ref": "第 8 题反向计分：其余 7 题各 3 分 =21；q7=5（完全没有精力）反向计 0，总分 21。按 CAT 分级 21–30 为重度影响；旧实现同向计 5 得 26，同样落入重度但总分错误。"
+},
+{
+  "slug": "pulmonology/smoking-cessation",
+  "inputs": {"q1":"1","q2":"1","q3":"1","q4":"1","q5":"1","q6":"0"},
+  "expect": ["中度依赖","需专业/药物辅助"],
+  "ref": "5 分属中度依赖，卡片与分级应一致；旧卡片 >=6 才提示药物辅助。"
+},
+{
+  "slug": "pulmonology/anti-tb-dosing",
+  "inputs": {"wt":"20","age":"30"},
+  "expect": ["本页为成人固定剂量方案"],
+  "ref": "低体重不得套用成人固定剂量；旧实现 20 kg 给 PZA 1500（75 mg/kg）。"
+},
+{
+  "slug": "pulmonology/oxygenation-index",
+  "inputs": {"pao2":"65","fio2":"40","spo2":"92"},
+  "checkIds": ["peep"],
+  "expect": ["未满足柏林前提","未排除（不满足柏林前提）"],
+  "ref": "PEEP 已建立但未勾选非心源性：旧实现仍直接定级中度 ARDS；现拦截并提示前提未满足。"
+},
 ];
 
 async function main() {

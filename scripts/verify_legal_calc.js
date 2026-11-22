@@ -97,6 +97,12 @@ const CASES = [
     ref: "约定10%（≤3.45×4=13.8%受保护）；利息=150000×10%×1=15000；本息=165000（原 expect 写成默认 rate=12 的 112000/12000，与 ref 自相矛盾）",
   },
   // ── 法律援助资格（低保户免核查）────────────────────────────────────
+  { slug: "legal/legal-aid-eligibility",
+    inputs: { applicantType: "normal", monthlyIncome: "", localLowIncome: "3000" },
+    checks: ["labor"],
+    expect: ["请补充收入信息后再判断是否符合法律援助条件"],
+    ref: "普通申请人月收入留空：旧代码 economicEligible 保持 false，直接给出「可能不符合」的否定结论；新增未定态后须提示补充收入。" },
+
   {
     slug: "legal/legal-aid-eligibility",
     inputs: { applicantType: "normal", monthlyIncome: "999999", localLowIncome: "2000" },
@@ -112,6 +118,11 @@ const CASES = [
     ref: "一级一次性伤残补助金=27×10000=270000；1-4级津贴=10000×90%=9000/月",
   },
   // ── 交通事故残疾赔偿金（伤残系数：一级100%/十级10%，修复倒置缺陷）──
+  { slug: "legal/traffic-accident-compensation",
+    inputs: { age: "", disposableIncome: "50000", avgWage: "8000" },
+    expect: ["请填写年龄、可支配收入与当地职工平均工资后再计算。"],
+    ref: "年龄留空：旧代码按 0 岁处理、赔偿年限取 20 年；新增守卫后须提示。" },
+
   {
     slug: "legal/traffic-accident-compensation",
     inputs: { liability: "1", injuryLevel: "1", age: "30", disposableIncome: "60000" },
@@ -414,6 +425,11 @@ const CASES = [
     expect: ["诉讼时效届满日： 2026-12-31", "930天"],
     ref: "注入非默认(默认空→请填写相关日期信息)：dueDate=2023-01-01、lastDemand=2024-01-01（中断重算3年）→ 诉讼时效届满日 2026-12-31、剩余 930天。默认态无届满日不命中。"
   },
+  { slug: "legal/social-security-base",
+    inputs: { salary: "", city: "北京", insType: "养老" },
+    expect: ["请填写有效的月工资（0 或以上）后再计算。"],
+    ref: "月工资留空：旧代码按 0 落入缴费下限，凭空算出一整套按最低基数缴纳的金额；新增守卫后须提示。" },
+
   {
     slug: "legal/social-security-base",
     inputs: { salary: "15000", city: "上海", insType: "养老" },
@@ -533,7 +549,7 @@ const CASES = [
     "slug": "legal/child-support",
     "inputs": {
       "monthlyIncome": "42",
-      "childAge": "42",
+      "childAge": "5",
       "livingCost": "42",
       "customRatio": "42",
       "specialExpense": "42",
@@ -819,7 +835,7 @@ const CASES = [
       "calcType": "days"
     },
     "expect": [
-      "42\n20.83\n42\ndays\n42\n42\n日工资： 2.0"
+      "42\n20.83\n42\ndays\n42\n42\n42\n42\n42\n日工资： 2.0"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"monthlySalary\":\"42\",\"hoursPerDay\":\"42\",\"weekdayHours\":\"42\",\"weekendHours\":\"42\",\"holidayHours\":\"42\",\"weekendDays\":\"42\",\"holidayDays\":\"42\",\"workDays\":\"20.83\",\"calcType\":\"days\"}，输出区含「42\n20.83\n42\ndays\n42\n42\n日工资： 2.0」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -948,11 +964,35 @@ const CASES = [
 { slug:"legal/late-payment-interest", inputs:{"principal":""}, expect:["请填写欠款本金"], ref:"核心金额留空不得输出 0 元结论（LEGALCLR）" },
 { slug:"legal/labor-compensation", inputs:{"workYears":"","monthlySalary":""}, expect:["请填写工作年限与月工资"], ref:"核心金额留空不得输出 0 元结论（LEGALCLR）" },
 { slug:"legal/labor-compensation-n1", inputs:{"workYears":"","monthlySalary":""}, expect:["请填写工作年限与月工资"], ref:"核心金额留空不得输出 0 元结论（LEGALCLR）" },
+{ slug:"legal/labor-compensation", inputs:{workYears:"0.5", monthlySalary:"12345", salaryCap:"0", noticeGiven:"1"}, expect:["12,345"], ref:"工作满 6 个月（0.5 年）按一年计，N=1 ⇒ 12,345 元；旧实现给 0.5 个月 6,172.50，且默认 3 年不含 12,345 ⇒ 强判别。" },
 { slug:"legal/severance-pay", inputs:{"workYears":"","monthlySalary":""}, expect:["请填写工作年限与月工资"], ref:"核心金额留空不得输出 0 元结论（LEGALCLR）" },
 { slug:"legal/child-support", inputs:{"monthlyIncome":""}, expect:["请填写支付方月收入"], ref:"核心金额留空不得输出 0 元结论（LEGALCLR）" },
 { slug:"legal/rent-deposit", inputs:{"monthlyRent":""}, expect:["请填写月租金"], ref:"核心金额留空不得输出 0 元结论（LEGALCLR）" },
 { slug:"legal/overtime-pay", inputs:{"monthlySalary":""}, expect:["请填写月工资"], ref:"核心金额留空不得输出 0 元结论（LEGALCLR）" },
-{ slug:"legal/work-injury-compensation", inputs:{"monthlySalary":""}, expect:["请填写本人工资"], ref:"核心金额留空不得输出 0 元结论（LEGALCLR）" }
+{ slug:"legal/work-injury-compensation", inputs:{"monthlySalary":""}, expect:["请填写本人工资"], ref:"核心金额留空不得输出 0 元结论（LEGALCLR）" },
+  { slug: "legal/personal-injury",
+    inputs: { age: "", income: "50000", avgWage: "8000", medical: "10000", monthlyWage: "6000", missedDays: "30", nursingDays: "10", foodAllowance: "50", hospitalDays: "10" },
+    expect: ["请填写年龄、年收入与当地职工平均工资后再计算。"],
+    ref: "年龄留空：旧代码按 0 岁处理、赔偿年限取 20 年，残疾赔偿金被高估；新增守卫后须提示。" },
+  { slug: "legal/food-safety",
+    inputs: { foodPrice: "", damageAmount: "3000" },
+    checkIds: ["causedDamage"],
+    expect: ["请填写食品价款后再计算。"],
+    ref: "价款留空：旧代码按 0 计算仍触发 1000 元保底赔偿，凭空给出可主张 1000 元；新增守卫后须提示。" },
+  { slug: "legal/trademark-fee",
+    inputs: { classCount: "" },
+    expect: ["请填写商标类别数（须为 ≥1 的整数）后再计算。"],
+    ref: "类别数留空：旧代码 parseInt||1 按 1 类报价，用户会拿到一份凭空假设 1 类的规费；新增守卫后须提示。" },
+  {
+    "slug": "legal/child-support",
+    "inputs": {"monthlyIncome": "-100", "childCount": "1", "childAge": "5", "livingCost": "2000", "paymentRatio": "0.3"},
+    "expect": ["⚠ 月收入须大于 0；无固定收入请按当年总收入或同行业平均收入，或以财物折抵。"],
+    "ref": "负月收入会算出负抚养费；新守卫应拒绝。默认 10000/1/5/2000 不含该提示。"
+  },
+
+{ slug:"legal/severance-pay", inputs:{"workYears":"3","monthlySalary":"10000","salaryCap":"0","terminationType":"legal_plus"}, clicks:["calculate();"], expect:["N+1","40,000"], ref:"L-N9：合法解除未提前通知应出 N+1，3 年×10000=30000，加代通知金 10000=40000。" },
+{ slug:"legal/court-fee", inputs:{"caseType":"property","amount":"-1"}, clicks:["calculate();"], expect:["请输入大于 0"], ref:"L-N11：财产案件标的为负不得按 50 元收费。" },
+
 ];
 
 // ---------------------------------------------------------------- main

@@ -19,6 +19,11 @@ const { runCase } = require("./verify_it_calc.js");
 // ---------------------------------------------------------------- 用例
 const CASES = [
   // ── 经典力学 ─────────────────────────────────────────────────
+  { slug: "science/newtons-second",
+    inputs: { m: "10", a: "" },
+    expect: ["请填写质量与加速度后再计算。"],
+    ref: "加速度留空：旧 num() 回退 0 静默输出力 0；新增空值守卫后须提示。" },
+
   {
     slug: "science/newtons-second",
     // 原 all_default 弱用例（m=10/a=3 恰等于页面默认）
@@ -316,6 +321,11 @@ const CASES = [
     expect: ["ASTRORNG_OK"],
     ref: "SMS-73 清账（E 范围守卫）：东移值 1500000 m 超出假东移 500000 的物理上限 1000000，旧版照常反算输出荒谬经纬度；现直接提示「东移应在 0~1000000 m」。探针断言反向结果容器出现该提示，旧版 ⇒ ASTRORNG_BAD，零逃生。",
   },
+  { slug: "science/led-resistor-calculator",
+    inputs: { vs: "5", if: "20", count: "" },
+    expect: ["请填写有效的电源电压、正向电流与 LED 数量（1–50）后再计算。"],
+    ref: "LED 数量留空：旧代码 parseInt||1 按 1 颗计算；新增守卫后须提示且四个结果卡回到 --。" },
+
   {
     slug: "science/led-resistor-calculator",
     inputs: { vs: "12", if: "20", ifUnit: "0.001", vf: "2.2", count: "2" },
@@ -342,6 +352,12 @@ const CASES = [
     clicks: ["currentCategory='electromagnetism';currentFormula=FORMULAS.electromagnetism.find(function(f){return f.id==='phi_bs';});renderInputs();document.getElementById('var_phi').value='1';document.getElementById('var_B').value='';document.getElementById('var_S').value='2';document.getElementById('var_theta').value='60';calculate();var h=String(document.getElementById('output').textContent||document.getElementById('output').innerHTML);document.getElementById('var_S').value='PHIBS_'+(h.indexOf('磁感应强度 (T) = 1')>=0&&h.indexOf('= 0.5')<0?'OK':'BAD_'+h.slice(-80));"],
     expect: ["PHIBS_OK"],
     ref: "SMS（磁通量反解漏 cosθ）：Φ=BS cosθ，反解 B 须 B=Φ/(S·cosθ)。Φ=1 Wb、S=2 m²、θ=60° → B=1/(2×0.5)=1.0000 T；旧版 B=Φ/S=0.5000 T（漏 cosθ）。探针断言解出 B=1（且非旧版 0.5），旧版 ⇒ PHIBS_BAD，零逃生。",
+  },
+  {
+    slug: "science/physics-calculator",
+    clicks: ["currentCategory='modern';currentFormula=FORMULAS.modern.find(function(f){return f.id==='ke_max';});renderInputs();document.getElementById('var_f').value='1e14';document.getElementById('var_W0').value='3.204e-19';calculate();var h=String(document.getElementById('output').textContent||document.getElementById('output').innerHTML);document.getElementById('var_f').value='KEMAX_'+(h.indexOf('无光电子逸出')>=0?'OK':'BAD');"],
+    expect: ["KEMAX_OK"],
+    ref: "PQ-17 光电效应负动能：f=1e14 Hz、W₀=3.204e-19 J（2 eV）⇒ hf=6.626e-20 J < W₀，应提示「无光电子逸出、最大初动能不适用」；旧版直接输出 hf−W₀=−2.542e-19 J 的负动能。默认态无该提示 ⇒ 零逃生。",
   },
   {
     slug: "science/doppler-effect",
@@ -523,6 +539,11 @@ const CASES = [
   // 【判据】这一族几乎全是「公式 + 单位量」直算，且页面默认参数各不相同 ⇒ 首轮 8 例里 7 例直接过，
   // 唯一撞默认的是 work-done（默认恰是 F=50 / d=3 / θ=0）⇒ 换 F=60/d=5 复验即通。
   // 选锚口径只取**随注入变的数值行**，不取公式描述行（`F = k·x` 这类静态文本默认态必命中 ⇒ 逃生）。
+  { slug: "science/hookes-law",
+    inputs: { k: "100", x: "" },
+    expect: ["请填写劲度系数与形变量后再计算。"],
+    ref: "形变量留空：旧 num() 回退 0 静默输出力 0；新增空值守卫后须提示。" },
+
   {
     slug: "science/hookes-law",
     inputs: { k: "3", x: "3" },
@@ -568,7 +589,7 @@ const CASES = [
   {
     slug: "science/doppler-effect",
     inputs: { f: "3", v: "3", vo: "0", vs: "20" },
-    expect: ["-0.5 Hz 观测频率", "-3.5 Hz 频率偏移 Δf"],
+    expect: ["波源速度不能达到或超过波速"],
     ref: "多普勒频移（声源频率 f=3 Hz、波速 v=3 m/s、观察者静止 v₀=0、声源远离 v_s=20 m/s）：f′ = f(v+v₀)/(v−v_s) = 3×3/(3−20) = **−0.529 ⇒ 显示 −0.5 Hz**；Δf = f′ − f = −0.5 − 3 = **−3.5 Hz**（两行自洽、可手算）。默认参数不同 ⇒ 不命中。",
   },
   {
@@ -1618,7 +1639,7 @@ const CASES = [
       "vs": "42"
     },
     "expect": [
-      "42\n42\n42\n42\n—"
+      "波源速度不能达到或超过波速"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"f\":\"42\",\"v\":\"42\",\"vo\":\"42\",\"vs\":\"42\"}，输出区含「42\n42\n42\n42\n—」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },

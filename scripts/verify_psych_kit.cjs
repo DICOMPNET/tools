@@ -214,7 +214,8 @@ function answerRows(win, d, fn) {
         try { if (/psych-kit\.js/.test(fs.readFileSync(path.join(ROOT, 'tools', ind, f), 'utf8'))) injected++; } catch (e) { }
       }
     }
-    ok('注入页面数 >= 40', injected >= 40, '实际 ' + injected);
+    // 2026-11-21：LSAS / CD-RISC / ASRS 三个重复页已合并（存根不引 kit） ⇒ 覆盖数 40→37。
+    ok('注入页面数 >= 37', injected >= 37, '实际 ' + injected);
   }
 
   console.log('\n结果：' + pass + ' 通过 / ' + fail + ' 失败');

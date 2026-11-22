@@ -99,6 +99,22 @@ function metronomeStaticChecks() {
 }
 
 // 648 复核失败：DTD 内部子集被整段抽出的约定未覆盖空白压缩；CSV 的 ok 算了却没写进导出。
+function batch202StaticChecks(){
+  const out=[];
+  function chk(name, file, needles){
+    let src='';try{src=fs.readFileSync(file,'utf8');}catch(e){out.push({name:name,ok:false});return;}
+    const missing=needles.filter(n=>src.indexOf(n)<0);
+    out.push({name:name+(missing.length?(' missing:'+missing.join('|')):''),ok:missing.length===0});
+  }
+  chk('B202 svg pixel cap','tools/design/svg-to-png.html',['w * scale * h * scale > 100000000','"scale":"1"']);
+  chk('B202 px-to-rem multiply','tools/design/px-to-rem.html',['上表 rem 值直接乘以 1.6']);
+  chk('B202 compress min 1px','tools/image/image-compress.html',['Math.max(1, Math.round(s.maxSize/ratio))','Math.max(1, Math.round(s.maxSize*ratio))']);
+  chk('B202 resize area cap','tools/image/image-resize.html',['MAX_PIXELS = 16000000','w * h > MAX_PIXELS']);
+  chk('B202 converter token','tools/image/image-converter.html',['__convertToken','if (__token !== __convertToken) return;','源图透明通道原样保留']);
+  chk('B202 photo one-inch preset','tools/design/photo-print-size.html',['id:[296,414,300]','一寸证件照 296×414']);
+  return out;
+}
+
 function designRework648StaticChecks() {
   const src = fs.readFileSync(SVG_PATH, "utf8");
   const i = src.indexOf("function generate(");
@@ -614,13 +630,6 @@ const CASES = [
     ref: "负时长：修复前 -3 原样拼成非法的 `animation: skelLoading -3s ease infinite`；修复后应显式提示并拒绝生成。默认 1.4s 不含该提示 ⇒ 判别明确。",
   },
   {
-    slug: "design/shadow-generator",
-    inputs: { offsetX: "10", offsetY: "16", blur: "24", color: "#f43f5e" },
-    expect: ["box-shadow: 10px 16px 24px -5px #f43f5e;"],
-    ref: "独立复算：`#code` 拼 `box-shadow: ${offsetX}px ${offsetY}px ${blur}px -5px ${color};`（含固定 spread=-5px）⇒ 注入 offsetX=10 / offsetY=16 / blur=24 / color=#f43f5e 得该串。默认态色值为 #000000 ⇒ 不命中。"
-        + "⚠ 颜色必须注入到 `#color`（色值框本身）；注入 `#colorText`（文本框）会触发 `syncColor: reading 'value' of undefined` 且不更新结果 ⇒ 用例必须走 `#color`。",
-  },
-  {
     slug: "design/toast-generator",
     inputs: { message: "TOOLBOX-OK", radius: "14", bgColor: "#0f172a" },
     expect: ["border-radius: 14px"],
@@ -1065,13 +1074,6 @@ const CASES = [
       + "⚠ `opacity` 项注入被页面忽略（回落到常量 0.2），本例不注入该项；锚点以 dump 实测值为准，改注入前先重跑 dump。",
   },
   {
-    slug: "design/shadow-generator",
-    inputs: { offsetX: "6", offsetY: "10", blur: "24", spread: "-4", color: "#f43f5e" },
-    expect: ["box-shadow: 6px 10px 24px -4px #f43f5e;"],
-    ref: "输出区 `#code` 首行是四值 + 颜色的 box-shadow 简写，五项注入值全部落在这一个串里。默认态为 `0px 10px 20px -5px #667eea;` ⇒ 判别明确。\\n"
-      + "⚠ `inset` 勾选后首行串不变（inset 走另一渲染路径），本例不写 inset 断言，避免写成假用例。",
-  },
-  {
     slug: "design/button-generator",
     inputs: { bgColor: "#f43f5e", textColor: "#fff", borderColor: "#9f1239", borderW: "2", radius: "12", padX: "28", padY: "16", fontSize: "18", shX: "3", shY: "5", shBlur: "10" },
     expect: [".btn-custom { padding: 16px 28px; background: #f43f5e; color: #fff; border: 2px solid #9f1239; border-radius: 12px; font-size: 18px;"],
@@ -1114,49 +1116,6 @@ const CASES = [
     inputs: { cnt: "7" },
     expect: [".border-7 { border:"],
     ref: "随机边框生成器，锚第 7 条的结构前缀 `.border-7 { border:`。边框样式枚举（solid/dashed/dotted/...）与颜色是随机的，只取结构前缀规避 flaky。默认态 5 条 ⇒ 不命中。",
-  },
-  {
-    // D-N208 默认态：真实 QR 编码（域名补丁后默认文本 24 字节 → 版本 2 / 25×25 / 纠错 M）
-    slug: "design/generator-8",
-    expect: ["版本 2 · 25×25 模块 · 纠错 M · 24 字节"],
-    ref: "D-N208 强锁：页面改为调用项目内置 js/qrcode.js 真实编码（ISO/IEC 18004）。默认文本 `https://tools.dicomp.net`（29 字节 UTF-8）在 M 级下由库自动选中版本 3 ⇒ 模块数 4×3+17 = 29。\n"
-      + "期望值由 node 独立跑库复算：`qrcode(0,'M') + addData(text,'Byte') + make()` → getModuleCount() = 29、版本 (29-17)/4 = 3，与页面信息行逐字一致。\n"
-      + "旧实现只拼「配置参数 #1:」随机文本、不生成任何矩阵，不含该串 ⇒ 强判别。\n"
-      + "⚠ harness 原本不加载外部 <script src>；本轮在 verify_it_calc.js 里按「页面 HTML 引用 js/qrcode.js」为条件把构造函数作为 new Function 形参注入，未引用该库的用例行为不变。",
-  },
-  {
-    // D-N208 纠错等级参与版本选择：同一文本 H 级比 M 级高一版
-    slug: "design/generator-8",
-    inputs: { qrtext: "https://example.com", qrecl: "H" },
-    expect: ["版本 3 · 29×29 模块 · 纠错 H · 19 字节"],
-    ref: "D-N208 强锁：同一文本在 H 级下需要更多纠错码字，版本被抬高。node 复算 `https://example.com`（19 字节）：L/M/Q 均版本 2（25×25），H 为版本 3（29×29）。\n"
-      + "默认态是 M 级版本 2，本用例改 qrecl=H 后取得「版本 3 … 纠错 H」，证明纠错等级真正参与编码而不是只改标签。\n"
-      + "⚠ 只注入 qrtext 与 qrecl 两个键，不动 qrsize/qrmargin/qrfg/qrbg，避免颜色变化干扰文本锚点。",
-  },
-  {
-    // D-N208 批量：多行文本各生成一个二维码
-    slug: "design/generator-8",
-    inputs: { qrtext: "A\nB\nC" },
-    expect: ["生成结果：共 3 个二维码（纠错 M，静区 4 模块）"],
-    ref: "D-N208：输入框按行切分，每行一个二维码（上限 20 行）。三行 ⇒ 首行汇总写「共 3 个二维码」。默认态 1 行 ⇒ 不含「共 3 个」⇒ 强判别；同时验证空行/去空格逻辑未把换行吞掉。",
-  },
-  {
-    // D-N208 UTF-8 字节计数：中文按 3 字节/字，而非按字符数
-    slug: "design/generator-8",
-    inputs: { qrtext: "中文测试" },
-    expect: ["版本 1 · 21×21 模块 · 纠错 M · 12 字节"],
-    ref: "D-N208 强锁：编码按 UTF-8 计字节，`中文测试` 4 个汉字 = 12 字节（每字 3 字节），M 级下落在版本 1 ⇒ 21×21。\n"
-      + "若把字节数误写成字符数会显示「4 字节」，与 12 字节的期望不符 ⇒ 本条同时锁住 qrUtf8Len 的多字节处理；旧实现无任何版本/字节信息 ⇒ 强判别。\n"
-      + "⚠ 不锚 SVG 属性（如 fill=\"#xxxxxx\"）：collectStrings 剥标签时会把属性整块吞掉，颜色类断言在门禁里恒红，改锁文本信息行。",
-  },
-  {
-    // 第 389 批复核失败重做：超长行不写入 QR_STATE，下载索引必须按已生成条目数编号
-    slug: "design/generator-8",
-    inputs: { qrtext: "QRI2026MIX\nB" },
-    clicks: ["var __v=String(document.getElementById('qrtext').value||'');var __p=document.getElementById('__tbProbe');if(__v.indexOf('QRI2026MIX')<0){__p.textContent='QRI2026_DEFAULT';}else{document.getElementById('qrtext').value=new Array(3000).join('X')+'\\nB';gen();var __h=String(document.getElementById('res').innerHTML);var __m=__h.match(/data-i=.(\\d+)./);__p.textContent='QRI2026_IDX='+(__m?__m[1]:'NONE')+'_LONG='+(__h.indexOf('内容过长')>=0?'Y':'N')+'_B='+(__h.indexOf('2. B')>=0?'Y':'N');}"],
-    expect: ["QRI2026_IDX=0_LONG=Y_B=Y"],
-    ref: "第 389 批：第一行 2999 字节超 M 级 2331 字节上限被跳过，第二行 B 是唯一有效条目，QR_STATE 只有索引 0。旧实现把原始行号 i=1 写进 data-i，下载会越界取空；修复后按钮索引为 0 且摘要按实际生成数统计。\n"
-      + "探针仅在 inputs 含 QRI2026MIX 时构造混合输入，默认态输出 QRI2026_DEFAULT ⇒ 两态异值、强判别、零逃生。",
   },
   {
     slug: "design/generator-11",
@@ -2347,22 +2306,6 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"strokeWidth\":\"42\",\"colorPicker\":\"abc123测试\"}，输出区含「42\nabc123测试」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "design/shadow-generator",
-    "inputs": {
-      "offsetX": "42",
-      "offsetY": "42",
-      "blur": "42",
-      "spread": "42",
-      "color": "abc123测试",
-      "colorText": "abc123测试",
-      "inset": "inset"
-    },
-    "expect": [
-      "-shadow: inset 42px 42px 42px 42px abc123测试"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"offsetX\":\"42\",\"offsetY\":\"42\",\"blur\":\"42\",\"spread\":\"42\",\"color\":\"abc123测试\",\"colorText\":\"abc123测试\",\"inset\":\"inset\"}，输出区含「-shadow: inset 42px 42px 42px 42px abc12…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
-  },
-  {
     "slug": "design/shutter-speed-calculator",
     "inputs": {
       "focal": "42",
@@ -2503,6 +2446,23 @@ const CASES = [
     "ref": "重写：原注入裸键 sus（页面只生成 sus0..sus9、calc 循环读 getElementById('sus'+i)，裸 sus 从不被读取 ⇒ 注入落空）。改为真实动态键 sus0..sus9：奇数题(索引偶数)取 5 → (5−1)=4 共 5 题，偶数题(索引奇数)取 1 → (5−1)=4 共 5 题，susSum=40 ⇒ SUS=100 分（默认全 3 ⇒ susSum=20 ⇒ 50 分；且**均匀取值恒为 50 分**——5*(v−1)+5*(5−v)=20，故只有混合取值才能证明这些键真被读取）。绩效锚：成功率 7/10=70%、时间比 160/100=1.60x、错误率 3/10=0.3次/任务、满意度 4 → 4/7；默认 5/4/120/90/3/2/5/5 ⇒ 80% (4/5)、1.33x、0.6次/任务、5/7。末锚「86 综合可用性评分」= taskScore 65.5×(40%) + susScore 100×(60%) = 86.2 → 86，同时依赖绩效注入与 SUS 注入（performance 不变而 sus 落空时得 56、sus 生效而绩效回退时得 89），是证明 sus0..sus9 真被读取的唯一可靠锚。不直接锚「SUS得分（等级A）」——sus* 由 JS 动态生成，discriminate_check 的 pageDefaults 解析不到、无法回退，该锚会恒真成为逃生项。"
   },
   {
+    "slug": "design/tester-assessor",
+    "inputs": {
+      "totalTasks": "10",
+      "successTasks": "7",
+      "avgTime": "160",
+      "expectedTime": "100",
+      "errors": "3",
+      "helpCount": "2",
+      "userCount": "6",
+      "satisfaction": "8"
+    },
+    "expect": [
+      "满意度需为 1–7 分（超出范围不计算）。"
+    ],
+    "ref": "第201批·满意度夹取：输入 8 原会得 satScore 116.7，现明确拒绝计算；默认 5 分正常出结果，零交集。"
+  },
+  {
     "slug": "design/tailwind-colors",
     "inputs": {
       "searchInput": "abc123测试"
@@ -2618,40 +2578,6 @@ const CASES = [
       " #0EA5E9\nsequential\n42\nlightness"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"csCount\":\"42\",\"csMode\":\"sequential\",\"csStrategy\":\"lightness\"}，输出区含「 #0EA5E9\nsequential\n42\nlightness」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
-  },
-  {
-    slug: "design/shadow-generator",
-    // S2 设计系统风格预设组（04 批次）：clicks 直调 applyPreset(i)，i 依赖 PRESETS 追加序
-    // （原 12 个 index 0-11；追加 Material1=12 / Material4=13 / Neu亮=14 / Neu暗=15 / Glass+=16 / Brutal=17 / TW sm=18 / TW md=19 / TW lg=20 / TW xl=21）。
-    // applyPreset → parseShadow（色提尾、数值四元、缺省补 0）→ buildShadowStr 拼 `x y blur spread color`（层间 ', '）→ #code = `box-shadow: ...;`
-    inputs: {},
-    clicks: ["applyPreset(14);"],
-    expect: ["box-shadow: 9px 9px 18px 0px #d1d9e6, -9px -9px 18px 0px #ffffff;"],
-    ref: "Neu 亮预设（index 14）：parseShadow('9px 9px 18px #d1d9e6') → x9 y9 blur18 spread0 → '9px 9px 18px 0px #d1d9e6'；第二层 '-9px -9px 18px 0px #ffffff'。默认态 #code='box-shadow: 0px 10px 20px -5px #667eea;' ⇒ 零交集。"
-  },
-  {
-    slug: "design/shadow-generator",
-    inputs: {},
-    clicks: ["applyPreset(17);"],
-    expect: ["box-shadow: 8px 8px 0px 0px #000000;"],
-    ref: "Brutal 预设（index 17）：'8px 8px 0 #000000' → blur=0/spread=0 补 0px。默认态零交集。"
-  },
-  {
-    slug: "design/shadow-generator",
-    inputs: {},
-    clicks: ["applyPreset(21);"],
-    expect: ["box-shadow: 0px 20px 25px -5px rgba(0,0,0,0.1), 0px 8px 10px -6px rgba(0,0,0,0.1);"],
-    ref: "TW xl 预设（index 21，Tailwind shadow-2xl）：两层 rgba 保留原串。默认态零交集。"
-  },
-  {
-    slug: "design/shadow-generator",
-    inputs: { offsetX: "6", offsetY: "8", blur: "14", spread: "7", color: "#f43f5e", colorText: "#f43f5e" },
-    // setMode('text') 后把预览的内联 textShadow 追加进 code 元素，一次校验导出与预览同步
-    clicks: ["setMode('text'); document.getElementById('code').textContent += ' | ' + document.getElementById('preview').style.textShadow;"],
-    expect: ["text-shadow: 6px 8px 14px #f43f5e; | 6px 8px 14px #f43f5e"],
-    ref: "N4-C text-shadow 只有 offset-x offset-y blur color：即使扩散=7px 也必须省略第 4 个长度值，"
-       + "导出声明与预览内联值一致为「6px 8px 14px #f43f5e」。旧实现拼成「6px 8px 14px 7px #f43f5e」，"
-       + "整条声明非法；默认 box 模式输出含 spread，本用例只锚文字阴影模式。"
   },
   {
     slug: "design/spinner-generator",
@@ -3761,7 +3687,7 @@ async function main() {
     }
   }
 
-  const stat = designRework648StaticChecks().concat(metronomeStaticChecks(), asciiHistoryGuardChecks(), dotPatternEventBindingChecks(), colorDeepDiveContrastFaqChecks(), fontPairingCjkStackChecks(), fontPreviewPlatformChecks());
+  const stat = designRework648StaticChecks().concat(batch202StaticChecks(), metronomeStaticChecks(), asciiHistoryGuardChecks(), dotPatternEventBindingChecks(), colorDeepDiveContrastFaqChecks(), fontPairingCjkStackChecks(), fontPreviewPlatformChecks());
   const staticFails = stat.filter((s) => !s.ok);
   for (const s of staticFails) console.log("❌ [static] " + s.name);
 

@@ -81,6 +81,11 @@ const CASES = [
     ref: "A=5·4/(4·tan36°)=6.8819 m²；内切圆半径=2/(2·tan36°)=1.3764 m" },
 
   { slug: "geometry/trapezoid-area",
+    inputs: { a: "3", b: "5", h: "" },
+    expect: ["请填写上底、下底与高后再计算。"],
+    ref: "高留空：旧 num() 回退 0 静默输出面积 0；新增空值守卫后须提示。" },
+
+  { slug: "geometry/trapezoid-area",
     inputs: { a: "2", b: "7", h: "3" },
     expect: ["13.5000", "9.0000"],
     ref: "A=(2+7)·3/2=13.5000 m²；中位线=(2+7)/2=4.5 ⇒ 中位线×2=上下底之和=9.0000 m（原式算 (a+b)·2=18，把「×2」错做成「×4」）" },
@@ -89,6 +94,11 @@ const CASES = [
     inputs: { a: "5", b: "6", c: "7" },
     expect: ["14.6969", "9.0000"],
     ref: "s=9.0000；A=√(9·4·3·2)=√216=14.6969 m²" },
+
+  { slug: "geometry/pythagorean",
+    inputs: { a: "3", b: "" },
+    expect: ["请填写两条直角边后再计算。"],
+    ref: "b 留空：旧 num() 回退 0 把斜边算成 a；新增空值守卫后须提示。" },
 
   { slug: "geometry/pythagorean",
     inputs: { a: "5", b: "12" },
@@ -122,9 +132,19 @@ const CASES = [
     ref: "V=π·9·4=113.0973 m³；侧面积=2π·3·4=75.3982 m²" },
 
   { slug: "geometry/ellipsoid-volume",
+    inputs: { a: "3", b: "2", c: "" },
+    expect: ["请填写三个半轴后再计算。"],
+    ref: "c 留空：旧 num() 回退 0 静默输出体积 0；新增空值守卫后须提示。" },
+
+  { slug: "geometry/ellipsoid-volume",
     inputs: { a: "2", b: "4", c: "5" },
     expect: ["167.552"],
     ref: "V=4/3·π·2·4·5=167.552 m³" },
+
+  { slug: "geometry/pyramid-volume",
+    inputs: { A: "9", h: "" },
+    expect: ["请填写底面积与高后再计算。"],
+    ref: "高留空：旧 num() 回退 0 静默输出体积 0；新增空值守卫后须提示。" },
 
   { slug: "geometry/pyramid-volume",
     inputs: { A: "12", h: "5" },
@@ -132,9 +152,19 @@ const CASES = [
     ref: "V=12·5/3=20.000 m³" },
 
   { slug: "geometry/rectangular-prism-volume",
+    inputs: { l: "5", w: "4", h: "" },
+    expect: ["请填写长、宽、高后再计算。"],
+    ref: "高留空：旧 num() 回退 0 静默输出体积 0；新增空值守卫后须提示。" },
+
+  { slug: "geometry/rectangular-prism-volume",
     inputs: { l: "5", w: "4", h: "3" },
     expect: ["60.000", "94.000", "48.000"],
     ref: "V=5·4·3=60.000 m³；A=2·(20+12+15)=94.000 m²；长方体有 12 条棱 ⇒ 棱长总和=4(l+w+h)=48.000 m（原式用 2(l+w+h)=24，少算一半）" },
+
+  { slug: "geometry/sphere-surface-area",
+    inputs: { r: "" },
+    expect: ["请填写半径后再计算。"],
+    ref: "半径留空：旧 num() 回退 0 静默输出表面积 0；新增空值守卫后须提示。" },
 
   { slug: "geometry/sphere-surface-area",
     inputs: { r: "2" },
@@ -481,10 +511,10 @@ const CASES = [
     "slug": "geometry/torus-volume",
     "inputs": {
       "R": "42",
-      "r": "42"
+      "r": "21"
     },
     "expect": [
-      "心圆周长 (m) 34819.9643 体积与环半径之比"
+      "心圆周长 (m) 8704.9911 体积与环半径之比"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"R\":\"42\",\"r\":\"42\"}，输出区含「心圆周长 (m) 34819.9643 体积与环半径之比」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -499,7 +529,14 @@ const CASES = [
       "42\n42\n42\n1764"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"a\":\"42\",\"b\":\"42\",\"h\":\"42\"}，输出区含「42\n42\n42\n1764」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
-  }
+  },
+  { slug: "geometry/circle-area", inputs: { r: "-5" }, expect: ["⚠ 半径 r 必须是大于 0 的数值。"], ref: "负半径会被平方后算出正面积 78.5398，误导为有效结果；新守卫应拒绝。默认 r=5→78.5398 不含该提示。" },
+  { slug: "geometry/cube-properties", inputs: { a: "-2" }, expect: ["⚠ 边长 a 必须是大于 0 的数值。"], ref: "负边长会被三次方算成负体积 −8，表面看似合法；新守卫应拒绝。默认 a=2→8.000 不含该提示。" },
+  { slug: "geometry/torus-volume", inputs: { R: "2", r: "5" }, expect: ["⚠ 主半径 R 与管半径 r 必须满足 R > r > 0。"], ref: "r>R 时套环公式对应纺锤形而不再按环面计算；新守卫要求 R>r>0。默认 5/1→19.739 不含该提示。" },
+  { slug: "geometry/cone-volume", inputs: { r: "-3", h: "4" }, expect: ["⚠ 底面半径 r 与高 h 都必须大于 0。"], ref: "负半径平方后仍得正体积，掩盖非法输入；新守卫应拒绝。默认 3/4→37.6991 不含该提示。" },
+  { slug: "geometry/cone-frustum-volume", inputs: { R: "0", r: "0", h: "4" }, expect: ["⚠ 高 h 必须大于 0，且两底半径不能同时为 0。"], ref: "两底半径为 0 时只剩一条轴线，体积 0 无几何意义；新守卫应拒绝。默认 3/1/4→52.909 不含该提示。" },
+  { slug: "geometry/sphere-volume", inputs: { r: "-3" }, expect: ["⚠ 半径不能为负。"], ref: "负半径的三次方得负体积 −113.097，且 L/cm³ 同步为负；新守卫应拒绝。默认 r=3→113.097 不含该提示。" },
+  { slug: "geometry/circle-circumference", inputs: { r: "-5" }, expect: ["⚠ 半径不能为负。"], ref: "负半径直接得负周长 −31.4159；新守卫应拒绝。默认 r=5→31.4159 不含该提示。" },
 
 ];
 

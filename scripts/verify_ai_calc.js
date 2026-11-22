@@ -62,6 +62,18 @@ const CASES = [
   // ── Softmax 概率分布 ───────────────────────────────────────
   {
     slug: "ai/softmax",
+    inputs: { z1: "2", z2: "1", z3: "0.5", z4: "0.2", temp: "2" },
+    expect: ["40.23", "温度 T=2.00"],
+    ref: "温度 T=2 时 P1=e^{1}/Σe^{(z-max)/2}=40.23%；旧版无温度输入且未减 max，超大 logits 会上溢。",
+  },
+  {
+    slug: "ai/softmax",
+    inputs: { z1: "1000", z2: "999", z3: "998", z4: "997", temp: "1" },
+    expect: ["64.39", "23.69", "温度 T=1.00"],
+    ref: "稳定性：logits 全在 1000 附近，旧版 Math.exp(1000)=Infinity ⇒ NaN/—；先减 max 后正常输出 64.39/23.69/8.71/3.21。",
+  },
+  {
+    slug: "ai/softmax",
     inputs: { z1: "3", z2: "1", z3: "0.5", z4: "0.2" },
     expect: ["78.23"],
     ref: "e³=20.085537, e¹=2.718282, e^0.5=1.648721, e^0.2=1.221403；Σ=25.673943；"
@@ -196,9 +208,9 @@ const CASES = [
   // ── 训练算力 FLOPs ─────────────────────────────────────────
   {
     slug: "ai/training-flops",
-    inputs: { N: "7", D: "300", gpus: "4" },
-    expect: ["12600.00", "1.22"],
-    ref: "FLOPs=6ND=6×7×300=12600 ×1e18；单卡月=1.26e22/(4×1e15×3600×24×30)=1.26e22/1.0368e22=1.2153→1.22",
+    inputs: { N: "7", D: "300", gpus: "4", overhead: "1.5" },
+    expect: ["126.00", "189.00", "0.018"],
+    ref: "N=7亿、D=300亿 ⇒ 6ND=6×7×300×1e16=1.26e20=126 ×1e18；1.5 倍开销=189；月=1.89e20/(4×1e15×2.592e6)=0.0182→0.018。旧版漏乘 1e16、把 1e20 当 1e18，且未计开销。",
   },
 
   // ── K-Means 聚类估算 ───────────────────────────────────────
@@ -252,15 +264,21 @@ const CASES = [
     ref: "原大小=2500e6×8/1e6=20000 MB；新大小=2500e6×4/1e6=10000 MB；压缩比=8/4=2.0",
   },
 
-  // ── Token 估算与成本 ───────────────────────────────────────
   {
-    slug: "ai/token",
-    inputs: { chars: "900", lang: "1", overlap: "1.5" },
-    expect: ["600", "225", "0.0012"],
-    ref: "AI-N12 统一英文参考口径：估算=ceil(900×1/1.5)=600；英文参考=ceil(900/4)=225（与页面「英文约 4 字符/token」一致，不再随 overlap 变化）；成本=600/1e6×2=0.0012 USD",
+    slug: "ai/quantization-ratio",
+    inputs: { params: "7000", fromB: "4", toB: "1", keepFp16: "1", fp16Share: "10" },
+    expect: ["实际新大小（含 10% FP16 保留）： 7700 MB", "实际压缩比： 3.6 ×"],
+    ref: "10% 参数仍以 FP16(2B) 保存 ⇒ 有效字节=0.9×1+0.1×2=1.1B；7000M×1.1=7700MB；实际压缩比=4/1.1=3.6×，低于纯权重理论上限 4×",
   },
 
+  // ── Token 估算与成本 ───────────────────────────────────────
   // ── 上下文窗口占用 ─────────────────────────────────────────
+  {
+    slug: "ai/context-window",
+    inputs: { system: "500", prompt: "1500", resp: "1000", ctx: "2000" },
+    expect: ["已超限 1000 token", "剩余： -1000 token"],
+    ref: "已用=3000 > 窗口 2000 ⇒ 超限 1000；主结果剩余变红并显式写「已超限 1000 token」。旧版只显示负数，无超限文案。",
+  },
   {
     slug: "ai/context-window",
     inputs: { system: "800", prompt: "2200", resp: "1500", ctx: "64000" },
@@ -276,6 +294,28 @@ const CASES = [
     ref: "权重显存=7×4=28.0 GB；总=28+1500/1000=29.5 GB",
   },
 
+  {
+    slug: "ai/vram-estimate",
+    inputs: { params: "7", bytes: "4", act: "1500", kv: "2", opt: "10", vram: "24", recompute: "0.5", zero: "4" },
+    expect: ["总显存估算： 33.3", "激活显存： 0.75", "优化器/梯度： 2.5"],
+    ref: "7B×4B=28 + 激活1.5×0.5=0.75 + KV2 + 优化器10/4=2.5 ⇒ 33.25→33.3；旧版无重计算与 ZeRO 开关，固定 41.5GB。",
+  },
+  {
+    slug: "ai/vram-estimate",
+    inputs: { params: "7", bytes: "4", act: "1500", kv: "2", opt: "10", vram: "24" },
+    expect: ["总显存估算： 41.5", "超出： 17.5"],
+    ref: "7B×4B=28GB + 激活1.5GB + KV2GB + 优化器10GB = 41.5GB；24GB 目标超出 17.5GB。旧版只有权重+激活，且固定 24GB 判据。",
+  },
+  {
+    slug: "ai/vram-estimate",
+    chart: "veChart", table: "veTable",
+    extras: ["veChart", "veTable", "veDiff", "veHist", "vePresets"],
+    inputs: { params: "7", bytes: "4", act: "1500" },
+    expect: ["总显存估算： 29.5"],
+    tableExpect: "29.5",
+    exportFn: "__veExport",
+    ref: "结果容器修复后图表/明细/历史宿主必须存活；旧版 result.innerHTML 整体替换会删除 veChart/veTable/veHist，CSV 导出目标丢失。",
+  },
   // ── Dropout 期望值 ─────────────────────────────────────────
   {
     slug: "ai/dropout",
@@ -296,8 +336,8 @@ const CASES = [
   {
     slug: "ai/token-usage",
     inputs: { cn: "240", enWords: "150", code: "40" },
-    expect: ["400 token"],
-    ref: "tokens=240/1.5+150/0.75+40=160+200+40=400",
+    expect: ["388 token"],
+    ref: "tokens=240/1.5+150×1.25+40=160+187.5+40=387.5，四舍五入 388",
   },
 
   // ── 卷积输出尺寸与感受野 ───────────────────────────────────
@@ -312,9 +352,9 @@ const CASES = [
   // ── 推理吞吐 ───────────────────────────────────────────────
   {
     slug: "ai/inference-throughput",
-    inputs: { tokens: "900", sec: "6", batch: "2" },
-    expect: ["150.0", "75.0"],
-    ref: "吞吐=900/6=150.0 tokens/s；每样本吞吐=900/(6×2)=75.0",
+    inputs: { tokens: "900", ttft: "1.2", tpot: "0.01", batch: "2" },
+    expect: ["176.6", "88.3"],
+    ref: "时延=1.2+899×0.01=10.19s；单请求=900/10.19=88.3 tokens/s；批量 2 ⇒ 总吞吐=176.6 tokens/s",
   },
 
   // ── 肘部法 WCSS 降幅 ───────────────────────────────────────
@@ -897,11 +937,12 @@ const CASES = [
     "slug": "ai/inference-throughput",
     "inputs": {
       "tokens": "42",
-      "sec": "42",
+      "ttft": "3",
+      "tpot": "0.5",
       "batch": "42"
     },
     expect: [
-      "okens/s： 1.0 人均吞吐： 0.0"
+      "总吞吐 tokens/s： 75.1", "单请求吞吐 tokens/s： 1.8"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"tokens\":\"42\",\"sec\":\"42\",\"batch\":\"42\"}，输出区含「okens/s： 1.0 人均吞吐： 0.0」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -1078,7 +1119,7 @@ const CASES = [
       "z4": "42"
     },
     expect: [
-      "42\n42\n42\n42\nP1： 25.00 % P2： 25.00 % P3： 25.00 % P4： 25.00 %"
+      "P1： 25.00 % P2： 25.00 % P3： 25.00 % P4： 25.00 %"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"z1\":\"42\",\"z2\":\"42\",\"z3\":\"42\",\"z4\":\"42\"}，输出区含「42\n42\n42\n42\nP1： 25.00 % P2： 25.00 % P3： …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -1163,21 +1204,9 @@ const CASES = [
       "code": "42"
     },
     expect: [
-      " tokens： 126 token"
+      " tokens： 123 token"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"cn\":\"42\",\"enWords\":\"42\",\"code\":\"42\"}，输出区含「 tokens： 126 token」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
-  },
-  {
-    "slug": "ai/token",
-    "inputs": {
-      "chars": "42",
-      "lang": "42",
-      "overlap": "42"
-    },
-    expect: [
-      "Token 数： 42 个 英文参考： 11"
-    ],
-    "ref": "AI-N12 口径统一后重算：英文参考=ceil(42/4)=11；旧实现用 chars×0.3/overlap 得 9，且与主结果分母不一致。注入非默认输入{\"chars\":\"42\",\"lang\":\"42\",\"overlap\":\"42\"}，默认态不含该串 ⇒ 零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"cn\":\"42\",\"enWords\":\"42\",\"code\":\"42\"}，输出区含「 tokens： 123 token」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "ai/training-flops",
@@ -1187,7 +1216,7 @@ const CASES = [
       "gpus": "42"
     },
     expect: [
-      "(1e18)： 10584"
+      "理论 FLOPs： 105.84"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"N\":\"42\",\"D\":\"42\",\"gpus\":\"42\"}，输出区含「(1e18)： 10584」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -1211,9 +1240,9 @@ const CASES = [
       "act": "42"
     },
     expect: [
-      "42\n42\n42\n权重显存： 1764"
+      "权重显存： 1764"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"params\":\"42\",\"bytes\":\"42\",\"act\":\"42\"}，输出区含「42\n42\n42\n权重显存： 1764」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强：42×42=1764 GB；新增 KV/优化器/目标显存输入后，不再用输入回显前缀锁定，改锚定权重结果。"
   },
   {
     "slug": "ai/vram-estimate",
@@ -1296,18 +1325,6 @@ const CASES = [
 // 并在解析前注入 TBKit 桩，使 boot 的首屏渲染、页签切换、历史回填、导出全部可断言。
 const HOST_CASES = [
   {
-    slug: "ai/token",
-    coalesce: true, // AI-N9：连续重算须在 800ms 窗口内合并
-    chart: "tkChart", table: "tkTable",
-    extras: ["tkChart", "tkTable", "tkDiff", "tkHist", "tkPresets"],
-    inputs: { chars: "900", lang: "1", overlap: "1.5" },
-    tableExpect: "600",
-    restore: { inputId: "chars", historyKey: "chars" },
-    exportFn: "__tkExport",
-    // AI-N12：主结果与明细表必须同为 900/4=225，不能一个固定分母一个用 overlap。
-    extraExpect: ["英文参考 (4 字符/token)", "225"],
-  },
-  {
     slug: "ai/token-2",
     coalesce: true, // AI-N9：连续重算须在 800ms 窗口内合并
     chart: "t2Chart", table: "t2Table",
@@ -1325,7 +1342,7 @@ const HOST_CASES = [
     chart: "tuChart", table: "tuTable",
     extras: ["tuChart", "tuTable", "tuDiff", "tuHist", "tuPresets"],
     inputs: { cn: "240", enWords: "150", code: "40" },
-    tableExpect: "400",
+    tableExpect: "388",
     // AI-N13：代码输入单位是已计数的 tokens，表格不能再写成「代码行数」。
     extraExpect: ["输入代码 tokens"],
     restore: { inputId: "cn", historyKey: "cn" },
@@ -1349,8 +1366,8 @@ const HOST_CASES = [
     restore: { inputId: "tokens", historyKey: "tokens" },
     chart: "itChart", table: "itTable",
     extras: ["itChart", "itTable", "itDiff", "itHist", "itPresets"],
-    inputs: { tokens: "900", sec: "6", batch: "2" },
-    tableExpect: "150.0",
+    inputs: { tokens: "900", ttft: "1.2", tpot: "0.01", batch: "2" },
+    tableExpect: "176.6",
     exportFn: "__itExport",
   },
   {

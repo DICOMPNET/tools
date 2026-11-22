@@ -1472,7 +1472,7 @@ INDUSTRY_DEFS = {
     'forestry':      ('🌲', '林业资源'),
     'livestock':     ('🐄', '畜牧养殖'),
 
-    'accessibility': ('♿', '无障碍工具'),
+    'accessibility': ('♿', '无障碍辅助'),
     'accounting': ('🧾', '会计审计'),
     'acupuncture': ('🪡', '针灸推拿'),
     'admin': ('🗂️', '行政管理'),
@@ -1483,7 +1483,7 @@ INDUSTRY_DEFS = {
     'archaeology': ('🏺', '考古文博'),
     'archive': ('🗄️', '档案管理'),
     'astronomy': ('🔭', '天文观测'),
-    'audio': ('🎧', '音频工具'),
+    'audio': ('🎧', '音频处理'),
     'auto-beauty': ('🚘', '汽车美容'),
     'automation': ('🛠️', '工业自动化'),
     'baking': ('🧁', '烘焙甜点'),
@@ -3128,8 +3128,14 @@ def _rewrite_guide_desc(d, src):
     949 页指南共用同一段 41 字尾句，构成站内大规模重复描述。这里保留页面原本的
     信息核（工具名/用途），尾句换成正文首段去重后的第一句；正文只有套话的空壳指南
     保持原样，避免把描述改得更空。幂等：替换后不再含尾句。
+    2026-11-21：不再用「本指南整理核心功能…」等通用结构句补长度——该句曾出现在
+    625 个指南页描述/回退文本里，构成站内大规模重复；短描述保持页面专属内容。
     """
     d = (d or '').strip()
+    if _GUIDE_STRUCT_TAIL and _GUIDE_STRUCT_TAIL in d:
+        d = d.replace(_GUIDE_STRUCT_TAIL, '').strip()
+        if d and d[-1] not in '。！？':
+            d += '。'
     if _GUIDE_BOIL_TAIL not in d:
         return d
     if any(g in d for g in _GUIDE_GENERIC_SNIPPETS):
@@ -3141,7 +3147,7 @@ def _rewrite_guide_desc(d, src):
         core += '。'
     snip = _guide_first_distinct_para(src, core)
     if not snip:
-        return _close_guide_desc(core + _GUIDE_STRUCT_TAIL)
+        return _close_guide_desc(core)
     part = ''
     for sent in re.split(r'(?<=[。！？])', snip):
         sent = sent.strip()
@@ -3153,12 +3159,10 @@ def _rewrite_guide_desc(d, src):
         if len(core) + len(part) >= 70:
             break
     if not part:
-        return _close_guide_desc(core + _GUIDE_STRUCT_TAIL)
+        return _close_guide_desc(core)
     out = core + part
     if out[-1] not in '。！？':
         out += '。'
-    if len(out) < 70:
-        out += _GUIDE_STRUCT_TAIL
     if len(out) > 150:
         cut = out[:145]
         i = max(cut.rfind('，'), cut.rfind('、'), cut.rfind('；'))
@@ -3592,8 +3596,12 @@ def _build_deep_dive_html(d, own_slug=''):
         body = e.get('body', '')
         body_html = (linkify_terms_html(body, state=_lk)
                      if _DD_FMT_BODY_RE.search(body) else linkify_terms(body, state=_lk))
-        parts.append('<div class="dd-example"><div class="dd-ex-title">%s</div><div class="dd-ex-body">%s</div></div>'
-                    % (linkify_terms(e.get('title', ''), state=_lk), body_html))
+        _ex_i18n = ''
+        if e.get('i18n'):
+            _ex_i18n = ' data-i18n="%s" data-i18n-fb="%s"' % (
+                e['i18n'], html.escape(e.get('body', ''), quote=True))
+        parts.append('<div class="dd-example"><div class="dd-ex-title">%s</div><div class="dd-ex-body"%s>%s</div></div>'
+                    % (linkify_terms(e.get('title', ''), state=_lk), _ex_i18n, body_html))
     _fq = d.get('faqs') or []
     if _fq:
         parts.append('<h3>❓ 常见问题（FAQ）</h3>')
@@ -4201,8 +4209,6 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
                 _seo_desc_raw = ('%s是一款免费的在线%s工具，输入参数即可实时得出结果；'
                                  '纯前端运行、数据不上传、无需注册，打开浏览器即可使用。'
                                  % (_d_name, ind_name))
-            if len(_seo_desc_raw) < 70:
-                _seo_desc_raw = _seo_desc_raw.rstrip('。') + '。适合工程估算、日常换算与快速复核，结果可一键复制。'
         # 436（2026-11-16）：页面 meta / og / twitter / JSON-LD 的 description 不再保留
         # 生成器隐私尾句。卡片描述早已由 tool_desc_source.clean_zh_candidate 用同一正则
         # 清掉该句（json/tools.json 的 d 字段为 0），但历史构建源在三处主动把它拼回页面，
@@ -4214,8 +4220,30 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
             if _no_tail == _seo_desc_raw:
                 break
             _seo_desc_raw = _no_tail
-        if len(_seo_desc_raw) < 70 and '适合工程估算' not in _seo_desc_raw:
-            _seo_desc_raw = _seo_desc_raw.rstrip('。') + '。适合工程估算、日常换算与快速复核，结果可一键复制。'
+        # 描述过短时优先补该工具自己的真实使用场景（content_deepdive.scenarios），
+        # 不再拼全站同一句模板尾巴（2026-11-21）。
+        if len(_seo_desc_raw) < 70:
+            _dd_slug = t['path'].replace('tools/', '').rsplit('.html', 1)[0]
+            _dd_sc = (DEEP_DIVE.get(_dd_slug) or {}).get('scenarios') or []
+            _extras = []
+            if _dd_sc:
+                _extras.append(str(_dd_sc[0]))
+            _dd_ul = re.search(r'<ul class="dd-list">(.*?)</ul>', content, re.S)
+            if _dd_ul:
+                _extras.extend(re.findall(r'<li>(.*?)</li>', _dd_ul.group(1), re.S)[:3])
+            for _cls in ('intro-scenes', 'intro-features'):
+                _ul = re.search(r'<ul class="%s">(.*?)</ul>' % _cls, content, re.S)
+                if _ul:
+                    _extras.extend(re.findall(r'<li>(.*?)</li>', _ul.group(1), re.S)[:2])
+            for _extra in _extras:
+                if len(_seo_desc_raw) >= 70:
+                    break
+                _extra = re.sub(r'<[^>]+>', '', _extra).strip()
+                _extra = re.sub(r'\s+', ' ', _extra).rstrip('。')
+                if len(_extra) >= 8 and _extra[:8] not in _seo_desc_raw:
+                    _seo_desc_raw = _seo_desc_raw.rstrip('。') + '。' + _extra
+            if not _seo_desc_raw.endswith(('。', '！', '？')):
+                _seo_desc_raw += '。'
         app_desc = esc_html_py(_clip_zh_desc(_seo_desc_raw, 150))
         # JSON-LD 字符串安全（2026-09-23）：desc 含反斜杠字面量（转义类工具 \n \b…）或
         # 控制字符时，未转义会导致 WebApplication JSON 非法、整块被 Google 丢弃。
@@ -5047,7 +5075,7 @@ def generate_category_indexes(tools):
         # Breadcrumb
         parts.append('<nav class="breadcrumb" aria-label="面包屑导航">\n  <a href="../../index.html" data-i18n="bc.home" data-i18n-fb="首页">首页</a>\n  <span class="bc-sep">‹</span>\n  <span class="bc-current tb-bi">%s <span class="t-zh">%s</span><span class="t-en">%s</span></span>\n</nav>\n' % (ind_icon, esc_html_py(ind_name), esc_html_py(en_name)))
         # Nav
-        parts.append('<div class="nav">\n  <a href="../../index.html">← ToolBox</a>\n  <span class="tb-bi">/ <span class="t-zh">%s工具</span><span class="t-en">%s Tools</span></span>\n  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>\n</div>\n' % (esc_html_py(ind_name), esc_html_py(en_name)))
+        parts.append('<div class="nav">\n  <a href="../../index.html">← ToolBox</a>\n  <span class="tb-bi">/ <span class="t-zh">%s工具</span><span class="t-en">%s Tools</span></span>\n  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()" aria-label="切换主题" title="切换主题" data-i18n-aria="nav.theme" data-i18n-title="nav.theme">🌙</button>\n</div>\n' % (esc_html_py(ind_name), esc_html_py(en_name)))
         # Content
         parts.append('<div class="container">\n  <div class="card">\n')
         parts.append('    <h2 class="tb-bi">%s <span class="t-zh">%s工具</span><span class="t-en">%s %s Tools</span></h2>\n' % (ind_icon, esc_html_py(ind_name), ind_icon, esc_html_py(en_name)))

@@ -209,14 +209,7 @@ const CASES = [
   ],
   "ref": "门诊记录：10 项 2 分 + 5 项 1 分 = 25 >14 落「高」；全部 15 项均 ≥1 分 ⇒ 受累 15/15。未作答态零交集。via=click"
 },
-{
-  "slug": "psychiatry/lsas-social",
-  "clicks": [
-    "applyLsasPreset('severe');var B=__lsasBands();var L=B[B.length-1]||{};document.getElementById('__tbProbe').textContent='LSASBAND '+((L.label&&L.label.zh==='极重度'&&L.color==='#EF4444')?'OK':'BAD');"
-  ],
-  "expect": ["LSASBAND OK"],
-  "ref": "M-N29：24 情境全选 3 ⇒ 总分 144，结果文字为「极重度」，标尺末段原本仍标「无/轻度」绿色；修正后末段为「极重度」#EF4444。默认（未作答）不渲染标尺，零交集。"
-},
+
 {
   "slug": "psychiatry/phq9-depression",
   "clicks": [
@@ -285,22 +278,6 @@ const CASES = [
   "ref": "门诊记录：A=[0,1,0,1]（0=是、1=否）⇒ 阳性 2 项 = 阈值 ≥2 ⇒ 筛查阳性；阳性条目列出 Q1 Cut 与 Q3 Guilty。未作答态零交集。via=click"
 },
 {
-  "slug": "psychiatry/asrs-adhd",
-  "clicks": [
-    "pick(0,4)",
-    "pick(1,2)",
-    "pick(2,3)",
-    "pick(3,1)",
-    "pick(4,4)",
-    "pick(5,2)"
-  ],
-  "expect": [
-    "【ASRS-v1.1 成人 ADHD 自评（Part A 6 条目筛查）】 结果：Part A 阳性 4/6（阈值 ≥4），6 项加权总分 16/24，结论：筛查阳性",
-    "阳性条目（共 4 项）：Q1 您完成一个项目中最枯燥的部分时"
-  ],
-  "ref": "门诊记录：SH 阈值 [[3,4],[3,4],[3,4],[3,4],[2,3,4],[2,3,4]]，A=[4,2,3,1,4,2] ⇒ 命中 Q1/Q3/Q5/Q6 共 4 项 ≥4 ⇒ 筛查阳性；加权总分 4+2+3+1+4+2=16/24。未作答态零交集。via=click"
-},
-{
   "slug": "psychiatry/aq-autism",
   "clicks": [ "pick(0,2)", "pick(1,0)", "pick(2,2)", "pick(3,0)", "pick(4,0)", "pick(5,0)", "pick(6,0)",
     "pick(7,2)", "pick(8,0)", "pick(9,2)", "pick(10,2)", "pick(11,0)", "pick(12,0)", "pick(13,2)", "pick(14,2)",
@@ -329,14 +306,6 @@ const CASES = [
   ],
   "expect": ["AQRESET OK"],
   "ref": "M-N7：重置只清 #result 未清 #resultRefBar，标尺残留在已清空的结果下方。现 resetQuiz 同步清空标尺容器；默认页未渲染标尺，不命中。"
-},
-{
-  "slug": "psychiatry/asrs-adhd",
-  "clicks": [ "pick(0,4)", "pick(1,4)", "pick(2,4)", "pick(3,4)", "pick(4,4)", "pick(5,4)"],
-  "expect": [
-    "筛查阳性 阳性项 6/6 · 总分 24/24", "≥4 阳性标准4"
-  ],
-  "ref": "ASRS 六项全选「非常频繁」j=4（SH 阈值 [3,4]/[3,4]/[3,4]/[3,4]/[2,3,4]/[2,3,4] 全部命中）⇒ 阳性项 6/6 ≥4 ⇒「筛查阳性」；总分 6×4 = 24/24。默认态为「筛查阴性」+ 提示框，零交集。via=click"
 },
 {
   "slug": "psychiatry/assessor-risk-5",
@@ -399,15 +368,6 @@ const CASES = [
   "ref": "PHQ-9 九项=3,3,2,2,1,2,2,1,2 → 总分 18（14<18≤19）→ classify 落「中重度抑郁」；q8=2>0 触发第9项自伤念头警示文案。默认态总分 0 落「无或极轻微抑郁」且无警示，零交集"
 },
 {
-  "slug": "psychiatry/cdrisc-resilience",
-  "clicks": [ "pick(0,4)", "pick(1,4)", "pick(2,4)", "pick(3,4)", "pick(4,4)", "pick(5,4)", "pick(6,4)",
-    "pick(7,4)", "pick(8,4)", "pick(9,4)"],
-  "expect": [
-    "较高 总分 40 / 40", "4.0 条目均分"
-  ],
-  "ref": "CD-RISC-10 十项全选「几乎总是(4)」⇒ 总分 40/40 ⇒ 落 total>29 分支「较高」；条目均分 (40/10).toFixed(1) = 4.0、韧性水平 100%。默认态为提示框，零交集。via=click"
-},
-{
   "slug": "psychiatry/cssrs-suicide",
   "clicks": [ "pickI(0,0)", "pickI(1,0)", "pickI(2,0)", "pickI(3,0)", "pickI(4,0)", "pickB(0,0)", "pickB(1,0)",
     "pickB(2,0)", "pickB(3,0)", "pickR(0)"],
@@ -462,21 +422,7 @@ const CASES = [
   ],
   "ref": "LES 42 项生活事件勾选前六项（配偶死亡100 + 离婚73 + 夫妻分居65 + 判刑或入狱63 + 亲密家庭成员死亡63 + 个人受伤或患病53 = 417 LCU）⇒ 417 ≥300 ⇒ 落 t>=300 分支「高风险」；卡面 LCU总分 417、勾选事件数 6、疾病风险 约80%。默认（未勾选）t=0 为「低风险 / 约30%」，跨档且零交集。via=click"
 },
-{
-  "slug": "psychiatry/lsas-social",
-  "clicks": [ "pickF(0,3)", "pickF(1,3)", "pickF(2,3)", "pickF(3,3)", "pickF(4,3)", "pickF(5,3)", "pickF(6,3)",
-    "pickF(7,3)", "pickF(8,3)", "pickF(9,3)", "pickF(10,3)", "pickF(11,3)", "pickF(12,3)", "pickF(13,3)",
-    "pickF(14,3)", "pickF(15,3)", "pickF(16,3)", "pickF(17,3)", "pickF(18,3)", "pickF(19,3)", "pickF(20,3)",
-    "pickF(21,3)", "pickF(22,3)", "pickF(23,3)", "pickV(0,3)", "pickV(1,3)", "pickV(2,3)", "pickV(3,3)",
-    "pickV(4,3)", "pickV(5,3)", "pickV(6,3)", "pickV(7,3)", "pickV(8,3)", "pickV(9,3)", "pickV(10,3)",
-    "pickV(11,3)", "pickV(12,3)", "pickV(13,3)", "pickV(14,3)", "pickV(15,3)", "pickV(16,3)", "pickV(17,3)",
-    "pickV(18,3)", "pickV(19,3)", "pickV(20,3)", "pickV(21,3)", "pickV(22,3)", "pickV(23,3)"],
-  "expect": [
-    "极重度 总分 144 / 144", "78 表现型",
-    "【利博维茨社交焦虑量表（LSAS · 自评版）】 结果：LSAS 总分 144/144（恐惧 72、回避 72）→ 严重程度：极重度；表现型情境 78、社交型情境 66"
-  ],
-  "ref": "LSAS 24 项「恐惧/焦虑」与「回避」双列全选最高档 j=3 ⇒ 恐惧 72 + 回避 72 = 总分 144/144 ⇒ 落 total>90 分支「极重度」；表现型 13×3×2 = 78、社交型 11×3×2 = 66。默认态为「已完成 0/48 个评分」提示，零交集。via=click"
-},
+
 {
   "slug": "psychiatry/mdq-bipolar",
   "clicks": [ "pick(0,0)", "pick(1,0)", "pick(2,0)", "pick(3,0)", "pick(4,0)", "pick(5,0)", "pick(6,0)",
@@ -666,15 +612,6 @@ const CASES = [
   ],
   "ref": "539 核心回归：完全无症状者全选每题首项（普通题「无」、抵抗/控制题「总能抵抗/控制」）均得 0 分，总分 0 落 0–7 段「亚临床」。旧版把抵抗/控制题套用通用选项再 4−0=4 反向，会得到 16 分误判「中度」，本用例锁死该 bug。默认态为「已作答 0/10 项」提示，零交集。via=click"
 }
-  ,{
-    "slug": "psychiatry/cdrisc-resilience",
-    "clicks": ["for(var i=0;i<QS.length;i++){A[i]=3;}calc()"],
-    "expect": [
-      "【CD-RISC-10 心理韧性量表（10 条目 · 近 1 个月）】 结果：总分 30/40，分级：较高",
-      "条目均分 3.0（0–4 分制）；高分条目（≥3 分）10/10"
-    ],
-    "ref": "门诊记录（EMR note）：把评分数组 A 全置 3（10 项）后重算 ⇒ 总分 30 >29 落「较高」；条目均分 30/10=3.0、高分条目 10/10。默认态 A 全为 -1（未作答）⇒ done<10 直接 return，不渲染门诊记录，零交集。"
-  }
   ,{
     "slug": "psychiatry/ybocs-ocd",
     "clicks": ["for(var i=0;i<QS.length;i++){A[i]=(i<5?3:2);}calc()"],

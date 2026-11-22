@@ -83,8 +83,8 @@ const CASES = [
 
   { slug: "metalwork/calc-feed",
     inputs: { dia: "20", z: "4", vc: "100", fz: "0.1" },
-    expect: ["1592"],
-    ref: "n=1000×100/(π×20)=1591.5→1592 rpm（默认 vc120→1910，避开）" },
+    expect: ["1592","255"],
+    ref: "n=1000×100/(π×20)=1591.5→1592 rpm；Vf≈636.8 mm/min，Q=Vf×20×0.02≈254.7→255（默认 vc120→1910、Q≈305，避开）" },
 
   { slug: "metalwork/calc-gear-2",
     inputs: { module: "3", teeth: "20", method: "hob", vc: "60", feed: "1", material: "carbon" },
@@ -267,23 +267,23 @@ const CASES = [
 
   { slug: "metalwork/detector-hardness",
     inputs: { "coatingType": "paint", "reqLevel": "2", "adhesionMethod": "crosscut",
-              "crosscutGrade": "0", "thickMethod": "eddy", "thickness": "48",
+              "crosscutGrade": "0", "thickMethod": "eddy", "thickness": "44",
               "stdThickness": "40", "thickTolerance": "4", "hardnessMethod": "vickers", "vickersVal": "900" },
     expect: ["涂层质量优秀"],
-    ref: "结合力 0 级=100、厚度 48/40=1.2 倍=100、维氏 900HV（有机涂层要求 100HV）=100 → 综合 100 且三项全通过（997 后默认铅笔改为 HB，该用例改用维氏法仍与本值口径不同）" },
+    ref: "结合力 0 级=100、厚度 44/40 偏差 4μm 在 ±4μm 内=100、维氏 900HV（有机涂层要求 100HV）=100 → 综合 100 且三项全通过（997 后默认铅笔改为 HB，该用例改用维氏法仍与本值口径不同）" },
 
   { slug: "metalwork/detector-hardness",
     inputs: { "coatingType": "paint", "reqLevel": "2", "adhesionMethod": "crosscut",
-              "crosscutGrade": "2", "thickMethod": "eddy", "thickness": "48",
+              "crosscutGrade": "2", "thickMethod": "eddy", "thickness": "42",
               "stdThickness": "40", "thickTolerance": "4", "hardnessMethod": "pencil", "pencilGrade": "6B" },
     expect: ["涂层质量合格（未达标）"],
-    ref: "结合力 2 级=65（要求≤1 级 → 不通过）、厚度 100、铅笔 6B=10 不通过 → 综合 65×0.4+100×0.3+10×0.3=59，评分档位为「涂层质量合格」，逐项不通过时等级文案须带「（未达标）」（默认档位为「良好」，与本值不重合）" },
+    ref: "结合力 2 级=65（要求≤1 级 → 不通过）、厚度 42/40 在允差内=100、铅笔 6B=10 不通过 → 综合 65×0.4+100×0.3+10×0.3=59，评分档位为「涂层质量合格」，逐项不通过时等级文案须带「（未达标）」（默认档位为「良好」，与本值不重合）" },
   { slug: "metalwork/detector-hardness",
     inputs: { "coatingType": "paint", "reqLevel": "2", "adhesionMethod": "crosscut",
-              "crosscutGrade": "0", "thickMethod": "eddy", "thickness": "48",
+              "crosscutGrade": "0", "thickMethod": "eddy", "thickness": "42",
               "stdThickness": "40", "thickTolerance": "4", "hardnessMethod": "pencil" },
-    expect: ["达标（48μm） 100 ✓ 涂层硬度 30% HB（中等） 46"],
-    ref: "997 默认硬度档（MM-H136）：不注入 pencilGrade 时新默认 HB 满足油漆要求 HB（硬项 46 分、三项全通过），旧默认 6B 是 10 分且未达标。锚含 48μm 避开默认 50μm ⇒ 零逃生。" },
+    expect: ["达标（42μm） 100 ✓ 涂层硬度 30% HB（中等） 46"],
+    ref: "997 默认硬度档（MM-H136）：不注入 pencilGrade 时新默认 HB 满足油漆要求 HB（硬项 46 分、三项全通过），旧默认 6B 是 10 分且未达标。锚含 42μm 避开默认 50μm ⇒ 零逃生。" },
 
   { slug: "metalwork/thread",
     inputs: { threadType: "metric", diameter: "12", pitch: "1.75", material: "carbon",
@@ -302,8 +302,8 @@ const CASES = [
   { slug: "metalwork/detector-24", inputs: { defLen: "", thick: "20", defCount: "1" }, expect: ["缺陷长度须为正数"], ref: "空值拦截（668）：缺陷长度清空 ⇒ parseFloat('')=NaN，输出「请修正输入：缺陷长度须为正数。未进行档位评定。」（修复前空值按 0 计算并判 1 档；默认 5mm 不含该串）" },
   { slug: "metalwork/detector-24", inputs: { defLen: "5", thick: "20", defCount: "" }, expect: ["未填缺陷数量"], ref: "数量空值拦截（668）：缺陷数量清空 ⇒ 提示「未填缺陷数量（无缺陷请填 0）」，不再静默按 0 判 1 档（默认 1 个不含该串）" },
   { slug: "metalwork/detector-24", inputs: { defLen: "-5", thick: "", defCount: "-1" }, expect: ["缺陷长度须为正数；母材厚度须为正数；缺陷数量须为 ≥0 的整数"], ref: "负数/空值拦截（668）：defLen=-5、thick 清空、defCount=-1 ⇒ 三条错误同时列出，不再输出 1 档（默认 5/20/1 全合法，不含该串）" },
-  { slug: "metalwork/analysis-simulator", inputs: { vol: "300", area: "150", runner: "15", fillrate: "70", tmelt: "260", tmold: "50", teject: "120", tw: "40", thick: "4", alpha: "0.05" }, expect: ["总充填体积 345 cm³", "充填时间 4.93 s", "冷却时间（近似） 40.63 s", "流程/壁厚比 0.5,000"], ref: "注入非默认(默认 200/100/10/50/240/60/110/30/3/0.04)：型腔+流道+浇口 300+15 与射胶量填充 ⇒ 总充填体积 345 cm³；充填时间 = 345/70 = 4.93 s；冷却时间近似 40.63 s；流程/壁厚比 = (300+15+…)/4 → 0.5,000。默认态 220 cm³/4.40 s/27.51 s/0.6,667，四条均不命中。" },
-  { slug: "metalwork/analysis-simulator", inputs: { vol: "300", area: "150", runner: "15", fillrate: "70", tmelt: "240", tmold: "50", teject: "300", tw: "30", thick: "4", alpha: "0.05" }, expect: ["熔体温度＞顶出温度＞水温"], ref: "994 温度顺序守卫（MM-H122）：顶出 300℃ 高于熔体 240℃ 时旧版 ln 项为负仍出负冷却时间；修复后先拦截并要求 Tm>Te>Tw。默认 240/110/30 不含该串。" },
+  { slug: "metalwork/analysis-simulator", inputs: { vol: "300", area: "150", runner: "15", fillrate: "70", tmelt: "260", tmold: "50", teject: "120", tw: "40", thick: "4", alpha: "0.05" }, expect: ["总充填体积 345 cm³", "充填时间 4.93 s", "冷却时间（近似） 43.45 s", "流程/壁厚比（V/A ÷ h(cm)） 5.00"], ref: "注入非默认(默认 200/100/10/50/240/60/110/30/3/0.04)：型腔+流道+浇口 300+15 与射胶量填充 ⇒ 总充填体积 345 cm³；充填时间 = 345/70 = 4.93 s；冷却对数以 max(模温50,水温40)=50℃ 为基准，(4/π)(260−50)/(120−50)=3.819，ln=1.340，h²/(π²α)=16/(0.4935)=32.42 ⇒ 43.45 s；流程/壁厚比=(300/150 cm)/(4mm÷10)=2/0.4=5.00。默认态 220 cm³/4.40 s 与默认流程比 6.67，均不命中。" },
+  { slug: "metalwork/analysis-simulator", inputs: { vol: "300", area: "150", runner: "15", fillrate: "70", tmelt: "240", tmold: "50", teject: "300", tw: "30", thick: "4", alpha: "0.05" }, expect: ["熔体温度＞顶出温度＞模温与水温中的较高者"], ref: "994 温度顺序守卫（MM-H122）：顶出 300℃ 高于熔体 240℃ 时旧版 ln 项为负仍出负冷却时间；修复后先拦截并要求 Tm>Te>Tw。默认 240/110/30 不含该串。" },
   { slug: "metalwork/detector-23", inputs: { nominal: "60.000", actual: "60.034", upperTol: "0.039", lowerTol: "0.000" }, expect: ["实测偏差： +0.0340 mm", "偏差占公差带：87.2%", "极限尺寸：60.0000 ~ 60.0390 mm"], ref: "注入非默认(默认 nominal=50.000/actual=50.025)：独立复算 偏差 = 60.034−60.000 = +0.0340 mm；公差带 0.0390 ⇒ 占比 0.034/0.039 = 87.2%；极限尺寸 = 60.0000 ~ 60.0390 mm。默认态 50.025/+0.0250/64.1%/50.0000~50.0390，三条均不命中（『合格』判定与 IT4/±0.005mm 两态相同，不作锚）。" },
   { slug: "metalwork/detector-23", inputs: { nominal: "60.000", actual: "60.034", upperTol: "-0.050", lowerTol: "0.050" }, expect: ["请输入有限尺寸，且上偏差须大于下偏差"], ref: "993 公差方向守卫：旧版空值 `||0` 与倒挂公差照算并归 IT01，修复后先拒绝上偏差≤下偏差；默认 0.039/0.000 不含该串。" },
   { slug: "metalwork/detector-mold", inputs: { tx: "70.000", ty: "40.000", tz: "25.000", ax: "70.021", ay: "39.975", az: "25.030", tol: "0.020" }, expect: ["X轴：+0.021 mm ✗ 超差", "Z轴：+0.030 mm ✗ 超差", "空间偏差：0.0443 mm"], ref: "注入非默认(默认 50/30/20 与实测 50.015/29.988/20.022)：三轴偏差 = +0.021 / −0.025 / +0.030 mm，均超 ±0.020 ⇒ 三轴全『✗ 超差』；空间偏差 = √(0.021²+0.025²+0.030²) = 0.0443 mm > 0.020。默认态仅 Z 轴超差、空间偏差 0.0292，三条均不命中。" },
@@ -417,7 +417,7 @@ const CASES = [
       "alpha": "42"
     },
     "expect": [
-      "熔体温度＞顶出温度＞水温"
+      "熔体温度＞顶出温度＞模温与水温中的较高者"
     ],
     "ref": "994 温度顺序守卫同步：自动补强旧输入 tmelt=teject=tw=42 原在 ln 项 NaN 下仍输出「各项指标在常规区间」，属假合规；修复后统一拒绝 Tm≤Te≤Tw。默认态 240/110/30 不含该串 ⇒ 强判别、零逃生。"
   },
@@ -563,7 +563,7 @@ const CASES = [
       "reqLevel": "2"
     },
     "expect": [
-      "综合评分 涂层质量良好（未达标）"
+      "HV42（软） 30"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"pulloffVal\":\"42\",\"thickness\":\"42\",\"stdThickness\":\"42\",\"thickTolerance\":\"42\",\"vickersVal\":\"42\",\"nanoVal\":\"42\",\"adhesionMethod\":\"pulloff\",\"crosscutGrade\":\"1\",\"thickMethod\":\"magnetic\",\"hardnessMethod\":\"vickers\",\"pencilGrade\":\"5B\",\"coatingType\":\"zn\",\"reqLevel\":\"2\"}，输出区含「pulloff\n1\n42\n42\n42\n42\nvickers\n5B\n42\n42\nz…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -860,7 +860,28 @@ const CASES = [
     "ref": "994 标尺区间（MM-H131）：旧版第三段 lo:null/hi:75 把 <60 的不合格也标成合格；修复后补 60–75 合格段与 null–60 不合格段。探针截取 refBar 的 bands 实参，默认态不执行 clicks、无探针串 ⇒ 零逃生。"
   },
 { slug:"metalwork/detector-hardness", inputs:{"thickness":""}, expect:["请填写涂层厚度"], ref:"核心检测值留空不得给出合格/优秀评级（DETCLR）" },
-{ slug:"metalwork/assessor-34", inputs:{"duration":"","stdDuration":"","corrosionArea":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" }
+{ slug:"metalwork/assessor-34", inputs:{"duration":"","stdDuration":"","corrosionArea":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" },
+{ slug: "metalwork/detector-hardness",
+  inputs: { "coatingType": "paint", "reqLevel": "2", "adhesionMethod": "crosscut", "crosscutGrade": "0",
+            "thickMethod": "eddy", "thickness": "52", "stdThickness": "40", "thickTolerance": "5",
+            "hardnessMethod": "vickers", "vickersVal": "900" },
+  expect: ["超厚 +12.0μm（52μm）"],
+  ref: "MM-H133：52 对 40、允差 ±5、差 12μm 必须判超厚不合格；旧逻辑 ratio≥1 一律 100 分/通过" },
+{ slug: "metalwork/detector-hardness",
+  inputs: { "coatingType": "paint", "reqLevel": "2", "adhesionMethod": "tape", "tapeGrade": "5",
+            "thickMethod": "eddy", "thickness": "42", "stdThickness": "40", "thickTolerance": "4",
+            "hardnessMethod": "vickers", "vickersVal": "900" },
+  expect: ["胶带法 0B（最差）", "结合力未达标准"],
+  ref: "MM-H134：胶带法必须有 5B–0B 等级输入；选 0B 应得 0 分且不通过，旧逻辑恒读隐藏划格 0 级=100" },
+{ slug: "metalwork/detector-mold",
+  inputs: { "ptName": "P1", "tx":"50.000","ty":"30.000","tz":"20.000","ax":"50.015","ay":"29.988","az":"20.022","tol":"0.020" },
+  clicks: ["addPoint();"],
+  expect: ["点名 ΔX ΔY ΔZ 空间偏差 判定"],
+  ref: "MM-H138：记录此点须落到可见表格并参与导出；默认 P1 三维偏差 ΔX=0.0150、ΔY=-0.0120、ΔZ=0.0220，均在 ±0.020 内，空间偏差 0.0292 mm，判定合格" },
+{ slug: "metalwork/detector-23", inputs: { nominal: "60.000", actual: "60.030", upperTol: "0.050", lowerTol: "0.000" }, expect: ["公差等级：IT9"], ref: "Ø60 分段 D≈63.25，i=0.45×³√63.25+0.001×63.25≈1.88μm，25i≈47μm；50μm 落在 25i(47)~40i(75) ⇒ IT9。默认 50/39 为 IT8 ⇒ 不命中" },
+{ slug: "metalwork/detector-23", inputs: { nominal: "10.000", actual: "10.030", upperTol: "0.039", lowerTol: "0.000" }, expect: ["公差等级：IT10"], ref: "Ø10 分段 D≈7.746，i≈0.90μm；39μm >40i(35.9) 且 ≤64i(57.5) ⇒ IT10。旧逻辑仅按 0.039 一律 IT4，完全无视公称尺寸" },
+{ slug: "metalwork/detector-21", inputs: { material: "ferro", defect: "surface", thickness: "20", level: "critical" }, expect: ["关键检测（放射/超声各 +2）"], ref: "关键检测须比严格检测再加权：本页可见等级标注 +2；旧逻辑 strict 与 critical 同为 +1，两者输出完全相同" },
+{ slug: "metalwork/detector-21", inputs: { material: "ferro", defect: "surface", thickness: "20", level: "strict" }, expect: ["严格检测（放射/超声各 +1）"], ref: "严格检测标注 +1，与 critical 的 +2 区分" }
 ];
 
 async function main() {

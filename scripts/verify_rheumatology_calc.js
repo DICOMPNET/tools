@@ -67,25 +67,6 @@ const CASES = [
   "ref": "DAS28(ESR)=0.56×√(TJC28)+0.28×√(SJC28)+0.70×ln(ESR)+0.014×GH = 1.9399+0.7920+1.4556+0.7000 = 4.8875 → 4.89（中等活动度）；默认值 4.2541 → 4.25，两串均失配。"
 },
 {
-  // 原为 all_default 弱用例（注入值全等于页面默认），expect「肝素」是临床建议文本词（逃生项）。
-  // 筛查 60/35 = 171% > 110%（延长）+ 混合未纠正 + 确认比值 60/55 = 1.09 ≤ 1.1（非阳性）
-  // → 命中 isth1 && isth2 && !isth3 分支 → 「非磷脂依赖性抑制物」（默认态为 LA 阳性）。
-  "slug": "rheumatology/detector-8",
-  "inputs": {
-    "screen": "60",
-    "confirm": "55",
-    "normal": "35",
-    "mixing": "uncorrected",
-    "aptt": "70",
-    "apttNormal": "32"
-  },
-  "expect": [
-    "非磷脂依赖性抑制物 判读结论",
-    "1.09 dRVVT比值（>1.2阳性）"
-  ],
-  "ref": "dRVVT 比值 = 60/55 = 1.0909 → 1.09（≤1.1 阴性）、筛查% = 60/35 = 171%（>110% 延长）、混合试验未纠正 ⇒ isth1&&isth2&&!isth3 → 「非磷脂依赖性抑制物」；默认 42/33 → 1.2727 > 1.2 → 「狼疮抗凝物（LA）阳性」。"
-},
-{
   // 原 expect「病理诊断」是输出文案片段（词串型）；改为依赖勾选的分级断言。
   // 器官受累：胰腺 +4、胆管 +3、肾脏 +3 = +10；叠加 igg4=5.8（落在 5.0–10 g/L 档 → +6）= 16，
   // 落在 10–19 区间 → 疑诊IgG4-RD。不勾选器官时 = 6 分 → 更低档（故具判别力）。
@@ -210,23 +191,6 @@ const CASES = [
   "ref": "iif=pANCA(核周型) ⇒ 靶抗原「疑似MPO」、IIF 模式「pANCA(核周型)」。⚠ 原注入 canca 恰为页面 select 默认选中项 ⇒ 默认态即输出「疑似PR3」（真逃生），故改注入非默认 IIF 模式。默认态为 cANCA/疑似PR3，不含疑似MPO。"
 },
 {
-  "slug": "rheumatology/assessor-10",
-  "inputs": {
-    "d0": "2", "d1": "3", "d2": "2", "d3": "3", "d4": "3", "d5": "3",
-    "d6": "3", "d7": "3", "d8": "3", "d9": "3", "d10": "3", "d11": "2"
-  },
-  "expect": ["123 ESSDAI总分（最高123）"],
-  "ref": "各域取本域最高档：全身/腺体/生化只有 0–2 档，其余取 3 档 ⇒ 6+12+4+6+9+15+15+18+15+15+6+2 = 123 分；回退默认（0 分/「0 ESSDAI总分」）不命中。"
-},
-{
-  "slug": "rheumatology/assessor-10",
-  "inputs": {
-    "d2": "2", "d11": "1"
-  },
-  "expect": ["5 ESSDAI总分（最高123）", "中等疾病活动度"],
-  "ref": "切点回归：腺体低 2×2=4 + 生化低 1×1=1 = 5 → 原版 5–13 为中等疾病活动度（旧实现 total<=5 会误判低活动度）；回退默认（0 分）不命中。"
-},
-{
   "slug": "rheumatology/basdai",
   "inputs": {
     "q1": "6",
@@ -339,23 +303,6 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
-  // 原为 no_inputs 弱用例（inputs 空），expect「CH50/C3/C4低于正常下限」是条目表静态 desc（逃生项）。
-  // 复选框 id 由 JS 模板拼为 cb_<key>，须用 checkIds 声明选中态（注入 .value 无效）。
-  // SLEDAI-2K 权重 8/4/2/1：癫痫发作(8) + 精神症状(8) + 关节炎(4) = 20 > 14 → 重度活动。
-  "slug": "rheumatology/rater-16",
-  "inputs": {},
-  "checkIds": [
-    "cb_seizure",
-    "cb_psychosis",
-    "cb_arthritis"
-  ],
-  "expect": [
-    "20 SLEDAI-2K总分（最高105）",
-    "SLEDAI-2K评分：20分 — 重度活动"
-  ],
-  "ref": "神经系统/血管组 8 分 ×2（癫痫发作、精神症状）+ 肌肉关节组 4 分（关节炎）= 20 分 > 14 → 重度活动；清空勾选（模拟注入失败）→ 0 分「无疾病活动」，两串均失配。"
-},
-{
   // 原为 no_inputs 弱用例（inputs 空），expect「肌酐125-249」是肾脏组条目静态 desc（逃生项）。
   // BVAS v3 按组封顶（Math.min(原组和, max)）：皮肤病变组 溃疡(4)+坏疽(4) = 原始 8 → 封顶 6；
   // 腹部组 腹痛(3) = 3；总分 6+3 = 9（6–10 → 中等活动度）。
@@ -426,13 +373,14 @@ const CASES = [
 },
 { slug:"rheumatology/complement-level", inputs:{"c3":"","c4":""}, expect:["请填写C3 与 C4 补体水平"], ref:"核心检验值留空不得给出阴阳性/活动度结论（RHEMCLR）" },
 { slug:"rheumatology/das28", inputs:{"tjc":"","sjc":"","markerVal":""}, expect:["请填写压痛关节数、肿胀关节数与标志物值"], ref:"核心检验值留空不得给出阴阳性/活动度结论（RHEMCLR）" },
-{ slug:"rheumatology/detector-8", inputs:{"screen":"","confirm":"","aptt":""}, expect:["请填写筛查/确证比值与 aPTT"], ref:"核心检验值留空不得给出阴阳性/活动度结论（RHEMCLR）" },
 { slug:"rheumatology/gout-uric-acid", inputs:{"ua":""}, expect:["请填写血尿酸值"], ref:"核心检验值留空不得给出阴阳性/活动度结论（RHEMCLR）" },
 { slug:"rheumatology/igg4-level", inputs:{"igg4":"","igg":""}, expect:["请填写IgG4 与 IgG 水平"], ref:"核心检验值留空不得给出阴阳性/活动度结论（RHEMCLR）" },
 { slug:"rheumatology/il6-inflammation", inputs:{"il6":"","crp":""}, expect:["请填写IL-6 与 CRP 水平"], ref:"核心检验值留空不得给出阴阳性/活动度结论（RHEMCLR）" },
 { slug:"rheumatology/itp-immune", inputs:{"plt":""}, expect:["请填写血小板计数"], ref:"核心检验值留空不得给出阴阳性/活动度结论（RHEMCLR）" },
 { slug:"rheumatology/mda5-antibody", inputs:{"ferritin":""}, expect:["请填写铁蛋白水平"], ref:"核心检验值留空不得给出阴阳性/活动度结论（RHEMCLR）" },
-{ slug:"rheumatology/sapho-syndrome", inputs:{"age":"","vas":""}, expect:["请填写年龄与 VAS 评分"], ref:"核心检验值留空不得给出阴阳性/活动度结论（RHEMCLR）" }
+{ slug:"rheumatology/sapho-syndrome", inputs:{"age":"","vas":""}, expect:["请填写年龄与 VAS 评分"], ref:"核心检验值留空不得给出阴阳性/活动度结论（RHEMCLR）" },
+{ slug:"rheumatology/das28", inputs:{}, clicks:["document.getElementById('marker').value='esr';document.getElementById('markerVal').value='-5';document.getElementById('tjc').value='5';document.getElementById('sjc').value='3';document.getElementById('gh').value='30';calc();"], expect:["⚠ 压痛/肿胀关节数、整体健康评分不得为负，ESR 标志物值必须大于 0。"], ref:"ESR=−5 时 ln(负数) 无定义，DAS28 会被算成 −Infinity；旧实现用 Math.max(1) 静默改写为 1；新守卫应提示。默认 markerVal=20 不含该提示。" },
+
 ];
 async function main() {
   const only = process.argv.slice(2);

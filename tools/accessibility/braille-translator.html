@@ -10,10 +10,10 @@
 <title>盲文转译器 - 英文字母与数字转译为盲文点字</title>
 <link rel="canonical" href="https://tools.dicomp.net/tools/accessibility/braille-translator.html">
 <meta property="og:title" content="盲文转译器 - 英文字母与数字转译为盲文点字">
-<meta property="og:description" content="盲文转译器是一款免费的在线无障碍工具工具，将拼音、英文字母与数字转译为盲文点字，同步显示点位分布图，辅助盲文学习与教学。适合工程估算、日常换算与快速复核，结果可一键复制。">
+<meta property="og:description" content="盲文转译器是一款免费的在线无障碍辅助工具，将拼音、英文字母与数字转译为盲文点字，同步显示点位分布图，辅助盲文学习与教学。">
 <meta property="og:url" content="https://tools.dicomp.net/tools/accessibility/braille-translator.html">
 <meta name="twitter:card" content="summary">
-<meta name="description" content="盲文转译器是一款免费的在线无障碍工具工具，将拼音、英文字母与数字转译为盲文点字，同步显示点位分布图，辅助盲文学习与教学。适合工程估算、日常换算与快速复核，结果可一键复制。">
+<meta name="description" content="盲文转译器是一款免费的在线无障碍辅助工具，将拼音、英文字母与数字转译为盲文点字，同步显示点位分布图，辅助盲文学习与教学。">
 <link rel="stylesheet" href="../../css/common.css">
 <script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
@@ -44,10 +44,10 @@
 <meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
     <meta property="og:type" content="website">
     <meta name="twitter:title" content="盲文转译器 - 英文字母与数字转译为盲文点字">
-    <meta name="twitter:description" content="盲文转译器是一款免费的在线无障碍工具工具，将拼音、英文字母与数字转译为盲文点字，同步显示点位分布图，辅助盲文学习与教学。适合工程估算、日常换算与快速复核，结果可一键复制。">
+    <meta name="twitter:description" content="盲文转译器是一款免费的在线无障碍辅助工具，将拼音、英文字母与数字转译为盲文点字，同步显示点位分布图，辅助盲文学习与教学。">
 <!-- TOOLBOX-WEBAPP-LD -->
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebApplication","name":"盲文转译器","url":"https://tools.dicomp.net/tools/accessibility/braille-translator.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"盲文转译器是一款免费的在线无障碍工具工具，将拼音、英文字母与数字转译为盲文点字，同步显示点位分布图，辅助盲文学习与教学。适合工程估算、日常换算与快速复核，结果可一键复制。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+{"@context":"https://schema.org","@type":"WebApplication","name":"盲文转译器","url":"https://tools.dicomp.net/tools/accessibility/braille-translator.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"盲文转译器是一款免费的在线无障碍辅助工具，将拼音、英文字母与数字转译为盲文点字，同步显示点位分布图，辅助盲文学习与教学。盲文学习：输入 “hello 2026”，工具逐字转译——h→⠓、e→⠑、l→⠇(×2)、o→⠕，空格分隔，数字前自动加数字符 ⠼ 后跟 2→⠃、0→⠚、2→⠃、6→⠋。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
 </script>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
@@ -101,7 +101,7 @@
 <div class="nav">
   <a href="../../index.html">← ToolBox</a>
   <span>/ 盲文转译器</span>
-  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()" aria-label="切换主题" title="切换主题" data-i18n-aria="nav.theme" data-i18n-title="nav.theme">🌙</button>
 </div>
 
 
@@ -289,6 +289,14 @@ function dotsToChar(dots){
 
 function doTranslate(){
   var raw = document.getElementById('srcInput').value;
+  var en = typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn();
+  if(!raw.trim()){
+    var emptyMsg = en ? 'Enter text to translate.' : '请输入文本后再转译。';
+    document.getElementById('brailleOut').textContent = emptyMsg;
+    document.getElementById('dotWrap').innerHTML = '';
+    document.getElementById('statBox').innerHTML = '<p style="color:var(--text-muted)">' + emptyMsg + '</p>';
+    return;
+  }
   var caseMode = document.getElementById('caseSel').value;
   if(caseMode === 'upper') raw = raw.toUpperCase();
   else if(caseMode === 'lower') raw = raw.toLowerCase();
@@ -374,7 +382,7 @@ function renderStat(raw, cells){
 
 function copyBraille(){
   var txt = document.getElementById('brailleOut').textContent;
-  if(!txt){ ToolBox.showToast(i18nText('toast.copy_target_missing'), 'error'); return; }
+  if(!txt || /请输入文本|Enter text/i.test(txt)){ ToolBox.showToast(i18nText('toast.copy_target_missing'), 'error'); return; }
   ToolBox.copyText(txt, i18nText('msg523'));
 }
 

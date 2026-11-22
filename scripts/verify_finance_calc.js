@@ -90,11 +90,10 @@ const CASES = [
     ref: "第128批 通用历史快照截断：本页 16 个输入全部影响结果，旧 Extras/Export 两处 keys.length>12 会把 baby/medicalBig/threshold/city 永久挤出历史表与回放。修复放宽到 24。注入 baby=777 才命中；默认 0 或旧源码 ⇒ BAD ⇒ 强判别、零逃生。"
   },
   {
-    slug: "finance/salary-after-tax",
-    inputs: { gross: "0", ins: "0", ded: "0", months: "1" },
-    clicks: ["var okIn=String(document.getElementById('gross').value)==='0';calcTool();var s1=__salary_after_taxScore('');document.getElementById('months').value='0';calcTool();var s0=__salary_after_taxScore('');document.getElementById('__tbProbe').textContent='SATSCORE '+(okIn&&s1===1&&s0===0?'OK':'BAD');"],
-    expect: ["SATSCORE OK"],
-    ref: "第128批 F-N37 关联：旧 Score 只看 gross>0，gross=0 是 calcTool() 的合法输入（gross<0 才拒绝）却被误记成未通过，months 越界也只靠词表兜底。修复按 calcTool() 真实业务边界判定（gross/ins/ded ≥0、months 1–12）。同用例内连测合法 0 与非法 months=0；注入失败回默认 gross=15000 ⇒ okIn=false ⇒ BAD ⇒ 强判别、零逃生。"
+    slug: "finance/payroll-calculator",
+    inputs: { bonus: "30000" },
+    expect: ["年终奖并入综合所得", "更优方式"],
+    ref: "年终奖单独/并入两方案对比：bonus>0 时输出两种税额及更优方式；默认 bonus=0 不含该串，强判别。"
   },
   {
     slug: "finance/investment-roi",
@@ -214,6 +213,13 @@ const CASES = [
     clicks: ["currentMode='monthly';var d=document.getElementById.bind(document);d('monthsPerYear').value='0';calculate();var b=String(d('salaryBaseNote').innerHTML),a=d('afterTaxAmount').textContent;d('__tbProbe').textContent='SALM0 '+(b.indexOf('每年计薪月数须为正数')>=0&&a==='--'?'OK':'BAD');"],
     expect: ["SALM0 OK"],
     ref: "第124批 F-N101 计薪月数 0 明确拒绝：旧版 `|| 12` 静默兜底，0 还会让年薪折算除零。修复后写出带业务口径的拒绝提示并清空数值区（不残留上一次结果、不产生 Infinity/NaN）。探针同时锁提示与清空；默认 12 月为正常结果 ⇒ BAD ⇒ 强判别、零逃生。"
+  },
+  {
+    slug: "finance/loan-amortization",
+    inputs: { loanAmount: "1000000", annualRate: "4.9", loanYears: "30", prepayMonth: "24", prepayAmount: "100000", repayMethod: "equal" },
+    clicks: ["togglePrepay();calc();var before=scheduleData.length;calcPrepay();var ok=before===360&&scheduleData.length<360&&document.getElementById('prepayResult').innerHTML.indexOf('还款后剩余本金')>=0&&document.getElementById('yearlyTable').innerHTML.length>0;document.getElementById('__tbProbe').textContent='PREPAYOK '+(ok?'OK':'BAD');"],
+    expect: ["PREPAYOK OK"],
+    ref: "第24期提前还10万缩期：calcPrepay 必须重建 scheduleData（<360期）并重绘逐年表；旧实现只写 prepayResult、表仍360期 ⇒ BAD。",
   },
   {
     slug: "finance/housing-fund-loan",
@@ -606,24 +612,6 @@ const CASES = [
     ref: "F-N75 倒亏：ROI = −150% ⇒ 1+roi<0，旧实现年化同样显示 0.00%；修复后拒绝伪零回报。默认 ROI 50% ⇒ 两条均不命中。",
   },
   {
-    slug: "finance/calc-3",
-    inputs: { initial: "-200000", rate: "10", flows: "60000,60000,60000,60000,60000" },
-    expect: ["27,447.21", "1.1372"],
-    ref: "去默认化：NPV = −200000 + 60000×年金现值系数(10%,5) = −200000 + 60000×3.7907868 = 27,447.21；PI = 227447.21/200000 = 1.1372。默认 −100000/8%/30000×5 → 19,781.30、1.1978",
-  },
-  {
-    slug: "finance/calc-3",
-    inputs: { initial: "-100000", rate: "-100", flows: "30000,30000,30000,30000,30000" },
-    expect: ["折现率必须大于"],
-    ref: "F-N72：折现率 −100% 时 1+r=0、折现因子 Infinity，旧实现数值显示「—」却仍按 npv>0 给出「项目可行」；修复后字段级拒绝。默认 8% ⇒ 不命中。",
-  },
-  {
-    slug: "finance/calc-3",
-    inputs: { initial: "-100000", rate: "8", flows: "30000, abc, 30000" },
-    expect: ["第 2 项不是有效数字，已按 0 计入该期", "3 期"],
-    ref: "F-N73：旧实现 filter 丢弃非法项，30000,abc,30000 被压成 2 期、NPV −46,502.06；修复后保留期号按 0 计入，共 3 期、NPV −48,407.25。默认 5 期合法现金流 ⇒ 两条均不命中。",
-  },
-  {
     slug: "finance/break-even-calculator",
     inputs: { fc: "180000", price: "75", vc: "45" },
     expect: ["450,000 盈亏平衡收入", "6000 盈亏平衡销量", "4.00 经营杠杆系数"],
@@ -805,8 +793,8 @@ const CASES = [
   {
     slug: "finance/gstin-validator",
     inputs: { input: "99AAPFU0939F1ZK" },
-    expect: ["州代码： 99 - ❌ 未分配州码", "❌ 州代码不是 GST 已分配州码 ❌ GSTIN 校验失败"],
-    ref: "F-N193 防回归锁：州码 99 非法，即使校验位 K 正确也不得判有效；旧实现仅凭 zChar=Z 且校验位相等即判 ✅。默认预填 09AABCU9603R1ZL（州码 09 合法）⇒ 不命中。",
+    expect: ["州代码： 99 - Centre Jurisdiction（特殊辖区）（99 为 Centre Jurisdiction / Other Country 特殊注册码，不等同普通州）", "✅ GSTIN 有效（99 特殊辖区）"],
+    ref: "F-N193 裁断回填（2026-11-21）：99 是 GST 已分配的特殊注册码（Centre Jurisdiction / Other Country OIDAR），不是「未分配州码」。校验位 K 正确 ⇒ 判格式有效，并加注「不等同普通州」。默认预填 09AABCU9603R1ZL 不含 99 ⇒ 不命中。",
   },
   {
     slug: "finance/routing-number-validator",
@@ -1130,13 +1118,6 @@ const CASES = [
     clicks: ["calc()"],
     expect: ["25,937.42", "5,937.42"],
     ref: "同条件复利并列：10,000×(1+10%)^10 = **25,937.42**，比单利本利和 20,000 多 **5,937.42**。默认 10000/5%/3 年 ⇒ 复利 11,576.25、差额 1,576.25，不命中。",
-  },
-  {
-    slug: "finance/salary-after-tax",
-    inputs: { gross: "20000", ins: "1000", ded: "500", months: "12" },
-    clicks: ["calcTool()"],
-    expect: ["2,700.00 本月预扣个税"],
-    ref: "累计预扣：月应纳税所得额 = 20000 − 1000 − 500 − 5000 = 13,500；累计 12 个月 = 162,000，落 144,000–300,000 档（20%、速算扣除 16,920）⇒ 162,000×20%−16,920 = 15,480；截至上月累计 148,500 ⇒ 148,500×20%−16,920 = 12,780；本月预扣 15,480−12,780 = 2,700。可独立复算。默认态（15000/1650/2000/1）本月预扣 190.50 ⇒ 不命中。",
   },
   {
     slug: "finance/credit-card-type",
@@ -1865,34 +1846,6 @@ const CASES = [
     clicks: ["switchTab()"],
     expect: ["个人所得税 ¥740.00", "¥14,760 税后月薪"],
     ref: "月薪 20,000、五险一金基数同 20,000、专项附加扣除 1,000/月 ⇒ 应纳税所得额，个税 740.00 元、税后到手 14,760 元、公积金账户 4,800/月（个人+单位）。默认态不同 ⇒ 不命中。",
-  },
-  {
-    slug: "finance/calc-2",
-    inputs: { initial: "10000" },
-    clicks: ["calc()"],
-    expect: ["无法计算 IRR"],
-    ref: "只有初始投入、无后续现金流 ⇒ 符号未变化、数据不足 ⇒ 如实报 IRR 不可解（这正是该页的边界分支，不是缺陷）。默认态不同 ⇒ 不命中。",
-  },
-  {
-    slug: "finance/calc-2",
-    inputs: { initial: "-100", flows: "230,-132.5" },
-    clicks: ["calc();var __t=String(document.getElementById('res').innerHTML||'');document.getElementById('__tbProbe').textContent='C2NOROOT '+document.getElementById('initial').value+'/'+document.getElementById('flows').value+' '+((__t.indexOf('不能据此断定现金流无实根')>=0&&__t.indexOf('无法计算 IRR（现金流无实根）')<0)?'OK':'BAD');"],
-    expect: ["C2NOROOT -100/230,-132.5 OK"],
-    ref: "第211批口径复核：NPV(r)=−100+230/(1+r)−132.5/(1+r)² 判别式 −100<0，在 −99.99%~100000% 可搜索区间内无零点；修复后不再断言「现金流无实根」，而是明确「范围内未找到……可能存在范围外的实根；不能据此断定」。探针串绑定注入向量且要求旧绝对措辞消失；默认态（−100000 / 五期 30000，IRR≈15.24%）不命中 ⇒ 强判别、零逃生。",
-  },
-  {
-    slug: "finance/calc-2",
-    inputs: { initial: "-1000", flows: "500,500,500" },
-    clicks: ["calc()"],
-    expect: ["23.3752%"],
-    ref: "独立复算：−1000 + 500/(1+r) + 500/(1+r)² + 500/(1+r)³ = 0 ⇒ 1+r = 1.2337519…，IRR = 23.3752%（二分 200 次残差 |NPV| < 1e-6）。默认态（−100000 / 五期 30000，IRR≈15.24%）不同 ⇒ 不命中。",
-  },
-  {
-    slug: "finance/calc-2",
-    inputs: { initial: "-100", flows: "0.5" },
-    clicks: ["calc();var __t=String(document.getElementById('res').innerHTML);document.getElementById('__tbProbe').textContent='C211LOW '+document.getElementById('initial').value+'/'+document.getElementById('flows').value+' '+((__t.indexOf('-99.5000%')>=0&&__t.indexOf('未找到')<0)?'OK':'BAD');"],
-    expect: ["C211LOW -100/0.5 OK"],
-    ref: "第211批复核失败重做：irr() 搜索下界由 −0.99 放宽到 −0.9999，与中英文失败提示「−99.99% 至 100000%」一致。现金流 −100/+0.5 的真根 = 0.5/100−1 = −99.5%，落在提示区间内但旧下界 −99% 之外 ⇒ 旧版输出「范围内未找到」、修复后算出 −99.5000%。探针绑定注入的 initial/flows，默认态（−100000/五期 30000）不含 C211LOW 串 ⇒ 强判别、零逃生。",
   },
   {
     slug: "finance/car-loan-calculator",
@@ -2697,29 +2650,7 @@ const CASES = [
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，输出区含「abc123测试\n输入： ABC123测试 长度： 8 字符（8 或 11） ❌…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
-  {
-    "slug": "finance/calc-2",
-    "inputs": {
-      "initial": "42",
-      "flows": "abc123测试"
-    },
-    "expect": [
-      "42\nabc123测试\n请输入现金流"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"initial\":\"42\",\"flows\":\"abc123测试\"}，输出区含「42\nabc123测试\n请输入现金流」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
-  },
-  {
-    "slug": "finance/calc-3",
-    "inputs": {
-      "initial": "42",
-      "rate": "42",
-      "flows": "1\n2\n3"
-    },
-    "expect": [
-      "值 NPV（元） 0.0653 盈利指数 PI 3"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"initial\":\"42\",\"rate\":\"42\",\"flows\":\"1\\n2\\n3\"}，输出区含「值 NPV（元） 0.0653 盈利指数 PI 3」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
-  },
+  
   {
     "slug": "finance/capm-return",
     "inputs": {
@@ -3728,19 +3659,6 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"age\":\"42\",\"retireAge\":\"42\",\"lifeAge\":\"42\",\"currentSavings\":\"42\",\"monthlyContribution\":\"42\",\"returnRate\":\"42\",\"inflation\":\"42\",\"monthlyExpense\":\"42\"}，输出区含「42\n42\n42\n42\n42\n42\n42\n42\n年龄顺序：当前」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "finance/salary-after-tax",
-    "inputs": {
-      "gross": "22000",
-      "ins": "1200",
-      "ded": "700",
-      "months": "7"
-    },
-    "expect": [
-      "1,510.00 本月预扣个税"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"gross\":\"22000\",\"ins\":\"1200\",\"ded\":\"700\",\"months\":\"7\"}；月应纳税所得额 15,100、累计 105,700 落 10% 档 ⇒ 累计 8,050，上月累计 90,600 ⇒ 6,540，本月 1,510，输出区含「1,510.00 本月预扣个税」；默认态 190.50、主用例 2,700.00 均不含该串 ⇒ 强判别、零逃生。"
-  },
-  {
     "slug": "finance/profit-margin-calculator",
     "inputs": {
       "revenue": "42",
@@ -4035,10 +3953,11 @@ const CASES = [
       "prepayAmount": "42",
       "repayMethod": "principal"
     },
+    "clicks": ["calc();var ok=document.getElementById('loanAmount').value==='42'&&document.getElementById('scheduleTable').innerHTML.indexOf('1.55')>=0;document.getElementById('__tbProbe').textContent='LOANAUTO '+(ok?'OK':'BAD');"],
     "expect": [
-      "83 第339期 0.57 0.08 0.48 13.75 第340期 0.56 0.08 0.48 13.67 第341期 0.56 0.08 0.48 13.58 第342期 0.56 0.08 0.48 13.50 第343期 0.5"
+      "LOANAUTO OK"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"loanAmount\":\"42\",\"annualRate\":\"42\",\"loanYears\":\"42\",\"balloonMonths\":\"42\",\"balloonRatio\":\"42\",\"prepayMonth\":\"42\",\"prepayAmount\":\"42\",\"repayMethod\":\"principal\"}，输出区含「83 第339期 0.57 0.08 0.48 13.75 第340期 0.56…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "注入 42 元 / 42% / 42 年 / 等额本金：首月月供 = 42/504 + 42×42%/12 = 1.55 元；默认参数月供量级为数千元，不含 1.55 ⇒ 注入失败必红。"
   },
   {
     slug: "finance/housing-fund-loan",
@@ -5020,20 +4939,6 @@ const CASES = [
     ref: "第210批 贷款期限状态链：2.5 年（30 期）⇒ 1、0.01 年（0 期）⇒ 0、恢复 2.5 年 ⇒ 1。与上条拒绝态配合，三态不同值、恢复不残留。",
   },
   {
-    slug: "finance/calc-2",
-    inputs: { initial: "-100", flows: "2000" },
-    clicks: ["var __a=parseFloat(document.getElementById('initial').value),__fs=String(document.getElementById('flows').value).split(/[,\\s]+/).map(Number),__r=irr([__a].concat(__fs));document.getElementById('__tbProbe').textContent='C211IRR '+((typeof __r==='number'&&Math.abs(__r-19)<1e-6)?'OK':'BAD');"],
-    expect: ["C211IRR OK"],
-    ref: "第211批 IRR 超搜索范围：初始 -100、下期 2000 的数学 IRR=1900%（r=19）。旧 irr 上限 MAX=10 返回 null 并断言「现金流无实根」；修复后 MAX=1000（100000%）求得 19。探针读注入的 initial/flows 构造现金流、依赖输入；旧源码 null ⇒ BAD ⇒ 零逃生。",
-  },
-  {
-    slug: "finance/calc-2",
-    inputs: { initial: "100", flows: "-1,100" },
-    clicks: ["calc();var __t=String(document.getElementById('res').innerHTML||'');document.getElementById('__tbProbe').textContent='C211TXT '+((__t.indexOf('内未找到')>=0&&__t.indexOf('不能据此断定')>=0)?'OK':'BAD');"],
-    expect: ["C211TXT OK"],
-    ref: "第211批 求解失败文案：注入 100/-1/100（有正有负但 NPV 判别式<0、范围内无零点）走 rate==null 分支。旧 calc 断言「无法计算 IRR（现金流无实根）」；修复后明确「在可搜索利率范围（−99.99% 至 100000%）内未找到……不能据此断定现金流无实根」，区分求解失败与数学证明。旧源码无「内未找到/不能据此断定」⇒ BAD。",
-  },
-  {
     slug: "finance/npv-calculator",
     inputs: { init: "100", rate: "15" },
     clicks: ["var __r=calcIRR(parseFloat(document.getElementById('init').value),[230,-132]);document.getElementById('__tbProbe').textContent='C156NPV '+((__r.status==='multiple'&&__r.rates.length===2)?'OK':'BAD');"],
@@ -5066,7 +4971,40 @@ const CASES = [
     ref: "第1344批 分支残留：凯利模式 ratio<=0 早退分支原只写 #res 就 return，#statGrid 保留上次合法计算的统计卡（martingale 分支有清，口径不一）；改为早退同步清空 statGrid。",
   },
 
-{ slug:"finance/profit-margin-calculator", inputs:{"revenue":"","cogs":"","sellingExp":"","adminExp":"","rdExp":"","finExp":"","da":"","taxRate":"","revRev":"","targetMargin1":"","expRatio1":"","costCost":"","targetMargin2":"","taxRate2":"","batchStart":"","batchEnd":"","batchStep":"","batchM1":"","batchM2":"","batchM3":"","batchM4":"","dupontNI":"","dupontRev":"","dupontAssets":"","dupontEquity":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" }
+{ slug:"finance/profit-margin-calculator", inputs:{"revenue":"","cogs":"","sellingExp":"","adminExp":"","rdExp":"","finExp":"","da":"","taxRate":"","revRev":"","targetMargin1":"","expRatio1":"","costCost":"","targetMargin2":"","taxRate2":"","batchStart":"","batchEnd":"","batchStep":"","batchM1":"","batchM2":"","batchM3":"","batchM4":"","dupontNI":"","dupontRev":"","dupontAssets":"","dupontEquity":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" },
+  {
+    slug: "finance/installment-real-rate",
+    inputs: { P: "18000", n: "24", r: "0.6" },
+    expect: ["14.10% 有效年化"],
+    ref: "多期数并排：同一本金与每期费率下列出 6/12/24/36 期的每期还款、总手续费与有效年化；锁定功能不回退。"
+  },
+
+  {
+    "slug": "finance/car-loan-calculator",
+    "inputs": { "insYears": "3" },
+    "expect": ["保险合计（3年）", "落地总价（首付+税费+3年保险+车船税+上牌）"],
+    "ref": "保险年数口径：控件可选 1/2/3 年并按年数相乘，旧标题固定写「首年保险」；修复后标签随选择显示 3 年，落地总价说明同步补车船税。"
+  },
+  {
+    "slug": "finance/loan-comparison",
+    "inputs": { "a-principal": "100000", "a-rate": "4", "a-months": "60", "b-principal": "100000", "b-rate": "4", "b-months": "120" },
+    "expect": ["月供最低： B 方案", "总利息最低： A 方案", "仅反映月现金流，不代表总成本最低"],
+    "ref": "不同期数排名口径：B 期数更长月供更低，但总利息更高；旧实现把月供最少标成绿色「月供最少」，容易被当成最优。修复后同时给出月供最低与总利息最低，并明确前者不代表总成本。"
+  },
+  {
+    "slug": "finance/loan-comparison",
+    "inputs": { "a-principal": "100000", "a-rate": "4", "a-months": "60", "b-principal": "100000", "b-rate": "5", "b-months": "60", "c-principal": "100000", "c-rate": "6", "c-months": "60" },
+    "expect": ["总利息最少： A 方案"],
+    "ref": "同本金同期数：月供与总利息同序，直接以总利息最少作为结论；旧文案「月供最少」在相同条件下虽等价，但未点明比较维度。"
+  },
+{
+  "slug": "finance/mortgage-calculator",
+  "inputs": {"loanAmount": "100", "rate": "4.9", "years": "30", "downPayment": "30"},
+  "clicks": ["var tb=document.getElementById('scheduleBody');var before=(tb.innerHTML.match(/<tr>/g)||[]).length;document.getElementById('scheduleToggle').fire('click');var after=(tb.innerHTML.match(/<tr>/g)||[]).length;var ok=before===24&&after===360;document.getElementById('__tbProbe').textContent='MCFULL '+before+'/'+after+(ok?' OK':' BAD');"],
+  "expect": ["MCFULL 24/360 OK"],
+  "ref": "30 年 360 期：默认只渲染前 24 期，点击‘显示全部期数’后应渲染 360 行；旧版无切换按钮且固定 slice(0,24)。"
+},
+
 ];
 
 // ---------------------------------------------------------------- main

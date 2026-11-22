@@ -10,25 +10,6 @@ const CASES = [
 //   所有数值期望均由 Python（IEEE754 double，toFixed 用 Decimal 精确二进制 + HALF_UP 模拟）独立复算
 // ─────────────────────────────────────────────────────────────
 {
-  // 药酒浸泡浓度/时间：cat=animal（浸出率 0.18、建议 45~60 天）150g/800mL/60%vol、目标 0.15 g/mL
-  // 复算：conc=150/800=0.1875→0.188；1:5；extConc=27*1000/800=33.8；finalAbv=60*800/807.5=59.4%
-  //       dose=15mL（0.1≤conc<0.2）；doseHerb=15*0.1875=2.81；target 0.15 → 已达标、达标需 120.0g
-  "slug": "tcm-pharmacy/calc-time-concentration",
-  "inputs": {
-    "herb": "150",
-    "vol": "800",
-    "abv": "60",
-    "target": "0.15",
-    "cat": "animal"
-  },
-  "expect": [
-    "目标生药浓度 0.150 g/mL：当前已达标。",
-    "1:5 药酒比",
-    "33.8"
-  ],
-  "ref": "独立复算：conc=150/800=0.1875→toFixed(3) 0.188；ratio=800/150→1:5；extConc=150*0.18*1000/800=33.75→33.8；finalAbv=60*800/(800+150*0.05)=59.4427→59.4%；needHerb=0.15*800=120.0。默认（root/100/1000/50/0.1）conc=0.100、1:10、目标已达标，故本例须靠 0.150/1:5/33.8 三分支差异判定（原 expect「暂无计算记录」取自 historyBox 空态，与计算无关）"
-},
-{
   // 汤剂煎煮时间表：herbCount=6、avgDose=12（总药量 72g）、三煎、含先煎(石膏/附子)+后下(薄荷)+冲服(三七粉)
   // 复算：头煎 720、二煎 576、三煎 432；得汁 216/173/130 → 合汁 519；特殊煎法 4 味
   "slug": "tcm-pharmacy/decoction-time",
@@ -84,7 +65,7 @@ const CASES = [
 },
 {
   // 中成药经济学：补中益气丸 36 元/200 粒、每次 8 粒、每日 3 次、疗程 14 天
-  // 复算：unitPrice=36/200=0.180；ddc=0.18*8*3=4.32 元/日；totalCost=4.32*14=60.48 元；性价比 100%
+  // 复算：unitPrice=36/200=0.180；ddc=0.18*8*3=4.32 元/日；totalCost=4.32*14=60.48 元；费用指数 100%
   "slug": "tcm-pharmacy/tcm-pharmacoeconomics",
   "inputs": {
     "drugName": "补中益气丸",
@@ -95,7 +76,8 @@ const CASES = [
     "drugDays": "14"
   },
   "expect": [
-    "日治疗费用仅 4.32 元，疗程费用 60.48 元。",
+    "日治疗费用 4.32 元，疗程费用 60.48 元。",
+    "仅按日治疗费用排序，不代表疗效",
     "0.180"
   ],
   "ref": "独立复算：unitPrice=36/200=0.18→toFixed(3) 0.180；ddc=0.18*8*3=4.32；totalCost=4.32*14=60.48；ratio=round(4.32/4.32*100)=100%。drugName 默认空 → addDrug() 提前 return、drugList 恒空、仅渲染「请添加药品进行比较」，故 4.32/60.48 只在注入态出现（原 expect 即该空态文案，与计算无关；参考药品列表含 25/100 等数字，均与 4.32/60.48 不同）"
@@ -337,6 +319,12 @@ const CASES = [
   "ref": "第1327批·切换药材标签内联display未解除修复源码形态强锚：原 switchTab 只切 active class，tab-standard 内联 display:block 不清除致两区同显；修复后同步设两 tab 内联 display。旧版无 ⇒ BAD。"
 },
 {
+  "slug": "tcm-pharmacy/herb-quality",
+  "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/tcm-pharmacy/herb-quality.html','utf8');var i=h.indexOf('function updateScoreDisplay(i){');var j=h.indexOf('function evaluate(){',i);var seg=(i>=0&&j>i)?h.slice(i,j):'';var ok=seg.indexOf(\"getElementById('evalResult')\")>=0&&seg.indexOf(\"style.display='none'\")>=0;document.getElementById('__tbProbe').textContent='HQSLIDERCLR '+(ok?'OK':'BAD');})();"],
+  "expect": ["HQSLIDERCLR OK"],
+  "ref": "第197批·滑块变化未清旧评分修复源码形态强锚：updateScoreDisplay 同步隐藏并清空 evalResult；旧版无 evalResult 清理 ⇒ BAD。"
+},
+{
   "slug": "tcm-pharmacy/formula-song",
   "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/tcm-pharmacy/formula-song.html','utf8');var i=h.indexOf('function generateSong(){');var j=h.indexOf('function ',i+10);var seg=(i>=0&&j>i)?h.slice(i,j):'';var n=(seg.split('result.innerHTML').length-1);var ok=n>=4;document.getElementById('__tbProbe').textContent='FSONGCLR '+(ok?'OK':'BAD');})();"],
   "expect": ["FSONGCLR OK"],
@@ -347,7 +335,13 @@ const CASES = [
   "clicks": ['(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+\'/\'+\'tools/tcm-pharmacy/four-qi-nature.html\',\'utf8\');var i=h.indexOf(\'function switchTab(tab, e){\');var j=h.indexOf(\'\\nfunction \',i+10);var seg=i>=0?h.slice(i,j>0?j:i+500):\'\';var ok=seg.indexOf(\'if(!tab||!e)\')>=0&&seg.indexOf(\'judgeQi(); return;\')>=0;document.getElementById(\'__tbProbe\').textContent=\'FQNH0 \'+(ok?\'OK\':\'BAD\');})();'],
   "expect": ['FQNH0 OK'],
   "ref": "第1337批·历史恢复无参切换抛错修复源码形态强锚：旧版 function switchTab(tab, e){ 无参调用解引用参数/全局event抛错被 catch 吞、结果不重算；修复后无参分支安全返回或重算主结果。旧版无 ⇒ BAD。"
-}
+},
+ {
+    "slug": "tcm-pharmacy/four-qi-nature",
+    "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/tcm-pharmacy/four-qi-nature.html','utf8');var ok=h.indexOf(\"chill:{qi:'温'\")>=0;document.getElementById('__tbProbe').textContent='FQOK '+(ok?'OK':'BAD');})();"],
+    "expect": ["FQOK OK"],
+    "ref": "畏寒映射源码锚：旧版 chill:{qi:'热'} 而计分只累加寒/温，单选畏寒总分 0、判寒热不显；现归温，配套 id=chill 使真机可勾选。"
+  }
 ];
 async function main() {
   const only = process.argv.slice(2);

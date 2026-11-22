@@ -493,7 +493,7 @@ const CASES = [
       "v_sigt": "42"
     },
     "expect": [
-      "42\n42\n42\n42\n42\n42\n42\n42\n请输入有效参数（板宽须大于铆钉总径，铆钉数为正整数）\n暂无计算记录"
+      "请输入有效参数（板宽须大于每排铆钉总径，铆钉数/剪切面数/每排数为正整数）"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"v_d\":\"42\",\"v_t\":\"42\",\"v_n\":\"42\",\"v_w\":\"42\",\"v_f\":\"42\",\"v_tau\":\"42\",\"v_sigc\":\"42\",\"v_sigt\":\"42\"}，输出区含「42\n42\n42\n42\n42\n42\n42\n42\n请输入有效参数（板宽须大于铆钉总…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -602,6 +602,61 @@ const CASES = [
   { slug: "machinery/lifespan-23", inputs: { vTemp: "130", vRpm: "9000" }, clicks: ["document.getElementById('vOil').value='ester';calc();"], expect: ["润滑寿命不足 500h"], ref: "短寿命提示（667）：寿命 23h < 500h ⇒ advice 追加「润滑寿命不足 500h，建议缩短换油/补油周期并按状态监测」（默认 1300h 不含该串）" },
   { slug: "machinery/power-16", inputs: { pVal: "5.5", n1: "1450", ratio: "10" }, expect: ["几何派生值不适用"], ref: "666 复核（超系列停止派生）：d₁×i=1250>800 ⇒ 中心距/带长/包角显示「—」，总结与复制文本标注几何派生值不适用；默认 i=2.5 不含该串" },
   { slug: "machinery/power-16", inputs: { pVal: "5.5", n1: "6000", ratio: "2" }, expect: ["增大带轮无法降速"], ref: "666 复核（高速不反向增轮）：n₁=6000 ⇒ 最小标准轮径 80mm 下带速 25.1>25；v 与 d₁ 正相关，旧 while 逐档增轮反把带速推高并推到 800mm，现明确提示无法降速；默认 1450rpm 不含该串" },
+{
+  "slug": "machinery/bearing-1",
+  "inputs": {"cVal":"50","pVal":"5","nVal":"1500","bType":"3","reli":"95","aisoVal":"0.8"},
+  "expect": ["512.0","5688.9"],
+  "ref": "C/P=10，L10=1000 百万转；a1(95%)=0.64、aISO=0.8 ⇒ Lnm=0.512×1000=512.0 百万转，Lnmh=512e6/(60×1500)=5688.9 h。默认 90%/aISO=1 得 1000/11111 ⇒ 不命中"
+},
+{
+  "slug": "machinery/bearing-1",
+  "inputs": {"cVal":"50","pVal":"5","nVal":"1500","bType":"3","reli":"90","aisoVal":"0"},
+  "expect": ["aISO 均需大于 0"],
+  "ref": "aISO=0 不得输出修正寿命 0"
+},
+{
+  "slug": "machinery/strength-15",
+  "inputs": {"v_P":"100","v_n1":"960","v_z1":"19","v_z2":"57"},
+  "expect": ["6.2 静强度安全系数"],
+  "ref": "功率参与选型：100 kW/960 rpm/19 齿，初档 12A 圆周力 17267 N、破断 45.4 kN 安全系数 2.63<4 ⇒ 升档 16A，F=12952 N、80.2/12.952=6.19；默认 5.5 kW 为 12A、安全系数 47.8 ⇒ 不命中"
+},
+{
+  "slug": "machinery/calc-gear",
+  "inputs": {"module":"2","teeth":"13","pressure":"20","helix":"20","haCoef":"1","cCoef":"0.25"},
+  "clicks": ["document.querySelector('input[name=gearType][value=helical]').checked=true;calc();"],
+  "expect": ["14.4","小于不根切最少齿数"],
+  "ref": "斜齿根切最少齿数：αt=atan(tan20°/cos20°)=21.17°，zmin=2×1×cos20°/sin²αt=14.4；z=13 应判根切。旧式 cos³β 得 12.7，13 齿会被误判不根切"
+},
+{
+  "slug": "machinery/detector-194",
+  "inputs": {"v1":"3","v2":"2","v3":"6","v4":"4"},
+  "expect": ["更换设备","检查阀杆与阀座密封","经济寿命阈值 5 年"],
+  "ref": "MM-H80：设备类型/运行模式须参与判定。阀门+频繁启停、6 年 > 阈值 5 ⇒ 更换；清单应为阀杆/执行机构，不得再给泵的轴承/联轴器套话。若仍只按 years>8，则 6 年会判维修 ⇒ 不命中"
+},
+{
+  "slug": "machinery/detector-194",
+  "inputs": {"v1":"1","v2":"1","v3":"","v4":"1"},
+  "expect": ["请填写使用年限（年）后再生成维修方案"],
+  "ref": "空年限不得按 0 年输出「维修修复」结论"
+},
+{
+  "slug": "machinery/jingmishebeixuanxing",
+  "inputs": {"vAcc":"50","vLoad":"50","vStroke":"500","vSpeed":"15"},
+  "expect": ["C7","±50μm/300mm"],
+  "ref": "MM-H91：定位精度 50μm 判 C7，导程精度须随等级显示 ±50μm/300mm；旧逻辑按导程 5mm 显示 ±3μm/300mm，与 C7 自相矛盾。默认 acc10/lead5 为 C3/±3 ⇒ 不命中"
+},
+{
+  "slug": "machinery/lifespan-7",
+  "inputs": {"vMat":"nbr","vTemp":"300","vPress":"1","vSpeed":"500","vShaft":"50","vMed":"oil"},
+  "expect": ["材料可能分解，不可继续使用","10"],
+  "ref": "NBR 上限 120℃：130℃ 取 0.05、300℃ 远超 20℃ 取 0.001，寿命触底 10h；旧逻辑两个温度同为 0.05/231h，无法区分超温程度"
+},
+{
+  "slug": "machinery/lifespan-7",
+  "inputs": {"vMat":"nbr","vTemp":"-50","vPress":"1","vSpeed":"500","vShaft":"50","vMed":"oil"},
+  "expect": ["低于材料低温极限"],
+  "ref": "NBR 低温下限 -30℃：-50℃ 须提示脆裂/更换材质；旧逻辑 Q10 外推得 2^13，寿命反而放大"
+}
 ];
 
 async function main() {

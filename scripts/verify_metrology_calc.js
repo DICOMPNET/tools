@@ -80,15 +80,27 @@ const CASES = [
     ref: "相对合成=√((0.05/4)²+(0.06/8)²)×100%=1.458%" },
 
   { slug: "metrology/resolution-uncertainty",
+    inputs: { a: "" },
+    expect: ["请填写分辨率后再计算。"],
+    ref: "分辨率留空：旧 num() 回退 0 静默输出 0；新增空值守卫后须提示。" },
+  { slug: "metrology/resolution-uncertainty",
     inputs: { a: "0.002" },
     expect: ["0.000577", "0.000333"],
     ref: "u=a/(2√3)=0.000577；对比半宽/√3=0.000333" },
 
   { slug: "metrology/guard-band-95",
+    inputs: { U: "" },
+    expect: ["请填写扩展不确定度后再计算。"],
+    ref: "U 留空：旧 num() 回退 0 静默输出保护带 0；新增空值守卫后须提示。" },
+  { slug: "metrology/guard-band-95",
     inputs: { U: "0.12" },
     expect: ["0.1980"],
     ref: "GB=1.65×0.12=0.1980（95% 单侧保护带）" },
 
+  { slug: "metrology/least-count-error",
+    inputs: { lc: "" },
+    expect: ["请填写分度值后再计算。"],
+    ref: "分度值留空：旧 num() 回退 0 静默输出极限误差 0；新增空值守卫后须提示。" },
   { slug: "metrology/least-count-error",
     inputs: { lc: "0.005" },
     expect: ["0.0025", "-0.0025"],
@@ -117,9 +129,19 @@ const CASES = [
 
   // ---- 测量系统分析 MSA ----
   { slug: "metrology/gauge-repeatability",
+    inputs: { r: "", m: "3" },
+    expect: ["请填写平均极差与测量次数后再计算。"],
+    ref: "平均极差留空：旧 num() 回退 0 静默输出 σ=0；新增空值守卫后须提示。" },
+
+  { slug: "metrology/gauge-repeatability",
     inputs: { r: "0.07", m: "4" },
     expect: ["0.0340", "0.1751"],
     ref: "d₂(4)=2.059；σ_r=0.07/2.059=0.0340；99% 带宽 5.15σ_r=0.1751" },
+
+  { slug: "metrology/gauge-reproducibility",
+    inputs: { r: "", o: "3" },
+    expect: ["请填写极差与评价人数后再计算。"],
+    ref: "极差留空：旧 num() 回退 0 静默输出 σ=0；新增空值守卫后须提示。" },
 
   { slug: "metrology/gauge-reproducibility",
     inputs: { r: "0.06", o: "2" },
@@ -469,7 +491,8 @@ const CASES = [
       "42\n42\n42\n42\n2494.6727"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"c1\":\"42\",\"u1\":\"42\",\"c2\":\"42\",\"u2\":\"42\"}，输出区含「42\n42\n42\n42\n2494.6727」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
-  }
+  },
+  { slug: "metrology/dimensional-tolerance", inputs: { nom: "50", es: "-0.02", ei: "0.01" }, expect: ["⚠ 基本尺寸须大于 0，且上偏差 ES 不能小于下偏差 EI。"], ref: "ES<EI 时公差为负、最大极限尺寸小于最小极限尺寸；新守卫应拒绝。默认 50/0.025/0 不含该提示。" },
 
 ];
 

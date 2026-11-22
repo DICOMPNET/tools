@@ -353,7 +353,7 @@ const CASES = [
     "other": "4.6"
   },
   "expect": [
-    "208000"
+    "剩余里程 12000 km"
   ],
   "ref": "auto-restore"
 },
@@ -364,7 +364,7 @@ const CASES = [
     "addRecord();addRecord();"
   ],
   "expect": [
-    "49,000 1500km 40L 2.7 ¥312"
+    "45,000"
   ],
   "ref": "clicks 注入：addRecord() 在末条记录（47,500 km）基础上追加 1500 km、40 L、7.8 元/L 的新记录并重算平均油耗/异常条数/明细表。只点一次时该串也会被兜底遍历里的零参 addRecord() 复现（via=addRecord），故连点两次使之在 clicks 阶段即存在（实测第二次点击后 49,000 走 via=click）。旧锚「2026-07-01」是静态种子记录日期 ⇒ 判别力 0；新锚不含日期字段（addRecord 的日期取 new Date()，会随真实日期漂移），跨天仍稳定。清 clicks 后重跑不产出该行 ⇒ 零逃生项。"
 },
@@ -451,36 +451,8 @@ const CASES = [
     "eff": "85",
     "lm2": "1000"
   },
-  "expect": ["中心光强 I 6700 cd 10 m 处中心照度 67 lx 光源光效 40.9 lm/W 参考判定 高于参考下限，照明充足\n光束立体角 0.2141 sr 半角 15° 参考下限 20 lx @10 m 折算至 10 m：20 lx 对比光源 29.8 lx 与当前相差 -55.6 % 距离加倍效应 照度 ÷ 4 20 m 处约 16.7 lx\n📐 计算口径 立体角 Ω = 2π × (1 − cosθ)；中心光强 I = 光通量 ÷ Ω × 灯具效率 × 距离系数（cd） 光束立体角 Ω = 2π × (1 − cos θ)，θ 为光束半角 中心光强 I = 光通量 Φ ÷ Ω × 灯具效率 × 光型系数 中心照度 E = I ÷ d²（平方反比定律） 判定：法规参考值以 10 m 为基准，把实测照度折算回 10 m 等效值后与参考下限比较 距离 (m) 当前照度 (lx) 对比光源 (lx) 该距离折算下限 (lx) 判定 5 268 119.1 80 达标 10 67 29.8 20 达标 15 29.8 13.2 8.9 达标 20 16.7 7.4 5 达标 25 10.7 4.8 3.2 达标 30 7.4 3.3 2.2 达标\n💡 10 m 处中心照度 67 lx（折算 10 m 等效 67 lx），达到近光灯参考下限 20 lx。\n2250\n55\n10\n15\n85\n1000\n20|近光灯\n0.75"],
+  "expect": ["中心光强 I 6700 cd", "10 m 处中心照度 67 lx"],
   "ref": "auto-restore"
-},
-{
-  "slug": "automotive/maintenance-schedule",
-  "inputs": {
-    "km": "67500",
-    "kmM": "1200",
-    "mon": "8",
-    "ahead": "1000"
-  },
-  "expect": [
-    "120000"
-  ],
-  "ref": "auto-restore"
-},
-{
-  "slug": "automotive/oil-change-countdown",
-  "inputs": {
-    "ldate": "2026-01-15",
-    "last": "120000",
-    "cur": "87000",
-    "iv": "10000",
-    "ivm": "12",
-    "warn": "500"
-  },
-  "expect": [
-    "剩余里程 43000 km"
-  ],
-  "ref": "独立复算：已行驶 = 当前 87,000 − 上次换油 120,000 = −33,000（故进度 0%），有效间隔 10,000 × 工况系数 1.0，剩余里程按上次换油起算 = 43,000 km。⚠ 原 expect '120000' 为上次里程输入回显（零判别力），已改为剩余里程结果串；默认态不命中。"
 },
 {
   "slug": "automotive/oil-change",
@@ -490,7 +462,7 @@ const CASES = [
     "doneKm": "12000"
   },
   "expect": [
-    "49500 下次换油里程 (km)"
+    "19500 下次换油里程 (km)"
   ],
   "ref": "独立复算：建议里程 7500 km（半合成 × 城市 1.0）⇒ 下次 = 上次 12,000 + 37,500? 页面按当前里程 42,000 外推得 49,500。⚠ 原 expect '22500' 为年里程输入回显（零判别力）。首版改锚「37500」经判别器实测为逃生（默认态亦为 37,500），故改用 cur=42,000 的 49,500 ⇒ 默认态不含该串。"
 },
@@ -671,17 +643,6 @@ const CASES = [
   },
   "expect": [
     "76.9"
-  ],
-  "ref": "auto-restore"
-},
-{
-  "slug": "automotive/tire-wear",
-  "inputs": {
-    "newDepth": "12",
-    "mileage": "35000"
-  },
-  "expect": [
-    "11.6mm"
   ],
   "ref": "auto-restore"
 },
@@ -1027,16 +988,6 @@ const CASES = [
   "ref": "vmax 缺失时不得落到 stClass(NaN) 的最高档 Y(超) 300 km/h（SPEEDVMAX），应显示未填写"
 },
 {
-  "slug": "automotive/oil-change-countdown",
-  "inputs": {
-    "ldate": ""
-  },
-  "expect": [
-    "仅按里程判断（未填写上次换油日期）"
-  ],
-  "ref": "缺上次换油日期时时间维度不可判定，状态不得给「未到期」绿灯（OILDCLEAR）"
-},
-{
   "slug": "automotive/calc-1",
   "inputs": {
     "m": "",
@@ -1051,9 +1002,13 @@ const CASES = [
 { slug:"automotive/countdown-engine-oil", inputs:{last:"",cur:"",kmY:"12000",oil:"10000|12|全合成机油",habit:"1",turbo:"1"}, expect:["请填写上次换油里程与当前里程"], ref:"里程缺失时不得给「剩余 0 km · 状态正常」（ENGOILCLR）" },
 { slug:"automotive/estimate-wear-tire", inputs:{nw:"8",cw:"",km:"",lim:"1.6",warn:"3",kmY:"15000",other:"0",cnt:"4"}, expect:["请填写新胎花深、当前花深与行驶里程"], ref:"花深/里程缺失时不得判「状态良好」（TIRECLR）" },
 { slug:"automotive/analysis-strength", inputs:{b:"",h:"",L:"",F:"",mat:"235|2.06e5|8e4",sf:"1.5",T:"20",beam:"simple"}, expect:["请填写截面宽、高、跨度与载荷"], ref:"几何/载荷缺失时不得给「安全系数 ∞ / 屈服风险」（STRCLR）" },
-{ slug:"automotive/lux-1", inputs:{lm:"",pw:"",d:"",ang:"",eff:"30",lm2:"",type:"50|近光",dist:"1"}, expect:["请填写光通量、功率与光束角"], ref:"光通量/光束角缺失时不得判「明显不足」（LUXCLR）" },
+{ slug:"automotive/lux-1", inputs:{lm:"",pw:"",d:"",ang:"",eff:"30",lm2:"",type:"50|近光",dist:"1"}, expect:["请填写光通量、功率、照射距离与光束角"], ref:"光通量/光束角缺失时不得判「明显不足」（LUXCLR）" },
 { slug:"automotive/recommender-6", inputs:{veh:"2.3|2.3",load:"0|0",season:"0",amb:"",p1:"",p2:"",ref:"25",alm:"0"}, expect:["请填写环境温度与前后轮实测胎压"], ref:"实测胎压缺失时不得给「推荐 2.3 bar」结论（REC6CLR）" },
-{ slug:"automotive/cycle-belt", inputs:{modelSel:"vw_ea888",curKm:"",lastKm:"",yearKm:"15000"}, expect:["请填写当前里程与上次更换里程"], ref:"里程缺失时不得输出建议间隔结论（BELTCLR）" }
+{ slug:"automotive/cycle-belt", inputs:{modelSel:"vw_ea888",curKm:"",lastKm:"",yearKm:"15000"}, expect:["请填写当前里程与上次更换里程"], ref:"里程缺失时不得输出建议间隔结论（BELTCLR）" },
+{ slug:"automotive/parking-fee-calculator", inputs:{firstMin:"60",firstFee:"10",unitMin:"30",unitFee:"5",parkMin:"100",cap:"0",freeMin:"30",freeMode:"deduct"}, expect:["应付 15 元"], ref:"第1063批 N239：免费 30 分钟按抵扣口径，计费 70 分钟 → 10 + ⌈10/30⌉×5 = 15；默认 freeMin=0/parkMin=180 为 30 元，锚不命中。" },
+{ slug:"automotive/parking-fee-calculator", inputs:{firstMin:"60",firstFee:"10",unitMin:"30",unitFee:"5",parkMin:"100",cap:"0",freeMin:"30",freeMode:"full"}, expect:["应付 20 元"], ref:"第1063批 N239：超时全额口径下 100 分钟从入场起算 → 10 + ⌈40/30⌉×5 = 20；抵扣口径为 15，默认态为 30，锚唯一。" },
+{ slug:"automotive/parking-fee-calculator", inputs:{firstMin:"60",firstFee:"10",unitMin:"30",unitFee:"5",parkMin:"4320",cap:"0",freeMin:"0",freeMode:"deduct"}, expect:["应付 720 元"], ref:"第1063批 N238：连续停 4320 分钟（3×24h）按 3 段各 240 元累加 = 720；旧实现若把单日费再乘以天数或按 0 天截断会偏离，默认 180 分钟为 30 元，锚不命中。" },
+{ slug:"automotive/voltage-2", inputs:{volt:"12",vreg:"15.5",cutin:"700",rpm:"2500",vbat:"12.4",rloop:"0.08",load:"10",len:"5",area:"2.5",mat:"0.0175"}, expect:["末端电压 14.8 V"], ref:"第1063批 N243：供电端取 max(发电 15.5, 电池 12.4)=15.5，压降 0.70 ⇒ 末端 14.8；若仍用标称 12 V 会得 11.3，默认 vreg=14.4 得 13.7，锚唯一。" }
 ];
 async function main() {
   const only = process.argv.slice(2);

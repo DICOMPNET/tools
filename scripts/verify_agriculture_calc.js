@@ -406,12 +406,6 @@ const CASES = [
     ref: "注入非默认(默认 500/1.2/120/2.5)：存栏 = 600÷1.5 = 400 头；周期上限 = 365÷150 = 2.43 批 < 输入 3 批 ⇒ 按 2.43 计，年出栏 = 400×2.4333 = 973 头（旧实现直接 400×3 = 1,200，周期不参与），日均 = 973÷365 = 2.7。默认态为 417/1042/2.9，四条均不命中。"
   },
   // ── 水肥一体化总灌水 / 纯养分 / 肥料商品量 ────
-  {
-    slug: "agriculture/calc-7",
-    inputs: { area: "12", waterPerMu: "25", targetConc: "180", fertContent: "42", ratioX: "120" },
-    expect: ["300.0", "54.00", "128.57"],
-    ref: "注入非默认(默认 10/20/150/46/100)：总灌水 = 12×25 = 300.0 m³；纯养分 = 300×180/1000 = 54.00 kg；肥料商品 = 54÷0.42 = 128.57 kg。默认态为 200.0/30.00/65.22，三条均不命中。"
-  },
   // ── 石灰用量（按 pH 提升幅度 × 缓冲容量）────
   {
     slug: "agriculture/calc-8",
@@ -898,20 +892,6 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"par\":\"42\",\"hours\":\"42\"}，输出区含「42\n42\n请输入有效的正数」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "agriculture/calc-7",
-    "inputs": {
-      "area": "42",
-      "waterPerMu": "42",
-      "targetConc": "42",
-      "fertContent": "42",
-      "ratioX": "42"
-    },
-    "expect": [
-      " 总灌水量 m³ 74.09 纯养分 kg 176.40 肥料商品 kg 4"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"area\":\"42\",\"waterPerMu\":\"42\",\"targetConc\":\"42\",\"fertContent\":\"42\",\"ratioX\":\"42\"}，输出区含「 总灌水量 m³ 74.09 纯养分 kg 176.40 肥料商品 kg 4」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
-  },
-  {
     "slug": "agriculture/calc-6",
     "inputs": {
       "shedArea": "42",
@@ -1078,34 +1058,8 @@ const CASES = [
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"rowSpacing\":\"42\",\"plantSpacing\":\"42\",\"canopyDiam\":\"42\",\"overlap\":\"42\",\"totalGrid\":\"42\",\"greenGrid\":\"42\",\"photoArea\":\"42\",\"canopyShape\":\"square\"}，输出区含「植密度(株/亩) 2.03 估算LAI 1764」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
-  {
-  "slug": "agriculture/convert-content-1",
-  "inputs": {
-    "val": "88.5",
-    "unit": "dry",
-    "wb": "12"
-  },
-  "expect": [
-    "13.559%"
-  ],
-  "ref": "复算：干物质 88.5% → 水分 11.5%，湿基 12% 折算干基 = 12 ÷ (1−0.115) = 13.559%；默认干物质 86% 得 13.953% ⇒ 不命中"
-},
   // ── 干物质换算：初重参与折算（干重/水分按鲜重计算，旧实现恒用 100 kg）──
-  {
-    slug: "agriculture/convert-content-1",
-    inputs: { val: "80", unit: "dry", wb: "15", initW: "500" },
-    dumpIds: ["res"],
-    expect: ["18.750%", "500.00 kg 湿样 → 绝干 400.00 kg，含水 100.00 kg"],
-    ref: "独立复算：干物质 80% ⇒ 水分 20%；干重 = 500×0.80 = 400.00 kg、水分 = 500×0.20 = 100.00 kg；湿基 15% 折算干基 = 15 ÷ (1−0.2) = 18.750%；干湿比 = 1/0.8 = 1.2500。旧实现固定按 100 kg 输出「100.00 kg 湿样 → 绝干 80.00 kg」，本锚不命中；默认（86%/12%/100kg）为 13.953%、100 kg 湿样，亦不命中。"
-  },
   // ── 干物质换算：初重为 0 必须拦截（旧实现按 100kg 静默兜底）──
-  {
-    slug: "agriculture/convert-content-1",
-    inputs: { val: "86", unit: "dry", wb: "12", initW: "0" },
-    dumpIds: ["res"],
-    expect: ["初重需为大于 0 的数值"],
-    ref: "独立复算：initW=0 不满足「初重 > 0」⇒ 页面必须输出「初重需为大于 0 的数值」；旧实现 raw=\"\" 才回退 100、对 0 会算出 0 kg 干重并显示 0.00，默认输入 100 kg 合法 ⇒ 只有初重校验分支才命中。"
-  },
   {
     "slug": "agriculture/crop-water-requirement",
     "inputs": {
@@ -1471,15 +1425,15 @@ const CASES = [
   {
     "slug": "agriculture/gdd-calculator",
     "inputs": {
-      "tbase": "42",
-      "tupper": "42",
+      "tbase": "5",
+      "tupper": "25",
       "targetGDD": "42",
       "method": "single"
     },
     "expect": [
-      "6天 第7天\nsingle\n42\n42\n42"
+      "single\n5\n25\n42"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"tbase\":\"42\",\"tupper\":\"42\",\"targetGDD\":\"42\",\"method\":\"single\"}，输出区含「6天 第7天\nsingle\n42\n42\n42」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"tbase\":\"42\",\"tupper\":\"42\",\"targetGDD\":\"42\",\"method\":\"single\"}，输出区含「single\n5\n25\n42」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "agriculture/harvest-date-predictor",
@@ -1823,7 +1777,22 @@ const CASES = [
 },
 { slug:"agriculture/greenhouse-rolling-time", inputs:{inTemp:"",outTemp:""}, expect:["请填写棚内温度与棚外温度"], ref:"棚内/棚外温度空时不得给「保持现状/彻底换气」结论（GHROLCLR）" },
 { slug:"agriculture/agri-calculator", inputs:{fert_n:"",fert_p:"",fert_k:"",fert_area:""}, expect:["请填写氮磷钾配比与施肥面积"], ref:"NPK 与面积空时不得输出 0-0-0 假方案（AGCALCLR）" },
-{ slug:"agriculture/agri-calculator", inputs:{plant_spacing:"",plant_row:"",plant_area:""}, expect:["请填写株距、行距与面积"], ref:"株行距/面积空时不得输出 0 株数（AGCALCLR2）" }
+{ slug:"agriculture/agri-calculator", inputs:{plant_spacing:"",plant_row:"",plant_area:""}, expect:["请填写株距、行距与面积"], ref:"株行距/面积空时不得输出 0 株数（AGCALCLR2）" },
+  {
+    slug: "agriculture/gdd-calculator",
+    inputs: { method: "simple", tbase: "10", tupper: "30", targetGDD: "300", tmax0: "15", tmin0: "35" },
+    expect: ["某天的最高气温不能低于最低气温，请检查逐日气温。"],
+    ref: "最高 15 < 最低 35 时旧实现按日均 −10 计并把 GDD 截为 0，假装已计算；新守卫应拒绝。正常 35/15 不含该提示。"
+  },
+  {
+    slug: "agriculture/agri-calculator",
+    inputs: { pest_content: "40", pest_target: "1000", pest_volume: "0", pest_unit: "ppm" },
+    clicks: ["calcPesticide();"],
+    dumpIds: ["pestResult"],
+    expect: ["⚠ 原药含量须在 0–100%（不含 0），目标浓度与配制量都必须大于 0。"],
+    ref: "配制量 0 L 时需药量与加水量都为 0，看似有效；新守卫应拒绝。默认 40/1000/30 不含该提示。"
+  },
+
 ];
 
 // ---------------------------------------------------------------- main

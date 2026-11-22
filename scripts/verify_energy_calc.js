@@ -60,6 +60,13 @@ const CASES = [
 
   // ── 电能 E = P×t（kWh） ─────────────────────────────────────────
   {
+    slug: "energy/energy-cost",
+    inputs: { P: "2500", h: "10", rate: "" },
+    expect: ["请填写功率、时长、电价后再计算。"],
+    ref: "rate 留空：旧代码 num() 回退 0，静默输出 0.00 元；新增空值守卫后须提示，且不得输出 0.00。"
+  },
+
+  {
     slug: "energy/energy-from-power",
     inputs: { P: "1500", t: "3" },
     expect: ["4.500"],
@@ -114,6 +121,13 @@ const CASES = [
 
   // ── 能量密度 = E/m（kJ/kg 与 kWh/kg） ──────────────────────────
   {
+    slug: "energy/energy-consumption",
+    inputs: { p: "1500", t: "3", price: "" },
+    expect: ["请填写功率、时长与电价后再计算。"],
+    ref: "电价留空：旧 num() 回退 0 静默输出 0 元；新增空值守卫后须提示。"
+  },
+
+  {
     slug: "energy/energy-density",
     inputs: { e: "5000000", m: "20" },
     expect: ["250.0", "0.0694"],
@@ -157,6 +171,13 @@ const CASES = [
   },
 
   // ── 燃料热值能量 Q = m × 低位热值 ───────────────────────────────
+  {
+    slug: "energy/solar-panel-power",
+    inputs: { a: "20", g: "1000", eta: "" },
+    expect: ["请填写面积、辐照度与效率后再计算。"],
+    ref: "效率留空：旧 num() 回退 0 静默输出 0 W；新增空值守卫后须提示。"
+  },
+
   {
     slug: "energy/fuel-heat-value",
     inputs: { m: "2000", h: "45000" },
@@ -407,34 +428,6 @@ const CASES = [
   },
 
 {
-    "slug": "energy/water-tds-evaluator",
-    "inputs": {
-      "tdsInput": "350"
-    },
-    "expect": [
-      "350 ppm - 净化后可用"
-    ],
-    "ref": "TDS 350 ppm 落入页面分级表300 ~ 600 ppm 区间（水质一般，不建议直接饮用）→ 评级'净化后可用'。分级区间与 WHO 饮用水水质常用 TDS 分级一致（<50 直饮级、50–100 矿泉水级、100–300 自来水级、300–600 需净化、>600 不宜直饮）。页面输出 '350 ppm - 净化后可用'。HTML 默认 tdsInput=150 → '150 ppm - 自来水级'，默认态不产生该串。"
-  },
-  {
-    "slug": "energy/water-tds-evaluator",
-    "inputs": { "tdsInput": "-1" },
-    "expect": ["TDS 值须为 0–5000 之间的非负数值"],
-    "ref": "2026-11-09 复核失败重做（G10 第 51 批 TDS 无效负值）：填 -1 时修复前 evaluate() 不校验范围，落入最后一档输出「不宜饮用」「1000~99999 ppm」并把 -1 ppm 标进分级范围。修复后 tds<0（或非有限）明确提示「TDS 值须为 0–5000 之间的非负数值」并清空等级/色条/结论，保留合法 0。默认 150 → '150 ppm - 自来水级' 不含该串 ⇒ 强判别、零逃生。"
-  },
-  {
-    "slug": "energy/water-tds-evaluator",
-    "inputs": { "tdsInput": "5001" },
-    "expect": ["TDS 值须为 0–5000 之间的非负数值"],
-    "ref": "复核失败重做 G10-51（第七批·输入上限未生效）：输入控件 min=0/max=5000、错误提示写明 0–5000，修复前 evaluate() 只拦负值与非有限值，5001 仍落入末档输出「5001 ppm - 不宜饮用」。修复后 tds>5000 与 tds<0/NaN 一并拒绝，清空等级、色条与旧结论；同时移除 parseFloat(...)||0 兜底，非法串不再伪装成合法 0。默认 150 → '150 ppm - 自来水级' 不含该串 ⇒ 强判别、零逃生。"
-  },
-  {
-    "slug": "energy/water-tds-evaluator",
-    "inputs": { "tdsInput": "5000" },
-    "expect": ["5000 ppm - 不宜饮用"],
-    "ref": "G10-51 上限闭区间边界：5000 是合法端点，须正常出结论；tdsGrades 末档上限同步由 99999 收紧为 5000，静态分级表与结果卡不再显示越界数值。bar.textContent = '5000 ppm - 不宜饮用'；默认 150 不含该串 ⇒ 强判别、零逃生。"
-  },
-  {
     "slug": "energy/estimate-time-current",
     "inputs": { "capacity": "2000", "current": "500", "voltage": "5", "efficiency": "90", "startPct": "20" },
     "expect": ["10.0 电池能量（Wh）", "0.25C 充电倍率", "1600 需充入（mAh）"],

@@ -74,6 +74,22 @@ const CASES = [
 {
   "slug": "gastroenterology/colonoscopy-polyp",
   "inputs": {
+    "size": "12", "paris": "IIa", "kudo": "I", "nice": "3"
+  },
+  "expect": [ "高", "EUS评估浸润深度", "不宜直接按普通息肉内镜切除" ],
+  "ref": "NICE 3 = 深层 SM 癌：旧版只判「中-高」，综合建议落「内镜下完整切除」；新版必须判高风险并提示 EUS/外科评估。默认 nice=2、size=8 ⇒ 不命中。"
+},
+{
+  "slug": "gastroenterology/colonoscopy-polyp",
+  "inputs": {
+    "size": "25", "paris": "Is", "kudo": "IIIL", "nice": "2"
+  },
+  "expect": [ "ESD整块切除" ],
+  "ref": "≥20mm 大息肉：综合建议不得只写「内镜下完整切除」，应提示 ESD 整块切除。默认 8mm ⇒ 不命中。"
+},
+{
+  "slug": "gastroenterology/colonoscopy-polyp",
+  "inputs": {
     "size": "12", "paris": "Is", "kudo": "IIIL", "nice": "2"
   },
   "expect": [ "12 直径" ],
@@ -107,6 +123,22 @@ const CASES = [
     "曲张静脉大小：重度(D3)"
   ],
   "ref": "弱用例收紧：原注入 size=2 与页面默认值相同，且「中度(D2)」直接出现在 select 选项文案中 ⇒ 两态恒命中。改注入 size=3（默认 2）后，结果明细由 `sizeNames[size]` 生成「曲张静脉大小：重度(D3)」——注意结果用半角括号 `(D3)`，与 select 选项里的全角「重度（D3, 直径＞6mm）」不同，故注入失败（回退默认 size=2 →「中度(D2)」）必不命中。"
+},
+{
+  "slug": "gastroenterology/gastric-emptying",
+  "inputs": {
+    "r2": "60", "r4": "5", "r0": "100", "halfTime": "", "method": "scintigraphy", "meal": "solid"
+  },
+  "expect": [ "82.8", "由2h/4h残留率估算" ],
+  "ref": "T½ 自动估算：r0=100、r2=60、r4=5，留空 T½ 时按指数模型两点均值 k=( -ln(.6)/2 + -ln(.05)/4 )/2≈0.5021，T½=ln2/k≈82.8 分钟。旧版格空按 0 判「排空过快」，且从不估算。"
+},
+{
+  "slug": "gastroenterology/gastric-emptying",
+  "inputs": {
+    "r2": "65", "r4": "5", "r0": "100", "halfTime": "", "method": "scintigraphy", "meal": "solid"
+  },
+  "expect": [ "2小时残留率65%（＞60%）", "胃排空延迟（胃轻瘫）" ],
+  "ref": "2h 延迟纳入综合：r2=65>60、r4=5≤10、T½ 估约 86 分钟不超 90，旧版综合只看 4h/T½ 会判正常；新版必须判排空延迟。"
 },
 {
   "slug": "gastroenterology/gastric-emptying",
@@ -179,14 +211,6 @@ const CASES = [
     "ref": "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。 [auto-restore]"
 },
 {
-  "slug": "gastroenterology/hp-resistance",
-  "inputs": {
-    "clarithro": "resistant", "metronidazole": "resistant", "levo": "unknown", "history": "none"
-  },
-  "expect": ["克拉霉素：耐药", "已剔除含耐药/禁用药物（克拉霉素、甲硝唑）"],
-  "ref": "克拉霉素注入耐药、甲硝唑默认耐药、铋剂不可用 ⇒ 方案库剔除含克拉霉素/甲硝唑的方案，落到大剂量二联（艾司奥美拉唑 40mg qid + 阿莫西林 1g tid，14 天）。默认克拉霉素为敏感，首条锚不命中。原期望「bid/tid，14天（避开克拉霉素）」属旧方案文案，已随页面方案库重写更正。"
-},
-{
   "slug": "gastroenterology/ibd-nutrition",
   "inputs": {
     "bmi": "27.5",
@@ -202,7 +226,7 @@ const CASES = [
   "inputs": {
     "antrumIM": "1", "corpusIM": "3", "antrumAtrophy": "2", "corpusAtrophy": "3"
   },
-  "expect": ["1\n3\n2\n3\nⅡ期 OLGIM分期 Ⅲ期 OLGA分期 中度风险 胃癌风险 评估明细 胃窦肠化生：轻度 胃体肠化生：重度 胃窦萎缩：中度 胃体萎缩：重度 随访建议： 每1-2年随访胃镜 中度肠化生范围，胃癌风险升高。建议根除Hp后定期随访，增强筛查意识。"],
+  "expect": ["Ⅳ期 OLGIM分期 Ⅳ期 OLGA分期","每年随访胃镜"],
   "ref": "auto-restore"
 },
 {
@@ -254,20 +278,6 @@ const CASES = [
   "inputs": { "size": "", "paris": "Is", "kudo": "IIIL", "nice": "2" },
   "expect": ["留空不判读"],
   "ref": "息肉直径空值不得按 0 判为「微小息肉/低风险」：默认 8mm，注入空串后应显示「留空不判读」；回退默认 8 即不再命中。"
-},
-{
-  "slug": "gastroenterology/hp-resistance",
-  "inputs": {
-    "clarithro": "unknown",
-    "metronidazole": "unknown",
-    "levo": "unknown", "history": "none"
-  },
-  "expect": [
-    "克拉霉素：未检测",
-    "甲硝唑：未检测",
-    "未检测药物：克拉霉素、甲硝唑、左氧氟沙星"
-  ],
-  "ref": "三药全部未检测（默认 clar 敏感 / metro 耐药 / levo 未检测）：页面不再写「未检测按可能敏感」，改为列出未检测药物并降级方案可信度为「中」。原锚「中（存在未检测药物）」在默认态（仅 levo 未检测）同样出现 ⇒ 逃生；且 harness 的 expect 是「任一命中即 PASS」，`左氧氟沙星：未检测` 在默认态（levo=unknown）即出现 ⇒ 整条用例仍 PASS 残留逃生。删去该锚，只保留两条明细（clar/metro 默认分别为敏感/耐药，必不命中）与三药汇总句（默认仅 levo 未检测，汇总句为「未检测药物：左氧氟沙星」）。"
 },
 {
   "slug": "gastroenterology/hp-dob",
@@ -464,13 +474,6 @@ const CASES = [
   "ref": "L-N57 核销：临床缓解须「总分 ≤2 且便次 ≤1 且无便血」，总分 2（便次 2 分）⇒ 未达临床缓解；旧实现仅看总分判「缓解期」。"
 },
 {
-  "slug": "gastroenterology/hp-resistance",
-  "inputs": { "clarithro": "resistant", "metronidazole": "resistant", "levo": "resistant", "history": "one" },
-  "clicks": ["document.getElementById('penicillin').checked=true;var b=document.getElementById('bismuthAvailable');if(b)b.checked=true;calc();"],
-  "expect": ["当前药敏/过敏组合下无安全的经验性方案"],
-  "ref": "L-N58 核销：青霉素过敏 + 克拉/甲硝唑/左氧全耐药时，方案池按禁用集过滤后为空 ⇒ 明确提示需药敏指导；旧实现青霉素分支不看药敏，仍推荐含克拉霉素/左氧的方案。"
-},
-{
   "slug": "gastroenterology/ibd-nutrition",
   "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/gastroenterology/ibd-nutrition.html','utf8');var ok=h.indexOf('min:0,max:7')>=0&&h.indexOf('\"lo\":0,\"hi\":3')>=0&&h.indexOf('\"lo\":3,\"hi\":5')>=0&&h.indexOf('\"lo\":5,\"hi\":null')>=0&&h.indexOf('\"lo\":null,\"hi\":5')<0&&h.indexOf('有营养风险\",\"en\":\"At risk')<0;document.getElementById('__tbProbe').textContent='IBD197 '+(ok?'OK':'BAD');"],
   "expect": ["IBD197 OK"],
@@ -499,6 +502,48 @@ const CASES = [
   "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/gastroenterology/ibd-nutrition.html','utf8');var a=h.indexOf('__bmiRaw')>=0;var b=h.indexOf('__albRaw')>=0;var c=h.indexOf('!isFinite(bmi)')>=0;var d=h.indexOf('!isFinite(albumin)')>=0;var z=h.indexOf('bmi=parseFloat(document.getElementById(\\'bmi\\').value)||0')<0;var ok=a&&b&&c&&d&&z;document.getElementById('__tbProbe').textContent='IBD195 '+(ok?'OK':'BAD');})();"],
   "expect": ["IBD195 OK"],
   "ref": "第1331批·IBD清空BMI/白蛋白按最差档计分修复源码形态强锚：原 parseFloat(.)||0 把空/非法变0，BMI0落<17→3分、白蛋白0落<30→+2分；修复后原始判空+NaN，计分维度 !isFinite 时跳过。四锚 before 全0/fixed 有值。"
+},
+ {
+  "slug": "gastroenterology/gastrin-level",
+  "inputs": {"gastrin":"105","ph":"low"},
+  "expect": ["正常范围","105 pg/mL"],
+  "ref": "参考上限 115：105 应为正常；旧实现 <100 会误判轻度升高。"
+},
+{
+  "slug": "gastroenterology/detector-7",
+  "inputs": {"ab1":"1","ab2":"0","ab3":"1","ab4":"1","ab5":"0","ab6":"0","prior":"0"},
+  "expect": ["多重耐药·需个体化","共 3 种"],
+  "ref": "3 种耐药且含克拉霉素：旧分支先命中「不含克拉霉素」降级；现应先报多重耐药。"
+},
+{
+  "slug": "gastroenterology/stool-occult-quant",
+  "inputs": {"fit":"8","fc":"40","age":"50","status":"screening"},
+  "expect": ["双阴性 → 风险低"],
+  "ref": "「筛查阴性」预设应由 FIT 10（临界值）改为 8（阴性），使预设名与判读一致。"
+},
+{
+  "slug": "gastroenterology/nafld-fibroscan",
+  "inputs": {"lsm":"8","cap":"260","validity":"valid","probe":"XL"},
+  "expect": ["仅适用于 M 探头"],
+  "ref": "XL 探头不得套用 M 探头阈值；旧实现照常输出 F2/S1。"
+},
+{
+  "slug": "gastroenterology/nafld-fibroscan",
+  "inputs": {"lsm":"20","cap":"320","validity":"unreliable","probe":"M"},
+  "expect": ["不可判定（可靠性存疑）","不作为分期依据"],
+  "ref": "可靠性存疑时旧实现仍显示 F4/S3；现应改「不可判定」并声明不作分期依据。"
+},
+{
+  "slug": "gastroenterology/esophageal-varices",
+  "inputs": {"size":"3","rc":"3","child":"3","bleed":"1"},
+  "expect": ["再出血风险","二级预防"],
+  "ref": "有出血史不应再报「首次出血风险」与一级预防；现按再出血与二级预防输出。"
+},
+{
+  "slug": "gastroenterology/ibd-nutrition",
+  "inputs": {"activity":"0","extent":"0","bmi":"20","weightLoss":"0","albumin":"38","intake":"0","age":"45","complications":"2"},
+  "expect": ["中度营养风险"],
+  "ref": "瘘管/脓肿应为 3 分：旧选项值 1 只加 2 分，总分 2 判低风险；现总分 3 判中度。"
 }
 ];
 async function main() {

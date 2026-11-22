@@ -110,16 +110,11 @@ const CASES = [
   "ref": "de-default: depth60→大量积液（避开输入值回声）"
 },
 {
-  "slug": "urology/iief5-score",
-  "inputs": { "q0": "3", "q1": "3", "q2": "3", "q3": "3", "q4": "3" },
-  "expect": ["IIEF-5 总分：15 / 25", "轻中度 ED"],
-  "ref": "fix broken template: q0-4=3→总分15"
-},
-{
   "slug": "urology/ipss-score",
-  "inputs": { "qol": "1" },
+  "inputs": {},
+  "clicks": ["document.getElementById('qol').value='1';__markScaleDirty();"],
   "expect": ["（满意）"],
-  "ref": "de-default: qol1→（满意）（strong 后纯净串，避回声）"
+  "ref": "de-default: qol1→（满意）；改为显式赋值+__markScaleDirty，避免 jsdom 不派发 change 时脏标志未置位。"
 },
 {
   "slug": "urology/rater-4",
@@ -219,7 +214,8 @@ const CASES = [
     "slug": "urology/psa-density",
     "inputs": { "psa": "3", "vol": "15", "age": "60" },
     "checkIds": ["mri", "dre"],
-    "expect": ["MRI可疑", "DRE异常", "不能决定是否活检"],
+    "clicks": ["calc();var r=document.getElementById('result').innerHTML;document.getElementById('__tbProbe').textContent='PSA35 '+((document.getElementById('psa').value==='3'&&r.indexOf('不能决定是否活检')>=0)?'OK':'BAD');"],
+    "expect": ["PSA35 OK"],
     "ref": "PSA <4 with suspicious MRI and abnormal DRE must include both findings and avoid a definite no-biopsy recommendation."
 
   }

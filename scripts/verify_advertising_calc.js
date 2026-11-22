@@ -86,6 +86,13 @@ const CASES = [
 },
 {
   "slug": "advertising/copy-duration",
+  "inputs": { "content": "" },
+  "clicks": ["calc()"],
+  "expect": ["请输入文案内容后再计算朗读时长。"],
+  "ref": "空文案必须给输入提示，不得输出「0秒朗读时长 / 0中文字数」的伪结果；默认文案非空、不含该提示。"
+},
+{
+  "slug": "advertising/copy-duration",
   "inputs": { "content": "品牌增长方法论与实战案例拆解", "speedType": "custom", "customSpeed": "300", "lang": "zh", "pauseTime": "1" },
   "expect": ["300字/分钟 （自定义）", "纯朗读： 2.8秒"],
   "ref": "默认（空文案 + 正常 240字/分）输出 0 字 / 0.0秒 /「240字/分钟 （正常）」；独立复算：中文 14 字→等效 14，baseSec=14/300×60=2.8，单段落→停顿 0.0，语速名=自定义。"
@@ -155,7 +162,13 @@ const CASES = [
   "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/'+\"tools/advertising/reach-frequency.html\",'utf8');var i=h.indexOf('function copyBasic(){');var s=i>=0?h.slice(i,i+320):'';var ok=s.indexOf('pop>0?(reach/pop*100):0')>=0&&s.indexOf('reach>0?(imp/reach):0')>=0;document.getElementById('__tbProbe').textContent='REACHCPY '+(ok?'OK':'BAD');"],
   "expect": ['REACHCPY OK'],
   "ref": "第1347批·复制与页面不同源：旧版 copyBasic 裸算 reach/pop 与 imp/reach，reach=0 时复制「频次:Infinity」；主 calcBasic 已用 reach>0 守卫。修复后 copyBasic 与 calcBasic 同源，零值取 0。"
-}
+},
+{
+  "slug": "advertising/estimate-cycle",
+  "inputs": { "arpu": "50", "churn": "5", "margin": "", "cac": "200" },
+  "expect": ["请填写毛利率后再计算。"],
+  "ref": "毛利率留空：旧代码 parseFloat||0 使 LTV、LTV:CAC 与回本周期全部变成 0 或无穷，却照常渲染结论；新增守卫后须提示。"
+},
 ];
 async function main() {
   const only = process.argv.slice(2);

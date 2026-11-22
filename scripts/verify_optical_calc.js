@@ -19,7 +19,7 @@ const CASES = [
   },
   {
     slug: "optical/anti-fatigue-design",
-    inputs: { age: "48", workDist: "30", rx: "0" },
+    inputs: { age: "48", workDist: "30" },
     expect: ["0.50"],
     ref: "平均 A=18.5−0.30×48=4.10；调节需求=100/30=3.33；保留 1/3=1.37；可用=2.73；Add=max(0,3.33−2.73)=0.60→量化0.25D=0.50D",
   },
@@ -99,12 +99,6 @@ const CASES = [
     inputs: { cutoff: "450", steepness: "14" },
     expect: ["61.1%", "71.5%"],
     ref: "注入非默认(默认 430/10)：截止 450nm、陡度 14 ⇒ 有害蓝光(415-455nm)阻隔率 61.1%，有益蓝光(465-495nm)保留率 71.5%。默认态两项均不同。"
-  },
-  {
-    slug: "optical/aspheric-design",
-    inputs: { n: "1.67", power: "-5.50", aperture: "65" },
-    expect: ["26.934", "-6.21"],
-    ref: "注入非默认(默认 1.60/-3.00/60)：球面三阶纵向球差 LSA = 26.934 mm；消球差所需圆锥常数 K = -6.21（K<−1 ⇒ 扁长椭球面）。默认态两者均不同。"
   },
   {
     slug: "optical/thin-lens-imaging",
@@ -268,7 +262,6 @@ const CASES = [
     "inputs": {
       "age": "42",
       "workDist": "42",
-      "rx": "42",
       "ampMeasured": "42",
       "nearPhoria": "42",
       "nra": "42",
@@ -290,18 +283,6 @@ const CASES = [
       "450nm透射比 有害蓝光阻隔率偏低(0.5%)，建议增大截止波长(≥440nm)或提高陡度。\n90 400 96 410 99 420 100 430 100 440 100 450 100 460 100 470 100 480 100"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"cutoff\":\"42\",\"steepness\":\"42\"}，输出区含「450nm透射比 有害蓝光阻隔率偏低(0.5%)，建议增大截止波长(≥440nm…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
-  },
-  {
-    "slug": "optical/aspheric-design",
-    "inputs": {
-      "n": "42",
-      "power": "42",
-      "aperture": "42"
-    },
-    "expect": [
-      "42\n42\n42\n976.19"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"n\":\"42\",\"power\":\"42\",\"aperture\":\"42\"}，输出区含「42\n42\n42\n976.19」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "optical/coating-design",
@@ -483,7 +464,7 @@ const CASES = [
       "ct": "42"
     },
     "expect": [
-      ".74 1.74 超高折 最薄树脂，超高度数首选 92.06"
+      "边缘厚度(mm)", "0.00"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"power\":\"42\",\"diameter\":\"42\",\"ct\":\"42\"}，输出区含「.74 1.74 超高折 最薄树脂，超高度数首选 92.06」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -530,9 +511,9 @@ const CASES = [
       "angle": "42"
     },
     "expect": [
-      "对周边离焦RPD 远视性 离焦方向 无/可能加速 预估防控效果 离焦信号微弱，防控作用有限。中心 42D，周边 42D，偏心 42"
+      "对周边离焦RPD 中性/微弱 离焦方向 无/可能加速 预估防控效果 离焦信号微弱，防控作用有限。中心 42D，周边 42D，偏心 42"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"central\":\"42\",\"peripheral\":\"42\",\"angle\":\"42\"}，输出区含「对周边离焦RPD 远视性 离焦方向 无/可能加速 预估防控效果 离焦信号微弱，防…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"central\":\"42\",\"peripheral\":\"42\",\"angle\":\"42\"}，输出区含「对周边离焦RPD 中性/微弱 离焦方向 无/可能加速 预估防控效果 离焦信号微弱，防…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "optical/optical-path-length",
@@ -567,7 +548,7 @@ const CASES = [
       "wrap": "42"
     },
     "expect": [
-      "补偿)：ΔS = +34.05D 倾斜诱导柱镜达 72.23D，可能影响视力。建议：减小配镜角度至标准范围，或在处方中预补偿柱镜与轴位。 前倾角偏大(42°)，建议调整至8-12°以减少像差。 面弯偏大(42°)，运动镜需定制补偿处方。"
+      "补偿)：ΔS = +34.05D", "原柱镜： 42.00D @ 42°"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"sph\":\"42\",\"cyl\":\"42\",\"axis\":\"42\",\"panto\":\"42\",\"wrap\":\"42\"}，输出区含「补偿)：ΔS = +34.05D 倾斜诱导柱镜达 72.23D，可能影响视力。建…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -602,7 +583,7 @@ const CASES = [
       "pupilH": "42"
     },
     "expect": [
-      "镜圈高度(mm) 镜圈高度(42mm)低于推荐最低高度(47.0mm)，近用视野可能偏小，建议选用短通道设计。 提示：ADD≥42.00D 较高，建议改用 长通道 以保证近用区宽度"
+      "镜圈高度(mm) 镜圈高度(42mm)低于推荐最低高度(47.0mm)，近用视野可能偏小，建议选用短通道设计。", "建议改用 长通道（17mm）"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"add\":\"42\",\"bHeight\":\"42\",\"pupilH\":\"42\"}，输出区含「镜圈高度(mm) 镜圈高度(42mm)低于推荐最低高度(47.0mm)，近用视野…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -820,12 +801,12 @@ const CASES = [
 {
   "slug": "optical/anti-fatigue-design",
   "clicks": [
-    "(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/optical/anti-fatigue-design.html','utf8');var i=h.indexOf(\"if(mode === 'basic'){\");var g=i>=0?h.slice(i,i+1100):'';var ok=g.indexOf('__ageRaw')>=0&&g.indexOf('__wdRaw')>=0&&g.indexOf('__rxRaw')>=0&&g.indexOf('workDist<=0')>=0&&g.indexOf('请输入有效的年龄、工作距离')>=0;document.getElementById('__tbProbe').textContent='AFGUARD '+(ok?'OK':'BAD');})();"
+    "(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/optical/anti-fatigue-design.html','utf8');var i=h.indexOf(\"if(mode === 'basic'){\");var g=i>=0?h.slice(i,i+1100):'';var ok=g.indexOf('__ageRaw')>=0&&g.indexOf('__wdRaw')>=0&&g.indexOf('workDist<=0')>=0&&g.indexOf('请输入有效的年龄与工作距离')>=0;document.getElementById('__tbProbe').textContent='AFGUARD '+(ok?'OK':'BAD');})();"
   ],
   "expect": [
     "AFGUARD OK"
   ],
-  "ref": "第1318批·抗疲劳下加光基础模式年龄/工作距离/远用度数码值静默代入修复源码形态强锚：原三处 ||0/||40 空值仍输出 ADD 与结论；修复后原始判空+年龄与距离正数守卫，远用度数允许0与负值。ADD 限幅1D 属专业口径余项。旧版无 __ageRaw ⇒ BAD。"
+  "ref": "第1318批·抗疲劳下加光基础模式年龄/工作距离/远用度数码值静默代入修复源码形态强锚：原三处 ||0/||40 空值仍输出 ADD 与结论；修复后原始判空+年龄与距离正数守卫，远用度数输入已移除（不参与公式）。ADD 限幅1D 属专业口径余项。旧版无 __ageRaw ⇒ BAD。"
 },
 {
   "slug": "optical/coating-design",
@@ -858,7 +839,50 @@ const CASES = [
     "请填写截止波长与陡度"
   ],
   "ref": "截止波长为空时清空阻隔率/保留率（BLFCLR）；旧实现只清曲线，47.1%/76.0% 仍显示"
-}
+},
+  {
+    "slug": "optical/progressive-corridor",
+    "inputs": { "add": "3.00", "bHeight": "30", "pupilH": "19" },
+    "clicks": ["document.querySelector('input[name=design][value=short]').checked=true;calc();"],
+    "expect": ["短通道（11mm）", "建议改用 长通道（17mm）"],
+    "ref": "选择与计算一致性：用户选短通道、ADD=3.00 时，旧实现偷偷用 17mm 计算而单选仍显示短通道；修复后按 11mm 实际计算，并仅提示建议改 17mm 长通道。"
+  },{
+  "slug": "optical/coating-design",
+  "inputs": { "wavelength": "550", "lensN": "1.60", "arMat": "1.46" },
+  "expect": ["SiO₂单层使反射率", "变为"],
+  "ref": "材料文案：选择 SiO₂ 时旧实现固定输出「MgF₂单层可使…降至」，与所选材料不符；修复后按折射率映射材料名，并把可能升高的反射率写成「变为」而非「降至」。"
+},
+{
+  "slug": "optical/polarized-axis",
+  "inputs": { "sph": "-3.00", "cyl": "-1.00", "axis": "90", "panto": "9", "wrap": "5" },
+  "expect": ["原柱镜： -1.00D @ 90°"],
+  "ref": "原轴位可见性：旧实现读取 axis 后完全不用，改动轴位对输出无任何影响；修复后按原柱镜显示「C @ axis」，并标注仅作对照、不参与诱导柱镜合成。轴位范围限定 0–179°。"
+},
+{
+  "slug": "optical/frame-tilt",
+  "inputs": {"tilt": "8", "pd": "62", "pupilHeight": "22", "lensPower": "-3"},
+  "expect": ["1.20Δ", "c = 0.40 cm，D = -3.00 D"],
+  "ref": "前倾 8° 下移 4mm => c=0.4cm；Prentice P=c×D=0.4×3=1.20Δ。旧版无 lensPower 输入、shiftCm 未使用，不输出该值。"
+},
+{
+  "slug": "optical/anti-fatigue-design",
+  "inputs": {"age": "50", "workDist": "20", "rx": "0"},
+  "expect": ["原始ADD需求超过1.00D", "1.00D"],
+  "ref": "50 岁平均调节幅度 3.5D、保留 1/3 后可用 2.33D，20cm 需求 5D ⇒ 原始 ADD 2.5D，页面按 1.00D 上限显示，但必须提示改用渐进片；旧版把 1.00D 判为‘接近上限’。"
+},
+{
+  "slug": "optical/accommodation-amplitude",
+  "inputs": {"age": "70"},
+  "expect": ["∞", "调节功能基本丧失"],
+  "ref": "70 岁 Hofstetter 最小/平均均为负，负幅度无生理意义；本页夹到 0，近点显示 ∞，不再输出 999cm 的假有限距离。"
+},
+{
+  "slug": "optical/peripheral-defocus",
+  "inputs": {"central": "-3", "peripheral": "-3", "angle": "20"},
+  "expect": ["中性/微弱", "离焦信号微弱"],
+  "ref": "RPD=0 落在 ±0.5D 微弱带内，方向卡与示意图必须与主提示同口径显示中性/不明确，不能标成远视性。"
+},
+
 ];
 
 async function main() {

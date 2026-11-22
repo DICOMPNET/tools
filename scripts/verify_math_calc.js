@@ -35,6 +35,11 @@ const CASES = [
   { slug: "math/nth-term-geometric", inputs: { a1: "3", r: "2", n: "6" }, expect: ["96.000"], ref: "aₙ=a₁·r^(n−1)=3×2⁵=96.000（默认 2,3,4 避开）" },
   { slug: "math/herons-area", inputs: { a: "5", b: "5", c: "6" }, expect: ["12.000"], ref: "s=(5+5+6)/2=8；A=√(s(s−a)(s−b)(s−c))=√(8×3×3×2)=√144=12.000（默认 3,4,5 避开）" },
   { slug: "math/exponent-solve", inputs: { a: "3", b: "81" }, expect: ["4.0000"], ref: "由 3^x=81 得 x=ln81/ln3=4.0000（默认 2,8 避开）" },
+  { slug: "math/quadratic-discriminant",
+    inputs: { a: "", b: "-3", c: "2" },
+    expect: ["请填写系数 a、b、c 后再计算。"],
+    ref: "a 留空：旧 num() 回退 0 直接判非二次方程；新增空值守卫后须提示。" },
+
   { slug: "math/quadratic-discriminant", inputs: { a: "2", b: "3", c: "5" }, expect: ["-31.00"], ref: "Δ=b²−4ac=9−40=−31.00（默认 1,−3,2→1.00 避开）" },
   { slug: "math/circular-permutation", inputs: { n: "7" }, expect: ["720"], ref: "圆排列数=(n−1)!=6!=720（默认 n=5→24 避开）" },
   { slug: "math/combination-repetition", inputs: { n: "6", r: "4" }, expect: ["126"], ref: "可重复组合 C(n+r−1,r)=C(9,4)=126（默认 5,3→35 避开）" },
@@ -703,7 +708,9 @@ const CASES = [
     "expect": ["TOAST:导出失败：Error"],
     "ref": "失败注入：plotCanvas.toDataURL 抛 Error + 录制 ToolBox.showToast ⇒ 必须出现「TOAST:导出失败：Error」。修复前异常裸冒成 pageerror、成功 toast 不执行；默认态无 TOAST: 串 ⇒ 判别明确。"
   },
-  { slug: "math/determinant-2x2", inputs: { a: "0.1", b: "0.3", c: "0.3", d: "0.9" }, expect: ["1.39e-17", "奇异矩阵（不可逆；ad 与 bc 在双精度下仅差"], ref: "SMS-163 相对容差：ad=0.1×0.9=0.09000000000000001、bc=0.3×0.3=0.09，双精度残差 det=1.3877788e-17 ⇒ toExponential(2)=1.39e-17。判定用 |det| ≤ 1e-12·max(|ad|,|bc|)=9.0e-14 ⇒ 奇异（旧 det===0 判非奇异，与展示的 0.00 自相矛盾），并在文案标注残差量级。默认 1,2,3,4 ⇒ det=−2.00 非奇异，不出现这两串。" }
+  { slug: "math/determinant-2x2", inputs: { a: "0.1", b: "0.3", c: "0.3", d: "0.9" }, expect: ["1.39e-17", "奇异矩阵（不可逆；ad 与 bc 在双精度下仅差"], ref: "SMS-163 相对容差：ad=0.1×0.9=0.09000000000000001、bc=0.3×0.3=0.09，双精度残差 det=1.3877788e-17 ⇒ toExponential(2)=1.39e-17。判定用 |det| ≤ 1e-12·max(|ad|,|bc|)=9.0e-14 ⇒ 奇异（旧 det===0 判非奇异，与展示的 0.00 自相矛盾），并在文案标注残差量级。默认 1,2,3,4 ⇒ det=−2.00 非奇异，不出现这两串。" },
+  { slug: "math/circular-permutation", inputs: { n: "2.5" }, expect: ["⚠ n 必须是正整数"], ref: "小数 n 曾被 Math.min 接受并由 lnFact 循环静默截断；新守卫应拒绝。默认 n=5→24 不含该提示。" },
+
 ];
 
 async function main() {

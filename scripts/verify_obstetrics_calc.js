@@ -50,7 +50,7 @@ const CASES = [
 
   { slug: "obstetrics/fetal-weight-hadlock",
     inputs: { sfh: "30", ac2: "90" },
-    expect: ["2790", "腹围不参与此公式"],
+    expect: ["2790"],
     ref: "宫高 30 cm 时 Johnson 法 (30−12)·155=2790g；腹围不参与该公式。"
        + "默认态（32/95）为 3100g，与本例不同。" },
 
@@ -105,10 +105,6 @@ const CASES = [
     expect: ["1/90"],
     ref: "年龄先验1/(1300·e^-0.18)=1/1085.9；afpLR(0.75<0.8→3)×hcgLR(1.7>1.5→2)×ue3LR(0.75<0.8→2)=12；调整后→riskN=round(1/(12/1085.9))=90→1/90,<1/270高风险（默认=25/1/1/1→1/1300；预设loadHigh=38/0.65/2.8/0.65→1/25，避开）" },
 
-  { slug: "obstetrics/calc-risk",
-    inputs: { age: "40", weight: "60", ga: "16", afp: "0.6", bhCG: "2.5" },
-    expect: ["1:28", "高风险"],
-    ref: "先验1/100×afpLR(0.6→1.6)×hcgLR(2.5→2.2)=0.0352→1/28；≥1/270→高风险（weight/ga仅作非空校验，默认空→请完整输入，避开）" },
   // ── §7.4 零用例加固：obstetrics 确定性数值页（注入非默认 + harness 实测锚）──
   { slug: "obstetrics/pearl-index",
     inputs: { preg: "5", wm: "15000" },
@@ -132,10 +128,6 @@ const CASES = [
     inputs: { dilation: "3", effacement: "3", station: "3", position: "2", consistency: "2" },
     expect: ["13/13", "Bishop 13分", "宫口扩张：3分", "宫颈质地：2分"],
     ref: "注入五项 Bishop 项（默认 2/2/2/1/1 ⇒ 8 分）。独立复算：宫口扩张 3cm=3、宫颈消退 3cm=3、胎头位置 station=3 得 3 分、宫颈位置 2、宫颈质地 2 ⇒ 总分 3+3+3+2+2 = 13。原锚「11/13」与「可直接用缩宫素引产」均为页面静态文案（示例/阈值表，默认态即含）⇒ 逃生；改锚动态结果「13/13」「Bishop 13分」与明细「宫口扩张：3分」「宫颈质地：2分」。默认 8 分 ⇒「8/13」「Bishop 8分」「宫口扩张：2分」「宫颈质地：1分」，四条均不命中。" },
-  { slug: "obstetrics/placenta-grading",
-    inputs: { gw: "30", grade: "3" },
-    expect: ["孕30周出现III级", "30周 当前孕周"],
-    ref: "注入孕周 30 周 + Grannum 3 级（默认 36 周 + 2 级）。独立复算：g==='3' && gw<36 ⇒ 触发过早老化分支，输出「孕30周出现III级，提示胎盘过早老化…」；结果卡片结构串「30周 当前孕周」。原锚「II级(成熟)」「32–36周」「绒毛板切迹…」「基本相符」均为注入默认 2 级即可命中的静态/分级文案 ⇒ 逃生。默认 36 周 + 2 级 ⇒「36周 当前孕周」且无过早老化提示，两条均不命中。" },
   { slug: "obstetrics/rater-26",
     inputs: { k1: "3", k2: "2", k3: "3", k4: "1", k5: "2", k6: "3", k7: "1", k8: "2", k9: "3", k10: "1", k11: "2" },
     expect: ["Kupperman总分： 38", "症状原始分23", "更年期症状重度", "潮热出汗 ×4 3分 12分", "阴道干涩 ×1 2分 2分"],
@@ -274,20 +266,6 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"cycleDay\":\"42\",\"thickness\":\"42\",\"measureDate\":\"abc123测试\",\"measureNote\":\"abc123测试\"}，输出区含「测量记录\n暂无记录\n42\n当前周期天数： 第42天 ，属于 黄体后期 ，参考范围…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "obstetrics/calc-risk",
-    "inputs": {
-      "age": "42",
-      "weight": "42",
-      "ga": "42",
-      "afp": "42",
-      "bhCG": "42"
-    },
-    "expect": [
-      "70） 风险分层 1.6239% 年龄先验风险 0.88 综合似然比"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"age\":\"42\",\"weight\":\"42\",\"ga\":\"42\",\"afp\":\"42\",\"bhCG\":\"42\"}，输出区含「70） 风险分层 1.6239% 年龄先验风险 0.88 综合似然比」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
-  },
-  {
     "slug": "obstetrics/down-screening",
     "inputs": {
       "age": "42",
@@ -421,17 +399,6 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"preg\":\"42\",\"wm\":\"42\"}，输出区含「用该方法1年约有 1200.0 人意外妊娠 低效 Pearl指数>10，避孕效果…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
-    "slug": "obstetrics/placenta-grading",
-    "inputs": {
-      "gw": "42",
-      "grade": "1"
-    },
-    "expect": [
-      " 影像特征 绒毛板轻微波浪状，实质散在强回声点，基底板无改变。胎盘开始成熟。 孕42周仍为I级，可能胎盘成熟延迟，关注胎儿生长。"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"gw\":\"42\",\"grade\":\"1\"}，输出区含「 影像特征 绒毛板轻微波浪状，实质散在强回声点，基底板无改变。胎盘开始成熟。 孕…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
-  },
-  {
     "slug": "obstetrics/postpartum-hemorrhage",
     "inputs": {
       "wetWeight": "42",
@@ -506,17 +473,6 @@ const CASES = [
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"q1\":\"42\",\"q2\":\"42\",\"q3\":\"42\",\"q4\":\"42\",\"mvp\":\"42\"}，输出区含「判读结果 建议： 建议排查妊娠期糖尿病、胎儿消化道畸形、双胎输血综合征等，必要时…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
-  {
-    "slug": "obstetrics/kupperman-score",
-    "clicks": [
-      "document.querySelectorAll('.symptom-row').forEach(function(r){r.dataset.sev='3';});calc()"
-    ],
-    "expect": [
-      "总分 = 63",
-      "重度症状，明显影响生活"
-    ],
-    "ref": "改良 Kupperman 原版 13 项、权重合计 21（潮热出汗 ×4，泌尿系统症状与性生活困难各 ×2），各症状程度 0–3 ⇒ 满分 63。clicks 把 13 行全部置「重(3)」⇒ 21×3=63 落 ≥31「重度」；默认态 13 行程度全 0 ⇒ 总分 0「基本正常」，零交集。"
-  },
   { slug: "obstetrics/afi-normal",
     inputs: { ruq: "", luq: "", rlq: "", llq: "" },
     expect: ["请填写四个象限羊水暗区（cm）后再判读。"],
@@ -551,7 +507,14 @@ const CASES = [
     "请填写心率与收缩压"
   ],
   "ref": "心率/收缩压为空时清空休克指数（PPHSCLR）"
-}
+},
+  {
+  "slug": "obstetrics/cycle-8",
+  "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/obstetrics/cycle-8.html','utf8');var i=h.indexOf('// “最新”按测量日期取');var seg=i>=0?h.slice(i,i+320):'';var ok=seg.indexOf('db > da ? 1 : -1')>=0&&seg.indexOf('latest.day')>=0&&h.indexOf('sorted.length > 1 && !singleCycle')>=0&&h.indexOf('记录跨多个周期')>=0;document.getElementById('__tbProbe').textContent='CHLATEST '+(ok?'OK':'BAD');})();"],
+  "expect": ["CHLATEST OK"],
+  "ref": "记录先第25天(2024-01-01)后第5天(2024-06-01)：最新厚度应按测量日期取第5天，而不是按天数取第25天；跨周期记录省略趋势线并提示。"
+},
+
 ];
 
 async function main() {

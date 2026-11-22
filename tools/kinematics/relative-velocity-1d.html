@@ -73,7 +73,7 @@
 <script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 <script type="application/ld+json">
-{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "由两物体速度求相对速度是做什么的？", "acceptedAnswer": {"@type": "Answer", "text": "输入同一直线上两物体速度 v₁、v₂，按 v_rel = v₁ − v₂ 计算它们的相对速度，常用于追及相遇问题、参考系变换等一维运动学场景的直观判断。"}}, {"@type": "Question", "name": "如何使用由两物体速度求相对速度？", "acceptedAnswer": {"@type": "Answer", "text": "在对应的输入框或选项中填写、选择所需参数，点击「计算」或「生成」按钮即可运行，结果会在结果区实时显示，支持复制与导出。"}}, {"@type": "Question", "name": "计算结果准确吗？", "acceptedAnswer": {"@type": "Answer", "text": "本工具在你的本地浏览器中实时计算，不依赖服务器；只要输入的参数正确，结果即按对应的规则得出。涉及经验估算的部分仅供参考，不作为正式依据。"}}, {"@type": "Question", "name": "由两物体速度求相对速度适合哪些场景？", "acceptedAnswer": {"@type": "Answer", "text": "工作与生活中的相关计算与查询。"}}, {"@type": "Question", "name": "使用本工具需要联网或上传数据吗？", "acceptedAnswer": {"@type": "Answer", "text": "不需要。所有计算均在你的设备本地完成，数据不会上传到任何服务器，可放心使用。"}}]}
+{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "反向怎么算？", "acceptedAnswer": {"@type": "Answer", "text": "取同向为正，反向则一正一负，v_r = v₁−v₂ 仍成立；结果为负表示反向远离。"}}, {"@type": "Question", "name": "符号的正负该怎么理解？", "acceptedAnswer": {"@type": "Answer", "text": "正负取决于你把谁当作参考物。工具按 v_rel=v₁−v₂ 计算：结果为正说明物体 1 相对物体 2 沿正方向远离。实际解题时先规定正方向，再把两速度连同正负号一起代入即可。"}}]}
 </script>
 
 <script src="/js/tool-kit.js" defer></script>
@@ -86,7 +86,7 @@
 <div class="nav">
   <a href="../../index.html">← ToolBox</a>
   <span>/ 一维相对速度计算器</span>
-  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()" aria-label="切换主题" title="切换主题" data-i18n-aria="nav.theme" data-i18n-title="nav.theme">🌙</button>
 </div>
 
 
@@ -109,7 +109,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="输入两物体速度 v₁、v₂，求相对速度。">Compute relative velocity v_rel = v₁ − v₂ for two objects moving along the same line, for pursuit and reference-frame problems.</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">一维相对速度（本页代码口径）：v_r = v₁−v₂（m/s，同向相减、反向由负号自然体现相加）；联动量：km/h = v_r×3.6、速度比 = v₁÷max(v₂,10⁻⁹)（v₂ 为 0 时按 10⁻⁹ 兜底）、质心系相对速度 = v_r÷2（m/s）。校验：无强校验，空值按 0 兜底。判据：无固定分级，v_r 为正表示物体 1 相对物体 2 向前运动，两速度相等时相对静止。</div>
+      <div class="formula-eq">一维相对速度（本页代码口径）：v_r = v₁−v₂（m/s，同向相减、反向由负号自然体现相加）；联动量：km/h = v_r×3.6、速度比 = v₁÷max(v₂,10⁻⁹)（v₂ 为 0 时按 10⁻⁹ 兜底）、质心系相对速度 = v_r÷2（m/s）。校验：任一速度留空或非数即提示；不再按 0 兜底。判据：无固定分级，v_r 为正表示物体 1 相对物体 2 向前运动，两速度相等时相对静止。</div>
       <p class="formula-desc">输入两物体速度 v₁、v₂，求相对速度。</p>
     </div>
 
@@ -217,6 +217,11 @@
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){
+var __qEnC=null;function __qEn(){if(__qEnC!==null)return __qEnC;try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn())return __qEnC=true;}catch(e){}return __qEnC=/[?&]lang=en-US/.test(location.search);}
+function __qRaw(id){var el=document.getElementById(id);return el?String(el.value).trim():'';}
+function __qBad(zh,en){ToolBox.setResult('result','<p style="color:var(--danger)">'+(__qEn()?en:zh)+'</p>');}
+            if(__qRaw('v1')===''||__qRaw('v2')===''){__qBad('请填写两个速度后再计算。','Please enter both velocities before calculating.');return;}
+            if(!Number.isFinite(Number(__qRaw('v1')))||!Number.isFinite(Number(__qRaw('v2')))){__qBad('速度须为有效数值。','Velocities must be valid numbers.');return;}
             const v1=num('v1'),v2=num('v2');
             const vr=v1-v2;
             const __g1=dataGrid([
@@ -297,7 +302,6 @@ else document.addEventListener('DOMContentLoaded', __relative_velocity_1dBoot);
   </div>
 </div>
 
-<section class="opt-guide"><h2>如何使用由两物体速度求相对速度</h2><ol><li>在对应的输入框或选项中填写、选择所需参数。</li><li>点击「计算」或「生成」按钮运行。</li><li>在结果区查看输出，可复制结果或导出使用。</li></ol><h2>参数说明</h2><ul class="param-list"><li>速度 v₁ (m/s)</li><li>速度 v₂ (m/s)</li></ul><h2>适用场景</h2><p>工作与生活中的相关计算与查询。</p></section><section class="opt-faq"><h2>常见问题</h2><dl class="faq-list"><dt>由两物体速度求相对速度是做什么的？</dt><dd>输入同一直线上两物体速度 v₁、v₂，按 v_rel = v₁ − v₂ 计算它们的相对速度，常用于追及相遇问题、参考系变换等一维运动学场景的直观判断。</dd><dt>如何使用由两物体速度求相对速度？</dt><dd>在对应的输入框或选项中填写、选择所需参数，点击「计算」或「生成」按钮即可运行，结果会在结果区实时显示，支持复制与导出。</dd><dt>计算结果准确吗？</dt><dd>本工具在你的本地浏览器中实时计算，不依赖服务器；只要输入的参数正确，结果即按对应的规则得出。涉及经验估算的部分仅供参考，不作为正式依据。</dd><dt>由两物体速度求相对速度适合哪些场景？</dt><dd>工作与生活中的相关计算与查询。</dd><dt>使用本工具需要联网或上传数据吗？</dt><dd>不需要。所有计算均在你的设备本地完成，数据不会上传到任何服务器，可放心使用。</dd></dl></section>
 <style>.opt-result-interpret{max-width:960px;margin:16px auto;padding:0 16px;}
 .opt-result-interpret .ir-card{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:16px;padding:20px;margin-bottom:16px;box-shadow:var(--shadow-sm,0 1px 3px rgba(0,0,0,.06));}
 .opt-result-interpret h2{font-size:18px;margin:0 0 12px;color:var(--heading,#1F2937);}

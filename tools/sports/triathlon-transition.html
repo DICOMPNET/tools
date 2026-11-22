@@ -10,10 +10,10 @@
 <title>铁人三项转换时间计算 - 跑步各段成绩与转换区耗时</title>
 <link rel="canonical" href="https://tools.dicomp.net/tools/sports/triathlon-transition.html">
 <meta property="og:title" content="铁人三项转换时间计算 - 跑步各段成绩与转换区耗时">
-<meta property="og:description" content="铁人三项转换时间计算是一款免费的在线体育竞技工具，输入游泳、骑行、跑步各段成绩与转换区耗时，计算总成绩并可视化各段占比，用于铁人三项赛后复盘与薄弱环节分析。">
+<meta property="og:description" content="铁人三项转换时间计算是一款免费的在线体育竞技工具，输入游泳、骑行、跑步各段成绩与转换区耗时，计算总成绩并可视化各段占比，用于铁人三项赛后复盘与薄弱环节分析">
 <meta property="og:url" content="https://tools.dicomp.net/tools/sports/triathlon-transition.html">
 <meta name="twitter:card" content="summary">
-<meta name="description" content="铁人三项转换时间计算是一款免费的在线体育竞技工具，输入游泳、骑行、跑步各段成绩与转换区耗时，计算总成绩并可视化各段占比，用于铁人三项赛后复盘与薄弱环节分析。">
+<meta name="description" content="铁人三项转换时间计算是一款免费的在线体育竞技工具，输入游泳、骑行、跑步各段成绩与转换区耗时，计算总成绩并可视化各段占比，用于铁人三项赛后复盘与薄弱环节分析">
 <link rel="stylesheet" href="../../css/common.css">
 <script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
@@ -46,10 +46,10 @@
 <meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
     <meta property="og:type" content="website">
     <meta name="twitter:title" content="铁人三项转换时间计算 - 跑步各段成绩与转换区耗时">
-    <meta name="twitter:description" content="铁人三项转换时间计算是一款免费的在线体育竞技工具，输入游泳、骑行、跑步各段成绩与转换区耗时，计算总成绩并可视化各段占比，用于铁人三项赛后复盘与薄弱环节分析。">
+    <meta name="twitter:description" content="铁人三项转换时间计算是一款免费的在线体育竞技工具，输入游泳、骑行、跑步各段成绩与转换区耗时，计算总成绩并可视化各段占比，用于铁人三项赛后复盘与薄弱环节分析">
 <!-- TOOLBOX-WEBAPP-LD -->
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebApplication","name":"铁人三项转换时间计算","url":"https://tools.dicomp.net/tools/sports/triathlon-transition.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"铁人三项转换时间计算是一款免费的在线体育竞技工具，输入游泳、骑行、跑步各段成绩与转换区耗时，计算总成绩并可视化各段占比，用于铁人三项赛后复盘与薄弱环节分析。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+{"@context":"https://schema.org","@type":"WebApplication","name":"铁人三项转换时间计算","url":"https://tools.dicomp.net/tools/sports/triathlon-transition.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"铁人三项转换时间计算是一款免费的在线体育竞技工具，输入游泳、骑行、跑步各段成绩与转换区耗时，计算总成绩并可视化各段占比，用于铁人三项赛后复盘与薄弱环节分析","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
 </script>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
@@ -102,7 +102,7 @@
 <div class="nav">
   <a href="../../index.html">← ToolBox</a>
   <span>/ 铁人三项转换时间计算</span>
-  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()" aria-label="切换主题" title="切换主题" data-i18n-aria="nav.theme" data-i18n-title="nav.theme">🌙</button>
 </div>
 
 
@@ -254,10 +254,13 @@
 </div>
 
 <script>
-function parseTime(str) {
+function parseTime(str, mode) {
+  str = String(str || '').trim();
   if (!str) return 0;
   var parts = str.split(':').map(Number);
-  if (parts.some(isNaN)) return 0;
+  if (parts.some(function(n){ return !isFinite(n) || n < 0; })) return NaN;
+  if (mode === 'hms' && parts.length !== 3) return NaN;
+  if (mode === 'ms' && parts.length > 2) return NaN;
   var secs = 0;
   if (parts.length === 3) { secs = parts[0]*3600 + parts[1]*60 + parts[2]; }
   else if (parts.length === 2) { secs = parts[0]*60 + parts[1]; }
@@ -274,13 +277,17 @@ function fmtTime(totalSec) {
 }
 
 function calc() {
-  var swim = parseTime(document.getElementById('swim-time').value);
-  var t1 = parseTime(document.getElementById('t1-time').value);
-  var bike = parseTime(document.getElementById('bike-time').value);
-  var t2 = parseTime(document.getElementById('t2-time').value);
-  var run = parseTime(document.getElementById('run-time').value);
+  var swim = parseTime(document.getElementById('swim-time').value, 'ms');
+  var t1 = parseTime(document.getElementById('t1-time').value, 'ms');
+  var bike = parseTime(document.getElementById('bike-time').value, 'hms');
+  var t2 = parseTime(document.getElementById('t2-time').value, 'ms');
+  var run = parseTime(document.getElementById('run-time').value, 'hms');
   var total = swim + t1 + bike + t2 + run;
 
+  if (isNaN(swim)||isNaN(t1)||isNaN(bike)||isNaN(t2)||isNaN(run)) {
+    document.getElementById('result').innerHTML='<p style="color:var(--danger);">时间格式有误：游泳/T1/T2 用「分:秒」，骑车/跑步用「时:分:秒」，且各段需为非负数字。</p>';
+    return;
+  }
   if (total <= 0) {
     document.getElementById('result').innerHTML='<p style="color:var(--danger);">请至少填写一项时间</p>';
     return;

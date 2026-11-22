@@ -117,7 +117,7 @@ canvas{background:#fff;border:6px solid #fff;border-radius:8px;box-shadow:var(--
 <div class="nav">
   <a href="../../index.html">← ToolBox</a>
   <span>/ EAN 条形码</span>
-  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()">🌙</button>
+  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()" aria-label="切换主题" title="切换主题" data-i18n-aria="nav.theme" data-i18n-title="nav.theme">🌙</button>
 </div>
 
 
@@ -233,7 +233,8 @@ canvas{background:#fff;border:6px solid #fff;border-radius:8px;box-shadow:var(--
 <script>
 const L_CODES=['0001101','0011001','0010011','0111101','0100011','0110001','0101111','0111011','0110111','0001011'];
 const R_CODES=L_CODES.map(s=>s.split('').map(b=>b==='0'?'1':'0').join(''));
-const G_CODES=R_CODES.map(s=>s.split('').reverse().join(''));
+// IT-D01：G 码不是 R 的反转（反转得到的是标准 G 的反码），必须用 EAN-13 标准 G 表。
+const G_CODES=['0100111','0110011','0011011','0100001','0011101','0111001','0000101','0010001','0001001','0010111'];
 // parity patterns for first 6 digits based on first digit
 const PARITY=['LLLLLL','LLGLGG','LLGGLG','LLGGGL','LGLLGG','LGGLLG','LGGGLL','LGLGLG','LGLGGL','LGGLGL'];
 function eanCheck(d12){
@@ -269,15 +270,17 @@ function buildEAN(input){
 }
 function drawBarcode(bits,digits){
   const N=bits.length;const modW=3;const barH=120;const textH=22;
-  const w=N*modW+20;const h=barH+textH;
+  // EAN-13 静区按模块计：左 11 模块、右 7 模块（旧实现左右各 10px ≈ 3.3 模块，不足规范）
+  const qL=11*modW, qR=7*modW;
+  const w=N*modW+qL+qR;const h=barH+textH;
   const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;
   const ctx=canvas.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,w,h);
   ctx.fillStyle='#000';
-  for(let i=0;i<N;i++){if(bits[i]==='1')ctx.fillRect(10+i*modW,5,modW,barH);}
+  for(let i=0;i<N;i++){if(bits[i]==='1')ctx.fillRect(qL+i*modW,5,modW,barH);}
   ctx.fillStyle='#000';ctx.font='14px monospace';ctx.textAlign='center';
-  ctx.fillText(digits[0],10+6,barH+18);
-  ctx.fillText(digits.slice(1,7),10+3*modW+6*7*modW/2,barH+18);
-  ctx.fillText(digits.slice(7),10+(3+6*7+5+6*7)*modW/2+6,barH+18);
+  ctx.fillText(digits[0],qL+6,barH+18);
+  ctx.fillText(digits.slice(1,7),qL+3*modW+6*7*modW/2,barH+18);
+  ctx.fillText(digits.slice(7),qL+(3+6*7+5+6*7)*modW/2+6,barH+18);
   return canvas;
 }
 
