@@ -33,7 +33,9 @@
 (function(){
   function showDepTip(){
     var en = /en-US/i.test(document.documentElement.lang || '') || /lang=en-US/i.test(location.search);
+    if (document.getElementById('depTip')) return;
     var tip = document.createElement('div');
+    tip.id = 'depTip';
     tip.style.cssText = 'background:#ffebee;color:#c62828;border:1px solid #ffcdd2;padding:12px 14px;border-radius:8px;margin:0 0 14px;font-size:13px;line-height:1.6;';
     tip.textContent = en
       ? 'The Mermaid library failed to load, so diagram rendering is unavailable. Check your network or ad blocker, then reload.'
@@ -133,14 +135,13 @@
 
 <script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
-
-<script src="/js/hot-tool-enhancements.js" defer></script>
-<!-- TOOLBOX-HOT-TOOL-UX -->
-
 <script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"支援哪些圖表型別？","acceptedAnswer":{"@type":"Answer","text":"內建七種圖表型別可一鍵切換，涵蓋流程圖、時序圖、類圖、狀態圖等常見結構，切換後自動按對應語法重新渲染。"}},{"@type":"Question","name":"繪製內容會丟失嗎？","acceptedAnswer":{"@type":"Answer","text":"編輯內容自動儲存到瀏覽器本地，重新整理頁面不會丟失；匯出時支援 SVG（向量、可二次編輯）與 PNG（點陣圖）兩種格式。"}}]}</script>
 <meta property="og:site_name" content="ToolBox">
+
+<script src="/js/hot-tool-enhancements.js" defer></script>
+<!-- TOOLBOX-HOT-TOOL-UX -->
 <!-- TOOLBOX-HREFLANG -->
 <link rel="alternate" hreflang="zh-CN" href="https://tools.dicomp.net/tools/office/flowchart.html">
 <link rel="alternate" hreflang="zh-TW" href="https://tools.dicomp.net/zh-tw/tools/office/flowchart.html">
@@ -374,7 +375,9 @@ graph TD
 
 <script>
 /* ===== 初始化 Mermaid ===== */
-mermaid.initialize({ startOnLoad: false, theme: 'default', htmlLabels: false, flowchart: { htmlLabels: false, useMaxWidth: false } });
+if (typeof mermaid !== 'undefined') {
+  mermaid.initialize({ startOnLoad: false, theme: 'default', htmlLabels: false, flowchart: { htmlLabels: false, useMaxWidth: false } });
+}
 
 /* ===== DOM 引用 ===== */
 const editor = document.getElementById('editor');
@@ -497,6 +500,7 @@ function currentMermaidTheme() {
 }
 
 function applyMermaidTheme() {
+  if (typeof mermaid === 'undefined') return;
   mermaid.initialize({ startOnLoad: false, theme: currentMermaidTheme(), htmlLabels: false, flowchart: { htmlLabels: false, useMaxWidth: false } });
   renderChart();
 }
@@ -506,6 +510,11 @@ async function renderChart() {
   const code = editor.value.trim();
   if (!code) {
     const __h0='<div class="empty-tip"><span class="big">📊</span>' + ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'Enter Mermaid code on the left; the diagram renders here in real time...':'在左侧输入 Mermaid 代码，<br>这里会实时渲染图表...') + '</div>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){preview.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}preview.innerHTML=__h0;
+    errorBox.style.display = 'none';
+    return;
+  }
+  if (typeof mermaid === 'undefined') {
+    preview.innerHTML = '<div class="empty-tip"><span class="big">⚠️</span>' + ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'The Mermaid library failed to load; diagram rendering is unavailable':'流程图库（Mermaid）加载失败，图表渲染暂不可用') + '</div>';
     errorBox.style.display = 'none';
     return;
   }
@@ -711,6 +720,7 @@ editor.addEventListener('input', function () {
 
 /* ===== 主题变化监听：Mermaid 跟随切换 ===== */
 const themeObserver = new MutationObserver(ToolBox.debounce(function () {
+  if (typeof mermaid === 'undefined') return;
   mermaid.initialize({ startOnLoad: false, theme: currentMermaidTheme(), htmlLabels: false, flowchart: { htmlLabels: false, useMaxWidth: false } });
   renderChart();
 }, 200));

@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-opencc-locale="zh-tw">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>列車制動距離計算 使用指南 - ToolBox</title>
+<meta name="description" content="列車制動距離計算器按執行速度、司機反應時間、制動減速度與線路坡度，計算反應距離、制動距離、總停車距離、停車時間與所需粘著係數，適用於鐵路行車安全評估與制動能力校核。">
+<meta property="og:title" content="列車制動距離計算 使用指南">
+<meta property="og:type" content="article">
+<meta property="article:published_time" content="2026-09-16T00:00:00+08:00">
+<meta property="article:modified_time" content="2026-09-16T00:00:00+08:00">
+<meta property="og:site_name" content="ToolBox">
+<meta property="og:url" content="https://tools.dicomp.net/zh-tw/guides/brake-distance-guide.html">
+<meta property="og:description" content="列車制動距離計算器按執行速度、司機反應時間、制動減速度與線路坡度，計算反應距離、制動距離、總停車距離、停車時間與所需粘著係數。先把執行速度從 km/h 換算為 m/s：v m = v ÷ 3.6。">
+<meta name="twitter:title" content="列車制動距離計算 使用指南">
+<meta name="twitter:description" content="列車制動距離計算器按執行速度、司機反應時間、制動減速度與線路坡度，計算反應距離、制動距離、總停車距離、停車時間與所需粘著係數。先把執行速度從 km/h 換算為 m/s：v m = v ÷ 3.6。">
+<meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 免費線上工具與使用指南">
+<meta property="og:image" content="https://tools.dicomp.net/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免費線上工具">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="canonical" href="https://tools.dicomp.net/zh-tw/guides/brake-distance-guide.html">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"列車制動距離計算 使用指南","description":"機車牽引力與功率匹配工具按輸入引數計算機車牽引特性與功率需求，適合機車選型、列車編組與線路牽引計算的校核。典型場景包括：機車選型：按牽引質量與限制坡度求所需挽力，結合執行速度換算牽引功率，校核機型功率裕度；列車編組：固定機車功率下，反算不同速度等級可牽引的質量，最佳化編組避免欠速。","author":{"@type":"Organization","name":"ToolBox"},"datePublished":"2026-09-16","dateModified":"2026-09-16","mainEntityOfPage":{"@type":"WebPage","@id":"https://tools.dicomp.net/zh-tw/guides/brake-distance-guide.html"},"image":"https://tools.dicomp.net/og-image.png","publisher":{"@type":"Organization","name":"ToolBox","logo":{"@type":"ImageObject","url":"https://tools.dicomp.net/logo-512.png"}},"inLanguage":"zh-TW"}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"ToolBox","item":"https://tools.dicomp.net/zh-tw/"},{"@type":"ListItem","position":2,"name":"使用指南","item":"https://tools.dicomp.net/zh-tw/guides/index.html"},{"@type":"ListItem","position":3,"name":"列車制動距離計算 使用指南","item":"https://tools.dicomp.net/zh-tw/guides/brake-distance-guide.html"}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"牽引功率為什麼是力乘速度？","acceptedAnswer":{"@type":"Answer","text":"輪周功率 P=F×v，其中 F 為輪周牽引力(N)、v 為執行速度(m/s)，單位為瓦(W)；除以 1000 得 kW。物理含義是單位時間輪周做的功，是機車選型與線路牽引計算的核心校核量。"}},{"@type":"Question","name":"限制坡度對功率需求影響多大？","acceptedAnswer":{"@type":"Answer","text":"限制坡度決定所需挽力（F≈(質量×g×坡度%+阻力)/機車數），坡度越大挽力越大；在給定速度下功率隨挽力線性上升。例如同樣 5000 t，12‰ 坡比 6‰ 坡所需挽力約翻倍，對應速度下的功率也約翻倍，選型時需按最不利坡段校核。"}}]}</script>
+<style>
+:root{--primary:#FF6B35;--text:#1F2937;--muted:#6B7280;--border:#E5E7EB;--bg:#FFFAF7;}
+*{box-sizing:border-box;}
+body{margin:0;font-family:"Noto Sans SC","Plus Jakarta Sans",system-ui,sans-serif;color:var(--text);background:var(--bg);line-height:1.75;}
+.breadcrumb a{color:var(--primary);text-decoration:none;margin-right:6px;}
+.breadcrumb a:hover{text-decoration:underline;}
+main{max-width:820px;margin:0 auto;padding:28px 20px 60px;}
+h1{font-size:28px;margin:0 0 8px;}
+.lead{font-size:16px;color:var(--muted);margin:0 0 22px;}
+h2{font-size:20px;margin:28px 0 10px;color:var(--primary);}
+ul,ol{padding-left:22px;}
+li{margin:8px 0;}
+.related{margin-top:26px;padding:16px;background:#fff;border:1px solid var(--border);border-radius:14px;}
+.related h3{margin:0 0 10px;font-size:16px;color:var(--text);}
+.tool-chip{display:inline-block;margin:4px 6px 4px 0;padding:6px 12px;border:1px solid var(--border);border-radius:999px;color:var(--primary);text-decoration:none;font-size:14px;}
+.tool-chip:hover{background:var(--primary);color:#fff;}
+.faq{margin-top:26px;}
+.faq dt{font-weight:700;margin-top:14px;}
+.faq dd{margin:4px 0 0;color:var(--muted);}
+.back{margin-top:30px;padding:16px;background:#fff;border:1px solid var(--border);border-radius:14px;}
+.back a{color:var(--primary);font-weight:700;text-decoration:none;}
+</style>
+<script src="/js/analytics.js" defer></script>
+<link rel="stylesheet" href="/css/site-chrome.css">
+<link rel="stylesheet" href="/css/common.css">
+<script src="/js/i18n.js" defer></script>
+<script src="/js/common.js" defer></script>
+
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
+<!-- TOOLBOX-SECURITY -->
+
+
+<meta name="theme-color" content="#FF6B35">
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://tools.dicomp.net/guides/brake-distance-guide.html">
+<link rel="alternate" hreflang="zh-TW" href="https://tools.dicomp.net/zh-tw/guides/brake-distance-guide.html">
+<link rel="alternate" hreflang="en-US" href="https://tools.dicomp.net/guides/brake-distance-guide.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://tools.dicomp.net/guides/brake-distance-guide.html">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+</head>
+<body>
+<nav class="breadcrumb" aria-label="麵包屑導航"><a href="https://tools.dicomp.net/">ToolBox</a> / <a href="https://tools.dicomp.net/guides/index.html">使用指南</a> / <span>列車制動距離計算 使用指南</span></nav>
+<main>
+<h1>列車制動距離計算 使用指南</h1>
+<p class="lead">列車制動距離計算器按執行速度、司機反應時間、制動減速度與線路坡度，計算反應距離、制動距離、總停車距離、停車時間與所需粘著係數，適用於鐵路行車安全評估與制動能力校核。</p>
+<h2>計算公式與原理</h2>
+<p>先把執行速度從 km/h 換算為 m/s：v<sub>m</sub> = v ÷ 3.6。反應距離 d<sub>r</sub> = v<sub>m</sub> × t<sub>r</sub>；制動距離 d<sub>b</sub> = v<sub>m</sub>² ÷ (2 × a<sub>eff</sub>)；總停車距離 = d<sub>r</sub> + d<sub>b</sub>。等效減速度 a<sub>eff</sub> = a + 9.81 × 坡度(‰) ÷ 1000，上坡為正、下坡為負。停車總時間 = t<sub>r</sub> + v<sub>m</sub> ÷ a<sub>eff</sub>；所需粘著係數 μ = a<sub>eff</sub> ÷ 9.81。</p>
+<h2>典型使用場景</h2>
+<ul><li>訊號顯示距離校核：按區間最高速度與常用制動減速度估算總停車距離，判斷接近訊號機時是否留有餘量。</li><li>坡段制動能力比較：分別按上坡、平坡與下坡計算，量化坡度對制動距離的影響，用於限速方案比選。</li><li>溼軌與低溫風險評估：把所需粘著係數與 0.30 的溼軌參考上限比較，識別滑行風險並制定降速或撒砂措施。</li></ul>
+<h2>算例參考</h2>
+<ul><li><strong>80 km/h、反應 2 s、減速度 0.8 m/s²、平坡</strong>：v<sub>m</sub>=22.22 m/s；反應距離 44.44 m；制動距離 308.64 m；總停車距離 353.09 m；停車總時間 29.78 s；所需粘著係數 0.082。</li><li><strong>同參數、20‰ 下坡</strong>：a<sub>eff</sub>=0.604 m/s²；制動距離 409.09 m；總停車距離約 453.5 m，比平坡增加約 100 m。</li></ul>
+<h2>注意事項</h2>
+<p>本工具純前端執行，輸入內容不上傳伺服器；結果為按上述口徑得到的<strong>理論估算值</strong>。實際制動距離受車型制動曲線、空走時間、輪軌粘著、天氣與線路坡度分段影響，請以制動試驗報告、車型技術規範與現行鐵路標準為準，重大決策建議諮詢專業人士。</p>
+<div class="related">
+<h3>相關工具</h3>
+<a class="tool-chip" href="https://tools.dicomp.net/tools/railway/power-5.html">機車（牽引力/功率）匹配</a>
+<a class="tool-chip" href="https://tools.dicomp.net/tools/railway/diaoche-zuoye-xiaolv-youhua.html">調車（作業/效率）最佳化</a>
+<a class="tool-chip" href="https://tools.dicomp.net/tools/road/grade-calc.html">道路坡度計算</a>
+</div>
+<dl class="faq">
+<dt>反應距離為什麼按恆定速度計算？</dt><dd>司機從看到訊號到制動力建立存在空走時間，此階段車速基本不變，因此用初速度乘反應時間近似；實際空走時間應按車型與制動系統規定取值。</dt>
+<dt>應取常用制動還是緊急制動減速度？</dt><dd>訊號顯示距離校核通常取常用制動的保證減速度；緊急制動用於安全評估與事故分析，數值更短，不宜作為日常運營的常態假設。</dt>
+<dt>坡度對制動距離影響多大？</dt><dd>重力沿坡道的分量參與減速或加速：上坡增加減速效果，下坡抵消部分制動力。坡度絕對值較大時應按線路實際坡度分段計算。</dt>
+<dt>所需粘著係數超過 0.30 一定不安全嗎？</dt><dd>0.30 是溼軌條件的常用參考上限，不是絕對失效閾值。超過時應結合輪軌清潔度、撒砂、防滑器與車型制動曲線複核，並預留安全餘量。</dd>
+</dl>
+<div class="back"><a href="https://tools.dicomp.net/tools/railway/brake-distance.html">→ 開啟列車制動距離計算工具</a></div>
+</main>
+</body>
+</html>
