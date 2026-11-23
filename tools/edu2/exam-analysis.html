@@ -31,7 +31,7 @@
     <meta name="twitter:description" content="考试成绩分析是一款免费的在线教学辅助工具，输入学生成绩，自动计算均分、最高/最低分、标准差、及格率、优秀率，生成分数段分布与排名。">
 <!-- TOOLBOX-WEBAPP-LD -->
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebApplication","name":"考试成绩分析","url":"https://tools.dicomp.net/tools/edu2/exam-analysis.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"考试成绩分析是一款免费的在线教学辅助工具，输入学生成绩，自动计算均分、最高/最低分、标准差、及格率、优秀率，生成分数段分布与排名。班级/年级成绩批量统计：粘贴全班分数（逗号或换行分隔），工具一次性给出人数、均值、标准差、最高/最低分与及格率、优秀率，免去逐人核算。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+{"@context":"https://schema.org","@type":"WebApplication","name":"考试成绩分析","url":"https://tools.dicomp.net/tools/edu2/exam-analysis.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"考试成绩分析是一款免费的在线教学辅助工具，输入学生成绩，自动计算均分、最高/最低分、标准差、及格率、优秀率，生成分数段分布与排名。班级/年级成绩批量统计：粘贴全班分数（逗号或换行分隔），工具一次性给出人数、均值、标准差、最高/最低分与及格率、优秀率，免去逐人核算。","image":"https://tools.dicomp.net/og-image.png","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
 </script>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
@@ -76,6 +76,40 @@
 
 <script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "标准差代表什么？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "标准差反映成绩的离散程度（此处为总体标准差 σ=√(Σ(x−均值)²/n)）；值越大说明学生成绩差距越大、分化越明显，越小说明整体越均衡，是诊断班级两极分化的重要统计量。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "及格率/优秀率怎么算才对？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "及格率=达到及格线人数÷总人数×100%，优秀率同理；关键是及格/优秀分数线要按满分制换算（线百分比×满分），而非固定 60/85 分——满分 150 时及格线为 90 分。本工具已自动按满分折算。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "同分排名？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "同分并列同名次，下一名按实际位次跳号（如 1、2、2、4）；等级阈值取 max(满分75%, 及格线) 良好线，与及格率共用同一条线。"
+      }
+    }
+  ]
+}
+</script>
+<meta property="og:site_name" content="ToolBox">
+<meta name="theme-color" content="#FF6B35">
 </head>
 <body data-no-persist>
 <h1 class="sr-only">考试成绩分析</h1>
@@ -96,13 +130,13 @@
   <span class="bc-sep">‹</span>
   <a href="index.html">📚 教学辅助</a>
   <span class="bc-sep">‹</span>
-  <span class="bc-current">考试成绩分析</span>
+  <span class="bc-current" aria-current="page">考试成绩分析</span>
 </nav>
 
 <div class="tool-guide-link" data-guide-link="1">
   <a href="../../guides/exam-analysis-guide.html">📖 查看「考试成绩分析 使用指南」</a>
 </div>
-<div class="container">
+<div class="container" role="main">
   <style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#3b82f6)}.tbk-tab.active{background:var(--accent,#3b82f6);color:#fff;border-color:var(--accent,#3b82f6)}.tbk-panel{margin-top:6px}</style>
 <div class="tbk-tabbar" role="tablist">
   <button type="button" class="tbk-tab" data-pane="res">结果</button>
@@ -121,15 +155,15 @@
 
     <div class="input-row">
       <div>
-        <label>满分值</label>
+        <label for="fullScore">满分值</label>
         <input type="number" id="fullScore" value="100" min="1" oninput="calc()" placeholder="如 100">
       </div>
       <div>
-        <label>及格线（%）</label>
+        <label for="passLine">及格线（%）</label>
         <input type="number" id="passLine" value="60" min="0" max="100" oninput="calc()" placeholder="如 60（0–100）">
       </div>
       <div>
-        <label>优秀线（%）</label>
+        <label for="excellentLine">优秀线（%）</label>
         <input type="number" id="excellentLine" value="85" min="0" max="100" oninput="calc()" placeholder="如 85（0–100）">
       </div>
     </div>
@@ -203,7 +237,7 @@
   <h3 data-zh="📐 公式与标准引据">Formula &amp; Standard References</h3>
   <div style="overflow-x:auto;">
     <table style="width:100%;border-collapse:collapse;font-size:13px;">
-      <thead><tr><th style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;" data-zh="项目">Item</th><th style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;" data-zh="公式">Formula</th><th style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;" data-zh="来源 / 标准">Source / Standard</th></tr></thead>
+      <thead><tr><th style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;" data-zh="项目" scope="col">Item</th><th style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;" data-zh="公式" scope="col">Formula</th><th style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;" data-zh="来源 / 标准" scope="col">Source / Standard</th></tr></thead>
       <tbody>
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="平均分">Mean</td>
@@ -450,7 +484,7 @@ if(String(document.getElementById('scoreInput').value||'').trim()) calc();
   </div>
   <div class="tool-intro-body">
     <h4><span class="h4-icon">📝</span>工具简介</h4>
-    <p>考试成绩分析是一款教育学习领域的在线工具。</p>
+    <p data-zh="输入学生成绩，自动计算均分、最高/最低分、标准差、及格率、优秀率，生成分数段分布与排名。">输入学生成绩，自动计算均分、最高/最低分、标准差、及格率、优秀率，生成分数段分布与排名。</p>
     </div>
 </div>
 <!-- /SEO 介绍区块 -->

@@ -39,7 +39,7 @@
     <meta name="twitter:description" content="弯道计算是一款免费的在线道路工程工具，输入设计速度与横向力系数，按公路线形公式求平曲线半径、超高率与缓和曲线长度，辅助道路线形设计与验算。">
 <!-- TOOLBOX-WEBAPP-LD -->
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebApplication","name":"弯道计算","url":"https://tools.dicomp.net/tools/road/curve-calc.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"弯道计算是一款免费的在线道路工程工具，输入设计速度与横向力系数，按公路线形公式求平曲线半径、超高率与缓和曲线长度，辅助道路线形设计与验算。路线平面设计需按设计速度确定平曲线最小半径，半径过小会导致离心力过大、行车不稳，须满足 R ≥ V²/[127(e+f)]。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+{"@context":"https://schema.org","@type":"WebApplication","name":"弯道计算","url":"https://tools.dicomp.net/tools/road/curve-calc.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"弯道计算是一款免费的在线道路工程工具，输入设计速度与横向力系数，按公路线形公式求平曲线半径、超高率与缓和曲线长度，辅助道路线形设计与验算。路线平面设计需按设计速度确定平曲线最小半径，半径过小会导致离心力过大、行车不稳，须满足 R ≥ V²/[127(e+f)]。","image":"https://tools.dicomp.net/og-image.png","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
 </script>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
@@ -84,6 +84,32 @@
 
 <script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "超高率 e 和横向力系数 f 怎么取？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "e 一般取 2%~10%（不超过最大超高，如 8%~10% 依地区冰冻条件），f 为乘客可接受横向力系数（通常 0.10~0.15）。两者越大所需半径越小，但 e 过大不利排水、f 过大会让乘客不适，需按规范平衡取值。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "最小半径表里的 125m/250m 怎么来的？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "规范按设计速度给出设超高最小半径，本质由 R=V²/[127(e+f)] 反算并取整得到（如 60km/h 取 e+f≈0.17 得约 168m，再结合安全储备取整为 125m）。本工具内置对照表，计算 R 后自动比对是否达标。"
+      }
+    }
+  ]
+}
+</script>
+<meta property="og:site_name" content="ToolBox">
+<meta name="theme-color" content="#FF6B35">
 </head>
 <body>
 <h1 class="sr-only">弯道计算</h1>
@@ -102,13 +128,13 @@
   <span class="bc-sep">‹</span>
   <a href="index.html">🛣️ 道路工程</a>
   <span class="bc-sep">‹</span>
-  <span class="bc-current">平曲线半径与超高计算</span>
+  <span class="bc-current" aria-current="page">平曲线半径与超高计算</span>
 </nav>
 
 <div class="tool-guide-link" data-guide-link="1">
   <a href="../../guides/curve-calc-guide.html">📖 查看「平曲线半径与超高计算 使用指南」</a>
 </div>
-<div class="container">
+<div class="container" role="main">
 <style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#3b82f6)}.tbk-tab.active{background:var(--accent,#3b82f6);color:#fff;border-color:var(--accent,#3b82f6)}.tbk-panel{margin-top:6px}</style>
 <div class="tbk-tabbar" role="tablist">
   <button type="button" class="tbk-tab" data-pane="res">结果</button>
@@ -122,7 +148,7 @@
 
 <div class="input-row">
   <div>
-    <label>设计速度 V (km/h)</label>
+    <label for="inV">设计速度 V (km/h)</label>
     <select id="inV" onchange="calc()">
       <option value="20">20</option>
       <option value="30">30</option>
@@ -134,25 +160,25 @@
     </select>
   </div>
   <div>
-    <label>超高率 e (%)</label>
+    <label for="inE">超高率 e (%)</label>
     <input type="number" id="inE" value="6" min="0" max="10" step="0.5" oninput="calc()" placeholder="如 6（0–10）">
   </div>
   <div>
-    <label>横向力系数 f</label>
+    <label for="inF">横向力系数 f</label>
     <input type="number" id="inF" value="0.15" min="0.05" max="0.2" step="0.01" oninput="calc()" placeholder="如 0.15（0.05–0.2）">
   </div>
 </div>
 <div class="input-row">
   <div>
-    <label>偏角 α (度)</label>
+    <label for="inAlpha">偏角 α (度)</label>
     <input type="number" id="inAlpha" value="60" min="1" max="180" step="1" oninput="calc()" placeholder="如 60（1–180）">
   </div>
   <div>
-    <label>路面宽度 B (m)</label>
+    <label for="inB">路面宽度 B (m)</label>
     <input type="number" id="inB" value="7.5" min="3" step="0.5" oninput="calc()" placeholder="如 7.5">
   </div>
   <div>
-    <label>超高渐变率 p (1/x)</label>
+    <label for="inP">超高渐变率 p (1/x)</label>
     <input type="number" id="inP" value="125" min="50" max="330" step="5" oninput="calc()" placeholder="如 125（50–330）">
   </div>
 </div>
@@ -230,7 +256,7 @@
   <h3 data-zh="📐 公式与标准引据">Formula &amp; Standard References</h3>
   <div style="overflow-x:auto;">
     <table style="width:100%;border-collapse:collapse;font-size:13px;">
-      <thead><tr><th style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;" data-zh="项目">Item</th><th style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;" data-zh="公式">Formula</th><th style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;" data-zh="来源 / 标准">Source / Standard</th></tr></thead>
+      <thead><tr><th style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;" data-zh="项目" scope="col">Item</th><th style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;" data-zh="公式" scope="col">Formula</th><th style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;" data-zh="来源 / 标准" scope="col">Source / Standard</th></tr></thead>
       <tbody>
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="平曲线半径">Curve radius</td>

@@ -40,7 +40,7 @@
     <meta name="twitter:description" content="输入围岩级别与开挖跨度，按级别取跨度系数 0.20~0.45 估算锚杆长度，并按级别取 5~25 cm 喷射混凝土厚度等支护参数，用于隧道初期支护方案设计与参数选取">
 <!-- TOOLBOX-WEBAPP-LD -->
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebApplication","name":"支护设计","url":"https://tools.dicomp.net/tools/tunnel/support-design.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"输入围岩级别与开挖跨度，按级别取跨度系数 0.20~0.45 估算锚杆长度，并按级别取 5~25 cm 喷射混凝土厚度等支护参数，用于隧道初期支护方案设计与参数选取","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+{"@context":"https://schema.org","@type":"WebApplication","name":"支护设计","url":"https://tools.dicomp.net/tools/tunnel/support-design.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"输入围岩级别与开挖跨度，按级别取跨度系数 0.20~0.45 估算锚杆长度，并按级别取 5~25 cm 喷射混凝土厚度等支护参数，用于隧道初期支护方案设计与参数选取","image":"https://tools.dicomp.net/og-image.png","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
 </script>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
@@ -85,6 +85,32 @@
 
 <script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "锚杆长度用「系数×跨度」算，能保证安全吗？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "这是工程类比法的经验取值，用于初选参数与工程量估算，不能替代设计验算。锚杆长度需保证锚固段进入稳定岩层足够深度（一般不小于 0.5~1.0 m），并满足悬吊理论或组合拱理论的验算；浅埋、偏压、断层破碎带、膨胀性围岩等特殊条件必须由设计单位专项计算，必要时加长锚杆或改用锚索。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "每延米锚杆数量为什么按 ceil(周长÷间距²) 计算？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "工具把支护面近似为按 S×S 网格布点的展开面，用周长 2×(B+H) 作单延米展开宽度，故每延米根数=ceil(周长÷S²)，向上取整保证不漏布。这是简化估算：实际按梅花形布置时相邻排错开半格，根数会略有差异，拱部与边墙间距也可能分别取值，工程量核算时应以施工图为准。"
+      }
+    }
+  ]
+}
+</script>
+<meta property="og:site_name" content="ToolBox">
+<meta name="theme-color" content="#FF6B35">
 </head>
 <body>
 <h1 class="sr-only">支护设计</h1>
@@ -103,13 +129,13 @@
   <span class="bc-sep">‹</span>
   <a href="index.html">🚇 隧道工程</a>
   <span class="bc-sep">‹</span>
-  <span class="bc-current">隧道支护参数设计</span>
+  <span class="bc-current" aria-current="page">隧道支护参数设计</span>
 </nav>
 
 <div class="tool-guide-link" data-guide-link="1">
   <a href="../../guides/support-design-guide.html">📖 查看「隧道支护参数设计 使用指南」</a>
 </div>
-<div class="container">
+<div class="container" role="main">
 <style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#3b82f6)}.tbk-tab.active{background:var(--accent,#3b82f6);color:#fff;border-color:var(--accent,#3b82f6)}.tbk-panel{margin-top:6px}</style>
 <div class="tbk-tabbar" role="tablist">
   <button type="button" class="tbk-tab" data-pane="res">结果</button>
@@ -123,7 +149,7 @@
 
 <div class="input-row">
   <div>
-    <label>围岩级别</label>
+    <label for="inGrade">围岩级别</label>
     <select id="inGrade" onchange="calc()">
       <option value="2">Ⅰ级（稳定）</option>
       <option value="3">Ⅱ级（稳定性较好）</option>
@@ -134,11 +160,11 @@
     </select>
   </div>
   <div>
-    <label>开挖跨度 B (m)</label>
+    <label for="inB">开挖跨度 B (m)</label>
     <input type="number" id="inB" value="12" min="2" step="0.5" oninput="calc()" placeholder="如 12">
   </div>
   <div>
-    <label>开挖高度 H (m)</label>
+    <label for="inH">开挖高度 H (m)</label>
     <input type="number" id="inH" value="8" min="2" step="0.5" oninput="calc()" placeholder="如 8">
   </div>
 </div>
@@ -208,7 +234,7 @@
   <h3 data-zh="📐 公式与标准引据">Formula &amp; Standard References</h3>
   <div style="overflow-x:auto;">
     <table style="width:100%;border-collapse:collapse;font-size:13px;">
-      <thead><tr><th style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;" data-zh="项目">Item</th><th style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;" data-zh="公式">Formula</th><th style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;" data-zh="来源 / 标准">Source / Standard</th></tr></thead>
+      <thead><tr><th style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;" data-zh="项目" scope="col">Item</th><th style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;" data-zh="公式" scope="col">Formula</th><th style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;" data-zh="来源 / 标准" scope="col">Source / Standard</th></tr></thead>
       <tbody>
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="锚杆长度">Bolt length</td>

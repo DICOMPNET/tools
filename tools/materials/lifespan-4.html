@@ -31,7 +31,7 @@
     <meta name="twitter:description" content="计算器基于 Goodman 修正与 Basquin 公式，输入应力幅、平均应力与材料抗拉强度，计算等效应力幅与疲劳寿命循环次数，并对比三种平均应力修正模型的寿命估算，为疲劳设计与寿命预测提供参考">
 <!-- TOOLBOX-WEBAPP-LD -->
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebApplication","name":"材料疲劳寿命","url":"https://tools.dicomp.net/tools/materials/lifespan-4.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"计算器基于 Goodman 修正与 Basquin 公式，输入应力幅、平均应力与材料抗拉强度，计算等效应力幅与疲劳寿命循环次数，并对比三种平均应力修正模型的寿命估算，为疲劳设计与寿命预测提供参考","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+{"@context":"https://schema.org","@type":"WebApplication","name":"材料疲劳寿命","url":"https://tools.dicomp.net/tools/materials/lifespan-4.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"计算器基于 Goodman 修正与 Basquin 公式，输入应力幅、平均应力与材料抗拉强度，计算等效应力幅与疲劳寿命循环次数，并对比三种平均应力修正模型的寿命估算，为疲劳设计与寿命预测提供参考","image":"https://tools.dicomp.net/og-image.png","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
 </script>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
@@ -74,11 +74,34 @@
 <script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 <script type="application/ld+json">
-{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "材料疲劳寿命 结果可用于直接报告吗？", "acceptedAnswer": {"@type": "Answer", "text": "材料疲劳寿命 适合用于内部复核与说明，正式材料请附带口径、边界条件和输入范围说明。"}}, {"@type": "Question", "name": "结果看似异常，该怎么快速排查？", "acceptedAnswer": {"@type": "Answer", "text": "先核对是否有百分号/小数口径冲突，再检查是否触发了数学域外定义（如对数、开方、除零）。"}}]}
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "Goodman / Gerber / Soderberg 该用哪个？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Goodman 居中、最常用；Gerber 对韧性材料更接近试验但偏乐观；Soderberg 以屈服强度为判据、最保守。安全关键件建议同时看 Soderberg 结果取下限。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "b 和 σf' 怎么取？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "b 为疲劳强度指数，钢材常取 −0.085~−0.12；σf' 为疲劳强度系数，近似取 1.0~1.2 倍抗拉强度。二者最好由材料 S-N 曲线回归得到，手册值仅作初估。"
+      }
+    }
+  ]
+}
 </script>
 
 <script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
+<meta property="og:site_name" content="ToolBox">
+<meta name="theme-color" content="#FF6B35">
 </head>
 <body>
 <h1 class="sr-only">材料疲劳寿命</h1>
@@ -96,9 +119,9 @@
   <span class="bc-sep">‹</span>
   <a href="index.html">🧱 通用工程</a>
   <span class="bc-sep">‹</span>
-  <span class="bc-current">材料疲劳寿命</span>
+  <span class="bc-current" aria-current="page">材料疲劳寿命</span>
 </nav>
-<div class="container">
+<div class="container" role="main">
 <div class="tool-guide-link" data-guide-link="1">
   <a href="../../guides/lifespan-4-guide.html">📖 查看「材料疲劳寿命（Goodman 修正 + Basquin 公式）使用指南」</a>
 </div>
@@ -119,12 +142,12 @@
     </div>
 <div class="input-row">
       <div><div data-tb="preset" data-tb-presets='[{"label":"应力幅σa(MPa)200·平均应力σm(MPa)100·…","labelEn":"vSa=200 · vSm=100 · vSb=800 · vSf=1200 …","values":{"vSa":"200","vSm":"100","vSb":"800","vSf":"1200","vB":"-0.12","vMat":"steel"}},{"label":"小规模","labelEn":"Small scale","values":{"vSa":"100"}},{"label":"大规模","labelEn":"Large scale","values":{"vSa":"300"}},{"label":"极端工况","labelEn":"Extreme case","values":{"vSa":"400"}}]'></div>
-<label>应力幅 σa (MPa)</label><input type="number" id="vSa" value="200" step="any" style="font-size:16px;" oninput="calc()" enterkeyhint="done" aria-label="应力幅" placeholder="如 200"></div>
-      <div><label>平均应力 σm (MPa)</label><input type="number" id="vSm" value="100" step="any" style="font-size:16px;" oninput="calc()" enterkeyhint="done" aria-label="平均应力" placeholder="如 100"></div>
-      <div><label>抗拉强度 σb (MPa)</label><input type="number" id="vSb" value="800" step="any" style="font-size:16px;" oninput="calc()" enterkeyhint="done" aria-label="抗拉强度" placeholder="如 800"></div>
+<label for="vSa">应力幅 σa (MPa)</label><input type="number" id="vSa" value="200" step="any" style="font-size:16px;" oninput="calc()" enterkeyhint="done" aria-label="应力幅" placeholder="如 200"></div>
+      <div><label for="vSm">平均应力 σm (MPa)</label><input type="number" id="vSm" value="100" step="any" style="font-size:16px;" oninput="calc()" enterkeyhint="done" aria-label="平均应力" placeholder="如 100"></div>
+      <div><label for="vSb">抗拉强度 σb (MPa)</label><input type="number" id="vSb" value="800" step="any" style="font-size:16px;" oninput="calc()" enterkeyhint="done" aria-label="抗拉强度" placeholder="如 800"></div>
     </div>
     <div class="input-row">
-      <div><label>材料类型</label>
+      <div><label for="vMat">材料类型</label>
         <select id="vMat" style="font-size:16px;" onchange="calc()">
           <option value="steel" selected>钢</option>
           <option value="aluminum">铝合金</option>
@@ -132,8 +155,8 @@
           <option value="titanium">钛合金</option>
         </select>
       </div>
-      <div><label>疲劳强度系数 σf' (MPa)</label><input type="number" id="vSf" value="1200" step="any" style="font-size:16px;" oninput="calc()" enterkeyhint="done" aria-label="疲劳强度系数" placeholder="如 1200"></div>
-      <div><label>疲劳强度指数 b</label><input type="number" id="vB" value="-0.12" step="0.01" style="font-size:16px;" oninput="calc()" enterkeyhint="done" aria-label="疲劳强度指数" placeholder="如 -0.12"></div>
+      <div><label for="vSf">疲劳强度系数 σf' (MPa)</label><input type="number" id="vSf" value="1200" step="any" style="font-size:16px;" oninput="calc()" enterkeyhint="done" aria-label="疲劳强度系数" placeholder="如 1200"></div>
+      <div><label for="vB">疲劳强度指数 b</label><input type="number" id="vB" value="-0.12" step="0.01" style="font-size:16px;" oninput="calc()" enterkeyhint="done" aria-label="疲劳强度指数" placeholder="如 -0.12"></div>
     </div>
     <div class="toolbar">
       <button class="btn primary" type="button" onclick="calc();saveHistory()">🧮 计算</button>
@@ -148,9 +171,9 @@
   <div style="overflow-x:auto;">
     <table style="width:100%;border-collapse:collapse;font-size:13px;">
       <thead><tr>
-        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="项目">Item</th>
-        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="公式 / 说明">Formula / Note</th>
-        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="出处 / 标准">Source / Standard</th>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="项目" scope="col">Item</th>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="公式 / 说明" scope="col">Formula / Note</th>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="出处 / 标准" scope="col">Source / Standard</th>
       </tr></thead>
       <tbody>
         <tr><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="S-N 曲线">S-N curve</span></td><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="σ_a = σ_f'·(2N_f)^b（Basquin 指数律）">σ_a = σ_f'(2N_f)^b</span></td><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="O. H. Basquin 1910">O. H. Basquin, 1910</span></td></tr>

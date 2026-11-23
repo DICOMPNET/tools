@@ -31,7 +31,7 @@
     <meta name="twitter:description" content="轴承当量动负荷计算器用于将同时作用的径向载荷 Fr 和轴向载荷 Fa 折算为一个等效的当量动载荷 P，公式为 P = X·Fr + Y·Fa，是轴承寿命计算的必要前置步骤">
 <!-- TOOLBOX-WEBAPP-LD -->
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebApplication","name":"轴承当量负荷计算","url":"https://tools.dicomp.net/tools/machinery/bearing-load.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"轴承当量动负荷计算器用于将同时作用的径向载荷 Fr 和轴向载荷 Fa 折算为一个等效的当量动载荷 P，公式为 P = X·Fr + Y·Fa，是轴承寿命计算的必要前置步骤","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+{"@context":"https://schema.org","@type":"WebApplication","name":"轴承当量负荷计算","url":"https://tools.dicomp.net/tools/machinery/bearing-load.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"轴承当量动负荷计算器用于将同时作用的径向载荷 Fr 和轴向载荷 Fa 折算为一个等效的当量动载荷 P，公式为 P = X·Fr + Y·Fa，是轴承寿命计算的必要前置步骤","image":"https://tools.dicomp.net/og-image.png","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
 </script>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
@@ -74,11 +74,34 @@
 <script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 <script type="application/ld+json">
-{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "轴承当量负荷计算 结果可用于直接报告吗？", "acceptedAnswer": {"@type": "Answer", "text": "轴承当量负荷计算 适合用于内部复核与说明，正式材料请附带口径、边界条件和输入范围说明。"}}, {"@type": "Question", "name": "结果看似异常，该怎么快速排查？", "acceptedAnswer": {"@type": "Answer", "text": "先核对是否有百分号/小数口径冲突，再检查是否触发了数学域外定义（如对数、开方、除零）。"}}]}
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "X、Y 系数怎么取？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "由轴承类型与 Fa/(C0·e) 查产品样本的系数表；本工具取示例值，实际须按具体轴承的 e 值与系数表代入，错取会严重偏差寿命。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Fa/Fr 大于 0.4 意味着什么？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "超过 thresholds e 后轴向载荷不可忽略，须用对应的 Y 系数合成；忽略轴向会使 P 低估、寿命高估，存在提前失效风险。"
+      }
+    }
+  ]
+}
 </script>
 
 <script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
+<meta property="og:site_name" content="ToolBox">
+<meta name="theme-color" content="#FF6B35">
 </head>
 <body>
 <h1 class="sr-only">轴承当量负荷计算</h1>
@@ -96,9 +119,9 @@
   <span class="bc-sep">‹</span>
   <a href="index.html">⚙️ 通用工程</a>
   <span class="bc-sep">‹</span>
-  <span class="bc-current">轴承当量负荷计算</span>
+  <span class="bc-current" aria-current="page">轴承当量负荷计算</span>
 </nav>
-<div class="container">
+<div class="container" role="main">
   <style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#3b82f6)}.tbk-tab.active{background:var(--accent,#3b82f6);color:#fff;border-color:var(--accent,#3b82f6)}.tbk-panel{margin-top:6px}</style>
 <div class="tbk-tabbar" role="tablist">
   <button type="button" class="tbk-tab" data-pane="res">结果</button>
@@ -114,10 +137,10 @@
       <div class="formula-desc">根据径向力 Fr、轴向力 Fa 及径向/轴向载荷系数 X、Y，计算当量动载荷 P = X·Fr + Y·Fa</div>
     </div>
     <div class="input-row">
-      <div><label>径向力 Fr (kN)</label><input type="number" id="fr" value="4" step="any" min="0" style="font-size:16px;" oninput="calc()" enterkeyhint="done" aria-label="径向力Fr" placeholder="如 4"></div>
-      <div><label>轴向力 Fa (kN)</label><input type="number" id="fa" value="2" step="any" min="0" style="font-size:16px;" oninput="calc()" enterkeyhint="done" aria-label="轴向力Fa" placeholder="如 2"></div>
-      <div><label>径向系数 X</label><input type="number" id="xVal" value="0.56" step="any" min="0" style="font-size:16px;" oninput="calc()" enterkeyhint="done" aria-label="径向系数X" placeholder="如 0.56"></div>
-      <div><label>轴向系数 Y</label><input type="number" id="yVal" value="1.5" step="any" min="0" style="font-size:16px;" oninput="calc()" enterkeyhint="done" aria-label="轴向系数Y" placeholder="如 1.5"></div>
+      <div><label for="fr">径向力 Fr (kN)</label><input type="number" id="fr" value="4" step="any" min="0" style="font-size:16px;" oninput="calc()" enterkeyhint="done" aria-label="径向力Fr" placeholder="如 4"></div>
+      <div><label for="fa">轴向力 Fa (kN)</label><input type="number" id="fa" value="2" step="any" min="0" style="font-size:16px;" oninput="calc()" enterkeyhint="done" aria-label="轴向力Fa" placeholder="如 2"></div>
+      <div><label for="xVal">径向系数 X</label><input type="number" id="xVal" value="0.56" step="any" min="0" style="font-size:16px;" oninput="calc()" enterkeyhint="done" aria-label="径向系数X" placeholder="如 0.56"></div>
+      <div><label for="yVal">轴向系数 Y</label><input type="number" id="yVal" value="1.5" step="any" min="0" style="font-size:16px;" oninput="calc()" enterkeyhint="done" aria-label="轴向系数Y" placeholder="如 1.5"></div>
     </div>
     <div class="toolbar">
       <button class="btn primary" type="button" onclick="calc();saveHistory()">🧮 计算</button>
@@ -132,9 +155,9 @@
   <div style="overflow-x:auto;">
     <table style="width:100%;border-collapse:collapse;font-size:13px;">
       <thead><tr>
-        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="项目">Item</th>
-        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="标准 / 出处">Standard / Source</th>
-        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="要点">Key Point</th>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="项目" scope="col">Item</th>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="标准 / 出处" scope="col">Standard / Source</th>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="要点" scope="col">Key Point</th>
       </tr></thead>
       <tbody>
         <tr><td data-zh="当量动载荷 P">Equivalent dynamic load P</td><td>ISO 281:2007 (rolling bearings); GB/T 6391 (adopted from ISO 281) (equivalent dynamic load clause)</td><td data-zh="P = X*Fr + Y*Fa;X/Y 按 e 值分区取值">P = X*Fr + Y*Fa; X/Y selected by e value</td></tr>

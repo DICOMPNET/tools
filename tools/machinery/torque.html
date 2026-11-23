@@ -31,7 +31,7 @@
     <meta name="twitter:description" content="计算器根据螺栓规格（M6-M30）、强度等级（4.8-12.9级）和摩擦系数，计算拧紧扭矩、预紧力和实际应力，为螺栓装配提供准确的扭矩控制参考">
 <!-- TOOLBOX-WEBAPP-LD -->
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebApplication","name":"螺栓拧紧扭矩","url":"https://tools.dicomp.net/tools/machinery/torque.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"计算器根据螺栓规格（M6-M30）、强度等级（4.8-12.9级）和摩擦系数，计算拧紧扭矩、预紧力和实际应力，为螺栓装配提供准确的扭矩控制参考","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+{"@context":"https://schema.org","@type":"WebApplication","name":"螺栓拧紧扭矩","url":"https://tools.dicomp.net/tools/machinery/torque.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"计算器根据螺栓规格（M6-M30）、强度等级（4.8-12.9级）和摩擦系数，计算拧紧扭矩、预紧力和实际应力，为螺栓装配提供准确的扭矩控制参考","image":"https://tools.dicomp.net/og-image.png","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
 </script>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
@@ -74,11 +74,34 @@
 <script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 <script type="application/ld+json">
-{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "螺栓拧紧扭矩 结果可用于直接报告吗？", "acceptedAnswer": {"@type": "Answer", "text": "螺栓拧紧扭矩 适合用于内部复核与说明，正式材料请附带口径、边界条件和输入范围说明。"}}, {"@type": "Question", "name": "结果看似异常，该怎么快速排查？", "acceptedAnswer": {"@type": "Answer", "text": "先核对是否有百分号/小数口径冲突，再检查是否触发了数学域外定义（如对数、开方、除零）。"}}]}
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "扭矩系数 K = 0.5μ+0.12 从哪来？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "这是把螺纹摩擦与支承面摩擦合并后的简化经验式：0.12 代表螺纹升角与牙型角贡献的固定部分，0.5μ 代表螺纹与端面摩擦的合计影响。实际 K 值受表面处理（镀锌、达克罗、涂油）影响很大，范围常达 0.10~0.30，重要连接建议用扭矩-预紧力试验实测标定。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "为什么预紧应力要控制在屈服的 70% 左右？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "螺栓装配后还会叠加工作载荷，且拧紧过程本身存在 ±15%~±25% 的扭矩散差（扭矩扳手精度与摩擦波动）。留 30% 余量可避免实际预紧力越过屈服导致塑性伸长或延迟断裂。本工具默认 0.7，重要场合可按规范下调到 0.5~0.6。"
+      }
+    }
+  ]
+}
 </script>
 
 <script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
+<meta property="og:site_name" content="ToolBox">
+<meta name="theme-color" content="#FF6B35">
 </head>
 <body>
 <h1 class="sr-only">螺栓拧紧扭矩</h1>
@@ -96,9 +119,9 @@
   <span class="bc-sep">‹</span>
   <a href="index.html">⚙️ 通用工程</a>
   <span class="bc-sep">‹</span>
-  <span class="bc-current">螺栓拧紧扭矩</span>
+  <span class="bc-current" aria-current="page">螺栓拧紧扭矩</span>
 </nav>
-<div class="container">
+<div class="container" role="main">
   <style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#3b82f6)}.tbk-tab.active{background:var(--accent,#3b82f6);color:#fff;border-color:var(--accent,#3b82f6)}.tbk-panel{margin-top:6px}</style>
 <div class="tbk-tabbar" role="tablist">
   <button type="button" class="tbk-tab" data-pane="res">结果</button>
@@ -115,7 +138,7 @@
     </div>
 <div class="input-row">
       <div><div data-tb="preset" data-tb-presets='[{"label":"摩擦系数μ0.15·预紧力比例(σ/σs)0.7·螺栓规格…","labelEn":"vMu=0.15 · vRatio=0.7 · vSize=10 · vGra…","values":{"vMu":"0.15","vRatio":"0.7","vSize":"10","vGrade":"640"}}]'></div>
-<label>螺栓规格</label>
+<label for="vSize">螺栓规格</label>
         <select id="vSize" style="font-size:16px;" onchange="calc()">
           <option value="6">M6</option><option value="8">M8</option><option value="10" selected>M10</option>
           <option value="12">M12</option><option value="14">M14</option><option value="16">M16</option>
@@ -123,16 +146,16 @@
           <option value="24">M24</option><option value="27">M27</option><option value="30">M30</option>
         </select>
       </div>
-      <div><label>强度等级</label>
+      <div><label for="vGrade">强度等级</label>
         <select id="vGrade" style="font-size:16px;" onchange="calc()">
           <option value="320">4.8级</option><option value="400">5.8级</option><option value="480">6.8级</option>
           <option value="640" selected>8.8级</option><option value="900">10.9级</option><option value="1080">12.9级</option>
         </select>
       </div>
-      <div><label>摩擦系数 μ</label><input type="number" id="vMu" value="0.15" step="0.01" style="font-size:16px;" oninput="calc()" enterkeyhint="done" placeholder="如 0.15"></div>
+      <div><label for="vMu">摩擦系数 μ</label><input type="number" id="vMu" value="0.15" step="0.01" style="font-size:16px;" oninput="calc()" enterkeyhint="done" placeholder="如 0.15"></div>
     </div>
     <div class="input-row">
-      <div><label>预紧力比例 (σ/σs)</label><input type="number" id="vRatio" value="0.7" step="0.05" style="font-size:16px;" oninput="calc()" enterkeyhint="done" placeholder="如 0.7"></div>
+      <div><label for="vRatio">预紧力比例 (σ/σs)</label><input type="number" id="vRatio" value="0.7" step="0.05" style="font-size:16px;" oninput="calc()" enterkeyhint="done" placeholder="如 0.7"></div>
     </div>
     <div class="toolbar">
       <button class="btn primary" type="button" onclick="calc();saveHistory()">🧮 计算</button>
@@ -147,9 +170,9 @@
   <div style="overflow-x:auto;">
     <table style="width:100%;border-collapse:collapse;font-size:13px;">
       <thead><tr>
-        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="项目">Item</th>
-        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="标准 / 出处">Standard / Source</th>
-        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="要点">Key Point</th>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="项目" scope="col">Item</th>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="标准 / 出处" scope="col">Standard / Source</th>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="要点" scope="col">Key Point</th>
       </tr></thead>
       <tbody>
         <tr><td data-zh="拧紧扭矩">Tightening torque</td><td>GB/T 3098.1 / ISO 898-1; VDI 2230</td><td data-zh="T = K*F*d;扭矩系数 K 一般 0.1-0.3">T = K*F*d; K typically 0.1-0.3</td></tr>

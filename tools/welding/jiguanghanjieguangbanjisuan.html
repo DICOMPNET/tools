@@ -31,7 +31,7 @@
     <meta name="twitter:description" content="激光焊接光斑计算是一款免费的在线焊接工程工具，基于高斯光束聚焦公式，结合光束质量 M² 与离焦量，计算焦点/离焦光斑直径、瑞利长度与功率密度，判别焊接模式">
 <!-- TOOLBOX-WEBAPP-LD -->
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebApplication","name":"激光焊接光斑计算","url":"https://tools.dicomp.net/tools/welding/jiguanghanjieguangbanjisuan.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"激光焊接光斑计算是一款免费的在线焊接工程工具，基于高斯光束聚焦公式，结合光束质量 M² 与离焦量，计算焦点/离焦光斑直径、瑞利长度与功率密度，判别焊接模式","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+{"@context":"https://schema.org","@type":"WebApplication","name":"激光焊接光斑计算","url":"https://tools.dicomp.net/tools/welding/jiguanghanjieguangbanjisuan.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"激光焊接光斑计算是一款免费的在线焊接工程工具，基于高斯光束聚焦公式，结合光束质量 M² 与离焦量，计算焦点/离焦光斑直径、瑞利长度与功率密度，判别焊接模式","image":"https://tools.dicomp.net/og-image.png","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
 </script>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
@@ -74,11 +74,34 @@
 <script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 <script type="application/ld+json">
-{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "激光焊接光斑计算 结果可用于直接报告吗？", "acceptedAnswer": {"@type": "Answer", "text": "激光焊接光斑计算 适合用于内部复核与说明，正式材料请附带口径、边界条件和输入范围说明。"}}, {"@type": "Question", "name": "结果看似异常，该怎么快速排查？", "acceptedAnswer": {"@type": "Answer", "text": "先核对是否有百分号/小数口径冲突，再检查是否触发了数学域外定义（如对数、开方、除零）。"}}]}
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "M² 是什么，为什么必须 ≥1？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "M² 为光束质量因子，理想基模高斯光束 M²=1，实际激光器 M²>1；M² 越大同样聚焦条件下焦斑越粗、功率密度越低，直接决定能否进入深熔焊。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "离焦量正负怎么选？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "正离焦（焦点在工件上方）光斑大、功率密度低，适合拼缝容错与宽焊缝；负离焦（焦点在工件内部）熔深更大。实际常取微负离焦兼顾熔深与稳定性。"
+      }
+    }
+  ]
+}
 </script>
 
 <script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
+<meta property="og:site_name" content="ToolBox">
+<meta name="theme-color" content="#FF6B35">
 </head>
 <body>
 <h1 class="sr-only">激光焊接光斑计算</h1>
@@ -96,9 +119,9 @@
   <span class="bc-sep">‹</span>
   <a href="index.html">🔥 通用工程</a>
   <span class="bc-sep">‹</span>
-  <span class="bc-current">激光焊接光斑计算</span>
+  <span class="bc-current" aria-current="page">激光焊接光斑计算</span>
 </nav>
-<div class="container">
+<div class="container" role="main">
   <style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#3b82f6)}.tbk-tab.active{background:var(--accent,#3b82f6);color:#fff;border-color:var(--accent,#3b82f6)}.tbk-panel{margin-top:6px}</style>
 <div class="tbk-tabbar" role="tablist">
   <button type="button" class="tbk-tab" data-pane="res">结果</button>
@@ -115,14 +138,14 @@
     </div>
 <div class="input-row">
       <div><div data-tb="preset" data-tb-presets='[{"label":"激光功率P(W)2000·离焦量z(mm)0·光束质量M²…","labelEn":"power=2000 · defocus=0 · m2=1.2 · focal…","values":{"power":"2000","defocus":"0","m2":"1.2","focal":"120","lambda":"1070","beamD":"9"}}]'></div>
-<label>激光功率 P (W)</label><input type="number" id="power" value="2000" min="0" step="any" oninput="calc()" style="font-size:16px;" placeholder="如 2000"></div>
-      <div><label>离焦量 z (mm)</label><input type="number" id="defocus" value="0" step="any" oninput="calc()" style="font-size:16px;" placeholder="如 0"></div>
-      <div><label>光束质量 M²</label><input type="number" id="m2" value="1.2" min="1" step="any" oninput="calc()" style="font-size:16px;" placeholder="如 1.2"></div>
-      <div><label>焦距 f (mm)</label><input type="number" id="focal" value="120" min="0" step="any" oninput="calc()" style="font-size:16px;" placeholder="如 120"></div>
+<label for="power">激光功率 P (W)</label><input type="number" id="power" value="2000" min="0" step="any" oninput="calc()" style="font-size:16px;" placeholder="如 2000"></div>
+      <div><label for="defocus">离焦量 z (mm)</label><input type="number" id="defocus" value="0" step="any" oninput="calc()" style="font-size:16px;" placeholder="如 0"></div>
+      <div><label for="m2">光束质量 M²</label><input type="number" id="m2" value="1.2" min="1" step="any" oninput="calc()" style="font-size:16px;" placeholder="如 1.2"></div>
+      <div><label for="focal">焦距 f (mm)</label><input type="number" id="focal" value="120" min="0" step="any" oninput="calc()" style="font-size:16px;" placeholder="如 120"></div>
     </div>
     <div class="input-row">
-      <div><label>波长 λ (nm)</label><input type="number" id="lambda" value="1070" min="0" step="any" oninput="calc()" style="font-size:16px;" placeholder="如 1070"></div>
-      <div><label>聚焦前光束直径 D (mm)</label><input type="number" id="beamD" value="9" min="0" step="any" oninput="calc()" style="font-size:16px;" placeholder="如 9"></div>
+      <div><label for="lambda">波长 λ (nm)</label><input type="number" id="lambda" value="1070" min="0" step="any" oninput="calc()" style="font-size:16px;" placeholder="如 1070"></div>
+      <div><label for="beamD">聚焦前光束直径 D (mm)</label><input type="number" id="beamD" value="9" min="0" step="any" oninput="calc()" style="font-size:16px;" placeholder="如 9"></div>
     </div>
     <div class="toolbar">
       <button class="btn primary" type="button" onclick="calc();saveHistory()">🧮 计算</button>
@@ -135,7 +158,7 @@
   <h3 data-zh="📐 公式与标准引据">Formula &amp; Standard References</h3>
   <div style="overflow-x:auto;">
     <table style="width:100%;border-collapse:collapse;font-size:13px;">
-      <thead><tr><th style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;" data-zh="项目">Item</th><th style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;" data-zh="公式">Formula</th><th style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;" data-zh="来源 / 标准">Source / Standard</th></tr></thead>
+      <thead><tr><th style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;" data-zh="项目" scope="col">Item</th><th style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;" data-zh="公式" scope="col">Formula</th><th style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;" data-zh="来源 / 标准" scope="col">Source / Standard</th></tr></thead>
       <tbody>
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="束腰半径">Waist radius</td>

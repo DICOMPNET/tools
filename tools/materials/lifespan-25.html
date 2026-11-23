@@ -31,7 +31,7 @@
     <meta name="twitter:description" content="寿命计算器基于 Coffin-Manson 低周疲劳公式，结合冷却速率影响系数和材料线膨胀系数，计算快冷工况下材料的热疲劳寿命，为热处理工艺和快速冷却设备设计提供寿命参考">
 <!-- TOOLBOX-WEBAPP-LD -->
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebApplication","name":"快冷材料热疲劳","url":"https://tools.dicomp.net/tools/materials/lifespan-25.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"寿命计算器基于 Coffin-Manson 低周疲劳公式，结合冷却速率影响系数和材料线膨胀系数，计算快冷工况下材料的热疲劳寿命，为热处理工艺和快速冷却设备设计提供寿命参考","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+{"@context":"https://schema.org","@type":"WebApplication","name":"快冷材料热疲劳","url":"https://tools.dicomp.net/tools/materials/lifespan-25.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"寿命计算器基于 Coffin-Manson 低周疲劳公式，结合冷却速率影响系数和材料线膨胀系数，计算快冷工况下材料的热疲劳寿命，为热处理工艺和快速冷却设备设计提供寿命参考","image":"https://tools.dicomp.net/og-image.png","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
 </script>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
@@ -74,11 +74,34 @@
 <script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 <script type="application/ld+json">
-{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "快冷材料热疲劳 结果可用于直接报告吗？", "acceptedAnswer": {"@type": "Answer", "text": "快冷材料热疲劳 适合用于内部复核与说明，正式材料请附带口径、边界条件和输入范围说明。"}}, {"@type": "Question", "name": "结果看似异常，该怎么快速排查？", "acceptedAnswer": {"@type": "Answer", "text": "先核对是否有百分号/小数口径冲突，再检查是否触发了数学域外定义（如对数、开方、除零）。"}}]}
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "C 与 β 怎么取？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "β 通常在 −0.5~−0.7，金属材料常取 −0.6；C 是与材料、温度区间相关的标定常数，必须由热疲劳试验数据回归得到（本工具默认 1e5 只作量级参考），否则寿命绝对值会差几个数量级。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "为什么用温度幅值而不是塑性应变幅值？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "标准 Coffin-Manson 以塑性应变幅值为自变量；本工具用等效温度幅值作简化替代，便于快速比较不同冷却方案，但绝对值必须在标定 C 之后才可靠。"
+      }
+    }
+  ]
+}
 </script>
 
 <script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
+<meta property="og:site_name" content="ToolBox">
+<meta name="theme-color" content="#FF6B35">
 </head>
 <body>
 <h1 class="sr-only">快冷材料热疲劳</h1>
@@ -96,9 +119,9 @@
   <span class="bc-sep">‹</span>
   <a href="index.html">🧱 通用工程</a>
   <span class="bc-sep">‹</span>
-  <span class="bc-current">快冷材料热疲劳</span>
+  <span class="bc-current" aria-current="page">快冷材料热疲劳</span>
 </nav>
-<div class="container">
+<div class="container" role="main">
   <style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#3b82f6)}.tbk-tab.active{background:var(--accent,#3b82f6);color:#fff;border-color:var(--accent,#3b82f6)}.tbk-panel{margin-top:6px}</style>
 <div class="tbk-tabbar" role="tablist">
   <button type="button" class="tbk-tab" data-pane="res">结果</button>
@@ -115,9 +138,9 @@
     </div>
 <div class="input-row">
       <div><div data-tb="preset" data-tb-presets='[{"label":"冷却速率(℃/s)10·温度循环幅值ΔT(℃)300·标定…","labelEn":"vCool=10 · vDT=300 · vC=100000 · vBeta=…","values":{"vCool":"10","vDT":"300","vC":"100000","vBeta":"-0.6","vMat":"steel"}},{"label":"小规模","labelEn":"Small scale","values":{"vCool":"5"}},{"label":"大规模","labelEn":"Large scale","values":{"vCool":"15"}},{"label":"极端工况","labelEn":"Extreme case","values":{"vCool":"20"}}]'></div>
-<label>冷却速率 (℃/s)</label><input type="number" id="vCool" value="10" step="any" min="0" style="font-size:16px;" oninput="calc()" enterkeyhint="done" aria-label="冷却速率" placeholder="如 10"></div>
-      <div><label>温度循环幅值 ΔT (℃)</label><input type="number" id="vDT" value="300" step="any" min="0" style="font-size:16px;" oninput="calc()" enterkeyhint="done" aria-label="温度循环幅值" placeholder="如 300"></div>
-      <div><label>材料类型</label>
+<label for="vCool">冷却速率 (℃/s)</label><input type="number" id="vCool" value="10" step="any" min="0" style="font-size:16px;" oninput="calc()" enterkeyhint="done" aria-label="冷却速率" placeholder="如 10"></div>
+      <div><label for="vDT">温度循环幅值 ΔT (℃)</label><input type="number" id="vDT" value="300" step="any" min="0" style="font-size:16px;" oninput="calc()" enterkeyhint="done" aria-label="温度循环幅值" placeholder="如 300"></div>
+      <div><label for="vMat">材料类型</label>
         <select id="vMat" style="font-size:16px;" onchange="calc()">
           <option value="steel" selected>碳钢</option>
           <option value="alloy">合金钢</option>
@@ -127,8 +150,8 @@
       </div>
     </div>
     <div class="input-row">
-      <div><label>标定常数 C</label><input type="number" id="vC" value="100000" step="any" style="font-size:16px;" oninput="calc()" enterkeyhint="done" aria-label="标定常数" placeholder="如 100000"></div>
-      <div><label>疲劳延性指数 β</label><input type="number" id="vBeta" value="-0.6" step="0.01" style="font-size:16px;" oninput="calc()" enterkeyhint="done" aria-label="疲劳延性指数" placeholder="如 -0.6"></div>
+      <div><label for="vC">标定常数 C</label><input type="number" id="vC" value="100000" step="any" style="font-size:16px;" oninput="calc()" enterkeyhint="done" aria-label="标定常数" placeholder="如 100000"></div>
+      <div><label for="vBeta">疲劳延性指数 β</label><input type="number" id="vBeta" value="-0.6" step="0.01" style="font-size:16px;" oninput="calc()" enterkeyhint="done" aria-label="疲劳延性指数" placeholder="如 -0.6"></div>
     </div>
     <div class="toolbar">
       <button class="btn primary" type="button" onclick="calc();saveHistory()">🧮 计算</button>
@@ -143,9 +166,9 @@
       <div style="overflow-x:auto;">
         <table style="width:100%;border-collapse:collapse;font-size:13px;">
           <thead><tr>
-            <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="项目">Item</th>
-            <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="公式 / 说明">Formula / Note</th>
-            <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="出处 / 标准">Source / Standard</th>
+            <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="项目" scope="col">Item</th>
+            <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="公式 / 说明" scope="col">Formula / Note</th>
+            <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="出处 / 标准" scope="col">Source / Standard</th>
           </tr></thead>
           <tbody>
             <tr>

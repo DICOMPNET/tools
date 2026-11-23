@@ -31,7 +31,7 @@
     <meta name="twitter:description" content="计算器根据螺栓规格（M6-M30）、强度等级（4.8-12.9级）和受力状态（拉伸/剪切/复合），校核螺栓在给定载荷下是否满足强度要求，计算应力利用率并给出设计建议">
 <!-- TOOLBOX-WEBAPP-LD -->
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebApplication","name":"紧固件强度校核","url":"https://tools.dicomp.net/tools/machinery/strength-34.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"计算器根据螺栓规格（M6-M30）、强度等级（4.8-12.9级）和受力状态（拉伸/剪切/复合），校核螺栓在给定载荷下是否满足强度要求，计算应力利用率并给出设计建议","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+{"@context":"https://schema.org","@type":"WebApplication","name":"紧固件强度校核","url":"https://tools.dicomp.net/tools/machinery/strength-34.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"计算器根据螺栓规格（M6-M30）、强度等级（4.8-12.9级）和受力状态（拉伸/剪切/复合），校核螺栓在给定载荷下是否满足强度要求，计算应力利用率并给出设计建议","image":"https://tools.dicomp.net/og-image.png","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
 </script>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
@@ -74,11 +74,34 @@
 <script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 <script type="application/ld+json">
-{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "紧固件强度校核 结果可用于直接报告吗？", "acceptedAnswer": {"@type": "Answer", "text": "紧固件强度校核 适合用于内部复核与说明，正式材料请附带口径、边界条件和输入范围说明。"}}, {"@type": "Question", "name": "结果看似异常，该怎么快速排查？", "acceptedAnswer": {"@type": "Answer", "text": "先核对是否有百分号/小数口径冲突，再检查是否触发了数学域外定义（如对数、开方、除零）。"}}]}
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "8.8 级的屈服强度为什么取 640MPa？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "8.8 级螺栓的公称屈服强度为 640MPa（即 8×8×10），抗拉强度 800MPa。本工具直接以输入的强度等级数值作为屈服应力，因此选 8.8 级时应填 640，选 10.9 级填 900。查阅 GB/T 3098.1 可确认具体牌号的保证应力与屈服强度。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "为什么没考虑预紧力和疲劳？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "本工具是简化静强度校核，只算外载荷产生的平均应力。实际受拉螺栓连接中预紧力会显著改变螺栓与被连接件的受力分配，交变载荷下还需做疲劳校核，重要连接应按 VDI 2230 等规范进行详细计算。"
+      }
+    }
+  ]
+}
 </script>
 
 <script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
+<meta property="og:site_name" content="ToolBox">
+<meta name="theme-color" content="#FF6B35">
 </head>
 <body>
 <h1 class="sr-only">紧固件强度校核</h1>
@@ -96,9 +119,9 @@
   <span class="bc-sep">‹</span>
   <a href="index.html">⚙️ 通用工程</a>
   <span class="bc-sep">‹</span>
-  <span class="bc-current">紧固件强度校核</span>
+  <span class="bc-current" aria-current="page">紧固件强度校核</span>
 </nav>
-<div class="container">
+<div class="container" role="main">
 <div class="tool-guide-link" data-guide-link="1">
   <a href="../../guides/strength-34-guide.html">📖 查看「紧固件强度校核（螺栓拉伸/剪切与组合应力）使用指南」</a>
 </div>
@@ -127,7 +150,7 @@
 
     <div class="input-row">
       <div><div data-tb="preset" data-tb-presets='[{"label":"轴向力F(kN)20·剪切力V(kN)0·安全系数[n]1…","labelEn":"vForce=20 · vShear=0 · vSafety=1.5 · vS…","values":{"vForce":"20","vShear":"0","vSafety":"1.5","vSize":"10","vGrade":"640","vLoad":"tension"}}]'></div>
-<label>螺栓规格</label>
+<label for="vSize">螺栓规格</label>
         <select id="vSize" style="font-size:16px;" onchange="calc()">
           <option value="6">M6</option><option value="8">M8</option><option value="10" selected>M10</option>
           <option value="12">M12</option><option value="14">M14</option><option value="16">M16</option>
@@ -135,13 +158,13 @@
           <option value="24">M24</option><option value="27">M27</option><option value="30">M30</option>
         </select>
       </div>
-      <div><label>强度等级</label>
+      <div><label for="vGrade">强度等级</label>
         <select id="vGrade" style="font-size:16px;" onchange="calc()">
           <option value="320">4.8级</option><option value="400">5.8级</option><option value="480">6.8级</option>
           <option value="640" selected>8.8级</option><option value="900">10.9级</option><option value="1080">12.9级</option>
         </select>
       </div>
-      <div><label>受力状态</label>
+      <div><label for="vLoad">受力状态</label>
         <select id="vLoad" style="font-size:16px;" onchange="calc()">
           <option value="tension" selected>轴向拉伸</option>
           <option value="shear">横向剪切</option>
@@ -150,9 +173,9 @@
       </div>
     </div>
     <div class="input-row">
-      <div><label>轴向力 F (kN)</label><input type="number" id="vForce" value="20" step="any" min="0" style="font-size:16px;" oninput="calc()" enterkeyhint="done" aria-label="轴向力" placeholder="如 20"></div>
-      <div><label>剪切力 V (kN)</label><input type="number" id="vShear" value="0" step="any" min="0" style="font-size:16px;" oninput="calc()" enterkeyhint="done" aria-label="剪切力" placeholder="如 0"></div>
-      <div><label>安全系数 [n]</label><input type="number" id="vSafety" value="1.5" step="0.1" style="font-size:16px;" oninput="calc()" enterkeyhint="done" aria-label="安全系数" placeholder="如 1.5"></div>
+      <div><label for="vForce">轴向力 F (kN)</label><input type="number" id="vForce" value="20" step="any" min="0" style="font-size:16px;" oninput="calc()" enterkeyhint="done" aria-label="轴向力" placeholder="如 20"></div>
+      <div><label for="vShear">剪切力 V (kN)</label><input type="number" id="vShear" value="0" step="any" min="0" style="font-size:16px;" oninput="calc()" enterkeyhint="done" aria-label="剪切力" placeholder="如 0"></div>
+      <div><label for="vSafety">安全系数 [n]</label><input type="number" id="vSafety" value="1.5" step="0.1" style="font-size:16px;" oninput="calc()" enterkeyhint="done" aria-label="安全系数" placeholder="如 1.5"></div>
     </div>
     <div class="toolbar">
       <button class="btn primary" type="button" onclick="calc();saveHistory()">🧮 计算</button>
@@ -168,9 +191,9 @@
   <div style="overflow-x:auto;">
     <table style="width:100%;border-collapse:collapse;font-size:13px;">
       <thead><tr>
-        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="项目">Item</th>
-        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="标准 / 出处">Standard / Source</th>
-        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="要点">Key Point</th>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="项目" scope="col">Item</th>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="标准 / 出处" scope="col">Standard / Source</th>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="要点" scope="col">Key Point</th>
       </tr></thead>
       <tbody>
         <tr><td data-zh="紧固件机械性能">Fastener mechanical properties</td><td>GB/T 3098.1 (adopted from ISO 898-1)</td><td data-zh="8.8/10.9 等级屈服强度与抗拉强度校核">Yield/tensile strength check for property classes 8.8/10.9 etc.</td></tr>

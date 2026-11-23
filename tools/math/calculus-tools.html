@@ -40,7 +40,36 @@
 
 
 <script type="application/ld+json">
-{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "数值求导的误差来源？", "acceptedAnswer": {"@type": "Answer", "text": "主要来自步长 h：h 过大截断误差大，h 过小舍入误差放大。中心差分比前向差分精度高一个量级，常用 h≈1e-5 平衡两类误差。"}}, {"@type": "Question", "name": "梯形法积分精度如何？", "acceptedAnswer": {"@type": "Answer", "text": "梯形法误差约 O(1/n²)，n 越大越准。对平滑函数足够；对有尖点/奇点的函数需分段或换更优方法（辛普森）。本工具固定 n=1000。"}}]}
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "数值求导的误差来源？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "主要来自步长 h：h 过大截断误差大，h 过小舍入误差放大。中心差分比前向差分精度高一个量级，常用 h≈1e-5 平衡两类误差。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "梯形法积分精度如何？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "梯形法误差约 O(1/n²)，n 越大越准。对平滑函数足够；对有尖点/奇点的函数需分段或换更优方法（辛普森）。本工具固定 n=1000。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "为什么极限不直接代入 x=0？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "极限描述的是趋近行为而不是该点的取值。f 在 0 处可以无定义却仍有极限（如 sin(x)/x → 1），所以本工具只在 x=±1e-6 两侧对称采样，两侧结果接近才认为极限存在；1/x 这类两侧发散到 ±∞ 的判为不存在。"
+      }
+    }
+  ]
+}
 </script>
 
 <script type="application/ld+json">
@@ -48,7 +77,7 @@
 </script>
 <!-- TOOLBOX-WEBAPP-LD -->
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebApplication","name":"微积分工具","url":"https://tools.dicomp.net/tools/math/calculus-tools.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"微积分工具是一款免费的在线数学计算工具，集支持函数求导、不定积分、极限与级数展开计算，输入表达式实时输出结果，适合高等数学学习、作业验算与工程函数分析","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+{"@context":"https://schema.org","@type":"WebApplication","name":"微积分工具","url":"https://tools.dicomp.net/tools/math/calculus-tools.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"微积分工具是一款免费的在线数学计算工具，集支持函数求导、不定积分、极限与级数展开计算，输入表达式实时输出结果，适合高等数学学习、作业验算与工程函数分析","image":"https://tools.dicomp.net/og-image.png","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
 </script>
 <meta property="og:image" content="https://tools.dicomp.net/og-image.png">
 <meta property="og:image:width" content="1200">
@@ -97,6 +126,7 @@
 
 <script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
+<meta property="og:site_name" content="ToolBox">
 </head>
 <body>
 <h1 class="sr-only">微积分工具</h1>
@@ -115,9 +145,9 @@
   <span class="bc-sep">‹</span>
   <a href="index.html">🧮 数学计算</a>
   <span class="bc-sep">‹</span>
-  <span class="bc-current">微积分工具</span>
+  <span class="bc-current" aria-current="page">微积分工具</span>
 </nav>
-<div class="container">
+<div class="container" role="main">
 <div class="tool-guide-link" data-guide-link="1">
   <a href="../../guides/calculus-tools-guide.html">📖 查看「微积分工具 使用指南」</a>
 </div>
@@ -142,12 +172,12 @@
     <div class="func-grid" id="funcGrid"></div>
 
     <div class="input-row">
-      <label>函数 f(x)</label>
+      <label for="func">函数 f(x)</label>
       <input type="text" class="func-input" id="func" value="x^3 - 2*x + 1">
     </div>
 
     <div class="input-row">
-      <label>操作</label>
+      <label for="op">操作</label>
       <select id="op">
         <option value="deriv">求导 f'(x)</option>
         <option value="integrate">定积分 ∫f(x)dx</option>
@@ -159,14 +189,14 @@
     </div>
 
     <div class="input-row" id="rangeInputs">
-      <label>积分下限 a</label>
+      <label for="a">积分下限 a</label>
       <input type="number" id="a" value="0" step="0.1" placeholder="如 0">
-      <label>积分上限 b</label>
+      <label for="b">积分上限 b</label>
       <input type="number" id="b" value="2" step="0.1" placeholder="如 2">
     </div>
 
     <div class="input-row">
-      <label>求值点 x₀</label>
+      <label for="x0">求值点 x₀</label>
       <input type="number" id="x0" value="1" step="0.1" placeholder="如 1">
     </div>
 
@@ -225,7 +255,7 @@
   <h3 data-zh="📐 公式与标准引据">Formula &amp; Standard References</h3>
   <div style="overflow-x:auto;">
     <table style="width:100%;border-collapse:collapse;font-size:13px;">
-      <thead><tr><th style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;" data-zh="项目">Item</th><th style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;" data-zh="公式">Formula</th><th style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;" data-zh="来源 / 标准">Source / Standard</th></tr></thead>
+      <thead><tr><th style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;" data-zh="项目" scope="col">Item</th><th style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;" data-zh="公式" scope="col">Formula</th><th style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;" data-zh="来源 / 标准" scope="col">Source / Standard</th></tr></thead>
       <tbody>
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="导数">Derivative</td>
@@ -741,7 +771,7 @@ else document.addEventListener('DOMContentLoaded', __calculus_toolsBoot);
   </div>
   <div class="tool-intro-body">
     <h4><span class="h4-icon">📝</span>工具简介</h4>
-    <p>微积分工具是一款数学计算领域的在线工具。数学计算工具，支持多种参数，计算精准。</p>
+    <p data-zh="集支持函数求导、不定积分、极限与级数展开计算，输入表达式实时输出结果，适合高等数学学习、作业验算与工程函数分析">集支持函数求导、不定积分、极限与级数展开计算，输入表达式实时输出结果，适合高等数学学习、作业验算与工程函数分析</p>
     <h4><span class="h4-icon">✨</span>功能特点</h4>
     <ul class="intro-features">
       <li>采用标准数学公式</li>

@@ -39,18 +39,26 @@
   "mainEntity": [
     {
       "@type": "Question",
-      "name": "48V 和 12V 怎么共存？",
+      "name": "汽车发电机的调节电压多少算正常？",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "通过 DC-DC 转换器互联，48V 驱动轻混电机与大功率附件，12V 供传统电器。两者隔离又互补，提升节能与启停平顺。"
+        "text": "多数 12 V 系统在发动机运转、中等转速且负载不大时，蓄电池两端电压在 13.8~14.4 V 之间属正常，部分车型为照顾电池寿命会控制在 13.5~14.0 V，冬季或亏电后可能短时升到 14.5~14.8 V。低于 13.2 V 往往充不满，高于 15.0 V 则有过度充电与电解液失水风险，两者都应检查调节器与搭铁。"
       }
     },
     {
       "@type": "Question",
-      "name": "压降过大会怎样？",
+      "name": "为什么怠速时充电电流很小甚至为负？",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "末端电压不足致设备工作异常、发热加剧。按电流选线径、缩短走线、保证搭铁可靠，可将压降控制在 3% 内。"
+        "text": "发电机输出与转速相关，低于切入转速时输出不足以覆盖整车用电，缺口由蓄电池补充，此时电流表读数接近零或为负。怠速时发电机通常只能提供 30%~50% 的额定电流，因此长时间怠速开着大灯、空调与音响会净放电瓶电量。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "线路压降多少算过大？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "一般建议整车供电线路在额定负载下压降不超过 3%（约 0.4 V），大灯、起动机等大电流回路可放宽到 5%。压降偏大常见于线径偏细、接头氧化、搭铁点锈蚀或走线过长。排查时应在带载状态下测量，空载测量的电压无法反映真实压降。"
       }
     }
   ]
@@ -71,7 +79,7 @@
 </script>
 <!-- TOOLBOX-WEBAPP-LD -->
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebApplication","name":"发电机电压调节","url":"https://tools.dicomp.net/tools/automotive/voltage-2.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"发电机电压调节是一款免费的在线汽车交通工具，输入发动机转速、发电机规格与电池状态，计算输出电压、充电电流与调节器工作状态。充电指示灯偶亮或电瓶频繁亏电时，核算调节器目标电压与实际充电电流是否正常。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+{"@context":"https://schema.org","@type":"WebApplication","name":"发电机电压调节","url":"https://tools.dicomp.net/tools/automotive/voltage-2.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"发电机电压调节是一款免费的在线汽车交通工具，输入发动机转速、发电机规格与电池状态，计算输出电压、充电电流与调节器工作状态。充电指示灯偶亮或电瓶频繁亏电时，核算调节器目标电压与实际充电电流是否正常。","image":"https://tools.dicomp.net/og-image.png","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
 </script>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
@@ -100,6 +108,8 @@
 
 <script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
+<meta property="og:site_name" content="ToolBox">
+<meta name="theme-color" content="#FF6B35">
 </head>
 <body>
 <h1 class="sr-only">发电机电压调节</h1>
@@ -113,9 +123,9 @@
   <span class="bc-sep">‹</span>
   <a href="index.html">🚗 汽车交通</a>
   <span class="bc-sep">‹</span>
-  <span class="bc-current">发电机电压调节</span>
+  <span class="bc-current" aria-current="page">发电机电压调节</span>
 </nav>
-<div class="container">
+<div class="container" role="main">
   <style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#3b82f6)}.tbk-tab.active{background:var(--accent,#3b82f6);color:#fff;border-color:var(--accent,#3b82f6)}.tbk-panel{margin-top:6px}</style>
 <div class="tbk-tabbar" role="tablist">
   <button type="button" class="tbk-tab" data-pane="res">结果</button>
@@ -127,24 +137,24 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="输入发动机转速、发电机规格与电池状态，计算输出电压、充电电流与调节器工作状态。">Input engine RPM, alternator specs, and battery state to compute output voltage, charging current, and regulator operating status.</p>
     <div class="input-row">
       <div><div data-tb="preset" data-tb-presets='[{"label":"系统标称电压(V)12·调节器目标电压(V)14.4·发电…","labelEn":"volt=12 · vreg=14.4 · cutin=700 · rpm=2…","values":{"volt":"12","vreg":"14.4","cutin":"700","rpm":"2500","vbat":"12.4","rloop":"0.08","load":"10","len":"5","area":"2.5","mat":"0.0175"}}]'></div>
-<label>系统标称电压 (V)</label><input type="number" id="volt" value="12" oninput="calc()" min="1" step="0.1" placeholder="如 12"></div>
-      <div><label>调节器目标电压 (V)</label><input type="number" id="vreg" value="14.4" oninput="calc()" min="1" step="0.1" placeholder="如 14.4"></div>
+<label for="volt">系统标称电压 (V)</label><input type="number" id="volt" value="12" oninput="calc()" min="1" step="0.1" placeholder="如 12"></div>
+      <div><label for="vreg">调节器目标电压 (V)</label><input type="number" id="vreg" value="14.4" oninput="calc()" min="1" step="0.1" placeholder="如 14.4"></div>
     </div>
     <div class="input-row">
-      <div><label>发电机切入转速 (rpm，按发动机转速折算)</label><input type="number" id="cutin" value="700" oninput="calc()" min="100" step="50" placeholder="如 700"></div>
-      <div><label>当前发动机转速 (rpm)</label><input type="number" id="rpm" value="2500" oninput="calc()" min="0" step="50" placeholder="如 2500"></div>
+      <div><label for="cutin">发电机切入转速 (rpm，按发动机转速折算)</label><input type="number" id="cutin" value="700" oninput="calc()" min="100" step="50" placeholder="如 700"></div>
+      <div><label for="rpm">当前发动机转速 (rpm)</label><input type="number" id="rpm" value="2500" oninput="calc()" min="0" step="50" placeholder="如 2500"></div>
     </div>
     <div class="input-row">
-      <div><label>电池静态电压 (V)</label><input type="number" id="vbat" value="12.4" oninput="calc()" min="0" step="0.1" placeholder="如 12.4"></div>
-      <div><label>充电回路总电阻 (Ω)</label><input type="number" id="rloop" value="0.08" oninput="calc()" min="0.001" step="0.001" placeholder="如 0.08"></div>
+      <div><label for="vbat">电池静态电压 (V)</label><input type="number" id="vbat" value="12.4" oninput="calc()" min="0" step="0.1" placeholder="如 12.4"></div>
+      <div><label for="rloop">充电回路总电阻 (Ω)</label><input type="number" id="rloop" value="0.08" oninput="calc()" min="0.001" step="0.001" placeholder="如 0.08"></div>
     </div>
     <div class="input-row">
-      <div><label>负载电流 (A)</label><input type="number" id="load" value="10" oninput="calc()" min="0" step="1" placeholder="如 10"></div>
-      <div><label>供电线长度 (m，单程)</label><input type="number" id="len" value="5" oninput="calc()" min="0" step="0.5" placeholder="如 5"></div>
+      <div><label for="load">负载电流 (A)</label><input type="number" id="load" value="10" oninput="calc()" min="0" step="1" placeholder="如 10"></div>
+      <div><label for="len">供电线长度 (m，单程)</label><input type="number" id="len" value="5" oninput="calc()" min="0" step="0.5" placeholder="如 5"></div>
     </div>
     <div class="input-row">
-      <div><label>供电线线径 (mm²)</label><input type="number" id="area" value="2.5" oninput="calc()" min="0.1" step="0.1" placeholder="如 2.5"></div>
-      <div><label>线材</label>
+      <div><label for="area">供电线线径 (mm²)</label><input type="number" id="area" value="2.5" oninput="calc()" min="0.1" step="0.1" placeholder="如 2.5"></div>
+      <div><label for="mat">线材</label>
         <select id="mat" onchange="calc()">
           <option value="0.0175">铜（ρ=0.0175）</option>
           <option value="0.0282">铝（ρ=0.0282）</option>
@@ -160,9 +170,9 @@
     <h3>🔋 电池荷电状态对照（12V 单块口径，24V/48V 整组电压按单块折算）</h3>
     <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:12px;">
       <tr>
-        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border,#e5e7eb);">静态电压</th>
-        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border,#e5e7eb);">荷电状态</th>
-        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border,#e5e7eb);">说明</th>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border,#e5e7eb);" scope="col">静态电压</th>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border,#e5e7eb);" scope="col">荷电状态</th>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border,#e5e7eb);" scope="col">说明</th>
       </tr>
       <tr><td style="padding:6px 8px;">≥ 12.66 V</td><td style="padding:6px 8px;">100%（满电）</td><td style="padding:6px 8px;">静置 2h 后测量</td></tr>
       <tr><td style="padding:6px 8px;">12.45 V</td><td style="padding:6px 8px;">约 75%</td><td style="padding:6px 8px;">正常使用区间</td></tr>
@@ -222,9 +232,9 @@
   <div style="overflow-x:auto;">
     <table style="width:100%;border-collapse:collapse;font-size:13px;">
       <thead><tr>
-        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="项目">Item</th>
-        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="公式 / 说明">Formula / Note</th>
-        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="出处 / 标准">Source / Standard</th>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="项目" scope="col">Item</th>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="公式 / 说明" scope="col">Formula / Note</th>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="出处 / 标准" scope="col">Source / Standard</th>
       </tr></thead>
       <tbody>
         <tr>

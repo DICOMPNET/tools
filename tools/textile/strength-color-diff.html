@@ -31,7 +31,7 @@
     <meta name="twitter:description" content="色差质量评估计算器，依据标准样与试样的 CIE Lab 色度值，计算 ΔE 总色差及明度、饱和度、色相分量差，并按灰卡标准评定色牢度等级与合格性">
 <!-- TOOLBOX-WEBAPP-LD -->
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebApplication","name":"色差强度质量评估","url":"https://tools.dicomp.net/tools/textile/strength-color-diff.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"色差质量评估计算器，依据标准样与试样的 CIE Lab 色度值，计算 ΔE 总色差及明度、饱和度、色相分量差，并按灰卡标准评定色牢度等级与合格性","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+{"@context":"https://schema.org","@type":"WebApplication","name":"色差强度质量评估","url":"https://tools.dicomp.net/tools/textile/strength-color-diff.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"色差质量评估计算器，依据标准样与试样的 CIE Lab 色度值，计算 ΔE 总色差及明度、饱和度、色相分量差，并按灰卡标准评定色牢度等级与合格性","image":"https://tools.dicomp.net/og-image.png","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
 </script>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
@@ -74,11 +74,34 @@
 <script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 <script type="application/ld+json">
-{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "色差强度质量评估 结果可用于直接报告吗？", "acceptedAnswer": {"@type": "Answer", "text": "色差强度质量评估 适合用于内部复核与说明，正式材料请附带口径、边界条件和输入范围说明。"}}, {"@type": "Question", "name": "结果看似异常，该怎么快速排查？", "acceptedAnswer": {"@type": "Answer", "text": "先核对是否有百分号/小数口径冲突，再检查是否触发了数学域外定义（如对数、开方、除零）。"}}]}
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "ΔE 用 CIE76 会不会不够准？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "CIE76 是 Lab 空间中的欧氏距离，计算简单但在高饱和蓝、绿色区与肉眼感受偏差较大。对色要求高的场景推荐 CIEDE2000（ΔE₀₀），它引入了明度、彩度、色相的权重函数与旋转项。本工具给出的是行业仍在广泛使用的 ΔE*ab，便于与多数客户标准对接。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "灰卡等级与 ΔE 的对应是标准的吗？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "灰卡色牢度评级本质是目光比对，ISO 105-A02 规定了标准灰卡，ΔE 只是近似的量化换算，不同行业采用的换算表略有差异。出具正式报告时应以灰卡实物比评为依据，本结果用于快速预判。"
+      }
+    }
+  ]
+}
 </script>
 
 <script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
+<meta property="og:site_name" content="ToolBox">
+<meta name="theme-color" content="#FF6B35">
 </head>
 <body>
 <h1 class="sr-only">色差强度质量评估</h1>
@@ -96,9 +119,9 @@
   <span class="bc-sep">‹</span>
   <a href="index.html">🧵 通用工程</a>
   <span class="bc-sep">‹</span>
-  <span class="bc-current">色差强度质量评估</span>
+  <span class="bc-current" aria-current="page">色差强度质量评估</span>
 </nav>
-<div class="container">
+<div class="container" role="main">
   <style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#3b82f6)}.tbk-tab.active{background:var(--accent,#3b82f6);color:#fff;border-color:var(--accent,#3b82f6)}.tbk-panel{margin-top:6px}</style>
 <div class="tbk-tabbar" role="tablist">
   <button type="button" class="tbk-tab" data-pane="res">结果</button>
@@ -115,17 +138,17 @@
     </div>
 <div class="input-row">
       <div><div data-tb="preset" data-tb-presets='[{"label":"标准样L*50·标准样a*20·标准样b*10·试样L*5…","labelEn":"L1=50 · a1=20 · b1=10 · L2=52 · a2=18 ·…","values":{"L1":"50","a1":"20","b1":"10","L2":"52","a2":"18","b2":"13","tol":"1.5"}}]'></div>
-<label>标准样 L*</label><input type="number" id="L1" value="50" step="any" oninput="calc()" style="font-size:16px;" placeholder="如 50"></div>
-      <div><label>标准样 a*</label><input type="number" id="a1" value="20" step="any" oninput="calc()" style="font-size:16px;" placeholder="如 20"></div>
-      <div><label>标准样 b*</label><input type="number" id="b1" value="10" step="any" oninput="calc()" style="font-size:16px;" placeholder="如 10"></div>
+<label for="L1">标准样 L*</label><input type="number" id="L1" value="50" step="any" oninput="calc()" style="font-size:16px;" placeholder="如 50"></div>
+      <div><label for="a1">标准样 a*</label><input type="number" id="a1" value="20" step="any" oninput="calc()" style="font-size:16px;" placeholder="如 20"></div>
+      <div><label for="b1">标准样 b*</label><input type="number" id="b1" value="10" step="any" oninput="calc()" style="font-size:16px;" placeholder="如 10"></div>
     </div>
     <div class="input-row">
-      <div><label>试样 L*</label><input type="number" id="L2" value="52" step="any" oninput="calc()" style="font-size:16px;" placeholder="如 52"></div>
-      <div><label>试样 a*</label><input type="number" id="a2" value="18" step="any" oninput="calc()" style="font-size:16px;" placeholder="如 18"></div>
-      <div><label>试样 b*</label><input type="number" id="b2" value="13" step="any" oninput="calc()" style="font-size:16px;" placeholder="如 13"></div>
+      <div><label for="L2">试样 L*</label><input type="number" id="L2" value="52" step="any" oninput="calc()" style="font-size:16px;" placeholder="如 52"></div>
+      <div><label for="a2">试样 a*</label><input type="number" id="a2" value="18" step="any" oninput="calc()" style="font-size:16px;" placeholder="如 18"></div>
+      <div><label for="b2">试样 b*</label><input type="number" id="b2" value="13" step="any" oninput="calc()" style="font-size:16px;" placeholder="如 13"></div>
     </div>
     <div class="input-row">
-      <div><label>合格 ΔE 阈值</label><input type="number" id="tol" value="1.5" min="0" step="any" oninput="calc()" style="font-size:16px;" placeholder="如 1.5"></div>
+      <div><label for="tol">合格 ΔE 阈值</label><input type="number" id="tol" value="1.5" min="0" step="any" oninput="calc()" style="font-size:16px;" placeholder="如 1.5"></div>
     </div>
     <div class="toolbar">
       <button class="btn primary" type="button" onclick="calc();saveHistory()">🧮 计算</button>
@@ -141,9 +164,9 @@
     <table style="width:100%;border-collapse:collapse;font-size:13px;">
       <thead>
         <tr>
-          <th style="padding:6px 8px;border-bottom:1px solid var(--border);font-weight:600;" data-zh="项目">Item</th>
-          <th style="padding:6px 8px;border-bottom:1px solid var(--border);font-weight:600;" data-zh="公式 / 判定规则">Formula / Rule</th>
-          <th style="padding:6px 8px;border-bottom:1px solid var(--border);font-weight:600;" data-zh="出处 / 标准">Source / Standard</th>
+          <th style="padding:6px 8px;border-bottom:1px solid var(--border);font-weight:600;" data-zh="项目" scope="col">Item</th>
+          <th style="padding:6px 8px;border-bottom:1px solid var(--border);font-weight:600;" data-zh="公式 / 判定规则" scope="col">Formula / Rule</th>
+          <th style="padding:6px 8px;border-bottom:1px solid var(--border);font-weight:600;" data-zh="出处 / 标准" scope="col">Source / Standard</th>
         </tr>
       </thead>
       <tbody>

@@ -31,7 +31,7 @@
     <meta name="twitter:description" content="计算器根据负载力、行程、动作时间和安全系数，计算选型推力并匹配标准推力规格，同时估算电机功率和运动速度，支持丝杠推杆、齿轮齿条和蜗轮丝杠三种类型">
 <!-- TOOLBOX-WEBAPP-LD -->
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebApplication","name":"执行器选型","url":"https://tools.dicomp.net/tools/machinery/torque-motion.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"计算器根据负载力、行程、动作时间和安全系数，计算选型推力并匹配标准推力规格，同时估算电机功率和运动速度，支持丝杠推杆、齿轮齿条和蜗轮丝杠三种类型","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+{"@context":"https://schema.org","@type":"WebApplication","name":"执行器选型","url":"https://tools.dicomp.net/tools/machinery/torque-motion.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"计算器根据负载力、行程、动作时间和安全系数，计算选型推力并匹配标准推力规格，同时估算电机功率和运动速度，支持丝杠推杆、齿轮齿条和蜗轮丝杠三种类型","image":"https://tools.dicomp.net/og-image.png","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
 </script>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
@@ -74,11 +74,34 @@
 <script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 <script type="application/ld+json">
-{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "执行器选型 结果可用于直接报告吗？", "acceptedAnswer": {"@type": "Answer", "text": "执行器选型 适合用于内部复核与说明，正式材料请附带口径、边界条件和输入范围说明。"}}, {"@type": "Question", "name": "结果看似异常，该怎么快速排查？", "acceptedAnswer": {"@type": "Answer", "text": "先核对是否有百分号/小数口径冲突，再检查是否触发了数学域外定义（如对数、开方、除零）。"}}]}
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "电机功率为什么要再乘一次安全系数？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "选型推力已乘过安全系数，功率计算再乘一次是计入加速段惯性力、摩擦波动与电压跌落等因素。若电机样本已按 S1/S3 工作制给出额定值，可结合占空比适当回收这部分余量，避免电机长期在低负载率下运行、效率偏低。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "丝杠转速限制指什么？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "滚珠丝杠有临界转速（与丝杠长度、直径和支承方式有关），超过后会发生共振弯曲；同时还有 DN 值（丝杠直径×转速）上限，通常不超过 70000。速度超过 50mm/s 时应校核这两项，必要时加大导程或改用齿轮齿条。"
+      }
+    }
+  ]
+}
 </script>
 
 <script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
+<meta property="og:site_name" content="ToolBox">
+<meta name="theme-color" content="#FF6B35">
 </head>
 <body>
 <h1 class="sr-only">执行器选型</h1>
@@ -96,9 +119,9 @@
   <span class="bc-sep">‹</span>
   <a href="index.html">⚙️ 通用工程</a>
   <span class="bc-sep">‹</span>
-  <span class="bc-current">执行器选型</span>
+  <span class="bc-current" aria-current="page">执行器选型</span>
 </nav>
-<div class="container">
+<div class="container" role="main">
   <style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#3b82f6)}.tbk-tab.active{background:var(--accent,#3b82f6);color:#fff;border-color:var(--accent,#3b82f6)}.tbk-panel{margin-top:6px}</style>
 <div class="tbk-tabbar" role="tablist">
   <button type="button" class="tbk-tab" data-pane="res">结果</button>
@@ -114,13 +137,13 @@
     </div>
 <div class="input-row">
       <div><div data-tb="preset" data-tb-presets='[{"label":"负载力F(N)2000·行程S(mm)300·动作时间t(…","labelEn":"vF=2000 · vS=300 · vT=10 · vSF=1.5 · vT…","values":{"vF":"2000","vS":"300","vT":"10","vSF":"1.5","vType":"0.7"}}]'></div>
-<label>负载力 F (N)</label><input type="number" id="vF" value="2000" step="any" style="font-size:16px;" oninput="calc()" enterkeyhint="done" placeholder="如 2000"></div>
-      <div><label>行程 S (mm)</label><input type="number" id="vS" value="300" step="any" style="font-size:16px;" oninput="calc()" enterkeyhint="done" placeholder="如 300"></div>
-      <div><label>动作时间 t (s)</label><input type="number" id="vT" value="10" step="any" style="font-size:16px;" oninput="calc()" enterkeyhint="done" placeholder="如 10"></div>
+<label for="vF">负载力 F (N)</label><input type="number" id="vF" value="2000" step="any" style="font-size:16px;" oninput="calc()" enterkeyhint="done" placeholder="如 2000"></div>
+      <div><label for="vS">行程 S (mm)</label><input type="number" id="vS" value="300" step="any" style="font-size:16px;" oninput="calc()" enterkeyhint="done" placeholder="如 300"></div>
+      <div><label for="vT">动作时间 t (s)</label><input type="number" id="vT" value="10" step="any" style="font-size:16px;" oninput="calc()" enterkeyhint="done" placeholder="如 10"></div>
     </div>
     <div class="input-row">
-      <div><label>安全系数</label><input type="number" id="vSF" value="1.5" step="any" style="font-size:16px;" oninput="calc()" enterkeyhint="done" placeholder="如 1.5"></div>
-      <div><label>执行器类型</label>
+      <div><label for="vSF">安全系数</label><input type="number" id="vSF" value="1.5" step="any" style="font-size:16px;" oninput="calc()" enterkeyhint="done" placeholder="如 1.5"></div>
+      <div><label for="vType">执行器类型</label>
         <select id="vType" style="font-size:16px;" onchange="calc()">
           <option value="0.7" selected>丝杠电动推杆（η=70%）</option>
           <option value="0.85">齿轮齿条（η=85%）</option>
@@ -141,9 +164,9 @@
   <div style="overflow-x:auto;">
     <table style="width:100%;border-collapse:collapse;font-size:13px;">
       <thead><tr>
-        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="项目">Item</th>
-        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="公式 / 说明">Formula / Note</th>
-        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="出处 / 标准">Source / Standard</th>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="项目" scope="col">Item</th>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="公式 / 说明" scope="col">Formula / Note</th>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="出处 / 标准" scope="col">Source / Standard</th>
       </tr></thead>
       <tbody>
         <tr>

@@ -40,7 +40,7 @@
     <meta name="twitter:description" content="子网划分工具是一款免费的在线通信技术工具，将一个网络划分为多个等长子网，自动生成各子网地址、可用范围与广播地址，便于地址规划分配。把一个大网段按新前缀等长划分，得到各子网地址、可用范围与广播地址。">
 <!-- TOOLBOX-WEBAPP-LD -->
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebApplication","name":"子网划分工具","url":"https://tools.dicomp.net/tools/telecom/subnet-planner.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"子网划分工具是一款免费的在线通信技术工具，将一个网络划分为多个等长子网，自动生成各子网地址、可用范围与广播地址，便于地址规划分配。把一个大网段按新前缀等长划分，得到各子网地址、可用范围与广播地址。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+{"@context":"https://schema.org","@type":"WebApplication","name":"子网划分工具","url":"https://tools.dicomp.net/tools/telecom/subnet-planner.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"子网划分工具是一款免费的在线通信技术工具，将一个网络划分为多个等长子网，自动生成各子网地址、可用范围与广播地址，便于地址规划分配。把一个大网段按新前缀等长划分，得到各子网地址、可用范围与广播地址。","image":"https://tools.dicomp.net/og-image.png","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
 </script>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
@@ -85,6 +85,32 @@
 
 <script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "为什么每子网的可用主机要减 2？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "每个子网的网络地址（全 0）与广播地址（全 1）不能分配给主机，因此可用数 = 地址数 − 2。/31 与 /32 是例外，按点对点链路与主机路由处理。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "按子网数量划分时为什么数量会变多？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "子网数必须是 2 的整数次幂。若你要 6 个，工具会向上取到 8 个（借 3 位），多出的 2 个子网可留作备用或后续合并。"
+      }
+    }
+  ]
+}
+</script>
+<meta property="og:site_name" content="ToolBox">
+<meta name="theme-color" content="#FF6B35">
 </head>
 <body>
 <h1 class="sr-only">子网划分工具</h1>
@@ -103,13 +129,13 @@
   <span class="bc-sep">‹</span>
   <a href="index.html">📡 通信技术</a>
   <span class="bc-sep">‹</span>
-  <span class="bc-current">子网划分工具</span>
+  <span class="bc-current" aria-current="page">子网划分工具</span>
 </nav>
 
 <div class="tool-guide-link" data-guide-link="1">
   <a href="../../guides/subnet-planner-guide.html">📖 查看「子网划分工具 使用指南」</a>
 </div>
-<div class="container">
+<div class="container" role="main">
   <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
     <h2 data-zh="🌐 子网划分工具">Subnet Planner</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="将一个网络划分为多个等长子网，自动生成各子网地址、可用范围与广播地址，便于地址规划分配。">Subnet Planner</p>
@@ -118,16 +144,16 @@
       <p class="formula-desc" data-zh="核心计算公式（按输入变量）：(netAddr+subnetSize-1)>>>0；min(subCount,1024)；(2)^newMask-oldMask">Key formulas: (netAddr+subnetSize-1)>>>0; min(subCount,1024); (2)^newMask-oldMask</p>
     </div>
     <div class="input-row">
-      <div><label>原始网络地址</label><input type="text" id="baseIp" value="192.168.1.0" oninput="calc()"></div>
-      <div><label>原始前缀 (/)</label><input type="number" id="oldMask" value="24" min="0" max="30" oninput="calc()" placeholder="如 24（0–30）"></div>
-      <div><label>划分方式</label>
+      <div><label for="baseIp">原始网络地址</label><input type="text" id="baseIp" value="192.168.1.0" oninput="calc()"></div>
+      <div><label for="oldMask">原始前缀 (/)</label><input type="number" id="oldMask" value="24" min="0" max="30" oninput="calc()" placeholder="如 24（0–30）"></div>
+      <div><label for="divideMode">划分方式</label>
         <select id="divideMode" onchange="onModeChange()">
           <option value="prefix">按新前缀</option>
           <option value="count">按子网数量</option>
         </select>
       </div>
-      <div id="newMaskWrap"><label>新前缀 (/)</label><input type="number" id="newMask" value="26" min="1" max="32" oninput="calc()" placeholder="如 26（1–32）"></div>
-      <div id="countWrap" style="display:none;"><label>子网数量</label><input type="number" id="subCount" value="4" min="1" step="1" oninput="calc()" placeholder="如 4"></div>
+      <div id="newMaskWrap"><label for="newMask">新前缀 (/)</label><input type="number" id="newMask" value="26" min="1" max="32" oninput="calc()" placeholder="如 26（1–32）"></div>
+      <div id="countWrap" style="display:none;"><label for="subCount">子网数量</label><input type="number" id="subCount" value="4" min="1" step="1" oninput="calc()" placeholder="如 4"></div>
     </div>
     <div class="toolbar">
       <div id="subnet_plannerPresets"></div><button type="button" class="btn primary" onclick="calc()">划分子网</button><button class="btn" type="button" onclick="__subnet_plannerExport()">导出明细 CSV</button>
@@ -185,7 +211,7 @@
   <h3 data-zh="📐 公式与标准引据">Formula &amp; Standard References</h3>
   <div style="overflow-x:auto;">
     <table style="width:100%;border-collapse:collapse;font-size:13px;">
-      <thead><tr><th style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;" data-zh="项目">Item</th><th style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;" data-zh="公式">Formula</th><th style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;" data-zh="来源 / 标准">Source / Standard</th></tr></thead>
+      <thead><tr><th style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;" data-zh="项目" scope="col">Item</th><th style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;" data-zh="公式" scope="col">Formula</th><th style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;" data-zh="来源 / 标准" scope="col">Source / Standard</th></tr></thead>
       <tbody>
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="子网数">Subnets</td>
@@ -356,7 +382,7 @@ calc();
   </div>
   <div class="tool-intro-body">
     <h4><span class="h4-icon">📝</span>工具简介</h4>
-    <p>子网划分工具是一款IT 开发领域的在线工具。专为开发者打造的在线工具，纯前端运行，代码不离开浏览器。</p>
+    <p data-zh="将一个网络划分为多个等长子网，自动生成各子网地址、可用范围与广播地址，便于地址规划分配。把一个大网段按新前缀等长划分，得到各子网地址、可用范围与广播地址。">将一个网络划分为多个等长子网，自动生成各子网地址、可用范围与广播地址，便于地址规划分配。把一个大网段按新前缀等长划分，得到各子网地址、可用范围与广播地址。</p>
     
       </div>
 </div>

@@ -31,7 +31,7 @@
     <meta name="twitter:description" content="器依据对数平均温差（LMTD）法，根据热流量、冷热流体进出口温度与总传热系数，计算逆流或顺流布置下的 LMTD 与所需换热面积，辅助换热器初步选型">
 <!-- TOOLBOX-WEBAPP-LD -->
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebApplication","name":"换热器选型计算","url":"https://tools.dicomp.net/tools/thermodynamics/calc-197.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"器依据对数平均温差（LMTD）法，根据热流量、冷热流体进出口温度与总传热系数，计算逆流或顺流布置下的 LMTD 与所需换热面积，辅助换热器初步选型","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+{"@context":"https://schema.org","@type":"WebApplication","name":"换热器选型计算","url":"https://tools.dicomp.net/tools/thermodynamics/calc-197.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"器依据对数平均温差（LMTD）法，根据热流量、冷热流体进出口温度与总传热系数，计算逆流或顺流布置下的 LMTD 与所需换热面积，辅助换热器初步选型","image":"https://tools.dicomp.net/og-image.png","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
 </script>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
@@ -74,11 +74,34 @@
 <script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 <script type="application/ld+json">
-{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "换热器选型计算 结果可用于直接报告吗？", "acceptedAnswer": {"@type": "Answer", "text": "换热器选型计算 适合用于内部复核与说明，正式材料请附带口径、边界条件和输入范围说明。"}}, {"@type": "Question", "name": "结果看似异常，该怎么快速排查？", "acceptedAnswer": {"@type": "Answer", "text": "先核对是否有百分号/小数口径冲突，再检查是否触发了数学域外定义（如对数、开方、除零）。"}}]}
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "逆流和顺流差多少？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "相同端点温度下逆流 LMTD 更大，所需换热面积更小、更经济；端差接近时两者 LMTD 趋同，此时取算术平均。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "U 总传热系数怎么取？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "U 含两侧对流与管壁导热，水—水约 1000~3000、气—气低得多；取错会大幅偏差面积，须按介质与流速查经验值或实测。"
+      }
+    }
+  ]
+}
 </script>
 
 <script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
+<meta property="og:site_name" content="ToolBox">
+<meta name="theme-color" content="#FF6B35">
 </head>
 <body>
 <h1 class="sr-only">换热器选型计算</h1>
@@ -96,9 +119,9 @@
   <span class="bc-sep">‹</span>
   <a href="index.html">🌡️ 通用工程</a>
   <span class="bc-sep">‹</span>
-  <span class="bc-current">换热器选型计算</span>
+  <span class="bc-current" aria-current="page">换热器选型计算</span>
 </nav>
-<div class="container">
+<div class="container" role="main">
   <style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#3b82f6)}.tbk-tab.active{background:var(--accent,#3b82f6);color:#fff;border-color:var(--accent,#3b82f6)}.tbk-panel{margin-top:6px}</style>
 <div class="tbk-tabbar" role="tablist">
   <button type="button" class="tbk-tab" data-pane="res">结果</button>
@@ -115,13 +138,13 @@
     </div>
 <div class="input-row">
       <div><div data-tb="preset" data-tb-presets='[{"label":"热流量Q(kW)100·热流体进口Th,in(℃)90·热…","labelEn":"qVal=100 · thin=90 · thout=70 · tcin=20…","values":{"qVal":"100","thin":"90","thout":"70","tcin":"20","tcout":"40","uVal":"1000","flowType":"counter"}},{"label":"小规模","labelEn":"Small scale","values":{"qVal":"50"}},{"label":"大规模","labelEn":"Large scale","values":{"qVal":"150"}},{"label":"极端工况","labelEn":"Extreme case","values":{"qVal":"200"}}]'></div>
-<label>热流量 Q (kW)</label><input type="number" id="qVal" value="100" step="any" min="0" style="font-size:16px;" oninput="calc()" enterkeyhint="done" aria-label="热流量Q" placeholder="如 100"></div>
-      <div><label>热流体进口 Th,in (℃)</label><input type="number" id="thin" value="90" step="any" style="font-size:16px;" oninput="calc()" enterkeyhint="done" aria-label="热流体进口" placeholder="如 90"></div>
-      <div><label>热流体出口 Th,out (℃)</label><input type="number" id="thout" value="70" step="any" style="font-size:16px;" oninput="calc()" enterkeyhint="done" aria-label="热流体出口" placeholder="如 70"></div>
-      <div><label>冷流体进口 Tc,in (℃)</label><input type="number" id="tcin" value="20" step="any" style="font-size:16px;" oninput="calc()" enterkeyhint="done" aria-label="冷流体进口" placeholder="如 20"></div>
-      <div><label>冷流体出口 Tc,out (℃)</label><input type="number" id="tcout" value="40" step="any" style="font-size:16px;" oninput="calc()" enterkeyhint="done" aria-label="冷流体出口" placeholder="如 40"></div>
-      <div><label>总传热系数 K (W/m²·K)</label><input type="number" id="uVal" value="1000" step="any" min="0" style="font-size:16px;" oninput="calc()" enterkeyhint="done" aria-label="总传热系数" placeholder="如 1000"></div>
-      <div><label>流动方式</label><select id="flowType" style="font-size:16px;" onchange="calc()" aria-label="流动方式"><option value="counter">逆流</option><option value="parallel">顺流</option></select></div>
+<label for="qVal">热流量 Q (kW)</label><input type="number" id="qVal" value="100" step="any" min="0" style="font-size:16px;" oninput="calc()" enterkeyhint="done" aria-label="热流量Q" placeholder="如 100"></div>
+      <div><label for="thin">热流体进口 Th,in (℃)</label><input type="number" id="thin" value="90" step="any" style="font-size:16px;" oninput="calc()" enterkeyhint="done" aria-label="热流体进口" placeholder="如 90"></div>
+      <div><label for="thout">热流体出口 Th,out (℃)</label><input type="number" id="thout" value="70" step="any" style="font-size:16px;" oninput="calc()" enterkeyhint="done" aria-label="热流体出口" placeholder="如 70"></div>
+      <div><label for="tcin">冷流体进口 Tc,in (℃)</label><input type="number" id="tcin" value="20" step="any" style="font-size:16px;" oninput="calc()" enterkeyhint="done" aria-label="冷流体进口" placeholder="如 20"></div>
+      <div><label for="tcout">冷流体出口 Tc,out (℃)</label><input type="number" id="tcout" value="40" step="any" style="font-size:16px;" oninput="calc()" enterkeyhint="done" aria-label="冷流体出口" placeholder="如 40"></div>
+      <div><label for="uVal">总传热系数 K (W/m²·K)</label><input type="number" id="uVal" value="1000" step="any" min="0" style="font-size:16px;" oninput="calc()" enterkeyhint="done" aria-label="总传热系数" placeholder="如 1000"></div>
+      <div><label for="flowType">流动方式</label><select id="flowType" style="font-size:16px;" onchange="calc()" aria-label="流动方式"><option value="counter">逆流</option><option value="parallel">顺流</option></select></div>
     </div>
     <div class="toolbar">
       <button class="btn primary" type="button" onclick="calc();saveHistory()">🧮 计算</button>
@@ -136,9 +159,9 @@
   <div style="overflow-x:auto;">
     <table style="width:100%;border-collapse:collapse;font-size:13px;">
       <thead><tr>
-        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="项目">Item</th>
-        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="公式 / 说明">Formula / Note</th>
-        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="出处 / 标准">Source / Standard</th>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="项目" scope="col">Item</th>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="公式 / 说明" scope="col">Formula / Note</th>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="出处 / 标准" scope="col">Source / Standard</th>
       </tr></thead>
       <tbody>
         <tr><td style="padding:6px 8px;border-bottom:1px solid var(--border);vertical-align:top;"><span data-zh="传热基本方程">Heat transfer equation</span></td><td style="padding:6px 8px;border-bottom:1px solid var(--border);vertical-align:top;"><span data-zh="Q=K·A·ΔT_m">Q = K·A·ΔT_m</span></td><td style="padding:6px 8px;border-bottom:1px solid var(--border);vertical-align:top;"><span data-zh="传热学基础">Heat transfer</span></td></tr>

@@ -31,7 +31,7 @@
     <meta name="twitter:description" content="电解速率计算是一款免费的在线化学工具，基于法拉第电解定律，输入电流、电压、电解时间与电化当量，计算金属沉积质量、镀层厚度、沉积速率与消耗电能，支持多种常见金属快速选择">
 <!-- TOOLBOX-WEBAPP-LD -->
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebApplication","name":"电解速率计算","url":"https://tools.dicomp.net/tools/chemistry/voltage-current-1.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"电解速率计算是一款免费的在线化学工具，基于法拉第电解定律，输入电流、电压、电解时间与电化当量，计算金属沉积质量、镀层厚度、沉积速率与消耗电能，支持多种常见金属快速选择","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+{"@context":"https://schema.org","@type":"WebApplication","name":"电解速率计算","url":"https://tools.dicomp.net/tools/chemistry/voltage-current-1.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"电解速率计算是一款免费的在线化学工具，基于法拉第电解定律，输入电流、电压、电解时间与电化当量，计算金属沉积质量、镀层厚度、沉积速率与消耗电能，支持多种常见金属快速选择","image":"https://tools.dicomp.net/og-image.png","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
 </script>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
@@ -74,11 +74,34 @@
 <script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 <script type="application/ld+json">
-{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "电解速率计算 结果可用于直接报告吗？", "acceptedAnswer": {"@type": "Answer", "text": "电解速率计算 适合用于内部复核与说明，正式材料请附带口径、边界条件和输入范围说明。"}}, {"@type": "Question", "name": "结果看似异常，该怎么快速排查？", "acceptedAnswer": {"@type": "Answer", "text": "先核对是否有百分号/小数口径冲突，再检查是否触发了数学域外定义（如对数、开方、除零）。"}}]}
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "「厚度增速」卡片的数值为什么偏大？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "该卡片在换算时混用了 cm² 与 m²（用面积/10000 得 m² 后仍与 g/cm³ 相乘），结果偏大约 1000 倍。上例卡片显示 838.21，而实际平均增速为 25.15μm ÷ 30min ≈ 0.84μm/min。请以「镀层厚度 ÷ 时间」自行折算，或直接用本条给出的 0.838μm/min。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "电流效率为什么达不到 100%？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "实际电解时部分电流消耗在副反应上，最常见的是析氢（酸性镀液）或析氧，此外还有低价离子中间态、镀液杂质还原等。酸性镀铜效率可达 95%~100%，镀铬因大量析氢通常只有 10%~25%，氰化镀液多在 60%~90%，应按实际工艺取值。"
+      }
+    }
+  ]
+}
 </script>
 
 <script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
+<meta property="og:site_name" content="ToolBox">
+<meta name="theme-color" content="#FF6B35">
 </head>
 <body>
 <h1 class="sr-only">电解速率计算</h1>
@@ -96,9 +119,9 @@
   <span class="bc-sep">‹</span>
   <a href="index.html">🧪 通用工程</a>
   <span class="bc-sep">‹</span>
-  <span class="bc-current">电解速率计算</span>
+  <span class="bc-current" aria-current="page">电解速率计算</span>
 </nav>
-<div class="container">
+<div class="container" role="main">
   <style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#3b82f6)}.tbk-tab.active{background:var(--accent,#3b82f6);color:#fff;border-color:var(--accent,#3b82f6)}.tbk-panel{margin-top:6px}</style>
 <div class="tbk-tabbar" role="tablist">
   <button type="button" class="tbk-tab" data-pane="res">结果</button>
@@ -115,12 +138,12 @@
     </div>
 <div class="input-row">
       <div><div data-tb="preset" data-tb-presets='[{"label":"电流I(A)2·电压U(V)6·电解时间t(min)30·…","labelEn":"current=2 · voltage=6 · time=30 · equiv…","values":{"current":"2","voltage":"6","time":"30","equiv":"0.0003294","area":"50","density":"8.96","efficiency":"95","material":"cu"}},{"label":"小规模","labelEn":"Small scale","values":{"current":"1"}},{"label":"大规模","labelEn":"Large scale","values":{"current":"3"}},{"label":"极端工况","labelEn":"Extreme case","values":{"current":"4"}}]'></div>
-<label>电流 I (A)</label><input type="number" id="current" value="2" min="0" step="any" oninput="calc()" style="font-size:16px;" placeholder="如 2"></div>
-      <div><label>电压 U (V)</label><input type="number" id="voltage" value="6" min="0" step="any" oninput="calc()" style="font-size:16px;" placeholder="如 6"></div>
-      <div><label>电解时间 t (min)</label><input type="number" id="time" value="30" min="0" step="any" oninput="calc()" style="font-size:16px;" placeholder="如 30"></div>
+<label for="current">电流 I (A)</label><input type="number" id="current" value="2" min="0" step="any" oninput="calc()" style="font-size:16px;" placeholder="如 2"></div>
+      <div><label for="voltage">电压 U (V)</label><input type="number" id="voltage" value="6" min="0" step="any" oninput="calc()" style="font-size:16px;" placeholder="如 6"></div>
+      <div><label for="time">电解时间 t (min)</label><input type="number" id="time" value="30" min="0" step="any" oninput="calc()" style="font-size:16px;" placeholder="如 30"></div>
     </div>
     <div class="input-row">
-      <div><label>沉积材料</label>
+      <div><label for="material">沉积材料</label>
         <select id="material" onchange="onMaterialChange()" style="font-size:16px;">
           <option value="cu">铜 Cu (Cu²⁺, n=2)</option>
           <option value="ag">银 Ag (Ag⁺, n=1)</option>
@@ -133,12 +156,12 @@
           <option value="custom">自定义</option>
         </select>
       </div>
-      <div><label>电化当量 k (g/C)</label><input type="number" id="equiv" value="0.0003294" min="0" step="any" oninput="calc()" style="font-size:16px;" placeholder="如 0.0003294"></div>
+      <div><label for="equiv">电化当量 k (g/C)</label><input type="number" id="equiv" value="0.0003294" min="0" step="any" oninput="calc()" style="font-size:16px;" placeholder="如 0.0003294"></div>
     </div>
     <div class="input-row">
-      <div><label>沉积面积 A (cm²)</label><input type="number" id="area" value="50" min="0" step="any" oninput="calc()" style="font-size:16px;" placeholder="如 50"></div>
-      <div><label>材料密度 ρ (g/cm³)</label><input type="number" id="density" value="8.96" min="0" step="any" oninput="calc()" style="font-size:16px;" placeholder="如 8.96"></div>
-      <div><label>电流效率 η (%)</label><input type="number" id="efficiency" value="95" min="0" max="100" step="0.1" oninput="calc()" style="font-size:16px;" placeholder="如 95（0–100）"></div>
+      <div><label for="area">沉积面积 A (cm²)</label><input type="number" id="area" value="50" min="0" step="any" oninput="calc()" style="font-size:16px;" placeholder="如 50"></div>
+      <div><label for="density">材料密度 ρ (g/cm³)</label><input type="number" id="density" value="8.96" min="0" step="any" oninput="calc()" style="font-size:16px;" placeholder="如 8.96"></div>
+      <div><label for="efficiency">电流效率 η (%)</label><input type="number" id="efficiency" value="95" min="0" max="100" step="0.1" oninput="calc()" style="font-size:16px;" placeholder="如 95（0–100）"></div>
     </div>
     <div class="toolbar">
       <button class="btn primary" type="button" onclick="calc();saveHistory()">🧮 计算</button>
@@ -153,9 +176,9 @@
       <div style="overflow-x:auto;">
         <table style="width:100%;border-collapse:collapse;font-size:13px;">
           <thead><tr>
-            <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="项目">Item</th>
-            <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="公式 / 说明">Formula / Note</th>
-            <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="出处 / 标准">Source / Standard</th>
+            <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="项目" scope="col">Item</th>
+            <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="公式 / 说明" scope="col">Formula / Note</th>
+            <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="出处 / 标准" scope="col">Source / Standard</th>
           </tr></thead>
           <tbody>
             <tr>

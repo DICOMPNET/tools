@@ -31,7 +31,7 @@
     <meta name="twitter:description" content="材料周转率计算是一款免费的在线通用工程工具，输入当前库存量、日均消耗量与采购周期，计算库存周转率、周转天数、建议库存量与再订购点，帮助优化库存、降低资金占用">
 <!-- TOOLBOX-WEBAPP-LD -->
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebApplication","name":"材料周转率计算","url":"https://tools.dicomp.net/tools/general/turnover-2.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"材料周转率计算是一款免费的在线通用工程工具，输入当前库存量、日均消耗量与采购周期，计算库存周转率、周转天数、建议库存量与再订购点，帮助优化库存、降低资金占用","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+{"@context":"https://schema.org","@type":"WebApplication","name":"材料周转率计算","url":"https://tools.dicomp.net/tools/general/turnover-2.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"材料周转率计算是一款免费的在线通用工程工具，输入当前库存量、日均消耗量与采购周期，计算库存周转率、周转天数、建议库存量与再订购点，帮助优化库存、降低资金占用","image":"https://tools.dicomp.net/og-image.png","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
 </script>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
@@ -74,11 +74,34 @@
 <script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 <script type="application/ld+json">
-{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "材料周转率计算 结果可用于直接报告吗？", "acceptedAnswer": {"@type": "Answer", "text": "材料周转率计算 适合用于内部复核与说明，正式材料请附带口径、边界条件和输入范围说明。"}}, {"@type": "Question", "name": "结果看似异常，该怎么快速排查？", "acceptedAnswer": {"@type": "Answer", "text": "先核对是否有百分号/小数口径冲突，再检查是否触发了数学域外定义（如对数、开方、除零）。"}}]}
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "周转率是越高越好吗？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "不是。周转率高说明资金占用少，但过高往往意味着安全库存不足、断供风险上升。合理区间需结合采购提前期与需求波动：本工具用「周转天数是否低于 (采购周期+安全天数)×0.8」作为断供预警线，而不是单纯追求高周转。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "再订购点和建议库存有什么区别？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "再订购点 = 日均×采购周期，是「触发下单的库存水位」；建议库存 = 日均×(采购周期+安全天数)，是「补货后应达到的目标水位」。前者决定何时下单，后者决定每次补多少，两者配合使用才能既不断供又不积压。"
+      }
+    }
+  ]
+}
 </script>
 
 <script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
+<meta property="og:site_name" content="ToolBox">
+<meta name="theme-color" content="#FF6B35">
 </head>
 <body>
 <h1 class="sr-only">材料周转率计算</h1>
@@ -96,9 +119,9 @@
   <span class="bc-sep">‹</span>
   <a href="index.html">🛠️ 通用工程</a>
   <span class="bc-sep">‹</span>
-  <span class="bc-current">材料周转率计算</span>
+  <span class="bc-current" aria-current="page">材料周转率计算</span>
 </nav>
-<div class="container">
+<div class="container" role="main">
   <style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#3b82f6)}.tbk-tab.active{background:var(--accent,#3b82f6);color:#fff;border-color:var(--accent,#3b82f6)}.tbk-panel{margin-top:6px}</style>
 <div class="tbk-tabbar" role="tablist">
   <button type="button" class="tbk-tab" data-pane="res">结果</button>
@@ -115,13 +138,13 @@
     </div>
 <div class="input-row">
       <div><div data-tb="preset" data-tb-presets='[{"label":"当前库存量500·日均消耗量10·采购周期(天)15·安全…","labelEn":"vStock=500 · vDaily=10 · vLead=15 · vSa…","values":{"vStock":"500","vDaily":"10","vLead":"15","vSafety":"7","vCost":"50"}}]'></div>
-<label>当前库存量</label><input type="number" id="vStock" value="500" step="any" min="0" style="font-size:16px;" oninput="calc()" enterkeyhint="done" aria-label="当前库存量" placeholder="如 500"></div>
-      <div><label>日均消耗量</label><input type="number" id="vDaily" value="10" step="any" min="0" style="font-size:16px;" oninput="calc()" enterkeyhint="done" aria-label="日均消耗量" placeholder="如 10"></div>
-      <div><label>采购周期 (天)</label><input type="number" id="vLead" value="15" step="any" min="0" style="font-size:16px;" oninput="calc()" enterkeyhint="done" aria-label="采购周期" placeholder="如 15"></div>
+<label for="vStock">当前库存量</label><input type="number" id="vStock" value="500" step="any" min="0" style="font-size:16px;" oninput="calc()" enterkeyhint="done" aria-label="当前库存量" placeholder="如 500"></div>
+      <div><label for="vDaily">日均消耗量</label><input type="number" id="vDaily" value="10" step="any" min="0" style="font-size:16px;" oninput="calc()" enterkeyhint="done" aria-label="日均消耗量" placeholder="如 10"></div>
+      <div><label for="vLead">采购周期 (天)</label><input type="number" id="vLead" value="15" step="any" min="0" style="font-size:16px;" oninput="calc()" enterkeyhint="done" aria-label="采购周期" placeholder="如 15"></div>
     </div>
     <div class="input-row">
-      <div><label>安全库存天数 (天)</label><input type="number" id="vSafety" value="7" step="any" min="0" style="font-size:16px;" oninput="calc()" enterkeyhint="done" aria-label="安全库存天数" placeholder="如 7"></div>
-      <div><label>单位成本 (元)</label><input type="number" id="vCost" value="50" step="any" min="0" style="font-size:16px;" oninput="calc()" enterkeyhint="done" aria-label="单位成本" placeholder="如 50"></div>
+      <div><label for="vSafety">安全库存天数 (天)</label><input type="number" id="vSafety" value="7" step="any" min="0" style="font-size:16px;" oninput="calc()" enterkeyhint="done" aria-label="安全库存天数" placeholder="如 7"></div>
+      <div><label for="vCost">单位成本 (元)</label><input type="number" id="vCost" value="50" step="any" min="0" style="font-size:16px;" oninput="calc()" enterkeyhint="done" aria-label="单位成本" placeholder="如 50"></div>
     </div>
     <div class="toolbar">
       <button class="btn primary" type="button" onclick="calc();saveHistory()">🧮 计算</button>
@@ -142,9 +165,9 @@
   <div style="overflow-x:auto;">
     <table style="width:100%;border-collapse:collapse;font-size:13px;">
       <thead><tr>
-        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="项目">Item</th>
-        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="公式 / 说明">Formula / Note</th>
-        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="出处 / 标准">Source / Standard</th>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="项目" scope="col">Item</th>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="公式 / 说明" scope="col">Formula / Note</th>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="出处 / 标准" scope="col">Source / Standard</th>
       </tr></thead>
       <tbody>
         <tr><td style="padding:6px 8px;border-bottom:1px solid var(--border);vertical-align:top;"><span data-zh="周转率">Turnover rate</span></td><td style="padding:6px 8px;border-bottom:1px solid var(--border);vertical-align:top;"><span data-zh="周转率=使用量/平均库存">Turnover = usage / average inventory</span></td><td style="padding:6px 8px;border-bottom:1px solid var(--border);vertical-align:top;"><span data-zh="库存管理基础">Inventory management</span></td></tr>

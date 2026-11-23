@@ -7,6 +7,8 @@
 <meta name="description" content="按参数量、精度字节数与激活占用估算模型权重与推理显存，适用于部署硬件选型、批量大小设定与显存溢出预警。训练需保留前向激活供反向、存梯度(同尺寸)与优化器状态(Adam 约 2 倍权重)，常使总显存达权重 3~4 倍；推理。">
 <meta property="og:title" content="模型显存估算 使用指南">
 <meta property="og:type" content="article">
+<meta property="article:published_time" content="2026-09-13T00:00:00+08:00">
+<meta property="article:modified_time" content="2026-09-13T00:00:00+08:00">
 <meta property="og:site_name" content="ToolBox">
 <meta property="og:url" content="https://tools.dicomp.net/guides/vram-estimate-guide.html">
 <meta property="og:description" content="按参数量、精度字节数与激活占用估算模型权重与推理显存，适用于部署硬件选型、批量大小设定与显存溢出预警。训练需保留前向激活供反向、存梯度(同尺寸)与优化器状态(Adam 约 2 倍权重)，常使总显存达权重 3~4 倍；推理。">
@@ -15,9 +17,12 @@
 <meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
 <meta name="twitter:image:alt" content="ToolBox - 免费在线工具与使用指南">
 <meta property="og:image" content="https://tools.dicomp.net/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免费在线工具">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="canonical" href="https://tools.dicomp.net/guides/vram-estimate-guide.html">
-<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "模型显存估算 使用指南", "description": "按参数量、精度字节数与激活占用估算模型权重与推理显存，适用于部署硬件选型、批量大小设定与显存溢出预警。", "author": {"@type": "Organization", "name": "ToolBox"}, "datePublished": "2026-09-13", "dateModified": "2026-09-13", "mainEntityOfPage": {"@type": "WebPage", "@id": "https://tools.dicomp.net/guides/vram-estimate-guide.html"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"模型显存估算 使用指南","description":"按参数量、精度字节数与激活占用估算模型权重与推理显存，适用于部署硬件选型、批量大小设定与显存溢出预警。","author":{"@type":"Organization","name":"ToolBox"},"datePublished":"2026-09-13","dateModified":"2026-09-13","mainEntityOfPage":{"@type":"WebPage","@id":"https://tools.dicomp.net/guides/vram-estimate-guide.html"},"image":"https://tools.dicomp.net/og-image.png","publisher":{"@type":"Organization","name":"ToolBox","logo":{"@type":"ImageObject","url":"https://tools.dicomp.net/logo-512.png"}},"inLanguage":"zh-CN"}</script>
 <script type="application/ld+json">{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "ToolBox", "item": "https://tools.dicomp.net/"}, {"@type": "ListItem", "position": 2, "name": "使用指南", "item": "https://tools.dicomp.net/guides/index.html"}, {"@type": "ListItem", "position": 3, "name": "模型显存估算 使用指南", "item": "https://tools.dicomp.net/guides/vram-estimate-guide.html"}]}</script>
 <script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "为什么训练显存远大于推理？", "acceptedAnswer": {"@type": "Answer", "text": "训练需保留前向激活供反向、存梯度(同尺寸)与优化器状态(Adam 约 2 倍权重)，常使总显存达权重 3~4 倍；推理只需权重+少量激活。"}}, {"@type": "Question", "name": "显存不够怎么办？", "acceptedAnswer": {"@type": "Answer", "text": "量化降权重字节数、用梯度检查点换计算省激活、降 batch、或模型并行/张量并行分片；必要时上更大显存或分布式。"}}]}</script>
 <style>
@@ -53,9 +58,18 @@ li{margin:8px 0;}
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
 <!-- TOOLBOX-SECURITY -->
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://tools.dicomp.net/guides/vram-estimate-guide.html">
+<link rel="alternate" hreflang="zh-TW" href="https://tools.dicomp.net/zh-tw/guides/vram-estimate-guide.html">
+<link rel="alternate" hreflang="en-US" href="https://tools.dicomp.net/guides/vram-estimate-guide.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://tools.dicomp.net/guides/vram-estimate-guide.html">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:locale:alternate" content="zh_TW">
+<meta property="og:locale:alternate" content="en_US">
+<meta name="theme-color" content="#FF6B35">
 </head>
 <body>
-<nav class="breadcrumb"><a href="https://tools.dicomp.net/">ToolBox</a> / <a href="https://tools.dicomp.net/guides/index.html">使用指南</a> / <span>模型显存估算 使用指南</span></nav>
+<nav class="breadcrumb" aria-label="面包屑导航"><a href="https://tools.dicomp.net/">ToolBox</a> / <a href="https://tools.dicomp.net/guides/index.html">使用指南</a> / <span>模型显存估算 使用指南</span></nav>
 <main>
 <h1>模型显存估算 使用指南</h1>
 <p class="lead">按参数量、精度字节数与激活占用估算模型权重与推理显存，适用于部署硬件选型、批量大小设定与显存溢出预警。</p>

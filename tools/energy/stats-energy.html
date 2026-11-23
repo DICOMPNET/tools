@@ -31,7 +31,7 @@
     <meta name="twitter:description" content="能耗（统计/预测）仪表是一款免费的在线能源电力工具，录入分项能耗做占比统计，并按历史序列用最小二乘线性趋势预测下一期用量。企业/家庭用电的分项构成分析与节能挖潜">
 <!-- TOOLBOX-WEBAPP-LD -->
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebApplication","name":"能耗（统计/预测）仪表","url":"https://tools.dicomp.net/tools/energy/stats-energy.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"能耗（统计/预测）仪表是一款免费的在线能源电力工具，录入分项能耗做占比统计，并按历史序列用最小二乘线性趋势预测下一期用量。企业/家庭用电的分项构成分析与节能挖潜","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+{"@context":"https://schema.org","@type":"WebApplication","name":"能耗（统计/预测）仪表","url":"https://tools.dicomp.net/tools/energy/stats-energy.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"能耗（统计/预测）仪表是一款免费的在线能源电力工具，录入分项能耗做占比统计，并按历史序列用最小二乘线性趋势预测下一期用量。企业/家庭用电的分项构成分析与节能挖潜","image":"https://tools.dicomp.net/og-image.png","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
 </script>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
@@ -75,11 +75,42 @@
 <!-- TOOLBOX-CLARITY -->
 
 <script type="application/ld+json">
-{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "能耗（统计/预测）仪表 结果可用于直接报告吗？", "acceptedAnswer": {"@type": "Answer", "text": "能耗（统计/预测）仪表 适合用于内部复核与说明，正式材料请附带口径、边界条件和输入范围说明。"}}, {"@type": "Question", "name": "结果看似异常，该怎么快速排查？", "acceptedAnswer": {"@type": "Answer", "text": "先核对是否有百分号/小数口径冲突，再检查是否触发了数学域外定义（如对数、开方、除零）。"}}]}
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "占比是怎么计算的？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "占比 = 分项用量 ÷ 所有分项合计 × 100%，并按用量降序排列，便于快速定位主要耗能环节。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "趋势预测用的是什么方法？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "对历史序列按时间做最小二乘线性拟合 y=a+b·t，下一期预测值取 a+b·(n+1)，适合短期、近似线性的用量预估。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "预测结果可以直接用于预算吗？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "建议作为参考基线。季节波动、设备增减、电价调整等都会影响实际值，正式预算应结合这些因素修正。"
+      }
+    }
+  ]
+}
 </script>
 
 <script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
+<meta property="og:site_name" content="ToolBox">
+<meta name="theme-color" content="#FF6B35">
 </head>
 <body>
 <h1 class="sr-only">能耗（统计/预测）仪表</h1>
@@ -97,9 +128,9 @@
   <span class="bc-sep">‹</span>
   <a href="index.html">⚡ 通用工程</a>
   <span class="bc-sep">‹</span>
-  <span class="bc-current">能耗（统计/预测）仪表</span>
+  <span class="bc-current" aria-current="page">能耗（统计/预测）仪表</span>
 </nav>
-<div class="container">
+<div class="container" role="main">
   <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
      <h2 data-zh="🔮 能耗（统计/预测）仪表">🔮 Energy Consumption Dashboard</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="录入分项能耗做占比统计，并按历史序列用最小二乘线性趋势预测下一期用量。">Break down consumption by category, then forecast the next period with a least-squares trend.</p>
@@ -108,12 +139,12 @@
   <div class="formula-desc">分项统计：对每个用能分项求和，计算各分项占总能耗的比例（占比 = 分项 ÷ 总量 × 100%），并按用量降序排列，便于识别主要耗能环节。<br>趋势预测：对历史总量序列按时间 t=1,2,…,n 做最小二乘线性拟合 y=a+b·t，其中 b=(nΣty−ΣtΣy)/(nΣt²−(Σt)²)、a=(Σy−bΣt)/n，下一期预测值 = a+b·(n+1)。斜率 b 表示每期平均变化量，用于判断能耗上升或下降趋势。</div>
 </div>
 
-<label>分项能耗（每行「名称,数值」，单位自定，如 kWh）</label>
+<label for="items">分项能耗（每行「名称,数值」，单位自定，如 kWh）</label>
 <textarea id="items" rows="5" oninput="calc()" placeholder="例如: 照明,120">照明,120
 空调,340
 插座,90
 动力,450</textarea>
-<label>历史总量序列（每行一期，用于趋势预测）</label>
+<label for="series">历史总量序列（每行一期，用于趋势预测）</label>
 <textarea id="series" rows="4" oninput="calc()" placeholder="例如: 820">820
 880
 930
@@ -168,9 +199,9 @@
     <table style="width:100%;border-collapse:collapse;font-size:13px;">
       <thead>
         <tr>
-          <th style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;" data-zh="项目">Item</th>
-          <th style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;" data-zh="公式 / 判定规则">Formula / Rule</th>
-          <th style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;" data-zh="出处 / 标准">Source / Standard</th>
+          <th style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;" data-zh="项目" scope="col">Item</th>
+          <th style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;" data-zh="公式 / 判定规则" scope="col">Formula / Rule</th>
+          <th style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;" data-zh="出处 / 标准" scope="col">Source / Standard</th>
         </tr>
       </thead>
       <tbody>

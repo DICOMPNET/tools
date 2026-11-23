@@ -39,18 +39,26 @@
   "mainEntity": [
     {
       "@type": "Question",
-      "name": "为什么清了故障码还过不了？",
+      "name": "万用表能测电池内阻吗？",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "清码会重置监视器为未就绪，检测要求关键监视器就绪。需按驾驶循环跑几十公里让系统自学习，不可临检前清码。"
+        "text": "不能准确测量。电瓶内阻是毫欧级，普通万用表在如此小的电阻下，表笔接触电阻与引线电阻已与读数同量级，误差会远超本身数值。应使用电导式电池测试仪，或在带载条件下测量压降后换算，且横向比较建议用同一台设备。"
       }
     },
     {
       "@type": "Question",
-      "name": "NOx 高怎么治？",
+      "name": "AGM / EFB 启停电池能换普通铅酸吗？",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "多为三元催化效率下降或燃烧温度过高，检查催化器、EGR 与空燃比控制，必要时更换催化器。"
+        "text": "不建议。启停电池的充放电策略与普通铅酸不同，AGM/EFB 的内阻更低、深放电耐受性更好，换成普通铅酸会导致启停功能异常、充电策略失配并大幅缩短寿命。更换时须装同类型同规格电池，部分车型还需用诊断仪完成电池注册。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "冬天启动困难一定是电池的问题吗？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "不一定。低温下电池内阻升高、可用容量下降（-18 ℃ 时约为常温的六成），确实更容易启动无力；但起动机老化、搭铁线接触不良、机油黏度过高、火花塞与喷油嘴状态同样会导致启动困难。建议先测静态电压与 CCA，再检查起动机电流与线路压降，避免单纯换电池后问题依旧。"
       }
     }
   ]
@@ -71,7 +79,7 @@
 </script>
 <!-- TOOLBOX-WEBAPP-LD -->
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebApplication","name":"电池（CCA/内阻）测试","url":"https://tools.dicomp.net/tools/automotive/tester-11.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"电池（CCA/内阻）测试是一款免费的在线汽车交通工具，汽车电池在线测试工具，输入冷启动电流（CCA）与内阻评估电池健康状态，给出状态判定，辅助电瓶选型与更换，纯前端","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+{"@context":"https://schema.org","@type":"WebApplication","name":"电池（CCA/内阻）测试","url":"https://tools.dicomp.net/tools/automotive/tester-11.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"电池（CCA/内阻）测试是一款免费的在线汽车交通工具，汽车电池在线测试工具，输入冷启动电流（CCA）与内阻评估电池健康状态，给出状态判定，辅助电瓶选型与更换，纯前端","image":"https://tools.dicomp.net/og-image.png","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
 </script>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
@@ -100,6 +108,8 @@
 
 <script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
+<meta property="og:site_name" content="ToolBox">
+<meta name="theme-color" content="#FF6B35">
 </head>
 <body>
 <h1 class="sr-only">电池（CCA/内阻）测试</h1>
@@ -113,9 +123,9 @@
   <span class="bc-sep">‹</span>
   <a href="index.html">🚗 汽车交通</a>
   <span class="bc-sep">‹</span>
-  <span class="bc-current">电池（CCA/内阻）测试</span>
+  <span class="bc-current" aria-current="page">电池（CCA/内阻）测试</span>
 </nav>
-<div class="container">
+<div class="container" role="main">
   <style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#3b82f6)}.tbk-tab.active{background:var(--accent,#3b82f6);color:#fff;border-color:var(--accent,#3b82f6)}.tbk-panel{margin-top:6px}</style>
 <div class="tbk-tabbar" role="tablist">
   <button type="button" class="tbk-tab" data-pane="res">结果</button>
@@ -127,26 +137,26 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="汽车电池在线测试工具，输入冷启动电流（CCA）与内阻评估电池健康状态，给出状态判定，辅助电瓶选型与更换，纯前端。">Online car-battery tester: input cold cranking amps (CCA) and internal resistance to assess battery health and give a status verdict, aiding battery selection and replacement. Pure front-end.</p>
     <div class="input-row">
       <div><div data-tb="preset" data-tb-presets='[{"label":"标称冷启动电流CCA(A)600·实测冷启动电流CCA(A…","labelEn":"cca0=600 · cca=510 · res=7.2 · temp=25 …","values":{"cca0":"600","cca":"510","res":"7.2","temp":"25","age":"42","disp":"2.0","type":"1.0","eng":"1.0"}}]'></div>
-<label>标称冷启动电流 CCA (A)</label><input type="number" id="cca0" value="600" oninput="calc()" min="100" max="1500" step="10" placeholder="如 600（100–1500）"></div>
-      <div><label>实测冷启动电流 CCA (A)</label><input type="number" id="cca" value="510" oninput="calc()" min="0" max="1500" step="10" placeholder="如 510（0–1500）"></div>
+<label for="cca0">标称冷启动电流 CCA (A)</label><input type="number" id="cca0" value="600" oninput="calc()" min="100" max="1500" step="10" placeholder="如 600（100–1500）"></div>
+      <div><label for="cca">实测冷启动电流 CCA (A)</label><input type="number" id="cca" value="510" oninput="calc()" min="0" max="1500" step="10" placeholder="如 510（0–1500）"></div>
     </div>
     <div class="input-row">
-      <div><label>实测内阻 (mΩ)</label><input type="number" id="res" value="7.2" oninput="calc()" min="0.1" max="60" step="0.1" placeholder="如 7.2（0.1–60）"></div>
-      <div><label>测试时电瓶温度 (℃)</label><input type="number" id="temp" value="25" oninput="calc()" min="-20" max="60" step="1" placeholder="如 25（-20–60）"></div>
+      <div><label for="res">实测内阻 (mΩ)</label><input type="number" id="res" value="7.2" oninput="calc()" min="0.1" max="60" step="0.1" placeholder="如 7.2（0.1–60）"></div>
+      <div><label for="temp">测试时电瓶温度 (℃)</label><input type="number" id="temp" value="25" oninput="calc()" min="-20" max="60" step="1" placeholder="如 25（-20–60）"></div>
     </div>
     <div class="input-row">
-      <div><label>电瓶类型</label>
+      <div><label for="type">电瓶类型</label>
         <select id="type" onchange="calc()">
           <option value="1.0" selected>普通铅酸（富液）</option>
           <option value="1.08">EFB 启停电池</option>
           <option value="1.15">AGM 启停电池</option>
         </select>
       </div>
-      <div><label>电瓶已使用 (月)</label><input type="number" id="age" value="42" oninput="calc()" min="0" max="120" step="1" placeholder="如 42（0–120）"></div>
+      <div><label for="age">电瓶已使用 (月)</label><input type="number" id="age" value="42" oninput="calc()" min="0" max="120" step="1" placeholder="如 42（0–120）"></div>
     </div>
     <div class="input-row">
-      <div><label>车辆排量 (L)</label><input type="number" id="disp" value="2.0" oninput="calc()" min="0.6" max="6" step="0.1" placeholder="如 2.0（0.6–6）"></div>
-      <div><label>发动机类型</label>
+      <div><label for="disp">车辆排量 (L)</label><input type="number" id="disp" value="2.0" oninput="calc()" min="0.6" max="6" step="0.1" placeholder="如 2.0（0.6–6）"></div>
+      <div><label for="eng">发动机类型</label>
         <select id="eng" onchange="calc()">
           <option value="1.0" selected>汽油自然吸气</option>
           <option value="1.15">汽油涡轮增压</option>
@@ -163,9 +173,9 @@
     <h3>🔋 电瓶检测要点</h3>
     <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:12px;">
       <tr>
-        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border,#e5e7eb);">指标</th>
-        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border,#e5e7eb);">含义</th>
-        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border,#e5e7eb);">判定参考</th>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border,#e5e7eb);" scope="col">指标</th>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border,#e5e7eb);" scope="col">含义</th>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border,#e5e7eb);" scope="col">判定参考</th>
       </tr>
       <tr><td style="padding:6px 8px;">CCA 实测 / 标称</td><td style="padding:6px 8px;">冷启动能力健康度 SOH</td><td style="padding:6px 8px;">≥90% 良好；70%~90% 预警；&lt;70% 更换</td></tr>
       <tr><td style="padding:6px 8px;">内阻</td><td style="padding:6px 8px;">极板硫化与连接劣化程度</td><td style="padding:6px 8px;">高于参考值 30% 需关注</td></tr>
@@ -223,9 +233,9 @@
   <div style="overflow-x:auto;">
     <table style="width:100%;border-collapse:collapse;font-size:13px;">
       <thead><tr>
-        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="项目">Item</th>
-        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="公式 / 说明">Formula / Note</th>
-        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="出处 / 标准">Source / Standard</th>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="项目" scope="col">Item</th>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="公式 / 说明" scope="col">Formula / Note</th>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="出处 / 标准" scope="col">Source / Standard</th>
       </tr></thead>
       <tbody>
         <tr>

@@ -40,7 +40,7 @@
     <meta name="twitter:description" content="参观流线规划是一款免费的在线文博展陈工具，基于 Dijkstra 最短路径算法，规划多个展厅之间的最短参观流线，适用于展馆导览与路线优化。">
 <!-- TOOLBOX-WEBAPP-LD -->
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebApplication","name":"参观流线规划","url":"https://tools.dicomp.net/tools/museum/visitor-route.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"参观流线规划是一款免费的在线文博展陈工具，基于 Dijkstra 最短路径算法，规划多个展厅之间的最短参观流线，适用于展馆导览与路线优化。馆内动线设计时，以展厅为节点、通道为带权边（距离/时长），用 Dijkstra 最短路径算法规划从入口到出口的最优参观顺序，减少折返。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+{"@context":"https://schema.org","@type":"WebApplication","name":"参观流线规划","url":"https://tools.dicomp.net/tools/museum/visitor-route.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"参观流线规划是一款免费的在线文博展陈工具，基于 Dijkstra 最短路径算法，规划多个展厅之间的最短参观流线，适用于展馆导览与路线优化。馆内动线设计时，以展厅为节点、通道为带权边（距离/时长），用 Dijkstra 最短路径算法规划从入口到出口的最优参观顺序，减少折返。","image":"https://tools.dicomp.net/og-image.png","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
 </script>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
@@ -85,6 +85,32 @@
 
 <script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "为什么有时绕路反而更短？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Dijkstra 按边的权重（通道距离）求全局最短，并非直线近就快；经中转节点可能累计权重更小（如 A→B→C=50m < 直连 80m）。规划以算法结果为准，凭直觉易误判。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "通道权重可以按哪些量填写？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "本工具的通道权重按距离（米）填写，Dijkstra 算法本身也适用于时间或能耗等其它加权值，但本页输入口径是距离。「必经重点馆」可直接填入「必看节点」，工具会按输入顺序分段求最短并拼接，无需手工拆分。"
+      }
+    }
+  ]
+}
+</script>
+<meta property="og:site_name" content="ToolBox">
+<meta name="theme-color" content="#FF6B35">
 </head>
 <body>
 <h1 class="sr-only">参观流线规划</h1>
@@ -105,20 +131,20 @@
   <span class="bc-sep">‹</span>
   <a href="index.html">🏛️ 文博展陈</a>
   <span class="bc-sep">‹</span>
-  <span class="bc-current">参观流线规划</span>
+  <span class="bc-current" aria-current="page">参观流线规划</span>
 </nav>
 
 <div class="tool-guide-link" data-guide-link="1">
   <a href="../../guides/visitor-route-guide.html">📖 查看「参观流线规划 使用指南」</a>
 </div>
-<div class="container">
+<div class="container" role="main">
   <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
     <h2 data-zh="📐 参观流线规划">Visitor Route Planner</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="基于 Dijkstra 最短路径算法，规划展厅间参观流线（最短距离）">Visitor Route</p>
 
     <h3 style="font-size:15px;margin-bottom:8px;">展厅节点</h3>
     <div class="input-row">
-      <label>展厅名称（逗号分隔）</label>
+      <label for="nodeInput">展厅名称（逗号分隔）</label>
       <input type="text" id="nodeInput" value="入口,青铜馆,陶瓷馆,书画馆,玉器馆,出口" oninput="syncNodes()">
     </div>
     <div id="nodeTags" style="margin:8px 0;"></div>
@@ -129,15 +155,15 @@
 
     <h3 style="font-size:15px;margin:16px 0 8px;">起终点</h3>
     <div class="input-row">
-      <label>起点</label>
+      <label for="startNode">起点</label>
       <select id="startNode"></select>
     </div>
     <div class="input-row">
-      <label>终点</label>
+      <label for="endNode">终点</label>
       <select id="endNode"></select>
     </div>
     <div class="input-row">
-      <label>必看节点（可选，按参观顺序，逗号分隔）</label>
+      <label for="waypoints">必看节点（可选，按参观顺序，逗号分隔）</label>
       <input type="text" id="waypoints" placeholder="如 青铜馆,玉器馆" oninput="compute()">
     </div>
 
@@ -189,7 +215,7 @@
   <h3 data-zh="📐 公式与标准引据">Formula &amp; Standard References</h3>
   <div style="overflow-x:auto;">
     <table style="width:100%;border-collapse:collapse;font-size:13px;">
-      <thead><tr><th style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;" data-zh="项目">Item</th><th style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;" data-zh="公式">Formula</th><th style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;" data-zh="来源 / 标准">Source / Standard</th></tr></thead>
+      <thead><tr><th style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;" data-zh="项目" scope="col">Item</th><th style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;" data-zh="公式" scope="col">Formula</th><th style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;" data-zh="来源 / 标准" scope="col">Source / Standard</th></tr></thead>
       <tbody>
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="参观路线长度">Route length</td>
@@ -285,7 +311,7 @@ function renderEdges(){
     var opts = nodes.map(function(n){ return '<option value="'+ToolBox.escHtml(n)+'"'+(e[0]===n?' selected':'')+'>'+ToolBox.escHtml(n)+'</option>'; }).join('');
     var opts2 = nodes.map(function(n){ return '<option value="'+ToolBox.escHtml(n)+'"'+(e[1]===n?' selected':'')+'>'+ToolBox.escHtml(n)+'</option>'; }).join('');
     const __h2=invalidTip+'<select data-i="'+i+'" data-k="0" aria-label="通道起点">'+opts+'</select>' +
-      '<input type="number" value="'+e[2]+'" min="0" step="1" style="max-width:90px;" data-i="'+i+'" data-k="2" placeholder="如 '+e[2]+'" aria-label="如 '+e[2]+'">' +
+      '<input type="number" value="'+e[2]+'" min="0" step="1" style="max-width:90px;" data-i="'+i+'" data-k="2" placeholder="如 '+e[2]+'" aria-label="通道距离（米）">' +
       '<span style="color:var(--text-muted);">m</span>' +
       '<select data-i="'+i+'" data-k="1" aria-label="通道终点">'+opts2+'</select>' +
       '<button type="button" class="btn row-del" onclick="removeEdge('+i+')" aria-label="删除">✕</button>';if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){div.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}div.innerHTML=__h2;

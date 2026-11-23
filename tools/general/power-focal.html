@@ -31,7 +31,7 @@
     <meta name="twitter:description" content="激光切割深度估算是一款免费的在线通用工程工具，输入激光功率、焦距、切割速度与材料类型，基于线能量法估算最大切割深度、光斑直径与功率密度。激光工艺参数核算：按功率、焦距、切割速度估算线能量与可切最大厚度。">
 <!-- TOOLBOX-WEBAPP-LD -->
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebApplication","name":"激光切割深度估算","url":"https://tools.dicomp.net/tools/general/power-focal.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"激光切割深度估算是一款免费的在线通用工程工具，输入激光功率、焦距、切割速度与材料类型，基于线能量法估算最大切割深度、光斑直径与功率密度。激光工艺参数核算：按功率、焦距、切割速度估算线能量与可切最大厚度。","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+{"@context":"https://schema.org","@type":"WebApplication","name":"激光切割深度估算","url":"https://tools.dicomp.net/tools/general/power-focal.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"激光切割深度估算是一款免费的在线通用工程工具，输入激光功率、焦距、切割速度与材料类型，基于线能量法估算最大切割深度、光斑直径与功率密度。激光工艺参数核算：按功率、焦距、切割速度估算线能量与可切最大厚度。","image":"https://tools.dicomp.net/og-image.png","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
 </script>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
@@ -74,11 +74,34 @@
 <script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 <script type="application/ld+json">
-{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "激光切割深度估算 结果可用于直接报告吗？", "acceptedAnswer": {"@type": "Answer", "text": "激光切割深度估算 适合用于内部复核与说明，正式材料请附带口径、边界条件和输入范围说明。"}}, {"@type": "Question", "name": "结果看似异常，该怎么快速排查？", "acceptedAnswer": {"@type": "Answer", "text": "先核对是否有百分号/小数口径冲突，再检查是否触发了数学域外定义（如对数、开方、除零）。"}}]}
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "焦距为什么取 100mm 附近效率最高？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "光斑随焦距增大而变大，本公式以 100mm 为效率峰值（fEff=1），偏离则按 0.2%/mm 衰减；过长光斑过大、过短焦深不足，均需权衡。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "材料单位能量 e 是什么？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "e 为熔穿单位体积材料所需能量（J/mm³），碳钢约 25、不锈钢 28、铝 45、铜 60、亚克力 3、木材 2、皮革 1.5；e 越大同参数切深越小，厚板需更高功率或更低速度。"
+      }
+    }
+  ]
+}
 </script>
 
 <script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
+<meta property="og:site_name" content="ToolBox">
+<meta name="theme-color" content="#FF6B35">
 </head>
 <body>
 <h1 class="sr-only">激光切割深度估算</h1>
@@ -96,9 +119,9 @@
   <span class="bc-sep">‹</span>
   <a href="index.html">🛠️ 通用工程</a>
   <span class="bc-sep">‹</span>
-  <span class="bc-current">激光切割深度估算</span>
+  <span class="bc-current" aria-current="page">激光切割深度估算</span>
 </nav>
-<div class="container">
+<div class="container" role="main">
   <style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#3b82f6)}.tbk-tab.active{background:var(--accent,#3b82f6);color:#fff;border-color:var(--accent,#3b82f6)}.tbk-panel{margin-top:6px}</style>
 <div class="tbk-tabbar" role="tablist">
   <button type="button" class="tbk-tab" data-pane="res">结果</button>
@@ -115,12 +138,12 @@
     </div>
 <div class="input-row">
       <div><div data-tb="preset" data-tb-presets='[{"label":"激光功率（W）1000·焦距（mm）127·切割速度（mm…","labelEn":"power=1000 · focal=127 · speed=15 · mat…","values":{"power":"1000","focal":"127","speed":"15","material":"steel"}}]'></div>
-<label>激光功率（W）</label><input type="number" id="power" value="1000" min="0" step="any" style="font-size:16px;" oninput="calc()" enterkeyhint="done" aria-label="激光功率" placeholder="如 1000"></div>
-      <div><label>焦距（mm）</label><input type="number" id="focal" value="127" min="1" step="any" style="font-size:16px;" oninput="calc()" enterkeyhint="done" aria-label="焦距" placeholder="如 127"></div>
+<label for="power">激光功率（W）</label><input type="number" id="power" value="1000" min="0" step="any" style="font-size:16px;" oninput="calc()" enterkeyhint="done" aria-label="激光功率" placeholder="如 1000"></div>
+      <div><label for="focal">焦距（mm）</label><input type="number" id="focal" value="127" min="1" step="any" style="font-size:16px;" oninput="calc()" enterkeyhint="done" aria-label="焦距" placeholder="如 127"></div>
     </div>
     <div class="input-row">
-      <div><label>切割速度（mm/s）</label><input type="number" id="speed" value="15" min="0.1" step="any" style="font-size:16px;" oninput="calc()" enterkeyhint="done" aria-label="切割速度" placeholder="如 15"></div>
-      <div><label>材料类型</label>
+      <div><label for="speed">切割速度（mm/s）</label><input type="number" id="speed" value="15" min="0.1" step="any" style="font-size:16px;" oninput="calc()" enterkeyhint="done" aria-label="切割速度" placeholder="如 15"></div>
+      <div><label for="material">材料类型</label>
         <select id="material" style="font-size:16px;" onchange="calc()" aria-label="材料类型">
           <option value="steel">碳钢</option>
           <option value="stainless">不锈钢</option>
@@ -151,9 +174,9 @@
   <div style="overflow-x:auto;">
     <table style="width:100%;border-collapse:collapse;font-size:13px;">
       <thead><tr>
-        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="项目">Item</th>
-        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="公式 / 说明">Formula / Note</th>
-        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="出处 / 标准">Source / Standard</th>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="项目" scope="col">Item</th>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="公式 / 说明" scope="col">Formula / Note</th>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="出处 / 标准" scope="col">Source / Standard</th>
       </tr></thead>
       <tbody>
         <tr><td style="padding:6px 8px;border-bottom:1px solid var(--border);vertical-align:top;"><span data-zh="切割深度">Cutting depth</span></td><td style="padding:6px 8px;border-bottom:1px solid var(--border);vertical-align:top;"><span data-zh="d∝P/(v·w_kerf)（功率/速度/切缝宽）">d ∝ P/(v·kerf width)</span></td><td style="padding:6px 8px;border-bottom:1px solid var(--border);vertical-align:top;"><span data-zh="激光切割工艺学">Laser cutting</span></td></tr>

@@ -31,7 +31,7 @@
     <meta name="twitter:description" content="皮带张紧计算是一款免费的在线机械制造工具，器根据 V 带型号、中心距、小带轮转速和传动功率，计算带速、所需皮带根数、单根张紧力、总张紧力和跨距中点挠度，为皮带安装与调试提供数据依据">
 <!-- TOOLBOX-WEBAPP-LD -->
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebApplication","name":"皮带张紧计算","url":"https://tools.dicomp.net/tools/machinery/pidaizhangjinjisuan.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"皮带张紧计算是一款免费的在线机械制造工具，器根据 V 带型号、中心距、小带轮转速和传动功率，计算带速、所需皮带根数、单根张紧力、总张紧力和跨距中点挠度，为皮带安装与调试提供数据依据","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+{"@context":"https://schema.org","@type":"WebApplication","name":"皮带张紧计算","url":"https://tools.dicomp.net/tools/machinery/pidaizhangjinjisuan.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"皮带张紧计算是一款免费的在线机械制造工具，器根据 V 带型号、中心距、小带轮转速和传动功率，计算带速、所需皮带根数、单根张紧力、总张紧力和跨距中点挠度，为皮带安装与调试提供数据依据","image":"https://tools.dicomp.net/og-image.png","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
 </script>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
@@ -74,11 +74,34 @@
 <script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 <script type="application/ld+json">
-{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "皮带张紧计算 结果可用于直接报告吗？", "acceptedAnswer": {"@type": "Answer", "text": "皮带张紧计算 适合用于内部复核与说明，正式材料请附带口径、边界条件和输入范围说明。"}}, {"@type": "Question", "name": "结果看似异常，该怎么快速排查？", "acceptedAnswer": {"@type": "Answer", "text": "先核对是否有百分号/小数口径冲突，再检查是否触发了数学域外定义（如对数、开方、除零）。"}}]}
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "系数 1.5 是什么？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "综合了包角修正与工况系数的张紧系数简化值。实际应按小带轮包角查包角系数 Kα，并叠加工况系数 KA（由载荷性质与每天运行时间确定）。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "中点挠度怎么用来调张力？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "在两带轮跨距中点垂直施加\"挠度测试力\"，使皮带下压量等于 中心距/64（本例 7.8mm）即为合适张力。新带因初期伸长，按总张紧力的 1.5 倍安装，运行 24~48h 后复紧一次。"
+      }
+    }
+  ]
+}
 </script>
 
 <script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
+<meta property="og:site_name" content="ToolBox">
+<meta name="theme-color" content="#FF6B35">
 </head>
 <body>
 <h1 class="sr-only">皮带张紧计算</h1>
@@ -96,9 +119,9 @@
   <span class="bc-sep">‹</span>
   <a href="index.html">⚙️ 通用工程</a>
   <span class="bc-sep">‹</span>
-  <span class="bc-current">皮带张紧计算</span>
+  <span class="bc-current" aria-current="page">皮带张紧计算</span>
 </nav>
-<div class="container">
+<div class="container" role="main">
   <style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#3b82f6)}.tbk-tab.active{background:var(--accent,#3b82f6);color:#fff;border-color:var(--accent,#3b82f6)}.tbk-panel{margin-top:6px}</style>
 <div class="tbk-tabbar" role="tablist">
   <button type="button" class="tbk-tab" data-pane="res">结果</button>
@@ -115,7 +138,7 @@
     </div>
 <div class="input-row">
       <div><div data-tb="preset" data-tb-presets='[{"label":"中心距(mm)500·小带轮转速(rpm)1450·传动功…","labelEn":"vCenter=500 · vRpm=1450 · vPower=5.5 · …","values":{"vCenter":"500","vRpm":"1450","vPower":"5.5","vD1":"125","vType":"B"}}]'></div>
-<label>皮带型号</label>
+<label for="vType">皮带型号</label>
         <select id="vType" style="font-size:16px;" onchange="calc()">
           <option value="A">A型</option>
           <option value="B" selected>B型</option>
@@ -126,12 +149,12 @@
           <option value="SPB">SPB(窄V带)</option>
         </select>
       </div>
-      <div><label>中心距 (mm)</label><input type="number" id="vCenter" value="500" step="any" style="font-size:16px;" oninput="calc()" enterkeyhint="done" placeholder="如 500"></div>
-      <div><label>小带轮转速 (rpm)</label><input type="number" id="vRpm" value="1450" step="any" style="font-size:16px;" oninput="calc()" enterkeyhint="done" placeholder="如 1450"></div>
+      <div><label for="vCenter">中心距 (mm)</label><input type="number" id="vCenter" value="500" step="any" style="font-size:16px;" oninput="calc()" enterkeyhint="done" placeholder="如 500"></div>
+      <div><label for="vRpm">小带轮转速 (rpm)</label><input type="number" id="vRpm" value="1450" step="any" style="font-size:16px;" oninput="calc()" enterkeyhint="done" placeholder="如 1450"></div>
     </div>
     <div class="input-row">
-      <div><label>传动功率 (kW)</label><input type="number" id="vPower" value="5.5" step="any" style="font-size:16px;" oninput="calc()" enterkeyhint="done" placeholder="如 5.5"></div>
-      <div><label>小带轮节径 (mm)</label><input type="number" id="vD1" value="125" step="any" style="font-size:16px;" oninput="calc()" enterkeyhint="done" placeholder="如 125"></div>
+      <div><label for="vPower">传动功率 (kW)</label><input type="number" id="vPower" value="5.5" step="any" style="font-size:16px;" oninput="calc()" enterkeyhint="done" placeholder="如 5.5"></div>
+      <div><label for="vD1">小带轮节径 (mm)</label><input type="number" id="vD1" value="125" step="any" style="font-size:16px;" oninput="calc()" enterkeyhint="done" placeholder="如 125"></div>
     </div>
     <div class="toolbar">
       <button class="btn primary" type="button" onclick="calc();saveHistory()">🧮 计算</button>
@@ -146,9 +169,9 @@
   <div style="overflow-x:auto;">
     <table style="width:100%;border-collapse:collapse;font-size:13px;">
       <thead><tr>
-        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="项目">Item</th>
-        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="公式 / 说明">Formula / Note</th>
-        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="出处 / 标准">Source / Standard</th>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="项目" scope="col">Item</th>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="公式 / 说明" scope="col">Formula / Note</th>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="出处 / 标准" scope="col">Source / Standard</th>
       </tr></thead>
       <tbody>
         <tr>

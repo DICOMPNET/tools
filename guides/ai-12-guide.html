@@ -7,6 +7,8 @@
 <meta name="description" content="按增强变换组合与重复次数，估算数据增强后的等效训练样本量，辅助判断样本是否充足，适用于小数据集训练、过拟合缓解与增强策略设计。否。过度或不当增强(如旋转破坏方向语义)会引入噪声甚至错误标签，反而损害训练。">
 <meta property="og:title" content="数据增强有效量 使用指南">
 <meta property="og:type" content="article">
+<meta property="article:published_time" content="2026-09-13T00:00:00+08:00">
+<meta property="article:modified_time" content="2026-09-13T00:00:00+08:00">
 <meta property="og:site_name" content="ToolBox">
 <meta property="og:url" content="https://tools.dicomp.net/guides/ai-12-guide.html">
 <meta property="og:description" content="按增强变换组合与重复次数，估算数据增强后的等效训练样本量，辅助判断样本是否充足，适用于小数据集训练、过拟合缓解与增强策略设计。否。过度或不当增强(如旋转破坏方向语义)会引入噪声甚至错误标签，反而损害训练。">
@@ -15,9 +17,12 @@
 <meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
 <meta name="twitter:image:alt" content="ToolBox - 免费在线工具与使用指南">
 <meta property="og:image" content="https://tools.dicomp.net/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免费在线工具">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="canonical" href="https://tools.dicomp.net/guides/ai-12-guide.html">
-<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "数据增强有效量 使用指南", "description": "按增强变换组合与重复次数，估算数据增强后的等效训练样本量，辅助判断样本是否充足，适用于小数据集训练、过拟合缓解与增强策略设计。", "author": {"@type": "Organization", "name": "ToolBox"}, "datePublished": "2026-09-13", "dateModified": "2026-09-13", "mainEntityOfPage": {"@type": "WebPage", "@id": "https://tools.dicomp.net/guides/ai-12-guide.html"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"数据增强有效量 使用指南","description":"按增强变换组合与重复次数，估算数据增强后的等效训练样本量，辅助判断样本是否充足，适用于小数据集训练、过拟合缓解与增强策略设计。","author":{"@type":"Organization","name":"ToolBox"},"datePublished":"2026-09-13","dateModified":"2026-09-13","mainEntityOfPage":{"@type":"WebPage","@id":"https://tools.dicomp.net/guides/ai-12-guide.html"},"image":"https://tools.dicomp.net/og-image.png","publisher":{"@type":"Organization","name":"ToolBox","logo":{"@type":"ImageObject","url":"https://tools.dicomp.net/logo-512.png"}},"inLanguage":"zh-CN"}</script>
 <script type="application/ld+json">{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "ToolBox", "item": "https://tools.dicomp.net/"}, {"@type": "ListItem", "position": 2, "name": "使用指南", "item": "https://tools.dicomp.net/guides/index.html"}, {"@type": "ListItem", "position": 3, "name": "数据增强有效量 使用指南", "item": "https://tools.dicomp.net/guides/ai-12-guide.html"}]}</script>
 <script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "增强越多越好吗？", "acceptedAnswer": {"@type": "Answer", "text": "否。过度或不当增强(如旋转破坏方向语义)会引入噪声甚至错误标签，反而损害训练。应以验证集表现而非数量为准。"}}, {"@type": "Question", "name": "增强样本算独立样本吗？", "acceptedAnswer": {"@type": "Answer", "text": "不算。它们与原始高度相关，对泛化的贡献低于等量真实标注数据；扩增主要起正则化作用。"}}]}</script>
 <style>
@@ -53,9 +58,18 @@ li{margin:8px 0;}
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
 <!-- TOOLBOX-SECURITY -->
+<!-- TOOLBOX-HREFLANG -->
+<link rel="alternate" hreflang="zh-CN" href="https://tools.dicomp.net/guides/ai-12-guide.html">
+<link rel="alternate" hreflang="zh-TW" href="https://tools.dicomp.net/zh-tw/guides/ai-12-guide.html">
+<link rel="alternate" hreflang="en-US" href="https://tools.dicomp.net/guides/ai-12-guide.html?lang=en-US">
+<link rel="alternate" hreflang="x-default" href="https://tools.dicomp.net/guides/ai-12-guide.html">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:locale:alternate" content="zh_TW">
+<meta property="og:locale:alternate" content="en_US">
+<meta name="theme-color" content="#FF6B35">
 </head>
 <body>
-<nav class="breadcrumb"><a href="https://tools.dicomp.net/">ToolBox</a> / <a href="https://tools.dicomp.net/guides/index.html">使用指南</a> / <span>数据增强有效量 使用指南</span></nav>
+<nav class="breadcrumb" aria-label="面包屑导航"><a href="https://tools.dicomp.net/">ToolBox</a> / <a href="https://tools.dicomp.net/guides/index.html">使用指南</a> / <span>数据增强有效量 使用指南</span></nav>
 <main>
 <h1>数据增强有效量 使用指南</h1>
 <p class="lead">按增强变换组合与重复次数，估算数据增强后的等效训练样本量，辅助判断样本是否充足，适用于小数据集训练、过拟合缓解与增强策略设计。</p>

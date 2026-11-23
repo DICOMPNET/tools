@@ -642,7 +642,7 @@ def normalize_tool_h1(html_str, zh_name='', dd_title=''):
                       re.finditer(r'<(script|style)\b[^>]*>[\s\S]*?</\1>', html_str, re.I)]
     # 解析可用中文名（先剥标签再反转义，避免实体被误当标签）
     cand = ''
-    bcs = re.findall(r'<span class="bc-current">([\s\S]*?)</span>', html_str)
+    bcs = re.findall(r'<span[^>]*class="bc-current"[^>]*>([\s\S]*?)</span>', html_str)
     for raw in ([bcs[-1]] if bcs else []) + [zh_name, dd_title]:
         t = html.unescape(_h1_text(raw))
         if _h1_name_ok(t):
@@ -2369,6 +2369,20 @@ def _load_zh_desc_i18n(ind):
             _zh_desc_i18n_cache[ind] = {}
     return _zh_desc_i18n_cache[ind]
 
+_DEEP_DIVE_DESC = None
+
+
+def _deep_dive_desc():
+    """延迟加载深度解析数据，供 compute_zh_desc 补足短描述（与 fix_tool_pages_seo 的局部 DEEP_DIVE 解耦）。"""
+    global _DEEP_DIVE_DESC
+    if _DEEP_DIVE_DESC is None:
+        try:
+            _DEEP_DIVE_DESC = json.load(open(os.path.join(ROOT, 'i18n', 'tools', 'content_deepdive.json'), encoding='utf-8'))
+        except Exception:
+            _DEEP_DIVE_DESC = {}
+    return _DEEP_DIVE_DESC
+
+
 def compute_zh_desc(t):
     """中文描述（写入 tools.json 的 d，供搜索/首页/导航消费）。
 
@@ -2376,7 +2390,31 @@ def compute_zh_desc(t):
     （如「矩阵转置」），导致描述退化成名称。现统一走 TDS.zh_desc()，
     按 强desc → intro → 页面meta → 中文名 的优先级取真实描述。
     """
-    return TDS.zh_desc(t, max_len=80)
+    d = TDS.zh_desc(t, max_len=80)
+    # 短描述（<25 字）多为「名称 + 功能短语」，搜索卡片信息量不足。
+    # 从该工具自己的深度解析 scenarios 取一条非公式、含中文的真实使用场景补足，
+    # 不拼全站通用尾巴，避免 269 页描述同质化。
+    if len(d) < 25:
+        slug = t.get('path', '').replace('tools/', '').rsplit('.html', 1)[0]
+        dd = _deep_dive_desc().get(slug) or {}
+        cands = []
+        for sc in (dd.get('scenarios') or []):
+            sc = re.sub(r'<[^>]+>', '', str(sc)).strip()
+            sc = re.sub(r'\s+', ' ', sc).rstrip('。；;')
+            if 8 <= len(sc) <= 50 and re.search(r'[\u4e00-\u9fff]', sc) \
+                    and '=' not in sc and '＝' not in sc and sc not in d:
+                cands.append(sc)
+        if cands:
+            extra = max(cands, key=len)
+            d = TDS.clip(d.rstrip('。；;') + '；' + extra, 80)
+    # 仍不足 20 字（多为无深度解析场景的公式型工具）：回退到页面 meta 描述，
+    # 去掉「X 是一款免费的在线 Y 工具，」模板前缀，保留真实输入/输出/用途说明。
+    if len(d) < 20:
+        md = TDS.meta_desc(t.get('path', ''))
+        md = re.sub(r'^[^，]{1,80}?是一款免费的在线[^，]{1,30}工具，', '', md).strip()
+        if len(md) >= 20 and re.search(r'[\u4e00-\u9fff]', md) and not md.startswith('本页收录'):
+            d = TDS.clip(md, 80)
+    return d
 
 
 def generate_split_jsons(tools):
@@ -2718,6 +2756,18 @@ def generate_html_sitemap(tools):
 <meta name="desc-en" content="ToolBox sitemap: browse all 5000+ free online tools across 268 industry categories. Search and Traditional Chinese supported — quickly locate the calculator or converter you need.">
 <meta property="og:title" content="站点地图 - ToolBox 免费在线工具集合">
 <meta property="og:description" content="ToolBox 在线工具站点地图：按 268 个行业分类浏览全部 5000+ 免费在线工具，支持搜索与繁体中文，快速定位需要的计算器与转换器。">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://tools.dicomp.net/sitemap.html">
+<meta property="og:site_name" content="ToolBox">
+<meta property="og:image" content="https://tools.dicomp.net/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免费在线工具">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="站点地图 - ToolBox 免费在线工具集合">
+<meta name="twitter:description" content="ToolBox 在线工具站点地图：按 268 个行业分类浏览全部 5000+ 免费在线工具，支持搜索与繁体中文，快速定位需要的计算器与转换器。">
+<meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
+<meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
 <link rel="canonical" href="https://tools.dicomp.net/sitemap.html">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <link rel="stylesheet" href="/css/site-chrome.css">
@@ -2744,6 +2794,7 @@ html:not([lang="en-US"]) .tool-link .t-en{display:none !important;}
 <script src="/js/common.js" defer></script>
 </head>
 <body>
+<main>
 <a href="/" class="back" data-i18n="sitemap.back" data-i18n-fb="← 返回首页">← 返回首页</a>
 <h1><a href="/">🧰 ToolBox</a></h1>
 <p class="subtitle"><span data-i18n="sitemap.subtitle_a" data-i18n-fb="站点地图 · 共 ">站点地图 · 共 </span>%d<span data-i18n="sitemap.subtitle_b" data-i18n-fb=" 个免费在线工具 · 更新于 "> 个免费在线工具 · 更新于 </span>%s</p>
@@ -2772,13 +2823,15 @@ html:not([lang="en-US"]) .tool-link .t-en{display:none !important;}
                 html += f'  <a class="tool-link" href="/{t["url"]}"><span class="t-zh">{t["icon"]} {t["name"]}</span><span class="t-en">{t["icon"]} {t.get("en") or t["name"]}</span></a>\n'
             html += '</div>\n'
     
-    html += '''<div class="footer">
+    html += '''</main>
+<div class="footer">
 <p><a href="/sitemap.xml">XML Sitemap</a> · <a href="/" data-i18n="sitemap.back_home" data-i18n-fb="返回首页">返回首页</a></p>
 <p data-i18n="sitemap.copyright" data-i18n-fb="© 2026 ToolBox - 免费在线工具集合">© 2026 ToolBox - 免费在线工具集合</p>
 </div>
 </body>
 </html>'''
     # 模板里的 ToolBox 桩为硬编码旧版，统一走升级函数，与 TOOLBOX_API_STUB 常量保持同步
+    html = inject_hreflang(html, 'https://tools.dicomp.net/sitemap.html')
     return _upgrade_toolbox_api_stub(html)
 
 
@@ -3181,6 +3234,444 @@ def _close_guide_desc(d):
     return d.rstrip('，；：、,;: ') + '。'
 
 
+def sync_guide_article_ld():
+    """指南页 Article 结构化数据补齐 image / mainEntityOfPage / inLanguage（2026-11-22）。
+
+    3,247 个可索引指南的 Article 均无 image；592 个缺少 mainEntityOfPage。
+    两者都是 Google Article 富结果的可选但强烈建议字段。图片沿用页面 og:image，
+    mainEntityOfPage 指回指南自身规范 URL；只补缺失字段，已有值一律不动。
+    """
+    gdir = os.path.join(ROOT, 'guides')
+    if not os.path.isdir(gdir):
+        return 0
+    lastmods = {}
+    try:
+        with open(os.path.join(ROOT, 'sitemap_lastmod.json'), encoding='utf-8') as f:
+            lastmods = json.load(f)
+    except Exception:
+        lastmods = {}
+    block_re = re.compile(r'(<script type="application/ld\+json">)(.*?)(</script>)', re.S)
+    updated = 0
+    for fn in sorted(os.listdir(gdir)):
+        if not fn.endswith('.html') or fn.endswith('.en.html'):
+            continue
+        fp = os.path.join(gdir, fn)
+        try:
+            with open(fp, encoding='utf-8') as f:
+                src = f.read()
+        except Exception:
+            continue
+        if 'name="robots" content="noindex' in src or 'TOOLBOX-REDIRECT' in src:
+            continue
+        abs_url = 'https://tools.dicomp.net/guides/%s' % fn
+        lang_m = re.search(r'<html[^>]*\blang="([^"]+)"', src)
+        page_lang = lang_m.group(1) if lang_m else 'zh-CN'
+        og_img = re.search(r'<meta property="og:image" content="([^"]+)"', src)
+        image_url = og_img.group(1) if og_img else 'https://tools.dicomp.net/og-image.png'
+        changed = [0]
+
+        def _sub(m):
+            try:
+                obj = json.loads(m.group(2))
+            except Exception:
+                return m.group(0)
+            if not isinstance(obj, dict) or obj.get('@type') != 'Article':
+                return m.group(0)
+            dirty = False
+            if not obj.get('image'):
+                obj['image'] = image_url
+                dirty = True
+            if not obj.get('mainEntityOfPage'):
+                obj['mainEntityOfPage'] = {'@type': 'WebPage', '@id': abs_url}
+                dirty = True
+            if not obj.get('inLanguage'):
+                obj['inLanguage'] = page_lang
+                dirty = True
+            if not obj.get('publisher'):
+                obj['publisher'] = {
+                    '@type': 'Organization', 'name': 'ToolBox',
+                    'logo': {'@type': 'ImageObject',
+                             'url': 'https://tools.dicomp.net/logo-512.png'}}
+                dirty = True
+            _date = lastmods.get(abs_url)
+            if _date:
+                if not obj.get('datePublished'):
+                    obj['datePublished'] = _date
+                    dirty = True
+                if not obj.get('dateModified'):
+                    obj['dateModified'] = _date
+                    dirty = True
+            if not dirty:
+                return m.group(0)
+            changed[0] += 1
+            return m.group(1) + json.dumps(obj, ensure_ascii=False, separators=(',', ':')) + m.group(3)
+
+        out = block_re.sub(_sub, src)
+        if changed[0]:
+            with open(fp, 'w', encoding='utf-8') as f:
+                f.write(out)
+            updated += 1
+    print('guides Article 字段补齐: %d 页' % updated)
+    return updated
+
+
+def fix_guide_empty_breadcrumb():
+    """修复指南页可见面包屑末项为空（2026-11-22）。
+
+    16 个旧模板指南的 `<span>` 是空壳，页头实际显示「ToolBox / 使用指南 / 」。
+    以页面 h1 去掉末尾「使用指南」作为末项文本；保留 span 原属性。
+    """
+    gdir = os.path.join(ROOT, 'guides')
+    if not os.path.isdir(gdir):
+        return 0
+    fixed = 0
+    for fn in sorted(os.listdir(gdir)):
+        if not fn.endswith('.html') or fn.endswith('.en.html'):
+            continue
+        fp = os.path.join(gdir, fn)
+        try:
+            with open(fp, encoding='utf-8') as f:
+                src = f.read()
+        except Exception:
+            continue
+        if 'TOOLBOX-REDIRECT' in src:
+            continue
+        h1 = re.search(r'<h1[^>]*>(.*?)</h1>', src, re.S)
+        if not h1:
+            continue
+        title = html.unescape(re.sub(r'<[^>]+>', '', h1.group(1))).strip()
+        title = re.sub(r'\s*使用指南$', '', title).strip()
+        if not title:
+            continue
+        span_re = re.compile(r'(<nav[^>]*class="breadcrumb"[^>]*>.*?<span[^>]*>)(\s*)(</span>)', re.S)
+        m = span_re.search(src)
+        if not m or re.sub(r'<[^>]+>', '', m.group(2)).strip():
+            continue
+        out = src[:m.start(2)] + esc_html_py(title) + src[m.end(2):]
+        with open(fp, 'w', encoding='utf-8') as f:
+            f.write(out)
+        fixed += 1
+    print('guides 可见面包屑空项修复: %d 页' % fixed)
+    return fixed
+
+
+def sync_guide_breadcrumb_ld():
+    """为缺 BreadcrumbList 的可索引指南补结构化面包屑（2026-11-22）。
+
+    583 个旧模板指南只有可见面包屑、没有 BreadcrumbList。这里直接读取
+    `<nav class="breadcrumb">` 的链接与末项文本生成 itemListElement，
+    名称与可见导航保持一致；已有 BreadcrumbList 的页跳过。
+    """
+    gdir = os.path.join(ROOT, 'guides')
+    if not os.path.isdir(gdir):
+        return 0
+    updated = 0
+    for fn in sorted(os.listdir(gdir)):
+        if not fn.endswith('.html') or fn.endswith('.en.html'):
+            continue
+        fp = os.path.join(gdir, fn)
+        try:
+            with open(fp, encoding='utf-8') as f:
+                src = f.read()
+        except Exception:
+            continue
+        if 'TOOLBOX-REDIRECT' in src or 'name="robots" content="noindex' in src:
+            continue
+        if 'BreadcrumbList' in src or 'class="breadcrumb"' not in src:
+            continue
+        nav = re.search(r'<nav[^>]*class="breadcrumb"[^>]*>(.*?)</nav>', src, re.S)
+        if not nav:
+            continue
+        raw = nav.group(1)
+        links = re.findall(r'<a[^>]+href="([^"]+)"[^>]*>(.*?)</a>', raw, re.S)
+        span = re.search(r'<span[^>]*>(.*?)</span>', raw, re.S)
+        if len(links) < 2 or not span:
+            continue
+
+        def _txt(x):
+            return html.unescape(re.sub(r'<[^>]+>', '', x)).strip()
+
+        items = []
+        for i, (href, label) in enumerate(links, 1):
+            items.append({'@type': 'ListItem', 'position': i,
+                          'name': _txt(label), 'item': href})
+        items.append({'@type': 'ListItem', 'position': len(items) + 1,
+                      'name': _txt(span.group(1)),
+                      'item': 'https://tools.dicomp.net/guides/%s' % fn})
+        obj = {'@context': 'https://schema.org', '@type': 'BreadcrumbList',
+               'itemListElement': items}
+        block = ('<script type="application/ld+json">%s</script>\n'
+                 % json.dumps(obj, ensure_ascii=False, separators=(',', ':')))
+        out = src.replace('</head>', block + '</head>', 1)
+        with open(fp, 'w', encoding='utf-8') as f:
+            f.write(out)
+        updated += 1
+    print('guides BreadcrumbList 补齐: %d 页' % updated)
+    return updated
+
+
+def sync_guide_breadcrumb_names():
+    """同步指南 BreadcrumbList 名称与可见面包屑（2026-11-22）。
+
+    6 个内容集群指南可见末项为「图片与视觉」「开发者工具」等短名，
+    JSON-LD 仍写「…内容集群」，属名称漂移。这里只改 `name`，保留 item / position。
+    """
+    gdir = os.path.join(ROOT, 'guides')
+    if not os.path.isdir(gdir):
+        return 0
+    block_re = re.compile(r'(<script type="application/ld\+json">)(.*?)(</script>)', re.S)
+    updated = 0
+    for fn in sorted(os.listdir(gdir)):
+        if not fn.endswith('.html') or fn.endswith('.en.html'):
+            continue
+        fp = os.path.join(gdir, fn)
+        try:
+            with open(fp, encoding='utf-8') as f:
+                src = f.read()
+        except Exception:
+            continue
+        if 'TOOLBOX-REDIRECT' in src or 'name="robots" content="noindex' in src:
+            continue
+        nav = re.search(r'<nav[^>]*class="breadcrumb"[^>]*>(.*?)</nav>', src, re.S)
+        if not nav:
+            continue
+        raw = nav.group(1)
+        names = [html.unescape(re.sub(r'<[^>]+>', '', m)).strip()
+                 for m in re.findall(r'<a[^>]*>(.*?)</a>|<span[^>]*>(.*?)</span>', raw, re.S)
+                 for m in m if m]
+        names = [n for n in names if n]
+        if not names:
+            continue
+        changed = [0]
+
+        def _sub(m):
+            try:
+                obj = json.loads(m.group(2))
+            except Exception:
+                return m.group(0)
+            if not isinstance(obj, dict) or obj.get('@type') != 'BreadcrumbList':
+                return m.group(0)
+            items = obj.get('itemListElement', [])
+            if len(items) != len(names):
+                return m.group(0)
+            dirty = False
+            for item, name in zip(items, names):
+                if isinstance(item, dict) and item.get('name') != name:
+                    item['name'] = name
+                    dirty = True
+            if not dirty:
+                return m.group(0)
+            changed[0] += 1
+            return m.group(1) + json.dumps(obj, ensure_ascii=False, separators=(',', ':')) + m.group(3)
+
+        out = block_re.sub(_sub, src)
+        if changed[0]:
+            with open(fp, 'w', encoding='utf-8') as f:
+                f.write(out)
+            updated += 1
+    print('guides 面包屑名称同步: %d 页' % updated)
+    return updated
+
+
+def sync_guide_faq_ld():
+    """指南 FAQPage 与可见问答同步 / 补齐（2026-11-22）。
+
+    583 个旧模板指南有可见「常见问题」<dl> 却没有 FAQPage；
+    另有 5 个已有 FAQPage 的答案文本被截断或与可见内容不一致。
+    这里从可见 <dt>/<dd> 重建 mainEntity，已有块只更新 mainEntity，缺块则插入。
+    """
+    gdir = os.path.join(ROOT, 'guides')
+    if not os.path.isdir(gdir):
+        return 0
+    block_re = re.compile(r'(<script type="application/ld\+json">)(.*?)(</script>)', re.S)
+    updated = 0
+
+    def _clean(x):
+        return re.sub(r'\s+', ' ', html.unescape(re.sub(r'<[^>]+>', '', x))).strip()
+
+    for fn in sorted(os.listdir(gdir)):
+        if not fn.endswith('.html') or fn.endswith('.en.html'):
+            continue
+        fp = os.path.join(gdir, fn)
+        try:
+            with open(fp, encoding='utf-8') as f:
+                src = f.read()
+        except Exception:
+            continue
+        if 'TOOLBOX-REDIRECT' in src or 'name="robots" content="noindex' in src:
+            continue
+
+        faq = re.search(r'常见问题.*?<dl[^>]*>(.*?)</dl>', src, re.S)
+        if not faq:
+            faq = re.search(r'<dl class="faq">(.*?)</dl>', src, re.S)
+        if not faq:
+            div = re.search(r'<div class="faq">(.*?)</div>', src, re.S)
+            inner = re.search(r'<dl[^>]*>(.*?)</dl>', div.group(1), re.S) if div else None
+            faq = inner
+        if not faq:
+            continue
+
+        qs = [_clean(x) for x in re.findall(r'<dt[^>]*>(.*?)</dt>', faq.group(1), re.S)]
+        ans = [_clean(x) for x in re.findall(r'<dd[^>]*>(.*?)</dd>', faq.group(1), re.S)]
+        if not qs or len(qs) != len(ans):
+            continue
+        items = [{'@type': 'Question', 'name': q,
+                  'acceptedAnswer': {'@type': 'Answer', 'text': a}}
+                 for q, a in zip(qs, ans)]
+
+        changed = [0]
+        found = [False]
+
+        def _sub(m):
+            try:
+                obj = json.loads(m.group(2))
+            except Exception:
+                return m.group(0)
+            if not isinstance(obj, dict) or obj.get('@type') != 'FAQPage':
+                return m.group(0)
+            found[0] = True
+            if obj.get('mainEntity') == items:
+                return m.group(0)
+            obj['mainEntity'] = items
+            changed[0] += 1
+            return m.group(1) + json.dumps(obj, ensure_ascii=False, separators=(',', ':')) + m.group(3)
+
+        out = block_re.sub(_sub, src)
+        if not found[0]:
+            obj = {'@context': 'https://schema.org', '@type': 'FAQPage', 'mainEntity': items}
+            block = ('<script type="application/ld+json">%s</script>\n'
+                     % json.dumps(obj, ensure_ascii=False, separators=(',', ':')))
+            out = out.replace('</head>', block + '</head>', 1)
+            changed[0] += 1
+        if changed[0]:
+            with open(fp, 'w', encoding='utf-8') as f:
+                f.write(out)
+            updated += 1
+    print('guides FAQPage 同步/补齐: %d 页' % updated)
+    return updated
+
+
+def inject_image_alt():
+    """补齐指南与核心页分享图的 alt（2026-11-22）。
+
+    工具页已在第 436 批补齐；指南仍有 3,120 页缺 og:image:alt、480 页缺
+    twitter:image:alt，search/chains/about 也缺。分享图统一为站点 og-image.png，
+    alt 用与工具页一致的站点描述。
+    """
+    targets = []
+    gdir = os.path.join(ROOT, 'guides')
+    if os.path.isdir(gdir):
+        targets += [os.path.join(gdir, fn) for fn in sorted(os.listdir(gdir))
+                    if fn.endswith('.html') and not fn.endswith('.en.html')]
+    targets += [os.path.join(ROOT, fn) for fn in
+                ('search.html', 'chains.html', 'about.html')]
+    alt = 'ToolBox - 5000+免费在线工具'
+    updated = 0
+    for fp in targets:
+        if not os.path.isfile(fp):
+            continue
+        try:
+            with open(fp, encoding='utf-8') as f:
+                src = f.read()
+        except Exception:
+            continue
+        if 'TOOLBOX-REDIRECT' in src or 'name="robots" content="noindex' in src:
+            continue
+        out = src
+        for prop, needle in (('property', 'og:image'), ('name', 'twitter:image')):
+            alt_needle = '%s="%s:alt"' % (prop, needle)
+            if alt_needle in out:
+                continue
+            m = re.search(r'<meta %s="%s"[^>]*>\s*' % (prop, needle), out)
+            if not m:
+                continue
+            insert = '<meta %s="%s:alt" content="%s">\n' % (prop, needle, alt)
+            out = out[:m.end()] + insert + out[m.end():]
+        if out != src:
+            with open(fp, 'w', encoding='utf-8') as f:
+                f.write(out)
+            updated += 1
+    print('分享图 alt 补齐: %d 页' % updated)
+    return updated
+
+
+def inject_core_hreflang():
+    """根级核心页补齐 hreflang（2026-11-22）。
+
+    sitemap.html / search.html / chains.html / about.html 均在常规 sitemap 中
+    且已有 zh-tw 静态副本，但历史模板没有 alternate 声明；与指南页同一收口。
+    index.html 已有 marker，由自身流程维护，不在本清单内。
+    """
+    names = ['sitemap.html', 'search.html', 'chains.html', 'about.html']
+    updated = 0
+    for fn in names:
+        fp = os.path.join(ROOT, fn)
+        if not os.path.isfile(fp):
+            continue
+        try:
+            with open(fp, encoding='utf-8') as f:
+                src = f.read()
+        except Exception:
+            continue
+        if '<head' not in src:
+            continue
+        abs_url = 'https://tools.dicomp.net/' + fn
+        if I18N_HREFLANG_MARKER in src:
+            out = inject_hreflang(src, abs_url)
+        else:
+            src = re.sub(r'<link[^>]*\bhreflang="[^"]+"[^>]*>\s*', '', src, flags=re.I)
+            src = re.sub(r'<meta property="og:locale(?::alternate)?" content="[^"]+">\s*', '', src, flags=re.I)
+            out = inject_hreflang(src, abs_url)
+        if out != src:
+            with open(fp, 'w', encoding='utf-8') as f:
+                f.write(out)
+            updated += 1
+    print('core hreflang 补齐: %d 页' % updated)
+    return updated
+
+
+def inject_guide_hreflang():
+    """指南页补齐 hreflang / og:locale（2026-11-22）。
+
+    工具页均有 zh-CN / zh-TW / en-US / x-default 四组 alternate，而 guides/*.html
+    历史生成器未输出任何 hreflang；这些页面在常规 sitemap 中且已有 zh-tw 静态副本，
+    缺少 alternate 会让搜索引擎把简繁两版当重复内容。英文仍沿用 ?lang=en-US 约定。
+    """
+    gdir = os.path.join(ROOT, 'guides')
+    if not os.path.isdir(gdir):
+        return 0
+    updated = 0
+    for fn in sorted(os.listdir(gdir)):
+        if not fn.endswith('.html') or fn.endswith('.en.html'):
+            continue
+        fp = os.path.join(gdir, fn)
+        try:
+            with open(fp, encoding='utf-8') as f:
+                src = f.read()
+        except Exception:
+            continue
+        if 'TOOLBOX-REDIRECT' in src or '<head' not in src:
+            continue
+        abs_url = 'https://tools.dicomp.net/guides/%s' % fn
+        # 有 marker 的页交给 inject_hreflang 整体替换：它会连同旧 alternate 与
+        # og:locale 一起替换。旧实现先删 link 再注入，会留下"只有 marker 没有
+        # link"的半截块，使 inject_hreflang 走 end_pos 兜底分支，把 marker 到
+        # </head> 之间的 theme-color / JSON-LD 等内容一并清掉（2026-11-22 实测）。
+        if I18N_HREFLANG_MARKER in src:
+            out = inject_hreflang(src, abs_url)
+        else:
+            # 无 marker 的历史页：先清掉散落的旧 alternate 与 og:locale，再整体注入。
+            src = re.sub(r'<link[^>]*\bhreflang="[^"]+"[^>]*>\s*', '', src, flags=re.I)
+            src = re.sub(r'<meta property="og:locale(?::alternate)?" content="[^"]+">\s*', '', src, flags=re.I)
+            out = inject_hreflang(src, abs_url)
+        if out != src:
+            with open(fp, 'w', encoding='utf-8') as f:
+                f.write(out)
+            updated += 1
+    print('guides hreflang 补齐: %d 页' % updated)
+    return updated
+
+
 def normalize_guide_descriptions():
     """指南页 description 收口（2026-11-14）。
 
@@ -3212,10 +3703,14 @@ def normalize_guide_descriptions():
         def _sub_meta(m):
             d = html.unescape(m.group(2))
             nd = _close_guide_desc(_rewrite_guide_desc(d, src))
-            if nd == d:
+            # 即使正文无需收口，也统一按属性值转义输出：description 里出现的
+            # `<10 mm`、`>20 mm` 等原始尖括号必须落成 &lt;/&gt;，否则社交抓取
+            # 与结构化校验会把它们当成标签边界。
+            esc = esc_html_py(nd)
+            if esc == m.group(2):
                 return m.group(0)
             changed[0] += 1
-            return m.group(1) + esc_html_py(nd) + m.group(3)
+            return m.group(1) + esc + m.group(3)
 
         def _sub_ld(m):
             try:
@@ -3551,6 +4046,305 @@ def linkify_terms_html(text, own_slug='', state=None):
         else:
             out.append(linkify_terms(p, own_slug, state))
     return ''.join(out)
+
+
+_FAQ_SCRIPT_RE = re.compile(
+    r'<script type="application/ld\+json">([\s\S]*?)</script>', re.S)
+
+
+def _strip_redundant_app_ld(src):
+    """同页已有 WebApplication 时移除旧 SoftwareApplication 块（2026-11-22）。
+
+    919 个页面同时输出 SoftwareApplication（旧模板）与 WebApplication（现行块），
+    两个实体名称/URL 相同，Google 可能视为重复应用。仅当页面存在 WebApplication
+    时删除 SoftwareApplication；只有 SoftwareApplication 的页面保持不动。
+    """
+    has_web = False
+    spans = []
+    for m in _FAQ_SCRIPT_RE.finditer(src):
+        try:
+            obj = json.loads(m.group(1))
+        except Exception:
+            continue
+        if not isinstance(obj, dict):
+            continue
+        if obj.get('@type') == 'WebApplication':
+            has_web = True
+        elif obj.get('@type') == 'SoftwareApplication':
+            spans.append(m.span())
+    if not has_web or not spans:
+        return src, False
+    out = src
+    for start, end in reversed(spans):
+        if start > 0 and out[start - 1] == '\n':
+            start -= 1
+        out = out[:start] + out[end:]
+    while '\n\n\n' in out:
+        out = out.replace('\n\n\n', '\n\n')
+    return out, True
+
+
+_LABEL_FOR_RE = re.compile(
+    r'(<label)([^>]*)>((?:(?!</label>).)*)</label>(\s*)'
+    r'(<(?:input|select|textarea)\b[^>]*?\bid="([^"]+)")', re.I | re.S)
+
+
+def _associate_labels(src):
+    """给紧邻表单控件的无 for 标签补 for，恢复可访问名称（2026-11-22）。
+
+    大量工具页写成 `<label>性别</label><select id="gender">`，标签与控件相邻
+    但没有 for，屏幕阅读器无法关联。仅处理“label 结束后紧跟空白 + 带 id 的
+    控件”这一确定结构；已有 for、控件无 id 或控件自带 aria-label 时不动。
+    """
+    def repl(match):
+        attrs = match.group(2) or ''
+        if re.search(r'\bfor\s*=', attrs, re.I):
+            return match.group(0)
+        control = match.group(5)
+        if re.search(r'\b(?:aria-label|aria-labelledby)\s*=', control, re.I):
+            return match.group(0)
+        return (match.group(1) + attrs + ' for="' + match.group(6) + '">'
+                + match.group(3) + '</label>' + match.group(4) + control)
+    return _LABEL_FOR_RE.sub(repl, src)
+
+
+_LABEL_TAG_RE = re.compile(r'<label\b([^>]*)>', re.I)
+
+
+def _fix_invalid_label_for(src):
+    """移除指向不存在 id 的 label for（2026-11-22）。
+
+    13 处历史标记把“多选组标题”写成 `<label for="top">`，页面上没有对应
+    控件，点击无目标、屏幕阅读器也读不出关系。仅在整页找不到该 id 时移除
+    for，保留标签文本；仍有目标的 label 不受影响。
+    """
+    ids = set(re.findall(r'\bid="([^"]+)"', src))
+
+    def repl(match):
+        attrs = match.group(1) or ''
+        fm = re.search(r'\s+for\s*=\s*"([^"]+)"', attrs, re.I)
+        if not fm or fm.group(1) in ids:
+            return match.group(0)
+        return '<label' + attrs.replace(fm.group(0), '') + '>'
+    return _LABEL_TAG_RE.sub(repl, src)
+
+
+_CONTAINER_TAG_RE = re.compile(
+    r'(<div\b[^>]*\bclass=(?:"[^"]*\bcontainer\b[^"]*"|\'[^\']*\bcontainer\b[^\']*\')[^>]*)>',
+    re.I)
+
+
+def _ensure_main_role(src):
+    """无 <main> 时给主内容 .container 加 role="main"（2026-11-22）。
+
+    32 个自绘测试/工具页使用 `.container` 作主内容容器但缺少 main 地标，
+    屏幕阅读器无法跳转主内容。仅在整页既无 <main> 也无 role="main" 时，
+    给首个 .container 标签补 role；已有 role 的标签不动。
+    """
+    if re.search(r'<main\b|role\s*=\s*["\']main["\']', src, re.I):
+        return src
+    match = _CONTAINER_TAG_RE.search(src)
+    if not match:
+        return src
+    tag = match.group(1)
+    if re.search(r'\brole\s*=', tag, re.I):
+        return src
+    return src[:match.start(1)] + tag + ' role="main"' + src[match.end(1):]
+
+
+_TAB_BUTTON_RE = re.compile(
+    r'(<button\b[^>]*\bclass="[^"]*\btab-btn\b[^"]*"[^>]*>)(\s*)(</button>)', re.I)
+_TAB_ARIA_LABELS = {
+    'chart': ('图表', 'tool.aria.chart'),
+    'table': ('表格', 'tool.aria.table'),
+    'out': ('输出', 'tool.aria.output'),
+    'guide': ('指南', 'tool.aria.guide'),
+}
+
+
+def _label_empty_tab_buttons(src):
+    """给空文本的 tab-btn 补可访问名称（2026-11-22）。
+
+    140 个页面写着 `<button class="tab-btn" data-v="chart"></button>`，按钮无
+    文本、无 aria-label，读屏只能读出“按钮”。仅处理带已知 data-v 且内部为空
+    的 tab-btn；已有 aria-label 或其他 data-v 不动。
+    """
+    def repl(match):
+        attrs = match.group(1)
+        if re.search(r'\baria-label\s*=', attrs, re.I):
+            return match.group(0)
+        dv = re.search(r'\bdata-v="([^"]+)"', attrs, re.I)
+        if not dv:
+            return match.group(0)
+        label = _TAB_ARIA_LABELS.get(dv.group(1))
+        if not label:
+            return match.group(0)
+        new_attrs = attrs[:-1] + ' aria-label="%s" data-i18n-aria="%s">' % label
+        return new_attrs + match.group(2) + match.group(3)
+    return _TAB_BUTTON_RE.sub(repl, src)
+
+
+_FORM_TAG_RE = re.compile(
+    r'<(input|select|textarea)\b((?:[^>"\']|"[^"]*"|\'[^\']*\')*)>', re.I)
+
+
+def _placeholder_is_name(text):
+    """判断 placeholder 是否可作为稳定的控件名称（2026-11-22）。
+
+    排除示例值（“如 12”“高收入,2000”）、纯符号/纯数字（“?”、“#000000”）、
+    单字单位（“分”“秒”）；保留“采样率”“课程名称”“Area (m²)”这类字段名。
+    """
+    if not text or len(text) < 2:
+        return False
+    if text.startswith(('如', '例如', '例：', 'e.g.', 'E.g.')):
+        return False
+    if '\n' in text or ',' in text or '，' in text:
+        return False
+    if '<' in text or '>' in text:
+        return False
+    if len(re.findall(r'[A-Za-z\u4e00-\u9fff]', text)) < 2:
+        return False
+    return True
+
+
+def _label_placeholder_controls(src):
+    """给只有 placeholder 的控件补 aria-label（2026-11-22）。
+
+    434 个控件没有任何 label/aria 名称，其中约一半 placeholder 本身就是字段名
+    （采样率、课程名称、搜索证书名称…）。仅在这些情况下把 placeholder 提升为
+    aria-label；已有 for 关联、aria-label/title、或控件位于未闭合 label 内时不动。
+    """
+    label_ids = set(re.findall(r'<label[^>]+for="([^"]+)"', src))
+
+    def repl(match):
+        attrs = match.group(2) or ''
+        if re.search(r'\b(?:aria-label|aria-labelledby|title)\s*=', attrs, re.I):
+            return match.group(0)
+        pm = re.search(r'\bplaceholder="([^"]*)"', attrs, re.I)
+        if not pm:
+            return match.group(0)
+        ph = html.unescape(pm.group(1)).strip()
+        if not _placeholder_is_name(ph):
+            return match.group(0)
+        idm = re.search(r'\bid="([^"]+)"', attrs, re.I)
+        if idm and idm.group(1) in label_ids:
+            return match.group(0)
+        before = src[:match.start()]
+        if before.rfind('<label') > before.rfind('</label>'):
+            return match.group(0)
+        clean = attrs.rstrip()
+        if clean.endswith('/'):
+            clean = clean[:-1].rstrip()
+        return '<%s%s aria-label="%s">' % (match.group(1), clean,
+                                           ph.replace('"', '&quot;'))
+    return _FORM_TAG_RE.sub(repl, src)
+
+
+def _sync_faq_ld(src):
+    """用页面可见的 <dl class="dd-faq"> 重建 FAQPage JSON-LD。
+
+    Google 要求 FAQ 结构化数据与页面可见问答一致；历史页面的 LD 是旧模板，
+    与深度解析替换后的可见问答脱节（实测 236 页）。每次构建从可见内容重算，
+    保证二者永不漂移。
+
+    注意：必须逐个 <script> 块判断，不能用一个跨 script 的正则匹配 FAQPage；
+    页面通常先有 WebApplication 块，跨块匹配会把两块之间的整个 body 一起吞掉
+    （2026-11-22 构建曾因此截断 416 页）。
+    """
+    dl = re.search(r'<dl class="dd-faq">([\s\S]*?)</dl>', src)
+    if not dl:
+        return src, False
+    pairs = re.findall(r'<dt[^>]*>([\s\S]*?)</dt>\s*<dd[^>]*>([\s\S]*?)</dd>', dl.group(1))
+    qa = []
+    for q, a in pairs:
+        q = html.unescape(re.sub(r'<[^>]+>', '', q))
+        a = html.unescape(re.sub(r'<[^>]+>', '', a))
+        q = re.sub(r'\s+', ' ', q).strip()
+        a = re.sub(r'\s+', ' ', a).strip()
+        if q and a:
+            qa.append({'@type': 'Question', 'name': q,
+                       'acceptedAnswer': {'@type': 'Answer', 'text': a}})
+    if not qa:
+        return src, False
+    payload = json.dumps({'@context': 'https://schema.org', '@type': 'FAQPage',
+                          'mainEntity': qa}, ensure_ascii=False, indent=2)
+    payload = payload.replace('</', '<\\/')
+    new_block = '<script type="application/ld+json">\n%s\n</script>' % payload
+    spans = []
+    has_faq_block = False
+    want = [(x['name'], x['acceptedAnswer']['text']) for x in qa]
+    for m in _FAQ_SCRIPT_RE.finditer(src):
+        raw = m.group(1)
+        if '"FAQPage"' not in raw:
+            continue
+        has_faq_block = True
+        try:
+            obj = json.loads(raw)
+        except Exception:
+            continue
+        if not (isinstance(obj, dict) and obj.get('@type') == 'FAQPage'):
+            continue
+        cur = []
+        for q in obj.get('mainEntity') or []:
+            if not isinstance(q, dict):
+                continue
+            ans = q.get('acceptedAnswer') or {}
+            cur.append((str(q.get('name') or '').strip(),
+                        str(ans.get('text') or '').strip()))
+        if cur == want:
+            continue
+        spans.append(m.span())
+    if not spans:
+        if has_faq_block or '</head>' not in src:
+            return src, False
+        # 可见 FAQ 存在但页面从未输出 FAQPage：补一块，插在 </head> 前。
+        out = src.replace('</head>', new_block + '\n</head>', 1)
+        return out, True
+    out = src
+    for start, end in reversed(spans):
+        out = out[:start] + new_block + out[end:]
+    return out, True
+
+
+def _sync_breadcrumb_ld(src):
+    """用可见面包屑的当前项名称校正 BreadcrumbList JSON-LD 最后一项。
+
+    部分页面可见标题已补全（如「播种日期计算器（按收获日倒推）」），而结构化
+    面包屑仍是旧短名；Google 要求二者一致。只改最后一项 name，保留 url/position。
+    """
+    m = re.search(r'<span class="bc-current"[^>]*>([\s\S]*?)</span>', src)
+    if not m:
+        return src, False
+    name = html.unescape(re.sub(r'<[^>]+>', '', m.group(1)))
+    name = re.sub(r'\s+', ' ', name).strip()
+    if not name:
+        return src, False
+    spans = []
+    for sm in _FAQ_SCRIPT_RE.finditer(src):
+        raw = sm.group(1)
+        if '"BreadcrumbList"' not in raw:
+            continue
+        try:
+            obj = json.loads(raw)
+        except Exception:
+            continue
+        if not (isinstance(obj, dict) and obj.get('@type') == 'BreadcrumbList'):
+            continue
+        items = obj.get('itemListElement') or []
+        if not items or not isinstance(items[-1], dict):
+            continue
+        if str(items[-1].get('name') or '').strip() == name:
+            continue
+        items[-1]['name'] = name
+        new_block = '<script type="application/ld+json">\n%s\n</script>' % json.dumps(
+            obj, ensure_ascii=False, indent=2)
+        spans.append((sm.start(), sm.end(), new_block))
+    if not spans:
+        return src, False
+    out = src
+    for start, end, block in reversed(spans):
+        out = out[:start] + block + out[end:]
+    return out, True
 
 
 def _build_deep_dive_html(d, own_slug=''):
@@ -4069,7 +4863,7 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
             bc_ind_url = 'tools/' + industry + '/index.html'
             bc_tool_dir = 'tools/' + os.path.dirname(t['path'])
             bc_href = os.path.relpath(bc_ind_url, bc_tool_dir).replace(os.sep, '/')
-            bc_html = '\n<nav class="breadcrumb" aria-label="面包屑导航" data-breadcrumb="1">\n  <a href="../../index.html">首页</a>\n  <span class="bc-sep">‹</span>\n  <a href="%s">%s %s</a>\n  <span class="bc-sep">‹</span>\n  <span class="bc-current">%s</span>\n</nav>\n' % (bc_href, ind_icon, ind_name, tool_name_esc)
+            bc_html = '\n<nav class="breadcrumb" aria-label="面包屑导航" data-breadcrumb="1">\n  <a href="../../index.html">首页</a>\n  <span class="bc-sep">‹</span>\n  <a href="%s">%s %s</a>\n  <span class="bc-sep">‹</span>\n  <span class="bc-current" aria-current="page">%s</span>\n</nav>\n' % (bc_href, ind_icon, ind_name, tool_name_esc)
             if '<div class="container">' in content:
                 content = content.replace('<div class="container">', bc_html + '<div class="container">', 1)
             elif '<div class="card">' in content:
@@ -4163,7 +4957,7 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
             'text': 'DeveloperApplication', 'convert': 'UtilitiesApplication',
             'validator': 'UtilitiesApplication', 'reference': 'UtilitiesApplication',
             'calculator': 'UtilitiesApplication', 'math': 'UtilitiesApplication',
-            'finance': 'FinanceApplication', 'game': 'GamesApplication',
+            'finance': 'FinanceApplication', 'game': 'GameApplication',
             'health': 'MedicalApplication',
             'image': 'MultimediaApplication', 'design': 'MultimediaApplication',
         }
@@ -4244,12 +5038,13 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
                     _seo_desc_raw = _seo_desc_raw.rstrip('。') + '。' + _extra
             if not _seo_desc_raw.endswith(('。', '！', '？')):
                 _seo_desc_raw += '。'
-        app_desc = esc_html_py(_clip_zh_desc(_seo_desc_raw, 150))
-        # JSON-LD 字符串安全（2026-09-23）：desc 含反斜杠字面量（转义类工具 \n \b…）或
-        # 控制字符时，未转义会导致 WebApplication JSON 非法、整块被 Google 丢弃。
-        # 顺序：先 doubling 反斜杠，再去控制字符。
-        app_desc = app_desc.replace('\\', '\\\\').replace('\n', ' ').replace('\r', ' ').replace('\t', ' ')
-        app_json_block = '\n<!-- TOOLBOX-WEBAPP-LD -->\n<script type="application/ld+json">\n{"@context":"https://schema.org","@type":"WebApplication","name":"%s","url":"https://tools.dicomp.net/%s","applicationCategory":"%s","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":%s,"description":"%s","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}\n</script>' % (tool_name_esc, t['url'], app_cat, json.dumps(I18N_LOCALES, ensure_ascii=False), app_desc)
+        # JSON-LD 中 description 必须是字面文本，不能沿用 HTML meta 的实体转义：
+        # 否则 &quot; / &lt; / &amp; 会被搜索引擎当作正文显示（实测 48 页）。
+        # 先还原实体，再交给 json.dumps 负责引号、反斜杠与控制字符转义。
+        app_desc_ld = json.dumps(
+            html.unescape(_clip_zh_desc(_seo_desc_raw, 150)), ensure_ascii=False)
+        tool_name_ld = json.dumps(html.unescape(t['name']), ensure_ascii=False)
+        app_json_block = '\n<!-- TOOLBOX-WEBAPP-LD -->\n<script type="application/ld+json">\n{"@context":"https://schema.org","@type":"WebApplication","name":%s,"url":"https://tools.dicomp.net/%s","applicationCategory":"%s","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":%s,"description":%s,"image":"https://tools.dicomp.net/og-image.png","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}\n</script>' % (tool_name_ld, t['url'], app_cat, json.dumps(I18N_LOCALES, ensure_ascii=False), app_desc_ld)
 
         def _replace_webapp_ld(src):
             # 注意：标记注释位于 <script> 之外，必须一并纳入匹配范围，
@@ -4258,10 +5053,21 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
             pattern = re.compile(
                 r'(?:<!--\s*TOOLBOX-WEBAPP-LD\s*-->\s*)*'
                 r'<script type="application/ld\+json">.*?</script>', re.S)
-            matches = [
-                match for match in pattern.finditer(src)
-                if '"@type":"WebApplication"' in match.group(0)
-            ]
+            matches = []
+            for match in pattern.finditer(src):
+                # 不能只匹配紧凑串 `"@type":"WebApplication"`：历史页存在缩进
+                # 美化版 `"@type": "WebApplication"`，会被漏掉并再插一个新块，
+                # 造成同页两个 WebApplication（实测 17 页）。改为解析 JSON 判断。
+                sm = re.search(r'<script type="application/ld\+json">(.*?)</script>',
+                               match.group(0), re.S)
+                if not sm:
+                    continue
+                try:
+                    obj = json.loads(sm.group(1))
+                except Exception:
+                    continue
+                if isinstance(obj, dict) and obj.get('@type') == 'WebApplication':
+                    matches.append(match)
             if not matches:
                 return src, False
 
@@ -4281,11 +5087,26 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
         content, app_ld_found = _replace_webapp_ld(content)
         if not app_ld_found:
             content = content.replace('</head>', app_json_block + '\n</head>', 1)
+        content, _redundant_app_removed = _strip_redundant_app_ld(content)
+        content = _associate_labels(content)
+        content = _label_placeholder_controls(content)
+        content = _fix_invalid_label_for(content)
+        content = _ensure_main_role(content)
+        content = _label_empty_tab_buttons(content)
 
         # 4. Add og:image / twitter:image (idempotent)
         if 'og:image' not in content:
             image_meta = '\n<meta property="og:image" content="https://tools.dicomp.net/og-image.png">\n<meta property="og:image:width" content="1200">\n<meta property="og:image:height" content="630">\n<meta property="og:image:alt" content="ToolBox - 5000+免费在线工具">\n<meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">\n<meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">\n'
             content = content.replace('</head>', image_meta + '</head>', 1)
+        # 已有 og:image 但缺 alt 的页面（历史页面 86 个）：单独补齐，避免重复整块注入。
+        if 'og:image:alt' not in content:
+            content = content.replace(
+                '</head>',
+                '<meta property="og:image:alt" content="ToolBox - 5000+免费在线工具">\n</head>', 1)
+        if 'twitter:image:alt' not in content:
+            content = content.replace(
+                '</head>',
+                '<meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">\n</head>', 1)
 
         # 4.0 中文优先 <title>（2026-08-29 反转：目标用户以中文为主）。
         # 初始 <title> 渲染为中文（per-industry 字典 zh-CN.title 或中文名），英文标题存
@@ -4295,6 +5116,14 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
         _seo_slug = _slug_of(t)
         _seo_override = EN_OVERRIDE.get(_seo_slug, {})
         _en_t = _seo_override.get('en')
+        if not _en_t:
+            # 38 个页面只有行业字典 en-US.title，没有 _en_override 条目；原先不会写
+            # title-en，导致 EN 态 document.title 无法切换。此处从行业字典回退。
+            _en_base = os.path.splitext(os.path.basename(t['path']))[0]
+            _en_entry = ((_ind_cache.get(industry, {}) or {}).get(_en_base, {}) or {}).get('en-US', {}) or {}
+            _en_title_fb = (_en_entry.get('title') if isinstance(_en_entry, dict) else '') or ''
+            if _en_title_fb and not TDS.has_cjk(_en_title_fb):
+                _en_t = _en_title_fb
         # 优先覆盖字典 ed；无覆盖时回落权威英文描述 TDS.en_desc（内含套话剥离 + CJK 防护）。
         # 关键修复：旧构建曾给「无覆盖页」注入退化 desc-en（如 "X - online utility on ToolBox."），
         # 而空 _en_desc 不会触发下方清理，导致退化串永久残留。此处补回退，确保每页 desc-en 非退化。
@@ -4805,6 +5634,13 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
                 content = content.replace('</head>', nav_inject + '</head>', 1)
                 fixed_nav += 1
 
+        # 主内容地标：全站 4,772 页只有一个 <div class="container"> 且无 <main>，
+        # 补 role="main" 供屏幕阅读器跳过导航直达正文（不改变任何布局）。
+        if ('<main' not in content and 'role="main"' not in content
+                and content.count('<div class="container"') == 1):
+            content = content.replace(
+                '<div class="container"', '<div class="container" role="main"', 1)
+
         # 3.5b Add generic tool UX enhancement (copy/download bar, validation hint, input persistence, a11y)
         ux_block = '\n<script src="/js/tool-ux.js" defer></script>\n<!-- TOOLBOX-TOOL-UX -->\n'
         if not _head_contains(content, '/js/tool-ux.js'):
@@ -4834,6 +5670,10 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
         # Keep analytics last so hreflang normalization cannot discard it.
         if not _head_contains(content, '/js/analytics.js'):
             content = _inject_into_document_head(content, clarity_block)
+
+        # FAQPage 结构化数据与可见问答同步（构建期重算，防止旧模板漂移）。
+        content, _faq_synced = _sync_faq_ld(content)
+        content, _bc_synced = _sync_breadcrumb_ld(content)
 
         if content != original:
             with open(filepath, 'w', encoding='utf-8') as f:
@@ -5014,6 +5854,7 @@ def generate_category_indexes(tools):
         parts.append('<!DOCTYPE html>\n<html lang="zh-CN">\n<head>\n')
         parts.append('<meta charset="UTF-8">\n')
         parts.append('<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">\n')
+        parts.append('<meta name="theme-color" content="#FF6B35">\n')
         parts.append('<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">\n')
         parts.append('<meta http-equiv="X-Content-Type-Options" content="nosniff">\n')
         parts.append('<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">\n')
@@ -5073,11 +5914,11 @@ def generate_category_indexes(tools):
         parts.append('</head>\n<body>\n')
         parts.append('<h1 class="sr-only tb-bi"><span class="t-zh">%s %s工具</span><span class="t-en">%s %s Tools</span></h1>\n' % (ind_icon, esc_html_py(ind_name), ind_icon, esc_html_py(en_name)))
         # Breadcrumb
-        parts.append('<nav class="breadcrumb" aria-label="面包屑导航">\n  <a href="../../index.html" data-i18n="bc.home" data-i18n-fb="首页">首页</a>\n  <span class="bc-sep">‹</span>\n  <span class="bc-current tb-bi">%s <span class="t-zh">%s</span><span class="t-en">%s</span></span>\n</nav>\n' % (ind_icon, esc_html_py(ind_name), esc_html_py(en_name)))
+        parts.append('<nav class="breadcrumb" aria-label="面包屑导航">\n  <a href="../../index.html" data-i18n="bc.home" data-i18n-fb="首页">首页</a>\n  <span class="bc-sep">‹</span>\n  <span class="bc-current tb-bi" aria-current="page">%s <span class="t-zh">%s</span><span class="t-en">%s</span></span>\n</nav>\n' % (ind_icon, esc_html_py(ind_name), esc_html_py(en_name)))
         # Nav
         parts.append('<div class="nav">\n  <a href="../../index.html">← ToolBox</a>\n  <span class="tb-bi">/ <span class="t-zh">%s工具</span><span class="t-en">%s Tools</span></span>\n  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()" aria-label="切换主题" title="切换主题" data-i18n-aria="nav.theme" data-i18n-title="nav.theme">🌙</button>\n</div>\n' % (esc_html_py(ind_name), esc_html_py(en_name)))
         # Content
-        parts.append('<div class="container">\n  <div class="card">\n')
+        parts.append('<div class="container" role="main">\n  <div class="card">\n')
         parts.append('    <h2 class="tb-bi">%s <span class="t-zh">%s工具</span><span class="t-en">%s %s Tools</span></h2>\n' % (ind_icon, esc_html_py(ind_name), ind_icon, esc_html_py(en_name)))
         parts.append('    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;"><span data-i18n="cat.total_prefix" data-i18n-fb="共">共</span> %d<span data-i18n="cat.total_suffix" data-i18n-fb="个免费在线工具">个免费在线工具</span></p>\n' % count)
         parts.append('    <div class="category-tool-list" data-ind="%s">\n' % ind)
@@ -5200,6 +6041,621 @@ def generate_hot_tools():
         subprocess.run([sys.executable, script], cwd=ROOT, check=True)
     except subprocess.CalledProcessError as exc:
         raise SystemExit('Hot tools build failed: %s' % exc)
+
+
+def ensure_og_image_dimensions():
+    """给所有带 og:image 的静态页补齐 1200x630 尺寸声明（2026-11-22）。
+
+    全站 og:image 统一为 og-image.png（1200×630）。缺 width/height 时，
+    Facebook/LinkedIn/Slack 等平台需要先下载图片才能确定比例，首屏卡片
+    可能被裁切或延迟渲染；补上后分享卡片稳定显示为大图。只处理源页面，
+    zh-tw/ 在随后生成时自然继承。
+    """
+    skip_dirs = {'.git', 'node_modules', 'zh-tw', '_en-i18n', '_site', 'dist'}
+    changed = 0
+    for dirpath, dirnames, filenames in os.walk(ROOT):
+        dirnames[:] = [d for d in dirnames if d not in skip_dirs]
+        for fn in filenames:
+            if not fn.endswith('.html'):
+                continue
+            path = os.path.join(dirpath, fn)
+            try:
+                with open(path, encoding='utf-8') as f:
+                    txt = f.read()
+            except (UnicodeDecodeError, OSError):
+                continue
+            if 'TOOLBOX-REDIRECT' in txt or 'http-equiv="refresh"' in txt:
+                continue
+            m = re.search(r'<meta\b[^>]*property="og:image"[^>]*>', txt, re.I)
+            if not m:
+                continue
+            inserts = []
+            if 'property="og:image:width"' not in txt:
+                inserts.append('\n<meta property="og:image:width" content="1200">')
+            if 'property="og:image:height"' not in txt:
+                inserts.append('\n<meta property="og:image:height" content="630">')
+            if not inserts:
+                continue
+            txt = txt[:m.end()] + ''.join(inserts) + txt[m.end():]
+            with open(path, 'w', encoding='utf-8') as f:
+                f.write(txt)
+            changed += 1
+    print('OG image dimensions: %d pages updated' % changed)
+    return changed
+
+
+_TH_TAG_RE = re.compile(r'<th\b((?:[^>"\']|"[^"]*"|\'[^\']*\')*)>', re.I)
+_TR_TAG_RE = re.compile(r'<tr\b.*?</tr>', re.I | re.S)
+_TABLE_TAG_RE = re.compile(r'<table\b.*?</table>', re.I | re.S)
+
+
+def _scope_table_row(match):
+    """给一行内的 th 补 scope：整行 th 为列头，行首 th 且同行有 td 为行头。"""
+    row = match.group(0)
+    ths = list(_TH_TAG_RE.finditer(row))
+    if not ths:
+        return row
+    has_td = bool(re.search(r'<td\b', row, re.I))
+    out = []
+    last = 0
+    for m in ths:
+        out.append(row[last:m.start()])
+        attrs = m.group(1)
+        if re.search(r'\bscope\s*=', attrs, re.I):
+            out.append(m.group(0))
+        else:
+            prefix = row[:m.start()]
+            scope = 'row' if has_td and not re.search(r'<td\b', prefix, re.I) else 'col'
+            out.append('<th' + attrs + ' scope="' + scope + '">')
+        last = m.end()
+    out.append(row[last:])
+    return ''.join(out)
+
+
+def _scope_tables(text):
+    def repl(match):
+        table = match.group(0)
+        return _TR_TAG_RE.sub(_scope_table_row, table)
+    return _TABLE_TAG_RE.sub(repl, text)
+
+
+def strip_redundant_wrapped_control_aria():
+    """移除被 <label> 包裹控件的冗余 aria-label（2026-11-22）。
+
+    审计发现 276 个 checkbox/radio 的 aria-label 与包裹它的 label 文案错位
+    （如「SHA-1」复选框写成 aria-label="MD5"），会覆盖 label 的真实名称，
+    导致屏幕阅读器读错选项。包裹 label 本身就是最准确的名称，故对
+    label 内且有可见文字的 input/select/textarea 直接删除 aria-label；
+    label 内没有文字（纯图标）的保留原属性。script/style/pre 内不处理。
+    """
+    label_block = re.compile(r'<label\b[^>]*>.*?</label>', re.S | re.I)
+    ctrl_aria = re.compile(
+        r'<((?:input|select|textarea)\b[^>]*?)\s+aria-label="[^"]*"([^>]*)>', re.I)
+    protect = re.compile(r'<(script|style|pre)\b.*?</\1\s*>', re.I | re.S)
+    changed = 0
+    removed = 0
+    for dirpath, dirnames, filenames in os.walk(ROOT):
+        dirnames[:] = [d for d in dirnames if d not in
+                       {'.git', 'node_modules', 'zh-tw', '_en-i18n', '_site', 'dist'}]
+        for fn in filenames:
+            if not fn.endswith('.html'):
+                continue
+            path = os.path.join(dirpath, fn)
+            try:
+                with open(path, encoding='utf-8') as f:
+                    src = f.read()
+            except (UnicodeDecodeError, OSError):
+                continue
+            if '<label' not in src.lower() or 'aria-label' not in src:
+                continue
+
+            def _process(part):
+                nonlocal removed
+
+                def _label(m):
+                    nonlocal removed
+                    block = m.group(0)
+                    text = re.sub(r'<[^>]+>', '', block)
+                    text = re.sub(r'\s+', ' ', html.unescape(text)).strip()
+                    if len(text) < 2:
+                        return block
+
+                    def _drop(cm):
+                        nonlocal removed
+                        removed += 1
+                        return '<' + cm.group(1) + cm.group(2) + '>'
+                    return ctrl_aria.sub(_drop, block)
+                return label_block.sub(_label, part)
+
+            out = []
+            last = 0
+            for m in protect.finditer(src):
+                out.append(_process(src[last:m.start()]))
+                out.append(m.group(0))
+                last = m.end()
+            out.append(_process(src[last:]))
+            new_src = ''.join(out)
+            if new_src != src:
+                with open(path, 'w', encoding='utf-8') as f:
+                    f.write(new_src)
+                changed += 1
+    print('Wrapped control aria cleanup: %d attrs in %d pages' % (removed, changed))
+    return removed
+
+
+def ensure_form_control_names():
+    """给缺少可访问名称的静态表单控件补 aria-label（2026-11-22）。
+
+    审计发现 256 个工具页仍有 553 个 input/select/textarea 没有 label/aria-label。
+    本批先处理目标明确、可从邻近文案推断的控件：range、color、file、time、date、
+    search。优先取控件前最近的 label / *-label / *-title 文案；推断不到时按
+    type 与 accept 给保守兜底名（如「选择图片文件」「选择日期」）。已有
+    aria-label / aria-labelledby / title 或 id 已被 label[for] 关联的一律不动。
+    script/style/pre/textarea 内的运行时字符串与示例不处理，保证幂等。
+    """
+    wanted = {'range', 'color', 'file', 'time', 'date', 'search'}
+    ctrl_re = re.compile(r'<(input|select|textarea)\b([^>]*)>', re.I)
+    attr_re = re.compile(r'([\w:-]+)\s*=\s*(["\'])(.*?)\2', re.S)
+    label_re = re.compile(r'<label\b[^>]*>(.*?)</label>', re.S | re.I)
+    aux_re = re.compile(
+        r'<(?:div|span|p)\b[^>]*class="[^"]*(?:label|title|hint|text)[^"]*"[^>]*>'
+        r'(.*?)</(?:div|span|p)>', re.S | re.I)
+    protect = re.compile(r'<(script|style|pre|textarea)\b.*?</\1\s*>', re.I | re.S)
+
+    # 少数控件的前文是说明而非名称，或同一名称被多个滑块复用；显式兜底。
+    by_path_id = {
+        ('image-rounded-corners.html', 'tlSlider'): '左上圆角半径滑块',
+        ('image-rounded-corners.html', 'trSlider'): '右上圆角半径滑块',
+        ('image-rounded-corners.html', 'blSlider'): '左下圆角半径滑块',
+        ('image-rounded-corners.html', 'brSlider'): '右下圆角半径滑块',
+        ('palette-cvd-checker.html', 'pcPick'): '配色颜色选择器',
+        ('color-temperature-converter.html', 'tempSlider'): '色温滑块',
+        ('colorfastness.html', 'origColor'): '原样颜色选择器',
+        ('colorfastness.html', 'testColor'): '测试样颜色选择器',
+        ('signature-pad.html', 'colorPicker'): '画笔颜色选择器',
+        ('pixel-art.html', 'colorPicker'): '自定义颜色选择器',
+        ('image-rotate.html', 'customColor'): '背景颜色选择器',
+        ('image-watermark.html', 'wmColor'): '水印颜色选择器',
+        ('image-watermark.html', 'wmFileInput'): '水印图片文件',
+        ('music-player.html', 'volume'): '音量滑块',
+        ('chord-progression.html', 'bpmSlider'): 'BPM 滑块',
+        ('web-audio-metronome.html', 'bpmSlider'): 'BPM 滑块',
+        ('flood-level.html', 'depthSlider'): '洪水深度滑块',
+        ('clamp-calculator.html', 'slider'): '数值滑块',
+        ('countdown-timer.html', 'event-date'): '事件日期',
+        ('countdown-timer.html', 'event-time'): '事件时间',
+        ('sports-stats.html', 'aDate'): '统计日期',
+        ('food-calorie-lookup.html', 'kw'): '搜索食物名称',
+        ('code-line-counter.html', 'codeFile'): '选择代码文件',
+        ('line-ending-converter.html', 'leFile'): '选择待转换文件',
+        ('npv-calculator.html', 'csvFile'): '选择现金流 CSV 文件',
+        ('csv-to-html-table.html', 'csvFile'): '选择 CSV 文件',
+        ('manager.html', 'importFile'): '选择导入文件',
+        ('image-compress.html', 'file-input'): '选择图片文件',
+        ('pdf-merge.html', 'fileInput'): '选择 PDF 文件',
+        ('pdf-rotate.html', 'fileInput'): '选择 PDF 文件',
+        ('pdf-split.html', 'fileInput'): '选择 PDF 文件',
+        ('video-trimmer.html', 'file-input'): '选择视频文件',
+    }
+    by_path_id.update({
+        ('base64-converter.html', 'fileInput'): '选择文件',
+        ('hash.html', 'fileInput'): '选择文件',
+        ('color-converter.html', 'colorPicker'): '自定义颜色选择器',
+        ('color-converter.html', 'palettePicker'): '调色板颜色选择器',
+        ('pdf-signature-checker.html', 'file'): '选择 PDF 文件',
+        ('color-palette.html', 'baseColor'): '基色选择器',
+        ('color-palette-generator.html', 'baseColor'): '基色选择器',
+        ('image-resize.html', 'qualitySlider'): '输出质量滑块',
+        ('step-stride.html', 'strRange'): '步长滑块',
+        ('step-stride.html', 'cadRange'): '步频滑块',
+        ('water-activity.html', 'awSlider'): '水分活度滑块',
+        ('reminder-time.html', 'time1'): '服药时间 1',
+        ('reminder-time.html', 'time2'): '服药时间 2',
+        ('reminder-time.html', 'time3'): '服药时间 3',
+    })
+    for n in range(1, 10):
+        by_path_id[('animal-welfare-score.html', 's%d' % n)] = '动物福利评分项 %d 滑块' % n
+
+    def clean(x):
+        x = re.sub(r'<[^>]+>', '', x)
+        return re.sub(r'\s+', ' ', html.unescape(x)).strip(' ：:')
+
+    def label_for(pre, typ, accept, path, cid):
+        key = (os.path.basename(path), cid)
+        if key in by_path_id:
+            return by_path_id[key]
+        cands = []
+        for m in label_re.finditer(pre):
+            c = clean(m.group(1))
+            if c:
+                cands.append((m.end(), c))
+        for m in aux_re.finditer(pre):
+            c = clean(m.group(1))
+            if c:
+                cands.append((m.end(), c))
+        cands = [(pos, c) for pos, c in cands
+                 if 2 <= len(c) <= 30 and not any(g in c for g in
+                 ('工作原理', '计算公式', '使用说明', '格式说明'))]
+        c = sorted(cands)[-1][1] if cands else ''
+        if c.startswith(('拖拽', '点击', '支持 ', '或输入')) or '·' in c:
+            c = ''
+        if typ == 'range':
+            return (c + '滑块') if c else '滑块'
+        if typ == 'color':
+            return (c + '选择器') if c else '颜色选择器'
+        if typ == 'file':
+            if c and ('文件' in c or '上传' in c or '图片' in c):
+                return c
+            if 'audio' in accept:
+                return '选择音频文件'
+            if 'image' in accept:
+                return '选择图片文件'
+            if 'csv' in accept:
+                return '选择 CSV 文件'
+            if 'video' in accept:
+                return '选择视频文件'
+            return '选择文件'
+        if typ == 'date':
+            return c or '选择日期'
+        if typ == 'time':
+            return c or '选择时间'
+        if typ == 'search':
+            return c or '搜索'
+        return c
+
+    changed = 0
+    tags = 0
+    for dirpath, dirnames, filenames in os.walk(ROOT):
+        dirnames[:] = [d for d in dirnames if d not in
+                       {'.git', 'node_modules', 'zh-tw', '_en-i18n', '_site', 'dist'}]
+        for fn in filenames:
+            if not fn.endswith('.html'):
+                continue
+            path = os.path.join(dirpath, fn)
+            try:
+                with open(path, encoding='utf-8') as f:
+                    src = f.read()
+            except (UnicodeDecodeError, OSError):
+                continue
+            if 'TOOLBOX-REDIRECT' in src:
+                continue
+            low = src.lower()
+            if not any(('<input' in low, '<select' in low, '<textarea' in low)):
+                continue
+            label_for_ids = set(re.findall(
+                r'<label\b[^>]*\bfor\s*=\s*["\']([^"\']+)', src, re.I))
+
+            def _process(part):
+                nonlocal changed, tags
+
+                def _sub(m):
+                    nonlocal changed, tags
+                    tag = m.group(1).lower()
+                    attrs = {k.lower(): v for k, q, v in attr_re.findall(m.group(2))}
+                    typ = attrs.get('type', 'text').lower() if tag == 'input' else tag
+                    if typ not in wanted:
+                        return m.group(0)
+                    key = (os.path.basename(path), attrs.get('id', ''))
+                    existing = attrs.get('aria-label')
+                    if existing:
+                        # 只纠正已知兜底键；其余人工 aria-label 一律不动。
+                        if key in by_path_id and existing != by_path_id[key]:
+                            esc = html.escape(by_path_id[key], quote=True)
+                            return re.sub(r'aria-label="[^"]*"',
+                                          'aria-label="%s"' % esc, m.group(0), count=1)
+                        return m.group(0)
+                    if (attrs.get('aria-labelledby') or attrs.get('title')
+                            or attrs.get('id') in label_for_ids):
+                        return m.group(0)
+                    pre = part[max(0, m.start() - 500):m.start()]
+                    # 已被 <label> 包裹的控件由包裹 label 命名，避免补了又删的反复。
+                    if (len(re.findall(r'<label\b', pre, re.I))
+                            > len(re.findall(r'</label>', pre, re.I))):
+                        return m.group(0)
+                    name = label_for(pre, typ, attrs.get('accept', ''), path, attrs.get('id', ''))
+                    if not name:
+                        return m.group(0)
+                    esc = html.escape(name, quote=True)
+                    raw = m.group(0)
+                    if raw.rstrip().endswith('/>'):
+                        new = raw[:-2].rstrip() + ' aria-label="%s"/>' % esc
+                    else:
+                        new = raw[:-1].rstrip() + ' aria-label="%s">' % esc
+                    tags += 1
+                    return new
+                return ctrl_re.sub(_sub, part)
+
+            out = []
+            last = 0
+            for m in protect.finditer(src):
+                out.append(_process(src[last:m.start()]))
+                out.append(m.group(0))
+                last = m.end()
+            out.append(_process(src[last:]))
+            new_src = ''.join(out)
+            if new_src != src:
+                with open(path, 'w', encoding='utf-8') as f:
+                    f.write(new_src)
+                changed += 1
+    print('Form control names: %d controls in %d pages' % (tags, changed))
+    return tags
+
+
+def ensure_table_header_scope():
+    """给静态 HTML 表格的 th 补 scope 属性（2026-11-22）。
+
+    4,605 个工具页含 18,700+ 个静态 th，绝大多数是列头但未声明 scope。
+    屏幕阅读器在复杂表格中需要 scope 才能把数据单元格正确归到行列标题；
+    这里按行推断：整行 th（表头行）为 col，行首 th 且同行有 td 为 row，
+    其余为 col。已有 scope 不动。脚本、style、pre、textarea 内的示意代码
+    不处理，避免改动运行时字符串和代码示例。
+    """
+    protect = re.compile(r'<(script|style|pre|textarea)\b.*?</\1\s*>', re.I | re.S)
+    changed = 0
+    cells = 0
+    for dirpath, dirnames, filenames in os.walk(ROOT):
+        dirnames[:] = [d for d in dirnames if d not in {'.git', 'node_modules', 'zh-tw', '_en-i18n', '_site', 'dist'}]
+        for fn in filenames:
+            if not fn.endswith('.html'):
+                continue
+            path = os.path.join(dirpath, fn)
+            try:
+                with open(path, encoding='utf-8') as f:
+                    src = f.read()
+            except (UnicodeDecodeError, OSError):
+                continue
+            if '<th' not in src.lower() or 'TOOLBOX-REDIRECT' in src:
+                continue
+            before = src.count('scope=')
+            out = []
+            last = 0
+            for m in protect.finditer(src):
+                out.append(_scope_tables(src[last:m.start()]))
+                out.append(m.group(0))
+                last = m.end()
+            out.append(_scope_tables(src[last:]))
+            new_src = ''.join(out)
+            after = new_src.count('scope=')
+            if after != before:
+                with open(path, 'w', encoding='utf-8') as f:
+                    f.write(new_src)
+                changed += 1
+                cells += after - before
+    print('Table header scope: %d cells in %d pages' % (cells, changed))
+    return changed
+
+def ensure_site_metadata():
+    """补齐全站 og:site_name 与 theme-color（2026-11-22）。
+
+    审计发现 4,623 个页面缺 og:site_name，6,907 个页面缺 theme-color。
+    前者让 Facebook/LinkedIn 等卡片能稳定显示站点名，后者决定移动端
+    浏览器地址栏/状态栏的品牌色。已有值一律不动，保证幂等；zh-tw/
+    在随后生成时继承。
+    """
+    changed = 0
+    site_added = 0
+    theme_added = 0
+    for dirpath, dirnames, filenames in os.walk(ROOT):
+        dirnames[:] = [d for d in dirnames if d not in {'.git', 'node_modules', 'zh-tw', '_en-i18n', '_site', 'dist'}]
+        for fn in filenames:
+            if not fn.endswith('.html'):
+                continue
+            path = os.path.join(dirpath, fn)
+            try:
+                with open(path, encoding='utf-8') as f:
+                    src = f.read()
+            except (UnicodeDecodeError, OSError):
+                continue
+            if 'TOOLBOX-REDIRECT' in src or 'http-equiv="refresh"' in src:
+                continue
+            add = []
+            if 'property="og:site_name"' not in src and 'property="og:image"' in src:
+                add.append('<meta property="og:site_name" content="ToolBox">')
+                site_added += 1
+            if 'name="theme-color"' not in src:
+                add.append('<meta name="theme-color" content="#FF6B35">')
+                theme_added += 1
+            if not add:
+                continue
+            if '</head>' not in src:
+                continue
+            src = src.replace('</head>', '\n'.join(add) + '\n</head>', 1)
+            try:
+                with open(path, 'w', encoding='utf-8') as f:
+                    f.write(src)
+            except (PermissionError, OSError):
+                continue
+            changed += 1
+    print('Site metadata: og:site_name +%d, theme-color +%d in %d pages' % (site_added, theme_added, changed))
+    return changed
+
+
+def ensure_breadcrumb_aria_current(include_tw=False):
+    """给可见面包屑当前项补 aria-current="page"（2026-11-22）。
+
+    4,813 个工具/指南页有 `class="bc-current"` 的面包屑末项，但全站
+    `aria-current="page"` 为 0；读屏用户无法判断当前所在层级。只处理
+    script 之外的静态标签，已有 aria-current 的不动，zh-tw/ 随后生成继承。
+    """
+    changed = 0
+    tags_added = 0
+    tag_re = re.compile(r'<[^>]*class="[^"]*bc-current[^"]*"[^>]*>')
+    for dirpath, dirnames, filenames in os.walk(ROOT):
+        skip = {'.git', 'node_modules', '_en-i18n', '_site', 'dist'}
+        if not include_tw:
+            skip.add('zh-tw')
+        dirnames[:] = [d for d in dirnames if d not in skip]
+        for fn in filenames:
+            if not fn.endswith('.html'):
+                continue
+            path = os.path.join(dirpath, fn)
+            try:
+                with open(path, encoding='utf-8') as f:
+                    src = f.read()
+            except (UnicodeDecodeError, OSError):
+                continue
+            if 'bc-current' not in src or 'TOOLBOX-REDIRECT' in src or 'http-equiv="refresh"' in src:
+                continue
+            script_ranges = [(m.start(), m.end()) for m in
+                             re.finditer(r'<script\b[^>]*>.*?</script>', src, re.S | re.I)]
+            out = []
+            last = 0
+            n_add = 0
+            for m in tag_re.finditer(src):
+                if any(a <= m.start() < b for a, b in script_ranges):
+                    continue
+                tag = m.group(0)
+                if 'aria-current' in tag.lower():
+                    continue
+                if tag.rstrip().endswith('/>'):
+                    new_tag = tag.rstrip()[:-2].rstrip() + ' aria-current="page"/>'
+                else:
+                    new_tag = tag.rstrip()[:-1].rstrip() + ' aria-current="page">'
+                out.append(src[last:m.start()])
+                out.append(new_tag)
+                last = m.end()
+                n_add += 1
+            if not n_add:
+                continue
+            out.append(src[last:])
+            try:
+                with open(path, 'w', encoding='utf-8') as f:
+                    f.write(''.join(out))
+            except (PermissionError, OSError):
+                continue
+            changed += 1
+            tags_added += n_add
+    print('Breadcrumb aria-current: %d tags in %d pages' % (tags_added, changed))
+    return changed
+
+
+def ensure_nav_aria_labels(include_tw=False):
+    """给导航地标补 aria-label（2026-11-22）。
+
+    全站 8,106 个 <nav>，仅 4,832 个有 aria-label；3,244 个指南面包屑
+    `<nav class="breadcrumb">` 完全没有名称，读屏无法区分导航区域。
+    按 class 映射：breadcrumb→面包屑导航、navbar→主导航、
+    mobile-tabbar→移动端底部导航、guide-nav→指南导航，其余→页面导航。
+    script 内字符串不处理，已有 aria-label/aria-labelledby 的不动。
+    """
+    changed = 0
+    tags_added = 0
+    nav_re = re.compile(r'<nav\b[^>]*>')
+    label_map = {
+        'breadcrumb': '面包屑导航',
+        'navbar': '主导航',
+        'mobile-tabbar': '移动端底部导航',
+        'guide-nav': '指南导航',
+    }
+    for dirpath, dirnames, filenames in os.walk(ROOT):
+        skip = {'.git', 'node_modules', '_en-i18n', '_site', 'dist'}
+        if not include_tw:
+            skip.add('zh-tw')
+        dirnames[:] = [d for d in dirnames if d not in skip]
+        for fn in filenames:
+            if not fn.endswith('.html'):
+                continue
+            path = os.path.join(dirpath, fn)
+            try:
+                with open(path, encoding='utf-8') as f:
+                    src = f.read()
+            except (UnicodeDecodeError, OSError):
+                continue
+            if '<nav' not in src or 'TOOLBOX-REDIRECT' in src or 'http-equiv="refresh"' in src:
+                continue
+            script_ranges = [(m.start(), m.end()) for m in
+                             re.finditer(r'<script\b[^>]*>.*?</script>', src, re.S | re.I)]
+            out = []
+            last = 0
+            n_add = 0
+            for m in nav_re.finditer(src):
+                if any(a <= m.start() < b for a, b in script_ranges):
+                    continue
+                tag = m.group(0)
+                low = tag.lower()
+                if 'aria-label' in low or 'aria-labelledby' in low:
+                    continue
+                label = '页面导航'
+                for cls, text in label_map.items():
+                    if 'class="' in low and cls in low.split('class="', 1)[1].split('"', 1)[0]:
+                        label = text
+                        break
+                new_tag = tag.rstrip()[:-1].rstrip() + ' aria-label="%s">' % label
+                out.append(src[last:m.start()])
+                out.append(new_tag)
+                last = m.end()
+                n_add += 1
+            if not n_add:
+                continue
+            out.append(src[last:])
+            try:
+                with open(path, 'w', encoding='utf-8') as f:
+                    f.write(''.join(out))
+            except (PermissionError, OSError):
+                continue
+            changed += 1
+            tags_added += n_add
+    print('Nav aria-label: %d tags in %d pages' % (tags_added, changed))
+    return changed
+
+
+
+def ensure_guide_article_og():
+    """给指南页补 article:published_time / article:modified_time（2026-11-22）。
+
+    3,247 个指南的 Article JSON-LD 已有 datePublished / dateModified，但
+    OpenGraph article 时间字段全部缺失；社交卡片和部分聚合器依赖这两项
+    判断内容新鲜度。日期统一补 T00:00:00+08:00，已有字段不动。
+    """
+    gdir = os.path.join(ROOT, 'guides')
+    if not os.path.isdir(gdir):
+        return 0
+    block_re = re.compile(r'<script type="application/ld\+json">(.*?)</script>', re.S)
+    updated = 0
+    for fn in sorted(os.listdir(gdir)):
+        if not fn.endswith('.html') or fn.endswith('.en.html'):
+            continue
+        fp = os.path.join(gdir, fn)
+        try:
+            with open(fp, encoding='utf-8') as f:
+                src = f.read()
+        except Exception:
+            continue
+        if 'TOOLBOX-REDIRECT' in src or 'name="robots" content="noindex' in src:
+            continue
+        dates = {}
+        for m in block_re.finditer(src):
+            try:
+                obj = json.loads(m.group(1))
+            except Exception:
+                continue
+            if isinstance(obj, dict) and obj.get('@type') == 'Article':
+                if obj.get('datePublished'):
+                    dates['published'] = obj['datePublished']
+                if obj.get('dateModified'):
+                    dates['modified'] = obj['dateModified']
+                break
+        if not dates:
+            continue
+        og_m = re.search(r'<meta property="og:type" content="article"[^>]*>', src)
+        if not og_m:
+            continue
+        inserts = []
+        for key, prop in (('published', 'article:published_time'), ('modified', 'article:modified_time')):
+            if key not in dates or ('property="%s"' % prop) in src:
+                continue
+            val = str(dates[key])
+            if len(val) == 10:
+                val += 'T00:00:00+08:00'
+            inserts.append('<meta property="%s" content="%s">' % (prop, val))
+        if not inserts:
+            continue
+        src = src[:og_m.end()] + '\n' + '\n'.join(inserts) + src[og_m.end():]
+        with open(fp, 'w', encoding='utf-8') as f:
+            f.write(src)
+        updated += 1
+    print('Guide article OG times: %d pages' % updated)
+    return updated
 
 
 def main():
@@ -5455,9 +6911,28 @@ def main():
 
     # 指南页描述收口（硬切补句号），须在繁体站生成之前，否则 zh-tw 会复制残句。
     normalize_guide_descriptions()
+    # 指南页 hreflang 补齐，同样须早于繁体站生成，zh-tw 复制时一并继承。
+    inject_guide_hreflang()
+    inject_core_hreflang()
+    sync_guide_article_ld()
+    fix_guide_empty_breadcrumb()
+    sync_guide_breadcrumb_ld()
+    sync_guide_breadcrumb_names()
+    sync_guide_faq_ld()
+    inject_image_alt()
+    ensure_guide_article_og()
+    ensure_og_image_dimensions()
+    ensure_site_metadata()
+    ensure_breadcrumb_aria_current()
+    ensure_nav_aria_labels()
+    ensure_table_header_scope()
+    ensure_form_control_names()
+    strip_redundant_wrapped_control_aria()
 
     # 只在源页面、JSON 与 sitemap 都已完成后生成繁体静态站，避免复制中间产物。
     generate_opencc_static_locales()
+    ensure_breadcrumb_aria_current(include_tw=True)
+    ensure_nav_aria_labels(include_tw=True)
 
     # 繁体站 desc 兜底：繁简字数差会让个别页跌破 Ahrefs 70 字符阈值（实测「字符串→字串」），
     # 对 zh-tw/ 中 desc<70 的页补足并同步 og/twitter/JSON-LD（幂等）。

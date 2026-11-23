@@ -31,7 +31,7 @@
     <meta name="twitter:description" content="器根据转速、转动惯量和制动时间，计算所需制动力矩、峰值功率和制动能量，支持纯惯性制动、阻力辅助和提升反向负载三种工况，为制动器选型提供数据依据">
 <!-- TOOLBOX-WEBAPP-LD -->
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebApplication","name":"制动力矩计算","url":"https://tools.dicomp.net/tools/machinery/torque-response.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"器根据转速、转动惯量和制动时间，计算所需制动力矩、峰值功率和制动能量，支持纯惯性制动、阻力辅助和提升反向负载三种工况，为制动器选型提供数据依据","image":"https://tools.dicomp.net/og-image.png","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+{"@context":"https://schema.org","@type":"WebApplication","name":"制动力矩计算","url":"https://tools.dicomp.net/tools/machinery/torque-response.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"器根据转速、转动惯量和制动时间，计算所需制动力矩、峰值功率和制动能量，支持纯惯性制动、阻力辅助和提升反向负载三种工况，为制动器选型提供数据依据","image":"https://tools.dicomp.net/og-image.png","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
 </script>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
@@ -74,11 +74,34 @@
 <script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 <script type="application/ld+json">
-{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "制动力矩计算 结果可用于直接报告吗？", "acceptedAnswer": {"@type": "Answer", "text": "制动力矩计算 适合用于内部复核与说明，正式材料请附带口径、边界条件和输入范围说明。"}}, {"@type": "Question", "name": "结果看似异常，该怎么快速排查？", "acceptedAnswer": {"@type": "Answer", "text": "先核对是否有百分号/小数口径冲突，再检查是否触发了数学域外定义（如对数、开方、除零）。"}}]}
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "负载系数 0.8 是什么意思？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "它反映制动时除惯性力矩外是否还有其他力矩参与：选纯惯性制动取 1.0；若有摩擦阻力等帮助制动（阻力辅助）可取小于 1；若是提升类负载下放（位能反过来驱动），则需大于 1。本工具把它作为制动力矩与制动能量的直接乘数，取值前应判断实际工况属于哪一类。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "峰值功率和平均功率为什么差一倍？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "匀减速制动时， braking 功率 = 制动力矩×瞬时角速度，角速度从 ω 线性降到 0，因此功率也线性下降，平均值恰为峰值的一半。选型时应按平均功率校核制动器的热容量，按峰值力矩校核其机械能力，两者不可混用。"
+      }
+    }
+  ]
+}
 </script>
 
 <script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
+<meta property="og:site_name" content="ToolBox">
+<meta name="theme-color" content="#FF6B35">
 </head>
 <body>
 <h1 class="sr-only">制动力矩计算</h1>
@@ -96,9 +119,9 @@
   <span class="bc-sep">‹</span>
   <a href="index.html">⚙️ 通用工程</a>
   <span class="bc-sep">‹</span>
-  <span class="bc-current">制动力矩计算</span>
+  <span class="bc-current" aria-current="page">制动力矩计算</span>
 </nav>
-<div class="container">
+<div class="container" role="main">
   <style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#3b82f6)}.tbk-tab.active{background:var(--accent,#3b82f6);color:#fff;border-color:var(--accent,#3b82f6)}.tbk-panel{margin-top:6px}</style>
 <div class="tbk-tabbar" role="tablist">
   <button type="button" class="tbk-tab" data-pane="res">结果</button>
@@ -114,13 +137,13 @@
     </div>
 <div class="input-row">
       <div><div data-tb="preset" data-tb-presets='[{"label":"转速n(rpm)1450·转动惯量J(kg·m²)2.5·…","labelEn":"vN=1450 · vJ=2.5 · vT=3 · vSF=1.5 · vLo…","values":{"vN":"1450","vJ":"2.5","vT":"3","vSF":"1.5","vLoad":"0.8"}}]'></div>
-<label>转速 n (rpm)</label><input type="number" id="vN" value="1450" step="any" style="font-size:16px;" oninput="calc()" enterkeyhint="done" placeholder="如 1450"></div>
-      <div><label>转动惯量 J (kg·m²)</label><input type="number" id="vJ" value="2.5" step="any" style="font-size:16px;" oninput="calc()" enterkeyhint="done" placeholder="如 2.5"></div>
-      <div><label>制动时间 t (s)</label><input type="number" id="vT" value="3" step="any" style="font-size:16px;" oninput="calc()" enterkeyhint="done" placeholder="如 3"></div>
+<label for="vN">转速 n (rpm)</label><input type="number" id="vN" value="1450" step="any" style="font-size:16px;" oninput="calc()" enterkeyhint="done" placeholder="如 1450"></div>
+      <div><label for="vJ">转动惯量 J (kg·m²)</label><input type="number" id="vJ" value="2.5" step="any" style="font-size:16px;" oninput="calc()" enterkeyhint="done" placeholder="如 2.5"></div>
+      <div><label for="vT">制动时间 t (s)</label><input type="number" id="vT" value="3" step="any" style="font-size:16px;" oninput="calc()" enterkeyhint="done" placeholder="如 3"></div>
     </div>
     <div class="input-row">
-      <div><label>安全系数</label><input type="number" id="vSF" value="1.5" step="any" style="font-size:16px;" oninput="calc()" enterkeyhint="done" placeholder="如 1.5"></div>
-      <div><label>负载类型</label>
+      <div><label for="vSF">安全系数</label><input type="number" id="vSF" value="1.5" step="any" style="font-size:16px;" oninput="calc()" enterkeyhint="done" placeholder="如 1.5"></div>
+      <div><label for="vLoad">负载类型</label>
         <select id="vLoad" style="font-size:16px;" onchange="calc()">
           <option value="1.0">纯惯性制动</option>
           <option value="0.8" selected>有阻力辅助</option>
@@ -141,9 +164,9 @@
   <div style="overflow-x:auto;">
     <table style="width:100%;border-collapse:collapse;font-size:13px;">
       <thead><tr>
-        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="项目">Item</th>
-        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="公式 / 说明">Formula / Note</th>
-        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="出处 / 标准">Source / Standard</th>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="项目" scope="col">Item</th>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="公式 / 说明" scope="col">Formula / Note</th>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="出处 / 标准" scope="col">Source / Standard</th>
       </tr></thead>
       <tbody>
         <tr>
