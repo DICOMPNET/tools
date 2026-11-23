@@ -7,6 +7,8 @@
 <meta name="description" content="按引數量、精度位元組數與啟用佔用估算模型權重與推理視訊記憶體，適用於部署硬體選型、批次大小設定與視訊記憶體溢位預警。訓練需保留前向啟用供反向、存梯度(同尺寸)與最佳化器狀態(Adam 約 2 倍權重)，常使總視訊記憶體達權重 3~4 倍；推理。">
 <meta property="og:title" content="模型視訊記憶體估算 使用指南">
 <meta property="og:type" content="article">
+<meta property="article:published_time" content="2026-09-13T00:00:00+08:00">
+<meta property="article:modified_time" content="2026-09-13T00:00:00+08:00">
 <meta property="og:site_name" content="ToolBox">
 <meta property="og:url" content="https://tools.dicomp.net/zh-tw/guides/vram-estimate-guide.html">
 <meta property="og:description" content="按引數量、精度位元組數與啟用佔用估算模型權重與推理視訊記憶體，適用於部署硬體選型、批次大小設定與視訊記憶體溢位預警。訓練需保留前向啟用供反向、存梯度(同尺寸)與最佳化器狀態(Adam 約 2 倍權重)，常使總視訊記憶體達權重 3~4 倍；推理。">
@@ -15,9 +17,12 @@
 <meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
 <meta name="twitter:image:alt" content="ToolBox - 免費線上工具與使用指南">
 <meta property="og:image" content="https://tools.dicomp.net/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免費線上工具">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="canonical" href="https://tools.dicomp.net/zh-tw/guides/vram-estimate-guide.html">
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"模型視訊記憶體估算 使用指南","description":"按引數量、精度位元組數與啟用佔用估算模型權重與推理視訊記憶體，適用於部署硬體選型、批次大小設定與視訊記憶體溢位預警。","author":{"@type":"Organization","name":"ToolBox"},"datePublished":"2026-09-13","dateModified":"2026-09-13","mainEntityOfPage":{"@type":"WebPage","@id":"https://tools.dicomp.net/zh-tw/guides/vram-estimate-guide.html"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"模型視訊記憶體估算 使用指南","description":"按引數量、精度位元組數與啟用佔用估算模型權重與推理視訊記憶體，適用於部署硬體選型、批次大小設定與視訊記憶體溢位預警。","author":{"@type":"Organization","name":"ToolBox"},"datePublished":"2026-09-13","dateModified":"2026-09-13","mainEntityOfPage":{"@type":"WebPage","@id":"https://tools.dicomp.net/zh-tw/guides/vram-estimate-guide.html"},"image":"https://tools.dicomp.net/og-image.png","publisher":{"@type":"Organization","name":"ToolBox","logo":{"@type":"ImageObject","url":"https://tools.dicomp.net/logo-512.png"}},"inLanguage":"zh-TW"}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"ToolBox","item":"https://tools.dicomp.net/zh-tw/"},{"@type":"ListItem","position":2,"name":"使用指南","item":"https://tools.dicomp.net/zh-tw/guides/index.html"},{"@type":"ListItem","position":3,"name":"模型視訊記憶體估算 使用指南","item":"https://tools.dicomp.net/zh-tw/guides/vram-estimate-guide.html"}]}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"為什麼訓練視訊記憶體遠大於推理？","acceptedAnswer":{"@type":"Answer","text":"訓練需保留前向啟用供反向、存梯度(同尺寸)與最佳化器狀態(Adam 約 2 倍權重)，常使總視訊記憶體達權重 3~4 倍；推理只需權重+少量啟用。"}},{"@type":"Question","name":"視訊記憶體不夠怎麼辦？","acceptedAnswer":{"@type":"Answer","text":"量化降權重位元組數、用梯度檢查點換計算省啟用、降 batch、或模型並行/張量並行分片；必要時上更大視訊記憶體或分散式。"}}]}</script>
 <style>
@@ -53,6 +58,9 @@ li{margin:8px 0;}
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
 <!-- TOOLBOX-SECURITY -->
+
+
+<meta name="theme-color" content="#FF6B35">
 <!-- TOOLBOX-HREFLANG -->
 <link rel="alternate" hreflang="zh-CN" href="https://tools.dicomp.net/guides/vram-estimate-guide.html">
 <link rel="alternate" hreflang="zh-TW" href="https://tools.dicomp.net/zh-tw/guides/vram-estimate-guide.html">
@@ -63,7 +71,7 @@ li{margin:8px 0;}
 <meta property="og:locale:alternate" content="en_US">
 </head>
 <body>
-<nav class="breadcrumb"><a href="https://tools.dicomp.net/">ToolBox</a> / <a href="https://tools.dicomp.net/guides/index.html">使用指南</a> / <span>模型視訊記憶體估算 使用指南</span></nav>
+<nav class="breadcrumb" aria-label="麵包屑導航"><a href="https://tools.dicomp.net/">ToolBox</a> / <a href="https://tools.dicomp.net/guides/index.html">使用指南</a> / <span>模型視訊記憶體估算 使用指南</span></nav>
 <main>
 <h1>模型視訊記憶體估算 使用指南</h1>
 <p class="lead">按引數量、精度位元組數與啟用佔用估算模型權重與推理視訊記憶體，適用於部署硬體選型、批次大小設定與視訊記憶體溢位預警。</p>

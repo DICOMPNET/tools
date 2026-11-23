@@ -7,6 +7,8 @@
 <meta name="description" content="依據總訓練步數與預熱比例，計算學習率線性預熱的步數區間，適用於穩定訓練初期、避免梯度震盪的排程設計。大模型/大 batch 通常必要，能穩定初期訓練；小模型小學習率可省略。跳過預熱常出現首輪 loss 尖峰甚至 NaN。">
 <meta property="og:title" content="學習率預熱步數 使用指南">
 <meta property="og:type" content="article">
+<meta property="article:published_time" content="2026-09-13T00:00:00+08:00">
+<meta property="article:modified_time" content="2026-09-13T00:00:00+08:00">
 <meta property="og:site_name" content="ToolBox">
 <meta property="og:url" content="https://tools.dicomp.net/zh-tw/guides/lr-warmup-guide.html">
 <meta property="og:description" content="依據總訓練步數與預熱比例，計算學習率線性預熱的步數區間，適用於穩定訓練初期、避免梯度震盪的排程設計。大模型/大 batch 通常必要，能穩定初期訓練；小模型小學習率可省略。跳過預熱常出現首輪 loss 尖峰甚至 NaN。">
@@ -15,9 +17,12 @@
 <meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
 <meta name="twitter:image:alt" content="ToolBox - 免費線上工具與使用指南">
 <meta property="og:image" content="https://tools.dicomp.net/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ToolBox - 5000+免費線上工具">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="canonical" href="https://tools.dicomp.net/zh-tw/guides/lr-warmup-guide.html">
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"學習率預熱步數 使用指南","description":"依據總訓練步數與預熱比例，計算學習率線性預熱的步數區間，適用於穩定訓練初期、避免梯度震盪的排程設計。","author":{"@type":"Organization","name":"ToolBox"},"datePublished":"2026-09-13","dateModified":"2026-09-13","mainEntityOfPage":{"@type":"WebPage","@id":"https://tools.dicomp.net/zh-tw/guides/lr-warmup-guide.html"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"學習率預熱步數 使用指南","description":"依據總訓練步數與預熱比例，計算學習率線性預熱的步數區間，適用於穩定訓練初期、避免梯度震盪的排程設計。","author":{"@type":"Organization","name":"ToolBox"},"datePublished":"2026-09-13","dateModified":"2026-09-13","mainEntityOfPage":{"@type":"WebPage","@id":"https://tools.dicomp.net/zh-tw/guides/lr-warmup-guide.html"},"image":"https://tools.dicomp.net/og-image.png","publisher":{"@type":"Organization","name":"ToolBox","logo":{"@type":"ImageObject","url":"https://tools.dicomp.net/logo-512.png"}},"inLanguage":"zh-TW"}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"ToolBox","item":"https://tools.dicomp.net/zh-tw/"},{"@type":"ListItem","position":2,"name":"使用指南","item":"https://tools.dicomp.net/zh-tw/guides/index.html"},{"@type":"ListItem","position":3,"name":"學習率預熱步數 使用指南","item":"https://tools.dicomp.net/zh-tw/guides/lr-warmup-guide.html"}]}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"預熱一定要嗎？","acceptedAnswer":{"@type":"Answer","text":"大模型/大 batch 通常必要，能穩定初期訓練；小模型小學習率可省略。跳過預熱常出現首輪 loss 尖峰甚至 NaN。"}},{"@type":"Question","name":"預熱比例多大合適？","acceptedAnswer":{"@type":"Answer","text":"常見 0~10%，Transformer 訓練多用 1%~6%；過大則有效訓練步數被浪費，過小保護不足，以驗證曲線平滑為準。"}}]}</script>
 <style>
@@ -53,6 +58,9 @@ li{margin:8px 0;}
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
 <!-- TOOLBOX-SECURITY -->
+
+
+<meta name="theme-color" content="#FF6B35">
 <!-- TOOLBOX-HREFLANG -->
 <link rel="alternate" hreflang="zh-CN" href="https://tools.dicomp.net/guides/lr-warmup-guide.html">
 <link rel="alternate" hreflang="zh-TW" href="https://tools.dicomp.net/zh-tw/guides/lr-warmup-guide.html">
@@ -63,7 +71,7 @@ li{margin:8px 0;}
 <meta property="og:locale:alternate" content="en_US">
 </head>
 <body>
-<nav class="breadcrumb"><a href="https://tools.dicomp.net/">ToolBox</a> / <a href="https://tools.dicomp.net/guides/index.html">使用指南</a> / <span>學習率預熱步數 使用指南</span></nav>
+<nav class="breadcrumb" aria-label="麵包屑導航"><a href="https://tools.dicomp.net/">ToolBox</a> / <a href="https://tools.dicomp.net/guides/index.html">使用指南</a> / <span>學習率預熱步數 使用指南</span></nav>
 <main>
 <h1>學習率預熱步數 使用指南</h1>
 <p class="lead">依據總訓練步數與預熱比例，計算學習率線性預熱的步數區間，適用於穩定訓練初期、避免梯度震盪的排程設計。</p>
