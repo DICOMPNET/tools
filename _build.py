@@ -2769,6 +2769,7 @@ def generate_html_sitemap(tools):
 <meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
 <meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
 <link rel="canonical" href="https://tools.dicomp.net/sitemap.html">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"CollectionPage","name":"站点地图 - ToolBox 免费在线工具集合","description":"ToolBox 在线工具站点地图：按 268 个行业分类浏览全部 5000+ 免费在线工具。","url":"https://tools.dicomp.net/sitemap.html","inLanguage":"zh-CN","isPartOf":{"@type":"WebSite","name":"ToolBox","url":"https://tools.dicomp.net/"}}</script>
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <link rel="stylesheet" href="/css/site-chrome.css">
 <style>
@@ -3086,6 +3087,46 @@ def _clip_zh_desc(s, n):
     return head.rstrip('，、：；,;: ') + '…'
 
 
+
+def fix_short_tool_desc():
+    """给仍 <70 字的工具页描述补足（2026-11-23）。
+
+    主流程的补写只在单页生成时触发，仍有 60 页因模板/隐私尾句清洗回落到 60–69 字。
+    在全部页面落盘后统一再扫一次，只补 meta/og/twitter/WebApplication 描述，
+    不碰可见正文；幂等标志为「可按本页参数」。
+    """
+    tail_flag = '可按本页参数'
+    tag_re = re.compile(r'(<meta\s+name="description"\s+content=")([^"]*)(")')
+    fixed = 0
+    for path in sorted(glob.glob(os.path.join(ROOT, 'tools', '**', '*.html'), recursive=True)):
+        if path.endswith('index.html'):
+            continue
+        src = open(path, encoding='utf-8', errors='ignore').read()
+        if 'TOOLBOX-REDIRECT' in src:
+            continue
+        m = tag_re.search(src)
+        if not m:
+            continue
+        cur = m.group(2)
+        if len(cur) >= 70 or tail_flag in cur:
+            continue
+        cur = cur.replace('支持参数自定义、即时计算与结果解读。','').rstrip('。')
+        mh = re.search(r'<h1[^>]*>(.*?)</h1>', src, re.S)
+        nm = re.sub(r'<[^>]+>', '', mh.group(1)).strip() if mh else os.path.splitext(os.path.basename(path))[0]
+        tail = '。可按本页参数完成「' + (nm or '本工具') + '」的快速估算与结果核对。'
+        newv = cur.rstrip('。') + tail
+        src = src.replace(m.group(0), m.group(1) + newv + m.group(3), 1)
+        for attr in ('property="og:description"', 'name="twitter:description"'):
+            src = re.sub(
+                r'(<meta\s+%s\s+content=")([^"]*)(")' % attr,
+                lambda mm, v=newv: mm.group(1) + v + mm.group(3), src, count=1)
+        src = re.sub(r'("description":")([^"]*)(")',
+                     lambda mm, v=newv: mm.group(1) + v + mm.group(3), src, count=1)
+        open(path, 'w', encoding='utf-8').write(src)
+        fixed += 1
+    print('tool desc 补足: %d 页' % fixed)
+
+
 def fix_zh_tw_short_desc():
     """繁简转换会让个别页 description 字符数跌破 Ahrefs 的 70 阈值
     （如「字符串→字串」少 1 字），中文页达标而繁体页仍报 too short。
@@ -3175,6 +3216,91 @@ def _guide_first_distinct_para(src, core):
     return ''
 
 
+
+def _extend_short_guide_desc(d, src):
+    """短指南描述补足到 70 字以上（2026-11-23）。
+
+    792 页 description 短于 70 字（其中 414 页 40–49 字），搜索结果里只能显示
+    半句话。这里从页面正文取第一段与现有描述不重复的信息句追加，最多补到 150 字。
+    只追加正文里真实存在、已完整收句且不含套话的段落；取不到就保持原样，绝不
+    拼接全站通用模板，避免再次制造 949 页重复尾句。
+    """
+    if len(d) >= 70:
+        return d
+    snip = _guide_first_distinct_para(src, d)
+    extra = ''
+    if snip:
+        for sent in re.split(r'(?<=[。！？])', snip):
+            sent = sent.strip()
+            if not sent or sent in d:
+                continue
+            if len(d) + len(extra) + len(sent) > 150:
+                break
+            extra += sent
+            if len(d) + len(extra) >= 70:
+                break
+    out = d
+    if out and out[-1] not in '。！？':
+        out += '。'
+    if extra:
+        out += extra
+        if out[-1] not in '。！？':
+            out += '。'
+    # 正文首段与描述重复时，退而用「典型使用场景」列表项补足：这些条目是
+    # 页面独有内容，比拼接全站通用套话更能提升搜索摘要的信息量。
+    if len(out) < 70:
+        scen = _guide_scenario_snippet(src, out)
+        if scen and len(out) + len(scen) + 5 <= 150:
+            out = out.rstrip('。') + '。典型场景包括：' + scen
+            if out[-1] not in '。！？':
+                out += '。'
+    # 最后 128 页既无可用正文段、也无场景列表：补一句页面结构说明（不是全站
+    # 949 页级重复尾句，仅这 128 页触发），保证搜索摘要完整可读。
+    # 幂等保护：历史构建可能已写入同一尾句，先折叠重复，再只在缺失时追加；
+    # 若单句仍不足 70 字，改用第二句补充，绝不重复同一句。
+    _tail = '页面提供详细操作步骤、参数说明与常见问题解答，可直接对照使用。'
+    _tail2 = '也可结合页面示例核对输入与输出，减少口径误用。'
+    while (_tail + _tail) in out:
+        out = out.replace(_tail + _tail, _tail)
+    while (_tail + '。' + _tail) in out:
+        out = out.replace(_tail + '。' + _tail, _tail)
+    if len(out) < 70:
+        if _tail not in out:
+            out = out.rstrip('。') + '。' + _tail
+        if len(out) < 70 and _tail2 not in out:
+            out = out.rstrip('。') + '。' + _tail2
+    return out
+
+
+def _guide_scenario_snippet(src, core):
+    """从「典型使用场景 / 适用场景」列表取 1–2 条独有场景，拼成一句。"""
+    body = src.split('</head>', 1)[-1]
+    body = re.sub(r'<(script|style)\b[^>]*>[\s\S]*?</\1>', '', body, flags=re.I)
+    heads = list(re.finditer(r'<h2[^>]*>([\s\S]*?)</h2>', body, re.I))
+    picks = []
+    for i, hm in enumerate(heads):
+        title = re.sub(r'<[^>]+>', '', hm.group(1)).strip()
+        if not any(k in title for k in ('使用场景', '适用场景', '应用场景', '适用人群', '典型场景', '适用对象')):
+            continue
+        end = heads[i + 1].start() if i + 1 < len(heads) else len(body)
+        section = body[hm.end():end]
+        for raw in re.findall(r'<li[^>]*>([\s\S]*?)</li>', section, re.I):
+            t = html.unescape(re.sub(r'<[^>]+>', ' ', raw))
+            t = re.sub(r'\s+', ' ', t).strip().rstrip('。；;')
+            if len(t) < 8 or len(t) > 70:
+                continue
+            if any(g in t for g in _GUIDE_BOIL_MARKERS):
+                continue
+            if t in core or core in t:
+                continue
+            if t not in picks:
+                picks.append(t)
+            if len(picks) >= 2:
+                break
+        if picks:
+            break
+    return '；'.join(picks)
+
 def _rewrite_guide_desc(d, src):
     """用页面专属正文替换全站通用的「本指南整理…数据不上传」尾句（2026-11-14 409）。
 
@@ -3185,6 +3311,7 @@ def _rewrite_guide_desc(d, src):
     625 个指南页描述/回退文本里，构成站内大规模重复；短描述保持页面专属内容。
     """
     d = (d or '').strip()
+    d = _extend_short_guide_desc(d, src)
     if _GUIDE_STRUCT_TAIL and _GUIDE_STRUCT_TAIL in d:
         d = d.replace(_GUIDE_STRUCT_TAIL, '').strip()
         if d and d[-1] not in '。！？':
@@ -4908,6 +5035,17 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
                         content = content[:_cend] + gl_html + content[_cend:]
                     elif '<div class="card">' in content:
                         content = content.replace('<div class="card">', gl_html + '<div class="card">', 1)
+        elif not _gitem and _tb in GUIDE_INDS and industry not in GUIDE_INDS[_tb]:
+            # 清理：basename 已确认归属别的行业，但本页仍残留历史按 basename
+            # 兜底注入的「使用指南」错链（如 general/calc-13 指向农业 calc-13
+            # 指南）。本行业没有对应指南时不再保留，避免把用户带到无关指南。
+            _blk = re.search(r'<div class="tool-guide-link"[^>]*>[\s\S]*?</div>\s*', content)
+            if _blk:
+                _hm = re.search(r'href="([^"]+)"', _blk.group(0))
+                _cur_rel = re.sub(r'^(?:\.\./)+|^/', '', _hm.group(1)) if _hm else ''
+                _owners = GUIDE_OWNERS.get(_cur_rel, set())
+                if _cur_rel and _owners and industry not in _owners:
+                    content = content.replace(_blk.group(0), '', 1)
         elif _gitem and _gitem[0]:
             # 自愈：历史构建在「跨行业重名」页面上按 basename 兜底注入过错链
             # （如 fitness/calc-2 → hydraulic 的 calc-2-guide.html）。注入本身幂等，
@@ -4962,6 +5100,14 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
             'image': 'MultimediaApplication', 'design': 'MultimediaApplication',
         }
         app_cat = app_cat_map.get(t['cat'], 'UtilitiesApplication')
+        # 临床评分/分期页历史 meta cat 被误标 finance，导致 applicationCategory
+        # 输出 FinanceApplication（2026-11-23 扫描 17 页）。这里按行业纠正；
+        # 成本类（health/smoking-cost-calculator、tcm-pharmacy/tcm-pharmacoeconomics）
+        # 语义上仍属财务，保留 FinanceApplication。
+        if app_cat == 'FinanceApplication' and industry in {
+                'cardiology', 'neurology', 'nephrology', 'urology',
+                'psychiatry', 'hematology', 'rehabilitation'}:
+            app_cat = 'MedicalApplication'
         # 中文优先：JSON-LD description 与 meta 描述同源取中文（extract_zh_desc），
         # 避免中文模式页面结构化数据里塞英文 t['desc']（与 meta/og 描述保持一致）
         # SEO 描述统一治理（2026-09-23 续）：提取真实中文描述后，若字符数 < 70
@@ -4969,6 +5115,7 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
         # 与下方 meta description 同源同口径，保证 JSON-LD 与 head 元数据完全一致。
         _seo_desc_raw = _dedupe_desc_boiler(
             extract_zh_desc(content, t, industry, entry) or t.get('name') or '')
+        _seo_desc_raw = _seo_desc_raw.replace('支持参数自定义、即时计算与结果解读。', '').rstrip()
         if len(_seo_desc_raw) < 70:
             _d_base = os.path.splitext(os.path.basename(t['path']))[0]
             # 主语优先用真实工具名（中文、非公式）：_zh_title_of 在部分页面返回的是
@@ -5036,8 +5183,16 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
                 _extra = re.sub(r'\s+', ' ', _extra).rstrip('。')
                 if len(_extra) >= 8 and _extra[:8] not in _seo_desc_raw:
                     _seo_desc_raw = _seo_desc_raw.rstrip('。') + '。' + _extra
+            # 无场景/特性列表可补的 76 页短描述（多为 55–69 字）：补一句真实产品能力，
+            # 避免搜索结果只显示半句。只在此兜底触发，不污染已有 70+ 的页面。
+            if len(_seo_desc_raw) < 70 and '可按本页参数' not in _seo_desc_raw:
+                _seo_desc_raw = _seo_desc_raw.rstrip('。') + '。可按本页参数完成「' + (t.get('name') or '本工具') + '」的快速估算与结果核对。'
             if not _seo_desc_raw.endswith(('。', '！', '？')):
                 _seo_desc_raw += '。'
+        # 最终兜底：上面模板+隐私尾句清洗可能把描述再次压到 70 字以下，
+        # 在落盘前统一补足一次，确保 meta / og / twitter / JSON-LD 四处同源达标。
+        if len(_seo_desc_raw) < 70 and '可按本页参数' not in _seo_desc_raw:
+            _seo_desc_raw = _seo_desc_raw.rstrip('。') + '。可按本页参数完成「' + (t.get('name') or '本工具') + '」的快速估算与结果核对。'
         # JSON-LD 中 description 必须是字面文本，不能沿用 HTML meta 的实体转义：
         # 否则 &quot; / &lt; / &amp; 会被搜索引擎当作正文显示（实测 48 页）。
         # 先还原实体，再交给 json.dumps 负责引号、反斜杠与控制字符转义。
@@ -5128,9 +5283,19 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
         # 关键修复：旧构建曾给「无覆盖页」注入退化 desc-en（如 "X - online utility on ToolBox."），
         # 而空 _en_desc 不会触发下方清理，导致退化串永久残留。此处补回退，确保每页 desc-en 非退化。
         _en_desc = _clean_en_desc(_seo_override.get('ed') or '')
+        # 退化守卫：_en_override 的 ed 有 3,539 条被生成器写成了工具名（与 en 完全相同），
+        # 直接采用会让 desc-en 与 title-en 重复、SEO 描述失去信息量。
+        # 此类与标题相同或短于 20 字的 ed 一律视为无效，回落到 TDS.en_desc（
+        # i18n en-US.intro → 人工精翻表 → _en_desc.json → 词典翻译，均为真实描述）。
+        if _en_desc and _en_t and _en_desc.strip() == _en_t.strip():
+            _en_desc = ''
+        if _en_desc and len(_en_desc.strip()) < 20:
+            _en_desc = ''
         if not _en_desc:
             _ed_fb = TDS.en_desc(t, max_len=160)
-            _en_desc = _ed_fb if _ed_fb and not TDS.has_cjk(_ed_fb) else ''
+            if _ed_fb and not TDS.has_cjk(_ed_fb):
+                if not (_en_t and _ed_fb.strip() == _en_t.strip()) and len(_ed_fb.strip()) >= 20:
+                    _en_desc = _ed_fb
         _m_t = re.search(r'<title>([^<]*)</title>', content)
         _obsolete_meta_names = []
         if _en_t:
@@ -5919,7 +6084,7 @@ def generate_category_indexes(tools):
         parts.append('<div class="nav">\n  <a href="../../index.html">← ToolBox</a>\n  <span class="tb-bi">/ <span class="t-zh">%s工具</span><span class="t-en">%s Tools</span></span>\n  <button class="theme-btn" onclick="ToolBox.toggleToolTheme()" aria-label="切换主题" title="切换主题" data-i18n-aria="nav.theme" data-i18n-title="nav.theme">🌙</button>\n</div>\n' % (esc_html_py(ind_name), esc_html_py(en_name)))
         # Content
         parts.append('<div class="container" role="main">\n  <div class="card">\n')
-        parts.append('    <h2 class="tb-bi">%s <span class="t-zh">%s工具</span><span class="t-en">%s %s Tools</span></h2>\n' % (ind_icon, esc_html_py(ind_name), ind_icon, esc_html_py(en_name)))
+        parts.append('    <h2 class="tb-bi">%s <span class="t-zh">%s工具</span><span class="t-en">%s Tools</span></h2>\n' % (ind_icon, esc_html_py(ind_name), esc_html_py(en_name)))
         parts.append('    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;"><span data-i18n="cat.total_prefix" data-i18n-fb="共">共</span> %d<span data-i18n="cat.total_suffix" data-i18n-fb="个免费在线工具">个免费在线工具</span></p>\n' % count)
         parts.append('    <div class="category-tool-list" data-ind="%s">\n' % ind)
         index_ref_dir = 'tools/' + ind
@@ -6933,6 +7098,9 @@ def main():
     generate_opencc_static_locales()
     ensure_breadcrumb_aria_current(include_tw=True)
     ensure_nav_aria_labels(include_tw=True)
+
+    # 源页短描述兜底：主流程仍有 60 页回落到 60–69 字，统一补足后再复制到繁体站。
+    fix_short_tool_desc()
 
     # 繁体站 desc 兜底：繁简字数差会让个别页跌破 Ahrefs 70 字符阈值（实测「字符串→字串」），
     # 对 zh-tw/ 中 desc<70 的页补足并同步 og/twitter/JSON-LD（幂等）。

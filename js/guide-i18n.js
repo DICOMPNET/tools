@@ -71,8 +71,80 @@
     }
   }
 
+
+  // 指南页 head 标签（title / description / og / twitter）英文映射。
+  // GUIDE_EN_PACK 内含 guide.<slug>.title / desc 等键，但此前只被脚本加载、无人消费；
+  // 这里按 data-i18n-head + data-i18n-head-fb 精确替换，避免英文态标题与描述仍是中文。
+  var HEAD_APPLIED = false;
+  function translateHead() {
+    var pack = window.GUIDE_EN_PACK;
+    if (!pack) return false;
+    var nodes = document.querySelectorAll('[data-i18n-head]');
+    for (var i = 0; i < nodes.length; i++) {
+      var el = nodes[i];
+      var key = el.getAttribute('data-i18n-head');
+      if (!key || !pack[key]) continue;
+      var fb = el.getAttribute('data-i18n-head-fb') || '';
+      var attr = el.getAttribute('data-attr');
+      var val = pack[key] || fb;
+      if (!val) continue;
+      if (attr) el.setAttribute(attr, val);
+      else el.textContent = val;
+      HEAD_APPLIED = true;
+    }
+    return HEAD_APPLIED;
+  }
+  // 指南页的 guide-en-pack.js 可能比动态注入的 guide-i18n.js 晚到；
+  // 首次 apply 若 pack 未就绪会静默跳过，这里在 load 后与短延时内重试，保证标题/描述英文化。
+  function scheduleHead() {
+    translateHead();
+    if (HEAD_APPLIED || !isEnglish()) return;
+    setTimeout(translateHead, 0);
+    setTimeout(translateHead, 300);
+    setTimeout(translateHead, 1000);
+  }
+
+
+  // 无 guide-en-pack 的指南页（约 3,300 页）也有 i18n/guides/<slug>.json 正文词典；
+  // 词典首键通常是「<工具名> 使用指南」，可复用来英文化 title / og:title / twitter:title。
+  // 描述则只替换首个完整句（词典通常收录该句），避免半句中文混排。
+  function normKey(x) { return String(x || '').replace(/\s+/g, ''); }
+  function lookupTitle(base) {
+    if (!EN_DICT) return null;
+    if (EN_DICT[base]) return EN_DICT[base];
+    var nb = normKey(base);
+    for (var k in EN_DICT) {
+      if (!Object.prototype.hasOwnProperty.call(EN_DICT, k)) continue;
+      if (normKey(k) === nb) return EN_DICT[k];
+    }
+    return null;
+  }
+  function translateHeadFromDict() {
+    if (!isEnglish() || HEAD_APPLIED || !EN_DICT) return;
+    // 先确认描述可完整英文化；描述缺失映射时连标题也不动，
+    // 避免出现「英文标题 + 中文描述」的混排页面。
+    var descEl = document.querySelector('meta[name="description"]');
+    if (!descEl) return;
+    var zh = descEl.getAttribute('content') || '';
+    var first = zh.split('。')[0];
+    var enDesc = EN_DICT[first + '。'] || EN_DICT[first];
+    if (!enDesc) return;
+    var titleEl = document.querySelector('title');
+    if (titleEl) {
+      var base = (titleEl.textContent || '').replace(/\s*-\s*ToolBox\s*$/i, '').trim();
+      var en = lookupTitle(base);
+      if (en) titleEl.textContent = en + ' - ToolBox';
+    }
+    descEl.setAttribute('content', enDesc);
+    var og = document.querySelector('meta[property="og:description"]'); if (og) og.setAttribute('content', enDesc);
+    var tw = document.querySelector('meta[name="twitter:description"]'); if (tw) tw.setAttribute('content', enDesc);
+    var ogt = document.querySelector('meta[property="og:title"]'); if (ogt) ogt.setAttribute('content', titleEl ? titleEl.textContent : '');
+    var twt = document.querySelector('meta[name="twitter:title"]'); if (twt) twt.setAttribute('content', titleEl ? titleEl.textContent : '');
+  }
+
   function applyEnDict() {
     if (!isEnglish()) return;
+    scheduleHead();
     if (!EN_DICT && !EN_COMMON) return;
     var roots = [];
     var main = document.querySelector('main'); if (main) roots.push(main);
@@ -106,11 +178,13 @@
         node.nodeValue = raw.slice(0, idx) + en + raw.slice(idx + k.length);
       }
     }
+    translateHeadFromDict();
     translateChrome();
   }
 
   function apply() {
     if (!isEnglish()) return;
+    scheduleHead();
     if (APPLIED) { applyEnDict(); return; }
     loadCommon().then(function () { return loadDict(); }).then(function () {
       APPLIED = true;
@@ -123,5 +197,6 @@
   } else {
     apply();
   }
+  window.addEventListener('load', function () { scheduleHead(); });
   window.addEventListener('toolbox:langchange', function () { apply(); });
 })();

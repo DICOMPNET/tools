@@ -131,6 +131,162 @@ const CASES = [
   "clicks": ["(function(){var hh=globalThis.__tbFs;var h1=hh.readFileSync(process.cwd()+'/tools/home/renovation-budget.html','utf8');var i1=h1.indexOf('function updateItem(');var sg=i1>=0?h1.slice(i1,i1+700):'';var okg=sg.indexOf('isFinite(num)')>=0&&sg.indexOf('num < 0')>=0&&sg.indexOf('totalEl.innerHTML')>=0&&h1.indexOf('data-id=')>=0;var h2=hh.readFileSync(process.cwd()+'/tools/hotel/tip-calculator.html','utf8');var i2=h2.indexOf('function copyResult()');var sg2=i2>=0?h2.slice(i2,i2+1200):'';var okt=sg2.indexOf('taxAmount')>=0&&sg2.indexOf('bill + taxAmount + tip')>=0&&sg2.indexOf('bill + tip')<0&&sg2.indexOf('tax < 0')>=0;document.getElementById('__tbProbe').textContent='RENITEM '+(okg?'OK':'BAD')+' TIPTAX '+(okt?'OK':'BAD');})();"],
   "expect": ["RENITEM OK TIPTAX OK"],
   "ref": "第1306批双源码形态强锚(承载页 home/renovation-budget)：①装修明细 updateItem 校验数值并定点刷该行 .total、行带 data-id；旧版空串入总计且只 calc 不刷行 ⇒ BAD。②tip-calculator copyResult 须含税(bill+taxAmount+tip)、同源并拦负税率；旧版 bill+tip 漏税 ⇒ BAD。真机交互由复核方覆盖。"
+},
+{
+  "slug": "home/water-filter-lifespan",
+  "inputs": { "cap": "4000", "daily": "8", "margin": "90", "price": "120" },
+  "expect": ["3060 L", "383 天", "0.95 支/年", "114 元/年", "0.0392 元/L"],
+  "ref": "新工具默认算例：有效 4000×0.85×0.90=3060 L；3060/8≈383 天；365/383≈0.95 支/年；120×0.95≈114 元/年；120/3060≈0.0392 元/L。五条同时命中，能区分错误系数或漏乘安全余量。"
+},
+{
+  "slug": "home/water-filter-lifespan",
+  "inputs": { "cap": "" },
+  "expect": ["请填写滤芯额定净水量、每日净水用量与安全余量后再计算。"],
+  "ref": "清空额定净水量必须出明确空态提示，不得把空串当 0 后显示大于 0 提示或静默给结论。"
+},
+{
+  "slug": "home/water-filter-lifespan",
+  "inputs": { "margin": "" },
+  "expect": ["请填写滤芯额定净水量、每日净水用量与安全余量后再计算。"],
+  "ref": "清空安全余量同样走必填提示，避免误报「需在 50%–100% 之间」。"
+},
+{
+  "slug": "home/ac-energy-cost",
+  "inputs": { "power": "1100", "hours": "8", "days": "30", "months": "4", "price": "0.6", "standby": "2", "standbyHours": "16" },
+  "expect": ["8.83 kWh", "265.0 kWh", "1059.8 kWh", "¥5.30", "¥158.98", "¥635.90", "615 kg"],
+  "ref": "默认算例：1100 W×8 h+2 W×16 h=8.832 kWh；月 264.96→265.0 kWh；季 1059.84→1059.8 kWh；日电费 5.2992→5.30 元；月 158.976→158.98 元；季 635.904→635.90 元；CO₂ 1059.84×0.58=614.7→615 kg。七条同时命中，能区分漏算待机或错乘月数。"
+},
+{
+  "slug": "home/ac-energy-cost",
+  "inputs": { "power": "", "hours": "8" },
+  "expect": ["请填写额定功率、每日运行小时、使用天数、电价与待机参数后再计算。"],
+  "ref": "清空额定功率必须出明确必填提示，不得把空串当 0 后显示「需大于 0 W」或静默给结论。"
+},
+{
+  "slug": "home/ac-energy-cost",
+  "inputs": { "power": "0" },
+  "expect": ["额定功率需大于 0 W。"],
+  "ref": "显式 0 W 非法，必须提示；与空串提示区分。"
+},
+{
+  "slug": "home/ac-energy-cost",
+  "inputs": { "power": "1000", "price": "0" },
+  "expect": ["¥0.00"],
+  "ref": "电价 0 是合法输入（自发电/赠电场景），不得被空态守卫拦死，日电费应显示 0.00 元。"
+},
+{
+  "slug": "home/ac-energy-cost",
+  "inputs": { "hours": "20", "standbyHours": "10" },
+  "expect": ["每日运行小时与待机小时合计超过 24 小时，请核对，避免重复计算。"],
+  "ref": "交叉校验：运行 20 h + 待机 10 h = 30 h，超过一天，必须提示核对；不能默默把 30 小时都计入。"
+},
+{
+  "slug": "home/water-filter-lifespan",
+  "inputs": { "start": "" },
+  "expect": ["请填写开始使用日期后再计算。"],
+  "ref": "清空开始使用日期必须提示，不得静默回退今天导致预计更换日期与用户输入不一致。"
+},
+{
+  "slug": "home/appliance-lifespan",
+  "inputs": { "type": "fridge", "start": "2020-01-01", "price": "3000" },
+  "expect": ["2030-01-01", "¥300 元/年", "安全期内"],
+  "ref": "固定首次使用日 2020-01-01、冰箱参考 10 年 ⇒ 建议更换日期恒为 2030-01-01；购买价 3000/10=300 元/年；2026 年当前仍在安全期。三条同时命中，能区分年限表错误、日期加年错误或年均成本算法错误。"
+},
+{
+  "slug": "home/appliance-lifespan",
+  "inputs": { "type": "washer", "start": "2010-01-01", "price": "2500" },
+  "expect": ["已超安全年限", "已超"],
+  "ref": "洗衣机参考 8 年，2010 年首次使用到 2026 年已 16 年以上，必须判「已超安全年限」并显示超出年数；默认冰箱安全期不会命中。"
+},
+{
+  "slug": "home/appliance-lifespan",
+  "inputs": { "type": "washer", "start": "" },
+  "expect": ["请选择家电类型并填写首次使用日期后再计算。"],
+  "ref": "清空首次使用日期必须出明确空态提示，不得静默按今天起算并给出更换日期。"
+},
+{
+  "slug": "home/appliance-lifespan",
+  "inputs": { "start": "2035-01-01" },
+  "expect": ["首次使用日期不能晚于今天。"],
+  "ref": "未来日期非法，必须提示；不得把未来日期算成负已用年限或 0 后照常给安全期结论。"
+},
+{
+  "slug": "home/appliance-lifespan",
+  "inputs": { "type": "fan", "start": "2018-01-01", "price": "0" },
+  "expect": ["¥0 元/年", "2028-01-01"],
+  "ref": "购买价 0 是合法输入（赠品/自装），不得被空态守卫拦死；电风扇参考 10 年，2018 首次使用 ⇒ 更换日期 2028-01-01，年均成本显示 ¥0/年。"
+},
+{
+  "slug": "home/repair-or-replace",
+  "inputs": { "type": "fridge", "age": "6", "repair": "600", "newPrice": "4000", "newLife": "10", "repairLife": "4", "saving": "0", "risk": "none" },
+  "expect": ["¥150 元/年", "¥400 元/年", "维修更划算"],
+  "ref": "冰箱剩 4 年、维修 600/4=150 元/年；新机 4000/10=400 元/年，维修更划算。注入新机价 4000 与默认 3000 不同，避免默认态命中。"
+},
+{
+  "slug": "home/repair-or-replace",
+  "inputs": { "type": "fridge", "age": "6", "repair": "1600", "newPrice": "3000", "newLife": "10", "repairLife": "2", "saving": "0", "risk": "none" },
+  "expect": ["¥800 元/年", "优先换新"],
+  "ref": "维修 1600 只能用 2 年 ⇒ 800 元/年，高于新机 300 元/年，必须判优先换新。"
+},
+{
+  "slug": "home/repair-or-replace",
+  "inputs": { "type": "waterHeater", "age": "9", "repair": "400", "newPrice": "1200", "newLife": "8", "repairLife": "2", "saving": "0", "risk": "sometimes" },
+  "expect": ["优先换新", "安全优先"],
+  "ref": "储水式热水器参考 8 年、已用 9 年且有偶发故障 ⇒ 安全优先，必须换新；不能只因维修 200 元/年低于新机 150 元/年就判维修。"
+},
+{
+  "slug": "home/repair-or-replace",
+  "inputs": { "type": "washer", "age": "" },
+  "expect": ["请填写家电类型、已用年限、维修报价、新机价格、新机寿命与维修后可用年限后再计算。"],
+  "ref": "清空已用年限必须提示，不得把空串当 0 后继续给出维修建议。"
+},
+{
+  "slug": "home/repair-or-replace",
+  "inputs": { "type": "fan", "age": "5", "repair": "0", "newPrice": "1000", "newLife": "10", "repairLife": "5", "saving": "0", "risk": "none" },
+  "expect": ["¥0 元/年", "维修更划算"],
+  "ref": "维修报价 0 是合法输入（保修内/免费维修），不得被空态守卫拦死；0 元维修必须判维修更划算。"
+},
+{
+  "slug": "home/repair-or-replace",
+  "inputs": { "type": "microwave", "age": "8", "repair": "-100" },
+  "expect": ["已用年限与维修报价不能为负；新机价格、新机寿命与维修后可用年限需大于 0。"],
+  "ref": "负维修报价非法，必须提示；不能按负成本算出维修永远更划算。"
+},
+{
+  "slug": "home/water-heater-sizing",
+  "inputs": { "type": "storage", "people": "4", "sim": "1", "minutes": "10", "flow": "8", "cold": "15", "target": "40", "tank": "60", "power": "2", "price": "0.6" },
+  "expect": ["80 L", "44 L", "60 L", "94 分钟", "11.6 kWh", "¥7.0 元/天"],
+  "ref": "4 人、1 人同时洗、10 分钟、8 L/min：混合 80 L，60°C 热水 80×(25/45)=44.4→44 L，储水 44.4/0.8=55.6→60 L；60 L×4.186×45/2 kW/60=94.2→94 分钟；4 人日能耗 11.6 kWh、电费 11.6×0.6=7.0 元。人数 4 与默认 3 不同，避开默认态。"
+},
+{
+  "slug": "home/water-heater-sizing",
+  "inputs": { "type": "storage", "people": "3", "sim": "2", "minutes": "10", "flow": "8", "cold": "15", "target": "40", "tank": "60", "power": "2", "price": "0.6" },
+  "expect": ["160 L", "89 L", "120 L", "188 分钟"],
+  "ref": "两人同时洗：混合 160 L，热水 88.9→89 L，储水需求 111.1→120 L；整罐加热 120×4.186×45/2/60=188.4→188 分钟。同时洗澡人数 2 与默认 1 不同，能区分漏乘同时人数。"
+},
+{
+  "slug": "home/water-heater-sizing",
+  "inputs": { "type": "gas", "people": "4", "sim": "2", "minutes": "10", "flow": "9", "cold": "10", "target": "40", "tank": "60", "power": "2", "price": "0.6" },
+  "expect": ["180 L", "108 L", "10.8 L/min", "24 L/min"],
+  "ref": "燃气：2 人同时、9 L/min、温升 30°C ⇒ 单淋浴额定 9×30/25=10.8 L/min，合计 21.6→24 L/min；混合 180 L、60°C 热水 108 L。类型与默认不同，能区分按 25°C 标定与漏乘同时人数。"
+},
+{
+  "slug": "home/water-heater-sizing",
+  "inputs": { "type": "instant", "people": "1", "sim": "1", "minutes": "8", "flow": "7", "cold": "18", "target": "40", "tank": "60", "power": "8", "price": "0.6" },
+  "expect": ["10.7 kW", "12 kW", "63 A"],
+  "ref": "即热：7 L/min、温升 22°C ⇒ 7×4.186×22/60=10.74→10.7 kW，下一档 12 kW；电流 48.8 A×1.25=61.0→63 A 空开。类型与默认不同，能区分功率漏乘温升或空开未留余量。"
+},
+{
+  "slug": "home/water-heater-sizing",
+  "inputs": { "type": "gas", "people": "" },
+  "expect": ["请填写家庭人数、淋浴参数与热水器设置后再计算。"],
+  "ref": "清空家庭人数必须提示，不得把空串当 0 后继续给容量建议。"
+},
+{
+  "slug": "home/water-heater-sizing",
+  "inputs": { "type": "instant", "people": "1", "cold": "20", "target": "15" },
+  "expect": ["目标水温与储水温度需高于进水温度"],
+  "ref": "目标水温低于进水温度属非法，必须提示；不得用负温升算出负功率或无效结果。"
 }
 ];
 async function main() {

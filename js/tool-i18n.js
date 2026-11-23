@@ -12,6 +12,10 @@
 (function () {
   'use strict';
   if (!window.I18n) return;
+  // 分类落地页（/tools/<industry>/index.html）不是工具页：其行业标题由构建期
+  // 双语层 .tb-bi 控制显隐，不能交给工具页运行时改写，否则会把两层文本拼成
+  // “中文+英文”并删除 .t-zh/.t-en 节点（2026-11-23 实测 209 页受影响）。
+  if (/\/tools\/[^/]+\/index\.html$/.test(location.pathname)) return;
   var I18n = window.I18n;
   function isEnglish() { return I18n.get() === 'en-US'; }
   function sharedI18nUrl(name) { return '/i18n/tools/' + name; }
@@ -555,7 +559,14 @@
     }
 
     // 已由 data-i18n 管理的（6 个手工工具页）交给 I18n.apply，跳过避免冲突
-    var skipH2 = !!(h2 && (h2.querySelector('[data-i18n]') || isFormula(h2.textContent)));
+    // isFormula 对「英文标题里带 ×/μ/λ 等符号」也返回 true（如
+    // "Livestock Stocking Capacity Estimator (Area × Density)"），会把整页 H2
+    // 误判为公式标题而跳过中文还原（2026-11-23 实测 2 页）。仅当 H2 没有
+    // 连续英文词组时才算纯公式；带英文标题的仍按 data-zh 还原中文。
+    var _h2txt = h2 ? h2.textContent : '';
+    var _h2HasWords = /[A-Za-z]{3,}\s+[A-Za-z]{3,}/.test(_h2txt);
+    var skipH2 = !!(h2 && (h2.querySelector('[data-i18n]')
+      || (isFormula(_h2txt) && !_h2HasWords)));
     var skipIntro = !!(introP && introP.hasAttribute('data-i18n'));
 
     // 首次调用缓存原文（按字段独立判断，避免 h2 捕获定义 ORIG[slug] 后阻断 introP 捕获）。
@@ -593,6 +604,9 @@
 
     var body = BODY_MAP[ind] && BODY_MAP[ind][slug];
     if (!body) {
+      // 无 body 字典的页面同样要还原 data-zh（否则中文态 H2 停留英文，
+      // 2026-11-23 实测 agriculture/estimate-area-density、nuclear/gamma-attenuation）
+      if (!isEnglish()) restoreAllDataZh();
       // 即便该工具没有 body 数据，切到英文时也要把已就绪的短语应用上去
       if (isEnglish()) {
         loadCommonPhrases().then(function () { translateBodyPhrases(false); });
@@ -1041,6 +1055,17 @@
         else {
           var pf = longestPrefixKey(key);
           if (pf) { matchedKey = pf; out = EN_PREFIX[pf]; }
+        }
+      }
+      if (!out) {
+        // 批量生成的输入守卫提示带动态字段名，无法穷举进字典；英文态用通用句式兜底，
+        // 避免 813 个工具的结果区在英文界面弹出中文提示。字段名不译也比中英混排好。
+        if (/^请填写「(.+)」后再计算。$/.test(key)) {
+          out = 'Please fill in the required field and calculate again.';
+        } else if (/^⚠ 「(.+)」是本计算的分母，不能为 0。$/.test(key)) {
+          out = '⚠ This input is used as a denominator and must not be zero.';
+        } else if (key === '⚠ 输入不能全为 0：至少需要一项非零数值，否则计算无意义。') {
+          out = '⚠ Inputs cannot all be zero: at least one non-zero value is required.';
         }
       }
       if (!out) out = convertPunct(key, parent);
