@@ -147,6 +147,12 @@ const CASES = [
   },
   {
     slug: "fishery/winter-heating",
+    inputs: { huVolume: "80", huRise: "8", huHours: "20", huEff: "90", huLoss: "10" },
+    expect: ["744.2 升温热量 (kWh)", "37.21 平均有效功率 (kW)", "45.48 需配置功率 (kW)", "93.0 每℃热量 (kWh/℃)"],
+    ref: "一次升温模式（与稳态散热分开）：默认 100/10/24/85/20。注入 80 m³、温升 8℃、20 h、效率 90%、散热补偿 10% ⇒ 升温热量 = 80×1000×4.186×8÷3600 = 744.1778→744.2 kWh；平均有效功率 = 744.1778÷20 = 37.2089→37.21 kW；需配置功率 = 37.2089÷0.9×1.1 = 45.4778→45.48 kW；每℃热量 = 744.1778÷8 = 93.0222→93.0 kWh/℃。",
+  },
+  {
+    slug: "fishery/winter-heating",
     inputs: { area: "320", twater: "22", tair: "-4", wind: "2.5", margin: "25" },
     expect: ["78.00 kW 所需加热功率", "62400 热损失(W)", "26.0 温差(℃)"],
     ref: "注入非默认(默认 200/18/0/1.2/30)：温差 = 22 − (−4) = 26.0 ℃；温室类型取 harness 默认首项「双层薄膜」U=3 ⇒ 热损失 = 3×320×26 = 62400 W；含 25% 余量需加热功率 78.00 kW，日耗电 1872.0 kWh。旧期望 260.00/6240.0 是按敞开式 U=10 的旧口径，页面已新增温室类型入参并默认双层薄膜，故更正。"
@@ -742,6 +748,12 @@ const CASES = [
   "ref": "体长=0 时清空估重结果（FISHWCLR）；旧实现仅 toast，662.5 g 残留"
 },
 {
+  "slug": "fishery/fish-weight",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/fishery/fish-weight.html','utf8');var i=h.indexOf('function calc(){');var s=i>=0?h.slice(i,i+300):'';var ok=s.indexOf('lastResult =')>=0;document.getElementById('__tbProbe').textContent='FISHCP0 '+(ok?'OK':'BAD');"],
+  "expect": ["FISHCP0 OK"],
+  "ref": "第1354批·复制残留修复：calc 入口先清空 lastResult，体长/a/b 任一无效并 early return 后，copyResult 不再复制上一次的体重与等级。"
+},
+{
   "slug": "fishery/harvest-size-price",
   "inputs": {
     "biomass": ""
@@ -751,7 +763,15 @@ const CASES = [
   ],
   "ref": "存塘量为空时清空收益对比（HSPCLR）"
 },
-{ slug:"fishery/fish-growth-curve", inputs:{"target":"","predDay":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" }
+{ slug:"fishery/fish-growth-curve", inputs:{"target":"","predDay":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" },
+{ slug:"fishery/fish-growth-curve", clicks:["var had=!!lastResult;['target','predDay'].forEach(function(id){document.getElementById(id).value='';});calc();var g='';ToolBox.copyText=function(t){g+=String(t)};copyResult();document.getElementById('__tbProbe').textContent='B616FISH '+((had&&lastResult===''&&g==='')?'OK':'BAD g='+g.slice(0,40));"], expect:["B616FISH OK"], ref:"第1364批空态缓存：先有默认结果，再清空 target/predDay，calc 提前返回时必须清 lastResult，copyResult 不得复制上一轮拟合结果。旧实现保留旧串 ⇒ BAD。" },
+{ slug:"fishery/water-oxygen", clicks:["var had=!!lastResult;['temp','sal','measured'].forEach(function(id){document.getElementById(id).value='';});lookup();var g='';ToolBox.copyText=function(t){g+=String(t)};copyResult();document.getElementById('__tbProbe').textContent='B616WO '+((had&&lastResult===''&&g==='')?'OK':'BAD g='+g.slice(0,40));"], expect:["B616WO OK"], ref:"第1365批空态缓存：默认结果后清空 temp/sal/measured，lookup 提前返回必须清 lastResult，复制不得输出旧溶氧结果。旧实现保留旧串 ⇒ BAD。" },
+{
+  slug: "fishery/calc-power",
+  inputs: { v0: "120", v1: "8", v2: "22", v3: "80" },
+  expect: ["63.44 kW"],
+  ref: "恢复第353批旧页（非默认工况）：120 m³ 水体由 8 ℃ 升至 22 ℃，22 h、80% 效率 ⇒ 1395.6 kWh ÷22 h ≈63.44 kW；winter-heating 只算持续散热，不能回答指定时间升温。"
+}
 ];
 
 async function main() {

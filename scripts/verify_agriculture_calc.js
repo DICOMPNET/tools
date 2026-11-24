@@ -1793,6 +1793,18 @@ const CASES = [
     ref: "配制量 0 L 时需药量与加水量都为 0，看似有效；新守卫应拒绝。默认 40/1000/30 不含该提示。"
   },
 
+{
+  slug: "agriculture/calc-7",
+  inputs: { area: "12", waterPerMu: "25", targetConc: "180", fertContent: "45", ratioX: "80" },
+  expect: ["120.00 肥料商品", "14,400 mg/L"],
+  ref: "恢复第354批旧页（非默认输入）：12 亩×25 m³/亩=300 m³；180 mg/L×300000 L=54 kg 纯养分 ÷45%=120 kg 商品肥；母液 1:80 ⇒ 14400 mg/L。fertigation-ratio 用 EC/水源 EC，不能按目标养分浓度算。"
+},
+{
+  slug: "agriculture/convert-content-1",
+  inputs: { val: "12", unit: "water", wb: "12", initW: "100" },
+  expect: ["88.00%", "13.636%"],
+  ref: "恢复第356–358批旧页：水分 12% ⇒ 干物质 88%；湿基 12% 折干基 =12/(100−12)=13.636%；dry-matter-conversion 只做重量/含水率，无浓度口径。"
+}
 ];
 
 // ---------------------------------------------------------------- main

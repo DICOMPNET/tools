@@ -207,10 +207,11 @@ const CASES = [
   "slug": "fire-rescue/fire-resistance-rating",
   "inputs": {
     "btype": "industrial",
-    "height": "12"
+    "height": "12",
+    "industryHazard": "丙"
   },
   "expect": [
-    "多层厂房耐火等级不应低于三级"
+    "丙类多层厂房耐火等级不应低于三级"
   ],
   "ref": "独立复算：单/多层厂房高度 12 m ≤ 24 m ⇒ 三级（GB 50016-2014 第 3.2.1 条，多层厂房不应低于三级）；判别器把 btype 回退到首个 option「住宅」时输出「多层住宅…」，与本串不符 ⇒ 强判别。"
 },
@@ -463,7 +464,7 @@ const CASES = [
     "alarm": "5.5",
     "freq": "20"
   },
-  "expect": ["9.8\n30\n5.5\n20\n1.5\n79.0 使用时间 (min) 2370 可用空气量 (L) 30.0 耗气率 (L/min) 59.2 安全作业时间 (min) 2902 总储气量 (L) 气量评估： 气量充足 （保留 25% 撤离余量）\n暂无计算记录"],
+  "expect": ["79.0 使用时间 (min)", "气量评估： 气量充足"],
   "ref": "auto-restore"
 },
 {

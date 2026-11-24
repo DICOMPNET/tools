@@ -187,10 +187,10 @@
     <h3 style="font-size:14px;margin:16px 0 10px;">鼓膜穿孔分级与管理</h3>
     <table>
       <tr><th scope="col">分级</th><th scope="col">面积占比</th><th scope="col">预期听力损失</th><th scope="col">处理建议</th></tr>
-      <tr><td style="color:#10B981;font-weight:600;">小穿孔</td><td>&lt;10%</td><td>0-10 dB</td><td>可自愈，观察</td></tr>
+      <tr><td style="color:var(--success);font-weight:600;">小穿孔</td><td>&lt;10%</td><td>0-10 dB</td><td>可自愈，观察</td></tr>
       <tr><td style="color:#8BC34A;font-weight:600;">中穿孔</td><td>10-30%</td><td>10-25 dB</td><td>可贴片/观察</td></tr>
       <tr><td style="color:#FFC107;font-weight:600;">大穿孔</td><td>30-50%</td><td>25-40 dB</td><td>建议鼓室成形术</td></tr>
-      <tr><td style="color:#EF4444;font-weight:600;">全穿孔</td><td>&gt;50%</td><td>40-60 dB</td><td>需鼓室成形术</td></tr>
+      <tr><td style="color:var(--danger);font-weight:600;">全穿孔</td><td>&gt;50%</td><td>40-60 dB</td><td>需鼓室成形术</td></tr>
     </table>
 
     <div class="info-box" style="margin-top:16px;">
@@ -335,13 +335,15 @@ if(__numReq.every(function(k){var e=document.getElementById(k);return !e||String
 }
 
 function copyResult(){
-  var pd = +document.getElementById('perfD').value, pw = +document.getElementById('perfW').value;
+  var raw=['perfD','perfW','tmD','tmW'].map(function(id){var e=document.getElementById(id);return e?String(e.value).trim():'';});
+  if(raw.some(function(v){return v==='';})){ ToolBox.showToast('请先填写完整的穿孔与鼓膜尺寸再复制','warning'); return; }
+  var pd=+raw[0], pw=+raw[1], td=+raw[2], tw=+raw[3];
+  if(![pd,pw,td,tw].every(function(v){return isFinite(v)&&v>=0;})){ ToolBox.showToast('尺寸须为非负数，未复制','warning'); return; }
   var perfArea = Math.PI*(pd/2)*(pw/2);
-  var td = +document.getElementById('tmD').value, tw = +document.getElementById('tmW').value;
   var tmArea = Math.PI*(td/2)*(tw/2);
-  // 与 calc 同源：鼓膜面积为 0/无效时拒绝复制，避免复制出 Infinity%。
+  // 与 calc 同源：鼓膜面积为 0/无效时拒绝复制，并对面积占比执行 100% 截断。
   if(!isFinite(tmArea)||tmArea<=0){ ToolBox.showToast('请先填写有效的鼓膜尺寸再复制','warning'); return; }
-  var pct = (perfArea/tmArea*100).toFixed(1);
+  var pct = Math.min(100, perfArea/tmArea*100).toFixed(1);
   ToolBox.copyText('鼓膜穿孔评估：面积='+perfArea.toFixed(1)+'mm², 占比='+pct+'%, 位置='+loc, '结果已复制');
 }
 

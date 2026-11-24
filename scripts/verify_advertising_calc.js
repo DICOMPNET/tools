@@ -43,6 +43,24 @@ const CASES = [
   "ref": "默认 #FF6B35 → 互补 #0094CA / CMYK C:0 M:58 Y:79 K:0 / 色相 16°；独立复算：k=1-187/255=0.2667，C=(1-0-0.2667)/0.7333=100、M=(1-114/255-0.2667)/0.7333=39、Y=0、K=27，HSL h=203°，互补=(255,141,68)=#FF8D44。注意不可用等级词「冷色」——兜底 randomColor() 在 harness 确定性 PRNG 下恒得 rgb(91,27,172)（h=266°，同为冷色），会成逃生项。"
 },
 {
+  "slug": "advertising/color-convert",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/advertising/color-convert.html','utf8');var i=h.indexOf('function fromRGB(){');var seg=i>=0?h.slice(i,i+520):'';var ok=seg.indexOf('rv===')>=0&&seg.indexOf('gv===')>=0&&seg.indexOf('bv===')>=0&&seg.indexOf('__clearColorOutputs')>=0;document.getElementById('__tbProbe').textContent='CCRGB0 '+(ok?'OK':'BAD');"],
+  "expect": ["CCRGB0 OK"],
+  "ref": "第1369批·RGB 空项按 0 计算修复：fromRGB 逐项校验 r/g/b，任一项空/非法即清空 hex/CMYK/HSL/LAB 与预览；旧版整表空才守卫、单空按 0 ⇒ BAD。"
+},
+{
+  "slug": "advertising/reach-frequency",
+  "clicks": ["document.getElementById('rounds').value='0';document.getElementById('singleReach').value='20';calcMulti()"],
+  "expect": ["投放轮次须为 ≥1 的整数。"],
+  "ref": "第1344批·0 轮被替换为 1 修复：注入 0 轮必须拒绝（旧版 +v||1 替换成 1 仍出一轮结果，命中「1轮」而非该提示）。"
+},
+{
+  "slug": "advertising/reach-frequency",
+  "clicks": ["document.getElementById('rounds').value='2';document.getElementById('singleReach').value='0';calcMulti()"],
+  "expect": ["0.0%"],
+  "ref": "第1344批·合法 0% 不得被当成空值：单次到达率 0%、2 轮 ⇒ 累计到达 0.0%，仍应正常出表；默认 25%/4 轮为 68.4%，不命中。"
+},
+{
   "slug": "advertising/convert-26",
   "inputs": { "px": "192", "dpi": "96" },
   "expect": ["物理尺寸 = 50.80 mm"],
@@ -141,16 +159,17 @@ const CASES = [
 },
 {
   "slug": 'advertising/ad-size',
-  "clicks": ['(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+\'/\'+\'tools/advertising/ad-size.html\',\'utf8\');var i=h.indexOf(\'function copyResult(){\');var j=h.indexOf(\'\\nfunction \',i+10);var seg=i>=0?h.slice(i,j>0?j:i+900):\'\';var ok=seg.indexOf(\'if(!isFinite(dpi)||dpi<=0\')>=0&&seg.indexOf(\'请先填写有效的尺寸与 DPI 再复制\')>=0;document.getElementById(\'__tbProbe\').textContent=\'ADSCP0 \'+(ok?\'OK\':\'BAD\');})();'],
+  "clicks": ['(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+\'/\'+\'tools/advertising/ad-size.html\',\'utf8\');var i=h.indexOf(\'function copyResult(){\');var j=h.indexOf(\'\\nfunction \',i+10);var seg=i>=0?h.slice(i,j>0?j:i+900):\'\';var ok=seg.indexOf(\'请先填写宽度与高度再复制\')>=0&&seg.indexOf(\'fromUnit\')>=0&&seg.indexOf(\'wPX\')>=0;document.getElementById(\'__tbProbe\').textContent=\'ADSCP0 \'+(ok?\'OK\':\'BAD\');})();'],
   "expect": ['ADSCP0 OK'],
   "ref": "第1341批·复制与页面结果不同源修复源码形态强锚：旧版 copyResult 另算一遍且无守卫，页面显示错误/—时复制仍输出 Infinity/0dB 假值；修复后 copyResult 补与 calc 同源守卫，无效时提示并 return。旧版无 ⇒ BAD。"
 },
 {
-  "slug": 'advertising/reach-frequency',
-  "clicks": ['(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+\'/\'+\'tools/advertising/reach-frequency.html\',\'utf8\');var i=h.indexOf(\'function calcMulti(){\');var s=i>=0?h.slice(i,i+420):\'\';var ok=s.indexOf(\'singlePct<0||singlePct>100\')>=0&&s.indexOf(\'multiResult\')>=0&&s.indexOf(\'单次到达率须在 0–100%\')>=0;document.getElementById(\'__tbProbe\').textContent=\'REACH100 \'+(ok?\'OK\':\'BAD\');})();'],
-  "expect": ['REACH100 OK'],
-  "ref": "第1344批·到达率越界守卫源码形态强锚：旧版 calcMulti 单次到达率>100% 时 notReached 变负、累计到达率振荡超 100%；修复后入口限制 0–100% 与轮次>=1，越界提示并 return。旧版无 ⇒ BAD。"
+  "slug": "advertising/reach-frequency",
+  "clicks": ["var c=[],t=[];var oc=ToolBox.copyText,ot=ToolBox.showToast;ToolBox.copyText=function(x){c.push(String(x))};ToolBox.showToast=function(m){t.push(String(m))};document.getElementById('population').value='100000';document.getElementById('reach').value='35000';document.getElementById('impressions').value='87500';document.getElementById('cost').value='50000';calcBasic();copyBasic();document.getElementById('population').value='';calcBasic();copyBasic();ToolBox.copyText=oc;ToolBox.showToast=ot;document.getElementById('__tbProbe').textContent='BASICCP '+((c.length===1&&c[0].indexOf('到达率:35.0%')>=0&&t.length===1&&t[0].indexOf('请先完成有效')>=0)?'OK':'BAD');"],
+  "expect": ["BASICCP OK"],
+  "ref": "第1347批·空输入复制假结果修复：先有效计算并复制（35.0%/2.50），再清空人口计算后复制应拒绝并提示；旧版 copyBasic 用默认值直接算 ⇒ 第二次仍复制且无提示，BAD。"
 },
+
 {
   "slug": 'advertising/convert-26',
   "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/'+\"tools/advertising/convert-26.html\",'utf8');var i=h.indexOf('const px=+document.getElementById(\\\"px\\\")');var seg=i>=0?h.slice(i,i+240):'';var ok=seg.indexOf('!isFinite(dpi)||dpi<=0')>=0&&seg.indexOf('DPI 须为正数')>=0;document.getElementById('__tbProbe').textContent='PXDPIDIV '+(ok?'OK':'BAD');})();"],
@@ -158,11 +177,12 @@ const CASES = [
   "ref": "第1346批·分母为零守卫源码形态强锚：旧版 dpi=0 时 mm=px*25.4/0=Infinity，主输出显示「物理尺寸 = Infinity mm」；修复后 dpi 非正提示并 return。旧版无 ⇒ BAD。"
 },
 {
-  "slug": 'advertising/reach-frequency',
-  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/'+\"tools/advertising/reach-frequency.html\",'utf8');var i=h.indexOf('function copyBasic(){');var s=i>=0?h.slice(i,i+320):'';var ok=s.indexOf('pop>0?(reach/pop*100):0')>=0&&s.indexOf('reach>0?(imp/reach):0')>=0;document.getElementById('__tbProbe').textContent='REACHCPY '+(ok?'OK':'BAD');"],
-  "expect": ['REACHCPY OK'],
-  "ref": "第1347批·复制与页面不同源：旧版 copyBasic 裸算 reach/pop 与 imp/reach，reach=0 时复制「频次:Infinity」；主 calcBasic 已用 reach>0 守卫。修复后 copyBasic 与 calcBasic 同源，零值取 0。"
+  "slug": "advertising/reach-frequency",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/advertising/reach-frequency.html','utf8');var i=h.indexOf('function copyBasic(){');var seg=i>=0?h.slice(i,i+500):'';var ok=h.indexOf('var lastBasicResult')>=0&&h.indexOf('到达率:')>=0&&seg.indexOf('if(!lastBasicResult)')>=0&&seg.indexOf('ToolBox.showToast')>=0&&seg.indexOf('ToolBox.copyText(lastBasicResult')>=0;document.getElementById('__tbProbe').textContent='BASICCP '+(ok?'OK':'BAD');"],
+  "expect": ["BASICCP OK"],
+  "ref": "第1347批·空输入复制假结果修复：calcBasic 末尾缓存有效结果到 lastBasicResult（缺参/无效值时保持空），copyBasic 只复制该缓存并在空时提示拒绝；旧版用默认值直接算 ⇒ BAD。真机有效复制 35.0%/2.50、清空人口后拒绝提示。"
 },
+
 {
   "slug": "advertising/estimate-cycle",
   "inputs": { "arpu": "50", "churn": "5", "margin": "", "cac": "200" },

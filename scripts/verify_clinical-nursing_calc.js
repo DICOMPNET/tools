@@ -580,6 +580,32 @@ const CASES = [
   "ref": "D-N39 空值拒绝：旧实现 `parseInt('')||1` 静默按 1 小时排程并写入记录；修复后空/越界值拒绝，排程区显示 1–24 小时提示，EMR 标「未填写」。默认 4 小时两串均不出现。"
 },
 {
+  "slug": "clinical-nursing/restraint-duration",
+  "inputs": {
+    "startTime": "08:00",
+    "totalHours": "2.1"
+  },
+  "clicks": ["calc()"],
+  "expect": [
+    "会越过约束结束时刻 10:06",
+    "按实际结束时刻终止，不再重新约束"
+  ],
+  "ref": "结束边界：2.1h 从 08:00 起，10:00 开始松解 15 分钟会到 10:15，晚于结束 10:06；修复后按实际结束终止、不生成 10:15 重新约束。默认 4h 无该文案 ⇒ 强判别。"
+},
+{
+  "slug": "clinical-nursing/restraint-duration",
+  "inputs": {
+    "startTime": "",
+    "totalHours": "4"
+  },
+  "clicks": ["calc()"],
+  "expect": [
+    "请填写有效的约束开始时间",
+    "不生成松解计划"
+  ],
+  "ref": "空开始时间：旧实现 split(':') 后 setHours(NaN) 仍排程；修复后拒绝并清空排程/图表。默认 08:00 不含该提示 ⇒ 强判别。"
+},
+{
   "slug": "clinical-nursing/suction-pressure",
   "inputs": {
     "currentPressure": "260"
@@ -676,7 +702,32 @@ const CASES = [
     "clicks": ["resetAll();var __b=document.getElementById('res').innerHTML.replace(/<[^>]+>/g,' ');var __ok=/Braden/.test(__b)&&/当前为默认评分/.test(__b)&&!/分级|建议|诊断|治疗|风险/.test(__b);document.getElementById('res').innerHTML=__ok?'__BRADEN_RST_OK__':'__BRADEN_RST_FAIL__ '+__b;"],
     "expect": ["__BRADEN_RST_OK__"],
     "ref": "重置态：新增「重置评分」按钮调 resetAll() ⇒ 6 维回页面默认档（21/23）、dirty 复位，决策文案消失。"
-  }
+  },
+{
+  "slug": "clinical-nursing/assessor-pressure-risk",
+  "inputs": { "position": "1", "duration": "1", "bmi": "27.9", "age": "50" },
+  "expect": ["风险评分 1 分"],
+  "ref": "F-BMI28 下界：BMI 27.9 不计肥胖分；仰卧位 1 分 ⇒ 总分 1。"
+},
+{
+  "slug": "clinical-nursing/assessor-pressure-risk",
+  "inputs": { "position": "1", "duration": "1", "bmi": "28", "age": "50" },
+  "expect": ["风险评分 3 分"],
+  "ref": "F-BMI28 切点：中国成人肥胖 BMI≥28，恰好 28 应加 2 分；仰卧位 1+2=3。旧实现 >28 漏计。"
+},
+
+{
+  slug: "clinical-nursing/convert-flow-concentration",
+  inputs: { mode: "f2o", val: "3" },
+  expect: ["FiO2 ≈ 33.0%"],
+  ref: "恢复第351批旧页正向（非默认流量）：鼻导管 3 L/min ⇒ 21+4×3=33.0%；保留页仅此方向。"
+},
+{
+  slug: "clinical-nursing/convert-flow-concentration",
+  inputs: { mode: "o2f", val: "40" },
+  expect: ["4.75 L/min"],
+  ref: "恢复第351批旧页反推：FiO2 40% ⇒ (40−21)/4=4.75 L/min；保留页 oxygen-concentration 无 FiO2→流量入口。"
+}
 ];
 async function main() {
   const only = process.argv.slice(2);

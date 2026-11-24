@@ -2824,13 +2824,36 @@ const CASES = [
     "clicks": ["validate()"],
     "expect": ["仅允许数字"],
     "ref": "非法字符：含字母直接拒绝并提示「仅允许数字及 +、空格、连字符」，不做部分解析。"
-  }
-,
+  },
 {
-  "slug": 'life/generator-strength',
-  "clicks": ['(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+\'/\'+\'tools/life/generator-strength.html\',\'utf8\');var i=h.indexOf(\'function resetPwdState(){\');var j=h.indexOf(\'\\nfunction \',i+10);var seg=i>=0?h.slice(i,j>0?j:i+900):\'\';var ok=seg.indexOf("(\'pwdChart\'); if(chart) chart.innerHTML=\'\'")>=0&&seg.indexOf("\'#pwdTable tbody\'")>=0;document.getElementById(\'__tbProbe\').textContent=\'PWDCLR0 \'+(ok?\'OK\':\'BAD\');})();'],
-  "expect": ['PWDCLR0 OK'],
-  "ref": "第1342批·清空输入后图表/熵表残留修复源码形态强锚：旧版 resetPwdState 只清密码列表与强度条，基于字符池的熵曲线(#pwdChart)与熵值表(#pwdTable tbody)残留；修复后一并清空。旧版无 ⇒ BAD。"
+  "slug": "life/area-converter",
+  "inputs": { "inputVal": "0", "fromUnit": "m2" },
+  "expect": ["基准： 0 m² = 0 m²", "零值不参与尺度参照"],
+  "ref": "第229批·零面积被 v<=0 拒绝修复：0 为合法面积，应显示各单位 0 且不给出错误实物参照；旧版提示「面积需为大于 0」或按 1e-30 匹配出「≈1 平方米」⇒ BAD。"
+},
+{
+  "slug": "life/area-converter",
+  "inputs": { "inputVal": "-1", "fromUnit": "m2" },
+  "expect": ["面积需为非负数值"],
+  "ref": "第229批·负面积仍须拒绝：仅放开 0，负数提示非负；默认 42 不出现该提示。"
+},
+{
+  "slug": "life/weight-converter",
+  "inputs": { "inputVal": "0", "fromUnit": "g" },
+  "expect": ["基准： 0 克 = 0 克", "零值不参与尺度参照"],
+  "ref": "第229批·零重量被 v<=0 拒绝修复：0 为合法重量，应显示各单位 0 且不给出错误实物参照；旧版提示「重量需为大于 0」或按 1e-30 匹配出「≈1 克」⇒ BAD。"
+},
+{
+  "slug": "life/weight-converter",
+  "inputs": { "inputVal": "-1", "fromUnit": "g" },
+  "expect": ["重量需为非负数值"],
+  "ref": "第229批·负重量仍须拒绝：仅放开 0，负数提示非负；默认 42 不出现该提示。"
+},
+{
+  "slug": "life/holiday-calendar",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/life/holiday-calendar.html','utf8');var i=h.indexOf('// === 2027 ===');var b=i>=0?h.slice(i,i+1600):'';var m=h.indexOf('var makeupWorkdays');var mk=m>=0?h.slice(m,m+600):'';var ok=h.indexOf('2026-02-15')>=0&&h.indexOf('2026-02-23')>=0&&b.indexOf('2027-02-05')>=0&&b.indexOf('除夕')>=0&&b.indexOf('2027-02-13')>=0&&b.indexOf('2027-04-03')>=0&&b.indexOf('2027-04-06')<0&&b.indexOf('2027-06-09')>=0&&b.indexOf('2027-06-11')<0&&mk.indexOf('2026-02-14')>=0&&mk.indexOf('2027-01-31')>=0;document.getElementById('__tbProbe').textContent='HOLSYNC '+(ok?'OK':'BAD');"],
+  "expect": ["HOLSYNC OK"],
+  "ref": "第225/231批·2026春节缺2/23、2027春节漏除夕修复：2026 春节 2/15–23 并补 1/4、2/14、2/28 等补班；2027 春节 2/5–13（2/5 标除夕），清明 4/3–5、端午 6/9、中秋 9/15，补班 1/31 等。旧数据 2026 少 2/23、2027 从 2/6 起 ⇒ BAD。真机 2026-02 工作日 16、2027-02 工作日 15。"
 }
 ];
 

@@ -419,6 +419,11 @@ GATES = (
     ("preset bounds audit", (sys.executable, "scripts/audit_preset_bounds.py", "--check")),
     # 指南页英文头部回归锁：119 个加载 guide-en-pack 的页面 head 键/词典/title/desc 必须完整。
     ("guide en head audit", (sys.executable, "scripts/audit_guide_en_head.py")),
+    # 中文态 data-zh 还原覆盖锁：新增标签/子标记必须纳入 restoreAllDataZh，防中文默认态英文回潮。
+    ("zh data-zh restore audit", (sys.executable, "scripts/audit_zh_data_restore.py")),
+    # 英文单页词典 index 双向一致性：列出的文件必须存在、存在的文件必须列出，
+    # 防止运行时按 _index.json 发请求时出现必然 404，或新词典漏挂索引永不生效。
+    ("en dict index audit", (sys.executable, "scripts/audit_en_dict_index.py")),
 )
 
 

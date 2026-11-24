@@ -328,10 +328,52 @@
     }
   }
 
+  function pageToolNameEn() {
+    try {
+      var t = (document.title || '').trim();
+      if (!t || /[\u4e00-\u9fff]/.test(t)) return '';
+      t = t.split(' | ')[0].split(' - ')[0].trim();
+      return t;
+    } catch (e) { return ''; }
+  }
+  function patternPhraseTr(key) {
+    var sp = stripEmojiPrefix(key);
+    var core = sp.core || key;
+    var prefix = sp.prefix ? sp.prefix + ' ' : '';
+    if (/^关于「.+」$/.test(core)) {
+      var nm = pageToolNameEn();
+      return prefix + (nm ? 'About ' + nm : 'About this tool');
+    }
+    if (/^查看「.+」$/.test(core)) {
+      var nm2 = pageToolNameEn();
+      return prefix + (nm2 ? 'View the ' + nm2 + ' guide' : 'View the user guide');
+    }
+    var sm = /^步骤\s*(\d+)$/.exec(core);
+    if (sm) return prefix + 'Step ' + sm[1];
+    var pm = /^(\d+)分$/.exec(core);
+    if (pm) return prefix + pm[1] + ' points';
+    return null;
+  }
+
   var BODY_CHANGED = [];
+  function replaceTextNodeCore(el, core, tr) {
+    var w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null, false);
+    var n;
+    while ((n = w.nextNode())) {
+      var raw = n.nodeValue || '';
+      var at = raw.indexOf(core);
+      if (at < 0) continue;
+      BODY_CHANGED.push({ node: n, orig: raw });
+      n.nodeValue = raw.slice(0, at) + tr + raw.slice(at + core.length);
+      return true;
+    }
+    return false;
+  }
   function translateBodyPhrases(isZh) {
     for (var k = 0; k < BODY_CHANGED.length; k++) {
-      BODY_CHANGED[k].el.textContent = BODY_CHANGED[k].orig;
+      var ch = BODY_CHANGED[k];
+      if (ch.node) ch.node.nodeValue = ch.orig;
+      else ch.el.textContent = ch.orig;
     }
     BODY_CHANGED = [];
     if (isZh) return;
@@ -360,6 +402,25 @@
       if (BODY_PHRASE_MAP.hasOwnProperty(txt)) tr = BODY_PHRASE_MAP[txt];
       else if (COMMON_PHRASES.hasOwnProperty(txt)) tr = COMMON_PHRASES[txt];
       else if (indMap && indMap.hasOwnProperty(txt)) tr = indMap[txt];
+      if (!tr) {
+        // 标题常写成 <h4><span class="h4-icon">📝</span>工具简介</h4>，整节点 textContent
+        // 是「📝工具简介」，字典只有「工具简介」⇒ 精确匹配必然落空。剥离 emoji 前缀后
+        // 再查一次；命中时只替换文本节点，保留 .h4-icon 的图标与样式，不能整节点覆盖。
+        var sp = stripEmojiPrefix(txt);
+        if (sp.core && sp.core !== txt) {
+          var coreTr = BODY_PHRASE_MAP.hasOwnProperty(sp.core) ? BODY_PHRASE_MAP[sp.core]
+            : (COMMON_PHRASES.hasOwnProperty(sp.core) ? COMMON_PHRASES[sp.core]
+            : (indMap && indMap.hasOwnProperty(sp.core) ? indMap[sp.core] : null));
+          if (coreTr) {
+            if (el.children && el.children.length) {
+              if (replaceTextNodeCore(el, sp.core, coreTr)) continue;
+            } else {
+              tr = (sp.prefix ? sp.prefix + ' ' : '') + coreTr;
+            }
+          }
+        }
+        if (!tr) tr = patternPhraseTr(txt);
+      }
       if (tr) {
         BODY_CHANGED.push({ el: el, orig: txt });
         el.textContent = tr;
@@ -514,20 +575,32 @@
   function restoreAllDataZh() {
     // 【2026-11-12 全量覆盖】构建期把英文预渲染进静态 HTML 的不止 p：表格/公式引据区的
     // h3/th/td/span/label/summary/strong 同样是「静态英文 + data-zh 中文」（全站约 5 万处）。
+    // 2026-11-24 再扩 button/div/li/option：79 页导出按钮与多个说明块在中文态仍显示英文。
     // 此前中文态只还原 p[data-zh]，导致中文下「Formula & Standard References」及其表格
     // 单元格仍是英文（老板实测）。扩展到所有纯文本 data-zh 元素，守卫口径不变：
     // data-zh 含汉字、当前文本无汉字、无子元素、非 data-i18n 管理。
     // 英文专名（data-zh 本身无汉字，如 Christiansen 1942 / FAO-56）按原口径跳过。
-    var list = document.querySelectorAll('p[data-zh], h2[data-zh], h3[data-zh], th[data-zh], td[data-zh], span[data-zh], label[data-zh], summary[data-zh], strong[data-zh]');
+    var list = document.querySelectorAll('p[data-zh], h2[data-zh], h3[data-zh], th[data-zh], td[data-zh], span[data-zh], label[data-zh], summary[data-zh], strong[data-zh], button[data-zh], div[data-zh], li[data-zh], option[data-zh]');
     for (var i = 0; i < list.length; i++) {
       var el = list[i];
       if (el.hasAttribute('data-i18n')) continue;
-      if (el.children && el.children.length) continue;
       var zh = el.getAttribute('data-zh');
       if (!zh || !/[\u4e00-\u9fff]/.test(zh)) continue;
       var cur = el.textContent;
-      if (!cur || /[\u4e00-\u9fff]/.test(cur)) continue;
-      if (cur === zh) continue;
+      if (cur && /[\u4e00-\u9fff]/.test(cur)) continue;
+      if (el.children && el.children.length) {
+        // 公式表格常见 <sub>/<sup> 结构：data-zh 是带同样标记的完整中文 HTML。
+        // 仅对 td/p 做 HTML 级还原，且拒绝 data-zh 内含交互控件/链接，避免破坏可访问性。
+        var tag = (el.tagName || '').toLowerCase();
+        if ((tag === 'td' || tag === 'p') && !/<(input|select|textarea|button|a)\b/i.test(zh)) {
+          if (el.__tbEnHtml === undefined) el.__tbEnHtml = el.innerHTML;
+          if (zh.indexOf('<') >= 0) el.innerHTML = zh;
+          else if (el.children.length === 1 && el.firstElementChild && el.firstElementChild.tagName === 'A') el.firstElementChild.textContent = zh;
+          else el.innerHTML = zh;
+        }
+        continue;
+      }
+      if (!cur || cur === zh) continue;
       // h2 中有一类是「公式标题」（PR = …、F = …），data-zh 是中文说明，但公式本体
       // 必须保留原样；主 h2 已由 applyToolBody() 的 ORIG.title 还原（cur 含汉字天然跳过）。
       // 仅对 h2 增加公式守卫，避免把公式标题替换成中文说明。
@@ -818,6 +891,7 @@
       var it = EN_ORIG[i];
       if (it.node) { if (it.node.parentNode) it.node.nodeValue = it.orig; }
       else if (it.el && it.attr) { if (it.el.parentNode) it.el.setAttribute(it.attr, it.orig); }
+      else if (it.el && it.html !== undefined) { it.el.innerHTML = it.html; }
       else if (it.el) { it.el.textContent = it.orig; }
     }
     EN_ORIG = [];
@@ -904,7 +978,13 @@
     // (a) [data-zh]：英文态下静态文本已是构建期预渲染的英文，中文原文保存在 data-zh
     var dzs = document.querySelectorAll('[data-zh]');
     for (var i = 0; i < dzs.length; i++) {
-      if (dzs[i].children && dzs[i].children.length) continue;   // 只处理纯文本元素，不动结构
+      if (dzs[i].children && dzs[i].children.length) {   // 只处理纯文本元素，不动结构；HTML 级还原的公式表格单独回填
+        if (dzs[i].__tbEnHtml !== undefined && dzs[i].innerHTML !== dzs[i].__tbEnHtml) {
+          EN_ORIG.push({ el: dzs[i], html: dzs[i].__tbEnHtml });
+          dzs[i].innerHTML = dzs[i].__tbEnHtml;
+        }
+        continue;
+      }
       var zh = dzs[i].getAttribute('data-zh');
       if (!zh) continue;
       var tr = pickEn(zh);
@@ -1068,6 +1148,16 @@
           out = '⚠ Inputs cannot all be zero: at least one non-zero value is required.';
         }
       }
+      if (!out) {
+        // 动态结果标签也可能是「📊 平均速度」这类带图标文本；文本节点本身含 emoji 时
+        // 精确查表落空，剥离前缀后用 core 查同一套字典，保留原 emoji。
+        var dsp = stripEmojiPrefix(key);
+        if (dsp.core && dsp.core !== key) {
+          var dctr = pickEn(dsp.core);
+          if (dctr) out = (dsp.prefix ? dsp.prefix + ' ' : '') + dctr;
+        }
+      }
+      if (!out) out = patternPhraseTr(key);
       if (!out) out = convertPunct(key, parent);
       if (!out) {
         // GEN_UI_MAP 只被 translateGenericUI 全量扫描时使用，动态新增节点（如复制按钮改成

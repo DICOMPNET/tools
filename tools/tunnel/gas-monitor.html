@@ -7,11 +7,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="toolbox" content="cat=reference,industry=tunnel,icon=📚,bg=#ffebee">
-<meta name="description" content="瓦斯监测参考是一款免费的在线隧道工程工具，输入瓦斯浓度，查询安全等级与处置措施（依据《煤矿安全规程》《铁路瓦斯隧道技术规范》）。可按本页参数完成「瓦斯监测参考」的快速估算与结果核对。">
+<meta name="description" content="瓦斯监测参考是一款免费的在线隧道工程工具，输入瓦斯浓度，查询安全等级与处置措施（依据《煤矿安全规程》《铁路瓦斯隧道技术规范》）。">
 <title>隧道瓦斯监测参考 - 免费在线隧道工程工具</title>
 <link rel="canonical" href="https://tools.dicomp.net/tools/tunnel/gas-monitor.html">
 <meta property="og:title" content="隧道瓦斯监测参考 - 免费在线隧道工程工具">
-<meta property="og:description" content="瓦斯监测参考是一款免费的在线隧道工程工具，输入瓦斯浓度，查询安全等级与处置措施（依据《煤矿安全规程》《铁路瓦斯隧道技术规范》）。可按本页参数完成「瓦斯监测参考」的快速估算与结果核对。">
+<meta property="og:description" content="瓦斯监测参考是一款免费的在线隧道工程工具，输入瓦斯浓度，查询安全等级与处置措施（依据《煤矿安全规程》《铁路瓦斯隧道技术规范》）。">
 <meta property="og:url" content="https://tools.dicomp.net/tools/tunnel/gas-monitor.html">
 <meta name="twitter:card" content="summary">
 <link rel="stylesheet" href="../../css/common.css">
@@ -35,10 +35,10 @@
 <meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
     <meta property="og:type" content="website">
     <meta name="twitter:title" content="隧道瓦斯监测参考 - 免费在线隧道工程工具">
-    <meta name="twitter:description" content="瓦斯监测参考是一款免费的在线隧道工程工具，输入瓦斯浓度，查询安全等级与处置措施（依据《煤矿安全规程》《铁路瓦斯隧道技术规范》）。可按本页参数完成「瓦斯监测参考」的快速估算与结果核对。">
+    <meta name="twitter:description" content="瓦斯监测参考是一款免费的在线隧道工程工具，输入瓦斯浓度，查询安全等级与处置措施（依据《煤矿安全规程》《铁路瓦斯隧道技术规范》）。">
 <!-- TOOLBOX-WEBAPP-LD -->
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebApplication","name":"瓦斯监测参考","url":"https://tools.dicomp.net/tools/tunnel/gas-monitor.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"瓦斯监测参考是一款免费的在线隧道工程工具，输入瓦斯浓度，查询安全等级与处置措施（依据《煤矿安全规程》《铁路瓦斯隧道技术规范》）。可按本页参数完成「瓦斯监测参考」的快速估算与结果核对。","image":"https://tools.dicomp.net/og-image.png","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+{"@context":"https://schema.org","@type":"WebApplication","name":"瓦斯监测参考","url":"https://tools.dicomp.net/tools/tunnel/gas-monitor.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"瓦斯监测参考是一款免费的在线隧道工程工具，输入瓦斯浓度，查询安全等级与处置措施（依据《煤矿安全规程》《铁路瓦斯隧道技术规范》）。五级浓度分级与处置：<0.5% 安全（正常作业、持续监测）、0.5%~0.8% 注意（加强通风、提高监测频率）、0.8%~1.0% 警戒（停止部分作业、撤离无关人员）。","image":"https://tools.dicomp.net/og-image.png","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
 </script>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
@@ -289,6 +289,8 @@ function gradeInfo(c){
   return {name:'极度危险',cls:'grade-fail',color:'#7C2D12',meas:'立即撤离，封闭工作面，上报处理',pct:100};
 }
 function calc(){
+  window._lastResult=null;
+  var __bars=document.getElementById('bars'); if(__bars) __bars.innerHTML='';
   var c=parseFloat(document.getElementById('inGas').value);
   var loc=document.getElementById('inLoc').value;
   if(!isFinite(c)){ document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 请填写瓦斯浓度（%VOL）</p>'; return; } // GASCLR
@@ -302,7 +304,7 @@ function calc(){
     '<p><strong>安全等级：</strong><span class="grade-tag '+gi.cls+'">'+gi.name+'</span></p>'+
     '<p><strong>处置措施：</strong>'+gi.meas+'</p>'+
     '<p><strong>是否需切断电源：</strong>'+(needPower?'是，立即断电':'否')+'</p>'+
-    (explode?'<p style="color:#EF4444;"><strong>⚠️ 处于爆炸浓度范围（5%~16%），极度危险！</strong></p>':'<p><strong>爆炸性判定：</strong>'+(c<5?'低于爆炸下限，不爆炸':'高于爆炸上限，因缺氧不爆炸')+'</p>');document.getElementById('result').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
+    (explode?'<p style="color:var(--danger);"><strong>⚠️ 处于爆炸浓度范围（5%~16%），极度危险！</strong></p>':'<p><strong>爆炸性判定：</strong>'+(c<5?'低于爆炸下限，不爆炸':'高于爆炸上限，因缺氧不爆炸')+'</p>');document.getElementById('result').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
   // 渲染等级条
   var ranges=[
     {min:0,max:0.5,name:'安全',color:'#10B981'},
@@ -324,7 +326,7 @@ function calc(){
   window._lastResult={c:c,loc:locName,gi:gi,explode:explode,needPower:needPower};
 }
 function copyResult(){
-  if(!window._lastResult)return;
+  if(!window._lastResult){ ToolBox.showToast('请先完成有效计算再复制','warning'); return; }
   var r=window._lastResult;
   ToolBox.copyText('瓦斯监测结果：\n浓度: '+fmt(r.c,2)+'%\n位置: '+r.loc+'\n等级: '+r.gi.name+'\n措施: '+r.gi.meas+'\n切断电源: '+(r.needPower?((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Yes":"是"):'否')+(r.explode?'\n⚠️处于爆炸范围！':''));
 }

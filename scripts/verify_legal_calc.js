@@ -97,6 +97,12 @@ const CASES = [
     ref: "约定10%（≤3.45×4=13.8%受保护）；利息=150000×10%×1=15000；本息=165000（原 expect 写成默认 rate=12 的 112000/12000，与 ref 自相矛盾）",
   },
   // ── 法律援助资格（低保户免核查）────────────────────────────────────
+  {
+    slug: "legal/legal-aid-eligibility",
+    clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/legal/legal-aid-eligibility.html','utf8');var i=h.indexOf('function __aePresets()');var j=h.indexOf('function __aeMountHist',i);var seg=i>=0?h.slice(i,j>0?j:i+2000):'';var ok=['matter_hero','matter_labor','matter_marriage','matter_social','matter_state','matter_support','matter_traffic'].every(function(k){return seg.split(k).length-1>=4;});document.getElementById('__tbProbe').textContent='AEPRE0 '+(ok?'OK':'BAD');"],
+    expect: ["AEPRE0 OK"],
+    ref: "第1376批·预设残留修复：四个预设均显式写出全部事项复选框状态（各出现≥4次），切换预设会复位旧事项；旧版仅写自身事项 ⇒ BAD。"
+  },
   { slug: "legal/legal-aid-eligibility",
     inputs: { applicantType: "normal", monthlyIncome: "", localLowIncome: "3000" },
     checks: ["labor"],
@@ -963,6 +969,7 @@ const CASES = [
 { slug:"legal/consumer-protection", inputs:{"price":""}, expect:["请填写商品价格或服务金额"], ref:"核心金额留空不得输出 0 元结论（LEGALCLR）" },
 { slug:"legal/late-payment-interest", inputs:{"principal":""}, expect:["请填写欠款本金"], ref:"核心金额留空不得输出 0 元结论（LEGALCLR）" },
 { slug:"legal/labor-compensation", inputs:{"workYears":"","monthlySalary":""}, expect:["请填写工作年限与月工资"], ref:"核心金额留空不得输出 0 元结论（LEGALCLR）" },
+{ slug:"legal/labor-compensation", clicks:["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/legal/labor-compensation.html','utf8');var i=h.indexOf('function calculate(){');var seg=i>=0?h.slice(i,i+700):'';var ok=seg.indexOf('__lcD=null')>=0&&seg.indexOf('—')>=0&&h.indexOf('!__lcD || total <= 0')>=0;document.getElementById('__tbProbe').textContent='LCTOT0 '+(ok?'OK':'BAD');"], expect:["LCTOT0 OK"], ref:"第1358批·缺参残留修复：calculate 缺参分支清空 __lcD/总额/个税，saveHistory 以 __lcD 判定有效状态；旧版保留旧总额 ⇒ BAD。" },
 { slug:"legal/labor-compensation-n1", inputs:{"workYears":"","monthlySalary":""}, expect:["请填写工作年限与月工资"], ref:"核心金额留空不得输出 0 元结论（LEGALCLR）" },
 { slug:"legal/labor-compensation", inputs:{workYears:"0.5", monthlySalary:"12345", salaryCap:"0", noticeGiven:"1"}, expect:["12,345"], ref:"工作满 6 个月（0.5 年）按一年计，N=1 ⇒ 12,345 元；旧实现给 0.5 个月 6,172.50，且默认 3 年不含 12,345 ⇒ 强判别。" },
 { slug:"legal/severance-pay", inputs:{"workYears":"","monthlySalary":""}, expect:["请填写工作年限与月工资"], ref:"核心金额留空不得输出 0 元结论（LEGALCLR）" },

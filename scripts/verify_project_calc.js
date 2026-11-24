@@ -15,6 +15,18 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  "slug": "project/analysis-28",
+  "clicks": ["['A','B','C','D'].forEach(function(n,k){document.getElementById('sn'+k).value=n;});document.getElementById('sp0').value='2';document.getElementById('si0').value='5';document.getElementById('sp1').value='3';document.getElementById('si1').value='3';document.getElementById('sp2').value='2';document.getElementById('si2').value='1';document.getElementById('sp3').value='2';document.getElementById('si3').value='1';syncSh();calc();var t=String(document.getElementById('res').innerHTML);var okT=t.indexOf('B（关注度 9）')>=0&&t.indexOf('A（关注度 10）')<0&&t.indexOf('权力≥3 且利益≥3')>=0;document.getElementById('__tbProbe').textContent='STAKE '+(okT?'OK':'BAD');"],
+  "expect": ["STAKE OK"],
+  "ref": "象限判据必须统一为权力≥3且利益≥3：B(3,3) 关注度 9 应进重点管理清单，A(2,5) 关注度 10 不应进；旧实现 one 清单按≥10、正文按象限，会出现 9 进 10 不进的自相矛盾。"
+},
+{
+  "slug": "project/analysis-28",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/project/analysis-28.html','utf8');var i=h.indexOf('function calc(){');var seg=i>=0?h.slice(i,i+260):'';var ok=seg.indexOf('shData.some')>=0&&seg.indexOf('String(s.name).trim()')>=0;document.getElementById('__tbProbe').textContent='SHNAME '+(ok?'OK':'BAD');"],
+  "expect": ["SHNAME OK"],
+  "ref": "第1369/1371批·通用数字空态守卫不适用修复：calc 先 syncSh，再以真实必填项 shData.name 判定，任一干系人名称为空即阻止分级/策略；旧版只查 number/date ⇒ 永不触发 ⇒ BAD。"
+},
+{
   "slug": "project/assessor-risk-9",
   "inputs": {
     "p1": "2"

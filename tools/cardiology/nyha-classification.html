@@ -178,10 +178,10 @@
     <table>
       <thead><tr><th scope="col">分级</th><th scope="col">定义</th><th scope="col">临床表现</th></tr></thead>
       <tbody>
-        <tr><td style="color:#10B981;font-weight:600;">I级</td><td>活动量不受限制</td><td>一般体力活动不引起过度疲乏、心悸、呼吸困难或心绞痛</td></tr>
-        <tr><td style="color:#3B82F6;font-weight:600;">II级</td><td>活动度轻度受限</td><td>休息时无症状，一般体力活动即引起上述症状</td></tr>
-        <tr><td style="color:#F59E0B;font-weight:600;">III级</td><td>活动度明显受限</td><td>休息时无症状，轻于一般体力活动即引起症状</td></tr>
-        <tr><td style="color:#EF4444;font-weight:600;">IV级</td><td>活动度重度受限</td><td>休息时即有心衰症状，活动后加重</td></tr>
+        <tr><td style="color:var(--success);font-weight:600;">I级</td><td>活动量不受限制</td><td>一般体力活动不引起过度疲乏、心悸、呼吸困难或心绞痛</td></tr>
+        <tr><td style="color:var(--info);font-weight:600;">II级</td><td>活动度轻度受限</td><td>休息时无症状，一般体力活动即引起上述症状</td></tr>
+        <tr><td style="color:var(--warning);font-weight:600;">III级</td><td>活动度明显受限</td><td>休息时无症状，轻于一般体力活动即引起症状</td></tr>
+        <tr><td style="color:var(--danger);font-weight:600;">IV级</td><td>活动度重度受限</td><td>休息时即有心衰症状，活动后加重</td></tr>
       </tbody>
     </table>
 
@@ -189,10 +189,10 @@
     <table>
       <thead><tr><th scope="col">步行距离</th><th scope="col">心功能评估</th><th scope="col">预后意义</th></tr></thead>
       <tbody>
-        <tr><td>&gt;450米</td><td style="color:#10B981;">轻度/代偿良好</td><td>预后较好</td></tr>
-        <tr><td>300–450米</td><td style="color:#3B82F6;">中度受损</td><td>中等预后</td></tr>
-        <tr><td>150–300米</td><td style="color:#F59E0B;">重度受损</td><td>预后较差，考虑评估器械治疗</td></tr>
-        <tr><td>&lt;150米</td><td style="color:#EF4444;">极重度受损</td><td>高死亡风险；是否终末期心衰需心衰专科评估，本页不下结论</td></tr>
+        <tr><td>&gt;450米</td><td style="color:var(--success);">轻度/代偿良好</td><td>预后较好</td></tr>
+        <tr><td>300–450米</td><td style="color:var(--info);">中度受损</td><td>中等预后</td></tr>
+        <tr><td>150–300米</td><td style="color:var(--warning);">重度受损</td><td>预后较差，考虑评估器械治疗</td></tr>
+        <tr><td>&lt;150米</td><td style="color:var(--danger);">极重度受损</td><td>高死亡风险；是否终末期心衰需心衰专科评估，本页不下结论</td></tr>
         <tr><td>&lt;300米</td><td colspan="2">1年内死亡或再住院风险显著升高（Bittner标准）</td></tr>
       </tbody>
     </table>
@@ -287,8 +287,8 @@ function calc(){
   var walkRaw=String(document.getElementById('walk').value||'').trim();
   var walk=parseFloat(walkRaw);
   // 空值过去会被当成 0 米并判「极重度受损 / 终末期心衰」，与 NYHA 分级自相矛盾
-  if(walkRaw===''||!isFinite(walk)||walk<=0||walk>800){
-    document.getElementById('result').innerHTML='<p style="color:var(--danger)">请输入有效的 6 分钟步行距离（1–800 米）；空值不判读运动耐量。</p>';
+  if(walkRaw===''||!isFinite(walk)||walk<0||walk>800){
+    document.getElementById('result').innerHTML='<p style="color:var(--danger)">请输入有效的 6 分钟步行距离（0–800 米；0 表示完成测试但未行走）；空值不判读运动耐量。</p>';
     return;
   }
 
@@ -304,7 +304,7 @@ function calc(){
   if(walk>450){walkLevel='轻度/代偿良好';walkColor='#10B981';walkAdvice='运动耐量良好，预后较佳，维持规范药物治疗。';}
   else if(walk>=300){walkLevel='中度受损';walkColor='#3B82F6';walkAdvice='运动耐量中度下降，优化心衰药物治疗(GDMT)，建议心脏康复。';}
   else if(walk>=150){walkLevel='重度受损';walkColor='#F59E0B';walkAdvice='运动耐量重度下降，评估器械治疗指征(CRT/ICD)，考虑心脏康复。';}
-  else{walkLevel='极重度受损';walkColor='#EF4444';walkAdvice='运动耐量极重度下降（&lt;150m），死亡/再住院风险高；是否进入终末期或需移植/LVAD 应由心衰专科结合 NYHA、BNP、影像与整体状况评估，本页仅提示，需临床复核。';}
+  else{walkLevel='极重度受损';walkColor='#EF4444';walkAdvice='运动耐量极重度下降（&lt;150m），死亡/再住院风险高；是否进入终末期或需移植/LVAD 应由心衰专科结合 NYHA、BNP、影像与整体状况评估，本页仅提示，需临床复核。'+(walk===0?' 本次记录为 0 米（完成测试但未行走），不能仅凭单一距离判定终末期，需结合症状、生命体征与其他检查综合判断。':'');}
 
   var overallAdvice;
   if(nyha===4)overallAdvice='NYHA IV级属重度心功能不全：休息时即有症状，即使 6MWT>450m 也不代表预后良好，应评估 CRT/ICD、心脏移植或 LVAD 指征并密切随访。';

@@ -628,6 +628,24 @@ const CASES = [
     "ref": "第200批·随访计划：2026-01-01 起骨折复查，2周=01-15、12周=03-26；默认当天日期与骨折示例不产生该两串 ⇒ 强判别。"
   },
   {
+    "slug": "health/fracture-healing",
+    "inputs": { "fuStart": "2026-01-01", "fuType": "chronic" },
+    "expect": ["1 月 2026-02-01", "12 月 2027-01-01"],
+    "ref": "月节点按日历月：2026-01-01 起慢性随访，1月=02-01、3月=04-01、6月=07-01、12月=2027-01-01；旧固定30天会得01-31。"
+  },
+  {
+    "slug": "health/fracture-healing",
+    "inputs": { "fuStart": "2026-01-31", "fuType": "chronic" },
+    "expect": ["1 月 2026-02-28", "3 月 2026-04-30"],
+    "ref": "月底规则：2026-01-31 起，目标月无31日则取月末（2月28日、4月30日）；旧 setMonth 会溢出到3月/5月。"
+  },
+  {
+    "slug": "health/fracture-healing",
+    "inputs": { "fuStart": "2024-02-29", "fuType": "chronic" },
+    "expect": ["12 月 2025-02-28"],
+    "ref": "闰日：2024-02-29 起12个日历月，2025-02-28（非闰年取月末）。"
+  },
+  {
     "slug": "health/gfr-calculator",
     "inputs": {
       "age": "42",
@@ -996,12 +1014,12 @@ const CASES = [
 {
   "slug": "health/breath-timer",
   "clicks": [
-    "(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/health/rehab-timer.html','utf8');var i=h.indexOf('function deleteItem(idx) {');var s=i>=0?h.slice(i,i+800):'';var ok=s.indexOf('state.items.splice(idx, 1)')>=0&&s.indexOf('state.timer.itemId = null')>=0&&s.indexOf('idx === state.timer.itemId')>=0&&s.indexOf('idx < state.timer.itemId')>=0&&s.indexOf('state.timer.remaining = cur.duration')>=0;document.getElementById('__tbProbe').textContent='RHDEL '+(ok?'OK':'BAD');})();"
+    "(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/health/rehab-timer.html','utf8');var i=h.indexOf('function deleteItem(idx) {');var s=i>=0?h.slice(i,i+1300):'';var ok=s.indexOf('state.items.splice(idx, 1)')>=0&&s.indexOf('state.timer.itemId = null')>=0&&s.indexOf('wasCurrent')>=0&&s.indexOf('idx < state.timer.itemId')>=0&&s.indexOf('__stopRehabTimer()')>=0&&h.indexOf('function __stopRehabTimer()')>=0;document.getElementById('__tbProbe').textContent='RHDEL '+(ok?'OK':'BAD');})();"
   ],
   "expect": [
     "RHDEL OK"
   ],
-  "ref": "第1311批·康复计时器删除项下标错位修复源码形态强锚（承载页同目录 breath-timer：rehab-timer 依赖 localStorage/计时器，harness 下不稳定）：旧版 splice 后不重设 timer.itemId，删当前或前项会指向别的动作或越界读 undefined.duration；修复后空列表置 null、删当前/前项重映射并同步 remaining。旧版无重映射 ⇒ BAD。"
+  "ref": "第1311批·康复计时器删除项下标错位修复源码形态强锚（承载页同目录 breath-timer：rehab-timer 依赖 localStorage/计时器，harness 下不稳定）：旧版 splice 后不重设 timer.itemId，删当前或前项会指向别的动作或越界读 undefined.duration；修复后空列表置 null 并停 interval，删当前项停表重置到相邻项，删前项仅下标前移、保留剩余时间与阶段。旧版任何删除都重置 remaining 且空列表不停表 ⇒ BAD。"
 },
 {
   "slug": "health/smoking-cost-calculator",
@@ -1078,7 +1096,13 @@ const CASES = [
     inputs: { lmp: "", cycle: "", period: "" },
     expect: ["请填写末次月经、周期长度与经期长度后再计算"],
     ref: "清空日期/周期后旧实现沿用上次排卵日与日历；现清空并提示。"
-  }
+  },
+{
+  "slug": "health/caffeine-limit",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/health/caffeine-limit.html','utf8');var r=h.indexOf('function resetDrinks(){');var rs=r>=0?h.slice(r,r+220):'';var b=h.indexOf('setNowTime();');var bs=b>=0?h.slice(b,b+90):'';var ok=rs.indexOf('addDrink()')<0&&bs.indexOf('calc();')>=0&&bs.indexOf('renderDrinkList();')>=0&&bs.indexOf('addDrink();')<0;document.getElementById('__tbProbe').textContent='CAFEMPTY '+(ok?'OK':'BAD');"],
+  "expect": ["CAFEMPTY OK"],
+  "ref": "第1304批·首次快捷添加混入默认美式修复：去掉初始化与重置的 addDrink 预置，页面从空列表开始；旧版末尾 addDrink() 预置一杯 95mg、resetDrinks 也预置 ⇒ BAD。真机空列表点绿茶仅 1 行 28mg，重置回 0 行 0mg。"
+}
 ];
 
 async function main() {

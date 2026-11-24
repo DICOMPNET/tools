@@ -4,6 +4,16 @@ const fs = require("fs");
 globalThis.__tbFs = fs;
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
+{"slug":"neurology/rater-21","clicks":["var v={'t1':'4','t2':'2','t3':'2','t4':'1','t5':'1','t6':'4','t7':'2','t8':'2','t9':'3','t10':'3','d1':'3','d2':'3','d3':'3','d4':'3','d5':'3','d6':'3','p1':'10','p2':'2','p3':'2'};Object.keys(v).forEach(function(k){document.getElementById(k).value=v[k];});calc()"],"expect":["总分 60/85，分级：中重度"],"ref":"第355批：60/85 落在 41–60 中重度，不得与 61–85 重度混淆；严重度 4+2+2+1+1+8+2+2+3+3=28，失能 3×6=18，疼痛 10+2+2=14，合计 60。"},
+{"slug":"neurology/rater-21","clicks":["var v={'t1':'4','t2':'2','t3':'2','t4':'1','t5':'1','t6':'4','t7':'2','t8':'2','t9':'3','t10':'3','d1':'3','d2':'3','d3':'3','d4':'3','d5':'3','d6':'3','p1':'10','p2':'2','p3':'3'};Object.keys(v).forEach(function(k){document.getElementById(k).value=v[k];});calc()"],"expect":["总分 61/85，分级：重度"],"ref":"第355批：61/85 进入 61–85 重度区间，验证分档边界 60→61 真实翻转。"},
+
+{
+  "slug": "neurology/rater-21",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/neurology/rater-21.html','utf8');var i=h.indexOf('28/35');var seg=h.slice(i-80,i+180);var ok=seg.indexOf('中重度')>=0&&seg.indexOf('颈肌张力障碍重度')<0;document.getElementById('__tbProbe').textContent='TWS60 '+(ok?'OK':'BAD '+seg);"],
+  "expect": ["TWS60 OK"],
+  "ref": "第540批：28+18+14=60/85 落在 41–60 区间，算例必须标中重度；旧文案标重度，与同页 calc() 的 41–60→中重度 冲突。"
+},
+
 {
   "slug": "neurology/abcd2",
   "inputs": {
@@ -57,6 +67,18 @@ const CASES = [
     "1.0"
   ],
   "ref": "auto-restore"
+},
+{
+  "slug": "neurology/edss",
+  "inputs": { "pyr": "0", "cer": "0", "bs": "0", "sen": "0", "bow": "0", "vis": "0", "cere": "0", "walk": "6" },
+  "expect": ["8.5", "⚠ 行走能力与功能系统评分不一致"],
+  "ref": "F-EDSS 行走优先：全部 FS=0 + 卧床，旧实现落 maxFs===0 分支输出 0 并称正常；现行走能力优先判 8.5 并提示矛盾输入。"
+},
+{
+  "slug": "neurology/edss",
+  "inputs": { "pyr": "3", "cer": "0", "bs": "0", "sen": "0", "bow": "0", "vis": "0", "cere": "0", "walk": "5" },
+  "expect": ["7.5", "⚠ 行走能力与功能系统评分不一致"],
+  "ref": "F-EDSS 跨分支：单 FS 3 分 + 轮椅，旧实现先命中 3.0 分支并称可独立行走；现按轮椅判 7.5 并提示 FS 与行走能力矛盾。"
 },
 {
   "slug": "neurology/house-brackmann",
@@ -725,11 +747,12 @@ const CASES = [
   },
 { slug:"neurology/psqi", inputs:{"bedTime":"","actualSleep":"","latency":""}, expect:["请填写就寝时间、实际睡眠时长与入睡潜伏期"], ref:"核心临床参数留空不得给出分级/风险结论（CLINCLR）" },
 {"slug":"neurology/rater-21","clicks":["['t1','t2','t3','t4','t5','t6','t7','t8','t9','t10','d1','d2','d3','d4','d5','d6','p2'].forEach(function(id){var s=document.getElementById(id);s.value=s.options[s.options.length-1].value;});document.getElementById('p1').value=10;document.getElementById('p3').value=5;calc()"],"expect":["总分 85/85，分级：重度"],"ref":"满分口径用例：严重程度取满 35（t1 4+t2 3+t3 3+t4 1+t5 1+t6 5×2+t7 2+t8 3+t9 4+t10 4）、失能 6×5=30、疼痛 10+5+5=20 ⇒ 85/85，落 61–85「重度」。默认全 0 ⇒ 0/85「轻度」，不命中，强判别；同时锁定页面自述 0–85 不再回退 75。"},
+{"slug":"neurology/alsfrs-r","clicks":["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/neurology/alsfrs-r.html','utf8');var i=h.indexOf(\"'默认参数'\");var j=h.indexOf('早期 ALS',i);var seg=i>=0&&j>i?h.slice(i,j):'';var ok=seg.indexOf(\"'r3':'4'\")>=0;document.getElementById('__tbProbe').textContent='ALSDEF '+(ok?'OK':'BAD');"],"expect":["ALSDEF OK"],"ref":"第355批：默认预设漏写 r3（通气支持，第 12 项），先选晚期再选默认后 r3 留在 1、总分错误 45/48；修复后默认参数块必须包含 r3=4，与其他 11 项一致回到 48/48。源码强判别，默认态无探针串。"}
 
 ];
 async function main() {
   const only = process.argv.slice(2);
-  const cases = only.length ? CASES.filter((c) => only.some((o) => c.slug.endsWith("/" + o) || c.slug === o)) : CASES;
+  const cases = (only.length ? CASES.filter((c) => only.some((o) => c.slug.endsWith("/" + o) || c.slug === o)) : CASES).filter(Boolean);
   let pass = 0; const fails = [];
   for (const c of cases) {
     try {

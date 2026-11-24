@@ -98,9 +98,9 @@ const CASES = [
     "setReact({stopPropagation:function(){}},0,'++');setReact({stopPropagation:function(){}},1,'+');setReact({stopPropagation:function(){}},2,'+++');genAdvice();"
   ],
   "expect": [
-    "阳性过敏原避免指南（共3项）"
+    "斑贴试验判读：阳性 3 项、可疑 0 项"
   ],
-  "ref": "选 3 个过敏原（0:++、1:+、2:+++）→ genAdvice 产出「阳性过敏原避免指南（共3项）」及强阳性计数。回退默认（selections 空）→ genAdvice 早返回提示「请点击选择阳性的过敏原及反应强度」，该串不命中。"
+  "ref": "选 3 个过敏原（0:++、1:+、2:+++）→ genAdvice 产出「斑贴试验判读：阳性 3 项、可疑 0 项」及各项规避建议；ICDRG 口径下 ?+ 不计阳性。回退默认（selections 空）→ genAdvice 早返回提示「请点击选择阳性的过敏原及反应强度」，该串不命中。"
 },
 {
   "slug": "dermatology/dermatoscopy-abcd",
@@ -491,6 +491,41 @@ const CASES = [
   "ref": "12-N43 英文首屏介绍补全：英文 title/desc/h2/首个 p 不再退化为裸名 Pasi Score；旧版源码四处均为裸名 ⇒ 变红。harness 不加载构建后静态正文，按源码形态判别；默认态不产生该串，零逃生。"
 },
 { slug:"dermatology/scorad-index", inputs:{"c1":"","c2":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" }
+,{
+  "slug": "dermatology/pasi-score",
+  "inputs": {"h_e":"4","h_i":"4","h_d":"4","h_a":"6","u_e":"4","u_i":"4","u_d":"4","u_a":"2","t_e":"0","t_i":"0","t_d":"0","t_a":"0","l_e":"0","l_i":"0","l_d":"0","l_a":"0"},
+  "expect": ["12.0 PASI 总分 / 中度"],
+  "ref": "PASI 边界：头颈 0.1×12×6=7.2 + 上肢 0.2×12×2=4.8 = 12.0；≤12 属中度。标尺 hi 原为 13，12.1–12.9 会显示重度而标尺仍在中度区间。"
+},
+{
+  "slug": "dermatology/pasi-score",
+  "inputs": {"h_e":"4","h_i":"4","h_d":"4","h_a":"6","u_e":"4","u_i":"4","u_d":"4","u_a":"2","t_e":"0","t_i":"0","t_d":"0","t_a":"0","l_e":"1","l_i":"0","l_d":"0","l_a":"1"},
+  "expect": ["12.4 PASI 总分 / 重度"],
+  "ref": "PASI 边界：12.0 + 下肢 0.4×1×1=0.4 = 12.4，>12 属重度；标尺同步 hi=12。"
+},
+{
+  "slug": "dermatology/scorad-index",
+  "inputs": {"area":"100","b1":"2","b2":"2","b3":"1","b4":"1","b5":"1","b6":"1","c1":"1","c2":"1"},
+  "expect": ["50.0 SCORAD 总分 / 中度"],
+  "ref": "SCORAD 边界：100/5=20 + 3.5×8=28 + 2 = 50.0；≤50 属中度。标尺 hi 原为 51，50.1–50.9 会显示重度而标尺仍在中度区间。"
+},
+{
+  "slug": "dermatology/scorad-index",
+  "inputs": {"area":"96","b1":"2","b2":"2","b3":"1","b4":"1","b5":"1","b6":"1","c1":"2","c2":"1"},
+  "expect": ["50.2 SCORAD 总分 / 重度"],
+  "ref": "SCORAD 边界：96/5=19.2 + 28 + 3 = 50.2，>50 属重度；标尺同步 hi=50。"
+},
+{
+  "slug": "dermatology/salt-alopecia",
+  "inputs": {"top":"80","back":"80","right":"50","left":"50"},
+  "expect": ["69% SALT S3"],
+  "ref": "SALT 算例：0.40×80+0.24×80+0.18×50+0.18×50=69.2，显示 69%，S3 中重度（50–74%）；旧算例称 40%/两侧10% 得60%，实际未计后部为 19.6%。"
+},
+
+{ slug:"dermatology/gags-acne", inputs:{loc0:"3",loc1:"3",loc2:"3",loc3:"2",loc4:"1",loc5:"0"}, expect:["21 GAGS 总分 / 中度"], ref:"中度痤疮预设应为 3,3,3,2,1,0：6+6+6+2+1=21，落 19–30 中度；旧预设 2,2,2,1,1,0 只有 14 分、显示轻度。" },
+{ slug:"dermatology/gags-acne", inputs:{loc0:"4",loc1:"4",loc2:"4",loc3:"3",loc4:"2",loc5:"1"}, expect:["32 GAGS 总分 / 重度"], ref:"重度痤疮预设应为 4,4,4,3,2,1：8+8+8+3+2+3=32，落 31–38 重度；旧预设 3,3,3,2,2,1 只有 25 分、显示中度。" },
+{"slug":"dermatology/easi-eczema","clicks":["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/dermatology/easi-eczema.html','utf8');var dd=h.slice(h.indexOf('data-deep-dive'));var ok=dd.indexOf('四项严重度（各 0–3）')>=0&&dd.indexOf('四项严重度（各 0–4）')<0;document.getElementById('__tbProbe').textContent='EASIRANGE '+(ok?'OK':'BAD');"],"expect":["EASIRANGE OK"],"ref":"第261批：深度解析把四项严重度写成各 0–4，而同页选项与公式为各 0–3、满分 72；修复后深度解析必须统一为 0–3，且不得残留 0–4 旧文案。"}
+
 ];
 async function main() {
   const only = process.argv.slice(2);

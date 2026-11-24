@@ -228,6 +228,7 @@
 function __tbInputGuardCore(_ids,_labels){
   var __TPL='请填写「%s」后再计算。';
   var __TPL2="<p style=\"color:var(--danger)\">⚠ 「%s」是本计算的分母，不能为 0。</p>";
+  var __TPL3="<p style=\"color:var(--danger)\">⚠ 「%s」不能为负值。</p>";
   var _vals=[],_firstBad=-1;
   var _REQ=['weight', 'dose', 'conc'];
   for(var _i=0;_i<_ids.length;_i++){
@@ -260,6 +261,17 @@ function __tbInputGuardCore(_ids,_labels){
     if(parseFloat(String(_de.value==null?'':_de.value).trim())===0){
       if(_de.classList&&_de.classList.add)_de.classList.add('input-error');
       return __TPL2.replace('%s',__D[_ids[_d]]);
+    }
+  }
+  var __N={"weight": "体重 kg", "dose": "剂量 mg/kg", "conc": "浓度 mg/mL"};
+  for(var _n=0;_n<_ids.length;_n++){
+    if(!(_ids[_n] in __N)) continue;
+    var _ne=document.getElementById(_ids[_n]);
+    if(!_ne) continue;
+    var _nv=parseFloat(String(_ne.value==null?'':_ne.value).trim());
+    if(!isNaN(_nv)&&_nv<0){
+      if(_ne.classList&&_ne.classList.add)_ne.classList.add('input-error');
+      return __TPL3.replace('%s',__N[_ids[_n]]);
     }
   }
   // 全零：任何一项作分母都会得到 Infinity/NaN。页面公式本身没错，是输入无意义
@@ -301,16 +313,16 @@ const weight = +document.getElementById('weight').value || 0;
     html += `<p>日上限次：<strong style="font-size:18px;color:var(--primary);">${__v1.toFixed(0)}</strong> 次</p>`;
   }
   if(weight*dose > 1000){
-    html += `<p style="color:#f59e0b;">⚠ 按 ${(weight*dose).toFixed(0)} mg 计算超过成人单次极量，已按 1000 mg 封顶（对应 ${(singleMg/conc).toFixed(1)} mL）。</p>`;
+    html += `<p style="color:var(--warning);">⚠ 按 ${(weight*dose).toFixed(0)} mg 计算超过成人单次极量，已按 1000 mg 封顶（对应 ${(singleMg/conc).toFixed(1)} mL）。</p>`;
   }
   if (!isNaN(__ageVal) && __ageVal * 12 <= 6) {
-    html += '<p style="color:#f59e0b;">⚠ 6 月龄及以下婴儿用药需医师评估，请遵医嘱。</p>';
+    html += '<p style="color:var(--warning);">⚠ 6 月龄及以下婴儿用药需医师评估，请遵医嘱。</p>';
   }
   var __liver=document.getElementById('liver')?document.getElementById('liver').value:'normal';
   if(__liver==='c'){
     html += '<p style="color:var(--danger);font-weight:600;">⚠ Child-Pugh C 级肝功能不全：对乙酰氨基酚以肝清除为主，应避免使用；请遵说明书与医嘱。</p>';
   } else if(__liver==='b'){
-    html += '<p style="color:#f59e0b;">⚠ Child-Pugh B 级肝功能不全：建议减量并延长给药间隔，遵说明书与药师核定。</p>';
+    html += '<p style="color:var(--warning);">⚠ Child-Pugh B 级肝功能不全：建议减量并延长给药间隔，遵说明书与药师核定。</p>';
   }
   if(typeof refWeightOf==='function'){
     var __age=parseFloat(document.getElementById('age').value);

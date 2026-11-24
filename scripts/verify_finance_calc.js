@@ -209,6 +209,17 @@ const CASES = [
   },
   {
     slug: "finance/salary-calculator",
+    inputs: {
+      salary: "20000", baseSalary: "20000", housingBase: "20000", threshold: "5000", monthsPerYear: "12",
+      childrenEdu: "0", continuingEdu: "0", housingLoan: "0", housingRent: "0", elderly: "0", infant: "0",
+      currentMonth: "6", ytdIncome: "100000", ytdTaxWithheld: "2730", ytdInsurance: "22500"
+    },
+    clicks: ["calculate();var d=document.getElementById.bind(document);d('__tbProbe').textContent='CUMOK '+((d('cumTaxable').textContent==='¥6.30万'&&d('cumTax').textContent==='¥3,780.00'&&d('cumCurrentDue').textContent==='¥1,050.00'&&d('cumNet').textContent==='¥14,450.00')?'OK':'BAD');"],
+    expect: ["CUMOK OK"],
+    ref: "累计预扣复算：第 6 月、本月初累计收入 100000、已预扣 2730、累计五险一金 22500；本月 20000、社保 4500、起征 5000、专项 0。累计所得 = 120000−27000−30000=63000 ⇒ 63000×10%−2520=3780；本月应预扣 = 3780−2730=1050；本月税后 = 20000−4500−1050=14450。默认第 1 月/0 累计为另一态 ⇒ 强判别。",
+  },
+  {
+    slug: "finance/salary-calculator",
     inputs: { monthsPerYear: "0" },
     clicks: ["currentMode='monthly';var d=document.getElementById.bind(document);d('monthsPerYear').value='0';calculate();var b=String(d('salaryBaseNote').innerHTML),a=d('afterTaxAmount').textContent;d('__tbProbe').textContent='SALM0 '+(b.indexOf('每年计薪月数须为正数')>=0&&a==='--'?'OK':'BAD');"],
     expect: ["SALM0 OK"],
@@ -2215,7 +2226,7 @@ const CASES = [
   {
     slug: "finance/credit-card-interest",
     inputs: { billAmount: "8000", dailyRate: "0.05", billDay: "2", dueDay: "20", minRatio: "10", repayType: "full" },
-    clicks: ["calc()"],
+    clicks: ["['billAmount','dailyRate','billDay','dueDay','minRatio'].forEach(function(id){document.getElementById(id).value={billAmount:'8000',dailyRate:'0.05',billDay:'2',dueDay:'20',minRatio:'10'}[id];});document.getElementById('repayType').value='full';calc()"],
     expect: ["38 免息天数"],
     ref: "信用卡免息期天数（账单日 2 号、还款日 20 号）：因 dueDay > billDay ⇒ 免息天数 = (还款日 − 账单日) + 20 = 20 − 2 + 20 = **38 天**，再经 `min(max(x,20),56)` 裁剪后仍为 38。刻意避开默认组（账单日 10 / 还款日 30 ⇒ 40 天）—— 首轮按默认值注入时该行恒为 40、默认态也命中 ⇒ 判逃生项，改账单日/还款日后才有判别力。全额还款 ⇒ 循环利息 0.00、应还 8,000.00 与「免息期内无息」自洽。",
   },
@@ -2489,8 +2500,8 @@ const CASES = [
   {
     slug: "finance/gst-validator",
     inputs: { input: "99AAPFU0939F1ZK" },
-    expect: ["❌ 州码 99 不在 GST 州/属地代码列表", "校验位： K（期望 K）"],
-    ref: "F-N170 高位非法码护栏：`99AAPFU0939F1ZK` 校验位正确但 99 未分配给任何州/UT（97 才是 Other Territory）⇒ 必须拒绝，防止只按数值范围放行。默认态 09 ⇒ 不命中。99 作为 CGST 特殊辖区码的口径争议见台账待裁断说明。",
+    expect: ["99 - Centre Jurisdiction (special)", "✅ GST 号码有效"],
+    ref: "F-GST99 口径统一：99 为 Centre Jurisdiction / Other Country 特殊注册码（与 gstin-validator 一致），不是未分配州码；校验位 K 正确 ⇒ 判格式有效。默认 09AABCU9603R1ZL 不含 99 ⇒ 不命中。",
   },
   {
     slug: "finance/gst-validator",
@@ -3977,6 +3988,12 @@ const CASES = [
     expect: ["输入无效已按 2.85% 计"],
     ref: "年利率 99% 超出 0–20% 有效区间：旧实现静默回退 2.85% 不告知；现显式标注「输入无效已按 2.85% 计」。默认 2.85% 且有效 ⇒ 不命中。"
   },
+  {
+    slug: "finance/housing-fund-loan",
+    clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/finance/housing-fund-loan.html','utf8');var ok=h.indexOf('基于现行法律法规计算')<0&&h.indexOf('非官方实时政策')>=0&&h.indexOf('以当地公积金中心审批为准')>=0;document.getElementById('__tbProbe').textContent='HFDESC '+(ok?'OK':'BAD');"],
+    expect: ["HFDESC OK"],
+    ref: "第1384批·示例参数不得表述为现行法规：meta/OG/Twitter/JSON-LD/正文均不再出现「基于现行法律法规计算」，明确 2026-11 示例、非官方实时政策、以当地公积金中心审批为准。"
+  },
 
   {
     "slug": "finance/loan-amortization",
@@ -4463,7 +4480,7 @@ const CASES = [
     slug: "finance/credit-card-interest",
     inputs: { billAmount: "10000", dailyRate: "0.05", minRatio: "10", repayType: "installment", installmentFee: "0.75", installmentMonths: "12" },
     clicks: ["calc()"],
-    expect: ["16.22% 实际年化（单利近似 ×12） 17.48% 有效年化（按月复利）"],
+    expect: ["16.22% 实际年化（单利近似 ×12）", "17.48% 对照：按月复利有效年化"],
     ref: "F-N230：分期 10000 元 /12 期 /0.75% 手续费，每期 908.33 元，IRR 月利率二分 80 次 ⇒ 单利近似 ×12 = 16.22%、按月复利 EAR = 17.48%。旧实现只把 EAR 标成「实际年化利率」，与 `installment-real-rate` 的双列命名冲突；现两列并列。默认态为 minimum 模式、不出现这两个标签 ⇒ 零逃生。",
   },
   {
@@ -5005,6 +5022,9 @@ const CASES = [
   "ref": "30 年 360 期：默认只渲染前 24 期，点击‘显示全部期数’后应渲染 360 行；旧版无切换按钮且固定 slice(0,24)。"
 },
 
+
+{ slug:"finance/lease-payment-calculator", inputs:{pv:"100000",downPct:"0",rate:"6",months:"36",fv:"0",fee:"100000",type:"equal",timing:"end"}, clicks:["calc()"], expect:["不可计算（净融资额或现金流无有效 IRR）"], ref:"租赁物 100000、首付 0、手续费 100000 ⇒ 净融资额 0，后续付款全为正、现金流无符号变化，IRR 无解；旧实现 calcIRR 返回 NaN 后仍 toFixed 输出 NaN%。" },
+{ slug:"finance/lease-payment-calculator", inputs:{pv:"100000",downPct:"0",rate:"0",months:"12",fv:"0",fee:"0",type:"equal",timing:"end"}, clicks:["calc()"], expect:["实际年化利率(IRR)： 0.00%"], ref:"名义利率 0、无手续费、12 期等额还款：现金流 −100000 后按月收回，IRR=0，应输出 0.00% 而非不可计算；防止无解守卫误伤合法零利率。" }
 ];
 
 // ---------------------------------------------------------------- main

@@ -1976,6 +1976,13 @@ def extract_meta(content, key):
     m = re.search(r'<meta\s+name=["\']' + re.escape(key) + r'["\']\s+content=["\']([^"\']+)["\']', content, re.I)
     return m.group(1).strip() if m else None
 
+def strip_code_blocks_for_meta(html):
+    """元数据抽取前剥离 script/style，避免把 JS 字符串或 JSON-LD 示例里的 <h1> 当成页面标题。"""
+    html = re.sub(r'<script\b[^>]*>[\s\S]*?</script>', '', html, flags=re.I)
+    html = re.sub(r'<style\b[^>]*>[\s\S]*?</style>', '', html, flags=re.I)
+    return html
+
+
 def parse_toolbox_meta(content):
     meta = extract_meta(content, 'toolbox')
     if not meta:
@@ -2167,7 +2174,8 @@ def get_tool_info(filepath):
     # Title：优先页面内 <h1>（纯工具名，稳定、不被 SEO 标题修饰污染——<title> 会被
     # 构建期加功能修饰，若从 <title> 取 name 会导致修饰嵌套），其次 toolbox meta 的
     # name=，最后 <title>（兜底并幂等剥离 SEO 修饰）。
-    h1_m = re.search(r'<h1[^>]*>([\s\S]*?)</h1>', content)
+    meta_content = strip_code_blocks_for_meta(content)
+    h1_m = re.search(r'<h1[^>]*>([\s\S]*?)</h1>', meta_content)
     h1_title = re.sub(r'<[^>]+>', '', h1_m.group(1)).strip() if h1_m else ''
     h1_title = re.sub(r'^[\U0001F000-\U0001FAFF\u2600-\u27BF\u2B00-\u2BFF\u2190-\u21FF]+\s*', '', h1_title).strip()
     title_m = re.search(r'<title>(.+?)\s*-\s*ToolBox\s*</title>', content)
@@ -3111,7 +3119,7 @@ def fix_short_tool_desc():
         if len(cur) >= 70 or tail_flag in cur:
             continue
         cur = cur.replace('支持参数自定义、即时计算与结果解读。','').rstrip('。')
-        mh = re.search(r'<h1[^>]*>(.*?)</h1>', src, re.S)
+        mh = re.search(r'<h1[^>]*>(.*?)</h1>', strip_code_blocks_for_meta(src), re.S)
         nm = re.sub(r'<[^>]+>', '', mh.group(1)).strip() if mh else os.path.splitext(os.path.basename(path))[0]
         tail = '。可按本页参数完成「' + (nm or '本工具') + '」的快速估算与结果核对。'
         newv = cur.rstrip('。') + tail
@@ -3463,7 +3471,7 @@ def fix_guide_empty_breadcrumb():
             continue
         if 'TOOLBOX-REDIRECT' in src:
             continue
-        h1 = re.search(r'<h1[^>]*>(.*?)</h1>', src, re.S)
+        h1 = re.search(r'<h1[^>]*>(.*?)</h1>', strip_code_blocks_for_meta(src), re.S)
         if not h1:
             continue
         title = html.unescape(re.sub(r'<[^>]+>', '', h1.group(1))).strip()
@@ -5116,6 +5124,7 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
         _seo_desc_raw = _dedupe_desc_boiler(
             extract_zh_desc(content, t, industry, entry) or t.get('name') or '')
         _seo_desc_raw = _seo_desc_raw.replace('支持参数自定义、即时计算与结果解读。', '').rstrip()
+        _seo_desc_raw = re.sub(r'。?可按本页参数完成「[^」]*」的快速估算与结果核对。', '', _seo_desc_raw).rstrip()
         if len(_seo_desc_raw) < 70:
             _d_base = os.path.splitext(os.path.basename(t['path']))[0]
             # 主语优先用真实工具名（中文、非公式）：_zh_title_of 在部分页面返回的是
@@ -5185,14 +5194,10 @@ def fix_tool_pages_seo(tools, target_tools=None, report=True, existing_html_path
                     _seo_desc_raw = _seo_desc_raw.rstrip('。') + '。' + _extra
             # 无场景/特性列表可补的 76 页短描述（多为 55–69 字）：补一句真实产品能力，
             # 避免搜索结果只显示半句。只在此兜底触发，不污染已有 70+ 的页面。
-            if len(_seo_desc_raw) < 70 and '可按本页参数' not in _seo_desc_raw:
-                _seo_desc_raw = _seo_desc_raw.rstrip('。') + '。可按本页参数完成「' + (t.get('name') or '本工具') + '」的快速估算与结果核对。'
             if not _seo_desc_raw.endswith(('。', '！', '？')):
                 _seo_desc_raw += '。'
         # 最终兜底：上面模板+隐私尾句清洗可能把描述再次压到 70 字以下，
         # 在落盘前统一补足一次，确保 meta / og / twitter / JSON-LD 四处同源达标。
-        if len(_seo_desc_raw) < 70 and '可按本页参数' not in _seo_desc_raw:
-            _seo_desc_raw = _seo_desc_raw.rstrip('。') + '。可按本页参数完成「' + (t.get('name') or '本工具') + '」的快速估算与结果核对。'
         # JSON-LD 中 description 必须是字面文本，不能沿用 HTML meta 的实体转义：
         # 否则 &quot; / &lt; / &amp; 会被搜索引擎当作正文显示（实测 48 页）。
         # 先还原实体，再交给 json.dumps 负责引号、反斜杠与控制字符转义。
@@ -7100,7 +7105,6 @@ def main():
     ensure_nav_aria_labels(include_tw=True)
 
     # 源页短描述兜底：主流程仍有 60 页回落到 60–69 字，统一补足后再复制到繁体站。
-    fix_short_tool_desc()
 
     # 繁体站 desc 兜底：繁简字数差会让个别页跌破 Ahrefs 70 字符阈值（实测「字符串→字串」），
     # 对 zh-tw/ 中 desc<70 的页补足并同步 og/twitter/JSON-LD（幂等）。

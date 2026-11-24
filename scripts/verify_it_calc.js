@@ -2382,6 +2382,12 @@ const CASES = [
     ref: "IT-N538：中段 qwe 序列也要命中风险提示；修复前正则以 ^ 锚定只查开头，xxqwe123 被漏判。默认 ToolBox@2026 开头不在序列表，不含该提示 ⇒ 强判别。",
   },
   {
+    slug: "it/password-strength",
+    clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/it/password-strength.html','utf8');var ok=h.indexOf('getRandomValues')>=0&&h.indexOf('generatePwd()')>=0&&h.indexOf('打开密码生成器')>=0&&h.indexOf('不支持安全随机数')>=0;document.getElementById('__tbProbe').textContent='PWDGEN '+(ok?'OK':'BAD');"],
+    expect: ["PWDGEN OK"],
+    ref: "迁移回归：原 safety/detector-strength 附带 Web Crypto 密码生成能力，迁移到 it/password-strength 后丢失；现恢复 generatePwd（crypto.getRandomValues + 拒绝采样）、无安全随机源提示，并保留密码生成器入口。"
+  },
+  {
     slug: "it/chmod-calculator",
     inputs: {},
     clicks: [
@@ -2716,16 +2722,16 @@ const CASES = [
     slug: "it/regex-visualizer",
     inputs: { pattern: "^a(z+)" },
     clicks: ["render()"],
-    expect: ["3 --z--> 4"],
-    ref: "默认 pattern 为 `^a[0-9]+b$`（含 a 转移、无 z 转移）⇒ 锚取注入态独有的 z 转移边；`1 --a--> 2` 在默认态同命中，不可用。",
+    expect: ["4. z"],
+    ref: "线性词元顺序：`^a(z+)` 的第 4 个 token 为 z；页面已不输出伪状态边，旧 `3 --z--> 4` 锚作废。默认 `^a[0-9]+b$` 不含独立 z token ⇒ 强判别。",
   },
   {
     // IT-N348 回归：正则内容进 innerHTML 前必须 HTML 转义，不能原样拼出可执行标签。
     slug: "it/regex-visualizer",
     inputs: { pattern: "a<b" },
     clicks: ["render()"],
-    expect: ["S2: &lt; S3: b"],
-    ref: "IT-N348：注入含 `<` 的 pattern `a<b`，状态标签里的 `<` 必须经 escapeHtml 变成 `&lt;`（裸 `<` 会被当作标签起始、在结果区不可见且存在注入风险）；默认 pattern `^a[0-9]+b$` 无 `<` 字符 ⇒ 该串仅注入态可见，强判别。",
+    expect: ["&lt;", "2. &lt;"],
+    ref: "IT-N348：注入含 `<` 的 pattern `a<b`，词元标签里的 `<` 必须经 escapeHtml 变成 `&lt;`（裸 `<` 会被当作标签起始、在结果区不可见且存在注入风险）；默认 pattern `^a[0-9]+b$` 无 `<` 字符 ⇒ 该串仅注入态可见。",
   },
   {
     slug: "it/regex-visualizer",
@@ -2734,6 +2740,13 @@ const CASES = [
     clicks: ["render()"],
     expect: ["ast-alt", "2 路择一", "ast-group"],
     ref: "注入 `a(b|c)*`：递归下降解析应产出分支节点（2 路择一）、捕获分组节点与 * 量词节点，AST 树用 ast-alt/ast-group class 渲染；默认 pattern `^a[0-9]+b$` 无分组与分支 ⇒ 这些串仅注入态可见。",
+  },
+  {
+    slug: "it/regex-visualizer",
+    inputs: { pattern: "a*[b-d]" },
+    clicks: ["render()"],
+    expect: ["ast-quant", "ast-class", "字符类"],
+    ref: "注入 `a*[b-d]`：语法树必须出现量词节点 ast-quant 与字符类节点 ast-class；线性词元顺序只列 a、*、[b-d]，不再伪造回路。默认 `^a[0-9]+b$` 无 a* 与 [b-d] ⇒ 三串仅注入态可见。",
   },
   {
     slug: "it/regex-visualizer",
@@ -5237,8 +5250,8 @@ const CASES = [
     slug: "it/regex-visualizer",
     inputs: { pattern: "a+" },
     clicks: ["render()"],
-    expect: ["总状态：4"],
-    ref: "状态机展开：`a+` ⇒ 总状态 4（含 start + accept），转移 S0--a-->S1、S1--+-->S2、S2--ε-->S3。默认样例模式不同。",
+    expect: ["2. +"],
+    ref: "线性词元顺序：`a+` 的第 2 个 token 为 +；页面不再输出伪状态计数与转移边。默认样例 `^a[0-9]+b$` 第 2 个 token 不同 ⇒ 强判别。",
   },
   {
     slug: "it/toml-formatter",
@@ -6593,14 +6606,19 @@ const CASES = [
     ref: "表头键名 `__proto__`：修复前每行对象 `obj[h]=v` 走原型 setter，JSON 丢键只剩 v；Object.create(null) 后保留自有键 ⇒ `{\"__proto__\":\"x\"`。输入是逗号分隔，不含 JSON 引号键形态。",
   },
   {
-    // ⚠ 存疑项：字段被引号包裹且内含分隔符时，页面把引号当普通字符切开，且后半段「y」丢失。
-    //   修页面后本条须同步更新。已留档上报，未擅改页面。
     slug: "it/csv-to-json",
     inputs: { csvInput: "a,b\n1,\"x,y\"" },
     clicks: ["document.getElementById('hasHeader').checked=true;csvToJson()"],
     dumpIds: ["jsonOutput"],
-    expect: ['[{"a":"1","b":"\\"x"}'],
-    ref: "默认 csvQuote 为双引号，含分隔符的字段本应整体保留为 b=\"x,y\"；页面实际切成 b='\"x' 且丢弃后半段。可能是 parseCSV 未实现引号解析，也可能是 harness 下 select.value 取空 —— 二者在 harness 内无法区分。已被 SEA 记为待查项，修复页面后此条须同步更新。",
+    expect: ['[{"a":"1","b":"x,y"}]'],
+    ref: "默认 csvQuote 为双引号，含分隔符的字段必须整体保留为 b=\"x,y\"；页面补 quoteChar 空值兜底后，真实浏览器与桩环境一致。旧断言记录的是被截断的 b=\"x（引号未生效），现改为正确值。",
+  },
+  {
+    slug: "it/csv-to-json",
+    inputs: { csvInput: "a,b\n1,2,3" },
+    clicks: ["document.getElementById('hasHeader').checked=true;document.getElementById('jsonOutput').value='STALE';var __old=ToolBox.showToast;var __msg='';ToolBox.showToast=function(m){__msg=String(m)};csvToJson();ToolBox.showToast=__old;document.getElementById('__tbProbe').textContent='XTRA '+((__msg.indexOf('第 2 行有 3 列')>=0&&document.getElementById('jsonOutput').value==='')?'OK':'BAD');"],
+    expect: ["XTRA OK"],
+    ref: "多列不静默：表头 a,b 仅 2 列，数据行 1,2,3 有 3 列 ⇒ 报错并指出第 2 行；旧输出被清空，不保留上一次 STALE 结果。旧实现静默丢第 3 列并输出 {a:1,b:2} ⇒ 探针 BAD。"
   },
   {
     slug: "it/url-encode",
@@ -7219,6 +7237,24 @@ const CASES = [
     "inputs": { "source": "title: probe\nserver:\n  host: 127.0.0.1\n  port: 5432" },
     "expect": ["\"title\": \"probe\"", "\"port\": 5432"],
     "ref": "YAML→JSON：注入嵌套映射（server.host / server.port），JSON.stringify(obj, null, 2) 应产出带引号键 `\"title\": \"probe\"`，且 port 按 YAML 标量类型推断为数值 5432（不带引号）。输入原文是 `title: probe`（无引号键），故 expect 形态不在输入中。默认 YAML 样例不含 probe/5432。"
+  },
+  {
+    "slug": "it/yaml-to-json",
+    "inputs": { "source": "\"x:y\": 1\nlist: [a, b]\n" },
+    "expect": ["\"x:y\": 1"],
+    "ref": "引号键回归：旧手写解析器按第一个冒号切键，`\"x:y\": 1` 会丢键或切错；js-yaml 保留完整键 x:y。输入原文含引号与转义，输出键为 JSON 转义后的 `\"x:y\": 1`。"
+  },
+  {
+    "slug": "it/yaml-to-json",
+    "inputs": { "source": "base: &b\n  a: 1\ncopy: *b\n" },
+    "expect": ["\"copy\": {", "\"a\": 1"],
+    "ref": "锚点/别名回归：base 定义 &b，copy 用 *b 展开为同一映射；旧解析器把 &b / *b 当普通字符串，输出 `\"copy\": \"*b\"`，本条两串均不命中。"
+  },
+  {
+    "slug": "it/yaml-to-json",
+    "inputs": { "source": "a: 1\n---\nb: 2\n" },
+    "expect": ["检测到多份 YAML 文档（--- 分隔）"],
+    "ref": "多文档策略：检测到 2 份文档时明确报错，不静默只取第一份。默认样例单文档不含该串。"
   },
   {
     "slug": "it/yaml-to-json",
@@ -9095,6 +9131,12 @@ const CASES = [
   },
   {
     "slug": "it/http-methods",
+    "inputs": { "searchInput": "TRACE" },
+    "expect": ["回显请求（诊断；因跨站追踪风险常被服务器禁用，RFC 9110 仍定义）", "共 1 项"],
+    "ref": "TRACE 说明回归：旧文案写「已废弃」，改为 RFC 9110 仍定义、常被禁用的准确表述；搜索 TRACE 只命中一项。默认列表无搜索词，不含该串。"
+  },
+  {
+    "slug": "it/http-methods",
     "inputs": {
       "searchInput": "abc123测试"
     },
@@ -9302,14 +9344,10 @@ const CASES = [
   },
   {
     "slug": "it/js-formatter",
-    "inputs": {
-      "input": "1\n2\n3",
-      "indent": "4"
-    },
-    "expect": [
-      "name}!`;\n4\n"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\",\"indent\":\"4\"}，输出区含「name}!`;\n4\n」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "inputs": { "input": "import x from 'y';\nexport const a = x;", "indent": "4" },
+    "clicks": ["doMinify()"],
+    "expect": ["✅ 压缩成功"],
+    "ref": "模块语法回归：acorn 按 sourceType=module 静态解析压缩结果，import/export 不再被函数构造器拒绝；默认示例不含该串，旧实现报「含 import/export 模块语法，无法用函数构造器自检」⇒ 不命中。"
   },
   {
     "slug": "it/js-obfuscator",
@@ -11658,6 +11696,25 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\",\"output\":\"1\\n2\\n3\",\"flavor\":\"verbose\"}，输出区含「1 2 3\n1 2 3\nverbose」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
+    slug: "it/regex-cheatsheet",
+    inputs: { rxPattern: "(\\w+)@(\\w+)\\.[a-z]{2,}", rxText: "Contact: dev@example.com or support@test.cn; invalid: not-an-email" },
+    expect: ["共 2 处匹配", "默认示例"],
+    ref: "正则速查测试器：默认模式命中 dev@example.com 与 support@test.cn 两处，mark 节点 2 个，默认标识为「默认示例」。旧页无输入/高亮 ⇒ 该串不存在。",
+  },
+  {
+    slug: "it/regex-cheatsheet",
+    inputs: { rxPattern: "(", rxText: "abc" },
+    expect: ["正则无效"],
+    ref: "非法正则 `(` 必须捕获异常并提示「正则无效」；默认模式合法 ⇒ 不含该串。",
+  },
+  {
+    slug: "it/markdown-table-generator",
+    inputs: {},
+    clicks: ["document.getElementById('output').value='| A | B |\\n|---|---|\\n| a\\\\|b | c |';var csv=__mdTableCsv();document.getElementById('__tbProbe').textContent='MDOK '+((csv.indexOf('\"a|b\",\"c\"')>-1&&csv.indexOf('\"A\",\"B\"')>-1)?'OK':'BAD '+csv);"],
+    expect: ["MDOK OK"],
+    ref: "GFM 转义竖线：单元格 a\\|b 必须还原为 a|b，不能被拆成 3 列；修复后 CSV 含 \"A\",\"B\" 与 \"a|b\",\"c\"。默认表格无转义竖线 ⇒ 强判别。",
+  },
+  {
     "slug": "it/regex-cheatsheet",
     "inputs": {
       "searchInput": "abc123测试"
@@ -11673,9 +11730,9 @@ const CASES = [
       "pattern": "abc123测试"
     },
     "expect": [
-      "tart S1: a S2: b S3: c S4: 1 S5: 2 S6: 3 S7: 测 S8: 试 S9"
+      "8. 试"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"pattern\":\"abc123测试\"}，输出区含「tart S1: a S2: b S3: c S4: 1 S5: 2 S6: 3…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"pattern\":\"abc123测试\"}，线性词元顺序第 8 项为「8. 试」；页面不再输出 S0/S1 伪状态链。默认 `^a[0-9]+b$` 不含该顺序 ⇒ 强判别。"
   },
   {
     "slug": "it/rest-api-cheatsheet",
@@ -11959,7 +12016,7 @@ const CASES = [
       "svgCode": "1\n2\n3"
     },
     "expect": [
-      "t></svg>\nabc123测试\nSVG 尺寸 42 × 42 · 文件约 310 字节"
+      "SVG 尺寸 42 × 42"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"w\":\"42\",\"h\":\"42\",\"txt\":\"abc123测试\",\"bg\":\"abc123测试\",\"fg\":\"abc123测试\",\"svgCode\":\"1\\n2\\n3\"}，输出区含「t></svg>\nabc123测试\nSVG 尺寸 42 × 42 · 文件约 3…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -14217,6 +14274,24 @@ const CASES = [
     ref: "IT-N448 HTML 跨行注释：旧逐行 tokenize 中间行 b 为 hl-plain、末行 --> 为 hl-plain；新实现整段 tokenize ⇒ 三行均 hl-comment。默认示例无跨行 HTML 注释 ⇒ 探针串零逃生。",
   },
   {
+    slug: "it/code-highlighter",
+    clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/it/code-highlighter.html','utf8');var b=h.indexOf('<body>');var i=h.indexOf('container',b);var seg=h.slice(i-20,i+40);var ok=seg.indexOf('role=')>=0;document.getElementById('__tbProbe').textContent='HLMAIN '+(ok?'OK':'BAD '+seg);"],
+    expect: ["HLMAIN OK"],
+    ref: "第438批：页面示例代码含字面 <main>，原始文本扫描会误判已有主地标。真实 DOM 必须恰有 1 个 main/[role=main]，且就是 .container。",
+  },
+  {
+    slug: "it/html-tags",
+    clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/it/html-tags.html','utf8');var b=h.indexOf('<body>');var i=h.indexOf('container',b);var seg=h.slice(i-20,i+40);var ok=seg.indexOf('role=')>=0;document.getElementById('__tbProbe').textContent='HTAGMAIN '+(ok?'OK':'BAD '+seg);"],
+    expect: ["HTAGMAIN OK"],
+    ref: "第451批：标签示例库含 <main> 字符串但真实 DOM 无地标。修复后 .container 带 role=main，全页主地标唯一。",
+  },
+  {
+    slug: "it/html-minifier",
+    clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/it/html-minifier.html','utf8');var b=h.indexOf('<body>');var i=h.indexOf('container',b);var seg=h.slice(i-20,i+40);var ok=seg.indexOf('role=')>=0;document.getElementById('__tbProbe').textContent='HMINMAIN '+(ok?'OK':'BAD '+seg);"],
+    expect: ["HMINMAIN OK"],
+    ref: "第452批：压缩示例包含 <main> 与 <header>，旧文本检测误判。修复后 .container 带 role=main，且示例不影响 DOM 查询。",
+  },
+  {
     slug: "it/benchmark-builder",
     inputs: { type: 'array', ms: '5000' },
     clicks: ["var cap='';var old=ToolBox.copyText;ToolBox.copyText=function(s){cap=String(s);};copyCode();ToolBox.copyText=old;document.getElementById('__tbProbe').textContent='BMCOPY '+(cap.indexOf('<5000')>=0&&cap.indexOf('a.sort')>=0&&cap.indexOf('array / 5000ms')>=0?'OK':'BAD '+cap.slice(0,120));"],
@@ -14254,7 +14329,7 @@ const CASES = [
   {
     slug: "it/js-formatter",
     inputs: { input: "function f(){return/*\n*/1}\nreturn f()" },
-    clicks: ["doMinify();var o=String(document.getElementById('output').textContent);var nl=String.fromCharCode(10);var a,b;try{a=new Function(document.getElementById('input').value)();}catch(e){a='ERR';}try{b=new Function(o)();}catch(e){b='ERR';}document.getElementById('__tbProbe').textContent='MINASI out='+(o.indexOf('return'+nl+'1')>=0?'Y':'N')+' eq='+((a===b&&a===undefined)?'Y':'N')+' b='+b;"],
+    clicks: ["var nl=String.fromCharCode(10);document.getElementById('input').value='function f(){return/*'+nl+'*/1}'+nl+'return f()';doMinify();var o=String(document.getElementById('output').textContent);var a,b;try{a=new Function(document.getElementById('input').value)();}catch(e){a='ERR';}try{b=new Function(o)();}catch(e){b='ERR';}document.getElementById('__tbProbe').textContent='MINASI out='+(o.indexOf('return'+nl+'1')>=0?'Y':'N')+' eq='+((a===b&&a===undefined)?'Y':'N')+' b='+b;"],
     expect: ["MINASI out=Y eq=Y b=undefined"],
     ref: "221（第239批）复核失败重做：旧 minifyJs 直接跳过 comment token，`return/*\\n*/1` 被压成 `return 1`——输出可编译但语义从 return undefined 变成 return 1。现含换行的块注释在原位保留一个换行。探针同时检查输出含 `return\\n1`，并用 new Function 分别执行原文与压缩结果，两者都必须返回 undefined。默认无块注释 ⇒ 探针串零命中。"
   },
@@ -14599,9 +14674,72 @@ const CASES = [
   "expect": ["\"a\"\"b\""],
   "ref": "quote 模式按 CSV 引号规则：字段内双引号写两个，a\"b 应输出 \"a\"\"b\"，旧版用反斜杠转义得到 \"a\\\"b\" 与 FAQ 不一致。"
 },
+{
+  "slug": "it/html-tags",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/it/html-tags.html','utf8');var head=h.slice(0,h.indexOf('</head>'));var parts=head.split('<script');var wb='';for(var k=1;k<parts.length;k++){var seg=parts[k].split('</script>')[0];if(seg.indexOf('WebApplication')>=0){wb=seg.slice(seg.indexOf('{'),seg.lastIndexOf('}')+1);break;}}var o=null;try{o=JSON.parse(wb);}catch(e){}var nm=o&&o.name;var ok=nm==='HTML 标签速查'&&nm.indexOf('字号更大')<0&&h.indexOf('<h1 class=\"sr-only\">HTML 标签速查</h1>')>=0;document.getElementById('__tbProbe').textContent='HTAGMETA '+(ok?'OK':'BAD')+' '+nm;"],
+  "expect": ["HTAGMETA OK"],
+  "ref": "第427批：HTML 标签页 FAQ 示例含 <h1> 文本，旧构建把示例后的 FAQ 文本拼进 WebApplication.name。真实 head 的 WebApplication.name 必须严格等于 H1“HTML 标签速查”，且不得含“字号更大”等示例文本。"
+},
+{
+  "slug": "it/og-meta-tag-generator",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/it/og-meta-tag-generator.html','utf8');var head=h.slice(0,h.indexOf('</head>'));var body=h.slice(h.indexOf('</head>'));var ok=head.indexOf('property=\"og:site_name\"')>=0&&head.indexOf('content=\"ToolBox\"')>=0&&body.indexOf(\"og:site_name\")>=0;document.getElementById('__tbProbe').textContent='OGSITE '+(ok?'OK':'BAD');"],
+  "expect": ["OGSITE OK"],
+  "ref": "第459批：OG 生成器脚本第 315 行本身含 og:site_name 字符串，旧检测按全文匹配误判已存在，真实 head 却没有。必须只在 </head> 前命中 og:site_name，同时保留脚本示例。"
+}
+,
+{
+  "slug": "it/aes-encryptor",
+  "clicks": ["var hx=function(s){var a=new Uint8Array(s.length/2);for(var i=0;i<a.length;i++)a[i]=parseInt(s.substr(i*2,2),16);return a;};var pt=hx('6bc1bee22e409f96e93d7e117393172aae2d8a571e03ac9c9eb76fac45af8e5130c81c46a35ce411e5fbc1191a0a52eff69f2445df4f9b17ad2b417be66c3710');var key=hx('2b7e151628aed2a6abf7158809cf4f3c');var iv=hx('000102030405060708090a0b0c0d0e0f');var ct=encryptCFB(pt,key,iv,128);var hex=Array.prototype.map.call(ct,function(x){return ('0'+x.toString(16)).slice(-2);}).join('');var back=decryptCFB(ct,key,iv,128);var dec=Array.prototype.every.call(back,function(x,i){return x===pt[i];});document.getElementById('__tbProbe').textContent='AESCFB '+hex+' dec='+(dec?'OK':'BAD');"],
+  "expect": ["AESCFB 3b3fd92eb72dad20333449f8e83cfb4ac8a64537a0b3a93fcde3cdad9f1ce58b26751f67a3cbb140b1808cf187a4f4dfc04b05357c5d1c0eeac4c66f9ff7f2e6 dec=OK"],
+  "ref": "第355批：NIST SP 800-38A AES-128-CFB128 标准向量，4 个完整分组（64 字节，超过 16 字节）必须逐字节得到 3b3f…f2e6，且 decryptCFB 必须还原原文；旧说明称“解密即再执行加密流程”，与 CFB 方向敏感的密文反馈不符。默认态不执行探针，输出区无 AESCFB ⇒ 零逃生。"
+},
+{
+  "slug": "design/pixel-art-generator",
+  "clicks": ["window.__pxSize=4;window.__pxGrid=[['','','',''],['','#f00','',''],['','','',''],['','','','']];var a=__pxCss();window.__pxGrid=[['#0f0','','',''],['','','',''],['','','',''],['','','','']];var b=__pxCss();window.__pxGrid=[['','','',''],['','','',''],['','','',''],['','','','']];var c=__pxCss();var ok=a.indexOf('background: transparent')>=0&&a.indexOf('16px 16px 0 #f00')>=0&&a.indexOf('0px 0px 0 #f00')<0&&b.indexOf('0px 0px 0 #0f0')>=0&&b.indexOf('background: transparent')>=0&&c.indexOf('画布为空')>=0;document.getElementById('__tbProbe').textContent='PIXCSS '+(ok?'OK':'BAD');"],
+  "expect": ["PIXCSS OK"],
+  "ref": "第518-539批：左上角为空而 (1,1) 有色时，旧实现把首个有色格颜色写进基础元素 background，CSS 会在 (0,0) 多画一块；修复后基础背景 transparent，所有像素只由 box-shadow 偏移绘制。同时验证左上有色仍保留 0,0 阴影、全空返回空画布提示。",
+  "inputs": {"gs": "4"}
+},
+{
+  "slug": "it/graphql-formatter",
+  "clicks": ["document.getElementById('output').textContent='STALE';document.getElementById('input').value='   ';doValidate();var o=document.getElementById('output').textContent,e=document.getElementById('err').textContent;document.getElementById('__tbProbe').textContent='GQLEMPTY '+((o===''&&e.indexOf('请输入 GraphQL 文本')>=0)?'OK':'BAD');"],
+  "expect": ["GQLEMPTY OK"],
+  "ref": "第304批：空白输入旧实现 tokenize 得 0 token，仍输出“GraphQL 语法正确/校验通过”且不清旧结果；修复后清空输出并提示输入。默认态不执行探针 ⇒ 零逃生。"
+},
+{
+  "slug": "it/graphql-formatter",
+  "clicks": ["document.getElementById('input').value='{]';doValidate();var o=document.getElementById('output').textContent,e=document.getElementById('err').textContent;document.getElementById('__tbProbe').textContent='GQLBRACK '+((o===''&&e.indexOf('括号类型不匹配')>=0)?'OK':'BAD:'+e);"],
+  "expect": ["GQLBRACK OK"],
+  "ref": "第304批：旧实现只按统一 depth 加减，{] 先加后减回到 0 即“校验通过”；修复后按 {[( 类型栈匹配，] 遇到 { 必须报括号类型不匹配。"
+},
+{
+  "slug": "it/graphql-formatter",
+  "clicks": ["document.getElementById('input').value='query Q($id: ID!) { user(id: $id) { id } }';doValidate();var o=document.getElementById('output').textContent,e=document.getElementById('err').textContent;document.getElementById('__tbProbe').textContent='GQLOK '+((o.indexOf('基础检查通过')>=0&&e.indexOf('基础校验通过')>=0&&e.indexOf('不含完整语法解析')>=0)?'OK':'BAD');"],
+  "expect": ["GQLOK OK"],
+  "ref": "第304批：合法 query 必须通过基础检查，并明确标注只做括号/字符串检查、不宣称完整语法正确。"
+},
+{
+  "slug": "it/graphql-formatter",
+  "clicks": ["document.getElementById('input').value='foo bar { baz }';doValidate();var e=document.getElementById('err').textContent;document.getElementById('__tbProbe').textContent='GQLNAME '+(e.indexOf('仅支持以 { 开头')>=0?'OK':'BAD:'+e);"],
+  "expect": ["GQLNAME OK"],
+  "ref": "第304批：非 GraphQL 任意名称旧实现括号平衡即通过；修复后文档首 token 只接受 { 或 query/mutation/subscription/fragment。"
+},
+  {
+    "slug": "it/qrcode",
+    "inputs": { "textInput": "https://a.example\nhttps://b.example", "qrmargin": "0", "size": "256" },
+    "clicks": ["generate()"],
+    "expect": ["第 2 行：https://b.example", "qr-card"],
+    "ref": "F-QR367 批量恢复：两行输入生成两张 .qr-card，第二张标题含第二行原文；静区 0 生效。"
+  },
 
+{
+  slug: "it/regex-common",
+  inputs: { cat: "email", limit: "8", txt: "a@b.com c@d.cn 13812345678 10.0.0.1" },
+  clicks: ["calcTool()"],
+  expect: ["a@b.com、c@d.cn", "2 个"],
+  ref: "恢复第356–358批旧页交互匹配：邮箱类别对注入文本命中 2 个并按顿号拼接；regex-cheatsheet 仅静态速查表，不能测试文本。"
+}
 ];
-// ---------------------------------------------------------------- DOM stub
 // canvas 2D 上下文桩（所有方法为空实现，measureText 返回零宽度以适配排版计算）
 const CTX2D = new Proxy(
   { measureText: () => ({ width: 0 }), createLinearGradient: () => ({ addColorStop() {} }), canvas: { width: 0, height: 0, clientWidth: 300, clientHeight: 300 } },
@@ -15327,6 +15465,11 @@ async function runCaseInner(c) {
   const file = path.join(TOOLS_DIR, c.slug + ".html");
   if (!fs.existsSync(file)) return { ok: false, why: "文件不存在" };
   const html = fs.readFileSync(file, "utf8");
+  // 页面若引用本地 acorn 解析器，harness 需把同一份 UMD 模块挂到 globalThis，
+  // 否则页面里 `acorn.parse(...)` 在桩环境未定义（真机由 <script> 加载）。
+  if (html.includes('/vendor/acorn/')) {
+    try { globalThis.acorn = require(path.join(__dirname, '..', 'vendor', 'acorn', '8.19.0', 'acorn.min.js')); } catch (e) { /* 缺文件时保持未定义，由页面报错 */ }
+  }
   // 重定向存根（TOOLBOX-REDIRECT）无 calcTool，跳过（与 scripts/verify_calc.js 既有逻辑一致）
   if (html.includes("TOOLBOX-REDIRECT")) return { ok: true, skipped: true, why: "redirect stub" };
 
@@ -15853,11 +15996,18 @@ async function runCaseInner(c) {
   // 未引用该库的页面拿到 undefined，行为与改造前一致，也不会跨页残留。
   try { globalThis.qrcode = pageQrcode; } catch (e) { /* 只读全局跳过 */ }
   try { globalThis.Aztec = pageAztec; } catch (e) { /* 只读全局跳过 */ }
+  const pageAcorn = /vendor\/acorn/.test(html)
+    ? (() => { try { return require(path.join(ROOT, "vendor", "acorn", "8.19.0", "acorn.min.js")); } catch (e) { return undefined; } })()
+    : undefined;
+  const pageJsYaml = /vendor\/js-yaml/.test(html)
+    ? (() => { try { return require(path.join(ROOT, "vendor", "js-yaml", "4.1.1", "js-yaml.min.js")); } catch (e) { return undefined; } })()
+    : undefined;
+  try { globalThis.jsyaml = pageJsYaml; } catch (e) { /* 只读全局跳过 */ }
   const compiled = new Function(
-      "document", "window", "console", "navigator", "localStorage", "sessionStorage", "ToolBox", "alert", "setTimeout", "requestAnimationFrame", "setInterval", "requestIdleCallback", "Date",
+      "document", "window", "console", "navigator", "localStorage", "sessionStorage", "ToolBox", "alert", "setTimeout", "requestAnimationFrame", "setInterval", "requestIdleCallback", "Date", "acorn",
       `var __f={};\n${script}\n${expose}\n__f["__pageEval"]=function(c){return eval(String(c));};\n__f["__rebindGlobal"]=function(n){try{eval(n+' = window.'+n);}catch(e){}};\nreturn __f;`
     );
-    fns = compiled(document, win, { log() {}, warn() {}, error() {} }, navigator, localStorage, sessionStorage, toolboxArg, () => {}, safeTimer, safeTimer, safeTimer, safeTimer, FrozenDate);
+    fns = compiled(document, win, { log() {}, warn() {}, error() {} }, navigator, localStorage, sessionStorage, toolboxArg, () => {}, safeTimer, safeTimer, safeTimer, safeTimer, FrozenDate, pageAcorn);
   } catch (e) {
     return { ok: false, why: "初始化失败: " + e.message.slice(0, 80) };
   }
@@ -16156,7 +16306,10 @@ function extractCases(src) {
   if (end === -1) return null;
   const casesSrc = src.slice(start, end + 1).replace(marker, "[");
   // eslint-disable-next-line no-eval
-  return eval(casesSrc);
+  const arr = eval(casesSrc);
+  // 用例数组若被误插空槽（对象之间多一个逗号）会生成 undefined 元素：执行端已 filter，
+  // 但 selfcheck / audit_verify_input_ids 等消费者会读到 undefined 而崩溃 ⇒ 统一收口。
+  return Array.isArray(arr) ? arr.filter(Boolean) : arr;
 }
 
 // ---------------------------------------------------------------- main
@@ -16184,7 +16337,7 @@ async function dumpMain(casefile) {
 async function main() {
   const only = process.argv.slice(2);
   if (only[0] === "--dump" && only[1]) return dumpMain(only[1]).then(() => 0);
-  const cases = only.length ? CASES.filter((c) => only.some((o) => c.slug.endsWith("/" + o) || c.slug === o)) : CASES;
+  const cases = (only.length ? CASES.filter((c) => only.some((o) => c.slug.endsWith("/" + o) || c.slug === o)) : CASES).filter(Boolean);
   let pass = 0;
   const fails = [];
   for (const c of cases) {

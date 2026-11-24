@@ -42,7 +42,8 @@ function pcrDeepdiveConsistencyChecks() {
   ];
 }
 
-const CASES = [
+const CASES = [{ slug:"clinical-lab/semen-analysis", clicks:["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/clinical-lab/semen-analysis.html','utf8');var ok=h.indexOf('id=\"lbl_volume\"')>=0&&h.indexOf('aria-labelledby=\"lbl_volume\"')>=0&&h.indexOf('aria-label=\"体积\"')<0;document.getElementById('__tbProbe').textContent='SEMVOL '+(ok?'OK':'BAD');"], expect:["SEMVOL OK"], ref:"第484/487批：精液量控件必须由可见标签「精液量 (mL)」提供无障碍名称，aria-labelledby 关联该标签；旧 aria-label=体积 缺项目与单位。" },
+
 {
     "slug": "clinical-lab/blood-gas-analysis",
     "clicks": ["var __cap=[];TBKit={util:{isEn:function(){return false;},exportTable:function(){},diffBox:function(){}},chart:{line:function(){}},matrix:{table:function(){}},history:{list:function(){return __cap;},last:function(){return __cap.length?__cap[__cap.length-1]:null;},record:function(r){__cap.push(r);},mount:function(){}},preset:{bar:function(){}}};var __els=[{id:'ph',type:'text',value:''}];var __oq=document.querySelectorAll;document.querySelectorAll=function(s){return __els;};var __r=document.getElementById('result');__r.textContent='请填写 pH、PaCO2、HCO3（均需大于 0）';__blood_gas_analysis_last=0;__blood_gas_analysisExtras();document.querySelectorAll=__oq;document.getElementById('__tbProbe').textContent='BGAVAL score='+__blood_gas_analysisScore('请填写 pH、PaCO2、HCO3（均需大于 0）')+' n='+__cap.length;"],
@@ -1569,7 +1570,9 @@ const CASES = [
   "clicks": ["(function(){function S(id,v){document.getElementById(id).value=v;}S('alt','200');S('alp','100');calc();var h1=String(document.getElementById('result').innerHTML);S('alt','40');S('alp','600');calc();var h2=String(document.getElementById('result').innerHTML);var ok=(h1.indexOf('6.00')>=0&&h2.indexOf('0.20')>=0);document.getElementById('__tbProbe').textContent='BIOR '+(ok?'OK':'BAD h1='+(h1.indexOf('6.00')>=0)+' h2='+(h2.indexOf('0.20')>=0));})()"],
   "expect": ["BIOR OK"],
   "ref": "第304批：统一 R 因子为权威定义 R=(ALT/ULN)/(ALP/ULN)=(ALT/40)/(ALP/120)（ALT 在分子）。formula-eq 旧写反为 (ALP/ULN)/(ALT/ULN)、info-box 旧写「ALB/ALP」。注入 ALT=200/ALP=100 ⇒ R=6.00；ALT=40/ALP=600 ⇒ R=0.20，两向复算锁定分子分母方向，默认态 R=1.20 不命中；若方向写反两值互换 ⇒ BAD。"
-}
+},
+{ slug:"clinical-lab/semen-analysis", clicks:["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/clinical-lab/semen-analysis.html','utf8');var ok=h.indexOf('PR 32%（等于 32% 参考下限，判为参考内）')>=0&&h.indexOf('PR 32%（低于 32% 参考）')<0;document.getElementById('__tbProbe').textContent='SEMEN32 '+(ok?'OK':'BAD');"], expect:["SEMEN32 OK"], ref:"PR 32% 等于 WHO 第5版参考下限 32%，表与判读均以 <32% 才异常；示例不得写「低于 32%」或同时标活力偏低。" },
+{ slug:"clinical-lab/urinalysis-interpretation", clicks:["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/clinical-lab/urinalysis-interpretation.html','utf8');var ok=h.indexOf('不含镜检 RBC/WBC')>=0&&h.indexOf('干化学与镜检条目')<0;document.getElementById('__tbProbe').textContent='UA11 '+(ok?'OK':'BAD');"], expect:["UA11 OK"], ref:"本工具仅 11 项干化学输入，不含镜检 RBC/WBC；说明不得再承诺「干化学与镜检条目」结构化解释。" }
 ];
 async function main() {
   const only = process.argv.slice(2);

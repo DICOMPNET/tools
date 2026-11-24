@@ -662,6 +662,15 @@ const CASES = [
   "ref": "第1335批·默认参数预设不清空随访日期修复源码形态强锚：原默认参数 values 不含 followDate，从中危预设(2024-02-01)切回后旧日期残留；修复后默认参数显式写 followDate:'' 清空。旧版无 ⇒ BAD。"
 },
 { slug:"cardiology/aspirin-prevention", inputs:{"age":"","ascvd":""}, expect:["请填写年龄与 10 年 ASCVD 风险"], ref:"核心临床参数留空不得给出分级/风险结论（CLINCLR）" }
+,{
+  "slug": "cardiology/timi-score",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/cardiology/timi-score.html','utf8');var ok=h.indexOf('体重&lt;67kg 2')<0&&h.indexOf('weight &lt;67 kg = 2')<0&&h.indexOf('体重&lt;67kg 1')>=0&&h.indexOf('weight &lt;67 kg = 1')>=0&&h.indexOf('满分 14')>=0;document.getElementById('__tbProbe').textContent='TIMIBASIS '+(ok?'OK':'BAD');"],
+  "expect": ["TIMIBASIS OK"],
+  "ref": "TIMI STEMI 依据表权重与代码一致：体重<67kg 与前壁/LBBB 各 1 分，满分 14；旧表写 2 分、合计 16，与 calcSTEMI 的 14 分不符。"
+}
+,
+{"slug":"cardiology/ckd-epi","clicks":["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/cardiology/ckd-epi.html','utf8');var ok=h.indexOf('胱抑素')<0&&h.indexOf('1.24 mg/dL')>=0&&h.indexOf('47.4')>=0&&h.indexOf('UACR 80 mg/g')>=0;document.getElementById('__tbProbe').textContent='CKD_ONLY_CREAT '+(ok?'OK':'BAD');"],"expect":["CKD_ONLY_CREAT OK"],"ref":"CKD-EPI 复核：页面只有血肌酐/UACR/年龄/性别，计算为 CKD-EPI 2021 肌酐版；深度解析、示例、FAQ 与 JSON-LD 全部禁止再写胱抑素 C/联合算法，示例必须用页面接受的 mg/dL 并按实现复算为 47.4（G3a/A2）。源码强判别，默认态无探针串。"}
+
 ];
 async function main() {
   const only = process.argv.slice(2);

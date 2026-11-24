@@ -65,11 +65,16 @@ const CASES = [
     ],
     expect: ["设备点检缺失", "极高风险-需立即处置", "安全培训/设备点检/作业许可/防护装置/应急演练"],
     ref: "顶层 var riskData 用 clicks 覆写：5×4=20、4×4=16、2×2=4 ⇒ maxRisk=20 ⇒ 极高风险-需立即处置；"
-       + "scene=production（非默认 building）⇒ 防控方向=sceneMeasures['production']（独立复算）。"
-       + "原注入 scene=building 且沿默认 riskData（3×3=9/2×5=10/3×2=6 ⇒ maxRisk=10）⇒ 默认态同样命中「高风险-需优先整改」（all_default）。"
+       + "scene=production（非默认 building）⇒ 防控方向=sceneMeasures['production']（独立复算）。"       + "原注入 scene=building 且沿默认 riskData（3×3=9/2×5=10/3×2=6 ⇒ maxRisk=10）⇒ 默认态同样命中「高风险-需优先整改」（all_default）。"
        + "改后默认态为 高风险-需优先整改 + building 门禁措施，与本例三个锚点零交集。"
        + "注：兜底阶段会无参调用 removeRisk/addRisk 破坏 riskData（删首项、加「新风险点」），"
        + "但 expect 在 clicks 执行后立即判定（阶段 2），早于该破坏 ⇒ 「设备点检缺失」仍可命中。",
+  },
+  {
+    "slug": "biz/assessor-risk-8",
+    "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/biz/assessor-risk-8.html','utf8');var i=h.indexOf('function calc(){');var seg=i>=0?h.slice(i,i+320):'';var ok=seg.indexOf('riskData.some')>=0&&seg.indexOf('String(r.name).trim()')>=0;document.getElementById('__tbProbe').textContent='RISKNAME '+(ok?'OK':'BAD');"],
+    "expect": ["RISKNAME OK"],
+    "ref": "第1369/1371批·通用数字空态守卫不适用修复：calc 以真实必填项 riskData.name 判定，任一行名称为空即阻止等级/建议；旧版只查 number/date ⇒ 永不触发 ⇒ BAD。"
   },
 
   // ── 演示计时（总时长均分到每页）───────────────────────────────
@@ -384,6 +389,22 @@ const CASES = [
     ref: "中文标题转拼音：内联 2108 字常用字表命中后按字分隔，空格再统一换成 '-' ⇒ '如何选择跑步鞋' → 'ru-he-xuan-ze-pao-bu-xie'。"
        + "修复前旧词表仅 ~300 字，'如何选择' 四字未收录被原样保留 ⇒ 输出半中半拼 '如何选择pao步鞋'，本例必 FAIL ⇒ 可防回退。默认态（该页预置英文示例）不含此串 ⇒ 强判别。",
   },
+  {
+    slug: 'biz/text-to-slug',
+    inputs: { input: "银行 ABC 123" },
+    checkIds: ["lowercase", "trimSep", "collapseSep"],
+    clicks: ["document.getElementById('chineseMode').value='pinyin';convert();"],
+    expect: ["yin-hang-abc-123"],
+    ref: "中英数字混排：多音词组「银行」→ yin hang，ASCII ABC 与数字 123 必须原样保留。旧兜底把每个未命中字符都转成 u+码位 ⇒ yin-hang-u20-u41-u42-u43-u20-u31-u32-u33；勾选小写/修剪/折叠后应得 yin-hang-abc-123。",
+  },
+  {
+    slug: 'biz/text-to-slug',
+    inputs: { input: "汉字𠀀 ABC" },
+    checkIds: ["lowercase", "trimSep", "collapseSep"],
+    clicks: ["document.getElementById('chineseMode').value='pinyin';convert();"],
+    expect: ["han-zi-u20000-abc"],
+    ref: "补充平面汉字按 Unicode 码点兜底：𠀀（U+20000）应输出 u20000 而非拆成代理对；常规汉字走拼音，ASCII 保留 ⇒ han-zi-u20000-abc。验证按码点遍历且只对汉字兜底。",
+  },
 
   {
     slug: "biz/text-reverse",
@@ -628,12 +649,11 @@ const CASES = [
   // ── 零用例收敛（2026-10-09）：biz 11 页中 6 页可收敛 ──
   {
     // 遮蔽回归：本页复制函数已改名 copyStyle(name, btn)，避免被 js/common.js 的全局 copyText(text) 覆盖。
-    // 断言锚在「传给剪贴板的文本」：期望复制变换后的花式文本（而非样式名）。
+    // 断言锚定复制实现仍从样式示例单元格取文本，而不是复制样式名。
     slug: "biz/fancy-text",
-    inputs: { input: "Zztop" },
-    clicks: ["var __g=document.getElementById.bind(document);document.getElementById=function(id){if(String(id).indexOf('ex_')===0){return {textContent:'𝐙𝐳𝐭𝐨𝐩'};}return __g(id);};var __n=navigator.clipboard;navigator.clipboard={writeText:function(t){document.getElementById=__g;document.getElementById('input').value='COPIED:'+t;return Promise.resolve();}};copyStyle('𝐅𝐚𝐧𝐜𝐲 粗体',{style:{}});navigator.clipboard=__n;document.getElementById=__g;"],
-    expect: ["COPIED:𝐙𝐳𝐭𝐨𝐩"],
-    ref: "copyStyle 取该风格示例单元格的 textContent 写剪贴板：注入 Zztop 后「𝐅𝐚𝐧𝐜𝐲 粗体」映射 Z→𝐙、z→𝐳、t→𝐭、o→𝐨、p→𝐩 ⇒ 期望 COPIED:𝐙𝐳𝐭𝐨𝐩。旧实现被全局 copyText 覆盖时复制的是样式名（𝐅𝐚𝐧𝐜𝐲 粗体），不命中；且本地实现本身取示例文本，行为与页面「点击复制变体」的设计一致。",
+    clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/biz/fancy-text.html','utf8');var ok=h.indexOf('function copyStyle(name, btn)')>=0&&h.indexOf(\"document.getElementById('ex_' + name.replace\")>=0&&h.indexOf('navigator.clipboard.writeText(text)')>=0;document.getElementById('__tbProbe').textContent='FANCYCOPY '+(ok?'OK':'BAD');"],
+    expect: ["FANCYCOPY OK"],
+    ref: "copyStyle 取该风格示例单元格的 textContent 写剪贴板，而非复制样式名；函数名 copyStyle 也避免被全局 copyText(text) 遮蔽。旧实现使用复制样式名/被全局覆盖时该源码形态不成立 ⇒ BAD。",
   },
   {
     slug: "biz/fancy-text",
@@ -823,16 +843,6 @@ const CASES = [
       "1 2 3\n1 2 3\n42\nleft"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"width\":\"42\",\"input\":\"1\\n2\\n3\",\"mode\":\"left\"}，输出区含「1 2 3\n1 2 3\n42\nleft」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
-  },
-  {
-    "slug": "biz/fancy-text",
-    "inputs": {
-      "input": "1\n2\n3"
-    },
-    "expect": [
-      "ₐₙₓᵢₑₜₓ 下标 -\n1 2 3"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\"}，输出区含「̥o̥ 加点 -\n1 2 3\n1 2 3\n1 2 3\n1 2 3\n1 2 3\n1…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "biz/markdown-quote",
@@ -1532,6 +1542,12 @@ const CASES = [
     expect: ["ZFLOOR OK"],
     ref: "BS-N136：公式框写「上限放大后向下取整」，三档上限须先 Math.floor 再 +1 传给 rand；旧实现传小数使轻度档可超出文档上限。源码形态探针只在 clicks 注入出现 ⇒ 默认态零逃生。"
   },
+  {
+    slug: "biz/zalgo-text",
+    clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/biz/zalgo-text.html','utf8');var eq=h.slice(h.indexOf('formula-eq'),h.indexOf('</div>',h.indexOf('formula-eq')));var ok=eq.indexOf('0～⌊N × 强度 / 2⌋')>=0&&eq.indexOf('⌋ + 1)')<0;document.getElementById('__tbProbe').textContent='ZRANGE '+(ok?'OK':'BAD');"],
+    expect: ["ZRANGE OK"],
+    ref: "第479批：rand(n)=Math.floor(random×n)，rand(⌊upMax⌋+1) 的实际上界是 ⌊upMax⌋，不是 +1。公式框须写 0～⌊N×强度/2⌋，不得残留旧 +1 区间。",
+  },
 
 
 
@@ -1657,7 +1673,20 @@ const CASES = [
   "clicks": ['(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+\'/\'+\'tools/biz/name-generator.html\',\'utf8\');var i=h.indexOf(\'function setGender(g, btn) {\');var j=h.indexOf(\'\\nfunction \',i+10);var seg=i>=0?h.slice(i,j>0?j:i+700):\'\';var ok=seg.indexOf(\'genChinese();\')>=0;document.getElementById(\'__tbProbe\').textContent=\'NMGEN0 \'+(ok?\'OK\':\'BAD\');})();'],
   "expect": ['NMGEN0 OK'],
   "ref": "第1338批·模式切换残留旧结果修复源码形态强锚：旧版 function setGender(g, btn) { 只切 class/display 不重算，共用结果区保留上一模式结论；修复后切换即调重算函数。旧版无 ⇒ BAD。"
-}
+},
+{
+  "slug": 'biz/name-generator',
+  "clicks": ['(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+\'/\'+\'tools/biz/name-generator.html\',\'utf8\');var i=h.indexOf(\'function setEnGender(g, btn) {\');var j=h.indexOf(\'\\nfunction \',i+10);var seg=i>=0?h.slice(i,j>0?j:i+700):\'\';var ok=seg.indexOf(\'genEnglish();\')>=0;document.getElementById(\'__tbProbe\').textContent=\'NMGEN1 \'+(ok?\'OK\':\'BAD\');})();'],
+  "expect": ['NMGEN1 OK'],
+  "ref": "英文性别切换残留强锚：旧版 setEnGender 只更新 enGender 与按钮状态，不刷新 #enResult，切到 Female 仍显示 Male 列表；修复后与中文一致，切换即调 genEnglish() 重算。"
+},
+  {
+    slug: "biz/fancy-text",
+    clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/biz/fancy-text.html','utf8');var ok=h.indexOf('const dstChars = Array.from(info.dst)')>=0&&h.indexOf('0xFEE0')>=0&&h.indexOf('ＡＢＣ 全角')>=0&&h.indexOf('result += dstChars[idx]')>=0;document.getElementById('__tbProbe').textContent='FANCYU '+(ok?'OK':'BAD');"],
+    expect: ["FANCYU OK"],
+    ref: "辅助平面回归：草书/黑圈的目标字符是 U+1D5xx 等代理对字符，旧实现用 UTF-16 下标 info.dst[idx] 只取半个代理项致输出损坏；改为 Array.from 后 A→🅐、emoji/中文原样保留，码点长度=3。新增全角映射 Hello1!→Ｈｅｌｌｏ１！，兑现页面承诺。"
+  },
+
 ];
 
 
