@@ -124,7 +124,7 @@
   <span class="bc-current" aria-current="page">Markdown 表格生成器</span>
 </nav>
 <div class="container" role="main">
-    <style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#3b82f6)}.tbk-tab.active{background:var(--accent,#3b82f6);color:#fff;border-color:var(--accent,#3b82f6)}.tbk-panel{margin-top:6px}</style>
+    <style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#1D4ED8)}.tbk-tab.active{background:var(--accent,#1D4ED8);color:#fff;border-color:var(--accent,#1D4ED8)}.tbk-panel{margin-top:6px}</style>
 <div class="tbk-tabbar" role="tablist">
   <button type="button" class="tbk-tab" data-pane="chart">图表</button>
   <button type="button" class="tbk-tab" data-pane="tbl">数据表</button>
@@ -455,7 +455,13 @@ function __mdSplitRow(row){
     // GFM 行拆分：只把未转义的 | 视为列分隔；\| 解码为 |，\\ 解码为 \，其他转义保留。
     var s=String(row).trim();
     if(s.charAt(0)==='|') s=s.slice(1);
-    if(s.charAt(s.length-1)==='|') s=s.slice(0,-1);
+    // 末尾 | 只有在其前连续反斜杠为偶数个时才是未转义的边界分隔符；
+    // 奇数个说明该 | 是单元格内容（如 a\|），不能删除。
+    if(s.charAt(s.length-1)==='|'){
+        var bs=0;
+        for(var j=s.length-2;j>=0&&s.charAt(j)==='\\';j--) bs++;
+        if(bs%2===0) s=s.slice(0,-1);
+    }
     var cells=[], buf='', esc=false, i, c;
     for(i=0;i<s.length;i++){
         c=s.charAt(i);
