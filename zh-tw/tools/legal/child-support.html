@@ -102,7 +102,7 @@
   <a href="/zh-tw/guides/child-support-guide.html">📖 檢視「撫養費計算器 使用指南」</a>
 </div>
 
-  <style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#3b82f6)}.tbk-tab.active{background:var(--accent,#3b82f6);color:#fff;border-color:var(--accent,#3b82f6)}.tbk-panel{margin-top:6px}</style>
+  <style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#1D4ED8)}.tbk-tab.active{background:var(--accent,#1D4ED8);color:#fff;border-color:var(--accent,#1D4ED8)}.tbk-panel{margin-top:6px}</style>
 <div class="tbk-tabbar" role="tablist">
   <button type="button" class="tbk-tab" data-pane="res">結果</button>
   <button type="button" class="tbk-tab" data-pane="tbl">資料表</button>
@@ -278,12 +278,18 @@ function calculate(){
   // LEGALCLR：核心金额/年限留空时不得输出 0 元结论
   var __lgReq=['monthlyIncome'];
   if(__lgReq.some(function(k){var e=document.getElementById(k);return !e||String(e.value).trim()==='';})){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 请填写支付方月收入</p>';return;}
-  const income = parseFloat(document.getElementById('monthlyIncome').value) || 0;
-  const childCount = Math.max(1, parseInt(document.getElementById('childCount').value) || 1);
-  const childAge = parseInt(document.getElementById('childAge').value) || 0;
-  const livingCost = parseFloat(document.getElementById('livingCost').value) || 0;
-  if(income<=0){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 月收入须大于 0；无固定收入请按当年总收入或同行业平均收入，或以财物折抵。</p>';return;}
-  if(livingCost<0||childAge<0||childAge>18){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 当地生活成本不能为负，子女年龄须在 0–18 岁。</p>';return;}
+  const incomeRaw=String(document.getElementById('monthlyIncome').value).trim();
+  const income = parseFloat(incomeRaw);
+  const countRaw=String(document.getElementById('childCount').value).trim();
+  const childCount=Number(countRaw);
+  const ageRaw=String(document.getElementById('childAge').value).trim();
+  const childAge=Number(ageRaw);
+  const livingRaw=String(document.getElementById('livingCost').value).trim();
+  const livingCost=Number(livingRaw);
+  if(!isFinite(income)||income<=0){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 月收入须大于 0；无固定收入请按当年总收入或同行业平均收入，或以财物折抵。</p>';return;}
+  if(countRaw===''||!Number.isInteger(childCount)||childCount<1||childCount>10){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 请填写 1–10 的整数子女数量。</p>';return;}
+  if(ageRaw===''||!Number.isInteger(childAge)||childAge<0||childAge>18){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 请填写子女当前年龄（0–18 岁整数）；空值不等同于 0 岁。</p>';return;}
+  if(livingRaw===''||!isFinite(livingCost)||livingCost<0){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 请填写当地实际生活水平（元/月，不能为负）；空值不按 0 元参与比较。</p>';return;}
   const ratioSelect = document.getElementById('paymentRatio').value;
   const hasSpecial = document.getElementById('hasSpecialExpense').checked;
 
@@ -310,8 +316,15 @@ function calculate(){
 
   let specialMonthly = 0;
   if(hasSpecial){
-    const specialAnnual = parseFloat(document.getElementById('specialExpense').value) || 0;
-    const specialRatio = parseFloat(document.getElementById('specialRatio').value);
+    const specialRaw=String(document.getElementById('specialExpense').value).trim();
+    const specialAnnual=Number(specialRaw);
+    const specialRatio=parseFloat(document.getElementById('specialRatio').value);
+    if(specialRaw===''||!isFinite(specialAnnual)||specialAnnual<0){
+      document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 勾选大额支出后，请填写有效的年度特殊支出（元，不能为负）。</p>';return;
+    }
+    if(!isFinite(specialRatio)||specialRatio<0||specialRatio>1){
+      document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 特殊支出分摊比例无效，请重新选择。</p>';return;
+    }
     specialMonthly = (specialAnnual * specialRatio) / 12;
   }
 
@@ -320,13 +333,13 @@ function calculate(){
 
   let html = `<p>${csL('支付方月收入：','Payer monthly income:')}<strong>${ToolBox.formatNumber(income)}</strong> ${csL('元','CNY')}</p>`;
   html += `<p>${csL('支付比例：','Payment ratio:')}<strong>${Math.round(ratio*100)}%</strong>${ratio >= 0.5 ? ' '+csL('（已按 50% 上限计）','(capped at 50%)') : ''}</p>`;
-  if(childCount > 1 && ratio < 0.4){ html += `<p style="color:#ff9800;font-size:12px;">${csL('提示：两名及以上子女通常参考 40%–50%，当前比例偏低，可在上方切换。','Tip: two or more children usually reference 40%–50%; the current ratio is low.')}</p>`; }
+  if(childCount > 1 && ratio < 0.4){ html += `<p style="color:var(--warning);font-size:12px;">${csL('提示：两名及以上子女通常参考 40%–50%，当前比例偏低，可在上方切换。','Tip: two or more children usually reference 40%–50%; the current ratio is low.')}</p>`; }
   html += `<p>${csL('子女数量：','Number of children:')}<strong>${childCount}</strong> ${csL('名，每名子女/月：','child(ren), per child/month:')}<strong>${ToolBox.formatNumber(perChildSupport)}</strong> ${csL('元','CNY')}</p>`;
   html += `<p>${csL('子女年龄：','Child age:')}${childAge}${csL('岁，距成年还有','yr, years to adulthood:')} <strong>${yearsTo18}</strong> ${csL('年（','yr (')}${monthsTo18}${csL('个月）','mo)')}</p>`;
   html += `<hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">`;
   html += `<p>${csL('比例法金额/月：','Ratio-based amount/mo:')}<strong>${ToolBox.formatNumber(ratioSupport)}</strong> ${csL('元；当地生活水平参考下限：','CNY; local living floor:')}${ToolBox.formatNumber(livingCost)} ${csL('元，取较高者。','CNY, higher applies.')}</p>`;
-  html += `<p>${csL('基础抚养费合计/月（全部子女）：','Total base support/mo (all children):')}<strong>${ToolBox.formatNumber(baseSupport)}</strong> ${csL('元','CNY')} ${ratioSupport < livingCost ? '<span style="color:#ff9800;font-size:12px;">（'+csL('按当地生活水平下限计','at local living floor')+'）</span>' : ''}</p>`;
-  if(monthsTo18 === 0){ html += `<p style="color:#ff9800;">${csL('子女已满 18 岁，未来月付按 0 计；历史欠付请另行核算。','Child is 18 or older; future monthly support is 0. Arrears must be calculated separately.')}</p>`; }
+  html += `<p>${csL('基础抚养费合计/月（全部子女）：','Total base support/mo (all children):')}<strong>${ToolBox.formatNumber(baseSupport)}</strong> ${csL('元','CNY')} ${ratioSupport < livingCost ? '<span style="color:var(--warning);font-size:12px;">（'+csL('按当地生活水平下限计','at local living floor')+'）</span>' : ''}</p>`;
+  if(monthsTo18 === 0){ html += `<p style="color:var(--warning);">${csL('子女已满 18 岁，未来月付按 0 计；历史欠付请另行核算。','Child is 18 or older; future monthly support is 0. Arrears must be calculated separately.')}</p>`; }
   if(hasSpecial){
     html += `<p>${csL('教育/医疗分摊/月：','Edu/medical share/mo:')}${ToolBox.formatNumber(specialMonthly)} ${csL('元','CNY')}</p>`;
   }

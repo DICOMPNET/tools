@@ -110,7 +110,7 @@
   <a href="/zh-tw/guides/fancy-text-guide.html">📖 檢視「裝飾文字（Fancy Text）使用指南」</a>
 </div>
 
-  <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
+  <div class="card tool-card-accent" style="--tool-accent:#B23A08;">
     <h2 data-zh="✨ 裝飾文字（Fancy Text）">✨ Fancy Text Converter</h2>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">每種風格維護一張「源字元表 → 目標字元表」對映：逐字元在源表中查下標，命中則替換為目標表同下標的字元，未命中則保留原字元；風格定義為字串時直接返回該字串，未定義源表時原樣返回。遍歷全部風格對同一輸入文本生成各風格的示例文本</div>
@@ -125,7 +125,7 @@
     </div>
   </div>
 
-  <style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#3b82f6)}.tbk-tab.active{background:var(--accent,#3b82f6);color:#fff;border-color:var(--accent,#3b82f6)}.tbk-panel{margin-top:6px}</style>
+  <style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#1D4ED8)}.tbk-tab.active{background:var(--accent,#1D4ED8);color:#fff;border-color:var(--accent,#1D4ED8)}.tbk-panel{margin-top:6px}</style>
 <div class="tbk-tabbar" role="tablist">
   <button type="button" class="tbk-tab" data-pane="chart">圖表</button>
   <button type="button" class="tbk-tab" data-pane="tbl">資料表</button>
@@ -173,7 +173,7 @@
 </div>
 </section>
 <!-- 注意事項區塊 -->
-<div class="tool-notes" style="--tool-accent:#FF6B35;">
+<div class="tool-notes" style="--tool-accent:#B23A08;">
 <div class="card" id="constRefBox">
   <h3 data-zh="📐 公式與標準引據">Formula &amp; Standard References</h3>
   <div style="overflow-x:auto;">
@@ -253,6 +253,11 @@ const styles = {
   'ᶠᵃⁿᶜʸ 上标': mapStr('Hello', 'ᴴᵉˡˡᵒ', 'abcdefghijklmnopqrstuvwxyz', 'ᵃᵇᶜᵈᵉᶠᵍʰⁱʲᵏˡᵐⁿᵒᵖqʳˢᵗᵘᵛʷˣʸᶻ'),
   'ₐₙₓᵢₑₜₓ 下标': mapStr('Hello', 'ₕₑₗₗₒ', 'abcdefghijklmnopqrstuvwxyz', 'ₐbcdₑfgₕᵢⱼₖₗₘₙₒₚqᵣₛₜᵤᵥwₓyz'),
 };
+(function(){
+  var src='',dst='';
+  for(var i=33;i<=126;i++){src+=String.fromCharCode(i);dst+=String.fromCharCode(i+0xFEE0);}
+  styles['ＡＢＣ 全角']={sample:'Hello',mapped:'Ｈｅｌｌｏ',src:src,dst:dst};
+})();
 
 // 辅助：构建字符映射函数
 function mapStr(sample, mapped, src, dst){
@@ -279,11 +284,12 @@ function escapeHtml(s){
 
 function applyStyle(info, text){
   if(typeof info === 'string') return info;
-  if(!info.src) return text;
+  if(!info || !info.src) return text;
+  const dstChars = Array.from(info.dst);
   let result = '';
   for(const ch of text){
     const idx = info.src.indexOf(ch);
-    if(idx >= 0) result += info.dst[idx];
+    if(idx >= 0 && dstChars[idx]) result += dstChars[idx];
     else result += ch;
   }
   return result;

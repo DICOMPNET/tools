@@ -140,7 +140,7 @@
   <a href="/zh-tw/guides/url-encode-guide.html">📖 檢視「URL 編碼使用指南」</a>
 </div>
 <div class="container" role="main">
-  <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
+  <div class="card tool-card-accent" style="--tool-accent:#B23A08;">
     <h2 data-zh="🔤 URL 工具集">🔤 URL Encode Decode</h2>
 <!-- TOOLBOX-POLISH -->
 
@@ -316,7 +316,7 @@
 </div>
 </section>
 <!-- 注意事項區塊 -->
-<div class="tool-notes" style="--tool-accent:#FF6B35;">
+<div class="tool-notes" style="--tool-accent:#B23A08;">
 <!-- Formula & Standard References -->
 <div class="card" id="constRefBox">
   <h3 data-zh="📐 公式與標準引據">Formula &amp; Standard References</h3>
@@ -409,12 +409,13 @@
 
   function addHistory(input, output, action){
     try{
-      var history = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+      var history = getHistory();
+      // 安全：历史只保留长度与操作元信息，不持久化输入/输出原文。
       var item = {
         action: action,
         mode: encodeMode,
-        input: input.substring(0, 200),
-        output: output.substring(0, 200),
+        inputLen: input.length,
+        outputLen: output.length,
         time: Date.now()
       };
       history.unshift(item);
@@ -424,12 +425,37 @@
     }catch(e){}
   }
 
+  function getHistory(){
+    try{
+      var raw = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+      if(!Array.isArray(raw)) raw = [];
+      var changed = false, clean = [];
+      for(var i=0; i<raw.length; i++){
+        var h = raw[i] || {};
+        if(h.input !== undefined || h.output !== undefined){
+          changed = true;
+          clean.push({
+            action: h.action === 'decode' ? 'decode' : 'encode',
+            mode: h.mode === 'uri' ? 'uri' : 'component',
+            inputLen: (typeof h.input === 'string') ? h.input.length : (Number(h.inputLen) || 0),
+            outputLen: (typeof h.output === 'string') ? h.output.length : (Number(h.outputLen) || 0),
+            time: Number(h.time) || Date.now()
+          });
+        } else {
+          clean.push(h);
+        }
+      }
+      if(changed){ localStorage.setItem(HISTORY_KEY, JSON.stringify(clean)); }
+      return clean;
+    }catch(e){
+      try{ localStorage.removeItem(HISTORY_KEY); }catch(err){}
+      return [];
+    }
+  }
+
   function renderHistory(){
     var list = document.getElementById('historyList');
-    var history;
-    try{
-      history = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
-    }catch(e){ history = []; }
+    var history = getHistory();
     if(history.length === 0){
       const __h0='<p style="text-align:center;color:var(--text-muted);font-size:13px;padding:20px;">暂无历史记录</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){list.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}list.innerHTML=__h0;
       return;
@@ -438,8 +464,8 @@
     history.forEach(function(item, idx){
       var time = new Date(item.time);
       var timeStr = time.getHours().toString().padStart(2,'0') + ':' + time.getMinutes().toString().padStart(2,'0');
-      html += '<div class="history-item" onclick="loadHistory(' + idx + ')">';
-      html += '<span class="h-src">' + ToolBox.escHtml(item.input.substring(0, 60)) + '</span>';
+      html += '<div class="history-item">';
+      html += '<span class="h-src">' + (Number(item.inputLen)||0) + ' 字符 → ' + (Number(item.outputLen)||0) + ' 字符</span>';
       html += '<span class="h-meta"><span class="tag">' + (item.action === 'encode' ? '编码' : '解码') + '</span>' + timeStr + '</span>';
       html += '</div>';
     });
@@ -447,17 +473,7 @@
   }
 
   function loadHistory(idx){
-    try{
-      var history = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
-      var item = history[idx];
-      if(!item) return;
-      setEncodeMode(item.mode);
-      switchTab('encode');
-      document.getElementById('input').value = item.input;
-      document.getElementById('output').value = item.output;
-      onInputChange();
-      ToolBox.showToast(i18nText());
-    }catch(e){}
+    ToolBox.showToast('历史仅保留长度统计，不保存原文，无法回填');
   }
 
   function clearHistory(){
@@ -776,7 +792,7 @@ function __url_encodeSnap(){
         var t=(e.type||'').toLowerCase();
         if(t==='button'||t==='submit'||t==='hidden') continue;
         // 隐私：待编码文本、含 user:pass 的 URL、生成 URL 都可能含凭据，只记录长度。
-        var __tbPrivate={'input':'输入长度','parseInput':'解析URL长度','builtUrl':'生成URL长度'};
+        var __tbPrivate={'input':'输入长度','parseInput':'解析URL长度','builtUrl':'生成URL长度','output':'输出长度'};
         if(__tbPrivate[e.id]){ if(e.value) out[__tbPrivate[e.id]]=(e.value||'').length+' 字符（未存原文）'; continue; }
         var v=(t==='checkbox'||t==='radio')?(e.checked?'1':'0'):e.value;
         if(v!==''&&v!=null) out[e.id]=v;
@@ -848,6 +864,21 @@ function __url_encodeRender(keys,rk,en){
     }catch(e3){}
 }
 function __url_encodeExtras(){
+    if(!window.__tbPrivPurged){
+        window.__tbPrivPurged=true;
+        try{
+            var __k='tbk_hist_'+location.pathname, __a=JSON.parse(localStorage.getItem(__k)||'[]');
+            if(Array.isArray(__a)){
+                for(var __i=0;__i<__a.length;__i++){
+                    var __d=__a[__i]&&__a[__i].d;
+                    if(!__d) continue;
+                    if(typeof __d['结果']==='string'&&__d['结果'].indexOf('未存原文')<0) __d['结果']='已清理（原结果含敏感内容，未保留）';
+                    if(typeof __d['Result']==='string'&&__d['Result'].indexOf('not stored')<0) __d['Result']='Removed (sensitive result was not retained)';
+                }
+                localStorage.setItem(__k,JSON.stringify(__a));
+            }
+        }catch(e){}
+    }
     if (typeof TBKit === 'undefined') return;
     if (__url_encode_skip) return;
     var snap=__url_encodeSnap();
@@ -855,6 +886,8 @@ function __url_encodeExtras(){
     if(!keys.length) return;
     if(keys.length>12) keys=keys.slice(0,12);
     var res=__url_encodeResText();
+    var __privSc=__url_encodeScore(res);
+    var __privRes=__privSc?'执行成功（结果 '+String(res).length+' 字符，未存原文）':'执行失败（详见结果区，未存原文）';
     if(!res) return;
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
@@ -867,13 +900,13 @@ function __url_encodeExtras(){
         for(var i=0;i<keys.length;i++){
             if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
         }
-        if(same&&String(last[rk])===String(res)) return;
+        if(same&&String(last[rk])===String(__privRes)) return;
     }
     __url_encode_last=now;
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
-    rec[rk]=res;
-    rec.__tbScore=__url_encodeScore(res);
+    rec[rk]=__privRes;
+    rec.__tbScore=__privSc;
     TBKit.history.record(rec);
     __url_encodeRender(keys,rk,en);
 }

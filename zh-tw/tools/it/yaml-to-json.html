@@ -16,6 +16,7 @@
 <meta name="description" content="在 CI、API、前端配置裡常需要把 YAML（如 GitHub Actions、docker-compose）轉成 JSON。貼上即轉，可設縮排">
 <link rel="stylesheet" href="/css/common.css">
 <script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/vendor/js-yaml/4.1.1/js-yaml.min.js" integrity="sha384-ZeqCzuWczURac3RacSufGD7oSbzeaX7xxnnOr3PTcYTLx4Av0qBj0kBq7AeCtHLA" crossorigin="anonymous"></script>
 <script src="/js/common.js" defer></script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首頁","item":"https://tools.dicomp.net/zh-tw/"},{"@type":"ListItem","position":2,"name":"IT開發","item":"https://tools.dicomp.net/zh-tw/tools/it/index.html"},{"@type":"ListItem","position":3,"name":"YAML 轉 JSON 轉換器","item":"https://tools.dicomp.net/zh-tw/tools/it/yaml-to-json.html"}]}</script>
 <meta property="og:image" content="https://tools.dicomp.net/og-image.png">
@@ -92,10 +93,10 @@
   <a href="/zh-tw/guides/yaml-to-json-guide.html">📖 檢視「YAML 轉 JSON使用指南」</a>
 </div>
 <div class="container" role="main">
-  <div class="card tool-card-accent" style="--tool-accent:#3B82F6;">
+  <div class="card tool-card-accent" style="--tool-accent:#1D4ED8;">
     <h2 data-zh="📄 YAML 轉 JSON 轉換器">📄 YAML to JSON Converter</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">YAML 解析：逐行記錄縮排量（行首空白長度），跳過空行與 # 註釋；行以 - 開頭時按同一縮排連續收集為陣列，元素為空則遞迴解析子塊、形如「鍵: 值」按對映解析、否則按標量；其餘按 ^([^:]+):\s?(.*)$ 取鍵值對，值為空且下一行縮排更大時遞迴解析子塊，否則取空物件。塊標量：| / >（含 |- / >-）按縮排收集後續行，| 保留換行、> 摺疊為空格，尾部 - 去掉末尾換行、預設保留一個。行內註釋：值中引號外的「空格 + #」在解析前剝離，引號內 # 與緊貼值的 # 保留。標量還原：去成對引號，true/false 轉布林，null 與 ~ 轉空，純整數轉 parseInt，純小數轉 parseFloat。輸出 JSON 時縮排取 tab 或指定個數的空格（預設 2），勾選排序時按鍵名字典序遞迴重排所有層級的鍵</div>
+  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">YAML 解析由本地 js-yaml 4.1.1 完成：完整支援引號鍵、錨點/別名、塊標量與行內註釋，複雜鍵不再被靜默丟棄；僅支援單文件，檢測到 --- 多文件時直接報錯。輸出 JSON 縮排可選 tab 或 2/4 空格；勾選排序時按鍵名字典序遞迴重排所有層級的鍵</div>
   <div class="formula-desc">把 YAML 轉換為 JSON。</div>
   <ul class="formula-list">
     <li><b>對映</b>：YAML 的對映與序列分別轉為 JSON 物件與陣列。</li>
@@ -126,7 +127,7 @@
     </div>
     <div class="result-box" id="result"></div> <div id="yaml_to_jsonTable"></div> <div id="yaml_to_jsonDiff"></div> <div id="yaml_to_jsonChart"></div> <div id="yaml_to_jsonHist"></div>
   </div>
-<div class="tool-notes" style="--tool-accent:#3B82F6;">
+<div class="tool-notes" style="--tool-accent:#1D4ED8;">
 <!-- Formula & Standard References -->
 <div class="card" id="constRefBox">
   <h3 data-zh="📐 公式與標準引據">Formula &amp; Standard References</h3>
@@ -365,8 +366,15 @@ function dumpYaml(node,pad,sort,isRoot){
 
 var src=document.getElementById('source').value||'';
 if(!src.trim()){ document.getElementById('result').innerHTML='<p class="muted">请输入 YAML 文本</p>'; return; }
-var obj=parseYaml(src);
-if(obj && obj.__err){ const __g3='<p class="muted">解析失败：'+escH(obj.__err)+'</p>';document.getElementById('result').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—')); return; }
+var obj;
+try{
+  if(typeof jsyaml==='undefined') throw new Error('js-yaml 解析库未加载，请刷新页面重试');
+  var docs=jsyaml.loadAll(src);
+  if(docs.length>1) throw new Error('检测到多份 YAML 文档（--- 分隔），请逐份转换');
+  obj=docs.length?docs[0]:null;
+}catch(e){
+  document.getElementById('result').innerHTML='<p class="muted">解析失败：'+escH(e.message)+'</p>'; return;
+}
 if(document.getElementById('sort').checked){
   obj=sortKeys(obj);
 }

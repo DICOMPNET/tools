@@ -108,7 +108,7 @@
   <a href="/zh-tw/guides/random-picker-guide.html">📖 檢視「隨機選項抽取器使用指南」</a>
 </div>
 
-  <style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#3b82f6)}.tbk-tab.active{background:var(--accent,#3b82f6);color:#fff;border-color:var(--accent,#3b82f6)}.tbk-panel{margin-top:6px}</style>
+  <style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#1D4ED8)}.tbk-tab.active{background:var(--accent,#1D4ED8);color:#fff;border-color:var(--accent,#1D4ED8)}.tbk-panel{margin-top:6px}</style>
 <div class="tbk-tabbar" role="tablist">
   <button type="button" class="tbk-tab" data-pane="res">結果</button>
   <button type="button" class="tbk-tab" data-pane="tbl">資料表</button>
@@ -118,7 +118,7 @@
 <div class="card tool-card-accent" style="--tool-accent:#EC4899;">
     <h2 data-zh="🎲 隨機選擇器">🎲 Random Picker</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">選項按換行分割並去首尾空白、濾空行；不放回模式維護候選池，抽中即從池中移除；15 輪 × 80ms 快速滾動後定格輸出；抽取由隨機種子驅動，同種子 + 同列表可復算同一結果；歷史記錄保留最近 20 條</div>
+  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">選項按換行分割並去首尾空白、濾空行；不放回模式維護候選池，抽中即從池中移除；15 輪 × 80ms 快速滾動僅為視覺動畫。種子留空時用 Web Crypto 安全隨機直接抽取，不生成可復算種子；填寫種子時進入可復現模式（結果可由種子預測），同種子 + 同列表復算一致；歷史記錄保留最近 20 條</div>
   <p class="formula-desc" data-zh="本工具為純前端線上工具，資料在瀏覽器本地處理、不上傳伺服器，依據對應領域標準與規範進行計算或處理，結果僅供參考。 工具名稱：隨機選擇器 - 娛樂遊戲領域的線上工具。">Pick one item at random from your options, with multiple draws and a no-repeat mode — for deciding where to eat or who speaks first.</p>
 </div>
 
@@ -133,8 +133,8 @@
 不吃</textarea>
     <label style="margin-top:8px;"><input type="checkbox" id="unique" style="width:auto;display:inline-block;vertical-align:middle;"> 不重複抽取</label>
     <div class="input-row" style="max-width:260px;margin-top:6px;">
-      <label for="seed">隨機種子（可選）：</label>
-      <input type="text" id="seed" placeholder="留空自動生成；填同一種子可復算">
+      <label for="seed">隨機種子（可選，留空用安全隨機）：</label>
+      <input type="text" id="seed" placeholder="留空=安全隨機、不可復算；填寫=可復現（同種子可預測）">
     </div>
     <div class="result-big" id="result">—</div>
     <div id="random_pickerTable"></div>
@@ -211,7 +211,7 @@
         </tr>
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="可復現性">Reproducibility</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="工具提供隨機種子輸入框：同種子 + 同列表即可讓第三方復算同一結果">the tool exposes a seed field: same seed and list let others recompute the same pick</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="工具提供隨機種子輸入框：留空使用安全隨機；填寫同種子 + 同列表可復算同一結果（因此可預測）">A seed field is provided: leave it blank for secure randomness; entering the same seed and list reproduces the same pick (and is therefore predictable)</td>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="Fair draw practice">Fair draw practice</td>
         </tr>
       </tbody>
@@ -249,6 +249,14 @@ function randomPickOne(list,seed){
   const rng=makeRng(seed);
   return list[Math.floor(rng()*list.length)];
 }
+function securePickOne(list){
+  const c=secureCrypto();
+  if(!c) return null;
+  const max=list.length, limit=Math.floor(4294967296/max)*max;
+  const a=new Uint32Array(1);
+  do{c.getRandomValues(a);}while(a[0]>=limit);
+  return list[a[0]%max];
+}
 function start(){
   if(drawTimer!==null) return; // 动画期间忽略重复启动，避免共享候选池被并发消耗
   const restoring=__random_picker_skip;
@@ -256,15 +264,9 @@ function start(){
   if(list.length<1){alert('请至少输入 1 个选项');return;}
   const seedEl=document.getElementById('seed');
   let seed=(seedEl&&seedEl.value.trim())?seedEl.value.trim():'';
-  if(!seed){
-    const c=secureCrypto();
-    if(!c){
-      document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 当前浏览器不支持 Web Crypto 安全随机数，无法生成不可预测的抽取种子（也不会静默回落 Math.random）；请升级浏览器后重试。</p>';
-      return;
-    }
-    const a=new Uint32Array(1);
-    c.getRandomValues(a);
-    seed=(a[0].toString(36)+Date.now().toString(36)).slice(-10);
+  if(!seed&&!secureCrypto()){
+    document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 当前浏览器不支持 Web Crypto 安全随机数，无法进行不可预测的抽取（也不会静默回落 Math.random）；请升级浏览器后重试，或填写种子进入可复现模式。</p>';
+    return;
   }
   const unique=document.getElementById('unique').checked;
   if(unique){
@@ -289,7 +291,8 @@ function start(){
     if(cycles>=15){
       clearInterval(drawTimer);
       drawTimer=null;
-      const picked=randomPickOne(pool,seed);
+      const picked=seed?randomPickOne(pool,seed):securePickOne(pool);
+      if(picked==null){clearInterval(drawTimer);drawTimer=null;document.getElementById('output').innerHTML='<p style="color:var(--danger)">安全随机不可用，未执行抽取。</p>';return;}
       r.textContent=picked;
       if(unique){
         pool=pool.filter(x=>x!==picked);
@@ -308,7 +311,7 @@ function start(){
       var ps=document.createElement('p');
       ps.style.fontSize='12px';
       ps.style.color='var(--text-muted)';
-      ps.textContent='随机种子：'+seed+'（同列表 + 同种子可复算同一结果）';
+      ps.textContent=seed?('用户种子模式：'+seed+'（可复现，因此结果可由种子预测；同列表 + 同种子复算一致）'):'随机方式：Web Crypto 安全随机（不生成可复算种子）';
       outEl.appendChild(ps);
       if(unique){
         var p2=document.createElement('p');

@@ -98,14 +98,14 @@
   <span class="bc-current" aria-current="page">胃腸動力胃排空測定器</span>
 </nav>
 <div class="container" role="main">
-  <style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#3b82f6)}.tbk-tab.active{background:var(--accent,#3b82f6);color:#fff;border-color:var(--accent,#3b82f6)}.tbk-panel{margin-top:6px}</style>
+  <style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#1D4ED8)}.tbk-tab.active{background:var(--accent,#1D4ED8);color:#fff;border-color:var(--accent,#1D4ED8)}.tbk-panel{margin-top:6px}</style>
 <div class="tbk-tabbar" role="tablist">
   <button type="button" class="tbk-tab" data-pane="res">結果</button>
   <button type="button" class="tbk-tab" data-pane="tbl">資料表</button>
   <button type="button" class="tbk-tab" data-pane="pre">預設</button>
   <button type="button" class="tbk-tab" data-pane="his">歷史</button>
 </div>
-<div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
+<div class="card tool-card-accent" style="--tool-accent:#B23A08;">
     <h2 data-zh="🩻 胃腸動力（胃排空）測定器">Gastric Emptying</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="根據核素胃排空掃描資料計算胃排空率與半排時間，評估胃動力功能">Gastric Emptying</p>
     <div class="formula-box">
@@ -226,7 +226,7 @@
 </div>
 </section>
 <!-- 注意事項區塊 -->
-<div class="tool-notes" style="--tool-accent:#FF6B35;">
+<div class="tool-notes" style="--tool-accent:#B23A08;">
 <div class="card" id="constRefBox">
   <h3 data-zh="📐 公式與標準引據">Formula &amp; Standard References</h3>
   <div style="overflow-x:auto;">
@@ -280,8 +280,8 @@ function calc(){
   // T½ 由 2h/4h 残留率按指数排空模型估算：R(t)=r0·e^(-kt)，取两点 k 的均值。
   if(!(halfTime>0)){
     if(r0>0 && r2>0 && r4>0 && r4<r2 && r2<r0){
-      var k=(-Math.log(r2/r0)/2 - Math.log(r4/r0)/4)/2;
-      if(k>0){ halfTime=Math.LN2/k; halfEstimated=true; }
+      var k=(-Math.log(r2/r0)/2 - Math.log(r4/r0)/4)/2; // 每小时排空速率
+      if(k>0){ halfTime=Math.LN2/k*60; halfEstimated=true; } // 小时转分钟，与 30/90 分钟阈值统一
     }
   }
   if(!(halfTime>0)){
@@ -315,15 +315,15 @@ function calc(){
   // 综合判断
   if(r4>10 || r2>60 || halfTime>90){
     overallStatus='胃排空延迟（胃轻瘫）';
-    color='#EF4444';
+    color='#B91C1C';
     advice='胃排空延迟。' +(r4>10?'4小时残留率'+r4+'%（＞10%），':'')+(r2>60?'2小时残留率'+r2+'%（＞60%），':'')+(halfTime>90?'半排时间'+halfText+'分钟（＞90分钟），':'')+'符合胃轻瘫诊断。建议：1)排除机械性梗阻（胃镜）；2)优化血糖控制（糖尿病患者）；3)调整饮食（少食多餐、低脂低纤维）；4)促动力药（甲氧氯普胺/多潘立酮/红霉素）；5)严重者考虑胃电刺激或幽门肉毒素注射。';
   }else if(r2<30 || halfTime<30){
     overallStatus='胃排空过快（倾倒综合征可能）';
-    color='#F59E0B';
+    color='#92400E';
     advice='胃排空过快。' +(r2<30?'2小时残留率仅'+r2+'%（＜30%），':'')+(halfTime<30?'半排时间仅'+halfText+'分钟（＜30分钟），':'')+'提示倾倒综合征可能。建议：1)少食多餐、干湿分离饮食；2)避免高渗食物；3)早期倾倒可考虑生长抑素类似物；4)晚期倾倒（低血糖）可增加蛋白质摄入、阿卡波糖。';
   }else{
     overallStatus='胃排空正常';
-    color='#10B981';
+    color='#065F46';
     advice='胃排空功能正常。2小时残留率'+r2+'%，4小时残留率'+r4+'%，半排时间'+halfText+'分钟，均在正常范围内。如仍有消化道症状，需考虑其他原因（功能性消化不良、肠易激综合征等）。';
   }
 

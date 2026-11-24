@@ -101,19 +101,19 @@
   <a href="/zh-tw/guides/calc-79-guide.html">📖 檢視「增長率計算（自選基期） 使用指南」</a>
 </div>
 <div class="container" role="main">
-  <style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#3b82f6)}.tbk-tab.active{background:var(--accent,#3b82f6);color:#fff;border-color:var(--accent,#3b82f6)}.tbk-panel{margin-top:6px}</style>
+  <style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#1D4ED8)}.tbk-tab.active{background:var(--accent,#1D4ED8);color:#fff;border-color:var(--accent,#1D4ED8)}.tbk-panel{margin-top:6px}</style>
 <div class="tbk-tabbar" role="tablist">
   <button type="button" class="tbk-tab" data-pane="res">結果</button>
   <button type="button" class="tbk-tab" data-pane="tbl">資料表</button>
   <button type="button" class="tbk-tab" data-pane="pre">預設</button>
   <button type="button" class="tbk-tab" data-pane="his">歷史</button>
 </div>
-<div class="card tool-card-accent" style="--tool-accent:#FF6B35;--tool-accent-dark:#FF6B35;">
-    <h2 data-zh="🧮 增長率計算（自選基期）">Growth Rate Calculator (YoY / MoM)</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="輸入本期與同期數值，計算同比增長率、增長額與倍數。">Compute year-over-year and month-over-month growth.</p>
+<div class="card tool-card-accent" style="--tool-accent:#B23A08;--tool-accent-dark:#FF6B35;">
+    <h2 data-zh="🧮 增長率計算（自選基期）">Growth Rate Calculator (Selected Base)</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="輸入本期與自選基期數值，計算相對基期的增長率、增長額與倍數。">Compute growth relative to the base period you provide.</p>
     <div class="formula-box">
       <div class="formula-title">📐 計算公式</div>
-      <div class="formula-eq">同比增長率 = (本期值 − 同期值) ÷ 同期值 × 100%；增長額 = 本期值 − 同期值；另輸出比值 = 本期值 ÷ 同期值、增長額佔本期比 = (本期值 − 同期值) ÷ 本期值 × 100%；頁面提示語同口徑（增長率 =（本期−同期）÷同期×100%，增長貢獻 = 增長額÷本期×100%）。校驗：空值由必填校驗殼攔截，非數輸入提示「請輸入兩個有效數值後再計算」。判據：比值 &gt;1 或增長額 &gt;0 為同比增長、=0 持平、&lt;0 同比下降。</div>
+      <div class="formula-eq">增長率 = (本期值 − 基期值) ÷ 基期值 × 100%；增長額 = 本期值 − 基期值；另輸出比值 = 本期值 ÷ 基期值、增長額佔本期比 = (本期值 − 基期值) ÷ 本期值 × 100%；頁面提示語同口徑（增長率 =（本期−基期）÷基期×100%，增長貢獻 = 增長額÷本期×100%）。校驗：空值由必填校驗殼攔截，非數輸入提示「請輸入兩個有效數值後再計算」。判據：比值 &gt;1 或增長額 &gt;0 為正增長、=0 持平、&lt;0 負增長；同比/環比由基期選擇決定。</div>
       <p class="formula-desc">本工具按本期值與自選基期值計算增長率、增長額、比值與增長貢獻；同比/環比由你填寫的基期決定，基期為 0 時增長率無定義。</p>
     </div>
     <div class="input-row">
@@ -127,8 +127,8 @@
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
     <div class="result-box" id="res"></div> <div id="calc_79Table"></div> <div id="calc_79Diff"></div> <div id="calc_79Chart"></div> <div id="calc_79Hist"></div>
-    <div class="info-box">💡 增長率 =（本期 − 同期）÷ 同期 × 100%；增長貢獻 = 增長額 ÷ 本期 × 100%。</div>
-<div class="tool-notes" style="--tool-accent:#FF6B35;">
+    <div class="info-box">💡 增長率 =（本期 − 基期）÷ 基期 × 100%；增長貢獻 = 增長額 ÷ 本期 × 100%。</div>
+<div class="tool-notes" style="--tool-accent:#B23A08;">
 <div class="card" id="constRefBox">
   <h3 data-zh="📐 公式與標準引據">Formula &amp; Standard References</h3>
   <div style="overflow-x:auto;">
@@ -357,7 +357,7 @@ document.addEventListener('DOMContentLoaded',function(){
 <script>
 /* 真实业务计算逻辑（页内独占，覆盖通用两参脚本） */
 function calc(){
-    var __ig=__tbInputGuard(['v0', 'v1'],["本期值", "同期值"]);if(__ig){const __g6=__ig;ToolBox.setResult("res",(typeof __g6==='number'?(isFinite(__g6)?__g6:'—'):String(__g6).replace(/Infinity|NaN/g,'—')));return;}
+    var __ig=__tbInputGuard(['v0', 'v1'],["本期值", "基期值"]);if(__ig){const __g6=__ig;ToolBox.setResult("res",(typeof __g6==='number'?(isFinite(__g6)?__g6:'—'):String(__g6).replace(/Infinity|NaN/g,'—')));return;}
 var e0=document.getElementById('v0'),e1=document.getElementById('v1');
   var A=e0?parseFloat(e0.value):NaN,B=e1?parseFloat(e1.value):NaN;
   var box=document.getElementById('res');
@@ -366,12 +366,12 @@ var e0=document.getElementById('v0'),e1=document.getElementById('v1');
   var items=[];
   var g=A-B;
   items.push([g.toFixed(2), "增长额"]);
-  items.push([((A-B)/B*100).toFixed(2)+"%", "同比增长率"]);
-  items.push([(A/B).toFixed(4), "本期 ÷ 同期"]);
+  items.push([((A-B)/B*100).toFixed(2)+"%", "增长率（相对基期）"]);
+  items.push([(A/B).toFixed(4), "本期 ÷ 基期"]);
   items.push([A===0?"—":((A-B)/A*100).toFixed(2)+"%", "增长额占本期比"]);
 
   var html='<div class="data-grid">'+items.map(function(it){return '<div class="data-card"><div class="num">'+it[0]+'</div><div class="label">'+it[1]+'</div></div>';}).join('')+'</div>';
-  html+='💡 增长率 =（本期 − 同期）÷ 同期 × 100%；增长贡献 = 增长额 ÷ 本期 × 100%。';
+  html+='💡 增长率 =（本期 − 基期）÷ 基期 × 100%；增长贡献 = 增长额 ÷ 本期 × 100%。';
   const __g8=html;box.innerHTML=(typeof __g8==='number'?(isFinite(__g8)?__g8:'—'):String(__g8).replace(/Infinity|NaN/g,'—'));
   if(typeof saveHistory==='function'){try{saveHistory(A,B);}catch(e){}}
 }
@@ -575,7 +575,7 @@ else document.addEventListener('DOMContentLoaded', __calc_79Boot);
     </a>
     <a href="/zh-tw/tools/ecommerce/inventory-1.html" class="related-tool-card">
       <span class="rt-icon">🏬</span>
-      <span class="rt-info"><span class="rt-name">庫存（預警/補貨）自動</span><span class="rt-desc">輸入安全庫存、日均銷量與補貨週期，自動計算補貨點與預警庫存並提示何時補貨，用於電商庫存防缺貨管理</span></span>
+      <span class="rt-info"><span class="rt-name">庫存（預警/補貨）自動</span><span class="rt-desc">輸入日均銷量與補貨提前期，自動按需求波動 30% 估算安全庫存、再訂貨點與建議補貨點，用於電商庫存防…</span></span>
     </a>
   </div>
 </div>

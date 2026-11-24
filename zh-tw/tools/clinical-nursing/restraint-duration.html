@@ -75,7 +75,7 @@
 
 <script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"能替代醫囑？","acceptedAnswer":{"@type":"Answer","text":"不能。"}},{"@type":"Question","name":"最長？","acceptedAnswer":{"@type":"Answer","text":"每日複評續開。"}},{"@type":"Question","name":"鬆解發現異常？","acceptedAnswer":{"@type":"Answer","text":"上報處理。"}}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"能替代醫囑？","acceptedAnswer":{"@type":"Answer","text":"不能。"}},{"@type":"Question","name":"最長？","acceptedAnswer":{"@type":"Answer","text":"每日複評續開。"}},{"@type":"Question","name":"鬆解發現異常？","acceptedAnswer":{"@type":"Answer","text":"上報處理。"}},{"@type":"Question","name":"鬆解會跨過約束結束時刻怎麼辦？","acceptedAnswer":{"@type":"Answer","text":"若本次鬆解時長會越過計劃結束時刻，頁面按實際結束時刻終止，不再生成結束後的重新約束；結束前應完成皮膚與末梢血運評估並記錄。"}}]}</script>
 <meta property="og:site_name" content="ToolBox">
 <meta name="theme-color" content="#FF6B35">
 <!-- TOOLBOX-HREFLANG -->
@@ -108,7 +108,7 @@
   <a href="/zh-tw/guides/restraint-duration-guide.html">📖 檢視「約束用具使用時長(鬆解週期)計算器 使用指南」</a>
 </div>
 <div class="container" role="main">
-  <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
+  <div class="card tool-card-accent" style="--tool-accent:#B23A08;">
     <h2 data-zh="⏱️ 約束用具使用時長(鬆解週期)計算器">Restraint Duration</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="根據約束型別和約束開始時間，計算鬆解時間點和約束總時長，生成完整鬆解計劃。">Restraint Duration</p>
 <div class="formula-box">
@@ -198,11 +198,12 @@
 <dt>能替代醫囑？</dt><dd>不能。</dd>
 <dt>最長？</dt><dd>每日複評續開。</dd>
 <dt>鬆解發現異常？</dt><dd>上報處理。</dd>
+<dt>鬆解會跨過約束結束時刻怎麼辦？</dt><dd>若本次鬆解時長會越過計劃結束時刻，頁面按實際結束時刻終止，不再生成結束後的重新約束；結束前應完成皮膚與末梢血運評估並記錄。</dd>
 </dl>
 </div>
 </section>
 <!-- 注意事項區塊 -->
-<div class="tool-notes" style="--tool-accent:#FF6B35;">
+<div class="tool-notes" style="--tool-accent:#B23A08;">
 <div class="card" id="constRefBox">
   <h3 data-zh="📐 公式與標準引據">Formula &amp; Standard References</h3>
   <div style="overflow-x:auto;">
@@ -273,9 +274,18 @@ function calc(){
     return;
   }
 
+  var parts = String(startStr || '').trim().split(':');
+  if(parts.length !== 2 || !/^\d{1,2}$/.test(parts[0]) || !/^\d{1,2}$/.test(parts[1]) ||
+     +parts[0] < 0 || +parts[0] > 23 || +parts[1] < 0 || +parts[1] > 59){
+    var __enStart = __emrEn();
+    document.getElementById('schedule').innerHTML = '<div class="schedule-item" style="border-color:var(--danger);"><span class="time">!</span><span class="action">' + (__enStart
+      ? 'Enter a valid restraint start time (HH:MM, e.g. 08:00). No release schedule is generated when the time is empty or invalid.'
+      : '请填写有效的约束开始时间（格式 HH:MM，例如 08:00），未填写或时间无效时不生成松解计划。') + '</span></div>';
+    ['restraint_durationTable','restraint_durationChart','restraint_durationDiff','restraint_durationHist'].forEach(function(id){var el=document.getElementById(id);if(el)el.innerHTML='';});
+    return;
+  }
   var start = new Date();
-  var parts = startStr.split(':');
-  start.setHours(parseInt(parts[0]), parseInt(parts[1]), 0, 0);
+  start.setHours(+parts[0], +parts[1], 0, 0);
 
   var endTime = new Date(start.getTime() + totalHours * 3600000);
 
@@ -286,6 +296,14 @@ function calc(){
     var loosenTime = new Date(start.getTime() + n * cfg.interval * 3600000);
     if(loosenTime >= endTime) break;
     var resumeTime = new Date(loosenTime.getTime() + cfg.duration * 60000);
+    if(resumeTime >= endTime){
+      var __enEnd = __emrEn();
+      scheduleHtml += '<div class="schedule-item"><span class="time">' + formatTime(loosenTime) + '</span><span class="action">' + (__enEnd
+        ? 'Start release and assess skin/perfusion; the ' + cfg.duration + '-minute release would pass the restraint end time ' + formatTime(endTime) + ', so it ends at the actual end time and is not re-applied.'
+        : '开始松解并评估皮肤及血运；本次松解 ' + cfg.duration + ' 分钟会越过约束结束时刻 ' + formatTime(endTime) + '，按实际结束时刻终止，不再重新约束。') + '</span></div>';
+      count++;
+      break;
+    }
     scheduleHtml += '<div class="schedule-item"><span class="time">' + formatTime(loosenTime) + '</span><span class="action">松解约束 ' + cfg.duration + '分钟，评估皮肤及血运（约 ' + formatTime(resumeTime) + ' 重新约束）</span></div>';
     count++;
   }

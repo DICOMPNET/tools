@@ -225,7 +225,7 @@ input[type="range"]:disabled::-webkit-slider-thumb{cursor:not-allowed;}
 </div>
 
   <!-- 上傳與設定 -->
-  <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
+  <div class="card tool-card-accent" style="--tool-accent:#B23A08;">
     <h2 data-zh="🗜️ 圖片壓縮（影像）">Image Compressor</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="線上壓縮圖片，支援 JPEG / WebP / PNG 格式、質量調節、尺寸限制與批次處理，所有處理在瀏覽器本地完成，圖片不上傳伺服器。">Image Compress ( Image )</p>
 
@@ -295,7 +295,7 @@ input[type="range"]:disabled::-webkit-slider-thumb{cursor:not-allowed;}
   </div>
 
   <!-- 注意事項 -->
-  <div class="tool-notes" style="--tool-accent:#FF6B35;">
+  <div class="tool-notes" style="--tool-accent:#B23A08;">
 <div class="card" id="constRefBox">
   <h3 data-zh="📐 公式與標準引據">Formula &amp; Standard References</h3>
   <div style="overflow-x:auto;">
@@ -521,7 +521,7 @@ function addFiles(fileList){
   files.forEach(function(file){
     var item = {
       id: nextId++, file: file, name: file.name,
-      origSize: file.size, origType: file.type, status:'loading'
+      origSize: file.size, origType: file.type, status:'loading', decodeError:false, gen:0
     };
     images.push(item);
     loadImage(file).then(function(img){
@@ -533,6 +533,7 @@ function addFiles(fileList){
       compressOne(item);
     }).catch(function(e){
       item.status = 'error';
+      item.decodeError = true; // 解码失败不可通过调整压缩参数恢复
       item.error = e.message;
       renderResults();
     });
@@ -562,12 +563,17 @@ function compressToTarget(img,s,targetBytes){
 }
 
 function compressOne(item){
-  if(!item.img || item.status==='error') return;
+  // 只有“解码失败”才不可重试；目标体积/尺寸不合适导致的压缩失败应在参数变化后重试
+  if(!item.img || item.decodeError) return;
+  var gen = ++item.gen;
+  item.status = 'loading';
+  item.error = '';
   var s = getSettings();
   var targetKB = parseInt((document.getElementById('targetSize')||{}).value,10);
   var useTarget = isFinite(targetKB) && targetKB>0 && s.format!=='png';
   var task = useTarget ? compressToTarget(item.img,s,targetKB*1024) : compressImage(item.img,s);
   task.then(function(res){
+    if(gen !== item.gen) return; // 参数快速变化时丢弃旧任务结果
     if(item.compUrl) URL.revokeObjectURL(item.compUrl);
     item.blob = res.blob;
     item.compUrl = URL.createObjectURL(res.blob);
@@ -582,6 +588,7 @@ function compressOne(item){
     item.status = 'done';
     renderResults();
   }).catch(function(e){
+    if(gen !== item.gen) return;
     item.status = 'error';
     item.error = e.message;
     renderResults();

@@ -50,7 +50,7 @@
 
 
 <meta name="title-en" content="Thermal Fatigue Life Calculator">
-<meta name="desc-en" content="Example: carbon steel, cooling rate 10 C/s, delta T = 300 C, beta = minus 0.6 gives kCr 1.3124, delta Teq 393.73 C, thermal strain amplitude 4.725e-3…">
+<meta name="desc-en" content="Estimate thermal fatigue life under rapid cooling from Coffin-Manson low-cycle fatigue, cooling rate and thermal expansion">
 
 
 <link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
@@ -97,13 +97,13 @@
   <span class="bc-current" aria-current="page">快冷材料熱疲勞</span>
 </nav>
 <div class="container" role="main">
-  <style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#3b82f6)}.tbk-tab.active{background:var(--accent,#3b82f6);color:#fff;border-color:var(--accent,#3b82f6)}.tbk-panel{margin-top:6px}</style>
+  <style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#1D4ED8)}.tbk-tab.active{background:var(--accent,#1D4ED8);color:#fff;border-color:var(--accent,#1D4ED8)}.tbk-panel{margin-top:6px}</style>
 <div class="tbk-tabbar" role="tablist">
   <button type="button" class="tbk-tab" data-pane="res">結果</button>
   <button type="button" class="tbk-tab" data-pane="tbl">資料表</button>
   <button type="button" class="tbk-tab" data-pane="his">歷史</button>
 </div>
-<div class="card tool-card-accent" style="--tool-accent:#FF6B35;--tool-accent-dark:#FF6B35;">
+<div class="card tool-card-accent" style="--tool-accent:#B23A08;--tool-accent-dark:#FF6B35;">
      <h2 data-zh="😴 快冷材料熱疲勞">😴 Thermal Fatigue Life (Coffin-Manson)</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="輸入冷卻速率、溫度迴圈幅值與材料引數，按 Coffin-Manson 公式計算熱疲勞壽命">From cooling rate, temperature swing amplitude and material constants, computes thermal fatigue life using the Coffin-Manson relation.</p>
         <div class="formula-box">
@@ -171,7 +171,7 @@
       </div>
     </div>
 
-    <div class="tool-notes" style="--tool-accent:#FF6B35;">
+    <div class="tool-notes" style="--tool-accent:#B23A08;">
       <div class="tool-notes-title">⚠️ 注意事項</div>
       <ul>
         <li>熱疲勞主要由溫度梯度引起的熱應變迴圈導致</li>
@@ -209,7 +209,7 @@ function readInputs(){
 function fmt(v){if(v>=1e6)return (v/1e6).toFixed(2)+'M';if(v>=1e3)return (v/1e3).toFixed(2)+'k';if(v>=1)return v.toFixed(1);return v.toExponential(2);}
 function calc(){
   var iv=readInputs();
-  if(!iv.valid){document.getElementById('res').innerHTML='<div class="info-box" style="color:#EF4444;">请输入有效参数（冷却速率>0, ΔT>0, C>0, β<0）</div>';lastResult='';return;}
+  if(!iv.valid){document.getElementById('res').innerHTML='<div class="info-box" style="color:var(--danger);">请输入有效参数（冷却速率>0, ΔT>0, C>0, β<0）</div>';lastResult='';return;}
   var cool=iv.cool,dT=iv.dT,c=iv.c,beta=iv.beta,md=matData[iv.mat];
   // 冷却速率影响系数: 基准1℃/s，速率越高热应变越大
   var kCr=1+0.3*Math.log10(cool+1);
@@ -230,7 +230,7 @@ function calc(){
   else{advice='热疲劳寿命良好，正常使用';}
   var matName=md.name;
   const __g2='<div class="data-grid">'+
-    '<div class="data-card"><div class="num" style="color:#00C9A7;">'+fmt(Nf)+'</div><div class="label">热疲劳寿命 Nf (循环)</div></div>'+
+    '<div class="data-card"><div class="num" style="color:#00796B;">'+fmt(Nf)+'</div><div class="label">热疲劳寿命 Nf (循环)</div></div>'+
     '<div class="data-card"><div class="num">'+dTeq.toFixed(1)+'</div><div class="label">等效温度幅值 (℃)</div></div>'+
     '<div class="data-card"><div class="num">'+(epsT*1e3).toFixed(3)+'</div><div class="label">热应变幅值 (×10⁻³)</div></div>'+
     '<div class="data-card"><div class="num">'+thermalStress.toFixed(0)+'</div><div class="label">热应力估算 (MPa)</div></div>'+
@@ -402,12 +402,12 @@ else document.addEventListener('DOMContentLoaded', __lifespan_25Boot);
 .deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
 .deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
 .deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
-.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#B23A08);margin-bottom:6px;}
 .deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
 .deep-dive .dd-faq{margin:8px 0 4px;}
 .deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
 .deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
-.deep-dive a.term-link{color:var(--tool-accent,#FF6B35);text-decoration:none;border-bottom:1px dashed currentColor;}
+.deep-dive a.term-link{color:var(--tool-accent,#B23A08);text-decoration:none;border-bottom:1px dashed currentColor;}
 .deep-dive a.term-link:hover{border-bottom-style:solid;}
 
 </style>
@@ -443,7 +443,7 @@ else document.addEventListener('DOMContentLoaded', __lifespan_25Boot);
     </a>
     <a href="/zh-tw/tools/materials/lifespan-4.html" class="related-tool-card">
       <span class="rt-icon">😴</span>
-      <span class="rt-info"><span class="rt-name">材料疲勞壽命</span><span class="rt-desc">計算器基於 Goodman 修正與 Basquin 公式，輸入應力幅、平均應力與材料抗拉強度，計算等…</span></span>
+      <span class="rt-info"><span class="rt-name">材料疲勞壽命</span><span class="rt-desc">按 Goodman 修正與 Basquin 公式由應力幅、平均應力和抗拉強度估算疲勞壽命，並對比三種…</span></span>
     </a>
     <a href="/zh-tw/tools/materials/huanbaonaimopinggu.html" class="related-tool-card">
       <span class="rt-icon">♻️</span>

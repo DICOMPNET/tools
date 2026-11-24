@@ -105,12 +105,12 @@
   <a href="/zh-tw/guides/analysis-28-guide.html">📖 檢視「利益（干係人/影響力）分析 使用指南」</a>
 </div>
 <div class="container" role="main">
-  <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
+  <div class="card tool-card-accent" style="--tool-accent:#B23A08;">
     <h2 data-zh="📊 利益（干係人/影響力）分析">📊 Stakeholder (Interest / Influence) Analysis</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="按權力與利益把干係人分為四象限，並輸出對應管理策略。">Classify stakeholders by power and interest and output four-quadrant management strategies: manage closely, keep satisfied, keep informed, monitor.</p>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理與說明</div>
-  <div class="formula-eq">關注度 = 權力(1–5) × 利益(1–5)（滿分 25）；象限判據（閾值取 3）：權力≥3 且利益≥3 → 重點管理（密切參與/聯合決策），權力≥3 且利益 &lt;3 → 令其滿意（高層定期彙報），權力 &lt;3 且利益≥3 → 隨時告知（週報/評審會），否則監控觀察。校驗：無強校驗，各評分直接取值。判據：關注度 ≥10 列入「需重點應對」清單，最高關注度用於干係人排序。</div>
+  <div class="formula-eq">關注度 = 權力(1–5) × 利益(1–5)（滿分 25）；象限判據（閾值取 3）：權力≥3 且利益≥3 → 重點管理（密切參與/聯合決策），權力≥3 且利益 &lt;3 → 令其滿意（高層定期彙報），權力 &lt;3 且利益≥3 → 隨時告知（週報/評審會），否則監控觀察。校驗：無強校驗，各評分直接取值。判據：權力≥3 且利益≥3 列入「重點管理」清單；關注度僅用於同象限排序，不單獨以 ≥10 或 ≥9 判定重點物件。</div>
 </div>
 
 <div id="shList"></div>
@@ -166,7 +166,7 @@
 </div>
 </section>
 <!-- 注意事項區塊 -->
-<div class="tool-notes" style="--tool-accent:#FF6B35;">
+<div class="tool-notes" style="--tool-accent:#B23A08;">
 <div class="card" id="constRefBox">
   <h3 data-zh="📐 公式與標準引據">Formula &amp; Standard References</h3>
   <div style="overflow-x:auto;">
@@ -233,9 +233,10 @@ function syncSh(){
 function addSh(){syncSh();shData.push({name:'',p:3,i:3});renderSh();}
 function delSh(i){syncSh();if(shData.length<=1){ToolBox.showToast('至少保留一名干系人','warning');return;}shData.splice(i,1);renderSh();}
 function calc(){
-// NUMCLR2：全部数值/日期输入为空时不输出 0 与结论
-var __ni=Array.prototype.slice.call(document.querySelectorAll('input[type=number],input[type=date]'));
-if(__ni.length && __ni.every(function(e){return String(e.value).trim()==='';})){document.getElementById('res').innerHTML='<p style="color:var(--danger)">⚠ 请填写必要的输入参数后再计算</p>';return;}
+  // NUMCLR2：干系人名称是页面真实必填项；任一行留空即阻止分级/策略结论
+  syncSh();
+  var __bad = shData.length===0 || shData.some(function(s){return !s || String(s.name).trim()==='';});
+  if(__bad){document.getElementById('res').innerHTML='<p style="color:var(--danger)">⚠ 请填写每位干系人的名称后再分析；空名称不参与分级。</p>';return;}
   var rows=[];var maxScore=0;var highList=[];
   shData.forEach(function(s,idx){
     var name=document.getElementById('sn'+idx).value||('干系人'+(idx+1));

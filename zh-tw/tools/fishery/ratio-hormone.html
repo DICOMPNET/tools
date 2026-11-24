@@ -66,7 +66,7 @@
 
 <script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"最簡整數比怎麼來？","acceptedAnswer":{"@type":"Answer","text":"先求兩數的最大公約數 g，再約分為 A/g : B/g；如 100:50 約分為 2:1。"}},{"@type":"Question","name":"佔比和倍數有什麼區別？","acceptedAnswer":{"@type":"Answer","text":"佔比 = A/B×100%（相對 B 的百分量），倍數 = A/B（純比值）；兩者描述同一比例關係，表達角度不同。"}}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"總劑量怎麼算？","acceptedAnswer":{"@type":"Answer","text":"總劑量 = 親魚體重（kg）× 劑量率（方案單位/kg）；例如 1.5 kg × 1000 IU/kg = 1500 IU。頁面只做這項乘法，不判斷該劑量率是否適合某一魚種。"}},{"@type":"Question","name":"兩針為什麼按 1/3 與 2/3 拆？","acceptedAnswer":{"@type":"Answer","text":"這是頁面內建的常用兩針法示例拆分，第一針為總劑量的 1/3、第二針為 2/3；不同魚種與方案的拆分比例可能不同，實際注射須按當地催產技術方案執行。"}},{"@type":"Question","name":"雄魚劑量為什麼取一半？","acceptedAnswer":{"@type":"Answer","text":"頁面按總劑量的 1/2 給出雄魚參考值，便於快速估算；雄魚實際用量常低於雌魚，但仍須按魚種、成熟度與當地操作規程確定，不能把參考值直接當作處方。"}}]}</script>
 <meta property="og:site_name" content="ToolBox">
 <meta name="theme-color" content="#FF6B35">
 <!-- TOOLBOX-HREFLANG -->
@@ -101,14 +101,14 @@
   <a href="/zh-tw/guides/ratio-hormone-guide.html">📖 檢視「催產激素劑量計算器使用指南」</a>
 </div>
 
-  <style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#3b82f6)}.tbk-tab.active{background:var(--accent,#3b82f6);color:#fff;border-color:var(--accent,#3b82f6)}.tbk-panel{margin-top:6px}</style>
+  <style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#1D4ED8)}.tbk-tab.active{background:var(--accent,#1D4ED8);color:#fff;border-color:var(--accent,#1D4ED8)}.tbk-panel{margin-top:6px}</style>
 <div class="tbk-tabbar" role="tablist">
   <button type="button" class="tbk-tab" data-pane="res">結果</button>
   <button type="button" class="tbk-tab" data-pane="tbl">資料表</button>
   <button type="button" class="tbk-tab" data-pane="pre">預設</button>
   <button type="button" class="tbk-tab" data-pane="his">歷史</button>
 </div>
-<div class="card tool-card-accent" style="--tool-accent:#FF6B35;--tool-accent-dark:#FF6B35;">
+<div class="card tool-card-accent" style="--tool-accent:#B23A08;--tool-accent-dark:#FF6B35;">
     <h2 data-zh="⚖️ 催產激素劑量計算器（體重 × 劑量率）">⚖️ Spawning Hormone Dose Calculator</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="輸入親魚體重與所選方案的劑量率，計算總劑量、兩針分配與雄魚參考劑量。">Enter broodstock weight and the dose rate of the selected agent to get the total dose, a two-injection split and a male reference dose.</p>
     <div class="formula-box">
@@ -149,7 +149,7 @@
     </table>
   </div>
 </div>
-<div class="tool-notes" style="--tool-accent:#FF6B35;">
+<div class="tool-notes" style="--tool-accent:#B23A08;">
   <div class="tool-notes-title">⚠️ 使用說明與注意事項</div>
   <ul>
       <li>本頁只做「體重 × 劑量率」的算術換算，劑量率按方案給出常用參考範圍，不同魚種差異很大。</li>
@@ -202,7 +202,7 @@ function applyScheme(){
 }
 function fmtDose(x,unit){ return x.toFixed(2)+' '+unit; }
 function calc(){
-  var en=/^en/i.test(document.documentElement.lang||'');
+  var en=/^en/i.test(document.documentElement.lang||'')||/lang=en-US/i.test(location.search);
   var e0=document.getElementById('v0'),e1=document.getElementById('v1'),res=document.getElementById('res');
   if(!e0||!e1||!res) return;
   var s0=String(e0.value).trim(),s1=String(e1.value).trim();
@@ -215,13 +215,14 @@ function calc(){
   var first=total/3;
   var second=total*2/3;
   var male=total/2;
+  var L=en?{total:'Total dose',first:'First injection (1/3)',second:'Second injection (2/3)',male:'Male reference (1/2)',eq:'Total dose = '+w+' kg × '+rate+' '+unit+'/kg = '+fmtDose(total,unit)+'. The dose rate is a scheme reference; confirm the actual protocol with species-specific local guidance.'}:{total:'总剂量',first:'第一针（1/3）',second:'第二针（2/3）',male:'雄鱼参考（1/2）',eq:'总剂量 = '+w+' kg × '+rate+' '+unit+'/kg = '+fmtDose(total,unit)+'。剂量率为方案参考值，实际方案须按鱼种与当地技术指导确定。'};
   res.innerHTML='<div class="data-grid">'+
-    '<div class="data-card"><div class="num">'+fmtDose(total,unit)+'</div><div class="label">总剂量</div></div>'+
-    '<div class="data-card"><div class="num">'+fmtDose(first,unit)+'</div><div class="label">第一针（1/3）</div></div>'+
-    '<div class="data-card"><div class="num">'+fmtDose(second,unit)+'</div><div class="label">第二针（2/3）</div></div>'+
-    '<div class="data-card"><div class="num">'+fmtDose(male,unit)+'</div><div class="label">雄鱼参考（1/2）</div></div>'+
+    '<div class="data-card"><div class="num">'+fmtDose(total,unit)+'</div><div class="label">'+L.total+'</div></div>'+
+    '<div class="data-card"><div class="num">'+fmtDose(first,unit)+'</div><div class="label">'+L.first+'</div></div>'+
+    '<div class="data-card"><div class="num">'+fmtDose(second,unit)+'</div><div class="label">'+L.second+'</div></div>'+
+    '<div class="data-card"><div class="num">'+fmtDose(male,unit)+'</div><div class="label">'+L.male+'</div></div>'+
     '</div>'+
-    '<p style="margin-top:10px;font-size:13px;color:var(--text-muted);">总剂量 = '+w+' kg × '+rate+' '+unit+'/kg = '+fmtDose(total,unit)+'。剂量率为方案参考值，实际方案须按鱼种与当地技术指导确定。</p>';
+    '<p style="margin-top:10px;font-size:13px;color:var(--text-muted);">'+L.eq+'</p>';
 }
 
 function copyRes(){
@@ -445,18 +446,19 @@ else document.addEventListener('DOMContentLoaded', __ratio_hormoneBoot);
 </style>
 <section class="deep-dive" data-deep-dive="1">
 <div class="card">
-<h2>📚 深度解析：配比與比例計算</h2>
+<h2>📚 深度解析：催產激素劑量計算器</h2>
 <h3>💡 常見使用場景</h3>
 <ul class="dd-list">
-<li>藥物/飼料新增劑的兩種成分配比換算</li>
-<li>濃度或劑量之間的比例關係核對</li>
-<li>按最簡整數比配製混合液</li>
+<li>親魚催產前配藥核算：按親魚體重與所選方案（HCG / LRH-A2 / DOM）的劑量率，算出本次所需總劑量。</li>
+<li>兩針法注射分配：把總劑量拆成第一針 1/3 與第二針 2/3，便於現場分次注射。</li>
+<li>雌雄魚劑量核對：按總劑量的 1/2 給出雄魚參考值，用於與當地操作規程比對。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">兩種成分配比</div><div class="dd-ex-body">數值 A=100、B=50：<a class="term-link" href="/zh-tw/tools/science/gcd-calculator.html">最大公約數</a> 50，最簡整數比 = 2:1；A 佔 B 的 200%，即 A 是 B 的 2 倍。用於藥劑或營養配比的快速折算。</div></div>
+<div class="dd-example"><div class="dd-ex-title">HCG 兩針法配藥</div><div class="dd-ex-body">方案選 HCG、親魚體重 1.5 kg、劑量率 1000 IU/kg：總劑量 = 1.5 × 1000 = 1500 IU；第一針 500 IU、第二針 1000 IU，雄魚參考 750 IU。若當地方案要求不同拆分比例，應以技術方案為準，本頁不自動改寫比例。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
-<dt>最簡整數比怎麼來？</dt><dd>先求兩數的最大公約數 g，再約分為 A/g : B/g；如 100:50 約分為 2:1。</dd>
-<dt>佔比和倍數有什麼區別？</dt><dd>佔比 = A/B×100%（相對 B 的百分量），倍數 = A/B（純比值）；兩者描述同一比例關係，表達角度不同。</dd>
+<dt>總劑量怎麼算？</dt><dd>總劑量 = 親魚體重（kg）× 劑量率（方案單位/kg）；例如 1.5 kg × 1000 IU/kg = 1500 IU。頁面只做這項乘法，不判斷該劑量率是否適合某一魚種。</dd>
+<dt>兩針為什麼按 1/3 與 2/3 拆？</dt><dd>這是頁面內建的常用兩針法示例拆分，第一針為總劑量的 1/3、第二針為 2/3；不同魚種與方案的拆分比例可能不同，實際注射須按當地催產技術方案執行。</dd>
+<dt>雄魚劑量為什麼取一半？</dt><dd>頁面按總劑量的 1/2 給出雄魚參考值，便於快速估算；雄魚實際用量常低於雌魚，但仍須按魚種、成熟度與當地操作規程確定，不能把參考值直接當作處方。</dd>
 </dl>
 </div>
 </section>

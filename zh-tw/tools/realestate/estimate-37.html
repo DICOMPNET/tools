@@ -101,7 +101,7 @@
   <a href="/zh-tw/guides/estimate-37-guide.html">📖 檢視「空置損失估算 使用指南」</a>
 </div>
 
-  <style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#3b82f6)}.tbk-tab.active{background:var(--accent,#3b82f6);color:#fff;border-color:var(--accent,#3b82f6)}.tbk-panel{margin-top:6px}</style>
+  <style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#1D4ED8)}.tbk-tab.active{background:var(--accent,#1D4ED8);color:#fff;border-color:var(--accent,#1D4ED8)}.tbk-panel{margin-top:6px}</style>
 <div class="tbk-tabbar" role="tablist">
   <button type="button" class="tbk-tab" data-pane="res">結果</button>
   <button type="button" class="tbk-tab" data-pane="tbl">資料表</button>
@@ -113,7 +113,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="輸入潛在毛租金 GPR、空置率、收賬損失率與讓利比例，計算有效毛收入（EGI）及各項空置損失，並與市場空置基準對比。">From potential gross rent, vacancy rate, collection loss and concession compute effective gross income (EGI) and vacancy loss.</p>
     <div class="formula-box">
       <div class="formula-title">📐 計算公式</div>
-      <div class="formula-eq">有效毛收入 EGI（本頁程式碼口徑，三級扣減鏈）：空置損失=潛在毛租金 GPR×空置率%；空置後=GPR−空置損失；收賬損失=空置後×收賬損失率%；收賬後=空置後−收賬損失；讓利損失=收賬後×讓利率%；總損失=空置+收賬+讓利三項之和；EGI=GPR−總損失+其他收入；損失佔比=總損失÷GPR×100（%）；空置率每降低 1% 年增收約 GPR×0.01 元。校驗：潛在毛租金須大於 0，否則提示並中止（其餘空值按 0 兜底）。判據（空置率市場基準，百分點）：住宅 5、辦公 10、零售 8、工業 7、酒店 25——高於基準標紅、低於標綠、相等標黃，附差值百分點。</div>
+      <div class="formula-eq">有效毛收入 EGI（本頁程式碼口徑，三級扣減鏈）：空置損失=潛在毛租金 GPR×空置率%；空置後=GPR−空置損失；收賬損失=空置後×收賬損失率%；收賬後=空置後−收賬損失；讓利損失=收賬後×讓利率%；總損失=空置+收賬+讓利三項之和；EGI=GPR−總損失+其他收入；損失佔比=總損失÷GPR×100（%）；空置率每降低 1% 年增收約 GPR×0.01 元。校驗：潛在毛租金須大於 0；空置率、收賬損失率與讓利率為必填比例，留空或非法會提示並中止；只有其他收入允許留空按 0。判據（空置率市場基準，百分點）：住宅 5、辦公 10、零售 8、工業 7、酒店 25——高於基準標紅、低於標綠、相等標黃，附差值百分點。</div>
       <p class="formula-desc">輸入潛在毛租金 GPR、空置率、收賬損失率與讓利比例，計算有效毛收入（EGI）及各項空置損失，並與市場空置基準對比。</p>
     </div>
 
@@ -194,9 +194,23 @@ var BENCH={residential:5,office:10,retail:8,industrial:7,hotel:25};
 function num(id){var v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function fmt(n,d){if(!isFinite(n))return '-';d=d==null?2:d;return n.toLocaleString('zh-CN',{minimumFractionDigits:d,maximumFractionDigits:d});}
 function calc(){
-  var gpr=num('gpr'),vac=num('vacancy')/100,col=num('collection')/100,con=num('concession')/100,oth=num('otherInc');
   var ptype=document.getElementById('ptype').value;
-  if(gpr<=0){document.getElementById('res').innerHTML='<p style="color:var(--danger);">请输入大于 0 的潜在毛租金。</p>';return;}
+  function fail(msg){document.getElementById('res').innerHTML='<p style="color:var(--danger);">'+msg+'</p>';return true;}
+  var gprRaw=document.getElementById('gpr').value.trim();
+  if(gprRaw===''){fail('请填写潜在毛租金 GPR；空值不会被当作 0 计算。');return;}
+  var gpr=parseFloat(gprRaw);
+  if(!isFinite(gpr)||gpr<=0){fail('请输入大于 0 的潜在毛租金。');return;}
+  var req=[['vacancy','空置率'],['collection','收账损失率'],['concession','让利/免租比例']];
+  for(var ri=0;ri<req.length;ri++){
+    var id=req[ri][0], label=req[ri][1], raw=document.getElementById(id).value.trim();
+    if(raw===''){fail('请填写'+label+'；留空不等于 0。');return;}
+    var val=parseFloat(raw);
+    if(!isFinite(val)||val<0||val>100){fail(label+'须在 0–100% 之间。');return;}
+  }
+  var vac=parseFloat(document.getElementById('vacancy').value)/100,col=parseFloat(document.getElementById('collection').value)/100,con=parseFloat(document.getElementById('concession').value)/100;
+  var othRaw=document.getElementById('otherInc').value.trim();
+  var oth=othRaw===''?0:parseFloat(othRaw);
+  if(!isFinite(oth)||oth<0){fail('其他收入须为 ≥0 的数值，或留空按 0。');return;}
   var vacLoss=gpr*vac;
   var afterVac=gpr-vacLoss;
   var colLoss=afterVac*col;

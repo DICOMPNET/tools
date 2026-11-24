@@ -35,7 +35,7 @@
 .tip-card h4{color:var(--primary);margin-bottom:6px;font-size:14px;}
 .tip-card p{font-size:13px;color:var(--text-light);margin:4px 0;}
 .warn-card{background:rgba(244,67,54,0.05);border-left:3px solid #f44336;border-radius:8px;padding:12px;margin-bottom:10px;}
-.warn-card h4{color:#f44336;margin-bottom:6px;font-size:14px;}
+.warn-card h4{color:var(--danger);margin-bottom:6px;font-size:14px;}
 .warn-card p{font-size:13px;color:var(--text-light);margin:4px 0;}
 .half-life-item{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);}
 .half-life-item:last-child{border-bottom:none;}
@@ -127,7 +127,7 @@
   <a href="/zh-tw/guides/caffeine-limit-guide.html">📖 檢視「每日安全咖啡因攝入量計算器使用指南」</a>
 </div>
 
-  <div class="card tool-card-accent" style="--tool-accent:#10B981;">
+  <div class="card tool-card-accent" style="--tool-accent:#065F46;">
     <h2 data-zh="🧮 每日安全咖啡因攝入量">🧮 Daily Caffeine Limit Calculator</h2>
     <div class="formula-box">
       <div class="formula-title">📐 計算公式</div>
@@ -383,7 +383,7 @@
 </div>
 </section>
 <!-- 注意事項區塊 -->
-<div class="tool-notes" style="--tool-accent:#10B981;">
+<div class="tool-notes" style="--tool-accent:#065F46;">
   <div class="tool-notes-title">⚠️ 使用說明與注意事項</div>
   <ul>
       <li>本工具純前端執行，資料不會上傳到伺服器</li>
@@ -419,9 +419,10 @@ function calc(){
   const w = __wRaw==='' ? NaN : parseFloat(__wRaw);
   if(!isFinite(w) || w<=0){
     // 体重空/非法时清掉全部派生上限，禁止静默按 65 kg 出结果
-    ['safeLimit','moderate','highRisk','cupsOfCoffee'].forEach(function(id){
+    ['safeLimit','moderate','highRisk','cupsOfCoffee','cafPct','cafStatus'].forEach(function(id){
       var el = document.getElementById(id); if(el) el.textContent = '--';
     });
+    var __bar=document.getElementById('cafBar'); if(__bar) __bar.style.width='0%';
     return;
   }
   const group = parseFloat(document.getElementById('group').value);
@@ -460,7 +461,7 @@ function removeDrink(btn){
 
 function resetDrinks(){
   document.getElementById('drinks').innerHTML='';
-  addDrink();
+  calcTotal();
 }
 
 function calcTotal(){
@@ -471,7 +472,14 @@ function calcTotal(){
     total += caf * qty;
   });
 
-  const safe = parseInt(document.getElementById('safeLimit').textContent)||400;
+  const safeRaw = String(document.getElementById('safeLimit').textContent||'').replace(/[^0-9.]/g,'');
+  const safe = parseFloat(safeRaw);
+  if(!isFinite(safe) || safe<=0){
+    document.getElementById('cafPct').textContent='--';
+    document.getElementById('cafBar').style.width='0%';
+    document.getElementById('cafStatus').textContent='请先填写有效体重，再查看风险判断';
+    return;
+  }
   const pct = Math.min(100, (total / safe) * 100);
 
   const __g6=total + ' mg';document.getElementById('totalCaf').textContent=(typeof __g6==='number'?(isFinite(__g6)?__g6:'—'):String(__g6).replace(/Infinity|NaN/g,'—'));
@@ -482,7 +490,7 @@ function calcTotal(){
   if(total <= safe * 0.5){
     status = '✅ 安全范围'; color = 'var(--success)'; barColor = 'var(--success)';
   }else if(total <= safe){
-    status = '⚠️ 接近上限'; color = '#ff9800'; barColor = '#ff9800';
+    status = '⚠️ 接近上限'; color = '#92400E'; barColor = '#92400E';
   }else if(total <= safe * 1.5){
     status = '⛔ 超过安全量'; color = '#f44336'; barColor = '#f44336';
   }else{
@@ -587,7 +595,6 @@ function setNowTime(){
 
 setNowTime();
 calc();
-addDrink();
 renderDrinkList();
 calcHalfLife();
 </script><script>

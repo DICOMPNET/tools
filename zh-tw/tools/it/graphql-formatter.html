@@ -29,10 +29,10 @@
 .output-pre{background:#1e1e2e;color:#e0e0e0;border-radius:8px;padding:14px;font-family:'SF Mono','Courier New',monospace;font-size:13px;white-space:pre-wrap;word-break:break-all;min-height:120px;max-height:500px;overflow:auto;margin-top:12px;}
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(20px);background:rgba(0,0,0,0.8);color:#fff;padding:8px 16px;border-radius:6px;font-size:13px;opacity:0;transition:all 0.2s;pointer-events:none;z-index:9999;}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
-.err{color:#f44336;font-size:13px;margin-top:8px;min-height:20px;}
-.ok{color:#4caf50;}
-.diff-add{background:rgba(76,175,80,0.15);color:#4caf50;display:block;padding:2px 8px;white-space:pre-wrap;word-break:break-all;}
-.diff-del{background:rgba(244,67,54,0.15);color:#f44336;text-decoration:line-through;display:block;padding:2px 8px;white-space:pre-wrap;word-break:break-all;}
+.err{color:var(--danger);font-size:13px;margin-top:8px;min-height:20px;}
+.ok{color:var(--success);}
+.diff-add{background:rgba(76,175,80,0.15);color:var(--success);display:block;padding:2px 8px;white-space:pre-wrap;word-break:break-all;}
+.diff-del{background:rgba(244,67,54,0.15);color:var(--danger);text-decoration:line-through;display:block;padding:2px 8px;white-space:pre-wrap;word-break:break-all;}
 .diff-eq{color:var(--text-muted);display:block;padding:2px 8px;white-space:pre-wrap;word-break:break-all;}
 </style>
 
@@ -108,14 +108,14 @@
   <span class="bc-current" aria-current="page">GraphQL 格式化</span>
 </nav>
 <div class="container" role="main">
-  <style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#3b82f6)}.tbk-tab.active{background:var(--accent,#3b82f6);color:#fff;border-color:var(--accent,#3b82f6)}.tbk-panel{margin-top:6px}</style>
+  <style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#1D4ED8)}.tbk-tab.active{background:var(--accent,#1D4ED8);color:#fff;border-color:var(--accent,#1D4ED8)}.tbk-panel{margin-top:6px}</style>
 <div class="tbk-tabbar" role="tablist">
   <button type="button" class="tbk-tab" data-pane="chart">圖表</button>
   <button type="button" class="tbk-tab" data-pane="tbl">資料表</button>
   <button type="button" class="tbk-tab" data-pane="pre">預設</button>
   <button type="button" class="tbk-tab" data-pane="his">歷史</button>
 </div>
-<div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
+<div class="card tool-card-accent" style="--tool-accent:#B23A08;">
     <h2 data-zh="◈ GraphQL 格式化">◈ GraphQL Format</h2>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">先對 GraphQL 做詞法切分得到記號序列，隨後按記號重排輸出：註釋按當前是否在行首決定是否先補縮排，輸出後換行；左花括號、左方括號、左圓括號輸出後換行並把深度加 1；右花括號、右方括號、右圓括號先把深度減 1（不小於 0），按縮排輸出後換行；逗號輸出後換行；其餘記號在行首時按縮排（兩個空格 × 深度）輸出，否則前加一個空格。最後去掉首尾空白</div>
@@ -178,7 +178,7 @@
 </div>
 </section>
 <!-- 注意事項區塊 -->
-<div class="tool-notes" style="--tool-accent:#FF6B35;">
+<div class="tool-notes" style="--tool-accent:#B23A08;">
 <!-- Formula & Standard References -->
 <div class="card" id="constRefBox">
   <h3 data-zh="📐 公式與標準引據">Formula &amp; Standard References</h3>
@@ -278,18 +278,39 @@ function doBeautify(){ formatGraphQL(); }
 function doMinify(){ minifyGraphQL(); }
 function doValidate(){
   setErr('');
+  const src = document.getElementById('input').value;
+  if(!src.trim()){ setOut(''); setErr('❌ 请输入 GraphQL 文本后再校验。'); return; }
   try{
-    const tokens = tokenize(document.getElementById('input').value);
-    let depth = 0;
+    const tokens = tokenize(src);
+    const code = tokens.filter(tk => tk.t !== 'comment');
+    if(!code.length) throw new Error('没有可校验的 GraphQL 内容');
+    const pairs = {'}':'{', ']':'[', ')':'('};
+    const stack = [];
+    const opens = '{([';
+    const closes = '})]';
+    const allowedPunct = '{}[]():,.!=@&$|';
     for(const tk of tokens){
-      if(tk.v === '{' || tk.v === '[' || tk.v === '(') depth++;
-      if(tk.v === '}' || tk.v === ']' || tk.v === ')') depth--;
-      if(depth < 0) throw new Error('括号不匹配');
+      if(tk.t === 'punct' && !allowedPunct.includes(tk.v)) throw new Error('不支持的字符：' + tk.v);
+      if(tk.t === 'str'){
+        const q = tk.v[0];
+        if(tk.v.length < 2 || tk.v[tk.v.length-1] !== q) throw new Error('字符串未闭合');
+      }
+      if(opens.includes(tk.v)){ stack.push(tk.v); continue; }
+      if(closes.includes(tk.v)){
+        const want = pairs[tk.v];
+        if(!stack.length || stack[stack.length-1] !== want) throw new Error('括号类型不匹配：' + tk.v + ' 前缺少 ' + want);
+        stack.pop();
+      }
     }
-    if(depth !== 0) throw new Error('括号未闭合');
-    setOut('✅ GraphQL 语法正确\nTokens: ' + tokens.length + '\n括号平衡');
-    setErr('✅ 校验通过');
-  }catch(e){ setErr('❌ ' + e.message); }
+    if(stack.length) throw new Error('括号未闭合：缺少 ' + ({'{':'}','[':']','(':')'})[stack[stack.length-1]]);
+    const first = code[0];
+    const ops = ['query','mutation','subscription','fragment'];
+    if(!(first.v === '{' || (first.t === 'name' && ops.includes(first.v)))){
+      throw new Error('仅支持以 { 开头的查询，或 query / mutation / subscription / fragment 文档');
+    }
+    setOut('✅ 基础检查通过\nTokens: ' + tokens.length + '\n括号类型匹配、已闭合');
+    setErr('✅ 基础校验通过（括号/字符串检查，不含完整语法解析）');
+  }catch(e){ setOut(''); setErr('❌ ' + e.message); }
 }
 function getIndent(){const v=document.getElementById('indent').value;return v==='tab'?'\t':' '.repeat(parseInt(v));}
 function setOut(s){document.getElementById('output').textContent=s;}

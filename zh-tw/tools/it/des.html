@@ -107,7 +107,7 @@
   <a href="/zh-tw/guides/des-guide.html">📖 檢視「DES / 3DES 加密解密使用指南」</a>
 </div>
 
-  <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
+  <div class="card tool-card-accent" style="--tool-accent:#B23A08;">
     <h2 data-zh="🔐 DES / Triple DES (3DES) 加密解密">🔐 DES / 3DES Encrypt Decrypt</h2>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">加密時用 UTF-8 編碼輸入，開啟填充時按 PKCS#7 補齊到 8 位元組的整數倍，未開啟且位元組長度不是 8 的倍數時報錯；解密時若輸入去掉空白後為純十六進位制且長度為偶數則按十六進位制解析為位元組，否則按 Base64 解析。按所選演算法（DES 或 3DES）與模式（ECB 或 CBC，CBC 需要初始向量）呼叫對應實現，加密與解密方向由開關取反後傳入；解密且開啟填充時再做 PKCS#7 去填充。輸出時加密按所選格式轉為十六進位制或 Base64，解密按 UTF-8 解碼（解碼失敗時回退為十六進位制形式）</div>
@@ -184,7 +184,7 @@
       <button type="button" class="btn" onclick="clearAll()">🗑️ 清空</button>
     </div>
 
-    <style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#3b82f6)}.tbk-tab.active{background:var(--accent,#3b82f6);color:#fff;border-color:var(--accent,#3b82f6)}.tbk-panel{margin-top:6px}</style>
+    <style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#1D4ED8)}.tbk-tab.active{background:var(--accent,#1D4ED8);color:#fff;border-color:var(--accent,#1D4ED8)}.tbk-panel{margin-top:6px}</style>
 <div class="tbk-tabbar" role="tablist">
   <button type="button" class="tbk-tab" data-pane="chart">圖表</button>
   <button type="button" class="tbk-tab" data-pane="tbl">資料表</button>
@@ -230,7 +230,7 @@
 </div>
 </section>
 <!-- 注意事項區塊 -->
-<div class="tool-notes" style="--tool-accent:#FF6B35;">
+<div class="tool-notes" style="--tool-accent:#B23A08;">
 <!-- Formula & Standard References -->
 <div class="card" id="constRefBox">
   <h3 data-zh="📐 公式與標準引據">Formula &amp; Standard References</h3>
@@ -624,6 +624,21 @@ function __desRender(keys,rk,en){
     }catch(e3){}
 }
 function __desExtras(){
+    if(!window.__tbPrivPurged){
+        window.__tbPrivPurged=true;
+        try{
+            var __k='tbk_hist_'+location.pathname, __a=JSON.parse(localStorage.getItem(__k)||'[]');
+            if(Array.isArray(__a)){
+                for(var __i=0;__i<__a.length;__i++){
+                    var __d=__a[__i]&&__a[__i].d;
+                    if(!__d) continue;
+                    if(typeof __d['结果']==='string'&&__d['结果'].indexOf('未存原文')<0) __d['结果']='已清理（原结果含敏感内容，未保留）';
+                    if(typeof __d['Result']==='string'&&__d['Result'].indexOf('not stored')<0) __d['Result']='Removed (sensitive result was not retained)';
+                }
+                localStorage.setItem(__k,JSON.stringify(__a));
+            }
+        }catch(e){}
+    }
     if (typeof TBKit === 'undefined') return;
     if (__des_skip) return;
     var snap=__desSnap();
@@ -631,6 +646,8 @@ function __desExtras(){
     if(!keys.length) return;
     if(keys.length>12) keys=keys.slice(0,12);
     var res=__desResText();
+    var __privSc=__desScore(res);
+    var __privRes=__privSc?'执行成功（结果 '+String(res).length+' 字符，未存原文）':'执行失败（详见结果区，未存原文）';
     if(!res) return;
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
@@ -643,13 +660,13 @@ function __desExtras(){
         for(var i=0;i<keys.length;i++){
             if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
         }
-        if(same&&String(last[rk])===String(res)) return;
+        if(same&&String(last[rk])===String(__privRes)) return;
     }
     __des_last=now;
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
-    rec[rk]=res;
-    rec.__tbScore=__desScore(res);
+    rec[rk]=__privRes;
+    rec.__tbScore=__privSc;
     TBKit.history.record(rec);
     __desRender(keys,rk,en);
 }

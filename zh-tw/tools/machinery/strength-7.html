@@ -101,7 +101,7 @@
   <a href="/zh-tw/guides/strength-7-guide.html">📖 檢視「鉚接強度計算 使用指南」</a>
 </div>
 
-  <style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#3b82f6)}.tbk-tab.active{background:var(--accent,#3b82f6);color:#fff;border-color:var(--accent,#3b82f6)}.tbk-panel{margin-top:6px}</style>
+  <style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#1D4ED8)}.tbk-tab.active{background:var(--accent,#1D4ED8);color:#fff;border-color:var(--accent,#1D4ED8)}.tbk-panel{margin-top:6px}</style>
 <div class="tbk-tabbar" role="tablist">
   <button type="button" class="tbk-tab" data-pane="res">結果</button>
   <button type="button" class="tbk-tab" data-pane="tbl">資料表</button>
@@ -112,7 +112,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="輸入鉚釘直徑、板厚、鉚釘數、板寬及載荷，校核剪下、擠壓、撕裂強度並計算鉚縫效率">Compute rivet shear and bearing strength for a riveted lap or butt joint.</p>
     <div class="formula-box">
       <div class="formula-title">📐 計算公式</div>
-      <div class="formula-eq" data-zh="Rivet joint triple check: shear area n×m×πd²/4, bearing area n×d×t, net section (W−n_row×d)×t; check τ, σc, σt and joint efficiency; invalid inputs stop with a prompt.">鉚接強度三重校核（本頁程式碼口徑）：總剪切面積=鉚釘數×剪切面數×πd²÷4、總擠壓面積=鉚釘數×d×板厚、淨截面=(板寬−每排鉚釘數×d)×板厚（mm²）；剪下 τ=載荷÷剪切面積、擠壓 σc=載荷÷擠壓面積、撕裂 σt=載荷÷淨截面（MPa，載荷 kN×1000 轉 N）；鉚縫效率 η=三項許用承載力的最小值÷(許用拉應力×板寬×板厚)×100，破壞模式按最小項標註剪下/擠壓/撕裂控制。校驗：d、板厚&gt;0，鉚釘數為正整數，板寬&gt;鉚釘數×d，載荷≥0，三項許用應力&gt;0，否則提示並中止。判據（η%）：≥80 優良、≥60 合格、≥40 偏低、其餘不合格；另輸出各應力項安全裕度。</div>
+      <div class="formula-eq" data-zh="Rivet joint triple check: shear area n×m×πd²/4, bearing area n×d×t, net section (W−n_row×d)×t; check τ, σc, σt and joint efficiency; invalid inputs stop with a prompt.">鉚接強度三重校核（本頁程式碼口徑）：總剪切面積=鉚釘數×剪切面數×πd²÷4、總擠壓面積=鉚釘數×d×板厚、淨截面=(板寬−每排鉚釘數×d)×板厚（mm²）；剪下 τ=載荷÷剪切面積、擠壓 σc=載荷÷擠壓面積、撕裂 σt=載荷÷淨截面（MPa，載荷 kN×1000 轉 N）；鉚縫效率 η=三項許用承載力的最小值÷(許用拉應力×板寬×板厚)×100，破壞模式按最小項標註剪下/擠壓/撕裂控制。校驗：d、板厚&gt;0，鉚釘數為正整數，剪切面數 m 必填且為 1–4 的整數，每排鉚釘數僅允許留空（按全部同排），填 0 或其他非法值一律提示並中止；板寬&gt;每排數×d，載荷≥0，三項許用應力&gt;0。判據（η%）：≥80 優良、≥60 合格、≥40 偏低、其餘不合格；另輸出各應力項安全裕度。</div>
       <p class="formula-desc">輸入鉚釘直徑、板厚、鉚釘數、板寬及載荷，校核剪下、擠壓、撕裂強度並計算鉚縫效率</p>
     </div>
     <div class="input-row">
@@ -251,7 +251,10 @@ function setInvalid(el,invalid){
 }
 function readInputs(){
   var d=num('v_d'),t=num('v_t'),n=num('v_n'),w=num('v_w'),f=num('v_f');
-  var m=num('v_m')||1, nrow=num('v_nr')||n;
+  var __mRaw=String(document.getElementById('v_m').value==null?'':document.getElementById('v_m').value).trim();
+  var __nrRaw=String(document.getElementById('v_nr').value==null?'':document.getElementById('v_nr').value).trim();
+  var m=__mRaw==='' ? NaN : parseFloat(__mRaw);          // 剪切面数必填，空串不默认 1
+  var nrow=__nrRaw==='' ? n : parseFloat(__nrRaw);      // 每排数仅留空使用默认；0 仍判非法
   var tau=num('v_tau'),sigc=num('v_sigc'),sigt=num('v_sigt');
   setInvalid(document.getElementById('v_d'),d<=0);
   setInvalid(document.getElementById('v_t'),t<=0);
@@ -293,7 +296,7 @@ var iv=readInputs();
   var sf_sigt=iv.sigt/sigt;
   var grade = eta>=80 ? 'excellent' : (eta>=60 ? 'good' : (eta>=40 ? 'pass' : 'fail'));
   var gradeText = eta>=80 ? '优良' : (eta>=60 ? '合格' : (eta>=40 ? '偏低' : '不合格'));
-  var gradeColor = eta>=80 ? '#059669' : (eta>=60 ? '#2563EB' : (eta>=40 ? '#D97706' : '#DC2626'));
+  var gradeColor = eta>=80 ? '#065F46' : (eta>=60 ? '#1D4ED8' : (eta>=40 ? '#D97706' : '#B91C1C'));
   const __g3='<div class="data-grid">'+
     '<div class="data-card"><div class="num" style="color:'+gradeColor+';">'+eta.toFixed(1)+'%</div><div class="label">铆缝效率</div></div>'+
     '<div class="data-card"><div class="num">'+tau.toFixed(2)+'</div><div class="label">剪切应力 τ (MPa)</div></div>'+

@@ -216,7 +216,7 @@ input[type="range"]:disabled::-webkit-slider-thumb{background:var(--text-muted);
 <div class="container" role="main">
 
   <!-- 上傳 -->
-  <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
+  <div class="card tool-card-accent" style="--tool-accent:#B23A08;">
     <h2 data-zh="🎧 音訊回聲混響效果">Audio Echo Effect</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px;" data-zh="基於 Web Audio API 的 ConvolverNode 與 DelayNode，為音訊添加回聲 / 混響效果，支援即時試聽與 WAV 匯出。純前端處理，檔案不上傳。">Audio Echo</p>
 
@@ -333,7 +333,7 @@ input[type="range"]:disabled::-webkit-slider-thumb{background:var(--text-muted);
   </div>
 
   <!-- 注意事項 -->
-  <div class="tool-notes" style="--tool-accent:#FF6B35;">
+  <div class="tool-notes" style="--tool-accent:#B23A08;">
 <div class="card" id="constRefBox">
   <h3 data-zh="📐 公式與標準引據">Formula &amp; Standard References</h3>
   <div style="overflow-x:auto;">
@@ -974,7 +974,8 @@ function exportWav(){
     var repeats = fbLevel > 0 ? Math.ceil(Math.log(0.001) / Math.log(fbLevel)) : 1;
     var tailNeeded = effectType === 'reverb' ? (irDuration + 0.5) : (delayTime * Math.max(1, repeats) + delayTime);
     var tail = Math.min(60, tailNeeded);
-    if(tailNeeded>60){exportHint.textContent='尾音衰减需约 '+tailNeeded.toFixed(0)+' 秒，导出上限 60 秒，末段仍会被截断；可降低反馈量或延迟。';}
+    var truncWarning = '';
+    if(tailNeeded>60){truncWarning='尾音衰减需约 '+tailNeeded.toFixed(0)+' 秒，导出上限 60 秒，末段仍会被截断；可降低反馈量或延迟。';exportHint.textContent=truncWarning;}
     var totalDur = audioBuffer.duration + tail;
     var length = Math.ceil(totalDur * sr);
     var OC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
@@ -1016,7 +1017,7 @@ function exportWav(){
         a.href = url; a.download = base + '-效果.wav';
         document.body.appendChild(a); a.click();
         setTimeout(function(){ URL.revokeObjectURL(url); a.remove(); }, 0);
-        exportHint.textContent = '导出完成：' + (rendered.duration).toFixed(1) + 's WAV';
+        exportHint.textContent = (truncWarning ? truncWarning + ' ' : '') + '导出完成：' + (rendered.duration).toFixed(1) + 's WAV';
         ToolBox.showToast(i18nText('toast.msg139'));
       }catch(encErr){
         exportHint.textContent = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Encoding failed":"编码失败");

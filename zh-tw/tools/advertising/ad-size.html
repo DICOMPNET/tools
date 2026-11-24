@@ -108,14 +108,14 @@
   <a href="/zh-tw/guides/ad-size-guide.html">📖 檢視「廣告尺寸轉換 使用指南」</a>
 </div>
 <div class="container" role="main">
-  <style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#3b82f6)}.tbk-tab.active{background:var(--accent,#3b82f6);color:#fff;border-color:var(--accent,#3b82f6)}.tbk-panel{margin-top:6px}</style>
+  <style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#1D4ED8)}.tbk-tab.active{background:var(--accent,#1D4ED8);color:#fff;border-color:var(--accent,#1D4ED8)}.tbk-panel{margin-top:6px}</style>
 <div class="tbk-tabbar" role="tablist">
   <button type="button" class="tbk-tab" data-pane="res">結果</button>
   <button type="button" class="tbk-tab" data-pane="tbl">資料表</button>
   <button type="button" class="tbk-tab" data-pane="pre">預設</button>
   <button type="button" class="tbk-tab" data-pane="his">歷史</button>
 </div>
-<div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
+<div class="card tool-card-accent" style="--tool-accent:#B23A08;">
     <h2 data-zh="📣 廣告尺寸轉換">Ad Size Convert</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="畫素/毫米/英寸互轉，常見廣告尺寸速查">Ad Size Convert</p>
     <div class="formula-box">
@@ -208,7 +208,7 @@
 </div>
 </section>
 <!-- 注意事項區塊 -->
-<div class="tool-notes" style="--tool-accent:#FF6B35;">
+<div class="tool-notes" style="--tool-accent:#B23A08;">
 <div class="card" id="constRefBox">
   <h3 data-zh="📐 公式與標準引據">Formula &amp; Standard References</h3>
   <div style="overflow-x:auto;">
@@ -397,15 +397,23 @@ function getRatioName(r){
 }
 
 function copyResult(){
-  var w=+document.getElementById('width').value||0;
-  var h=+document.getElementById('height').value||0;
+  var rw=String(document.getElementById('width').value).trim();
+  var rh=String(document.getElementById('height').value).trim();
+  if(rw===''||rh===''){ ToolBox.showToast('请先填写宽度与高度再复制','warning'); return; }
+  var w=+rw, h=+rh;
+  var fromUnit=document.getElementById('fromUnit').value;
   var dpi=+document.getElementById('dpi').value;
-  // 与 calc 同源：DPI 无效/非正时拒绝复制，避免把 Infinity mm 写进剪贴板。
-  if(!isFinite(dpi)||dpi<=0||!isFinite(w)||!isFinite(h)){ ToolBox.showToast('请先填写有效的尺寸与 DPI 再复制','warning'); return; }
-  var wMM=w/dpi*25.4;
-  var hMM=h/dpi*25.4;
+  // 与 calc 同源：宽高须为正数，DPI 无效/非正时拒绝复制。
+  if(!isFinite(w)||!isFinite(h)||w<=0||h<=0||!isFinite(dpi)||dpi<=0){ ToolBox.showToast('请先填写有效的尺寸与 DPI 再复制','warning'); return; }
+  var wMM,hMM;
+  if(fromUnit==='px'){ wMM=w/dpi*25.4; hMM=h/dpi*25.4; }
+  else if(fromUnit==='mm'){ wMM=w; hMM=h; }
+  else if(fromUnit==='cm'){ wMM=w*10; hMM=h*10; }
+  else if(fromUnit==='inch'){ wMM=w*25.4; hMM=h*25.4; }
+  else { ToolBox.showToast('当前单位无效，未复制','warning'); return; }
   if(!isFinite(wMM)||!isFinite(hMM)){ ToolBox.showToast('尺寸换算无效，未复制','warning'); return; }
-  ToolBox.copyText('广告尺寸：'+w+'x'+h+'px | '+wMM.toFixed(0)+'x'+hMM.toFixed(0)+'mm @'+dpi+'DPI', i18nText('msg284'));
+  var wPX=Math.round(wMM/25.4*dpi), hPX=Math.round(hMM/25.4*dpi);
+  ToolBox.copyText('广告尺寸：'+w+'x'+h+' '+fromUnit+' | '+wPX+'x'+hPX+'px | '+wMM.toFixed(0)+'x'+hMM.toFixed(0)+'mm @'+dpi+'DPI', i18nText('msg284'));
 }
 
 renderPresets();

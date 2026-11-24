@@ -120,7 +120,7 @@
   <span class="bc-current" aria-current="page">租賃付款計算器</span>
 </nav>
 <div class="container" role="main">
-  <div class="card tool-card-accent" style="--tool-accent:#F59E0B;">
+  <div class="card tool-card-accent" style="--tool-accent:#92400E;">
      <h2 data-zh="🧮 租賃付款計算器">🧮 Lease Payment Calculator</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="融資租賃、車貸等額租金計算與還款明細">Compute the equal periodic lease payment and schedule from asset value, rate and term, showing the interest-first pattern.</p>
 
@@ -302,9 +302,9 @@
       <canvas id="chart"></canvas>
     </div>
     <div class="legend">
-      <div class="legend-item"><span class="legend-dot" style="background:#667eea;"></span>剩餘本金</div>
+      <div class="legend-item"><span class="legend-dot" style="background:#4338CA;"></span>剩餘本金</div>
       <div class="legend-item"><span class="legend-dot" style="background:#4caf50;"></span>累計還款</div>
-      <div class="legend-item"><span class="legend-dot" style="background:#ff9800;"></span>累計利息</div>
+      <div class="legend-item"><span class="legend-dot" style="background:#92400E;"></span>累計利息</div>
     </div>
   </div>
 
@@ -367,7 +367,7 @@
   </div>
 </div>
 
-<div class="tool-notes" style="--tool-accent:#F59E0B;">
+<div class="tool-notes" style="--tool-accent:#92400E;">
   <div class="tool-notes-title">⚠️ 使用說明與注意事項</div>
   <ul>
       <li>本工具純前端執行，資料不會上傳到伺服器</li>
@@ -595,7 +595,8 @@ function calc(){
     pmt = schedule[0].payment;
   }
 
-  var effectiveRate = calcIRR(principal, schedule, fv, timing, fee) * 12 * 100;
+  var irr = calcIRR(principal, schedule, fv, timing, fee);
+  var effectiveRate = (irr !== null && isFinite(irr)) ? irr * 12 * 100 : null;
 
   currentResult = {
     pv: pv,
@@ -659,7 +660,7 @@ function renderStats(r){
   var statHtml = '<div class="stat-card"><div class="val">¥' + ToolBox.formatNumber(r.pmt, 0) + '</div><div class="lbl">' + (r.type === 'principal' ? '首月还款' : '每月还款') + '</div></div>'
     + '<div class="stat-card"><div class="val">¥' + ToolBox.formatNumber(r.totalPayment, 0) + '</div><div class="lbl">总还款额</div></div>'
     + '<div class="stat-card negative"><div class="val">¥' + ToolBox.formatNumber(r.totalInterest, 0) + '</div><div class="lbl">总利息</div></div>'
-    + '<div class="stat-card"><div class="val">' + r.effectiveRate.toFixed(2) + '%</div><div class="lbl">实际年化(IRR)</div></div>';
+    + '<div class="stat-card"><div class="val">' + (r.effectiveRate === null ? '不可计算' : r.effectiveRate.toFixed(2) + '%') + '</div><div class="lbl">实际年化(IRR)</div></div>';
   const __g2=statHtml;document.getElementById('statGrid').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 }
 
@@ -681,7 +682,7 @@ function renderResult(r){
   resHtml += '<p>还款方式：<strong>' + (typeNames[r.type] || r.type) + '</strong> · ' + (timingNames[r.timing] || r.timing) + '</p>';
   resHtml += '<p>租期：<strong>' + r.months + '</strong> 期（' + (r.months/12).toFixed(1) + '年）</p>';
   resHtml += '<p>名义年利率：<strong>' + r.annualRate.toFixed(2) + '%</strong></p>';
-  resHtml += '<p>实际年化利率(IRR)：<strong style="color:var(--danger);">' + r.effectiveRate.toFixed(2) + '%</strong></p>';
+  resHtml += '<p>实际年化利率(IRR)：<strong style="color:var(--danger);">' + (r.effectiveRate === null ? '不可计算（净融资额或现金流无有效 IRR）' : r.effectiveRate.toFixed(2) + '%') + '</strong></p>';
   if(r.fee > 0){
     resHtml += '<p>手续费：<strong>¥' + ToolBox.formatNumber(r.fee, 2) + '</strong></p>';
   }
@@ -787,8 +788,8 @@ function drawChart(){
   });
 
   drawLine(totalPayData, '#4caf50', 'rgba(76,175,80,0.08)');
-  drawLine(totalIntData, '#ff9800', null);
-  drawLine(balanceData, '#667eea', 'rgba(102,126,234,0.12)');
+  drawLine(totalIntData, '#92400E', null);
+  drawLine(balanceData, '#4338CA', 'rgba(102,126,234,0.12)');
   window.__tbRedraw = function(){ if(typeof calc==='function') calc(); else drawChart(); };
   if(!window.__tbLangBound){
     window.__tbLangBound = 1;

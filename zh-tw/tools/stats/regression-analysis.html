@@ -6,7 +6,7 @@
 <!-- TOOLBOX-TOOL-RUNTIME -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="toolbox" content="cat=math,industry=stats,icon=📊,bg=#10b981">
+<meta name="toolbox" content="cat=math,industry=stats,icon=📊,bg=#065F46">
 <meta name="description" content="輸入成對的 X、Y 資料，用最小二乘法擬合一元線性迴歸 y=a+bx，給出斜率、截距、判定係數 R² 及各點殘差，用於分析兩變數線性關係強弱並做趨勢預測">
 <meta name="keywords" content="迴歸分析,迴歸分析線上,線上迴歸分析,統計分析,線性迴歸分析,線上工具,免費工具,ToolBox">
 <meta name="robots" content="index,follow">
@@ -106,14 +106,14 @@ textarea{font-family:'SF Mono','Courier New',monospace;min-height:120px;}
 <div class="tool-guide-link" data-guide-link="1">
   <a href="/zh-tw/guides/regression-analysis-guide.html">📖 檢視「線性迴歸分析 使用指南」</a>
 </div>
-<div class="container" role="main"><style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#3b82f6)}.tbk-tab.active{background:var(--accent,#3b82f6);color:#fff;border-color:var(--accent,#3b82f6)}.tbk-panel{margin-top:6px}</style>
+<div class="container" role="main"><style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#1D4ED8)}.tbk-tab.active{background:var(--accent,#1D4ED8);color:#fff;border-color:var(--accent,#1D4ED8)}.tbk-panel{margin-top:6px}</style>
 <div class="tbk-tabbar" role="tablist">
   <button type="button" class="tbk-tab" data-pane="res">結果</button>
   <button type="button" class="tbk-tab" data-pane="tbl">資料表</button>
   <button type="button" class="tbk-tab" data-pane="pre">預設</button>
   <button type="button" class="tbk-tab" data-pane="his">歷史</button>
 </div>
-<div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
+<div class="card tool-card-accent" style="--tool-accent:#B23A08;">
 <h2 data-zh="📊 線性迴歸分析">Regression Analysis</h2>
 <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="最小二乘法擬合 y = a + bx,計算 R² 與殘差">Regression Analysis</p>
 
@@ -188,7 +188,7 @@ textarea{font-family:'SF Mono','Courier New',monospace;min-height:120px;}
 </div>
 </section>
 <!-- 注意事項區塊 -->
-<div class="tool-notes" style="--tool-accent:#FF6B35;">
+<div class="tool-notes" style="--tool-accent:#B23A08;">
 <div class="card" id="constRefBox">
   <h3 data-zh="📐 公式與標準引據">Formula &amp; Standard References</h3>
   <div style="overflow-x:auto;">
@@ -241,9 +241,8 @@ function tCrit95(df){
 function parseNum(s){ return s.split(/[,\s\n]+/).map(x => +x).filter(x => !isNaN(x)); }
 
 function calc(){
-// NUMCLR：全部输入留空时不得输出 0/0.00 的假结果
-var __numReq=['pred-x'];
-if(__numReq.every(function(k){var e=document.getElementById(k);return !e||String(e.value).trim()==='';})){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 请填写必要的输入参数后再计算</p>';return;}
+ // 预测 X 是独立可选项：拟合不依赖它；每次拟合先清掉上一次预测文本
+ var __pr=document.getElementById('pred-result'); if(__pr) __pr.innerHTML='';
  const xs = parseNum(document.getElementById('x-data').value);
  const ys = parseNum(document.getElementById('y-data').value);
  if(xs.length !== ys.length || xs.length < 3){
@@ -343,13 +342,13 @@ function drawScatter(){
  ctx.fillText('Y', 0, 0);
  ctx.restore();
  // 回归线
- ctx.strokeStyle = '#667eea'; ctx.lineWidth = 2;
+ ctx.strokeStyle = '#4338CA'; ctx.lineWidth = 2;
  ctx.beginPath();
  ctx.moveTo(xToPx(xLo), yToPx(a + b*xLo));
  ctx.lineTo(xToPx(xHi), yToPx(a + b*xHi));
  ctx.stroke();
  // 散点
- ctx.fillStyle = '#f59e0b';
+ ctx.fillStyle = '#92400E';
  xs.forEach((x, i) => {
   ctx.beginPath();
   ctx.arc(xToPx(x), yToPx(ys[i]), 4, 0, 2*Math.PI);
@@ -358,9 +357,12 @@ function drawScatter(){
 }
 
 function predictVal(){
+ const __raw=String(document.getElementById('pred-x').value).trim();
+ if(__raw===''){if(document.getElementById('pred-result'))document.getElementById('pred-result').innerHTML='<p style="color:var(--danger)">请先输入 X 值后再预测。</p>';return;}
  if(!model) calc();
  if(!model) return;
- const x = +document.getElementById('pred-x').value;
+ const x = +__raw;
+ if(!isFinite(x)){document.getElementById('pred-result').innerHTML='<p style="color:var(--danger)">请输入有效的 X 数值。</p>';return;}
  const y = model.a + model.b * x;
  const __g3=`
   当 X = <strong>${x}</strong> 时:<br>

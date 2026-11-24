@@ -227,7 +227,7 @@
   <span class="bc-current" aria-current="page">文本清理工具</span>
 </nav>
 <div class="container" role="main">
-  <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
+  <div class="card tool-card-accent" style="--tool-accent:#B23A08;">
     <h2 data-zh="💻 文本清理工具">💻 Text Cleaner</h2>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">清理管線按勾選順序執行：全形轉半形把 \uFF01-\uFF5E 區間的字元碼減 0xFEE0，並把全形空格 \u3000 換成半形空格；半形轉全形反過來加 0xFEE0 並把空格換成 \u3000；HTML 實體解碼借 textarea 的 innerHTML 賦值再取 value；去掉 HTML 標籤、去掉不可見字元、統一換行為 \n、製表符轉空格（按指定個數，預設 4）、空格轉製表符（按指定個數）、每行去首尾空白、刪除所有空格、多個空格摺疊為一個、刪除空行、多個空行摺疊為一個。統計：原始字元數即 length，行數為按 \n 切分的段數，減少量 = 輸出長度 − 輸入長度（負號表示減少）</div>
@@ -263,7 +263,8 @@
       </div>
       <div class="option-item">
         <input type="checkbox" id="opt-merge-spaces" value="merge-spaces">
-        <label for="opt-merge-spaces">合併連續空格</label>
+        <label for="opt-merge-spaces">合併連續空格（保留行首縮排）</label>
+        <small style="display:block;color:var(--text-muted);font-size:11px;line-height:1.4;">僅壓縮行內空格；若同時勾選“去除首尾空白”，行首縮排會先被移除。</small>
       </div>
       <div class="option-item">
         <input type="checkbox" id="opt-merge-newlines" value="merge-newlines">
@@ -338,7 +339,7 @@
         <div class="panel-label">原始文本</div>
         <textarea id="input-text" placeholder="在此粘贴或输入需要清理的文本..." aria-label="在此粘贴或输入需要清理的文本..."></textarea>
       </div>
-      <style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#3b82f6)}.tbk-tab.active{background:var(--accent,#3b82f6);color:#fff;border-color:var(--accent,#3b82f6)}.tbk-panel{margin-top:6px}</style>
+      <style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#1D4ED8)}.tbk-tab.active{background:var(--accent,#1D4ED8);color:#fff;border-color:var(--accent,#1D4ED8)}.tbk-panel{margin-top:6px}</style>
 <div class="tbk-tabbar" role="tablist">
   <button type="button" class="tbk-tab" data-pane="chart">圖表</button>
   <button type="button" class="tbk-tab" data-pane="tbl">資料表</button>
@@ -401,7 +402,7 @@
 </div>
 </section>
 <!-- 注意事項區塊 -->
-<div class="tool-notes" style="--tool-accent:#FF6B35;">
+<div class="tool-notes" style="--tool-accent:#B23A08;">
 <!-- Formula & Standard References -->
 <div class="card" id="constRefBox">
   <h3 data-zh="📐 公式與標準引據">Formula &amp; Standard References</h3>
@@ -592,7 +593,11 @@
 
     // 合并连续空格（每行内）
     if (getOpt('opt-merge-spaces')) {
-      lines = lines.map(function(line) { return line.replace(/ {2,}/g, ' '); });
+      // 只压缩行内连续空格，行首缩进原样保留；若勾选“去除首尾空白”，缩进会先被 trim 移除。
+      lines = lines.map(function(line) {
+        var lead = (line.match(/^[ \t]*/) || [''])[0];
+        return lead + line.slice(lead.length).replace(/ {2,}/g, ' ');
+      });
     }
 
     // 去除所有空行

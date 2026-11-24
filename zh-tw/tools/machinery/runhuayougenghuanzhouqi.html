@@ -50,7 +50,7 @@
 
 
 <meta name="title-en" content="Lubricating Oil Change Interval Calculator">
-<meta name="desc-en" content="Example: tank 50 L, 75 °C, 8 h/day, semi-synthetic, general environment gives temperature factor 0.3536, oil-volume factor 1.2644, change interval 3129 h…">
+<meta name="desc-en" content="Estimate mineral, semi-synthetic and synthetic oil change intervals from tank volume, operating temperature and daily runtime using the Arrhenius rule">
 
 
 <link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
@@ -97,13 +97,13 @@
   <span class="bc-current" aria-current="page">潤滑油更換週期</span>
 </nav>
 <div class="container" role="main">
-  <style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#3b82f6)}.tbk-tab.active{background:var(--accent,#3b82f6);color:#fff;border-color:var(--accent,#3b82f6)}.tbk-panel{margin-top:6px}</style>
+  <style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#1D4ED8)}.tbk-tab.active{background:var(--accent,#1D4ED8);color:#fff;border-color:var(--accent,#1D4ED8)}.tbk-panel{margin-top:6px}</style>
 <div class="tbk-tabbar" role="tablist">
   <button type="button" class="tbk-tab" data-pane="res">結果</button>
   <button type="button" class="tbk-tab" data-pane="tbl">資料表</button>
   <button type="button" class="tbk-tab" data-pane="his">歷史</button>
 </div>
-<div class="card tool-card-accent" style="--tool-accent:#FF6B35;--tool-accent-dark:#FF6B35;">
+<div class="card tool-card-accent" style="--tool-accent:#B23A08;--tool-accent-dark:#FF6B35;">
      <h2 data-zh="⏱️ 潤滑油更換週期">⏱️ Oil Change Interval (Arrhenius)</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="基於工作溫度與執行時間，按 Arrhenius 溫度法則估算換油週期">Estimate lubricant change interval by Arrhenius law from oil capacity.</p>
         <div class="formula-box">
@@ -139,7 +139,7 @@
     </div>
     <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__runhuayougenghuanzhouqiExport()">匯出明細 CSV</button></div><div class="result-box" id="res"></div> <div id="runhuayougenghuanzhouqiTable"></div> <div id="runhuayougenghuanzhouqiDiff"></div> <div id="runhuayougenghuanzhouqiChart"></div> <div id="runhuayougenghuanzhouqiHist"></div>
     <div class="info-box">💡 基準壽命(60℃)×2^((60-T)/10)×汙染係數×油量係數；每升高10℃油壽命減半</div>
-    <div class="tool-notes" style="--tool-accent:#FF6B35;">
+    <div class="tool-notes" style="--tool-accent:#B23A08;">
 <div class="card" id="constRefBox">
   <h3 data-zh="📐 公式與標準引據">Formula &amp; Standard References</h3>
   <div style="overflow-x:auto;">
@@ -196,7 +196,7 @@ function readInputs(){
   return {cap:cap,temp:temp,daily:daily,baseLife:baseLife,contam:contam,valid:cap>0&&temp>-40&&temp<=200&&daily>0&&daily<=24};
 }
 function calc(){
-  var iv=readInputs();if(!iv.valid){document.getElementById('res').innerHTML='<div class="info-box" style="color:#EF4444;">请输入有效参数</div>';lastResult='';return;}
+  var iv=readInputs();if(!iv.valid){document.getElementById('res').innerHTML='<div class="info-box" style="color:var(--danger);">请输入有效参数</div>';lastResult='';return;}
   var cap=iv.cap,temp=iv.temp,daily=iv.daily,baseLife=iv.baseLife,contam=iv.contam;
   var tempFactor=Math.pow(2,(60-temp)/10); // 温度系数
   var volumeFactor=1+0.2*Math.log2(Math.max(cap/20,0.5)); // 油量系数(基准20L)
@@ -208,7 +208,7 @@ function calc(){
   var tempAdvice = temp>90?'高温工况，强烈建议使用全合成油':(temp>70?'中高温，建议半合成或全合成油':(temp>50?'温度适中，定期检测油质':'低温工况，注意低温流动性'));
   var lifeAdvice = lifeMonths<3?'换油频繁，建议优化工况或加大油箱':(lifeMonths<12?'换油周期正常，定期检测':(lifeMonths<24?'换油周期较长，注意定期取样检测':'换油周期很长，建议每年取样分析'));
   const __g2='<div class="data-grid">'+
-    '<div class="data-card"><div class="num" style="color:#00C9A7;">'+lifeHours.toFixed(0)+'</div><div class="label">换油周期 (h)</div></div>'+
+    '<div class="data-card"><div class="num" style="color:#00796B;">'+lifeHours.toFixed(0)+'</div><div class="label">换油周期 (h)</div></div>'+
     '<div class="data-card"><div class="num">'+lifeDays.toFixed(0)+'</div><div class="label">换油周期 (天)</div></div>'+
     '<div class="data-card"><div class="num">'+lifeMonths.toFixed(1)+'</div><div class="label">换油周期 (月)</div></div>'+
     '<div class="data-card"><div class="num">'+tempFactor.toFixed(2)+'</div><div class="label">温度系数</div></div>'+
@@ -373,12 +373,12 @@ else document.addEventListener('DOMContentLoaded', __runhuayougenghuanzhouqiBoot
 .deep-dive .dd-list{margin:8px 0 16px;padding-left:20px;}
 .deep-dive .dd-list li{margin:6px 0;line-height:1.75;}
 .deep-dive .dd-example{background:var(--card-bg,#fff);border:1px solid var(--border,#eee);border-radius:10px;padding:12px 14px;margin:8px 0 16px;}
-.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#FF6B35);margin-bottom:6px;}
+.deep-dive .dd-ex-title{font-weight:600;color:var(--tool-accent,#B23A08);margin-bottom:6px;}
 .deep-dive .dd-ex-body{font-size:13px;line-height:1.85;color:var(--text,#333);word-break:break-word;}
 .deep-dive .dd-faq{margin:8px 0 4px;}
 .deep-dive .dd-faq dt{font-weight:600;margin-top:10px;color:var(--text,#333);}
 .deep-dive .dd-faq dd{margin:4px 0 0;font-size:13px;line-height:1.85;color:var(--text-muted,#666);}
-.deep-dive a.term-link{color:var(--tool-accent,#FF6B35);text-decoration:none;border-bottom:1px dashed currentColor;}
+.deep-dive a.term-link{color:var(--tool-accent,#B23A08);text-decoration:none;border-bottom:1px dashed currentColor;}
 .deep-dive a.term-link:hover{border-bottom-style:solid;}
 
 </style>
@@ -426,7 +426,7 @@ else document.addEventListener('DOMContentLoaded', __runhuayougenghuanzhouqiBoot
     </a>
     <a href="/zh-tw/tools/machinery/gongyebengxuanxing.html" class="related-tool-card">
       <span class="rt-icon">🚀</span>
-      <span class="rt-info"><span class="rt-name">工業泵選型</span><span class="rt-desc">計算器根據流量、揚程和介質型別，計算泵的軸功率和電機功率，並從標準電機序列中推薦選型，同時根據介質特…</span></span>
+      <span class="rt-info"><span class="rt-name">工業泵選型</span><span class="rt-desc">按流量、揚程與介質計算軸功率和電機功率，並從標準電機序列推薦泵型、材質與轉速</span></span>
     </a>
   </div>
 </div>

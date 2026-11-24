@@ -104,14 +104,14 @@
   <a href="/zh-tw/guides/weight-converter-guide.html">📖 檢視「重量換算器使用指南」</a>
 </div>
 
-  <style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#3b82f6)}.tbk-tab.active{background:var(--accent,#3b82f6);color:#fff;border-color:var(--accent,#3b82f6)}.tbk-panel{margin-top:6px}</style>
+  <style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#1D4ED8)}.tbk-tab.active{background:var(--accent,#1D4ED8);color:#fff;border-color:var(--accent,#1D4ED8)}.tbk-panel{margin-top:6px}</style>
 <div class="tbk-tabbar" role="tablist">
   <button type="button" class="tbk-tab" data-pane="res">結果</button>
   <button type="button" class="tbk-tab" data-pane="tbl">資料表</button>
   <button type="button" class="tbk-tab" data-pane="pre">預設</button>
   <button type="button" class="tbk-tab" data-pane="his">歷史</button>
 </div>
-<div class="card tool-card-accent" style="--tool-accent:#3B82F6;">
+<div class="card tool-card-accent" style="--tool-accent:#1D4ED8;">
     <h2 data-zh="⚖️ 重量換算器">⚖️ Weight Converter</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="支援 mg / g / kg / t / oz / lb / 克拉 / 兩 / 斤">Convert mass and weight units such as kilogram, gram, pound, ounce and tonne.</p>
 <div class="formula-box">
@@ -197,7 +197,7 @@
 </div>
 </section>
 <!-- 注意事項區塊 -->
-<div class="tool-notes" style="--tool-accent:#3B82F6;">
+<div class="tool-notes" style="--tool-accent:#1D4ED8;">
 <!-- Formula & Standard References -->
 <div class="card" id="constRefBox">
   <h3 data-zh="📐 公式與標準引據">Formula &amp; Standard References</h3>
@@ -272,7 +272,7 @@ function convert(){
     const __h0='<p style="color:var(--danger);">请输入有效数值</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('resultBox').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('resultBox').innerHTML=__h0;
     return;
   }
-  if(v<=0){document.getElementById('resultBox').innerHTML='<p style="color:var(--danger)">'+'重量'+'需为大于 0 的数值。</p>';return;}
+  if(v<0){document.getElementById('resultBox').innerHTML='<p style="color:var(--danger)">'+'重量'+'需为非负数值。</p>';return;}
   const base = v * factors[from];
   let html = `<p>基准：<strong>${fmt(v)} ${names[from]}</strong> = <strong>${fmt(base)} 克</strong></p>`;
   html += '<hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">';
@@ -540,11 +540,13 @@ else document.addEventListener('DOMContentLoaded', __weight_converterBoot);
     if(!isFinite(v)||!F[from]){ box.innerHTML=''; return; }
     var base=v*F[from];
     var best=null, bd=1e18;
-    for(var i=0;i<REFS.length;i++){
-      var rv=REFS[i].v;
-      if(!(rv>0)) continue;
-      var d=Math.abs(Math.log10(Math.abs(base)+1e-30)-Math.log10(rv));
-      if(d<bd){ bd=d; best=REFS[i]; }
+    if(base>0){
+      for(var i=0;i<REFS.length;i++){
+        var rv=REFS[i].v;
+        if(!(rv>0)) continue;
+        var d=Math.abs(Math.log10(base)-Math.log10(rv));
+        if(d<bd){ bd=d; best=REFS[i]; }
+      }
     }
     var en=isEn();
     var bname=en?BASE[1]:BASE[0];
@@ -552,7 +554,9 @@ else document.addEventListener('DOMContentLoaded', __weight_converterBoot);
     html+='<div class="card" style="margin-top:0;">';
     html+='<h3>'+(en?'Scale sense: how big is it really?':'📐 尺度感知：这到底有多大')+'</h3>';
     html+='<p>'+(en?'Your input ≈ ':'你的输入 ≈ ')+fmt(base)+' '+bname+'</p>';
-    if(best){
+    if(base===0){
+      html+='<p style="font-weight:600;color:var(--text-muted);">零值不参与尺度参照。</p>';
+    } else if(best){
       html+='<p style="font-weight:600;color:var(--primary);">💡 ≈ '+best[en?'en':'zh']+' ('+best.d+' '+bname+')</p>';
     }
     html+='<details style="margin-top:6px;"><summary style="cursor:pointer;color:var(--primary);">'+(en?'Typical real-world references':'常见实物参照')+'</summary><ul style="font-size:13px;line-height:1.8;margin:6px 0 0;padding-left:18px;">';

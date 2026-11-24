@@ -6,7 +6,7 @@
 <!-- TOOLBOX-TOOL-RUNTIME -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="toolbox" content="cat=dev,industry=data,icon=📊,bg=#3b82f6">
+<meta name="toolbox" content="cat=dev,industry=data,icon=📊,bg=#1D4ED8">
 <meta name="description" content="資料透視表是一款免費的線上資料分析工具，匯入表格資料並選擇行、列與聚合方式（求和/計數/均值），生成二維透視彙總表，用於多維度資料分析與報表">
 <meta name="keywords" content="資料透視表,資料透視表線上,線上資料透視表,開發工具,資料分析,線上工具,免費工具,ToolBox">
 <meta name="robots" content="index,follow">
@@ -107,14 +107,14 @@ table.pivot td.total { background:rgba(59,130,246,0.1); font-weight:bold; }
   <span class="bc-current" aria-current="page">資料透視表</span>
 </nav>
 <div class="container" role="main">
-  <style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#3b82f6)}.tbk-tab.active{background:var(--accent,#3b82f6);color:#fff;border-color:var(--accent,#3b82f6)}.tbk-panel{margin-top:6px}</style>
+  <style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#1D4ED8)}.tbk-tab.active{background:var(--accent,#1D4ED8);color:#fff;border-color:var(--accent,#1D4ED8)}.tbk-panel{margin-top:6px}</style>
 <div class="tbk-tabbar" role="tablist">
   <button type="button" class="tbk-tab" data-pane="res">結果</button>
   <button type="button" class="tbk-tab" data-pane="tbl">資料表</button>
   <button type="button" class="tbk-tab" data-pane="pre">預設</button>
   <button type="button" class="tbk-tab" data-pane="his">歷史</button>
 </div>
-<div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
+<div class="card tool-card-accent" style="--tool-accent:#B23A08;">
     <h2 data-zh="📊 資料透視表">Pivot Table</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="二維聚合表 (求和/計數/均值)">Pivot Table</p>
 
@@ -205,7 +205,7 @@ table.pivot td.total { background:rgba(59,130,246,0.1); font-weight:bold; }
 </div>
 </section>
 <!-- 注意事項區塊 -->
-<div class="tool-notes" style="--tool-accent:#FF6B35;">
+<div class="tool-notes" style="--tool-accent:#B23A08;">
 <div class="card" id="constRefBox">
   <h3 data-zh="📐 公式與標準引據">Formula &amp; Standard References</h3>
   <div style="overflow-x:auto;">
@@ -307,7 +307,14 @@ function pivot() {
     grid[r] = {};
     colVals.forEach(c => {
       const matched = rows.filter(row => row[rowField] === r && row[colField] === c);
-      const vals = matched.map(row => parseFloat(row[valField])).filter(n => !isNaN(n));
+      const toFiniteNumber = (v) => {
+        if (typeof v !== 'string' && typeof v !== 'number') return NaN;
+        const s = String(v).trim();
+        if (!/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/.test(s)) return NaN;
+        const n = Number(s);
+        return isFinite(n) ? n : NaN;
+      };
+      const vals = matched.map(row => toFiniteNumber(row[valField])).filter(n => !isNaN(n));
       grid[r][c] = { vals: vals, count: vals.length };
     });
   });

@@ -190,8 +190,8 @@
       <span class="rt-info"><span class="rt-name">ECL = 索賠頻率 × 平均賠付額</span><span class="rt-desc">輸入單位風險的索賠頻率與平均賠付額，按 ECL = 頻率 × 平均賠付額計算期望損失成本，用於釐定純…</span></span>
     </a>
     <a href="/zh-tw/tools/insurance/ibnr-estimate.html" class="related-tool-card">
-      <span class="rt-icon">🛡️</span>
-      <span class="rt-info"><span class="rt-name">IBNR = 終極賠款 × (1 − 已付比例)</span><span class="rt-desc">輸入事故年的終極賠款估計與當前已付比例，按 IBNR = 終極賠款 × (1 − 已付比例) 估算已…</span></span>
+      <span class="rt-icon">🔮</span>
+      <span class="rt-info"><span class="rt-name">純 IBNR 估算（總未付扣除已報案未決）</span><span class="rt-desc">由終極賠款、已付比例與已報案未決估算純 IBNR</span></span>
     </a>
     <a href="/zh-tw/tools/insurance/ibnr-reserve.html" class="related-tool-card">
       <span class="rt-icon">🛡️</span>
@@ -211,8 +211,9 @@
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){function fmt(v){const neg=v<0?'-':'';v=Math.abs(v);let s=v.toFixed(2);let p=s.split('.');p[0]=p[0].replace(/\B(?=(\d{3})+(?!\d))/g,',');return neg+p.join('.');}
-            const f=num('freq'),s=num('sev');
-            if(f<=0 || s<=0){ToolBox.setResult('result','<p style="color:var(--text-muted)">请输入出险频率与案均赔款后再计算。</p>');return;}
+            const fRaw=String(document.getElementById('freq').value).trim(),sRaw=String(document.getElementById('sev').value).trim();
+            const f=Number(fRaw),s=Number(sRaw);
+            if(fRaw===''||sRaw===''||!isFinite(f)||!isFinite(s)||f<0||s<0){ToolBox.setResult('result','<p style="color:var(--text-muted)">请输入有效的出险频率（可为 0）与案均赔款（≥0 元）后再计算。</p>');return;}
             const pp=f*s;
             const __g1=dataGrid([
                 [fmt(pp),'纯保费 (元/单位)'],
@@ -231,7 +232,11 @@ function __pure_premiumExtras(){
     function fmt(v){var neg=v<0?'-':'';v=Math.abs(v);let s=v.toFixed(2);let p=s.split('.');p[0]=p[0].replace(/\B(?=(\d{3})+(?!\d))/g,',');return neg+p.join('.');}
     var f=num('freq'),s=num('sev');
     var pp=f*s;
-    if (!isFinite(__pure_premiumNum('freq')) || !isFinite(__pure_premiumNum('sev'))) return;
+    if (!isFinite(__pure_premiumNum('freq')) || !isFinite(__pure_premiumNum('sev'))) {
+        var t0=document.getElementById('pure_premiumTable'); if(t0)t0.innerHTML='';
+        var d0=document.getElementById('pure_premiumDiff'); if(d0)d0.innerHTML='';
+        return;
+    }
     var en=TBKit.util.isEn();
     TBKit.matrix.table('#pure_premiumTable',{
         head: en?['Item','Value']:['项目','数值'],
@@ -303,8 +308,9 @@ else document.addEventListener('DOMContentLoaded', __pure_premiumBoot);
 </section>
 <script>
 function __ppuSweep(){
-  var f=num('freq');
-  if(!isFinite(f)||f<=0)return null;
+  var raw=String(document.getElementById('freq').value||'').trim();
+  var f=Number(raw);
+  if(raw===''||!isFinite(f)||f<0)return null;
   var labels=[],dP=[],dM=[];
   var svs=[10000,20000,30000,40000,50000];
   for(var k=0;k<svs.length;k++){
@@ -317,7 +323,8 @@ function __ppuSweep(){
 }
 function __ppuChart(){
   if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
-  var s=__ppuSweep(); if(!s)return;
+  var s=__ppuSweep();
+  if(!s){ var c=document.getElementById('ppuChart'); if(c)c.innerHTML=''; return; }
   var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
   TBKit.chart.line('#ppuChart',{title:en?'Pure Premium vs Severity (offset linear, +10% margin)':'纯保费随单次赔付额线性上升',labels:s.labels,series:[{name:en?'Pure premium (¥)':'纯保费 (元/单位)',data:s.dP},{name:en?'With 10% margin (¥)':'含10%安全边际 (元)',data:s.dM}]});
 }

@@ -28,18 +28,18 @@
 <style>
 .diff-container { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:12px; }
 .diff-panel { background:#1e1e2e; color:#cdd6f4; border-radius:8px; padding:14px; font-family:'SF Mono','Courier New',monospace; font-size:12px; line-height:1.6; white-space:pre; overflow:auto; max-height:500px; min-height:200px; }
-.diff-panel-title { font-size:13px; font-weight:600; margin-bottom:8px; color:var(--text-secondary); display:flex; align-items:center; gap:6px; }
+.diff-panel-title { font-size:13px; font-weight:600; margin-bottom:8px; color:var(--text); display:flex; align-items:center; gap:6px; }
 .diff-line { display:block; padding:1px 8px; margin:0 -8px; white-space:pre-wrap; word-break:break-all; }
-.diff-add { background:rgba(76,175,80,0.15); color:#4caf50; }
-.diff-del { background:rgba(244,67,54,0.15); color:#f44336; text-decoration:line-through; opacity:0.7; }
-.diff-mod { background:rgba(255,193,7,0.15); color:#ffc107; }
-.diff-eq { color:var(--text-muted); opacity:0.6; }
+.diff-add { background:rgba(76,175,80,0.15); color:#34D399; }
+.diff-del { background:rgba(244,67,54,0.15); color:#F87171; text-decoration:line-through; opacity:0.7; }
+.diff-mod { background:rgba(255,193,7,0.15); color:#FBBF24; }
+.diff-eq { color:#a6adc8; }
 .diff-summary { display:flex; gap:16px; margin:12px 0; padding:12px; background:var(--bg-hover); border-radius:8px; flex-wrap:wrap; }
 .diff-summary-item { display:flex; align-items:center; gap:6px; font-size:13px; }
 .diff-summary-item .count { font-weight:600; font-size:16px; }
-.diff-summary-item.add .count { color:#4caf50; }
-.diff-summary-item.del .count { color:#f44336; }
-.diff-summary-item.mod .count { color:#ffc107; }
+.diff-summary-item.add .count { color:var(--success); }
+.diff-summary-item.del .count { color:var(--danger); }
+.diff-summary-item.mod .count { color:#92400E; }
 .diff-summary-item.same .count { color:#2196f3; }
 .tabs { display:flex; gap:4px; margin-bottom:12px; flex-wrap:wrap; }
 .tab { padding:8px 16px; border-radius:8px; border:1px solid var(--border-color); background:var(--bg-card); cursor:pointer; font-size:13px; color:var(--text-secondary); }
@@ -48,9 +48,9 @@
 .path-item { padding:8px 12px; border-bottom:1px solid var(--border-color); font-family:'SF Mono',monospace; font-size:12px; cursor:pointer; display:flex; align-items:center; gap:8px; }
 .path-item:hover { background:var(--bg-hover); }
 .path-type { padding:2px 8px; border-radius:4px; font-size:11px; font-weight:600; }
-.path-type.add { background:rgba(76,175,80,0.2); color:#4caf50; }
-.path-type.del { background:rgba(244,67,54,0.2); color:#f44336; }
-.path-type.mod { background:rgba(255,193,7,0.2); color:#ffc107; }
+.path-type.add { background:rgba(76,175,80,0.2); color:var(--success); }
+.path-type.del { background:rgba(244,67,54,0.2); color:var(--danger); }
+.path-type.mod { background:rgba(255,193,7,0.2); color:#92400E; }
 @media(max-width:768px){
   .diff-container{grid-template-columns:1fr;}
 }
@@ -134,7 +134,7 @@
   <a href="/zh-tw/guides/json-diff-guide.html">📖 檢視「JSON 差異對比使用指南」</a>
 </div>
 <div class="container" role="main">
-  <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
+  <div class="card tool-card-accent" style="--tool-accent:#B23A08;">
     <h2 data-zh="📄 JSON Diff 深度對比">📄 JSON Diff Compare</h2>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">左右文本各自 JSON.parse 後比對，產出路徑級差異列表，按 op 分為 add（新增）、del（刪除）、mod（修改）三類並分別計數，同時統計兩側相同的節點數；差異數為 0 時提示兩個 JSON 完全相同。對比模式分兩種：深度對比遞迴展開每一層（陣列預設按下標逐項對齊），簡單對比只看頂層鍵、巢狀變化合併成一處 mod。勾選「陣列按內容匹配」後，陣列改用「規範序列化鍵 + 最長公共子序列」先對齊相同元素再比對，元素換序不再被報成逐項修改。行級對照把兩側按縮排 2 空格序列化後按行切分，再做逐行差異生成左檢視、右檢視與合併檢視。任一側為空時提示輸入完整</div>
@@ -258,7 +258,7 @@
 </div>
 </section>
 <!-- 注意事項區塊 -->
-<div class="tool-notes" style="--tool-accent:#FF6B35;">
+<div class="tool-notes" style="--tool-accent:#B23A08;">
 <!-- Formula & Standard References -->
 <div class="card" id="constRefBox">
   <h3 data-zh="📐 公式與標準引據">Formula &amp; Standard References</h3>
@@ -641,7 +641,7 @@ function doDiff() {
     const __h2=renderLines(lineDiff.unified);if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('unifiedDiff').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('unifiedDiff').innerHTML=__h2;
 
     const __h3=diffs.length === 0
-      ? '<div style="padding:20px;text-align:center;color:#4caf50;">✅ 两个 JSON 完全相同</div>'
+      ? '<div style="padding:20px;text-align:center;color:var(--success);">✅ 两个 JSON 完全相同</div>'
       : diffs.map(d => `
         <div class="path-item">
           <span class="path-type ${d.op}">${d.op === 'add' ? '新增' : d.op === 'del' ? '删除' : '修改'}</span>

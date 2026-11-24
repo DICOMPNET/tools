@@ -120,7 +120,7 @@
   <span class="bc-current" aria-current="page">正規表示式速查</span>
 </nav>
 <div class="container" role="main">
-  <div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
+  <div class="card tool-card-accent" style="--tool-accent:#B23A08;">
     <h2 data-zh="🔎 正規表示式速查">🔎 Regex Expression Quick Reference</h2>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">按分類聚合條目：遍歷條目列表，首次出現的分類記入有序陣列並把計數置 1，後續同分類累加；柱狀圖以分類名為橫軸、條目數為資料（圖高 300），明細表逐行輸出序號、分類名、該分類條目數與該分類前 2 條代表命令（以「 / 」連線）。分類名在英文態下按內建對映表替換為英文（正規表示式語法）</div>
@@ -136,6 +136,23 @@
     <p style="color:var(--text-light);font-size:13px;margin-bottom:12px;" data-zh="正規表示式語法速查：元字元、量詞、斷言、回溯引用、Unicode、JS 方法。">A quick-reference cheat sheet for regular expression syntax and flags, viewable in your browser.</p>
     <div class="toolbar">
       <input type="search" id="searchInput" placeholder="搜尋命令、描述或示例..." style="flex:1;min-width:200px;" aria-label="搜尋命令、描述或示例...">
+    </div>
+
+    <div class="card" style="margin:14px 0;padding:14px;" id="rxTester">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+        <h3 style="margin:0;font-size:15px;">🧪 示例測試器</h3>
+        <span id="rxDefaultBadge" style="font-size:12px;padding:2px 8px;border-radius:999px;background:var(--result-bg,#f1f5f9);color:var(--text-muted,#64748b);">預設示例</span>
+        <button type="button" class="btn" onclick="rxReset()" style="font-size:12px;">恢復預設示例</button>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr;gap:8px;">
+        <label for="rxPattern" style="font-size:13px;">正規表示式</label>
+        <input id="rxPattern" value="(\w+)@(\w+)\.[a-z]{2,}" oninput="rxTest()" spellcheck="false" style="font-family:ui-monospace,Menlo,Consolas,monospace;" aria-label="正規表示式">
+        <label for="rxText" style="font-size:13px;">測試文本</label>
+        <textarea id="rxText" oninput="rxTest()" rows="3" style="font-family:ui-monospace,Menlo,Consolas,monospace;" aria-label="测试文本">Contact: dev@example.com or support@test.cn; invalid: not-an-email</textarea>
+        <div><button type="button" class="btn primary" onclick="rxTest()">匹配並高亮</button></div>
+        <div id="rxHighlight" style="padding:10px;border:1px solid var(--border,#e5e7eb);border-radius:8px;min-height:42px;line-height:1.8;word-break:break-word;"></div>
+        <div id="rxMatchStat" style="font-size:12.5px;color:var(--text-muted,#64748b);"></div>
+      </div>
     </div>
     <div class="category-tabs" id="categoryTabs"></div>
     <div class="stats" id="stats"></div>
@@ -188,7 +205,7 @@
 </div>
 </section>
 <!-- 注意事項區塊 -->
-<div class="tool-notes" style="--tool-accent:#FF6B35;">
+<div class="tool-notes" style="--tool-accent:#B23A08;">
 <!-- Formula & Standard References -->
 <div class="card" id="constRefBox">
   <h3 data-zh="📐 公式與標準引據">Formula &amp; Standard References</h3>
@@ -651,6 +668,36 @@ function getCategories(){
   COMMANDS.forEach(c => { if(!cats.includes(c.cat)) cats.push(c.cat); });
   return cats;
 }
+function rxEscape(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function rxDefaultPattern(){return '(\\w+)@(\\w+)\\.[a-z]{2,}';}
+function rxDefaultText(){return 'Contact: dev@example.com or support@test.cn; invalid: not-an-email';}
+function rxReset(){
+  document.getElementById('rxPattern').value=rxDefaultPattern();
+  document.getElementById('rxText').value=rxDefaultText();
+  rxTest();
+}
+function rxTest(){
+  var pat=document.getElementById('rxPattern').value;
+  var text=document.getElementById('rxText').value;
+  var hl=document.getElementById('rxHighlight'), stat=document.getElementById('rxMatchStat'), badge=document.getElementById('rxDefaultBadge');
+  var isDefault=pat===rxDefaultPattern()&&text===rxDefaultText();
+  if(badge) badge.textContent=isDefault?'默认示例':'自定义示例';
+  try{
+    var re=new RegExp(pat,'g'), out='', last=0, m, count=0;
+    while((m=re.exec(text))!==null){
+      if(m[0]===''){re.lastIndex++;continue;}
+      out+=rxEscape(text.slice(last,m.index))+'<mark>'+rxEscape(m[0])+'</mark>';
+      last=m.index+m[0].length;count++;
+      if(count>500)break;
+    }
+    out+=rxEscape(text.slice(last));
+    hl.innerHTML=out||'<span style="color:var(--text-muted)">（文本为空）</span>';
+    stat.textContent='共 '+count+' 处匹配'+(count>500?'（已截断显示前 500 处）':'');
+  }catch(e){
+    hl.innerHTML='<span style="color:var(--danger)">正则无效：'+rxEscape(e.message)+'</span>';
+    stat.textContent='';
+  }
+}
 function renderCategories(){
   const cats = getCategories();
   const __h0=cats.map(c =>
@@ -713,6 +760,7 @@ document.getElementById('searchInput').addEventListener('input', e => {
 });
 renderCategories();
 renderCommands();
+rxTest();
 </script><script>
 // tool-intro折叠交互
 document.addEventListener('DOMContentLoaded',function(){

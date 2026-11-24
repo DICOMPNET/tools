@@ -103,14 +103,14 @@ label{margin-top:10px;}
   <span class="bc-current" aria-current="page">WiFi 二維碼</span>
 </nav>
 <div class="container" role="main">
-  <style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#3b82f6)}.tbk-tab.active{background:var(--accent,#3b82f6);color:#fff;border-color:var(--accent,#3b82f6)}.tbk-panel{margin-top:6px}</style>
+  <style id="tbk-tab-style">.tbk-tabbar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}.tbk-tab{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--bg,#fff);color:var(--text,#374151);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;transition:.15s}.tbk-tab:hover{border-color:var(--accent,#1D4ED8)}.tbk-tab.active{background:var(--accent,#1D4ED8);color:#fff;border-color:var(--accent,#1D4ED8)}.tbk-panel{margin-top:6px}</style>
 <div class="tbk-tabbar" role="tablist">
   <button type="button" class="tbk-tab" data-pane="res">結果</button>
   <button type="button" class="tbk-tab" data-pane="tbl">資料表</button>
   <button type="button" class="tbk-tab" data-pane="pre">預設</button>
   <button type="button" class="tbk-tab" data-pane="his">歷史</button>
 </div>
-<div class="card tool-card-accent" style="--tool-accent:#FF6B35;">
+<div class="card tool-card-accent" style="--tool-accent:#B23A08;">
     <h2 data-zh="📶 WiFi 二維碼">📶 WiFi QR Code</h2>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">載荷串：WIFI:T:&lt;加密方式&gt;;S:&lt;SSID&gt;;P:&lt;密碼&gt;;H:&lt;是否隱藏&gt;;; —— SSID 與密碼中的分號先做轉義，隱藏網路為 true 否則 false，結尾固定雙分號</div>
@@ -175,7 +175,7 @@ label{margin-top:10px;}
 </div>
 </section>
 <!-- 注意事項區塊 -->
-<div class="tool-notes" style="--tool-accent:#FF6B35;">
+<div class="tool-notes" style="--tool-accent:#B23A08;">
 <!-- Formula & Standard References -->
 <div class="card" id="constRefBox">
   <h3 data-zh="📐 公式與標準引據">Formula &amp; Standard References</h3>
@@ -379,6 +379,21 @@ function __wifi_qrRender(keys,rk,en){
     }catch(e3){}
 }
 function __wifi_qrExtras(){
+    if(!window.__tbPrivPurged){
+        window.__tbPrivPurged=true;
+        try{
+            var __k='tbk_hist_'+location.pathname, __a=JSON.parse(localStorage.getItem(__k)||'[]');
+            if(Array.isArray(__a)){
+                for(var __i=0;__i<__a.length;__i++){
+                    var __d=__a[__i]&&__a[__i].d;
+                    if(!__d) continue;
+                    if(typeof __d['结果']==='string'&&__d['结果'].indexOf('未存原文')<0) __d['结果']='已清理（原结果含敏感内容，未保留）';
+                    if(typeof __d['Result']==='string'&&__d['Result'].indexOf('not stored')<0) __d['Result']='Removed (sensitive result was not retained)';
+                }
+                localStorage.setItem(__k,JSON.stringify(__a));
+            }
+        }catch(e){}
+    }
     if (typeof TBKit === 'undefined') return;
     if (__wifi_qr_skip) return;
     var snap=__wifi_qrSnap();
@@ -386,6 +401,8 @@ function __wifi_qrExtras(){
     if(!keys.length) return;
     if(keys.length>12) keys=keys.slice(0,12);
     var res=__wifi_qrResText();
+    var __privSc=__wifi_qrScore(res);
+    var __privRes=__privSc?'执行成功（结果 '+String(res).length+' 字符，未存原文）':'执行失败（详见结果区，未存原文）';
     if(!res) return;
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
@@ -398,13 +415,13 @@ function __wifi_qrExtras(){
         for(var i=0;i<keys.length;i++){
             if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
         }
-        if(same&&String(last[rk])===String(res)) return;
+        if(same&&String(last[rk])===String(__privRes)) return;
     }
     __wifi_qr_last=now;
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
-    rec[rk]=res;
-    rec.__tbScore=__wifi_qrScore(res);
+    rec[rk]=__privRes;
+    rec.__tbScore=__privSc;
     TBKit.history.record(rec);
     __wifi_qrRender(keys,rk,en);
 }
