@@ -375,6 +375,25 @@ const MAX_HISTORY = 20;
 
 let currentData = { headers: [], rows: [] };
 let csvExportSafe = '';
+function clearJsonCsvResult(){
+  csvExportSafe = '';
+  const out = document.getElementById('csvOutput');
+  if (out) out.value = '';
+  currentData = { headers: [], rows: [] };
+  const table = document.getElementById('previewTable');
+  if (table) table.innerHTML = '<p style="padding:40px;text-align:center;color:var(--text-muted);">' + (__csvLangEn() ? 'No data yet — please convert first.' : '暂无数据，请先进行转换') + '</p>';
+  const rowsEl = document.getElementById('previewRows');
+  if (rowsEl) rowsEl.textContent = '0';
+  const colsEl = document.getElementById('previewCols');
+  if (colsEl) colsEl.textContent = '0';
+  const headEl = document.getElementById('previewHeader');
+  if (headEl) headEl.textContent = __csvLangEn() ? 'No' : '否';
+}
+document.getElementById('jsonInput').addEventListener('input', clearJsonCsvResult);
+['outDelimiter','outQuote','outHeader','quoteAll'].forEach(function(id){
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('change', clearJsonCsvResult);
+});
 
 document.getElementById('csvDelimiter').addEventListener('change', function() {
   document.getElementById('customDelimWrap').style.display = this.value === 'custom' ? 'block' : 'none';
@@ -402,11 +421,14 @@ function parseCSV(text, delimiter, quoteChar, hasHeader, trim) {
   let currentField = '';
   let inQuotes = false;
   let i = 0;
+  let line = 1;
+  let quoteStartLine = 0;
 
   while (i < text.length) {
     const ch = text[i];
 
     if (inQuotes) {
+      if (ch === '\n') { line++; currentField += ch; i++; continue; }
       if (ch === quoteChar) {
         if (text[i + 1] === quoteChar) {
           currentField += quoteChar;
@@ -426,6 +448,7 @@ function parseCSV(text, delimiter, quoteChar, hasHeader, trim) {
 
     if (ch === quoteChar && quoteChar && currentField === '') {
       inQuotes = true;
+      quoteStartLine = line;
       i++;
       continue;
     }
@@ -442,6 +465,7 @@ function parseCSV(text, delimiter, quoteChar, hasHeader, trim) {
       rows.push(currentRow);
       currentRow = [];
       currentField = '';
+      line++;
       i++;
       continue;
     }
@@ -455,6 +479,9 @@ function parseCSV(text, delimiter, quoteChar, hasHeader, trim) {
     i++;
   }
 
+  if (inQuotes) {
+    throw new Error(__csvLangEn() ? `Unclosed quote starting at line ${quoteStartLine}; check that the quoted field closes with a matching quote` : `第 ${quoteStartLine} 行有未闭合的引号；请检查该字段的引号是否成对`);
+  }
   if (currentField !== '' || currentRow.length > 0) {
     currentRow.push(trim ? currentField.trim() : currentField);
     rows.push(currentRow);
@@ -520,8 +547,9 @@ function csvToJson() {
     currentData = null;
     const out = document.getElementById('jsonOutput');
     out.value = '';
-    out.placeholder = '转换失败：' + e.message;
-    ToolBox.showToast('转换失败：' + e.message, 'error');
+    const errPrefix = __csvLangEn() ? 'Conversion failed: ' : '转换失败：';
+    out.placeholder = errPrefix + e.message;
+    ToolBox.showToast(errPrefix + e.message, 'error');
   }
 }
 
@@ -533,6 +561,7 @@ function __csvLangEn() {
 function jsonToCsv() {
   const jsonText = document.getElementById('jsonInput').value;
   if (!jsonText.trim()) {
+    clearJsonCsvResult();
     ToolBox.showToast(i18nText('toast.msg749'), 'warning');
     return;
   }
@@ -599,6 +628,7 @@ function jsonToCsv() {
     addToHistory('json2csv', jsonText.substring(0, 100), rows.length);
     ToolBox.showToast(__csvLangEn() ? `Converted: ${rows.length} rows` : `转换成功：${rows.length} 行数据`);
   } catch(e) {
+    clearJsonCsvResult();
     ToolBox.showToast('JSON 解析失败：' + e.message, 'error');
   }
 }
@@ -670,8 +700,7 @@ function clearCsv() {
 
 function clearJson() {
   document.getElementById('jsonInput').value = '';
-  document.getElementById('csvOutput').value = '';
-  csvExportSafe = '';
+  clearJsonCsvResult();
 }
 
 function loadSampleCsv() {
