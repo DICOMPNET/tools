@@ -3723,7 +3723,7 @@ const CASES = [
     // IT-E3 空态：清空输入后不得只留效率工具栏的空结果。
     inputs: { input: "" },
     clicks: ["toCSV()"],
-    expect: ["请输入非空 JSON 数组"],
+    expect: ["请输入非空 JSON 对象数组"],
     ref: "空态口径：输入为空 ⇒ 结果区提示；修复前空分支 `out.innerHTML=''`，既不报错也无提示，结果区只剩效率工具栏的「0 个参数」。默认示例已预填 JSON，不命中。",
   },
   {
@@ -3731,7 +3731,7 @@ const CASES = [
     // IT-N6 回归：非空但长度为 0 的数组 [] 不得保留上一次的有效 CSV。
     inputs: { input: "[]" },
     clicks: ["toCSV()"],
-    expect: ["请输入非空 JSON 数组"],
+    expect: ["请输入非空 JSON 对象数组"],
     ref: "独立复算：输入 []（非空字符串、但 parsed 数组 length=0）⇒ 走 !data.length 分支，结果区提示且 output.value/__jsonToCsvExportSafe 必须被清空（修复前此分支不清空，旧 CSV 残留在 output 与导出串，复制/下载会误读旧数据）。默认样例是有效 JSON，不命中。",
   },
   {
@@ -6851,23 +6851,23 @@ const CASES = [
     inputs: {"length": "16"},
     clicks: ["document.getElementById('lowercase').checked=true;document.getElementById('uppercase').checked=true;document.getElementById('numbers').checked=true;document.getElementById('symbols').checked=true;generatePassword();"],
     dumpIds: ["strengthLabel"],
-    expect: ["强度：非常强 · 约 103 bit"],
-    ref: "字符池 = 26 小写 + 26 大写 + 10 数字 + 26 符号 = 88；页面熵公式 长度 × log₂(88) = 16 × 6.4594 = 103.35 ⇒ toFixed(0) 显示 103。强度分级：长度≥8/12/16 得 3 分、四类字符齐全再得 4 分 ⇒ 7 分 ⇒ 非常强。锚取整句「强度：非常强 · 约 103 bit」。默认态所有字符集开关在 harness 里都是未勾选 ⇒ 生成结果为空、不调 updateStrength，兜底无参调用才写出「强度：无 · 约 0 bit」，与本串不同。",
+    expect: ["强度：非常强 · 理论上界 ≤ 103 bit"],
+    ref: "字符池 = 26 小写 + 26 大写 + 10 数字 + 26 符号 = 88；页面熵公式 长度 × log₂(88) = 16 × 6.4594 = 103.35 ⇒ toFixed(0) 显示 103。强度分级：长度≥8/12/16 得 3 分、四类字符齐全再得 4 分 ⇒ 7 分 ⇒ 非常强。锚取整句「强度：非常强 · 理论上界 ≤ 103 bit」。默认态所有字符集开关在 harness 里都是未勾选 ⇒ 生成结果为空、不调 updateStrength，兜底无参调用才写出「强度：无 · 理论上界 ≤ 0 bit」，与本串不同。",
   },
   {
     slug: "it/password-generator",
     inputs: {"length": "8"},
     clicks: ["document.getElementById('lowercase').checked=true;document.getElementById('uppercase').checked=true;document.getElementById('numbers').checked=true;generatePassword();"],
     dumpIds: ["strengthLabel"],
-    expect: ["强度：中等 · 约 48 bit"],
-    ref: "8 位、未勾选特殊符号：字符池 = 26+26+10 = 62 ⇒ 8 × log₂(62) = 47.63 ⇒ 48 bit。分级：长度 8 得 1 分、三类字符各 1 分 ⇒ 4 分且长度<10 ⇒ 中等。与上一条对照，去掉符号后同样 8 位强度掉一档、熵也下降。",
+    expect: ["强度：中等 · 理论上界 ≤ 47 bit"],
+    ref: "8 位、未勾选特殊符号：字符池 = 26+26+10 = 62 ⇒ 8 × log₂(62) = 47.63；再按“每类至少出现一次”的字符串总数收紧上界为 47.18 ⇒ 47 bit。分级：长度 8 得 1 分、三类字符各 1 分 ⇒ 4 分且长度<10 ⇒ 中等。与上一条对照，去掉符号后同样 8 位强度掉一档、熵也下降。",
   },
   {
     slug: "it/password-generator",
     inputs: {"length": "4"},
     clicks: ["document.getElementById('lowercase').checked=true;generatePassword();"],
     dumpIds: ["strengthLabel"],
-    expect: ["强度：弱 · 约 19 bit"],
+    expect: ["强度：弱 · 理论上界 ≤ 19 bit"],
     ref: "最短档：字符池仅 26 ⇒ 4 × log₂(26) = 18.80 ⇒ 19 bit；长度<8 且只命中小写 ⇒ 1 分 ⇒ 弱。默认态该值不出现（见上条说明）。",
   },
   {
@@ -6875,16 +6875,66 @@ const CASES = [
     inputs: {"length": "12"},
     clicks: ["document.getElementById('lowercase').checked=true;document.getElementById('uppercase').checked=true;document.getElementById('numbers').checked=true;document.getElementById('excludeSimilar').checked=true;generatePassword();"],
     dumpIds: ["strengthLabel"],
-    expect: ["强度：强 · 约 70 bit"],
-    ref: "勾选「排除相似字符」后字符集被改写：小写去 o/l → 24、大写去 O/I → 24、数字去 0/1 → 8，符号未选仍为 0 ⇒ 池 56 ⇒ 12 × log₂(56) = 69.69 ⇒ 70 bit。既覆盖熵计算，也覆盖排除规则对字符池的影响（不勾选时 12 位应为 12 × log₂(62) = 71 bit）。",
+    expect: ["强度：强 · 理论上界 ≤ 69 bit"],
+    ref: "勾选「排除相似字符」后字符集被改写：小写去 o/l → 24、大写去 O/I → 24、数字去 0/1 → 8，符号未选仍为 0 ⇒ 池 56 ⇒ 12 × log₂(56) = 69.69；再按“每类至少出现一次”收紧上界为 69.44 ⇒ 69 bit。既覆盖熵计算，也覆盖排除规则对字符池的影响（不勾选时 12 位应为 12 × log₂(62) = 71 bit）。",
   },
   {
     slug: "it/password-generator",
     inputs: {"length": "10"},
     clicks: ["document.getElementById('lowercase').checked=true;document.getElementById('uppercase').checked=true;document.getElementById('numbers').checked=true;document.getElementById('symbols').checked=true;document.getElementById('excludeAmbiguous').checked=true;generatePassword();"],
     dumpIds: ["strengthLabel"],
-    expect: ["强度：强 · 约 62 bit"],
+    expect: ["强度：强 · 理论上界 ≤ 62 bit"],
     ref: "勾选「排除歧义符号」后符号集从 26 个剔除方括号/圆括号/花括号等 12 个 ⇒ 剩 14 ⇒ 池 = 26+26+10+14 = 76 ⇒ 10 × log₂(76) = 62.48 ⇒ 62 bit。与上一条合起来把两个排除开关对字符池的扣减都纳入验证。",
+  },
+
+  {
+    slug: "it/password-generator",
+    inputs: { length: "", count: "1" },
+    clicks: ["generatePassword();var p=document.getElementById('passwordDisplay').textContent;document.getElementById('__tbProbe').textContent='EMPTY725 '+(p.indexOf('密码长度不能为空')>=0?'Y':'N');"],
+    expect: ["EMPTY725 Y"],
+    ref: "第725批：长度为空必须明确提示，不能再回退成 16 并生成密码；默认长度 16 走正常生成路径，不出现该提示。",
+  },
+  {
+    slug: "it/password-generator",
+    inputs: { length: "16", count: "101" },
+    clicks: ["generatePassword();var p=document.getElementById('passwordDisplay').textContent;document.getElementById('__tbProbe').textContent='COUNT725 '+(p.indexOf('须为 1–100 的整数')>=0?'Y':'N');"],
+    expect: ["COUNT725 Y"],
+    ref: "第725批：数量声明上限 100，101 必须在生成前拒绝；默认 count=1 正常生成，不命中该错误串。",
+  },
+  {
+    slug: "it/password-generator",
+    inputs: { length: "16", count: "1" },
+    clicks: ["['lowercase','uppercase','numbers','symbols'].forEach(function(id){document.getElementById(id).checked=false;});generatePassword();var p=document.getElementById('passwordDisplay').textContent;document.getElementById('__tbProbe').textContent='CHARSET725 '+((p.indexOf('请至少选择一种字符集')>=0&&currentPasswords.length===0&&document.getElementById('pwdCopyBtn').disabled)?'Y':'N');"],
+    expect: ["CHARSET725 Y"],
+    ref: "第725批：取消全部字符集后必须报错、清空结果并禁用复制，不能继续展示上一条密码。",
+  },
+  {
+    slug: "it/password-generator",
+    inputs: { phraseWords: "4" },
+    clicks: ["document.getElementById('phraseCapitalize').checked=true;document.getElementById('phraseNumber').checked=false;document.getElementById('phraseSymbol').checked=false;generatePassphrase();var s=calculateStrength(currentPasswords[0],'phrase');document.getElementById('__tbProbe').textContent='PHRASEENT725 '+s.entropy.toFixed(1)+' n='+currentPasswords.length;"],
+    expect: ["PHRASEENT725 23.9 n=1"],
+    ref: "第725批：4 个不重复词从 64 词表抽取的精确熵 = log₂(64×63×62×61) = 23.862… ⇒ 23.9 bit；固定首字母大写与分隔符不计入随机性。旧实现按字符池估成 100+ bit，不能命中该值。",
+  },
+  {
+    slug: "it/password-generator",
+    inputs: { phraseWords: "65" },
+    clicks: ["generatePassphrase();var p=document.getElementById('passwordDisplay').textContent;document.getElementById('__tbProbe').textContent='PHRASEBAD725 '+(p.indexOf('单词数量须为 2–10 的整数')>=0?'Y':'N');"],
+    expect: ["PHRASEBAD725 Y"],
+    ref: "第725批：词数 65 超过词表容量且超出控件上限，必须在循环前拒绝，不能进入无放回抽取死循环；默认 4 不命中该错误串。",
+  },
+  {
+    slug: "it/password-generator",
+    inputs: { length: "8", count: "2" },
+    clicks: ["['lowercase','uppercase','numbers'].forEach(function(id){document.getElementById(id).checked=true;});generatePassword();switchTab('phrase');document.getElementById('phraseWords').value='3';generatePassphrase();document.getElementById('__tbProbe').textContent='STALELIST725 '+((currentPasswords.length===1&&document.getElementById('passwordList').innerHTML.trim()===''&&document.getElementById('pwdChart').innerHTML==='')?'Y':'N');"],
+    expect: ["STALELIST725 Y"],
+    ref: "第725批：先生成两条随机密码再生成短语，旧批量列表与图表必须清空，复制全部/下载只能作用于当前短语，不能留下可单独复制的旧密码。",
+  },
+  {
+    slug: "it/password-generator",
+    inputs: { length: "16", count: "1" },
+    clicks: ["['lowercase','uppercase','numbers'].forEach(function(id){document.getElementById(id).checked=true;});var old=secureCrypto;secureCrypto=function(){return null};generatePassword();var p=document.getElementById('passwordDisplay').textContent;document.getElementById('__tbProbe').textContent='CRYPTO725 '+((p.indexOf('Web Crypto')>=0&&currentPasswords.length===0&&document.getElementById('pwdCopyBtn').disabled)?'Y':'N');secureCrypto=old;"],
+    expect: ["CRYPTO725 Y"],
+    ref: "第725批：模拟安全随机源缺失时必须进入错误态、清空 currentPasswords 并禁用复制，不能把错误提示当密码复制或继续使用旧结果。",
   },
 
   // ---- batch3 补充（2026-09-28）：base85-encode / base64-file / calc-10 此前无计算用例（P1 缺口） ----
@@ -8716,18 +8766,11 @@ const CASES = [
   {
     "slug": "it/csv-to-json",
     "inputs": {
-      "customDelimiter": "abc123测试",
-      "csvInput": "1\n2\n3",
-      "jsonOutput": "1\n2\n3",
-      "jsonInput": "1\n2\n3",
-      "csvOutput": "1\n2\n3",
-      "csvDelimiter": "\\t",
-      "outDelimiter": "\\t"
+      "jsonInput": "[{\"a\":1,\"b\":\"x\"}]"
     },
-    "expect": [
-      " column1 1 1 2 2 3 3\n3\n1\n是"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"customDelimiter\":\"abc123测试\",\"csvInput\":\"1\\n2\\n3\",\"jsonOutput\":\"1\\n2\\n3\",\"jsonInput\":\"1\\n2\\n3\",\"csvOutput\":\"1\\n2\\n3\",\"csvDelimiter\":\"\\\\t\",\"outDelimiter\":\"\\\\t\"}，输出区含「 column1 1 1 2 2 3 3\n3\n1\n是」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "clicks": ["jsonToCsv(); var __old=csvExportSafe; document.getElementById('jsonInput').value='[oops]'; jsonToCsv(); document.getElementById('__tbProbe').textContent='XTRA '+((__old&&document.getElementById('csvOutput').value===''&&csvExportSafe==='')?'OK':'BAD');"],
+    "expect": ["XTRA OK"],
+    "ref": "第721批：先成功转换生成 CSV，再输入非法 JSON 转换。失败分支必须清空 #csvOutput 与 csvExportSafe，复制/下载不得再取旧结果。探针串只在「旧结果曾存在且失败后被清空」时出现 ⇒ 旧实现 csvExportSafe 残留、探针 BAD。"
   },
   {
     "slug": "it/cuid-generator",
@@ -9418,6 +9461,31 @@ const CASES = [
     "expect": ["AM3 n=0 q=1"],
     "ref": "IT-N397：对象数组换序同样应判为无内容差异。比较键用排序后的规范序列化，故键序不同的 `{id:1}` 也能配对上。修复前是 `items[0].id`、`items[1].id` 两处 mod。"
   },
+  // ---- 第723批：JSON 差异重复键、大整数与顶层假值 ----
+  {
+    "slug": "it/json-diff",
+    "clicks": ["document.getElementById('left').value='{\"id\":9223372036854775807}';document.getElementById('right').value='{\"id\":9223372036854775808}';doDiff();var d=lastDiff;document.getElementById('__tbProbe').textContent='BIG723 exact='+((d.length===1&&d[0].from.raw==='9223372036854775807'&&d[0].to.raw==='9223372036854775808')?1:0);"],
+    "expect": ["BIG723 exact=1"],
+    "ref": "第723批：超出安全整数的 ID 必须保留原始字面量，深度对比、路径视图与 JSON 输出都不得出现舍入后的 9223372036854776000。"
+  },
+  {
+    "slug": "it/json-diff",
+    "clicks": ["document.getElementById('left').value='{\"a\":1,\"a\":2}';document.getElementById('right').value='{\"a\":2}';doDiff();var w=document.getElementById('jdWarn');document.getElementById('__tbProbe').textContent='DUP723 n='+(lastDup?lastDup.length:0)+' show='+w.style.display+' side='+(w.textContent.indexOf('\u5de6\u4fa7')>=0?1:0)+' pos='+(w.textContent.indexOf('@')>=0?1:0)+' same='+(w.textContent.indexOf('\u539f\u59cb\u6587\u672c\u5e76\u4e0d\u76f8\u540c')>=0?1:0);"],
+    "expect": ["DUP723 n=1 show=block side=1 pos=1 same=1"],
+    "ref": "第723批：重复键必须提示侧别与位置，即使后写覆盖后解析值相同，也不能把原始文本描述为完全相同。"
+  },
+  {
+    "slug": "it/json-diff",
+    "clicks": ["document.getElementById('left').value='false';document.getElementById('right').value='true';doDiff();switchView('side');var t=copyDiff();document.getElementById('__tbProbe').textContent='FALSE723 has='+((t.indexOf('false')>=0&&t.indexOf('true')>=0)?1:0);"],
+    "expect": ["FALSE723 has=1"],
+    "ref": "第723批：顶层 false/true 比较后普通视图复制不得再被假值判断拦掉，复制的差异文本应同时含旧值 false 与新值 true。"
+  },
+  {
+    "slug": "it/json-diff",
+    "clicks": ["document.getElementById('left').value='false';document.getElementById('right').value='false';doDiff();switchView('side');var t=copyDiff();document.getElementById('__tbProbe').textContent='EQ723 msg='+(/\u65e0\u5dee\u5f02/.test(t)?1:0);"],
+    "expect": ["EQ723 msg=1"],
+    "ref": "第723批：顶层同为 false 时零差异复制要给出明确的「无差异」说明，而不是提示没有可复制内容。"
+  },
   {
     "slug": "it/json-diff",
     "inputs": { "left": "{\"constructor\":1}", "right": "{}" },
@@ -9651,6 +9719,51 @@ const CASES = [
       " JSON 有效\n4"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\",\"indent\":\"4\"}，输出区含「 JSON 有效\n4」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    "slug": "it/json-formatter",
+    "inputs": {"input": "{\"id\":9007199254740993}"},
+    "clicks": ["formatJSON();document.getElementById('__tbProbe').textContent='BIG '+document.getElementById('input').value;"],
+    "expect": ["BIG { \"id\": 9007199254740993"],
+    "ref": "第722批：超出安全整数的大 ID 必须按原始字面量保留；旧实现 JSON.parse→stringify 后变成 9007199254740992。输入与默认样例均不含正确值 ⇒ 只有修复态命中。"
+  },
+  {
+    "slug": "it/json-formatter",
+    "inputs": {"input": "{\"10\":1,\"2\":2,\"a\":3}"},
+    "clicks": ["var __o='';try{var __m=document.getElementById('sortMode');if(__m)__m.value='lex';sortJSON();__o=document.getElementById('input').value;}catch(e){__o='ER '+e.message;}document.getElementById('__tbProbe').textContent='LEX '+__o;"],
+    "dumpIds": ["__tbProbe"],
+    "expect": ["LEX { \"10\": 1, \"2\": 2"],
+    "ref": "第722批：排序规则可选。字典序下 10 必须排在 2 前；旧实现虽先字符串排序，但普通对象枚举把整数键改回 2、10 顺序 ⇒ 断言不命中。"
+  },
+  {
+    "slug": "it/json-formatter",
+    "inputs": {"input": "{\"10\":1,\"2\":2,\"a\":3}"},
+    "clicks": ["document.getElementById('sortMode').value='natural';sortJSON();document.getElementById('__tbProbe').textContent='NAT '+document.getElementById('input').value;"],
+    "expect": ["NAT { \"2\": 2, \"10\": 1"],
+    "ref": "第722批：自然序把数字段按数值比较，2 必须排在 10 前。旧实现无自然序选项、sortMode 读取为空 ⇒ 永不产生该顺序。"
+  },
+  {
+    "slug": "it/json-formatter",
+    "inputs": {},
+    "clicks": ["var __a=[];for(var __i=0;__i<4000;__i++)__a.push(__i);document.getElementById('input').value=JSON.stringify(__a);autoValidate();var __v=document.getElementById('viewJson').innerHTML;var __s=document.getElementById('resultStat').textContent;document.getElementById('__tbProbe').textContent='TRUNC '+((__v.indexOf('结果已截断')>=0&&__s.indexOf('树已截断')>=0)?'OK':'BAD '+__s);"],
+    "expect": ["TRUNC OK"],
+    "ref": "第722批：大数组不得逐键全量渲染 DOM。超过 3000 行须截断并提示，完整内容仍可通过复制/下载获取；旧实现无上限 ⇒ viewJson 不含截断提示，探针 BAD。"
+  },
+  {
+    "slug": "it/json-formatter",
+    "inputs": {"input": "log {\"a\":1} mid {\"b\":2}"},
+    "clicks": ["extractJSON();applyExtractCandidate(1)"],
+    "dumpIds": ["input"],
+    "expect": ["\"b\": 2"],
+    "ref": "第722批：多个候选不得自动选最长并直接覆盖。页面先列出候选，applyExtractCandidate(1) 选第二个；旧实现无候选面板与 applyExtractCandidate ⇒ 调用抛错且输入仍为原文，断言不命中。"
+  },
+  {
+    "slug": "it/json-formatter",
+    "inputs": {"input": "log {\"a\":1} mid {\"b\":2}"},
+    "clicks": ["extractJSON();applyExtractCandidate(1);undoExtract()"],
+    "dumpIds": ["input"],
+    "expect": ["log {\"a\":1} mid {\"b\":2}"],
+    "ref": "第722批：提取后必须能撤销回原文。旧实现无 undoExtract ⇒ 抛错且输入停留在提取结果，整段原文不再出现。"
   },
   {
     "slug": "it/json-to-code",
@@ -11597,15 +11710,47 @@ const CASES = [
   
   {
     "slug": "it/random",
-    "inputs": {
-      "min": "42",
-      "max": "42",
-      "count": "42"
-    },
-    "expect": [
-      "42\n42\n42\n6\n反面\n红: 4 7 9 22"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"min\":\"42\",\"max\":\"42\",\"count\":\"42\"}，输出区含「42\n42\n42\n6\n反面\n红: 4 7 9 22」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "inputs": { "min": "42", "max": "42", "count": "42" },
+    "clicks": ["generateNumbers();var t=document.getElementById('singleResult').textContent;var parts=t.split(',');var all=parts.every(function(x){return x.trim()==='42';});document.getElementById('__tbProbe').textContent='SAME42 n='+parts.length+' all='+(all?1:0);"],
+    "expect": ["SAME42 n=42 all=1"],
+    "ref": "第724批：单值区间 42–42、数量 42（上限内）应生成 42 个 42，不再依赖骰子/彩票等随机输出做弱断言。"
+  },
+  {
+    "slug": "it/random",
+    "inputs": { "min": "", "max": "100", "count": "1" },
+    "clicks": ["generateNumbers();var h=document.getElementById('numberGrid').innerHTML;document.getElementById('__tbProbe').textContent='EMPTY724 '+(h.indexOf('请填写最小值')>=0?'Y':'N');"],
+    "expect": ["EMPTY724 Y"],
+    "ref": "第724批：最小值清空后不得回退成隐藏默认 0，必须明确提示填写。"
+  },
+  {
+    "slug": "it/random",
+    "inputs": { "min": "0", "max": "100", "count": "51" },
+    "clicks": ["generateNumbers();var h=document.getElementById('numberGrid').innerHTML;document.getElementById('__tbProbe').textContent='C51724 '+(h.indexOf('数量须为 1–50 的整数')>=0?'Y':'N');"],
+    "expect": ["C51724 Y"],
+    "ref": "第724批：数量上限 50 必须校验，51 不得继续生成。"
+  },
+  {
+    "slug": "it/random",
+    "inputs": { "min": "0.2", "max": "1.2", "count": "1" },
+    "checkIds": ["integer"],
+    "clicks": ["generateNumbers();document.getElementById('__tbProbe').textContent='INTFRAC724 r='+document.getElementById('singleResult').textContent;"],
+    "expect": ["INTFRAC724 r=1"],
+    "ref": "第724批：整数模式按 ceil(0.2)=1 到 floor(1.2)=1 抽取，只可能得到 1，不能再产生 0 或 2。"
+  },
+  {
+    "slug": "it/random",
+    "inputs": { "min": "0.1000006", "max": "0.1000007", "count": "1" },
+    "clicks": ["generateNumbers();var h=document.getElementById('numberGrid').innerHTML;document.getElementById('__tbProbe').textContent='DECNARROW724 '+(h.indexOf('没有 6 位小数精度的可表示值')>=0?'Y':'N');"],
+    "expect": ["DECNARROW724 Y"],
+    "ref": "第724批：6 位小数网格内无可表示值时必须报错，不能把结果舍入到 0.100001 越过上限。"
+  },
+  {
+    "slug": "it/random",
+    "inputs": { "min": "0", "max": "0.0000001", "count": "2" },
+    "checkIds": ["unique"],
+    "clicks": ["generateNumbers();var h=document.getElementById('numberGrid').innerHTML;document.getElementById('__tbProbe').textContent='DECCAP724 '+(h.indexOf('最多只能生成 1 个不重复小数')>=0?'Y':'N');"],
+    "expect": ["DECCAP724 Y"],
+    "ref": "第724批：唯一小数容量只有 1（0），请求 2 个必须立即报错，不能进入无界碰撞重试。"
   },
   {
     "slug": "it/random",
@@ -11628,7 +11773,7 @@ const CASES = [
     },
     "checkIds": ["integer"],
     "clicks": ["generateNumbers()"],
-    "expect": ["生成数量须为不小于 1 的整数"],
+    "expect": ["数量须为 1–50 的整数"],
     "ref": "数量 0 的定义域不成立：旧实现 `parseInt(...) || 1` 静默改成 1 并生成数字；修复后显式拒绝并说明原因。默认 count=1 走正常生成路径，不出现该提示。"
   },
   {
@@ -11694,6 +11839,34 @@ const CASES = [
       "1 2 3\nverbose\n1 2 3"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\",\"output\":\"1\\n2\\n3\",\"flavor\":\"verbose\"}，输出区含「1 2 3\n1 2 3\nverbose」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+  },
+  {
+    slug: "it/regex-escape",
+    inputs: { input: "a/b" + String.fromCharCode(92) + "c (v1)", flavor: "verbose" },
+    clicks: ["document.getElementById('slash').checked=true;esc();unesc();document.getElementById('__tbProbe').textContent='ROUNDTRIP725 '+document.getElementById('output').value;"],
+    expect: ["ROUNDTRIP725 a/b\\c (v1)"],
+    ref: "第726批：verbose 风味 + 转义斜杠开启时，`a/b\\c (v1)` 先转成 `a\\/b\\\\c \\(v1\\)` 再反转义，斜杠必须能还原；旧 unesc 只识别 META 不含 `/`，会残留 `\\/`。",
+  },
+  {
+    slug: "it/regex",
+    inputs: { pattern: "\\d+", testText: "abc 123 ddd 456" },
+    clicks: ["var p=document.getElementById('pattern').value;document.getElementById('__tbProbe').textContent='PAT725 '+p.length+' '+p.charCodeAt(0)+' '+(p[1]==='d'?'d':'x');"],
+    expect: ["PAT725 3 92 d"],
+    ref: "第726批：初始正则必须是单反斜杠 `\\d+`（长度 3、首字符码 92、次字符 d），不能再是 HTML 里写死两个反斜杠的 `\\\\d+`；默认文本 `abc 123 ddd 456` 会匹配 123/456 而非 ddd。",
+  },
+  {
+    slug: "it/regex",
+    inputs: { pattern: "(", testText: "abc" },
+    clicks: ["switchTab('replace');document.getElementById('replaceText').value='abc';document.getElementById('replaceWith').value='';doReplace();document.getElementById('__tbProbe').textContent='REPERR725 '+replaceState+' '+(document.getElementById('replaceCopyBtn').disabled?'D':'E')+' '+replaceResultText.length;"],
+    expect: ["REPERR725 error D 0"],
+    ref: "第726批：替换失败进入 error 状态，复制/下载按钮禁用且 replaceResultText 为空；旧实现只排除空内容与初始提示，错误提示可被复制。harness 中 Worker 缺失也会进入统一失败状态。",
+  },
+  {
+    slug: "it/regex",
+    inputs: { testText: "SECRET725", pattern: "\\d+" },
+    clicks: ["document.getElementById('regexSaveText').checked=false;var s=__regexSnap();var a=(s.testText?'bad':'ok')+' '+(s.pattern?'has':'no');document.getElementById('regexSaveText').checked=true;var s2=__regexSnap();document.getElementById('__tbProbe').textContent='HIST725 '+a+' '+(s2.testText?'yes':'no');"],
+    expect: ["HIST725 ok has yes"],
+    ref: "第726批：历史快照默认不得保存 testText（可能含日志或凭据），仅在显式勾选 regexSaveText 后才纳入；pattern 仍默认保存。",
   },
   {
     slug: "it/regex-cheatsheet",

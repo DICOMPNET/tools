@@ -2965,53 +2965,6 @@ def sync_service_worker_build():
         print('[sw] 版本戳未变化 -> %s' % build)
 
 
-def sync_en_dict_indexes():
-    """幂等补全 i18n/tools/en/<industry>/_index.json。
-
-    上游同步时 HEAD-only 恢复会带回本地独有工具字典，但上游 _index.json
-    不会包含这些 slug（上游根本没有对应工具），导致
-    audit_en_dict_index.py 门禁报 "dictionary not listed"。每次构建时自动
-    补齐索引，让 HEAD-only 新增字典与索引保持一致。
-    """
-    en_root = os.path.join(ROOT, 'i18n', 'tools', 'en')
-    if not os.path.isdir(en_root):
-        return
-    ignored = {'_common.json', '_prefix.json'}
-    fixed = 0
-    added = 0
-    for ind in sorted(os.listdir(en_root)):
-        ind_dir = os.path.join(en_root, ind)
-        if not os.path.isdir(ind_dir):
-            continue
-        dir_slugs = sorted(
-            os.path.splitext(fn)[0] for fn in os.listdir(ind_dir)
-            if fn.endswith('.json') and fn not in ignored and fn != '_index.json'
-        )
-        if not dir_slugs:
-            continue
-        idx_path = os.path.join(ind_dir, '_index.json')
-        if not os.path.isfile(idx_path):
-            data = {'industry': ind, 'tools': dir_slugs}
-            with open(idx_path, 'w', encoding='utf-8') as f:
-                f.write(json.dumps(data, ensure_ascii=False, indent=2) + '\n')
-            fixed += 1
-            added += len(dir_slugs)
-            continue
-        with open(idx_path, encoding='utf-8') as f:
-            data = json.load(f)
-        listed = list(data.get('tools', []))
-        listed_set = set(listed)
-        missing = [s for s in dir_slugs if s not in listed_set]
-        if missing:
-            data['tools'] = listed + missing
-            with open(idx_path, 'w', encoding='utf-8') as f:
-                f.write(json.dumps(data, ensure_ascii=False, indent=2) + '\n')
-            fixed += 1
-            added += len(missing)
-    if fixed:
-        print('[en-index] 更新 %d 个行业索引，补 %d 个 slug' % (fixed, added))
-
-
 def _count_xml_urls(path):
     with open(path, encoding='utf-8') as f:
         return sum(1 for line in f if '<loc>' in line)
@@ -7200,9 +7153,6 @@ def main():
 
     # 同步 Service Worker 版本戳（内容驱动，发布后客户端缓存自动失效）
     sync_service_worker_build()
-
-    # 补齐英文行业字典索引（幂等；修复上游同步带回本地独有工具后索引缺 slug 的漏洞）
-    sync_en_dict_indexes()
 
     # 质量分级统计
     qc = {'A': 0, 'B': 0, 'C': 0}
