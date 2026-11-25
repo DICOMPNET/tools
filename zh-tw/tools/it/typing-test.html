@@ -186,7 +186,8 @@
     </div>
 
     <div class="test-area" id="testArea"></div>
-    <input type="text" class="typing-input" id="typingInput" placeholder="點選此處開始打字..." oninput="onInput()" onkeydown="onKey(event)" autofocus aria-label="點選此處開始打字...">
+    <input type="text" class="typing-input" id="typingInput" placeholder="點選此處開始打字..." oninput="onInput()" onkeydown="onKey(event)" onpaste="return __typingBlockInput(event)" ondrop="return __typingBlockInput(event)" autofocus aria-label="點選此處開始打字...">
+    <p style="font-size:12px;color:var(--text-muted);margin:8px 0 0;" data-zh="測速模式僅接受逐字輸入：貼上/拖放會被攔截，不計入成績；中文輸入法的組合輸入不受影響。">Take a typing speed test in your browser — measure WPM and accuracy live.</p>
     <div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
 
     <div class="stats-grid">
@@ -208,7 +209,7 @@
     <div class="results-card">
       <div style="font-size:14px;opacity:0.9;">你的打字速度</div>
       <div class="big" id="finalWpm">0 WPM</div>
-      <div style="font-size:14px;opacity:0.9;">準確率 <strong id="finalAcc">0%</strong> · 總字元 <strong id="finalChars">0</strong> · 錯誤 <strong id="finalErrors">0</strong></div>
+      <div style="font-size:14px;opacity:0.9;">最終文本準確率 <strong id="finalAcc">0%</strong> · 總字元 <strong id="finalChars">0</strong> · 按鍵準確率 <strong id="finalKeyAcc">100%</strong> · 累計按鍵錯誤 <strong id="finalErrors">0</strong></div>
     </div>
     <div class="toolbar" style="margin-top:12px;">
       <button type="button" class="btn primary" onclick="startTest()">再測一次</button>
@@ -343,6 +344,8 @@ let text = '';
 let pos = 0;
 let errors = 0;
 let totalKeys = 0;
+let keystrokes = 0;
+let mistakes = 0;
 let startTime = 0;
 let timer = null;
 let testEnded = false;
@@ -369,6 +372,8 @@ function resetTest(){
   pos = 0;
   errors = 0;
   totalKeys = 0;
+  keystrokes = 0;
+  mistakes = 0;
   startTime = 0;
   testEnded = false;
   if(timer) clearInterval(timer);
@@ -432,7 +437,13 @@ function onInput(){
 }
 
 function onKey(e){
-  if(testEnded) return;
+  if(!e || testEnded) return;
+  // 累计按键错误：退格修正后仍保留，用于区分「最终文本准确率」与「按键准确率」。
+  if(e.key && e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey && !e.isComposing){
+    const expected = text[pos];
+    keystrokes++;
+    if(e.key !== expected) mistakes++;
+  }
   // 退格处理（重新渲染以更新错误状态）
   if(e.key === 'Backspace'){
     setTimeout(() => {
@@ -487,7 +498,8 @@ function endTest(){
   document.getElementById('finalWpm').textContent = finalWpm + ' WPM';
   document.getElementById('finalAcc').textContent = finalAcc + '%';
   document.getElementById('finalChars').textContent = totalKeys;
-  document.getElementById('finalErrors').textContent = errors;
+  document.getElementById('finalErrors').textContent = mistakes || errors;
+  document.getElementById('finalKeyAcc').textContent = (keystrokes ? Math.round((keystrokes - mistakes) / keystrokes * 100) : 100) + '%';
   document.getElementById('resultsCard').style.display = 'block';
   document.getElementById('resultsCard').scrollIntoView({behavior:'smooth', block:'nearest'});
 
@@ -495,7 +507,7 @@ function endTest(){
   const history = (function(){try{return JSON.parse(localStorage.getItem('typingHistory') || '[]')}catch(e){try{localStorage.removeItem('typingHistory')}catch(_){}return []}})();
   history.unshift({
     date: new Date().toLocaleString('zh-CN'),
-    lang, wpm: finalWpm, acc: finalAcc, chars: totalKeys, errors
+    lang, wpm: finalWpm, acc: finalAcc, chars: totalKeys, errors, keystrokes, mistakes
   });
   if(history.length > 20) history.pop();
   localStorage.setItem('typingHistory', JSON.stringify(history));
@@ -587,6 +599,13 @@ var __tt0=renderHistory;
 renderHistory=function(){__tt0();__ttExtras();};
 document.addEventListener('toolbox:langchange',__ttExtras);
 renderHistory();
+function __typingBlockInput(e){
+  if(e && e.preventDefault) e.preventDefault();
+  if(typeof ToolBox!=='undefined') ToolBox.showToast('测速模式不支持粘贴或拖放，请逐字输入', 'warning');
+  return false;
+}
+document.getElementById('typingInput').addEventListener('paste', __typingBlockInput);
+document.getElementById('typingInput').addEventListener('drop', __typingBlockInput);
 </script><script>
 // tool-intro折叠交互
 document.addEventListener('DOMContentLoaded',function(){
@@ -618,7 +637,7 @@ document.addEventListener('DOMContentLoaded',function(){
     </a>
     <a href="/zh-tw/tools/it/css-minifier.html" class="related-tool-card">
       <span class="rt-icon">🧹</span>
-      <span class="rt-info"><span class="rt-name">CSS 壓縮/美化工具</span><span class="rt-desc">CSS 壓縮/格式化/美化</span></span>
+      <span class="rt-info"><span class="rt-name">CSS 壓縮/格式化/美化工具</span><span class="rt-desc">線上 CSS 壓縮與美化工具，去除註釋空白壓縮體積或重新格式化縮排，保留語義便於維護，適合前端構建與…</span></span>
     </a>
     <a href="/zh-tw/tools/it/css-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
@@ -626,7 +645,7 @@ document.addEventListener('DOMContentLoaded',function(){
     </a>
     <a href="/zh-tw/tools/it/cron.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">Cron 表示式生成器</span><span class="rt-desc">視覺化生成 Cron 表示式，支援 5 位 Unix 格式，小白也能輕鬆上手</span></span>
+      <span class="rt-info"><span class="rt-name">Cron 表示式生成器</span><span class="rt-desc">視覺化生成/解析 5 段 Unix cron，預設按 Vixie cron 校驗；</span></span>
     </a>
     <a href="/zh-tw/tools/it/graphql-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>

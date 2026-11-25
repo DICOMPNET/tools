@@ -278,7 +278,7 @@
     </a>
     <a href="/zh-tw/tools/it/css-minifier.html" class="related-tool-card">
       <span class="rt-icon">🧹</span>
-      <span class="rt-info"><span class="rt-name">CSS 壓縮/美化工具</span><span class="rt-desc">CSS 壓縮/格式化/美化</span></span>
+      <span class="rt-info"><span class="rt-name">CSS 壓縮/格式化/美化工具</span><span class="rt-desc">線上 CSS 壓縮與美化工具，去除註釋空白壓縮體積或重新格式化縮排，保留語義便於維護，適合前端構建與…</span></span>
     </a>
     <a href="/zh-tw/tools/it/css-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
@@ -286,7 +286,7 @@
     </a>
     <a href="/zh-tw/tools/it/cron.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">Cron 表示式生成器</span><span class="rt-desc">視覺化生成 Cron 表示式，支援 5 位 Unix 格式，小白也能輕鬆上手</span></span>
+      <span class="rt-info"><span class="rt-name">Cron 表示式生成器</span><span class="rt-desc">視覺化生成/解析 5 段 Unix cron，預設按 Vixie cron 校驗；</span></span>
     </a>
     <a href="/zh-tw/tools/it/graphql-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
@@ -452,9 +452,10 @@ function ngramize(text, n) {
 }
 
 function tokensToFreqVec(tokens) {
-  var vec = {};
+  // 无原型对象：constructor / toString / __proto__ 等词不能命中继承属性
+  var vec = Object.create(null);
   tokens.forEach(function(t) {
-    vec[t] = (vec[t] || 0) + 1;
+    vec[t] = (Object.prototype.hasOwnProperty.call(vec, t) ? vec[t] : 0) + 1;
   });
   return vec;
 }
@@ -468,7 +469,8 @@ function cosineSimilarity(vec1, vec2) {
   var dot = 0, mag1 = 0, mag2 = 0;
   var allKeys = new Set([].concat(Object.keys(vec1), Object.keys(vec2)));
   allKeys.forEach(function(k) {
-    var a = vec1[k] || 0, b = vec2[k] || 0;
+    var a = Object.prototype.hasOwnProperty.call(vec1, k) ? vec1[k] : 0;
+    var b = Object.prototype.hasOwnProperty.call(vec2, k) ? vec2[k] : 0;
     dot += a * b;
     mag1 += a * a;
     mag2 += b * b;

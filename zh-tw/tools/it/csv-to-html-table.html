@@ -105,7 +105,7 @@
 <div class="card tool-card-accent" style="--tool-accent:#065F46;">
     <h2 data-zh="📊 CSV 轉 HTML 表格">📊 CSV to HTML Table</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">按所選分隔符解析 CSV 得到二維行陣列；未解析到資料時輸出空資料提示。開啟表頭時首行作為表頭生成表頭區與 th 單元格，資料從第 2 行開始；否則只生成表體。每一行生成一個 tr，每個單元格生成一個 td，單元格內容均做 HTML 轉義。統計：列數取首行的列數，資料行數 = 總行數減 1（無表頭時等於總行數），並輸出總行數；預覽區在表格上方標註總行數</div>
+  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">按所選分隔符解析 CSV 得到二維行陣列：引號外把 LF、CRLF 與單獨 CR 都視為記錄邊界，引號內換行原樣保留；欄位首尾空白與空行保留，不靜默過濾。未解析到資料時輸出空資料提示。開啟表頭時首行作為表頭生成表頭區與 th 單元格，資料從第 2 行開始；否則只生成表體。每一行生成一個 tr，每個單元格生成一個 td，單元格內容均做 HTML 轉義。統計：列數取首行的列數，資料行數 = 總行數減 1（無表頭時等於總行數），並輸出總行數；預覽區在表格上方標註總行數</div>
   <div class="formula-desc">把 CSV 資料渲染為 HTML 表格。</div>
   <ul class="formula-list">
     <li><b>解析</b>：按 RFC 4180，逗號分隔，含分隔符/換行/引號的欄位用雙引號包裹，內部引號寫兩遍。</li>
@@ -269,29 +269,60 @@ Carol,31,Shenzhen</textarea>
 <script>
 function parseCSV(text,sep){
   text=(text||'').replace(/^\uFEFF/,'');
-  var rows=[];var row=[];var field='';var inQ=false;var line=1;var quoteStartLine=0;
+  var en=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())||/lang=en-US/i.test(location.search);
+  var rows=[],row=[],field='',inQ=false,afterQuote=false,fieldStart=true,line=1,quoteStartLine=0,quoteStartPos=0;
+  function colAt(pos){ var col=1; for(var k=pos-1;k>=0;k--){ var cc=text.charAt(k); if(cc==='\n'||cc==='\r') break; col++; } return col; }
+  function fail(msg,ln,pos){
+    var nl=ln||line, col=colAt(pos==null?i:pos);
+    throw new Error(en
+      ? 'Line '+nl+', column '+col+': '+msg+' Check quotes and record separators.'
+      : '第 '+nl+' 行第 '+col+' 列：'+msg+'；请检查该字段的引号与记录分隔符');
+  }
+  function endField(){ row.push(field); field=''; fieldStart=true; afterQuote=false; }
+  function endRecord(){ endField(); rows.push(row); row=[]; }
   for(var i=0;i<text.length;i++){
     var c=text.charAt(i);
     if(inQ){
-      if(c==='"'){ if(text.charAt(i+1)==='"'){field+='"';i++;} else {inQ=false;} }
-      else { if(c==='\n') line++; field+=c; }
-    }else{
-      // RFC 4180：双引号只有出现在字段起始位置时才开启引用段；字段中间的 `"` 是普通字符。
-      if(c==='"'){ if(field===''){inQ=true;quoteStartLine=line;} else {field+='"';} }
-      else if(c===sep){row.push(field);field='';}
-      else if(c==='\n'){row.push(field);rows.push(row);row=[];field='';line++;}
-      else if(c!=='\r'){field+=c;}
+      if(c==='"'){
+        if(text.charAt(i+1)==='"'){ field+='"'; i++; }
+        else { inQ=false; afterQuote=true; fieldStart=false; }
+      }else if(c==='\r'){
+        if(text.charAt(i+1)==='\n'){ field+='\r\n'; i++; } else { field+='\r'; }
+        line++;
+      }else if(c==='\n'){ field+='\n'; line++; }
+      else { field+=c; }
+      continue;
     }
+    if(afterQuote){
+      if(c===sep){ endField(); continue; }
+      if(c==='\r'||c==='\n'){
+        if(c==='\r'&&text.charAt(i+1)==='\n') i++;
+        line++;
+        endRecord();
+        continue;
+      }
+      fail(en?'characters after the closing quote are not allowed':'引号闭合后只能接分隔符或换行',line,i);
+    }
+    if(c==='"'){
+      if(fieldStart){ inQ=true; quoteStartLine=line; quoteStartPos=i; }
+      else { fail(en?'unescaped double quote inside an unquoted field':'未引用字段内出现未转义的双引号',line,i); }
+    }else if(c===sep){ endField(); }
+    else if(c==='\r'||c==='\n'){
+      if(c==='\r'&&text.charAt(i+1)==='\n') i++;
+      line++;
+      endRecord();
+    }else{ field+=c; fieldStart=false; }
   }
-  if(inQ) throw new Error((typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn())||/lang=en-US/i.test(location.search) ? 'Unclosed quote starting at line '+quoteStartLine+'; check that the quoted field closes with a matching quote' : '第 '+quoteStartLine+' 行有未闭合的引号；请检查该字段的引号是否成对');
-  if(field!==''||row.length){row.push(field);rows.push(row);}
-  return rows.filter(function(r){return r.length>1||(r.length===1&&r[0].trim()!=='');});
+  if(inQ) fail(en?'unclosed quote':'引号未闭合',quoteStartLine,quoteStartPos);
+  if(field!==''||row.length||afterQuote) endField(),rows.push(row);
+  return rows;
 }
+
 function escH(s){var d=document.createElement('div');d.textContent=s==null?'':String(s);return d.innerHTML;}
 function calcTool(){
-  var raw=(document.getElementById('csvInput').value||'').trim();
-  if(!raw){
-    var en=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
+  var raw=(document.getElementById('csvInput').value||'');
+  var en=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())||/lang=en-US/i.test(location.search);
+  if(!raw.trim()){
     document.getElementById('htmlOut').value='';
     document.getElementById('result').innerHTML='';
     document.getElementById('previewBox').innerHTML='<p class="tip-mini" style="color:var(--text-muted);">'+(en?'Empty input. Paste CSV or click "Load sample".':'输入为空，请粘贴 CSV 或点击「加载示例」。')+'</p>';
@@ -301,13 +332,12 @@ function calcTool(){
   var header=document.getElementById('withHeader').checked;
   var rows;
   try{ rows=parseCSV(raw,sep); }catch(e){
-    var en=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
     document.getElementById('htmlOut').value='';
     document.getElementById('result').innerHTML='';
     document.getElementById('previewBox').innerHTML='<p class="tip-box tip-danger">⚠ '+escH(e.message)+'</p>';
     return;
   }
-  if(!rows.length){document.getElementById('htmlOut').value=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"<!-- Empty data -->":"<!-- 空数据 -->");document.getElementById('previewBox').innerHTML='<p class="tip-mini" style="color:var(--text-muted);">未解析到有效数据。</p>';return;}
+  if(!rows.length){document.getElementById('htmlOut').value=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"<!-- Empty data -->":"<!-- 空数据 -->");document.getElementById('previewBox').innerHTML='<p class="tip-mini" style="color:var(--text-muted);">'+(en?'No valid data parsed.':'未解析到有效数据。')+'</p>';return;}
   var h='';
   var dataStart=0;
   if(header){dataStart=1;h='<table>\n  <thead>\n    <tr>\n';rows[0].forEach(function(c){h+='      <th>'+escH(c)+'</th>\n';});h+='    </tr>\n  </thead>\n  <tbody>\n';}
@@ -319,7 +349,7 @@ function calcTool(){
   }
   h+='  </tbody>\n</table>';
   document.getElementById('htmlOut').value=h;
-  const __g3='<div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;">预览（'+rows.length+' 行）</div>'+h;document.getElementById('previewBox').innerHTML=String(__g3);
+  const __g3='<div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;">'+(en?'Preview ('+rows.length+' rows)':'预览（'+rows.length+' 行）')+'</div>'+h;document.getElementById('previewBox').innerHTML=String(__g3);
   var cols=header&&rows.length>1?rows[0].length:rows[0].length;
   var dataRows=header?Math.max(0,rows.length-1):rows.length;
   const __g4='<div style="display:flex;gap:10px;flex-wrap:wrap;">'+

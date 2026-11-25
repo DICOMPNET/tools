@@ -131,6 +131,7 @@
           <option value="26">26 字母（I/J、U/V 獨立）</option>
           <option value="24">24 字母（I/J、U/V 同碼）</option>
         </select>
+        <div style="font-size:12px;color:var(--text-muted);margin:-4px 0 10px;" data-zh="24 字母模式中 I 與 J 共用同一碼、U 與 V 共用同一碼，編碼時兩者都接受；解碼統一還原為 I / U，無法無歧義區分原字母。需要區分時請改用 26 字母模式。">In 24-letter mode, I and J share one code and U and V share one; both letters encode, but decoding always returns I / U and cannot distinguish the original. Use 26-letter mode when the distinction matters.</div>
       </label>
       <label style="margin:0;font-size:13px;">
         模式
@@ -261,7 +262,7 @@ function enc(){
   let out = '', ignored = 0;
   for(const ch of text){
     // IT-N152: 24 字母版把 J→I、V→U 折叠为同码字母
-    const key = variant === '24' ? (ch === 'J' ? 'IJ' : ch === 'V' ? 'UV' : ch) : ch;
+    const key = variant === '24' ? ((ch === 'I' || ch === 'J') ? 'IJ' : (ch === 'U' || ch === 'V') ? 'UV' : ch) : ch;
     if(TABLE[key]){
       let c = TABLE[key];
       if(mode === 'ab') c = c.replace(/0/g,'a').replace(/1/g,'b');
@@ -284,8 +285,14 @@ function dec(){
   const text = document.getElementById('input').value.trim();
   if(!text) return alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter Bacon cipher to decode":"请输入要解码的培根码"));
   buildTables(getVariant());
-  let s = text.replace(/[^01abAB]/g,'');
-  s = s.toLowerCase().replace(/a/g,'0').replace(/b/g,'1');
+  // 只允许 0/1/a/b 与空白分隔符；其他字符（包括损坏的 X）报出首个位置并停止。
+  for(let i=0;i<text.length;i++){
+    const ch=text[i];
+    if(/[01abAB\s]/.test(ch)) continue;
+    const pos=i+1, line=text.slice(0,i).split('\n').length;
+    return alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Invalid character at position "+pos+" (line "+line+"): "+ch+" — only 0/1/a/b and whitespace are allowed":"第 "+pos+" 个字符（第 "+line+" 行）非法："+ch+"；只允许 0/1/a/b 与空白分隔符"));
+  }
+  let s = text.replace(/\s+/g,'').toLowerCase().replace(/a/g,'0').replace(/b/g,'1');
   if(s.length % 5 !== 0) return alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Length must be a multiple of 5":"长度必须为 5 的倍数"));
   let out = '';
   for(let i = 0; i < s.length; i += 5){
@@ -493,7 +500,7 @@ else document.addEventListener('DOMContentLoaded', __bacon_cipherBoot);
     </a>
     <a href="/zh-tw/tools/it/css-minifier.html" class="related-tool-card">
       <span class="rt-icon">🧹</span>
-      <span class="rt-info"><span class="rt-name">CSS 壓縮/美化工具</span><span class="rt-desc">CSS 壓縮/格式化/美化</span></span>
+      <span class="rt-info"><span class="rt-name">CSS 壓縮/格式化/美化工具</span><span class="rt-desc">線上 CSS 壓縮與美化工具，去除註釋空白壓縮體積或重新格式化縮排，保留語義便於維護，適合前端構建與…</span></span>
     </a>
     <a href="/zh-tw/tools/it/css-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
@@ -501,7 +508,7 @@ else document.addEventListener('DOMContentLoaded', __bacon_cipherBoot);
     </a>
     <a href="/zh-tw/tools/it/cron.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">Cron 表示式生成器</span><span class="rt-desc">視覺化生成 Cron 表示式，支援 5 位 Unix 格式，小白也能輕鬆上手</span></span>
+      <span class="rt-info"><span class="rt-name">Cron 表示式生成器</span><span class="rt-desc">視覺化生成/解析 5 段 Unix cron，預設按 Vixie cron 校驗；</span></span>
     </a>
     <a href="/zh-tw/tools/it/graphql-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>

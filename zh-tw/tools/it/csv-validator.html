@@ -94,10 +94,10 @@
     <h2 data-zh="📊 CSV 校驗器">📊 CSV Validator</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="CSV 用逗號分隔、引號包裹含逗號的欄位。列數不一致或引號未閉合會導致匯入失敗。本工具逐行解析並報告異常行號，便於清洗資料。">CSV Validator - Verify column counts are consistent, quotes are balanced and fields are non-empty, flagging bad rows. Free, browser-only.</p>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">按字元流掃描整份文本：引號內的換行屬於欄位內容、不切分記錄，CRLF 與 LF 均識別為記錄分隔；無有效記錄時提示請貼上 CSV。逐記錄做引號感知的切分：處於引號內時，連續兩個引號轉為一個引號字元，遇到單個引號退出引號態；否則遇到引號進入引號態、遇到分隔符切分欄位，其餘字元累加到當前欄位。切分完成後若仍處於引號態則記為「引號未閉合」；否則若欄位數與標準列數不同則記為「列數不符」。標準列數取首條記錄切分出的欄位數，問題行號取該記錄起始的物理行號。輸出行數、標準列數與問題數（有問題時標紅、無問題時標綠），並逐條列出問題行號與描述</div>
+  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">按字元流掃描整份文本：引號內的換行屬於欄位內容、不切分記錄，引號外 CRLF、LF 與單獨 CR 均識別為記錄分隔；無有效記錄時提示請貼上 CSV。逐記錄做引號感知的切分：處於引號內時，連續兩個引號轉為一個引號字元，遇到單個引號退出引號態；否則遇到引號進入引號態、遇到分隔符切分欄位，其餘字元累加到當前欄位。切分完成後若仍處於引號態則記為「引號未閉合」；否則若欄位數與標準列數不同則記為「列數不符」。標準列數取首條記錄切分出的欄位數，問題位置取該字元所在的物理行列（未閉合引號取引號起始位置）。輸出行數、標準列數與問題數（有問題時標紅、無問題時標綠），並逐條列出問題行列與描述</div>
   <div class="formula-desc">校驗 CSV 檔案的格式合法性。</div>
   <ul class="formula-list">
-    <li><b>檢查項</b>：列數是否一致、引號是否閉合、分隔符是否統一、編碼（UTF-8/BOM）與必填列缺失。</li>
+    <li><b>檢查項</b>：列數是否一致、引號是否閉合、閉合後是否有多餘字元、分隔符與換行格式是否統一、BOM 標記與必填列缺失。本工具只校驗已貼上/已解碼的文本，不檢測原始檔字元編碼（如 GBK）；上傳前請在編輯器或匯出環節確認編碼。</li>
     <li><b>RFC 4180</b>：欄位含分隔符、雙引號或換行時必須用雙引號包裹，內部雙引號寫成兩個。</li>
     <li><b>常見坑</b>：Excel 匯出的 BOM 頭、中英文逗號混用、行尾多餘分隔符、CRLF 與 LF 混排。</li>
     <li><b>輸出</b>：逐行給出錯誤位置與原因，便於定位修復。</li>
@@ -206,43 +206,69 @@
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function escH(s){var d=document.createElement('div');const __g1=s==null?'':String(s);d.textContent=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));return d.innerHTML;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
-function calcTool(){function parseCSV(text,sep){
-  var records=[],fields=[],cur='',q=false,physLine=1,recLine=1,pending=false;
-  function endField(){fields.push(cur);cur='';}
+function parseCSV(text,sep){
+  text=(text||'').replace(/^\uFEFF/,'');
+  var en=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())||/lang=en-US/i.test(location.search);
+  var records=[],fields=[],cur='',q=false,afterQuote=false,fieldStart=true,physLine=1,recLine=1,quoteStartLine=0,quoteStartPos=0,pending=false,errors=[];
+  function colAt(pos){ var col=1; for(var k=pos-1;k>=0;k--){ var cc=text.charAt(k); if(cc==='\n'||cc==='\r') break; col++; } return col; }
+  function parseError(zh,enMsg,ln,pos){ var nl=ln||physLine, col=colAt(pos==null?i:pos); errors.push(en?'Line '+nl+', column '+col+': '+enMsg:'第 '+nl+' 行第 '+col+' 列：'+zh); }
+  function endField(){ fields.push(cur); cur=''; fieldStart=true; afterQuote=false; pending=true; }
+  function endRecord(open){ if(pending||cur!==''||afterQuote||fields.length){fields.push(cur);} records.push({fields:fields,line:recLine,open:!!open}); fields=[]; cur=''; fieldStart=true; afterQuote=false; pending=false; recLine=physLine; }
   for(var i=0;i<text.length;i++){
     var c=text.charAt(i);
     if(q){
-      if(c==='"'&&text.charAt(i+1)==='"'){cur+='"';i++;}
-      else if(c==='"'){q=false;}
-      else{if(c==='\n')physLine++;cur+=c;}
+      if(c==='"'){
+        if(text.charAt(i+1)==='"'){ cur+='"'; i++; }
+        else { q=false; afterQuote=true; fieldStart=false; }
+      }else if(c==='\r'){
+        if(text.charAt(i+1)==='\n'){ cur+='\r\n'; i++; } else { cur+='\r'; }
+        physLine++;
+      }else if(c==='\n'){ cur+='\n'; physLine++; }
+      else { cur+=c; }
       continue;
     }
-    // RFC 4180：双引号仅在字段起始位置开启引用段，字段中间的 `"` 是普通字符。
-    if(c==='"'){ if(cur===''){q=true;} else {cur+='"';} pending=true; }
-    else if(c===sep){endField();pending=true;}
-    else if(c==='\n'||c==='\r'){
-      if(c==='\r'&&text.charAt(i+1)==='\n'){i++;}
+    if(afterQuote){
+      if(sep && text.substr(i,sep.length)===sep){ endField(); i+=sep.length-1; continue; }
+      if(c==='\r'||c==='\n'){
+        if(c==='\r'&&text.charAt(i+1)==='\n') i++;
+        physLine++;
+        endRecord(false);
+        if(fields.length===0&&cur===''&&!pending){recLine=physLine;}
+        continue;
+      }
+      parseError('引号闭合后只能接分隔符或换行','characters after a closing quote are not allowed',physLine,i);
+      afterQuote=false; cur+=c; fieldStart=false; pending=true;
+      continue;
+    }
+    if(c==='"'){
+      if(fieldStart){ q=true; quoteStartLine=physLine; quoteStartPos=i; pending=true; }
+      else { parseError('未引用字段内出现未转义的双引号','unescaped double quote inside an unquoted field',physLine,i); cur+='"'; fieldStart=false; pending=true; }
+    }else if(sep && text.substr(i,sep.length)===sep){ endField(); i+=sep.length-1; }
+    else if(c==='\r'||c==='\n'){
+      if(c==='\r'&&text.charAt(i+1)==='\n') i++;
       physLine++;
-      // 空行不是一条记录（否则会误报「列数 1（应为 N）」）。
-      if(fields.length===0&&cur===''&&!pending){recLine=physLine;continue;}
-      endField();
-      records.push({fields:fields,line:recLine,open:false});
-      fields=[];cur='';recLine=physLine;pending=false;
-    }else{cur+=c;pending=true;}
+      if(fields.length===0&&cur===''&&!pending){ recLine=physLine; continue; }
+      endRecord(false);
+    }else{ cur+=c; fieldStart=false; pending=true; }
   }
-  if(pending||q){endField();records.push({fields:fields,line:recLine,open:q});}
-  return records;
+  if(q){ parseError('引号未闭合','unclosed quote',quoteStartLine,quoteStartPos); }
+  if(pending||q||afterQuote||fields.length||cur){ endRecord(q); }
+  return {records:records,errors:errors};
 }
+function calcTool(){
 var src=document.getElementById('src').value;
-var sep=document.getElementById('sep').value||',';
-var lines=parseCSV(src,sep);
+var sep=document.getElementById('sep').value;
+if(sep===''){document.getElementById('result').innerHTML='<div class="result-title">分隔符无效</div><p style="color:var(--danger);">分隔符不能为空，请填写单个字符（如 , 或 ; 或 \t）或多字符分隔符（如 ||）。</p>';return;}
+if(/[\r\n"]/.test(sep)){document.getElementById('result').innerHTML='<div class="result-title">分隔符无效</div><p style="color:var(--danger);">分隔符不能包含换行或双引号，请改用其他单/多字符组合。</p>';return;}
+var enUI=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())||/lang=en-US/i.test(location.search);
+var parsed=parseCSV(src,sep);
+var lines=parsed.records;
 if(!lines.length){document.getElementById('result').innerHTML='<div class="result-title">提示</div><p class="muted">请粘贴 CSV。</p>';return;}
 var expect=lines[0].fields.length;
-var issues=[];
+var issues=parsed.errors.slice();
 for(var i=0;i<lines.length;i++){
   var r=lines[i];
-  if(r.open)issues.push('第 '+r.line+' 行：引号未闭合');
-  else if(r.fields.length!==expect)issues.push('第 '+r.line+' 行：列数 '+r.fields.length+'（应为 '+expect+'）');
+  if(r.fields.length!==expect)issues.push(enUI?'Line '+r.line+': '+r.fields.length+' columns (expected '+expect+')':'第 '+r.line+' 行：列数 '+r.fields.length+'（应为 '+expect+'）');
 }
 var html='<div class="result-title">校验结果</div><div class="data-grid">';
 html+='<div class="data-card"><div class="num">'+lines.length+'</div><div class="label">行数</div></div>';

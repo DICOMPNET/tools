@@ -128,7 +128,7 @@
     <label><input type="checkbox" id="lower"> 小寫</label>
     <div class="toolbar" style="margin-top:12px;">
       <div id="ulid_generatorPresets"></div><button type="button" class="btn primary" onclick="generate()">生成</button><button class="btn" type="button" onclick="__ulid_generatorExport()">匯出明細 CSV</button>
-      <button type="button" class="btn success" onclick="copyResult()">複製</button>
+      <button type="button" class="btn success" onclick="copyResult()">複製全部</button><button type="button" class="btn" onclick="downloadUlids()">下載 TXT</button>
     </div>
     <div class="result-box" id="output"></div> <div id="ulid_generatorTable"></div> <div id="ulid_generatorDiff"></div> <div id="ulid_generatorChart"></div> <div id="ulid_generatorHist"></div>
   </div>
@@ -226,21 +226,39 @@ function encodeRandom(len){
   for(let i=0;i<len;i++)str+=ULID_ALPHA[bytes[i]%32];
   return str;
 }
+var lastUlids=[];
+function ulidIsEn(){return (typeof TBKit!=='undefined'&&TBKit.util.isEn());}
 function generate(){
   const count=parseInt(document.getElementById('count').value);
   const lower=document.getElementById('lower').checked;
   let html='';
+  lastUlids=[];
   for(let i=0;i<count;i++){
     let id=encodeTime(Date.now(),10)+encodeRandom(16);
     if(lower)id=id.toLowerCase();
-    html+='<div class="code-row">'+escapeHtml(id)+'</div>';
+    lastUlids.push(id);
+    html+='<div class="code-row"><span>'+escapeHtml(id)+'</span><button type="button" class="btn" style="padding:2px 10px;font-size:12px;margin-left:8px;" onclick="copyOneUlid('+i+')">'+(ulidIsEn()?'Copy':'复制')+'</button></div>';
   }
   const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h0;
 }
 function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function copyOneUlid(i){
+  if(!lastUlids[i]) return;
+  navigator.clipboard.writeText(lastUlids[i]).then(()=>alert(ulidIsEn()?'Copied 1 ULID':'已复制 1 个 ULID'));
+}
 function copyResult(){
-  const text = document.getElementById('output').textContent || document.getElementById('output').innerText;
-  navigator.clipboard.writeText(text).then(() => alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Copied":"已复制")));
+  if(!lastUlids.length){ alert(ulidIsEn()?'Generate ULIDs first.':'请先生成 ULID。'); return; }
+  // 第802批：按数组显式换行，不再读取块级容器的 textContent（相邻 div 不会自动插入换行）
+  navigator.clipboard.writeText(lastUlids.join('\n')).then(() => alert(ulidIsEn()?'Copied '+lastUlids.length+' ULIDs (one per line)':'已复制 '+lastUlids.length+' 个 ULID（每行一个）'));
+}
+function downloadUlids(){
+  if(!lastUlids.length){ alert(ulidIsEn()?'Generate ULIDs first.':'请先生成 ULID。'); return; }
+  const blob=new Blob([lastUlids.join('\n')],{type:'text/plain;charset=utf-8'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='ulids.txt';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
 }
 function toggleToolTheme(){
   const cur = document.documentElement.getAttribute('data-theme');
@@ -428,7 +446,7 @@ else document.addEventListener('DOMContentLoaded', __ulid_generatorBoot);
     </a>
     <a href="/zh-tw/tools/it/css-minifier.html" class="related-tool-card">
       <span class="rt-icon">🧹</span>
-      <span class="rt-info"><span class="rt-name">CSS 壓縮/美化工具</span><span class="rt-desc">CSS 壓縮/格式化/美化</span></span>
+      <span class="rt-info"><span class="rt-name">CSS 壓縮/格式化/美化工具</span><span class="rt-desc">線上 CSS 壓縮與美化工具，去除註釋空白壓縮體積或重新格式化縮排，保留語義便於維護，適合前端構建與…</span></span>
     </a>
     <a href="/zh-tw/tools/it/css-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
@@ -436,7 +454,7 @@ else document.addEventListener('DOMContentLoaded', __ulid_generatorBoot);
     </a>
     <a href="/zh-tw/tools/it/cron.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">Cron 表示式生成器</span><span class="rt-desc">視覺化生成 Cron 表示式，支援 5 位 Unix 格式，小白也能輕鬆上手</span></span>
+      <span class="rt-info"><span class="rt-name">Cron 表示式生成器</span><span class="rt-desc">視覺化生成/解析 5 段 Unix cron，預設按 Vixie cron 校驗；</span></span>
     </a>
     <a href="/zh-tw/tools/it/graphql-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>

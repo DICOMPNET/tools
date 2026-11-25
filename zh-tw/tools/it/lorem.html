@@ -111,12 +111,12 @@
 <div class="card tool-card-accent" style="--tool-accent:#B23A08;">
     <h2 data-zh="📝 Lorem Ipsum 生成器">📝 Lorem Generator</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">按型別生成：words 逐詞隨機、sentences 逐句隨機、paragraphs 逐段隨機、chinese 逐句取中文佔位句，數量嚴格等於 count（超出 1–100 時鉗制並回寫輸入框）；句 / 段模式的句長由最小 / 最大詞數區間決定；勾選以 Lorem ipsum 開頭時首項替換為固定拉丁文句式（詞模式首詞固定 lorem，count≥2 時第二詞固定 ipsum，句 / 段模式字首接固定句）；段落以兩個換行連線，中文句子以換行連線，詞與句以空格連線</div>
+  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq" data-zh="按型別生成：words 逐詞隨機、sentences 逐句隨機、paragraphs 逐段隨機、chinese 用模板詞塊組合中文句，數量嚴格等於 count（1–100 的整數，越界或小數直接報錯）；句子 / 段落模式按 1–200 詞數控制句長，中文模式按 1–200 近似字數控制每句長度，倒置或越界直接報錯；中文可勾選每 3–5 句合併為一段，或填寫 1–999999 的隨機種子復現結果；勾選以 Lorem ipsum 開頭時首項替換為固定拉丁文句式；段落以兩個換行連線，中文句子以換行連線，詞與句以空格連線">Generation by type: words are randomized word by word, sentences sentence by sentence, paragraphs paragraph by paragraph, and Chinese mode combines template fragments into Chinese sentences. Count is exact (integer 1–100; decimals or out-of-range values error out). Sentence/paragraph length uses a 1–200 word range; Chinese mode uses a 1–200 approximate character range per sentence; inverted or out-of-range bounds error out. Chinese output can group every 3–5 sentences into a paragraph, and a 1–999999 seed reproduces the result. When starting with Lorem ipsum, the first item is replaced by the fixed Latin opening. Paragraphs are joined by two newlines, Chinese sentences by one newline, and words/sentences by spaces.</div>
   <div class="formula-desc">生成 Lorem ipsum 佔位文本，用於設計與原型階段填充版面。</div>
   <ul class="formula-list">
     <li><b>來源</b>：Lorem ipsum 是排版印刷業沿用的偽拉丁文，詞序經過打亂，不具備可讀語義。</li>
     <li><b>用途</b>：在視覺稿中佔位，避免真實文案干擾對版式與字型的判斷。</li>
-    <li><b>引數</b>：可指定段落數、句長範圍，以及是否以經典句 <code>Lorem ipsum dolor sit amet</code> 開頭。</li>
+    <li><b>引數</b>：可指定數量、句長範圍、是否以經典句 <code>Lorem ipsum dolor sit amet</code> 開頭；中文模式支援按段落輸出與固定隨機種子。</li>
     <li><b>注意</b>：佔位文本無意義，不能用於無障礙評估、斷行測試與真實語義驗證。</li>
   </ul>
 </div>
@@ -141,11 +141,20 @@
     </div>
 
     <div class="input-row" style="align-items:center;">
-      <label style="margin:0;width:auto;" for="minWords">句長（詞數）:</label>
+      <label style="margin:0;width:auto;" for="minWords">句長 / 長度:</label>
       <input type="number" id="minWords" value="8" min="1" max="200" style="max-width:80px;">
       <span>–</span>
       <input type="number" id="maxWords" value="19" min="1" max="200" style="max-width:80px;" aria-label="最大詞數">
-      <span style="font-size:12px;color:var(--text-muted);">作用於句子 / 段落模式</span>
+      <span style="font-size:12px;color:var(--text-muted);">句子/段落=詞數；中文≈每句字數</span>
+    </div>
+
+    <div class="input-row" style="align-items:center;">
+      <label style="margin:0;width:auto;">
+        <input type="checkbox" id="zhParagraphs"> 中文按段落輸出（每段 3–5 句）
+      </label>
+      <label style="margin:0;width:auto;" for="zhSeed">隨機種子（可選）:</label>
+      <input type="number" id="zhSeed" min="1" max="999999" step="1" style="max-width:110px;" aria-label="隨機種子">
+      <span style="font-size:12px;color:var(--text-muted);">留空=每次隨機；固定整數可復現結果</span>
     </div>
 
     <div class="toolbar">
@@ -155,7 +164,7 @@
     </div>
 
     <label for="output">生成結果</label>
-    <textarea id="output" readonly style="min-height:240px;"></textarea> <div id="loremTable"></div> <div id="loremDiff"></div> <div id="loremChart"></div> <div id="loremHist"></div>
+    <textarea id="output" readonly style="min-height:240px;"></textarea><div id="loremStatus" role="status" style="font-size:13px;margin:6px 0 0;"></div> <div id="loremTable"></div> <div id="loremDiff"></div> <div id="loremChart"></div> <div id="loremHist"></div>
   </div>
 
   <div class="card">
@@ -270,7 +279,7 @@ function setType(btn){
 }
 
 function randomWord(){
-  return words[Math.floor(Math.random() * words.length)];
+  return words[Math.floor(__loremRand() * words.length)];
 }
 
 function sentenceRange(){
@@ -286,7 +295,7 @@ function sentenceRange(){
 }
 function randomSentence(){
   var rg=sentenceRange();
-  const len = rg[0] + Math.floor(Math.random() * (rg[1]-rg[0]+1));
+  const len = rg[0] + Math.floor(__loremRand() * (rg[1]-rg[0]+1));
   let sentence = [];
   for(let i=0;i<len;i++) sentence.push(randomWord());
   let s = sentence.join(' ');
@@ -306,24 +315,70 @@ function loremFirstSentence(){
 }
 
 function randomParagraph(){
-  const len = 3 + Math.floor(Math.random() * 4);
+  const len = 3 + Math.floor(__loremRand() * 4);
   let p = [];
   for(let i=0;i<len;i++) p.push(randomSentence());
   return p.join(' ');
 }
 
-function randomChineseSentence(){
-  return chineseTexts[Math.floor(Math.random() * chineseTexts.length)] + '。';
+var __loremRng=null;
+function __loremRand(){return __loremRng?__loremRng():Math.random();}
+function __loremMakeRng(seed){var s=seed>>>0;return function(){s=(s*1664525+1013904223)>>>0;return s/4294967296;};}
+var zhSubjects=['产品团队','设计小组','测试同学','运营同事','前端开发','内容编辑','项目负责人','审稿人'];
+var zhVerbs=['整理了','核对了','更新了','标注了','复核了','补充了','拆分了','记录了'];
+var zhObjects=['需求清单','页面间距','版本记录','接口字段','发布说明','移动端布局','示例数据','验收要点'];
+var zhExtras=['其中 3 项待确认','保留 2 位小数','控制 于 18 字以内','涉及 12 个页面','预计 2026 年上线','准确率 87%','新增 1.5 倍留白','分成 4 个批次'];
+function __zhPick(a){a=a||[];return a.length?a[Math.floor(__loremRand()*a.length)]:'';}
+function randomChineseSentence(target){
+  target=Number(target);if(!isFinite(target)||target<1)target=20;
+  var base=__zhPick(zhSubjects)+__zhPick(zhVerbs)+__zhPick(zhObjects);
+  while(base.length<target-1){var add='，'+__zhPick(zhExtras);if(base.length+add.length>target-1)break;base+=add;}
+  if(base.length>target-1)base=base.slice(0,target-1).replace(/[，、；：\s]+$/,'');
+  if(base.length<target-3){
+    var pads=['，复核','，并记录','，待确认','，补充'];
+    for(var pass=0;pass<pads.length;pass++){
+      if(base.length+pads[pass].length<=target-1){base+=pads[pass];}else{break;}
+    }
+  }
+  return base+'。';
 }
 
+function __loremEn(){return !!(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());}
+function __loremT(zh,en){return __loremEn()?en:zh;}
+function __loremStatus(msg,danger){var el=document.getElementById('loremStatus');if(el){el.textContent=msg||'';el.style.color=danger?'var(--danger)':'var(--text-muted)';}}
+var __lorem_stale=false;
+function __loremFail(msg){document.getElementById('output').value='';__lorem_stale=true;__loremStatus(msg,true);}
+function markLoremStale(){
+  if(!document.getElementById('output').value) return;
+  __lorem_stale=true;
+  __loremStatus(__loremT('参数已更改：当前结果对应旧设置，请点击“生成”后再复制或下载。','Settings changed: the visible result is from the previous settings. Generate again before copying or downloading.'),false);
+}
+function __loremVal(id){var el=document.getElementById(id);return el&&el.value!=null?String(el.value).trim():'';}
 function generate(){
-  var raw = parseInt(document.getElementById('count').value,10);
-  if(!isFinite(raw)) raw = 1;
-  const count = Math.max(1, Math.min(100, raw));
+  var countRaw=__loremVal('count');
+  if(countRaw===''){__loremFail(__loremT('请输入数量（1–100 的整数）。','Enter a count (integer from 1 to 100).'));return;}
+  if(!/^\d+$/.test(countRaw)){__loremFail(__loremT('数量必须是 1–100 的整数，不能是小数。','Count must be an integer from 1 to 100, not a decimal.'));return;}
+  var raw=Number(countRaw);
+  if(raw<1||raw>100){__loremFail(__loremT('数量需在 1–100 之间，当前为 '+countRaw+'。','Count must be between 1 and 100; got '+countRaw+'.'));return;}
+  var count=raw;
+  var seedRaw=__loremVal('zhSeed'),seed=null;
+  if(seedRaw!==''){
+    if(!/^\d+$/.test(seedRaw)){__loremFail(__loremT('随机种子必须是 1–999999 的整数。','Random seed must be an integer from 1 to 999999.'));return;}
+    seed=Number(seedRaw);
+    if(seed<1||seed>999999){__loremFail(__loremT('随机种子需在 1–999999 之间。','Random seed must be between 1 and 999999.'));return;}
+  }
+  __loremRng=seed===null?null:__loremMakeRng(seed);
+  if(currentType==='sentences'||currentType==='paragraphs'||currentType==='chinese'){
+    var loRaw=__loremVal('minWords'),hiRaw=__loremVal('maxWords');
+    if(loRaw===''||hiRaw===''){__loremFail(__loremT('句长范围不能为空，请输入 1–200 的整数。','The sentence length range cannot be empty; enter integers from 1 to 200.'));return;}
+    if(!/^\d+$/.test(loRaw)||!/^\d+$/.test(hiRaw)){__loremFail(__loremT('句长上下限必须是整数，不能是小数。','The sentence length bounds must be integers, not decimals.'));return;}
+    var lo=Number(loRaw),hi=Number(hiRaw);
+    if(lo<1||lo>200||hi<1||hi>200){__loremFail(__loremT('句长上下限需在 1–200 之间。','Sentence length bounds must be between 1 and 200.'));return;}
+    if(lo>hi){__loremFail(__loremT('最小句长不能大于最大句长（当前 '+lo+' > '+hi+'）。','Minimum sentence length cannot exceed the maximum (currently '+lo+' > '+hi+').'));return;}
+  }
   document.getElementById('count').value = count;
   const startLorem = document.getElementById('startLorem').checked;
   let result = [];
-
   for(let i=0;i<count;i++){
     if(currentType === 'words'){
       if(i === 0 && startLorem){
@@ -335,7 +390,10 @@ function generate(){
         result.push(randomWord());
       }
     } else if(currentType === 'chinese'){
-      result.push(randomChineseSentence());
+      var zlo=Number(__loremVal('minWords'))||8,zhi=Number(__loremVal('maxWords'))||19;
+      if(zlo<1)zlo=8;if(zhi<zlo||zhi>200)zhi=Math.min(200,Math.max(zlo,19));
+      var zt=zlo+Math.floor(__loremRand()*(zhi-zlo+1));
+      result.push(randomChineseSentence(zt));
     } else if(currentType === 'sentences'){
       let s = (i === 0 && startLorem) ? loremFirstSentence() : randomSentence();
       result.push(s);
@@ -352,12 +410,25 @@ function generate(){
       result.push(p);
     }
   }
-
-  const output = currentType === 'paragraphs' ? result.join('\n\n') : (currentType === 'chinese' ? result.join('\n') : result.join(' '));
+  var output,statusMsg;
+  if(currentType === 'paragraphs'){output=result.join('\n\n');}
+  else if(currentType === 'chinese'){
+    var zhP=document.getElementById('zhParagraphs');
+    if(zhP&&zhP.checked){
+      var paras=[],cur=0,left=result.length;
+      while(cur<result.length){var take=3+Math.floor(__loremRand()*3);take=Math.min(take,result.length-cur);paras.push(result.slice(cur,cur+take).join(''));cur+=take;}
+      output=paras.join('\n\n');
+      statusMsg=__loremT('已生成 '+count+' 句中文占位文本，分为 '+paras.length+' 段。','Generated '+count+' Chinese sentences in '+paras.length+' paragraph(s).');
+    }else{output=result.join('\n');statusMsg=__loremT('已生成 '+count+' 句中文占位文本，每句约 '+(Number(__loremVal('minWords'))||8)+'–'+(Number(__loremVal('maxWords'))||19)+' 字。','Generated '+count+' Chinese sentences, about '+(Number(__loremVal('minWords'))||8)+'–'+(Number(__loremVal('maxWords'))||19)+' characters each.');}
+  }
+  else{output=result.join(' ');statusMsg=__loremT('已按当前设置生成 '+count+' 项。','Generated '+count+' item(s) with the current settings.');}
   document.getElementById('output').value = output;
+  __lorem_stale=false;
+  __loremStatus(statusMsg,false);
 }
 
 function copyResult(ev){
+  if(__lorem_stale){__loremStatus(__loremT('结果已过期，请先点击“生成”。','The result is stale; generate again first.'),true);return;}
   const text = document.getElementById('output').value;
   if(!text) return;
   const btn = (ev && ev.target) ? ev.target.closest('.btn') : null;
@@ -367,6 +438,7 @@ function copyResult(ev){
 }
 
 function downloadTxt(){
+  if(__lorem_stale){__loremStatus(__loremT('结果已过期，请先点击“生成”。','The result is stale; generate again first.'),true);return;}
   const text = document.getElementById('output').value;
   if(!text) return;
   const blob = new Blob([text], {type:'text/plain;charset=utf-8'});
@@ -378,6 +450,7 @@ function downloadTxt(){
   URL.revokeObjectURL(url);
 }
 
+['count','minWords','maxWords','startLorem','zhParagraphs','zhSeed'].forEach(function(id){var el=document.getElementById(id);if(!el)return;el.addEventListener('input',markLoremStale);el.addEventListener('change',markLoremStale);});
 generate();
 </script><script>
 // tool-intro折叠交互
@@ -549,7 +622,7 @@ else document.addEventListener('DOMContentLoaded', __loremBoot);
     </a>
     <a href="/zh-tw/tools/it/css-minifier.html" class="related-tool-card">
       <span class="rt-icon">🧹</span>
-      <span class="rt-info"><span class="rt-name">CSS 壓縮/美化工具</span><span class="rt-desc">CSS 壓縮/格式化/美化</span></span>
+      <span class="rt-info"><span class="rt-name">CSS 壓縮/格式化/美化工具</span><span class="rt-desc">線上 CSS 壓縮與美化工具，去除註釋空白壓縮體積或重新格式化縮排，保留語義便於維護，適合前端構建與…</span></span>
     </a>
     <a href="/zh-tw/tools/it/css-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
@@ -557,7 +630,7 @@ else document.addEventListener('DOMContentLoaded', __loremBoot);
     </a>
     <a href="/zh-tw/tools/it/cron.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">Cron 表示式生成器</span><span class="rt-desc">視覺化生成 Cron 表示式，支援 5 位 Unix 格式，小白也能輕鬆上手</span></span>
+      <span class="rt-info"><span class="rt-name">Cron 表示式生成器</span><span class="rt-desc">視覺化生成/解析 5 段 Unix cron，預設按 Vixie cron 校驗；</span></span>
     </a>
     <a href="/zh-tw/tools/it/graphql-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>

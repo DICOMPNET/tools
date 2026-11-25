@@ -280,7 +280,7 @@
     </div>
 
     <div class="view-pane active" id="paneTree">
-      <div class="ast-tree" id="astTree" tabindex="0" role="region" aria-label="AST 語法樹">
+      <div class="ast-tree" id="astTree" tabindex="0" role="region" aria-label="AST 語法樹" data-i18n-aria="ast.tree">
         <div class="ast-tree-empty">點選「解析 AST」按鈕生成語法樹</div>
       </div>
       <div class="selected-src" id="selectedSrc"></div>
@@ -370,7 +370,7 @@
     </a>
     <a href="/zh-tw/tools/it/css-minifier.html" class="related-tool-card">
       <span class="rt-icon">🧹</span>
-      <span class="rt-info"><span class="rt-name">CSS 壓縮/美化工具</span><span class="rt-desc">CSS 壓縮/格式化/美化</span></span>
+      <span class="rt-info"><span class="rt-name">CSS 壓縮/格式化/美化工具</span><span class="rt-desc">線上 CSS 壓縮與美化工具，去除註釋空白壓縮體積或重新格式化縮排，保留語義便於維護，適合前端構建與…</span></span>
     </a>
     <a href="/zh-tw/tools/it/css-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
@@ -378,7 +378,7 @@
     </a>
     <a href="/zh-tw/tools/it/cron.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">Cron 表示式生成器</span><span class="rt-desc">視覺化生成 Cron 表示式，支援 5 位 Unix 格式，小白也能輕鬆上手</span></span>
+      <span class="rt-info"><span class="rt-name">Cron 表示式生成器</span><span class="rt-desc">視覺化生成/解析 5 段 Unix cron，預設按 Vixie cron 校驗；</span></span>
     </a>
     <a href="/zh-tw/tools/it/graphql-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
@@ -466,6 +466,7 @@
   const locChk = document.getElementById('optLocations');
   const cmtChk = document.getElementById('optComments');
   const treeBox = document.getElementById('astTree');
+  if(treeBox) treeBox.setAttribute('aria-label', (/(?:^|[?&])lang=en/i.test(location.search)||/^en/i.test(document.documentElement.lang||'')) ? 'AST syntax tree' : 'AST 语法树');
   const jsonBox = document.getElementById('astJson');
   const errorBox = document.getElementById('errorBox');
   const selectedSrc = document.getElementById('selectedSrc');
@@ -588,7 +589,7 @@ class Counter {
             else {
               const prim = document.createElement('span');
               prim.className = 'ast-attr-val str';
-              prim.textContent = JSON.stringify(item);
+              prim.textContent = astPrimitiveText(item);
               children.appendChild(prim);
             }
           });
@@ -651,11 +652,22 @@ class Counter {
   }
 
   // 渲染 JSON 视图（带语法高亮）
+  // BigInt 不能被 JSON.stringify 序列化：统一转为带类型标记的字符串，避免精度丢失。
+  function astJsonStringify(value){
+    return JSON.stringify(value, function(k, v){
+      if (typeof v === 'bigint') return { __type: 'BigInt', value: String(v) };
+      return v;
+    }, 2);
+  }
+  function astPrimitiveText(v){
+    if (typeof v === 'bigint') return v.toString() + 'n';
+    try { return JSON.stringify(v); } catch(e) { return String(v); }
+  }
   function renderJson(ast){
     if (!ast){ jsonBox.textContent = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"The parsed AST JSON data will be displayed":"解析后将显示 AST 的 JSON 数据"); return; }
     let jsonStr;
-    try { jsonStr = JSON.stringify(ast, null, 2); }
-    catch(err){ jsonStr = String(ast); }
+    try { jsonStr = astJsonStringify(ast); }
+    catch(err){ jsonStr = '⚠ JSON 序列化失败：' + (err && err.message ? err.message : String(err)); }
     const highlighted=esc(jsonStr).replace(
       /("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d+)?(?:[eE][+\-]?\d+)?)/g,
       function(match){
@@ -847,8 +859,8 @@ class Counter {
       return;
     }
     let jsonStr;
-    try { jsonStr = JSON.stringify(currentAst, null, 2); }
-    catch(err){ jsonStr = String(currentAst); }
+    try { jsonStr = astJsonStringify(currentAst); }
+    catch(err){ jsonStr = '⚠ JSON 序列化失败：' + (err && err.message ? err.message : String(err)); }
     ToolBox.copyText(jsonStr, i18nText());
   });
   document.getElementById('btnExpandAll').addEventListener('click', function(){

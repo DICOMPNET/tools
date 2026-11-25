@@ -92,7 +92,7 @@
 
 <script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Redis 持久化？","acceptedAnswer":{"@type":"Answer","text":"RDB 快照 + AOF 日誌。"}},{"@type":"Question","name":"為什麼線上不能用 KEYS？","acceptedAnswer":{"@type":"Answer","text":"因為 KEYS 會一次性遍歷整個鍵空間，時間複雜度 O(N)，在百萬級鍵的例項上會阻塞主執行緒數十毫秒到數秒，導致所有請求排隊。應改用 SCAN 漸進式遍歷（游標分批、不阻塞），並用 count 引數控制單次掃描量。生產環境建議直接停用 KEYS。"}}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Redis 持久化？","acceptedAnswer":{"@type":"Answer","text":"RDB 快照 + AOF 日誌。"}},{"@type":"Question","name":"為什麼線上不能用 KEYS？","acceptedAnswer":{"@type":"Answer","text":"因為 KEYS 會一次性遍歷整個鍵空間，時間複雜度 O(N)，在百萬級鍵的例項上會阻塞主執行緒數十毫秒到數秒，導致所有請求排隊。應改用 SCAN 游標漸進遍歷：它把一次大遍歷拆成多次小呼叫，能降低單次阻塞時長與記憶體壓力，但並不保證完全不阻塞——每次呼叫仍會佔用主執行緒/事件迴圈時間，COUNT 越大佔用越久。COUNT 只是給 Redis 的工作量提示，不是嚴格返回條數上限；同一游標下結果可能為空、也可能重複，游標返回 0 才表示遍歷結束。生產環境應停用 KEYS，並對 SCAN 限速、去重、觀察例項延遲，優先用已知字首或索引結構縮小掃描範圍。"}}]}</script>
 <meta property="og:site_name" content="ToolBox">
 <!-- TOOLBOX-HREFLANG -->
 <link rel="alternate" hreflang="zh-CN" href="https://tools.dicomp.net/tools/it/redis-cheatsheet.html">
@@ -129,7 +129,7 @@
     <li><b>型別</b>：String、Hash、List、Set、Sorted Set、Stream、Bitmap。</li>
     <li><b>常用</b>：SET/GET、HSET/HGETALL、LPUSH/RPOP、SADD/SMEMBERS、ZADD/ZRANGE。</li>
     <li><b>過期</b>：EXPIRE、TTL、PERSIST；持久化方式為 RDB 快照與 AOF 日誌。</li>
-    <li><b>注意</b>：生產環境停用 <code>KEYS *</code>（會阻塞主執行緒），改用 SCAN 游標迭代。</li>
+    <li><b>注意</b>：生產環境停用 <code>KEYS *</code>（O(N) 一次性阻塞），改用 SCAN 游標迭代；SCAN 只降低單次壓力，不保證零阻塞，需限速與去重。</li>
   </ul>
 </div>
 
@@ -174,13 +174,13 @@
 <h3>💡 常見使用場景</h3>
 <ul class="dd-list">
 <li>查閱 string/hash/list/zset 命令。</li>
-<li>排查快取問題：用 TTL 查鍵的剩餘有效期、用 SCAN 安全遍歷（避免 KEYS 阻塞主執行緒），確認快取是否按預期失效。</li>
+<li>排查快取問題：用 TTL 查鍵的剩餘有效期、用 SCAN 漸進遍歷（避免 KEYS 的 O(N) 阻塞；SCAN 仍可能佔用執行時間，需限速並處理重複結果），確認快取是否按預期失效。</li>
 </ul>
 <div class="dd-example"><div class="dd-ex-title">查 zset</div><div class="dd-ex-body">`ZADD leader 100 tom` 加分；`ZREVRANGE leader 0 9` 取前 10。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
 <dt>Redis 持久化？</dt><dd>RDB 快照 + AOF 日誌。</dd>
-<dt>為什麼線上不能用 KEYS？</dt><dd>因為 KEYS 會一次性遍歷整個鍵空間，時間複雜度 O(N)，在百萬級鍵的例項上會阻塞主執行緒數十毫秒到數秒，導致所有請求排隊。應改用 SCAN 漸進式遍歷（游標分批、不阻塞），並用 count 引數控制單次掃描量。生產環境建議直接停用 KEYS。</dd>
+<dt>為什麼線上不能用 KEYS？</dt><dd>因為 KEYS 會一次性遍歷整個鍵空間，時間複雜度 O(N)，在百萬級鍵的例項上會阻塞主執行緒數十毫秒到數秒，導致所有請求排隊。應改用 SCAN 游標漸進遍歷：它把一次大遍歷拆成多次小呼叫，能降低單次阻塞時長與記憶體壓力，但並不保證完全不阻塞——每次呼叫仍會佔用主執行緒/事件迴圈時間，COUNT 越大佔用越久。COUNT 只是給 Redis 的工作量提示，不是嚴格返回條數上限；同一游標下結果可能為空、也可能重複，游標返回 0 才表示遍歷結束。生產環境應停用 KEYS，並對 SCAN 限速、去重、觀察例項延遲，優先用已知字首或索引結構縮小掃描範圍。</dd>
 </dl>
 </div>
 </section>
@@ -304,9 +304,9 @@ const COMMANDS = [
   {
     "cmd": "SCAN",
     "cat": "键",
-    "desc": "增量扫描 key",
+    "desc": "游标渐进遍历 key（降低单次阻塞，不保证零阻塞）",
     "syntax": "SCAN cursor [MATCH p] [COUNT n] [TYPE t]",
-    "params": "",
+    "params": "游标返回 0 才结束；COUNT 是工作量提示而非严格上限；结果可能为空或重复",
     "example": "SCAN 0 MATCH user:* COUNT 100"
   },
   {
@@ -997,7 +997,7 @@ document.addEventListener('DOMContentLoaded',function(){
     </a>
     <a href="/zh-tw/tools/it/css-minifier.html" class="related-tool-card">
       <span class="rt-icon">🧹</span>
-      <span class="rt-info"><span class="rt-name">CSS 壓縮/美化工具</span><span class="rt-desc">CSS 壓縮/格式化/美化</span></span>
+      <span class="rt-info"><span class="rt-name">CSS 壓縮/格式化/美化工具</span><span class="rt-desc">線上 CSS 壓縮與美化工具，去除註釋空白壓縮體積或重新格式化縮排，保留語義便於維護，適合前端構建與…</span></span>
     </a>
     <a href="/zh-tw/tools/it/css-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
@@ -1005,7 +1005,7 @@ document.addEventListener('DOMContentLoaded',function(){
     </a>
     <a href="/zh-tw/tools/it/cron.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">Cron 表示式生成器</span><span class="rt-desc">視覺化生成 Cron 表示式，支援 5 位 Unix 格式，小白也能輕鬆上手</span></span>
+      <span class="rt-info"><span class="rt-name">Cron 表示式生成器</span><span class="rt-desc">視覺化生成/解析 5 段 Unix cron，預設按 Vixie cron 校驗；</span></span>
     </a>
     <a href="/zh-tw/tools/it/graphql-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>

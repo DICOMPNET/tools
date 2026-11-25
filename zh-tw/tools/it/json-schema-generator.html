@@ -118,7 +118,7 @@
   <div class="card tool-card-accent" style="--tool-accent:#B23A08;">
     <h2 data-zh="📄 JSON Schema 生成器（由樣例推斷）">📄 JSON Schema Generator (from sample)</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">由樣例資料遞迴推斷 Schema：null 得 type=「null」；陣列得 type=「array」，非空時對每個元素遞迴推斷後合併為 items；字串得 type=「string」，並按內容依次嘗試識別 format——郵箱、URI、日期時間、日期、IPv4、IPv6、UUID；數字按 Number.isInteger 區分 integer 與 number；布林得 boolean；物件逐鍵遞迴放入 properties。勾選項決定附加屬性：required 收集必填鍵、examples 記錄樣例值（陣列取前兩項）、descriptions 生成說明、title 生成標題、minMax 為陣列加 minItems=0、為字串加 minLength=0 與 maxLength=當前長度、為數字在 ≥ 0 時加 minimum=0 否則加 −999999。欄位數按 properties 與 items 遞迴累加，大小取序列化後的字元數；頂部 $schema 按所選版本寫入對應草案地址</div>
+  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">由樣例資料遞迴推斷 Schema：null 得 type=「null」；陣列得 type=「array」，非空時對每個元素遞迴推斷後合併為 items；字串得 type=「string」，並按內容依次嘗試識別 format——郵箱、URI、日期時間、日期、IPv4、IPv6、UUID；數字按 Number.isInteger 區分 integer 與 number；布林得 boolean；物件逐鍵遞迴放入 properties。勾選項決定附加屬性：required 收集必填鍵、examples 記錄樣例值（陣列取前兩項）、descriptions 生成說明、title 生成標題、minMax 為陣列加 minItems=0、為字串加 minLength=0 與 maxLength=當前長度、為數字在 ≥ 0 時加 minimum=0；負數不新增下限，避免把原始樣本自身排除。欄位數按 properties 與 items 遞迴累加，大小取序列化後的字元數；頂部 $schema 按所選版本寫入對應草案地址</div>
   <div class="formula-desc">由示例 JSON 推斷生成 JSON Schema。</div>
   <ul class="formula-list">
     <li><b>推斷</b>：根據出現的鍵、值型別與出現頻率生成 type、properties 與 required。</li>
@@ -372,7 +372,8 @@ function inferSchema(value, path = '', options = {}) {
     }
     if (options.examples) schema.examples = [value];
     if (options.minMax) {
-      schema.minimum = value >= 0 ? 0 : -999999;
+      // 第806批：负数不再臆造 -999999 下限；只对非负样本保留 0 下限，确保任何样本自身都能通过
+      if (value >= 0) schema.minimum = 0;
     }
     return schema;
   }
@@ -409,7 +410,8 @@ function inferSchema(value, path = '', options = {}) {
     }
 
     if (options.examples) {
-      const exampleObj = {};
+      // 第806批：examples 映射必须无原型，__proto__/constructor 等键才能完整保留
+      const exampleObj = Object.create(null);
       for (const key of Object.keys(value).slice(0, 5)) {
         exampleObj[key] = value[key];
       }
@@ -430,7 +432,7 @@ function mergeSchemas(schemas) {
   if (types.size === 1) {
     const type = schemas[0].type;
     if (type === 'object') {
-      const merged = { type: 'object', properties: {} };
+      const merged = { type: 'object', properties: Object.create(null) };
       const allKeys = new Set();
       schemas.forEach(s => {
         if (s.properties) Object.keys(s.properties).forEach(k => allKeys.add(k));
@@ -932,7 +934,7 @@ else document.addEventListener('DOMContentLoaded', __json_schema_generatorBoot);
     </a>
     <a href="/zh-tw/tools/it/css-minifier.html" class="related-tool-card">
       <span class="rt-icon">🧹</span>
-      <span class="rt-info"><span class="rt-name">CSS 壓縮/美化工具</span><span class="rt-desc">CSS 壓縮/格式化/美化</span></span>
+      <span class="rt-info"><span class="rt-name">CSS 壓縮/格式化/美化工具</span><span class="rt-desc">線上 CSS 壓縮與美化工具，去除註釋空白壓縮體積或重新格式化縮排，保留語義便於維護，適合前端構建與…</span></span>
     </a>
     <a href="/zh-tw/tools/it/css-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
@@ -940,7 +942,7 @@ else document.addEventListener('DOMContentLoaded', __json_schema_generatorBoot);
     </a>
     <a href="/zh-tw/tools/it/cron.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">Cron 表示式生成器</span><span class="rt-desc">視覺化生成 Cron 表示式，支援 5 位 Unix 格式，小白也能輕鬆上手</span></span>
+      <span class="rt-info"><span class="rt-name">Cron 表示式生成器</span><span class="rt-desc">視覺化生成/解析 5 段 Unix cron，預設按 Vixie cron 校驗；</span></span>
     </a>
     <a href="/zh-tw/tools/it/graphql-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>

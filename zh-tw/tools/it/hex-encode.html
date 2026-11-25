@@ -108,7 +108,7 @@
 <div class="card tool-card-accent" style="--tool-accent:#B23A08;">
     <h2 data-zh="🔤 十六進位制編解碼">🔤 Hex Encode</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">把文本按 UTF-8 編碼為位元組序列，逐位元組轉 16 進位制並在前面補 0 到兩位（開啟大寫時轉大寫），用所選分隔符依次連線；開啟字首選項時逐位元組加 0x（如 0x48 0x69）；解碼先剝分隔符、再全域性去掉每位元組 0x，按嚴格 UTF-8（fatal:true, ignoreBOM:true）解碼，非法位元組報錯並給出 Latin-1 對照與原始位元組</div>
+  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">把文本按 UTF-8 編碼為位元組序列，逐位元組轉 16 進位制並在前面補 0 到兩位（開啟大寫時轉大寫），用所選分隔符依次連線；開啟字首選項時逐位元組加 0x（如 0x48 0x69）；解碼先按完整位元組語法校驗（0x 只能位於位元組開頭），再規範化，按嚴格 UTF-8（fatal:true, ignoreBOM:true）解碼，非法位元組報錯並給出 Latin-1 對照與原始位元組</div>
   <div class="formula-desc">本編解碼工具基於對應編碼標準(RFC/規範)，純前端本地處理，資料不上傳。 工具名稱：十六進位制編解碼 - 免費編碼解碼工具，線上十六進位制編解碼，免費使用。</div>
 </div>
 
@@ -264,13 +264,22 @@ function dec(){
   __hex_encode_reset();
   let text = document.getElementById('input').value.trim();
   if(!text){ __hex_encode_state='empty'; return alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter hexadecimal string to decode":"请输入要解码的十六进制字符串")); }
-  // IT-N261：先剥分隔符、再全局去 0x，多行/每字节前缀的 hexdump 不再残留 x
-  text = text.replace(/[\s:,;_-]/g,'').replace(/0x/gi,'');
   const en=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn());
-  if(!/^[0-9a-fA-F]*$/.test(text)) return alert(en?"Invalid hexadecimal character":"非法十六进制字符");
-  if(text.length % 2 !== 0) return alert(en?"Hex length must be even":"十六进制长度必须为偶数");
-  const bytes = new Uint8Array(text.length / 2);
-  for(let i = 0; i < bytes.length; i++) bytes[i] = parseInt(text.substr(i*2,2),16);
+  // 第747批：先判断语法，再规范化。0x 只能出现在每个字节开头（0x41 0x42 / 0x410x42），
+  // 不允许混在字节内部（40x1），也不允许整串只有前缀/分隔符。
+  const compact = text.replace(/[\s:,;_-]+/g,'');
+  if(!compact) return alert(en?"No complete hexadecimal byte found":"未检测到完整十六进制字节");
+  let body=compact;
+  if(/^0x/i.test(compact)){
+    if(!/^(?:0x[0-9a-fA-F]{2})+$/.test(compact)) return alert(en?"0x prefix must start each byte and be followed by exactly two hex digits":"0x 前缀必须位于每个字节开头，且后跟两位十六进制");
+    body=compact.replace(/0x/gi,'');
+  }else if(/0x/i.test(compact)){
+    return alert(en?"0x prefix appears inside a byte; only whole-byte prefixes are allowed":"0x 前缀出现在字节内部；只允许按完整字节加前缀");
+  }
+  if(!/^[0-9a-fA-F]+$/.test(body)) return alert(en?"Invalid hexadecimal character":"非法十六进制字符");
+  if(body.length % 2 !== 0) return alert(en?"Hex length must be even":"十六进制长度必须为偶数");
+  const bytes = new Uint8Array(body.length / 2);
+  for(let i = 0; i < bytes.length; i++) bytes[i] = parseInt(body.substr(i*2,2),16);
   // IT-N263：严格 UTF-8，非法字节不再静默替换成 U+FFFD，给 Latin-1 对照 + 原始字节
   let out;
   try {
@@ -484,7 +493,7 @@ else document.addEventListener('DOMContentLoaded', __hex_encodeBoot);
     </a>
     <a href="/zh-tw/tools/it/css-minifier.html" class="related-tool-card">
       <span class="rt-icon">🧹</span>
-      <span class="rt-info"><span class="rt-name">CSS 壓縮/美化工具</span><span class="rt-desc">CSS 壓縮/格式化/美化</span></span>
+      <span class="rt-info"><span class="rt-name">CSS 壓縮/格式化/美化工具</span><span class="rt-desc">線上 CSS 壓縮與美化工具，去除註釋空白壓縮體積或重新格式化縮排，保留語義便於維護，適合前端構建與…</span></span>
     </a>
     <a href="/zh-tw/tools/it/css-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
@@ -492,7 +501,7 @@ else document.addEventListener('DOMContentLoaded', __hex_encodeBoot);
     </a>
     <a href="/zh-tw/tools/it/cron.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">Cron 表示式生成器</span><span class="rt-desc">視覺化生成 Cron 表示式，支援 5 位 Unix 格式，小白也能輕鬆上手</span></span>
+      <span class="rt-info"><span class="rt-name">Cron 表示式生成器</span><span class="rt-desc">視覺化生成/解析 5 段 Unix cron，預設按 Vixie cron 校驗；</span></span>
     </a>
     <a href="/zh-tw/tools/it/graphql-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>

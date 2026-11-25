@@ -267,7 +267,7 @@ function drawBarcode(bits,text){
 // I3 统一 PNG 下载（canvas.toDataURL，纯前端零依赖）
 function downloadBarcodePNG(){
   var cv=document.querySelector('#output canvas');
-  if(!cv){ if(window.ToolBox&&ToolBox.showToast)ToolBox.showToast('请先生成条形码','error'); else alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Generate the barcode first":"请先生成条形码")); return; }
+  if(__msiStale||!cv){ var em=__msiEn(); var msg=__msiStale?(em?'Input changed; generate again before downloading.':'输入已改变，请重新生成后再下载。'):(em?'Generate the barcode first':'请先生成条形码'); if(window.ToolBox&&ToolBox.showToast)ToolBox.showToast(msg,'error'); else alert(msg); return; }
   var a=document.createElement('a');
   a.download='barcodemsi-'+Date.now()+'.png';
   try { a.href=cv.toDataURL('image/png'); }
@@ -276,6 +276,7 @@ function downloadBarcodePNG(){
   if(window.ToolBox&&ToolBox.showToast)ToolBox.showToast('PNG 已下载','success');
 }
 function generate(){
+  __msiStale=true;
   const text=document.getElementById('data').value;
   const mode=document.getElementById('checkMode').value;
   const built=buildMSI(text,mode);
@@ -292,8 +293,12 @@ function generate(){
   const __h0='<div class="bar-wrap"></div><div class="bar-text">'+escapeHtml(built.text)+'</div>';
   out.innerHTML=__h0;
   out.querySelector('.bar-wrap').appendChild(canvas);
+  __msiStale=false;
 }
 function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+var __msiStale=true;
+function __msiMarkStale(){__msiStale=true;}
+(function(){var d=document.getElementById('data'),m=document.getElementById('checkMode');if(d)d.addEventListener('input',__msiMarkStale);if(m)m.addEventListener('change',__msiMarkStale);})();
 function copyResult(){
   const text = document.getElementById('output').textContent || document.getElementById('output').innerText;
   navigator.clipboard.writeText(text).then(() => alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Copied":"已复制")));
@@ -478,7 +483,7 @@ else document.addEventListener('DOMContentLoaded', __barcode_msiBoot);
     </a>
     <a href="/zh-tw/tools/it/css-minifier.html" class="related-tool-card">
       <span class="rt-icon">🧹</span>
-      <span class="rt-info"><span class="rt-name">CSS 壓縮/美化工具</span><span class="rt-desc">CSS 壓縮/格式化/美化</span></span>
+      <span class="rt-info"><span class="rt-name">CSS 壓縮/格式化/美化工具</span><span class="rt-desc">線上 CSS 壓縮與美化工具，去除註釋空白壓縮體積或重新格式化縮排，保留語義便於維護，適合前端構建與…</span></span>
     </a>
     <a href="/zh-tw/tools/it/css-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
@@ -486,7 +491,7 @@ else document.addEventListener('DOMContentLoaded', __barcode_msiBoot);
     </a>
     <a href="/zh-tw/tools/it/cron.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">Cron 表示式生成器</span><span class="rt-desc">視覺化生成 Cron 表示式，支援 5 位 Unix 格式，小白也能輕鬆上手</span></span>
+      <span class="rt-info"><span class="rt-name">Cron 表示式生成器</span><span class="rt-desc">視覺化生成/解析 5 段 Unix cron，預設按 Vixie cron 校驗；</span></span>
     </a>
     <a href="/zh-tw/tools/it/graphql-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>

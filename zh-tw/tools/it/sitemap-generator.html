@@ -94,7 +94,7 @@
     <h2 data-zh="✨ Sitemap 生成器">✨ Sitemap Generator</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="網站收錄靠 sitemap 告訴爬蟲有哪些頁面。填入全部 URL（每行一個），本工具生成符合 sitemap 協議的 XML，儲存為 sitemap.xml 即可。">Sitemap Generator - Paste one URL per line to build a standard sitemap.xml with lastmod for search engines. Free, browser-only.</p>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">按換行切分輸入，逐行去首尾空白後只保留以 http 或 https 協議開頭的行；一條都沒有時提示請每行貼上一個以協議開頭的網址。取當天日期（ISO 字串的前 10 位）作為最後修改時間，為每條網址生成包含地址與最後修改時間的 url 節點，再拼上 XML 宣告與站點地圖名稱空間宣告的根節點。輸出網址總數，並對整段 XML 做轉義後在程式碼塊中展示</div>
+  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">按換行切分輸入，逐行去首尾空白後只保留以 http 或 https 協議開頭的行；一條都沒有時提示請每行貼上一個以協議開頭的網址。不自動虛構 lastmod：日期留空時省略該欄位，填寫時校驗 YYYY-MM-DD 的真實日期；逐行用 URL 解析校驗 http/https，列出無效行並去重，再生成 url 節點，再拼上 XML 宣告與站點地圖名稱空間宣告的根節點。輸出網址總數，並對整段 XML 做轉義後在程式碼塊中展示</div>
   <div class="formula-desc">生成供搜尋引擎抓取的 XML Sitemap。</div>
   <ul class="formula-list">
     <li><b>欄位</b>：每個 URL 含 loc（地址）、lastmod（最後修改）、changefreq（更新頻率）、priority（優先順序）。</li>
@@ -116,6 +116,7 @@
         <label for="urls">URL 列表（每行一個，含 https://）</label>
         <textarea id="urls" rows="7" style="width:100%;font-family:monospace;font-size:12.5px;">https://example.com/&#10;https://example.com/about&#10;https://example.com/contact</textarea>
       </div>
+      <div style="margin-top:10px;"><label for="lastmod">最後修改日期 lastmod（可選，留空則不輸出）</label><input type="date" id="lastmod" style="width:100%;"></div>
     </div>
     <div class="toolbar">
       <div id="sitemap_generatorPresets"></div><button class="btn primary" onclick="calcTool()">計算</button><button class="btn" type="button" onclick="__sitemap_generatorExport()">匯出明細 CSV</button>
@@ -206,13 +207,28 @@
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function escH(s){var d=document.createElement('div');const __g1=s==null?'':String(s);d.textContent=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));return d.innerHTML;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
-function calcTool(){var urls=document.getElementById('urls').value.split(/\n/).map(function(x){return x.trim();}).filter(function(u){return /^https?:\/\//.test(u);});
-var html='<div class="result-title">sitemap.xml</div>';
-if(!urls.length){html+='<p class="muted">请每行粘贴一个以 http(s):// 开头的 URL。</p>';const __g2=html;document.getElementById('result').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));return;}
-var today=new Date().toISOString().slice(0,10);
-var body=urls.map(function(u){return '  <url>\n    <loc>'+escH(u)+'</loc>\n    <lastmod>'+today+'</lastmod>\n  </url>';}).join('\n');
+function calcTool(){var html='<div class="result-title">sitemap.xml</div>';
+var rawLines=document.getElementById('urls').value.split(/\n/), urls=[], invalid=[], seen={}, dup=0, hosts={};
+rawLines.forEach(function(line,idx){
+  var u=line.trim(); if(!u) return;
+  var ok=false, host='';
+  try{ var pu=new URL(u); ok=(pu.protocol==='http:'||pu.protocol==='https:'); host=pu.host; }catch(e){ ok=false; }
+  if(!ok){ invalid.push((idx+1)+': '+u); return; }
+  if(Object.prototype.hasOwnProperty.call(seen,u)){ dup++; return; }
+  seen[u]=1; urls.push(u); hosts[host]=1;
+});
+var dateVal=String((document.getElementById('lastmod')||{}).value||'').trim();
+var dateOk=true;
+if(dateVal){ var d=new Date(dateVal+'T00:00:00Z'); dateOk=/^\d{4}-\d{2}-\d{2}$/.test(dateVal)&&!isNaN(d.getTime())&&d.toISOString().slice(0,10)===dateVal; }
+if(!dateOk){ html+='<p style="color:var(--danger)">⚠ lastmod 日期无效，请使用 YYYY-MM-DD 的真实日期。</p>'; document.getElementById('result').innerHTML=html; return; }
+if(!urls.length){html+='<p class="muted">请每行粘贴一个以 http(s):// 开头的 URL。</p>';if(invalid.length)html+='<p style="color:var(--danger)">无效行：'+escH(invalid.slice(0,8).join('；'))+(invalid.length>8?' …':'')+'</p>';const __g2=html;document.getElementById('result').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));return;}
+var body=urls.map(function(u){return '  <url>\n    <loc>'+escH(u)+'</loc>'+(dateVal?'\n    <lastmod>'+dateVal+'</lastmod>':'')+'\n  </url>';}).join('\n');
 var xml='<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'+body+'\n</urlset>';
 html+='<div class="data-grid"><div class="data-card"><div class="num">'+urls.length+'</div><div class="label">URL 数</div></div></div>';
+html+='<p class="muted">lastmod：'+(dateVal?dateVal+'（仅写到日）':'未填写（输出中省略）')+'</p>';
+if(invalid.length)html+='<p style="color:var(--danger)">⚠ 已跳过 '+invalid.length+' 行无效 URL：'+escH(invalid.slice(0,8).join('；'))+(invalid.length>8?' …':'')+'</p>';
+if(dup)html+='<p class="muted">已去重 '+dup+' 条重复 URL。</p>';
+if(Object.keys(hosts).length>1)html+='<p class="muted">输入包含 '+Object.keys(hosts).length+' 个不同主机；跨站 URL 会原样写入，请确认它们都属于同一站点。</p>';
 html+='<pre class="code-box" style="white-space:pre;font-size:12px;overflow-x:auto;">'+escH(xml)+'</pre>';
 const __g3=html;document.getElementById('result').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));}
 function resetForm(){document.getElementById('urls').value='https://example.com/\nhttps://example.com/about\nhttps://example.com/contact';

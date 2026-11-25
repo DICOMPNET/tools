@@ -109,12 +109,12 @@
     <h2 data-zh="🕵️ A1Z26 密碼">🕵️ A1Z26 Password</h2>
     <p style="font-size:13px;color:var(--text-light);margin-bottom:12px;" data-zh="A=1, B=2, ..., Z=26，用數字表示字母。">Encode and decode the A1Z26 cipher (A=1…Z=26) in your browser — a classic number-to-letter puzzle.</p>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">輸入轉大寫後按空白切分為單詞並過濾掉空詞。每個單詞逐字元處理：落在 A 到 Z 之間的字元取「字元編碼 − 64」得到 1 到 26 的序號；數字、標點等非字母字元原樣寫入且連續不亂序（如 42! 保持完整）。同一單詞內相鄰序號用所選分隔符連線，單詞之間用所選的詞分隔符連線</div>
+  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">按空白切分為單詞。每個單詞逐碼點處理：ASCII A–Z 取「碼點 − 64」得到 1–26，a–z 取「碼點 − 96」；其餘字元（數字、標點、重音字母、emoji、分隔符本身）一律轉義為「~加十六進位制碼點」，避免與 1–26 混淆。同一單詞內各 token 用所選字母分隔符連線，單詞之間用所選的詞分隔符連線。此格式可逆；純數字舊密文仍可按原規則解碼</div>
   <div class="formula-desc">把每個字母替換為它在字母表中的序號（A=1 … Z=26），是最直觀的單表替換密碼。</div>
   <ul class="formula-list">
-    <li><b>編碼</b>：取字母在 A–Z 中的序號（A=1，Z=26）；非字母字元原樣保留。</li>
+    <li><b>編碼</b>：取字母在 A–Z 中的序號（A=1，Z=26，小寫同號）；其他字元轉義為 <code>~十六进制码点</code>，因此數字、標點、重音字母和 emoji 都能無損解碼，不會與 1–26 混淆。</li>
     <li><b>分隔</b>：常用空格分隔以避免歧義（如 <code>1</code> 與 <code>12</code> 連寫無法區分），也可用 <code>-</code> 或 <code>,</code>。</li>
-    <li><b>解碼</b>：數字直接映射回字母；超出 1–26 視為非法輸入。</li>
+    <li><b>解碼</b>：1–26 映射回字母；<code>~E9</code> 還原為 é、<code>~31</code> 還原為數字 1；超出 1–26 的數字和非法轉義就地標記為 ? 並列出。</li>
     <li><b>強度</b>：無金鑰、明文結構完整保留，僅用於教學與謎題，不具備任何加密強度。</li>
   </ul>
 </div>
@@ -218,29 +218,22 @@
 
 <script>
 function enc(){
-  const text = document.getElementById('input').value.toUpperCase();
+  const text = document.getElementById('input').value;
   if(!text) return alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter text to encode":"请输入要编码的文本"));
   const sep = document.getElementById('sep').value;
   const wordSep = document.getElementById('wordSep').value;
   const words = text.split(/\s+/).filter(w => w.length > 0);
   const encodedWords = words.map(word => {
-    // NFD 分解：重音字母取基字母编码（é→E=5），组合符随分解丢弃；数字/标点等非字母连续原样写入（如 42! 不拆散）。
-    const decomposed = word.normalize('NFD');
-    let out = '';
-    let lastWasNum = false;
-    for(const ch of decomposed){
-      if(ch >= 'A' && ch <= 'Z'){
-        if(lastWasNum) out += sep;
-        out += String(ch.charCodeAt(0) - 64);
-        lastWasNum = true;
-      }else if(ch >= '\u0300' && ch <= '\u036F'){
-        continue; // 组合符不单独输出
-      }else{
-        out += ch; // 数字、标点等非字母原样保留（连续非字母不被分隔符拆开）
-        lastWasNum = false;
-      }
+    // 可逆口径：ASCII A-Z 编码为 1–26；其余字符统一转义为 ~加十六进制码点。
+    // 不再 toUpperCase/NFD，é、ß、数字、标点、分隔符都按原码点保留，解码可无损还原。
+    const tokens = [];
+    for(const ch of Array.from(word)){
+      const cp = ch.codePointAt(0);
+      if(ch >= 'A' && ch <= 'Z') tokens.push(String(cp - 64));
+      else if(ch >= 'a' && ch <= 'z') tokens.push(String(cp - 96));
+      else tokens.push('~' + cp.toString(16).toUpperCase());
     }
-    return out;
+    return tokens.join(sep);
   });
   document.getElementById('output').value = encodedWords.join(wordSep);
 }
@@ -248,20 +241,27 @@ function enc(){
 function dec(){
   const text = document.getElementById('input').value.trim();
   if(!text) return alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter the digit string to decode":"请输入要解码的数字串"));
+  const sep = document.getElementById('sep').value;
   const wordSep = document.getElementById('wordSep').value;
-  const words = text.split(new RegExp(wordSep.replace(/\s+/g, '\\s+').replace(/\|/g,'\\|').replace(/\//g,'\\/')));
+  // 精确按所选词分隔符切分：双空格不能再等价为 \s+，否则单空格字母分隔也会被当词边界。
+  const words = wordSep === '  ' ? text.split(/\s{2,}/) : text.split(wordSep);
   let out = '';
   let invalid = [];
   for(const word of words){
-    const nums = word.split(/[\s,\-.]+/).filter(s => s.length > 0);
-    for(const n of nums){
-      // 仅接受纯数字且落在 1–26；非法项就地标记，不静默跳过（与解码说明一致）。
-      if(/^\d+$/.test(n)){
-        const v = parseInt(n, 10);
+    for(const tok of word.split(sep)){
+      const t = tok.trim();
+      if(!t) continue;
+      if(/^\d+$/.test(t)){
+        const v = parseInt(t, 10);
         if(v >= 1 && v <= 26){ out += String.fromCharCode(v + 64); continue; }
+        invalid.push(t); out += '?'; continue;
       }
-      out += '?';
-      invalid.push(n);
+      const m = t.match(/^~([0-9A-Fa-f]{1,6})$/);
+      if(m){
+        const cp = parseInt(m[1], 16);
+        if(cp >= 0 && cp <= 0x10FFFF && !(cp >= 0xD800 && cp <= 0xDFFF)){ out += String.fromCodePoint(cp); continue; }
+      }
+      invalid.push(t); out += '?';
     }
     out += ' ';
   }
@@ -443,7 +443,7 @@ else document.addEventListener('DOMContentLoaded', __a1z26_cipherBoot);
     </a>
     <a href="/zh-tw/tools/it/css-minifier.html" class="related-tool-card">
       <span class="rt-icon">🧹</span>
-      <span class="rt-info"><span class="rt-name">CSS 壓縮/美化工具</span><span class="rt-desc">CSS 壓縮/格式化/美化</span></span>
+      <span class="rt-info"><span class="rt-name">CSS 壓縮/格式化/美化工具</span><span class="rt-desc">線上 CSS 壓縮與美化工具，去除註釋空白壓縮體積或重新格式化縮排，保留語義便於維護，適合前端構建與…</span></span>
     </a>
     <a href="/zh-tw/tools/it/css-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
@@ -451,7 +451,7 @@ else document.addEventListener('DOMContentLoaded', __a1z26_cipherBoot);
     </a>
     <a href="/zh-tw/tools/it/cron.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">Cron 表示式生成器</span><span class="rt-desc">視覺化生成 Cron 表示式，支援 5 位 Unix 格式，小白也能輕鬆上手</span></span>
+      <span class="rt-info"><span class="rt-name">Cron 表示式生成器</span><span class="rt-desc">視覺化生成/解析 5 段 Unix cron，預設按 Vixie cron 校驗；</span></span>
     </a>
     <a href="/zh-tw/tools/it/graphql-formatter.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
