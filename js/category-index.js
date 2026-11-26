@@ -12,13 +12,18 @@
  */
 (function () {
   'use strict';
+  // 子路径部署适配：委托给 I18n.assetUrl（含 /tools/ 子路径检测）
+  function assetUrl(u) {
+    try { if (window.I18n && window.I18n.assetUrl) return window.I18n.assetUrl(u); } catch (e) {}
+    return u;
+  }
   var lists = document.querySelectorAll('.category-tool-list[data-ind]');
   if (!lists.length) return;
 
   var cache = {};
   function load(ind) {
     if (cache[ind]) return cache[ind];
-    cache[ind] = fetch('/json/industry-' + ind + '.json', { credentials: 'same-origin' })
+    cache[ind] = fetch(assetUrl('/json/industry-' + ind + '.json'), { credentials: 'same-origin' })
       .then(function (r) { return r.ok ? r.json() : []; })
       .catch(function () { return []; });
     return cache[ind];

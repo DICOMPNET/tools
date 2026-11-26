@@ -1084,7 +1084,7 @@ var LANG_REGISTRY = [
       if (last === 'index.html' || last.endsWith('.en.html')) return;
       if (document.getElementById('guide-i18n-script')) return;
       var s = document.createElement('script');
-      s.src = '/js/guide-i18n.js';
+      s.src = assetUrl('/js/guide-i18n.js');
       s.defer = true;
       s.id = 'guide-i18n-script';
       document.head.appendChild(s);

@@ -71,6 +71,9 @@ def collect_files():
     # guides 与 zh-tw/guides
     for pat in ("guides/*.html", "zh-tw/*.html", "zh-tw/guides/*.html"):
         files += [os.path.relpath(p, ROOT).replace("\\", "/") for p in glob.glob(os.path.join(ROOT, pat))]
+    # 工具页（tools/<industry>/*.html 与 zh-tw/tools/<industry>/*.html）
+    for pat in ("tools/*/*.html", "zh-tw/tools/*/*.html"):
+        files += [os.path.relpath(p, ROOT).replace("\\", "/") for p in glob.glob(os.path.join(ROOT, pat))]
     return files
 
 def main():
