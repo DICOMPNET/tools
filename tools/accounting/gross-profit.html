@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 
-<script src="../../js/tool-page-runtime.js" defer></script>
+<script src="/js/tool-page-runtime.js" defer></script>
 <!-- TOOLBOX-TOOL-RUNTIME -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -15,7 +15,7 @@
 <meta name="twitter:card" content="summary">
 <meta name="description" content="毛利 = 营业收入 − 营业成本是一款免费的在线会计审计工具，输入营业收入与营业成本，计算毛利与毛利率，直观反映产品初始盈利空间，适用于销售核算、定价策略与经营绩效评估">
 <link rel="stylesheet" href="../../css/common.css">
-<script src="../../js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
 
 
@@ -37,10 +37,10 @@
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
 <!-- TOOLBOX-SECURITY -->
 
-<script src="../../js/privacy.js" defer></script>
+<script src="/js/privacy.js" defer></script>
 <!-- TOOLBOX-PRIVACY-SCRIPT -->
 
-<script src="../../js/metrics.js" defer></script>
+<script src="/js/metrics.js" defer></script>
 <!-- TOOLBOX-METRICS-SCRIPT -->
 
 <script type="application/ld+json">
@@ -62,18 +62,18 @@
 <meta property="og:locale" content="zh_CN">
 <meta property="og:locale:alternate" content="zh_TW">
 <meta property="og:locale:alternate" content="en_US">
-<link rel="preload" as="style" href="../../css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link rel="stylesheet" href="../../css/nav-menu.css"></noscript>
-<script src="../../js/industry-info.js" defer></script>
-<script src="../../js/nav-menu.js" defer></script>
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
 
-<script src="../../js/tool-ux.js" defer></script>
+<script src="/js/tool-ux.js" defer></script>
 <!-- TOOLBOX-TOOL-UX -->
 
-<script src="../../js/analytics.js" defer></script>
+<script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 
-<script src="../../js/tool-kit.js" defer></script>
+<script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
 <meta property="og:site_name" content="ToolBox">
 <meta name="theme-color" content="#FF6B35">
@@ -291,12 +291,13 @@ function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+=
 function calcTool(){
               var __ig=__tbInputGuard(['rev', 'cogs'],["营业收入 (万元)", "营业成本 (万元)"]);if(__ig){ToolBox.setResult("result",__ig);return;}
 const rev=num('rev'),cogs=num('cogs');
+            if(!(rev>0)||!(cogs>=0)){ToolBox.setResult('result','<p style="color:var(--danger)">营业收入必须大于 0，营业成本不得为负；收入为 0 时毛利率无定义。</p>');return;}
             const gp=rev-cogs;
             const __g1=dataGrid([
                 [gp.toFixed(2),'毛利 (万元)'],
-                [(gp/Math.max(rev,1e-9)*100).toFixed(2), '毛利率 (%)'],
-                [(rev/Math.max(cogs,1e-9)).toFixed(3), '收入成本倍数'],
-                [(cogs/Math.max(gp,1e-9)).toFixed(4), '成本毛利比']
+                [(gp/rev*100).toFixed(2), '毛利率 (%)'],
+                [cogs===0?'—':(rev/cogs).toFixed(3), '收入成本倍数'],
+                [gp===0?'—':(cogs/gp).toFixed(4), '成本毛利比']
             ]);ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
         }
 function resetForm(){document.getElementById('rev').value = '1000';
@@ -354,9 +355,9 @@ function __gross_profitExtras(){
         head: en?['Item','Value']:['项目','数值'],
         rows: [
             ['毛利 (万元)', gp.toFixed(2)],
-            ['毛利率 (%)', (gp/Math.max(rev,1e-9)*100).toFixed(2)],
-            ['收入成本倍数', (rev/Math.max(cogs,1e-9)).toFixed(3)],
-            ['成本毛利比', (cogs/Math.max(gp,1e-9)).toFixed(4)],
+            [(gp/rev*100).toFixed(2), '毛利率 (%)'],
+            [cogs===0?'—':(rev/cogs).toFixed(3), '收入成本倍数'],
+            [gp===0?'—':(cogs/gp).toFixed(4), '成本毛利比'],
         ]
     });
     TBKit.history.record({rev:__gross_profitRaw('rev'), cogs:__gross_profitRaw('cogs'), gp:gp});

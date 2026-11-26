@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 
-<script src="../../js/tool-page-runtime.js" defer></script>
+<script src="/js/tool-page-runtime.js" defer></script>
 <!-- TOOLBOX-TOOL-RUNTIME -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -23,7 +23,7 @@
 <link rel="icon" href="../../favicon.ico" sizes="16x16 32x32 48x48">
 <link rel="apple-touch-icon" href="../../apple-touch-icon.png">
 <link rel="stylesheet" href="../../css/common.css">
-<script src="../../js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
 <style>
 .stat-grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px;}
@@ -65,10 +65,10 @@
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
 <!-- TOOLBOX-SECURITY -->
 
-<script src="../../js/privacy.js" defer></script>
+<script src="/js/privacy.js" defer></script>
 <!-- TOOLBOX-PRIVACY-SCRIPT -->
 
-<script src="../../js/metrics.js" defer></script>
+<script src="/js/metrics.js" defer></script>
 <!-- TOOLBOX-METRICS-SCRIPT -->
 
 <script type="application/ld+json">
@@ -89,21 +89,21 @@
 <meta property="og:locale" content="zh_CN">
 <meta property="og:locale:alternate" content="zh_TW">
 <meta property="og:locale:alternate" content="en_US">
-<link rel="preload" as="style" href="../../css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link rel="stylesheet" href="../../css/nav-menu.css"></noscript>
-<script src="../../js/industry-info.js" defer></script>
-<script src="../../js/nav-menu.js" defer></script>
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
 
-<script src="../../js/tool-ux.js" defer></script>
+<script src="/js/tool-ux.js" defer></script>
 <!-- TOOLBOX-TOOL-UX -->
 
-<script src="../../js/analytics.js" defer></script>
+<script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 <script type="application/ld+json">
 {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "融资租赁和经营租赁区别？", "acceptedAnswer": {"@type": "Answer", "text": "融资租赁期长、近乎转移风险所有权（期满可低价买断），入资产负债表；经营租赁短期、可退、费用化。税务与财报处理不同。"}}, {"@type": "Question", "name": "租赁一定比买便宜吗？", "acceptedAnswer": {"@type": "Answer", "text": "不一定。租赁把资金占用转为分期，但含资金成本与利润，总支出常高于一次性买；优势在保留现金与灵活退出。"}}]}
 </script>
 
-<script src="../../js/tool-kit.js" defer></script>
+<script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
 <meta property="og:site_name" content="ToolBox">
 </head>
@@ -153,7 +153,7 @@
       <div class="input-row">
         <div><label for="fv">残值(元)</label><input type="number" id="fv" value="0" step="any" min="0" oninput="calc()" placeholder="如 0"></div>
         <div><label for="type">还款方式</label>
-          <select id="type" onchange="calc()">
+          <select id="type" onchange="syncTimingOptions();calc()">
             <option value="equal" selected>等额本息</option>
             <option value="principal">等额本金</option>
             <option value="interest">先息后本</option>
@@ -169,6 +169,7 @@
         </div>
         <div><label for="fee">手续费(元)</label><input type="number" id="fee" value="0" step="any" min="0" oninput="calc()" placeholder="如 0"></div>
       </div>
+      <p id="timingNote" style="font-size:12px;color:var(--text-muted);margin:4px 0 2px;">期初还款仅支持等额本息；等额本金与先息后本按期末还款计算。</p>
 
       <div style="margin-bottom:8px;">
         <label style="font-size:13px;color:var(--text-light);">📊 常见利率快速选择</label>
@@ -426,11 +427,33 @@ function getVal(id){
   return el ? (+el.value || 0) : 0;
 }
 
+function syncTimingOptions(){
+  var typeEl=document.getElementById('type');
+  var timingEl=document.getElementById('timing');
+  var note=document.getElementById('timingNote');
+  if(!typeEl||!timingEl) return;
+  var beginOpt=timingEl.querySelector('option[value="begin"]');
+  var unsupported=typeEl.value!=='equal';
+  if(beginOpt) beginOpt.disabled=unsupported;
+  if(unsupported && timingEl.value==='begin') timingEl.value='end';
+  if(note){
+    var en=/^en/i.test(document.documentElement.lang||'');
+    note.textContent=en
+      ? (unsupported?'Beginning-of-period payments are only supported for equal payment; equal principal and interest-only use end-of-period.':'Beginning-of-period payments apply to equal payment; the schedule and IRR use the same shifted cash flows.')
+      : (unsupported?'期初还款仅支持等额本息；等额本金与先息后本按期末还款计算。':'期初还款按等额本息把每期付款提前到 t=0…n−1，明细、汇总与 IRR 使用同一现金流。');
+  }
+}
+
 function calc(){
-  var pv = getVal('pv');
-  var downPct = getVal('downPct');
-  var annualRate = getVal('rate');
-  var n = Math.min(Math.max(1, Math.floor(getVal('months'))), 12000);
+  var pvRaw = String(document.getElementById('pv').value == null ? '' : document.getElementById('pv').value).trim();
+  var downRaw = String(document.getElementById('downPct').value == null ? '' : document.getElementById('downPct').value).trim();
+  var rateRaw = String(document.getElementById('rate').value == null ? '' : document.getElementById('rate').value).trim();
+  var monthsRaw = String(document.getElementById('months').value == null ? '' : document.getElementById('months').value).trim();
+  var pv = parseFloat(pvRaw);
+  var downPct = parseFloat(downRaw);
+  var annualRate = parseFloat(rateRaw);
+  // 期数不取整、不夹取：空值/0/负数/小数/超范围都必须显式拒绝，不能悄悄改成 1 期或 12000 期。
+  var n = Number(monthsRaw);
   var fv = getVal('fv');
   var type = document.getElementById('type').value;
   var timing = document.getElementById('timing').value;
@@ -441,12 +464,18 @@ function calc(){
   var r = annualRate / 100 / 12;
 
   var __err = '';
-  if(!isFinite(pv) || pv <= 0) __err = '租赁物价值必须大于 0。';
-  else if(downPct < 0 || downPct > 100) __err = '首付比例须在 0–100% 之间。';
+  if(pvRaw === '') __err = '租赁物价值尚未填写；如确为 0 请明确输入 0（但价值须大于 0 才能计算）。';
+  else if(!isFinite(pv) || pv <= 0) __err = '租赁物价值必须大于 0。';
+  else if(downRaw === '') __err = '首付比例尚未填写；无首付请明确输入 0。';
+  else if(!isFinite(downPct) || downPct < 0 || downPct > 100) __err = '首付比例须在 0–100% 之间。';
+  else if(rateRaw === '') __err = '年利率尚未填写；如确为 0% 请明确输入 0。';
+  else if(!isFinite(annualRate) || annualRate < 0 || annualRate > 100) __err = '年利率须在 0–100% 之间（负值或极端值会产生无经济意义的幂运算）。';
+  else if(monthsRaw === '') __err = '租期尚未填写；请输入 1–360 的整数月。';
+  else if(!isFinite(n) || !Number.isInteger(n) || n < 1 || n > 360) __err = '租期须为 1–360 的整数月（不接受小数、0 或负数）。';
   else if(fee < 0) __err = '手续费不能为负。';
   else if(fv < 0) __err = '残值不能为负。';
   else if(fv >= principal) __err = '残值须小于融资本金（否则融资额无效）。';
-  else if(!isFinite(n) || n < 1) __err = '期数须在 1–12000 之间。';
+  if(timing==='begin' && type!=='equal') __err='期初还款仅支持等额本息；等额本金与先息后本请选择期末还款。';
   if(__err){
     schedule = [];
     currentResult = null;
@@ -600,7 +629,8 @@ function calc(){
   }
 
   var irr = calcIRR(principal, schedule, fv, timing, fee);
-  var effectiveRate = (irr !== null && isFinite(irr)) ? irr * 12 * 100 : null;
+  var nominalRate = (irr !== null && isFinite(irr)) ? irr * 12 * 100 : null;
+  var effectiveRate = (irr !== null && isFinite(irr) && irr > -1) ? (Math.pow(1 + irr, 12) - 1) * 100 : null;
 
   currentResult = {
     pv: pv,
@@ -616,6 +646,7 @@ function calc(){
     pmt: pmt,
     totalPayment: totalPayment,
     totalInterest: totalInterest,
+    nominalRate: nominalRate,
     effectiveRate: effectiveRate,
     timestamp: Date.now()
   };
@@ -664,7 +695,7 @@ function renderStats(r){
   var statHtml = '<div class="stat-card"><div class="val">¥' + ToolBox.formatNumber(r.pmt, 0) + '</div><div class="lbl">' + (r.type === 'principal' ? '首月还款' : '每月还款') + '</div></div>'
     + '<div class="stat-card"><div class="val">¥' + ToolBox.formatNumber(r.totalPayment, 0) + '</div><div class="lbl">总还款额</div></div>'
     + '<div class="stat-card negative"><div class="val">¥' + ToolBox.formatNumber(r.totalInterest, 0) + '</div><div class="lbl">总利息</div></div>'
-    + '<div class="stat-card"><div class="val">' + (r.effectiveRate === null ? '不可计算' : r.effectiveRate.toFixed(2) + '%') + '</div><div class="lbl">实际年化(IRR)</div></div>';
+    + '<div class="stat-card"><div class="val">' + (r.effectiveRate === null ? '不可计算' : r.effectiveRate.toFixed(2) + '%') + '</div><div class="lbl">有效年化(月复利)</div></div>';
   const __g2=statHtml;document.getElementById('statGrid').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 }
 
@@ -686,7 +717,8 @@ function renderResult(r){
   resHtml += '<p>还款方式：<strong>' + (typeNames[r.type] || r.type) + '</strong> · ' + (timingNames[r.timing] || r.timing) + '</p>';
   resHtml += '<p>租期：<strong>' + r.months + '</strong> 期（' + (r.months/12).toFixed(1) + '年）</p>';
   resHtml += '<p>名义年利率：<strong>' + r.annualRate.toFixed(2) + '%</strong></p>';
-  resHtml += '<p>实际年化利率(IRR)：<strong style="color:var(--danger);">' + (r.effectiveRate === null ? '不可计算（净融资额或现金流无有效 IRR）' : r.effectiveRate.toFixed(2) + '%') + '</strong></p>';
+  resHtml += '<p>名义年化（月 IRR × 12）：<strong>' + (r.nominalRate === null ? '不可计算' : r.nominalRate.toFixed(2) + '%') + '</strong></p>';
+  resHtml += '<p>有效年化（(1+月 IRR)¹²−1，按月复利）：<strong style="color:var(--danger);">' + (r.effectiveRate === null ? '不可计算（净融资额或现金流无有效 IRR）' : r.effectiveRate.toFixed(2) + '%') + '</strong></p>';
   if(r.fee > 0){
     resHtml += '<p>手续费：<strong>¥' + ToolBox.formatNumber(r.fee, 2) + '</strong></p>';
   }
@@ -914,6 +946,7 @@ function resetInputs(){
 }
 
 initRateChips();
+syncTimingOptions();
 calc();
 
 var resizeTimer;
@@ -1109,7 +1142,7 @@ else document.addEventListener('DOMContentLoaded', __lease_payment_calculatorBoo
     </a>
     <a href="mirror-text.html" class="related-tool-card">
       <span class="rt-icon">🏦</span>
-      <span class="rt-info"><span class="rt-name">镜像文字</span><span class="rt-desc">将文字左右镜像反转生成可复制的字符或预览图，用于趣味签名、艺术字与水印，纯前端即时转换支持一键复制结…</span></span>
+      <span class="rt-info"><span class="rt-name">镜像文字</span><span class="rt-desc">将文字左右镜像：复制近似 Unicode 字符，或导出真实左右翻转、透明背景的多行 PNG；</span></span>
     </a>
     
   </div>

@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 
-<script src="../../js/tool-page-runtime.js" defer></script>
+<script src="/js/tool-page-runtime.js" defer></script>
 <!-- TOOLBOX-TOOL-RUNTIME -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -23,7 +23,7 @@
 <link rel="icon" href="../../favicon.ico" sizes="16x16 32x32 48x48">
 <link rel="apple-touch-icon" href="../../apple-touch-icon.png">
 <link rel="stylesheet" href="../../css/common.css">
-<script src="../../js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
 <style>
 .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;max-width:320px;margin:16px auto;}
@@ -51,10 +51,10 @@
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
 <!-- TOOLBOX-SECURITY -->
 
-<script src="../../js/privacy.js" defer></script>
+<script src="/js/privacy.js" defer></script>
 <!-- TOOLBOX-PRIVACY-SCRIPT -->
 
-<script src="../../js/metrics.js" defer></script>
+<script src="/js/metrics.js" defer></script>
 <!-- TOOLBOX-METRICS-SCRIPT -->
 
 <script type="application/ld+json">
@@ -75,21 +75,21 @@
 <meta property="og:locale" content="zh_CN">
 <meta property="og:locale:alternate" content="zh_TW">
 <meta property="og:locale:alternate" content="en_US">
-<link rel="preload" as="style" href="../../css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link rel="stylesheet" href="../../css/nav-menu.css"></noscript>
-<script src="../../js/industry-info.js" defer></script>
-<script src="../../js/nav-menu.js" defer></script>
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
 
-<script src="../../js/tool-ux.js" defer></script>
+<script src="/js/tool-ux.js" defer></script>
 <!-- TOOLBOX-TOOL-UX -->
 
-<script src="../../js/analytics.js" defer></script>
+<script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 <script type="application/ld+json">
 {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "和 shape/emoji memory 区别？", "acceptedAnswer": {"@type": "Answer", "text": "规则同属顺序记忆；本工具用网格格子，emoji/shape 用具体图标。"}}, {"@type": "Question", "name": "怎么记更多格？", "acceptedAnswer": {"@type": "Answer", "text": "按点亮顺序分组记忆，比逐格硬记容量更大。"}}]}
 </script>
 
-<script src="../../js/tool-kit.js" defer></script>
+<script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
 <meta property="og:site_name" content="ToolBox">
 </head>
@@ -283,6 +283,7 @@ function userClick(i){
     c.classList.add('wrong');
     accepting=false;
     const __h3=`<p style="color:var(--danger);">❌ 游戏结束！达到第 ${level} 关</p>`;if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h3;
+    if(typeof __tbn==='function')__tbn(level);
     document.getElementById('status').textContent='失败！';
   }
 }
@@ -376,23 +377,21 @@ document.addEventListener('DOMContentLoaded',function(){
 </div>
 <!-- /SEO 介绍区块 -->
 <script>
-var __tbn=function(){
+var __tbn=function(finalScore){
   if(typeof TBKit==='undefined')return;
-  var acc=(function(){return (typeof level==='undefined')?NaN:Number(level);})();
+  var __final=typeof finalScore==='number'&&isFinite(finalScore)&&finalScore>=0;
+  var KEY='__tbn_pattern_memory';
+  var hist=[];try{hist=JSON.parse(localStorage.getItem(KEY)||'[]');}catch(e){hist=[];}
+  if(!Array.isArray(hist))hist=[];
+  var acc=__final?finalScore:(hist.length?hist[hist.length-1].v:NaN);
   if(typeof acc!=='number'||!isFinite(acc)||acc<0)return;
-  var lab=(function(){return (typeof level==='undefined')?'':'第 '+level+' 关';})();
+  var lab='第 '+acc+' 关';
   var EN=false;try{EN=TBKit.util.isEn();}catch(e){}
   var LBL=EN?'Level Reached':'记录到达关卡(关)';
   var T=EN?{hist:'History',sc:'Score',no:'#',time:'Time',exp:'Export CSV',file:'history.csv',col:'Type'}
           :{hist:'历史记录',sc:'记录值',no:'序号',time:'时间',exp:'导出 CSV',file:'history.csv',col:'备注'};
-  var KEY='__tbn_pattern_memory';
-  var hist=[];try{hist=JSON.parse(localStorage.getItem(KEY)||'[]');}catch(e){hist=[];}
-  if(!Array.isArray(hist))hist=[];
-  var last=hist[hist.length-1];
-  if(!last||last.v!==acc||(lab&&last.l!==lab)){hist.push({t:Date.now(),v:acc,l:lab||''});}
-  if(hist.length>30)hist=hist.slice(-30);
-  try{localStorage.setItem(KEY,JSON.stringify(hist));}catch(e){}
-  var __rec={};__rec[LBL]=acc;if(TBKit.history&&TBKit.history.record)TBKit.history.record(__rec);
+  if(__final){hist.push({t:Date.now(),v:acc,l:lab});if(hist.length>30)hist=hist.slice(-30);try{localStorage.setItem(KEY,JSON.stringify(hist));}catch(e){}}
+  if(__final){var __rec={};__rec[LBL]=acc;if(TBKit.history&&TBKit.history.record)TBKit.history.record(__rec);}
   var host=document.getElementById('__tbnExtras');
   if(!host)return;
   if(hist.length<2){host.innerHTML='<p style="color:var(--text-muted);font-size:13px;margin:8px 0">'+(EN?'Records appear after 2+ sessions.':'评估 2 次以上后显示成绩趋势图。')+'</p>';return;}

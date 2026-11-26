@@ -6,7 +6,7 @@
 <meta name="toolbox" content="cat=text,industry=text,icon=🔍,bg=#f1f8e9,name=敏感词检测器">
 <title>敏感词检测器 - 免费在线文本处理工具</title>
 <link rel="stylesheet" href="../../css/common.css">
-<script src="../../js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
 <script src="../../js/i18n.js" defer></script>
 <script src="../../js/tool-i18n.js" defer></script>
@@ -30,10 +30,10 @@
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
 <!-- TOOLBOX-SECURITY -->
 
-<script src="../../js/privacy.js" defer></script>
+<script src="/js/privacy.js" defer></script>
 <!-- TOOLBOX-PRIVACY-SCRIPT -->
 
-<script src="../../js/metrics.js" defer></script>
+<script src="/js/metrics.js" defer></script>
 <!-- TOOLBOX-METRICS-SCRIPT -->
 
 <script src="../../js/i18n.js" defer></script>
@@ -61,21 +61,21 @@
 <meta property="og:locale" content="zh_CN">
 <meta property="og:locale:alternate" content="zh_TW">
 <meta property="og:locale:alternate" content="en_US">
-<link rel="preload" as="style" href="../../css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link rel="stylesheet" href="../../css/nav-menu.css"></noscript>
-<script src="../../js/industry-info.js" defer></script>
-<script src="../../js/nav-menu.js" defer></script>
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
 
-<script src="../../js/tool-ux.js" defer></script>
+<script src="/js/tool-ux.js" defer></script>
 <!-- TOOLBOX-TOOL-UX -->
 
-<script src="../../js/analytics.js" defer></script>
+<script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 
-<script src="../../js/tool-page-runtime.js" defer></script>
+<script src="/js/tool-page-runtime.js" defer></script>
 <!-- TOOLBOX-TOOL-RUNTIME -->
 
-<script src="../../js/tool-kit.js" defer></script>
+<script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
 <script type="application/ld+json">
 {
@@ -151,7 +151,8 @@
       <button class="btn" id="copyBtn" onclick="copyResult()">复制清洗文本</button>
     </div>
 
-    <div id="summary" class="result-box"></div> <div id="sensitive_word_filterTable"></div> <div id="sensitive_word_filterDiff"></div> <div id="sensitive_word_filterChart"></div> <div id="sensitive_word_filterHist"></div>
+    <div id="summary" class="result-box"></div> <div id="sensitive_word_filterTable"></div> <div id="sensitive_word_filterDiff"></div> <div id="sensitive_word_filterChart"></div> <p style="font-size:12px;color:var(--text-muted);margin:4px 0 8px;">隐私说明：历史仅保存替换选项与计算时间，不保存粘贴的正文、敏感词表或结果。</p>
+    <div id="sensitive_word_filterHist"></div>
     <div id="preview" class="result-box" style="white-space:pre-wrap"></div>
   </div>
 </div>
@@ -278,6 +279,8 @@ function __sensitive_word_filterSnap(){
         var e=els[i];
         var t=(e.type||'').toLowerCase();
         if(t==='button'||t==='submit'||t==='hidden') continue;
+        // 隐私：不把待检测正文与敏感词表写入本地历史。
+        if(e.tagName==='TEXTAREA'||e.id==='content'||e.id==='words') continue;
         var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
         if(v!==''&&v!=null) out[e.id]=v;
     }
@@ -365,7 +368,8 @@ function __sensitive_word_filterExtras(){
     __sensitive_word_filter_last=now;
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
-    rec[rk]=res;
+    // 结果可能包含原文片段，历史只记录「已计算」，不保存原文或敏感词表。
+    rec[rk]=en?'Calculated (text not stored)':'已计算（不保存原文）';
     rec.__tbScore=__sensitive_word_filterScore(res);
     TBKit.history.record(rec);
     __sensitive_word_filterRender(keys,rk,en);

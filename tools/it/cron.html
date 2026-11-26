@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 
-<script src="../../js/tool-page-runtime.js" defer></script>
+<script src="/js/tool-page-runtime.js" defer></script>
 <!-- TOOLBOX-TOOL-RUNTIME -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -23,7 +23,7 @@
 <link rel="icon" href="../../favicon.ico" sizes="16x16 32x32 48x48">
 <link rel="apple-touch-icon" href="../../apple-touch-icon.png">
 <link rel="stylesheet" href="../../css/common.css">
-<script src="../../js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
 <style>
 .visual-builder { background: var(--card-bg); border-radius: 12px; padding: 16px; margin-bottom: 16px; border: 1px solid var(--border-color); }
@@ -87,10 +87,10 @@
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
 <!-- TOOLBOX-SECURITY -->
 
-<script src="../../js/privacy.js" defer></script>
+<script src="/js/privacy.js" defer></script>
 <!-- TOOLBOX-PRIVACY-SCRIPT -->
 
-<script src="../../js/metrics.js" defer></script>
+<script src="/js/metrics.js" defer></script>
 <!-- TOOLBOX-METRICS-SCRIPT -->
 
 <script type="application/ld+json">
@@ -111,21 +111,21 @@
 <meta property="og:locale" content="zh_CN">
 <meta property="og:locale:alternate" content="zh_TW">
 <meta property="og:locale:alternate" content="en_US">
-<link rel="preload" as="style" href="../../css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link rel="stylesheet" href="../../css/nav-menu.css"></noscript>
-<script src="../../js/industry-info.js" defer></script>
-<script src="../../js/nav-menu.js" defer></script>
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
 
-<script src="../../js/tool-ux.js" defer></script>
+<script src="/js/tool-ux.js" defer></script>
 <!-- TOOLBOX-TOOL-UX -->
-<script src="../../js/analytics.js" defer></script>
+<script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 
-<script src="../../js/tool-kit.js" defer></script>
+<script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
 <meta property="og:site_name" content="ToolBox">
 
-<script src="../../js/hot-tool-enhancements.js" defer></script>
+<script src="/js/hot-tool-enhancements.js" defer></script>
 <!-- TOOLBOX-HOT-TOOL-UX -->
 </head>
 <body>
@@ -176,10 +176,10 @@
     </div> <div id="cronTable"></div> <div id="cronDiff"></div> <div id="cronChart"></div> <div id="cronHist"></div>
 
     <div class="tabs">
-      <div class="tab active" data-tab="visual" onclick="switchTab('visual')">🎨 可视化生成</div>
-      <div class="tab" data-tab="manual" onclick="switchTab('manual')">✏️ 手动输入</div>
-      <div class="tab" data-tab="preset" onclick="switchTab('preset')">⚡ 常用预设</div>
-      <div class="tab" data-tab="next" onclick="switchTab('next')">🔮 执行时间</div>
+      <div class="tab active" role="tab" tabindex="0" aria-selected="true" data-tab="visual" onclick="switchTab('visual')">🎨 可视化生成</div>
+      <div class="tab" role="tab" tabindex="0" aria-selected="false" data-tab="manual" onclick="switchTab('manual')">✏️ 手动输入</div>
+      <div class="tab" role="tab" tabindex="0" aria-selected="false" data-tab="preset" onclick="switchTab('preset')">⚡ 常用预设</div>
+      <div class="tab" role="tab" tabindex="0" aria-selected="false" data-tab="next" onclick="switchTab('next')">🔮 执行时间</div>
     </div>
 
     <div id="tab-visual" class="tab-content active">
@@ -423,10 +423,10 @@ function init() {
 }
 
 function switchTab(name) {
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => {t.classList.remove('active');t.setAttribute('aria-selected','false');});
   document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
   const selected = document.querySelector('.tab[data-tab="' + name + '"]');
-  if (selected) selected.classList.add('active');
+  if (selected) {selected.classList.add('active');selected.setAttribute('aria-selected','true');}
   document.getElementById('tab-' + name).classList.add('active');
   if (name === 'next') updateNextTimes();
 }
@@ -602,6 +602,7 @@ function validateCronField(f, sp){
   if (f === '?') return '';
   if (f === 'L') return sp.allowL ? '' : __cronL('L is only allowed in the day-of-month field','不允许 L（L 仅用于日期字段）');
   if (/[^0-9A-Za-z*,/?\-]/.test(f)) return __cronL('contains illegal characters','含非法字符');
+  if (sp.allowL && f !== 'L' && f.indexOf('L') >= 0) return __cronL('L must stand alone in the day-of-month field; lists and steps with L are not supported','L 只能单独用于日期字段，不支持与列表或步长组合');
   for (const item of f.split(',')){
     if (!item) return __cronL('list contains an empty item','列表中存在空项');
     let base = item, step = null;
@@ -923,13 +924,15 @@ function copyCron() {
 function initPresets() {
   const grid = document.getElementById('presets');
   presets.forEach(p => {
-    const item = document.createElement('div');
+    const item = document.createElement('button');
+    item.type = 'button';
     item.className = 'preset-item';
+    item.setAttribute('aria-label', '应用预设 ' + p.name + ' ' + p.cron);
     const __h1=`<div class="pname">${p.name}</div><div class="pcron">${p.cron}</div>`;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){item.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}item.innerHTML=__h1;
     item.onclick = () => {
       parseToVisual(p.cron);
       switchTab('visual');
-      document.querySelectorAll('.tab')[0].classList.add('active');
+      document.querySelectorAll('.tab')[0].classList.add('active');document.querySelectorAll('.tab')[0].setAttribute('aria-selected','true');
       document.querySelectorAll('.tab')[1].classList.remove('active');
       document.querySelectorAll('.tab')[2].classList.remove('active');
       document.querySelectorAll('.tab')[3].classList.remove('active');
@@ -1265,6 +1268,22 @@ else document.addEventListener('DOMContentLoaded', __cronBoot);
     }
   ]
 }
+</script>
+<script>
+document.addEventListener('DOMContentLoaded',function(){
+  document.querySelectorAll('.tab').forEach(function(el){
+    el.addEventListener('keydown',function(e){
+      var self=this; if(self.__tbKbdLock) return; self.__tbKbdLock=true; setTimeout(function(){self.__tbKbdLock=false;},0);
+      if(e.key==='Enter'||e.key===' '){e.preventDefault();this.click();return;}
+      if(e.key==='ArrowRight'||e.key==='ArrowLeft'){
+        e.stopPropagation(); e.stopImmediatePropagation();
+        var tabs=Array.prototype.slice.call(document.querySelectorAll('.tab'));
+        var i=tabs.indexOf(this); var n=tabs[(i+(e.key==='ArrowRight'?1:-1)+tabs.length)%tabs.length];
+        e.preventDefault(); if(n){n.focus();n.click();}
+      }
+    });
+  });
+});
 </script>
 </body>
 </html>

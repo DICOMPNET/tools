@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 
-<script src="../../js/tool-page-runtime.js" defer></script>
+<script src="/js/tool-page-runtime.js" defer></script>
 <!-- TOOLBOX-TOOL-RUNTIME -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -23,7 +23,7 @@
 <link rel="icon" href="../../favicon.ico" sizes="16x16 32x32 48x48">
 <link rel="apple-touch-icon" href="../../apple-touch-icon.png">
 <link rel="stylesheet" href="../../css/common.css">
-<script src="../../js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
 
 <meta property="og:image" content="https://tools.dicomp.net/og-image.png">
@@ -43,10 +43,10 @@
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
 <!-- TOOLBOX-SECURITY -->
 
-<script src="../../js/privacy.js" defer></script>
+<script src="/js/privacy.js" defer></script>
 <!-- TOOLBOX-PRIVACY-SCRIPT -->
 
-<script src="../../js/metrics.js" defer></script>
+<script src="/js/metrics.js" defer></script>
 <!-- TOOLBOX-METRICS-SCRIPT -->
 
 <script type="application/ld+json">
@@ -67,18 +67,18 @@
 <meta property="og:locale" content="zh_CN">
 <meta property="og:locale:alternate" content="zh_TW">
 <meta property="og:locale:alternate" content="en_US">
-<link rel="preload" as="style" href="../../css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link rel="stylesheet" href="../../css/nav-menu.css"></noscript>
-<script src="../../js/industry-info.js" defer></script>
-<script src="../../js/nav-menu.js" defer></script>
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
 
-<script src="../../js/tool-ux.js" defer></script>
+<script src="/js/tool-ux.js" defer></script>
 <!-- TOOLBOX-TOOL-UX -->
 
-<script src="../../js/analytics.js" defer></script>
+<script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 
-<script src="../../js/tool-kit.js" defer></script>
+<script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
 <script type="application/ld+json">
 {
@@ -139,7 +139,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="支持 度(°) / 弧度(rad) / 百分度(grad) / 转(rev)">Convert angles between degrees, radians, gradians and turns instantly and accurately.</p>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理与说明</div>
-      <div class="formula-eq">以度为基准做比值换算：结果 = 输入值 × 目标单位系数 ÷ 源单位系数；常用系数为弧度 rad = 180 ÷ π ≈ 57.2958、百分度 grad = 0.9、转 rev = 360；例如 90° = π/2 弧度 ≈ 1.5708 rad = 100 grad = 0.25 转。</div>
+      <div class="formula-eq">以度为基准做比值换算：结果 = 输入值 × 源单位系数 ÷ 目标单位系数；常用系数为弧度 rad = 180 ÷ π ≈ 57.2958、百分度 grad = 0.9、转 rev = 360；例如 90° = π/2 弧度 ≈ 1.5708 rad = 100 grad = 0.25 转。</div>
   
 </div>
 
@@ -292,6 +292,7 @@ function convert(){
 
 function clearAll(){
   document.getElementById('inputVal').value = '';
+  if(typeof window.__charRefRender==='function') window.__charRefRender();
   const __h2=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter a value to convert":"请输入数值进行换算");if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('resultBox').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('resultBox').innerHTML=__h2;
 }
 convert();
@@ -557,8 +558,25 @@ else document.addEventListener('DOMContentLoaded', __angle_converterBoot);
     html+='<div class="card" style="margin-top:0;">';
     html+='<h3>'+(en?'Scale sense: how big is it really?':'📐 尺度感知：这到底有多大')+'</h3>';
     html+='<p>'+(en?'Your input ≈ ':'你的输入 ≈ ')+fmt(base)+' '+bname+'</p>';
-    if(best){
-      html+='<p style="font-weight:600;color:var(--primary);">💡 ≈ '+best[en?'en':'zh']+' ('+best.d+' '+bname+')'+(base<0?(en?' — compared by magnitude; the sign means opposite direction':'（按量值比较，负号表示反向）'):'')+'</p>';
+    if(best && Math.abs(base)===0){
+      html+='<p style="font-weight:600;color:var(--text-muted);">'+(en?'0° means no rotation direction, so it is not matched to a physical reference.':'0° 表示没有转动方向，不匹配实物参照。')+'</p>';
+    } else if(best){
+      var ratio=Math.abs(base)/best.v;
+      if(ratio>=0.1&&ratio<10){
+        html+='<p style="font-weight:600;color:var(--primary);">💡 ≈ '+best[en?'en':'zh']+' ('+best.d+' '+bname+')</p>';
+      } else {
+        var times=ratio>=1?ratio:1/ratio;
+        var dirTxt;
+        if(Math.abs(base)>=best.v){
+          dirTxt=en?(' — about '+fmt(times)+' times the reference size, not a close match.'):('，约为参照的 '+fmt(times)+' 倍；仅作数量级比较，不表示近似相等。');
+        } else {
+          dirTxt=en?(' — about 1/'+fmt(times)+' of the reference (the reference is about '+fmt(times)+' times the input), not a close match.'):('，约为参照的 1/'+fmt(times)+'（即参照约为输入的 '+fmt(times)+' 倍）；仅作数量级比较，不表示近似相等。');
+        }
+        html+='<p style="font-weight:600;color:var(--primary);">'+(en?'Nearest reference: ':'最近参照：')+best[en?'en':'zh']+' ('+best.d+' '+bname+')'+dirTxt+'</p>';
+      }
+      if(base<0){
+        html+='<p style="font-weight:600;color:var(--text-muted);">'+(en?'The negative sign means the opposite direction; the comparison above uses magnitude.':'负号表示与参照方向相反，以上按量值比较。')+'</p>';
+      }
     }
     html+='<details style="margin-top:6px;"><summary style="cursor:pointer;color:var(--primary);">'+(en?'Typical real-world references':'常见实物参照')+'</summary><ul style="font-size:13px;line-height:1.8;margin:6px 0 0;padding-left:18px;">';
     for(var j=0;j<REFS.length;j++){
@@ -570,6 +588,7 @@ else document.addEventListener('DOMContentLoaded', __angle_converterBoot);
     html+='</div>';
     box.innerHTML=html;
   }
+  window.__charRefRender=render;
   var f0=(typeof convert==='function')?convert:null;
   if(f0){ convert=function(){ var r=f0.apply(null,arguments); try{ render(); }catch(e){} return r; }; }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', render);

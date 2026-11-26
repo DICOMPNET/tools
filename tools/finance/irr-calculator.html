@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 
-<script src="../../js/tool-page-runtime.js" defer></script>
+<script src="/js/tool-page-runtime.js" defer></script>
 <!-- TOOLBOX-TOOL-RUNTIME -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -23,7 +23,7 @@
 <link rel="icon" href="../../favicon.ico" sizes="16x16 32x32 48x48">
 <link rel="apple-touch-icon" href="../../apple-touch-icon.png">
 <link rel="stylesheet" href="../../css/common.css">
-<script src="../../js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
 <style>
 .cash-flow-list{margin-top:12px;}
@@ -63,10 +63,10 @@
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
 <!-- TOOLBOX-SECURITY -->
 
-<script src="../../js/privacy.js" defer></script>
+<script src="/js/privacy.js" defer></script>
 <!-- TOOLBOX-PRIVACY-SCRIPT -->
 
-<script src="../../js/metrics.js" defer></script>
+<script src="/js/metrics.js" defer></script>
 <!-- TOOLBOX-METRICS-SCRIPT -->
 
 <script type="application/ld+json">
@@ -87,18 +87,18 @@
 <meta property="og:locale" content="zh_CN">
 <meta property="og:locale:alternate" content="zh_TW">
 <meta property="og:locale:alternate" content="en_US">
-<link rel="preload" as="style" href="../../css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link rel="stylesheet" href="../../css/nav-menu.css"></noscript>
-<script src="../../js/industry-info.js" defer></script>
-<script src="../../js/nav-menu.js" defer></script>
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
 
-<script src="../../js/tool-ux.js" defer></script>
+<script src="/js/tool-ux.js" defer></script>
 <!-- TOOLBOX-TOOL-UX -->
 
-<script src="../../js/analytics.js" defer></script>
+<script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 
-<script src="../../js/tool-kit.js" defer></script>
+<script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
 <script type="application/ld+json">
 {
@@ -158,11 +158,11 @@
         <div class="formula-box">
       <div class="formula-title">📐 计算公式 / 说明</div>
       <div class="formula-eq">求 IRR 使 NPV = Σ CFₜ/(1+r)ᵗ = 0（含 t=0 初始投资）；回收期 = 累计现金流转正的期数</div>
-      <div class="formula-desc">基于内部收益率定义：IRR 为使净现值为零的折现率，用迭代法求解；同时给出 NPV 与投资回收期；现金流须有正负号变化，否则可能无解。</div>
+      <div class="formula-desc">基于内部收益率定义：IRR 为使净现值为零的折现率，用迭代法求解；折现率按所选期数单位逐期使用（月→月利率、年→年利率），页面另把每期 IRR 按 12/4/1 次复利换算为年化 IRR。现金流须有正负号变化，否则可能无解。</div>
     </div>
 <div class="input-row">
       <div>
-        <label for="discountRate">折现率（%）</label>
+        <label for="discountRate">折现率（%／每期）</label>
         <input type="number" id="discountRate" value="8" step="0.1" oninput="calc()" placeholder="如 8">
       </div>
       <div>
@@ -388,10 +388,14 @@ function restoreFlows() {
   } catch (e) { return false; }
 }
 
+const PRESET_UNITS = { project: 'year', fund: 'year', insurance: 'year', loan: 'month' };
+
 function loadPreset(name) {
   if (PRESETS[name]) {
     cashFlows = PRESETS[name].map(f => ({ ...f }));
-    if (name === 'loan') document.getElementById('periodUnit').value = 'month';
+    // 第942批：每个模板显式重置期数单位，避免沿用上一个模板（如贷款对比的「月」）改变年化口径。
+    var unitEl = document.getElementById('periodUnit');
+    if (unitEl) unitEl.value = PRESET_UNITS[name] || 'year';
     renderFlows();
     calc();
   }
@@ -421,7 +425,7 @@ function removePeriod(idx) {
 }
 
 function updateAmount(idx, value) {
-  cashFlows[idx].amount = parseFloat(value) || 0;
+  cashFlows[idx].amount = String(value).trim() === '' ? null : parseFloat(value);
   // F-N8：金额变化必须同步快照，否则 calc() 会把旧快照误判成「历史恢复」而覆盖新输入
   __irrWriteFlowSnapshot();
   saveFlows();
@@ -473,7 +477,7 @@ function renderFlows() {
     <div class="cf-row">
       <div class="period">T${cf.period}</div>
       <input type="text" value="${cf.label || ''}" placeholder="说明" style="flex:0.4;" oninput="updateLabel(${idx}, this.value)" aria-label="说明">
-      <input type="number" value="${cf.amount}" placeholder="金额（负=投入，正=收入）" oninput="updateAmount(${idx}, this.value)" aria-label="金额（负=投入，正=收入）">
+      <input type="number" value="${cf.amount==null?'':cf.amount}" placeholder="金额（负=投入，正=收入）" oninput="updateAmount(${idx}, this.value)" aria-label="金额（负=投入，正=收入）">
       <button class="remove" onclick="removePeriod(${idx})" aria-label="删除">✕</button>
     </div>
   `).join('');container.innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
@@ -504,6 +508,15 @@ function npvAt(series, rate) {
   return npv;
 }
 
+// NPV 对 r 的导数：Σ −t·CF_t/(1+r)^(t+1)。导数零点可识别 NPV 曲线与零轴相切的重根。
+function npvDerivativeAt(series, rate) {
+  let d = 0;
+  for (let i = 0; i < series.length; i++) {
+    d += -series[i].period * series[i].amount / Math.pow(1 + rate, series[i].period + 1);
+  }
+  return d;
+}
+
 function countSignChanges(series) {
   let cnt = 0, prev = 0;
   for (let i = 0; i < series.length; i++) {
@@ -528,31 +541,75 @@ function solveIRR(series) {
   const steps = 4000;
   const tMin = Math.log(1 + LOW), tMax = Math.log(1 + HIGH);
   const roots = [];
-  let prevR = null, prevF = null;
+  const candidate = [];
+  let prevR = null, prevF = null, prevD = null;
+
+  function bisectBy(signFn, flo, lo, hi) {
+    for (let it = 0; it < 200; it++) {
+      const mid = (lo + hi) / 2;
+      const fm = signFn(mid);
+      if (!isFinite(fm) || Math.abs(hi - lo) < 1e-14) return mid;
+      if ((flo > 0) === (fm > 0)) { lo = mid; flo = fm; } else { hi = mid; }
+    }
+    return (lo + hi) / 2;
+  }
 
   for (let i = 0; i <= steps; i++) {
     const r = Math.exp(tMin + (tMax - tMin) * i / steps) - 1;
     const f = npvAt(series, r);
-    if (!isFinite(f)) { prevR = null; prevF = null; continue; }
+    const d = npvDerivativeAt(series, r);
+    if (!isFinite(f) || !isFinite(d)) { prevR = null; prevF = null; prevD = null; continue; }
+    if (f === 0) candidate.push(r);
     if (prevF !== null && prevF * f < 0) {
-      let lo = prevR, hi = r, flo = prevF;
-      for (let it = 0; it < 200; it++) {
-        const mid = (lo + hi) / 2;
-        const fm = npvAt(series, mid);
-        if (fm === 0 || Math.abs(hi - lo) < 1e-14) { lo = mid; hi = mid; break; }
-        if ((flo > 0) === (fm > 0)) { lo = mid; flo = fm; } else { hi = mid; }
-      }
-      roots.push((lo + hi) / 2);
+      candidate.push(bisectBy(function (x) { return npvAt(series, x); }, prevF, prevR, r));
     }
-    prevR = r; prevF = f;
+    // 导数变号处是 NPV 的局部极值；若极值本身贴近 0，即为相切重根。
+    if (prevD !== null && prevD * d < 0) {
+      candidate.push(bisectBy(function (x) { return npvDerivativeAt(series, x); }, prevD, prevR, r));
+    }
+    prevR = r; prevF = f; prevD = d;
   }
+
+  const tol = scale * 1e-8;
+  candidate.forEach(function (r) {
+    if (!isFinite(r) || r < LOW || r > HIGH) return;
+    if (Math.abs(npvAt(series, r)) > tol) return;
+    if (!roots.some(function (x) { return Math.abs(x - r) <= 1e-7; })) roots.push(r);
+  });
+  roots.sort(function (a, b) { return a - b; });
 
   const verified = roots.length ? roots.every(r => Math.abs(npvAt(series, r)) <= scale * 1e-8) : false;
   const reason = roots.length ? (roots.length > 1 ? 'multiple' : 'ok') : 'no-root';
   return { roots, verified, signChanges, reason };
 }
 
+function __irrClearChart(){
+  var box = document.getElementById('irr_calculatorChart');
+  if (box) box.innerHTML = '';
+  var cv = document.getElementById('chart');
+  if (cv && cv.getContext) { try { cv.getContext('2d').clearRect(0, 0, cv.width, cv.height); } catch(e){} }
+}
 function calc() {
+  var missingIdx = cashFlows.map(function(f,i){ return f.amount == null ? i : -1; }).filter(function(i){ return i >= 0; });
+  if (missingIdx.length) {
+    resetDisplay();
+    renderDetail([]);
+    __irrClearChart();
+    var w = document.getElementById('irrWarn');
+    w.textContent = '⚠ 第 ' + missingIdx.map(function(i){ return cashFlows[i].period; }).join('、') + ' 期金额尚未填写；留空不按 0 计算，如确为 0 请明确输入 0。';
+    w.style.display = 'block';
+    return;
+  }
+  var drRaw = String(document.getElementById('discountRate').value == null ? '' : document.getElementById('discountRate').value).trim();
+  if (drRaw === '') {
+    resetDisplay();
+    renderDetail([]);
+    __irrClearChart();
+    var w2 = document.getElementById('irrWarn');
+    w2.textContent = '⚠ 折现率尚未填写；如确为 0% 请明确输入 0。';
+    w2.style.display = 'block';
+    return;
+  }
   if (cashFlows.length < 2) {
     resetDisplay();
     renderDetail([]);
@@ -560,7 +617,7 @@ function calc() {
   }
 
   const series = buildSeries(cashFlows);
-  const discountRate = parseFloat(document.getElementById('discountRate').value) / 100 || 0;
+  const discountRate = parseFloat(drRaw) / 100;
   const unit = document.getElementById('periodUnit').value;
   saveFlows();
 
@@ -993,7 +1050,7 @@ else document.addEventListener('DOMContentLoaded', __irr_calculatorBoot);
     </a>
     <a href="mirror-text.html" class="related-tool-card">
       <span class="rt-icon">🏦</span>
-      <span class="rt-info"><span class="rt-name">镜像文字</span><span class="rt-desc">将文字左右镜像反转生成可复制的字符或预览图，用于趣味签名、艺术字与水印，纯前端即时转换支持一键复制结…</span></span>
+      <span class="rt-info"><span class="rt-name">镜像文字</span><span class="rt-desc">将文字左右镜像：复制近似 Unicode 字符，或导出真实左右翻转、透明背景的多行 PNG；</span></span>
     </a>
     
   </div>

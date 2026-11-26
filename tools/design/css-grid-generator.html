@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 
-<script src="../../js/tool-page-runtime.js" defer></script>
+<script src="/js/tool-page-runtime.js" defer></script>
 <!-- TOOLBOX-TOOL-RUNTIME -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -15,7 +15,7 @@
 <meta name="twitter:card" content="summary">
 <meta name="description" content="CSS 栅格布局生成器是一款免费的在线设计创意工具，设置列数、列宽方式、间距与断点，快速生成 CSS Grid 布局并一键复制 CSS 与 HTML 代码">
 <link rel="stylesheet" href="../../css/common.css">
-<script src="../../js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
 
 <script type="application/ld+json">
@@ -40,13 +40,13 @@
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
 <!-- TOOLBOX-SECURITY -->
 
-<script src="../../js/privacy.js" defer></script>
+<script src="/js/privacy.js" defer></script>
 <!-- TOOLBOX-PRIVACY-SCRIPT -->
 
-<script src="../../js/metrics.js" defer></script>
+<script src="/js/metrics.js" defer></script>
 <!-- TOOLBOX-METRICS-SCRIPT -->
 
-<script src="../../js/analytics.js" defer></script>
+<script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 
 <script src="../../js/i18n.js" defer></script>
@@ -64,15 +64,15 @@
 <meta property="og:locale" content="zh_CN">
 <meta property="og:locale:alternate" content="zh_TW">
 <meta property="og:locale:alternate" content="en_US">
-<link rel="preload" as="style" href="../../css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link rel="stylesheet" href="../../css/nav-menu.css"></noscript>
-<script src="../../js/industry-info.js" defer></script>
-<script src="../../js/nav-menu.js" defer></script>
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
 
-<script src="../../js/tool-ux.js" defer></script>
+<script src="/js/tool-ux.js" defer></script>
 <!-- TOOLBOX-TOOL-UX -->
 
-<script src="../../js/tool-kit.js" defer></script>
+<script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
 <script type="application/ld+json">
 {
@@ -152,7 +152,7 @@
       </div>
       <div>
         <label for="gap">间距（px）</label>
-        <input type="number" id="gap" value="16" step="1" min='0' max='80' placeholder="如 16">
+        <input type="number" id="gap" value="16" step="1" min="0" placeholder="如 16">
       </div>
       <div>
         <label for="coltype">列宽方式</label>
@@ -293,18 +293,26 @@ function num(id){const v=parseFloat(document.getElementById(id).value);return is
 function escH(s){var d=document.createElement('div');const __g1=s==null?'':String(s);d.textContent=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));return d.innerHTML;}
 function fmtMoney(n){return n.toLocaleString('zh-CN',{minimumFractionDigits:2,maximumFractionDigits:2});}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
-function calcTool(){const cols=Math.floor(num('cols')), gapRaw=num('gap'), ct=document.getElementById('coltype').value||'fr', cw=num('containerW');
-   const gap=Math.max(0,Math.min(80,gapRaw));
-   if(gap!==gapRaw) document.getElementById('gap').value=String(gap);
-   if(cols<1||cols>12){ToolBox.setResult('result','<p class="tip-error">列数需在 1-12 之间。</p>');return;}
+var __gridCss='', __gridHtml='';
+function __gridMsg(zh,en){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
+function copyGridCss(){ if(!__gridCss){ToolBox.showToast(__gridMsg('暂无可复制的 CSS，请先计算','Nothing to copy — calculate first'),'error');return;} ToolBox.copyText(__gridCss, __gridMsg('已复制 CSS','Copied CSS')); }
+function copyGridHtml(){ if(!__gridHtml){ToolBox.showToast(__gridMsg('暂无可复制的 HTML，请先计算','Nothing to copy — calculate first'),'error');return;} ToolBox.copyText(__gridHtml, __gridMsg('已复制 HTML','Copied HTML')); }
+function calcTool(){const cols=Math.floor(num('cols')), ct=document.getElementById('coltype').value||'fr', cw=num('containerW');
+   const gapRawS=document.getElementById('gap').value.trim();
+   const gRaw=Number(gapRawS);
+   if(gapRawS===''||!Number.isFinite(gRaw)||gRaw<0){__gridCss='';__gridHtml='';ToolBox.setResult('result','<p class="tip-error">'+__gridMsg('间距需为 0 或更大的数字，请检查输入。','Gap must be a number of 0 or greater.')+'</p>');return;}
+   const gap=gRaw;
+   if(cols<1||cols>12){__gridCss='';__gridHtml='';ToolBox.setResult('result','<p class="tip-error">'+__gridMsg('列数需在 1-12 之间。','Columns must be between 1 and 12.')+'</p>');return;}
    let colTpl;
    if(ct==='fixed') colTpl='repeat('+cols+', 120px)';
    else if(ct==='auto') colTpl='repeat('+cols+', auto)';
    else colTpl='repeat('+cols+', 1fr)';
    const css='.grid {\n  display: grid;\n  grid-template-columns: '+colTpl+';\n  gap: '+gap+'px;\n  max-width: '+cw+'px;\n  margin: 0 auto;\n  padding: 0 '+(gap/2)+'px;\n}\n\n.grid > * {\n  min-width: 0;\n}';
+   __gridCss=css;
    let htmlCode='<div class="grid">\n  <!-- 每列一个子元素 -->\n';
    for(let i=1;i<=cols;i++) htmlCode+='  <div>'+i+'</div>\n';
    htmlCode+='</div>';
+   __gridHtml=htmlCode;
    // 预览
    const colColor=function(i){return 'hsl('+((i*137)%360)+',70%,60%)';};
    let preview='<div style="display:grid;grid-template-columns:'+colTpl+';gap:'+gap+'px;max-width:'+cw+'px;margin:0 auto;">';
@@ -320,9 +328,9 @@ function calcTool(){const cols=Math.floor(num('cols')), gapRaw=num('gap'), ct=do
    ]);
    html += '<div style="margin-top:12px;font-size:13px;"><b>实时预览</b></div>'+
      '<div style="margin-top:6px;border:1px dashed #e2e8f0;border-radius:10px;padding:12px;background:#f8fafc;">'+preview+'</div>';
-   html += '<div style="margin-top:12px;font-size:13px;"><b>CSS 代码</b></div>'+
+   html += '<div style="margin-top:12px;font-size:13px;"><b>CSS 代码</b> <button type="button" class="btn success" onclick="copyGridCss()">复制 CSS</button></div>'+
      '<pre style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:10px;font-size:12px;overflow-x:auto;">'+css.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')+'</pre>';
-   html += '<div style="margin-top:8px;font-size:13px;"><b>HTML 结构</b></div>'+
+   html += '<div style="margin-top:8px;font-size:13px;"><b>HTML 结构</b> <button type="button" class="btn success" onclick="copyGridHtml()">复制 HTML</button></div>'+
      '<pre style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:10px;font-size:12px;overflow-x:auto;">'+htmlCode.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')+'</pre>';
    html += '<div class="tip-mini" style="margin-top:10px;font-size:13px;color:var(--text-muted);">'+
      '配合响应式断点（如 @media max-width:768px 改 1 列）即可适配移动端。生成代码可直接使用。</div>';

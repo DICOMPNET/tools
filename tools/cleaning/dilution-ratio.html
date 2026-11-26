@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 
-<script src="../../js/tool-page-runtime.js" defer></script>
+<script src="/js/tool-page-runtime.js" defer></script>
 <!-- TOOLBOX-TOOL-RUNTIME -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -22,7 +22,7 @@
 <link rel="icon" href="../../favicon.ico" sizes="16x16 32x32 48x48">
 <link rel="apple-touch-icon" href="../../apple-touch-icon.png">
 <link rel="stylesheet" href="../../css/common.css">
-<script src="../../js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
 <style>
 .input-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:12px;}
@@ -38,7 +38,7 @@
 .mode-tab:hover{border-color:var(--primary);}
 .mode-tab.active{background:var(--primary);color:#fff;border:none;}
 .preset-list{display:grid;gap:8px;margin:8px 0;}
-.preset-item{padding:10px 14px;background:var(--result-bg);border:1px solid var(--border);border-radius:10px;cursor:pointer;transition:all 0.15s;display:flex;justify-content:space-between;align-items:center;}
+.preset-item{font-family:inherit;text-align:left;width:100%;padding:10px 14px;background:var(--result-bg);border:1px solid var(--border);border-radius:10px;cursor:pointer;transition:all 0.15s;display:flex;justify-content:space-between;align-items:center;}
 .preset-item:hover{border-color:var(--primary);}
 .preset-item.active{border-color:var(--primary);background:rgba(102,126,234,0.08);}
 .preset-item .pname{font-size:13px;font-weight:500;}
@@ -64,10 +64,10 @@
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
 <!-- TOOLBOX-SECURITY -->
 
-<script src="../../js/privacy.js" defer></script>
+<script src="/js/privacy.js" defer></script>
 <!-- TOOLBOX-PRIVACY-SCRIPT -->
 
-<script src="../../js/metrics.js" defer></script>
+<script src="/js/metrics.js" defer></script>
 <!-- TOOLBOX-METRICS-SCRIPT -->
 
 <script type="application/ld+json">
@@ -89,18 +89,18 @@
 <meta property="og:locale" content="zh_CN">
 <meta property="og:locale:alternate" content="zh_TW">
 <meta property="og:locale:alternate" content="en_US">
-<link rel="preload" as="style" href="../../css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link rel="stylesheet" href="../../css/nav-menu.css"></noscript>
-<script src="../../js/industry-info.js" defer></script>
-<script src="../../js/nav-menu.js" defer></script>
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
 
-<script src="../../js/tool-ux.js" defer></script>
+<script src="/js/tool-ux.js" defer></script>
 <!-- TOOLBOX-TOOL-UX -->
 
-<script src="../../js/analytics.js" defer></script>
+<script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 
-<script src="../../js/tool-kit.js" defer></script>
+<script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
 <script type="application/ld+json">
 {
@@ -179,8 +179,8 @@
     </div>
 
     <div class="mode-tabs">
-      <div class="mode-tab active" onclick="setMode('preset')" id="tab-preset">📋 按预设用途</div>
-      <div class="mode-tab" onclick="setMode('custom')" id="tab-custom">⚙️ 自定义比例</div>
+      <button type="button" class="mode-tab active" aria-pressed="true" onclick="setMode('preset',this)" id="tab-preset">📋 按预设用途</button>
+      <button type="button" class="mode-tab" aria-pressed="false" onclick="setMode('custom',this)" id="tab-custom">⚙️ 自定义比例</button>
     </div>
 
     <div id="panel-preset">
@@ -322,10 +322,14 @@ var PRESETS = [
 var currentMode = 'preset';
 var currentPreset = 'floor_light';
 
-function setMode(m){
+function setMode(m,btn){
   currentMode = m;
-  document.getElementById('tab-preset').classList.toggle('active', m === 'preset');
-  document.getElementById('tab-custom').classList.toggle('active', m === 'custom');
+  var pb=document.getElementById('tab-preset'),cb=document.getElementById('tab-custom');
+  pb.classList.toggle('active', m === 'preset');
+  cb.classList.toggle('active', m === 'custom');
+  pb.setAttribute('aria-pressed', m === 'preset' ? 'true' : 'false');
+  cb.setAttribute('aria-pressed', m === 'custom' ? 'true' : 'false');
+  if(btn && btn.focus) btn.focus();
   document.getElementById('panel-preset').style.display = m === 'preset' ? 'block' : 'none';
   document.getElementById('panel-custom').style.display = m === 'custom' ? 'block' : 'none';
   document.getElementById('commonInputs').style.display = m === 'preset' ? 'grid' : 'none';
@@ -336,9 +340,9 @@ function setMode(m){
 function renderPresets(){
   var html = '';
   PRESETS.forEach(function(p){
-    html += '<div class="preset-item' + (p.id === currentPreset ? ' active' : '') + '" onclick="selectPreset(\'' + p.id + '\')">' +
+    html += '<button type="button" class="preset-item' + (p.id === currentPreset ? ' active' : '') + '" aria-pressed="' + (p.id === currentPreset ? 'true' : 'false') + '" onclick="selectPreset(\'' + p.id + '\')">' +
       '<span class="pname">' + p.icon + ' ' + p.name + '</span>' +
-      '<span class="pratio">1:' + p.ratio + '</span></div>';
+      '<span class="pratio">1:' + p.ratio + '</span></button>';
   });
   const __g1=html;document.getElementById('presetList').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 }

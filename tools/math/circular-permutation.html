@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 
-<script src="../../js/tool-page-runtime.js" defer></script>
+<script src="/js/tool-page-runtime.js" defer></script>
 <!-- TOOLBOX-TOOL-RUNTIME -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -15,7 +15,7 @@
 <meta name="twitter:card" content="summary">
 <meta name="description" content="圆排列数计算器是一款免费的在线数学计算工具，环形排列数计算器依据 P=(n−1)! 求 n 个元素围成圆环的排列数，适合组合数学、座位编排与概率问题求解">
 <link rel="stylesheet" href="../../css/common.css">
-<script src="../../js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
 
 
@@ -68,10 +68,10 @@
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
 <!-- TOOLBOX-SECURITY -->
 
-<script src="../../js/privacy.js" defer></script>
+<script src="/js/privacy.js" defer></script>
 <!-- TOOLBOX-PRIVACY-SCRIPT -->
 
-<script src="../../js/metrics.js" defer></script>
+<script src="/js/metrics.js" defer></script>
 <!-- TOOLBOX-METRICS-SCRIPT -->
 
 <script src="../../js/i18n.js" defer></script>
@@ -87,18 +87,18 @@
 <meta property="og:locale" content="zh_CN">
 <meta property="og:locale:alternate" content="zh_TW">
 <meta property="og:locale:alternate" content="en_US">
-<link rel="preload" as="style" href="../../css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link rel="stylesheet" href="../../css/nav-menu.css"></noscript>
-<script src="../../js/industry-info.js" defer></script>
-<script src="../../js/nav-menu.js" defer></script>
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
 
-<script src="../../js/tool-ux.js" defer></script>
+<script src="/js/tool-ux.js" defer></script>
 <!-- TOOLBOX-TOOL-UX -->
 
-<script src="../../js/analytics.js" defer></script>
+<script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 
-<script src="../../js/tool-kit.js" defer></script>
+<script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
 <meta property="og:site_name" content="ToolBox">
 <meta name="theme-color" content="#FF6B35">
@@ -239,18 +239,19 @@
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){
-            function lnFact(k){let s=0;for(let i=2;i<=k;i++)s+=Math.log(i);return s;}
-            function fmtExp(ln){if(ln<=709)return Math.exp(ln).toLocaleString('en-US',{maximumFractionDigits:0});const e=Math.floor(ln/Math.LN10);return Math.exp(ln-e*Math.LN10).toFixed(3)+'e+'+e;}
+            function factorialBig(k){let r=1n;for(let i=2n;i<=BigInt(k);i++)r*=i;return r;}
+            function fmtBig(v){return v.toLocaleString('en-US');}
             const __rawN=String(document.getElementById('n').value||'').trim();
             if(!/^\d+$/.test(__rawN)){ToolBox.setResult('result','<p style="color:var(--danger)">⚠ n 必须是正整数（不支持小数、负数或空值）。</p>');return;}
             const n=Number(__rawN);
             if(n>1000){ToolBox.setResult('result','<p style="color:var(--danger)">⚠ 为保证计算性能，n 上限为 1000。</p>');return;}
             if(!(n>=1)){ToolBox.setResult('result','请输入正整数 n');return;}
-            const lnP=lnFact(n-1);
+            const pBig=factorialBig(n-1);
+            const nBig=factorialBig(n);
             const __g1=dataGrid([
-                [fmtExp(lnP),'圆排列数 (n−1)!'],
-                [fmtExp(lnFact(n)), '全排列 n!'],
-                [(n>=3?fmtExp(lnP-Math.LN2):(n>=1?'1':'0')), '项链排列数（含翻转对称）']
+                [fmtBig(pBig),'圆排列数 (n−1)!（精确整数）'],
+                [fmtBig(nBig), '全排列 n!（精确整数）'],
+                [(n>=3?fmtBig(pBig/2n):(n>=1?'1':'0')), '项链排列数（含翻转对称）']
             ]);ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
         }
 function resetForm(){document.getElementById('n').value = '5';

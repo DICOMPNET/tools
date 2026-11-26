@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 
-<script src="../../js/tool-page-runtime.js" defer></script>
+<script src="/js/tool-page-runtime.js" defer></script>
 <!-- TOOLBOX-TOOL-RUNTIME -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -23,7 +23,7 @@
 <link rel="icon" href="../../favicon.ico" sizes="16x16 32x32 48x48">
 <link rel="apple-touch-icon" href="../../apple-touch-icon.png">
 <link rel="stylesheet" href="../../css/common.css">
-<script src="../../js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
 <style>
 .diff-container { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:12px; }
@@ -74,10 +74,10 @@
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
 <!-- TOOLBOX-SECURITY -->
 
-<script src="../../js/privacy.js" defer></script>
+<script src="/js/privacy.js" defer></script>
 <!-- TOOLBOX-PRIVACY-SCRIPT -->
 
-<script src="../../js/metrics.js" defer></script>
+<script src="/js/metrics.js" defer></script>
 <!-- TOOLBOX-METRICS-SCRIPT -->
 
 <script type="application/ld+json">
@@ -98,17 +98,17 @@
 <meta property="og:locale" content="zh_CN">
 <meta property="og:locale:alternate" content="zh_TW">
 <meta property="og:locale:alternate" content="en_US">
-<link rel="preload" as="style" href="../../css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link rel="stylesheet" href="../../css/nav-menu.css"></noscript>
-<script src="../../js/industry-info.js" defer></script>
-<script src="../../js/nav-menu.js" defer></script>
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
 
-<script src="../../js/tool-ux.js" defer></script>
+<script src="/js/tool-ux.js" defer></script>
 <!-- TOOLBOX-TOOL-UX -->
-<script src="../../js/analytics.js" defer></script>
+<script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 
-<script src="../../js/tool-kit.js" defer></script>
+<script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
 <script type="application/ld+json">
 {
@@ -136,7 +136,7 @@
 </script>
 <meta property="og:site_name" content="ToolBox">
 
-<script src="../../js/hot-tool-enhancements.js" defer></script>
+<script src="/js/hot-tool-enhancements.js" defer></script>
 <!-- TOOLBOX-HOT-TOOL-UX -->
 </head>
 <body>
@@ -472,11 +472,15 @@ function jdParse(text, side) {
     i += m[0].length;
     const raw = m[0];
     const asNum = Number(raw);
-    if (/^-?[0-9]+$/.test(raw) && !Number.isSafeInteger(asNum)) return new JDNumber(raw);
-    if (raw.indexOf('.') >= 0) {
-      const sig = raw.replace(/^-/, '').replace(/\./, '').replace(/^0+/, '').replace(/0+/, '');
-      if (sig.length > 15) return new JDNumber(raw);
+    const sig = raw.replace(/^-/, '').replace(/[eE].*$/, '').replace(/\./, '').replace(/^0+/, '').replace(/0+$/, '');
+    if (/[eE]/.test(raw)) {
+      const exp = parseInt(raw.replace(/^.*[eE]/, ''), 10);
+      if (!isFinite(asNum)) return new JDNumber(raw);
+      if (!isFinite(exp) || (exp < -308 && sig)) return new JDNumber(raw);
+      if (asNum === 0 && sig) return new JDNumber(raw);
     }
+    if (/^-?[0-9]+$/.test(raw) && !Number.isSafeInteger(asNum)) return new JDNumber(raw);
+    if (sig.length > 15) return new JDNumber(raw);
     return asNum;
   }
   function parseValue(path) {
@@ -1001,9 +1005,9 @@ function doDiff() {
     
     const lineDiff = generateLineDiff(leftLines, rightLines);
     
-    const __h0=renderLines(lineDiff.left);if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('leftDiff').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('leftDiff').innerHTML=__h0;
-    const __h1=renderLines(lineDiff.right);if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('rightDiff').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('rightDiff').innerHTML=__h1;
-    const __h2=renderLines(lineDiff.unified);if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('unifiedDiff').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('unifiedDiff').innerHTML=__h2;
+    const __h0=renderLines(lineDiff.left);document.getElementById('leftDiff').innerHTML=__h0;
+    const __h1=renderLines(lineDiff.right);document.getElementById('rightDiff').innerHTML=__h1;
+    const __h2=renderLines(lineDiff.unified);document.getElementById('unifiedDiff').innerHTML=__h2;
     
     const __h3=diffs.length === 0 
       ? (lastDup.length
@@ -1018,7 +1022,7 @@ function doDiff() {
             ${d.pointer !== undefined ? `<code style="margin-left:8px;color:var(--text-muted);font-size:11px;">JSON Pointer: ${escapeHtml(d.pointer || '/')}</code>` : ''}
           </span>
         </div>
-      `).join('');if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){document.getElementById('pathList').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('pathList').innerHTML=__h3;
+      `).join('');document.getElementById('pathList').innerHTML=__h3;
     
     document.getElementById('jsonDiff').textContent = jdStringify(diffs, 2);
     

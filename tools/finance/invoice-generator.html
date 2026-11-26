@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 
-<script src="../../js/tool-page-runtime.js" defer></script>
+<script src="/js/tool-page-runtime.js" defer></script>
 <!-- TOOLBOX-TOOL-RUNTIME -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -23,7 +23,7 @@
 <link rel="icon" href="../../favicon.ico" sizes="16x16 32x32 48x48">
 <link rel="apple-touch-icon" href="../../apple-touch-icon.png">
 <link rel="stylesheet" href="../../css/common.css">
-<script src="../../js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
 <style>
 .split-method-tabs{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;}
@@ -68,10 +68,10 @@
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
 <!-- TOOLBOX-SECURITY -->
 
-<script src="../../js/privacy.js" defer></script>
+<script src="/js/privacy.js" defer></script>
 <!-- TOOLBOX-PRIVACY-SCRIPT -->
 
-<script src="../../js/metrics.js" defer></script>
+<script src="/js/metrics.js" defer></script>
 <!-- TOOLBOX-METRICS-SCRIPT -->
 
 <script type="application/ld+json">
@@ -92,17 +92,17 @@
 <meta property="og:locale" content="zh_CN">
 <meta property="og:locale:alternate" content="zh_TW">
 <meta property="og:locale:alternate" content="en_US">
-<link rel="preload" as="style" href="../../css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link rel="stylesheet" href="../../css/nav-menu.css"></noscript>
-<script src="../../js/industry-info.js" defer></script>
-<script src="../../js/nav-menu.js" defer></script>
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
 
-<script src="../../js/tool-ux.js" defer></script>
+<script src="/js/tool-ux.js" defer></script>
 <!-- TOOLBOX-TOOL-UX -->
-<script src="../../js/analytics.js" defer></script>
+<script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 
-<script src="../../js/tool-kit.js" defer></script>
+<script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
 <script type="application/ld+json">
 {
@@ -185,7 +185,7 @@
         </div>
             <div class="formula-box">
       <div class="formula-title">📐 计算公式 / 说明</div>
-      <div class="formula-eq">价税计算（本页四分支实算口径）：单票 不含税 = 价税合计 ÷ (1+税率%)、税额 = 价税合计 − 不含税；拆票张数 = ⌈价税合计 ÷ 单张限额⌉，均分法每张 = 合计 ÷ 张数、满额法逐张开至限额余额作尾票（其他法切分阈值取限额×1.1），每张再按含税/不含税型拆税；凑额组合回溯枚举面额取最接近目标者；反推 不含税 = 合计 − 税额、税率 = 税额 ÷ 不含税 ×100（%）。校验：单张限额必须大于 0 且拆分张数不超过 1000，否则停止计算并提示；反推税额 ≤0 时直接返回。判据：凑额偏差 ≤ 容差显示「在允许范围内」，否则「超出允许范围」。</div>
+      <div class="formula-eq">价税计算（本页四分支实算口径）：单票 不含税 = 价税合计 ÷ (1+税率%)、税额 = 价税合计 − 不含税；拆票张数 = ⌈价税合计 ÷ 单张限额⌉，均分法以分为单位分配余数、满额/最后一张较小均逐张开至限额、尾票不超过限额，每张再按含税/不含税型拆税；凑额组合回溯枚举面额取最接近目标者；反推 不含税 = 合计 − 税额、税率 = 税额 ÷ 不含税 ×100（%）。校验：单张限额必须大于 0 且拆分张数不超过 1000，否则停止计算并提示；反推税额 ≤0 时直接返回。判据：凑额偏差 ≤ 容差显示「在允许范围内」，否则「超出允许范围」。</div>
       <div class="formula-desc">基于价税分离公式：由价税合计与税率求不含税金额与税额，支持多张发票拆分与凑整，用于开票金额分配与税额计算。</div>
     </div>
 <div class="input-row">
@@ -569,45 +569,42 @@ function calc(){
       invoices.push({index:1, amount: total});
     }
     else if(method === 'equal'){
-      var each = total / count;
+      // 以「分」为最小单位均分：先取整分，再把余数逐张 +0.01，保证明细相加等于总额。
+      var totalCents = Math.round(total * 100);
+      var baseCents = Math.floor(totalCents / count);
+      var remainderCents = totalCents - baseCents * count;
       for(var i = 1; i <= count; i++){
-        invoices.push({index: i, amount: each});
-      }
-    }
-    else if(method === 'max'){
-      var remaining = total;
-      var idx = 1;
-      while(remaining > limit && invoices.length < 1000){
-        invoices.push({index: idx, amount: limit});
-        remaining -= limit;
-        idx++;
-      }
-      if(remaining > 0){
-        invoices.push({index: idx, amount: remaining});
+        var cents = baseCents + (i <= remainderCents ? 1 : 0);
+        invoices.push({index: i, amount: cents / 100});
       }
     }
     else {
-      var remaining = total;
+      // 「满额」与「最后一张较小」都强制每张 ≤ 单张限额；不再保留 1.1 倍阈值导致尾票超限。
+      var remaining = Math.round(total * 100) / 100;
       var idx = 1;
-      while(remaining > limit * 1.1 && invoices.length < 1000){
+      while(remaining > limit && invoices.length < 1000){
         invoices.push({index: idx, amount: limit});
-        remaining -= limit;
+        remaining = Math.round((remaining - limit) * 100) / 100;
         idx++;
       }
       if(remaining > 0){
-        invoices.push({index: idx, amount: remaining});
+        invoices.push({index: idx, amount: Math.min(remaining, limit)});
       }
     }
     
     invoices.forEach(function(inv){
+      // 每张按分计算税额：不含税与税额分别取整分，价税合计 = 两者之和，逐张与汇总均按分守恒。
+      var cents = Math.round(inv.amount * 100);
       if(type === 'total'){
-        inv.total = inv.amount;
-        inv.excl = inv.amount / (1 + taxRate);
-        inv.tax = inv.amount - inv.excl;
+        var exclCents = Math.round(cents / (1 + taxRate));
+        inv.total = cents / 100;
+        inv.excl = exclCents / 100;
+        inv.tax = (cents - exclCents) / 100;
       } else {
-        inv.excl = inv.amount;
-        inv.tax = inv.amount * taxRate;
-        inv.total = inv.amount + inv.tax;
+        var taxCents = Math.round(cents * taxRate);
+        inv.excl = cents / 100;
+        inv.tax = taxCents / 100;
+        inv.total = (cents + taxCents) / 100;
       }
     });
     
@@ -1231,7 +1228,7 @@ else document.addEventListener('DOMContentLoaded', __invoice_generatorBoot);
     </a>
     <a href="mirror-text.html" class="related-tool-card">
       <span class="rt-icon">🏦</span>
-      <span class="rt-info"><span class="rt-name">镜像文字</span><span class="rt-desc">将文字左右镜像反转生成可复制的字符或预览图，用于趣味签名、艺术字与水印，纯前端即时转换支持一键复制结…</span></span>
+      <span class="rt-info"><span class="rt-name">镜像文字</span><span class="rt-desc">将文字左右镜像：复制近似 Unicode 字符，或导出真实左右翻转、透明背景的多行 PNG；</span></span>
     </a>
     
   </div>

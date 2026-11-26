@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 
-<script src="../../js/tool-page-runtime.js" defer></script>
+<script src="/js/tool-page-runtime.js" defer></script>
 <!-- TOOLBOX-TOOL-RUNTIME -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -15,7 +15,7 @@
 <meta name="twitter:card" content="summary">
 <meta name="description" content="摩尔浓度计算器是一款免费的在线化学工具，由物质的量与溶液体积按 c=n/V 求物质的量浓度，用于溶液浓度配制。标准液配制：称固体定容到 V 得 c，作滴定基准。">
 <link rel="stylesheet" href="../../css/common.css">
-<script src="../../js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
 
 
@@ -37,10 +37,10 @@
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
 <!-- TOOLBOX-SECURITY -->
 
-<script src="../../js/privacy.js" defer></script>
+<script src="/js/privacy.js" defer></script>
 <!-- TOOLBOX-PRIVACY-SCRIPT -->
 
-<script src="../../js/metrics.js" defer></script>
+<script src="/js/metrics.js" defer></script>
 <!-- TOOLBOX-METRICS-SCRIPT -->
 
 <script type="application/ld+json">
@@ -62,18 +62,18 @@
 <meta property="og:locale" content="zh_CN">
 <meta property="og:locale:alternate" content="zh_TW">
 <meta property="og:locale:alternate" content="en_US">
-<link rel="preload" as="style" href="../../css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link rel="stylesheet" href="../../css/nav-menu.css"></noscript>
-<script src="../../js/industry-info.js" defer></script>
-<script src="../../js/nav-menu.js" defer></script>
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
 
-<script src="../../js/tool-ux.js" defer></script>
+<script src="/js/tool-ux.js" defer></script>
 <!-- TOOLBOX-TOOL-UX -->
 
-<script src="../../js/analytics.js" defer></script>
+<script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 
-<script src="../../js/tool-kit.js" defer></script>
+<script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
 <script type="application/ld+json">
 {
@@ -448,11 +448,10 @@ else document.addEventListener('DOMContentLoaded', __molarityBoot);
 <script>
 function __molSweep(){
   var n=num('n'), V0=num('V');
-  if(!isFinite(n)||!isFinite(V0)||n<=0||V0<=0)return null;
+  if(!isFinite(n)||!isFinite(V0)||n<0||V0<=0)return null;
   var labels=[],dC=[],dNm=[],rows=[];
-  var mults=[0.25,0.5,0.75,1,1.25,1.5,2,3];
-  for(var k=0;k<mults.length;k++){
-    var V=V0*mults[k], C=n/V;
+  for(var k=0;k<8;k++){
+    var V=V0*(0.25+k*(2.75/7)), C=n/V;
     labels.push((Math.round(V*1000)/1000).toFixed(3));
     dC.push(Math.round(C*1e4*1000)/1000);
     dNm.push(Math.round(n*1e4*1000)/1000);
@@ -462,8 +461,8 @@ function __molSweep(){
 }
 function __molChart(){
   if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
-  var s=__molSweep(); if(!s)return;
-  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  var s=__molSweep(); var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  if(!s){ document.getElementById('molChart').innerHTML='<p style="color:var(--text-muted);">'+(en?'Enter a non-negative amount and a positive denominator to draw the curve.':'请输入非负物质的量与正的'+'溶液体积'+'后绘制曲线。')+'</p>'; return; }
   TBKit.chart.line('#molChart',{title:en?'Molarity vs Volume (inverse C=n/V)':'摩尔浓度随溶液体积反比下降（C=n/V）',labels:s.labels,series:[{name:en?'Molarity C (×10⁻⁴ mol/L)':'摩尔浓度 (×10⁻⁴ mol/L)',data:s.dC}]});
 }
 

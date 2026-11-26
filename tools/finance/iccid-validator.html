@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 
-<script src="../../js/tool-page-runtime.js" defer></script>
+<script src="/js/tool-page-runtime.js" defer></script>
 <!-- TOOLBOX-TOOL-RUNTIME -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -23,7 +23,7 @@
 <link rel="icon" href="../../favicon.ico" sizes="16x16 32x32 48x48">
 <link rel="apple-touch-icon" href="../../apple-touch-icon.png">
 <link rel="stylesheet" href="../../css/common.css">
-<script src="../../js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
 <style>
 /* tool-specific styles only */
@@ -46,10 +46,10 @@
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
 <!-- TOOLBOX-SECURITY -->
 
-<script src="../../js/privacy.js" defer></script>
+<script src="/js/privacy.js" defer></script>
 <!-- TOOLBOX-PRIVACY-SCRIPT -->
 
-<script src="../../js/metrics.js" defer></script>
+<script src="/js/metrics.js" defer></script>
 <!-- TOOLBOX-METRICS-SCRIPT -->
 
 <script type="application/ld+json">
@@ -70,21 +70,21 @@
 <meta property="og:locale" content="zh_CN">
 <meta property="og:locale:alternate" content="zh_TW">
 <meta property="og:locale:alternate" content="en_US">
-<link rel="preload" as="style" href="../../css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link rel="stylesheet" href="../../css/nav-menu.css"></noscript>
-<script src="../../js/industry-info.js" defer></script>
-<script src="../../js/nav-menu.js" defer></script>
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
 
-<script src="../../js/tool-ux.js" defer></script>
+<script src="/js/tool-ux.js" defer></script>
 <!-- TOOLBOX-TOOL-UX -->
 
-<script src="../../js/analytics.js" defer></script>
+<script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 <script type="application/ld+json">
 {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "ICCID 的结构是什么？", "acceptedAnswer": {"@type": "Answer", "text": "通常 19–20 位数字：前 2 位行业标识(89)+国家码+发卡方标识+个人化数据，末位为 Luhn 校验位。"}}, {"@type": "Question", "name": "校验通过代表 SIM 可用吗？", "acceptedAnswer": {"@type": "Answer", "text": "不代表。ICCID 校验只验证卡号结构，是否激活、归属哪家运营商须运营商系统确认。"}}, {"@type": "Question", "name": "为什么 19 位和 20 位都能通过？", "acceptedAnswer": {"@type": "Answer", "text": "ICCID 长度存在 19 位与 20 位两种实现，页面按 Luhn 校验末位，长度在允许范围内即可。"}}]}
 </script>
 
-<script src="../../js/tool-kit.js" defer></script>
+<script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
 <meta property="og:site_name" content="ToolBox">
 </head>
@@ -124,7 +124,8 @@
 
     <label for="input">输入（ICCID，19-20 位数字）</label>
     <input type="text" id="input" oninput="validate()" placeholder="如：8986001234567890123" value="8944501234567890124">
-    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__iccid_validatorExport()">导出明细 CSV</button></div><div class="result-box" id="output">等待输入...</div> <div id="iccid_validatorTable"></div> <div id="iccid_validatorDiff"></div> <div id="iccid_validatorChart"></div> <div id="iccid_validatorHist"></div>
+    <div class="toolbar" style="margin:8px 0;flex-wrap:wrap;gap:8px;align-items:center;"><label style="font-size:13px;display:inline-flex;align-items:center;gap:6px;"><input type="checkbox" id="__histOptIn"> 在本机保存脱敏历史（默认关闭）</label><button class="btn" type="button" onclick="__iccid_validatorClearHistory()">清除本机历史</button><span style="font-size:12px;color:var(--text-muted)">仅在勾选后写入；数值保留前 2 位与后 4 位。</span></div>
+<div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__iccid_validatorExport()">导出明细 CSV</button></div><div class="result-box" id="output">等待输入...</div> <div id="iccid_validatorTable"></div> <div id="iccid_validatorDiff"></div> <div id="iccid_validatorChart"></div> <div id="iccid_validatorHist"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -187,7 +188,8 @@
 
   <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
   <ul>
-      <li>本工具纯前端运行，数据不会上传到服务器</li>
+      <li>默认不保存输入；只有勾选“在本机保存脱敏历史”后才把前 2 位、后 4 位的脱敏值写入本机 localStorage，可随时“清除本机历史”</li>
+      <li>本工具纯前端运行，输入与校验结果不会上传到服务器</li>
       <li>建议在主流浏览器（Chrome/Safari/Firefox/Edge）中使用</li>
       <li>计算结果仅供参考，请以实际应用场景为准</li>
   </ul>
@@ -329,6 +331,25 @@ document.addEventListener('DOMContentLoaded',function(){
 });
 
 var __iccid_validator_last=0,__iccid_validator_skip=false,__iccid_validator_timer=null;
+function __iccid_validatorMask(v){
+    var raw=String(v==null?'':v).replace(/[\s+()-]/g,'');
+    if(!raw) return '';
+    if(raw.length<=6) return '***';
+    return raw.slice(0,2)+'****'+raw.slice(-4);
+}
+function __iccid_validatorMaskText(t,vals){
+    var out=String(t||'');
+    vals=vals||[];
+    for(var i=0;i<vals.length;i++){
+        var raw=String(vals[i]==null?'':vals[i]).trim();
+        if(raw.length>=6 && out.indexOf(raw)>=0) out=out.split(raw).join(__iccid_validatorMask(raw));
+    }
+    out=out.replace(/\d{7,}/g,function(m){return __iccid_validatorMask(m);});
+    return out;
+}
+function __iccid_validatorClearHistory(){
+    try{ TBKit.history.clear(); document.getElementById('iccid_validatorHist').innerHTML=''; document.getElementById('iccid_validatorTable').innerHTML=''; }catch(e){}
+}
 function __iccid_validatorSnap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
@@ -336,6 +357,7 @@ function __iccid_validatorSnap(){
         var e=els[i];
         var t=(e.type||'').toLowerCase();
         if(t==='button'||t==='submit'||t==='hidden') continue;
+        if(e.id.indexOf('__hist')===0) continue;
         var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
         if(v!=null) out[e.id]=v;
     }
@@ -420,6 +442,8 @@ function __iccid_validatorExtras(force){
     if(keys.length>12) keys=keys.slice(0,12);
     var res=__iccid_validatorResText();
     if(!res) return;
+    var opt=document.getElementById('__histOptIn');
+    if(!opt||!opt.checked) return;
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
     var now=Date.now();
@@ -432,14 +456,18 @@ function __iccid_validatorExtras(force){
     if(last){
         var same=true;
         for(var i=0;i<keys.length;i++){
-            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+            if(String(last[keys[i]])!==String(__iccid_validatorMask(snap[keys[i]]))){same=false;break;}
         }
-        if(same&&String(last[rk])===String(res)) return;
+        if(same&&String(last[rk])===String(__iccid_validatorMaskText(res,keys.map(function(k){return snap[k];})))) return;
     }
     __iccid_validator_last=now;
     var rec={};
-    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
-    rec[rk]=res;
+    var rawVals=[];
+    for(var i=0;i<keys.length;i++){
+        rawVals.push(snap[keys[i]]);
+        rec[keys[i]]=__iccid_validatorMask(snap[keys[i]]);
+    }
+    rec[rk]=__iccid_validatorMaskText(res,rawVals);
     rec.__tbScore=__iccid_validatorScore(__iccid_validatorFullResText());
     TBKit.history.record(rec);
     __iccid_validatorRender(keys,rk,en);
@@ -497,7 +525,7 @@ else document.addEventListener('DOMContentLoaded', __iccid_validatorBoot);
     </a>
     <a href="mirror-text.html" class="related-tool-card">
       <span class="rt-icon">🏦</span>
-      <span class="rt-info"><span class="rt-name">镜像文字</span><span class="rt-desc">将文字左右镜像反转生成可复制的字符或预览图，用于趣味签名、艺术字与水印，纯前端即时转换支持一键复制结…</span></span>
+      <span class="rt-info"><span class="rt-name">镜像文字</span><span class="rt-desc">将文字左右镜像：复制近似 Unicode 字符，或导出真实左右翻转、透明背景的多行 PNG；</span></span>
     </a>
     
   </div>

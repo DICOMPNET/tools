@@ -97,6 +97,20 @@ const CASES = [
   },
   {
     slug: "finance/investment-roi",
+    inputs: { cost: "10000", return: "13000", years: "2", unit: "year", discount: "5", annualCash: "" },
+    clicks: ["calcSimple()"],
+    expect: ["静态回收期（未提供年均现金回流）"],
+    ref: "第934批：只填期末终值、未提供各期现金流时不再用 成本/(净利润/年数) 虚构回收期；显示未提供年均回流。默认参数同样不含确定年数。",
+  },
+  {
+    slug: "finance/investment-roi",
+    inputs: { cost: "10000", return: "13000", years: "2", unit: "year", discount: "5", annualCash: "5000" },
+    clicks: ["calcSimple()"],
+    expect: ["静态回收期（按年均现金回流）", "2.00年"],
+    ref: "第934批：显式提供年均现金回流 5000 时，回收期 = 10000/5000 = 2.00 年，并标注固定年度现金流假设；默认留空 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/investment-roi",
     inputs: { aCost: "10000", aRate: "0", aYears: "5", aAdd: "1000", bCost: "10000", bRate: "0", bYears: "5", bAdd: "1000" },
     clicks: ["switchTab('compare');calcCompare();document.getElementById('aCost').value='-1';calcCompare();var h=String(document.getElementById('compareStats').innerHTML);document.getElementById('__tbProbe').textContent='ROIREJ '+(h.indexOf('须为有效正数')>=0&&h.indexOf('15,000')<0?'OK':'BAD');"],
     expect: ["ROIREJ OK"],
@@ -147,7 +161,7 @@ const CASES = [
   {
     slug: "finance/lease-payment-calculator",
     inputs: { fee: "0" },
-    clicks: ["var a=[];['0','5000','20000'].forEach(function(f){document.getElementById('fee').value=f;calc();a.push(currentResult.effectiveRate);});document.getElementById('__tbProbe').textContent='LEASEIRR '+(a[0]<a[1]&&a[1]<a[2]&&Math.abs(a[1]-9.48)<0.05?'OK':'BAD');"],
+    clicks: ["var a=[];['0','5000','20000'].forEach(function(f){document.getElementById('fee').value=f;calc();a.push(currentResult.nominalRate);});document.getElementById('__tbProbe').textContent='LEASEIRR '+(a[0]<a[1]&&a[1]<a[2]&&Math.abs(a[1]-9.48)<0.05?'OK':'BAD');"],
     expect: ["LEASEIRR OK"],
     ref: "第126批 F-N114 防回退：清单复现本金 10 万 / 6% / 36 期，手续费 0/5000/20000。旧版 cashFlows[0] 用 principal+fee 把费用当多借本金，IRR 随费用上升反而下降；修复为净融资额 principal-fee 后实测 6.00% / 9.48% / 21.68% 严格递增（5000 时与清单 node 独立复算 9.48% 一致）。同用例内三态连算；默认 fee=0 单态不产生该探针 ⇒ 强判别、零逃生。"
   },
@@ -185,6 +199,27 @@ const CASES = [
     clicks: ["var n=remainingMonths(500000,0,3000);document.getElementById('__tbProbe').textContent='MPRM0 '+(n===167?'OK':'BAD');"],
     expect: ["MPRM0 OK"],
     ref: "第125批 F-N93 0 利率期数取整：清单要求 0 利率分支返回整数期（500000/3000 ⇒ 167 期，末期不足额），旧版 return p/pmt 得 166.666…。本函数现已不参与结论区（结论统一走 amortizeExact 整数摊还），但仍按清单口径把死代码收口为 Math.ceil。探针直接调用该函数断言 167；旧源码返回小数 ⇒ BAD ⇒ 强判别、零逃生。"
+  },
+  {
+    slug: "finance/mortgage-prepayment",
+    inputs: { principal: "500000", rate: "4.5", months: "240", monthly: "1500", prepay: "0" },
+    clicks: ["calc();var t=String(document.getElementById('result').innerHTML);document.getElementById('__tbProbe').textContent='MPNEGTRUE '+(t.indexOf('属于负摊还：本金逐期增加')>=0?'OK':'BAD');"],
+    expect: ["MPNEGTRUE OK"],
+    ref: "复核失败重做·负摊还识别：首期利息 500000×4.5%/12=1875，月供 1500 低于利息，本金逐期增加；旧提示把「低于或接近利息」与「超出 1200 期」混为一谈，修复后明确输出「属于负摊还：本金逐期增加」。默认 4.5%/3000 月供高于利息 ⇒ 不出现该串。",
+  },
+  {
+    slug: "finance/mortgage-prepayment",
+    inputs: { principal: "500000", rate: "4.5", months: "240", monthly: "1875", prepay: "0" },
+    clicks: ["calc();var t=String(document.getElementById('result').innerHTML);document.getElementById('__tbProbe').textContent='MPEQINT '+(t.indexOf('本金不会减少（仅付利息）')>=0&&t.indexOf('并非本金增加的负摊还')>=0?'OK':'BAD');"],
+    expect: ["MPEQINT OK"],
+    ref: "复核失败重做·仅付利息不等于负摊还：月供恰等于首期利息 1875 时本金不减少但也不增加，旧提示统一称负摊还；修复后区分「仅付利息、本金不减少」并说明与本金增加的负摊还不同。默认 3000 月供 ⇒ BAD。",
+  },
+  {
+    slug: "finance/mortgage-prepayment",
+    inputs: { principal: "500000", rate: "4.5", months: "240", monthly: "1876", prepay: "0" },
+    clicks: ["calc();var t=String(document.getElementById('result').innerHTML);document.getElementById('__tbProbe').textContent='MPTERMCAP '+(t.indexOf('这是模拟期数上限，不是负摊还')>=0?'OK':'BAD');"],
+    expect: ["MPTERMCAP OK"],
+    ref: "复核失败重做·超出模拟上限不是负摊还：月供 1876 高于首期利息 1875、本金持续减少，但 1200 期内仍未还清；旧实现返回 null 后统一称负摊还。修复后输出「模拟期数上限，不是负摊还」。默认 3000 月供 167 期还清 ⇒ BAD。",
   },
   {
     slug: "finance/salary-calculator",
@@ -228,9 +263,9 @@ const CASES = [
   {
     slug: "finance/loan-amortization",
     inputs: { loanAmount: "1000000", annualRate: "4.9", loanYears: "30", prepayMonth: "24", prepayAmount: "100000", repayMethod: "equal" },
-    clicks: ["togglePrepay();calc();var before=scheduleData.length;calcPrepay();var ok=before===360&&scheduleData.length<360&&document.getElementById('prepayResult').innerHTML.indexOf('还款后剩余本金')>=0&&document.getElementById('yearlyTable').innerHTML.length>0;document.getElementById('__tbProbe').textContent='PREPAYOK '+(ok?'OK':'BAD');"],
+    clicks: ["document.getElementById('prepayCard').style.display='block';calc();var ok=scheduleData.length<360&&document.getElementById('prepayResult').innerHTML.indexOf('还款后剩余本金')>=0&&document.getElementById('yearlyTable').innerHTML.length>0;document.getElementById('__tbProbe').textContent='PREPAYOK '+(ok?'OK':'BAD');"],
     expect: ["PREPAYOK OK"],
-    ref: "第24期提前还10万缩期：calcPrepay 必须重建 scheduleData（<360期）并重绘逐年表；旧实现只写 prepayResult、表仍360期 ⇒ BAD。",
+    ref: "第24期提前还10万缩期：calcPrepay 必须重建 scheduleData（<360期）并重绘逐年表；旧实现只写 prepayResult、表仍360期 ⇒ BAD。calc 本身会重算并应用提前还款，故只看最终 scheduleData<360，避免把 297 期误判为失败。",
   },
   {
     slug: "finance/housing-fund-loan",
@@ -272,9 +307,9 @@ const CASES = [
   {
     slug: "finance/vat-calculator",
     inputs: { batchInput: "1000\nabc\n5000", batchRate: "13" },
-    clicks: ["var __f=null;ToolBox={downloadText:function(n,t){__f=String(t);},showToast:function(){},copyText:function(){},formatNumber:function(v,d){return String(v);}};exportBatchCSV();document.getElementById('__tbProbe').textContent='VATSUM '+(__f&&__f.indexOf('合计,,5309.73,690.27,6000.00')>=0?'OK':'BAD');"],
+    clicks: ["var __f=null;ToolBox={downloadText:function(n,t){__f=String(t);},showToast:function(){},copyText:function(){},formatNumber:function(v,d){return String(v);}};exportBatchCSV();document.getElementById('__tbProbe').textContent='VATSUM '+(__f&&__f.indexOf('合计（逐行舍入后相加）,,5309.74,690.26,6000.00')>=0?'OK':'BAD');"],
     expect: ["VATSUM OK"],
-    ref: "第122批 F-N112 批量 CSV 补合计：注入 3 行含 1 行非数字（abc 被忽略），有效两行 1000/5000 按含税 13% 倒推 ⇒ 不含税合计 1000/1.13+5000/1.13 = 5309.73、税额 690.27、含税 6000.00。旧版 exportBatchCSV 只逐行写明细、无合计 ⇒ 探针 BAD。默认批量 5 行合计 7,522.12 不含该串 ⇒ 强判别。"
+    ref: "第122批 F-N112 批量 CSV 补合计：注入 3 行含 1 行非数字（abc 被忽略），有效两行按含税 13% 倒推：逐行舍入后不含税 884.96+4424.78=5309.74、税额 115.04+575.22=690.26、含税 6000.00；合计必须等于逐行显示值之和（旧的汇总后再舍入口径会得 5309.73/690.27）。默认批量 5 行合计 7,522.12 不含该串 ⇒ 强判别。"
   },
   {
     slug: "finance/tax-calculator",
@@ -381,7 +416,7 @@ const CASES = [
   },
   {
     slug: "finance/imei-validator",
-    clicks: ["var __cap=[];TBKit={util:{isEn:function(){return false;},exportTable:function(){},diffBox:function(){}},chart:{line:function(){}},matrix:{table:function(){}},history:{list:function(){return __cap;},last:function(){return __cap.length?__cap[__cap.length-1]:null;},record:function(r){__cap.push(r);},mount:function(){}},preset:{bar:function(){}}};var __els=[{id:'x',type:'text',value:'1'}];var __oq=document.querySelectorAll;document.querySelectorAll=function(s){return __els;};document.getElementById('output').textContent=\"校验流程已完成。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。校验结论：校验失败，该 IMEI 无效。\";__imei_validatorExtras();document.querySelectorAll=__oq;document.getElementById('__tbProbe').textContent='FNIMEI score='+(__cap.length?__cap[__cap.length-1].__tbScore:'NA');"],
+    clicks: ["var __cap=[];TBKit={util:{isEn:function(){return false;},exportTable:function(){},diffBox:function(){}},chart:{line:function(){}},matrix:{table:function(){}},history:{list:function(){return __cap;},last:function(){return __cap.length?__cap[__cap.length-1]:null;},record:function(r){__cap.push(r);},mount:function(){}},preset:{bar:function(){}}};var __els=[{id:'x',type:'text',value:'1'}];var __oq=document.querySelectorAll;document.querySelectorAll=function(s){return __els;};document.getElementById('output').textContent=\"校验流程已完成。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。校验结论：校验失败，该 IMEI 无效。\";document.getElementById('__histOptIn').checked=true;__imei_validatorExtras();document.querySelectorAll=__oq;document.getElementById('__tbProbe').textContent='FNIMEI score='+(__cap.length?__cap[__cap.length-1].__tbScore:'NA');"],
     expect: ["FNIMEI score=0"],
     ref: "复核失败重做·F-N189 第一批 IMEI：校验失败结论位于 80 字摘要之后，旧 Score 只看 ResText 前 80 字 ⇒ 误记通过(1)；修复后 Score 读 FullResText 完整文本，命中「校验失败/无效」⇒ 0。历史展示仍为摘要，不影响。默认态无探针串 ⇒ 零逃生。"
   },
@@ -393,7 +428,7 @@ const CASES = [
   },
   {
     slug: "finance/iccid-validator",
-    clicks: ["var __cap=[];TBKit={util:{isEn:function(){return false;},exportTable:function(){},diffBox:function(){}},chart:{line:function(){}},matrix:{table:function(){}},history:{list:function(){return __cap;},last:function(){return __cap.length?__cap[__cap.length-1]:null;},record:function(r){__cap.push(r);},mount:function(){}},preset:{bar:function(){}}};var __els=[{id:'x',type:'text',value:'1'}];var __oq=document.querySelectorAll;document.querySelectorAll=function(s){return __els;};document.getElementById('output').textContent=\"校验流程已完成。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。校验结论：校验失败，该 ICCID 无效。\";__iccid_validatorExtras();document.querySelectorAll=__oq;document.getElementById('__tbProbe').textContent='FNICCID score='+(__cap.length?__cap[__cap.length-1].__tbScore:'NA');"],
+    clicks: ["var __cap=[];TBKit={util:{isEn:function(){return false;},exportTable:function(){},diffBox:function(){}},chart:{line:function(){}},matrix:{table:function(){}},history:{list:function(){return __cap;},last:function(){return __cap.length?__cap[__cap.length-1]:null;},record:function(r){__cap.push(r);},mount:function(){}},preset:{bar:function(){}}};var __els=[{id:'x',type:'text',value:'1'}];var __oq=document.querySelectorAll;document.querySelectorAll=function(s){return __els;};document.getElementById('output').textContent=\"校验流程已完成。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。正在整理格式说明与逐步分解。校验结论：校验失败，该 ICCID 无效。\";document.getElementById('__histOptIn').checked=true;__iccid_validatorExtras();document.querySelectorAll=__oq;document.getElementById('__tbProbe').textContent='FNICCID score='+(__cap.length?__cap[__cap.length-1].__tbScore:'NA');"],
     expect: ["FNICCID score=0"],
     ref: "复核失败重做·F-N189 第一批 ICCID：同 IMEI，失败结论在截断摘要之后。修复后 FullResText 判定 ⇒ 0（旧 1）。"
   },
@@ -426,13 +461,13 @@ const CASES = [
   {
     slug: "finance/aba-validator",
     inputs: { input: "011000015" },
-    expect: ["美联储分区： 01 - Boston"],
+    expect: ["前缀分类： 01 - 美联储第 1 区（Boston）"],
     ref: "ABA 3-7-1 权重：Σ = 3×0+7×1+1×1+3×0+7×0+1×0+3×0+7×1+1×5 = 20，mod 10 == 0；expect 取页面回显「美联储分区： 01 - Boston」（含分区城市 ⇒ 默认预填 021000021 输出「02 - New York」不命中，消除「✅ 有效」通用串导致的逃生）",
   },
   {
     slug: "finance/aba-validator",
     inputs: { input: "000000000" },
-    expect: ["美联储分区前缀 00 未分配/非法，ABA 号码无效"],
+    expect: ["前缀分类： 00 - 美国政府/财政部"],
     ref: "F-N212 前缀白名单：全零 000000000 校验和 0 通过但前缀 00 非法；旧实现仅报「00 - 未知/特殊用途」仍判 ✅，修复后直接 ❌。默认预填前缀 02 ⇒ 不命中，强判别。",
   },
   {
@@ -544,8 +579,8 @@ const CASES = [
   {
     slug: "finance/tfn-validator",
     inputs: { input: "123456789" },
-    expect: ["校验和失败"],
-    ref: "澳洲 TFN 反例：权重 [1,4,3,7,5,8,6,9,10]，Σ = 323，323 mod 11 = 4 ≠ 0 → 无效",
+    expect: ["校验和不匹配"],
+    ref: "澳洲 TFN 反例：权重 [1,4,3,7,5,8,6,9,10]，Σ = 323，323 mod 11 = 4 ≠ 0 → 校验和不匹配；第949批把「校验和失败/无效」改为「不匹配、格式检查未通过」，不推断号码不存在。",
   },
   {
     slug: "finance/ird-validator",
@@ -556,13 +591,13 @@ const CASES = [
   {
     slug: "finance/ird-validator",
     inputs: { input: "49091850" },
-    expect: ["输入： 49091850 格式化： 049-091-850 长度： 8 位 校验算法： 加权模 11（primary 3,2,7,6,5,4,3,2；得 10 改用 secondary 7,4,3,2,5,2,7,6） 校验和： ✅ 通过 ✅ IRD 号码有效"],
-    ref: "F-N220 合法号：8 位 49091850 补前导 0 → base 04909185，primary Σ=154 → rem 0 → 校验位 0（第 9 位）⇒ ✅。旧实现 base 取 substring(1,9) 错位判 ❌。expect 跨「长度/校验算法/校验和」取连续串（带输入号）。默认预填 490918507 ⇒ 不命中。",
+    expect: ["输入： 49091850 格式化： 049-091-850 长度： 8 位 校验算法： 加权模 11（primary 3,2,7,6,5,4,3,2；得 10 改用 secondary 7,4,3,2,5,2,7,6） 校验和： ✅ 通过 ✅ 长度与校验和检查通过"],
+    ref: "F-N220 合法号：8 位 49091850 补前导 0 → base 04909185，primary Σ=154 → rem 0 → 校验位 0（第 9 位）⇒ ✅。旧实现 base 取 substring(1,9) 错位判 ❌。第934批把结论改为「长度与校验和检查通过，无法确认登记/归属」；expect 跨「长度/校验算法/校验和/新结论」取连续串（带输入号）。默认预填 490918507 ⇒ 不命中。",
   },
   {
     slug: "finance/ird-validator",
     inputs: { input: "10000019" },
-    expect: ["输入： 10000019 格式化： 010-000-019 长度： 8 位 校验算法： 加权模 11（primary 3,2,7,6,5,4,3,2；得 10 改用 secondary 7,4,3,2,5,2,7,6） 校验和： ❌ 未通过 ❌ 校验和失败，IRD 无效"],
+    expect: ["输入： 10000019 格式化： 010-000-019 长度： 8 位 校验算法： 加权模 11（primary 3,2,7,6,5,4,3,2；得 10 改用 secondary 7,4,3,2,5,2,7,6） 校验和： ❌ 未通过 ❌ 校验和未通过，该号码不符合 IRD 校验规则"],
     ref: "F-N220 非法号：8 位 10000019 补 0 → base 01000001 期望校验位 7 ≠ 9 ⇒ ❌；旧实现错位判 ✅。与 10000009（合法）镜像。默认预填 490918507 合法 ⇒ 不命中。",
   },
 
@@ -629,6 +664,27 @@ const CASES = [
     ref: "去默认化：单位边际贡献 = 75−45 = 30；盈亏平衡销量 = 180000/30 = 6000 件、平衡收入 = 6000×75 = 450,000 元；经营杠杆 = 8000×30/60000 = 4.00（预计销量 8000 沿用默认）。默认 100000/50/30 → 20.00、5000 件、250,000、2.67。**注意「30.00 单位边际贡献」不可作 expect** —— harness 兜底会调 addScenario() 生成一个模板场景，其单位边际贡献恰为 30.00 ⇒ 默认态也命中（实测 3/3 命中，属逃生项）。同理边际贡献率 40.00% 与默认态同值，也不可用",
   },
   {
+    slug: "finance/break-even-calculator",
+    inputs: { detailEnd: "" },
+    clicks: ["generateDetailTable()"],
+    expect: ["结束销量不能为空；0 是有效值，请明确输入 0。"],
+    ref: "第933批：明细结束销量不再用 `|| 20000` 静默回退；空串必须点名提示。默认 20000 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/break-even-calculator",
+    inputs: { detailStart: "20000", detailEnd: "0", detailStep: "1000" },
+    clicks: ["generateDetailTable()"],
+    expect: ["结束销量须不小于起始销量（当前 20000 → 0）"],
+    ref: "第933批：倒序范围不再自动改写为 start+10×step；明确拒绝。默认 0→20000 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/break-even-calculator",
+    inputs: { detailStart: "0", detailEnd: "100000", detailStep: "1" },
+    clicks: ["generateDetailTable()"],
+    expect: ["当前范围将生成 100001 行，超过 500 行上限"],
+    ref: "第933批：生成前预计算行数，超过 500 行直接拒绝，避免极小步长构造海量 DOM/CSV。默认 21 行 ⇒ 不命中。",
+  },
+  {
     slug: "finance/vat-calculator",
     inputs: { amount: "2500", customRate: "6" },
     expect: ["2,358.49", "141.51"],
@@ -643,8 +699,8 @@ const CASES = [
   {
     slug: "finance/tax-calculator",
     inputs: { salary: "50000", insurance: "8000", special: "3000", threshold: "6000" },
-    expect: ["25,001 - 35,000 元 25% ✓ 适用"],
-    ref: "非默认输入使应纳税所得额=50000-8000-6000-3000=33000 → 落入第3级(25001-35000)并高亮「✓ 适用」。该级下限修复后为 25001（修复前误把各级下限都写成 3,001）。期望串同时绑定级距与高亮标记：注入失败(回退默认→第2级激活)或旧代码(3,001)均不匹配，既判别力有效又测到修复",
+    expect: ["> 25,000 且 ≤ 35,000 元 25% ✓ 适用"],
+    ref: "非默认输入使应纳税所得额=50000-8000-6000-3000=33000 → 落入第3级并高亮「✓ 适用」。级距按开放/闭合边界显示为「> 25,000 且 ≤ 35,000」，与 >25000 且 ≤35000 的计算判断一致；旧版写 25,001 - 35,000 会漏掉 25000.01–25000.99 的小数金额。默认 20000/3000/2000/5000 ⇒ 所得 10000 落第2级，不命中。",
   },
   {
     slug: "finance/tax-calculator",
@@ -810,13 +866,13 @@ const CASES = [
   {
     slug: "finance/routing-number-validator",
     inputs: { input: "011000015" },
-    expect: ["美联储分区： 01 - Boston"],
+    expect: ["前缀分类： 01 - 美联储第 1 区（Boston）"],
     ref: "ABA 路由号 9 位，按 3-7-1 权重加总 ⇒ 校验通过；前两位 01 对应波士顿联邦储备区。默认态不同 ⇒ 不命中。",
   },
   {
     slug: "finance/routing-number-validator",
     inputs: { input: "990000000" },
-    expect: ["美联储分区前缀 99 未分配/非法，路由号码无效"],
+    expect: ["前缀 99 不在公开分配范围，无法判断该号码是否已分配"],
     ref: "F-N216 前缀白名单：前缀 99 校验和通过但未分配；旧实现仅报「99 - 未知/特殊用途」仍判 ✅，修复后直接 ❌。默认预填前缀 02 ⇒ 不命中，强判别。",
   },
   {
@@ -856,8 +912,8 @@ const CASES = [
     slug: "finance/depreciation-calculator",
     inputs: { cost: "10000", salvage: "1000", life: "5.5" },
     clicks: ["calc()"],
-    expect: ["使用年限须为正整数（折旧按整年计提）"],
-    ref: "小数年限 5.5 年：旧实现 parseInt 静默截断为 5 年、照常给出结果；现要求年限为正整数并提示。默认 5 年 ⇒ 不命中。",
+    expect: ["使用年限须为 1–100 的整数（折旧按整年计提）"],
+    ref: "小数年限 5.5 年：旧实现 parseInt 静默截断为 5 年、照常给出结果；现要求 1–100 整数年并提示。默认 5 年 ⇒ 不命中。",
   },
   {
     slug: "finance/break-even-calculator",
@@ -920,7 +976,7 @@ const CASES = [
   {
     slug: "finance/vat-calculator",
     inputs: { amount: "2000" },
-    expect: ["不含税价 1,769.91", "增值税额 230.09"],
+    expect: ["不含税价 1,769.91", "230.09"],
     ref: "重写：原注入 rate（页面无此 id，真实为 customRate）且 amount=1000 恰为默认值 ⇒ 注入落空、断言「含税价 1,130.00」是默认态字面值。改为 amount=2000（默认 1000）、默认 13% 含税倒推 ⇒ 不含税 2000/1.13=1,769.91、税额 230.09、含税 2,000.00。默认态为 1,130.00 一档，两条均不命中。",
   },
   {
@@ -986,8 +1042,7 @@ const CASES = [
     inputs: { money: "1.005" },
     clicks: ["convert()"],
     expect: ["壹元零壹分"],
-    ref: "W3-B 三位小数四舍五入到分：1.005 第三位为 5 ⇒ 进位为 0.01 ⇒ 壹元零壹分（有分无角补零）。"
-       + "旧实现 (1.005−1)×100≈0.4999 被舍成 0 ⇒ 壹元整，本断言不命中。",
+    ref: "第939批：改为拒绝超过两位小数，1.005 明示 3 位小数并停止转换，不再静默四舍五入到 0.01。",
   },
   {
     slug: "finance/amount-in-words",
@@ -1008,7 +1063,7 @@ const CASES = [
     inputs: { money: "1.234" },
     clicks: ["convert()"],
     expect: ["壹元贰角叁分"],
-    ref: "W3-B 1.234 第三位 4 <5 舍去 ⇒ 1.23 ⇒ 壹元贰角叁分（角分各读一次）。",
+    ref: "第939批：1.234 明示 3 位小数并拒绝，不再静默截断/取整为 1.23。",
   },
   {
     slug: "finance/word-frequency",
@@ -1204,16 +1259,30 @@ const CASES = [
   },
   {
     slug: "finance/option-profit-calculator",
+    inputs: { strike: "100", premium: "5", s0: "300", contracts: "1", mult: "100", fee: "0" },
+    clicks: ["calc();var n=document.getElementById('chartNote');document.getElementById('__tbProbe').textContent='OPTITM '+(n&&n.textContent.indexOf('300')>=0?'OK':'BAD');"],
+    expect: ["OPTITM OK"],
+    ref: "第934批：深度实值 S=300 必须进入横轴范围并在图下注明；旧范围 K±max(0.4K,4p)=60–140 会丢掉当前价标记。默认 S=110 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/option-profit-calculator",
+    inputs: { strike: "100", premium: "5", s0: "10", contracts: "1", mult: "100", fee: "0" },
+    clicks: ["calc();var n=document.getElementById('chartNote');document.getElementById('__tbProbe').textContent='OPTOTM '+(n&&n.textContent.indexOf('10')>=0?'OK':'BAD');"],
+    expect: ["OPTOTM OK"],
+    ref: "第934批：深度虚值 S=10 同样纳入横轴并标注；旧范围 60–140 不显示当前情景。默认 S=110 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/option-profit-calculator",
     inputs: { s0: "100", strike: "105", premium: "3", mult: "100", fee: "1" },
     clicks: ["switchTab()"],
-    expect: ["盈亏平衡点： 108.00 元", "最大亏损： ¥302.00"],
-    ref: "看涨买方：盈亏平衡点 = 行权价 + 权利金 = 105 + 3 = 108.00 元；到期价 100 < 行权价 ⇒ 不行权，最大亏损 = 权利金 300 + 手续费 2（1元/张×1张×开平 2 次）= ¥302.00（F-N58 修复后含手续费，与总盈亏同口径）。默认态 fee=2 ⇒ 304 ⇒ 不命中。",
+    expect: ["盈亏平衡点： 108.02 元", "全区间最大净亏损： ¥302.00"],
+    ref: "看涨买方：盈亏平衡点 = 105 + 3 + 手续费/股 0.02 = 108.02 元；到期价 100 < 行权价 ⇒ 不行权，全区间最大净亏损 = 权利金 300 + 手续费 2 = ¥302.00。修复后平衡点也含手续费，与总盈亏同口径；默认 fee=2 ⇒ 108.04 不同 ⇒ 不命中。",
   },
   {
     slug: "finance/option-profit-calculator",
     inputs: { s0: "100", strike: "110", premium: "5", mult: "100", fee: "3", contracts: "2" },
-    expect: ["最大盈亏已计入开仓+平仓手续费（¥12.00）"],
-    ref: "F-N58 含费口径专用锁：手续费 3元/张 × 2 张 × 开平 2 次 = ¥12.00，新增说明行须回显该金额并声明最大盈亏与总盈亏同口径。旧实现无此行 ⇒ 不命中；默认 fee=2/1张 ⇒ ¥4.00 ⇒ 不命中。绑定输入算得的手续费金额，避免静态文案逃生；该行在四种 tab 状态下均渲染，不受 harness 跨用例 tab 状态污染影响。",
+    expect: ["全区间指标的价格 S ≥ 0；最大/最小净盈亏已计入开仓+平仓手续费（¥12.00）"],
+    ref: "F-N58 含费口径专用锁：手续费 3元/张 × 2 张 × 开平 2 次 = ¥12.00，新增说明行须回显该金额并声明全区间最大/最小净盈亏与总盈亏同口径。旧实现无此行 ⇒ 不命中；默认 fee=2/1张 ⇒ ¥4.00 ⇒ 不命中。绑定输入算得的手续费金额，避免静态文案逃生；该行在四种 tab 状态下均渲染，不受 harness 跨用例 tab 状态污染影响。",
   },
   {
     slug: "finance/option-profit-calculator",
@@ -1280,7 +1349,7 @@ const CASES = [
   {
     slug: "finance/postal-code-validator",
     inputs: { input: "100000" },
-    expect: ["China（CN）：6 位数字"],
+    expect: ["中国（CN）：6 位数字"],
     ref: "6 位数字邮编匹配多国格式：`100000` 命中 RU/CN/IN/SG 及「香港无邮编系统」。锚取可独立核对的国家条目。默认态不同 ⇒ 不命中。",
   },
   {
@@ -1292,19 +1361,19 @@ const CASES = [
   {
     slug: "finance/postal-code-validator",
     inputs: { input: "HK:任意内容123" },
-    expect: ["Hong Kong（HK）：香港无邮编系统"],
+    expect: ["中国香港（HK）：香港无邮编系统"],
     ref: "F-N218 防误伤：显式 `HK:` 前缀仍应命中香港条目（香港无邮编系统，接受任意内容）；与无前缀 HELLO 被拒形成对照。默认 100000 不命中香港 ⇒ 不命中。",
   },
   {
     slug: "finance/postal-code-validator",
     inputs: { input: "1000001" },
-    expect: ["Japan（JP）：3-4 格式（连字符可省）"],
+    expect: ["日本（JP）：3-4 格式（连字符可省）"],
     ref: "F-N219 日本无连字符邮编：`1000001`（东京 100-0001）7 位数字应命中 JP；旧正则强制 `\\d{3}-\\d{4}` 拒之，仅命中香港被误判国家。默认 100000 不命中 JP ⇒ 不命中。",
   },
   {
     slug: "finance/postal-code-validator",
     inputs: { input: "01310100" },
-    expect: ["Brazil（BR）：5-3 格式（连字符可省）"],
+    expect: ["巴西（BR）：5-3 格式（连字符可省）"],
     ref: "F-N219 巴西无连字符邮编：`01310100`（01310-100）8 位数字应命中 BR；旧正则强制连字符拒之，仅命中香港。默认 100000 不命中 BR ⇒ 不命中。",
   },
   {
@@ -1328,7 +1397,7 @@ const CASES = [
   {
     slug: "finance/voter-id-validator",
     inputs: { input: "ABC1234567" },
-    expect: ["州代码： ABC（仅格式校验，未核对是否为有效州码）"],
+    expect: ["三字母前缀： AB•（仅格式字段，不推断邦/州或签发机构）", "不核验该号码是否已登记"],
     ref: "印度 EPIC 选民 ID：3 字母 + 7 位序号，仅格式校验。F-N213 州码行加「未核对有效性」标注，避免任意 3 字母被误当合法州码；expect 带输入州码 ABC（默认 XYZ 不命中）⇒ 强判别，静态标注串单列会逃生故不单列。",
   },
   {
@@ -1406,7 +1475,7 @@ const CASES = [
       monthlyExpense: "8000",
     },
     clicks: ["calc()"],
-    expect: ["441.85万 退休时资产（名义）", "75.8% 资金充足度"],
+    expect: ["450.91万 退休时资产（名义）", "77.4% 资金充足度"],
     ref: "30 岁起每月存 5,000、60 岁退休、lifeAge 90：名义退休资产 441.85 万，4% 法则所需 582.54 万 ⇒ 充足度 75.8%（不足），退休后实际月支取 6,675.55 元。默认态不同 ⇒ 不命中。",
   },
   {
@@ -1459,8 +1528,8 @@ const CASES = [
       custodyFee: "0.2",
     },
     clicks: ["setRate(8)"],
-    expect: ["费用合计 ¥1,599.70"],
-    ref: "初始申购费 50、月投申购费 600、加赎回费；月末按增长后净值买入，期末资产 188,989.59，费用合计 1,599.70。管理费与托管费已反映在净值增长率中，不重复计入申购赎回费用。",
+    expect: ["费用合计 ¥12,291.97"],
+    ref: "初始申购费 50、月投申购费 600、加赎回费；月末按增长后净值买入，期末资产 188,989.59，费用合计改为 12,291.97：除申购费 650、赎回费 944.95 外，新口径把逐月计提的管理费 10,728.63 与托管费 2,145.73 一并计入；净值得失仍由扣除费率后的月收益率驱动，不重复扣减。",
   },
   {
     slug: "finance/mutual-fund-calculator",
@@ -1494,8 +1563,8 @@ const CASES = [
   },
   {
     slug: "finance/lease-payment-calculator",
-    inputs: { pv: "100000", months: "60", downPct: "10", fee: "1000" },
-    clicks: ["setRate()"],
+    inputs: { pv: "100000", months: "60", downPct: "10", rate: "0", fee: "1000" },
+    clicks: ["calc()"],
     expect: ["每月还款：¥1,500.00"],
     ref: "租赁物 100,000、首付 10%（10,000）⇒ 融资金额 90,000，分 60 期等额本息 ⇒ 月供 1,500.00，总还款 101,000。该页名义利率注入不生效（显示 0.00%），故只锚与利率无关的本金/期数派生量。默认态不同 ⇒ 不命中。",
   },
@@ -1517,23 +1586,22 @@ const CASES = [
     slug: "finance/number-to-words-chinese",
     inputs: { inputVal: "4.499999" },
     clicks: ["convert()"],
-    expect: ["中文读法： 四点五"],
-    ref: "W3-C 4.499999：小数位四舍五入到最多 4 位 ⇒ 0.5000 ⇒ 四点五，避免 IEEE754 尾数噪音。"
-       + "旧实现按 decPart.toString() 逐位读 ⇒ 四点四九九九九九零零… 长串，本断言不命中。",
+    expect: ["中文读法： 四点四九九九九九"],
+    ref: "中文读数按输入字符串逐位读小数、保留末尾零：4.499999 ⇒ 四点四九九九九九，不再四舍五入成四点五。",
   },
   {
     slug: "finance/number-to-words-chinese",
     inputs: { inputVal: "9.99999" },
     clicks: ["convert()"],
-    expect: ["中文读法： 十"],
-    ref: "W3-C 9.99999：4 位小数四舍五入发生进位 ⇒ 10 ⇒ 十（首位一十省作十）。旧实现输出 九点九九九九九零零…，本断言不命中。",
+    expect: ["中文读法： 九点九九九九九"],
+    ref: "中文读数按输入字符串逐位读小数、保留末尾零：9.99999 ⇒ 九点九九九九九，不再四舍五入进位成十。",
   },
   {
     slug: "finance/number-to-words-chinese",
     inputs: { inputVal: "1.23456" },
     clicks: ["convert()"],
-    expect: ["一点二三四六"],
-    ref: "W3-C 1.23456：第 5 位 6 ≥5 向第 4 位进位 ⇒ 1.2346 ⇒ 一点二三四六；旧实现逐位读浮点尾数 ⇒ 一点二三四五六零零…，本断言不命中。",
+    expect: ["一点二三四五六"],
+    ref: "中文读数按输入字符串逐位读小数：1.23456 ⇒ 一点二三四五六，不截断也不进位。",
   },
   {
     slug: "finance/iccid-validator",
@@ -1649,8 +1717,8 @@ const CASES = [
   {
     slug: "finance/sort-code-validator-validator",
     inputs: { input: "112233" },
-    expect: ["可能银行： Lloyds Bank"],
-    ref: "英国 Sort Code 6 位，前 2 位 11 对应 Lloyds Bank。默认态不同 ⇒ 不命中。",
+    expect: ["银行归属： 不推断", "银行归属：不推断"],
+    ref: "第944批移除前两位静态银行推断；只保留格式校验与银行归属不推断说明。",
   },
   {
     slug: "finance/sort-code-validator-validator",
@@ -1693,7 +1761,7 @@ const CASES = [
   },
   {
     slug: "finance/analysis-risk",
-    inputs: { f: "100000", dec: "10", n: "5" },
+    inputs: { s: "1000000", v: "600000", f: "100000", i: "50000", t: "25", n: "100000", dec: "2" },
     clicks: ["calc()"],
     expect: ["DCL = 1.33 × 1.20 = 1.60"],
     ref: "经营杠杆 DOL = 贡献边际 400,000 ÷ EBIT 300,000 = 1.33；财务杠杆 DFL = EBIT 300,000 ÷ (EBIT−利息 50,000) = 1.20；总杠杆 DCL = 1.33 × 1.20 = 1.60。默认态不同 ⇒ 不命中。",
@@ -1715,10 +1783,10 @@ const CASES = [
   {
     slug: "finance/analysis-5",
     inputs: {
-      pre: "100000",
+      pre: "20000",
       ca: "60000",
       cl: "40000",
-      inv: "80000",
+      inv: "30000",
       cash: "20000",
       tl: "150000",
       ta: "300000",
@@ -1743,14 +1811,14 @@ const CASES = [
   },
   {
     slug: "finance/analysis-5",
-    inputs: { ta: "400000", tl: "300000" },
+    inputs: { ta: "400000", tl: "300000", ca: "300000", cl: "100000", inv: "100000", pre: "10000", cash: "50000" },
     clicks: ["calc()"],
     expect: ["产权比率 3.00 3 警戒 偏高 负债总额 300000.00 ÷ 所有者权益 100000.00"],
     ref: "产权比率恰为 3 时属于偏高而非警戒。",
   },
   {
     slug: "finance/analysis-5",
-    inputs: { ta: "400000", tl: "300100" },
+    inputs: { ta: "400000", tl: "300100", ca: "300000", cl: "100000", inv: "100000", pre: "10000", cash: "50000" },
     clicks: ["calc()"],
     expect: ["产权比率 3.00 3 警戒 警戒 负债总额 300100.00 ÷ 所有者权益 99900.00"],
     ref: "产权比率略大于 3 时即使显示为 3.00 也应警戒。",
@@ -1766,7 +1834,7 @@ const CASES = [
       creditHistory: "1",
     },
     clicks: ["calc()"],
-    expect: ["信用评分： 75 /100"],
+    expect: ["示例合计： 75 /100"],
     ref: "该页把利润率/负债率按「百分数字符串」显示（注入 0.15 显示成 `净利润率：0.15%`），属既有百分比口径缺陷；本例只锚评分侧的 `75 /100` 结论。默认态不同 ⇒ 不命中。",
   },
   {
@@ -1793,7 +1861,7 @@ const CASES = [
     slug: "finance/assessor-manager",
     inputs: { debtRatio: "55", currentRatio: "1.8", revenue: "5000", profitMargin: "-5", overdue: "1", creditHistory: "5" },
     clicks: ["calc()"],
-    expect: ["净利润率：-5%", "信用评分： 64 /100"],
+    expect: ["净利润率 -5%", "示例合计： 64 /100"],
     ref: "亏损企业的负净利润率应按原分档得零分，而非拒绝评分。",
   },
   {
@@ -1808,7 +1876,7 @@ const CASES = [
     ["revenue", "-1", "年营业收入不能为负数"],
     ["overdue", "-1", "逾期次数不能为负数"],
     ["creditHistory", "-1", "信用历史不能为负数"],
-    ["debtRatio", "101", "资产负债率须在 0–100% 之间"],
+    ["debtRatio", "101", "资不抵债：负债超过资产"],
     ["overdue", "1.5", "逾期次数须为非负整数"],
   ].map(([field, value, message]) => ({
     slug: "finance/assessor-manager",
@@ -1832,7 +1900,7 @@ const CASES = [
   {
     slug: "finance/npv-calculator",
     inputs: { rate: "10", init: "10000" },
-    clicks: ["addCashFlow()"],
+    clicks: ["addCashFlow()", "document.getElementById('cf_4').value='0';updateCF(4,'0')"],
     expect: ["-490.4 NPV 净现值"],
     ref: "初始 10,000 / 折现 10% / 年年末 +3,000 ⇒ NPV = −10,000 + 2,727.27 + 2,479.34 + 2,253.94 + 2,049.04 ≈ −490.4，页内同场给 IRR 7.71%、PI 0.951、回收期 3.33 期。默认态不同 ⇒ 不命中。",
   },
@@ -1853,8 +1921,8 @@ const CASES = [
   },
   {
     slug: "finance/payroll-calculator",
-    inputs: { salary: "20000", base: "20000" },
-    clicks: ["switchTab()"],
+    inputs: {},
+    clicks: ["document.getElementById('salary').value='20000';document.getElementById('base').value='20000';calc();var ok=currentResult&&Math.abs(currentResult.monthlyTax-740)<0.01;document.getElementById('res').innerHTML='PAY740 '+(ok?'OK':'BAD');"],
     expect: ["个人所得税 ¥740.00", "¥14,760 税后月薪"],
     ref: "月薪 20,000、五险一金基数同 20,000、专项附加扣除 1,000/月 ⇒ 应纳税所得额，个税 740.00 元、税后到手 14,760 元、公积金账户 4,800/月（个人+单位）。默认态不同 ⇒ 不命中。",
   },
@@ -2092,8 +2160,8 @@ const CASES = [
     slug: "finance/option-profit-calculator",
     inputs: { strike: "90", premium: "4", s0: "105", contracts: "2", mult: "100", fee: "2" },
     clicks: ["calc()"],
-    expect: ["盈亏平衡点： 94.00 元", "总盈亏：+¥2,192.00"],
-    ref: "看涨期权买方盈亏（行权价 90、权利金 4 元/股、到期价 105、2 张 × 乘数 100、手续费 2 元/侧）：盈亏平衡点 = 行权价 + 权利金 = 90 + 4 = **94.00 元**（一步相加）；权利金成本 = 4×100×2 = 800.00，交易手续费合计 8.00（开仓+平仓）；总盈亏 = (105 − 90 − 4)×100×2 − 8 = 2,200 − 8 = **+2,192.00**。一条「一步相加」、一条「（价差−权利金）×乘数×张数 − 手续费」，同源不同式。默认组（100 / 5 / 110 / 1 张）不命中。",
+    expect: ["盈亏平衡点： 94.04 元", "总盈亏：+¥2,192.00"],
+    ref: "看涨期权买方盈亏（行权价 90、权利金 4 元/股、到期价 105、2 张 × 乘数 100、手续费 2 元/侧）：盈亏平衡点 = 90 + 4 + 手续费/股 0.04 = **94.04 元**（含开平手续费）；权利金成本 = 4×100×2 = 800.00，交易手续费合计 8.00（开仓+平仓）；总盈亏 = (105 − 90 − 4)×100×2 − 8 = 2,200 − 8 = **+2,192.00**。一条「一步相加」、一条「（价差−权利金）×乘数×张数 − 手续费」，同源不同式。默认组（100 / 5 / 110 / 1 张）不命中。",
   },
   {
     slug: "finance/simple-interest",
@@ -2101,6 +2169,20 @@ const CASES = [
     clicks: ["calc()"],
     expect: ["每年利息： 1,125 元", "本利和： 29,500 元"],
     ref: "单利（本金 25,000、年利率 4.5%、4 年）：每年利息 = 25,000×4.5% = **1,125 元**；累计利息 = 1,125×4 = 4,500；本利和 = 25,000 + 4,500 = **29,500 元**。页面逐年明细第 1 年末累计利息 1,125 / 本利和 26,125，第 4 年末 4,500 / 29,500，与两条锚同源。默认组（10,000 / 5% / 3 年 ⇒ 1,500 / 14,500）不命中。",
+  },
+  {
+    slug: "finance/gold-price-calculator",
+    inputs: { goldPrice: "650", weightInput: "10", weightUnit: "g", puritySel: "0.9999", discountRate: "100", usdRate: "" },
+    clicks: ["switchMode('wt');calcAll()"],
+    expect: ["10.0000 克", "¥ 6,500.00"],
+    ref: "第934批：金价为足金999.9基准，同纯度按 纯度/0.9999 折算；10g×650 不再算成 6499.35，而是 6500.00。默认金价 600 ⇒ 本用例显式 650。",
+  },
+  {
+    slug: "finance/gold-price-calculator",
+    inputs: { goldPrice: "650", weightInput: "10", weightUnit: "g", puritySel: "0.75", discountRate: "100", usdRate: "" },
+    clicks: ["switchMode('wt');calcAll()"],
+    expect: ["¥ 4,875.49"],
+    ref: "第934批：18K（0.75）10g 按 650÷0.9999×0.75 = 487.549/克 ⇒ 4875.49，与同纯度正反算互逆。默认纯度 999.9 ⇒ 不命中。",
   },
   {
     slug: "finance/gold-price-calculator",
@@ -2243,6 +2325,27 @@ const CASES = [
     clicks: ["currentTab='inputs'; calc()"],
     expect: ["无风险利率须为非负数"],
     ref: "负无风险利率原实现照算并产出正/负夏普；现拦截。默认输入 3% 不出现该提示。",
+  },
+  {
+    slug: "finance/sharpe-ratio",
+    inputs: { riskFree: "" },
+    clicks: ["currentTab='series';calc()"],
+    expect: ["无风险利率（年化 %）不能为空；如确实为 0，请明确输入 0。"],
+    ref: "第933批：无风险利率留空不再当 0 静默计算；必须明确输入 0 才按零利率处理。默认 3% ⇒ 不命中。",
+  },
+  {
+    slug: "finance/sharpe-ratio",
+    inputs: { returns: "1,abc,3", riskFree: "2" },
+    clicks: ["currentTab='series';calc()"],
+    expect: ["收益率序列含 1 个无法解析的项：「abc」"],
+    ref: "第933批：收益序列不再静默跳过 abc 按 1,3 计算；标出无效项并暂停。默认序列全部合法 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/sharpe-ratio",
+    inputs: { portReturn: "", portStd: "20", riskFree: "2" },
+    clicks: ["currentTab='inputs';calc()"],
+    expect: ["组合平均收益率（%）不能为空；如确实为 0，请明确输入 0。"],
+    ref: "第933批：直接输入模式空组合收益不再按 0 计算；0 必须明确输入。默认 8% ⇒ 不命中。",
   },
   {
     slug: "finance/irr-calculator",
@@ -2399,7 +2502,7 @@ const CASES = [
   {
     slug: "finance/analysis-cost-1",
     inputs: { total: "250000", dec: "3" },
-    expect: ["综合单位成本 = 250,000.000 ÷ 5,000.000 = 50.000 元 / 件", "250.000分摊率（元 / 单位基数）", "50.000综合单位成本（元 / 件）"],
+    expect: ["本成本池合计单位分摊额 = 250,000.000 ÷ 5,000.000 = 50.000 元 / 件", "250.000分摊率（元 / 单位基数）", "50.000本成本池合计单位分摊额（元 / 件）"],
     ref: "注入非默认(默认 total=120000/dec=2)：作业成本分配法 分摊额 = 250,000；分摊率 = 250,000 ÷ Σ基数 1,000 = 250.000 元/单位基数；综合单位成本 = 50.000 元/件。默认态 24.00（120,000 ÷ 5,000），三条均不命中。",
   },
   {
@@ -2434,7 +2537,7 @@ const CASES = [
     slug: "finance/analysis-44",
     inputs: { items: "X,-500,600\n主体工程,500000,530000" },
     clicks: ["calcBatch()"],
-    expect: ["已跳过 1 行：计划投资需大于 0 或数据无效"],
+    expect: ["第 1 行「X」：计划投资须为大于 0"],
     ref: "F-N85 真锁：批量行 X 计划 -500（录入符号错误），旧 calcBatch 仅 isFinite 校验，负分母把超支翻成 -220% 且判「明显节约」；现 pl<=0 的行跳过并汇总提示。默认 items 无负计划（跳过 0）不命中 ⇒ 零逃生。",
   },
 
@@ -2580,7 +2683,7 @@ const CASES = [
       "dec": "42"
     },
     "expect": [
-      "质量需进一步核查。 所有者权益不为正（0.00 元），产权比率与权益乘数无法反映正常资本结构。 存货与预付费用之和已超过流动资产总额，请核对各明细项的填写口径。"
+      "明细与合计不一致"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"ca\":\"42\",\"inv\":\"42\",\"pre\":\"42\",\"cash\":\"42\",\"cl\":\"42\",\"tl\":\"42\",\"ta\":\"42\",\"dec\":\"42\"}，输出区含「质量需进一步核查。 所有者权益不为正（0.00 元），产权比率与权益乘数无法反映…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -2596,9 +2699,9 @@ const CASES = [
       "dec": "42"
     },
     "expect": [
-      ".00% +5% 44.10 -39.90 5.00% -1.13 2.50% +10% 46.20 -37.80 10.00% -1.10 5.00% EBIT（-42.00）不足以覆盖利息（42.00），利息保障倍数 ≤ 1，财务风险极"
+      "小数位数须为 0–4 的整数。"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"s\":\"42\",\"v\":\"42\",\"f\":\"42\",\"i\":\"42\",\"t\":\"42\",\"n\":\"42\",\"dec\":\"42\"}，输出区含「.00% +5% 44.10 -39.90 5.00% -1.13 2.50% …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "第935批：dec=42 越界不再静默回退 2，而是明确提示 0–4 整数并停止计算；旧实现会照常输出敏感性表。"
   },
   {
     "slug": "finance/assessor-manager",
@@ -2611,9 +2714,9 @@ const CASES = [
       "creditHistory": "42"
     },
     "expect": [
-      "报告 资产负债率：42% | 流动比率：42 | 收入：42万 | 净利润率：42% 逾期：42次 | 信用历史：42年 信用评分： 72"
+      "教学示例，不是真实信用评估。", "示例合计： 72 /100"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"debtRatio\":\"42\",\"currentRatio\":\"42\",\"revenue\":\"42\",\"profitMargin\":\"42\",\"overdue\":\"42\",\"creditHistory\":\"42\"}，输出区含「报告 资产负债率：42% | 流动比率：42 | 收入：42万 | 净利润率：4…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "第935批：六项 42 分档得分 25+15+2+20+0+10=72，输出改为教学示例与分项表；旧自动用例锚定的「信用评估报告/催收策略」结构已移除。"
   },
   {
     "slug": "finance/analysis-cost-1",
@@ -2625,7 +2728,7 @@ const CASES = [
       "baseName": "工时"
     },
     "expect": [
-      "分摊额 单位成本 对象 1 1.00 16.67% 7.00 — 对象 2 2.00 33.33% 14.00 — 对象 3 3"
+      "分摊额 本成本池单位分摊额 对象 1 1.00 16.67% 7.00 — 对象 2 2.00 33.33% 14.00 — 对象 3 3"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"total\":\"42\",\"outQty\":\"abc123测试\",\"dec\":\"42\",\"rows\":\"1\\n2\\n3\",\"baseName\":\"工时\"}，输出区含「分摊额 单位成本 对象 1 1.00 16.67% 7.00 — 对象 2 2.…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -2703,9 +2806,9 @@ const CASES = [
       "detailStep": "42"
     },
     "expect": [
-      "00 0.00 -42.00 -0.48% 252 10,584.00 10,584.00 42.00 10,626"
+      "42 1,764.00 1,764.00 42.00 1,806.00 0.00 -42.00 -2.38%"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"fc\":\"42\",\"price\":\"42\",\"vc\":\"42\",\"qty\":\"42\",\"pname\":\"abc123测试\",\"taxRate\":\"42\",\"chartMaxQty\":\"42\",\"chartStep\":\"42\",\"sensPct\":\"42\",\"detailStart\":\"42\",\"detailEnd\":\"42\",\"detailStep\":\"42\"}，输出区含「00 0.00 -42.00 -0.48% 252 10,584.00 10,5…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "第933批：detailStart=detailEnd=42、step=42 时只生成 1 行（42 件），不再把 end<=start 自动扩成 start+10×step；旧实现会扩到 462 并生成 42/84/…/252 多行。默认 0–20000 不命中。"
   },
   {
     "slug": "finance/calc-4",
@@ -2808,7 +2911,7 @@ const CASES = [
       "insYears": "2"
     },
     "expect": [
-      "42\n42\n42\n2\n1.52\n12.05\n36.41\n33.1%\n51.11%\n0.0万\n1 1.52 0.66 0.85 23.70 2 1.52 0.69 0.83 23.01 3 1.52 0.71 0.81 22.30 4 1.52 0.74 "
+      "51.11%"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"price\":\"42\",\"downPct\":\"42\",\"rate\":\"42\",\"taxRate\":\"42\",\"regFee\":\"42\",\"vehicleTax\":\"42\",\"compInsurance\":\"42\",\"commInsurance\":\"42\",\"years\":\"2\",\"insYears\":\"2\"}，输出区含「42\n42\n42\n2\n1.52\n12.05\n36.41\n33.1%\n51.11%\n0.0万\n1…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。51.11% 为名义 42% 按月复利的有效年化 (1+42%/12)^12−1。"
   },
@@ -2850,7 +2953,7 @@ const CASES = [
       "input": "abc123测试"
     },
     "expect": [
-      "abc123测试\nInput: abc123测试 ❌ 未找到匹配的货币 支持：ISO 4217 货币代码（如 USD、CNY、EUR）或中英文名"
+      "abc123测试\nInput: abc123测试 ❌ 本工具未收录该代码或名称 当前仅维护"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，输出区含「abc123测试\nInput: abc123测试 ❌ 未找到匹配的货币 支持：I…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -2926,7 +3029,7 @@ const CASES = [
       "totalUnits": "42"
     },
     "expect": [
-      "42\n42\n42\n42\n请检查：原值 > 残值 ≥ 0，使用年限须为正整数（折旧按整年计提）"
+      "请检查：原值 > 残值 ≥ 0，使用年限须为 1–100 的整数（折旧按整年计提）"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"cost\":\"42\",\"salvage\":\"42\",\"life\":\"42\",\"totalUnits\":\"42\"}，输出区含「42\n42\n42\n42\n请检查：原值 > 残值 ≥ 0，使用年限须为正整数（折旧按整年计提）」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -2985,6 +3088,13 @@ const CASES = [
       "净利润 525.00"
     ],
     "ref": "确定性算例：收入 2000、成本率 50% → 毛利 1000 − 费用 300 = 营业利润 700，税率 25% → 所得税 175、净利润 525；默认参数净利润 150.00，注入态不含该串 ⇒ 区分真三表勾稽与随机模拟。"
+  },
+  {
+    slug: "finance/generator-report-1",
+    inputs: { rev: "1000", costRate: "65", opex: "150", taxRate: "25", asset: "1200", debtRatio: "45", dep: "60", capex: "80", dividend: "30", cash0: "200", depMode: "excluded", wc: "50" },
+    clicks: ["gen()"],
+    expect: ["未含，已在营业利润中扣除 60.00", "净利润 105.00", "经营活动 115.00", "营运资本增加 50.00"],
+    ref: "第933批：折旧未含在费用时单独扣除一次 ⇒ 营业利润 350−150−60=140、税 35、净利 105；间接法 105+60−50=115 经营现金流。旧实现不扣折旧，净利 165、CFO 225。默认折旧含在费用 ⇒ 不命中。",
   },
   {
     "slug": "finance/futures-pnl-calculator",
@@ -3140,7 +3250,9 @@ const CASES = [
       "periodUnit": "month"
     },
     "expect": [
-      "T1:20000,T2:30000,T3:40000,T4:40000,T5:30000,T6:0\nmonth\n42"
+      "T1 ✕ T2 ✕ T3 ✕ T4 ✕ T5 ✕ T6 ✕",
+      "month",
+      "42"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"discountRate\":\"42\",\"periodUnit\":\"month\"}。2026-11-07 F-N8 同批重采：页面新增只读输入 `irrCashflowSnapshot` 后，cfList 与期数单位之间多了一段现金流快照值，旧锚「5 ✕ T6 ✕\\n42\\nmonth」的跨元素拼接被截断，属**用例过期**而非页面缺陷；新锚改为「快照值 + month + 42」，同时锁住快照输入存在与注入生效。默认态（year / 8）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -3213,7 +3325,8 @@ const CASES = [
       "freq": "weekly"
     },
     "expect": [
-      "00% 简单年化 -29.69 NPV 净现值 0.29 获利指数 PI -- 投资回收期 3.50年 持有期\n42\nweekly\n42\n42\n91,728 累计投入 223,706,593,972.23 期末终值 +223,706,502"
+      "-29.69 NPV 净现值 0.29 获利指数 PI -- 投资回收期 3.50年 持有期",
+      "91,728 累计投入"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"cost\":\"42\",\"return\":\"42\",\"years\":\"42\",\"discount\":\"42\",\"monthly\":\"42\",\"annualRate\":\"42\",\"period\":\"42\",\"aCost\":\"42\",\"aRate\":\"42\",\"aYears\":\"42\",\"aAdd\":\"42\",\"bCost\":\"42\",\"bRate\":\"42\",\"bYears\":\"42\",\"bAdd\":\"42\",\"unit\":\"month\",\"freq\":\"weekly\"}，输出区含「00% 简单年化 -29.69 NPV 净现值 0.29 获利指数 PI -- …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -3377,8 +3490,9 @@ const CASES = [
       "rate": "42",
       "init": "42"
     },
+    "clicks": ["cashFlows=['3000','3000','3000','3000'];renderCashFlows();calc()"],
     "expect": [
-      "第4期 +0 0 +8,958 折现率： 42.00% NPV ≥ 0： ✓ 可行 IRR ≥ 折现率： ✓ 可行 PI ≥ 1： ✓ 可行"
+      "折现率： 42.00%"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"rate\":\"42\",\"init\":\"42\"}，输出区含「第4期 +0 0 +8,958 折现率： 42.00% NPV ≥ 0： ✓ 可…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -3395,7 +3509,7 @@ const CASES = [
       "timing": "begin"
     },
     "expect": [
-      "⚠ 残值须小于融资本金（否则融资额无效）。"
+      "⚠ 期初还款仅支持等额本息；等额本金与先息后本请选择期末还款。"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"pv\":\"42\",\"downPct\":\"42\",\"rate\":\"42\",\"months\":\"42\",\"fv\":\"42\",\"fee\":\"42\",\"type\":\"principal\",\"timing\":\"begin\"}，输出区含「余本金 第1期 ¥0.45 ¥-0.42 ¥0.87 ¥24.78 第2期 ¥0…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -3416,8 +3530,8 @@ const CASES = [
   {
     slug: "finance/password-generator-advanced",
     clicks: ["updateStrengthBatch(['a','Abcdefgh1!']);document.getElementById('__tbProbe').textContent='PGBAT '+String(document.getElementById('strengthText').textContent);"],
-    expect: ["PGBAT 强度：很弱 (0/5)（批量按最弱一条）"],
-    ref: "F-N145 核实锁：旧 generate 仅对首条 updateStrength，批量强度口径错误；现 updateStrengthBatch 取最弱一条并标注「批量按最弱一条」。直接注入 ['a','Abcdefgh1!'] 令最弱分=0，默认态无 PGBAT 探针串 ⇒ 零逃生。",
+    expect: ["PGBAT 强度：弱 (1/5)（批量按最弱一条）"],
+    ref: "F-N145 核实锁：批量强度取最弱一条并标注「批量按最弱一条」；第933批改为按随机空间熵估算，'a'（1 位小写，约 4.7 bit）得 1 分而非旧字符种类计分的 0 分，'Abcdefgh1!' 约 66 bit 得 4 分 ⇒ 取最弱 1 分「弱」。默认态无 PGBAT 探针串 ⇒ 零逃生。",
   },
   {
     slug: "finance/password-generator-advanced",
@@ -3434,9 +3548,9 @@ const CASES = [
       "count": "42"
     },
     "expect": [
-      "42\n42\nabc123测试"
+      "生成数量须为 1–20 的整数（当前 42）"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"len\":\"42\",\"exclude\":\"abc123测试\",\"count\":\"42\"}，输出区含「42\n42\nabc123测试」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "第933批：生成数量不再接受越界值；len=42 合法但 count=42 超出 1–20，必须拒绝并提示，不能静默生成 42 条。默认 count=1 ⇒ 不命中。"
   },
   {
     "slug": "finance/pan-validator",
@@ -3472,9 +3586,9 @@ const CASES = [
       "r2": "42"
     },
     "expect": [
-      "预期收益 (%) 84.00% 权重合计"
+      "权重合计为 84.00%，不是 100%。剩余 16.00% 对应的资产与收益未定义"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"w1\":\"42\",\"r1\":\"42\",\"w2\":\"42\",\"r2\":\"42\"}，输出区含「预期收益 (%) 84.00% 权重合计」；权重合计已改为百分比显示（42+42=84.00%）。默认态（输入回退）权重合计 100.00% ⇒ 不含该串 ⇒ 强判别、零逃生。"
+    "ref": "第933批：42/42 权重合计 84%，默认拒绝当作完整组合；旧实现输出 42.00 并仅标偏差。默认 60/40 合计 100% ⇒ 不命中。"
   },
   {
     "slug": "finance/points-redemption-value",
@@ -3519,9 +3633,9 @@ const CASES = [
       "m-droppct": "42"
     },
     "expect": [
-      "42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42"
+      "凯利分数须在 0%–100% 之间。"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"k-capital\":\"42\",\"k-winrate\":\"42\",\"k-ratio\":\"42\",\"k-fraction\":\"42\",\"f-capital\":\"42\",\"f-percent\":\"42\",\"f-price\":\"42\",\"f-stop\":\"42\",\"r-capital\":\"42\",\"r-riskpct\":\"42\",\"r-price\":\"42\",\"r-stop\":\"42\",\"m-initial\":\"42\",\"m-multiplier\":\"42\",\"m-times\":\"42\",\"m-droppct\":\"42\"}，输出区含「42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n42\n4…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "逐项范围校验：全部字段注入 42 时，胜率 42%（合法）、盈亏比 42（合法）、凯利分数 42 是 42% 还是 4200% 的歧义输入，页面按百分数字段读取 42 并判定超过 100% ⇒ 拒绝计算。旧实现若直接乘 fraction=42 会给出 1706% 的荒谬仓位；现字段级拒绝。默认 10000/55%/2/100% 合法且不出现该提示 ⇒ 注入专属，零逃生。"
   },
   {
     "slug": "finance/report-1",
@@ -3535,9 +3649,9 @@ const CASES = [
       "dec": "42"
     },
     "expect": [
-      "少数股东损益 = 42.00 × 58% = 24.36 元 长期股权投资低于应享有份额，差额 10.92 元为 负商誉 。复核交易对价与可辨认净资产公允价值后，方可计入当期损益。"
+      "少数股东损益 = 42.00 × 58% = 24.36 元 长期股权投资低于按账面净资产计算的应享份额，简化差额 10.92 元。该负数 不是可直接计入营业外收入的负商誉"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"inv\":\"42\",\"pct\":\"42\",\"capital\":\"42\",\"retained\":\"42\",\"premium\":\"42\",\"profit\":\"42\",\"dec\":\"42\"}，输出区含「少数股东损益 = 42.00 × 58% = 24.36 元 长期股权投资低于应…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"inv\":\"42\",\"pct\":\"42\",\"capital\":\"42\",\"retained\":\"42\",\"premium\":\"42\",\"profit\":\"42\",\"dec\":\"42\"}，输出区含「少数股东损益 = 42.00 × 58% = 24.36 元 长期股权投资低于按账面净资产…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "finance/mutual-fund-calculator",
@@ -3552,9 +3666,9 @@ const CASES = [
       "sellFee": "42"
     },
     "expect": [
-      "期末资产 ¥403.68 累计收益 -¥20,806.32 费用合计 ¥9,200.52"
+      "期末资产 ¥403.68 累计收益 -¥20,806.32 费用合计 ¥32,413.35"
     ],
-    "ref": "月末买入下 42 年、42% 收益和各项 42% 费率时，期末资产 403.68、亏损 20,806.32、申购赎回费用 9,200.52。"
+    "ref": "月末买入下 42 年、42% 收益和各项 42% 费率时，期末资产 403.68、亏损 20,806.32；费用合计改为 32,413.35，除申购/赎回费外包含逐月管理费与托管费，旧用例只统计交易费 9,200.52 会系统性偏低。"
   },
   {
     "slug": "finance/rental-yield-calculator",
@@ -3610,7 +3724,7 @@ const CASES = [
       "city": "beijing"
     },
     "expect": [
-      "计个税 第1月 ¥42.00 ¥9.45 ¥0.00 ¥32.55 ¥0.00 第2月 ¥42.00 ¥9.45 ¥0.00 ¥32.55 ¥0.00 第3月 ¥42.00 ¥9.45 ¥0.00 ¥32.55 ¥0.00 第4月 ¥42."
+      "年终奖并入综合所得"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"salary\":\"42\",\"bonus\":\"42\",\"pension\":\"42\",\"medical\":\"42\",\"unemployment\":\"42\",\"housing\":\"42\",\"base\":\"42\",\"children\":\"42\",\"continuing\":\"42\",\"housingLoan\":\"42\",\"rent\":\"42\",\"elderly\":\"42\",\"baby\":\"42\",\"medicalBig\":\"42\",\"threshold\":\"42\",\"city\":\"beijing\"}，输出区含「计个税 第1月 ¥42.00 ¥9.45 ¥0.00 ¥32.55 ¥0.00 …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -3623,7 +3737,7 @@ const CASES = [
   {
     "slug": "finance/payroll-calculator",
     "inputs": { "salary": "" },
-    "expect": ["请输入大于 0 的税前工资"],
+    "expect": ["税前工资须为 ≥0 的数字"],
     "ref": "空工资原实现 +el.value||0 ⇒ 全 0 结果；现显式提示。默认 15000 不出现该提示。"
   },
   {
@@ -3815,9 +3929,9 @@ const CASES = [
       "income": "42"
     },
     "expect": [
-      " 元 应缴税款： 1.26 元 税后余额（应纳税所得额 − 个税，未扣五险一金与专项附加）： 40.74 元 实际税率： 3.00"
+      "应缴税款： 1.26 元 应纳税所得额减本次估算税额： 40.74 元 这不是到手工资：应纳税所得额已由收入减去扣除得出，本页也未再扣五险一金与专项附加；需要税后工资请到「个税计算器」填写完整收入与扣除，避免重复扣减。 实际税率： 3.00"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"income\":\"42\"}，输出区含「 元 应缴税款： 1.26 元 税后余额（应纳税所得额 − 个税，未扣五险一金与专项附加）： 40.74 元 实际税率： 3.00」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。标签由「税后所得」改为「税后余额」，避免把应纳税所得额的税后余额误当到手工资。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"income\":\"42\"}，输出区含「 元 应缴税款： 1.26 元 应纳税所得额减本次估算税额： 40.74 元 实际税率： 3.00」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。标签由「税后所得」改为「税后余额」，避免把应纳税所得额的税后余额误当到手工资。"
   },
   {
     "slug": "finance/tax-calculator",
@@ -3903,7 +4017,7 @@ const CASES = [
       "batchDir": "exclusive"
     },
     "expect": [
-      "额 含税价 1 1.00 1.00 0.42 1.42 2 2.00 2.00 0.84 2.84 3 3.00 3.00 1.26 4.26 合计 6.00 2.52 8.52"
+      "增值税额（按输入税率） 含税价 1 1.00"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"customRate\":\"42\",\"amount\":\"42\",\"batchRate\":\"42\",\"batchInput\":\"1\\n2\\n3\",\"dir\":\"exclusive\",\"batchDir\":\"exclusive\"}，输出区含「额 含税价 1 1.00 1.00 0.42 1.42 2 2.00 2.00 …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -3926,9 +4040,9 @@ const CASES = [
       "input": "abc123测试"
     },
     "expect": [
-      "abc123测试\n输入： ABC123测试 长度： 8 字符（应为 10） ❌ 长度必须为 10 字符"
+      "abc123测试\n输入（已脱敏）： AB••••测试 长度： 8 字符（应为 10） ❌ 长度必须为 10 字符"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，输出区含「abc123测试\n输入： ABC123测试 长度： 8 字符（应为 10） ❌ …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，输出区含「abc123测试\n输入（已脱敏）： AB••••测试 长度： 8 字符（应为 10） ❌ …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "finance/word-wrap",
@@ -3985,7 +4099,7 @@ const CASES = [
   {
     slug: "finance/housing-fund-loan",
     inputs: { balance: "12", housePrice: "450", age: "40", rate: "99" },
-    expect: ["输入无效已按 2.85% 计"],
+    expect: ["贷款年利率须填写 0–20%"],
     ref: "年利率 99% 超出 0–20% 有效区间：旧实现静默回退 2.85% 不告知；现显式标注「输入无效已按 2.85% 计」。默认 2.85% 且有效 ⇒ 不命中。"
   },
   {
@@ -4063,7 +4177,7 @@ const CASES = [
   {
     slug: "finance/loan-comparison",
     inputs: {"a-principal":"0","a-rate":"5","a-months":"12","b-principal":"50000","b-rate":"4.8","b-months":"24","c-principal":"80000","c-rate":"4.6","c-months":"36"},
-    expect: ["⚠ 无效方案：贷款金额与月数须大于 0，已排除比较", "月供最少： B 方案"],
+    expect: ["⚠ 无效方案：贷款金额须大于 0 且不超过 1 万亿元，已排除比较", "月供最低： B 方案"],
     ref: "F-N1：方案 A 本金 0 ⇒ 月供恒 0，必须标记无效并排除比较；仅 B、C 参与，B 月供 2189.09 最低；本金/期数不同须提示不可仅按月供判优。默认三方案本金 100000、均有效 ⇒ 不命中无效提示。",
   },
   {
@@ -4100,7 +4214,7 @@ const CASES = [
   {
     slug: "finance/lease-payment-calculator",
     inputs: {"pv":"100000","downPct":"0","rate":"6","months":"36","fv":"0","fee":"5000","type":"equal","timing":"begin"},
-    expect: ["还款方式： 等额本息 · 期初还款", "实际年化利率(IRR)： 10.03%"],
+    expect: ["还款方式： 等额本息 · 期初还款", "名义年化（月 IRR × 12）： 10.03%"],
     ref: "期初还款首期落在 t=0、手续费 5000 计入 t=0 现金流（净融资 95,000）；按页面实际摊销表独立复算：t=0 现金流 −91,972.94、月利率 0.8358% ⇒ 名义年化 10.03%。旧口径把首期折现到 t=1 且漏算手续费，得约 5.67%。默认 fee=0、期末还款 ⇒ 不命中。",
   },
   {
@@ -4157,14 +4271,14 @@ const CASES = [
     slug: "finance/discount-calculator",
     inputs: { finalPrice: "80", discountRate: "12" },
     clicks: ["setMode(1)"],
-    expect: ["折扣须在 0–10 折之间（如 8 表示 8 折）。"],
+    expect: ["折扣须为大于 0 且不超过 10 折（如 8 表示 8 折）；0 折时原价无法唯一确定。"],
     ref: "F-N48：反向模式折扣率 12 超出「几折」口径 0–10 ⇒ 旧实现得原价 66.67、节省 −13.33；修复后字段级拒绝。默认折扣率 8 ⇒ 不命中。",
   },
   {
     slug: "finance/discount-calculator",
     inputs: { finalPrice: "80", discountRate: "-8" },
     clicks: ["setMode(1)"],
-    expect: ["折扣须在 0–10 折之间（如 8 表示 8 折）。"],
+    expect: ["折扣须为大于 0 且不超过 10 折（如 8 表示 8 折）；0 折时原价无法唯一确定。"],
     ref: "F-N48：折扣率 −8 ⇒ 旧实现直接除得负原价 −100.00、节省 −180.00；修复后拒绝负折扣。默认 8 ⇒ 不命中。",
   },
   {
@@ -4190,10 +4304,24 @@ const CASES = [
   },
   {
     slug: "finance/profit-margin-calculator",
+    inputs: { batchStart: "0", batchEnd: "0", batchStep: "10", batchM1: "0" },
+    clicks: ["calcBatch()"],
+    expect: ["0.00"],
+    ref: "第934批：成本 0、毛利率 0% 都保留为有效值，不再回退 10/20%；表格输出成本 0.00。默认 10–100/20% ⇒ 不命中。",
+  },
+  {
+    slug: "finance/profit-margin-calculator",
+    inputs: { batchStart: "0", batchEnd: "100", batchStep: "0.001" },
+    clicks: ["calcBatch()"],
+    expect: ["当前范围将生成 100001 行，超过 500 行上限"],
+    ref: "第934批：极小步长生成前行数预检，超过 500 行直接拒绝，避免海量循环/DOM。默认 21 行 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/profit-margin-calculator",
     inputs: { batchM1: "120" },
     clicks: ["calcBatch()"],
-    expect: ["不可达"],
-    ref: "F-N56：批量倒推表毛利率 120% ⇒ 旧实现输出负价格；修复后该列单元格标「不可达」。默认四档 20/30/40/50% ⇒ 不命中。",
+    expect: ["毛利率1须在 0%–100% 之间（当前 120%）"],
+    ref: "F-N56/第934批：批量毛利率 120% 超出 0–100%，修复后明确拒绝并提示区间，不再输出负价格或「不可达」。默认四档 20/30/40/50% ⇒ 不命中。",
   },
   {
     slug: "banking/apy-calculator",
@@ -4394,15 +4522,22 @@ const CASES = [
     slug: "finance/mortgage-prepayment",
     inputs: { principal: "500000", rate: "4.5", months: "240", monthly: "500", prepay: "20000", precision: "2" },
     clicks: ["calc()"],
-    expect: ["1200 期内无法还清"],
-    ref: "月供 500 低于当期利息 500000×0.375%=1875 ⇒ 负摊还；旧实现循环到 1200 期上限后返回 1200，缩期节省 = 原总还款 − 500×1200 − 20000 为负的伪结果。修复后 remainingMonths 返回 null，页面提示「按当前月供在 1200 期内无法还清」。默认 500000/4.5/240/3000/20000 ⇒ 33 期内还清，不命中。",
+    expect: ["属于负摊还：本金逐期增加"],
+    ref: "月供 500 低于当期利息 500000×0.375%=1875，本金逐期增加 ⇒ 复核修复后明确标记「属于负摊还：本金逐期增加」；旧实现循环到 1200 期上限后返回 1200，产生负的伪节省。默认 500000/4.5/240/3000/20000 ⇒ 33 期内还清，不命中。",
   },
   {
     slug: "finance/portfolio-return",
     inputs: { r1: "24", r2: "16", w1: "120", w2: "80" },
     clicks: ["calcTool()"],
-    expect: ["200.00% 权重合计（应=100%）", "41.60"],
-    ref: "120/80 权重合计 200%（旧实现显示 2.00，未标百分点单位）；现显示 200.00% 并提示偏差 100.00%。rp=1.2×24+0.8×16=41.60。默认 60/40 ⇒ 注入失败不命中。",
+    expect: ["权重合计为 200.00%，不是 100%", "剩余 -100.00% 对应的资产与收益未定义"],
+    ref: "第933批：120/80 合计 200%，默认拒绝把多余权重当作完整组合；旧实现直接输出 41.60 并只标偏差。默认 60/40 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/portfolio-return",
+    inputs: { r1: "24", r2: "16", w1: "120", w2: "80" },
+    clicks: ["document.getElementById('normalizeWeights').checked=true;calcTool();"],
+    expect: ["归一化组合预期收益 (%)", "已按比例归一化（原合计 200.00%）", "20.80"],
+    ref: "第933批：显式勾选归一化后，120/80 按 60%/40% 缩放，rp=0.6×24+0.4×16=20.80，并标注归一化假设；默认 60/40 不命中。",
   },
   {
     slug: "finance/npv-calculator",
@@ -4432,8 +4567,9 @@ const CASES = [
   },
   {
     slug: "finance/analysis-risk",
-    inputs: { s: "1000", v: "0", f: "0", i: "1000", t: "0", n: "1", dec: "2" },
-    expect: ["(1000.00 − 1000.00) = —"],
+    inputs: {},
+    clicks: ["var map={s:'1000',v:'0',f:'0',i:'1000',t:'0',n:'1',dec:'2'};for(var k in map){document.getElementById(k).value=map[k];}calc();document.getElementById('__tbProbe').textContent='DFLZERO '+(document.getElementById('res').innerHTML.indexOf('(1000.00 − 1000.00) = —')>=0?'OK':'BAD');"],
+    expect: ["DFL = 1000.00 ÷ (1000.00 − 1000.00) = —"],
     ref: "边界负例：DFL = EBIT ÷ (EBIT−利息)，利息恰好等于 EBIT 时 EBT=0，旧实现把 0 校验写在分子 ebit!==0 上 ⇒ 输出 Infinity；现分母 ebt===0 返回 —。默认态 EBIT 300,000 / 利息 50,000 不命中。",
   },
   {
@@ -4446,7 +4582,7 @@ const CASES = [
     slug: "finance/insurance-calculator",
     inputs: { ft_income: "20", ft_members: "0" },
     clicks: ["switchMethod('four-three')"],
-    expect: ["家庭人口数需大于 0"],
+    expect: ["家庭人口数须不小于 1"],
     ref: "边界负例：4321 法则的人均保额 = 年收入/家庭人口数，人口 0 时分母为 0，旧实现输出 Infinity；现显式拒绝。默认 3 人不命中。",
   },
   {
@@ -4466,7 +4602,7 @@ const CASES = [
     slug: "finance/loan-comparison",
     inputs: {"a-principal":"100000","a-rate":"","a-months":"36","b-principal":"100000","b-rate":"4.8","b-months":"36","c-principal":"100000","c-rate":"4.6","c-months":"30"},
     clicks: ["calc()"],
-    expect: ["方案 A ⚠ 无效方案：年利率须填写且不得为负，已排除比较 方案 B 月供： 2988.12 元"],
+    expect: ["方案 A ⚠ 无效方案：年利率须在 0%–100% 之间，已排除比较 方案 B 月供： 2988.12 元"],
     ref: "F-N229：方案 A 年利率留空，旧实现 `isFinite(NaN)?:0` 静默按 0%（月供 2777.78、有效年化 0.00%）参与排名；现判无效并排除，B 方案 100000/4.8%/36 期月供 2988.12 元照常展示。expect 把 A 的无效提示与 B 的独立复算月供绑成一条，默认态（A 4.8% 有效）不含该串 ⇒ 零逃生。",
   },
   {
@@ -4501,7 +4637,7 @@ const CASES = [
     slug: "finance/loan-amortization",
     inputs: { loanAmount: "120000", annualRate: "6", loanYears: "10", balloonMonths: "", balloonRatio: "", prepayMonth: "", prepayAmount: "" },
     clicks: ["calc()"],
-    expect: ["1,332.25 首月月供 39,869.52 总利息"],
+    expect: ["1,332.25 首月月供 39,869.52 原计划总利息"],
     ref: "F-N226：等额本息下清空「期末尾款比例 / 气球期数 / 提前还款期数 / 提前还款金额」四个隐藏字段，旧 `__tbInputGuard` 把 7 字段全列必填 ⇒ 直接报「请填写…后再计算」；现仅校验当前模式参与计算的字段，120000/6%/10 年正常输出月供 1,332.25、总利息 39,869.52（独立复算 M=P·i(1+i)^n/((1+i)^n−1)）。默认态 500000/4.9%/30 年不命中。",
   },
   {
@@ -4583,10 +4719,17 @@ const CASES = [
   },
   {
     slug: "finance/shebeizulinfeilvjisuan",
-    inputs: { price: "500000", months: "24", depYears: "8", maintRate: "3", profitRate: "8", salvageRate: "12" },
+    inputs: { price: "500000", months: "24", depYears: "8", maintRate: "3", profitRate: "8", salvageRate: "12", disposal: "salvage" },
     clicks: ["calc()"],
-    expect: ["¥9166.67 月租金 (元)", "-44.00% 投资回报率 ROI"],
-    ref: "F-N64 正常态 + ROI 公式口径：P=50万/T=24/Y=8/r=3/m=8/s=12 ⇒ 残值 60000、月折旧 (500000−60000)/96=4583.33、月租 4583.33+1250+3333.33=9166.67；总租金 220000 + 残值 60000 − 原值 500000 = −220000 ⇒ ROI −44.00%（信息框公式 (R×T+P×s/100−P)/P 与实现一致）。刻意用非默认 s=12（默认 s=5）避免 A===B 逃生；越界态拒绝不命中。",
+    expect: ["¥9166.67 月租金 (元)", "-50.00% 投资回报率 ROI", "按折旧期末残值回收"],
+    ref: "F-N64 正常态 + ROI 公式口径：P=50万/T=24/Y=8/r=3/m=8/s=12，显式选择按折旧期末残值回收 ⇒ 残值 60000、月折旧 4583.33、月租 9166.67；总租金 220000 + 回收 60000 − 原值 500000 − 维护 30000 = −250000 ⇒ ROI −50.00%（旧实现漏扣维护得 −44.00%）。第933批起默认改为按租期末账面价值回收，故本用例显式指定 salvage。",
+  },
+  {
+    slug: "finance/shebeizulinfeilvjisuan",
+    inputs: { price: "500000", months: "24", depYears: "8", maintRate: "3", profitRate: "8", salvageRate: "12", disposal: "book" },
+    clicks: ["calc();var t=String(document.getElementById('res').innerHTML);document.getElementById('__tbProbe').textContent='RENTBOOK '+(t.indexOf('390000.00')>=0?'B':'N')+' '+(t.indexOf('16.00%')>=0?'R':'N');"],
+    expect: ["RENTBOOK B R"],
+    ref: "第933批：短租期默认按租期末账面价值回收。月折旧 4583.33×24=110,000 累计折旧，账面 500,000−110,000=390,000；净收益 220,000+390,000−500,000−30,000=80,000 ⇒ ROI 16.00%。用拼接探针同时锁定两个值，避免只命中通用标签「租期内累计折旧 (元)」的逃生。旧实现无论租期都用残值 60,000，得 −44.00%。",
   },
   {
     slug: "finance/isbn-validator",
@@ -4632,9 +4775,9 @@ const CASES = [
   {
     slug: "finance/currency-symbol",
     inputs: { searchInput: "AUD" },
-    clicks: ["search();var g=String(document.getElementById('currencyGrid').innerHTML);var n=(g.match(/AUD/g)||[]).length;document.getElementById('__tbProbe').textContent='CURDEDUP '+(currencies.length===149&&n===1?'OK':'BAD len='+currencies.length+' aud='+n);"],
+    clicks: ["search();var g=String(document.getElementById('currencyGrid').innerHTML);var n=(g.match(/AUD/g)||[]).length;document.getElementById('__tbProbe').textContent='CURDEDUP '+(currencies.length===149&&n===2?'OK':'BAD len='+currencies.length+' aud='+n);"],
     expect: ["CURDEDUP OK"],
-    ref: "F-N138 去重锁：原始数组 153 条、AUD/XCD/UGX/NIO 各重复 2 次，运行时按 code 去重后应剩 149 条 ⇒ 搜索 AUD 只渲染 1 张卡片。旧实现不去重为 153 条/2 张卡片。探针断言 currencies.length===149 且 AUD 卡片数===1（不依赖 resultStat，harness 下该计数被二次渲染污染）⇒ 真判别、零逃生。",
+    ref: "F-N138 去重锁：原始数组 153 条、AUD/XCD/UGX/NIO 各重复 2 次，运行时按 code 去重后应剩 149 条 ⇒ 搜索 AUD 只渲染 1 张卡片。旧实现不去重为 153 条/2 张卡片。语义化卡片后 AUD 同时出现在 aria-label 与代码行，故探针断言 currencies.length===149 且 AUD 字符串===2（1 张卡片）（不依赖 resultStat，harness 下该计数被二次渲染污染）⇒ 真判别、零逃生。",
   },
   {
     slug: "finance/currency-symbol",
@@ -4645,10 +4788,24 @@ const CASES = [
   },
   {
     slug: "finance/credit-card-interest",
+    inputs: { billAmount: "10000", dailyRate: "", minRatio: "10", repayType: "minimum" },
+    clicks: ["calc()"],
+    expect: ["日利率不能为空；如确为 0，请明确输入 0。"],
+    ref: "第934批：日利率留空不再按 0 当成免息；明确提示补全。默认 0.05% ⇒ 不命中。",
+  },
+  {
+    slug: "finance/credit-card-interest",
+    inputs: { billAmount: "10000", dailyRate: "0", minRatio: "10", repayType: "minimum", installmentFee: "0", installmentMonths: "12" },
+    clicks: ["showCompare()"],
+    expect: ["两种方案总支出相同"],
+    ref: "第934批：零利率 + 零手续费时最低还款 10 期还清、分期 12 期，总支出均 10000；差额小于 0.01 元时不再固定说最低还款更省钱。默认 0.05%/0.75% ⇒ 不命中。",
+  },
+  {
+    slug: "finance/credit-card-interest",
     inputs: { billAmount: "10000", dailyRate: "-0.05", minRatio: "10", repayType: "minimum" },
     clicks: ["calc()"],
-    expect: ["日利率不能为负，请填写 ≥0 的数值"],
-    ref: "F-N124 负值拒绝：日利率 −0.05 旧实现 +value/100||0 → 负利率照算得负利息/负总支出；修复后 calc() 前置拒绝并提示「日利率不能为负，请填写 ≥0 的数值」。默认日利率 0.05 ⇒ 不命中。",
+    expect: ["日利率须为 ≥0 的有效数字（当前 -0.05%）"],
+    ref: "F-N124 负值拒绝：日利率 −0.05 旧实现 +value/100||0 → 负利率照算得负利息/负总支出；第934批改为严格的空值/有限/非负校验，提示「日利率须为 ≥0 的有效数字（当前 -0.05%）」。默认日利率 0.05 ⇒ 不命中。",
   },
   {
     slug: "finance/uan-validator",
@@ -4717,7 +4874,7 @@ const CASES = [
     slug: "finance/ein-validator",
     inputs: { input: "00-0000000" },
     clicks: ["validate()"],
-    expect: ["前缀 00 未在 IRS 分配范围，EIN 无效"],
+    expect: ["前缀 00 属已知保留/未分配段，按格式规则判无效"],
     ref: "F-N157 前缀判据锁：00 是 IRS 保留/未分配前缀，should 判无效。旧实现 IRS_PREFIX 查表只用于展示、无条件 ✅；修复后 EIN_INVALID_PREFIX 黑名单参与判据。默认 01-1234567 有效前缀不命中。",
   },
   {
@@ -4796,7 +4953,7 @@ const CASES = [
     slug: "finance/tax-bracket",
     inputs: { income: "200000" },
     clicks: ["calc()"],
-    expect: ["税后余额（应纳税所得额 − 个税，未扣五险一金与专项附加）： 176,920 元"],
+    expect: ["应纳税所得额减本次估算税额： 176,920 元"],
     ref: "F-N105 口径防回退：应税所得 200,000 → 税 200,000×20%−16,920=23,080，税后应税余额 176,920。旧文案「税后所得」不含该口径说明 ⇒ 不命中；默认 100,000（92,520）亦不命中 ⇒ 零逃生。",
   },
 
@@ -4983,7 +5140,7 @@ const CASES = [
   },
   {
     slug: "finance/position-size-calculator",
-    clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/finance/position-size-calculator.html','utf8');var i=h.indexOf('if (!(ratio > 0))');var s=i>=0?h.slice(i,i+220):'';var ok=s.indexOf(\"('statGrid').innerHTML=''\")>=0&&s.indexOf('盈亏比须大于 0')>=0;document.getElementById('__tbProbe').textContent='POSSTAT '+(ok?'OK':'BAD');"],
+    clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/finance/position-size-calculator.html','utf8');var i=h.indexOf('if(!isFinite(ratio)||ratio<=0)');var s=i>=0?h.slice(i,i+180):'';var ok=s.indexOf('__psFail')>=0&&h.indexOf('currentResult = null;')>=0;document.getElementById('__tbProbe').textContent='POSSTAT '+(ok?'OK':'BAD');"],
     expect: ["POSSTAT OK"],
     ref: "第1344批 分支残留：凯利模式 ratio<=0 早退分支原只写 #res 就 return，#statGrid 保留上次合法计算的统计卡（martingale 分支有清，口径不一）；改为早退同步清空 statGrid。",
   },
@@ -5024,7 +5181,7 @@ const CASES = [
 
 
 { slug:"finance/lease-payment-calculator", inputs:{pv:"100000",downPct:"0",rate:"6",months:"36",fv:"0",fee:"100000",type:"equal",timing:"end"}, clicks:["calc()"], expect:["不可计算（净融资额或现金流无有效 IRR）"], ref:"租赁物 100000、首付 0、手续费 100000 ⇒ 净融资额 0，后续付款全为正、现金流无符号变化，IRR 无解；旧实现 calcIRR 返回 NaN 后仍 toFixed 输出 NaN%。" },
-{ slug:"finance/lease-payment-calculator", inputs:{pv:"100000",downPct:"0",rate:"0",months:"12",fv:"0",fee:"0",type:"equal",timing:"end"}, clicks:["calc()"], expect:["实际年化利率(IRR)： 0.00%"], ref:"名义利率 0、无手续费、12 期等额还款：现金流 −100000 后按月收回，IRR=0，应输出 0.00% 而非不可计算；防止无解守卫误伤合法零利率。" },
+{ slug:"finance/lease-payment-calculator", inputs:{pv:"100000",downPct:"0",rate:"0",months:"12",fv:"0",fee:"0",type:"equal",timing:"end"}, clicks:["calc()"], expect:["名义年化（月 IRR × 12）： 0.00%"], ref:"名义利率 0、无手续费、12 期等额还款：现金流 −100000 后按月收回，IRR=0，应输出 0.00% 而非不可计算；防止无解守卫误伤合法零利率。" },
   {
     slug: "finance/dca-calculator",
     inputs: { monthly: "0", years: "1", rate: "12", initial: "12000", target: "0" },
@@ -5036,7 +5193,7 @@ const CASES = [
     slug: "finance/sharpe-ratio",
     inputs: { returns: "5\n5", riskFree: "0", annualize: "1" },
     clicks: ["calc()"],
-    expect: ["标准差必须大于0：当前收益率序列的标准差为 0"],
+    expect: ["标准差必须大于 0：当前 2 个收益率全部相同"],
     ref: "第731C批：序列 5,5 标准差为 0，旧实现把夏普直接置 0 并评级；现拒绝并清空统计卡，说明夏普无定义。默认收益序列有波动 ⇒ 不命中。"
   },
   {
@@ -5065,8 +5222,1381 @@ const CASES = [
     inputs: { monthly: "1000", freq: "monthly", annualRate: "-12", period: "1" },
     clicks: ["calcRegular()"],
     expect: ["-752.1"],
-    ref: "第731C批：定投年化 -12%、月投 1000、1 年 ⇒ 期初投入终值 11,247.9、累计投入 12,000、亏损 752.1；旧模板固定加 + 号并上绿色，现按亏损显示负号/红色。默认 8% 正收益 ⇒ 不命中。"
+    ref: "第731C批：定投年化 -12%、月投 1000、1 年 ⇒ 期初投入终值 11,247.9、累计投入 12,000、亏损 752.1；旧模板固定加 + 号并上绿色，现按亏损显示负号/红色。默认 8% 正收益 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/number-to-words-chinese",
+    inputs: { inputVal: "10010" },
+    clicks: ["convert()"],
+    expect: ["一万零一十"],
+    ref: "中文读数分组十位：10010 = 一万 + 零一十；仅整个数的最高读法才省略「一」，分组内部保留 ⇒ 一万零一十（旧实现一万零十）。",
+  },
+  {
+    slug: "finance/number-to-words-chinese",
+    inputs: { inputVal: "1.00009" },
+    clicks: ["convert()"],
+    expect: ["一点零零零零九"],
+    ref: "小数按输入字符串逐位读、保留末尾零：1.00009 ⇒ 一点零零零零九，不四舍五入/截断（旧实现四点位后四舍五入得一点零零零一）。",
+  },
+  {
+    slug: "finance/currency-converter",
+    inputs: { rateMode: "manual", manualRate: "", fromAmount: "100" },
+    clicks: ["calc()"],
+    expect: ["手动汇率必须是大于 0 的有效数字"],
+    ref: "手动模式空汇率必须阻止换算并提示，不能静默回退内置表；结果区不得出现内置汇率换算金额。",
+  },
+  {
+    slug: "finance/currency-converter",
+    inputs: { rateMode: "manual", manualRate: "7", fromAmount: "100" },
+    clicks: ["calc();swapCurrencies();document.getElementById('__tbProbe').textContent='CCSWAP '+document.getElementById('manualRate').value+' '+document.getElementById('toAmount').value;"],
+    expect: ["CCSWAP 0.142857142857 14.2857"],
+    ref: "手动汇率 1 CNY=7 USD，交换后 1 USD=1/7 CNY；100 USD ⇒ 14.2857 CNY。交换只换币种不取倒数会把 100 USD 算成 700 CNY。",
+  },
+  {
+    slug: "finance/currency-converter",
+    inputs: { rateMode: "manual", manualRate: "0.138", fromAmount: "200" },
+    clicks: ["var __st={};globalThis.localStorage={getItem:function(k){return __st[k]==null?null:__st[k]},setItem:function(k,v){__st[k]=String(v)},removeItem:function(k){delete __st[k]}};calc();saveHistory();var h=JSON.parse(localStorage.getItem('currency_history:finance'))[0];document.getElementById('rateMode').value='builtin';document.getElementById('manualRate').value='9';renderHistory();document.getElementById('__tbProbe').textContent='CCHIST '+h.rateSource+' '+h.rate+' '+h.result+' '+((String(document.getElementById('historyList').innerHTML).indexOf('27.6000')>=0)?'SAVED':'LIVE');"],
+    expect: ["CCHIST manual 0.138 27.6 SAVED"],
+    ref: "历史必须保存当次汇率来源、汇率和结果；切回内置/改手动汇率后列表仍显示保存值 27.6000，而不是按当前汇率重算。",
+  },
+  {
+    slug: "finance/currency-converter",
+    clicks: ["globalThis.TBKit={util:{isEn:function(){return true;}}};document.getElementById('batchFromSearch').value='Yen';filterOptions('batchFrom');var t=String(document.getElementById('batchFromOptions').innerHTML);document.getElementById('__tbProbe').textContent='CCNAME '+(t.indexOf('Japanese Yen')>=0?'YEN':'MISS')+' '+(t.indexOf('日元')<0?'CLEAN':'ZH');"],
+    expect: ["CCNAME YEN CLEAN"],
+    ref: "第933批：英文态货币列表使用英文名称，搜索 Yen 命中 Japanese Yen，且不再渲染中文「日元」。默认中文态不命中。",
+  },
+  {
+    slug: "finance/currency-converter",
+    inputs: { fromAmount: "5000", rateMode: "manual", manualRate: "7.25", presetFromCurrency: "USD", presetToCurrency: "CNY", presetBatchFromCurrency: "USD", presetBatchToCurrency: "CNY" },
+    clicks: ["__ccApplyPresetCurrencies();var t=String(document.getElementById('resultDisplay').innerHTML).replace(/,/g,'');document.getElementById('__tbProbe').textContent='CCPRESET '+(t.indexOf('36250')>=0?'OK':'BAD');"],
+    expect: ["CCPRESET OK"],
+    ref: "第934批：5000 美元换人民币预设同时设置源/目标币与 7.25 手动汇率，结果 5000×7.25=36250；旧预设只改金额/汇率，默认 CNY→USD 会把 7.25 算成 1 CNY=7.25 USD。",
+  },
+  {
+    slug: "finance/currency-converter",
+    inputs: { fromAmount: "100", batchInput: "100", rateMode: "manual", manualRate: "7" },
+    clicks: ["calcBatch();var d1=String(document.getElementById('batchResult').innerHTML);document.getElementById('manualRate').value='8';calc();var d2=String(document.getElementById('batchResult').innerHTML);var csv='';ToolBox.downloadText=function(n,c){csv=String(c);};exportBatchCSV();document.getElementById('__tbProbe').textContent='CCSYNC '+(d1.indexOf('700.0000')>=0?'OLD':'NO')+' '+(d2.indexOf('800.0000')>=0?'NEW':'NO')+' '+(csv.indexOf('800.0000')>=0?'CSV':'BAD');"],
+    expect: ["CCSYNC OLD NEW CSV"],
+    ref: "第933批：批量表随单笔手动汇率变化同步重算；改 7→8 后屏幕与导出都使用 800.0000，不再出现屏幕 700、导出 800 的分叉。默认内置汇率不命中。",
+  },
+  {
+    slug: "finance/depreciation-calculator",
+    inputs: { cost: "100000", salvage: "-5000", life: "5" },
+    clicks: ["var msg='';var old=ToolBox.showToast;ToolBox.showToast=function(m){msg=String(m);};exportCSV();document.getElementById('__tbProbe').textContent='DEPBLOCK '+msg;"],
+    expect: ["DEPBLOCK 导出已阻止：请确保原值 > 残值 ≥ 0"],
+    ref: "CSV 导出必须复用页面残值校验：负残值阻断导出并说明原因，不再输出负折旧/错误净值。",
+  },
+  {
+    slug: "finance/credit-card-interest",
+    inputs: { billAmount: "5", dailyRate: "0", minRatio: "100", repayType: "minimum" },
+    clicks: ["calc()"],
+    expect: ["5.00 首月最低还款"],
+    ref: "账单 5 元、日利率 0、最低比例 100%：首月最低还款取模拟明细首期付款 5.00（本金+利息上限），不能显示 10 元下限。",
+  },
+  {
+    slug: "finance/profit-margin-calculator",
+    inputs: { revenue: "0", cogs: "500" },
+    clicks: ["calc()"],
+    expect: ["未定义 毛利率 毛利润 -500.00"],
+    ref: "收入为 0 时毛利率等比率分母为 0，显示未定义并保留可计算利润金额 -500.00；不能显示 0%。",
+  },
+  {
+    slug: "finance/mutual-fund-calculator",
+    inputs: { years: "10.5" },
+    clicks: ["calc()"],
+    expect: ["定投年限须为 1–50 的整数年"],
+    ref: "定投年限不得静默夹到 1–50 或向下取整：10.5 年明确拒绝，并清空当前结果。",
+  },
+  {
+    slug: "finance/investment-calculator",
+    inputs: { initial: "10000", final: "", years: "5", additional: "0" },
+    clicks: ["calc()"],
+    expect: ["请填写期末价值"],
+    ref: "期末价值留空必须提示补全，不能按 0 计算成全部亏损；显式输入 0 才走 -100% 分支。",
+  },
+  {
+    slug: "finance/investment-calculator",
+    inputs: { initial: "10000", final: "0", years: "5", additional: "0" },
+    clicks: ["calc()"],
+    expect: ["年化收益率 CAGR： -100.00%"],
+    ref: "期末价值显式填 0 合法：CAGR = -100.00%，与留空未填写区分。",
+  },
+  {
+    slug: "finance/investment-calculator",
+    inputs: { initial: "10000", final: "18000", years: "0.000000001", additional: "0" },
+    clicks: ["calc()"],
+    expect: ["数值超出可计算范围"],
+    ref: "极短年限 + 1.8 倍回报使 expm1(log(1.8)/1e-9) 溢出；必须拒绝并禁止保存/导出，不能显示破折号却标记有效。",
+  },
+  {
+    slug: "finance/irr-calculator",
+    inputs: {},
+    clicks: ["cashFlows=[{period:0,amount:-100,label:'T0'},{period:1,amount:200,label:'T1'},{period:2,amount:-100,label:'T2'}];renderFlows();calc();document.getElementById('__tbProbe').textContent='IRRROOT '+document.getElementById('irrValue').textContent;"],
+    expect: ["IRRROOT 0.00%"],
+    ref: "现金流 -100/200/-100 的 NPV = -100r²/(1+r)²，在 r=0 处与零轴相切；旧实现只找变号区间会报无零点。",
+  },
+  {
+    slug: "finance/npv-calculator",
+    inputs: {},
+    clicks: ["cashFlows=[-100,50,60];renderCashFlows();document.getElementById('__tbProbe').textContent='NPVSNAP '+document.getElementById('npvFlowSnapshot').value;"],
+    expect: ["NPVSNAP -100|50|60"],
+    ref: "现金流变更后必须写入完整有序快照，供历史恢复重建期数。",
+  },
+  {
+    slug: "finance/npv-calculator",
+    inputs: {},
+    clicks: ["var cb;TBKit={util:{isEn:function(){return false},diffBox:function(){}},matrix:{table:function(){}},history:{list:function(){return [{t:Date.now(),d:{npvFlowSnapshot:'-100|50|60|70',__tbScore:1,'结果':'x'}}]},mount:function(s,fn){cb=fn},last:function(){return null}},chart:{line:function(){}}};__npv_calculatorRender(['npvFlowSnapshot'],'结果',false);cb({npvFlowSnapshot:'-100|50|60|70'});document.getElementById('__tbProbe').textContent='NPVREST '+document.getElementById('npvFlowSnapshot').value;"],
+    expect: ["NPVREST -100|50|60|70"],
+    ref: "历史恢复必须按快照重建 4 期，而不是只更新当前页面已有 cf_ 输入；第4期必须出现。",
+  },
+  {
+    slug: "finance/analysis-cost-1",
+    inputs: { total: "100", rows: "A,1\nB,1\nC,1", dec: "2", outQty: "" },
+    clicks: ["calc()"],
+    expect: ["分摊额明细相加为 99.99 元"],
+    ref: "100 元平均分给 3 项、显示两位各 33.33，显示明细合计 99.99 与总成本 100.00 差 0.01；必须检测显示精度差异。",
+  },
+  {
+    slug: "finance/analysis-cost-1",
+    inputs: { total: "100", rows: "A,1\nB,1\nC,1", dec: "2", outQty: "" },
+    clicks: ["document.getElementById('tailAdjust').checked=true;calc()"],
+    expect: ["明细合计与总成本一致"],
+    ref: "启用尾差处理后最后一项调整为 33.34，显示明细合计 = 100.00，并明确提示。",
+  },
+  {
+    slug: "finance/invoice-generator",
+    inputs: { "sp-total": "100", "sp-limit": "34", "sp-method": "equal", "sp-type": "total" },
+    clicks: ["currentMethod='split';calc();document.getElementById('__tbProbe').textContent='INVEQ '+currentResult.invoices.map(function(i){return i.amount.toFixed(2)}).join(',')+'|'+currentResult.sumTotal.toFixed(2);"],
+    expect: ["INVEQ 33.34,33.33,33.33|100.00"],
+    ref: "100 元按 34 限额均分为 3 张：按分分配余数 ⇒ 33.34+33.33+33.33=100.00，三张均 ≤34；旧实现 33.33×3 显示合计 99.99。",
+  },
+  {
+    slug: "finance/invoice-generator",
+    inputs: { "sp-total": "10500", "sp-limit": "10000", "sp-method": "lastsmall", "sp-type": "total" },
+    clicks: ["currentMethod='split';calc();document.getElementById('__tbProbe').textContent='INVLAST '+currentResult.invoices.length+' '+Math.max.apply(null,currentResult.invoices.map(function(i){return i.amount}));"],
+    expect: ["INVLAST 2 10000"],
+    ref: "总额 10500、限额 10000 的最后一张较小模式必须拆成 10000+500，任何一张都不得超过限额；旧实现因 1.1 倍阈值直接输出 10500 一张。",
+  },
+  {
+    slug: "finance/loan-comparison",
+    inputs: { "a-principal": "100000", "a-rate": "101", "a-months": "12", "b-principal": "100000", "b-rate": "0", "b-months": "12" },
+    clicks: ["calc()"],
+    expect: ["年利率须在 0%–100% 之间", "8333.33"],
+    ref: "利率 101% 超出合理范围被排除；0% 仍合法，B 方案月供 100000/12 = 8333.33。",
+  },
+  {
+    slug: "finance/bond-yield-calculator",
+    inputs: { "y-price": "" },
+    clicks: ["switchTab('formula', document.querySelectorAll('.tab-btn')[1]);document.getElementById('__tbProbe').textContent='BONDTAB '+(document.getElementById('tabFormula').classList.contains('active')?'OK':'BAD');"],
+    expect: ["BONDTAB OK"],
+    ref: "公式标签不依赖当前计算模式输入；隐藏的 y-price 留空也不能阻断 tab 切换。",
+  },
+  {
+    slug: "finance/word-wrap",
+    inputs: { input: "😀中A", width: "1" },
+    clicks: ["document.getElementById('countBytes').checked=false;wrap();"],
+    expect: ["😀", "中", "A"],
+    ref: "第931批：字符模式按字素簇/码点切分，宽度 1 时单个 emoji 保持完整，不再把代理对拆成两行。"
+  },
+  {
+    slug: "finance/shebeizulinfeilvjisuan",
+    inputs: { price: "100", months: "12", depYears: "1", maintRate: "12", profitRate: "0", salvageRate: "0" },
+    clicks: ["calc()"],
+    expect: ["维护费用合计 (元)", "净收益 (元，已扣维护与购置)", "¥0.00"],
+    ref: "第931批：净收益按租金 + 残值 − 购置 − 租期内维护支出计算；原值100、租12月、维护12%、零利润时净收益为0，不再误报12。"
+  },
+  {
+    slug: "finance/shebeizulinfeilvjisuan",
+    clicks: ["document.getElementById('price').value='0';document.getElementById('months').value='12';document.getElementById('depYears').value='1';calc();saveHistory();var k=historyKey();var n=JSON.parse(localStorage.getItem(k)||'[]').length;document.getElementById('__tbProbe').textContent='RENTBAD '+n;"],
+    expect: ["RENTBAD 0"],
+    ref: "第931批：历史保存复用完整计算校验；原值为 0 时计算已拒绝，不再把无效方案写入历史。"
+  },
+  {
+    slug: "finance/word-frequency",
+    inputs: { input: "a a b", topN: "1", minLen: "1" },
+    clicks: ["document.getElementById('enOnly').checked=true;document.getElementById('zhOnly').checked=false;document.getElementById('filterStopwords').checked=false;analyze();"],
+    expect: ["(66.67%)", "全部词次（3）为分母"],
+    ref: "第931批：词条百分比以过滤后全部词次为分母；Top N=1 时 a 出现 2/3 仍显示 66.67%，不因只展示 1 条变成 100%。"
+  },
+  {
+    slug: "finance/word-frequency",
+    inputs: { input: "a cat dog", topN: "5", minLen: "3" },
+    clicks: ["document.getElementById('enOnly').checked=true;document.getElementById('zhOnly').checked=false;analyze();"],
+    expect: ["cat", "dog", "总词次"],
+    ref: "第931批：英文分词同样应用最小词长；minLen=3 时 a 被过滤，只统计 cat/dog。"
   }
+,
+  {
+    slug: "finance/word-search",
+    inputs: { level: "easy", theme: "colors", customWords: "" },
+    clicks: ["start();var g=document.getElementById('grid'),w=document.getElementById('words');document.getElementById('__tbProbe').textContent='WS10 '+((SIZE===10&&WORDS_PER_GAME===6&&words.length===6)?'OK':'BAD')+' size='+SIZE+' words='+words.length;"],
+    expect: ["WS10 OK"],
+    ref: "第931批：难度选择驱动网格与词数；easy=10×10/6 词，颜色主题词库。旧实现固定 12×12、8 词且无难度控件，必 BAD。"
+  },
+  {
+    slug: "finance/word-search",
+    inputs: { level: "medium", theme: "colors", customWords: "ab\n1\n_x" },
+    clicks: ["start();var g=document.getElementById('grid');document.getElementById('__tbProbe').textContent='WSBAD '+((document.getElementById('output').textContent.indexOf('没有有效英文单词')>=0&&(g.children?g.children.length:0)===0)?'OK':'BAD');"],
+    expect: ["WSBAD OK"],
+    ref: "第931批：自定义词表过滤掉少于 3 个字母或非英文的项；全无效时不生成矩阵并给出明确提示，不静默回退主题词库。"
+  },
+  {
+    slug: "finance/msisdn-validator",
+    inputs: { input: "+86 13800138000" },
+    clicks: ["var src=String(__msisdn_validatorExtras);var oi=src.indexOf('__histOptIn'),ck=src.indexOf('!opt.checked'),rr=src.indexOf('history.record'),mk=src.indexOf('MaskText(res');document.getElementById('__tbProbe').textContent='MSNOHIST '+((oi>=0&&ck>oi&&rr>ck&&mk>=0)?'OK':'BAD')+' g='+oi+','+ck+','+rr+','+mk;"],
+    expect: ["MSNOHIST OK"],
+    ref: "第931批：通信标识默认不持久化；未勾选保存选项时验证后历史必须为 0 条。旧实现 validate 后自动 record，必 BAD。"
+  },
+  {
+    slug: "finance/imsi-validator",
+    inputs: {},
+    clicks: ["var src=String(__imsi_validatorExtras);var oi=src.indexOf('__histOptIn'),ck=src.indexOf('!opt.checked'),rr=src.indexOf('history.record'),mk=src.indexOf('MaskText(res');document.getElementById('__tbProbe').textContent='IMSINOHIST '+((oi>=0&&ck>oi&&rr>ck&&mk>=0)?'OK':'BAD')+' g='+oi+','+ck+','+rr+','+mk;"],
+    expect: ["IMSINOHIST OK"],
+    ref: "第931批：IMSI 页面默认不写历史；未勾选时长度 0。"
+  },
+  {
+    slug: "finance/iccid-validator",
+    inputs: {},
+    clicks: ["var src=String(__iccid_validatorExtras);var oi=src.indexOf('__histOptIn'),ck=src.indexOf('!opt.checked'),rr=src.indexOf('history.record'),mk=src.indexOf('MaskText(res');document.getElementById('__tbProbe').textContent='ICCIDNOHIST '+((oi>=0&&ck>oi&&rr>ck&&mk>=0)?'OK':'BAD')+' g='+oi+','+ck+','+rr+','+mk;"],
+    expect: ["ICCIDNOHIST OK"],
+    ref: "第931批：ICCID 页面默认不写历史；未勾选时长度 0。"
+  },
+  {
+    slug: "finance/imei-validator",
+    inputs: {},
+    clicks: ["var src=String(__imei_validatorExtras);var oi=src.indexOf('__histOptIn'),ck=src.indexOf('!opt.checked'),rr=src.indexOf('history.record'),mk=src.indexOf('MaskText(res');document.getElementById('__tbProbe').textContent='IMEINOHIST '+((oi>=0&&ck>oi&&rr>ck&&mk>=0)?'OK':'BAD')+' g='+oi+','+ck+','+rr+','+mk;"],
+    expect: ["IMEINOHIST OK"],
+    ref: "第931批：IMEI 页面默认不写历史；未勾选时长度 0。"
+  },
+  {
+    slug: "finance/msisdn-validator",
+    inputs: { input: "+86 13800138000" },
+    clicks: ["var t=__msisdn_validatorMaskText('输入 +86 13800138000 归一化 8613800138000',['+86 13800138000']);document.getElementById('__tbProbe').textContent='MSMASK '+((t.indexOf('13800138000')<0&&t.indexOf('8613800138000')<0&&t.indexOf('86****8000')>=0)?'OK':'BAD')+' '+t;"],
+    expect: ["MSMASK OK"],
+    ref: "第931批：显式勾选后历史只存脱敏值 13****8000，完整号码 13800138000 与归一化 8613800138000 均不得出现在历史序列化结果里，输入字段为 86****8000。"
+  }
+
+,
+  {
+    slug: "finance/futures-pnl-calculator",
+    inputs: {},
+    clicks: ["var __st={};globalThis.localStorage={getItem:function(k){return __st[k]||null},setItem:function(k,v){__st[k]=String(v)},removeItem:function(k){delete __st[k]}};globalThis.ToolBox={formatNumber:function(v,d){return Number(v).toFixed(d).replace(/\B(?=(\d{3})+(?!\d))/g,',')},showToast:function(){},toggleToolTheme:function(){}};localStorage.setItem('futures_trades',JSON.stringify([{code:'IF',contract:'沪深300股指期货',direction:1,openPrice:3000,closePrice:3010,lots:2,multiplier:100,marginRate:12,openFee:20,closeFee:20}]));loadTrade(0);var g=String(document.getElementById('resultGrid').innerHTML),c=String(document.getElementById('contractName').textContent);document.getElementById('__tbProbe').textContent='FUTMULT '+(currentContract.multiplier===100&&c.indexOf('历史乘数 100')>=0&&g.replace(/,/g,'').indexOf('1920.00')>=0?'OK':'BAD')+' m='+currentContract.multiplier;"],
+    expect: ["FUTMULT OK"],
+    ref: "第932批：历史交易保存的合约乘数为 100，内置 IF 当前乘数为 300；恢复历史必须用保存值 100。开平仓 3000→3010、2 手、双边手续费各 20 ⇒ 盈亏 10×100×2−80=1,920.00。旧实现按当前 300 算得 5,920.00，必 BAD。"
+  },
+  {
+    slug: "finance/loan-amortization",
+    inputs: { prepayMonth: "", prepayAmount: "100000" },
+    clicks: ["document.getElementById('prepayCard').style.display='block';calcPrepay();var a=String(document.getElementById('prepayResult').innerHTML);document.getElementById('prepayMonth').value='0';calcPrepay();var b=String(document.getElementById('prepayResult').innerHTML);document.getElementById('__tbProbe').textContent='LAPM '+(a.indexOf('请输入提前还款期数')>=0&&a.indexOf('不会默认按第 1 期')>=0&&b.indexOf('1 至最后一期之前的整数')>=0?'OK':'BAD');"],
+    expect: ["LAPM OK"],
+    ref: "第932批：提前还款期数留空/填 0 不得被 `||1` 静默当首期；空串给「不会默认按第 1 期」提示，0 给范围提示。旧实现两者都按第 1 期直接生成方案，两个提示均不出现 ⇒ BAD。"
+  },
+  {
+    slug: "finance/compound-interest",
+    inputs: { principal: "10000", rate: "6", years: "10", annual: "0" },
+    clicks: ["document.getElementById('freq').value='12';calc();var fv=window.__ciLast.totalFV;var box=String(document.getElementById('__charCiVal').textContent);document.getElementById('__tbProbe').textContent='CIDEEP '+((box.indexOf('¥'+Math.round(fv))>=0&&String(document.getElementById('__charCiRows').innerHTML).indexOf('12 次/年')>=0)?'OK':'BAD')+' fv='+fv;"],
+    expect: ["CIDEEP OK"],
+    ref: "第932批：解读模块必须复用主结果——月复利、定投 0 时，解读终值应与主结果 totalFV 一致并标出 12 次/年。旧 __finUpdate 自行按年复利 P(1+r)^t 计算（10,000×1.06^10≈17,908），主结果月复利≈18,194，必 BAD。"
+  },
+  {
+    slug: "finance/car-loan-calculator",
+    inputs: { price: "200000", downPct: "20", rate: "60", years: "5" },
+    clicks: ["calculate();var a=String(document.getElementById('monthlyPay').textContent);var v=__car_loan_calculator_valid;document.getElementById('__tbProbe').textContent='CARMAX '+((a==='--'&&v===false)?'OK':'BAD')+' pay='+a+' valid='+v;"],
+    expect: ["CARMAX OK"],
+    ref: "第932批：年利率 60% 超出 0–50% 合理输入范围，必须清空结果、valid=false，导出入口也不得放行。旧实现只校验 >=0，60% 仍算出月供并允许导出 ⇒ BAD。"
+  },
+  {
+    slug: "finance/routing-number-validator",
+    inputs: { input: "310000004" },
+    clicks: ["validate();var o=String(document.getElementById('output').innerHTML);document.getElementById('__tbProbe').textContent='RT31 '+(o.indexOf('储蓄机构前缀（对应美联储第 11 区）')>=0&&o.indexOf('只说明 9 位数字结构自洽')>=0?'OK':'BAD');"],
+    expect: ["RT31 OK"],
+    ref: "第932批：前缀 21–32 属储蓄机构号段，31 对应美联储第 11 区（21→1…31→11），不能写成 Michigan/Ohio 等州名；校验通过只声明 3-7-1 加权模 10 结构自洽，不判机构有效。旧映射把 31 写成 New York (Thrift)、结论「路由号码有效」⇒ BAD。"
+  },
+  {
+    slug: "finance/routing-number-validator",
+    inputs: { input: "610000005" },
+    clicks: ["validate();var o=String(document.getElementById('output').innerHTML);document.getElementById('__tbProbe').textContent='RT61 '+(o.indexOf('电子交易标识（对应美联储第 1 区）')>=0&&o.indexOf('Paris')<0?'OK':'BAD');"],
+    expect: ["RT61 OK"],
+    ref: "第932批：前缀 61–72 是电子交易标识号段（61→第 1 区），不是 Paris/FR；旧映射把 61 写成 Paris (FR) 属明显错误。"
+  },
+  {
+    slug: "finance/routing-number-validator",
+    inputs: { input: "990000000" },
+    clicks: ["validate();var o=String(document.getElementById('output').innerHTML);document.getElementById('__tbProbe').textContent='RTUNK '+((o.indexOf('不在公开分配范围')>=0&&o.indexOf('无法判断该号码是否已分配')>=0&&o.indexOf('不能确认号码已分配')<0)?'OK':'BAD');"],
+    expect: ["RTUNK OK"],
+    ref: "第932批：未知前缀 99 校验和虽通过，也只能说「不在公开范围、无法判断是否已分配」，不得直接判无效、也不得判有效；旧实现输出「未分配/非法，路由号码无效」⇒ BAD。"
+  },
+
+  // ===== 第935批新增 =====
+  {
+    slug: "finance/npv-calculator",
+    inputs: { rate: "", init: "10000" },
+    clicks: ["calc()"],
+    expect: ["请填写折现率（如确为 0，请输入 0）"],
+    ref: "第935批：折现率留空不再按 0% 计算，明确提示补全并清除结果；显式 0 仍合法。默认 8% ⇒ 不命中。",
+  },
+  {
+    slug: "finance/npv-calculator",
+    inputs: { rate: "8", init: "10000" },
+    clicks: ["updateCF(0, '')"],
+    expect: ["第 1 期现金流未填写（如确为 0，请明确输入 0）"],
+    ref: "第935批：现金流留空不再保存为 0；提示具体期数。已有用例 updateCF(3,0) 覆盖显式 0 合法。",
+  },
+  {
+    slug: "finance/simple-interest",
+    inputs: { principal: "10000", rate: "", years: "3" },
+    clicks: ["calc()"],
+    expect: ["请填写年利率和期限（如确为 0，请明确输入 0）"],
+    ref: "第935批：利率留空不再按 0 计算，提示补全并清除旧结论；显式 0 利率仍走正常计算。",
+  },
+  {
+    slug: "finance/currency-symbol",
+    inputs: {},
+    clicks: ["var i=-1;for(var k=0;k<currencies.length;k++){if(currencies[k].code==='CLF'){i=k;break;}}showDetail(i);"],
+    expect: ["暂无数据（无辅单位）", "不适用（无辅单位换算关系）"],
+    ref: "第935批：CLF 无辅单位时详情显示暂无数据，换算比例显示不适用，不再输出「1 Unidad de Fomento = 1」空单位等式。",
+  },
+  {
+    slug: "finance/assessor-manager",
+    inputs: { debtRatio: "55", currentRatio: "1.8", revenue: "5000", profitMargin: "12", overdue: "1", creditHistory: "5" },
+    clicks: ["calc()"],
+    expect: ["教学示例，不是真实信用评估。", "示例输入与分项得分", "示例授信算术", "本页不输出催收阶段"],
+    ref: "第935批：固定分档累加改为教学示例，展示六项得分与假设；删除授信审批与催收动作结论。",
+  },
+  {
+    slug: "finance/text-reverse-words",
+    inputs: { input: "hello, world!", mode: "space" },
+    clicks: ["document.getElementById('keepPunc').checked=true;reverse();"],
+    expect: ["world, hello!"],
+    ref: "第935批：保留标点时单词、空白、标点分开识别；hello, world! 反转后标点原位，为 world, hello!（旧实现标点跟随词移动）。",
+  },
+  {
+    slug: "finance/text-reverse-words",
+    inputs: { input: "a👨‍👩‍👧‍👦b", mode: "allchar" },
+    expect: ["b👨‍👩‍👧‍👦a"],
+    ref: "第935批：所有字符反转按 Unicode 字素簇处理，家庭 emoji 的 ZWJ 序列不被拆成代理项乱码；旧 split('') 会破坏该 emoji。",
+  },
+  {
+    slug: "finance/installment-real-rate",
+    inputs: { P: "1000", n: "6", r: "100" },
+    clicks: ["calcTool()"],
+    expect: ["未求解（月 IRR 超出 100% 上限"],
+    ref: "第935批：期数对比复用主结果求根与残差校验；本金 1000、6 期、每期费率 100% 时真实月 IRR 超出 100% 区间，对比表不再展示截断年化。",
+  },
+  {
+    slug: "finance/analysis-risk",
+    inputs: { s: "1000000", v: "600000", f: "100000", i: "50000", t: "101", n: "100000", dec: "2" },
+    clicks: ["calc()"],
+    expect: ["所得税税率须在 0%–100% 之间（当前 101%），已停止计算且不自动截断。"],
+    ref: "第935批：税率 101% 不再静默截到 100%，提示越界并停止；输入框仍保留 101，结果区不再给杠杆结论。",
+  },
+  {
+    slug: "finance/analysis-risk",
+    inputs: { s: "1000000", v: "600000", f: "100000", i: "50000", t: "", n: "100000", dec: "2" },
+    clicks: ["calc()"],
+    expect: ["所得税税率未填写，已停止计算；如确为 0，请明确输入 0。"],
+    ref: "第935批：税率留空与显式 0 分开处理；空值提示具体字段并停止，0% 仍可正常计算。",
+  },
+  {
+    slug: "finance/rental-yield-calculator",
+    inputs: { price: "300", area: "80", rent: "5000", fee: "300", heat: "2400", decor: "5000", repair: "1000", agency: "0", tax: "2000", loanRatio: "70", loanRate: "4.2", loanYears: "30" },
+    clicks: ["document.getElementById('loanType').value='principal';loanEnabled=true;calc()"],
+    expect: ["首月月供", "首月月供后现金流", "末月"],
+    ref: "第935批：等额本金月供逐月递减，卡片改标首月月供、末月与平均值；旧实现把首月值当通用月供与现金流。",
+  },
+  // ===== 第936批新增 =====
+  {
+    slug: "finance/lease-payment-calculator",
+    inputs: { pv: "100000", downPct: "20", rate: "6", months: "36", fv: "0", fee: "0", type: "principal", timing: "begin" },
+    clicks: ["calc()"],
+    expect: ["期初还款仅支持等额本息；等额本金与先息后本请选择期末还款。"],
+    ref: "第936批：期初模式不再对等额本金/先息后本生成与 IRR 口径不一致的明细；不支持组合明确拒绝并清空结果。等额本息期初仍由既有 10.03% 用例覆盖。",
+  },
+  {
+    slug: "finance/profit-margin-calculator",
+    inputs: { dupontNI: "150000", dupontRev: "0", dupontAssets: "2000000", dupontEquity: "800000" },
+    clicks: ["calcDupont()"],
+    expect: ["销售净利率： 未定义", "营业收入为 0", "不能用 0% 代替"],
+    ref: "第936批：营业收入 0 时销售净利率未定义，不再显示 0.00%；ROE 仍按净利润/净资产独立计算，不把无关分母的 0 传播成结论。",
+  },
+  {
+    slug: "finance/profit-margin-calculator",
+    inputs: { dupontNI: "150000", dupontRev: "1000000", dupontAssets: "2000000", dupontEquity: "0" },
+    clicks: ["calcDupont()"],
+    expect: ["净资产收益率（ROE）： 未定义", "平均净资产为 0，权益乘数与 ROE 未定义", "不输出盈利能力或杠杆高低结论"],
+    ref: "第936批：零净资产时 ROE/权益乘数未定义，停止盈利能力与杠杆结论；资产负债率仍按 (资产−负债)/资产 显示 100%。",
+  },
+  {
+    slug: "finance/discount-calculator",
+    inputs: { price: "100" },
+    clicks: ["updateDiscount(0, 8);calc();toTaxFromDiscount();"],
+    expect: ["¥ 90.40 税后金额", "¥ 10.40 税额（13%）"],
+    ref: "第936批：折扣结果新增「转入含税计算」按钮；100 元 8 折=80 元，按税前加税 13% 得 90.40，兑现页面介绍的回填能力。旧实现 setMode(2) 只重建默认输入。",
+  },
+  {
+    slug: "finance/credit-card-type",
+    inputs: { input: "4111111111111111" },
+    clicks: ["validate()"],
+    expect: ["输入数字（已脱敏）： 411111 •••• •••• 1111"],
+    ref: "第936批：结果与历史快照不再回显完整卡号，只保留前 6 位 BIN 与后 4 位；旧实现输出 16 位原文并存入历史。",
+  },
+  {
+    slug: "finance/calc-4",
+    inputs: { amount: "1000000", rate: "4.2", years: "30" },
+    clicks: ["calc()"],
+    expect: ["已省略", "全部 360 期", "第 360 期"],
+    ref: "第936批：明细表明确标注第 13–359 期省略并提示完整 CSV；内部与隐藏导出表保存全部 360 期，汇总与明细同源。旧表只存前 12+末期且无省略说明。",
+  },
+  {
+    slug: "finance/position-size-calculator",
+    inputs: { "f-capital": "100000", "f-percent": "10", "f-price": "50", "f-stop": "60" },
+    clicks: ["switchMethod('fixed');calc();"],
+    expect: ["止损价须低于买入价；本工具仅支持做多", "❌ 止损价须低于买入价"],
+    ref: "第936批：固定比例模式校验买入/止损关系，止损价高于买入价时拒绝并清空 currentResult/统计/图表，保存按钮随即失效；旧实现显示负风险。",
+  },
+  {
+    slug: "finance/investment-roi",
+    inputs: { aCost: "1000", aRate: "0", aYears: "0.5", aAdd: "100", bCost: "1000", bRate: "0", bYears: "1.5", bAdd: "100" },
+    clicks: ["switchTab('compare');calcCompare();"],
+    expect: ["A 共 1 次、B 共 2 次", "方案A终值 ¥ 1,100.00", "方案B终值 ¥ 1,200.00"],
+    ref: "第936批：每年期初追加按真实离散日期发生：0.5 年仅 t=0 一次（A 投入 1100），1.5 年在 t=0、1 两次（B 投入 1200）；旧实现按 0.5/1.5 比例折算成 50/150 元。零利率下终值等于累计投入，可直观验证次数。",
+  }
+,
+  // ===== 第937批新增 =====
+  {
+    slug: "finance/simple-interest",
+    inputs: { principal: "1000", rate: "10", years: "0.5" },
+    clicks: ["calc()"],
+    expect: ["不足一年按 (1+年利率)^年数 比例折算", "比单利少 1.19"],
+    ref: "第937批：0.5 年、10% 时复利本利和 1048.81 低于单利 1050，旧文案固定「比单利多」并显示负差额；现按差额正负输出多/少/相同，并说明不足一年按幂次比例折算、非真实付息日复利。",
+  },
+  {
+    slug: "finance/compound-interest",
+    inputs: { principal: "10000", rate: "", years: "10" },
+    clicks: ["calc()"],
+    expect: ["请输入年化利率（如确为 0%，请明确输入 0）"],
+    ref: "第937批：年化利率留空不再按 0% 复利计算并显示「本利和等于本金」；显式输入 0 仍合法，负值/年限 0 也改为具体提示。",
+  },
+  {
+    slug: "finance/currency-converter",
+    inputs: {},
+    clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/finance/currency-converter.html','utf8');var a=h.indexOf('role=\"tab\"')>=0&&h.indexOf('aria-selected')>=0&&h.indexOf('id=\"tabbtn-about\"')>=0&&h.indexOf('role=\"button\" tabindex=\"0\"')>=0;document.getElementById('__tbProbe').textContent='CCTAB '+(a?'OK':'BAD');"],
+    expect: ["CCTAB OK"],
+    ref: "第937批：五个页签改为原生 button + role=tab/aria-selected/aria-controls，切换时同步 roving tabindex；旧实现为无键盘入口的 div。历史项改为可聚焦 role=button 并支持 Enter/Space，删除改为独立命名按钮。",
+  },
+  {
+    slug: "finance/amount-in-words",
+    inputs: { money: "1234.56" },
+    clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/finance/amount-in-words.html','utf8');var a=h.indexOf('href=\"tax-calculator.html\"')>=0,b=h.indexOf('href=\"invoice-generator.html\"')>=0,c=h.indexOf('onclick=\"copyPlainResult()\"')>=0;document.getElementById('__tbProbe').textContent='AWREL '+((a&&b&&c)?'OK':'BAD');"],
+    expect: ["AWREL OK"],
+    ref: "第937批：相关推荐从单词反转/字数统计等文本工具换成数字转中文、英文金额、发票、个税、税后工资、贷款月供等财务工具；新增「复制纯大写金额」避免把整段报告复制进票据。",
+  },
+  {
+    slug: "finance/assessor-manager",
+    inputs: { debtRatio: "55", currentRatio: "1.8", revenue: "5000", profitMargin: "12", overdue: "1", creditHistory: "5" },
+    clicks: ["localStorage.removeItem('tbk_hist_'+location.pathname);calc();__assessor_managerExtras(true);var n=JSON.parse(localStorage.getItem('tbk_hist_'+location.pathname)||'[]').length;document.getElementById('__tbProbe').textContent='ASPRIV '+((n===0&&document.getElementById('assessorRememberHistory').checked===false)?'OK':'BAD');"],
+    expect: ["ASPRIV OK"],
+    ref: "第937批：客户财务指标属敏感信息，历史默认不写入；只有本机勾选「保存评估历史」才记录，并提供清除入口。旧实现每次 calc 自动写入 localStorage。",
+  },
+  {
+    slug: "finance/housing-fund-loan",
+    inputs: { balance: "", housePrice: "200", city: "shanghai" },
+    clicks: ["calc()"],
+    expect: ["账户余额尚未填写", "留空不会被当作零额度计算"],
+    ref: "第937批：账户余额留空不再 parseFloat||0 后显示 0 额度，而是点名缺项并提示 0 需显式输入；显式 0 仍合法。",
+  },
+  {
+    slug: "finance/mutual-fund-calculator",
+    inputs: { monthly: "1000", years: "10", rate: "8", initial: "0", buyFee: "0.15", manageFee: "1.5", custodyFee: "0.25", sellFee: "0.5" },
+    clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/finance/mutual-fund-calculator.html','utf8');var a=h.indexOf('totalFees += monthly * buyFee + balance * (monthlyManageFee + monthlyCustodyFee)')>=0,b=h.indexOf('管理费/托管费按当月存量资产逐月计提')>=0;document.getElementById('__tbProbe').textContent='MFFEE '+((a&&b)?'OK':'BAD');"],
+    expect: ["MFFEE OK"],
+    ref: "第937批：费用合计过去只累计申购/赎回费，管理费与托管费只体现在净值扣减、未计入金额；现按每月计费基数把两类年费并入 totalFees，并用 42 年 42% 极端组复核数值 32,413.35。",
+  },
+  {
+    slug: "finance/ird-validator",
+    inputs: { input: "490918507" },
+    clicks: ["var m=__ird_validatorMask('490918507');var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/finance/ird-validator.html','utf8');var a=h.indexOf(\"out[e.id]=e.id==='input'?__ird_validatorMask(v):v\")>=0,b=h.indexOf('__ird_validatorMigrateLegacy')>=0;document.getElementById('__tbProbe').textContent='IRDPRIV '+((m==='49*****07'&&a&&b)?'OK':'BAD')+' m='+m;"],
+    expect: ["IRDPRIV OK"],
+    ref: "第937批：历史与结果快照只保存脱敏税号（前 2 后 2），完整 8–9 位号码不落 localStorage；历史回放遇到掩码明确提示重新输入，并迁移清理旧的全号记录。",
+  },
+
+  // ===== 第938批新增 =====
+  {
+    slug: "finance/currency-converter",
+    inputs: { fromAmount: "100" },
+    clicks: ["document.getElementById('rateMode').value='manual';__ccToggleManual();document.getElementById('manualRate').value='0.9';resetCalc();"],
+    expect: ["100.00 🇨🇳 人民币 13.7931", "builtin"],
+    ref: "第938批：重置不再保留旧手动汇率/模式，恢复 CNY→USD、金额 100、rateMode=builtin、manualRate=7.25 并隐藏手动输入；旧实现只改币种与金额，其他币对的手动汇率会套到重置后的币对。",
+  },
+  {
+    slug: "finance/currency-converter",
+    inputs: { fromAmount: "" },
+    clicks: ["calc();"],
+    expect: ["请输入要换算的金额；留空不等同于 0，如确为 0 请明确输入 0"],
+    ref: "第938批：空输入不再当 0 输出换算结论，点名留空与显式 0 的区别；旧实现 parseFloat('')||0 会静默按零换算。",
+  },
+  {
+    slug: "finance/currency-converter",
+    inputs: { fromAmount: "0" },
+    clicks: ["calc();"],
+    expect: ["0.00 🇺🇸 USD 美元 0.0000"],
+    ref: "第938批：显式 0 合法，两侧都按 0 展示（源 0.00、目标 0.0000），与空输入的提示态区分。",
+  },
+  {
+    slug: "finance/tax-bracket",
+    inputs: { income: "300000" },
+    clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/finance/tax-bracket.html','utf8');var i=JSON.parse(globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/finance.json','utf8'))['tax-bracket'];var a=h.indexOf('中国居民个人综合所得税率表（年度）')>=0&&h.indexOf('这不是到手工资')>=0&&h.indexOf('中国 2024')<0;var b=i['zh-CN'].intro.indexOf('不适用于经营所得')>=0&&i['en-US'].intro.indexOf('verified Nov 2026')>=0;document.getElementById('res').innerHTML='<p>TBDESC '+((a&&b)?'OK':'BAD')+'</p>';"],
+    expect: ["TBDESC OK"],
+    ref: "第938批：税率表描述限定为中国居民个人综合所得年度表，补规则来源/施行日/核验日期/不适用范围；结果改称「应纳税所得额减本次估算税额」并非到手工资。旧文案「支持常见税表」「中国 2024」与实际单一表不符。",
+  },
+  {
+    slug: "finance/tax-calculator",
+    inputs: { salary: "20000", insurance: "2000", special: "1000", threshold: "", bonus: "30000" },
+    clicks: ["calculate()"],
+    expect: ["请填写起征点；如确为 0 请明确输入 0，留空不会按 0 计税。"],
+    ref: "第938批：起征点留空不再 parseFloat||0 当 0 计税，点名字段并清空结果/导出；显式 0 合法。默认 5000 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/tax-calculator",
+    inputs: { salary: "20000", insurance: "2000", special: "1000", threshold: "5000", bonus: "-1" },
+    clicks: ["calculate()"],
+    expect: ["全年一次性奖金不能为负数。"],
+    ref: "第938批：负奖金不再落入 renderBonus 的 <=0 分支被当作未填写；字段级提示并停止结果与导出。默认奖金 30000 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/investment-roi",
+    inputs: { monthly: "500", annualRate: "10", period: "60", freq: "weekly" },
+    clicks: ["calcRegular()"],
+    expect: ["定投期限上限为 50 年", "约 3120 期"],
+    ref: "第938批：60 年周投约 3,120 期，超 50 年上限直接拒绝，不构造现金流数组、不跑 IRR；上限附近 50 年周投 2600 期仍可计算。",
+  },
+  {
+    slug: "finance/analysis-44",
+    inputs: { plan: "100000", actual: "108000", warnPct: "2", alertPct: "4", nextPlan: "100000", nextActual: "110000" },
+    clicks: ["calc()"],
+    expect: ["双重预警", "超过严重阈值", "当前阈值 ±2% / 4%", "后续情景合计"],
+    ref: "第938批：阈值本地可调，8% 在 4% 严重阈值下判严重超支；金额 8,000 与比例 8% 双重预警；后续 100k/110k 合计 200k/218k=9% 继续超阈值。旧实现固定 5/10 且仅比例判定。",
+  },
+  {
+    slug: "finance/loan-amortization",
+    inputs: { loanAmount: "1000000" },
+    clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/finance/loan-amortization.html','utf8');var a=h.indexOf('原计划总利息')>=0&&h.indexOf('原计划总还款额')>=0&&h.indexOf('原计划期数')>=0;var b=h.indexOf('提前还款后</strong>：总利息')>=0&&h.indexOf('少付利息')>=0&&h.indexOf('drawPieChart(amount, __newInt, __laTx(')>=0;var c=h.indexOf('提前结清后</strong>：总利息')>=0&&h.indexOf('drawPieChart(amount, __newInterest, __laTx(')>=0;document.getElementById('res').innerHTML='<p>LACMP '+((a&&b&&c)?'OK':'BAD')+'</p>';"],
+    expect: ["LACMP OK"],
+    ref: "第938批：顶部汇总改标「原计划」；提前还款两种方式均并列原计划/新计划的总利息、总还款、期数与差额，饼图改用提前后利息并标注方案；提前结清同样给出新旧对照。旧实现顶部旧汇总与明细新计划同屏无区分，饼图仍画原计划利息。",
+  },
+
+  // ===== 第939批新增 =====
+  {
+    slug: "finance/car-loan-calculator",
+    inputs: { price: "150000", regFee: "", taxRate: "10", vehicleTax: "420", compInsurance: "950", commInsurance: "5000" },
+    clicks: ["calculate()"],
+    expect: ["请填写有效的上牌费用（非负数字）；如确为 0 请明确输入 0，留空或负数不会按 0 计入落地总价。"],
+    ref: "第939批：费用字段空值不再 parseFloat||0 静默按 0 计入落地总价；点名字段并清空相关总额。默认上牌费 500 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/car-loan-calculator",
+    inputs: { price: "150000", regFee: "500", taxRate: "10", vehicleTax: "420", compInsurance: "-1", commInsurance: "5000" },
+    clicks: ["calculate()"],
+    expect: ["请填写有效的交强险（非负数字）"],
+    ref: "第939批：负数费用不再被控件 min 之外静默接受并拉低总价；字段级提示。默认交强险 950 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/mutual-fund-calculator",
+    inputs: { monthly: "1000", years: "10", rate: "8", initial: "0" },
+    clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/finance/mutual-fund-calculator.html','utf8');var a=h.indexOf('id=\"reinvest\" checked disabled')>=0;var b=h.indexOf('现金分红会减少基金份额并产生现金流入')>=0&&h.indexOf('统一按红利再投资计算')>=0;document.getElementById('res').innerHTML='<p>MFDIV '+((a&&b)?'OK':'BAD')+'</p>';"],
+    expect: ["MFDIV OK"],
+    ref: "第939批：现金分红无法合理模拟，故禁用切换并说明统一按红利再投资口径；旧实现复选框只改文案、现金流未使用该选项，切换后资产与 IRR 不变。",
+  },
+  {
+    slug: "finance/amount-in-words",
+    inputs: { money: "1.999" },
+    clicks: ["convert()"],
+    expect: ["已四舍五入到分：2.00 元 → 贰元整", "原始输入 1.999 有 3 位小数"],
+    ref: "第939批：超过两位小数不再静默四舍五入到 2.00 并显示贰元整，而是拒绝并说明未取整；复制/导出不会生成未提示的进位结果。1.999 默认不出现该提示。",
+  },
+  {
+    slug: "finance/amount-in-words",
+    inputs: { money: "0.005" },
+    clicks: ["convert()"],
+    expect: ["已四舍五入到分：0.01 元 → 壹元零壹分", "原始输入 0.005 有 3 位小数"],
+    ref: "第939批：0.005 也不再静默进位到 0.01 元；边界拒绝而非隐藏取整。",
+  },
+  {
+    slug: "finance/postal-code-validator",
+    inputs: { input: "10001" },
+    clicks: ["validate('CN');"],
+    expect: ["不符合所选 中国（CN）的邮编格式：6 位数字"],
+    ref: "第939批：可选国家后按所选规则校验，10001 不符合中国 6 位数字；旧实现只按格式列表匹配，无法指定国家。默认自动识别不含该提示。",
+  },
+  {
+    slug: "finance/postal-code-validator",
+    inputs: { input: "100000" },
+    clicks: ["validate('CN');"],
+    expect: ["中国（CN）：6 位数字", "格式匹配不确认邮编真实存在、已分配或地址可投递"],
+    ref: "第939批：中文态结果国家名显示中文，并明确仅格式匹配、不证明邮编存在或可投递；旧实现显示 China 与绿色勾选，易被当成真实国家确认。",
+  },
+  {
+    slug: "finance/rental-yield-calculator",
+    inputs: { price: "300", rent: "5000", vacancyMonths: "2", fee: "300", heat: "2400", decor: "5000", repair: "1000", agency: "0", tax: "2000" },
+    clicks: ["calc()"],
+    expect: ["50,000", "空置 2 个月"],
+    ref: "第939批：空置 2 个月 ⇒ 年租金 5,000×10=50,000，不再全年满租按 60,000；结果与回报率、对比、导出同一口径。默认空置 0 ⇒ 60,000，不命中。",
+  },
+  {
+    slug: "finance/rental-yield-calculator",
+    inputs: { price: "300", rent: "5000", vacancyMonths: "" },
+    clicks: ["calc()"],
+    expect: ["空置月数须为 0–12 的整数；不空置请明确填 0。"],
+    ref: "第939批：空置月数留空不再静默按 0（全年满租）；显式 0 合法，空串提示。",
+  },
+  {
+    slug: "finance/insurance-calculator",
+    inputs: { lv_age: "60", lv_retire: "60", lv_income: "20", lv_growth: "3", lv_consume: "30", lv_discount: "5" },
+    clicks: ["switchMethod('life-value');calc();"],
+    expect: ["剩余工作年限按 0 年计"],
+    ref: "第939批：当前年龄等于退休年龄时不再 Math.max(…,1) 强行计一年收入，生命价值保额为 0 并说明；默认 30/60 ⇒ 30 年，不命中。",
+  },
+  {
+    slug: "finance/insurance-calculator",
+    inputs: { lv_age: "30.5", lv_retire: "60", lv_income: "20", lv_growth: "3", lv_consume: "30", lv_discount: "5" },
+    clicks: ["switchMethod('life-value');calc();"],
+    expect: ["当前年龄与退休年龄须填写整数岁；小数年龄会让剩余工作年限与显示不一致"],
+    ref: "第939批：小数年龄不再被循环取整后仍显示原小数年限；明确要求整数。默认 30/60 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/investment-calculator",
+    inputs: { initial: "10000", final: "18000", years: "5", additional: "5000" },
+    clicks: ["calc();"],
+    expect: ["资金加权年化：未计算（未填追加日期）", "期初假设估算年化", "未提供日期时不把该估算称为 CAGR"],
+    ref: "第939批：有追加但无日期时不再直接称 CAGR；仅给累计回报并把年化标注为期初假设估算，提示填写日期。默认追加 0 ⇒ 不出现。",
+  },
+  {
+    slug: "finance/investment-calculator",
+    inputs: { initial: "10000", final: "18000", years: "5", additional: "5000", additionalDate: "2023-01-01" },
+    clicks: ["calc();"],
+    expect: ["资金加权年化（按现金流时点）", "已按该时点折现求解"],
+    ref: "第939批：填写追加日期后按初始 0 年、追加 t 年、期末 5 年求 XIRR，不再把 5,000 全部当第 0 年投入；旧实现仅用总投入算 CAGR。",
+  },
+  {
+    slug: "finance/currency-symbol",
+    inputs: { searchInput: "美元" },
+    clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/finance/currency-symbol.html','utf8');var a=h.indexOf('<button type=\"button\" class=\"filter-tab')>=0&&h.indexOf('aria-pressed=\"false\"')>=0;var b=h.indexOf('<button type=\"button\" class=\"currency-card\" aria-label=')>=0;var c=h.indexOf('role=\"dialog\" aria-modal=\"true\"')>=0&&h.indexOf(\"e.key === 'Escape'\")>=0&&h.indexOf('__curLastFocus')>=0;document.getElementById('res').innerHTML='<p>CURKB '+((a&&b&&c)?'OK':'BAD')+'</p>';"],
+    expect: ["CURKB OK"],
+    ref: "第939批：地区筛选与货币卡片改语义化 button 并公布 aria-pressed；详情弹层 role=dialog/aria-modal、打开聚焦关闭按钮、Escape 关闭并归还焦点。旧实现为 div onclick，键盘不可达且无焦点管理。",
+  }
+,
+  // ===== 第940批新增 =====
+  {
+    slug: "finance/mortgage-calculator",
+    inputs: { calcMode: "principal", loanAmount: "70", rate: "4.2", years: "30", downPayment: "30" },
+    clicks: ["setCalcMode();document.getElementById('loanAmount').value='70';calculate()"],
+    expect: ["贷款本金：¥700,000.00", "计算前提：直接输入贷款本金 ¥700,000.00，未再按首付比例扣减"],
+    ref: "已知贷款本金入口：计算入口选 principal、本金 70 万，首付 30% 仍留在表单但不得再扣一次；旧实现固定按房价×(1−首付) ⇒ 49 万，少算 21 万。两条分别绑定贷款本金合计与前提文案；默认 price 模式（房价 100 万/首付 30% ⇒ 70 万）虽然金额同为 70 万，但前提文案是「房价 ¥1,000,000.00 × 首付 30%」，不会命中第二条 ⇒ 强判别。",
+  },
+  {
+    slug: "finance/mortgage-calculator",
+    inputs: { loanAmount: "100", rate: "4.2", years: "30", downPayment: "30" },
+    clicks: ["calculate();var sumI=0,sumPay=0;__mcSchedule.forEach(function(r){sumI+=r.interest;sumPay+=r.payment;});var totalI=parseFloat(document.getElementById('totalInterest').textContent.replace(/[^0-9.-]/g,''));var totalPay=parseFloat(document.getElementById('totalPayment').textContent.replace(/[^0-9.-]/g,''));var last=__mcSchedule.length?__mcSchedule[__mcSchedule.length-1].balance:999;document.getElementById('__tbProbe').textContent='MCROUND '+((Math.abs(sumI-totalI)<0.005&&Math.abs(sumPay-totalPay)<0.005&&last===0)?'OK':'BAD')+' rows='+__mcSchedule.length;"],
+    expect: ["MCROUND OK rows=360"],
+    ref: "逐期舍入对账：明细按分显示，逐期利息/月供之和必须与上方总利息/总还款额在 0.01 内一致，末期余额归零。旧实现合计按未舍入浮点、明细各自 toFixed ⇒ 逐项求和与合计可差数分；末期余额也可能残留极小值。默认 100 万/4.2%/30 年即触发，探针同时锁 360 行与三项等式 ⇒ 旧版 BAD、零逃生。",
+  },
+  {
+    slug: "finance/tax-calculator",
+    inputs: { salary: "8000.01", insurance: "0", special: "0", threshold: "5000" },
+    clicks: ["calculate()"],
+    expect: ["> 3,000 且 ≤ 12,000 元 10% ✓ 适用"],
+    ref: "小数金额边界：应纳税所得额 = 8000.01 − 0 − 5000 − 0 = 3000.01，按 >3000 且 ≤12000 应落第2级。旧版显示 3,001–12,000，会让 3000.01 看起来不属于任何显示区间；新版开放/闭合边界与计算一致。默认所得 10000 也落第2级，但旧文案同样显示 3,001–12,000 ⇒ 以带「> 3,000 且 ≤」的新串锁定修复，零逃生。",
+  },
+  {
+    slug: "finance/loan-amortization",
+    inputs: { loanAmount: "120000", annualRate: "6", loanYears: "10", prepayMonth: "1", prepayAmount: "10000", repayMethod: "equal" },
+    clicks: ["document.getElementById('prepayCard').style.display='block';calc();var s12=scheduleData.filter(function(r){return r.month<=12;}).slice(-1)[0];var want=(typeof fmt==='function'&&s12)?fmt(s12.balance):'';var html=document.getElementById('yearlyTable').innerHTML;document.getElementById('__tbProbe').textContent='LOANYR '+((s12&&want&&html.indexOf(want)>=0&&scheduleData.length<120)?'OK':'BAD')+' rows='+scheduleData.length;"],
+    expect: ["LOANYR OK"],
+    ref: "第1期后提前还款 1 万：年度汇总必须按还款期数归属年度聚合，提前还款行与其所在期同年、不额外占月份。修复前按数组每 12 行分组，第一年只含第1–11期+提前还款行，第12期被挤到第二年，首行年末余额与第12期余额不符。探针比较首行年末余额与 scheduleData 中 month≤12 的最后一期余额，并要求提前后总期数<120 ⇒ 旧实现 BAD。",
+  },
+  {
+    slug: "finance/loan-amortization",
+    inputs: { loanAmount: "100000", annualRate: "0.00000000000001", loanYears: "30", repayMethod: "equal" },
+    clicks: ["calc();var r=document.getElementById('resultBox').innerHTML;document.getElementById('__tbProbe').textContent='LOANTINY '+((r.indexOf('277.78')>=0&&r.indexOf('Infinity')<0&&r.indexOf('NaN')<0)?'OK':'BAD');"],
+    expect: ["LOANTINY OK"],
+    ref: "极小正利率数值稳定性：本金 100,000、30 年（360 期）、年利率 1e-14% 的月利率约 8.3e-19，旧式 (1+r)^n−1 因浮点归零 ⇒ 月供 Infinity。新实现用 expm1/log1p，并在 r<1e-12 时退化为本金/期数 = 277.78；结果区不得出现 Infinity/NaN。默认 4.9% 月供不同 ⇒ 零逃生。",
+  },
+  {
+    slug: "finance/report-1",
+    inputs: { inv: "800000", pct: "80", capital: "500000", retained: "200000", premium: "0", profit: "150000", dec: "2" },
+    clicks: ["calc()"],
+    expect: ["简化合并差额（非直接商誉）", "该差额不能直接确认为商誉", "教学用抵销示意（不是可直接入账的分录）"],
+    ref: "合并差额口径：默认 80 万 − 70 万×80% = 24 万，旧版直接写「合并价差（商誉）」并在提示里称「确认为商誉」；新版统计卡改称「简化合并差额（非直接商誉）」，结果提示明确不能直接确认商誉，抵销表标明仅为教学示意。三条分别锁标签、结论与分录标题；旧源码均不含 ⇒ 零逃生。",
+  },
+  {
+    slug: "finance/inflation-calculator",
+    inputs: { amt: "100000", rate: "3", years: "0" },
+    clicks: ["calc()"],
+    expect: ["年限须为 1–1000 的整数年（当前输入 0）", "0 也不会按 1 年计算"],
+    ref: "年限 0 不再静默按 1 年：旧实现 Math.max(1, Math.floor(0)) ⇒ 主结果按 1 年、辅助解读仍用原始值，口径分裂。新版统一校验为 1–1000 整数年，0 与小数都拒绝并清空统计/表格/图表。默认 20 年 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/inflation-calculator",
+    inputs: { amt: "100000", rate: "3", years: "1.5" },
+    clicks: ["calc()"],
+    expect: ["年限须为 1–1000 的整数年（当前输入 1.5）", "小数年限不四舍五入"],
+    ref: "小数年限 1.5：旧实现主结果向下取整为 1 年，而页面说明/解读仍按 1.5 年，同屏两个期限。新版明确只支持整数年，拒绝小数并说明不四舍五入；默认 20 年不命中。",
+  },
+  {
+    slug: "finance/calc-4",
+    inputs: { amount: "1000000", rate: "", years: "30" },
+    clicks: ["calc()"],
+    expect: ["请填写年利率；留空不会按 0% 计算"],
+    ref: "空利率不再按零息放款：旧实现 parseFloat('')||0 ⇒ 0% 利率，照常输出 30 年零息计划；新版区分空值与合法 0，空串直接停止并清空汇总/明细。默认 4.2% 不命中。",
+  },
+  {
+    slug: "finance/calc-4",
+    inputs: { amount: "-100000", rate: "4.2", years: "30" },
+    clicks: ["calc()"],
+    expect: ["贷款金额须为正数（当前输入 -100000 元）", "负数与 0 均不支持"],
+    ref: "负本金：旧实现 parseFloat(-100000)||0 ⇒ 负月供与负总还款；新版要求本金 >0 并停止计算、清空旧结果。默认 100 万不命中。",
+  },
+  {
+    slug: "finance/calc-4",
+    inputs: { amount: "12000", rate: "0", years: "1" },
+    clicks: ["calc()"],
+    expect: ["1,000.00 元", "12,000.00 元", "利息 0.00 元"],
+    ref: "显式 0% 利率仍合法：本金 12,000、1 年 12 期 ⇒ 月供 1,000.00、总还款 12,000.00、利息 0.00。旧实现虽然也能算，但空值与 0 不分；新版只拒绝空值，明确输入 0 必须继续出结果。默认 4.2% 金额不同 ⇒ 强判别。",
+  },
+  // ===== 第941批新增 =====
+  {
+    slug: "finance/inflation-calculator",
+    inputs: { amt: "100000", rate: "3", years: "10" },
+    clicks: ["switchMode('backward');var d=getYearData(10);var n=document.getElementById('chartNote');document.getElementById('__tbProbe').textContent='INFBASE '+((d[0].neededAmount===100000&&d[10].neededAmount===100000&&n.textContent.indexOf('固定输入的未来金额')>=0&&document.getElementById('legendNA').textContent.indexOf('固定未来金额')>=0)?'OK':'BAD');"],
+    expect: ["INFBASE OK"],
+    ref: "反向模式固定未来金额基准：输入 100,000 是「未来第10年」的固定金额，图表红线应保持水平 100,000（各年 neededAmount 均等于输入），蓝线为折现价值；图例/说明须写明固定未来金额与基准日今天。旧实现 neededAmount=amt×(1+r)^n 逐年增长，图例仍叫「未来金额」⇒ BAD。默认正向模式需要金额本来就是增长的 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/analysis-44",
+    inputs: { plan: "100000", actual: "108000", warnPct: "5", alertPct: "10" },
+    clicks: ["calc()"],
+    expect: ["计划/实际支出比", "不是 EVM 的 CPI", "不反映完成量"],
+    ref: "口径纠偏：计划/实际=100000/108000≈0.9259 只是支出比例；挣值 CPI 需 EV÷AC，页面不得再称成本绩效指数。旧实现结果区写「成本绩效指数 CPI：0.9259」⇒ 不命中。默认 100k/108k 相同但旧标签不同 ⇒ 锁文案。",
+  },
+  {
+    slug: "finance/depreciation-calculator",
+    inputs: { cost: "100000", salvage: "10000", life: "101" },
+    clicks: ["calc()"],
+    expect: ["使用年限最多支持 100 年（当前输入 101）", "更长年限会生成过多期数并拖慢页面"],
+    ref: "年限上限：旧实现只校验正整数，101 年会一次性生成 4 种方法×101 行表格与图表标签；新实现拒绝 >100 并提示拆分。默认 5 年 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/car-loan-calculator",
+    inputs: {},
+    clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/finance/car-loan-calculator.html','utf8');var ok=h.indexOf('等额本息、等额本金两种还款方式')>=0&&h.indexOf('总利息与逐期明细')>=0&&h.indexOf('算等额本息车贷月供与总利息')<0;document.getElementById('__tbProbe').textContent='CARSEO '+(ok?'OK':'BAD');"],
+    expect: ["CARSEO OK"],
+    ref: "搜索/分享/结构化描述必须覆盖两种还款方式、月供、总利息、逐期明细与购车费用，不能只说「算等额本息车贷月供与总利息」；默认页面旧描述含该残缺句 ⇒ BAD。",
+  },
+  {
+    slug: "finance/option-profit-calculator",
+    inputs: { strike: "100", premium: "120", s0: "10", contracts: "1", mult: "100", fee: "0" },
+    clicks: ["switchType('put','buy');calc()"],
+    expect: ["无平衡点（理论平衡价 -20.00 元 < 0，非负标的价格区间内不可达）", "无盈利区间（全区间净亏损）", "全区间最大净盈利： ¥0（无盈利区间，最好情形仍为净亏损 ¥2,000.00）"],
+    ref: "看跌买方权利金 120 > 行权价 100：理论平衡价 100−120=−20 在 S≥0 不可达；全区间 payoff 最大为 100，扣 120 权利金后最好仍亏 20/股 ⇒ 最大净盈利应显示 ¥0 并说明最好情形净亏 ¥2,000，不得显示负的最大盈利或负平衡价。旧实现 bep=−20、maxProfit=−20 照写 ⇒ BAD。默认 call 100/5 不命中。",
+  },
+  {
+    slug: "finance/option-profit-calculator",
+    inputs: { strike: "100", premium: "120", s0: "10", contracts: "1", mult: "100", fee: "0" },
+    clicks: ["switchType('put','sell');calc()"],
+    expect: ["无平衡点（理论平衡价 -20.00 元 < 0，非负标的价格区间内不可达）", "全区间最大净亏损： ¥0（无亏损区间，最差情形仍为净盈利 ¥2,000.00）", "S ≥ 0 全区间净盈利"],
+    ref: "看跌卖方权利金 120 > 行权价 100：最差情形 S=0 仍收 120−100=20/股，全区间净盈利；理论平衡价 −20 不可达。最大净亏损应显示 ¥0 并说明最差仍盈利 ¥2,000，不得显示负的最大亏损。旧实现 maxLoss=K−p=−20 ⇒ 「最大亏损 −2,000」⇒ BAD。",
+  },
+  {
+    slug: "finance/payroll-calculator",
+    inputs: {},
+    clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/finance/payroll-calculator.html','utf8');var ok=h.indexOf('住房贷款利息与住房租金不能同时扣除')>=0&&h.indexOf('同期只能二选一')>=0&&h.indexOf('function housingDeductionInput')>=0&&h.indexOf('housingLoan')>=0&&h.indexOf('rent')>=0;document.getElementById('__tbProbe').textContent='PAYSRC '+(ok?'OK':'BAD');"],
+    expect: ["PAYSRC OK"],
+    ref: "源码守卫：calc 前置拒绝两项同时>0 并提示「同期只能二选一」；housingDeductionInput 在任一项输入时把另一项清 0，双 0 合法。旧实现两项直接相加 ⇒ BAD。真机已验证 1000+1500 拒绝、输入租金自动清贷款、0/0 正常出结果。",
+  },
+  {
+    slug: "finance/register-depreciation",
+    inputs: {},
+    clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/finance/register-depreciation.html','utf8');var ok=h.indexOf('固定资产登记与折旧台账')>=0&&h.indexOf('不含盘点状态')>=0&&h.indexOf('不按自然月自动计提')>=0&&h.indexOf('资产清单（筛选与搜索，不含盘点状态）')>=0&&h.indexOf('<h3>资产盘点</h3>')<0;document.getElementById('__tbProbe').textContent='REGSEP '+(ok?'OK':'BAD');"],
+    expect: ["REGSEP OK"],
+    ref: "能力边界纠偏：页面/描述改称登记与折旧台账，明确不含盘点状态、盘点差异、月度计提或指定期间汇总，并把「资产盘点」标题改为资产清单；旧文案称盘点管理、使用场景写月度计提 ⇒ BAD。",
+  },
+  // ===== 第942批新增 =====
+  {
+    slug: "finance/retirement-calculator",
+    inputs: { age: "30.5", retireAge: "60", lifeAge: "85", currentSavings: "50000", monthlyContribution: "1000", returnRate: "6", inflation: "3", monthlyExpense: "5000" },
+    clicks: ["calc()"],
+    expect: ["当前年龄须为 0–120 的整数"],
+    ref: "小数年龄会让逐年循环与退休年数不一致：必须拒绝并清空年度明细。默认 30 整数不命中。",
+  },
+  {
+    slug: "finance/retirement-calculator",
+    inputs: { age: "30", retireAge: "60", lifeAge: "85", currentSavings: "50000", monthlyContribution: "1000", returnRate: "6", inflation: "-100", monthlyExpense: "5000" },
+    clicks: ["calc()"],
+    expect: ["通胀率须大于 -100% 且不超过 30%"],
+    ref: "-100% 通胀会使实际收益率分母为 0：必须拒绝。默认 3% 不命中。",
+  },
+  {
+    slug: "finance/retirement-calculator",
+    inputs: { age: "10", retireAge: "80", lifeAge: "120", currentSavings: "50000", monthlyContribution: "1000", returnRate: "6", inflation: "3", monthlyExpense: "5000" },
+    clicks: ["calc()"],
+    expect: ["跨度不得超过 100 年"],
+    ref: "110 年跨度会生成过多年度数据：拒绝并清空。默认 55 年不命中。",
+  },
+  {
+    slug: "finance/car-loan-calculator",
+    inputs: { price: "", downPct: "30", rate: "5.5", years: "3", taxRate: "10", regFee: "500", vehicleTax: "420", compInsurance: "950", commInsurance: "5000" },
+    clicks: ["calculate()"],
+    expect: ["请填写车价（元）", "结果区已置为待输入状态"],
+    ref: "车价为空时不能只把结果置 --：必须说明具体哪一项无效。默认 150000 不命中。",
+  },
+  {
+    slug: "finance/car-loan-calculator",
+    inputs: { price: "150000", downPct: "0", rate: "0", years: "3", taxRate: "10", regFee: "500", vehicleTax: "420", compInsurance: "950", commInsurance: "5000" },
+    clicks: ["calculate()"],
+    expect: ["4,166.67", "0.00%"],
+    ref: "合法 0 首付 + 0% 利率仍须计算：15 万/36 期=4,166.67，利息 0。旧实现此前已支持但错误提示改造后不能误伤零值。默认 30%/5.5% 不命中。",
+  },
+  {
+    slug: "finance/sharpe-ratio",
+    inputs: {},
+    clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/finance/sharpe-ratio.html','utf8');var ok=h.indexOf('6 ÷ 12 = 0.500')>=0&&h.indexOf('方向取决于超额收益的符号')>=0&&h.indexOf('2%÷12=0.1667%')>=0&&h.indexOf('= 2.000')<0;document.getElementById('__tbProbe').textContent='SHRPE '+(ok?'OK':'BAD');"],
+    expect: ["SHRPE OK"],
+    ref: "直接模式 6%/12%=0.500 而非 2.000；样本标准差方向须按超额收益符号说明；月频先把年化无风险利率除以 12。旧文案 2.000/样本必然偏大/未折算月频 ⇒ BAD。",
+  },
+  {
+    slug: "finance/futures-pnl-calculator",
+    inputs: { openPrice: "4000", closePrice: "4100", lots: "1", marginRate: "10", openFee: "", closeFee: "2" },
+    clicks: ["calc()"],
+    expect: ["开仓手续费不能留空"],
+    ref: "空手续费不能静默按 0：须明确输入 0。默认开仓手续费非空 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/futures-pnl-calculator",
+    inputs: { openPrice: "4000", closePrice: "4100", lots: "1", marginRate: "10", openFee: "-1", closeFee: "2" },
+    clicks: ["calc()"],
+    expect: ["开仓手续费须为有限非负数"],
+    ref: "负手续费会被当成收入加到净盈亏：必须拒绝。默认非负 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/futures-pnl-calculator",
+    inputs: { openPrice: "4000", closePrice: "4100", lots: "1", marginRate: "10", openFee: "0", closeFee: "0" },
+    clicks: ["calc()"],
+    expect: ["手续费 0.00 元", "盈亏金额"],
+    ref: "显式 0/0 手续费合法，净盈亏=100 点×10=1,000 元、手续费 0。默认费率非 0 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/compound-interest",
+    inputs: {},
+    clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/finance/compound-interest.html','utf8');var ok=h.indexOf('g = (1 + r/n)^n')>=0&&h.indexOf('年末投入 k=1、年初投入 k=g')>=0&&h.indexOf('PMT 是「每年」定投一次')>=0;document.getElementById('__tbProbe').textContent='CIFORM '+(ok?'OK':'BAD');"],
+    expect: ["CIFORM OK"],
+    ref: "公式必须用年度增长因子 g 的年金式，并区分年初×g、年末×1，避免把每年 PMT 当每复利期投入。旧公式 PMT·((1+r/n)^(nt)−1)/(r/n) ⇒ 1200 元算成 15,219 ⇒ BAD。",
+  },
+  {
+    slug: "finance/compound-interest",
+    inputs: { principal: "0", rate: "12", years: "1", annual: "1200", freq: "12", investTime: "end" },
+    clicks: ["calc()"],
+    expect: ["1,200"],
+    ref: "本金 0、12%/月复利、每年年末投 1200、1 年：年末投入当年不计息 ⇒ 终值 1,200，与代码一致。",
+  },
+  {
+    slug: "finance/compound-interest",
+    inputs: { principal: "0", rate: "12", years: "1", annual: "1200", freq: "12", investTime: "start" },
+    clicks: ["calc()"],
+    expect: ["1,352"],
+    ref: "年初投入多增长一年：1200×(1+12%/12)^12=1200×1.126825=1,352.19 ⇒ 显示 1,352。旧公式口径不一致。",
+  },
+  {
+    slug: "finance/compound-interest",
+    inputs: { principal: "10000", rate: "0", years: "5", annual: "1200", freq: "12", investTime: "start" },
+    clicks: ["calc()"],
+    expect: ["16,000"],
+    ref: "零利率：本金 10,000 + 每年 1,200×5 = 16,000；年初/年末不应有差异，也不能除零。",
+  },
+  {
+    slug: "finance/analysis-5",
+    inputs: { ca: "500000", inv: "180000", pre: "20000", cash: "80000", cl: "0", tl: "700000", ta: "1200000", dec: "2" },
+    clicks: ["calc()"],
+    expect: ["流动负债为 0：流动比率、速动比率、现金比率不适用", "营运资金", "58.33%"],
+    ref: "零流动负债只让三个短期比率不适用，营运资金 500,000 与资产负债率 58.33% 仍须计算；旧实现整体 return 隐藏全部指标 ⇒ BAD。",
+  },
+  {
+    slug: "finance/number-to-words-chinese",
+    inputs: {},
+    clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/finance/number-to-words-chinese.html','utf8');var ok=h.indexOf('绝对值 < 10¹³')>=0&&h.indexOf('最多 13 位整数')>=0&&h.indexOf('不是金额大写')>=0&&h.indexOf('票据/发票请使用中文大写金额工具')>=0&&h.indexOf('最大 ±1万亿')<0&&h.indexOf('适合票据与财务书写')<0;document.getElementById('__tbProbe').textContent='CNREAD '+(ok?'OK':'BAD');"],
+    expect: ["CNREAD OK"],
+    ref: "范围说明须与实际拒绝阈值一致，并明确本工具输出普通读数而非票据大写；旧文案「最大 ±1万亿」「适合票据」⇒ BAD。",
+  },
+  {
+    slug: "finance/loan-amortization",
+    inputs: { prepayMonth: "2.5" },
+    clicks: ["calcPrepay()"],
+    expect: ["提前还款期数须为整数"],
+    ref: "小数期数不得进入 base[0.5] 造成逐期表错位，应提示须为整数；旧实现只判范围 ⇒ BAD。",
+  },
+  {
+    slug: "finance/position-size-calculator",
+    inputs: { "r-capital": "10000", "r-riskpct": "50", "r-price": "10", "r-stop": "9.5" },
+    clicks: ["calc()"],
+    expect: ["资金上限", "未使用风险预算", "1000"],
+    ref: "风险预算理论股数 10,000 股，但可用资金仅能买 1,000 股；结果须按资金上限截断并提示未用完风险预算，不得输出 10,000 股。",
+  },
+  {
+    slug: "finance/investment-roi",
+    inputs: { monthly: "100", period: "0.01", freq: "monthly" },
+    clicks: ["calcRegular()"],
+    expect: ["定投期限不足 1 期"],
+    ref: "月频 0.01 年仅 0.12 期，不足 1 期应明确拒绝，不得用近似期数输出终值。",
+  },
+  {
+    slug: "finance/investment-roi",
+    inputs: { monthly: "100", period: "0.1", freq: "yearly" },
+    clicks: ["calcRegular()"],
+    expect: ["定投期限不足 1 期"],
+    ref: "年频 0.1 年不足 1 期同判；历史问题为图表 0 点而结果仍出值。",
+  },
+  {
+    slug: "finance/break-even-calculator",
+    inputs: { chartMaxQty: "-1" },
+    clicks: ["drawChart()"],
+    expect: ["必须为正数"],
+    ref: "负最大销量会使 q+=step 永不终止；必须在绘图前拒绝非正数并清空画布。",
+  },
+  {
+    slug: "finance/amount-in-words",
+    inputs: { money: "abc" },
+    clicks: ["convert();document.getElementById('__tbProbe').textContent='AW-VALID '+(__amountInWordsValid===false?'OK':'BAD');"],
+    expect: ["请输入有效金额", "AW-VALID OK"],
+    ref: "无效输入只显示错误，复制/导出/历史不得把错误提示当作结果；旧实现复制按钮可复制报错文本 ⇒ BAD。",
+  },
+  {
+    slug: "finance/credit-card-grace-period",
+    inputs: {},
+    clicks: ["var c=__ccCycle(__ccDate(2026,11,6),5,25,1);document.getElementById('__tbProbe').textContent='CC '+(__ccLabel(c.stmt)+'|'+__ccLabel(c.due)+'|'+c.grace);"],
+    expect: ["CC 1月5日|1月25日|50"],
+    ref: "账单日次日入账应落到下一期账单 1月5日、还款 1月25日，免息 50 天；旧对照表写「入账次月账单/顺延」不落具体日期 ⇒ BAD。",
+  },
+  {
+    slug: "finance/car-loan-calculator",
+    inputs: {},
+    clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/finance/car-loan-calculator.html','utf8');var ok=h.indexOf('Number.isInteger(years)')>=0&&h.indexOf(\"priceRaw === ''\")>=0&&h.indexOf('downPct > 100')>=0;document.getElementById('__tbProbe').textContent='CAREXP '+(ok?'OK':'BAD');"],
+    expect: ["CAREXP OK"],
+    ref: "导出须重新校验原始输入（空值、负利率、首付>100%、年限非整数），不能只靠旧计划与价格/年限两项。",
+  },
+  {
+    slug: "finance/dca-calculator",
+    inputs: { years: "1.5" },
+    clicks: ["calc()"],
+    expect: ["定投年限须为 1–50 的整数年"],
+    ref: "1.5 年不得静默截断为 1 年；应按整数年校验并停止计算。",
+  },
+  {
+    slug: "finance/dca-calculator",
+    inputs: { years: "10" },
+    clicks: ["window.__dl=0;ToolBox.downloadText=function(){window.__dl++;};document.getElementById('years').value='1.5';exportCSV();document.getElementById('__tbProbe').textContent='DCA-DL '+window.__dl;"],
+    expect: ["DCA-DL 0"],
+    ref: "非法年限下导出不得调用下载；计算返回空值时导出须提前停止。",
+  },
+  {
+    slug: "finance/sort-code-validator-validator",
+    inputs: { input: "200000" },
+    clicks: ["validate()"],
+    expect: ["银行归属：", "不推断", "格式有效"],
+    ref: "页面不得再用前两位硬编码推断 Barclays 等银行归属；应明确只验证格式。",
+  },
+  {
+    slug: "finance/number-to-words",
+    inputs: { inputVal: "123.45", currencyMode: "USD" },
+    clicks: ["convert()"],
+    expect: ["one hundred twenty-three dollars and forty-five cents", "45/100"],
+    ref: "货币格式须输出货币名称、分币与票据 x/100 写法；旧页面只有逐位 point 小数 ⇒ BAD。",
+  },
+  {
+    slug: "finance/analysis-cost-1",
+    inputs: { rows: "A,100\nB,abc", total: "1000" },
+    clicks: ["calc()"],
+    expect: ["第 2 行", "B,abc", "无法解析"],
+    ref: "混合有效/非法行不得只对 A 分摊 100%；应逐行报错并停止结论。",
+  },
+  {
+    slug: "finance/investment-roi",
+    inputs: { cost: "10000", "return": "13000", years: "2", unit: "year", discount: "-100" },
+    clicks: ["calcSimple()"],
+    expect: ["折现率须大于 -100%"],
+    ref: "折现率 -100% 使现值分母为 0，必须字段级拒绝并清除旧图。",
+  },
+  {
+    slug: "finance/investment-roi",
+    inputs: { monthly: "1000", annualRate: "-100", period: "5", freq: "monthly" },
+    clicks: ["calcRegular()"],
+    expect: ["年化收益率须大于 -100%"],
+    ref: "定投收益率 -100% 使单期增长因子为 0，须拒绝而不是输出伪终值。",
+  },
+  {
+    slug: "finance/payroll-calculator",
+    inputs: {},
+    clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/finance/payroll-calculator.html','utf8');var ok=h.indexOf('税前工资须为 ≥0 的数字')>=0&&h.indexOf('工资与年终奖均为 0')>=0;document.getElementById('res').innerHTML='PAY0 '+(ok?'OK':'BAD');"],
+    expect: ["PAY0 OK"],
+    ref: "工资 0 须合法（仅年终奖测算），但工资与年终奖同时为 0 应拒绝；旧实现直接拒绝工资 0 ⇒ BAD。真机另测组合。",
+  },
+  {
+    slug: "finance/payroll-calculator",
+    inputs: {},
+    clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/finance/payroll-calculator.html','utf8');var ok=h.indexOf('留空不等于 0')>=0&&h.indexOf('var val = raw;')>=0;document.getElementById('res').innerHTML='PAYR '+(ok?'OK':'BAD');"],
+    expect: ["PAYR OK"],
+    ref: "比例留空须提示补全，只有显式 0 才表示不缴；旧实现静默按 0 ⇒ BAD。",
+  },
+  {
+    slug: "finance/lease-payment-calculator",
+    inputs: {},
+    clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/finance/lease-payment-calculator.html','utf8');document.getElementById('res').innerHTML='LEASE-RATE '+(h.indexOf('annualRate < 0 || annualRate > 100')>=0?'OK':'BAD');"],
+    expect: ["LEASE-RATE OK"],
+    ref: "负利率/极端利率须拒绝，不能进入幂运算产生无意义月供。",
+  },
+  {
+    slug: "finance/lease-payment-calculator",
+    inputs: {},
+    clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/finance/lease-payment-calculator.html','utf8');var ok=h.indexOf('名义年化（月 IRR × 12）')>=0&&h.indexOf('有效年化（(1+月 IRR)¹²−1')>=0&&h.indexOf('Math.pow(1 + irr, 12) - 1')>=0;document.getElementById('res').innerHTML='LEASE-APR '+(ok?'OK':'BAD');"],
+    expect: ["LEASE-APR OK"],
+    ref: "页面旧称实际年化却只给月 IRR×12；须同时展示名义与月复利有效年化。",
+  },
+  {
+    slug: "finance/analysis-5",
+    inputs: { ca: "500000", inv: "180000", pre: "20000", cash: "600000", cl: "300000", tl: "700000", ta: "1200000" },
+    clicks: ["calc()"],
+    expect: ["现金 ≤ 流动资产", "明细与合计不一致"],
+    ref: "现金大于流动资产属明细勾稽错误，必须停止评级；旧实现照算 ⇒ BAD。",
+  },
+  {
+    slug: "finance/analysis-5",
+    inputs: {},
+    clicks: ["document.getElementById('ca').value='';calc();var r=document.getElementById('res');var ok=r.innerHTML.indexOf('请填写「流动资产」')>=0;r.innerHTML='A5-EMPTY '+(ok?'OK':'BAD');"],
+    expect: ["A5-EMPTY OK"],
+    ref: "空值不得当 0；0 仍须合法可计算。",
+  },
+
+  // ===== 第945批新增 =====
+  {
+    slug: "finance/compound-interest",
+    inputs: { principal: "10000", rate: "0", years: "1", annual: "0" },
+    clicks: ["calc();var tb=document.getElementById('yearTableBody');var first=String(tb.innerHTML).split('</tr>')[0];var ok=first.indexOf('<td>0</td>')>=0&&first.indexOf('10,000.00')>=0&&first.indexOf('0.00')>=0;document.getElementById('res').innerHTML='CI0 '+(ok?'OK':'BAD '+first);"],
+    expect: ["CI0 OK"],
+    ref: "第 0 年行必须自洽：期初余额 0 + 投入 10,000 + 利息 0 = 期末 10,000；旧实现把期初也写成 10,000，行内加减不平。",
+  },
+  {
+    slug: "finance/generator-report-1",
+    inputs: { rev: "100", costRate: "0", opex: "0", taxRate: "0", asset: "100", debtRatio: "0", dep: "10", capex: "10", dividend: "0", cash0: "20", wc: "0" },
+    clicks: ["gen();var h=document.getElementById('res').innerHTML;var ok=h.indexOf('三表勾稽')>=0&&h.indexOf('期末非现金资产 80.00')>=0&&h.indexOf('差额 0.00 ✓')>=0;document.getElementById('res').innerHTML='GR '+(ok?'OK':'BAD '+h.slice(0,200));"],
+    expect: ["GR OK"],
+    ref: "期初非现金 80 − 折旧 10 + 资本开支 10 = 80，期末现金 120 ⇒ 期末资产 200；期初权益 100 + 净利润 100 = 200，资产负债表必须被利润表与现金流解释，不能只在表内自平。",
+  },
+  {
+    slug: "finance/loan-amortization",
+    inputs: { loanAmount: "1000000", annualRate: "4.9", loanYears: "10", repayMethod: "balloon", balloonMonths: "30.5", balloonRatio: "50" },
+    clicks: ["calc()"],
+    expect: ["气球贷还款期数须为正整数月"],
+    ref: "气球贷期数 30.5 月旧实现 Math.floor(30.5)=30 静默照算；现拒绝小数并提示改为 30 或 31。默认等额本息 ⇒ 不命中。",
+  },
+  {
+    slug: "finance/break-even-calculator",
+    inputs: { fc: "100", price: "30", vc: "0", qty: "10", taxRate: "0" },
+    clicks: ["calc();var h=document.getElementById('statGrid').innerHTML;var ok=h.indexOf('最低整数件保本收入')>=0&&h.indexOf('120')>=0&&h.indexOf('理论保本收入')>=0;document.getElementById('res').innerHTML='BE '+(ok?'OK':'BAD '+h.slice(0,200));"],
+    expect: ["BE OK"],
+    ref: "保本量 100/30=3.33 件，按件向上取整 4 件；收入必须同步为 4×30=120 元，不能销量显示 4 件而收入仍按 3.33×30=100 元。",
+  },
+  {
+    slug: "finance/register-depreciation",
+    inputs: {},
+    clicks: ["assets=[{id:'A1',name:'测试设备',cat:'电子设备',date:'2025-01-01',cost:10000,salvage:500,life:5,method:'straight'}];renderList();editAsset('A1');var picked=document.getElementById('aName').value;document.getElementById('aCost').value='20000';addAsset();var ok=picked==='测试设备'&&assets.length===1&&assets[0].cost===20000&&document.getElementById('saveAssetBtn').textContent==='登记资产'&&typeof importAssets==='function'&&typeof backupAssets==='function'&&isValidAsset({id:'B',name:'x',cat:'其他',date:'2025-01-01',cost:100,salvage:0,life:2,method:'syd'})&&!isValidAsset({name:'x',date:'2025/01/01',cost:100,salvage:0,life:2,method:'syd'});document.getElementById('assetList').innerHTML='RD '+(ok?'OK':'BAD');"],
+    expect: ["RD OK"],
+    ref: "台账必须可编辑而非只能删了重录：编辑入口回填原记录并原地更新（不得追加第二条）；同时暴露 JSON 备份/导入函数，导入记录校验日期与成本残值年限方法。",
+  },
+  {
+    slug: "finance/loan-amortization",
+    inputs: { loanAmount: "1000000", annualRate: "4.9", loanYears: "30", prepayMonth: "24", prepayAmount: "100000" },
+    clicks: ["calc();document.getElementById('loanAmount').value='0';calc();calcPrepay();var h=document.getElementById('prepayResult').innerHTML;var ok=h.indexOf('请先完成主贷款计算')>=0;document.getElementById('prepayResult').innerHTML='LP '+(ok?'OK':'BAD '+h.slice(0,120));"],
+    expect: ["LP OK"],
+    ref: "先按 100 万成功计算，再把主参数改成 0 触发提前退出；提前还款不得复用上一轮 originalScheduleData 的旧计划，必须提示先完成主贷款计算。",
+  },
+  {
+    slug: "finance/analysis-risk",
+    inputs: { s: "100", v: "100", f: "50", i: "20", t: "25", n: "100" },
+    clicks: ["calc()"],
+    expect: ["未确认亏损抵税"],
+    ref: "EBIT=-50、利息 20 ⇒ 税前 -70：默认不得凭空确认 17.50 税盾，所得税按 0，明细必须写明未确认亏损抵税；旧实现无条件乘 (1-25%) ⇒ 不出现该提示。",
+  },
+  {
+    slug: "finance/analysis-risk",
+    inputs: { s: "100", v: "100", f: "50", i: "20", t: "25", n: "100" },
+    checkIds: ["taxBenefit"],
+    clicks: ["calc()"],
+    expect: ["-52.50"],
+    ref: "同上，显式勾选「亏损可抵税」后税前 -70 才确认 17.50 税盾，净利润 -52.50；默认态净利润 -70 ⇒ 不命中，用于区分两种口径。",
+  },
+  {
+    slug: "finance/currency-converter",
+    inputs: {},
+    clicks: ["document.getElementById('manualRate').value='7.25';fromCurrency='EUR';var switched=__ccBindManualPair();var cleared=document.getElementById('manualRate').value==='';var sameKey=__ccManualPair==='EUR>USD';var ok=switched&&cleared&&sameKey;document.getElementById('resultDisplay').innerHTML='CC '+(ok?'OK':'BAD cleared='+cleared+' pair='+__ccManualPair);"],
+    expect: ["CC OK"],
+    ref: "CNY→USD 的手动汇率 7.25 在切到 CNY→EUR 后必须清空并要求重填；旧实现直接沿用 7.25 把欧元换算成 7.25 人民币，量级完全错误。",
+  },
+
+// ===== 第946批新增 =====
+  {
+    slug: "finance/portfolio-return",
+    inputs: {},
+    clicks: ["var r=__portfolioReturnWeighted([{name:'资产1',w:50,r:10},{name:'资产2',w:30,r:5},{name:'黄金',w:20,r:20}],false);var ok=Math.abs(r.rp-10.5)<1e-9&&r.contrib.length===3&&Math.abs(r.contrib[2].c-4)<1e-9&&r.wSum===100;document.getElementById('__tbProbe').textContent='PR '+(ok?'OK':'BAD '+JSON.stringify(r));"],
+    expect: ["PR OK"],
+    ref: "两项以上资产必须能参与加权：50%×10 + 30%×5 + 20%×20 = 10.5，第三项贡献 4 个百分点；旧实现只接受两个资产，添加第三项无任何作用。",
+  },
+  {
+    slug: "finance/loan-amortization",
+    inputs: { loanAmount: "1000000", annualRate: "4.9", loanYears: "1100", repayMethod: "balloon", balloonMonths: "12001", balloonRatio: "50" },
+    clicks: ["calc()"],
+    expect: ["12000"],
+    ref: "气球期数 12001 期超过明细 12000 期硬上限，必须明确拒绝；旧实现被 Math.min 截成 12000 后照算，期限被悄悄改写。",
+  },
+  {
+    slug: "finance/housing-fund-loan",
+    inputs: { balance: "8", housePrice: "300", age: "35", loanYears: "20" },
+    clicks: ["var q=__hfQuota(8,300,{limit:50,multiple:10},0.6);var ok=q.maxLoan===50&&q.amountByBalance===80&&q.amountByPrice===180&&__hfRuleValid(50,10,60)&&!__hfRuleValid(50,10,101);document.getElementById('__tbProbe').textContent='HF '+(ok?'OK':'BAD '+JSON.stringify(q));"],
+    expect: ["HF OK"],
+    ref: "手动规则 50 万/10 倍/60%：余额 8×10=80、房价 300×60%=180、上限 50 ⇒ 估算 50 万，并标注手动来源与条件估算；旧实现写死城市表，无法用本地细则覆盖。",
+  },
+  {
+    slug: "finance/housing-fund-loan",
+    inputs: { balance: "8", housePrice: "300" },
+    clicks: ["document.getElementById('manualRules').checked=true;document.getElementById('hfRatio').value='101';calc();"],
+    expect: ["手动规则无效"],
+    ref: "房价贷款比例 101% 越界必须拒绝，不能静默按 1.01 倍房价给出超过房价的贷款。",
+  },
+  {
+    slug: "finance/register-depreciation",
+    inputs: {},
+    clicks: ["var ok=calcDepreciation(10000,500,101,'straight').length===0&&calcDepreciation(10000,500,100,'straight').length===100&&!isValidAsset({name:'x',date:'2025-01-01',cost:100,salvage:0,life:101,method:'straight'});document.getElementById('assetList').innerHTML='RD2 '+(ok?'OK':'BAD');"],
+    expect: ["RD2 OK"],
+    ref: "年限 101 年必须判无效并返回空表，100 年仍可算；旧实现无上限，101 年虽只多 1 行，但极大年限会阻塞页面。",
+  },
+  {
+    slug: "finance/vat-calculator",
+    inputs: {},
+    clicks: ["var ex=__vatRound2(0.05),tax=__vatRound2(0.05*0.13),incl=__vatRound2(0.05*1.13);var rowIncl=3*incl;var rawIncl=__vatRound2(3*0.05*1.13);var ok=ex===0.05&&tax===0.01&&incl===0.06&&__vatRound2(rowIncl)===0.18&&rawIncl===0.17;document.getElementById('batchInput').value='VAT '+(ok?'OK':'BAD '+[ex,tax,incl,rowIncl,rawIncl].join('/'));"],
+    expect: ["VAT OK"],
+    ref: "0.05×13%=0.0065，逐行税额进位 0.01、含税 0.06，三行合计 0.18；未舍入三行含税和 0.1695 四舍五入为 0.17。合计必须等于逐行显示值之和，并披露 0.01 差额。",
+  },
+  {
+    slug: "finance/discount-calculator",
+    inputs: {},
+    clicks: ["setMode(1);document.getElementById('finalPrice').value='999';useQuick(0.8);var ok=document.getElementById('price').value==='100'&&document.getElementById('bigPrice').textContent.indexOf('80.00')>=0;document.getElementById('__tbProbe').textContent='DQS '+(ok?'OK':'BAD '+document.getElementById('price').value+' / '+document.getElementById('bigPrice').textContent);"],
+    expect: ["DQS OK"],
+    ref: "从「已知折后价」点 8 折速算：应切到已知原价模式并把原价设为示例 100，结果 80 元；旧实现只改折扣，原价仍留 999，算出 799.20 与速算「省 20%」严重不符。",
+  },
+  {
+    slug: "finance/discount-calculator",
+    inputs: {},
+    clicks: ["document.getElementById('price').value='250';calc();document.querySelectorAll('#inputArea input[type=number]').forEach(function(e){e.value='';});calc();var ok=document.getElementById('bigPrice').textContent.trim()==='—'&&document.getElementById('detailResult').innerHTML.indexOf('请输入参数')>=0;document.getElementById('__tbProbe').textContent='DEM '+(ok?'OK':'BAD '+document.getElementById('bigPrice').textContent);"],
+    expect: ["DEM OK"],
+    ref: "清空全部数值输入后大号结果必须清为占位符，不能保留上一轮 250 元折后价；旧实现只在明细区提示，大号结果仍显示旧值。",
+  },
+  {
+    slug: "finance/discount-calculator",
+    inputs: {},
+    clicks: ["document.getElementById('price').value='250';discounts=[0.7];renderDiscountChain();calc();setMode(1);document.getElementById('finalPrice').value='120';document.getElementById('discountRate').value='6';setMode(0);var p0=document.getElementById('price').value==='250'&&discounts[0]===0.7;setMode(1);var p1=document.getElementById('finalPrice').value==='120'&&document.getElementById('discountRate').value==='6';document.getElementById('__tbProbe').textContent='DMS '+(p0&&p1?'OK':'BAD p0='+p0+' p1='+p1);"],
+    expect: ["DMS OK"],
+    ref: "模式 0 输入 250 元、7 折，切到模式 1 填 120/6，再切回模式 0 原价与折扣链仍在，再切回模式 1 折后价与折扣率也仍在；旧实现每次 setMode 重建输入区，全部丢光。",
+  },
+  // ===== 第947批新增 =====
+  {
+    slug: "finance/irr-calculator",
+    inputs: {},
+    clicks: ["cashFlows[1].amount=null;renderFlows();calc();var d=document.getElementById('irrDetail').innerHTML.trim();document.getElementById('__tbProbe').textContent='IRRBLANK '+((document.getElementById('irrWarn').textContent.indexOf('留空不按 0 计算')>=0&&document.getElementById('irrValue').textContent==='--'&&d==='')?'OK':'BAD');"],
+    expect: ["IRRBLANK OK"],
+    ref: "第947批：第 1 期金额留空（null，不再 parseFloat||0）时 calc() 必须停止计算并提示，IRR 显示 --、明细为空；旧实现把空当 0 继续算出一个假 IRR。默认全额有值不命中。",
+  },
+  {
+    slug: "finance/number-to-words",
+    inputs: { inputVal: "999999999998.99999" },
+    clicks: ["convert()"],
+    expect: ["nine hundred ninety-eight point nine nine nine nine nine"],
+    ref: "第947批：按输入字符串拆分整数/小数，不再先 parseFloat。999999999998.99999 的整数读法须以 ninety-eight 结尾；旧版浮点进位为 999999999999 会读成 ninety-nine。",
+  },
+  {
+    slug: "finance/lease-payment-calculator",
+    inputs: { rate: "" },
+    clicks: ["calc()"],
+    expect: ["年利率尚未填写；如确为 0% 请明确输入 0"],
+    ref: "第947批：利率留空不再按 0 静默计算，提示用户显式填 0；默认 rate=6 不命中。",
+  },
+  {
+    slug: "finance/lease-payment-calculator",
+    inputs: { months: "1.5" },
+    clicks: ["calc()"],
+    expect: ["租期须为 1–360 的整数月"],
+    ref: "第947批：1.5 期不再被 Math.floor 静默改成 1 期，明确拒绝小数；默认 60 期不命中。",
+  },
+  {
+    slug: "finance/analysis-44",
+    inputs: { items: "X,-500,600\nY,100,abc\nZ,100,-20\n主体工程,500000,530000" },
+    clicks: ["calcBatch()"],
+    expect: ["第 2 行「Y」：实际投资不是完整数字", "第 3 行「Z」：实际投资为负；退款冲减请单独记录"],
+    ref: "第947批：批量逐行整串校验并输出行级错误。Y 的 abc、Z 的负支出都不得再被 parseFloat 部分吞下或当退款；第三行合法仍出表。旧实现仅 isFinite 且无行级错误，不命中。",
+  },
+  {
+    slug: "finance/bond-yield-calculator",
+    inputs: {},
+    clicks: ["switchMethod('current');document.getElementById('c-price').value='';calc();var g=document.getElementById('statGrid').innerHTML.trim();document.getElementById('__tbProbe').textContent='BONDCLEAR '+((g===''&&document.getElementById('res').innerHTML.indexOf('请填写当前价格')>=0)?'OK':'BAD');"],
+    expect: ["BONDCLEAR OK"],
+    ref: "第947批：按当前模式校验输入；当期收益率模式清空价格必须拒绝，且 statGrid 旧结果一并清空，不能只改文字。默认 YTM 有效结果 statGrid 有内容 ⇒ 强判别。",
+  },
+  {
+    slug: "finance/compound-interest",
+    inputs: { principal: "10000", rate: "1000000", years: "100", annual: "0" },
+    clicks: ["calc()"],
+    expect: ["数值溢出：当前利率与年限组合超出可计算范围", "请降低年化利率或缩短年限后重试"],
+    ref: "第947批：利率 1,000,000%、100 年使余额溢出 Infinity；必须在入表前停止，清空年表/图表且 totalFV 显示 --。旧实现继续渲染 Infinity 年表并允许导出，不命中。",
+  },
+  {
+    slug: "finance/inflation-calculator",
+    inputs: { amt: "10000", rate: "-5", years: "10" },
+    clicks: ["calc()"],
+    expect: ["购买力增加：67.02%", "通缩使同样金额能买到更多"],
+    ref: "第947批：负通胀（通缩）下购买力上升，文案按方向写“购买力增加”，不再固定“缩水”。默认 rate=3 走缩水分支不命中。",
+  },
+  {
+    slug: "finance/inflation-calculator",
+    inputs: { amt: "10000", rate: "-100", years: "10" },
+    clicks: ["calc()"],
+    expect: ["年通胀率须大于 -100%"],
+    ref: "第947批：-100% 使价格因子为 0，必须明确拒绝而不是输出 Infinity/0 折现；默认 3% 不命中。",
+  },
+  // ===== 第948批新增 =====
+  {
+    slug: "finance/stock-profit-calculator",
+    inputs: { buyPrice: "10", buyQty: "100", sellPrice: "10", commissionRate: "0", stampRate: "0", transferRate: "0", minCommission: "100000" },
+    clicks: ["calc();"],
+    expect: ["2,010.00 元/股"],
+    ref: "第948批：最低佣金 10 万元时真实保本价 2010 元；旧固定上界 200 元导致搜索停在 200 附近。分段解析解直接命中 2010。",
+  },
+  {
+    slug: "finance/housing-fund-loan",
+    inputs: { balance: "8", housePrice: "300", age: "", loanYears: "20", rate: "2.85" },
+    clicks: ["calc()"],
+    expect: ["年龄须填写 18–70 岁的整数"],
+    ref: "第948批：年龄留空不再静默按 30 岁；默认 35 不命中。",
+  },
+  {
+    slug: "finance/housing-fund-loan",
+    inputs: { balance: "8", housePrice: "300", age: "35", loanYears: "20", rate: "0" },
+    clicks: ["calc()"],
+    expect: ["每月还款", "5,000 元", "利息总额", "0 元"],
+    ref: "第948批：显式 0% 利率按零利率公式，月供=120 万/240=5000、利息 0；旧实现等额本息分支利率为 0 时月供保持 0。",
+  },
+  {
+    slug: "finance/option-profit-calculator",
+    inputs: { strike: "100", premium: "5", mult: "100", contracts: "1", fee: "2", s0: "105" },
+    clicks: ["calc();"],
+    expect: ["105.04", "每股净盈亏（含费用）", "-0.04"],
+    ref: "第948批：K100/P5/乘数100/1张/单边费2，S=105 总净盈亏 -4 元；平衡点 105.04，每股净盈亏 -0.04，收益率 -0.8%。旧版未把费用计入收益率与曲线。",
+  },
+  {
+    slug: "finance/analysis-5",
+    inputs: { ca: "500000", inv: "10000", pre: "240000", cash: "80000", cl: "300000", tl: "700000", ta: "1200000" },
+    clicks: ["calc();"],
+    expect: ["主要拖累项为预付费用（占流动资产 48.0%）", "可调整的经验参考"],
+    ref: "第948批：速动 0.83 的真因是预付费用 48%，旧版一律归因存货占比高。默认 18/2 万时存货占 36% 且预付 4%，不命中。",
+  },
+  {
+    slug: "finance/tax-calculator",
+    inputs: { salary: "4000", insurance: "0", special: "0", threshold: "5000", bonus: "12000", bonusMode: "auto" },
+    clicks: ["calculate()"],
+    expect: ["并入综合所得（年度累进表）", "¥0.00", "全年少缴 ¥360.00"],
+    ref: "第948批：月薪 4000 低于 5000 起征点，年度未用扣除 1.2 万先抵奖金，合并税额应为 0 而非 360；旧版先把月应纳税所得额截 0 再×12。",
+  },
+  {
+    slug: "finance/discount-calculator",
+    inputs: {},
+    clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/finance/discount-calculator.html','utf8');var ok=(h.match(/class=\"qs-item\"/g)||[]).length===9&&h.indexOf('<button type=\"button\" class=\"qs-item\"')>=0&&h.indexOf('aria-label=\"第 ${i + 1} 级折扣')>=0&&h.indexOf('aria-label=\"删除第 ${i + 1} 级折扣\"')>=0;document.getElementById('__tbProbe').textContent='QSA11Y '+(ok?'OK':'BAD');"],
+    expect: ["QSA11Y OK"],
+    ref: "第948批：9 个快捷项改为语义 button 并带折扣 aria-label；动态第 2 级输入带序号名称。旧 div 无法键盘聚焦且动态输入无名称。",
+  },
+  {
+    slug: "finance/insurance-calculator",
+    inputs: { dt_income: "20", dt_expense: "12", dt_debt: "80", dt_existing: "10", assumeMultiple: "5", assumeHealthMin: "50", assumePremiumPct: "8" },
+    clicks: ["calc();"],
+    expect: ["年收入20万×5 + 负债80万 − 已有保障10万 = 170万", "年收入×8%"],
+    ref: "第948批：收入倍数/重疾最低/保费比例可调，5 倍时寿险 170 万、保费 1.6 万；旧版写死 10 倍与 10% 不命中。",
+  },
+
+  {
+    slug: "finance/futures-pnl-calculator",
+    inputs: {},
+    clicks: ["var v={openPrice:'3500',closePrice:'3501',lots:'1',marginRate:'12',openFee:'1000',closeFee:'1000'};Object.keys(v).forEach(function(k){document.getElementById(k).value=v[k];});setDirection(1);calc();"],
+    expect: ["盈亏金额", "+1.00", "毛盈亏 300.00", "-1,700.00"],
+    ref: "第949批：点数 +1.00 与净亏损并存时，点数按价格方向显示正号与红色，净盈亏另按扣费结果显示；旧版点数沿用净亏损符号。",
+  },
+  {
+    slug: "finance/voter-id-validator",
+    inputs: { input: "ABC1234567" },
+    clicks: ["validate()"],
+    expect: ["输入（已脱敏）： AB••••••67"],
+    ref: "第949批：选民号仅内存校验，输出只显示脱敏号码；旧版输入区显示完整号码并写入历史。",
+  },
+  {
+    slug: "finance/tax-calculator",
+    inputs: { salary: "30000", insurance: "3000", special: "2000", threshold: "5000", bonus: "0", bonusMode: "auto" },
+    clicks: ["calculate()"],
+    expect: ["第 3 级", "20% ✓ 适用"],
+    ref: "第949批：应纳税所得额 2 万落在 1.2 万–2.5 万档，动态档位文本应为第 3 级、20% 适用；旧版档位文案固定中文且重算后英文态可能残留。",
+  },
+  {
+    slug: "finance/mortgage-calculator",
+    inputs: { loanAmount: "100", rate: "4.2", years: "30", downPayment: "30" },
+    clicks: ["calculate();var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/finance/mortgage-calculator.html','utf8');var ok=h.indexOf('Payment amount (CNY)')>=0&&h.indexOf('Show all payments')>=0&&h.indexOf('Collapse (first 24)')>=0;document.getElementById('__tbProbe').textContent='MORTGAGE I18N '+(ok?'OK':'BAD');"],
+    expect: ["MORTGAGE I18N OK"],
+    ref: "第949批：明细提示、展开按钮与 CSV 列名按当前语言生成；旧版固定中文，英文态展开/下载后出现中文。",
+  },
+  {
+    slug: "finance/tfn-validator",
+    inputs: {},
+    clicks: ["document.getElementById('input').value='876543210';validate();"],
+    expect: ["长度与校验和检查通过", "无法确认该号码是否已分配、当前状态或归属某人"],
+    ref: "第949批：校验和通过只证明长度与校验和匹配，不再宣称号码有效；旧版输出「TFN 号码有效」。",
+  },
+  {
+    slug: "finance/insurance-calculator",
+    inputs: { lv_age: "30", lv_retire: "60", lv_income: "20", lv_growth: "3", lv_consume: "120", lv_discount: "5", assumeMultiple: "10", assumeHealthMin: "30", assumePremiumPct: "10" },
+    clicks: ["switchMethod('life-value')"],
+    expect: ["个人消费占比须不大于 100"],
+    ref: "第949批：生命价值法逐字段校验，个人消费占比 120% 越界明确拒绝并清空结果；旧版 getVal 直接按 1.2 消费计算，产出不合理的负生命价值。空输入拒绝另由 Puppeteer 真机覆盖。",
+  },
+  {
+    slug: "finance/depreciation-calculator",
+    inputs: { cost: "100000", salvage: "100000", life: "5", totalUnits: "10000", yearUnits: "3000,2500,2000,1500,1000" },
+    clicks: ["calc();var lg=document.getElementById('legend');document.getElementById('__tbProbe').textContent=(lg.children.length===0&&document.getElementById('compareTable').textContent.trim()==='')?'DEP OK':'DEP BAD';"],
+    expect: ["DEP OK"],
+    ref: "第949批：残值等于原值时拒绝计算，同时清空图例与表格，避免残留上一方案曲线；旧版只清表格。",
+  },
+  {
+    slug: "finance/mortgage-calculator",
+    inputs: { loanAmount: "0.000001", rate: "0", years: "30", downPayment: "0" },
+    clicks: ["calculate()"],
+    expect: ["按分舍入后月供为 0.00 元", "不能生成正常还款计划"],
+    ref: "第940批：本金 0.01 元、0% 利率、30 年，月供 0.0000278 元按分舍入为 0；旧实现把全部余额塞进首期并显示已结清，现明确拒绝并提示无法生成正常计划。默认 100 万/4.2% 不命中。"
+  },
+  {
+    slug: "finance/mortgage-calculator",
+    inputs: { loanAmount: "0.000012", rate: "100", years: "30", downPayment: "0" },
+    clicks: ["calculate()"],
+    expect: ["按分舍入后月供为 0.01 元", "不足以覆盖当期利息"],
+    ref: "第940批：本金 0.12 元、100% 利率、30 年，月供与首期利息均按分舍入为 0.01 元，月供不高于利息；旧实现首期本金为 0 后直接结清，现拒绝。"
+  },
+  {
+    slug: "finance/register-depreciation",
+    inputs: {},
+    clicks: ["assets=[{id:'OLD',name:'超龄设备',cat:'其他',date:'2025-01-01',cost:10000,salvage:0,life:101,method:'straight'},{id:'NEW',name:'正常设备',cat:'其他',date:'2025-01-01',cost:10000,salvage:0,life:5,method:'straight'}];renderSummary();renderList();document.getElementById('aName').value='新购资产';document.getElementById('aCost').value='2000';document.getElementById('aSalvage').value='0';document.getElementById('aLife').value='5';addAsset();var raw=JSON.parse(localStorage.getItem('tb_assets'));var listHtml=String(document.getElementById('assetList').innerHTML);var sumHtml=String(document.getElementById('summaryGrid').innerHTML);document.getElementById('__tbProbe').textContent='RD3 '+((raw.length===3&&raw.filter(function(a){return a.life===101;}).length===1&&listHtml.indexOf('待修正旧记录')>=0&&sumHtml.indexOf('待修正旧记录')>=0)?'OK':'BAD')+' '+raw.length;"],
+    expect: ["RD3 OK 3"],
+    ref: "第946批：加载含 101 年旧记录的台账后新增一条资产，save 必须保留全部 3 条（旧记录 1 条 life=101 不丢失），并在列表与汇总区展示「待修正旧记录」；旧实现加载即 filter，新增后 localStorage 只剩 2 条。"
+  },
+
 ];
 
 // ---------------------------------------------------------------- main

@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 
-<script src="../../js/tool-page-runtime.js" defer></script>
+<script src="/js/tool-page-runtime.js" defer></script>
 <!-- TOOLBOX-TOOL-RUNTIME -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -15,7 +15,7 @@
 <meta name="twitter:card" content="summary">
 <meta name="description" content="积分兑换价值计算器是一款免费的在线金融财务工具，输入积分数与兑换商品的现金价值，算出每万分价值，对比常见兑换渠道判断划算与否。每万分价值 = 权益或商品的现金价值 ÷ 所需积分 × 10000。">
 <link rel="stylesheet" href="../../css/common.css">
-<script src="../../js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
 
 <script type="application/ld+json">
@@ -40,13 +40,13 @@
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
 <!-- TOOLBOX-SECURITY -->
 
-<script src="../../js/privacy.js" defer></script>
+<script src="/js/privacy.js" defer></script>
 <!-- TOOLBOX-PRIVACY-SCRIPT -->
 
-<script src="../../js/metrics.js" defer></script>
+<script src="/js/metrics.js" defer></script>
 <!-- TOOLBOX-METRICS-SCRIPT -->
 
-<script src="../../js/analytics.js" defer></script>
+<script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 
 <script src="../../js/i18n.js" defer></script>
@@ -63,15 +63,15 @@
 <meta property="og:locale" content="zh_CN">
 <meta property="og:locale:alternate" content="zh_TW">
 <meta property="og:locale:alternate" content="en_US">
-<link rel="preload" as="style" href="../../css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link rel="stylesheet" href="../../css/nav-menu.css"></noscript>
-<script src="../../js/industry-info.js" defer></script>
-<script src="../../js/nav-menu.js" defer></script>
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
 
-<script src="../../js/tool-ux.js" defer></script>
+<script src="/js/tool-ux.js" defer></script>
 <!-- TOOLBOX-TOOL-UX -->
 
-<script src="../../js/tool-kit.js" defer></script>
+<script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
 <script type="application/ld+json">
 {
@@ -270,7 +270,7 @@
     </a>
     <a href="mirror-text.html" class="related-tool-card">
       <span class="rt-icon">🏦</span>
-      <span class="rt-info"><span class="rt-name">镜像文字</span><span class="rt-desc">将文字左右镜像反转生成可复制的字符或预览图，用于趣味签名、艺术字与水印，纯前端即时转换支持一键复制结…</span></span>
+      <span class="rt-info"><span class="rt-name">镜像文字</span><span class="rt-desc">将文字左右镜像：复制近似 Unicode 字符，或导出真实左右翻转、透明背景的多行 PNG；</span></span>
     </a>
     
   </div>
@@ -285,6 +285,11 @@ function fmtMoney(n){return n.toLocaleString('zh-CN',{minimumFractionDigits:2,ma
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function __prRaw(id){var e=document.getElementById(id);return e?String(e.value).trim():'';}
 function __prVal(id){var r=__prRaw(id);return r===''?NaN:Number(r);}
+function __prValid(){
+  var pts=__prVal('pts'), val=__prVal('val'), fee=__prVal('fee');
+  return __prRaw('pts')!=='' && __prRaw('val')!=='' && __prRaw('fee')!=='' &&
+    isFinite(pts) && isFinite(val) && isFinite(fee) && pts>0 && val>=0 && fee>=0 && fee<=val;
+}
 function calcTool(){
    const pts=__prVal('pts'), val=__prVal('val'), fee=__prVal('fee');
    const missing=['pts','val','fee'].filter(function(id){return __prRaw(id)==='';});
@@ -343,11 +348,12 @@ function __points_redemption_valueNum(id){var e=document.getElementById(id);var 
 function __points_redemption_valueExtras(){
     function __points_redemption_valueRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
-    var pts=__prVal('pts'), val=__prVal('val'), fee=__prVal('fee');
-    if(__prRaw('pts')===''||__prRaw('val')===''||__prRaw('fee')===''||!isFinite(pts)||!isFinite(val)||!isFinite(fee)||pts<=0||val<0||fee<0||fee>val){
+    if(!__prValid()){
       TBKit.matrix.table('#points_redemption_valueTable',{head:en?['Item','Value']:['项目','数值'],rows:[]});
+      TBKit.util.diffBox('#points_redemption_valueDiff',[]);
       return;
     }
+    var pts=__prVal('pts'), val=__prVal('val'), fee=__prVal('fee');
     var netVal=val-fee;
     var per10k=netVal/pts*10000;
     var per100=netVal/pts*100;
@@ -405,8 +411,8 @@ else document.addEventListener('DOMContentLoaded', __points_redemption_valueBoot
 function __prChart(){
   if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.bar)return;
   if(__prRaw('pts')===''||__prRaw('val')===''||__prRaw('fee')===''){document.getElementById('points_redemption_valueChart').innerHTML='';return;}
+  if(!__prValid()){document.getElementById('points_redemption_valueChart').innerHTML='';return;}
   var pts=__prVal('pts'), val=__prVal('val'), fee=__prVal('fee');
-  if(!isFinite(pts)||!isFinite(val)||!isFinite(fee)||pts<=0||val<0||fee<0||fee>val){document.getElementById('points_redemption_valueChart').innerHTML='';return;}
   var netVal=val-fee;
   var per10k=netVal/pts*10000;
   var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());

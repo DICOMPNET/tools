@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 
-<script src="../../js/tool-page-runtime.js" defer></script>
+<script src="/js/tool-page-runtime.js" defer></script>
 <!-- TOOLBOX-TOOL-RUNTIME -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -15,7 +15,7 @@
 <meta name="twitter:card" content="summary">
 <meta name="description" content="可重复组合数计算器是一款免费的在线数学计算工具，输入类型数n与选取数r，计算允许元素重复的组合数 C(n+r−1, r)，用于抽样、分配与组合计数问题">
 <link rel="stylesheet" href="../../css/common.css">
-<script src="../../js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
 
 
@@ -37,10 +37,10 @@
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
 <!-- TOOLBOX-SECURITY -->
 
-<script src="../../js/privacy.js" defer></script>
+<script src="/js/privacy.js" defer></script>
 <!-- TOOLBOX-PRIVACY-SCRIPT -->
 
-<script src="../../js/metrics.js" defer></script>
+<script src="/js/metrics.js" defer></script>
 <!-- TOOLBOX-METRICS-SCRIPT -->
 
 <script type="application/ld+json">
@@ -62,18 +62,18 @@
 <meta property="og:locale" content="zh_CN">
 <meta property="og:locale:alternate" content="zh_TW">
 <meta property="og:locale:alternate" content="en_US">
-<link rel="preload" as="style" href="../../css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link rel="stylesheet" href="../../css/nav-menu.css"></noscript>
-<script src="../../js/industry-info.js" defer></script>
-<script src="../../js/nav-menu.js" defer></script>
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
 
-<script src="../../js/tool-ux.js" defer></script>
+<script src="/js/tool-ux.js" defer></script>
 <!-- TOOLBOX-TOOL-UX -->
 
-<script src="../../js/analytics.js" defer></script>
+<script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 
-<script src="../../js/tool-kit.js" defer></script>
+<script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
 <script type="application/ld+json">
 {
@@ -242,15 +242,14 @@
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){
-            function lnFact(k){let s=0;for(let i=2;i<=k;i++)s+=Math.log(i);return s;}
             const n=Math.min(Math.round(num('n')),1000),r=Math.min(Math.round(num('r')),1000);
             if(n<1||r<1){ToolBox.setResult('result','请输入正整数 n、r');return;}
-            const lnC=lnFact(n+r-1)-lnFact(r)-lnFact(n-1);
-            function fmtExp(ln){if(ln<=709)return Math.exp(ln).toLocaleString('en-US',{maximumFractionDigits:0});const e=Math.floor(ln/Math.LN10);return Math.exp(ln-e*Math.LN10).toFixed(3)+'e+'+e;}
+            function combBig(N,K){K=Math.min(K,N-K);let v=1n;for(let i=1n;i<=BigInt(K);i++)v=v*(BigInt(N)-BigInt(K)+i)/i;return v;}
+            const cBig=combBig(n+r-1,r);
             let c2=1;const rr=Math.min(r,n);for(let i=1;i<=rr;i++)c2=c2*(n-i+1)/i;
             const __g1=dataGrid([
-                [fmtExp(lnC),'可重复组合数 C'],
-                [(n>=r?fmtExp(Math.log(c2)):'0'), '不重复组合数 C(n,r)（对比）'],
+                [cBig.toLocaleString('en-US'),'可重复组合数 C（精确整数）'],
+                [(n>=r?Math.round(c2).toLocaleString('en-US'):'0'), '不重复组合数 C(n,r)（对比）'],
                 [n, '元素种数 n']
             ]);ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
         }

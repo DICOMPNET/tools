@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 
-<script src="../../js/tool-page-runtime.js" defer></script>
+<script src="/js/tool-page-runtime.js" defer></script>
 <!-- TOOLBOX-TOOL-RUNTIME -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -23,7 +23,7 @@
 <link rel="icon" href="../../favicon.ico" sizes="16x16 32x32 48x48">
 <link rel="apple-touch-icon" href="../../apple-touch-icon.png">
 <link rel="stylesheet" href="../../css/common.css">
-<script src="../../js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
 
 <meta property="og:image" content="https://tools.dicomp.net/og-image.png">
@@ -43,10 +43,10 @@
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
 <!-- TOOLBOX-SECURITY -->
 
-<script src="../../js/privacy.js" defer></script>
+<script src="/js/privacy.js" defer></script>
 <!-- TOOLBOX-PRIVACY-SCRIPT -->
 
-<script src="../../js/metrics.js" defer></script>
+<script src="/js/metrics.js" defer></script>
 <!-- TOOLBOX-METRICS-SCRIPT -->
 
 <script type="application/ld+json">
@@ -58,7 +58,7 @@
 <!-- TOOLBOX-I18N-SCRIPT -->
 
 <meta name="title-en" content="Loan Amortization">
-<meta name="desc-en" content="Build a full period-by-period amortization schedule from principal, rate and term, with prepayment simulation and charts">
+<meta name="desc-en" content="Build a period-by-period amortization schedule with prepayment simulation; yearly totals follow repayment-period years and near-zero rates use a numerically…">
 <!-- TOOLBOX-HREFLANG -->
 <link rel="alternate" hreflang="zh-CN" href="https://tools.dicomp.net/tools/finance/loan-amortization.html">
 <link rel="alternate" hreflang="zh-TW" href="https://tools.dicomp.net/zh-tw/tools/finance/loan-amortization.html">
@@ -67,17 +67,17 @@
 <meta property="og:locale" content="zh_CN">
 <meta property="og:locale:alternate" content="zh_TW">
 <meta property="og:locale:alternate" content="en_US">
-<link rel="preload" as="style" href="../../css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link rel="stylesheet" href="../../css/nav-menu.css"></noscript>
-<script src="../../js/industry-info.js" defer></script>
-<script src="../../js/nav-menu.js" defer></script>
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
 
-<script src="../../js/tool-ux.js" defer></script>
+<script src="/js/tool-ux.js" defer></script>
 <!-- TOOLBOX-TOOL-UX -->
 
-<script src="../../js/analytics.js" defer></script>
+<script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
-<script src="../../js/tool-kit.js" defer></script>
+<script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
 <script type="application/ld+json">
 {
@@ -113,7 +113,7 @@
 </script>
 <meta property="og:site_name" content="ToolBox">
 
-<script src="../../js/hot-tool-enhancements.js" defer></script>
+<script src="/js/hot-tool-enhancements.js" defer></script>
 <!-- TOOLBOX-HOT-TOOL-UX -->
 </head>
 <body>
@@ -207,7 +207,7 @@
     <div class="input-row">
       <div>
         <label for="prepayMonth">提前还款期数（第N期后）</label>
-        <input type="number" id="prepayMonth" value="24" min="1" oninput="calcPrepay()" placeholder="如 24">
+        <input type="number" id="prepayMonth" value="24" min="1" step="1" oninput="calcPrepay()" placeholder="如 24">
       </div>
       <div>
         <label for="prepayAmount">提前还款金额（元）</label>
@@ -392,13 +392,22 @@ function onMethodChange() {
 function generateSchedule(amount, annualRate, years, method, balloonMonths, balloonRatio) {
   var schedule = [];
   var monthlyRate = annualRate / 100 / 12;
-  var totalMonths = Math.min(years * 12, 12000);
+  // 明细硬上限 12000 期：超限直接拒绝，绝不 Math.min 静默截断成另一个贷款。
+  var totalMonths = years * 12;
+  if (!isFinite(totalMonths) || totalMonths > 12000) return null;
   var balance = amount;
   var totalInterest = 0;
 
   if (method === 'equal') {
     // r=0 时等额本息月供退化为 本金/期数（原式 0/0 会产生 NaN）
-    var pmt = monthlyRate === 0 ? amount / totalMonths : amount * monthlyRate * Math.pow(1 + monthlyRate, totalMonths) / (Math.pow(1 + monthlyRate, totalMonths) - 1);
+    // 极小正利率用 expm1/log1p 求分母，避免 (1+r)^n−1 因浮点精度归零而得到 Infinity。
+    var pmt;
+    if (monthlyRate < 1e-12) {
+      pmt = amount / totalMonths;
+    } else {
+      var denom = -Math.expm1(-totalMonths * Math.log1p(monthlyRate));
+      pmt = denom > 0 ? amount * monthlyRate / denom : amount / totalMonths;
+    }
     for (var i = 1; i <= totalMonths; i++) {
       var interest = balance * monthlyRate;
       var principal = pmt - interest;
@@ -430,9 +439,14 @@ function generateSchedule(amount, annualRate, years, method, balloonMonths, ball
     // 气球贷：月供只摊还 (1 − 尾款比例) 的本金，期末单列尾款
     var balloonAmount = amount * (balloonRatio / 100);
     var loanMonths = balloonMonths;
-    var pmt = monthlyRate === 0
-      ? (amount - balloonAmount) / loanMonths
-      : (amount - balloonAmount / Math.pow(1 + monthlyRate, loanMonths)) * monthlyRate / (1 - 1 / Math.pow(1 + monthlyRate, loanMonths));
+    var pmt;
+    if (monthlyRate < 1e-12) {
+      pmt = (amount - balloonAmount) / loanMonths;
+    } else {
+      var disc = Math.exp(-loanMonths * Math.log1p(monthlyRate));
+      var denomB = -Math.expm1(-loanMonths * Math.log1p(monthlyRate));
+      pmt = denomB > 0 ? (amount - balloonAmount * disc) * monthlyRate / denomB : (amount - balloonAmount) / loanMonths;
+    }
     var tempBal = amount;
     for (var i = 1; i <= loanMonths; i++) {
       var interest = tempBal * monthlyRate;
@@ -454,6 +468,8 @@ function generateSchedule(amount, annualRate, years, method, balloonMonths, ball
 
 function calc() {
     scheduleData = [];
+    // 主参数一旦无效即停止，必须清空上一轮的原始计划，避免提前还款复用旧贷款的快照。
+    originalScheduleData = [];
     ['scheduleTable', 'yearlyTable', 'prepayResult'].forEach(function(id){ document.getElementById(id).innerHTML = ''; });
     ['pieChart', 'lineChart'].forEach(function(id){ var canvas = document.getElementById(id); canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height); });
     var __ig=__tbInputGuard(['loanAmount', 'annualRate', 'loanYears', 'balloonMonths', 'balloonRatio', 'prepayMonth', 'prepayAmount'],["贷款金额（元）", "年利率（%）", "贷款年限", "气球贷还款期数（月）", "期末尾款比例（%）", "提前还款期数（第N期后）", "提前还款金额（元）"]);if(__ig){const __g1=__ig;ToolBox.setResult("resultBox",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
@@ -471,28 +487,33 @@ var amount = +loanAmountEl.value || 0;
 
   // 贷款年限按整年计（期数 = 年 × 12），小数年限不得静默按小数折算
   var yearsInt = Math.floor(years);
-  var yearsOk = years > 0 && years === yearsInt;
+  var yearsOk = years > 0 && years === yearsInt && years <= 1000;
   var basicOk = amount > 0 && annualRate >= 0 && annualRate <= 100 && yearsOk;
   loanAmountEl.classList.toggle('input-error', !(amount > 0));
   annualRateEl.classList.toggle('input-error', !(annualRate >= 0 && annualRate <= 100));
   loanYearsEl.classList.toggle('input-error', !yearsOk);
   if (!basicOk) {
-    document.getElementById('resultBox').innerHTML='<p style="color:var(--danger);">贷款金额须 > 0、年利率 0–100%，贷款年限须为正整数年</p>';
+    document.getElementById('resultBox').innerHTML='<p style="color:var(--danger);">贷款金额须 > 0、年利率 0–100%，贷款年限须为正整数年（1–1000 年，最多 12000 期）</p>';
     return;
   }
   if (method === 'balloon') {
     var bmEl = document.getElementById('balloonMonths');
     var brEl = document.getElementById('balloonRatio');
-    var bmOk = isFinite(balloonMonthsRaw) && balloonMonths > 0;
+    // 期数必须是正整数月：小数静默向下取整会让用户以为算的是 30.5 个月。
+    var bmOk = isFinite(balloonMonthsRaw) && balloonMonthsRaw > 0 && Number.isInteger(balloonMonthsRaw);
     var brOk = isFinite(balloonRatioRaw) && balloonRatio >= 0 && balloonRatio <= 100;
     bmEl.classList.toggle('input-error', !bmOk);
     brEl.classList.toggle('input-error', !brOk);
     if (!bmOk || !brOk) {
-      document.getElementById('resultBox').innerHTML='<p style="color:var(--danger);">气球贷还款期数须大于 0，期末尾款比例须为 0–100</p>';
+      document.getElementById('resultBox').innerHTML='<p style="color:var(--danger);">气球贷还款期数须为正整数月（不接受小数，如 30.5 请改为 30 或 31），期末尾款比例须为 0–100</p>';
       return;
     }
     // F-N228：气球贷期数不能超出贷款年限对应的总月数，否则「年限」输入形同虚设
-    var bmMax = Math.floor(years) * 12;
+    var bmMax = Math.min(Math.floor(years) * 12, 12000);
+    if (balloonMonths > 12000) {
+      document.getElementById('resultBox').innerHTML='<p style="color:var(--danger);">' + __laTx('气球贷还款期数不能超过明细上限 12000 期（当前 ' + balloonMonths + ' 期），请缩短期限后再计算', 'Balloon term cannot exceed the 12,000-installment limit (current ' + balloonMonths + ')') + '</p>';
+      return;
+    }
     if (balloonMonths > bmMax) {
       document.getElementById('resultBox').innerHTML='<p style="color:var(--danger);">' + __laTx('气球贷还款期数（' + balloonMonths + ' 月）不能超过贷款年限 × 12（' + bmMax + ' 月），请调整后再计算', 'Balloon term (' + balloonMonths + ' months) cannot exceed loan years × 12 (' + bmMax + ' months)') + '</p>';
       return;
@@ -500,6 +521,11 @@ var amount = +loanAmountEl.value || 0;
   }
 
   var result = generateSchedule(amount, annualRate, years, method, balloonMonths, balloonRatio);
+  var __badRow = !result || !isFinite(result.totalInterest) || !result.schedule || result.schedule.some(function(r){ return !isFinite(r.payment) || !isFinite(r.principal) || !isFinite(r.interest) || !isFinite(r.balance); });
+  if (__badRow) {
+    document.getElementById('resultBox').innerHTML='<p style="color:var(--danger);">' + __laTx('计算结果出现非有限数值，请检查本金、利率与期限；极小利率已按数值稳定口径处理。', 'The result contains non-finite values; check principal, rate and term. Near-zero rates are handled with a numerically stable formula.') + '</p>';
+    return;
+  }
   scheduleData = result.schedule.map(function(r){ return {month:r.month,payment:r.payment,principal:r.principal,interest:r.interest,balance:r.balance}; });
   originalScheduleData = result.schedule.map(function(r){ return {month:r.month,payment:r.payment,principal:r.principal,interest:r.interest,balance:r.balance}; });
 
@@ -517,9 +543,9 @@ var amount = +loanAmountEl.value || 0;
   if (method === 'balloon') {
     html += '<div class="stat-card"><div class="val">' + fmt(result.balloonAmount) + '</div><div class="lbl">期末尾款</div></div>';
   }
-  html += '<div class="stat-card"><div class="val" style="color:var(--danger);">' + fmt(result.totalInterest) + '</div><div class="lbl">总利息</div></div>';
-  html += '<div class="stat-card"><div class="val">' + fmt(totalPayment) + '</div><div class="lbl">总还款额</div></div>';
-  html += '<div class="stat-card"><div class="val">' + totalMonths + '</div><div class="lbl">还款期数</div></div>';
+  html += '<div class="stat-card"><div class="val" style="color:var(--danger);">' + fmt(result.totalInterest) + '</div><div class="lbl">原计划总利息</div></div>';
+  html += '<div class="stat-card"><div class="val">' + fmt(totalPayment) + '</div><div class="lbl">原计划总还款额</div></div>';
+  html += '<div class="stat-card"><div class="val">' + totalMonths + '</div><div class="lbl">原计划期数</div></div>';
   // 输入为名义年利率、按月计息 ⇒ 有效年化 = (1+名义/12)^12 − 1，与名义值并列
   html += '<div class="stat-card"><div class="val">' + ((Math.pow(1 + annualRate / 100 / 12, 12) - 1) * 100).toFixed(2) + '%</div><div class="lbl">有效年化（按月复利）</div></div>';
   html += '</div>';
@@ -565,20 +591,26 @@ function renderYearly(){
   if(!scheduleData.length){ host.innerHTML=''; return; }
   var th=function(z,e2){return en?e2:z;};
   var html='<table><thead><tr><th>'+th('年份','Year')+'</th><th>'+th('年还款额','Paid')+'</th><th>'+th('其中本金','Principal')+'</th><th>'+th('其中利息','Interest')+'</th><th>'+th('年末剩余本金','Balance EOY')+'</th></tr></thead><tbody>';
-  var py=0,pp=0,pi=0,y=1;
+  var py=0,pp=0,pi=0,curYear=null,lastBal=0;
+  function flushYear(){
+    if(curYear===null) return;
+    html+='<tr><td>'+th('第'+curYear+'年','Year '+curYear)+'</td><td>'+fmt(py)+'</td><td>'+fmt(pp)+'</td><td style="color:var(--danger);">'+fmt(pi)+'</td><td>'+fmt(lastBal)+'</td></tr>';
+    py=0; pp=0; pi=0;
+  }
   for(var i=0;i<scheduleData.length;i++){
     var s=scheduleData[i];
-    py+=s.payment; pp+=s.principal; pi+=s.interest;
-    if((i+1)%12===0||i===scheduleData.length-1){
-      html+='<tr><td>'+th('第'+y+'年','Year '+y)+'</td><td>'+fmt(py)+'</td><td>'+fmt(pp)+'</td><td style="color:var(--danger);">'+fmt(pi)+'</td><td>'+fmt(s.balance)+'</td></tr>';
-      y++; py=0; pp=0; pi=0;
-    }
+    // 按「还款期数」所属年度分组（第 1–12 期 = 第 1 年）；提前还款行与其所在期同年，不额外占用月份。
+    var ykey=Math.max(1, Math.ceil((s.month||1)/12));
+    if(curYear===null) curYear=ykey;
+    if(ykey!==curYear){ flushYear(); curYear=ykey; }
+    py+=s.payment; pp+=s.principal; pi+=s.interest; lastBal=s.balance;
+    if(i===scheduleData.length-1) flushYear();
   }
-  html+='</tbody></table><p style="font-size:11.5px;color:var(--text-muted);margin-top:4px;">'+th('按每 12 期聚合；提前还款模拟后按重算排期同步更新。','Aggregated per 12 periods; updates with recalculated schedule after prepayment simulation.')+'</p>';
+  html+='</tbody></table><p style="font-size:11.5px;color:var(--text-muted);margin-top:4px;">'+th('按还款期数所属年度聚合（第 1–12 期＝第 1 年）；提前还款行计入其所在期，不额外占用月份；提前还款后按新排期同步更新。','Aggregated by repayment period year (periods 1–12 = year 1). The prepayment row belongs to the period it follows and does not add an extra month; the table follows the recalculated schedule.')+'</p>';
   const __g5=html;host.innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
 }
 
-function drawPieChart(principal, interest) {
+function drawPieChart(principal, interest, planLabel) {
   var en = /^en/i.test(document.documentElement.lang || '');
   var canvas = document.getElementById('pieChart');
   if (!canvas) return;
@@ -624,6 +656,11 @@ function drawPieChart(principal, interest) {
 
   ctx.font = 'bold 16px sans-serif';
   ctx.fillText(en ? 'Principal vs interest' : '本金利息占比', 240, 50);
+  if(planLabel){
+    ctx.font = '12px sans-serif';
+    ctx.fillStyle = '#555';
+    ctx.fillText(planLabel, 240, 68);
+  }
 }
 
 function drawLineChart(data) {
@@ -674,7 +711,7 @@ function drawLineChart(data) {
   ctx.strokeStyle = '#4338CA';
   ctx.lineWidth = 2;
   for (var i = 0; i < data.length; i += step) {
-    var x = padding.left + (i / (data.length - 1)) * chartW;
+    var x = padding.left + (data.length === 1 ? chartW / 2 : (i / (data.length - 1)) * chartW);
     var y = padding.top + chartH - (data[i].balance / maxVal) * chartH;
     if (i === 0) ctx.moveTo(x, y);
     else ctx.lineTo(x, y);
@@ -685,7 +722,7 @@ function drawLineChart(data) {
   ctx.strokeStyle = '#f44336';
   ctx.lineWidth = 2;
   for (var i = 0; i < data.length; i += step) {
-    var x = padding.left + (i / (data.length - 1)) * chartW;
+    var x = padding.left + (data.length === 1 ? chartW / 2 : (i / (data.length - 1)) * chartW);
     var y = padding.top + chartH - (cumInterests[i] / maxVal) * chartH;
     if (i === 0) ctx.moveTo(x, y);
     else ctx.lineTo(x, y);
@@ -746,9 +783,12 @@ function __laFutureRows(method, prepayType, newBalance, monthlyRate, remainingMo
         tmp -= pp;
       }
     } else {
-      pmt = monthlyRate > 1e-12
-        ? newBalance * monthlyRate * Math.pow(1 + monthlyRate, remainingMonths) / (Math.pow(1 + monthlyRate, remainingMonths) - 1)
-        : newBalance / remainingMonths;
+      if (monthlyRate > 1e-12) {
+        var denomP = -Math.expm1(-remainingMonths * Math.log1p(monthlyRate));
+        pmt = denomP > 0 ? newBalance * monthlyRate / denomP : newBalance / remainingMonths;
+      } else {
+        pmt = newBalance / remainingMonths;
+      }
     }
     for (j = 0; j < n && bal > 0.01; j++) {
       var intE = bal * monthlyRate;
@@ -799,14 +839,27 @@ function calcPrepay() {
   var annualRate = +document.getElementById('annualRate').value || 0;
   var years = +document.getElementById('loanYears').value || 0;
   var method = document.getElementById('repayMethod').value;
-  var prepayMonth = +document.getElementById('prepayMonth').value || 1;
+  var prepayRaw = String(document.getElementById('prepayMonth').value || '').trim();
+  var prepayMonth = /^\d+$/.test(prepayRaw) ? parseInt(prepayRaw, 10) : NaN;
   var prepayAmount = +document.getElementById('prepayAmount').value || 0;
   var prepayType = document.querySelector('input[name="prepayType"]:checked').value;
   // 始终从主计算的不可变原始计划重算，避免第二次提前还款叠加在已改写的计划上
   var base = originalScheduleData.length ? originalScheduleData : scheduleData;
 
-  if (!base.length || prepayMonth < 1 || prepayMonth >= base.length) {
-    document.getElementById('prepayResult').innerHTML='<p style="color:var(--danger);">提前还款期数无效</p>';
+  if (!base.length) {
+    document.getElementById('prepayResult').innerHTML='<p style="color:var(--danger);">请先完成主贷款计算，再模拟提前还款。</p>';
+    return;
+  }
+  if (prepayRaw === '') {
+    document.getElementById('prepayResult').innerHTML='<p style="color:var(--danger);">请输入提前还款期数（第 N 期后），留空不会默认按第 1 期计算</p>';
+    return;
+  }
+  if (!/^\d+$/.test(prepayRaw)) {
+    document.getElementById('prepayResult').innerHTML='<p style="color:var(--danger);">提前还款期数须为整数，不支持小数（当前「' + prepayRaw + '」）。</p>';
+    return;
+  }
+  if (!isFinite(prepayMonth) || prepayMonth < 1 || prepayMonth >= base.length) {
+    document.getElementById('prepayResult').innerHTML='<p style="color:var(--danger);">提前还款期数须为 1 至最后一期之前的整数（当前共 ' + base.length + ' 期）</p>';
     return;
   }
   if (!(prepayAmount > 0)) {
@@ -832,9 +885,19 @@ function calcPrepay() {
     htmlPayoff += '<p>第 ' + prepayMonth + ' 期后剩余本金：<strong>' + fmt(balanceBefore) + '</strong> 元</p>';
     htmlPayoff += '<p>提前还款金额：<strong style="color:var(--primary);">' + fmt(prepayAmount) + '</strong> 元（全部结清）</p>';
     htmlPayoff += '<hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">';
+    var __paidInt = 0;
+    for (var pi = 0; pi < prepayMonth; pi++) __paidInt += base[pi].interest;
+    var __newInterest = __paidInt;
+    var __origInterest = 0;
+    for (var oi = 0; oi < base.length; oi++) __origInterest += base[oi].interest;
     htmlPayoff += '<p>节省利息：<strong style="color:var(--success);">' + fmt(baseFutureInterest) + '</strong> 元</p>';
     htmlPayoff += '<p>缩短期限：<strong style="color:var(--success);">' + (base.length - prepayMonth) + ' 期</strong></p>';
+    htmlPayoff += '<hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">';
+    htmlPayoff += '<p><strong>原计划</strong>：总利息 ' + fmt(__origInterest) + ' 元，总还款额 ' + fmt(amount + __origInterest) + ' 元，期数 ' + base.length + ' 期</p>';
+    htmlPayoff += '<p><strong>提前结清后</strong>：总利息 ' + fmt(__newInterest) + ' 元，总还款额 ' + fmt(amount + __newInterest) + ' 元，实际还款至第 ' + prepayMonth + ' 期后结清</p>';
+    htmlPayoff += '<p><strong>差额</strong>：少付利息 ' + fmt(Math.max(0, __origInterest - __newInterest)) + ' 元，少还款 ' + fmt(Math.max(0, (amount + __origInterest) - (amount + __newInterest))) + ' 元</p>';
     document.getElementById('prepayResult').innerHTML = htmlPayoff;
+    drawPieChart(amount, __newInterest, __laTx('提前结清后','After prepayment'));
     return;
   }
 
@@ -868,6 +931,15 @@ function calcPrepay() {
   if (isBalMode) {
     html += '<p style="font-size:13px;color:var(--text-muted);">' + __laTx('先息后本 / 气球贷提前还款冲减本金（气球贷冲减期末尾款），月供结构不变，剩余各期按新本金计息；明细已同步重排。', 'Interest-only / balloon prepayment reduces principal (the final balloon balance for balloon loans); the payment structure is unchanged and remaining interest follows the new principal. The schedule is recalculated.') + '</p>';
   }
+  var __paidBeforeInt = 0;
+  for (var pbi = 0; pbi < prepayMonth; pbi++) __paidBeforeInt += base[pbi].interest;
+  var __origInt = 0;
+  for (var oi2 = 0; oi2 < base.length; oi2++) __origInt += base[oi2].interest;
+  var __newInt = __paidBeforeInt + newInterest;
+  html += '<hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">';
+  html += '<p><strong>原计划</strong>：总利息 ' + fmt(__origInt) + ' 元，总还款额 ' + fmt(amount + __origInt) + ' 元，期数 ' + base.length + ' 期</p>';
+  html += '<p><strong>提前还款后</strong>：总利息 ' + fmt(__newInt) + ' 元，总还款额 ' + fmt(amount + __newInt) + ' 元，期数 ' + display.length + ' 期（含提前还款行）</p>';
+  html += '<p><strong>差额</strong>：少付利息 ' + fmt(Math.max(0, __origInt - __newInt)) + ' 元，少还款 ' + fmt(Math.max(0, (amount + __origInt) - (amount + __newInt))) + ' 元</p>';
   if (prepayType === 'reduceTerm') {
     html += '<p>缩短期限：<strong style="color:var(--success);">' + (isBalMode ? 0 : (remainingMonths - newMonths)) + ' 期</strong></p>';
     if (!isBalMode && method === 'equal') {
@@ -880,6 +952,7 @@ function calcPrepay() {
     html += '<p>新月供：' + fmt(newPayment) + ' 元</p>';
   }
   document.getElementById('prepayResult').innerHTML = html;
+  drawPieChart(amount, __newInt, __laTx('提前还款后','After prepayment'));
 }
 
 function exportCSV() {
@@ -1087,7 +1160,7 @@ else document.addEventListener('DOMContentLoaded', __loan_amortizationBoot);
     </a>
     <a href="mirror-text.html" class="related-tool-card">
       <span class="rt-icon">🏦</span>
-      <span class="rt-info"><span class="rt-name">镜像文字</span><span class="rt-desc">将文字左右镜像反转生成可复制的字符或预览图，用于趣味签名、艺术字与水印，纯前端即时转换支持一键复制结…</span></span>
+      <span class="rt-info"><span class="rt-name">镜像文字</span><span class="rt-desc">将文字左右镜像：复制近似 Unicode 字符，或导出真实左右翻转、透明背景的多行 PNG；</span></span>
     </a>
     
   </div>

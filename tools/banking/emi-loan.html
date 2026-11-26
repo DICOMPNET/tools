@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 
-<script src="../../js/tool-page-runtime.js" defer></script>
+<script src="/js/tool-page-runtime.js" defer></script>
 <!-- TOOLBOX-TOOL-RUNTIME -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -15,7 +15,7 @@
 <meta name="twitter:card" content="summary">
 <meta name="description" content="贷款月供计算器是一款免费的在线银行学工具，贷款月供（EMI）在线计算器，输入本金、年利率与期限求得每月还款额与总利息，支持等额本息，辅助借贷规划">
 <link rel="stylesheet" href="../../css/common.css">
-<script src="../../js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
 
 
@@ -37,10 +37,10 @@
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
 <!-- TOOLBOX-SECURITY -->
 
-<script src="../../js/privacy.js" defer></script>
+<script src="/js/privacy.js" defer></script>
 <!-- TOOLBOX-PRIVACY-SCRIPT -->
 
-<script src="../../js/metrics.js" defer></script>
+<script src="/js/metrics.js" defer></script>
 <!-- TOOLBOX-METRICS-SCRIPT -->
 
 <script type="application/ld+json">
@@ -62,18 +62,18 @@
 <meta property="og:locale" content="zh_CN">
 <meta property="og:locale:alternate" content="zh_TW">
 <meta property="og:locale:alternate" content="en_US">
-<link rel="preload" as="style" href="../../css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link rel="stylesheet" href="../../css/nav-menu.css"></noscript>
-<script src="../../js/industry-info.js" defer></script>
-<script src="../../js/nav-menu.js" defer></script>
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
 
-<script src="../../js/tool-ux.js" defer></script>
+<script src="/js/tool-ux.js" defer></script>
 <!-- TOOLBOX-TOOL-UX -->
 
-<script src="../../js/analytics.js" defer></script>
+<script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 
-<script src="../../js/tool-kit.js" defer></script>
+<script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
 <meta property="og:site_name" content="ToolBox">
 <meta name="theme-color" content="#FF6B35">
@@ -275,11 +275,14 @@ function num(id){const v=parseFloat(document.getElementById(id).value);return is
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){
               var __ig=__tbInputGuard(['p', 'r', 'y'],["贷款本金 P", "年利率 r (%)", "年限 y"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
-const P = num('p'), r = num('r') / 100 / 12, N = num('y') * 12;
+const __rawR=String(document.getElementById('r').value).trim(), __rawY=String(document.getElementById('y').value).trim(); const __rPct=__rawR===''?NaN:parseFloat(__rawR); const __yrs=__rawY===''?NaN:parseFloat(__rawY); const __Nchk=__yrs*12;
+            if(!(__rPct>=0)||!(__yrs>0)||Math.abs(__Nchk-Math.round(__Nchk))>1e-9){ToolBox.setResult('result','<p style="color:var(--danger)">利率不得为负，年限必须为正且换算后为整数个月。</p>');return;}
+            const P = num('p'), r = num('r') / 100 / 12, N = Math.round(__yrs * 12);
             const emi = r > 0 ? P * r * Math.pow(1 + r, N) / (Math.pow(1 + r, N) - 1) : (N > 0 ? P / N : NaN);
             const __g2=dataGrid([
                 [emi.toFixed(2), '月供 EMI'],
-                [(emi * N).toFixed(2), '还款总额']
+                [(emi * N).toFixed(2), '还款总额'],
+                [N, '实际期限 (月)']
             ]);ToolBox.setResult('result',(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));
         }
 function resetForm(){document.getElementById('p').value = '500000';

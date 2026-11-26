@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 
-<script src="../../js/tool-page-runtime.js" defer></script>
+<script src="/js/tool-page-runtime.js" defer></script>
 <!-- TOOLBOX-TOOL-RUNTIME -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -23,7 +23,7 @@
 <link rel="icon" href="../../favicon.ico" sizes="16x16 32x32 48x48">
 <link rel="apple-touch-icon" href="../../apple-touch-icon.png">
 <link rel="stylesheet" href="../../css/common.css">
-<script src="../../js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
 <style>
 .summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-top:12px;}
@@ -75,10 +75,10 @@
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
 <!-- TOOLBOX-SECURITY -->
 
-<script src="../../js/privacy.js" defer></script>
+<script src="/js/privacy.js" defer></script>
 <!-- TOOLBOX-PRIVACY-SCRIPT -->
 
-<script src="../../js/metrics.js" defer></script>
+<script src="/js/metrics.js" defer></script>
 <!-- TOOLBOX-METRICS-SCRIPT -->
 
 <script type="application/ld+json">
@@ -99,18 +99,18 @@
 <meta property="og:locale" content="zh_CN">
 <meta property="og:locale:alternate" content="zh_TW">
 <meta property="og:locale:alternate" content="en_US">
-<link rel="preload" as="style" href="../../css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link rel="stylesheet" href="../../css/nav-menu.css"></noscript>
-<script src="../../js/industry-info.js" defer></script>
-<script src="../../js/nav-menu.js" defer></script>
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
 
-<script src="../../js/tool-ux.js" defer></script>
+<script src="/js/tool-ux.js" defer></script>
 <!-- TOOLBOX-TOOL-UX -->
 
-<script src="../../js/analytics.js" defer></script>
+<script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 
-<script src="../../js/tool-kit.js" defer></script>
+<script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
 <script type="application/ld+json">
 {
@@ -465,10 +465,21 @@
     var buyQtyNum = parseFloat(buyQtyRaw);
     var buyQty = isFinite(buyQtyNum) ? buyQtyNum : 0;
     var sellPrice = parseFloat(document.getElementById('sellPrice').value) || 0;
-    var commRate = parseFloat(document.getElementById('commissionRate').value) || 0;
-    var stampRate = parseFloat(document.getElementById('stampRate').value) || 0;
-    var transferRate = parseFloat(document.getElementById('transferRate').value) || 0;
-    var minComm = parseFloat(document.getElementById('minCommission').value) || 0;
+    // 费率字段区分空值与明确输入的 0，避免未填写时被静默当成零费率。
+    var feeFields = [
+      {id:'commissionRate', label:'佣金费率'},
+      {id:'stampRate', label:'印花税率'},
+      {id:'transferRate', label:'过户费率'},
+      {id:'minCommission', label:'最低佣金'}
+    ];
+    for(var ff = 0; ff < feeFields.length; ff++){
+      var feeRaw = String(document.getElementById(feeFields[ff].id).value || '').trim();
+      if(feeRaw === ''){ showInputError('请填写' + feeFields[ff].label + '，留空不计算；若确实为零请明确输入 0。'); return; }
+    }
+    var commRate = parseFloat(document.getElementById('commissionRate').value);
+    var stampRate = parseFloat(document.getElementById('stampRate').value);
+    var transferRate = parseFloat(document.getElementById('transferRate').value);
+    var minComm = parseFloat(document.getElementById('minCommission').value);
 
     var mode = getMode();
 
@@ -535,21 +546,46 @@
     // P x Q - P x Q x stampRatio - max(P x Q x commRatio, minComm) - P x Q x transferRatio = buyTotal
     // P x Q x (1 - stampRatio - commRatio - transferRatio) = buyTotal + max(...,)简化
     var sellFeeRatio = stampRatio + commRatio + transferRatio;
-    var breakEvenPrice = 0;
-    if (buyQty > 0 && sellFeeRatio < 1) {
-      // 迭代求解保本价（考虑最低佣金）
-      var lo = 0, hi = buyPrice * 10 + 100;
-      for (var iter = 0; iter < 50; iter++) {
-        var mid = (lo + hi) / 2;
-        var testSellAmt = mid * buyQty;
-        var testStamp = testSellAmt * stampRatio;
-        var testComm = Math.max(testSellAmt * commRatio, minComm);
-        var testTransfer = testSellAmt * transferRatio;
-        var testIncome = testSellAmt - testStamp - testComm - testTransfer;
-        if (testIncome < buyTotal) lo = mid;
-        else hi = mid;
+    var breakEvenPrice = NaN;
+    if (buyQty > 0) {
+      // 分段解析解：佣金是否有最低佣金，决定斜率不同，不能只靠固定上界二分。
+      // 区间 A：P·Q·comm ≥ minComm ⇒ P = buyTotal / (Q·(1−stamp−comm−transfer))
+      // 区间 B：P·Q·comm <  minComm ⇒ P = (buyTotal+minComm) / (Q·(1−stamp−transfer))
+      var aDen = 1 - stampRatio - commRatio - transferRatio;
+      var bDen = 1 - stampRatio - transferRatio;
+      var candidates = [];
+      if (aDen > 0) {
+        var pa = buyTotal / (buyQty * aDen);
+        var aa = pa * buyQty;
+        if (aa * commRatio >= minComm - 1e-9) candidates.push(pa);
       }
-      breakEvenPrice = (lo + hi) / 2;
+      if (bDen > 0) {
+        var pb = (buyTotal + minComm) / (buyQty * bDen);
+        var ab = pb * buyQty;
+        if (ab * commRatio <= minComm + 1e-9) candidates.push(pb);
+      }
+      function netAt(p) {
+        var amt = p * buyQty;
+        return amt - amt * stampRatio - Math.max(amt * commRatio, minComm) - amt * transferRatio;
+      }
+      for (var ci = 0; ci < candidates.length; ci++) {
+        if (Math.abs(netAt(candidates[ci]) - buyTotal) <= Math.max(0.01, buyTotal * 1e-9)) {
+          breakEvenPrice = candidates[ci]; break;
+        }
+      }
+      if (!isFinite(breakEvenPrice)) {
+        // 兜底自适应搜索：上界从当前价开始倍增，避免超低费率/极高最低佣金时覆盖不到真实解。
+        var lo = 0, hi = Math.max(buyPrice, 1);
+        var guard = 0;
+        while (netAt(hi) < buyTotal && guard++ < 80) hi = hi * 2 + 100;
+        if (netAt(hi) >= buyTotal) {
+          for (var iter = 0; iter < 80; iter++) {
+            var mid = (lo + hi) / 2;
+            if (netAt(mid) < buyTotal) lo = mid; else hi = mid;
+          }
+          breakEvenPrice = (lo + hi) / 2;
+        }
+      }
     }
 
     // 存储计算数据
@@ -611,7 +647,7 @@
     document.getElementById('dPnlPct').className = 'd-value ' + pc;
     const __g22=perShareStr;document.getElementById('dPerShare').textContent=(typeof __g22==='number'?(isFinite(__g22)?__g22:'—'):String(__g22).replace(/Infinity|NaN/g,'—'));
     document.getElementById('dPerShare').className = 'd-value ' + pc;
-    const __g23=breakEvenPrice > 0 ? fmt(breakEvenPrice) + ' 元/股' : '--';document.getElementById('dBreakEven').textContent=(typeof __g23==='number'?(isFinite(__g23)?__g23:'—'):String(__g23).replace(/Infinity|NaN/g,'—'));
+    const __g23=isFinite(breakEvenPrice) && breakEvenPrice > 0 ? fmt(breakEvenPrice) + ' 元/股' : '无法求解（费率过高或搜索越界）';document.getElementById('dBreakEven').textContent=(typeof __g23==='number'?(isFinite(__g23)?__g23:'—'):String(__g23).replace(/Infinity|NaN/g,'—'));
     document.getElementById('dBreakEven').className = 'd-value';
 
     // 更新费用表格
@@ -664,7 +700,7 @@
       '盈亏金额：' + (d.pnl >= 0 ? '+' : '') + d.pnl.toFixed(2) + '元',
       '盈亏百分比：' + (d.pnlPct >= 0 ? '+' : '') + d.pnlPct.toFixed(2) + '%',
       '每股盈亏：' + (d.perShare >= 0 ? '+' : '') + d.perShare.toFixed(3) + '元',
-      '保本卖出价：' + (d.breakEvenPrice > 0 ? d.breakEvenPrice.toFixed(3) + '元/股' : '--')
+      '保本卖出价：' + (isFinite(d.breakEvenPrice) && d.breakEvenPrice > 0 ? d.breakEvenPrice.toFixed(3) + '元/股' : '无法求解（费率过高或搜索越界）')
     ].join('\n');
     ToolBox.copyText(text);
   }
@@ -700,7 +736,7 @@
     csv += '盈亏百分比（%）,' + d.pnlPct.toFixed(2) + '\n';
     csv += '每股盈亏（元）,' + d.perShare.toFixed(3) + '\n';
     csv += '交易总费用（元）,' + d.totalFee.toFixed(2) + '\n';
-    csv += '保本卖出价（元/股）,' + (d.breakEvenPrice > 0 ? d.breakEvenPrice.toFixed(3) : '--') + '\n';
+    csv += '保本卖出价（元/股）,' + (isFinite(d.breakEvenPrice) && d.breakEvenPrice > 0 ? d.breakEvenPrice.toFixed(3) : '无法求解') + '\n';
 
     ToolBox.downloadText('stock-profit-' + d.buyQty + '股.csv', csv, 'text/csv;charset=utf-8');
     ToolBox.showToast(i18nText('toast.export_ok'));
@@ -764,7 +800,7 @@ document.addEventListener('DOMContentLoaded',function(){
     </a>
     <a href="mirror-text.html" class="related-tool-card">
       <span class="rt-icon">🏦</span>
-      <span class="rt-info"><span class="rt-name">镜像文字</span><span class="rt-desc">将文字左右镜像反转生成可复制的字符或预览图，用于趣味签名、艺术字与水印，纯前端即时转换支持一键复制结…</span></span>
+      <span class="rt-info"><span class="rt-name">镜像文字</span><span class="rt-desc">将文字左右镜像：复制近似 Unicode 字符，或导出真实左右翻转、透明背景的多行 PNG；</span></span>
     </a>
     
   </div>

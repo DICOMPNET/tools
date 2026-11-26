@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 
-<script src="../../js/tool-page-runtime.js" defer></script>
+<script src="/js/tool-page-runtime.js" defer></script>
 <!-- TOOLBOX-TOOL-RUNTIME -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -15,7 +15,7 @@
 <meta property="og:url" content="https://tools.dicomp.net/tools/life/analysis-cost-10.html">
 <meta name="twitter:card" content="summary">
 <link rel="stylesheet" href="../../css/common.css">
-<script src="../../js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
 
 
@@ -38,10 +38,10 @@
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
 <!-- TOOLBOX-SECURITY -->
 
-<script src="../../js/privacy.js" defer></script>
+<script src="/js/privacy.js" defer></script>
 <!-- TOOLBOX-PRIVACY-SCRIPT -->
 
-<script src="../../js/metrics.js" defer></script>
+<script src="/js/metrics.js" defer></script>
 <!-- TOOLBOX-METRICS-SCRIPT -->
 
 <script type="application/ld+json">
@@ -63,18 +63,18 @@
 <meta property="og:locale" content="zh_CN">
 <meta property="og:locale:alternate" content="zh_TW">
 <meta property="og:locale:alternate" content="en_US">
-<link rel="preload" as="style" href="../../css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link rel="stylesheet" href="../../css/nav-menu.css"></noscript>
-<script src="../../js/industry-info.js" defer></script>
-<script src="../../js/nav-menu.js" defer></script>
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
 
-<script src="../../js/tool-ux.js" defer></script>
+<script src="/js/tool-ux.js" defer></script>
 <!-- TOOLBOX-TOOL-UX -->
 
-<script src="../../js/analytics.js" defer></script>
+<script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 
-<script src="../../js/tool-kit.js" defer></script>
+<script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
 <script type="application/ld+json">
 {
@@ -238,15 +238,46 @@ function norm(s){
   return s;
 }
 var rows='',tb=0,ta=0,n=0,over=0,under=0,worst="—",worstV=0,skipped=[],neg=[];
-function esc(s){return (typeof ToolBox!=='undefined'&&ToolBox.escHtml)?ToolBox.escHtml(String(s)):String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
-lines.forEach(function(raw){
-// 名称允许含空格：先归一化全角数字/千分位/单位后缀，再取行末两个数字作为预算/实际
-var ln=norm(raw);
-var m=ln.match(/^(.+?)[\s,，\t;；]+(-?\d{1,3}(?:,\d{3})*|-?\d+(?:\.\d+)?)[\s,，\t;；]+(-?\d{1,3}(?:,\d{3})*|-?\d+(?:\.\d+)?)$/);
-if(!m){skipped.push(raw);return;}
-var name=m[1].trim(),b=parseFloat(String(m[2]).replace(/,/g,'')),a=parseFloat(String(m[3]).replace(/,/g,''));
-if(isNaN(b)||isNaN(a)){skipped.push(ln);return;}
-if(b<0||a<0){neg.push(ln);return;}
+function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+function splitCsvLine(raw){
+  var delim=(raw.indexOf(';')>=0 && raw.indexOf('"')<0)?';':',';
+  var cells=[],cur='',quoted=false;
+  for(var i=0;i<raw.length;i++){
+    var ch=raw[i];
+    if(ch==='"'){
+      if(quoted&&raw[i+1]==='"'){cur+='"';i++;}
+      else{quoted=!quoted;}
+    }else if(ch===delim&&!quoted){cells.push(cur);cur='';}
+    else{cur+=ch;}
+  }
+  if(quoted) return null;
+  cells.push(cur);
+  return cells;
+}
+
+lines.forEach(function(raw,idx){
+// 名称允许含空格：先归一化全角数字/千分位/单位后缀，再按分隔符拆列
+raw=norm(raw);
+var cells=splitCsvLine(raw);
+if(cells&&cells.length>3){
+  var merged=[];
+  for(var ci=0;ci<cells.length;ci++){
+    if(ci+1<cells.length&&/^-?\d{1,3}$/.test(cells[ci].trim())&&/^\d{3}(?:\.\d+)?$/.test(cells[ci+1].trim())){
+      merged.push(cells[ci].trim()+','+cells[ci+1].trim());ci++;
+    }else merged.push(cells[ci]);
+  }
+  cells=merged;
+}
+var lineNo='第'+(idx+1)+'行：';
+if(!cells){skipped.push(lineNo+'引号未闭合');return;}
+if(cells.length!==3){skipped.push(lineNo+'应为 3 列（成本项,预算,实际），实际 '+cells.length+' 列；名称含逗号请用英文双引号包裹');return;}
+var name=String(cells[0]||'').trim();
+var numPat=/^-?\d{1,3}(?:,\d{3})*(?:\.\d+)?$|^-?\d+(?:\.\d+)?$/;
+if(!name){skipped.push(lineNo+'成本项名称为空');return;}
+if(!numPat.test(cells[1].trim())||!numPat.test(cells[2].trim())){skipped.push(lineNo+'预算或实际不是有效数值');return;}
+var b=parseFloat(String(cells[1]).replace(/,/g,'')),a=parseFloat(String(cells[2]).replace(/,/g,''));
+if(isNaN(b)||isNaN(a)){skipped.push(lineNo+'预算或实际不是有效数值');return;}
+if(b<0||a<0){neg.push(lineNo+raw.trim());return;}
 var d=a-b,dr=b!==0?(d/b*100).toFixed(2)+'%':'—（预算为 0）';
 n++;tb+=b;ta+=a;
 if(d>0){over++;if(d>worstV){worstV=d;worst=name;}}else if(d<0){under++;}
@@ -259,7 +290,7 @@ const __g2='<p>成本项数：<strong>'+n+'</strong></p>'+
 '<p>实际合计：<strong>'+ta.toFixed(2)+'</strong> 元</p>'+
 '<p>总差异：<strong style="color:var(--primary);">'+(diff>0?'+':'')+diff.toFixed(2)+'</strong> 元</p>'+
 '<p>预算执行率：<strong>'+rateText+'</strong></p>'+
-'<p>最大超支项：<strong>'+worst+'</strong>（超支 '+worstV.toFixed(2)+' 元）</p>'+
+'<p>最大超支项：<strong>'+esc(worst)+'</strong>（超支 '+worstV.toFixed(2)+' 元）</p>'+
 '<p>超支项数：<strong>'+over+'</strong>　节约项数：<strong>'+under+'</strong></p>'+
 (skipped.length?'<p style="color:var(--warning);">存在无法解析的行，已跳过。</p><p class="muted">'+skipped.map(esc).join('；')+'</p>':'')+
 (neg.length?'<p style="color:var(--warning);">预算或实际为负的行已按无效处理（成本预算不能为负）：</p><p class="muted">'+neg.map(esc).join('；')+'</p>':'')+
@@ -281,11 +312,11 @@ calc();function copyRes(){ToolBox.copyText(document.getElementById("res").innerT
   <div class="related-tools-grid">
     <a href="report-profit.html" class="related-tool-card">
       <span class="rt-icon">📈</span>
-      <span class="rt-info"><span class="rt-name">财务（利润/现金流/报表）核算</span><span class="rt-desc">输入利润与现金流数据（逗号或换行分隔），汇总合计、均值与波动并输出报表要点，辅助经营复盘与财务分析</span></span>
+      <span class="rt-info"><span class="rt-name">财务（利润/现金流/报表）核算</span><span class="rt-desc">输入营业收入、进货成本、人工、房租、水电杂费、回款率与期初现金，按简化公式计算毛利、营业利润、本期现…</span></span>
     </a>
     <a href="analysis-80.html" class="related-tool-card">
       <span class="rt-icon">📊</span>
-      <span class="rt-info"><span class="rt-name">损耗（控制/分析/改善）体系</span><span class="rt-desc">输入损耗数量与基准数据（逗号或换行分隔），统计损耗率、均值与波动，辅助损耗控制与改善分析</span></span>
+      <span class="rt-info"><span class="rt-name">损耗（控制/分析/改善）体系</span><span class="rt-desc">按行输入环节、损耗量与应售量，计算各环节损耗率、加权平均损耗率和环节间波动，定位高发环节</span></span>
     </a>
     <a href="assessor-target.html" class="related-tool-card">
       <span class="rt-icon">📋</span>
@@ -293,7 +324,7 @@ calc();function copyRes(){ToolBox.copyText(document.getElementById("res").innerT
     </a>
     <a href="recommender-8.html" class="related-tool-card">
       <span class="rt-icon">🛡️</span>
-      <span class="rt-info"><span class="rt-name">保险（责任/意外/雇主）推荐</span><span class="rt-desc">按责任、意外、雇主等保险类别生成投保建议文本样例，辅助保险方案梳理与销售沟通，内容仅供参考</span></span>
+      <span class="rt-info"><span class="rt-name">保险保障需求清单与条款比对</span><span class="rt-desc">列出保障需求清单和条款核对项，覆盖家庭财产、个人意外、雇主责任、公众责任、旅行出行；</span></span>
     </a>
   </div>
 </div>

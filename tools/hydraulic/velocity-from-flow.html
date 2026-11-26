@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 
-<script src="../../js/tool-page-runtime.js" defer></script>
+<script src="/js/tool-page-runtime.js" defer></script>
 <!-- TOOLBOX-TOOL-RUNTIME -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -15,7 +15,7 @@
 <meta name="twitter:card" content="summary">
 <meta name="description" content="输入体积流量 Q 与过流断面面积 A，按 v = Q/A 计算平均流速，适用于管道、明渠中任意截面流体的流速反算，便于校核流速是否满足规范限值">
 <link rel="stylesheet" href="../../css/common.css">
-<script src="../../js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
 
 
@@ -37,10 +37,10 @@
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
 <!-- TOOLBOX-SECURITY -->
 
-<script src="../../js/privacy.js" defer></script>
+<script src="/js/privacy.js" defer></script>
 <!-- TOOLBOX-PRIVACY-SCRIPT -->
 
-<script src="../../js/metrics.js" defer></script>
+<script src="/js/metrics.js" defer></script>
 <!-- TOOLBOX-METRICS-SCRIPT -->
 
 <script type="application/ld+json">
@@ -62,18 +62,18 @@
 <meta property="og:locale" content="zh_CN">
 <meta property="og:locale:alternate" content="zh_TW">
 <meta property="og:locale:alternate" content="en_US">
-<link rel="preload" as="style" href="../../css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link rel="stylesheet" href="../../css/nav-menu.css"></noscript>
-<script src="../../js/industry-info.js" defer></script>
-<script src="../../js/nav-menu.js" defer></script>
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
 
-<script src="../../js/tool-ux.js" defer></script>
+<script src="/js/tool-ux.js" defer></script>
 <!-- TOOLBOX-TOOL-UX -->
 
-<script src="../../js/analytics.js" defer></script>
+<script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 
-<script src="../../js/tool-kit.js" defer></script>
+<script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
 <script type="application/ld+json">
 {
@@ -282,9 +282,12 @@ function __tbInputGuardCore(_ids,_labels){
 
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
+function __hydEn(){return /^en/i.test(document.documentElement.lang||'')||/[?&]lang=en/i.test(location.search)||(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());}
 function calcTool(){
+              var __t=document.getElementById('velocity_from_flowTable');if(__t)__t.innerHTML='';
               var __ig=__tbInputGuard(['Q', 'A'],["流量 Q (m³/s)", "断面面积 A (m²)"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
 const Q=num('Q'), A=num('A');
+            if(!(Q>=0 && A>0)){var __bad=document.getElementById('velocity_from_flowTable');if(__bad)__bad.innerHTML='';ToolBox.setResult('result',(__hydEn()?'<p style="color:var(--danger)">Flow must be ≥ 0 and cross-sectional area must be greater than 0.</p>':'<p style="color:var(--danger)">流量须不小于 0，断面面积须大于 0。</p>'));return;}
             const v = Q/A;
             const __g2=dataGrid([ [v.toFixed(2)+' m/s', '平均流速 v = Q/A'],
                 [(1/Math.max(v,1e-9)).toFixed(6), '流速倒数 (s/m)'],
@@ -303,7 +306,7 @@ function __velocity_from_flowExtras(){
     if (typeof TBKit === 'undefined') return;
     var Q=num('Q'), A=num('A');
     var v = Q/A;
-    if (!isFinite(__velocity_from_flowNum('Q')) || !isFinite(__velocity_from_flowNum('A'))) return;
+    if (!(Q>=0) || !(A>0) || !isFinite(__velocity_from_flowNum('Q')) || !isFinite(__velocity_from_flowNum('A'))) return;
     var en=TBKit.util.isEn();
     TBKit.matrix.table('#velocity_from_flowTable',{
         head: en?['Item','Value']:['项目','数值'],

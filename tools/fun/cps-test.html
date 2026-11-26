@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 
-<script src="../../js/tool-page-runtime.js" defer></script>
+<script src="/js/tool-page-runtime.js" defer></script>
 <!-- TOOLBOX-TOOL-RUNTIME -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -23,7 +23,7 @@
 <link rel="icon" href="../../favicon.ico" sizes="16x16 32x32 48x48">
 <link rel="apple-touch-icon" href="../../apple-touch-icon.png">
 <link rel="stylesheet" href="../../css/common.css">
-<script src="../../js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
 <style>
 .click-area{height:280px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:bold;cursor:pointer;margin:16px 0;color:#fff;user-select:none;text-align:center;background:linear-gradient(135deg,var(--primary),var(--primary-dark));transition:transform 0.05s;}
@@ -52,10 +52,10 @@
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
 <!-- TOOLBOX-SECURITY -->
 
-<script src="../../js/privacy.js" defer></script>
+<script src="/js/privacy.js" defer></script>
 <!-- TOOLBOX-PRIVACY-SCRIPT -->
 
-<script src="../../js/metrics.js" defer></script>
+<script src="/js/metrics.js" defer></script>
 <!-- TOOLBOX-METRICS-SCRIPT -->
 
 <script type="application/ld+json">
@@ -76,18 +76,18 @@
 <meta property="og:locale" content="zh_CN">
 <meta property="og:locale:alternate" content="zh_TW">
 <meta property="og:locale:alternate" content="en_US">
-<link rel="preload" as="style" href="../../css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link rel="stylesheet" href="../../css/nav-menu.css"></noscript>
-<script src="../../js/industry-info.js" defer></script>
-<script src="../../js/nav-menu.js" defer></script>
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
 
-<script src="../../js/tool-ux.js" defer></script>
+<script src="/js/tool-ux.js" defer></script>
 <!-- TOOLBOX-TOOL-UX -->
 
-<script src="../../js/analytics.js" defer></script>
+<script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 
-<script src="../../js/tool-kit.js" defer></script>
+<script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
 <script type="application/ld+json">
 {
@@ -240,7 +240,8 @@
 const DURATION=10;
 function calcCps(clicks,duration){return clicks/duration;}
 function cpsLabel(cps){return cps<5?'慢':cps<8?'一般':cps<11?'不错':cps<14?'很快':'神速 ⚡';}
-let clicks,state,timer,startTime,best;
+let clicks,state,timer,startTime,deadline,best;
+function nowMs(){return (typeof performance!=='undefined'&&performance.now)?performance.now():Date.now();}
 
 function start(){
   reset();
@@ -251,7 +252,8 @@ function start(){
   setTimeout(()=>{
     state='go';
     clicks=0;
-    startTime=Date.now();
+    startTime=nowMs();
+    deadline=startTime+duration*1000;
     a.className='click-area go';
     a.textContent=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Click fast!":"快速点击！");
     timer=setInterval(tick,100);
@@ -270,7 +272,7 @@ function reset(){
   document.getElementById('output').textContent='10 秒内尽可能多地点击';
 }
 function tick(){
-  const elapsed=(Date.now()-startTime)/1000;
+  const elapsed=(nowMs()-startTime)/1000;
   const left=Math.max(0,DURATION-elapsed);
   document.getElementById('timer').textContent=left.toFixed(1)+'s';
   document.getElementById('cps').textContent=(clicks/Math.max(elapsed,0.001)).toFixed(1);
@@ -292,6 +294,7 @@ function onClick(){
     return;
   }
   if(state==='go'){
+    if(nowMs()>=deadline){ tick(); return; }
     clicks++;
     document.getElementById('clicks').textContent=clicks;
   }else if(state==='idle'||state==='done'){

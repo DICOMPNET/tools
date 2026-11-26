@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 
-<script src="../../js/tool-page-runtime.js" defer></script>
+<script src="/js/tool-page-runtime.js" defer></script>
 <!-- TOOLBOX-TOOL-RUNTIME -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -15,7 +15,7 @@
 <meta name="twitter:card" content="summary">
 <meta name="description" content="空调耗电与电费估算是一款免费的在线家居装修工具，按空调额定制冷功率、每日运行时长、使用天数、电价、使用强度与待机功耗，估算每小时、每日、每月和制冷季耗电与电费，并给出碳排放参考">
 <link rel="stylesheet" href="../../css/common.css">
-<script src="../../js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
 
 <script type="application/ld+json">
@@ -48,10 +48,10 @@
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
 <!-- TOOLBOX-SECURITY -->
 
-<script src="../../js/privacy.js" defer></script>
+<script src="/js/privacy.js" defer></script>
 <!-- TOOLBOX-PRIVACY-SCRIPT -->
 
-<script src="../../js/metrics.js" defer></script>
+<script src="/js/metrics.js" defer></script>
 <!-- TOOLBOX-METRICS-SCRIPT -->
 
 <script src="../../js/i18n.js" defer></script>
@@ -67,18 +67,18 @@
 <meta property="og:locale" content="zh_CN">
 <meta property="og:locale:alternate" content="zh_TW">
 <meta property="og:locale:alternate" content="en_US">
-<link rel="preload" as="style" href="../../css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link rel="stylesheet" href="../../css/nav-menu.css"></noscript>
-<script src="../../js/industry-info.js" defer></script>
-<script src="../../js/nav-menu.js" defer></script>
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
 
-<script src="../../js/tool-ux.js" defer></script>
+<script src="/js/tool-ux.js" defer></script>
 <!-- TOOLBOX-TOOL-UX -->
 
-<script src="../../js/tool-kit.js" defer></script>
+<script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
 
-<script src="../../js/analytics.js" defer></script>
+<script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 <meta property="og:site_name" content="ToolBox">
 <meta name="theme-color" content="#FF6B35">
@@ -328,7 +328,7 @@ function applyPreset(type){
   const m={bedroom:[1100,8,30,4,0.6,'normal',2,16],rental:[750,6,30,4,0.6,'normal',2,18],living:[2200,5,30,5,0.6,'high',3,19]};
   const p=m[type]||m.bedroom;
   ['power','hours','days','months','price','factor','standby','standbyHours'].forEach((id,i)=>document.getElementById(id).value=p[i]);
-  calcTool();
+  calcTool(false);
 }
 function exportCSV(){
   const err=inputError();if(err){alert(err);return;}
@@ -349,7 +349,8 @@ function exportCSV(){
   ];
   csvDownload('ac-energy-cost.csv',r);
 }
-function calcTool(){
+function calcTool(save){
+  if(save===undefined)save=true;
   const err=inputError();if(err){document.getElementById('result').innerHTML='<div class="result-placeholder">'+err+'</div>';return;}
   const d=calcData();
   const en=isEN();
@@ -370,14 +371,14 @@ function calcTool(){
   if(d.seasonKwh>2000)html+='<div class="info-box" style="margin-top:8px;">'+(en?'Season energy exceeds 2,000 kWh: consider a higher-efficiency unit or reduced run time.':'制冷季耗电超过 2,000 kWh，可对比高能效机型或减少运行时长。')+'</div>';
   document.getElementById('result').innerHTML=html;
   drawChart(d);
-  saveHist(HIST_KEY,d.power+' W × '+d.hours+' h → '+d.dailyKwh.toFixed(2)+' kWh · ¥'+d.dailyCost.toFixed(2)+'/day');
+  if(save) saveHist(HIST_KEY,d.power+' W × '+d.hours+' h → '+d.dailyKwh.toFixed(2)+' kWh · ¥'+d.dailyCost.toFixed(2)+'/day');
 }
 function resetForm(){
   document.getElementById('power').value=1100;document.getElementById('hours').value=8;document.getElementById('days').value=30;
   document.getElementById('months').value=4;document.getElementById('price').value=0.6;document.getElementById('factor').value='normal';
-  document.getElementById('standby').value=2;document.getElementById('standbyHours').value=16;calcTool();
+  document.getElementById('standby').value=2;document.getElementById('standbyHours').value=16;calcTool(false);
 }
-renderHist(HIST_KEY);if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',calcTool);}else{calcTool();}window.addEventListener('toolbox:langchange',calcTool);
+renderHist(HIST_KEY);if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',function(){calcTool(false);});}else{calcTool(false);}window.addEventListener('toolbox:langchange',function(){calcTool(false);});
 </script>
 
 <section class="deep-dive" data-deep-dive="1">

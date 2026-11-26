@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 
-<script src="../../js/tool-page-runtime.js" defer></script>
+<script src="/js/tool-page-runtime.js" defer></script>
 <!-- TOOLBOX-TOOL-RUNTIME -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -23,7 +23,7 @@
 <link rel="icon" href="../../favicon.ico" sizes="16x16 32x32 48x48">
 <link rel="apple-touch-icon" href="../../apple-touch-icon.png">
 <link rel="stylesheet" href="../../css/common.css">
-<script src="../../js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
 <style>
 .preview-area{min-height:120px;border-radius:8px;background:var(--result-bg);padding:30px;display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;}
@@ -47,10 +47,10 @@
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
 <!-- TOOLBOX-SECURITY -->
 
-<script src="../../js/privacy.js" defer></script>
+<script src="/js/privacy.js" defer></script>
 <!-- TOOLBOX-PRIVACY-SCRIPT -->
 
-<script src="../../js/metrics.js" defer></script>
+<script src="/js/metrics.js" defer></script>
 <!-- TOOLBOX-METRICS-SCRIPT -->
 
 <script type="application/ld+json">
@@ -71,18 +71,18 @@
 <meta property="og:locale" content="zh_CN">
 <meta property="og:locale:alternate" content="zh_TW">
 <meta property="og:locale:alternate" content="en_US">
-<link rel="preload" as="style" href="../../css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link rel="stylesheet" href="../../css/nav-menu.css"></noscript>
-<script src="../../js/industry-info.js" defer></script>
-<script src="../../js/nav-menu.js" defer></script>
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
 
-<script src="../../js/tool-ux.js" defer></script>
+<script src="/js/tool-ux.js" defer></script>
 <!-- TOOLBOX-TOOL-UX -->
 
-<script src="../../js/analytics.js" defer></script>
+<script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 
-<script src="../../js/tool-kit.js" defer></script>
+<script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
 <script type="application/ld+json">
 {
@@ -162,9 +162,9 @@
     <div class="input-row">
       <div><label for="btnText">按钮文字</label><input type="text" id="btnText" value="Click Me" oninput="generate()"></div>
       <div><label for="fontSize">字号</label><input type="number" id="fontSize" value="14" min="8" max="32" onchange="generate()" placeholder="如 14（8–32）"></div>
-      <div><label for="shX">阴影 X</label><input type="number" id="shX" value="0" onchange="generate()" placeholder="如 0"></div>
-      <div><label for="shY">阴影 Y</label><input type="number" id="shY" value="4" onchange="generate()" placeholder="如 4"></div>
-      <div><label for="shBlur">阴影模糊</label><input type="number" id="shBlur" value="12" onchange="generate()" placeholder="如 12"></div>
+      <div><label for="shX">阴影 X</label><input type="number" id="shX" value="0" min="-50" max="50" onchange="generate()" placeholder="如 0（-50–50）"></div>
+      <div><label for="shY">阴影 Y</label><input type="number" id="shY" value="4" min="-50" max="50" onchange="generate()" placeholder="如 4（-50–50）"></div>
+      <div><label for="shBlur">阴影模糊</label><input type="number" id="shBlur" value="12" min="0" max="50" onchange="generate()" placeholder="如 12（0–50）"></div>
     </div>
     <div class="toolbar">
       <div id="button_generatorPresets"></div><button type="button" class="btn primary" onclick="generate()">生成</button><button class="btn" type="button" onclick="__button_generatorExport()">导出明细 CSV</button>
@@ -254,19 +254,27 @@
 </div>
 <script>
 function generate(){
+  const en=!!(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
   const bg = document.getElementById('bgColor').value;
   const tc = document.getElementById('textColor').value;
-  const cl=function(id,min,max,d){var el=document.getElementById(id);var v=Number(el.value);var n=Number.isFinite(v)?Math.max(min,Math.min(max,v)):d;if(el.value!==String(n))el.value=String(n);return n;};
-  const radius = cl('radius',0,50,0);
-  const padX = cl('padX',0,50,0);
-  const padY = cl('padY',0,50,0);
+  const fail=function(zh,enMsg){ document.getElementById('cssOutput').value='⚠ '+(en?enMsg:zh); document.getElementById('previewBtn').style.cssText='display:none;'; };
+  const cl=function(id,min,max,zh,enLabel){
+    var el=document.getElementById(id), raw=String(el.value).trim();
+    if(raw===''){ fail(zh+'不能为空，请输入 '+min+'–'+max+' 之间的数值。', enLabel+' cannot be empty; enter a value between '+min+' and '+max+'.'); return null; }
+    var v=Number(raw);
+    if(!isFinite(v)||v<min||v>max){ fail(zh+'须在 '+min+'–'+max+' 之间，当前为 '+raw+'。', enLabel+' must be between '+min+' and '+max+'; current value is '+raw+'.'); return null; }
+    return v;
+  };
+  const radius = cl('radius',0,50,'圆角','Corner radius'); if(radius===null)return;
+  const padX = cl('padX',0,50,'水平内边距','Horizontal padding'); if(padX===null)return;
+  const padY = cl('padY',0,30,'垂直内边距','Vertical padding'); if(padY===null)return;
   const bc = document.getElementById('borderColor').value;
-  const bw = cl('borderW',0,5,0);
+  const bw = cl('borderW',0,5,'边框粗细','Border width'); if(bw===null)return;
   const text = document.getElementById('btnText').value || 'Button';
-  const fs = cl('fontSize',8,72,14);
-  const shX = cl('shX',-50,50,0);
-  const shY = cl('shY',-50,50,0);
-  const shB = cl('shBlur',0,50,0);
+  const fs = cl('fontSize',8,32,'字号','Font size'); if(fs===null)return;
+  const shX = cl('shX',-50,50,'阴影 X','Shadow X'); if(shX===null)return;
+  const shY = cl('shY',-50,50,'阴影 Y','Shadow Y'); if(shY===null)return;
+  const shB = cl('shBlur',0,50,'阴影模糊','Shadow blur'); if(shB===null)return;
   const r = parseInt(bg.slice(1,3),16);
   const g = parseInt(bg.slice(3,5),16);
   const b = parseInt(bg.slice(5,7),16);
@@ -285,7 +293,7 @@ function generate(){
 function copyResult(){
   const text = document.getElementById('cssOutput').value;
   if(!text){ alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Nothing to copy":"无内容可复制")); return; }
-  navigator.clipboard.writeText(text).then(() => alert(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Copied CSS":"已复制 CSS")));
+  ToolBox.copyText(text, ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Copied CSS":"已复制 CSS"));
 }
 function toggleToolTheme(){
   const cur = document.documentElement.getAttribute('data-theme');

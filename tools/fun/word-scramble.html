@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 
-<script src="../../js/tool-page-runtime.js" defer></script>
+<script src="/js/tool-page-runtime.js" defer></script>
 <!-- TOOLBOX-TOOL-RUNTIME -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -23,7 +23,7 @@
 <link rel="icon" href="../../favicon.ico" sizes="16x16 32x32 48x48">
 <link rel="apple-touch-icon" href="../../apple-touch-icon.png">
 <link rel="stylesheet" href="../../css/common.css">
-<script src="../../js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
 <style>
 .category-row,.difficulty-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;}
@@ -69,10 +69,10 @@
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
 <!-- TOOLBOX-SECURITY -->
 
-<script src="../../js/privacy.js" defer></script>
+<script src="/js/privacy.js" defer></script>
 <!-- TOOLBOX-PRIVACY-SCRIPT -->
 
-<script src="../../js/metrics.js" defer></script>
+<script src="/js/metrics.js" defer></script>
 <!-- TOOLBOX-METRICS-SCRIPT -->
 
 <script type="application/ld+json">
@@ -93,21 +93,21 @@
 <meta property="og:locale" content="zh_CN">
 <meta property="og:locale:alternate" content="zh_TW">
 <meta property="og:locale:alternate" content="en_US">
-<link rel="preload" as="style" href="../../css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link rel="stylesheet" href="../../css/nav-menu.css"></noscript>
-<script src="../../js/industry-info.js" defer></script>
-<script src="../../js/nav-menu.js" defer></script>
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
 
-<script src="../../js/tool-ux.js" defer></script>
+<script src="/js/tool-ux.js" defer></script>
 <!-- TOOLBOX-TOOL-UX -->
 
-<script src="../../js/analytics.js" defer></script>
+<script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 <script type="application/ld+json">
 {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "词库能自定义吗？", "acceptedAnswer": {"@type": "Answer", "text": "当前内置词库随机抽题；可复制题目自行练习，工具只负责打乱与判分。"}}, {"@type": "Question", "name": "字母相同算对吗？", "acceptedAnswer": {"@type": "Answer", "text": "需还原为词库原词（不区分大小写），顺序完全一致才判对。"}}]}
 </script>
 
-<script src="../../js/tool-kit.js" defer></script>
+<script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
 <meta property="og:site_name" content="ToolBox">
 </head>
@@ -442,6 +442,7 @@ let maxStreak = 0;
 let correctCount = 0;
 let hintsUsed = 0;
 let timeLeft = 60;
+let gameDeadline = 0;
 let timerInterval = null;
 let gameActive = false;
 let submitLocked = false; // 答对后到 nextWord 的 800ms 窗口内锁定提交，防重复计分（FE-N68）
@@ -476,6 +477,7 @@ function startGame(){
   correctCount = 0;
   hintsUsed = 0;
   timeLeft = 60;
+  gameDeadline = Date.now() + 60000;
   gameActive = true;
   usedWords = [];
   
@@ -487,13 +489,13 @@ function startGame(){
   
   if(timerInterval) clearInterval(timerInterval);
   timerInterval = setInterval(()=>{
-    timeLeft--;
+    timeLeft = Math.max(0, Math.ceil((gameDeadline - Date.now()) / 1000));
     document.getElementById('timer').textContent = timeLeft;
     document.getElementById('timeBar').style.width = (timeLeft/60*100) + '%';
     if(timeLeft <= 0){
       endGame();
     }
-  }, 1000);
+  }, 250);
   
   nextWord();
 }
@@ -501,6 +503,9 @@ function startGame(){
 function endGame(){
   if(!gameActive) return; // 未开局/已结束不可重复结算，避免写入 0 分空局战绩（FE-N69）
   gameActive = false;
+  timeLeft = 0;
+  document.getElementById('timer').textContent = '0';
+  document.getElementById('timeBar').style.width = '0%';
   if(timerInterval){
     clearInterval(timerInterval);
     timerInterval = null;
@@ -577,6 +582,7 @@ function renderScrambled(word){
 
 function submitAnswer(){
   if(!gameActive || !currentWord) return;
+  if(gameDeadline && Date.now() >= gameDeadline){ endGame(); return; }
   if(submitLocked) return; // 答对后 800ms 内锁定，避免重复提交重复计分（FE-N68）
   
   const input = document.getElementById('answerInput').value.trim().toLowerCase();

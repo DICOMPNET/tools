@@ -36,18 +36,11 @@
   function localeUrl(h) {
     try {
       if (typeof h !== 'string' || h.charAt(0) !== '/') return h;
-      // 子路径部署适配：预览站 dicompnet.github.io/tools/ 下，
-      // 站内链接 /tools/xxx/index.html 需补 /tools 前缀 → /tools/tools/xxx/index.html
-      var sub = '';
-      var p = location.pathname || '';
-      if (/^\/tools\//.test(p) && /^\/tools\//.test(h)) {
-        sub = '/tools';
-      }
-      if (location.pathname.indexOf('/zh-tw') !== 0) return sub + h;   // 非繁体页不处理
-      if (h.indexOf('/zh-tw') === 0) return sub + h;                    // 已带前缀
+      if (location.pathname.indexOf('/zh-tw') !== 0) return h;   // 非繁体页不处理
+      if (h.indexOf('/zh-tw') === 0) return h;                    // 已带前缀
       if (/^\/(?:js|css|json|i18n)\b/.test(h)) return h;         // 资源目录
       if (/\.(?:png|jpe?g|gif|svg|ico|webp|avif|xml|txt|json|css|js|woff2?|ttf|eot|map|pdf|zip|gz|mp4|webm|mp3|webmanifest)$/.test(h)) return h; // 静态资源
-      return sub + '/zh-tw' + h;
+      return '/zh-tw' + h;
     } catch (e) { return h; }
   }
   // 名称/描述按语言取：英文态优先 en，否则中文

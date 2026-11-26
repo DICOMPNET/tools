@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 
-<script src="../../js/tool-page-runtime.js" defer></script>
+<script src="/js/tool-page-runtime.js" defer></script>
 <!-- TOOLBOX-TOOL-RUNTIME -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -15,7 +15,7 @@
 <meta property="og:url" content="https://tools.dicomp.net/tools/life/analysis-74.html">
 <meta name="twitter:card" content="summary">
 <link rel="stylesheet" href="../../css/common.css">
-<script src="../../js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
 
 <meta property="og:image" content="https://tools.dicomp.net/og-image.png">
@@ -36,10 +36,10 @@
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
 <!-- TOOLBOX-SECURITY -->
 
-<script src="../../js/privacy.js" defer></script>
+<script src="/js/privacy.js" defer></script>
 <!-- TOOLBOX-PRIVACY-SCRIPT -->
 
-<script src="../../js/metrics.js" defer></script>
+<script src="/js/metrics.js" defer></script>
 <!-- TOOLBOX-METRICS-SCRIPT -->
 
 <script type="application/ld+json">
@@ -60,18 +60,18 @@
 <meta property="og:locale" content="zh_CN">
 <meta property="og:locale:alternate" content="zh_TW">
 <meta property="og:locale:alternate" content="en_US">
-<link rel="preload" as="style" href="../../css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link rel="stylesheet" href="../../css/nav-menu.css"></noscript>
-<script src="../../js/industry-info.js" defer></script>
-<script src="../../js/nav-menu.js" defer></script>
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
 
-<script src="../../js/tool-ux.js" defer></script>
+<script src="/js/tool-ux.js" defer></script>
 <!-- TOOLBOX-TOOL-UX -->
 
-<script src="../../js/analytics.js" defer></script>
+<script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 
-<script src="../../js/tool-kit.js" defer></script>
+<script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
 <script type="application/ld+json">
 {
@@ -229,16 +229,28 @@
 </div>
 <script>
 function calc(){
-var lines=document.getElementById("data").value.split("\n").map(function(s){return s.trim();}).filter(function(s){return s.length>0;});
-var rows=[];
-for(var i=0;i<lines.length;i++){
-  var p=lines[i].split(/[,，\t ]+/);
-  if(p.length<4) continue;
-  var nm=p[0],pr=parseFloat(p[1]),sh=parseFloat(p[2]),gr=parseFloat(p[3]);
-  if(isNaN(pr)||isNaN(sh)||isNaN(gr)||pr<0||sh<0||sh>100||gr<-100||gr>1000){
-    document.getElementById("res").innerHTML='<p style="color:var(--danger)">第 '+(i+1)+' 行数据越界：价格需 ≥0，份额 0–100%，增速 -100%–1000%。</p>';return;
-  }
-  rows.push({n:nm,p:pr,s:sh,g:gr});
+var raw=document.getElementById("data").value.split("\n");
+var rows=[]; var errors=[];
+var numP=/^\d+(?:\.\d+)?(?:元)?$/, numSP=/^[+-]?\d+(?:\.\d+)?(?:%|％)?$/;
+raw.forEach(function(ln,idx){
+ if(!ln.trim()) return;
+ var lineNo=idx+1;
+ var p=ln.trim().split(/[,，\t]/).map(function(x){return x.trim();});
+ if(p.length!==4){ errors.push('第 '+lineNo+' 行字段数为 '+p.length+'，应为 4 列（竞品,价格,份额,增速）：'+ln.trim()); return; }
+ var nm=p[0], ps=p[1], ss=p[2], gs=p[3];
+ if(!nm){ errors.push('第 '+lineNo+' 行竞品名为空'); return; }
+ if(!numP.test(ps)){ errors.push('第 '+lineNo+' 行价格“'+ps+'”格式无效（只允许数字，可带“元”，不能有尾随文字）'); return; }
+ if(!numSP.test(ss)){ errors.push('第 '+lineNo+' 行份额“'+ss+'”格式无效（只允许数字，可带 %）'); return; }
+ if(!numSP.test(gs)){ errors.push('第 '+lineNo+' 行增速“'+gs+'”格式无效（只允许数字，可带 % 或正负号）'); return; }
+ var pr=parseFloat(ps.replace('元','')), sh=parseFloat(ss.replace(/[%％]/g,'')), gr=parseFloat(gs.replace(/[%％]/g,''));
+ if(!isFinite(pr)||!isFinite(sh)||!isFinite(gr)||pr<0||sh<0||sh>100||gr<-100||gr>1000){
+  errors.push('第 '+lineNo+' 行数据越界：价格需 ≥0，份额 0–100%，增速 -100%–1000%'); return;
+ }
+ rows.push({n:nm,p:pr,s:sh,g:gr});
+});
+if(errors.length){
+ document.getElementById("res").innerHTML='<p style="color:var(--danger)">以下行未通过完整字段校验，已停止汇总，请修正后重试：</p><ul>'+errors.map(function(e){return '<li>'+ToolBox.escHtml(e)+'</li>';}).join('')+'</ul>';
+ return;
 }
 if(!rows.length){document.getElementById("res").innerHTML="<p>请输入至少一行「竞品,价格,份额,增速」数据</p>";return;}
 var k=rows.length,sp=0,ss=0,sg=0;
@@ -287,7 +299,7 @@ function copyRes(){ToolBox.copyText(document.getElementById("res").innerText);}
     </a>
     <a href="recommender-8.html" class="related-tool-card">
       <span class="rt-icon">🛡️</span>
-      <span class="rt-info"><span class="rt-name">保险（责任/意外/雇主）推荐</span><span class="rt-desc">按责任、意外、雇主等保险类别生成投保建议文本样例，辅助保险方案梳理与销售沟通，内容仅供参考</span></span>
+      <span class="rt-info"><span class="rt-name">保险保障需求清单与条款比对</span><span class="rt-desc">列出保障需求清单和条款核对项，覆盖家庭财产、个人意外、雇主责任、公众责任、旅行出行；</span></span>
     </a>
     <a href="generator-price.html" class="related-tool-card">
       <span class="rt-icon">⚖️</span>

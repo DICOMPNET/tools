@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 
-<script src="../../js/tool-page-runtime.js" defer></script>
+<script src="/js/tool-page-runtime.js" defer></script>
 <!-- TOOLBOX-TOOL-RUNTIME -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -15,7 +15,7 @@
 <meta property="og:url" content="https://tools.dicomp.net/tools/hydraulic/calc-54.html">
 <meta name="twitter:card" content="summary">
 <link rel="stylesheet" href="../../css/common.css">
-<script src="../../js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
 
 
@@ -38,10 +38,10 @@
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
 <!-- TOOLBOX-SECURITY -->
 
-<script src="../../js/privacy.js" defer></script>
+<script src="/js/privacy.js" defer></script>
 <!-- TOOLBOX-PRIVACY-SCRIPT -->
 
-<script src="../../js/metrics.js" defer></script>
+<script src="/js/metrics.js" defer></script>
 <!-- TOOLBOX-METRICS-SCRIPT -->
 
 <script type="application/ld+json">
@@ -63,18 +63,18 @@
 <meta property="og:locale" content="zh_CN">
 <meta property="og:locale:alternate" content="zh_TW">
 <meta property="og:locale:alternate" content="en_US">
-<link rel="preload" as="style" href="../../css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link rel="stylesheet" href="../../css/nav-menu.css"></noscript>
-<script src="../../js/industry-info.js" defer></script>
-<script src="../../js/nav-menu.js" defer></script>
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
 
-<script src="../../js/tool-ux.js" defer></script>
+<script src="/js/tool-ux.js" defer></script>
 <!-- TOOLBOX-TOOL-UX -->
 
-<script src="../../js/analytics.js" defer></script>
+<script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 
-<script src="../../js/tool-kit.js" defer></script>
+<script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
 <script type="application/ld+json">
 {
@@ -152,7 +152,7 @@
       <div><label for="hw">水柱高度 hw (m)</label><input type="number" id="hw" value="0" step="any" enterkeyhint="done" placeholder="如 0"></div>
     </div>
     <div class="toolbar">
-      <button class="btn primary" type="button" onclick="calc();saveHistory()">🧮 计算</button>
+      <button class="btn primary" type="button" onclick="if(calc()!==false)saveHistory()">🧮 计算</button>
       <button class="btn" type="button" onclick="copyRes()">📋 复制结果</button>
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
@@ -218,8 +218,8 @@ function calc(){
   var g=getId('g'),bw=getId('bw'),hg=getId('hg'),h=getId('h'),f=getId('f'),hw=getId('hw');
   var resBox=document.getElementById('res');
   var vals={g:g,bw:bw,hg:hg,h:h,f:f,hw:hw};
-  for(var k in vals){if(isNaN(vals[k])){resBox.innerHTML='<div class="tip-box tip-error">请输入有效的数字参数</div>';lastResult='';return;}}
-  if(g<=0||bw<=0||hg<=0||f<0){resBox.innerHTML='<div class="tip-box tip-error">自重、宽度、高度须大于0，摩擦系数不小于0</div>';lastResult='';return;}
+  for(var k in vals){if(isNaN(vals[k])){resBox.innerHTML='<div class="tip-box tip-error">请输入有效的数字参数</div>';lastResult='';return false;}}
+  if(g<=0||bw<=0||hg<=0||f<0){resBox.innerHTML='<div class="tip-box tip-error">自重、宽度、高度须大于0，摩擦系数不小于0</div>';lastResult='';return false;}
   var gamma=9.81;
   var P=0.5*gamma*h*h*bw;
   var T=f*P;
@@ -248,9 +248,10 @@ function calc(){
   }
   const __g3=html;resBox.innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
   lastResult='水闸启闭力计算\n启门力 = '+fmt(Fopen,1)+' kN（'+fmt(Fopen/9.81,1)+' 吨）\n闭门力 = '+fmt(Fclose,1)+' kN\n摩擦阻力 = '+fmt(T,1)+' kN\n水压力 = '+fmt(P,1)+' kN'+(needDown?'\n需配重 '+fmt(recommend,1)+' kN':'');
+  return true;
 }
 function copyRes(){
-  if(!lastResult){ToolBox.showToast(i18nText(),'warning');return;}
+  if(!lastResult){ToolBox.showToast(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'No valid result to copy. Calculate first.':'暂无可复制的有效结果，请先计算'),'warning');return;}
   ToolBox.copyText(lastResult);
 }
 function resetAll(){
@@ -261,7 +262,7 @@ function resetAll(){
   document.getElementById('f').value='0.3';
   document.getElementById('hw').value='0';
   calc();
-  ToolBox.showToast(i18nText(),'info');
+  ToolBox.showToast(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'Parameters reset':'参数已重置'),'info');
 }
 function historyKey(){try{return 'tb_history_'+location.pathname;}catch(e){return 'tb_history_gateforce';}}
 function saveHistory(){
@@ -301,10 +302,10 @@ function restoreHistory(idx){
     document.getElementById('f').value=h.f;
     document.getElementById('hw').value=h.hw;
     calc();
-    ToolBox.showToast(i18nText(),'info');
+    ToolBox.showToast(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'History restored':'历史记录已恢复'),'info');
   }catch(e){}
 }
-function clearHistory(){try{localStorage.removeItem(historyKey());renderHistory();ToolBox.showToast(i18nText(),'info');}catch(e){}}
+function clearHistory(){try{localStorage.removeItem(historyKey());renderHistory();ToolBox.showToast(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'History cleared':'历史记录已清空'),'info');}catch(e){}}
 document.addEventListener('DOMContentLoaded',function(){renderHistory();});
 calc();
 

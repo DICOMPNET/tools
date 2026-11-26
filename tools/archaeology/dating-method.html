@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 
-<script src="../../js/tool-page-runtime.js" defer></script>
+<script src="/js/tool-page-runtime.js" defer></script>
 <!-- TOOLBOX-TOOL-RUNTIME -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -15,7 +15,7 @@
 <meta name="twitter:card" content="summary">
 <meta name="description" content="考古测年法是一款免费的在线考古文博工具，汇总碳-14、热释光、光释光等常用考古测年方法的原理、测年范围、适用材料与精度，便于按样品类型选择测年手段">
 <link rel="stylesheet" href="../../css/common.css">
-<script src="../../js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
 <style>
 .filter-bar{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center;}
@@ -51,10 +51,10 @@
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
 <!-- TOOLBOX-SECURITY -->
 
-<script src="../../js/privacy.js" defer></script>
+<script src="/js/privacy.js" defer></script>
 <!-- TOOLBOX-PRIVACY-SCRIPT -->
 
-<script src="../../js/metrics.js" defer></script>
+<script src="/js/metrics.js" defer></script>
 <!-- TOOLBOX-METRICS-SCRIPT -->
 
 <script type="application/ld+json">
@@ -76,18 +76,18 @@
 <meta property="og:locale" content="zh_CN">
 <meta property="og:locale:alternate" content="zh_TW">
 <meta property="og:locale:alternate" content="en_US">
-<link rel="preload" as="style" href="../../css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link rel="stylesheet" href="../../css/nav-menu.css"></noscript>
-<script src="../../js/industry-info.js" defer></script>
-<script src="../../js/nav-menu.js" defer></script>
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
 
-<script src="../../js/tool-ux.js" defer></script>
+<script src="/js/tool-ux.js" defer></script>
 <!-- TOOLBOX-TOOL-UX -->
 
-<script src="../../js/analytics.js" defer></script>
+<script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 
-<script src="../../js/tool-kit.js" defer></script>
+<script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
 <meta property="og:site_name" content="ToolBox">
 <meta name="theme-color" content="#FF6B35">
@@ -436,15 +436,16 @@ function __dating_methodExtras(){
 function __dating_methodExport(){
     if (typeof TBKit === 'undefined') return;
     try{
-        var box=document.querySelector('#dating_methodTable');
-        if(!box||!box.querySelector('tr')){
-            var snap=__dating_methodSnap(); var keys=Object.keys(snap);
-            if(keys.length>12) keys=keys.slice(0,12);
-            var en=(TBKit.util&&TBKit.util.isEn())?true:false;
-            __dating_methodRender(keys,en?'Result':'结果',en);
-        }
-    }catch(e){}
-    try { TBKit.util.exportTable('#dating_methodTable','dating-method.csv'); } catch(e){}
+        var kw=document.getElementById('search').value.trim().toLowerCase(); var gf=document.getElementById('grpFilter').value; var rows=DATA.filter(function(d){ if(gf!=='all'&&d.grp!==gf)return false; if(kw){var blob=(d.name+d.range+d.material+d.principle+d.precision+d.note+(d.nameEn||'')+(d.rangeEn||'')+(d.materialEn||'')+(d.principleEn||'')+(d.precisionEn||'')+(d.noteEn||'')).toLowerCase(); if(blob.indexOf(kw)<0)return false;} return true; });
+        if(!rows.length){ ToolBox.showToast(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'No matching entries to export':'当前筛选无匹配条目，未导出'),'warning'); return; }
+        var __h=['名称', '类别', '年代范围', '适用材料', '原理', '精度', '备注'];
+        var __f=['name', 'grp', 'range', 'material', 'principle', 'precision', 'note'];
+        function __esc(v){ v=String(v==null?'':v); return '"'+v.replace(/"/g,'""')+'"'; }
+        var __lines=[__h.map(__esc).join(',')];
+        rows.forEach(function(d){ __lines.push(__f.map(function(k){return __esc(d[k]);}).join(',')); });
+        var __blob=new Blob(['\ufeff'+__lines.join('\r\n')],{type:'text/csv;charset=utf-8'});
+        var __a=document.createElement('a'); __a.href=URL.createObjectURL(__blob); __a.download='dating-method-detail.csv'; document.body.appendChild(__a); __a.click(); setTimeout(function(){URL.revokeObjectURL(__a.href);__a.remove();},500);
+    }catch(e){ ToolBox.showToast(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'Export failed':'导出失败，请重试'),'error'); }
 }
 function __dating_methodPresets(){
     if (typeof TBKit === 'undefined') return;

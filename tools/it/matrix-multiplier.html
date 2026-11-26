@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 
-<script src="../../js/tool-page-runtime.js" defer></script>
+<script src="/js/tool-page-runtime.js" defer></script>
 <!-- TOOLBOX-TOOL-RUNTIME -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -23,7 +23,7 @@
 <link rel="icon" href="../../favicon.ico" sizes="16x16 32x32 48x48">
 <link rel="apple-touch-icon" href="../../apple-touch-icon.png">
 <link rel="stylesheet" href="../../css/common.css">
-<script src="../../js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
 <style>
 .dim-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px;}
@@ -55,10 +55,10 @@ input.cell{padding:7px;text-align:center;font-size:13px;width:100%;min-width:0;}
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
 <!-- TOOLBOX-SECURITY -->
 
-<script src="../../js/privacy.js" defer></script>
+<script src="/js/privacy.js" defer></script>
 <!-- TOOLBOX-PRIVACY-SCRIPT -->
 
-<script src="../../js/metrics.js" defer></script>
+<script src="/js/metrics.js" defer></script>
 <!-- TOOLBOX-METRICS-SCRIPT -->
 
 <script type="application/ld+json">
@@ -79,18 +79,18 @@ input.cell{padding:7px;text-align:center;font-size:13px;width:100%;min-width:0;}
 <meta property="og:locale" content="zh_CN">
 <meta property="og:locale:alternate" content="zh_TW">
 <meta property="og:locale:alternate" content="en_US">
-<link rel="preload" as="style" href="../../css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link rel="stylesheet" href="../../css/nav-menu.css"></noscript>
-<script src="../../js/industry-info.js" defer></script>
-<script src="../../js/nav-menu.js" defer></script>
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
 
-<script src="../../js/tool-ux.js" defer></script>
+<script src="/js/tool-ux.js" defer></script>
 <!-- TOOLBOX-TOOL-UX -->
 
-<script src="../../js/analytics.js" defer></script>
+<script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 
-<script src="../../js/tool-kit.js" defer></script>
+<script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
 <script type="application/ld+json">
 {
@@ -347,8 +347,16 @@ document.addEventListener('DOMContentLoaded',function(){
 });
 
 var __matrix_multiplier_last=0,__matrix_multiplier_skip=false;
+function __mxWarn(){ try{ if(window.ToolBox&&ToolBox.showToast) ToolBox.showToast('该历史记录缺少完整矩阵单元格（可能为旧版截断记录），无法完整恢复，未改动当前矩阵','warning'); }catch(e){} }
+function __mxRestore(rec){
+    try{
+        var ar=+rec.ar,ac=+rec.ac,br=+rec.br,bc=+rec.bc; if(!ar||!ac||!br||!bc||ar<1||ac<1||br<1||bc<1||ar>6||ac>6||br>6||bc>6) return false; var ca=[],cb=[]; for(var i=0;i<ar*ac;i++){ if(!Object.prototype.hasOwnProperty.call(rec,'a'+i)){ __mxWarn(); return true; } ca.push(rec['a'+i]); } for(var j=0;j<br*bc;j++){ if(!Object.prototype.hasOwnProperty.call(rec,'b'+j)){ __mxWarn(); return true; } cb.push(rec['b'+j]); } document.getElementById('ar').value=ar; document.getElementById('ac').value=ac; document.getElementById('br').value=br; document.getElementById('bc').value=bc; build(); for(var k=0;k<ca.length;k++){ var ea=document.getElementById('a'+k); if(ea) ea.value=ca[k]; } for(var m=0;m<cb.length;m++){ var eb=document.getElementById('b'+m); if(eb) eb.value=cb[m]; } calculate(); return true;
+    }catch(e){ return false; }
+}
 function __matrix_multiplierSnap(){
     var out={};
+    var __cells=document.querySelectorAll('#inputArea .cell');
+    for(var __i=0;__i<__cells.length;__i++){ out[__cells[__i].id]=__cells[__i].value; }
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
     for(var i=0;i<els.length;i++){
         var e=els[i];
@@ -392,6 +400,7 @@ function __matrix_multiplierRender(keys,rk,en){
         TBKit.matrix.table('#matrix_multiplierTable',{head:head,rows:rows});
         TBKit.util.diffBox('#matrix_multiplierDiff');
         TBKit.history.mount('#matrix_multiplierHist',function(rec){
+            if(__mxRestore(rec)) return;
             __matrix_multiplier_skip=true;
             try{
                 for(var k in rec){
@@ -422,7 +431,6 @@ function __matrix_multiplierExtras(){
     var snap=__matrix_multiplierSnap();
     var keys=Object.keys(snap);
     if(!keys.length) return;
-    if(keys.length>12) keys=keys.slice(0,12);
     var res=__matrix_multiplierResText();
     if(!res) return;
     var en=TBKit.util.isEn();
@@ -452,8 +460,7 @@ function __matrix_multiplierExport(){
         var box=document.querySelector('#matrix_multiplierTable');
         if(!box||!box.querySelector('tr')){
             var snap=__matrix_multiplierSnap(); var keys=Object.keys(snap);
-            if(keys.length>12) keys=keys.slice(0,12);
-            var en=(TBKit.util&&TBKit.util.isEn())?true:false;
+                    var en=(TBKit.util&&TBKit.util.isEn())?true:false;
             __matrix_multiplierRender(keys,en?'Result':'结果',en);
         }
     }catch(e){}

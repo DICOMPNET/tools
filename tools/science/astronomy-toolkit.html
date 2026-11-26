@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 
-<script src="../../js/tool-page-runtime.js" defer></script>
+<script src="/js/tool-page-runtime.js" defer></script>
 <!-- TOOLBOX-TOOL-RUNTIME -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -15,7 +15,7 @@
 <meta name="twitter:card" content="summary">
 <meta name="description" content="天文观测工具箱是一款免费的在线科学研究工具，月相查询 / 星等亮度对比 / 陨石撞击坑估算 / 经纬度与UTM转换 / 极昼极夜判断 / 观测条件评估">
 <link rel="stylesheet" href="../../css/common.css">
-<script src="../../js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
 <style>
 .moon-canvas-wrap{text-align:center;margin:16px 0;}
@@ -60,10 +60,10 @@
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
 <!-- TOOLBOX-SECURITY -->
 
-<script src="../../js/privacy.js" defer></script>
+<script src="/js/privacy.js" defer></script>
 <!-- TOOLBOX-PRIVACY-SCRIPT -->
 
-<script src="../../js/metrics.js" defer></script>
+<script src="/js/metrics.js" defer></script>
 <!-- TOOLBOX-METRICS-SCRIPT -->
 
 <script type="application/ld+json">
@@ -85,18 +85,18 @@
 <meta property="og:locale" content="zh_CN">
 <meta property="og:locale:alternate" content="zh_TW">
 <meta property="og:locale:alternate" content="en_US">
-<link rel="preload" as="style" href="../../css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link rel="stylesheet" href="../../css/nav-menu.css"></noscript>
-<script src="../../js/industry-info.js" defer></script>
-<script src="../../js/nav-menu.js" defer></script>
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
 
-<script src="../../js/tool-ux.js" defer></script>
+<script src="/js/tool-ux.js" defer></script>
 <!-- TOOLBOX-TOOL-UX -->
 
-<script src="../../js/analytics.js" defer></script>
+<script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 
-<script src="../../js/tool-kit.js" defer></script>
+<script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
 <script type="application/ld+json">
 {
@@ -877,12 +877,23 @@ var UTM_K0 = 0.9996;
 function degToRad(d) { return d * Math.PI / 180; }
 function radToDeg(r) { return r * 180 / Math.PI; }
 
+function __utmZoneFor(lat,lon){
+  var z=Math.max(1,Math.min(60,Math.floor((lon+180)/6)+1));
+  if(lat>=56&&lat<64&&lon>=3&&lon<12) z=32;
+  else if(lat>=72&&lat<=84){
+    if(lon>=0&&lon<9) z=31;
+    else if(lon>=9&&lon<21) z=33;
+    else if(lon>=21&&lon<33) z=35;
+    else if(lon>=33&&lon<42) z=37;
+  }
+  return z;
+}
 function latLonToUTM(lat, lon) {
   var latRad = degToRad(lat);
   var lonRad = degToRad(lon);
 
   // UTM 带号合法范围 1~60；lon=180° 落在第 60 带，不越界成 61
-  var zone = Math.max(1, Math.min(60, Math.floor((lon + 180) / 6) + 1));
+  var zone = __utmZoneFor(lat, lon);
   var lon0 = (zone - 1) * 6 - 180 + 3; // central meridian
 
   var N = UTM_A / Math.sqrt(1 - UTM_E2 * Math.sin(latRad) * Math.sin(latRad));
@@ -966,7 +977,8 @@ function convertLatLonToUTM() {
 }
 
 function convertUTMToLatLon() {
-  var zone = parseInt(document.getElementById('utmZone').value);
+  var zoneRaw = Number(document.getElementById('utmZone').value);
+  var zone = (isFinite(zoneRaw) && Math.floor(zoneRaw) === zoneRaw) ? zoneRaw : NaN;
   var hemi = document.getElementById('utmHemisphere').value;
   var easting = parseFloat(document.getElementById('utmEasting').value);
   var northing = parseFloat(document.getElementById('utmNorthing').value);

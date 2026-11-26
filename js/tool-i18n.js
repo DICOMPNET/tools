@@ -737,7 +737,7 @@
     applyToolBody();
   }
 
-  var EN_DATA_SRC = (window.I18n && window.I18n.assetUrl) ? window.I18n.assetUrl('/js/tool-i18n-en.js') : '/js/tool-i18n-en.js';
+  var EN_DATA_SRC = '/js/tool-i18n-en.js';
   function applyAll() {
     syncEnMaps();   // 语言切换事件入口同样先同步全局层词表（数据可能刚动态加载完）
     applyChrome();

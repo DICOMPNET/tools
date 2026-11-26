@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 
-<script src="../../js/tool-page-runtime.js" defer></script>
+<script src="/js/tool-page-runtime.js" defer></script>
 <!-- TOOLBOX-TOOL-RUNTIME -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -23,7 +23,7 @@
 <link rel="icon" href="../../favicon.ico" sizes="16x16 32x32 48x48">
 <link rel="apple-touch-icon" href="../../apple-touch-icon.png">
 <link rel="stylesheet" href="../../css/common.css">
-<script src="../../js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
 <style>
 .preview-area{background:var(--card-bg);border:1px solid var(--border);border-radius:12px;min-height:200px;display:flex;align-items:center;justify-content:center;padding:30px;margin-bottom:16px;}
@@ -34,6 +34,9 @@
 .slider-group label{display:flex;justify-content:space-between;font-size:13px;color:var(--text-light);margin-bottom:4px;}
 .slider-group label .val{color:var(--primary);font-weight:600;font-family:'SF Mono',monospace;}
 .slider-group input[type=range]{width:100%;height:6px;background:var(--border);border-radius:3px;appearance:none;-webkit-appearance:none;outline:none;}
+.slider-group input[type=range]:focus-visible{outline:2px solid var(--primary);outline-offset:4px;border-radius:3px;}
+.slider-group input[type=range]:focus-visible::-webkit-slider-thumb{box-shadow:0 0 0 3px var(--primary),0 2px 6px rgba(0,0,0,0.2);}
+.slider-group input[type=range]:focus-visible::-moz-range-thumb{box-shadow:0 0 0 3px var(--primary);}
 .slider-group input[type=range]::-webkit-slider-thumb{appearance:none;-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:var(--primary);cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,0.2);}
 .slider-group input[type=range]::-moz-range-thumb{width:18px;height:18px;border:none;border-radius:50%;background:var(--primary);cursor:pointer;}
 .color-row{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
@@ -54,6 +57,7 @@
 .tab-content.active{display:block;}
 .effect-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;}
 .effect-item{border:1px solid var(--border);border-radius:8px;overflow:hidden;cursor:pointer;transition:all 0.15s;background:var(--card-bg);}
+.effect-item:focus-visible{outline:2px solid var(--primary);outline-offset:2px;}
 .effect-item:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,0.1);border-color:var(--primary);}
 .effect-item .effect-preview{padding:20px;text-align:center;font-size:24px;font-weight:900;color:var(--heading);background:var(--card-bg);}
 .effect-item .effect-name{padding:8px;font-size:12px;text-align:center;color:var(--text-light);border-top:1px solid var(--border);}
@@ -82,10 +86,10 @@
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
 <!-- TOOLBOX-SECURITY -->
 
-<script src="../../js/privacy.js" defer></script>
+<script src="/js/privacy.js" defer></script>
 <!-- TOOLBOX-PRIVACY-SCRIPT -->
 
-<script src="../../js/metrics.js" defer></script>
+<script src="/js/metrics.js" defer></script>
 <!-- TOOLBOX-METRICS-SCRIPT -->
 
 <script type="application/ld+json">
@@ -106,18 +110,18 @@
 <meta property="og:locale" content="zh_CN">
 <meta property="og:locale:alternate" content="zh_TW">
 <meta property="og:locale:alternate" content="en_US">
-<link rel="preload" as="style" href="../../css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link rel="stylesheet" href="../../css/nav-menu.css"></noscript>
-<script src="../../js/industry-info.js" defer></script>
-<script src="../../js/nav-menu.js" defer></script>
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
 
-<script src="../../js/tool-ux.js" defer></script>
+<script src="/js/tool-ux.js" defer></script>
 <!-- TOOLBOX-TOOL-UX -->
 
-<script src="../../js/analytics.js" defer></script>
+<script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 
-<script src="../../js/tool-kit.js" defer></script>
+<script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
 <script type="application/ld+json">
 {
@@ -467,10 +471,13 @@ function addLayer(){
 }
 
 function deleteLayer(i){
-  if(layers.length <= 1) return;
+  if(layers.length <= 1 || i < 0 || i >= layers.length) return;
+  const wasActive = i === activeLayer;
   layers.splice(i, 1);
-  if(activeLayer >= layers.length) activeLayer = layers.length - 1;
-  if(activeLayer >= 0) setActive(activeLayer);
+  if(wasActive) activeLayer = Math.min(i, layers.length - 1);
+  else if(i < activeLayer) activeLayer -= 1;
+  if(activeLayer < 0) activeLayer = 0;
+  setActive(activeLayer);
   render();
 }
 
@@ -540,14 +547,17 @@ function applyEffect(effectLayers){
   layers = JSON.parse(JSON.stringify(effectLayers));
   activeLayer = 0;
   setActive(0);
+  render();
 }
+function applyEffectAt(i){ applyEffect(EFFECTS[i].layers); }
+function applyFavAt(i){ var f=getFavorites()[i]; if(f&&f.layers) applyEffect(f.layers); }
 
 function buildEffectGrid(){
   const __h2=EFFECTS.map((e, i) => {
     const shadow = e.layers.map(layerToCss).join(', ');
     const fav = getFavorites().some(f => f.name === e.name);
     return `
-      <div class="effect-item" onclick='applyEffect(${JSON.stringify(e.layers)})' title="${e.name}">
+      <div class="effect-item" role="button" tabindex="0" aria-label="应用效果：${e.name}" onclick="applyEffectAt(${i})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();applyEffectAt(${i});}" title="${e.name}">
         <div class="effect-preview" style="text-shadow:${shadow};">Aa</div>
         <div class="effect-name">${e.name}</div>
       </div>
@@ -568,11 +578,11 @@ function renderFavorites(){
   
   empty.style.display = 'none';
   const __h4=favs.map((f, i) => `
-    <div class="effect-item" onclick='applyEffect(${JSON.stringify(f.layers)})' title="${f.name}">
+    <div class="effect-item" role="button" tabindex="0" aria-label="应用收藏：${f.name}" onclick="applyFavAt(${i})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();applyFavAt(${i});}" title="${f.name}">
       <div class="effect-preview" style="text-shadow:${f.shadow};">Aa</div>
       <div class="effect-name" style="display:flex;justify-content:space-between;align-items:center;">
         <span>${f.name}</span>
-        <span style="cursor:pointer;" onclick="event.stopPropagation();removeFav(${i})">🗑️</span>
+        <span role="button" tabindex="0" aria-label="删除收藏：${f.name}" style="cursor:pointer;" onclick="event.stopPropagation();removeFav(${i})" onkeydown="event.stopPropagation();if(event.key==='Enter'||event.key===' '){event.preventDefault();removeFav(${i});}">🗑️</span>
       </div>
     </div>
   `).join('');if((typeof __h4==='number'&&!isFinite(__h4))||/Infinity/.test(String(__h4))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h4)){grid.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}grid.innerHTML=__h4;

@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 
-<script src="../../js/tool-page-runtime.js" defer></script>
+<script src="/js/tool-page-runtime.js" defer></script>
 <!-- TOOLBOX-TOOL-RUNTIME -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -15,7 +15,7 @@
 <meta name="twitter:card" content="summary">
 <meta name="description" content="由应收账款与营收求收款天数是一款免费的在线会计审计工具，应收账款周转天数(DSO)计算器，输入应收账款与年营业收入，按 DSO=应收账款/营收×365 求回款周期，评估收款效率与资金占用">
 <link rel="stylesheet" href="../../css/common.css">
-<script src="../../js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
 
 
@@ -37,10 +37,10 @@
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
 <!-- TOOLBOX-SECURITY -->
 
-<script src="../../js/privacy.js" defer></script>
+<script src="/js/privacy.js" defer></script>
 <!-- TOOLBOX-PRIVACY-SCRIPT -->
 
-<script src="../../js/metrics.js" defer></script>
+<script src="/js/metrics.js" defer></script>
 <!-- TOOLBOX-METRICS-SCRIPT -->
 
 <script type="application/ld+json">
@@ -62,18 +62,18 @@
 <meta property="og:locale" content="zh_CN">
 <meta property="og:locale:alternate" content="zh_TW">
 <meta property="og:locale:alternate" content="en_US">
-<link rel="preload" as="style" href="../../css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link rel="stylesheet" href="../../css/nav-menu.css"></noscript>
-<script src="../../js/industry-info.js" defer></script>
-<script src="../../js/nav-menu.js" defer></script>
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
 
-<script src="../../js/tool-ux.js" defer></script>
+<script src="/js/tool-ux.js" defer></script>
 <!-- TOOLBOX-TOOL-UX -->
 
-<script src="../../js/analytics.js" defer></script>
+<script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 
-<script src="../../js/tool-kit.js" defer></script>
+<script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
 <meta property="og:site_name" content="ToolBox">
 <meta name="theme-color" content="#FF6B35">
@@ -265,12 +265,14 @@ function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+=
 function calcTool(){
               var __ig=__tbInputGuard(['AR', 'rev'],["应收账款 (万元)", "营业收入 (万元)"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
 const AR=num('AR'),rev=num('rev');
+            if(!(AR>=0)||!(rev>0)){ToolBox.setResult('result','<p style="color:var(--danger)">营业收入必须大于 0，余额不得为负。</p>');return;}
             const DSO=AR/rev*365;
             const __g2=dataGrid([
                 [DSO.toFixed(1),'应收账款天数 DSO (天)'],
-                [(rev/Math.max(AR,1)).toFixed(3), '应收账款周转率 (次/年)'],
-                [(AR/Math.max(rev,1)).toFixed(4), '应收占收入比'],
-                [(AR/Math.max(rev,1)*365/30).toFixed(2), 'DSO (月)']
+                [AR===0?'—':(rev/AR).toFixed(3), '应收账款周转率 (次/年)'],
+                [(AR/rev).toFixed(4), '应收占收入比'],
+                [(AR/rev*365/30).toFixed(2), 'DSO (月)'],
+                ['365 天/年；输入须为年度发生额，余额宜用期间平均余额' , '口径说明']
             ]);ToolBox.setResult('result',(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));
         }
 function resetForm(){document.getElementById('AR').value = '100';
@@ -328,9 +330,9 @@ function __days_sales_outstandingExtras(){
         head: en?['Item','Value']:['项目','数值'],
         rows: [
             ['应收账款天数 DSO (天)', DSO.toFixed(1)],
-            ['应收账款周转率 (次/年)', (rev/Math.max(AR,1)).toFixed(3)],
-            ['应收占收入比', (AR/Math.max(rev,1)).toFixed(4)],
-            ['DSO (月)', (AR/Math.max(rev,1)*365/30).toFixed(2)],
+            [AR===0?'—':(rev/AR).toFixed(3), '应收账款周转率 (次/年)'],
+            [(AR/rev).toFixed(4), '应收占收入比'],
+            [(AR/rev*365/30).toFixed(2), 'DSO (月)'],
         ]
     });
     TBKit.history.record({AR:__days_sales_outstandingRaw('AR'), rev:__days_sales_outstandingRaw('rev'), DSO:DSO});

@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 
-<script src="../../js/tool-page-runtime.js" defer></script>
+<script src="/js/tool-page-runtime.js" defer></script>
 <!-- TOOLBOX-TOOL-RUNTIME -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -15,7 +15,7 @@
 <meta name="twitter:card" content="summary">
 <meta name="description" content="水泵功率计算器是一款免费的在线水利工程工具，由流量、扬程与效率，按 P = ρgQH/η 计算水泵轴功率（输入功率）。按流量、扬程、效率算轴功率配电机。">
 <link rel="stylesheet" href="../../css/common.css">
-<script src="../../js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
 
 
@@ -37,10 +37,10 @@
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
 <!-- TOOLBOX-SECURITY -->
 
-<script src="../../js/privacy.js" defer></script>
+<script src="/js/privacy.js" defer></script>
 <!-- TOOLBOX-PRIVACY-SCRIPT -->
 
-<script src="../../js/metrics.js" defer></script>
+<script src="/js/metrics.js" defer></script>
 <!-- TOOLBOX-METRICS-SCRIPT -->
 
 <script type="application/ld+json">
@@ -62,21 +62,21 @@
 <meta property="og:locale" content="zh_CN">
 <meta property="og:locale:alternate" content="zh_TW">
 <meta property="og:locale:alternate" content="en_US">
-<link rel="preload" as="style" href="../../css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link rel="stylesheet" href="../../css/nav-menu.css"></noscript>
-<script src="../../js/industry-info.js" defer></script>
-<script src="../../js/nav-menu.js" defer></script>
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
 
-<script src="../../js/tool-ux.js" defer></script>
+<script src="/js/tool-ux.js" defer></script>
 <!-- TOOLBOX-TOOL-UX -->
 
-<script src="../../js/analytics.js" defer></script>
+<script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 <script type="application/ld+json">
 {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "轴功率与配套功率？", "acceptedAnswer": {"@type": "Answer", "text": "轴功率是水力/η，电机配套再乘 1.1~1.2 余量并核启动。"}}, {"@type": "Question", "name": "为什么效率关键？", "acceptedAnswer": {"@type": "Answer", "text": "泵常年运行，效率差几个点年电费差可观，选型与维护都要抓。"}}]}
 </script>
 
-<script src="../../js/tool-kit.js" defer></script>
+<script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
 <meta property="og:site_name" content="ToolBox">
 <meta name="theme-color" content="#FF6B35">
@@ -289,9 +289,12 @@ function __tbInputGuardCore(_ids,_labels){
 
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
+function __hydEn(){return /^en/i.test(document.documentElement.lang||'')||/[?&]lang=en/i.test(location.search)||(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());}
 function calcTool(){
+              var __t=document.getElementById('pump_powerTable');if(__t)__t.innerHTML='';
               var __ig=__tbInputGuard(['rho', 'g', 'Q', 'H', 'eta'],["流体密度 ρ (kg/m³)", "重力加速度 g (m/s²)", "流量 Q (m³/s)", "扬程 H (m)", "效率 η"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
 const rho=num('rho'), g=num('g'), Q=num('Q'), H=num('H'), eta=num('eta');
+            if(!(rho>0 && g>0 && Q>0 && H>0 && eta>0 && eta<=1)){var __bad=document.getElementById('pump_powerTable');if(__bad)__bad.innerHTML='';ToolBox.setResult('result',(__hydEn()?'<p style="color:var(--danger)">Density, gravity, flow and head must be greater than 0; efficiency must be within 0–1.</p>':'<p style="color:var(--danger)">密度、重力加速度、流量和扬程须大于 0，效率须在 0–1 之间。</p>'));return;}
             const P = rho*g*Q*H/eta;
             const __g2=dataGrid([
                 [(P/1000).toFixed(2)+' kW', '轴功率 P = ρgQH/η'],
@@ -312,7 +315,7 @@ function __pump_powerExtras(){
     if (typeof TBKit === 'undefined') return;
     var rho=num('rho'), g=num('g'), Q=num('Q'), H=num('H'), eta=num('eta');
     var P = rho*g*Q*H/eta;
-    if (!isFinite(__pump_powerNum('rho')) || !isFinite(__pump_powerNum('g')) || !isFinite(__pump_powerNum('Q')) || !isFinite(__pump_powerNum('H')) || !isFinite(__pump_powerNum('eta'))) return;
+    if (!(rho>0) || !(g>0) || !(Q>0) || !(H>0) || !(eta>0) || !(eta<=1) || !isFinite(__pump_powerNum('rho')) || !isFinite(__pump_powerNum('g')) || !isFinite(__pump_powerNum('Q')) || !isFinite(__pump_powerNum('H')) || !isFinite(__pump_powerNum('eta'))) return;
     var en=TBKit.util.isEn();
     TBKit.matrix.table('#pump_powerTable',{
         head: en?['Item','Value']:['项目','数值'],

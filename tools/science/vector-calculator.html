@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 
-<script src="../../js/tool-page-runtime.js" defer></script>
+<script src="/js/tool-page-runtime.js" defer></script>
 <!-- TOOLBOX-TOOL-RUNTIME -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -23,7 +23,7 @@
 <link rel="icon" href="../../favicon.ico" sizes="16x16 32x32 48x48">
 <link rel="apple-touch-icon" href="../../apple-touch-icon.png">
 <link rel="stylesheet" href="../../css/common.css">
-<script src="../../js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
 <style>
 .vec-input{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:6px 0;}
@@ -60,10 +60,10 @@ label{margin-top:10px;}
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
 <!-- TOOLBOX-SECURITY -->
 
-<script src="../../js/privacy.js" defer></script>
+<script src="/js/privacy.js" defer></script>
 <!-- TOOLBOX-PRIVACY-SCRIPT -->
 
-<script src="../../js/metrics.js" defer></script>
+<script src="/js/metrics.js" defer></script>
 <!-- TOOLBOX-METRICS-SCRIPT -->
 
 <script type="application/ld+json">
@@ -84,18 +84,18 @@ label{margin-top:10px;}
 <meta property="og:locale" content="zh_CN">
 <meta property="og:locale:alternate" content="zh_TW">
 <meta property="og:locale:alternate" content="en_US">
-<link rel="preload" as="style" href="../../css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link rel="stylesheet" href="../../css/nav-menu.css"></noscript>
-<script src="../../js/industry-info.js" defer></script>
-<script src="../../js/nav-menu.js" defer></script>
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
 
-<script src="../../js/tool-ux.js" defer></script>
+<script src="/js/tool-ux.js" defer></script>
 <!-- TOOLBOX-TOOL-UX -->
 
-<script src="../../js/analytics.js" defer></script>
+<script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 
-<script src="../../js/tool-kit.js" defer></script>
+<script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
 <script type="application/ld+json">
 {
@@ -274,9 +274,9 @@ document.getElementById('op').addEventListener('change', ()=>{
 });
 
 function getV(prefix,d){
-  const v=[];
-  for(let i=0;i<d;i++){ const x=parseFloat(document.getElementById(prefix+i).value); v.push(isNaN(x)?0:x); }
-  return v;
+  const v=[]; let missing=false;
+  for(let i=0;i<d;i++){ const el=document.getElementById(prefix+i); const raw=el?el.value.trim():''; const x=raw===''?NaN:parseFloat(raw); if(!isFinite(x)){missing=true;v.push(0);} else v.push(x); }
+  return missing?null:v;
 }
 
 function fmt(x){
@@ -305,6 +305,7 @@ function calculate(){
   const d=+document.getElementById('dim').value;
   const op=document.getElementById('op').value;
   const A=getV('a',d), B=getV('b',d);
+  if(!A||!B){ document.getElementById('output').innerHTML='<p style="color:var(--danger)">请填写全部向量分量后再计算；空值不等于 0。</p>'; return; }
   let html='<p><strong>A = </strong>'+vecStr(A)+'</p><p><strong>B = </strong>'+vecStr(B)+'</p>';
   let resultVec = null;
   let resultScalar = null;
@@ -371,7 +372,9 @@ function calculate(){
     }
   } else if(op==='scaleA'){
     const __rawScalar = document.getElementById('scalar').value.trim();
-    const k = (__rawScalar === '' || isNaN(parseFloat(__rawScalar))) ? 1 : parseFloat(__rawScalar);
+    const __scalarVal = parseFloat(__rawScalar);
+    if(__rawScalar === '' || !isFinite(__scalarVal)){ document.getElementById('output').innerHTML='<p style="color:var(--danger)">请填写有效标量 k 后再做数乘；空值不按 1 处理。</p>'; return; }
+    const k = __scalarVal;
     const C = A.map(x=>x*k);
     html+='<div class="big-result">'+fmt(k)+'·A = '+vecStr(C)+'</div>';
     html+='<div class="step-line">数乘：每个分量乘以标量 k = '+fmt(k)+'</div>';
@@ -397,6 +400,7 @@ function calculate(){
 function showPlot(){
   const d=+document.getElementById('dim').value;
   const A=getV('a',d), B=getV('b',d);
+  if(!A||!B){ document.getElementById('output').innerHTML='<p style="color:var(--danger)">请填写全部向量分量后再绘图；空值不等于 0。</p>'; return; }
   let html = '<h3 style="margin-bottom:10px;">📈 向量可视化</h3>';
   html += '<canvas id="vecCanvas" class="vec-canvas" width="500" height="500"></canvas>';
   html += '<p style="text-align:center;font-size:12px;color:var(--text-muted);">' + (d===2?'二维向量图':'三维向量示意图（投影到xy平面）') + '</p>';
@@ -496,7 +500,9 @@ function drawVectorPlot(A, B, dim){
     }
   } else if(op==='scaleA'){
     const __rawScalar = document.getElementById('scalar').value.trim();
-    const k = (__rawScalar === '' || isNaN(parseFloat(__rawScalar))) ? 1 : parseFloat(__rawScalar);
+    const __scalarVal = parseFloat(__rawScalar);
+    if(__rawScalar === '' || !isFinite(__scalarVal)){ document.getElementById('output').innerHTML='<p style="color:var(--danger)">请填写有效标量 k 后再做数乘；空值不按 1 处理。</p>'; return; }
+    const k = __scalarVal;
     resultVec = A.map(x=>x*k);
   } else if(op==='unitA'){
     const mA = mag(A);

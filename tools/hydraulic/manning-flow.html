@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 
-<script src="../../js/tool-page-runtime.js" defer></script>
+<script src="/js/tool-page-runtime.js" defer></script>
 <!-- TOOLBOX-TOOL-RUNTIME -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -15,7 +15,7 @@
 <meta name="twitter:card" content="summary">
 <meta name="description" content="曼宁公式明渠流量计算器是一款免费的在线水利工程工具，由糙率 n、过水断面 A、水力半径 R 与底坡 S，按 Q=(1/n)A·R^(2/3)·√S 计算明渠均匀流流量">
 <link rel="stylesheet" href="../../css/common.css">
-<script src="../../js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
 
 
@@ -37,10 +37,10 @@
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
 <!-- TOOLBOX-SECURITY -->
 
-<script src="../../js/privacy.js" defer></script>
+<script src="/js/privacy.js" defer></script>
 <!-- TOOLBOX-PRIVACY-SCRIPT -->
 
-<script src="../../js/metrics.js" defer></script>
+<script src="/js/metrics.js" defer></script>
 <!-- TOOLBOX-METRICS-SCRIPT -->
 
 <script type="application/ld+json">
@@ -62,18 +62,18 @@
 <meta property="og:locale" content="zh_CN">
 <meta property="og:locale:alternate" content="zh_TW">
 <meta property="og:locale:alternate" content="en_US">
-<link rel="preload" as="style" href="../../css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link rel="stylesheet" href="../../css/nav-menu.css"></noscript>
-<script src="../../js/industry-info.js" defer></script>
-<script src="../../js/nav-menu.js" defer></script>
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
 
-<script src="../../js/tool-ux.js" defer></script>
+<script src="/js/tool-ux.js" defer></script>
 <!-- TOOLBOX-TOOL-UX -->
 
-<script src="../../js/analytics.js" defer></script>
+<script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 
-<script src="../../js/tool-kit.js" defer></script>
+<script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
 <script type="application/ld+json">
 {
@@ -369,9 +369,12 @@ function __tbInputGuardCore(_ids,_labels){
 
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
+function __hydEn(){return /^en/i.test(document.documentElement.lang||'')||/[?&]lang=en/i.test(location.search)||(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());}
 function calcTool(){
+              var __t=document.getElementById('manning_flowTable');if(__t)__t.innerHTML='';
               var __ig=__tbInputGuard(['n', 'A', 'R', 'S'],["糙率 n", "过水断面 A (m²)", "水力半径 R (m)", "底坡 S"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
 const n=num('n'), A=num('A'), R=num('R'), S=num('S');
+            if(!(n>0 && A>0 && R>0 && S>=0)){var __bad=document.getElementById('manning_flowTable');if(__bad)__bad.innerHTML='';ToolBox.setResult('result',(__hydEn()?'<p style="color:var(--danger)">Roughness, area and hydraulic radius must be greater than 0; slope must be ≥ 0.</p>':'<p style="color:var(--danger)">糙率、断面面积和水力半径须大于 0，底坡须不小于 0。</p>'));return;}
             const Q = (1/n)*A*Math.pow(R,2/3)*Math.sqrt(S);
             const __g2=dataGrid([ [Q.toFixed(3)+' m³/s', '明渠流量 Q = (1/n)A·R^(2/3)·√S'],
                 [(Q/A).toFixed(4), '平均流速 v = Q/A (m/s)'],
@@ -391,7 +394,7 @@ function __manning_flowExtras(){
     if (typeof TBKit === 'undefined') return;
     var n=num('n'), A=num('A'), R=num('R'), S=num('S');
     var Q = (1/n)*A*Math.pow(R,2/3)*Math.sqrt(S);
-    if (!isFinite(__manning_flowNum('n')) || !isFinite(__manning_flowNum('A')) || !isFinite(__manning_flowNum('R')) || !isFinite(__manning_flowNum('S'))) return;
+    if (!(n>0) || !(A>0) || !(R>0) || !(S>=0) || !isFinite(__manning_flowNum('n')) || !isFinite(__manning_flowNum('A')) || !isFinite(__manning_flowNum('R')) || !isFinite(__manning_flowNum('S'))) return;
     var en=TBKit.util.isEn();
     TBKit.matrix.table('#manning_flowTable',{
         head: en?['Item','Value']:['项目','数值'],

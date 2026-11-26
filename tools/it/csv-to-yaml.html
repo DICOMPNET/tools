@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 
-<script src="../../js/tool-page-runtime.js" defer></script>
+<script src="/js/tool-page-runtime.js" defer></script>
 <!-- TOOLBOX-TOOL-RUNTIME -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -15,7 +15,7 @@
 <meta name="twitter:card" content="summary">
 <meta name="description" content="在配置、CI、Kubernetes 等场景常需要在 CSV 与 YAML 之间互转。首行会被当作字段名生成键值对；若首行也想要数组，可勾选“无表头”">
 <link rel="stylesheet" href="../../css/common.css">
-<script src="../../js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
 <script type="application/ld+json">
 {"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://tools.dicomp.net/"},{"@type":"ListItem","position":2,"name":"IT开发","item":"https://tools.dicomp.net/tools/it/index.html"},{"@type":"ListItem","position":3,"name":"CSV 转 YAML 转换器","item":"https://tools.dicomp.net/tools/it/csv-to-yaml.html"}]}
@@ -31,12 +31,12 @@
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
 <!-- TOOLBOX-SECURITY -->
-<script src="../../js/privacy.js" defer></script>
+<script src="/js/privacy.js" defer></script>
 <!-- TOOLBOX-PRIVACY-SCRIPT -->
-<script src="../../js/metrics.js" defer></script>
+<script src="/js/metrics.js" defer></script>
 <!-- TOOLBOX-METRICS-SCRIPT -->
 
-<script src="../../js/analytics.js" defer></script>
+<script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 
 <script src="../../js/i18n.js" defer></script>
@@ -58,15 +58,15 @@
 <meta property="og:locale" content="zh_CN">
 <meta property="og:locale:alternate" content="zh_TW">
 <meta property="og:locale:alternate" content="en_US">
-<link rel="preload" as="style" href="../../css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link rel="stylesheet" href="../../css/nav-menu.css"></noscript>
-<script src="../../js/industry-info.js" defer></script>
-<script src="../../js/nav-menu.js" defer></script>
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
 
-<script src="../../js/tool-ux.js" defer></script>
+<script src="/js/tool-ux.js" defer></script>
 <!-- TOOLBOX-TOOL-UX -->
 
-<script src="../../js/tool-kit.js" defer></script>
+<script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
 <meta property="og:image:alt" content="ToolBox - 5000+免费在线工具">
 <meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
@@ -232,7 +232,7 @@
 </div>
 <script>
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
-function escH(s){var d=document.createElement('div');const __g1=s==null?'':String(s);d.textContent=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));return d.innerHTML;}
+function escH(s){var d=document.createElement('div');const __g1=s==null?'':String(s);d.textContent=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1));return d.innerHTML;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function yamlKey(k){
   k=String(k);
@@ -291,22 +291,33 @@ if(nohead){
     if(Object.prototype.hasOwnProperty.call(used,h)){
       if(!dedupeHeader) throw yamlShapeError('Duplicate header “'+h+'” at columns '+(used[h]+1)+' and '+(c+1)+'; enable “Auto-suffix duplicate/empty headers”','表头第 '+(used[h]+1)+' 列与第 '+(c+1)+' 列重复：'+h+'；请勾选「重复/空表头自动加后缀」');
       var n=2,nn=h; while(Object.prototype.hasOwnProperty.call(used,nn+'_'+n)) n++; nn=nn+'_'+n; h=nn;
-    } else { used[h]=c; }
+    }
+    used[h]=c;
     seen.push(h);
+  }
+  var usedNames={};
+  for(var ui=0;ui<seen.length;ui++) usedNames[seen[ui]]=1;
+  var maxLen=head.length;
+  for(var mr=1;mr<rows.length;mr++) if(rows[mr].length>maxLen) maxLen=rows[mr].length;
+  var extraKeys=[];
+  for(var ex=head.length; ex<maxLen; ex++){
+    var baseExtra='extra'+(ex-head.length+1), nameExtra=baseExtra, ne=2;
+    while(Object.prototype.hasOwnProperty.call(usedNames,nameExtra)){ nameExtra=baseExtra+'_'+(ne++); }
+    usedNames[nameExtra]=1; extraKeys.push(nameExtra);
   }
   for(var r=1;r<rows.length;r++){
     var line=rows.lines&&rows.lines[r]?rows.lines[r]:(r+1);
     if(rows[r].length>head.length&&!keepExtra) throw yamlShapeError('Row at line '+line+' has '+rows[r].length+' fields but the header has '+head.length+'; enable “Keep extra fields as extra1…” to retain them','第 '+line+' 行有 '+rows[r].length+' 个字段，超过表头的 '+head.length+' 个；请勾选「多余字段保留为 extra1…」以免丢值');
     var keys=seen.slice();
     if(rows[r].length>head.length){
-      for(var x=head.length;x<rows[r].length;x++) keys.push('extra'+(x-head.length+1));
+      for(var x=head.length;x<rows[r].length;x++) keys.push(extraKeys[x-head.length]);
     }
     yaml+='- '+keys.map(function(k,c){return yamlKey(k)+': '+JSON.stringify(rows[r][c]==null?'':rows[r][c]);}).join('\n  ')+'\n';
   }
 }
 }catch(e){ document.getElementById('result').innerHTML='<p class="tip-box tip-danger">⚠ '+escH(e.message)+'</p>'; return; }
 var html='<div class="result-title">YAML 输出</div><pre class="code-block">'+escH(yaml)+'</pre>';
-const __g3=html;document.getElementById('result').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));}
+const __g3=html;document.getElementById('result').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3));}
 function resetForm(){document.getElementById('csv').value='name,age,city\nAlice,30,Beijing\nBob,25,Shanghai';
       document.getElementById('top_1').checked=false;
       document.getElementById('keepExtra').checked=false;

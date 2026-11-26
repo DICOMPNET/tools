@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 
-<script src="../../js/tool-page-runtime.js" defer></script>
+<script src="/js/tool-page-runtime.js" defer></script>
 <!-- TOOLBOX-TOOL-RUNTIME -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -15,7 +15,7 @@
 <meta name="twitter:card" content="summary">
 <meta name="description" content="从 Cargo.toml / pyproject 等迁移到 Kubernetes、GitHub Actions 等 YAML 配置时，用本工具把 TOML 结构转成 YAML">
 <link rel="stylesheet" href="../../css/common.css">
-<script src="../../js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
 <script type="application/ld+json">
 {"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://tools.dicomp.net/"},{"@type":"ListItem","position":2,"name":"IT开发","item":"https://tools.dicomp.net/tools/it/index.html"},{"@type":"ListItem","position":3,"name":"TOML 转 YAML 转换器","item":"https://tools.dicomp.net/tools/it/toml-to-yaml.html"}]}
@@ -31,12 +31,12 @@
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
 <!-- TOOLBOX-SECURITY -->
-<script src="../../js/privacy.js" defer></script>
+<script src="/js/privacy.js" defer></script>
 <!-- TOOLBOX-PRIVACY-SCRIPT -->
-<script src="../../js/metrics.js" defer></script>
+<script src="/js/metrics.js" defer></script>
 <!-- TOOLBOX-METRICS-SCRIPT -->
 
-<script src="../../js/analytics.js" defer></script>
+<script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 
 <script src="../../js/i18n.js" defer></script>
@@ -59,16 +59,16 @@
 <meta property="og:locale" content="zh_CN">
 <meta property="og:locale:alternate" content="zh_TW">
 <meta property="og:locale:alternate" content="en_US">
-<link rel="preload" as="style" href="../../css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link rel="stylesheet" href="../../css/nav-menu.css"></noscript>
-<script src="../../js/industry-info.js" defer></script>
-<script src="../../js/nav-menu.js" defer></script>
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
 
-<script src="../../js/tool-ux.js" defer></script>
+<script src="/js/tool-ux.js" defer></script>
 <!-- TOOLBOX-TOOL-UX -->
 
 
-<script src="../../js/tool-kit.js" defer></script>
+<script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
 <meta property="og:image:alt" content="ToolBox - 5000+免费在线工具">
 <meta name="twitter:image:alt" content="ToolBox - 5000+免费在线工具">
@@ -209,8 +209,12 @@
 </div>
 <script>
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
-function escH(s){var d=document.createElement('div');const __g1=s==null?'':String(s);d.textContent=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));return d.innerHTML;}
+function escH(s){var d=document.createElement('div');const __g1=s==null?'':String(s);d.textContent=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1));return d.innerHTML;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
+var __tomlBigInt=false;
+function __tomlBigLiteral(s){
+  try{ var b=BigInt(String(s).replace(/_/g,'')); return b>BigInt(Number.MAX_SAFE_INTEGER)||b<BigInt(Number.MIN_SAFE_INTEGER); }catch(e){ return false; }
+}
 function calcTool(){function tLit(v){
   if(v===null||v===undefined) return '""';
   if(typeof v==='boolean') return v?'true':'false';
@@ -286,7 +290,7 @@ function tVal(s){
   if(s.charAt(0)==="'"){ var lm=s.match(/^'([^']*)'/); return lm? lm[1] : s; }
   if(s==='true')return true; if(s==='false')return false;
   if(s==='')return '';
-  if(/^-?\d+$/.test(s))return parseInt(s,10);
+  if(/^-?\d+$/.test(s)){ if(__tomlBigLiteral(s)){__tomlBigInt=true;return s;} return parseInt(s,10); }
   if(/^-?\d+\.\d+$/.test(s))return parseFloat(s);
   if(s.charAt(0)==='['){
     // IT-N358：多行数组此时已被 parseToml 合并成一行，按顶层逗号切
@@ -537,14 +541,16 @@ function dumpYaml(node,pad,sort,isRoot){
 
 var src=document.getElementById('source').value||'';
 if(!src.trim()){ document.getElementById('result').innerHTML='<p class="muted">请输入 TOML 文本</p>'; return; }
+__tomlBigInt=false;
 var obj;
 try{ obj=parseToml(src); }
 catch(e){ document.getElementById('result').innerHTML='<p style="color:var(--danger)">❌ TOML 解析失败：'+escH(e.message)+'</p>'; return; }
 var pad = document.getElementById('indent').value==='tab' ? '\t' : (' ').repeat(parseInt(document.getElementById('indent').value||'2',10));
 var sort=document.getElementById('top_1').checked;
 var yaml=dumpYaml(obj,pad,sort);
-var html='<div class="result-title">YAML 输出</div><pre class="code-block">'+escH(yaml)+'</pre>';
-const __g3=html;document.getElementById('result').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));}
+var __warnBig=__tomlBigInt?'<div class="info-box" role="alert" style="margin:0 0 10px;font-size:12.5px;line-height:1.6">⚠ 检测到超出安全整数范围的整数，已按原始字符串保留以避免静默舍入。Big integers are kept as strings to avoid silent rounding.</div>':'';
+var html=__warnBig+'<div class="result-title">YAML 输出</div><pre class="code-block">'+escH(yaml)+'</pre>';
+const __g3=html;document.getElementById('result').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3));}
 function resetForm(){document.getElementById('source').value='title = "demo"\nversion = "1.0.0"\n\n[server]\nhost = "0.0.0.0"\nport = 8080\n\n[database]\nurl = "postgres://localhost"\npool = 16\n\n[[database.replicas]]\nname = "r1"\nweight = 1';
       document.getElementById('indent').selectedIndex=0;
       document.getElementById('top_1').checked=false;

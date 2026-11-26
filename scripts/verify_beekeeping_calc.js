@@ -63,7 +63,7 @@ const CASES = [
   {
     "slug": "beekeeping/winter-feed-syrup",
     "inputs": { "n": "5", "vol": "4", "ratio": "2", "price": "5", "daily": "0.5", "days": "10" },
-    "expect": ["20.0 L", "17.9 kg", "8.9 kg", "26.8 kg", "89 元", "8.0 天", "3.6 kg"],
+    "expect": ["20.0 L", "17.9 kg", "8.94 kg", "26.8 kg", "89.38 元", "8.0 天", "3.58 kg"],
     "ref": "越冬糖浆独立复算：总糖浆=5×4=20 L；2:1 糖质量分数=2/3，实测密度 1.34 kg/L ⇒ 总重 26.8 kg、糖 17.9 kg、水 8.9 kg；成本按单价 5 元=89 元；饲喂天数=4/0.5=8.0；每群糖量 3.6 kg。"
   },  {
     "slug": "beekeeping/honey-estimator",
@@ -85,13 +85,19 @@ const CASES = [
   },
   {
     "slug": "beekeeping/winter-feed-syrup",
+    "inputs": { "n":"5","vol":"0.00000001","ratio":"2","price":"5","daily":"0.5","days":"10" },
+    "expect": ["每群补饲量 0.001–100 L"],
+    "ref": "第865批：小于 0.001 L 的微量补饲四舍五入后显示 0.0 L，与实际喂入不符；现下限 0.001 L，直接拒绝并提示有效区间。"
+  },
+  {
+    "slug": "beekeeping/winter-feed-syrup",
     "inputs": { "n":"5","vol":"4","ratio":"2","price":"5","daily":"0.5","days":"10" },
-    "expect": ["缺口 1.0 L/群","合计 5.0 L","计划与备料不匹配"],
+    "expect": ["缺口 1.00 L/群","合计 5.00 L","计划与备料不匹配"],
     "ref": "第829批：计划 10 天×0.5 L/群=5 L/群，实备 4 L/群 ⇒ 缺口 1.0 L/群、合计 5.0 L。旧实现只显示「按计划10天」与消耗15天，不比较两者。"
   },
   {
     "slug": "beekeeping/winter-feed-syrup",
-    "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/beekeeping/winter-feed-syrup.html','utf8');var ok=h.indexOf('../agriculture/cycle-honey.html')>=0&&h.indexOf('../agriculture/detector-13.html')>=0&&h.indexOf('../agriculture/estimate-area-yield.html')>=0&&h.indexOf('../it/gitignore-generator.html')<0&&h.indexOf('../it/ast-viewer.html')<0;document.getElementById('__tbProbe').textContent='TB852R '+(ok?'OK':'BAD');})();"],
+    "clicks": ["(function(){var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/beekeeping/winter-feed-syrup.html','utf8');var ok=h.indexOf('../agriculture/cycle-honey.html')>=0&&h.indexOf('../agriculture/detector-13.html')>=0&&h.indexOf('../it/gitignore-generator.html')<0&&h.indexOf('../it/ast-viewer.html')<0;document.getElementById('__tbProbe').textContent='TB852R '+(ok?'OK':'BAD');})();"],
     "expect": ["TB852R OK"],
     "ref": "第852批：越冬补饲的 5 个开发工具推荐（.gitignore / properties / API 签名 / ASCII 树 / AST）全部替换为养蜂与农业相关页，保留养蜂采蜜量估算；探针断言旧 /it/ 链接已消失。"
   }
@@ -102,6 +108,15 @@ const CASES = [
     "expect": ["1.00 mL","1.34 kg","894 mg","447 mg","0.004 元"],
     "ref": "第865批：每群仅 0.001 L 时固定 toFixed(1) 会显示 0.0 L/0.0 kg；日耗按页面下限 0.05 L 不影响糖量；现按量级自适应为 mL/mg，糖 894 mg、水 447 mg、总重 1.34 kg、成本 0.004 元。"
   }
+,
+  {
+    "slug": "beekeeping/winter-feed-syrup",
+    "inputs": { "n":"5","vol":"4","ratio":"2","price":"5","daily":"0.5","days":"10" },
+    "clicks": ["var cap=null;var old=__wsCsvDownload;__wsCsvDownload=function(n,rows){cap=rows;};exportCSV();__wsCsvDownload=old;var t=cap?cap.map(function(r){return r.join('|');}).join(' / '):'';document.getElementById('__tbProbe').textContent='WCSV '+((t.indexOf('每日消耗|0.50')>=0&&t.indexOf('计划天数|10')>=0&&t.indexOf('计划期需糖浆|5.0')>=0&&t.indexOf('计划期缺口（每群）|-1.00 L')>=0&&t.indexOf('计划期缺口（合计）|-5.00 L')>=0)?'OK':'BAD:'+t);"],
+    "expect": ["WCSV OK"],
+    "ref": "复核失败重做·导出复用差额：5 群、4 L/群、0.5 L/天、10 天 ⇒ 计划需 5 L/群，缺口 1.00 L/群、合计 5.00 L；CSV 必须同时含每日消耗、计划天数、计划期需糖浆与每群/合计缺口。旧导出只有预计饲喂天数。"
+  }
+
 ];
 
 

@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 
-<script src="../../js/tool-page-runtime.js" defer></script>
+<script src="/js/tool-page-runtime.js" defer></script>
 <!-- TOOLBOX-TOOL-RUNTIME -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -15,7 +15,7 @@
 <meta name="twitter:card" content="summary">
 <meta name="description" content="质量摩尔浓度计算器是一款免费的在线化学工具，输入溶质物质的量与溶剂质量（kg），按 b=n/m 计算质量摩尔浓度，该浓度不受温度影响，常用于依数性与热力学计算">
 <link rel="stylesheet" href="../../css/common.css">
-<script src="../../js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
 
 
@@ -37,10 +37,10 @@
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
 <!-- TOOLBOX-SECURITY -->
 
-<script src="../../js/privacy.js" defer></script>
+<script src="/js/privacy.js" defer></script>
 <!-- TOOLBOX-PRIVACY-SCRIPT -->
 
-<script src="../../js/metrics.js" defer></script>
+<script src="/js/metrics.js" defer></script>
 <!-- TOOLBOX-METRICS-SCRIPT -->
 
 <script type="application/ld+json">
@@ -62,21 +62,21 @@
 <meta property="og:locale" content="zh_CN">
 <meta property="og:locale:alternate" content="zh_TW">
 <meta property="og:locale:alternate" content="en_US">
-<link rel="preload" as="style" href="../../css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link rel="stylesheet" href="../../css/nav-menu.css"></noscript>
-<script src="../../js/industry-info.js" defer></script>
-<script src="../../js/nav-menu.js" defer></script>
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
 
-<script src="../../js/tool-ux.js" defer></script>
+<script src="/js/tool-ux.js" defer></script>
 <!-- TOOLBOX-TOOL-UX -->
 
-<script src="../../js/analytics.js" defer></script>
+<script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 <script type="application/ld+json">
 {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "和摩尔浓度区别？", "acceptedAnswer": {"@type": "Answer", "text": "molality 用溶剂质量（不受温度体积变），molarity 用溶液体积。"}}, {"@type": "Question", "name": "为什么依数性用 b？", "acceptedAnswer": {"@type": "Answer", "text": "依数性只与粒子数/溶剂质量有关，b 更稳。"}}, {"@type": "Question", "name": "溶剂质量含溶质吗？", "acceptedAnswer": {"@type": "Answer", "text": "不含，是纯溶剂质量；溶液质量=溶剂+溶质。"}}]}
 </script>
 
-<script src="../../js/tool-kit.js" defer></script>
+<script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
 <meta property="og:site_name" content="ToolBox">
 <meta name="theme-color" content="#FF6B35">
@@ -370,11 +370,10 @@ else document.addEventListener('DOMContentLoaded', __molalityBoot);
 <script>
 function __mltSweep(){
   var n=num('n'), ms0=num('ms');
-  if(!isFinite(n)||!isFinite(ms0)||n<=0||ms0<=0)return null;
+  if(!isFinite(n)||!isFinite(ms0)||n<0||ms0<=0)return null;
   var labels=[],dB=[],dNm=[],rows=[];
-  var mults=[0.5,0.75,1,1.25,1.5,2,3];
-  for(var k=0;k<mults.length;k++){
-    var ms=ms0*mults[k], b=n/ms;
+  for(var k=0;k<7;k++){
+    var ms=ms0*(0.5+k*(2.5/6)), b=n/ms;
     labels.push((Math.round(ms*1000)/1000).toFixed(3));
     dB.push(Math.round(b*1e4*1000)/1000);
     dNm.push(Math.round(n*1e4*1000)/1000);
@@ -384,8 +383,8 @@ function __mltSweep(){
 }
 function __mltChart(){
   if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
-  var s=__mltSweep(); if(!s)return;
-  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  var s=__mltSweep(); var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  if(!s){ document.getElementById('mltChart').innerHTML='<p style="color:var(--text-muted);">'+(en?'Enter a non-negative amount and a positive denominator to draw the curve.':'请输入非负物质的量与正的'+'溶剂质量'+'后绘制曲线。')+'</p>'; return; }
   TBKit.chart.line('#mltChart',{title:en?'Molality vs Solvent Mass (inverse b=n/m)':'质量摩尔浓度随溶剂质量反比下降（b=n/m）',labels:s.labels,series:[{name:en?'Molality b (×10⁻⁴ mol/kg)':'质量摩尔浓度 (×10⁻⁴ mol/kg)',data:s.dB}]});
 }
 

@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 
-<script src="../../js/tool-page-runtime.js" defer></script>
+<script src="/js/tool-page-runtime.js" defer></script>
 <!-- TOOLBOX-TOOL-RUNTIME -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -23,7 +23,7 @@
 <link rel="icon" href="../../favicon.ico" sizes="16x16 32x32 48x48">
 <link rel="apple-touch-icon" href="../../apple-touch-icon.png">
 <link rel="stylesheet" href="../../css/common.css">
-<script src="../../js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
 <style>
 .method-tabs{display:flex;gap:0;margin-bottom:16px;border:1px solid var(--border);border-radius:10px;overflow:hidden;flex-wrap:wrap;}
@@ -58,10 +58,10 @@
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
 <!-- TOOLBOX-SECURITY -->
 
-<script src="../../js/privacy.js" defer></script>
+<script src="/js/privacy.js" defer></script>
 <!-- TOOLBOX-PRIVACY-SCRIPT -->
 
-<script src="../../js/metrics.js" defer></script>
+<script src="/js/metrics.js" defer></script>
 <!-- TOOLBOX-METRICS-SCRIPT -->
 
 <script type="application/ld+json">
@@ -82,18 +82,18 @@
 <meta property="og:locale" content="zh_CN">
 <meta property="og:locale:alternate" content="zh_TW">
 <meta property="og:locale:alternate" content="en_US">
-<link rel="preload" as="style" href="../../css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link rel="stylesheet" href="../../css/nav-menu.css"></noscript>
-<script src="../../js/industry-info.js" defer></script>
-<script src="../../js/nav-menu.js" defer></script>
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
 
-<script src="../../js/tool-ux.js" defer></script>
+<script src="/js/tool-ux.js" defer></script>
 <!-- TOOLBOX-TOOL-UX -->
 
-<script src="../../js/analytics.js" defer></script>
+<script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 
-<script src="../../js/tool-kit.js" defer></script>
+<script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
 <script type="application/ld+json">
 {
@@ -157,11 +157,21 @@
         <button class="method-tab" data-method="needs" onclick="switchMethod('needs')">需求分析法</button>
       </div>
 
+      <div style="border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin:10px 0 14px;background:var(--bg-hover);">
+        <p style="font-size:13px;font-weight:600;margin:0 0 8px;">可调整估算假设（不构成购买建议）</p>
+        <div class="input-row">
+          <div><label for="assumeMultiple">寿险/意外收入倍数</label><input type="number" id="assumeMultiple" value="10" min="0" step="0.1" oninput="calc()" placeholder="如 10"></div>
+          <div><label for="assumeHealthMin">重疾最低保额(万元)</label><input type="number" id="assumeHealthMin" value="30" min="0" step="1" oninput="calc()" placeholder="如 30"></div>
+          <div><label for="assumePremiumPct">保费预算比例(%)</label><input type="number" id="assumePremiumPct" value="10" min="0" max="100" step="1" oninput="calc()" placeholder="如 10"></div>
+        </div>
+        <p style="font-size:12px;color:var(--text-muted);margin:6px 0 0;">倍数、最低保额与保费比例只是可调假设，应结合家庭责任、已有保障、负债、可负担能力和产品条款调整；不同年龄/职业/地区差异很大。</p>
+      </div>
+
       <div id="inputDualTen">
             <div class="formula-box">
       <div class="formula-title">📐 计算公式 / 说明</div>
       <div class="formula-eq">收入倍数法：保额 = 年收入 × 倍数；需求法：保额 = 家庭负债 + 年支出 × 保障年数 − 现有资产</div>
-      <div class="formula-desc">依据收入倍数法与需求法估算寿险/重疾保额；经验参考保额约为年收入 10 倍、年保费控制在年收入 10% 以内，用于家庭保障规划。</div>
+      <div class="formula-desc">依据收入倍数法与需求法估算寿险/重疾保额；倍数、最低保额与保费比例均为可调整假设，用于家庭保障规划。</div>
     </div>
 <div class="input-row">
           <div><div data-tb="preset" data-tb-presets='[{"label": "双收入家庭·房贷80万·负债10万", "labelEn": "Dual-income · ¥800k mortgage · ¥100k debt", "values": {"dt_income": "20", "dt_expense": "12", "dt_debt": "80", "dt_existing": "10", "ft_income": "20", "ft_members": "3", "lv_age": "30", "lv_retire": "60", "lv_income": "20", "lv_growth": "3", "lv_consume": "30", "lv_discount": "5", "nd_income": "20", "nd_expense": "12", "nd_mortgage": "80", "nd_other_debt": "10", "nd_education": "50", "nd_parents": "30", "nd_final": "10", "nd_assets": "20", "nd_spouse_income": "10", "nd_years": "20"}}]'></div>
@@ -445,12 +455,40 @@ function getVal(id){
   return el ? (+el.value || 0) : 0;
 }
 
+function __insRead(id, label, min, max, integer){
+  var el = document.getElementById(id);
+  var raw = el ? String(el.value == null ? '' : el.value).trim() : '';
+  if(raw === '') return {err: label + '不能留空；如确为 0 请明确输入 0。'};
+  var n = Number(raw);
+  if(!Number.isFinite(n)) return {err: label + '须为有限数字（当前「' + raw + '」）。'};
+  if(integer && !Number.isInteger(n)) return {err: label + '须为整数（当前「' + raw + '」）。'};
+  if(min != null && n < min) return {err: label + '须不小于 ' + min + '（当前「' + raw + '」）。'};
+  if(max != null && n > max) return {err: label + '须不大于 ' + max + '（当前「' + raw + '」）。'};
+  return {val: n};
+}
+
+function __insInvalid(msg){
+  currentResult = null;
+  var res = document.getElementById('res');
+  if(res) res.innerHTML = '<p style="color:var(--danger)">' + msg + '</p>';
+  var sg = document.getElementById('statGrid');
+  if(sg) sg.innerHTML = '';
+  try { if(typeof TBKit !== 'undefined' && TBKit.history) TBKit.history.clear(); } catch(e) {}
+}
+
 function formatLifeAmount(value){
   return String(Number(value.toPrecision(15)));
 }
 
 function calc(){
-  var result = {method: currentMethod, timestamp: Date.now()};
+  var __aM = __insRead('assumeMultiple','收入倍数',0.1,50,false);
+  if(__aM.err){ __insInvalid(__aM.err); return; }
+  var __aH = __insRead('assumeHealthMin','重疾最低保额',0,null,false);
+  if(__aH.err){ __insInvalid(__aH.err); return; }
+  var __aP = __insRead('assumePremiumPct','保费预算比例',0,100,false);
+  if(__aP.err){ __insInvalid(__aP.err); return; }
+  var aMultiple = __aM.val, aHealthMin = __aH.val, aPremiumPct = __aP.val;
+  var result = {method: currentMethod, timestamp: Date.now(), assumptions: {multiple:aMultiple, healthMin:aHealthMin, premiumPct:aPremiumPct}};
   var lifeInsurance = 0;
   var healthInsurance = 0;
   var accidentInsurance = 0;
@@ -458,16 +496,20 @@ function calc(){
   var details = [];
 
   if(currentMethod === 'dual-ten'){
+    var __d1 = __insRead('dt_income','年收入',0,null,false); if(__d1.err){ __insInvalid(__d1.err); return; }
+    var __d2 = __insRead('dt_expense','年支出',0,null,false); if(__d2.err){ __insInvalid(__d2.err); return; }
+    var __d3 = __insRead('dt_debt','家庭负债',0,null,false); if(__d3.err){ __insInvalid(__d3.err); return; }
+    var __d4 = __insRead('dt_existing','已有保障',0,null,false); if(__d4.err){ __insInvalid(__d4.err); return; }
     var income = getVal('dt_income');
     var expense = getVal('dt_expense');
     var debt = getVal('dt_debt');
     var existing = getVal('dt_existing');
 
-    var rawLifeInsurance = income * 10 + debt - existing;
+    var rawLifeInsurance = income * aMultiple + debt - existing;
     lifeInsurance = Math.max(rawLifeInsurance, 0);
-    healthInsurance = Math.max(income * 5, 30);
-    accidentInsurance = income * 10;
-    premiumBudget = income * 0.1;
+    healthInsurance = Math.max(income * 5, aHealthMin);
+    accidentInsurance = income * aMultiple;
+    premiumBudget = income * (aPremiumPct / 100);
 
     result.income = income;
     result.lifeInsurance = lifeInsurance;
@@ -476,26 +518,24 @@ function calc(){
     result.premiumBudget = premiumBudget;
 
     details = [
-      {label:'寿险保额计算', value: formatLifeAmount(lifeInsurance) + '万', desc: '年收入' + income + '万×10 + 负债' + debt + '万 − 已有保障' + existing + '万 = ' + formatLifeAmount(rawLifeInsurance) + '万；取零下限后 = ' + formatLifeAmount(lifeInsurance) + '万'},
-      {label:'重疾保额建议', value: healthInsurance + '万', desc: '年收入5倍/最低30万'},
-      {label:'意外险保额', value: accidentInsurance + '万', desc: '年收入×10'},
-      {label:'年保费预算', value: premiumBudget.toFixed(1) + '万', desc: '年收入×10%'},
+      {label:'寿险保额计算', value: formatLifeAmount(lifeInsurance) + '万', desc: '年收入' + income + '万×' + aMultiple + ' + 负债' + debt + '万 − 已有保障' + existing + '万 = ' + formatLifeAmount(rawLifeInsurance) + '万；取零下限后 = ' + formatLifeAmount(lifeInsurance) + '万'},
+      {label:'重疾保额建议', value: healthInsurance + '万', desc: '年收入5倍 / 最低' + aHealthMin + '万'},
+      {label:'意外险保额', value: accidentInsurance + '万', desc: '年收入×' + aMultiple},
+      {label:'年保费预算', value: premiumBudget.toFixed(1) + '万', desc: '年收入×' + aPremiumPct + '%'},
       {label:'年支出（参考）', value: expense + '万', desc: '双十法则按收入估算，年支出不进入本法则公式；需按支出测算请用「需求分析法」'}
     ];
   }
   else if(currentMethod === 'four-three'){
+    var __f1 = __insRead('ft_income','年收入',0,null,false); if(__f1.err){ __insInvalid(__f1.err); return; }
+    var __f2 = __insRead('ft_members','家庭人口数',1,50,true); if(__f2.err){ __insInvalid(__f2.err); return; }
     var income = getVal('ft_income');
     var members = getVal('ft_members');
-    if (members <= 0) {
-      document.getElementById('res').innerHTML = '<p style="color:var(--danger)">家庭人口数需大于 0，否则人均保额无定义（会得到 Infinity）。</p>';
-      return;
-    }
 
     var perMember = income / members;
-    lifeInsurance = Math.max(income * 10, 50);
+    lifeInsurance = Math.max(income * aMultiple, 50);
     healthInsurance = Math.max(perMember * 3, 30);
-    accidentInsurance = income * 10;
-    premiumBudget = income * 0.1;
+    accidentInsurance = income * aMultiple;
+    premiumBudget = income * (aPremiumPct / 100);
     var invest = income * 0.4;
     var living = income * 0.3;
     var savings = income * 0.2;
@@ -510,17 +550,30 @@ function calc(){
       {label:'投资比例', value: invest.toFixed(1) + '万/年 (40%)', desc: '房产、基金、股票等'},
       {label:'生活开支', value: living.toFixed(1) + '万/年 (30%)', desc: '日常消费支出'},
       {label:'储蓄备用', value: savings.toFixed(1) + '万/年 (20%)', desc: '应急准备金'},
-      {label:'保险支出', value: premiumBudget.toFixed(1) + '万/年 (10%)', desc: '保障型保险优先'}
+      {label:'保险支出', value: premiumBudget.toFixed(1) + '万/年 (' + aPremiumPct + '%)', desc: '保障型保险优先'}
     ];
   }
   else if(currentMethod === 'life-value'){
-    var age = getVal('lv_age');
-    var retire = getVal('lv_retire');
+    var ageRaw = String(document.getElementById('lv_age').value || '').trim();
+    var retireRaw = String(document.getElementById('lv_retire').value || '').trim();
+    var age = Number(ageRaw), retire = Number(retireRaw);
+    if(ageRaw === '' || retireRaw === '' || !Number.isFinite(age) || !Number.isFinite(retire) || !Number.isInteger(age) || !Number.isInteger(retire)){
+      document.getElementById('res').innerHTML = '<p style="color:var(--danger)">当前年龄与退休年龄须填写整数岁；小数年龄会让剩余工作年限与显示不一致，本页不做四舍五入。</p>';
+      return;
+    }
+    if(age < 18 || age > 80 || retire < 40 || retire > 80){
+      document.getElementById('res').innerHTML = '<p style="color:var(--danger)">当前年龄须为 18–80 岁整数，退休年龄须为 40–80 岁整数。</p>';
+      return;
+    }
+    var __l1 = __insRead('lv_income','当前年收入',0,null,false); if(__l1.err){ __insInvalid(__l1.err); return; }
+    var __l2 = __insRead('lv_growth','收入年增长率',0,20,false); if(__l2.err){ __insInvalid(__l2.err); return; }
+    var __l3 = __insRead('lv_consume','个人消费占比',0,100,false); if(__l3.err){ __insInvalid(__l3.err); return; }
+    var __l4 = __insRead('lv_discount','折现率',0,30,false); if(__l4.err){ __insInvalid(__l4.err); return; }
     var income = getVal('lv_income');
     var growth = getVal('lv_growth') / 100;
     var consume = getVal('lv_consume') / 100;
     var discount = getVal('lv_discount') / 100;
-    var years = Math.max(retire - age, 1);
+    var years = retire > age ? retire - age : 0;
 
     var lifeValue = 0;
     var netIncome = income * (1 - consume);
@@ -531,9 +584,9 @@ function calc(){
     }
 
     lifeInsurance = Math.round(lifeValue);
-    healthInsurance = Math.max(income * 5, 30);
-    accidentInsurance = income * 10;
-    premiumBudget = income * 0.1;
+    healthInsurance = Math.max(income * 5, aHealthMin);
+    accidentInsurance = income * aMultiple;
+    premiumBudget = income * (aPremiumPct / 100);
 
     result.age = age;
     result.income = income;
@@ -546,11 +599,21 @@ function calc(){
     details = [
       {label:'工作年限', value: years + '年', desc: '当前年龄到退休年龄'},
       {label:'年净贡献', value: (income * (1-consume)).toFixed(1) + '万', desc: '扣除个人消费'},
-      {label:'生命价值', value: lifeInsurance + '万', desc: '未来收入现值'},
+      {label:'生命价值', value: lifeInsurance + '万', desc: years > 0 ? ('未来净收入折现 ' + years + ' 年（' + age + '→' + retire + ' 岁）') : '当前年龄已达到/超过退休年龄，剩余工作年限按 0 年计；如仍有家庭责任，请改用需求分析法并填写退休后收支假设'},
       {label:'建议寿险保额', value: lifeInsurance + '万', desc: '覆盖家庭经济损失'}
     ];
   }
   else if(currentMethod === 'needs'){
+    var __n1 = __insRead('nd_income','年收入',0,null,false); if(__n1.err){ __insInvalid(__n1.err); return; }
+    var __n2 = __insRead('nd_expense','年支出',0,null,false); if(__n2.err){ __insInvalid(__n2.err); return; }
+    var __n3 = __insRead('nd_mortgage','房贷余额',0,null,false); if(__n3.err){ __insInvalid(__n3.err); return; }
+    var __n4 = __insRead('nd_other_debt','其他负债',0,null,false); if(__n4.err){ __insInvalid(__n4.err); return; }
+    var __n5 = __insRead('nd_education','子女教育金',0,null,false); if(__n5.err){ __insInvalid(__n5.err); return; }
+    var __n6 = __insRead('nd_parents','赡养父母',0,null,false); if(__n6.err){ __insInvalid(__n6.err); return; }
+    var __n7 = __insRead('nd_final','最终费用',0,null,false); if(__n7.err){ __insInvalid(__n7.err); return; }
+    var __n8 = __insRead('nd_assets','已有存款/保障',0,null,false); if(__n8.err){ __insInvalid(__n8.err); return; }
+    var __n9 = __insRead('nd_spouse_income','配偶年收入',0,null,false); if(__n9.err){ __insInvalid(__n9.err); return; }
+    var __n10 = __insRead('nd_years','保障年限',1,50,true); if(__n10.err){ __insInvalid(__n10.err); return; }
     var income = getVal('nd_income');
     var expense = getVal('nd_expense');
     var mortgage = getVal('nd_mortgage');
@@ -565,9 +628,9 @@ function calc(){
     var totalDebt = mortgage + otherDebt;
     var expenseGap = Math.max((expense - spouseIncome) * years, 0);
     lifeInsurance = Math.max(totalDebt + education + parents + finalExp + expenseGap - assets, 0);
-    healthInsurance = Math.max(income * 5, 30);
-    accidentInsurance = income * 10;
-    premiumBudget = income * 0.1;
+    healthInsurance = Math.max(income * 5, aHealthMin);
+    accidentInsurance = income * aMultiple;
+    premiumBudget = income * (aPremiumPct / 100);
 
     result.income = income;
     result.lifeInsurance = lifeInsurance;
@@ -624,7 +687,7 @@ function calc(){
   resHtml += '<div class="insurance-item">';
   resHtml += '<div class="name">🏥 百万医疗险</div>';
   resHtml += '<div class="amount">100 万+ 保额</div>';
-  resHtml += '<div class="desc">报销住院医疗费用，保费低、保额高，人手必备</div>';
+  resHtml += '<div class="desc">报销住院医疗费用，保费与保额因产品而异；是否配置需结合免赔额、续保条件与自身预算，不是人人必需</div>';
   resHtml += '</div>';
   resHtml += '<p style="font-size:12px;color:var(--text-muted);margin-top:12px;">⚠️ 以上仅供参考，请根据实际情况咨询专业保险顾问</p>';
 
@@ -816,6 +879,7 @@ function __insurance_calculatorRender(keys,rk,en){
 }
 function __insurance_calculatorExtras(force){
     if (typeof TBKit === 'undefined') return;
+    if (!currentResult) return;
     if (__insurance_calculator_skip) return;
     clearTimeout(__insurance_calculator_timer);
     __insurance_calculator_timer=null;
@@ -907,7 +971,7 @@ else document.addEventListener('DOMContentLoaded', __insurance_calculatorBoot);
     </a>
     <a href="mirror-text.html" class="related-tool-card">
       <span class="rt-icon">🏦</span>
-      <span class="rt-info"><span class="rt-name">镜像文字</span><span class="rt-desc">将文字左右镜像反转生成可复制的字符或预览图，用于趣味签名、艺术字与水印，纯前端即时转换支持一键复制结…</span></span>
+      <span class="rt-info"><span class="rt-name">镜像文字</span><span class="rt-desc">将文字左右镜像：复制近似 Unicode 字符，或导出真实左右翻转、透明背景的多行 PNG；</span></span>
     </a>
     
   </div>
@@ -919,7 +983,7 @@ else document.addEventListener('DOMContentLoaded', __insurance_calculatorBoot);
   </div>
   <div class="tool-intro-body">
     <h4><span class="h4-icon">📝</span>工具简介</h4>
-    <p>保险需求计算器。保险需求计算器。用收入倍数法、需求法等估算家庭寿险/重疾等保障额度，建议保额为年收入 10 倍、保费控制在年收入 10% 内，辅助家庭保障规划。</p>
+    <p>保险需求计算器。保险需求计算器。用收入倍数法、需求法等估算家庭寿险/重疾等保障额度，可按收入倍数、重疾最低保额与保费比例等假设调整估算，辅助家庭保障规划。</p>
     <h4><span class="h4-icon">✨</span>功能特点</h4>
     <ul class="intro-features">
       <li>采用标准金融计算公式</li>

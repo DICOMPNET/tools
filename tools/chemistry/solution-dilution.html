@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 
-<script src="../../js/tool-page-runtime.js" defer></script>
+<script src="/js/tool-page-runtime.js" defer></script>
 <!-- TOOLBOX-TOOL-RUNTIME -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -15,7 +15,7 @@
 <meta name="twitter:card" content="summary">
 <meta name="description" content="溶液稀释计算器是一款免费的在线化学工具，依据稀释前后溶质量守恒 C₁V₁=C₂V₂，输入其中三项即可求稀释所需的溶液体积 V₂，用于溶液配制与浓度换算">
 <link rel="stylesheet" href="../../css/common.css">
-<script src="../../js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
 
 <meta property="og:image" content="https://tools.dicomp.net/og-image.png">
@@ -36,10 +36,10 @@
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
 <!-- TOOLBOX-SECURITY -->
 
-<script src="../../js/privacy.js" defer></script>
+<script src="/js/privacy.js" defer></script>
 <!-- TOOLBOX-PRIVACY-SCRIPT -->
 
-<script src="../../js/metrics.js" defer></script>
+<script src="/js/metrics.js" defer></script>
 <!-- TOOLBOX-METRICS-SCRIPT -->
 
 <script type="application/ld+json">
@@ -60,18 +60,18 @@
 <meta property="og:locale" content="zh_CN">
 <meta property="og:locale:alternate" content="zh_TW">
 <meta property="og:locale:alternate" content="en_US">
-<link rel="preload" as="style" href="../../css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link rel="stylesheet" href="../../css/nav-menu.css"></noscript>
-<script src="../../js/industry-info.js" defer></script>
-<script src="../../js/nav-menu.js" defer></script>
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
 
-<script src="../../js/tool-ux.js" defer></script>
+<script src="/js/tool-ux.js" defer></script>
 <!-- TOOLBOX-TOOL-UX -->
 
-<script src="../../js/analytics.js" defer></script>
+<script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 
-<script src="../../js/tool-kit.js" defer></script>
+<script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
 <script type="application/ld+json">
 {
@@ -346,6 +346,7 @@ else document.addEventListener('DOMContentLoaded', __solution_dilutionBoot);
 <button type="button" class="tab-btn" data-pane="table">📋 数据表</button>
 </div>
 <div id="sdlChart" style="margin-top:8px;"></div>
+<div id="sdlChart2" style="margin-top:8px;"></div>
 <!-- TOOLBOX-DEEP-DIVE -->
 <style>
 .deep-dive{max-width:960px;margin:16px auto 0;padding:0;}
@@ -397,16 +398,22 @@ function __sdlSweep(){
 }
 function __sdlChart(){
   if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
-  var s=__sdlSweep(); if(!s)return;
+  var s=__sdlSweep();
   var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
-  TBKit.chart.line('#sdlChart',{title:en?'Dilution: Final Volume & Factor vs Target Conc.':'溶液稀释：终体积与稀释倍数随目标浓度反比扫描',labels:s.labels,series:[{name:en?'Final volume V₂ (mL)':'稀释后体积 V₂ (mL)',data:s.dV2},{name:en?'Dilution factor (×)':'稀释倍数 (×)',data:s.dFd}]});
+  if(!s){
+    document.getElementById('sdlChart').innerHTML='';
+    document.getElementById('sdlChart2').innerHTML='';
+    return;
+  }
+  TBKit.chart.line('#sdlChart',{title:en?'Dilution: Final Volume V₂ (mL) vs Target Concentration':'溶液稀释：稀释后体积 V₂（mL）随目标浓度反比扫描',labels:s.labels,series:[{name:en?'Final volume V₂ (mL)':'稀释后体积 V₂ (mL)',data:s.dV2}]});
+  TBKit.chart.line('#sdlChart2',{title:en?'Dilution Factor (×) vs Target Concentration':'溶液稀释：稀释倍数（×）随目标浓度反比扫描',labels:s.labels,series:[{name:en?'Dilution factor (×)':'稀释倍数 (×)',data:s.dFd}]});
 }
 
 function __sdlShow(which){
-  var c=document.getElementById('sdlChart'), t=document.getElementById('solution_dilutionTable');
-  if(!c||!t)return;
-  if(which==='table'){c.style.display='none';t.style.display='';}
-  else{c.style.display='';t.style.display='none';}
+  var c=document.getElementById('sdlChart'), c2=document.getElementById('sdlChart2'), t=document.getElementById('solution_dilutionTable');
+  if(!c||!c2||!t)return;
+  if(which==='table'){c.style.display='none';c2.style.display='none';t.style.display='';}
+  else{c.style.display='';c2.style.display='';t.style.display='none';}
 }
 function __sdlTabInit(){
   var btns=document.querySelectorAll('.sdl-tabs .tab-btn');

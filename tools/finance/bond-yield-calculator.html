@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 
-<script src="../../js/tool-page-runtime.js" defer></script>
+<script src="/js/tool-page-runtime.js" defer></script>
 <!-- TOOLBOX-TOOL-RUNTIME -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -23,7 +23,7 @@
 <link rel="icon" href="../../favicon.ico" sizes="16x16 32x32 48x48">
 <link rel="apple-touch-icon" href="../../apple-touch-icon.png">
 <link rel="stylesheet" href="../../css/common.css">
-<script src="../../js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
 <style>
 .method-tabs{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;}
@@ -57,10 +57,10 @@ canvas.chart-canvas{width:100%;height:280px;display:block;}
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
 <!-- TOOLBOX-SECURITY -->
 
-<script src="../../js/privacy.js" defer></script>
+<script src="/js/privacy.js" defer></script>
 <!-- TOOLBOX-PRIVACY-SCRIPT -->
 
-<script src="../../js/metrics.js" defer></script>
+<script src="/js/metrics.js" defer></script>
 <!-- TOOLBOX-METRICS-SCRIPT -->
 
 <script type="application/ld+json">
@@ -81,18 +81,18 @@ canvas.chart-canvas{width:100%;height:280px;display:block;}
 <meta property="og:locale" content="zh_CN">
 <meta property="og:locale:alternate" content="zh_TW">
 <meta property="og:locale:alternate" content="en_US">
-<link rel="preload" as="style" href="../../css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link rel="stylesheet" href="../../css/nav-menu.css"></noscript>
-<script src="../../js/industry-info.js" defer></script>
-<script src="../../js/nav-menu.js" defer></script>
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
 
-<script src="../../js/tool-ux.js" defer></script>
+<script src="/js/tool-ux.js" defer></script>
 <!-- TOOLBOX-TOOL-UX -->
 
-<script src="../../js/analytics.js" defer></script>
+<script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 
-<script src="../../js/tool-kit.js" defer></script>
+<script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
 <script type="application/ld+json">
 {
@@ -506,7 +506,7 @@ var HISTORY_KEY = 'bond_calc_history';
 var currentResult = null;
 
 function switchTab(tab, btn){
-    var __ig=__tbInputGuard(['y-face', 'y-coupon', 'y-price', 'y-years', 'c-face', 'c-coupon', 'c-price', 'h-buy', 'h-sell', 'h-face', 'h-coupon', 'h-years', 'p-face', 'p-coupon', 'p-rate', 'p-years'],["面值(元)", "票面利率(%)", "当前价格(元)", "剩余期限(年)", "面值(元)", "票面利率(%)", "当前价格(元)", "买入价格(元)", "卖出价格(元)", "面值(元)", "票面利率(%)", "持有期(年)", "面值(元)", "票面利率(%)", "市场利率(%)", "剩余期限(年)"]);if(__ig){const __g1=__ig;ToolBox.setResult("res",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
+    // 查看公式/参考/历史不依赖任何当前模式的输入；校验只放在 calc() 的当前模式入口。
 currentTab = tab;
   document.querySelectorAll('.tab-btn').forEach(function(b){b.classList.remove('active');});
   if(btn) btn.classList.add('active');
@@ -594,7 +594,42 @@ function calcBondPrice(face, couponRate, years, marketRate, freq, type){
   return p;
 }
 
+function __bondValidateCurrent(){
+  var mode=currentMethod;
+  var req = mode==='ytm' ? [['y-face','面值'],['y-coupon','票面利率'],['y-price','当前价格'],['y-years','剩余期限']]
+    : mode==='current' ? [['c-face','面值'],['c-coupon','票面利率'],['c-price','当前价格']]
+    : mode==='holding' ? [['h-buy','买入价格'],['h-sell','卖出价格'],['h-face','面值'],['h-coupon','票面利率'],['h-years','持有期']]
+    : [['p-face','面值'],['p-coupon','票面利率'],['p-rate','市场利率'],['p-years','剩余期限']];
+  for(var i=0;i<req.length;i++){
+    var el=document.getElementById(req[i][0]);
+    if(!el || String(el.value).trim()==='') return '请填写'+req[i][1]+'；留空不计算，数字 0 才表示真实零值。';
+    if(!isFinite(Number(el.value))) return req[i][1]+'须为有效数字。';
+  }
+  function numVal(id){ return Number(document.getElementById(id).value); }
+  var couponId=mode==='ytm'?'y-coupon':mode==='current'?'c-coupon':mode==='holding'?'h-coupon':'p-coupon';
+  var couponVal=numVal(couponId);
+  if(!(couponVal>=0) || couponVal>100) return '票面利率须在 0–100% 之间（零息债券请明确填 0）。';
+  if(!(numVal(mode==='ytm'?'y-face':mode==='current'?'c-face':mode==='holding'?'h-face':'p-face')>0)) return '面值须大于 0。';
+  if(mode==='ytm' && !(numVal('y-price')>0)) return '当前价格须大于 0。';
+  if(mode==='current' && !(numVal('c-price')>0)) return '当前价格须大于 0。';
+  if(mode==='holding' && !(numVal('h-buy')>0)) return '买入价格须大于 0。';
+  if(mode==='holding' && numVal('h-sell')<0) return '卖出价格须为非负数。';
+  if(mode==='price' && numVal('p-rate')<0) return '市场利率须为非负数。';
+  if(mode==='price' && numVal('p-rate')>100) return '市场利率须在 0–100% 之间。';
+  var yearsId=mode==='ytm'?'y-years':mode==='holding'?'h-years':mode==='price'?'p-years':'';
+  if(yearsId && !(numVal(yearsId)>0)) return '期限须大于 0。';
+  return '';
+}
 function calc(){
+  var err=__bondValidateCurrent();
+  if(err){
+    currentResult=null;
+    var sg=document.getElementById('statGrid'); if(sg) sg.innerHTML='';
+    var cv=document.getElementById('chart');
+    if(cv && cv.getContext){try{cv.getContext('2d').clearRect(0,0,cv.width,cv.height);}catch(e){}}
+    ToolBox.setResult('res', '<p style="color:var(--danger);">⚠ '+err+'</p>');
+    return;
+  }
   var result = {method: currentMethod, timestamp: Date.now()};
   
   if(currentMethod === 'ytm'){
@@ -1240,7 +1275,7 @@ else document.addEventListener('DOMContentLoaded', __bond_yield_calculatorBoot);
     </a>
     <a href="mirror-text.html" class="related-tool-card">
       <span class="rt-icon">🏦</span>
-      <span class="rt-info"><span class="rt-name">镜像文字</span><span class="rt-desc">将文字左右镜像反转生成可复制的字符或预览图，用于趣味签名、艺术字与水印，纯前端即时转换支持一键复制结…</span></span>
+      <span class="rt-info"><span class="rt-name">镜像文字</span><span class="rt-desc">将文字左右镜像：复制近似 Unicode 字符，或导出真实左右翻转、透明背景的多行 PNG；</span></span>
     </a>
     
   </div>
