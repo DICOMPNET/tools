@@ -61,6 +61,15 @@
       </div>
       <a class="hc-section-more" href="tools/${g.children[0] ? g.children[0].key : g.key}/index.html">${isEn() ? 'View all' : '查看全部'} →</a>
     `;
+    try {
+      var p = location.pathname || '';
+      if (p.indexOf('/tools/') === 0) {
+        var more0 = head.querySelector('.hc-section-more');
+        if (more0 && more0.getAttribute('href').charAt(0) !== '/') {
+          more0.href = '/tools/' + more0.getAttribute('href');
+        }
+      }
+    } catch (e) {}
 
     // 子行业标签
     const visibleChildren = g.children.slice(0, MAX_CHILDREN);
@@ -92,7 +101,15 @@
     }
     child.top.slice(0, MAX_TOOLS).forEach(t => {
       const card = renderToolCard(t);
-      card.href = t.url;
+      // 子路径部署适配：预览站 /tools/ 下，/tools/xxx 绝对路径需补 /tools 前缀
+      var url = t.url;
+      try {
+        var p = location.pathname || '';
+        if (p.indexOf('/tools/') === 0 && url && url.charAt(0) === '/' && url.indexOf('/tools/') === 0) {
+          url = '/tools' + url;
+        }
+      } catch (e) {}
+      card.href = url;
       card.title = titleOf(t);
       grid.appendChild(card);
     });
@@ -111,7 +128,14 @@
 
     // 更新"查看全部"链接
     const more = section.querySelector('.hc-section-more');
-    if (more) more.href = `tools/${childKey}/index.html`;
+    if (more) {
+      var base = `tools/${childKey}/index.html`;
+      try {
+        var p = location.pathname || '';
+        if (p.indexOf('/tools/') === 0) base = '/tools/' + base;
+      } catch (e) {}
+      more.href = base;
+    }
   }
 
   async function init() {
