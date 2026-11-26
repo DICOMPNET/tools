@@ -180,7 +180,7 @@
 
           <div class="formula-box">
       <div class="formula-title">📐 計算公式 / 說明</div>
-      <div class="formula-eq">金價計價（克重模式）：克數 = 輸入重量 × 單位係數（g:1、kg:1000、盎司:31.1034768、兩:50、錢:5），金額 = 克數 × 純度 × 金價（¥，純度下拉 足金999.9~14K）；回收估價 = 金額 × 折扣%、美元價 = ÷ 匯率、該純度每克價 = 金價 × 純度。校驗：非數按 0 兜底，結果含無效值提示，匯率 &gt;0 才出美元。判據：無固定分級，總價模式反向以 金額 ÷ 金價 ÷ 純度 折算克重。</div>
+      <div class="formula-eq">金價計價（克重模式）：克數 = 輸入重量 × 單位係數（g:1、kg:1000、盎司:31.1034768、兩:50、錢:5），金額 = 克數 × 純度 × (金價 ÷ 0.9999)（金價為足金999.9基準）；回收估價 = 金額 × 折扣%、美元價 = ÷ 匯率、該純度每克價 = 金價 ÷ 0.9999 × 純度。校驗：非數按 0 兜底，結果含無效值提示，匯率 &gt;0 才出美元。判據：無固定分級，總價模式反向以 金額 ÷ 金價 ÷ 純度 折算克重。</div>
       <div class="formula-desc">按克重、純度與給定金價換算價值，支援克/盎司/兩等多單位與雙幣種顯示；回收估價按折扣率折算，用於黃金首飾估值與回收參考。</div>
     </div>
 <div class="input-row">
@@ -394,6 +394,7 @@ var PURITY_NAMES = {
   '0.585': '14K金'
 };
 
+var GOLD_BASE_PURITY = 0.9999; // 输入金价为足金999.9每克价
 var SETTINGS_KEY = 'gold_price_settings';
 var DEFAULT_PRICE = 650;
 var DEFAULT_RATE = 7.25;
@@ -495,7 +496,7 @@ function calcAll(){
   }
   var discount = discountRaw;
   var purityName = PURITY_NAMES[String(purity)] || '自定义';
-  var effPricePerGram = goldPrice * purity; // 该纯度每克黄金价值
+  var effPricePerGram = goldPrice / GOLD_BASE_PURITY * purity; // 按999.9基准折算到目标纯度
   var html = '';
 
   if(currentMode === 'wt'){
@@ -507,7 +508,7 @@ function calcAll(){
     var unit = document.getElementById('weightUnit').value;
     var grams = toGrams(rawWeight, unit);
     var pureGrams = grams * purity;                 // 纯金当量（克）
-    var totalCny = pureGrams * goldPrice;           // 总价（人民币）
+    var totalCny = pureGrams * (goldPrice / GOLD_BASE_PURITY); // 基准为999.9金价，先折成纯金价再乘纯金当量
     var totalUsd = usdOk ? totalCny / usdRate : null;
     var recycleCny = totalCny * discount / 100;     // 回收价
     var recycleUsd = usdOk ? recycleCny / usdRate : null;
@@ -523,7 +524,7 @@ function calcAll(){
     html += gcell(usdOk ? '$ ' + fmt(recycleUsd, 2) : '未计算（无汇率）', '回收估价（美元）');
     html += '</div>';
     html += '<div class="hint-line" style="margin-top:12px;">';
-    html += '计算式：' + fmt(rawWeight, 4) + UNIT_NAMES[unit] + ' = ' + fmt(grams, 4) + '克 × 含金量' + (purity*100).toFixed(2) + '% × ¥' + fmt(goldPrice, 2) + '/克 = ¥' + fmt(totalCny, 2);
+    html += '计算式：' + fmt(rawWeight, 4) + UNIT_NAMES[unit] + ' = ' + fmt(grams, 4) + '克 × 含金量' + (purity*100).toFixed(2) + '% × (¥' + fmt(goldPrice, 2) + '/克 ÷ ' + GOLD_BASE_PURITY + ') = ¥' + fmt(totalCny, 2);
     html += '</div>';
   } else {
     // 按总价反算重量
@@ -531,7 +532,7 @@ function calcAll(){
     if(!rt.ok) return goldError(rt.msg);
     var totalPrice = rt.value;
     if(totalPrice < 0) return goldError('黄金总价不能为负数');
-    var pureGrams = totalPrice / goldPrice;       // 纯金当量（goldPrice 已校验 >0）
+    var pureGrams = totalPrice / (goldPrice / GOLD_BASE_PURITY); // 纯金当量（goldPrice 为999.9基准，已校验 >0）
     var actualGrams = purity > 0 ? pureGrams / purity : 0;            // 实际重量（克）
     var totalUsd = usdOk ? totalPrice / usdRate : null;
     var recycleCny = totalPrice * discount / 100;
@@ -548,7 +549,7 @@ function calcAll(){
     html += gcell(fmt(fromGrams(actualGrams, 'liang'), 4), '折合两');
     html += '</div>';
     html += '<div class="hint-line" style="margin-top:12px;">';
-    html += '计算式：¥' + fmt(totalPrice, 2) + ' ÷ (含金量' + (purity*100).toFixed(2) + '% × ¥' + fmt(goldPrice, 2) + '/克) = ' + fmt(actualGrams, 4) + '克';
+    html += '计算式：¥' + fmt(totalPrice, 2) + ' ÷ (含金量' + (purity*100).toFixed(2) + '% × ¥' + fmt(goldPrice, 2) + '/克 ÷ ' + GOLD_BASE_PURITY + ') = ' + fmt(actualGrams, 4) + '克';
     html += '</div>';
   }
 
@@ -589,7 +590,7 @@ function renderPurityTable(){
   var html = '<table class="purity-table"><thead><tr><th>纯度</th><th>含金量</th><th>每克价值</th><th>1克纯金当量</th><th>10克价值</th></tr></thead><tbody>';
   Object.keys(PURITY_NAMES).forEach(function(p){
     var purity = parseFloat(p);
-    var perGram = goldPrice * purity;
+    var perGram = goldPrice / GOLD_BASE_PURITY * purity;
     var tenGram = perGram * 10;
     html += '<tr>';
     html += '<td><span class="ptag">' + PURITY_NAMES[p] + '</span></td>';
@@ -600,7 +601,7 @@ function renderPurityTable(){
     html += '</tr>';
   });
   html += '</tbody></table>';
-  html += '<p class="hint-line" style="margin-top:10px;">📌 基准金价 ¥' + fmt(goldPrice, 2) + '/克（足金999.9），其他纯度按含金量折算。</p>';
+  html += '<p class="hint-line" style="margin-top:10px;">📌 基准金价 ¥' + fmt(goldPrice, 2) + '/克（足金999.9，含金量99.99%）；其他纯度按「目标含金量 ÷ 99.99%」折算。</p>';
   const __h2=html;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('purityResult').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('purityResult').innerHTML=__h2;
 }
 
@@ -823,7 +824,7 @@ else document.addEventListener('DOMContentLoaded', __gold_price_calculatorBoot);
     </a>
     <a href="/zh-tw/tools/finance/mirror-text.html" class="related-tool-card">
       <span class="rt-icon">🏦</span>
-      <span class="rt-info"><span class="rt-name">映象文字</span><span class="rt-desc">將文字左右映象反轉生成可複製的字元或預覽圖，用於趣味簽名、藝術字與水印，純前端即時轉換支援一鍵複製結…</span></span>
+      <span class="rt-info"><span class="rt-name">映象文字</span><span class="rt-desc">將文字左右映象：複製近似 Unicode 字元，或匯出真實左右翻轉、透明背景的多行 PNG；</span></span>
     </a>
 
   </div>

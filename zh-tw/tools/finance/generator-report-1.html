@@ -103,8 +103,8 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="三表聯動 · 勾稽校驗">Derive the balance sheet, income statement and cash-flow statement from one set of parameters, with balance and cash-flow reconciliation checks.</p>
 <div class="formula-box">
   <div class="formula-title">📐 計算口徑（單位：萬元）</div>
-  <div class="formula-eq">營業成本 = 營業收入 × 成本率；毛利 = 營業收入 − 營業成本；營業利潤 = 毛利 − 期間費用；所得稅 = 營業利潤 × 所得稅率（虧損為 0）；淨利潤 = 營業利潤 − 所得稅；負債 = 資產總額 × 資產負債率；所有者權益 = 資產總額 − 負債；經營現金流 = 淨利潤 + 折舊攤銷；現金淨增加額 = 經營 + 投資(−資本開支) + 籌資(−分紅)。</div>
-  <div class="formula-desc">三張報表由同一組輸入派生，保證「資產 = 負債 + 所有者權益」與「經營現金流 = 淨利潤 + 折舊攤銷」兩項勾稽恆成立；結果為演示與教學用途，非審計報表。</div>
+  <div class="formula-eq">營業成本 = 營業收入 × 成本率；毛利 = 營業收入 − 營業成本；營業利潤 = 毛利 − 期間費用；所得稅 = 營業利潤 × 所得稅率（虧損為 0）；淨利潤 = 營業利潤 − 所得稅；負債 = 資產總額 × 資產負債率；所有者權益 = 資產總額 − 負債；經營現金流 = 淨利潤 + 折舊攤銷 − 營運資本增加；現金淨增加額 = 經營 + 投資(−資本開支) + 籌資(−分紅)。</div>
+  <div class="formula-desc">三張報表由同一組輸入派生，保證「資產 = 負債 + 所有者權益」與「經營現金流 = 淨利潤 + 折舊攤銷 − 營運資本增加」兩項勾稽成立。折舊須且只須在利潤中扣除一次：若成本/期間費用已含折舊選「已包含」，否則選「未包含」由工具單獨扣除；營運資本增加按「期末−期初」填，增加記正、減少記負。簡化假設不含稅會差異、減值、投資處置等，結果為演示與教學用途，非審計報表。</div>
 </div>
 
 <div class="input-row">
@@ -122,6 +122,15 @@
   <div><label for="capex">資本開支 (萬元)</label><input type="number" id="capex" value="80" min="0" step="1" oninput="gen()" placeholder="如 80"></div>
   <div><label for="dividend">分紅 (萬元)</label><input type="number" id="dividend" value="30" min="0" step="1" oninput="gen()" placeholder="如 30"></div>
   <div><label for="cash0">期初現金 (萬元)</label><input type="number" id="cash0" value="200" min="0" step="1" oninput="gen()" placeholder="如 200"></div>
+</div>
+<div class="input-row">
+  <div><label for="depMode">折舊口徑</label>
+    <select id="depMode" onchange="gen()">
+      <option value="included" selected>折舊已包含在成本/期間費用中</option>
+      <option value="excluded">折舊未包含，需在利潤中單獨扣除</option>
+    </select>
+  </div>
+  <div><label for="wc">營運資本增加 (萬元，可選)</label><input type="number" id="wc" value="0" step="1" oninput="gen()" placeholder="增加記正，減少記負"></div>
 </div>
 <div class="toolbar"><div id="generator_report_1Presets"></div><button type="button" class="btn primary" onclick="gen()">生成</button><button class="btn" type="button" onclick="__generator_report_1Export()">匯出明細 CSV</button><button type="button" class="btn" onclick="copyRes()">複製</button></div>
 <div class="result-box" id="res"></div> <div id="generator_report_1Table"></div> <div id="generator_report_1Diff"></div> <div id="generator_report_1Chart"></div> <div id="generator_report_1Hist"></div>
@@ -209,21 +218,29 @@ function gen() {
   var capex = parseFloat(document.getElementById('capex').value);
   var dividend = parseFloat(document.getElementById('dividend').value);
   var cash0 = parseFloat(document.getElementById('cash0').value);
-  var vals = [rev, costRate, opex, taxRate, asset, debtRatio, dep, capex, dividend, cash0];
+  var wc = parseFloat(document.getElementById('wc').value);
+  var depMode = document.getElementById('depMode').value;
+  var vals = [rev, costRate, opex, taxRate, asset, debtRatio, dep, capex, dividend, cash0, wc];
   for (var i = 0; i < vals.length; i++) {
     if (!isFinite(vals[i])) { res.innerHTML = '<p>请输入营业收入、成本率、费用、税率、资产、负债率、折旧、资本开支、分红与期初现金。</p>'; return; }
   }
   if (rev < 0 || costRate < 0 || opex < 0 || taxRate < 0 || taxRate > 100 || asset < 0 || debtRatio < 0 || debtRatio > 100 || dep < 0 || capex < 0 || dividend < 0 || cash0 < 0) {
     res.innerHTML = '<p>金额类输入不能为负，税率与资产负债率需在 0–100% 之间。</p>'; return;
   }
+  if (asset < cash0) {
+    res.innerHTML = '<p>期初现金 ' + money(cash0) + ' 大于资产总额 ' + money(asset) + '：现金是资产的一部分，请调低期初现金或调高资产总额。</p>';
+    return;
+  }
   var cost = rev * costRate / 100;
   var gross = rev - cost;
-  var opProfit = gross - opex;
+  var depInProfit = (depMode === 'excluded') ? dep : 0;
+  var opProfit = gross - opex - depInProfit;
   var tax = opProfit > 0 ? opProfit * taxRate / 100 : 0;
   var net = opProfit - tax;
+  var ebitda = opProfit + dep;
   var liab = asset * debtRatio / 100;
   var equity = asset - liab;
-  var cfo = net + dep;
+  var cfo = net + dep - wc;
   var cfi = -capex;
   var cff = -dividend;
   var netCash = cfo + cfi + cff;
@@ -231,15 +248,24 @@ function gen() {
   var h = '<p style="margin-bottom:8px;"><strong>财务报表（单位：万元）</strong></p>';
   h += '<p style="margin-top:8px;"><strong>一、利润表</strong></p>';
   h += '<p>营业收入 ' + money(rev) + '｜营业成本 ' + money(cost) + '（成本率 ' + costRate.toFixed(2) + '%）｜毛利 ' + money(gross) + '</p>';
-  h += '<p>期间费用 ' + money(opex) + '｜营业利润 ' + money(opProfit) + '｜所得税 ' + money(tax) + '（税率 ' + taxRate.toFixed(2) + '%）｜<strong>净利润 ' + money(net) + '</strong></p>';
+  h += '<p>期间费用 ' + money(opex) + '｜折旧口径：' + (depMode === 'included' ? '已含在成本/期间费用，不再重复扣除' : '未含，已在营业利润中扣除 ' + money(dep)) + '｜营业利润 ' + money(opProfit) + '｜所得税 ' + money(tax) + '（税率 ' + taxRate.toFixed(2) + '%）｜<strong>净利润 ' + money(net) + '</strong></p>';
+  h += '<p>EBITDA（营业利润 + 折旧，参考）' + money(ebitda) + '</p>';
   h += '<p style="margin-top:8px;"><strong>二、资产负债表</strong></p>';
   h += '<p>资产总额 ' + money(asset) + '｜负债合计 ' + money(liab) + '（资产负债率 ' + debtRatio.toFixed(2) + '%）｜所有者权益 ' + money(equity) + '</p>';
-  h += '<p>平衡校验：' + money(asset) + ' − ' + money(liab) + ' − ' + money(equity) + ' = ' + money(asset - liab - equity) + ' ✓</p>';
+  h += '<p>平衡校验：' + money(asset) + ' − ' + money(liab) + ' − ' + money(equity) + ' = ' + money(asset - liab - equity) + ' ✓（仅验证资产负债表的会计恒等式）</p>';
+  // 三表勾稽桥接：利润表与现金流量表必须能解释资产负债表为何变化，不能只做表内自平衡。
+  var nonCash0 = asset - cash0;
+  var nonCashEnd = nonCash0 - dep + capex + wc; // 折旧减少非现金资产，资本开支与营运资本增加非现金资产
+  var assetEnd = cashEnd + nonCashEnd;
+  var equityEnd = equity + net - dividend;
+  var bsGap = assetEnd - liab - equityEnd;
+  h += '<p style="margin-top:4px;">三表勾稽：期初非现金资产 ' + money(nonCash0) + ' − 折旧 ' + money(dep) + ' + 资本开支 ' + money(capex) + ' + 营运资本增加 ' + money(wc) + ' = 期末非现金资产 ' + money(nonCashEnd) + '；期末资产 = 期末现金 ' + money(cashEnd) + ' + 期末非现金资产 ' + money(nonCashEnd) + ' = <strong>' + money(assetEnd) + '</strong></p>';
+  h += '<p>期末权益 = 期初权益 ' + money(equity) + ' + 净利润 ' + money(net) + ' − 分红 ' + money(dividend) + ' = <strong>' + money(equityEnd) + '</strong>；负债按资产负债率随期初资产确定、本期不变 = ' + money(liab) + '；差额 ' + money(bsGap) + (Math.abs(bsGap) < 0.005 ? ' ✓' : ' ⚠') + '</p>';
   h += '<p style="margin-top:8px;"><strong>三、现金流量表</strong></p>';
   h += '<p>经营活动 ' + money(cfo) + '｜投资活动 ' + money(cfi) + '｜筹资活动 ' + money(cff) + '｜现金净增加额 ' + money(netCash) + '｜期末现金 ' + money(cashEnd) + '</p>';
-  h += '<p>间接法校验：净利润 ' + money(net) + ' + 折旧摊销 ' + money(dep) + ' = 经营活动现金流 ' + money(cfo) + ' ✓</p>';
+  h += '<p>间接法：净利润 ' + money(net) + ' + 折旧摊销 ' + money(dep) + ' − 营运资本增加 ' + money(wc) + ' = 经营活动现金流 ' + money(cfo) + ' ✓</p>';
   if (opProfit <= 0) h += '<p style="color:var(--danger)">⚠ 营业利润为负（或为零），所得税按 0 处理，请核对成本与费用口径。</p>';
-  h += '<p style="font-size:12px;color:var(--text-muted);">说明：三表由同一组输入派生，勾稽关系恒成立；同一组输入重复生成结果完全一致。</p>';
+  h += '<p style="font-size:12px;color:var(--text-muted);">说明：资产负债表的「资产 = 负债 + 权益」与现金流量表的「净利润 + 折旧 − 营运资本增加 = 经营现金流」各自恒成立；跨表勾稽依赖「期末负债不变、资产总额为期初口径、营运资本增加计入非现金资产」三项假设，差额不为 0 时上方会标 ⚠。同一组输入重复生成结果完全一致。</p>';
   res.innerHTML = h;
 }
 gen();
@@ -274,7 +300,7 @@ function copyRes() { ToolBox.copyText(document.getElementById("res").innerText);
     </a>
     <a href="/zh-tw/tools/finance/mirror-text.html" class="related-tool-card">
       <span class="rt-icon">🏦</span>
-      <span class="rt-info"><span class="rt-name">映象文字</span><span class="rt-desc">將文字左右映象反轉生成可複製的字元或預覽圖，用於趣味簽名、藝術字與水印，純前端即時轉換支援一鍵複製結…</span></span>
+      <span class="rt-info"><span class="rt-name">映象文字</span><span class="rt-desc">將文字左右映象：複製近似 Unicode 字元，或匯出真實左右翻轉、透明背景的多行 PNG；</span></span>
     </a>
 
   </div>

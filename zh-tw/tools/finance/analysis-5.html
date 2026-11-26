@@ -216,7 +216,7 @@
   <ul>
     <li>參考區間是通用經驗值：零售、地產等預收佔款較多的行業流動比率常低於 1 仍屬正常，務必與同行業可比公司對照。</li>
     <li>速動比率已剔除存貨與預付費用，若企業還有一年內到期的非流動資產、待攤費用等，應按自身口徑進一步調整。</li>
-    <li>流動負債必須大於 0，否則三個短期比率均無意義；所有者權益為負時不計算產權比率與權益乘數。</li>
+    <li>流動負債為 0 時，流動比率、速動比率、現金比率標為「不適用」（分母無效）；營運資金、資產負債率等不依賴該分母的指標照常計算。所有者權益為負時不計算產權比率與權益乘數。</li>
     <li>資產負債率與權益乘數存在勾稽關係（權益乘數 = 1 ÷ (1 − 資產負債率)），頁面會做一致性校驗。</li>
     <li>本工具純前端執行，輸入資料不會上傳到伺服器；結果僅供參考，不作為授信或審計依據。</li>
   </ul>
@@ -229,16 +229,28 @@ function fx(x,d){return isFinite(x)?x.toFixed(d):'—';}
 function calc(){
   var d=parseInt(document.getElementById('dec').value,10);
   if(!(d>=0&&d<=4))d=2;
-  var ca=num('ca'),inv=num('inv'),pre=num('pre'),cash=num('cash'),cl=num('cl'),tl=num('tl'),ta=num('ta');
   var grid=document.getElementById('statGrid'),res=document.getElementById('res');
-  if(!(cl>0)){
-    grid.innerHTML='';
-    const __g2='<p style="color:var(--danger);">流动负债必须大于 0，否则流动比率、速动比率、现金比率均无意义（当前为 '+fx(cl,d)+'）</p>';res.innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
+  var __defs=[['ca','流动资产'],['inv','存货'],['pre','预付费用'],['cash','现金'],['cl','流动负债'],['tl','负债总额'],['ta','资产总额']];
+  var __vals={};
+  for(var __i=0;__i<__defs.length;__i++){
+    var __raw=String(document.getElementById(__defs[__i][0]).value || '').trim();
+    var __n=Number(__raw);
+    if(__raw === '' || !isFinite(__n) || __n < 0){
+      grid.innerHTML='';res.innerHTML='<p style="color:var(--danger);">请填写「'+__defs[__i][1]+'」的 ≥0 数字（数字 0 合法，留空不计算）。</p>';
+      return;
+    }
+    __vals[__defs[__i][0]]=__n;
+  }
+  var ca=__vals.ca,inv=__vals.inv,pre=__vals.pre,cash=__vals.cash,cl=__vals.cl,tl=__vals.tl,ta=__vals.ta;
+  if(cash > ca || (inv + pre) > ca || cl > tl){
+    grid.innerHTML='';res.innerHTML='<p style="color:var(--danger);">明细与合计不一致：需满足 现金 ≤ 流动资产、存货+预付费用 ≤ 流动资产、流动负债 ≤ 负债总额。请先核对报表再评级。</p>';
     return;
   }
-  var current=ca/cl;
-  var quick=(ca-inv-pre)/cl;
-  var cashR=cash/cl;
+  // 第942批：零流动负债时不再整体返回，只把依赖该分母的三个比率标为不适用，其余指标继续计算。
+  var clOk = cl > 0;
+  var current = clOk ? ca/cl : NaN;
+  var quick = clOk ? (ca-inv-pre)/cl : NaN;
+  var cashR = clOk ? cash/cl : NaN;
   var wc=ca-cl;
   var equity=ta-tl;
   var dar=ta>0?tl/ta:NaN;
@@ -246,7 +258,7 @@ function calc(){
   var em=equity>0?ta/equity:NaN;
 
   function tag(cur,good,fair){
-    if(!isFinite(cur))return '<span class="grade-tag grade-pass">无法计算</span>';
+    if(!isFinite(cur))return '<span class="grade-tag grade-pass">不适用</span>';
     if(cur>=good)return '<span class="grade-tag grade-excellent">良好</span>';
     if(cur>=fair)return '<span class="grade-tag grade-good">一般</span>';
     return '<span class="grade-tag grade-fail">警戒</span>';
@@ -267,15 +279,15 @@ function calc(){
     return '<span class="grade-tag grade-fail">警戒</span>';
   }
 
-  const __g3='<div class="stat-card"><div class="val">'+fx(current,d)+'</div><div class="lbl">流动比率（参考 ≥ 2）</div></div>'
-    +'<div class="stat-card"><div class="val">'+fx(quick,d)+'</div><div class="lbl">速动比率（参考 ≥ 1）</div></div>'
-    +'<div class="stat-card"><div class="val">'+fx(cashR,d)+'</div><div class="lbl">现金比率（参考 ≥ 0.2）</div></div>'
+  const __g3='<div class="stat-card"><div class="val">'+(clOk?fx(current,d):'不适用')+'</div><div class="lbl">流动比率（参考 ≥ 2）</div></div>'
+    +'<div class="stat-card"><div class="val">'+(clOk?fx(quick,d):'不适用')+'</div><div class="lbl">速动比率（参考 ≥ 1）</div></div>'
+    +'<div class="stat-card"><div class="val">'+(clOk?fx(cashR,d):'不适用')+'</div><div class="lbl">现金比率（参考 ≥ 0.2）</div></div>'
     +'<div class="stat-card"><div class="val">'+fx(dar*100,d)+'%</div><div class="lbl">资产负债率（参考 40%~60%）</div></div>';grid.innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
 
   var rows=[
-    ['流动比率',fx(current,d),'≥ 2 良好 / 1~2 一般 / < 1 警戒',tag(current,2,1),'流动资产 '+fx(ca,d)+' ÷ 流动负债 '+fx(cl,d)],
-    ['速动比率',fx(quick,d),'≥ 1 良好 / 0.5~1 一般 / < 0.5 警戒',tag(quick,1,0.5),'(流动资产 '+fx(ca,d)+' − 存货 '+fx(inv,d)+' − 预付费用 '+fx(pre,d)+') ÷ 流动负债 '+fx(cl,d)],
-    ['现金比率',fx(cashR,d),'≥ 0.2 充裕 / 0.1~0.2 一般 / < 0.1 偏紧',tag(cashR,0.2,0.1),'现金 '+fx(cash,d)+' ÷ 流动负债 '+fx(cl,d)],
+    ['流动比率',clOk?fx(current,d):'不适用','经验参考：≥ 2 良好 / 1~2 一般 / < 1 警戒（可按行业调整）',tag(current,2,1),clOk?('流动资产 '+fx(ca,d)+' ÷ 流动负债 '+fx(cl,d)):'流动负债为 0，分母无效'],
+    ['速动比率',clOk?fx(quick,d):'不适用','经验参考：≥ 1 良好 / 0.5~1 一般 / < 0.5 警戒（可按行业调整）',tag(quick,1,0.5),clOk?('(流动资产 '+fx(ca,d)+' − 存货 '+fx(inv,d)+' − 预付费用 '+fx(pre,d)+') ÷ 流动负债 '+fx(cl,d)):'流动负债为 0，分母无效'],
+    ['现金比率',clOk?fx(cashR,d):'不适用','经验参考：≥ 0.2 充裕 / 0.1~0.2 一般 / < 0.1 偏紧（可按行业调整）',tag(cashR,0.2,0.1),clOk?('现金 '+fx(cash,d)+' ÷ 流动负债 '+fx(cl,d)):'流动负债为 0，分母无效'],
     ['资产负债率',isFinite(dar)?(dar*100).toFixed(d)+'%':'—','40%~60% 适中 / > 70% 警戒 / < 30% 偏低',tagHigh(isFinite(dar)?dar*100:NaN,30,60,70),'负债总额 '+fx(tl,d)+' ÷ 资产总额 '+fx(ta,d)],
     ['产权比率',fx(de,d),'< 1 稳健 / 1~2 一般 / 2~3 偏高 / > 3 警戒',tagDERatio(de),'负债总额 '+fx(tl,d)+' ÷ 所有者权益 '+fx(equity,d)],
     ['权益乘数',fx(em,d),'1.5~2.5 常见 / > 3 高杠杆',tagHigh(em,1.5,2.5,3),'资产总额 '+fx(ta,d)+' ÷ 所有者权益 '+fx(equity,d)]
@@ -294,14 +306,21 @@ function calc(){
   }
 
   html+='<hr style="border:none;border-top:1px solid var(--border);margin:10px 0;">';
-  if(wc<0){
+  if(!clOk){
+    html+='<div class="tip-box tip-warn">流动负债为 0：流动比率、速动比率、现金比率不适用（分母无效）；营运资金、资产负债率、产权比率与权益乘数仍按有效数据计算。</div>';
+  }else if(wc<0){
     html+='<div class="tip-box tip-error">营运资金为负（'+fx(wc,d)+' 元），流动资产不足覆盖流动负债，短期偿债压力显著，需关注债务到期结构与再融资能力。</div>';
   }else if(current<1){
     html+='<div class="tip-box tip-warn">流动比率低于 1，短期偿债主要依赖存货与应收账款的变现速度。</div>';
   }else if(current>=2&&quick>=1){
-    html+='<div class="tip-box tip-success">流动比率与速动比率均达到经验参考值，短期偿债能力较为稳健。</div>';
+    html+='<div class="tip-box tip-success">流动比率与速动比率均达到本页经验参考值；这是通用制造业口径，零售、地产等预收占款行业应结合同业与自身历史区间判断，不能仅凭该档位下结论。</div>';
   }else{
-    html+='<div class="tip-box tip-warn">流动比率尚可但速动比率偏低，说明流动资产中存货占比偏高，变现质量需进一步核查。</div>';
+    var __invPct=ca>0?inv/ca*100:0, __prePct=ca>0?pre/ca*100:0;
+    var __reason='';
+    if(quick<1 && __invPct>=__prePct) __reason='本次主要拖累项为存货（占流动资产 '+fx(__invPct,1)+'%），需核查存货周转与跌价风险';
+    else if(quick<1) __reason='本次主要拖累项为预付费用（占流动资产 '+fx(__prePct,1)+'%），需核查预付账款的回收或转费用安排';
+    else __reason='速动比率未低于 1，流动比率偏低更可能来自应收账款/其他流动资产结构，需结合账龄与同业口径核查';
+    html+='<div class="tip-box tip-warn">流动比率处于 1–2 的经验区间、速动比率 '+fx(quick,d)+'。'+__reason+'。上述阈值为可调整的经验参考，不代表行业统一标准。</div>';
   }
   if(equity<=0){
     html+='<div class="tip-box tip-error">所有者权益不为正（'+fx(equity,d)+' 元），产权比率与权益乘数无法反映正常资本结构。</div>';
@@ -354,7 +373,7 @@ calc();
     </a>
     <a href="/zh-tw/tools/finance/mirror-text.html" class="related-tool-card">
       <span class="rt-icon">🏦</span>
-      <span class="rt-info"><span class="rt-name">映象文字</span><span class="rt-desc">將文字左右映象反轉生成可複製的字元或預覽圖，用於趣味簽名、藝術字與水印，純前端即時轉換支援一鍵複製結…</span></span>
+      <span class="rt-info"><span class="rt-name">映象文字</span><span class="rt-desc">將文字左右映象：複製近似 Unicode 字元，或匯出真實左右翻轉、透明背景的多行 PNG；</span></span>
     </a>
 
   </div>

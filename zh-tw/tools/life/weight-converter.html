@@ -116,7 +116,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="支援 mg / g / kg / t / oz / lb / 克拉 / 市兩 / 市斤">Convert mass and weight units such as kilogram, gram, pound, ounce and tonne.</p>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理與說明</div>
-      <div class="formula-eq">以克為基準換算：1 mg = 0.001 g、1 kg = 1000 g、1 噸 = 10⁶ g、1 盎司 = 28.349523125 g、1 磅 = 453.59237 g、1 克拉 = 0.2 g、1 兩 = 50 g、1 斤 = 500 g；結果 = 輸入值 × 目標係數 ÷ 源係數，1 磅 ≈ 0.4536 kg、1 斤 = 0.5 kg。</div>
+      <div class="formula-eq">以克為基準換算：1 mg = 0.001 g、1 kg = 1000 g、1 噸 = 10⁶ g、1 盎司 = 28.349523125 g、1 磅 = 453.59237 g、1 克拉 = 0.2 g、1 兩 = 50 g、1 斤 = 500 g；結果 = 輸入值 × 源係數 ÷ 目標係數（係數表示該單位對應多少克），1 磅 ≈ 0.4536 kg、1 斤 = 0.5 kg。</div>
 
 </div>
 
@@ -212,17 +212,17 @@
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="質量與重量">Mass and weight</td>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="質量以千克計，重量為力，以牛頓計，二者不可混用">mass is measured in kilograms while weight is a force in newtons</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="ISO 80000-4 quantities and units">ISO 80000-4 quantities and units</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="ISO 80000-4 量與單位">ISO 80000-4 quantities and units</td>
         </tr>
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="標準重力">Standard gravity</td>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="標準重力加速度取 9.80665 米每二次方秒">standard gravity is 9.80665 metres per second squared</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="ISO 80000-4 quantities and units">ISO 80000-4 quantities and units</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="ISO 80000-4 量與單位">ISO 80000-4 quantities and units</td>
         </tr>
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="市制質量">Chinese mass units</td>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="1 市斤等於 500 克，1 市兩為其十分之一">one jin equals 500 grams and one liang a tenth of that</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="GB 3100 legal units">GB 3100 legal units</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="GB 3100 法定計量單位">GB 3100 legal units</td>
         </tr>
       </tbody>
     </table>
@@ -274,6 +274,14 @@ function convert(){
   }
   if(v<0){document.getElementById('resultBox').innerHTML='<p style="color:var(--danger)">'+'重量'+'需为非负数值。</p>';return;}
   const base = v * factors[from];
+  const __targets = Object.keys(factors).filter(k => k !== from);
+  const __overflow = !isFinite(base) || __targets.some(k => !isFinite(base / factors[k]));
+  if(__overflow){
+    const __ovMsg = (typeof TBKit!=='undefined'&&TBKit.util.isEn()) ? 'The value is outside the representable range; reduce it or use a smaller source unit.' : '输入的数值超出可表示范围，请减小数值或改用更小的源单位。';
+    document.getElementById('resultBox').innerHTML = '<p style="color:var(--danger);">⚠ ' + __ovMsg + '</p>';
+    const __refBox = document.getElementById('__charRefBox'); if(__refBox) __refBox.innerHTML = '';
+    return;
+  }
   let html = `<p>基准：<strong>${fmt(v)} ${names[from]}</strong> = <strong>${fmt(base)} 克</strong></p>`;
   html += '<hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">';
   Object.keys(factors).forEach(k => {
@@ -286,6 +294,7 @@ function convert(){
 
 function clearAll(){
   document.getElementById('inputVal').value = '';
+  if(typeof window.__charRefRender==='function') window.__charRefRender();
   const __h2=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter a value to convert":"请输入数值进行换算");if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('resultBox').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('resultBox').innerHTML=__h2;
 }
 convert();
@@ -401,17 +410,20 @@ function __weight_converterExtras(){
     __weight_converterRender(keys,rk,en);
 }
 function __weight_converterExport(){
-    if (typeof TBKit === 'undefined') return;
-    try{
-        var box=document.querySelector('#weight_converterTable');
-        if(!box||!box.querySelector('tr')){
-            var snap=__weight_converterSnap(); var keys=Object.keys(snap);
-            if(keys.length>12) keys=keys.slice(0,12);
-            var en=(TBKit.util&&TBKit.util.isEn())?true:false;
-            __weight_converterRender(keys,en?'Result':'结果',en);
-        }
-    }catch(e){}
-    try { TBKit.util.exportTable('#weight_converterTable','weight-converter.csv'); } catch(e){}
+    if (typeof TBKit === 'undefined' || !TBKit.util || !TBKit.util.exportCsv) return;
+    var en=!!(TBKit.util.isEn&&TBKit.util.isEn());
+    var v=parseFloat(document.getElementById('inputVal').value);
+    var from=document.getElementById('fromUnit').value;
+    if(!isFinite(v)||!factors[from]||v<0){
+        if(typeof ToolBox!=='undefined'&&ToolBox.showToast) ToolBox.showToast(en?'Enter a valid non-negative value before exporting.':'请输入有效的非负数值后再导出。','warning');
+        return;
+    }
+    var base=v*factors[from];
+    var rows=[[en?'Unit':'单位',en?'Value in source unit':'源单位数值',en?'Base value (gram)':'基准值（克）']];
+    Object.keys(factors).forEach(function(k){
+        rows.push([en?((typeof namesEn!=='undefined'&&namesEn[k])?namesEn[k]:k):(names[k]||k),fmt(v*factors[from]/factors[k]),fmt(base)]);
+    });
+    TBKit.util.exportCsv('weight-converter.csv',rows);
 }
 function __weight_converterPresets(){
     if (typeof TBKit === 'undefined') return;
@@ -539,6 +551,7 @@ else document.addEventListener('DOMContentLoaded', __weight_converterBoot);
     var from=sel.value;
     if(!isFinite(v)||!F[from]){ box.innerHTML=''; return; }
     var base=v*F[from];
+    if(!isFinite(base)){ box.innerHTML=''; return; }
     var best=null, bd=1e18;
     if(base>0){
       for(var i=0;i<REFS.length;i++){
@@ -553,10 +566,15 @@ else document.addEventListener('DOMContentLoaded', __weight_converterBoot);
     var html='';
     html+='<div class="card" style="margin-top:0;">';
     html+='<h3>'+(en?'Scale sense: how big is it really?':'📐 尺度感知：这到底有多大')+'</h3>';
-    html+='<p>'+(en?'Your input ≈ ':'你的输入 ≈ ')+fmt(base)+' '+bname+'</p>';
+    if(base<0){
+      html+='<p>'+(en?'Your input ≈ ':'你的输入 ≈ ')+fmt(base)+' '+bname+'</p>';
+      html+='<p style="color:var(--text-muted);">'+(en?'Negative weight is shown with its sign; real-world references are only for non-negative values.':'输入为负重量，已保留负号；实物参照只适用于非负值。')+'</p>';
+    } else {
+      html+='<p>'+(en?'Your input ≈ ':'你的输入 ≈ ')+fmt(base)+' '+bname+'</p>';
+    }
     if(base===0){
-      html+='<p style="font-weight:600;color:var(--text-muted);">零值不参与尺度参照。</p>';
-    } else if(best){
+      html+='<p style="font-weight:600;color:var(--text-muted);">'+(en?'Zero is not matched to a reference.':'零值不参与尺度参照。')+'</p>';
+    } else if(base>0&&best){
       var ratio=base/best.v;
       if(ratio>=0.8&&ratio<=1.25){
         html+='<p style="font-weight:600;color:var(--primary);">💡 ≈ '+best[en?'en':'zh']+' ('+best.d+' '+bname+')</p>';
@@ -576,6 +594,7 @@ else document.addEventListener('DOMContentLoaded', __weight_converterBoot);
     html+='</div>';
     box.innerHTML=html;
   }
+  window.__charRefRender=render;
   var f0=(typeof convert==='function')?convert:null;
   if(f0){ convert=function(){ var r=f0.apply(null,arguments); try{ var __v=parseFloat(document.getElementById('inputVal').value); if(!isFinite(__v)||__v<0){ var __b=document.getElementById('__charRefBox'); if(__b)__b.innerHTML=''; } else { render(); } }catch(e){} return r; }; }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', render);

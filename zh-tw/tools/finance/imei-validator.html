@@ -118,7 +118,8 @@
 
     <label for="input">輸入（IMEI 14/15 位或 IMEISV 16 位數字）</label>
     <input type="text" id="input" oninput="validate()" placeholder="如：490154203237518" value="356938035643809">
-    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__imei_validatorExport()">匯出明細 CSV</button></div><div class="result-box" id="output">等待輸入...</div> <div id="imei_validatorTable"></div> <div id="imei_validatorDiff"></div> <div id="imei_validatorChart"></div> <div id="imei_validatorHist"></div>
+    <div class="toolbar" style="margin:8px 0;flex-wrap:wrap;gap:8px;align-items:center;"><label style="font-size:13px;display:inline-flex;align-items:center;gap:6px;"><input type="checkbox" id="__histOptIn"> 在本機儲存脫敏歷史（預設關閉）</label><button class="btn" type="button" onclick="__imei_validatorClearHistory()">清除本機歷史</button><span style="font-size:12px;color:var(--text-muted)">僅在勾選後寫入；數值保留前 2 位與後 4 位。</span></div>
+<div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__imei_validatorExport()">匯出明細 CSV</button></div><div class="result-box" id="output">等待輸入...</div> <div id="imei_validatorTable"></div> <div id="imei_validatorDiff"></div> <div id="imei_validatorChart"></div> <div id="imei_validatorHist"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -181,7 +182,8 @@
 
   <div class="tool-notes-title">⚠️ 使用說明與注意事項</div>
   <ul>
-      <li>本工具純前端執行，資料不會上傳到伺服器</li>
+      <li>預設不儲存輸入；只有勾選“在本機儲存脫敏歷史”後才把前 2 位、後 4 位的脫敏值寫入本機 localStorage，可隨時“清除本機歷史”</li>
+      <li>本工具純前端執行，輸入與校驗結果不會上傳到伺服器</li>
       <li>建議在主流瀏覽器（Chrome/Safari/Firefox/Edge）中使用</li>
       <li>計算結果僅供參考，請以實際應用場景為準</li>
   </ul>
@@ -294,6 +296,25 @@ document.addEventListener('DOMContentLoaded',function(){
 });
 
 var __imei_validator_last=0,__imei_validator_skip=false,__imei_validator_timer=null;
+function __imei_validatorMask(v){
+    var raw=String(v==null?'':v).replace(/[\s+()-]/g,'');
+    if(!raw) return '';
+    if(raw.length<=6) return '***';
+    return raw.slice(0,2)+'****'+raw.slice(-4);
+}
+function __imei_validatorMaskText(t,vals){
+    var out=String(t||'');
+    vals=vals||[];
+    for(var i=0;i<vals.length;i++){
+        var raw=String(vals[i]==null?'':vals[i]).trim();
+        if(raw.length>=6 && out.indexOf(raw)>=0) out=out.split(raw).join(__imei_validatorMask(raw));
+    }
+    out=out.replace(/\d{7,}/g,function(m){return __imei_validatorMask(m);});
+    return out;
+}
+function __imei_validatorClearHistory(){
+    try{ TBKit.history.clear(); document.getElementById('imei_validatorHist').innerHTML=''; document.getElementById('imei_validatorTable').innerHTML=''; }catch(e){}
+}
 function __imei_validatorSnap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
@@ -301,6 +322,7 @@ function __imei_validatorSnap(){
         var e=els[i];
         var t=(e.type||'').toLowerCase();
         if(t==='button'||t==='submit'||t==='hidden') continue;
+        if(e.id.indexOf('__hist')===0) continue;
         var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
         if(v!=null) out[e.id]=v;
     }
@@ -391,6 +413,8 @@ function __imei_validatorExtras(force){
     if(keys.length>12) keys=keys.slice(0,12);
     var res=__imei_validatorResText();
     if(!res) return;
+    var opt=document.getElementById('__histOptIn');
+    if(!opt||!opt.checked) return;
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
     var now=Date.now();
@@ -403,14 +427,18 @@ function __imei_validatorExtras(force){
     if(last){
         var same=true;
         for(var i=0;i<keys.length;i++){
-            if(String(last[keys[i]])!==String(snap[keys[i]])){same=false;break;}
+            if(String(last[keys[i]])!==String(__imei_validatorMask(snap[keys[i]]))){same=false;break;}
         }
-        if(same&&String(last[rk])===String(res)) return;
+        if(same&&String(last[rk])===String(__imei_validatorMaskText(res,keys.map(function(k){return snap[k];})))) return;
     }
     __imei_validator_last=now;
     var rec={};
-    for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
-    rec[rk]=res;
+    var rawVals=[];
+    for(var i=0;i<keys.length;i++){
+        rawVals.push(snap[keys[i]]);
+        rec[keys[i]]=__imei_validatorMask(snap[keys[i]]);
+    }
+    rec[rk]=__imei_validatorMaskText(res,rawVals);
     rec.__tbScore=__imei_validatorScore(__imei_validatorFullResText());
     TBKit.history.record(rec);
     __imei_validatorRender(keys,rk,en);
@@ -468,7 +496,7 @@ else document.addEventListener('DOMContentLoaded', __imei_validatorBoot);
     </a>
     <a href="/zh-tw/tools/finance/mirror-text.html" class="related-tool-card">
       <span class="rt-icon">🏦</span>
-      <span class="rt-info"><span class="rt-name">映象文字</span><span class="rt-desc">將文字左右映象反轉生成可複製的字元或預覽圖，用於趣味簽名、藝術字與水印，純前端即時轉換支援一鍵複製結…</span></span>
+      <span class="rt-info"><span class="rt-name">映象文字</span><span class="rt-desc">將文字左右映象：複製近似 Unicode 字元，或匯出真實左右翻轉、透明背景的多行 PNG；</span></span>
     </a>
 
   </div>

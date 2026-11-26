@@ -154,6 +154,18 @@
       <input type="text" id="salaryMode" value="monthly" style="display:none" oninput="__salarySyncMode()" aria-label="薪資模式">
     </div>
 
+    <div style="border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin:10px 0 14px;background:var(--bg-hover);">
+      <label style="display:flex;align-items:center;gap:8px;margin:0;font-size:13px;">
+        <input type="checkbox" id="rememberSalary" style="width:auto;margin:0;" onchange="toggleSalaryRemember()">
+        <span>在本機記住這些工資與扣除資訊（預設關閉；共享電腦請勿勾選）</span>
+      </label>
+      <p style="font-size:12px;color:var(--text-muted);margin:6px 0 0;">資料只存在當前瀏覽器的 localStorage，不會上傳伺服器；關閉勾選會立即清除已儲存內容。</p>
+      <div style="display:flex;align-items:center;gap:10px;margin-top:8px;flex-wrap:wrap;">
+        <button type="button" class="btn" onclick="clearSalarySaved()">清除已儲存的工資資料</button>
+        <span id="salarySaveStatus" style="font-size:12px;color:var(--text-muted);">當前未儲存</span>
+      </div>
+    </div>
+
         <div class="formula-box">
       <div class="formula-title">📐 計算公式 / 說明</div>
       <div class="formula-eq">應納稅額 = Σ（應納稅所得額 × 稅率 − 速算扣除數）；實發 = 應發 − 五險一金 − 個稅</div>
@@ -642,8 +654,8 @@ function __salaryClearResults(){
 
 function calculate(){
   // 复核失败重做：区分空串与数字 0 —— 空串属未填写须提示并停算，0 仍是合法值。
-  const __emptyIds = ['threshold','monthsPerYear','baseSalary'];
-  const __emptyLabels = {threshold:'起征点',monthsPerYear:'每年计薪月数',baseSalary:'缴费基数'};
+  const __emptyIds = ['salary','threshold','monthsPerYear','baseSalary'];
+  const __emptyLabels = {salary:'工资',threshold:'起征点',monthsPerYear:'每年计薪月数',baseSalary:'缴费基数'};
   var __emptyId = null;
   for(var __ei=0; __ei<__emptyIds.length; __ei++){
     var __eel = document.getElementById(__emptyIds[__ei]);
@@ -682,8 +694,8 @@ function calculate(){
     monthlySalary = salaryInput / monthsPerYear;
   }
 
-  const baseSalary = __salaryNum('baseSalary', monthlySalary);
-  const housingBase = __salaryNum('housingBase', monthlySalary);
+  const baseSalary = monthlySalary === 0 ? 0 : __salaryNum('baseSalary', monthlySalary);
+  const housingBase = monthlySalary === 0 ? 0 : __salaryNum('housingBase', monthlySalary);
 
   const pensionRate = getNum('pensionRate') / 100;
   const medicalRate = getNum('medicalRate') / 100;
@@ -857,7 +869,7 @@ function __salaryCumulative(){
   if(!isFinite(monthsPerYear)||monthsPerYear<=0) return;
   const monthlySalary=currentMode==='annual'?salaryInput/monthsPerYear:salaryInput;
   const threshold=__salaryNum('threshold',5000);
-  const baseSalary=__salaryNum('baseSalary',monthlySalary), housingBase=__salaryNum('housingBase',monthlySalary);
+  const baseSalary=monthlySalary===0?0:__salaryNum('baseSalary',monthlySalary), housingBase=monthlySalary===0?0:__salaryNum('housingBase',monthlySalary);
   const pension=baseSalary*getNum('pensionRate')/100, medical=baseSalary*getNum('medicalRate')/100;
   const unemployment=baseSalary*getNum('unemploymentRate')/100, injury=baseSalary*getNum('injuryRate')/100;
   const maternity=baseSalary*getNum('maternityRate')/100, housing=housingBase*getNum('housingRate')/100;
@@ -970,7 +982,7 @@ document.addEventListener('DOMContentLoaded',function(){
     </a>
     <a href="/zh-tw/tools/finance/mirror-text.html" class="related-tool-card">
       <span class="rt-icon">🏦</span>
-      <span class="rt-info"><span class="rt-name">映象文字</span><span class="rt-desc">將文字左右映象反轉生成可複製的字元或預覽圖，用於趣味簽名、藝術字與水印，純前端即時轉換支援一鍵複製結…</span></span>
+      <span class="rt-info"><span class="rt-name">映象文字</span><span class="rt-desc">將文字左右映象：複製近似 Unicode 字元，或匯出真實左右翻轉、透明背景的多行 PNG；</span></span>
     </a>
 
   </div>
@@ -1003,15 +1015,27 @@ document.addEventListener('DOMContentLoaded',function(){
 <script>
 (function(){try{
   var NS="tools/finance/salary-calculator.html";
-  function k(id){return 'tb_uxp_'+NS+'#'+id;}
-  function save(el){try{
+  var FLAG='tb_salary_remember_v1';
+  var PREFIX='tb_uxp_'+NS+'#';
+  function k(id){return PREFIX+id;}
+  function rememberOn(){try{return localStorage.getItem(FLAG)==='1';}catch(e){return false;}}
+  function setStatus(t){var el=document.getElementById('salarySaveStatus');if(el)el.textContent=t;}
+  function clearSavedKeys(){try{
+    var doomed=[];
+    for(var i=0;i<localStorage.length;i++){
+      var key=localStorage.key(i);
+      if(key && key.indexOf(PREFIX)===0) doomed.push(key);
+    }
+    doomed.forEach(function(key){localStorage.removeItem(key);});
+  }catch(e){}}
+  function save(el){if(!rememberOn()||!el.id||el.id==='rememberSalary')return;try{
     if(el.type==='checkbox'){localStorage.setItem(k(el.id),el.checked?'1':'0');}
     else if(el.type==='radio'){if(el.checked)localStorage.setItem(k(el.id),el.value);}
     else{localStorage.setItem(k(el.id),el.value);}
   }catch(e){}}
-  function restore(){try{
+  function restore(){if(!rememberOn())return;try{
     document.querySelectorAll('input:not([type=password]):not([type=file]):not([type=button]):not([type=submit]):not([type=reset]):not([type=hidden]):not([readonly]):not([disabled]),textarea:not([readonly]):not([disabled]),select').forEach(function(el){
-      if(!el.id)return;
+      if(!el.id||el.id==='rememberSalary')return;
       var v=localStorage.getItem(k(el.id));if(v===null)return;
       try{
         if(el.type==='checkbox'){el.checked=(v==='1');}
@@ -1022,8 +1046,32 @@ document.addEventListener('DOMContentLoaded',function(){
       }catch(e){}
     });
   }catch(e){}}
+  window.toggleSalaryRemember=function(){
+    var box=document.getElementById('rememberSalary');
+    if(box&&box.checked){
+      try{localStorage.setItem(FLAG,'1');}catch(e){}
+      // 勾选瞬间把当前输入写入本机，避免用户以为“勾了但没保存”。
+      document.querySelectorAll('input:not([type=password]):not([type=file]):not([type=button]):not([type=submit]):not([type=reset]):not([type=hidden]):not([readonly]):not([disabled]),textarea:not([readonly]):not([disabled]),select').forEach(function(el){save(el);});
+      setStatus('已在本机保存；关闭勾选或点“清除”会删除');
+    }else{
+      try{localStorage.removeItem(FLAG);}catch(e){}
+      clearSavedKeys();
+      setStatus('当前未保存（已清除此前保存的数据）');
+    }
+  };
+  window.clearSalarySaved=function(){
+    try{localStorage.removeItem(FLAG);}catch(e){}
+    clearSavedKeys();
+    var box=document.getElementById('rememberSalary');if(box)box.checked=false;
+    setStatus('已清除本机保存的工资数据');
+  };
+  // 默认不持久化：启动时若未明确勾选，清掉历史版本留下的敏感字段。
+  if(!rememberOn()) clearSavedKeys();
+  var box=document.getElementById('rememberSalary');
+  if(box) box.checked=rememberOn();
+  setStatus(rememberOn()?'已在本机保存；关闭勾选或点“清除”会删除':'当前未保存');
   document.querySelectorAll('input:not([type=password]):not([type=file]):not([type=button]):not([type=submit]):not([type=reset]):not([type=hidden]):not([readonly]):not([disabled]),textarea:not([readonly]):not([disabled]),select').forEach(function(el){
-    if(!el.id)return;
+    if(!el.id||el.id==='rememberSalary')return;
     el.addEventListener('input',function(){save(el);});
     el.addEventListener('change',function(){save(el);});
   });

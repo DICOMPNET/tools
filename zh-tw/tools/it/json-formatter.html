@@ -513,11 +513,18 @@ function __jsonDuplicateKeys(text) {
 function __isRiskyNumber(raw){
   const num = Number(raw);
   if(!isFinite(num)) return true;
+  const mantissa = raw.replace(/^-/, '').replace(/[eE].*$/, '').replace('.', '');
+  const significant = mantissa.replace(/^0+/, '').replace(/0+$/, '');
+  // 极小指数下溢：1e-400 → 0，9e-324 → 次正规数，均无法由 Number 还原原文
+  if(/[eE]/.test(raw)){
+    const exp = parseInt(raw.replace(/^.*[eE]/, ''), 10);
+    if(Number.isFinite(exp) && exp < -308) return true;
+    if(num === 0 && significant) return true;
+  }
   const plainInt = !/[eE.]/.test(raw);
   if(plainInt) return !Number.isSafeInteger(num);
   if(Number.isInteger(num) && !Number.isSafeInteger(num)) return true;
-  const digits = raw.replace(/^-/, '').replace(/[eE].*$/, '').replace('.', '').replace(/^0+/, '');
-  return digits.length > 15;
+  return significant.length > 15;
 }
 
 function __parseJsonPreserve(text){
@@ -822,7 +829,7 @@ function renderOutput() {
       : '… 结果已截断：仅渲染约 ' + __JSON_TREE_LINE_LIMIT + ' 行' + (ctx.depthCut ? '，层级限制 ' + __JSON_TREE_DEPTH_LIMIT : '') + '。完整内容请使用“复制结果”或“下载 JSON”。';
     html += '<p style="padding:12px;color:var(--text-muted);font-size:12px;">' + note + '</p>';
   }
-  const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){viewJson.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}viewJson.innerHTML=__h0;
+  const __h0=html;viewJson.innerHTML=__h0;
 
   const full = __jsonStringify(lastValidJSON, ind);
   const size = full.length;

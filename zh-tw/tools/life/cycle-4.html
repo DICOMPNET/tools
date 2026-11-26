@@ -132,8 +132,8 @@
     <h3>➕ 新增清潔用品</h3>
         <div class="formula-box">
       <div class="formula-title">📐 計算公式 / 原理</div>
-      <div class="formula-eq">日耗量 = 消耗速率 ÷ 週期天數（周=7 / 月=30）；可用天數 = ⌊庫存 ÷ 日耗量⌋；補貨週期 = ⌊補貨閾值 ÷ 日耗量⌋</div>
-      <div class="formula-desc">把「每週期消耗量」折算為日耗量後，用當前庫存估算可用天數、用補貨閾值估算應下單的間隔。庫存 ≤ 補貨閾值判為「庫存不足」，可用天數 ≤ 7 天判為「即將耗盡」。</div>
+      <div class="formula-eq">日耗量 = 消耗速率 ÷ 週期天數（周=7 / 月=30）；可用天數 = ⌊庫存 ÷ 日耗量⌋（正庫存不足一天時顯示“不足一天”而非“已耗盡”）；距觸及閾值 = ⌊(庫存 − 補貨閾值) ÷ 日耗量⌋；閾值庫存可維持 = ⌊補貨閾值 ÷ 日耗量⌋</div>
+      <div class="formula-desc">把「每週期消耗量」折算為日耗量後，用當前庫存估算可用天數、「距觸及閾值」是庫存降到閾值還需的天數；「閾值庫存可維持」是從閾值降到 0 的天數（訂貨提前期的安全墊）。庫存 ≤ 補貨閾值判為「庫存不足」，可用天數 ≤ 7 天判為「即將耗盡」。</div>
     </div>
 <div class="input-row">
       <div>
@@ -212,6 +212,7 @@
       <button class="btn" onclick="fillToday()">⏰ 填入今天</button>
     </div>
     <div id="logList" style="margin-top:12px;"></div>
+    <div id="logPager" style="margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:13px;"></div>
   </div>
 
   <div class="card">
@@ -229,6 +230,8 @@ var SUP_KEY = 'tb_clean_supplies';
 var LOG_KEY = 'tb_clean_supply_logs';
 var supplies = [];
 var logs = [];
+var logPage = 0;
+var LOG_PAGE_SIZE = 30;
 
 function load() {
   try { supplies = JSON.parse(localStorage.getItem(SUP_KEY)) || []; } catch(e) { supplies = []; }
@@ -251,27 +254,33 @@ function getDaysPerPeriod(period) {
 
 // 计算预计耗尽天数
 function getDaysUntilEmpty(sup) {
-  if (sup.rate <= 0) return 999;
+  if (sup.rate <= 0) return null;
   var periodDays = getDaysPerPeriod(sup.period);
   var dailyRate = sup.rate / periodDays;
   var days = Math.floor(sup.stock / dailyRate);
   return days;
 }
 
-// 计算补货周期天数（按阈值到库存满）
+// 距触及补货阈值的天数：库存高于阈值时，消耗到阈值还需多少天。
+function getDaysUntilThreshold(sup) {
+  if (sup.rate <= 0) return null;
+  var dailyRate = sup.rate / getDaysPerPeriod(sup.period);
+  if (sup.stock <= sup.threshold) return 0;
+  return Math.max(0, Math.floor((sup.stock - sup.threshold) / dailyRate));
+}
+
+// 阈值库存还能维持的天数（从阈值消耗到 0），用于估算下单后的安全垫。
 function getReorderCycle(sup) {
   if (sup.rate <= 0) return 0;
-  var periodDays = getDaysPerPeriod(sup.period);
-  var dailyRate = sup.rate / periodDays;
-  // 从阈值到耗尽的时间
-  var days = Math.floor(sup.threshold / dailyRate);
-  return days;
+  var dailyRate = sup.rate / getDaysPerPeriod(sup.period);
+  return Math.floor(sup.threshold / dailyRate);
 }
 
 function getStockStatus(sup) {
   var days = getDaysUntilEmpty(sup);
   if (sup.stock <= 0) return { level: 'out', label: '已耗尽', color: 'var(--danger)' };
   if (sup.stock <= sup.threshold) return { level: 'low', label: '库存不足', color: 'var(--warning)' };
+  if (days === null) return { level: 'ok', label: '库存充足', color: 'var(--success)' };
   if (days <= 7) return { level: 'low', label: '即将耗尽', color: 'var(--warning)' };
   return { level: 'ok', label: '库存充足', color: 'var(--success)' };
 }
@@ -357,6 +366,7 @@ function addLog() {
   var stockAfter = sup.stock;
   saveSup();
   logs.push({ id: Date.now(), supId: supId, supName: sup.name, unit: sup.unit, amount: deducted, requestedAmount: amount, stockAfter: stockAfter, date: date });
+  logPage = 0;
   saveLogs();
   document.getElementById('logAmount').value = '';
   render();
@@ -402,8 +412,11 @@ function renderStats() {
 function renderSupplies() {
   var list = document.getElementById('supplyList');
   if (!supplies.length) { const __h2='<div class="empty">暂无清洁用品，请先添加</div>';if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){list.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}list.innerHTML=__h2; return; }
+  var en = __supplyIsEn();
   var sorted = supplies.slice().sort(function(a, b) {
     var da = getDaysUntilEmpty(a), db = getDaysUntilEmpty(b);
+    if(da===null) return 1;
+    if(db===null) return -1;
     return da - db;
   });
   var html = '';
@@ -411,7 +424,8 @@ function renderSupplies() {
     var status = getStockStatus(sup);
     var days = getDaysUntilEmpty(sup);
     var periodName = sup.period === 'week' ? '每周' : '每月';
-    var dayText = days >= 999 ? '未设消耗' : (days <= 0 ? '已耗尽' : days + ' 天');
+    var dailyRate = sup.rate > 0 ? sup.rate / getDaysPerPeriod(sup.period) : 0;
+    var dayText = days === null ? (en?'No usage set':'未设消耗') : (sup.stock <= 0 ? (en?'Run out':'已耗尽') : (days === 0 ? (en?'Less than one day (about ' + (dailyRate > 0 ? (sup.stock / dailyRate * 24).toFixed(1) : '0') + ' h of use)':'不足一天（约 ' + (dailyRate > 0 ? (sup.stock / dailyRate * 24).toFixed(1) : '0') + ' 小时用量）') : (en?days + ' days':days + ' 天')));
     var barPct = Math.min((sup.stock / (sup.threshold * 3 || 1)) * 100, 100);
     var barColor = status.level === 'ok' ? 'var(--success)' : (status.level === 'low' ? 'var(--warning)' : 'var(--danger)');
     html += '<div class="supply-card">';
@@ -423,11 +437,15 @@ function renderSupplies() {
     html += '</div>';
     html += '<div class="supply-info">';
     html += '<span>预计耗尽：<b style="color:' + status.color + ';">' + dayText + '</b></span>';
+    var untilThreshold = getDaysUntilThreshold(sup);
+    html += '<span>距触及阈值：<b>' + (untilThreshold === null ? '未设消耗' : (untilThreshold === 0 ? '已触及' : untilThreshold + ' 天')) + '</b></span>';
+    html += '<span>阈值库存可维持：<b>' + (sup.rate <= 0 ? '—' : getReorderCycle(sup) + ' 天') + '</b></span>';
     html += '</div>';
     html += '<div style="margin-top:6px;"><div style="font-size:12px;color:var(--text-muted);margin-bottom:4px;">库存水平</div>';
     html += '<div class="progress-bar"><div class="progress-fill" style="width:' + barPct + '%;background:' + barColor + ';"></div></div></div>';
     if (status.level !== 'ok') {
-      html += '<div class="tip-box tip-warn" style="margin-top:8px;">⚠️ ' + (sup.stock <= 0 ? '已耗尽，需立即补货' : '库存低于阈值，建议尽快补货') + '</div>';
+      var tip = sup.stock <= 0 ? (en?'Run out; reorder immediately':'已耗尽，需立即补货') : (sup.stock <= sup.threshold ? (en?'Stock has reached the reorder threshold; reorder soon':'库存已降至补货阈值，建议尽快补货') : (en?'Stock is above the threshold but will run out within 7 days; reorder early':'库存高于阈值，但预计 7 天内耗尽，建议提前补货'));
+      html += '<div class="tip-box tip-warn" style="margin-top:8px;">⚠️ ' + tip + '</div>';
     }
     html += '<div style="margin-top:8px;"><button class="mini-btn" onclick="adjustStock(' + sup.id + ',1)">➕ +1</button> <button class="mini-btn" onclick="adjustStock(' + sup.id + ',-1)">➖ -1</button> <button class="mini-btn" onclick="setStock(' + sup.id + ')">✏️ 设置库存</button> <button class="mini-btn" onclick="delSupply(' + sup.id + ')" style="color:var(--danger);">删除</button></div>';
     html += '</div>';
@@ -439,13 +457,30 @@ function renderLogList() {
   var list = document.getElementById('logList');
   var sel = document.getElementById('logSupply');
   const __h4='<option value="">请选择用品</option>' + supplies.map(function(s){ return '<option value="' + s.id + '">' + ToolBox.escHtml(s.name) + '</option>'; }).join('');if((typeof __h4==='number'&&!isFinite(__h4))||/Infinity/.test(String(__h4))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h4)){sel.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}sel.innerHTML=__h4;
-  if (!logs.length) { const __h5='<div class="empty">暂无消耗记录</div>';if((typeof __h5==='number'&&!isFinite(__h5))||/Infinity/.test(String(__h5))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h5)){list.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}list.innerHTML=__h5; return; }
+  if (!logs.length) { const __h5='<div class="empty">暂无消耗记录</div>';if((typeof __h5==='number'&&!isFinite(__h5))||/Infinity/.test(String(__h5))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h5)){list.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}list.innerHTML=__h5; var pg0=document.getElementById('logPager');if(pg0)pg0.innerHTML=''; return; }
   var sorted = logs.slice().sort(function(a, b){ return new Date(b.date) - new Date(a.date); });
-  var html = '';
-  sorted.slice(0, 30).forEach(function(l) {
+  var total = sorted.length;
+  var pages = Math.max(1, Math.ceil(total / LOG_PAGE_SIZE));
+  if (logPage < 0) logPage = 0;
+  if (logPage >= pages) logPage = pages - 1;
+  var start = logPage * LOG_PAGE_SIZE;
+  var end = Math.min(total, start + LOG_PAGE_SIZE);
+  var html = '<div class="log-meta" style="font-size:12px;color:var(--text-muted);margin-bottom:6px;">显示第 ' + (start + 1) + '–' + end + ' 条，共 ' + total + ' 条（每页 ' + LOG_PAGE_SIZE + ' 条）</div>';
+  sorted.slice(start, end).forEach(function(l) {
     html += '<div class="log-row"><span class="log-date">' + ToolBox.escHtml(l.date) + '</span><span class="log-supply">' + ToolBox.escHtml(l.supName) + '</span><span class="log-amt">-' + l.amount + ' ' + ToolBox.escHtml(l.unit) + '</span><button class="mini-btn" onclick="delLog(' + l.id + ')" style="color:var(--danger);margin-left:auto;">删除</button></div>';
   });
   const __h6=html;if((typeof __h6==='number'&&!isFinite(__h6))||/Infinity/.test(String(__h6))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h6)){list.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}list.innerHTML=__h6;
+  var pager = document.getElementById('logPager');
+  if (pager) {
+    pager.innerHTML = '<button class="mini-btn" type="button" onclick="goLogPage(-1)" ' + (logPage <= 0 ? 'disabled' : '') + '>← 上一页</button>'
+      + '<span>第 ' + (logPage + 1) + ' / ' + pages + ' 页</span>'
+      + '<button class="mini-btn" type="button" onclick="goLogPage(1)" ' + (logPage >= pages - 1 ? 'disabled' : '') + '>下一页 →</button>';
+  }
+}
+
+function goLogPage(delta) {
+  logPage += delta;
+  renderLogList();
 }
 
 function renderShopList() {
@@ -469,12 +504,17 @@ function renderShopList() {
 
 function copyShopList() {
   var lowItems = supplies.filter(function(s){ return getStockStatus(s).level !== 'ok'; });
+  var en=!!(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
   if (!lowItems.length) { ToolBox.showToast(i18nText('toast.msg434'), 'info'); return; }
-  var text = '清洁用品购物清单\n' + new Date().toLocaleDateString() + '\n\n';
-  lowItems.forEach(function(sup, i) {
+  var checked={};var boxes=document.querySelectorAll('#shopList input[type="checkbox"][data-id]');
+  for(var b=0;b<boxes.length;b++){if(boxes[b].checked) checked[String(boxes[b].getAttribute('data-id'))]=true;}
+  var picked=lowItems.filter(function(s){return checked[String(s.id)];});
+  if(!picked.length){ToolBox.showToast(en?'Select at least one item to copy.':'请至少勾选一项需要购买的用品后再复制。','warning');return;}
+  var text = (en?'Cleaning supplies shopping list':'清洁用品购物清单')+'\n' + new Date().toLocaleDateString() + '\n\n';
+  picked.forEach(function(sup, i) {
     var suggest = Math.ceil((sup.threshold * 2 - sup.stock) * 10) / 10;
     if (suggest < 1) suggest = sup.threshold * 2;
-    text += (i + 1) + '. ' + sup.name + ' - 建议购买 ' + suggest + ' ' + sup.unit + '\n';
+    text += (i+1) + '. ' + sup.name + ' - ' + (en?'buy about ':'建议购买 ') + suggest + ' ' + sup.unit + '\n';
   });
   ToolBox.copyText(text, i18nText('msg615'));
 }
@@ -531,17 +571,23 @@ function __supplyExtras(){
     fb=true;
   }
   var enNames={'洗洁精':'Dish Soap','抽纸':'Tissues','洗衣液':'Laundry Detergent'};
-  var labels=[],data=[];
+  var labels=[],data=[],skipped=0,maxActual=0;
   list.forEach(function(s,i){
+    var d=getDaysUntilEmpty(s);
+    if(d===null){skipped++;return;}
     var nm=s.name||'用品';
     labels.push(en?(fb?(enNames[nm]||('Item '+(i+1))):('Item '+(i+1))):nm);
-    var d=getDaysUntilEmpty(s); if(!isFinite(d))d=0;
-    if(d>365)d=365;
-    data.push(d);
+    if(d>maxActual) maxActual=d;
+    data.push(Math.min(d,365));
   });
+  var titleBase=en?(fb?'Example: days until empty (home preset)':'Days until empty by supply'):(fb?'示例：各用品预计耗尽天数（家庭场景预设）':'各清洁用品预计耗尽天数');
+  var title=titleBase;
+  if(en){title+=' (chart capped at 365 days'+(skipped?'; items without consumption omitted':'')+')';}
+  else {title+='（图表按 365 天封顶'+(skipped?'；未设消耗的用品未入图':'')+'）';}
+  if(maxActual>365) title+=en?('; longest actual '+maxActual+' days'):('；最长实际 '+maxActual+' 天');
   TBKit.chart.bar('#supplyChart',{
     labels:labels,height:260,
-    title:en?(fb?'Example: days until empty (home preset)':'Days until empty by supply (capped at 365)'):(fb?'示例：各用品预计耗尽天数（家庭场景预设）':'各清洁用品预计耗尽天数（≤365天封顶）'),
+    title:title,
     series:[{name:en?'Days':'天',data:data}]
   });
   try{__supplyTable();}catch(e){}
@@ -558,8 +604,9 @@ function __supplyTable(){
   var list=supplies||[];
   if(!list.length){list=[{name:'洗洁精',unit:'瓶',stock:3,rate:0.5,period:'month'},{name:'抽纸',unit:'提',stock:6,rate:2,period:'month'},{name:'洗衣液',unit:'瓶',stock:2,rate:0.3,period:'month'}];}
   tb.innerHTML=list.map(function(s,i){
-    var d=getDaysUntilEmpty(s);if(!isFinite(d))d=0;if(d>365)d=365;
-    return '<tr><td>'+(i+1)+'</td><td>'+ToolBox.escHtml(s.name||'用品')+'</td><td>'+ToolBox.escHtml(s.unit||'')+'</td><td>'+(+s.stock||0)+'</td><td>'+(+s.rate||0)+'</td><td>'+d+'</td></tr>';
+    var d=getDaysUntilEmpty(s);
+    var left=(d===null)?(en?'No consumption set':'未设消耗'):(d.toFixed(0)+' 天');
+    return '<tr><td>'+(i+1)+'</td><td>'+ToolBox.escHtml(s.name||'用品')+'</td><td>'+ToolBox.escHtml(s.unit||'')+'</td><td>'+(+s.stock||0)+'</td><td>'+(+s.rate||0)+'</td><td>'+left+'</td></tr>';
   }).join('');
 }
 
@@ -576,7 +623,7 @@ function __supplyExport(){
   var en=__supplyIsEn();
   var rows=supplies.map(function(s){
     var d=getDaysUntilEmpty(s);
-    var left=isFinite(d)?(d>365?'≥365':d.toFixed(0)+' 天'):'—';
+    var left=(d===null)?'未设消耗':(d.toFixed(0)+' 天');
     return [s.name||'用品', s.unit||'', s.stock!=null?s.stock:'', s.rate!=null?s.rate:'', s.period||'', s.threshold!=null?s.threshold:'', left];
   });
   var t=document.createElement('table');
@@ -671,7 +718,7 @@ render();
 <li>家庭或辦公室盤點耗材時，把臨近補貨閾值的用品一次性列出來，集中採購。</li>
 <li>根據實際消耗修正速率引數，讓補貨提醒更貼合真實使用節奏。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">紙巾還能用多久</div><div class="dd-ex-body">庫存 12 卷、消耗速率 6 卷/月、補貨閾值 4 卷：日耗量 = 6÷30 = 0.2 卷/天，可用天數 = ⌊12÷0.2⌋ = 60 天，補貨週期 = ⌊4÷0.2⌋ = 20 天；即約 20 天后庫存觸及閾值，應安排下單。</div></div>
+<div class="dd-example"><div class="dd-ex-title">紙巾還能用多久</div><div class="dd-ex-body">庫存 12 卷、消耗速率 6 卷/月、補貨閾值 4 卷：日耗量 = 6÷30 = 0.2 卷/天，可用天數 = ⌊12÷0.2⌋ = 60 天；距觸及閾值 = ⌊(12−4)÷0.2⌋ = 40 天，即約 40 天后庫存降到閾值；閾值庫存還能維持 ⌊4÷0.2⌋ = 20 天，可作為下單到貨的安全墊。</div></div>
 <div class="dd-example"><div class="dd-ex-title">不同週期口徑的換算</div><div class="dd-ex-body">某用品按「周」設定速率 3 件、庫存 10 件：日耗量 = 3÷7 ≈ 0.43 件/天，可用約 23 天；同一用品若誤按「月」填 3 件，可用天數會被算成約 100 天，口徑填錯會顯著高估可用時間。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
@@ -687,7 +734,7 @@ render();
   <div class="related-tools-grid">
     <a href="/zh-tw/tools/life/recommender-8.html" class="related-tool-card">
       <span class="rt-icon">🛡️</span>
-      <span class="rt-info"><span class="rt-name">保險（責任/意外/僱主）推薦</span><span class="rt-desc">按責任、意外、僱主等保險類別生成投保建議文本樣例，輔助保險方案梳理與銷售溝通，內容僅供參考</span></span>
+      <span class="rt-info"><span class="rt-name">保險保障需求清單與條款比對</span><span class="rt-desc">列出保障需求清單和條款核對項，覆蓋家庭財產、個人意外、僱主責任、公眾責任、旅行出行；</span></span>
     </a>
     <a href="/zh-tw/tools/life/generator-price.html" class="related-tool-card">
       <span class="rt-icon">⚖️</span>

@@ -114,7 +114,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="支援 度(°) / 弧度(rad) / 百分度(grad) / 轉(rev)">Convert angles between degrees, radians, gradians and turns instantly and accurately.</p>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理與說明</div>
-      <div class="formula-eq">以度為基準做比值換算：結果 = 輸入值 × 目標單位係數 ÷ 源單位係數；常用係數為弧度 rad = 180 ÷ π ≈ 57.2958、百分度 grad = 0.9、轉 rev = 360；例如 90° = π/2 弧度 ≈ 1.5708 rad = 100 grad = 0.25 轉。</div>
+      <div class="formula-eq">以度為基準做比值換算：結果 = 輸入值 × 源單位係數 ÷ 目標單位係數；常用係數為弧度 rad = 180 ÷ π ≈ 57.2958、百分度 grad = 0.9、轉 rev = 360；例如 90° = π/2 弧度 ≈ 1.5708 rad = 100 grad = 0.25 轉。</div>
 
 </div>
 
@@ -267,6 +267,7 @@ function convert(){
 
 function clearAll(){
   document.getElementById('inputVal').value = '';
+  if(typeof window.__charRefRender==='function') window.__charRefRender();
   const __h2=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Enter a value to convert":"请输入数值进行换算");if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('resultBox').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('resultBox').innerHTML=__h2;
 }
 convert();
@@ -532,8 +533,25 @@ else document.addEventListener('DOMContentLoaded', __angle_converterBoot);
     html+='<div class="card" style="margin-top:0;">';
     html+='<h3>'+(en?'Scale sense: how big is it really?':'📐 尺度感知：这到底有多大')+'</h3>';
     html+='<p>'+(en?'Your input ≈ ':'你的输入 ≈ ')+fmt(base)+' '+bname+'</p>';
-    if(best){
-      html+='<p style="font-weight:600;color:var(--primary);">💡 ≈ '+best[en?'en':'zh']+' ('+best.d+' '+bname+')'+(base<0?(en?' — compared by magnitude; the sign means opposite direction':'（按量值比较，负号表示反向）'):'')+'</p>';
+    if(best && Math.abs(base)===0){
+      html+='<p style="font-weight:600;color:var(--text-muted);">'+(en?'0° means no rotation direction, so it is not matched to a physical reference.':'0° 表示没有转动方向，不匹配实物参照。')+'</p>';
+    } else if(best){
+      var ratio=Math.abs(base)/best.v;
+      if(ratio>=0.1&&ratio<10){
+        html+='<p style="font-weight:600;color:var(--primary);">💡 ≈ '+best[en?'en':'zh']+' ('+best.d+' '+bname+')</p>';
+      } else {
+        var times=ratio>=1?ratio:1/ratio;
+        var dirTxt;
+        if(Math.abs(base)>=best.v){
+          dirTxt=en?(' — about '+fmt(times)+' times the reference size, not a close match.'):('，约为参照的 '+fmt(times)+' 倍；仅作数量级比较，不表示近似相等。');
+        } else {
+          dirTxt=en?(' — about 1/'+fmt(times)+' of the reference (the reference is about '+fmt(times)+' times the input), not a close match.'):('，约为参照的 1/'+fmt(times)+'（即参照约为输入的 '+fmt(times)+' 倍）；仅作数量级比较，不表示近似相等。');
+        }
+        html+='<p style="font-weight:600;color:var(--primary);">'+(en?'Nearest reference: ':'最近参照：')+best[en?'en':'zh']+' ('+best.d+' '+bname+')'+dirTxt+'</p>';
+      }
+      if(base<0){
+        html+='<p style="font-weight:600;color:var(--text-muted);">'+(en?'The negative sign means the opposite direction; the comparison above uses magnitude.':'负号表示与参照方向相反，以上按量值比较。')+'</p>';
+      }
     }
     html+='<details style="margin-top:6px;"><summary style="cursor:pointer;color:var(--primary);">'+(en?'Typical real-world references':'常见实物参照')+'</summary><ul style="font-size:13px;line-height:1.8;margin:6px 0 0;padding-left:18px;">';
     for(var j=0;j<REFS.length;j++){
@@ -545,6 +563,7 @@ else document.addEventListener('DOMContentLoaded', __angle_converterBoot);
     html+='</div>';
     box.innerHTML=html;
   }
+  window.__charRefRender=render;
   var f0=(typeof convert==='function')?convert:null;
   if(f0){ convert=function(){ var r=f0.apply(null,arguments); try{ render(); }catch(e){} return r; }; }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', render);

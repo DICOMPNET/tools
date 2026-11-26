@@ -374,18 +374,25 @@ function calc(){
   var tax = profit > 0 ? profit * p.taxRate / 100 : 0;
   var netProfit = profit - tax;
 
-  var safetyMargin = p.qty > bep.qty ? p.qty - bep.qty : 0;
-  var safetyMarginRatio = p.qty > 0 ? (safetyMargin / p.qty * 100) : 0;
+  // 安全边际保留带符号差额：实际销量低于保本时是缺口，不再强制截为 0；零销量时比率没有分母。
+  var safetyMargin = p.qty - bep.qty;
+  var safetyMarginDefined = p.qty > 0;
+  var safetyMarginRatio = safetyMarginDefined ? (safetyMargin / p.qty * 100) : NaN;
 
-  var operatingLeverage = profit !== 0 ? (bep.cm * p.qty) / profit : 0;
+  // 利润恰为 0（盈亏平衡点）时 DOL 分母为 0，应显示未定义而不是 0 倍。
+  var operatingLeverage = profit !== 0 ? (bep.cm * p.qty) / profit : NaN;
 
   var statHtml = '';
   statHtml += '<div class="stat-card"><div class="val">' + (isFinite(bep.qty) ? Math.ceil(bep.qty) : '-') + '</div><div class="lbl">盈亏平衡销量(件)</div></div>';
-  statHtml += '<div class="stat-card"><div class="val">' + (isFinite(bep.revenue) ? ToolBox.formatNumber(bep.revenue, 0) : '-') + '</div><div class="lbl">盈亏平衡收入(元)</div></div>';
+  // 销量按件向上取整，收入必须同步采用取整后的整数件口径，否则「4 件」与「=3.33 件 × 单价」的收入互相矛盾。
+  var integerQty = isFinite(bep.qty) ? Math.ceil(bep.qty) : NaN;
+  var integerRevenue = isFinite(integerQty) ? integerQty * p.price : NaN;
+  statHtml += '<div class="stat-card"><div class="val">' + (isFinite(bep.revenue) ? ToolBox.formatNumber(bep.revenue, 0) : '-') + '</div><div class="lbl">理论保本收入(连续口径,元)</div></div>';
+  statHtml += '<div class="stat-card"><div class="val">' + (isFinite(integerRevenue) ? ToolBox.formatNumber(integerRevenue, 0) : '-') + '</div><div class="lbl">最低整数件保本收入(元)</div></div>';
   statHtml += '<div class="stat-card"><div class="val">' + ToolBox.formatNumber(bep.cm, 2) + '</div><div class="lbl">单位边际贡献(元)</div></div>';
   statHtml += '<div class="stat-card"><div class="val">' + bep.cmRatio.toFixed(2) + '%</div><div class="lbl">边际贡献率</div></div>';
-  statHtml += '<div class="stat-card"><div class="val">' + safetyMarginRatio.toFixed(2) + '%</div><div class="lbl">安全边际率</div></div>';
-  statHtml += '<div class="stat-card"><div class="val">' + (isFinite(operatingLeverage) ? operatingLeverage.toFixed(2) : '-') + '</div><div class="lbl">经营杠杆系数</div></div>';
+  statHtml += '<div class="stat-card"><div class="val">' + (safetyMarginDefined ? safetyMarginRatio.toFixed(2) + '%' : '不可定义') + '</div><div class="lbl">安全边际率</div></div>';
+  statHtml += '<div class="stat-card"><div class="val">' + (isFinite(operatingLeverage) ? operatingLeverage.toFixed(2) : '未定义') + '</div><div class="lbl">经营杠杆系数</div></div>';
   const __g1=statHtml;document.getElementById('statGrid').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 
   var html = '';
@@ -399,11 +406,16 @@ function calc(){
   html += '<p>所得税（' + p.taxRate + '%）：' + ToolBox.formatNumber(tax, 2) + ' 元</p>';
   html += '<p style="font-size:16px;">净利润：<strong style="color:' + (netProfit >= 0 ? 'var(--success)' : 'var(--danger)') + ';">' + ToolBox.formatNumber(netProfit, 2) + '</strong> 元</p>';
   html += '<hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">';
-  html += '<p>安全边际量：<strong>' + ToolBox.formatNumber(safetyMargin, 0) + '</strong> 件</p>';
-  html += '<p>安全边际率：<strong>' + safetyMarginRatio.toFixed(2) + '%</strong> ' + getSafetyRating(safetyMarginRatio) + '</p>';
-  html += '<p>经营杠杆系数：<strong>' + (isFinite(operatingLeverage) ? operatingLeverage.toFixed(2) : '-') + '</strong>';
+  if (isFinite(bep.qty)) {
+    html += '<p>保本口径：连续计算保本销量 ' + ToolBox.formatNumber(bep.qty, 2) + ' 件、对应收入 ' + ToolBox.formatNumber(bep.revenue, 0) + ' 元；销量只能按整件交付时，最低需卖 ' + integerQty + ' 件、收入 ' + ToolBox.formatNumber(integerRevenue, 0) + ' 元（差 ' + ToolBox.formatNumber(integerRevenue - bep.revenue, 0) + ' 元）。下方安全边际量按连续口径计算。</p>';
+  }
+  html += '<p>安全边际量：<strong>' + ToolBox.formatNumber(safetyMargin, 0) + '</strong> 件' + (safetyMargin < 0 ? '（为负，表示距保本还差 ' + ToolBox.formatNumber(Math.abs(safetyMargin), 0) + ' 件）' : '') + '</p>';
+  html += '<p>安全边际率：<strong>' + (safetyMarginDefined ? safetyMarginRatio.toFixed(2) + '%' : '不可定义') + '</strong> ' + (!safetyMarginDefined ? '<span style="color:var(--text-muted);">（实际销量为 0，比率没有分母；请改用上方带符号的安全边际量判断缺口）</span>' : safetyMarginRatio >= 0 ? getSafetyRating(safetyMarginRatio) : '<span style="color:var(--danger);">低于保本，缺口 ' + ToolBox.formatNumber(Math.abs(safetyMargin), 0) + ' 件</span>') + '</p>';
+  html += '<p>经营杠杆系数：<strong>' + (isFinite(operatingLeverage) ? operatingLeverage.toFixed(2) : '未定义') + '</strong>';
   if(isFinite(operatingLeverage)){
     html += ' <span style="font-size:12px;color:var(--text-muted);">（销量每增1%，利润增' + operatingLeverage.toFixed(2) + '%）</span>';
+  } else if(profit === 0){
+    html += ' <span style="font-size:12px;color:var(--text-muted);">（利润为 0，边际贡献 ÷ 0 无定义；盈亏平衡点两侧的杠杆会趋于无穷）</span>';
   }
   html += '</p>';
 
@@ -435,6 +447,20 @@ function drawChart(){
   var err = validateParams(p, true);
   setParamError('chartError', err);
   if(err){ clearCanvas('breakEvenChart'); return; }
+  var maxQtyRaw = document.getElementById('chartMaxQty').value.trim();
+  var stepRaw = document.getElementById('chartStep').value.trim();
+  var chartMax = Number(maxQtyRaw), chartStep = Number(stepRaw);
+  if(maxQtyRaw === '' || stepRaw === '' || !isFinite(chartMax) || !isFinite(chartStep) || chartMax <= 0 || chartStep <= 0){
+    setParamError('chartError', '图表最大销量与销量步长必须为正数（不能为 0、负数或留空），否则坐标轴无法生成。');
+    clearCanvas('breakEvenChart');
+    return;
+  }
+  if(Math.ceil(chartMax / chartStep) > 5000){
+    setParamError('chartError', '图表采样点超过 5000 个（最大销量 '+chartMax+' ÷ 步长 '+chartStep+'），请增大步长或降低最大销量，避免绘图卡死。');
+    clearCanvas('breakEvenChart');
+    return;
+  }
+  setParamError('chartError', '');
   var canvas = document.getElementById('breakEvenChart');
   var ctx = canvas.getContext('2d');
 
@@ -946,21 +972,39 @@ function drawSensitivityChart(p, pct, baseBEP){
   ctx.restore();
 }
 
+var DETAIL_ROW_LIMIT = 500;
+function readDetailParams(){
+  var ids=['detailStart','detailEnd','detailStep'];
+  var labels={detailStart:'起始销量',detailEnd:'结束销量',detailStep:'步长'};
+  var vals={};
+  for(var i=0;i<ids.length;i++){
+    var id=ids[i], raw=String(document.getElementById(id).value).trim();
+    if(raw==='') return {error:labels[id]+'不能为空；0 是有效值，请明确输入 0。'};
+    var v=Number(raw);
+    if(!isFinite(v)) return {error:labels[id]+'不是有效数字：'+raw};
+    vals[id]=v;
+  }
+  var start=vals.detailStart,end=vals.detailEnd,step=vals.detailStep;
+  if(start<0||end<0) return {error:'销量不能为负（当前起点 '+start+'、终点 '+end+'）。'};
+  if(step<=0) return {error:'步长必须大于 0（当前 '+step+'），否则无法按销量递增生成明细。'};
+  if(end<start) return {error:'结束销量须不小于起始销量（当前 '+start+' → '+end+'）。'};
+  var count=Math.floor((end-start)/step)+1;
+  if(count>DETAIL_ROW_LIMIT) return {error:'当前范围将生成 '+count+' 行，超过 '+DETAIL_ROW_LIMIT+' 行上限；请缩小范围或增大步长（当前区间 '+start+'–'+end+'，步长 '+step+'）。'};
+  return {start:start,end:end,step:step,count:count};
+}
 function generateDetailTable(){
   var p = getParams();
   var err = validateParams(p, true);
   if(err){ setParamError('detailTable', err); return; }
-  var start = +document.getElementById('detailStart').value || 0;
-  var end = +document.getElementById('detailEnd').value || 20000;
-  var step = +document.getElementById('detailStep').value || 1000;
-
-  if(step <= 0) step = 100;
-  if(end <= start) end = start + step * 10;
+  var range = readDetailParams();
+  if(range.error){ setParamError('detailTable', range.error); return; }
+  var start = range.start, end = range.end, step = range.step;
 
   var headers = ['销量', '销售收入', '变动成本', '固定成本', '总成本', '边际贡献', '利润', '利润率'];
   var rows = [];
 
-  for(var q = start; q <= end; q += step){
+  for(var qi = 0; qi < range.count; qi++){
+    var q = start + qi * step;
     var revenue = q * p.price;
     var totalVC = q * p.vc;
     var totalCost = p.fc + totalVC;
@@ -987,15 +1031,13 @@ function exportCSV(){
   var p = getParams();
   var err = validateParams(p, true);
   if(err){ setParamError('detailTable', err); return; }
-  var start = +document.getElementById('detailStart').value || 0;
-  var end = +document.getElementById('detailEnd').value || 20000;
-  var step = +document.getElementById('detailStep').value || 1000;
-
-  if(step <= 0) step = 100;
-  if(end <= start) end = start + step * 10;
+  var range = readDetailParams();
+  if(range.error){ setParamError('detailTable', range.error); return; }
+  var start = range.start, end = range.end, step = range.step;
 
   var csv = '\uFEFF销量,销售收入,变动成本,固定成本,总成本,边际贡献,利润,利润率(%)\n';
-  for(var q = start; q <= end; q += step){
+  for(var qi = 0; qi < range.count; qi++){
+    var q = start + qi * step;
     var revenue = q * p.price;
     var totalVC = q * p.vc;
     var totalCost = p.fc + totalVC;
@@ -1231,7 +1273,7 @@ else document.addEventListener('DOMContentLoaded', __break_even_calculatorBoot);
     </a>
     <a href="/zh-tw/tools/finance/mirror-text.html" class="related-tool-card">
       <span class="rt-icon">🏦</span>
-      <span class="rt-info"><span class="rt-name">映象文字</span><span class="rt-desc">將文字左右映象反轉生成可複製的字元或預覽圖，用於趣味簽名、藝術字與水印，純前端即時轉換支援一鍵複製結…</span></span>
+      <span class="rt-info"><span class="rt-name">映象文字</span><span class="rt-desc">將文字左右映象：複製近似 Unicode 字元，或匯出真實左右翻轉、透明背景的多行 PNG；</span></span>
     </a>
 
   </div>

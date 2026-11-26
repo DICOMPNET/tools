@@ -113,7 +113,7 @@
     <h2 data-zh="☢️ 輻射劑量換算器">☢️ Radiation Dose Converter</h2>
     <div class="formula-box">
       <div class="formula-title">📐 計算公式</div>
-      <div class="formula-eq">吸收劑量以戈瑞為基準換算：1 rad = 0.01 Gy、1 mGy = 0.001 Gy；當量劑量以希沃特計，1 rem = 0.01 Sv、1 mSv = 0.001 Sv、1 μSv = 10⁻⁶ Sv；X 射線與 γ 射線的輻射權重因子為 1，故 Gy 與 Sv 數值相同，結果 = 輸入值 × 目標係數 ÷ 源係數。</div>
+      <div class="formula-eq">吸收劑量以戈瑞為基準換算：1 rad = 0.01 Gy、1 mGy = 0.001 Gy；當量劑量以希沃特計，1 rem = 0.01 Sv、1 mSv = 0.001 Sv、1 μSv = 10⁻⁶ Sv。預設只輸出同類單位；跨 Gy↔Sv 時須選擇輻射型別/權重，按 H = D × w_R 計算（X/γ w_R=1，α w_R=20，自定義需填 w_R），並註明這是當量劑量而非有效劑量。</div>
     </div>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="吸收劑量：Gy / rad / 毫戈；當量劑量：Sv / rem / 毫希">Convert radiation dose units such as sievert, rem, gray and rad between each other.</p>
 
@@ -134,6 +134,21 @@
           <option value="rem">雷姆 (rem) - 當量劑量</option>
         </select>
       </div>
+      <div>
+        <label for="radType">跨類換算條件（Gy ↔ Sv）</label>
+        <select id="radType" onchange="toggleRadWeight();convert()">
+          <option value="" selected>僅同類換算（預設，不跨 Gy/Sv）</option>
+          <option value="xray">X 射線 / γ 射線（w_R = 1）</option>
+          <option value="alpha">α 粒子（w_R = 20）</option>
+          <option value="custom">自定義輻射權重因子</option>
+        </select>
+      </div>
+    </div>
+    <div class="input-row" id="weightRow" style="display:none;">
+      <div>
+        <label for="radWeight">輻射權重因子 w_R</label>
+        <input type="number" id="radWeight" value="1" step="any" min="0.01" oninput="convert()" placeholder="如 1（X/γ）、20（α）">
+      </div>
     </div>
 
     <div class="toolbar">
@@ -153,7 +168,7 @@
       <p>1 rad = 0.01 Gy = 10 mGy</p>
       <p><strong>當量劑量</strong>（考慮生物效應）：Sv, rem</p>
       <p>1 Sv = 100 rem = 1000 mSv = 10⁶ μSv</p>
-      <p>對於 X/γ 射線，Q=1，1 Gy ≈ 1 Sv（數值相等）</p>
+      <p>對 X/γ 射線選擇 w_R=1 時，1 Gy ≈ 1 Sv（數值相等）；未選輻射型別時不顯示跨類 Sv。</p>
       <p>天然本底約 2.4 mSv/年；胸透約 0.1 mSv</p>
     </div></div>
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -246,6 +261,9 @@ const names = {Gy:'戈瑞', rad:'拉德', mGy:'毫戈',
   Sv:'希沃特', mSv:'毫希', uSv:'微希', rem:'雷姆'};
 const types = {Gy:'吸收剂量', rad:'吸收剂量', mGy:'吸收剂量',
   Sv:'当量剂量', mSv:'当量剂量', uSv:'当量剂量', rem:'当量剂量'};
+const namesEn = {Gy:'gray', rad:'rad', mGy:'milligray', Sv:'sievert', mSv:'millisievert', uSv:'microsievert', rem:'rem'};
+const typesEn = {Gy:'absorbed dose', rad:'absorbed dose', mGy:'absorbed dose',
+  Sv:'equivalent dose', mSv:'equivalent dose', uSv:'equivalent dose', rem:'equivalent dose'};
 
 function fmt(n){
   if(!isFinite(n)) return '--';
@@ -255,23 +273,61 @@ function fmt(n){
   return parseFloat(n.toPrecision(10)).toString();
 }
 
+function radWeightValue(){
+  const t=document.getElementById('radType').value;
+  if(t==='xray') return 1;
+  if(t==='alpha') return 20;
+  if(t==='custom'){
+    const w=parseFloat(document.getElementById('radWeight').value);
+    return isFinite(w)&&w>0?w:NaN;
+  }
+  return NaN;
+}
+function toggleRadWeight(){
+  const row=document.getElementById('weightRow');
+  if(row) row.style.display=document.getElementById('radType').value==='custom'?'':'none';
+}
 function convert(){
   const v = parseFloat(document.getElementById('inputVal').value);
   const from = document.getElementById('fromUnit').value;
+  const __en=!!(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
+  if(!isNaN(v) && v < 0){
+    document.getElementById('resultBox').innerHTML='<p style="color:var(--danger);">'+(__en?'Actual radiation dose cannot be negative. Enter a value ≥ 0; use a separate “dose change” field if you mean a difference.':'实际辐射剂量不能为负数，请输入 ≥ 0 的剂量；如需表示剂量变化量，请另行标注为“差值”。')+'</p>';
+    return;
+  }
   if(isNaN(v)){
-    const __h0='<p style="color:var(--danger);">请输入有效数值</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('resultBox').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('resultBox').innerHTML=__h0;
+    const __h0='<p style="color:var(--danger);">'+(__en?'Enter a valid number':'请输入有效数值')+'</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('resultBox').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('resultBox').innerHTML=__h0;
     return;
   }
   const base = v * factors[from];
-  const baseUnit = types[from] === '当量剂量' ? 'Sv' : 'Gy';
-  let html = `<p>基准：<strong>${fmt(v)} ${from}</strong> (${types[from]}) = <strong>${fmt(base)}</strong> ${baseUnit} 等效</p>`;
+  const fromAbs = types[from] === '吸收剂量';
+  const weight = radWeightValue();
+  const cross = isFinite(weight) && weight > 0;
+  const nm = __en ? namesEn : names;
+  const ty = __en ? typesEn : types;
+  const sep = __en ? ': ' : '：';
+  let html = `<p>${__en?'Reference':'基准'}${sep}<strong>${fmt(v)} ${from}</strong> (${ty[from]}) = <strong>${fmt(base)}</strong> ${fromAbs?'Gy':'Sv'}${__en?' equivalent':''}</p>`;
   html += '<hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">';
-  Object.keys(factors).forEach(k => {
+  html += '<p><strong>'+(__en?'Same-class units':'同类单位')+'</strong></p>';
+  const sameKeys = Object.keys(factors).filter(k => types[k] === types[from]);
+  sameKeys.forEach(k => {
     if(k !== from){
-      html += `<p>${names[k]} (${types[k]})：<strong>${fmt(base / factors[k])} ${k}</strong></p>`;
+      html += `<p>${nm[k]} (${ty[k]})${sep}<strong>${fmt(base / factors[k])} ${k}</strong></p>`;
     }
   });
-  html += '<p style="font-size:12px;color:var(--text-muted);margin-top:8px;">跨类换算（Gy ↔ Sv）按辐射权重因子 w_R = 1 处理，仅适用于 X 射线/γ 射线；α 粒子 w_R = 20、中子 5–20，当量剂量需另乘 w_R。</p>';
+  if(!cross){
+    html += '<p style="font-size:12px;color:var(--text-muted);margin-top:8px;">'+(__en?'No radiation type selected, so Gy ↔ Sv is not converted. Gy and Sv are different quantities: select X/γ, α or a custom w_R to enable equivalent-dose conversion.':'未选择辐射类型，因此不进行 Gy ↔ Sv 跨类换算。Gy 与 Sv 不是同一量纲；如需当量剂量，请明确选择 X/γ、α 或自定义 w_R。')+'</p>';
+    document.getElementById('resultBox').innerHTML=html;return;
+  }
+  const absorbedGy = fromAbs ? base : base / weight;
+  const equivalentSv = fromAbs ? base * weight : base;
+  html += '<p style="font-size:12px;color:var(--text-muted);">'+(__en?'Cross-class assumption: H = D × w_R with w_R = ':'跨类假设：H = D × w_R，w_R = ')+fmt(weight)+'. '+(__en?'This is equivalent dose, not effective dose (effective dose also uses tissue weighting factors).':'这里得到的是当量剂量，不是有效剂量（有效剂量还需组织权重因子）。')+'</p>';
+  if(fromAbs){
+    ['Sv','mSv','uSv','rem'].forEach(k=>{html += `<p>${nm[k]} (${ty[k]})${sep}<strong>${fmt(equivalentSv / factors[k])} ${k}</strong></p>`;});
+  }else{
+    ['Gy','mGy','rad'].forEach(k=>{html += `<p>${nm[k]} (${ty[k]})${sep}<strong>${fmt(absorbedGy / factors[k])} ${k}</strong></p>`;});
+  }
+  html += '<p style="font-size:12px;color:var(--text-muted);">'+(__en?'Only valid for the selected radiation type and weighting assumption; α particles, neutrons and mixed fields need their own w_R values.':'仅适用于所选辐射类型与权重假设；α 粒子、中子及混合辐射场需按各自 w_R 取值。')+'</p>';
   const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('resultBox').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('resultBox').innerHTML=__h1;
 }
 
@@ -292,6 +348,7 @@ function copyRes(){
   if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text);}
 }
 convert();
+toggleRadWeight();
 </script><script>
 // tool-intro折叠交互
 document.addEventListener('DOMContentLoaded',function(){

@@ -121,6 +121,12 @@
         <input type="number" id="f" value="200000" step="1000" placeholder="如 200000">
       </div>
     </div>
+    <div style="margin:4px 0 10px;">
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-muted);margin:0;">
+        <input type="checkbox" id="taxBenefit" onchange="calc()" style="width:auto;margin:0;">
+        <span>虧損時可立即用虧損抵減其他應稅利潤（預設不勾選：虧損年度不確認任何所得稅抵減）</span>
+      </label>
+    </div>
     <div class="input-row">
       <div>
         <label for="i">利息費用（元）</label>
@@ -177,7 +183,7 @@
 <li>預算與情景分析中的利潤敏感性測算</li>
 </ul>
 <div class="dd-example"><div class="dd-ex-title">方法</div><div class="dd-ex-body">貢獻邊際 = 營業收入 − 變動成本；EBIT = 貢獻邊際 − 固定成本；DOL = 貢獻邊際 ÷ EBIT（營收每變動 1% 時 EBIT 的變動倍數）；DFL = EBIT ÷ (EBIT − 利息費用)；DCL = DOL × DFL；利息保障倍數 = EBIT ÷ 利息費用；淨利潤 = (EBIT − 利息) × (1 − 所得稅率)，<a class="term-link" href="/zh-tw/tools/investment/eps-calc.html">EPS</a> = 淨利潤 ÷ 普通股股數。敏感性表按 ±5% / ±10% 重算營業收入並逐個重算 EBIT 與 EPS，不做槓桿近似。</div></div>
-<div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">營業收入 1,000,000、變動成本 600,000、固定成本 200,000、利息費用 50,000、所得稅率 25%、普通股股數 100,000 → 貢獻邊際 400,000，EBIT 200,000，DOL 2.00，DFL 200,000 ÷ 150,000 = 1.33，DCL 2.67，利息保障倍數 4.00；淨利潤 = (200,000 − 50,000) × (1 − 25%) = 112,500 元，EPS 1.13 元/股。營收 −10% 時 EBIT 降到 100,000（−50.00%）、EPS 降到 0.38 元（−66.67%）；營收 +10% 時 EPS 升到 1.88 元（+66.67%）。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">營業收入 1,000,000、變動成本 600,000、固定成本 200,000、利息費用 50,000、所得稅率 25%、普通股股數 100,000 → 貢獻邊際 400,000，EBIT 200,000，DOL 2.00，DFL 200,000 ÷ 150,000 = 1.33，DCL 2.67，利息保障倍數 4.00；淨利潤 = (200,000 − 50,000) × (1 − 25%) = 112,500 元，EPS 1.13 元/股。敏感性表假設變動成本率 60% 不變：營收 −10% 時營業收入 900,000、變動成本 540,000、EBIT 160,000（−20.00%）、淨利潤 82,500 元、EPS 0.83 元（−26.67%）；營收 +10% 時 EBIT 240,000、淨利潤 142,500 元、EPS 1.43 元（+26.67%）。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
 <dt>DOL 是越大越好還是越小越好？</dt><dd>取決於經營階段與承受能力。DOL 大意味著固定成本佔比高、營收增長時利潤放大得快，但營收下滑時利潤掉得也快。重資產、高固定成本的行業 DOL 天然偏高，判斷時要結合<a class="term-link" href="/zh-tw/tools/accounting/break-even-units.html">盈虧平衡點</a>與現金儲備，而不是單純追求低 DOL。</dd>
@@ -224,11 +230,32 @@
 function num(id){var v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function fx(x,d){return isFinite(x)?x.toFixed(d):'—';}
 function calc(){
-  var d=parseInt(document.getElementById('dec').value,10);
-  if(!(d>=0&&d<=4))d=2;
-  var s=num('s'),v=num('v'),f=num('f'),i=num('i'),t=num('t'),n=num('n');
-  if(t<0||t>100)t=Math.min(100,Math.max(0,t));
+  function __raw(id){return String(document.getElementById(id).value==null?'':document.getElementById(id).value).trim();}
+  function __fail(msg){
+    document.getElementById('statGrid').innerHTML='';
+    document.getElementById('res').innerHTML='<p class="tip-error">'+msg+'</p>';
+    return;
+  }
+  var ids=['s','v','f','i','t','n'];
+  var names={s:'营业收入',v:'变动成本',f:'固定成本',i:'利息费用',t:'所得税税率',n:'普通股股数'};
+  for(var __k=0;__k<ids.length;__k++){
+    var __id=ids[__k];
+    if(__raw(__id)==='') return __fail(names[__id]+'未填写，已停止计算；如确为 0，请明确输入 0。');
+  }
+  var d=parseInt(__raw('dec'),10);
+  if(!(d>=0&&d<=4)) return __fail('小数位数须为 0–4 的整数。');
+  var s=Number(__raw('s')),v=Number(__raw('v')),f=Number(__raw('f')),i=Number(__raw('i')),t=Number(__raw('t')),n=Number(__raw('n'));
+  var pairs=[[s,'营业收入'],[v,'变动成本'],[f,'固定成本'],[i,'利息费用'],[t,'所得税税率'],[n,'普通股股数']];
+  for(var __j=0;__j<pairs.length;__j++){
+    if(!isFinite(pairs[__j][0])) return __fail(pairs[__j][1]+'须为有效数字。');
+  }
+  if(s<0||v<0||f<0||i<0) return __fail('营业收入、变动成本、固定成本与利息费用不能为负数。');
+  if(t<0||t>100) return __fail('所得税税率须在 0%–100% 之间（当前 '+t+'%），已停止计算且不自动截断。');
+  if(n<1||!Number.isInteger(n)) return __fail('普通股股数须为大于 0 的整数（当前 '+n+'）。');
   var tr=t/100;
+  // 默认口径：税前利润 ≤ 0 的年度不产生所得税，也不确认任何「即时税盾」；只有用户明确勾选才按亏损抵税处理。
+  var lossBenefit=!!(document.getElementById('taxBenefit')&&document.getElementById('taxBenefit').checked);
+  function netOf(x){ if(x<=0) return lossBenefit ? x*(1-tr) : x; return x*(1-tr); }
   var cm=s-v;
   var ebit=cm-f;
   var dol=ebit!==0?cm/ebit:NaN;
@@ -236,7 +263,8 @@ function calc(){
   var dfl=ebit!==0&&ebt!==0?ebit/ebt:NaN;
   var dcl=(isFinite(dol)&&isFinite(dfl))?dol*dfl:NaN;
   var icr=i!==0?ebit/i:NaN;
-  var net=ebt*(1-tr);
+  var net=netOf(ebt);
+  var taxAmt=ebt-net;
   var eps=n>0?net/n:NaN;
 
   const __g1='<div class="stat-card"><div class="val">'+fx(dol,d)+'</div><div class="lbl">经营杠杆 DOL</div></div>'
@@ -252,21 +280,24 @@ function calc(){
   html+='<p>DFL = '+fx(ebit,d)+' ÷ ('+fx(ebit,d)+' − '+fx(i,d)+') = <strong>'+fx(dfl,d)+'</strong>：EBIT 每变动 1%，EPS 变动约 '+fx(dfl,d)+'%</p>';
   html+='<p>DCL = '+fx(dol,d)+' × '+fx(dfl,d)+' = <strong>'+fx(dcl,d)+'</strong>：营业收入每变动 1%，EPS 变动约 '+fx(dcl,d)+'%</p>';
   html+='<p>利息保障倍数 = '+fx(ebit,d)+' ÷ '+fx(i,d)+' = <strong>'+fx(icr,d)+'</strong></p>';
-  html+='<p>净利润 = ('+fx(ebit,d)+' − '+fx(i,d)+') × (1 − '+(tr*100).toFixed(2)+'%) = <strong>'+fx(net,d)+'</strong> 元；EPS = '+fx(net,d)+' ÷ '+(n>0?fx(n,0):'—')+' = <strong>'+fx(eps,d)+'</strong> 元/股</p>';
+  html+='<p>税前利润 = EBIT '+fx(ebit,d)+' − 利息 '+fx(i,d)+' = <strong>'+fx(ebt,d)+'</strong> 元；所得税 = <strong>'+fx(taxAmt,d)+'</strong> 元'+(ebt<=0&&!lossBenefit?'（亏损年度按 0 处理，未确认亏损抵税）':(ebt<=0?'（按勾选确认亏损抵税 '+fx(-taxAmt,d)+' 元）':''))+'；净利润 = <strong>'+fx(net,d)+'</strong> 元；EPS = '+fx(net,d)+' ÷ '+(n>0?fx(n,0):'—')+' = <strong>'+fx(eps,d)+'</strong> 元/股</p>';
 
   html+='<hr style="border:none;border-top:1px solid var(--border);margin:10px 0;">';
   html+='<p style="font-weight:600;">营业收入敏感性分析：</p>';
-  html+='<table style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr><th>营收变动</th><th>营业收入</th><th>EBIT</th><th>EBIT 变动</th><th>EPS（元）</th><th>EPS 变动</th></tr></thead><tbody>';
+  html+='<p style="font-size:12px;color:var(--text-muted);margin:0 0 6px;">假设：变动成本率保持不变，营收变动时变动成本同比例调整（不是把变动成本总额固定不变）；固定成本、利息、税率与股数不变。</p>';
+  html+='<table style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr><th>营收变动</th><th>营业收入</th><th>EBIT</th><th>EBIT 变动</th><th>税前利润</th><th>所得税</th><th>净利润</th><th>EPS（元）</th><th>EPS 变动</th></tr></thead><tbody>';
+  var vRatio = s !== 0 ? v / s : 0;
   [-10,-5,0,5,10].forEach(function(pct){
     var s2=s*(1+pct/100);
-    var cm2=s2-v;
+    var cm2=s2*(1-vRatio);
     var ebit2=cm2-f;
-    var net2=(ebit2-i)*(1-tr);
+    var ebt2=ebit2-i;
+    var net2=netOf(ebt2);
     var eps2=n>0?net2/n:NaN;
     var de=ebit!==0?((ebit2-ebit)/Math.abs(ebit)*100):NaN;
     var dp=isFinite(eps)&&eps!==0?((eps2-eps)/Math.abs(eps)*100):NaN;
     var hl=pct===0?' style="background:var(--bg-subtle);font-weight:700;"':'';
-    html+='<tr'+hl+'><td>'+(pct>0?'+':'')+pct+'%</td><td>'+fx(s2,d)+'</td><td>'+fx(ebit2,d)+'</td><td>'+fx(de,d)+'%</td><td>'+fx(eps2,d)+'</td><td>'+fx(dp,d)+'%</td></tr>';
+    html+='<tr'+hl+'><td>'+(pct>0?'+':'')+pct+'%</td><td>'+fx(s2,d)+'</td><td>'+fx(ebit2,d)+'</td><td>'+fx(de,d)+'%</td><td>'+fx(ebt2,d)+'</td><td>'+fx(ebt2-net2,d)+'</td><td>'+fx(net2,d)+'</td><td>'+fx(eps2,d)+'</td><td>'+fx(dp,d)+'%</td></tr>';
   });
   html+='</tbody></table>';
 
@@ -332,7 +363,7 @@ calc();
     </a>
     <a href="/zh-tw/tools/finance/mirror-text.html" class="related-tool-card">
       <span class="rt-icon">🏦</span>
-      <span class="rt-info"><span class="rt-name">映象文字</span><span class="rt-desc">將文字左右映象反轉生成可複製的字元或預覽圖，用於趣味簽名、藝術字與水印，純前端即時轉換支援一鍵複製結…</span></span>
+      <span class="rt-info"><span class="rt-name">映象文字</span><span class="rt-desc">將文字左右映象：複製近似 Unicode 字元，或匯出真實左右翻轉、透明背景的多行 PNG；</span></span>
     </a>
 
   </div>

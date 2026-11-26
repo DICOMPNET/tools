@@ -394,6 +394,7 @@ document.addEventListener('click', function(e){
 });
 
 function selectContract(i){
+  if(!Array.isArray(CONTRACTS) || !CONTRACTS[i]) return;
   currentContract = CONTRACTS[i];
   const __g2=currentContract.name + ' ' + currentContract.code;document.getElementById('contractName').textContent=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
   document.getElementById('marginRate').value = currentContract.margin;
@@ -417,6 +418,14 @@ function validateInputs(){
   if(!(closeP > 0)) return '平仓价须大于 0。';
   if(!/^\d+$/.test(lotsRaw) || parseInt(lotsRaw, 10) < 1) return '手数须为不小于 1 的整数。';
   if(!isFinite(marginRate) || marginRate <= 0 || marginRate > 100) return '保证金比例须在 0%–100% 之间（不含 0%）。';
+  var feeNames = {openFee:'开仓手续费', closeFee:'平仓手续费'};
+  var feeIds = ['openFee','closeFee'];
+  for (var fi = 0; fi < feeIds.length; fi++) {
+    var raw = String(document.getElementById(feeIds[fi]).value == null ? '' : document.getElementById(feeIds[fi]).value).trim();
+    var fv = Number(raw);
+    if (raw === '') return feeNames[feeIds[fi]] + '不能留空；如确为 0 请明确输入 0。';
+    if (!Number.isFinite(fv) || fv < 0) return feeNames[feeIds[fi]] + '须为有限非负数（当前「' + raw + '」）。';
+  }
   return '';
 }
 
@@ -445,11 +454,15 @@ function calc(){
 
   var pnlColor = netPnl >= 0 ? 'var(--danger)' : 'var(--success)';
   var pnlSign = netPnl >= 0 ? '+' : '';
+  // S1-FIN：点数按自身价格方向着色/带符号，不沿用扣费后净盈亏的符号，避免正点数显示成亏损色。
+  var pointColor = pointDiff >= 0 ? 'var(--danger)' : 'var(--success)';
+  var pointSign = pointDiff >= 0 ? '+' : '';
+  var en = (typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn());
 
   var html = '';
-  html += '<div class="result-item"><div class="label">盈亏金额</div><div class="value" style="color:' + pnlColor + ';">' + pnlSign + ToolBox.formatNumber(netPnl, 2) + '</div><div class="sub">手续费 ' + ToolBox.formatNumber(totalFee, 2) + ' 元</div></div>';
-  html += '<div class="result-item"><div class="label">收益率</div><div class="value" style="color:' + pnlColor + ';">' + pnlSign + returnRate.toFixed(2) + '%</div><div class="sub">相对保证金</div></div>';
-  html += '<div class="result-item"><div class="label">盈亏点数</div><div class="value" style="color:' + pnlColor + ';">' + pnlSign + pointDiff.toFixed(2) + '</div><div class="sub">' + currentContract.code + ' 点</div></div>';
+  html += '<div class="result-item"><div class="label">' + (en ? 'Net P&L (after fees)' : '盈亏金额') + '</div><div class="value" style="color:' + pnlColor + ';">' + pnlSign + ToolBox.formatNumber(netPnl, 2) + '</div><div class="sub">' + (en ? 'fees ' : '手续费 ') + ToolBox.formatNumber(totalFee, 2) + (en ? ' CNY; gross ' : ' 元；毛盈亏 ') + ToolBox.formatNumber(pnl, 2) + (en ? ' CNY; net = gross − fees' : ' 元；净额=毛盈亏−手续费') + '</div></div>';
+  html += '<div class="result-item"><div class="label">' + (en ? 'Return on margin' : '收益率') + '</div><div class="value" style="color:' + pnlColor + ';">' + pnlSign + returnRate.toFixed(2) + '%</div><div class="sub">' + (en ? 'vs. margin' : '相对保证金') + '</div></div>';
+  html += '<div class="result-item"><div class="label">' + (en ? 'Price points' : '盈亏点数') + '</div><div class="value" style="color:' + pointColor + ';">' + pointSign + pointDiff.toFixed(2) + '</div><div class="sub">' + currentContract.code + (en ? ' pts (price direction)' : ' 点（按价格方向）') + '</div></div>';
   html += '<div class="result-item"><div class="label">合约价值</div><div class="value" style="font-size:18px;">' + ToolBox.formatNumber(contractValue, 0) + '</div><div class="sub">元</div></div>';
   html += '<div class="result-item"><div class="label">保证金占用</div><div class="value" style="font-size:18px;">' + ToolBox.formatNumber(margin, 2) + '</div><div class="sub">元</div></div>';
   html += '<div class="result-item"><div class="label">杠杆倍数</div><div class="value" style="font-size:18px;">' + leverage.toFixed(1) + 'x</div><div class="sub">倍</div></div>';
@@ -460,6 +473,7 @@ function calc(){
 }
 
 function addTrade(){
+  if(!currentContract || !isFinite(Number(currentContract.multiplier))){ ToolBox.showToast('请先选择有效合约后再添加记录。','error'); return; }
   var errMsg = validateInputs();
   if(errMsg){ ToolBox.showToast(errMsg, 'warning'); return; }
   var openP = parseFloat(document.getElementById('openPrice').value) || 0;
@@ -509,12 +523,16 @@ function getTrades(){
 
 function renderTrades(){
   var trades = getTrades();
+  if(!Array.isArray(trades)) trades = [];
   var html = '';
   if(!trades.length){
     html = '<div class="empty-history">📭 暂无交易记录<br><span style="font-size:12px;">在"盈亏计算"页计算后点击"添加到交易记录"</span></div>';
   } else {
     trades.forEach(function(t, i){
-      var pnlColor = t.pnl >= 0 ? 'var(--danger)' : 'var(--success)';
+      if(!t || typeof t !== 'object') return;
+      var pnl = Number(t.pnl); if(!isFinite(pnl)) pnl = 0;
+      var rate = Number(t.returnRate); if(!isFinite(rate)) rate = 0;
+      var pnlColor = pnl >= 0 ? 'var(--danger)' : 'var(--success)';
       var pnlSign = t.pnl >= 0 ? '+' : '';
       var dirText = t.direction === 1 ? '做多' : '做空';
       var dirClass = t.direction === 1 ? 'long' : 'short';
@@ -524,13 +542,13 @@ function renderTrades(){
       html += '<div class="trade-item">';
       html += '<div class="trade-header">';
       html += '<span class="trade-name"><span class="tag ' + dirClass + '">' + dirText + '</span>' + t.code + ' · ' + t.contract + '</span>';
-      html += '<span class="trade-pnl" style="color:' + pnlColor + ';">' + pnlSign + ToolBox.formatNumber(t.pnl, 2) + '</span>';
+      html += '<span class="trade-pnl" style="color:' + pnlColor + ';">' + pnlSign + ToolBox.formatNumber(pnl, 2) + '</span>';
       html += '</div>';
       html += '<div class="trade-detail">';
       html += '<span>开仓: ' + t.openPrice + '</span>';
       html += '<span>平仓: ' + t.closePrice + '</span>';
       html += '<span>' + t.lots + '手</span>';
-      html += '<span>收益率: ' + pnlSign + t.returnRate.toFixed(2) + '%</span>';
+      html += '<span>收益率: ' + pnlSign + rate.toFixed(2) + '%</span>';
       html += '<span>' + timeStr + '</span>';
       html += '</div>';
       html += '<div class="trade-actions">';
@@ -549,10 +567,23 @@ function loadTrade(i){
   if(!t) return;
   switchTab('calc');
   var idx = CONTRACTS.findIndex(function(c){ return c.code === t.code; });
-  if(idx >= 0){
-    currentContract = CONTRACTS[idx];
-    const __g5=currentContract.name + ' ' + currentContract.code;document.getElementById('contractName').textContent=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
+  var found = idx >= 0 ? CONTRACTS[idx] : null;
+  var savedMult = Number(t.multiplier);
+  var hasSaved = isFinite(savedMult) && savedMult > 0;
+  var base = found || {name:t.contract || t.code, code:t.code, margin:Number(t.marginRate) || 0};
+  // 历史恢复必须使用保存时的乘数，不能按当前内置规格重算；合约已下架时建临时快照，绝不沿用上一份合约。
+  currentContract = {
+    name: base.name, code: base.code, exchange: base.exchange || '历史快照',
+    multiplier: hasSaved ? savedMult : Number(base.multiplier),
+    margin: Number(t.marginRate) || base.margin || 0, category: base.category || '历史'
+  };
+  var label = currentContract.name + ' ' + currentContract.code;
+  if(!found || !hasSaved || Number(found.multiplier) !== currentContract.multiplier){
+    label += ' · 历史乘数 ' + (hasSaved ? savedMult : '未记录');
   }
+  const __g5=label;document.getElementById('contractName').textContent=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
+  var tip = !found ? '该历史合约不在当前内置列表，已按保存的合约参数恢复，不沿用其他合约。' : (!hasSaved ? '旧记录未保存合约乘数，按当前合约规格恢复，盈亏可能与当时不同。' : (Number(found.multiplier)!==currentContract.multiplier ? '当前合约乘数为 ' + found.multiplier + '，已按历史保存的 ' + currentContract.multiplier + ' 恢复。' : ''));
+  if(tip) ToolBox.showToast(tip, 'warning');
   direction = t.direction;
   document.getElementById('dirLong').classList.toggle('active', direction === 1);
   document.getElementById('dirShort').classList.toggle('active', direction === -1);
@@ -666,7 +697,8 @@ function copyResult(){
   text += '收益率：' + (returnRate >= 0 ? '+' : '') + returnRate.toFixed(2) + '%\n';
   text += '保证金：' + ToolBox.formatNumber(margin, 2) + ' 元\n';
   text += '手续费：' + ToolBox.formatNumber(totalFee, 2) + ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?" CNY":" 元");
-  ToolBox.copyText(text, i18nText());
+  var __copy = (typeof ToolBox.copyText === 'function') ? ToolBox.copyText.bind(ToolBox) : function(t){ try{ navigator.clipboard.writeText(t); }catch(e){} };
+  __copy(text, i18nText());
 }
 
 function resetCalc(){
@@ -880,7 +912,7 @@ else document.addEventListener('DOMContentLoaded', __futures_pnl_calculatorBoot)
     </a>
     <a href="/zh-tw/tools/finance/mirror-text.html" class="related-tool-card">
       <span class="rt-icon">🏦</span>
-      <span class="rt-info"><span class="rt-name">映象文字</span><span class="rt-desc">將文字左右映象反轉生成可複製的字元或預覽圖，用於趣味簽名、藝術字與水印，純前端即時轉換支援一鍵複製結…</span></span>
+      <span class="rt-info"><span class="rt-name">映象文字</span><span class="rt-desc">將文字左右映象：複製近似 Unicode 字元，或匯出真實左右翻轉、透明背景的多行 PNG；</span></span>
     </a>
 
   </div>

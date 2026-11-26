@@ -375,7 +375,15 @@ function calcMonthlyData(){
       try{var __cv=document.getElementById('chart');if(__cv&&__cv.getContext){var __cx=__cv.getContext('2d');if(__cx&&__cx.clearRect)__cx.clearRect(0,0,__cv.width||0,__cv.height||0);}}catch(e){}
       const __g2=__ig;ToolBox.setResult("res",(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));return;}
 var monthly = +document.getElementById('monthly').value || 0;
-  var years = Math.max(1, Math.min(50, Math.floor(+document.getElementById('years').value || 0)));
+  var yearsRaw = String(document.getElementById('years').value || '').trim();
+  var yearsNum = Number(yearsRaw);
+  if(yearsRaw === '' || !isFinite(yearsNum) || !Number.isInteger(yearsNum) || yearsNum < 1 || yearsNum > 50){
+    var __yb=['statGrid','tableWrap','dca_calculatorTable','dca_calculatorDiff','dca_calculatorChart','dca_calculatorHist'];
+    for(var __ybi=0;__ybi<__yb.length;__ybi++){var __ybe=document.getElementById(__yb[__ybi]);if(__ybe)__ybe.innerHTML='';}
+    ToolBox.setResult("res",'<p style="color:var(--danger)">定投年限须为 1–50 的整数年（当前「'+yearsRaw+'」）；小数年限会改变每月期数，本工具不静默截断。</p>');
+    return;
+  }
+  var years = yearsNum;
   var annualRate = +document.getElementById('rate').value || 0;
   var initial = +document.getElementById('initial').value || 0;
 
@@ -457,7 +465,9 @@ function calc(){
   resHtml += '<p>累计收益率：<strong style="color:' + (dcaProfit >= 0 ? 'var(--success)' : 'var(--danger)') + ';">' + profitSign + Math.abs(dcaReturn).toFixed(2) + '%</strong></p>';
   resHtml += '<p>年化收益率（资金加权）：<strong style="color:var(--primary);">' + (annualized ? annualized.nominal.toFixed(2) + '%' : '—') + '</strong>' + (annualized ? '（名义年化 = 月 IRR × 12；有效年化 <strong style="color:var(--primary);">' + annualized.effective.toFixed(2) + '%</strong>）' : '（现金流无法求解 IRR）') + '</p>';
   resHtml += '<hr style="border:none;border-top:1px solid var(--border);margin:10px 0;">';
-  resHtml += '<p style="font-size:13px;color:var(--text-muted);">💡 对比：若一次性投入 ¥' + ToolBox.formatNumber(totalInvest, 0) + '，期末资产约 <strong>¥' + ToolBox.formatNumber(lumpFinal, 0) + '</strong>（' + (lumpFinal > dcaFinal ? '高于' : '低于') + '定投 ' + (Math.abs(lumpFinal - dcaFinal) / dcaFinal * 100).toFixed(2) + '%）</p>';
+  var __diff = lumpFinal - dcaFinal;
+  var __cmpTxt = Math.abs(__diff) < 0.005 ? '与定投相同，差值在显示精度内为 0' : ((__diff > 0 ? '高于' : '低于') + '定投 ' + (dcaFinal !== 0 ? (Math.abs(__diff) / dcaFinal * 100).toFixed(2) + '%' : '（定投期末资产为 0，比例不适用）'));
+  resHtml += '<p style="font-size:13px;color:var(--text-muted);">💡 对比：若一次性投入 ¥' + ToolBox.formatNumber(totalInvest, 0) + '，期末资产约 <strong>¥' + ToolBox.formatNumber(lumpFinal, 0) + '</strong>（' + __cmpTxt + '）</p>';
   const __g5=resHtml;document.getElementById('res').innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
 
   // 止盈目标 → 反推所需年化（plan：定投计算器缺「止盈目标反推年化」）
@@ -710,6 +720,10 @@ function renderTable(data){
 
 function exportCSV(){
   var data = calcMonthlyData();
+  if(!data){
+    ToolBox.showToast('当前输入无效，请先修正定投参数并完成计算后再导出。', 'warning');
+    return;
+  }
   var csv = '\uFEFF';
   csv += '月份,当月投入,累计投入,定投资产,一次性投入资产\n';
   var invest = data.initial;
@@ -937,7 +951,7 @@ else document.addEventListener('DOMContentLoaded', __dca_calculatorBoot);
     </a>
     <a href="/zh-tw/tools/finance/mirror-text.html" class="related-tool-card">
       <span class="rt-icon">🏦</span>
-      <span class="rt-info"><span class="rt-name">映象文字</span><span class="rt-desc">將文字左右映象反轉生成可複製的字元或預覽圖，用於趣味簽名、藝術字與水印，純前端即時轉換支援一鍵複製結…</span></span>
+      <span class="rt-info"><span class="rt-name">映象文字</span><span class="rt-desc">將文字左右映象：複製近似 Unicode 字元，或匯出真實左右翻轉、透明背景的多行 PNG；</span></span>
     </a>
 
   </div>

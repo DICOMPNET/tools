@@ -105,10 +105,10 @@
      <h2 data-zh="🔄 單詞順序反轉">🔄 Word Order Reverser</h2>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理與說明</div>
-      <div class="formula-eq">單詞逆序規則（本頁程式碼口徑，按模式分三種）：space 模式按空白切分並保留分隔符整組反轉；zhchar 模式逐 token（單個漢字/連續字母數字/空白/其他字元）提取後反轉；allchar 模式全字元反轉。勾選保留標點時標點與空白 token 固定原位、其餘 token 逆序回填。校驗：無強校驗，空行輸出為空。判據：模式與「保留標點」複選共同決定輸出形態。</div>
+      <div class="formula-eq">單詞逆序規則（本頁程式碼口徑，按模式分三種）：space 模式把單詞、空白與標點分開識別：勾選保留標點時標點與空白固定原位、僅單詞逆序；未勾選時標點附著在前一個詞上隨詞移動。zhchar 模式漢字逐字、拉丁詞成詞、標點成組；allchar 模式按 Unicode 字素簇反轉，emoji、組合附加符與 ZWJ 序列不會被拆開（舊瀏覽器用碼點回退）。校驗：無強校驗，空行輸出為空。判據：模式與「保留標點」複選共同決定輸出形態。</div>
   <div class="formula-desc">基於單詞切分與逆序演算法，對英文句子做詞序反轉；用於文案倒置與文本處理練習，純前端即時處理。</div>
 </div>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="將英文句子中的單詞順序整體反轉，保留標點位置可選，用於密碼學練習、文案倒置與文本處理，純前端即時處理。">Reverse the order of words in an English sentence, optionally keeping punctuation in place.</p>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="將英文句子中的單詞順序整體反轉，保留標點位置可選，用於密碼學練習、文案倒置與文本處理，純前端即時處理。">Reverse word order in an English sentence, optionally pinning punctuation and whitespace in place.</p>
 
     <label for="input">輸入文本</label>
     <textarea id="input" placeholder="输入文本..." oninput="reverse()">Hello World ToolBox
@@ -118,7 +118,7 @@
     <label for="mode">分詞方式</label>
     <select id="mode" onchange="reverse()">
       <option value="space">按空格分詞（保留空格）</option>
-      <option value="zhchar">中文按單字、英文按單詞</option>
+      <option value="zhchar">漢字逐字、英文按單詞</option>
       <option value="allchar">所有字元反轉</option>
     </select>
     <div class="checkbox-row" style="margin-top:12px;">
@@ -235,29 +235,59 @@ function toggleToolTheme(){
   }
 })();
 
+function __trwGraphemes(s){
+  try{
+    if(typeof Intl!=='undefined' && Intl.Segmenter){
+      const seg=new Intl.Segmenter(undefined,{granularity:'grapheme'});
+      return Array.from(seg.segment(s), x=>x.segment);
+    }
+  }catch(e){}
+  // 兼容回退：按码点分组组合附加符、变体选择符、ZWJ 序列与区域指示符，避免拆开 emoji/组合字符。
+  const cps=Array.from(s);
+  const out=[];
+  for(let i=0;i<cps.length;i++){
+    let ch=cps[i];
+    if(/^\p{Regional_Indicator}$/u.test(ch) && i+1<cps.length && /^\p{Regional_Indicator}$/u.test(cps[i+1])){
+      out.push(ch+cps[i+1]); i++; continue;
+    }
+    let g=ch;
+    while(i+1<cps.length && /^[\u0300-\u036f\u1ab0-\u1aff\u1dc0-\u1dff\ufe00-\ufe0f\u200d\u20d0-\u20ff]$/u.test(cps[i+1])){
+      g+=cps[i+1]; i++;
+      if(g.slice(-1)==='\u200d' && i+1<cps.length){ g+=cps[i+1]; i++; }
+    }
+    out.push(g);
+  }
+  return out;
+}
+function __trwTokens(line, mode){
+  if(mode==='allchar') return __trwGraphemes(line);
+  if(mode==='zhchar'){
+    // 汉字逐字；拉丁字母/数字按词；标点成组；空白成组；emoji 等符号按字素簇成组。
+    return line.match(/\p{Script=Han}|[\p{L}\p{M}\p{N}]+(?:['’\-][\p{L}\p{M}\p{N}]+)*|\s+|\p{P}+|[\p{S}\u200d\ufe0f]+|./gu) || [];
+  }
+  // space：单词（含内部撇号/连字符）、空白和标点分开识别；emoji 不拆散。
+  return line.match(/[\p{L}\p{M}\p{N}]+(?:['’\-][\p{L}\p{M}\p{N}]+)*|\s+|\p{P}+|[\p{S}\u200d\ufe0f]+|./gu) || [];
+}
 function reverseWords(line){
   const mode = document.getElementById('mode').value;
   const keepPunc = document.getElementById('keepPunc').checked;
-  let words = [];
-  if(mode === 'space'){
-    // 用捕获组保留分隔符
-    words = line.split(/(\s+)/);
-  }else if(mode === 'zhchar'){
-    // 中文按单字，英文按单词
-    words = line.match(/[\u4e00-\u9fff]|[a-zA-Z0-9]+|\s+|./g) || [];
-  }else if(mode === 'allchar'){
-    words = line.split('');
-  }
+  if(mode === 'allchar') return __trwGraphemes(line).reverse().join('');
+  const words = __trwTokens(line, mode);
 
   if(keepPunc){
-    // F-N179：用 Unicode 标点类 \p{P} 覆盖中文引号/破折号/省略号等，空白亦固定原位
-    const positions = words.map(w => ({w, isPunc: /^\p{P}+$/u.test(w) || /^\s+$/.test(w)}));
-    const toRev = positions.filter(p => !p.isPunc).map(p => p.w).reverse();
+    const positions = words.map(w => ({w, fixed: /^\p{P}+$/u.test(w) || /^\s+$/.test(w)}));
+    const toRev = positions.filter(p => !p.fixed).map(p => p.w).reverse();
     let idx = 0;
-    return positions.map(p => p.isPunc ? p.w : toRev[idx++]).join('');
-  }else{
-    return words.reverse().join('');
+    return positions.map(p => p.fixed ? p.w : toRev[idx++]).join('');
   }
+  // 未勾选「保留标点」：标点附着在前一个词/字上随其移动，空白仍作分隔，避免标点被单独打散。
+  const grouped=[];
+  words.forEach(function(w){
+    if(/^\p{P}+$/u.test(w) && grouped.length && !/^\s+$/.test(grouped[grouped.length-1])){
+      grouped[grouped.length-1]+=w;
+    }else{ grouped.push(w); }
+  });
+  return grouped.reverse().join('');
 }
 
 function reverse(){
@@ -480,7 +510,7 @@ else document.addEventListener('DOMContentLoaded', __text_reverse_wordsBoot);
     </a>
     <a href="/zh-tw/tools/finance/mirror-text.html" class="related-tool-card">
       <span class="rt-icon">🏦</span>
-      <span class="rt-info"><span class="rt-name">映象文字</span><span class="rt-desc">將文字左右映象反轉生成可複製的字元或預覽圖，用於趣味簽名、藝術字與水印，純前端即時轉換支援一鍵複製結…</span></span>
+      <span class="rt-info"><span class="rt-name">映象文字</span><span class="rt-desc">將文字左右映象：複製近似 Unicode 字元，或匯出真實左右翻轉、透明背景的多行 PNG；</span></span>
     </a>
 
     <a href="/zh-tw/tools/finance/vcard-qr.html" class="related-tool-card">

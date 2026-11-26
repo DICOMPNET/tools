@@ -133,11 +133,11 @@
         <div class="formula-box">
       <div class="formula-title">📐 計算公式 / 說明</div>
       <div class="formula-eq">求 IRR 使 NPV = Σ CFₜ/(1+r)ᵗ = 0（含 t=0 初始投資）；回收期 = 累計現金流轉正的期數</div>
-      <div class="formula-desc">基於內部收益率定義：IRR 為使淨現值為零的折現率，用迭代法求解；同時給出 NPV 與投資回收期；現金流須有正負號變化，否則可能無解。</div>
+      <div class="formula-desc">基於內部收益率定義：IRR 為使淨現值為零的折現率，用迭代法求解；折現率按所選期數單位逐期使用（月→月利率、年→年利率），頁面另把每期 IRR 按 12/4/1 次複利換算為年化 IRR。現金流須有正負號變化，否則可能無解。</div>
     </div>
 <div class="input-row">
       <div>
-        <label for="discountRate">折現率（%）</label>
+        <label for="discountRate">折現率（%／每期）</label>
         <input type="number" id="discountRate" value="8" step="0.1" oninput="calc()" placeholder="如 8">
       </div>
       <div>
@@ -363,10 +363,14 @@ function restoreFlows() {
   } catch (e) { return false; }
 }
 
+const PRESET_UNITS = { project: 'year', fund: 'year', insurance: 'year', loan: 'month' };
+
 function loadPreset(name) {
   if (PRESETS[name]) {
     cashFlows = PRESETS[name].map(f => ({ ...f }));
-    if (name === 'loan') document.getElementById('periodUnit').value = 'month';
+    // 第942批：每个模板显式重置期数单位，避免沿用上一个模板（如贷款对比的「月」）改变年化口径。
+    var unitEl = document.getElementById('periodUnit');
+    if (unitEl) unitEl.value = PRESET_UNITS[name] || 'year';
     renderFlows();
     calc();
   }
@@ -396,7 +400,7 @@ function removePeriod(idx) {
 }
 
 function updateAmount(idx, value) {
-  cashFlows[idx].amount = parseFloat(value) || 0;
+  cashFlows[idx].amount = String(value).trim() === '' ? null : parseFloat(value);
   // F-N8：金额变化必须同步快照，否则 calc() 会把旧快照误判成「历史恢复」而覆盖新输入
   __irrWriteFlowSnapshot();
   saveFlows();
@@ -448,7 +452,7 @@ function renderFlows() {
     <div class="cf-row">
       <div class="period">T${cf.period}</div>
       <input type="text" value="${cf.label || ''}" placeholder="说明" style="flex:0.4;" oninput="updateLabel(${idx}, this.value)" aria-label="说明">
-      <input type="number" value="${cf.amount}" placeholder="金额（负=投入，正=收入）" oninput="updateAmount(${idx}, this.value)" aria-label="金额（负=投入，正=收入）">
+      <input type="number" value="${cf.amount==null?'':cf.amount}" placeholder="金额（负=投入，正=收入）" oninput="updateAmount(${idx}, this.value)" aria-label="金额（负=投入，正=收入）">
       <button class="remove" onclick="removePeriod(${idx})" aria-label="删除">✕</button>
     </div>
   `).join('');container.innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
@@ -479,6 +483,15 @@ function npvAt(series, rate) {
   return npv;
 }
 
+// NPV 对 r 的导数：Σ −t·CF_t/(1+r)^(t+1)。导数零点可识别 NPV 曲线与零轴相切的重根。
+function npvDerivativeAt(series, rate) {
+  let d = 0;
+  for (let i = 0; i < series.length; i++) {
+    d += -series[i].period * series[i].amount / Math.pow(1 + rate, series[i].period + 1);
+  }
+  return d;
+}
+
 function countSignChanges(series) {
   let cnt = 0, prev = 0;
   for (let i = 0; i < series.length; i++) {
@@ -503,31 +516,75 @@ function solveIRR(series) {
   const steps = 4000;
   const tMin = Math.log(1 + LOW), tMax = Math.log(1 + HIGH);
   const roots = [];
-  let prevR = null, prevF = null;
+  const candidate = [];
+  let prevR = null, prevF = null, prevD = null;
+
+  function bisectBy(signFn, flo, lo, hi) {
+    for (let it = 0; it < 200; it++) {
+      const mid = (lo + hi) / 2;
+      const fm = signFn(mid);
+      if (!isFinite(fm) || Math.abs(hi - lo) < 1e-14) return mid;
+      if ((flo > 0) === (fm > 0)) { lo = mid; flo = fm; } else { hi = mid; }
+    }
+    return (lo + hi) / 2;
+  }
 
   for (let i = 0; i <= steps; i++) {
     const r = Math.exp(tMin + (tMax - tMin) * i / steps) - 1;
     const f = npvAt(series, r);
-    if (!isFinite(f)) { prevR = null; prevF = null; continue; }
+    const d = npvDerivativeAt(series, r);
+    if (!isFinite(f) || !isFinite(d)) { prevR = null; prevF = null; prevD = null; continue; }
+    if (f === 0) candidate.push(r);
     if (prevF !== null && prevF * f < 0) {
-      let lo = prevR, hi = r, flo = prevF;
-      for (let it = 0; it < 200; it++) {
-        const mid = (lo + hi) / 2;
-        const fm = npvAt(series, mid);
-        if (fm === 0 || Math.abs(hi - lo) < 1e-14) { lo = mid; hi = mid; break; }
-        if ((flo > 0) === (fm > 0)) { lo = mid; flo = fm; } else { hi = mid; }
-      }
-      roots.push((lo + hi) / 2);
+      candidate.push(bisectBy(function (x) { return npvAt(series, x); }, prevF, prevR, r));
     }
-    prevR = r; prevF = f;
+    // 导数变号处是 NPV 的局部极值；若极值本身贴近 0，即为相切重根。
+    if (prevD !== null && prevD * d < 0) {
+      candidate.push(bisectBy(function (x) { return npvDerivativeAt(series, x); }, prevD, prevR, r));
+    }
+    prevR = r; prevF = f; prevD = d;
   }
+
+  const tol = scale * 1e-8;
+  candidate.forEach(function (r) {
+    if (!isFinite(r) || r < LOW || r > HIGH) return;
+    if (Math.abs(npvAt(series, r)) > tol) return;
+    if (!roots.some(function (x) { return Math.abs(x - r) <= 1e-7; })) roots.push(r);
+  });
+  roots.sort(function (a, b) { return a - b; });
 
   const verified = roots.length ? roots.every(r => Math.abs(npvAt(series, r)) <= scale * 1e-8) : false;
   const reason = roots.length ? (roots.length > 1 ? 'multiple' : 'ok') : 'no-root';
   return { roots, verified, signChanges, reason };
 }
 
+function __irrClearChart(){
+  var box = document.getElementById('irr_calculatorChart');
+  if (box) box.innerHTML = '';
+  var cv = document.getElementById('chart');
+  if (cv && cv.getContext) { try { cv.getContext('2d').clearRect(0, 0, cv.width, cv.height); } catch(e){} }
+}
 function calc() {
+  var missingIdx = cashFlows.map(function(f,i){ return f.amount == null ? i : -1; }).filter(function(i){ return i >= 0; });
+  if (missingIdx.length) {
+    resetDisplay();
+    renderDetail([]);
+    __irrClearChart();
+    var w = document.getElementById('irrWarn');
+    w.textContent = '⚠ 第 ' + missingIdx.map(function(i){ return cashFlows[i].period; }).join('、') + ' 期金额尚未填写；留空不按 0 计算，如确为 0 请明确输入 0。';
+    w.style.display = 'block';
+    return;
+  }
+  var drRaw = String(document.getElementById('discountRate').value == null ? '' : document.getElementById('discountRate').value).trim();
+  if (drRaw === '') {
+    resetDisplay();
+    renderDetail([]);
+    __irrClearChart();
+    var w2 = document.getElementById('irrWarn');
+    w2.textContent = '⚠ 折现率尚未填写；如确为 0% 请明确输入 0。';
+    w2.style.display = 'block';
+    return;
+  }
   if (cashFlows.length < 2) {
     resetDisplay();
     renderDetail([]);
@@ -535,7 +592,7 @@ function calc() {
   }
 
   const series = buildSeries(cashFlows);
-  const discountRate = parseFloat(document.getElementById('discountRate').value) / 100 || 0;
+  const discountRate = parseFloat(drRaw) / 100;
   const unit = document.getElementById('periodUnit').value;
   saveFlows();
 
@@ -968,7 +1025,7 @@ else document.addEventListener('DOMContentLoaded', __irr_calculatorBoot);
     </a>
     <a href="/zh-tw/tools/finance/mirror-text.html" class="related-tool-card">
       <span class="rt-icon">🏦</span>
-      <span class="rt-info"><span class="rt-name">映象文字</span><span class="rt-desc">將文字左右映象反轉生成可複製的字元或預覽圖，用於趣味簽名、藝術字與水印，純前端即時轉換支援一鍵複製結…</span></span>
+      <span class="rt-info"><span class="rt-name">映象文字</span><span class="rt-desc">將文字左右映象：複製近似 Unicode 字元，或匯出真實左右翻轉、透明背景的多行 PNG；</span></span>
     </a>
 
   </div>

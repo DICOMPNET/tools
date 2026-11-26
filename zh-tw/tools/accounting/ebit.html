@@ -113,7 +113,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="輸入營業收入、營業成本與營業費用，求 EBIT。">Compute earnings before interest and taxes from revenue, operating cost and operating expenses.</p>
     <div class="formula-box">
       <div class="formula-title">📐 計算公式</div>
-      <div class="formula-eq">息稅前利潤 EBIT（本頁程式碼口徑）：EBIT=營業收入−營業成本−營業費用（萬元）；聯動量：毛利=營收−營業成本（萬元）、營業利潤率=EBIT÷(營收||1)×100（%，營收為 0 時分母按 1 兜底）。校驗：無強校驗，空值按 0 兜底。判據：無固定分級，EBIT 為利息與稅前的經營利潤，利潤率為正且越高主營業務盈利能力越強。</div>
+      <div class="formula-eq">息稅前利潤 EBIT（本頁程式碼口徑）：EBIT=營業收入−營業成本−營業費用（萬元）；聯動量：毛利=營收−營業成本（萬元）、營業利潤率=EBIT÷營收×100（%，營收為 0 時顯示不適用，不以 1 兜底）。校驗：收入/成本/費用非空且不得為負。判據：無固定分級，EBIT 為利息與稅前的經營利潤，利潤率為正且越高主營業務盈利能力越強。</div>
       <p class="formula-desc">輸入營業收入、營業成本與營業費用，求 EBIT。</p>
     </div>
 
@@ -279,14 +279,16 @@ function __tbInputGuardCore(_ids,_labels){
 
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
+function __ratio(a,b,dec){if(!isFinite(a)||!isFinite(b)||b===0)return'—';return (a/b).toFixed(dec);}
 function calcTool(){
               var __ig=__tbInputGuard(['rev', 'cogs', 'opex'],["营业收入 (万元)", "营业成本 (万元)", "营业费用 (万元)"]);if(__ig){ToolBox.setResult("result",__ig);return;}
 const rev=num('rev'),cogs=num('cogs'),opex=num('opex');
+            if(!(rev>=0)||!(cogs>=0)||!(opex>=0)){ToolBox.setResult('result','<p style="color:var(--danger)">营业收入、成本与费用不得为负。</p>');return;}
             const ebit=rev-cogs-opex;
             const __g1=dataGrid([
                 [ebit.toFixed(2),'EBIT (万元)'],
                 [(rev-cogs).toFixed(2), '毛利 (万元)'],
-                [(ebit/(rev||1)*100).toFixed(2), '营业利润率 (%)']
+                [rev===0?'—':(ebit/rev*100).toFixed(2), rev===0?'营业利润率 (%)':'营业利润率 (%)']
             ]);ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
         }
 function resetForm(){document.getElementById('rev').value = '1000';
@@ -344,7 +346,7 @@ function __ebitExtras(){
         rows: [
             ['EBIT (万元)', ebit.toFixed(2)],
             ['毛利 (万元)', (rev-cogs).toFixed(2)],
-            ['营业利润率 (%)', (ebit/(rev||1)*100).toFixed(2)],
+            [rev===0?'—':(ebit/rev*100).toFixed(2), '营业利润率 (%)'],
         ]
     });
     TBKit.history.record({rev:__ebitRaw('rev'), cogs:__ebitRaw('cogs'), opex:__ebitRaw('opex'), ebit:ebit});

@@ -113,7 +113,7 @@
     <h2 data-zh="🧲 磁場強度換算器">🧲 Magnetic Field Strength Converter</h2>
     <div class="formula-box">
       <div class="formula-title">📐 計算公式</div>
-      <div class="formula-eq">磁場單位換算：H 類以 A/m 為基準（係數 Am=1、Oe=1000÷(4π)≈79.57747，即 1 Oe = 1000÷(4π) A/m），其餘單位 = 基準值 ÷ 係數，真空對應 B ≈ H × 4π×10⁻⁷×10⁴（G）；B 類以 T 為基準（G=10⁻⁴、mT=10⁻³、μT=10⁻⁶），真空對應 H ≈ B ÷ (4π×10⁻⁷)（A/m）。校驗：非數報「請輸入有效數值」，結果含 NaN/Infinity 時統一替換為警告提示。判據：無固定分級，逐單位並列換算。</div>
+      <div class="formula-eq">磁場單位換算：H 類以 A/m 為基準（係數 Am=1、Oe=1000÷(4π)≈79.57747，即 1 Oe = 1000÷(4π) A/m），其餘單位 = 基準值 ÷ 係數，H 類以 A/m 為基準（Am=1、Oe=1000÷(4π)≈79.57747）；B 類以 T 為基準（G=10⁻⁴、mT=10⁻³、μT=10⁻⁶）。跨 H/B 時按線性均勻介質 B = μ₀μᵣH 換算（μ₀=4π×10⁻⁷ T·m/A，μᵣ 可填，真空為 1）。校驗：非數報「請輸入有效數值」，結果含 NaN/Infinity 時統一替換為警告提示。判據：無固定分級，逐單位並列換算。</div>
     </div>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="支援 A/m / Oe / G（高斯，磁感應強度B）">Convert magnetic field strength units such as tesla, gauss, ampere per metre and oersted.</p>
 
@@ -121,6 +121,10 @@
       <div>
         <label for="inputVal">輸入數值</label>
         <input type="number" id="inputVal" value="1" oninput="convert()" step="any" placeholder="如 1">
+      </div>
+      <div>
+        <label for="muR">相對磁導率 μᵣ（可選）</label>
+        <input type="number" id="muR" value="1" min="0.000001" step="any" oninput="convert()" placeholder="真空=1，如鐵磁體需實測">
       </div>
       <div>
         <label for="fromUnit">源單位</label>
@@ -252,6 +256,12 @@ function fmt(n){
 function convert(){
   const v = parseFloat(document.getElementById('inputVal').value);
   const from = document.getElementById('fromUnit').value;
+  const muRaw = document.getElementById('muR').value.trim();
+  const muR = muRaw === '' ? 1 : Number(muRaw);
+  if(!isFinite(muR) || muR <= 0){
+    document.getElementById('resultBox').innerHTML='<p style="color:var(--danger);">相对磁导率 μᵣ 须为大于 0 的数值；真空填 1 或留空</p>';
+    return;
+  }
   if(isNaN(v)){
     const __h0='<p style="color:var(--danger);">请输入有效数值</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('resultBox').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('resultBox').innerHTML=__h0;
     return;
@@ -266,6 +276,7 @@ function convert(){
       if(k !== from) html += `<p>${Hnames[k]}：<strong>${fmt(base / Hfactors[k])} ${Hsyms[k]}</strong></p>`;
     });
     html += `<p style="color:var(--text-muted);margin-top:8px;">真空下对应磁感应强度 B ≈ ${fmt(base * 4 * Math.PI * 1e-7 * 10000)} G</p>`;
+    html += `<p style="color:var(--text-muted);margin-top:4px;">线性均匀介质 μᵣ=${fmt(muR)}：B = μ₀μᵣH ≈ ${fmt(base * 4 * Math.PI * 1e-7 * muR * 10000)} G（${fmt(base * 4 * Math.PI * 1e-7 * muR)} T）</p>`;
   } else {
     // B 类
     const base = v * Bfactors[from]; // 转 T
@@ -275,7 +286,9 @@ function convert(){
       if(k !== from) html += `<p>${Bnames[k]}：<strong>${fmt(base / Bfactors[k])} ${Bsyms[k]}</strong></p>`;
     });
     html += `<p style="color:var(--text-muted);margin-top:8px;">真空下对应磁场强度 H ≈ ${fmt(base / (4 * Math.PI * 1e-7))} A/m</p>`;
+    html += `<p style="color:var(--text-muted);margin-top:4px;">线性均匀介质 μᵣ=${fmt(muR)}：H = B/(μ₀μᵣ) ≈ ${fmt(base / (4 * Math.PI * 1e-7 * muR))} A/m</p>`;
   }
+  html += '<p style="font-size:12px;color:var(--text-muted);margin-top:6px;">仅适用于线性、均匀、各向同性介质且无磁滞；铁磁材料（铁、镍、钴等）的 μᵣ 随磁场变化，不能用单一常数换算。</p>';
   const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('resultBox').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('resultBox').innerHTML=__h1;
 }
 

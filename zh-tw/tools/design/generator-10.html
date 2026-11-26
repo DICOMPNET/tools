@@ -102,7 +102,7 @@
      <h2 data-zh="🎲 CSS動畫生成器（關鍵幀視覺化）">🎲 CSS Keyframe Animation Generator</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="關鍵幀視覺化">Compose a CSS keyframe animation visually, adjust duration, easing and properties, preview it live and export the @keyframes code.</p>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">生成條數鉗制在 1–50（預設 5）；第 i 條預設按 i 對 8 取模迴圈選取 fadeIn、slideUp、bounce、pulse、rotate、shake、zoomIn、flip 八種關鍵幀模板，選「動畫型別」則全批統一為所選模板；動畫名 = 模板名 + "-" + 1–999 的隨機整數；時長（0.5–3.0 s）、延遲（0–2.0 s）、緩動、播放次數（1/2/3/infinite）、方向、填充模式六項留空時隨機，填寫即按所選值固定，最後拼裝為 animation 宣告與 @keyframes 程式碼塊。頁面頂部預覽區把第 1 條動畫實際應用到色塊上迴圈播放（@keyframes 以真實 style 元素注入，非僅顯示文本），可直觀判斷動效觀感後再複製程式碼</div>
+  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">生成條數鉗制在 1–50（預設 5）；第 i 條預設按 i 對 8 取模迴圈選取 fadeIn、slideUp、bounce、pulse、rotate、shake、zoomIn、flip 八種關鍵幀模板，選「動畫型別」則全批統一為所選模板；動畫名 = 模板名 + "-" + 1–999 的隨機整數；時長（0.5–3.0 s）、延遲（0–2.0 s）、緩動、播放次數（1/2/3/infinite）、方向、填充模式六項留空時隨機，填寫即按所選值固定，最後拼裝為 animation 宣告與 @keyframes 程式碼塊。頁面頂部預覽區把第 1 條動畫實際應用到色塊上迴圈播放（@keyframes 以真實 style 元素注入，非僅顯示文本），可直觀判斷動效觀感後再複製程式碼；首次生成後隨機值按條快取，修改單項引數只更新該項，點選「生成（重新隨機）」才重抽全部屬性。</div>
       <div class="formula-desc">視覺化編排關鍵幀：把時間點、動畫屬性與緩動函式拼裝為 @keyframes 與 animation 宣告，即時預覽並複製；用於 CSS 動畫開發。</div>
 
 </div>
@@ -115,7 +115,7 @@
 <div><label for="dir">方向</label><select id="dir"><option value="">隨機</option><option value="normal">normal</option><option value="reverse">reverse</option><option value="alternate">alternate</option><option value="alternate-reverse">alternate-reverse</option></select></div>
 <div><label for="fill">填充模式</label><select id="fill"><option value="">隨機</option><option value="forwards">forwards</option><option value="backwards">backwards</option><option value="both">both</option><option value="none">none</option></select></div>
 <div><label for="atype">動畫型別</label><select id="atype"><option value="">八種輪換</option><option value="fadeIn">fadeIn 淡入</option><option value="slideUp">slideUp 上滑</option><option value="bounce">bounce 彈跳</option><option value="pulse">pulse 脈衝</option><option value="rotate">rotate 旋轉</option><option value="shake">shake 抖動</option><option value="zoomIn">zoomIn 縮放入場</option><option value="flip">flip 翻轉</option></select></div></div>
-<div class="toolbar"><div id="generator_10Presets"></div><button type="button" class="btn primary" onclick="gen()">生成</button><button class="btn" type="button" onclick="__generator_10Export()">匯出明細 CSV</button><button type="button" class="btn" onclick="copyRes()">複製</button></div>
+<div class="toolbar"><div id="generator_10Presets"></div><button type="button" class="btn primary" onclick="gen(true)" title="重新隨機全部屬性">生成（重新隨機）</button><button class="btn" type="button" onclick="__generator_10Export()">匯出明細 CSV</button><button type="button" class="btn" onclick="copyRes()">複製</button></div>
 <style id="animKfStyle"></style>
     <div class="result-box" id="res"></div> <div id="generator_10Table"></div> <div id="generator_10Diff"></div> <div id="generator_10Chart"></div> <div id="generator_10Hist"></div>
   </div>
@@ -206,8 +206,10 @@ function randItem(arr) {
 }
 const animEasings = ['ease','ease-in','ease-out','ease-in-out','linear','cubic-bezier(0.68,-0.55,0.27,1.55)'];
 const animDirections = ['normal','reverse','alternate','alternate-reverse'];
-function gen() {
+var __g10RandCache=[];
+function gen(regenerate) {
   const n = Math.min(Math.max(parseInt(document.getElementById('cnt').value) || 5, 1), 50);
+  if(regenerate) __g10RandCache.length=0;
   const elVal=function(id){var e=document.getElementById(id);return e?String(e.value).trim():'';};
   const elNum=function(id,min,max){var v=elVal(id);if(v==='')return null;var p=parseFloat(v);if(!Number.isFinite(p))return null;return Math.min(Math.max(p,min),max);};
   const fixDur=elNum('dur',0.1,10), fixDly=elNum('dly',0,5);
@@ -226,13 +228,24 @@ function gen() {
   let html = '<p style="margin-bottom:8px;">生成结果：</p>';
   for (let i = 0; i < n; i++) {
     const type = pickType ? (animTypes.filter(function(t){return t.name===pickType;})[0] || animTypes[i % animTypes.length]) : animTypes[i % animTypes.length];
-    const name = type.name + '-' + randInt(1, 999);
-    const duration = ((fixDur!==null)?fixDur:(randInt(5, 30) / 10)).toFixed(1);
-    const delay = ((fixDly!==null)?fixDly:(randInt(0, 20) / 10)).toFixed(1);
-    const easing = pickEas || randItem(animEasings);
-    const iteration = pickIt || randItem(['1','2','3','infinite']);
-    const direction = pickDir || randItem(animDirections);
-    const fill = pickFill || randItem(['forwards','backwards','both','none']);
+    // 每条独立缓存随机值：改一项只影响该项，其余随机属性保持稳定；只有“生成”按钮显式重新随机。
+    if(!__g10RandCache[i]) __g10RandCache[i] = {
+      id: randInt(1,999),
+      duration: randInt(5,30)/10,
+      delay: randInt(0,20)/10,
+      easing: randItem(animEasings),
+      iteration: randItem(['1','2','3','infinite']),
+      direction: randItem(animDirections),
+      fill: randItem(['forwards','backwards','both','none'])
+    };
+    const c = __g10RandCache[i];
+    const name = type.name + '-' + c.id;
+    const duration = ((fixDur!==null)?fixDur:c.duration).toFixed(1);
+    const delay = ((fixDly!==null)?fixDly:c.delay).toFixed(1);
+    const easing = pickEas || c.easing;
+    const iteration = pickIt || c.iteration;
+    const direction = pickDir || c.direction;
+    const fill = pickFill || c.fill;
     kfs += '@keyframes ' + name + ' { ' + type.kf + ' }';
     if(i===0){
       previewHtml = '<div style="margin:8px 0 12px;padding:14px;background:var(--bg-hover);border-radius:8px;text-align:center;">'

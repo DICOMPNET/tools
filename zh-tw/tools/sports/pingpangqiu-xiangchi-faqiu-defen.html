@@ -222,12 +222,17 @@ function swapValues(){
 function historyKey(){
   try{return 'tb_history_'+location.pathname;}catch(e){return 'tb_history_'+(document.title||'calc');}
 }
-function saveHistory(a,b){
+function snapshotInputs(){
+  var vals={};
+  ['v0','v1','v2','v3','v4','v5'].forEach(function(id){var el=document.getElementById(id);if(el)vals[id]=el.value;});
+  return vals;
+}
+function saveHistory(values){
   try{
     var key=historyKey();
     var list=JSON.parse(localStorage.getItem(key)||'[]');
     var now=new Date();
-    var item={a:a,b:b,time:now.toLocaleString('zh-CN',{hour:'2-digit',minute:'2-digit',second:'2-digit'})};
+    var item={values:values,time:now.toLocaleString('zh-CN',{hour:'2-digit',minute:'2-digit',second:'2-digit'})};
     list.unshift(item);
     if(list.length>5)list=list.slice(0,5);
     localStorage.setItem(key,JSON.stringify(list));
@@ -241,20 +246,30 @@ function renderHistory(){
     var list=JSON.parse(localStorage.getItem(historyKey())||'[]');
     if(list.length===0){box.innerHTML='<div class="history-empty">暂无计算记录</div>';return;}
     var html='<div class="history-list">';
-    list.forEach(function(h){
-      html+='<div class="history-item" onclick="restoreHistory('+h.a+','+h.b+')">'+
-        '<div><div class="time">'+ToolBox.escHtml(h.time)+'</div><div class="summary">A='+h.a+' &nbsp; B='+h.b+'</div></div>'+
-        '<span style="font-size:12px;color:var(--primary);">恢复</span></div>';
+    list.forEach(function(h,i){
+      var v=h.values||{};
+      var summary=h.values?['v0','v1','v2','v3','v4','v5'].filter(function(k){return v[k]!==undefined;}).map(function(k){return k+'='+v[k];}).join(' · '):('A='+h.a+' · B='+h.b+'（旧记录，仅存两项）');
+      html+='<button type="button" class="history-item" style="width:100%;text-align:left;border:0;background:transparent;font-family:inherit;cursor:pointer;" onclick="restoreHistory('+i+')">'+
+        '<div><div class="time">'+ToolBox.escHtml(h.time)+'</div><div class="summary">'+ToolBox.escHtml(summary)+'</div></div>'+
+        '<span style="font-size:12px;color:var(--primary);">恢复</span></button>';
     });
     html+='</div>';
     const __g3=html;box.innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
   }catch(e){box.innerHTML='<div class="history-empty">读取记录失败</div>';}
 }
-function restoreHistory(a,b){
-  document.getElementById('v0').value=a;
-  document.getElementById('v1').value=b;
-  calc();
-  ToolBox.showToast(i18nText(), 'info');
+function restoreHistory(idx){
+  var list=JSON.parse(localStorage.getItem(historyKey())||'[]');
+  var item=list[idx];if(!item)return;
+  if(item.values){
+    ['v0','v1','v2','v3','v4','v5'].forEach(function(id){var el=document.getElementById(id);if(el&&item.values[id]!==undefined)el.value=item.values[id];});
+    calc(false);
+    ToolBox.showToast(i18nText(), 'info');
+  }else{
+    document.getElementById('v0').value=item.a;
+    document.getElementById('v1').value=item.b;
+    calc(false);
+    ToolBox.showToast('旧记录不完整，仅恢复相持得分与失分；请重新填写其余项', 'warning');
+  }
 }
 function clearHistory(){
   try{localStorage.removeItem(historyKey());renderHistory();ToolBox.showToast(i18nText(), 'info');}catch(e){}
@@ -273,7 +288,7 @@ document.addEventListener('DOMContentLoaded',function(){
 </script>
 <script>
 /* 真实业务计算逻辑（页内独占，覆盖通用两参脚本） */
-function calc(){
+function calc(save){
   var vals={},bad=false,keyStatus='';
   ['v0','v1','v2','v3'].forEach(function(id){
     var el=document.getElementById(id);
@@ -328,7 +343,7 @@ function calc(){
     html+='<div class="info-box" style="margin-top:10px;">'+tip+'</div>';
   }
   const __g6=html;box.innerHTML=(typeof __g6==='number'?(isFinite(__g6)?__g6:'—'):String(__g6).replace(/Infinity|NaN/g,'—'));
-  if(typeof saveHistory==='function'){try{saveHistory(A,B);}catch(e){}}
+  if(save!==false&&typeof saveHistory==='function'){try{saveHistory(snapshotInputs());}catch(e){}}
 }
 function resetAll(){
   var d={v0:'8',v1:'7',v2:'5',v3:'4',v4:'2',v5:'5'};
@@ -514,10 +529,7 @@ else document.addEventListener('DOMContentLoaded', __pingpangqiu_xiangchi_faqiu_
       <span class="rt-icon">🎲</span>
       <span class="rt-info"><span class="rt-name">瑜伽體式隨機生成</span><span class="rt-desc">選擇難度與練習時長，隨機生成含 30+ 常見體式的瑜伽序列，給出體式順序建議，用於居家練習與課程編排…</span></span>
     </a>
-    <a href="/zh-tw/tools/sports/yoga-pose-generator.html" class="related-tool-card">
-      <span class="rt-icon">🎲</span>
-      <span class="rt-info"><span class="rt-name">瑜伽體式隨機生成</span><span class="rt-desc">選擇難度與練習時長，隨機生成含 30+ 常見體式的瑜伽序列，給出體式順序建議，用於居家練習與課程編排…</span></span>
-    </a>
+
     <a href="/zh-tw/tools/sports/convert-47.html" class="related-tool-card">
       <span class="rt-icon">🏋️</span>
       <span class="rt-info"><span class="rt-name">力量（1RM/最大力量）換算</span><span class="rt-desc">最大力量（1RM）換算器：輸入某次數重複重量，按估算公式推算一次最大重複（1RM），用於力量訓練負荷…</span></span>
@@ -530,10 +542,7 @@ else document.addEventListener('DOMContentLoaded', __pingpangqiu_xiangchi_faqiu_
       <span class="rt-icon">🧗</span>
       <span class="rt-info"><span class="rt-name">攀巖難度等級轉換</span><span class="rt-desc">攀巖難度等級互轉，支援 V 級抱石、YDS、法式、英式等主流系統對照(V0入門至V16頂級)，便於跨…</span></span>
     </a>
-    <a href="/zh-tw/tools/sports/climbing-grade-converter.html" class="related-tool-card">
-      <span class="rt-icon">🧗</span>
-      <span class="rt-info"><span class="rt-name">攀巖難度等級轉換</span><span class="rt-desc">攀巖難度等級互轉，支援 V 級抱石、YDS、法式、英式等主流系統對照(V0入門至V16頂級)，便於跨…</span></span>
-    </a>
+
   </div>
 </div>
 <div class="tool-intro open" id="toolIntro">

@@ -102,7 +102,7 @@
      <h2 data-zh="✨ 背景紋理生成器（重複圖案）">✨ CSS Background Pattern Generator</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="重複圖案">Tune parameters to build a tileable CSS background texture such as dots, grids or waves, with live preview and exported code.</p>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">生成條數鉗制在 1–50（預設 5）；第 i 條預設按 i 對 6 取模迴圈選取圓點 / 條紋 / 網格 / 棋盤 / 斜線 / 波浪六種紋理，選「圖案型別」則全批統一為所選紋理；雙色 c1、c2 與單元尺寸 size 預設隨機（顏色從 10 色板取、尺寸 8–64），把「配色方式」切到「使用主色 / 底色」或填寫尺寸即按所選值固定，可復現上一次結果。各紋理以 CSS 漸變表達：圓點用 radial-gradient 配 background-size；條紋用 repeating-linear-gradient(90deg) 以 size/2 為色標；網格用兩組 1px 的 linear-gradient 正交疊加；棋盤用 conic-gradient 四個 90° 扇區；斜線用 repeating-linear-gradient(45deg) 以 size/4 與 size/2 為色標；波浪用上下兩個 radial-gradient 圓疊加並配 background-size</div>
+  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">生成條數鉗制在 1–50（預設 5）；第 i 條預設按 i 對 6 取模迴圈選取圓點 / 條紋 / 網格 / 棋盤 / 斜線 / 波浪六種紋理，選「圖案型別」則全批統一為所選紋理；雙色 c1、c2 與單元尺寸 size 預設隨機（顏色從 10 色板取、尺寸 8–64），把「配色方式」切到「使用主色 / 底色」或填寫尺寸即按所選值固定，可復現上一次結果。各紋理以 CSS 漸變表達：圓點用 radial-gradient 配 background-size；條紋用 repeating-linear-gradient(90deg) 以 size/2 為色標；網格用兩組 1px 的 linear-gradient 正交疊加；棋盤用 conic-gradient 四個 90° 扇區；斜線用 repeating-linear-gradient(45deg) 以 size/4 與 size/2 為色標；波浪用上下兩個 radial-gradient 圓疊加並配 background-size；首次生成後雙色與尺寸按條快取，修改單項引數只更新該項，點選「生成（重新隨機）」才重抽全部屬性。</div>
       <div class="formula-desc">以 CSS 漸變（repeating-linear-gradient 等）或 SVG 平鋪生成可重複背景紋理（點陣 / 網格 / 波浪），引數可調並匯出程式碼；用於 UI 背景裝飾。</div>
 
 </div>
@@ -113,7 +113,7 @@
 <div><label for="tBg">底色</label><input type="color" id="tBg" value="#0F172A"></div>
 <div><label for="tColorMode">配色方式</label><select id="tColorMode"><option value="rand">雙色隨機</option><option value="fix">使用主色 / 底色</option></select></div>
 <div><label for="tSize">單元尺寸（px，留空隨機）</label><input type="number" id="tSize" min="8" max="64" step="1" placeholder="留空隨機 8~64"></div></div>
-<div class="toolbar"><div id="generator_11Presets"></div><button type="button" class="btn primary" onclick="gen()">生成</button><button class="btn" type="button" onclick="__generator_11Export()">匯出明細 CSV</button><button type="button" class="btn" onclick="copyRes()">複製</button></div>
+<div class="toolbar"><div id="generator_11Presets"></div><button type="button" class="btn primary" onclick="gen(true)" title="重新隨機全部屬性">生成（重新隨機）</button><button class="btn" type="button" onclick="__generator_11Export()">匯出明細 CSV</button><button type="button" class="btn" onclick="copyRes()">複製</button></div>
 <div class="result-box" id="res"></div> <div id="generator_11Table"></div> <div id="generator_11Diff"></div> <div id="generator_11Chart"></div> <div id="generator_11Hist"></div>
   </div>
 
@@ -205,8 +205,10 @@ function randColor() {
   const colors = ['#FF6B35','#7C3AED','#00796B','#1D4ED8','#92400E','#EC4899','#065F46','#6366F1','#B91C1C','#14B8A6','#F3F4F6','#1F2937'];
   return randItem(colors);
 }
-function gen() {
+var __g11RandCache=[];
+function gen(regenerate) {
   const n = Math.min(Math.max(parseInt(document.getElementById('cnt').value) || 5, 1), 50);
+  if(regenerate) __g11RandCache.length=0;
   const elVal=function(id){var e=document.getElementById(id);return e?String(e.value).trim():'';};
   const elNum=function(id,min,max){var v=elVal(id);if(v==='')return null;var p=parseFloat(v);if(!Number.isFinite(p))return null;return Math.min(Math.max(p,min),max);};
   const pickPattern=elVal('tPattern');
@@ -219,9 +221,12 @@ function gen() {
   let html = '<p style="margin-bottom:8px;">生成结果：</p>';
   for (let i = 0; i < n; i++) {
     const pattern = pickPattern || patterns[i % patterns.length];
-    const c1 = fixC1 || randColor();
-    const c2 = fixC2 || randColor();
-    const size = (fixSize!==null)?fixSize:randInt(8, 64);
+    // 每条独立缓存双色与尺寸：改一项不重抽其他纹理；只有“生成”按钮显式重新随机。
+    if(!__g11RandCache[i]) __g11RandCache[i] = {c1:randColor(), c2:randColor(), size:randInt(8,64)};
+    const cache = __g11RandCache[i];
+    const c1 = fixC1 || cache.c1;
+    const c2 = fixC2 || cache.c2;
+    const size = (fixSize!==null)?fixSize:cache.size;
     let css = '';
     let label = '';
     if (pattern === 'dots') {

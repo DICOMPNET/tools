@@ -107,7 +107,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="輸入密碼即時檢測強度，分析字元組合與安全等級">Check a password against length, character variety, common patterns and repetition to estimate its strength and fix weak points.</p>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理與說明</div>
-      <div class="formula-eq">密碼強度採用統一熵模型：按實際使用的字元池（小寫 26、大寫 26、數字 10、符號 32）計算單字元熵，再乘以密碼長度得到資訊熵；當去重字元佔比低於 50% 時按該比例扣減，避免重複串被高估；命中常見弱口令整詞時把熵壓到 10 bits，僅命中字典子串時扣減 15 bits。安全等級、進度條顏色、改進建議與「預估破解時間」全部由同一熵值推導（按每秒 10^10 次猜測折算），因此等級與破解時長不會互相矛盾。</div>
+      <div class="formula-eq">密碼強度採用統一熵模型：按實際使用的字元池（小寫 26、大寫 26、數字 10、符號 32）計算單字元熵，再乘以密碼長度得到資訊熵；當去重字元佔比低於 50% 時按該比例扣減，避免重複串被高估；命中常見弱口令整詞時把熵壓到 10 bits，僅命中字典子串時扣減 15 bits。安全等級、進度條顏色、改進建議與「破解時間量級」全部由同一熵值推導（按每秒 10^10 次猜測只折算數量級）；評分是啟發式參考，不能據此保證賬戶安全。</div>
 
 </div>
 
@@ -196,19 +196,19 @@
       </tr></thead>
       <tbody>
         <tr>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="安全係數">Safety factor</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="安全係數 = 極限強度 / 工作應力，取值隨規範與工況而定">safety factor = ultimate strength / working stress</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="Structural design codes">Structural design codes</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="字元池熵估算">Character-pool entropy</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="熵 ≈ 長度 × log2(字元池)；字元池按小寫 26、大寫 26、數字 10、符號 32 累加">entropy ≈ length × log2(pool); pool adds 26 lowercase, 26 uppercase, 10 digits and 32 symbols</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="資訊熵估算模型">Information-entropy model</td>
         </tr>
         <tr>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="應力計算">Stress</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="正應力 = 軸力 / 截面面積，彎曲應力按彎矩與截面模量計算">axial stress = force / area and bending stress uses section modulus</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="Mechanics of materials">Mechanics of materials</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="重複與常見口令">Repetition and common passwords</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="唯一字元佔比低於 50% 時按比例削弱；命中常見口令上限 10 分，包含常見詞再扣 15 分">unique-character ratio below 50% scales entropy down; common passwords cap at 10 and containing a common word subtracts 15</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="本工具內建弱口令表">Built-in weak-password list</td>
         </tr>
         <tr>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="材料取值">Material values</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="設計強度取標準值除以材料分項係數，需查對應規範">design strength divides the characteristic value by a material factor</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="Structural design codes">Structural design codes</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="破解時間">Cracking-time estimate</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="按離線快速猜測假設估算，未考慮洩露庫、鍵盤模式或針對性社工；分數是相對強度，不是安全保證">estimated under a fast offline-guessing assumption; leaked lists, keyboard patterns and targeted social engineering are not modelled, so the score is relative, not a guarantee</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="啟發式估算，非認證標準">Heuristic estimate, not a certification standard</td>
         </tr>
       </tbody>
     </table>
@@ -297,7 +297,7 @@ if(__ni.length && __ni.every(function(e){return String(e.value).trim()==='';})){
     advice='密码强度良好，满足大多数场景的安全要求。如需更高安全性，可进一步增加长度。';
   }else{
     level='极强';color='#065F46';
-    advice='密码强度极高，具备优秀的安全性。请妥善保管，不要在多处重复使用。';
+    advice='密码强度很高，但评分仍是启发式参考。请妥善保管，不要在多处重复使用。';
   }
   document.getElementById('strengthBar').style.width=score+'%';
   document.getElementById('strengthBar').style.background=color;
@@ -309,7 +309,8 @@ if(__ni.length && __ni.every(function(e){return String(e.value).trim()==='';})){
   html+='<p>字符种类：'+charTypes+'/4（'+(hasLower?'小写 ':'')+(hasUpper?'大写 ':'')+(hasDigit?'数字 ':'')+(hasSymbol?'符号':'')+'）</p>';
   html+='<p>密码长度：'+len+' 位</p>';
   html+='<p>信息熵：'+entropy.toFixed(1)+' bits</p>';
-  html+='<p>预估破解时间：'+crackTime+'</p>';
+  html+='<p>破解时间量级（粗略）：'+crackTime+'（假设约 10^10 次/秒的离线快速猜测）</p>';
+  html+='<p style="font-size:12px;color:var(--text-muted);">评分是启发式参考：按字符池与长度估算，假设字符独立均匀随机；人工规律、常见变形、重复和泄露口令并不满足该假设，不能据此保证账户安全。</p>';
   html+='<div class="tip-box '+(score>=60?'tip-success':score>=40?'tip-warn':'tip-error')+'" style="margin-top:8px;">'+advice+'</div>';
   const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('res').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('res').innerHTML=__h1;
 }
@@ -326,18 +327,16 @@ function resetChecks(){
 }
 function estimateCrackTime(entropy){
   if(entropy<=0)return '瞬间';
-  // 假设每秒 10^10 次尝试
+  // 仅给数量级，不输出看似精确的破解秒数；假设离线快速猜测约 10^10 次/秒。
   var seconds=Math.pow(2,entropy)/1e10;
-  if(seconds<1)return '不到 1 秒';
-  if(seconds<60)return Math.round(seconds)+((typeof TBKit!=='undefined'&&TBKit.util.isEn())?" s":" 秒");
-  if(seconds<3600)return Math.round(seconds/60)+((typeof TBKit!=='undefined'&&TBKit.util.isEn())?" min":" 分钟");
-  if(seconds<86400)return Math.round(seconds/3600)+' 小时';
-  if(seconds<31536000)return Math.round(seconds/86400)+' 天';
-  if(seconds<31536000*100)return Math.round(seconds/31536000)+' 年';
-  if(seconds<31536000*1e6)return Math.round(seconds/31536000/1000)+' 千年';
-  var years=seconds/31536000;
-  if(years<1e8)return Math.round(years/1e4)+' 万年';
-  return Math.round(years/1e8)+' 亿年';
+  if(seconds<60)return '不足 1 分钟';
+  if(seconds<3600)return '数分钟';
+  if(seconds<86400)return '数小时';
+  if(seconds<31536000)return '数天';
+  if(seconds<31536000*100)return '数月到数年';
+  if(seconds<31536000*1e4)return '数十年';
+  if(seconds<31536000*1e8)return '数百年以上';
+  return '远超数百年';
 }
 function toggleVisibility(){
   var input=document.getElementById('pwdInput');
@@ -438,11 +437,11 @@ function copyPassword(){
   </div>
   <div class="tool-intro-body">
     <h4><span class="h4-icon">📝</span>工具簡介</h4>
-    <p>密碼強度檢測器基於字元種類、長度和資訊熵綜合評估密碼安全等級，並提供預估破解時間和改進建議，同時支援一鍵生成強密碼。</p>
+    <p>密碼強度檢測器基於字元種類、長度和資訊熵綜合評估密碼安全等級，並提供破解時間量級參考和改進建議，同時支援一鍵生成強密碼。</p>
     <h4><span class="h4-icon">✨</span>功能特點</h4>
     <ul class="intro-features">
       <li>即時檢測，輸入即分析</li>
-      <li>資訊熵計算與破解時間預估</li>
+      <li>資訊熵計算與破解時間量級參考</li>
       <li>常見弱密碼字典識別</li>
       <li>一鍵生成 16 位強密碼</li>
     </ul>
@@ -469,13 +468,22 @@ document.addEventListener('DOMContentLoaded',function(){
 });
 
 var __detector_checker_strength_last=0,__detector_checker_strength_skip=false;
+try{
+  var __dhsKey='tbk_hist_'+location.pathname;
+  var __dhsArr=JSON.parse(localStorage.getItem(__dhsKey)||'[]');
+  if(Array.isArray(__dhsArr)){
+    __dhsArr.forEach(function(r){ if(r&&r.d){ delete r.d.pwdInput; delete r.d.password; delete r.d.pass; delete r.d.token; delete r.d.secret; } });
+    localStorage.setItem(__dhsKey,JSON.stringify(__dhsArr));
+  }
+}catch(e){}
+
 function __detector_checker_strengthSnap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
     for(var i=0;i<els.length;i++){
         var e=els[i];
         var t=(e.type||'').toLowerCase();
-        if(t==='button'||t==='submit'||t==='hidden') continue;
+        if(t==='button'||t==='submit'||t==='hidden'||t==='password') continue;
         var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
         if(v!==''&&v!=null) out[e.id]=v;
     }
@@ -542,6 +550,7 @@ function __detector_checker_strengthExtras(){
     if (typeof TBKit === 'undefined') return;
     if (__detector_checker_strength_skip) return;
     var snap=__detector_checker_strengthSnap();
+    delete snap.pwdInput; delete snap.password; delete snap.pass; delete snap.token; delete snap.secret;
     var keys=Object.keys(snap);
     if(!keys.length) return;
     if(keys.length>12) keys=keys.slice(0,12);

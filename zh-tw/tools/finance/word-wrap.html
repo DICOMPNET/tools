@@ -246,9 +246,19 @@ function utf8Bytes(ch){
   return 4;
 }
 
+function charUnits(s){
+  // 按用户可见字符（字素簇）计数；无 Segmenter 时退回码点，至少不拆代理对。
+  try{
+    if(typeof Intl!=='undefined' && Intl.Segmenter){
+      const seg=new Intl.Segmenter(undefined,{granularity:'grapheme'});
+      return Array.from(seg.segment(s), x=>x.segment);
+    }
+  }catch(e){}
+  return Array.from(s);
+}
 function visualLen(s){
   const countBytes = document.getElementById('countBytes').checked;
-  if(!countBytes) return s.length;
+  if(!countBytes) return charUnits(s).length;
   let n = 0;
   for(const ch of s) n += utf8Bytes(ch);
   return n;
@@ -256,7 +266,10 @@ function visualLen(s){
 
 function takeByLen(s, targetLen){
   const countBytes = document.getElementById('countBytes').checked;
-  if(!countBytes) return {text: s.substr(0, targetLen), rest: s.substr(targetLen)};
+  if(!countBytes){
+    const units=charUnits(s);
+    return {text: units.slice(0, targetLen).join(''), rest: units.slice(targetLen).join('')};
+  }
   let n = 0, i = 0;
   // 按码点迭代，避免把 emoji / 增补平面字符从中间劈成半个代理项。
   for(const ch of s){
@@ -583,7 +596,7 @@ else document.addEventListener('DOMContentLoaded', __word_wrapBoot);
     </a>
     <a href="/zh-tw/tools/finance/mirror-text.html" class="related-tool-card">
       <span class="rt-icon">🏦</span>
-      <span class="rt-info"><span class="rt-name">映象文字</span><span class="rt-desc">將文字左右映象反轉生成可複製的字元或預覽圖，用於趣味簽名、藝術字與水印，純前端即時轉換支援一鍵複製結…</span></span>
+      <span class="rt-info"><span class="rt-name">映象文字</span><span class="rt-desc">將文字左右映象：複製近似 Unicode 字元，或匯出真實左右翻轉、透明背景的多行 PNG；</span></span>
     </a>
 
     <a href="/zh-tw/tools/finance/vcard-qr.html" class="related-tool-card">

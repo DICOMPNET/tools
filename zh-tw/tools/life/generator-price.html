@@ -107,11 +107,11 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="輸入單價、數量、稅率與折扣率，按「先折扣、再計稅」計算合同總額、預付款、尾款與違約金，並生成合同條款草案；全部計算在瀏覽器本地完成。">Enter unit price, quantity, tax rate and discount rate to compute the contract total, deposit, balance and penalty (discount first, then tax), then generate contract drafts locally in your browser.</p>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理與說明</div>
-      <div class="formula-eq">小計 = 單價 × 數量；折扣額 = 小計 × 折扣率；含稅價 = (小計 − 折扣額) × (1 + 稅率)；合同總額 = round(含稅價)；預付款 = round(合同總額 × 30%)；尾款 = 合同總額 − 預付款；違約金 = round(合同總額 × 10%)。計算順序固定為「先折扣、再計稅」，折扣與稅率均以百分數輸入。</div>
+      <div class="formula-eq">小計 = 單價 × 數量；折扣額 = 小計 × 折扣率；含稅價 = (小計 − 折扣額) × (1 + 稅率)；含稅價按分四捨五入得合同總額；預付款 = 合同總額 × 30% 按分四捨五入；尾款 = 合同總額 − 預付款；違約金 = 合同總額 × 10% 按分四捨五入。計算順序固定為「先折扣、再計稅」，折扣與稅率均以百分數輸入。</div>
 
 </div>
 
-<div class="input-row"><div><label for="unitPrice">單價（元）</label><input type="number" id="unitPrice" value="10000" min="0" step="0.01" oninput="gen()" placeholder="如 10000（≥0）"></div><div><label for="qty">數量</label><input type="number" id="qty" value="2" min="1" step="1" oninput="gen()" placeholder="如 2（≥1 整數）"></div><div><label for="taxRate">稅率（%）</label><input type="number" id="taxRate" value="6" min="0" max="100" step="0.01" oninput="gen()" placeholder="如 6（0–100）"></div><div><label for="discountRate">折扣率（%）</label><input type="number" id="discountRate" value="10" min="0" max="100" step="0.01" oninput="gen()" placeholder="如 10（0–100）"></div><div><label for="cnt">生成數量</label><input type="number" id="cnt" value="5" min="1" max="50" oninput="gen()" placeholder="如 5（1–50）"></div></div>
+<div class="input-row"><div><label for="contractPrefix">合同編號字首（可選，示例用）</label><input type="text" id="contractPrefix" placeholder="如 HT-2026-" oninput="gen()"></div><div><label for="unitPrice">單價（元）</label><input type="number" id="unitPrice" value="10000" min="0" step="0.01" oninput="gen()" placeholder="如 10000（≥0）"></div><div><label for="qty">數量</label><input type="number" id="qty" value="2" min="1" step="1" oninput="gen()" placeholder="如 2（≥1 整數）"></div><div><label for="taxRate">稅率（%）</label><input type="number" id="taxRate" value="6" min="0" max="100" step="0.01" oninput="gen()" placeholder="如 6（0–100）"></div><div><label for="discountRate">折扣率（%）</label><input type="number" id="discountRate" value="10" min="0" max="100" step="0.01" oninput="gen()" placeholder="如 10（0–100）"></div><div><label for="cnt">生成數量</label><input type="number" id="cnt" value="5" min="1" max="50" oninput="gen()" placeholder="如 5（1–50）"></div></div>
 <div class="toolbar"><div id="generator_pricePresets"></div><button type="button" class="btn primary" onclick="gen()">生成</button><button class="btn" type="button" onclick="__generator_priceExport()">匯出明細 CSV</button><button type="button" class="btn" onclick="copyRes()">複製</button></div>
 <div class="result-box" id="res"></div> <div id="generator_priceTable"></div> <div id="generator_priceDiff"></div> <div id="generator_priceChart"></div> <div id="generator_priceHist"></div>
   </div>
@@ -142,7 +142,7 @@
 <li>給客戶做報價前先生成幾版不同生成數量的合同草案，供內部討論取捨。</li>
 <li>整理<a class="term-link" href="/zh-tw/tools/legal/contract-templates.html">合同模板庫</a>時，用生成的樣例補充常見條款措辭。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">批次生成報價條款</div><div class="dd-ex-body">輸入單價、數量、稅率與<a class="term-link" href="/zh-tw/tools/marketing/marketing-discount-rate.html">折扣率</a>後生成草案：先計算小計並打折，再計稅，按元取整得合同總額，並計算預付款、尾款與違約金；服務項從內建清單中選取。</div></div>
+<div class="dd-example"><div class="dd-ex-title">批次生成報價條款</div><div class="dd-ex-body">輸入單價、數量、稅率與<a class="term-link" href="/zh-tw/tools/marketing/marketing-discount-rate.html">折扣率</a>後生成草案：先計算小計並打折，再計稅，按分四捨五入得合同總額，並計算預付款、尾款與違約金；服務項從內建清單中選取。</div></div>
 <div class="dd-example"><div class="dd-ex-title">數量上限</div><div class="dd-ex-body">生成數量須為 1–50 的整數，超出範圍會提示輸入有誤；需要更多條目可分次生成後合併。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
@@ -172,7 +172,7 @@
         </tr>
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="總額取整">Whole-yuan total</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="合同總額 = round(含稅價)，按元取整；預付款 = round(總額 × 30%)，尾款 = 總額 − 預付款；違約金 = round(總額 × 10%)">contract total = round(taxed price) in whole yuan; deposit = round(total × 30%); balance = total − deposit; penalty = round(total × 10%)</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="含稅價按分四捨五入；預付款按分四捨五入；尾款為總額減預付款；違約金按分四捨五入">contract total is rounded to cents; deposit is rounded to cents; balance = total − deposit; penalty is rounded to cents</td>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="本頁計算規則">calculation rule on this page</td>
         </tr>
         <tr>
@@ -195,6 +195,7 @@
 <!-- /注意事項區塊 -->
 </div>
 <script>
+var __contractBatch = 0;
 function randInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
@@ -240,6 +241,16 @@ function moneyUpper(n){
     return ({'零':'零','一':'壹','二':'贰','三':'叁','四':'肆','五':'伍','六':'陆','七':'柒','八':'捌','九':'玖','十':'拾','百':'佰','千':'仟','万':'万'})[c];
   });
 }
+function moneyUpperCents(cents){
+  const yuan=Math.floor(cents/100),jiao=Math.floor(cents/10)%10,fen=cents%10;
+  const d=['零','壹','贰','叁','肆','伍','陆','柒','捌','玖'];
+  let out=moneyUpper(yuan)+'元';
+  if(jiao===0&&fen===0)return out+'整';
+  if(jiao===0)out+='零';
+  else out+=d[jiao]+'角';
+  if(fen)out+=d[fen]+'分';
+  return out;
+}
 function gen() {
   const unitPrice = parseFloat(document.getElementById('unitPrice').value);
   const qty = parseFloat(document.getElementById('qty').value);
@@ -256,28 +267,39 @@ function gen() {
   const discountAmt = subtotal * discountRate / 100;
   const net = subtotal - discountAmt;
   const taxAmt = net * taxRate / 100;
-  const total = Math.round(net + taxAmt);
+  if (![subtotal, discountAmt, net, taxAmt].every(function(v){return isFinite(v);}) || net + taxAmt > Number.MAX_SAFE_INTEGER) {
+    document.getElementById('res').innerHTML = '<p style="color:var(--danger)">⚠ 金额中间值溢出或超出可安全计算范围，请降低单价、数量或税率。</p>';
+    return;
+  }
+  const totalCents = Math.round((net + taxAmt) * 100);
+  const total = totalCents / 100;
   if (!isFinite(total) || total < 0 || total > 999999999999) {
     document.getElementById('res').innerHTML = '<p style="color:var(--danger)">⚠ 合同总额超出可精确转写人民币大写的范围（上限 999,999,999,999 元），请降低单价、数量或税率。</p>';
     return;
   }
-  const deposit = Math.round(total * 0.3);
-  const finalPrice = total - deposit;
-  const penalty = Math.round(total * 0.1);
+  const depositCents = Math.round(totalCents * 0.3);
+  const deposit = depositCents / 100;
+  const finalCents = totalCents - depositCents;
+  const finalPrice = finalCents / 100;
+  const penalty = Math.round(totalCents * 0.1) / 100;
   const fmt = function(v){ return v.toLocaleString('en-US', {maximumFractionDigits:2}); };
   let html = '<div style="margin-bottom:10px;padding:10px;background:var(--bg-hover);border-radius:8px;line-height:1.8;"><span class="tb-bi">'
     + '<span class="t-zh"><strong>计价明细</strong><br>'
     + '小计：' + fmt(subtotal) + ' 元；折扣（' + discountRate + '%）：−' + fmt(discountAmt) + ' 元；'
     + '税额（' + taxRate + '%）：+' + fmt(taxAmt) + ' 元<br>'
-    + '<strong>合同总额：¥' + fmt(total) + '</strong>（大写：' + moneyUpper(total) + '元整）<br>'
+    + '<strong>合同总额：¥' + fmt(total) + '</strong>（大写：' + moneyUpperCents(totalCents) + '）<br>'
     + '预付款（30%）：¥' + fmt(deposit) + '；尾款：¥' + fmt(finalPrice) + '；违约金（10%）：¥' + fmt(penalty)
     + '</span><span class="t-en"><strong>Pricing breakdown</strong><br>'
     + 'Subtotal: CNY ' + fmt(subtotal) + '; discount (' + discountRate + '%): −' + fmt(discountAmt)
     + '; tax (' + taxRate + '%): +' + fmt(taxAmt) + '<br>'
     + '<strong>Contract total: CNY ' + fmt(total) + '</strong><br>'
     + 'Deposit (30%): CNY ' + fmt(deposit) + '; balance: CNY ' + fmt(finalPrice) + '; penalty (10%): CNY ' + fmt(penalty)
-    + '</span></span></div><p style="margin-bottom:8px;">合同条款草案：</p>';
+    + '</span></span></div><p style="margin-bottom:8px;">合同条款草案：</p><p style="font-size:12px;color:var(--text-muted);margin-bottom:8px;">编号均为<strong>示例</strong>，同一批内不重复；正式归档请自行填写并按贵司编号规则确认，本工具不承诺跨设备/跨会话全局唯一。</p>';
   const services = ['网站开发','UI设计','品牌策划','法律咨询','翻译服务','摄影摄像','培训课程','家政保洁','搬家运输','设备维修'];
+  const prefix = document.getElementById('contractPrefix').value.trim();
+  const safePrefix = ToolBox.escHtml(prefix);
+  __contractBatch = (__contractBatch || 0) + 1;
+  const batchId = Date.now().toString(36) + '-' + __contractBatch;
   // 固定顺序而非随机排序：相同输入得到相同草案，便于核对与复现
   const serviceBatch = services;
   for (let i = 0; i < n; i++) {
@@ -285,17 +307,17 @@ function gen() {
     const duration = 7 + ((i * 13 + Math.floor(total)) % 84);
     html += `<div style="margin:8px 0;padding:10px;background:var(--bg-hover);border-radius:8px;">
       <strong>${i+1}. 《${service}合同》草案</strong>
-      <pre style="margin:6px 0 0;white-space:pre-wrap;word-break:break-all;font-size:12px;">合同编号：HT-${String(randInt(1000,9999)).padStart(4,'0')}-${String(randInt(1000,9999)).padStart(4,'0')}
+      <pre style="margin:6px 0 0;white-space:pre-wrap;word-break:break-all;font-size:12px;">合同编号（示例）：${safePrefix || 'HT-示例-'}${batchId}-${String(i+1).padStart(2,'0')}
 
 第一条 服务内容
 乙方为甲方提供${service}服务，具体需求以双方确认的《需求确认单》为准。
 
 第二条 合同金额
-本合同总金额为人民币 ${total.toLocaleString()} 元（大写：${moneyUpper(total)}元整），其中小计 ${fmt(subtotal)} 元、折扣 ${fmt(discountAmt)} 元、税额 ${fmt(taxAmt)} 元。
+本合同总金额为人民币 ${fmt(total)} 元（大写：${moneyUpperCents(totalCents)}），其中小计 ${fmt(subtotal)} 元、折扣 ${fmt(discountAmt)} 元、税额 ${fmt(taxAmt)} 元。
 
 第三条 付款方式
-1. 合同签订后 3 个工作日内，甲方向乙方支付预付款 ${deposit.toLocaleString()} 元；
-2. 服务完成并经甲方验收合格后 5 个工作日内，支付尾款 ${finalPrice.toLocaleString()} 元。
+1. 合同签订后 3 个工作日内，甲方向乙方支付预付款 ${fmt(deposit)} 元；
+2. 服务完成并经甲方验收合格后 5 个工作日内，支付尾款 ${fmt(finalPrice)} 元。
 
 第四条 服务期限
 自本合同生效之日起 ${duration} 个自然日内完成全部服务内容。
@@ -307,7 +329,7 @@ function gen() {
 双方对在履行合同过程中知悉的对方商业秘密负有保密义务。
 
 第七条 违约责任
-任何一方违约，应向守约方支付违约金 ${penalty.toLocaleString()} 元（合同总额的 10%）。
+任何一方违约，应向守约方支付违约金 ${fmt(penalty)} 元（合同总额的 10%）。
 
 第八条 争议解决
 因本合同引起的争议，双方应友好协商；协商不成的，提交甲方所在地人民法院诉讼解决。</pre>
@@ -333,7 +355,7 @@ gen();
   <div class="related-tools-grid">
     <a href="/zh-tw/tools/life/recommender-8.html" class="related-tool-card">
       <span class="rt-icon">🛡️</span>
-      <span class="rt-info"><span class="rt-name">保險（責任/意外/僱主）推薦</span><span class="rt-desc">按責任、意外、僱主等保險類別生成投保建議文本樣例，輔助保險方案梳理與銷售溝通，內容僅供參考</span></span>
+      <span class="rt-info"><span class="rt-name">保險保障需求清單與條款比對</span><span class="rt-desc">列出保障需求清單和條款核對項，覆蓋家庭財產、個人意外、僱主責任、公眾責任、旅行出行；</span></span>
     </a>
     <a href="/zh-tw/tools/life/cycle-4.html" class="related-tool-card">
       <span class="rt-icon">⏱️</span>

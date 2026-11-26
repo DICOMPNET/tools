@@ -203,13 +203,14 @@
 </div>
 <script>
 function fmt(n,d){d=d==null?2:d;return n.toLocaleString('zh-CN',{minimumFractionDigits:d,maximumFractionDigits:d});}
+function escHtml(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
 function val(id){const e=document.getElementById(id);return e?parseFloat(e.value):NaN;}
 function calc(){
   const price=val('price');
   const lines=document.getElementById('roster').value.split('\n').map(s=>s.trim()).filter(Boolean);
-  const rows=[];
+  const rows=[]; const invalidRows=[];
   const unitRe=/^(个|份儿|份数|份|箱|件|人|斤|盒|袋|瓶|支|本|张|套|打|提)$/;
-  const numUnitRe=/^([\d.]+)(?:(个|份儿|份数|份|箱|件|人|斤|盒|袋|瓶|支|本|张|套|打|提)|([A-Za-z]+))?$/;
+  const numUnitRe=/^((?:\d+(?:\.\d+)?))(?:((?:个|份儿|份数|份|箱|件|人|斤|盒|袋|瓶|支|本|张|套|打|提))|([A-Za-z]+))?$/;
   lines.forEach(function(ln,rowIndex){
     let parts=ln.split(/[,，\t;；]|\s+/).map(s=>s.trim()).filter(Boolean);
     if(!parts.length) return;
@@ -222,6 +223,9 @@ function calc(){
     }
     parts=merged;
     let name='',qty=1,unit='份';
+    const numericParts=parts.filter(function(x){ return /^[\d.]+$/.test(x); });
+    const malformed=numericParts.filter(function(x){ return !/^\d+(?:\.\d+)?$/.test(x); });
+    if(malformed.length){ invalidRows.push({line:rowIndex+1,raw:malformed[0],reason:'数量格式无效（如 2..5 应按 2.5 或 2 书写）'}); return; }
     if(parts.length===1){
       const m=parts[0].match(numUnitRe);
       if(m){ qty=parseFloat(m[1]); unit=m[2]||m[3]||'份'; }
@@ -231,13 +235,20 @@ function calc(){
       if(m){ qty=parseFloat(m[1]); unit=m[2]||m[3]||'份'; name=parts.slice(0,-1).join(' '); }
       else name=parts.join(' ');
     }
-    if(!isFinite(qty)||qty<=0) qty=1;
+    if(!isFinite(qty)||qty<=0){
+      if(numericParts.length){ invalidRows.push({line:rowIndex+1,raw:numericParts[0],reason:'数量须大于 0'}); return; }
+      qty=1;
+    }
     rows.push({name:name||('未署名订单 #'+(rowIndex+1)),qty:qty,unit:unit,anonymous:!name,line:rowIndex});
   });
+  if(invalidRows.length){
+    document.getElementById('res').innerHTML='<p style="color:var(--danger);">以下行数量无效，未做自动改值，请修正后再统计：</p><ul>'+invalidRows.map(function(x){return '<li>第 '+x.line+' 行「'+escHtml(x.raw)+'」：'+x.reason+'</li>';}).join('')+'</ul>';
+    return;
+  }
   if(!rows.length){document.getElementById('res').innerHTML='<p>请粘贴接龙名单</p>';return;}
   if(!isFinite(price)||price<0){document.getElementById('res').innerHTML='<p>请填写有效单价</p>';return;}
   // 同名买家按「同一人 + 同一单位」合并数量；不同单位绝不直接相加，避免「2 箱 + 3 斤 = 5 份」这类无意义金额。
-  const agg={};
+  const agg=Object.create(null);
   rows.forEach(function(r){
     // 未署名行身份未知，不能按占位姓名合并；每行单独作为一单统计。
     const key=(r.anonymous?'anon#'+r.line:r.name)+'\u0000'+r.unit;
@@ -245,12 +256,12 @@ function calc(){
     agg[key].qty+=r.qty;
   });
   const mergedRows=Object.keys(agg).map(function(k){return agg[k];});
-  const identifiedNames=mergedRows.reduce(function(o,r){if(!r.anonymous)o[r.name]=1;return o;},{});
+  const identifiedNames=mergedRows.reduce(function(o,r){if(!r.anonymous)o[r.name]=1;return o;},Object.create(null));
   const people=Object.keys(identifiedNames).length;
   const anonymousOrders=mergedRows.filter(function(r){return r.anonymous;}).length;
-  const unitMap={};
+  const unitMap=Object.create(null);
   mergedRows.forEach(function(r){
-    if(!unitMap[r.unit]) unitMap[r.unit]={unit:r.unit,qty:0,names:{},anon:0};
+    if(!unitMap[r.unit]) unitMap[r.unit]={unit:r.unit,qty:0,names:Object.create(null),anon:0};
     unitMap[r.unit].qty+=r.qty; if(r.anonymous) unitMap[r.unit].anon++; else unitMap[r.unit].names[r.name]=1;
   });
   const unitList=Object.keys(unitMap).map(function(k){return unitMap[k];});
@@ -272,13 +283,13 @@ function calc(){
   const sortedDesc=[...mergedRows].sort(function(a,b){return b.qty-a.qty;});
   const topN=Math.min(3,sortedDesc.length);
   const topParts=[];
-  for(let i=0;i<topN;i++){ topParts.push(sortedDesc[i].name+' '+(sortedDesc[i].qty/total*100).toFixed(1)+'%'); }
+  for(let i=0;i<topN;i++){ topParts.push(escHtml(sortedDesc[i].name)+' '+(sortedDesc[i].qty/total*100).toFixed(1)+'%'); }
   const buckets=[0,0,0];
   mergedRows.forEach(function(r){ if(r.qty<=1) buckets[0]++; else if(r.qty<=3) buckets[1]++; else buckets[2]++; });
   body+='<p>合计'+onlyUnit+'数：<strong style="color:var(--primary);">'+fmt(total,Number.isInteger(total)?0:2)+'</strong> '+onlyUnit+'</p>'+
     '<p>人均'+onlyUnit+'数：<strong>'+(mean===null?'不适用（无实名购买人）':fmt(mean))+'</strong>'+(mean===null?'':' '+onlyUnit+'/人')+'</p>'+
-    '<p>下单最多：<strong>'+fmt(maxRow.qty,Number.isInteger(maxRow.qty)?0:2)+'</strong> '+onlyUnit+'（'+maxRow.name+'）</p>'+
-    '<p>下单最少：<strong>'+fmt(minRow.qty,Number.isInteger(minRow.qty)?0:2)+'</strong> '+onlyUnit+'（'+minRow.name+'）</p>'+
+    '<p>下单最多：<strong>'+fmt(maxRow.qty,Number.isInteger(maxRow.qty)?0:2)+'</strong> '+onlyUnit+'（'+escHtml(maxRow.name)+'）</p>'+
+    '<p>下单最少：<strong>'+fmt(minRow.qty,Number.isInteger(minRow.qty)?0:2)+'</strong> '+onlyUnit+'（'+escHtml(minRow.name)+'）</p>'+
     '<p>预售金额：<strong style="color:var(--primary);">'+fmt(amount)+'</strong> 元（单价 '+fmt(price)+' 元/'+onlyUnit+'）</p>'+
     '<p>人均金额：<strong>'+(perHead===null?'不适用（无实名购买人）':fmt(perHead))+'</strong>'+(perHead===null?'':' 元')+'</p>'+
     '<p>'+onlyUnit+'数占比前三：<strong>'+topParts.join(' · ')+'</strong></p>'+
@@ -308,7 +319,7 @@ calc();function copyResult(){ToolBox.copyText(document.getElementById('res').inn
     </a>
     <a href="/zh-tw/tools/life/recommender-8.html" class="related-tool-card">
       <span class="rt-icon">🛡️</span>
-      <span class="rt-info"><span class="rt-name">保險（責任/意外/僱主）推薦</span><span class="rt-desc">按責任、意外、僱主等保險類別生成投保建議文本樣例，輔助保險方案梳理與銷售溝通，內容僅供參考</span></span>
+      <span class="rt-info"><span class="rt-name">保險保障需求清單與條款比對</span><span class="rt-desc">列出保障需求清單和條款核對項，覆蓋家庭財產、個人意外、僱主責任、公眾責任、旅行出行；</span></span>
     </a>
     <a href="/zh-tw/tools/life/generator-price.html" class="related-tool-card">
       <span class="rt-icon">⚖️</span>

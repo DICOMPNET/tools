@@ -111,12 +111,20 @@
 <div class="formula-box">
   <div class="formula-title">📐 工作原理與說明</div>
       <div class="formula-eq">按英文基數詞規則：每三位一組（thousand/million/billion），十位與個位用連字元連線</div>
-      <div class="formula-desc">依據英文數字拼寫規則，將阿拉伯數字轉換為英文單詞，正確處理連字元與分組單位，用於支票與文書填寫。</div>
+      <div class="formula-desc">依據英文數字拼寫規則，將阿拉伯數字轉換為英文單詞；預設是一般數字讀法（小數逐位讀 point），不是支票金額格式。支票請選擇下方貨幣格式並核對銀行要求。</div>
 
 </div>
 
     <label for="inputVal">輸入數字（支援負數與小數）</label>
     <input type="text" id="inputVal" value="1234567.89" oninput="convert()">
+    <label for="currencyMode" style="margin-top:12px;">輸出格式</label>
+    <select id="currencyMode" onchange="convert()">
+      <option value="">一般數字讀法（小數逐位讀 point）</option>
+      <option value="USD">美元支票金額（dollars / cents，兩位小數）</option>
+      <option value="GBP">英鎊支票金額（pounds / pence，兩位小數）</option>
+      <option value="EUR">歐元支票金額（euros / cents，兩位小數）</option>
+    </select>
+    <p style="font-size:12.5px;color:var(--text-muted);margin-top:6px;">貨幣格式按兩位小數四捨五入，並給出「x/100」票據寫法；具體銀行/地區要求可能不同，請自行核對。</p>
 
     <div class="toolbar">
       <div id="number_to_wordsPresets"></div><button type="button" class="btn primary" onclick="convert()">轉換</button><button class="btn" type="button" onclick="__number_to_wordsExport()">匯出明細 CSV</button>
@@ -233,14 +241,13 @@ function threeDigitsToWord(n){
   return res;
 }
 
-function numberToWords(n, rawDec){
+function numberToWords(n, rawDec, rawNeg, rawInt){
   if(n === 0 && !rawDec) return 'zero';
-  let neg = false;
-  if(n < 0){
-    neg = true;
-    n = -n;
-  }
-  const intPart = Math.floor(n);
+  let neg = !!rawNeg || n < 0;
+  if(n < 0){ n = -n; }
+  // 整数部分优先用输入原文 parseInt：parseFloat 在大数带长小数时会先舍入到 1e12，
+  // 导致整数读法进位（如 999999999998.99999 被读成 …nine hundred ninety-nine）。
+  const intPart = rawInt != null ? parseInt(rawInt, 10) : Math.floor(n);
   const decPart = n - intPart;
   let words = '';
   if(intPart === 0){
@@ -285,17 +292,47 @@ function convert(){
     const __h1='<p style="color:var(--danger);">请输入有效数字</p>';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('resultBox').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('resultBox').innerHTML=__h1;
     return;
   }
-  const n = parseFloat(v);
-  if(Math.abs(n) >= 1e12){
+  const negSign = /^-/.test(v);
+  const absText = negSign ? v.slice(1) : v;
+  const dotAtAbs = absText.indexOf('.');
+  const intRaw = (dotAtAbs >= 0 ? absText.slice(0, dotAtAbs) : absText).replace(/^0+/, '') || '0';
+  // 范围按「输入原文的整数部分」判断，不先转浮点：上限为 12 位 9。
+  if(intRaw.length > 12 || (intRaw.length === 12 && intRaw > '999999999999')){
     const __h2='<p style="color:var(--danger);">超出范围（最大 ±999,999,999,999）</p>';if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('resultBox').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('resultBox').innerHTML=__h2;
     return;
   }
+  const n = parseFloat(v);
   const dotAt = v.indexOf('.');
-  const word = numberToWords(n, dotAt >= 0 ? v.slice(dotAt + 1) : null);
+  const word = numberToWords(n, dotAt >= 0 ? v.slice(dotAt + 1) : null, negSign, intRaw);
+  let moneyHtml = '';
+  const curSel = document.getElementById('currencyMode');
+  const cur = curSel ? curSel.value : '';
+  if(cur){
+    const defs = {
+      USD: {unit:'dollar', units:'dollars', cent:'cent', cents:'cents'},
+      GBP: {unit:'pound', units:'pounds', cent:'penny', cents:'pence'},
+      EUR: {unit:'euro', units:'euros', cent:'cent', cents:'cents'}
+    };
+    const def = defs[cur];
+    const negMoney = n < 0;
+    let centsTotal = Math.round(Math.abs(n) * 100);
+    let units = Math.floor(centsTotal / 100);
+    let cents = centsTotal % 100;
+    let unitWords = numberToWords(units, null, false);
+    const unitLabel = units === 1 ? def.unit : def.units;
+    let centWords = cents === 0 ? 'zero' : (cents === 1 ? 'one ' + def.cent : threeDigitsToWord(cents) + ' ' + def.cents);
+    if(cents !== 1) centWords = cents === 0 ? 'zero ' + def.cents : threeDigitsToWord(cents) + ' ' + def.cents;
+    const moneyWords = (negMoney ? 'minus ' : '') + unitWords + ' ' + unitLabel + ' and ' + centWords;
+    const chequeWords = (negMoney ? 'minus ' : '') + unitWords + ' ' + unitLabel + ' and ' + String(cents).padStart(2, '0') + '/100';
+    const roundedTip = (dotAt >= 0 && v.slice(dotAt + 1).length > 2) ? '<p style="font-size:12px;color:var(--warning,#b45309);">输入小数超过两位，已按四舍五入到分显示；票据填写前请确认进位。</p>' : '';
+    moneyHtml = '<hr style="border:none;border-top:1px solid var(--border);margin:10px 0;">'+
+      '<p>货币金额：<strong>' + moneyWords + '</strong></p>'+
+      '<p>票据写法（x/100）：<strong>' + chequeWords + '</strong></p>' + roundedTip;
+  }
   const __h3=`
     <p>数字：<strong>${v}</strong></p>
     <p>英文单词：<strong>${word}</strong></p>
-  `;if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){document.getElementById('resultBox').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('resultBox').innerHTML=__h3;
+  ` + moneyHtml;if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){document.getElementById('resultBox').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('resultBox').innerHTML=__h3;
 }
 
 function clearAll(){
@@ -483,7 +520,7 @@ else document.addEventListener('DOMContentLoaded', __number_to_wordsBoot);
     </a>
     <a href="/zh-tw/tools/finance/mirror-text.html" class="related-tool-card">
       <span class="rt-icon">🏦</span>
-      <span class="rt-info"><span class="rt-name">映象文字</span><span class="rt-desc">將文字左右映象反轉生成可複製的字元或預覽圖，用於趣味簽名、藝術字與水印，純前端即時轉換支援一鍵複製結…</span></span>
+      <span class="rt-info"><span class="rt-name">映象文字</span><span class="rt-desc">將文字左右映象：複製近似 Unicode 字元，或匯出真實左右翻轉、透明背景的多行 PNG；</span></span>
     </a>
 
   </div>

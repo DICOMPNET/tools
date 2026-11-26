@@ -408,20 +408,30 @@ function getVal(id){
   return el ? (+el.value || 0) : 0;
 }
 
+function __psFail(msg){
+  currentResult = null;
+  document.getElementById('statGrid').innerHTML = '';
+  document.getElementById('res').innerHTML = '<p class="tip-error">❌ ' + msg + '</p>';
+  try{ var cv=document.getElementById('chart'); if(cv&&cv.getContext) cv.getContext('2d').clearRect(0,0,cv.width,cv.height); }catch(e){}
+}
+
 function calc(){
   var result = {method: currentMethod, timestamp: Date.now()};
 
   if(currentMethod === 'kelly'){
-    var capital = getVal('k-capital');
-    var winRate = getVal('k-winrate') / 100;
-    var ratio = getVal('k-ratio');
-    var fraction = getVal('k-fraction');
-    var loseRate = 1 - winRate;
-    if (!(ratio > 0)) {
-      document.getElementById('statGrid').innerHTML='';
-      document.getElementById('res').innerHTML = '<p class="tip-error">盈亏比须大于 0，否则凯利公式无定义（分母为 0）。</p>';
-      return;
+    var __rawK={}; ['k-capital','k-winrate','k-ratio','k-fraction'].forEach(function(id){var e=document.getElementById(id);__rawK[id]=String(e&&e.value!=null?e.value:'').trim();});
+    if(__rawK['k-capital']===''||__rawK['k-winrate']===''||__rawK['k-ratio']===''||__rawK['k-fraction']===''){
+      __psFail('请填写账户资金、胜率、盈亏比与凯利分数（如确为 0，请明确输入 0）。'); return;
     }
+    var capital = Number(__rawK['k-capital']);
+    var winRate = Number(__rawK['k-winrate']) / 100;
+    var ratio = Number(__rawK['k-ratio']);
+    var fraction = Number(__rawK['k-fraction']);
+    var loseRate = 1 - winRate;
+    if(!isFinite(capital)||capital<=0){ __psFail('账户资金须大于 0。'); return; }
+    if(!isFinite(winRate)||winRate<0||winRate>1){ __psFail('胜率须在 0%–100% 之间。'); return; }
+    if(!isFinite(ratio)||ratio<=0){ __psFail('盈亏比须大于 0，否则凯利公式无定义（分母为 0）。'); return; }
+    if(!isFinite(fraction)||fraction<0||fraction>1){ __psFail('凯利分数须在 0%–100% 之间。'); return; }
     var kellyPct = (winRate * ratio - loseRate) / ratio;
     kellyPct = Math.max(0, kellyPct);
     var actualPct = kellyPct * fraction;
@@ -437,10 +447,19 @@ function calc(){
     result.fraction = fraction;
   }
   else if(currentMethod === 'fixed'){
-    var capital = getVal('f-capital');
-    var pct = getVal('f-percent') / 100;
-    var price = getVal('f-price');
-    var stop = getVal('f-stop');
+    var __rawF={}; ['f-capital','f-percent','f-price','f-stop'].forEach(function(id){var e=document.getElementById(id);__rawF[id]=String(e&&e.value!=null?e.value:'').trim();});
+    if(__rawF['f-capital']===''||__rawF['f-percent']===''||__rawF['f-price']===''||__rawF['f-stop']===''){
+      __psFail('请填写账户资金、仓位比例、买入价与止损价（如确为 0，请明确输入 0）。'); return;
+    }
+    var capital = Number(__rawF['f-capital']);
+    var pct = Number(__rawF['f-percent']) / 100;
+    var price = Number(__rawF['f-price']);
+    var stop = Number(__rawF['f-stop']);
+    if(!isFinite(capital)||capital<=0){ __psFail('账户资金须大于 0。'); return; }
+    if(!isFinite(pct)||pct<0||pct>1){ __psFail('仓位比例须在 0%–100% 之间。'); return; }
+    if(!isFinite(price)||price<=0){ __psFail('买入价须大于 0。'); return; }
+    if(!isFinite(stop)||stop<=0){ __psFail('止损价须大于 0。'); return; }
+    if(stop>=price){ __psFail('止损价须低于买入价；本工具仅支持做多，止损价等于或高于买入价时每股风险不为正。'); return; }
     var position = capital * pct;
     var shares = price > 0 ? Math.floor(position / price / 100) * 100 : 0;
     var actualPosition = shares * price;
@@ -457,17 +476,34 @@ function calc(){
     result.riskPct = riskPct;
   }
   else if(currentMethod === 'risk'){
-    var capital = getVal('r-capital');
-    var riskPct = getVal('r-riskpct') / 100;
-    var price = getVal('r-price');
-    var stop = getVal('r-stop');
+    var __rawR={}; ['r-capital','r-riskpct','r-price','r-stop'].forEach(function(id){var e=document.getElementById(id);__rawR[id]=String(e&&e.value!=null?e.value:'').trim();});
+    if(__rawR['r-capital']===''||__rawR['r-riskpct']===''||__rawR['r-price']===''||__rawR['r-stop']===''){
+      __psFail('请填写账户资金、风险比例、买入价与止损价（如确为 0，请明确输入 0）。'); return;
+    }
+    var capital = Number(__rawR['r-capital']);
+    var riskPct = Number(__rawR['r-riskpct']) / 100;
+    var price = Number(__rawR['r-price']);
+    var stop = Number(__rawR['r-stop']);
+    if(!isFinite(capital)||capital<=0){ __psFail('账户资金须大于 0。'); return; }
+    if(!isFinite(riskPct)||riskPct<0||riskPct>1){ __psFail('风险比例须在 0%–100% 之间。'); return; }
+    if(!isFinite(price)||price<=0){ __psFail('买入价须大于 0。'); return; }
+    if(!isFinite(stop)||stop<=0){ __psFail('止损价须大于 0。'); return; }
+    if(stop>=price){ __psFail('止损价须低于买入价；本工具仅支持做多，止损价等于或高于买入价时每股风险不为正。'); return; }
     var riskAmount = capital * riskPct;
     var riskPerShare = price - stop;
-    var shares = riskPerShare > 0 ? Math.floor(riskAmount / riskPerShare / 100) * 100 : 0;
+    var desiredShares = riskPerShare > 0 ? Math.floor(riskAmount / riskPerShare / 100) * 100 : 0;
+    // 风险预算不能突破可用资金：按整手向下取整，并记录因资金上限未用完的风险预算。
+    var maxShares = price > 0 ? Math.floor(capital / price / 100) * 100 : 0;
+    var shares = Math.max(0, Math.min(desiredShares, maxShares));
+    var cappedByCash = desiredShares > maxShares;
     var position = shares * price;
     var actualRisk = shares * riskPerShare;
     var positionPct = capital > 0 ? (position / capital * 100) : 0;
     result.capital = capital;
+    result.cappedByCash = cappedByCash;
+    result.desiredShares = desiredShares;
+    result.maxShares = maxShares;
+    result.unusedRisk = Math.max(0, riskAmount - actualRisk);
     result.riskPct = riskPct;
     result.price = price;
     result.stop = stop;
@@ -478,10 +514,26 @@ function calc(){
     result.positionPct = positionPct;
   }
   else if(currentMethod === 'martingale'){
-    var initial = getVal('m-initial');
-    var multiplier = getVal('m-multiplier');
-    var times = Math.floor(getVal('m-times'));
-    var dropPct = getVal('m-droppct') / 100;
+    var initialRaw = String(document.getElementById('m-initial').value || '').trim();
+    var multRaw = String(document.getElementById('m-multiplier').value || '').trim();
+    var timesRaw = String(document.getElementById('m-times').value || '').trim();
+    var dropRaw = String(document.getElementById('m-droppct').value || '').trim();
+    var martingaleErr = initialRaw === '' ? '请填写初始仓位。' : multRaw === '' ? '请填写加仓倍数。' : timesRaw === '' ? '请填写最大加仓次数。' : dropRaw === '' ? '请填写加仓跌幅。' : '';
+    var initial = Number(initialRaw), multiplier = Number(multRaw), timesNum = Number(timesRaw), dropNum = Number(dropRaw);
+    if(!martingaleErr && (!isFinite(initial) || initial <= 0)) martingaleErr = '初始仓位须大于 0。';
+    if(!martingaleErr && (!isFinite(multiplier) || multiplier < 1 || multiplier > 100)) martingaleErr = '加仓倍数须在 1–100 之间。';
+    if(!martingaleErr && (!isFinite(timesNum) || !Number.isInteger(timesNum) || timesNum < 1 || timesNum > 20)) martingaleErr = '最大加仓次数须为 1–20 的整数，不支持小数或 0。';
+    if(!martingaleErr && (!isFinite(dropNum) || dropNum < 0 || dropNum > 100 || (dropNum === 100 && timesNum !== 1))) martingaleErr = '加仓跌幅须为 0%（含）至 100%（含）；仅 1 层时允许 100%，多层须小于 100%。';
+    if(martingaleErr){
+      currentResult = null;
+      document.getElementById('statGrid').innerHTML = '';
+      document.getElementById('res').innerHTML = '<p class="tip-error">❌ ' + martingaleErr + '</p>';
+      var canvasErr = document.getElementById('chart');
+      if(canvasErr) canvasErr.getContext('2d').clearRect(0, 0, canvasErr.width, canvasErr.height);
+      return;
+    }
+    var times = timesNum;
+    var dropPct = dropNum / 100;
     var lastPrice = 100 * Math.pow(1 - dropPct, times - 1);
     var lastPosition = initial * Math.pow(multiplier, times - 1);
     if(!isFinite(dropPct) || dropPct < 0 || dropPct > 1 || !(lastPrice > 0) || !isFinite(lastPosition / lastPrice)){
@@ -591,6 +643,9 @@ function renderResult(r){
     html += '<p>建议持股数量：<strong style="color:var(--primary);font-size:18px;">' + ToolBox.formatNumber(r.shares, 0) + ' 股</strong></p>';
     html += '<p>建议仓位金额：<strong style="color:var(--primary);font-size:18px;">¥' + ToolBox.formatNumber(r.position, 2) + '</strong>（占总资产 ' + r.positionPct.toFixed(2) + '%）</p>';
     html += '<p>实际风险：<strong style="color:var(--danger);">¥' + ToolBox.formatNumber(r.actualRisk, 2) + '</strong></p>';
+    if(r.cappedByCash){
+      html += '<div class="tip-box tip-warn">风险预算对应的理论股数为 ' + ToolBox.formatNumber(r.desiredShares, 0) + ' 股，但可用资金最多只能买 ' + ToolBox.formatNumber(r.maxShares, 0) + ' 股；已按资金上限与整手向下取整，未使用风险预算 ¥' + ToolBox.formatNumber(r.unusedRisk, 2) + '，未引入杠杆。</div>';
+    }
   }
   else if(currentMethod === 'martingale'){
     html += '<h3 style="margin-bottom:10px;font-size:15px;">📋 加仓计划</h3>';
@@ -1115,7 +1170,7 @@ else document.addEventListener('DOMContentLoaded', __position_size_calculatorBoo
     </a>
     <a href="/zh-tw/tools/finance/mirror-text.html" class="related-tool-card">
       <span class="rt-icon">🏦</span>
-      <span class="rt-info"><span class="rt-name">映象文字</span><span class="rt-desc">將文字左右映象反轉生成可複製的字元或預覽圖，用於趣味簽名、藝術字與水印，純前端即時轉換支援一鍵複製結…</span></span>
+      <span class="rt-info"><span class="rt-name">映象文字</span><span class="rt-desc">將文字左右映象：複製近似 Unicode 字元，或匯出真實左右翻轉、透明背景的多行 PNG；</span></span>
     </a>
 
   </div>

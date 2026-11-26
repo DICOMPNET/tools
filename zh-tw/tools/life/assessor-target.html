@@ -113,7 +113,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="輸入選址區域人流量、競爭密度等引數，評估便利店選址可行性">Score a candidate location by foot traffic, nearby competitors, resident population, rent, area and visibility to produce a weighted site score and selection advice.</p>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">選址評分 = 人流 × 0.28 + 競爭 × 0.18 + 人口 × 0.18 + 租金 × 0.13 + 可見性 × 0.13 + 面積 × 0.10；人流 = min(100, 人流量 ÷ 100)，競爭 = max(0, 100 − 競對 × 15)，人口 = min(100, 人口 ÷ 50)（≥5000 人封頂），租金按 ≤100/150/200/300/>300 元分檔計 100/80/60/40/20 分，面積在 40–120㎡ 記 100 分、偏小按每㎡扣 1.5 分、偏大按每㎡扣 0.5 分</div>
-  <p class="formula-desc">按人流量、競爭密度、常住人口、租金、可見性、店鋪面積六維加權評分輸出綜合分與選址等級（優秀/良好/一般/不佳）；模型量化選址要素，結果為網點佈局決策參考，最終盈利還看選品與運營。</p>
+  <p class="formula-desc">按人流量、競爭密度、常住人口、租金、可見性、店鋪面積六維加權評分輸出綜合分與選址等級（優秀/良好/一般/不佳）；權重為可調整的經驗模型，僅作粗略篩選與橫向比較，不能替代盈利測算，最終盈利還看選品與運營。面積為 0 或負數直接判為無效，不輸出推薦等級。</p>
 </div>
 
     <div class="input-row"><div><label for="traffic">日均人流量 (人/天)</label><input type="number" id="traffic" value="8000" step="500" style="font-size:16px;" oninput="calc()" placeholder="如 8000"></div></div>
@@ -152,7 +152,7 @@
 <li>對多個候選鋪位分別評估，按總分排序選出優先洽談的物件。</li>
 <li>已開業門店做復盤時回填引數，驗證當年選址判斷是否與經營表現一致。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">兩個候選鋪位對比</div><div class="dd-ex-body">A 鋪：人流 8000、競爭 2 家、人口 3 萬、租金 120 元/m²、可見性 8 分、面積 80 ㎡ → 綜合 83.8 分（優秀）；B 鋪：人流 3000、競爭 5 家、人口 1 萬、租金 200 元/m²、可見性 5 分、面積 80 ㎡ → 55.2 分（一般）；在資源有限時優先洽談 A 鋪。</div></div>
+<div class="dd-example"><div class="dd-ex-title">兩個候選鋪位對比</div><div class="dd-ex-body">A 鋪：人流 8000、競爭 2 家、人口 3 萬、租金 120 元/m²、可見性 8 分、面積 80 ㎡ → 按當前權重綜合 83.8 分（優秀）；B 鋪：人流 3000、競爭 5 家、人口 1 萬、租金 200 元/m²、可見性 5 分、面積 80 ㎡ → 55.2 分（一般）；在資源有限時優先洽談 A 鋪。兩組引數可在頁面「A 鋪/B 鋪（深挖示例）」預設中直接載入複核。</div></div>
 <div class="dd-example"><div class="dd-ex-title">高租金被其他維度抵消</div><div class="dd-ex-body">某鋪租金 260 元/m²（該項僅 20 分），但人流、人口、競爭、可見性與面積均接近滿分，綜合仍達 89.6 分；說明高租金可由強客流部分抵消，不應只憑租金一項否決。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
@@ -222,7 +222,7 @@ function calc(){
   if(cm<0) bad.push('竞争店数不能为负');
   if(po<0) bad.push('常住人口不能为负');
   if(rt<0) bad.push('租金不能为负');
-  if(sa<0) bad.push('面积不能为负');
+  if(sa<0) bad.push('面积不能为负'); if(sa===0) bad.push('店铺面积须大于 0');
   if(vs<0) bad.push('可见性不能为负');
   if(!Number.isInteger(cm)) bad.push('竞争店数须为整数');
   if(!Number.isInteger(po)) bad.push('常住人口须为整数');
@@ -284,15 +284,15 @@ calc();
     </a>
     <a href="/zh-tw/tools/life/report-profit.html" class="related-tool-card">
       <span class="rt-icon">📈</span>
-      <span class="rt-info"><span class="rt-name">財務（利潤/現金流/報表）核算</span><span class="rt-desc">輸入利潤與現金流資料（逗號或換行分隔），彙總合計、均值與波動並輸出報表要點，輔助經營復盤與財務分析</span></span>
+      <span class="rt-info"><span class="rt-name">財務（利潤/現金流/報表）核算</span><span class="rt-desc">輸入營業收入、進貨成本、人工、房租、水電雜費、回款率與期初現金，按簡化公式計算毛利、營業利潤、本期現…</span></span>
     </a>
     <a href="/zh-tw/tools/life/analysis-80.html" class="related-tool-card">
       <span class="rt-icon">📊</span>
-      <span class="rt-info"><span class="rt-name">損耗（控制/分析/改善）體系</span><span class="rt-desc">輸入損耗數量與基準資料（逗號或換行分隔），統計損耗率、均值與波動，輔助損耗控制與改善分析</span></span>
+      <span class="rt-info"><span class="rt-name">損耗（控制/分析/改善）體系</span><span class="rt-desc">按行輸入環節、損耗量與應售量，計算各環節損耗率、加權平均損耗率和環節間波動，定位高發環節</span></span>
     </a>
     <a href="/zh-tw/tools/life/recommender-8.html" class="related-tool-card">
       <span class="rt-icon">🛡️</span>
-      <span class="rt-info"><span class="rt-name">保險（責任/意外/僱主）推薦</span><span class="rt-desc">按責任、意外、僱主等保險類別生成投保建議文本樣例，輔助保險方案梳理與銷售溝通，內容僅供參考</span></span>
+      <span class="rt-info"><span class="rt-name">保險保障需求清單與條款比對</span><span class="rt-desc">列出保障需求清單和條款核對項，覆蓋家庭財產、個人意外、僱主責任、公眾責任、旅行出行；</span></span>
     </a>
   </div>
 </div>
@@ -448,6 +448,8 @@ function __assessor_targetExport(){
 function __assessor_targetPresets(){
     if (typeof TBKit === 'undefined') return;
     TBKit.preset.bar('#assessor_targetPresets',[{label:'默认参数',labelEn:'Default',values:{'traffic':'8000', 'competitors':'3', 'population':'5000', 'rent':'200', 'shopArea':'80', 'visibility':'8'}},
+  {'label':'A 铺（深挖示例）','labelEn':'Site A (example)','values':{'traffic':'8000','competitors':'2','population':'30000','rent':'120','shopArea':'80','visibility':'8'}},
+  {'label':'B 铺（深挖示例）','labelEn':'Site B (example)','values':{'traffic':'3000','competitors':'5','population':'10000','rent':'200','shopArea':'80','visibility':'5'}},
   {'label':'社区便利店','labelEn':'Community Store','values':{'traffic':'3000','competitors':'8','population':'2000','rent':'120','shopArea':'50','visibility':'6'}},
   {'label':'商圈旗舰店','labelEn':'Flagship Store','values':{'traffic':'20000','competitors':'2','population':'15000','rent':'500','shopArea':'200','visibility':'10'}},
   {'label':'街边小铺','labelEn':'Street Shop','values':{'traffic':'5000','competitors':'5','population':'4000','rent':'180','shopArea':'60','visibility':'7'}}],function(){ calc(); });

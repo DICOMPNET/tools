@@ -213,15 +213,46 @@ function norm(s){
   return s;
 }
 var rows='',tb=0,ta=0,n=0,over=0,under=0,worst="—",worstV=0,skipped=[],neg=[];
-function esc(s){return (typeof ToolBox!=='undefined'&&ToolBox.escHtml)?ToolBox.escHtml(String(s)):String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
-lines.forEach(function(raw){
-// 名称允许含空格：先归一化全角数字/千分位/单位后缀，再取行末两个数字作为预算/实际
-var ln=norm(raw);
-var m=ln.match(/^(.+?)[\s,，\t;；]+(-?\d{1,3}(?:,\d{3})*|-?\d+(?:\.\d+)?)[\s,，\t;；]+(-?\d{1,3}(?:,\d{3})*|-?\d+(?:\.\d+)?)$/);
-if(!m){skipped.push(raw);return;}
-var name=m[1].trim(),b=parseFloat(String(m[2]).replace(/,/g,'')),a=parseFloat(String(m[3]).replace(/,/g,''));
-if(isNaN(b)||isNaN(a)){skipped.push(ln);return;}
-if(b<0||a<0){neg.push(ln);return;}
+function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+function splitCsvLine(raw){
+  var delim=(raw.indexOf(';')>=0 && raw.indexOf('"')<0)?';':',';
+  var cells=[],cur='',quoted=false;
+  for(var i=0;i<raw.length;i++){
+    var ch=raw[i];
+    if(ch==='"'){
+      if(quoted&&raw[i+1]==='"'){cur+='"';i++;}
+      else{quoted=!quoted;}
+    }else if(ch===delim&&!quoted){cells.push(cur);cur='';}
+    else{cur+=ch;}
+  }
+  if(quoted) return null;
+  cells.push(cur);
+  return cells;
+}
+
+lines.forEach(function(raw,idx){
+// 名称允许含空格：先归一化全角数字/千分位/单位后缀，再按分隔符拆列
+raw=norm(raw);
+var cells=splitCsvLine(raw);
+if(cells&&cells.length>3){
+  var merged=[];
+  for(var ci=0;ci<cells.length;ci++){
+    if(ci+1<cells.length&&/^-?\d{1,3}$/.test(cells[ci].trim())&&/^\d{3}(?:\.\d+)?$/.test(cells[ci+1].trim())){
+      merged.push(cells[ci].trim()+','+cells[ci+1].trim());ci++;
+    }else merged.push(cells[ci]);
+  }
+  cells=merged;
+}
+var lineNo='第'+(idx+1)+'行：';
+if(!cells){skipped.push(lineNo+'引号未闭合');return;}
+if(cells.length!==3){skipped.push(lineNo+'应为 3 列（成本项,预算,实际），实际 '+cells.length+' 列；名称含逗号请用英文双引号包裹');return;}
+var name=String(cells[0]||'').trim();
+var numPat=/^-?\d{1,3}(?:,\d{3})*(?:\.\d+)?$|^-?\d+(?:\.\d+)?$/;
+if(!name){skipped.push(lineNo+'成本项名称为空');return;}
+if(!numPat.test(cells[1].trim())||!numPat.test(cells[2].trim())){skipped.push(lineNo+'预算或实际不是有效数值');return;}
+var b=parseFloat(String(cells[1]).replace(/,/g,'')),a=parseFloat(String(cells[2]).replace(/,/g,''));
+if(isNaN(b)||isNaN(a)){skipped.push(lineNo+'预算或实际不是有效数值');return;}
+if(b<0||a<0){neg.push(lineNo+raw.trim());return;}
 var d=a-b,dr=b!==0?(d/b*100).toFixed(2)+'%':'—（预算为 0）';
 n++;tb+=b;ta+=a;
 if(d>0){over++;if(d>worstV){worstV=d;worst=name;}}else if(d<0){under++;}
@@ -234,7 +265,7 @@ const __g2='<p>成本项数：<strong>'+n+'</strong></p>'+
 '<p>实际合计：<strong>'+ta.toFixed(2)+'</strong> 元</p>'+
 '<p>总差异：<strong style="color:var(--primary);">'+(diff>0?'+':'')+diff.toFixed(2)+'</strong> 元</p>'+
 '<p>预算执行率：<strong>'+rateText+'</strong></p>'+
-'<p>最大超支项：<strong>'+worst+'</strong>（超支 '+worstV.toFixed(2)+' 元）</p>'+
+'<p>最大超支项：<strong>'+esc(worst)+'</strong>（超支 '+worstV.toFixed(2)+' 元）</p>'+
 '<p>超支项数：<strong>'+over+'</strong>　节约项数：<strong>'+under+'</strong></p>'+
 (skipped.length?'<p style="color:var(--warning);">存在无法解析的行，已跳过。</p><p class="muted">'+skipped.map(esc).join('；')+'</p>':'')+
 (neg.length?'<p style="color:var(--warning);">预算或实际为负的行已按无效处理（成本预算不能为负）：</p><p class="muted">'+neg.map(esc).join('；')+'</p>':'')+
@@ -256,11 +287,11 @@ calc();function copyRes(){ToolBox.copyText(document.getElementById("res").innerT
   <div class="related-tools-grid">
     <a href="/zh-tw/tools/life/report-profit.html" class="related-tool-card">
       <span class="rt-icon">📈</span>
-      <span class="rt-info"><span class="rt-name">財務（利潤/現金流/報表）核算</span><span class="rt-desc">輸入利潤與現金流資料（逗號或換行分隔），彙總合計、均值與波動並輸出報表要點，輔助經營復盤與財務分析</span></span>
+      <span class="rt-info"><span class="rt-name">財務（利潤/現金流/報表）核算</span><span class="rt-desc">輸入營業收入、進貨成本、人工、房租、水電雜費、回款率與期初現金，按簡化公式計算毛利、營業利潤、本期現…</span></span>
     </a>
     <a href="/zh-tw/tools/life/analysis-80.html" class="related-tool-card">
       <span class="rt-icon">📊</span>
-      <span class="rt-info"><span class="rt-name">損耗（控制/分析/改善）體系</span><span class="rt-desc">輸入損耗數量與基準資料（逗號或換行分隔），統計損耗率、均值與波動，輔助損耗控制與改善分析</span></span>
+      <span class="rt-info"><span class="rt-name">損耗（控制/分析/改善）體系</span><span class="rt-desc">按行輸入環節、損耗量與應售量，計算各環節損耗率、加權平均損耗率和環節間波動，定位高發環節</span></span>
     </a>
     <a href="/zh-tw/tools/life/assessor-target.html" class="related-tool-card">
       <span class="rt-icon">📋</span>
@@ -268,7 +299,7 @@ calc();function copyRes(){ToolBox.copyText(document.getElementById("res").innerT
     </a>
     <a href="/zh-tw/tools/life/recommender-8.html" class="related-tool-card">
       <span class="rt-icon">🛡️</span>
-      <span class="rt-info"><span class="rt-name">保險（責任/意外/僱主）推薦</span><span class="rt-desc">按責任、意外、僱主等保險類別生成投保建議文本樣例，輔助保險方案梳理與銷售溝通，內容僅供參考</span></span>
+      <span class="rt-info"><span class="rt-name">保險保障需求清單與條款比對</span><span class="rt-desc">列出保障需求清單和條款核對項，覆蓋家庭財產、個人意外、僱主責任、公眾責任、旅行出行；</span></span>
     </a>
   </div>
 </div>
