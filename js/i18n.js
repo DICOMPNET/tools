@@ -591,8 +591,17 @@ var LANG_REGISTRY = [
   function assetUrl(url) {
     if (!url || /^(?:[a-z][a-z0-9+.-]*:|\/\/)/i.test(url)) return url;
     var prefix = current === 'zh-TW' ? '/zh-tw' : '';
-    if (!prefix) return url;
-    return prefix + (url.charAt(0) === '/' ? url : '/' + url);
+    // 子路径部署适配（GitHub Pages 预览站 dicompnet.github.io/tools/）：
+    // 若当前站点挂在 /tools/ 子路径下，给绝对路径资源补上 /tools 前缀。
+    var sub = '';
+    try {
+      var p = location.pathname || '';
+      var m = p.match(/^(\/tools)\/(zh-tw\/)?/);
+      if (m) sub = '/tools';
+    } catch (e) {}
+    if (!prefix && !sub) return url;
+    var sep = url.charAt(0) === '/' ? url : '/' + url;
+    return sub + prefix + sep;
   }
 
   function routeFor(lang) {
