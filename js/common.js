@@ -2815,6 +2815,23 @@ function toolPageRootPrefix(){
   return '/';
 }
 
+function assetRoot(){
+  // 静态资源（logo/favicon）部署前缀自适应。
+  // 正式域名 tools.dicomp.net 站点挂在根路径 → '/'；
+  // GitHub Pages 预览站 dicompnet.github.io/tools/ 挂在子路径 → '/tools/'。
+  // logo/favicon 是全站共享文件，只存在于站点根（zh-tw 子站内无副本），
+  // 因此简体页与繁体页统一指向站点根，不按 zh-tw 前缀回退。
+  // 依据：pathname 以子路径 '/tools/' 开头（含 zh-tw/ 变体），视为子路径部署，
+  // 返回 '/tools/'；其余（正式域名根部署）返回 '/'。
+  try {
+    var p = location.pathname || '';
+    if (/^\/tools\//.test(p)) {
+      return '/tools/';
+    }
+  } catch(e){}
+  return '/';
+}
+
 // 是否站点根目录首页（index.html）。首页有自己专属的移动端 Tab 栏（首页内 app.js
 // 函数驱动的页内弹层），因此统一页脚在首页不重复注入 .tab-bar，避免双份。
 function isHomepage(){
@@ -2860,7 +2877,7 @@ function buildUnifiedHeader(){
   desk.className = 'nav-top desktop-only';
   desk.innerHTML =
     '<div class="nav-logo" onclick="location.href=\'' + root + 'index.html\'" style="cursor:pointer">' +
-      '<img src="/logo.svg" alt="ToolBox Logo">' +
+      '<img src="' + assetRoot() + 'logo.svg" alt="ToolBox Logo">' +
       '<div class="nav-logo-text"><span class="nav-logo-name">ToolBox</span><span class="nav-logo-sub" data-i18n="brand.sub" data-i18n-fb="工具百科">工具百科</span></div>' +
     '</div>' +
     '<form class="nav-search" action="' + root + 'search.html" method="GET" onsubmit="if(!this.q.value.trim()){event.preventDefault();return false;}">' +
@@ -2890,7 +2907,7 @@ function buildUnifiedHeader(){
   mob.className = 'nav-mobile mobile-only';
   mob.innerHTML =
     '<div class="nav-mobile-logo" onclick="location.href=\'' + root + 'index.html\'" style="cursor:pointer">' +
-      '<img src="/logo.svg" alt="ToolBox Logo"><span>ToolBox</span>' +
+      '<img src="' + assetRoot() + 'logo.svg" alt="ToolBox Logo"><span>ToolBox</span>' +
     '</div>' +
     '<div class="nav-mobile-actions">' +
       '<button class="nav-icon-btn" onclick="if(window.openMobileSearch)openMobileSearch();else location.href=\'' + root + 'search.html\'" title="搜索工具" aria-label="搜索工具" data-i18n-title="nav.search" data-i18n-aria="nav.search">' +
@@ -2917,7 +2934,7 @@ function buildUnifiedFooter(){
     '<div class="footer-inner">' +
       '<div class="footer-grid">' +
         '<div>' +
-          '<div class="footer-brand"><img src="/logo-32.png" alt="ToolBox"><span>ToolBox</span></div>' +
+          '<div class="footer-brand"><img src="' + assetRoot() + 'logo-32.png" alt="ToolBox"><span>ToolBox</span></div>' +
           '<p class="footer-desc" data-i18n="footer.desc" data-i18n-fb="5000+ 跨行业纯前端在线工具，数据不出浏览器，保护你的隐私安全。">5000+ 跨行业纯前端在线工具，数据不出浏览器，保护你的隐私安全。</p>' +
         '</div>' +
         '<div class="desktop-only-block">' +
