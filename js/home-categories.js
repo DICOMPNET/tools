@@ -101,12 +101,12 @@
     }
     child.top.slice(0, MAX_TOOLS).forEach(t => {
       const card = renderToolCard(t);
-      // 子路径部署适配：预览站 /tools/ 下，相对路径 tools/xxx 需补 /tools 前缀
+      // 子路径部署适配：预览站 /tools/ 下，/tools/xxx 绝对路径需补 /tools 前缀
       var url = t.url;
       try {
         var p = location.pathname || '';
-        if (p.indexOf('/tools/') === 0 && url && url.charAt(0) !== '/' && url.indexOf('tools/') === 0) {
-          url = '/tools/' + url;
+        if (p.indexOf('/tools/') === 0 && url && url.charAt(0) === '/' && url.indexOf('/tools/') === 0) {
+          url = '/tools' + url;
         }
       } catch (e) {}
       card.href = url;
@@ -128,7 +128,14 @@
 
     // 更新"查看全部"链接
     const more = section.querySelector('.hc-section-more');
-    if (more) more.href = `tools/${childKey}/index.html`;
+    if (more) {
+      var moreUrl = `tools/${childKey}/index.html`;
+      try {
+        var p2 = location.pathname || '';
+        if (p2.indexOf('/tools/') === 0) moreUrl = '/tools/' + moreUrl;
+      } catch (e) {}
+      more.href = moreUrl;
+    }
   }
 
   async function init() {
