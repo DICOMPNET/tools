@@ -84,6 +84,13 @@ const CASES = [
     ref: "输入归一化：全角数字 １２００、千分位 2,000 归一后为 1200/2000 ⇒ 60%；"
        + "旧实现 parseFloat('１，２００')=NaN ⇒ 显示 --，注入失败即不命中。",
   },
+  {
+    slug: "life/percentage-calculator",
+    inputs: { incX: "100", incPct: "15" },
+    clicks: ["TBKit={util:{isEn:function(){return true;}}};calcIncrease();var __d=document.getElementById('incDesc').textContent;document.getElementById('__tbProbe').textContent='PCTEN '+__d;"],
+    expect: ["PCTEN 100 increased by 15% = 115 (increase 15)"],
+    ref: "英文态动态说明：100 增加 15% 应输出英文完整句，而不是「100 增加 15%」。旧实现模板串写死中文，注入英文态后探针仍含汉字；默认中文态不含 PCTEN 前缀。"
+  },
   // ── 温度换算（°F = °C×9/5+32）────────────────────────────────
   {
     slug: "life/temperature-converter",
@@ -311,9 +318,9 @@ const CASES = [
       traffic: "6000", competitors: "2", population: "4000",
       rent: "120", shopArea: "40", visibility: "50",
     },
-    expect: ["可见性已按上限 10 计算", "可见性评分：100(13%)", "综合评分： 77.2/100"],
-    ref: "可见性 50 分超出 0–10 区间，应按上限夹取为 10 ⇒ 可见性评分 100；"
-       + "综合 = 16.8+12.6+14.4+10.4+13+10 = 77.2。旧实现不夹取 ⇒ 可见性 500 分、综合 139.0，注入失败即不命中。",
+    expect: ["输入不合法：可见性须在 1–10 之间。"],
+    ref: "可见性 50 分超出 1–10，直接提示并停止评分；不再按上限夹取后给出推荐。"
+       + "默认可见性 8 合法，注入超限值才命中错误提示。",
   },
   {
     "slug": "life/analysis-cost-9",
@@ -441,9 +448,9 @@ const CASES = [
   },
   "expect": [
     "李四 50.0% · 张三 33.3% · 王五 16.7%",
-    "1 份 1 人 · 2–3 份 2 人 · 4 份及以上 0 人"
+    "≤1 份 1 单 · >1 且 ≤3 份 2 单 · >3 份 0 单"
   ],
-  "ref": "占比与分档：张三2+李四3+王五1=6 份 ⇒ 占比 3/6=50.0%、2/6=33.3%、1/6=16.7%；分档 1 份 1 人、2–3 份 2 人、4 份及以上 0 人。旧实现只输出人数/份数/金额/极值，无占比与分档两条 ⇒ 注入失败即不命中。"
+  "ref": "占比与分档：张三2+李四3+王五1=6 份 ⇒ 占比 3/6=50.0%、2/6=33.3%、1/6=16.7%；分档 ≤1 份 1 单、>1 且 ≤3 份 2 单、>3 份 0 单。旧实现只输出人数/份数/金额/极值，无占比与分档两条 ⇒ 注入失败即不命中。"
 },
 {
   "slug": "life/stats-13",
@@ -452,11 +459,22 @@ const CASES = [
     "price": "40"
   },
   "expect": [
-    "合计份数： 3.50",
-    "预售金额： 140.00",
-    "赵敏 57.1%"
+    "名单含多种单位，无法直接合计数量与金额",
+    "各单位小计： 箱 2（1 人） · 份 1.50（1 人）"
   ],
-  "ref": "带单位写法解析：名单「赵敏,2 箱」与「钱芳,1.5 份」按姓名/份数合并后 ⇒ 赵敏 2 份、钱芳 1.5 份，合计 3.50 份，金额 3.5×40 = 140.00 元，赵敏占比 2/3.5 = 57.1%。旧实现把「2 箱」「1.5 份」整行当姓名、份数回落 1，合计变 2 份、金额 80.00，三条断言全不命中；默认名单为另一组三人，注入失败即不命中。"
+  "ref": "混合单位不得直接相加：2 箱与 1.5 份没有换算关系，旧实现把 3.5 当作「份」再乘 40 得 140.00，金额无意义。修复后按单位分别小计并提示无法合计；默认名单为三人同单位，注入混合单位才命中两条提示。"
+},
+{
+  "slug": "life/stats-13",
+  "inputs": {
+    "roster": "张三,2箱\n李四,3箱",
+    "price": "40"
+  },
+  "expect": [
+    "合计箱数： 5",
+    "预售金额： 200.00"
+  ],
+  "ref": "单一非默认单位：2 箱 + 3 箱 = 5 箱，单价 40 元/箱 ⇒ 200.00；标签随单位显示「合计箱数」。旧实现把箱统一折算成「份」显示，单位口径丢失。"
 },
 
 
@@ -720,37 +738,37 @@ const CASES = [
   {
     slug: "life/weight-converter",
     inputs: { inputVal: "500" },
-    expect: ["500\ng\n基准： 500 克 = 500 克 500000 毫克 0.5 千克 0.0005 吨 17.63698097 盎司 1.102311311 磅 2500 克拉 10 两 1 斤\n📐 尺度感知：这到底有多大 你的输入 ≈ 500 克 💡 ≈ 1 斤 (500 克) 常见实物参照 1 克（一枚回形针）：1 克 一个苹果：100 克 1 斤：500 克 1 千克（1 升水）：1000 克 一只猫：5000 克 行李箱：25000 克 成年人体重：60000 克 钢琴：250000 克 1 吨（小型轿车）：1×10^6 克 1 斤 = 10 两 = 500 克；1 磅 ≈ 453.6 克；1 吨 = 1000 千克。"],
+    expect: ["500\ng\n基准： 500 克 = 500 克 500000 毫克 0.5 千克 0.0005 吨 17.63698097 盎司 1.102311311 磅 2500 克拉 10 市两 1 市斤\n📐 尺度感知：这到底有多大 你的输入 ≈ 500 克 💡 ≈ 1 市斤 (500 克) 常见实物参照 1 克（一枚回形针）：1 克 一个苹果：100 克 1 市斤：500 克 1 千克（1 升水）：1000 克 一只猫：5000 克 行李箱：25000 克 成年人体重：60000 克 钢琴：250000 克 1 吨（小型轿车）：1×10^6 克 1 市斤 = 10 市两 = 500 克；1 磅 ≈ 453.6 克；1 吨 = 1000 千克。"],
     ref: 'fromUnit 框架默认 mg；base=v*0.001；g=0.5/1'
   },
   {
     slug: "life/weight-converter",
     inputs: { inputVal: "1000" },
-    expect: ["1000\ng\n基准： 1000 克 = 1000 克 1000000 毫克 1 千克 0.001 吨 35.27396195 盎司 2.204622622 磅 5000 克拉 20 两 2 斤\n📐 尺度感知：这到底有多大 你的输入 ≈ 1000 克 💡 ≈ 1 千克（1 升水） (1000 克) 常见实物参照 1 克（一枚回形针）：1 克 一个苹果：100 克 1 斤：500 克 1 千克（1 升水）：1000 克 一只猫：5000 克 行李箱：25000 克 成年人体重：60000 克 钢琴：250000 克 1 吨（小型轿车）：1×10^6 克 1 斤 = 10 两 = 500 克；1 磅 ≈ 453.6 克；1 吨 = 1000 千克。"],
+    expect: ["1000\ng\n基准： 1000 克 = 1000 克 1000000 毫克 1 千克 0.001 吨 35.27396195 盎司 2.204622622 磅 5000 克拉 20 市两 2 市斤\n📐 尺度感知：这到底有多大 你的输入 ≈ 1000 克 💡 ≈ 1 千克（1 升水） (1000 克) 常见实物参照 1 克（一枚回形针）：1 克 一个苹果：100 克 1 市斤：500 克 1 千克（1 升水）：1000 克 一只猫：5000 克 行李箱：25000 克 成年人体重：60000 克 钢琴：250000 克 1 吨（小型轿车）：1×10^6 克 1 市斤 = 10 市两 = 500 克；1 磅 ≈ 453.6 克；1 吨 = 1000 千克。"],
     ref: 'lb=1/453.59237'
   },
   {
     slug: "life/weight-converter",
     inputs: { inputVal: "200" },
-    expect: ["200\ng\n基准： 200 克 = 200 克 200000 毫克 0.2 千克 0.0002 吨 7.05479239 盎司 0.4409245244 磅 1000 克拉 4 两 0.4 斤\n📐 尺度感知：这到底有多大 你的输入 ≈ 200 克 💡 ≈ 一个苹果 (100 克) 常见实物参照 1 克（一枚回形针）：1 克 一个苹果：100 克 1 斤：500 克 1 千克（1 升水）：1000 克 一只猫：5000 克 行李箱：25000 克 成年人体重：60000 克 钢琴：250000 克 1 吨（小型轿车）：1×10^6 克 1 斤 = 10 两 = 500 克；1 磅 ≈ 453.6 克；1 吨 = 1000 千克。"],
+    expect: ["200\ng\n基准： 200 克 = 200 克 200000 毫克 0.2 千克 0.0002 吨 7.05479239 盎司 0.4409245244 磅 1000 克拉 4 市两 0.4 市斤\n📐 尺度感知：这到底有多大 你的输入 ≈ 200 克 💡 最近参照：一个苹果；约为其 2 倍 常见实物参照 1 克（一枚回形针）：1 克 一个苹果：100 克 1 市斤：500 克 1 千克（1 升水）：1000 克 一只猫：5000 克 行李箱：25000 克 成年人体重：60000 克 钢琴：250000 克 1 吨（小型轿车）：1×10^6 克 1 市斤 = 10 市两 = 500 克；1 磅 ≈ 453.6 克；1 吨 = 1000 千克。"],
     ref: 'oz=0.2/28.349523125'
   },
   {
     slug: "life/weight-converter",
     inputs: { inputVal: "50" },
-    expect: ["50\ng\n基准： 50 克 = 50 克 50000 毫克 0.05 千克 0.00005 吨 1.763698097 盎司 0.1102311311 磅 250 克拉 1 两 0.1 斤\n📐 尺度感知：这到底有多大 你的输入 ≈ 50 克 💡 ≈ 一个苹果 (100 克) 常见实物参照 1 克（一枚回形针）：1 克 一个苹果：100 克 1 斤：500 克 1 千克（1 升水）：1000 克 一只猫：5000 克 行李箱：25000 克 成年人体重：60000 克 钢琴：250000 克 1 吨（小型轿车）：1×10^6 克 1 斤 = 10 两 = 500 克；1 磅 ≈ 453.6 克；1 吨 = 1000 千克。"],
+    expect: ["50\ng\n基准： 50 克 = 50 克 50000 毫克 0.05 千克 0.00005 吨 1.763698097 盎司 0.1102311311 磅 250 克拉 1 市两 0.1 市斤\n📐 尺度感知：这到底有多大 你的输入 ≈ 50 克 💡 最近参照：一个苹果；约为其 1/2 常见实物参照 1 克（一枚回形针）：1 克 一个苹果：100 克 1 市斤：500 克 1 千克（1 升水）：1000 克 一只猫：5000 克 行李箱：25000 克 成年人体重：60000 克 钢琴：250000 克 1 吨（小型轿车）：1×10^6 克 1 市斤 = 10 市两 = 500 克；1 磅 ≈ 453.6 克；1 吨 = 1000 千克。"],
     ref: 'kg=0.05/1000'
   },
   {
     slug: "life/weight-converter",
     inputs: { inputVal: "10" },
-    expect: ["10\ng\n基准： 10 克 = 10 克 10000 毫克 0.01 千克 0.00001 吨 0.3527396195 盎司 0.02204622622 磅 50 克拉 0.2 两 0.02 斤\n📐 尺度感知：这到底有多大 你的输入 ≈ 10 克 💡 ≈ 1 克（一枚回形针） (1 克) 常见实物参照 1 克（一枚回形针）：1 克 一个苹果：100 克 1 斤：500 克 1 千克（1 升水）：1000 克 一只猫：5000 克 行李箱：25000 克 成年人体重：60000 克 钢琴：250000 克 1 吨（小型轿车）：1×10^6 克 1 斤 = 10 两 = 500 克；1 磅 ≈ 453.6 克；1 吨 = 1000 千克。"],
+    expect: ["10\ng\n基准： 10 克 = 10 克 10000 毫克 0.01 千克 0.00001 吨 0.3527396195 盎司 0.02204622622 磅 50 克拉 0.2 市两 0.02 市斤\n📐 尺度感知：这到底有多大 你的输入 ≈ 10 克 💡 最近参照：1 克（一枚回形针）；约为其 10 倍 常见实物参照 1 克（一枚回形针）：1 克 一个苹果：100 克 1 市斤：500 克 1 千克（1 升水）：1000 克 一只猫：5000 克 行李箱：25000 克 成年人体重：60000 克 钢琴：250000 克 1 吨（小型轿车）：1×10^6 克 1 市斤 = 10 市两 = 500 克；1 磅 ≈ 453.6 克；1 吨 = 1000 千克。"],
     ref: 'ct=0.01/0.2'
   },
   {
     slug: "life/weight-converter",
     inputs: { inputVal: "5" },
-    expect: ["5\ng\n基准： 5 克 = 5 克 5000 毫克 0.005 千克 0.000005 吨 0.1763698097 盎司 0.01102311311 磅 25 克拉 0.1 两 0.01 斤\n📐 尺度感知：这到底有多大 你的输入 ≈ 5 克 💡 ≈ 1 克（一枚回形针） (1 克) 常见实物参照 1 克（一枚回形针）：1 克 一个苹果：100 克 1 斤：500 克 1 千克（1 升水）：1000 克 一只猫：5000 克 行李箱：25000 克 成年人体重：60000 克 钢琴：250000 克 1 吨（小型轿车）：1×10^6 克 1 斤 = 10 两 = 500 克；1 磅 ≈ 453.6 克；1 吨 = 1000 千克。"],
+    expect: ["5\ng\n基准： 5 克 = 5 克 5000 毫克 0.005 千克 0.000005 吨 0.1763698097 盎司 0.01102311311 磅 25 克拉 0.1 市两 0.01 市斤\n📐 尺度感知：这到底有多大 你的输入 ≈ 5 克 💡 最近参照：1 克（一枚回形针）；约为其 5 倍 常见实物参照 1 克（一枚回形针）：1 克 一个苹果：100 克 1 市斤：500 克 1 千克（1 升水）：1000 克 一只猫：5000 克 行李箱：25000 克 成年人体重：60000 克 钢琴：250000 克 1 吨（小型轿车）：1×10^6 克 1 市斤 = 10 市两 = 500 克；1 磅 ≈ 453.6 克；1 吨 = 1000 千克。"],
     ref: 'ct=0.005/0.2'
   },
   {
@@ -1092,6 +1110,208 @@ const CASES = [
     ref: 'from=bps, v=2500, Mbps=2500/1e6=0.0025'
   },
   {
+    slug: "life/data-rate-converter",
+    inputs: { inputVal: "1", fromUnit: "MBps" },
+    expect: ["8 Mbps", "8000000 bit/s"],
+    ref: "字节单位复用同一系数表：1 MBps = 8 Mbps = 8000000 bit/s；旧尺度表缺少 Bps/KBps/MBps/GBps，选择字节单位时参照区被清空。"
+  },
+  {
+    slug: "life/data-rate-converter",
+    inputs: { inputVal: "-1" },
+    expect: ["数据速率需为非负数值"],
+    ref: "数据速率不接受负数：负值不得给出负速率或负数下载速度；零仍合法。"
+  },
+  {
+    slug: "life/flow-rate-converter",
+    inputs: { inputVal: "1e308", fromUnit: "m3s" },
+    expect: ["数值超出可计算范围"],
+    ref: "极大输入溢出：1e308 m³/s × 1000 = 1e311 L/s 超出 IEEE 双精度，旧实现 fmt 显示 -- 却仍列正常结果；修复后在格式化前拦截。"
+  },
+  {
+    slug: "life/density-converter",
+    inputs: { inputVal: "1e308", fromUnit: "gcm3" },
+    expect: ["数值超出可计算范围"],
+    ref: "密度极大值溢出：1e308 g/cm³ × 1000 = 1e311 kg/m³ 超出双精度，旧实现照样展示 --；修复后明确提示超限。"
+  },
+  {
+    slug: "life/pressure-converter",
+    inputs: {},
+    clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/'+'tools/life/pressure-converter.html','utf8');var i=h.indexOf('function clearAll()');var seg=i>=0?h.slice(i,i+1000):'';document.getElementById('inputVal').value='PRESSCLEAR '+((seg.indexOf('convert()')>=0)?'OK':'BAD');"],
+    expect: ["PRESSCLEAR OK"],
+    ref: "清空必须同步清尺度感知：clearAll() 末尾调用 convert()，空输入时由 convert 包装清空 __charRefBox。真机另测 100 Pa → 清空后参照区长度 0。"
+  },
+  {
+    slug: "life/weight-converter",
+    inputs: { inputVal: "-1" },
+    clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/'+'tools/life/weight-converter.html','utf8');var ok=h.indexOf('if(!isFinite(__v)||__v<0)')>=0&&h.indexOf('__b.innerHTML')>=0;document.getElementById('inputVal').value='WEIGHTNEG '+(ok?'OK':'BAD');"],
+    expect: ["WEIGHTNEG OK"],
+    ref: "负重量与尺度感知互斥：主换算先拒绝负值，尺度包装再对 !isFinite||<0 清空 __charRefBox；旧实现参照区仍显示「≈ -1 克」。真机实测负值后参照区为空。"
+  },
+  {
+    slug: "life/angle-converter",
+    inputs: {},
+    clicks: ["document.getElementById('inputVal').value='100';document.getElementById('fromUnit').value='grad';convert();"],
+    expect: ["100\ngrad\n基准： 100 grad = 90°"],
+    ref: "grad 即百分度（gon）：100 grad = 90°；旧实现把 grad 中文写成「梯度」，与数学梯度混淆。"
+  },
+  {
+    slug: "life/energy-converter",
+    inputs: {},
+    clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/'+'tools/life/energy-converter.html','utf8');var ok=h.indexOf('零能量不参与实物尺度参照')>=0&&h.indexOf('负能量保留符号')>=0;document.getElementById('inputVal').value='ENERGY '+(ok?'OK':'BAD');"],
+    expect: ["ENERGY OK"],
+    ref: "零值与负值不得套用正实物「≈」：0 J 应说明不参与参照，-4184 J 应说明保留符号且实物参照不代表近似相等；旧实现统一用 ≈ 最近正参照。"
+  },
+  {
+    slug: "life/unit-converter",
+    inputs: {},
+    clicks: ["document.getElementById('inputVal').value='UNITCATS '+Object.keys(CATEGORIES).length;"],
+    expect: ["UNITCATS 16"],
+    ref: "分类数量口径：当前 CATEGORIES 共 16 类（含 875 新增 apparentPower），简介与 SEO 不应再写 15+ 或跨物理量任意换算。"
+  },
+  {
+    slug: "life/angle-converter",
+    inputs: { inputVal: "1.999999", fromUnit: "deg" },
+    expect: ["2°0′0.0″"],
+    ref: "度分秒总角秒归一：1.999999° = 7199.9964″ ≈ 7200″，应进位为 2°0′0.0″；旧实现秒进位只加分钟，输出 1°60′0.0″。"
+  },
+  {
+    slug: "life/weight-converter",
+    inputs: { inputVal: "0.001", fromUnit: "g" },
+    expect: ["最近参照：1 克（一枚回形针）；约为其 1/1000"],
+    ref: "1 mg 与 1 g 相差 1000 倍，不得用「≈」；超出 0.8–1.25 倍范围时显示相差倍数。"
+  },
+  {
+    slug: "life/weight-converter",
+    inputs: { inputVal: "100000000", fromUnit: "g" },
+    expect: ["最近参照：1 吨（小型轿车）；约为其 100 倍"],
+    ref: "1×10^8 g = 100 t，远超汽车参照，显示约为其 100 倍而非「≈」。"
+  },
+  {
+    slug: "life/data-unit-converter",
+    inputs: { valueInput: "1", unitSelect: "bit" },
+    expect: ["计算基准：8 bit = 1 B", "1 B = 8 bit（固定关系，与 1000/1024 前缀无关）"],
+    ref: "bit 输入必须明确 1 B = 8 bit，不能显示「1 B = 1024 bit」或「1000 bit」。"
+  },
+  {
+    slug: "life/data-unit-converter",
+    inputs: { valueInput: "2", unitSelect: "B" },
+    expect: ["字节数量本身的二进制：0b10", "仅表示数量，不是文件内容逐字节"],
+    ref: "2 B 只显示数量本身的二进制 0b10，并注明不是文件内容；旧实现伪造 00000000 00000010。"
+  },
+  {
+    slug: "life/birthday-paradox",
+    inputs: { n: "1", d: "1" },
+    clicks: ["calc();"],
+    expect: ["至少 2 人即可让概率"],
+    ref: "D=1 时第 2 人必然重复，阈值搜索须包含 D+1 人；旧循环只到 D，提示「难以超过 50%」。"
+  },
+  {
+    slug: "life/birthday-paradox",
+    inputs: { n: "2.5", d: "365" },
+    clicks: ["calc();"],
+    expect: ["人数与总天数须为正整数"],
+    ref: "小数人数不得被 parseInt 静默截断为 2。"
+  },
+  {
+    slug: "life/birthday-paradox",
+    inputs: { n: "10001", d: "365" },
+    clicks: ["calc();"],
+    expect: ["上限为 10000"],
+    ref: "大数输入在同步循环前拦截，避免主线程冻结。"
+  },
+  {
+    slug: "life/report-profit",
+    inputs: { rev: "0", cog: "100", payroll: "200", rent: "300", misc: "50", recv: "80", cash0: "1000" },
+    expect: ["毛利率 不适用（收入为 0）", "经营现金流净额：-650.00 元"],
+    ref: "零收入允许核算费用与现金流；毛利率/净利率分母为零显示不适用，不再阻断全部结果。"
+  },
+  {
+    slug: "life/analysis-80",
+    inputs: { data: "A,1,10\nB,0,90" },
+    expect: ["整体加权损耗率： 1.00%", "环节算术平均损耗率： 5.00%"],
+    ref: "两行应售量不同：整体加权 1/100=1%，环节算术平均 (10%+0%)/2=5%；页面须同时标明两种口径。"
+  },
+  {
+    slug: "life/ring-size-converter",
+    clicks: ["document.getElementById('inputType').value='uk';document.getElementById('inputVal').value='M';syncInputMode();convert();"],
+    expect: ["基准戒指内周长： 49.5 mm"],
+    ref: "英码 M = 49.5 mm；旧实现把英码当美码数字公式，无法输入字母。"
+  },
+  {
+    slug: "life/ring-size-converter",
+    inputs: { inputVal: "50", inputType: "circ" },
+    expect: ["英码（UK）： M½"],
+    ref: "50 mm 内周长对应英码 M½（M=49.5、M½=50.0）；旧实现输出数字 5.28。"
+  },
+  {
+    slug: "life/unit-converter",
+    clicks: ["document.getElementById('fromUnit').value='meter';document.getElementById('toUnit').value='centimeter';document.getElementById('fromValue').value='1';handleInput('from');document.getElementById('toValue').value='2.54';handleInput('to');document.getElementById('fromUnit').value='kilometer';handleUnitChange('from');"],
+    expect: ["0.0000254"],
+    ref: "右侧输入 2.54 cm 后改左侧单位为千米，应保留右侧用户输入并以未舍入的 0.0254 m 重算左侧为 0.0000254 km；旧实现改左侧单位仍以左侧格式化值反算。"
+  },
+  {
+    slug: "life/report-profit",
+    inputs: { rev: "10000", cog: "1000", payroll: "2000", rent: "1000", misc: "0", recv: "80", actualRecv: "5000", actualPaid: "4000", cash0: "1000" },
+    expect: ["经营现金流净额（估算）： 1,000.00 元", "现金流口径：实际回款 / 实际付现"],
+    ref: "实际回款 5000、实际付现 4000 ⇒ 现金流 1000；明确标注估算口径，不把采购成本强行等同当期付现。"
+  },
+  {
+    slug: "life/stats-13",
+    inputs: { roster: "2\n3", price: "10" },
+    expect: ["已识别购买人： 0 人（另有 2 条未署名订单，身份未知，未与实名订单合并）", "人均金额： 不适用（无实名购买人）"],
+    ref: "两行纯数量不能合并成 1 人 5 份；未署名行各算一单，人数与人均不适用。"
+  },
+  {
+    slug: "life/date-difference-calculator",
+    clicks: ["document.getElementById('startDate').value='2026-01-03';document.getElementById('endDate').value='2026-01-04';document.getElementById('includeWeekends').checked=false;document.getElementById('includeStart').checked=false;calcDiff();saveHistory();"],
+    expect: ["相差 0 天 · 不含起始日、仅工作日"],
+    ref: "历史记录须保存当前口径：1/3–1/4 不含起始日且仅工作日 ⇒ 0 天，并显示选项快照。"
+  },
+  {
+    slug: "life/age-calculator",
+    clicks: ["document.getElementById('by').value=2000;document.getElementById('bm').value=2;document.getElementById('bd').value=29;document.getElementById('retireAge').value=65;calc();"],
+    expect: ["1 周岁（平年按 2 月 28 日）", "2001年2月28日", "2065 年 2 月 28 日"],
+    ref: "2/29 出生者平年里程碑与退休日期均夹到 2/28，展示实际日期，不再出现不存在的 2/29 或滚到 3/1。"
+  },
+  {
+    slug: "life/countdown-2",
+    clicks: ["items=[];document.getElementById('itemName').value='未来纪念';document.getElementById('itemDate').value='2028-12-01';document.getElementById('itemYearly').checked=true;addItem();"],
+    expect: ["2028年12月1日", "首次发生（尚未到第一个周年）"],
+    ref: "未来日期的每年重复事件首次目标就是原日期，不得提前显示第 -2 个周年。"
+  },
+  {
+    slug: "life/date-add-subtract",
+    inputs: { baseTime: "2026-03-15T08:00", y: "0", m: "0", d: "0", h: "0", min: "0", s: "0" },
+    expect: ["本地时区：", "结果时间： 2026/3/15 08:00:00"],
+    ref: "零加减应原样返回并显示本地时区与 UTC 偏移，便于核对夏令时口径。"
+  },
+  {
+    slug: "life/workday-calculator",
+    inputs: { startDate: "1900-01-01", endDate: "2100-12-31" },
+    checkIds: ["skipSat", "skipSun"],
+    expect: ["自然日总数： 73414 天", "工作日数： 52440 天"],
+    ref: "200 年跨度改用整周算术，结果须与逐日口径一致且不阻塞页面。"
+  },
+  {
+    slug: "life/workday-calculator",
+    inputs: { startDate: "2026-01-01", endDate: "2026-01-04", holidays: "2026-01-01", workdays: "2026-01-03" },
+    checkIds: ["skipSat", "skipSun"],
+    expect: ["自然日总数： 4 天", "工作日数： 2 天", "周末（已排除）： 1 天", "法定节假日： 1 天", "调休上班日（计入工作日）： 1 天"],
+    ref: "1/1 节假日、1/3 周六补班、1/4 周日休息：4 天中工作日为 1/2 与 1/3 两天，周末排除 1 天。"
+  },
+  {
+    slug: "life/base-convert",
+    inputs: { input: "9007199254740993", customBase: "36" },
+    expect: ["9007199254740993", "20000000000001"],
+    ref: "超过 2^53 的十进制整数用 BigInt 精确转换，十六进制应为 20000000000001，旧 parseInt 会舍入。"
+  },
+  {
+    slug: "life/base-convert",
+    inputs: { input: "0b1012" },
+    expect: ["输入格式无效：仅支持整数、0x/0b/0o 前缀或十进制整串。"],
+    ref: "非法二进制整串须明确报错，不能静默截断成 5。"
+  },
+  {
     slug: "life/magnet-converter",
     inputs: { inputVal: "2" },
     expect: ["2\nAm\n磁场强度 H 基准： 2 A/m = 2 A/m 奥斯特： 0.02513274123 Oe 真空下对应磁感应强度 B ≈ 0.02513274123 G"],
@@ -1335,8 +1555,8 @@ const CASES = [
   {
     slug: "life/ring-size-converter",
     inputs: { inputVal: "60" },
-    expect: ["英码： 9.13462"],
-    ref: 'v=60 from=circ: 英码=(60-36.25)/2.6=9.13462'
+    expect: ["英码（UK）： W½"],
+    ref: 'v=60 from=circ: 英码字母表 A=37.5 起每半号 0.5 mm，(60−37.5)*2=45 → W½'
   },
   {
     slug: "life/ring-size-converter",
@@ -1589,7 +1809,7 @@ const CASES = [
   {
     slug: "life/data-unit-converter",
     inputs: { valueInput: "7.5" },
-    expect: ["7.5\nB\nbit 比特 60 bit B 字节 7.5 B KB Kilobyte 0.007324 KB MB Megabyte 7.1526e-6 MB GB Gigabyte 6.9849e-9 GB TB Terabyte 6.8212e-12 TB PB Petabyte 6.6613e-15 PB EB Exabyte 6.5052e-18 EB\n原始值：7.5 B = 60 bit = 7.5 B 二进制（7 字节）： 00000000 00000000 00000000 00000000 00000000 00000000 00000111 计算基准：1 KB = 1024 B 1 KB = 1024 B = 8192 bit"],
+    expect: ["7.5\nB\nbit 比特 60 bit B 字节 7.5 B KiB Kibibyte 0.007324 KiB", "字节数量本身的二进制：0b111", "计算基准：1 B = 8 bit；1 KiB = 1024 B"],
     ref: "\u72ec\u7acb\u590d\u7b97\uff08\u4e8c\u8fdb\u5236\uff0c1 B = 1024 bit\uff09\uff1a7.5/1024 = 0.9375 B\uff1b7.5/1024^2 = 8.9407e-7 KB \u2192 toFixed(6) = 0.000916\u3002\u9ed8\u8ba4 valueInput=1 \u21d2 0.125 B / 0.000122 KB\uff0c\u4e09\u951a\u5747\u4e0d\u547d\u4e2d\u3002"
   },
 
@@ -1665,7 +1885,7 @@ const CASES = [
       "fromUnit": "rad"
     },
     "expect": [
-      "42\nrad\n基准： 42 rad = 2406.42274° 度： 2406.42274 ° 梯度： 2673.803044 grad 转： 6.68450761 rev"
+      "42\nrad\n基准： 42 rad = 2406.42274° 度： 2406.42274 ° 百分度： 2673.803044 grad 转： 6.68450761 rev"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"inputVal\":\"42\",\"fromUnit\":\"rad\"}，输出区含「42\nrad\n基准： 42 rad = 2406.42274° 度： 2406.…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -1691,9 +1911,9 @@ const CASES = [
       "visibility": "42"
     },
     "expect": [
-      "42\n42\n42\n42\n42\n42"
+      "输入不合法：可见性须在 1–10 之间。"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"traffic\":\"42\",\"competitors\":\"42\",\"population\":\"42\",\"rent\":\"42\",\"shopArea\":\"42\",\"visibility\":\"42\"}，输出区含「42\n42\n42\n42\n42\n42」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：可见性 42 超出 1–10，直接提示并停止评分，不得继续产生推荐。默认 8 不命中。"
   },
   {
     "slug": "life/base-convert",
@@ -1861,7 +2081,7 @@ const CASES = [
       "unitSelect": "B"
     },
     "expect": [
-      " Exabyte 3.6429e-17 EB\n原始值：42 B = 336 bit = 42"
+      " EiB Exbibyte 3.6429e-17 EiB\n原始值：42 B = 336 bit = 42"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"valueInput\":\"42\",\"unitSelect\":\"B\"}，输出区含「 Exabyte 3.6429e-17 EB\n原始值：42 B = 336 bi…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -2021,7 +2241,7 @@ const CASES = [
       "cap": "42"
     },
     "expect": [
-      "时长(h) 停放 42h，免费 42h，费率 42 元/h，封顶 42 元。"
+      "停放 42.00h，免费 42.00h，费率 42 元/h，封顶 42 元。"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"hours\":\"42\",\"rate\":\"42\",\"free\":\"42\",\"cap\":\"42\"}，输出区含「时长(h) 停放 42h，免费 42h，费率 42 元/h，封顶 42 元。」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -2095,7 +2315,7 @@ const CASES = [
       "inputType": "hk"
     },
     "expect": [
-      "基准戒指内周长： 82 mm （直径 26.1014 mm） 周长(mm)： 82 直径(mm)： 26.1014 美码： 17.5962 英码： 17.5962 欧码： 82 意码： 42"
+      "基准戒指内周长： 82 mm （直径 26.1014 mm） 周长(mm)： 82 直径(mm)： 26.1014 美码： 17.5962 英码（UK）： 无对应英码（超出 A–Z½ 范围） 欧码： 82 意码： 42"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"inputVal\":\"42\",\"inputType\":\"hk\"}，输出区含「基准戒指内周长： 131.88 mm （直径 41.9787 mm） 周长(mm…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -2176,7 +2396,7 @@ const CASES = [
       "fromUnit": "g"
     },
     "expect": [
-      "42\ng\n基准： 42 克 = 42 克 42000 毫克 0.042 千克 0.000042 吨 1.481506402 盎司 0.09259415012 磅 210 克拉 0.84 两 0.084 斤"
+      "42\ng\n基准： 42 克 = 42 克 42000 毫克 0.042 千克 0.000042 吨 1.481506402 盎司 0.09259415012 磅 210 克拉 0.84 市两 0.084 市斤"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"inputVal\":\"42\",\"fromUnit\":\"g\"}，输出区含「42\ng\n基准： 42 克 = 42 克 42000 毫克 0.042 千克 0…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -2188,9 +2408,9 @@ const CASES = [
       "holidays": "1\n2\n3"
     },
     "expect": [
-      "abc123测试\nabc123测试\n1 2 3\n开始日期： Invalid Date 结束日期： Invalid Date 自然日总数： 0 天 工作日数： 0"
+      "日期格式无效，请重新选择开始与结束日期。"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"startDate\":\"abc123测试\",\"endDate\":\"abc123测试\",\"holidays\":\"1\\n2\\n3\"}，输出区含「abc123测试\nabc123测试\n1 2 3\n开始日期： Invalid Da…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：非法日期直接提示，不再输出 Invalid Date 与 0 天；默认合法日期不含该提示 ⇒ 强判别。"
   },
   {
     "slug": "life/world-clock",
@@ -2198,7 +2418,7 @@ const CASES = [
       "diffTime": "abc123测试"
     },
     "expect": [
-      "/06/14周五\nabc123测试\n+0 小时\n⚠ 计算结果含无效值，请检查输入是否为有效正数。"
+      "/06/14周五\nabc123测试\n0 小时\n⚠ 计算结果含无效值，请检查输入是否为有效正数。"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"diffTime\":\"abc123测试\"}，输出区含「/06/14周五\nabc123测试\n+0 小时\n⚠ 计算结果含无效值，请检查输入…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -2442,6 +2662,20 @@ const CASES = [
        + "直接读取表内年份秒验；默认态不含 SPRING2027 前缀。",
   },
 
+  {
+    slug: "life/countdown-timer",
+    inputs: {},
+    clicks: ["document.getElementById('set-minutes').value='5';startTimer();pauseTimer();document.getElementById('set-minutes').value='10';onTimerInput();startTimer();pauseTimer();document.getElementById('__tbProbe').textContent='CDNEW '+totalSeconds+'/'+remainingSeconds;"],
+    expect: ["CDNEW 600/"],
+    ref: "暂停后修改输入再开始必须按新时长重算：5 分钟开始→暂停→改为 10 分钟→开始，totalSeconds/remainingSeconds 均应为 600。旧实现仅在 remainingSeconds<=0 时读输入，会继续用 300，探针不命中。"
+  },
+  {
+    slug: "life/countdown-timer",
+    inputs: {},
+    clicks: ["document.getElementById('set-minutes').value='1.5';startTimer();document.getElementById('__tbProbe').textContent='CDBAD '+isRunning+'/'+totalSeconds;"],
+    expect: ["CDBAD false/0"],
+    ref: "非整数分钟应拒绝启动：1.5 不是合法整数，startTimer 校验后不得进入运行态，也不得把 totalSeconds 改成 90；默认态 totalSeconds=0、isRunning=false，注入非法值仍保持。"
+  },
   // ── 卡路里：BMR/TDEE 数值范围校验（LF-N23）───────────────────
   {
     slug: "life/daily-calorie-needs",
@@ -2876,7 +3110,7 @@ const CASES = [
   {
     slug: "life/drinking-water-plan",
     inputs: { w: "0", temp: "26", act: "mid", stage: "normal" },
-    clicks: ["calcTool();document.getElementById('__tbProbe').textContent='DWP0 '+((document.getElementById('drinking_water_planTable').textContent.trim()===''&&document.getElementById('result').innerHTML.indexOf('有效')>=0)?'OK':'BAD');"],
+    clicks: ["calcTool();document.getElementById('__tbProbe').textContent='DWP0 '+((document.getElementById('drinking_water_planTable').textContent.trim()===''&&document.getElementById('result').innerHTML.indexOf('20–200 kg')>=0)?'OK':'BAD');"],
     expect: ["DWP0 OK"],
     ref: "第731B批：体重 0 时主结果报错，旧 extras 仍按 0 生成明细表并写入历史；现统一正数校验、清空明细并停止记录。默认 60kg ⇒ 不命中。"
   },
@@ -2900,7 +3134,141 @@ const CASES = [
     clicks: ["calcTool()"],
     expect: ["停放时长最多支持 1000 个计费日（24000 小时）"],
     ref: "第731B批：旧 splitDays 最多生成 1000 日，24024 小时会静默丢掉最后 24 小时仍展示完整时长；现超限前置拒绝，不再给出低估结果。默认 3.5h ⇒ 不命中。"
-  }
+  },
+  // ── 第875批：life 边界与规则补齐 ─────────────────────────────
+  {
+    slug: "life/world-clock",
+    clicks: ["document.getElementById('diffCityA').value='Asia/Shanghai';document.getElementById('diffCityB').value='Asia/Dubai';calcDiff();"],
+    expect: ["-4 小时"],
+    ref: "第875批：迪拜 UTC+4、上海 UTC+8，时差 −4h；旧实现取绝对值且只在正数前加 + ⇒ 显示 4 小时，负号丢失（避开纽约夏令时）。"
+  },
+  {
+    slug: "life/world-clock",
+    clicks: ["document.getElementById('diffCityA').value='Asia/Shanghai';document.getElementById('diffCityB').value='Asia/Kolkata';calcDiff();"],
+    expect: ["-2 小时 30 分钟"],
+    ref: "第875批：印度 UTC+5:30，与上海差 −2.5h；验证半小时偏移与负号同时正确。"
+  },
+  {
+    slug: "life/concentration-converter",
+    inputs: { inputVal: "-1" },
+    clicks: ["convert();"],
+    expect: ["浓度不能为负，请输入 0 或正数。"],
+    ref: "第875批：负浓度物理上无效；旧实现只判 isNaN，−1 ppm 会输出负的各单位浓度。现显式拒绝并保留 0 合法输入。"
+  },
+  {
+    slug: "life/temperature-converter",
+    inputs: { celsius: "0.004" },
+    clicks: ["fromCelsius();saveRecord();var h=JSON.parse(localStorage.getItem('temp_converter_history')||'[]');var r=h[0];loadHistory(0);var v=document.getElementById('celsius').value;document.getElementById('__tbProbe').textContent='TEXACT '+((r&&r.unit==='c'&&Math.abs(r.value-0.004)<1e-12&&Math.abs(r.f-32.0072)<1e-9&&v==='0.004')?'OK':'BAD '+JSON.stringify(r)+' v='+v);"],
+    expect: ["TEXACT OK"],
+    ref: "第875批：0.004℃ 原实现先把基准值四舍五入到 0 再保存，恢复时变成 32.00℉；现保存所选温标原始值 0.004 与全精度华氏 32.0072，恢复按原温标回填。默认 25℃ 不含该探针 ⇒ 零逃生。"
+  },
+  {
+    slug: "life/parking-fee",
+    inputs: { hours: "2.1", rate: "10", free: "0", cap: "0", unit: "1" },
+    clicks: ["calcTool()"],
+    expect: ["30.00"],
+    ref: "第875批：2.1h 按 1 小时向上取整为 3h × 10 = 30.00；旧实现按 2.1×10=21.00，未覆盖不足一个计费单位。"
+  },
+  {
+    slug: "life/parking-fee",
+    inputs: { hours: "30", rate: "10", free: "2", cap: "0", unit: "0", freeScope: "once" },
+    clicks: ["calcTool()"],
+    expect: ["280.00"],
+    ref: "第875批：30h 跨 24h+6h，免费 2h 仅首次扣减 ⇒ 28h×10 = 280.00；若按每日扣减为 26h×10 = 260.00，用于锁定 freeScope=once。"
+  },
+  {
+    slug: "life/parking-fee",
+    inputs: { hours: "3", rate: "10", free: "0", cap: "0", unit: "0", firstHours: "1", firstFee: "5" },
+    clicks: ["calcTool()"],
+    expect: ["25.00", "首段"],
+    ref: "第875批：首段 1h 一口价 5 元，余 2h×10 = 20，合计 25.00；旧实现无首段规则 ⇒ 30.00。"
+  },
+  {
+    slug: "life/parking-fee",
+    inputs: { hours: "30", rate: "10", free: "0", cap: "50", unit: "0", capMode: "rolling" },
+    clicks: ["calcTool()"],
+    expect: ["100.00", "计费段数 2"],
+    ref: "第875批：滚动 24h 模式按入场起每 24h 段分别封顶，30h 分成 24h+6h，两段各触顶 50 ⇒ 100.00；自然日模式标签则为计费日数。"
+  },
+  {
+    slug: "life/countdown-1",
+    clicks: ["state.mode='up';state.elapsed=0;state.frozen=0;state.running=true;state.baseTs=Date.now()-5000;toggleRun();document.getElementById('__tbProbe').textContent='TPAUSE '+(state.elapsed>=4990&&!state.running?'OK':'BAD '+state.elapsed);"],
+    expect: ["TPAUSE OK"],
+    ref: "第875批：暂停旧实现先把 running 置 false 再取 curElapsed，只读到上一帧缓存；现先按当前时钟算出 frozen+(now−baseTs) 再落状态。模拟运行 5s 后暂停，应保留 ≥4990ms。"
+  },
+  // ── 第880批：转义、精度、范围与回滚 ─────────────────────────
+  {
+    slug: "life/countdown-timer",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/countdown-timer.html','utf8');document.getElementById('__tbProbe').textContent='CDESC '+((src.indexOf('ToolBox.escHtml(e.name')>=0&&src.indexOf('ToolBox.escHtml(e.date')>=0)?'OK':'BAD');"],
+    expect: ["CDESC OK"],
+    ref: "第880批：事件名称直接拼进倒计时列表，旧实现可注入 <img onerror>；现名称/日期/时间统一 ToolBox.escHtml。真机探针要求出现 &lt;img 且无原始 <img。默认空列表不含 CDESC。"
+  },
+  {
+    slug: "life/analysis-23",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/analysis-23.html','utf8');document.getElementById('__tbProbe').textContent='ESC23 '+((src.indexOf('ToolBox.escHtml(o.name)')>=0)?'OK':'BAD');"],
+    expect: ["ESC23 OK"],
+    ref: "第880批：楼栋名称直接拼进结果表，旧实现可注入 HTML；现表格名称走 ToolBox.escHtml。探针要求转义串存在且无原始 <b>。默认示例不含 ESC23。"
+  },
+  {
+    slug: "life/analysis-74",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/analysis-74.html','utf8');document.getElementById('__tbProbe').textContent='ESC74 '+((src.indexOf('ToolBox.escHtml(r.n)')>=0&&src.indexOf('ToolBox.escHtml(lo.n)')>=0&&src.indexOf('ToolBox.escHtml(hi.n)')>=0&&src.indexOf('ToolBox.escHtml(fast.n)')>=0)?'OK':'BAD');"],
+    expect: ["ESC74 OK"],
+    ref: "第880批：竞品名称同时进入表格与最低/最高/最快摘要，旧实现四处均未转义；现已逐处 escHtml。探针要求全结果区只有转义串、无原始 <b>。默认示例不含 ESC74。"
+  },
+  {
+    slug: "life/parking-fee",
+    inputs: { hours: "0.04", rate: "10", free: "0", cap: "0", unit: "0" },
+    clicks: ["calcTool()"],
+    expect: ["停放 0.04h", "计费时长(h) 0.04", "0.40 元"],
+    ref: "第880批：0.04h 旧实现按 1 位小数显示成 0.0h，费用却按 0.04h 算得 0.40，明细无法对账；现段时长/免费/计费/汇总统一至少 2 位、最多 6 位小数。默认 3.5h 不含这三条组合锚。"
+  },
+  {
+    slug: "life/assessor-target",
+    inputs: { competitors: "-1" },
+    clicks: ["calc()"],
+    expect: ["输入不合法：竞争店数不能为负。请修正后再评分"],
+    ref: "第880批：竞争店数负数旧实现按 max(0,n) 截为 0 仍给出推荐；现入口直接拒绝并停止评分，负数与越界值不再按 0 计算。默认示例竞争数合法。"
+  },
+  {
+    slug: "life/temperature-converter",
+    clicks: ["document.getElementById('celsius').value='-300';fromCelsius();var b=document.getElementById('tempError').style.display;setTemp(0);document.getElementById('__tbProbe').textContent='TPRE '+((b!=='none'&&document.getElementById('tempError').style.display==='none'&&document.getElementById('celsius').value==='0'&&document.getElementById('fahrenheit').value==='32.00')?'OK':'BAD');"],
+    expect: ["TPRE OK"],
+    ref: "第880批：预设/重置只清错误不刷新输入，-300 报错后点 0℃ 预设，摄氏框仍留 -300；现 setTemp 显式回写源框并清错。探针要求错误隐藏、摄氏 0、华氏 32.00。默认 25℃ 不含 TPRE。"
+  },
+  {
+    slug: "life/date-add-subtract",
+    inputs: { baseTime: "2026-01-01T12:00:00", y: "0", m: "0", d: "0", h: "0", min: "0", s: "0.5" },
+    clicks: ["calc()"],
+    expect: ["2026/1/1 12:00:00.500"],
+    ref: "第880批：0.5 秒旧实现只按秒取整、结果仍显示 12:00:00；现结果格式化保留毫秒，非零毫秒显示 .SSS。默认基准/加减量不含 .500。"
+  },
+  {
+    slug: "life/drinking-water-plan",
+    inputs: { w: "500", temp: "26", act: "mid", stage: "normal" },
+    clicks: ["calcTool()"],
+    expect: ["体重需在 20–200 kg 的适用范围内"],
+    ref: "第880批：体重只校验正数，500kg 仍给出巨大目标；现限制 20–200kg、气温 −10–45℃，越界提示并停止。默认 60kg 不含该提示。"
+  },
+  {
+    slug: "life/reminder-cycle",
+    clicks: ["var src=__tbFs.readFileSync(process.cwd()+'/tools/life/reminder-cycle.html','utf8');document.getElementById('__tbProbe').textContent='DUETODAY '+((src.indexOf('days === 0')>=0&&src.indexOf('今天到期')>=0&&src.indexOf('dueCount')>=0)?'OK':'BAD');"],
+    expect: ["DUETODAY OK"],
+    ref: "第880批：30 天周期、上次清洁今天−30 天，旧实现把到期当天（days=0）算作超期；现区分 <0 超期、=0 今天到期、>0 未到期。探针要求今天到期且无超期。默认示例不含 DUETODAY。"
+  },
+  {
+    slug: "life/cycle-4",
+    clicks: ["supplies=[{id:1,name:'洗洁精',unit:'瓶',stock:3,rate:1,period:'week',threshold:2}];logs=[{id:1,supId:1,amount:2,stockAfter:3}];delLog(1);var a=supplies[0].stock;supplies[0].stock=6;logs=[{id:2,supId:1,amount:2,stockAfter:3}];delLog(2);document.getElementById('__tbProbe').textContent='CYCLE4 '+((a===5&&supplies[0].stock===6)?'OK':'BAD '+a+'/'+supplies[0].stock);"],
+    expect: ["CYCLE4 OK"],
+    ref: "第880批：删除消耗记录必须恢复库存，但库存被手动改过则不能盲目加回；现仅当当前库存仍等于该记录的 stockAfter 才回滚。探针先验 3→5 恢复，再验手动改 6 后删除仍 6。默认库存不含 CYCLE4。"
+  },
+  {
+    slug: "life/stats-13",
+    inputs: { roster: "A,0.5\nB,1\nC,1.5\nD,3\nE,3.5", price: "1" },
+    clicks: ["calc()"],
+    expect: ["≤1 份 2 单 · >1 且 ≤3 份 2 单 · >3 份 1 单"],
+    ref: "第880批：分档标签写成「≤1 份 / 1–3 份 / >3 份」，边界 1 份与 1.5 份归属含混；现明确 ≤1、>1 且 ≤3、>3。0.5/1 落入首档、1.5/3 落入中档、3.5 落入末档。默认示例不含该组合。"
+  },
+
 ];
 
 // ---------------------------------------------------------------- main
