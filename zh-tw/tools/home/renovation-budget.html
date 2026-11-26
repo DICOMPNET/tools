@@ -29,7 +29,8 @@
 .budget-row{display:grid;grid-template-columns:1.5fr 1fr 1fr 60px 30px;gap:8px;align-items:center;padding:8px;background:var(--result-bg);border:1px solid var(--border);border-radius:6px;margin-bottom:6px;}
 .budget-row input{padding:6px 8px;font-size:13px;}
 .budget-row .total{font-weight:600;color:var(--primary);text-align:right;}
-.budget-row .del{color:var(--danger);cursor:pointer;text-align:center;}
+.budget-row .del{color:var(--danger);cursor:pointer;text-align:center;background:none;border:0;font:inherit;padding:6px 8px;min-width:36px;min-height:36px;border-radius:6px;}
+.budget-row .del:focus-visible{outline:3px solid var(--tool-accent,#B23A08);outline-offset:2px;}
 .summary-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin:14px 0;}
 .summary-card{background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:#fff;border-radius:10px;padding:14px;text-align:center;}
 .summary-card .v{font-size:24px;font-weight:700;}
@@ -88,7 +89,7 @@
 
 <script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"各項佔比怎麼看健康？","acceptedAnswer":{"@type":"Answer","text":"常見區間：硬裝 25–35%、主材 30–45%、傢俱 15–25%、家電 10–20%。主材 >45% 或硬裝 <20% 都偏失衡，前者擠壓軟裝、後者可能隱蔽增項。"}},{"@type":"Question","name":"資料存在哪、會丟嗎？","acceptedAnswer":{"@type":"Answer","text":"僅存瀏覽器 localStorage（按域名隔離），清快取 / 換瀏覽器會丟。重要預算自行截圖或匯出，本工具不聯網、不上傳。"}}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"各項佔比怎麼看健康？","acceptedAnswer":{"@type":"Answer","text":"常見區間：硬裝 25–35%、主材 30–45%、傢俱 15–25%、家電 10–20%。主材 >45% 或硬裝 <20% 都偏失衡，前者擠壓軟裝、後者可能隱蔽增項。"}},{"@type":"Question","name":"能設預算上限、跟蹤實際支出嗎？","acceptedAnswer":{"@type":"Answer","text":"不能。本工具只做“單價 × 數量”的估算彙總與佔比分析，沒有預算上限、實際支付、差額或執行進度欄位；這些請用記賬表或合同臺賬跟蹤。"}},{"@type":"Question","name":"資料存在哪、會丟嗎？","acceptedAnswer":{"@type":"Answer","text":"僅存瀏覽器 localStorage（按域名隔離），清快取 / 換瀏覽器會丟。重要預算自行截圖或匯出，本工具不聯網、不上傳。"}}]}</script>
 <meta property="og:site_name" content="ToolBox">
 <style>
 @media (max-width:600px){
@@ -130,7 +131,7 @@
 <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="分項管理裝修預算,即時計算總額與佔比,支援本地儲存">Renovation Budget</p>
     <div class="formula-box">
       <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">專案小計 = 單價 × 數量；預算總額 = Σ 各專案小計；專案佔比 = 該專案小計 ÷ 預算總額 × 100%；均值 = 總額 ÷ 專案數</div>
-      <div class="formula-desc tb-bi"><span class="t-zh">分項錄入硬裝、主材、傢俱、家電等裝修支出，即時彙總總金額、各項佔比與累計進度，支援本地儲存草稿，幫助業主在裝修全程跟蹤預算執行、識別超支環節</span><span class="t-en">Estimate renovation budget across demolition, materials, labor, and contingency</span></div>
+      <div class="formula-desc tb-bi"><span class="t-zh">分項錄入硬裝、主材、傢俱、家電等裝修估算，即時彙總總金額、各項佔比與平均單專案支出，支援本地儲存草稿，幫助業主在開工前比較報價結構；本工具不設預算上限，也不記錄實際支付或執行進度</span><span class="t-en">Estimate renovation budget across demolition, materials, labor, and contingency</span></div>
     </div>
 
 <div class="input-row">
@@ -145,6 +146,7 @@
  <button type="button" class="btn" onclick="loadTemplate('full')">📋 載入完整模板</button>
  <button type="button" class="btn" onclick="clearItems()">🗑 清空</button>
  <button type="button" class="btn" onclick="exportBudget()">📥 匯出</button>
+ <button type="button" class="btn ghost" id="undoPresetBtn" onclick="restoreSnapshot()" disabled>↩ 撤銷上次模板覆蓋</button>
 <button type="button" class="btn" onclick="window.__budgetExport()">⬇️ 匯出預算明細 CSV</button>
 </div>
 
@@ -190,13 +192,14 @@
 <h3>💡 常見使用場景</h3>
 <ul class="dd-list">
 <li>硬裝 / 主材 / 傢俱 / 家電分項列支，即時看各項佔比，發現主材超 40% 及時調結構。</li>
-<li>設總預算上限，用累計進度看已花比例，避免末端超支無錢收尾。</li>
+<li>把估算總額當作自己的控制目標，再與合同、報價單逐項對照；本工具不設預算上限，也不記錄實際支付與執行進度，超支判斷需另用賬本。</li>
 <li>用瀏覽器 localStorage 存草稿，分多次錄入；換裝置前先截圖 / 匯出備份。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">算例（硬裝 8 + 主材 12 + 傢俱 5 + 家電 4 萬）</div><div class="dd-ex-body">合計 29 萬；佔比 硬裝 27.6%、主材 41.4%、傢俱 17.2%、家電 13.8%。若總控 30 萬，主材已近上限，需壓縮或下調家電檔位。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例（硬裝 8 + 主材 12 + 傢俱 5 + 家電 4 萬）</div><div class="dd-ex-body">合計 29 萬；佔比 硬裝 27.6%、主材 41.4%、傢俱 17.2%、家電 13.8%。若你的控制目標是 30 萬，主材佔比偏高，可壓縮主材或下調家電檔位。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
 <dt>各項佔比怎麼看健康？</dt><dd>常見區間：硬裝 25–35%、主材 30–45%、傢俱 15–25%、家電 10–20%。主材 &gt;45% 或硬裝 &lt;20% 都偏失衡，前者擠壓軟裝、後者可能隱蔽增項。</dd>
+<dt>能設預算上限、跟蹤實際支出嗎？</dt><dd>不能。本工具只做“單價 × 數量”的估算彙總與佔比分析，沒有預算上限、實際支付、差額或執行進度欄位；這些請用記賬表或合同臺賬跟蹤。</dd>
 <dt>資料存在哪、會丟嗎？</dt><dd>僅存瀏覽器 localStorage（按域名隔離），清快取 / 換瀏覽器會丟。重要預算自行截圖或匯出，本工具不聯網、不上傳。</dd>
 </dl>
 </div>
@@ -333,11 +336,27 @@ function updateItem(id, field, value){
  calc();
 }
 
+let lastSnapshot=null;
+function markUndo(snapshot){
+ lastSnapshot=snapshot;
+ const b=document.getElementById('undoPresetBtn');
+ if(b)b.disabled=!snapshot;
+}
+function restoreSnapshot(){
+ if(!lastSnapshot)return;
+ try{setItems(lastSnapshot);}catch(e){ToolBox.showToast('恢复失败：浏览器存储不可用','warn');return;}
+ lastSnapshot=null;markUndo(null);renderItems();calc();ToolBox.showToast('已恢复覆盖前的草稿','ok');
+}
+function writeTemplate(t){
+ const snapshot=getItems();
+ try{setItems(TEMPLATES[t].map(it => ({id:Date.now()+Math.random(), ...it})));}
+ catch(e){ToolBox.showToast('保存失败：浏览器存储空间不足或被禁用，未覆盖原草稿','warn');return false;}
+ markUndo(snapshot);renderItems();calc();return true;
+}
 function loadTemplate(t){
  if(!TEMPLATES[t]) return;
- if(getItems().length && !confirm('当前已有数据,要覆盖吗?')) return;
- setItems(TEMPLATES[t].map(it => ({id:Date.now()+Math.random(), ...it})));
- renderItems(); calc();
+ if(getItems().length && !confirm('当前已有数据,要覆盖吗? 覆盖后可用「撤销上次模板覆盖」恢复。')) return;
+ writeTemplate(t);
 }
 
 function clearItems(){
@@ -349,8 +368,7 @@ function clearItems(){
 function applyBudgetPreset(kind){
  if(!kind) return;
  if(!TEMPLATES[kind]) return;
- setItems(TEMPLATES[kind].map(it => ({id:Date.now()+Math.random(), ...it})));
- renderItems(); calc();
+ loadTemplate(kind);
 }
 
 function renderItems(){
@@ -362,7 +380,7 @@ function renderItems(){
     <input type="number" data-field="price" value="${it.price}" min="0" step="100" onchange="updateItem(${it.id},'price',this.value)" placeholder="如 0" data-i18n-ph="ph.renovation.itemPrice">
     <input type="number" data-field="qty" value="${it.qty}" min="1" step="1" onchange="updateItem(${it.id},'qty',this.value)" placeholder="如 1" data-i18n-ph="ph.renovation.itemQty">
     <div class="total">¥${(it.price*it.qty).toLocaleString()}</div>
-    <div class="del" onclick="delItem(${it.id})">✕</div>
+    <button type="button" class="del" aria-label="删除 ${escapeAttr(it.name)}" onclick="delItem(${it.id})">✕</button>
    </div>`).join('');document.getElementById('items').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
  try{ if(window.I18n&&I18n.apply)I18n.apply(document.getElementById('items')); }catch(e){}
 }
@@ -444,7 +462,7 @@ document.addEventListener('DOMContentLoaded',function(){
   <div class="related-tools-grid">
     <a href="/zh-tw/tools/home/furniture-layout.html" class="related-tool-card">
       <span class="rt-icon">🛋️</span>
-      <span class="rt-info"><span class="rt-name">傢俱佈局</span><span class="rt-desc">在瀏覽器本地拖拽床、沙發、桌子等傢俱到戶型平面圖中，按房間尺寸即時擺放與避讓，估算通道與空間利用率；</span></span>
+      <span class="rt-info"><span class="rt-name">傢俱佈局</span><span class="rt-desc">在瀏覽器本地拖拽床、沙發、桌子等傢俱到戶型平面圖中，按房間尺寸擺放，計算佔用率、重疊面積與越介面積；</span></span>
     </a>
     <a href="/zh-tw/tools/home/room-calculator.html" class="related-tool-card">
       <span class="rt-icon">📐</span>
@@ -467,7 +485,7 @@ document.addEventListener('DOMContentLoaded',function(){
   </div>
   <div class="tool-intro-body">
     <h4><span class="h4-icon">📝</span>工具簡介</h4>
-    <p data-zh="分項錄入硬裝、主材、傢俱、家電等裝修支出，即時彙總總金額、各項佔比與累計進度，支援本地儲存草稿，幫助業主在裝修全程跟蹤預算執行、識別超支環節">分項錄入硬裝、主材、傢俱、家電等裝修支出，即時彙總總金額、各項佔比與累計進度，支援本地儲存草稿，幫助業主在裝修全程跟蹤預算執行、識別超支環節</p>
+    <p data-zh="分項錄入硬裝、主材、傢俱、家電等裝修估算，即時彙總總金額、各項佔比與平均單專案支出，支援本地儲存草稿，幫助業主在開工前比較報價結構；本工具不設預算上限，也不記錄實際支付或執行進度">分項錄入硬裝、主材、傢俱、家電等裝修估算，即時彙總總金額、各項佔比與平均單專案支出，支援本地儲存草稿，幫助業主在開工前比較報價結構；本工具不設預算上限，也不記錄實際支付或執行進度</p>
     <h4><span class="h4-icon">✨</span>功能特點</h4>
     <ul class="intro-features">
       <li>支援多種裝修引數</li>

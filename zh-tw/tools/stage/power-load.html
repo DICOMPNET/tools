@@ -122,8 +122,8 @@
     <h2 data-zh="🎭 燈光總功率與負載計算">Stage Lighting Power Load</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="計算舞臺燈光總功率、電流及三相負載分配">Power Load</p>
     <div class="formula-box">
-      <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">舞臺燈光負載與配電計算<br>總功率 = Σ(單燈功率 × 數量)（W）<br>三相總電流 = 總功率 ÷ (√3 × 380V × 功率因數)（A）<br>單相總電流 = 總功率 ÷ (220V × 功率因數)（A）<br>380V 每相平均電流 = 三相負載÷(√3×380×pf)÷3 + 單相負載÷(220×pf)<br>安全功率 = 總功率 × (1 + 安全裕度%)<br>安全電流 = 總電流 × (1 + 安全裕度%)<br>建議斷路器 = ⌈安全電流 ÷ 16⌉ × 16（A，按 16A 模數取整）<br>單相佔比 = 單相功率 ÷ 總功率 × 100%<br>輸入：電壓 380/220、功率因數、安全裕度、燈具清單</div>
-      <p class="formula-desc" data-zh="核心計算公式（按輸入變數）：threePhasePower ÷ (√(3) × voltage × pf) ÷ 3 + singlePhasePower ÷ (220 × pf)；max(|(threePhasePower ÷ 3 - 0)|, |(singlePhasePower)|)；totalPower ÷ (√(3) × voltage × pf)">Key formulas: threePhasePower ÷ (√(3) × voltage × pf) ÷ 3 + singlePhasePower ÷ (220 × pf); max(|(threePhasePower ÷ 3 - 0)|, |(singlePhasePower)|); totalPower ÷ (√(3) × voltage × pf)</p>
+      <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">舞臺燈光負載與配電計算<br>總功率 = Σ(單燈功率 × 數量)（W）<br>三相總電流 = 總功率 ÷ (√3 × 380V × 功率因數)（A）<br>單相總電流 = 總功率 ÷ (220V × 功率因數)（A）<br>380V 三相負載線電流 = 三相負載÷(√3×380×pf)（每相相同，不再÷3）；單相電流 = 單相負載÷(220×pf)；最不利單相電流 = 三相線電流 + 單相總電流（假設單相全集中一相）<br>安全功率 = 總功率 × (1 + 安全裕度%)<br>安全電流 = 總電流 × (1 + 安全裕度%)<br>建議斷路器 = ⌈安全電流 ÷ 16⌉ × 16（A，按 16A 模數取整）<br>單相佔比 = 單相功率 ÷ 總功率 × 100%<br>輸入：電壓 380/220、功率因數、安全裕度、燈具清單</div>
+      <p class="formula-desc" data-zh="核心計算公式（按輸入變數）：threePhaseLine = threePhasePower ÷ (√3 × 380 × pf)；singlePhase = singlePhasePower ÷ (220 × pf)；worstPhase = threePhaseLine + singlePhase；totalPower ÷ (√3 × voltage × pf)">Key formulas: threePhasePower ÷ (√(3) × voltage × pf) ÷ 3 + singlePhasePower ÷ (220 × pf); max(|(threePhasePower ÷ 3 - 0)|, |(singlePhasePower)|); totalPower ÷ (√(3) × voltage × pf)</p>
     </div>
 
     <div class="input-row">
@@ -312,23 +312,26 @@ if(__numReq.every(function(k){var e=document.getElementById(k);return !e||String
   }
 
   var totalCurrent;
-  var perPhaseCurrent = 0;
+  var threePhaseLineCurrent = 0;
+  var singlePhaseCurrent = 0;
+  var worstPhaseCurrent = 0;
   if (voltage === 380) {
     totalCurrent = totalPower / (Math.sqrt(3) * voltage * pf);
-    perPhaseCurrent = threePhasePower / (Math.sqrt(3) * voltage * pf) / 3 + singlePhasePower / (220 * pf);
+    threePhaseLineCurrent = threePhasePower / (Math.sqrt(3) * voltage * pf);
+    singlePhaseCurrent = singlePhasePower / (220 * pf);
+    // 未分相时按最不利情况：全部单相负载集中在同一相
+    worstPhaseCurrent = threePhaseLineCurrent + singlePhaseCurrent;
   } else {
     totalCurrent = totalPower / (voltage * pf);
-    perPhaseCurrent = totalCurrent / 3;
+    worstPhaseCurrent = totalCurrent;
   }
 
   var safePower = totalPower * (1 + margin / 100);
   var safeCurrent = totalCurrent * (1 + margin / 100);
-  var breakerRating = Math.ceil(safeCurrent / 16) * 16;
+  var breakerRating = Math.ceil(Math.max(safeCurrent, worstPhaseCurrent * (1 + margin / 100)) / 16) * 16;
 
   var phaseImbalance = 0;
   if (threePhasePower > 0) {
-    var avgPhase = threePhasePower / 3;
-    var maxDev = Math.max(Math.abs(threePhasePower / 3 - 0), Math.abs(singlePhasePower));
     phaseImbalance = singlePhasePower > 0 ? (singlePhasePower / (threePhasePower + singlePhasePower) * 100) : 0;
   }
 
@@ -338,12 +341,15 @@ if(__numReq.every(function(k){var e=document.getElementById(k);return !e||String
   html += '<p>单相负载：<strong>' + (singlePhasePower / 1000).toFixed(2) + ' kW</strong></p>';
   html += '<p>总电流：<strong>' + totalCurrent.toFixed(1) + ' A</strong></p>';
   if (voltage === 380) {
-    html += '<p>每相平均电流：<strong>' + perPhaseCurrent.toFixed(1) + ' A</strong></p>';
+    html += '<p>三相负载线电流（每相相同）：<strong>' + threePhaseLineCurrent.toFixed(1) + ' A</strong></p>';
+    html += '<p>单相负载电流（220V）：<strong>' + singlePhaseCurrent.toFixed(1) + ' A</strong></p>';
+    html += '<p>最不利单相电流（假设单相全集中于同一相）：<strong>' + worstPhaseCurrent.toFixed(1) + ' A</strong></p>';
+    html += '<p style="font-size:12px;color:var(--text-muted);">未分相时断路器按最不利相加总选择；实际应把单相灯具分相均衡后，再按各相电流校核。</p>';
   }
   html += '<p>安全裕度后功率：<strong>' + (safePower / 1000).toFixed(2) + ' kW</strong></p>';
   html += '<p>安全裕度后电流：<strong>' + safeCurrent.toFixed(1) + ' A</strong></p>';
   html += '<p>建议断路器：<strong>' + breakerRating + ' A</strong></p>';
-  html += '<p>单相占比：<strong>' + phaseImbalance.toFixed(1) + '%</strong></p>';
+  html += '<p>单相负载占比：<strong>' + phaseImbalance.toFixed(1) + '%</strong></p>';
   const __g1=html;ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
 }
 

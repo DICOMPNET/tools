@@ -114,7 +114,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="輸入長半軸 a 與短半軸 b，求橢圓面積。">Compute ellipse area from the semi-major axis a and semi-minor axis b using A = π·a·b.</p>
     <div class="formula-box">
       <div class="formula-title">📐 計算公式</div>
-      <div class="formula-eq">橢圓面積：A = π·a·b（a 長半軸、b 短半軸，m）；聯動卡：長短半軸之比 = a ÷ max(b,10⁻⁹)、周長近似 = 2π·√((a²+b²) ÷ 2)、等面積圓面積 = π·√(a·b)（等面積圓半徑 = √(a·b)）。校驗：無強校驗，空值按 0 兜底。判據：無固定分級，a=b 時退化為圓（面積 πa²）。</div>
+      <div class="formula-eq">橢圓面積：A = π·a·b（a 長半軸、b 短半軸，m）；聯動卡：長短半軸之比 = a ÷ max(b,10⁻⁹)、周長近似 = 2π·√((a²+b²) ÷ 2)、等面積圓面積 = π·a·b（等面積圓半徑 = √(a·b)）。校驗：a、b 必填，空白不等於 0；a、b 須為大於 0 的有限數。判據：無固定分級，a=b 時退化為圓（面積 πa²）。</div>
       <p class="formula-desc">輸入長半軸 a 與短半軸 b，求橢圓面積。</p>
     </div>
 
@@ -221,12 +221,17 @@ function calcTool(){
                 var __t=document.getElementById('ellipse_areaTable'); if(__t) __t.innerHTML='';
                 return;
             }
+            const __en=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn)?TBKit.util.isEn():false;
             const a=num('a'),b=num('b');
+            if(!isFinite(a)||!isFinite(b)||a<=0||b<=0){
+                ToolBox.setResult('result','<p style="color:var(--danger)">长半轴 a 与短半轴 b 须为大于 0 的有限数。</p>');
+                var __et=document.getElementById('ellipse_areaTable');if(__et)__et.innerHTML='';return;
+            }
             const __g1=dataGrid([
-                [(Math.PI*a*b).toFixed(3),'椭圆面积 A (m²)'],
-                [(a/Math.max(b,1e-9)).toFixed(6), '长短半轴之比'],
-                [(2*Math.PI*Math.sqrt((a*a+b*b)/2)).toFixed(3), '椭圆周长近似 (m)'],
-                [(Math.PI*Math.pow(a*b,0.5)).toFixed(3), '等面积圆面积 π√(ab)（半径=√(ab)）']
+                [(Math.PI*a*b).toFixed(3),__en?'Ellipse area A (m²)':'椭圆面积 A (m²)'],
+                [(a/Math.max(b,1e-9)).toFixed(6), __en?'Semi-axis ratio':'长短半轴之比'],
+                [(2*Math.PI*Math.sqrt((a*a+b*b)/2)).toFixed(3), __en?'Approximate perimeter (m)':'椭圆周长近似 (m)'],
+                [(Math.PI*a*b).toFixed(3), __en?'Equal-area circle area πab (radius=√(ab))':'等面积圆面积 πab（半径=√(ab)）']
             ]);ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
         }
 function resetForm(){document.getElementById('a').value = '5';
@@ -239,7 +244,7 @@ function __ellipse_areaExtras(){
     function __ellipse_areaRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
     var a=num('a'),b=num('b');
-    if (!isFinite(__ellipse_areaNum('a')) || !isFinite(__ellipse_areaNum('b'))) return;
+    if (!isFinite(a) || !isFinite(b) || a <= 0 || b <= 0) return;
     var en=TBKit.util.isEn();
     TBKit.matrix.table('#ellipse_areaTable',{
         head: en?['Item','Value']:['项目','数值'],
@@ -247,7 +252,7 @@ function __ellipse_areaExtras(){
             ['椭圆面积 A (m²)', (Math.PI*a*b).toFixed(3)],
             ['长短半轴之比', (a/Math.max(b,1e-9)).toFixed(6)],
             ['椭圆周长近似 (m)', (2*Math.PI*Math.sqrt((a*a+b*b)/2)).toFixed(3)],
-            ['等面积圆面积 π√(ab)（半径=√(ab)）', (Math.PI*Math.pow(a*b,0.5)).toFixed(3)],
+            ['等面积圆面积 πab（半径=√(ab)）', (Math.PI*a*b).toFixed(3)],
         ]
     });
     var __eaRatios=[1,0.9,0.8,0.7,0.6,0.5,0.3,0.1];

@@ -114,7 +114,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="輸入球半徑，求表面積。">Compute sphere surface area from radius using A = 4πr².</p>
     <div class="formula-box">
       <div class="formula-title">📐 計算公式</div>
-      <div class="formula-eq">球體表面積（本頁程式碼口徑）：S=4×π×r²（m²，r 半徑 m）；聯動量：體積 V=4÷3×π×r³（m³）、大圓周長=2×π×r（m）、表面積÷體積=S÷max(V,10⁻⁹)（1/m）、S(cm²)=S×10⁴。校驗：空值即提示；半徑不得為負（0 合法）。判據：無固定分級，表面積隨半徑平方、體積隨半徑三次方增長，比表面隨半徑增大而減小。</div>
+      <div class="formula-eq">球體表面積（本頁程式碼口徑）：S=4×π×r²（m²，r 半徑 m）；聯動量：體積 V=4÷3×π×r³（m³）、大圓周長=2×π×r（m）、表面積÷體積=S÷V（1/m，V=0 時顯示“不適用”）、S(cm²)=S×10⁴。校驗：r 必填，空白不等於 0；r 須為非負有限數（0 合法，但比值不適用）。判據：無固定分級，表面積隨半徑平方、體積隨半徑三次方增長，比表面隨半徑增大而減小。</div>
       <p class="formula-desc">輸入球半徑，求表面積。</p>
     </div>
 
@@ -217,11 +217,11 @@ function calcTool(){
             if(!Number.isFinite(r0)||r0<0){ToolBox.setResult('result','<p style="color:var(--danger);">'+(__en?'Radius cannot be negative.':'半径不得为负。')+'</p>');return;}
             const r=r0;
             const __g1=dataGrid([
-                [(4*Math.PI*r*r).toFixed(3),'表面积 A (m²)'],
-                [(4/3*Math.PI*r*r*r).toFixed(3), '球体积 (m³)'],
-                [(2*Math.PI*r).toFixed(3), '大圆周长 (m)'],
-                [(4*Math.PI*r*r/Math.max(4/3*Math.PI*r*r*r,1e-9)).toFixed(6), '表面积与体积之比 (1/m)'],
-                [(4*Math.PI*r*r*1e4).toFixed(3), '表面积 (cm²)']
+                [(4*Math.PI*r*r).toFixed(3),__en?'Surface area A (m²)':'表面积 A (m²)'],
+                [(4/3*Math.PI*r*r*r).toFixed(3), __en?'Sphere volume (m³)':'球体积 (m³)'],
+                [(2*Math.PI*r).toFixed(3), __en?'Great-circle circumference (m)':'大圆周长 (m)'],
+                [r0>0?(4*Math.PI*r*r/(4/3*Math.PI*r*r*r)).toFixed(6):(__en?'Not applicable (r=0, volume is 0)':'不适用（r=0，体积为 0）'), __en?'Surface-area to volume ratio (1/m)':'表面积与体积之比 (1/m)'],
+                [(4*Math.PI*r*r*1e4).toFixed(3), __en?'Surface area (cm²)':'表面积 (cm²)']
             ]);ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
         }
 function resetForm(){document.getElementById('r').value = '3';
@@ -241,7 +241,7 @@ function __sphere_surface_areaExtras(){
             ['表面积 A (m²)', (4*Math.PI*r*r).toFixed(3)],
             ['球体积 (m³)', (4/3*Math.PI*r*r*r).toFixed(3)],
             ['大圆周长 (m)', (2*Math.PI*r).toFixed(3)],
-            ['表面积与体积之比 (1/m)', (4*Math.PI*r*r/Math.max(4/3*Math.PI*r*r*r,1e-9)).toFixed(6)],
+            ['表面积与体积之比 (1/m)', r>0?(4*Math.PI*r*r/(4/3*Math.PI*r*r*r)).toFixed(6):'不适用（r=0，体积为 0）'],
             ['表面积 (cm²)', (4*Math.PI*r*r*1e4).toFixed(3)],
         ]
     });

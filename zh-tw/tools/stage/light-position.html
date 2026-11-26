@@ -107,8 +107,8 @@
     <h2 data-zh="🧮 燈具角度與位置計算">Stage Light Position Planner</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="根據投射距離和高度計算燈具安裝角度與水平偏移">Light Position</p>
     <div class="formula-box">
-      <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">投射角度(弧度) = atan2(燈高, 水平距離)，再乘 180 ÷ π 轉為度；俯角（自垂直方向量起）= 90 − 投射角度；斜射距離 = √(燈高² + 水平距離²)；高度距離比 = 燈高 ÷ 水平距離。燈位判定：40°–50° 面光（正面光）、30°–40° 耳光（前側光）、50°–60° 側光、&gt; 60° 頂光/逆光、&lt; 30° 低角度光（腳光）；燈高或水平距離 ≤ 0 時提示需大於 0</div>
-      <div class="formula-desc tb-bi"><span class="t-zh">輸入燈具投射距離與安裝高度，計算投光角度與水平偏移量，用於舞臺、場館布燈定位與光斑覆蓋範圍的設計測算。面光（正面光）通常取 40–50° 投射角，根據舞臺臺口高度與燈具吊點距離反推安裝角度。</span><span class="t-en">Plan stage light positions from trim height, target area, and beam angle</span></div>
+      <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">投射角度(弧度) = atan2(燈高, 水平距離)，再乘 180 ÷ π 轉為度；俯角（自垂直方向量起）= 90 − 投射角度；斜射距離 = √(燈高² + 水平距離²)；高度距離比 = 燈高 ÷ 水平距離。僅輸出垂直投射角、俯角、斜射距離與高距比，不按角度單獨判定面光/耳光/側光/逆光（還需燈具相對舞臺的水平方位）；40–50° 只是常見面光垂直角參考；燈高或水平距離 ≤ 0 時提示需大於 0</div>
+      <div class="formula-desc tb-bi"><span class="t-zh">輸入燈具投射距離與安裝高度，計算投光角度與水平偏移量，用於舞臺、場館布燈定位與光斑覆蓋範圍的設計測算。面光的垂直投射角常取 40–50°，且燈具需位於舞臺正前方；根據臺口高度與吊點水平距離反推安裝角度。</span><span class="t-en">Plan stage light positions from trim height, target area, and beam angle</span></div>
     </div>
 
     <div class="tabs">
@@ -154,7 +154,7 @@
     </div>
 
     <div class="info-box">
-      <strong>角度參考：</strong>45° 為標準正面光（面光）；30°-45° 為前側光（耳光）；45°-60° 為側光；大於 60° 為頂光/逆光。投射角 = arctan(高度 / 水平距離)。
+      <strong>角度參考：</strong>垂直投射角 = arctan(高度 / 水平距離)，只由高度與水平距離決定。40–50° 常作為面光的垂直角參考，但面光還要求燈具位於舞臺正前方；30–60° 可能用於前側光/側光，同樣取決於水平方位。不能僅憑角度給燈位命名。
     </div>
 
     <h3 style="margin-top:20px;">舞臺燈位角度參考</h3>
@@ -254,19 +254,11 @@ function calcAngle() {
   var slantDist = Math.sqrt(h * h + d * d);
   var elevationFromStage = 90 - angleDeg;
 
-  var lightType = '';
-  var gradeClass = '';
-  if (angleDeg >= 40 && angleDeg <= 50) { lightType = '面光（正面光）'; gradeClass = 'grade-excellent'; }
-  else if (angleDeg >= 30 && angleDeg < 40) { lightType = '耳光（前侧光）'; gradeClass = 'grade-good'; }
-  else if (angleDeg > 50 && angleDeg <= 60) { lightType = '侧光'; gradeClass = 'grade-good'; }
-  else if (angleDeg > 60) { lightType = '顶光/逆光'; gradeClass = 'grade-pass'; }
-  else { lightType = '低角度光（脚光）'; gradeClass = 'grade-pass'; }
-
-  var html = '<p>投射角度：<strong>' + angleDeg.toFixed(1) + '°</strong></p>';
+  var html = '<p>投射角度（灯具到目标连线与水平面夹角）：<strong>' + angleDeg.toFixed(1) + '°</strong></p>';
   html += '<p>俯角（从垂直方向）：<strong>' + elevationFromStage.toFixed(1) + '°</strong></p>';
   html += '<p>斜射距离：<strong>' + slantDist.toFixed(2) + ' m</strong></p>';
-  html += '<p>灯位类型：<span class="grade-tag ' + gradeClass + '">' + lightType + '</span></p>';
   html += '<p>高度/距离比：<strong>' + (h / d).toFixed(2) + '</strong></p>';
+  html += '<div class="tip-box tip-warn" style="margin-top:8px;">仅凭高度与水平距离只能确定<strong>垂直投射角</strong>，不能判定面光/耳光/侧光/逆光。灯位类型还取决于灯具相对舞台对象的水平方位（正前、侧前方、侧后方等），请结合平面布置另行判断。</div>';
   const __g1=html;ToolBox.setResult('angleResult',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
 }
 

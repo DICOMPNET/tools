@@ -7,13 +7,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="toolbox" content="cat=robotics,industry=robotics,icon=📐,bg=#eff6ff">
-<title>角度 = (脈寬 − 最小) / (最大 − 最小) × 180°</title>
+<title>舵機 PWM 轉角度計算器 - 支援 180°/270° 與反向對映</title>
 <link rel="canonical" href="https://tools.dicomp.net/zh-tw/tools/robotics/servo-pwm-angle.html">
-<meta property="og:title" content="角度 = (脈寬 − 最小) / (最大 − 最小) × 180°">
-<meta property="og:description" content="舵機 PWM 角度計算器是一款免費的線上機器人學工具，由 PWM 脈衝寬度按對映關係求舵機轉角，輸入脈寬範圍內數值即可換算 0–180° 舵機角度，便於舵機控制除錯">
+<meta property="og:title" content="舵機 PWM 轉角度計算器 - 支援 180°/270° 與反向對映">
+<meta property="og:description" content="由脈寬在標定區間內的行程比例，按設定的最大機械角度與方向換算舵機轉角；支援 180°、270° 舵機與反向安裝，超出標定區間會醒目提示外推風險">
 <meta property="og:url" content="https://tools.dicomp.net/zh-tw/tools/robotics/servo-pwm-angle.html">
 <meta name="twitter:card" content="summary">
-<meta name="description" content="舵機 PWM 角度計算器是一款免費的線上機器人學工具，由 PWM 脈衝寬度按對映關係求舵機轉角，輸入脈寬範圍內數值即可換算 0–180° 舵機角度，便於舵機控制除錯">
+<meta name="description" content="由脈寬在標定區間內的行程比例，按設定的最大機械角度與方向換算舵機轉角；支援 180°、270° 舵機與反向安裝，超出標定區間會醒目提示外推風險">
 <link rel="stylesheet" href="/css/common.css">
 <script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="/js/common.js" defer></script>
@@ -26,10 +26,10 @@
 <meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
 <meta name="twitter:image:alt" content="ToolBox - 5000+免費線上工具">
     <meta property="og:type" content="website">
-    <meta name="twitter:title" content="角度 = (脈寬 − 最小) / (最大 − 最小) × 180°">
-    <meta name="twitter:description" content="舵機 PWM 角度計算器是一款免費的線上機器人學工具，由 PWM 脈衝寬度按對映關係求舵機轉角，輸入脈寬範圍內數值即可換算 0–180° 舵機角度，便於舵機控制除錯">
+    <meta name="twitter:title" content="舵機 PWM 轉角度計算器 - 支援 180°/270° 與反向對映">
+    <meta name="twitter:description" content="由脈寬在標定區間內的行程比例，按設定的最大機械角度與方向換算舵機轉角；支援 180°、270° 舵機與反向安裝，超出標定區間會醒目提示外推風險">
 <!-- TOOLBOX-WEBAPP-LD -->
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"舵機 PWM 角度計算器","url":"https://tools.dicomp.net/zh-tw/tools/robotics/servo-pwm-angle.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"舵機 PWM 角度計算器是一款免費的線上機器人學工具，由 PWM 脈衝寬度按對映關係求舵機轉角，輸入脈寬範圍內數值即可換算 0–180° 舵機角度，便於舵機控制除錯","image":"https://tools.dicomp.net/og-image.png","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"舵機 PWM 角度計算器","url":"https://tools.dicomp.net/zh-tw/tools/robotics/servo-pwm-angle.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"由脈寬在標定區間內的行程比例，按設定的最大機械角度與方向換算舵機轉角；支援 180°、270° 舵機與反向安裝，超出標定區間會醒目提示外推風險","image":"https://tools.dicomp.net/og-image.png","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
@@ -49,7 +49,7 @@
 
 
 <meta name="title-en" content="Servo Pwm Angle">
-<meta name="desc-en" content="Convert PWM pulse width to servo angle using mapping relation. Input pulse-width-range values to convert within 0–180° servo angle for servo-control debugging">
+<meta name="desc-en" content="Convert pulse width to servo angle using the travel ratio within the calibrated range, the configured maximum mechanical angle and direction. Supports 180°…">
 
 
 <link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
@@ -65,7 +65,7 @@
 
 <script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"標準脈寬？","acceptedAnswer":{"@type":"Answer","text":"常見 500μs=0°、1500μs=90°、2500μs=180°（50Hz）。"}},{"@type":"Question","name":"不同範圍？","acceptedAnswer":{"@type":"Answer","text":"更換 pmin/pmax 即可適配 180°/270° 等舵機。"}}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"標準脈寬？","acceptedAnswer":{"@type":"Answer","text":"常見 500μs=0°、1500μs=90°、2500μs=180°（50Hz）。"}},{"@type":"Question","name":"不同範圍？","acceptedAnswer":{"@type":"Answer","text":"先更換 pmin/pmax 標定脈寬，再把「最大機械角度」改為 270° 並選擇方向，即可適配 270° 舵機；只改脈寬不會自動變成 270°。"}}]}</script>
 <meta property="og:site_name" content="ToolBox">
 <meta name="theme-color" content="#FF6B35">
 <!-- TOOLBOX-HREFLANG -->
@@ -107,7 +107,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="由 PWM 脈衝寬度求舵機轉角。">Convert PWM pulse width to servo angle using mapping relation. Input pulse-width-range values to convert within 0–180° servo angle for servo-control debugging.</p>
     <div class="formula-box">
       <div class="formula-title">📐 計算公式</div>
-      <div class="formula-eq">舵機 PWM 轉角（本頁程式碼口徑）：轉角=(當前脈寬−最小脈寬)÷(最大脈寬−最小脈寬)×180（°，脈寬單位 µs，線性對映到 0–180° 行程）。校驗：三欄位經輸入守衛必填且須為合法數值，否則提示並中止。判據：無固定分級，脈寬等於最小÷最大脈寬時分別對應 0°÷180°，脈寬超出區間時角度按同一比例式線性外推顯示。</div>
+      <div class="formula-eq">舵機 PWM 轉角：行程比例 r=(脈寬−pmin)÷(pmax−pmin)，正向角度=r×最大機械角度，反向角度=(1−r)×最大機械角度（脈寬單位 µs）。校驗：pmin<pmax、最大机械角度>0，脈寬須為有效數值；超出 pmin~pmax 時醒目提示為線性外推、可能已到機械限位。判據：180° 舵機最大角填 180、270° 舵機填 270，並能按安裝方向反向對映。</div>
       <p class="formula-desc">由 PWM 脈衝寬度求舵機轉角。</p>
     </div>
 
@@ -123,6 +123,17 @@
       <div>
         <label for="pmax">最大脈寬 (µs)</label>
         <input type="number" id="pmax" value="2500" step="10" oninput="calcTool()" placeholder="如 2500">
+      </div>
+      <div>
+        <label for="amax">最大機械角度 (°)</label>
+        <input type="number" id="amax" value="180" step="10" oninput="calcTool()" placeholder="如 180 / 270">
+      </div>
+      <div>
+        <label for="dir">方向</label>
+        <select id="dir" onchange="calcTool()">
+          <option value="1">正向（脈寬增大角度增大）</option>
+          <option value="-1">反向（脈寬增大角度減小）</option>
+        </select>
       </div>
     </div>
 
@@ -176,12 +187,12 @@
 <li>50Hz 舵機控制。</li>
 <li>關節角度設定。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">脈寬 1500μs、範圍 500–2500</div><div class="dd-ex-body">θ=(1500−500)/(2500−500)×180=1000/2000×180=90°（中位）。</div></div>
+<div class="dd-example"><div class="dd-ex-title">脈寬 1500μs、範圍 500–2500</div><div class="dd-ex-body">θ=(1500−500)/(2500−500)×180=1000/2000×180=90°（180° 舵機中位）；270° 舵機把最大機械角度設為 270 後為 135°。</div></div>
 <div class="dd-example"><div class="dd-ex-title">脈寬 2000μs</div><div class="dd-ex-body">θ=(2000−500)/2000×180=135°，隨脈寬線性增大。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
 <dt>標準脈寬？</dt><dd>常見 500μs=0°、1500μs=90°、2500μs=180°（50Hz）。</dd>
-<dt>不同範圍？</dt><dd>更換 pmin/pmax 即可適配 180°/270° 等舵機。</dd>
+<dt>不同範圍？</dt><dd>先更換 pmin/pmax 標定脈寬，再把「最大機械角度」改為 270° 並選擇方向，即可適配 270° 舵機；只改脈寬不會自動變成 270°。</dd>
 </dl>
 </div>
 </section>
@@ -297,14 +308,21 @@ const pwm = num('pwm'), pmin = num('pmin'), pmax = num('pmax');
                 ToolBox.setResult('result','<p style="color:var(--danger)">⚠ 最大脉宽必须大于最小脉宽，请检查标定值。</p>');
                 return;
             }
-            const ang = (pwm - pmin) / (pmax - pmin) * 180;
+            const amax=num('amax');
+            if(!isFinite(amax)||amax<=0){ToolBox.setResult('result','<p style="color:var(--danger)">⚠ 最大机械角度必须大于 0（常见 180° 或 270°）。</p>');return;}
+            const dir=parseInt(document.getElementById('dir').value,10)=== -1?-1:1;
+            const ratio=(pwm - pmin) / (pmax - pmin);
+            const ang=(dir>0?ratio:1-ratio)*amax;
+            const outside=pwm<pmin||pwm>pmax;
             const __g2=dataGrid([
-                [ang.toFixed(2), '转角 (°)']
-            ]);ToolBox.setResult('result',(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));
+                [ang.toFixed(2), '转角 (°)'],
+                [(ratio*100).toFixed(2), '标定区间行程 (%)'],
+                [dir>0?'正向':'反向', '映射方向']
+            ])+(outside?'<div class="info-box" style="margin-top:12px;border-color:#b91c1c;">⚠ 输入脉宽 '+pwm.toFixed(0)+' µs 超出标定区间 ['+pmin.toFixed(0)+', '+pmax.toFixed(0)+'] µs；以下角度为线性外推，舵机可能已到机械限位、堵转或不受控，不能当作有效角度。</div>':'')+'<div class="info-box" style="margin-top:12px;">角度按设定最大机械角度与方向线性映射；实际舵机须用 pmin/pmax 与机械行程单独标定，270° 舵机请把最大机械角度改为 270。</div>';ToolBox.setResult('result',(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));
         }
 function resetForm(){document.getElementById('pwm').value = '1500';
       document.getElementById('pmin').value = '500';
-      document.getElementById('pmax').value = '2500';
+      document.getElementById('pmax').value = '2500';document.getElementById('amax').value = '180';document.getElementById('dir').value = '1';
       calcTool();}
 calcTool();
 

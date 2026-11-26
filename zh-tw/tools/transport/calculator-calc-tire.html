@@ -107,7 +107,7 @@
     <h2 data-zh="🛞 輪胎尺寸升級計算器">Tire Size Upgrade Calculator</h2>
     <div class="formula-box">
       <div class="formula-title">📐 計算公式</div>
-      <div class="formula-eq">輪胎外徑 = 輪輞直徑(英寸) × 25.4 + 2 × 胎側高，胎側高 = 胎寬 × 扁平比 ÷ 100（mm）；周長 = π × 外徑；換胎對比：外徑差 = 新外徑 − 舊外徑，直徑變化率 = (新外徑 ÷ 舊外徑 − 1) × 100%，輪眉間隙變化 = 外徑差 ÷ 2，表顯 100 時實際車速 = 100 × (1 + 變化率 ÷ 100)。校驗：新舊規格串均須匹配「胎寬/扁平比R輪輞」格式（如 225/45R17），任一不匹配提示格式不正確。判據：|變化率| &gt;3% 提示可能影響 ABS/ESP 與時速表準確性，±3% 以內屬可接受範圍。</div>
+      <div class="formula-eq">輪胎外徑 = 輪輞直徑(英寸) × 25.4 + 2 × 胎側高，胎側高 = 胎寬 × 扁平比 ÷ 100（mm）；周長 = π × 外徑；換胎對比：外徑差 = 新外徑 − 舊外徑，直徑變化率 = (新外徑 ÷ 舊外徑 − 1) × 100%，輪眉間隙變化 = 外徑差 ÷ 2，表顯 100 時實際車速 = 100 × (1 + 變化率 ÷ 100)。校驗：新舊規格串均須匹配「胎寬/扁平比R輪輞」格式（如 225/45R17），且胎寬 50–400、扁平比 10–100、輪輞 10–30 英寸，任一不滿足即提示並清空舊結果。判據：|變化率| &gt;3% 提示可能影響 ABS/ESP 與時速表準確性，±3% 以內屬可接受範圍。</div>
     </div>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="輸入原廠與新輪胎規格（如 225/45R17），計算外徑差異、時速表誤差與間隙變化。">Calculator Calc Tire</p>
 
@@ -210,6 +210,7 @@ function parseSpec(str){
   var m=String(str).trim().match(/^(\d{2,3})\s*\/\s*(\d{2,3})\s*[Rr]\s*(\d{2})$/);
   if(!m)return null;
   var w=+m[1],asp=+m[2],rim=+m[3];
+  if(w<50||w>400||asp<10||asp>100||rim<10||rim>30)return null;
   var sidewall=w*asp/100;
   var diameter=rim*25.4+2*sidewall;
   var circumference=diameter*Math.PI;
@@ -221,7 +222,7 @@ function calc(){
   var res=document.getElementById('res');
   var st=document.getElementById('specTable');
   if(!o||!n){
-    res.innerHTML='<p style="color:var(--danger);">规格格式不正确，请使用如 225/45R17 的格式。</p>';
+    res.innerHTML='<p style="color:var(--danger);">规格格式不正确或尺寸超出合理范围（胎宽 50–400、扁平比 10–100、轮辋 10–30 英寸），请使用如 225/45R17 的格式。</p>';
     st.innerHTML='';
     return;
   }

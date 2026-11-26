@@ -106,9 +106,10 @@
 <div class="container" role="main">
   <div class="card tool-card-accent" style="--tool-accent:#B23A08;">
     <h2 data-zh="🌡️ 濃縮溫度與真空度計算器">Vacuum Concentration Temperature & Pressure</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="減壓蒸發條件下溶液沸點計算，保護熱敏性有效成分">Concentration Calc</p>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="減壓蒸發條件下純溶劑沸點估算，保護熱敏性有效成分">Concentration Calc</p>
+    <div class="tip-box tip-warn" style="margin-bottom:12px;"><strong>純溶劑模型：</strong>本頁只對水、乙醇、甲醇、丙酮等<strong>單一純溶劑</strong>用 Antoine 方程估算沸點-壓力關係；未輸入溶質與乙醇/水比例，也未計沸點升高、共沸、表面活性劑與提取液基質影響，<strong>不能代表含水/乙醇混合溶液或真實提取液的沸點</strong>。真實濃縮工藝引數須以小試/中試實測與工程計算為準。</div>
     <div class="formula-box">
-      <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">減壓濃縮引數反算（Clausius-Clapeyron）<br>絕對壓力 = 大氣壓 − 真空度（mmHg），須 > 0<br>已知真空度 → 由溶劑蒸氣壓曲線反解該絕對壓力下沸點<br>已知目標溫度 → 反解該溫度下溶劑飽和蒸氣壓<br>所需真空度 = 大氣壓 − 目標溫度蒸氣壓，須 ≥ 0<br>真空度百分比 = 所需真空度 ÷ 大氣壓 × 100%<br>單位換算：1 mmHg = 1 ÷ 750.062 MPa；1 MPa = 1000 kPa<br>沸點降低幅度 = 常壓沸點 − 減壓沸點<br>溫度等級（按減壓沸點）：<50 極低（揮發油/酶類）｜<60 低（黃酮苷/皂苷）<br>　<70 適中（一般中藥提取液）｜<80 偏高（耐熱成分）｜其他 接近常壓沸點<br>溶劑庫：水、乙醇、丙酮等常壓沸點資料內建</div>
+      <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">純溶劑減壓沸點估算（Antoine/Clausius-Clapeyron）<br>絕對壓力 = 大氣壓 − 真空度（mmHg），須 > 0<br>已知真空度 → 由溶劑蒸氣壓曲線反解該絕對壓力下沸點<br>已知目標溫度 → 反解該溫度下溶劑飽和蒸氣壓<br>所需真空度 = 大氣壓 − 目標溫度蒸氣壓，須 ≥ 0<br>真空度百分比 = 所需真空度 ÷ 大氣壓 × 100%<br>單位換算：1 mmHg = 1 ÷ 750.062 MPa；1 MPa = 1000 kPa<br>沸點降低幅度 = 常壓沸點 − 減壓沸點<br>溫度等級（按減壓沸點）：<50 極低（揮發油/酶類）｜<60 低（黃酮苷/皂苷）<br>　<70 適中（一般中藥提取液）｜<80 偏高（耐熱成分）｜其他 接近常壓沸點<br>溶劑庫：水、乙醇、甲醇、丙酮等純溶劑常壓沸點與 Antoine 引數內建；不含混合溶劑模型</div>
       <p class="formula-desc" data-zh="核心計算公式（按輸入變數）：vacuumNeeded ÷ 750.062">Key formulas: vacuumNeeded ÷ 750.062</p>
     </div>
 
@@ -126,7 +127,6 @@
             <option value="ethanol">乙醇 (沸點78.4°C)</option>
             <option value="methanol">甲醇 (沸點64.7°C)</option>
             <option value="acetone">丙酮 (沸點56.5°C)</option>
-            <option value="etoh_water">乙醇-水混合(70%)</option>
           </select>
         </div>
         <div>
@@ -249,17 +249,18 @@ const SOLVENT_DATA = {
   ethanol:{name:'乙醇',bp:78.4,A:8.20417,B:1642.89,C:230.300},
   methanol:{name:'甲醇',bp:64.7,A:8.08097,B:1582.271,C:239.726},
   acetone:{name:'丙酮',bp:56.5,A:7.13224,B:1219.97,C:230.653},
-  etoh_water:{name:'70%乙醇-水',bp:78.2,A:8.0,B:1660,C:230},
 };
 
 // Antoine方程: log10(P) = A - B/(C+T), P单位mmHg, T单位°C
 function calcVaporPressure(solventKey, tempC){
   const s = SOLVENT_DATA[solventKey];
+  if(!s || !isFinite(tempC)) return NaN;
   return Math.pow(10, s.A - s.B / (s.C + tempC));
 }
 
 function calcBoilingPoint(solventKey, pressuremmHg){
   const s = SOLVENT_DATA[solventKey];
+  if(!s || !(pressuremmHg>0)) return NaN;
   // 反解Antoine: T = B/(A-log10(P)) - C
   return s.B / (s.A - Math.log10(pressuremmHg)) - s.C;
 }
@@ -270,6 +271,7 @@ function calc(){
   const vacuumInput = document.getElementById('vacuum').value.trim();
   const atm = +document.getElementById('atm').value || 760;
   const sol = SOLVENT_DATA[solventKey];
+  if(!sol){ ToolBox.showToast(i18nText(), 'error'); return; }
 
   if(!targetTemp && !vacuumInput){
     ToolBox.showToast(i18nText(), 'error');
@@ -332,6 +334,7 @@ function copyResult(){
 }
 
 function switchTab(name, btn){
+  if(!name || !btn) return;
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
   btn.classList.add('active');
@@ -406,7 +409,7 @@ ToolBox.initToolTheme();
   </div>
   <div class="tool-intro-body">
     <h4><span class="h4-icon">📝</span>工具簡介</h4>
-    <p>濃縮溫度與真空度計算器 - 減壓蒸發工藝引數計算，含水/乙醇溶液沸點-真空度換算。</p>
+    <p>濃縮溫度與真空度計算器 - 減壓蒸發工藝引數計算，單一純溶劑沸點-真空度換算；不適用於混合溶液。</p>
     <h4><span class="h4-icon">✨</span>功能特點</h4>
     <ul class="intro-features">
       <li>基於權威醫學標準</li>

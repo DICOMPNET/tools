@@ -111,7 +111,7 @@
     <h2 data-zh="🌡️ 釉料溫度對照">Glaze Temperature Reference</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="查詢測溫錐（Orton/Seger 錐）對應溫度與釉料熔融溫度分類，選擇匹配坯體的釉料燒成溫度。">Glaze Temp</p>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">在測溫錐表中取與目標溫度絕對差最小的錐號（初始差取 1e9）；溫差 = 目標溫度 − 錐溫，為 0 判完全一致；華氏度 = 目標溫度 × 9 ÷ 5 + 32。建議：溫差 &gt; 30 °C 提示過燒流釉風險，&lt; −30 °C 提示欠燒釉面無光，±30 °C 以內判釉面成熟度可控</div>
+  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">取目標溫度絕對差最小的錐號僅作“最近錐號”參考；另按使用者選擇的目標錐號給出其參考彎倒溫度與差值。錐號表按約 60°C/h 升溫速率測定，差值不代表工藝容差，不能單獨判斷過燒、欠燒或釉面成熟；請結合釉料目標錐號、實際升溫曲線與保溫時間。華氏度 = 目標溫度 × 9 ÷ 5 + 32</div>
   <p class="formula-desc">依據陶瓷燒成工藝，給出低溫（約 900–1050℃）、中溫（約 1100–1200℃）、高溫（約 1200–1300℃）釉的推薦燒成溫度區間，並提示過燒流淌與欠燒無光的風險；具體以釉方與測溫錐為準。純前端本地計算，資料不出瀏覽器。</p>
 </div>
 
@@ -139,6 +139,7 @@
     <h2>🎯 窯溫反查與溫度換算</h2>
     <div class="input-row">
       <div><label for="coneTargetTemp">目標窯溫 (°C)</label><input type="number" id="coneTargetTemp" value="1200" step="10" oninput="__coneLookup()" placeholder="如 1200"></div>
+      <div><label for="targetCone">目標錐號（參考）</label><select id="targetCone" onchange="__coneLookup()"></select></div>
     </div>
     <div id="coneLookupResult"></div>
     <h3 style="margin-top:14px;">📈 各錐號彎倒溫度分佈</h3>
@@ -205,7 +206,7 @@
         </tr>
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="釉燒成熟度容差">Glaze maturity tolerance</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="±30°C內釉面成熟可控">|T_target − T_cone| ≤ 30 °C</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="最近錐號參考差（非工藝容差）">T_target − T_nearest（僅參考）</td>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);">Orton cone bending tolerance</td>
         </tr>
       </tbody>
@@ -243,16 +244,18 @@ var CATS=[
 function renderTable(){
   var kw=(document.getElementById('search').value||'').trim().toLowerCase();
   var html='<table class="cone-table"><thead><tr><th>测温锥号</th><th>弯倒温度 (°C)</th><th>分类</th><th>测温锥号</th><th>弯倒温度 (°C)</th><th>分类</th></tr></thead><tbody>';
-  var half=Math.ceil(CONES.length/2);
-  var left=CONES.slice(0,half),right=CONES.slice(half);
+  var list=CONES.filter(function(c){
+    return !kw || String(c[0]).toLowerCase().indexOf(kw)>=0 || String(c[1]).indexOf(kw)>=0 || String(c[2]).toLowerCase().indexOf(kw)>=0;
+  });
+  if(!list.length){
+    html+='<tbody><tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:18px;">未找到匹配的测温锥，请检查锥号、温度或分类关键词。</td></tr></tbody></table>';
+    document.getElementById('refTable').innerHTML=html; return;
+  }
+  var half=Math.ceil(list.length/2);
+  var left=list.slice(0,half),right=list.slice(half);
   var rows=Math.max(left.length,right.length);
   for(var i=0;i<rows;i++){
     var a=left[i],b=right[i];
-    if(kw){
-      var matchA=a&&(String(a[0]).toLowerCase().indexOf(kw)>=0||String(a[1]).indexOf(kw)>=0);
-      var matchB=b&&(String(b[0]).toLowerCase().indexOf(kw)>=0||String(b[1]).indexOf(kw)>=0);
-      if(!matchA&&!matchB)continue;
-    }
     html+='<tr>';
     html+=a?'<td><strong>'+a[0]+'</strong></td><td>'+a[1]+'</td><td>'+a[2]+'</td>':'<td></td><td></td><td></td>';
     html+=b?'<td><strong>'+b[0]+'</strong></td><td>'+b[1]+'</td><td>'+b[2]+'</td>':'<td></td><td></td><td></td>';
@@ -270,6 +273,13 @@ function renderCats(){
 }
 var __CONE_CAT_EN={'低温':'Low-fire','中温':'Mid-fire','高温':'High-fire'};
 function __coneEn(){ try{ return (typeof TBKit!=='undefined'&&TBKit.util.isEn()); }catch(e){ return false; } }
+function __coneTargetInit(){
+  var sel=document.getElementById('targetCone'); if(!sel||!sel.options||sel.options.length) return;
+  CONES.forEach(function(c){var o=document.createElement('option');o.value=c[0];o.textContent=c[0]+'（'+c[1]+'°C）';sel.appendChild(o);});
+  var pref=['9','8','6','4','01','1','10'];
+  for(var i=0;i<pref.length;i++){if(CONES.some(function(c){return c[0]===pref[i];})){sel.value=pref[i];break;}}
+  if(!sel.value) sel.value=CONES[0][0];
+}
 function __coneLookup(){
   var en=__coneEn();
   var box=document.getElementById('coneLookupResult');
@@ -284,15 +294,21 @@ function __coneLookup(){
   if(diff===0) pos=en?'Exact match with cone '+best[0]:'与锥号 '+best[0]+' 完全一致';
   else if(diff>0) pos=en?diff.toFixed(0)+'°C above cone '+best[0]+' ('+best[1]+'°C)':'高于锥号 '+best[0]+'（'+best[1]+'°C）'+diff.toFixed(0)+'°C';
   else pos=en?Math.abs(diff).toFixed(0)+'°C below cone '+best[0]+' ('+best[1]+'°C)':'低于锥号 '+best[0]+'（'+best[1]+'°C）'+Math.abs(diff).toFixed(0)+'°C';
-  var advice;
-  if(diff>30) advice=en?'Above the cone bend point - risk of over-firing and glaze running; lower the kiln or pick a higher cone.':'高于弯倒温度较多，有过烧流釉风险，建议降温或选更高锥号。';
-  else if(diff<-30) advice=en?'Below the cone bend point - under-firing leaves a matte, dry glaze; raise the temperature or pick a lower cone.':'低于弯倒温度较多，易欠烧釉面无光，建议升温或选更低锥号。';
-  else advice=en?'Within the practical tolerance (±30°C); glaze maturity is controllable.':'在实用容差（±30°C）内，釉面成熟度可控。';
-  var cls=Math.abs(diff)>30?(diff>0?'tip-warn':'tip-info'):'tip-success';
+  var sel=document.getElementById('targetCone'), tgt=null;
+  if(sel&&sel.value){CONES.forEach(function(c){if(c[0]===sel.value)tgt=c;});}
+  var targetLine='';
+  if(tgt){
+    var td=t-tgt[1];
+    targetLine=(en?'Target cone '+tgt[0]+': reference bend '+tgt[1]+'°C; current target is ':'目标锥号 '+tgt[0]+'：参考弯倒温度 '+tgt[1]+'°C；当前目标温度');
+    if(td===0){ targetLine+=en?' equal.':' 相同。'; }
+    else if(td>0){ targetLine+=en?' '+td.toFixed(0)+'°C higher.':' 高 '+td.toFixed(0)+'°C。'; }
+    else { targetLine+=en?' '+Math.abs(td).toFixed(0)+'°C lower.':' 低 '+Math.abs(td).toFixed(0)+'°C。'; }
+  }
+  var advice=en?'The gap is only a reference offset. It is not a process tolerance and cannot alone indicate over-firing, under-firing or glaze maturity; check the glaze target cone, actual firing curve (this table assumes about 60°C/h) and hold time.':'以上差值仅为参考偏移，不代表工艺容差，也不能单独判断过烧、欠烧或釉面成熟；请结合釉料目标锥号、实际升温曲线（本表按约 60°C/h 测定）与保温时间判断。';
   var cat=en?({低温:'Low-fire',中温:'Mid-fire',高温:'High-fire'})[best[2]]||best[2]:best[2];
-  box.innerHTML='<div class="tip-box '+cls+'" style="margin:8px 0 0;">'+
+  box.innerHTML='<div class="tip-box tip-info" style="margin:8px 0 0;">'+
     '<strong>'+(en?'Nearest cone: ':'最接近测温锥：')+best[0]+' · '+best[1]+'°C · '+cat+'</strong>'+
-    '<div style="margin-top:6px;font-size:13px;line-height:1.8;">'+pos+'<br>≈ '+f.toFixed(1)+(en?' °F (Fahrenheit)':' °F（华氏度）')+'<br>'+advice+'</div></div>';
+    '<div style="margin-top:6px;font-size:13px;line-height:1.8;">'+pos+'<br>≈ '+f.toFixed(1)+(en?' °F (Fahrenheit)':' °F（华氏度）')+(targetLine?'<br>'+targetLine:'')+'<br>'+advice+'</div></div>';
 }
 function __coneRenderExtras(){
   if(typeof TBKit==='undefined')return;
@@ -363,29 +379,25 @@ document.addEventListener('toolbox:langchange',function(){
 <div class="related-tools" data-related-tools="1">
   <h3 class="related-tools-title">🔗 相關工具</h3>
   <div class="related-tools-grid">
-    <a href="/zh-tw/tools/biz/presentation-timer.html" class="related-tool-card">
-      <span class="rt-icon">⏱️</span>
-      <span class="rt-info"><span class="rt-name">演講計時器</span><span class="rt-desc">為 PPT 每頁分配時間並進度提醒、支援全屏，輔助演講節奏把控</span></span>
+    <a href="/zh-tw/tools/ceramics/clay-shrinkage.html" class="related-tool-card">
+      <span class="rt-icon">🧮</span>
+      <span class="rt-info"><span class="rt-name">泥料收縮率計算</span><span class="rt-desc">已知目標成品尺寸與總收縮率反算溼坯製作尺寸，輔助陶瓷成型與燒成尺寸控制</span></span>
     </a>
-    <a href="/zh-tw/tools/biz/markdown-quote.html" class="related-tool-card">
-      <span class="rt-icon">📝</span>
-      <span class="rt-info"><span class="rt-name">Markdown 引用轉換器</span><span class="rt-desc">將貼上的多行文本批次轉換為 Markdown 引用塊（每行前加 &gt;），便於在文件中引用他人內容或做批…</span></span>
+    <a href="/zh-tw/tools/ceramics/glaze-ratio.html" class="related-tool-card">
+      <span class="rt-icon">🏺</span>
+      <span class="rt-info"><span class="rt-name">釉料配比計算</span><span class="rt-desc">按釉料配方百分比計算各原料稱量，並估算調配釉漿所需加水量（浸釉/淋釉/噴釉）</span></span>
     </a>
-    <a href="/zh-tw/tools/biz/markdown.html" class="related-tool-card">
-      <span class="rt-icon">📝</span>
-      <span class="rt-info"><span class="rt-name">Markdown 即時預覽</span><span class="rt-desc">在左側編輯區輸入 Markdown，右側即時渲染標題、列表、程式碼塊等效果，支援即時對照，便於寫作與格…</span></span>
+    <a href="/zh-tw/tools/ceramics/wheel-speed.html" class="related-tool-card">
+      <span class="rt-icon">🔩</span>
+      <span class="rt-info"><span class="rt-name">拉坯轉速計算</span><span class="rt-desc">根據坯體直徑與階段（開盤、提拉、收口）建議合適的拉坯機轉速，避免離心變形，輔助陶藝新手掌握不同工序的…</span></span>
     </a>
-    <a href="/zh-tw/tools/biz/unicode-normalize.html" class="related-tool-card">
-      <span class="rt-icon">🏋️</span>
-      <span class="rt-info"><span class="rt-name">Unicode 規範化</span><span class="rt-desc">將文本按 NFC/NFD/NFKC/NFKD 等範式進行 Unicode 規範化，統一異體字與組合字…</span></span>
+    <a href="/zh-tw/tools/ceramics/kiln-firing.html" class="related-tool-card">
+      <span class="rt-icon">🏺</span>
+      <span class="rt-info"><span class="rt-name">窯爐燒成曲線</span><span class="rt-desc">按坯體/釉料型別檢視推薦的燒成溫度曲線，包含升溫速率、保溫溫度與時間，估算總燒成時長</span></span>
     </a>
-    <a href="/zh-tw/tools/biz/zalgo-text.html" class="related-tool-card">
-      <span class="rt-icon">💼</span>
-      <span class="rt-info"><span class="rt-name">Zalgo 文字</span><span class="rt-desc">為文字疊加大量組合字元生成 Zalgo 亂碼風格效果，可調節紊亂強度，用於惡搞表情、標題裝飾與渲染測…</span></span>
-    </a>
-    <a href="/zh-tw/tools/biz/superscript-text.html" class="related-tool-card">
-      <span class="rt-icon">💼</span>
-      <span class="rt-info"><span class="rt-name">上標文字</span><span class="rt-desc">將選中文字轉為上標格式並生成可複製的 Unicode 或 HTML 上標程式碼，適合化學式、數學指數與…</span></span>
+    <a href="/zh-tw/tools/ceramics/ceramic-firing.html" class="related-tool-card">
+      <span class="rt-icon">🌡️</span>
+      <span class="rt-info"><span class="rt-name">陶藝燒製溫度曲線</span><span class="rt-desc">提供低溫陶土、高溫陶土、瓷土、樂燒土等不同陶土的素燒與釉燒溫度曲線參考。</span></span>
     </a>
   </div>
 </div>
@@ -456,6 +468,7 @@ document.addEventListener('DOMContentLoaded',function(){
   });
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',restore);
   else restore();
+  __coneTargetInit();
 }catch(e){}})();
 </script>
 </body>

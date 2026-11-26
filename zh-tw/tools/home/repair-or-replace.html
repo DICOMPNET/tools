@@ -118,7 +118,7 @@ input,select{width:100%;padding:10px 12px;border:1px solid #d1d5db;border-radius
 
 
 <div class="formula-box"><h2 data-zh="📐 計算公式">📐 Formula</h2>
-<div class="formula-desc" data-zh="安全剩餘年限 = 參考安全年限 − 已用年限；維修後可用年限 = min(維修後預計年限, 安全剩餘年限，已超期則取維修後預計年限)；維修年均成本 = 維修報價 ÷ 維修後可用年限；新機年均成本 = 新機價格 ÷ 新機壽命 − 每年電費節省；建議按安全風險優先，再比較兩者年均成本。">Remaining safe life = reference safe life − used years; post-repair usable life = min(repair life, remaining safe life, or repair life if already past the limit); repair annual cost = repair quote ÷ post-repair usable life; new annual cost = new price ÷ new-machine life − annual electricity savings. Safety risk takes priority, then annual costs are compared.</div>
+<div class="formula-desc" data-zh="安全剩餘年限 = 參考安全年限 − 已用年限；維修後可用年限 = min(維修後預計年限, 安全剩餘年限)；安全剩餘年限為 0 時不計算維修年均成本，先專業檢查；維修年均成本 = 維修報價 ÷ 維修後可用年限；新機年均成本 = 新機價格 ÷ 新機壽命 − 每年電費節省；建議按安全風險優先，再比較兩者年均成本。">Remaining safe life = reference safe life − used years; post-repair usable life = min(repair life, remaining safe life, or repair life if already past the limit); repair annual cost = repair quote ÷ post-repair usable life; new annual cost = new price ÷ new-machine life − annual electricity savings. Safety risk takes priority, then annual costs are compared.</div>
 </div>
 
 <div class="card">
@@ -136,7 +136,7 @@ input,select{width:100%;padding:10px 12px;border:1px solid #d1d5db;border-radius
 <option value="riceCooker">電飯煲（5 年）</option>
 <option value="fan">電風扇（10 年）</option>
 </select></div>
-<div><label for="age">已用年限（年）</label><input type="number" id="age" value="6" min="0" step="0.5"></div>
+<div><label for="age">已用年限（年）</label><input type="number" id="age" value="6" min="0" step="0.5"><p class="hint" data-zh="型別括號內為行業/廠商常見的參考使用年限，只用於經濟壽命估算，不代表該臺裝置的安全狀態或強制報廢線。">The figure in brackets is a common industry/maker reference life, used only for economic-life estimation; it is not a safety diagnosis or a mandatory scrap date for this unit.</p></div>
 <div><label for="repair">維修報價（元）</label><input type="number" id="repair" value="600" min="0" step="10"></div>
 <div><label for="newPrice">新機價格（元）</label><input type="number" id="newPrice" value="3000" min="0" step="10"></div>
 <div><label for="newLife">新機預計壽命（年）</label><input type="number" id="newLife" value="10" min="1" step="1"></div>
@@ -175,7 +175,7 @@ input,select{width:100%;padding:10px 12px;border:1px solid #d1d5db;border-radius
 <div class="card"><h2 data-zh="📌 計算說明">📌 Notes</h2>
 <ul>
 <li data-zh="安全剩餘年限按行業標準與廠商說明的參考上限計算，不是強制報廢線；超期後應重點檢查電源線、插頭、接地與漏電保護。">Remaining safe life uses common industry and maker reference limits, not a mandatory scrap date; after the limit, check cords, plugs, grounding and residual-current protection.</li>
-<li data-zh="維修後可用年限取維修預計年限與安全剩餘年限的較小值；已超安全年限時不再打折，但會提高風險等級。">Post-repair life takes the smaller of repair life and remaining safe life; past the limit it is not discounted further but raises the risk level.</li>
+<li data-zh="維修後可用年限取維修預計年限與安全剩餘年限的較小值；安全剩餘年限為 0 時改為“先專業檢查”，不再輸出維修年均成本與成本結論。">Post-repair life takes the smaller of repair life and remaining safe life; past the limit it is not discounted further but raises the risk level.</li>
 <li data-zh="新機每年省電費只填新機相對舊機每年少付的電費，沒有實測資料可填 0，避免把總電費誤填成節省。">Enter only the annual electricity saved by the new machine versus the old one; use 0 without measurements and do not enter the total bill.</li>
 <li data-zh="結果為決策與預算參考，不替代廠商檢修、專業電工或燃氣安檢判斷；出現漏電、冒煙、燃氣報警應立即停用。">Results are decision and budget references, not a substitute for maker service, an electrician or a gas safety check. Stop use immediately if there is leakage, smoke or a gas alarm.</li>
 </ul></div>
@@ -213,7 +213,7 @@ function csvDownload(name,rows){
 }
 const HIST_KEY='tb_history_repair_or_replace';
 function saveHist(key,obj){try{const arr=JSON.parse(localStorage.getItem(key)||'[]');arr.unshift(obj);localStorage.setItem(key,JSON.stringify(arr.slice(0,8)));renderHist(key);}catch(e){}}
-function renderHist(key){const el=document.getElementById('histBox');if(!el)return;let arr=[];try{arr=JSON.parse(localStorage.getItem(key)||'[]');}catch(e){}const en=isEN();if(!arr.length){el.innerHTML='<div class="history-empty">'+(en?'No calculations yet':'暂无计算记录')+'</div>';return;}el.innerHTML=arr.map(x=>{let txt=String(x);if(en){const parts=txt.split(' · ');const t=Object.values(TYPES).find(v=>v.name===parts[0]);if(t)parts[0]=t.nameEn;txt=parts.join(' · ').replace('维修 ','repair ').replace(' → 维修更划算',' → Repair wins').replace(' → 临界，建议比价',' → Borderline').replace(' → 优先换新',' → Replace');}return '<div class="history-item"><span>'+txt+'</span></div>';}).join('');}
+function renderHist(key){const el=document.getElementById('histBox');if(!el)return;let arr=[];try{arr=JSON.parse(localStorage.getItem(key)||'[]');}catch(e){}const en=isEN();if(!arr.length){el.innerHTML='<div class="history-empty">'+(en?'No calculations yet':'暂无计算记录')+'</div>';return;}el.innerHTML=arr.map(x=>{let txt=String(x);if(en){const parts=txt.split(' · ');const t=Object.values(TYPES).find(v=>v.name===parts[0]);if(t)parts[0]=t.nameEn;txt=parts.join(' · ').replace('维修 ','repair ').replace(' → 维修更划算',' → Repair wins').replace(' → 临界，建议比价',' → Borderline').replace(' → 优先换新',' → Replace').replace(' → 参考安全年限已用完，先专业检查',' → Inspect first');}return '<div class="history-item"><span>'+txt+'</span></div>';}).join('');}
 function clearHist(){try{localStorage.removeItem(HIST_KEY);}catch(e){}renderHist(HIST_KEY);}
 const TYPES={
   fridge:{name:'冰箱',nameEn:'Refrigerator',life:10,critical:false},washer:{name:'洗衣机',nameEn:'Washing machine',life:8,critical:false},
@@ -223,9 +223,9 @@ const TYPES={
   riceCooker:{name:'电饭煲',nameEn:'Rice cooker',life:5,critical:false},fan:{name:'电风扇',nameEn:'Electric fan',life:10,critical:false}
 };
 function blankCore(){return ['type','age','repair','newPrice','newLife','repairLife','risk'].some(id=>{const el=document.getElementById(id);return !el||String(el.value).trim()==='';});}
-function calcData(){const type=document.getElementById('type').value;const t=TYPES[type]||TYPES.fridge;const age=num('age'),repair=num('repair'),newPrice=num('newPrice'),newLife=num('newLife'),repairLife=num('repairLife'),saving=num('saving');const risk=document.getElementById('risk').value;const remaining=Math.max(0,t.life-age);const post=Math.min(repairLife,remaining>0?remaining:repairLife);const repairAnnual=post>0?repair/post:0;const newAnnual=newPrice/newLife-saving;const gap=repairAnnual-newAnnual;let riskScore=(risk==='obvious'?2:risk==='sometimes'?1:0)+(age>=t.life?2:0)+(t.critical&&risk!=='none'?1:0);let verdict='borderline';if(risk==='obvious'||(t.critical&&age>=t.life)||riskScore>=3){verdict='replace';}else if(repairAnnual<=newAnnual*0.8&&post>=2){verdict='repair';}else if(repairAnnual>=newAnnual*1.2){verdict='replace';}return{type,t,age,repair,newPrice,newLife,repairLife,saving,risk,remaining,post,repairAnnual,newAnnual,gap,riskScore,verdict};}
-function statusText(v,en){return en?({repair:'Repair',borderline:'Borderline',replace:'Replace'}[v]):({repair:'维修更划算',borderline:'临界，建议比价',replace:'优先换新'}[v]);}
-function drawChart(d){const cv=document.getElementById('costChart');if(!cv)return;const ctx=cv.getContext('2d');if(!ctx)return;const W=cv.width,H=cv.height,en=isEN();ctx.clearRect(0,0,W,H);const pad=46,barW=W-pad*2,base=120,max=Math.max(d.repairAnnual,d.newAnnual,1);ctx.font='12px sans-serif';ctx.fillStyle='#64748b';ctx.fillText(en?'Annual cost comparison':'年均成本对比',pad,24);ctx.fillStyle='#92400E';ctx.fillRect(pad,base-90*(d.repairAnnual/max),barW*0.38,90*(d.repairAnnual/max));ctx.fillStyle='#065F46';ctx.fillRect(pad+barW*0.5,base-90*(Math.max(0,d.newAnnual)/max),barW*0.38,90*(Math.max(0,d.newAnnual)/max));ctx.fillStyle='#334155';ctx.fillText((en?'Repair ':'维修 ')+d.repairAnnual.toFixed(0)+(en?'/y':' 元/年'),pad,base+18);ctx.fillText((en?'New ':'新机 ')+d.newAnnual.toFixed(0)+(en?'/y':' 元/年'),pad+barW*0.5,base+18);}
+function calcData(){const type=document.getElementById('type').value;const t=TYPES[type]||TYPES.fridge;const age=num('age'),repair=num('repair'),newPrice=num('newPrice'),newLife=num('newLife'),repairLife=num('repairLife'),saving=num('saving');const risk=document.getElementById('risk').value;const remaining=Math.max(0,t.life-age);const expired=remaining<=0;const post=expired?0:Math.min(repairLife,remaining);const repairAnnual=post>0?repair/post:null;const newAnnual=newPrice/newLife-saving;const gap=repairAnnual===null?null:repairAnnual-newAnnual;let riskScore=(risk==='obvious'?2:risk==='sometimes'?1:0)+(age>=t.life?2:0)+(t.critical&&risk!=='none'?1:0);let verdict='borderline';if(risk==='obvious'||(t.critical&&age>=t.life)||riskScore>=3){verdict='replace';}else if(expired){verdict='inspect';}else if(repairAnnual<=newAnnual*0.8&&post>=2){verdict='repair';}else if(repairAnnual>=newAnnual*1.2){verdict='replace';}return{expired,type,t,age,repair,newPrice,newLife,repairLife,saving,risk,remaining,post,repairAnnual,newAnnual,gap,riskScore,verdict};}
+function statusText(v,en){return en?({repair:'Repair',borderline:'Borderline',replace:'Replace',inspect:'Safe life used up: inspect first'}[v]):({repair:'维修更划算',borderline:'临界，建议比价',replace:'优先换新',inspect:'参考安全年限已用完，先专业检查'}[v]);}
+function drawChart(d){const cv=document.getElementById('costChart');if(!cv)return;const ctx=cv.getContext('2d');if(!ctx)return;const W=cv.width,H=cv.height,en=isEN();ctx.clearRect(0,0,W,H);const pad=46,barW=W-pad*2,base=120,max=Math.max(d.repairAnnual,d.newAnnual,1);ctx.font='12px sans-serif';ctx.fillStyle='#64748b';ctx.fillText(en?'Annual cost comparison':'年均成本对比',pad,24);ctx.fillStyle='#92400E';ctx.fillRect(pad,base-90*((d.repairAnnual||0)/max),barW*0.38,90*(d.repairAnnual/max));ctx.fillStyle='#065F46';ctx.fillRect(pad+barW*0.5,base-90*(Math.max(0,d.newAnnual)/max),barW*0.38,90*(Math.max(0,d.newAnnual)/max));ctx.fillStyle='#334155';ctx.fillText(d.repairAnnual===null?(en?'Repair: N/A (inspect first)':'维修：不适用（先检查）'):(en?'Repair ':'维修 ')+d.repairAnnual.toFixed(0)+(en?'/y':' 元/年'),pad,base+18);ctx.fillText((en?'New ':'新机 ')+d.newAnnual.toFixed(0)+(en?'/y':' 元/年'),pad+barW*0.5,base+18);}
 function applyPreset(type){const m={fridge:['fridge',8,500,3500,10,2,100,'none'],ac:['ac',10,900,3000,10,3,300,'none'],heater:['waterHeater',9,400,1200,8,2,0,'sometimes']};const p=m[type]||m.fridge;document.getElementById('type').value=p[0];document.getElementById('age').value=p[1];document.getElementById('repair').value=p[2];document.getElementById('newPrice').value=p[3];document.getElementById('newLife').value=p[4];document.getElementById('repairLife').value=p[5];document.getElementById('saving').value=p[6];document.getElementById('risk').value=p[7];calcTool();}
 function inputError(){
   const en=isEN();
@@ -241,14 +241,16 @@ function calcTool(){
   const rows=[
     [(en?d.t.nameEn:d.t.name),en?'Appliance type':'家电类型'],
     [d.remaining.toFixed(1)+(en?' years':' 年'),en?'Remaining safe life':'安全剩余年限'],
-    [d.post.toFixed(1)+(en?' years':' 年'),en?'Post-repair usable life':'维修后可用年限'],
-    ['¥'+d.repairAnnual.toFixed(0)+(en?'/y':' 元/年'),en?'Repair annual cost':'维修年均成本'],
+    [d.expired?(en?'0 (inspect first)':'0（先检查）'):d.post.toFixed(1)+(en?' years':' 年'),en?'Post-repair usable life':'维修后可用年限'],
+    [d.repairAnnual===null?(en?'N/A':'不适用'):'¥'+d.repairAnnual.toFixed(0)+(en?'/y':' 元/年'),en?'Repair annual cost':'维修年均成本'],
     ['¥'+d.newAnnual.toFixed(0)+(en?'/y':' 元/年'),en?'New annual cost':'新机年均成本'],
-    [(d.gap>=0?'+':'')+d.gap.toFixed(0)+(en?' CNY/y':' 元/年'),en?'Annual difference':'每年差额'],
+    [d.gap===null?(en?'N/A':'不适用'):((d.gap>=0?'+':'')+d.gap.toFixed(0)+(en?' CNY/y':' 元/年')),en?'Annual difference':'每年差额'],
     [statusText(d.verdict,en),en?'Verdict':'建议']
   ];
   let html=dataGrid(rows);
+  if(d.expired)html+='<div class="info-box" style="margin-top:12px;border-color:#b91c1c;">'+(en?'The reference safe life has been used up, so repair annual cost is not calculated and no cost-based verdict is given. Have a qualified technician inspect insulation, wiring, grounding, gas sealing and pressure parts first. Repair only if the inspection passes and the unit is clearly safe; otherwise replace.':'参考安全年限已用完，本页不再计算维修年均成本，也不据此给出成本结论。请先由有资质的技术人员检查绝缘、线路、接地、燃气密封与承压部件；检查通过且确认安全后才考虑维修，否则更换。')+'</div>';
   if(d.verdict==='replace')html+='<div class="info-box" style="margin-top:12px;">'+(en?'Replacement is favored: annual repair cost or safety risk is too high. For gas, pressure or high-power appliances, stop using it if there is leakage, smoke, a gas alarm or repeated tripping.':'优先换新：维修年均成本或安全风险偏高。燃气、承压或大功率家电出现漏电、冒烟、燃气报警或反复跳闸时，应立即停用。')+'</div>';
+  else if(d.verdict==='inspect'){}
   else if(d.verdict==='repair')html+='<div class="info-box" style="margin-top:12px;">'+(en?'Repair is favored on current inputs: confirm the repair warranty covers the same fault for at least 6–12 months and that parts are available.':'按当前输入维修更划算：确认维修质保至少覆盖同一故障 6–12 个月，并核实配件供应。')+'</div>';
   else html+='<div class="info-box" style="margin-top:12px;">'+(en?'Borderline: compare repair warranty, call-out visits, downtime and efficiency. If the same fault has repeated, lean toward replacement.':'处于临界：把维修质保、上门次数、停机时间与能效一起比较；同一故障已反复出现时，偏向换新。')+'</div>';
   document.getElementById('result').innerHTML=html;drawChart(d);
@@ -264,8 +266,8 @@ function exportCSV(){
     [en?'Remaining safe life':'安全剩余年限',d.remaining.toFixed(1),en?'years':'年'],
     [en?'Repair quote':'维修报价',d.repair,en?'CNY':'元'],
     [en?'New price':'新机价格',d.newPrice,en?'CNY':'元'],
-    [en?'Post-repair life':'维修后可用年限',d.post.toFixed(1),en?'years':'年'],
-    [en?'Repair annual cost':'维修年均成本',d.repairAnnual.toFixed(0),en?'CNY/year':'元/年'],
+    [en?'Post-repair life':'维修后可用年限',d.expired?'0 (inspect first)':d.post.toFixed(1),en?'years':'年'],
+    [en?'Repair annual cost':'维修年均成本',d.repairAnnual===null?'N/A':d.repairAnnual.toFixed(0),en?'CNY/year':'元/年'],
     [en?'New annual cost':'新机年均成本',d.newAnnual.toFixed(0),en?'CNY/year':'元/年'],
     [en?'Verdict':'建议',statusText(d.verdict,en),'']
   ]);

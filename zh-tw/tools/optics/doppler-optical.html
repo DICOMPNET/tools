@@ -63,7 +63,7 @@
 
 <script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"接近光速為何用此近似？","acceptedAnswer":{"@type":"Answer","text":"v≪c 時用經典近似 f′=f(1+v/c)；高速須用相對論縱向多普勒公式。"}},{"@type":"Question","name":"紅移藍移怎麼區分？","acceptedAnswer":{"@type":"Answer","text":"遠離（v>0 背離）頻率降低為紅移，趨近頻率升高為藍移。"}}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"接近光速為何用此近似？","acceptedAnswer":{"@type":"Answer","text":"v≪c 時用經典近似 f′=f(1+v/c)；高速須用相對論縱向多普勒公式。"}},{"@type":"Question","name":"紅移藍移怎麼區分？","acceptedAnswer":{"@type":"Answer","text":"接近（v>0）頻率升高為藍移，遠離（v<0）頻率降低為紅移；|v/c|≥0.1 時經典一階近似誤差明顯，應改用相對論公式。"}}]}</script>
 <meta property="og:site_name" content="ToolBox">
 <meta name="theme-color" content="#FF6B35">
 <!-- TOOLBOX-HREFLANG -->
@@ -102,7 +102,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="輸入源頻率 f、相對速度 v 與光速 c，求觀測頻率（近似非相對論）。">Compute the observed frequency from source frequency, relative velocity and the speed of light, using the non-relativistic approximation.</p>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理與說明</div>
-  <div class="formula-eq">光學多普勒效應：觀測頻率 f prime = f*(1 + v/c)，v 為光源與觀察者的相對速度（遠離為正、接近為負），c 為光速；頻移量 Δf = f prime − f = f*v/c；相對頻移 Δf/f = v/c，用於雷射測速與天體紅移測量。</div>
+  <div class="formula-eq">光學多普勒效應：觀測頻率 f prime = f*(1 + v/c)，v 為光源與觀察者的相對速度（接近為正、遠離為負），c 為光速；頻移量 Δf = f prime − f = f*v/c；相對頻移 Δf/f = v/c；|v/c|≥0.1 時提示經典一階近似誤差明顯，應改用相對論縱向多普勒公式。</div>
 
 </div>
 
@@ -278,15 +278,22 @@ function __tbInputGuardCore(_ids,_labels){
 
 
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
-function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
+function __optLabel(s){try{if(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn()){var m={'观测频率 f′ (Hz)':'Observed frequency f′ (Hz)','频移量 (Hz)':'Frequency shift (Hz)','相对频移 (%)':'Relative shift (%)','频移方向':'Shift direction','适用性':'Applicability','项目':'Item','数值':'Value'};if(m[s])return m[s];}}catch(e){}return s;}
+function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){r[1]=__optLabel(String(r[1]));h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){
+  var __en=!!(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
               var __ig=__tbInputGuard(['f', 'v', 'c'],["源频率 f (Hz)", "相对速度 v (米/秒)", "光速 c (米/秒)"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
-const f=num('f'),v=num('v'),c=num('c');
-            const fp=f*(1+v/c);
+const f=Number(num('f')),v=Number(num('v')),c=Number(num('c'));
+            if(!isFinite(f)||f<=0||!isFinite(v)||!isFinite(c)||c<=0){ToolBox.setResult('result','<p style="color:var(--danger)">⚠ 源频率 f 与光速 c 必须 &gt; 0，相对速度 v 须为有限数</p>');return;}
+            const beta=v/c;
+            if(Math.abs(beta)>=1){ToolBox.setResult('result','<p style="color:var(--danger)">⚠ |v/c| 必须小于 1：相对速度不能达到或超过光速</p>');return;}
+            const fp=f*(1+beta);
             const __g2=dataGrid([
-                [fp.toExponential(3),'观测频率 f′ (Hz)'],
-                [(fp-f).toExponential(4), '频移量 (Hz)'],
-                [(((fp-f)/f)*100).toFixed(4), '相对频移 (%)']
+                [fp.toExponential(3),__optLabel('观测频率 f′ (Hz)')],
+                [(fp-f).toExponential(4), __optLabel('频移量 (Hz)')],
+                [(((fp-f)/f)*100).toFixed(4), __optLabel('相对频移 (%)')],
+                [__en?(fp>f?'Blueshift (approaching)':fp<f?'Redshift (receding)':'No shift'):(fp>f?'蓝移（接近）':fp<f?'红移（远离）':'无频移'), __optLabel('频移方向')],
+                [__en?(Math.abs(beta)>=0.1?'⚠ |v/c|≥0.1: the classical first-order approximation is inaccurate; use the relativistic longitudinal Doppler formula':'Classical first-order approximation is adequate (|v/c|<0.1)'):(Math.abs(beta)>=0.1?'⚠ |v/c|≥0.1，经典一阶近似误差明显，请改用相对论纵向多普勒公式':'经典一阶近似适用（|v/c|<0.1）'), __optLabel('适用性')]
             ]);ToolBox.setResult('result',(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));
         }
 function resetForm(){document.getElementById('f').value = '5e14';
@@ -299,16 +306,17 @@ function __doppler_opticalNum(id){var e=document.getElementById(id);var v=e?pars
 function __doppler_opticalExtras(){
     function __doppler_opticalRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
-    var f=num('f'),v=num('v'),c=num('c');
+    if (__doppler_opticalRaw('f').trim()==='' || __doppler_opticalRaw('v').trim()==='' || __doppler_opticalRaw('c').trim()==='') return;
+    var f=Number(__doppler_opticalRaw('f')),v=Number(__doppler_opticalRaw('v')),c=Number(__doppler_opticalRaw('c'));
+    if (!isFinite(f)||f<=0||!isFinite(v)||!isFinite(c)||c<=0||Math.abs(v/c)>=1) return;
     var fp=f*(1+v/c);
-    if (!isFinite(__doppler_opticalNum('f')) || !isFinite(__doppler_opticalNum('v')) || !isFinite(__doppler_opticalNum('c'))) return;
     var en=TBKit.util.isEn();
     TBKit.matrix.table('#doppler_opticalTable',{
-        head: en?['Item','Value']:['项目','数值'],
+        head: en?['Item','Value']:[__optLabel('项目'),__optLabel('数值')],
         rows: [
-            ['观测频率 f′ (Hz)', fp.toExponential(3)],
-            ['频移量 (Hz)', (fp-f).toExponential(4)],
-            ['相对频移 (%)', (((fp-f)/f)*100).toFixed(4)],
+            [__optLabel('观测频率 f′ (Hz)'), fp.toExponential(3)],
+            [__optLabel('频移量 (Hz)'), (fp-f).toExponential(4)],
+            [__optLabel('相对频移 (%)'), (((fp-f)/f)*100).toFixed(4)],
         ]
     });
     TBKit.history.record({f:__doppler_opticalRaw('f'), v:__doppler_opticalRaw('v'), c:__doppler_opticalRaw('c'), fp:fp});
@@ -365,12 +373,12 @@ else document.addEventListener('DOMContentLoaded', __doppler_opticalBoot);
 <li>雷射測速、相干雷達頻移計算。</li>
 <li>光源運動對觀測頻率的影響。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">光源遠離 300km/s</div><div class="dd-ex-body">f′=f(1+v/c)=5e14×(1+3e5/3e8)=5e14×1.001=5.005e14 Hz，Δf=5e11 Hz（紅移）。</div></div>
-<div class="dd-example"><div class="dd-ex-title">趨近 0.01c</div><div class="dd-ex-body">v/c=0.01：f′=5e14×1.01=5.05e14 Hz，藍移。</div></div>
+<div class="dd-example"><div class="dd-ex-title">光源遠離 300km/s</div><div class="dd-ex-body">f′=f(1+v/c)=5e14×(1+3e5/3e8)=5e14×1.001=5.005e14 Hz，Δf=5e11 Hz（藍移，因 v&gt;0 約定為接近）。</div></div>
+<div class="dd-example"><div class="dd-ex-title">趨近 0.01c</div><div class="dd-ex-body">v/c=0.01（接近）：f′=5e14×1.01=5.05e14 Hz，藍移；v&lt;0（遠離）時頻率降低為紅移。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
 <dt>接近光速為何用此近似？</dt><dd>v≪c 時用經典近似 f′=f(1+v/c)；高速須用相對論縱向多普勒公式。</dd>
-<dt>紅移藍移怎麼區分？</dt><dd>遠離（v&gt;0 背離）頻率降低為紅移，趨近頻率升高為藍移。</dd>
+<dt>紅移藍移怎麼區分？</dt><dd>接近（v&gt;0）頻率升高為藍移，遠離（v&lt;0）頻率降低為紅移；|v/c|≥0.1 時經典一階近似誤差明顯，應改用相對論公式。</dd>
 </dl>
 </div>
 </section>

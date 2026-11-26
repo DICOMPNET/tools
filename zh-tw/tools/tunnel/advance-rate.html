@@ -7,11 +7,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="toolbox" content="cat=engineer,industry=tunnel,icon=🏎️,bg=#fff3e0">
-<meta name="description" content="掘進速度估算是一款免費的線上隧道工程工具，輸入炮孔深度、炮孔利用率（η 0.85~0.95）、迴圈作業時間等引數，估算鑽爆法單迴圈進尺、迴圈時間與日進尺，用於隧道施工組織與工期測算">
+<meta name="description" content="輸入孔深、利用率與各工序耗時，估算單迴圈進尺、迴圈數與日/月進尺；孔深、利用率、工序時間或迴圈數無效時清除舊結果，日進尺為 0 時不估算工期">
 <title>隧道掘進速度估算 - 免費線上隧道工程工具</title>
 <link rel="canonical" href="https://tools.dicomp.net/zh-tw/tools/tunnel/advance-rate.html">
 <meta property="og:title" content="隧道掘進速度估算 - 免費線上隧道工程工具">
-<meta property="og:description" content="掘進速度估算是一款免費的線上隧道工程工具，輸入炮孔深度、炮孔利用率（η 0.85~0.95）、迴圈作業時間等引數，估算鑽爆法單迴圈進尺、迴圈時間與日進尺，用於隧道施工組織與工期測算">
+<meta property="og:description" content="輸入孔深、利用率與各工序耗時，估算單迴圈進尺、迴圈數與日/月進尺；孔深、利用率、工序時間或迴圈數無效時清除舊結果，日進尺為 0 時不估算工期">
 <meta property="og:url" content="https://tools.dicomp.net/zh-tw/tools/tunnel/advance-rate.html">
 <meta name="twitter:card" content="summary">
 <link rel="stylesheet" href="/css/common.css">
@@ -36,9 +36,9 @@
 <meta name="twitter:image:alt" content="ToolBox - 5000+免費線上工具">
     <meta property="og:type" content="website">
     <meta name="twitter:title" content="隧道掘進速度估算 - 免費線上隧道工程工具">
-    <meta name="twitter:description" content="掘進速度估算是一款免費的線上隧道工程工具，輸入炮孔深度、炮孔利用率（η 0.85~0.95）、迴圈作業時間等引數，估算鑽爆法單迴圈進尺、迴圈時間與日進尺，用於隧道施工組織與工期測算">
+    <meta name="twitter:description" content="輸入孔深、利用率與各工序耗時，估算單迴圈進尺、迴圈數與日/月進尺；孔深、利用率、工序時間或迴圈數無效時清除舊結果，日進尺為 0 時不估算工期">
 <!-- TOOLBOX-WEBAPP-LD -->
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"掘進速度估算","url":"https://tools.dicomp.net/zh-tw/tools/tunnel/advance-rate.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"掘進速度估算是一款免費的線上隧道工程工具，輸入炮孔深度、炮孔利用率（η 0.85~0.95）、迴圈作業時間等引數，估算鑽爆法單迴圈進尺、迴圈時間與日進尺，用於隧道施工組織與工期測算","image":"https://tools.dicomp.net/og-image.png","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"掘進速度估算","url":"https://tools.dicomp.net/zh-tw/tools/tunnel/advance-rate.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":"zh-TW","description":"輸入孔深、利用率與各工序耗時，估算單迴圈進尺、迴圈數與日/月進尺；孔深、利用率、工序時間或迴圈數無效時清除舊結果，日進尺為 0 時不估算工期","image":"https://tools.dicomp.net/og-image.png","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}</script>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
@@ -58,7 +58,7 @@
 
 
 <meta name="title-en" content="Advance Rate">
-<meta name="desc-en" content="Estimate tunnel advance rate from cycle time, shift hours, and utilization">
+<meta name="desc-en" content="Estimate cycle advance, cycles per day, daily and monthly advance from hole depth, utilization and process times. Invalid inputs clear old results, and zero…">
 
 
 <link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
@@ -263,6 +263,11 @@
 </div>
 <script>
 function fmt(v,d){if(!isFinite(v))return '--';return Number(v).toFixed(d!=null?d:2);}
+function __advClear(){
+  window._lastResult=null;
+  ['resAdvance','resCycle','resDaily','resMonthly'].forEach(function(id){var e=document.getElementById(id);if(e)e.textContent='--';});
+  ['advance_rateTable','advance_rateDiff','advance_rateChart'].forEach(function(id){var e=document.getElementById(id);if(e)e.innerHTML='';});
+}
 function calc(){
   var l=parseFloat(document.getElementById('inL').value);
   var eta=parseFloat(document.getElementById('inEta').value);
@@ -272,13 +277,15 @@ function calc(){
   var muck=parseFloat(document.getElementById('inMuck').value);
   var support=parseFloat(document.getElementById('inSupport').value);
   var maxCycles=parseInt(document.getElementById('inCycles').value,10);
-  if(!l||!eta)return;
+  var bad=!isFinite(l)||l<=0||!isFinite(eta)||eta<=0||eta>1||!isFinite(drill)||drill<0||!isFinite(blast)||blast<0||!isFinite(vent)||vent<0||!isFinite(muck)||muck<0||!isFinite(support)||support<0||!isFinite(maxCycles)||maxCycles<1||Math.abs(maxCycles-Math.round(maxCycles))>1e-9;
+  if(bad){__advClear();document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 请检查输入：孔深>0，利用率 η 须在 (0,1]，各工序耗时≥0，计划循环数须为正整数；无效输入已清除旧结果。</p>';return;}
   var advance=l*eta;
   var cycleTime=drill+blast+vent+muck+support;
   var maxByTime=cycleTime>0?Math.floor(24/cycleTime):0;
   var cycles=Math.min(maxCycles,maxByTime);
   var daily=advance*cycles;
   var monthly=daily*30;
+  if(!(daily>0)){__advClear();document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 日进尺为 0（实际循环数为 0 或进尺为 0），无法估算 1000 m 工期；请缩短单循环时间或增加计划循环数。</p>';return;}
   const __g1=fmt(advance,2)+' m';document.getElementById('resAdvance').textContent=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
   const __g2=fmt(cycleTime,2)+' h';document.getElementById('resCycle').textContent=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
   const __g3=fmt(daily,2)+' m';document.getElementById('resDaily').textContent=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
@@ -332,15 +339,15 @@ calc();
 
     <a href="/zh-tw/tools/tunnel/lining-thickness.html" class="related-tool-card">
       <span class="rt-icon">📏</span>
-      <span class="rt-info"><span class="rt-name">襯砌厚度計算</span><span class="rt-desc">輸入圍巖級別與開挖跨度，按經驗係數（k=0.04~0.10）估算初期支護與二次襯砌厚度，輔助隧道襯砌…</span></span>
+      <span class="rt-info"><span class="rt-name">襯砌厚度計算</span><span class="rt-desc">按圍巖級別與開挖跨度用經驗係數（k=0.04~0.10）估算初襯/二襯厚度與備料量；…</span></span>
     </a>
     <a href="/zh-tw/tools/tunnel/support-design.html" class="related-tool-card">
       <span class="rt-icon">📐</span>
-      <span class="rt-info"><span class="rt-name">支護設計</span><span class="rt-desc">輸入圍巖級別與開挖跨度，按級別取跨度係數 0.20~0.45 估算錨杆長度，並按級別取 5~25 c…</span></span>
+      <span class="rt-info"><span class="rt-name">支護設計</span><span class="rt-desc">輸入圍巖級別、跨度、高度與斷面/支護範圍，按經驗係數估算錨杆長度、間距、噴層厚度與每延米錨杆數；…</span></span>
     </a>
     <a href="/zh-tw/tools/tunnel/ventilation-calc.html" class="related-tool-card">
       <span class="rt-icon">🧮</span>
-      <span class="rt-info"><span class="rt-name">隧道通風計算</span><span class="rt-desc">輸入隧道斷面積、設計控制風速與同時作業人數等引數，計算需風量、最低控制風速並給出通風機選型參考，用於…</span></span>
+      <span class="rt-info"><span class="rt-name">隧道通風計算</span><span class="rt-desc">按控制風速法或公路交通 CO 稀釋法估算需風量與換氣次數；</span></span>
     </a>
   </div>
 </div>

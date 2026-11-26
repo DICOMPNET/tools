@@ -78,7 +78,7 @@
 
 <script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"後臺執行？","acceptedAnswer":{"@type":"Answer","text":"網頁計時依賴頁面活躍，後臺可能漂移。"}},{"@type":"Question","name":"切到後臺還會準嗎？","acceptedAnswer":{"@type":"Answer","text":"計時依賴瀏覽器定時器，標籤頁在後臺可能被降頻，長時間計時建議以開始與結束時刻為基準核對。"}}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"重新整理或切後臺會怎樣？","acceptedAnswer":{"@type":"Answer","text":"倒計時執行中重新整理會按剩餘時間重新排程到期提醒，到期只完成一次；暫停時先按當前時鐘結算累計時間。瀏覽器仍可能限制後臺定時器精度，關鍵提醒請保持頁面在前臺或另設鬧鐘。"}},{"@type":"Question","name":"切到後臺還會準嗎？","acceptedAnswer":{"@type":"Answer","text":"計時依賴瀏覽器定時器，標籤頁在後臺可能被降頻，長時間計時建議以開始與結束時刻為基準核對。"}}]}</script>
 <meta property="og:site_name" content="ToolBox">
 <meta name="theme-color" content="#FF6B35">
 <!-- TOOLBOX-HREFLANG -->
@@ -190,11 +190,19 @@ function load(){
     // 刷新后继续计时，补齐离线期间流逝的时间
     state.elapsed=curElapsed();
     if(state.mode==='down'&&state.elapsed>=state.target){
-      state.elapsed=state.target;state.running=false;onFinish();
+      state.elapsed=state.target;state.running=false;save();onFinish();
     }
   }
   syncUI();render();
-  if(state.running){tick();}
+  if(state.running){
+    if(finishTimer){clearTimeout(finishTimer);finishTimer=null;}
+    if(state.mode==='down'){
+      const remain=Math.max(0,state.target-state.elapsed);
+      finishTimer=setTimeout(finishNow,remain);
+      if(remain<=0){finishNow();return;}
+    }
+    tick();
+  }
 }
 function save(){
   var s={mode:state.mode,target:state.target,elapsed:state.elapsed,
@@ -251,6 +259,7 @@ function toggleRun(){
   if(state.mode==='down'&&state.elapsed>=state.target){
     state.elapsed=0;state.frozen=0;
   }
+  const wasRunning=state.running;
   state.running=!state.running;
   if(state.running){
     state.frozen=state.elapsed;
@@ -264,7 +273,7 @@ function toggleRun(){
     tick();
   }else{
     if(finishTimer){clearTimeout(finishTimer);finishTimer=null;}
-    state.elapsed=curElapsed();
+    state.elapsed=wasRunning?(state.frozen+(Date.now()-state.baseTs)):state.elapsed;
     state.frozen=state.elapsed;
   }
   syncUI();save();
@@ -408,7 +417,7 @@ load();
 <div class="dd-example"><div class="dd-ex-title">使用</div><div class="dd-ex-body">設 25:00 倒計時，歸零提醒；正計時記 elapsed。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
-<dt>後臺執行？</dt><dd>網頁計時依賴頁面活躍，後臺可能漂移。</dd>
+<dt>重新整理或切後臺會怎樣？</dt><dd>倒計時執行中重新整理會按剩餘時間重新排程到期提醒，到期只完成一次；暫停時先按當前時鐘結算累計時間。瀏覽器仍可能限制後臺定時器精度，關鍵提醒請保持頁面在前臺或另設鬧鐘。</dd>
 <dt>切到後臺還會準嗎？</dt><dd>計時依賴瀏覽器定時器，標籤頁在後臺可能被降頻，長時間計時建議以開始與結束時刻為基準核對。</dd>
 </dl>
 </div>

@@ -101,7 +101,7 @@
 
 <script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"虛歲與週歲？","acceptedAnswer":{"@type":"Answer","text":"中國虛歲常+1，本工具給國際週歲。"}},{"@type":"Question","name":"生日當天會加一歲嗎？","acceptedAnswer":{"@type":"Answer","text":"會。頁面按當前時刻與出生時刻做差，生日當天過了出生時刻即 +1 歲，未到出生時刻仍按上一週歲顯示。"}}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"虛歲與週歲？","acceptedAnswer":{"@type":"Answer","text":"中國虛歲常+1，本工具給國際週歲。"}},{"@type":"Question","name":"生日當天會加一歲嗎？","acceptedAnswer":{"@type":"Answer","text":"會。頁面按當前時刻與出生時刻做差，生日當天過了出生時刻即 +1 歲，未到出生時刻仍按上一週歲顯示。"}},{"@type":"Question","name":"生肖按春節還是公曆算？","acceptedAnswer":{"@type":"Answer","text":"按出生日期對應的農曆年、以春節為年界換算，支援 1900–2100 年；春節前出生歸入上一農曆年。超出範圍或瀏覽器農曆資料不可用時不給出確定生肖。"}}]}</script>
 <meta property="og:site_name" content="ToolBox">
 
 <script src="/js/hot-tool-enhancements.js" defer></script>
@@ -151,7 +151,7 @@
 
         <div class="formula-box">
       <div class="formula-title">📐 計算公式 / 原理</div>
-      <div class="formula-eq">週歲按「年−月−日−時−分−秒」逐級借位差值計算（秒不足借 1 分、日不足借 1 月並按上月天數補足）；總天數 = 存活總毫秒 ÷ 86400000 向下取整，總月數 = 年×12 + 月，總十年數 = 年÷10 向下取整。校驗：出生年月日均須有效，出生日期晚於當前時間提示錯誤。判據：生肖/星座按出生日期查表，下一生日、里程碑與退休日期由週歲推算。</div>
+      <div class="formula-eq">週歲按「年−月−日−時−分−秒」逐級借位差值計算（秒不足借 1 分、日不足借 1 月並按上月天數補足）；總天數 = 存活總毫秒 ÷ 86400000 向下取整，總月數 = 年×12 + 月，總十年數 = 年÷10 向下取整。校驗：出生年月日均須有效，出生日期晚於當前時間提示錯誤。判據：生肖按出生日期對應的農曆年（春節年界，支援 1900–2100）查表，星座按公曆月日查表；下一生日、里程碑與退休日期由週歲推算。</div>
       <div class="formula-desc">先按秒、分、時、日、月逐級做差，不足則向前借位：借 1 分補 60 秒、借 1 時補 60 分、借 1 天補 24 時；日差為負時借上一個自然月的實際天數，月差為負則年位借 1 得 12 個月。總天數 = ⌊毫秒差 ÷ 86400000⌋，用於展示已度過的精確天數。</div>
     </div>
 <div class="input-row">
@@ -257,6 +257,7 @@
 <dl class="dd-faq">
 <dt>虛歲與週歲？</dt><dd>中國虛歲常+1，本工具給國際週歲。</dd>
 <dt>生日當天會加一歲嗎？</dt><dd>會。頁面按當前時刻與出生時刻做差，生日當天過了出生時刻即 +1 歲，未到出生時刻仍按上一週歲顯示。</dd>
+<dt>生肖按春節還是公曆算？</dt><dd>按出生日期對應的農曆年、以春節為年界換算，支援 1900–2100 年；春節前出生歸入上一農曆年。超出範圍或瀏覽器農曆資料不可用時不給出確定生肖。</dd>
 </dl>
 </div>
 </section>
@@ -344,6 +345,15 @@ function getZodiac(year){
   return {name: ZODIACS[idx], icon: ZODIAC_ICONS[idx], color: ZODIAC_COLORS[idx], trait: ZODIAC_TRAITS[idx]};
 }
 
+function getLunarYear(date){
+  try{
+    const parts=new Intl.DateTimeFormat('en-u-ca-chinese',{year:'numeric'}).formatToParts(date);
+    const p=parts.find(x=>x.type==='relatedYear')||parts.find(x=>x.type==='year');
+    const y=p?parseInt(p.value,10):NaN;
+    return isFinite(y)?y:null;
+  }catch(e){return null;}
+}
+
 function getConstellation(month, day){
   for(const c of CONSTELLATIONS){
     const [sm, sd] = c.start;
@@ -404,12 +414,28 @@ function calc(){
     return;
   }
 
+  if(by<1900||by>2100){
+    document.getElementById('ageMain').innerHTML='<span class="live-dot"></span>仅支持 1900–2100 年';
+    document.getElementById('ageSub').textContent='生肖/农历换算超出可靠支持范围，请调整出生年份';
+    document.getElementById('agePrecise').textContent='';
+    document.getElementById('statGrid').innerHTML='';
+    document.getElementById('nextBirthday').textContent='';
+    document.getElementById('zodiacRow').innerHTML='';
+    document.getElementById('milestoneList').innerHTML='';
+    document.getElementById('retirementBox').style.display='none';
+    return;
+  }
   const birth = new Date(by, bm - 1, bd, isNaN(bh)?0:bh, isNaN(bmin)?0:bmin, isNaN(bs)?0:bs);
   const now = new Date();
   if(birth > now){
     document.getElementById('ageMain').innerHTML='<span class="live-dot"></span>出生日期在未来';
     document.getElementById('ageSub').textContent = '';
     document.getElementById('agePrecise').textContent = '';
+    document.getElementById('statGrid').innerHTML='';
+    document.getElementById('nextBirthday').textContent='';
+    document.getElementById('zodiacRow').innerHTML='';
+    document.getElementById('milestoneList').innerHTML='';
+    document.getElementById('retirementBox').style.display='none';
     return;
   }
 
@@ -474,19 +500,21 @@ function calc(){
     const retireMonthsLeft = 12 - months - 1 + (days >= 0 ? 0 : -1);
 
     document.getElementById('retirementBox').style.display = 'block';
-    const __g16=`${retireDate.getFullYear()} 年 ${bm} 月 ${bd} 日（${getWeekday(retireDate)}）`;document.getElementById('retireTime').textContent=(typeof __g16==='number'?(isFinite(__g16)?__g16:'—'):String(__g16).replace(/Infinity|NaN/g,'—'));
+    const __g16=`${retireDate.getFullYear()} 年 ${retireDate.getMonth()+1} 月 ${retireDate.getDate()} 日（${getWeekday(retireDate)}）`;document.getElementById('retireTime').textContent=(typeof __g16==='number'?(isFinite(__g16)?__g16:'—'):String(__g16).replace(/Infinity|NaN/g,'—'));
     const __g17=`还有 <strong>${daysToRetire.toLocaleString()}</strong> 天 · 约 ${retireYearsLeft} 年 ${retireMonthsLeft >= 0 ? retireMonthsLeft : 12 + retireMonthsLeft} 个月`;document.getElementById('retireDays').innerHTML=(typeof __g17==='number'?(isFinite(__g17)?__g17:'—'):String(__g17).replace(/Infinity|NaN/g,'—'));
   } else {
     document.getElementById('retirementBox').style.display = 'none';
   }
 
-  const z = getZodiac(by);
+  const lunarYear = getLunarYear(birth);
+  const zYear = lunarYear || by;
+  const z = getZodiac(zYear);
   const c = getConstellation(bm, bd);
   const __g18=`
     <div class="zodiac-card" style="background:linear-gradient(135deg,${z.color},${z.color}cc);">
       <div class="icon">${z.icon}</div>
       <div class="name">生肖：${z.name}</div>
-      <div class="desc">农历 ${by} 年</div>
+      <div class="desc">${lunarYear ? `农历 ${lunarYear} 年（春节年界）` : `公历 ${by} 年（未校正春节边界）`}</div>
       <div class="desc" style="margin-top:4px;">${z.trait}</div>
     </div>
     <div class="zodiac-card" style="background:linear-gradient(135deg,var(--primary),var(--primary-dark));">
@@ -565,14 +593,16 @@ function renderMilestones(birth, now, by, bm, bd, totalDays){
   const allMilestones = [];
 
   ageMilestones.forEach(m => {
-    const date = new Date(by + m.age, bm - 1, bd);
+    // 2 月 29 日出生者在平年夹到 2 月 28 日，与下一生日、退休日期保持同一纪年规则。
+    const date = makeClampedDate(by + m.age, bm - 1, bd, 0, 0, 0);
     const reached = date <= now;
     const daysLeft = Math.ceil((date - now) / 86400000);
+    const clampedLeap = bm === 2 && bd === 29 && date.getDate() === 28;
     allMilestones.push({
       type: 'age',
-      label: m.label,
+      label: m.label + (clampedLeap ? '（平年按 2 月 28 日）' : ''),
       date: date,
-      dateStr: `${by + m.age}年${bm}月${bd}日`,
+      dateStr: `${date.getFullYear()}年${date.getMonth()+1}月${date.getDate()}日`,
       reached,
       daysLeft
     });

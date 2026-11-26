@@ -113,7 +113,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="ROE = 淨利潤 / 平均淨資產。">Compute return on equity from net income and average shareholders' equity to gauge the return on invested capital.</p>
     <div class="formula-box">
       <div class="formula-title">📐 計算公式</div>
-      <div class="formula-eq">淨資產收益率（本頁程式碼口徑）：ROE=淨利潤÷淨資產×100（%）；聯動量：小數形式=淨利潤÷max(淨資產,10⁻⁹)、權益倍數=淨資產÷max(淨利潤,10⁻⁹)、萬分比=淨利潤÷淨資產×10000。校驗：兩欄位經輸入守衛必填且須為合法數值，否則提示並中止。判據：無固定分級，ROE 與淨利潤成正比、與淨資產規模成反比。</div>
+      <div class="formula-eq">淨資產收益率（本頁程式碼口徑）：ROE=淨利潤÷平均淨資產×100（%）；聯動量：小數形式=淨利潤÷淨資產、淨資產÷淨利潤（倍）。校驗：淨利潤與淨資產必填且為有限數，淨資產為 0 時 ROE 與倒數顯示“不適用”，淨利潤為 0 時倒數顯示“不適用”；不再用 Math.max 把負值替換成極小正數。判據：ROE 與淨利潤成正比、與平均淨資產規模成反比；淨資產為負時須結合資不抵債背景解讀。</div>
       <p class="formula-desc">ROE = 淨利潤 / 平均淨資產。</p>
     </div>
 
@@ -123,7 +123,7 @@
         <input type="number" id="np" value="200000" step="10000" placeholder="如 200000">
       </div>
       <div>
-        <label for="eq">淨資產 (元)</label>
+        <label for="eq">平均淨資產 (元)</label>
         <input type="number" id="eq" value="2000000" step="100000" placeholder="如 2000000">
       </div>
     </div>
@@ -231,7 +231,7 @@ function __tbInputGuardCore(_ids,_labels){
     return __msg;
   }
   // 分母项：__D 由真浏览器逐项置零探测得出，命中即说明该输入在此页作分母
-  var __D={"eq": "净资产 (元)"};
+  var __D={"eq": "平均净资产 (元)"};
   for(var _d=0;_d<_ids.length;_d++){
     if(!(_ids[_d] in __D)) continue;
     var _de=document.getElementById(_ids[_d]);
@@ -262,15 +262,21 @@ function __tbInputGuardCore(_ids,_labels){
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){
-              var __ig=__tbInputGuard(['np', 'eq'],["净利润 (元)", "净资产 (元)"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
-const np=num('np'),eq=num('eq');
-            const __g2=dataGrid([
-                [(np/eq*100).toFixed(2),'ROE (%)'],
-                [(np/Math.max(eq,1e-9)).toFixed(6), '权益收益率（小数）'],
-                [(eq/Math.max(np,1e-9)).toFixed(4), '权益倍数'],
-                [(np/Math.max(eq,1e-9)*10000).toFixed(1), '权益收益率（万分比）']
-            ]);ToolBox.setResult('result',(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));
-        }
+  const __en=!!(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())||/[?&]lang=en/.test(location.search);
+  const __raw=function(id){const e=document.getElementById(id);return e?String(e.value||'').trim():'';};
+  if(__raw('np')===''||__raw('eq')===''){ToolBox.setResult('result','<p style="color:var(--danger)">'+(__en?'Fill in net profit and average equity. Blank is not 0.':'请填写净利润与平均净资产；空白不等于 0。')+'</p>');return;}
+  const np=Number(__raw('np')),eq=Number(__raw('eq'));
+  if(!Number.isFinite(np)||!Number.isFinite(eq)){ToolBox.setResult('result','<p style="color:var(--danger)">'+(__en?'Net profit and equity must be finite numbers.':'净利润与净资产须为有限数。')+'</p>');return;}
+  const roe=eq===0?null:np/eq*100;
+  const inv=eq===0?(__en?'Not applicable (equity = 0)':'不适用（净资产为 0）'):(np===0?(__en?'Not applicable (net profit = 0)':'不适用（净利润为 0）'):(eq/np).toFixed(4));
+  let __html=dataGrid([
+    [roe===null?(__en?'Not applicable (equity = 0)':'不适用（净资产为 0）'):roe.toFixed(2),__en?'ROE (%)':'ROE (%)'],
+    [roe===null?'—':(roe/100).toFixed(6),__en?'ROE (decimal)':'净资产收益率（小数）'],
+    [inv,__en?'Equity ÷ net profit (times)':'净资产÷净利润（倍）']
+  ]);
+  if(eq<0)__html+='<p style="margin-top:8px;font-size:13px;color:var(--text-muted);">'+(__en?'Equity is negative. The sign of ROE must be read together with insolvency; do not treat it as a normal return.':'净资产为负，ROE 的正负方向需结合资不抵债背景解读，不能当作正常回报率。')+'</p>';
+  ToolBox.setResult('result',__html);
+}
 function resetForm(){document.getElementById('np').value = '200000';
       document.getElementById('eq').value = '2000000';
       calcTool();}
@@ -301,17 +307,18 @@ calcTool();
 <ul class="dd-list">
 <li>股東最關心的回報率指標，衡量自有資本增值效率。</li>
 <li>對比同業 ROE，評估管理層為股東創造價值的能力。</li>
-<li>結合分紅與再投資政策，判斷留存收益的使用效率。</li>
+<li>淨資產為 0 時 ROE 不適用；負權益須結合資不抵債背景解讀。</li>
 </ul>
 <div class="dd-example"><div class="dd-ex-title">計算淨資產收益率</div><div class="dd-ex-body">某公司淨利潤 400 萬元、平均淨資產 2000 萬元，ROE=400/2000=20%，即股東每投入 1 元年回報 0.2 元。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
 <dt>ROE 高一定好嗎？</dt><dd>高 ROE 可能來自高盈利，也可能來自高槓杆（高風險）。應拆解其驅動來源，區分是經營優秀還是債務堆出來的回報。</dd>
 <dt>ROE 與每股收益(<a class="term-link" href="/zh-tw/tools/investment/eps-calc.html">EPS</a>)的關係？</dt><dd>ROE=EPS÷每股淨資產，同等 ROE 下淨資產越小 EPS 越高；但過度依賴負債抬高 ROE 會犧牲財務安全。</dd>
+<dt>淨資產為 0 或為負時怎麼顯示？</dt><dd>淨資產為 0 時分母無定義，ROE 與淨資產÷淨利潤都顯示不適用；淨資產為負時按真實分母計算，但頁面會提示正負方向不能當作正常回報率。</dd>
 </dl>
 </div>
 </section>
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"ROE 高一定好嗎？","acceptedAnswer":{"@type":"Answer","text":"高 ROE 可能來自高盈利，也可能來自高槓杆（高風險）。應拆解其驅動來源，區分是經營優秀還是債務堆出來的回報。"}},{"@type":"Question","name":"ROE 與每股收益(EPS)的關係？","acceptedAnswer":{"@type":"Answer","text":"ROE=EPS÷每股淨資產，同等 ROE 下淨資產越小 EPS 越高；但過度依賴負債抬高 ROE 會犧牲財務安全。"}}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"ROE 高一定好嗎？","acceptedAnswer":{"@type":"Answer","text":"高 ROE 可能來自高盈利，也可能來自高槓杆（高風險）。應拆解其驅動來源，區分是經營優秀還是債務堆出來的回報。"}},{"@type":"Question","name":"ROE 與每股收益(EPS)的關係？","acceptedAnswer":{"@type":"Answer","text":"ROE=EPS÷每股淨資產，同等 ROE 下淨資產越小 EPS 越高；但過度依賴負債抬高 ROE 會犧牲財務安全。"}},{"@type":"Question","name":"淨資產為 0 或為負時怎麼顯示？","acceptedAnswer":{"@type":"Answer","text":"淨資產為 0 時分母無定義，ROE 與淨資產÷淨利潤都顯示不適用；淨資產為負時按真實分母計算，但頁面會提示正負方向不能當作正常回報率。"}}]}</script>
 <script>
 function __roe_calcNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
 function __roe_calcExtras(){
@@ -320,13 +327,14 @@ function __roe_calcExtras(){
     var np=num('np'),eq=num('eq');
     if (!isFinite(__roe_calcNum('np')) || !isFinite(__roe_calcNum('eq'))) return;
     var en=TBKit.util.isEn();
+    var roe=eq===0?null:np/eq*100;
+    var inv=eq===0?(en?'Not applicable (equity = 0)':'不适用（净资产为 0）'):(np===0?(en?'Not applicable (net profit = 0)':'不适用（净利润为 0）'):(eq/np).toFixed(4));
     TBKit.matrix.table('#roe_calcTable',{
         head: en?['Item','Value']:['项目','数值'],
         rows: [
-            ['ROE (%)', (np/eq*100).toFixed(2)],
-            ['权益收益率（小数）', (np/Math.max(eq,1e-9)).toFixed(6)],
-            ['权益倍数', (eq/Math.max(np,1e-9)).toFixed(4)],
-            ['权益收益率（万分比）', (np/Math.max(eq,1e-9)*10000).toFixed(1)],
+            ['ROE (%)', roe===null?(en?'Not applicable (equity = 0)':'不适用（净资产为 0）'):roe.toFixed(2)],
+            [en?'ROE (decimal)':'净资产收益率（小数）', roe===null?'—':(roe/100).toFixed(6)],
+            [en?'Equity ÷ net profit (times)':'净资产÷净利润（倍）', inv],
         ]
     });
     TBKit.history.record({np:__roe_calcRaw('np'), eq:__roe_calcRaw('eq'), result: np/eq*100});
@@ -356,7 +364,7 @@ function __roeChart(){
   if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.bar)return;
   var np=num('np'),eq=num('eq');
   if(!isFinite(np)||!isFinite(eq)||eq<=0)return;
-  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+  var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn())||/[?&]lang=en/.test(location.search);
   TBKit.chart.bar('#roe_calcChart',{title:en?'Net Profit vs Equity':'净利润 vs 净资产',labels:[en?'Net Profit':'净利润',en?'Equity':'净资产'],series:[{name:en?'Amount (元)':'金额 (元)',data:[Math.round(np),Math.round(eq)]}]});
 }
 var __roeFn=calcTool;calcTool=function(){try{__roeFn();}catch(e){}try{__roeChart();}catch(e){}};

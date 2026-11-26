@@ -108,7 +108,7 @@
 
     <div class="formula-box">
       <div class="formula-title">📐 計算公式</div>
-      <div class="formula-eq">平行夾爪夾持力：F = 2×驅動轉矩 τ ÷ 力臂 L（N，雙指結構下轉矩經兩側力臂轉換為夾持正壓力）；聯動量：千克力口徑 F(kgf) = F ÷ 9.81。校驗：驅動轉矩、力臂兩項必填守衛，力臂作為分母不得為 0。判據：無固定分級，F 與轉矩成正比、與力臂成反比，kgf 按 9.81 m/s² 折算。</div>
+      <div class="formula-eq">對稱雙指夾爪合計法向力：F = 2×驅動轉矩 τ ÷ 力臂 L（N；假設左右兩側對稱驅動、每側力臂相同、兩指法向力相等）。所需法向力按摩擦平衡反算 F_req = m(g+a)·SF ÷ μ，μ 越小需求越大。校驗：力臂 L 必須大於 0，驅動轉矩 τ 須不小於 0。判據：F 與 τ 成正比、與 L 成反比；本頁不計算摩擦夾持餘量，也未計連桿損失與指尖形狀。</div>
       <p class="formula-desc">由驅動轉矩與力臂估算兩指總夾持力。</p>
     </div>
 
@@ -277,11 +277,13 @@ function dataGrid(rows){if(!Array.isArray(rows))return '<div class="data-grid"><
 function calcTool(){
               var __ig=__tbInputGuard(['tau', 'L'],["驱动转矩 τ (N·m)", "力臂 L (m)"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
 const tau = num('tau'), L = num('L');
+            if(!isFinite(L)||L<=0){ToolBox.setResult('result','<p style="color:var(--danger)">⚠ 力臂 L 必须大于 0（m）。</p>');return;}
+            if(!isFinite(tau)||tau<0){ToolBox.setResult('result','<p style="color:var(--danger)">⚠ 驱动转矩 τ 须为不小于 0 的有效数值。</p>');return;}
             const F = 2 * tau / L;
             const __g2=dataGrid([
                 [F.toFixed(2), '夹持力 F (N)'],
                 [(F / 9.81).toFixed(3), 'F (kgf)']
-            ]);ToolBox.setResult('result',(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));
+            ])+'<div class="info-box" style="margin-top:12px;">F=2τ/L 假设左右两侧对称驱动、每侧力臂相同且两指法向力相等，F 为两指合计法向力。所需法向力应按摩擦平衡反算 F_req=m(g+a)·SF/μ（μ 越小需求越大），并计加速度与安全系数 SF；本页不计算摩擦夹持余量。</div>';ToolBox.setResult('result',(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));
         }
 function resetForm(){document.getElementById('tau').value = '5';
       document.getElementById('L').value = '0.05';
@@ -343,7 +345,7 @@ else document.addEventListener('DOMContentLoaded', __gripper_forceBoot);
         <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="出處 / 標準" scope="col">Source / Standard</th>
       </tr></thead>
       <tbody>
-        <tr><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="夾持力">Gripper force</span></td><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="F = μ·m·g·SF（摩擦夾持，SF 安全係數 2–4）">F = μmg·SF</span></td><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="機械手設計慣例 / GB/T 33265 等夾持器標準">gripper standards</span></td></tr>
+        <tr><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="夾持力">Gripper force</span></td><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="F_req = m(g+a)·SF/μ（μ 越小需求越大）">F_req = m(g+a)SF/μ</span></td><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="機械手設計慣例 / GB/T 33265 等夾持器標準">gripper standards</span></td></tr>
         <tr><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="摩擦角判據">Friction criterion</span></td><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="夾持不滑移條件：μF ≥ m·g_max（含加速度）">μF ≥ m(g+a)</span></td><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="摩擦力學">mechanics texts</span></td></tr>
         <tr><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="指面壓強">Contact pressure</span></td><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="壓強 ≤ 被夾件許用應力（防壓痕）">p ≤ allowable</span></td><td style="padding:6px 8px;border-bottom:1px solid var(--border);"><span data-zh="夾持器設計手冊">gripper design</span></td></tr>
 

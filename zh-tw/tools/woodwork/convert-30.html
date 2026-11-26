@@ -103,13 +103,13 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="換算木材含水率與收縮率，用於按使用環境修正尺寸。">Convert wood moisture content and shrinkage so dimensions can be adjusted for service conditions.</p>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理與說明</div>
-  <div class="formula-eq">線幹縮率 = (初始含水率 − 終了含水率) × 收縮係數 k (%，線性近似)；填入原始尺寸後：收縮後尺寸 = 原尺寸 × (1 − 幹縮率÷100)，絕對收縮量 = 原尺寸 × 幹縮率÷100，正方形截面收縮後面積 ≈ 原尺寸² × (1 − 幹縮率÷100)²。校驗：數值非法按 0 處理，原始尺寸為可選輸入。判據：k 參考取值弦向 0.2–0.4、徑向 0.1–0.2、縱向 0.01–0.02。</div>
+  <div class="formula-eq">線幹縮率 = (初始含水率 − 終了含水率) × 收縮係數 k (%，線性近似)；收縮後尺寸 = 原尺寸 × (1 − 幹縮率÷100)，絕對收縮量 = 原尺寸 × 幹縮率÷100，正方形截面收縮後面積 ≈ 原尺寸² × (1 − 幹縮率÷100)²。校驗：四個欄位均須填寫有限數值；初始/終了含水率、原始尺寸 ≥0，收縮係數 k>0。任一欄位留空或非法即提示，不按 0 兜底（顯式 0 合法）。判據：k 參考取值弦向 0.2–0.4、徑向 0.1–0.2、縱向 0.01–0.02。</div>
   <p class="formula-desc">木材自纖維飽和點（約 30%）繼續幹燥到終了含水率時產生線性收縮；收縮係數隨樹種與方向而異（弦向約 0.26、徑向約 0.15 %/1%MC）。僅供工藝餘量估算。</p>
 </div>
 <div class="input-row"><div><label for="mci">初始含水率（%）</label><input type="number" id="mci" value="30" step="any" oninput="calc()" placeholder="如 30"></div>
 <div><label for="mcf">終了含水率（%）</label><input type="number" id="mcf" value="8" step="any" oninput="calc()" placeholder="如 8"></div></div>
 <div class="input-row"><div><label for="k">收縮係數（%/1%MC）</label><input type="number" id="k" value="0.26" step="any" oninput="calc()" placeholder="如 0.26"></div>
-<div><label for="orig">原尺寸（cm，可選）</label><input type="number" id="orig" value="100" step="any" oninput="calc()" placeholder="如 100"></div></div>
+<div><label for="orig">原尺寸（cm，必填）</label><input type="number" id="orig" value="100" step="any" oninput="calc()" placeholder="如 100"></div></div>
 <div class="toolbar"><div id="convert_30Presets"></div><button type="button" class="btn primary" onclick="calc()">換算</button><button class="btn" type="button" onclick="__convert_30Export()">匯出明細 CSV</button><button type="button" class="btn" onclick="copyRes()">複製</button></div>
 <div class="result-box" id="res"></div> <div id="convert_30Table"></div> <div id="convert_30Diff"></div> <div id="convert_30Chart"></div> <div id="convert_30Hist"></div>
   </div>
@@ -189,11 +189,13 @@
 function calc(){
 // NUMCLR：全部输入留空时不得输出 0/0.00 的假结果
 var __numReq=['mci','mcf','k','orig'];
-if(__numReq.every(function(k){var e=document.getElementById(k);return !e||String(e.value).trim()==='';})){document.getElementById('res').innerHTML='<p style="color:var(--danger)">⚠ 请填写必要的输入参数后再计算</p>';return;}
-const mci=+document.getElementById("mci").value||0;const mcf=+document.getElementById("mcf").value||0;const k=+document.getElementById("k").value||0;const orig=+document.getElementById("orig").value||0;
+var __miss=__numReq.filter(function(id){var e=document.getElementById(id);return !e||String(e.value).trim()==='';});
+if(__miss.length){document.getElementById('res').innerHTML='<p style="color:var(--danger)">⚠ 请填写全部四项：初始含水率、终了含水率、收缩系数与原始尺寸；留空不按 0 处理（显式 0 合法）。</p>';return;}
+const mci=Number(document.getElementById("mci").value),mcf=Number(document.getElementById("mcf").value),k=Number(document.getElementById("k").value),orig=Number(document.getElementById("orig").value);
+if(![mci,mcf,k,orig].every(function(v){return isFinite(v);})||mci<0||mcf<0||!(k>0)||orig<0){document.getElementById('res').innerHTML='<p style="color:var(--danger)">⚠ 初始/终了含水率与原始尺寸须 ≥ 0，收缩系数 k 须 > 0；负值或零系数没有物理意义。</p>';return;}
 const shrink=(mci-mcf)*k;let out="线干缩率 = "+shrink.toFixed(2)+" %";
-if(orig>0){const ns=orig*(1-shrink/100);out+="\n收缩后尺寸 ≈ "+ns.toFixed(2)+" cm";}
-var _d="\n收缩系数区间参考：弦向约 0.2–0.4、径向约 0.1–0.2、纵向约 0.01–0.02（%/1%MC）";if(orig>0){_d+="\n绝对收缩量 = "+(orig*shrink/100).toFixed(2)+" cm";_d+="\n正方形截面收缩后面积 ≈ "+(orig*orig*(1-shrink/100)*(1-shrink/100)).toFixed(1)+" cm²";}
+const ns=orig*(1-shrink/100);out+="\n收缩后尺寸 ≈ "+ns.toFixed(2)+" cm";
+var _d="\n收缩系数区间参考：弦向约 0.2–0.4、径向约 0.1–0.2、纵向约 0.01–0.02（%/1%MC）";_d+="\n绝对收缩量 = "+(orig*shrink/100).toFixed(2)+" cm";_d+="\n正方形截面收缩后面积 ≈ "+(orig*orig*(1-shrink/100)*(1-shrink/100)).toFixed(1)+" cm²";
 const el=document.getElementById("res");el.innerHTML='<p style="font-size:18px;color:var(--primary);white-space:pre-line;">'+(out+_d).replace(/&/g,'&amp;').replace(/</g,'&lt;')+'</p>';}calc();function copyRes(){ToolBox.copyText(document.getElementById("res").innerText);}
 </script>
 
@@ -233,7 +235,7 @@ const el=document.getElementById("res");el.innerHTML='<p style="font-size:18px;c
   </div>
   <div class="tool-intro-body">
     <h4><span class="h4-icon">📝</span>工具簡介</h4>
-    <p>由初始/終了含水率換算幹縮率與尺寸變化，用於木作加工預留餘量。含水率讀數單位統一：同一批木料質檢單上含水率可能同時出現百分比、千分比與小數，用本工具把不同量級讀數換算成統一單位。</p>
+    <p>由初始/終了含水率換算幹縮率與尺寸變化，用於木作加工預留餘量。輸入初始/終了含水率（%）和收縮係數 k，估算線幹縮率、收縮後尺寸與絕對收縮量；四個欄位均按百分數/釐米口徑直接填寫，不做百分比與小數之間的單位換算。</p>
     <h4><span class="h4-icon">✨</span>功能特點</h4>
     <ul class="intro-features">
       <li>純前端處理，資料不上傳伺服器</li>
