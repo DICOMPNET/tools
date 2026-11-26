@@ -2251,7 +2251,7 @@ function ensurePrivacyScript(cb){
   if(!s){
     s = document.createElement('script');
     s.id = 'tb-privacy-script';
-    s.src = '/js/privacy.js';
+    s.src = assetRoot() + 'js/privacy.js';
     s.defer = true;
     s.onload = cb;
     document.head.appendChild(s);
@@ -2268,7 +2268,7 @@ document.addEventListener('DOMContentLoaded', injectPrivacyBadge);
 function ensureChartLib(cb){
   if(window.ToolBox && window.ToolBox.chart){ cb(); return; }
   var s = document.createElement('script');
-  s.src = '/js/chart.js';
+  s.src = assetRoot() + 'js/chart.js';
   s.onload = cb;
   document.head.appendChild(s);
 }
@@ -3040,10 +3040,10 @@ function injectUnifiedChrome(){
       if (!isEmbedded && !hasNavMenu) {
         var nmCss = document.createElement('link');
         nmCss.rel = 'stylesheet';
-        nmCss.href = '/css/nav-menu.css';
+        nmCss.href = assetRoot() + 'css/nav-menu.css';
         document.head.appendChild(nmCss);
         var nmJs = document.createElement('script');
-        nmJs.src = '/js/nav-menu.js';
+        nmJs.src = assetRoot() + 'js/nav-menu.js';
         nmJs.defer = true;
         document.head.appendChild(nmJs);
       }
@@ -3131,7 +3131,7 @@ function loadToolSearch(){
     if (document.getElementById('tbToolSearchJs')) return;
     var s = document.createElement('script');
     s.id = 'tbToolSearchJs';
-    s.src = '/js/tool-search.js';
+    s.src = assetRoot() + 'js/tool-search.js';
     s.async = false;
     document.head.appendChild(s);
   } catch (e) {}
