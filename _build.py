@@ -2804,8 +2804,8 @@ html:not([lang="en-US"]) .tool-link .t-en{display:none !important;}
 </head>
 <body>
 <main>
-<a href="./" class="back" data-i18n="sitemap.back" data-i18n-fb="← 返回首页">← 返回首页</a>
-<h1><a href="./">🧰 ToolBox</a></h1>
+<a href="index.html" class="back" data-i18n="sitemap.back" data-i18n-fb="← 返回首页">← 返回首页</a>
+<h1><a href="index.html">🧰 ToolBox</a></h1>
 <p class="subtitle"><span data-i18n="sitemap.subtitle_a" data-i18n-fb="站点地图 · 共 ">站点地图 · 共 </span>%d<span data-i18n="sitemap.subtitle_b" data-i18n-fb=" 个免费在线工具 · 更新于 "> 个免费在线工具 · 更新于 </span>%s</p>
 ''' % (len(tools), today)
     
@@ -2834,7 +2834,7 @@ html:not([lang="en-US"]) .tool-link .t-en{display:none !important;}
     
     html += '''</main>
 <div class="footer">
-<p><a href="sitemap.xml">XML Sitemap</a> · <a href="./" data-i18n="sitemap.back_home" data-i18n-fb="返回首页">返回首页</a></p>
+<p><a href="sitemap.xml">XML Sitemap</a> · <a href="index.html" data-i18n="sitemap.back_home" data-i18n-fb="返回首页">返回首页</a></p>
 <p data-i18n="sitemap.copyright" data-i18n-fb="© 2026 ToolBox - 免费在线工具集合">© 2026 ToolBox - 免费在线工具集合</p>
 </div>
 </body>
