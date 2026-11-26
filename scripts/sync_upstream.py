@@ -80,6 +80,10 @@ SELF_PATH = os.path.abspath(__file__)
 # 单文件定向替换：某些页面需替换「上游 GitHub 仓库地址」这类非站点域名形态，
 # 但不能加进 DOMAIN_PATCHES 全局规则（会误伤 disclaimer.html / i18n.js 的 MIT 署名链接）
 FILE_PATCHES = {
+    # 发布工作流：上游触发分支是 master，本站分支是 main（不改则 push 永远不触发部署）
+    ".github/workflows/quality-gates.yml": [
+        ("  push:\n    branches:\n      - master\n", "  push:\n    branches:\n      - main\n"),
+    ],
     "tools/it/short-link-generator.html": [
         ("https://github.com/chenguangwu/chenguangwu.github.io", "https://tools.dicomp.net/"),
     ],
