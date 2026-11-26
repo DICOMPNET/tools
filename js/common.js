@@ -2796,21 +2796,21 @@ global.Chain = (function(){
 // 规则：仅工具页（存在 .nav 或路径含 /tools/）生效；删除旧 .nav，注入 .nav-top/.nav-mobile
 // 与 .footer/.tab-bar，中间工具内容区保持不变。搜索跳转 search.html（不加载首页 app.js）。
 function toolPageRootPrefix(){
-  // 工具页位于 tools/<industry>/xxx.html → 站点根为 ../../；兜底用 /
+  // 返回「站点根」前缀，用于拼接站内链接（footer/导航/相关工具）。
+  // 正式域名 tools.dicomp.net 挂在根路径 → '/'；
+  // 预览站 dicompnet.github.io/tools/ 挂在子路径 → '/tools/'。
+  // 繁体页 → '/zh-tw/'（预览站为 '/tools/zh-tw/'）。
   try {
     var p = location.pathname || '';
     var seg = p.split('/').filter(Boolean);
-    if (seg[0] === 'zh-tw') {
-      // 动态注入的导航、相关工具和页脚必须始终留在繁体静态站点内。
-      // 使用 locale 绝对根可同时覆盖根页、行业页、工具页和指南页，
-      // 避免按当前目录深度回退时意外落到简体 `/tools/`。
-      return '/zh-tw/';
+    // 检测子路径部署：pathname 以 /tools/ 开头（含 zh-tw 变体）
+    var sub = '';
+    if (seg[0] === 'tools') sub = '/tools';
+    // 繁体页
+    if (seg[0] === 'zh-tw' || (seg[0] === 'tools' && seg[1] === 'zh-tw')) {
+      return sub + '/zh-tw/';
     }
-    // tools/industry/xxx.html → 两级
-    if (seg.length >= 2 && seg[0] === 'tools') return '../../';
-    if (seg.length >= 1 && seg[0] === 'tools') return '../';
-    // guides/xxx.html → 一级（guides/ 的父即站点根）
-    if (seg.length >= 1 && seg[0] === 'guides') return '../';
+    return sub + '/';
   } catch(e){}
   return '/';
 }

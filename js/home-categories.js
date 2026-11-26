@@ -61,6 +61,15 @@
       </div>
       <a class="hc-section-more" href="tools/${g.children[0] ? g.children[0].key : g.key}/index.html">${isEn() ? 'View all' : '查看全部'} →</a>
     `;
+    try {
+      var p = location.pathname || '';
+      if (p.indexOf('/tools/') === 0) {
+        var more = head.querySelector('.hc-section-more');
+        if (more && more.getAttribute('href').charAt(0) !== '/') {
+          more.href = '/tools/' + more.getAttribute('href');
+        }
+      }
+    } catch (e) {}
 
     // 子行业标签
     const visibleChildren = g.children.slice(0, MAX_CHILDREN);
@@ -92,7 +101,15 @@
     }
     child.top.slice(0, MAX_TOOLS).forEach(t => {
       const card = renderToolCard(t);
-      card.href = t.url;
+      // 子路径部署适配：预览站 /tools/ 下，相对路径 tools/xxx 需补 /tools 前缀
+      var url = t.url;
+      try {
+        var p = location.pathname || '';
+        if (p.indexOf('/tools/') === 0 && url && url.charAt(0) !== '/' && url.indexOf('tools/') === 0) {
+          url = '/tools/' + url;
+        }
+      } catch (e) {}
+      card.href = url;
       card.title = titleOf(t);
       grid.appendChild(card);
     });
