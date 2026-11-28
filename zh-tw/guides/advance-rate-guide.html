@@ -24,7 +24,7 @@
 <link rel="canonical" href="https://tools.dicomp.net/zh-tw/guides/advance-rate-guide.html">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"隧道掘進速度估算 使用指南","description":"輸入炮孔深度、炮孔利用率（η 0.85~0.95）、迴圈作業時間等引數，估算鑽爆法單迴圈進尺、迴圈時間與日進尺，用於隧道施工組織與工期測算。","author":{"@type":"Organization","name":"ToolBox"},"datePublished":"2026-09-16","dateModified":"2026-09-16","mainEntityOfPage":{"@type":"WebPage","@id":"https://tools.dicomp.net/zh-tw/guides/advance-rate-guide.html"},"image":"https://tools.dicomp.net/og-image.png","publisher":{"@type":"Organization","name":"ToolBox","logo":{"@type":"ImageObject","url":"https://tools.dicomp.net/logo-512.png"}},"inLanguage":"zh-TW"}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"ToolBox","item":"https://tools.dicomp.net/zh-tw/"},{"@type":"ListItem","position":2,"name":"使用指南","item":"https://tools.dicomp.net/zh-tw/guides/index.html"},{"@type":"ListItem","position":3,"name":"隧道掘進速度估算 使用指南","item":"https://tools.dicomp.net/zh-tw/guides/advance-rate-guide.html"}]}</script>
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"為什麼實際迴圈數常常小於我填寫的計劃迴圈數？","acceptedAnswer":{"@type":"Answer","text":"因為工具取 min(計劃迴圈數, floor(24÷單迴圈時間))。當五個工序耗時之和較大時，一天內根本排不下計劃次數，此時瓶頸是迴圈時間而非計劃安排。要提速應針對耗時最長的工序最佳化：鑽孔佔大頭時增加鑿巖臺車或多臂鑽、改用深孔爆破；出渣佔比高時增大裝運能力、縮短運距；支護耗時大時可改為初噴臨時支護與後補永久支護分離。"}},{"@type":"Question","name":"炮孔利用率 η 一般取多少，加大孔深一定會更快嗎？","acceptedAnswer":{"@type":"Answer","text":"η 通常在 0.85~0.95：完整硬巖、鑽孔精度高時取 0.90~0.95，破碎帶與軟巖取 0.85 左右甚至更低。加大孔深能提高單迴圈進尺，但深孔鑽孔時間更長、夾製作用更明顯、η 往往下降，且迴圈時間增加會減少每日迴圈數，因此存在最優孔深。建議按本工具比較 2~4 組孔深與工序組合，取日進尺最大的方案。"}}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"為什麼整迴圈日進尺和跨日平均日進尺會不同？","acceptedAnswer":{"@type":"Answer","text":"整迴圈模型要求每個迴圈都在當日工時內完成，餘下不足一個迴圈的時間不計入進尺；跨日平均模型按連續施工把剩餘工時折算成迴圈份額，因此單迴圈時間不能整除日工時時兩者不同。前者適合按班制排程、不允許跨日的場景；後者適合連續掘進與工期估算。頁面同時展示兩者，避免把任意一個當作唯一真值。"}},{"@type":"Question","name":"單迴圈總耗時填 0 為什麼不能估算？","acceptedAnswer":{"@type":"Answer","text":"單迴圈時間是計算每日迴圈數與工期的分母。總耗時為 0 不是“無限快”，而是缺少有效工序資料；頁面會明確提示必須填寫大於 0 的總耗時，並清除舊結果，避免用 0 分母得出無意義的天數。"}}]}</script>
 <style>
 :root{--primary:#FF6B35;--text:#1F2937;--muted:#6B7280;--border:#E5E7EB;--bg:#FFFAF7;}
 *{box-sizing:border-box;}
@@ -73,26 +73,16 @@ li{margin:8px 0;}
 <nav class="breadcrumb" aria-label="麵包屑導航"><a href="https://tools.dicomp.net/">ToolBox</a> / <a href="https://tools.dicomp.net/guides/index.html">使用指南</a> / <span>隧道掘進速度估算 使用指南</span></nav>
 <main>
 <h1>隧道掘進速度估算 使用指南</h1>
-<p class="lead">輸入炮孔深度、炮孔利用率（η 0.85~0.95）、迴圈作業時間等引數，估算鑽爆法單迴圈進尺、迴圈時間與日進尺，用於隧道施工組織與工期測算。</p>
+<p class="lead">輸入孔深、利用率、工序耗時、計劃迴圈數、有效日工時、施工天數與目標長度；同時給出整迴圈與跨日平均日進尺、月進尺與工期，並提示理想假設。</p>
 <h2>功能說明</h2>
-<p>輸入炮孔深度、炮孔利用率（η 0.85~0.95）、迴圈作業時間等引數，估算鑽爆法單迴圈進尺、迴圈時間與日進尺，用於隧道施工組織與工期測算。</p>
+<p>輸入孔深、利用率、工序耗時、計劃迴圈數、有效日工時、施工天數與目標長度；同時給出整迴圈與跨日平均日進尺、月進尺與工期，並提示理想假設。</p>
 <h2>典型使用場景</h2>
-<ul><li>單迴圈進尺：迴圈進尺=炮孔深度×炮孔利用率 η（一般 0.85~0.95，由巖性與鑽孔精度決定）；孔深加大能提高進尺，但 η 通常隨之下降。</li><li>迴圈時間與迴圈數：單迴圈時間=鑽孔+爆破+通風+出渣+支護各工序耗時之和；時間允許迴圈數=floor(24÷單迴圈時間)，實際迴圈數=min(計劃迴圈數, 時間允許迴圈數)，即受計劃與時間雙重約束。</li><li>進尺與工期：日進尺=單迴圈進尺×實際迴圈數，月進尺=日進尺×30；工具另按 1000 m 單口掘進長度估算工期月數=1000÷日進尺÷30，用於比較不同工序組合（如增加鑿巖臺車縮短鑽孔時間、優化出渣縮短迴圈）的邊際收益。</li></ul>
+<ul><li>單迴圈進尺：迴圈進尺=炮孔深度×炮孔利用率 η（一般 0.85~0.95，由巖性與鑽孔精度決定）；孔深加大能提高進尺，但 η 通常隨之下降。</li><li>整迴圈模型：時間允許的完整迴圈=floor(有效日工時÷單迴圈時間)，實際完整迴圈=min(計劃迴圈數, 時間允許迴圈數)，日進尺=單迴圈進尺×完整迴圈數。該模型不允許迴圈跨日，單迴圈超過日工時即日進尺為 0。</li><li>跨日平均模型：按連續施工折算每日迴圈=min(計劃迴圈數, 有效日工時÷單迴圈時間)，允許單迴圈跨日；日進尺=單迴圈進尺×折算迴圈數，用於連續掘進與工期估算。</li><li>月進尺與工期：月進尺=跨日平均日進尺×30；工期=目標掘進長度÷跨日平均日進尺。工具另按計劃施工天數給出該時段進尺，便於比較不同工序組合的邊際收益。</li></ul>
 <h2>算例參考</h2>
-<ul><li><strong>算例：孔深 3 m、利用率 0.9 的全斷面法日進尺</strong>：輸入：孔深 3 m、利用率 0.9、鑽孔 3 h、爆破 1 h、通風 0.5 h、出渣 3 h、支護 2 h、計劃迴圈數 3 次/日。單迴圈進尺=3×0.9=2.70 m；單迴圈時間=3+1+0.5+3+2=9.50 h；時間允許迴圈數=floor(24÷9.5)=2 次/日；實際迴圈數=min(3,2)=2 次/日（受時間約束而非計劃約束）；日進尺=2.70×2=5.40 m；月進尺（滿負荷）=162 m；1000 m 工期≈6.2 個月。對照：孔深 4 m、鑽孔 4 h（其餘不變）→ 進尺 3.60 m、迴圈 10.50 h、2 次/日、日進尺 7.20 m、月 216 m、工期 4.6 個月；短進尺快迴圈方案（孔深 2 m、η=0.85、鑽孔 2 h、爆破 0.5 h、通風 0.5 h、出渣 2 h、支護 1.5 h、計劃 4 次/日）→ 進尺 1.70 m、迴圈 6.50 h、floor(24÷6.5)=3 次/日、日進尺 5.10 m、月 153 m、工期 6.5 個月。</li></ul>
+<ul><li>算例：孔深 3 m、利用率 0.9、迴圈 9.5 h：輸入孔深 3 m、利用率 0.9、鑽孔 3 h、爆破 1 h、通風 0.5 h、出渣 3 h、支護 2 h、計劃 3 次/日、有效日工時 24 h。單迴圈進尺=2.70 m；單迴圈時間=9.50 h；整迴圈模型 floor(24÷9.5)=2 次/日，日進尺 5.40 m；跨日平均模型 24÷9.5=2.526 次/日，日進尺 6.82 m；月進尺約 204.6 m；1000 m 工期約 146.6 天（4.9 個月）。若有效日工時改為 8 h：整迴圈為 0 次/日，跨日平均為 0.842 次/日、日進尺 2.27 m、月進尺 68.2 m、1000 m 工期約 439.8 天，說明單迴圈跨日時必須看平均模型。</li></ul>
 <h2>注意事項</h2>
-<p>本工具純前端執行，輸入內容不上傳伺服器；結果為按上述口徑得到的<strong>理論估算值</strong>。實際應用受裝置引數、測量條件與當地規範影響，請以裝置銘牌、檢測報告與現行標準為準，重大決策建議諮詢專業人士。</p>
-<div class="related">
-<h3>相關工具</h3>
-<a class="tool-chip" href="https://tools.dicomp.net/tools/tunnel/gas-monitor.html">隧道瓦斯監測參考</a>
-<a class="tool-chip" href="https://tools.dicomp.net/tools/tunnel/lining-thickness.html">隧道襯砌厚度計算</a>
-<a class="tool-chip" href="https://tools.dicomp.net/tools/tunnel/support-design.html">隧道支護引數設計</a>
-<a class="tool-chip" href="https://tools.dicomp.net/tools/tunnel/ventilation-calc.html">隧道通風計算</a>
-</div>
-<dl class="faq">
-<dt>為什麼實際迴圈數常常小於我填寫的計劃迴圈數？</dt><dd>因為工具取 min(計劃迴圈數, floor(24÷單迴圈時間))。當五個工序耗時之和較大時，一天內根本排不下計劃次數，此時瓶頸是迴圈時間而非計劃安排。要提速應針對耗時最長的工序最佳化：鑽孔佔大頭時增加鑿巖臺車或多臂鑽、改用深孔爆破；出渣佔比高時增大裝運能力、縮短運距；支護耗時大時可改為初噴臨時支護與後補永久支護分離。</dd>
-<dt>炮孔利用率 η 一般取多少，加大孔深一定會更快嗎？</dt><dd>η 通常在 0.85~0.95：完整硬巖、鑽孔精度高時取 0.90~0.95，破碎帶與軟巖取 0.85 左右甚至更低。加大孔深能提高單迴圈進尺，但深孔鑽孔時間更長、夾製作用更明顯、η 往往下降，且迴圈時間增加會減少每日迴圈數，因此存在最優孔深。建議按本工具比較 2~4 組孔深與工序組合，取日進尺最大的方案。</dd>
-</dl>
+<p>本工具純前端執行，輸入內容不上傳伺服器；結果為按上述口徑得到的理論估算值。實際應用受裝置引數、測量條件與當地規範影響，請以裝置銘牌、檢測報告與現行標準為準，重大決策建議諮詢專業人士。</p>
+<dl class="faq"><dt>為什麼整迴圈日進尺和跨日平均日進尺會不同？</dt><dd>整迴圈模型要求每個迴圈都在當日工時內完成，餘下不足一個迴圈的時間不計入進尺；跨日平均模型按連續施工把剩餘工時折算成迴圈份額，因此單迴圈時間不能整除日工時時兩者不同。前者適合按班制排程、不允許跨日的場景；後者適合連續掘進與工期估算。頁面同時展示兩者，避免把任意一個當作唯一真值。</dd><dt>單迴圈總耗時填 0 為什麼不能估算？</dt><dd>單迴圈時間是計算每日迴圈數與工期的分母。總耗時為 0 不是“無限快”，而是缺少有效工序資料；頁面會明確提示必須填寫大於 0 的總耗時，並清除舊結果，避免用 0 分母得出無意義的天數。</dd></dl>
 <div class="related"><h3>相關工具</h3><a class="tool-chip" href="/zh-tw/tools/tunnel/advance-rate.html">隧道掘進速度估算</a></div>
 <div class="back"><a href="https://tools.dicomp.net/tools/tunnel/advance-rate.html">→ 開啟隧道掘進速度估算工具</a></div>
 </main>

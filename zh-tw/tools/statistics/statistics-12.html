@@ -65,7 +65,7 @@
 
 <script src="../../../js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"分位數插值法？","acceptedAnswer":{"@type":"Answer","text":"位置非整數時常用線性插值（如 NumPy 預設），不同軟體（Excel/TI 等）方法略有差異。"}},{"@type":"Question","name":"分位數為何不唯一？","acceptedAnswer":{"@type":"Answer","text":"存在多種定義（type 1–9），結果可能差 0.1–0.5，報告時註明方法。"}}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"均值和中位數什麼時候不同？","acceptedAnswer":{"@type":"Answer","text":"資料右偏或有大值時均值>中位數（如收入）；左偏時均值<中位數。"}},{"@type":"Question","name":"眾數不唯一怎麼辦？","acceptedAnswer":{"@type":"Answer","text":"多個值並列最高時頁面會全部列出；每個值只出現一次時顯示“無眾數”，這不代表資料錯誤。"}}]}</script>
 <meta property="og:site_name" content="ToolBox">
 <meta name="theme-color" content="#FF6B35">
 <!-- TOOLBOX-HREFLANG -->
@@ -111,9 +111,10 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="輸入一組資料，快速計算均值、中位數、眾數、極差和總和。">Enter up to seven values to quickly compute the arithmetic mean, median, mode and range and the total, a fast way to describe central tendency and spread of a data set.</p>
         <div class="formula-box">
       <div class="formula-title">📐 計算公式 / 原理</div>
-      <div class="formula-eq">均值 = (Σ dᵢ)/7；中位數 = 升序後第 4 個值；極差 = max − min；總和 = Σ dᵢ</div>
-      <div class="formula-desc">對固定 7 個數值快速給出集中趨勢與離散程度：均值為總和除以 7；中位數取升序排列後的第 4 個（中間位置）；極差為最大值減最小值；另附全部資料之和。適合課堂或日常快速描述一組資料。</div>
+      <div class="formula-eq">均值 = (Σ dᵢ)/n；中位數 = n 為奇數取中間值、偶數取中間兩數平均；眾數 = 出現次數最多的值（可多個或無眾數）；極差 = max − min</div>
+      <div class="formula-desc">最多可填 7 個數據，實際只使用已填寫的 2–7 個，空白項自動忽略；均值 = 總和 / 實際樣本數；中位數按實際樣本數取中間位置；眾數為出現次數最多的值，可能沒有眾數或有多個眾數；極差 = 最大值 − 最小值。適合課堂或日常快速描述一組資料。</div>
     </div>
+<p style="font-size:12px;color:var(--text-muted);">可只填 2–7 個，空白項忽略；輸入非法值會阻止計算並定位到對應輸入框。</p>
 <div class="input-row"><label for="n1">資料1</label><input type="number" id="n1" value="12" step="any" oninput="calc()" placeholder="如 12"></div>
     <div class="input-row"><label for="n2">資料2</label><input type="number" id="n2" value="15" step="any" oninput="calc()" placeholder="如 15"></div>
     <div class="input-row"><label for="n3">資料3</label><input type="number" id="n3" value="18" step="any" oninput="calc()" placeholder="如 18"></div>
@@ -209,29 +210,44 @@
   </div>
 </div>
 <script>
-function calc(){
-  if(!isFinite(__mmN('n1')) || !isFinite(__mmN('n2')) || !isFinite(__mmN('n3')) || !isFinite(__mmN('n4')) || !isFinite(__mmN('n5')) || !isFinite(__mmN('n6')) || !isFinite(__mmN('n7'))){
-    document.getElementById('result').innerHTML = '<p style="color:var(--text-muted);">请填写 7 个数据后再计算。</p>';
-    var __t=document.getElementById('mmTable'); if(__t) __t.innerHTML='';
-    return;
+function __mmParse(){
+  var vals=[], bad=[];
+  for(var i=1;i<=7;i++){
+    var e=document.getElementById('n'+i); var raw=e?String(e.value==null?'':e.value).trim():'';
+    if(raw==='') continue;
+    if(!/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/.test(raw)){bad.push('第 '+i+' 个「'+raw+'」不是有效数值');continue;}
+    var v=Number(raw); if(!isFinite(v)){bad.push('第 '+i+' 个「'+raw+'」不是有限数值');continue;}
+    vals.push(v);
   }
-  const n1 = +document.getElementById('n1').value || 0;
-  const n2 = +document.getElementById('n2').value || 0;
-  const n3 = +document.getElementById('n3').value || 0;
-  const n4 = +document.getElementById('n4').value || 0;
-  const n5 = +document.getElementById('n5').value || 0;
-  const n6 = +document.getElementById('n6').value || 0;
-  const n7 = +document.getElementById('n7').value || 0;
-  let html = '';
-  const __v0 = ((()=>{const arr=[n1,n2,n3,n4,n5,n6,n7];return arr.reduce((a,b)=>a+b,0)/7;})());
-  html += `<p>均值：<strong style="font-size:18px;color:var(--primary);">${__v0.toFixed(4)}</strong> </p>`;
-  const __v1 = ((()=>{const arr=[n1,n2,n3,n4,n5,n6,n7].sort((a,b)=>a-b);return arr[3];})());
-  html += `<p>中位数：<strong style="font-size:18px;color:var(--primary);">${__v1.toFixed(4)}</strong> </p>`;
-  const __v2 = ((()=>{const arr=[n1,n2,n3,n4,n5,n6,n7].sort((a,b)=>a-b);return arr[6]-arr[0];})());
-  html += `<p>极差：<strong style="font-size:18px;color:var(--primary);">${__v2.toFixed(4)}</strong> </p>`;
-  const __v3 = (n1+n2+n3+n4+n5+n6+n7);
-  html += `<p>总和：<strong style="font-size:18px;color:var(--primary);">${__v3.toFixed(4)}</strong> </p>`;
-  const __g1=html;document.getElementById('result').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
+  if(bad.length) return {error:bad[0]};
+  if(vals.length<2) return {error:'请至少填写 2 个数据（最多 7 个），否则中位数与极差没有意义。'};
+  return {vals:vals};
+}
+function __mmMode(arr){
+  arr=arr||[];
+  var counts={}; arr.forEach(function(v){counts[v]=(counts[v]||0)+1;});
+  var max=0; Object.keys(counts).forEach(function(k){if(counts[k]>max)max=counts[k];});
+  if(max<=1) return {text:'无众数（各值出现次数相同）',vals:[]};
+  var modes=Object.keys(counts).filter(function(k){return counts[k]===max;}).map(Number).sort(function(a,b){return a-b;});
+  return {text:modes.join('、')+'（各出现 '+max+' 次）',vals:modes,max:max};
+}
+function calc(){
+  var __p=__mmParse();
+  if(__p.error){document.getElementById('result').innerHTML='<p style="color:var(--text-muted);">'+__p.error+'</p>';var __t=document.getElementById('mmTable');if(__t)__t.innerHTML='';return;}
+  var arr=__p.vals, n=arr.length;
+  var sum=arr.reduce(function(a,b){return a+b;},0), mean=sum/n;
+  var sorted=arr.slice().sort(function(a,b){return a-b;});
+  var median=n%2? sorted[(n-1)/2] : (sorted[n/2-1]+sorted[n/2])/2;
+  var range=sorted[n-1]-sorted[0];
+  var mode=__mmMode(arr);
+  var html='';
+  html+='<p>样本数 n：<strong style="font-size:18px;color:var(--primary);">'+n+'</strong></p>';
+  html+='<p>均值：<strong style="font-size:18px;color:var(--primary);">'+mean.toFixed(4)+'</strong></p>';
+  html+='<p>中位数：<strong style="font-size:18px;color:var(--primary);">'+median.toFixed(4)+'</strong></p>';
+  html+='<p>众数：<strong style="font-size:18px;color:var(--primary);">'+mode.text+'</strong></p>';
+  html+='<p>极差：<strong style="font-size:18px;color:var(--primary);">'+range.toFixed(4)+'</strong></p>';
+  html+='<p>总和：<strong style="font-size:18px;color:var(--primary);">'+sum.toFixed(4)+'</strong></p>';
+  document.getElementById('result').innerHTML=html;
 }
 function copyResult() {
   const txt = document.getElementById('result').innerText;
@@ -243,7 +259,7 @@ function copyResult() {
 }
 calc();
 
-function __mmN(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __mmN(id){var e=document.getElementById(id);if(!e)return NaN;var raw=String(e.value==null?'':e.value).trim();if(raw==='')return NaN;if(!/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/.test(raw))return NaN;var v=Number(raw);return isFinite(v)?v:NaN;}
 function __mmList(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
 function __mmL(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
 
@@ -252,15 +268,16 @@ function __mmExport(){ if(typeof TBKit==='undefined')return; try{TBKit.util.expo
 function __mmExtras(){
     if(typeof TBKit==='undefined')return;
     try{
-        var arr=[1,2,3,4,5,6,7].map(function(i){return __mmN('n'+i);});
-        if(arr.some(function(x){return !isFinite(x);}))return;
-        var n=7, mean=arr.reduce(function(a,b){return a+b;},0)/n;
+        var __p=__mmParse(); if(__p.error)return;
+        var arr=__p.vals, n=arr.length, mean=arr.reduce(function(a,b){return a+b;},0)/n;
         var s=arr.slice().sort(function(a,b){return a-b;});
-        var med=s[3], rg=s[6]-s[0], sum=arr.reduce(function(a,b){return a+b;},0);
-        TBKit.chart.bar('#mmChart',{labels:['1','2','3','4','5','6','7'],series:[{name:__mmL('value','数值'),data:arr.slice()}],height:230,title:__mmL('Seven values','七个数值')});
+        var med=n%2?s[(n-1)/2]:(s[n/2-1]+s[n/2])/2, rg=s[n-1]-s[0], sum=arr.reduce(function(a,b){return a+b;},0);
+        var mode=__mmMode(arr);
+        var labels=arr.map(function(_,i){return String(i+1);});
+        TBKit.chart.bar('#mmChart',{labels:labels,series:[{name:__mmL('value','数值'),data:arr.slice()}],height:230,title:__mmL('Data values','数据数值')});
         var rows=__mmL(
-            [['Mean',mean.toFixed(4)],['Median',med.toFixed(4)],['Range',rg.toFixed(4)],['Sum',sum.toFixed(4)]],
-            [['均值',mean.toFixed(4)],['中位数',med.toFixed(4)],['极差',rg.toFixed(4)],['总和',sum.toFixed(4)]]);
+            [['n',String(n)],['Mean',mean.toFixed(4)],['Median',med.toFixed(4)],['Mode',mode.text],['Range',rg.toFixed(4)],['Sum',sum.toFixed(4)]],
+            [['样本数 n',String(n)],['均值',mean.toFixed(4)],['中位数',med.toFixed(4)],['众数',mode.text],['极差',rg.toFixed(4)],['总和',sum.toFixed(4)]]);
         TBKit.matrix.table('#mmTable',{head:__mmL(['Metric','Value'],['指标',((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Value":"数值")]),rows:rows});
         TBKit.history.record({mean:Number(mean.toFixed(4)),median:Number(med.toFixed(4)),range:Number(rg.toFixed(4)),n1:arr[0],n2:arr[1],n3:arr[2],n4:arr[3],n5:arr[4],n6:arr[5],n7:arr[6]});
         TBKit.util.diffBox('#mmDiff',['mean']);
@@ -308,19 +325,19 @@ else document.addEventListener("DOMContentLoaded", __mmBoot);
 </style>
 <section class="deep-dive" data-deep-dive="1">
 <div class="card">
-<h2>📚 深度解析：分位數/百分位</h2>
+<h2>📚 深度解析：均值、中位數與眾數的位置含義</h2>
 <h3>💡 常見使用場景</h3>
 <ul class="dd-list">
-<li>計算任意分位數（四分位、十分位等）。</li>
-<li><a class="term-link" href="/zh-tw/guides/data-distribution-guide.html">資料分佈</a>分段與基準線。</li>
-<li>插值法處理非整數位置。</li>
+<li>輸入最多 7 個數據，輸出樣本數、均值、<a class="term-link" href="/zh-tw/tools/science/median-calculator.html">中位數</a>、眾數、極差與總和。</li>
+<li>均值用全部數值求和後除以 n；中位數先排序再取中間位置；眾數取出現次數最多的值。</li>
+<li>三者不要求相等；分佈偏斜或含離群值時，均值與中位數會明顯分開。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title"><a class="term-link" href="/zh-tw/tools/science/median-calculator.html">中位數</a>與四分位</div><div class="dd-ex-body">排序 [1,2,3,4,5,6,7,8]：Q1(25%)=2.25、中位(50%)=4.5、Q3(75%)=6.75（線性插值）。</div></div>
-<div class="dd-example"><div class="dd-ex-title">P90</div><div class="dd-ex-body">同上 P90 位於第 7.2 位≈7.2，即 90% 資料低於約 7.2。</div></div>
+<div class="dd-example"><div class="dd-ex-title">預設資料</div><div class="dd-ex-body">[12,15,18,21,21,24,30]：n=7、Σ=141、均值20.1429、中位數21、眾數21（出現2次）、極差18。</div></div>
+<div class="dd-example"><div class="dd-ex-title">把 30 換成 60</div><div class="dd-ex-body">均值升至24.4286，中位數仍21，極差48；均值被離群值拉高，中位數更穩健。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
-<dt>分位數插值法？</dt><dd>位置非整數時常用線性插值（如 NumPy 預設），不同軟體（Excel/TI 等）方法略有差異。</dd>
-<dt>分位數為何不唯一？</dt><dd>存在多種定義（type 1–9），結果可能差 0.1–0.5，報告時註明方法。</dd>
+<dt>均值和中位數什麼時候不同？</dt><dd>資料右偏或有大值時均值&gt;中位數（如收入）；左偏時均值&lt;中位數。</dd>
+<dt>眾數不唯一怎麼辦？</dt><dd>多個值並列最高時頁面會全部列出；每個值只出現一次時顯示“無眾數”，這不代表資料錯誤。</dd>
 </dl>
 </div>
 </section>

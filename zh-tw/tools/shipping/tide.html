@@ -71,7 +71,7 @@
 
 <script src="../../../js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"時間差和潮高比怎麼來？","acceptedAnswer":{"@type":"Answer","text":"來自潮汐表或港章給定的副港與主港調和常數，固定使用；誤差較大時應以當地實測為準。"}},{"@type":"Question","name":"潮高比是常數嗎？","acceptedAnswer":{"@type":"Answer","text":"同一港口通常按高/低潮分別給定固定比值與時刻差；極端天文潮或氣象潮（風暴增水）時推算會偏離，需結合預報修正。"}}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"時間差和潮高比怎麼來？","acceptedAnswer":{"@type":"Answer","text":"來自潮汐表或港章給定的副港與主港調和常數，固定使用；誤差較大時應以當地實測為準。"}},{"@type":"Question","name":"潮高比是常數嗎？","acceptedAnswer":{"@type":"Answer","text":"同一港口通常按高/低潮分別給定固定比值與時刻差；極端天文潮或氣象潮（風暴增水）時推算會偏離，需結合預報修正。"}},{"@type":"Question","name":"負時間差或跨日會怎樣？","acceptedAnswer":{"@type":"Answer","text":"按帶符號的絕對分鐘換算，並顯示前一日/次日。應用差值後若副港時刻不嚴格遞增或高低潮型別不交替，頁面停止推算並提示，不會排序掩蓋錯誤。"}}]}</script>
 <meta property="og:site_name" content="ToolBox">
 <meta name="theme-color" content="#FF6B35">
 <!-- TOOLBOX-HREFLANG -->
@@ -225,8 +225,17 @@ function parseTime(s){
 }
 function fmtTime(min){
   min=Math.round(min);
-  var h=Math.floor(min/60),mm=min%60;
-  return (h<10?'0':'')+h+':'+(mm<10?'0':'')+mm;
+  var day=Math.floor(min/1440);
+  var rem=((min%1440)+1440)%1440;
+  var h=Math.floor(rem/60),mm=rem%60;
+  var prefix=day===0?'':(day===1?'次日 ':(day===-1?'前一日 ':(day>1?'次'+day+'日 ':'前'+(-day)+'日 ')));
+  return prefix+(h<10?'0':'')+h+':'+(mm<10?'0':'')+mm;
+}
+function signedMinute(id){
+  var raw=String(document.getElementById(id).value||'').trim();
+  if(raw==='')return null;
+  if(!/^[+-]?\d+$/.test(raw))return NaN;
+  return parseInt(raw,10);
 }
 function calc(){
   var refs=[];
@@ -260,14 +269,28 @@ function calc(){
     document.getElementById('res').innerHTML='<p style="color:var(--danger);">⚠ '+msg+' 请修正后再推算。</p>';
     return;
   }
-  var hTimeOff=parseFloat(document.getElementById('hTimeOff').value)||0;
-  var lTimeOff=parseFloat(document.getElementById('lTimeOff').value)||0;
+  var hTimeOff=signedMinute('hTimeOff');
+  var lTimeOff=signedMinute('lTimeOff');
+  var badOff=hTimeOff===null||lTimeOff===null||!isFinite(hTimeOff)||!isFinite(lTimeOff);
+  setInvalid(document.getElementById('hTimeOff'),hTimeOff===null||!isFinite(hTimeOff));
+  setInvalid(document.getElementById('lTimeOff'),lTimeOff===null||!isFinite(lTimeOff));
+  if(badOff){
+    document.getElementById('res').innerHTML='<p style="color:var(--danger);">⚠ 请填写高潮、低潮时间差（整数分钟，可为负或 0）；留空不会被当作 0。</p>';
+    return;
+  }
   // 副港潮汐
   var subs=refs.map(function(r){
     var off=r.type==='high'?hTimeOff:lTimeOff;
     var ratio=r.type==='high'?hRatio:lRatio;
     return {t:r.t+off,h:r.h*ratio,type:r.type};
   });
+  // 偏移后必须严格递增且高低潮交替；不排序掩盖输入错误
+  for(var q=1;q<4;q++){
+    if(subs[q].t<=subs[q-1].t||subs[q].type===subs[q-1].type){
+      document.getElementById('res').innerHTML='<p style="color:var(--danger);">⚠ 应用时间差后，副港潮汐顺序或高低潮类型不成立：第 '+(q+1)+' 次为 '+fmtTime(subs[q].t)+'（'+subs[q].type+'），不晚于前一次 '+fmtTime(subs[q-1].t)+'（'+subs[q-1].type+'）。请核对时间差，页面不会排序掩盖错误。</p>';
+      return;
+    }
+  }
   // 表格
   var html='<h3 style="margin-bottom:8px;">副港推算结果</h3>';
   html+='<table class="tide-table"><thead><tr><th>序号</th><th>参考站时刻</th><th>参考站潮高(m)</th><th>副港时刻</th><th>副港潮高(m)</th><th>类型</th></tr></thead><tbody>';
@@ -542,7 +565,7 @@ else document.addEventListener('DOMContentLoaded', __tideBoot);
 <h2>📚 深度解析：潮汐（高/低潮）副港推算</h2>
 <h3>💡 常見使用場景</h3>
 <ul class="dd-list">
-<li>航行或作業計劃編制時，已知主港（參考站）高低潮時刻與潮高，按副港時間差與潮高比推算副港潮汐。</li>
+<li>航行或作業計劃編制時，已知主港（參考站）高低潮時刻與潮高，按副港時間差與潮高比推算副港潮汐；時間差可為負或 0，跨日標註前一日/次日。</li>
 <li>潮差評估時，按副港高、低潮抽取最大潮差，判斷靠離泊與淺段通過視窗。</li>
 <li>潮位曲線繪製時，用餘弦插值還原副港潮位過程，輔助錨地或航道水深研判。</li>
 </ul>
@@ -551,6 +574,7 @@ else document.addEventListener('DOMContentLoaded', __tideBoot);
 <dl class="dd-faq">
 <dt>時間差和潮高比怎麼來？</dt><dd>來自潮汐表或港章給定的副港與主港調和常數，固定使用；誤差較大時應以當地實測為準。</dd>
 <dt>潮高比是常數嗎？</dt><dd>同一港口通常按高/低潮分別給定固定比值與時刻差；極端天文潮或氣象潮（風暴增水）時推算會偏離，需結合預報修正。</dd>
+<dt>負時間差或跨日會怎樣？</dt><dd>按帶符號的絕對分鐘換算，並顯示前一日/次日。應用差值後若副港時刻不嚴格遞增或高低潮型別不交替，頁面停止推算並提示，不會排序掩蓋錯誤。</dd>
 </dl>
 </div>
 </section>
@@ -567,8 +591,8 @@ else document.addEventListener('DOMContentLoaded', __tideBoot);
       <span class="rt-info"><span class="rt-name">船舶航速/航程/航行時間換算</span><span class="rt-desc">選擇求解目標後，輸入航速、航程、時間中的任意兩項，按 航程=航速×時間 求第三項；</span></span>
     </a>
     <a href="/zh-tw/tools/shipping/calc-76.html" class="related-tool-card">
-      <span class="rt-icon">🚢</span>
-      <span class="rt-info"><span class="rt-name">船舶排水/載重噸計算</span><span class="rt-desc">輸入船舶垂線間長、型寬、首/中/尾吃水、方形係數與水密度計算排水量、TPC、MTC、縱傾與載重噸；</span></span>
+      <span class="rt-icon">⚖️</span>
+      <span class="rt-info"><span class="rt-name">船舶排水與當前載荷估算</span><span class="rt-desc">輸入船舶垂線間長、型寬、首/中/尾吃水、方形係數與水密度計算排水量、TPC、MTC、縱傾與載重噸；</span></span>
     </a>
     <a href="/zh-tw/tools/shipping/estimate-length.html" class="related-tool-card">
       <span class="rt-icon">📏</span>

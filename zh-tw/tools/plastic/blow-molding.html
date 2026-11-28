@@ -30,7 +30,7 @@
     <meta name="twitter:title" content="吹塑工藝引數計算 - 製品直徑與吹脹壓力等引數">
     <meta name="twitter:description" content="輸入型坯直徑、製品直徑與吹脹壓力等引數，工具計算吹脹比、壁厚分佈與所需吹脹壓力，校核型坯直徑需大於製品尺寸等約束，輔助中空吹塑製品的工藝設計與模具除錯">
 <!-- TOOLBOX-WEBAPP-LD -->
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"吹脹比為什麼 2~4 適宜？","acceptedAnswer":{"@type":"Answer","text":"BUR 過大（>5）型坯被拉得太薄、壁厚不均與穿孔風險驟增；過小（<2）則型坯過厚、用料浪費且難以吹貼模壁。2~4 兼顧壁厚均勻與材料經濟。"}},{"@type":"Question","name":"吹脹壓力怎麼估算？","acceptedAnswer":{"@type":"Answer","text":"按環嚮應力平衡：吹脹壓力 P 須使 2×σ_t×t/D ≤ 材料屈服，故最小 P = 2×σ_t×t/D；再乘 1.5 安全係數得推薦壓力，並換算 bar（×10）或 psi（×145）便於選裝置。"}}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"吹脹比為什麼常取 2~4？","acceptedAnswer":{"@type":"Answer","text":"BUR 過大（>5）型坯被拉得太薄、壁厚不均與穿孔風險上升；過小（<2）則型坯過厚、用料浪費且不易吹貼模壁。該區間是經驗參考，仍須結合材料、型坯溫度與模具間隙試模確認。"}},{"@type":"Question","name":"壓力頁的 P=2σt/D 能當推薦壓力嗎？","acceptedAnswer":{"@type":"Answer","text":"不能。該式只是常溫薄壁圓筒環嚮應力與內壓的靜態關係，未考慮熱態熔體、應變速率、型坯形狀、貼模間隙與管路壓損；頁面已撤回“最低/推薦壓力”和空壓機選型結論。"}}]}</script>
 
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首頁","item":"https://tools.dicomp.net/zh-tw/"},{"@type":"ListItem","position":2,"name":"塑膠橡膠","item":"https://tools.dicomp.net/zh-tw/tools/plastic/index.html"},{"@type":"ListItem","position":3,"name":"吹塑工藝引數計算","item":"https://tools.dicomp.net/zh-tw/tools/plastic/blow-molding.html"}]}</script>
 <!-- TOOLBOX-WEBAPP-LD -->
@@ -106,8 +106,8 @@
     <h2 data-zh="🧮 吹塑工藝引數計算">Blow Molding Parameter Calculator</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="計算吹脹比、吹脹壓力、壁厚等吹塑成型關鍵引數">Blow Molding</p>
     <div class="formula-box">
-      <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">吹脹比 BUR = 製品直徑 ÷ 型坯直徑；面積吹脹比 = BUR²。評估：BUR 在 2–4 之間判適宜、4–5 判偏大、&gt; 5 判過大並提示壁薄不均風險、&lt; 2 判偏小；型坯直徑 ≤ 0 時提示需大於 0</div>
-      <div class="formula-desc tb-bi"><span class="t-zh">輸入型坯直徑、製品直徑與吹脹壓力等引數，工具計算吹脹比、壁厚分佈與所需吹脹壓力，校核型坯直徑需大於製品尺寸等約束，輔助中空吹塑製品的工藝設計與模具除錯</span><span class="t-en">Set blow-molding parison, pressure, and cooling parameters from bottle size and material</span></div>
+      <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">吹脹比 BUR = 製品直徑 ÷ 型坯直徑；圓截面面積比 = BUR²（不是通用表面積伸長）；含軸向拉伸的面積拉伸比 = BUR² × 軸向拉伸比。壁厚≈型坯壁厚 ÷ (BUR × 軸向拉伸比)，僅表示均勻雙向變形。評估：BUR 2–4 判適宜、4–5 偏大、&gt;5 過大並提示壁薄不均、&lt;2 偏小；直徑 ≤0 或軸向拉伸比 ≤0 時拒絕計算。</div>
+      <div class="formula-desc tb-bi"><span class="t-zh">輸入型坯/製品直徑與軸向拉伸比，計算周向吹脹比、圓截面面積比與均勻變形壁厚示意；壓力頁僅按薄壁環嚮應力換算參考壓強，不作為成型最低/推薦壓力或裝置選型依據</span><span class="t-en">Set blow-molding parison, pressure, and cooling parameters from bottle size and material</span></div>
     </div>
 
     <div class="tabs">
@@ -125,6 +125,10 @@
         <div>
           <label for="parisonDia">型坯直徑（mm）</label>
           <input type="number" id="parisonDia" value="25" oninput="calcRatio()" min="0" placeholder="如 25">
+        </div>
+        <div>
+          <label for="axialStretch">軸向拉伸比（1=僅周向）</label>
+          <input type="number" id="axialStretch" value="1" oninput="calcRatio();calcWall()" min="0.5" step="0.1" placeholder="注拉吹如 1.5–2.5">
         </div>
       </div>
       <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__blow_moldingExport()">匯出明細 CSV</button></div><div class="result-box" id="ratioResult"></div> <div id="blow_moldingTable"></div> <div id="blow_moldingDiff"></div> <div id="blow_moldingChart"></div> <div id="blow_moldingHist"></div>
@@ -196,15 +200,15 @@
 <h2>📚 深度解析：吹塑成型計算</h2>
 <h3>💡 常見使用場景</h3>
 <ul class="dd-list">
-<li>瓶坯/容器吹塑工藝設計時，用吹脹比 BUR=製品直徑÷型坯直徑 評估壁厚均勻性（2~4 為適宜區間）。</li>
-<li>壁厚設計時，用製品壁厚=型坯壁厚÷BUR 推算實際壁厚與減薄率，避免吹薄穿孔或區域性過厚。</li>
-<li>裝置選型時，用薄膜環嚮應力公式 最小吹脹壓力=2×材料屈服強度×壁厚÷直徑 反推空壓機壓力需求。</li>
+<li>瓶坯/容器吹塑工藝設計時，用吹脹比 BUR=製品直徑÷型坯直徑 評估周向變形程度；BUR² 只是圓截面面積比，不是通用表面積伸長。</li>
+<li>壁厚設計時，按型坯壁厚÷(BUR×軸向拉伸比) 估算均勻變形壁厚；僅周向吹脹時軸向拉伸比填 1，注拉吹等有軸向拉伸的工況必須填入實測或工藝設定值。</li>
+<li>理解應力關係時，壓力頁只給出 P=2σt/D 的常溫<a class="term-link" href="/zh-tw/tools/structural/hoop-stress.html">薄壁圓筒環嚮應力</a>反算值，明確不是成型最低壓力、推薦壓力，也不能用於空壓機選型。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">瓶體吹脹工藝核算示例</div><div class="dd-ex-body">某瓶製品直徑 100 mm、型坯直徑 30 mm → 吹脹比 BUR = 100÷30 ≈ 3.33（適宜區 2~4）；型坯壁厚 4 mm ÷3.33 ≈ 製品壁厚 1.20 mm、壁厚減薄率 70.0%。若材料屈服強度 30 MPa、製品壁厚 1.2 mm、瓶徑 80 mm，理論最小吹脹壓力 = 2×30×1.2÷80 = 0.90 MPa，推薦取 1.5 倍安全係數 ≈ 1.35 MPa（約 13.5 bar）。</div></div>
+<div class="dd-example"><div class="dd-ex-title">瓶體吹脹工藝核算示例</div><div class="dd-ex-body">某瓶製品直徑 100 mm、型坯直徑 30 mm → BUR=100÷30≈3.33；僅周向模型下型坯壁厚 4 mm÷3.33≈1.20 mm、減薄率 70.0%。若軸向拉伸比 1.5，則壁厚約 4÷(3.33×1.5)=0.80 mm，面積拉伸比 3.33²×1.5≈16.65。壓力頁按屈服 30 MPa、壁厚 1.2 mm、直徑 80 mm 得 2×30×1.2÷80=0.90 MPa，僅是靜態環嚮應力換算，實際成型壓力須由工藝試驗確定。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
-<dt>吹脹比為什麼 2~4 適宜？</dt><dd>BUR 過大（&gt;5）型坯被拉得太薄、壁厚不均與穿孔風險驟增；過小（&lt;2）則型坯過厚、用料浪費且難以吹貼模壁。2~4 兼顧壁厚均勻與材料經濟。</dd>
-<dt>吹脹壓力怎麼估算？</dt><dd>按環嚮應力平衡：吹脹壓力 P 須使 2×σ_t×t/D ≤ 材料屈服，故最小 P = 2×σ_t×t/D；再乘 1.5 安全係數得推薦壓力，並換算 bar（×10）或 psi（×145）便於選裝置。</dd>
+<dt>吹脹比為什麼常取 2~4？</dt><dd>BUR 過大（&gt;5）型坯被拉得太薄、壁厚不均與穿孔風險上升；過小（&lt;2）則型坯過厚、用料浪費且不易吹貼模壁。該區間是經驗參考，仍須結合材料、型坯溫度與模具間隙試模確認。</dd>
+<dt>壓力頁的 P=2σt/D 能當推薦壓力嗎？</dt><dd>不能。該式只是常溫薄壁圓筒環嚮應力與內壓的靜態關係，未考慮熱態熔體、應變速率、型坯形狀、貼模間隙與管路壓損；頁面已撤回“最低/推薦壓力”和空壓機選型結論。</dd>
 </dl>
 </div>
 </section>
@@ -254,24 +258,32 @@ function switchTab(name, btn) {
   document.getElementById('tab-' + name).classList.add('active');
 }
 
+var __blowValid={ratio:false,wall:false,pressure:false};
 function calcRatio() {
   var partD = parseFloat(document.getElementById('partDia').value) || 0;
   var parD = parseFloat(document.getElementById('parisonDia').value) || 0;
   if (partD <= 0 || parD <= 0) {
+    __blowValid.ratio=false;
     ToolBox.setResult('ratioResult', '<p style="color:var(--danger);">制品直径与型坯直径均需大于 0</p>');
     return;
   }
+  var axial = parseFloat(document.getElementById('axialStretch').value);
+  if (!isFinite(axial) || axial <= 0) { __blowValid.ratio=false; ToolBox.setResult('ratioResult','<p style="color:var(--danger);">轴向拉伸比需大于 0（仅周向拉伸填 1）</p>'); return; }
   var bur = partD / parD;
   var areaRatio = bur * bur;
+  var biaxialArea = areaRatio * axial;
   var grade = '';
   var gradeClass = '';
   if (bur >= 2 && bur <= 4) { grade = '吹胀比适宜'; gradeClass = 'grade-excellent'; }
   else if (bur > 4 && bur <= 5) { grade = '吹胀比偏大'; gradeClass = 'grade-pass'; }
   else if (bur > 5) { grade = '吹胀比过大，壁薄不均风险'; gradeClass = 'grade-fail'; }
   else { grade = '吹胀比偏小'; gradeClass = 'grade-good'; }
-  var html = '<p>吹胀比（BUR）：<strong>' + bur.toFixed(2) + '</strong></p>';
-  html += '<p>面积吹胀比：<strong>' + areaRatio.toFixed(2) + '</strong></p>';
+  __blowValid.ratio=true;
+  var html = '<p>周向吹胀比（BUR=D制品/D型坯）：<strong>' + bur.toFixed(2) + '</strong></p>';
+  html += '<p>圆截面面积比（BUR²）：<strong>' + areaRatio.toFixed(2) + '</strong></p>';
+  html += '<p>含轴向拉伸的面积拉伸比（BUR²×轴向拉伸比）：<strong>' + biaxialArea.toFixed(2) + '</strong></p>';
   html += '<p>评估：<span class="grade-tag ' + gradeClass + '">' + grade + '</span></p>';
+  html += '<p style="font-size:12px;color:var(--text-muted);">口径：BUR² 仅为圆截面面积比，不是通用表面积伸长；轴向拉伸比=1 表示仅周向吹胀。真实壁厚还受温度、应变速率、型坯轴向厚度分布与贴模历史影响。</p>';
   const __g1=html;ToolBox.setResult('ratioResult',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
 }
 
@@ -279,14 +291,19 @@ function calcWall() {
   var pw = parseFloat(document.getElementById('parisonWall').value) || 0;
   var bur = parseFloat(document.getElementById('bur').value) || 0;
   if (pw <= 0 || bur <= 0) {
+    __blowValid.wall=false;
     ToolBox.setResult('wallResult', '<p style="color:var(--danger);">型坯壁厚与吹胀比均需大于 0</p>');
     return;
   }
-  var wallThk = pw / bur;
+  var axialW = parseFloat(document.getElementById('axialStretch').value);
+  if (!isFinite(axialW) || axialW <= 0) { __blowValid.wall=false; ToolBox.setResult('wallResult','<p style="color:var(--danger);">轴向拉伸比需大于 0（仅周向拉伸填 1）</p>'); return; }
+  var wallThk = pw / (bur * axialW);
   var reduction = (1 - wallThk / pw) * 100;
-  var html = '<p>制品壁厚：<strong>' + wallThk.toFixed(2) + ' mm</strong></p>';
+  __blowValid.wall=true;
+  var html = '<p>制品壁厚（均匀变形示意）：<strong>' + wallThk.toFixed(2) + ' mm</strong></p>';
   html += '<p>壁厚减薄率：<strong>' + reduction.toFixed(1) + '%</strong></p>';
   html += '<p>型坯壁厚：<strong>' + pw.toFixed(1) + ' mm</strong></p>';
+  html += '<p style="font-size:12px;color:var(--text-muted);">模型：壁厚≈型坯壁厚÷(周向吹胀比×轴向拉伸比)，假设体积守恒、均匀双向拉伸、无局部减薄；注拉吹等有轴向拉伸的工况必须输入轴向拉伸比，否则结果会偏厚。</p>';
   const __g2=html;ToolBox.setResult('wallResult',(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));
 }
 
@@ -295,15 +312,15 @@ function calcPressure() {
   var wt = parseFloat(document.getElementById('wallThk').value) || 0;
   var bd = parseFloat(document.getElementById('bottleDia').value) || 0;
   if (ys <= 0 || bd <= 0 || wt <= 0) {
+    __blowValid.pressure=false;
     ToolBox.setResult('pressureResult', '<p style="color:var(--danger);">屈服强度、壁厚和直径均需大于 0</p>');
     return;
   }
-  var minPressure = (2 * ys * wt) / bd;
-  var recPressure = minPressure * 1.5;
-  var html = '<p>理论最小吹胀压力：<strong>' + minPressure.toFixed(3) + ' MPa</strong></p>';
-  html += '<p>推荐吹胀压力：<strong>' + recPressure.toFixed(3) + ' MPa</strong></p>';
-  html += '<p>推荐吹胀压力：<strong>' + (recPressure * 10).toFixed(1) + ' bar</strong></p>';
-  html += '<p>推荐吹胀压力：<strong>' + (recPressure * 145.038).toFixed(1) + ' psi</strong></p>';
+  var hoopPressure = (2 * ys * wt) / bd;
+  __blowValid.pressure=true;
+  var html = '<p>薄壁圆筒环向应力反算压强 P=2σt/D：<strong>' + hoopPressure.toFixed(3) + ' MPa</strong></p>';
+  html += '<p>换算：<strong>' + (hoopPressure * 10).toFixed(1) + ' bar</strong> / <strong>' + (hoopPressure * 145.038).toFixed(1) + ' psi</strong></p>';
+  html += '<p style="color:var(--danger);font-size:12px;">⚠️ 这不是热态型坯吹胀与贴模所需的“最低压力”或“推荐压力”，也不用于空压机选型。模型未考虑熔体温度、应变速率、冷却、型坯形状、模具间隙与压力损失；实际成型压力须由工艺试验或设备手册确认。</p>';
   const __g3=html;ToolBox.setResult('pressureResult',(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—')));
 }
 
@@ -311,7 +328,7 @@ function copyResult() {
   var activeTab = document.querySelector('.tab-content.active').id;
   var box = activeTab === 'tab-ratio' ? 'ratioResult' : (activeTab === 'tab-wall' ? 'wallResult' : 'pressureResult');
   var el = document.getElementById(box);
-  if (el && el.textContent.indexOf('需大于') !== -1) { ToolBox.showToast('请先修正输入', 'error'); return; }
+  if ((activeTab === 'tab-ratio' && !__blowValid.ratio) || (activeTab === 'tab-wall' && !__blowValid.wall) || (activeTab === 'tab-pressure' && !__blowValid.pressure)) { ToolBox.showToast('请先修正输入', 'error'); return; }
   var text;
   if (activeTab === 'tab-ratio') {
     var partD = parseFloat(document.getElementById('partDia').value) || 0;
@@ -327,8 +344,8 @@ function copyResult() {
     var ys = parseFloat(document.getElementById('yieldStr').value) || 0;
     var wt = parseFloat(document.getElementById('wallThk').value) || 0;
     var bd = parseFloat(document.getElementById('bottleDia').value) || 0;
-    var recP = bd > 0 ? ((2 * ys * wt) / bd * 1.5).toFixed(3) : '0';
-    text = '推荐吹胀压力: ' + recP + ' MPa';
+    var recP = bd > 0 ? ((2 * ys * wt) / bd).toFixed(3) : '0';
+    text = '环向应力反算压强(非推荐值): ' + recP + ' MPa';
   }
   ToolBox.copyText(text, i18nText('msg191'));
 }
@@ -540,7 +557,7 @@ function __blow_moldingExport(){
 }
 function __blow_moldingPresets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#blow_moldingPresets',[{label:'默认参数',labelEn:'Default',values:{'partDia':'80', 'parisonDia':'25', 'parisonWall':'4', 'bur':'3.2', 'yieldStr':'25', 'wallThk':'1.2', 'bottleDia':'80'}},{"label":"小规模","labelEn":"Small scale","values":{"partDia":"40"}},{"label":"大规模","labelEn":"Large scale","values":{"partDia":"120"}},{"label":"极端工况","labelEn":"Extreme case","values":{"partDia":"160"}}],function(){ calcRatio(); });
+    TBKit.preset.bar('#blow_moldingPresets',[{label:'默认参数',labelEn:'Default',values:{'partDia':'80', 'parisonDia':'25', 'parisonWall':'4', 'bur':'3.2', 'yieldStr':'25', 'wallThk':'1.2', 'bottleDia':'80', 'axialStretch':'1'}},{"label":"小规模","labelEn":"Small scale","values":{"partDia":"40"}},{"label":"大规模","labelEn":"Large scale","values":{"partDia":"120"}},{"label":"极端工况","labelEn":"Extreme case","values":{"partDia":"160"}}],function(){ calcRatio(); });
 }
 var __blow_molding_f0=(typeof calcRatio==='function')?calcRatio:null;
 if(__blow_molding_f0){

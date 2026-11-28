@@ -230,10 +230,18 @@
 </div>
 
 <script>
+var __shoe_size_valid=false;
+function __shoe_sizeInvalidate(){
+  __shoe_size_valid=false;
+  var t=document.getElementById('shoe_sizeTable');if(t)t.innerHTML='';
+  var d=document.getElementById('shoe_sizeDiff');if(d)d.innerHTML='';
+  var c=document.getElementById('shoe_sizeChart');if(c)c.innerHTML='';
+}
 function calc(){
   var len = parseFloat(document.getElementById('footLen').value);
   var gender = document.getElementById('gender').value;
   if(isNaN(len) || len < 200 || len > 320){
+    __shoe_sizeInvalidate();
     document.getElementById('result').innerHTML='<p style="color:var(--danger);">请输入200-320mm之间的脚长</p>';
     return;
   }
@@ -258,10 +266,22 @@ function calc(){
   html += '<p>'+(en?'Estimated UK: ':'英码 UK 估算：')+'<strong>' + uk + '</strong></p>';
   html += '<div class="tip-box tip-info" style="margin-top:8px;">'+(en?'These formula estimates are not brand sizes or purchase recommendations. Check the specific brand and shoe model size chart.':'以上仅为经验估算，不是品牌尺码或购买建议；请查具体品牌及鞋款的尺码表。')+'</div>';
   const __g2=html;document.getElementById('result').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
+  __shoe_size_valid=true;
 }
 
+function __shoe_sizeInvalidMsg(){
+  var en=(document.documentElement.lang||'').toLowerCase().indexOf('en')===0;
+  return en?'Please enter a valid foot length between 200 and 320 mm.':'请先输入 200–320 mm 的有效脚长';
+}
 function copyResult(){
+  if(!__shoe_size_valid){
+    var msg=__shoe_sizeInvalidMsg();
+    if(window.ToolBox&&typeof ToolBox.showToast==='function')ToolBox.showToast(msg,'error');
+    else alert(msg);
+    return;
+  }
   var txt = document.getElementById('result').innerText.replace(/\s+/g, ' ').trim();
+  if(!txt||/请输入200-320mm/.test(txt))return;
   ToolBox.copyText(txt, i18nText('msg285'));
 }
 
@@ -289,11 +309,11 @@ document.addEventListener('DOMContentLoaded',function(){
     </a>
     <a href="/zh-tw/tools/it/properties-parser.html" class="related-tool-card">
       <span class="rt-icon">📄</span>
-      <span class="rt-info"><span class="rt-name">.properties 解析器</span><span class="rt-desc">Java .properties 檔案解析：支援 key=value、key:value、行內註釋…</span></span>
+      <span class="rt-info"><span class="rt-name">.properties 解析器</span><span class="rt-desc">Java .properties 檔案解析：支援 key=value、key:value、整行註釋（…</span></span>
     </a>
     <a href="/zh-tw/tools/it/api-sign-generator.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">API 簽名生成器</span><span class="rt-desc">生成帶時間戳與隨機數的介面簽名</span></span>
+      <span class="rt-info"><span class="rt-name">API 簽名生成器</span><span class="rt-desc">可選加入時間戳與隨機數的介面簽名</span></span>
     </a>
     <a href="/zh-tw/tools/it/ascii-tree-generator.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
@@ -338,7 +358,7 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 
-var __shoe_size_last=0,__shoe_size_skip=false;
+var __shoe_size_skip=false;
 function __shoe_sizeSnap(){
     var out={};
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
@@ -356,7 +376,7 @@ function __shoe_sizeResText(){
     if(!r) return '';
     var t=(r.textContent||'').replace(/\s+/g,' ').trim();
     if(!t||t==='--'||t==='—'||t==='-') return '';
-    if(/^(等待输入|请输入文本|Waiting for input|Please enter text)/.test(t)) return '';
+    if(/^(等待输入|请输入文本|请输入200|Waiting for input|Please enter text)/.test(t)) return '';
     return t.slice(0,80);
 }
 function __shoe_sizeScore(t){
@@ -411,6 +431,7 @@ function __shoe_sizeRender(keys,rk,en){
 function __shoe_sizeExtras(){
     if (typeof TBKit === 'undefined') return;
     if (__shoe_size_skip) return;
+    if (!__shoe_size_valid) return;
     var snap=__shoe_sizeSnap();
     var keys=Object.keys(snap);
     if(!keys.length) return;
@@ -419,8 +440,6 @@ function __shoe_sizeExtras(){
     if(!res) return;
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
-    var now=Date.now();
-    if(now-__shoe_size_last<1000) return;
     var last=null;
     try{ last=TBKit.history.last(); }catch(e){}
     if(last){
@@ -430,7 +449,6 @@ function __shoe_sizeExtras(){
         }
         if(same&&String(last[rk])===String(res)) return;
     }
-    __shoe_size_last=now;
     var rec={};
     for(var i=0;i<keys.length;i++) rec[keys[i]]=snap[keys[i]];
     rec[rk]=res;
@@ -439,6 +457,12 @@ function __shoe_sizeExtras(){
     __shoe_sizeRender(keys,rk,en);
 }
 function __shoe_sizeExport(){
+    if (!__shoe_size_valid){
+        var msg=__shoe_sizeInvalidMsg();
+        if(window.ToolBox&&typeof ToolBox.showToast==='function')ToolBox.showToast(msg,'error');
+        else alert(msg);
+        return;
+    }
     if (typeof TBKit === 'undefined') return;
     try{
         var box=document.querySelector('#shoe_sizeTable');

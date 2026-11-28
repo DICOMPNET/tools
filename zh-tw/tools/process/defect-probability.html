@@ -65,7 +65,7 @@
 
 <script src="../../../js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"為什麼是單側？","acceptedAnswer":{"@type":"Answer","text":"本工具按上規格（USL）計算超出上限的尾機率；若關心低於下限，應改用下規格公式 Φ((μ−LSL)/σ)。雙側同時超界且規格遠離均值時，兩端尾機率可近似相加，但更嚴謹應直接算規格區間外的總機率。"}},{"@type":"Question","name":"正態分佈假設不成立怎麼辦？","acceptedAnswer":{"@type":"Answer","text":"實際特性常非嚴格正態（偏態、厚尾）。此時用正態近似會低估尾機率（厚尾更危險），應做正態性檢驗（如 Anderson-Darling）或改用非引數方法 / Box-Cox 變換後再評估。"}}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"為什麼是單側？","acceptedAnswer":{"@type":"Answer","text":"本工具按上規格（USL）計算超出上限的尾機率；若關心低於下限，應改用下規格公式 Φ((μ−LSL)/σ)。雙側同時超界且規格遠離均值時，兩端尾機率可近似相加，但更嚴謹應直接算規格區間外的總機率。"}},{"@type":"Question","name":"為什麼極小機率不顯示為 0？","acceptedAnswer":{"@type":"Answer","text":"四捨五入到固定小數位會把 10⁻⁷ 級機率寫成 0.0000%，誤導為「不會發生」。工具改用 erfc 數值穩定的上尾演算法，並以科學計數或足夠有效數字顯示；只有超出雙精度可表示範圍時才標註「低於可表示範圍」，仍不代表零風險。"}},{"@type":"Question","name":"正態分佈假設不成立怎麼辦？","acceptedAnswer":{"@type":"Answer","text":"實際特性常非嚴格正態（偏態、厚尾）。此時用正態近似會低估尾機率（厚尾更危險），應做正態性檢驗（如 Anderson-Darling）或改用非引數方法 / Box-Cox 變換後再評估。"}}]}</script>
 <meta property="og:site_name" content="ToolBox">
 <meta name="theme-color" content="#FF6B35">
 <!-- TOOLBOX-HREFLANG -->
@@ -104,11 +104,11 @@
 <div class="container" role="main">
   <div class="card">
     <h2 data-zh="超規格機率計算器">Out-of-Spec Probability</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="正態假設下超出上規格限的機率。">Defect Probability</p>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="正態假設下超出上規格限的尾機率；極小機率用科學計數顯示，不會因四捨五入顯示為零。">Defect Probability</p>
     <div class="formula-box">
       <div class="formula-title">📐 計算公式</div>
       <div class="formula-eq">z = (USL − μ) / σ；p = 1 − Φ(z)；例 z=5 → p≈2.87e-7。對稱時總缺陷為兩側之和。</div>
-      <p class="formula-desc">正態假設下超出上規格限的機率。</p>
+      <p class="formula-desc">正態假設下超出上規格限的尾機率；極小機率用科學計數顯示，不會因四捨五入顯示為零。</p>
     </div>
 
     <div class="input-row">
@@ -267,6 +267,14 @@ function __tbInputGuardCore(_ids,_labels){
 
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
+function __dpErfc(x){var z=Math.abs(x);var t=1/(1+0.5*z);var r=t*Math.exp(-z*z-1.26551223+t*(1.00002368+t*(0.37409196+t*(0.09678418+t*(-0.18628806+t*(0.27886807+t*(-1.13520398+t*(1.48851587+t*(-0.82215223+t*0.17087277)))))))));return x>=0?r:2-r;}
+function __dpFormat(p){
+  if(!(p>0)) return {p:"低于双精度可表示范围（约 >38σ），非实际零", dpmo:"低于可表示范围"};
+  var pct=p*100;
+  var pTxt=(pct<1e-4?pct.toExponential(3):pct.toFixed(6))+"%";
+  var dTxt=(p*1e6<1?(p*1e6).toPrecision(3):(p*1e6).toFixed(1));
+  return {p:pTxt, dpmo:dTxt};
+}
 function calcTool(){
               var __ig=__tbInputGuard(['usl', 'mu', 'sigma'],["上规格限 USL", "过程均值 μ", "过程标准差 σ"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
 function erf(x){const s=x<0?-1:1;x=Math.abs(x);const t=1/(1+0.3275911*x);
@@ -275,10 +283,12 @@ function erf(x){const s=x<0?-1:1;x=Math.abs(x);const t=1/(1+0.3275911*x);
             const usl=num('usl'),m=num('mu'),s=num('sigma');
             if(!(s>0)){document.getElementById('result').innerHTML='<p style="color:var(--danger);">请检查输入：过程标准差 σ 必须大于 0</p>';return;}
             const z=(usl-m)/s;
-            const p=1-0.5*(1+erf(z/Math.SQRT2));
+            const p=0.5*__dpErfc(z/Math.SQRT2);
+            const f=__dpFormat(p);
             const __g2=dataGrid([
-                [(p*100).toFixed(4),'超上规格概率 (%)'],
-                [(p*1e6).toFixed(1),'对应 DPMO']
+                [f.p,'超上规格概率（上尾）'],
+                [f.dpmo,'对应 DPMO'],
+                [z.toFixed(3),'标准正态分位 z']
             ]);ToolBox.setResult('result',(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));
         }
 function resetForm(){document.getElementById('usl').value = '10.05';
@@ -296,15 +306,16 @@ function __defect_probabilityExtras(){
     return s*y;}
     var usl=num('usl'),m=num('mu'),s=num('sigma');
     var z=(usl-m)/s;
-    var p=1-0.5*(1+erf(z/Math.SQRT2));
     if (!isFinite(__defect_probabilityNum('usl')) || !isFinite(__defect_probabilityNum('mu')) || !isFinite(__defect_probabilityNum('sigma'))) return;
     if(__defect_probabilityNum('sigma')<=0){var __tbEl=document.getElementById('defect_probabilityTable');if(__tbEl)__tbEl.innerHTML='<p style="color:var(--danger);">输入无效，未生成明细</p>';return;}
+    var p=0.5*__dpErfc(z/Math.SQRT2); var f=__dpFormat(p);
     var en=TBKit.util.isEn();
     TBKit.matrix.table('#defect_probabilityTable',{
         head: en?['Item','Value']:['项目','数值'],
         rows: [
-            ['超上规格概率 (%)', (p*100).toFixed(4)],
-            ['对应 DPMO', (p*1e6).toFixed(1)],
+            ['超上规格概率（上尾）', f.p],
+            ['对应 DPMO', f.dpmo],
+            ['标准正态分位 z', z.toFixed(3)],
         ]
     });
     TBKit.history.record({usl:__defect_probabilityRaw('usl'), mu:__defect_probabilityRaw('mu'), sigma:__defect_probabilityRaw('sigma'), z:z});
@@ -357,15 +368,16 @@ else document.addEventListener('DOMContentLoaded', __defect_probabilityBoot);
 <h2>📚 深度解析：超規格機率計算器</h2>
 <h3>💡 常見使用場景</h3>
 <ul class="dd-list">
-<li>假設質量特性服從<a class="term-link" href="/zh-tw/tools/it/normal-distribution.html">正態分佈</a>時，估算單側（僅上規格或僅下規格）超界的機率與對應 <a class="term-link" href="/zh-tw/tools/process/dpmo-calc.html">DPMO</a>，把能力指數翻譯成直觀的『不良率』。</li>
-<li>客戶要求用『百萬缺陷機會數』溝通時，由機率換算成 DPMO 便於橫向對標。</li>
-<li>給定規格與過程引數，反推當前 σ 水平下的尾機率，判斷是否需要加嚴控制。</li>
+<li>假設質量特性服從<a class="term-link" href="/zh-tw/tools/it/normal-distribution.html">正態分佈</a>時，估算單側（上規格）超界的上尾機率與對應 <a class="term-link" href="/zh-tw/tools/process/dpmo-calc.html">DPMO</a>，把能力引數翻譯成直觀的尾機率。</li>
+<li>客戶要求用百萬機會數溝通時，由機率換算成 DPMO 便於橫向對標。</li>
+<li>給定規格與過程引數，反推當前 Z 下的尾機率；極小機率用科學計數顯示，避免舍入零被誤讀為實際零。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">公式</div><div class="dd-ex-body">單側（上規格）超界機率 P = 1 − Φ(z)，其中 z = (USL − μ)/σ，Φ 為標準正態分佈累積分佈函式；對應 DPMO = P × 10⁶。同樣方法可算下規格 P = Φ((μ − LSL)/σ)。本工具以上規格為例。</div></div>
-<div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">軸徑 USL=10.05、μ=10.0、σ=0.02：z = (10.05−10.0)/0.02 = 2.50；P = 1 − Φ(2.5) = 1 − 0.99379 = 0.6210%；對應 DPMO ≈ 6209.7。若把 σ 從 0.02 收到 0.01，則 z=5、P≈0.00003%、DPMO≈0.3，幾乎零缺陷——可見壓縮離散度對降低尾機率有指數級收益。</div></div>
+<div class="dd-example"><div class="dd-ex-title">公式</div><div class="dd-ex-body">單側（上規格）超界機率 P = 1 − Φ(z) = 0.5·erfc(z/√2)，其中 z=(USL−μ)/σ；DPMO=P×10⁶。同樣方法可算下規格 P=Φ((μ−LSL)/σ)。本工具以上規格為例。極小機率以科學計數顯示；若低於雙精度可表示範圍，標註為「低於可表示範圍」而非零風險。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">軸徑 USL=10.05、μ=10.0、σ=0.02：z=2.50；P≈0.6210%；DPMO≈6209.7。若 σ 收到 0.01，則 z=5、P≈2.87×10⁻⁷（0.0000287%）、DPMO≈0.287；工具以科學計數顯示，不會寫成 0.0000%。z=6 時 DPMO≈0.001，仍非實際零。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
 <dt>為什麼是單側？</dt><dd>本工具按上規格（USL）計算超出上限的尾機率；若關心低於下限，應改用下規格公式 Φ((μ−LSL)/σ)。雙側同時超界且規格遠離均值時，兩端尾機率可近似相加，但更嚴謹應直接算規格區間外的總機率。</dd>
+<dt>為什麼極小機率不顯示為 0？</dt><dd>四捨五入到固定小數位會把 10⁻⁷ 級機率寫成 0.0000%，誤導為「不會發生」。工具改用 erfc 數值穩定的上尾演算法，並以科學計數或足夠<a class="term-link" href="/zh-tw/tools/science/significant-figures.html">有效數字</a>顯示；只有超出雙精度可表示範圍時才標註「低於可表示範圍」，仍不代表零風險。</dd>
 <dt>正態分佈假設不成立怎麼辦？</dt><dd>實際特性常非嚴格正態（偏態、厚尾）。此時用正態近似會低估尾機率（厚尾更危險），應做正態性檢驗（如 Anderson-Darling）或改用非引數方法 / Box-Cox 變換後再評估。</dd>
 </dl>
 </div>

@@ -63,7 +63,7 @@
 
 <script src="../../../js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"海里和公里怎麼換？","acceptedAnswer":{"@type":"Answer","text":"1 海里=1852 米≈1.852 公里，航程從海里轉公里乘 1.852 即可。"}},{"@type":"Question","name":"平均航速怎麼取？","acceptedAnswer":{"@type":"Answer","text":"取計劃或實際對地平均速度，需計入流壓；分段限速航段應逐段按限速與時間累加，而非簡單用全程均值。"}}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"海里和公里怎麼換？","acceptedAnswer":{"@type":"Answer","text":"1 海里=1852 米≈1.852 公里，航程從海里轉公里乘 1.852 即可。"}},{"@type":"Question","name":"平均航速怎麼取？","acceptedAnswer":{"@type":"Answer","text":"取計劃或實際對地平均速度，需計入流壓；分段限速航段應逐段按限速與時間累加，而非簡單用全程均值。"}},{"@type":"Question","name":"航程為 0 時每海里耗時怎麼顯示？","acceptedAnswer":{"@type":"Answer","text":"平均航速為 0 節時，每海里耗時顯示“不適用”，不再輸出 Infinity；航程與時間仍照常顯示。"}}]}</script>
 <meta property="og:site_name" content="ToolBox">
 <meta name="theme-color" content="#FF6B35">
 <!-- TOOLBOX-HREFLANG -->
@@ -153,6 +153,7 @@
 <dl class="dd-faq">
 <dt>海里和公里怎麼換？</dt><dd>1 海里=1852 米≈1.852 公里，航程從海里轉公里乘 1.852 即可。</dd>
 <dt>平均航速怎麼取？</dt><dd>取計劃或實際對地<a class="term-link" href="/zh-tw/tools/kinematics/avg-velocity.html">平均速度</a>，需計入流壓；分段限速航段應逐段按限速與時間累加，而非簡單用全程均值。</dd>
+<dt>航程為 0 時每海里耗時怎麼顯示？</dt><dd>平均航速為 0 節時，每海里耗時顯示“不適用”，不再輸出 Infinity；航程與時間仍照常顯示。</dd>
 </dl>
 </div>
 </section>
@@ -207,10 +208,10 @@ function calc(){
   else{bad=!isFinite(d)||d<0||!isFinite(t)||t<=0;msg='航程须不小于 0，航行时间须大于 0；时间为 0 时无法求平均航速。';}
   if(bad){document.getElementById("res").innerHTML='<p style="color:var(--danger,#c0392b);font-weight:600;">'+(en?'Invalid range: '+msg:'输入范围无效：'+msg)+'</p>';return;}
   var out,detail;
-  if(mode==='distance'){var nm=v*t;out='航程 = '+nm.toFixed(2)+' 海里 (≈ '+(nm*1.852).toFixed(2)+' km)';detail='航速 '+(v*1.852).toFixed(2)+' km/h；昼夜连续航行 '+(v*24).toFixed(1)+' 海里/天';}
-  else if(mode==='time'){var hr=d/v;out='航行时间 = '+hr.toFixed(2)+' 小时 ('+hr.toFixed(3)+' h)';detail='航程 '+d.toFixed(2)+' 海里；平均航速 '+v.toFixed(2)+' 节 = '+(v*1.852).toFixed(2)+' km/h';}
-  else{var kn=d/t;out='平均航速 = '+kn.toFixed(2)+' 节 (≈ '+(kn*1.852).toFixed(2)+' km/h)';detail='航程 '+d.toFixed(2)+' 海里 / 时间 '+t.toFixed(2)+' h；每海里耗时 '+(60/kn).toFixed(2)+' 分钟';}
-  var _d="\n"+detail+"\n本页按匀速直线估算，未计加减速、风浪、流压与等候时间；对地航速须按风、流矢量校正。\n跨时区航行按船时累计，注意日界线日期变更。\n参考：集装箱船经济航速通常 12–18 节，超过 20 节油耗近似平方增长。";
+  if(mode==='distance'){var nm=v*t;out=(en?'Distance = ':'航程 = ')+nm.toFixed(2)+(en?' nm (≈ ':' 海里 (≈ ')+(nm*1.852).toFixed(2)+(en?' km)':' km)');detail=(en?'Speed ':'航速 ')+(v*1.852).toFixed(2)+' km/h'+(en?'; continuous 24 h run ':'；昼夜连续航行 ')+(v*24).toFixed(1)+(en?' nm/day':' 海里/天');}
+  else if(mode==='time'){var hr=d/v;out=(en?'Time = ':'航行时间 = ')+hr.toFixed(2)+(en?' hours (':' 小时 (')+hr.toFixed(3)+' h)';detail=(en?'Distance ':'航程 ')+d.toFixed(2)+(en?' nm; average speed ':' 海里；平均航速 ')+v.toFixed(2)+(en?' kn = ':' 节 = ')+(v*1.852).toFixed(2)+' km/h';}
+  else{var kn=d/t;out=(en?'Average speed = ':'平均航速 = ')+kn.toFixed(2)+(en?' kn (≈ ':' 节 (≈ ')+(kn*1.852).toFixed(2)+' km/h)';if(kn===0){detail=(en?'Distance ':'航程 ')+d.toFixed(2)+(en?' nm / time ':' 海里 / 时间 ')+t.toFixed(2)+(en?' h; time per nautical mile: not applicable (speed is 0).':' h；每海里耗时：不适用（航速为 0）。');}else{detail=(en?'Distance ':'航程 ')+d.toFixed(2)+(en?' nm / time ':' 海里 / 时间 ')+t.toFixed(2)+(en?' h; time per nautical mile ':' h；每海里耗时 ')+(60/kn).toFixed(2)+(en?' min':' 分钟');}}
+  var _d=en?"\n"+detail+"\nUniform straight-line estimate only; acceleration, wind, current and waiting time are excluded. Speed over ground must be corrected with wind and current vectors.\nTime across time zones is accumulated in ship time; watch the date line.\nReference: container ships usually cruise at 12–18 kn; fuel use grows roughly with the square of speed above 20 kn.":"\n"+detail+"\n本页按匀速直线估算，未计加减速、风浪、流压与等候时间；对地航速须按风、流矢量校正。\n跨时区航行按船时累计，注意日界线日期变更。\n参考：集装箱船经济航速通常 12–18 节，超过 20 节油耗近似平方增长。";
   document.getElementById("res").innerHTML='<p style="font-size:18px;color:var(--primary);white-space:pre-line;">'+(out+_d).replace(/&/g,'&amp;').replace(/</g,'&lt;')+'</p>';
 }calc();function copyRes(){ToolBox.copyText(document.getElementById("res").innerText);}
 </script>
@@ -234,8 +235,8 @@ function calc(){
       <span class="rt-info"><span class="rt-name">潮汐（高/低潮）推算</span><span class="rt-desc">輸入參考站 4 次潮汐（時間+潮高+高/低）與副港差比推算副港潮汐；</span></span>
     </a>
     <a href="/zh-tw/tools/shipping/calc-76.html" class="related-tool-card">
-      <span class="rt-icon">🚢</span>
-      <span class="rt-info"><span class="rt-name">船舶排水/載重噸計算</span><span class="rt-desc">輸入船舶垂線間長、型寬、首/中/尾吃水、方形係數與水密度計算排水量、TPC、MTC、縱傾與載重噸；</span></span>
+      <span class="rt-icon">⚖️</span>
+      <span class="rt-info"><span class="rt-name">船舶排水與當前載荷估算</span><span class="rt-desc">輸入船舶垂線間長、型寬、首/中/尾吃水、方形係數與水密度計算排水量、TPC、MTC、縱傾與載重噸；</span></span>
     </a>
     <a href="/zh-tw/tools/shipping/estimate-length.html" class="related-tool-card">
       <span class="rt-icon">📏</span>

@@ -115,6 +115,7 @@
     <li><b>需要轉義</b>：<code>.</code> <code>*</code> <code>+</code> <code>?</code> <code>^</code> <code>$</code> <code>{</code> <code>}</code> <code>(</code> <code>)</code> <code>|</code> <code>[</code> <code>]</code> <code>\</code> 等。</li>
     <li><b>用途</b>：把使用者輸入安全地拼進正則，避免語法錯誤與正則注入（ReDoS）。</li>
     <li><b>等價函式</b>：各語言內建工具，如 Python 的 <code>re.escape</code>。</li>
+    <li><b>ECMAScript 安全字面量</b>：U+2028/U+2029 與孤立代理項一律輸出為 <code>\uXXXX</code>；勾選「拼接安全」時首位字母/數字改寫為 <code>\xNN</code>，避免拼接到 <code>\</code> 字首後變成反向引用或轉義。</li>
     <li><b>注意</b>：不同引擎對 <code>/</code> 與 <code>-</code> 的處理略有差異。</li>
   </ul>
 </div>
@@ -134,6 +135,9 @@
       </label>
       <label style="margin:0;display:flex;align-items:center;gap:6px;font-size:13px;">
         <input type="checkbox" id="slash" onchange="__escLive()"> 轉義 /
+      </label>
+      <label style="margin:0;display:flex;align-items:center;gap:6px;font-size:13px;" title="將首位字母/數字寫作 \xNN，避免拼接到反斜槓字首後變成反向引用或轉義">
+        <input type="checkbox" id="joinSafe" onchange="__escLive()"> 拼接安全（首字元）
       </label>
     </div>
 
@@ -236,8 +240,16 @@ function esc(live){
   const flavor = document.getElementById('flavor').value;
   const escapeSlash = document.getElementById('slash').checked;
   const set = flavor === 'verbose' ? VERBOSE_META : META;
+  const joinSafe = !!(document.getElementById('joinSafe') && document.getElementById('joinSafe').checked);
   let out = '';
+  let first = true;
   for(const ch of text){
+    const cp = ch.codePointAt(0);
+    // JS 正则字面量不能直接包含 U+2028/U+2029；孤立代理项在 u/v 模式下也可能报错。
+    if(cp === 0x2028){ out += '\\u2028'; first = false; continue; }
+    if(cp === 0x2029){ out += '\\u2029'; first = false; continue; }
+    if(cp >= 0xD800 && cp <= 0xDFFF){ out += '\\u' + cp.toString(16).toUpperCase().padStart(4,'0'); first = false; continue; }
+    if(cp === 0){ out += '\\x00'; first = false; continue; }
     if(set.includes(ch) || (escapeSlash && ch === '/')){
       out += '\\' + ch;
     } else if(ch === '\n'){
@@ -246,9 +258,13 @@ function esc(live){
       out += '\\r';
     } else if(ch === '\t'){
       out += '\\t';
+    } else if(joinSafe && first && /[A-Za-z0-9]/.test(ch)){
+      // 片段可能紧跟在 `\`、`\1` 或 `\c` 之后：首位字母/数字改写为十六进制字面量，避免被解释成反向引用/转义。
+      out += '\\x' + cp.toString(16).toUpperCase().padStart(2,'0');
     } else {
       out += ch;
     }
+    first = false;
   }
   document.getElementById('output').value = out;
 }
@@ -469,7 +485,7 @@ else document.addEventListener('DOMContentLoaded', __regex_escapeBoot);
   <div class="related-tools-grid">
     <a href="/zh-tw/tools/it/properties-parser.html" class="related-tool-card">
       <span class="rt-icon">📄</span>
-      <span class="rt-info"><span class="rt-name">.properties 解析器</span><span class="rt-desc">Java .properties 檔案解析：支援 key=value、key:value、行內註釋…</span></span>
+      <span class="rt-info"><span class="rt-name">.properties 解析器</span><span class="rt-desc">Java .properties 檔案解析：支援 key=value、key:value、整行註釋（…</span></span>
     </a>
     <a href="/zh-tw/tools/it/ast-viewer.html" class="related-tool-card">
       <span class="rt-icon">💻</span>

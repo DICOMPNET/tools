@@ -65,7 +65,7 @@
 
 <script src="../../../js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"RSS 和最壞情況（WC）怎麼選？","acceptedAnswer":{"@type":"Answer","text":"WC 假設所有誤差同時取極值同向疊加，給出絕對安全但過嚴的總公差；RSS 假設獨立隨機、給出典型值。單件/小批/安全關鍵件用 WC，大批次統計過程控制下用 RSS 更經濟。"}},{"@type":"Question","name":"RSS 的前提是什麼？","acceptedAnswer":{"@type":"Answer","text":"要求各組成誤差相互獨立、且分佈近似正態（或至少對稱）；若存在系統性偏差（如刀具統一偏大），應先當作偏移而非隨機公差處理，否則 RSS 會低估真實總誤差。"}}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"RSS 和最壞情況（WC）怎麼選？","acceptedAnswer":{"@type":"Answer","text":"WC 假設所有誤差同時取極值同向疊加，給出絕對安全但過嚴的總公差；RSS 假設獨立隨機、給出典型值。單件/小批/安全關鍵件用 WC，大批次統計過程控制下用 RSS 更經濟。"}},{"@type":"Question","name":"RSS 的前提是什麼？","acceptedAnswer":{"@type":"Answer","text":"要求各組成誤差相互獨立、且分佈近似正態（或至少對稱），並處於同一統計覆蓋水平；若存在系統性偏差（如刀具統一偏大），應先當作偏移而非隨機公差處理，否則 RSS 會低估真實總誤差。"}},{"@type":"Question","name":"三項公差都為 0 時比例為什麼不是 0%？","acceptedAnswer":{"@type":"Answer","text":"比例定義為 RSS/ΣT；ΣT=0 時分母為 0，0/0 無定義，不能寫成 0%。此時兩個總公差都為 0，比例應顯示「不適用」。"}}]}</script>
 <meta property="og:site_name" content="ToolBox">
 <meta name="theme-color" content="#FF6B35">
 <!-- TOOLBOX-HREFLANG -->
@@ -104,11 +104,11 @@
 <div class="container" role="main">
   <div class="card">
     <h2 data-zh="公差疊加計算器（RSS）">Tolerance Rss</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="用均方根法估計線性尺寸鏈的統計總公差。">Tolerance Rss</p>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="按獨立、同統計覆蓋水平的對稱公差分量估計線性尺寸鏈的統計總公差；RSS 是統計估計，不是保證最壞界限。">Tolerance Rss</p>
     <div class="formula-box">
       <div class="formula-title">📐 計算公式</div>
       <div class="formula-eq">T_RSS = √(T₁² + T₂² + T₃²)；例 √0.0725≈0.269。RSS 比最差情況（ΣT）寬鬆。</div>
-      <p class="formula-desc">用均方根法估計線性尺寸鏈的統計總公差。</p>
+      <p class="formula-desc">適用前提：各分量公差為對稱幅值、相互獨立、處於同一統計覆蓋水平（如均按 ±3σ 給定）。RSS 給出統計疊加估計，不能當作 100% 保證的最壞情況界限；最壞情況請用線性疊加 ΣT。</p>
     </div>
 
     <div class="input-row">
@@ -226,10 +226,13 @@ function calcTool(){
             if(__bad){ToolBox.setResult('result',__bad);return;}
             const t1=num('t1'),t2=num('t2'),t3=num('t3');
             if(t1<0||t2<0||t3<0){ToolBox.setResult('result','<p style="color:var(--danger)">⚠ '+(document.documentElement.lang==='en'?'Tolerances must be non-negative; enter absolute values.':'公差须为非负数，请去掉负号按绝对值填写。')+'</p>');return;}
+            const sum=t1+t2+t3; const rss=Math.sqrt(t1*t1+t2*t2+t3*t3);
+            const ratio=sum>0?(rss/sum*100).toFixed(2)+' %':'不适用（线性叠加为 0，0/0）';
             const __g1=dataGrid([
-                [Math.sqrt(t1*t1+t2*t2+t3*t3).toFixed(3),'总公差 (RSS)'],
-                [(t1+t2+t3).toFixed(3), '线性叠加总公差'],
-                [(Math.sqrt(t1*t1+t2*t2+t3*t3)/((t1+t2+t3)||1)*100).toFixed(2), 'RSS 占线性叠加比 (%)']
+                [rss.toFixed(3),'总公差 (RSS)'],
+                [sum.toFixed(3), '线性叠加总公差（最坏情况）'],
+                [ratio, 'RSS 占线性叠加比'],
+                ['独立、同覆盖水平、对称幅值的统计估计','前提']
             ]);ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
         }
 function resetForm(){document.getElementById('t1').value = '0.1';
@@ -245,12 +248,14 @@ function __tolerance_rssExtras(){
     var t1=num('t1'),t2=num('t2'),t3=num('t3');
     if (!isFinite(__tolerance_rssNum('t1')) || !isFinite(__tolerance_rssNum('t2')) || !isFinite(__tolerance_rssNum('t3'))) return;
     var en=TBKit.util.isEn();
+    var sum=t1+t2+t3, rss=Math.sqrt(t1*t1+t2*t2+t3*t3);
     TBKit.matrix.table('#tolerance_rssTable',{
         head: en?['Item','Value']:['项目','数值'],
         rows: [
-            ['总公差 (RSS)', Math.sqrt(t1*t1+t2*t2+t3*t3).toFixed(3)],
-            ['线性叠加总公差', (t1+t2+t3).toFixed(3)],
-            ['RSS 占线性叠加比 (%)', (Math.sqrt(t1*t1+t2*t2+t3*t3)/((t1+t2+t3)||1)*100).toFixed(2)],
+            ['总公差 (RSS)', rss.toFixed(3)],
+            ['线性叠加总公差（最坏情况）', sum.toFixed(3)],
+            ['RSS 占线性叠加比', sum>0?(rss/sum*100).toFixed(2)+' %':'不适用（线性叠加为 0，0/0）'],
+            ['前提', '独立、同覆盖水平、对称幅值的统计估计'],
         ]
     });
     TBKit.history.record({t1:__tolerance_rssRaw('t1'), t2:__tolerance_rssRaw('t2'), t3:__tolerance_rssRaw('t3'), result: Math.sqrt(t1*t1+t2*t2+t3*t3)});
@@ -302,16 +307,17 @@ else document.addEventListener('DOMContentLoaded', __tolerance_rssBoot);
 <h2>📚 深度解析：公差疊加計算器（RSS）</h2>
 <h3>💡 常見使用場景</h3>
 <ul class="dd-list">
-<li>尺寸鏈/裝配間隙分析中，用方和根（Root Sum Square）估算多個零件公差疊加後的總變異，比最壞情況更貼近統計實際。</li>
+<li>尺寸鏈/裝配間隙分析中，用方和根（Root Sum Square）估算多個零件公差疊加後的統計總變異，比最壞情況更貼近統計實際。</li>
 <li>大批次生產下各零件誤差近似獨立隨機分佈，RSS 給出『典型』總公差而非極端值。</li>
 <li>在保證裝配功能前提下，用 RSS 放寬容差以降本，而非一味按最壞情況加嚴。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">公式</div><div class="dd-ex-body">總公差 T = √(t₁² + t₂² + … + tₙ²)，各 tᵢ 為各組成環公差（同向疊加時取絕對值）。RSS 假設各誤差相互獨立且近似正態，給出約 99.73%（±3σ）置信下的典型總變異。</div></div>
-<div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">某裝配尺寸鏈由三段組成，各段公差分別為 0.1、0.15、0.2 mm：T = √(0.1² + 0.15² + 0.2²) = √(0.01 + 0.0225 + 0.04) = √0.0725 ≈ 0.269 mm（RSS）。相比最壞情況疊加的 0.45 mm，RSS 顯著更小，說明大批次下可適度放寬單件公差而不超差。</div></div>
+<div class="dd-example"><div class="dd-ex-title">公式</div><div class="dd-ex-body">T_RSS=√(t₁²+t₂²+…+tₙ²)，各 tᵢ 為對稱公差幅值。前提：各分量相互獨立、處於同一統計覆蓋水平（如均按 ±3σ 給定）。RSS 是統計疊加估計，不是 100% 保證的最壞情況界限；最壞情況用 ΣT。三項公差全為 0 時，「RSS 佔線性疊加比」為 0/0，應標為不適用而不是 0%。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">三段公差 0.1、0.15、0.2 mm：T_RSS=√(0.01+0.0225+0.04)=√0.0725≈0.269 mm；線性疊加 ΣT=0.450 mm。RSS 更小是因為它按獨立隨機疊加估計典型值，並不能保證所有零件組合都不超差。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
 <dt>RSS 和最壞情況（WC）怎麼選？</dt><dd>WC 假設所有誤差同時取極值同向疊加，給出絕對安全但過嚴的總公差；RSS 假設獨立隨機、給出典型值。單件/小批/安全關鍵件用 WC，大批次統計過程控制下用 RSS 更經濟。</dd>
-<dt>RSS 的前提是什麼？</dt><dd>要求各組成誤差相互獨立、且分佈近似正態（或至少對稱）；若存在系統性偏差（如刀具統一偏大），應先當作偏移而非隨機公差處理，否則 RSS 會低估真實總誤差。</dd>
+<dt>RSS 的前提是什麼？</dt><dd>要求各組成誤差相互獨立、且分佈近似正態（或至少對稱），並處於同一統計覆蓋水平；若存在系統性偏差（如刀具統一偏大），應先當作偏移而非隨機公差處理，否則 RSS 會低估真實總誤差。</dd>
+<dt>三項公差都為 0 時比例為什麼不是 0%？</dt><dd>比例定義為 RSS/ΣT；ΣT=0 時分母為 0，0/0 無定義，不能寫成 0%。此時兩個總公差都為 0，比例應顯示「不適用」。</dd>
 </dl>
 </div>
 </section>

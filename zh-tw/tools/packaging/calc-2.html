@@ -68,7 +68,7 @@
 
 <script src="../../../js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"產品脆值 G 是什麼、怎麼取？","acceptedAnswer":{"@type":"Answer","text":"G 是產品能承受的最大加速度（單位 g），由產品自身抗衝擊能力決定；廠家 datasheet 或跌落試驗給出，易碎品常取 30–60，越嬌貴 G 越小、緩衝要越厚。本工具只做計算，G 需按產品資料填入。"}},{"@type":"Question","name":"材料系數 C 的範圍怎麼來的？","acceptedAnswer":{"@type":"Answer","text":"C 由緩衝材料的緩衝效率決定，EPE 珍珠棉約 2.0–2.8、EPS 泡沫約 3.0–4.0、氣泡膜/氣墊約 4.0–5.0；同一跌落下 C 越大意味單位厚度吸收能力越弱、需要更厚，屬經驗係數而非絕對值。"}}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"產品脆值 G 是什麼、怎麼取？","acceptedAnswer":{"@type":"Answer","text":"G 是產品能承受的最大加速度（單位 g），由產品自身抗衝擊能力決定；廠家 datasheet 或跌落試驗給出，易碎品常取 30–60，越嬌貴 G 越小、緩衝要越厚。本工具只做計算，G 需按產品資料填入。"}},{"@type":"Question","name":"材料系數 C 的範圍怎麼來的？","acceptedAnswer":{"@type":"Answer","text":"C 由緩衝材料的動態緩衝曲線決定，受材質、密度、厚度、結構與靜應力影響；文中 EPE/EPS/氣泡膜範圍僅為常見經驗值，不能替代供應商實測曲線。同一跌落下 C 越大，單位厚度吸收能力越弱、需要更厚。"}},{"@type":"Question","name":"這個公式能直接用於定型嗎？","acceptedAnswer":{"@type":"Answer","text":"不能。t = C·H/G 只是初步估算；C 應取該材料在當前靜應力下的動態緩衝曲線值。ASTM D1596 / D4168 規定的是動態緩衝試驗方法，不直接給出設計公式。最終厚度還須校核靜壓強度、蠕變、溫溼度與實際包裝件跌落試驗。"}}]}</script>
 <meta property="og:site_name" content="ToolBox">
 <meta name="theme-color" content="#FF6B35">
 <!-- TOOLBOX-HREFLANG -->
@@ -101,7 +101,7 @@
     <h2 data-zh="📏 緩衝材料厚度計算">Cushioning Material Thickness Calculator</h2>
     <div class="formula-box">
       <div class="formula-title">📐 計算公式</div>
-      <div class="formula-eq">緩衝層厚度 t = (H ÷ G) × C，H 為跌落高度、G 為產品脆值（可承受最大加速度，以 g 計）、C 為緩衝材料動態係數；脆值越低所需緩衝層越厚，據 t 選擇緩衝材料與結構，並校核靜壓強度與成本。</div>
+      <div class="formula-eq">緩衝層厚度 t = C × H ÷ G：H 為跌落高度、G 為產品脆值（可承受最大加速度，以 g 計）、C 為緩衝係數（取自材料動態緩衝曲線或實測）。該式為初步估算，C 不是固定常數；脆值越低、跌落越高所需越厚。最終厚度須用材料緩衝曲線、靜壓強度與實際跌落驗證。</div>
     </div>
     <p style='font-size:13px;color:var(--text-muted);margin-bottom:16px;' data-zh="根據跌落高度、產品脆值（G 因子）和緩衝材料系數，估算包裝緩衝墊所需厚度。">Compute cushioning thickness for packaging.</p>
     <div class='input-row'>
@@ -141,7 +141,7 @@
     </div>
     <div class='result-box' id='result'><p>請輸入引數後計算。</p></div>
     <div id="csChart"></div>
-    <div class='info-box' style='margin-top:12px;'>材料系數 C 參考：EPE 珍珠棉 2.0~2.8，EPS 泡沫 3.0~4.0，氣泡膜/氣墊 4.0~5.0。公式 t = (H/G)·C。</div>
+    <div class='info-box' style='margin-top:12px;'>C 僅作起點參考：EPE 珍珠棉 2.0~2.8，EPS 泡沫 3.0~4.0，氣泡膜/氣墊 4.0~5.0；應以材料實測動態緩衝曲線為準。公式 t = C·H/G 為初步估算。</div>
     <div style="margin-top:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
       <button type="button" class="btn" data-zh="⬇️ 匯出緩衝厚度計算結果 CSV" onclick="__cushionExport()">⬇️ Export Cushion Thickness Results CSV</button>
       <span style="font-size:12px;color:var(--text-muted);" data-zh="引數與緩衝厚度結果可匯出為 CSV 備案">Parameters and cushioning results can be exported as CSV for record</span>
@@ -160,19 +160,19 @@
       <thead><tr><th style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;" data-zh="專案" scope="col">Item</th><th style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;" data-zh="公式" scope="col">Formula</th><th style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;" data-zh="來源 / 標準" scope="col">Source / Standard</th></tr></thead>
       <tbody>
         <tr>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="緩衝厚度">Cushion thickness</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="t = 產品脆值 × 掉落高度 ÷ 緩衝效率">t = fragility * drop height / cushion efficiency</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);">ASTM D1596 cushioning test method</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="緩衝厚度（經驗估算）">Cushion thickness (empirical)</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="t = C × H ÷ G；C=緩衝係數，H=跌落高度，G=產品脆值">t = C × H ÷ G; C = cushion factor, H = drop height, G = product fragility</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="經驗估算式；C 應取材料動態緩衝曲線，ASTM D1596 僅規定試驗方法，不直接給出該式">Empirical estimate; C comes from the material's dynamic cushion curve. ASTM D1596 specifies a test method, not this design equation.</td>
         </tr>
         <tr>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="緩衝曲線">Cushion curve</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="G 值由靜態應力曲線確定">G value from static stress cushion curve</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);">ASTM D1596 cushioning test method</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="動態緩衝曲線">Dynamic cushion curve</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="不同靜應力下的峰值 G 與緩衝係數 C">Peak G and cushion factor C versus static stress</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="ASTM D1596 / D4168 動態緩衝試驗（材料級資料）">ASTM D1596 / D4168 dynamic cushioning tests (material-level data)</td>
         </tr>
         <tr>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="負載面積">Bearing area</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="A = 產品重量 ÷ 靜態應力">A = product weight / static stress</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);">ASTM D1596 cushioning test method</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="承載面積">Bearing area</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="A = 產品重量 ÷ 靜應力（單位需統一）">A = product weight / static stress (consistent units)</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="靜應力定義；用於按材料許可靜應力確定承載面積">Static-stress definition; used to size area at the material's allowable static stress</td>
         </tr>
       </tbody>
     </table>
@@ -191,12 +191,12 @@
       <span class="rt-info"><span class="rt-name">紙箱抗壓/堆碼計算</span><span class="rt-desc">輸入紙箱尺寸、紙板型別、堆碼高度、安全係數與單箱毛重，用 McKee 公式計算 BCT 與最大堆碼高…</span></span>
     </a>
     <a href="/zh-tw/tools/packaging/strength-12.html" class="related-tool-card">
-      <span class="rt-icon">⚙️</span>
-      <span class="rt-info"><span class="rt-name">封箱（膠帶/熱熔膠）強度</span><span class="rt-desc">封箱膠帶與熱熔膠強度工具依據粘接引數評估封箱結合強度，適合包裝密封方案選型與運輸振動下的封口可靠性判…</span></span>
+      <span class="rt-icon">🔄</span>
+      <span class="rt-info"><span class="rt-name">封箱膠帶剝離強度單位寬度換算（N/25mm）</span><span class="rt-desc">按實測剝離力與膠頻寬度換算 N/25mm、N/m、N/cm；</span></span>
     </a>
     <a href="/zh-tw/tools/packaging/shousuomo-shousuolv-refeng-canshu.html" class="related-tool-card">
-      <span class="rt-icon">⚙️</span>
-      <span class="rt-info"><span class="rt-name">收縮膜（收縮率/熱封）引數</span><span class="rt-desc">收縮膜收縮率與熱封引數工具按輸入引數估算收縮比與熱封溫度、速度，適合包膜包裝工藝編制與裝置除錯</span></span>
+      <span class="rt-icon">🧮</span>
+      <span class="rt-info"><span class="rt-name">收縮膜收縮率與示意下料膜寬計算（含熱封記錄）</span><span class="rt-desc">按產品原始尺寸、熱收縮後尺寸與可調工藝餘量估算收縮/膨脹率和示意下料膜寬；</span></span>
     </a>
     <a href="/zh-tw/tools/packaging/strength-11.html" class="related-tool-card">
       <span class="rt-icon">📐</span>
@@ -207,32 +207,60 @@
 <script>
 (function(){
   const KEY = 'tb_cushion';
-  function get(id){ return parseFloat(ToolBox.$(id).value) || 0; }
+  var __cushion_valid=false;
+  function __pkgEn(){return /^en/i.test(document.documentElement.lang||'');}
+  function getRaw(id){ var el=ToolBox.$(id); return String(el&&el.value!=null?el.value:'').trim(); }
+  function get(id){ var raw=getRaw(id); if(raw==='') return NaN; var v=parseFloat(raw); return isFinite(v)?v:NaN; }
+  function clearCushionTable(){ var tb=document.getElementById('cushionTable'); if(tb) tb.innerHTML=''; }
   function calculate(){
+    __cushion_valid=false;
     const H = get('dropH');
     const G = get('gValue');
     const C = get('cValue');
     const weight = get('weight');
     const area = get('area');
+    const hRaw = getRaw('dropH');
     const el = ToolBox.$('result');
-    if(H < 0 || G <= 0 || C <= 0){
-      const __h0='<p style="color:var(--danger)">请输入有效正数。</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){el.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}el.innerHTML=__h0;
+    if(hRaw === ''){
+      clearCushionTable();
+      el.innerHTML='<p style="color:var(--danger)">'+(__pkgEn()?'Enter the drop height before calculating.':'请填写跌落高度后再计算。')+'</p>';
+      return;
+    }
+    if(!isFinite(H) || H < 0){
+      clearCushionTable();
+      el.innerHTML='<p style="color:var(--danger)">'+(__pkgEn()?'Drop height must be a non-negative finite number.':'跌落高度须为非负有限数。')+'</p>';
+      return;
+    }
+    if(H === 0){
+      clearCushionTable();
+      el.innerHTML='<p style="color:var(--danger);">'+(__pkgEn()?'Drop height is 0: there is no drop impact, so this formula needs no cushioning layer. For real shipping, enter the lowest possible drop height.':'跌落高度为 0：无跌落冲击，按本式无需缓冲层；实际运输请填写最低可能跌落高度。')+'</p>';
+      return;
+    }
+    if(!(isFinite(G) && G > 0) || !(isFinite(C) && C > 0)){
+      clearCushionTable();
+      el.innerHTML='<p style="color:var(--danger)">'+(__pkgEn()?'Product fragility G and cushion material coefficient C must be positive.':'产品脆值 G 与缓冲材料系数 C 须为正数。')+'</p>';
       return;
     }
     const tCm = (H / G) * C;
     const tMm = tCm * 10;
+    const en = __pkgEn();
     let stressHtml = '';
     if(weight > 0 && area > 0){
       const stressKPa = (weight * 9.80665 * G) / (area / 10000) / 1000;
-      stressHtml = '<p>缓冲面动应力：<strong>' + ToolBox.formatNumber(stressKPa, 2) + '</strong> kPa</p>';
+      stressHtml = '<p>' + (en ? 'Dynamic stress on cushion face: ' : '缓冲面动应力：') + '<strong>' + ToolBox.formatNumber(stressKPa, 2) + '</strong> kPa</p>';
     }
-    const __h1='<p>建议缓冲厚度：<strong>' + ToolBox.formatNumber(tMm, 1) + '</strong> mm（<strong>' + ToolBox.formatNumber(tCm, 2) + '</strong> cm）</p>' +
-      stressHtml;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){el.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}el.innerHTML=__h1;
+    const __h1='<p>' + (en ? 'Recommended cushioning thickness: ' : '建议缓冲厚度：') + '<strong>' + ToolBox.formatNumber(tMm, 1) + '</strong>' + (en ? ' mm (' : ' mm（') + '<strong>' + ToolBox.formatNumber(tCm, 2) + '</strong> cm' + (en ? ')' : '）') + '</p>' +
+      stressHtml +
+      '<p style="font-size:12px;color:var(--text-muted);">' + (en ? 'This thickness is a preliminary estimate from t = C × H ÷ G, where C is an empirical/measured cushion coefficient. Final thickness must be verified with the material dynamic cushion curve, static compressive strength and an actual package drop test.' : '该厚度按 t = C × H ÷ G 初步估算，C 为经验/实测缓冲系数；最终须用材料动态缓冲曲线、静压强度与实际包装件跌落试验验证。') + '</p>';
+    if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){el.innerHTML='<p style="color:var(--danger)">'+(en?'⚠ Result contains an invalid value. Check that inputs are valid positive numbers.':'⚠ 计算结果含无效值，请检查输入是否为有效正数。')+'</p>';return;}
+    el.innerHTML=__h1;
+    __cushion_valid=true;
     save();
   }
   function copyResult(){
+    if(!__cushion_valid) return;
     const text = ToolBox.$('result').innerText.replace(/\s+/g, ' ').trim();
-    if(text && text.indexOf('请输入') === -1) ToolBox.copyText(text, i18nText('tool.copy_ok'));
+    if(text) ToolBox.copyText(text, i18nText('tool.copy_ok'));
   }
   function save(){
     try{
@@ -281,31 +309,33 @@ function applyCushionPreset(kind){
 <script>
 function __cushionExport(){
   if(typeof TBKit==='undefined') return;
+  var en=/^en/i.test(document.documentElement.lang||'');
   try{
-    var H=parseFloat(ToolBox.$('dropH').value)||0;
-    var G=parseFloat(ToolBox.$('gValue').value)||0;
-    var C=parseFloat(ToolBox.$('cValue').value)||0;
+    var hRaw=String(ToolBox.$('dropH').value||'').trim();
+    var H=parseFloat(hRaw);
+    var G=parseFloat(ToolBox.$('gValue').value);
+    var C=parseFloat(ToolBox.$('cValue').value);
     var weight=parseFloat(ToolBox.$('weight').value)||0;
     var area=parseFloat(ToolBox.$('area').value)||0;
-    if(H<0||G<=0||C<=0) return;
+    var tb=document.getElementById('cushionTable');
+    if(!isFinite(H)||H<=0||!isFinite(G)||G<=0||!isFinite(C)||C<=0){ if(tb) tb.innerHTML=''; return; }
     var tCm=(H/G)*C;
     var tMm=tCm*10;
     var rows=[
-      ['跌落高度 (cm)', ToolBox.formatNumber(H,1)],
-      ['产品脆值 G', ToolBox.formatNumber(G,0)],
-      ['缓冲材料系数 C', ToolBox.formatNumber(C,1)],
-      ['产品重量 (kg)', weight>0?ToolBox.formatNumber(weight,1):'—'],
-      ['接触面积 (cm²)', area>0?ToolBox.formatNumber(area,0):'—'],
-      ['建议缓冲厚度 (mm)', ToolBox.formatNumber(tMm,1)],
-      ['建议缓冲厚度 (cm)', ToolBox.formatNumber(tCm,2)]
+      [en?'Drop height (cm)':'跌落高度 (cm)', ToolBox.formatNumber(H,1)],
+      [en?'Product fragility G':'产品脆值 G', ToolBox.formatNumber(G,0)],
+      [en?'Cushion material coefficient C':'缓冲材料系数 C', ToolBox.formatNumber(C,1)],
+      [en?'Product weight (kg)':'产品重量 (kg)', weight>0?ToolBox.formatNumber(weight,1):'—'],
+      [en?'Contact area (cm²)':'接触面积 (cm²)', area>0?ToolBox.formatNumber(area,0):'—'],
+      [en?'Recommended cushioning thickness (mm)':'建议缓冲厚度 (mm)', ToolBox.formatNumber(tMm,1)],
+      [en?'Recommended cushioning thickness (cm)':'建议缓冲厚度 (cm)', ToolBox.formatNumber(tCm,2)]
     ];
     if(weight>0&&area>0){
       var stressKPa=(weight*9.80665*G)/(area/10000)/1000;
-      rows.push(['缓冲面动应力 (kPa)', ToolBox.formatNumber(stressKPa,2)]);
+      rows.push([en?'Dynamic stress on cushion face (kPa)':'缓冲面动应力 (kPa)', ToolBox.formatNumber(stressKPa,2)]);
     }
-    var tb=document.getElementById('cushionTable');
     if(!tb) return;
-    var html='<thead><tr><th>项目</th><th>数值</th></tr></thead><tbody>';
+    var html='<thead><tr><th>'+(en?'Item':'项目')+'</th><th>'+(en?'Value':'数值')+'</th></tr></thead><tbody>';
     for(var i=0;i<rows.length;i++){ html+='<tr><td>'+rows[i][0]+'</td><td>'+rows[i][1]+'</td></tr>'; }
     html+='</tbody>';
     tb.innerHTML=html;
@@ -340,11 +370,12 @@ function __cushionExport(){
 <li>材料選型對比：EPE 珍珠棉緩衝好但佔空間，<a class="term-link" href="/zh-tw/tools/investment/eps-calc.html">EPS</a> 更硬挺、氣泡膜更薄，用材料系數 C 橫向比較同種跌落下各需多厚。</li>
 <li>動應力校核：輸入產品重量與緩衝接觸面積，驗證跌落瞬間緩衝面承受的動應力是否在材料許可範圍內，防止擊穿或壓潰。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">算例（跌落高度 90 cm、產品脆值 G=40、EPE 係數 C=2.5、重 3 kg、接觸 80 cm²）</div><div class="dd-ex-body">緩衝厚度（釐米）t = (H ÷ G) × C = (90 ÷ 40) × 2.5 = 5.625 cm = 56.25 mm。若產品重 3 kg、緩衝接觸面積 80 cm²，跌落動應力 = (重量 × 9.80665 × G) ÷ (面積 ÷ 10000) ÷ 1000 = (3 × 9.80665 × 40) ÷ (80 ÷ 10000) ÷ 1000 ≈ 147.10 kPa。工具用 t = (H ÷ G)·C（先算釐米再 ×10 轉毫米），可選算動應力。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例（跌落高度 90 cm、產品脆值 G=40、EPE 係數 C=2.5、重 3 kg、接觸 80 cm²）</div><div class="dd-ex-body">緩衝厚度（釐米）t = C × H ÷ G = 2.5 × 90 ÷ 40 = 5.625 cm = 56.25 mm。若產品重 3 kg、緩衝接觸面積 80 cm²，跌落動應力 = (重量 × 9.80665 × G) ÷ (面積 ÷ 10000) ÷ 1000 = (3 × 9.80665 × 40) ÷ (80 ÷ 10000) ÷ 1000 ≈ 147.10 kPa。工具用 t = C·H/G（先算釐米再 ×10 轉毫米），可選算動應力；該式為初步估算，最終須用材料動態緩衝曲線與實際包裝件跌落試驗驗證。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
 <dt>產品脆值 G 是什麼、怎麼取？</dt><dd>G 是產品能承受的最大加速度（單位 g），由產品自身抗衝擊能力決定；廠家 datasheet 或跌落試驗給出，易碎品常取 30–60，越嬌貴 G 越小、緩衝要越厚。本工具只做計算，G 需按產品資料填入。</dd>
-<dt>材料系數 C 的範圍怎麼來的？</dt><dd>C 由緩衝材料的緩衝效率決定，EPE 珍珠棉約 2.0–2.8、EPS 泡沫約 3.0–4.0、氣泡膜/氣墊約 4.0–5.0；同一跌落下 C 越大意味單位厚度吸收能力越弱、需要更厚，屬經驗係數而非絕對值。</dd>
+<dt>材料系數 C 的範圍怎麼來的？</dt><dd>C 由緩衝材料的動態緩衝曲線決定，受材質、密度、厚度、結構與靜應力影響；文中 EPE/EPS/氣泡膜範圍僅為常見經驗值，不能替代供應商實測曲線。同一跌落下 C 越大，單位厚度吸收能力越弱、需要更厚。</dd>
+<dt>這個公式能直接用於定型嗎？</dt><dd>不能。t = C·H/G 只是初步估算；C 應取該材料在當前靜應力下的動態緩衝曲線值。ASTM D1596 / D4168 規定的是動態緩衝試驗方法，不直接給出設計公式。最終厚度還須校核靜壓強度、蠕變、溫溼度與實際包裝件跌落試驗。</dd>
 </dl>
 </div>
 </section>

@@ -79,7 +79,7 @@
 
 <script src="../../../js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"幼犬和成犬的憋尿能力差多少？","acceptedAnswer":{"@type":"Answer","text":"幼犬約為“月齡+1小時”（3月齡≈4h、5月齡≈6h），成年犬統一按 6–8 小時計；貓的耐受略高（月齡+2小時、上限 10 小時）。年齡越小視窗越短，需更頻繁帶出。"}},{"@type":"Question","name":"預測結果能直接當訓練計劃用嗎？","acceptedAnswer":{"@type":"Answer","text":"可作為節律參考，但每隻犬膀胱發育、飲水量、活動量不同；建議先用 3–5 天記錄實際排便時間，再與本工具給出的視窗交叉驗證，逐步校準。"}}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"幼犬和成犬的憋尿能力差多少？","acceptedAnswer":{"@type":"Answer","text":"“月齡+1小時”和貓“月齡+2小時”只是教學參考，不是膀胱容量或個體上限；實際受飲水、進食、活動、環境與健康影響。請用本地記錄校準，異常症狀諮詢獸醫。"}},{"@type":"Question","name":"預測結果能直接當訓練計劃用嗎？","acceptedAnswer":{"@type":"Answer","text":"不能直接當計劃或診斷。頁面把排尿與排便分開，並明確示例區間；記錄不足 3 次時不給個體化平均提醒，出現疼痛、血尿或無法排尿應立即就醫。"}}]}</script>
 <meta property="og:site_name" content="ToolBox">
 <!-- TOOLBOX-HREFLANG -->
 <link rel="alternate" hreflang="zh-CN" href="https://tools.dicomp.net/tools/pet-training/elimination-predict.html">
@@ -119,9 +119,9 @@
 </div>
 <div class="card tool-card-accent" style="--tool-accent:#1D4ED8;">
     <h2 data-zh="🔮 便溺規律預測器">Elimination Pattern Predictor</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="根據寵物年齡和飲水/進食時間，預測下一次如廁時間，輔助定點排便訓練">Elimination Predict</p>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="按年齡給出如廁節律參考，區分飲水後排尿與進食後排便，並可用本地記錄校準">Elimination Predict</p>
     <div class="formula-box">
-      <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">憋尿時長：犬 ≈ min(月齡 + 1, 8) 小時，貓 ≈ min(月齡 + 2, 10) 小時；飲水後幼寵 15–30 分鐘、成寵 20–40 分鐘需排便；玩耍後約 10 分鐘、睡醒後約 5 分鐘</div>
+      <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq"><p data-zh="最長憋尿參考：犬 ≈ min(月齡 + 1, 8) 小時，貓 ≈ min(月齡 + 2, 10) 小時（教學示例，非個體上限）" style="margin:0">Max hold reference: dog ≈ min(age months + 1, 8) h; cat ≈ min(age months + 2, 10) h (teaching example, not an individual limit)</p><br><p data-zh="排尿參考：飲水後幼犬 15–30 分鐘、成犬 30–60 分鐘、貓 20–45 分鐘" style="margin:0">Urine reference: puppy 15–30 min, adult dog 30–60 min, cat 20–45 min after drinking</p><br><p data-zh="排便參考：進食後約 30–120 分鐘" style="margin:0">Stool reference: about 30–120 min after eating</p><br><p data-zh="活動/睡醒後常見如廁，但視窗因個體差異很大；異常頻繁、疼痛或無法排尿須就醫" style="margin:0">Elimination is common after activity or waking, but windows vary widely; frequent, painful or unable to urinate → vet</p></div>
       <p class="formula-desc" data-zh="核心計算公式（按輸入變數）：max(0,postDrinkTime-afterDrink)；min(age+2,10)；min(age+1,8)">Key formulas: max(0,postDrinkTime-afterDrink); min(age+2,10); min(age+1,8)</p>
     </div>
     <div class="input-row">
@@ -140,9 +140,15 @@
     </div>
     <div class="input-row">
       <div>
-        <label for="afterDrink">飲水/進食後經過（分鐘）</label>
+        <label for="afterDrink">飲水後經過（分鐘）</label>
         <input type="number" id="afterDrink" value="15" oninput="calc()" min="0" step="any" placeholder="如 15">
       </div>
+      <div>
+        <label for="afterMeal">進食後經過（分鐘，可空）</label>
+        <input type="number" id="afterMeal" value="60" oninput="calc()" min="0" step="any" placeholder="0–120">
+      </div>
+    </div>
+    <div class="input-row">
       <div>
         <label for="activity">當前活動狀態</label>
         <select id="activity" onchange="calc()">
@@ -153,8 +159,20 @@
       </div>
     </div>
 
-    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__elimination_predictExport()">匯出明細 CSV</button></div><div class="predict-main" id="result"></div> <div id="elimination_predictTable"></div> <div id="elimination_predictDiff"></div> <div id="elimination_predictChart"></div> <div id="elimination_predictHist"></div>
+    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__elimination_predictExport()">匯出明細 CSV</button></div><div class="predict-main" id="result"></div> <div id="eliminationSplit"></div> <div id="elimination_predictTable"></div> <div id="elimination_predictDiff"></div> <div id="elimination_predictChart"></div> <div id="elimination_predictHist"></div>
     <div class="timeline" id="timeline"></div>
+    <h3 style="margin-top:18px;">本地觀察記錄（僅儲存在本機瀏覽器）</h3>
+    <p style="font-size:13px;color:var(--text-muted);">記錄實際排尿/排便與觸發後經過時間，用真實觀察校準參考視窗；記錄不足時不生成個體化提醒。</p>
+    <div class="input-row">
+      <div><label for="logType">型別</label><select id="logType"><option value="urine">排尿</option><option value="stool">排便</option></select></div>
+      <div><label for="logMinutes">觸發後經過（分鐘）</label><input type="number" id="logMinutes" value="0" min="0" step="1"></div>
+    </div>
+    <div class="input-row">
+      <div><label for="logNote">備註（環境/飲水/進食等）</label><input type="text" id="logNote" placeholder="after drinking / outdoors / wake-up"></div>
+      <div class="toolbar" style="margin:0;"><button class="btn" type="button" onclick="addElimLog()">記錄一次</button><button class="btn" type="button" onclick="clearElimLog()">清空</button></div>
+    </div>
+    <div id="elimLogStats"></div><div id="elimLogList"></div>
+    <div class="tip-box tip-warn" style="margin-top:12px;">⚠️ 若出現頻繁少量排尿、排尿疼痛、血尿、持續蹲坐卻無法排尿、嘔吐或精神沉鬱，請立即諮詢獸醫；無法排尿可能是急症。本頁不提供診斷。</div>
     <div class="toolbar" style="margin-top:12px;">
       <button type="button" class="btn" onclick="copyResult()">複製建議</button>
     </div>
@@ -195,15 +213,15 @@
 <h2>📚 深度解析：便溺規律預測器</h2>
 <h3>💡 常見使用場景</h3>
 <ul class="dd-list">
-<li>幼犬定點排便訓練期，按“月齡+1小時”憋尿規則預判最長可忍耐時間，安排帶出門節奏。</li>
-<li>記錄飲水/進食與睡醒、玩耍後的時間，結合排便視窗推算下一次如廁的高機率時段。</li>
-<li>多寵家庭對不同年齡犬貓分別建模，避免把成年貓的耐受節奏套用到幼犬身上。</li>
+<li>幼犬如廁訓練期，把“月齡+1小時”當作最長憋尿參考示例，安排帶出節奏，而不是個體上限。</li>
+<li>分別記錄飲水後排尿與進食後排便的實際時間；累計 3 次同類記錄後，用本地平均值校準提醒。</li>
+<li>出現頻繁少量排尿、疼痛、血尿或無法排尿時立即諮詢獸醫，不依賴頁面判斷。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">3月齡幼犬的如廁時間窗</div><div class="dd-ex-body">按“月齡+1小時”規則，3月齡幼犬憋尿上限 ≈ 3+1 = 4 小時（成年犬上限 8 小時封頂，貓為月齡+2小時、上限 10 小時）。關鍵排便視窗：睡醒後約 5 分鐘內、飲水/進食後 15–30 分鐘、玩耍後約 10 分鐘內。因此若幼犬剛睡醒且已飲水 15 分鐘，應立刻引導至定點；最長 4 小時即達憋尿上限，超時易在室內發生意外。</div></div>
+<div class="dd-example"><div class="dd-ex-title">3月齡幼犬的如廁時間窗</div><div class="dd-ex-body">3 月齡幼犬：最長憋尿參考約 4 小時（教學示例，非個體上限）。排尿參考：飲水後 15–30 分鐘；排便參考：進食後約 30–120 分鐘；睡醒或玩耍後常見如廁。若已飲水 15 分鐘，僅表示進入示例視窗，應觀察訊號並引導，不代表一定發生。記錄 3 次實際排尿時間（如 20/25/30 分鐘，平均 25 分鐘）後，才可用本地平均校準；單次異常或無法排尿須就醫。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
-<dt>幼犬和成犬的憋尿能力差多少？</dt><dd>幼犬約為“月齡+1小時”（3月齡≈4h、5月齡≈6h），成年犬統一按 6–8 小時計；貓的耐受略高（月齡+2小時、上限 10 小時）。年齡越小視窗越短，需更頻繁帶出。</dd>
-<dt>預測結果能直接當<a class="term-link" href="/zh-tw/tools/sports/training-planner.html">訓練計劃</a>用嗎？</dt><dd>可作為節律參考，但每隻犬膀胱發育、飲水量、活動量不同；建議先用 3–5 天記錄實際排便時間，再與本工具給出的視窗交叉驗證，逐步校準。</dd>
+<dt>幼犬和成犬的憋尿能力差多少？</dt><dd>“月齡+1小時”和貓“月齡+2小時”只是教學參考，不是膀胱容量或個體上限；實際受飲水、進食、活動、環境與健康影響。請用本地記錄校準，異常症狀諮詢獸醫。</dd>
+<dt>預測結果能直接當<a class="term-link" href="/zh-tw/tools/sports/training-planner.html">訓練計劃</a>用嗎？</dt><dd>不能直接當計劃或診斷。頁面把排尿與排便分開，並明確示例區間；記錄不足 3 次時不給個體化平均提醒，出現疼痛、血尿或無法排尿應立即就醫。</dd>
 </dl>
 </div>
 </section>
@@ -256,15 +274,17 @@ function calc(){
   var petType=document.getElementById('petType').value;
   var age=parseFloat(document.getElementById('age').value);
   var afterDrink=parseFloat(document.getElementById('afterDrink').value);
+  var afterMeal=parseFloat(document.getElementById('afterMeal').value);
+  if(!isFinite(afterMeal)||afterMeal<0) afterMeal=60;
   var activity=document.getElementById('activity').value;
   if(!age||age<=0){
     document.getElementById('result').innerHTML='<div class="predict-val">--</div><div class="predict-sub">请输入有效年龄</div>';
-    document.getElementById('timeline').innerHTML='';
+    document.getElementById('timeline').innerHTML=''; document.getElementById('eliminationSplit').innerHTML='';
     return;
   }
   if(!isFinite(afterDrink)||afterDrink<0){
     document.getElementById('result').innerHTML='<div class="predict-val">--</div><div class="predict-sub">请输入饮水后已过分钟数（≥0）</div>';
-    document.getElementById('timeline').innerHTML='';
+    document.getElementById('timeline').innerHTML=''; document.getElementById('eliminationSplit').innerHTML='';
     return;
   }
   var holdHours;
@@ -274,18 +294,18 @@ function calc(){
     holdHours=Math.min(age+2,10);
   }
   var isPuppy=age<6;
-  var drinkMin=isPuppy?15:20;
-  var drinkMax=isPuppy?30:40;
+  var drinkMin=petType==='cat'?20:(isPuppy?15:30);
+  var drinkMax=petType==='cat'?45:(isPuppy?30:60);
   var postDrinkTime=drinkMin;
   var remainAfterDrink=Math.max(0,postDrinkTime-afterDrink);
   var activityTip='';
   var activityTime=0;
   if(activity==='active'){
     activityTime=10;
-    activityTip='玩耍后约10分钟内需排便';
+    activityTip='玩耍后常见如厕，示例 10 分钟内，因个体而异';
   }else if(activity==='wake'){
     activityTime=5;
-    activityTip='刚睡醒，约5分钟内需排便';
+    activityTip='刚睡醒常见如厕，示例 5–10 分钟内，因个体而异';
   }
   var nextTime=Math.min(remainAfterDrink,activityTime>0?activityTime:999);
   if(activity==='rest'){
@@ -297,18 +317,75 @@ function calc(){
     mainSub=activityTip;
   }else if(afterDrink>=drinkMax){
     mainVal='立即带去定点';
-    mainSub='饮水后已 '+afterDrink+' 分钟，超过常见 '+drinkMin+'–'+drinkMax+' 分钟窗口';
+    mainSub='饮水后已 '+afterDrink+' 分钟，超过 '+drinkMin+'–'+drinkMax+' 分钟排尿参考；仅为示例，不是个体预测';
   }else if(afterDrink>=drinkMin){
-    mainVal='随时可能排便';
-    mainSub='已进入 '+drinkMin+'–'+drinkMax+' 分钟常见窗口，建议立即引导至定点';
+    mainVal='已进入排尿参考窗口';
+    mainSub='已进入 '+drinkMin+'–'+drinkMax+' 分钟排尿参考窗口；个体差异大，请观察信号并引导，不应当作确定预测';
   }else{
     mainVal=Math.round(remainAfterDrink)+' 分钟后';
-    mainSub='饮水后约 '+drinkMin+'–'+drinkMax+' 分钟排便，请 '+Math.round(remainAfterDrink)+' 分钟内引导至定点';
+    mainSub='饮水后 '+drinkMin+'–'+drinkMax+' 分钟为排尿参考；约 '+Math.round(remainAfterDrink)+' 分钟后进入该参考窗口，仅为示例';
   }
   const __g3='<div class="predict-val">'+mainVal+'</div><div class="predict-sub">'+mainSub+'</div>';document.getElementById('result').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
+  renderSplit(petType,age,afterDrink,afterMeal,activity);
   renderTimeline(petType,age,holdHours,afterDrink,activity);
 }
 
+function renderSplit(petType,age,afterDrink,afterMeal,activity){
+  var puppy=age<6;
+  var urineMin=petType==='cat'?20:(puppy?15:30);
+  var urineMax=petType==='cat'?45:(puppy?30:60);
+  var stoolMin=30, stoolMax=120;
+  function status(elapsed,lo,hi){
+    if(elapsed<lo) return '参考窗口约在 '+Math.round(lo-elapsed)+' 分钟后开始（示例 '+lo+'–'+hi+' 分钟）';
+    if(elapsed<=hi) return '已进入示例窗口（'+lo+'–'+hi+' 分钟），请观察信号，不代表一定发生';
+    return '已超过示例窗口（'+lo+'–'+hi+' 分钟）；若长时间未排或表现异常，请咨询兽医';
+  }
+  var html='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:12px;">'+
+    '<div class="daily-card"><div class="l">排尿参考（饮水后）</div><div style="font-size:13px;margin-top:6px;">'+status(afterDrink,urineMin,urineMax)+'</div></div>'+
+    '<div class="daily-card"><div class="l">排便参考（进食后）</div><div style="font-size:13px;margin-top:6px;">'+status(afterMeal,stoolMin,stoolMax)+'</div></div>'+
+    '</div>'+
+    '<p style="color:var(--text-muted);font-size:13px;">以上为教学示例区间，不是个体预测；幼龄、饮水/进食量、活动与环境都会改变实际时间。'+(activity!=='rest'?'当前活动状态会额外增加如厕机会。':'')+'</p>';
+  document.getElementById('eliminationSplit').innerHTML=html;
+}
+var ELIM_LOG_KEY='tb.elimination-predict.log';
+function loadElimLog(){ try{ var a=JSON.parse(localStorage.getItem(ELIM_LOG_KEY)||'[]'); return Array.isArray(a)?a:[]; }catch(e){ return []; } }
+function saveElimLog(a){ try{ localStorage.setItem(ELIM_LOG_KEY,JSON.stringify(a.slice(0,50))); }catch(e){} }
+function elimLogStats(a){
+  if(!a.length) return '<p style="color:var(--text-muted);">暂无观察记录；至少记录 3 次同类事件后才给出个体化平均参考。</p>';
+  function stat(type){
+    var xs=a.filter(function(x){return x.type===type;});
+    if(!xs.length) return null;
+    var avg=Math.round(xs.reduce(function(z,x){return z+x.minutes;},0)/xs.length);
+    var lo=Math.min.apply(null,xs.map(function(x){return x.minutes;}));
+    var hi=Math.max.apply(null,xs.map(function(x){return x.minutes;}));
+    return {n:xs.length,avg:avg,lo:lo,hi:hi};
+  }
+  var u=stat('urine'), st=stat('stool');
+  var parts=[];
+  if(u) parts.push('排尿 '+u.n+' 条，平均 '+u.avg+' 分钟（'+u.lo+'–'+u.hi+'）'+(u.n>=3?'，可作为下次提醒参考':'（记录不足 3 条，仅作观察）'));
+  if(st) parts.push('排便 '+st.n+' 条，平均 '+st.avg+' 分钟（'+st.lo+'–'+st.hi+'）'+(st.n>=3?'，可作为下次提醒参考':'（记录不足 3 条，仅作观察）'));
+  return '<p><strong>你的记录：</strong>'+parts.join('；')+'。</p><p style="font-size:13px;color:var(--text-muted);">依据为本地实际观察，而非上方固定示例窗口；样本少时波动大，请结合环境与饮水进食量判断。</p>';
+}
+function renderElimLog(){
+  var a=loadElimLog();
+  var st=document.getElementById('elimLogStats'); if(st) st.innerHTML=elimLogStats(a);
+  var box=document.getElementById('elimLogList'); if(!box) return;
+  if(!a.length){ box.innerHTML=''; return; }
+  var rows=a.slice(0,10).map(function(x){ return [x.type==='stool'?'排便':'排尿',x.minutes+' 分钟',x.note||'--',(x.ts||'').replace('T',' ').slice(0,16)]; });
+  box.innerHTML=ToolBox.createTable(['类型','触发后经过','备注','记录时间'],rows);
+}
+function addElimLog(){
+  var type=document.getElementById('logType').value;
+  var min=Number(document.getElementById('logMinutes').value);
+  var note=document.getElementById('logNote').value.trim();
+  if(!isFinite(min)||min<0||Math.floor(min)!==min){ document.getElementById('elimLogStats').innerHTML='<p style="color:var(--warning);">经过分钟数须为非负整数。</p>'; return; }
+  var a=loadElimLog(); a.unshift({type:type,minutes:min,note:note,ts:new Date().toISOString()}); saveElimLog(a); renderElimLog();
+}
+function clearElimLog(){
+  if(!confirm('确定清空本机保存的观察记录？')) return;
+  try{ localStorage.removeItem(ELIM_LOG_KEY); }catch(e){}
+  renderElimLog();
+}
 function renderTimeline(petType,age,holdHours,afterDrink,activity){
   var items=[];
   var now=new Date();
@@ -318,13 +395,13 @@ function renderTimeline(petType,age,holdHours,afterDrink,activity){
     var mm=t.getMinutes().toString().padStart(2,'0');
     items.push({time:hh+':'+mm,label:label,tagCls:tagCls});
   }
-  if(activity==='wake')addTime(5,'刚睡醒，引导排便','grade-fail');
-  if(activity==='active')addTime(10,'玩耍后引导排便','grade-fail');
+  if(activity==='wake')addTime(5,'刚睡醒，引导如厕','grade-fail');
+  if(activity==='active')addTime(10,'玩耍后引导如厕','grade-fail');
   var drinkMin=age<6?15:20;
   var drinkMax=age<6?30:40;
-  if(afterDrink<drinkMin)addTime(drinkMin-afterDrink,'饮水后排便窗口开始（'+drinkMin+'–'+drinkMax+' 分钟）','grade-pass');
-  if(afterDrink<drinkMax)addTime(drinkMax-afterDrink,'饮水后排便窗口结束','grade-pass');
-  addTime(holdHours*60,'最长憋尿时间到','grade-good');
+  if(afterDrink<drinkMin)addTime(drinkMin-afterDrink,'饮水后排尿参考窗口开始（'+drinkMin+'–'+drinkMax+' 分钟）','grade-pass');
+  if(afterDrink<drinkMax)addTime(drinkMax-afterDrink,'饮水后排尿参考窗口结束','grade-pass');
+  addTime(holdHours*60,'最长憋尿参考上限到','grade-good');
   addTime(holdHours*60+30,'超时可能意外','grade-fail');
   var html='';
   items.forEach(function(it){
@@ -350,6 +427,7 @@ function copyResult(){
 }
 
 calc();
+renderElimLog();
 </script>
 <script>
 document.addEventListener('DOMContentLoaded',function(){

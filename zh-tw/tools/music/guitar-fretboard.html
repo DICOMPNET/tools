@@ -479,7 +479,7 @@
     </a>
     <a href="/zh-tw/tools/music/generator-1.html" class="related-tool-card">
       <span class="rt-icon">🎵</span>
-      <span class="rt-info"><span class="rt-name">音階生成器（大調/小調/五聲音階）</span><span class="rt-desc">音階生成器按大調、小調與五聲音階等調式生成對應音名序列並支援試聽，適合樂理學習、即興創作與樂器練習的…</span></span>
+      <span class="rt-info"><span class="rt-name">音階生成器（大調/小調/五聲音階）</span><span class="rt-desc">指定根音、調式與起始八度後生成按音級正確拼寫的音名序列、十二平均律頻率，並支援 Web Audio…</span></span>
     </a>
     <a href="/zh-tw/tools/music/bpm-converter.html" class="related-tool-card">
       <span class="rt-icon">🏎️</span>
@@ -490,8 +490,8 @@
       <span class="rt-info"><span class="rt-name">歌曲速度轉換（BPM微調）</span><span class="rt-desc">輸入原曲BPM與目標BPM，計算速度比例與新時長，給出提速/降速百分比，用於翻唱移調、練琴跟拍等音樂…</span></span>
     </a>
     <a href="/zh-tw/tools/music/audio-converter.html" class="related-tool-card">
-      <span class="rt-icon">🔄</span>
-      <span class="rt-info"><span class="rt-name">音訊轉換</span><span class="rt-desc">對比 WAV/MP3/FLAC 等常見音訊格式特點，輸入取樣率、位深與聲道數計算 PCM 原始檔案大…</span></span>
+      <span class="rt-icon">🧊</span>
+      <span class="rt-info"><span class="rt-name">音訊格式與容量估算</span><span class="rt-desc">對比 WAV/MP3/FLAC 等常見音訊格式特點，輸入取樣率、位深與聲道數計算 PCM 原始檔案大…</span></span>
     </a>
   </div>
 </div>
@@ -599,7 +599,9 @@
 
   // 常量定义
   var NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
-  var NATURAL_NOTES = new Set(['C','D','E','F','G','A','B']);
+  var NOTE_NAMES_FLAT = ['C','Db','D','Eb','E','F','Gb','G','Ab','A','Bb','B'];
+  var NATURAL_PCS = new Set([0,2,4,5,7,9,11]);
+  var LETTERS = ['C','D','E','F','G','A','B'], LETTER_PC = [0,2,4,5,7,9,11];
   var FRET_COUNT = 15;
 
   // 调弦定义: [6弦(低), 5弦, 4弦, 3弦, 2弦, 1弦(高)] -- 音符索引
@@ -613,7 +615,7 @@
   // 调式定义: 大调= [0,2,4,5,7,9,11] / 小调= [9,11,0,2,4,5,7] (相对关系)
   var SCALE_INTERVALS = {
     'major': [0,2,4,5,7,9,11],
-    'minor': [9,11,0,2,4,5,7]
+    'minor': [0,2,3,5,7,8,10]
   };
 
   // 根音到音符名的映射
@@ -625,6 +627,8 @@
   var currentScaleType = 'major';
   var currentDisplay = 'all';
   var scaleNoteSet = new Set();
+  var scaleNameMap = new Map();
+  var currentUseFlat = false;
   var audioCtx = null;
 
   // 初始化音频上下文
@@ -639,16 +643,28 @@
     return audioCtx;
   }
 
-  // 计算调内音符集合
+  // 计算调内音：按音级字母拼写，返回音高类集合 + 名称映射
   function calcScaleNotes(root, scaleType) {
     var rootIdx = ROOT_MAP[root];
-    if (rootIdx === undefined) return new Set();
+    if (rootIdx === undefined) return { set: new Set(), names: new Map() };
     var intervals = SCALE_INTERVALS[scaleType] || SCALE_INTERVALS['major'];
-    var set = new Set();
-    intervals.forEach(function(interval) {
-      set.add(NOTE_NAMES[(rootIdx + interval) % 12]);
+    var li = LETTERS.indexOf(root.charAt(0));
+    var names = new Map(), set = new Set();
+    intervals.forEach(function(interval, i) {
+      var pc = ((rootIdx + interval) % 12 + 12) % 12;
+      var letter = LETTERS[(li + i) % 7];
+      var natural = LETTER_PC[(li + i) % 7];
+      var diff = pc - natural;
+      if (diff > 6) diff -= 12;
+      if (diff < -6) diff += 12;
+      names.set(pc, letter + (diff === 1 ? '#' : diff === -1 ? 'b' : ''));
+      set.add(pc);
     });
-    return set;
+    return { set: set, names: names };
+  }
+  function noteNameFor(pc) {
+    if (scaleNameMap.has(pc)) return scaleNameMap.get(pc);
+    return currentUseFlat ? NOTE_NAMES_FLAT[pc] : NOTE_NAMES[pc];
   }
 
   // 获取某弦某品的音符信息
@@ -656,12 +672,12 @@
     var tuning = TUNINGS[currentTuning];
     var openNoteIdx = tuning.indices[stringIdx];
     var noteIdx = (openNoteIdx + fret) % 12;
-    var noteName = NOTE_NAMES[noteIdx];
+    var noteName = noteNameFor(noteIdx);
     // 频率计算: 基于标准调弦的最低音
     var baseFreqs = { 'standard': [82.41,110,146.83,196,246.94,329.63], 'drop-d': [73.42,110,146.83,196,246.94,329.63], 'open-g': [73.42,98,146.83,196,246.94,293.66], 'dadgad': [73.42,110,146.83,196,220,293.66] };
     var baseFreq = baseFreqs[currentTuning][stringIdx] || 82.41;
     var freq = baseFreq * Math.pow(2, fret / 12);
-    return { name: noteName, freq: freq, stringIdx: stringIdx, fret: fret, isRoot: noteName === currentRoot };
+    return { name: noteName, pc: noteIdx, freq: freq, stringIdx: stringIdx, fret: fret, isRoot: noteIdx === ROOT_MAP[currentRoot] };
   }
 
   // 播放音符
@@ -687,7 +703,10 @@
 
   // 渲染指板
   function renderFretboard() {
-    scaleNoteSet = calcScaleNotes(currentRoot, currentScaleType);
+    var scaleInfo = calcScaleNotes(currentRoot, currentScaleType);
+    scaleNoteSet = scaleInfo.set;
+    scaleNameMap = scaleInfo.names;
+    currentUseFlat = (currentRoot === 'F' && currentScaleType === 'major') || ((currentRoot === 'C' || currentRoot === 'D') && currentScaleType === 'minor');
     var tuning = TUNINGS[currentTuning];
     var fb = document.getElementById('fretboard');
     var html = '';
@@ -714,7 +733,7 @@
         } else if (currentDisplay === 'hidden') {
           dotClasses += ' hidden-note';
         } else if (currentDisplay === 'scale') {
-          if (scaleNoteSet.has(noteInfo.name)) {
+          if (scaleNoteSet.has(noteInfo.pc)) {
             if (noteInfo.isRoot) {
               dotClasses += ' root-note';
             } else {
@@ -724,8 +743,8 @@
             dotClasses += ' hidden-note';
           }
         } else if (currentDisplay === 'natural') {
-          if (NATURAL_NOTES.has(noteInfo.name)) {
-            if (scaleNoteSet.has(noteInfo.name)) {
+          if (NATURAL_PCS.has(noteInfo.pc)) {
+            if (scaleNoteSet.has(noteInfo.pc)) {
               if (noteInfo.isRoot) {
                 dotClasses += ' root-note';
               } else {
@@ -739,13 +758,13 @@
           }
         } else {
           // all
-          if (scaleNoteSet.has(noteInfo.name)) {
+          if (scaleNoteSet.has(noteInfo.pc)) {
             if (noteInfo.isRoot) {
               dotClasses += ' root-note';
             } else {
               dotClasses += ' in-scale';
             }
-          } else if (NATURAL_NOTES.has(noteInfo.name)) {
+          } else if (NATURAL_PCS.has(noteInfo.pc)) {
             dotClasses += ' natural';
           } else {
             dotClasses += ' chromatic';
@@ -785,11 +804,10 @@
     var tuning = TUNINGS[currentTuning];
     var scaleName = currentRoot + (currentScaleType === 'major' ? ' 大调' : ' 小调');
     var html = '<span class="scale-label">' + scaleName + '：</span>';
-    NOTE_NAMES.forEach(function(n) {
-      if (scaleNoteSet.has(n)) {
-        var cls = 'scale-note-item' + (n === currentRoot ? ' root' : '');
-        html += '<span class="' + cls + '">' + n + '</span>';
-      }
+    scaleNoteSet.forEach(function(pc) {
+      var n = noteNameFor(pc);
+      var cls = 'scale-note-item' + (pc === ROOT_MAP[currentRoot] ? ' root' : '');
+      html += '<span class="' + cls + '">' + n + '</span>';
     });
     const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){el.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}el.innerHTML=__h1;
   }
@@ -800,7 +818,7 @@
     var tuning = TUNINGS[currentTuning];
     var stringName = tuning.notes[stringIdx];
     var panel = document.getElementById('noteInfo');
-    var scaleText = scaleNoteSet.has(noteInfo.name) ? (noteInfo.isRoot ? '调内 - 根音' : '调内音') : '调外音';
+    var scaleText = scaleNoteSet.has(noteInfo.pc) ? (noteInfo.isRoot ? '调内 - 根音' : '调内音') : '调外音';
     var freqStr = noteInfo.freq.toFixed(2);
     const __h2='<span class="info-note">' + noteInfo.name + '</span>' +
       '<span class="info-freq">频率: <strong>' + freqStr + ' Hz</strong></span>' +

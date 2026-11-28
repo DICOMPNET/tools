@@ -107,10 +107,10 @@
 </div>
 <div class="card">
     <h2 data-zh="💰 菜品定價計算器">Menu Pricing Calculator</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="按食材成本和目標毛利率估算建議售價。">Set menu prices from costs, waste rate, and expected profit margin.</p>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="按食材成本、人工加成、固定分攤與目標毛利率估算稅前參考售價。">Estimate a pre-tax reference price from food cost, a labor loading on food cost, fixed allocation and target margin.</p>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理與說明</div>
-  <div class="formula-eq">菜品定價：總成本 = 食材成本 ×（1 + 人工佔比）+ 固定分攤；建議售價 = 總成本 ÷（1 − 目標毛利率）；毛利額 = 售價 − 總成本；毛利率 =（售價 − 總成本）÷ 售價 × 100%；含稅售價 = 售價 ×（1 + 稅率）。</div>
+  <div class="formula-eq">菜品定價：總成本 = 食材成本 ×（1 + 人工加成率）+ 固定分攤；建議售價 = 總成本 ÷（1 − 目標毛利率）；毛利額 = 售價 − 總成本；毛利率 =（售價 − 總成本）÷ 售價 × 100%。人工加成率的分母是食材成本，不是售價；本頁不計算稅費，結果為稅前參考價。</div>
 
 </div>
 
@@ -119,7 +119,7 @@
       <input type="number" id="material" value="12" min="0" step="0.1" oninput="calc()" placeholder="如 12">
     </div>
     <div class="input-row">
-      <label for="labor">人工成本佔比（%）</label>
+      <label for="labor">人工加成（食材成本的 %）</label>
       <input type="number" id="labor" value="20" min="0" step="1" oninput="calc()" placeholder="如 20">
     </div>
     <div class="input-row">
@@ -226,8 +226,8 @@ function calc() {
   const price = totalCost / (1 - margin / 100);
   const profit = price - totalCost;
 
-  const __g2=`<p>成本合计：<strong>${totalCost.toFixed(2)} 元</strong></p>` +
-    `<p>建议售价：<strong style="color:var(--primary)">${price.toFixed(2)} 元</strong></p>` +
+  const __g2=`<p>税前总成本（人工按食材成本加成）：<strong>${totalCost.toFixed(2)} 元</strong></p>` +
+    `<p>税前建议售价：<strong style="color:var(--primary)">${price.toFixed(2)} 元</strong></p>` +
     `<p>建议毛利：<strong>${profit.toFixed(2)} 元</strong></p>`;document.getElementById('result').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 }
 
@@ -393,7 +393,7 @@ else document.addEventListener('DOMContentLoaded', __menu_pricingBoot);
 <li>成本上漲後重算售價，判斷需要提價多少才能維持原有毛利。</li>
 <li>對比不同毛利率目標下的售價，評估顧客的價格接受度。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">目標毛利 65% 的定價</div><div class="dd-ex-body">食材成本 18 元、人工成本佔比 20%、固定成本分攤 6 元、目標毛利率 65%：成本合計 = 18×(1+20%) + 6 = 27.60 元；建議售價 = 27.60 ÷ (1−65%) = 78.86 元；單份毛利 = 78.86 − 27.60 = 51.26 元。若把目標毛利率降到 60%，售價 = 27.60 ÷ 0.40 = 69.00 元，便宜約 10 元但毛利減少 9.86 元。</div></div>
+<div class="dd-example"><div class="dd-ex-title">目標毛利 65% 的稅前定價</div><div class="dd-ex-body">食材成本 18 元、人工加成按食材成本 20%、固定分攤 6 元、目標毛利率 65%：稅前總成本 = 18×(1+20%) + 6 = 27.60 元；稅前建議售價 = 27.60 ÷ (1−65%) = 78.86 元；單份毛利 = 78.86 − 27.60 = 51.26 元。若目標毛利率降到 60%，售價 = 27.60 ÷ 0.40 = 69.00 元，便宜約 9.86 元且單份毛利降至 41.40 元。本頁不算稅費。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
 <dt>為什麼不是&quot;成本 ×(1+毛利率)&quot;？</dt><dd>餐飲毛利率通常按售價口徑定義：毛利率 =（售價−成本）÷ 售價。因此售價 = 成本 ÷（1−毛利率），而不是成本 ×(1+毛利率)。用後者會把毛利率算低。</dd>

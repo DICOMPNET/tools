@@ -291,7 +291,7 @@ function calcSingle(live){
       '<div class="data-card"><div class="num">'+(totalG/1000).toFixed(3)+'<span style="font-size:12px;"> kg</span></div><div class="label">净墨量(无损耗)</div></div>'+
       '<div class="data-card"><div class="num">'+(totalWithWaste-totalG).toFixed(1)+'<span style="font-size:12px;"> g</span></div><div class="label">损耗墨量'+(waste>0?'('+waste+'%)':'')+'</div></div>'+
       '<div class="data-card"><div class="num">'+(totalKg*1000).toFixed(0)+'<span style="font-size:12px;"> g</span></div><div class="label">总墨量(克)</div></div>'+
-      '<div class="data-card"><div class="num">'+(totalKg/copies*1000).toFixed(2)+'<span style="font-size:12px;"> mg</span></div><div class="label">单张墨量(毫克)</div></div>'+
+      '<div class="data-card"><div class="num">'+(totalKg/copies*1000000).toFixed(2)+'<span style="font-size:12px;"> mg</span></div><div class="label">单张墨量(毫克)</div></div>'+
       '</div>';
   }
   res+='<div style="margin-top:10px;font-size:12px;color:var(--text-light);line-height:1.7;">'+
@@ -350,7 +350,7 @@ function calcCmyk(live){
 
   var res='<div class="data-grid">'+
     '<div class="data-card"><div class="num">'+totalKg.toFixed(3)+'<span style="font-size:12px;"> kg</span></div><div class="label">四色总墨量</div></div>'+
-    '<div class="data-card"><div class="num">'+(totalKg/copies*1000).toFixed(2)+'<span style="font-size:12px;"> mg</span></div><div class="label">单张总墨量</div></div>'+
+    '<div class="data-card"><div class="num">'+(totalKg/copies*1000000).toFixed(2)+'<span style="font-size:12px;"> mg</span></div><div class="label">单张总墨量</div></div>'+
     '<div class="data-card"><div class="num">'+(!isNaN(price)&&price>0?totalCost.toFixed(2)+((typeof TBKit!=='undefined'&&TBKit.util.isEn())?" CNY":" 元"):'—')+'</div><div class="label">总油墨成本</div></div>'+
     '<div class="data-card"><div class="num">'+(!isNaN(price)&&price>0?(totalCost/copies).toFixed(4)+((typeof TBKit!=='undefined'&&TBKit.util.isEn())?" CNY":" 元"):'—')+'</div><div class="label">单张油墨成本</div></div>'+
     '</div>';
@@ -614,11 +614,11 @@ else document.addEventListener('DOMContentLoaded', __estimate_inkBoot);
 <h2>📚 深度解析：油墨消耗量（按覆蓋率）估算</h2>
 <h3>💡 常見使用場景</h3>
 <ul class="dd-list">
-<li>印刷前按印面面積、油墨覆蓋率、墨膜厚度、油墨密度與印數估算總墨量，提前備墨避免斷墨。</li>
-<li>單色與 CMYK 四色分色分別估算，黑版實地覆蓋高時總墨量顯著上升，需重點核算。</li>
-<li>結合油墨單價算總成本，或在多個印件間調配剩餘專色墨，控制耗材費用。</li>
+<li>單張質量單位必須統一：總墨量 kg ÷ 印數 × 1,000,000 = 毫克；×1000 得到的是克，不能標成 mg。</li>
+<li>單色與 CMYK 四色都按同一換算；單價留空隻影響成本，不影響墨量。</li>
+<li>淨墨量、含損耗總墨量與損耗墨量分別列示，避免把含損耗量當作淨量。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">以「單色：面積 0.5 m²、覆蓋率 40%、墨膜厚 1.2 μm、密度 1.2 g/cm³、印數 1 萬、損耗 5%」為例</div><div class="dd-ex-body">單張墨量=面積×覆蓋率×墨膜厚×密度=0.5×0.40×1.2×1.2=0.288 g。千張=288 g；淨總墨量=0.288×10000=2880 g，含 5% 損耗後=3024 g=3.024 kg，損耗墨量 144 g。若改用 CMYK 四色覆蓋率 [40,30,25,90]（黑版實地 90%），四色總墨量=0.5×((0.40+0.30+0.25+0.90)/100)×1.2×1.2×10000×1.05/1000≈13.99 kg，約為單色的 4.6 倍，體現高黑版覆蓋對耗墨的主導影響。</div></div>
+<div class="dd-example"><div class="dd-ex-title">以「單色：面積 0.5 m²、覆蓋率 40%、墨膜厚 1.2 μm、密度 1.2 g/cm³、印數 1 萬、損耗 5%」為例</div><div class="dd-ex-body">單張墨量=面積×覆蓋率×墨膜厚×密度=0.5×0.40×1.2×1.2=0.288 g（288 mg）。千張=288 g；淨總墨量=0.288×10000=2880 g，含 5% 損耗後=3024 g=3.024 kg，損耗墨量 144 g。若改用 CMYK 四色覆蓋率 [40,30,25,90]（黑版實地 90%），四色總墨量=0.5×((0.40+0.30+0.25+0.90)/100)×1.2×1.2×10000×1.05/1000≈13.99 kg，約為單色的 4.6 倍，體現高黑版覆蓋對耗墨的主導影響。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
 <dt>單張墨量公式各量綱怎麼約掉？</dt><dd>面積(m²)×覆蓋率(0~1)×墨膜厚(μm，即 10⁻⁶ m)×密度(g/cm³=10⁶ g/m³)→ g。即 0.5×0.4×1.2e-6×1.2e6=0.288 g，量綱自動歸到克。注意墨膜厚用微米、密度用 g/cm³ 時該乘積恰好成立。</dd>
@@ -652,7 +652,7 @@ else document.addEventListener('DOMContentLoaded', __estimate_inkBoot);
     </a>
     <a href="/zh-tw/tools/printing/carton-design.html" class="related-tool-card">
       <span class="rt-icon">📦</span>
-      <span class="rt-info"><span class="rt-name">紙盒結構設計</span><span class="rt-desc">輸入紙盒內尺寸（長/寬/高）或目標容積，工具計算摺疊紙盒的壓痕線位置、拼版展開尺寸與搖蓋結構引數，輔…</span></span>
+      <span class="rt-info"><span class="rt-name">摺疊紙盒尺寸與坯料估算</span><span class="rt-desc">輸入紙盒內尺寸（長/寬/高）或目標容積，估算簡化管式摺疊盒的內尺寸、容積與展開坯料外接尺寸；</span></span>
     </a>
   </div>
 </div>

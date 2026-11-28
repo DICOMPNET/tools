@@ -67,7 +67,7 @@
 
 <script src="../../../js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"點差成本和佣金哪個更該關注？","acceptedAnswer":{"@type":"Answer","text":"都該關注。點差是開倉即扣的隱性成本，佣金是經紀商明示費用，高頻/刷單策略下點差往往主導總成本，應選低點差賬戶。"}},{"@type":"Question","name":"隔夜利息（swap）為負說明什麼？","acceptedAnswer":{"@type":"Answer","text":"負號代表持倉過夜需付息（如買入高息貨幣/賣出低息貨幣則可能為正）；本例 −3.5 表示每手每天淨付 3.5 單位，長線持倉需把 swap 計入成本。"}}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"點差成本和佣金哪個更該關注？","acceptedAnswer":{"@type":"Answer","text":"都該關注。點差是開倉即扣的隱性成本，佣金是經紀商明示費用，高頻/刷單策略下點差往往主導總成本，應選低點差賬戶。"}},{"@type":"Question","name":"隔夜利息（swap）為負說明什麼？","acceptedAnswer":{"@type":"Answer","text":"負號代表持倉過夜需付息，正號代表收取。本工具把有符號 swap 換算成成本：付出計正成本、收取計負成本。本例 −3.5/手/天、1 手、1 天 ⇒ 隔夜成本 3.5；總成本 = 20 + 7 + 3.5 = 30.5。若 swap=+3.5，則總成本 = 20 + 7 − 3.5 = 23.5。"}}]}</script>
 <meta property="og:site_name" content="ToolBox">
 <meta name="theme-color" content="#FF6B35">
 <!-- TOOLBOX-HREFLANG -->
@@ -116,7 +116,7 @@
     <h2 data-zh="💰 外匯點差成本計算器">Spread Cost</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="計算外匯交易的點差成本與總交易費用">Spread Cost</p>
     <div class="formula-box">
-      <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">外匯報價交易成本拆解<br>點差 = Ask − Bid（報價差）<br>點差(點) = 點差 ÷ 該貨幣對 pip 值<br>每手每點價值 = 100,000 × pip ÷ 計價貨幣兌美元匯率<br>點差成本 = 手數 × 點數 × 每手每點價值<br>佣金 = 手數 × 單手佣金；隔夜利息 = 手數 × 單手利息 × 持有天數<br>總交易成本 = 點差成本 + 佣金 + 隔夜利息<br>持倉價值 ≈ 手數 × 100,000 × 中間價 ÷ 匯率<br>成本佔持倉 = 總成本 ÷ 持倉價值 × 100%<br>點差 > 3 點時短線交易成本壓力較大，需評估策略頻率</div>
+      <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">外匯報價交易成本拆解<br>點差 = Ask − Bid（報價差）<br>點差(點) = 點差 ÷ 該貨幣對 pip 值<br>每手每點價值 = 100,000 × pip ÷ 計價貨幣兌美元匯率<br>點差成本 = 手數 × 點數 × 每手每點價值<br>佣金 = 手數 × 每手往返佣金；隔夜現金流 = 手數 × 每手隔夜息 × 天數（負=付出、正=收取）<br>隔夜成本 = −隔夜現金流（付出計正、收取計負）<br>總交易成本 = 點差成本 + 佣金 + 隔夜成本<br>持倉價值 ≈ 手數 × 100,000 × 中間價 ÷ 匯率<br>成本佔持倉 = 總成本 ÷ 持倉價值 × 100%<br>點差 > 3 點時短線交易成本壓力較大，需評估策略頻率</div>
       <div class="formula-desc tb-bi"><span class="t-zh">輸入交易手數、點差與每點價值，計算外匯交易的點差成本與總交易費用，用於刷單與高頻交易的成本控制</span><span class="t-en">Cost of the bid-ask spread in forex</span></div>
     </div>
 
@@ -152,7 +152,7 @@
 
     <div class="input-row">
       <div>
-        <label for="quoteUsdRate">報價貨幣兌USD匯率</label>
+        <label for="quoteUsdRate">1 USD 兌報價貨幣數（如 JPY 150）</label>
         <input type="number" id="quoteUsdRate" value="1" step="0.0001" min="0" oninput="calc()" placeholder="如 1">
       </div>
       <div>
@@ -163,11 +163,11 @@
 
     <div class="input-row">
       <div>
-        <label for="swap">隔夜利息（USD/手/天）</label>
+        <label for="swap">隔夜利息（USD/手/天，負=付出、正=收取）</label>
         <input type="number" id="swap" value="-3.5" step="0.1" oninput="calc()" placeholder="如 -3.5">
       </div>
       <div>
-        <label for="days">持倉天數</label>
+        <label for="days">持倉天數（過夜次數）</label>
         <input type="number" id="days" value="0" step="1" min="0" oninput="calc()" placeholder="如 0">
       </div>
     </div>
@@ -187,8 +187,9 @@
       <h4>🔢 點差成本公式</h4>
       <p><strong>點差</strong> = 賣價 - 買價（轉換為點數）</p>
       <p><strong>點差成本</strong> = 手數 × 點數 × 每點價值</p>
-      <p><strong>每點價值</strong> = 100000 × 點大小 ÷ 報價貨幣兌USD匯率</p>
-      <p><strong>總成本</strong> = 點差成本 + 佣金 + 隔夜利息</p>
+      <p><strong>每點價值</strong> = 100000 × 點大小 ÷ 1 USD 兌報價貨幣數</p>
+      <p><strong>隔夜成本</strong> = −(手數 × 每手隔夜息 × 天數)，負隔夜息轉為正成本，收息抵減成本</p>
+      <p><strong>總成本</strong> = 點差成本 + 每手往返佣金 × 手數 + 隔夜成本</p>
     </div>
     <div class="ref-card">
       <h4>📊 主要貨幣對典型點差</h4>
@@ -203,7 +204,7 @@
         </tbody>
       </table>
     </div>
-    <div class="tip-box tip-info">點差成本在開倉時即產生（隱性成本）。ECN賬戶點差低但有佣金，標準賬戶無佣金但點差高。隔夜利息為持倉過夜成本。</div>
+    <div class="tip-box tip-info">點差成本在開倉時即產生（隱性成本）。ECN 賬戶點差低但有佣金，標準賬戶無佣金但點差高。隔夜利息按有符號收支換算：負值代表付出、計入成本，正值代表收取、抵減成本。</div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -232,12 +233,12 @@
 <li>券商對比：同一品種不同平臺點差與佣金差異，算每手往返成本選出更優通道。</li>
 <li>持倉預算：給定手數與點差，預估開倉即產生的隱性成本，納入止損空間設計。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">方法</div><div class="dd-ex-body">點差 = Ask − Bid；點差(點) = 點差 ÷ 點大小；每點價值/手 = 100000 × 點大小 ÷ 報價貨幣兌 USD；點差成本 = 手數 × 點差(點) × 每點價值/手；總佣金 = 手數 × 單邊佣金；swap 成本 = 手數 × 每手隔夜息 × 天數；總成本 = 點差成本 + 總佣金 + swap 成本。</div></div>
-<div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">EURUSD、1 手、Ask=1.0852、Bid=1.0850、報價貨幣兌 USD=1、佣金 7/手、隔夜息 −3.5/手、持有 0 天：點差=0.0002，點差(點)=0.0002÷0.0001=2 點；每點/手=100000×0.0001÷1=10；點差成本=1×2×10=20 美元；總佣金=1×7=7；swap 成本=0；總成本=27 美元（若持 1 天隔夜息 −3.5 則再加 −3.5，淨成本 23.5）。</div></div>
+<div class="dd-example"><div class="dd-ex-title">方法</div><div class="dd-ex-body">點差 = Ask − Bid；點差(點) = 點差 ÷ 點大小；每點價值/手 = 100000 × 點大小 ÷ 報價貨幣兌 USD；點差成本 = 手數 × 點差(點) × 每點價值/手；佣金 = 手數 × 每手往返佣金；隔夜現金流 = 手數 × 每手隔夜息 × 天數；隔夜成本 = −隔夜現金流（付出計正、收取計負）；總成本 = 點差成本 + 佣金 + 隔夜成本。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">EURUSD、1 手、Ask=1.0852、Bid=1.0850、報價貨幣兌 USD=1、每手往返佣金 7、隔夜息 −3.5/手/天、持有 0 天：點差=0.0002，點差(點)=0.0002÷0.0001=2 點；每點/手=100000×0.0001÷1=10；點差成本=1×2×10=20 美元；佣金=1×7=7；隔夜現金流=0；總成本=27 美元。若持有 1 天，隔夜現金流=−3.5（付出），隔夜成本=+3.5，總成本=20+7+3.5=30.5 美元；若隔夜息為 +3.5（收取），總成本=20+7−3.5=23.5 美元。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
 <dt>點差成本和佣金哪個更該關注？</dt><dd>都該關注。點差是開倉即扣的隱性成本，佣金是經紀商明示費用，高頻/刷單策略下點差往往主導總成本，應選低點差賬戶。</dd>
-<dt>隔夜利息（swap）為負說明什麼？</dt><dd>負號代表持倉過夜需付息（如買入高息貨幣/賣出低息貨幣則可能為正）；本例 −3.5 表示每手每天淨付 3.5 單位，長線持倉需把 swap 計入成本。</dd>
+<dt>隔夜利息（swap）為負說明什麼？</dt><dd>負號代表持倉過夜需付息，正號代表收取。本工具把有符號 swap 換算成成本：付出計正成本、收取計負成本。本例 −3.5/手/天、1 手、1 天 ⇒ 隔夜成本 3.5；總成本 = 20 + 7 + 3.5 = 30.5。若 swap=+3.5，則總成本 = 20 + 7 − 3.5 = 23.5。</dd>
 </dl>
 </div>
 </section>
@@ -295,8 +296,8 @@ function onPairChange(){
   document.getElementById('bid').value = sp[1];
   if(quote === 'USD') document.getElementById('quoteUsdRate').value = 1;
   else if(quote === 'JPY') document.getElementById('quoteUsdRate').value = 150;
-  else if(quote === 'CHF') document.getElementById('quoteUsdRate').value = 1.13;
-  else if(quote === 'CAD') document.getElementById('quoteUsdRate').value = 0.74;
+  else if(quote === 'CHF') document.getElementById('quoteUsdRate').value = 0.885;
+  else if(quote === 'CAD') document.getElementById('quoteUsdRate').value = 1.355;
   calc();
 }
 
@@ -323,12 +324,14 @@ function calc(){
   var pipValuePerLot = 100000 * pipSize / quoteUsdRate;
   var spreadCost = lots * spreadPips * pipValuePerLot;
   var totalCommission = lots * commission;
-  var swapCost = lots * swap * days;
+  var swapCashflow = lots * swap * days;
+  var swapCost = -swapCashflow;
   var totalCost = spreadCost + totalCommission + swapCost;
 
+  var statTotalLabel = totalCost >= 0 ? '总交易成本（净）' : '净收益（隔夜收入）';
   var statHtml = '<div class="stat-card"><div class="val">' + spreadPips.toFixed(1) + '</div><div class="lbl">点差(点)</div></div>'
     + '<div class="stat-card"><div class="val">$' + ToolBox.formatNumber(spreadCost, 2) + '</div><div class="lbl">点差成本</div></div>'
-    + '<div class="stat-card"><div class="val">$' + ToolBox.formatNumber(totalCost, 2) + '</div><div class="lbl">总交易成本</div></div>';
+    + '<div class="stat-card"><div class="val">$' + ToolBox.formatNumber(Math.abs(totalCost), 2) + '</div><div class="lbl">' + statTotalLabel + '</div></div>';
   const __g3=statHtml;document.getElementById('statGrid').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
 
   var html = '<h3 style="margin-bottom:10px;font-size:15px;">📋 成本明细</h3>';
@@ -343,17 +346,29 @@ function calc(){
   html += '<p>点差成本 = ' + lots + ' × ' + spreadPips.toFixed(1) + ' × $' + ToolBox.formatNumber(pipValuePerLot, 4) + ' = <strong style="color:var(--danger);">$' + ToolBox.formatNumber(spreadCost, 2) + '</strong></p>';
   html += '<hr style="border:none;border-top:1px solid var(--border);margin:10px 0;">';
   html += '<p style="font-weight:600;">其他费用：</p>';
-  html += '<p>佣金 = ' + lots + ' × $' + commission + ' = <strong>$' + ToolBox.formatNumber(totalCommission, 2) + '</strong></p>';
-  if(days > 0){
-    html += '<p>隔夜利息 = ' + lots + ' × $' + swap + ' × ' + days + '天 = <strong style="color:' + (swapCost >= 0 ? 'var(--danger)' : 'var(--success)') + ';">$' + ToolBox.formatNumber(swapCost, 2) + '</strong></p>';
+  html += '<p>佣金（每手往返）= ' + lots + ' × $' + commission + ' = <strong>$' + ToolBox.formatNumber(totalCommission, 2) + '</strong></p>';
+  if(days > 0 && swap < 0){
+    html += '<p>隔夜利息支出 = ' + lots + ' × $' + Math.abs(swap) + ' × ' + days + '天 = <strong style="color:var(--danger);">$' + ToolBox.formatNumber(swapCost, 2) + '</strong>（计入成本）</p>';
+  } else if(days > 0 && swap > 0){
+    html += '<p>隔夜利息收入 = ' + lots + ' × $' + swap + ' × ' + days + '天 = <strong style="color:var(--success);">$' + ToolBox.formatNumber(-swapCost, 2) + '</strong>（抵减成本）</p>';
+  } else if(days > 0){
+    html += '<p>隔夜利息 = $0.00（每手隔夜息为 0）</p>';
+  } else {
+    html += '<p>隔夜利息 = $0.00（持有 0 天，未产生过夜利息）</p>';
   }
   html += '<hr style="border:none;border-top:1px solid var(--border);margin:10px 0;">';
-  html += '<p style="font-size:18px;font-weight:700;color:var(--primary);">总交易成本 = $' + ToolBox.formatNumber(spreadCost, 2) + ' + $' + ToolBox.formatNumber(totalCommission, 2) + ' + $' + ToolBox.formatNumber(swapCost, 2) + ' = $' + ToolBox.formatNumber(totalCost, 2) + '</p>';
+  var swapTerm = swapCost >= 0 ? ' + $' + ToolBox.formatNumber(swapCost, 2) : ' - $' + ToolBox.formatNumber(-swapCost, 2);
+  var costLabel = totalCost >= 0 ? '总交易成本' : '净收益（隔夜收入大于点差与佣金）';
+  html += '<p style="font-size:18px;font-weight:700;color:var(--primary);">' + costLabel + ' = $' + ToolBox.formatNumber(spreadCost, 2) + ' + $' + ToolBox.formatNumber(totalCommission, 2) + swapTerm + ' = $' + ToolBox.formatNumber(Math.abs(totalCost), 2) + '</p>';
   // 成本占比
   var positionValue = lots * 100000 * (ask + bid) / 2 / (sel.value.substr(0,3) === 'USD' ? 1 : quoteUsdRate);
   var costPct = positionValue > 0 ? totalCost / positionValue * 100 : 0;
   html += '<p>持仓价值 ≈ $' + ToolBox.formatNumber(positionValue, 0) + '</p>';
-  html += '<p>成本占持仓 = <strong>' + costPct.toFixed(4) + '%</strong></p>';
+  if(costPct >= 0){
+    html += '<p>成本占持仓 = <strong>' + costPct.toFixed(4) + '%</strong></p>';
+  } else {
+    html += '<p>净收益占持仓 = <strong style="color:var(--success);">' + Math.abs(costPct).toFixed(4) + '%</strong></p>';
+  }
   if(spreadPips > 3){
     html += '<div class="tip-box tip-warn">点差较大(' + spreadPips.toFixed(1) + '点)，短线交易成本压力较大。</div>';
   }

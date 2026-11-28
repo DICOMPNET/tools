@@ -24,7 +24,7 @@
 <link rel="canonical" href="https://tools.dicomp.net/zh-tw/guides/audio-guide-timer-guide.html">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"導覽時長匹配 使用指南","description":"輸入展品數量與各展品講解時長（或按平均時長快速估算），計算語音導覽總時長並與觀眾可用時間匹配。典型場景包括：團隊講解排程時，按展品數、單件講解時長、移動與開場時間估算總時長，判斷是否在可用時間內並給出取捨建議；個性化導覽（逐件設定時長）場景下，列出每件展品時長佔比與累計時間。","author":{"@type":"Organization","name":"ToolBox"},"datePublished":"2026-09-16","dateModified":"2026-09-16","mainEntityOfPage":{"@type":"WebPage","@id":"https://tools.dicomp.net/zh-tw/guides/audio-guide-timer-guide.html"},"image":"https://tools.dicomp.net/og-image.png","publisher":{"@type":"Organization","name":"ToolBox","logo":{"@type":"ImageObject","url":"https://tools.dicomp.net/logo-512.png"}},"inLanguage":"zh-TW"}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"ToolBox","item":"https://tools.dicomp.net/zh-tw/"},{"@type":"ListItem","position":2,"name":"使用指南","item":"https://tools.dicomp.net/zh-tw/guides/index.html"},{"@type":"ListItem","position":3,"name":"導覽時長匹配 使用指南","item":"https://tools.dicomp.net/zh-tw/guides/audio-guide-timer-guide.html"}]}</script>
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"超時了怎麼調？","acceptedAnswer":{"@type":"Answer","text":"工具給出三選一：①縮短單件講解至 ⌊(單件×可用−移動−開場)÷件數⌋ 秒；②減少講解展品至 ⌊(可用−開場)÷(單件+移動)⌋ 件；③壓縮移動時間。優先砍冗餘展品與移動間隙，保留重點館。"}},{"@type":"Question","name":"平均每件時長怎麼用？","acceptedAnswer":{"@type":"Answer","text":"每件可用 = ⌊可用秒÷展品數⌋，用於快速判斷當前單件設定是否超標；若某件遠超均值，優先壓縮它。逐件檢視還能看到每件佔比與累計時間，便於精準刪減。"}}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"超時了怎麼調？","acceptedAnswer":{"@type":"Answer","text":"工具給出三選一：①縮短單件講解至 ⌊(可用−移動−開場)÷件數⌋ 秒；②減少講解展品至 ⌊(可用−開場+移動)÷(單件+移動)⌋ 件；③壓縮移動時間。優先砍冗餘展品與移動間隙，保留重點館。"}},{"@type":"Question","name":"平均每件時長怎麼用？","acceptedAnswer":{"@type":"Answer","text":"每件可用 = ⌊(可用秒−移動−開場)÷展品數⌋，不足 0 取 0，用於快速判斷當前單件設定是否超標；若某件遠超均值，優先壓縮它。逐件檢視還能看到每件佔比與累計時間，便於精準刪減。"}},{"@type":"Question","name":"輸入為空或小數時為什麼不出結果？","acceptedAnswer":{"@type":"Answer","text":"快速模式的展品數必須是 ≥1 的整數，單件講解、移動和開場結束必須是非負整數秒；空值不再當作 0，小數也不再被 parseInt 截斷。缺項或越界時只顯示修正提示，避免用錯誤引數排出看似合理的時長。"}}]}</script>
 <style>
 :root{--primary:#FF6B35;--text:#1F2937;--muted:#6B7280;--border:#E5E7EB;--bg:#FFFAF7;}
 *{box-sizing:border-box;}
@@ -73,15 +73,23 @@ li{margin:8px 0;}
 <nav class="breadcrumb" aria-label="麵包屑導航"><a href="https://tools.dicomp.net/">ToolBox</a> / <a href="https://tools.dicomp.net/guides/index.html">使用指南</a> / <span>導覽時長匹配 使用指南</span></nav>
 <main>
 <h1>導覽時長匹配 使用指南</h1>
-<p class="lead">輸入展品數量與各展品講解時長（或按平均時長快速估算），計算語音導覽總時長並與觀眾可用時間匹配；超出時給出刪減或提速調整方案。用於博物館策展與講解排期。</p>
+<p class="lead">按展品數、單件講解、移動與開場結束時間估算導覽總時長，並與觀眾可用時間對比；超時用負號顯示差值，缺項、負數或小數會提示修正而不被截斷後繼續排程。</p>
 <h2>功能說明</h2>
-<p>輸入展品數量與各展品講解時長（或按平均時長快速估算），計算語音導覽總時長並與觀眾可用時間匹配；超出時給出刪減或提速調整方案。用於博物館策展與講解排期。</p>
+<p>快速模式用“展品數×單件講解＋移動段數×單段移動＋開場結束”求總秒數，再與可用分鐘×60 比較。展品數必須是 ≥1 的整數，單件講解、移動和開場結束必須是非負整數秒，可用時間必須大於 0；任一缺項或越界都只顯示修正提示。明細模式逐件累加實際秒數，並給出佔比與累計時間。</p>
 <h2>典型使用場景</h2>
-<ul><li>團隊講解排程時，按展品數、單件講解時長、移動與開場時間估算總時長，判斷是否在可用時間內並給出取捨建議。</li><li>個性化導覽（逐件設定時長）場景下，列出每件展品時長佔比與累計時間，對比可用時間識別超時環節。</li><li>超時應急時，給出縮短單件講解、減少展品數或壓縮移動時間三種調控路徑，保證團隊整體節奏。</li></ul>
+<ul><li>團隊講解前快速判斷 30 件展品、每件 90 秒是否能在 90 分鐘內完成。</li><li>逐件編排重點館講解，檢視哪一件佔用了最多時間。</li><li>超時後按建議縮短單件、減少件數或壓縮移動時間。</li></ul>
+<h2>操作步驟</h2>
+<ol><li>快速模式填寫展品數、單件講解、移動、開場結束與可用時間。</li><li>點選“計算”，檢視總時長、可用時間、帶正負號的時間差與每件可用時長。</li><li>超時時閱讀三條調整建議；需要逐件核算時切到明細模式。</li><li>明細模式逐行填寫展品名與整數秒數，再對比可用時間。</li></ol>
 <h2>算例參考</h2>
-<ul><li><strong>團隊講解時長核算示例</strong>：某團隊 5 件展品、單件講解 120 秒、移動 30 秒/段、開場結束 60 秒、可用 20 分鐘。總時長 = 5×120 + 4×30 + 60 = 780 秒（13 分鐘）；可用 20×60 = 1200 秒；時間差 +420 秒（充裕 7 分鐘）；每件可用 ⌊1200÷5⌋ = 240 秒。逐件場景：青銅鼎120/編鐘150/玉璧90/陶俑100/金銀器110，合計 570 秒，可用 10 分鐘（600 秒）時僅餘 30 秒，須壓縮單件或減件。</li></ul>
+<ul><li>5 件、單件 120 秒、移動 30 秒/段、開場結束 60 秒、可用 20 分鐘：總時長 780 秒，時間差 +420 秒，每件可用 204 秒。</li><li>同樣引數但可用 10 分鐘：時間差顯示 −180 秒，不再用無符號的“180 秒”混淆剩餘與超時。</li><li>展品數填 2.5 或留空：工具提示必須為 ≥1 的整數，不計算總時長。</li></ul>
 <h2>注意事項</h2>
-<p>本工具純前端執行，輸入內容不上傳伺服器；結果為按上述口徑得到的<strong>理論估算值</strong>。實際應用受裝置引數、測量條件與當地規範影響，請以裝置銘牌、檢測報告與現行標準為準，重大決策建議諮詢專業人士。</p>
+<p>估算只覆蓋講解、移動與開場結束，不含排隊、互動、拍照和臨時停留。時間差為正表示剩餘，為負表示超時；明細模式的每件時長也必須是非負整數秒，否則整個結果不生成。</p>
+<dl class="faq">
+<dt>超時了怎麼調？</dt><dd>優先縮短單件講解至可用時間扣除移動與開場後的均值，其次減少講解展品數，最後壓縮移動時間；保留重點館。</dt>
+<dt>時間差前面的負號是什麼意思？</dt><dd>負號表示總時長超過可用時間，例如 −180 秒就是超時 3 分鐘；正號表示還有剩餘。</dt>
+<dt>為什麼空值或小數不出結果？</dt><dd>空值不再當作 0，小數也不再被 parseInt 截斷；工具要求展品數為 ≥1 的整數、其餘時長為非負整數秒，避免錯誤引數排出看似合理的時長。</dt>
+<dt>每件可用時長怎麼用？</dt><dd>它是可用秒數扣除移動與開場後除以展品數的下限值（不足 0 取 0）；某件遠高於均值時優先壓縮它，明細檢視還能看到佔比與累計時間。</dt>
+</dl>
 <div class="related">
 <h3>相關工具</h3>
 <a class="tool-chip" href="https://tools.dicomp.net/tools/museum/era-comparator.html">歷史朝代對比</a>
@@ -91,7 +99,7 @@ li{margin:8px 0;}
 </div>
 <dl class="faq">
 <dt>超時了怎麼調？</dt><dd>工具給出三選一：①縮短單件講解至 ⌊(單件×可用−移動−開場)÷件數⌋ 秒；②減少講解展品至 ⌊(可用−開場)÷(單件+移動)⌋ 件；③壓縮移動時間。優先砍冗餘展品與移動間隙，保留重點館。</dd>
-<dt>平均每件時長怎麼用？</dt><dd>每件可用 = ⌊可用秒÷展品數⌋，用於快速判斷當前單件設定是否超標；若某件遠超均值，優先壓縮它。逐件檢視還能看到每件佔比與累計時間，便於精準刪減。</dd>
+<dt>平均每件時長怎麼用？</dt><dd>每件可用 = ⌊(可用秒−移動−開場)÷展品數⌋，不足 0 取 0，用於快速判斷當前單件設定是否超標；若某件遠超均值，優先壓縮它。逐件檢視還能看到每件佔比與累計時間，便於精準刪減。</dd>
 </dl>
 <div class="related"><h3>相關工具</h3><a class="tool-chip" href="/zh-tw/tools/museum/audio-guide-timer.html">導覽時長匹配</a></div>
 <div class="back"><a href="https://tools.dicomp.net/tools/museum/audio-guide-timer.html">→ 開啟導覽時長匹配工具</a></div>

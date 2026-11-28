@@ -51,7 +51,7 @@
 
 
 <meta name="title-en" content="Hot Pot Ingredient Portion Calculator">
-<meta name="desc-en" content="Hot pot is estimated per person: meat 200 g, balls/slides 100 g, vegetables &amp; mushrooms 150 g, staples 80 g, dipping sauce 30 g; with more people the shared…">
+<meta name="desc-en" content="Allocate a 600 g per-person total by style: meat lover 55% meat/25% vegetables, balanced 40%/40%, vegetarian 20%/60%; soy products are fixed at 15% of total…">
 
 
 <link rel="preload" as="style" href="../../../css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
@@ -113,8 +113,8 @@
 
         <div class="formula-box">
       <div class="formula-title">📐 計算公式 / 原理</div>
-      <div class="formula-eq">肉類 ≈ 人數 × 200 g；丸滑 ≈ 人數 × 100 g；蔬菜菌菇 ≈ 人數 × 150 g；主食 ≈ 人數 × 80 g；蘸料 ≈ 人數 × 30 g</div>
-      <div class="formula-desc">火鍋按人均估算：肉類 200 g、丸滑類 100 g、蔬菜菌菇 150 g、主食 80 g、蘸料 30 g；人數較多時因共享鍋底與拼盤可整體下浮 10%–15%，嗜肉人群則上調肉類係數；鍋底與飲品另按人數與口味單獨折算。</div>
+      <div class="formula-eq">總食材 = 人數 × 600 g × 食量係數；肉類佔比按口味 55%/40%/20%；蔬菜佔比 25%/40%/60%；豆製品按總量 15%；主食 80 g/人；湯底 250 ml/人</div>
+      <div class="formula-desc">按人均 600g 食材總量與口味比例分配：無肉不歡肉類 55%/蔬菜 25%，葷素均衡 40%/40%，素食為主 20%/60%；豆製品固定佔總量 15%，其餘按蔬菜計。主食與湯底按人數和食量係數單算。丸滑可計入肉類預算，蘸料按口味另備，兩者不單列。人數須為整數，本頁不做小數向下取整。</div>
     </div>
 <div class="input-row">
       <div>
@@ -172,7 +172,7 @@
 <li>葷素搭配：按人均參考量平衡一餐結構，兼顧不同食量。</li>
 <li>飲品預算：含酒水時按人均估算總飲用量，便於採購。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">方法（人均參考量）</div><div class="dd-ex-body">人均肉 400g、蔬菜 300g、豆製品 150g、主食 100g；含飲品時人均 700ml。總量 = 人均量 × 人數；辣度/口味可在 ±10%~20% 微調。雙拼/鴛鴦鍋按兩份鍋底分別計。</div></div>
+<div class="dd-example"><div class="dd-ex-title">4 人葷素均衡鍋的食材總量</div><div class="dd-ex-body">4 人、食量正常（係數 1.0）、葷素均衡：總食材 = 4×600 = 2,400 g；肉類 40% = 960 g（丸滑可計入），蔬菜 40% = 960 g，豆製品 15% = 360 g；主食 4×80 = 320 g，湯底 4×250 = 1,000 ml。若選“無肉不歡”，肉類 55% = 1,320 g、蔬菜 25% = 600 g；食量小系數 0.85 時各項同乘 0.85。蘸料按口味另備，不計入總食材。</div></div>
 <div class="dd-example"><div class="dd-ex-title">算例（演示）</div><div class="dd-ex-body">8 人、麻辣鍋、含飲品：肉=8×400=3200g(3.2kg)、蔬菜=8×300=2400g(2.4kg)、豆製品=8×150=1200g(1.2kg)、主食=8×100=800g、飲品=8×700=5600ml(5.6L，約 3 瓶 2L 裝)。若改清湯+麻辣雙拼則肉類按 1.2 倍上浮。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
@@ -257,8 +257,9 @@ function num(id){const v=parseFloat(document.getElementById(id).value);return is
 function escH(s){var d=document.createElement('div');const __g0=s==null?'':String(s);d.textContent=(typeof __g0==='number'?(isFinite(__g0)?__g0:'—'):String(__g0).replace(/Infinity|NaN/g,'—'));return d.innerHTML;}
 function fmtMoney(n){return n.toLocaleString('zh-CN',{minimumFractionDigits:2,maximumFractionDigits:2});}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
-function calcTool(){const people=Math.floor(num('people'));
-   if(people<=0){ToolBox.setResult('result','<p class="tip-error">请输入有效人数。</p>');return;}
+function calcTool(){const pv=num('people');
+   if(!isFinite(pv)||!Number.isInteger(pv)||pv<1||pv>30){ToolBox.setResult('result','<p class="tip-error">用餐人数须为 1–30 的整数，不能填小数。</p>');return;}
+   const people=pv;
    const style=document.getElementById('style').value;
    const intensity=document.getElementById('intensity').value;
    const k={light:0.85,normal:1.0,heavy:1.2}[intensity]||1.0;
@@ -279,10 +280,10 @@ function calcTool(){const people=Math.floor(num('people'));
      [staple+' g','主食'],
      [soup+' ml','汤底用量']
    ]);
-   html += '<p style="font-size:13px;color:var(--text-muted);margin-top:8px;">按人均 600g 食材、'+({meat:'无肉不欢',balance:'荤素均衡',veg:'素食为主'}[style]||'荤素均衡')+' 比例估算。肉类可再细分牛羊肉卷、丸滑等，蔬菜按叶菜 70%/根茎 30% 搭配。</p>';
+   html += '<p style="font-size:13px;color:var(--text-muted);margin-top:8px;">按人均 600g 食材、'+({meat:'无肉不欢',balance:'荤素均衡',veg:'素食为主'}[style]||'荤素均衡')+' 比例估算：肉类含牛羊肉卷与丸滑，蔬菜按叶菜 70%/根茎 30% 搭配；蘸料按口味另备，未计入总食材，汤底按 250ml/人估算。</p>';
 
    // 锅底类型适配参考
-   html += '<div style="margin-top:12px;font-size:13px;"><b>锅底与蘸料适配参考</b></div>'+
+   html += '<div style="margin-top:12px;font-size:13px;"><b>锅底适配参考（蘸料按口味另备，未计入总食材）</b></div>'+
      '<table class="csv-prev" style="margin-top:6px;border-collapse:collapse;width:100%;font-size:12.5px;">'+
      '<tr><th style="border:1px solid #d1d5db;padding:5px 8px;background:#f3f4f6;">锅底</th>'+
      '<th style="border:1px solid #d1d5db;padding:5px 8px;background:#f3f4f6;">特点</th>'+

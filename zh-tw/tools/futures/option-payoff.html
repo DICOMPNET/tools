@@ -208,12 +208,12 @@
 <li><a class="term-link" href="/zh-tw/tools/accounting/break-even-units.html">盈虧平衡點</a>測算</li>
 <li>買方/賣方風險對比</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">方法</div><div class="dd-ex-body">看漲買方損益 = max(S_T−K,0)−權利金，<a class="term-link" href="/zh-tw/tools/finance/break-even-calculator.html">盈虧平衡</a>點 = K+權利金，最大虧損為權利金、最大盈利理論無限；看跌與賣方規則對稱。</div></div>
-<div class="dd-example"><div class="dd-ex-title">算例（演示）</div><div class="dd-ex-body">看漲買方 K=100、權利金 5 → 盈虧平衡點 105；標的小於 100 虧損封頂 5（權利金），大於 105 後每漲 1 賺 1，盈利理論無限。賣方則盈利封頂 5、虧損理論無限。僅供策略理解，非投資建議。</div></div>
+<div class="dd-example"><div class="dd-ex-title">方法</div><div class="dd-ex-body">看漲買方損益 = max(S_T−K,0)−權利金，BEP=K+p；看跌買方 BEP=K−p。p≥K 的看跌在 S≥0 內沒有正收益，BEP≤0 表示需負價格才可達，頁面標為“不可達”而不是負盈利；賣方風險與買方相反，圖表只按非負標的價格繪製。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例（演示）</div><div class="dd-ex-body">看漲買方 K=100、權利金 5 → BEP=105，標的小於 100 虧損封頂 5，大於 105 後每漲 1 賺 1。看跌買方 K=100、權利金 120 → BEP=−20，S≥0 時最高損益為 −20（S=0），任何正價格都無法盈利；若誤標 BEP=20 會把虧損策略看成盈利策略。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
 <dt>買方一定比賣方好？</dt><dd>不一定；買方虧有限但勝率常低，賣方勝率高但尾部風險大，按觀點與資金匹配。</dd>
-<dt>盈虧平衡點含權利金嗎？</dt><dd>含。看漲買方須漲過 K+權利金才回本，這是常被忽略的成本。</dd>
+<dt><a class="term-link" href="/zh-tw/tools/finance/break-even-calculator.html">盈虧平衡</a>點含權利金嗎？</dt><dd>含。看漲買方須漲過 K+權利金才回本，這是常被忽略的成本。</dd>
 </dl>
 </div>
 </section>
@@ -265,12 +265,22 @@ function switchType(type, side, btn){
   document.querySelectorAll('.type-tab').forEach(function(t){
     t.classList.toggle('active', t.dataset.type === type && t.dataset.side === side);
   });
+  setStrategy(type, side);
+}
+function setStrategy(type, side){
+  currentType = type;
+  currentSide = side;
   calc();
 }
 
+function isFiniteNum(v){ return typeof v === 'number' && isFinite(v); }
 function getVal(id){
   var el = document.getElementById(id);
-  return el ? (+el.value || 0) : 0;
+  if(!el) return null;
+  var raw = String(el.value == null ? '' : el.value).trim();
+  if(raw === '') return null;
+  var n = Number(raw);
+  return isFinite(n) ? n : NaN;
 }
 
 function profitAt(s, K, p, type, side){
@@ -281,34 +291,58 @@ function profitAt(s, K, p, type, side){
   return 0;
 }
 
+function payoffSummary(type, side, K, p){
+  var bep = type === 'call' ? K + p : K - p;
+  var bepText = bep > 0 ? bep.toFixed(2) : (Math.abs(bep) < 1e-9 ? '0（仅 S=0 边界）' : '不可达（需负价格）');
+  var maxProfit, maxLoss, maxProfitText, maxLossText, boundaryNote = '';
+  if(type === 'call' && side === 'buy'){ maxProfit = Infinity; maxLoss = p; maxProfitText = '理论无限'; maxLossText = '¥' + ToolBox.formatNumber(p, 2); }
+  else if(type === 'call' && side === 'sell'){ maxProfit = p; maxLoss = Infinity; maxProfitText = '¥' + ToolBox.formatNumber(p, 2); maxLossText = '理论无限'; }
+  else if(type === 'put' && side === 'buy'){
+    maxProfit = K - p; maxLoss = p;
+    if(K - p > 0){ maxProfitText = '¥' + ToolBox.formatNumber(K - p, 2); maxLossText = '¥' + ToolBox.formatNumber(p, 2); }
+    else { maxProfitText = '无正收益'; maxLossText = '¥' + ToolBox.formatNumber(p, 2); boundaryNote = 'S=0 时最高损益为 ¥' + ToolBox.formatNumber(K - p, 2) + '，在任何 S≥0 价格下都无法盈利。'; }
+  }
+  else {
+    maxProfit = p; maxLoss = K - p;
+    if(K - p > 0){ maxProfitText = '¥' + ToolBox.formatNumber(p, 2); maxLossText = '¥' + ToolBox.formatNumber(K - p, 2); }
+    else { maxProfitText = '¥' + ToolBox.formatNumber(p, 2); maxLossText = '无'; boundaryNote = 'S=0 时最低损益为 ¥' + ToolBox.formatNumber(p - K, 2) + '，在 S≥0 范围内不会亏损。'; }
+  }
+  return {bep:bep, bepText:bepText, maxProfit:maxProfit, maxLoss:maxLoss, maxProfitText:maxProfitText, maxLossText:maxLossText, boundaryNote:boundaryNote};
+}
+
+var __option_payoffOk=false;
 function calc(){
   var K = getVal('strike');
   var p = getVal('premium');
-  if(K <= 0 || p < 0){
+  if(!isFiniteNum(K) || K <= 0 || !isFiniteNum(p) || p < 0){
+    __option_payoffOk=false;
     document.getElementById('statGrid').innerHTML='';
-    document.getElementById('result').innerHTML='<p style="color:var(--danger);">请输入有效的行权价和权利金</p>';
+    document.getElementById('result').innerHTML='<p style="color:var(--danger);">请输入有效的行权价和权利金；数值不能为空</p>';
+    var ch=document.getElementById('option_payoffChart'); if(ch) ch.innerHTML='';
+    var cv=document.getElementById('chart');
+    if(cv){ try{ var cx=cv.getContext('2d'); cx.clearRect(0,0,cv.width,cv.height); }catch(e){} }
+    var tb=document.getElementById('option_payoffTable'); if(tb) tb.innerHTML='';
     return;
   }
-  var bep = currentType === 'call' ? K + p : K - p;
+  __option_payoffOk=true;
+  var ps = payoffSummary(currentType, currentSide, K, p);
+  var bep = ps.bep, bepText = ps.bepText;
+  var maxProfit = ps.maxProfit, maxLoss = ps.maxLoss;
+  var maxProfitText = ps.maxProfitText, maxLossText = ps.maxLossText, boundaryNote = ps.boundaryNote;
   var typeName = (currentType === 'call' ? '看涨' : '看跌') + (currentSide === 'buy' ? '买方' : '卖方');
 
-  var maxProfit, maxLoss;
-  if(currentType === 'call' && currentSide === 'buy'){ maxProfit = Infinity; maxLoss = p; }
-  else if(currentType === 'put' && currentSide === 'buy'){ maxProfit = K - p; maxLoss = p; }
-  else if(currentType === 'call' && currentSide === 'sell'){ maxProfit = p; maxLoss = Infinity; }
-  else { maxProfit = p; maxLoss = K - p; }
-
-  var statHtml = '<div class="stat-card"><div class="val">' + bep.toFixed(2) + '</div><div class="lbl">盈亏平衡点</div></div>'
-    + '<div class="stat-card"><div class="val" style="color:var(--success);">' + (isFinite(maxProfit) ? '¥' + ToolBox.formatNumber(maxProfit, 2) : '无限') + '</div><div class="lbl">最大盈利</div></div>'
-    + '<div class="stat-card"><div class="val" style="color:var(--danger);">' + (isFinite(maxLoss) ? '¥' + ToolBox.formatNumber(maxLoss, 2) : '无限') + '</div><div class="lbl">最大亏损</div></div>';
+  var statHtml = '<div class="stat-card"><div class="val">' + bepText + '</div><div class="lbl">盈亏平衡点</div></div>'
+    + '<div class="stat-card"><div class="val" style="color:var(--success);">' + maxProfitText + '</div><div class="lbl">最大盈利</div></div>'
+    + '<div class="stat-card"><div class="val" style="color:var(--danger);">' + maxLossText + '</div><div class="lbl">最大亏损</div></div>';
   const __g3=statHtml;document.getElementById('statGrid').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
 
   var html = '<h3 style="margin-bottom:10px;font-size:15px;">📋 损益分析</h3>';
   html += '<p>策略：<strong>' + typeName + '</strong></p>';
   html += '<p>行权价 K = <strong>' + K + '</strong> | 权利金 p = <strong>' + p + '</strong></p>';
-  html += '<p>盈亏平衡点 = <strong style="color:var(--primary);">' + bep.toFixed(2) + '</strong></p>';
-  html += '<p>最大盈利：<strong style="color:var(--success);">' + (isFinite(maxProfit) ? '¥' + ToolBox.formatNumber(maxProfit, 2) : '理论无限') + '</strong></p>';
-  html += '<p>最大亏损：<strong style="color:var(--danger);">' + (isFinite(maxLoss) ? '¥' + ToolBox.formatNumber(maxLoss, 2) : '理论无限') + '</strong></p>';
+  html += '<p>盈亏平衡点 = <strong style="color:var(--primary);">' + bepText + '</strong></p>';
+  html += '<p>最大盈利：<strong style="color:var(--success);">' + maxProfitText + '</strong></p>';
+  html += '<p>最大亏损：<strong style="color:var(--danger);">' + maxLossText + '</strong></p>';
+  if(boundaryNote) html += '<div class="tip-box tip-warn">' + boundaryNote + ' 图表按非负标的价格绘制。</div>';
   if(currentSide === 'buy'){
     html += '<p style="font-size:13px;color:var(--text-light);">买方亏损有限（最多权利金），适合方向性交易。</p>';
   } else {
@@ -316,7 +350,7 @@ function calc(){
   }
   const __g4=html;document.getElementById('result').innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
 
-  drawChart(K, p, bep);
+  drawChart(K, p, bep > 0 ? bep : null);
 }
 
 function drawChart(K, p, bep){
@@ -448,7 +482,7 @@ function drawChart(K, p, bep){
   ctx.stroke();
 
   // 盈亏平衡点
-  if(bep >= minS && bep <= maxS){
+  if(bep !== null && bep >= minS && bep <= maxS){
     var bepX = pad.left + ((bep - minS) / (maxS - minS)) * cw;
     ctx.strokeStyle = '#4caf50';
     ctx.lineWidth = 2;
@@ -500,6 +534,7 @@ function drawChart(K, p, bep){
 }
 
 function copyResult(){
+  if(!__option_payoffOk){ try{ ToolBox.showToast('请先填写完整有效参数'); }catch(e){} return; }
   var text = document.getElementById('result').innerText;
   ToolBox.copyText(text, i18nText('msg439'));
 }
@@ -653,6 +688,7 @@ function __option_payoffRender(keys,rk,en){
     }catch(e3){}
 }
 function __option_payoffExtras(){
+  if(!__option_payoffOk) return;
     if (typeof TBKit === 'undefined') return;
     if (__option_payoff_skip) return;
     var snap=__option_payoffSnap();
@@ -683,6 +719,7 @@ function __option_payoffExtras(){
     __option_payoffRender(keys,rk,en);
 }
 function __option_payoffExport(){
+  if(!__option_payoffOk){ try{ ToolBox.showToast('请先填写完整有效参数'); }catch(e){} return; }
     if (typeof TBKit === 'undefined') return;
     try{
         var box=document.querySelector('#option_payoffTable');

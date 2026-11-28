@@ -66,7 +66,7 @@
 
 <script src="../../../js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"McKee 公式裡的 ECT 和 t 是什麼？","acceptedAnswer":{"@type":"Answer","text":"ECT 是邊壓強度（Edge Crush Test，N/m 或 kN/m），反映紙板立起來的抗壓；t 是紙板總厚度（m）。BCT = 5.87 × ECT × √(Z·t) 是經驗公式，Z 是箱體周長。本工具內建 BC/AC/3A 三檔 ECT 與厚度，也可按實測替換。"}},{"@type":"Question","name":"安全係數 K 為什麼取 3–5？","acceptedAnswer":{"@type":"Answer","text":"K 用於覆蓋倉儲時間導致的強度衰減、溫溼度升高使紙板變軟、堆碼不均勻等因素；乾燥恆溫短途取 3，潮溼/長途/長期倉儲取 4–5。K 越大越安全但越費材料，需結合實際物流條件權衡。"}}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"McKee 公式裡的 ECT 和 t 是什麼？","acceptedAnswer":{"@type":"Answer","text":"ECT 是邊壓強度（Edge Crush Test，N/m 或 kN/m），反映紙板立起來後的抗壓能力；t 是紙板總厚度（m）。BCT = 5.87 × ECT × √(Z·t) 是經驗公式，Z 是箱體周長。本工具內建 BC/AC/3A 三檔 ECT 與厚度，實際應以同批次紙板實測值複核。"}},{"@type":"Question","name":"紙箱長寬高、毛重或安全係數填 0 會怎樣？","acceptedAnswer":{"@type":"Answer","text":"工具會停止計算並指出具體欄位必須大於 0：紙箱長寬高為 0 時箱體周長或單箱高失去意義，單箱毛重或安全係數為 0 會使最大堆碼層數除以零。重量和尺寸不能靠“0”表示未填，只接受有效正數。"}},{"@type":"Question","name":"期望堆碼高度低於單箱高度時怎麼處理？","acceptedAnswer":{"@type":"Answer","text":"工具按 1 層校核，並明確提示目標高度無法容納一層，不能視為目標堆碼方案可行；至少需要等於單箱高度的空間才能放下第一層。需要按目標高度堆碼時，應增加高度或改用更矮的箱型。"}}]}</script>
 <meta property="og:site_name" content="ToolBox">
 <meta name="theme-color" content="#FF6B35">
 <!-- TOOLBOX-HREFLANG -->
@@ -165,7 +165,8 @@
       <li>按 <kbd>Enter</kbd> 快速計算，結果可一鍵複製</li>
       <li>所需抗壓 = (堆碼層數−1) × 單箱重 × g × K</li>
       <li>最大堆碼層數 = 1 + BCT / (單箱重 × g × K)</li>
-      <li>安全係數建議：乾燥倉儲 3，潮溼/長途 4–5</li>
+      <li>安全係數建議：乾燥倉儲 3，潮溼/長途 4–5；K 與單箱毛重必須大於 0</li>
+      <li>期望堆碼高度低於單箱高時按 1 層校核並明確提示目標高度不足；紙箱長寬高必須大於 0</li>
       <li>本工具純前端執行，結果為估算值，實際以實測 BCT 為準</li>
   </ul>
 </div>
@@ -235,7 +236,7 @@ function __tbInputGuardCore(_ids,_labels){
 }
 
 
-function num(id){var v=parseFloat(document.getElementById(id).value);return isNaN(v)?null:v;}
+function num(id){var el=document.getElementById(id);var raw=el?String(el.value==null?'':el.value).trim():'';if(!/^-?(?:\d+(?:\.\d*)?|\.\d+)$/.test(raw))return null;var v=Number(raw);return isFinite(v)?v:null;}
 function setInvalid(el,invalid){
   if(!el)return;
   if(invalid){el.classList.add('input-error');el.setAttribute('aria-invalid','true');}
@@ -244,11 +245,20 @@ function setInvalid(el,invalid){
 var BOARDS={BC:{name:'BC 双瓦楞',ect:6500,t:0.0055},AC:{name:'AC 双瓦楞',ect:8000,t:0.0065},'3A':{name:'3A 三瓦楞',ect:11000,t:0.0090}};
 var g=9.81;
 function calc(){
-    var __ig=__tbInputGuard(['v0', 'v1', 'v2', 'v4', 'v5', 'v6'],["纸箱长 L（mm）", "纸箱宽 W（mm）", "纸箱高 H（mm）", "期望堆码高度（m）", "安全系数 K", "单箱毛重（kg）"]);if(__ig){const __g1=__ig;ToolBox.setResult("res",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
-var L=num('v0'),W=num('v1'),H=num('v2'),bt=document.getElementById('v3').value,stackH=num('v4'),K=num('v5'),wbox=num('v6');
   var ids=['v0','v1','v2','v4','v5','v6'];
-  ids.forEach(function(id){setInvalid(document.getElementById(id),num(id)===null||num(id)<0);});
-  if([L,W,H,stackH,K,wbox].some(function(x){return x===null||x<0;})){document.getElementById('res').innerHTML='<p style="color:var(--danger);">请填写有效的参数</p>';return;}
+  var L=num('v0'),W=num('v1'),H=num('v2'),bt=document.getElementById('v3').value,stackH=num('v4'),K=num('v5'),wbox=num('v6');
+  var res=document.getElementById('res');
+  ids.forEach(function(id){setInvalid(document.getElementById(id),false);});
+  var missing=ids.some(function(id){var el=document.getElementById(id);return !el||String(el.value==null?'':el.value).trim()==='';});
+  if(missing){res.innerHTML='<p style="color:var(--danger);">请完整填写纸箱长、宽、高、期望堆码高度、安全系数和单箱毛重。</p>';return;}
+  var checks=[[L,'v0','纸箱长 L（mm）'],[W,'v1','纸箱宽 W（mm）'],[H,'v2','纸箱高 H（mm）'],[stackH,'v4','期望堆码高度（m）'],[K,'v5','安全系数 K'],[wbox,'v6','单箱毛重（kg）']];
+  for(var ci=0;ci<checks.length;ci++){
+    if(checks[ci][0]===null||!(checks[ci][0]>0)){
+      setInvalid(document.getElementById(checks[ci][1]),true);
+      res.innerHTML='<p style="color:var(--danger);">「'+checks[ci][2]+'」必须大于 0，请填写有效正数后再计算。</p>';
+      return;
+    }
+  }
   var bd=BOARDS[bt];
   var Z=2*(L+W)/1000; // 周长 m
   var t=bd.t; // m
@@ -257,13 +267,14 @@ var L=num('v0'),W=num('v1'),H=num('v2'),bt=document.getElementById('v3').value,s
   var BCTkgf=BCT/g;
   // 期望堆码
   var boxH=H/1000; // m
-  var tiers=Math.max(1,Math.floor(stackH/boxH)); // 总层数
+  var shortTarget=stackH<boxH;
+  var tiers=shortTarget?1:Math.max(1,Math.floor(stackH/boxH)); // 总层数
   var above=tiers-1; // 底箱以上箱数
   var boxN=wbox*g; // 单箱重 N
   var required=above*boxN*K; // 所需抗压 N
   // 最大堆码
   var maxAbove=BCT/(boxN*K);
-  var maxTiers=Math.floor(1+maxAbove);
+  var maxTiers=Math.max(1,Math.floor(1+maxAbove));
   var maxHeight=maxTiers*boxH;
   var safe=BCT>=required;
   const __g3='<div class="data-grid">'+
@@ -280,9 +291,11 @@ var L=num('v0'),W=num('v1'),H=num('v2'),bt=document.getElementById('v3').value,s
       '<tr><td>最大可堆层数</td><td>'+maxTiers+' 层（高 '+maxHeight.toFixed(2)+' m）</td></tr>'+
       '<tr><td>安全系数 K</td><td>'+K.toFixed(1)+'</td></tr>'+
     '</tbody></table>'+
-    '<div class="tip-box '+(safe?'tip-success':'tip-error')+'" style="margin-top:10px;">'+
-      (safe?'安全：BCT '+BCT.toFixed(0)+'N ≥ 所需 '+required.toFixed(0)+'N，当前堆码方案可行。':'不足：BCT '+BCT.toFixed(0)+'N < 所需 '+required.toFixed(0)+'N，需降低堆码高度、改用更强纸板或增加护角。')+
-    '</div>';document.getElementById('res').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
+    (shortTarget?
+      '<div class="tip-box tip-error" style="margin-top:10px;">目标高度不足：期望堆码高度 '+stackH.toFixed(2)+' m 低于单箱高 '+boxH.toFixed(2)+' m，目标高度无法容纳一层。以下按 1 层无上方载荷校核，不能视为目标堆码方案可行；至少需要 '+boxH.toFixed(2)+' m 才能放下第一层。</div>':
+      '<div class="tip-box '+(safe?'tip-success':'tip-error')+'" style="margin-top:10px;">'+
+        (safe?'安全：BCT '+BCT.toFixed(0)+'N ≥ 所需 '+required.toFixed(0)+'N，当前堆码方案可行。':'不足：BCT '+BCT.toFixed(0)+'N < 所需 '+required.toFixed(0)+'N，需降低堆码高度、改用更强纸板或增加护角。')+
+      '</div>');document.getElementById('res').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
   saveHistory();
 }
 function copyRes(){
@@ -496,8 +509,9 @@ else document.addEventListener('DOMContentLoaded', __calc_66Boot);
 <div class="dd-example"><div class="dd-ex-title">算例（箱 400×300×250 mm、BC 雙瓦楞 ECT 6.5 kN/m 厚 5.5 mm、堆 2.5 m、K=3、毛重 12 kg）</div><div class="dd-ex-body">周長 Z = 2×(400 + 300) ÷ 1000 = 1.4 m。BCT = 5.87 × ECT × √(Z × t) = 5.87 × 6500 × √(1.4 × 0.0055) ≈ 3348 N（約 341 kgf）。總層數 = ⌊2.5 ÷ 0.25⌋ = 10 層；所需抗壓 = (層數 − 1) × 單箱重 × g × K = (10 − 1) × 12 × 9.81 × 3 ≈ 3178 N。BCT 3348 N ≥ 3178 N，方案可行但餘量小；最大可堆層數 = ⌊1 + 3348 ÷ (12 × 9.81 × 3)⌋ = 10 層（高 2.5 m）。工具按 McKee 公式 BCT=5.87×ECT×√(Z·t) 計算並比對堆碼需求。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
-<dt>McKee 公式裡的 ECT 和 t 是什麼？</dt><dd>ECT 是邊壓強度（Edge Crush Test，N/m 或 kN/m），反映紙板立起來的抗壓；t 是紙板總厚度（m）。BCT = 5.87 × ECT × √(Z·t) 是經驗公式，Z 是箱體周長。本工具內建 BC/AC/3A 三檔 ECT 與厚度，也可按實測替換。</dd>
-<dt>安全係數 K 為什麼取 3–5？</dt><dd>K 用於覆蓋倉儲時間導致的強度衰減、溫溼度升高使紙板變軟、堆碼不均勻等因素；乾燥恆溫短途取 3，潮溼/長途/長期倉儲取 4–5。K 越大越安全但越費材料，需結合實際物流條件權衡。</dd>
+<dt>McKee 公式裡的 ECT 和 t 是什麼？</dt><dd>ECT 是邊壓強度（Edge Crush Test，N/m 或 kN/m），反映紙板立起來後的抗壓能力；t 是紙板總厚度（m）。BCT = 5.87 × ECT × √(Z·t) 是經驗公式，Z 是箱體周長。本工具內建 BC/AC/3A 三檔 ECT 與厚度，實際應以同批次紙板實測值複核。</dd>
+<dt>紙箱長寬高、毛重或安全係數填 0 會怎樣？</dt><dd>工具會停止計算並指出具體欄位必須大於 0：紙箱長寬高為 0 時箱體周長或單箱高失去意義，單箱毛重或安全係數為 0 會使最大堆碼層數除以零。重量和尺寸不能靠“0”表示未填，只接受有效正數。</dd>
+<dt>期望堆碼高度低於單箱高度時怎麼處理？</dt><dd>工具按 1 層校核，並明確提示目標高度無法容納一層，不能視為目標堆碼方案可行；至少需要等於單箱高度的空間才能放下第一層。需要按目標高度堆碼時，應增加高度或改用更矮的箱型。</dd>
 </dl>
 </div>
 </section>
@@ -510,12 +524,12 @@ else document.addEventListener('DOMContentLoaded', __calc_66Boot);
       <span class="rt-info"><span class="rt-name">紙箱外箱尺寸計算</span><span class="rt-desc">按產品內尺寸、緩衝厚度與紙板厚度推算外箱長寬高並向上取整，同時估算箱內空間利用率</span></span>
     </a>
     <a href="/zh-tw/tools/packaging/strength-12.html" class="related-tool-card">
-      <span class="rt-icon">⚙️</span>
-      <span class="rt-info"><span class="rt-name">封箱（膠帶/熱熔膠）強度</span><span class="rt-desc">封箱膠帶與熱熔膠強度工具依據粘接引數評估封箱結合強度，適合包裝密封方案選型與運輸振動下的封口可靠性判…</span></span>
+      <span class="rt-icon">🔄</span>
+      <span class="rt-info"><span class="rt-name">封箱膠帶剝離強度單位寬度換算（N/25mm）</span><span class="rt-desc">按實測剝離力與膠頻寬度換算 N/25mm、N/m、N/cm；</span></span>
     </a>
     <a href="/zh-tw/tools/packaging/shousuomo-shousuolv-refeng-canshu.html" class="related-tool-card">
-      <span class="rt-icon">⚙️</span>
-      <span class="rt-info"><span class="rt-name">收縮膜（收縮率/熱封）引數</span><span class="rt-desc">收縮膜收縮率與熱封引數工具按輸入引數估算收縮比與熱封溫度、速度，適合包膜包裝工藝編制與裝置除錯</span></span>
+      <span class="rt-icon">🧮</span>
+      <span class="rt-info"><span class="rt-name">收縮膜收縮率與示意下料膜寬計算（含熱封記錄）</span><span class="rt-desc">按產品原始尺寸、熱收縮後尺寸與可調工藝餘量估算收縮/膨脹率和示意下料膜寬；</span></span>
     </a>
     <a href="/zh-tw/tools/packaging/strength-11.html" class="related-tool-card">
       <span class="rt-icon">📐</span>

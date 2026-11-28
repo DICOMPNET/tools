@@ -127,8 +127,26 @@
         </select>
       </div>
       <div>
-        <label for="searchInput">搜尋材料名稱</label>
-        <input type="search" id="searchInput" placeholder="如 ABS、PP、PC…" oninput="filterData()">
+        <label for="searchInput">關鍵詞（名稱/特點/用途/指標均可）</label>
+        <input type="search" id="searchInput" placeholder="如 PP、polypropylene、高強度、食品級…" oninput="filterData()">
+      </div>
+    </div>
+    <div class="input-row">
+      <div>
+        <label for="minTemp">最低使用溫度（℃）</label>
+        <input type="number" id="minTemp" step="5" placeholder="如 120，可空" oninput="filterData()">
+      </div>
+      <div>
+        <label for="minStrength">最低拉伸強度（MPa）</label>
+        <input type="number" id="minStrength" step="5" placeholder="如 60，可空" oninput="filterData()">
+      </div>
+      <div>
+        <label for="climateFilter">耐候性要求</label>
+        <select id="climateFilter" onchange="filterData()">
+          <option value="">不限</option>
+          <option value="良好">良好及以上（良好/優秀）</option>
+          <option value="优秀">優秀</option>
+        </select>
       </div>
     </div>
 
@@ -161,11 +179,11 @@
 <h2>📚 深度解析：塑膠材料選型</h2>
 <h3>💡 常見使用場景</h3>
 <ul class="dd-list">
-<li>零件選材時，按使用溫度、拉伸強度、耐候性、成本與典型應用從材料庫篩選候選（如耐高溫選 PEEK/PPS/LCP，食品級柔軟選 TPE）。</li>
+<li>零件選材時，用關鍵詞搜尋名稱、特點、典型應用與指標列，並按最低使用溫度、最低拉伸強度、耐候性及特點標籤多條件篩選候選；材料中英文常用名均可檢索。</li>
 <li>對比權衡時，按密度與工藝視窗（熔融/模具溫度）縮小範圍，再結合供應與合規鎖定材料。</li>
 <li>結構強化時，考慮玻纖增強牌號（GF 增強 PA/PP）在強度與成本間的平衡，注意其各向異性與磨損。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">按工況初篩材料示例</div><div class="dd-ex-body">過濾「耐高溫」得到 PEEK（250–300℃/拉伸強度 90–100 MPa）、PPS（200–240℃）、LCP（200–280℃）等候選；汽車電子結構件常選 PPS（耐腐蝕、中高價格），航空醫療選 PEEK（最高耐溫與強度）。若需柔軟食品級則選 TPE（−50~120℃、價格中等）。GF 增強 PA/PP 在強度與低成本間權衡，適合工業結構件。</div></div>
+<div class="dd-example"><div class="dd-ex-title">按工況初篩材料示例</div><div class="dd-ex-body">設最低使用溫度 200℃、最低拉伸強度 80 MPa、耐候“良好及以上”，候選收斂到 PEEK（250–300℃/90–100 MPa）、PPS（200–240℃/80–100 MPa）等；再按成本、供應與合規篩選。表中數值為常見參考範圍，不等於具體牌號保證值，選材須查供應商資料表並試模驗證。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
 <dt>怎麼快速初篩材料？</dt><dd>先按工作溫度與受力框定材料族（如 &gt;200℃ 看 PEEK/PPS/LCP，常溫結構件看 PA/PP/ABS），再看成本、供應與食品/醫療合規，最後用工藝視窗（熔融/模具溫度）確認可加工性。</dd>
@@ -203,7 +221,7 @@
 
   <div class="tool-notes-title">⚠️ 使用說明與注意事項</div>
   <ul>
-      <li>本工具純前端執行，資料不會上傳到伺服器</li>
+      <li>表中密度、溫度、強度、耐候與價格為常見參考範圍，不是具體牌號保證值；實際選材須查供應商資料表並驗證</li>
       <li>建議在主流瀏覽器（Chrome/Safari/Firefox/Edge）中使用</li>
       <li>計算結果僅供參考，請以實際應用場景為準</li>
   </ul>
@@ -263,20 +281,40 @@ function setFilter(tag) {
   sel.value = tag; filterData();
 }
 
+function parseRangeMax(v){
+  var m=String(v).match(/-?\d+(?:\.\d+)?/g);
+  if(!m||!m.length)return NaN;
+  return Math.max.apply(null,m.map(parseFloat));
+}
 function filterData() {
   var kw = document.getElementById('searchInput').value.trim().toLowerCase();
   var filter = document.getElementById('filterSelect').value;
+  var minTemp = document.getElementById('minTemp').value.trim();
+  var minStrength = document.getElementById('minStrength').value.trim();
+  var climate = document.getElementById('climateFilter').value;
+  var tempNeed = minTemp===''?NaN:Number(minTemp);
+  var strengthNeed = minStrength===''?NaN:Number(minStrength);
+  if((minTemp!==''&&(!isFinite(tempNeed)||tempNeed<0))||(minStrength!==''&&(!isFinite(strengthNeed)||strengthNeed<0))){
+    document.getElementById('tableArea').innerHTML='<p style="color:var(--danger)">⚠ 温度与强度门槛须为非负数值，或留空不限。</p>';return;
+  }
+  var aliases={'pp':'polypropylene','pe':'polyethylene','hdpe':'high density polyethylene','ldpe':'low density polyethylene','pc':'polycarbonate','abs':'acrylonitrile butadiene styrene','pom':'polyoxymethylene','pmma':'acrylic','pa6':'nylon 6','pa66':'nylon 66','pbt':'polybutylene terephthalate','pet':'polyethylene terephthalate','pvc':'polyvinyl chloride','lcp':'liquid crystal polymer','peek':'polyether ether ketone','pps':'polyphenylene sulfide','tpe':'thermoplastic elastomer'};
   var filtered = materials.filter(function(row) {
-    var matchKw = kw === '' || row[0].toLowerCase().indexOf(kw) >= 0 || row[6].toLowerCase().indexOf(kw) >= 0;
+    var alias=aliases[row[0].toLowerCase()]||'';
+    var hay=row.join(' ').toLowerCase()+' '+alias;
+    var matchKw = kw === '' || hay.indexOf(kw)>=0;
     var matchFilter = filter === '' || row[7].indexOf(filter) >= 0;
-    return matchKw && matchFilter;
+    var rowTemp=parseRangeMax(row[2]);
+    var rowStrength=parseRangeMax(row[3]);
+    var matchTemp=isNaN(tempNeed)||(!isNaN(rowTemp)&&rowTemp>=tempNeed);
+    var matchStrength=isNaN(strengthNeed)||(!isNaN(rowStrength)&&rowStrength>=strengthNeed);
+    var matchClimate=climate===''||(climate==='优秀'?row[4]==='优秀':(row[4]==='优秀'||row[4]==='良好'));
+    return matchKw && matchFilter && matchTemp && matchStrength && matchClimate;
   });
   const __h0=renderTable(filtered);if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('tableArea').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('tableArea').innerHTML=__h0;
   if (filtered.length === 0) {
-    const __h1='<p style="text-align:center;color:var(--text-muted);padding:20px;">未找到匹配的材料</p>';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('tableArea').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('tableArea').innerHTML=__h1;
+    document.getElementById('tableArea').innerHTML='<p style="text-align:center;color:var(--text-muted);padding:20px;">未找到匹配的材料；请放宽温度/强度/耐候条件，或换用材料英文名。表中参数为参考范围，具体牌号须查数据表。</p>';
   }
 }
-
 filterData();
 </script>
 

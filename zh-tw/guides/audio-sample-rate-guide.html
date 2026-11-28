@@ -4,16 +4,16 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>音訊取樣率轉換 使用指南 - ToolBox</title>
-<meta name="description" content="在不同取樣率（如 44.1k、48k）間換算，輸入聲道數與位深計算音訊檔案大小，並按奈奎斯特定理給出最高可記錄頻率。用於錄音、混音格式選型。">
+<meta name="description" content="在不同取樣率間估算位元率、未壓縮 PCM 資料量與理論奈奎斯特上限，並可在瀏覽器本地重取樣音訊、試聽並匯出 WAV。用於錄音、混音格式選型與格式轉換。">
 <meta property="og:title" content="音訊取樣率轉換 使用指南">
 <meta property="og:type" content="article">
 <meta property="article:published_time" content="2026-09-16T00:00:00+08:00">
 <meta property="article:modified_time" content="2026-09-16T00:00:00+08:00">
 <meta property="og:site_name" content="ToolBox">
 <meta property="og:url" content="https://tools.dicomp.net/zh-tw/guides/audio-sample-rate-guide.html">
-<meta property="og:description" content="在不同取樣率（如 44.1k、48k）間換算，輸入聲道數與位深計算音訊檔案大小，並按奈奎斯特定理給出最高可記錄頻率。用於錄音、混音格式選型。">
+<meta property="og:description" content="在不同取樣率間估算位元率、未壓縮 PCM 資料量與理論奈奎斯特上限，並可在瀏覽器本地重取樣音訊、試聽並匯出 WAV。用於錄音、混音格式選型與格式轉換。">
 <meta name="twitter:title" content="音訊取樣率轉換 使用指南">
-<meta name="twitter:description" content="在不同取樣率（如 44.1k、48k）間換算，輸入聲道數與位深計算音訊檔案大小，並按奈奎斯特定理給出最高可記錄頻率。用於錄音、混音格式選型。">
+<meta name="twitter:description" content="在不同取樣率間估算位元率、未壓縮 PCM 資料量與理論奈奎斯特上限，並可在瀏覽器本地重取樣音訊、試聽並匯出 WAV。用於錄音、混音格式選型與格式轉換。">
 <meta name="twitter:image" content="https://tools.dicomp.net/og-image.png">
 <meta name="twitter:image:alt" content="ToolBox - 免費線上工具與使用指南">
 <meta property="og:image" content="https://tools.dicomp.net/og-image.png">
@@ -22,7 +22,7 @@
 <meta property="og:image:alt" content="ToolBox - 5000+免費線上工具">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="canonical" href="https://tools.dicomp.net/zh-tw/guides/audio-sample-rate-guide.html">
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"音訊取樣率轉換 使用指南","description":"在不同取樣率（如 44.1k、48k）間換算，輸入聲道數與位深計算音訊檔案大小，並按奈奎斯特定理給出最高可記錄頻率。用於錄音、混音格式選型。","author":{"@type":"Organization","name":"ToolBox"},"datePublished":"2026-09-16","dateModified":"2026-09-16","mainEntityOfPage":{"@type":"WebPage","@id":"https://tools.dicomp.net/zh-tw/guides/audio-sample-rate-guide.html"},"image":"https://tools.dicomp.net/og-image.png","publisher":{"@type":"Organization","name":"ToolBox","logo":{"@type":"ImageObject","url":"https://tools.dicomp.net/logo-512.png"}},"inLanguage":"zh-TW"}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"音訊取樣率轉換 使用指南","description":"在不同取樣率間估算位元率、未壓縮 PCM 資料量與理論奈奎斯特上限，並可在瀏覽器本地重取樣音訊、試聽並匯出 WAV。用於錄音、混音格式選型與格式轉換。","author":{"@type":"Organization","name":"ToolBox"},"datePublished":"2026-09-16","dateModified":"2026-09-16","mainEntityOfPage":{"@type":"WebPage","@id":"https://tools.dicomp.net/zh-tw/guides/audio-sample-rate-guide.html"},"image":"https://tools.dicomp.net/og-image.png","publisher":{"@type":"Organization","name":"ToolBox","logo":{"@type":"ImageObject","url":"https://tools.dicomp.net/logo-512.png"}},"inLanguage":"zh-TW"}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"ToolBox","item":"https://tools.dicomp.net/zh-tw/"},{"@type":"ListItem","position":2,"name":"使用指南","item":"https://tools.dicomp.net/zh-tw/guides/index.html"},{"@type":"ListItem","position":3,"name":"音訊取樣率轉換 使用指南","item":"https://tools.dicomp.net/zh-tw/guides/audio-sample-rate-guide.html"}]}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"為什麼頻響上限是取樣率的一半？","acceptedAnswer":{"@type":"Answer","text":"奈奎斯特取樣定理：取樣率必須大於訊號最高頻率的 2 倍才能無失真還原，故可表示的最高頻率 = 取樣率/2；高於此的頻率會產生混疊。"}},{"@type":"Question","name":"升取樣能讓音質變好嗎？","acceptedAnswer":{"@type":"Answer","text":"不會。升取樣只是插入新取樣點（插值），原本被截斷的高頻資訊無法恢復；音質上限由原始錄製的取樣率與位深決定。"}}]}</script>
 <style>
@@ -73,13 +73,13 @@ li{margin:8px 0;}
 <nav class="breadcrumb" aria-label="麵包屑導航"><a href="https://tools.dicomp.net/">ToolBox</a> / <a href="https://tools.dicomp.net/guides/index.html">使用指南</a> / <span>音訊取樣率轉換 使用指南</span></nav>
 <main>
 <h1>音訊取樣率轉換 使用指南</h1>
-<p class="lead">在不同取樣率（如 44.1k、48k）間換算，輸入聲道數與位深計算音訊檔案大小，並按奈奎斯特定理給出最高可記錄頻率。用於錄音、混音格式選型。</p>
+<p class="lead">在不同取樣率間估算位元率、未壓縮 PCM 資料量與理論奈奎斯特上限，並可在瀏覽器本地重取樣音訊、試聽並匯出 WAV。用於錄音、混音格式選型與格式轉換。</p>
 <h2>功能說明</h2>
-<p>在不同取樣率（如 44.1k、48k）間換算，輸入聲道數與位深計算音訊檔案大小，並按奈奎斯特定理給出最高可記錄頻率。用於錄音、混音格式選型。</p>
+<p>在不同取樣率間估算位元率、未壓縮 PCM 資料量與理論奈奎斯特上限，並可在瀏覽器本地重取樣音訊、試聽並匯出 WAV。用於錄音、混音格式選型與格式轉換。</p>
 <h2>典型使用場景</h2>
-<ul><li>按取樣率、位深度、聲道數與時長計算音訊位元率與檔案體積，評估儲存與傳輸成本。</li><li>轉換取樣率前預估目標檔案大小，判斷是否需要重編碼壓縮。</li><li>對照 8/22.05/44.1/48/96 kHz 等常見取樣率的頻響上限，選擇合適的採集引數。</li></ul>
+<ul><li>按取樣率、位深度、聲道數與時長計算音訊位元率與未壓縮 PCM 資料量，評估儲存與傳輸成本。</li><li>轉換取樣率前預估目標 PCM 資料量；需要實際轉換時上傳音訊，在本地重取樣並匯出 WAV。</li><li>對照 8/22.05/44.1/48/96 kHz 等常見取樣率的理論頻率上限，選擇合適的採集引數。</li></ul>
 <h2>算例參考</h2>
-<ul><li><strong>位元率與體積</strong>：位元率(bps) = 取樣率 × 位深度 × 聲道數；檔案大小(MB) = 位元率 × 時長(秒) ÷ 8 ÷ 1024 ÷ 1024；頻響上限 = 取樣率 ÷ 2（奈奎斯特頻率）。降取樣需先低通濾波，高頻被截斷至新的奈奎斯特頻率；升取樣不恢復已丟失高頻，僅插值。</li><li><strong>算例</strong>：44.1 kHz / 16bit / 立體聲(2ch) / 5 分鐘：位元率 = 44100×16×2 = 1,411,200 bps ≈ 1411 kbps；體積 = 1411200×300/8/1024/1024 ≈ 50.5 MB；頻響上限 22.05 kHz。同參數 48 kHz 則約 55.0 MB。</li></ul>
+<ul><li><strong>位元率與體積</strong>：位元率(bps) = 取樣率 × 位深度 × 聲道數；未壓縮 PCM 資料量(MiB) = 位元率 × 時長(秒) ÷ 8 ÷ 1024 ÷ 1024（不含容器開銷）；理論頻率上限 = 取樣率 ÷ 2（奈奎斯特頻率，不代表裝置實際頻響）。降取樣需先低通濾波，高頻被截斷至新的奈奎斯特頻率；升取樣不恢復已丟失高頻，僅插值。</li><li><strong>算例</strong>：44.1 kHz / 16bit / 立體聲(2ch) / 5 分鐘：位元率 = 44100×16×2 = 1,411,200 bps ≈ 1411 kbps；未壓縮 PCM 資料量 = 1411200×300/8/1024/1024 ≈ 50.5 MiB；理論頻率上限 22,050 Hz。同參數 48 kHz 則約 55.0 MiB。</li></ul>
 <h2>注意事項</h2>
 <p>本工具純前端執行，輸入內容不上傳伺服器；結果為按上述口徑得到的<strong>理論估算值</strong>。實際應用受裝置引數、測量條件與當地規範影響，請以裝置銘牌、檢測報告與現行標準為準，重大決策建議諮詢專業人士。</p>
 <div class="related">

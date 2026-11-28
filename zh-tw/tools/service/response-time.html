@@ -78,7 +78,7 @@
 
 <script src="../../../js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"SLA 達標率是怎麼算的？","acceptedAnswer":{"@type":"Answer","text":"達標率 = 響應時長 ≤ SLA 目標值的工單數 ÷ 工單總數。本例 SLA=30 分，8 單中 6 單 ≤30 分（45、35 分超時），故為 75.0%。"}},{"@type":"Question","name":"P90、P99 分位響應有什麼用？","acceptedAnswer":{"@type":"Answer","text":"P90 表示 90% 的工單響應快於該值，P99 表示 99% 的工單快於該值；它們衡量長尾體驗，比平均值更能暴露少數極端慢響應問題，是 SLA 治理的關鍵指標。"}}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"SLA 達標率是怎麼算的？","acceptedAnswer":{"@type":"Answer","text":"達標率 = 響應時長 ≤ SLA 目標值的有效工單數 ÷ 工單總數；響應缺失按未達標。本例 SLA=30 分，8 單中 6 單 ≤30 分（45、35 分超時），故為 75.0%。"}},{"@type":"Question","name":"P90、P99 分位響應有什麼用？","acceptedAnswer":{"@type":"Answer","text":"P90 是有效響應時長的第 90 百分位（線性插值），表示約 90% 的樣本不高於該時長，並不等於“90% 的工單達標”；SLA 達標率另按“響應≤目標”的工單數 ÷ 總工單數計算。插值得到的 P90 可能不對應某張實際工單。"}}]}</script>
 <meta property="og:site_name" content="ToolBox">
 <meta name="theme-color" content="#FF6B35">
 <!-- TOOLBOX-HREFLANG -->
@@ -120,7 +120,7 @@
     <h2 data-zh="🎧 客服響應時間統計">Service Response Time Statistics</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="錄入工單響應與解決時間，自動計算平均響應時間、解決率、P50/P90/P99等關鍵SLA指標">Response Time</p>
     <div class="formula-box">
-      <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">客服工單響應時間統計分析<br>平均響應時間 = Σ響應時長 ÷ 工單數<br>平均解決時間 = Σ解決時長 ÷ 已解決工單數（僅統計已解決且 >0）<br>解決率 = 已解決數 ÷ 總工單數（新增空工單預設「處理中」，不自動計入已解決）<br>有效樣本：平均響應/分位數只用工單中已填且 ≥0 的響應時長；平均解決時間只用狀態已解決且解決時長 >0 的樣本，並在結果中顯示有效樣本數<br>SLA 達標率 = 響應 ≤ 目標時長的工單數 ÷ 總工單數<br>分位數：P50 / P90 / P99 按「響應時長有效樣本」取位，空值不計入分母<br>分佈直方圖分桶：0-5 分｜5-15 分｜15-30 分｜30-60 分｜60 分以上<br>條寬按最大桶計數歸一化；佔比 >60% 紅、>30% 橙、其他綠<br>明細表逐單顯示響應/解決時長、狀態、是否達標<br>SLA 達標率 ≥90% 視為達標（綠色），否則紅色告警</div>
+      <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">客服工單響應時間統計分析<br>平均響應時間 = Σ響應時長 ÷ 工單數<br>平均解決時間 = Σ解決時長 ÷ 已解決工單數（僅統計已解決且 ≥0，0 分鐘計入）<br>解決率 = 已解決數 ÷ 總工單數（新增空工單預設「處理中」，不自動計入已解決）<br>有效樣本：平均響應/分位數只用工單中已填且 ≥0 的響應時長；平均解決時間只用狀態已解決且解決時長 ≥0 的樣本，並在結果中顯示有效樣本數<br>SLA 達標率 = 響應 ≤ 目標時長的有效工單數 ÷ 總工單數（缺失響應按未達標）<br>分位數：P50 / P90 / P99 按「響應時長有效樣本」線性插值取位，空值不計入分母；P90 是時長分位值，不等於 SLA 達標率<br>分佈直方圖分桶：0-5 分｜5-15 分｜15-30 分｜30-60 分｜60 分以上<br>條寬按最大桶計數歸一化；佔比 >60% 紅、>30% 橙、其他綠<br>明細表逐單顯示響應/解決時長、狀態、是否達標；工單 CSV 直接匯出當前明細並附目標與樣本口徑<br>SLA 達標率 ≥90% 視為達標（綠色），否則紅色告警</div>
       <p class="formula-desc" data-zh="核心計算公式（按輸入變數）：Math.max.apply(null,counts)||1；counts[i]÷maxCount×100">Key formulas: Math.max.apply(null,counts)||1; counts[i]÷maxCount×100</p>
     </div>
 
@@ -135,7 +135,7 @@
     <div class="stat-grid" id="stats" style="margin-top:16px;"></div>
 
     <h3 style="font-size:14px;margin:16px 0 6px;">📊 響應時間分佈</h3>
-    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__response_timeExport()">匯出明細 CSV</button></div><div id="distChart" class="result-box" style="padding:14px;"></div> <div id="response_timeTable"></div> <div id="response_timeDiff"></div> <div id="response_timeChart"></div> <div id="response_timeHist"></div>
+    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__response_timeExport()">匯出工單明細 CSV</button><button class="btn" type="button" onclick="__response_timeExportHistory()">匯出歷史摘要 CSV</button></div><div id="distChart" class="result-box" style="padding:14px;"></div> <div id="response_timeTable"></div> <div id="response_timeDiff"></div> <div id="response_timeChart"></div> <div id="response_timeHist"></div>
 
     <h3 style="font-size:14px;margin:16px 0 6px;">📋 工單明細</h3>
     <div style="overflow-x:auto;">
@@ -150,7 +150,7 @@
     </div>
 
     <div class="tip-box tip-info" style="margin-top:12px;">
-      <strong>SLA指標</strong>：P50（中位數）表示50%的工單在此時間內響應；P90表示90%的工單達標；P99用於評估長尾體驗。
+      <strong>SLA指標</strong>：P50（中位數）表示50%的有效響應樣本不高於該時長；P90 表示90%的有效樣本不高於該時長，是分位值而非“90%達標”；SLA 達標率另按“響應≤目標”的工單數 ÷ 總工單數計算。線性插值得到的 P90 可能不對應某張實際工單。
     </div>
   </div>
 
@@ -180,11 +180,11 @@
 <li>週報月報：結合解決時長算出平均解決時間與解決率，用 0-5/5-15/15-30/30-60/60+ 分箱直方圖直觀展示響應分佈，便於向上彙報。</li>
 <li>異常排查：當 P90 遠超 SLA 時定位長尾工單（如響應 35 分、45 分超 30 分閾值），針對性最佳化排班或升級機制，提升整體達標率。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">算例：內建 8 張工單（SLA=30 分）</div><div class="dd-ex-body">工單響應時長 [5,12,25,3,45,8,35,15] 分，其中 1 張未解決。計算得：工單總數 8、已解決 7、解決率 87.5%；平均響應 18.5 分；響應≤30 分 6 單 → SLA 達標率 75.0%；分位 P50=13.5 分、P90=38.0 分、P99=44.3 分；平均解決時間 115.7 分。結論：多數工單達標，但 P90/P99 長尾（35、45 分）拉低達標率，需重點治理超時工單。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例：內建 8 張工單（SLA=30 分）</div><div class="dd-ex-body">工單響應時長 [5,12,25,3,45,8,35,15] 分，其中 1 張未解決。計算得：工單總數 8、已解決 7、解決率 87.5%；平均響應 18.5 分；響應≤30 分 6 單 → SLA 達標率 75.0%；分位 P50=13.5 分、P90=38.0 分、P99=44.3 分；平均解決時間 115.7 分。結論：多數工單達標，但 P90/P99 長尾（35、45 分）拉低達標率，需重點治理超時工單。 解決時長為 0 的已解決工單也計入平均解決時間與有效樣本；空值才排除。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
-<dt>SLA 達標率是怎麼算的？</dt><dd>達標率 = 響應時長 ≤ SLA 目標值的工單數 ÷ 工單總數。本例 SLA=30 分，8 單中 6 單 ≤30 分（45、35 分超時），故為 75.0%。</dd>
-<dt>P90、P99 分位響應有什麼用？</dt><dd>P90 表示 90% 的工單響應快於該值，P99 表示 99% 的工單快於該值；它們衡量長尾體驗，比平均值更能暴露少數極端慢響應問題，是 SLA 治理的關鍵指標。</dd>
+<dt>SLA 達標率是怎麼算的？</dt><dd>達標率 = 響應時長 ≤ SLA 目標值的有效工單數 ÷ 工單總數；響應缺失按未達標。本例 SLA=30 分，8 單中 6 單 ≤30 分（45、35 分超時），故為 75.0%。</dd>
+<dt>P90、P99 分位響應有什麼用？</dt><dd>P90 是有效響應時長的第 90 百分位（線性插值），表示約 90% 的樣本不高於該時長，並不等於“90% 的工單達標”；SLA 達標率另按“響應≤目標”的工單數 ÷ 總工單數計算。插值得到的 P90 可能不對應某張實際工單。</dd>
 </dl>
 </div>
 </section>
@@ -295,14 +295,14 @@ function calc(){
   var slaValid=isFinite(slaRaw)&&slaRaw>0;
   var sla=slaValid?slaRaw:null;
   var respTimes=tickets.filter(function(t){return t.resp!=null && isFinite(t.resp) && t.resp>=0;}).map(function(t){return t.resp;});
-  var solveTimes=tickets.filter(function(t){return t.status==='resolved' && t.solve!=null && isFinite(t.solve) && t.solve>0;}).map(function(t){return t.solve;});
+  var solveTimes=tickets.filter(function(t){return t.status==='resolved' && t.solve!=null && isFinite(t.solve) && t.solve>=0;}).map(function(t){return t.solve;});
   var total=tickets.length;
   var resolved=tickets.filter(function(t){return t.status==='resolved';}).length;
   var resolveRate=total>0?resolved/total:0;
   var avgResp=respTimes.length?respTimes.reduce(function(a,b){return a+b;},0)/respTimes.length:0;
   var avgSolve=solveTimes.length?solveTimes.reduce(function(a,b){return a+b;},0)/solveTimes.length:0;
   var metSla=slaValid?respTimes.filter(function(t){return t<=sla;}).length:0;
-  var slaRate=(slaValid && respTimes.length)?metSla/respTimes.length:null;
+  var slaRate=(slaValid && total)?metSla/total:null;
 
   const __g2='<div class="stat-card"><div class="val" style="color:var(--primary);">'+(respTimes.length?fmt(avgResp):'--')+'分</div><div class="lbl">平均响应时间</div></div>'+
     '<div class="stat-card"><div class="val">'+(resolveRate*100).toFixed(1)+'%</div><div class="lbl">解决率</div></div>'+
@@ -516,7 +516,38 @@ function __response_timeExtras(){
     TBKit.history.record(rec);
     __response_timeRender(keys,rk,en);
 }
+function __csvCell(v){
+    v=(v==null?'':String(v));
+    return '"'+v.replace(/"/g,'""')+'"';
+}
+function __downloadCsv(rows,filename){
+    var csv='\ufeff'+rows.map(function(r){return r.map(__csvCell).join(',');}).join('\r\n');
+    var blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
+    var a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);a.download=filename;
+    document.body.appendChild(a);a.click();
+    setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},0);
+}
 function __response_timeExport(){
+    var en=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn());
+    var slaRaw=parseFloat(document.getElementById('slaTarget').value);
+    var sla=isFinite(slaRaw)&&slaRaw>0?slaRaw:null;
+    var rows=[
+        [en?'Response SLA target (min)':'响应SLA目标(分)', sla==null?(en?'Not set':'未设置'):sla],
+        [en?'Response sample':'响应样本', en?'Filled and >=0; blank excluded from averages and percentiles':'已填且≥0；空值不计入均值与分位数'],
+        [en?'Solve-time sample':'解决时长样本', en?'Resolved tickets with solve time >=0; 0 counts as valid':'已解决且解决时长≥0；0 分钟计入'],
+        [en?'SLA rate denominator':'SLA达标率分母', en?'All tickets; missing response counts as not met':'全部工单；响应缺失按未达标']
+    ];
+    rows.push([en?'Ticket':'工单',en?'Response (min)':'响应(分)',en?'Solve (min)':'解决(分)',en?'Status':'状态',en?'SLA verdict':'SLA判定']);
+    tickets.forEach(function(t){
+        var rv=t.resp!=null&&isFinite(t.resp)&&t.resp>=0;
+        var sv=t.solve!=null&&isFinite(t.solve)&&t.solve>=0;
+        var verdict=(!sla||!rv)?'-':(t.resp<=sla?(en?'Met':'达标'):(en?'Missed':'超标'));
+        rows.push([t.id,rv?t.resp:'',sv?t.solve:'',t.status==='resolved'?(en?'Resolved':'已解决'):(en?'Pending':'处理中'),verdict]);
+    });
+    __downloadCsv(rows,en?'response-time-tickets.csv':'response-time-tickets.csv');
+}
+function __response_timeExportHistory(){
     if (typeof TBKit === 'undefined') return;
     try{
         var box=document.querySelector('#response_timeTable');
@@ -527,7 +558,7 @@ function __response_timeExport(){
             __response_timeRender(keys,en?'Result':'结果',en);
         }
     }catch(e){}
-    try { TBKit.util.exportTable('#response_timeTable','response-time.csv'); } catch(e){}
+    try { TBKit.util.exportTable('#response_timeTable','response-time-history.csv'); } catch(e){}
 }
 function __response_timePresets(){
     if (typeof TBKit === 'undefined') return;

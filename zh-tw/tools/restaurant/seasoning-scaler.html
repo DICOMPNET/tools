@@ -115,8 +115,8 @@
     <h2 data-zh="🖼️ 調味料配比縮放">Seasoning Scaler</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="按人數縮放調味料用量，保持配比不變">Seasoning Scaler</p>
     <div class="formula-box">
-      <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">調味料按份數縮放<br>縮放比例 = 目標份數 ÷ 原始份數<br>各調料縮放量 = 原用量 × 縮放比例<br>格式化規則：&lt;1 保留 2 位｜≥10 取整｜其餘 1 位<br>自動去除末尾 .0 / .00<br>大比例提示：比例 &gt;3 時辛辣調料按 80% 縮放防過辣<br>　鹽糖先加 80% 再嘗味調整<br>縮小提示：比例 &lt;0.5 建議改用茶匙/毫升小單位<br>香料類按 70% 縮放<br>液體調料可直接按比例縮放</div>
-      <p class="formula-desc" data-zh="核心計算公式（按輸入變數）：String(Math.round(scaledAmt))；formatted.slice(0,-3)；formatted.slice(0,-2)">Key formulas: String(Math.round(scaledAmt)); formatted.slice(0,-3); formatted.slice(0,-2)</p>
+      <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">調味料按份數線性縮放<br>縮放比例 = 目標份數 ÷ 原始份數<br>各調料縮放量 = 原用量 × 縮放比例<br>顯示規則：按 3 位有效數字展示，極小非零值不會變成 0<br>表格為完整線性結果，辛辣/鹽糖減量建議僅為文字提示，不自動改動數值<br>縮小比例 &lt;0.5 時建議改用茶匙/毫升等小單位複稱</div>
+      <p class="formula-desc" data-zh="顯示按 3 位有效數字格式化；縮放本身為線性乘法，不含自動減量。">Display uses 3 significant digits; scaling is a linear multiplication with no automatic reduction.</p>
     </div>
 
     <div class="input-row">
@@ -171,7 +171,7 @@
 <li>餐飲批次備餐時把試製配方放大到實際出品量，保持風味一致。</li>
 <li>縮小份量做小批次試味，避免一次調太多造成浪費。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">4 人份放大到 10 人份</div><div class="dd-ex-body">縮放比例 = 10 ÷ 4 = 2.50。鹽 5 g → 12.5 g；生抽 20 ml → 50 ml；糖 8 g → 20 g；幹辣椒 8 g → 20 g。注意辛辣調料（辣椒、花椒、胡椒）建議按 80% 縮放（即 16 g），因為辣味的累積感知強於線性；鹽和糖也建議先加 80% 再嘗味補齊，避免過鹹過甜。</div></div>
+<div class="dd-example"><div class="dd-ex-title">4 人份放大到 10 人份</div><div class="dd-ex-body">縮放比例 = 10 ÷ 4 = 2.50。鹽 5 g → 12.5 g；生抽 20 ml → 50 ml；糖 8 g → 20 g；幹辣椒 8 g → 20 g。表中始終是完整線性結果；辛辣調料按 80%（16 g）、鹽糖先取 80% 再嘗味，屬於另行手動調整，頁面不會自動減量。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
 <dt>為什麼所有調料都要等比縮放？</dt><dd>配方風味取決於各調料之間的相對比例，等比縮放才能保持口味一致。只放大主料不動調料會讓味道變淡。</dd>
@@ -267,24 +267,25 @@ if(__numReq.every(function(k){var e=document.getElementById(k);return !e||String
   }
   const ratio=target/orig;
 
+  function fmtScaled(v){
+    if(!isFinite(v)) return '—';
+    if(v===0) return '0';
+    var t=Number(v.toPrecision(3)).toString();
+    if(Number(t)===0&&v!==0) t=Number(v.toPrecision(2)).toString();
+    return t;
+  }
   let html=`<div class="result-box" style="text-align:center;">
     <p style="font-size:14px;color:var(--text-muted);">缩放比例</p>
-    <p style="font-size:36px;font-weight:700;color:var(--primary);">×${ratio.toFixed(2)}</p>
+    <p style="font-size:36px;font-weight:700;color:var(--primary);">×${Number(ratio.toPrecision(4)).toString()}</p>
     <p style="font-size:14px;">${orig} 人 → ${target} 人</p>
+    <p style="font-size:12px;color:var(--text-muted);margin-top:6px;">下表为完整线性缩放结果；辛辣、盐糖减量建议未自动应用</p>
   </div>`;
 
   html+=`<table style="margin-top:12px;"><thead><tr><th>调料</th><th>原用量</th><th>缩放后</th></tr></thead><tbody>`;
   seasonings.forEach(s=>{
     const origAmt=parseFloat(String(s.amount).trim());
     const scaledAmt=origAmt*ratio;
-    // 格式化：小于1保留2位，大于10保留0位，其余1位
-    let formatted;
-    if(scaledAmt<1) formatted=scaledAmt.toFixed(2);
-    else if(scaledAmt>=10) formatted=String(Math.round(scaledAmt));
-    else formatted=scaledAmt.toFixed(1);
-    // 去掉末尾的.0
-    if(formatted.endsWith('.00')) formatted=formatted.slice(0,-3);
-    else if(formatted.endsWith('.0')) formatted=formatted.slice(0,-2);
+    const formatted=fmtScaled(scaledAmt);
     html+=`<tr><td>${ToolBox.escHtml(s.name)||'未命名'}</td><td>${s.amount} ${s.unit}</td><td><span class="scaled-val">${formatted}</span> ${s.unit}</td></tr>`;
   });
   html+=`</tbody></table>`;
@@ -298,20 +299,19 @@ if(__numReq.every(function(k){var e=document.getElementById(k);return !e||String
   }
 
   html+=`<div class="tip-box tip-info" style="margin-top:8px;">
-    <strong>💡 缩放小贴士：</strong><br>
-    • 液体调料（酱油、醋、料酒）按比例直接缩放<br>
-    • 盐、糖等固体调料大比例放大时先加 80%，尝味后再调<br>
-    • 辛辣调料放大时适当减量，口味不会线性增长<br>
-    • 香料（八角、桂皮等）按 70% 缩放即可
+    <strong>💡 缩放小贴士（仅建议，未自动应用）：</strong><br>
+    • 表中所有调料都按同一比例线性缩放，便于先看完整基准量<br>
+    • 盐、糖等固体调料大比例放大时，可先取表中的 80% 再尝味调整<br>
+    • 辛辣调料放大时按 70–80% 投放更稳，口味感知并非线性<br>
+    • 香料（八角、桂皮等）可先按 70% 投放；缩小比例时建议改用小单位复称
   </div>`;
 
   const __g2=html;document.getElementById('result').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
-  let copyText=`调味料缩放 (${orig}人→${target}人, ×${ratio.toFixed(2)})\n`;
+  let copyText=`调味料缩放 (${orig}人→${target}人, ×${Number(ratio.toPrecision(4)).toString()})\n`;
   seasonings.forEach(s=>{
     const origAmt=parseFloat(String(s.amount).trim());
     const scaledAmt=origAmt*ratio;
-    let f=scaledAmt<1?scaledAmt.toFixed(2):scaledAmt>=10?String(Math.round(scaledAmt)):scaledAmt.toFixed(1);
-    if(f.endsWith('.00'))f=f.slice(0,-3);else if(f.endsWith('.0'))f=f.slice(0,-2);
+    const f=fmtScaled(scaledAmt);
     copyText+=`${s.name}: ${s.amount}${s.unit} → ${f}${s.unit}\n`;
   });
   window._copyText=copyText;

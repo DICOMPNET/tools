@@ -24,7 +24,7 @@
 <link rel="canonical" href="https://tools.dicomp.net/zh-tw/guides/ventilation-calc-guide.html">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"隧道通風計算 使用指南","description":"輸入隧道斷面積、設計控制風速與同時作業人數等引數，計算需風量、最低控制風速並給出通風機選型參考，用於施工通風系統設計。典型場景包括：按風速控制（velocity 模式）；按 CO 稀釋（CO 模式）；兩模式互校與選型：先用風速法得到滿足最低風速的風量。","author":{"@type":"Organization","name":"ToolBox"},"datePublished":"2026-09-16","dateModified":"2026-09-16","mainEntityOfPage":{"@type":"WebPage","@id":"https://tools.dicomp.net/zh-tw/guides/ventilation-calc-guide.html"},"image":"https://tools.dicomp.net/og-image.png","publisher":{"@type":"Organization","name":"ToolBox","logo":{"@type":"ImageObject","url":"https://tools.dicomp.net/logo-512.png"}},"inLanguage":"zh-TW"}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"ToolBox","item":"https://tools.dicomp.net/zh-tw/"},{"@type":"ListItem","position":2,"name":"使用指南","item":"https://tools.dicomp.net/zh-tw/guides/index.html"},{"@type":"ListItem","position":3,"name":"隧道通風計算 使用指南","item":"https://tools.dicomp.net/zh-tw/guides/ventilation-calc-guide.html"}]}</script>
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"CO 模式算出的風量為什麼比風速法小很多，能直接用嗎？","acceptedAnswer":{"@type":"Answer","text":"不能直接用。工具的 CO 模式按 Q=q×N×L÷δ 直接代入數值計算：預設 q=0.02、N=800 輛/h、L=1000 m、δ=100 時輸出 Q=160 m³/h（0.04 m³/s），v=0.001 m/s。這裡 L 以「米」代入、δ 以「ppm 數值」代入，未按工程慣例換算為 km 與體積比（100 ppm=1×10⁻⁴）。按標準口徑 Q=q×N×L(km)÷δ(體積比)，同樣物理條件為 0.02×800×1.0÷1e-4=160000 m³/h≈44.4 m³/s。因此 CO 模式的結果只能作為同口徑下的相對比較，工程計算請按標準單位自行換算，並以風速法與規範限值取大值。"}},{"@type":"Question","name":"換氣次數里的 100 是什麼意思？","acceptedAnswer":{"@type":"Answer","text":"工具按 v×3600÷100 估算每小時換氣次數，即預設以 100 m 長的洞段為基準（風速乘以一小時走過的距離，再除以 100 m 段長）。若實際通風區段長度不同，應自行按 v×3600÷實際段長 換算，否則換氣次數會被系統性放大或縮小。"}}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"為什麼換氣次數不再固定按 100 m 算？","acceptedAnswer":{"@type":"Answer","text":"換氣次數是每小時送入風量與空間體積之比，空間體積=斷面積×有效通風長度。舊版沒有長度輸入卻固定用 100 m，會讓不同長度隧道顯示同一個“次/h”。現在必須填寫有效通風長度，按 Q/(A×L) 計算；長度不填則不輸出結果。"}},{"@type":"Question","name":"把總風量除以運行臺數，就能選定風機嗎？","acceptedAnswer":{"@type":"Answer","text":"不能。均分只是把設計風量攤到運行臺數的算術示例，真實選型要考慮風管漏風率、系統阻力、風機效能曲線、並聯執行效率、海拔與溫度修正、備用切換時的風量，以及電機功率與噪聲限值。頁面已把臺數、備用和餘量顯式列出，並註明須由專業人員按阻力計算與效能曲線校核。"}}]}</script>
 <style>
 :root{--primary:#FF6B35;--text:#1F2937;--muted:#6B7280;--border:#E5E7EB;--bg:#FFFAF7;}
 *{box-sizing:border-box;}
@@ -73,26 +73,16 @@ li{margin:8px 0;}
 <nav class="breadcrumb" aria-label="麵包屑導航"><a href="https://tools.dicomp.net/">ToolBox</a> / <a href="https://tools.dicomp.net/guides/index.html">使用指南</a> / <span>隧道通風計算 使用指南</span></nav>
 <main>
 <h1>隧道通風計算 使用指南</h1>
-<p class="lead">輸入隧道斷面積、設計控制風速與同時作業人數等引數，計算需風量、最低控制風速並給出通風機選型參考，用於施工通風系統設計。</p>
+<p class="lead">按控制風速法或 CO 稀釋法估算需風量，按輸入的有效通風長度計算換氣次數；可設執行/備用風機臺數與漏風餘量，風機均分僅為配置示例。</p>
 <h2>功能說明</h2>
-<p>輸入隧道斷面積、設計控制風速與同時作業人數等引數，計算需風量、最低控制風速並給出通風機選型參考，用於施工通風系統設計。</p>
+<p>按控制風速法或 CO 稀釋法估算需風量，按輸入的有效通風長度計算換氣次數；可設執行/備用風機臺數與漏風餘量，風機均分僅為配置示例。</p>
 <h2>典型使用場景</h2>
-<ul><li>按風速控制（velocity 模式）：需風量 Q=斷面積 A×控制風速 v×3600（m³/h），同時給出 Q÷3600（m³/s）；換氣次數按 v×3600÷100 估算（即以 100 m 洞段為基準的每小時換氣次數）。工具另給出風機選型參考：按 2 臺並聯，單颱風量=Q÷3600÷2（m³/s）。</li><li>按 CO 稀釋（CO 模式）：CO 排放總量=單車排放量 q×小時交通量 N×隧道長度 L；需風量 Q=q×N×L÷δ（δ 為 CO 容許濃度，直接以 ppm 數值代入）；再反算所需控制風速 v=Q÷3600÷A，以及換氣次數 n=v×3600÷L。</li><li>兩模式互校與選型：先用風速法得到滿足最低風速的風量，再用 CO 法校核稀釋有害氣體的需求，取兩者較大值作為設計風量；風機選型按並聯臺數與風量餘量（一般再乘 1.1~1.2 備用係數）確定。</li></ul>
+<ul><li>控制風速法：需風量 Q=A×v×3600（m³/h）；換氣次數 n=Q/(A×L)（次/h），L 為輸入的有效通風長度，不再使用固定 100 m。</li><li>CO 稀釋法：CO 排放總量=q×N×L(km)，L(km)=L(m)/1000；需風量 Q=q×N×L(km)/δ(體積比)，δ(體積比)=δ(ppm)/10⁶；再反算 v=Q/3600/A 與 n=Q/(A×L)。</li><li>風機配置：設計風量=Q×(1+漏風及系統餘量)，按運行臺數簡單均分得到單臺示例風量，並同時顯示備用臺數；均分不是選型結論。</li><li>選型邊界：必須結合風管漏風、沿程/區域性阻力、風機效能曲線、並聯效率、海拔/溫度修正與備用切換工況；不同工況分別校核，不能僅憑臺數與風量下結論。</li></ul>
 <h2>算例參考</h2>
-<ul><li><strong>算例：60 m² 斷面、控制風速 2.5 m/s 的風速法</strong>：風速模式輸入 A=60 m²、v=2.5 m/s：需風量 Q=60×2.5×3600=540000 m³/h=150.00 m³/s；換氣次數=2.5×3600÷100=90.00 次/h；風機選型參考=單臺 75.00 m³/s×2 臺。另一組 A=80 m²、v=2.0 m/s → Q=576000 m³/h=160.00 m³/s、換氣 72.00 次/h、單臺 80.00 m³/s。</li></ul>
+<ul><li>算例：A=60 m²、v=2.5 m/s、L=1000 m：Q=60×2.5×3600=540000 m³/h=150.00 m³/s；n=540000/(60×1000)=9.00 次/h。設漏風及系統餘量 10%、執行 2 臺、備用 1 臺：設計風量=594000 m³/h=165.00 m³/s，按運行臺數均分單臺約 82.50 m³/s；這是配置示例，實際還需按阻力與風機曲線校核。若 L 改為 500 m，n=18.00 次/h；同一風量下換氣次數隨有效通風長度變化。</li></ul>
 <h2>注意事項</h2>
-<p>本工具純前端執行，輸入內容不上傳伺服器；結果為按上述口徑得到的<strong>理論估算值</strong>。實際應用受裝置引數、測量條件與當地規範影響，請以裝置銘牌、檢測報告與現行標準為準，重大決策建議諮詢專業人士。</p>
-<div class="related">
-<h3>相關工具</h3>
-<a class="tool-chip" href="https://tools.dicomp.net/tools/tunnel/advance-rate.html">隧道掘進速度估算</a>
-<a class="tool-chip" href="https://tools.dicomp.net/tools/tunnel/gas-monitor.html">隧道瓦斯監測參考</a>
-<a class="tool-chip" href="https://tools.dicomp.net/tools/tunnel/lining-thickness.html">隧道襯砌厚度計算</a>
-<a class="tool-chip" href="https://tools.dicomp.net/tools/tunnel/support-design.html">隧道支護引數設計</a>
-</div>
-<dl class="faq">
-<dt>CO 模式算出的風量為什麼比風速法小很多，能直接用嗎？</dt><dd>不能直接用。工具的 CO 模式按 Q=q×N×L÷δ 直接代入數值計算：預設 q=0.02、N=800 輛/h、L=1000 m、δ=100 時輸出 Q=160 m³/h（0.04 m³/s），v=0.001 m/s。這裡 L 以「米」代入、δ 以「ppm 數值」代入，未按工程慣例換算為 km 與體積比（100 ppm=1×10⁻⁴）。按標準口徑 Q=q×N×L(km)÷δ(體積比)，同樣物理條件為 0.02×800×1.0÷1e-4=160000 m³/h≈44.4 m³/s。因此 CO 模式的結果只能作為同口徑下的相對比較，工程計算請按標準單位自行換算，並以風速法與規範限值取大值。</dd>
-<dt>換氣次數里的 100 是什麼意思？</dt><dd>工具按 v×3600÷100 估算每小時換氣次數，即預設以 100 m 長的洞段為基準（風速乘以一小時走過的距離，再除以 100 m 段長）。若實際通風區段長度不同，應自行按 v×3600÷實際段長 換算，否則換氣次數會被系統性放大或縮小。</dd>
-</dl>
+<p>本工具純前端執行，輸入內容不上傳伺服器；結果為按上述口徑得到的理論估算值。實際應用受裝置引數、測量條件與當地規範影響，請以裝置銘牌、檢測報告與現行標準為準，重大決策建議諮詢專業人士。</p>
+<dl class="faq"><dt>為什麼換氣次數不再固定按 100 m 算？</dt><dd>換氣次數是每小時送入風量與空間體積之比，空間體積=斷面積×有效通風長度。舊版沒有長度輸入卻固定用 100 m，會讓不同長度隧道顯示同一個“次/h”。現在必須填寫有效通風長度，按 Q/(A×L) 計算；長度不填則不輸出結果。</dd><dt>把總風量除以運行臺數，就能選定風機嗎？</dt><dd>不能。均分只是把設計風量攤到運行臺數的算術示例，真實選型要考慮風管漏風率、系統阻力、風機效能曲線、並聯執行效率、海拔與溫度修正、備用切換時的風量，以及電機功率與噪聲限值。頁面已把臺數、備用和餘量顯式列出，並註明須由專業人員按阻力計算與效能曲線校核。</dd></dl>
 <div class="related"><h3>相關工具</h3><a class="tool-chip" href="/zh-tw/tools/tunnel/ventilation-calc.html">隧道通風計算</a></div>
 <div class="back"><a href="https://tools.dicomp.net/tools/tunnel/ventilation-calc.html">→ 開啟隧道通風計算工具</a></div>
 </main>

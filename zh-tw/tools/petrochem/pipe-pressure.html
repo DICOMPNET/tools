@@ -117,7 +117,7 @@
     <h2 data-zh="🎚️ 管道壓降計算（達西公式）">Pipe Pressure Drop Calculator</h2>
     <div class="formula-box">
       <div class="formula-title">📐 計算公式</div>
-      <div class="formula-eq">流速 v = (流量÷3600) ÷ (πD²÷4)（管徑先由 mm 化 m）；Re = ρvD÷μ（黏度由 mPa·s 化 Pa·s）；Re &lt;2300 時 f = 64÷Re，湍流按 Swamee-Jain 式 f = 0.25 ÷ [log₁₀(ε÷3.7D + 5.74÷Re^0.9)]²；壓降 ΔP = f×(L÷D)×(ρv²÷2)，另輸出 kPa、bar 與每米壓降 ΔP÷L。校驗：流量、管徑、管長、密度、黏度均須大於 0（粗糙度不校驗）。判據：Re &lt;2300 層流、&lt;4000 過渡流、否則湍流；結果未計區域性阻力。</div>
+      <div class="formula-eq">流速 v = (流量÷3600) ÷ (πD²÷4)（管徑先由 mm 化 m）；Re = ρvD÷μ（黏度由 mPa·s 化 Pa·s）；Re &lt;2300 時 f = 64÷Re，湍流按 Swamee-Jain 式 f = 0.25 ÷ [log₁₀(ε÷3.7D + 5.74÷Re^0.9)]²；壓降 ΔP = f×(L÷D)×(ρv²÷2)，另輸出 kPa、bar 與每米壓降 ΔP÷L。校驗：流量、管徑、管長、密度、黏度須大於 0；粗糙度須為 ≥0 的有限值，相對粗糙度 ε/D 超過 0.05 時超出 Swamee-Jain 常用範圍並清除結論。判據：Re &lt;2300 層流、2300–4000 為過渡流（給出層流端到湍流端範圍，單點值不可作設計依據）、≥4000 湍流。僅計算直管沿程壓降，未計區域性阻力、高程與加速度。</div>
     </div>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="達西-韋斯巴赫公式計算管道沿程壓力損失">Pipe Pressure</p>
 
@@ -196,15 +196,15 @@
 <h2>📚 深度解析：管道壓降計算（達西公式）</h2>
 <h3>💡 常見使用場景</h3>
 <ul class="dd-list">
-<li>泵與<a class="term-link" href="/zh-tw/tools/machinery/pressure-flow-4.html">壓縮機選型</a>：根據流量、管徑、管長、介質密度黏度與管壁粗糙度，用<a class="term-link" href="/zh-tw/guides/darcy-head-loss-guide.html">達西-魏斯巴赫公式</a>算總壓降，據此選泵揚程或壓縮機壓比。</li>
-<li>流態判定：工具先算<a class="term-link" href="/zh-tw/tools/aerospace/reynolds-number.html">雷諾數</a> Re 判定層流/過渡/湍流，層流用 f=64/Re、湍流用 Swamee-Jain 顯式近似求摩擦係數，避免迭代。</li>
-<li>管網改造評估：改變管徑或粗糙度看壓降與每米阻力變化，量化擴徑降阻的節能效果，支撐改造決策。</li>
+<li>直管沿程壓降估算時，先確認流量、管徑、密度、黏度與粗糙度；粗糙度空值或負數直接提示，不當作光滑管。</li>
+<li>Re 在 2300–4000 時給出層流端—湍流端壓降範圍，不把過渡區單點值當設計依據。</li>
+<li>管壁相對粗糙度 ε/D &gt; 0.05 超出 Swamee-Jain 常用範圍，頁面清除結論並提示核對。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">算例：過渡流與層流各一例</div><div class="dd-ex-body">過渡流：流量 100 m³/h、管徑 200 mm、管長 500 m、密度 900、黏度 50 mPa·s、粗糙度 0.1 mm。流速=0.884 m/s；Re=ρvD/μ=900×0.884×0.2/0.05≈3183(湍流區)；Swamee-Jain f≈0.0442；總壓降=0.0442×(500/0.2)×(900×0.884²/2)≈38.84 kPa（0.3884 bar），約 77.7 Pa/m。
+<div class="dd-example"><div class="dd-ex-title">算例：過渡流與層流各一例</div><div class="dd-ex-body">過渡流：流量 100 m³/h、管徑 200 mm、管長 500 m、密度 900、黏度 50 mPa·s、粗糙度 0.1 mm。流速=0.884 m/s；Re=ρvD/μ=900×0.884×0.2/0.05≈3183屬過渡區，不能直接把 Swamee-Jain 單點值當設計值；本頁給出層流端（f=64/Re≈0.0201）到湍流端（Swamee-Jain f≈0.0442）的壓降範圍，實際需實驗或 CFD 核驗。
 層流：流量 1 m³/h、管徑 50 mm、管長 100 m、密度 1000、黏度 100 mPa·s、粗糙度 0.05 mm。流速=0.057 m/s；Re≈71(層流)；f=64/71≈0.9048；總壓降≈18.11 kPa。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
-<dt>雷諾數 Re 怎麼判斷流態？</dt><dd>Re=ρvD/μ（ρ 密度、v 流速、D 管徑、μ 動力黏度）。Re&lt;2300 為層流，2300~4000 為過渡流，&gt;4000 為湍流。流態決定摩擦係數取法。</dd>
+<dt><a class="term-link" href="/zh-tw/tools/aerospace/reynolds-number.html">雷諾數</a> Re 怎麼判斷流態？</dt><dd>Re=ρvD/μ（ρ 密度、v 流速、D 管徑、μ 動力黏度）。Re&lt;2300 為層流，2300~4000 為過渡流，&gt;4000 為湍流。流態決定摩擦係數取法。</dd>
 <dt>摩擦係數 f 怎麼取？</dt><dd>層流用 f=64/Re；湍流用 Swamee-Jain 顯式公式 f=0.25/[log10(ε/(3.7D)+5.74/Re^0.9)]²（ε 為管壁絕對粗糙度）。<a class="term-link" href="/zh-tw/guides/pressure-drop-darcy-guide.html">達西壓降</a> ΔP=f·(L/D)·(ρv²/2)。</dd>
 </dl>
 </div>
@@ -259,10 +259,13 @@ function calc(){
   const L = parseFloat(document.getElementById('length').value) || 0; // m
   const rho = parseFloat(document.getElementById('density').value) || 0; // kg/m³
   const visc = parseFloat(document.getElementById('viscosity').value) || 0; // mPa·s
-  const rough = parseFloat(document.getElementById('roughness').value) || 0; // mm
+  const roughRaw=String(document.getElementById('roughness').value||'').trim();
+  const rough=Number(roughRaw); // mm
+  var roughBad=roughRaw===''||!isFinite(rough)||rough<0;
+  document.getElementById('roughness').classList.toggle('input-error',roughBad);
 
-  if(flow <= 0 || Dmm <= 0 || L <= 0 || rho <= 0 || visc <= 0){
-    document.getElementById('result').innerHTML='<p style="color:var(--danger);">请输入合理的数值</p>';
+  if(flow <= 0 || Dmm <= 0 || L <= 0 || rho <= 0 || visc <= 0 || roughBad){
+    document.getElementById('result').innerHTML='<p style="color:var(--danger);">'+(roughBad?'粗糙度须填写 ≥0 的有限数值（光滑管填 0），不能为空或负数。':'请输入合理的数值')+'</p>';
     return;
   }
 
@@ -274,21 +277,34 @@ function calc(){
   const Re = rho * v * D / mu;
   const eps = rough / 1000; // m
 
+  if(rough / Dmm > 0.05){
+    document.getElementById('result').innerHTML='<p style="color:var(--danger);">相对粗糙度 ε/D = '+(rough / Dmm).toFixed(4)+' 超过 0.05，已超出 Swamee-Jain 常用适用范围，本页不出压降结论；请核对粗糙度与管径。</p>';
+    return;
+  }
+
   // 摩擦系数
-  let f;
+  let f, fLam, fTurb, transition=false;
   let flowRegime;
+  const term = eps / (3.7 * D) + 5.74 / Math.pow(Re, 0.9);
+  fTurb = 0.25 / Math.pow(Math.log10(term), 2);
   if(Re < 2300){
     f = 64 / Re;
     flowRegime = '层流';
+  } else if(Re < 4000){
+    // 过渡区：不采用单点湍流值作结论，给出层流端与湍流端范围
+    fLam = 64 / Re;
+    f = fTurb;
+    flowRegime = '过渡流';
+    transition = true;
   } else {
-    // Swamee-Jain
-    const term = eps / (3.7 * D) + 5.74 / Math.pow(Re, 0.9);
-    f = 0.25 / Math.pow(Math.log10(term), 2);
-    flowRegime = Re < 4000 ? '过渡流' : '湍流';
+    f = fTurb;
+    flowRegime = '湍流';
   }
 
-  // 达西压降
+  // 达西压降（过渡区同时计算两端）
   const dP = f * (L / D) * (rho * v * v / 2); // Pa
+  const dPLam = transition ? fLam * (L / D) * (rho * v * v / 2) : null;
+  const dPTurb = transition ? fTurb * (L / D) * (rho * v * v / 2) : null;
   const dP_kPa = dP / 1000;
   const dP_bar = dP / 100000;
   // 每米压降
@@ -307,9 +323,8 @@ function calc(){
     </div>
     <hr style="border:none;border-top:1px solid var(--border);margin:10px 0;">
     <p>流态：<span class="grade-tag ${regimeClass}">${flowRegime}</span></p>
-    <p>总压降：<strong style="color:var(--primary);">${fmt(dP_kPa)} kPa（${fmt(dP_bar)} bar）</strong></p>
-    <p>每米压降：<strong>${fmt(dPPerM)} Pa/m</strong></p>
-    <p style="font-size:12px;color:var(--text-muted);">注：未计入弯头、阀门等局部阻力</p>
+    ${transition ? '<div class="tip-box tip-warn">⚠️ 过渡区：Swamee-Jain 湍流式不严格适用，下方给出层流端—湍流端估算范围；实际值高度不确定，不得作为设计依据，需用实验、CFD 或专业方法核验。</div><p>过渡区压降范围：<strong style="color:var(--warning);">'+fmt(dPLam/1000)+' – '+fmt(dPTurb/1000)+' kPa</strong></p><p>其中层流端 f='+fmt(fLam)+'，湍流端 f='+fmt(fTurb)+'；单点 f='+fmt(f)+' 仅为湍流端参考。</p>' : '<p>总压降：<strong style="color:var(--primary);">'+fmt(dP_kPa)+' kPa（'+fmt(dP_bar)+' bar）</strong></p><p>每米压降：<strong>'+fmt(dPPerM)+' Pa/m</strong></p>'}
+    <p style="font-size:12px;color:var(--text-muted);">注：仅计算直管沿程压降，未计弯头、阀门等局部阻力、高程变化与加速度；本经验式要求相对粗糙度 ε/D ≤ 0.05。</p>
   `;document.getElementById('result').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 }
 

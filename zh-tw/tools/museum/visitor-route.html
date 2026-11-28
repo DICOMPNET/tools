@@ -75,7 +75,7 @@
 
 <script src="../../../js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"為什麼有時繞路反而更短？","acceptedAnswer":{"@type":"Answer","text":"Dijkstra 按邊的權重（通道距離）求全域性最短，並非直線近就快；經中轉節點可能累計權重更小（如 A→B→C=50m < 直連 80m）。規劃以演算法結果為準，憑直覺易誤判。"}},{"@type":"Question","name":"通道權重可以按哪些量填寫？","acceptedAnswer":{"@type":"Answer","text":"本工具的通道權重按距離（米）填寫，Dijkstra 演算法本身也適用於時間或能耗等其它加權值，但本頁輸入口徑是距離。「必經重點館」可直接填入「必看節點」，工具會按輸入順序分段求最短並拼接，無需手工拆分。"}}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"為什麼有時繞路反而更短？","acceptedAnswer":{"@type":"Answer","text":"Dijkstra 按邊的權重（通道距離）求全域性最短，並非直線近就快；經中轉節點可能累計權重更小（如 A→B→C=50m < 直連 80m）。規劃以演算法結果為準，憑直覺易誤判。"}},{"@type":"Question","name":"通道權重可以按哪些量填寫？","acceptedAnswer":{"@type":"Answer","text":"本工具的通道權重按距離（米）填寫，Dijkstra 演算法本身也適用於時間或能耗等其它加權值，但本頁輸入口徑是距離。「必經重點館」可直接填入「必看節點」，工具會按輸入順序分段求最短並拼接，無需手工拆分。"}},{"@type":"Question","name":"通道距離留空或填負數會怎樣？","acceptedAnswer":{"@type":"Answer","text":"該通道會被排除並在結果上方列出，不再把空值當成 0、也不再把負數取絕對值。未知通道若按 0 參與計算，會被誤選為最短路徑，因此必須先補測或刪除該通道；距離為 0 的已知同址通道才可明確填 0。"}}]}</script>
 <meta property="og:site_name" content="ToolBox">
 <meta name="theme-color" content="#FF6B35">
 <style id="mobile320-fix">
@@ -185,7 +185,7 @@
 <h3>💡 常見使用場景</h3>
 <ul class="dd-list">
 <li>館內動線設計時，以展廳為節點、通道為帶權邊（距離/時長），用 Dijkstra 最短路徑演算法規劃從入口到出口的最優參觀順序，減少折返。</li>
-<li>限流或單向參觀場景下，可把需避開的通道距離權重調大再規劃，對比調整前後的最短路徑；工具按<a class="term-link" href="/zh-tw/tools/surveying/distance-calc.html">距離計算</a>，不自動統計客流或擁堵程度。</li>
+<li>限流或單向參觀場景下，可把需避開的通道距離權重調大再規劃，對比調整前後的最短路徑；空值、非數值與負距離會被排除並提示，不會靜默按 0 計算。</li>
 <li>多目標參觀（只去重點館）時，設定起終點與必看節點，快速得到最短串聯路徑與總距離。</li>
 </ul>
 <div class="dd-example"><div class="dd-ex-title">最短動線規劃示例</div><div class="dd-ex-body">設展廳 A（入口）→B 通道 20 m、B→C 30 m、A→C 直連 80 m。從 A 到 C，Dijkstra 比較 A→C 直連 80 m 與 A→B→C 累計 20+30=50 m，得出最短路徑 A→B→C、總距離 50 m（優於直連 80 m）。同理可編排「入口→青銅館→陶瓷館→書畫館→玉器館→出口」的全程最短動線。</div></div>
@@ -193,6 +193,7 @@
 <dl class="dd-faq">
 <dt>為什麼有時繞路反而更短？</dt><dd>Dijkstra 按邊的權重（通道距離）求全域性最短，並非直線近就快；經中轉節點可能累計權重更小（如 A→B→C=50m &lt; 直連 80m）。規劃以演算法結果為準，憑直覺易誤判。</dd>
 <dt>通道權重可以按哪些量填寫？</dt><dd>本工具的通道權重按距離（米）填寫，Dijkstra 演算法本身也適用於時間或能耗等其它加權值，但本頁輸入口徑是距離。「必經重點館」可直接填入「必看節點」，工具會按輸入順序分段求最短並拼接，無需手工拆分。</dd>
+<dt>通道距離留空或填負數會怎樣？</dt><dd>該通道會被排除並在結果上方列出，不再把空值當成 0、也不再把負數取絕對值。未知通道若按 0 參與計算，會被誤選為最短路徑，因此必須先補測或刪除該通道；距離為 0 的已知同址通道才可明確填 0。</dd>
 </dl>
 </div>
 </section>
@@ -211,7 +212,7 @@
         </tr>
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="權重口徑">Weight basis</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="本工具邊權 = 通道距離（米）；Dijkstra 求帶權最短路徑">This tool: edge weight = corridor distance (m); Dijkstra finds the weighted shortest path</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="本工具邊權 = 通道距離（米，必須為非負有限值）；空值、非數值與負距離會被排除並提示；Dijkstra 求帶權最短路徑">This tool: edge weight = corridor distance in meters, which must be a finite non-negative value; blank, non-numeric and negative distances are excluded with a warning; Dijkstra finds the weighted shortest path</td>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);">Dijkstra (1959) shortest path</td>
         </tr>
       </tbody>
@@ -393,22 +394,32 @@ function compute(){
     return;
   }
 
-  // 构建邻接表：Dijkstra 只适用于非负权，负距离先取绝对值并提示（同时杜绝负权环导致前驱成环）
-  var negativeFixed = false;
+  // 构建邻接表：Dijkstra 只适用于非负权。空值、非有限值或负数一律视为无效通道并排除，
+  // 不能把未知距离当成 0，否则未知通道会被误选为最短路径。
+  var _deAll = (typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn());
+  var invalidDistances = [];
   var graph = {};
   nodes.forEach(function(n){ graph[n] = []; });
   var deadEdges = [];
   edges.forEach(function(e){
     if(graph[e[0]] && graph[e[1]]){
-      var w = parseFloat(e[2]);
-      if(!isFinite(w)) w = 0;
-      if(w < 0){ w = Math.abs(w); negativeFixed = true; }
+      var rawW = (e[2] == null ? '' : String(e[2])).trim();
+      var w = Number(rawW);
+      if(rawW === '' || !isFinite(w) || w < 0){
+        var reason = rawW === '' ? (_deAll ? 'blank distance' : '距离为空') : (!isFinite(w) ? (_deAll ? 'non-numeric distance' : '距离非数值') : (_deAll ? 'negative distance' : '距离为负数'));
+        invalidDistances.push((_deAll ? '"'+e[0]+' - '+e[1]+'" (' : '「'+e[0]+' — '+e[1]+'」（')+reason+(_deAll?')':'）'));
+        return;
+      }
       graph[e[0]].push({to:e[1], w:w});
       graph[e[1]].push({to:e[0], w:w});
     } else {
       deadEdges.push((typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn()) ? ('"'+e[0]+' - '+e[1]+'"') : ('「'+e[0]+' — '+e[1]+'」'));
     }
   });
+
+  var edgeWarnings = '';
+  if(invalidDistances.length){ edgeWarnings += '<div class="tip-box tip-warning" style="margin-bottom:12px;">'+(_deAll ? '⚠ Edges with blank, non-numeric or negative distance were excluded: ' : '⚠ 以下通道距离为空、非数值或负数，未纳入计算：')+invalidDistances.map(function(s){ return ToolBox.escHtml(s); }).join(_deAll ? ', ' : '、')+'</div>'; }
+  if(deadEdges.length){ edgeWarnings += '<div class="tip-box tip-warning" style="margin-bottom:12px;">'+(_deAll ? '⚠ Ignored edges with invalid endpoints: ' : '⚠ 以下通道端点已失效、未纳入计算：')+deadEdges.map(function(s){ return ToolBox.escHtml(s); }).join(_deAll ? ', ' : '、')+'</div>'; }
 
   // 按「起点 → 必看节点… → 终点」分段求最短路径后拼接
   var anchors = [start].concat(wps).concat([end]);
@@ -418,7 +429,7 @@ function compute(){
   for(var i=0;i<seq.length-1;i++){
     var leg = dijkstra(graph, seq[i], seq[i+1]);
     if(!leg){
-      resultEl.innerHTML = '<div class="tip-box tip-error">从「'+ToolBox.escHtml(seq[i])+'」到「'+ToolBox.escHtml(seq[i+1])+'」没有可达路径，请检查通道连接。</div>';
+      resultEl.innerHTML = edgeWarnings + (_deAll ? '<div class="tip-box tip-error">No reachable path from “'+ToolBox.escHtml(seq[i])+'” to “'+ToolBox.escHtml(seq[i+1])+'”. Check the gallery connections.</div>' : '<div class="tip-box tip-error">从「'+ToolBox.escHtml(seq[i])+'」到「'+ToolBox.escHtml(seq[i+1])+'」没有可达路径，请检查通道连接。</div>');
       return;
     }
     if(fullPath.length) leg.path.shift();
@@ -427,9 +438,7 @@ function compute(){
     Object.keys(leg.segW).forEach(function(key){ segW[key] = leg.segW[key]; });
   }
 
-  var html = '';
-  if(negativeFixed){ html += '<div class="tip-box tip-info" style="margin-bottom:12px;">检测到负距离，已按绝对值纳入计算。</div>'; }
-  if(deadEdges.length){ var _de = (typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn()); html += '<div class="tip-box tip-warning" style="margin-bottom:12px;">'+(_de ? '⚠ Ignored edges with invalid endpoints: ' : '⚠ 以下通道端点已失效、未纳入计算：')+deadEdges.map(function(s){ return ToolBox.escHtml(s); }).join(_de ? ', ' : '、')+'</div>'; }
+  var html = edgeWarnings;
   html += '<div class="data-grid">';
   html += dataCard('起点', start);
   html += dataCard('终点', end);

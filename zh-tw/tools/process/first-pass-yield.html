@@ -65,7 +65,7 @@
 
 <script src="../../../js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"FPY 和最終合格率有何不同？","acceptedAnswer":{"@type":"Answer","text":"最終合格率包含返修後合格品，掩蓋了返工成本；FPY 只承認首次合格的單元，能更真實暴露過程波動與浪費，是六西格瑪更看重的指標。"}},{"@type":"Question","name":"FPY 低但合格率 100% 要不要管？","acceptedAnswer":{"@type":"Answer","text":"要管。FPY 低意味著持續返工，帶來人力、工時、裝置佔用與潛在質量風險；長期看會侵蝕交付與成本，應作為改進重點而非因『最終合格』而忽視。"}}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"FPY 和最終合格率有何不同？","acceptedAnswer":{"@type":"Answer","text":"最終合格率包含返修後合格品，掩蓋返工成本；FPY 只承認首次合格的單元。工具派生的「未一次通過數量」是件數，不是缺陷數，也不等於最終報廢數。"}},{"@type":"Question","name":"FPY 低但合格率 100% 要不要管？","acceptedAnswer":{"@type":"Answer","text":"要管。FPY 低意味著持續返工，帶來人力、工時、裝置佔用與潛在質量風險；長期看會侵蝕交付與成本，應作為改進重點而非因『最終合格』而忽視。"}}]}</script>
 <meta property="og:site_name" content="ToolBox">
 <meta name="theme-color" content="#FF6B35">
 <!-- TOOLBOX-HREFLANG -->
@@ -108,19 +108,19 @@
 
     <div class="formula-box">
       <div class="formula-title">📐 計算公式</div>
-      <div class="formula-eq">一次通過率 FPY = 良品數 ÷ 投入數 × 100%；不良品數 = 投入數 − 良品數；DPPM = 不良品數 ÷ 投入數 × 10⁶（百萬分率，分母以 1e−9 兜底）；小數形式 = 良品數 ÷ 投入數。校驗：良品數與投入數兩項為必填有效數值。判據：FPY 越接近 100%，過程一次交驗能力越強。</div>
-      <p class="formula-desc">未經返修首次即合格的比例。</p>
+      <div class="formula-eq">一次通過率 FPY = 首次合格數 ÷ 投入數 × 100%；未一次通過數量 = 投入數 − 首次合格數；未一次通過百萬分率 = 未一次通過數量 ÷ 投入數 × 10⁶。校驗：兩個計數均為非負整數，投入數 >0 且首次合格數 ≤ 投入數。口徑：首次合格不含返修/返工後合格；未一次通過數量不是缺陷數，也不等於最終報廢數。</div>
+      <p class="formula-desc">首次即合格、不含返修後合格的比例；未一次通過數量按件計，與缺陷數、最終報廢數不同。</p>
     </div>
 
 
     <div class="input-row">
       <div>
-        <label for="good">良品數</label>
-        <input type="number" id="good" value="950" step="1" placeholder="如 950" oninput="calcTool()">
+        <label for="good">首次合格數（不含返修）</label>
+        <input type="number" id="good" value="950" step="1" placeholder="如 950，須為整數" oninput="calcTool()">
       </div>
       <div>
-        <label for="total">投入數</label>
-        <input type="number" id="total" value="1000" step="1" placeholder="如 1000" oninput="calcTool()">
+        <label for="total">投入數（件）</label>
+        <input type="number" id="total" value="1000" step="1" placeholder="如 1000，須為整數" oninput="calcTool()">
       </div>
     </div>
 
@@ -268,14 +268,18 @@ function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+=
 function calcTool(){
               var __ig=__tbInputGuard(['good', 'total'],["良品数", "投入数"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
 const g=num('good'),t=num('total');
-            if(!(g>=0)){document.getElementById('result').innerHTML='<p style="color:var(--danger);">请检查输入：良品数不能为负数</p>';return;}
-            if(!(t>0)){document.getElementById('result').innerHTML='<p style="color:var(--danger);">请检查输入：投入数必须大于 0</p>';return;}
-            if(g>t){document.getElementById('result').innerHTML='<p style="color:var(--danger);">请检查输入：良品数不能大于投入数</p>';return;}
+            function __fpyBad(msg){ToolBox.setResult('result','<p style="color:var(--danger);">'+msg+'</p>');var tb=document.getElementById('first_pass_yieldTable');if(tb)tb.innerHTML='';}
+            if(!Number.isInteger(g)){__fpyBad('首次合格数须为非负整数（件）');return;}
+            if(!Number.isInteger(t)){__fpyBad('投入数须为正整数（件）');return;}
+            if(g<0){__fpyBad('首次合格数不能为负数');return;}
+            if(t<=0){__fpyBad('投入数必须大于 0');return;}
+            if(g>t){__fpyBad('首次合格数不能大于投入数');return;}
             const __g2=dataGrid([
                 [(g/t*100).toFixed(2),'一次通过率 (%)'],
-                [(t-g).toFixed(0), '不良品数'],
-                [((t-g)/Math.max(t,1e-9)*1e6).toFixed(0), '缺陷率 (DPPM)'],
-                [(g/Math.max(t,1e-9)).toFixed(6), '一次通过率（小数）']
+                [String(t-g), '未一次通过数量（件）'],
+                [((t-g)/t*1e6).toFixed(0), '未一次通过百万分率 (DPPM)'],
+                [(g/t).toFixed(6), '一次通过率（小数）'],
+                ['不含返修后合格；未通过数≠缺陷数/报废数','口径说明']
             ]);ToolBox.setResult('result',(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));
         }
 function resetForm(){document.getElementById('good').value = '950';
@@ -289,15 +293,15 @@ function __first_pass_yieldExtras(){
     if (typeof TBKit === 'undefined') return;
     var g=num('good'),t=num('total');
     if (!isFinite(__first_pass_yieldNum('good')) || !isFinite(__first_pass_yieldNum('total'))) return;
-    if(__first_pass_yieldNum('good')<0||__first_pass_yieldNum('total')<=0||__first_pass_yieldNum('good')>__first_pass_yieldNum('total')){var __tbEl=document.getElementById('first_pass_yieldTable');if(__tbEl)__tbEl.innerHTML='<p style="color:var(--danger);">输入无效，未生成明细</p>';return;}
+    if(!Number.isInteger(__first_pass_yieldNum('good'))||!Number.isInteger(__first_pass_yieldNum('total'))||__first_pass_yieldNum('good')<0||__first_pass_yieldNum('total')<=0||__first_pass_yieldNum('good')>__first_pass_yieldNum('total')){var __tbEl=document.getElementById('first_pass_yieldTable');if(__tbEl)__tbEl.innerHTML='<p style="color:var(--danger);">输入无效，未生成明细</p>';return;}
     var en=TBKit.util.isEn();
     TBKit.matrix.table('#first_pass_yieldTable',{
         head: en?['Item','Value']:['项目','数值'],
         rows: [
             ['一次通过率 (%)', (g/t*100).toFixed(2)],
-            ['不良品数', (t-g).toFixed(0)],
-            ['缺陷率 (DPPM)', ((t-g)/Math.max(t,1e-9)*1e6).toFixed(0)],
-            ['一次通过率（小数）', (g/Math.max(t,1e-9)).toFixed(6)],
+            ['未一次通过数量（件）', String(t-g)],
+            ['未一次通过百万分率 (DPPM)', ((t-g)/t*1e6).toFixed(0)],
+            ['一次通过率（小数）', (g/t).toFixed(6)],
         ]
     });
     TBKit.history.record({good:__first_pass_yieldRaw('good'), total:__first_pass_yieldRaw('total'), g:g});
@@ -354,11 +358,11 @@ else document.addEventListener('DOMContentLoaded', __first_pass_yieldBoot);
 <li>精益/六西格瑪中作為過程質量與浪費的核心指標，與返工成本直接掛鉤。</li>
 <li>多工位過程用各工位 FPY 連乘得 RTY（見<a class="term-link" href="/zh-tw/tools/process/rolled-throughput-yield.html">流通合格率</a>工具）。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">公式</div><div class="dd-ex-body">FPY = 一次合格數 ÷ 總生產數 × 100%。一次合格指無需任何返工/返修即通過的單元；若某單元經過返修後合格，不計入『一次合格』。</div></div>
-<div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">某工序當日投產 1000 件，其中 950 件一次合格、50 件經返修後合格：FPY = 950 ÷ 1000 × 100% = 95.00%。最終合格率雖是 100%，但 FPY 僅 95%，說明有 5% 的返工浪費，應追溯這 50 件的根因而非只看最終出貨。</div></div>
+<div class="dd-example"><div class="dd-ex-title">公式</div><div class="dd-ex-body">FPY = 首次合格數 ÷ 投入數 × 100%；未一次通過數量 = 投入數 − 首次合格數；未一次通過百萬分率 = 未通過數量 ÷ 投入數 × 10⁶。兩個計數須為非負整數，投入數 &gt;0 且首次合格數 ≤ 投入數。首次合格不含返修/返工後合格。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">某工序投產 1000 件，其中 950 件一次合格、50 件經返修後合格：FPY=950÷1000×100%=95.00%；未一次通過數量=50 件；未一次通過百萬分率=50,000 DPPM。最終合格率雖為 100%，但不能據此說沒有缺陷或沒有報廢，兩者口徑不同。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
-<dt>FPY 和最終合格率有何不同？</dt><dd>最終合格率包含返修後合格品，掩蓋了返工成本；FPY 只承認首次合格的單元，能更真實暴露過程波動與浪費，是六西格瑪更看重的指標。</dd>
+<dt>FPY 和最終合格率有何不同？</dt><dd>最終合格率包含返修後合格品，掩蓋返工成本；FPY 只承認首次合格的單元。工具派生的「未一次通過數量」是件數，不是缺陷數，也不等於最終報廢數。</dd>
 <dt>FPY 低但合格率 100% 要不要管？</dt><dd>要管。FPY 低意味著持續返工，帶來人力、工時、裝置佔用與潛在質量風險；長期看會侵蝕交付與成本，應作為改進重點而非因『最終合格』而忽視。</dd>
 </dl>
 </div>

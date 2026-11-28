@@ -156,15 +156,15 @@
 <h2>📚 深度解析：採購成本與節約額分析</h2>
 <h3>💡 常見使用場景</h3>
 <ul class="dd-list">
-<li>對比談判前後的價格，計算單次採購節約額與節約率，量化議價成果。</li>
-<li>結合年採購次數與一次性投入（系統／流程改造），測算年節約額、淨年節約與<a class="term-link" href="/zh-tw/tools/energy/energy-payback.html">投資回收期</a>。</li>
-<li>在多家供應商或多次採購間橫向比較單位節約，定位降本空間最大的品類。</li>
+<li>數量、原單價、新單價、年採購次數與投入均須填寫；留空不按 0，0 須明確填 0。</li>
+<li>原單價須大於 0，新單價/投入/次數非負，次數須為整數。</li>
+<li>單次節約 ≤0 時有投入則顯示「無法回收」，零投入則顯示「無需回收」；次數為 0 且有節約時顯示「無法按年計算」。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">示例：年框降價</div><div class="dd-ex-body">採購數量 1000 單位、原單價 100 元、談判後單價 85 元、年採購 6 次、一次性投入 10000 元：原金額 100000 元、新金額 85000 元、單次節約 15000 元、節約率 15%、年節約 90000 元、淨年節約 80000 元、回收期約 0.67 次（按單次節約攤還）。</div></div>
+<div class="dd-example"><div class="dd-ex-title">示例：年框降價</div><div class="dd-ex-body">原價 100、新價 85、數量 500、年 6 次、投入 10,000：單次節約 7,500 元，年節約 45,000 元，淨年節約 35,000 元，回收期 1.33 次 / 0.22 年。新價 110 時單次節約 −5,000 元，頁面顯示「無法回收」；新價 80、次數 0 時顯示「無法按年計算」。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
 <dt>節約率怎麼算？</dt><dd>節約率＝（原單價−新單價）÷原單價×100%，反映單價的相對降幅；若只給總金額，可先折算成單價再代入。</dd>
-<dt>投資回收期指什麼？</dt><dd>為達成降價而投入的改造／系統費用，用單次節約額攤還所需採購次數（或折算成年），回收期越短說明降本投入回報越快；若單價未下降，節約額為 0，回收期無意義。</dd>
+<dt><a class="term-link" href="/zh-tw/tools/energy/energy-payback.html">投資回收期</a>指什麼？</dt><dd>為達成降價而投入的改造／系統費用，用單次節約額攤還所需採購次數（或折算成年），回收期越短說明降本投入回報越快；若單價未下降，節約額為 0，回收期無意義。</dd>
 </dl>
 </div>
 </section>
@@ -208,7 +208,32 @@
 <script>
 function fmt(n,d){d=d==null?2:d;return n.toLocaleString('zh-CN',{minimumFractionDigits:d,maximumFractionDigits:d});}
 function num(id){var v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
-function calc(){var Q=num('Q'),oldP=num('oldP'),newP=num('newP'),N=num('N'),inv=num('inv');if(oldP<=0){document.getElementById('res').innerHTML='<p>原单价需大于 0。</p>';return;}var oldAmt=oldP*Q;var newAmt=newP*Q;var saveOnce=(oldP-newP)*Q;var saveRate=(oldP-newP)/oldP*100;var yearSave=saveOnce*N;var netYear=yearSave-inv;var payback=saveOnce>0?inv/saveOnce:0;var paybackYr=inv>0&&saveOnce>0?payback/N:0;var html='<p>原采购金额：<strong>'+fmt(oldAmt)+' 元</strong></p><p>新采购金额：<strong>'+fmt(newAmt)+' 元</strong></p><p>单次节约额：<strong style="color:var(--primary);">'+fmt(saveOnce)+' 元</strong></p><p>节约率：<strong>'+fmt(saveRate)+'%</strong></p><p>年节约额：<strong>'+fmt(yearSave)+' 元</strong></p><p>净年节约（扣投入）：<strong>'+fmt(netYear)+' 元</strong></p><p>投资回收期：<strong>'+fmt(payback,2)+' 次 / '+fmt(paybackYr,2)+' 年</strong></p>';const __g1=html;document.getElementById('res').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));}
+function calc(){
+  function raw(id){return String(document.getElementById(id).value||'').trim();}
+  var Q=Number(raw('Q')), oldP=Number(raw('oldP')), newP=Number(raw('newP')), N=Number(raw('N')), inv=Number(raw('inv'));
+  if(['Q','oldP','newP','N','inv'].some(function(id){return raw(id)==='';})||![Q,oldP,newP,N,inv].every(isFinite)){
+    document.getElementById('res').innerHTML='<p>数量、原单价、新单价、年采购次数与投入均须填写有效数值；确实为 0 请明确填 0</p>';return;
+  }
+  if(Q<=0||oldP<=0){document.getElementById('res').innerHTML='<p>采购数量与原单价需大于 0。</p>';return;}
+  if(newP<0||inv<0||N<0){document.getElementById('res').innerHTML='<p>新单价、投入与年采购次数须为 ≥0；次数须为整数。</p>';return;}
+  if(!Number.isInteger(N)){document.getElementById('res').innerHTML='<p>年采购次数须为整数（可为 0）。</p>';return;}
+  var oldAmt=oldP*Q,newAmt=newP*Q,saveOnce=(oldP-newP)*Q,saveRate=(oldP-newP)/oldP*100;
+  var yearSave=saveOnce*N,netYear=yearSave-inv;
+  var html='<p>原采购金额：<strong>'+fmt(oldAmt)+' 元</strong></p><p>新采购金额：<strong>'+fmt(newAmt)+' 元</strong></p><p>单次节约额：<strong style="color:var(--primary);">'+fmt(saveOnce)+' 元</strong></p><p>节约率：<strong>'+fmt(saveRate)+'%</strong></p><p>年节约额：<strong>'+fmt(yearSave)+' 元</strong></p><p>净年节约（扣投入）：<strong>'+fmt(netYear)+' 元</strong></p>';
+  if(saveOnce<=0){
+    if(inv===0){
+      html+='<p>回收期：<strong>无需回收</strong>（无正节约，且投入为 0；涨价或持平不产生节约）。</p>';
+    }else{
+      html+='<p>回收期：<strong style="color:var(--danger);">无法回收</strong>（单次节约 '+fmt(saveOnce)+' 元，无正节约，投入 '+fmt(inv)+' 元无法靠节约收回）。</p>';
+    }
+  }else if(N===0){
+    html+='<p>回收期：<strong>无法按年计算</strong>（年采购次数为 0；单次节约 '+fmt(saveOnce)+' 元，需按实际采购频次另算）。</p>';
+  }else{
+    var payback=inv/saveOnce,paybackYr=inv/yearSave;
+    html+='<p>投资回收期：<strong>'+fmt(payback,2)+' 次 / '+fmt(paybackYr,2)+' 年</strong></p>';
+  }
+  const __g1=html;document.getElementById('res').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
+}
 calc();
 function copyResult(){ToolBox.copyText(document.getElementById('res').innerText);}
 </script>
@@ -233,12 +258,12 @@ function copyResult(){ToolBox.copyText(document.getElementById('res').innerText)
     </a>
 
     <a href="/zh-tw/tools/procurement/zhaobiao-gongkai-yaoqing-jingzheng-fangshi.html" class="related-tool-card">
-      <span class="rt-icon">🛒</span>
-      <span class="rt-info"><span class="rt-name">招標（公開/邀請/競爭）方式</span><span class="rt-desc">招標方式對比工具對比公開招標、邀請招標與競爭性談判等採購方式的適用情形與流程要點，輔助合規採購決策</span></span>
+      <span class="rt-icon">⚖️</span>
+      <span class="rt-info"><span class="rt-name">招標方式對比與核對清單</span><span class="rt-desc">對比公開招標、邀請招標與競爭性談判的常見適用情形和流程要點，並提供待核對清單；金額僅記錄，不判定合規</span></span>
     </a>
     <a href="/zh-tw/tools/procurement/wuliu-yunshufangshi-yunfei-bidui.html" class="related-tool-card">
-      <span class="rt-icon">🚚</span>
-      <span class="rt-info"><span class="rt-name">物流（運輸方式/運費）比對</span><span class="rt-desc">物流運輸方式與運費比對工具按輸入引數對比快遞、零擔、整車等方案的運費與時效，輔助採購與分銷的物流選型</span></span>
+      <span class="rt-icon">🚆</span>
+      <span class="rt-info"><span class="rt-name">公路/鐵路參考運費估算</span><span class="rt-desc">按距離、重量與公路/鐵路單價估算參考運費，並展示單位費率；</span></span>
     </a>
     <a href="/zh-tw/tools/procurement/eoq.html" class="related-tool-card">
       <span class="rt-icon">🛒</span>

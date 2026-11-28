@@ -103,7 +103,7 @@
 <div class="card">
     <h2 data-zh="🔤 Base64 檔案轉換">🔤 Base64 File Converter</h2>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">按逗號切分輸入，第一段若形如「data: 型別 ; 後續內容」則取其中的媒體型別，否則按通用二進位制流型別處理；資料部分為逗號之後的所有內容（沒有逗號時取整串）。對資料做 Base64 解碼得到二進位制字串，逐字元取字元編碼填入無符號 8 位陣列，再按解析出的媒體型別構造二進位制大物件，據此生成臨時下載連結；下載檔名以「decoded.」加按媒體型別查表得到的標準副檔名（text/plain→txt、image/jpeg→jpg、image/svg+xml→svg、vnd.openxmlformats 系列→docx/xlsx/pptx），未收錄的型別先去掉 + 語法字尾與 x-/vnd. 字首再取末段，仍取不到時用 bin；隨後釋放該連結。輸出還原後的位元組數（按易讀大小格式化）、媒體型別與實際檔名；解碼失敗時提示 Base64 無效</div>
+  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">僅當輸入完整匹配「data:<媒體型別>;base64,<資料>」時才剝離字首並採用其中的媒體型別；普通 Base64 必須整體校驗，含逗號卻不是合法 Base64 data URI 的輸入直接拒絕。對資料做 Base64 解碼得到二進位制字串，逐字元取字元編碼填入無符號 8 位陣列，再按解析出的媒體型別構造二進位制大物件，據此生成臨時下載連結；下載檔名以「decoded.」加按媒體型別查表得到的標準副檔名（text/plain→txt、image/jpeg→jpg、image/svg+xml→svg、vnd.openxmlformats 系列→docx/xlsx/pptx），未收錄的型別先去掉 + 語法字尾與 x-/vnd. 字首再取末段，仍取不到時用 bin；隨後釋放該連結。輸出還原後的位元組數（按易讀大小格式化）、媒體型別與實際檔名；解碼失敗時提示 Base64 無效</div>
   <div class="formula-desc">把本地檔案與 Base64 文本互相轉換，可產出可直接嵌入頁面的 Data URL。</div>
   <ul class="formula-list">
     <li><b>讀取</b>：用 FileReader 讀為 ArrayBuffer 或 DataURL，再按 Base64 規則編碼位元組流。</li>
@@ -128,7 +128,7 @@
     <hr style="border:none;border-top:1px solid var(--border,#E5E7EB);margin:18px 0;">
     <p style="font-size:13px;color:var(--muted,#6B7280);margin-bottom:8px;">或：貼上 Base64 / data URI，還原為檔案：</p>
     <div class="input-row">
-      <textarea id="b64In" placeholder="粘贴 Base64 或 data:image/png;base64,... 字符串" style="min-height:100px" aria-label="Base64 输入"></textarea>
+      <textarea id="b64In" placeholder="粘贴 Base64 或 data:image/png;base64,... 字符串" style="min-height:100px" aria-label="Base64 输入" oninput="__b64TextInvalidate()"></textarea>
     </div>
     <div class="toolbar">
       <button class="btn primary" onclick="b64ToFile()">還原為檔案</button>
@@ -211,7 +211,7 @@
   <div class="related-tools-grid">
     <a href="/zh-tw/tools/it/properties-parser.html" class="related-tool-card">
       <span class="rt-icon">📄</span>
-      <span class="rt-info"><span class="rt-name">.properties 解析器</span><span class="rt-desc">Java .properties 檔案解析：支援 key=value、key:value、行內註釋…</span></span>
+      <span class="rt-info"><span class="rt-name">.properties 解析器</span><span class="rt-desc">Java .properties 檔案解析：支援 key=value、key:value、整行註釋（…</span></span>
     </a>
     <a href="/zh-tw/tools/it/ast-viewer.html" class="related-tool-card">
       <span class="rt-icon">💻</span>
@@ -242,11 +242,11 @@
     </a>
     <a href="/zh-tw/tools/it/properties-parser.html" class="related-tool-card">
       <span class="rt-icon">📄</span>
-      <span class="rt-info"><span class="rt-name">.properties 解析器</span><span class="rt-desc">Java .properties 檔案解析：支援 key=value、key:value、行內註釋…</span></span>
+      <span class="rt-info"><span class="rt-name">.properties 解析器</span><span class="rt-desc">Java .properties 檔案解析：支援 key=value、key:value、整行註釋（…</span></span>
     </a>
     <a href="/zh-tw/tools/it/api-sign-generator.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">API 簽名生成器</span><span class="rt-desc">生成帶時間戳與隨機數的介面簽名</span></span>
+      <span class="rt-info"><span class="rt-name">API 簽名生成器</span><span class="rt-desc">可選加入時間戳與隨機數的介面簽名</span></span>
     </a>
     <a href="/zh-tw/tools/it/ascii-tree-generator.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
@@ -332,9 +332,10 @@ function copyB64(){var v=document.getElementById('b64Out').value;if(!v){if(ToolB
 function downloadB64(){
   var v=document.getElementById('b64Out').value.trim();
   if(!v){if(ToolBox.showToast)ToolBox.showToast(i18nText('toast.msg683'));return;}
-  var parts=v.split(',');
-  var mime=(parts[0]&&/^data:([^;]+)/.exec(parts[0]))?RegExp.$1:'application/octet-stream';
-  var data=parts.length>1?parts.slice(1).join(','):v;
+  var parsed=__b64ParseInput(v);
+  if(parsed.error){if(ToolBox.showToast)ToolBox.showToast(parsed.error,'error');return;}
+  var mime=parsed.mime;
+  var data=parsed.data;
   try{
     var bin=atob(data);
     var arr=new Uint8Array(bin.length);
@@ -351,10 +352,12 @@ function downloadB64(){
 function b64ToFile(){
   var v=document.getElementById('b64In').value.trim();
   var out=document.getElementById('result');
+  __b64TextInvalidate();
   if(!v){const __h2='<p style="color:var(--warning)">请先粘贴 Base64</p>';if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h2;return;}
-  var parts=v.split(',');
-  var mime=(parts[0]&&/^data:([^;]+)/.exec(parts[0]))?RegExp.$1:'application/octet-stream';
-  var data=parts.length>1?parts.slice(1).join(','):v;
+  var parsed=__b64ParseInput(v);
+  if(parsed.error){out.innerHTML='<p style="color:var(--danger)">'+escH(parsed.error)+'</p>';return;}
+  var mime=parsed.mime;
+  var data=parsed.data;
   try{
     var bin=atob(data);
     var arr=new Uint8Array(bin.length);
@@ -375,8 +378,9 @@ function b64ToText(){
   var textOut=document.getElementById('b64TextOut');
   if(textOut) textOut.value='';
   if(!v){const __h5='';if((typeof __h5==='number'&&!isFinite(__h5))||/Infinity/.test(String(__h5))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h5)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h5;return;}
-  var parts=v.split(',');
-  var data=parts.length>1?parts.slice(1).join(','):v;
+  var parsed=__b64ParseInput(v);
+  if(parsed.error){out.innerHTML='<p style="color:var(--danger)">'+escH(parsed.error)+'</p>';return;}
+  var data=parsed.data;
   try{
     var bin=atob(data);
     var bytes=new Uint8Array(bin.length);
@@ -396,6 +400,29 @@ function b64ToText(){
 }
 
 var __base64_file_last=0,__base64_file_skip=false;
+function __b64ParseInput(value){
+  var s=String(value||'').trim();
+  if(!s) return {error:__b64FileL('Paste Base64 or a data URI first','请先粘贴 Base64 或 data URI')};
+  if(/^data:/i.test(s)){
+    var comma=s.indexOf(',');
+    if(comma<0) return {error:__b64FileL('Malformed data URI: missing comma separator','data URI 格式无效：缺少逗号分隔')};
+    var meta=s.slice(5,comma);
+    var rawParts=meta.split(';').map(function(x){return x.trim();});
+    var flags=rawParts.map(function(x){return x.toLowerCase();}).filter(Boolean);
+    if(flags.indexOf('base64')<0) return {error:__b64FileL('Only data URIs marked ";base64" can be decoded here','data URI 未标记「;base64」，不能按 Base64 解码')};
+    var data=s.slice(comma+1);
+    if(!data) return {error:__b64FileL('The data URI has no Base64 data after the comma','data URI 的逗号后没有 Base64 数据')};
+    return {data:data,mime:(rawParts[0]||'application/octet-stream').toLowerCase(),isDataUri:true};
+  }
+  if(s.indexOf(',')>=0) return {error:__b64FileL('Plain Base64 cannot contain a comma; only a valid data:<type>;base64, prefix is stripped','普通 Base64 中不能含逗号；只有合法的 data:<类型>;base64, 前缀才会被剥离')};
+  return {data:s,mime:'application/octet-stream',isDataUri:false};
+}
+function __b64TextInvalidate(){
+  var textOut=document.getElementById('b64TextOut');
+  if(textOut) textOut.value='';
+  var out=document.getElementById('result');
+  if(out) out.innerHTML='';
+}
 function __b64FileL(en,zh){ return (typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())?en:zh; }
 function __base64_filePurgeHistory(){
     // 旧版本历史会保存 b64Out/b64In/file 明文；首次读到含这些键的旧记录即剔除，避免残留。

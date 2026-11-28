@@ -66,7 +66,7 @@
 
 <script src="../../../js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"為什麼要把良品率算進去？","acceptedAnswer":{"@type":"Answer","text":"返工件同樣消耗材料與工時，除以良品率可把返工損失攤回單件，避免低估低良品率方案的真實成本。"}},{"@type":"Question","name":"節省率是相對誰算的？","acceptedAnswer":{"@type":"Answer","text":"相對第一行方案（基準），單件成本降幅即節省率；可把現用工藝放第一行做對比基準。"}}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"為什麼要把良品率算進去？","acceptedAnswer":{"@type":"Answer","text":"返工件同樣消耗材料與工時，除以良品率可把返工損失攤回單件，避免低估低良品率方案的真實成本。"}},{"@type":"Question","name":"節省率是相對誰算的？","acceptedAnswer":{"@type":"Answer","text":"相對第一行方案（基準），單件成本降幅即節省率；可把現用工藝放第一行做對比基準。"}},{"@type":"Question","name":"某一行寫成“3元”或“98abc”會怎樣？","acceptedAnswer":{"@type":"Answer","text":"整批輸入按欄位嚴格校驗；發現尾綴、欄位數不對或缺值時，工具停止比較並列出原始行與欄位，不會跳過壞行後給出“最優方案”。請按逗號分隔的 5 個純數字欄位重填。"}}]}</script>
 <meta property="og:site_name" content="ToolBox">
 <meta name="theme-color" content="#FF6B35">
 <!-- TOOLBOX-HREFLANG -->
@@ -152,6 +152,7 @@
 <dl class="dd-faq">
 <dt>為什麼要把良品率算進去？</dt><dd>返工件同樣消耗材料與工時，除以良品率可把返工損失攤回單件，避免低估低良品率方案的真實成本。</dd>
 <dt>節省率是相對誰算的？</dt><dd>相對第一行方案（基準），單件成本降幅即節省率；可把現用工藝放第一行做對比基準。</dd>
+<dt>某一行寫成“3元”或“98abc”會怎樣？</dt><dd>整批輸入按欄位嚴格校驗；發現尾綴、欄位數不對或缺值時，工具停止比較並列出原始行與欄位，不會跳過壞行後給出“最優方案”。請按逗號分隔的 5 個純數字欄位重填。</dd>
 </dl>
 </div>
 </section>
@@ -195,21 +196,35 @@
 <script>
 function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function calc(){
-var lines=document.getElementById("data").value.split("\n").map(function(s){return s.trim();}).filter(function(s){return s.length>0;});
+var raw=document.getElementById("data").value.split("\n");
 var rows='',n=0,best=null,bestU=0,base=null,baseU=0,baseE=0,bestE=0,invalid=[];
-lines.forEach(function(ln,idx){
-var p=ln.split(/[,，\t ]+/);
-var name=p[0]||"",mat=parseFloat(p[1]),mn=parseFloat(p[2]),rt=parseFloat(p[3]),yp=parseFloat(p[4]);
-if(name===''||!isFinite(mat)||!isFinite(mn)||!isFinite(rt)||!isFinite(yp)||mat<0||mn<0||rt<0||!(yp>0)||yp>100){invalid.push('第'+(idx+1)+'行：方案名/数值缺失，或成本、工时、费率 &lt;0，或良品率不在 (0,100]');return;}
-var yf=yp/100;
-var unit=(mat+mn*rt)/yf, eff=mn/yf;
-n++;
-var safeName=escHtml(name);
-if(base===null){base=name;baseU=unit;baseE=eff;}
-if(best===null||unit<bestU){best=name;bestU=unit;bestE=eff;}
-rows+='<tr><td>'+safeName+'</td><td>'+mat.toFixed(2)+'</td><td>'+mn.toFixed(2)+'</td><td>'+(mn*rt).toFixed(2)+'</td><td>'+yp.toFixed(1)+'%</td><td>'+unit.toFixed(2)+'</td><td>'+eff.toFixed(2)+'</td></tr>';
+function isNum(x){return /^[+-]?(?:\d+(?:\.\d+)?|\.\d+)$/.test(x);}
+raw.forEach(function(ln,idx){
+  if(ln.trim()==='') return;
+  var p=ln.trim().split(/[,，\t]+/).map(function(x){return x.trim();});
+  var lineNo=idx+1;
+  if(p.length!==5){invalid.push('第'+lineNo+'行：应有 5 个字段（方案名,胶水成本,工时,工时费率,良品率%），当前 '+p.length+' 个；原始行：'+ln.trim());return;}
+  var name=p[0],matRaw=p[1],mnRaw=p[2],rtRaw=p[3],ypRaw=p[4];
+  if(name===''){invalid.push('第'+lineNo+'行：方案名为空');return;}
+  var bad=[];
+  if(!isNum(matRaw)) bad.push('胶水成本“'+matRaw+'”');
+  if(!isNum(mnRaw)) bad.push('工时“'+mnRaw+'”');
+  if(!isNum(rtRaw)) bad.push('工时费率“'+rtRaw+'”');
+  if(!isNum(ypRaw)) bad.push('良品率“'+ypRaw+'”');
+  if(bad.length){invalid.push('第'+lineNo+'行：'+bad.join('、')+' 不是有效数字（不接受“3元”“98abc”等尾缀）；原始行：'+ln.trim());return;}
+  var mat=Number(matRaw),mn=Number(mnRaw),rt=Number(rtRaw),yp=Number(ypRaw);
+  if(mat<0||mn<0||rt<0||!(yp>0)||yp>100){invalid.push('第'+lineNo+'行：成本、工时、费率须 ≥0，良品率须在 (0,100]；原始行：'+ln.trim());return;}
+  var yf=yp/100;
+  var unit=(mat+mn*rt)/yf, eff=mn/yf;
+  n++;
+  var safeName=escHtml(name);
+  if(base===null){base=name;baseU=unit;baseE=eff;}
+  if(best===null||unit<bestU){best=name;bestU=unit;bestE=eff;}
+  rows+='<tr><td>'+safeName+'</td><td>'+mat.toFixed(2)+'</td><td>'+mn.toFixed(2)+'</td><td>'+(mn*rt).toFixed(2)+'</td><td>'+yp.toFixed(1)+'%</td><td>'+unit.toFixed(2)+'</td><td>'+eff.toFixed(2)+'</td></tr>';
 });
-if(!n){document.getElementById("res").innerHTML='<p>请按「方案名,胶水成本,工时(分钟),工时费率,良品率%」逐行输入</p>'+(invalid.length?'<div class="tip-box tip-error">'+invalid.join('<br>')+'</div>':'');return;}
+if(invalid.length){window.__costInvalid=true;document.getElementById("res").innerHTML='<div class="tip-box tip-error"><strong>输入有误，未进行比较：</strong><br>'+invalid.join('<br>')+'</div>';return;}
+if(!n){window.__costInvalid=true;document.getElementById("res").innerHTML='<p>请按「方案名,胶水成本,工时(分钟),工时费率,良品率%」逐行输入</p>';return;}
+window.__costInvalid=false;
 var save=baseU>0?(baseU-bestU)/baseU*100:0;
 var effUp=baseE>0?(baseE-bestE)/baseE*100:0;
 const __g2='<p>对比方案数：<strong>'+n+'</strong></p>'+
@@ -243,7 +258,7 @@ calc();function copyRes(){ToolBox.copyText(document.getElementById("res").innerT
     </a>
     <a href="/zh-tw/tools/bonding/detector-27.html" class="related-tool-card">
       <span class="rt-icon">🔍</span>
-      <span class="rt-info"><span class="rt-name">粘接（無損/檢測/超音波）方法</span><span class="rt-desc">依據超音波探傷的回波與耦合資料，判斷粘接介面的脫粘、分層等缺陷狀況並給出合格判定，用於無損質量檢測</span></span>
+      <span class="rt-info"><span class="rt-name">粘接（無損/檢測/超音波）方法</span><span class="rt-desc">記錄超音波回波、底波衰減與可疑訊號密度，提示覆檢與加密掃查；</span></span>
     </a>
     <a href="/zh-tw/tools/bonding/detector-26.html" class="related-tool-card">
       <span class="rt-icon">📏</span>

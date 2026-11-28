@@ -146,6 +146,7 @@
     </div>
     <table id="pcHidden" style="display:none"><thead><tr><th data-zh="符號" scope="col">Symbol</th><th data-zh="數值" scope="col">Value</th><th data-zh="單位" scope="col">Unit</th></tr></thead><tbody></tbody></table>
     <div class="result-box" id="output"></div>
+    <p style="font-size:12px;color:var(--text-muted);margin-top:8px;" data-zh="數值顯示：普通量級保留 10 位有效數字，絕對值小於 0.001 或不小於 1e6 時用 6 位小數的科學計數法；內部計算、歷史與匯出保留原始精度。">Display: up to 10 significant digits for ordinary magnitudes; values below 0.001 or at least 1e6 use scientific notation with 6 decimals. Internal calculations, history and export keep full precision.</p>
 
     <div class="tabs" id="phyTabs" style="margin-top:16px;">
       <button class="tab-btn active" data-v="chart" aria-label="圖表" data-i18n-aria="tool.aria.chart"></button>
@@ -506,7 +507,8 @@ function fmt(x){
   if(!isFinite(x)) return '未定义';
   if(x===0) return '0';
   if(Math.abs(x)>=1e6||Math.abs(x)<1e-3) return x.toExponential(6);
-  return (Math.round(x*1e10)/1e10).toLocaleString();
+  // 普通量级保留 10 位有效数字；不能交给无参 toLocaleString（默认最多 3 位小数，0.001234567 会被压成 0.001）
+  return Number(x.toPrecision(10)).toString();
 }
 
 function renderCategories(){

@@ -91,7 +91,7 @@
 
 <script src="../../../js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"時間軸資料來源？","acceptedAnswer":{"@type":"Answer","text":"公開整理的常識性重大事件清單，用於建立學習脈絡，並非學術全量；深入研究所請以權威通史或史料為準。"}},{"@type":"Question","name":"西元前年份怎麼排序？","acceptedAnswer":{"@type":"Answer","text":"內部用負數表示西元前，數值越小越早（−221 早於 −202），渲染時自動前置，無需手動換算。"}},{"@type":"Question","name":"能匯出或自定義事件嗎？","acceptedAnswer":{"@type":"Answer","text":"當前為只讀瀏覽；如需自定義事件清單，建議把事件匯出到表格自行編輯與視覺化。"}}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"時間軸資料來源？","acceptedAnswer":{"@type":"Answer","text":"公開整理的常識性重大事件清單，用於建立學習脈絡，並非學術全量；深入研究所請以權威通史或史料為準。"}},{"@type":"Question","name":"西元前年份怎麼排序？","acceptedAnswer":{"@type":"Answer","text":"內部用負數表示西元前，數值越小越早（−221 早於 −202），渲染時自動前置，無需手動換算。"}},{"@type":"Question","name":"能匯出或自定義事件嗎？","acceptedAnswer":{"@type":"Answer","text":"可以匯出當前篩選結果：先選主題、世紀和關鍵詞，再點匯出，CSV 只包含螢幕上匹配的事件；若當前篩選無結果，工具會提示且不生成空檔案。事件清單本身仍為只讀，如需增刪可匯出後自行編輯。"}}]}</script>
 <meta property="og:site_name" content="ToolBox">
 <!-- TOOLBOX-HREFLANG -->
 <link rel="alternate" hreflang="zh-CN" href="https://tools.dicomp.net/tools/museum/timeline-viewer.html">
@@ -180,7 +180,7 @@
 <ul class="dd-list">
 <li>複習中考/高考歷史時按時間線梳理中外大事件，例如前 221 秦統一、476 西羅馬滅亡、1453 君士坦丁堡陷落。</li>
 <li>做中西對比：把同一世紀中國與世界的事件並置，例如 18 世紀工業革命 vs 清朝康乾盛世。</li>
-<li>內容創作或彙報排期時，把事件按年份排序生成視覺化時間線脈絡。</li>
+<li>內容創作或彙報排期時，把事件按年份排序生成視覺化時間線脈絡；匯出 CSV 會嚴格沿用當前主題、世紀與關鍵詞篩選。</li>
 </ul>
 <div class="dd-example"><div class="dd-ex-title">方法</div><div class="dd-ex-body">事件以「年份（負數表西元前）+ 標題 + 簡述」結構化儲存，渲染時按年份升序排列；支援中西對照篩選。內部統一用整數年排序，西元前自動前置（−221 早於 −202）。</div></div>
 <div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">篩選「西元前 3 世紀」可得前 221 秦統一六國、前 202 楚漢相爭結束（漢建立）等；篩選「15 世紀」可得 1405 鄭和下西洋始航、1453 奧斯曼滅拜占庭等；篩選「19 世紀」可得 1840 鴉片戰爭、1861 洋務運動、1894 甲午戰爭等。</div></div>
@@ -188,7 +188,7 @@
 <dl class="dd-faq">
 <dt>時間軸資料來源？</dt><dd>公開整理的常識性重大事件清單，用於建立學習脈絡，並非學術全量；深入研究所請以權威通史或史料為準。</dd>
 <dt>西元前年份怎麼排序？</dt><dd>內部用負數表示西元前，數值越小越早（−221 早於 −202），渲染時自動前置，無需手動換算。</dd>
-<dt>能匯出或自定義事件嗎？</dt><dd>當前為只讀瀏覽；如需自定義事件清單，建議把事件匯出到表格自行編輯與視覺化。</dd>
+<dt>能匯出或自定義事件嗎？</dt><dd>可以匯出當前篩選結果：先選主題、世紀和關鍵詞，再點匯出，CSV 只包含螢幕上匹配的事件；若當前篩選無結果，工具會提示且不生成空檔案。事件清單本身仍為只讀，如需增刪可匯出後自行編輯。</dd>
 </dl>
 </div>
 </section>
@@ -351,14 +351,13 @@ window.addEventListener('toolbox:langchange', syncTimelineFiltersLanguage);
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', syncTimelineFiltersLanguage);
 else syncTimelineFiltersLanguage();
 
-function renderTimeline() {
-  // RL-K48：世纪 / 关键词筛选（世纪：1–100=1 世纪；公元前 3 世纪 = −300…−201）
+function getFilteredEvents() {
   var centurySel = document.getElementById('tlCentury');
   var kwEl = document.getElementById('tlKeyword');
   var cen = centurySel ? centurySel.value : '';
   var kw = kwEl ? String(kwEl.value || '').trim().toLowerCase() : '';
   var centuryOf = function (y) { return y > 0 ? Math.ceil(y / 100) : -Math.ceil(-y / 100); };
-  var events = TIMELINES[currentTheme].slice().filter(function (e) {
+  return TIMELINES[currentTheme].slice().filter(function (e) {
     if (cen === 'b3') { if (!(e.y >= -300 && e.y <= -201)) return false; }
     else if (/^\d+$/.test(cen)) { if (centuryOf(e.y) !== parseInt(cen, 10)) return false; }
     if (kw) {
@@ -366,7 +365,12 @@ function renderTimeline() {
       if (hay.indexOf(kw) < 0) return false;
     }
     return true;
-  }).sort((a, b) => a.y - b.y);
+  }).sort(function(a, b){ return a.y - b.y; });
+}
+
+function renderTimeline() {
+  // 世纪 / 关键词筛选：世纪 1–100=1 世纪；公元前 3 世纪 = −300…−201
+  var events = getFilteredEvents();
   const el = document.getElementById('timeline');
   const __h1=events.map(e => {
     const yearStr = e.y < 0 ? `前 ${-e.y}` : `${e.y}`;
@@ -388,15 +392,22 @@ renderTimeline();
 function __tlExport(){
   if(typeof TBKit==='undefined')return;
   var en=TBKit.util.isEn();
+  var events=getFilteredEvents();
+  if(!events.length){
+    alert(en?'No events match the current filters, so no file was generated.':'当前筛选没有匹配事件，未生成 CSV。');
+    return;
+  }
   var tbody=document.querySelector('#tlHidden tbody');
   tbody.innerHTML='';
   function row(arr){var tr=document.createElement('tr');arr.forEach(function(v){var td=document.createElement('td');td.textContent=v;tr.appendChild(td);});tbody.appendChild(tr);}
-  var events=TIMELINES[currentTheme].slice().sort(function(a,b){return a.y-b.y;});
+  if(tbody){
+    document.getElementById('tlHidden').setAttribute('data-filtered','1');
+  }
   events.forEach(function(e){
     var yearStr=e.y<0?en?('BCE '+(-e.y)):'前'+(-e.y):String(e.y);
     row([yearStr, e.t, e.cat, e.desc]);
   });
-  TBKit.util.exportTable('#tlHidden', en?('timeline-'+currentTheme+'.csv'):('时间轴-'+currentTheme+'.csv'));
+  TBKit.util.exportTable('#tlHidden', en?('timeline-'+currentTheme+'-filtered.csv'):('时间轴-'+currentTheme+'-当前筛选.csv'));
 }</script><script>
 // tool-intro折叠交互
 document.addEventListener('DOMContentLoaded',function(){

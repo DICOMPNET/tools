@@ -33,6 +33,7 @@
   .palace .cell .label{font-size:11px;color:var(--text-light);margin-top:2px;}
   .palace .cell.hide .num,.palace .cell.hide .item,.palace .cell.hide .label{visibility:hidden;}
   .palace .cell.reveal{background:var(--bg-active);border-color:var(--primary);}
+  body.recall-mode .input-row, body.recall-mode .ref-card{display:none;}
   .encode-list{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;}
   .encode-list .ep{
     padding:8px 12px;background:var(--result-bg);border:1px solid var(--border);
@@ -89,7 +90,7 @@
 
 <script src="../../../js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"樁怎麼選？","acceptedAnswer":{"@type":"Answer","text":"用最熟的路徑(回家動線)且順序固定；樁要鮮明有反差，掛的意象越誇張越好記。樁數隨內容增，10–20 樁常見。"}},{"@type":"Question","name":"一個樁放幾個資訊？","acceptedAnswer":{"@type":"Answer","text":"初學一個樁放 1 個資訊最穩，熟練後可放到 2–3 個，超過 3 個容易互相干擾。關鍵是影像要誇張、動態、帶情緒（越荒誕越難忘），靜態相似物（如「書放在桌上」）回想時容易混淆。建議每 10 個樁為一段，組間留「空樁」間隔，避免相鄰組串味。"}}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"樁怎麼選？","acceptedAnswer":{"@type":"Answer","text":"用最熟的路徑(回家動線)且順序固定；樁要鮮明有反差，掛的意象越誇張越好記。樁數隨內容增，10–20 樁常見。"}},{"@type":"Question","name":"一個樁放幾個資訊？","acceptedAnswer":{"@type":"Answer","text":"初學一個樁放 1 個資訊最穩，熟練後可放到 2–3 個，超過 3 個容易互相干擾。關鍵是影像要誇張、動態、帶情緒（越荒誕越難忘），靜態相似物（如「書放在桌上」）回想時容易混淆。建議每 10 個樁為一段，組間留「空樁」間隔，避免相鄰組串味。"}},{"@type":"Question","name":"匯出的明細 CSV 包含什麼？","acceptedAnswer":{"@type":"Answer","text":"逐格匯出頁碼、位置、原文、聯想編碼與空位狀態，覆蓋所有分頁，可直接核對或恢復宮殿；歷史摘要另用“匯出歷史摘要 CSV”，兩者不再混用。"}}]}</script>
 <meta property="og:site_name" content="ToolBox">
 <meta name="theme-color" content="#FF6B35">
 <!-- TOOLBOX-HREFLANG -->
@@ -176,7 +177,8 @@
     </div>
 
     <div class="toolbar">
-      <div id="memory_palacePresets"></div><button type="button" class="btn primary" onclick="generate()">生成宮殿</button><button class="btn" type="button" onclick="__memory_palaceExport()">匯出明細 CSV</button>
+      <div id="memory_palacePresets"></div><button type="button" class="btn primary" onclick="generate()">生成宮殿</button><button class="btn" type="button" onclick="exportPalaceCsv()">匯出宮殿明細 CSV</button>
+      <button type="button" class="btn" onclick="__memory_palaceExport()">匯出歷史摘要 CSV</button>
       <button type="button" class="btn" onclick="startRecall()">開始回憶</button>
       <button type="button" class="btn" onclick="showAll()">顯示全部</button>
       <button type="button" class="btn success" onclick="exportCode()">複製編碼表</button>
@@ -221,6 +223,7 @@
 <ul class="dd-list">
 <li>把要記的內容掛到熟悉空間的固定位置，練聯想記憶。</li>
 <li>背單詞、記清單、備賽時用。</li>
+<li>回憶自測時隱藏待記憶輸入框與編碼對照表，逐格揭示並跨頁保留揭示狀態。</li>
 </ul>
 <div class="dd-example"><div class="dd-ex-title">10 個購物項分 5 樁</div><div class="dd-ex-body">選家裡 5 個位置(門/沙發/桌/窗/床)，每樁掛 2 件：門口放「牛奶+雞蛋」、沙發放「蘋果+麵包」… 按順序遊走回憶，10 項不易漏。</div></div>
 <div class="dd-example"><div class="dd-ex-title">背 5 個英語詞</div><div class="dd-ex-body">把 apple/book/cat/dog/sun 分別「放」在 5 個房間樁，閉眼走一遍空間即複述，比死記硬背更牢。</div></div>
@@ -228,6 +231,7 @@
 <dl class="dd-faq">
 <dt>樁怎麼選？</dt><dd>用最熟的路徑(回家動線)且順序固定；樁要鮮明有反差，掛的意象越誇張越好記。樁數隨內容增，10–20 樁常見。</dd>
 <dt>一個樁放幾個資訊？</dt><dd>初學一個樁放 1 個資訊最穩，熟練後可放到 2–3 個，超過 3 個容易互相干擾。關鍵是影像要誇張、動態、帶情緒（越荒誕越難忘），靜態相似物（如「書放在桌上」）回想時容易混淆。建議每 10 個樁為一段，組間留「空樁」間隔，避免相鄰組串味。</dd>
+<dt>匯出的明細 CSV 包含什麼？</dt><dd>逐格匯出頁碼、位置、原文、聯想編碼與空位狀態，覆蓋所有分頁，可直接核對或恢復宮殿；歷史摘要另用“匯出歷史摘要 CSV”，兩者不再混用。</dd>
 </dl>
 </div>
 </section>
@@ -325,6 +329,7 @@ var MEM_EN = /[?&]lang=en-US/.test(location.search);
 function memL(en, zh){ return MEM_EN ? en : zh; }
 var palacePage = 0;
 var palaceHiding = false;
+var revealedCells = {};
 
 function generate(){
 // NUMCLR2：全部数值/日期输入为空时不输出 0 与结论
@@ -367,6 +372,9 @@ if(__ni.length && __ni.every(function(e){return String(e.value).trim()==='';})){
 
   // 分页保留全部内容：最后一页不足 count 时保留空位，不再循环重复或静默丢弃。
   palacePage = 0;
+  revealedCells = {};
+  var __body = document.body || document.documentElement;
+  if(__body && __body.classList) __body.classList.remove('recall-mode');
   var totalPages = Math.max(1, Math.ceil(segments.length / count));
   var totalCells = totalPages * count;
   palace = [];
@@ -404,7 +412,8 @@ function renderPalace(hide){
   grid.style.gridTemplateColumns = 'repeat(' + cols + ', 1fr)';
   var html = '';
   pageItems.forEach(function(c, i){
-    html += '<div class="cell' + (hide ? ' hide' : '') + '" onclick="revealCell(' + (start + i) + ', ' + hide + ')">';
+    var cellClass = hide ? (revealedCells[start + i] ? 'reveal' : 'hide') : '';
+    html += '<div class="cell ' + cellClass + '" onclick="revealCell(' + (start + i) + ', ' + hide + ')">';
     html += '<span class="pos">' + c.pos + '</span>';
     html += '<span class="num">' + (c.empty ? '' : ToolBox.escHtml(c.raw)) + '</span>';
     html += '<span class="item">' + (c.empty ? '' : c.emoji) + '</span>';
@@ -465,14 +474,16 @@ function revealCell(i, hidden){
   var grid = document.getElementById('palace');
   var perPage = parseInt(document.getElementById('cellCount').value, 10) || 16;
   var local = i - palacePage * perPage;
-  var cell = grid.children[local];
+  var cell = grid.querySelectorAll('.cell')[local];
   if(!cell) return;
   if(cell.classList.contains('hide')){
     cell.classList.remove('hide');
     cell.classList.add('reveal');
+    revealedCells[i] = true;
   } else {
     cell.classList.add('hide');
     cell.classList.remove('reveal');
+    delete revealedCells[i];
   }
 }
 
@@ -486,13 +497,32 @@ function toolToast(message, type){
 
 function startRecall(){
   if(palace.length === 0){ toolToast(toolText('toast.msg656', '请先生成记忆宫殿'), 'error'); return; }
+  revealedCells = {};
+  var __body2 = document.body || document.documentElement;
+  if(__body2 && __body2.classList) __body2.classList.add('recall-mode');
   renderPalace(true);
   toolToast(toolText('toast.msg334', '已进入回忆模式'), 'info');
 }
 
 function showAll(){
   if(palace.length === 0){ toolToast(toolText('toast.msg656', '请先生成记忆宫殿'), 'error'); return; }
+  var __body = document.body || document.documentElement;
+  if(__body && __body.classList) __body.classList.remove('recall-mode');
   renderPalace(false);
+}
+
+function csvCell(v){ var t=String(v==null?'':v); return /[",\n\r]/.test(t) ? '"'+t.replace(/"/g,'""')+'"' : t; }
+function exportPalaceCsv(){
+  if(palace.length === 0){ toolToast(toolText('toast.msg656', '请先生成记忆宫殿'), 'error'); return; }
+  var perPage = parseInt(document.getElementById('cellCount').value, 10) || 16;
+  var rows = [memL('Page,Position,Content,Association,Status','页码,位置,内容,联想,状态')];
+  palace.forEach(function(c, i){
+    rows.push([Math.floor(i / perPage) + 1, c.pos, c.empty ? '' : c.raw, c.encode, c.empty ? memL('Empty','空位') : memL('Filled','已填')].map(csvCell).join(','));
+  });
+  if(typeof ToolBox !== 'undefined' && ToolBox.downloadText){
+    ToolBox.downloadText('memory-palace.csv', rows.join('\r\n'), 'text/csv;charset=utf-8');
+    toolToast(toolText('msg559', '宫殿明细已导出'));
+  }
 }
 
 function exportCode(){

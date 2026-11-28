@@ -225,8 +225,8 @@
 <li>風險敞口監控</li>
 <li>策略盈虧分析</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">方法</div><div class="dd-ex-body">Black-Scholes：d1=(ln(S/K)+(r+σ²/2)T)/(σ√T)，d2=d1−σ√T；由此得 Delta/Gamma/Theta/Vega/Rho 與理論價，衡量價格、時間、波動、利率敏感度。</div></div>
-<div class="dd-example"><div class="dd-ex-title">算例（演示）</div><div class="dd-ex-body">看漲 S=100、K=100、r=3%、σ=20%、T=0.5 → d1≈0.177、d2≈0.035；Delta≈0.570、Gamma≈0.0278、Theta≈−0.0194/天、Vega≈0.278/1%、Rho≈0.253/1%、理論價≈6.37。純模型演示、非投資建議。</div></div>
+<div class="dd-example"><div class="dd-ex-title">方法</div><div class="dd-ex-body">Black-Scholes：d1=(ln(S/K)+(r+σ²/2)T)/(σ√T)，d2=d1−σ√T；由此得 Delta/Gamma/Theta/Vega/Rho 與理論價。IV 由當前現價、行權價、利率、期限、股息與市價二分反解，任一引數變化都會同步重算；市價缺失或越界時明確提示不計算。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例（演示）</div><div class="dd-ex-body">看漲 S=100、K=100、r=3%、σ=20%、T=0.5 → 理論價約 6.37；若市價填 5，反解 IV 約 15.06%，把現價改為 90 後 IV 約 32.41%。Greeks 隨現價、波動率、期限變化而變，IV 只是市價反解值、不是預測。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
 <dt>Theta 為負代表什麼？</dt><dd>買方 Theta 通常為負，表示每過一天時間價值流失；賣方則反之，靠時間衰減獲利。</dd>
@@ -273,9 +273,14 @@
 </div>
 
 <script>
+function isFiniteNum(v){ return typeof v === 'number' && isFinite(v); }
 function getVal(id){
   var el = document.getElementById(id);
-  return el ? (+el.value || 0) : 0;
+  if(!el) return null;
+  var raw = String(el.value == null ? '' : el.value).trim();
+  if(raw === '') return null;
+  var n = Number(raw);
+  return isFinite(n) ? n : NaN;
 }
 
 // 标准正态分布累积函数 N(x)
@@ -306,20 +311,27 @@ function getType(){
   return 'call';
 }
 
+var __option_greeksOk=false;
 function calc(){
   var S = getVal('spot');
   var K = getVal('strike');
-  var r = getVal('rate') / 100;
-  var sigma = getVal('vol') / 100;
+  var rRaw = getVal('rate');
+  var sigmaRaw = getVal('vol');
   var T = getVal('time');
-  var q = getVal('div') / 100;
+  var qRaw = getVal('div');
   var type = getType();
 
-  if(S <= 0 || K <= 0 || T <= 0 || sigma <= 0){
-    document.getElementById('result').innerHTML='<p style="color:var(--danger);">所有参数需大于0</p>';
+  if(!isFiniteNum(S) || S <= 0 || !isFiniteNum(K) || K <= 0 || !isFiniteNum(rRaw) || !isFiniteNum(sigmaRaw) || sigmaRaw <= 0 || !isFiniteNum(T) || T <= 0 || !isFiniteNum(qRaw)){
+    __option_greeksOk=false;
+    document.getElementById('result').innerHTML='<p style="color:var(--danger);">请填写标的价格、行权价、无风险利率、波动率、到期时间和股息率；数值不能为空</p>';
     document.getElementById('greeksGrid').innerHTML='';
+    var ch=document.getElementById('option_greeksChart'); if(ch) ch.innerHTML='';
+    var tb=document.getElementById('option_greeksTable'); if(tb) tb.innerHTML='';
+    var ib=document.getElementById('ivBox'); if(ib) ib.innerHTML='<p style="color:var(--danger);">参数无效，隐含波动率暂不计算</p>';
     return;
   }
+  __option_greeksOk=true;
+  var r=rRaw/100, sigma=sigmaRaw/100, q=qRaw/100;
 
   var sqrtT = Math.sqrt(T);
   var d1 = (Math.log(S / K) + (r - q + sigma * sigma / 2) * T) / (sigma * sqrtT);
@@ -367,9 +379,11 @@ function calc(){
   grid += '<div class="greek-card"><div class="gname">Vega ν</div><div class="gval">' + vega.toFixed(4) + '</div><div class="gdesc">元/1%</div></div>';
   grid += '<div class="greek-card"><div class="gname">Rho ρ</div><div class="gval">' + rho.toFixed(4) + '</div><div class="gdesc">元/1%</div></div>';
   const __g4=grid;document.getElementById('greeksGrid').innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
+  if(document.getElementById('marketPrice')) calcIV();
 }
 
 function copyResult(){
+  if(!__option_greeksOk){ try{ ToolBox.showToast('请先填写完整有效参数'); }catch(e){} return; }
   var text = document.getElementById('result').innerText + '\n' + document.getElementById('greeksGrid').innerText;
   ToolBox.copyText(text, i18nText('msg050'));
 }
@@ -390,19 +404,31 @@ function __bsPrice(S,K,rPct,sigmaPct,T,qPct,type){
   if(type==='call') return S*eqT*normCDF(d1)-K*erT*normCDF(d2);
   return K*erT*normCDF(-d2)-S*eqT*normCDF(-d1);
 }
+function ifv(v){ return typeof v === 'number' && isFinite(v); }
 function calcIV(){
+  var box=document.getElementById('ivBox');
+  var mEl=document.getElementById('marketPrice');
+  if(!box||!mEl) return;
   var S=getVal('spot'), K=getVal('strike'), rPct=getVal('rate'), T=getVal('time'), qPct=getVal('div'), type=getType();
-  var mkt=parseFloat(document.getElementById('marketPrice').value)||0;
+  var raw=String(mEl.value==null?'':mEl.value).trim();
+  var mkt=raw===''?NaN:Number(raw);
   var en=__ogIsEn();
-  if(S<=0||K<=0||T<=0||mkt<=0){ document.getElementById('ivBox').innerHTML='<p>'+(en?'Enter valid params and market price':'请输入有效参数与市价')+'</p>'; return; }
+  var bad=!ifv(S)||S<=0||!ifv(K)||K<=0||!ifv(rPct)||!ifv(T)||T<=0||!ifv(qPct)||!ifv(mkt)||mkt<=0;
+  if(bad){
+    box.innerHTML='<p style="color:var(--danger);">'+(en?'Enter valid spot, strike, rate, time, dividend and a positive market price':'请输入有效的标的参数与正数期权市价')+'</p>';
+    return;
+  }
   var lo=1e-6, hi=5;
   function f(sig){ return __bsPrice(S,K,rPct,sig*100,T,qPct,type) - mkt; }
-  if(f(lo)>0||f(hi)<0){ document.getElementById('ivBox').innerHTML='<p>'+(en?'No IV in (0,500%] matches the market price':'市价超出 (0,500%] 波动率可解释范围')+'</p>'; return; }
+  if(!ifv(f(lo))||f(lo)>0||f(hi)<0){
+    box.innerHTML='<p style="color:var(--danger);">'+(en?'No IV in (0,500%] matches this market price; check the price or parameters':'市价超出 (0,500%] 波动率可解释范围，请检查市价或参数')+'</p>';
+    return;
+  }
   for(var i=0;i<80;i++){ var mid=(lo+hi)/2; if(f(mid)>0) hi=mid; else lo=mid; }
   var iv=(lo+hi)/2*100;
   var html='<p>'+ (en?'Implied volatility IV':'隐含波动率 IV') +': <strong>'+ iv.toFixed(2) +'%</strong></p>'+
-           '<p style="font-size:12px;color:var(--text-muted);">'+ (en?'Reversed from market price by bisection (σ∈(0,500%])':'二分法由市价反解（σ∈(0,500%]）') +'</p>';
-  document.getElementById('ivBox').innerHTML=html;
+           '<p style="font-size:12px;color:var(--text-muted);">'+ (en?'Reversed from the current spot/strike/rate/time/dividend by bisection (σ∈(0,500%])':'按上方当前现价、行权价、利率、期限与股息二分反解（σ∈(0,500%]）') +'</p>';
+  box.innerHTML=html;
 }
 
 calc();
@@ -429,27 +455,22 @@ try{ calcIV(); }catch(e){}
 <div class="related-tools" data-related-tools="1">
   <h3 class="related-tools-title">🔗 相關工具</h3>
   <div class="related-tools-grid">
-    <a href="/zh-tw/tools/finance/text-reverse-words.html" class="related-tool-card">
-      <span class="rt-icon">📖</span>
-      <span class="rt-info"><span class="rt-name">單詞順序反轉</span><span class="rt-desc">將英文句子中的單詞順序整體反轉，保留標點位置可選，用於密碼學練習、文案倒置與文本處理，純前端即時處理</span></span>
+    <a href="/zh-tw/tools/futures/option-payoff.html" class="related-tool-card">
+      <span class="rt-icon">📈</span>
+      <span class="rt-info"><span class="rt-name">期權盈虧圖</span><span class="rt-desc">輸入期權執行價、權利金與標的現價，繪製看漲或看跌期權到期損益曲線（買方/賣方），標出盈虧平衡點與最大…</span></span>
     </a>
-    <a href="/zh-tw/tools/text/stats-1.html" class="related-tool-card">
-      <span class="rt-icon">📖</span>
-      <span class="rt-info"><span class="rt-name">字數統計（含字元數、單詞數）</span><span class="rt-desc">字數統計工具：統計文本字元數、單詞數與行數，支援中英文混合計數，用於寫作與排版字數核算</span></span>
+    <a href="/zh-tw/tools/futures/margin-calc.html" class="related-tool-card">
+      <span class="rt-icon">📉</span>
+      <span class="rt-info"><span class="rt-name">期貨保證金計算器</span><span class="rt-desc">輸入期貨合約價格、合約乘數與保證金比例，計算開倉所需保證金、可開倉手數與實際槓桿倍數，幫助期貨投資者…</span></span>
     </a>
-    <a href="/zh-tw/tools/finance/word-wrap.html" class="related-tool-card">
+    <a href="/zh-tw/tools/futures/hedge-ratio.html" class="related-tool-card">
+      <span class="rt-icon">🧮</span>
+      <span class="rt-info"><span class="rt-name">對沖比例計算器</span><span class="rt-desc">輸入現貨與期貨價格變動的相關係數、波動率，按最小方差法計算最優對沖比例 h*=ρ·σS/σF，並估算…</span></span>
+    </a>
+    <a href="/zh-tw/tools/futures/futures-pricing.html" class="related-tool-card">
       <span class="rt-icon">💰</span>
-      <span class="rt-info"><span class="rt-name">自動換行</span><span class="rt-desc">按列寬斷行（避免詞內斷開）。按指定列寬對段落強制折行。報表備註、文件排版時對齊寬度。</span></span>
+      <span class="rt-info"><span class="rt-name">期貨定價計算器</span><span class="rt-desc">基於持有成本模型Cost of Carry，輸入現貨價、利率、倉儲與分紅率估算期貨理論價格，並給出與…</span></span>
     </a>
-    <a href="/zh-tw/tools/finance/word-frequency.html" class="related-tool-card">
-      <span class="rt-icon">📊</span>
-      <span class="rt-info"><span class="rt-name">詞頻統計</span><span class="rt-desc">對中英文文本分詞並統計詞頻，可過濾停用詞、忽略大小寫、限定最小詞長，輸出唯一詞數、總詞次、詞彙豐富度…</span></span>
-    </a>
-    <a href="/zh-tw/tools/finance/mirror-text.html" class="related-tool-card">
-      <span class="rt-icon">🏦</span>
-      <span class="rt-info"><span class="rt-name">映象文字</span><span class="rt-desc">將文字左右映象：複製近似 Unicode 字元，或匯出真實左右翻轉、透明背景的多行 PNG；</span></span>
-    </a>
-
   </div>
 </div>
 <div class="tool-intro open" id="toolIntro">
@@ -481,6 +502,7 @@ try{ calcIV(); }catch(e){}
 <script>
 // tool-intro折叠交互
 document.addEventListener('DOMContentLoaded',function(){
+  try{ calcIV(); }catch(e){}
   var headers=document.querySelectorAll('.tool-intro-header');
   headers.forEach(function(h){
     h.addEventListener('click',function(){
@@ -566,6 +588,7 @@ function __option_greeksRender(keys,rk,en){
     }catch(e3){}
 }
 function __option_greeksExtras(){
+  if(!__option_greeksOk) return;
     if (typeof TBKit === 'undefined') return;
     if (__option_greeks_skip) return;
     var snap=__option_greeksSnap();
@@ -596,6 +619,7 @@ function __option_greeksExtras(){
     __option_greeksRender(keys,rk,en);
 }
 function __option_greeksExport(){
+  if(!__option_greeksOk){ try{ ToolBox.showToast('请先填写完整有效参数'); }catch(e){} return; }
     if (typeof TBKit === 'undefined') return;
     try{
         var box=document.querySelector('#option_greeksTable');

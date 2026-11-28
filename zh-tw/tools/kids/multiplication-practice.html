@@ -88,7 +88,7 @@
 
 <script src="../../../js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"為什麼限時？","acceptedAnswer":{"@type":"Answer","text":"限時逼出自動化反應，暴露「想」而非「背」的薄弱點；正確率比速度先抓，再逐步提速。"}},{"@type":"Question","name":"總在 7×8、6×7 卡殼怎麼辦？","acceptedAnswer":{"@type":"Answer","text":"這兩組是公認高頻錯誤點（結果 56 與 42 相鄰易混）。建議用拆解法代替死記：7×8 = 7×10 − 7×2 = 70 − 14 = 56；6×7 = 6×5 + 6×2 = 30 + 12 = 42。把不會的題單獨做成錯題本，每次練習前先過一遍，連續 3 次全對再移出，比整表反覆刷效率高得多。"}}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"為什麼限時？","acceptedAnswer":{"@type":"Answer","text":"限時逼出自動化反應，暴露「想」而非「背」的薄弱點；正確率比速度先抓，再逐步提速。"}},{"@type":"Question","name":"總在 7×8、6×7 卡殼怎麼辦？","acceptedAnswer":{"@type":"Answer","text":"這兩組是公認高頻錯誤點（結果 56 與 42 相鄰易混）。建議用拆解法代替死記：7×8 = 7×10 − 7×2 = 70 − 14 = 56；6×7 = 6×5 + 6×2 = 30 + 12 = 42。把不會的題單獨做成錯題本，每次練習前先過一遍，連續 3 次全對再移出，比整表反覆刷效率高得多。"}},{"@type":"Question","name":"切到後臺後限時會不會變慢？","acceptedAnswer":{"@type":"Answer","text":"不會。每題按截止時間計算剩餘秒數，切標籤或休眠隻影響重新整理頻率，不延長答題時間；恢復頁面和提交答案時都會校驗是否已超時。"}}]}</script>
 <meta property="og:site_name" content="ToolBox">
 <meta name="theme-color" content="#FF6B35">
 <!-- TOOLBOX-HREFLANG -->
@@ -173,6 +173,7 @@
     </div>
 
     <div class="level-bar" id="levelBar"></div>
+    <div id="levelProgress" style="font-size:12px;color:var(--text-muted);margin:-6px 0 10px;text-align:center;"></div>
 
     <div class="qa-box">
       <div class="q" id="question">2 <span class="eq">×</span> 3 <span class="eq">=</span> ?</div>
@@ -217,10 +218,12 @@
 </ul>
 <div class="dd-example"><div class="dd-ex-title">2–9 表隨機一題</div><div class="dd-ex-body">範圍內隨機出 7×8，答對 56；連做 20 題計時，正確 18 題則正確率 90%，錯在 6/7/8 段需補。</div></div>
 <div class="dd-example"><div class="dd-ex-title">限定某數專項</div><div class="dd-ex-body">只練 ×9：9×1…9×9，用「十位數減1、個位補到10」竅門(9×7=63：6=7−1、3=10−7)提速。</div></div>
+<div class="dd-example"><div class="dd-ex-title">階梯模式按乘數掌握</div><div class="dd-ex-body">第 2 關需要 2×1 到 2×9 九個乘數各答對一次；跳過或答錯只會換題，掌握數不增加，九題全對才升到第 3 關。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
 <dt>為什麼限時？</dt><dd>限時逼出自動化反應，暴露「想」而非「背」的薄弱點；正確率比速度先抓，再逐步提速。</dd>
 <dt>總在 7×8、6×7 卡殼怎麼辦？</dt><dd>這兩組是公認高頻錯誤點（結果 56 與 42 相鄰易混）。建議用拆解法代替死記：7×8 = 7×10 − 7×2 = 70 − 14 = 56；6×7 = 6×5 + 6×2 = 30 + 12 = 42。把不會的題單獨做成錯題本，每次練習前先過一遍，連續 3 次全對再移出，比整表反覆刷效率高得多。</dd>
+<dt>切到後臺後限時會不會變慢？</dt><dd>不會。每題按截止時間計算剩餘秒數，切標籤或休眠隻影響重新整理頻率，不延長答題時間；恢復頁面和提交答案時都會校驗是否已超時。</dd>
 </dl>
 </div>
 </section>
@@ -269,8 +272,8 @@ var game = {
   mode:'asc', level:2, idx:0, pos:1,
   en:/[?&]lang=en-US/.test(location.search), // asc: level 从2递增到9
   a:2, b:3, answer:6,
-  streak:0, timerId:null, timeLimit:8, remaining:8,
-  done:false, nextId:null
+  streak:0, timerId:null, timeLimit:8, remaining:8, deadline:0,
+  mastered:{}, done:false, nextId:null
 };
 
 function loadStats(){
@@ -305,9 +308,26 @@ function renderLevelBar(){
       html += '<div class="lb' + (on || cur) + '" title="' + n + '的口诀"></div>';
     }
     const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){bar.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}bar.innerHTML=__h1;
+    document.getElementById('levelProgress').textContent = (game.en?'Level ':'第 ') + game.level + (game.en?' mastery: ':' 关掌握：') + masteredCount() + '/9' + (game.en?' (each multiplier 1–9 answered correctly once)':'（每个乘数 1–9 各答对一次才通关）');
   } else {
     const __h2='';if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){bar.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}bar.innerHTML=__h2;
+    document.getElementById('levelProgress').textContent = (game.en?'Mixed / single practice: mastery bands apply to step mode only.':'混合/单关练习：掌握进度仅阶梯模式统计。');
   }
+}
+
+function pickAscB(){
+  for(var k = 0; k < 9; k++){
+    var b = ((game.pos - 1 + k) % 9) + 1;
+    if(!game.mastered[b]) return b;
+  }
+  return game.pos;
+}
+
+function masteredCount(){ return Object.keys(game.mastered).length; }
+
+function advanceAsc(){
+  game.pos = (game.b % 9) + 1;
+  game.idx = masteredCount();
 }
 
 function makeQuestion(){
@@ -315,16 +335,17 @@ function makeQuestion(){
   game.done = false;
   if(game.mode === 'asc'){
     game.a = game.level;
-    game.b = game.pos; // 顺序出题位置 1..9，答对/跳过/超时都推进
+    game.b = pickAscB();
   } else if(game.mode === 'single'){
     game.a = parseInt(document.getElementById('singleSel').value);
     game.b = game.pos;
+    game.pos = (game.pos % 9) + 1;
   } else { // mixed
     game.a = 2 + Math.floor(Math.random() * 8); // 2..9
     game.b = 1 + Math.floor(Math.random() * 9); // 1..9
+    game.pos = (game.pos % 9) + 1;
   }
   game.answer = game.a * game.b;
-  game.pos = (game.pos % 9) + 1;
   const __h3=game.a + ' <span class="eq">×</span> ' + game.b + ' <span class="eq">=</span> ?';if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){document.getElementById('question').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('question').innerHTML=__h3;
   var inp = document.getElementById('answer');
   inp.value = '';
@@ -336,13 +357,22 @@ function makeQuestion(){
   startCountdown();
 }
 
+function renderCountdown(){
+  if(!game.timeLimit || !game.deadline){ document.getElementById('cdFill').style.width = '100%'; return; }
+  game.remaining = Math.max(0, (game.deadline - Date.now()) / 1000);
+  document.getElementById('cdFill').style.width = (game.remaining / game.timeLimit * 100) + '%';
+}
+
 function startCountdown(){
   stopCountdown();
   game.timeLimit = parseInt(document.getElementById('timeSel').value) || 0;
   game.remaining = game.timeLimit;
-  if(game.timeLimit === 0){ document.getElementById('cdFill').style.width = '100%'; return; }
+  if(game.timeLimit === 0){ game.deadline = 0; renderCountdown(); return; }
+  game.deadline = Date.now() + game.timeLimit * 1000;
+  renderCountdown();
   game.timerId = setInterval(function(){
-    game.remaining -= 0.1;
+    if(game.done){ stopCountdown(); return; }
+    game.remaining = Math.max(0, (game.deadline - Date.now()) / 1000);
     if(game.remaining <= 0){
       stopCountdown();
       handleWrong(true);
@@ -361,6 +391,11 @@ function checkAnswer(){
   var inp = document.getElementById('answer');
   var val = inp.value.trim();
   if(val === '') return;
+  if(game.timeLimit > 0 && game.deadline && Date.now() >= game.deadline){
+    stopCountdown();
+    handleWrong(true);
+    return;
+  }
   if(!/^\d+$/.test(val)){
     inp.classList.add('wrong');
     document.getElementById('hint').innerHTML='<span style="color:var(--danger);">'+(/[?&]lang=en-US/.test(location.search)?'Enter a whole-number answer with no decimal point, minus sign, or other characters.':'请输入完整整数答案，不能带小数点、负号或其他字符。')+'</span>';
@@ -388,12 +423,16 @@ function handleRight(){
   ToolBox.showToast(i18nText('toast.msg531'), 'success');
 
   if(game.mode === 'asc'){
-    game.idx++;
-    if(game.idx % 9 === 0){
-      // 完成本关
+    game.mastered[game.b] = true;
+    advanceAsc();
+    if(game.idx === 9){
+      // 本关 1..9 全部答对后才通关
       if(stats.cleared.indexOf(game.level) < 0) stats.cleared.push(game.level);
       if(game.level < 9){
         game.level++;
+        game.mastered = {};
+        game.idx = 0;
+        game.pos = 1;
         ToolBox.showToast('解锁 ' + game.level + ' 的口诀！', 'success');
       } else {
         ToolBox.showToast(i18nText('toast.msg065'), 'success');
@@ -412,6 +451,7 @@ function handleWrong(timeout){
   game.done = true;
   stats.total++;
   game.streak = 0;
+  if(game.mode === 'asc') advanceAsc();
   var msg = timeout ? '时间到！正确答案：' + game.answer : '答错啦，正确答案：' + game.answer;
   const __h5='<span style="color:var(--danger);font-weight:600;">' + msg + '</span>';if((typeof __h5==='number'&&!isFinite(__h5))||/Infinity/.test(String(__h5))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h5)){document.getElementById('hint').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('hint').innerHTML=__h5;
   var inp = document.getElementById('answer');
@@ -426,7 +466,7 @@ function handleWrong(timeout){
 
 function nextQuestion(skip){
   if(game.nextId){ clearTimeout(game.nextId); game.nextId = null; }
-  if(skip && !game.done){ stats.total++; game.streak = 0; saveStats(); renderStats(); ToolBox.showToast('已跳过本题，记入已练题数', 'info'); }
+  if(skip && !game.done){ stats.total++; game.streak = 0; if(game.mode === 'asc') advanceAsc(); saveStats(); renderStats(); ToolBox.showToast('已跳过本题，记入已练题数', 'info'); }
   makeQuestion();
 }
 
@@ -441,6 +481,7 @@ function resetGame(){
   game.level = 2;
   game.idx = 0;
   game.pos = 1;
+  game.mastered = {};
   game.streak = 0;
   if(game.mode === 'single'){
     game.level = parseInt(document.getElementById('singleSel').value);
@@ -475,6 +516,13 @@ document.getElementById('modeSel').addEventListener('change', function(){
   document.getElementById('singleSel').style.display = this.value === 'single' ? '' : 'none';
 });
 
+document.addEventListener('visibilitychange', function(){
+  if(document.hidden || game.done) return;
+  if(game.timeLimit > 0 && game.deadline){
+    if(Date.now() >= game.deadline){ stopCountdown(); handleWrong(true); }
+    else renderCountdown();
+  }
+});
 loadStats();
 renderStats();
 syncControls();

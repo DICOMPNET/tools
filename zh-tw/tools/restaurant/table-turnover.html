@@ -109,10 +109,10 @@
 <div class="container" role="main">
   <div class="card tool-card-accent" style="--tool-accent:#B23A08;">
     <h2 data-zh="🍽️ 翻檯率最佳化器">Table Turnover</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="輸入營業時長、桌數、平均用餐時間，計算翻檯率與接待能力">Table Turnover</p>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="按營業時長、清檯時間、時段利用率估算預計翻檯；也可錄入實際接待桌次計算真實統計值。">Estimate predicted turnover from hours, table reset time and period utilization, or enter actual tables served for an observed rate.</p>
     <div class="formula-box">
-      <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">餐廳翻檯率與營收估算<br>營業總分鐘 = 營業小時 × 60<br>理論最大翻檯率 = 營業總分鐘 ÷ 平均用餐時間<br>實際翻檯率 = 理論最大 × 上座率<br>日接待桌數 = ⌊實際翻檯率 × 桌數⌋<br>日接待人次 = ⌊日接待桌數 × 每桌人數⌋<br>預估日營業額 = 日接待人次 × 客單價<br>翻檯率評級：≥4 優秀｜≥3 良好｜≥2 一般｜其他 偏低<br>視覺化按 ÷5 歸一化條寬，優秀線固定 80%（4.0 次）<br>用餐時間對照表：30/40/45/50/60/75/90 分鐘逐檔重算<br>最佳化建議：平均用餐 >60 分鐘壓縮出餐與離座引導<br>　上座率 <70% 引流與午市特惠｜翻檯 <2 增加預約制與翻桌流程管控<br>高峰期設用餐時限（如 90 分鐘）平衡體驗與效率</div>
-      <p class="formula-desc" data-zh="核心計算公式（按輸入變數）：Math.floor(actualTurnover×tables)；Math.floor(totalTables×perTable)；min(actualTurnover÷5×100,100)">Key formulas: Math.floor(actualTurnover×tables); Math.floor(totalTables×perTable); min(actualTurnover÷5×100,100)</p>
+      <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">餐廳翻檯率與營收估算<br>營業總分鐘 = 營業小時 × 60<br>單輪佔用分鐘 = 平均用餐時間 + 清檯/擺臺時間<br>理論滿座翻檯率 = 營業總分鐘 ÷ 單輪佔用分鐘<br>預計翻檯率 = 理論滿座翻檯率 × 時段利用率（原上座率）<br>實際統計模式：實際翻檯率 = 實際接待桌次 ÷ 餐桌數（日/統計期）<br>預計日接待桌數 = ⌊預計翻檯率 × 桌數⌋；實際模式直接取實際桌次<br>日接待人次 = ⌊接待桌數 × 每桌人數⌋；預估營業額 = 人次 × 客單價<br>評級按“目標翻檯率”計算：≥100% 達標｜≥75% 接近目標｜其他 低於目標（目標可改，不再固定 4/3/2）<br>用餐時間對照表按單輪佔用（用餐+清檯）逐檔重算</div>
+      <p class="formula-desc" data-zh="預計值與實際值分開標註；預計值依賴時段利用率假設，不等同真實翻檯統計。">Predicted and observed values are labeled separately; the prediction depends on the utilization assumption.</p>
     </div>
 
     <div class="input-row">
@@ -121,11 +121,16 @@
     </div>
     <div class="input-row">
       <div><label for="avgTime">平均用餐時間（分鐘）</label><input type="number" id="avgTime" value="45" min="5" step="5" oninput="calc()" placeholder="如 45"></div>
-      <div><label for="occupancy">平均上座率（%）</label><input type="number" id="occupancy" value="70" min="1" max="100" oninput="calc()" placeholder="如 70（1–100）"></div>
+      <div><label for="cleanTime">清檯/擺臺時間（分鐘）</label><input type="number" id="cleanTime" value="10" min="0" step="1" oninput="calc()" placeholder="如 10"></div>
+    </div>
+    <div class="input-row">
+      <div><label for="occupancy">時段利用率/上座率（%）</label><input type="number" id="occupancy" value="70" min="0" max="100" oninput="calc()" placeholder="如 70（0–100）"></div>
+      <div><label for="actualTables">實際接待桌次（日/統計期，可空）</label><input type="number" id="actualTables" value="" min="0" step="1" oninput="calc()" placeholder="填了就算實際值"></div>
     </div>
     <div class="input-row">
       <div><label for="perTable">平均每桌人數</label><input type="number" id="perTable" value="3" min="1" step="0.5" oninput="calc()" placeholder="如 3"></div>
       <div><label for="avgSpend">平均客單價（元）</label><input type="number" id="avgSpend" value="65" min="0" step="1" oninput="calc()" placeholder="如 65"></div>
+      <div><label for="targetTurnover">目標翻檯率（次/日）</label><input type="number" id="targetTurnover" value="4" min="0.1" step="0.1" oninput="calc()" placeholder="如 4"></div>
     </div>
 
     <div class="toolbar">
@@ -173,7 +178,7 @@
 <li>估算日接待人次與營業額，驗證目標營收是否可達。</li>
 <li>評估限時用餐、加臺或調整排臺的收益：把平均用餐時間縮短 5 分鐘看翻檯率變化。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">20 桌餐廳的日接待測算</div><div class="dd-ex-body">營業 8 小時（480 分鐘）、平均用餐 50 分鐘 → 理論最大翻檯率 = 480 ÷ 50 = 9.6 次；上座率 75% → 實際翻檯率 = 9.6 × 0.75 = 7.2 次（評價&quot;優秀&quot;）。20 桌 → 日接待 144 桌；每桌 3 人 → 432 人次；客單價 80 元 → 日營業額約 34 560 元。若把平均用餐時間壓到 45 分鐘，理論翻檯率升到 10.67、實際 8.0 次，日營業額增至約 38 400 元。</div></div>
+<div class="dd-example"><div class="dd-ex-title">20 桌餐廳的預計與實際對照</div><div class="dd-ex-body">營業 10 小時（600 分鐘）、20 桌、用餐 45 分鐘、清檯 10 分鐘、時段利用率 70%：單輪佔用 55 分鐘，理論滿座翻檯 600÷55≈10.91 次，預計翻檯 10.91×0.70≈7.64 次；預計日接待 152 桌、456 人次（每桌 3 人），客單價 65 元時營業額約 29,640 元。若實際接待 100 桌，則實際翻檯率 100÷20=5.00 次，實際日營業額 100×3×65=19,500 元；目標 4 次時達成 125%。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
 <dt>翻檯率多少算好？</dt><dd>工具按實際翻檯率評級：≥4 優秀、≥3 良好、≥2 一般、&lt;2 偏低。快餐與火鍋的合理區間差別很大，更實用的做法是與自己門店的歷史資料比，看趨勢而不是絕對值。</dd>
@@ -223,69 +228,75 @@ function calc(){
 document.getElementById('resultRefBar').innerHTML='';
 window._resultText='';
 // NUMCLR：全部输入留空时不得输出 0/0.00 的假评估结果
-var __numReq=['hours','tables','avgTime','occupancy','perTable','avgSpend'];
+var __numReq=['hours','tables','avgTime','cleanTime','occupancy','perTable','avgSpend','targetTurnover'];
 if(__numReq.every(function(k){var e=document.getElementById(k);return !e||String(e.value).trim()==='';})){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 请填写必要的输入参数后再计算</p>';return;}
   function rv(id){var el=document.getElementById(id);var v=el?String(el.value==null?'':el.value).trim():'';return v===''?NaN:parseFloat(v);}
-  const hours=rv('hours'), tables=rv('tables'), avgTime=rv('avgTime'), occPct=rv('occupancy'), perTable=rv('perTable'), avgSpend=rv('avgSpend');
+  const hours=rv('hours'), tables=rv('tables'), avgTime=rv('avgTime'), cleanTime=rv('cleanTime'), occPct=rv('occupancy'), perTable=rv('perTable'), avgSpend=rv('avgSpend'), targetTurnover=rv('targetTurnover');
+  const actualRaw=String(document.getElementById('actualTables').value||'').trim();
+  const actualTables=actualRaw===''?null:Number(actualRaw);
   const invalid=[];
   if(!isFinite(hours)||hours<=0)invalid.push('营业时长须大于 0 小时');
+  if(!isFinite(cleanTime)||cleanTime<0)invalid.push('清台/摆台时间须为 ≥0 的分钟数');
   if(!isFinite(tables)||tables<=0)invalid.push('桌数须大于 0');
   if(!isFinite(avgTime)||avgTime<=0)invalid.push('平均用餐时间须大于 0 分钟');
   if(!isFinite(occPct)||occPct<0||occPct>100)invalid.push('上座率须在 0–100% 之间（0% 为合法空座）');
   if(!isFinite(perTable)||perTable<=0)invalid.push('每桌人数须大于 0');
   if(!isFinite(avgSpend)||avgSpend<0)invalid.push('人均消费须为 ≥0 的数值');
+  if(!isFinite(targetTurnover)||targetTurnover<=0)invalid.push('目标翻台率须大于 0');
+  if(actualRaw!==''&&(!isFinite(actualTables)||!Number.isInteger(actualTables)||actualTables<0))invalid.push('实际接待桌次须为 ≥0 的整数，留空则按预计值计算');
   if(invalid.length){
     document.getElementById('result').innerHTML='<p style="color:var(--danger);font-weight:600;">⚠ 输入有误，未计算：</p><ul style="color:var(--danger);font-size:13px;line-height:1.8;">'+invalid.map(x=>'<li>'+x+'</li>').join('')+'</ul>';
     return;
   }
   const occupancy=occPct/100;
-
+  const observed=actualTables!=null;
   const totalMin=hours*60;
-  // 理论最大翻台率 = 营业时长(分钟) / 平均用餐时间(分钟)
-  const maxTurnover=totalMin/avgTime;
-  // 实际翻台率 = 理论最大 × 上座率
-  const actualTurnover=maxTurnover*occupancy;
-  // 日接待桌数
-  const totalTables=Math.floor(actualTurnover*tables);
-  // 日接待人次
+  const cycleMin=avgTime+cleanTime;
+  // 理论满座翻台率 = 营业时长(分钟) / 单轮占用分钟
+  const maxTurnover=totalMin/cycleMin;
+  // 预计翻台率 = 理论满座 × 时段利用率
+  const predictedTurnover=maxTurnover*occupancy;
+  // 实际模式用实际接待桌次÷桌数；预计模式用预计翻台率×桌数
+  const actualTurnover=observed?(actualTables/tables):predictedTurnover;
+  const totalTables=observed?actualTables:Math.floor(predictedTurnover*tables);
   const totalGuests=Math.floor(totalTables*perTable);
-  // 预估日营业额
   const dailyRevenue=totalGuests*avgSpend;
-  // 翻台率评价
+  const targetRatio=actualTurnover/targetTurnover;
   let grade,gradeClass;
-  if(actualTurnover>=4){grade='优秀';gradeClass='grade-excellent';}
-  else if(actualTurnover>=3){grade='良好';gradeClass='grade-good';}
-  else if(actualTurnover>=2){grade='一般';gradeClass='grade-pass';}
-  else{grade='偏低';gradeClass='grade-fail';}
+  if(targetRatio>=1){grade='达标';gradeClass='grade-excellent';}
+  else if(targetRatio>=0.75){grade='接近目标';gradeClass='grade-pass';}
+  else{grade='低于目标';gradeClass='grade-fail';}
 
   let html=`<div class="stat-grid">
-    <div class="stat-card"><div class="val">${actualTurnover.toFixed(2)}</div><div class="lbl">实际翻台率</div></div>
-    <div class="stat-card"><div class="val">${maxTurnover.toFixed(2)}</div><div class="lbl">理论最大翻台率</div></div>
-    <div class="stat-card"><div class="val">${totalTables}</div><div class="lbl">日接待桌数</div></div>
+    <div class="stat-card"><div class="val">${actualTurnover.toFixed(2)}</div><div class="lbl">${observed?'实际翻台率（统计期）':'预计翻台率（假设估算）'}</div></div>
+    <div class="stat-card"><div class="val">${maxTurnover.toFixed(2)}</div><div class="lbl">理论满座翻台率</div></div>
+    <div class="stat-card"><div class="val">${totalTables}</div><div class="lbl">${observed?'实际接待桌次':'预计日接待桌数'}</div></div>
     <div class="stat-card"><div class="val">${totalGuests}</div><div class="lbl">日接待人次</div></div>
   </div>`;
 
   html+=`<div class="result-box" style="text-align:center;">
-    <p style="font-size:16px;">翻台率评价：<span class="grade-tag ${gradeClass}">${grade}</span></p>
-    <p>预估日营业额：<strong style="font-size:20px;">¥${dailyRevenue.toLocaleString()}</strong></p>
+    <p style="font-size:16px;">目标达成：<span class="grade-tag ${gradeClass}">${grade}</span>（目标 ${targetTurnover.toFixed(2)} 次，达成 ${(targetRatio*100).toFixed(1)}%）</p>
+    <p>${observed?'实际':'预估'}日营业额：<strong style="font-size:20px;">¥${dailyRevenue.toLocaleString()}</strong></p>
+    <p style="font-size:12px;color:var(--text-muted);">${observed?'实际模式：实际翻台率 = 实际接待桌次 ÷ 餐桌数，不等同预计值。':'预计模式：按营业时长、用餐+清台单轮时间与时段利用率估算，未计闲时、桌型差异与排队等位。'}</p>
   </div>`;
 
   // 可视化
-  const fillPct=Math.min(actualTurnover/5*100,100);
+  const scaleMax=Math.max(maxTurnover,targetTurnover,actualTurnover,1);
+  const fillPct=Math.min(actualTurnover/scaleMax*100,100);
   html+=`<h3 style="margin-top:16px;">📈 翻台率对比</h3>`;
-  html+=`<div class="bar-row"><span class="bar-lbl">理论最大</span><div class="bar-bg"><div class="timeline-bar" style="width:${Math.min(maxTurnover/5*100,100)}%;">${maxTurnover.toFixed(2)} 次</div></div></div>`;
-  html+=`<div class="bar-row"><span class="bar-lbl">实际</span><div class="bar-bg"><div class="timeline-bar" style="width:${fillPct}%;background:var(--secondary);">${actualTurnover.toFixed(2)} 次</div></div></div>`;
-  html+=`<div class="bar-row"><span class="bar-lbl">优秀线</span><div class="bar-bg"><div class="timeline-bar" style="width:80%;background:var(--success);">4.0 次</div></div></div>`;
+  html+=`<div class="bar-row"><span class="bar-lbl">理论满座</span><div class="bar-bg"><div class="timeline-bar" style="width:${Math.min(maxTurnover/scaleMax*100,100)}%;">${maxTurnover.toFixed(2)} 次</div></div></div>`;
+  html+=`<div class="bar-row"><span class="bar-lbl">${observed?'实际':'预计'}</span><div class="bar-bg"><div class="timeline-bar" style="width:${fillPct}%;background:var(--secondary);">${actualTurnover.toFixed(2)} 次</div></div></div>`;
+  html+=`<div class="bar-row"><span class="bar-lbl">目标线</span><div class="bar-bg"><div class="timeline-bar" style="width:${Math.min(targetTurnover/scaleMax*100,100)}%;background:var(--success);">${targetTurnover.toFixed(2)} 次</div></div></div>`;
 
   // 优化建议
   html+=`<h3 style="margin-top:16px;">💡 优化建议</h3><div class="ref-card"><ul>`;
   if(avgTime>60){
     html+=`<li>平均用餐时间 ${avgTime} 分钟偏长，可通过优化出餐速度、引导离座将时间压缩至 45-50 分钟</li>`;
   }
-  if(occupancy<0.7){
+  if(!observed&&occupancy<0.7){
     html+=`<li>上座率仅 ${(occupancy*100).toFixed(0)}%，可通过美团/抖音引流、午市特惠套餐提升客流</li>`;
   }
-  if(actualTurnover<2){
+  if(targetRatio<0.75){
     html+=`<li>翻台率偏低，建议增加预约制减少空桌等待、优化翻桌流程（收桌+清洁控制在3分钟内）</li>`;
   }
   html+=`<li>延长营业时间或增加夜宵时段可提升总接待量</li>`;
@@ -294,9 +305,9 @@ if(__numReq.every(function(k){var e=document.getElementById(k);return !e||String
 
   // 不同用餐时间对比
   html+=`<h3 style="margin-top:16px;">⏱️ 用餐时间影响对比</h3>`;
-  html+=`<table><thead><tr><th>用餐时间</th><th>理论翻台率</th><th>实际翻台率</th><th>日接待桌数</th></tr></thead><tbody>`;
+  html+=`<table><thead><tr><th>用餐时间</th><th>理论满座翻台</th><th>预计翻台</th><th>预计接待桌数</th></tr></thead><tbody>`;
   [30,40,45,50,60,75,90].forEach(t=>{
-    const mt=totalMin/t;
+    const mt=totalMin/(t+cleanTime);
     const at=mt*occupancy;
     const tt=Math.floor(at*tables);
     const isCurrent=t===avgTime;
@@ -306,7 +317,7 @@ if(__numReq.every(function(k){var e=document.getElementById(k);return !e||String
 
   const __g1=html;try{ if(typeof actualTurnover==='number'&&isFinite(actualTurnover)&&typeof TBKit!=='undefined'&&TBKit.chart&&TBKit.chart.refBar){ TBKit.chart.refBar('#resultRefBar',{value:actualTurnover,unit:'',bands:[{lo:4,hi:null,label:{zh:'优秀',en:'Excellent'},color:'#065F46'},{lo:3,hi:4,label:{zh:'良好',en:'Good'},color:'#84CC16'},{lo:2,hi:3,label:{zh:'一般',en:'Fair'},color:'#92400E'},{lo:null,hi:2,label:{zh:'偏低',en:'Low'},color:'#B91C1C'}],title:((TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())?'Reference range':'参考区间标尺')}); } }catch(e){}
   document.getElementById('result').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
-  window._resultText=`翻台率分析\n实际翻台率: ${actualTurnover.toFixed(2)}\n日接待桌数: ${totalTables}\n日接待人次: ${totalGuests}\n预估日营业额: ¥${dailyRevenue.toLocaleString()}`;
+  window._resultText=`翻台率分析（${observed?'实际统计':'预计估算'}）\n翻台率: ${actualTurnover.toFixed(2)}\n日接待桌数: ${totalTables}\n日接待人次: ${totalGuests}\n预估日营业额: ¥${dailyRevenue.toLocaleString()}`;
 }
 function copyResult(){if(window._resultText)ToolBox.copyText(window._resultText,'tool.copy_ok');}
 calc();

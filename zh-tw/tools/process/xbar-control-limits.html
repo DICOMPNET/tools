@@ -65,7 +65,7 @@
 
 <script src="../../../js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"公式裡的 σ 用哪個？","acceptedAnswer":{"@type":"Answer","text":"控制圖限用『過程固有標準差』估計（如 R̄/d₂ 或 S̄/c₄），反映受控下的普通原因波動；不要用全樣本整體標準差（含特殊原因會誇大 σ、放寬控制限、漏檢異常）。"}},{"@type":"Question","name":"子組容量 n 越大控制限越窄嗎？","acceptedAnswer":{"@type":"Answer","text":"是的。SE = σ/√n，n 越大 SE 越小、控制限越窄，對均值漂移越敏感；但 n 過大會增加檢測滯後與成本，常規取 4~5，關鍵過程可取更大子組。"}}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"公式裡的 σ 用哪個？","acceptedAnswer":{"@type":"Answer","text":"控制圖限用『過程固有標準差』估計（如 R̄/d₂ 或 S̄/c₄），反映受控下的普通原因波動；不要用全樣本整體標準差（含特殊原因會誇大 σ、放寬控制限、漏檢異常）。"}},{"@type":"Question","name":"σ 為負或 n 為小數會怎樣？","acceptedAnswer":{"@type":"Answer","text":"工具會拒絕：σ 須為有限非負值，n 須為正整數。負 σ 會讓 UCL 小於 LCL，小數 n 沒有子組容量含義；這兩種輸入都不應參與計算。"}},{"@type":"Question","name":"子組容量 n 越大控制限越窄嗎？","acceptedAnswer":{"@type":"Answer","text":"是的。SE = σ/√n，n 越大 SE 越小、控制限越窄，對均值漂移越敏感；但 n 過大會增加檢測滯後與成本，常規取 4~5，關鍵過程可取更大子組。"}}]}</script>
 <meta property="og:site_name" content="ToolBox">
 <meta name="theme-color" content="#FF6B35">
 <!-- TOOLBOX-HREFLANG -->
@@ -108,7 +108,7 @@
     <div class="formula-box">
       <div class="formula-title">📐 計算公式</div>
       <div class="formula-eq">UCL/LCL = 總均值 x̄ ± 3·σ/√n；例 σ=2、n=5 → ±2.683。σ/√n 為均值標準誤。</div>
-      <p class="formula-desc">子組均值控制圖的 3σ 控制界限。</p>
+      <p class="formula-desc">按單件過程標準差 σ 與子組大小 n 計算子組均值的 3σ 控制界限（UCL/CL/LCL）；σ 須非負，n 須為正整數。</p>
     </div>
 
     <div class="input-row">
@@ -283,6 +283,10 @@ function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+=
 function calcTool(){
               var __ig=__tbInputGuard(['mean', 'sigma', 'n'],["总均值 x̄̄", "标准差 σ", "子组大小 n"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
 const m=num('mean'),s=num('sigma'),n=num('n');
+            function __xbBad(msg){ToolBox.setResult('result','<p style="color:var(--danger);">'+msg+'</p>');var tb=document.getElementById('xbar_control_limitsTable');if(tb)tb.innerHTML='';}
+            if(!isFinite(m)){__xbBad('总均值须为有效有限数值');return;}
+            if(!isFinite(s)||s<0){__xbBad('标准差 σ 须为有限非负值（σ=0 时上下限与中心线重合）');return;}
+            if(!Number.isInteger(n)||n<1){__xbBad('子组大小 n 须为有限正整数');return;}
             const se=s/Math.sqrt(n);
             const __g2=dataGrid([
                 [(m+3*se).toFixed(3),'UCL'],
@@ -301,8 +305,9 @@ function __xbar_control_limitsExtras(){
     function __xbar_control_limitsRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
     var m=num('mean'),s=num('sigma'),n=num('n');
-    var se=s/Math.sqrt(n);
     if (!isFinite(__xbar_control_limitsNum('mean')) || !isFinite(__xbar_control_limitsNum('sigma')) || !isFinite(__xbar_control_limitsNum('n'))) return;
+    if(__xbar_control_limitsNum('sigma')<0 || !Number.isInteger(__xbar_control_limitsNum('n')) || __xbar_control_limitsNum('n')<1){var tx=document.getElementById('xbar_control_limitsTable');if(tx)tx.innerHTML='<p style="color:var(--danger);">输入无效，未生成明细</p>';return;}
+    var se=s/Math.sqrt(n);
     var en=TBKit.util.isEn();
     TBKit.matrix.table('#xbar_control_limitsTable',{
         head: en?['Item','Value']:['项目','数值'],
@@ -326,7 +331,7 @@ function __xbar_control_limitsPresets(){
     TBKit.preset.bar('#xbar_control_limitsPresets',[
         {label:'默认',labelEn:'Default',values:{mean:'50', sigma:'2', n:'5'}},
         {label:'示例 2×',labelEn:'Example 2×',values:{mean:'100', sigma:'4', n:'10'}},
-        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{mean:'25', sigma:'1', n:'2.5'}},
+        {label:'示例 0.5×',labelEn:'Example 0.5×',values:{mean:'25', sigma:'1', n:'2'}},
     ],function(){ calcTool(); });
 }
 var __tb_fn0 = calcTool;
@@ -364,13 +369,14 @@ else document.addEventListener('DOMContentLoaded', __xbar_control_limitsBoot);
 <ul class="dd-list">
 <li>為均值控制圖（X̄圖）計算中心線 CL 與控制限 UCL/LCL，監控過程均值是否受控、有無特殊原因波動。</li>
 <li>過程能力研究前先確認過程穩定（受控），否則能力指數無意義。</li>
-<li>子組容量變化時（n 不同），按 √n 更新標準誤與界限。</li>
+<li>子組容量變化時（n 不同），按 √n 更新標準誤與界限；n 須為正整數。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">公式</div><div class="dd-ex-body">標準誤 SE = σ/√n（σ 為過程<a class="term-link" href="/zh-tw/tools/it/standard-deviation.html">標準差</a>，n 為子組容量）；中心線 CL = μ（過程目標/均值）；控制限 UCL = μ + 3·SE、LCL = μ − 3·SE（3σ 原則，對應約 0.27% 誤發警報率）。σ 未知時多用子組極差均值 R̄/d₂ 估計。</div></div>
-<div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">過程目標 μ=50、σ=2、子組容量 n=5：SE = 2/√5 ≈ 0.8944；UCL = 50 + 3×0.8944 ≈ 52.683，LCL = 50 − 3×0.8944 ≈ 47.317，CL = 50.000。若某子組均值超出 [47.317, 52.683] 即觸發判異，應查特殊原因而非立即調機。</div></div>
+<div class="dd-example"><div class="dd-ex-title">公式</div><div class="dd-ex-body">SE = σ/√n（σ 為單件過程<a class="term-link" href="/zh-tw/tools/it/standard-deviation.html">標準差</a>，n 為正整數子組容量）；CL=μ；UCL=μ+3SE、LCL=μ−3SE（3σ 原則，受控下約 0.27% 誤發警報）。σ 須為有限非負值：σ=0 時 UCL=LCL=CL。σ 通常需由 R̄/d₂ 或 S̄/c₄ 等受控內估計，不能用含特殊原因的全<a class="term-link" href="/zh-tw/tools/statistics/stddev-list.html">樣本標準差</a>。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">過程目標 μ=50、σ=2、n=5：SE=2/√5≈0.8944；UCL=50+3×0.8944≈52.683，LCL=50−3×0.8944≈47.317，CL=50.000。若某子組均值超出 [47.317, 52.683] 即觸發判異，應查特殊原因而非立即調機。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
 <dt>公式裡的 σ 用哪個？</dt><dd>控制圖限用『過程固有標準差』估計（如 R̄/d₂ 或 S̄/c₄），反映受控下的普通原因波動；不要用全樣本整體標準差（含特殊原因會誇大 σ、放寬控制限、漏檢異常）。</dd>
+<dt>σ 為負或 n 為小數會怎樣？</dt><dd>工具會拒絕：σ 須為有限非負值，n 須為正整數。負 σ 會讓 UCL 小於 LCL，小數 n 沒有子組容量含義；這兩種輸入都不應參與計算。</dd>
 <dt>子組容量 n 越大控制限越窄嗎？</dt><dd>是的。SE = σ/√n，n 越大 SE 越小、控制限越窄，對均值漂移越敏感；但 n 過大會增加檢測滯後與成本，常規取 4~5，關鍵過程可取更大子組。</dd>
 </dl>
 </div>

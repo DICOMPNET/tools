@@ -24,7 +24,7 @@
 <link rel="canonical" href="https://tools.dicomp.net/zh-tw/guides/inventory-calculator-guide.html">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"庫存計算器 使用指南","description":"庫存計算器基於 EOQ 經濟訂貨量模型計算最優訂貨量、安全庫存與再訂貨點，結合年需求與服務水平，適合製造業與倉儲的庫存最佳化。典型場景包括：採購部門制定補貨策略時，用 EOQ 平衡訂貨成本與持有成本，確定每次最優訂貨量；面對需求波動與不確定提前期。","author":{"@type":"Organization","name":"ToolBox"},"datePublished":"2026-09-16","dateModified":"2026-09-16","mainEntityOfPage":{"@type":"WebPage","@id":"https://tools.dicomp.net/zh-tw/guides/inventory-calculator-guide.html"},"image":"https://tools.dicomp.net/og-image.png","publisher":{"@type":"Organization","name":"ToolBox","logo":{"@type":"ImageObject","url":"https://tools.dicomp.net/logo-512.png"}},"inLanguage":"zh-TW"}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"ToolBox","item":"https://tools.dicomp.net/zh-tw/"},{"@type":"ListItem","position":2,"name":"使用指南","item":"https://tools.dicomp.net/zh-tw/guides/index.html"},{"@type":"ListItem","position":3,"name":"庫存計算器 使用指南","item":"https://tools.dicomp.net/zh-tw/guides/inventory-calculator-guide.html"}]}</script>
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"EOQ 越大越好還是越小越好？","acceptedAnswer":{"@type":"Answer","text":"EOQ 是總成本最低點：訂貨量過大增加持有成本，過小增加訂貨頻次與訂貨成本。EOQ 公式 √(2DS/H) 已平衡兩者，實際還需疊加安全庫存應對波動。"}},{"@type":"Question","name":"再訂貨點 ROP 怎麼用？","acceptedAnswer":{"@type":"Answer","text":"庫存降到 ROP（日均需求×提前期 + 安全庫存）時即觸發訂貨，確保提前期內不斷料。服務水平越高（Z 越大）、需求波動越大，安全庫存與 ROP 越高。"}}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"EOQ 越大越好還是越小越好？","acceptedAnswer":{"@type":"Answer","text":"EOQ 是總成本最低點：訂貨量過大增加持有成本，過小增加訂貨頻次與訂貨成本。EOQ 公式 √(2DS/H) 已平衡兩者，實際還需疊加安全庫存應對波動。"}},{"@type":"Question","name":"再訂貨點 ROP 怎麼用？","acceptedAnswer":{"@type":"Answer","text":"庫存降到 ROP（日均需求×提前期 + 安全庫存）時即觸發訂貨，確保提前期內不斷料。服務水平越高（Z 越大）、需求波動越大，安全庫存與 ROP 越高。"}},{"@type":"Question","name":"為什麼安全庫存和訂貨點要向上取整？","acceptedAnswer":{"@type":"Answer","text":"安全庫存與訂貨點是觸發補貨的底線，向下取整會讓實際持有低於模型要求、增加缺料風險；向上取整更保守。工具預設向上取整，也可選四捨五入，但須知道取整方向帶來的服務水平偏差。"}},{"@type":"Question","name":"平均庫存為什麼有兩個數？","acceptedAnswer":{"@type":"Answer","text":"EOQ/2 只是週期庫存（不含安全庫存）；含安全庫存的總平均庫存 = EOQ/2 + 安全庫存。成本也分“EOQ 最優總成本（不含安全庫存）”和“含安全庫存的年總成本”，兩者不能混用。"}}]}</script>
 <style>
 :root{--primary:#FF6B35;--text:#1F2937;--muted:#6B7280;--border:#E5E7EB;--bg:#FFFAF7;}
 *{box-sizing:border-box;}
@@ -77,9 +77,9 @@ li{margin:8px 0;}
 <h2>功能說明</h2>
 <p>庫存計算器基於 EOQ 經濟訂貨量模型計算最優訂貨量、安全庫存與再訂貨點，結合年需求與服務水平，適合製造業與倉儲的庫存最佳化。</p>
 <h2>典型使用場景</h2>
-<ul><li>採購部門制定補貨策略時，用 EOQ 平衡訂貨成本與持有成本，確定每次最優訂貨量。</li><li>面對需求波動與不確定提前期，用安全庫存與再訂貨點 ROP 設定補貨觸發線，防止缺料停線。</li><li>年度庫存復盤時，用總庫存成本（訂貨+持有）評估當前策略是否經濟，最佳化訂貨頻率。</li></ul>
+<ul><li>採購部門制定補貨策略時，用 EOQ 平衡訂貨成本與持有成本，確定每次最優訂貨量。</li><li>面對需求波動與不確定提前期，用安全庫存與再訂貨點 ROP 設定補貨觸發線，防止缺料停線。</li><li>年度庫存復盤時，用總庫存成本（訂貨+持有）評估當前策略是否經濟，最佳化訂貨頻率；件數為小數時可選向上取整或四捨五入，安全庫存與訂貨點建議向上取整。</li></ul>
 <h2>算例參考</h2>
-<ul><li><strong>EOQ 與安全庫存示例</strong>：某零件年需求 12000 件、單次訂貨成本 50 元、年持有成本 2 元/件、日均需求 33 件、提前期 7 天、日需求標準差 5、服務水平 95%（Z=1.65）。EOQ = √(2×12000×50÷2) ≈ 775 件；年訂貨 12000÷775 ≈ 15.5 次（週期約 24 天）；平均庫存 ≈ 387 件；安全庫存 = 1.65×5×√7 ≈ 22 件；再訂貨點 ROP = 33×7 + 22 ≈ 253 件；最小總庫存成本 ≈ √(2×12000×50×2) ≈ 1549 元。</li></ul>
+<ul><li><strong>EOQ 與安全庫存示例</strong>：某零件年需求 12000 件、單次訂貨成本 50 元、年持有成本 2 元/件、日均需求 33 件、提前期 7 天、日需求標準差 5、服務水平 95%（Z=1.65）。EOQ = √(2×12000×50÷2) ≈ 775 件；年訂貨 12000÷775 ≈ 15.5 次（週期約 24 天）；週期平均庫存（EOQ/2）≈ 387 件；安全庫存 = 1.65×5×√7 ≈ 21.83 件，向上取整 22 件；再訂貨點 ROP = 33×7 + 21.83 ≈ 252.83 件，向上取整 253 件；含安全庫存總平均庫存 ≈ 387+22=409 件；EOQ 最優總成本（不含安全庫存）≈ √(2×12000×50×2) ≈ 1549 元，含安全庫存年總成本需再按 409 件計持有成本。</li></ul>
 <h2>注意事項</h2>
 <p>本工具純前端執行，輸入內容不上傳伺服器；結果為按上述口徑得到的<strong>理論估算值</strong>。實際應用受裝置引數、測量條件與當地規範影響，請以裝置銘牌、檢測報告與現行標準為準，重大決策建議諮詢專業人士。</p>
 <div class="related">
@@ -92,6 +92,8 @@ li{margin:8px 0;}
 <dl class="faq">
 <dt>EOQ 越大越好還是越小越好？</dt><dd>EOQ 是總成本最低點：訂貨量過大增加持有成本，過小增加訂貨頻次與訂貨成本。EOQ 公式 √(2DS/H) 已平衡兩者，實際還需疊加安全庫存應對波動。</dd>
 <dt>再訂貨點 ROP 怎麼用？</dt><dd>庫存降到 ROP（日均需求×提前期 + 安全庫存）時即觸發訂貨，確保提前期內不斷料。服務水平越高（Z 越大）、需求波動越大，安全庫存與 ROP 越高。</dd>
+<dt>為什麼安全庫存和訂貨點要向上取整？</dt><dd>安全庫存與訂貨點是觸發補貨的底線，向下取整會讓實際持有低於模型要求、增加缺料風險；向上取整更保守。工具預設向上取整，也可選四捨五入，但須知道取整方向帶來的服務水平偏差。</dd>
+<dt>平均庫存為什麼有兩個數？</dt><dd>EOQ/2 只是週期庫存（不含安全庫存）；含安全庫存的總平均庫存 = EOQ/2 + 安全庫存。成本也分“EOQ 最優總成本（不含安全庫存）”和“含安全庫存的年總成本”，兩者不能混用。</dd>
 </dl>
 <div class="related"><h3>相關工具</h3><a class="tool-chip" href="/zh-tw/tools/manufacturing/inventory-calculator.html">庫存計算器</a></div>
 <div class="back"><a href="https://tools.dicomp.net/tools/manufacturing/inventory-calculator.html">→ 開啟庫存計算器工具</a></div>

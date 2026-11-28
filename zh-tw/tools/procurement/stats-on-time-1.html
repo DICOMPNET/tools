@@ -106,7 +106,7 @@
     <h2 data-zh="📊 交貨準時率與質量合格率分析">📊 Delivery On-time Rate and Quality Pass Rate Analysis</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="錄入四類批次計數，核算準時率、良品率與聯合合格率。">Enter four batch counts to compute on-time rate, good-rate and joint pass rate.</p>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">準時率 = 準時批次 ÷ 總批次；良品率 = 良品批次 ÷ 總批次；聯合合格率 = 準時且良品 ÷ 總批次；準時但不良率 = (準時 − 聯合) ÷ 總批次；未同時達標率 = (總數 − 聯合) ÷ 總數（遲到或質量不良的並集，非單項子集）</div>
+  <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">準時率 = 準時批次 ÷ 總批次；良品率 = 良品批次 ÷ 總批次；聯合合格率 = 準時且良品 ÷ 總批次；準時但不良率 = (準時 − 聯合) ÷ 總批次；未同時達標率 = (總數 − 聯合) ÷ 總數。校驗：四項均須為非負整數且單項 ≤ 總數；交集須滿足 max(0, 準時+合格−總數) ≤ 聯合 ≤ min(準時, 合格)，否則停止計算。</div>
   <p style="font-size:13px;line-height:1.8;color:var(--text-muted);">輸入當月交貨總批次、準時批次、合格批次與「準時且合格」批次（取交集），自動計算準時率、良品率、聯合合格率、準時但不良率與未同時達標率，用於供應商績效考評。</p>
 </div>
 
@@ -144,10 +144,11 @@
 <h2>📚 深度解析：交貨準時率與質量合格率分析</h2>
 <h3>💡 常見使用場景</h3>
 <ul class="dd-list">
-<li>供應商月度考評：把某供應商當月交貨批次拆成「總批次、準時批次、合格批次、準時且合格批次」四類計數，一鍵算出準時率、良品率與聯合合格率，作為績效打分依據。</li>
-<li>到貨質量復盤：當準時但不良、或未準時但合格的批次較多時，聯合合格率會明顯低於單項指標，提示需分別約談交期與質量責任人。</li>
+<li>四項批次數均須為非負整數且單項 ≤ 總數；小數、負數、超標均拒絕。</li>
+<li>準時且合格交集須滿足 max(0, 準時+合格−總數) ≤ 交集 ≤ min(準時, 合格)，否則停止計算。</li>
+<li>不再輸出負的「準時但不良率」；交集不成立時直接提示可行區間。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">以某月 300 批交貨為例</div><div class="dd-ex-body">準時 255 批、合格 270 批、準時且合格 240 批。準時率=255/300=85.00%，良品率=270/300=90.00%，聯合合格率=240/300=80.00%，準時不良率=(255−240)/300=5.00%，未同時達標率=(300−240)/300=20.00%（遲到或質量不良的並集）。</div></div>
+<div class="dd-example"><div class="dd-ex-title">以某月 300 批交貨為例</div><div class="dd-ex-body">總批次 300、準時 255、合格 270、準時且合格 240：準時率 85.00%、良品率 90.00%、聯合合格率 80.00%、準時但不良率 5.00%、未同時達標率 20.00%。若總批次 100、準時 20、合格 20、交集 30，頁面提示交集應在 0–20 並停止計算。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
 <dt>準時且合格為什麼重要？</dt><dd>準時率和良品率單獨看都可能偏高，但只有「既準時又合格」的批次才真正滿足交付要求；聯合合格率 = 準時且合格 ÷ 總批次，是衡量交付質量最嚴格的口徑。</dd>
@@ -195,12 +196,23 @@
 <script>
 function pct(x){return (x*100).toFixed(2)+'%';}
 function calc(){
-  var total=parseFloat(document.getElementById('total').value);
-  var ontime=parseFloat(document.getElementById('ontime').value);
-  var good=parseFloat(document.getElementById('good').value);
-  var both=parseFloat(document.getElementById('both').value);
-  if([total,ontime,good,both].some(function(v){return isNaN(v)||v<0;})){document.getElementById('res').innerHTML='<p>请填写有效的非负批次数</p>';return;}
+  function raw(id){return String(document.getElementById(id).value||'').trim();}
+  var vals=['total','ontime','good','both'];
+  if(vals.some(function(id){return raw(id)==='';})){
+    document.getElementById('res').innerHTML='<p>四项批次数均须填写；确实为 0 请明确填 0，不能留空</p>';return;
+  }
+  var total=Number(raw('total')), ontime=Number(raw('ontime')), good=Number(raw('good')), both=Number(raw('both'));
+  if(![total,ontime,good,both].every(function(v){return isFinite(v)&&Number.isInteger(v)&&v>=0;})){
+    document.getElementById('res').innerHTML='<p>批次数须为非负整数，不能填小数</p>';return;
+  }
   if(total<=0){document.getElementById('res').innerHTML=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"<p>Total batches must be greater than 0</p>":"<p>总批次需大于 0</p>");return;}
+  if(ontime>total||good>total||both>total){
+    document.getElementById('res').innerHTML='<p>准时、合格、准时且合格批次均不得超过总批次</p>';return;
+  }
+  var low=Math.max(0,ontime+good-total), high=Math.min(ontime,good);
+  if(both<low||both>high){
+    document.getElementById('res').innerHTML='<p>交集不成立：准时且合格应在 <strong>'+low+'–'+high+'</strong> 批之间（由准时 '+ontime+'、合格 '+good+'、总数 '+total+' 推得）；请核对是否重复计数或把并集当成交集</p>';return;
+  }
   var onRate=ontime/total, goodRate=good/total, bothRate=both/total;
   var onBad=(ontime-both)/total, failRate=(total-both)/total;
   var html='<table><thead><tr><th>指标</th><th>数值</th></tr></thead><tbody>';
@@ -232,12 +244,12 @@ function copyRes(){ToolBox.copyText(document.getElementById('res').innerText);}
     </a>
 
     <a href="/zh-tw/tools/procurement/zhaobiao-gongkai-yaoqing-jingzheng-fangshi.html" class="related-tool-card">
-      <span class="rt-icon">🛒</span>
-      <span class="rt-info"><span class="rt-name">招標（公開/邀請/競爭）方式</span><span class="rt-desc">招標方式對比工具對比公開招標、邀請招標與競爭性談判等採購方式的適用情形與流程要點，輔助合規採購決策</span></span>
+      <span class="rt-icon">⚖️</span>
+      <span class="rt-info"><span class="rt-name">招標方式對比與核對清單</span><span class="rt-desc">對比公開招標、邀請招標與競爭性談判的常見適用情形和流程要點，並提供待核對清單；金額僅記錄，不判定合規</span></span>
     </a>
     <a href="/zh-tw/tools/procurement/wuliu-yunshufangshi-yunfei-bidui.html" class="related-tool-card">
-      <span class="rt-icon">🚚</span>
-      <span class="rt-info"><span class="rt-name">物流（運輸方式/運費）比對</span><span class="rt-desc">物流運輸方式與運費比對工具按輸入引數對比快遞、零擔、整車等方案的運費與時效，輔助採購與分銷的物流選型</span></span>
+      <span class="rt-icon">🚆</span>
+      <span class="rt-info"><span class="rt-name">公路/鐵路參考運費估算</span><span class="rt-desc">按距離、重量與公路/鐵路單價估算參考運費，並展示單位費率；</span></span>
     </a>
     <a href="/zh-tw/tools/procurement/eoq.html" class="related-tool-card">
       <span class="rt-icon">🛒</span>

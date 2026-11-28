@@ -24,7 +24,7 @@
 <link rel="canonical" href="https://tools.dicomp.net/zh-tw/guides/schedule-conflict-guide.html">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"課程表衝突檢測 使用指南","description":"錄入課程安排，自動檢測同一時間段的教師衝突與教室衝突，輸出衝突清單與視覺化課表，輔助排課。典型場景包括：教室資源最佳化：通過教室衝突提示，發現同一教室被重複佔用，及時調整或申請擴容，避免上課「撞車」；教師工作量核查：教師衝突往往意味著排課對人手估算不足，提示需增派教師或錯峰排課。","author":{"@type":"Organization","name":"ToolBox"},"datePublished":"2026-09-16","dateModified":"2026-09-16","mainEntityOfPage":{"@type":"WebPage","@id":"https://tools.dicomp.net/zh-tw/guides/schedule-conflict-guide.html"},"image":"https://tools.dicomp.net/og-image.png","publisher":{"@type":"Organization","name":"ToolBox","logo":{"@type":"ImageObject","url":"https://tools.dicomp.net/logo-512.png"}},"inLanguage":"zh-TW"}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"ToolBox","item":"https://tools.dicomp.net/zh-tw/"},{"@type":"ListItem","position":2,"name":"使用指南","item":"https://tools.dicomp.net/zh-tw/guides/index.html"},{"@type":"ListItem","position":3,"name":"課程表衝突檢測 使用指南","item":"https://tools.dicomp.net/zh-tw/guides/schedule-conflict-guide.html"}]}</script>
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"衝突判定依據是什麼？","acceptedAnswer":{"@type":"Answer","text":"兩門課若「星期相同」且節次區間交叉（a.start≤b.end 且 b.start≤a.end，節次為離散整節、含端點）即判定時間重疊；重疊基礎上再比教師/教室是否相同，分別記教師衝突與教室衝突。工具只做時間+資源衝突檢測，不涉及課程合理性。"}},{"@type":"Question","name":"能檢測跨周或單雙週衝突嗎？","acceptedAnswer":{"@type":"Answer","text":"當前按固定星期+節次比對，未區分單雙週/隔週課；若課程含單雙週安排，需把衝突周次分別列出後再比對，或先在輸入中標註周次以免漏檢。工具結果僅作排課初檢參考。"}}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"衝突判定依據是什麼？","acceptedAnswer":{"@type":"Answer","text":"先看「星期相同」且節次區間交叉（a.start≤b.end 且 b.start≤a.end），再求兩課周次交集；只有存在共同周次且時間重疊，才繼續比較教師/教室/班級。工具只做時間+資源衝突檢測，不涉及課程合理性。"}},{"@type":"Question","name":"能檢測跨周或單雙週衝突嗎？","acceptedAnswer":{"@type":"Answer","text":"能。輸入可選填班級、起始周、結束周與單雙週（全/單/雙）；工具先求兩課周次交集（起止周取交疊，再按單雙週篩選），只有存在共同周次且星期、節次重疊時才算衝突。未填周次視為全周 1–30，未填班級則不檢測班級維度。"}}]}</script>
 <style>
 :root{--primary:#FF6B35;--text:#1F2937;--muted:#6B7280;--border:#E5E7EB;--bg:#FFFAF7;}
 *{box-sizing:border-box;}
@@ -77,12 +77,11 @@ li{margin:8px 0;}
 <h2>功能說明</h2>
 <p>錄入課程安排，自動檢測同一時間段的教師衝突與教室衝突，輸出衝突清單與視覺化課表，輔助排課。</p>
 <h2>典型使用場景</h2>
-<ul><li>排課前預檢：把擬排課程（星期、節次、教師、教室）貼上進工具，自動兩兩比對時間重疊，標出教師衝突（同一老師同時段兩門課）與教室衝突（同一教室同時段兩門課）。</li><li>教室資源最佳化：通過教室衝突提示，發現同一教室被重複佔用，及時調整或申請擴容，避免上課「撞車」。</li><li>教師工作量核查：教師衝突往往意味著排課對人手估算不足，提示需增派教師或錯峰排課。</li></ul>
+<ul><li>排課前預檢：每行錄入「課程,教師,教室,星期,起止節次[,班級[,起始周[,結束周[,單雙週]]]]」，先按星期+節次+周次判斷是否真的同時發生，再檢測同一教師、同一教室、同一班級的重複佔用；單雙週或起止周不同的課程不會誤報。</li><li>教室資源最佳化：通過教室衝突提示，發現同一教室被重複佔用，及時調整或申請擴容，避免上課「撞車」。</li><li>教師工作量核查：教師衝突往往意味著排課對人手估算不足，提示需增派教師或錯峰排課。</li><li>衝突指標不稀釋：輸出課程總數、衝突課程數、班級/教師/教室衝突數與“佔用時段衝突比例”（衝突時段 ÷ 實際佔用時段），不再用 7×最大節次作分母，稀疏課表不會被大量空時段拉低。</li></ul>
 <h2>算例參考</h2>
-<ul><li><strong>算例：3 門課同佔週一第1-2節</strong>：課程A 週一1-2節 教師張三 教室101；課程B 週一1-2節 教師張三 教室102；課程C 週一1-2節 教師李四 教室101。
-A 與 B 時間重疊且同教師 → 教師衝突 1 起、教室不同無教室衝突；
-A 與 C 時間重疊且同教室101 → 教室衝突 1 起、教師不同無教師衝突；
-合計：課程3門、教師衝突1、教室衝突1。</li></ul>
+<ul><li><strong>算例：同班兩課周次不重疊 vs 重疊</strong>：課程A 週一1-2節、班級一班、第1-8周；課程B 同一時間、班級一班、第9-16周 → 周次無交集，不報班級衝突。
+若把 B 改為第5-12周，則共同周次為第5-8周，報 1 起班級衝突。
+若 A、B 教師相同但分別為單週/雙週，且周次範圍相同，也沒有共同周次，不報教師衝突。</li></ul>
 <h2>注意事項</h2>
 <p>本工具純前端執行，輸入內容不上傳伺服器；結果為按上述口徑得到的<strong>理論估算值</strong>。實際應用受裝置引數、測量條件與當地規範影響，請以裝置銘牌、檢測報告與現行標準為準，重大決策建議諮詢專業人士。</p>
 <div class="related">
@@ -93,8 +92,8 @@ A 與 C 時間重疊且同教室101 → 教室衝突 1 起、教師不同無教�
 <a class="tool-chip" href="https://tools.dicomp.net/tools/edu2/exam-countdown.html">考試倒計時</a>
 </div>
 <dl class="faq">
-<dt>衝突判定依據是什麼？</dt><dd>兩門課若「星期相同」且節次區間交叉（a.start≤b.end 且 b.start≤a.end，節次為離散整節、含端點）即判定時間重疊；重疊基礎上再比教師/教室是否相同，分別記教師衝突與教室衝突。工具只做時間+資源衝突檢測，不涉及課程合理性。</dd>
-<dt>能檢測跨周或單雙週衝突嗎？</dt><dd>當前按固定星期+節次比對，未區分單雙週/隔週課；若課程含單雙週安排，需把衝突周次分別列出後再比對，或先在輸入中標註周次以免漏檢。工具結果僅作排課初檢參考。</dd>
+<dt>衝突判定依據是什麼？</dt><dd>先看「星期相同」且節次區間交叉（a.start≤b.end 且 b.start≤a.end），再求兩課周次交集；只有存在共同周次且時間重疊，才繼續比較教師/教室/班級。工具只做時間+資源衝突檢測，不涉及課程合理性。</dd>
+<dt>能檢測跨周或單雙週衝突嗎？</dt><dd>能。輸入可選填班級、起始周、結束周與單雙週（全/單/雙）；工具先求兩課周次交集（起止周取交疊，再按單雙週篩選），只有存在共同周次且星期、節次重疊時才算衝突。未填周次視為全周 1–30，未填班級則不檢測班級維度。</dd>
 </dl>
 <div class="related"><h3>相關工具</h3><a class="tool-chip" href="/zh-tw/tools/edu2/schedule-conflict.html">課程表衝突檢測</a></div>
 <div class="back"><a href="https://tools.dicomp.net/tools/edu2/schedule-conflict.html">→ 開啟課程表衝突檢測工具</a></div>

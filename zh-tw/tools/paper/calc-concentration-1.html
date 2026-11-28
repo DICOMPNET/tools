@@ -104,7 +104,7 @@
     <h2 data-zh="🧮 紙漿濃度計算">🧮 Pulp Consistency Calculation</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="用於造紙工藝紙漿濃度換算：輸入溼漿質量、絕幹率、漿料體積與目標濃度，計算絕幹纖維量、質量濃度、體積濃度（g/L）及稀釋或濃縮所需水量。">For pulp consistency conversion in papermaking: enter the wet pulp mass, dryness, pulp volume and target consistency to compute the dry fibre amount, mass consistency, volumetric consistency (g/L) and the water needed for dilution or thickening.</p>
     <div class="formula-box">
-      <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">紙漿濃度計算與調配<br>絕幹纖維量 = 溼漿質量 × 絕幹率%（kg）<br>體積濃度 = 絕幹纖維 × 1000 ÷ 體積（g/L）<br>濃度類別：絕幹率 &lt;3% 低濃｜3~10% 中濃｜&gt;10% 高濃<br>稀釋/濃縮：最終漿料質量 = 絕幹纖維 ÷ 目標濃度%<br>需加水量 = 最終質量 − 溼漿質量（≥0 為稀釋）<br>需脫水量 = 溼漿質量 − 最終質量（&gt;0 為濃縮）<br>輸入校驗：溼漿質量 &gt;0、絕幹率 &gt;0<br>附低/中/高濃漿典型用途參考表</div>
+      <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">紙漿濃度計算與調配<br>絕幹纖維量 = 溼漿質量 × 絕幹率%（kg）<br>體積濃度 = 絕幹纖維 × 1000 ÷ 體積（g/L）<br>濃度類別：絕幹率 &lt;3% 低濃｜3~10% 中濃｜&gt;10% 高濃<br>稀釋/濃縮：最終漿料質量 = 絕幹纖維 ÷ 目標濃度%<br>需加水量 = 最終質量 − 溼漿質量（≥0 為稀釋）<br>需脫水量 = 溼漿質量 − 最終質量（&gt;0 為濃縮）<br>輸入校驗：溼漿質量 &gt;0、絕幹率 0–100%；體積與目標濃度填寫時須 &gt;0 且 ≤100%，體積可選<br>附低/中/高濃漿典型用途參考表</div>
       <p class="formula-desc" data-zh="核心計算公式（按輸入變數）：wet×max(dryPct,0)÷100；dryFiber÷(target÷100)">Key formulas: wet×max(dryPct,0)÷100; dryFiber÷(target÷100)</p>
     </div>
 
@@ -123,7 +123,7 @@
 
     <div class="result-box" id="res"></div> <div id="calc_concentration_1Table"></div> <div id="calc_concentration_1Diff"></div> <div id="calc_concentration_1Chart"></div> <div id="calc_concentration_1Hist"></div>
 
-    <div class="info-box">💡 絕幹纖維量 = 溼漿質量 × 絕幹率；質量濃度 = 絕乾量 ÷ 漿料質量；體積濃度 = 絕乾量 ÷ 體積（g/L）；稀釋/濃縮水量 = 絕乾量 ÷ 目標濃度 − 溼漿質量。</div>
+    <div class="info-box">💡 絕幹纖維量 = 溼漿質量 × 絕幹率；質量濃度 = 絕乾量 ÷ 漿料質量；體積濃度 = 絕乾量 ÷ 體積（g/L）；稀釋/濃縮水量 = 絕乾量 ÷ 目標濃度 − 溼漿質量；按絕幹纖維守恆估算，假設只加減水、無纖維流失或新增物。</div>
 
     <div class="ref-card" style="margin-top:12px;">
       <h4>📊 常見紙漿濃度範圍</h4>
@@ -179,12 +179,19 @@ var RANGES=[
   {name:'低浓浆（上网）', range:'0.5%~1.5%', use:'流浆箱上网'},
   {name:'白水/稀浆', range:'<0.5%', use:'白水循环'}
 ];
-function num(id){var v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
+function num(id){var e=document.getElementById(id);if(!e)return NaN;var raw=String(e.value==null?'':e.value).trim();if(raw==='')return NaN;if(!/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/.test(raw))return NaN;var v=Number(raw);return isFinite(v)?v:NaN;}
+var __concValid=false;
 function calc(){
   var wet=num('wet'),dryPct=num('dry'),vol=num('vol'),target=num('target');
-  var dryFiber=wet*Math.max(dryPct,0)/100;        // kg
-  var volConc=vol>0?dryFiber*1000/vol:0;          // g/L
-  var valid=wet>0&&dryPct>0;
+  var wetRaw=String(document.getElementById('wet').value||'').trim();
+  var dryRaw=String(document.getElementById('dry').value||'').trim();
+  var volRaw=String(document.getElementById('vol').value||'').trim();
+  var targetRaw=String(document.getElementById('target').value||'').trim();
+  var volProvided=volRaw!=='',targetProvided=targetRaw!=='';
+  var bad=(wetRaw===''||dryRaw===''||isNaN(wet)||isNaN(dryPct)||wet<=0||dryPct<=0||dryPct>100||(volProvided&&(isNaN(vol)||vol<=0))||(targetProvided&&(isNaN(target)||target<=0||target>100)));
+  var dryFiber=bad?0:wet*dryPct/100;              // kg
+  var volConc=(!bad&&volProvided)?dryFiber*1000/vol:0; // g/L
+  var valid=!bad;
 
   var html='<div class="data-grid">'+
     '<div class="data-card"><div class="num">'+(valid?dryFiber.toFixed(2):'-')+'</div><div class="label">绝干纤维量 (kg)</div></div>'+
@@ -198,17 +205,17 @@ function calc(){
     if(vol>0)html+='<div class="step-line">体积浓度 = '+dryFiber.toFixed(2)+' kg × 1000 ÷ '+vol+' L = '+volConc.toFixed(1)+' g/L</div>';
   }
   // 稀释/浓缩
-  if(valid&&target>0){
+  if(valid&&targetProvided){
     var finalMass=dryFiber/(target/100);
     var diff=finalMass-wet;
     if(diff>=0){
-      html+='<div class="tip-box tip-info">稀释至目标浓度 '+target+'%：需加水 <strong>'+diff.toFixed(2)+' kg</strong>，稀释后浆料总质量 <strong>'+finalMass.toFixed(2)+' kg</strong>。</div>';
+      html+='<div class="tip-box tip-info">稀释至目标浓度 '+target+'%：需加水 <strong>'+diff.toFixed(2)+' kg</strong>，稀释后浆料总质量 <strong>'+finalMass.toFixed(2)+' kg</strong>。按绝干纤维守恒估算，假设只加水、无纤维流失或添加物。</div>';
     } else {
-      html+='<div class="tip-box tip-warn">浓缩至目标浓度 '+target+'%：需脱水 <strong>'+(-diff).toFixed(2)+' kg</strong>，浓缩后浆料总质量 <strong>'+finalMass.toFixed(2)+' kg</strong>。</div>';
+      html+='<div class="tip-box tip-warn">浓缩至目标浓度 '+target+'%：需脱水 <strong>'+(-diff).toFixed(2)+' kg</strong>，浓缩后浆料总质量 <strong>'+finalMass.toFixed(2)+' kg</strong>。按绝干纤维守恒估算，假设只脱水、无纤维流失或添加物。</div>';
     }
   }
   if(!valid){
-    html='<div class="tip-box tip-warn">请输入有效的湿浆质量（>0）与绝干率（>0）。</div>';
+    html='<div class="tip-box tip-warn">请输入有效的湿浆质量（>0）与绝干率（0–100%，含 100）；体积若填写须>0，目标浓度若填写须在 0–100% 之间。</div>';
   }
   const __g1=html;document.getElementById('res').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 
@@ -216,9 +223,11 @@ function calc(){
     RANGES.map(function(r){return '<tr><td>'+r.name+'</td><td>'+r.range+'</td><td>'+r.use+'</td></tr>';}).join('')+
     '</tbody></table>';document.getElementById('rangeTable').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 
+  __concValid=valid;
   if(valid) saveHistory({wet:wet,dryPct:dryPct,vol:vol,target:target,dryFiber:dryFiber,volConc:volConc});
 }
 function copyRes(){
+  if(!__concValid){ToolBox.showToast('请先填写有效的湿浆质量与绝干率，暂无可复制结果', 'warning');return;}
   var text=document.getElementById('res').innerText;
   if(!text||!text.trim()){ToolBox.showToast(i18nText(), 'warning');return;}
   ToolBox.copyText(text);
@@ -444,15 +453,15 @@ else document.addEventListener('DOMContentLoaded', __calc_concentration_1Boot);
   <div class="related-tools-grid">
     <a href="/zh-tw/tools/paper/basis-weight.html" class="related-tool-card">
       <span class="rt-icon">⚖️</span>
-      <span class="rt-info"><span class="rt-name">紙張克重換算</span><span class="rt-desc">在 GSM（克/平方米）、令重與磅重（lb）之間互相換算，輸入任一引數求其餘指標。</span></span>
+      <span class="rt-info"><span class="rt-name">紙張克重換算</span><span class="rt-desc">在 GSM（克/平方米）、令重與磅重（lb）之間換算：可由 GSM 求令重/磅重，也可由已知令重反算…</span></span>
     </a>
     <a href="/zh-tw/tools/paper/carbon-5.html" class="related-tool-card">
       <span class="rt-icon">📄</span>
-      <span class="rt-info"><span class="rt-name">填料（碳酸鈣/滑石粉）新增</span><span class="rt-desc">按絕幹漿量與加填率估算填料加入量、留著量與成紙灰分，輔助造紙加填配方與灰分控制</span></span>
+      <span class="rt-info"><span class="rt-name">填料（碳酸鈣/滑石粉）新增</span><span class="rt-desc">按絕幹漿量與加填率計算填料加入量、留著量與簡化填料質量佔比；留著率為可修改示例，結果不是實測灰分</span></span>
     </a>
     <a href="/zh-tw/tools/paper/roll-length.html" class="related-tool-card">
       <span class="rt-icon">📏</span>
-      <span class="rt-info"><span class="rt-name">紙卷長度計算</span><span class="rt-desc">輸入紙卷外徑、紙芯直徑與紙張厚度，按螺旋展開公式估算紙卷總長度（米）。</span></span>
+      <span class="rt-info"><span class="rt-name">紙卷長度計算</span><span class="rt-desc">輸入紙卷外徑、紙芯外徑與紙張厚度，按環形截面展開公式估算總長度，也可由目標長度反推外徑</span></span>
     </a>
     <a href="/zh-tw/tools/paper/moisture-calc.html" class="related-tool-card">
       <span class="rt-icon">🧮</span>

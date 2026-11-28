@@ -114,7 +114,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="輸入供應商資質、財務、產能、質量與供貨五維資訊，計算准入評分並分級。">Enter supplier information across qualification, finance, capacity, quality and delivery to compute an admission score and grade as strategic, preferred, qualified or disqualified.</p>
     <div class="formula-box">
       <div class="formula-title">📐 計算公式</div>
-      <div class="formula-eq">准入總分 = (資質 + 財務 + 產能 + 質量 + 供貨) ÷ 5，五維各按 100 分制折算（如資質 = min(註冊資本÷1000×40, 40) + 經營年限÷10×20 + 資質等級÷5×20 + ISO÷5×20），再扣懲罰分。校驗：各輸入非法時按 0 參與計算。判據：負債率 &gt;70% 扣 10 分、無 ISO 認證扣 10 分；總分 ≥85 戰略供應商、≥70 優選、≥60 合格，否則淘汰。</div>
+      <div class="formula-eq">准入總分 = (資質 + 財務 + 產能 + 質量 + 供貨) ÷ 5，五維各按 100 分制折算（如資質 = min(註冊資本÷1000×40, 40) + 經營年限÷10×20 + 資質等級÷5×20 + ISO÷5×20），再扣懲罰分。校驗：全部數值欄位必填，留空標「待評估」不評分；負數拒絕，比例限 0–100%，閾值須 0 ≤ 合格線 < 優選線 < 戰略線 ≤ 100。判據：負債率 &gt;70% 扣 10 分、無 ISO 認證扣 10 分；分級閾值可配置，預設 85/70/60，僅為示例。</div>
       <p class="formula-desc">輸入供應商五大維度資訊（資質/財務/產能/質量/供貨），系統自動計算准入評分並分級為戰略/優選/合格/淘汰供應商。</p>
     </div>
 
@@ -185,6 +185,12 @@
       <div><label for="onTime">準時交付率（%）</label><input type="number" id="onTime" value="96" step="1" oninput="calc()" placeholder="如 96"></div>
       <div><label for="coopYears">合作年限（年）</label><input type="number" id="coopYears" value="3" step="1" oninput="calc()" placeholder="如 3"></div>
     </div>
+    <p style="font-weight:600;margin:8px 0 6px;font-size:14px;">參考分級閾值（示例，可按企業制度調整）</p>
+    <div class="input-row">
+      <div><label for="thA">戰略線</label><input type="number" id="thA" value="85" min="0" max="100" step="1" oninput="calc()" placeholder="如 85"></div>
+      <div><label for="thB">優選線</label><input type="number" id="thB" value="70" min="0" max="100" step="1" oninput="calc()" placeholder="如 70"></div>
+      <div><label for="thC">合格線</label><input type="number" id="thC" value="60" min="0" max="100" step="1" oninput="calc()" placeholder="如 60"></div>
+    </div>
 
     <div class="toolbar">
       <div id="assessor_26Presets"></div><button type="button" class="btn primary" onclick="calc()">准入評估</button><button class="btn" type="button" onclick="__assessor_26Export()">匯出明細 CSV</button>
@@ -233,22 +239,29 @@
 </div>
 <script>
 function calc(){
-// NUMCLR：全部输入留空时不得输出 0/0.00 的假评估结果
-var __numReq=['capital','bizYears','revenue','debtRatio','capacity','passRate','complaint','onTime','coopYears'];
-if(__numReq.every(function(k){var e=document.getElementById(k);return !e||String(e.value).trim()==='';})){document.getElementById('res').innerHTML='<p style="color:var(--danger)">⚠ 请填写必要的输入参数后再计算</p>';return;}
-  var capital=parseFloat(document.getElementById('capital').value)||0;
-  var bizYears=parseFloat(document.getElementById('bizYears').value)||0;
-  var certLevel=parseInt(document.getElementById('certLevel').value);
-  var iso=parseInt(document.getElementById('iso').value);
-  var revenue=parseFloat(document.getElementById('revenue').value)||0;
-  var debtRatio=parseFloat(document.getElementById('debtRatio').value)||0;
-  var credit=parseInt(document.getElementById('credit').value);
-  var capacity=parseFloat(document.getElementById('capacity').value)||0;
-  var equip=parseInt(document.getElementById('equip').value);
-  var passRate=parseFloat(document.getElementById('passRate').value)||0;
-  var complaint=parseFloat(document.getElementById('complaint').value)||0;
-  var onTime=parseFloat(document.getElementById('onTime').value)||0;
-  var coopYears=parseFloat(document.getElementById('coopYears').value)||0;
+  function raw(id){var e=document.getElementById(id);return e?String(e.value||'').trim():'';}
+  var req=['capital','bizYears','revenue','debtRatio','capacity','passRate','complaint','onTime','coopYears','thA','thB','thC'];
+  var missing=req.filter(function(id){return raw(id)==='';});
+  function clearAll(msg){
+    document.getElementById('res').innerHTML='<p style="color:var(--danger)">'+msg+'</p>';
+    var rb=document.querySelector('#resRefBar');if(rb)rb.innerHTML='';
+  }
+  if(missing.length){clearAll('⚠ 待评估：请补全全部字段后再评分（缺失：'+missing.join('、')+'）；留空不等于 0。');return;}
+  var capital=Number(raw('capital')),bizYears=Number(raw('bizYears')),revenue=Number(raw('revenue')),debtRatio=Number(raw('debtRatio')),capacity=Number(raw('capacity')),passRate=Number(raw('passRate')),complaint=Number(raw('complaint')),onTime=Number(raw('onTime')),coopYears=Number(raw('coopYears'));
+  var certLevel=parseInt(document.getElementById('certLevel').value,10), iso=parseInt(document.getElementById('iso').value,10), credit=parseInt(document.getElementById('credit').value,10), equip=parseInt(document.getElementById('equip').value,10);
+  var thA=Number(raw('thA')),thB=Number(raw('thB')),thC=Number(raw('thC'));
+  if(![capital,bizYears,revenue,debtRatio,capacity,passRate,complaint,onTime,coopYears,thA,thB,thC].every(isFinite)){
+    clearAll('数值字段须为有限数值');return;
+  }
+  if(capital<0||bizYears<0||revenue<0||capacity<0||coopYears<0){
+    clearAll('注册资本、营收、年限与产能满足率须为 ≥0 的数值；0 可填 0');return;
+  }
+  if(debtRatio<0||debtRatio>100||passRate<0||passRate>100||complaint<0||complaint>100||onTime<0||onTime>100){
+    clearAll('资产负债率、出货合格率、客诉率与准时率须在 0–100%');return;
+  }
+  if(!(thA>thB&&thB>thC&&thC>=0&&thA<=100)){
+    clearAll('阈值须满足 0 ≤ 合格线 < 优选线 < 战略线 ≤ 100');return;
+  }
 
   /* 资质得分 */
   var capScore=Math.min(capital/1000*40,40)+Math.min(bizYears/10*20,20)+(certLevel/5*20)+(iso/5*20);
@@ -276,12 +289,12 @@ if(__numReq.every(function(k){var e=document.getElementById(k);return !e||String
   if(debtRatio>70){total-=10;penalty='资产负债率过高（>70%）扣10分；';}
   if(iso===1){total-=10;penalty+='无ISO认证扣10分；';}
 
-  /* 分级 */
+  /* 参考分级（阈值可配置） */
   var level,color,advice;
-  if(total>=85){level='战略供应商';color='var(--success)';advice='优先合作对象，建议签订长期战略协议，纳入核心供应商管理体系。';}
-  else if(total>=70){level='优选供应商';color='#1D4ED8';advice='合格供应商，可扩大采购份额，定期评估绩效表现。';}
-  else if(total>=60){level='合格供应商';color='var(--warning)';advice='基本满足准入要求，限制采购份额，需重点跟踪改进。';}
-  else{level='不合格（淘汰）';color='var(--danger)';advice='不满足准入标准，不予纳入合格供应商名录。';}
+  if(total>=thA){level='战略供应商（参考）';color='var(--success)';advice='仅供参考：可进入长期合作复核；最终准入须核验证据与制度。';}
+  else if(total>=thB){level='优选供应商（参考）';color='#1D4ED8';advice='仅供参考：可进入扩大份额复核；最终准入须核验证据与制度。';}
+  else if(total>=thC){level='合格供应商（参考）';color='var(--warning)';advice='仅供参考：基本达到示例阈值，建议限制份额并跟踪改进；须人工复核。';}
+  else{level='低于合格线（参考）';color='var(--danger)';advice='仅供参考：低于示例合格线，建议补充证据或暂不纳入；不能仅凭本页淘汰。';}
 
   var dims=[
     {name:'企业资质',score:capScore,detail:'注册资本'+capital+'万/资质'+certLevel+'级/ISO'+(iso>=3?'有':'无')},
@@ -292,11 +305,11 @@ if(__numReq.every(function(k){var e=document.getElementById(k);return !e||String
   ];
 
   var html='<div class="data-grid">';
-  html+='<div class="data-card"><div class="num" style="color:'+color+';">'+total+'</div><div class="label">准入总分</div></div>';
-  html+='<div class="data-card"><div class="num" style="color:'+color+';">'+level+'</div><div class="label">供应商分级</div></div>';
-  html+='<div class="data-card"><div class="num">'+(total>=60?'通过':'不通过')+'</div><div class="label">准入判定</div></div>';
+  html+='<div class="data-card"><div class="num" style="color:'+color+';">'+total+'</div><div class="label">准入评分（示例模型）</div></div>';
+  html+='<div class="data-card"><div class="num" style="color:'+color+';">'+level+'</div><div class="label">参考分级</div></div>';
+  html+='<div class="data-card"><div class="num">'+(total>=thC?'建议复核':'需补充证据')+'</div><div class="label">复核建议</div></div>';
   html+='</div>';
-  html+='<div class="progress-bar" style="margin:8px 0;"><div class="progress-fill" style="width:'+total+'%;background:'+color+';"></div></div>';
+  html+='<div class="progress-bar" style="margin:8px 0;"><div class="progress-fill" style="width:'+Math.max(0,Math.min(total,100))+'%;background:'+color+';"></div></div>';
   html+='<table style="margin-top:10px;"><thead><tr><th>评估维度</th><th>得分</th><th>明细</th><th>状态</th></tr></thead><tbody>';
   dims.forEach(function(d){
     var st=d.score>=80?'<span style="color:var(--success);">优</span>':d.score>=60?'<span style="color:#1D4ED8;">良</span>':'<span style="color:var(--danger);">差</span>';
@@ -304,10 +317,12 @@ if(__numReq.every(function(k){var e=document.getElementById(k);return !e||String
   });
   html+='</tbody></table>';
   if(penalty){html+='<div class="tip-box tip-warn" style="margin-top:8px;"><strong>扣分项：</strong>'+penalty+'</div>';}
-  html+='<div class="tip-box '+(total>=70?'tip-success':total>=60?'tip-warn':'tip-error')+'" style="margin-top:8px;"><strong>准入建议：</strong>'+advice+'</div>';
-  const __g1=html;try{ if(typeof total==='number'&&isFinite(total)&&typeof TBKit!=='undefined'&&TBKit.chart&&TBKit.chart.refBar){ TBKit.chart.refBar('#resRefBar',{value:total,unit:'',bands:[{"lo":85,"hi":null,"label":{"zh":"战略供应商","en":"Strategic supplier"},"color":"var(--success)"},{"lo":70,"hi":85,"label":{"zh":"优选供应商","en":"Preferred supplier"},"color":"#1D4ED8"},{"lo":60,"hi":70,"label":{"zh":"合格供应商","en":"Qualified supplier"},"color":"var(--warning)"},{"lo":null,"hi":60,"label":{"zh":"不合格（淘汰）","en":"Unqualified (phase out)"},"color":"var(--danger)"}],title:((TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())?'Reference range':'参考区间标尺')}); } }catch(e){}
+  html+='<div class="tip-box '+(total>=thB?'tip-success':total>=thC?'tip-warn':'tip-error')+'" style="margin-top:8px;"><strong>复核提示：</strong>'+advice+'</div>';
+  html+='<p style="font-size:12px;color:var(--text-muted);margin-top:6px;">阈值 '+thA+'/'+thB+'/'+thC+' 仅为可配置示例，不是法规或行业强制标准；本页评分模型不能替代准入审查。</p>';
+  const __g1=html;try{ if(typeof total==='number'&&isFinite(total)&&typeof TBKit!=='undefined'&&TBKit.chart&&TBKit.chart.refBar){ TBKit.chart.refBar('#resRefBar',{value:total,unit:'',bands:[{"lo":thA,"hi":null,"label":{"zh":"战略（示例）","en":"Strategic (example)"},"color":"var(--success)"},{"lo":thB,"hi":thA,"label":{"zh":"优选（示例）","en":"Preferred (example)"},"color":"#1D4ED8"},{"lo":thC,"hi":thB,"label":{"zh":"合格（示例）","en":"Qualified (example)"},"color":"var(--warning)"},{"lo":null,"hi":thC,"label":{"zh":"低于合格线（示例）","en":"Below threshold (example)"},"color":"var(--danger)"}],title:((TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())?'Reference range':'参考区间标尺')}); } }catch(e){}
   document.getElementById('res').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 }
+
 function copyResult(){
   ToolBox.copyText(document.getElementById('res').innerText);
 }
@@ -343,11 +358,11 @@ calc();
 <h2>📚 深度解析：供應商准入評估與分級</h2>
 <h3>💡 常見使用場景</h3>
 <ul class="dd-list">
-<li>新供應商引入前，錄入資質、財務、產能、質量、供貨五大維度資訊，自動算出准入總分並判定戰略/優選/合格/淘汰。</li>
-<li>年度供應商複評時，更新各項指標，重新分級，作為份額分配與汰換決策依據。</li>
-<li>對臨界分值的供應商做敏感性分析：調整負債率或 ISO 認證狀態，觀察是否觸發扣分項導致降級。</li>
+<li>全部數值欄位必填；任一留空標「待評估」，不輸出 0 分或准入結論，缺什麼列什麼。</li>
+<li>負數拒絕，負債率/合格率/客訴率/準時率限 0–100%；閾值須 0 ≤ 合格線 &lt; 優選線 &lt; 戰略線 ≤ 100。</li>
+<li>分級閾值可配置（預設 85/70/60），輸出僅為參考分級與複核建議，不替代准入審查。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">以「一家優質製造商」為例</div><div class="dd-ex-body">輸入：註冊資本 2000 萬、經營 12 年、資質 4 級、ISO 4 級、營收 8000 萬、<a class="term-link" href="/zh-tw/tools/accounting/debt-to-asset.html">資產負債率</a> 40%、信用 4 級、產能滿足率 160%、裝置 4 級、合格率 99%、客訴率 1%、準時率 97%、合作 6 年。五維得分：企業資質 92、財務 87、產能 88、質量 89.4、供貨 98.2；總分=round((92+87+88+89.4+98.2)/5)=91 → 戰略供應商（≥85）。無扣分項（負債率≤70、ISO≠1）。若改為負債率 75% 且無 ISO 認證，則兩項各扣 10 分，總分降至 71 → 優選供應商。</div></div>
+<div class="dd-example"><div class="dd-ex-title">以「一家優質製造商」為例</div><div class="dd-ex-body">完整填表時按五維均值與扣分項算分，預設閾值 85/70/60 下給出參考分級；只清空<a class="term-link" href="/zh-tw/tools/accounting/debt-to-asset.html">資產負債率</a>，頁面立即顯示「待評估」並列出缺失 debtRatio，不再把空當 0 得低負債滿分。負債率 101% 會提示須在 0–100%。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
 <dt>分級閾值怎麼定？</dt><dd>總分 ≥85 為戰略供應商（優先簽長期協議）、≥70 優選、≥60 合格（限制份額並跟蹤改進）、&lt;60 不合格（淘汰，不納入名錄）。另設懲罰項：資產負債率&gt;70% 扣 10 分、無 ISO 認證（iso=1）扣 10 分，扣分後可能跨級。</dd>
@@ -369,12 +384,12 @@ calc();
     </a>
 
     <a href="/zh-tw/tools/procurement/zhaobiao-gongkai-yaoqing-jingzheng-fangshi.html" class="related-tool-card">
-      <span class="rt-icon">🛒</span>
-      <span class="rt-info"><span class="rt-name">招標（公開/邀請/競爭）方式</span><span class="rt-desc">招標方式對比工具對比公開招標、邀請招標與競爭性談判等採購方式的適用情形與流程要點，輔助合規採購決策</span></span>
+      <span class="rt-icon">⚖️</span>
+      <span class="rt-info"><span class="rt-name">招標方式對比與核對清單</span><span class="rt-desc">對比公開招標、邀請招標與競爭性談判的常見適用情形和流程要點，並提供待核對清單；金額僅記錄，不判定合規</span></span>
     </a>
     <a href="/zh-tw/tools/procurement/wuliu-yunshufangshi-yunfei-bidui.html" class="related-tool-card">
-      <span class="rt-icon">🚚</span>
-      <span class="rt-info"><span class="rt-name">物流（運輸方式/運費）比對</span><span class="rt-desc">物流運輸方式與運費比對工具按輸入引數對比快遞、零擔、整車等方案的運費與時效，輔助採購與分銷的物流選型</span></span>
+      <span class="rt-icon">🚆</span>
+      <span class="rt-info"><span class="rt-name">公路/鐵路參考運費估算</span><span class="rt-desc">按距離、重量與公路/鐵路單價估算參考運費，並展示單位費率；</span></span>
     </a>
     <a href="/zh-tw/tools/procurement/eoq.html" class="related-tool-card">
       <span class="rt-icon">🛒</span>

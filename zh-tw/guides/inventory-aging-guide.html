@@ -24,7 +24,7 @@
 <link rel="canonical" href="https://tools.dicomp.net/zh-tw/guides/inventory-aging-guide.html">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"庫存呆滯分析 使用指南","description":"根據庫存量、出庫量、庫齡計算週轉天數與呆滯品比例，對庫存進行分級預警，輔助清庫存決策。典型場景包括：快消品倉月度盤點：統計週期取 90 天、呆滯閾值取 180 天；呆滯品排序與處置：結果按週轉天數降序排列；閾值與週期口徑複核：統計週期可選 30/90/180 天。","author":{"@type":"Organization","name":"ToolBox"},"datePublished":"2026-09-16","dateModified":"2026-09-16","mainEntityOfPage":{"@type":"WebPage","@id":"https://tools.dicomp.net/zh-tw/guides/inventory-aging-guide.html"},"image":"https://tools.dicomp.net/og-image.png","publisher":{"@type":"Organization","name":"ToolBox","logo":{"@type":"ImageObject","url":"https://tools.dicomp.net/logo-512.png"}},"inLanguage":"zh-TW"}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"ToolBox","item":"https://tools.dicomp.net/zh-tw/"},{"@type":"ListItem","position":2,"name":"使用指南","item":"https://tools.dicomp.net/zh-tw/guides/index.html"},{"@type":"ListItem","position":3,"name":"庫存呆滯分析 使用指南","item":"https://tools.dicomp.net/zh-tw/guides/inventory-aging-guide.html"}]}</script>
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"統計週期該選多少天？換週期會不會改變結論？","acceptedAnswer":{"@type":"Answer","text":"週期必須與財務或 ERP 的出庫統計口徑一致，常用 90 天（一個季度）。週期越長日均出庫越平滑，短週期容易被大促或斷貨扭曲。同一批資料在 30 天與 180 天週期下日均出庫可差 6 倍，週轉天數與呆滯判定隨之變化，所以每次分析都要記錄週期與閾值，便於跨期對比。"}},{"@type":"Question","name":"週轉天數顯示 ∞ 是什麼意思，怎麼處理？","acceptedAnswer":{"@type":"Answer","text":"表示該 SKU 在統計週期內出庫量為 0，日均出庫為 0，工具按無窮大處理並直接判定為呆滯。此時應先核實是真實停售/滯銷，還是出庫資料未同步或口徑遺漏；確認無誤後歸入待清理清單，避免把資料缺失誤當成呆滯處置。"}}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"統計週期該選多少天？換週期會不會改變結論？","acceptedAnswer":{"@type":"Answer","text":"週期必須與財務或 ERP 的出庫統計口徑一致，常用 90 天（一個季度）。週期越長日均出庫越平滑，短週期容易被大促或斷貨扭曲。同一批資料在 30 天與 180 天週期下日均出庫可差 6 倍，週轉天數與呆滯判定隨之變化，所以每次分析都要記錄週期與閾值，便於跨期對比。"}},{"@type":"Question","name":"週轉天數顯示 ∞ 是什麼意思，怎麼處理？","acceptedAnswer":{"@type":"Answer","text":"要分兩種情況：庫存為 0 時沒有待處理庫存，週轉與判定天數顯示 —，不判呆滯也不計入金額；庫存 >0 且統計週期內出庫為 0 時，日均出庫為 0，工具按無窮大處理並判呆滯。後者應先核實是真實停售/滯銷，還是出庫資料未同步或口徑遺漏；確認無誤後歸入待清理清單，避免把資料缺失誤當成呆滯處置。"}}]}</script>
 <style>
 :root{--primary:#FF6B35;--text:#1F2937;--muted:#6B7280;--border:#E5E7EB;--bg:#FFFAF7;}
 *{box-sizing:border-box;}
@@ -77,7 +77,7 @@ li{margin:8px 0;}
 <h2>功能說明</h2>
 <p>根據庫存量、出庫量、庫齡計算週轉天數與呆滯品比例，對庫存進行分級預警，輔助清庫存決策。</p>
 <h2>典型使用場景</h2>
-<ul><li>快消品倉月度盤點：統計週期取 90 天、呆滯閾值取 180 天，按「名稱,庫存量,出庫量,庫齡天,單價」逐行貼上庫存明細，工具算出每個 SKU 的日均出庫、週轉天數與庫存金額，並給出呆滯金額佔比。</li><li>呆滯品排序與處置：結果按週轉天數降序排列，週轉天數大於閾值即判定呆滯；日均出庫為 0 時週轉天數記為 ∞ 並直接判呆滯。呆滯資金集中時優先安排促銷清倉、降價處理或退供應商，並在明細表核對每個 SKU 的庫存金額。</li><li>閾值與週期口徑複核：統計週期可選 30/90/180 天，週期直接決定日均出庫大小，應與財務或 ERP 口徑保持一致；呆滯閾值按品類分別設定（快消 90 天、家電 180 天、備品備件 365 天），改閾值後同一批資料結論可能完全不同，需留存輸入快照。</li></ul>
+<ul><li>快消品倉月度盤點：統計週期取 90 天、呆滯閾值取 180 天，按「名稱,庫存量,出庫量,庫齡天,單價」逐行貼上庫存明細，工具算出每個 SKU 的日均出庫、週轉天數與庫存金額，並給出呆滯金額佔比。</li><li>呆滯品排序與處置：結果按週轉天數降序排列，呆滯判定取 max(週轉天數, 庫齡天) 大於閾值；庫存為 0 時週轉與判定天數均不適用（顯示 —），不進入呆滯數量/金額；庫存 >0 且日均出庫為 0 時週轉天數記為 ∞ 並判呆滯。呆滯資金集中時優先安排促銷清倉、降價處理或退供應商，並在明細表核對每個 SKU 的庫存金額。</li><li>閾值與週期口徑複核：統計週期可選 30/90/180 天，週期直接決定日均出庫大小，應與財務或 ERP 口徑保持一致；呆滯閾值按品類分別設定（快消 90 天、家電 180 天、備品備件 365 天），改閾值後同一批資料結論可能完全不同，需留存輸入快照。</li></ul>
 <h2>算例參考</h2>
 <ul><li><strong>算例：3 個 SKU 的呆滯篩查（週期 90 天 / 閾值 180 天）</strong>：輸入：礦泉水,5000,12000,30,2.5；紙巾,2000,3000,45,5；舊款鍋具,800,50,220,80。計算：日均出庫=出庫量÷90 → 礦泉水 133.33 件/天、紙巾 33.33 件/天、舊款鍋具 0.56 件/天；週轉天數=庫存量÷日均出庫 → 37.5 天、60.0 天、1440.0 天；庫存金額=庫存量×單價 → 12500 元、10000 元、64000 元。判定：僅舊款鍋具週轉天數 1440 &gt; 180 判呆滯。彙總：SKU 總數 3、呆滯品數 1、庫存總金額 86500 元、呆滯金額 64000 元、呆滯金額佔比 74.0% —— 說明庫存資金高度壓在單一呆滯品上，應優先清理舊款鍋具。</li></ul>
 <h2>注意事項</h2>
@@ -91,7 +91,7 @@ li{margin:8px 0;}
 </div>
 <dl class="faq">
 <dt>統計週期該選多少天？換週期會不會改變結論？</dt><dd>週期必須與財務或 ERP 的出庫統計口徑一致，常用 90 天（一個季度）。週期越長日均出庫越平滑，短週期容易被大促或斷貨扭曲。同一批資料在 30 天與 180 天週期下日均出庫可差 6 倍，週轉天數與呆滯判定隨之變化，所以每次分析都要記錄週期與閾值，便於跨期對比。</dd>
-<dt>週轉天數顯示 ∞ 是什麼意思，怎麼處理？</dt><dd>表示該 SKU 在統計週期內出庫量為 0，日均出庫為 0，工具按無窮大處理並直接判定為呆滯。此時應先核實是真實停售/滯銷，還是出庫資料未同步或口徑遺漏；確認無誤後歸入待清理清單，避免把資料缺失誤當成呆滯處置。</dd>
+<dt>週轉天數顯示 ∞ 是什麼意思，怎麼處理？</dt><dd>要分兩種情況：庫存為 0 時沒有待處理庫存，週轉與判定天數顯示 —，不判呆滯也不計入金額；庫存 >0 且統計週期內出庫為 0 時，日均出庫為 0，工具按無窮大處理並判呆滯。後者應先核實是真實停售/滯銷，還是出庫資料未同步或口徑遺漏；確認無誤後歸入待清理清單，避免把資料缺失誤當成呆滯處置。</dd>
 </dl>
 <div class="related"><h3>相關工具</h3><a class="tool-chip" href="/zh-tw/tools/logistics2/inventory-aging.html">庫存呆滯分析</a></div>
 <div class="back"><a href="https://tools.dicomp.net/tools/logistics2/inventory-aging.html">→ 開啟庫存呆滯分析工具</a></div>

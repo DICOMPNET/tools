@@ -116,9 +116,14 @@ canvas{background:#fff;border:6px solid #fff;border-radius:8px;box-shadow:var(--
 <div class="formula-box">
   <div class="formula-title">📐 工作原理與說明</div>
   <div class="formula-eq">sms:+15551234567?body=文本內容<br>或 SMSTO:號碼:內容（相容舊安卓）</div>
-  <div class="formula-desc">簡訊二維碼本質是把 URI Scheme 編碼進二維碼：掃碼端解析出 URI 後交給系統處理，自動開啟簡訊編輯介面並預填號碼與正文。iOS 支援 sms:號碼?body=… 形式，部分安卓還支援 SMSTO:號碼:正文 的老格式。內容較長時二維碼會變密（版本升高、模組變小），建議正文控制在 100 字以內、糾錯等級選 M，並在列印時保證碼區留白（Quiet Zone ≥ 4 個模組寬）。正文與號碼中的特殊字元需先做百分號編碼。本頁號碼僅接受 5–15 位數字與可選前導 +（空格/連字元自動去除），正文按 UTF-8 百分號編碼；號碼非法時直接提示，不生成殘缺 URI。</div>
+  <div class="formula-desc">簡訊二維碼本質是把 URI Scheme 編碼進二維碼：掃碼端解析出 URI 後交給系統處理，自動開啟簡訊編輯介面並預填號碼與正文。iOS 支援 sms:號碼?body=… 形式，部分安卓還支援 SMSTO:號碼:正文 的老格式。內容較長時二維碼會變密（版本升高、模組變小），建議正文控制在 100 字以內、糾錯等級選 M，並在列印時保證碼區留白（Quiet Zone ≥ 4 個模組寬）。頁面可選擇上述兩種格式：sms: 的正文按 UTF-8 百分號編碼，SMSTO: 按“號碼:正文”原樣拼接。號碼僅接受 5–15 位數字與可選前導 +（空格/連字元自動去除）；號碼非法時直接提示，不生成殘缺 URI。</div>
 </div>
 
+    <label for="smsFormat">URI 格式</label>
+    <select id="smsFormat" style="margin-bottom:12px;">
+      <option value="sms" selected>sms:號碼?body=正文（iOS / 主流安卓）</option>
+      <option value="smsto">SMSTO:號碼:正文（舊安卓相容）</option>
+    </select>
     <label for="phone">電話號碼</label>
     <input type="text" id="phone" value="13800138000" style="margin-bottom:12px;">
     <label for="msg">簡訊內容</label>
@@ -217,9 +222,14 @@ function buildSms(){
   if(!/^\+?\d{5,15}$/.test(phone)){
     throw new Error(smsEn()?'Phone number must be 5–15 digits with an optional leading +':'电话号码仅支持 5–15 位数字与可选的前导 +');
   }
-  const msg=encodeURIComponent(document.getElementById('msg').value);
-  return 'sms:'+phone+'?body='+msg;
+  const rawMsg=document.getElementById('msg').value;
+  const fmt=(document.getElementById('smsFormat')||{}).value||'sms';
+  // sms: 的 body 必须百分号编码；SMSTO: 是旧安卓私有格式，按 number:body 原样拼接
+  return fmt==='smsto' ? 'SMSTO:'+phone+':'+rawMsg : 'sms:'+phone+'?body='+encodeURIComponent(rawMsg);
 }
+document.getElementById('smsFormat').addEventListener('change', function(){
+  if(__smsUri) generate();
+});
 function drawQR(text){
   if(typeof qrcode!=='function')return null;
   if(qrcode.stringToBytesFuncs&&qrcode.stringToBytesFuncs['UTF-8'])qrcode.stringToBytes=qrcode.stringToBytesFuncs['UTF-8'];
@@ -275,6 +285,7 @@ function toggleToolTheme(){
     });
   }
 })();
+generate();
 </script><script>
 // tool-intro折叠交互
 document.addEventListener('DOMContentLoaded',function(){
@@ -429,7 +440,7 @@ else document.addEventListener('DOMContentLoaded', __sms_qrBoot);
   <div class="related-tools-grid">
     <a href="/zh-tw/tools/it/properties-parser.html" class="related-tool-card">
       <span class="rt-icon">📄</span>
-      <span class="rt-info"><span class="rt-name">.properties 解析器</span><span class="rt-desc">Java .properties 檔案解析：支援 key=value、key:value、行內註釋…</span></span>
+      <span class="rt-info"><span class="rt-name">.properties 解析器</span><span class="rt-desc">Java .properties 檔案解析：支援 key=value、key:value、整行註釋（…</span></span>
     </a>
     <a href="/zh-tw/tools/it/ast-viewer.html" class="related-tool-card">
       <span class="rt-icon">💻</span>

@@ -67,7 +67,7 @@
 
 <script src="../../../js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"槓桿越高越好嗎？","acceptedAnswer":{"@type":"Answer","text":"不是。高槓杆放大資金效率也放大虧損速度；本例 1:100 下僅 4% 反向波動即爆倉，應結合止損與賬戶承受力選用倍數。"}},{"@type":"Question","name":"保證金佔用率到多少危險？","acceptedAnswer":{"@type":"Answer","text":"佔用率越接近 100% 越危險；當淨值跌破經紀商 Stop Out 水平（常見 20%~50%）會被強制平倉，建議預留充足自由保證金。"}}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"槓桿越高越好嗎？","acceptedAnswer":{"@type":"Answer","text":"不是。高槓杆降低保證金佔用，但相同價格波動對應的盈虧不變，虧損相對保證金的比例會被放大。本例強平線 50%、保證金 1000 美元時，價格反向約 9.5% 才會把淨值打到 500 美元（保證金水平 50%）；若滿倉使用保證金，可承受波動會明顯縮小。"}},{"@type":"Question","name":"保證金水平到多少危險？","acceptedAnswer":{"@type":"Answer","text":"保證金水平 = 淨值 ÷ 已用保證金；經紀商常設 100% 預警、50% 強平（各平臺不同）。保證金水平越接近強平線越危險，建議預留充足自由保證金。"}}]}</script>
 <meta property="og:site_name" content="ToolBox">
 <meta name="theme-color" content="#FF6B35">
 <!-- TOOLBOX-HREFLANG -->
@@ -114,10 +114,10 @@
 </div>
 <div class="card tool-card-accent" style="--tool-accent:#92400E;">
     <h2 data-zh="🧮 外匯槓桿計算器">Forex Leverage Calculator</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="計算外匯交易的所需保證金、槓桿倍數與爆倉風險">Leverage Calc</p>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="計算外匯交易的所需保證金、槓桿倍數與強平風險">Leverage Calc</p>
     <div class="formula-box">
-      <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">外匯槓桿與爆倉計算<br>持倉價值 = 手數 × 100,000 × 基礎貨幣兌USD匯率（1 標準手 = 10 萬基礎貨幣）<br>所需保證金 = 持倉價值 ÷ 槓桿倍數<br>保證金佔用率 = 保證金 ÷ 賬戶餘額 × 100%<br>可用保證金 = 賬戶餘額 − 所需保證金<br>爆倉閾值 = 餘額 × 爆倉比例%<br>最大可承受虧損 = 可用保證金 − 爆倉閾值<br>爆倉波動幅度 = 最大可承受虧損 ÷ 持倉價值 × 100%<br>風險分級：>5% 安全｜2–5% 較高｜<2% 極高<br>保證金率 = 1 ÷ 槓桿 × 100%</div>
-      <p class="formula-desc" data-zh="核心計算公式（按輸入變數）：lots × 100000 × baseUsdRate；balance × stopOut ÷ 100">Key formulas: lots × 100000 × baseUsdRate; balance × stopOut ÷ 100</p>
+      <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">外匯槓桿與強平計算（按保證金水平判定）<br>持倉價值 = 手數 × 100,000 × 基礎貨幣兌USD匯率（1 標準手 = 10 萬基礎貨幣）<br>所需保證金 = 持倉價值 ÷ 槓桿倍數<br>保證金佔用率 = 保證金 ÷ 賬戶餘額 × 100%<br>可用保證金 = 賬戶餘額 − 所需保證金<br>保證金水平 = 淨值 ÷ 所需保證金 × 100%（開倉時淨值 = 餘額）<br>強平淨值 = 所需保證金 × 強平線%<br>可承受虧損 = 賬戶餘額 − 強平淨值<br>距強平波動 = 可承受虧損 ÷ 持倉價值 × 100%<br>當保證金水平 ≤ 強平線時觸發強平<br>風險分級：>5% 安全｜2–5% 較高｜<2% 極高</div>
+      <p class="formula-desc" data-zh="核心計算公式（按輸入變數）：lots × 100000 × baseUsdRate；requiredMargin × stopOut ÷ 100">Key formulas: lots × 100000 × baseUsdRate; requiredMargin × stopOut ÷ 100</p>
     </div>
 
     <div class="input-row">
@@ -161,8 +161,8 @@
         <input type="number" id="balance" value="10000" step="100" min="0" oninput="calc()" placeholder="如 10000">
       </div>
       <div>
-        <label for="stopOut">爆倉比例（%）</label>
-        <input type="number" id="stopOut" value="50" step="5" min="0" max="100" oninput="calc()" placeholder="如 50（0–100）">
+        <label for="stopOut">強平線（保證金水平 %）</label>
+        <input type="number" id="stopOut" value="50" step="5" min="0" max="100" oninput="calc()" placeholder="如 50（淨值/已用保證金，0–100）">
       </div>
     </div>
 
@@ -178,11 +178,14 @@
   <div class="card">
     <h3>📋 計算說明</h3>
     <div class="ref-card">
-      <h4>🔢 保證金公式</h4>
+      <h4>🔢 保證金與強平公式</h4>
       <p><strong>持倉價值</strong> = 手數 × 100,000 × 基礎貨幣兌USD匯率</p>
       <p><strong>所需保證金</strong> = 持倉價值 ÷ 槓桿倍數</p>
       <p><strong>保證金佔用率</strong> = 所需保證金 ÷ 賬戶餘額 × 100%</p>
-      <p><strong>爆倉價格波動</strong> = (賬戶餘額 × 爆倉比例 - 所需保證金) ÷ 持倉價值 × 100%</p>
+      <p><strong>保證金水平</strong> = 賬戶淨值 ÷ 所需保證金 × 100%</p>
+      <p><strong>強平淨值</strong> = 所需保證金 × 強平線%</p>
+      <p><strong>距強平波動</strong> = (賬戶餘額 − 強平淨值) ÷ 持倉價值 × 100%</p>
+      <p>本工具按“保證金水平 ≤ 強平線即強平”的常見零售外匯規則計算；開倉時浮動盈虧按 0，未計點差、佣金、隔夜利息與滑點。不同經紀商規則可能不同，請以賬戶協議為準。</p>
     </div>
     <div class="ref-card">
       <h4>📊 槓桿與風險</h4>
@@ -198,7 +201,7 @@
         </tbody>
       </table>
     </div>
-    <div class="tip-box tip-warn">槓桿越高，爆倉風險越大。1:100槓桿下價格反向波動約1%即可能導致爆倉。建議新手不超過1:50。</div>
+    <div class="tip-box tip-warn">槓桿越高，保證金佔用越低，但同一價格波動相對保證金的虧損比例越大。以 1:100、餘額 10000、1 手為例，強平線 50% 時可承受約 9.5% 反向波動；若把保證金用滿，可承受空間會明顯縮小。建議新手不超過 1:50，並預留緩衝。</div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -224,15 +227,15 @@
 <h3>💡 常見使用場景</h3>
 <ul class="dd-list">
 <li>開倉前估算保證金佔用：給定手數、合約規模與槓桿倍數，算所需保證金與保證金佔用率，避免超額開倉被強平。</li>
-<li>風控測算：在賬戶餘額與爆倉線（Stop Out）約束下，反推價格反向波動多少<a class="term-link" href="/zh-tw/tools/life/percentage-calculator.html">百分比</a>會觸發強平。</li>
+<li>風控測算：在賬戶餘額、已用保證金與強平線（Stop Out）約束下，反推價格反向波動多少<a class="term-link" href="/zh-tw/tools/life/percentage-calculator.html">百分比</a>會觸發強平。</li>
 <li>倉位規劃：對比不同槓桿（如 1:50 與 1:500）下的資金效率與爆倉風險，選定合適倍數。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">方法</div><div class="dd-ex-body">持倉價值 = 手數 × 100000 × 基礎貨幣兌 USD 匯率；所需保證金 = 持倉價值 ÷ 槓桿；保證金佔用率 = 保證金 ÷ 餘額 × 100%；自由保證金 = 餘額 − 保證金；爆倉可用虧損 = 自由保證金 − 餘額×StopOut%；爆倉價格波動% = 爆倉可用虧損 ÷ 持倉價值 × 100%。</div></div>
-<div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">輸入 1 手、槓桿 1:100、基礎貨幣兌 USD=1、餘額=10000、StopOut=50%：持倉價值=1×100000×1=100000；保證金=100000÷100=1000（佔用率 10%）；自由保證金=9000；爆倉閾值=10000×50%=5000，可用虧損=9000−5000=4000；反向波動 4000÷100000×100%=4% 即觸發強平。</div></div>
+<div class="dd-example"><div class="dd-ex-title">方法</div><div class="dd-ex-body">持倉價值 = 手數 × 100000 × 基礎貨幣兌 USD 匯率；所需保證金 = 持倉價值 ÷ 槓桿；保證金佔用率 = 保證金 ÷ 餘額 × 100%；自由保證金 = 餘額 − 保證金；保證金水平 = 淨值 ÷ 保證金 × 100%；強平淨值 = 保證金 × StopOut%；可承受虧損 = 餘額 − 強平淨值；距強平波動% = 可承受虧損 ÷ 持倉價值 × 100%。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">輸入 1 手、槓桿 1:100、基礎貨幣兌 USD=1、餘額=10000、StopOut=50%：持倉價值=1×100000×1=100000；保證金=100000÷100=1000（佔用率 10%）；自由保證金=9000；強平淨值=1000×50%=500，可承受虧損=10000−500=9500；保證金水平從 1000% 降到 50% 對應反向波動 9500÷100000×100%=9.5%，此時才觸發強平。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
-<dt>槓桿越高越好嗎？</dt><dd>不是。高槓杆放大資金效率也放大虧損速度；本例 1:100 下僅 4% 反向波動即爆倉，應結合止損與賬戶承受力選用倍數。</dd>
-<dt>保證金佔用率到多少危險？</dt><dd>佔用率越接近 100% 越危險；當淨值跌破經紀商 Stop Out 水平（常見 20%~50%）會被強制平倉，建議預留充足自由保證金。</dd>
+<dt>槓桿越高越好嗎？</dt><dd>不是。高槓杆降低保證金佔用，但相同價格波動對應的盈虧不變，虧損相對保證金的比例會被放大。本例強平線 50%、保證金 1000 美元時，價格反向約 9.5% 才會把淨值打到 500 美元（保證金水平 50%）；若滿倉使用保證金，可承受波動會明顯縮小。</dd>
+<dt>保證金水平到多少危險？</dt><dd>保證金水平 = 淨值 ÷ 已用保證金；經紀商常設 100% 預警、50% 強平（各平臺不同）。保證金水平越接近強平線越危險，建議預留充足自由保證金。</dd>
 </dl>
 </div>
 </section>
@@ -287,29 +290,54 @@ function calc(){
   var balance = getVal('balance');
   var stopOut = getVal('stopOut');
 
+  var statGrid = document.getElementById('statGrid');
+  var resultBox = document.getElementById('result');
+
   if(lots <= 0 || baseUsdRate <= 0 || leverage <= 0){
-    document.getElementById('statGrid').innerHTML='';
-    document.getElementById('result').innerHTML='<p style="color:var(--danger);">请输入有效的手数、汇率和杠杆</p>';
+    statGrid.innerHTML='';
+    resultBox.innerHTML='<p style="color:var(--danger);">请输入有效的手数、汇率和杠杆</p>';
+    return;
+  }
+  if(balance <= 0){
+    statGrid.innerHTML='';
+    resultBox.innerHTML='<p style="color:var(--danger);">请输入有效的账户余额（需大于 0）</p>';
+    return;
+  }
+  if(stopOut < 0 || stopOut > 100){
+    statGrid.innerHTML='';
+    resultBox.innerHTML='<p style="color:var(--danger);">强平线需在 0–100% 之间</p>';
     return;
   }
 
   var positionValue = lots * 100000 * baseUsdRate;
   var requiredMargin = positionValue / leverage;
-  var marginPct = balance > 0 ? requiredMargin / balance * 100 : 0;
+  var marginPct = requiredMargin / balance * 100;
   var freeMargin = balance - requiredMargin;
-  // 爆仓时价格波动（基础货币对USD反向波动百分比）
-  // 亏损到 stopOut% 余额时爆仓：亏损额 = balance - balance*stopOut% - requiredMargin...
-  // 实际可用亏损 = freeMargin - balance*(stopOut/100)
-  // 价格波动% = 可用亏损 / positionValue * 100
-  var stopOutThreshold = balance * stopOut / 100;
-  var maxLoss = freeMargin - stopOutThreshold;
+
+  if(balance < requiredMargin){
+    statGrid.innerHTML='';
+    resultBox.innerHTML='<h3 style="margin-bottom:10px;font-size:15px;">📋 杠杆计算明细</h3>'
+      + '<p>持仓价值：<strong>$' + ToolBox.formatNumber(positionValue, 2) + '</strong></p>'
+      + '<p>所需保证金：<strong>$' + ToolBox.formatNumber(requiredMargin, 2) + '</strong></p>'
+      + '<p>账户余额：<strong>$' + ToolBox.formatNumber(balance, 2) + '</strong></p>'
+      + '<div class="tip-box tip-error">保证金不足：账户余额低于所需保证金，无法开立该仓位。请降低手数或杠杆倍数，或增加账户余额。</div>';
+    return;
+  }
+
+  var stopOutEquity = requiredMargin * stopOut / 100;
+  var maxLoss = balance - stopOutEquity;
   var priceMovePct = positionValue > 0 ? maxLoss / positionValue * 100 : 0;
+  var marginLevel = requiredMargin > 0 ? balance / requiredMargin * 100 : 0;
+  var triggered = marginLevel <= stopOut || maxLoss <= 0;
+
+  var moveColor = triggered ? 'var(--danger)' : (priceMovePct > 5 ? 'var(--success)' : (priceMovePct > 2 ? 'var(--warning)' : 'var(--danger)'));
+  var moveText = triggered ? '已触发' : priceMovePct.toFixed(2) + '%';
 
   var statHtml = '<div class="stat-card"><div class="val">$' + ToolBox.formatNumber(requiredMargin, 2) + '</div><div class="lbl">所需保证金</div></div>'
     + '<div class="stat-card"><div class="val">$' + ToolBox.formatNumber(positionValue, 0) + '</div><div class="lbl">持仓价值</div></div>'
     + '<div class="stat-card"><div class="val">' + marginPct.toFixed(2) + '%</div><div class="lbl">保证金占用率</div></div>'
-    + '<div class="stat-card"><div class="val" style="color:' + (priceMovePct > 5 ? 'var(--success)' : (priceMovePct > 2 ? 'var(--warning)' : 'var(--danger)')) + ';">' + Math.abs(priceMovePct).toFixed(2) + '%</div><div class="lbl">爆仓波动幅度</div></div>';
-  const __g3=statHtml;document.getElementById('statGrid').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
+    + '<div class="stat-card"><div class="val" style="color:' + moveColor + ';">' + moveText + '</div><div class="lbl">距强平波动</div></div>';
+  const __g3=statHtml;statGrid.innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
 
   var html = '<h3 style="margin-bottom:10px;font-size:15px;">📋 杠杆计算明细</h3>';
   html += '<p>交易手数：<strong>' + lots + ' 手</strong></p>';
@@ -327,17 +355,24 @@ function calc(){
   html += '<p>可用保证金 = $' + ToolBox.formatNumber(balance, 0) + ' - $' + ToolBox.formatNumber(requiredMargin, 0) + ' = <strong>$' + ToolBox.formatNumber(freeMargin, 2) + '</strong></p>';
   html += '<p>保证金占用率 = <strong style="color:' + (marginPct > 80 ? 'var(--danger)' : (marginPct > 50 ? 'var(--warning)' : 'var(--success)')) + ';">' + marginPct.toFixed(2) + '%</strong></p>';
   html += '<hr style="border:none;border-top:1px solid var(--border);margin:10px 0;">';
-  html += '<p style="font-weight:600;">爆仓分析：</p>';
-  html += '<p>爆仓比例：余额降至 <strong>' + stopOut + '%</strong> 时强制平仓</p>';
-  html += '<p>爆仓阈值 = $' + ToolBox.formatNumber(balance, 0) + ' × ' + stopOut + '% = <strong>$' + ToolBox.formatNumber(stopOutThreshold, 2) + '</strong></p>';
-  html += '<p>最大可承受亏损 = $' + ToolBox.formatNumber(freeMargin, 0) + ' - $' + ToolBox.formatNumber(stopOutThreshold, 0) + ' = <strong>$' + ToolBox.formatNumber(maxLoss, 2) + '</strong></p>';
-  html += '<p style="font-size:18px;font-weight:700;color:' + (priceMovePct > 5 ? 'var(--success)' : (priceMovePct > 2 ? 'var(--warning)' : 'var(--danger)')) + ';">价格反向波动 ' + Math.abs(priceMovePct).toFixed(2) + '% 即爆仓</p>';
-  if(priceMovePct < 2){
-    html += '<div class="tip-box tip-error">爆仓风险极高！价格反向波动不到2%即爆仓，建议降低手数或杠杆。</div>';
-  } else if(priceMovePct < 5){
-    html += '<div class="tip-box tip-warn">爆仓风险较高，建议适当减仓。</div>';
+  html += '<p style="font-weight:600;">强平分析（按保证金水平）：</p>';
+  html += '<p>当前保证金水平 = 净值 $' + ToolBox.formatNumber(balance, 2) + ' ÷ 已用保证金 $' + ToolBox.formatNumber(requiredMargin, 2) + ' × 100% = <strong>' + marginLevel.toFixed(2) + '%</strong></p>';
+  html += '<p>强平线：保证金水平降至 <strong>' + stopOut + '%</strong> 时强平</p>';
+  html += '<p>强平净值 = 已用保证金 $' + ToolBox.formatNumber(requiredMargin, 2) + ' × ' + stopOut + '% = <strong>$' + ToolBox.formatNumber(stopOutEquity, 2) + '</strong></p>';
+  html += '<p>可承受亏损 = 账户余额 $' + ToolBox.formatNumber(balance, 0) + ' - 强平净值 $' + ToolBox.formatNumber(stopOutEquity, 2) + ' = <strong>$' + ToolBox.formatNumber(maxLoss, 2) + '</strong></p>';
+  if(triggered){
+    html += '<p style="font-size:18px;font-weight:700;color:var(--danger);">当前保证金水平 ' + marginLevel.toFixed(2) + '% 已达到/低于强平线，开仓即触发强平</p>';
+    html += '<div class="tip-box tip-error">当前没有可承受的下跌空间，请降低手数或杠杆，或提高账户余额。</div>';
+  } else {
+    html += '<p style="font-size:18px;font-weight:700;color:' + moveColor + ';">价格反向波动 ' + priceMovePct.toFixed(2) + '% 触发强平</p>';
+    if(priceMovePct < 2){
+      html += '<div class="tip-box tip-error">强平风险极高！价格反向波动不到 2% 即触及强平线，建议降低手数或杠杆。</div>';
+    } else if(priceMovePct < 5){
+      html += '<div class="tip-box tip-warn">强平风险较高，建议适当减仓。</div>';
+    }
   }
-  const __g4=html;document.getElementById('result').innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
+  html += '<p style="font-size:12px;color:var(--text-muted);margin-top:8px;">开仓时浮动盈亏按 0，未计点差、佣金、隔夜利息与滑点；不同经纪商强平规则可能不同。</p>';
+  const __g4=html;resultBox.innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
 }
 
 function copyResult(){
@@ -388,7 +423,7 @@ calc();
   </div>
   <div class="tool-intro-body">
     <h4><span class="h4-icon">📝</span>工具簡介</h4>
-    <p data-zh="輸入交易手數、合約規模與所用槓桿倍數，計算所需保證金、持倉價值與爆倉（強平）價格風險，幫助外匯交易者控制倉位與資金佔用">輸入交易手數、合約規模與所用槓桿倍數，計算所需保證金、持倉價值與爆倉（強平）價格風險，幫助外匯交易者控制倉位與資金佔用</p>
+    <p data-zh="輸入交易手數、合約規模與所用槓桿倍數，計算所需保證金、持倉價值與強平價格風險，幫助外匯交易者控制倉位與資金佔用">輸入交易手數、合約規模與所用槓桿倍數，計算所需保證金、持倉價值與強平價格風險，幫助外匯交易者控制倉位與資金佔用</p>
     <h4><span class="h4-icon">✨</span>功能特點</h4>
     <ul class="intro-features">
       <li>採用標準金融計算公式</li>

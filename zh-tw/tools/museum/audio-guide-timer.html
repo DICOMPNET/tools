@@ -78,7 +78,7 @@
 
 <script src="../../../js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"超時了怎麼調？","acceptedAnswer":{"@type":"Answer","text":"工具給出三選一：①縮短單件講解至 ⌊(可用−移動−開場)÷件數⌋ 秒；②減少講解展品至 ⌊(可用−開場+移動)÷(單件+移動)⌋ 件；③壓縮移動時間。優先砍冗餘展品與移動間隙，保留重點館。"}},{"@type":"Question","name":"平均每件時長怎麼用？","acceptedAnswer":{"@type":"Answer","text":"每件可用 = ⌊可用秒÷展品數⌋，用於快速判斷當前單件設定是否超標；若某件遠超均值，優先壓縮它。逐件檢視還能看到每件佔比與累計時間，便於精準刪減。"}}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"超時了怎麼調？","acceptedAnswer":{"@type":"Answer","text":"工具給出三選一：①縮短單件講解至 ⌊(可用−移動−開場)÷件數⌋ 秒；②減少講解展品至 ⌊(可用−開場+移動)÷(單件+移動)⌋ 件；③壓縮移動時間。優先砍冗餘展品與移動間隙，保留重點館。"}},{"@type":"Question","name":"平均每件時長怎麼用？","acceptedAnswer":{"@type":"Answer","text":"每件可用 = ⌊(可用秒−移動−開場)÷展品數⌋，不足 0 取 0，用於快速判斷當前單件設定是否超標；若某件遠超均值，優先壓縮它。逐件檢視還能看到每件佔比與累計時間，便於精準刪減。"}},{"@type":"Question","name":"輸入為空或小數時為什麼不出結果？","acceptedAnswer":{"@type":"Answer","text":"快速模式的展品數必須是 ≥1 的整數，單件講解、移動和開場結束必須是非負整數秒；空值不再當作 0，小數也不再被 parseInt 截斷。缺項或越界時只顯示修正提示，避免用錯誤引數排出看似合理的時長。"}}]}</script>
 <meta property="og:site_name" content="ToolBox">
 <meta name="theme-color" content="#FF6B35">
 <!-- TOOLBOX-HREFLANG -->
@@ -120,7 +120,7 @@
     <h2 data-zh="⏱️ 導覽時長匹配">Audio Guide Duration Matcher</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="計算語音導覽講解總時長，匹配展品數量與觀眾可用時間">Audio Guide Timer</p>
     <div class="formula-box">
-      <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">快速估算：講解總時長(秒) = 展品數 × 單件講解秒數 + (展品數 &gt; 1 時 (展品數 − 1) × 單段移動秒數，否則 0) + 開場結束秒數；可用時間(秒) = 可用分鐘 × 60；時間差 = 可用時間 − 總時長。每件可用時長 = ⌊可用時間 ÷ 展品數⌋（可用時間為 0 時取 0）。評級：差值 ≥ 0 時間充裕、≥ −300 秒略超時、其餘嚴重超時。超時時給出的整改值——單件建議壓縮到 ⌊(可用時間 − 移動總時長 − 開場結束) ÷ 展品數⌋ 秒（下限 0），建議展品數 = ⌊(可用時間 − 開場結束 + 移動秒數) ÷ (單件秒數 + 移動秒數)⌋。明細模式按各展品實際秒數求和，並給出每件佔比 = 單件秒數 ÷ 總時長 × 100% 與累計時間。時間格式化：時 = ⌊秒 ÷ 3600⌋、分 = ⌊(秒 mod 3600) ÷ 60⌋、秒 = 秒 mod 60，時 &gt; 0 輸出「x時x分x秒」、分 &gt; 0 輸出「x分x秒」、否則「x秒」</div>
+      <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq" data-zh="快速估算：講解總時長(秒) = 展品數 × 單件講解秒數 + (展品數 &gt; 1 時 (展品數 − 1) × 單段移動秒數，否則 0) + 開場結束秒數；可用時間(秒) = 可用分鐘 × 60；時間差 = 可用時間 − 總時長。每件可用時長 = 取 0 與 ⌊(可用時間 − 移動總時長 − 開場結束) ÷ 展品數⌋ 的較大值，且展品數必須為 ≥1 的整數。展品數、單件講解、移動、開場結束或可用時間留空、為負數、小數（展品數還須為整數）時只提示修正，不進入計算；時間差為負時顯示「−」號。評級：差值 ≥ 0 時間充裕、≥ −300 秒略超時、其餘嚴重超時。超時時給出的整改值——單件建議壓縮到 ⌊(可用時間 − 移動總時長 − 開場結束) ÷ 展品數⌋ 秒（下限 0），建議展品數 = ⌊(可用時間 − 開場結束 + 移動秒數) ÷ (單件秒數 + 移動秒數)⌋。明細模式按各展品實際秒數求和，並給出每件佔比 = 單件秒數 ÷ 總時長 × 100% 與累計時間。時間格式化：時 = ⌊秒 ÷ 3600⌋、分 = ⌊(秒 mod 3600) ÷ 60⌋、秒 = 秒 mod 60，時 &gt; 0 輸出「x時x分x秒」、分 &gt; 0 輸出「x分x秒」、否則「x秒」">Quick estimate: total narration (s) = exhibit count × narration seconds per exhibit + (exhibit count > 1 ? (exhibit count − 1) × walking seconds per leg : 0) + opening/closing seconds; available time (s) = available minutes × 60; time difference = available time − total narration. Time per exhibit = max(0, ⌊(available time − total walking − opening/closing) ÷ exhibit count⌋), and exhibit count must be an integer ≥ 1. If exhibit count, narration, walking, opening/closing or available time is blank, negative or fractional (and exhibit count must be an integer), the tool asks for a correction and does not calculate; a negative difference is shown with a “−” sign. Rating: difference ≥ 0 sufficient, ≥ −300 s slightly over, otherwise significantly over. When over, the suggested per-exhibit cut is ⌊(available time − total walking − opening/closing) ÷ exhibit count⌋ seconds (minimum 0), and the suggested exhibit count is ⌊(available time − opening/closing + walking seconds) ÷ (narration seconds + walking seconds)⌋. Detail mode sums actual seconds per exhibit and shows each share = exhibit seconds ÷ total × 100% plus cumulative time. Time formatting: hours = ⌊seconds ÷ 3600⌋, minutes = ⌊(seconds mod 3600) ÷ 60⌋, seconds = seconds mod 60; output “xh ym zs” when hours > 0, “ym zs” when minutes > 0, otherwise “zs”.</div>
       <p class="formula-desc" data-zh="按展品數量、單件講解時長、展品間移動與開場/結束語計算導覽總時長，並與觀眾可用時間對比給出超時提示；支援逐展品自定義時長。">Compute total audio-guide duration from exhibit count, per-exhibit narration, walking time and opening/closing remarks, then compare it with the visitor's available time and flag overruns; per-exhibit custom durations are supported.</p>
     </div>
 
@@ -199,11 +199,12 @@
 <li>個性化導覽（逐件設定時長）場景下，列出每件展品時長佔比與累計時間，對比可用時間識別超時環節。</li>
 <li>超時應急時，給出縮短單件講解、減少展品數或壓縮移動時間三種調控路徑，保證團隊整體節奏。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">團隊講解時長核算示例</div><div class="dd-ex-body">某團隊 5 件展品、單件講解 120 秒、移動 30 秒/段、開場結束 60 秒、可用 20 分鐘。總時長 = 5×120 + 4×30 + 60 = 780 秒（13 分鐘）；可用 20×60 = 1200 秒；時間差 +420 秒（充裕 7 分鐘）；每件可用 ⌊1200÷5⌋ = 240 秒。逐件場景：青銅鼎120/編鐘150/玉璧90/陶俑100/金銀器110，合計 570 秒，可用 10 分鐘（600 秒）時僅餘 30 秒，須壓縮單件或減件。</div></div>
+<div class="dd-example"><div class="dd-ex-title">團隊講解時長核算示例</div><div class="dd-ex-body">某團隊 5 件展品、單件講解 120 秒、移動 30 秒/段、開場結束 60 秒、可用 20 分鐘。總時長 = 5×120 + 4×30 + 60 = 780 秒（13 分鐘）；可用 20×60 = 1200 秒；時間差 +420 秒（充裕 7 分鐘）；每件可用 ⌊(1200−4×30−60)÷5⌋ = 204 秒。若總時長超過可用時間，時間差顯示負號（如 −180 秒），不會與剩餘時間混淆。展品數留空、為 0、負數或小數，講解/移動/開場為負數或小數時，工具提示修正而不截斷後繼續排程。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
 <dt>超時了怎麼調？</dt><dd>工具給出三選一：①縮短單件講解至 ⌊(可用−移動−開場)÷件數⌋ 秒；②減少講解展品至 ⌊(可用−開場+移動)÷(單件+移動)⌋ 件；③壓縮移動時間。優先砍冗餘展品與移動間隙，保留重點館。</dd>
-<dt>平均每件時長怎麼用？</dt><dd>每件可用 = ⌊可用秒÷展品數⌋，用於快速判斷當前單件設定是否超標；若某件遠超均值，優先壓縮它。逐件檢視還能看到每件佔比與累計時間，便於精準刪減。</dd>
+<dt>平均每件時長怎麼用？</dt><dd>每件可用 = ⌊(可用秒−移動−開場)÷展品數⌋，不足 0 取 0，用於快速判斷當前單件設定是否超標；若某件遠超均值，優先壓縮它。逐件檢視還能看到每件佔比與累計時間，便於精準刪減。</dd>
+<dt>輸入為空或小數時為什麼不出結果？</dt><dd>快速模式的展品數必須是 ≥1 的整數，單件講解、移動和開場結束必須是非負整數秒；空值不再當作 0，小數也不再被 parseInt 截斷。缺項或越界時只顯示修正提示，避免用錯誤引數排出看似合理的時長。</dd>
 </dl>
 </div>
 </section>
@@ -247,63 +248,89 @@
 
 <script>
 function switchTab(name, btn){
+  if(!btn) return;
   document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
   btn.classList.add('active');
   document.querySelectorAll('.tab-content').forEach(function(c){ c.classList.remove('active'); });
   document.getElementById('tab-'+name).classList.add('active');
 }
 
-function fmtTime(sec){
+function fmtTime(sec, en){
   var h = Math.floor(sec/3600);
   var m = Math.floor((sec%3600)/60);
   var s = Math.floor(sec%60);
+  if(en){
+    if(h>0) return h+'h '+m+'m '+s+'s';
+    if(m>0) return m+'m '+s+'s';
+    return s+'s';
+  }
   if(h>0) return h+'时'+m+'分'+s+'秒';
   if(m>0) return m+'分'+s+'秒';
   return s+'秒';
 }
 
 function calcQuick(){
-  var count = parseInt(document.getElementById('exhibitCount').value) || 0;
-  var per = parseInt(document.getElementById('perExhibit').value) || 0;
-  var move = parseInt(document.getElementById('moveTime').value) || 0;
-  var intro = parseInt(document.getElementById('introTime').value) || 0;
-  var avail = (parseFloat(document.getElementById('available').value) || 0) * 60;
-  if(!(avail>0)){
-    document.getElementById('resultQuick').innerHTML='<div class="tip-box tip-error">可用时间需大于 0，无法排程。</div>';
+  var en = /(?:^|[?&])lang=en(?:-US)?(?:&|$)/i.test(location.search) || /^en/i.test(document.documentElement.lang || '');
+  var rawCount = document.getElementById('exhibitCount').value.trim();
+  var rawPer = document.getElementById('perExhibit').value.trim();
+  var rawMove = document.getElementById('moveTime').value.trim();
+  var rawIntro = document.getElementById('introTime').value.trim();
+  var rawAvail = document.getElementById('available').value.trim();
+  var count = Number(rawCount), per = Number(rawPer), move = Number(rawMove), intro = Number(rawIntro);
+  var avail = Number(rawAvail) * 60;
+  var bad = function(msg){ document.getElementById('resultQuick').innerHTML='<div class="tip-box tip-error">'+msg+'</div>'; };
+  if(rawCount==='' || rawPer==='' || rawMove==='' || rawIntro==='' || rawAvail===''){
+    bad(en?'Fill in exhibit count, per-exhibit narration, walking time, opening/closing time and available time.':'请填写展品数、单件讲解、移动时间、开场结束与可用时间；缺项不能排程。');
     return;
   }
+  if(!Number.isInteger(count) || count < 1){ bad(en?'Exhibit count must be an integer of at least 1.':'展品数量需为不小于 1 的整数。'); return; }
+  if(!Number.isInteger(per) || per < 0){ bad(en?'Per-exhibit narration must be a non-negative integer number of seconds.':'单件讲解需为不小于 0 的整数秒。'); return; }
+  if(!Number.isInteger(move) || move < 0){ bad(en?'Walking time must be a non-negative integer number of seconds.':'单段移动时间需为不小于 0 的整数秒。'); return; }
+  if(!Number.isInteger(intro) || intro < 0){ bad(en?'Opening/closing time must be a non-negative integer number of seconds.':'开场结束时间需为不小于 0 的整数秒。'); return; }
+  if(!isFinite(avail) || avail <= 0){ bad(en?'Available time must be greater than 0 minutes.':'可用时间需大于 0 分钟，无法排程。'); return; }
 
   var total = count * per + (count > 1 ? (count-1) * move : 0) + intro;
   var diff = avail - total;
-  var avgPer = avail > 0 ? Math.floor(avail / count) : 0;
+  var netPer = avail - (count > 1 ? (count-1) * move : 0) - intro;
+  var avgPer = Math.max(0, Math.floor(netPer / count));
 
   var html = '<div class="summary-grid">';
-  html += card('讲解总时长', fmtTime(total));
-  html += card('可用时间', fmtTime(avail));
-  html += card('时间差', (diff>=0?'+':'') + fmtTime(Math.abs(diff)));
-  html += card('每件可用时长', avgPer + ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?" s":" 秒"));
+  html += card(en?'Total narration':'讲解总时长', fmtTime(total,en));
+  html += card(en?'Available time':'可用时间', fmtTime(avail,en));
+  html += card(en?'Time difference':'时间差', (diff>=0?'+':'−') + fmtTime(Math.abs(diff),en));
+  html += card(en?'Time per exhibit':'每件可用时长', avgPer + (en?' s':' 秒'));
   html += '</div>';
 
   var grade = diff >= 0 ? 'grade-excellent' : (diff >= -300 ? 'grade-pass' : 'grade-fail');
-  var status = diff >= 0 ? '时间充裕' : (diff >= -300 ? '略超时' : '严重超时');
+  var status = diff >= 0 ? (en?'Time is sufficient':'时间充裕') : (diff >= -300 ? (en?'Slightly over':'略超时') : (en?'Significantly over':'严重超时'));
   html += '<div style="text-align:center;margin:16px 0;"><span class="grade-tag '+grade+'" style="font-size:14px;padding:8px 20px;">'+status+'</span></div>';
 
-  html += '<table><thead><tr><th>项目</th><th>数值</th></tr></thead><tbody>';
-  html += '<tr><td>展品数</td><td>'+count+' 件</td></tr>';
-  html += '<tr><td>单件讲解</td><td>'+per+' 秒</td></tr>';
-  html += '<tr><td>移动时间</td><td>× '+(count>1?count-1:0)+' 段 = '+((count>1?count-1:0)*move)+' 秒</td></tr>';
-  html += '<tr><td>开场结束</td><td>'+intro+' 秒</td></tr>';
-  html += '<tr style="font-weight:600;"><td>讲解总时长</td><td>'+fmtTime(total)+'</td></tr>';
+  html += '<table><thead><tr><th>'+(en?'Item':'项目')+'</th><th>'+(en?'Value':'数值')+'</th></tr></thead><tbody>';
+  html += '<tr><td>'+(en?'Exhibits':'展品数')+'</td><td>'+count+(en?' items':' 件')+'</td></tr>';
+  html += '<tr><td>'+(en?'Narration per exhibit':'单件讲解')+'</td><td>'+per+(en?' s':' 秒')+'</td></tr>';
+  html += '<tr><td>'+(en?'Walking time':'移动时间')+'</td><td>× '+(count>1?count-1:0)+(en?' legs = ':' 段 = ')+((count>1?count-1:0)*move)+(en?' s':' 秒')+'</td></tr>';
+  html += '<tr><td>'+(en?'Opening and closing':'开场结束')+'</td><td>'+intro+(en?' s':' 秒')+'</td></tr>';
+  html += '<tr style="font-weight:600;"><td>'+(en?'Total narration':'讲解总时长')+'</td><td>'+fmtTime(total,en)+'</td></tr>';
   html += '</tbody></table>';
 
   if(diff < 0){
     // 可用秒数减去移动总时长与开场结束，再按展品数均分（统一为秒，勿与单件秒数相乘）
     var cutPer = Math.floor((avail - (count>1?(count-1)*move:0) - intro) / count);
     var maxCount = avail - intro >= per && per + move > 0 ? Math.floor((avail - intro + move)/(per + move)) : 0;
-    var countAdvice = maxCount > 0 ? ('②减少讲解展品数至 '+maxCount+' 件；') : (avail <= intro ? '②开场结束已占满可用时间，无法再安排讲解；' : '②剩余时间不足以安排一件展品的讲解；');
-    html += '<div class="tip-box tip-warn">超时 '+fmtTime(Math.abs(diff))+'。建议：①缩短单件讲解至 '+Math.max(cutPer,0)+' 秒；'+countAdvice+'③压缩移动时间。</div>';
+    var countAdvice;
+    if(en){
+      countAdvice = maxCount > 0
+        ? ('② reduce the number of exhibits to '+maxCount+'; ')
+        : (avail <= intro ? '② opening and closing already consume the available time, so no narration can be added; ' : '② the remaining time is not enough for one more exhibit; ');
+      html += '<div class="tip-box tip-warn">Over by '+fmtTime(Math.abs(diff),en)+'. Suggestions: ① shorten each narration to '+Math.max(cutPer,0)+' s; '+countAdvice+'③ compress walking time.</div>';
+    } else {
+      countAdvice = maxCount > 0 ? ('②减少讲解展品数至 '+maxCount+' 件；') : (avail <= intro ? '②开场结束已占满可用时间，无法再安排讲解；' : '②剩余时间不足以安排一件展品的讲解；');
+      html += '<div class="tip-box tip-warn">超时 '+fmtTime(Math.abs(diff))+'。建议：①缩短单件讲解至 '+Math.max(cutPer,0)+' 秒；'+countAdvice+'③压缩移动时间。</div>';
+    }
   }else{
-    html += '<div class="tip-box tip-success">时间匹配，剩余 '+fmtTime(diff)+' 可用于互动或缓冲。</div>';
+    html += en
+      ? '<div class="tip-box tip-success">Schedule fits; '+fmtTime(diff,en)+' remains for interaction or buffer.</div>'
+      : '<div class="tip-box tip-success">时间匹配，剩余 '+fmtTime(diff)+' 可用于互动或缓冲。</div>';
   }
 
   const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('resultQuick').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('resultQuick').innerHTML=__h0;
@@ -322,6 +349,7 @@ var exhibits = [
 ];
 
 function buildExhibitRow(e, idx){
+  if(!e) e = {name:'', sec:0};
   var div = document.createElement('div');
   div.className = 'exhibit-row';
   const __h1='<span class="row-idx">'+(idx+1)+'</span>' +
@@ -363,16 +391,27 @@ function collectExhibits(){
 }
 
 function calcDetail(){
+  var en = (typeof TBKit!=='undefined' && TBKit.util && TBKit.util.isEn());
   var list = collectExhibits();
+  if(!list.length) return;
+  var rawAvail2 = document.getElementById('available2').value.trim();
+  var avail = Number(rawAvail2) * 60;
+  if(rawAvail2 === '' || !isFinite(avail) || avail <= 0){
+    document.getElementById('resultDetail').innerHTML='<div class="tip-box tip-error">'+(en?'Available time must be greater than 0 minutes.':'可用时间需大于 0 分钟，无法排程。')+'</div>';
+    return;
+  }
+  if(list.some(function(e){ return !Number.isInteger(e.sec) || e.sec < 0; })){
+    document.getElementById('resultDetail').innerHTML='<div class="tip-box tip-error">'+(en?'Each exhibit duration must be a non-negative integer number of seconds.':'每件展品讲解时长需为不小于 0 的整数秒。')+'</div>';
+    return;
+  }
   var total = list.reduce(function(s,e){return s+e.sec;},0);
-  var avail = (parseFloat(document.getElementById('available2').value) || 0) * 60;
   var diff = avail - total;
 
   var html = '<div class="summary-grid">';
   html += card('展品数', list.length + ' 件');
   html += card('讲解总时长', fmtTime(total));
   html += card('可用时间', fmtTime(avail));
-  html += card('时间差', (diff>=0?'+':'') + fmtTime(Math.abs(diff)));
+  html += card('时间差', (diff>=0?'+':'−') + fmtTime(Math.abs(diff)));
   html += '</div>';
 
   html += '<table style="margin-top:12px;"><thead><tr><th>序号</th><th>展品</th><th>时长(秒)</th><th>累计</th></tr></thead><tbody>';

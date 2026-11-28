@@ -114,7 +114,7 @@
     <h2 data-zh="🧮 燈具光束角計算">Stage Beam Angle Calculator</h2>
     <div class="formula-box">
       <div class="formula-title">📐 計算公式</div>
-      <div class="formula-eq">照射面半徑 = 距離 × tan(光束角÷2 × π÷180)（半形先化弧度），直徑 = 2×半徑，面積 = π×半徑²；中心照度(lux) = 發光強度(cd) ÷ 距離²，英尺燭光 fc = lux ÷ 10（頁面近似換算）；覆蓋比例 = min(100, 光束角÷360×100%)。校驗：光束角須在 0–180° 區間且距離 &gt;0，否則提示「光束角需在 0-180° 之間，距離需大於 0」。判據：&lt;15° 窄光束聚光、15–30° 中等光束、30–60° 寬光束泛光、≥60° 超寬光束；發光強度 &gt;0 才顯示照度。</div>
+      <div class="formula-eq">照射面半徑 = 距離 × tan(光束角÷2 × π÷180)（半形先化弧度），直徑 = 2×半徑，面積 = π×半徑²；中心照度(lux) = 發光強度(cd) ÷ 距離²；英尺燭光 fc = lux ÷ 10.7639（1 fc = 10.7639 lux）。不輸出“覆蓋比例”：光束角佔 360° 的角度比例與照射面積/立體角佔比無關。校驗：光束角須在 0–180° 區間且距離 &gt;0，否則提示「光束角需在 0-180° 之間，距離需大於 0」。判據：&lt;15° 窄光束聚光、15–30° 中等光束、30–60° 寬光束泛光、≥60° 超寬光束；發光強度 &gt;0 才顯示照度。</div>
     </div>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="根據投射距離和光束角計算照射面直徑與面積">Beam Angle</p>
 
@@ -135,7 +135,7 @@
 
     <div class="toolbar">
       <div id="beam_anglePresets"></div><button type="button" class="btn primary" onclick="calc()">計算</button><button class="btn" type="button" onclick="__beam_angleExport()">匯出明細 CSV</button>
-      <button type="button" class="btn" onclick="copyResult()">複製結果</button>
+      <button type="button" class="btn" id="copyBeamBtn" onclick="copyResult()">複製結果</button>
     </div>
 
     <div class="result-box" id="result"></div> <div id="beam_angleTable"></div> <div id="beam_angleDiff"></div> <div id="beam_angleChart"></div> <div id="beam_angleHist"></div>
@@ -174,7 +174,7 @@
 <li>選購或更換燈具前，對比聚光（5–15°）與泛光（30–60°）的光束角，匹配面光、側光或天幕的不同鋪光需求。</li>
 <li>已知中心光強（cd）與距離，用平方反比定律估算中心照度（lux），校核舞臺關鍵位置的亮度是否達標。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">算例：25° 光束投射 10m</div><div class="dd-ex-body">取光束角 25°、投射距離 10m、中心光強 50000 cd。半形 12.5°，光斑半徑 = 10 × tan(12.5°) ≈ 2.22 m，直徑 ≈ 4.43 m，照射面積 ≈ 15.44 m²；中心照度 = 50000 / 10² = 500.0 lux（約 50.0 fc）。25° 屬中等光束（15–30°），覆蓋比例約 7%（以 360° 為基準）。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例：25° 光束投射 10m</div><div class="dd-ex-body">取光束角 25°、投射距離 10m、中心光強 50000 cd。半形 12.5°，光斑半徑 = 10 × tan(12.5°) ≈ 2.22 m，直徑 ≈ 4.43 m，垂直光軸截面面積 ≈ 15.44 m²；中心照度 = 50000 / 10² = 500.0 lux（500 ÷ 10.7639 ≈ 46.5 fc）。25° 屬中等光束（15–30°）；不把“角度÷360”當作覆蓋比例。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
 <dt>光束角越小照度一定越高嗎？</dt><dd>不一定。光束角小則光斑集中、單位面積照度更高，但覆蓋面積變小；總光通量不變時，窄光束更亮更聚，寬光束更均勻更泛。</dd>
@@ -221,26 +221,21 @@
 </div>
 
 <script>
+var lastBeam=null;
+function beamSetInvalid(flag){var b=document.getElementById('copyBeamBtn');if(b)b.disabled=!!flag;}
+function strictNum(id){var raw=String(document.getElementById(id).value||'').trim();if(raw==='')return null;if(!/^[+-]?(\d+(?:\.\d+)?|\.\d+)$/.test(raw))return NaN;return Number(raw);}
 function calc() {
-// NUMCLR：全部输入留空时不得输出 0/0.00 的假结果
-var __numReq=['beamAngle','distance','intensity'];
-if(__numReq.every(function(k){var e=document.getElementById(k);return !e||String(e.value).trim()==='';})){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 请填写必要的输入参数后再计算</p>';return;}
-
-  var angle = parseFloat(document.getElementById('beamAngle').value) || 0;
-  var dist = parseFloat(document.getElementById('distance').value) || 0;
-  var cd = parseFloat(document.getElementById('intensity').value) || 0;
-
-  if (angle <= 0 || angle >= 180 || dist <= 0) {
-    ToolBox.setResult('result', '<p style="color:var(--danger);">光束角需在 0-180° 之间，距离需大于 0</p>');
-    return;
-  }
+  var angle=strictNum('beamAngle'),dist=strictNum('distance'),cd=strictNum('intensity');
+  if(angle===null||dist===null){lastBeam=null;beamSetInvalid(true);ToolBox.setResult('result','<p style="color:var(--danger)">⚠ 请填写光束角与投射距离；留空不会按 0 计算。</p>');return;}
+  if(!isFinite(angle)||angle<=0||angle>=180||!isFinite(dist)||dist<=0){lastBeam=null;beamSetInvalid(true);ToolBox.setResult('result','<p style="color:var(--danger);">光束角需在 0-180° 之间，距离需大于 0</p>');return;}
+  if(cd!==null&&(!isFinite(cd)||cd<0)){lastBeam=null;beamSetInvalid(true);ToolBox.setResult('result','<p style="color:var(--danger);">发光强度须为非负数值，或留空不计算照度。</p>');return;}
+  cd=cd===null?0:cd;
 
   var halfAngle = angle / 2;
   var radius = dist * Math.tan(halfAngle * Math.PI / 180);
   var diameter = radius * 2;
   var area = Math.PI * radius * radius;
   var illuminance = cd / (dist * dist);
-  var coveragePct = Math.min(100, (angle / 360 * 100));
 
   var grade = '';
   var gradeClass = '';
@@ -254,19 +249,20 @@ if(__numReq.every(function(k){var e=document.getElementById(k);return !e||String
   html += '<p>照射面积：<strong>' + area.toFixed(2) + ' m²</strong></p>';
   if (cd > 0) {
     html += '<p>中心照度：<strong>' + illuminance.toFixed(1) + ' lux</strong></p>';
-    html += '<p>中心照度：<strong>' + (illuminance / 10).toFixed(1) + ' fc</strong>（英尺烛光）</p>';
+    html += '<p>中心照度：<strong>' + (illuminance / 10.7639).toFixed(1) + ' fc</strong>（1 fc = 10.7639 lux）</p>';
   }
   html += '<p>光束类型：<span class="grade-tag ' + gradeClass + '">' + grade + '</span></p>';
-  html += '<p>覆盖比例：<strong>' + coveragePct.toFixed(0) + '%</strong>（360°为基准）</p>';
+  html += '<p style="font-size:12px;color:var(--text-muted);">以上照射面为垂直于光轴的圆形截面；灯具斜射水平舞台时，舞台光斑是椭圆投影，请用灯位页估算。</p>';
+  lastBeam={angle:angle,dist:dist,cd:cd,diameter:diameter,area:area,illuminance:cd>0?illuminance:null};
+  beamSetInvalid(false);
   const __g1=html;ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
 }
 
 function copyResult() {
-  var angle = parseFloat(document.getElementById('beamAngle').value) || 0;
-  var dist = parseFloat(document.getElementById('distance').value) || 0;
-  var radius = dist * Math.tan(angle / 2 * Math.PI / 180);
-  var diameter = radius * 2;
-  var text = '光束角: ' + angle + '°, 距离: ' + dist + 'm, 照射直径: ' + diameter.toFixed(2) + 'm';
+  if(!lastBeam){ToolBox.showToast('当前没有有效计算结果，无法复制','warning');return;}
+  var text='光束角: '+lastBeam.angle+'°, 距离: '+lastBeam.dist+'m, 垂直光轴截面直径: '+lastBeam.diameter.toFixed(2)+'m, 面积: '+lastBeam.area.toFixed(2)+'m²';
+  if(lastBeam.illuminance!==null) text+='\n中心照度: '+lastBeam.illuminance.toFixed(1)+' lux（'+(lastBeam.illuminance/10.7639).toFixed(1)+' fc）';
+  text+='\n局限: 该圆为垂直光轴截面，斜射舞台的实际光斑为椭圆投影，须另算。';
   ToolBox.copyText(text, i18nText('msg150'));
 }
 

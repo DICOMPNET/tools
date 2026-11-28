@@ -16,9 +16,16 @@
   if (!lists.length) return;
 
   var cache = {};
+  // 子路径部署适配：预览站 /tools/ 下，绝对路径 JSON 需补 /tools 前缀
+  function assetUrl(url) {
+    try {
+      if (window.I18n && typeof window.I18n.assetUrl === 'function') return window.I18n.assetUrl(url);
+    } catch (e) {}
+    return url;
+  }
   function load(ind) {
     if (cache[ind]) return cache[ind];
-    cache[ind] = fetch('/json/industry-' + ind + '.json', { credentials: 'same-origin' })
+    cache[ind] = fetch(assetUrl('/json/industry-' + ind + '.json'), { credentials: 'same-origin' })
       .then(function (r) { return r.ok ? r.json() : []; })
       .catch(function () { return []; });
     return cache[ind];

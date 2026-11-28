@@ -113,7 +113,7 @@ label{margin-top:10px;}
 <div class="formula-box">
   <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">中位數（本頁程式碼口徑，資料按逗號/空白/分號分隔）：先升序排序——n 為奇數取第 (n+1)÷2 項；n 為偶數取第 n÷2 項與第 n÷2+1 項的平均值。校驗：資料框為空即提示請輸入資料，無法解析的項按無效值過濾不計入 n。判據：無固定分級，輸出含原始序列、排序展示與分步說明並高亮中位數位置。</div>
   <div class="formula-desc">中位數 = 升序排列後位於中間的數：n 為奇數取第 (n+1)/2 個，n 為偶數取中間兩數的算術平均；與均值不同，它不受極端值拉動。</div>
-  <div class="formula-desc">中位數按 1e-10 精度顯示；絕對值小於 1e-12 的浮點殘差按 0 顯示（該殘差屬數值噪聲，不代表真實小量）。</div>
+  <div class="formula-desc">結果最多保留 3 位小數；小於 0.001 的非零值保留 6 位有效數字，絕對值小於 1e-6 用科學計數法。偶數樣本用兩值各減半再相加，避免中間和溢位。</div>
 </div>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="輸入用逗號或空格分隔的一組數字，自動排序後取中位數（偶數個時取中間兩個數的平均值），不受極端值干擾，適合成績、薪資、房價等偏態資料的集中趨勢分析。">Sort a list of numbers and return the median, resistant to outliers, for skewed data such as scores, salaries and house prices.</p>
 
@@ -193,22 +193,47 @@ label{margin-top:10px;}
 <!-- /注意事項區塊 -->
 </div>
 <script>
-function fmt(x){ if(!isFinite(x)) return '未定义'; if(Math.abs(x)<1e-12) return '0'; return (Math.round(x*1e10)/1e10).toLocaleString(); }
+function fmt(x){
+  if(!isFinite(x)) return '未定义';
+  if(x===0) return '0';
+  var ax=Math.abs(x);
+  if(ax<1e-6||ax>=1e15) return x.toExponential(6);
+  if(Number(x.toFixed(3))===0) return x.toLocaleString(undefined,{maximumSignificantDigits:6});
+  return x.toLocaleString(undefined,{maximumFractionDigits:3});
+}
+function __unsafeIntToken(t){
+  var lit=/^([+-]?)(\d+)(?:\.(\d+))?(?:[eE]([+-]?\d+))?$/.exec(String(t).trim());
+  if(!lit) return false;
+  var v=Number(t);
+  if(!isFinite(v)) return true;
+  var digits=(lit[2]+(lit[3]||'')).replace(/^0+/,'');
+  if(digits==='') return false; // 全零
+  if(v===0) return true; // 下溢成 0
+  var sig=digits.replace(/0+$/,'');
+  if(Math.abs(v)>Number.MAX_SAFE_INTEGER){
+    // 无指数或 e0 的整数字面量必须逐位安全；科学计数形式仅在有效数字较少时视为近似值。
+    if(!lit[4]||Number(lit[4])===0) return true;
+    if(Number.isInteger(v)&&sig.length>15) return true;
+  }
+  return false;
+}
 function parseData(str){
   const tokens=str.split(/[,\s\n;]+/).map(s=>s.trim()).filter(s=>s);
   const bad=tokens.filter(t=>!isFinite(Number(t)));
-  return {data:tokens.filter(t=>isFinite(Number(t))).map(Number),bad:bad};
+  const unsafe=tokens.filter(__unsafeIntToken);
+  return {data:tokens.filter(t=>isFinite(Number(t))).map(Number),bad:bad,unsafe:unsafe};
 }
 function calculate(){
   const __parsed=parseData(document.getElementById('data').value);
   if(__parsed.bad.length){ document.getElementById('output').innerHTML='<p style="color:var(--danger);">非法样本：'+__parsed.bad.map(x=>ToolBox.escHtml(x)).join('、')+'。请修正或删除后再计算，非数字项不会被静默丢弃。</p>'; return; }
+  if(__parsed.unsafe.length){ document.getElementById('output').innerHTML='<p style="color:var(--danger);">这些样本按字面量超出安全整数范围（±(2^53−1)）或无法被 Number 精确表示（下溢/整数字面量不一致）：'+__parsed.unsafe.map(x=>ToolBox.escHtml(x)).join('、')+'。请改用可精确表示的值或删除该项。</p>'; return; }
   const data=__parsed.data;
   if(data.length<1){ const __h0='<p style="color:var(--danger);">请输入数据</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h0; return; }
   const n=data.length;
   const sorted=data.slice().sort((a,b)=>a-b);
   let median, midIdx1, midIdx2;
   if(n%2===1){ midIdx1=(n-1)/2; median=sorted[midIdx1]; }
-  else { midIdx1=n/2-1; midIdx2=n/2; median=(sorted[midIdx1]+sorted[midIdx2])/2; }
+  else { midIdx1=n/2-1; midIdx2=n/2; median=isFinite(sorted[midIdx1]+sorted[midIdx2])?(sorted[midIdx1]+sorted[midIdx2])/2:(sorted[midIdx1]/2+sorted[midIdx2]/2); }
   let html='<p><strong>原始数据（n='+n+'）：</strong>'+data.map(fmt).join(', ')+'</p>';
   html+='<p style="margin-top:8px;"><strong>升序排列：</strong></p>';
   // 高亮中位数位置
@@ -227,7 +252,7 @@ function calculate(){
     html+='<div class="step-line">3. 中位数 = 第 '+((n+1)/2)+' 个数 = sorted['+midIdx1+'] = <strong style="color:var(--primary);">'+fmt(median)+'</strong></div>';
   } else {
     html+='<div class="step-line">2. 数据个数为偶数（n = '+n+'），取第 '+(midIdx1+1)+' 和第 '+(midIdx2+1)+' 个数</div>';
-    html+='<div class="step-line">3. 中位数 = ('+fmt(sorted[midIdx1])+' + '+fmt(sorted[midIdx2])+') / 2 = '+fmt(sorted[midIdx1]+sorted[midIdx2])+' / 2 = <strong style="color:var(--primary);">'+fmt(median)+'</strong></div>';
+    html+='<div class="step-line">3. 中位数 = '+(isFinite(sorted[midIdx1]+sorted[midIdx2])?('('+fmt(sorted[midIdx1])+' + '+fmt(sorted[midIdx2])+') / 2 = '+fmt(sorted[midIdx1]+sorted[midIdx2])+' / 2'):(fmt(sorted[midIdx1])+' / 2 + '+fmt(sorted[midIdx2])+' / 2'))+' = <strong style="color:var(--primary);">'+fmt(median)+'</strong></div>';
   }
   const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h1;
 }

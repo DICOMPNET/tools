@@ -24,7 +24,7 @@
 <link rel="canonical" href="https://tools.dicomp.net/zh-tw/guides/visitor-route-guide.html">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"參觀流線規劃 使用指南","description":"基於 Dijkstra 最短路徑演算法，規劃多個展廳之間的最短參觀流線，適用於展館導覽與路線最佳化。典型場景包括：館內動線設計時，以展廳為節點、通道為帶權邊（距離/時長），用 Dijkstra 最短路徑演算法規劃；限流/單向參觀場景下，按通道權重調整路徑，平衡各展廳客流、避開擁堵段。","author":{"@type":"Organization","name":"ToolBox"},"datePublished":"2026-09-16","dateModified":"2026-09-16","mainEntityOfPage":{"@type":"WebPage","@id":"https://tools.dicomp.net/zh-tw/guides/visitor-route-guide.html"},"image":"https://tools.dicomp.net/og-image.png","publisher":{"@type":"Organization","name":"ToolBox","logo":{"@type":"ImageObject","url":"https://tools.dicomp.net/logo-512.png"}},"inLanguage":"zh-TW"}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"ToolBox","item":"https://tools.dicomp.net/zh-tw/"},{"@type":"ListItem","position":2,"name":"使用指南","item":"https://tools.dicomp.net/zh-tw/guides/index.html"},{"@type":"ListItem","position":3,"name":"參觀流線規劃 使用指南","item":"https://tools.dicomp.net/zh-tw/guides/visitor-route-guide.html"}]}</script>
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"為什麼有時繞路反而更短？","acceptedAnswer":{"@type":"Answer","text":"Dijkstra 按邊的權重（通道距離）求全域性最短，並非直線近就快；經中轉節點可能累計權重更小（如 A→B→C=50m < 直連 80m）。規劃以演算法結果為準，憑直覺易誤判。"}},{"@type":"Question","name":"權重除了距離還能用什麼？","acceptedAnswer":{"@type":"Answer","text":"可把邊權設為通行時間、擁擠度或能耗，演算法同樣適用；若要考慮「必經重點館」，可設其為中間節點分段求解再拼接路徑，得到帶約束的最短動線。"}}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"為什麼有時繞路反而更短？","acceptedAnswer":{"@type":"Answer","text":"Dijkstra 按邊的權重（通道距離）求全域性最短，並非直線近就快；經中轉節點可能累計權重更小（如 A→B→C=50m < 直連 80m）。規劃以演算法結果為準，憑直覺易誤判。"}},{"@type":"Question","name":"通道權重可以按哪些量填寫？","acceptedAnswer":{"@type":"Answer","text":"本工具的通道權重按距離（米）填寫，Dijkstra 演算法本身也適用於時間或能耗等其它加權值，但本頁輸入口徑是距離。「必經重點館」可直接填入「必看節點」，工具會按輸入順序分段求最短並拼接，無需手工拆分。"}},{"@type":"Question","name":"通道距離留空或填負數會怎樣？","acceptedAnswer":{"@type":"Answer","text":"該通道會被排除並在結果上方列出，不再把空值當成 0、也不再把負數取絕對值。未知通道若按 0 參與計算，會被誤選為最短路徑，因此必須先補測或刪除該通道；距離為 0 的已知同址通道才可明確填 0。"}}]}</script>
 <style>
 :root{--primary:#FF6B35;--text:#1F2937;--muted:#6B7280;--border:#E5E7EB;--bg:#FFFAF7;}
 *{box-sizing:border-box;}
@@ -73,15 +73,23 @@ li{margin:8px 0;}
 <nav class="breadcrumb" aria-label="麵包屑導航"><a href="https://tools.dicomp.net/">ToolBox</a> / <a href="https://tools.dicomp.net/guides/index.html">使用指南</a> / <span>參觀流線規劃 使用指南</span></nav>
 <main>
 <h1>參觀流線規劃 使用指南</h1>
-<p class="lead">基於 Dijkstra 最短路徑演算法，規劃多個展廳之間的最短參觀流線，適用於展館導覽與路線最佳化。</p>
+<p class="lead">以展廳為節點、通道距離為邊權，用 Dijkstra 演算法規劃入口到出口的最短參觀流線，並支援按順序串聯必看節點；空值、非數值與負距離會被排除並提示，不會靜默當成 0。</p>
 <h2>功能說明</h2>
-<p>基於 Dijkstra 最短路徑演算法，規劃多個展廳之間的最短參觀流線，適用於展館導覽與路線最佳化。</p>
+<p>頁面把當前展廳列表建成無向圖，每條通道的距離作為非負權重。起點、必看節點與終點按輸入順序分段求最短路徑後拼接，總距離為各段之和。端點已失效的通道、距離為空或為負數的通道都不會進入圖，並在結果上方列出原因；這樣未知通道不會因為權重 0 而被誤選為最短路徑。</p>
 <h2>典型使用場景</h2>
-<ul><li>館內動線設計時，以展廳為節點、通道為帶權邊（距離/時長），用 Dijkstra 最短路徑演算法規劃從入口到出口的最優參觀順序，減少折返。</li><li>限流/單向參觀場景下，按通道權重調整路徑，平衡各展廳客流、避開擁堵段。</li><li>多目標參觀（只去重點館）時，設定起終點與必看節點，快速得到最短串聯路徑與總距離。</li></ul>
+<ul><li>設計常設展動線：入口→青銅館→陶瓷館→書畫館→玉器館→出口，比較不同串聯順序的總步行距離。</li><li>限流時把某段通道距離調大，觀察路線是否繞開該區域。</li><li>只去重點館時，把重點館填入“必看節點”，按順序分段計算。</li></ul>
+<h2>操作步驟</h2>
+<ol><li>確認展廳列表完整，修改名稱後舊通道端點會標紅。</li><li>逐條填寫通道兩端與距離（米）；已知同址通道可明確填 0，未知距離必須留待補測而不是填 0。</li><li>選擇起點、終點，必要時填寫逗號分隔的必看節點。</li><li>點選“規劃最短流線”，檢視路徑、分段距離與總距離；有無效通道時先按提示修正。</li></ol>
 <h2>算例參考</h2>
-<ul><li><strong>最短動線規劃示例</strong>：設展廳 A（入口）→B 通道 20 m、B→C 30 m、A→C 直連 80 m。從 A 到 C，Dijkstra 比較 A→C 直連 80 m 與 A→B→C 累計 20+30=50 m，得出最短路徑 A→B→C、總距離 50 m（優於直連 80 m）。同理可編排「入口→青銅館→陶瓷館→書畫館→玉器館→出口」的全程最短動線。</li></ul>
+<ul><li>A（入口）→B 20 m、B→C 30 m、A→C 直連 80 m：A→B→C 合計 50 m，短於直連 80 m。</li><li>若 B→C 距離留空，該邊被排除；此時只能走 A→C 80 m，並在結果上方提示“距離為空”。</li><li>若某條通道填 −10 m，該邊被拒絕，不再取絕對值 10 m 參與計算。</li></ul>
 <h2>注意事項</h2>
-<p>本工具純前端執行，輸入內容不上傳伺服器；結果為按上述口徑得到的<strong>理論估算值</strong>。實際應用受裝置引數、測量條件與當地規範影響，請以裝置銘牌、檢測報告與現行標準為準，重大決策建議諮詢專業人士。</p>
+<p>Dijkstra 只適用於非負權重，因此負距離必須修正而不是取絕對值。距離為 0 只應出現在確實同址的通道；未知通道按 0 計算會製造一條“免費捷徑”。端點名稱含 HTML 字元時，頁面統一轉義後再顯示，不會改變提示結構。路線最佳化只看距離，不自動考慮客流、單向限流或無障礙條件。</p>
+<dl class="faq">
+<dt>通道距離留空會怎樣？</dt><dd>該通道被排除並在結果上方提示，不會當成 0 參與最短路徑；請補測或刪除該通道。</dt>
+<dt>負距離為什麼不再自動取絕對值？</dt><dd>負權會破壞 Dijkstra 的前提，也可能造成前驅成環；工具直接拒絕並提示修正，避免給出錯誤路線。</dt>
+<dt>為什麼有時繞路反而更短？</dt><dd>演算法按累計權重求全域性最短，直線近不代表總距離小；經中轉節點可能累計更少。</dt>
+<dt>必看節點如何串聯？</dt><dd>按輸入順序逐段求最短再拼接，不會自動重排順序；如需最佳化順序，請調整輸入次序後比較總距離。</dt>
+</dl>
 <div class="related">
 <h3>相關工具</h3>
 <a class="tool-chip" href="https://tools.dicomp.net/tools/museum/audio-guide-timer.html">導覽時長匹配</a>

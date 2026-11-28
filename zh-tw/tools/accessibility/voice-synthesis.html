@@ -138,7 +138,8 @@
       <div class="controls">
         <div class="ctrl">
           <label for="voiceSel">語音引擎</label>
-          <select id="voiceSel"></select>
+          <select id="voiceSel" onchange="markVoicePicked()"></select>
+          <div id="voiceNotice" style="display:none;margin-top:6px;font-size:12px;line-height:1.6;"></div>
         </div>
         <div class="ctrl">
           <label for="rate">語速（<span id="rateVal">1.0</span>）</label>
@@ -226,12 +227,14 @@
 <li>視障輔助閱讀：貼上長文，選中文語音（zh），點選朗讀，瀏覽器本地合成語音逐字播報，配合讀屏軟體實現無障礙閱讀，文本不上傳伺服器。</li>
 <li>中英文切換：語言篩選切到英文，選擇 en 語音，朗讀 “Hello, how are you today?”，語速/音調可調（0.5~2.0），適配不同聽力偏好。</li>
 <li>公共語音提示：用預製“請注意安全，慢行通過。”等提示語，調音量/語速生成候車廳、走廊廣播稿，迴圈播放或匯出。</li>
+<li>無匹配語音：語言篩選選“中文”但系統沒有 zh 語音時，列表顯示“沒有匹配的中文（zh）語音”並停用選擇，不再靜默回退為全部語音；此時可把篩選改為“全部”後主動選擇，或安裝對應系統語音包。</li>
 </ul>
 <div class="dd-example"><div class="dd-ex-title">算例：預設文本朗讀</div><div class="dd-ex-body">預設文本“歡迎使用語音合成工具，在這裡輸入文字即可朗讀。”（含標點共 23 字），選中文語音、語速 1.0、音調 1.0、音量 1.0，點選朗讀後狀態顯示“朗讀中… 第 N 字”並按 onboundary 即時更新字元進度；朗讀完顯示“朗讀完成”。語音由瀏覽器內建引擎本地合成，無需聯網。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
 <dt>語音合成需要聯網嗎？</dt><dd>不需要。本工具呼叫瀏覽器內建的 Web Speech API（speechSynthesis）在本地合成語音，文字不上傳伺服器；不同瀏覽器/系統可用的聲音列表不同，以本機安裝的語言包為準。</dd>
 <dt>為什麼聽不到聲音？</dt><dd>部分瀏覽器需在使用者手動點選“朗讀”後才會發聲（如 iOS Safari 的安全策略）；若頁面提示“當前瀏覽器不支援 Web Speech API”，請改用 Chrome / Edge / Safari 最新版。</dd>
+<dt>切換語言篩選後，原來的語音為什麼被清空？</dt><dd>重新整理語音列表時，工具會優先保留仍然存在的當前語音；如果當前語音不屬於新篩選的語言，選擇會被清空，並在列表下方明確提示“原選擇在當前篩選下不可用”，不會自動拿一個其他語言的語音頂替。首次載入且尚未手動選擇時，才預設優先中文語音。</dd>
 </dl>
 </div>
 </section>
@@ -293,6 +296,24 @@ function checkSupport(){
   if(!supported){ document.getElementById('supportBox').style.display = ''; document.getElementById('playBtn').disabled = true; }
 }
 
+var voicePicked = false;
+function markVoicePicked(){ voicePicked = true; }
+
+function setVoiceNotice(text, kind){
+  var el = document.getElementById('voiceNotice');
+  if(!el) return;
+  if(!text){ el.style.display = 'none'; el.textContent = ''; el.className = ''; return; }
+  el.style.display = '';
+  el.className = 'tip-box ' + (kind || 'tip-info');
+  el.textContent = text;
+}
+
+function filterLabel(filter){
+  if(filter === 'zh') return '中文（zh）';
+  if(filter === 'en') return '英文（en）';
+  return '所选语言';
+}
+
 function loadVoices(){
   if(!supported) return;
   voices = speechSynthesis.getVoices();
@@ -301,22 +322,47 @@ function loadVoices(){
     if(!filter) return true;
     return v.lang.toLowerCase().indexOf(filter) === 0;
   });
-  if(filtered.length === 0) filtered = voices;
 
   var sel = document.getElementById('voiceSel');
   var cur = sel.value;
-  const __h0='';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){sel.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}sel.innerHTML=__h0;
-  filtered.forEach(function(v, i){
+  sel.innerHTML = '';
+  if(filtered.length === 0){
+    var opt0 = document.createElement('option');
+    opt0.value = '';
+    opt0.textContent = filter ? ('没有匹配的' + filterLabel(filter) + '语音') : '浏览器未上报可用语音';
+    sel.appendChild(opt0);
+    sel.disabled = true;
+    setVoiceNotice(filter
+      ? ('当前筛选为' + filterLabel(filter) + '，但浏览器没有匹配语音。列表不再静默回退为全部语音：请安装/启用对应系统语音包，或把“语言筛选”改为“全部”后主动选择可用声音。')
+      : '浏览器尚未上报可用语音。请确认系统已安装语音包，并在语音列表异步加载完成后重试。', 'tip-warn');
+    return;
+  }
+
+  sel.disabled = false;
+  filtered.forEach(function(v){
     var opt = document.createElement('option');
     opt.value = v.name;
     opt.textContent = v.name + '（' + v.lang + '）';
     sel.appendChild(opt);
   });
-  // 默认选中文声音
+
+  var kept = cur && filtered.some(function(v){ return v.name === cur; });
+  if(kept){
+    sel.value = cur;
+    setVoiceNotice('语音列表已刷新，已保留当前选择：' + cur + '。', 'tip-info');
+    return;
+  }
+  if(cur){
+    sel.value = '';
+    setVoiceNotice('原选择「' + cur + '」在' + (filter ? filterLabel(filter) + '筛选下' : '当前列表') + '已不可用，已清空；请重新选择，或切换语言筛选。', 'tip-warn');
+    return;
+  }
+  // 首次加载/用户尚未选择：默认优先中文，否则取第一条
   var zh = filtered.find(function(v){ return v.lang.toLowerCase().indexOf('zh') === 0; });
-  if(zh) sel.value = zh.name;
-  else if(cur) sel.value = cur;
+  sel.value = zh ? zh.name : filtered[0].name;
+  setVoiceNotice('已载入 ' + filtered.length + ' 个可用语音，默认选择：' + sel.value + '；可手动更换。', 'tip-info');
 }
+
 
 function updateCharCount(){
   var t = document.getElementById('text').value;
@@ -608,7 +654,7 @@ document.addEventListener('DOMContentLoaded',function(){
 
 
 
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"語音合成需要聯網嗎？","acceptedAnswer":{"@type":"Answer","text":"不需要。本工具呼叫瀏覽器內建的 Web Speech API（speechSynthesis）在本地合成語音，文字不上傳伺服器；不同瀏覽器/系統可用的聲音列表不同，以本機安裝的語言包為準。"}},{"@type":"Question","name":"為什麼聽不到聲音？","acceptedAnswer":{"@type":"Answer","text":"部分瀏覽器需在使用者手動點選“朗讀”後才會發聲（如 iOS Safari 的安全策略）；若頁面提示“當前瀏覽器不支援 Web Speech API”，請改用 Chrome / Edge / Safari 最新版。"}}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"語音合成需要聯網嗎？","acceptedAnswer":{"@type":"Answer","text":"不需要。本工具呼叫瀏覽器內建的 Web Speech API（speechSynthesis）在本地合成語音，文字不上傳伺服器；不同瀏覽器/系統可用的聲音列表不同，以本機安裝的語言包為準。"}},{"@type":"Question","name":"為什麼聽不到聲音？","acceptedAnswer":{"@type":"Answer","text":"部分瀏覽器需在使用者手動點選“朗讀”後才會發聲（如 iOS Safari 的安全策略）；若頁面提示“當前瀏覽器不支援 Web Speech API”，請改用 Chrome / Edge / Safari 最新版。"}},{"@type":"Question","name":"切換語言篩選後，原來的語音為什麼被清空？","acceptedAnswer":{"@type":"Answer","text":"重新整理語音列表時，工具會優先保留仍然存在的當前語音；如果當前語音不屬於新篩選的語言，選擇會被清空，並在列表下方明確提示“原選擇在當前篩選下不可用”，不會自動拿一個其他語言的語音頂替。首次載入且尚未手動選擇時，才預設優先中文語音。"}}]}</script>
 <script>
 (function(){try{
   var NS="tools/accessibility/voice-synthesis.html";

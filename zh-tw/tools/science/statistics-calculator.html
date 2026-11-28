@@ -123,7 +123,7 @@ label{margin-top:10px;}
       <div class="formula-title">📐 計算公式 / 原理</div>
       <div class="formula-eq">描述統計（本頁程式碼口徑，資料按逗號/空格/換行/分號解析）：x̄=Σx÷n；方差=Σ(x−x̄)²÷(n−1)（樣本）或 ÷n（總體）；s=√方差；SE=s÷√n；Q1/Q3 按 (n−1)p 線性插值、IQR=Q3−Q1；偏度、峰度按樣本/總體兩套公式給出（峰度為超額峰度）。校驗：無有效資料提示「請輸入資料」，樣本型別 n&lt;2 提示「樣本方差需要至少 2 個數據」。判據：偏度&gt;0 正偏（右偏）、&lt;0 負偏（左偏）；峰度&gt;0 尖峰、&lt;0 扁峰；直方圖自動組數按 Sturges ⌈log₂n+1⌉ 並夾取 [1,50]。</div>
       <div class="formula-desc">描述統計：均值、樣本方差與標準差、極差、中位數與四分位數；樣本方差用 n−1（貝塞爾校正）以保證無偏估計，總體方差用 N。</div>
-      <div class="formula-desc">統計量按 1e-10 精度顯示；絕對值小於 1e-12 的浮點殘差按 0 顯示（該殘差屬數值噪聲，不代表真實小量）。</div>
+      <div class="formula-desc">統計量最多保留 3 位小數；小於 0.001 的非零值保留 6 位有效數字，絕對值小於 1e-6 用科學計數法。</div>
     </div>
 
     <label for="data">輸入資料（逗號/空格/換行分隔）</label>
@@ -225,8 +225,11 @@ label{margin-top:10px;}
 <script>
 function fmt(x){
   if(!isFinite(x)) return '未定义';
-  if(Math.abs(x)<1e-12) return '0';
-  return (Math.round(x*1e10)/1e10).toLocaleString();
+  if(x===0) return '0';
+  var ax=Math.abs(x);
+  if(ax<1e-6||ax>=1e15) return x.toExponential(6);
+  if(Number(x.toFixed(3))===0) return x.toLocaleString(undefined,{maximumSignificantDigits:6});
+  return x.toLocaleString(undefined,{maximumFractionDigits:3});
 }
 function parseData(str){
   return str.split(/[,\s\n;]+/).map(s=>s.trim()).filter(s=>s).map(s=>parseFloat(s)).filter(n=>!isNaN(n));
@@ -444,7 +447,7 @@ function drawHistogram(hist){
   ctx.textAlign = 'center';
   ctx.fillText(en ? 'Frequency' : '频数', 0, 0);
   window.__tbRedraw=function(){ try{ showHistogram(); }catch(e){} };
-  if(!window.__tbLangBound){window.__tbLangBound=1;window.addEventListener('toolbox:langchange',function(){if(window.__tbRedraw)window.__tbRedraw();});}
+  if(!window.__tbLangBound){window.__tbLangBound=1;window.addEventListener('toolbox:langchange',function(){if(document.getElementById('histCanvas')&&window.__tbRedraw)window.__tbRedraw();});}
   ctx.restore();
   ctx.textAlign = 'center';
   ctx.fillText(((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Value":"数值"), padL+chartW/2, H-10);
@@ -467,6 +470,7 @@ function showFormulas(){
   const __h7=html;if((typeof __h7==='number'&&!isFinite(__h7))||/Infinity/.test(String(__h7))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h7)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h7;
 }
 function saveHistory(data, type, stats){
+  try{
   const history = (function(){try{return JSON.parse(localStorage.getItem('stats_history')||'[]')}catch(e){try{localStorage.removeItem('stats_history')}catch(_){}return []}})();
   const item = {
     data: data.slice(0,10).join(','),
@@ -484,6 +488,7 @@ function saveHistory(data, type, stats){
   history.unshift(item);
   if(history.length>20) history.pop();
   localStorage.setItem('stats_history', JSON.stringify(history));
+  }catch(e){if(window.ToolBox&&ToolBox.toast)ToolBox.toast('历史未保存（存储不可用或空间不足），本次计算结果不受影响','error');}
 }
 function showHistory(){
   const history = (function(){try{return JSON.parse(localStorage.getItem('stats_history')||'[]')}catch(e){try{localStorage.removeItem('stats_history')}catch(_){}return []}})();
@@ -505,7 +510,7 @@ function showHistory(){
   const __h9=html;if((typeof __h9==='number'&&!isFinite(__h9))||/Infinity/.test(String(__h9))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h9)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h9;
 }
 function clearHistory(){
-  localStorage.removeItem('stats_history');
+  try{localStorage.removeItem('stats_history');}catch(e){}
   showHistory();
 }
 </script><script>

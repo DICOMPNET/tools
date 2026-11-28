@@ -81,7 +81,7 @@
 
 <script src="../../../js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"EOQ 越大越好還是越小越好？","acceptedAnswer":{"@type":"Answer","text":"EOQ 是總成本最低點：訂貨量過大增加持有成本，過小增加訂貨頻次與訂貨成本。EOQ 公式 √(2DS/H) 已平衡兩者，實際還需疊加安全庫存應對波動。"}},{"@type":"Question","name":"再訂貨點 ROP 怎麼用？","acceptedAnswer":{"@type":"Answer","text":"庫存降到 ROP（日均需求×提前期 + 安全庫存）時即觸發訂貨，確保提前期內不斷料。服務水平越高（Z 越大）、需求波動越大，安全庫存與 ROP 越高。"}}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"EOQ 越大越好還是越小越好？","acceptedAnswer":{"@type":"Answer","text":"EOQ 是總成本最低點：訂貨量過大增加持有成本，過小增加訂貨頻次與訂貨成本。EOQ 公式 √(2DS/H) 已平衡兩者，實際還需疊加安全庫存應對波動。"}},{"@type":"Question","name":"再訂貨點 ROP 怎麼用？","acceptedAnswer":{"@type":"Answer","text":"庫存降到 ROP（日均需求×提前期 + 安全庫存）時即觸發訂貨，確保提前期內不斷料。服務水平越高（Z 越大）、需求波動越大，安全庫存與 ROP 越高。"}},{"@type":"Question","name":"為什麼安全庫存和訂貨點要向上取整？","acceptedAnswer":{"@type":"Answer","text":"安全庫存與訂貨點是觸發補貨的底線，向下取整會讓實際持有低於模型要求、增加缺料風險；向上取整更保守。工具預設向上取整，也可選四捨五入，但須知道取整方向帶來的服務水平偏差。"}},{"@type":"Question","name":"平均庫存為什麼有兩個數？","acceptedAnswer":{"@type":"Answer","text":"EOQ/2 只是週期庫存（不含安全庫存）；含安全庫存的總平均庫存 = EOQ/2 + 安全庫存。成本也分“EOQ 最優總成本（不含安全庫存）”和“含安全庫存的年總成本”，兩者不能混用。"}}]}</script>
 <meta property="og:site_name" content="ToolBox">
 <!-- TOOLBOX-HREFLANG -->
 <link rel="alternate" hreflang="zh-CN" href="https://tools.dicomp.net/tools/manufacturing/inventory-calculator.html">
@@ -164,6 +164,13 @@
         <option value="3.09">99.9% (3.09)</option>
       </select>
     </div>
+    <div class="input-row">
+      <label for="roundMode">件數取整方式</label>
+      <select id="roundMode">
+        <option value="ceil" selected>向上取整（安全庫存/訂貨點建議）</option>
+        <option value="round">四捨五入</option>
+      </select>
+    </div>
 
     <div class="toolbar">
       <div id="inventory_calculatorPresets"></div><button type="button" class="btn primary" onclick="calc()">📊 計算庫存</button><button class="btn" type="button" onclick="__inventory_calculatorExport()">匯出明細 CSV</button>
@@ -199,12 +206,15 @@
 <li>採購部門制定補貨策略時，用 EOQ 平衡訂貨成本與持有成本，確定每次最優訂貨量。</li>
 <li>面對需求波動與不確定提前期，用安全庫存與再訂貨點 ROP 設定補貨觸發線，防止缺料停線。</li>
 <li>年度庫存復盤時，用總庫存成本（訂貨+持有）評估當前策略是否經濟，最佳化訂貨頻率。</li>
+<li>件數為小數時，可按業務單位選擇“向上取整”或“四捨五入”；安全庫存與訂貨點建議向上取整，避免把應持有庫存向下取整。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">EOQ 與安全庫存示例</div><div class="dd-ex-body">某零件年需求 12000 件、單次訂貨成本 50 元、年持有成本 2 元/件、日均需求 33 件、提前期 7 天、日需求<a class="term-link" href="/zh-tw/tools/it/standard-deviation.html">標準差</a> 5、服務水平 95%（Z=1.65）。EOQ = √(2×12000×50÷2) ≈ 775 件；年訂貨 12000÷775 ≈ 15.5 次（週期約 24 天）；平均庫存 ≈ 387 件；安全庫存 = 1.65×5×√7 ≈ 22 件；再訂貨點 ROP = 33×7 + 22 ≈ 253 件；最小總庫存成本 ≈ √(2×12000×50×2) ≈ 1549 元。</div></div>
+<div class="dd-example"><div class="dd-ex-title">EOQ 與安全庫存示例</div><div class="dd-ex-body">某零件年需求 12000 件、單次訂貨成本 50 元、年持有成本 2 元/件、日均需求 33 件、提前期 7 天、日需求<a class="term-link" href="/zh-tw/tools/it/standard-deviation.html">標準差</a> 5、服務水平 95%（Z=1.65）。EOQ = √(2×12000×50÷2) ≈ 775 件；年訂貨 12000÷775 ≈ 15.5 次（週期約 24 天）；週期平均庫存（EOQ/2）≈ 387 件；安全庫存 = 1.65×5×√7 ≈ 21.83 件，向上取整 22 件；再訂貨點 ROP = 33×7 + 21.83 ≈ 252.83 件，向上取整 253 件；含安全庫存總平均庫存 ≈ 387+22=409 件；EOQ 最優總成本（不含安全庫存）≈ √(2×12000×50×2) ≈ 1549 元，含安全庫存年總成本需再按 409 件計持有成本。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
 <dt>EOQ 越大越好還是越小越好？</dt><dd>EOQ 是總成本最低點：訂貨量過大增加持有成本，過小增加訂貨頻次與訂貨成本。EOQ 公式 √(2DS/H) 已平衡兩者，實際還需疊加安全庫存應對波動。</dd>
 <dt>再訂貨點 ROP 怎麼用？</dt><dd>庫存降到 ROP（日均需求×提前期 + 安全庫存）時即觸發訂貨，確保提前期內不斷料。服務水平越高（Z 越大）、需求波動越大，安全庫存與 ROP 越高。</dd>
+<dt>為什麼安全庫存和訂貨點要向上取整？</dt><dd>安全庫存與訂貨點是觸發補貨的底線，向下取整會讓實際持有低於模型要求、增加缺料風險；向上取整更保守。工具預設向上取整，也可選四捨五入，但須知道取整方向帶來的服務水平偏差。</dd>
+<dt>平均庫存為什麼有兩個數？</dt><dd>EOQ/2 只是週期庫存（不含安全庫存）；含安全庫存的總平均庫存 = EOQ/2 + 安全庫存。成本也分“EOQ 最優總成本（不含安全庫存）”和“含安全庫存的年總成本”，兩者不能混用。</dd>
 </dl>
 </div>
 </section>
@@ -328,16 +338,27 @@ const D = +document.getElementById('annualDemand').value || 0;
     ToolBox.setResult("result", '<p style="color:var(--danger)">⚠ 年需求量 D、单次订货成本 S、单件持有成本 H 均须大于 0：EOQ=√(2DS/H) 以 H 为分母，S 为 0 时订货成本与订货次数无意义。</p>');
     return;
   }
+  if (!isFinite(d) || d < 0 || !isFinite(L) || L < 0 || !isFinite(sigma) || sigma < 0) {
+    ToolBox.setResult("result", '<p style="color:var(--danger)">⚠ 平均日需求、交货期与需求标准差须为非负有限数；0 合法，负数会使安全库存/订货点失去意义。请检查对应字段。</p>');
+    return;
+  }
 
   // EOQ = sqrt(2DS/H)
   const EOQ = Math.sqrt(2 * D * S / H);
   const ordersPerYear = D / EOQ;
   const avgInventory = EOQ / 2;
-  const safetyStock = Z * sigma * Math.sqrt(L); // 简单安全库存公式
-  const ROP = d * L + safetyStock;
-  const totalCost = Math.sqrt(2 * D * S * H); // 最小总成本 (订货+持有)
+  const safetyStock = Z * sigma * Math.sqrt(L); // 日需求独立、交期固定的安全库存
+  const ROPRaw = d * L + safetyStock;
+  const roundMode = document.getElementById('roundMode').value;
+  const qRound = function(v){ return roundMode === 'ceil' ? Math.ceil(v) : Math.round(v); };
+  const SSq = qRound(safetyStock);
+  const ROPq = qRound(ROPRaw);
+  const totalAvg = EOQ / 2 + safetyStock;
+  const totalCost = Math.sqrt(2 * D * S * H); // EOQ 最小成本（不含安全库存持有）
   const orderCost = (D / EOQ) * S;
   const holdCost = (EOQ / 2) * H;
+  const holdCostTotal = totalAvg * H;
+  const totalCostTotal = orderCost + holdCostTotal;
   const cycleDays = 365 / ordersPerYear;
 
   const __g3=`
@@ -355,30 +376,44 @@ const D = +document.getElementById('annualDemand').value || 0;
       <p style="font-size:11px;color:var(--text-muted);margin-top:4px;">订货周期约 ${cycleDays.toFixed(0)} 天</p>
     </div>
     <div class="result-block">
-      <div class="result-label">平均库存</div>
+      <div class="result-label">周期平均库存（EOQ/2，不含安全库存）</div>
       <div class="result-value">${Math.round(avgInventory)} 件</div>
     </div>
     <div class="result-block">
-      <div class="result-label">安全库存</div>
-      <div class="result-value">${Math.round(safetyStock)} 件</div>
-      <p style="font-size:11px;color:var(--text-muted);margin-top:4px;">Z=${Z} × ${sigma} × √${L}</p>
+      <div class="result-label">安全库存（${roundMode === 'ceil' ? '向上取整' : '四舍五入'}）</div>
+      <div class="result-value">${SSq} 件</div>
+      <p style="font-size:11px;color:var(--text-muted);margin-top:4px;">Z=${Z} × ${sigma} × √${L} = ${safetyStock.toFixed(2)} 件</p>
     </div>
     <div class="result-block">
-      <div class="result-label">再订货点 (ROP)</div>
-      <div class="result-value">${Math.round(ROP)} 件</div>
-      <p style="font-size:11px;color:var(--text-muted);margin-top:4px;">库存降至该值即订货</p>
+      <div class="result-label">再订货点 (ROP，${roundMode === 'ceil' ? '向上取整' : '四舍五入'})</div>
+      <div class="result-value">${ROPq} 件</div>
+      <p style="font-size:11px;color:var(--text-muted);margin-top:4px;">${d}×${L} + ${SSq} = ${ROPq}；库存降至该值即订货</p>
+    </div>
+    <div class="result-block">
+      <div class="result-label">含安全库存的总平均库存</div>
+      <div class="result-value">${Math.round(totalAvg)} 件</div>
+      <p style="font-size:11px;color:var(--text-muted);margin-top:4px;">周期库存 ${Math.round(avgInventory)} + 安全库存 ${SSq}</p>
     </div>
     <div class="result-block">
       <div class="result-label">年订货成本</div>
       <div class="result-value">¥${Math.round(orderCost).toLocaleString()}</div>
     </div>
     <div class="result-block">
-      <div class="result-label">年持有成本</div>
+      <div class="result-label">年持有成本（仅周期库存）</div>
       <div class="result-value">¥${Math.round(holdCost).toLocaleString()}</div>
     </div>
     <div class="result-block">
-      <div class="result-label">最小总库存成本</div>
+      <div class="result-label">EOQ 最优总成本（不含安全库存）</div>
       <div class="result-value" style="color:var(--primary);">¥${Math.round(totalCost).toLocaleString()}</div>
+      <p style="font-size:11px;color:var(--text-muted);margin-top:4px;">订货 ¥${Math.round(orderCost).toLocaleString()} + 周期持有 ¥${Math.round(holdCost).toLocaleString()}</p>
+    </div>
+    <div class="result-block">
+      <div class="result-label">含安全库存的年总成本</div>
+      <div class="result-value">¥${Math.round(totalCostTotal).toLocaleString()}</div>
+      <p style="font-size:11px;color:var(--text-muted);margin-top:4px;">订货 ¥${Math.round(orderCost).toLocaleString()} + 持有 ¥${Math.round(holdCostTotal).toLocaleString()}（按总平均库存 ${Math.round(totalAvg)} 件）</p>
+    </div>
+    <div style="background:var(--bg-card);padding:10px;border-radius:8px;margin-top:8px;font-size:12px;color:var(--text-secondary);">
+      模型前提：安全库存 = Z×σ×√提前期，假设日需求相互独立、提前期固定、需求近似正态，Z 为单尾服务水平系数；若提前期本身波动，需把交期方差并入 σ_LT。平均库存分“周期库存”和“含安全库存总平均库存”，成本也分 EOQ 口径与含安全库存口径。
     </div>
   `;document.getElementById('result').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
 }

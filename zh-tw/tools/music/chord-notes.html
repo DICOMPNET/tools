@@ -165,7 +165,7 @@
 
 <script src="../../../js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"和絃名裡的數字什麼意思？","acceptedAnswer":{"@type":"Answer","text":"數字指疊加的音程（以根音為 1）：7=屬七（小七度）、maj7=大七度、9/11/13 為延伸音；m 為小三和絃、dim 減、aug 增。"}},{"@type":"Question","name":"怎麼快速寫任意根音和絃？","acceptedAnswer":{"@type":"Answer","text":"記住間隔模板，把根音音名按半音數往後數：如根=A，大三 [0,4,7] → A、A+4(半音)=C、A+7=E → A C E。"}}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"和絃名裡的數字什麼意思？","acceptedAnswer":{"@type":"Answer","text":"數字指疊加的音程（以根音為 1）：7=屬七（小七度）、maj7=大七度、9/11/13 為延伸音；m 為小三和絃、dim 減、aug 增。"}},{"@type":"Question","name":"怎麼快速寫任意根音和絃？","acceptedAnswer":{"@type":"Answer","text":"記住間隔模板，把根音音名按半音數往後數：如根=A，大三 [0,4,7] → A、A+4(半音)=C♯、A+7=E → A C♯ E。"}}]}</script>
 <meta property="og:site_name" content="ToolBox">
 <!-- TOOLBOX-HREFLANG -->
 <link rel="alternate" hreflang="zh-CN" href="https://tools.dicomp.net/tools/music/chord-notes.html">
@@ -307,7 +307,7 @@
     </a>
     <a href="/zh-tw/tools/music/generator-1.html" class="related-tool-card">
       <span class="rt-icon">🎵</span>
-      <span class="rt-info"><span class="rt-name">音階生成器（大調/小調/五聲音階）</span><span class="rt-desc">音階生成器按大調、小調與五聲音階等調式生成對應音名序列並支援試聽，適合樂理學習、即興創作與樂器練習的…</span></span>
+      <span class="rt-info"><span class="rt-name">音階生成器（大調/小調/五聲音階）</span><span class="rt-desc">指定根音、調式與起始八度後生成按音級正確拼寫的音名序列、十二平均律頻率，並支援 Web Audio…</span></span>
     </a>
     <a href="/zh-tw/tools/music/bpm-converter.html" class="related-tool-card">
       <span class="rt-icon">🏎️</span>
@@ -318,8 +318,8 @@
       <span class="rt-info"><span class="rt-name">歌曲速度轉換（BPM微調）</span><span class="rt-desc">輸入原曲BPM與目標BPM，計算速度比例與新時長，給出提速/降速百分比，用於翻唱移調、練琴跟拍等音樂…</span></span>
     </a>
     <a href="/zh-tw/tools/music/audio-converter.html" class="related-tool-card">
-      <span class="rt-icon">🔄</span>
-      <span class="rt-info"><span class="rt-name">音訊轉換</span><span class="rt-desc">對比 WAV/MP3/FLAC 等常見音訊格式特點，輸入取樣率、位深與聲道數計算 PCM 原始檔案大…</span></span>
+      <span class="rt-icon">🧊</span>
+      <span class="rt-info"><span class="rt-name">音訊格式與容量估算</span><span class="rt-desc">對比 WAV/MP3/FLAC 等常見音訊格式特點，輸入取樣率、位深與聲道數計算 PCM 原始檔案大…</span></span>
     </a>
   </div>
 </div>
@@ -383,7 +383,7 @@
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
 <dt>和絃名裡的數字什麼意思？</dt><dd>數字指疊加的音程（以根音為 1）：7=屬七（小七度）、maj7=大七度、9/11/13 為延伸音；m 為小三和絃、dim 減、aug 增。</dd>
-<dt>怎麼快速寫任意根音和絃？</dt><dd>記住間隔模板，把根音音名按半音數往後數：如根=A，大三 [0,4,7] → A、A+4(半音)=C、A+7=E → A C E。</dd>
+<dt>怎麼快速寫任意根音和絃？</dt><dd>記住間隔模板，把根音音名按半音數往後數：如根=A，大三 [0,4,7] → A、A+4(半音)=C♯、A+7=E → A C♯ E。</dd>
 </dl>
 </div>
 </section>
@@ -432,11 +432,44 @@
   /* ===== 常量定义 ===== */
   const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
   const NOTE_ALIASES = { 'Db': 'C#', 'Eb': 'D#', 'Gb': 'F#', 'Ab': 'G#', 'Bb': 'A#', 'Cb': 'B', 'Fb': 'E', 'E#': 'F', 'B#': 'C' };
+  const LETTERS = ['C','D','E','F','G','A','B'];
+  const LETTER_PC = [0,2,4,5,7,9,11];
+  const STEP_BY_SEMITONE = {0:0,1:1,2:1,3:2,4:2,5:3,6:4,7:4,8:4,9:5,10:6,11:6};
+  // 和弦功能对应的音级（字母级数）：同一音高类在不同和弦里可能有不同拼写，
+  // 例如 dim7 的第 4 音必须是七度（Bbb），不能按半音数推成六度（A）。
+  const DEGREES_BY_INTERVALS = {
+    '0,4,7':[0,2,4], '0,3,7':[0,2,4], '0,4,8':[0,2,4], '0,3,6':[0,2,4],
+    '0,4,7,11':[0,2,4,6], '0,4,7,10':[0,2,4,6], '0,3,7,10':[0,2,4,6],
+    '0,3,6,9':[0,2,4,6], '0,3,6,10':[0,2,4,6],
+    '0,2,7':[0,1,4], '0,5,7':[0,3,4], '0,2,4,7':[0,1,2,4],
+    '0,4,7,10,14':[0,2,4,6,1], '0,3,7,10,14':[0,2,4,6,1],
+    '0,4,7,9':[0,2,4,5], '0,3,7,9':[0,2,4,5], '0,7':[0,4]
+  };
+  function spellFromRoot(rootLetter, rootPc, semitone, degreeStep) {
+    var base = ((semitone % 12) + 12) % 12;
+    var step = (typeof degreeStep === 'number') ? degreeStep : STEP_BY_SEMITONE[base];
+    if (step === undefined) step = 0;
+    var li = LETTERS.indexOf(rootLetter);
+    var targetLetter = LETTERS[(li + step) % 7];
+    var targetPc = ((rootPc + base) % 12 + 12) % 12;
+    var natural = LETTER_PC[(li + step) % 7];
+    var diff = targetPc - natural;
+    if (diff > 6) diff -= 12;
+    if (diff < -6) diff += 12;
+    if (diff === 0) return targetLetter;
+    if (diff === 1) return targetLetter + '#';
+    if (diff === 2) return targetLetter + '##';
+    if (diff === -1) return targetLetter + 'b';
+    if (diff === -2) return targetLetter + 'bb';
+    return targetLetter;
+  }
   const DEGREE_NAMES = ['根音', '九音', '二音', '小三', '大三', '纯四', '增四/减五', '纯五', '小六', '大六', '小七', '大七'];
 
   /* 音程名：扩展音按原始半音数映射（>=12 半音为九/十一/十三音），避免 add9/9/m9 的 +2/+14 都误标成「二音」；
      add9 的 +2 约定为「九音」，而挂二和弦(sus2)的 +2 仍标「二音」。 */
   function degreeName(s, type) {
+
+      if ((type === 'dim7' || type === '°7') && (s % 12 === 9)) return '减七';
     var base = ((s % 12) + 12) % 12;
     var oct = Math.floor(s / 12);
     if (oct >= 1) {
@@ -484,6 +517,10 @@
     'm6':       { intervals: [0, 3, 7, 9],     name: '小六和弦' },
     '5':        { intervals: [0, 7],           name: '五度（强力和弦）' }
   };
+
+  Object.keys(CHORD_TYPES).forEach(function(k){
+    CHORD_TYPES[k].degrees = DEGREES_BY_INTERVALS[CHORD_TYPES[k].intervals.join(',')] || null;
+  });
 
   /* 速查表数据 */
   const QUICK_CHORDS = {
@@ -555,20 +592,18 @@
     let accidental = rootMatch[2] || '';
     let root = rootName + accidental;
 
-    /* 统一升号表示 */
-    if (NOTE_ALIASES[root]) root = NOTE_ALIASES[root];
-
     let suffix = input.substring(rootMatch[0].length);
-    let rootIndex = NOTE_NAMES.indexOf(root);
-
-    if (rootIndex === -1) return null;
+    const rootLetter = rootMatch[1].toUpperCase();
+    const accVal = accidental === '#' ? 1 : (accidental === 'b' ? -1 : 0);
+    let rootIndex = ((LETTER_PC[LETTERS.indexOf(rootLetter)] + accVal) % 12 + 12) % 12;
+    if (LETTERS.indexOf(rootLetter) < 0) return null;
 
     /* 尝试匹配和弦类型（优先匹配更长的后缀） */
     const suffixes = Object.keys(CHORD_TYPES).sort((a, b) => b.length - a.length);
     let matched = null;
     for (const s of suffixes) {
       if (suffix === s) {
-        matched = { type: s, intervals: CHORD_TYPES[s].intervals, name: CHORD_TYPES[s].name };
+        matched = { type: s, intervals: CHORD_TYPES[s].intervals, name: CHORD_TYPES[s].name, degrees: CHORD_TYPES[s].degrees };
         break;
       }
     }
@@ -583,7 +618,7 @@
         .replace('dom', '');
       for (const s of suffixes) {
         if (normalized === s) {
-          matched = { type: s, intervals: CHORD_TYPES[s].intervals, name: CHORD_TYPES[s].name };
+          matched = { type: s, intervals: CHORD_TYPES[s].intervals, name: CHORD_TYPES[s].name, degrees: CHORD_TYPES[s].degrees };
           break;
         }
       }
@@ -592,7 +627,7 @@
     if (!matched) {
       if (suffix === '') {
         /* 仅空前缀（如 "C"）默认大三和弦 */
-        matched = { type: '', intervals: [0, 4, 7], name: '大三和弦' };
+        matched = { type: '', intervals: [0, 4, 7], name: '大三和弦', degrees: [0, 2, 4] };
       } else {
         /* 未知后缀不再静默降级为大三和弦，直接返回无结果（FE-N8 修复） */
         return null;
@@ -600,12 +635,14 @@
     }
 
     /* 计算组成音符 */
-    const notes = matched.intervals.map(semitone => {
+    const notes = matched.intervals.map((semitone, noteIdx) => {
       const noteIndex = (rootIndex + semitone) % 12;
       /* 选择合适的八度显示（第4八度附近） */
       const midi = 60 + rootIndex + semitone;
+      const name = spellFromRoot(rootLetter, rootIndex, semitone, matched.degrees ? matched.degrees[noteIdx] : undefined);
       return {
-        name: NOTE_NAMES[noteIndex],
+        name: name,
+        pc: ((rootIndex + semitone) % 12 + 12) % 12,
         semitone: semitone,
         midi: midi,
         freq: midiToFreq(midi)
@@ -614,7 +651,7 @@
 
     return {
       root: root,
-      rootDisplay: rootMatch[1].toUpperCase() + (rootMatch[2] || ''),
+      rootDisplay: rootLetter + (accidental || ''),
       type: matched.type,
       typeName: matched.name,
       intervals: matched.intervals,
@@ -672,7 +709,7 @@
     /* 显示两个八度：C3-B3 和 C4-B4 */
     const highlightedNotes = new Set();
     if (chord) {
-      chord.notes.forEach(function(n) { highlightedNotes.add(n.name); });
+      chord.notes.forEach(function(n) { highlightedNotes.add(n.pc); });
     }
 
     /* 每个白键在八度内的索引 -> 是否有黑键紧跟其后，以及黑键信息 */
@@ -698,7 +735,7 @@
       if (noteName.includes('#')) continue; /* 跳过黑键，稍后单独处理 */
 
       const octave = Math.floor(midi / 12) - 1;
-      const isHighlighted = highlightedNotes.has(noteName) && isNoteInChord(chord, noteName, midi);
+      const isHighlighted = highlightedNotes.has(((midi % 12) + 12) % 12);
 
       html += '<div class="white-key' + (isHighlighted ? ' highlighted' : '') +
         '" data-midi="' + midi + '" onclick="playPianoKey(' + midi + ',this)">' +
@@ -721,7 +758,7 @@
 
       if (bkInfo && whiteKeyEls[idx]) {
         const bMidi = wk.midi + (bkInfo.semitone - whiteIndexInOctave);
-        const isHighlighted = highlightedNotes.has(bkInfo.name) && isNoteInChord(chord, bkInfo.name, bMidi);
+        const isHighlighted = highlightedNotes.has(((bMidi % 12) + 12) % 12);
 
         const bk = document.createElement('div');
         bk.className = 'black-key' + (isHighlighted ? ' highlighted' : '');

@@ -24,7 +24,7 @@
 <link rel="canonical" href="https://tools.dicomp.net/zh-tw/guides/picking-route-guide.html">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"揀貨路徑對比 使用指南","description":"對比 S 型（穿越式）與 U 型（返回式）揀貨路徑的行走距離與耗時，幫助選擇更優揀貨策略。典型場景包括：S 型（穿越式）與 U 型（返回式）定量對比；行走與揀貨耗時拆分：行走耗時=總行走距離÷行走速度；方案落地與複核：工具取總耗時較小者作為推薦路徑。","author":{"@type":"Organization","name":"ToolBox"},"datePublished":"2026-09-16","dateModified":"2026-09-16","mainEntityOfPage":{"@type":"WebPage","@id":"https://tools.dicomp.net/zh-tw/guides/picking-route-guide.html"},"image":"https://tools.dicomp.net/og-image.png","publisher":{"@type":"Organization","name":"ToolBox","logo":{"@type":"ImageObject","url":"https://tools.dicomp.net/logo-512.png"}},"inLanguage":"zh-TW"}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"ToolBox","item":"https://tools.dicomp.net/zh-tw/"},{"@type":"ListItem","position":2,"name":"使用指南","item":"https://tools.dicomp.net/zh-tw/guides/index.html"},{"@type":"ListItem","position":3,"name":"揀貨路徑對比 使用指南","item":"https://tools.dicomp.net/zh-tw/guides/picking-route-guide.html"}]}</script>
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"什麼情況下 U 型反而更優？","acceptedAnswer":{"@type":"Answer","text":"當揀貨點集中在少數通道、或通道很長而橫向間距很小、且允許只進入需要揀貨的通道時，U 型可以避開無關通道從而更短。但本工具按「所有通道都必須進入且走完」建模，U 型距離恆為 S 型的通道內兩倍，因此在本模型下 S 型總是佔優；若實際作業只走部分通道，需按真實通道數手工折算。"}},{"@type":"Question","name":"為什麼兩條路徑的揀貨耗時是一樣的？","acceptedAnswer":{"@type":"Answer","text":"揀貨點總數由通道數與每通道揀貨點決定，單點揀貨時間也是固定輸入，都不隨路徑策略變化，所以揀貨耗時相同。這意味著路徑最佳化只能壓縮行走時間，揀貨效率瓶頸若來自揀取動作本身（如拆箱、掃碼、貼標），應改從工位佈置或包裝方式入手。"}}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"什麼情況下 U 型反而更優？","acceptedAnswer":{"@type":"Answer","text":"當每通道最遠揀貨點不到通道長度的一半時，U 型按 2×最遠點折返，通道內距離會短於 S 型走滿整條通道；若 S 型揀貨後還要從末端返回出入口，差距更大。反之，若揀貨點接近通道末端，U 型通道內距離接近 S 型兩倍，S 型更優。工具要求填寫統一的最遠揀貨點比例，只給示意結論；真實倉庫應使用各通道實際最遠貨位或現場測時。"}},{"@type":"Question","name":"為什麼兩條路徑的揀貨耗時是一樣的？","acceptedAnswer":{"@type":"Answer","text":"揀貨點總數由通道數與每通道揀貨點決定，單點揀貨時間也是固定輸入，都不隨路徑策略變化，所以揀貨耗時相同。這意味著路徑最佳化只能壓縮行走時間，揀貨效率瓶頸若來自揀取動作本身（如拆箱、掃碼、貼標），應改從工位佈置或包裝方式入手。"}}]}</script>
 <style>
 :root{--primary:#FF6B35;--text:#1F2937;--muted:#6B7280;--border:#E5E7EB;--bg:#FFFAF7;}
 *{box-sizing:border-box;}
@@ -77,9 +77,9 @@ li{margin:8px 0;}
 <h2>功能說明</h2>
 <p>對比 S 型（穿越式）與 U 型（返回式）揀貨路徑的行走距離與耗時，幫助選擇更優揀貨策略。</p>
 <h2>典型使用場景</h2>
-<ul><li>S 型（穿越式）與 U 型（返回式）定量對比：S 型通道內行走距離=通道數×通道長，U 型=2×通道數×通道長（每通道進入後原路返回）；兩者通道間橫向距離相同，均為(通道數−1)×通道間距。</li><li>行走與揀貨耗時拆分：行走耗時=總行走距離÷行走速度，揀貨耗時=揀貨點總數×單點揀貨時間（揀貨點總數=通道數×每通道揀貨點）；揀貨耗時與路徑無關，差異全部來自行走距離。</li><li>方案落地與複核：工具取總耗時較小者作為推薦路徑，節省百分比=兩路徑總耗時之差÷較大值×100；輸出結果後應結合通道實際是否全部需要進入、揀貨點分佈是否均勻做人工複核，必要時手工折算只走部分通道的情形。</li></ul>
+<ul><li>S 型（穿越式）與 U 型（最遠揀貨點折返）示意對比：S 型通道內行走距離=通道數×通道長；U 型=2×通道數×通道長×最遠揀貨點比例，比例由輸入給出，不再固定等於 100%。兩者通道間橫向距離相同，均為(通道數−1)×通道間距；S 型另計末端返回出入口距離。</li><li>行走與揀貨耗時拆分：行走耗時=總行走距離÷行走速度，揀貨耗時=揀貨點總數×單點揀貨時間（揀貨點總數=通道數×每通道揀貨點）；揀貨耗時與路徑無關，差異全部來自行走距離。</li><li>方案落地與複核：工具取總耗時較小者作為推薦路徑，節省百分比=兩路徑總耗時之差÷較大值×100；輸出結果後應結合通道實際是否全部需要進入、揀貨點分佈是否均勻做人工複核，必要時手工折算只走部分通道的情形。</li></ul>
 <h2>算例參考</h2>
-<ul><li><strong>算例：8 通道倉庫的 S 型 vs U 型對比</strong>：輸入：通道數 8、通道長 20 m、通道間距 3 m、行走速度 1.2 m/s、單點揀貨時間 10 s、每通道揀貨點 3 個。揀貨點總數=8×3=24 個，揀貨耗時=24×10=240 s。S 型：通道內 8×20=160 m，橫向(8−1)×3=21 m，總 181.0 m，行走 150.83 s，總耗時 390.83 s（6 分 31 秒）。U 型：通道內 8×20×2=320 m，橫向 21 m，總 341.0 m，行走 284.17 s，總耗時 524.17 s（8 分 44 秒）。結論：推薦 S 型，節省 133.33 s，節省比例 25.4%。換一組引數（4 通道、長 30 m、間距 3 m、1.2 m/s、單點 15 s、每通道 5 點）則 S 型 407.5 s、U 型 507.5 s，節省 100.0 s（19.7%）。</li></ul>
+<ul><li><strong>算例：8 通道倉庫的 S 型 vs U 型對比</strong>：輸入：通道數 8、通道長 20 m、通道間距 3 m、行走速度 1.2 m/s、單點揀貨時間 10 s、每通道揀貨點 3 個、最遠揀貨點比例 60%、S 型末端返回 0 m。揀貨點總數=8×3=24 個，揀貨耗時=24×10=240 s。S 型：通道內 8×20=160.0 m，橫向(8−1)×3=21.0 m，總 181.0 m，行走 150.83 s，總耗時 390.83 s（6 分 31 秒）。U 型：通道內 8×20×0.6×2=192.0 m，橫向 21.0 m，總 213.0 m，行走 177.50 s，總耗時 417.50 s（6 分 58 秒）。本模型下 S 型少 26.67 s（6.4%）。若最遠揀貨點只到通道 20%，U 型通道內=64.0 m、總 85.0 m、總耗時 310.83 s，反而比 S 型少 80.0 s（20.5%）。換一組引數（4 通道、長 30 m、間距 3 m、1.2 m/s、單點 15 s、每通道 5 點、60% 折返）則 S 型 407.5 s、U 型 427.5 s，S 少 20.0 s（4.7%）。結論只在上述假設內成立，不能用真實倉庫資料替代。</li></ul>
 <h2>注意事項</h2>
 <p>本工具純前端執行，輸入內容不上傳伺服器；結果為按上述口徑得到的<strong>理論估算值</strong>。實際應用受裝置引數、測量條件與當地規範影響，請以裝置銘牌、檢測報告與現行標準為準，重大決策建議諮詢專業人士。</p>
 <div class="related">
@@ -90,7 +90,7 @@ li{margin:8px 0;}
 <a class="tool-chip" href="https://tools.dicomp.net/tools/logistics2/packaging-cushion.html">緩衝材料選擇</a>
 </div>
 <dl class="faq">
-<dt>什麼情況下 U 型反而更優？</dt><dd>當揀貨點集中在少數通道、或通道很長而橫向間距很小、且允許只進入需要揀貨的通道時，U 型可以避開無關通道從而更短。但本工具按「所有通道都必須進入且走完」建模，U 型距離恆為 S 型的通道內兩倍，因此在本模型下 S 型總是佔優；若實際作業只走部分通道，需按真實通道數手工折算。</dd>
+<dt>什麼情況下 U 型反而更優？</dt><dd>當每通道最遠揀貨點不到通道長度的一半時，U 型按 2×最遠點折返，通道內距離會短於 S 型走滿整條通道；若 S 型揀貨後還要從末端返回出入口，差距更大。反之，若揀貨點接近通道末端，U 型通道內距離接近 S 型兩倍，S 型更優。工具要求填寫統一的最遠揀貨點比例，只給示意結論；真實倉庫應使用各通道實際最遠貨位或現場測時。</dd>
 <dt>為什麼兩條路徑的揀貨耗時是一樣的？</dt><dd>揀貨點總數由通道數與每通道揀貨點決定，單點揀貨時間也是固定輸入，都不隨路徑策略變化，所以揀貨耗時相同。這意味著路徑最佳化只能壓縮行走時間，揀貨效率瓶頸若來自揀取動作本身（如拆箱、掃碼、貼標），應改從工位佈置或包裝方式入手。</dd>
 </dl>
 <div class="related"><h3>相關工具</h3><a class="tool-chip" href="/zh-tw/tools/logistics2/picking-route.html">揀貨路徑對比</a></div>

@@ -115,7 +115,7 @@
     <h2 data-zh="⛅ 潮汐視窗推算">Tidal Window Estimator</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="基於高潮/低潮時刻與潮差推算可通航潮汐時間視窗，輔助船舶乘潮進出港">Tide Window</p>
     <div class="formula-box">
-      <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">乘潮通航視窗計算<br>所需潮高 = 船舶吃水 + 富餘水深 UKC − 航道淺點水深<br>潮高曲線（半週期餘弦）：h(t) = 均值 + 振幅×cos((t−高潮時刻) ÷ 半週期 × π)<br>均值 = (高潮潮高+低潮潮高)÷2；振幅 = (高潮潮高−低潮潮高)÷2<br>視窗搜尋：從低潮前 60 分鐘至下次低潮後 60 分鐘，逐步長 1 分鐘<br>可通航視窗 = 潮高 ≥ 所需潮高的連續時段，且時長 ≥ 通航所需時間<br>最佳進港 = 視窗起點 + 通航時間÷2；最晚出港 = 視窗終點 − 通航時間÷2<br>潮高餘量 = 高潮潮高 − 所需潮高；所需潮高 ≤0 時隨時可通航</div>
+      <div class="formula-title">📐 工作原理與說明</div> <div class="formula-eq">乘潮通航視窗計算<br>所需潮高 = 船舶吃水 + 富餘水深 UKC − 航道淺點水深<br>潮高曲線（半週期餘弦）：h(t) = 均值 + 振幅×cos((t−高潮時刻) ÷ 半週期 × π)<br>均值 = (高潮潮高+低潮潮高)÷2；振幅 = (高潮潮高−低潮潮高)÷2<br>視窗搜尋：從低潮前 60 分鐘至下次低潮後 60 分鐘，逐步長 1 分鐘<br>可通航視窗 = 潮高 ≥ 所需潮高的連續時段，且時長 ≥ 通航所需時間<br>最早開始 = 視窗起點；最晚開始 = 視窗終點 − 通航時間；推薦開始 = 視窗起點 + (視窗時長 − 通航時間)÷2；完成時刻 = 推薦開始 + 通航時間<br>潮高餘量 = 高潮潮高 − 所需潮高；所需潮高 ≤0 時隨時可通航</div>
       <p class="formula-desc" data-zh="核心計算公式（按輸入變數）：bestWindow.start + transitMin ÷ 2；bestWindow.end - transitMin ÷ 2；w.start + transitMin ÷ 2">Key formulas: bestWindow.start + transitMin ÷ 2; bestWindow.end - transitMin ÷ 2; w.start + transitMin ÷ 2</p>
     </div>
 
@@ -243,7 +243,7 @@
 <li>給定海圖水深、船吃水與富餘水深 UKC，反算所需潮高，搜尋高潮前後潮位達標的連續視窗。</li>
 <li>通航時間不足時，評估能否縮短在航時間（提速/減載）或改期，規避座底或擱淺風險。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">乘潮通航視窗示例</div><div class="dd-ex-body">某港高潮 12:00（4.0 m）、低潮 06:00（1.0 m）、次低潮 18:00（1.2 m），海圖水深 8 m、吃水 9 m、UKC 0.5 m、通航需 60 分鐘。所需潮高 = 9 + 0.5 − 8 = 1.5 m；用餘弦模型搜尋全潮週期，潮高 ≥1.5 m 的連續視窗約為 07:37–16:44（547 分鐘），最佳進港 08:07、最晚出港 16:14。若海圖水深已 ≥ 吃水+UKC（所需潮高 ≤0），則無需乘潮，隨時可通航。</div></div>
+<div class="dd-example"><div class="dd-ex-title">乘潮通航視窗示例</div><div class="dd-ex-body">某港高潮 12:00（4.0 m）、低潮 06:00（1.0 m）、次低潮 18:00（1.2 m），海圖水深 8 m、吃水 9 m、UKC 0.5 m、通航需 60 分鐘。所需潮高 = 9 + 0.5 − 8 = 1.5 m；潮高 ≥1.5 m 的連續視窗約為 07:37–16:44（547 分鐘），推薦開始 11:20、完成 12:20（最早開始 07:37、最晚開始 15:44）。若海圖水深已 ≥ 吃水+UKC，則無需乘潮。</div></div>
 <h3>❓ 常見問題（FAQ）</h3>
 <dl class="dd-faq">
 <dt>所需潮高為什麼是「吃水+UKC−海圖水深」？</dt><dd>實際水深 = 海圖水深 + 潮高，須 ≥ 吃水 + UKC（富餘水深）；移項得 潮高 ≥ 吃水 + UKC − 海圖水深。UKC 防止船底吸流、淺水效應與擱淺，一般商船 ≥0.5–1.0 m。</dd>
@@ -489,10 +489,12 @@ var highT = timeToMin(document.getElementById('highTideTime').value);
     if(dur > maxDuration){ maxDuration = dur; bestWindow = w; }
   });
 
-  var bestEnter, bestExit;
+  function clock(t){ var d=Math.floor(t/1440); var base=minToTime(((t%1440)+1440)%1440); return base+(d>0?'（+'+d+'天）':''); }
+  var bestRecStart, bestRecEnd, bestLatestStart;
   if(bestWindow){
-    bestEnter = bestWindow.start + transitMin / 2;
-    bestExit = bestWindow.end - transitMin / 2;
+    bestRecStart = bestWindow.start + (maxDuration - transitMin) / 2;
+    bestRecEnd = bestRecStart + transitMin;
+    bestLatestStart = bestWindow.end - transitMin;
   }
 
   // 判断结果
@@ -512,17 +514,19 @@ var highT = timeToMin(document.getElementById('highTideTime').value);
   if(validWindows.length > 0){
     var rows = validWindows.map(function(w){
       var dur = w.end - w.start;
-      var enter = w.start + transitMin / 2;
-      var exit = w.end - transitMin / 2;
+      var enter = w.start + (dur - transitMin) / 2;
+      var exit = w.end - transitMin;
       return [
-        minToTime(w.start) + ' - ' + minToTime(w.end),
+        clock(w.start) + ' - ' + clock(w.end),
         fmt(dur, 0) + ' 分钟',
-        minToTime(enter),
-        minToTime(exit)
+        clock(w.start),
+        clock(enter),
+        clock(enter + transitMin),
+        clock(exit)
       ];
     });
     windowsHtml = '<h3 style="margin-top:16px;">可通航窗口</h3>' +
-      ToolBox.createTable(['窗口时段', '持续时长', '最晚进入', '最早离开'], rows);
+      ToolBox.createTable(['窗口时段', '持续时长', '最早开始', '推荐开始', '推荐完成', '最晚开始'], rows);
   }
 
   var html = `
@@ -554,7 +558,7 @@ var highT = timeToMin(document.getElementById('highTideTime').value);
       <p><strong>通航所需时间：</strong>${fmt(transitMin, 0)} 分钟</p>
     </div>
     ${windowsHtml}
-    ${bestWindow ? '<div class="tip-box tip-success" style="margin-top:12px;">✓ 最佳进港时刻：' + minToTime(bestEnter) + '，最晚出港时刻：' + minToTime(bestExit) + '（窗口持续 ' + fmt(maxDuration, 0) + ' 分钟）</div>' : ''}
+    ${bestWindow ? '<div class="tip-box tip-success" style="margin-top:12px;">✓ 推荐通航开始：' + clock(bestRecStart) + '，推荐完成：' + clock(bestRecEnd) + '（全程 ' + fmt(transitMin, 0) + ' 分钟；最早可开始 ' + clock(bestWindow.start) + '，最晚开始 ' + clock(bestLatestStart) + '；窗口持续 ' + fmt(maxDuration, 0) + ' 分钟）</div>' : ''}
   `;
   const __g3=html;ToolBox.setResult('result',(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—')));
 
