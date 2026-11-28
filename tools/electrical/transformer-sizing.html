@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 
-<script src="../../js/tool-page-runtime.js" defer></script>
+<script src="/js/tool-page-runtime.js" defer></script>
 <!-- TOOLBOX-TOOL-RUNTIME -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -15,7 +15,7 @@
 <meta name="twitter:card" content="summary">
 <meta name="description" content="变压器容量选型（需用系数法）是一款免费的在线电气工程工具，输入计算负荷（有功、无功或视在功率）与功率因数，计算所需配电变压器容量并对照标准kVA序列推荐合适型号，辅助供配电设计与设备选型">
 <link rel="stylesheet" href="../../css/common.css">
-<script src="../../js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
 <style>
 .big-result{font-size:26px;font-weight:700;color:var(--primary);text-align:center;padding:12px;}
@@ -45,10 +45,10 @@
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
 <!-- TOOLBOX-SECURITY -->
 
-<script src="../../js/privacy.js" defer></script>
+<script src="/js/privacy.js" defer></script>
 <!-- TOOLBOX-PRIVACY-SCRIPT -->
 
-<script src="../../js/metrics.js" defer></script>
+<script src="/js/metrics.js" defer></script>
 <!-- TOOLBOX-METRICS-SCRIPT -->
 
 <script type="application/ld+json">
@@ -93,18 +93,18 @@
 <meta property="og:locale" content="zh_CN">
 <meta property="og:locale:alternate" content="zh_TW">
 <meta property="og:locale:alternate" content="en_US">
-<link rel="preload" as="style" href="../../css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link rel="stylesheet" href="../../css/nav-menu.css"></noscript>
-<script src="../../js/industry-info.js" defer></script>
-<script src="../../js/nav-menu.js" defer></script>
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
 
-<script src="../../js/tool-ux.js" defer></script>
+<script src="/js/tool-ux.js" defer></script>
 <!-- TOOLBOX-TOOL-UX -->
 
-<script src="../../js/analytics.js" defer></script>
+<script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 
-<script src="../../js/tool-kit.js" defer></script>
+<script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
 <script type="application/ld+json">
 {
@@ -264,6 +264,7 @@
 <script>
 var STD_SIZES=[30,50,63,80,100,125,160,200,250,315,400,500,630,800,1000,1250,1600,2000,2500];
 function calc(){
+  var en=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
   var P=parseFloat(document.getElementById('pTotal').value);
   var cos=parseFloat(document.getElementById('cosPhi').value);
   var Kd=parseFloat(document.getElementById('kd').value);
@@ -281,12 +282,19 @@ function calc(){
   for(var i=0;i<STD_SIZES.length;i++){
     if(STD_SIZES[i]>=St){pick=STD_SIZES[i];break;}
   }
-  if(!pick) pick=Math.ceil(St/100)*100;
+  if(!pick){
+    if(en){
+      out.innerHTML='<div class="big-result">Required capacity: '+St.toFixed(1)+' kVA, outside the built-in standard series</div><p class="tip-error" style="margin-top:8px;">⚠️ The required capacity exceeds the 2500 kVA maximum in this table. Check actual product specifications and select a unit rated at least '+St.toFixed(1)+' kVA, or split the load; this tool does not treat a rounded-up value as a standard capacity.</p>';
+    }else{
+      out.innerHTML='<div class="big-result">所需容量：'+St.toFixed(1)+' kVA，超出内置标准序列</div><p class="tip-error" style="margin-top:8px;">⚠️ 所需容量已超过本表最大 2500 kVA。请核查实际产品规格，按不低于 '+St.toFixed(1)+' kVA 选用，或拆分负荷；本工具不把向上取整值当作标准容量。</p>';
+    }
+    return;
+  }
   var ratedI=pick/(Math.sqrt(3)*uKv);
   var actualLoad=Sjs/pick;
   var tags='';
   STD_SIZES.forEach(function(s){
-    if(s>=St*0.85){
+    if(s>=St){
       var cls=s===pick?'pick-ok':'pick-other';
       tags+='<span class="'+cls+'">'+s+' kVA</span>';
     }
@@ -305,7 +313,11 @@ function calc(){
   html+='<div class="step-line"><strong>步骤4</strong>　额定电流 I = St / (√3 × U) = '+pick+' / (1.732 × '+uKv+') = '+ratedI.toFixed(2)+' A</div>';
   html+='<div class="step-line"><strong>步骤5</strong>　实际负荷率 = Sjs / St = '+Sjs.toFixed(2)+' / '+pick+' = '+(actualLoad*100).toFixed(1)+'%</div>';
   if(actualLoad>0.95) html+='<div class="step-line" style="border-color:var(--danger);background:rgba(239,68,68,0.08);"><strong>提示</strong>　实际负荷率偏高，建议适当增大容量以提高运行裕度。</div>';
-  else if(actualLoad<0.5) html+='<div class="step-line" style="border-color:var(--warning);background:rgba(245,158,11,0.08);"><strong>提示</strong>　实际负荷率偏低，变压器利用率不足，可考虑减小一档容量。</div>';
+  else if(actualLoad<0.5){
+    var lower=null; STD_SIZES.forEach(function(s){if(s<pick&&s>=Sjs) lower=s;});
+    html+= lower ? '<div class="step-line" style="border-color:var(--warning);background:rgba(245,158,11,0.08);"><strong>提示</strong>　实际负荷率偏低，可核查 '+lower+' kVA 档位是否满足 Sjs='+Sjs.toFixed(1)+' kVA 及其他运行条件，再决定是否缩容。</div>'
+                 : '<div class="step-line" style="border-color:var(--warning);background:rgba(245,158,11,0.08);"><strong>提示</strong>　实际负荷率偏低，但低一档容量小于 Sjs='+Sjs.toFixed(1)+' kVA，不能仅因负荷率低而缩容。</div>';
+  }
   else html+='<div class="step-line" style="border-color:var(--success);background:rgba(16,185,129,0.08);"><strong>结论</strong>　负荷率处于经济运行区间，选型合理。</div>';
   html+='<h3 style="margin-top:14px;">可选标准容量</h3><div>'+tags+'</div>';
   const __g2=html;out.innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
@@ -329,7 +341,7 @@ calc();
   <div class="related-tools-grid">
     <a href="../it/properties-parser.html" class="related-tool-card">
       <span class="rt-icon">📄</span>
-      <span class="rt-info"><span class="rt-name">.properties 解析器</span><span class="rt-desc">Java .properties 文件解析：支持 key=value、key:value、行内注释…</span></span>
+      <span class="rt-info"><span class="rt-name">.properties 解析器</span><span class="rt-desc">Java .properties 文件解析：支持 key=value、key:value、整行注释（…</span></span>
     </a>
     <a href="../it/ast-viewer.html" class="related-tool-card">
       <span class="rt-icon">💻</span>

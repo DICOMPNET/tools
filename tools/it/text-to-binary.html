@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 
-<script src="../../js/tool-page-runtime.js" defer></script>
+<script src="/js/tool-page-runtime.js" defer></script>
 <!-- TOOLBOX-TOOL-RUNTIME -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -23,7 +23,7 @@
 <link rel="icon" href="../../favicon.ico" sizes="16x16 32x32 48x48">
 <link rel="apple-touch-icon" href="../../apple-touch-icon.png">
 <link rel="stylesheet" href="../../css/common.css">
-<script src="../../js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
 <style>
 .viz{font-family:'SF Mono','Courier New',monospace;font-size:13px;line-height:1.8;background:var(--result-bg);border:1px solid var(--border);border-radius:8px;padding:12px;margin-top:12px;word-break:break-all;max-height:300px;overflow-y:auto;}
@@ -59,10 +59,10 @@
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
 <!-- TOOLBOX-SECURITY -->
 
-<script src="../../js/privacy.js" defer></script>
+<script src="/js/privacy.js" defer></script>
 <!-- TOOLBOX-PRIVACY-SCRIPT -->
 
-<script src="../../js/metrics.js" defer></script>
+<script src="/js/metrics.js" defer></script>
 <!-- TOOLBOX-METRICS-SCRIPT -->
 
 <script type="application/ld+json">
@@ -83,18 +83,18 @@
 <meta property="og:locale" content="zh_CN">
 <meta property="og:locale:alternate" content="zh_TW">
 <meta property="og:locale:alternate" content="en_US">
-<link rel="preload" as="style" href="../../css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link rel="stylesheet" href="../../css/nav-menu.css"></noscript>
-<script src="../../js/industry-info.js" defer></script>
-<script src="../../js/nav-menu.js" defer></script>
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
 
-<script src="../../js/tool-ux.js" defer></script>
+<script src="/js/tool-ux.js" defer></script>
 <!-- TOOLBOX-TOOL-UX -->
 
-<script src="../../js/analytics.js" defer></script>
+<script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 
-<script src="../../js/tool-kit.js" defer></script>
+<script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
 <script type="application/ld+json">
 {
@@ -447,11 +447,17 @@ function bytesToBinary(bytes, padBits){
 
 function binaryToBytes(binaryStr){
   var cleaned = binaryStr.replace(/[\s,;:\-_]/g, '');
+  if(!cleaned) throw new Error(tbMsg('没有可解析的二进制内容','No binary content to parse'));
+  var bad = cleaned.search(/[^01]/);
+  if(bad >= 0) throw new Error(tbMsg('第 '+(bad+1)+' 个二进制字符「'+cleaned.charAt(bad)+'」不是 0 或 1','Binary character #'+(bad+1)+' "'+cleaned.charAt(bad)+'" is not 0 or 1'));
+  // 末尾不足 8 位时左侧补 0 成一个字节（明确口径，不做部分解析）。
   var bytes = [];
   for(var i = 0; i < cleaned.length; i += 8){
     var chunk = cleaned.substr(i, 8);
     if(chunk.length < 8) chunk = chunk.padStart(8, '0');
-    bytes.push(parseInt(chunk, 2));
+    var v = parseInt(chunk, 2);
+    if(!isFinite(v)) throw new Error(tbMsg('第 '+(i/8+1)+' 个字节无法解析','Byte #'+(i/8+1)+' cannot be parsed'));
+    bytes.push(v);
   }
   return new Uint8Array(bytes);
 }
@@ -857,7 +863,7 @@ else document.addEventListener('DOMContentLoaded', __text_to_binaryBoot);
   <div class="related-tools-grid">
     <a href="properties-parser.html" class="related-tool-card">
       <span class="rt-icon">📄</span>
-      <span class="rt-info"><span class="rt-name">.properties 解析器</span><span class="rt-desc">Java .properties 文件解析：支持 key=value、key:value、行内注释…</span></span>
+      <span class="rt-info"><span class="rt-name">.properties 解析器</span><span class="rt-desc">Java .properties 文件解析：支持 key=value、key:value、整行注释（…</span></span>
     </a>
     <a href="ast-viewer.html" class="related-tool-card">
       <span class="rt-icon">💻</span>

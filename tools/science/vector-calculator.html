@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 
-<script src="../../js/tool-page-runtime.js" defer></script>
+<script src="/js/tool-page-runtime.js" defer></script>
 <!-- TOOLBOX-TOOL-RUNTIME -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -23,7 +23,7 @@
 <link rel="icon" href="../../favicon.ico" sizes="16x16 32x32 48x48">
 <link rel="apple-touch-icon" href="../../apple-touch-icon.png">
 <link rel="stylesheet" href="../../css/common.css">
-<script src="../../js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
 <style>
 .vec-input{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:6px 0;}
@@ -60,10 +60,10 @@ label{margin-top:10px;}
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
 <!-- TOOLBOX-SECURITY -->
 
-<script src="../../js/privacy.js" defer></script>
+<script src="/js/privacy.js" defer></script>
 <!-- TOOLBOX-PRIVACY-SCRIPT -->
 
-<script src="../../js/metrics.js" defer></script>
+<script src="/js/metrics.js" defer></script>
 <!-- TOOLBOX-METRICS-SCRIPT -->
 
 <script type="application/ld+json">
@@ -84,18 +84,18 @@ label{margin-top:10px;}
 <meta property="og:locale" content="zh_CN">
 <meta property="og:locale:alternate" content="zh_TW">
 <meta property="og:locale:alternate" content="en_US">
-<link rel="preload" as="style" href="../../css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link rel="stylesheet" href="../../css/nav-menu.css"></noscript>
-<script src="../../js/industry-info.js" defer></script>
-<script src="../../js/nav-menu.js" defer></script>
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
 
-<script src="../../js/tool-ux.js" defer></script>
+<script src="/js/tool-ux.js" defer></script>
 <!-- TOOLBOX-TOOL-UX -->
 
-<script src="../../js/analytics.js" defer></script>
+<script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 
-<script src="../../js/tool-kit.js" defer></script>
+<script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
 <script type="application/ld+json">
 {
@@ -532,7 +532,7 @@ function drawVectorPlot(A, B, dim){
     ctx.fillStyle = textColor;
     ctx.fillText(en ? ' Result C' : ' 结果 C', 25, ly-1);
   window.__tbRedraw=function(){ try{ showPlot(); }catch(e){} };
-  if(!window.__tbLangBound){window.__tbLangBound=1;window.addEventListener('toolbox:langchange',function(){if(window.__tbRedraw)window.__tbRedraw();});}
+  if(!window.__tbLangBound){window.__tbLangBound=1;window.addEventListener('toolbox:langchange',function(){if(document.getElementById('vecCanvas')&&window.__tbRedraw)window.__tbRedraw();});}
   }
 }
 
@@ -554,6 +554,7 @@ function showFormulas(){
 }
 
 function saveHistory(opName, A, B, resultVec, resultScalar){
+  try{
   const history = (function(){try{return JSON.parse(localStorage.getItem('vector_history')||'[]')}catch(e){try{localStorage.removeItem('vector_history')}catch(_){}return []}})();
   const item = {
     op: opName,
@@ -566,6 +567,7 @@ function saveHistory(opName, A, B, resultVec, resultScalar){
   history.unshift(item);
   if(history.length>20) history.pop();
   localStorage.setItem('vector_history', JSON.stringify(history));
+  }catch(e){if(window.ToolBox&&ToolBox.toast)ToolBox.toast('历史未保存（存储不可用或空间不足），本次计算结果不受影响','error');}
 }
 
 function showHistory(){
@@ -590,7 +592,7 @@ function showHistory(){
 }
 
 function clearHistory(){
-  localStorage.removeItem('vector_history');
+  try{localStorage.removeItem('vector_history');}catch(e){}
   showHistory();
 }
 

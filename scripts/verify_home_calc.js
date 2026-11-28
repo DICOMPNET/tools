@@ -142,10 +142,10 @@ const CASES = [
 },
 {
   "slug": "home/water-filter-lifespan",
-  "inputs": { "cap": "5000", "daily": "10", "margin": "85", "price": "150" },
-  "clicks": ["try{calcTool()}catch(e){};var t=String(document.getElementById('result').innerHTML);var ok=['3613 L','361 天','1.01 支/年','152 元/年','0.0415 元/L'].every(function(x){return t.indexOf(x)>=0;});document.getElementById('__tbProbe').textContent='WALL '+(ok?'OK':'BAD');"],
+  "inputs": { "cap": "6000", "daily": "12", "margin": "80", "price": "180" },
+  "clicks": ["try{calcTool()}catch(e){};var t=String(document.getElementById('result').innerHTML);var ok=['4080 L','340 天','1.07 支/年','193 元/年','0.0441 元/L'].every(function(x){return t.indexOf(x)>=0;});document.getElementById('__tbProbe').textContent='WALL '+(ok?'OK':'BAD');"],
   "expect": ["WALL OK"],
-  "ref": "非默认算例：有效 5000×0.85×0.85≈3613 L；3613/10≈361 天；365/361≈1.01 支/年；150×1.01≈152 元/年；150/3613≈0.0415 元/L。组合探针要求五项全部命中，避免 expect 任一命中即通过的弱断言；默认 4000/8/90/120 不命中。"
+  "ref": "非默认算例：有效 6000×0.80×0.85=4080 L；4080/12=340 天；365/340≈1.07 支/年；180×1.07≈193 元/年；180/4080≈0.0441 元/L。组合探针要求五项全部命中；默认 4000/8/90/120 不命中。"
 },
 {
   "slug": "home/water-filter-lifespan",
@@ -213,7 +213,7 @@ const CASES = [
 },
 {
   "slug": "home/water-filter-lifespan",
-  "inputs": { "start": "" },
+  "inputs": { "cap": "6000", "start": "" },
   "expect": ["请填写开始使用日期后再计算。"],
   "ref": "清空开始使用日期必须提示，不得静默回退今天导致预计更换日期与用户输入不一致。"
 },
@@ -238,8 +238,8 @@ const CASES = [
 {
   "slug": "home/water-heater-sizing",
   "inputs": { "type": "instant", "people": "3", "sim": "2", "minutes": "10", "flow": "10", "cold": "15", "target": "40", "tank": "60", "power": "2", "price": "0.6" },
-  "expect": ["超出规格表上限（24 kW / 100 A）"],
-  "ref": "第537批：2 路同时 10 L/min、温升 25°C ⇒ 34.9 kW，超过即热规格表 24 kW 与空开 100 A 上限；旧实现返回 24 kW/100 A 并给出不足推荐。"
+  "expect": ["36.7 kW", "上限（24 kW / 160 A）"],
+  "ref": "第537批：2 路同时 10 L/min、温升 25°C 按 95% 效率需 36.7 kW，超过即热规格表 24 kW；所需单相电流约 167 A、按 1.1 留余量后 184 A，超过 160 A 空开上限，必须提示降载。旧实现按输入铭牌 2 kW 算电流，误报 10 A。"
 },
 {
   "slug": "home/appliance-lifespan",

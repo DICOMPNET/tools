@@ -78,6 +78,7 @@ const CASES = [
   "ref": "QAM 页面必须标注高 SNR 近似、Gray 映射与矩形星座假设；默认 qam64 BER=1e-5 反解 17.79 dB 同时带口径说明。"
 },
 {
+  clicks: ["calc()"],
   "slug": "telecom/convert-24",
   "inputs": {
     "snr": "5"
@@ -88,6 +89,7 @@ const CASES = [
   "ref": "去默认化：SNR=5dB ⇒ Eb/N0=10^0.5=3.162，BER=0.5·erfc(√3.162)=5.954e-3。默认态 snr=10 ⇒ 3.876e-6，不命中。"
 },
 {
+  clicks: ["calc()"],
   "slug": "telecom/convert-24",
   "inputs": {
     "snr": "15"
@@ -98,6 +100,7 @@ const CASES = [
   "ref": "去默认化：SNR=15dB ⇒ Eb/N0=10^1.5=31.62，BER=0.5·erfc(√31.62)=9.216e-16。默认态不命中。"
 },
 {
+  clicks: ["calc()"],
   "slug": "telecom/convert-24",
   "inputs": {
     "snr": "20"
@@ -201,6 +204,7 @@ const CASES = [
   "ref": "BPSK 在 −20 dB 时 BER=0.5·erfc(0.1)=0.4438 已是可达上限，目标 0.45 无解；旧实现会静默返回 0 dB 假答案。默认态不出现该提示。"
 },
 {
+  clicks: ["calc()"],
   "slug": "telecom/convert-24",
   "inputs": {
     "snr": "30"
@@ -244,7 +248,58 @@ const CASES = [
   "clicks": ["(function(){var F=globalThis.__ntAnalyze;function cls(ip){var N=String.fromCharCode(10);var h=F('x','IP: '+ip+N+'来源: test'+N+'时区: —',false);if(h.indexOf('>私有/保留地址<')>=0)return 'RES';if(h.indexOf('>公网地址<')>=0)return 'PUB';if(h.indexOf('>地址性质待确认<')>=0)return 'UNK';return '?';}var ips=['100.64.0.1','fc00::1','8.8.8.8','2001:4860:4860::8888','192.168.1.1'];var want=['RES','RES','PUB','PUB','RES'];var got=ips.map(cls);var ok=(got.join(',')===want.join(','));document.getElementById('__tbProbe').textContent='IPCLS '+(ok?'OK':'BAD '+got.join(','));})()"],
   "expect": ["IPCLS OK"],
   "ref": "第288批：T1 地址分类旧版只排除少量 IPv4 私网段，100.64.0.1（100.64.0.0/10 CGNAT 共享地址）与 IPv6 fc00::1（fc00::/7 ULA）被误判为「全球可路由地址」。修复后按完整保留段判定、对无法确认的地址不断言公网；注入 5 地址须 RES/RES/PUB/PUB/RES，修复前为 PUB/PUB/PUB/PUB/RES ⇒ 强判别。"
-}
+},
+{
+  clicks: ["calc()"],
+  "slug": "telecom/distance-power-frequency",
+  "inputs": {"v0":"20","v1":"5800","v2":"3","v3":"3","v4":"-90"},
+  "expect": ["最大距离处接收功率（=灵敏度，dBm）", "-90.0"],
+  "ref": "最大距离处 Pr=Pt+Gt+Gr−FSPL，且 FSPL 由 Pr=灵敏度 反解，故应显示 −90.0 而不是 Pt+Gt+Gr=−67.0。"
+},
+{
+  "slug": "telecom/distance-power-frequency",
+  "inputs": {"v0":"abc","v1":"5800","v2":"3","v3":"3","v4":"-90"},
+  "expect": ["输入含非数字值"],
+  "ref": "非数字输入不得被 getV 的 isNaN→0 吞掉；0 dBm/0 dBi 仍是合法值，空值另提示。"
+},
+{
+  "slug": "telecom/subnet-planner",
+  "inputs": {"baseIp":"0.0.0.0","oldMask":"0","divideMode":"count","subCount":"1"},
+  "expect": ["1 个子网（/0）", "0.0.0.0"],
+  "ref": "数量=1 时新前缀仍为 /0，掩码必须是 0.0.0.0；旧实现 0xFFFFFFFF<<32 变成 <<0 得 255.255.255.255。"
+},
+{
+  "slug": "telecom/subnet-planner",
+  "inputs": {"baseIp":"10.0.0.0","oldMask":"30","divideMode":"prefix","newMask":"31"},
+  "expect": ["10.0.0.1", "—（/31 点对点无广播）"],
+  "ref": "/31 的两个地址都是主机，不能把第二个标成广播；旧实现首可用=10.0.0.0、广播=10.0.0.1。"
+},
+{
+  "slug": "telecom/subnet-planner",
+  "inputs": {"baseIp":"10.0.0.0","oldMask":"30","divideMode":"prefix","newMask":"32"},
+  "expect": ["—（/32 单主机无广播）", "10.0.0.0（单主机）"],
+  "ref": "/32 只有一个地址，不能显示广播；首末可用均应为该地址。"
+},
+{
+  clicks: ["calc()"],
+  "slug": "telecom/convert-24",
+  "inputs": {"mode":"ebn0","snr":"10"},
+  "expect": ["归一化信道容量：不可用"],
+  "ref": "Eb/N0 口径缺少 R/B，不能把 Eb/N0 直接代入 log2(1+x) 当带宽内 SNR 容量。"
+},
+{
+  clicks: ["calc()"],
+  "slug": "telecom/convert-24",
+  "inputs": {"mode":"snr","snr":"10","bitrate":"2","bandwidth":"1"},
+  "expect": ["Eb/N0 = SNR − 10log10(R/B) = 6.99 dB", "归一化信道容量 = log2(1 + SNR线性) = 3.4594"],
+  "ref": "SNR=10、R/B=2 ⇒ Eb/N0=10−3.0103=6.99 dB；容量用 SNR 线性 10 ⇒ log2(11)=3.4594，不得用 Eb/N0。"
+},
+{
+  "slug": "telecom/ber-snr",
+  "inputs": {"ber":"1e-320","mod":"bpsk"},
+  "expect": ["低于本工具在 28 dB 处可分辨的下限"],
+  "ref": "1e-320 低于 BPSK 在 28 dB 附近可表示的下限，旧二分 hi=60 返回 60 dB 假答案；应明确拒绝。"
+},
 ];
 async function main() {
   const only = process.argv.slice(2);

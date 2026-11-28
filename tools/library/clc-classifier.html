@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 
-<script src="../../js/tool-page-runtime.js" defer></script>
+<script src="/js/tool-page-runtime.js" defer></script>
 <!-- TOOLBOX-TOOL-RUNTIME -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -17,11 +17,11 @@
 <meta property="og:url" content="https://tools.dicomp.net/tools/library/clc-classifier.html">
 <meta name="twitter:card" content="summary">
 <link rel="stylesheet" href="../../css/common.css">
-<script src="../../js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
 <style>
 .clc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;}
-.clc-item{padding:10px 12px;border:1px solid var(--border);border-radius:10px;cursor:pointer;transition:all 0.2s;background:var(--card-bg);}
+.clc-item{display:block;width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:10px;cursor:pointer;transition:all 0.2s;background:var(--card-bg);font:inherit;text-align:left;color:inherit;}
 .clc-item:hover{border-color:var(--primary);transform:translateY(-1px);box-shadow:var(--shadow-sm);}
 .clc-item .code{font-size:16px;font-weight:700;color:var(--primary);}
 .clc-item .name{font-size:12px;color:var(--text-light);margin-top:2px;}
@@ -48,10 +48,10 @@
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
 <!-- TOOLBOX-SECURITY -->
 
-<script src="../../js/privacy.js" defer></script>
+<script src="/js/privacy.js" defer></script>
 <!-- TOOLBOX-PRIVACY-SCRIPT -->
 
-<script src="../../js/metrics.js" defer></script>
+<script src="/js/metrics.js" defer></script>
 <!-- TOOLBOX-METRICS-SCRIPT -->
 
 <script type="application/ld+json">
@@ -73,18 +73,18 @@
 <meta property="og:locale" content="zh_CN">
 <meta property="og:locale:alternate" content="zh_TW">
 <meta property="og:locale:alternate" content="en_US">
-<link rel="preload" as="style" href="../../css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link rel="stylesheet" href="../../css/nav-menu.css"></noscript>
-<script src="../../js/industry-info.js" defer></script>
-<script src="../../js/nav-menu.js" defer></script>
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
 
-<script src="../../js/tool-ux.js" defer></script>
+<script src="/js/tool-ux.js" defer></script>
 <!-- TOOLBOX-TOOL-UX -->
 
-<script src="../../js/analytics.js" defer></script>
+<script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 
-<script src="../../js/tool-kit.js" defer></script>
+<script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
 <script type="application/ld+json">
 {
@@ -532,13 +532,15 @@ function renderSubs(filter){
 }
 
 function makeItem(code, name, mainName){
-  var div = document.createElement('div');
-  div.className = 'clc-item' + (code === selectedCode ? ' active' : '');
+  var div = document.createElement('button');
+  div.type = 'button';
+  div.className = 'clc-item'
+  div.setAttribute('aria-pressed', code === selectedCode ? 'true' : 'false'); + (code === selectedCode ? ' active' : '');
   const __h3='<div class="code">'+code+'</div><div class="name">'+ToolBox.escHtml(name)+'</div>';if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){div.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}div.innerHTML=__h3;
   div.onclick = function(){
     selectedCode = code;
-    document.querySelectorAll('.clc-item').forEach(function(el){ el.classList.remove('active'); });
-    div.classList.add('active');
+    document.querySelectorAll('.clc-item').forEach(function(el){ el.classList.remove('active'); el.setAttribute('aria-pressed','false'); });
+    div.classList.add('active'); div.setAttribute('aria-pressed','true');
     updateResult();
   };
   return div;

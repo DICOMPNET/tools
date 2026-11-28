@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 
-<script src="../../js/tool-page-runtime.js" defer></script>
+<script src="/js/tool-page-runtime.js" defer></script>
 <!-- TOOLBOX-TOOL-RUNTIME -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -15,7 +15,7 @@
 <meta name="twitter:card" content="summary">
 <meta name="description" content="拉坯转速计算是一款免费的在线陶瓷工艺工具，根据坯体直径与阶段（开盘、提拉、收口）建议合适的拉坯机转速，避免离心变形，辅助陶艺新手掌握不同工序的转速区间">
 <link rel="stylesheet" href="../../css/common.css">
-<script src="../../js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
 <style>
 .big-result{font-size:22px;font-weight:700;color:var(--primary);text-align:center;padding:8px;}
@@ -42,10 +42,10 @@
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
 <!-- TOOLBOX-SECURITY -->
 
-<script src="../../js/privacy.js" defer></script>
+<script src="/js/privacy.js" defer></script>
 <!-- TOOLBOX-PRIVACY-SCRIPT -->
 
-<script src="../../js/metrics.js" defer></script>
+<script src="/js/metrics.js" defer></script>
 <!-- TOOLBOX-METRICS-SCRIPT -->
 
 <script type="application/ld+json">
@@ -67,18 +67,18 @@
 <meta property="og:locale" content="zh_CN">
 <meta property="og:locale:alternate" content="zh_TW">
 <meta property="og:locale:alternate" content="en_US">
-<link rel="preload" as="style" href="../../css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link rel="stylesheet" href="../../css/nav-menu.css"></noscript>
-<script src="../../js/industry-info.js" defer></script>
-<script src="../../js/nav-menu.js" defer></script>
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
 
-<script src="../../js/tool-ux.js" defer></script>
+<script src="/js/tool-ux.js" defer></script>
 <!-- TOOLBOX-TOOL-UX -->
 
-<script src="../../js/analytics.js" defer></script>
+<script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 
-<script src="../../js/tool-kit.js" defer></script>
+<script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
 <script type="application/ld+json">
 {
@@ -279,7 +279,12 @@ function calc(){
   html+='<div class="stat-card"><div class="val">'+(devPct>=0?'+':'')+devPct.toFixed(0)+'%</div><div class="lbl">相对目标偏差</div></div>';
   html+='</div>';
   var range=D<10?'小件':(D<25?'中件':'大件');
-  var rangeWarn=theoryRound<minRpm?('理论转速 '+theoryRpm.toFixed(1)+' rpm 低于设备最低 '+minRpm+' rpm，已限幅；实际线速度比目标低 '+Math.abs(devPct).toFixed(0)+'%。'):(theoryRound>maxRpm?('理论转速 '+theoryRpm.toFixed(1)+' rpm 超过设备最高 '+maxRpm+' rpm，已限幅；实际线速度比目标高 '+devPct.toFixed(0)+'%。'):'');
+  var rangeWarn='';
+  if(clamped){
+    var dir=Math.abs(devPct)<0.5?'基本等于':(devPct>0?'高':'低');
+    if(theoryRound<minRpm) rangeWarn='理论转速 '+theoryRpm.toFixed(1)+' rpm 低于设备最低 '+minRpm+' rpm，已提高到 '+rpm+' rpm；实际线速度比目标'+dir+' '+Math.abs(devPct).toFixed(0)+'%（同一条偏差计算）。';
+    else if(theoryRound>maxRpm) rangeWarn='理论转速 '+theoryRpm.toFixed(1)+' rpm 超过设备最高 '+maxRpm+' rpm，已降低到 '+rpm+' rpm；实际线速度比目标'+dir+' '+Math.abs(devPct).toFixed(0)+'%（同一条偏差计算）。';
+  }
   html+='<div class="tip-box '+(clamped?'tip-warn':'tip-info')+'" style="margin-top:10px;">当前为'+range+'（D='+D+'cm），'+STAGE_NAME[stage]+'阶段。'+(rangeWarn||('理论转速在设备 '+minRpm+'–'+maxRpm+' rpm 范围内，未触发限幅。'))+' '+(D>25?'大件注意降低转速防止晃动。':'')+'</div>';
   html+='<h3 style="margin-top:14px;">分步计算</h3>';
   html+='<div class="step-line"><strong>步骤1</strong>　目标线速度 v = '+STAGE[stage]+' × '+pref+' = '+vRim.toFixed(0)+' m/min（'+STAGE_NAME[stage]+'阶段经验中值，非标准值）</div>';

@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 
-<script src="../../js/tool-page-runtime.js" defer></script>
+<script src="/js/tool-page-runtime.js" defer></script>
 <!-- TOOLBOX-TOOL-RUNTIME -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -23,7 +23,7 @@
 <link rel="icon" href="../../favicon.ico" sizes="16x16 32x32 48x48">
 <link rel="apple-touch-icon" href="../../apple-touch-icon.png">
 <link rel="stylesheet" href="../../css/common.css">
-<script src="../../js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
 <style>
 .matrix-grid{display:grid;gap:4px;margin:8px 0;}
@@ -65,10 +65,10 @@ label{margin-top:10px;}
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
 <!-- TOOLBOX-SECURITY -->
 
-<script src="../../js/privacy.js" defer></script>
+<script src="/js/privacy.js" defer></script>
 <!-- TOOLBOX-PRIVACY-SCRIPT -->
 
-<script src="../../js/metrics.js" defer></script>
+<script src="/js/metrics.js" defer></script>
 <!-- TOOLBOX-METRICS-SCRIPT -->
 
 <script type="application/ld+json">
@@ -89,18 +89,18 @@ label{margin-top:10px;}
 <meta property="og:locale" content="zh_CN">
 <meta property="og:locale:alternate" content="zh_TW">
 <meta property="og:locale:alternate" content="en_US">
-<link rel="preload" as="style" href="../../css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link rel="stylesheet" href="../../css/nav-menu.css"></noscript>
-<script src="../../js/industry-info.js" defer></script>
-<script src="../../js/nav-menu.js" defer></script>
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
 
-<script src="../../js/tool-ux.js" defer></script>
+<script src="/js/tool-ux.js" defer></script>
 <!-- TOOLBOX-TOOL-UX -->
 
-<script src="../../js/analytics.js" defer></script>
+<script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 
-<script src="../../js/tool-kit.js" defer></script>
+<script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
 <script type="application/ld+json">
 {
@@ -187,7 +187,8 @@ label{margin-top:10px;}
       <button type="button" class="btn" onclick="showHistory()">历史记录</button>
     </div>
     <div id="inputArea" style="display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start;justify-content:center;"></div>
-    <div class="result-box" id="output"></div> <div id="matrix_calculatorTable"></div> <div id="matrix_calculatorDiff"></div> <div id="matrix_calculatorChart"></div> <div id="matrix_calculatorHist"></div>
+    <div class="result-box" id="output"></div> <div id="matrix_calculatorTable"></div>
+    <p style="font-size:12px;color:var(--text-muted);margin-top:8px;" data-zh="数值显示：普通量级保留 10 位有效数字，绝对值小于 0.001 或不小于 1e6 时用 6 位小数的科学计数法；内部计算、历史与导出保留原始精度。">Display: up to 10 significant digits for ordinary magnitudes; values below 0.001 or at least 1e6 use scientific notation with 6 decimals. Internal calculations, history and export keep full precision.</p> <div id="matrix_calculatorDiff"></div> <div id="matrix_calculatorChart"></div> <div id="matrix_calculatorHist"></div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -311,7 +312,8 @@ function fmt(x){
   if(!isFinite(x)) return '未定义';
   if(x===0) return '0';
   if(Math.abs(x)>=1e6||Math.abs(x)<1e-3) return x.toExponential(6);
-  return (Math.round(x*1e10)/1e10).toLocaleString();
+  // 普通量级保留 10 位有效数字；不能交给无参 toLocaleString（默认最多 3 位小数，0.001234567 会被压成 0.001）
+  return Number(x.toPrecision(10)).toString();
 }
 
 function matrixToString(m){
@@ -656,6 +658,10 @@ function saveHistory(opName, n, A, B, result, scalarResult){
   localStorage.setItem('matrix_history', JSON.stringify(history));
 }
 
+function __matHistoryText(m){
+  if(!Array.isArray(m)) return '';
+  return m.map(function(row){return '['+row.map(function(v){return String(v);}).join(', ')+']';}).join(' ');
+}
 function showHistory(){
   const history = (function(){try{return JSON.parse(localStorage.getItem('matrix_history')||'[]')}catch(e){try{localStorage.removeItem('matrix_history')}catch(_){}return []}})();
   if(history.length===0){
@@ -664,7 +670,7 @@ function showHistory(){
   }
   let html = '<h3 style="margin-bottom:10px;">📜 历史记录</h3>';
   for(const h of history){
-    const resStr = h.scalarResult !== null ? fmt(h.scalarResult) : (h.result ? '矩阵' : '');
+    const resStr = (h.scalarResult !== null && h.scalarResult !== undefined) ? String(h.scalarResult) : __matHistoryText(h.result);
     html += `<div class="history-item">
       <div class="history-title">${h.op} (${h.size}×${h.size})</div>
       <div class="history-detail">结果: ${resStr}</div>
@@ -794,12 +800,23 @@ function __matrix_calculatorExtras(){
 }
 function __matrix_calculatorExport(){
     if (typeof TBKit === 'undefined') return;
+    var en=(TBKit.util&&TBKit.util.isEn())?true:false;
+    var history=[];
+    try{history=JSON.parse(localStorage.getItem('matrix_history')||'[]')||[];}catch(e){history=[];}
+    if(history.length){
+        var head=[en?'Time':'时间',en?'Operation':'运算',en?'Size':'规模',en?'Matrix A':'矩阵 A',en?'Matrix B':'矩阵 B',en?'Result':'结果',en?'Scalar result':'标量结果'];
+        var rows=history.map(function(h){
+            return [h.time||'',h.op||'',h.size||'',__matHistoryText(h.A),__matHistoryText(h.B),
+                __matHistoryText(h.result),(h.scalarResult===null||h.scalarResult===undefined)?'':String(h.scalarResult)];
+        });
+        TBKit.util.exportCsv('matrix-calculator.csv',[head].concat(rows));
+        return;
+    }
     try{
         var box=document.querySelector('#matrix_calculatorTable');
         if(!box||!box.querySelector('tr')){
             var snap=__matrix_calculatorSnap(); var keys=Object.keys(snap);
             if(keys.length>12) keys=keys.slice(0,12);
-            var en=(TBKit.util&&TBKit.util.isEn())?true:false;
             __matrix_calculatorRender(keys,en?'Result':'结果',en);
         }
     }catch(e){}

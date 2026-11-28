@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 
-<script src="../../js/tool-page-runtime.js" defer></script>
+<script src="/js/tool-page-runtime.js" defer></script>
 <!-- TOOLBOX-TOOL-RUNTIME -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -15,7 +15,7 @@
 <meta name="twitter:card" content="summary">
 <meta name="description" content="均值标准误计算器是一款免费的在线统计学工具，输入样本标准差与样本量，求样本均值分布的标准误 SE = s/√n，用于置信区间与显著性检验。SE=σ/√n（或 s/√n），均值抽样波动。">
 <link rel="stylesheet" href="../../css/common.css">
-<script src="../../js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
 
 
@@ -37,10 +37,10 @@
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
 <!-- TOOLBOX-SECURITY -->
 
-<script src="../../js/privacy.js" defer></script>
+<script src="/js/privacy.js" defer></script>
 <!-- TOOLBOX-PRIVACY-SCRIPT -->
 
-<script src="../../js/metrics.js" defer></script>
+<script src="/js/metrics.js" defer></script>
 <!-- TOOLBOX-METRICS-SCRIPT -->
 
 <script type="application/ld+json">
@@ -62,18 +62,18 @@
 <meta property="og:locale" content="zh_CN">
 <meta property="og:locale:alternate" content="zh_TW">
 <meta property="og:locale:alternate" content="en_US">
-<link rel="preload" as="style" href="../../css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link rel="stylesheet" href="../../css/nav-menu.css"></noscript>
-<script src="../../js/industry-info.js" defer></script>
-<script src="../../js/nav-menu.js" defer></script>
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
 
-<script src="../../js/tool-ux.js" defer></script>
+<script src="/js/tool-ux.js" defer></script>
 <!-- TOOLBOX-TOOL-UX -->
 
-<script src="../../js/analytics.js" defer></script>
+<script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 
-<script src="../../js/tool-kit.js" defer></script>
+<script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
 <script type="application/ld+json">
 {
@@ -320,12 +320,15 @@ function __tbInputGuardCore(_ids,_labels){
 }
 
 
-function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
+function readNum(id){var e=document.getElementById(id);if(!e)return NaN;var raw=String(e.value==null?'':e.value).trim();if(!/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/.test(raw))return NaN;var v=Number(raw);return isFinite(v)?v:NaN;}
+function num(id){const v=readNum(id);return isNaN(v)?0:v;}
+function __err(zh,en){var isEn=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());return '<p style="color:var(--danger)">⚠ '+(isEn?en:zh)+'</p>';}
+
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){
-              var __ig=__tbInputGuard(['sigma', 'n'],["标准差 σ", "样本量 n"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
-const sigma = num('sigma'), n = num('n');
-            if(sigma<0){__seClear();ToolBox.setResult('result','⚠ 标准差 σ 不能为负值');return;}
+const sigma = readNum('sigma'), n = readNum('n');
+            if(isNaN(sigma)||sigma<0){__seClear();ToolBox.setResult('result',__err('「标准差 σ」必须是非负有限数值，不能含文字。','“Standard deviation σ” must be a non-negative finite number with no text.'));return;}
+            if(isNaN(n)||n<2||Math.floor(n)!==n){__seClear();ToolBox.setResult('result',__err('「样本量 n」必须是 ≥2 的整数。','“Sample size n” must be an integer ≥2.'));return;}
             const __g2=dataGrid([
                 [(sigma / Math.sqrt(n)).toFixed(4), '标准误 SE'],
                 [(sigma/Math.sqrt(n)*1.96).toFixed(4), '95% 置信半宽'],
@@ -348,7 +351,7 @@ function __seList(id){var e=document.getElementById(id);return e?TBKit.util.pars
 function __seExtras(){
     if (typeof TBKit === 'undefined') return;
     var sg=__seNum('sigma'), n=__seNum('n');
-    if(!isFinite(sg)||!isFinite(n)||n<=0||sg<0){ __seClear(); return; }
+    if(!isFinite(sg)||!isFinite(n)||n<2||Math.floor(n)!==n||sg<0){ __seClear(); return; }
     var en=TBKit.util.isEn();
     var SE=sg/Math.sqrt(n);
     TBKit.matrix.table('#seTable',{

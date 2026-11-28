@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 
-<script src="../../js/tool-page-runtime.js" defer></script>
+<script src="/js/tool-page-runtime.js" defer></script>
 <!-- TOOLBOX-TOOL-RUNTIME -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -15,7 +15,7 @@
 <meta property="og:url" content="https://tools.dicomp.net/tools/plastic/shrinkage-calc.html">
 <meta name="twitter:card" content="summary">
 <link rel="stylesheet" href="../../css/common.css">
-<script src="../../js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
 
 
@@ -38,10 +38,10 @@
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
 <!-- TOOLBOX-SECURITY -->
 
-<script src="../../js/privacy.js" defer></script>
+<script src="/js/privacy.js" defer></script>
 <!-- TOOLBOX-PRIVACY-SCRIPT -->
 
-<script src="../../js/metrics.js" defer></script>
+<script src="/js/metrics.js" defer></script>
 <!-- TOOLBOX-METRICS-SCRIPT -->
 
 <script type="application/ld+json">
@@ -63,18 +63,18 @@
 <meta property="og:locale" content="zh_CN">
 <meta property="og:locale:alternate" content="zh_TW">
 <meta property="og:locale:alternate" content="en_US">
-<link rel="preload" as="style" href="../../css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link rel="stylesheet" href="../../css/nav-menu.css"></noscript>
-<script src="../../js/industry-info.js" defer></script>
-<script src="../../js/nav-menu.js" defer></script>
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
 
-<script src="../../js/tool-ux.js" defer></script>
+<script src="/js/tool-ux.js" defer></script>
 <!-- TOOLBOX-TOOL-UX -->
 
-<script src="../../js/analytics.js" defer></script>
+<script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 
-<script src="../../js/tool-kit.js" defer></script>
+<script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
 <script type="application/ld+json">
 {
@@ -261,22 +261,26 @@ function switchTab(name, btn) {
   document.getElementById('tab-' + name).classList.add('active');
 }
 
+var __shrinkRateValid=false,__shrinkMoldValid=false;
 function calcRate() {
   var mold = parseFloat(document.getElementById('moldSize').value) || 0;
   var part = parseFloat(document.getElementById('partSize').value) || 0;
   if (mold <= 0 || part <= 0) {
+    __shrinkRateValid=false;
     ToolBox.setResult('rateResult', '<p style="color:var(--danger);">模具尺寸与制品尺寸均需大于 0</p>');
     return;
   }
   if (part > mold) {
+    __shrinkRateValid=false;
     ToolBox.setResult('rateResult', '<p style="color:var(--danger);">制品尺寸不应大于模具尺寸</p>');
     return;
   }
   var shrink = (mold - part) / mold * 100;
   var shrinkPerMm = (mold - part);
+  __shrinkRateValid=true;
   var html = '<p>成型收缩率：<strong>' + shrink.toFixed(3) + '%</strong></p>';
   html += '<p>收缩量：<strong>' + shrinkPerMm.toFixed(4) + ' mm</strong></p>';
-  html += '<p>收缩比：<strong>1:' + (100 / shrink).toFixed(0) + '</strong></p>';
+  html += (shrink===0?'<p>收缩比：<strong>无收缩（比例不适用）</strong></p>':'<p>收缩比：<strong>1:' + (100 / shrink).toFixed(0) + '</strong>（收缩量/每 100 mm 模具尺寸）</p>');
   const __g1=html;ToolBox.setResult('rateResult',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
 }
 
@@ -285,15 +289,18 @@ function calcMold() {
   var rateRaw = document.getElementById('shrinkRate').value.trim();
   var rate = Number(rateRaw);
   if (target <= 0) {
+    __shrinkMoldValid=false;
     ToolBox.setResult('moldResult', '<p style="color:var(--danger);">目标尺寸需大于 0</p>');
     return;
   }
   if (rateRaw === '' || !isFinite(rate) || rate < 0 || rate >= 100) {
+    __shrinkMoldValid=false;
     ToolBox.setResult('moldResult', '<p style="color:var(--danger);">收缩率须为 0–100%（不含 100%）的数值</p>');
     return;
   }
   var moldDim = target / (1 - rate / 100);
   var shrink = moldDim - target;
+  __shrinkMoldValid=true;
   var html = '<p>模具设计尺寸：<strong>' + moldDim.toFixed(4) + ' mm</strong></p>';
   html += '<p>放大量：<strong>' + shrink.toFixed(4) + ' mm</strong></p>';
   html += '<p>收缩率：<strong>' + rate.toFixed(2) + '%</strong></p>';
@@ -303,7 +310,7 @@ function calcMold() {
 function copyResult() {
   var activeTab = document.querySelector('.tab-content.active').id;
   var rbox = document.getElementById(activeTab === 'tab-rate' ? 'rateResult' : 'moldResult');
-  if (rbox && rbox.textContent.indexOf('须') !== -1) { ToolBox.showToast('请先修正输入', 'error'); return; }
+  if ((activeTab === 'tab-rate' && !__shrinkRateValid) || (activeTab === 'tab-mold' && !__shrinkMoldValid)) { ToolBox.showToast('请先修正输入', 'error'); return; }
   var text;
   if (activeTab === 'tab-rate') {
     var mold = parseFloat(document.getElementById('moldSize').value) || 0;

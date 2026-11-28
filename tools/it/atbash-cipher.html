@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 
-<script src="../../js/tool-page-runtime.js" defer></script>
+<script src="/js/tool-page-runtime.js" defer></script>
 <!-- TOOLBOX-TOOL-RUNTIME -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -23,7 +23,7 @@
 <link rel="icon" href="../../favicon.ico" sizes="16x16 32x32 48x48">
 <link rel="apple-touch-icon" href="../../apple-touch-icon.png">
 <link rel="stylesheet" href="../../css/common.css">
-<script src="../../js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
 <style>
 .mode-tabs{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;}
@@ -70,10 +70,10 @@
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
 <!-- TOOLBOX-SECURITY -->
 
-<script src="../../js/privacy.js" defer></script>
+<script src="/js/privacy.js" defer></script>
 <!-- TOOLBOX-PRIVACY-SCRIPT -->
 
-<script src="../../js/metrics.js" defer></script>
+<script src="/js/metrics.js" defer></script>
 <!-- TOOLBOX-METRICS-SCRIPT -->
 
 <script type="application/ld+json">
@@ -94,21 +94,21 @@
 <meta property="og:locale" content="zh_CN">
 <meta property="og:locale:alternate" content="zh_TW">
 <meta property="og:locale:alternate" content="en_US">
-<link rel="preload" as="style" href="../../css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link rel="stylesheet" href="../../css/nav-menu.css"></noscript>
-<script src="../../js/industry-info.js" defer></script>
-<script src="../../js/nav-menu.js" defer></script>
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
 
-<script src="../../js/tool-ux.js" defer></script>
+<script src="/js/tool-ux.js" defer></script>
 <!-- TOOLBOX-TOOL-UX -->
 
-<script src="../../js/analytics.js" defer></script>
+<script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 <script>
 (function(){try{var o=Storage.prototype.setItem;if(o&&!o.__tbSafe){var w=function(){try{if(window.__tbSyncWarned)return;window.__tbSyncWarned=true;if(window.ToolBox&&typeof window.ToolBox.showToast==='function')window.ToolBox.showToast('本次无法保存到本地存储，不影响本次计算','warning');}catch(_){}};var s=function(k,v){try{return o.call(this,k,v)}catch(e){var n=e&&e.name;if(n!=='QuotaExceededError'&&n!=='SecurityError'&&n!=='QUOTA_EXCEEDED_ERR'&&n!=='NS_ERROR_DOM_QUOTA_REACHED')throw e;try{window.__tbStorageWriteFailed=true}catch(_){}w();return undefined;}};s.__tbSafe=true;Storage.prototype.setItem=s;}}catch(e){}})();
 </script>
 
-<script src="../../js/tool-kit.js" defer></script>
+<script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
 <script type="application/ld+json">
 {
@@ -242,6 +242,13 @@
 
   <div class="card">
     <h2>📋 历史记录</h2>
+    <div style="margin-bottom:10px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--result-bg);">
+      <label style="display:flex;align-items:flex-start;gap:8px;font-size:13px;cursor:pointer;">
+        <input type="checkbox" id="saveHistoryOptIn" onchange="onHistoryOptInChange()" style="margin-top:2px;">
+        <span id="saveHistoryOptLabel">在本机保留历史（含明文/密文，默认关闭）</span>
+      </label>
+      <div id="saveHistoryOptNote" style="font-size:12px;color:var(--text-muted);margin-top:6px;line-height:1.6;">默认不保存；已有历史不会被自动删除，可用下方“清空历史”清除。</div>
+    </div>
     <div id="historyList" style="max-height:300px;overflow-y:auto;"></div>
     <div class="toolbar" style="margin-top:12px;">
       <button type="button" class="btn danger" onclick="clearHistory()">清空历史</button>
@@ -403,11 +410,32 @@ function escapeHtml(text){
 }
 
 // IT-N150: 500ms 防抖，停止输入后才写一条完整结果
+function __cipherHistoryIsEn(){
+  return (typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn()) || /lang=en-US/i.test(location.search);
+}
+function __cipherHistoryEnabled(){
+  var cb=document.getElementById('saveHistoryOptIn');
+  return !!(cb&&cb.checked);
+}
+function onHistoryOptInChange(){
+  if(__cipherHistoryEnabled()) return;
+  if(typeof cancelHistory==='function'){ cancelHistory(); return; }
+  cancelHistory();
+}
+function renderHistoryPrivacyLabels(){
+  var en=__cipherHistoryIsEn();
+  var label=document.getElementById('saveHistoryOptLabel');
+  var note=document.getElementById('saveHistoryOptNote');
+  if(label) label.textContent=en?'Keep history on this device (includes plaintext/ciphertext; off by default)':'在本机保留历史（含明文/密文，默认关闭）';
+  if(note) note.textContent=en?'Nothing is saved by default. Existing entries are not deleted automatically; use “Clear history” below to remove them.':'默认不保存；已有历史不会被自动删除，可用下方“清空历史”清除。';
+}
+document.addEventListener('DOMContentLoaded',renderHistoryPrivacyLabels);
 var __atbashHistoryTimer = null;
 function cancelHistory(){
   if(__atbashHistoryTimer){ clearTimeout(__atbashHistoryTimer); __atbashHistoryTimer=null; }
 }
 function __atbash_cipherScheduleHistory(input, output, mode){
+  if(!__cipherHistoryEnabled()){ cancelHistory(); return; }
   if(__atbashHistoryTimer){ clearTimeout(__atbashHistoryTimer); __atbashHistoryTimer=null; }
   __atbashHistoryTimer = setTimeout(function(){ __atbashHistoryTimer=null; saveHistory(input, output, mode); }, 500);
 }
@@ -646,7 +674,7 @@ else document.addEventListener('DOMContentLoaded', __atbash_cipherBoot);
   <div class="related-tools-grid">
     <a href="properties-parser.html" class="related-tool-card">
       <span class="rt-icon">📄</span>
-      <span class="rt-info"><span class="rt-name">.properties 解析器</span><span class="rt-desc">Java .properties 文件解析：支持 key=value、key:value、行内注释…</span></span>
+      <span class="rt-info"><span class="rt-name">.properties 解析器</span><span class="rt-desc">Java .properties 文件解析：支持 key=value、key:value、整行注释（…</span></span>
     </a>
     <a href="ast-viewer.html" class="related-tool-card">
       <span class="rt-icon">💻</span>

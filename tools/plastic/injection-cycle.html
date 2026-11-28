@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 
-<script src="../../js/tool-page-runtime.js" defer></script>
+<script src="/js/tool-page-runtime.js" defer></script>
 <!-- TOOLBOX-TOOL-RUNTIME -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -15,7 +15,7 @@
 <meta property="og:url" content="https://tools.dicomp.net/tools/plastic/injection-cycle.html">
 <meta name="twitter:card" content="summary">
 <link rel="stylesheet" href="../../css/common.css">
-<script src="../../js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
 
 
@@ -38,10 +38,10 @@
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
 <!-- TOOLBOX-SECURITY -->
 
-<script src="../../js/privacy.js" defer></script>
+<script src="/js/privacy.js" defer></script>
 <!-- TOOLBOX-PRIVACY-SCRIPT -->
 
-<script src="../../js/metrics.js" defer></script>
+<script src="/js/metrics.js" defer></script>
 <!-- TOOLBOX-METRICS-SCRIPT -->
 
 <script type="application/ld+json">
@@ -63,18 +63,18 @@
 <meta property="og:locale" content="zh_CN">
 <meta property="og:locale:alternate" content="zh_TW">
 <meta property="og:locale:alternate" content="en_US">
-<link rel="preload" as="style" href="../../css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link rel="stylesheet" href="../../css/nav-menu.css"></noscript>
-<script src="../../js/industry-info.js" defer></script>
-<script src="../../js/nav-menu.js" defer></script>
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
 
-<script src="../../js/tool-ux.js" defer></script>
+<script src="/js/tool-ux.js" defer></script>
 <!-- TOOLBOX-TOOL-UX -->
 
-<script src="../../js/analytics.js" defer></script>
+<script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 
-<script src="../../js/tool-kit.js" defer></script>
+<script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
 <script type="application/ld+json">
 {
@@ -275,6 +275,7 @@
 </div>
 
 <script>
+var __injValid=false;
 function calc() {
   var ids = ['injectTime','holdTime','coolTime','openTime','ejectTime','closeTime','hoursPerDay','yieldRate'];
   var vals = {}, bad = '';
@@ -290,6 +291,7 @@ function calc() {
   if (vals.hoursPerDay > 24) bad = bad || 'hoursPerDay';
   if (vals.yieldRate > 100) bad = bad || 'yieldRate';
   if (bad) {
+    __injValid=false;
     ToolBox.setResult('result', '<p style="color:var(--danger);">各工序时间与日运行小时须为非负数值，型腔数须为 1–256 的整数，良率须在 0–100% 之间</p>');
     ToolBox.setResult('chartArea', '');
     return;
@@ -300,6 +302,7 @@ function calc() {
 
   var totalCycle = inj + hold + cool + openT + eject + closeT;
   if (totalCycle <= 0) {
+    __injValid=false;
     ToolBox.setResult('result', '<p style="color:var(--danger);">总周期需大于 0</p>');
     ToolBox.setResult('chartArea', '');
     return;
@@ -308,12 +311,13 @@ function calc() {
   var dailyOutput = shotsPerHour * hpd * cav;
   var dailyGood = dailyOutput * (yr / 100);
 
+  __injValid=true;
   var html = '<p>成型总周期：<strong>' + totalCycle.toFixed(1) + ' s</strong></p>';
-  html += '<p>每小时注射次数：<strong>' + shotsPerHour.toFixed(1) + ' 次/h</strong></p>';
-  html += '<p>每模产量：<strong>' + cav + ' 个/模</strong></p>';
-  html += '<p>每日产量（理论）：<strong>' + Math.round(dailyOutput) + ' 个/天</strong></p>';
-  html += '<p>每日良品（良率' + yr + '%）：<strong>' + Math.round(dailyGood) + ' 个/天</strong></p>';
-  html += '<p>单件耗时：<strong>' + (totalCycle / cav).toFixed(2) + ' s/件</strong></p>';
+  html += '<p>每小时注射次数：<strong>' + shotsPerHour.toFixed(1) + '</strong> 次/h</p>';
+  html += '<p>每模产量：<strong>' + cav + '</strong> 个/模</p>';
+  html += '<p>每日产量（理论）：<strong>' + Math.round(dailyOutput) + '</strong> 个/天</p>';
+  html += '<p>每日良品（按设定良率）：<strong>' + Math.round(dailyGood) + '</strong> 个/天</p>';
+  html += '<p>单件耗时：<strong>' + (totalCycle / cav).toFixed(2) + '</strong> s/件</p>';
   const __g0=html;ToolBox.setResult('result',(typeof __g0==='number'?(isFinite(__g0)?__g0:'—'):String(__g0).replace(/Infinity|NaN/g,'—')));
 
   var phases = [
@@ -331,7 +335,7 @@ function calc() {
 
 function copyResult() {
   var rt = document.getElementById('result');
-  if (rt && rt.textContent.indexOf('须为') !== -1) { ToolBox.showToast('请先修正输入', 'error'); return; }
+  if (!__injValid) { ToolBox.showToast('请先修正输入', 'error'); return; }
   var totalCycle = (parseFloat(document.getElementById('injectTime').value)||0) +
     (parseFloat(document.getElementById('holdTime').value)||0) +
     (parseFloat(document.getElementById('coolTime').value)||0) +

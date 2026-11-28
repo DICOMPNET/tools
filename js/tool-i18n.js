@@ -738,10 +738,6 @@
   }
 
   var EN_DATA_SRC = '/js/tool-i18n-en.js';
-  // 子路径部署适配：预览站 /tools/ 下补 /tools 前缀
-  try {
-    if (window.I18n && typeof window.I18n.assetUrl === 'function') EN_DATA_SRC = window.I18n.assetUrl(EN_DATA_SRC);
-  } catch (e) {}
   function applyAll() {
     syncEnMaps();   // 语言切换事件入口同样先同步全局层词表（数据可能刚动态加载完）
     applyChrome();

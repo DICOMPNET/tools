@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 
-<script src="../../js/tool-page-runtime.js" defer></script>
+<script src="/js/tool-page-runtime.js" defer></script>
 <!-- TOOLBOX-TOOL-RUNTIME -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -15,7 +15,7 @@
 <meta name="twitter:card" content="summary">
 <meta name="description" content="地理距离计算器是一款免费的在线科学研究工具，基于 Haversine 公式计算两点间大圆距离，支持方位角计算与地图可视化。多点到点距离/半径圈。">
 <link rel="stylesheet" href="../../css/common.css">
-<script src="../../js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
 <style>
 .point-section {
@@ -292,10 +292,10 @@
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
 <!-- TOOLBOX-SECURITY -->
 
-<script src="../../js/privacy.js" defer></script>
+<script src="/js/privacy.js" defer></script>
 <!-- TOOLBOX-PRIVACY-SCRIPT -->
 
-<script src="../../js/metrics.js" defer></script>
+<script src="/js/metrics.js" defer></script>
 <!-- TOOLBOX-METRICS-SCRIPT -->
 
 <script type="application/ld+json">
@@ -317,18 +317,18 @@
 <meta property="og:locale" content="zh_CN">
 <meta property="og:locale:alternate" content="zh_TW">
 <meta property="og:locale:alternate" content="en_US">
-<link rel="preload" as="style" href="../../css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link rel="stylesheet" href="../../css/nav-menu.css"></noscript>
-<script src="../../js/industry-info.js" defer></script>
-<script src="../../js/nav-menu.js" defer></script>
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
 
-<script src="../../js/tool-ux.js" defer></script>
+<script src="/js/tool-ux.js" defer></script>
 <!-- TOOLBOX-TOOL-UX -->
 
-<script src="../../js/analytics.js" defer></script>
+<script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 
-<script src="../../js/tool-kit.js" defer></script>
+<script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
 <script type="application/ld+json">
 {
@@ -692,6 +692,7 @@ function haversine(lat1, lon1, lat2, lon2) {
   var a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
     Math.cos(lat1 * DEG2RAD) * Math.cos(lat2 * DEG2RAD) *
     Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  a = Math.min(1, Math.max(0, a)); // 对跖点浮点误差可能 >1，clamp 后才能求距离
   var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return EARTH_RADIUS_KM * c;
 }
@@ -738,21 +739,25 @@ function calculate() {
   var distMile = distKm * 0.621371;
   var distNm = distKm * 0.539957;
   var brng = bearing(lat1, lon1, lat2, lon2);
-  var dir = bearingDirection(brng);
+  var coincident = Math.abs(lat1-lat2) < 1e-12 && Math.abs((((lon2-lon1)%360)+360)%360) < 1e-12;
+  var dLonAbs = Math.abs((((lon2-lon1)%360)+360)%360);
+  var antipodal = Math.abs(lat1+lat2) < 1e-9 && Math.abs(dLonAbs-180) < 1e-9;
+  var brngText = (coincident || antipodal) ? '—' : brng.toFixed(2) + '°';
+  var dir = coincident ? '两点重合：方位无唯一解' : antipodal ? '对跖点：方位无唯一解' : bearingDirection(brng);
 
   document.getElementById('result-km').textContent = distKm.toFixed(2);
   document.getElementById('result-mile').textContent = distMile.toFixed(2);
   document.getElementById('result-nm').textContent = distNm.toFixed(2);
-  document.getElementById('bearing-val').textContent = brng.toFixed(2) + '°';
+  document.getElementById('bearing-val').textContent = brngText;
   document.getElementById('bearing-dir').textContent = dir;
-  document.getElementById('bearing-needle').style.transform = 'rotate(' + brng + 'deg)';
+  document.getElementById('bearing-needle').style.transform = 'rotate(' + ((coincident||antipodal)?0:brng) + 'deg)';
 
   // 计算详情
   var detailHtml = '<p style="font-weight:600;margin-bottom:6px;">📊 计算详情</p>' +
     '<p>📍 地点 A：(' + lat1.toFixed(4) + '°, ' + lon1.toFixed(4) + '°)</p>' +
     '<p>📍 地点 B：(' + lat2.toFixed(4) + '°, ' + lon2.toFixed(4) + '°)</p>' +
     '<p>📏 大圆距离：<strong>' + distKm.toFixed(4) + ' km</strong></p>' +
-    '<p>🧭 初始方位角：<strong>' + brng.toFixed(4) + '°</strong> (' + dir + ')</p>' +
+    '<p>🧭 初始方位角：<strong>' + ((coincident||antipodal)?'—':brng.toFixed(4) + '°') + '</strong> (' + dir + ')</p>' +
     '<p>🌐 地球半径：6,371 km</p>' +
     '<p style="margin-top:6px;font-size:12px;color:var(--text-muted);">公式：Haversine 大圆距离公式 | 海里换算系数：1 km ≈ 0.539957 NM | 英里换算系数：1 km ≈ 0.621371 mi</p>';
   const __h2=detailHtml;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('detail-box').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('detail-box').innerHTML=__h2;

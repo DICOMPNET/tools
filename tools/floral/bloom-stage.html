@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 
-<script src="../../js/tool-page-runtime.js" defer></script>
+<script src="/js/tool-page-runtime.js" defer></script>
 <!-- TOOLBOX-TOOL-RUNTIME -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -22,11 +22,12 @@
 <link rel="icon" href="../../favicon.ico" sizes="16x16 32x32 48x48">
 <link rel="apple-touch-icon" href="../../apple-touch-icon.png">
 <link rel="stylesheet" href="../../css/common.css">
-<script src="../../js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
 <style>
 .bloom-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-top:12px;}
-.bloom-card{background:var(--result-bg);border:1px solid var(--border);border-radius:12px;padding:16px;cursor:pointer;transition:all 0.2s;}
+.bloom-card{display:block;width:100%;text-align:left;font:inherit;color:inherit;background:var(--result-bg);border:1px solid var(--border);border-radius:12px;padding:16px;cursor:pointer;transition:all 0.2s;}
+.bloom-card:focus-visible{outline:3px solid var(--primary);outline-offset:2px;}
 .bloom-card:hover{border-color:var(--primary);transform:translateY(-2px);}
 .bloom-card.active{border-color:var(--primary);box-shadow:0 4px 14px rgba(255,107,53,0.15);}
 .bloom-card .icon{font-size:32px;}
@@ -55,10 +56,10 @@
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
 <!-- TOOLBOX-SECURITY -->
 
-<script src="../../js/privacy.js" defer></script>
+<script src="/js/privacy.js" defer></script>
 <!-- TOOLBOX-PRIVACY-SCRIPT -->
 
-<script src="../../js/metrics.js" defer></script>
+<script src="/js/metrics.js" defer></script>
 <!-- TOOLBOX-METRICS-SCRIPT -->
 
 <script type="application/ld+json">
@@ -79,18 +80,18 @@
 <meta property="og:locale" content="zh_CN">
 <meta property="og:locale:alternate" content="zh_TW">
 <meta property="og:locale:alternate" content="en_US">
-<link rel="preload" as="style" href="../../css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link rel="stylesheet" href="../../css/nav-menu.css"></noscript>
-<script src="../../js/industry-info.js" defer></script>
-<script src="../../js/nav-menu.js" defer></script>
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
 
-<script src="../../js/tool-ux.js" defer></script>
+<script src="/js/tool-ux.js" defer></script>
 <!-- TOOLBOX-TOOL-UX -->
 
-<script src="../../js/analytics.js" defer></script>
+<script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 
-<script src="../../js/tool-kit.js" defer></script>
+<script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
 <script type="application/ld+json">
 {
@@ -148,11 +149,11 @@
   
 </div>
 
-    <div class="bloom-cards" id="bloomCards"></div>
+    <div class="bloom-cards" id="bloomCards" role="group" aria-label="花朵开放度等级选择"></div>
     <div class="toolbar" style="margin:10px 0;">
       <button type="button" class="btn" onclick="window.__bsExport()">⬇️ 导出开放度等级 CSV</button>
     </div>
-    <div class="result-detail" id="resultDetail"></div>
+    <div class="result-detail" id="resultDetail" aria-live="polite"></div>
 <div id="__tbmExtras" style="margin-top:12px"></div>
 
     <table id="bsHidden" style="display:none"><thead><tr><th data-zh="等级" scope="col">Grade</th><th scope="col">Stage</th><th data-zh="说明" scope="col">Description</th><th data-zh="详情" scope="col">Detail</th><th scope="col">Use Cases</th></tr></thead><tbody></tbody></table>
@@ -266,19 +267,19 @@ var STAGES=[
 function renderCards(){
   var html='';
   STAGES.forEach(function(s){
-    html+='<div class="bloom-card" onclick="selectStage('+s.grade+',this)">'+
+    html+='<button type="button" class="bloom-card" aria-pressed="false" onclick="selectStage('+s.grade+',this)">'+
       '<div class="icon">'+s.icon+'</div>'+
       '<div class="stage">等级 '+s.grade+'：'+s.name+'</div>'+
       '<div class="desc">'+s.desc+'</div>'+
       '<span class="grade '+s.cls+'">开放度 '+s.grade+'/5</span>'+
-      '</div>';
+      '</button>';
   });
   const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('bloomCards').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('bloomCards').innerHTML=__h0;
 }
 
 function selectStage(grade,el){
-  document.querySelectorAll('.bloom-card').forEach(function(c){c.classList.remove('active');});
-  if(el)el.classList.add('active');
+  document.querySelectorAll('.bloom-card').forEach(function(c){c.classList.remove('active');c.setAttribute('aria-pressed','false');});
+  if(el){el.classList.add('active');el.setAttribute('aria-pressed','true');}
   var s=STAGES[grade];
   var uses=[];
   if(grade<=1)uses=['远距离运输','长期储存（2-3天后使用）','花苞期采切的花卉'];

@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 
-<script src="../../js/tool-page-runtime.js" defer></script>
+<script src="/js/tool-page-runtime.js" defer></script>
 <!-- TOOLBOX-TOOL-RUNTIME -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -23,7 +23,7 @@
 <link rel="icon" href="../../favicon.ico" sizes="16x16 32x32 48x48">
 <link rel="apple-touch-icon" href="../../apple-touch-icon.png">
 <link rel="stylesheet" href="../../css/common.css">
-<script src="../../js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
 <style>
 .output-pre{background:#1e1e2e;color:#e0e0e0;border-radius:8px;padding:14px;font-family:'SF Mono','Courier New',monospace;font-size:13px;white-space:pre-wrap;word-break:break-all;min-height:120px;max-height:500px;overflow:auto;margin-top:12px;}
@@ -53,10 +53,10 @@
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
 <!-- TOOLBOX-SECURITY -->
 
-<script src="../../js/privacy.js" defer></script>
+<script src="/js/privacy.js" defer></script>
 <!-- TOOLBOX-PRIVACY-SCRIPT -->
 
-<script src="../../js/metrics.js" defer></script>
+<script src="/js/metrics.js" defer></script>
 <!-- TOOLBOX-METRICS-SCRIPT -->
 
 <script type="application/ld+json">
@@ -77,17 +77,17 @@
 <meta property="og:locale" content="zh_CN">
 <meta property="og:locale:alternate" content="zh_TW">
 <meta property="og:locale:alternate" content="en_US">
-<link rel="preload" as="style" href="../../css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link rel="stylesheet" href="../../css/nav-menu.css"></noscript>
-<script src="../../js/industry-info.js" defer></script>
-<script src="../../js/nav-menu.js" defer></script>
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
 
-<script src="../../js/tool-ux.js" defer></script>
+<script src="/js/tool-ux.js" defer></script>
 <!-- TOOLBOX-TOOL-UX -->
-<script src="../../js/analytics.js" defer></script>
+<script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 
-<script src="../../js/tool-kit.js" defer></script>
+<script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
 <script type="application/ld+json">
 {
@@ -244,13 +244,35 @@
 const SAMPLE = '<book id="b1" lang="zh"><title>XML 入门</title><author><name>Alice</name><age>30</age></author><tags><tag>xml</tag><tag>web</tag></tags></book>';
 function xmlWellFormed(xml){
   var s=String(xml==null?'':xml).replace(/<!--[\s\S]*?-->/g,'').replace(/<!\[CDATA\[[\s\S]*?\]\]>/g,'').replace(/<\?[\s\S]*?\?>/g,'');
-  var re=/<\s*(\/?)\s*([A-Za-z_][\w:.-]*)([^>]*?)(\/?)>/g,m,stack=[];
-  while((m=re.exec(s))){
-    if(m[1]){ if(stack.pop()!==m[2]) return false; }
-    else if(m[4]!=='/' && m[2].toLowerCase()!=='!doctype') stack.push(m[2]);
+  // 引号感知的结构扫描：属性值里的 > 不能提前结束标签，同时严格校验闭合标签配对。
+  function tagEnd(start){
+    var quote='';
+    for(var i=start+1;i<s.length;i++){
+      var ch=s.charAt(i);
+      if(quote){ if(ch===quote) quote=''; }
+      else if(ch==='"'||ch==="'") quote=ch;
+      else if(ch==='>') return i;
+    }
+    return -1;
   }
-  if(stack.length) return false;
-  if(s.replace(re,'').indexOf('<')>=0) return false;
+  var i=0,stack=[];
+  while((i=s.indexOf('<',i))>=0){
+    var end=tagEnd(i); if(end<0) return false;
+    var tag=s.slice(i,end+1);
+    var m=/^<\s*(\/?)\s*([^\s<>/]+)([\s\S]*)$/.exec(tag);
+    if(!m) return false;
+    var closing=m[1]==='/', name=m[2], self=/\/\s*>$/.test(tag);
+    if(closing){ if(stack.pop()!==name) return false; }
+    else if(!self && name.toLowerCase()!=='!doctype') stack.push(name);
+    i=end+1;
+  }
+  if(stack.length!==0) return false;
+  if(typeof DOMParser==='function'){
+    try{
+      var doc=new DOMParser().parseFromString(s,'application/xml');
+      return !xmlParseFailed(doc);
+    }catch(e){return false;}
+  }
   return true;
 }
 function xmlParseFailed(doc){
@@ -479,7 +501,7 @@ else document.addEventListener('DOMContentLoaded', __xml_to_jsonBoot);
   <div class="related-tools-grid">
     <a href="properties-parser.html" class="related-tool-card">
       <span class="rt-icon">📄</span>
-      <span class="rt-info"><span class="rt-name">.properties 解析器</span><span class="rt-desc">Java .properties 文件解析：支持 key=value、key:value、行内注释…</span></span>
+      <span class="rt-info"><span class="rt-name">.properties 解析器</span><span class="rt-desc">Java .properties 文件解析：支持 key=value、key:value、整行注释（…</span></span>
     </a>
     <a href="ast-viewer.html" class="related-tool-card">
       <span class="rt-icon">💻</span>

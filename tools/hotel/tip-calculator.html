@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 
-<script src="../../js/tool-page-runtime.js" defer></script>
+<script src="/js/tool-page-runtime.js" defer></script>
 <!-- TOOLBOX-TOOL-RUNTIME -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -21,7 +21,7 @@
 <link rel="icon" href="../../favicon.ico" sizes="16x16 32x32 48x48">
 <link rel="apple-touch-icon" href="../../apple-touch-icon.png">
 <link rel="stylesheet" href="../../css/common.css">
-<script src="../../js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
 
 <meta property="og:image" content="https://tools.dicomp.net/og-image.png">
@@ -42,10 +42,10 @@
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
 <!-- TOOLBOX-SECURITY -->
 
-<script src="../../js/privacy.js" defer></script>
+<script src="/js/privacy.js" defer></script>
 <!-- TOOLBOX-PRIVACY-SCRIPT -->
 
-<script src="../../js/metrics.js" defer></script>
+<script src="/js/metrics.js" defer></script>
 <!-- TOOLBOX-METRICS-SCRIPT -->
 
 <script type="application/ld+json">
@@ -66,17 +66,17 @@
 <meta property="og:locale" content="zh_CN">
 <meta property="og:locale:alternate" content="zh_TW">
 <meta property="og:locale:alternate" content="en_US">
-<link rel="preload" as="style" href="../../css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link rel="stylesheet" href="../../css/nav-menu.css"></noscript>
-<script src="../../js/industry-info.js" defer></script>
-<script src="../../js/nav-menu.js" defer></script>
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
 
-<script src="../../js/tool-ux.js" defer></script>
+<script src="/js/tool-ux.js" defer></script>
 <!-- TOOLBOX-TOOL-UX -->
 
-<script src="../../js/analytics.js" defer></script>
+<script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
-<script src="../../js/tool-kit.js" defer></script>
+<script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
 <script type="application/ld+json">
 {
@@ -104,7 +104,7 @@
 </script>
 <meta property="og:site_name" content="ToolBox">
 
-<script src="../../js/hot-tool-enhancements.js" defer></script>
+<script src="/js/hot-tool-enhancements.js" defer></script>
 <!-- TOOLBOX-HOT-TOOL-UX -->
 </head>
 <body>
@@ -139,7 +139,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="按消费金额与百分比计算小费、总额及人均分摊">Calculate tip, tax, total and exact per-person split by bill mode; copy or export results.</p>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理与说明</div>
-      <div class="formula-eq">未含税口径：税额 = 账单 × 税率，总额 = 账单 + 税额 + 小费；已含税口径：税额 = 账单 × 税率 ÷（100 + 税率），税前 = 账单 − 税额，总额 = 账单 + 小费。小费 = 小费基数 × 比例（基数可选账单或税前）；精确分账按货币最小单位计算，余数从第 1 人起依次分配，各人金额之和严格等于总额。</div>
+      <div class="formula-eq">未含税口径：税额 = 账单 × 税率，总额 = 账单 + 税额 + 小费；已含税口径：税额 = 账单 × 税率 ÷（100 + 税率），税前 = 账单 − 税额，总额 = 账单 + 小费。小费 = 小费基数 × 比例（基数可选账单或税前）；精确分账按货币最小单位计算，余数从第 1 人起依次分配，各人金额之和严格等于总额；人数限 1–1000 的整数，页面只预览前 20 人，复制与导出用「前 R 人各 X、其余 Y 人各 Z」摘要，不按人数构造全量数组。</div>
   
 </div>
 
@@ -371,18 +371,25 @@ function tipRead(){
   var totalMinor = Math.round(total*factor);
   var eachMinor = Math.floor(totalMinor/people);
   var remainder = totalMinor - eachMinor*people;
-  var split=[];
-  for(var i=0;i<people;i++) split.push((eachMinor+(i<remainder?1:0))/factor);
+  var lowAmount = eachMinor/factor, highAmount = (eachMinor+1)/factor;
+  var previewCount = Math.min(people,20), split=[];
+  for(var i=0;i<previewCount;i++) split.push(i<remainder?highAmount:lowAmount);
   var perPerson = total/people;
   return {ok:true,bill:bill,tipPct:tipPct,tax:tax,people:people,mode:mode,baseMode:baseMode,cur:cur,digits:digits,factor:factor,
-          taxAmount:taxAmount,preTax:preTax,tipBase:tipBase,tip:tip,total:total,totalMinor:totalMinor,split:split,remainder:remainder,perPerson:perPerson};
+          taxAmount:taxAmount,preTax:preTax,tipBase:tipBase,tip:tip,total:total,totalMinor:totalMinor,split:split,remainder:remainder,
+          highCount:remainder,highAmount:highAmount,lowAmount:lowAmount,previewCount:previewCount,perPerson:perPerson};
 }
 function tipSplitText(d,en,limit){
   if(!d||!d.split||!d.split.length) return '';
-  var max=limit||20, out=[];
-  for(var i=0;i<d.split.length;i++){
-    if(i>=max){out.push(en?'… ('+(d.people-max)+' more)':'…（其余 '+(d.people-max)+' 人）');break;}
-    out.push((i+1)+': '+fmt(d.split[i],d.digits));
+  var max=Math.min(limit||20,d.people), out=[];
+  for(var i=0;i<max;i++) out.push((i+1)+': '+fmt(d.split[i],d.digits));
+  if(d.people>max) out.push(en?'… ('+(d.people-max)+' more)':'…（其余 '+(d.people-max)+' 人）');
+  if(d.highCount>0){
+    out.push(en?('Exact split: first '+d.highCount+' at '+fmt(d.highAmount,d.digits)+' each, remaining '+(d.people-d.highCount)+' at '+fmt(d.lowAmount,d.digits)+' each')
+              :('精确分账：前 '+d.highCount+' 人各 '+fmt(d.highAmount,d.digits)+'，其余 '+(d.people-d.highCount)+' 人各 '+fmt(d.lowAmount,d.digits)));
+  }else{
+    out.push(en?('Exact split: all '+d.people+' at '+fmt(d.lowAmount,d.digits)+' each')
+              :('精确分账：'+d.people+' 人各 '+fmt(d.lowAmount,d.digits)));
   }
   return out.join(en?' · ':'；');
 }
@@ -633,8 +640,14 @@ function __tip_calculatorExport(){
     rows.push([en?'People':'人数',String(d.people)]);
     rows.push([en?'Currency precision':'货币精度',d.cur+' '+d.digits+(en?' decimals':' 位小数')]);
     rows.push([en?'Remainder':'余数',String(d.remainder)+(en?' minor unit(s)':' 个最小单位')]);
-    for(var i=0;i<d.split.length;i++){
+    for(var i=0;i<d.previewCount;i++){
         rows.push([(en?'Person ':'第 ')+(i+1)+(en?'':' 人'),fmt(d.split[i],d.digits)]);
+    }
+    if(d.highCount>0){
+        rows.push([en?'Remainder group':'余数分组',(en?'First ':'前 ')+d.highCount+(en?' people at ':' 人各 ')+fmt(d.highAmount,d.digits)+(en?' each':'')]);
+        rows.push([en?'Remaining group':'其余分组',(en?'Remaining ':'其余 ')+(d.people-d.highCount)+(en?' people at ':' 人各 ')+fmt(d.lowAmount,d.digits)+(en?' each':'')]);
+    }else{
+        rows.push([en?'Per person':'每人',(en?'All ':'全部 ')+d.people+(en?' at ':' 人各 ')+fmt(d.lowAmount,d.digits)+(en?' each':'')]);
     }
     try{
         if(TBKit.util.exportCsv){ TBKit.util.exportCsv('tip-calculator.csv',rows); return; }

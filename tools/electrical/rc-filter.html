@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 
-<script src="../../js/tool-page-runtime.js" defer></script>
+<script src="/js/tool-page-runtime.js" defer></script>
 <!-- TOOLBOX-TOOL-RUNTIME -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -15,7 +15,7 @@
 <meta name="twitter:card" content="summary">
 <meta name="description" content="RC 低通滤波截止频率计算是一款免费的在线电气工程工具，由电阻与电容按 −3dB 求截止频率，用于滤波与信号调理设计。音频低通：去除高频噪声，截止频率 20kHz。">
 <link rel="stylesheet" href="../../css/common.css">
-<script src="../../js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
 
 
@@ -37,10 +37,10 @@
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
 <!-- TOOLBOX-SECURITY -->
 
-<script src="../../js/privacy.js" defer></script>
+<script src="/js/privacy.js" defer></script>
 <!-- TOOLBOX-PRIVACY-SCRIPT -->
 
-<script src="../../js/metrics.js" defer></script>
+<script src="/js/metrics.js" defer></script>
 <!-- TOOLBOX-METRICS-SCRIPT -->
 
 <script type="application/ld+json">
@@ -62,18 +62,18 @@
 <meta property="og:locale" content="zh_CN">
 <meta property="og:locale:alternate" content="zh_TW">
 <meta property="og:locale:alternate" content="en_US">
-<link rel="preload" as="style" href="../../css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link rel="stylesheet" href="../../css/nav-menu.css"></noscript>
-<script src="../../js/industry-info.js" defer></script>
-<script src="../../js/nav-menu.js" defer></script>
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
 
-<script src="../../js/tool-ux.js" defer></script>
+<script src="/js/tool-ux.js" defer></script>
 <!-- TOOLBOX-TOOL-UX -->
 
-<script src="../../js/analytics.js" defer></script>
+<script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 
-<script src="../../js/tool-kit.js" defer></script>
+<script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
 <script type="application/ld+json">
 {
@@ -235,9 +235,12 @@
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){
-            if(['R','C'].every(function(id){var e=document.getElementById(id);return !e||String(e.value).trim()==='';})){ToolBox.setResult('result','<p class="tip-error">请输入必要参数后再计算。</p>');return;}
+            window.__rcOk=false;
+            var a=document.getElementById('R'),b=document.getElementById('C');
+            if(!a||!b||String(a.value).trim()===''||String(b.value).trim()===''){ToolBox.setResult('result','<p class="tip-error">请填写 R 与 C（空值不按 0）。</p>');return;}
             const R=num('R')*1000, C=num('C')*1e-6; // Ω, F
-            if(R<=0||C<=0){ToolBox.setResult('result','<p class="tip-error">R、C 须>0。</p>');return;}
+            if(!isFinite(R)||!isFinite(C)||R<=0||C<=0){ToolBox.setResult('result','<p class="tip-error">R、C 须为有限正数。</p>');return;}
+            window.__rcOk=true;
             const fc=1/(2*Math.PI*R*C);
             const __g1=dataGrid([
                 [fc.toFixed(1),'截止频率 f_c (Hz)'],
@@ -253,6 +256,7 @@ function __rc_filterNum(id){var e=document.getElementById(id);var v=e?parseFloat
 function __rc_filterExtras(){
     function __rc_filterRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
+    if(!window.__rcOk){TBKit.matrix.table('#rc_filterTable',{head:TBKit.util.isEn()?['Item','Value']:['项目','数值'],rows:[]});return;}
     var R=num('R')*1000, C=num('C')*1e-6; // Ω, F
     var fc=1/(2*Math.PI*R*C);
     if (!isFinite(__rc_filterNum('R')) || !isFinite(__rc_filterNum('C'))) return;

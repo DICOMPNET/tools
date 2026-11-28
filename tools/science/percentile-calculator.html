@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 
-<script src="../../js/tool-page-runtime.js" defer></script>
+<script src="/js/tool-page-runtime.js" defer></script>
 <!-- TOOLBOX-TOOL-RUNTIME -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -23,7 +23,7 @@
 <link rel="icon" href="../../favicon.ico" sizes="16x16 32x32 48x48">
 <link rel="apple-touch-icon" href="../../apple-touch-icon.png">
 <link rel="stylesheet" href="../../css/common.css">
-<script src="../../js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
 <style>
 .step-line{padding:8px 12px;border-left:3px solid var(--primary);background:#f8f9ff;margin-bottom:6px;border-radius:0 6px 6px 0;font-size:14px;}
@@ -54,10 +54,10 @@
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
 <!-- TOOLBOX-SECURITY -->
 
-<script src="../../js/privacy.js" defer></script>
+<script src="/js/privacy.js" defer></script>
 <!-- TOOLBOX-PRIVACY-SCRIPT -->
 
-<script src="../../js/metrics.js" defer></script>
+<script src="/js/metrics.js" defer></script>
 <!-- TOOLBOX-METRICS-SCRIPT -->
 
 <script type="application/ld+json">
@@ -78,18 +78,18 @@
 <meta property="og:locale" content="zh_CN">
 <meta property="og:locale:alternate" content="zh_TW">
 <meta property="og:locale:alternate" content="en_US">
-<link rel="preload" as="style" href="../../css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link rel="stylesheet" href="../../css/nav-menu.css"></noscript>
-<script src="../../js/industry-info.js" defer></script>
-<script src="../../js/nav-menu.js" defer></script>
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
 
-<script src="../../js/tool-ux.js" defer></script>
+<script src="/js/tool-ux.js" defer></script>
 <!-- TOOLBOX-TOOL-UX -->
 
-<script src="../../js/analytics.js" defer></script>
+<script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 
-<script src="../../js/tool-kit.js" defer></script>
+<script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
 <script type="application/ld+json">
 {
@@ -236,15 +236,35 @@
 function fmt(x){
   if(!isFinite(x)) return '未定义';
   if(x===0) return '0';
-  if(Math.abs(x)>1e15||Math.abs(x)<1e-6) return x.toExponential(6);
-  return (Math.round(x*1e10)/1e10).toLocaleString();
+  var ax=Math.abs(x);
+  if(ax<1e-6||ax>=1e15) return x.toExponential(6);
+  if(Number(x.toFixed(3))===0) return x.toLocaleString(undefined,{maximumSignificantDigits:6});
+  return x.toLocaleString(undefined,{maximumFractionDigits:3});
 }
+function __unsafeIntToken(t){
+  var lit=/^([+-]?)(\d+)(?:\.(\d+))?(?:[eE]([+-]?\d+))?$/.exec(String(t).trim());
+  if(!lit) return false;
+  var v=Number(t);
+  if(!isFinite(v)) return true;
+  var digits=(lit[2]+(lit[3]||'')).replace(/^0+/,'');
+  if(digits==='') return false; // 全零
+  if(v===0) return true; // 下溢成 0
+  var sig=digits.replace(/0+$/,'');
+  if(Math.abs(v)>Number.MAX_SAFE_INTEGER){
+    // 无指数或 e0 的整数字面量必须逐位安全；科学计数形式仅在有效数字较少时视为近似值。
+    if(!lit[4]||Number(lit[4])===0) return true;
+    if(Number.isInteger(v)&&sig.length>15) return true;
+  }
+  return false;
+}
+function __escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
 function parseData(str){
   const toks=str.split(/[,\s\n;]+/).map(s=>s.trim()).filter(s=>s);
   const vals=[];
   for(let i=0;i<toks.length;i++){
     const v=Number(toks[i]);
     if(!isFinite(v)) return {error:toks[i]};
+    if(__unsafeIntToken(toks[i])) return {error:toks[i],unsafe:true};
     vals.push(v);
   }
   return {vals:vals};
@@ -262,7 +282,7 @@ function quantileLinear(sorted, p){
 function calculate(){
   const out=document.getElementById('output');
   const parsed=parseData(document.getElementById('data').value);
-  if(parsed.error!==undefined){out.innerHTML='<p style="color:var(--danger)">数据项「'+parsed.error+'」不是有效数值，请修正或删除后重试</p>';return;}
+  if(parsed.error!==undefined){out.innerHTML='<p style="color:var(--danger)">'+(parsed.unsafe?'数据项「'+__escHtml(parsed.error)+'」整数超出安全整数范围（±(2^53−1)）或无法被 Number 精确表示（下溢/整数字面量不一致）；请改用可精确表示的值或删除该项':'数据项「'+__escHtml(parsed.error)+'」不是有效数值，请修正或删除后重试')+'</p>';return;}
   const data=parsed.vals;
   const pctStr=document.getElementById('percentiles').value;
   if(data.length===0){const __h0='<p style="color:var(--danger)" data-zh="请输入有效数据">Please enter valid data.</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h0;return;}
@@ -270,7 +290,7 @@ function calculate(){
   const pcts=[];
   for(let i=0;i<pctToks.length;i++){
     const v=Number(pctToks[i]);
-    if(!isFinite(v)||v<0||v>100){out.innerHTML='<p style="color:var(--danger)">百分位「'+pctToks[i]+'」无效，须为 0–100 之间的数值</p>';return;}
+    if(!isFinite(v)||v<0||v>100){out.innerHTML='<p style="color:var(--danger)">百分位「'+__escHtml(pctToks[i])+'」无效，须为 0–100 之间的数值</p>';return;}
     pcts.push(v);
   }
   if(pcts.length===0){const __h1='<p style="color:var(--danger)">请输入 0-100 之间的百分位</p>';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h1;return;}

@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 
-<script src="../../js/tool-page-runtime.js" defer></script>
+<script src="/js/tool-page-runtime.js" defer></script>
 <!-- TOOLBOX-TOOL-RUNTIME -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -15,7 +15,7 @@
 <meta name="twitter:card" content="summary">
 <meta name="description" content="电流分流器计算是一款免费的在线电气工程工具，输入总电流与并联支路电阻，按分流公式 I_x=I·R_total/R_x 计算各支路电流，用于电路分析与分流器设计">
 <link rel="stylesheet" href="../../css/common.css">
-<script src="../../js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
 
 
@@ -37,10 +37,10 @@
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
 <!-- TOOLBOX-SECURITY -->
 
-<script src="../../js/privacy.js" defer></script>
+<script src="/js/privacy.js" defer></script>
 <!-- TOOLBOX-PRIVACY-SCRIPT -->
 
-<script src="../../js/metrics.js" defer></script>
+<script src="/js/metrics.js" defer></script>
 <!-- TOOLBOX-METRICS-SCRIPT -->
 
 <script type="application/ld+json">
@@ -62,18 +62,18 @@
 <meta property="og:locale" content="zh_CN">
 <meta property="og:locale:alternate" content="zh_TW">
 <meta property="og:locale:alternate" content="en_US">
-<link rel="preload" as="style" href="../../css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link rel="stylesheet" href="../../css/nav-menu.css"></noscript>
-<script src="../../js/industry-info.js" defer></script>
-<script src="../../js/nav-menu.js" defer></script>
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
 
-<script src="../../js/tool-ux.js" defer></script>
+<script src="/js/tool-ux.js" defer></script>
 <!-- TOOLBOX-TOOL-UX -->
 
-<script src="../../js/analytics.js" defer></script>
+<script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 
-<script src="../../js/tool-kit.js" defer></script>
+<script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
 <script type="application/ld+json">
 {
@@ -238,9 +238,12 @@
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){
-            if(['It','R1','R2'].every(function(id){var e=document.getElementById(id);return !e||String(e.value).trim()==='';})){ToolBox.setResult('result','<p class="tip-error">请输入必要参数后再计算。</p>');return;}
+            window.__currentDividerOk=false;
+            var __raw={It:document.getElementById('It'),R1:document.getElementById('R1'),R2:document.getElementById('R2')};
+            if(!__raw.It||!__raw.R1||!__raw.R2||['It','R1','R2'].some(function(k){return String(__raw[k].value).trim()==='';})){ToolBox.setResult('result','<p class="tip-error">请填写总电流与两个电阻（0 是合法数值，空值不按 0）。</p>');return;}
             const It=num('It'), R1=num('R1'), R2=num('R2');
-            if(R1<=0||R2<=0){ToolBox.setResult('result','<p class="tip-error">电阻须>0。</p>');return;}
+            if(!isFinite(It)||!isFinite(R1)||!isFinite(R2)||It<0||R1<=0||R2<=0){ToolBox.setResult('result','<p class="tip-error">请输入有限数值：总电流≥0，电阻>0。</p>');return;}
+            window.__currentDividerOk=true;
             const I1=It*R2/(R1+R2); // 流经 R1
             const I2=It*R1/(R1+R2); // 流经 R2
             const __g1=dataGrid([
@@ -259,6 +262,7 @@ function __current_dividerNum(id){var e=document.getElementById(id);var v=e?pars
 function __current_dividerExtras(){
     function __current_dividerRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
+    if(!window.__currentDividerOk){TBKit.matrix.table('#current_dividerTable',{head:TBKit.util.isEn()?['Item','Value']:['项目','数值'],rows:[]});return;}
     var It=num('It'), R1=num('R1'), R2=num('R2');
     var I1=It*R2/(R1+R2); // 流经 R1
     var I2=It*R1/(R1+R2); // 流经 R2

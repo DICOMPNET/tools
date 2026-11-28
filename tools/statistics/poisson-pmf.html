@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 
-<script src="../../js/tool-page-runtime.js" defer></script>
+<script src="/js/tool-page-runtime.js" defer></script>
 <!-- TOOLBOX-TOOL-RUNTIME -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -15,7 +15,7 @@
 <meta name="twitter:card" content="summary">
 <meta name="description" content="输入单位时间（或空间）内事件的平均发生率 λ 和目标发生次数 k，计算泊松分布的概率质量函数 P(X=k)，即恰好发生 k 次事件的概率，常用于客服来电、故障次数等稀有事件的建模">
 <link rel="stylesheet" href="../../css/common.css">
-<script src="../../js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
 
 
@@ -37,10 +37,10 @@
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
 <!-- TOOLBOX-SECURITY -->
 
-<script src="../../js/privacy.js" defer></script>
+<script src="/js/privacy.js" defer></script>
 <!-- TOOLBOX-PRIVACY-SCRIPT -->
 
-<script src="../../js/metrics.js" defer></script>
+<script src="/js/metrics.js" defer></script>
 <!-- TOOLBOX-METRICS-SCRIPT -->
 
 <script type="application/ld+json">
@@ -62,18 +62,18 @@
 <meta property="og:locale" content="zh_CN">
 <meta property="og:locale:alternate" content="zh_TW">
 <meta property="og:locale:alternate" content="en_US">
-<link rel="preload" as="style" href="../../css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link rel="stylesheet" href="../../css/nav-menu.css"></noscript>
-<script src="../../js/industry-info.js" defer></script>
-<script src="../../js/nav-menu.js" defer></script>
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
 
-<script src="../../js/tool-ux.js" defer></script>
+<script src="/js/tool-ux.js" defer></script>
 <!-- TOOLBOX-TOOL-UX -->
 
-<script src="../../js/analytics.js" defer></script>
+<script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 
-<script src="../../js/tool-kit.js" defer></script>
+<script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
 <script type="application/ld+json">
 {
@@ -319,11 +319,15 @@ function __tbInputGuardCore(_ids,_labels){
 }
 
 
-function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
+function readNum(id){var e=document.getElementById(id);var raw=String(e?e.value:'').trim();if(!raw)return NaN;if(!/^-?(?:\d+(?:\.\d*)?|\.\d+)$/.test(raw))return NaN;var v=Number(raw);return isFinite(v)?v:NaN;}
+function num(id){const v=readNum(id);return isNaN(v)?0:v;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){
-              var __ig=__tbInputGuard(['lam', 'k'],["均值 λ", "事件数 k"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
-            const lam = num('lam'), k = Math.round(Math.min(num('k'), 1000));
+              const lam = readNum('lam'), k0 = readNum('k');
+            if(!isFinite(lam)||lam<0){ToolBox.setResult('result','<p style="color:var(--danger)">⚠ 「均值 λ」必须是非负有限数值；λ=0 合法，表示退化分布。</p>');return;}
+            if(!isFinite(k0)||k0<0||k0!==Math.floor(k0)){ToolBox.setResult('result','<p style="color:var(--danger)">⚠ 「事件数 k」必须是非负整数；不支持小数或负数。</p>');return;}
+            if(k0>1000){ToolBox.setResult('result','<p style="color:var(--danger)">⚠ 事件数 k 超过 1000，超出本页计算范围；请缩小 k 或改用正态近似。</p>');return;}
+            const k = k0;
             // 对数空间递推：ln P(X=i) = ln P(X=i−1) + ln(λ/i)，初值 ln P(X=0) = −λ。
             // 双稳：避免大 λ/k 下 λ^k/k! 直接阶乘溢出 (NaN/Inf)，也避免大 λ 下 e^−λ 下溢为 0。
             let __logTerm = -lam;            // ln P(X=0)
@@ -346,15 +350,15 @@ function resetForm(){document.getElementById('lam').value = '4';
       calcTool();}
 calcTool();
 
-function __psNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __psNum(id){var e=document.getElementById(id);var raw=String(e?e.value:'').trim();if(!raw)return NaN;if(!/^-?(?:\d+(?:\.\d*)?|\.\d+)$/.test(raw))return NaN;var v=Number(raw);return isFinite(v)?v:NaN;}
 function __psExport(){
     if (typeof TBKit === 'undefined') return;
     try { TBKit.util.exportTable('#psTable', 'poisson-pmf.csv'); } catch (e) {}
 }
 function __psExtras(){
     if (typeof TBKit === 'undefined') return;
-    var lam=__psNum('lam'), k=Math.round(__psNum('k'));
-    if(!isFinite(lam)||lam<0||!isFinite(k)||k<0) return;
+    var lam=__psNum('lam'), k=__psNum('k');
+    if(!isFinite(lam)||lam<0||!isFinite(k)||k<0||k!==Math.floor(k)||k>1000) return;
     var en=TBKit.util.isEn();
     var top=Math.min(Math.max(Math.ceil(lam*3)+5, k+3), 40);
     var rows=[], cdf=0, term=Math.exp(-lam), pk=0;

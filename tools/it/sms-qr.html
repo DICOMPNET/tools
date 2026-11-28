@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 
-<script src="../../js/tool-page-runtime.js" defer></script>
+<script src="/js/tool-page-runtime.js" defer></script>
 <!-- TOOLBOX-TOOL-RUNTIME -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -23,7 +23,7 @@
 <link rel="icon" href="../../favicon.ico" sizes="16x16 32x32 48x48">
 <link rel="apple-touch-icon" href="../../apple-touch-icon.png">
 <link rel="stylesheet" href="../../css/common.css">
-<script src="../../js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
 <style>
 .qr-wrap{display:flex;justify-content:center;margin:12px 0;}
@@ -48,10 +48,10 @@ canvas{background:#fff;border:6px solid #fff;border-radius:8px;box-shadow:var(--
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
 <!-- TOOLBOX-SECURITY -->
 
-<script src="../../js/privacy.js" defer></script>
+<script src="/js/privacy.js" defer></script>
 <!-- TOOLBOX-PRIVACY-SCRIPT -->
 
-<script src="../../js/metrics.js" defer></script>
+<script src="/js/metrics.js" defer></script>
 <!-- TOOLBOX-METRICS-SCRIPT -->
 
 <script type="application/ld+json">
@@ -72,18 +72,18 @@ canvas{background:#fff;border:6px solid #fff;border-radius:8px;box-shadow:var(--
 <meta property="og:locale" content="zh_CN">
 <meta property="og:locale:alternate" content="zh_TW">
 <meta property="og:locale:alternate" content="en_US">
-<link rel="preload" as="style" href="../../css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link rel="stylesheet" href="../../css/nav-menu.css"></noscript>
-<script src="../../js/industry-info.js" defer></script>
-<script src="../../js/nav-menu.js" defer></script>
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
 
-<script src="../../js/tool-ux.js" defer></script>
+<script src="/js/tool-ux.js" defer></script>
 <!-- TOOLBOX-TOOL-UX -->
 
-<script src="../../js/analytics.js" defer></script>
+<script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 
-<script src="../../js/tool-kit.js" defer></script>
+<script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
 <script type="application/ld+json">
 {
@@ -141,9 +141,14 @@ canvas{background:#fff;border:6px solid #fff;border-radius:8px;box-shadow:var(--
 <div class="formula-box">
   <div class="formula-title">📐 工作原理与说明</div>
   <div class="formula-eq">sms:+15551234567?body=文本内容<br>或 SMSTO:号码:内容（兼容旧安卓）</div>
-  <div class="formula-desc">短信二维码本质是把 URI Scheme 编码进二维码：扫码端解析出 URI 后交给系统处理，自动打开短信编辑界面并预填号码与正文。iOS 支持 sms:号码?body=… 形式，部分安卓还支持 SMSTO:号码:正文 的老格式。内容较长时二维码会变密（版本升高、模块变小），建议正文控制在 100 字以内、纠错等级选 M，并在打印时保证码区留白（Quiet Zone ≥ 4 个模块宽）。正文与号码中的特殊字符需先做百分号编码。本页号码仅接受 5–15 位数字与可选前导 +（空格/连字符自动去除），正文按 UTF-8 百分号编码；号码非法时直接提示，不生成残缺 URI。</div>
+  <div class="formula-desc">短信二维码本质是把 URI Scheme 编码进二维码：扫码端解析出 URI 后交给系统处理，自动打开短信编辑界面并预填号码与正文。iOS 支持 sms:号码?body=… 形式，部分安卓还支持 SMSTO:号码:正文 的老格式。内容较长时二维码会变密（版本升高、模块变小），建议正文控制在 100 字以内、纠错等级选 M，并在打印时保证码区留白（Quiet Zone ≥ 4 个模块宽）。页面可选择上述两种格式：sms: 的正文按 UTF-8 百分号编码，SMSTO: 按“号码:正文”原样拼接。号码仅接受 5–15 位数字与可选前导 +（空格/连字符自动去除）；号码非法时直接提示，不生成残缺 URI。</div>
 </div>
 
+    <label for="smsFormat">URI 格式</label>
+    <select id="smsFormat" style="margin-bottom:12px;">
+      <option value="sms" selected>sms:号码?body=正文（iOS / 主流安卓）</option>
+      <option value="smsto">SMSTO:号码:正文（旧安卓兼容）</option>
+    </select>
     <label for="phone">电话号码</label>
     <input type="text" id="phone" value="13800138000" style="margin-bottom:12px;">
     <label for="msg">短信内容</label>
@@ -242,9 +247,14 @@ function buildSms(){
   if(!/^\+?\d{5,15}$/.test(phone)){
     throw new Error(smsEn()?'Phone number must be 5–15 digits with an optional leading +':'电话号码仅支持 5–15 位数字与可选的前导 +');
   }
-  const msg=encodeURIComponent(document.getElementById('msg').value);
-  return 'sms:'+phone+'?body='+msg;
+  const rawMsg=document.getElementById('msg').value;
+  const fmt=(document.getElementById('smsFormat')||{}).value||'sms';
+  // sms: 的 body 必须百分号编码；SMSTO: 是旧安卓私有格式，按 number:body 原样拼接
+  return fmt==='smsto' ? 'SMSTO:'+phone+':'+rawMsg : 'sms:'+phone+'?body='+encodeURIComponent(rawMsg);
 }
+document.getElementById('smsFormat').addEventListener('change', function(){
+  if(__smsUri) generate();
+});
 function drawQR(text){
   if(typeof qrcode!=='function')return null;
   if(qrcode.stringToBytesFuncs&&qrcode.stringToBytesFuncs['UTF-8'])qrcode.stringToBytes=qrcode.stringToBytesFuncs['UTF-8'];
@@ -300,6 +310,7 @@ function toggleToolTheme(){
     });
   }
 })();
+generate();
 </script><script>
 // tool-intro折叠交互
 document.addEventListener('DOMContentLoaded',function(){
@@ -454,7 +465,7 @@ else document.addEventListener('DOMContentLoaded', __sms_qrBoot);
   <div class="related-tools-grid">
     <a href="properties-parser.html" class="related-tool-card">
       <span class="rt-icon">📄</span>
-      <span class="rt-info"><span class="rt-name">.properties 解析器</span><span class="rt-desc">Java .properties 文件解析：支持 key=value、key:value、行内注释…</span></span>
+      <span class="rt-info"><span class="rt-name">.properties 解析器</span><span class="rt-desc">Java .properties 文件解析：支持 key=value、key:value、整行注释（…</span></span>
     </a>
     <a href="ast-viewer.html" class="related-tool-card">
       <span class="rt-icon">💻</span>

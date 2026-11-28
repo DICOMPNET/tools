@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 
-<script src="../../js/tool-page-runtime.js" defer></script>
+<script src="/js/tool-page-runtime.js" defer></script>
 <!-- TOOLBOX-TOOL-RUNTIME -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -15,7 +15,7 @@
 <meta property="og:url" content="https://tools.dicomp.net/tools/electrical/detector-protection-2.html">
 <meta name="twitter:card" content="summary">
 <link rel="stylesheet" href="../../css/common.css">
-<script src="../../js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
 
 
@@ -38,10 +38,10 @@
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
 <!-- TOOLBOX-SECURITY -->
 
-<script src="../../js/privacy.js" defer></script>
+<script src="/js/privacy.js" defer></script>
 <!-- TOOLBOX-PRIVACY-SCRIPT -->
 
-<script src="../../js/metrics.js" defer></script>
+<script src="/js/metrics.js" defer></script>
 <!-- TOOLBOX-METRICS-SCRIPT -->
 
 <script type="application/ld+json">
@@ -63,15 +63,15 @@
 <meta property="og:locale" content="zh_CN">
 <meta property="og:locale:alternate" content="zh_TW">
 <meta property="og:locale:alternate" content="en_US">
-<link rel="preload" as="style" href="../../css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link rel="stylesheet" href="../../css/nav-menu.css"></noscript>
-<script src="../../js/industry-info.js" defer></script>
-<script src="../../js/nav-menu.js" defer></script>
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
 
-<script src="../../js/tool-ux.js" defer></script>
+<script src="/js/tool-ux.js" defer></script>
 <!-- TOOLBOX-TOOL-UX -->
 
-<script src="../../js/analytics.js" defer></script>
+<script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 
 <script type="application/ld+json">
@@ -99,7 +99,7 @@
 }
 </script>
 
-<script src="../../js/tool-kit.js" defer></script>
+<script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
 <meta property="og:site_name" content="ToolBox">
 <meta name="theme-color" content="#FF6B35">
@@ -222,30 +222,39 @@
 
 const stdItems=[{name:"防爆等级",unit:"级",id:"v1",op:"<=",threshold:1,stdDesc:"≤1级"},{name:"密封等级",unit:"级",id:"v2",op:"<=",threshold:2,stdDesc:"≤2级"},{name:"防护等级",unit:"级",id:"v3",op:"<=",threshold:3,stdDesc:"≤3级"}];
 function calc(){
- var allPass=true;
+ var allPass=true,hasPending=false;
  var html='<table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:12px;">';
  html+='<tr style="background:var(--th-bg);"><th style="padding:8px;text-align:left;border:1px solid var(--border);">检测项目</th><th style="padding:8px;text-align:center;border:1px solid var(--border);">实测值</th><th style="padding:8px;text-align:center;border:1px solid var(--border);">标准要求</th><th style="padding:8px;text-align:center;border:1px solid var(--border);">判定</th></tr>';
  stdItems.forEach(function(item){
-  var val=parseFloat(document.getElementById(item.id).value)||0;
+  var __raw=String(document.getElementById(item.id).value).trim();
+  var val=__raw===''?NaN:parseFloat(__raw);
+  var pending=__raw===''||!isFinite(val);
   var pass=false;
-  if(item.op==="<="){pass=val<=item.threshold;}
-  else if(item.op===">="){pass=val>=item.threshold;}
-  else if(item.op==="range"){pass=val>=item.threshold[0]&&val<=item.threshold[1];}
-  if(!pass){allPass=false;}
-  var pc=pass?"var(--success)":"var(--danger)";var pt=pass?"合格":"不合格";
-  html+='<tr><td style="padding:8px;border:1px solid var(--border);">'+item.name+'</td><td style="padding:8px;text-align:center;border:1px solid var(--border);">'+val+' '+item.unit+'</td><td style="padding:8px;text-align:center;border:1px solid var(--border);">'+item.stdDesc+'</td><td style="padding:8px;text-align:center;border:1px solid var(--border);color:'+pc+';font-weight:600;">'+pt+'</td></tr>';
+  if(!pending){
+    if(item.op==="<="){pass=val<=item.threshold;}
+    else if(item.op===">="){pass=val>=item.threshold;}
+    else if(item.op==="range"){pass=val>=item.threshold[0]&&val<=item.threshold[1];}
+  }
+  if(pending){hasPending=true;} else if(!pass){allPass=false;}
+  var pc=pending?"var(--text-muted)":(pass?"var(--success)":"var(--danger)");var pt=pending?"待填写":(pass?"合格":"不合格");
+  html+='<tr><td style="padding:8px;border:1px solid var(--border);">'+item.name+'</td><td style="padding:8px;text-align:center;border:1px solid var(--border);">'+(pending?'—':val)+' '+item.unit+'</td><td style="padding:8px;text-align:center;border:1px solid var(--border);">'+item.stdDesc+'</td><td style="padding:8px;text-align:center;border:1px solid var(--border);color:'+pc+';font-weight:600;">'+pt+'</td></tr>';
  });
  html+='</table>';
- var oc=allPass?"var(--success)":"var(--danger)";
- var ot=allPass?"✅ 综合判定：合格":"❌ 综合判定：不合格";
- html+='<p style="font-size:18px;font-weight:700;color:'+oc+';text-align:center;padding:12px;background:var(--result-bg);border-radius:8px;">'+ot+'</p>';
- if(allPass){html+='<p style="font-size:12px;color:var(--text-muted);text-align:center;margin-top:8px;">所有检测项目均符合标准要求，结果仅供自检，不作为验收依据</p>';}
- else{html+='<p style="font-size:12px;color:var(--text-muted);text-align:center;margin-top:8px;">部分项目不符合标准要求，请整改后重新检测</p>';}
+ if(hasPending){
+  html+='<p style="font-size:18px;font-weight:700;color:var(--text-muted);text-align:center;padding:12px;background:var(--result-bg);border-radius:8px;">⏳ 请补全所有检测项目</p>';
+  html+='<p style="font-size:12px;color:var(--text-muted);text-align:center;margin-top:8px;">未填写项目不会被当作 0 分或不合格；数据齐备后才生成综合判定。</p>';
+ } else {
+  var oc=allPass?"var(--success)":"var(--danger)";
+  var ot=allPass?"✅ 综合判定：合格":"❌ 综合判定：不合格";
+  html+='<p style="font-size:18px;font-weight:700;color:'+oc+';text-align:center;padding:12px;background:var(--result-bg);border-radius:8px;">'+ot+'</p>';
+  if(allPass){html+='<p style="font-size:12px;color:var(--text-muted);text-align:center;margin-top:8px;">所有检测项目均符合标准要求，结果仅供自检，不作为验收依据</p>';}
+  else{html+='<p style="font-size:12px;color:var(--text-muted);text-align:center;margin-top:8px;">部分项目不符合标准要求，请整改后重新检测</p>';}
+ }
  const __g1=html;document.getElementById("res").innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 }
 function copyReport(){ToolBox.copyText(document.getElementById("res").innerText, i18nText('msg457'));}
 function resetForm(){
- stdItems.forEach(function(item){var el=document.getElementById(item.id);if(el.tagName==="SELECT"){el.selectedIndex=0;}else{el.value="";}});
+ stdItems.forEach(function(item){var el=document.getElementById(item.id);if(el.tagName==="SELECT"){el.selectedIndex=-1;}else{el.value="";}});
  calc();ToolBox.showToast(i18nText(),"info");
 }
 

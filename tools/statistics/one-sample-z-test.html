@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 
-<script src="../../js/tool-page-runtime.js" defer></script>
+<script src="/js/tool-page-runtime.js" defer></script>
 <!-- TOOLBOX-TOOL-RUNTIME -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -15,7 +15,7 @@
 <meta name="twitter:card" content="summary">
 <meta name="description" content="输入样本均值、样本量与已知的总体标准差，检验样本均值是否偏离给定的假设值，输出 Z 统计量及双侧与单侧 p 值，适用于总体标准差已知时的均值显著性检验">
 <link rel="stylesheet" href="../../css/common.css">
-<script src="../../js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
 
 
@@ -37,10 +37,10 @@
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
 <!-- TOOLBOX-SECURITY -->
 
-<script src="../../js/privacy.js" defer></script>
+<script src="/js/privacy.js" defer></script>
 <!-- TOOLBOX-PRIVACY-SCRIPT -->
 
-<script src="../../js/metrics.js" defer></script>
+<script src="/js/metrics.js" defer></script>
 <!-- TOOLBOX-METRICS-SCRIPT -->
 
 <script type="application/ld+json">
@@ -62,18 +62,18 @@
 <meta property="og:locale" content="zh_CN">
 <meta property="og:locale:alternate" content="zh_TW">
 <meta property="og:locale:alternate" content="en_US">
-<link rel="preload" as="style" href="../../css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link rel="stylesheet" href="../../css/nav-menu.css"></noscript>
-<script src="../../js/industry-info.js" defer></script>
-<script src="../../js/nav-menu.js" defer></script>
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
 
-<script src="../../js/tool-ux.js" defer></script>
+<script src="/js/tool-ux.js" defer></script>
 <!-- TOOLBOX-TOOL-UX -->
 
-<script src="../../js/analytics.js" defer></script>
+<script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 
-<script src="../../js/tool-kit.js" defer></script>
+<script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
 <script type="application/ld+json">
 {
@@ -330,7 +330,16 @@ function __tbInputGuardCore(_ids,_labels){
 
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
+function fmtP(v){
+  if(!isFinite(v)||v<0) return '—';
+  if(v===0) return '&lt;1e-300';
+  if(v<0.0001) return v.toExponential(2);
+  return v.toFixed(4);
+}
+var __ztOk=false;
+function __ztClear(){['ztChart','ztTable','ztDiff'].forEach(function(id){var e=document.getElementById(id);if(e)e.innerHTML='';});}
 function calcTool(){
+  __ztOk=false; __ztClear();
   var __ig=__tbInputGuard(['xbar', 'mu0', 'sigma', 'n'],["样本均值 x̄", "假设均值 μ₀", "总体标准差 σ", "样本量 n"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
 function erf(x){const s=x<0?-1:1;x=Math.abs(x);const t=1/(1+0.3275911*x);
   const y=1-(((((1.061405429*t-1.453152027)*t+1.421413741)*t-0.284496736)*t+0.254829592)*t)*Math.exp(-x*x);
@@ -352,11 +361,13 @@ function betai(a,b,x){if(x<=0)return 0; if(x>=1)return 1;
   if(x<(a+1)/(a+b+2)) return bt*betacf(a,b,x)/a; return 1-bt*betacf(b,a,1-x)/b;}
 
             const xb=num('xbar'),m0=num('mu0'),s=num('sigma'),n=num('n');
+            if(!isFinite(s)||s<=0||!isFinite(n)||n<=0||Math.abs(n-Math.round(n))>1e-9){ToolBox.setResult('result','<p style="color:var(--danger)">⚠ 总体标准差 σ 须大于 0，样本量 n 须为正整数</p>');return;}
+            __ztOk=true;
             const z=(xb-m0)/(s/Math.sqrt(n));
             const p=2*(1-0.5*(1+erf(Math.abs(z)/Math.SQRT2)));
             const __g2=dataGrid([
                 [z.toFixed(4),'z 统计量'],
-                [p.toFixed(4),'双侧 p 值']
+                [fmtP(p),'双侧 p 值']
             ]);ToolBox.setResult('result',(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));
         }
 function resetForm(){document.getElementById('xbar').value = '52';
@@ -369,9 +380,10 @@ calcTool();
 function __ztNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
 
 function __ztExtras(){
+    if(!__ztOk){__ztClear();return;}
     if (typeof TBKit === 'undefined') return;
     var xb=__ztNum('xbar'), m0=__ztNum('mu0'), s=__ztNum('sigma'), n=__ztNum('n');
-    if(!isFinite(xb)||!isFinite(m0)||!isFinite(s)||!isFinite(n)||s<=0||n<=0) return;
+    if(!isFinite(xb)||!isFinite(m0)||!isFinite(s)||!isFinite(n)||s<=0||n<=0||Math.abs(n-Math.round(n))>1e-9) return;
     var en=TBKit.util.isEn();
     var se=s/Math.sqrt(n);
     var z=(xb-m0)/se;
@@ -380,7 +392,7 @@ function __ztExtras(){
     var d=(xb-m0)/s;
     TBKit.chart.gauge('#ztChart',{
         value: Math.min(99.99, (1-p)*100), min:0, max:100,
-        text: (p<0.01?'p<0.01':'p='+p.toFixed(4)),
+        text: (p<0.01?'p<0.01':'p='+fmtP(p)),
         title: en?('Evidence against H₀ (1−p)'):('拒绝 H₀ 的证据强度 (1−p)'),
         color: p<0.05?'#B91C1C':'#065F46', height:170
     });
@@ -391,7 +403,7 @@ function __ztExtras(){
             ['Hypothesised mean', m0.toFixed(4), 'μ₀'],
             ['Standard error', se.toFixed(4), 'σ/√n'],
             ['z statistic', z.toFixed(4), '(x̄−μ₀)/SE'],
-            ['Two-sided p', p.toFixed(6), p<0.05?'significant at 5%':'not significant'],
+            ['Two-sided p', fmtP(p), p<0.05?'significant at 5%':'not significant'],
             ['95% CI', lo.toFixed(4)+' – '+hi.toFixed(4), m0>=lo&&m0<=hi?'contains μ₀':'excludes μ₀'],
             ['Effect size d', d.toFixed(4), 'Cohen d']
         ]:[
@@ -399,7 +411,7 @@ function __ztExtras(){
             ['假设均值', m0.toFixed(4), 'μ₀'],
             ['标准误', se.toFixed(4), 'σ/√n'],
             ['z 统计量', z.toFixed(4), '(x̄−μ₀)/SE'],
-            ['双侧 p 值', p.toFixed(6), p<0.05?'5% 水平显著':'不显著'],
+            ['双侧 p 值', fmtP(p), p<0.05?'5% 水平显著':'不显著'],
             ['95% 置信区间', lo.toFixed(4)+' – '+hi.toFixed(4), m0>=lo&&m0<=hi?'含 μ₀':'不含 μ₀'],
             ['效应量 d', d.toFixed(4), 'Cohen d']
         ]
@@ -416,6 +428,7 @@ function __ztExtras(){
 }
 function __ztExport(){
     if (typeof TBKit === 'undefined') return;
+    if(!__ztOk){try{ToolBox.showToast('请先执行有效计算，暂无可导出数据','warning');}catch(e){}return;}
     try { TBKit.util.exportTable('#ztTable','one-sample-z-test.csv'); } catch (e) {}
 }
 function __ztPresets(){

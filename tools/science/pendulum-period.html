@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 
-<script src="../../js/tool-page-runtime.js" defer></script>
+<script src="/js/tool-page-runtime.js" defer></script>
 <!-- TOOLBOX-TOOL-RUNTIME -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -15,7 +15,7 @@
 <meta name="twitter:card" content="summary">
 <meta name="description" content="单摆周期计算器是一款免费的在线科学研究工具，由摆长与重力加速度，按 T = 2π√(L/g) 计算小角度单摆周期。小角度下单摆周期。用单摆实验测量重力加速度或调校摆钟。">
 <link rel="stylesheet" href="../../css/common.css">
-<script src="../../js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
 
 
@@ -37,10 +37,10 @@
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
 <!-- TOOLBOX-SECURITY -->
 
-<script src="../../js/privacy.js" defer></script>
+<script src="/js/privacy.js" defer></script>
 <!-- TOOLBOX-PRIVACY-SCRIPT -->
 
-<script src="../../js/metrics.js" defer></script>
+<script src="/js/metrics.js" defer></script>
 <!-- TOOLBOX-METRICS-SCRIPT -->
 
 <script type="application/ld+json">
@@ -62,18 +62,18 @@
 <meta property="og:locale" content="zh_CN">
 <meta property="og:locale:alternate" content="zh_TW">
 <meta property="og:locale:alternate" content="en_US">
-<link rel="preload" as="style" href="../../css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link rel="stylesheet" href="../../css/nav-menu.css"></noscript>
-<script src="../../js/industry-info.js" defer></script>
-<script src="../../js/nav-menu.js" defer></script>
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
 
-<script src="../../js/tool-ux.js" defer></script>
+<script src="/js/tool-ux.js" defer></script>
 <!-- TOOLBOX-TOOL-UX -->
 
-<script src="../../js/analytics.js" defer></script>
+<script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 
-<script src="../../js/tool-kit.js" defer></script>
+<script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
 <script type="application/ld+json">
 {
@@ -394,6 +394,13 @@ else document.addEventListener('DOMContentLoaded', __pendulum_periodBoot);
 </div>
 </section>
 <script>
+function __pdprAxis(v){
+  if(!isFinite(v))return '—';
+  if(v===0)return '0';
+  var a=Math.abs(v);
+  if(a>=0.01&&a<1000)return String(Math.round(v*1000)/1000);
+  return Number(v.toPrecision(4)).toString();
+}
 function __pdprSweep(){
   var L0=num('L'), g=num('g');
   if(!isFinite(L0)||!isFinite(g)||g<=0||L0<=0)return null;
@@ -401,15 +408,20 @@ function __pdprSweep(){
   for(var k=0;k<=10;k++){
     var lk=L0*(0.2+0.16*k);
     var T=2*Math.PI*Math.sqrt(lk/g);
-    labels.push((Math.round(lk*1000)/1000)+'');
-    dT.push(Math.round(T*10000)/10000);
-    dF.push(Math.round(1/T*10000)/10000);
+    labels.push(__pdprAxis(lk));
+    dT.push(T); // 保留完整计算精度，避免微小非零值被四舍五入成 0
+    dF.push(1/T);
   }
   return {labels:labels,dT:dT,dF:dF};
 }
 function __pdprChart(){
+  var c=document.getElementById('pdprChart');
+  var s=__pdprSweep();
+  if(!s){
+    if(c){var en=!!(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());c.innerHTML='<p style="padding:12px;color:var(--text-muted);">'+(en?'Enter positive values before plotting the curve.':'请输入有效参数后再绘制曲线。')+'</p>';}
+    return;
+  }
   if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
-  var s=__pdprSweep(); if(!s)return;
   var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
   TBKit.chart.line('#pdprChart',{title:en?'Pendulum period follows a square-root curve while frequency decays inversely':'单摆周期随摆长呈平方根凹曲线上升，频率反比衰减',labels:s.labels,series:[{name:en?'Period T (s)':'周期 T (s)',data:s.dT},{name:en?'Frequency f (Hz)':'频率 f (Hz)',data:s.dF}]});
 }

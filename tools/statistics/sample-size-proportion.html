@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 
-<script src="../../js/tool-page-runtime.js" defer></script>
+<script src="/js/tool-page-runtime.js" defer></script>
 <!-- TOOLBOX-TOOL-RUNTIME -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -15,7 +15,7 @@
 <meta name="twitter:card" content="summary">
 <meta name="description" content="比例样本量计算器是一款免费的在线统计学工具，给定置信水平、误差界与预期比例，估计总体比例所需样本量，用于抽样调查设计。n=z²·p(1−p)/e²。">
 <link rel="stylesheet" href="../../css/common.css">
-<script src="../../js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
 
 
@@ -37,10 +37,10 @@
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
 <!-- TOOLBOX-SECURITY -->
 
-<script src="../../js/privacy.js" defer></script>
+<script src="/js/privacy.js" defer></script>
 <!-- TOOLBOX-PRIVACY-SCRIPT -->
 
-<script src="../../js/metrics.js" defer></script>
+<script src="/js/metrics.js" defer></script>
 <!-- TOOLBOX-METRICS-SCRIPT -->
 
 <script type="application/ld+json">
@@ -62,21 +62,21 @@
 <meta property="og:locale" content="zh_CN">
 <meta property="og:locale:alternate" content="zh_TW">
 <meta property="og:locale:alternate" content="en_US">
-<link rel="preload" as="style" href="../../css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link rel="stylesheet" href="../../css/nav-menu.css"></noscript>
-<script src="../../js/industry-info.js" defer></script>
-<script src="../../js/nav-menu.js" defer></script>
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
 
-<script src="../../js/tool-ux.js" defer></script>
+<script src="/js/tool-ux.js" defer></script>
 <!-- TOOLBOX-TOOL-UX -->
 
-<script src="../../js/analytics.js" defer></script>
+<script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 <script type="application/ld+json">
 {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "为何 p=0.5 最保守？", "acceptedAnswer": {"@type": "Answer", "text": "因 p(1−p) 在 0.5 最大，使 n 最大，未知 p 时按此规划保证足够。"}}, {"@type": "Question", "name": "这是最小样本吗？", "acceptedAnswer": {"@type": "Answer", "text": "是无回复/简单随机下估算；有分层、无应答需在此基础上放大。"}}]}
 </script>
 
-<script src="../../js/tool-kit.js" defer></script>
+<script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
 <meta property="og:site_name" content="ToolBox">
 <meta name="theme-color" content="#FF6B35">
@@ -287,11 +287,14 @@ function __tbInputGuardCore(_ids,_labels){
 }
 
 
-function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
+function readNum(id){var e=document.getElementById(id);var raw=String(e?e.value:'').trim();if(!raw)return NaN;if(!/^-?(?:\d+(?:\.\d*)?|\.\d+)$/.test(raw))return NaN;var v=Number(raw);return isFinite(v)?v:NaN;}
+function num(id){const v=readNum(id);return isNaN(v)?0:v;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){
-              var __ig=__tbInputGuard(['p', 'e', 'z'],["比例 p", "误差界 e", "z 值 (1.96=95%)"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
-const p=num('p'), e=num('e'), z=num('z');
+              const p=readNum('p'), e=readNum('e'), z=readNum('z');
+            if(!isFinite(p)||p<=0||p>=1){ToolBox.setResult('result','<p style="color:var(--danger)">⚠ 「比例 p」必须在 0 与 1 之间（不含端点）；p=0 或 1 会得到 n=0，不能当作可用样本量。</p>');return;}
+            if(!isFinite(e)||e<=0){ToolBox.setResult('result','<p style="color:var(--danger)">⚠ 「误差界 e」必须是大于 0 的有限数值。</p>');return;}
+            if(!isFinite(z)||z<=0){ToolBox.setResult('result','<p style="color:var(--danger)">⚠ 「z 值」必须是大于 0 的有限数值。</p>');return;}
             const n=z*z*p*(1-p)/(e*e);
             const __g2=dataGrid([
                 [Math.ceil(n).toFixed(0),'所需样本量 n'],
@@ -306,7 +309,7 @@ function resetForm(){document.getElementById('p').value = '0.5';
       calcTool();}
 calcTool();
 
-function __spN(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __spN(id){var e=document.getElementById(id);var raw=String(e?e.value:'').trim();if(!raw)return NaN;if(!/^-?(?:\d+(?:\.\d*)?|\.\d+)$/.test(raw))return NaN;var v=Number(raw);return isFinite(v)?v:NaN;}
 function __spList(s){return (s||'').split(/[\s,]+/).map(parseFloat).filter(function(v){return isFinite(v);});}
 function __spL(en,zh){return (typeof TBKit!=='undefined'&&TBKit.util.isEn())?en:zh;}
 

@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 
-<script src="../../js/tool-page-runtime.js" defer></script>
+<script src="/js/tool-page-runtime.js" defer></script>
 <!-- TOOLBOX-TOOL-RUNTIME -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -23,7 +23,7 @@
 <link rel="icon" href="../../favicon.ico" sizes="16x16 32x32 48x48">
 <link rel="apple-touch-icon" href="../../apple-touch-icon.png">
 <link rel="stylesheet" href="../../css/common.css">
-<script src="../../js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
 
 <meta property="og:image" content="https://tools.dicomp.net/og-image.png">
@@ -43,10 +43,10 @@
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
 <!-- TOOLBOX-SECURITY -->
 
-<script src="../../js/privacy.js" defer></script>
+<script src="/js/privacy.js" defer></script>
 <!-- TOOLBOX-PRIVACY-SCRIPT -->
 
-<script src="../../js/metrics.js" defer></script>
+<script src="/js/metrics.js" defer></script>
 <!-- TOOLBOX-METRICS-SCRIPT -->
 
 <script type="application/ld+json">
@@ -67,18 +67,18 @@
 <meta property="og:locale" content="zh_CN">
 <meta property="og:locale:alternate" content="zh_TW">
 <meta property="og:locale:alternate" content="en_US">
-<link rel="preload" as="style" href="../../css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link rel="stylesheet" href="../../css/nav-menu.css"></noscript>
-<script src="../../js/industry-info.js" defer></script>
-<script src="../../js/nav-menu.js" defer></script>
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
 
-<script src="../../js/tool-ux.js" defer></script>
+<script src="/js/tool-ux.js" defer></script>
 <!-- TOOLBOX-TOOL-UX -->
 
-<script src="../../js/analytics.js" defer></script>
+<script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 
-<script src="../../js/tool-kit.js" defer></script>
+<script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
 <script type="application/ld+json">
 {
@@ -152,6 +152,11 @@
 
     <label for="input">十六进制输入</label>
     <textarea id="input" placeholder="输入十六进制字符串，如 48 65 6c 6c 6f 或 0x48...">48 65 6c 6c 6f</textarea>
+
+    <label style="display:flex;align-items:center;gap:8px;margin-top:10px;font-size:13px;">
+      <input type="checkbox" id="preserveBom" checked style="width:auto;margin:0;">
+      <span data-zh="保留起始 U+FEFF（BOM）">Preserve leading U+FEFF (BOM)</span>
+    </label>
 
     <label style="margin-top:16px;" for="output">文本输出</label>
     <textarea id="output" placeholder="文本结果..." readonly></textarea><p id="hexStatus" role="status" aria-live="polite"></p> <div id="hex_to_textTable"></div> <div id="hex_to_textDiff"></div> <div id="hex_to_textChart"></div> <div id="hex_to_textHist"></div>
@@ -281,7 +286,13 @@ function convert(){
     return;
   }
   try {
-    output.value = new TextDecoder('utf-8', {fatal:true}).decode(bytes);
+    const preserveBom = document.getElementById('preserveBom').checked;
+    output.value = new TextDecoder('utf-8', {fatal:true, ignoreBOM: preserveBom}).decode(bytes);
+    const hasBom = bytes.length >= 3 && bytes[0] === 0xEF && bytes[1] === 0xBB && bytes[2] === 0xBF;
+    if(hasBom){
+      if(preserveBom) hexStatus('已保留起始 BOM（U+FEFF），输出可按原字节还原。', 'Leading BOM (U+FEFF) preserved; the output restores to the original bytes.');
+      else hexStatus('已去除起始 BOM（U+FEFF）；勾选「保留起始 U+FEFF」可无损还原。', 'Leading BOM (U+FEFF) removed; enable "Preserve leading U+FEFF" for lossless restoration.');
+    }
   } catch(e){
     clearHexArtifacts();
     hexStatus('字节序列不是有效的 UTF-8，请确认原始字符编码。', 'The byte sequence is not valid UTF-8. Check the original character encoding.');
@@ -455,7 +466,7 @@ else document.addEventListener('DOMContentLoaded', __hex_to_textBoot);
   <div class="related-tools-grid">
     <a href="properties-parser.html" class="related-tool-card">
       <span class="rt-icon">📄</span>
-      <span class="rt-info"><span class="rt-name">.properties 解析器</span><span class="rt-desc">Java .properties 文件解析：支持 key=value、key:value、行内注释…</span></span>
+      <span class="rt-info"><span class="rt-name">.properties 解析器</span><span class="rt-desc">Java .properties 文件解析：支持 key=value、key:value、整行注释（…</span></span>
     </a>
     <a href="ast-viewer.html" class="related-tool-card">
       <span class="rt-icon">💻</span>

@@ -7,7 +7,7 @@
 <title>正态分布概率 - 正态分布下该区间的概率</title>
 <link rel="canonical" href="https://tools.dicomp.net/tools/statistics/statistics.html">
 <link rel="stylesheet" href="../../css/common.css">
-<script src="../../js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
+<script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
 
 
@@ -34,10 +34,10 @@
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), interest-cohort=()">
 <!-- TOOLBOX-SECURITY -->
 
-<script src="../../js/privacy.js" defer></script>
+<script src="/js/privacy.js" defer></script>
 <!-- TOOLBOX-PRIVACY-SCRIPT -->
 
-<script src="../../js/metrics.js" defer></script>
+<script src="/js/metrics.js" defer></script>
 <!-- TOOLBOX-METRICS-SCRIPT -->
 
 <script type="application/ld+json">
@@ -59,21 +59,21 @@
 <meta property="og:locale" content="zh_CN">
 <meta property="og:locale:alternate" content="zh_TW">
 <meta property="og:locale:alternate" content="en_US">
-<link rel="preload" as="style" href="../../css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link rel="stylesheet" href="../../css/nav-menu.css"></noscript>
-<script src="../../js/industry-info.js" defer></script>
-<script src="../../js/nav-menu.js" defer></script>
+<link rel="preload" as="style" href="/css/nav-menu.css" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="/css/nav-menu.css"></noscript>
+<script src="/js/industry-info.js" defer></script>
+<script src="/js/nav-menu.js" defer></script>
 
-<script src="../../js/tool-ux.js" defer></script>
+<script src="/js/tool-ux.js" defer></script>
 <!-- TOOLBOX-TOOL-UX -->
 
-<script src="../../js/analytics.js" defer></script>
+<script src="/js/analytics.js" defer></script>
 <!-- TOOLBOX-CLARITY -->
 
-<script src="../../js/tool-page-runtime.js" defer></script>
+<script src="/js/tool-page-runtime.js" defer></script>
 <!-- TOOLBOX-TOOL-RUNTIME -->
 
-<script src="../../js/tool-kit.js" defer></script>
+<script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
 <script type="application/ld+json">
 {
@@ -279,13 +279,16 @@ function __tbInputGuardCore(_ids,_labels){
 }
 
 
+function readNum(id){var e=document.getElementById(id);if(!e)return NaN;var raw=String(e.value==null?'':e.value).trim();if(!/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/.test(raw))return NaN;var v=Number(raw);return isFinite(v)?v:NaN;}
 if (typeof Math.erf !== 'function') { Math.erf = function(x){ const t = 1/(1+0.3275911*Math.abs(x)); const y = 1-(((((1.061405429*t-1.453152027)*t)+1.421413741)*t-0.284496736)*t+0.254829592)*t*Math.exp(-x*x); return x>=0?y:-y; }; }
 function calc(){
-    var __ig=__tbInputGuard(['mu', 'sigma', 'a', 'b'],["均值", "标准差", "下界", "上界"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
-const mu = +document.getElementById('mu').value || 0;
-  const sigma = +document.getElementById('sigma').value || 0;
-  const a = +document.getElementById('a').value || 0;
-  const b = +document.getElementById('b').value || 0;
+const mu = readNum('mu');
+  const sigma = readNum('sigma');
+  const a = readNum('a');
+  const b = readNum('b');
+  if(isNaN(mu)||isNaN(sigma)||isNaN(a)||isNaN(b)){ToolBox.setResult('result','<p style="color:var(--danger)">⚠ 均值、标准差、下界和上界都必须是有限数值，不能含文字。</p>');return;}
+  if(sigma<=0){ToolBox.setResult('result','<p style="color:var(--danger)">⚠ 标准差必须大于 0；σ=0 时正态分布无定义。</p>');return;}
+  if(a>b){ToolBox.setResult('result','<p style="color:var(--danger)">⚠ 下界不能大于上界；交换两个端点后再计算。</p>');return;}
   let html = '';
   const __v0 = ((0.5*(1+Math.erf((b-mu)/(sigma*Math.sqrt(2)))) - 0.5*(1+Math.erf((a-mu)/(sigma*Math.sqrt(2)))))*100);
   html += `<p>区间概率：<strong style="font-size:18px;color:var(--primary);">${__v0.toFixed(3)}</strong> %</p>`;
